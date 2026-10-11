@@ -1306,7 +1306,8 @@ function openSettings() {
 // « Version du 11/10/2026 à 23:12 · appli Android v4 »
 function versionText() {
   const b = String(window.JDW_BUILD || ''), m = b.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
-  const site = m ? 'Version du ' + m[3] + '/' + m[2] + '/' + m[1] + ' à ' + m[4] + 'h' + m[5] : 'Version de test';
+  const V = window.JDW_VERSION ? 'Version ' + window.JDW_VERSION + ' · ' : 'Version ';
+  const site = m ? V + 'du ' + m[3] + '/' + m[2] + '/' + m[1] + ' à ' + m[4] + 'h' + m[5] : 'Version de test';
   const app = navigator.userAgent.match(/BorneArcade\/(\d+)/);
   return site + (app ? ' · appli Android ' + ({ 2: '1.1', 3: '1.2', 4: '1.3' }[app[1]] || 'v' + app[1]) : '');
 }

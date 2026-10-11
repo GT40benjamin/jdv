@@ -15,11 +15,16 @@ SUPABASE_KEY=${SUPABASE_KEY:-$(cat "$HOME/jdv-tools/supabase-key.txt" 2>/dev/nul
 : "${SUPABASE_KEY:?définis SUPABASE_KEY=sb_publishable_…}"
 APK=${APK:-$HOME/jdv-tools/borne-arcade.apk}
 export BUILD_ID=${BUILD_ID:-$(date +%Y%m%d%H%M%S)}   # numéro de version : les appareils rechargent le site quand il change
+# numéro de version lisible (affiché dans ⚙) : +0.1 à chaque publication, BUMP=major pour passer à la version entière suivante
+V=$(cat version.txt 2>/dev/null || echo 1.0); MAJ=${V%%.*}; MIN=${V#*.}
+if [ "$BUMP" = "major" ]; then MAJ=$((MAJ + 1)); MIN=0; else MIN=$((MIN + 1)); fi
+export SITE_VERSION="$MAJ.$MIN"; echo "$SITE_VERSION" > version.txt
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT        # fichiers en clair : jamais dans le dépôt
 PY=$(command -v python3 >/dev/null && python3 -c 1 2>/dev/null && echo python3 || echo python)
 PYTHONUTF8=1 $PY build2.py "$T/art.html" "$T/standalone.html" "$T/site.html" "$SUPABASE_URL" "$SUPABASE_KEY"
 node encrypt.js "$T/site.html" ../index.html "$ARCADE_CODE"
 node telecharger.js "$APK" "$T/telecharger.html"
 node encrypt.js "$T/telecharger.html" ../telecharger/index.html "$ARCADE_CODE" "L'appli <b>Android</b>" "Entre le mot de passe de la bande pour télécharger l'appli Borne d'arcade."
-printf '{"build":"%s"}\n' "$BUILD_ID" > ../site.json
+printf '{"build":"%s","version":"%s"}\n' "$BUILD_ID" "$SITE_VERSION" > ../site.json
+echo "Version $SITE_VERSION"
 echo "OK : index.html et telecharger/index.html reconstruits. Vérifie, puis commit + push."

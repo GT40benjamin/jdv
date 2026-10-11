@@ -86,7 +86,7 @@ def page(config=None):
     body = open(J + 'shell2-body.html').read().replace('PG_MARKUP', '<section id="jdw-pg" hidden>\n' + markup + '\n</section>')
     games = ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
     cfg = ('<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else '') + \
-          '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + ';</script>\n' + \
+          '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + '; window.JDW_VERSION = ' + json.dumps(os.environ.get('SITE_VERSION', '')) + ';</script>\n' + \
           '<script>window.JDW_MUSIC = ' + json.dumps(music_list()) + ';</script>\n'
     return ('<title>Jeux des WC</title>\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
