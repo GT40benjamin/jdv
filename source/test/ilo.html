@@ -17,7 +17,7 @@ if (Q.indexOf('fast') >= 0) {
 </script>
 <script src="../games/ilo.js"></script>
 <script>
-window.__over = []; window.__cele = [];
+window.__over = []; window.__cele = []; window.__music = [];
 function fakeHead(skin, hair, mood, sad) {
   const c = document.createElement('canvas'); c.width = 160; c.height = 200;
   const g = c.getContext('2d');
@@ -59,6 +59,7 @@ const api = {
   celebrate(text, name) { console.log('CELEBRATE', text, name || ''); window.__cele.push(text); },
   gameOver(s) { console.log('GAMEOVER', s); window.__over.push(s); },
   assets: () => window.JDW_ASSETS.load('ilo'),
+  music(name) { window.__music.push(name === undefined ? null : name); },
   audio: { tone() {}, noise() {} },
   fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
   colors: { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae', amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a' }

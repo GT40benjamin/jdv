@@ -510,13 +510,21 @@ async function loadNotifs() {
   else if (!last) { notifToasted[key] = 1; store.set('jdw.notiftoast', notifToasted); }
 }
 let gameNotifSeen = store.get('jdw.gamenotifseen', {}) || {};
+// mises à jour annoncées en direct : nouvelle version du site (rechargement) et nouvelle appli Android (téléchargement)
+const UPD = { site: '', app: '', seen: store.get('jdw.updseen', {}) || {} };
+function updateNotifs() {
+  const out = [];
+  if (UPD.site && UPD.seen.site !== UPD.site) out.push({ kind: 'site', v: UPD.site });
+  if (UPD.app && UPD.seen.app !== UPD.app) out.push({ kind: 'app', v: UPD.app });
+  return out;
+}
 function gameNotifs() {
   const me = cleanName(profile.name); if (!me) return [];
   return [...NEW_GAMES].filter(id => gameById(id) && !gameSeen(id) && !(gameNotifSeen[me] || []).includes(id)).map(id => ({ kind: 'game', game: id }));
 }
-function unseenCount() { const s = notifSeen[notifKey()] || 0; return notifs.filter(n => n.id > s).length + gameNotifs().length; }
+function unseenCount() { const s = notifSeen[notifKey()] || 0; return notifs.filter(n => n.id > s).length + gameNotifs().length + updateNotifs().length; }
 function refreshBell() {
-  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length);
+  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length && !updateNotifs().length);
   const n = unseenCount(), b = $('jdw-bell-n');
   b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n);
   $('jdw-bell').setAttribute('aria-label', n ? n + ' nouvelle' + (n > 1 ? 's' : '') + ' notification' + (n > 1 ? 's' : '') : 'Notifications');
@@ -531,6 +539,15 @@ function timeAgo(t) {
 function notifRow(n, isNew) {
   const li = document.createElement('li'); if (isNew) li.className = 'new';
   const tx = document.createElement('span'); tx.className = 'nt';
+  if (n.kind === 'site' || n.kind === 'app') {
+    const app = n.kind === 'app';
+    const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = app ? '📲' : '🔄'; ic.style.background = app ? 'var(--leaf)' : 'var(--volt)';
+    const b = document.createElement('b'); b.textContent = app ? 'Nouvelle appli ' + n.v + ' à télécharger' : 'Mise à jour ' + n.v + ' disponible';
+    const sm = document.createElement('small'); sm.textContent = app ? 'Touche ici pour télécharger la nouvelle appli' : 'Touche ici pour l\'installer maintenant';
+    tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (app) location.href = 'telecharger/'; else reloadNow(); });
+    return li;
+  }
   if (n.kind === 'game') {
     const g = gameById(n.game);
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '🎮'; if (g) ic.style.background = g.accent;
@@ -551,7 +568,7 @@ function notifRow(n, isNew) {
 function openNotifs(showOld) {
   const ol = $('jdw-notifs-list'); ol.textContent = '';
   const key = notifKey(), seen = notifSeen[key] || 0, me = cleanName(profile.name);
-  const fresh = [...gameNotifs(), ...notifs.filter(n => n.id > seen)];
+  const fresh = [...updateNotifs(), ...gameNotifs(), ...notifs.filter(n => n.id > seen)];
   const old = notifs.filter(n => n.id <= seen);
   // ce qui est vu disparaît : la prochaine fois, seulement les nouveautés (l'historique reste consultable)
   for (const n of fresh) ol.appendChild(notifRow(n, true));
@@ -559,6 +576,8 @@ function openNotifs(showOld) {
   if (showOld === true) for (const n of old) ol.appendChild(notifRow(n, false));
   $('jdw-notifs-old').hidden = showOld === true || !old.length;
   if (notifs.length) { notifSeen[key] = Math.max(seen, ...notifs.map(n => n.id)); store.set('jdw.notifseen', notifSeen); }
+  for (const u of updateNotifs()) UPD.seen[u.kind] = u.v;
+  store.set('jdw.updseen', UPD.seen);
   const gn = gameNotifs(); if (gn.length && me) { gameNotifSeen[me] = [...(gameNotifSeen[me] || []), ...gn.map(n => n.game)]; store.set('jdw.gamenotifseen', gameNotifSeen); }
   refreshBell();
   if ($('jdw-notifs').hidden) openSheet('jdw-notifs', 'jdw-notifs-close');
@@ -1055,7 +1074,26 @@ async function checkSiteVersion() {
     const r = await fetch('site.json?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) return;
     const v = await r.json();
-    if (v && v.build && v.build !== BUILD) { siteNew = true; maybeReload(); }
+    if (v && v.build && v.build !== BUILD) {
+      const label = (v.version || '') + (v.build ? ' du ' + v.build.slice(6, 8) + '/' + v.build.slice(4, 6) + ' à ' + v.build.slice(8, 10) + 'h' + v.build.slice(10, 12) : '');
+      const first = !siteNew; siteNew = true; UPD.siteBuild = v.build;
+      if (UPD.site !== label) { UPD.site = label; refreshBell(); }
+      if (first && !$('jdw-play').hidden) toastCheer('Une mise à jour arrive : elle s\'installera à la fin de ta partie.', profile.name, true);
+      maybeReload();
+    }
+  } catch (e) {}
+  checkAppVersion();
+}
+// nouvelle appli Android (dans l'appli seulement) : bandeau vert + notification, sans redémarrer
+async function checkAppVersion() {
+  const m = navigator.userAgent.match(/BorneArcade\/(\d+)/); if (!m) return;
+  try {
+    const r = await fetch('telecharger/version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+    const v = await r.json();
+    if (+v.versionCode > +m[1]) {
+      $('jdw-update-txt').textContent = 'Version ' + v.versionName + ' disponible : touche ici pour la télécharger.'; $('jdw-update').hidden = false;
+      if (UPD.app !== v.versionName) { UPD.app = v.versionName; refreshBell(); }
+    }
   } catch (e) {}
 }
 let saving = 0;
@@ -1064,9 +1102,18 @@ function calmMoment() {
   for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) return false;
   const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA)$/.test(a.tagName));
 }
-function reloadNow() { if (saving > 0) { setTimeout(reloadNow, 400); return; } location.reload(); }
+// recharge vers une adresse propre à la nouvelle version : le cache de GitHub ne peut pas resservir l'ancienne page
+function reloadNow() {
+  if (saving > 0) { setTimeout(reloadNow, 400); return; }
+  const target = UPD.siteBuild || String(Date.now());
+  try { sessionStorage.setItem('jdw.reloadfor', target); } catch (e) {}
+  location.replace(location.pathname + '?v=' + encodeURIComponent(target));
+}
 function maybeReload() {
   if (!siteNew) return;
+  // anti-boucle : une seule tentative automatique par version (si la nouvelle page n'est pas encore partout, on attend le bouton)
+  let tried = ''; try { tried = sessionStorage.getItem('jdw.reloadfor') || ''; } catch (e) {}
+  if (tried && tried === UPD.siteBuild) { $('jdw-siteupd').hidden = false; return; }
   if (calmMoment()) { reloadNow(); return; }
   $('jdw-siteupd').hidden = false;
 }
@@ -1213,7 +1260,11 @@ function refreshOnline() {
   refreshChamps();
   const live = ONLINE && serverOk;
   $('jdw-online').classList.toggle('off', !live);
-  $('jdw-online-txt').textContent = live ? (total <= 1 ? (total === 1 ? '1 joueur en ligne' : 'Personne en ligne') : total + ' joueurs en ligne') : (ONLINE ? 'Connexion…' : 'Mode local');
+  // court sur téléphone : « 1 » + icône ; « 1 en ligne » quand il y a la place
+  const ot = $('jdw-online-txt'); ot.textContent = '';
+  if (live) { const nb = document.createElement('b'); nb.textContent = String(total); const w = document.createElement('span'); w.className = 'ol-word'; w.textContent = ' en ligne'; ot.append(nb, w); }
+  else ot.textContent = ONLINE ? 'Connexion…' : 'Mode local';
+  $('jdw-online').setAttribute('aria-label', live ? (total <= 1 ? (total === 1 ? '1 joueur en ligne' : 'Personne en ligne') : total + ' joueurs en ligne') + ' : voir les joueurs' : 'Voir les joueurs de la salle');
   for (const t of tiles) {
     const n = counts[t.g.id] || 0, span = t.on.querySelector('span');
     t.on.classList.toggle('live', live && n > 0);
@@ -2235,7 +2286,14 @@ function mountGame(g) {
   const api = {
     audio: audioApi, colors: COLORS, fonts: FONTS,
     assets: () => window.JDW_ASSETS.load(g.id),
-    music: (track) => { if (current && current.seq === seq) setMusic(track || g.id); },   // un jeu peut changer de morceau (par niveau)
+    // un jeu peut demander un morceau précis (ex. musique de boss) ; api.music() rend la main à la musique normale
+    music: (track) => {
+      if (!current || current.seq !== seq) return;
+      if (track && track !== g.id) { MUS.override = true; setMusic(track, 'calm'); return; }
+      MUS.override = false;
+      let lvl = 0; try { lvl = current.inst && current.inst.currentLevel ? +current.inst.currentLevel() : 0; } catch (e) {}
+      setMusic(g.id, lvl >= (INTENSE_AT[g.id] || 99) ? 'intense' : 'calm');
+    },
     isMuted: () => muted,
     heads: () => headsList(),
     player: playerObj(),
@@ -2249,7 +2307,7 @@ function mountGame(g) {
   };
   current = { game: g, root, seq, over: false, inst: null };
   recReset(); setTimeout(recLine, 50);
-  musicBaseLevel(0.8); setMusic(g.id);
+  musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
   try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }
   setWhere(g.id);
 }
@@ -2293,7 +2351,7 @@ function backToLibrary() {
   waitRotate = null; $('jdw-rotate').hidden = true;
   unmountGame();
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
-  setWhere('menu'); refreshAll(); musicBaseLevel(1); setMusic('accueil');
+  setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic('accueil');
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
@@ -2366,7 +2424,7 @@ function recLine() {
   if (Date.now() < REC.flashUntil) cls += ' flash';
   try {
     const lvl = current.inst && current.inst.currentLevel ? +current.inst.currentLevel() : 0;
-    if (lvl >= (INTENSE_AT[g.id] || 99) && MUS.wantMode !== 'intense' && !current.over) setMusic(g.id, 'intense');
+    if (!MUS.override && lvl >= (INTENSE_AT[g.id] || 99) && MUS.wantMode !== 'intense' && !current.over) setMusic(g.id, 'intense');
   } catch (e) {}
   if (el.className !== cls) el.className = cls;
   if (el.textContent !== txt) el.textContent = txt;
@@ -2516,16 +2574,7 @@ window.JDW_BACK = () => {
   if (!$('jdw-play').hidden) { quitGame(); return true; }
   return false;
 };
-(async () => {
-  const m = navigator.userAgent.match(/BorneArcade\/(\d+)/);
-  if (!m) return;
-  try {
-    const r = await fetch('telecharger/version.json', { cache: 'no-store' });
-    if (!r.ok) return;
-    const v = await r.json();
-    if (+v.versionCode > +m[1]) { $('jdw-update-txt').textContent = 'Version ' + v.versionName + ' disponible : touche ici pour la télécharger.'; $('jdw-update').hidden = false; }
-  } catch (e) {}
-})();
+checkAppVersion();
 
 /* ================= Démarrage ================= */
 ['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members'].forEach(id => { if ($(id)) $(id).hidden = true; });

@@ -1131,6 +1131,7 @@
     let state = 'load', stT = 0, paused = false, T = 0, playT = 0;
     let score = 0, mult = 1, chain = 0, chainT = 0, multPop = 0, kills = 0, dropAcc = 0;
     const MULT_AT = [0, 8, 20, 36, 56, 82, 114, 155];
+    const PDECAY = 20, ARMS_T = 20;                // la puissance perd 1 niveau toutes les 20 s sans capsule P ; missiles et drones durent 20 s
     let secI = 0, cycle = 0, L = 0, SEC = SECTORS[0], secHue = SECTORS[0].hue, secNoHit = true, sectorsDone = 0, bossCount = 0;
     let shake = 0, flashA = 0, flashCol = '#ffffff', freezeT = 0, slowT = 0, slowK = 1, hyperTint = 0, glitch = 0;
     let scrollV = 60, warp = 0, bgDirty = true, god = false, overSent = false, deathT = 0, deadInfo = null;
@@ -1138,7 +1139,7 @@
     let B = null;                                // boss en cours
     let onFrame = null;                          // crochet de test (_debug)
     const P = {
-      x: LW / 2, y: 520, px: LW / 2, py: 520, vx: 0, vy: 0, bank: 0, alive: true, vis: true, shield: 3, inv: 0, power: 1, miss: 0, opts: 0, bombs: 2,
+      x: LW / 2, y: 520, px: LW / 2, py: 520, vx: 0, vy: 0, bank: 0, alive: true, vis: true, shield: 0, inv: 0, power: 1, miss: 0, opts: 0, bombs: 1, pT: 0, missLeft: 0, optLeft: 0,
       hyper: 0, hyperT: 0, fireT: 0, missT: 0, optT: 0, optA: 0, magT: 0, hitFlash: 0, auto: 0, ax: 0, ay: 0, volley: 0, side: 0
     };
     const OPT = [];                              // positions lissées des drones
@@ -1170,12 +1171,12 @@
 
     // ------------------------------------------------------------- difficulté
     let early = true;                            // la première minute est douce
-    const spdMul = () => Math.min(2.1, 0.82 + 0.1 * L + 0.1 * cycle) * (early ? 0.85 : 1);
-    const fireMul = () => (early ? 0.4 : 1) * Math.min(3.6, 0.6 + 0.3 * L + 0.3 * cycle);
+    const spdMul = () => Math.min(2.3, 0.98 + 0.11 * L + 0.2 * cycle) * (early ? 0.9 : 1);
+    const fireMul = () => (early ? 0.6 : 1) * Math.min(4, 0.8 + 0.36 * L + 0.5 * cycle);
     // « rang » : plus le joueur est armé, plus les ennemis encaissent (et l'inverse quand il perd de la puissance)
-    const rank = () => 1 + 0.09 * (P.power - 1) + 0.05 * P.miss + 0.04 * P.opts;
-    const hpMul = () => (1 + 0.5 * L + 0.6 * cycle) * rank();
-    const densMul = () => Math.min(2.2, 0.85 + 0.09 * L);
+    const rank = () => 1 + 0.08 * (P.power - 1) + 0.05 * P.miss + 0.03 * P.opts;
+    const hpMul = () => (1 + 0.6 * L + 1.0 * cycle) * rank();
+    const densMul = () => Math.min(2.6, 1.1 + 0.1 * L + 0.15 * cycle);
 
     // ------------------------------------------------------------- balles ennemies
     const BREMAP = [null, { o: 'p', y: 'v' }, { g: 'o' }, { v: 'y' }, null, { r: 'y', p: 'g' }, { p: 'y', v: 'g' }, { y: 'v', o: 'p' }];
@@ -1292,7 +1293,7 @@
     }
     function addHyper(v) {
       if (P.hyperT > 0) return;
-      P.hyper = Math.min(1, P.hyper + v * 0.55);
+      P.hyper = Math.min(1, P.hyper + v * 0.275);
     }
 
     // ------------------------------------------------------------- éclats et capsules
@@ -1308,16 +1309,13 @@
       c.x = clamp(x, 20, LW - 20); c.y = y; c.vx = rnd(-18, 18); c.vy = -50; c.k = k; c.t = 0;
     }
     function chooseCap() {
-      // choisit une capsule utile (d'abord la puissance, puis le reste)
-      if (P.power < 3 && chance(0.6)) return 'P';
-      if (P.shield < 2 && chance(0.45)) return 'S';
-      if (P.bombs < 1 && chance(0.35)) return 'B';
+      // capsule au hasard : la puissance, la bulle et les bombes sont rares
       const r = Math.random();
-      if (r < 0.32) return P.power < 6 ? 'P' : 'M';
-      if (r < 0.5) return P.miss < 3 ? 'M' : 'O';
-      if (r < 0.66) return P.opts < 4 ? 'O' : 'P';
-      if (r < 0.78) return P.shield < 3 ? 'S' : 'A';
-      if (r < 0.89) return P.bombs < 3 ? 'B' : 'A';
+      if (r < 0.22) return P.power < 6 ? 'P' : 'M';
+      if (r < 0.44) return 'M';
+      if (r < 0.66) return 'O';
+      if (r < 0.76) return P.bombs < 2 ? 'B' : 'A';
+      if (r < 0.82) return P.shield < 1 ? 'S' : 'A';
       return 'A';
     }
 
@@ -1408,6 +1406,14 @@
       if (P.hitFlash > 0) P.hitFlash -= dt * 2;
       if (P.magT > 0) P.magT -= dt;
       if (P.hyperT > 0) { P.hyperT -= dt; if (P.hyperT <= 0) { P.hyperT = 0; ftext(P.x, P.y - 40, 'FIN DE L’HYPER', '#ffb3e6', 12, 1, -20, 0); } }
+      if (state === 'play' && P.auto <= 0) {        // la puissance redescend, missiles et drones s'épuisent
+        if (P.power > 1) {
+          P.pT += dt;
+          if (P.pT >= PDECAY) { P.pT = 0; P.power--; ftext(P.x, P.y - 36, 'PUISSANCE ' + P.power + '…', '#8fc9e6', 11, 1.1, -16, 0); if (canPlay('pdown', 0.3)) tone(520, 0.2, 'triangle', 0.03, 260); }
+        } else P.pT = 0;
+        if (P.miss > 0) { P.missLeft -= dt; if (P.missLeft <= 0) { P.miss = 0; P.missLeft = 0; ftext(P.x, P.y - 48, 'MISSILES ÉPUISÉS', '#ffb066', 11, 1.1, -16, 0); } }
+        if (P.opts > 0) { P.optLeft -= dt; if (P.optLeft <= 0) { P.opts = 0; P.optLeft = 0; ftext(P.x, P.y - 48, 'DRONES PARTIS', '#c9a6ff', 11, 1.1, -16, 0); } }
+      }
       // trainée lumineuse des bouts d'ailes (le décor défile : la traînée descend)
       trailT -= dt;
       for (let i = 0; i < trailN; i++) TRAIL[i * 2 + 1] += scrollV * 1.6 * dt;
@@ -1436,9 +1442,10 @@
 
     function hurtPlayer() {
       if (!P.alive || P.inv > 0 || god || state !== 'play' || P.auto > 0) return;
-      P.shield--; secNoHit = false;
+      secNoHit = false;
       if (P.shield <= 0) { killPlayer(); return; }
-      P.power = Math.max(1, P.power - 1);
+      P.shield = 0;                               // la bulle éclate à la place du vaisseau
+      P.power = Math.max(1, P.power - 2); P.pT = 0;
       if (mult > 1) { mult = Math.max(1, Math.ceil(mult / 2)); chain = MULT_AT[mult - 1]; }
       P.inv = 2.2; P.hitFlash = 1;
       cancelBullets(P.x, P.y, 110, false);
@@ -1446,7 +1453,7 @@
       ring(P.x, P.y, 10, 110, 0.45, '#ff8fb0', 3);
       sparks(P.x, P.y, 18, GL.c, 220, 0.5, 8);
       SFX.shield();
-      ftext(P.x, P.y - 36, P.shield === 1 ? 'BOUCLIER CRITIQUE !' : 'BOUCLIER -1', P.shield === 1 ? '#ff4d6d' : '#ffd34d', 14, 1.3, -18, 0);
+      ftext(P.x, P.y - 36, 'BULLE PERDUE !', '#ff4d6d', 14, 1.3, -18, 0);
     }
     function killPlayer() {
       P.alive = false; P.shield = 0; P.hyperT = 0;
@@ -1492,11 +1499,11 @@
     function pickCap(k) {
       const col = CAPS[k].col;
       let msg = '';
-      if (k === 'P') { if (P.power < 6) { P.power++; msg = P.power === 6 ? 'PUISSANCE MAX !' : 'PUISSANCE ' + P.power; } else { addPts(2000, 0, 0, false); msg = '+' + fmt(2000 * mult); } }
-      else if (k === 'M') { if (P.miss < 3) { P.miss++; msg = 'MISSILES ' + P.miss; P.missT = 0.1; } else { addPts(2000, 0, 0, false); msg = '+' + fmt(2000 * mult); } }
-      else if (k === 'O') { if (P.opts < 4) { OPT[P.opts].x = P.x; OPT[P.opts].y = P.y; P.opts++; msg = 'DRONE +1'; } else { addPts(2000, 0, 0, false); msg = '+' + fmt(2000 * mult); } }
-      else if (k === 'S') { if (P.shield < 3) { P.shield++; msg = 'BOUCLIER +1'; } else { addPts(3000, 0, 0, false); msg = 'BOUCLIER PLEIN'; } }
-      else if (k === 'B') { if (P.bombs < 3) { P.bombs++; msg = 'BOMBE +1'; } else { addPts(2000, 0, 0, false); msg = '+' + fmt(2000 * mult); } }
+      if (k === 'P') { P.pT = 0; if (P.power < 6) { P.power++; msg = P.power === 6 ? 'PUISSANCE MAX !' : 'PUISSANCE ' + P.power; } else { addPts(2000, 0, 0, false); msg = 'PUISSANCE MAX +' + fmt(2000 * mult); } }
+      else if (k === 'M') { P.miss = Math.min(3, P.miss + 1); P.missLeft = ARMS_T; P.missT = 0.1; msg = 'MISSILES ' + P.miss + ' (20 s)'; }
+      else if (k === 'O') { const n0 = P.opts; P.opts = Math.min(4, P.opts + 2); for (let i = n0; i < P.opts; i++) { OPT[i].x = P.x; OPT[i].y = P.y; } P.optLeft = ARMS_T; msg = 'DRONES ×' + P.opts + ' (20 s)'; }
+      else if (k === 'S') { if (P.shield < 1) { P.shield = 1; msg = 'BULLE DE PROTECTION !'; } else { addPts(3000, 0, 0, false); msg = 'BULLE DÉJÀ LÀ +' + fmt(3000 * mult); } }
+      else if (k === 'B') { if (P.bombs < 2) { P.bombs++; msg = 'BOMBE +1'; } else { addPts(2000, 0, 0, false); msg = '+' + fmt(2000 * mult); } }
       else { P.magT = 12; msg = 'AIMANT À ÉCLATS !'; }
       ftext(P.x, P.y - 40, msg, col, 13, 1.1, -24, 0);
       ring(P.x, P.y, 8, 46, 0.35, col, 2.5);
@@ -1654,7 +1661,7 @@
       e.x = b0 * e.p0 + b1 * e.p2 + b2 * e.p4 + b3 * e.p6;
       e.y = b0 * e.p1 + b1 * e.p3 + b2 * e.p5 + b3 * e.p7;
     }
-    function dropEvery() { return 3600 + 1400 * Math.min(6, L); }
+    function dropEvery() { return 7000 + 2500 * Math.min(6, L); }
     function sayFriend(e) {
       if (!e.head || e.said) return;
       e.said = true;
@@ -1683,9 +1690,9 @@
       const dx = P.x - e.x, dy = P.y - e.y;
       if (dx * dx + dy * dy < 95 * 95 || e.y > P.y - 40) return;
       const ty = e.type;
-      if (L >= 4 && (ty === 'swarm' || ty === 'dart' || ty === 'drone' || ty === 'rockS' || ty === 'stealth')) {
-        if (cycle >= 2 || Math.random() < (cycle >= 1 ? 0.7 : 0.3)) fireAimed(e.x, e.y, 95, 'p', 0, cycle >= 2 && Math.random() < 0.5 ? 3 : 1, 0.22);
-      } else if (L >= 5 && (ty === 'frigate' || ty === 'elite' || ty === 'cruiser' || ty === 'weaver' || ty === 'sentinel')) {
+      if (L >= 2 && (ty === 'swarm' || ty === 'dart' || ty === 'drone' || ty === 'rockS' || ty === 'stealth')) {
+        if (cycle >= 2 || Math.random() < (cycle >= 1 ? 0.8 : 0.35)) fireAimed(e.x, e.y, 95, 'p', 0, cycle >= 2 && Math.random() < 0.5 ? 3 : 1, 0.22);
+      } else if (L >= 3 && (ty === 'frigate' || ty === 'elite' || ty === 'cruiser' || ty === 'weaver' || ty === 'sentinel')) {
         fireRing(e.x, e.y, 8 + Math.min(8, cycle * 4), 80, 'p', 0, Math.random());
       }
     }
@@ -1726,6 +1733,7 @@
               r.entered = true;
             }
             if (e.rich) { capsule(e.x, e.y, chooseCap()); shards(e.x, e.y, 10); }
+            else if (ty === 'rockL' && Math.random() < 0.25) capsule(e.x, e.y, 'P');
           }
           break;
         }
@@ -1961,7 +1969,7 @@
       const e = spawnEnemy('gardien', LW / 2, -70, 0);
       if (!e) return null;
       e.mv = 10; e.y0 = -70; e.ty = 128; e.r = 40; e.mini = true; e.var = secI % 4; e.hue = secHue;
-      e.max = e.hp = ET.gardien.hp * (1 + 0.4 * L + 0.6 * cycle) * (1 + (rank() - 1) * 0.6);
+      e.max = e.hp = ET.gardien.hp * 1.5 * (1 + 0.45 * L + 1.0 * cycle) * (1 + (rank() - 1) * 0.6);
       e.pts = 8000 + 2000 * L;
       if (heads.length && chance(0.4)) e.head = pickHead();
       e.st = 2.8;
@@ -1970,7 +1978,7 @@
     }
     function gardienFire(e, dt, fm) {
       if (e.t < 2.2) return;
-      const rage = e.hp < e.max * 0.45, f = Math.min(1.9, fm) * (rage ? 1.3 : 1);
+      const rage = e.hp < e.max * 0.45, f = Math.min(2.4, fm) * 1.2 * (rage ? 1.3 : 1);
       e.st -= dt * f;
       e.st2 -= dt * f;
       const v = e.var;
@@ -2056,7 +2064,7 @@
     const dir = { phase: 'intro', t: 0, wave: 0, nW: 5, plan: [], pi: 0, groups: [], gi: 0, wt: 0, last: 0, ev: null, evT: 0, evNext: 0, swapped: false, prevGap: LW / 2 };
     const GROUPS = [                             // [sorte, secteur d'apparition, poids]
       ['col', 0, 3], ['vee', 0, 2], ['sweepL', 0, 2], ['sweepR', 0, 2], ['loop', 0, 2], ['darts', 0, 2],
-      ['frig', 1, 3], ['rocks', 1, 1.5], ['elite', 1, 0.8], ['miner', 2, 2.2], ['snake', 2, 1.6], ['sent', 3, 2.2], ['drones', 3, 1.4],
+      ['frig', 1, 3], ['rocks', 1, 1.5], ['elite', 0, 0.9], ['miner', 2, 2.2], ['snake', 2, 1.6], ['sent', 3, 2.2], ['drones', 3, 1.4],
       ['stealth', 4, 2.4], ['cruiser', 5, 2.2], ['weaver', 6, 2.4]
     ];
     const NOVELTY = [null, 'frig', 'miner', 'sent', 'stealth', 'cruiser', 'weaver', 'elite'];
@@ -2078,14 +2086,14 @@
       const g = [];
       if (cycle === 0 && secI === 0) {
         const X = LW;
-        if (w === 0) g.push(W(0.5, 'col', 5, X * 0.3, 40), W(2.8, 'col', 5, X * 0.7, 40), W(5.4, 'vee', 7), W(7, 'carrier', 0, 'P'), W(9.2, 'sweepL', 6), W(11.8, 'sweepR', 6), W(14.4, 'col', 6, X * 0.5, 80), W(16, 'carrier', 0, 'P'));
-        else if (w === 1) g.push(W(0.5, 'sweepL', 7), W(3, 'darts', 2), W(5, 'vee', 7), W(7.5, 'darts', 2), W(9.5, 'loop', 6), W(10.5, 'carrier', 0, '?'), W(12.8, 'sweepR', 7), W(15, 'col', 6, X * 0.25, 50), W(15.4, 'col', 6, X * 0.75, 50));
-        else if (w === 2) g.push(W(0.5, 'col', 6, X * 0.5, 90), W(2.2, 'loop', 6), W(4.5, 'darts', 3), W(6.5, 'vee', 9), W(8, 'carrier', 0, 'M'), W(10, 'sweepL', 8), W(10.6, 'sweepR', 8), W(13.2, 'darts', 3), W(15, 'col', 8, X * 0.5, 110));
-        else if (w === 3) g.push(W(0.5, 'vee', 9), W(3, 'darts', 4), W(5, 'sweepL', 8), W(6.6, 'sweepR', 8), W(9, 'col', 7, X * 0.3, 60), W(9.4, 'col', 7, X * 0.7, 60), W(10.2, 'carrier', 0, '?'), W(12, 'loop', 8), W(14, 'darts', 4));
-        else g.push(W(0.5, 'sweepL', 9), W(1.5, 'sweepR', 9), W(4.2, 'vee', 11), W(6.5, 'darts', 5), W(8.5, 'carrier', 0, 'O'), W(9, 'col', 8, X * 0.5, 120), W(11.5, 'loop', 8), W(13.5, 'sweepL', 10), W(14, 'sweepR', 10), W(16.5, 'darts', 5));
+        if (w === 0) g.push(W(0.5, 'col', 5, X * 0.3, 40), W(2.6, 'col', 5, X * 0.7, 40), W(4.8, 'vee', 7), W(6.5, 'carrier', 0, 'P'), W(8.5, 'sweepL', 6), W(10.8, 'sweepR', 6), W(13, 'darts', 2), W(14.5, 'col', 6, X * 0.5, 80), W(16, 'carrier', 0, '?'));
+        else if (w === 1) g.push(W(0.5, 'sweepL', 8), W(2.5, 'darts', 3), W(4.2, 'frig', 1), W(5.5, 'vee', 9), W(7.5, 'darts', 3), W(9, 'loop', 7), W(10, 'carrier', 0, '?'), W(11.8, 'sweepR', 8), W(13.5, 'col', 7, X * 0.25, 50), W(13.9, 'col', 7, X * 0.75, 50));
+        else if (w === 2) g.push(W(0.5, 'col', 8, X * 0.5, 90), W(2, 'loop', 7), W(3.5, 'elite'), W(5, 'darts', 4), W(6.5, 'vee', 11), W(8, 'carrier', 0, 'M'), W(9.5, 'sweepL', 9), W(10.1, 'sweepR', 9), W(12, 'frig', 2), W(14, 'darts', 4));
+        else if (w === 3) g.push(W(0.5, 'vee', 11), W(2.2, 'frig', 2), W(4, 'darts', 5), W(5.5, 'sweepL', 9), W(6.6, 'sweepR', 9), W(8.5, 'elite'), W(9, 'col', 8, X * 0.3, 60), W(9.4, 'col', 8, X * 0.7, 60), W(10.2, 'carrier', 0, '?'), W(12, 'loop', 9), W(13.5, 'darts', 5));
+        else g.push(W(0.5, 'sweepL', 10), W(1.5, 'sweepR', 10), W(3.5, 'elite'), W(4.2, 'vee', 13), W(6.5, 'darts', 6), W(7.5, 'frig', 2), W(8.5, 'carrier', 0, 'O'), W(9, 'col', 9, X * 0.5, 120), W(11, 'elite'), W(11.5, 'loop', 9), W(13.5, 'sweepL', 11), W(14, 'sweepR', 11), W(16, 'darts', 6));
         return g;
       }
-      const nG = Math.min(14, 6 + Math.floor(L * 0.45) + Math.min(2, cycle));
+      const nG = Math.min(16, 7 + Math.floor(L * 0.5) + Math.min(3, cycle));
       const gap = clamp(2.5 - 0.09 * L, 1.1, 2.5);
       let t = 0.5;
       if (w === 0 && NOVELTY[secI] && cycle === 0) { g.push(W(t, NOVELTY[secI], 0)); t += gap * 1.7; }
@@ -2218,7 +2226,7 @@
           e.mv = 11; e.y0 = -40; e.ty = rnd(100, 140); e.dur = 1.8; e.hold = rnd(12, 14); e.tx = e.x; e.st = 1.4;
           eliteSeq++;
           if (heads.length && (eliteSeq % 3 === 1 || chance(0.2))) e.head = pickHead();
-          if (eliteSeq % 2 === 0) e.drop = '?';
+          e.drop = 'P';
           break;
         }
         case 'drones': {
@@ -2393,6 +2401,7 @@
     }
     function startJump() {
       dir.phase = 'jump'; dir.t = 0; dir.swapped = false;
+      music();
       P.auto = 1;
       for (let i = 0; i < enN; i++) { const e = EN[i]; if (e.alive) { explode(e.x, e.y, 1, 'v'); e.alive = false; } }
       cancelBullets(0, 0, -1, true);
@@ -2429,19 +2438,23 @@
 
     // ------------------------------------------------------------- BOSS : infrastructure
     const BINIT = {}, BUPD = {}, BDRAW = {};
-    const hpB = () => (1 + 0.38 * L + 0.9 * cycle) * (1 + (rank() - 1) * 0.5);
+    const hpB = () => 1.15 * (1 + 0.42 * L + 1.4 * cycle) * (1 + (rank() - 1) * 0.5);
     let forceFace = null;                        // (tests) forcer un boss avec / sans tête de copain
     function mkPart(x, y, r, mode, hp) { return { uid: uidSeq++, x, y, r, mode, hp: hp || 0, max: hp || 0, alive: true, flash: 0, hide: false, aim: Math.PI / 2, st: 0, a: 0, k: 0, depth: 0, ox: 0, oy: 0, dash: false, vx: 0, vy: 0 }; }
+    function music(name) {
+      try { if (typeof api.music === 'function') { if (name) api.music(name); else api.music(); } } catch (e) { /* rien */ }
+    }
     function spawnBoss() {
       const kind = SEC.boss;
       bossCount++;
+      music('iloboss');
       fetchHeads();
       const want = forceFace === null ? (bossCount + cycle) % 2 === 1 : forceFace;
       forceFace = null;
       const face = heads.length && want ? pickHead() : null;
       B = { kind, x: LW / 2, y: -160, t: 0, hp: 0, maxHp: 0, phase: 0, nph: 3 + (cycle > 0 ? 1 : 0), ready: false, inv: 0, dying: false, dT: 0,
         parts: [], head: face, head2: null, st: 0, st2: 0, st3: 0, a: 0, a2: 0, k: 0, k2: 0, mode: 0, mT: 0, name: BOSS_NAMES[kind], flash: 0,
-        enterT: 2.6, ty: 150, custom: false, bx: LW / 2, by: 150, open: 0, boomT: 0, cv: null };
+        enterT: 2.6, ty: 150, custom: false, bx: LW / 2, by: 150, open: 0, boomT: 0, cv: null, rage: 0 };
       BINIT[kind](B);
       B.maxHp = B.hp;
       banner(B.name, face ? OH(headName(face)) : (cycle > 0 ? 'Version ' + ROMAN[Math.min(9, cycle)] + ' — plus féroce !' : ''), '#ff6b8a', 2.6, 8);
@@ -2492,13 +2505,14 @@
     function bossDefeated() {
       const b = B;
       b.dying = true; b.dT = 0; b.boomT = 0;
+      music();
       slowT = 1.8; slowK = 0.3; freezeT = 0.12; flashA = 0.6; flashCol = '#ffffff'; shake = Math.max(shake, 16);
       cancelBullets(0, 0, -1, true);
       BEAMS.length = 0;
       for (let i = 0; i < enN; i++) { const e = EN[i]; if (e.alive) killEnemy(e, true); }
       SFX.big();
       const n = secI + 1 + 8 * cycle;
-      const base = 20000 * n, quick = Math.max(0, Math.round((110 - b.t) * 300 * (1 + 0.1 * n) / 100) * 100);
+      const base = 20000 * n, quick = Math.max(0, Math.round((150 - b.t) * 300 * (1 + 0.1 * n) / 100) * 100);
       score += base + quick;
       tally.push(['Boss vaincu en ' + Math.round(b.t) + ' s', base + quick]);
       if (b.head) { const v = 5000 * n; score += v; tally.push([headName(b.head) + ' pleure !', v]); }
@@ -2525,7 +2539,7 @@
           sparks(b.x, b.y, 60, GL.y, 420, 1.1, 11);
           debris(b.x, b.y, 24, 260);
           shards(b.x, b.y, 50);
-          capsule(b.x - 24, b.y, 'S'); capsule(b.x + 24, b.y, chooseCap()); if (P.power < 6) capsule(b.x, b.y - 20, 'P');
+          capsule(b.x - 20, b.y, 'S'); capsule(b.x + 20, b.y, 'P');
           flashA = 1; flashCol = '#ffffff'; shake = 22; freezeT = 0.1;
           SFX.big(); after(0.15, () => SFX.big());
           if (b.head && !(b.A && b.A.sadShown)) addFace(b.head, b.x, b.y + 20, SNIF(headName(b.head)), 96);
@@ -2542,6 +2556,11 @@
         b.y = lerp(-160, b.ty, k); b.x = LW / 2;
         b.ready = false;
       } else if (!b.ready) { b.ready = true; b.st = 1; b.st2 = 1.5; b.st3 = 2; }
+      if (b.ready) {                               // un boss qui traîne s'énerve : sa cadence de tir monte peu à peu
+        const r0 = b.rage;
+        b.rage = clamp((b.t - 75) / 60, 0, 1);
+        if (r0 <= 0 && b.rage > 0) { banner('IL S’ÉNERVE !', b.name, '#ff4d6d', 1.6, 9); SFX.phase(); }
+      }
       BUPD[b.kind](b, dt, b.ready && state === 'play' && P.alive && P.auto <= 0);
       // collision corps du boss / vaisseau
       if (P.alive && b.ready) {
@@ -2554,7 +2573,7 @@
       }
     }
     function hitBlink() { return ((rt * 20) | 0) % 3 === 0; }   // éclat de touche intermittent (pas de voile blanc permanent)
-    function bfm() { return Math.min(2.2, fireMul()) * (B && B.phase >= B.nph - 1 ? 1.15 : 1); }
+    function bfm() { return Math.min(2.8, fireMul() * 1.25) * (B && B.phase >= B.nph - 1 ? 1.15 : 1) * (B ? 1 + B.rage * 1.2 : 1); }
 
     // ------------------------------------------------------------- 1. LA PLANÈTE VIVANTE
     BINIT.planete = (b) => {
@@ -3743,9 +3762,12 @@
         ctx.strokeStyle = 'rgba(120,240,255,' + Math.min(0.6, P.inv * 0.4).toFixed(2) + ')'; ctx.lineWidth = 1.5;
         circ(ctx, P.x, P.y, 26 + Math.sin(rt * 10) * 1.5); ctx.stroke();
       }
-      if (P.shield === 1 && state === 'play') {
-        ctx.strokeStyle = 'rgba(255,60,90,' + (0.35 + 0.3 * Math.sin(rt * 9)).toFixed(2) + ')'; ctx.lineWidth = 2;
-        circ(ctx, P.x, P.y, 24); ctx.stroke();
+      if (P.shield > 0) {                         // bulle de protection
+        const r = 27 + Math.sin(rt * 4) * 1.2;
+        ctx.fillStyle = 'rgba(120,230,255,0.08)'; circ(ctx, P.x, P.y + 1, r); ctx.fill();
+        ctx.strokeStyle = 'rgba(160,245,255,' + (0.45 + 0.15 * Math.sin(rt * 5)).toFixed(2) + ')'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.arc(P.x, P.y + 1, r - 4, Math.PI * 1.15, Math.PI * 1.45); ctx.stroke();
       }
       if (P.magT > 0) {
         ctx.strokeStyle = 'rgba(255,211,77,0.5)'; ctx.lineWidth = 1.2; ctx.setLineDash(DASH);
@@ -4023,16 +4045,22 @@
         lineStr = cyc + 'SECTEUR ' + (secI + 1) + (ph ? ' · ' + ph : '');
       }
       txt(lineStr, 10 + jx, 43, 10, '#a9c2d4', 'left', true, 0);
-      // bouclier
+      // bulle de protection (une seule : sans elle, un coup = mort)
       const hr = hudRight();
-      for (let i = 0; i < 3; i++) {
-        const x = hr - 10 - i * 19, y = 16, on = i < P.shield;
-        hexPath(x, y, 8.2);
-        if (on) { ctx.fillStyle = P.shield === 1 ? (((rt * 6) | 0) % 2 ? '#ff4d6d' : '#7a1020') : '#46f08a'; ctx.fill(); ctx.strokeStyle = '#eafff2'; ctx.lineWidth = 1; ctx.stroke(); }
-        else { ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fill(); ctx.strokeStyle = 'rgba(160,190,210,0.4)'; ctx.lineWidth = 1; ctx.stroke(); }
+      {
+        const x = hr - 12, y = 16, on = P.shield > 0;
+        circ(ctx, x, y, 9.5);
+        if (on) {
+          ctx.fillStyle = 'rgba(120,240,255,0.3)'; ctx.fill(); ctx.strokeStyle = '#9ff4ff'; ctx.lineWidth = 1.6; ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.9)'; circ(ctx, x - 3, y - 3.5, 2.2); ctx.fill();
+          txt('BULLE', x - 14, y + 4, 8, '#9ff4ff', 'right', false, 0);
+        } else {
+          ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fill(); ctx.strokeStyle = 'rgba(160,190,210,0.35)'; ctx.lineWidth = 1;
+          ctx.setLineDash(DASH); ctx.stroke(); ctx.setLineDash(NODASH);
+        }
       }
       // bombes
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 2; i++) {
         const x = hr - 8 - i * 15, y = 37, on = i < P.bombs;
         circ(ctx, x, y, 5); ctx.fillStyle = on ? '#ff4d6d' : 'rgba(255,255,255,0.06)'; ctx.fill();
         ctx.strokeStyle = on ? '#ffd6de' : 'rgba(160,190,210,0.35)'; ctx.lineWidth = 1; ctx.stroke();
@@ -4056,16 +4084,23 @@
       } else if (miniRef && miniRef.alive && miniRef.t > 0.5) {
         bossBar('MINI-BOSS · ' + MINI_NAMES[secI], miniRef.hp / miniRef.max, 1, '#ffa630');
       }
-      // niveaux d'armement (bas de l'écran)
+      // niveaux d'armement (bas de l'écran) : la petite jauge sous chaque niveau se vide (puissance qui redescend, armes temporaires)
       if (state === 'play' && P.alive) {
-        const y = LH - 9, x0 = LW / 2 - 66;
-        ctx.globalAlpha = 0.75;
-        setFont(8, false); ctx.textAlign = 'left'; ctx.fillStyle = '#9fdcff'; ctx.fillText('P', x0, y + 3);
-        for (let i = 0; i < 6; i++) { ctx.fillStyle = i < P.power ? '#38e1ff' : 'rgba(255,255,255,0.12)'; ctx.fillRect(x0 + 8 + i * 6, y - 3, 4, 6); }
-        ctx.fillStyle = '#ffc48a'; ctx.fillText('M', x0 + 50, y + 3);
-        for (let i = 0; i < 3; i++) { ctx.fillStyle = i < P.miss ? '#ff9a1f' : 'rgba(255,255,255,0.12)'; ctx.fillRect(x0 + 60 + i * 6, y - 3, 4, 6); }
-        ctx.fillStyle = '#d9c4ff'; ctx.fillText('D', x0 + 84, y + 3);
-        for (let i = 0; i < 4; i++) { ctx.fillStyle = i < P.opts ? '#b37bff' : 'rgba(255,255,255,0.12)'; ctx.fillRect(x0 + 93 + i * 6, y - 3, 4, 6); }
+        const y = LH - 14, x0 = LW / 2 - 70;
+        ctx.globalAlpha = 0.9;
+        setFont(8, false); ctx.textAlign = 'left'; ctx.fillStyle = '#9fdcff'; ctx.fillText('P' + P.power, x0, y + 3);
+        for (let i = 0; i < 6; i++) { ctx.fillStyle = i < P.power ? '#38e1ff' : 'rgba(255,255,255,0.12)'; ctx.fillRect(x0 + 16 + i * 6, y - 3, 4, 6); }
+        if (P.power > 1) {
+          const k = 1 - P.pT / PDECAY;
+          ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(x0 + 16, y + 5, 34, 2.5);
+          ctx.fillStyle = k < 0.25 ? (((rt * 6) | 0) % 2 ? '#ff4d6d' : '#ffd34d') : '#38e1ff'; ctx.fillRect(x0 + 16, y + 5, 34 * k, 2.5);
+        }
+        ctx.fillStyle = P.miss ? '#ffc48a' : 'rgba(255,196,138,0.35)'; ctx.fillText('M', x0 + 60, y + 3);
+        for (let i = 0; i < 3; i++) { ctx.fillStyle = i < P.miss ? '#ff9a1f' : 'rgba(255,255,255,0.12)'; ctx.fillRect(x0 + 70 + i * 6, y - 3, 4, 6); }
+        if (P.miss > 0) { ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(x0 + 70, y + 5, 16, 2.5); ctx.fillStyle = '#ff9a1f'; ctx.fillRect(x0 + 70, y + 5, 16 * P.missLeft / ARMS_T, 2.5); }
+        ctx.fillStyle = P.opts ? '#d9c4ff' : 'rgba(217,196,255,0.35)'; ctx.fillText('D', x0 + 96, y + 3);
+        for (let i = 0; i < 4; i++) { ctx.fillStyle = i < P.opts ? '#b37bff' : 'rgba(255,255,255,0.12)'; ctx.fillRect(x0 + 105 + i * 6, y - 3, 4, 6); }
+        if (P.opts > 0) { ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(x0 + 105, y + 5, 22, 2.5); ctx.fillStyle = '#b37bff'; ctx.fillRect(x0 + 105, y + 5, 22 * P.optLeft / ARMS_T, 2.5); }
         ctx.globalAlpha = 1;
       }
     }
@@ -4229,14 +4264,17 @@
       }
       // droite : armement et commandes
       ctx.font = '14px ' + FD; ctx.fillStyle = '#38e1ff'; ctx.fillText('ARMEMENT', rx, 42);
-      const rows = [['Tir', P.power, 6, '#38e1ff'], ['Missiles', P.miss, 3, '#ff9a1f'], ['Drones', P.opts, 4, '#b37bff'], ['Bouclier', P.shield, 3, '#46f08a'], ['Bombes', P.bombs, 3, '#ff4d6d']];
+      const rows = [['Tir', P.power, 6, '#38e1ff', P.power > 1 ? 1 - P.pT / PDECAY : -1], ['Missiles', P.miss, 3, '#ff9a1f', P.miss ? P.missLeft / ARMS_T : -1],
+        ['Drones', P.opts, 4, '#b37bff', P.opts ? P.optLeft / ARMS_T : -1], ['Bulle', P.shield, 1, '#9ff4ff', -1], ['Bombes', P.bombs, 2, '#ff4d6d', -1]];
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i], y = 72 + i * 30;
         ctx.font = '600 13px ' + FB; ctx.fillStyle = '#cfe6f5'; ctx.fillText(r[0], rx, y);
         for (let j = 0; j < r[2]; j++) { ctx.fillStyle = j < r[1] ? r[3] : 'rgba(255,255,255,0.1)'; rrect(ctx, rx + 78 + j * 17, y - 11, 13, 13, 3); ctx.fill(); }
+        if (r[4] >= 0) { ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(rx + 78, y + 5, r[2] * 17 - 4, 3); ctx.fillStyle = r[3]; ctx.fillRect(rx + 78, y + 5, (r[2] * 17 - 4) * r[4], 3); }
       }
       const hy = 72 + 5 * 30 + 4;
       ctx.font = '600 13px ' + FB; ctx.fillStyle = '#ffb3e6'; ctx.fillText(P.hyperT > 0 ? 'HYPER EN COURS !' : P.hyper >= 1 ? 'HYPER PRÊT (Maj)' : 'Jauge HYPER', rx, hy);
+      if (P.shield <= 0) { ctx.font = '600 12px ' + FB; ctx.fillStyle = '#ff8fa3'; ctx.fillText('Sans bulle : un coup = détruit', rx, hy + 36); }
       ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(rx, hy + 8, Math.min(pw, 190), 6);
       ctx.fillStyle = '#ff3fb4'; ctx.fillRect(rx, hy + 8, Math.min(pw, 190) * (P.hyperT > 0 ? P.hyperT / 6 : P.hyper), 6);
       const help = ['Flèches / ZQSD / WASD : piloter', 'Souris : suivre ou glisser', 'Espace ou B : bombe', 'Maj ou H : HYPER', 'P ou Échap : pause'];
@@ -4248,7 +4286,7 @@
     // ------------------------------------------------------------- mise à jour
     function step(dt) {
       T += dt;
-      if (state === 'play') { playT += dt; early = cycle === 0 && secI === 0 && playT < 60; }
+      if (state === 'play') { playT += dt; early = cycle === 0 && secI === 0 && playT < 20; }
       const es = P.hyperT > 0 ? 0.5 : 1;          // HYPER : le temps ralentit autour du vaisseau
       if (state === 'play' || state === 'dying' || state === 'over') {
         if (state === 'play') updDirector(dt);
@@ -4493,6 +4531,7 @@
 
     // ------------------------------------------------------------- accès de test (invisible pour le joueur)
     function clearField() {
+      if (B) music();
       for (let i = 0; i < enN; i++) EN[i].alive = false;
       enN = 0; ebN = 0; psN = 0; msN = 0; BEAMS.length = 0; BOLTS.length = 0; GATES.length = 0; BOOMQ.length = 0;
       hole = null; darkOn = false; darkK = 0; B = null; miniRef = null;
@@ -4507,7 +4546,9 @@
         const b = [], e = [], bm = [];
         for (let i = 0; i < ebN; i++) { const q = EB[i]; if (q.delay <= 0) b.push(q.x, q.y, q.vx, q.vy, q.r); }
         for (let i = 0; i < enN; i++) { const q = EN[i]; if (q.alive && q.delay <= 0) e.push(q.x, q.y, q.r, q.vx, q.vy); }
-        if (B && B.parts) for (let i = 0; i < B.parts.length; i++) { const q = B.parts[i]; if (q.alive && !q.hide) e.push(q.x, q.y, q.r, 0, 0); }
+        const tg = [];
+        for (let i = 0; i < enN; i++) { const q = EN[i]; if (q.alive && q.delay <= 0) tg.push(q.x, q.y); }
+        if (B && B.parts) for (let i = 0; i < B.parts.length; i++) { const q = B.parts[i]; if (q.alive && !q.hide) { e.push(q.x, q.y, q.r, 0, 0); if (q.mode !== 'block') tg.push(q.x, q.y); } }
         for (let i = 0; i < BEAMS.length; i++) { const q = BEAMS[i]; bm.push(q.x, q.y, q.ang, q.w, q.t >= q.warn - 0.35 ? 1 : 0); }
         const bo = [];
         for (let i = 0; i < BOLTS.length; i++) bo.push(BOLTS[i].x, BOLTS[i].t >= BOLTS[i].warn - 0.6 ? 1 : 0);
@@ -4516,7 +4557,7 @@
         for (let i = 0; i < GATES.length; i++) gt.push({ y: GATES[i].y, gaps: GATES[i].gaps.slice() });
         const cp = [];
         for (let i = 0; i < cpN; i++) cp.push(CP[i].x, CP[i].y);
-        return { x: P.x, y: P.y, LW, LH, b, e, bm, bo, gt, cp, hole: hole ? [hole.x, hole.y, hole.k] : null, alive: P.alive, state, inv: P.inv, bombs: P.bombs, hyper: P.hyper, shield: P.shield };
+        return { x: P.x, y: P.y, LW, LH, b, e, tg, bm, bo, gt, cp, hole: hole ? [hole.x, hole.y, hole.k] : null, alive: P.alive, state, inv: P.inv, bombs: P.bombs, hyper: P.hyper, shield: P.shield };
       },
       sector: (n, cyc) => {
         clearField();
@@ -4531,14 +4572,14 @@
       killBoss: () => { if (B && B.ready) bossDamage(B.hp + 1, B.x, B.y, null); },
       hurtBoss: (f) => { if (B && B.ready) bossDamage(B.maxHp * f, B.x, B.y, null); },
       god: (on) => { god = !!on; },
-      power: (p, m, o) => { P.power = clamp(p | 0, 1, 6); P.miss = clamp(m | 0, 0, 3); P.opts = clamp(o | 0, 0, 4); for (let i = 0; i < 4; i++) { OPT[i].x = P.x; OPT[i].y = P.y; } },
+      power: (p, m, o) => { P.power = clamp(p | 0, 1, 6); P.miss = clamp(m | 0, 0, 3); P.opts = clamp(o | 0, 0, 4); P.pT = 0; P.missLeft = ARMS_T; P.optLeft = ARMS_T; for (let i = 0; i < 4; i++) { OPT[i].x = P.x; OPT[i].y = P.y; } },
       hyperFull: () => { P.hyper = 1; },
       hyper: () => useHyper(),
       bomb: () => useBomb(),
       event: (name) => { if (EVS.indexOf(name) >= 0) startEvent(name); },
       jump: () => { clearField(); dir.phase = 'clear'; dir.t = 9; },
-      shield: (n) => { P.shield = clamp(n | 0, 1, 3); },
-      die: () => { god = false; P.inv = 0; P.shield = 1; state = 'play'; hurtPlayer(); },
+      shield: (n) => { P.shield = clamp(n | 0, 0, 1); },
+      die: () => { god = false; P.inv = 0; P.shield = 0; state = 'play'; hurtPlayer(); },
       onFrame: (fn) => { onFrame = typeof fn === 'function' ? fn : null; },
       quality: (q, auto) => { quality = clamp(+q || 1, 0.5, 1); adaptive = !!auto; resize(); },
       spawn: (k, n) => { spawnGroup(W(0, k, n || 0)); },

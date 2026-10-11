@@ -546,3 +546,12 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .avatar.has-photo{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 35%,var(--steel2),var(--steel))}
 .avatar img.fit{position:absolute;height:auto;object-fit:fill;max-width:none}
 .tile-champ .champ-crown{top:-13px}
+
+/* compteur « en ligne » : jamais de débordement dans la barre du haut */
+#jdw-online{flex:0 1 auto;min-width:0;max-width:46vw;overflow:hidden}
+#jdw-online-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:440px){#jdw-online .online-go{display:none}#jdw-online{gap:6px}}
+#jdw-online-txt b{font-weight:700}
+.online-ic{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+@media (max-width:440px){.ol-word{display:none}}
+@media (min-width:441px){.online-ic{display:none}}
