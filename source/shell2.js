@@ -115,18 +115,37 @@ function setPlayer(name, photo, sound) {
     member: cur ? cur.member : false, seen: cur ? cur.seen : 0, game: cur ? cur.game : null, updated: cur ? cur.updated : 0 };
   if (photo) {
     const im = new Image(); im.decoding = 'async';
-    im.onload = () => { try { p.topFrac = photoTop(im); } catch (e) {} setTimeout(() => { try { refreshChamps(true); } catch (e) {} }, 0); };
+    im.onload = () => { try { p.box = photoBox(im); p.topFrac = p.box.y0; } catch (e) {} setTimeout(() => { try { refreshChamps(true); } catch (e) {} }, 0); };
     im.src = photo; p.img = im;
   }
   players.set(name, p);
 }
 // haut réel de la tête dans la photo détourée (0 = tout en haut de l'image), pour poser la couronne pile dessus
-function photoTop(im) {
-  const W = 40, H = 50, c = document.createElement('canvas'); c.width = W; c.height = H;
+function photoTop(im) { return photoBox(im).y0; }
+// contour réel de la tête dans la photo détourée (fractions de l'image) : sert à la cadrer pile dans les ronds
+function photoBox(im) {
+  const W = 64, H = 80, c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d'); x.drawImage(im, 0, 0, W, H);
   const d = x.getImageData(0, 0, W, H).data;
-  for (let y = 0; y < H; y++) for (let i = Math.floor(W * 0.2); i < Math.ceil(W * 0.8); i++) if (d[(y * W + i) * 4 + 3] > 70) return y / H;
-  return 0.1;
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) for (let i = 0; i < W; i++) if (d[(y * W + i) * 4 + 3] > 80) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return { x0: 0.1, y0: 0.08, x1: 0.9, y1: 0.95, ar: (im.naturalWidth || im.width) / (im.naturalHeight || im.height) || 0.8 };
+  return { x0: x0 / W, y0: y0 / H, x1: (x1 + 1) / W, y1: (y1 + 1) / H, ar: (im.naturalWidth || im.width) / (im.naturalHeight || im.height) || 0.8 };
+}
+// place une photo de tête dans un rond : la tête entière, centrée, à 90 % du diamètre
+function fitHead(img, box) {
+  if (!box) return;
+  const bw = box.x1 - box.x0, bh = (box.y1 - box.y0) / box.ar;       // en largeurs d'image
+  const wPct = 90 / Math.max(bw, bh, 0.05);                            // largeur de l'image en % du rond
+  const cx = (box.x0 + box.x1) / 2 * wPct, cy = (box.y0 + box.y1) / 2 / box.ar * wPct;
+  img.style.width = wPct.toFixed(2) + '%'; img.style.height = 'auto';
+  img.style.left = (50 - cx).toFixed(2) + '%'; img.style.top = (50 - cy).toFixed(2) + '%';
+  img.classList.add('fit');
+}
+function fitHeadWhenReady(img, p) {
+  if (p && p.box) { fitHead(img, p.box); return; }
+  const go = () => { try { const b = photoBox(img); if (p) p.box = b; fitHead(img, b); } catch (e) {} };
+  if (img.complete && img.naturalWidth) go(); else img.addEventListener('load', go, { once: true });
 }
 function syncOwnPlayer() {
   for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) setPlayer(pr.name, pr.consent ? pr.photo : null, pr.sound || undefined);
@@ -181,7 +200,7 @@ function playerObj() {
 function avatarInto(el, name) {
   el.textContent = ''; el.style.background = '';
   const p = players.get(cleanName(name));
-  if (p && p.photo) { const im = document.createElement('img'); im.alt = ''; im.src = p.photo; el.appendChild(im); return; }
+  if (p && p.photo) { const im = document.createElement('img'); im.alt = ''; im.src = p.photo; el.appendChild(im); el.classList.add('has-photo'); fitHeadWhenReady(im, p); return; }
   const n = cleanName(name) || '?';
   let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360;
   el.style.background = 'hsl(' + h + ' 45% 32%)';
@@ -609,6 +628,7 @@ function chatHead(name, opts) {
   if (p && p.photo) {
     const im = document.createElement('img'); im.alt = ''; im.decoding = 'async';
     im.src = opts.sad ? sadUrl(p) : p.photo; inner.appendChild(im); el.classList.add('photo');
+    fitHeadWhenReady(im, p);   // la tête sad a le même contour que la normale
   } else { const i = document.createElement('i'); i.textContent = (cleanName(name) || '?')[0]; inner.appendChild(i); }
   if (opts.title) el.title = cleanName(name);
   if (hasCri(name)) {
@@ -1181,11 +1201,7 @@ function refreshChamps(force) {
     const cr = document.createElement('span'); cr.className = 'champ-crown'; cr.textContent = '👑';
     // la photo dépasse du rond (cheveux) : la couronne se pose sur le vrai haut de la tête
     // image affichée : largeur 118 % du rond, proportion 160×200, posée en bas ; le haut visible est coupé à 40 % au-dessus du rond
-    let crownTop = -12;
-    if (lp.photo && lp.topFrac != null) {
-      const D = 44, imgH = D * 1.18 * 1.25, headTop = Math.max(-0.4 * D, D - imgH + lp.topFrac * imgH);
-      crownTop = Math.round(3 + headTop - 14);
-    }
+    const crownTop = -13;
     cr.style.top = crownTop + 'px';
     ch.style.top = Math.max(6, 4 - crownTop) + 'px';     // la bulle descend juste assez pour que la couronne reste dans la tuile
     ch.append(hd, cr);

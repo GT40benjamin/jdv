@@ -534,3 +534,15 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .mem-txt small.mem-ver.old{color:var(--amber)}
 .mem-row .mem-txt small.mem-ver{color:var(--muted)}
 .mem-row .mem-txt small.mem-ver.old{color:var(--amber)}
+
+/* ---------- têtes cadrées pile dans les ronds (contour réel de la tête mesuré) ---------- */
+.chead.photo .chead-in{clip-path:none;border-radius:50%;overflow:hidden}
+.chead img{left:0;top:0;width:100%;height:100%;object-fit:contain;transform:none;bottom:auto}
+.chead img.fit{height:auto;object-fit:fill;max-width:none}
+.chead.talk img{animation:talkFit .55s ease-in-out 3}
+@keyframes talkFit{0%,100%{transform:none}25%{transform:translateY(-3px) rotate(-6deg)}75%{transform:translateY(-1px) rotate(5deg)}}
+.chead.crying img{animation:cryFit .16s ease-in-out 9 alternate}
+@keyframes cryFit{from{transform:rotate(-7deg) scale(1.04)}to{transform:rotate(7deg) scale(1.1)}}
+.avatar.has-photo{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 35%,var(--steel2),var(--steel))}
+.avatar img.fit{position:absolute;height:auto;object-fit:fill;max-width:none}
+.tile-champ .champ-crown{top:-13px}
