@@ -51,3 +51,14 @@ Le script peut être relancé : il garde les données (salles, scores, joueurs, 
 - Cri de chaque joueur (players.sound, data:audio/… ≤ 3 s, save_player p_sound : null = inchangé, '' = retirer) : enregistré au micro
   ou depuis un fichier dans ⚙ ; joué en fin de partie (celui qu'on bat, sinon celui qui mène se moque) et quand on touche une tête du chat.
   L'appli Android 1.2 demande le micro (onPermissionRequest + RECORD_AUDIO) et ouvre les fichiers audio.
+- En direct (Supabase Realtime, websocket brut dans shell2.js, section « En direct ») : canal `jdw-room-<id>` par salle + `jdw-all`.
+  Signaux sans données (`poke` : chat, scores, players, presence, react, rooms, version) → les autres appareils rechargent via les RPC protégées.
+  Présence en direct (track/untrack : nom + jeu en cours) pour « en ligne » et les compteurs des tuiles ; heartbeat SQL gardé en secours + last_seen.
+- Liste des joueurs (bouton « X joueurs en ligne ») : en ligne / hors ligne (« vu il y a… »), tête, cri. get_presence = appel léger, get_players seulement si une tête ou un cri a changé.
+- Pendant une partie : ligne « 👑 1re place » sous le titre, mise à jour en direct ; « Tu passes devant X ! ». Bouton « ✕ Quitter » : le score en cours
+  (mount() renvoie currentScore, voir CONTRACT.md Ajout 3) compte comme une fin de partie. Un record part en ligne tout de suite ; s'il échoue, il est renvoyé plus tard (jdw.unsent).
+- Création de joueur dans une seule fenêtre (pseudo + tête + cri) avec vérification du pseudo (check_name, « c'est toi ? »).
+- Réactions aux messages du chat (table reactions, react / get_reactions ; appui long, clic droit, double-clic = ❤️).
+- Erreurs des joueurs remontées au serveur (log_error ; lecture : `node ~/jdv-tools/erreurs.js`) + bandeau « Oups » qui sauve le score si un jeu plante.
+- Nouvelle version du site : publier.sh écrit site.json (BUILD_ID) ; les appareils rechargent tout seuls quand ils sont au calme sur l'accueil.
+- Appli Android 1.3 : clavier en plein écran corrigé (redimensionnement du WebView), JDW_RESUME au retour dans l'appli, micro pour le cri.

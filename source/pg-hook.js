@@ -147,6 +147,7 @@ window.JDW_GAMES.pleingaz = {
     start();
     if (master) master.gain.value = muted ? 0 : 0.5;
     return {
+      currentScore() { return state === 'play' || state === 'paused' ? score() : 0; },   // bouton Quitter
       destroy() {
         PG_ACTIVE = false; PG_API = null;
         holding = false; thrustPointer = null; setThrustSound(false);

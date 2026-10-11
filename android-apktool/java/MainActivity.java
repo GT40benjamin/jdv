@@ -8,7 +8,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.provider.MediaStore;
+import android.graphics.Rect;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -122,6 +125,33 @@ public class MainActivity extends Activity {
         });
         web.loadUrl(HOME);
         immersive();
+        fitKeyboard();
+    }
+
+    // Plein écran (immersif) + clavier : Android ne réduit pas la page, il la pousse vers le haut.
+    // On redimensionne nous-mêmes le WebView pour qu'il s'arrête juste au-dessus du clavier.
+    void fitKeyboard() {
+        try {
+            final View root = getWindow().getDecorView();
+            root.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                int last = -2;
+                public void onGlobalLayout() {
+                    try {
+                        Rect r = new Rect();
+                        root.getWindowVisibleDisplayFrame(r);
+                        int full = root.getHeight();
+                        if (full <= 0) return;
+                        int h = (full - r.bottom > full / 6) ? r.bottom : ViewGroup.LayoutParams.MATCH_PARENT;
+                        if (h == last) return;
+                        last = h;
+                        ViewGroup.LayoutParams lp = web.getLayoutParams();
+                        if (lp == null) return;
+                        lp.height = h;
+                        web.setLayoutParams(lp);
+                    } catch (Throwable ignore) { }
+                }
+            });
+        } catch (Throwable ignore) { }
     }
 
     @Override
@@ -193,7 +223,15 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) immersive(); }
-    @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); immersive(); }
+    @Override protected void onResume() {
+        super.onResume();
+        if (web != null) {
+            web.onResume();
+            // retour dans l'appli : le site rafraîchit tout (scores, chat, joueurs, nouvelle version)
+            try { web.evaluateJavascript("window.JDW_RESUME && JDW_RESUME()", null); } catch (Throwable ignore) { }
+        }
+        immersive();
+    }
     @Override protected void onPause() { super.onPause(); if (web != null) web.onPause(); }
 
     @Override

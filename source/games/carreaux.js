@@ -2848,7 +2848,7 @@
       while (root.firstChild) root.removeChild(root.firstChild);
     }
 
-    return { destroy };
+    return { destroy, currentScore: () => Math.max(0, Math.floor(S.score)) };   // score en cours (bouton Quitter)
   }
 
   window.JDW_GAMES = window.JDW_GAMES || {};

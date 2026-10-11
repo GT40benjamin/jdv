@@ -2744,6 +2744,7 @@
     raf = requestAnimationFrame(frame);
 
     return {
+      currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
       destroy() {
         if (destroyed) return;
         destroyed = true;

@@ -106,3 +106,8 @@ taille que img, larmes + petit nuage de pluie). Utilisation attendue dans le jeu
 3. Si heads() est vide, le jeu reste exactement comme avant. Toujours gentil et drôle, jamais humiliant.
 4. Garde les placements de têtes déjà faits et api.celebrate.
 Teste avec de fausses têtes qui ont aussi un `sad` (dessine-le simplement : visage avec larmes) et sans têtes.
+
+## Ajout 3 : score en cours (obligatoire)
+`mount()` renvoie `{ destroy(), currentScore() }` : `currentScore()` donne le score entier actuel de la partie en cours (0 si rien).
+La bibliothèque l'appelle quand le joueur touche « Quitter » en pleine partie : le score est alors traité comme une fin de partie
+(écran de fin, record enregistré s'il est battu), puis `destroy()` est appelé.

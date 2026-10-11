@@ -1,6 +1,6 @@
 <main id="jdw-lib">
   <div class="home-bar">
-    <span class="online off" id="jdw-online"><i></i><span id="jdw-online-txt">Hors ligne</span></span>
+    <button class="online off" id="jdw-online" type="button" aria-label="Voir les joueurs de la salle"><i></i><span id="jdw-online-txt">Hors ligne</span><span class="online-go" aria-hidden="true">›</span></button>
     <span class="bar-sp"></span>
     <button class="me-chip" id="jdw-me" type="button" aria-label="Changer de joueur"><span class="avatar" id="jdw-me-av"></span><span id="jdw-me-name">Joueur</span></button>
     <button class="icon-btn chat-btn" id="jdw-chat-btn" type="button" aria-label="Chat de la salle" hidden>
@@ -18,6 +18,7 @@
   </div>
   <div class="lib-wrap">
     <h1 class="lib-title">Borne d'arcade <span class="plaque">entre amis</span></h1>
+    <button class="update-bar" id="jdw-siteupd" type="button" hidden><b>Nouvelle version du site</b><span>Touche ici pour l'avoir tout de suite</span></button>
     <a class="update-bar" id="jdw-update" href="telecharger/" hidden><b>Nouvelle version de l'appli</b><span id="jdw-update-txt">Touchez pour la télécharger</span></a>
     <div class="room-row" id="jdw-roomrow" hidden>
     <button class="room-bar" id="jdw-roombar" type="button">
@@ -37,8 +38,8 @@
 
 <div id="jdw-play" hidden>
   <div class="topbar">
-    <button class="btn btn-ghost btn-sm" id="jdw-back" type="button">← Jeux</button>
-    <h1 id="jdw-gtitle">Jeu</h1>
+    <button class="btn btn-ghost btn-sm" id="jdw-back" type="button" aria-label="Quitter la partie">✕ Quitter</button>
+    <div class="gt-wrap"><h1 id="jdw-gtitle">Jeu</h1><span class="recline" id="jdw-recline" hidden></span></div>
     <button class="btn btn-ghost btn-sm" id="jdw-mute" type="button" aria-label="Couper le son">Son</button>
   </div>
   <div id="jdw-host">
@@ -48,6 +49,10 @@
       <h2>Tourne ton téléphone</h2>
       <p>Ce jeu se joue en paysage. Il démarre dès que l'écran est à l'horizontale.</p>
       <button class="btn btn-ghost btn-sm" id="jdw-rotate-skip" type="button">Jouer quand même</button>
+    </div>
+    <div class="rescue" id="jdw-rescue" role="alert" hidden>
+      <div><b>Oups, le jeu a eu un souci.</b><span id="jdw-rescue-txt"></span></div>
+      <div class="row"><button class="btn btn-play btn-sm" id="jdw-rescue-ok" type="button">Terminer et garder mon score</button><button class="btn btn-ghost btn-sm" id="jdw-rescue-x" type="button">Continuer</button></div>
     </div>
     <div class="cheer" id="jdw-cheer" hidden><img id="jdw-cheer-img" alt=""><div class="bubble"><b id="jdw-cheer-name"></b><span id="jdw-cheer-txt"></span></div></div>
     <div class="sheet" id="jdw-end" hidden>
@@ -104,7 +109,23 @@
       <button class="chat-send" type="submit" aria-label="Envoyer"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/></svg></button>
     </form>
     <p class="chat-status" id="jdw-chat-status" role="status"></p>
+    <div class="react-pick" id="jdw-react" role="dialog" aria-label="Réagir au message" hidden>
+      <div class="rp-who" id="jdw-react-who" hidden></div>
+      <div class="rp-row" id="jdw-react-row"></div>
+      <div class="rp-more" id="jdw-react-more" hidden></div>
+    </div>
   </section>
+</div>
+
+<!-- Joueurs de la salle -->
+<div class="sheet" id="jdw-members" hidden>
+  <div class="card board-card" role="dialog" aria-modal="true" aria-labelledby="jdw-members-h">
+    <div class="card-body">
+      <div class="card-head"><div><h2 id="jdw-members-h">Les joueurs</h2><p class="small" id="jdw-members-sub"></p></div><button class="btn btn-ghost btn-sm" id="jdw-members-close" type="button">Fermer</button></div>
+      <div class="mem-list" id="jdw-members-list"></div>
+      <p class="small">Touche une tête ou « 🔊 cri » pour écouter le cri du copain.</p>
+    </div>
+  </div>
 </div>
 
 <!-- Notifications -->
@@ -178,28 +199,40 @@
   </div>
 </div>
 
-<!-- Bienvenue / photo -->
+<!-- Nouveau joueur : pseudo + tête + cri dans une seule fenêtre -->
 <div class="sheet" id="jdw-welcome" hidden>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-wel-h">
-    <div class="card-body" id="jdw-step-name">
-      <p class="eyebrow">Bienvenue aux Jeux des WC</p>
-      <h2 id="jdw-wel-h" style="margin:0;font-family:var(--display);font-weight:400;font-size:26px;line-height:1.05">Comment tu t'appelles ?</h2>
-      <p class="small">Ton nom apparaîtra dans les classements de la bande. Tu pourras le changer avec la roue ⚙.</p>
-      <input class="input" id="jdw-wel-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" enterkeyhint="go" placeholder="TON NOM">
+    <div class="card-body">
+      <p class="eyebrow" id="jdw-wel-eyebrow">Bienvenue à la Borne d'arcade</p>
+      <h2 id="jdw-wel-h" class="wel-h">Crée ton joueur</h2>
+      <div class="wel-grid">
+        <button class="wel-face" id="jdw-wel-photo" type="button" aria-label="Prendre ma tête en photo">
+          <span class="wel-face-in" id="jdw-wel-face"></span><span class="wel-face-tag" id="jdw-wel-face-tag">📸 Ma tête</span>
+        </button>
+        <div class="wel-fields">
+          <label for="jdw-wel-name">Ton pseudo</label>
+          <input class="input" id="jdw-wel-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" enterkeyhint="go" placeholder="TON PSEUDO">
+          <p class="wel-check" id="jdw-wel-check" role="status"></p>
+        </div>
+      </div>
+      <div class="wel-claim" id="jdw-wel-claim" hidden>
+        <span class="wel-claim-face" id="jdw-wel-claim-face"></span>
+        <div class="wel-claim-txt"><b id="jdw-wel-claim-t">Ce pseudo existe déjà</b><span>C'est bien toi, sur un autre téléphone ?</span></div>
+        <div class="wel-claim-btns">
+          <button class="btn btn-play btn-sm" id="jdw-wel-claim-yes" type="button">Oui, c'est moi</button>
+          <button class="btn btn-ghost btn-sm" id="jdw-wel-claim-no" type="button">Non, je change</button>
+        </div>
+      </div>
+      <button class="wel-cri" id="jdw-wel-cri" type="button">
+        <span class="wel-cri-ic" aria-hidden="true">🎙️</span>
+        <span class="wel-cri-txt"><b id="jdw-wel-cri-t">Ajouter mon cri</b><small id="jdw-wel-cri-s">3 secondes pour faire rire les copains</small></span>
+        <span class="wel-cri-go" aria-hidden="true">›</span>
+      </button>
       <div class="row">
-        <button class="btn btn-play" id="jdw-wel-ok" type="button">C'est parti</button>
+        <button class="btn btn-play" id="jdw-wel-ok" type="button">C'est parti !</button>
         <button class="btn btn-ghost" id="jdw-wel-cancel" type="button" hidden>Annuler</button>
       </div>
-    </div>
-    <div class="card-body" id="jdw-step-photo" hidden>
-      <p class="eyebrow">Ta tête dans les jeux ?</p>
-      <h2 style="margin:0;font-family:var(--display);font-weight:400;font-size:24px;line-height:1.1">Salut <span id="jdw-wel-hi"></span> ! On ajoute ta tête ?</h2>
-      <p class="lead">Prends un selfie : je détoure ta tête et elle apparaîtra dans les jeux des copains (pilote, félicitations, bonus, « tu as battu… »).</p>
-      <p class="small">Seuls les joueurs qui ont le mot de passe de la bande la verront. Tu peux la retirer à tout moment dans ⚙.</p>
-      <div class="row">
-        <button class="btn btn-play" id="jdw-wel-photo" type="button">Prendre un selfie</button>
-        <button class="btn btn-ghost" id="jdw-wel-skip" type="button">Non merci</button>
-      </div>
+      <p class="small">La tête et le cri sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains qui ont le mot de passe les voient.</p>
     </div>
   </div>
 </div>

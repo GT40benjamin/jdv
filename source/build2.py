@@ -75,7 +75,8 @@ GAMES = ['empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards']
 def page(config=None):
     body = open(J + 'shell2-body.html').read().replace('PG_MARKUP', '<section id="jdw-pg" hidden>\n' + markup + '\n</section>')
     games = ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
-    cfg = '<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else ''
+    cfg = ('<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else '') + \
+          '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + ';</script>\n'
     return ('<title>Jeux des WC</title>\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
             '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap">\n'
@@ -85,7 +86,7 @@ def page(config=None):
 def full_doc(p):
     i = p.index('<style>'); head = p[:i]; rest = p[i:]; j = rest.index('</style>') + 8
     return ('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'
-            '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
+            '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">\n'
             '<meta name="theme-color" content="#0b141c">\n' + head + rest[:j] + '\n</head>\n<body>\n' + rest[j:] + '\n</body>\n</html>\n')
 
 art = page()

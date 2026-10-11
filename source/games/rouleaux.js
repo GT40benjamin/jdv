@@ -2560,6 +2560,7 @@
     raf = requestAnimationFrame(frame);
 
     return {
+      currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
       // accès de diagnostic (harnais de test uniquement)
       _debug: {
         info: () => ({

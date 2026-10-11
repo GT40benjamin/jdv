@@ -91,7 +91,8 @@ function setPlayer(name, photo, sound) {
   const cur = players.get(name);
   if (sound === undefined) sound = cur ? cur.sound : null;
   if (cur && cur.photo === (photo || null)) { cur.sound = sound || null; return; }
-  const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null };
+  const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null,
+    member: cur ? cur.member : false, seen: cur ? cur.seen : 0, game: cur ? cur.game : null, updated: cur ? cur.updated : 0 };
   if (photo) { const im = new Image(); im.decoding = 'async'; im.src = photo; p.img = im; }
   players.set(name, p);
 }
@@ -154,14 +155,21 @@ function avatarInto(el, name) {
   el.style.background = 'hsl(' + h + ' 45% 32%)';
   el.textContent = n[0];
 }
+let playersAt = 0;
 async function loadPlayers() {
   if (!ONLINE || !room) return;
   try {
     const rows = await rpc('get_players', Object.assign({ p_code: CODE() }, RP())) || [];
     serverOk = true;
-    for (const r of rows) setPlayer(r.r_name, r.r_photo, r.r_sound || null);
+    for (const r of rows) {
+      setPlayer(r.r_name, r.r_photo, r.r_sound || null);
+      const p = players.get(cleanName(r.r_name));
+      if (p) { p.member = true; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; }
+    }
+    playersAt = Date.now();
     syncOwnPlayer();
     refreshAll();
+    if (!$('jdw-members').hidden) renderMembers();
   } catch (e) { serverOk = false; refreshAll(); }
 }
 async function pushProfile() {
@@ -169,9 +177,47 @@ async function pushProfile() {
   if (!ONLINE || !profile.name) return true;
   const args = { p_code: CODE(), p_name: profile.name, p_photo: profile.consent ? profile.photo : null, p_consent: !!profile.consent };
   if (profile.sound !== undefined && profile.sound !== null) args.p_sound = profile.sound;   // '' = retirer le cri
-  try { await rpc('save_player', args); return true; }
+  try { await rpc('save_player', args); poke('players'); return true; }
   catch (e) { return false; }
 }
+
+/* ================= Erreurs : remontées au serveur + sauvetage du score ================= */
+const BUILD = window.JDW_BUILD || 'dev';
+const errSeen = new Set(); let errCount = 0;
+let errLog = store.get('jdw.errors', []); if (!Array.isArray(errLog)) errLog = [];
+function appVersion() { const m = navigator.userAgent.match(/BorneArcade\/(\d+)/); return BUILD + (m ? ' appli ' + m[1] : ' web'); }
+function reportError(message, detail, opts) {
+  message = String(message || 'Erreur inconnue').slice(0, 500);
+  if (/ResizeObserver loop|^Script error\.?$/.test(message)) return;          // bruit sans conséquence
+  let game = 'démarrage';
+  try { game = current ? current.game.id : where; } catch (e) {}   // erreur pendant le chargement de la page
+  const key = game + '|' + message;
+  if (errSeen.has(key) || errCount >= 20) return;
+  errSeen.add(key); errCount++;
+  let sc = null;
+  try { if (current && current.inst && current.inst.currentScore) sc = current.inst.currentScore(); } catch (e) {}
+  const d = String(detail || '').slice(0, 3500) + (sc !== null ? '\nscore en cours : ' + sc : '') + '\nécran : ' + innerWidth + 'x' + innerHeight;
+  errLog.unshift({ at: Date.now(), game, message, detail: d }); errLog = errLog.slice(0, 20); store.set('jdw.errors', errLog);
+  if (ONLINE && CFG) rpc('log_error', { p_code: CODE(), p_name: profile.name || '', p_room: room ? room.id : null, p_game: game, p_message: message,
+    p_detail: d, p_ua: navigator.userAgent.slice(0, 300), p_version: appVersion() }).catch(() => {});
+  try { if (!(opts && opts.quiet) && current && !current.over && !$('jdw-play').hidden) offerRescue(); } catch (e) {}
+}
+function offerRescue() {
+  let sc = 0;
+  try { sc = Math.floor(+current.inst.currentScore() || 0); } catch (e) {}
+  $('jdw-rescue-txt').textContent = sc > 0 ? 'Ton score de ' + fmt(sc) + ' est gardé.' : 'Tu peux continuer ou relancer la partie.';
+  $('jdw-rescue-ok').textContent = sc > 0 ? 'Terminer et garder mon score' : 'Recommencer';
+  $('jdw-rescue').hidden = false;
+}
+$('jdw-rescue-ok').addEventListener('click', () => {
+  $('jdw-rescue').hidden = true;
+  if (!current) return;
+  let sc = 0; try { sc = Math.floor(+current.inst.currentScore() || 0); } catch (e) {}
+  if (sc > 0) quitGame(); else { const g = current.game; unmountGame(); mountGame(g); }
+});
+$('jdw-rescue-x').addEventListener('click', () => { $('jdw-rescue').hidden = true; });
+addEventListener('error', e => reportError(e.message, (e.error && e.error.stack) || ((e.filename || '') + ':' + e.lineno + ':' + e.colno)));
+addEventListener('unhandledrejection', e => { const r = e.reason; reportError('Promesse : ' + ((r && r.message) || r), r && r.stack, { quiet: true }); });
 
 /* ================= Cris des copains ================= */
 let criAudio = null;
@@ -210,6 +256,7 @@ async function loadScores() {
     const next = {};
     for (const r of rows) (next[r.r_game] = next[r.r_game] || []).push({ name: r.r_name, score: +r.r_score || 0, at: Date.parse(r.r_at) || 0 });
     remote = next; serverOk = true;
+    if (unsent.length) setTimeout(flushUnsent, 500);
   } catch (e) { serverOk = false; }
   refreshAll();
   loadNotifs();
@@ -223,14 +270,36 @@ async function saveScore(game, score, forName) {
   const b = bests[name] = bests[name] || {};
   b[game] = Math.max(b[game] || 0, score); store.set('jdw.bests2', bests);
   if (ONLINE && room) {
+    saving++;
     try {
       await rpc('add_score', Object.assign({ p_code: CODE() }, RP(), { p_game: game, p_name: name, p_score: score }));
       (remote[game] = remote[game] || []).push(entry); serverOk = true;
+      poke('scores'); poke('chat');
       loadScores();
       return 'shared';
-    } catch (e) { return 'local'; }
+    } catch (e) { queueScore(game, name, score); return 'local'; }
+    finally { saving--; }
   }
   return 'local';
+}
+// scores pas encore partis (réseau coupé) : renvoyés dès que le serveur répond
+let unsent = store.get('jdw.unsent', []); if (!Array.isArray(unsent)) unsent = [];
+function queueScore(game, name, score) {
+  if (!room) return;
+  unsent.push({ room: room.id, code: roomCodes[room.id] || '', game, name, score });
+  unsent = unsent.slice(-30); store.set('jdw.unsent', unsent);
+}
+let flushing = false;
+async function flushUnsent() {
+  if (flushing || !ONLINE || !unsent.length) return;
+  flushing = true;
+  const left = [], before = unsent.length;
+  for (const u of unsent) {
+    try { await rpc('add_score', { p_code: CODE(), p_room: u.room, p_room_code: u.code, p_game: u.game, p_name: u.name, p_score: u.score }); }
+    catch (e) { if (!/ 4\d\d /.test(String(e.message))) left.push(u); }   // refus définitif (4xx) : on abandonne
+  }
+  unsent = left; store.set('jdw.unsent', unsent); flushing = false;
+  if (left.length < before) loadScores();
 }
 
 /* ================= Notifications « X a battu ton record » ================= */
@@ -303,16 +372,17 @@ $('jdw-notifs-close').addEventListener('click', () => closeSheet('jdw-notifs'));
 $('jdw-notifs').addEventListener('click', e => { if (e.target === $('jdw-notifs')) closeSheet('jdw-notifs'); });
 
 /* ================= Chat de la salle ================= */
-const chat = { msgs: [], lastId: 0, ok: false, open: false, busy: false, pending: [], roomId: null };
+const chat = { msgs: [], lastId: 0, ok: false, open: false, busy: false, pending: [], roomId: null, reacts: new Map(), polls: 0 };
 let chatSeen = store.get('jdw.chatseen', {}) || {};
 const chatKey = () => (room ? room.id : '-') + ':' + cleanName(profile.name);
 const QUICK = ['👏', '😂', '🔥', '😭', '🏆', '🚽', 'GG !', 'Revanche ?'];
 function chatReset() {
-  chat.msgs = []; chat.lastId = 0; chat.pending = []; chat.roomId = room ? room.id : null;
+  chat.msgs = []; chat.lastId = 0; chat.pending = []; chat.roomId = room ? room.id : null; chat.reacts = new Map(); closePicker();
   $('jdw-chat-log').textContent = ''; refreshChatBtn();
 }
 async function loadChat() {
-  if (!ONLINE || !room || chat.busy) return;
+  if (!ONLINE || !room) return;
+  if (chat.busy) { chat.again = true; return; }
   if (chat.roomId !== room.id) chatReset();
   chat.busy = true;
   const rid = room.id;
@@ -330,9 +400,10 @@ async function loadChat() {
       const me = cleanName(profile.name);
       for (const m of fresh) { const i = chat.pending.findIndex(p => p.name === me && p.body === m.body); if (i >= 0) chat.pending.splice(i, 1); }
       renderChat(true);
-    }
+      loadReactions();
+    } else if (chat.open && ++chat.polls % 3 === 0) loadReactions();
   } catch (e) { if (!chat.msgs.length) chat.ok = false; }
-  finally { chat.busy = false; refreshChatBtn(); }
+  finally { chat.busy = false; refreshChatBtn(); if (chat.again) { chat.again = false; loadChat(); } }
 }
 function chatUnread() {
   const s = chatSeen[chatKey()] || 0, me = cleanName(profile.name);
@@ -390,6 +461,7 @@ function recordCard(m) {
   const sc = document.createElement('span'); sc.textContent = fmt(m.score) + unit(g) + ' contre ' + fmt(m.beatenScore) + unit(g) + ' · ' + hhmm(m.at);
   tx.append(eb, t, sc);
   el.append(heads, tx);
+  if (m.id) { el.dataset.mid = m.id; const rx = reactPill(m.id); if (rx) { el.appendChild(rx); el.classList.add('has-rx'); } }
   if (g) {
     const go = document.createElement('button'); go.type = 'button'; go.className = 'cr-go'; go.textContent = 'Revanche';
     go.setAttribute('aria-label', 'Jouer à ' + g.title + ' pour reprendre le record');
@@ -398,8 +470,8 @@ function recordCard(m) {
   }
   return el;
 }
-function renderChat(fromPoll) {
-  const log = $('jdw-chat-log'), stick = !fromPoll || chatAtBottom() || !chat.open;
+function renderChat(fromPoll, quiet) {
+  const log = $('jdw-chat-log'), stick = (!fromPoll && !quiet) || chatAtBottom() || !chat.open, keep = log.scrollTop;
   log.textContent = '';
   const me = cleanName(profile.name), all = chat.msgs.concat(chat.pending);
   if (!all.length) {
@@ -426,11 +498,12 @@ function renderChat(fromPoll) {
     const tm = document.createElement('time'); tm.textContent = m.failed ? 'Non envoyé · toucher pour réessayer' : (m.pending ? 'Envoi…' : hhmm(m.at));
     bub.appendChild(tm);
     if (m.failed) { bub.tabIndex = 0; bub.addEventListener('click', () => { chat.pending = chat.pending.filter(p => p !== m); sendChat(m.body); }); }
+    if (m.id) { bub.dataset.mid = m.id; const rx = reactPill(m.id); if (rx) { bub.appendChild(rx); row.classList.add('has-rx'); } }
     col.appendChild(bub); row.appendChild(col); log.appendChild(row);
     prev = m;
   }
   if (stick) { log.scrollTop = log.scrollHeight; $('jdw-chat-new').hidden = true; }
-  else if (fromPoll) $('jdw-chat-new').hidden = false;
+  else { log.scrollTop = keep; if (fromPoll && !quiet) $('jdw-chat-new').hidden = false; }
 }
 async function sendChat(text) {
   text = String(text || '').replace(/[\u0000-\u001f]+/g, ' ').trim().slice(0, 300);
@@ -441,6 +514,7 @@ async function sendChat(text) {
   try {
     await rpc('post_message', Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_body: text }));
     $('jdw-chat-status').textContent = '';
+    poke('chat');
     await loadChat();
   } catch (e) {
     m.pending = false; m.failed = true; renderChat(false);
@@ -470,14 +544,17 @@ function openChat() {
   if (!room) return;
   chat.open = true; lastFocus = document.activeElement;
   $('jdw-chat-room').textContent = room.name;
-  $('jdw-chat').hidden = false; document.body.classList.add('chat-open');
-  renderBand(); renderChat(false); markChatSeen(); refreshChatBtn(); refreshChatOnline();
+  $('jdw-chat').hidden = false; document.body.classList.add('chat-open'); fitChat();
+  renderBand(); renderChat(false); markChatSeen(); refreshChatBtn(); refreshChatOnline(); loadReactions();
   loadChat();
   if (matchMedia('(pointer: fine)').matches) setTimeout(() => $('jdw-chat-input').focus({ preventScroll: true }), 60);
 }
 function closeChat() {
   if (!chat.open) return;
+  closePicker();
   chat.open = false; $('jdw-chat').hidden = true; document.body.classList.remove('chat-open');
+  const cw = $('jdw-chat'); cw.style.top = ''; cw.style.height = ''; cw.style.bottom = '';
+  if (siteNew) setTimeout(maybeReload, 300);
   refreshChatBtn();
   if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
 }
@@ -517,25 +594,329 @@ $('jdw-end-chat').addEventListener('click', async () => {
   }
   openChat();
 });
-setInterval(() => { if (!document.hidden && chat.open) loadChat(); }, 4000);
-setInterval(() => { if (!document.hidden && !chat.open) loadChat(); }, 20000);
+setInterval(() => { if (!document.hidden && chat.open) loadChat(); }, 3000);
+setInterval(() => { if (!document.hidden && !chat.open) loadChat(); }, 12000);
+// fenêtre de chat collée au-dessus du clavier (zone réellement visible de l'écran)
+function fitChat() {
+  const vv = window.visualViewport, w = $('jdw-chat');
+  if (!vv || w.hidden) return;
+  const stick = chatAtBottom();
+  w.style.top = Math.max(0, vv.offsetTop) + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto';
+  w.classList.toggle('compact', vv.height < 520);              // clavier ouvert : on cache la bande des têtes
+  if (stick) { const l = $('jdw-chat-log'); l.scrollTop = l.scrollHeight; }
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', fitChat); visualViewport.addEventListener('scroll', fitChat); }
+$('jdw-chat-input').addEventListener('focus', () => setTimeout(fitChat, 60));
+
+/* ================= Réactions (comme WhatsApp) ================= */
+const REACTS = ['👍', '❤️', '😂', '😮', '😢', '😡', '💩', '🔥'];
+const REACTS_MORE = ['🎉', '👏', '🙏', '💯', '😎', '🤣', '😭', '🥲', '😱', '🤯', '🥳', '😴', '🤮', '🤡', '👀', '💀', '🐐', '🏆',
+  '🚽', '🧻', '😈', '🤬', '😤', '🙄', '😬', '🤗', '😘', '😍', '🤩', '👎', '✌️', '💪', '⚡', '🍕', '🍺', '🎯', '🦆', '🪰', '🐔', '🫡'];
+async function loadReactions() {
+  if (!ONLINE || !room || !chat.ok) return;
+  const rid = room.id;
+  try {
+    const rows = await rpc('get_reactions', Object.assign({ p_code: CODE() }, RP())) || [];
+    if (!room || room.id !== rid) return;
+    const m = new Map();
+    for (const r of rows) { const id = +r.r_message; if (!m.has(id)) m.set(id, new Map()); for (const n of (r.r_names || [])) m.get(id).set(n, r.r_emoji); }
+    const before = JSON.stringify([...chat.reacts].map(([k, v]) => [k, [...v]])), after = JSON.stringify([...m].map(([k, v]) => [k, [...v]]));
+    chat.reacts = m;
+    if (before !== after && chat.open) renderChat(true, true);
+  } catch (e) {}
+}
+function reactPill(id) {
+  const rx = chat.reacts.get(id); if (!rx || !rx.size) return null;
+  const me = cleanName(profile.name), byE = new Map();
+  for (const [n, e] of rx) byE.set(e, (byE.get(e) || 0) + 1);
+  const pill = document.createElement('button'); pill.type = 'button'; pill.className = 'react-pill' + (rx.has(me) ? ' mine' : '');
+  const top3 = [...byE].sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0]).join('');
+  pill.textContent = top3 + (rx.size > 1 ? ' ' + rx.size : '');
+  pill.setAttribute('aria-label', 'Réactions : ' + [...rx].map(([n, e]) => e + ' ' + n).join(', '));
+  pill.addEventListener('click', e => { e.stopPropagation(); openPicker(id, pill.parentElement); });
+  return pill;
+}
+async function setReaction(id, emoji) {
+  const me = cleanName(profile.name); if (!me || !room) return;
+  const rx = chat.reacts.get(id) || new Map(), old = rx.get(me) || '';
+  const next = old === emoji ? '' : emoji;                       // même émoji = on retire
+  if (next) rx.set(me, next); else rx.delete(me);
+  chat.reacts.set(id, rx); closePicker(); renderChat(false, true);
+  if (next) { Audio.ensure(); Audio.tone(1175, 0.05, 'sine', 0.035, 1568); }
+  try { await rpc('react', Object.assign({ p_code: CODE() }, RP(), { p_message: id, p_name: me, p_emoji: next })); poke('react'); }
+  catch (e) {
+    if (old) rx.set(me, old); else rx.delete(me);
+    renderChat(false, true); $('jdw-chat-status').textContent = 'Réaction non envoyée : vérifie ta connexion.';
+  }
+}
+let pickerFor = 0;
+function closePicker() { const p = $('jdw-react'); if (p) p.hidden = true; pickerFor = 0; }
+function openPicker(id, anchor) {
+  if (!id || !anchor) return;
+  const pk = $('jdw-react'), me = cleanName(profile.name), rx = chat.reacts.get(id) || new Map(), mine = rx.get(me) || '';
+  pickerFor = id;
+  const row = $('jdw-react-row'); row.textContent = '';
+  const btn = (e, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls || ''; b.textContent = e; if (e === mine) b.classList.add('on'); b.setAttribute('aria-label', 'Réagir ' + e); b.addEventListener('click', ev => { ev.stopPropagation(); setReaction(id, e); }); return b; };
+  for (const e of REACTS) row.appendChild(btn(e));
+  const plus = document.createElement('button'); plus.type = 'button'; plus.className = 'rp-plus'; plus.textContent = '+'; plus.setAttribute('aria-label', "Plus d'émojis");
+  plus.addEventListener('click', ev => { ev.stopPropagation(); const mo = $('jdw-react-more'); mo.hidden = !mo.hidden; placePicker(anchor); });
+  row.appendChild(plus);
+  const more = $('jdw-react-more'); more.textContent = ''; more.hidden = !REACTS_MORE.includes(mine);
+  for (const e of REACTS_MORE) more.appendChild(btn(e));
+  const who = $('jdw-react-who'); who.textContent = '';
+  if (rx.size) {
+    const byE = new Map(); for (const [n, e] of rx) { if (!byE.has(e)) byE.set(e, []); byE.get(e).push(n === me ? 'Moi' : n); }
+    for (const [e, ns] of byE) { const l = document.createElement('div'); l.className = 'rp-line'; const em = document.createElement('span'); em.textContent = e; const t = document.createElement('span'); t.textContent = ns.join(', '); l.append(em, t); who.appendChild(l); }
+    who.hidden = false;
+  } else who.hidden = true;
+  pk.hidden = false; placePicker(anchor);
+  if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+}
+function placePicker(anchor) {
+  const pk = $('jdw-react'), box = $('jdw-chat').querySelector('.chat').getBoundingClientRect(), a = anchor.getBoundingClientRect();
+  const w = pk.offsetWidth, h = pk.offsetHeight;
+  let top = a.top - box.top - h - 8; if (top < 60) top = Math.min(a.bottom - box.top + 8, box.height - h - 8);
+  let left = a.left - box.left + a.width / 2 - w / 2; left = Math.max(8, Math.min(left, box.width - w - 8));
+  pk.style.top = Math.max(8, top) + 'px'; pk.style.left = left + 'px';
+}
+(() => {   // appui long (téléphone), clic droit ou double-clic (ordinateur) sur un message
+  const log = $('jdw-chat-log'); let t = 0, sx = 0, sy = 0, armed = null;
+  const target = el => el && el.closest ? el.closest('[data-mid]') : null;
+  log.addEventListener('pointerdown', e => {
+    const el = target(e.target); if (!el || (e.target.closest && e.target.closest('button'))) return;
+    armed = el; sx = e.clientX; sy = e.clientY; clearTimeout(t);
+    t = setTimeout(() => { if (armed) { openPicker(+armed.dataset.mid, armed); armed = null; } }, 430);
+  });
+  log.addEventListener('pointermove', e => { if (armed && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { clearTimeout(t); armed = null; } });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) log.addEventListener(ev, () => { clearTimeout(t); armed = null; });
+  log.addEventListener('contextmenu', e => { const el = target(e.target); if (el) { e.preventDefault(); openPicker(+el.dataset.mid, el); } });
+  log.addEventListener('dblclick', e => { const el = target(e.target); if (el && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); setReaction(+el.dataset.mid, '❤️'); } });
+  log.addEventListener('scroll', () => { if (pickerFor) closePicker(); });
+  document.addEventListener('pointerdown', e => { if (pickerFor && !$('jdw-react').contains(e.target)) closePicker(); }, true);
+})();
 
 /* ================= Joueurs connectés ================= */
 let counts = {}, total = 0, where = 'menu';
+let presenceBusy = false;
+async function refreshPresence() {
+  if (!ONLINE || !room || presenceBusy) return;
+  presenceBusy = true;
+  try {
+    const rows = await rpc('get_presence', Object.assign({ p_code: CODE() }, RP())) || [];
+    let stale = false;
+    for (const r of rows) {
+      const p = players.get(cleanName(r.r_name)), up = Date.parse(r.r_updated) || 0;
+      if (!p || !p.member || (p.updated || 0) !== up) { stale = true; continue; }
+      p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); if (!PRES.ok) p.game = r.r_game || null;
+    }
+    if (stale) await loadPlayers(); else if (!$('jdw-members').hidden) renderMembers();
+    if (PRES.ok) presChanged();
+  } catch (e) { if (Date.now() - playersAt > 120000) loadPlayers(); }   // ancien serveur : rechargement complet de temps en temps
+  finally { presenceBusy = false; }
+}
 async function heartbeat() {
   if (!ONLINE || !profile.name || !room) return;
   try {
     const rows = await rpc('heartbeat', { p_code: CODE(), p_room: room.id, p_client: clientId, p_name: profile.name, p_game: where }) || [];
-    counts = {}; total = 0;
-    for (const r of rows) { counts[r.r_game] = r.r_count; total += r.r_count; }
+    if (!PRES.ok) { counts = {}; total = 0; for (const r of rows) { counts[r.r_game] = r.r_count; total += r.r_count; } }
     serverOk = true;
   } catch (e) { serverOk = false; }
   refreshOnline(); if (chat.open) refreshChatOnline();
+  refreshPresence();
 }
-function setWhere(w) { where = w; heartbeat(); }
-setInterval(() => { if (!document.hidden) heartbeat(); }, 20000);
-setInterval(() => { if (!document.hidden && !$('jdw-lib').hidden) loadScores(); }, 45000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) heartbeat(); });
+function setWhere(w) { where = w; rtTrack(); heartbeat().then(() => poke('presence')); }
+setInterval(() => { if (!document.hidden) heartbeat(); }, 15000);
+setInterval(() => { if (!document.hidden && !$('jdw-lib').hidden) loadScores(); }, 20000);
+setInterval(() => { if (!document.hidden && $('jdw-lib').hidden) loadScores(); }, 30000);   // pendant une partie (le direct fait le reste)
+
+/* ================= En direct : signaux instantanés entre appareils (Supabase Realtime) ================= */
+// Les signaux ne contiennent aucune donnée : « recharge le chat / les scores / les joueurs ». Les données passent par les RPC protégées.
+const RT = { ws: null, ref: 0, topics: new Set(), hb: 0, retry: 0, ok: false, joinRefs: {} };
+function rtSend(topic, event, payload) {
+  if (!RT.ws || RT.ws.readyState !== 1) return false;
+  const ref = String(++RT.ref);
+  try { RT.ws.send(JSON.stringify({ topic: 'realtime:' + topic, event, payload, ref })); return ref; } catch (e) { return false; }
+}
+function rtJoin(topic) { RT.topics.add(topic); const r = rtSend(topic, 'phx_join', { config: { broadcast: { self: false, ack: false }, presence: { key: '' }, private: false } }); if (r) RT.joinRefs[topic] = r; }
+function rtLeave(topic) { RT.topics.delete(topic); rtSend(topic, 'phx_leave', {}); if (topic === roomTopic()) presReset(); }
+const roomTopic = () => room ? 'jdw-room-' + room.id : null;
+
+// Présence en direct : chaque appareil s'annonce dans le canal de la salle (nom + jeu en cours).
+// Arrivées, changements de jeu et départs arrivent chez les autres en une seconde environ.
+const PRES = { state: {}, ok: false, timer: 0 };
+function presReset() { PRES.state = {}; PRES.ok = false; }
+function rtTrack() {
+  const t = roomTopic(); if (!t || !profile.name || document.hidden) return;
+  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId } });
+}
+function rtUntrack() { const t = roomTopic(); if (t) rtSend(t, 'presence', { type: 'presence', event: 'untrack' }); }
+function presApply(d) {
+  for (const [k, v] of Object.entries(d.leaves || {})) {
+    const refs = new Set(((v && v.metas) || []).map(x => x.phx_ref));
+    const cur = (PRES.state[k] || []).filter(x => !refs.has(x.phx_ref));
+    if (cur.length) PRES.state[k] = cur; else delete PRES.state[k];
+  }
+  for (const [k, v] of Object.entries(d.joins || {})) {
+    const cur = PRES.state[k] || [], have = new Set(cur.map(x => x.phx_ref));
+    PRES.state[k] = cur.concat(((v && v.metas) || []).filter(x => !have.has(x.phx_ref)));
+  }
+  clearTimeout(PRES.timer); PRES.timer = setTimeout(presChanged, 80);
+}
+function presList() {
+  const out = [];
+  for (const metas of Object.values(PRES.state)) { const m = metas[metas.length - 1]; if (m && m.name) out.push({ name: cleanName(m.name), game: m.game || 'menu' }); }
+  return out;
+}
+function presChanged() {
+  if (!PRES.ok) return;
+  const list = presList(), live = new Map();
+  for (const x of list) if (!live.has(x.name) || live.get(x.name) === 'menu') live.set(x.name, x.game);
+  counts = {}; total = list.length;
+  for (const x of list) counts[x.game] = (counts[x.game] || 0) + 1;
+  let unknown = false;
+  for (const p of players.values()) {
+    if (live.has(p.name)) { p.live = true; p.game = live.get(p.name); }
+    else { if (p.live) p.seen = Date.now(); p.live = false; if (p.member) p.game = null; }
+  }
+  for (const n of live.keys()) { const p = players.get(n); if (!p || !p.member) unknown = true; }
+  if (unknown) loadPlayers();
+  serverOk = true;
+  refreshOnline(); if (chat.open) refreshChatOnline();
+  if (!$('jdw-members').hidden) renderMembers();
+}
+function rtConnect() {
+  if (!ONLINE || !window.WebSocket || (RT.ws && RT.ws.readyState <= 1)) return;
+  let ws;
+  try { ws = new WebSocket(CFG.url.replace(/^http/, 'ws').replace(/\/+$/, '') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(CFG.key) + '&vsn=1.0.0'); }
+  catch (e) { return; }
+  RT.ws = ws;
+  ws.onopen = () => {
+    RT.retry = 0; RT.ok = true;
+    for (const t of RT.topics) rtJoin(t);
+    clearInterval(RT.hb); RT.hb = setInterval(() => rtSend('phoenix', 'heartbeat', {}), 25000);
+    refreshEverything(true);                     // on a peut-être raté des choses pendant la coupure
+  };
+  ws.onmessage = ev => {
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    const topic = String(m.topic || '').replace(/^realtime:/, '');
+    if (m.event === 'phx_reply') {
+      if (RT.joinRefs[topic] === m.ref && topic === roomTopic() && m.payload && m.payload.status === 'ok') { PRES.ok = true; rtTrack(); }
+      return;
+    }
+    if (topic === roomTopic() && m.event === 'presence_state') { PRES.state = {}; PRES.ok = true; presApply({ joins: m.payload || {}, leaves: {} }); return; }
+    if (topic === roomTopic() && m.event === 'presence_diff') { presApply(m.payload || {}); return; }
+    if (m.event === 'broadcast' && m.payload) onPoke(topic, m.payload.event, m.payload.payload || {});
+  };
+  ws.onclose = () => {
+    RT.ok = false; presReset(); clearInterval(RT.hb); if (RT.ws === ws) RT.ws = null;
+    const d = Math.min(30000, 1000 * Math.pow(2, RT.retry++));
+    setTimeout(() => { if (!document.hidden) rtConnect(); }, d);
+  };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
+}
+function poke(kind, topic) {
+  const t = topic || (room ? 'jdw-room-' + room.id : null);
+  if (t) rtSend(t, 'broadcast', { type: 'broadcast', event: 'poke', payload: { t: kind, from: clientId } });
+}
+const pokeTimers = {};
+function onPoke(topic, event, p) {
+  if (p.from === clientId) return;
+  if (p.t === 'version') { checkSiteVersion(); return; }
+  if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
+  if (!room || topic !== 'jdw-room-' + room.id) return;
+  const run = { chat: () => loadChat(), scores: () => loadScores(), players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions() }[p.t];   // heartbeat : compteurs des tuiles + liste des joueurs
+  if (!run) return;
+  clearTimeout(pokeTimers[p.t]); pokeTimers[p.t] = setTimeout(run, p.t === 'chat' ? 60 : 250);   // regroupe les rafales
+}
+let lastRefresh = 0;
+function refreshEverything(force) {
+  rtTrack();
+  if (!force && Date.now() - lastRefresh < 2500) return;
+  lastRefresh = Date.now();
+  if (ONLINE && (!RT.ws || RT.ws.readyState > 1)) rtConnect();
+  heartbeat(); loadScores(); loadChat(); flushUnsent(); checkSiteVersion();
+}
+window.JDW_RESUME = () => refreshEverything(true);      // appelé par l'appli Android quand on revient dedans
+document.addEventListener('visibilitychange', () => { if (document.hidden) rtUntrack(); else refreshEverything(); });
+addEventListener('pagehide', rtUntrack);
+addEventListener('online', () => refreshEverything(true));
+addEventListener('focus', () => refreshEverything());
+
+/* ================= Nouvelle version du site : rechargement automatique ================= */
+let siteNew = false;
+async function checkSiteVersion() {
+  if (BUILD === 'dev' || !/^https?:$/.test(location.protocol)) return;
+  try {
+    const r = await fetch('site.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const v = await r.json();
+    if (v && v.build && v.build !== BUILD) { siteNew = true; maybeReload(); }
+  } catch (e) {}
+}
+let saving = 0;
+function calmMoment() {
+  if (!$('jdw-play').hidden || chat.open || saving > 0) return false;
+  for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) return false;
+  const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA)$/.test(a.tagName));
+}
+function reloadNow() { if (saving > 0) { setTimeout(reloadNow, 400); return; } location.reload(); }
+function maybeReload() {
+  if (!siteNew) return;
+  if (calmMoment()) { reloadNow(); return; }
+  $('jdw-siteupd').hidden = false;
+}
+$('jdw-siteupd').addEventListener('click', reloadNow);
+setInterval(() => { if (!document.hidden) checkSiteVersion(); }, 60000);
+
+/* ================= Joueurs de la salle (en ligne / hors ligne) ================= */
+function seenText(t) {
+  if (!t) return 'jamais vu en ligne';
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 90) return "vu à l'instant";
+  if (s < 3600) return 'vu il y a ' + Math.round(s / 60) + ' min';
+  if (s < 86400) return 'vu il y a ' + Math.round(s / 3600) + ' h';
+  const d = Math.round(s / 86400); return d === 1 ? 'vu hier' : 'vu il y a ' + d + ' jours';
+}
+function gameLabel(id) { if (!id || id === 'menu') return 'dans le menu'; const g = gameById(id); return g ? 'joue à ' + g.title : 'en ligne'; }
+function renderMembers() {
+  const me = cleanName(profile.name), list = [...players.values()].filter(p => p.member || p.name === me);
+  const isOn = p => p.name === me || (PRES.ok ? !!p.live : !!p.game);
+  const on = list.filter(isOn).sort((a, b) => (b.name === me) - (a.name === me) || a.name.localeCompare(b.name));
+  const off = list.filter(p => !isOn(p)).sort((a, b) => (b.seen || 0) - (a.seen || 0) || a.name.localeCompare(b.name));
+  const wrap = $('jdw-members-list'); wrap.textContent = '';
+  const section = (title, arr, online) => {
+    if (!arr.length) return;
+    const h = document.createElement('p'); h.className = 'eyebrow mem-h'; h.textContent = title + ' · ' + arr.length; wrap.appendChild(h);
+    for (const p of arr) {
+      const row = document.createElement('div'); row.className = 'mem-row' + (online ? ' on' : '');
+      const hd = chatHead(p.name); hd.classList.add('mem-head');
+      const tx = document.createElement('div'); tx.className = 'mem-txt';
+      const n = document.createElement('b'); n.textContent = p.name === me ? p.name + ' (moi)' : p.name;
+      const st = document.createElement('small');
+      st.textContent = online ? (p.name === me ? gameLabel(current ? current.game.id : 'menu') : gameLabel(p.game)) : seenText(p.seen);
+      tx.append(n, st);
+      const tags = document.createElement('div'); tags.className = 'mem-tags';
+      const ph = document.createElement('span'); ph.className = 'mem-tag' + (p.photo ? ' yes' : ''); ph.textContent = p.photo ? '📸 tête' : 'pas de tête';
+      const cr = document.createElement('button'); cr.type = 'button'; cr.className = 'mem-tag' + (p.sound ? ' yes' : '');
+      cr.textContent = p.sound ? '🔊 cri' : 'pas de cri'; cr.disabled = !p.sound;
+      if (p.sound) { cr.setAttribute('aria-label', 'Écouter le cri de ' + p.name); cr.addEventListener('click', () => playCri(p.name, hd)); }
+      tags.append(ph, cr);
+      row.append(hd, tx, tags); wrap.appendChild(row);
+    }
+  };
+  section('En ligne', on, true); section('Hors ligne', off, false);
+  if (!list.length) { const e = document.createElement('p'); e.className = 'small'; e.textContent = room ? 'Personne dans cette salle pour le moment.' : 'Choisis une salle pour voir ses joueurs.'; wrap.appendChild(e); }
+  $('jdw-members-sub').textContent = room ? room.name + ' · ' + list.length + ' joueur' + (list.length > 1 ? 's' : '') : '';
+}
+async function openMembers() {
+  if (!ONLINE) return;
+  if (!room) { openRooms(); return; }
+  renderMembers(); openSheet('jdw-members', 'jdw-members-close');
+  await loadPlayers(); if (!$('jdw-members').hidden) renderMembers();
+}
+$('jdw-online').addEventListener('click', openMembers);
+$('jdw-members-close').addEventListener('click', () => closeSheet('jdw-members'));
+$('jdw-members').addEventListener('click', e => { if (e.target === $('jdw-members')) closeSheet('jdw-members'); });
 
 /* ================= Accueil ================= */
 const tiles = [];
@@ -593,7 +974,7 @@ function previewLoop(ts) {
     if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
     const ctx = c.getContext('2d');
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    try { tl.g.preview(ctx, w, h, t); } catch (e) { ctx.fillStyle = COLORS.night; ctx.fillRect(0, 0, w, h); }
+    try { tl.g.preview(ctx, w, h, t); } catch (e) { ctx.fillStyle = COLORS.night; ctx.fillRect(0, 0, w, h); reportError('Aperçu ' + tl.g.id + ' : ' + e.message, e.stack, { quiet: true }); }
     ctx.restore();
   }
 }
@@ -606,7 +987,7 @@ addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (chat.open) { closeChat(); return; }
   if (!$('jdw-cri').hidden) { closeCri(); return; }
-  for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles']) if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else closeSheet(id); break; }
+  for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members']) if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else closeSheet(id); break; }
 });
 
 /* ================= Classement ================= */
@@ -698,7 +1079,6 @@ $('jdw-set-save').addEventListener('click', async () => {
   profile.name = n; saveProfile(); syncOwnPlayer(); refreshAll();
   closeSheet('jdw-settings');
   await pushProfile();
-  if (changed && !profile.photo && isNewName(n)) offerPhoto();
 });
 $('jdw-set-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-set-save').click(); } });
 
@@ -739,6 +1119,7 @@ function afterSwitch() {
   pushProfile();
   if (ONLINE && room) rpc('join_room', Object.assign({ p_code: CODE(), p_room: room.id, p_room_code: roomCodes[room.id] || '', p_name: profile.name })).catch(() => {});
   heartbeat(); loadNotifs(); refreshChatBtn(); if (chat.open) renderChat(false);
+  rtTrack();
 }
 function switchProfile(pid) {
   const pr = profiles.find(p => p.pid === pid); if (!pr) return;
@@ -781,7 +1162,7 @@ function openCri() {
   if (!$('jdw-chat').hidden) closeChat();
   openSheet('jdw-cri', 'jdw-cri-rec');
 }
-function closeCri() { criStop(true); closeSheet('jdw-cri'); }
+function closeCri() { criStop(true); closeSheet('jdw-cri'); if (welReturn) reopenWelcome(); }
 function drawWave(live) {
   const cv = $('jdw-cri-wave'), dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth || 300, h = cv.clientHeight || 64;
   if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
@@ -889,7 +1270,9 @@ $('jdw-cri-input').addEventListener('change', () => { const f = $('jdw-cri-input
 $('jdw-cri-close').addEventListener('click', closeCri);
 $('jdw-cri-ok').addEventListener('click', async () => {
   if (!CR.data) return;
-  profile.sound = CR.data; saveProfile(); syncOwnPlayer();
+  profile.sound = CR.data;
+  if (welReturn) { closeCri(); return; }
+  saveProfile(); syncOwnPlayer();
   closeCri(); refreshAll();
   const ok = await pushProfile();
   toastCheer(ok ? 'Ton cri est prêt : les copains vont l’entendre !' : 'Cri gardé sur cet appareil.', profile.name, true);
@@ -900,30 +1283,87 @@ $('jdw-cri-del').addEventListener('click', async () => {
   await pushProfile(); toastCheer('Ton cri est retiré.', profile.name, true);
 });
 
-/* ================= Bienvenue ================= */
-function isNewName(n) { const p = players.get(cleanName(n)); return profile.askedFor !== cleanName(n) && !(p && p.photo); }
+/* ================= Nouveau joueur (pseudo + tête + cri) ================= */
 let adding = null;                                // profil précédent pendant l'ajout d'un joueur
+let welReturn = false;                            // la photo / le cri reviennent à cette fenêtre
+const NAMECK = { n: '', state: '', photo: null, sound: null, claimed: '', seq: 0, timer: 0 };
+function renderWelcome() {
+  const face = $('jdw-wel-face'); face.textContent = '';
+  if (profile.photo) { const im = document.createElement('img'); im.alt = ''; im.src = profile.photo; face.appendChild(im); $('jdw-wel-face-tag').textContent = '📸 Changer'; }
+  else { face.innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="24" r="12"/><path d="M10 58a22 22 0 0 1 44 0"/></svg>'; $('jdw-wel-face-tag').textContent = '📸 Ma tête'; }
+  $('jdw-wel-photo').classList.toggle('done', !!profile.photo);
+  const cri = !!(profile.sound && profile.sound !== '');
+  $('jdw-wel-cri').classList.toggle('done', cri);
+  $('jdw-wel-cri-t').textContent = cri ? 'Cri enregistré ✓' : 'Ajouter mon cri';
+  $('jdw-wel-cri-s').textContent = cri ? 'Touche pour le refaire' : '3 secondes pour faire rire les copains';
+}
 function startWelcome() {
-  $('jdw-step-name').hidden = false; $('jdw-step-photo').hidden = true;
-  $('jdw-wel-cancel').hidden = !adding; $('jdw-wel-name').value = '';
+  $('jdw-wel-cancel').hidden = !adding;
+  $('jdw-wel-h').textContent = adding ? 'Nouveau joueur' : 'Crée ton joueur';
+  $('jdw-wel-eyebrow').textContent = adding ? 'Un copain de plus sur cet appareil' : "Bienvenue à la Borne d'arcade";
+  $('jdw-wel-name').value = profile.name || '';
+  Object.assign(NAMECK, { n: '', state: '', photo: null, sound: null, claimed: '' });
+  $('jdw-wel-check').textContent = ''; $('jdw-wel-check').className = 'wel-check'; $('jdw-wel-claim').hidden = true;
+  renderWelcome();
   openSheet('jdw-welcome', 'jdw-wel-name');
 }
-function offerPhoto() {
-  profile.askedFor = cleanName(profile.name); saveProfile();
-  $('jdw-wel-hi').textContent = profile.name;
-  $('jdw-step-name').hidden = true; $('jdw-step-photo').hidden = false;
-  openSheet('jdw-welcome', 'jdw-wel-photo');
+function reopenWelcome() { welReturn = false; renderWelcome(); $('jdw-welcome').hidden = false; }
+function nameMsg(t, cls) { const el = $('jdw-wel-check'); el.textContent = t; el.className = 'wel-check' + (cls ? ' ' + cls : ''); }
+function showClaim() {
+  const f = $('jdw-wel-claim-face'); f.textContent = '';
+  if (NAMECK.photo) { const im = document.createElement('img'); im.alt = ''; im.src = NAMECK.photo; f.appendChild(im); }
+  else { f.textContent = NAMECK.n[0] || '?'; f.style.background = 'hsl(' + nameHue(NAMECK.n) + ' 45% 32%)'; }
+  $('jdw-wel-claim-t').textContent = NAMECK.n + ' existe déjà';
+  $('jdw-wel-claim').hidden = false;
 }
+async function checkName() {
+  const n = cleanName($('jdw-wel-name').value), seq = ++NAMECK.seq;
+  $('jdw-wel-claim').hidden = true;
+  Object.assign(NAMECK, { n, state: '', photo: null, sound: null });
+  if (!n) { nameMsg(''); return; }
+  if (n.length < 2) { nameMsg('2 lettres minimum.', 'warn'); NAMECK.state = 'short'; return; }
+  if (profiles.some(p => cleanName(p.name) === n && p.pid !== profile.pid)) { nameMsg('Ce joueur est déjà sur cet appareil : on passera sur son profil.', 'info'); NAMECK.state = 'device'; return; }
+  if (NAMECK.claimed === n) { nameMsg("C'est toi : on récupère ta tête et ton cri.", 'ok'); NAMECK.state = 'mine'; return; }
+  const known = players.get(n);
+  if (!ONLINE) { if (known) { NAMECK.state = 'taken'; NAMECK.photo = known.photo; NAMECK.sound = known.sound; nameMsg('Pseudo déjà utilisé.', 'warn'); showClaim(); } else { NAMECK.state = 'free'; nameMsg('✓ Pseudo libre', 'ok'); } return; }
+  nameMsg('Vérification…', '');
+  let r = null;
+  try { const rows = await rpc('check_name', { p_code: CODE(), p_name: n }); r = rows && rows[0]; }
+  catch (e) { r = known ? { r_exists: true, r_photo: known.photo, r_sound: known.sound } : undefined; }
+  if (seq !== NAMECK.seq) return;
+  if (r === undefined) { NAMECK.state = 'unknown'; nameMsg(''); return; }   // serveur indisponible : on ne bloque pas
+  if (r && r.r_exists) { NAMECK.state = 'taken'; NAMECK.photo = r.r_photo || null; NAMECK.sound = r.r_sound || null; nameMsg('Pseudo déjà utilisé.', 'warn'); showClaim(); }
+  else { NAMECK.state = 'free'; nameMsg('✓ Pseudo libre', 'ok'); }
+}
+$('jdw-wel-name').addEventListener('input', () => { clearTimeout(NAMECK.timer); NAMECK.timer = setTimeout(checkName, 380); });
+$('jdw-wel-claim-yes').addEventListener('click', () => {
+  NAMECK.claimed = NAMECK.n; $('jdw-wel-claim').hidden = true;
+  if (!profile.photo && NAMECK.photo) { profile.photo = NAMECK.photo; profile.consent = true; }
+  if (profile.sound === undefined && NAMECK.sound) profile.sound = undefined;   // le cri reste sur le serveur
+  NAMECK.state = 'mine'; nameMsg("C'est toi : on récupère ta tête et ton cri.", 'ok');
+  if (NAMECK.sound) setPlayer(NAMECK.n, NAMECK.photo, NAMECK.sound);
+  renderWelcome();
+});
+$('jdw-wel-claim-no').addEventListener('click', () => {
+  $('jdw-wel-claim').hidden = true; const i = $('jdw-wel-name'); i.select(); i.focus(); nameMsg('Choisis un autre pseudo.', 'warn');
+});
 async function welcomeOk() {
+  clearTimeout(NAMECK.timer);
   const n = cleanName($('jdw-wel-name').value);
-  if (!n) { $('jdw-wel-name').focus(); return; }
+  if (!n || n.length < 2) { nameMsg(n ? '2 lettres minimum.' : 'Il faut un pseudo.', 'warn'); $('jdw-wel-name').focus(); return; }
+  if (NAMECK.n !== n) await checkName();
+  if (NAMECK.state === 'taken' && NAMECK.claimed !== n) { showClaim(); return; }
   Audio.ensure();
   const existing = profiles.find(p => cleanName(p.name) === n && p.pid !== profile.pid);
   if (existing) { adding = null; closeSheet('jdw-welcome'); switchProfile(existing.pid); return; }
   const wasAdding = !!adding; adding = null;
-  profile.name = n; saveProfile(); syncOwnPlayer(); refreshAll();
-  if (wasAdding) afterSwitch();
-  offerPhoto();
+  profile.name = n; profile.askedFor = n; saveProfile(); syncOwnPlayer();
+  if (NAMECK.claimed === n && NAMECK.sound && !profile.sound) setPlayer(n, profile.consent ? profile.photo : null, NAMECK.sound);
+  closeSheet('jdw-welcome'); refreshAll();
+  if (wasAdding) afterSwitch(); else pushProfile();
+  toastCheer((NAMECK.claimed === n ? 'Re-bonjour ' : 'Bienvenue ') + n + ' !', n, true);
+  setTimeout(() => playCri(n), 400);
+  afterOnboarding();
 }
 $('jdw-wel-cancel').addEventListener('click', () => {
   if (!adding) return;
@@ -933,8 +1373,8 @@ $('jdw-wel-cancel').addEventListener('click', () => {
 function afterOnboarding() { if (ONLINE && !room && profile.name) setTimeout(openRooms, 250); }
 $('jdw-wel-ok').addEventListener('click', welcomeOk);
 $('jdw-wel-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); welcomeOk(); } });
-$('jdw-wel-skip').addEventListener('click', () => { closeSheet('jdw-welcome'); afterOnboarding(); });
-$('jdw-wel-photo').addEventListener('click', () => { closeSheet('jdw-welcome'); startPhoto(); });
+$('jdw-wel-photo').addEventListener('click', () => { welReturn = true; startPhoto(); });
+$('jdw-wel-cri').addEventListener('click', () => { welReturn = true; $('jdw-welcome').hidden = true; openCri(); });
 
 /* ================= Photo : cadrage + détourage ================= */
 const PH = { img: null, rot: 0, zoom: 1.4, ox: 0, oy: 0, mask: null, seg: undefined, busy: false, timer: 0 };
@@ -951,6 +1391,7 @@ $('jdw-file').addEventListener('change', async () => {
     PH.img = im; PH.rot = 0; PH.zoom = 1.4; PH.ox = 0; PH.oy = 0; PH.mask = null;
     $('jdw-ph-zoom').value = '1.4'; $('jdw-ph-consent').checked = !!profile.consent; $('jdw-ph-ok').disabled = !profile.consent;
     if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
+    if (!$('jdw-welcome').hidden) { $('jdw-welcome').hidden = true; welReturn = true; }
     openSheet('jdw-photo', 'jdw-ph-zoom');
     drawCrop(); scheduleOut();
   };
@@ -958,7 +1399,7 @@ $('jdw-file').addEventListener('change', async () => {
   im.src = url;
 });
 function closePhoto() { $('jdw-photo').hidden = true; if (PH.img && PH.img.src.startsWith('blob:')) URL.revokeObjectURL(PH.img.src); PH.img = null; }
-$('jdw-ph-cancel').addEventListener('click', () => { closePhoto(); afterOnboarding(); });
+$('jdw-ph-cancel').addEventListener('click', () => { closePhoto(); if (welReturn) reopenWelcome(); else afterOnboarding(); });
 $('jdw-ph-redo').addEventListener('click', startPhoto);
 $('jdw-ph-rot').addEventListener('click', () => { PH.rot = (PH.rot + 90) % 360; drawCrop(); scheduleOut(); });
 $('jdw-ph-zoom').addEventListener('input', () => { PH.zoom = +$('jdw-ph-zoom').value; drawCrop(); scheduleOut(); });
@@ -1066,9 +1507,10 @@ $('jdw-ph-ok').addEventListener('click', async () => {
   let data = '';
   try { data = fin.toDataURL('image/webp', 0.85); } catch (e) {}
   if (!data.startsWith('data:image/webp')) data = fin.toDataURL('image/png');
-  profile.photo = data; profile.consent = true; profile.askedFor = cleanName(profile.name); saveProfile();
-  players.delete(cleanName(profile.name)); syncOwnPlayer();
+  profile.photo = data; profile.consent = true; if (profile.name) { profile.askedFor = cleanName(profile.name); saveProfile(); }
+  if (profile.name) { players.delete(cleanName(profile.name)); syncOwnPlayer(); }
   closePhoto(); refreshAll();
+  if (welReturn) { reopenWelcome(); return; }
   const ok = await pushProfile();
   toastCheer(ok ? 'Ta tête est dans les jeux !' : 'Tête enregistrée sur cet appareil.', profile.name, true);
   afterOnboarding();
@@ -1154,11 +1596,15 @@ async function doJoin(r, code) {
   } catch (e) { roomsStatus("Impossible de rejoindre cette salle pour l'instant."); }
 }
 function enterRoom(rm) {
+  const prevId = room ? room.id : null;
   room = rm; store.set('jdw.room', room);
+  if (prevId && prevId !== room.id) { rtLeave('jdw-room-' + prevId); presReset(); }
+  rtJoin('jdw-room-' + room.id);
   players.clear(); syncOwnPlayer(); remote = {}; counts = {}; total = 0;
   $('jdw-joinbox').hidden = true; closeSheet('jdw-rooms');
   chatReset(); closeChat();
   refreshAll(); pushProfile(); loadPlayers(); loadScores(); heartbeat(); loadChat();
+  setTimeout(() => poke('players'), 600);
 }
 $('jdw-roombar').addEventListener('click', openRooms);
 $('jdw-rooms-close').addEventListener('click', () => closeSheet('jdw-rooms'));
@@ -1173,6 +1619,7 @@ $('jdw-new-ok').addEventListener('click', async () => {
     if (code) { roomCodes[id] = code; store.set('jdw.roomcodes', roomCodes); }
     $('jdw-new-name').value = ''; $('jdw-new-code').value = '';
     enterRoom({ id, name, priv: !!code });
+    poke('rooms', 'jdw-all');
     toastCheer('Bienvenue dans « ' + name + ' » ! Donne le nom' + (code ? ' et le code' : '') + ' aux copains.', profile.name);
   } catch (e) {
     roomsStatus(/existe/.test(String(e.message)) ? 'Ce nom de salle est déjà pris, choisis-en un autre.' : 'Impossible de créer la salle pour le moment.');
@@ -1201,7 +1648,8 @@ function mountGame(g) {
     }
   };
   current = { game: g, root, seq, over: false, inst: null };
-  try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; }
+  recReset(); setTimeout(recLine, 50);
+  try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }
   setWhere(g.id);
 }
 function unmountGame() {
@@ -1210,7 +1658,7 @@ function unmountGame() {
   try { inst && inst.destroy && inst.destroy(); } catch (e) {}
   if (game.external) root.hidden = true; else root.remove();
   current = null;
-  $('jdw-cheer').hidden = true;
+  $('jdw-cheer').hidden = true; $('jdw-rescue').hidden = true;
 }
 const LANDSCAPE = new Set(['pleingaz', 'canards', 'rouleaux']);
 const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 900px)');
@@ -1244,8 +1692,25 @@ function backToLibrary() {
   unmountGame();
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
   setWhere('menu'); refreshAll();
+  if (siteNew) setTimeout(maybeReload, 800);
 }
-$('jdw-back').addEventListener('click', backToLibrary);
+// Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
+function quitGame() {
+  if (current && !current.over && current.inst && current.inst.currentScore) {
+    let sc = 0;
+    try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) { sc = 0; }
+    if (sc > 0) {
+      current.over = true;
+      try { current.inst.destroy && current.inst.destroy(); } catch (e) {}
+      current.inst = {};
+      if (current.game.external) current.root.hidden = true; else current.root.textContent = '';
+      showEnd(sc);
+      return;
+    }
+  }
+  backToLibrary();
+}
+$('jdw-back').addEventListener('click', quitGame);
 $('jdw-tolib').addEventListener('click', backToLibrary);
 $('jdw-again').addEventListener('click', () => { flushPending(); if (!current) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; Audio.ensure(); mountGame(g); });
 function syncMute() {
@@ -1257,10 +1722,48 @@ function syncMute() {
 }
 $('jdw-mute').addEventListener('click', () => { muted = !muted; store.set('jdw.muted', muted); Audio.ensure(); syncMute(); });
 
+/* ================= 1re place affichée pendant toute la partie ================= */
+const REC = { leader: '', score: -1, passed: '', flashUntil: 0 };
+function recReset() { REC.leader = ''; REC.score = -1; REC.passed = ''; REC.flashUntil = 0; }
+function recLine() {
+  const el = $('jdw-recline');
+  if (!current || $('jdw-play').hidden || !$('jdw-end').hidden) { el.hidden = true; return; }
+  const g = current.game, me = cleanName(profile.name), lead = top(g.id)[0], u = unit(g);
+  let cur = 0;
+  try { if (!current.over && current.inst && current.inst.currentScore) cur = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
+  el.hidden = false;
+  let cls = 'recline', txt;
+  if (lead && REC.leader && (REC.leader !== lead.name || REC.score !== lead.score) && lead.name !== me) {
+    // un copain vient de prendre (ou d'améliorer) la 1re place pendant qu'on joue
+    REC.flashUntil = Date.now() + 2500;
+    toastCheer(lead.name + (REC.leader === lead.name ? ' améliore son record : ' : ' prend la 1re place : ') + fmt(lead.score) + u + ' !', lead.name);
+  }
+  if (lead) { REC.leader = lead.name; REC.score = lead.score; }
+  if (!lead) { txt = cur > 0 ? '👑 Toi · ' + fmt(cur) + u + ' · premier record !' : '👑 Pas encore de record : à toi !'; if (cur > 0) cls += ' me'; }
+  else if (lead.name === me) { cls += ' me'; txt = cur > lead.score ? '👑 Toi · ' + fmt(cur) + u + ' · nouveau record !' : '👑 Toi · ' + fmt(lead.score) + u + (cur ? ' · en cours ' + fmt(cur) : ''); }
+  else if (cur > lead.score) {
+    cls += ' me'; txt = '👑 Toi · ' + fmt(cur) + u + ' · devant ' + lead.name + ' !';
+    const key = lead.name + ':' + lead.score;
+    if (REC.passed !== key) {
+      REC.passed = key; REC.flashUntil = Date.now() + 2500;
+      toastCheer('Tu passes devant ' + lead.name + ' ! 👑', me, true);
+      Audio.tone(784, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(1046, 0.22, 'square', 0.06), 120);
+    }
+  } else txt = '👑 ' + lead.name + ' · ' + fmt(lead.score) + u + (cur ? '   ·   toi ' + fmt(cur) : '');
+  if (Date.now() < REC.flashUntil) cls += ' flash';
+  if (el.className !== cls) el.className = cls;
+  if (el.textContent !== txt) el.textContent = txt;
+}
+setInterval(recLine, 400);
+
 /* ================= Fin de partie ================= */
 // Score en attente : enregistré pour le joueur choisi (par défaut le joueur actuel, en quittant l'écran de fin).
 let pending = null;
-const knownBest = (name, game) => Math.max(bestOf(name, game), (top(game).find(r => r.name === cleanName(name)) || {}).score || 0);
+// en ligne, le record qui compte est celui du classement de la salle (les anciens scores restés sur l'appareil ne bloquent rien)
+const knownBest = (name, game) => {
+  const srv = (top(game).find(r => r.name === cleanName(name)) || {}).score || 0;
+  return ONLINE && room && serverOk ? srv : Math.max(bestOf(name, game), srv);
+};
 async function commitScore(name) {
   if (!pending || pending.done) return;
   const p = pending; p.done = true;
@@ -1273,7 +1776,8 @@ async function commitScore(name) {
   const res = await saveScore(p.game, p.score, name);
   if (!live()) return;
   st.textContent = (prev ? 'Nouveau record pour ' + name + ' ! ' : 'Premier score de ' + name + ' ici ! ') +
-    (res === 'shared' ? 'Enregistré dans le classement commun.' : 'Enregistré sur cet appareil.');
+    (res === 'shared' ? 'Enregistré en ligne dans le classement de la salle.' : (ONLINE ? "Pas de connexion : gardé sur cet appareil, réessaie plus tard." : 'Enregistré sur cet appareil.'));
+  if (res === 'shared') loadChat();
   renderEndBoard(g, cleanName(profile.name));
 }
 function flushPending() { if (pending && !pending.done && pending.record) commitScore(profile.name); }
@@ -1310,13 +1814,14 @@ async function showEnd(score) {
   $('jdw-endunit').textContent = g.scoreLabel === 'm' ? 'mètres' : (g.scoreLabel || 'points');
   // qui ai-je battu ?
   const others = before.filter(r => r.name !== me);
-  const beaten = others.filter(r => score > r.score);
+  // seulement ceux qu'on vient de dépasser avec cette partie (pas ceux qui étaient déjà derrière nous)
+  const beaten = others.filter(r => score > r.score && r.score >= myBest);
   const beat = $('jdw-beat'); beat.hidden = true; beat.classList.remove('has-cri'); beat.onclick = null;
   if (score > 0 && beaten.length) {
     const victim = beaten[0], wasFirst = before[0] && victim.name === before[0].name;
     const p = players.get(victim.name);
     $('jdw-beat-txt').innerHTML = '';
-    const b = document.createElement('b'); b.textContent = (wasFirst ? 'Tu détrônes ' : 'Tu as battu ') + victim.name + ' !';
+    const b = document.createElement('b'); b.textContent = (wasFirst ? 'Tu as battu le premier : ' : 'Tu as battu ') + victim.name + ' !';
     $('jdw-beat-txt').append(b, (wasFirst ? 'Nouveau record de la bande. ' : '') + 'Son score : ' + fmt(victim.score) + unit(g) + (p && p.photo ? '. Snif, ' + victim.name + ' pleure !' : ''));
     if (p && p.photo) { $('jdw-beat-img').src = sadUrl(p); $('jdw-beat-img').hidden = false; } else $('jdw-beat-img').hidden = true;
     beat.hidden = false;
@@ -1324,19 +1829,24 @@ async function showEnd(score) {
   }
   // un copain crie : celui qu'on vient de battre (tête triste), sinon celui qui mène et se moque
   const taunt = $('jdw-taunt'); taunt.hidden = true;
-  let crier = null, cryMode = '';
-  if (score > 0 && beaten.length && hasCri(beaten[0].name)) { crier = beaten[0].name; cryMode = 'sad'; }
-  else {
-    const lead = before.find(r => r.name !== me && hasCri(r.name));
-    const anyone = [...players.values()].filter(p => p.sound && p.name !== me);
-    crier = lead ? lead.name : (anyone.length ? anyone[Math.floor(Math.random() * anyone.length)].name : null); cryMode = 'mock';
+  let crier = null, cryMode = '', ahead = null;
+  if (score > 0 && beaten.length) {
+    // on a battu quelqu'un : c'est lui qui pleure (jamais de moquerie)
+    if (hasCri(beaten[0].name)) { crier = beaten[0].name; cryMode = 'sad'; }
+  } else {
+    // personne de battu : celui qui est juste devant se moque (sinon le premier du classement)
+    const front = before.filter(r => r.name !== me && r.score >= score);
+    ahead = front.slice().reverse().find(r => hasCri(r.name)) || null;
+    if (ahead) { crier = ahead.name; cryMode = 'mock'; }
   }
   if (crier) {
     if (cryMode === 'mock') {
       const head = $('jdw-taunt-head'); head.textContent = ''; head.appendChild(chatHead(crier, { passive: true }));
       $('jdw-taunt-name').textContent = crier;
-      const says = ['se moque de toi !', 'rigole bien…', 'te chambre !', "t'a vu perdre !", 'est mort de rire'];
-      $('jdw-taunt-say').textContent = ' ' + says[Math.floor(Math.random() * says.length)];
+      const first = before[0] && before[0].name === crier;
+      const says = first ? ['garde la 1re place et se moque de toi !', 'est toujours le roi de ce jeu…', 'reste premier et te chambre !']
+                         : ['reste devant toi et se moque !', 'garde son avance et rigole…', 'te devance encore !'];
+      $('jdw-taunt-say').textContent = ' ' + says[Math.floor(Math.random() * says.length)] + ' (' + fmt(ahead.score) + unit(g) + ')';
       taunt.hidden = false; taunt.onclick = () => playCri(crier, head.firstChild);
       setTimeout(() => { if (!$('jdw-end').hidden) playCri(crier, head.firstChild); }, 450);
     } else {
@@ -1346,11 +1856,12 @@ async function showEnd(score) {
   }
   const st = $('jdw-status'), record = score > 0 && score > myBest;
   pending = score > 0 ? { game: g.id, score, record, done: false } : null;
-  if (record) st.textContent = (before.length === 0 ? 'Premier record de ce jeu ! ' : 'Nouveau record perso ! ') + 'Il sera enregistré pour ' + me + '.';
+  if (record) st.textContent = 'Nouveau record ! Enregistrement en ligne…';
   else st.textContent = myBest ? 'Ton record : ' + fmt(myBest) + unit(g) + '. Encore un effort !' : 'Pas de points cette fois. Retente ta chance !';
-  if (pending) buildWho(record); else $('jdw-who').hidden = true;
+  if (pending && !record) buildWho(false); else $('jdw-who').hidden = true;
   $('jdw-end').hidden = false;
   renderEndBoard(g, me);
+  if (record) commitScore(me);           // un record part tout de suite dans le classement en ligne
   $('jdw-again').focus({ preventScroll: true });
   if (record) Audio.tone(660, 0.1, 'square', 0.05);
 }
@@ -1383,10 +1894,10 @@ function alertBox(txt) { $('jdw-rooms-status').textContent = txt; openRooms(); }
 window.JDW_BACK = () => {
   if (chat.open) { closeChat(); return true; }
   if (!$('jdw-cri').hidden) { closeCri(); return true; }
-  for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-welcome']) {
+  for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members', 'jdw-welcome']) {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
-  if (!$('jdw-play').hidden) { backToLibrary(); return true; }
+  if (!$('jdw-play').hidden) { quitGame(); return true; }
   return false;
 };
 (async () => {
@@ -1401,7 +1912,7 @@ window.JDW_BACK = () => {
 })();
 
 /* ================= Démarrage ================= */
-['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri'].forEach(id => { if ($(id)) $(id).hidden = true; });
+['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
 $('jdw-lib').hidden = false;
 syncOwnPlayer();
@@ -1410,5 +1921,7 @@ requestAnimationFrame(previewLoop);
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }
 if (!profile.name) startWelcome(); else if (ONLINE && !room) openRooms();
 loadPlayers(); loadScores(); heartbeat(); loadChat();
+if (ONLINE) { rtJoin('jdw-all'); if (room) rtJoin('jdw-room-' + room.id); rtConnect(); }
+setTimeout(checkSiteVersion, 4000);
 window.JDW_SHELL = { players, headsList };
 })();
