@@ -113,8 +113,20 @@ function setPlayer(name, photo, sound) {
   if (cur && cur.photo === (photo || null)) { cur.sound = sound || null; return; }
   const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null,
     member: cur ? cur.member : false, seen: cur ? cur.seen : 0, game: cur ? cur.game : null, updated: cur ? cur.updated : 0 };
-  if (photo) { const im = new Image(); im.decoding = 'async'; im.src = photo; p.img = im; }
+  if (photo) {
+    const im = new Image(); im.decoding = 'async';
+    im.onload = () => { try { p.topFrac = photoTop(im); } catch (e) {} setTimeout(() => { try { refreshChamps(true); } catch (e) {} }, 0); };
+    im.src = photo; p.img = im;
+  }
   players.set(name, p);
+}
+// haut réel de la tête dans la photo détourée (0 = tout en haut de l'image), pour poser la couronne pile dessus
+function photoTop(im) {
+  const W = 40, H = 50, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0, W, H);
+  const d = x.getImageData(0, 0, W, H).data;
+  for (let y = 0; y < H; y++) for (let i = Math.floor(W * 0.2); i < Math.ceil(W * 0.8); i++) if (d[(y * W + i) * 4 + 3] > 70) return y / H;
+  return 0.1;
 }
 function syncOwnPlayer() {
   for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) setPlayer(pr.name, pr.consent ? pr.photo : null, pr.sound || undefined);
@@ -1135,16 +1147,26 @@ function openBoardFor(gameId) {
   boardScope = 'room'; store.set('jdw.boardscope', boardScope); boardTab = gameId;
   loadScores(); renderBoardTab(); openSheet('jdw-board', 'jdw-board-close');
 }
-function refreshChamps() {
+function refreshChamps(force) {
   const show = ONLINE && !!room && remoteLoaded;
   for (const t of tiles) {
     const lead = show ? top(t.g.id)[0] : null, ch = t.champ; if (!ch) continue;
-    const key = lead ? lead.name + ':' + lead.score + ':' + (players.get(lead.name) || {}).photo : '';
-    if (ch.dataset.k === key) continue;
+    const lp = lead ? players.get(lead.name) || {} : {};
+    const key = lead ? lead.name + ':' + lead.score + ':' + (lp.photo || '').length + ':' + (lp.topFrac || '') : '';
+    if (ch.dataset.k === key && !force) continue;
     ch.dataset.k = key; ch.textContent = ''; ch.hidden = !lead;
     if (!lead) continue;
     const hd = chatHead(lead.name, { passive: true }); hd.classList.add('champ-head');
     const cr = document.createElement('span'); cr.className = 'champ-crown'; cr.textContent = '👑';
+    // la photo dépasse du rond (cheveux) : la couronne se pose sur le vrai haut de la tête
+    // image affichée : largeur 118 % du rond, proportion 160×200, posée en bas ; le haut visible est coupé à 40 % au-dessus du rond
+    let crownTop = -12;
+    if (lp.photo && lp.topFrac != null) {
+      const D = 44, imgH = D * 1.18 * 1.25, headTop = Math.max(-0.4 * D, D - imgH + lp.topFrac * imgH);
+      crownTop = Math.round(3 + headTop - 14);
+    }
+    cr.style.top = crownTop + 'px';
+    ch.style.top = Math.max(6, 4 - crownTop) + 'px';     // la bulle descend juste assez pour que la couronne reste dans la tuile
     ch.append(hd, cr);
     ch.setAttribute('aria-label', 'Champion de la salle à ' + t.g.title + ' : ' + lead.name + ', ' + fmt(lead.score) + unit(t.g) + '. Voir le classement de la salle');
     ch.title = lead.name + ' · ' + fmt(lead.score) + unit(t.g);
