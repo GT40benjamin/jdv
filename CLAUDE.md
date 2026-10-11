@@ -81,3 +81,5 @@ Le script peut être relancé : il garde les données (salles, scores, joueurs, 
   notification « Mise à jour disponible » / « Nouvelle appli à télécharger » dans la cloche, message en pleine partie,
   rechargement automatique au calme (adresse ?v=<build> qui contourne le cache, une seule tentative automatique par version).
 - Un jeu peut demander un morceau précis : api.music('iloboss') (musique de boss de Galaxy Wars), api.music() pour revenir.
+- Nouveautés d'une version : `source/nouveautes.txt` (une ligne par nouveauté) → affichées dans la cloche après la mise à jour
+  automatique, avec le message « ✨ Mise à jour X installée ! ». À réécrire avant chaque publication importante.
