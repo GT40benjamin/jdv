@@ -26,6 +26,7 @@ create table if not exists public.room_members (
   primary key (room_id, name)
 );
 alter table public.room_members add column if not exists last_seen timestamptz;
+alter table public.room_members add column if not exists last_version text;
 alter table public.room_members enable row level security;
 
 -- Scores (par salle)
@@ -125,7 +126,8 @@ drop function if exists public.add_score(text, bigint, text, text, text, int);
 drop function if exists public.get_players(text, bigint, text);
 drop function if exists public.save_player(text, text, text, boolean);
 drop function if exists public.save_player(text, text, text, boolean, text);
-drop function if exists public.heartbeat(text, bigint, text, text, text);
+drop function if exists public.heartbeat(text, bigint, text, text, text, text);
+drop function if exists public.heartbeat(text, bigint, text, text, text, text);
 drop function if exists public.room_ok(bigint, text);
 drop function if exists public.get_notifications(text, bigint, text, text);
 drop function if exists public.get_messages(text, bigint, text, bigint);
@@ -231,14 +233,14 @@ end $$;
 
 
 create function public.get_players(p_code text, p_room bigint, p_room_code text)
-returns table(r_name text, r_photo text, r_updated timestamptz, r_sound text, r_seen timestamptz, r_game text)
+returns table(r_name text, r_photo text, r_updated timestamptz, r_sound text, r_seen timestamptz, r_game text, r_version text)
 language plpgsql stable security definer set search_path = public, extensions as $$
 begin
   if not public.check_code(p_code) or not public.room_ok(p_room, p_room_code) then raise exception 'acces refuse'; end if;
   return query
     select m.name, case when pl.consent then pl.photo end, coalesce(pl.updated_at, m.joined_at), pl.sound, m.last_seen,
       (select pr.game from public.presence pr where pr.room_id = p_room and pr.name = m.name and pr.seen_at > now() - interval '45 seconds'
-        order by pr.seen_at desc limit 1)
+        order by pr.seen_at desc limit 1), m.last_version
     from public.room_members m left join public.players pl on pl.name = m.name
     where m.room_id = p_room;
 end $$;
@@ -333,14 +335,14 @@ end $$;
 
 -- qui est là, sans les photos ni les cris (appel léger, fait souvent) ; r_updated change quand la tête ou le cri change
 create function public.get_presence(p_code text, p_room bigint, p_room_code text)
-returns table(r_name text, r_updated timestamptz, r_seen timestamptz, r_game text)
+returns table(r_name text, r_updated timestamptz, r_seen timestamptz, r_game text, r_version text)
 language plpgsql stable security definer set search_path = public, extensions as $$
 begin
   if not public.check_code(p_code) or not public.room_ok(p_room, p_room_code) then raise exception 'acces refuse'; end if;
   return query
     select m.name, coalesce(pl.updated_at, m.joined_at), m.last_seen,
       (select pr.game from public.presence pr where pr.room_id = p_room and pr.name = m.name and pr.seen_at > now() - interval '45 seconds'
-        order by pr.seen_at desc limit 1)
+        order by pr.seen_at desc limit 1), m.last_version
     from public.room_members m left join public.players pl on pl.name = m.name
     where m.room_id = p_room;
 end $$;
@@ -387,7 +389,7 @@ begin
     where t.rn <= 10;
 end $$;
 
-create function public.heartbeat(p_code text, p_room bigint, p_client text, p_name text, p_game text)
+create function public.heartbeat(p_code text, p_room bigint, p_client text, p_name text, p_game text, p_version text default null)
 returns table(r_game text, r_count int)
 language plpgsql security definer set search_path = public, extensions as $$
 begin
@@ -397,7 +399,8 @@ begin
   on conflict (client_id) do update set room_id = excluded.room_id, name = excluded.name, game = excluded.game, seen_at = now();
   delete from public.presence where seen_at < now() - interval '3 minutes';
   -- dernière connexion de chaque membre (pour « vu il y a… »)
-  update public.room_members m set last_seen = now() where m.room_id = p_room and m.name = upper(left(trim(p_name), 12));
+  update public.room_members m set last_seen = now(), last_version = coalesce(left(p_version, 40), m.last_version)
+    where m.room_id = p_room and m.name = upper(left(trim(p_name), 12));
   return query select pr.game, count(*)::int from public.presence pr
     where pr.room_id = p_room and pr.seen_at > now() - interval '45 seconds' group by pr.game;
 end $$;
@@ -406,7 +409,7 @@ revoke all on function public.check_code(text), public.room_ok(bigint, text), pu
   public.create_room(text, text, text, text), public.join_room(text, bigint, text, text),
   public.get_scores(text, bigint, text), public.add_score(text, bigint, text, text, text, int),
   public.get_players(text, bigint, text), public.save_player(text, text, text, boolean, text),
-  public.heartbeat(text, bigint, text, text, text), public.get_notifications(text, bigint, text, text),
+  public.heartbeat(text, bigint, text, text, text, text), public.get_notifications(text, bigint, text, text),
   public.get_messages(text, bigint, text, bigint), public.post_message(text, bigint, text, text, text),
   public.check_name(text, text), public.log_error(text, text, bigint, text, text, text, text, text), public.get_errors(text, int), public.get_presence(text, bigint, text),
   public.react(text, bigint, text, bigint, text, text), public.get_reactions(text, bigint, text) from public;
@@ -414,7 +417,7 @@ grant execute on function public.check_code(text), public.list_rooms(text, text)
   public.create_room(text, text, text, text), public.join_room(text, bigint, text, text),
   public.get_scores(text, bigint, text), public.add_score(text, bigint, text, text, text, int),
   public.get_players(text, bigint, text), public.save_player(text, text, text, boolean, text),
-  public.heartbeat(text, bigint, text, text, text), public.get_notifications(text, bigint, text, text),
+  public.heartbeat(text, bigint, text, text, text, text), public.get_notifications(text, bigint, text, text),
   public.get_messages(text, bigint, text, bigint), public.post_message(text, bigint, text, text, text),
   public.check_name(text, text), public.log_error(text, text, bigint, text, text, text, text, text), public.get_errors(text, int), public.get_presence(text, bigint, text),
   public.react(text, bigint, text, bigint, text, text), public.get_reactions(text, bigint, text) to anon;

@@ -196,7 +196,7 @@ async function loadPlayers() {
     for (const r of rows) {
       setPlayer(r.r_name, r.r_photo, r.r_sound || null);
       const p = players.get(cleanName(r.r_name));
-      if (p) { p.member = true; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; }
+      if (p) { p.member = true; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; if (r.r_version) p.dbVer = r.r_version; }
     }
     playersAt = Date.now();
     syncOwnPlayer();
@@ -217,6 +217,15 @@ async function pushProfile() {
 const BUILD = window.JDW_BUILD || 'dev';
 const errSeen = new Set(); let errCount = 0;
 let errLog = store.get('jdw.errors', []); if (!Array.isArray(errLog)) errLog = [];
+function myVersionTag() {
+  const m = navigator.userAgent.match(/BorneArcade\/(\d+)/);
+  return (window.JDW_VERSION || '?') + (m ? '·a' + ({ 2: '1.1', 3: '1.2', 4: '1.3', 5: '1.5' }[m[1]] || m[1]) : '·web');
+}
+function versionLabel(tag) {
+  if (!tag) return '';
+  const [v, a] = String(tag).split('·');
+  return 'v' + v + (a === 'web' ? ' · navigateur' : a && a[0] === 'a' ? ' · appli ' + a.slice(1) : '');
+}
 function appVersion() { const m = navigator.userAgent.match(/BorneArcade\/(\d+)/); return BUILD + (m ? ' appli ' + m[1] : ' web'); }
 function reportError(message, detail, opts) {
   message = String(message || 'Erreur inconnue').slice(0, 500);
@@ -864,7 +873,7 @@ function placePicker(anchor) {
 
 /* ================= Joueurs connectés ================= */
 let counts = {}, total = 0, where = 'menu';
-let presenceBusy = false;
+let presenceBusy = false, hbVersion = true;   // hbVersion : le serveur accepte p_version (SQL 1.5)
 async function refreshPresence() {
   if (!ONLINE || !room || presenceBusy) return;
   presenceBusy = true;
@@ -874,7 +883,7 @@ async function refreshPresence() {
     for (const r of rows) {
       const p = players.get(cleanName(r.r_name)), up = Date.parse(r.r_updated) || 0;
       if (!p || !p.member || (p.updated || 0) !== up) { stale = true; continue; }
-      p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null;
+      p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; if (r.r_version) p.dbVer = r.r_version;
     }
     if (stale) await loadPlayers(); else if (!$('jdw-members').hidden) renderMembers();
     if (PRES.ok) presChanged();
@@ -884,7 +893,10 @@ async function refreshPresence() {
 async function heartbeat() {
   if (!ONLINE || !profile.name || !room) return;
   try {
-    const rows = await rpc('heartbeat', { p_code: CODE(), p_room: room.id, p_client: clientId, p_name: profile.name, p_game: where }) || [];
+    const hb = { p_code: CODE(), p_room: room.id, p_client: clientId, p_name: profile.name, p_game: where };
+    let rows;
+    if (hbVersion) { try { rows = await rpc('heartbeat', Object.assign({ p_version: myVersionTag() }, hb)) || []; } catch (e) { if (e.status === 404) { hbVersion = false; rows = await rpc('heartbeat', hb) || []; } else throw e; } }
+    else rows = await rpc('heartbeat', hb) || [];
     if (!PRES.ok) { counts = {}; total = 0; for (const r of rows) { counts[r.r_game] = r.r_count; total += r.r_count; } }
     serverOk = true;
   } catch (e) { serverOk = false; }
@@ -914,7 +926,7 @@ const PRES = { state: {}, ok: false, timer: 0 };
 function presReset() { PRES.state = {}; PRES.ok = false; }
 function rtTrack() {
   const t = roomTopic(); if (!t || !profile.name || document.hidden) return;
-  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId } });
+  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId, ver: myVersionTag() } });
 }
 function rtUntrack() { const t = roomTopic(); if (t) rtSend(t, 'presence', { type: 'presence', event: 'untrack' }); }
 function presApply(d) {
@@ -931,20 +943,20 @@ function presApply(d) {
 }
 function presList() {
   const out = [];
-  for (const metas of Object.values(PRES.state)) { const m = metas[metas.length - 1]; if (m && m.name) out.push({ name: cleanName(m.name), game: m.game || 'menu' }); }
+  for (const metas of Object.values(PRES.state)) { const m = metas[metas.length - 1]; if (m && m.name) out.push({ name: cleanName(m.name), game: m.game || 'menu', ver: m.ver || '' }); }
   return out;
 }
 function presChanged() {
   if (!PRES.ok) return;
-  const list = presList(), live = new Map();
-  for (const x of list) if (!live.has(x.name) || live.get(x.name) === 'menu') live.set(x.name, x.game);
+  const list = presList(), live = new Map(), liveVer = new Map();
+  for (const x of list) { if (!live.has(x.name) || live.get(x.name) === 'menu') live.set(x.name, x.game); if (x.ver || !liveVer.has(x.name)) liveVer.set(x.name, x.ver); }
   counts = {}; total = list.length;
   for (const x of list) counts[x.game] = (counts[x.game] || 0) + 1;
   // joueurs d'une ancienne version (sans le direct) : vus en ligne par le serveur dans les 45 dernières secondes
   for (const p of players.values()) if (p.member && p.dbGame && !live.has(p.name)) { total++; counts[p.dbGame] = (counts[p.dbGame] || 0) + 1; }
   let unknown = false;
   for (const p of players.values()) {
-    if (live.has(p.name)) { p.live = true; p.game = live.get(p.name); }
+    if (live.has(p.name)) { p.live = true; p.game = live.get(p.name); p.liveVer = liveVer.get(p.name) || ''; }
     else { if (p.live) p.seen = Date.now(); p.live = false; if (p.member) p.game = null; }
   }
   for (const n of live.keys()) { const p = players.get(n); if (!p || !p.member) unknown = true; }
@@ -1063,7 +1075,12 @@ function renderMembers() {
       const n = document.createElement('b'); n.textContent = p.name === me ? p.name + ' (moi)' : p.name;
       const st = document.createElement('small');
       st.textContent = online ? (p.name === me ? gameLabel(current ? current.game.id : 'menu') : gameLabel(p.live ? p.game : (p.dbGame || p.game))) : seenText(p.seen);
-      tx.append(n, st);
+      const vt = p.name === me ? myVersionTag() : (online && p.live ? (p.liveVer || '') : (p.dbVer || ''));
+      const vl = document.createElement('small'); vl.className = 'mem-ver';
+      vl.textContent = vt ? versionLabel(vt) : (online && p.live ? 'ancienne version' : '');
+      if (vt && String(vt).split('·')[0] !== String(window.JDW_VERSION || '')) vl.classList.add('old');
+      if (!vt && online && p.live) vl.classList.add('old');
+      tx.append(n, st); if (vl.textContent) tx.append(vl);
       const tags = document.createElement('div'); tags.className = 'mem-tags';
       const ph = document.createElement('span'); ph.className = 'mem-tag' + (p.photo ? ' yes' : ''); ph.textContent = p.photo ? '📸 tête' : 'pas de tête';
       const cr = document.createElement('button'); cr.type = 'button'; cr.className = 'mem-tag' + (p.sound ? ' yes' : '');

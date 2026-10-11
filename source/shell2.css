@@ -529,3 +529,8 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .me-big .avatar{background:radial-gradient(circle at 50% 35%,var(--steel2),var(--steel))}
 /* éditeur de tête en mode « accessoires seuls » (photo prise avant) */
 #jdw-photo.acc-only #jdw-cropper,#jdw-photo.acc-only #jdw-ph-zoom,#jdw-photo.acc-only #jdw-ph-rot{display:none}
+.mem-txt small.mem-ver{color:var(--muted);font-size:11px}
+.mem-row.on .mem-txt small.mem-ver::before{content:none}
+.mem-txt small.mem-ver.old{color:var(--amber)}
+.mem-row .mem-txt small.mem-ver{color:var(--muted)}
+.mem-row .mem-txt small.mem-ver.old{color:var(--amber)}
