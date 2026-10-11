@@ -76,3 +76,8 @@ Le script peut être relancé : il garde les données (salles, scores, joueurs, 
   la cloche ne montre que les nouveautés (historique sur demande).
 - Photo : accessoires (lunettes posées sur les yeux via MediaPipe Face Detection, sinon estimation ; chapeaux ; visage ; effets derrière).
 - Code de salle manquant sur un appareil : message clair + code redemandé ; les refus du serveur sont remontés dans les erreurs.
+- Annonce en direct d'une publication : après `git push` et la mise en ligne de GitHub Pages (site.json à jour), lancer
+  `node ~/jdv-tools/annonce.js` → tous les appareils connectés vérifient tout de suite site.json et telecharger/version.json :
+  notification « Mise à jour disponible » / « Nouvelle appli à télécharger » dans la cloche, message en pleine partie,
+  rechargement automatique au calme (adresse ?v=<build> qui contourne le cache, une seule tentative automatique par version).
+- Un jeu peut demander un morceau précis : api.music('iloboss') (musique de boss de Galaxy Wars), api.music() pour revenir.
