@@ -555,3 +555,4 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .online-ic{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
 @media (max-width:440px){.ol-word{display:none}}
 @media (min-width:441px){.online-ic{display:none}}
+.nt-notes{margin:4px 0 0;padding-left:18px;font-size:12px;color:var(--muted);display:grid;gap:2px}

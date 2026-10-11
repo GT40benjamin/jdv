@@ -73,6 +73,10 @@ script = "let PG_ACTIVE = false, PG_API = null, PG_HEADS = [], PG_PILOT_IMG = nu
 # ---------- assemblage ----------
 SKIP = [x for x in os.environ.get('SKIP_GAMES', '').split(',') if x]   # ex. SKIP_GAMES=ilo : jeu pas encore prêt
 GAMES = [g for g in ['ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
+def notes_list():
+    # nouveautés de la version (une par ligne), affichées après une mise à jour
+    f = J + 'nouveautes.txt'
+    return [l.strip() for l in open(f, encoding='utf-8').read().splitlines() if l.strip()] if os.path.exists(f) else []
 def music_list():
     # {jeu: [numéros de variantes]} d'après les fichiers assets/music/<jeu>-<n>.mp3
     # calmes : <jeu>-<n>.mp3 ; énergiques (niveaux difficiles) : <jeu>-x<n>.mp3
@@ -86,7 +90,7 @@ def page(config=None):
     body = open(J + 'shell2-body.html').read().replace('PG_MARKUP', '<section id="jdw-pg" hidden>\n' + markup + '\n</section>')
     games = ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
     cfg = ('<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else '') + \
-          '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + '; window.JDW_VERSION = ' + json.dumps(os.environ.get('SITE_VERSION', '')) + ';</script>\n' + \
+          '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + '; window.JDW_VERSION = ' + json.dumps(os.environ.get('SITE_VERSION', '')) + '; window.JDW_NOTES = ' + json.dumps(notes_list()) + ';</script>\n' + \
           '<script>window.JDW_MUSIC = ' + json.dumps(music_list()) + ';</script>\n'
     return ('<title>Jeux des WC</title>\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'

@@ -514,6 +514,7 @@ let gameNotifSeen = store.get('jdw.gamenotifseen', {}) || {};
 const UPD = { site: '', app: '', seen: store.get('jdw.updseen', {}) || {} };
 function updateNotifs() {
   const out = [];
+  if (UPD.installed && UPD.seen.installed !== UPD.installed) out.push({ kind: 'installed', v: UPD.installed });
   if (UPD.site && UPD.seen.site !== UPD.site) out.push({ kind: 'site', v: UPD.site });
   if (UPD.app && UPD.seen.app !== UPD.app) out.push({ kind: 'app', v: UPD.app });
   return out;
@@ -539,6 +540,15 @@ function timeAgo(t) {
 function notifRow(n, isNew) {
   const li = document.createElement('li'); if (isNew) li.className = 'new';
   const tx = document.createElement('span'); tx.className = 'nt';
+  if (n.kind === 'installed') {
+    const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✨'; ic.style.background = 'var(--gold)';
+    const b = document.createElement('b'); b.textContent = 'Version ' + n.v + ' installée';
+    tx.append(b);
+    const notes = window.JDW_NOTES || [];
+    if (notes.length) { const ul = document.createElement('ul'); ul.className = 'nt-notes'; for (const t of notes) { const li2 = document.createElement('li'); li2.textContent = t; ul.appendChild(li2); } tx.append(ul); }
+    li.append(ic, tx);
+    return li;
+  }
   if (n.kind === 'site' || n.kind === 'app') {
     const app = n.kind === 'app';
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = app ? '📲' : '🔄'; ic.style.background = app ? 'var(--leaf)' : 'var(--volt)';
@@ -2575,6 +2585,15 @@ window.JDW_BACK = () => {
   return false;
 };
 checkAppVersion();
+// juste après une mise à jour automatique : message + notification avec les nouveautés
+(() => {
+  let rf = ''; try { rf = sessionStorage.getItem('jdw.reloadfor') || ''; } catch (e) {}
+  if (!rf || rf !== window.JDW_BUILD) return;
+  try { sessionStorage.removeItem('jdw.reloadfor'); } catch (e) {}
+  const B = String(window.JDW_BUILD);
+  UPD.installed = (window.JDW_VERSION || '') + (/^\d{12}/.test(B) ? ' du ' + B.slice(6, 8) + '/' + B.slice(4, 6) : '');
+  setTimeout(() => { refreshBell(); toastCheer('✨ Mise à jour ' + (window.JDW_VERSION || '') + ' installée !', profile.name, true); }, 1800);
+})();
 
 /* ================= Démarrage ================= */
 ['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members'].forEach(id => { if ($(id)) $(id).hidden = true; });
