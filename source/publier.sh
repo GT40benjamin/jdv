@@ -15,9 +15,10 @@ SUPABASE_KEY=${SUPABASE_KEY:-$(cat "$HOME/jdv-tools/supabase-key.txt" 2>/dev/nul
 : "${SUPABASE_KEY:?définis SUPABASE_KEY=sb_publishable_…}"
 APK=${APK:-$HOME/jdv-tools/borne-arcade.apk}
 export BUILD_ID=${BUILD_ID:-$(date +%Y%m%d%H%M%S)}   # numéro de version : les appareils rechargent le site quand il change
-# numéro de version lisible (affiché dans ⚙) : +0.1 à chaque publication, BUMP=major pour passer à la version entière suivante
+# numéro de version commun au site et à l'appli (affiché dans ⚙ et sur la page de téléchargement) : il ne change que sur demande,
+# BUMP=minor (1.4 → 1.5) ou BUMP=major (1.5 → 2.0) ; les petites corrections gardent le même numéro.
 V=$(cat version.txt 2>/dev/null || echo 1.0); MAJ=${V%%.*}; MIN=${V#*.}
-if [ "$BUMP" = "major" ]; then MAJ=$((MAJ + 1)); MIN=0; else MIN=$((MIN + 1)); fi
+if [ "$BUMP" = "major" ]; then MAJ=$((MAJ + 1)); MIN=0; elif [ "$BUMP" = "minor" ]; then MIN=$((MIN + 1)); fi
 export SITE_VERSION="$MAJ.$MIN"; echo "$SITE_VERSION" > version.txt
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT        # fichiers en clair : jamais dans le dépôt
 PY=$(command -v python3 >/dev/null && python3 -c 1 2>/dev/null && echo python3 || echo python)

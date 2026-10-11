@@ -1309,7 +1309,10 @@ function versionText() {
   const V = window.JDW_VERSION ? 'Version ' + window.JDW_VERSION + ' · ' : 'Version ';
   const site = m ? V + 'du ' + m[3] + '/' + m[2] + '/' + m[1] + ' à ' + m[4] + 'h' + m[5] : 'Version de test';
   const app = navigator.userAgent.match(/BorneArcade\/(\d+)/);
-  return site + (app ? ' · appli Android ' + ({ 2: '1.1', 3: '1.2', 4: '1.3' }[app[1]] || 'v' + app[1]) : '');
+  if (!app) return site;
+  const appV = { 2: '1.1', 3: '1.2', 4: '1.3', 5: '1.5' }[app[1]] || '?';
+  // même numéro pour l'appli et le site ; si l'appli est plus ancienne, on le signale
+  return site + (appV === window.JDW_VERSION ? ' · appli à jour' : ' · appli ' + appV + (window.JDW_VERSION ? ' (mise à jour ' + window.JDW_VERSION + ' disponible)' : ''));
 }
 $('jdw-open-settings').addEventListener('click', openSettings);
 $('jdw-me').addEventListener('click', openProfiles);
