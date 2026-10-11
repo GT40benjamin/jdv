@@ -60,7 +60,7 @@ Le script peut être relancé : il garde les données (salles, scores, joueurs, 
 - Création de joueur dans une seule fenêtre (pseudo + tête + cri) avec vérification du pseudo (check_name, « c'est toi ? »).
 - Réactions aux messages du chat (table reactions, react / get_reactions ; appui long, clic droit, double-clic = ❤️).
 - Erreurs des joueurs remontées au serveur (log_error ; lecture : `node ~/jdv-tools/erreurs.js`) + bandeau « Oups » qui sauve le score si un jeu plante.
-- Nouvelle version du site : publier.sh écrit site.json (BUILD_ID) ; les appareils rechargent tout seuls quand ils sont au calme sur l'accueil.
+- Nouvelle version du site : publier.sh écrit site.json (BUILD_ID + numéro de version de source/version.txt, +0.1 par publication, BUMP=major pour X.0) ; les appareils rechargent tout seuls quand ils sont au calme sur l'accueil.
 - Appli Android 1.3 : clavier en plein écran corrigé (redimensionnement du WebView), JDW_RESUME au retour dans l'appli, micro pour le cri.
 - Jeu « Galaxy Wars » (id technique `ilo`, `games/ilo.js`, shoot'em up spatial) avec les planètes et nébuleuses du projet Unity ILO de l'utilisateur
   (packs Asset Store : jamais en clair dans le dépôt). `source/pack-ilo.js` (à relancer si le mot de passe change) redimensionne,
