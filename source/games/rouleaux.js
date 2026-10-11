@@ -2561,6 +2561,7 @@
 
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
+      currentLevel: () => (cycle || 0) * 16 + levelN,       // niveau en cours, séries comprises (musique plus énergique ensuite)
       // accès de diagnostic (harnais de test uniquement)
       _debug: {
         info: () => ({

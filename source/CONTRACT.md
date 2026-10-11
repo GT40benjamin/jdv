@@ -111,3 +111,13 @@ Teste avec de fausses têtes qui ont aussi un `sad` (dessine-le simplement : vis
 `mount()` renvoie `{ destroy(), currentScore() }` : `currentScore()` donne le score entier actuel de la partie en cours (0 si rien).
 La bibliothèque l'appelle quand le joueur touche « Quitter » en pleine partie : le score est alors traité comme une fin de partie
 (écran de fin, record enregistré s'il est battu), puis `destroy()` est appelé.
+
+## Ajout 4 : images d'un jeu (api.assets)
+Un jeu peut utiliser des images fournies par la bibliothèque (ex. les planètes d'ILO, chiffrées dans `assets/<id>.bin`) :
+`api.assets()` → Promise `{ planets: HTMLImageElement[], nebulas: HTMLImageElement[] }` (peut échouer : le jeu doit alors rester
+beau avec des visuels dessinés au canvas). `preview()` n'a pas d'api : il peut utiliser `window.JDW_ASSETS.cache[<id>]` s'il existe
+(sinon visuels dessinés). Ne jamais mettre ces images en clair dans le dépôt (licence de l'Asset Store).
+
+## Ajout 5 : niveau en cours (musique)
+`mount()` renvoie aussi `currentLevel()` : le numéro du niveau / de la vague / de la manche en cours (entier ≥ 1). La bibliothèque passe
+alors des morceaux calmes aux morceaux énergiques quand le jeu devient difficile (seuil réglé par jeu dans shell2.js, INTENSE_AT).

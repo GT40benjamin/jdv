@@ -1,13 +1,23 @@
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
-const ORDER = ['pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['ilo', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const NEW_GAMES = new Set(['ilo']);
 const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(Boolean);
 const gameById = id => GAMES.find(g => g.id === id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
 };
+let seenGames = store.get('jdw.seengames', {}) || {};
+const gameSeen = (id) => (seenGames[cleanName(profile.name)] || []).includes(id);
+const isNewGame = (id) => NEW_GAMES.has(id) && !!profile.name && !gameSeen(id);
+function markGameSeen(id) {
+  const me = cleanName(profile.name); if (!me || !NEW_GAMES.has(id) || gameSeen(id)) return;
+  (seenGames[me] = seenGames[me] || []).push(id); store.set('jdw.seengames', seenGames);
+  refreshNewBadges(); refreshBell();
+}
+function refreshNewBadges() { let list = []; try { list = tiles; } catch (e) { return; } for (const t of list) { const nb = t.el.querySelector('.tile-new'); if (nb) nb.hidden = !isNewGame(t.g.id); } }
 const fmt = n => Math.floor(n).toLocaleString('fr-FR');
 const unit = g => g && g.scoreLabel === 'm' ? ' m' : '';
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 12).toUpperCase();
@@ -16,7 +26,8 @@ const COLORS = { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '
 const FONTS = { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" };
 
 /* ================= Audio commun ================= */
-let muted = !!store.get('jdw.muted', false);
+let muted = !!store.get('jdw.muted', false);          // effets sonores coupés
+let criOn = store.get('jdw.cris', true) !== false;      // cris des copains
 const Audio = {
   ctx: null, master: null, buf: null,
   ensure() {
@@ -55,15 +66,24 @@ const audioApi = { tone: (...a) => Audio.tone(...a), noise: (...a) => Audio.nois
 const CFG = window.JDW_CONFIG || null;
 const ONLINE = !!(CFG && CFG.url && CFG.key);
 const CODE = () => store.get('jdw.code', '') || window.JDW_CODE || '';
-let serverOk = false;
+let serverOk = false, netDown = false, roomDenied = false, remoteLoaded = false;
 let room = store.get('jdw.room', null);
 let roomCodes = store.get('jdw.roomcodes', {}) || {};
 const RP = () => ({ p_room: room ? room.id : null, p_room_code: room ? (roomCodes[room.id] || '') : '' });
 async function rpc(fn, args) {
   const h = { 'Content-Type': 'application/json', apikey: CFG.key };
   if (!/^sb_/.test(CFG.key)) h.Authorization = 'Bearer ' + CFG.key;
-  const r = await fetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args) });
-  if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error(fn + ' ' + r.status + ' ' + t.slice(0, 120)); }
+  let r;
+  try { r = await fetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args) }); }
+  catch (e) { const er = new Error(fn + ' : pas de réseau'); er.offline = true; netDown = true; throw er; }
+  netDown = false;
+  if (!r.ok) {
+    const t = await r.text().catch(() => '');
+    const er = new Error(fn + ' ' + r.status + ' ' + t.slice(0, 120)); er.status = r.status; er.denied = /acces refuse/.test(t);
+    // les refus du serveur me sont remontés (une fois par session), pour comprendre ce qui bloque chez chacun
+    if (fn !== 'log_error' && !/trop de messages/.test(t)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
+    throw er;
+  }
   const txt = await r.text();
   return txt ? JSON.parse(txt) : null;
 }
@@ -164,13 +184,13 @@ async function loadPlayers() {
     for (const r of rows) {
       setPlayer(r.r_name, r.r_photo, r.r_sound || null);
       const p = players.get(cleanName(r.r_name));
-      if (p) { p.member = true; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; }
+      if (p) { p.member = true; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; }
     }
     playersAt = Date.now();
     syncOwnPlayer();
     refreshAll();
     if (!$('jdw-members').hidden) renderMembers();
-  } catch (e) { serverOk = false; refreshAll(); }
+  } catch (e) { serverOk = false; onRoomError(e); refreshAll(); }
 }
 async function pushProfile() {
   syncOwnPlayer();
@@ -219,14 +239,102 @@ $('jdw-rescue-x').addEventListener('click', () => { $('jdw-rescue').hidden = tru
 addEventListener('error', e => reportError(e.message, (e.error && e.error.stack) || ((e.filename || '') + ':' + e.lineno + ':' + e.colno)));
 addEventListener('unhandledrejection', e => { const r = e.reason; reportError('Promesse : ' + ((r && r.message) || r), r && r.stack, { quiet: true }); });
 
+/* ================= Musique (assets/music/<morceau>.mp3, ElevenLabs) ================= */
+const MUS = { on: store.get('jdw.music', true) !== false, gain: null, buf: {}, order: [], cur: null, id: '', want: '', loopT: 0, seq: 0 };
+const MUSIC_VOL = 0.42, XFADE = 1.6;
+// niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
+let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0;
+function musicLevel() { return MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1); }
+function musicApplyLevel(ramp) {
+  if (!MUS.gain || !Audio.ctx) return;
+  const A = Audio.ctx, now = A.currentTime;
+  try { MUS.gain.gain.cancelScheduledValues(now); MUS.gain.gain.setValueAtTime(MUS.gain.gain.value, now); MUS.gain.gain.linearRampToValueAtTime(musicLevel(), now + (ramp || 0.4)); } catch (e) {}
+}
+function musicBaseLevel(v) { musBase = v; musicApplyLevel(0.6); }
+function duckMusic(level, ms) {
+  duckLvl = level; duckUntil = Date.now() + ms; musicApplyLevel(0.12);
+  clearTimeout(duckTimer); duckTimer = setTimeout(() => musicApplyLevel(0.8), ms + 30);
+}
+function unduckMusic() { duckUntil = 0; clearTimeout(duckTimer); musicApplyLevel(0.8); }
+// variantes d'un morceau : « empilo » → empilo-1, empilo-2, empilo-3 (départ au hasard, puis à la suite)
+// calmes au début, énergiques aux niveaux difficiles ; à l'accueil, un mélange des deux
+function musicVariants(id, mode) {
+  const v = (window.JDW_MUSIC || {})[id]; if (!v) return [id];
+  const c = v.c || [], x = v.x || [];
+  const list = id === 'accueil' ? [...c, ...x] : mode === 'intense' ? (x.length ? x : c) : (c.length ? c : x);
+  return list.length ? list : [id];
+}
+// niveau à partir duquel la musique devient énergique, par jeu
+const INTENSE_AT = { ilo: 4, pleingaz: 4, empilo: 8, glouton: 6, mouches: 7, carreaux: 7, rouleaux: 9, canards: 6 };
+async function musicBuffer(id) {
+  if (MUS.buf[id]) return MUS.buf[id];
+  const r = await fetch('assets/music/' + id + '.mp3'); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
+  const ab = await r.arrayBuffer();
+  const b = await new Promise((res, rej) => Audio.ctx.decodeAudioData(ab, res, rej));
+  MUS.buf[id] = b; MUS.order.push(id);
+  while (MUS.order.length > 4) delete MUS.buf[MUS.order.shift()];   // on garde peu de morceaux en mémoire
+  return b;
+}
+function musicOut(t) {
+  const c = MUS.cur; MUS.cur = null; MUS.id = ''; clearTimeout(MUS.loopT);
+  if (!c || !Audio.ctx) return;
+  const A = Audio.ctx, now = A.currentTime;
+  try { c.g.gain.cancelScheduledValues(now); c.g.gain.setValueAtTime(Math.max(0.0001, c.g.gain.value), now); c.g.gain.exponentialRampToValueAtTime(0.0001, now + t); c.src.stop(now + t + 0.05); } catch (e) {}
+}
+function musicLoop(id, b, when, fadeIn, seq, list, idx) {
+  const A = Audio.ctx;
+  if (!MUS.gain) { MUS.gain = A.createGain(); MUS.gain.gain.value = musicLevel(); MUS.gain.connect(A.destination); }
+  const src = A.createBufferSource(), g = A.createGain(); src.buffer = b; src.connect(g).connect(MUS.gain);
+  const end = when + b.duration;
+  g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(1, when + fadeIn);
+  g.gain.setValueAtTime(1, end - XFADE); g.gain.exponentialRampToValueAtTime(0.0001, end);
+  src.start(when); src.stop(end + 0.05);
+  MUS.cur = { src, g }; MUS.id = id; MUS.track = list ? list[idx] : id;
+  clearTimeout(MUS.loopT);
+  // le morceau suivant de la liste se prépare pendant que celui-ci joue, puis prend le relais en fondu enchaîné
+  const nextIdx = list && list.length > 1 ? (idx + 1) % list.length : idx, nextName = list ? list[nextIdx] : null;
+  let nextBuf = null;
+  if (nextName && nextName !== (list ? list[idx] : null)) musicBuffer(nextName).then(nb => { nextBuf = nb; }).catch(() => {});
+  MUS.loopT = setTimeout(() => {
+    if (MUS.seq !== seq || MUS.id !== id) return;
+    musicLoop(id, nextBuf || b, end - XFADE, XFADE, seq, list, nextBuf ? nextIdx : idx);
+  }, Math.max(0, (end - XFADE - A.currentTime - 0.4) * 1000));
+}
+async function setMusic(id, mode) {
+  mode = mode || 'calm';
+  MUS.want = id || ''; MUS.wantMode = mode;
+  if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
+  if (MUS.id === id && MUS.mode === mode && MUS.cur) return;
+  MUS.mode = mode;
+  const seq = ++MUS.seq, list = musicVariants(id, mode), idx = Math.floor(Math.random() * list.length);
+  let b; try { b = await musicBuffer(list[idx]); } catch (e) { return; }
+  if (seq !== MUS.seq || MUS.want !== id || !MUS.on) return;
+  musicOut(0.9);
+  musicLoop(id, b, Audio.ctx.currentTime + 0.05, 0.9, seq, list, idx);
+}
+function setMusicOn(on) {
+  MUS.on = !!on; store.set('jdw.music', MUS.on);
+  if (!MUS.on) musicOut(0.4); else { Audio.ensure(); setMusic(MUS.want || screenMusic(), MUS.wantMode); }
+}
+function screenMusic() { return !$('jdw-play').hidden && current ? current.game.id : 'accueil'; }
+document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) setMusic(MUS.want, MUS.wantMode); });
+// la musique démarre au premier geste (règle des navigateurs)
+addEventListener('pointerdown', function firstTouch() { removeEventListener('pointerdown', firstTouch, true); Audio.ensure(); setMusic(screenMusic()); }, true);
+
 /* ================= Cris des copains ================= */
 let criAudio = null;
 function hasCri(name) { const p = players.get(cleanName(name)); return !!(p && p.sound); }
 function playCri(name, el) {
   const p = players.get(cleanName(name));
-  if (!p || !p.sound || muted) return false;
+  if (!p || !p.sound || !criOn) return false;
   try { if (criAudio) { criAudio.pause(); criAudio = null; } } catch (e) {}
-  try { criAudio = new window.Audio(p.sound); criAudio.volume = 1; const pr = criAudio.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { return false; }
+  try {
+    criAudio = new window.Audio(p.sound); criAudio.volume = 1;
+    duckMusic(0.22, 3600);                                          // la musique s'efface derrière le cri
+    criAudio.addEventListener('loadedmetadata', () => { if (isFinite(criAudio.duration)) duckMusic(0.22, criAudio.duration * 1000 + 250); });
+    criAudio.addEventListener('ended', unduckMusic);
+    const pr = criAudio.play(); if (pr && pr.catch) pr.catch(() => unduckMusic());
+  } catch (e) { unduckMusic(); return false; }
   if (el) { el.classList.remove('crying'); void el.offsetWidth; el.classList.add('crying'); setTimeout(() => el.classList.remove('crying'), 1600); }
   return true;
 }
@@ -248,16 +356,37 @@ function bestPerName(rows) {
   for (const r of rows) { const k = cleanName(r.name); const c = m.get(k); if (!c || r.score > c.score) m.set(k, { name: k, score: r.score, at: r.at || 0 }); }
   return [...m.values()].sort((a, b) => b.score - a.score || a.at - b.at);
 }
-function top(game) { return bestPerName(ONLINE && serverOk ? (remote[game] || []) : (local[game] || [])).slice(0, 10); }
+let world = {}, worldLoaded = false, worldErr = false, boardScope = store.get('jdw.boardscope', 'room');
+function top(game, scope) {
+  if (scope === 'world') return bestPerName(world[game] || []).slice(0, 10);
+  return bestPerName(ONLINE && room && remoteLoaded ? (remote[game] || []) : (local[game] || [])).slice(0, 10);
+}
+async function loadWorld() {
+  if (!ONLINE) return;
+  try {
+    const rows = await rpc('get_world_scores', { p_code: CODE() }) || [];
+    const next = {};
+    for (const r of rows) (next[r.r_game] = next[r.r_game] || []).push({ name: r.r_name, score: +r.r_score || 0, at: Date.parse(r.r_at) || 0 });
+    world = next; worldLoaded = true; worldErr = false;
+  } catch (e) { worldLoaded = false; worldErr = true; }
+  if (!$('jdw-board').hidden) renderBoardTab();
+}
+function onRoomError(e) {
+  if (!e || !e.denied || !room || roomDenied) return;
+  roomDenied = true; refreshAll();
+  if (room.priv) setTimeout(() => {
+    Promise.resolve(openRooms()).then(() => askCode({ r_id: room.id, r_name: room.name, r_private: true }, 'Le code de « ' + room.name + " » n'est pas enregistré sur cet appareil : retape-le pour retrouver ta salle."));
+  }, 500);
+}
 async function loadScores() {
   if (!ONLINE || !room) return;
   try {
     const rows = await rpc('get_scores', Object.assign({ p_code: CODE() }, RP())) || [];
     const next = {};
     for (const r of rows) (next[r.r_game] = next[r.r_game] || []).push({ name: r.r_name, score: +r.r_score || 0, at: Date.parse(r.r_at) || 0 });
-    remote = next; serverOk = true;
+    remote = next; serverOk = true; remoteLoaded = true; roomDenied = false;
     if (unsent.length) setTimeout(flushUnsent, 500);
-  } catch (e) { serverOk = false; }
+  } catch (e) { serverOk = false; onRoomError(e); }
   refreshAll();
   loadNotifs();
 }
@@ -336,9 +465,14 @@ async function loadNotifs() {
   if (notifs.length) { notifToasted[key] = Math.max(last, ...notifs.map(n => n.id)); store.set('jdw.notiftoast', notifToasted); }
   else if (!last) { notifToasted[key] = 1; store.set('jdw.notiftoast', notifToasted); }
 }
-function unseenCount() { const s = notifSeen[notifKey()] || 0; return notifs.filter(n => n.id > s).length; }
+let gameNotifSeen = store.get('jdw.gamenotifseen', {}) || {};
+function gameNotifs() {
+  const me = cleanName(profile.name); if (!me) return [];
+  return [...NEW_GAMES].filter(id => gameById(id) && !gameSeen(id) && !(gameNotifSeen[me] || []).includes(id)).map(id => ({ kind: 'game', game: id }));
+}
+function unseenCount() { const s = notifSeen[notifKey()] || 0; return notifs.filter(n => n.id > s).length + gameNotifs().length; }
 function refreshBell() {
-  $('jdw-bell').hidden = !notifsOk || !profile.name;
+  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length);
   const n = unseenCount(), b = $('jdw-bell-n');
   b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n);
   $('jdw-bell').setAttribute('aria-label', n ? n + ' nouvelle' + (n > 1 ? 's' : '') + ' notification' + (n > 1 ? 's' : '') : 'Notifications');
@@ -350,24 +484,43 @@ function timeAgo(t) {
   if (s < 86400) return 'il y a ' + Math.round(s / 3600) + ' h';
   const d = Math.round(s / 86400); return d === 1 ? 'hier' : 'il y a ' + d + ' jours';
 }
-function openNotifs() {
-  const ol = $('jdw-notifs-list'); ol.textContent = '';
-  const seen = notifSeen[notifKey()] || 0;
-  if (!notifs.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = "Personne n'a battu tes records pour l'instant. Profites-en !"; ol.appendChild(li); }
-  for (const n of notifs) {
-    const g = gameById(n.game), li = document.createElement('li'); if (n.id > seen) li.className = 'new';
-    const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, n.actor);
-    const tx = document.createElement('span'); tx.className = 'nt';
-    const b = document.createElement('b'); b.textContent = n.actor;
-    tx.append(b, ' a battu ton record' + (g ? ' à ' + g.title : ''));
-    const sm = document.createElement('small'); sm.textContent = fmt(n.score) + unit(g) + ' contre ' + fmt(n.prev) + unit(g) + ' pour toi · ' + timeAgo(n.at);
-    tx.append(sm); li.append(av, tx); ol.appendChild(li);
+function notifRow(n, isNew) {
+  const li = document.createElement('li'); if (isNew) li.className = 'new';
+  const tx = document.createElement('span'); tx.className = 'nt';
+  if (n.kind === 'game') {
+    const g = gameById(n.game);
+    const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '🎮'; if (g) ic.style.background = g.accent;
+    const b = document.createElement('b'); b.textContent = 'Nouveau jeu disponible !';
+    const sm = document.createElement('small'); sm.textContent = (g ? g.title + ' · ' : '') + 'touche pour y jouer';
+    tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (g) openGame(g); });
+    return li;
   }
-  if (notifs.length) { notifSeen[notifKey()] = Math.max(seen, ...notifs.map(n => n.id)); store.set('jdw.notifseen', notifSeen); }
-  refreshBell();
-  openSheet('jdw-notifs', 'jdw-notifs-close');
+  const g = gameById(n.game);
+  const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, n.actor);
+  const b = document.createElement('b'); b.textContent = n.actor;
+  tx.append(b, ' a battu ton record' + (g ? ' à ' + g.title : ''));
+  const sm = document.createElement('small'); sm.textContent = fmt(n.score) + unit(g) + ' contre ' + fmt(n.prev) + unit(g) + ' pour toi · ' + timeAgo(n.at);
+  tx.append(sm); li.append(av, tx);
+  return li;
 }
-$('jdw-bell').addEventListener('click', openNotifs);
+function openNotifs(showOld) {
+  const ol = $('jdw-notifs-list'); ol.textContent = '';
+  const key = notifKey(), seen = notifSeen[key] || 0, me = cleanName(profile.name);
+  const fresh = [...gameNotifs(), ...notifs.filter(n => n.id > seen)];
+  const old = notifs.filter(n => n.id <= seen);
+  // ce qui est vu disparaît : la prochaine fois, seulement les nouveautés (l'historique reste consultable)
+  for (const n of fresh) ol.appendChild(notifRow(n, true));
+  if (!fresh.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Rien de nouveau pour le moment.'; ol.appendChild(li); }
+  if (showOld === true) for (const n of old) ol.appendChild(notifRow(n, false));
+  $('jdw-notifs-old').hidden = showOld === true || !old.length;
+  if (notifs.length) { notifSeen[key] = Math.max(seen, ...notifs.map(n => n.id)); store.set('jdw.notifseen', notifSeen); }
+  const gn = gameNotifs(); if (gn.length && me) { gameNotifSeen[me] = [...(gameNotifSeen[me] || []), ...gn.map(n => n.game)]; store.set('jdw.gamenotifseen', gameNotifSeen); }
+  refreshBell();
+  if ($('jdw-notifs').hidden) openSheet('jdw-notifs', 'jdw-notifs-close');
+}
+$('jdw-notifs-old').addEventListener('click', () => openNotifs(true));
+$('jdw-bell').addEventListener('click', () => openNotifs(false));
 $('jdw-notifs-close').addEventListener('click', () => closeSheet('jdw-notifs'));
 $('jdw-notifs').addEventListener('click', e => { if (e.target === $('jdw-notifs')) closeSheet('jdw-notifs'); });
 
@@ -426,10 +579,12 @@ function chatHead(name, opts) {
   const el = document.createElement('span'); el.className = 'chead' + (opts.cls ? ' ' + opts.cls : '');
   el.style.setProperty('--h', nameHue(name));
   const p = players.get(cleanName(name));
+  // la photo est découpée dans .chead-in (cheveux qui dépassent du rond) ; la pastille 🔊 reste sur .chead, jamais rognée
+  const inner = document.createElement('span'); inner.className = 'chead-in'; el.appendChild(inner);
   if (p && p.photo) {
     const im = document.createElement('img'); im.alt = ''; im.decoding = 'async';
-    im.src = opts.sad ? sadUrl(p) : p.photo; el.appendChild(im); el.classList.add('photo');
-  } else { const i = document.createElement('i'); i.textContent = (cleanName(name) || '?')[0]; el.appendChild(i); }
+    im.src = opts.sad ? sadUrl(p) : p.photo; inner.appendChild(im); el.classList.add('photo');
+  } else { const i = document.createElement('i'); i.textContent = (cleanName(name) || '?')[0]; inner.appendChild(i); }
   if (opts.title) el.title = cleanName(name);
   if (hasCri(name)) {
     el.classList.add('has-cri');
@@ -707,7 +862,7 @@ async function refreshPresence() {
     for (const r of rows) {
       const p = players.get(cleanName(r.r_name)), up = Date.parse(r.r_updated) || 0;
       if (!p || !p.member || (p.updated || 0) !== up) { stale = true; continue; }
-      p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); if (!PRES.ok) p.game = r.r_game || null;
+      p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null;
     }
     if (stale) await loadPlayers(); else if (!$('jdw-members').hidden) renderMembers();
     if (PRES.ok) presChanged();
@@ -773,6 +928,8 @@ function presChanged() {
   for (const x of list) if (!live.has(x.name) || live.get(x.name) === 'menu') live.set(x.name, x.game);
   counts = {}; total = list.length;
   for (const x of list) counts[x.game] = (counts[x.game] || 0) + 1;
+  // joueurs d'une ancienne version (sans le direct) : vus en ligne par le serveur dans les 45 dernières secondes
+  for (const p of players.values()) if (p.member && p.dbGame && !live.has(p.name)) { total++; counts[p.dbGame] = (counts[p.dbGame] || 0) + 1; }
   let unknown = false;
   for (const p of players.values()) {
     if (live.has(p.name)) { p.live = true; p.game = live.get(p.name); }
@@ -824,7 +981,7 @@ function onPoke(topic, event, p) {
   if (p.t === 'version') { checkSiteVersion(); return; }
   if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
   if (!room || topic !== 'jdw-room-' + room.id) return;
-  const run = { chat: () => loadChat(), scores: () => loadScores(), players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions() }[p.t];   // heartbeat : compteurs des tuiles + liste des joueurs
+  const run = { chat: () => loadChat(), scores: () => { loadScores(); if (!$('jdw-board').hidden) loadWorld(); }, players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions() }[p.t];   // heartbeat : compteurs des tuiles + liste des joueurs
   if (!run) return;
   clearTimeout(pokeTimers[p.t]); pokeTimers[p.t] = setTimeout(run, p.t === 'chat' ? 60 : 250);   // regroupe les rafales
 }
@@ -880,7 +1037,7 @@ function seenText(t) {
 function gameLabel(id) { if (!id || id === 'menu') return 'dans le menu'; const g = gameById(id); return g ? 'joue à ' + g.title : 'en ligne'; }
 function renderMembers() {
   const me = cleanName(profile.name), list = [...players.values()].filter(p => p.member || p.name === me);
-  const isOn = p => p.name === me || (PRES.ok ? !!p.live : !!p.game);
+  const isOn = p => p.name === me || !!p.live || !!p.dbGame || (!PRES.ok && !!p.game);
   const on = list.filter(isOn).sort((a, b) => (b.name === me) - (a.name === me) || a.name.localeCompare(b.name));
   const off = list.filter(p => !isOn(p)).sort((a, b) => (b.seen || 0) - (a.seen || 0) || a.name.localeCompare(b.name));
   const wrap = $('jdw-members-list'); wrap.textContent = '';
@@ -893,7 +1050,7 @@ function renderMembers() {
       const tx = document.createElement('div'); tx.className = 'mem-txt';
       const n = document.createElement('b'); n.textContent = p.name === me ? p.name + ' (moi)' : p.name;
       const st = document.createElement('small');
-      st.textContent = online ? (p.name === me ? gameLabel(current ? current.game.id : 'menu') : gameLabel(p.game)) : seenText(p.seen);
+      st.textContent = online ? (p.name === me ? gameLabel(current ? current.game.id : 'menu') : gameLabel(p.live ? p.game : (p.dbGame || p.game))) : seenText(p.seen);
       tx.append(n, st);
       const tags = document.createElement('div'); tags.className = 'mem-tags';
       const ph = document.createElement('span'); ph.className = 'mem-tag' + (p.photo ? ' yes' : ''); ph.textContent = p.photo ? '📸 tête' : 'pas de tête';
@@ -915,8 +1072,40 @@ async function openMembers() {
   await loadPlayers(); if (!$('jdw-members').hidden) renderMembers();
 }
 $('jdw-online').addEventListener('click', openMembers);
+setInterval(() => { if (!$('jdw-members').hidden) { renderMembers(); refreshPresence(); } }, 15000);   // « vu il y a… » et en ligne, à jour tout seuls
 $('jdw-members-close').addEventListener('click', () => closeSheet('jdw-members'));
 $('jdw-members').addEventListener('click', e => { if (e.target === $('jdw-members')) closeSheet('jdw-members'); });
+
+/* ================= Images des jeux (paquets chiffrés : assets/<jeu>.bin) ================= */
+// Les images de l'Asset Store ne sont jamais publiées en clair : le paquet est déchiffré ici avec le mot de passe du site.
+const ASSET_GAMES = new Set(['ilo']);
+window.JDW_ASSETS = { cache: {}, pending: {} };
+window.JDW_ASSETS.load = function (id) {
+  if (this.cache[id]) return Promise.resolve(this.cache[id]);
+  if (this.pending[id]) return this.pending[id];
+  const p = (async () => {
+    const r = await fetch('assets/' + id + '.bin');
+    if (!r.ok) throw new Error('images ' + id + ' : ' + r.status);
+    const buf = new Uint8Array(await r.arrayBuffer());
+    const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(CODE()), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
+    const hl = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0, true);
+    const header = JSON.parse(new TextDecoder().decode(plain.subarray(4, 4 + hl))), base = 4 + hl;
+    const mk = e => new Promise((res, rej) => {
+      const im = new Image(); im.decoding = 'async';
+      im.onload = () => res(im); im.onerror = () => rej(new Error('image illisible'));
+      im.src = URL.createObjectURL(new Blob([plain.subarray(base + e.off, base + e.off + e.len)], { type: 'image/webp' }));
+    });
+    const out = {};
+    for (const k of Object.keys(header)) out[k] = await Promise.all(header[k].map(mk));
+    this.cache[id] = out;
+    return out;
+  })();
+  this.pending[id] = p;
+  p.catch(e => { delete this.pending[id]; reportError('Images ' + id + ' : ' + e.message, e.stack, { quiet: true }); });
+  return p;
+};
 
 /* ================= Accueil ================= */
 const tiles = [];
@@ -928,16 +1117,41 @@ function buildLibrary() {
     b.setAttribute('aria-label', 'Jouer à ' + g.title);
     b.innerHTML = '<div class="tile-img"><canvas aria-hidden="true"></canvas></div><div class="tile-meta"><div class="tile-name"></div><div class="tile-online"><i></i><span></span></div></div>';
     b.querySelector('.tile-name').textContent = g.title;
+    if (NEW_GAMES.has(g.id)) { const nb = document.createElement('span'); nb.className = 'tile-new'; nb.textContent = 'Nouveau'; nb.hidden = !isNewGame(g.id); b.appendChild(nb); }
     b.addEventListener('click', () => openGame(g));
-    grid.appendChild(b);
-    tiles.push({ g, el: b, canvas: b.querySelector('canvas'), on: b.querySelector('.tile-online'), visible: true });
+    // la tuile est enveloppée : la bulle du champion est un bouton à part (elle ouvre le classement de la salle, pas le jeu)
+    const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', g.accent || COLORS.amber);
+    const ch = document.createElement('button'); ch.type = 'button'; ch.className = 'tile-champ'; ch.hidden = true;
+    ch.addEventListener('click', e => { e.stopPropagation(); openBoardFor(g.id); });
+    wrap.append(b, ch); grid.appendChild(wrap);
+    tiles.push({ g, el: b, champ: ch, canvas: b.querySelector('canvas'), on: b.querySelector('.tile-online'), visible: true });
   }
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => es.forEach(e => { const t = tiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
     tiles.forEach(t => io.observe(t.el));
   }
 }
+function openBoardFor(gameId) {
+  boardScope = 'room'; store.set('jdw.boardscope', boardScope); boardTab = gameId;
+  loadScores(); renderBoardTab(); openSheet('jdw-board', 'jdw-board-close');
+}
+function refreshChamps() {
+  const show = ONLINE && !!room && remoteLoaded;
+  for (const t of tiles) {
+    const lead = show ? top(t.g.id)[0] : null, ch = t.champ; if (!ch) continue;
+    const key = lead ? lead.name + ':' + lead.score + ':' + (players.get(lead.name) || {}).photo : '';
+    if (ch.dataset.k === key) continue;
+    ch.dataset.k = key; ch.textContent = ''; ch.hidden = !lead;
+    if (!lead) continue;
+    const hd = chatHead(lead.name, { passive: true }); hd.classList.add('champ-head');
+    const cr = document.createElement('span'); cr.className = 'champ-crown'; cr.textContent = '👑';
+    ch.append(hd, cr);
+    ch.setAttribute('aria-label', 'Champion de la salle à ' + t.g.title + ' : ' + lead.name + ', ' + fmt(lead.score) + unit(t.g) + '. Voir le classement de la salle');
+    ch.title = lead.name + ' · ' + fmt(lead.score) + unit(t.g);
+  }
+}
 function refreshOnline() {
+  refreshChamps();
   const live = ONLINE && serverOk;
   $('jdw-online').classList.toggle('off', !live);
   $('jdw-online-txt').textContent = live ? (total <= 1 ? (total === 1 ? '1 joueur en ligne' : 'Personne en ligne') : total + ' joueurs en ligne') : (ONLINE ? 'Connexion…' : 'Mode local');
@@ -953,12 +1167,15 @@ function refreshMe() {
   avatarInto($('jdw-me-av'), profile.name);
 }
 function refreshAll() {
-  refreshOnline(); refreshMe();
+  refreshOnline(); refreshMe(); refreshNewBadges();
   $('jdw-roomrow').hidden = !ONLINE;
   $('jdw-invite').hidden = !room;
   $('jdw-roomname').textContent = room ? room.name : 'Choisis une salle';
-  $('jdw-note').textContent = ONLINE ? (serverOk ? 'Classement commun à toute la bande, mis à jour en direct.' : 'Connexion au serveur… les scores restent gardés sur cet appareil en attendant.')
-                                     : 'Mode local : le classement est gardé sur cet appareil.';
+  { const L = room ? room.name.length : 0; $('jdw-roomname').style.fontSize = L > 30 ? '13px' : L > 22 ? '14.5px' : L > 14 ? '16px' : ''; }   // nom toujours en entier
+  $('jdw-note').textContent = !ONLINE ? 'Mode local : le classement est gardé sur cet appareil.'
+    : roomDenied ? 'Le code de ta salle manque sur cet appareil : touche « Changer » pour le retaper.'
+    : netDown ? 'Pas de connexion pour le moment : tes scores partiront dès que le réseau revient.'
+    : 'Classement de la salle et classement mondial, mis à jour en direct.';
   if (!$('jdw-board').hidden) renderBoardTab();
 }
 let prevT = 0;
@@ -1011,7 +1228,7 @@ function rowEl(name, right, me) {
 }
 function generalRanking() {
   const m = new Map();
-  for (const g of GAMES) top(g.id).slice(0, 3).forEach((r, i) => {
+  for (const g of GAMES) top(g.id, boardScope).slice(0, 3).forEach((r, i) => {
     const e = m.get(r.name) || { name: r.name, m: [0, 0, 0] }; e.m[i]++; m.set(r.name, e);
   });
   return [...m.values()].sort((a, b) => b.m[0] - a.m[0] || b.m[1] - a.m[1] || b.m[2] - a.m[2] || a.name.localeCompare(b.name));
@@ -1021,9 +1238,12 @@ function renderBoardTab() {
   const sel = [...$('jdw-tabs').children].find(b => b.dataset.id === boardTab);
   if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   const ol = $('jdw-board-list'); ol.textContent = '';
-  const me = cleanName(profile.name);
+  const me = cleanName(profile.name), W = boardScope === 'world';
+  for (const b of document.querySelectorAll('#jdw-scope button')) b.setAttribute('aria-pressed', String(b.dataset.scope === boardScope));
+  $('jdw-board-h').textContent = W ? 'Classement mondial' : 'Classement · ' + (room ? room.name : 'cet appareil');
+  if (W && !worldLoaded) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = worldErr ? "Le classement mondial arrive bientôt (mise à jour du serveur en cours)." : 'Chargement du classement mondial…'; ol.appendChild(li); return; }
   if (boardTab === 'general') {
-    $('jdw-board-hint').textContent = 'Le nombre de jeux où chacun est premier, puis deuxième, puis troisième.';
+    $('jdw-board-hint').textContent = (W ? 'Toutes les salles réunies. ' : '') + 'Le nombre de jeux où chacun est premier, puis deuxième, puis troisième.';
     const rows = generalRanking();
     if (!rows.length) return emptyRow(ol);
     for (const r of rows) {
@@ -1033,14 +1253,17 @@ function renderBoardTab() {
     }
   } else {
     const g = gameById(boardTab);
-    $('jdw-board-hint').textContent = g ? 'Top 10 · ' + g.tagline : '';
-    const rows = top(boardTab);
+    $('jdw-board-hint').textContent = g ? (W ? 'Top 10 mondial · ' : 'Top 10 de la salle · ') + g.tagline : '';
+    const rows = top(boardTab, boardScope);
     if (!rows.length) return emptyRow(ol);
     for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me)); }
   }
 }
 function emptyRow(ol) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = "Personne n'a encore de score ici. La place est libre !"; ol.appendChild(li); }
-$('jdw-open-board').addEventListener('click', () => { loadScores(); renderBoardTab(); openSheet('jdw-board', 'jdw-board-close'); });
+$('jdw-open-board').addEventListener('click', () => { loadScores(); loadWorld(); renderBoardTab(); openSheet('jdw-board', 'jdw-board-close'); });
+for (const b of document.querySelectorAll('#jdw-scope button')) b.addEventListener('click', () => {
+  boardScope = b.dataset.scope; store.set('jdw.boardscope', boardScope); if (boardScope === 'world') loadWorld(); renderBoardTab();
+});
 $('jdw-board-close').addEventListener('click', () => closeSheet('jdw-board'));
 $('jdw-board').addEventListener('click', e => { if (e.target === $('jdw-board')) closeSheet('jdw-board'); });
 
@@ -1048,19 +1271,29 @@ $('jdw-board').addEventListener('click', e => { if (e.target === $('jdw-board'))
 function openSettings() {
   $('jdw-set-name').value = profile.name;
   avatarInto($('jdw-set-av'), profile.name);
-  $('jdw-set-sound').checked = !muted;
+  $('jdw-set-sfx').checked = !muted; $('jdw-set-music').checked = MUS.on; $('jdw-set-cris').checked = criOn; syncSoundMenu();
   $('jdw-set-delphoto').hidden = !profile.photo;
   const hasMine = !!(profile.sound && profile.sound !== '');
   $('jdw-set-cri').textContent = hasMine ? '🎙️ Changer mon cri' : '🎙️ Enregistrer mon cri';
   $('jdw-set-cri-play').hidden = !hasMine;
   $('jdw-set-photo').textContent = profile.photo ? 'Changer ma photo' : 'Prendre une photo';
-  $('jdw-set-status').textContent = ONLINE ? (serverOk ? 'Connecté au classement commun.' : 'Serveur injoignable pour le moment.') : 'Mode local (pas de serveur).';
+  $('jdw-set-status').textContent = ONLINE ? (netDown ? 'Pas de connexion pour le moment.' : 'Connecté au classement commun.') : 'Mode local (pas de serveur).';
+  $('jdw-set-version').textContent = versionText();
   openSheet('jdw-settings', 'jdw-set-name');
+}
+// « Version du 11/10/2026 à 23:12 · appli Android v4 »
+function versionText() {
+  const b = String(window.JDW_BUILD || ''), m = b.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
+  const site = m ? 'Version du ' + m[3] + '/' + m[2] + '/' + m[1] + ' à ' + m[4] + 'h' + m[5] : 'Version de test';
+  const app = navigator.userAgent.match(/BorneArcade\/(\d+)/);
+  return site + (app ? ' · appli Android ' + ({ 2: '1.1', 3: '1.2', 4: '1.3' }[app[1]] || 'v' + app[1]) : '');
 }
 $('jdw-open-settings').addEventListener('click', openSettings);
 $('jdw-me').addEventListener('click', openProfiles);
 $('jdw-set-close').addEventListener('click', () => closeSheet('jdw-settings'));
-$('jdw-set-sound').addEventListener('change', () => { muted = !$('jdw-set-sound').checked; store.set('jdw.muted', muted); syncMute(); });
+$('jdw-set-sfx').addEventListener('change', () => { muted = !$('jdw-set-sfx').checked; store.set('jdw.muted', muted); Audio.ensure(); syncMute(); if (!muted) Audio.tone(660, 0.08, 'square', 0.05); });
+$('jdw-set-music').addEventListener('change', () => { setMusicOn($('jdw-set-music').checked); syncMute(); });
+$('jdw-set-cris').addEventListener('change', () => { criOn = $('jdw-set-cris').checked; syncMute(); store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } else playCri(profile.name); });
 $('jdw-set-photo').addEventListener('click', () => startPhoto());
 $('jdw-set-cri').addEventListener('click', openCri);
 $('jdw-set-cri-play').addEventListener('click', () => { if (!playCri(profile.name)) $('jdw-set-status').textContent = muted ? 'Le son est coupé.' : ''; });
@@ -1388,7 +1621,7 @@ $('jdw-file').addEventListener('change', async () => {
   const url = URL.createObjectURL(file);
   const im = new Image();
   im.onload = () => {
-    PH.img = im; PH.rot = 0; PH.zoom = 1.4; PH.ox = 0; PH.oy = 0; PH.mask = null;
+    PH.img = im; PH.rot = 0; PH.zoom = 1.4; PH.ox = 0; PH.oy = 0; PH.mask = null; PH.base = null; PH.geo = null; resetAcc();
     $('jdw-ph-zoom').value = '1.4'; $('jdw-ph-consent').checked = !!profile.consent; $('jdw-ph-ok').disabled = !profile.consent;
     if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
     if (!$('jdw-welcome').hidden) { $('jdw-welcome').hidden = true; welReturn = true; }
@@ -1479,6 +1712,13 @@ async function makeOut() {
   const seg = await loadSeg();
   let mask = null;
   if (seg) { try { mask = await seg.run(src); } catch (e) { mask = null; } }
+  if (mask) {   // détourage qui n'a trouvé personne (photo sombre, floue…) : on garde l'ovale plutôt qu'une tête vide
+    try {
+      const t = document.createElement('canvas'); t.width = 40; t.height = 50; const tc = t.getContext('2d'); tc.drawImage(mask, 0, 0, 40, 50);
+      const md = tc.getImageData(0, 0, 40, 50).data; let on = 0; for (let i = 3; i < md.length; i += 4) if (md[i] > 128) on++;
+      if (on / 2000 < 0.08) mask = null;
+    } catch (e) {}
+  }
   const out = document.createElement('canvas'); out.width = W2; out.height = H2;
   const oc = out.getContext('2d');
   if (mask) {
@@ -1492,10 +1732,260 @@ async function makeOut() {
     softEllipse(oc, W2, H2, 0.46, 0.47, 0.08);
   }
   oc.globalCompositeOperation = 'source-over';
-  const fin = $('jdw-ph-out'); const fc = fin.getContext('2d');
-  fc.clearRect(0, 0, OUT_W, OUT_H); fc.imageSmoothingQuality = 'high'; fc.drawImage(out, 0, 0, OUT_W, OUT_H);
-  $('jdw-ph-info').textContent = mask ? 'Tête détourée automatiquement. Ajuste le cadrage si besoin.' : 'Cadrage en ovale (le détourage automatique ne marche que sur le site en ligne).';
+  PH.base = out; PH.geo = headGeo(out, null);
+  composeOut();
+  // les yeux sont cherchés en parallèle : dès qu'ils sont trouvés, les lunettes se recalent dessus
+  const mine = PH.img;
+  detectFace(src).then(f => { if (f && PH.img === mine && PH.base === out) { PH.geo = headGeo(out, f); composeOut(); renderAcc(); } }).catch(() => {});
+  $('jdw-ph-info').textContent = mask ? 'Tête détourée automatiquement. Ajuste le cadrage si besoin.'
+    : seg ? "Visage pas trouvé : cadrage en ovale. Essaie une photo plus nette, bien éclairée, de face." : 'Cadrage en ovale (le détourage automatique ne marche que sur le site en ligne).';
 }
+/* ================= Accessoires sur la tête (lunettes posées sur les yeux, chapeaux, visage, effets derrière) ================= */
+const ACC = { glasses: '', hat: '', face: '', back: '', tab: 'glasses' };
+const ACC_LIST = {
+  glasses: [['', 'Aucune', '🚫'], ['soleil', 'Soleil', '🕶️'], ['pixel', 'Pixel', '😎'], ['rondes', 'Rondes', '👓'], ['coeur', 'Cœurs', '💖'],
+            ['etoiles', 'Étoiles', '⭐'], ['ski', 'Masque de ski', '🥽'], ['3d', 'Cinéma 3D', '🎬'], ['monocle', 'Monocle', '🧐']],
+  hat: [['', 'Aucun', '🚫'], ['couronne', 'Couronne', '👑'], ['casquette', 'Casquette', '🧢'], ['fete', 'Fête', '🥳'], ['cowboy', 'Cow-boy', '🤠'],
+        ['haut', 'Haut-de-forme', '🎩'], ['viking', 'Viking', '⚔️'], ['chef', 'Chef', '👨‍🍳'], ['bonnet', 'Bonnet', '🧶'], ['lapin', 'Lapin', '🐰'],
+        ['diable', 'Cornes', '😈'], ['casque', 'Casque audio', '🎧']],
+  face: [['', 'Rien', '🚫'], ['moustache', 'Moustache', '🥸'], ['clown', 'Nez de clown', '🔴'], ['joues', 'Joues roses', '😊'],
+         ['bouche', 'Grand sourire', '😁'], ['pansement', 'Pansement', '🩹']],
+  back: [['', 'Rien', '🚫'], ['aureole', 'Auréole', '😇'], ['flammes', 'Flammes', '🔥'], ['eclairs', 'Éclairs', '⚡'], ['coeurs', 'Cœurs', '💕'],
+         ['etoiles', 'Paillettes', '✨'], ['neon', 'Néon', '💡']]
+};
+const ACC_TABS = [['glasses', '👓 Lunettes'], ['hat', '🎩 Chapeaux'], ['face', '🥸 Visage'], ['back', '✨ Derrière']];
+let facePromise = null;
+function loadFaceDet() {
+  if (facePromise) return facePromise;
+  facePromise = new Promise(res => {
+    const base = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4.1646425229/';
+    const done = v => { clearTimeout(to); res(v); };
+    const to = setTimeout(() => res(null), 15000);
+    const s = document.createElement('script'); s.src = base + 'face_detection.js'; s.crossOrigin = 'anonymous';
+    s.onerror = () => done(null);
+    s.onload = async () => {
+      try {
+        const fd = new window.FaceDetection({ locateFile: f => base + f });
+        fd.setOptions({ model: 'short', minDetectionConfidence: 0.4 });
+        let pending = null;
+        fd.onResults(r => { if (pending) { const p = pending; pending = null; p(r); } });
+        await fd.initialize();
+        done({ run: cv => new Promise(r2 => { pending = r2; fd.send({ image: cv }).catch(() => { pending = null; r2(null); }); setTimeout(() => { if (pending === r2) { pending = null; r2(null); } }, 6000); }) });
+      } catch (e) { done(null); }
+    };
+    document.head.appendChild(s);
+  });
+  return facePromise;
+}
+async function detectFace(src) {
+  const fd = await loadFaceDet(); if (!fd) return null;
+  let r = null; try { r = await fd.run(src); } catch (e) { return null; }
+  const d = r && r.detections && r.detections[0]; const L = d && (d.landmarks || d.keypoints);
+  if (!L || L.length < 4) return null;
+  const P = i => ({ x: L[i].x * src.width, y: L[i].y * src.height });
+  return { eyes: [P(0), P(1)], nose: P(2), mouth: P(3), ears: L.length >= 6 ? [P(4), P(5)] : null };
+}
+// géométrie de la tête dans l'image détourée : haut, largeur, yeux (détectés ou estimés)
+function headGeo(base, face) {
+  const W = base.width, H = base.height, d = base.getContext('2d').getImageData(0, 0, W, H).data;
+  let top = -1, bottom = -1;
+  for (let y = 0; y < H && top < 0; y += 2) for (let x = 0; x < W; x += 3) if (d[(y * W + x) * 4 + 3] > 60) { top = y; break; }
+  for (let y = H - 1; y >= 0 && bottom < 0; y -= 2) for (let x = 0; x < W; x += 3) if (d[(y * W + x) * 4 + 3] > 60) { bottom = y; break; }
+  if (top < 0) { top = H * 0.1; bottom = H * 0.95; }
+  const rowSpan = y => { let l = -1, r = -1; const yy = Math.round(y); for (let x = 0; x < W; x += 2) if (d[(yy * W + x) * 4 + 3] > 60) { if (l < 0) l = x; r = x; } return l < 0 ? [W * 0.2, W * 0.8] : [l, r]; };
+  const hh = bottom - top, [l, r] = rowSpan(top + hh * 0.42), cx = (l + r) / 2, w = r - l;
+  let eyes, nose, mouth;
+  if (face) { eyes = face.eyes[0].x < face.eyes[1].x ? face.eyes : [face.eyes[1], face.eyes[0]]; nose = face.nose; mouth = face.mouth; }
+  else { const ey = top + hh * 0.47; eyes = [{ x: cx - w * 0.19, y: ey }, { x: cx + w * 0.19, y: ey }]; nose = { x: cx, y: top + hh * 0.61 }; mouth = { x: cx, y: top + hh * 0.74 }; }
+  const ed = Math.hypot(eyes[1].x - eyes[0].x, eyes[1].y - eyes[0].y), ang = Math.atan2(eyes[1].y - eyes[0].y, eyes[1].x - eyes[0].x);
+  return { top, bottom, cx, w, eyes, nose, mouth, ed, ang, detected: !!face };
+}
+function scaleGeo(g, s, dx, dy) {
+  const P = p => ({ x: dx + p.x * s, y: dy + p.y * s });
+  return Object.assign({}, g, { top: dy + g.top * s, bottom: dy + g.bottom * s, cx: dx + g.cx * s, w: g.w * s, ed: g.ed * s, eyes: g.eyes.map(P), nose: P(g.nose), mouth: P(g.mouth) });
+}
+function rr(x, X, Y, W, H, R) { x.beginPath(); x.moveTo(X + R, Y); x.arcTo(X + W, Y, X + W, Y + H, R); x.arcTo(X + W, Y + H, X, Y + H, R); x.arcTo(X, Y + H, X, Y, R); x.arcTo(X, Y, X + W, Y, R); x.closePath(); }
+function starPath(x, cx, cy, r1, r2, n) { x.beginPath(); for (let i = 0; i < n * 2; i++) { const a = -Math.PI / 2 + i * Math.PI / n, r = i % 2 ? r2 : r1; x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } x.closePath(); }
+function heartPath(x, cx, cy, s) { x.beginPath(); x.moveTo(cx, cy + s * 0.35); x.bezierCurveTo(cx - s, cy - s * 0.25, cx - s * 0.45, cy - s * 0.95, cx, cy - s * 0.42); x.bezierCurveTo(cx + s * 0.45, cy - s * 0.95, cx + s, cy - s * 0.25, cx, cy + s * 0.35); x.closePath(); }
+function drawGlasses(x, g, kind) {
+  const [a, b] = g.eyes, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, d = g.ed;
+  x.save(); x.translate(mx, my); x.rotate(g.ang);
+  const L = -d / 2, R = d / 2, lw = d * 0.78, lh = d * 0.52;
+  const lens = (cx, fill, stroke, lwid) => { rr(x, cx - lw / 2, -lh / 2, lw, lh, lh * 0.45); if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.lineWidth = lwid; x.strokeStyle = stroke; x.stroke(); } };
+  if (kind === 'soleil') {
+    const gr = x.createLinearGradient(0, -lh / 2, 0, lh / 2); gr.addColorStop(0, '#2b3442'); gr.addColorStop(1, '#05070b');
+    lens(L, gr, '#111', d * 0.07); lens(R, gr, '#111', d * 0.07);
+    x.strokeStyle = '#111'; x.lineWidth = d * 0.08; x.beginPath(); x.moveTo(L + lw / 2, -lh * 0.15); x.quadraticCurveTo(0, -lh * 0.45, R - lw / 2, -lh * 0.15); x.stroke();
+    x.fillStyle = 'rgba(255,255,255,.35)'; for (const c of [L, R]) { x.beginPath(); x.ellipse(c - lw * 0.18, -lh * 0.12, lw * 0.16, lh * 0.1, -0.5, 0, 7); x.fill(); }
+    x.strokeStyle = '#111'; x.lineWidth = d * 0.07; x.beginPath(); x.moveTo(L - lw / 2, -lh * 0.2); x.lineTo(L - lw / 2 - d * 0.35, -lh * 0.05); x.moveTo(R + lw / 2, -lh * 0.2); x.lineTo(R + lw / 2 + d * 0.35, -lh * 0.05); x.stroke();
+  } else if (kind === 'pixel') {
+    const px = d * 0.11; x.fillStyle = '#000';
+    const rows = ['11111111111111111', '01111110011111100', '01100110011001100', '00111100001111000'];
+    const ox = -8.5 * px, oy = -1.6 * px;
+    rows.forEach((row, j) => [...row].forEach((v, i) => { if (v === '1') x.fillRect(ox + i * px, oy + j * px, px + 0.5, px + 0.5); }));
+    x.fillStyle = '#fff'; x.fillRect(ox + 2 * px, oy + px, px, px); x.fillRect(ox + 10 * px, oy + px, px, px);
+  } else if (kind === 'rondes') {
+    for (const c of [L, R]) { x.beginPath(); x.arc(c, 0, lh * 0.62, 0, 7); x.fillStyle = 'rgba(180,220,255,.18)'; x.fill(); x.lineWidth = d * 0.05; x.strokeStyle = '#c9a227'; x.stroke(); }
+    x.beginPath(); x.moveTo(L + lh * 0.62, -lh * 0.1); x.quadraticCurveTo(0, -lh * 0.35, R - lh * 0.62, -lh * 0.1); x.stroke();
+  } else if (kind === 'coeur') {
+    for (const c of [L, R]) { heartPath(x, c, lh * 0.08, lw * 0.62); x.fillStyle = 'rgba(255,70,150,.82)'; x.fill(); x.lineWidth = d * 0.05; x.strokeStyle = '#d6246e'; x.stroke(); }
+    x.strokeStyle = '#d6246e'; x.lineWidth = d * 0.06; x.beginPath(); x.moveTo(L + lw * 0.3, -lh * 0.1); x.lineTo(R - lw * 0.3, -lh * 0.1); x.stroke();
+  } else if (kind === 'etoiles') {
+    for (const c of [L, R]) { starPath(x, c, 0, lw * 0.62, lw * 0.3, 5); x.fillStyle = 'rgba(255,214,77,.85)'; x.fill(); x.lineWidth = d * 0.045; x.strokeStyle = '#ff8a00'; x.stroke(); }
+    x.strokeStyle = '#ff8a00'; x.lineWidth = d * 0.05; x.beginPath(); x.moveTo(L + lw * 0.35, -lh * 0.05); x.lineTo(R - lw * 0.35, -lh * 0.05); x.stroke();
+  } else if (kind === 'ski') {
+    const bw = g.w * 1.08 / 1, gw = d * 2.05, gh = d * 0.82;
+    x.fillStyle = '#ff5fae'; x.fillRect(-bw / 2, -gh * 0.22, bw, gh * 0.44);
+    rr(x, -gw / 2, -gh / 2, gw, gh, gh * 0.45); x.fillStyle = '#1b1b1f'; x.fill();
+    const gr = x.createLinearGradient(-gw / 2, -gh / 2, gw / 2, gh / 2); gr.addColorStop(0, '#ffd34d'); gr.addColorStop(0.5, '#ff6a3d'); gr.addColorStop(1, '#7a3cff');
+    rr(x, -gw / 2 + d * 0.08, -gh / 2 + d * 0.08, gw - d * 0.16, gh - d * 0.16, gh * 0.38); x.fillStyle = gr; x.fill();
+    x.fillStyle = 'rgba(255,255,255,.45)'; x.beginPath(); x.ellipse(-gw * 0.22, -gh * 0.14, gw * 0.16, gh * 0.08, -0.3, 0, 7); x.fill();
+  } else if (kind === '3d') {
+    x.fillStyle = '#fafafa'; rr(x, L - lw / 2 - d * 0.06, -lh / 2 - d * 0.06, d + lw + d * 0.12, lh + d * 0.12, d * 0.08); x.fill();
+    x.fillStyle = 'rgba(255,40,60,.85)'; rr(x, L - lw / 2, -lh / 2, lw, lh, d * 0.05); x.fill();
+    x.fillStyle = 'rgba(40,160,255,.85)'; rr(x, R - lw / 2, -lh / 2, lw, lh, d * 0.05); x.fill();
+  } else if (kind === 'monocle') {
+    x.beginPath(); x.arc(L, 0, lh * 0.7, 0, 7); x.fillStyle = 'rgba(200,230,255,.2)'; x.fill(); x.lineWidth = d * 0.07; x.strokeStyle = '#d4af37'; x.stroke();
+    x.lineWidth = d * 0.025; x.beginPath(); x.moveTo(L, lh * 0.7); x.quadraticCurveTo(L - d * 0.1, d * 1.2, L - d * 0.5, d * 1.6); x.stroke();
+  }
+  x.restore();
+}
+function drawFace(x, g, kind) {
+  const d = g.ed, n = g.nose, m = g.mouth;
+  x.save();
+  if (kind === 'moustache') {
+    x.translate((n.x + m.x) / 2, n.y + (m.y - n.y) * 0.5); x.rotate(g.ang); x.fillStyle = '#3b2412';
+    x.beginPath(); x.moveTo(0, -d * 0.05);
+    x.bezierCurveTo(-d * 0.25, -d * 0.28, -d * 0.62, -d * 0.12, -d * 0.7, -d * 0.32); x.bezierCurveTo(-d * 0.72, d * 0.05, -d * 0.3, d * 0.16, 0, d * 0.04);
+    x.bezierCurveTo(d * 0.3, d * 0.16, d * 0.72, d * 0.05, d * 0.7, -d * 0.32); x.bezierCurveTo(d * 0.62, -d * 0.12, d * 0.25, -d * 0.28, 0, -d * 0.05); x.fill();
+  } else if (kind === 'clown') {
+    const gr = x.createRadialGradient(n.x - d * 0.06, n.y - d * 0.08, d * 0.02, n.x, n.y, d * 0.28); gr.addColorStop(0, '#ff8a8a'); gr.addColorStop(1, '#d4000f');
+    x.fillStyle = gr; x.beginPath(); x.arc(n.x, n.y, d * 0.26, 0, 7); x.fill();
+  } else if (kind === 'joues') {
+    for (const e of g.eyes) { const gr = x.createRadialGradient(e.x, e.y + d * 0.55, 0, e.x, e.y + d * 0.55, d * 0.32); gr.addColorStop(0, 'rgba(255,90,120,.55)'); gr.addColorStop(1, 'rgba(255,90,120,0)'); x.fillStyle = gr; x.beginPath(); x.arc(e.x, e.y + d * 0.55, d * 0.32, 0, 7); x.fill(); }
+  } else if (kind === 'bouche') {
+    x.translate(m.x, m.y); x.rotate(g.ang); x.fillStyle = '#5a0d1a'; x.beginPath(); x.moveTo(-d * 0.42, -d * 0.05); x.quadraticCurveTo(0, d * 0.55, d * 0.42, -d * 0.05); x.closePath(); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.moveTo(-d * 0.36, -d * 0.02); x.quadraticCurveTo(0, d * 0.16, d * 0.36, -d * 0.02); x.closePath(); x.fill();
+  } else if (kind === 'pansement') {
+    const e = g.eyes[1]; x.translate(e.x + d * 0.12, e.y + d * 0.5); x.rotate(-0.6); x.fillStyle = '#f2c6a0'; rr(x, -d * 0.3, -d * 0.09, d * 0.6, d * 0.18, d * 0.08); x.fill();
+    x.fillStyle = '#e0a87e'; x.fillRect(-d * 0.08, -d * 0.09, d * 0.16, d * 0.18);
+  }
+  x.restore();
+}
+function drawHat(x, g, kind, W) {
+  const top = g.top, cx = g.cx, w = g.w * 1.05, a = g.ang;
+  x.save(); x.translate(cx, top + w * 0.1); x.rotate(a);
+  if (kind === 'couronne') {
+    const cw = w * 0.78, ch = w * 0.42; const gr = x.createLinearGradient(0, -ch, 0, 0); gr.addColorStop(0, '#ffe680'); gr.addColorStop(1, '#d49b00');
+    x.fillStyle = gr; x.beginPath(); x.moveTo(-cw / 2, 0); x.lineTo(-cw / 2, -ch * 0.55); x.lineTo(-cw / 4, -ch * 0.2); x.lineTo(0, -ch); x.lineTo(cw / 4, -ch * 0.2); x.lineTo(cw / 2, -ch * 0.55); x.lineTo(cw / 2, 0); x.closePath(); x.fill();
+    x.lineWidth = w * 0.02; x.strokeStyle = '#9c6b00'; x.stroke();
+    for (const [gx, col] of [[-cw / 4, '#ff3b5c'], [0, '#3bc2ff'], [cw / 4, '#4cc36a']]) { x.fillStyle = col; x.beginPath(); x.arc(gx, -ch * 0.18, w * 0.045, 0, 7); x.fill(); }
+  } else if (kind === 'casquette') {
+    x.fillStyle = '#ff4d5e'; x.beginPath(); x.ellipse(0, w * 0.02, w * 0.5, w * 0.36, 0, Math.PI, 0); x.fill();
+    x.fillStyle = '#c4202f'; x.beginPath(); x.ellipse(w * 0.32, w * 0.03, w * 0.42, w * 0.09, 0.05, 0, 7); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.arc(0, -w * 0.33, w * 0.04, 0, 7); x.fill();
+  } else if (kind === 'fete') {
+    const hw = w * 0.42, hh = w * 0.82; x.save(); x.rotate(-0.12);
+    x.beginPath(); x.moveTo(-hw / 2, 0); x.lineTo(0, -hh); x.lineTo(hw / 2, 0); x.closePath(); x.save(); x.clip();
+    for (let i = -6; i < 8; i++) { x.fillStyle = i % 2 ? '#5ef0ff' : '#ff5fae'; x.beginPath(); x.moveTo(-hw, -i * hh * 0.14); x.lineTo(hw, -i * hh * 0.14 - hh * 0.25); x.lineTo(hw, -i * hh * 0.14 - hh * 0.32); x.lineTo(-hw, -i * hh * 0.14 - hh * 0.07); x.fill(); }
+    x.restore(); x.fillStyle = '#ffd34d'; x.beginPath(); x.arc(0, -hh, w * 0.07, 0, 7); x.fill(); x.restore();
+  } else if (kind === 'cowboy') {
+    x.fillStyle = '#8b5a2b'; x.beginPath(); x.ellipse(0, 0, w * 0.75, w * 0.14, 0, 0, 7); x.fill();
+    x.fillStyle = '#a0682f'; x.beginPath(); x.moveTo(-w * 0.34, 0); x.quadraticCurveTo(-w * 0.36, -w * 0.5, -w * 0.12, -w * 0.46); x.quadraticCurveTo(0, -w * 0.36, w * 0.12, -w * 0.46); x.quadraticCurveTo(w * 0.36, -w * 0.5, w * 0.34, 0); x.closePath(); x.fill();
+    x.fillStyle = '#3b2412'; x.fillRect(-w * 0.34, -w * 0.12, w * 0.68, w * 0.07);
+  } else if (kind === 'haut') {
+    x.fillStyle = '#121212'; x.beginPath(); x.ellipse(0, 0, w * 0.6, w * 0.11, 0, 0, 7); x.fill();
+    x.fillRect(-w * 0.32, -w * 0.72, w * 0.64, w * 0.72); x.beginPath(); x.ellipse(0, -w * 0.72, w * 0.32, w * 0.07, 0, 0, 7); x.fill();
+    x.fillStyle = '#c4202f'; x.fillRect(-w * 0.32, -w * 0.2, w * 0.64, w * 0.1);
+  } else if (kind === 'viking') {
+    x.fillStyle = '#9aa7b4'; x.beginPath(); x.ellipse(0, 0, w * 0.5, w * 0.42, 0, Math.PI, 0); x.fill();
+    x.fillStyle = '#6e7b88'; x.fillRect(-w * 0.5, -w * 0.06, w, w * 0.08);
+    x.fillStyle = '#f3ead8'; for (const s of [-1, 1]) { x.beginPath(); x.moveTo(s * w * 0.44, -w * 0.12); x.quadraticCurveTo(s * w * 0.8, -w * 0.2, s * w * 0.72, -w * 0.62); x.quadraticCurveTo(s * w * 0.62, -w * 0.3, s * w * 0.38, -w * 0.26); x.closePath(); x.fill(); }
+  } else if (kind === 'chef') {
+    x.fillStyle = '#fafafa'; x.fillRect(-w * 0.34, -w * 0.18, w * 0.68, w * 0.2);
+    for (const [px, py, r] of [[-w * 0.24, -w * 0.38, w * 0.22], [0, -w * 0.5, w * 0.26], [w * 0.24, -w * 0.38, w * 0.22]]) { x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); }
+    x.strokeStyle = '#d6d6d6'; x.lineWidth = w * 0.015; x.strokeRect(-w * 0.34, -w * 0.18, w * 0.68, w * 0.2);
+  } else if (kind === 'bonnet') {
+    x.fillStyle = '#2f8bff'; x.beginPath(); x.ellipse(0, 0, w * 0.5, w * 0.46, 0, Math.PI, 0); x.fill();
+    x.fillStyle = '#ffd34d'; x.fillRect(-w * 0.52, -w * 0.08, w * 1.04, w * 0.14);
+    x.fillStyle = '#fff'; x.beginPath(); x.arc(0, -w * 0.47, w * 0.1, 0, 7); x.fill();
+  } else if (kind === 'lapin') {
+    for (const s of [-1, 1]) { x.save(); x.translate(s * w * 0.18, -w * 0.05); x.rotate(s * 0.18); x.fillStyle = '#f5f5f5'; x.beginPath(); x.ellipse(0, -w * 0.38, w * 0.11, w * 0.4, 0, 0, 7); x.fill(); x.fillStyle = '#ffb3c8'; x.beginPath(); x.ellipse(0, -w * 0.38, w * 0.055, w * 0.3, 0, 0, 7); x.fill(); x.restore(); }
+  } else if (kind === 'diable') {
+    x.fillStyle = '#d4141f'; for (const s of [-1, 1]) { x.beginPath(); x.moveTo(s * w * 0.12, w * 0.02); x.quadraticCurveTo(s * w * 0.3, -w * 0.2, s * w * 0.3, -w * 0.38); x.quadraticCurveTo(s * w * 0.18, -w * 0.12, s * w * 0.3, w * 0.04); x.closePath(); x.fill(); }
+  } else if (kind === 'casque') {
+    x.strokeStyle = '#222'; x.lineWidth = w * 0.07; x.beginPath(); x.arc(0, w * 0.32, w * 0.5, Math.PI * 1.05, Math.PI * 1.95); x.stroke();
+    for (const s of [-1, 1]) { x.fillStyle = '#ff4d5e'; rr(x, s * w * 0.5 - w * 0.1, w * 0.3, w * 0.2, w * 0.3, w * 0.07); x.fill(); }
+  }
+  x.restore();
+}
+function drawBack(x, g, kind, base, s, dx, dy, W, H) {
+  const cx = g.cx, cy = (g.top + g.bottom) / 2, R = g.w * (kind === 'flammes' ? 0.95 : 0.62);
+  x.save();
+  if (kind === 'aureole') {
+    x.lineWidth = g.w * 0.06; x.strokeStyle = '#ffd34d'; x.shadowColor = '#ffe680'; x.shadowBlur = g.w * 0.12;
+    x.beginPath(); x.ellipse(cx, g.top - g.w * 0.02, g.w * 0.36, g.w * 0.09, g.ang, 0, 7); x.stroke();
+  } else if (kind === 'flammes') {
+    for (let i = 0; i < 9; i++) {
+      const a = -Math.PI / 2 + (i - 4) * 0.33, h = R * (1.05 + (i % 2) * 0.25), bx = cx + Math.cos(a) * R * 0.55, by = cy + Math.sin(a) * R * 0.55;
+      const gr = x.createLinearGradient(bx, by, cx + Math.cos(a) * h, cy + Math.sin(a) * h); gr.addColorStop(0, 'rgba(255,90,0,.95)'); gr.addColorStop(1, 'rgba(255,214,77,0)');
+      x.fillStyle = gr; x.beginPath(); x.moveTo(bx - Math.sin(a) * R * 0.18, by + Math.cos(a) * R * 0.18); x.quadraticCurveTo(cx + Math.cos(a) * h * 0.8 + Math.sin(a) * R * 0.1, cy + Math.sin(a) * h * 0.8, cx + Math.cos(a) * h, cy + Math.sin(a) * h);
+      x.quadraticCurveTo(cx + Math.cos(a) * h * 0.8 - Math.sin(a) * R * 0.1, cy + Math.sin(a) * h * 0.8, bx + Math.sin(a) * R * 0.18, by - Math.cos(a) * R * 0.18); x.fill();
+    }
+  } else if (kind === 'eclairs') {
+    x.fillStyle = '#ffe14d'; x.strokeStyle = '#ff9d00'; x.lineWidth = 3;
+    for (const [ox, oy, sc, rot] of [[-0.62, -0.25, 1, -0.3], [0.62, -0.18, 0.9, 0.35], [-0.5, 0.35, 0.7, -0.6], [0.55, 0.4, 0.75, 0.5]]) {
+      x.save(); x.translate(cx + ox * g.w, cy + oy * g.w); x.rotate(rot); x.scale(sc * g.w / 160, sc * g.w / 160);
+      x.beginPath(); x.moveTo(-6, -34); x.lineTo(14, -34); x.lineTo(2, -6); x.lineTo(16, -6); x.lineTo(-12, 36); x.lineTo(-2, 4); x.lineTo(-16, 4); x.closePath(); x.fill(); x.stroke(); x.restore();
+    }
+  } else if (kind === 'coeurs' || kind === 'etoiles') {
+    const pts = [[-0.62, -0.32, 0.2], [0.6, -0.4, 0.16], [-0.66, 0.2, 0.14], [0.64, 0.12, 0.2], [-0.3, -0.62, 0.12], [0.34, -0.6, 0.14], [0, -0.72, 0.1]];
+    for (const [ox, oy, sz] of pts) {
+      const px = cx + ox * g.w, py = cy + oy * g.w, r = sz * g.w;
+      if (kind === 'coeurs') { heartPath(x, px, py, r); x.fillStyle = '#ff4f8b'; x.fill(); }
+      else { starPath(x, px, py, r, r * 0.4, 4); x.fillStyle = '#fff6b0'; x.shadowColor = '#ffd34d'; x.shadowBlur = r; x.fill(); }
+    }
+  } else if (kind === 'neon') {
+    x.shadowColor = '#5ef0ff'; x.shadowBlur = g.w * 0.12;
+    for (let i = 0; i < 3; i++) x.drawImage(base, dx, dy, W * s, H * s);
+    x.globalCompositeOperation = 'source-in'; x.fillStyle = '#5ef0ff'; x.fillRect(0, 0, W, H);
+  }
+  x.restore();
+}
+function composeOut() {
+  const base = PH.base; if (!base) return;
+  const W = base.width, H = base.height;
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  // un chapeau a besoin de place : la tête descend et rapetisse un peu
+  const HAT_S = { haut: 0.66, fete: 0.68, chef: 0.7, lapin: 0.7, viking: 0.72, cowboy: 0.76, couronne: 0.76, bonnet: 0.8, casquette: 0.84 };
+  const s = (ACC.hat && HAT_S[ACC.hat]) || 1, dx = (W - W * s) / 2, dy = H - H * s;
+  const g = scaleGeo(PH.geo || headGeo(base, null), s, dx, dy);
+  if (ACC.back) { const b = document.createElement('canvas'); b.width = W; b.height = H; drawBack(b.getContext('2d'), g, ACC.back, base, s, dx, dy, W, H); x.drawImage(b, 0, 0); }
+  x.drawImage(base, dx, dy, W * s, H * s);
+  if (ACC.face) drawFace(x, g, ACC.face);
+  if (ACC.glasses) drawGlasses(x, g, ACC.glasses);
+  if (ACC.hat) drawHat(x, g, ACC.hat, W);
+  const fin = $('jdw-ph-out'), fc = fin.getContext('2d');
+  fc.clearRect(0, 0, OUT_W, OUT_H); fc.imageSmoothingQuality = 'high'; fc.drawImage(c, 0, 0, OUT_W, OUT_H);
+}
+function renderAcc() {
+  const tabs = $('jdw-acc-tabs'); tabs.textContent = '';
+  for (const [id, label] of ACC_TABS) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'acc-tab'; b.textContent = label;
+    b.setAttribute('aria-pressed', String(ACC.tab === id)); if (ACC[id]) b.classList.add('set');
+    b.addEventListener('click', () => { ACC.tab = id; renderAcc(); }); tabs.appendChild(b);
+  }
+  const grid = $('jdw-acc-grid'); grid.textContent = '';
+  for (const [id, label, ic] of ACC_LIST[ACC.tab]) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'acc-item'; b.setAttribute('aria-pressed', String(ACC[ACC.tab] === id));
+    const i = document.createElement('span'); i.className = 'acc-ic'; i.textContent = ic; const t = document.createElement('span'); t.textContent = label;
+    b.append(i, t); b.addEventListener('click', () => { ACC[ACC.tab] = id; renderAcc(); composeOut(); });
+    grid.appendChild(b);
+  }
+  $('jdw-acc-hint').textContent = ACC.tab === 'glasses' ? (PH.geo && PH.geo.detected ? 'Les lunettes se posent toutes seules sur tes yeux.' : 'Les lunettes se placent sur tes yeux (au mieux si ton visage est bien de face).') : '';
+}
+function resetAcc() { ACC.glasses = ACC.hat = ACC.face = ACC.back = ''; ACC.tab = 'glasses'; renderAcc(); }
+
 function softEllipse(ctx, w, h, rx, ry, feather) {
   const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
   g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1 - feather, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1525,10 +2015,7 @@ function toastCheer(text, name, force) {
   const p = h ? players.get(h.name) : (force ? players.get(cleanName(name)) : null);
   if ((!p || !p.photo) && !force) return;
   const el = $('jdw-cheer');
-  // en dehors d'une partie, on l'affiche sur l'accueil
-  const host = $('jdw-play').hidden ? document.body : $('jdw-host');
-  if (el.parentNode !== host) host.appendChild(el);
-  el.style.position = $('jdw-play').hidden ? 'fixed' : 'absolute';
+  if (el.parentNode !== document.body) document.body.appendChild(el);   // toujours au-dessus de tout, en bas à droite
   if (p && p.photo) { $('jdw-cheer-img').src = p.photo; $('jdw-cheer-img').hidden = false; } else $('jdw-cheer-img').hidden = true;
   $('jdw-cheer-name').textContent = p ? p.name : (cleanName(name) || ''); $('jdw-cheer-txt').textContent = String(text || '').slice(0, 60);
   el.hidden = true; void el.offsetWidth; el.hidden = false;
@@ -1539,7 +2026,11 @@ function toastCheer(text, name, force) {
 let roomsCache = [], pendingRoom = null;
 function roomsStatus(t) { $('jdw-rooms-status').textContent = t || ''; }
 async function listRooms() {
-  try { roomsCache = await rpc('list_rooms', { p_code: CODE() }) || []; serverOk = true; roomsStatus(''); }
+  try {
+    try { roomsCache = await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' }) || []; }
+    catch (e) { if (e.status === 404) roomsCache = await rpc('list_rooms', { p_code: CODE() }) || []; else throw e; }   // ancien serveur
+    serverOk = true; roomsStatus('');
+  }
   catch (e) { roomsStatus('Impossible de charger les salles. Vérifie ta connexion et réessaie.'); }
   renderRooms();
 }
@@ -1549,7 +2040,7 @@ const ICON_LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11
 function renderRooms() {
   const wrap = $('jdw-roomlist'); wrap.textContent = '';
   if (!roomsCache.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = "Aucune salle pour l'instant. Crée la première juste en dessous !"; wrap.appendChild(p); return; }
-  const list = [...roomsCache].sort((a, b) => (room && b.r_id === room.id) - (room && a.r_id === room.id) || b.r_online - a.r_online || b.r_members - a.r_members);
+  const list = [...roomsCache].sort((a, b) => (room && b.r_id === room.id) - (room && a.r_id === room.id) || !!b.r_member - !!a.r_member || b.r_online - a.r_online || b.r_members - a.r_members);
   for (const r of list) {
     const cur = room && room.id === r.r_id;
     const b = document.createElement('button'); b.type = 'button'; b.className = 'room-tile' + (cur ? ' cur' : '');
@@ -1565,6 +2056,7 @@ function renderRooms() {
     meta.append(mem, on);
     b.append(sign, meta);
     if (cur) { const bd = document.createElement('span'); bd.className = 'rt-badge'; bd.textContent = 'Ta salle'; b.append(bd); }
+    else if (r.r_member) { const bd = document.createElement('span'); bd.className = 'rt-badge member'; bd.textContent = 'Tu en fais partie'; b.append(bd); }
     if (r.r_private) { const lk = document.createElement('span'); lk.className = 'rt-lock'; lk.innerHTML = ICON_LOCK; lk.title = 'Salle privée'; b.append(lk); }
     b.addEventListener('click', () => chooseRoom(r));
     wrap.appendChild(b);
@@ -1574,7 +2066,7 @@ function openRooms() {
   if (!ONLINE) return;
   if (!profile.name) { startWelcome(); return; }
   roomsStatus('Chargement des salles…'); $('jdw-joinbox').hidden = true; pendingRoom = null;
-  openSheet('jdw-rooms'); listRooms();
+  openSheet('jdw-rooms'); return listRooms();
 }
 async function chooseRoom(r) {
   if (room && room.id === r.r_id) { closeSheet('jdw-rooms'); return; }
@@ -1597,7 +2089,7 @@ async function doJoin(r, code) {
 }
 function enterRoom(rm) {
   const prevId = room ? room.id : null;
-  room = rm; store.set('jdw.room', room);
+  room = rm; store.set('jdw.room', room); remoteLoaded = false; roomDenied = false;
   if (prevId && prevId !== room.id) { rtLeave('jdw-room-' + prevId); presReset(); }
   rtJoin('jdw-room-' + room.id);
   players.clear(); syncOwnPlayer(); remote = {}; counts = {}; total = 0;
@@ -1636,6 +2128,8 @@ function mountGame(g) {
   else { root = document.createElement('div'); root.className = 'game-root'; $('jdw-host').prepend(root); }
   const api = {
     audio: audioApi, colors: COLORS, fonts: FONTS,
+    assets: () => window.JDW_ASSETS.load(g.id),
+    music: (track) => { if (current && current.seq === seq) setMusic(track || g.id); },   // un jeu peut changer de morceau (par niveau)
     isMuted: () => muted,
     heads: () => headsList(),
     player: playerObj(),
@@ -1649,6 +2143,7 @@ function mountGame(g) {
   };
   current = { game: g, root, seq, over: false, inst: null };
   recReset(); setTimeout(recLine, 50);
+  musicBaseLevel(0.8); setMusic(g.id);
   try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }
   setWhere(g.id);
 }
@@ -1666,6 +2161,7 @@ let waitRotate = null;
 function openGame(g) {
   if (!profile.name) { startWelcome(); return; }
   if (ONLINE && !room) { openRooms(); return; }
+  markGameSeen(g.id);
   Audio.ensure();
   $('jdw-lib').hidden = true; $('jdw-play').hidden = false;
   $('jdw-play').style.setProperty('--acc', g.accent);
@@ -1691,7 +2187,7 @@ function backToLibrary() {
   waitRotate = null; $('jdw-rotate').hidden = true;
   unmountGame();
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
-  setWhere('menu'); refreshAll();
+  setWhere('menu'); refreshAll(); musicBaseLevel(1); setMusic('accueil');
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
@@ -1714,13 +2210,24 @@ $('jdw-back').addEventListener('click', quitGame);
 $('jdw-tolib').addEventListener('click', backToLibrary);
 $('jdw-again').addEventListener('click', () => { flushPending(); if (!current) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; Audio.ensure(); mountGame(g); });
 function syncMute() {
-  $('jdw-mute').textContent = muted ? 'Muet' : 'Son';
-  $('jdw-mute').setAttribute('aria-label', muted ? 'Activer le son' : 'Couper le son');
+  const silent = muted && !MUS.on && !criOn;
+  $('jdw-mute').textContent = silent ? '🔇' : '🔊';
+  $('jdw-mute').setAttribute('aria-label', 'Réglages du son : musique, bruitages, cris');
   if (Audio.master) Audio.master.gain.value = muted ? 0 : 0.6;
-  if (muted && criAudio) { try { criAudio.pause(); } catch (e) {} }
   for (const g of GAMES) if (g.setMuted) { try { g.setMuted(muted); } catch (e) {} }
 }
-$('jdw-mute').addEventListener('click', () => { muted = !muted; store.set('jdw.muted', muted); Audio.ensure(); syncMute(); });
+// bouton de la partie : un petit menu pour couper séparément la musique, les bruitages et les cris
+function syncSoundMenu() {
+  $('jdw-sm-music').checked = MUS.on; $('jdw-sm-sfx').checked = !muted; $('jdw-sm-cris').checked = criOn;
+}
+$('jdw-mute').addEventListener('click', e => {
+  e.stopPropagation(); Audio.ensure(); syncSoundMenu();
+  const m = $('jdw-soundmenu'); m.hidden = !m.hidden; $('jdw-mute').setAttribute('aria-expanded', String(!m.hidden));
+});
+document.addEventListener('pointerdown', e => { const m = $('jdw-soundmenu'); if (!m.hidden && !m.contains(e.target) && e.target !== $('jdw-mute')) { m.hidden = true; $('jdw-mute').setAttribute('aria-expanded', 'false'); } }, true);
+$('jdw-sm-music').addEventListener('change', () => { setMusicOn($('jdw-sm-music').checked); syncMute(); });
+$('jdw-sm-sfx').addEventListener('change', () => { muted = !$('jdw-sm-sfx').checked; store.set('jdw.muted', muted); syncMute(); if (!muted) Audio.tone(660, 0.08, 'square', 0.05); });
+$('jdw-sm-cris').addEventListener('change', () => { criOn = $('jdw-sm-cris').checked; store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } });
 
 /* ================= 1re place affichée pendant toute la partie ================= */
 const REC = { leader: '', score: -1, passed: '', flashUntil: 0 };
@@ -1751,6 +2258,10 @@ function recLine() {
     }
   } else txt = '👑 ' + lead.name + ' · ' + fmt(lead.score) + u + (cur ? '   ·   toi ' + fmt(cur) : '');
   if (Date.now() < REC.flashUntil) cls += ' flash';
+  try {
+    const lvl = current.inst && current.inst.currentLevel ? +current.inst.currentLevel() : 0;
+    if (lvl >= (INTENSE_AT[g.id] || 99) && MUS.wantMode !== 'intense' && !current.over) setMusic(g.id, 'intense');
+  } catch (e) {}
   if (el.className !== cls) el.className = cls;
   if (el.textContent !== txt) el.textContent = txt;
 }
@@ -1804,7 +2315,7 @@ function buildWho(record) {
 $('jdw-who-ok').addEventListener('click', () => { const n = cleanName($('jdw-who-name').value); if (n) commitScore(n); else $('jdw-who-name').focus(); });
 $('jdw-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-who-ok').click(); } });
 async function showEnd(score) {
-  flushPending();
+  flushPending(); musicBaseLevel(0.5);
   const g = current.game, me = cleanName(profile.name);
   const before = top(g.id);
   const myBest = knownBest(me, g.id);
@@ -1834,10 +2345,9 @@ async function showEnd(score) {
     // on a battu quelqu'un : c'est lui qui pleure (jamais de moquerie)
     if (hasCri(beaten[0].name)) { crier = beaten[0].name; cryMode = 'sad'; }
   } else {
-    // personne de battu : celui qui est juste devant se moque (sinon le premier du classement)
-    const front = before.filter(r => r.name !== me && r.score >= score);
-    ahead = front.slice().reverse().find(r => hasCri(r.name)) || null;
-    if (ahead) { crier = ahead.name; cryMode = 'mock'; }
+    // personne de battu : seul le PREMIER du classement se moque (s'il n'a pas de cri, aucun cri)
+    const lead = before[0];
+    if (lead && lead.name !== me && lead.score >= score && hasCri(lead.name)) { ahead = lead; crier = lead.name; cryMode = 'mock'; }
   }
   if (crier) {
     if (cryMode === 'mock') {
@@ -1923,5 +2433,7 @@ if (!profile.name) startWelcome(); else if (ONLINE && !room) openRooms();
 loadPlayers(); loadScores(); heartbeat(); loadChat();
 if (ONLINE) { rtJoin('jdw-all'); if (room) rtJoin('jdw-room-' + room.id); rtConnect(); }
 setTimeout(checkSiteVersion, 4000);
-window.JDW_SHELL = { players, headsList };
+// les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)
+setTimeout(() => { if (CODE()) for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
+window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer };   // diagnostic (tests)
 })();

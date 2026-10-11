@@ -62,3 +62,17 @@ Le script peut être relancé : il garde les données (salles, scores, joueurs, 
 - Erreurs des joueurs remontées au serveur (log_error ; lecture : `node ~/jdv-tools/erreurs.js`) + bandeau « Oups » qui sauve le score si un jeu plante.
 - Nouvelle version du site : publier.sh écrit site.json (BUILD_ID) ; les appareils rechargent tout seuls quand ils sont au calme sur l'accueil.
 - Appli Android 1.3 : clavier en plein écran corrigé (redimensionnement du WebView), JDW_RESUME au retour dans l'appli, micro pour le cri.
+- Jeu « Galaxy Wars » (id technique `ilo`, `games/ilo.js`, shoot'em up spatial) avec les planètes et nébuleuses du projet Unity ILO de l'utilisateur
+  (packs Asset Store : jamais en clair dans le dépôt). `source/pack-ilo.js` (à relancer si le mot de passe change) redimensionne,
+  compresse en WebP et CHIFFRE le tout dans `assets/ilo.bin` ; la page le déchiffre avec le mot de passe (window.JDW_ASSETS.load,
+  api.assets — CONTRACT.md Ajout 4). Copies en clair pour les tests : `~/jdv-tools/ilo-assets` (hors dépôt), harnais `source/test/ilo.html`.
+- Les scores acceptent tout nom de jeu valide (`^[a-z0-9_-]{2,20}$`) : ajouter un jeu ne demande plus de modifier la base.
+- Musiques : `assets/music/<jeu>-<n>.mp3` (3 variantes par jeu + accueil, ElevenLabs Music, compte payg de l'utilisateur, clé dans la variable
+  utilisateur ELEVENLABS_API_KEY, jamais affichée ; scripts `~/jdv-tools/musiques2.js`). build2.py injecte la liste (window.JDW_MUSIC) ;
+  le lecteur (Web Audio) enchaîne les variantes en fondu, baisse sous les cris, et se règle à part (musique / bruitages / cris : ⚙ et menu 🔊 en jeu).
+  Un jeu peut changer de morceau : api.music('<jeu>') (variantes) — à utiliser par niveau plus tard.
+- Classement « Ma salle / Monde » (get_world_scores) ; list_rooms(p_code, p_name) dit « Tu en fais partie ».
+- Nouveaux jeux : badge NOUVEAU tant que le joueur n'y a pas joué + notification « Nouveau jeu disponible » (NEW_GAMES dans shell2.js) ;
+  la cloche ne montre que les nouveautés (historique sur demande).
+- Photo : accessoires (lunettes posées sur les yeux via MediaPipe Face Detection, sinon estimation ; chapeaux ; visage ; effets derrière).
+- Code de salle manquant sur un appareil : message clair + code redemandé ; les refus du serveur sont remontés dans les erreurs.

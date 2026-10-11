@@ -2046,6 +2046,7 @@
 
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
+      currentLevel: () => level,                            // niveau en cours (musique plus énergique aux niveaux difficiles)
       destroy() {
         if (destroyed) return;
         destroyed = true;

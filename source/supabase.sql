@@ -39,7 +39,7 @@ create table if not exists public.scores (
 alter table public.scores add column if not exists room_id bigint references public.rooms(id) on delete cascade;
 alter table public.scores drop constraint if exists scores_game_check;
 alter table public.scores add constraint scores_game_check
-  check (game in ('pleingaz','empilo','glouton','mouches','carreaux','rouleaux','canards'));
+  check (game ~ '^[a-z0-9_-]{2,20}$');
 alter table public.scores enable row level security;
 
 -- Joueurs et photos (communs à toutes les salles ; photo partagée seulement avec accord)
@@ -116,6 +116,8 @@ drop function if exists public.add_score(text, text, text, int);
 drop function if exists public.get_players(text);
 drop function if exists public.heartbeat(text, text, text, text);
 drop function if exists public.list_rooms(text);
+drop function if exists public.list_rooms(text, text);
+drop function if exists public.get_world_scores(text);
 drop function if exists public.create_room(text, text, text, text);
 drop function if exists public.join_room(text, bigint, text, text);
 drop function if exists public.get_scores(text, bigint, text);
@@ -146,15 +148,16 @@ language sql stable security definer set search_path = public, extensions as $$
     and (r.code_hash is null or r.code_hash = crypt(coalesce(p_room_code, ''), r.code_hash)));
 $$;
 
-create function public.list_rooms(p_code text)
-returns table(r_id bigint, r_name text, r_private boolean, r_owner text, r_members int, r_online int)
+create function public.list_rooms(p_code text, p_name text default null)
+returns table(r_id bigint, r_name text, r_private boolean, r_owner text, r_members int, r_online int, r_member boolean)
 language plpgsql stable security definer set search_path = public, extensions as $$
 begin
   if not public.check_code(p_code) then raise exception 'mauvais mot de passe'; end if;
   return query
     select r.id, r.name, r.code_hash is not null, r.owner,
       (select count(*)::int from public.room_members m where m.room_id = r.id),
-      (select count(*)::int from public.presence pr where pr.room_id = r.id and pr.seen_at > now() - interval '45 seconds')
+      (select count(*)::int from public.presence pr where pr.room_id = r.id and pr.seen_at > now() - interval '45 seconds'),
+      exists (select 1 from public.room_members m where m.room_id = r.id and m.name = upper(left(trim(coalesce(p_name, '')), 12)))
     from public.rooms r order by r.created_at;
 end $$;
 
@@ -369,6 +372,21 @@ begin
     group by r.message_id, r.emoji;
 end $$;
 
+-- classement mondial : le meilleur score de chaque joueur, toutes salles confondues (top 10 par jeu)
+create function public.get_world_scores(p_code text)
+returns table(r_game text, r_name text, r_score int, r_at timestamptz)
+language plpgsql stable security definer set search_path = public, extensions as $$
+begin
+  if not public.check_code(p_code) then raise exception 'mauvais mot de passe'; end if;
+  return query
+    select t.game, t.name, t.score, t.created_at from (
+      select b.game, b.name, b.score, b.created_at,
+             row_number() over (partition by b.game order by b.score desc, b.created_at) as rn
+      from (select distinct on (s.game, s.name) s.game, s.name, s.score, s.created_at
+            from public.scores s order by s.game, s.name, s.score desc, s.created_at) b) t
+    where t.rn <= 10;
+end $$;
+
 create function public.heartbeat(p_code text, p_room bigint, p_client text, p_name text, p_game text)
 returns table(r_game text, r_count int)
 language plpgsql security definer set search_path = public, extensions as $$
@@ -384,7 +402,7 @@ begin
     where pr.room_id = p_room and pr.seen_at > now() - interval '45 seconds' group by pr.game;
 end $$;
 
-revoke all on function public.check_code(text), public.room_ok(bigint, text), public.list_rooms(text),
+revoke all on function public.check_code(text), public.room_ok(bigint, text), public.list_rooms(text, text), public.get_world_scores(text),
   public.create_room(text, text, text, text), public.join_room(text, bigint, text, text),
   public.get_scores(text, bigint, text), public.add_score(text, bigint, text, text, text, int),
   public.get_players(text, bigint, text), public.save_player(text, text, text, boolean, text),
@@ -392,7 +410,7 @@ revoke all on function public.check_code(text), public.room_ok(bigint, text), pu
   public.get_messages(text, bigint, text, bigint), public.post_message(text, bigint, text, text, text),
   public.check_name(text, text), public.log_error(text, text, bigint, text, text, text, text, text), public.get_errors(text, int), public.get_presence(text, bigint, text),
   public.react(text, bigint, text, bigint, text, text), public.get_reactions(text, bigint, text) from public;
-grant execute on function public.check_code(text), public.list_rooms(text),
+grant execute on function public.check_code(text), public.list_rooms(text, text), public.get_world_scores(text),
   public.create_room(text, text, text, text), public.join_room(text, bigint, text, text),
   public.get_scores(text, bigint, text), public.add_score(text, bigint, text, text, text, int),
   public.get_players(text, bigint, text), public.save_player(text, text, text, boolean, text),

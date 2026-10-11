@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Test Galaxy Wars</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap">
+<style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
+</head><body>
+<div id="root"></div>
+<script>
+// paramètres : ?heads (fausses têtes) ?nosad ?noassets (sans images d'ILO) ?fast (temps accéléré) ?assets=<dossier des WebP de test>
+const Q = location.search;
+if (Q.indexOf('fast') >= 0) {
+  let fakeNow = 0;
+  window.requestAnimationFrame = (cb) => setTimeout(() => { fakeNow += 50; cb(fakeNow); }, 2);
+  window.cancelAnimationFrame = (id) => clearTimeout(id);
+}
+</script>
+<script src="../games/ilo.js"></script>
+<script>
+window.__over = []; window.__cele = [];
+function fakeHead(skin, hair, mood, sad) {
+  const c = document.createElement('canvas'); c.width = 160; c.height = 200;
+  const g = c.getContext('2d');
+  g.fillStyle = skin; g.beginPath(); g.ellipse(80, 108, 62, 80, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = hair; g.beginPath(); g.ellipse(80, 50, 66, 40, 0, Math.PI, 0); g.fill();
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(56, 100, 13, 0, 7); g.arc(104, 100, 13, 0, 7); g.fill();
+  g.fillStyle = '#222'; g.beginPath(); g.arc(58, 102, 6, 0, 7); g.arc(102, 102, 6, 0, 7); g.fill();
+  g.strokeStyle = '#7a2a2a'; g.lineWidth = 6; g.beginPath();
+  if (sad) g.arc(80, 160, 22, 1.15 * Math.PI, 1.85 * Math.PI); else g.arc(80, 140, mood, 0.15 * Math.PI, 0.85 * Math.PI);
+  g.stroke();
+  if (sad) {
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(70,120,210,.38)'; g.fillRect(0, 0, 160, 200); g.globalCompositeOperation = 'source-over';
+    g.fillStyle = '#9fe0ff'; for (const x of [56, 104]) { g.beginPath(); g.ellipse(x, 128, 6, 11, 0, 0, 7); g.fill(); }
+  }
+  return c;
+}
+const nosad = Q.indexOf('nosad') >= 0;
+const HEADS = Q.indexOf('heads') >= 0 ? [
+  { name: 'PATOU', img: fakeHead('#f2c39b', '#5a3a1a', 22), sad: nosad ? undefined : fakeHead('#f2c39b', '#5a3a1a', 22, true) },
+  { name: 'JUJU', img: fakeHead('#c98b5e', '#1a1a1a', 26), sad: nosad ? undefined : fakeHead('#c98b5e', '#1a1a1a', 26, true) },
+  { name: 'MOMO', img: fakeHead('#ffd9c0', '#d9902a', 18), sad: nosad ? undefined : fakeHead('#ffd9c0', '#d9902a', 18, true) }
+] : [];
+// images d'ILO pour les tests (WebP en clair, hors dépôt) : jdv-tools/ilo-assets
+const m = Q.match(/assets=([^&]+)/), DIR = m ? decodeURIComponent(m[1]) : '../../../jdv-tools/ilo-assets';
+function loadImg(u) { return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; }); }
+let assetsP = null;
+function assets() {
+  if (Q.indexOf('noassets') >= 0) return Promise.reject(new Error('pas d\'images'));
+  if (!assetsP) assetsP = Promise.all([
+    Promise.all(Array.from({ length: 32 }, (_, i) => loadImg(DIR + '/planets/' + String(i + 1).padStart(2, '0') + '.webp'))),
+    Promise.all(Array.from({ length: 4 }, (_, i) => loadImg(DIR + '/nebulas/' + String(i + 1).padStart(2, '0') + '.webp')))
+  ]).then(([planets, nebulas]) => ({ planets, nebulas }));
+  return assetsP;
+}
+window.JDW_ASSETS = { cache: {}, load: (n) => assets().then(a => (window.JDW_ASSETS.cache[n] = a)) };
+const api = {
+  heads: () => HEADS.slice(),
+  player: { name: 'PATOU', img: HEADS[0] ? HEADS[0].img : null },
+  celebrate(text, name) { console.log('CELEBRATE', text, name || ''); window.__cele.push(text); },
+  gameOver(s) { console.log('GAMEOVER', s); window.__over.push(s); },
+  assets: () => window.JDW_ASSETS.load('ilo'),
+  audio: { tone() {}, noise() {} },
+  fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+  colors: { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae', amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a' }
+};
+window.__api = api;
+window.__inst = window.JDW_GAMES.ilo.mount(document.getElementById('root'), api);
+</script>
+</body></html>

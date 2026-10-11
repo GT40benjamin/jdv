@@ -27,10 +27,9 @@
       <span class="rb-go">Changer</span>
     </button>
     <button class="invite-btn" id="jdw-invite" type="button" aria-label="Inviter des copains dans la salle">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/></svg><span>Inviter</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/></svg>
     </button>
     </div>
-    <p class="lib-sub">Une vie, pas deux. Les classements sont ceux de ta salle.</p>
     <section class="grid" id="jdw-grid" aria-label="Jeux"></section>
     <p class="lib-note" id="jdw-note"></p>
   </div>
@@ -40,7 +39,12 @@
   <div class="topbar">
     <button class="btn btn-ghost btn-sm" id="jdw-back" type="button" aria-label="Quitter la partie">✕ Quitter</button>
     <div class="gt-wrap"><h1 id="jdw-gtitle">Jeu</h1><span class="recline" id="jdw-recline" hidden></span></div>
-    <button class="btn btn-ghost btn-sm" id="jdw-mute" type="button" aria-label="Couper le son">Son</button>
+    <button class="btn btn-ghost btn-sm" id="jdw-mute" type="button" aria-label="Réglages du son" aria-haspopup="true" aria-expanded="false">🔊</button>
+    <div class="soundmenu" id="jdw-soundmenu" role="menu" hidden>
+      <label class="switch-row"><span>🎵 Musique</span><input type="checkbox" id="jdw-sm-music"></label>
+      <label class="switch-row"><span>🔊 Bruitages</span><input type="checkbox" id="jdw-sm-sfx"></label>
+      <label class="switch-row"><span>📣 Cris</span><input type="checkbox" id="jdw-sm-cris"></label>
+    </div>
   </div>
   <div id="jdw-host">
     PG_MARKUP
@@ -82,9 +86,13 @@
 
 <!-- Classement -->
 <div class="sheet" id="jdw-board" hidden>
-  <div class="card board-card" role="dialog" aria-modal="true" aria-labelledby="jdw-board-h">
+  <div class="card board-card board-big" role="dialog" aria-modal="true" aria-labelledby="jdw-board-h">
     <div class="card-body">
       <div class="card-head"><h2 id="jdw-board-h">Classement</h2><button class="btn btn-ghost btn-sm" id="jdw-board-close" type="button">Fermer</button></div>
+      <div class="scope" id="jdw-scope" role="group" aria-label="Quel classement">
+        <button type="button" data-scope="room" aria-pressed="true">🏠 Ma salle</button>
+        <button type="button" data-scope="world" aria-pressed="false">🌍 Monde</button>
+      </div>
       <div class="tabs" id="jdw-tabs" role="tablist" aria-label="Jeux"></div>
       <p class="small" id="jdw-board-hint"></p>
       <ol class="board" id="jdw-board-list"></ol>
@@ -132,8 +140,9 @@
 <div class="sheet" id="jdw-notifs" hidden>
   <div class="card board-card" role="dialog" aria-modal="true" aria-labelledby="jdw-notifs-h">
     <div class="card-body">
-      <div class="card-head"><h2 id="jdw-notifs-h">Tes records battus</h2><button class="btn btn-ghost btn-sm" id="jdw-notifs-close" type="button">Fermer</button></div>
+      <div class="card-head"><h2 id="jdw-notifs-h">Notifications</h2><button class="btn btn-ghost btn-sm" id="jdw-notifs-close" type="button">Fermer</button></div>
       <ol class="notif-list" id="jdw-notifs-list"></ol>
+      <button class="btn btn-ghost btn-sm" id="jdw-notifs-old" type="button" hidden>Voir l'historique</button>
     </div>
   </div>
 </div>
@@ -192,9 +201,14 @@
         <button class="btn btn-ghost btn-sm" id="jdw-set-cri" type="button">🎙️ Enregistrer mon cri</button>
         <button class="btn btn-ghost btn-sm" id="jdw-set-cri-play" type="button" hidden>▶ Mon cri</button>
       </div>
-      <label class="switch-row"><span>Son</span><input type="checkbox" id="jdw-set-sound" style="width:22px;height:22px;accent-color:var(--amber)"></label>
+      <div class="snd-rows">
+        <label class="switch-row"><span>🔊 Effets sonores</span><input type="checkbox" id="jdw-set-sfx"></label>
+        <label class="switch-row"><span>🎵 Musique</span><input type="checkbox" id="jdw-set-music"></label>
+        <label class="switch-row"><span>📣 Cris des copains</span><input type="checkbox" id="jdw-set-cris"></label>
+      </div>
       <p class="small" id="jdw-set-status"></p>
       <button class="btn btn-play" id="jdw-set-save" type="button">Enregistrer</button>
+      <p class="small set-version" id="jdw-set-version"></p>
     </div>
   </div>
 </div>
@@ -249,6 +263,12 @@
         <button class="btn btn-ghost btn-sm" id="jdw-ph-redo" type="button">Autre photo</button>
       </div>
       <div class="preview-out"><canvas id="jdw-ph-out" width="160" height="200"></canvas><p class="small" id="jdw-ph-info">Détourage en cours…</p></div>
+      <div class="acc" id="jdw-acc">
+        <p class="eyebrow">Accessoires (facultatif)</p>
+        <div class="acc-tabs" id="jdw-acc-tabs" role="group" aria-label="Type d'accessoire"></div>
+        <div class="acc-grid" id="jdw-acc-grid"></div>
+        <p class="small" id="jdw-acc-hint"></p>
+      </div>
       <label class="check"><input type="checkbox" id="jdw-ph-consent"><span>J'accepte que ma tête apparaisse dans les jeux, visible par les copains qui ont le mot de passe.</span></label>
       <button class="btn btn-play" id="jdw-ph-ok" type="button" disabled>Valider ma tête</button>
     </div>

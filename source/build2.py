@@ -71,12 +71,23 @@ script = script[:idx] + hook + '\n' + script[idx:]
 script = "let PG_ACTIVE = false, PG_API = null, PG_HEADS = [], PG_PILOT_IMG = null, PG_INTRO_IMG = null, PG_PREVIEW_PILOT = null, PG_BOSS_SAD = null, PG_BOSS_COUNT = 0, PG_BOSS_LAST = '';\n" + script
 
 # ---------- assemblage ----------
-GAMES = ['empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards']
+SKIP = [x for x in os.environ.get('SKIP_GAMES', '').split(',') if x]   # ex. SKIP_GAMES=ilo : jeu pas encore prêt
+GAMES = [g for g in ['ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
+def music_list():
+    # {jeu: [numéros de variantes]} d'après les fichiers assets/music/<jeu>-<n>.mp3
+    # calmes : <jeu>-<n>.mp3 ; énergiques (niveaux difficiles) : <jeu>-x<n>.mp3
+    d = os.path.join(J, '..', 'assets', 'music'); out = {}
+    if os.path.isdir(d):
+        for f in sorted(os.listdir(d)):
+            m = re.match(r'^([a-z0-9]+)-(x?)(\d+)\.mp3$', f)
+            if m: out.setdefault(m.group(1), {'c': [], 'x': []})['x' if m.group(2) else 'c'].append(m.group(1) + '-' + m.group(2) + m.group(3))
+    return out
 def page(config=None):
     body = open(J + 'shell2-body.html').read().replace('PG_MARKUP', '<section id="jdw-pg" hidden>\n' + markup + '\n</section>')
     games = ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
     cfg = ('<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else '') + \
-          '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + ';</script>\n'
+          '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + ';</script>\n' + \
+          '<script>window.JDW_MUSIC = ' + json.dumps(music_list()) + ';</script>\n'
     return ('<title>Jeux des WC</title>\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
             '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap">\n'

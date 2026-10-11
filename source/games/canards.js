@@ -2826,6 +2826,7 @@
 
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
+      currentLevel: () => round,                            // manche en cours (musique plus énergique aux manches difficiles)
       _debug: {
         info: () => ({ state, round, score, paused, mines: mines.length, crates: crates.length, waterY: Math.round(waterY), weapons: WEAPONS.filter((w, i) => weaponOk(i)).map(w => w.id), turn: active ? active.team + ':' + active.name : null, wind, weapon, ducks: ducks.map(d => ({ t: d.team, hp: d.hp, alive: d.alive, x: Math.round(d.x), y: Math.round(d.y), air: d.air })) }),
         killTeam: (t) => { for (const d of ducks) if (d.team === t && d.alive) d.hp = 0; if (state === 'turn') endTurnSettle(); },
