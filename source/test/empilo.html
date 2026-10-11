@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test empilo</title>
+<style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
+</head><body><div id="root"></div>
+<script src="../games/empilo.js"></script>
+<script>
+window.__events = [];
+window.__celebs = [];
+function fakeHead(skin, hair, sad) {
+  const c = document.createElement('canvas'); c.width = 160; c.height = 200;
+  const x = c.getContext('2d');
+  x.fillStyle = skin; x.beginPath(); x.ellipse(80, 110, 62, 80, 0, 0, Math.PI * 2); x.fill();
+  x.fillStyle = hair; x.beginPath(); x.ellipse(80, 55, 66, 40, 0, Math.PI, 0); x.fill(); x.fillRect(14, 50, 132, 18);
+  x.fillStyle = '#fff'; x.beginPath(); x.arc(56, 105, 13, 0, 7); x.arc(104, 105, 13, 0, 7); x.fill();
+  x.fillStyle = '#222'; x.beginPath(); x.arc(58, 107, 6, 0, 7); x.arc(106, 107, 6, 0, 7); x.fill();
+  x.strokeStyle = '#7a2b2b'; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath();
+  if (sad) x.arc(80, 160, 22, Math.PI + 0.4, -0.4); else x.arc(80, 135, 26, 0.2, Math.PI - 0.2);
+  x.stroke();
+  if (sad) {
+    x.fillStyle = '#5ab8ff'; x.beginPath(); x.ellipse(52, 132, 6, 12, 0, 0, 7); x.ellipse(108, 132, 6, 12, 0, 0, 7); x.fill();
+    x.fillStyle = '#9aa7b4'; x.beginPath(); x.arc(60, 18, 14, 0, 7); x.arc(82, 12, 18, 0, 7); x.arc(104, 18, 14, 0, 7); x.fill();
+  }
+  return c;
+}
+const NOHEADS = /heads=0/.test(location.search);
+const HEADS = NOHEADS ? [] : [
+  { name: 'PATOU', img: fakeHead('#f2c39b', '#5a3b22'), sad: fakeHead('#f2c39b', '#5a3b22', true) },
+  { name: 'Mimi', img: fakeHead('#c98d5e', '#1d1d1d'), sad: fakeHead('#c98d5e', '#1d1d1d', true) },
+  { name: 'Loulou', img: fakeHead('#ffd9c2', '#e0a030'), sad: fakeHead('#ffd9c2', '#e0a030', true) }
+];
+const api = {
+  gameOver(s){ console.log('GAMEOVER', s); window.__gameover = (window.__gameover||0)+1; window.__score = s; },
+  heads: () => HEADS.slice(),
+  player: { name: 'PATOU', img: HEADS[0] ? HEADS[0].img : null },
+  celebrate(text, name) { window.__celebs.push([text, name]); console.log('CELEBRATE', text, name || ''); },
+  audio: { tone(){ window.__tones=(window.__tones||0)+1; }, noise(){} },
+  fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+  colors: { night:'#0b141c', panel:'#111d27', steel:'#22394a', steel2:'#3a5568', ink:'#e9f0f3', muted:'#8aa0ae', amber:'#ffa630', gold:'#ffd34d', alarm:'#ff4d5e', volt:'#5ef0ff', spray:'#ff5fae', leaf:'#4cc36a' }
+};
+window.__inst = window.JDW_GAMES.empilo.mount(document.getElementById('root'), api);
+</script></body></html>

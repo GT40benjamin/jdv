@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>test carreaux</title>
+<style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
+</head><body>
+<div id="root"></div>
+<script src="../games/carreaux.js"></script>
+<script>
+  // ?heads=0 → aucune tête ; sinon 3 fausses têtes avec leur version triste `sad` (fond transparent, ratio 0,8)
+  function fakeHead(skin, hair, sad) {
+    const c = document.createElement('canvas'); c.width = 160; c.height = 200;
+    const g = c.getContext('2d');
+    g.fillStyle = skin; g.beginPath(); g.ellipse(80, 110, 62, 78, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = hair; g.beginPath(); g.ellipse(80, 55, 66, 38, 0, Math.PI, Math.PI * 2); g.fill(); g.fillRect(14, 50, 132, 14);
+    g.fillStyle = '#222'; g.beginPath(); g.arc(56, 105, 8, 0, 7); g.arc(104, 105, 8, 0, 7); g.fill();
+    g.strokeStyle = '#7a2a2a'; g.lineWidth = 7; g.lineCap = 'round';
+    if (sad) {
+      g.beginPath(); g.arc(80, 160, 22, Math.PI + 0.35, -0.35); g.stroke();
+      g.fillStyle = '#5ec8ff';
+      for (const x of [52, 108]) { g.beginPath(); g.moveTo(x, 114); g.quadraticCurveTo(x + 9, 136, x, 142); g.quadraticCurveTo(x - 9, 136, x, 114); g.fill(); }
+      g.fillStyle = '#9fb3c4';
+      g.beginPath(); g.arc(60, 18, 14, 0, 7); g.arc(80, 12, 17, 0, 7); g.arc(102, 18, 13, 0, 7); g.fill();
+      g.strokeStyle = '#5ec8ff'; g.lineWidth = 3;
+      for (const x of [62, 80, 98]) { g.beginPath(); g.moveTo(x, 30); g.lineTo(x - 3, 40); g.stroke(); }
+    } else { g.beginPath(); g.arc(80, 135, 26, 0.2, Math.PI - 0.2); g.stroke(); }
+    return c;
+  }
+  function fakeFriend(name, skin, hair) { return { name, img: fakeHead(skin, hair, false), sad: fakeHead(skin, hair, true) }; }
+  const noHeads = /heads=0/.test(location.search);
+  const HEADS = noHeads ? [] : [
+    fakeFriend('PATOU', '#f2c29b', '#5a3a1a'),
+    fakeFriend('MIMI', '#c98c5e', '#1a1a1a'),
+    fakeFriend('JOJO', '#ffd9b8', '#d9a020')
+  ];
+  window.__over = []; window.__cele = [];
+  const api = {
+    gameOver(score) { window.__over.push(score); console.log('GAMEOVER', score); },
+    audio: { tone() {}, noise() {} },
+    heads: () => HEADS.slice(),
+    player: { name: 'PATOU', img: HEADS[0] ? HEADS[0].img : null },
+    celebrate(text, name) { window.__cele.push(text); console.log('CELEBRATE', text, name || ''); },
+    fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+    colors: { night:'#0b141c', panel:'#111d27', steel:'#22394a', steel2:'#3a5568', ink:'#e9f0f3', muted:'#8aa0ae', amber:'#ffa630', gold:'#ffd34d', alarm:'#ff4d5e', volt:'#5ef0ff', spray:'#ff5fae', leaf:'#4cc36a' }
+  };
+  window.__api = api;
+  window.__game = window.JDW_GAMES.carreaux.mount(document.getElementById('root'), api);
+</script>
+</body></html>

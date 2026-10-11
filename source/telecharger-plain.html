@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b141c">
+<title>Borne d'arcade · appli Android</title>
+<style>
+:root{--night:#0b141c;--wall:#14222e;--grout:#0a1218;--ink:#e9f0f3;--muted:#8aa0ae;--amber:#ffa630;--leaf:#4cc36a;--enamel:#f3f6f4;--enamel-ink:#16313d;--panel:#111d27;--line:#22394a;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:28px 16px 40px;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background-color:var(--wall);
+  background-image:linear-gradient(var(--grout) 2px,transparent 2px),linear-gradient(90deg,var(--grout) 2px,transparent 2px);background-size:46px 46px}
+main{max-width:520px;margin:0 auto;display:grid;gap:16px}
+.card{display:grid;gap:14px;padding:22px 20px;border-radius:18px;background:var(--panel);border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,.45)}
+h1{margin:0;font:900 clamp(30px,8vw,42px)/1.05 Impact,"Arial Black",system-ui,sans-serif;text-wrap:balance}
+h1 b{display:inline-block;padding:.04em .26em 0;border-radius:.16em;background:var(--enamel);color:var(--enamel-ink)}
+h2{margin:0;font:800 18px system-ui,sans-serif}
+p{margin:0}
+.muted{color:var(--muted);font-size:14px}
+.dl{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border-radius:12px;background:var(--amber);color:var(--night);font:800 18px system-ui,sans-serif;text-decoration:none;box-shadow:0 4px 0 rgba(0,0,0,.45)}
+.dl:active{transform:translateY(2px)}
+.dl[aria-disabled=true]{opacity:.5;pointer-events:none}
+ol{margin:0;padding-left:1.3em;display:grid;gap:8px}
+.ver{font-variant-numeric:tabular-nums}
+a.link{color:var(--amber)}
+.note{padding:12px 14px;border-radius:12px;background:var(--night);border:1px dashed #3a5568;font-size:14px}
+</style></head>
+<body><main>
+  <div class="card">
+    <h1>Borne d'arcade <b>entre amis</b></h1>
+    <p>L'appli Android : les jeux en plein écran, sans barre de navigateur, et sans retaper le mot de passe.</p>
+    <a class="dl" id="dl" href="#" download="borne-arcade.apk" aria-disabled="true">Télécharger l'APK</a>
+    <p class="muted ver" id="ver">Vérification de la dernière version…</p>
+  </div>
+  <div class="card">
+    <h2>Installer en 4 étapes</h2>
+    <ol>
+      <li>Touche <b>Télécharger l'APK</b>.</li>
+      <li>Ouvre le fichier <b>borne-arcade.apk</b> (dans les notifications ou le dossier Téléchargements).</li>
+      <li>Si Android bloque l'installation, touche <b>Paramètres</b> puis autorise <b>Installer des applis inconnues</b> pour ton navigateur.</li>
+      <li>Touche <b>Installer</b> : l'icône <b>Borne d'arcade</b> apparaît sur ton écran d'accueil.</li>
+    </ol>
+    <p class="muted">Les jeux se mettent à jour tout seuls. Quand une nouvelle version de l'appli sort, un bandeau vert l'annonce dans l'appli.</p>
+  </div>
+  <div class="card">
+    <h2>Pas d'Android, ou pas envie d'installer ?</h2>
+    <p class="note">Ouvre le site dans Chrome ou Safari, puis menu <b>⋮</b> ou <b>Partager</b> → <b>Ajouter à l'écran d'accueil</b>. Tu obtiens la même icône, sans rien installer.</p>
+    <p><a class="link" href="../">Aller jouer sur le site →</a></p>
+  </div>
+</main>
+<script>
+// L'APK est rangé DANS cette page chiffrée (il contient le mot de passe) : il n'est jamais publié en clair.
+const APK = '__APK_B64__';
+(async () => {
+  const ver = document.getElementById('ver'), dl = document.getElementById('dl');
+  if (APK.length > 100) {
+    const bin = Uint8Array.from(atob(APK), c => c.charCodeAt(0));
+    dl.href = URL.createObjectURL(new Blob([bin], { type: 'application/vnd.android.package-archive' }));
+    dl.setAttribute('aria-disabled', 'false');
+  }
+  try {
+    const r = await fetch('version.json', { cache: 'no-store' });
+    if (!r.ok) throw 0;
+    const v = await r.json();
+    ver.textContent = 'Version ' + v.versionName + (v.size ? ' · ' + (v.size / 1048576).toFixed(1).replace('.', ',') + ' Mo' : '');
+  } catch (e) {
+    ver.textContent = "L'appli est en cours de fabrication. En attendant, ajoute le site à ton écran d'accueil (voir plus bas).";
+  }
+})();
+</script>
+</body></html>

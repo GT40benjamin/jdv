@@ -1,0 +1,22 @@
+version: 2.9.3
+apkFileName: borne-arcade.apk
+isFrameworkApk: false
+usesFramework:
+  ids:
+  - 1
+  tag: null
+sdkInfo:
+  minSdkVersion: 24
+  targetSdkVersion: 34
+packageInfo:
+  forcedPackageId: 127
+  renameManifestPackage: null
+versionInfo:
+  versionCode: __VC__
+  versionName: '__VN__'
+resourcesAreCompressed: false
+sharedLibrary: false
+sparseResources: false
+doNotCompress:
+- arsc
+- png

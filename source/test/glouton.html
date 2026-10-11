@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
+</head><body><div id="root"></div>
+<script src="../games/glouton.js"></script>
+<script>
+window.__over = [];
+function fakeHead(col, hair, sad){ const c=document.createElement('canvas'); c.width=160; c.height=200; const g=c.getContext('2d');
+  g.fillStyle=hair; g.beginPath(); g.ellipse(80,80,66,70,0,Math.PI,0); g.fill();
+  g.fillStyle=col; g.beginPath(); g.ellipse(80,108,60,78,0,0,Math.PI*2); g.fill();
+  g.fillStyle='#222'; g.beginPath(); g.arc(58,98,8,0,7); g.arc(102,98,8,0,7); g.fill();
+  g.strokeStyle='#822'; g.lineWidth=6; g.beginPath();
+  if (sad) g.arc(80,150,22,Math.PI+0.3,-0.3); else g.arc(80,128,22,0.2,Math.PI-0.2); g.stroke();
+  if (sad) { g.fillStyle='#4fb6ff'; g.beginPath(); g.ellipse(56,122,6,12,0,0,7); g.ellipse(104,122,6,12,0,0,7); g.fill();
+    g.fillStyle='#9aa8b4'; g.beginPath(); g.arc(60,22,16,0,7); g.arc(84,16,20,0,7); g.arc(108,24,15,0,7); g.fill(); }
+  g.fillStyle=hair; g.fillRect(28,40,104,26); return c; }
+window.__heads = /heads=1/.test(location.search) ? [['PATOU','#f1c27d','#5a3a1a'],['JULIE','#c68642','#111'],['MAX','#ffdbac','#d4a017']].map(([n,c,h])=>({name:n,img:fakeHead(c,h),sad:fakeHead(c,h,true)})) : [];
+window.__celebs = [];
+const api = {
+  heads(){ return window.__heads; },
+  player: { name: 'PATOU', img: null },
+  celebrate(t, n){ window.__celebs.push(t); console.log('CELEBRATE', t); },
+  gameOver(s){ console.log('GAMEOVER', s); window.__over.push(s); },
+  audio: { tone(){}, noise(){} },
+  fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+  colors: { night:'#0b141c', panel:'#111d27', steel:'#22394a', steel2:'#3a5568', ink:'#e9f0f3', muted:'#8aa0ae', amber:'#ffa630', gold:'#ffd34d', alarm:'#ff4d5e', volt:'#5ef0ff', spray:'#ff5fae', leaf:'#4cc36a' }
+};
+window.__game = window.JDW_GAMES.glouton.mount(document.getElementById('root'), api);
+</script></body></html>
