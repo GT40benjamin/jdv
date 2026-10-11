@@ -217,9 +217,13 @@ async function pushProfile() {
 const BUILD = window.JDW_BUILD || 'dev';
 const errSeen = new Set(); let errCount = 0;
 let errLog = store.get('jdw.errors', []); if (!Array.isArray(errLog)) errLog = [];
+// numéro de l'appli Android : donné par l'appli elle-même (1.4 et suivantes), sinon d'après son numéro interne
+function appVName() {
+  const v = navigator.userAgent.match(/BorneArcadeV\/([0-9.]+)/); if (v) return v[1];
+  const c = navigator.userAgent.match(/BorneArcade\/(\d+)/); return c ? ({ 2: '1.1', 3: '1.2', 4: '1.3' }[c[1]] || '?') : '';
+}
 function myVersionTag() {
-  const m = navigator.userAgent.match(/BorneArcade\/(\d+)/);
-  return (window.JDW_VERSION || '?') + (m ? '·a' + ({ 2: '1.1', 3: '1.2', 4: '1.3', 5: '1.5' }[m[1]] || m[1]) : '·web');
+  return (window.JDW_VERSION || '?') + (navigator.userAgent.match(/BorneArcade\//) ? '·a' + appVName() : '·web');
 }
 function versionLabel(tag) {
   if (!tag) return '';
@@ -1327,7 +1331,7 @@ function versionText() {
   const site = m ? V + 'du ' + m[3] + '/' + m[2] + '/' + m[1] + ' à ' + m[4] + 'h' + m[5] : 'Version de test';
   const app = navigator.userAgent.match(/BorneArcade\/(\d+)/);
   if (!app) return site;
-  const appV = { 2: '1.1', 3: '1.2', 4: '1.3', 5: '1.5' }[app[1]] || '?';
+  const appV = appVName();
   // même numéro pour l'appli et le site ; si l'appli est plus ancienne, on le signale
   return site + (appV === window.JDW_VERSION ? ' · appli à jour' : ' · appli ' + appV + (window.JDW_VERSION ? ' (mise à jour ' + window.JDW_VERSION + ' disponible)' : ''));
 }

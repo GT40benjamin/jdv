@@ -25,6 +25,7 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
     static final String HOME = "https://gt40benjamin.github.io/jdv/";
     static final int VERSION = __VC__;
+    static final String VNAME = "__VN__";   // même numéro que le site (ex. 1.5)
     static final int REQ_FILE = 42;
     static final int REQ_MIC = 43;
     PermissionRequest micReq;
@@ -94,7 +95,7 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setUserAgentString(s.getUserAgentString() + " BorneArcade/" + VERSION);
+        s.setUserAgentString(s.getUserAgentString() + " BorneArcade/" + VERSION + " BorneArcadeV/" + VNAME);
         web.addJavascriptInterface(new Bridge(), "BorneApp");
         web.setWebViewClient(new WebViewClient() {
             @Override

@@ -28,4 +28,5 @@ node telecharger.js "$APK" "$T/telecharger.html"
 node encrypt.js "$T/telecharger.html" ../telecharger/index.html "$ARCADE_CODE" "L'appli <b>Android</b>" "Entre le mot de passe de la bande pour télécharger l'appli Borne d'arcade."
 printf '{"build":"%s","version":"%s"}\n' "$BUILD_ID" "$SITE_VERSION" > ../site.json
 echo "Version $SITE_VERSION"
+grep -q "\"versionName\": \"$SITE_VERSION\"" ../telecharger/version.json || echo "ATTENTION : telecharger/version.json n'annonce pas l'appli $SITE_VERSION (reconstruire l'APK : build-apk.sh <code> $SITE_VERSION)"
 echo "OK : index.html et telecharger/index.html reconstruits. Vérifie, puis commit + push."
