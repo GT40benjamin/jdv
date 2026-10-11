@@ -1294,7 +1294,7 @@ function openSettings() {
   $('jdw-set-name').value = profile.name;
   avatarInto($('jdw-set-av'), profile.name);
   $('jdw-set-sfx').checked = !muted; $('jdw-set-music').checked = MUS.on; $('jdw-set-cris').checked = criOn; syncSoundMenu();
-  $('jdw-set-delphoto').hidden = !profile.photo;
+  $('jdw-set-delphoto').hidden = !profile.photo; $('jdw-set-edit').hidden = !profile.photo;
   const hasMine = !!(profile.sound && profile.sound !== '');
   $('jdw-set-cri').textContent = hasMine ? '🎙️ Changer mon cri' : '🎙️ Enregistrer mon cri';
   $('jdw-set-cri-play').hidden = !hasMine;
@@ -1319,9 +1319,10 @@ $('jdw-set-music').addEventListener('change', () => { setMusicOn($('jdw-set-musi
 $('jdw-set-cris').addEventListener('change', () => { criOn = $('jdw-set-cris').checked; syncMute(); store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } else playCri(profile.name); });
 $('jdw-set-photo').addEventListener('click', () => startPhoto());
 $('jdw-set-cri').addEventListener('click', openCri);
+$('jdw-set-edit').addEventListener('click', editHead);
 $('jdw-set-cri-play').addEventListener('click', () => { if (!playCri(profile.name)) $('jdw-set-status').textContent = muted ? 'Le son est coupé.' : ''; });
 $('jdw-set-delphoto').addEventListener('click', async () => {
-  profile.photo = null; profile.consent = false; saveProfile();
+  profile.photo = null; profile.photoBase = null; profile.photoAcc = null; profile.consent = false; saveProfile(); try { localStorage.removeItem(photoSrcKey()); } catch (e) {}
   players.delete(cleanName(profile.name)); syncOwnPlayer();
   $('jdw-set-status').textContent = 'Ta tête est retirée des jeux.'; $('jdw-set-delphoto').hidden = true;
   avatarInto($('jdw-set-av'), profile.name); refreshAll(); await pushProfile();
@@ -1645,6 +1646,7 @@ $('jdw-file').addEventListener('change', async () => {
   const im = new Image();
   im.onload = () => {
     PH.img = im; PH.rot = 0; PH.zoom = 1.4; PH.ox = 0; PH.oy = 0; PH.mask = null; PH.base = null; PH.geo = null; resetAcc();
+    PH.srcData = shrinkPhoto(im); PH.accOnly = false; $('jdw-photo').classList.remove('acc-only');
     $('jdw-ph-zoom').value = '1.4'; $('jdw-ph-consent').checked = !!profile.consent; $('jdw-ph-ok').disabled = !profile.consent;
     if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
     if (!$('jdw-welcome').hidden) { $('jdw-welcome').hidden = true; welReturn = true; }
@@ -1654,6 +1656,43 @@ $('jdw-file').addEventListener('change', async () => {
   im.onerror = () => { URL.revokeObjectURL(url); };
   im.src = url;
 });
+// photo d'origine réduite (gardée sur l'appareil seulement) : permet de recadrer et de changer d'accessoires sans reprendre de photo
+function shrinkPhoto(im) {
+  try {
+    const M = 1000, k = Math.min(1, M / Math.max(im.naturalWidth, im.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.85);
+  } catch (e) { return ''; }
+}
+const photoSrcKey = () => 'jdw.photosrc.' + profile.pid;
+// « Modifier ma tête » : recadrer + accessoires (photo d'origine gardée) ; sinon accessoires seuls sur la tête actuelle
+function editHead() {
+  const saved = store.get(photoSrcKey(), null);
+  $('jdw-ph-consent').checked = true; $('jdw-ph-ok').disabled = false;
+  if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
+  Object.assign(ACC, { glasses: '', hat: '', face: '', back: '', tab: 'glasses' }, profile.photoAcc || {});
+  if (saved && saved.src) {
+    const im = new Image();
+    im.onload = () => {
+      PH.img = im; PH.srcData = saved.src; PH.accOnly = false; $('jdw-photo').classList.remove('acc-only');
+      const c = saved.crop || {}; PH.rot = c.rot || 0; PH.zoom = c.zoom || 1.4; PH.ox = c.ox || 0; PH.oy = c.oy || 0;
+      PH.mask = null; PH.base = null; PH.geo = null; $('jdw-ph-zoom').value = String(PH.zoom);
+      openSheet('jdw-photo', 'jdw-ph-zoom'); renderAcc(); drawCrop(); scheduleOut();
+    };
+    im.src = saved.src; return;
+  }
+  // photo prise avant cette version : on garde la tête telle quelle, on change seulement les accessoires
+  const base = new Image();
+  base.onload = () => {
+    const c = document.createElement('canvas'); c.width = OUT_W * 2; c.height = OUT_H * 2;
+    c.getContext('2d').drawImage(base, 0, 0, c.width, c.height);
+    PH.img = null; PH.accOnly = true; PH.base = c; PH.geo = headGeo(c, null); $('jdw-photo').classList.add('acc-only');
+    $('jdw-ph-info').textContent = 'Ta tête actuelle : choisis tes accessoires (pour recadrer, prends une nouvelle photo).';
+    openSheet('jdw-photo', 'jdw-ph-ok'); renderAcc(); composeOut();
+    detectFace(c).then(f => { if (f && PH.base === c) { PH.geo = headGeo(c, f); composeOut(); renderAcc(); } }).catch(() => {});
+  };
+  base.src = profile.photoBase || profile.photo;
+}
 function closePhoto() { $('jdw-photo').hidden = true; if (PH.img && PH.img.src.startsWith('blob:')) URL.revokeObjectURL(PH.img.src); PH.img = null; }
 $('jdw-ph-cancel').addEventListener('click', () => { closePhoto(); if (welReturn) reopenWelcome(); else afterOnboarding(); });
 $('jdw-ph-redo').addEventListener('click', startPhoto);
@@ -2020,6 +2059,10 @@ $('jdw-ph-ok').addEventListener('click', async () => {
   let data = '';
   try { data = fin.toDataURL('image/webp', 0.85); } catch (e) {}
   if (!data.startsWith('data:image/webp')) data = fin.toDataURL('image/png');
+  // la tête sans accessoires et les accessoires choisis sont gardés pour pouvoir les changer plus tard
+  try { if (PH.base) { const b = document.createElement('canvas'); b.width = OUT_W; b.height = OUT_H; b.getContext('2d').drawImage(PH.base, 0, 0, OUT_W, OUT_H); profile.photoBase = b.toDataURL('image/webp', 0.85); } } catch (e) {}
+  profile.photoAcc = { glasses: ACC.glasses, hat: ACC.hat, face: ACC.face, back: ACC.back };
+  if (PH.img && PH.srcData) store.set(photoSrcKey(), { src: PH.srcData, crop: { rot: PH.rot, zoom: PH.zoom, ox: PH.ox, oy: PH.oy } });
   profile.photo = data; profile.consent = true; if (profile.name) { profile.askedFor = cleanName(profile.name); saveProfile(); }
   if (profile.name) { players.delete(cleanName(profile.name)); syncOwnPlayer(); }
   closePhoto(); refreshAll();
