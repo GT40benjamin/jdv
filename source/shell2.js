@@ -3897,6 +3897,7 @@ function quitGame() {
     try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) { sc = 0; }
     if (sc > 0) {
       current.over = true;
+      try { current.lastLevel = current.inst.currentLevel ? +current.inst.currentLevel() || 0 : 0; } catch (e) {}   // pour l'écran de fin
       try { current.inst.destroy && current.inst.destroy(); } catch (e) {}
       current.inst = {};
       if (current.game.external) current.root.hidden = true; else current.root.textContent = '';
@@ -4016,6 +4017,25 @@ function buildWho(record) {
 }
 $('jdw-who-ok').addEventListener('click', () => { const n = cleanName($('jdw-who-name').value); if (n) commitScore(n); else $('jdw-who-name').focus(); });
 $('jdw-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-who-ok').click(); } });
+// fin de partie : jusqu'où je suis allé dans les niveaux, comparé à mon meilleur niveau (gardé sur l'appareil, par joueur et par jeu)
+const LV_WORD = { ilo: 'Secteur', mouches: 'Vague' };
+function showLevelProgress(g, me) {
+  const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
+  let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
+  if (!(lv >= 1) || current.mode === 'compet') return;
+  const all = store.get('jdw.bestlv', {}) || {}, k = (me || '?') + '|' + g.id, best = +all[k] || 0;
+  if (lv > best) { all[k] = lv; store.set('jdw.bestlv', all); }
+  const word = LV_WORD[g.id] || 'Niveau', top = Math.max(lv, best), n = Math.max(10, Math.ceil((top + 2) / 5) * 5);
+  const h = document.createElement('p'); h.className = 'lv-h';
+  const b = document.createElement('b'); b.textContent = word + ' ' + lv; h.append(b, document.createTextNode(lv > best ? (best ? ' · nouveau record ! (avant : ' + best + ')' : ' · premier record !') : lv === best ? ' · ton record égalé !' : ' · ton record : ' + best + ' (encore ' + (best - lv) + ')'));
+  const track = document.createElement('div'); track.className = 'lv-track'; track.style.setProperty('--n', n);
+  for (let i = 1; i <= n; i++) {
+    const d = document.createElement('i'); if (i <= lv) d.className = 'on'; if (i === lv) d.classList.add('now');
+    if (i === best && best !== lv) { d.classList.add('best'); d.title = 'ton record'; }
+    d.style.setProperty('--d', (i * 0.05).toFixed(2) + 's'); track.appendChild(d);
+  }
+  box.append(h, track); box.hidden = false;
+}
 async function showEnd(score) {
   castEndAll(score);   // les spectateurs voient le score final
   flushPending(); musicBaseLevel(0.5);
@@ -4026,6 +4046,7 @@ async function showEnd(score) {
   $('jdw-endgame').textContent = g.title + ' · partie terminée';
   $('jdw-endscore').textContent = fmt(score);
   $('jdw-endunit').textContent = g.scoreLabel === 'm' ? 'mètres' : (g.scoreLabel || 'points');
+  showLevelProgress(g, me);
   // qui ai-je battu ?
   const others = before.filter(r => r.name !== me);
   // seulement ceux qu'on vient de dépasser avec cette partie (pas ceux qui étaient déjà derrière nous)
