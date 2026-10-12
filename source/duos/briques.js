@@ -406,7 +406,8 @@
   }
 
   function hitBrick(S, br, b, kill) {
-    if (br.dead || S.dry || br.ghost) return;             // balle prédite chez l'invité / brique « du passé » : rebond sans casse
+    if (br.dead || br.ghost) return;                      // brique « du passé » (rejeu en ligne) : rebond sans casse
+    if (S.dry) { if (S.dryHit) S.dryHit(br); return; }    // balle prédite (invité, IA) : elle rebondit sans rien casser
     if (b && b.pv) { b.pv.touched = true; return; }       // hôte en ligne : trajet provisoire, on ne casse qu'au verdict
     br.hp = kill ? 0 : br.hp - 1;
     const owner = b ? b.owner : -1;
@@ -1109,6 +1110,9 @@
     const HOST = !!NET && NET.role === 'host', GUEST = !!NET && NET.role === 'guest';
     const ME = GUEST ? 1 : 0;                               // le joueur de CET appareil
     const FLIP = GUEST && !!NET.flipped;                    // écran de l'invité tourné de 180° par la bibliothèque
+    // --- contre l'IA (api.ai) : jamais en ligne ; la raquette du joueur api.ai.p (en haut) est jouée par l'ordinateur
+    const AIC = !NET && api.ai && typeof api.ai === 'object' ? api.ai : null;
+    const AIP = AIC ? (AIC.p === 0 ? 0 : 1) : -1;
     const coarse = (() => { try { return window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })();
 
     // --- sons (sobres) et vibrations
@@ -1468,7 +1472,7 @@
           if (canPlay('cap', 0.06)) tone(880, 0.06, 'sine', 0.03, 1320);
           break;
         }
-        case 'power': onPower(e); break;
+        case 'power': onPower(e); if (A && e.p === AIP) { A.stats.caps = (A.stats.caps || 0) + 1; A.stats['cap_' + e.type] = (A.stats['cap_' + e.type] || 0) + 1; } break;
         case 'shield': {
           const p = e.p;
           ring(e.x, e.y, 6, 70, 0.5, '#9fe8ff', 4);
@@ -2303,9 +2307,22 @@
           const left = S.introDur - S.t;
           if (left <= 1.5) { const n = Math.max(1, Math.ceil(left / 0.5)); drawCount(String(n), yc, 1 - (left - (n - 1) * 0.5) / 0.5, p, false); }
         } else if (S.phase === 'play' && S.t < 0.55) drawCount('GO !', yc, S.t / 0.55, p, true);
-        if (V.explain[p] > 0.01) drawExplain(p, V.explain[p]);
+        if (V.explain[p] > 0.01) { if (p === AIP) drawAIBadge(V.explain[p]); else drawExplain(p, V.explain[p]); }
       }
       W0();
+    }
+    const AI_LINES = { FACILE: 'Elle débute : montre-lui comment on fait !', MOYEN: 'Elle se défend bien. À toi de jouer !',
+      DIFFICILE: 'Elle vise les trous du mur. Méfie-toi !', 'EXTRÊME': 'Méga intelligente. Bonne chance…' };
+    function drawAIBadge(a) {
+      W0();                                                   // à l'endroit : c'est le joueur d'en bas qui le lit
+      const y = PY[1] + PH / 2 + 33, bw = Math.min(W - 24, 300), bh = 38;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(2,6,14,0.78)'; rr(ctx, W / 2 - bw / 2, y - bh / 2, bw, bh, 12); ctx.fill();
+      ctx.strokeStyle = rgba(PC[AIP], 0.85); ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      strokeText(ctx, 'IA · ' + AIL.label, W / 2, y - 8, 12, PC[AIP], FD, 0);
+      strokeText(ctx, AI_LINES[AIL.label] || '', W / 2, y + 9, 11.5, '#ffffff', FB, 0, true);
+      ctx.globalAlpha = 1;
     }
 
     // --- grosse tête au point marqué / à la fin du match
@@ -2455,6 +2472,7 @@
       let m = keyOf(e);
       if (!m) return;
       m = keyMap(m);
+      if (m[0] === AIP) return;                               // les touches de l'IA ne font rien
       if (m[0] >= 0 && !paused) {
         if (m[1] === 'l') keys[m[0]].l = true;
         else if (m[1] === 'r') keys[m[0]].r = true;
@@ -2494,6 +2512,7 @@
       const rect = canvas.getBoundingClientRect();
       const c = pxy(e, rect);
       const p = NET ? ME : c[1] > rect.height / 2 ? 0 : 1;          // moitié du bas = P0 ; en ligne : tout l'écran est à moi
+      if (p === AIP) return;                                         // contre l'IA : sa moitié n'écoute pas les doigts
       ptrs.set(e.pointerId, { p, lastX: c[0], sx: e.clientX, sy: e.clientY, t: performance.now(), moved: false, mouse });
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
       if (mouse) inputs[p].target = (c[0] - offX) / scale;
@@ -3212,6 +3231,302 @@
         preds: N.pred.size, predIds: Array.from(N.pred.keys()), buf: N.buf.length, evq: N.evq.length, stats: Object.assign({}, N.stats), tr: N.tr, now: N.now, g: N.g, pad: N.pad.x };
     }
 
+    // ===========================================================================
+    // CONTRE L'IA (api.ai) : la raquette du haut est jouée par l'ordinateur, avec les limites d'un doigt.
+    //  - elle VOIT avec un temps de réaction : elle décide sur l'image d'il y a 0,15 à 0,6 s (selon le niveau) ;
+    //  - elle BOUGE comme une main : vitesse et accélération limitées, approche en douceur, petites hésitations ;
+    //  - elle PRÉVOIT où arrivent les balles (ligne droite → rebonds sur les côtés → sur les briques → briques qui bougent) ;
+    //  - elle ATTAQUE : choisit l'endroit de la raquette qui renvoie la balle par un trou du mur, loin du joueur
+    //    (elle observe s'il bouge vite ou pas), ou vers les briques à bonus ; elle va chercher les bonus utiles,
+    //    évite ceux qui la gêneraient, et se sert de la colle pour viser.
+    // Rien de caché : elle ne lit que ce qui est à l'écran (balles, briques, bonus en vol, raquette d'en face).
+    // ===========================================================================
+    const AI_LV = {
+      facile: { react: 0.6, period: 0.3, vmax: 470, amax: 2500, gain: 7, noise: 24, pred: 1, blunder: 0.15, attack: 0, cands: 0, caps: 0.2, spread: 1, label: 'FACILE' },
+      moyen: { react: 0.29, period: 0.145, vmax: 800, amax: 5500, gain: 10.8, noise: 8.5, pred: 2, blunder: 0.055, attack: 0.68, cands: 11, caps: 0.6, label: 'MOYEN' },
+      difficile: { react: 0.22, period: 0.11, vmax: 980, amax: 7500, gain: 13, noise: 5, pred: 2, blunder: 0.02, attack: 1, cands: 15, caps: 0.8, label: 'DIFFICILE' },
+      extreme: { react: 0.15, period: 0.07, vmax: 1250, amax: 10000, gain: 15, noise: 2, pred: 3, blunder: 0, attack: 1, cands: 21, caps: 1, label: 'EXTRÊME' }
+    };
+    const AIL = AIC ? (AI_LV[AIC.level] || (AIC.k >= 0.9 ? AI_LV.extreme : AIC.k >= 0.65 ? AI_LV.difficile : AIC.k >= 0.4 ? AI_LV.moyen : AI_LV.facile)) : null;
+    const LINE = [PY[0] - PH / 2 - BR, PY[1] + PH / 2 + BR];   // y du centre de la balle quand elle touche chaque raquette
+    const A = AIC ? { hist: [], tick: 0, goal: W / 2, v: 0, app: new Map(), capDo: new Map(), glue: null, round: -1, freeze: 0, oppX: [], oppSpeed: 600, after: null, lastBack: null,
+      wob: Math.random() * 10, lastAbs: null, stats: { plans: 0, shots: 0 } } : null;
+    function gauss() { return (Math.random() + Math.random() + Math.random() - 1.5) * 1.41; }
+    // envie d'aller chercher ce bonus ? décidé une fois par bonus (pas d'hésitation d'une image à l'autre)
+    function aiWants(c) {
+      let w = A.capDo.get(c.id);
+      if (w == null) { w = Math.random() < AIL.caps; A.capDo.set(c.id, w); if (A.capDo.size > 40) A.capDo.delete(A.capDo.keys().next().value); }
+      return w;
+    }
+
+    // ce que l'IA voit, image par image (copie légère de ce qui est à l'écran)
+    function aiPerceive() {
+      const opp = S.pl[1 - AIP];
+      A.hist.push({ rt: V.rt, g: S.gt, round: S.round,
+        balls: S.balls.map(b => ({ id: b.id, x: b.x, y: b.y, vx: b.vx, vy: b.vy, sp: b.sp, owner: b.owner, fire: b.fire, stuck: b.stuck, offX: b.offX, stickT: b.stickT })),
+        caps: S.caps.map(c => ({ id: c.id, x: c.x, y: c.y, vy: c.vy, type: c.type, to: c.to })),
+        opp: { x: opp.x, w: opp.w, shield: opp.shield } });
+      while (A.hist.length > 2 && A.hist[1].rt <= V.rt - AIL.react - 0.05) A.hist.shift();
+      // vitesse de l'adversaire observée (bouge-t-il vite ? pas du tout ?)
+      A.oppX.push([V.rt, opp.x]);
+      while (A.oppX.length > 2 && A.oppX[0][0] < V.rt - 4) A.oppX.shift();
+      let vmax = 0;
+      for (let i = 1; i < A.oppX.length; i++) {
+        const d = A.oppX[i][0] - A.oppX[i - 1][0];
+        if (d > 0.005) vmax = Math.max(vmax, Math.abs(A.oppX[i][1] - A.oppX[i - 1][1]) / Math.max(d, 0.03));
+      }
+      A.oppSpeed += (clamp(vmax, 15, 1700) - A.oppSpeed) * 0.02;
+    }
+    function aiSeen() {
+      const t = V.rt - AIL.react;
+      let s = A.hist[0];
+      for (const h of A.hist) { if (h.rt <= t) s = h; else break; }
+      return s;
+    }
+    // trajectoire prévue d'une balle (sans rien casser) jusqu'à une raquette : { side, t, x, vx, sp, hits, heads }
+    // mode : 0 = ligne droite, 1 = + rebonds sur les côtés, 2 = + briques, 3 = + briques qui bougent
+    function aiTrace(b0, maxT, mode) {
+      const b = { x: b0.x, y: b0.y, vx: b0.vx, vy: b0.vy, sp: b0.sp, owner: b0.owner, fire: !!b0.fire, stuck: -1 };
+      const hits = [];
+      let heads = 0, mine = 0;
+      const at = (side, t) => ({ side, t, x: b.x, vx: b.vx, vy: b.vy, sp: b.sp, hits, heads, mine });
+      if (mode <= 1) {
+        if (Math.abs(b.vy) < 1) return null;
+        const side = b.vy < 0 ? 1 : 0, t = (LINE[side] - b.y) / b.vy;
+        if (!(t > 0) || t > maxT) return null;
+        if (mode === 1) { const r = reflX(b.x, b.vx, t); b.x = r[0]; b.vx = r[1]; } else b.x = clamp(b.x + b.vx * t, BR, W - BR);
+        return at(side, t);
+      }
+      S.dry = true;
+      S.dryHit = br => {
+        if (hits.indexOf(br) >= 0) return;
+        hits.push(br);
+        if (br.kind === 'h' || br.kind === 'g') heads++;
+        if (br.p === AIP) mine++;
+      };
+      const mv = mode >= 3 && S.movers.length ? S.movers.map(g => [g.off, g.vx]) : null;
+      let res = null;
+      try {
+        const h = 1 / 120, zone = wallFront(S) + BR + 1;
+        for (let t = 0; t < maxT && !res; t += h) {
+          if (mv) updateMovers(S, h);
+          if (b.owner >= 0) { const fl = speedFloor(S); if (b.sp < fl) b.sp = Math.min(fl, b.sp + 30 * h); }
+          fixVel(b);
+          const n = Math.max(1, Math.ceil((b.sp * h) / (BR * 0.5))), hh = h / n;
+          for (let i = 0; i < n; i++) {
+            b.x += b.vx * hh; b.y += b.vy * hh;
+            if (b.x < BR) { b.x = BR; b.vx = Math.abs(b.vx); } else if (b.x > W - BR) { b.x = W - BR; b.vx = -Math.abs(b.vx); }
+            const dy = Math.abs(b.y - MID);
+            if (dy < zone && dy > LANE - BR - 1) { collideBricks(S, b); if (S.movers.length) collideMovers(S, b); }
+            if (b.vy < 0 && b.y <= LINE[1]) { res = at(1, t + (i + 1) * hh); break; }
+            if (b.vy > 0 && b.y >= LINE[0]) { res = at(0, t + (i + 1) * hh); break; }
+          }
+        }
+      } finally {
+        S.dry = false; S.dryHit = null;
+        if (mv) S.movers.forEach((g, j) => { g.off = mv[j][0]; g.vx = mv[j][1]; for (const br of g.cells) br.x = br.x0 + g.off; });
+      }
+      return res;
+    }
+    // temps qu'il faut à MA raquette pour aller en x (avec son élan)
+    function aiTimeTo(x) {
+      const pl = S.pl[AIP], d = x - pl.x, s = Math.sign(d) || 1;
+      const v0 = A.v * s;                                       // vitesse déjà dans le bon sens
+      const acc = Math.max(0, (AIL.vmax - Math.max(0, v0)) / AIL.amax);
+      return Math.abs(d) / AIL.vmax + acc * 0.5 + (v0 < 0 ? -v0 / AIL.amax : 0) + 0.04;
+    }
+    // valeur d'un tir : la raquette touche la balle (arrivée a) avec le décalage off (-1 = bord gauche, 1 = bord droit)
+    function aiShot(a, off, seen, next) {
+      const me = AIP, opp = 1 - me, pl = S.pl[me];
+      const sp = Math.min(speedCap(S), Math.max(speedFloor(S), a.sp * 1.045));
+      let ang = off * 62 * DEG;
+      if (Math.abs(ang) < 4 * DEG) ang = (ang < 0 ? -1 : 1) * 4 * DEG;
+      ang = clamp(ang, -64 * DEG, 64 * DEG);
+      const b = { x: a.x, y: padFace(me), vx: Math.sin(ang) * sp, vy: (me === 0 ? -1 : 1) * Math.cos(ang) * sp, sp, owner: me, fire: pl.eff.fire > 0 };
+      const r = aiTrace(b, 2.3, Math.max(2, AIL.pred));
+      A.lastBack = r && r.side === me ? { x: r.x, t: r.t } : null;
+      return aiScore(r, a, off, seen, next);
+    }
+    function aiScore(r, a, off, seen, next) {
+      const me = AIP, opp = 1 - me, pl = S.pl[me];
+      let sc;
+      if (!r) sc = 4;                                           // elle se promène dans les murs
+      else if (r.side === opp) {
+        // elle arrive chez le joueur : peut-il la rattraper ? (d'après ce qu'on a vu de lui)
+        const o = seen.opp, dist = Math.max(0, Math.abs(r.x - o.x) - (o.w / 2 + BR * 0.8));
+        const need = dist / Math.max(0.06, r.t - 0.2);
+        sc = 40 + Math.min(need, 2400) / 24 - r.t * 5;
+        if (need > A.oppSpeed * 1.15 + 25) sc += 55;            // imparable pour lui (vu comment il bouge)
+        if (o.shield) sc -= 35;                                 // son bouclier la renverrait
+      } else {
+        // bloquée : elle me revient. Pourrai-je y être ? (je sais où j'ai tiré : pas besoin d'attendre de la voir)
+        const tx = a.x - off * (pl.w / 2 + BR * 0.5), need = Math.abs(r.x - tx) / AIL.vmax + 0.12;
+        sc = -12 + (r.t < 0.7 ? -15 : 0) - Math.abs(r.x - tx) * 0.05 - (need > r.t ? 70 : need > r.t * 0.7 ? 25 : 0);
+      }
+      if (r) sc += (r.hits.length - r.mine) * 6 + r.mine * 2 + r.heads * 24;   // casser son mur, et les briques à bonus
+      // viser du bord de la raquette quand on vise mal = risquer de la rater
+      const margin = (pl.w / 2 + BR * 0.8) - Math.abs(off) * (pl.w / 2 + BR * 0.5), want = 2.5 * AIL.noise + 4;
+      if (margin < want) sc -= (want - margin) * 3;
+      if (next) {                                               // une autre balle arrive juste après : rester à portée
+        const tx = a.x - off * (pl.w / 2 + BR * 0.5);
+        if (Math.abs(next.x - tx) / AIL.vmax > next.t - a.t - 0.06) sc -= 45;
+      }
+      return sc;
+    }
+    // choix du décalage pour une balle qui arrive
+    function aiChoose(a, seen, next) {
+      const pl = S.pl[AIP], half = pl.w / 2, k = half + BR * 0.5;
+      let best = { off: (Math.random() - 0.5) * (AIL.spread ? 1.1 : 0.6), score: -1e9 };   // sans viser : un peu au hasard
+      if (AIL.cands && Math.random() < AIL.attack) {
+        const list = [];
+        for (let i = 0; i < AIL.cands; i++) {
+          const off = -0.86 + (1.72 * i) / (AIL.cands - 1);
+          const tx = a.x - off * k;
+          if (tx < half - 2 || tx > W - half + 2) continue;      // la raquette ne peut pas aller là (bord)
+          if (aiTimeTo(tx) > a.t + 0.02) continue;               // trop loin pour y être à temps
+          const sc = aiShot(a, off, seen, next);
+          list.push({ off, score: sc, back: A.lastBack });
+        }
+        A.stats.shots += list.length;
+        list.sort((p, q) => q.score - p.score);
+        if (list.length) best = AIL.pred >= 3 || list.length < 2 || Math.random() < 0.75 ? list[0] : list[1];
+      }
+      return best;   // best.back = où elle me reviendra (si elle revient), compté depuis l'impact
+    }
+    // quand l'IA attrape un bonus : utile ou gênant ?
+    function aiCapValue(type) {
+      const pl = S.pl[AIP], nb = S.balls.length;
+      switch (type) {
+        case 'shield': return pl.shield ? 0.2 : 3;
+        case 'big': return pl.eff.big > 2 ? 0.8 : 2.6;
+        case 'shrink': return 2.4;
+        case 'fire': return 2.2;
+        case 'glue': return AIL.attack >= 0.85 ? 2 : 0.6;
+        case 'multi': return nb >= 2 ? -1 : 1.2;                // déjà deux balles à défendre : on l'évite
+        default: return 0;
+      }
+    }
+
+    // décision (quelques fois par seconde) : où mettre la raquette
+    function aiPlan() {
+      const seen = aiSeen();
+      if (!seen || seen.round !== S.round) { A.goal = W / 2; return; }
+      A.stats.plans++;
+      const me = AIP, opp = 1 - me, pl = S.pl[me], half = pl.w / 2, k = half + BR * 0.5;
+      const dG = Math.max(0, S.gt - seen.g);                    // ce qu'elle voit date un peu
+      // 1) une balle collée sur ma raquette : je choisis où la lâcher
+      const sb = seen.balls.find(b => b.stuck === me), stuck = sb && S.balls.find(b => b.id === sb.id && b.stuck === me);
+      if (stuck) {
+        if (!A.glue || A.glue.id !== stuck.id) {
+          let bx = pl.x, bs = -1e9;
+          const off = clamp(stuck.offX / half, -1, 1);
+          if (AIL.attack > 0) {
+            for (let i = -4; i <= 4; i++) {
+              const x = clamp(pl.x + i * 26, half, W - half);
+              if (aiTimeTo(x) > stuck.stickT - 0.15) continue;
+              const a = { x: x + stuck.offX, sp: stuck.sp / 1.045, t: 0 };
+              const sc = aiShot(a, off, seen, null);
+              if (sc > bs) { bs = sc; bx = x; }
+            }
+          }
+          A.glue = { id: stuck.id, x: bx, at: AIL.attack > 0 ? 0 : 0.2 + Math.random() * 0.5, t0: V.rt };
+        }
+        A.goal = A.glue.x;
+        if ((Math.abs(pl.x - A.glue.x) < 3 && V.rt - A.glue.t0 > A.glue.at) || stuck.stickT < 0.12) inputs[me].release = true;
+        return;
+      }
+      A.glue = null;
+      // 2) les balles qui vont arriver sur ma raquette (la plus urgente d'abord)
+      const arr = [];
+      for (const b of seen.balls) {
+        if (b.stuck >= 0) continue;
+        const r = aiTrace(b, 3.2, AIL.pred);
+        if (r && r.side === me && r.t - dG > -0.05) arr.push({ id: b.id, x: r.x, t: Math.max(0.01, r.t - dG), sp: r.sp });
+      }
+      if (A.after && A.after.g > S.gt && !arr.some(q => q.id === A.after.id)) {
+        // la balle que je viens de renvoyer va me revenir (je ne la « vois » pas encore revenir, mais je sais où j'ai tiré)
+        const t = A.after.g - S.gt;
+        if (!seen.balls.some(b => b.id === A.after.id && (me === 1 ? b.vy < 0 : b.vy > 0) && b.y < LINE[me] + 40)) arr.push({ id: A.after.id, x: A.after.x, t, sp: 300, mem: true });
+      } else if (A.after && A.after.g <= S.gt) A.after = null;
+      arr.sort((p, q) => p.t - q.t);
+      let goal;
+      if (arr.length) {
+        const a = arr[0], next = arr[1] || null;
+        let d = A.app.get(a.id);
+        if (!d || Math.abs(d.x - a.x) > 30 || V.rt - d.t0 > 2.5) {
+          // nouvelle approche : choix du tir, petite erreur de placement (plus grosse aux petits niveaux), parfois une bourde
+          const c = aiChoose(a, seen, next);
+          // comme une main humaine : moins précise quand la balle va très vite, et un peu fatiguée dans les échanges sans fin
+          const fast = clamp((a.sp - 380) / 300, 0, 1), tired = clamp((S.playT - 45) / 60, 0, 1);
+          d = { x: a.x, off: c.off, err: gauss() * (AIL.noise + 9 * fast + 6 * tired), t0: V.rt };
+          // je sais où je vais tirer : si elle doit me revenir, je m'y préparerai tout de suite après l'impact
+          A.after = c.back && AIL.attack >= 0.5 ? { id: a.id, x: c.back.x, g: S.gt + a.t + c.back.t } : null;
+          if (Math.random() < AIL.blunder + 0.03 * fast + 0.05 * tired) {
+            if (Math.random() < 0.5) d.err += (Math.random() < 0.5 ? -1 : 1) * (45 + Math.random() * 45);
+            else A.freeze = 0.25 + Math.random() * 0.3;           // elle « ne l'a pas vue venir »
+          }
+          A.app.set(a.id, d);
+        } else d.x = a.x;
+        // plus la balle est proche, plus elle ajuste (comme une main qui se corrige)
+        const fix = clamp(a.t / 0.6, 0.35, 1);
+        goal = a.x - d.off * k + d.err * fix;
+        // un bonus utile tombe juste avant : on le prend en passant si on a le temps
+        for (const c of seen.caps) {
+          if (c.to !== me || aiCapValue(c.type) < 1.5 || !aiWants(c)) continue;
+          const tc = me === 1 ? (c.y - (PY[1] + PH / 2 + 9)) / -c.vy : (PY[0] - PH / 2 - 9 - c.y) / c.vy;
+          if (!(tc > 0) || tc - dG > a.t - 0.1) continue;
+          if (aiTimeTo(c.x) < tc - dG && Math.abs(goal - c.x) / AIL.vmax + 0.12 < a.t - (tc - dG)) { goal = c.x; break; }
+        }
+      } else {
+        // 3) rien n'arrive : un bonus à attraper ? sinon position d'attente
+        goal = W / 2;
+        let bestV = 0;
+        for (const c of seen.caps) {
+          if (c.to !== me) continue;
+          const v = aiCapValue(c.type), tc = me === 1 ? (c.y - (PY[1] + PH / 2 + 9)) / -c.vy : (PY[0] - PH / 2 - 9 - c.y) / c.vy;
+          if (!(tc > 0) || v < 1 || !aiWants(c)) continue;
+          if (aiTimeTo(c.x) < tc - dG + 0.05 && v > bestV) { bestV = v; goal = c.x; }
+        }
+        if (!bestV) {
+          const away = seen.balls.filter(b => b.stuck < 0 && (me === 1 ? b.vy > 0 : b.vy < 0));
+          if (AIL.pred <= 1 && AIL.attack === 0 && seen.balls.length) goal = W / 2 + (seen.balls[0].x - W / 2) * 0.6;   // facile : suit la balle des yeux
+          else if (AIL.pred >= 2 && away.length) {
+            // elle part chez l'autre : se placer là d'où elle a le plus de chances de revenir
+            const r = aiTrace(away[0], 3, AIL.pred);
+            if (r && r.side === opp) goal = W / 2 + (r.x - W / 2) * 0.35;
+          }
+          goal += Math.sin(V.rt * 1.3 + A.wob) * 4;               // petit balancement d'attente
+        }
+      }
+      // 4) un « malus » qui va tomber sur ma raquette : je m'écarte si rien ne presse
+      for (const c of seen.caps) {
+        if (c.to !== me || aiCapValue(c.type) >= 0 || AIL.caps < 0.5) continue;
+        const reach = pl.w / 2 + 13;
+        if (Math.abs(goal - c.x) < reach && (!arr.length || arr[0].t > 0.7)) goal = c.x + (goal >= c.x ? 1 : -1) * (reach + 4);
+      }
+      A.goal = goal;
+    }
+    // chaque image : ce qu'elle voit, et de temps en temps une nouvelle décision
+    function aiFrame(dt) {
+      if (S.round !== A.round) { A.round = S.round; A.v = 0; A.app.clear(); A.glue = null; A.hist = []; A.goal = W / 2; A.after = null; }
+      aiPerceive();
+      if (A.freeze > 0) { A.freeze -= dt; return; }
+      A.tick -= dt;
+      if (A.tick <= 0) { A.tick = AIL.period * (0.75 + 0.5 * Math.random()); try { aiPlan(); } catch (e) { V.err++; } }
+    }
+    // chaque pas de simulation : la « main » de l'IA va vers son but (vitesse et accélération limitées)
+    function aiStep(dt) {
+      const pl = S.pl[AIP], inp = inputs[AIP];
+      inp.dx = 0; inp.target = null; inp.dir = 0;
+      if (A.lastAbs != null && Math.abs(pl.x - A.lastAbs) > 0.5) A.v = 0;   // butée, ou raquette replacée au début de la manche
+      const goal = clamp(A.goal, pl.w / 2, W - pl.w / 2);
+      const vDes = clamp((goal - pl.x) * AIL.gain, -AIL.vmax, AIL.vmax);
+      A.v += clamp(vDes - A.v, -AIL.amax * dt, AIL.amax * dt);
+      if (S.phase === 'over') A.v = 0;
+      inp.abs = clamp(pl.x + A.v * dt, pl.w / 2, W - pl.w / 2);
+      A.lastAbs = inp.abs;
+    }
+
     // --- boucle : pas fixe pour la simulation, affichage à chaque image
     let raf = 0, last = -1, acc = 0, pausedFrames = 0;
     function frame(ts) {
@@ -3250,6 +3565,9 @@
             step(S, STEP, inputs); acc -= STEP; n++;
           }
           S.evTs = null;
+        } else if (AIC) {
+          aiFrame(dt);
+          while (acc >= STEP && n < 8) { aiStep(STEP); step(S, STEP, inputs); acc -= STEP; n++; }
         } else {
           while (acc >= STEP && n < 8) { step(S, STEP, inputs); acc -= STEP; n++; }
         }
@@ -3304,6 +3622,7 @@
       bg = null; nebImg = null; planets = null; nebs = null;
       S.ev = []; S.balls = []; S.bricks = []; S.caps = []; S.pend = [];
       if (N) { N.q = []; N.batch = []; N.buf = []; N.evq = []; N.p1 = []; N.pred.clear(); N.disp.clear(); N.cross.clear(); N.boff.clear(); }
+      if (A) { A.hist = []; A.app.clear(); A.oppX = []; }
       while (root.firstChild) root.removeChild(root.firstChild);
     }
 
@@ -3326,7 +3645,8 @@
     raf = requestAnimationFrame(frame);
 
     // state() : lecture seule de l'état, pour les tests automatiques ; net() : mesures du jeu en ligne
-    return { destroy, pause, resume, state: () => S, shown: () => viewBalls(), viewErrors: () => V.err, net: () => (N ? netInfo() : null) };
+    return { destroy, pause, resume, state: () => S, shown: () => viewBalls(), viewErrors: () => V.err, net: () => (N ? netInfo() : null),
+      ai: () => (A ? { level: AIL.label, goal: A.goal, v: A.v, oppSpeed: Math.round(A.oppSpeed), stats: Object.assign({}, A.stats) } : null) };
   }
 
   window.JDW_DUOS = window.JDW_DUOS || {};
@@ -3339,6 +3659,7 @@
     target: TARGET,
     layout: 'shared',
     net: true,                    // jeu en ligne : l'hôte simule, l'invité affiche en douceur et prédit sa raquette
+    ai: true,                     // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
     preview,
     mount
   };
