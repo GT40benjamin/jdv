@@ -104,7 +104,8 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
 - **Contre l'IA** : dans « Qui joue en haut ? », la ligne « 🤖 IA » (tête de robot dessinée, joueur « IA ») + niveau Facile / Moyen /
   Difficile / Extrême (jdw.ailevel) → api.ai = { p: 1, level, k } (DUO-CONTRACT.md, « Ajout : jouer contre l'IA ») ; chaque jeu pilote le
   joueur du haut avec sa propre IA et le déclare par `ai: true` dans son module : sans ce drapeau, la tuile est grisée (« Bientôt contre
-  l'IA ») et un toucher fait dire au robot qu'il ne sait pas encore y jouer. Tests : test-ai-real.js (GAME, LEVEL, WAIT), test-noai.js.
+  l'IA ») et un toucher fait dire au robot qu'il ne sait pas encore y jouer. Même règle en ligne : sans `net: true`, tuile grisée
+  « Bientôt en ligne » (plus de vidéo : décision de l'utilisateur, le mode données est parfait en vrai). Tests : test-ai-real.js (GAME, LEVEL, WAIT), test-noai.js.
 - Présence de la salle : seuls les MEMBRES (room_members) comptent (presList filtre) — un appareil branché sur le canal sans avoir
   rejoint n'apparaît ni dans « en ligne », ni dans les défis, ni en compétition.
 - **Compétition** : toute la salle sur un jeu solo (sauf canards) en mode difficile (CONTRACT.md Ajout 6 : api.startLevel / api.mode /

@@ -661,6 +661,8 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .duo-tile.no-ai .tile-img{filter:grayscale(.85) brightness(.7)}
 .duo-tile.no-ai .tile-name{opacity:.6}
 .duo-tile.no-ai .duo-tag{color:var(--muted);font-style:italic}
+.duo-tile.nudge{animation:nudge .35s}
+@keyframes nudge{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
 .pick-list{display:grid;gap:6px;max-height:60vh;overflow:auto}
 .pick-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--night);cursor:pointer;text-align:left}
 .pick-row:hover{border-color:var(--steel2)}

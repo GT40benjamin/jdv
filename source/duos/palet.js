@@ -571,7 +571,12 @@
       const q = IN && IN[p];
       if (q && q.has) { to[p] = { x: q.x, y: q.y }; from[p] = S.last[p] || to[p]; }
     }
-    for (let i = 0; i < n; i++) tick(S, TICK, (i + 1) / n, IN, from, to);
+    S.nt = n;
+    for (let i = 0; i < n; i++) {
+      const e0 = S.ev.length;
+      tick(S, TICK, (i + 1) / n, IN, from, to);
+      for (let j = e0; j < S.ev.length; j++) S.ev[j].f = (i + 1) / n;     // instant de l'événement dans l'image (jeu en ligne)
+    }
     if (n > 0) for (let p = 0; p < 2; p++) S.last[p] = to[p];
   }
   function tick(S, h, f, IN, from, to) {
@@ -598,6 +603,8 @@
       if (pk.y < -PR * 0.35) { goal(S, pk, 0); return; }
       if (pk.y > RH + PR * 0.35) { goal(S, pk, 1); return; }
     }
+    // (la re-simulation de l'invité, S.sim, ne relance ni n'ajoute de palet : seul l'hôte le décide)
+    if (S.sim) return;
     for (const pk of S.pucks) if (!pk.locked && !pk.gone && !pk.scored) stuck(S, pk, h);
     if (S.two && !S.spawned2 && S.playT >= S.spawn2At) spawn2(S);
   }
@@ -625,7 +632,8 @@
     const m = S.m[p];
     m.px = m.x; m.py = m.y;
     let tx = m.x, ty = m.y;
-    if (to) { tx = fr.x + (to.x - fr.x) * f; ty = fr.y + (to.y - fr.y) * f; }
+    if (q && q.at && q.has) { const a = q.at(f); tx = a.x; ty = a.y; }      // (hôte en ligne : chemin exact de l'invité)
+    else if (to) { tx = fr.x + (to.x - fr.x) * f; ty = fr.y + (to.y - fr.y) * f; }
     else if (q && (q.kx || q.ky)) { const L = Math.hypot(q.kx, q.ky); tx = m.x + q.kx / L * VKEY * h; ty = m.y + q.ky / L * VKEY * h; }
     let dx = tx - m.x, dy = ty - m.y;
     const d = Math.hypot(dx, dy), mx = VMAX * h;
@@ -698,7 +706,7 @@
         const vn = pk.vx * nx + pk.vy * ny;
         if (vn < 0) {
           pk.vx -= (1 + E_WALL) * vn * nx; pk.vy -= (1 + E_WALL) * vn * ny;
-          if (ev && -vn > 60) S.ev.push({ type: 'post', x: px, y: py, pow: clamp(-vn / S.vmax, 0, 1.5) });
+          if (ev && -vn > 60) S.ev.push({ type: 'post', x: px, y: py, pow: clamp(-vn / S.vmax, 0, 1.5), id: pk.id });
         }
       }
     }
@@ -717,7 +725,7 @@
       pk.last = p; pk.hitT[p] = S.t; pk.bank = 0; pk.viaBump = false;
       if (-vn > 45 && pk.hitCd[p] <= 0) {
         pk.hitCd[p] = 0.07;
-        S.ev.push({ type: 'hit', p, x: m.x + nx * MR, y: m.y + ny * MR, nx, ny, pow: clamp(-vn / S.vmax, 0, 1.5), id: pk.id });
+        S.ev.push({ type: 'hit', p, x: m.x + nx * MR, y: m.y + ny * MR, nx, ny, pow: clamp(-vn / S.vmax, 0, 1.5), id: pk.id, mvx: m.vx, mvy: m.vy, mx: m.x, my: m.y });
       }
     }
   }
@@ -732,7 +740,7 @@
       pk.vx -= (1 + E_BUMP) * vn * nx; pk.vy -= (1 + E_BUMP) * vn * ny;
       pk.vx += nx * 90; pk.vy += ny * 90;
       pk.viaBump = true;
-      S.ev.push({ type: 'bump', i: b.i, x: b.x + nx * b.r, y: b.y + ny * b.r, pow: clamp(-vn / S.vmax, 0, 1.5) });
+      S.ev.push({ type: 'bump', i: b.i, x: b.x + nx * b.r, y: b.y + ny * b.r, pow: clamp(-vn / S.vmax, 0, 1.5), id: pk.id });
     }
   }
   function puckPuck(S, a, b) {
@@ -833,6 +841,16 @@
     const COL = Object.assign({}, PAL0, api.colors || {});
     let destroyed = false, paused = false, raf = 0;
     const listeners = [];
+    // jeu en ligne : 'host' (joueur 0, toute la simulation) ou 'guest' (joueur 1, affichage prédit et lissé) ; sinon local
+    const NETAPI = api.net;
+    const NET = NETAPI && typeof NETAPI.send === 'function' && typeof NETAPI.onMessage === 'function' &&
+      (NETAPI.role === 'host' || NETAPI.role === 'guest') ? NETAPI : null;
+    const HOST = !!NET && NET.role === 'host', GUEST = !!NET && NET.role === 'guest';
+    const ME = GUEST ? 1 : 0;
+    const FLIP = !!(NET && NET.flipped);
+    // contre l'IA (jamais en ligne) : le joueur api.ai.p (en haut) est joué par l'IA, les doigts de sa moitié sont ignorés
+    const AIA = !NET && api.ai && typeof api.ai === 'object' ? api.ai : null;
+    const AIP = AIA ? (AIA.p === 0 ? 0 : 1) : -1;
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
 
     // ------------------------------------------------------------- joueurs et copains
@@ -1321,7 +1339,7 @@
           case 'round': onRound(); break;
           case 'count': onCount(e.n); break;
           case 'go': onGo(); break;
-          case 'hit': onHit(e); break;
+          case 'hit': onHit(e); if (AI && e.p === AIP) AI.hitAt = V.st; break;
           case 'wall': onWall(e); break;
           case 'post':
             SFX.post();
@@ -1340,7 +1358,9 @@
           case 'goal': onGoal(e); break;
           default: break;
         }
+        if (HOST) hostEv(e);
       }
+      if (HOST) hostEvFlush();
     }
     function onRound() {
       const r = S.round, mp = S.mp;
@@ -1414,7 +1434,8 @@
       ring(e.x, e.y, 6, 18 + pw * 38, 0.26 + pw * 0.12, col, 1.5 + pw * 2.5);
       light(e.x, e.y, col, 50 + pw * 80, 0.25 + pw * 0.2);
       if (pw > 0.55) V.shake = Math.max(V.shake, 1.5 + pw * 5);
-      if (pw > 0.85) { V.freeze = Math.max(V.freeze, 0.045); ring(e.x, e.y, 8, 64, 0.32, '#ffffff', 1.6); glowP(e.x, e.y, '#ffffff', 30, 90, 0.18); }
+      // (en ligne, pas d'arrêt sur image sur une frappe : la simulation garde le rythme que l'invité prédit)
+      if (pw > 0.85) { if (!NET) V.freeze = Math.max(V.freeze, 0.045); ring(e.x, e.y, 8, 64, 0.32, '#ffffff', 1.6); glowP(e.x, e.y, '#ffffff', 30, 90, 0.18); }
     }
     function onWall(e) {
       SFX.wall(e.pow);
@@ -1465,7 +1486,9 @@
       let res = null;
       const why = e.own ? 'Contre son camp !' : e.viaBump ? 'Avec l’aide du plot !' : e.bank >= 2 ? 'Double bande !' : e.bank === 1 ? 'Par la bande !'
         : e.pow > 0.82 ? pick(['Quel boulet !', 'Quelle frappe !', 'Imparable !']) : pick(['But !', 'But !', 'Et c’est le but !']);
-      try { res = api.point(sc, why); } catch (er) { res = null; }
+      // l'invité ne décide de rien : la fin de match vient de l'hôte (ou de sa prédiction), la bibliothèque recopie le point
+      if (GUEST) res = { over: !!e.over };
+      else { try { res = api.point(sc, why); } catch (er) { res = null; } }
       const over = !!(res && res.over);
       if (over) { V.over = true; V.winner = sc; S.final = true; V.overT = 0; }
       V.freeze = 0.09;
@@ -1504,9 +1527,11 @@
     function startRound() {
       let r = 1;
       try { r = Math.max(1, Math.floor(+api.round()) || 1); } catch (e) { /* rien */ }
-      const seed = (Math.random() * 4294967296) >>> 0;
-      newRound(S, r, seed, S.scorer >= 0 ? 1 - S.scorer : null, scoresNow(), TARGET);
+      const seed = (Math.random() * 4294967296) >>> 0, sc = scoresNow();
+      newRound(S, r, seed, S.scorer >= 0 ? 1 - S.scorer : null, sc, TARGET);
       V.bump = S.bumpers.map(() => ({ flash: 0, sad: 0, pop: 0, ouch: 0 }));
+      // en ligne : l'invité refait la même manche (même graine, même engagement) à partir de cet instant
+      if (HOST) { NH.rd = { k: 'rd', r: S.round, sd: S.seed, sv: S.server, sc, w: Math.round(fNow * 1000) }; nsend(NH.rd, true); }
     }
     function control() {
       if (S.phase === 'goal' && !V.over && S.pt >= GOAL_PAUSE) { startRound(); handleEvents(); }
@@ -1518,12 +1543,14 @@
     }
 
     // ------------------------------------------------------------- mise à jour
+    let simK = 1;
     function update(dt) {
       sndBudget = 8;
       let k = 1;
       if (V.slowT > 0) { V.slowT -= dt; k = 0.35; }
       if (V.freeze > 0) { V.freeze -= dt; k = 0; }
       else {
+        simK = k;
         step(S, dt * k, IN);
         handleEvents();
         control();
@@ -2194,7 +2221,10 @@
     const ptrs = new Map();
     let ptrOrder = 0;
     function toRink(e) {
-      const r = root.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top;
+      const r = root.getBoundingClientRect();
+      let sx = e.clientX - r.left, sy = e.clientY - r.top;
+      // invité en ligne : la bibliothèque tourne root de 180°, les doigts arrivent en coordonnées d'écran
+      if (FLIP) { sx = r.width - sx; sy = r.height - sy; }
       return { sy, h: r.height, x: (sx - ox) / s, y: (sy - oy) / s };
     }
     function updIN() {
@@ -2216,7 +2246,10 @@
       if (e.cancelable) e.preventDefault();
       if (paused) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      const q = toRink(e), p = q.sy > q.h / 2 ? 0 : 1, off = grab(p, q, e.pointerType === 'mouse');
+      // en ligne, tous les doigts de ce téléphone pilotent SON poussoir
+      const q = toRink(e), p = NET ? ME : q.sy > q.h / 2 ? 0 : 1;
+      if (p === AIP) return;                                  // (moitié de l'IA : pas de doigt)
+      const off = grab(p, q, e.pointerType === 'mouse');
       ptrs.set(e.pointerId, { p, x: q.x, y: q.y, offX: off[0], offY: off[1], order: ++ptrOrder });
       try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* pointeur synthétique */ }
       updIN();
@@ -2228,7 +2261,9 @@
       if (!t) {
         // doigt resté posé pendant une pause : on le reprend
         if (e.pointerType === 'mouse' || !e.buttons) return;
-        const p = q.sy > q.h / 2 ? 0 : 1, off = grab(p, q, false);
+        const p = NET ? ME : q.sy > q.h / 2 ? 0 : 1;
+        if (p === AIP) return;
+        const off = grab(p, q, false);
         t = { p, x: q.x, y: q.y, offX: off[0], offY: off[1], order: ++ptrOrder };
         ptrs.set(e.pointerId, t);
       }
@@ -2246,7 +2281,9 @@
     function keyOf(e) { const k = e.key || ''; return k.length === 1 ? k.toLowerCase() : k; }
     function updKeys() {
       IN[0].kx = IN[0].ky = IN[1].kx = IN[1].ky = 0;
-      for (const k in keys) if (keys[k]) { const m = KEYS[k]; IN[m[0]].kx += m[1]; IN[m[0]].ky += m[2]; }
+      // (invité en ligne : écran tourné, donc « haut » sur son écran = vers le centre)
+      const fk = FLIP ? -1 : 1;
+      for (const k in keys) if (keys[k]) { const m = KEYS[k], pi = NET ? ME : m[0]; if (pi === AIP) continue; IN[pi].kx += m[1] * fk; IN[pi].ky += m[2] * fk; }
     }
     function isTyping(e) { const t = e.target; return !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)); }
     function onKeyDown(e) {
@@ -2261,10 +2298,994 @@
     function onBlur() { for (const k in keys) keys[k] = false; updKeys(); }
     function clearInputs() { ptrs.clear(); updIN(); onBlur(); }
 
+    // ------------------------------------------------------------- jeu en ligne (api.net)
+    // Même patinoire logique (RW x RH unités) sur tous les appareils ; tous les messages sont en unités du terrain.
+    // HÔTE : toute la simulation, comme en local. Le poussoir de l'invité suit les positions reçues, rejouées avec un
+    //   retard fixe Dg (tampon anti-gigue réglé sur les délais mesurés : chemin lisse, même pendant les à-coups du réseau),
+    //   borné à sa moitié et à la vitesse max par moveMallet. Il envoie l'état ~30 fois/s (rapide) + les événements (fiable).
+    // INVITÉ : son poussoir colle à son doigt (prédit sur place) et il envoie sa position ~60 fois/s. Le palet est re-simulé
+    //   à chaque image depuis les états reçus (même physique, en repartant de chaque état reçu) avec SON poussoir tel que
+    //   l'hôte le verra (historique décalé de Dg) : dans sa moitié, le palet est montré « en avance » (+Dg) → ses chocs sont
+    //   justes et immédiats ; près du poussoir adverse (montré à l'instant le plus récent connu), le palet est montré à ce
+    //   même instant → les frappes adverses tombent juste. Entre les deux, le temps montré du palet accélère ou ralentit en
+    //   douceur pour arriver au bon décalage au moment du contact (au plus ×1,8 / ×0,6). Ce qui n'a pas pu être prévu (une
+    //   frappe adverse sur un palet montré trop en avance) est rattrapé sans saut : le palet repart d'où il est montré, au bon
+    //   moment du vrai chemin, et l'écart restant fond en ~0,1 s (téléportation seulement au-delà de 300 unités).
+    const PHI = { intro: 0, play: 1, goal: 2 }, PHN = ['intro', 'play', 'goal'];
+    const r1 = (v) => Math.round(v * 10) / 10, r3 = (v) => Math.round(v * 1000) / 1000;
+    const NS = { out: 0, outB: 0, inn: 0 };                    // compteurs (diagnostic)
+    let fNow = 0, clkOff = null;                                 // horloge commune lissée (s) de l'image en cours
+    function rawNow() {
+      try { const v = +NET.now(); if (isFinite(v)) return v / 1000; } catch (e) { /* rien */ }
+      return performance.now() / 1000;
+    }
+    function tickClock(tsMs) {
+      const raw = rawNow(), pf = tsMs / 1000;
+      if (clkOff == null || Math.abs(raw - pf - clkOff) > 0.25) clkOff = raw - pf;
+      else clkOff += (raw - pf - clkOff) * 0.02;
+      const n = pf + clkOff;
+      fNow = n > fNow ? n : fNow + 1e-4;
+    }
+    function nsend(m, rel) {
+      if (!NET || destroyed) return;
+      try {
+        NET.send(m, rel ? { reliable: true } : undefined);
+        NS.out++; NS.outB += JSON.stringify(m).length;
+      } catch (e) { /* rien */ }
+    }
+    function onNet(m) {
+      if (destroyed || !m || typeof m !== 'object') return;
+      NS.inn++;
+      if (HOST) {
+        if (m.k === 'i') hostInput(m);
+        else if (m.k === 'hi' && NH.rd) nsend(NH.rd, true);
+      } else if (GUEST) {
+        if (m.k === 's') guestSnap(m);
+        else if (m.k === 'e') guestEvents(m);
+        else if (m.k === 'rd') guestRound(m);
+      }
+    }
+    function netStart() {
+      fNow = rawNow();
+      let rtt = 0.12;
+      try { const v = +NET.rtt(); if (v > 0 && v < 5000) rtt = v / 1000; } catch (e) { /* rien */ }
+      NH.Dg = clamp(rtt / 2 + 0.03, 0.02, 0.45);
+      NG.Dg = NH.Dg; NG.Ds = clamp(rtt / 2 + 0.06, 0.05, 0.6);
+      try { NET.onMessage(onNet); } catch (e) { /* rien */ }
+      if (GUEST) { nsend({ k: 'hi' }, true); NG.hiT = fNow; }
+    }
+
+    // derniers chocs (diagnostic des tests : chocs prédits chez l'invité / réels chez l'hôte)
+    const DBH = [];
+    function dbgHit(w, e) { DBH.push([+w.toFixed(4), e.p, +e.x.toFixed(1), +e.y.toFixed(1), +e.nx.toFixed(3), +e.ny.toFixed(3), +e.pow.toFixed(3), Math.round(e.mvx || 0), Math.round(e.mvy || 0), +(e.mx || 0).toFixed(1), +(e.my || 0).toFixed(1)]); if (DBH.length > 60) DBH.shift(); }
+    // ---- hôte
+    const NH = { buf: [], del: [], Dg: 0.1, dgT: 0, snapT: -1, ev: [], rd: null, W0: 0, W1: 0 };
+    function hostInput(m) {
+      const w = +m.w / 1000, x = +m.x, y = +m.y;
+      if (!(isFinite(w) && isFinite(x) && isFinite(y))) return;
+      const d = rawNow() - w;
+      if (d > -0.5 && d < 3) { NH.del.push(d); if (NH.del.length > 120) NH.del.shift(); }
+      if (Array.isArray(m.p)) for (const a of m.p) if (Array.isArray(a)) hostSample(w + (+a[0] || 0) / 1000, +a[1], +a[2]);
+      hostSample(w, x, y);
+    }
+    function hostSample(w, x, y) {
+      if (!(isFinite(w) && isFinite(x) && isFinite(y))) return;
+      const B = NH.buf;
+      let i = B.length;
+      while (i > 0 && B[i - 1].w > w) i--;          // les messages rapides peuvent arriver dans le désordre
+      if (i > 0 && B[i - 1].w === w) return;
+      B.splice(i, 0, { w, x: clamp(x, 0, RW), y: clamp(y, 0, RH) });
+      if (B.length > 240) B.splice(0, B.length - 240);
+    }
+    // retard du tampon : ~98 % des positions de l'invité sont arrivées à temps ; il monte vite, redescend doucement
+    function hostTuneDg(dt) {
+      NH.dgT += dt;
+      if (NH.dgT < 0.25 || NH.del.length < 8) return;
+      const el = NH.dgT;
+      NH.dgT = 0;
+      const a = NH.del.slice().sort((p, q) => p - q), p98 = a[Math.min(a.length - 1, Math.floor(a.length * 0.98))];
+      const tgt = clamp(p98 + 0.008, 0.012, 0.45), lim = 0.3 * el;
+      NH.Dg += clamp((tgt - NH.Dg) * (tgt > NH.Dg ? 0.6 : 0.15), -lim, lim);
+    }
+    function hostP1(W) {
+      const B = NH.buf;
+      if (!B.length) return null;
+      const tw = W - NH.Dg;
+      while (B.length > 3 && B[1].w < tw - 0.25) B.shift();
+      let i = B.length - 1;
+      while (i > 0 && B[i].w > tw) i--;
+      const a = B[i], b = B[i + 1];
+      if (tw <= a.w || !b) return a;               // en retard : on garde la dernière position connue
+      const u = (tw - a.w) / Math.max(1e-6, b.w - a.w);
+      return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u };
+    }
+    // chaque pas de simulation de l'image prend la position de l'invité à SON instant (même chemin que celui qu'il prédit)
+    const HAT = { x: 0, y: 0 };
+    // pas i sur n de l'image en cours : il a lieu à W1 − (reste + (n−1−i)·TICK) / vitesse (en temps réel)
+    function tickW(f) {
+      const n = S.nt || 1, i = Math.round(f * n) - 1, rate = Math.max(0.05, simK * S.ts);
+      return NH.W1 - (S.acc + (n - 1 - i) * TICK) / rate;
+    }
+    function hostAt(f) {
+      const t = hostP1(tickW(f));
+      if (t) { HAT.x = t.x; HAT.y = t.y; }
+      return HAT;
+    }
+    function hostPre(dt) {
+      hostTuneDg(dt);
+      NH.W0 = fNow - dt; NH.W1 = fNow;
+      const t = hostP1(fNow), q = IN[1];
+      if (t) { q.has = true; q.x = t.x; q.y = t.y; q.at = hostAt; } else { q.has = false; q.at = null; }
+      q.kx = q.ky = 0;
+    }
+    function hostSnap(force, at) {
+      if (!force && fNow - NH.snapT < 0.0305) return;      // ~30 fois/s
+      NH.snapT = fNow;
+      const w = at || fNow;
+      const P = [];
+      for (const pk of S.pucks) P.push([pk.id, r1(pk.x), r1(pk.y), Math.round(pk.vx), Math.round(pk.vy), (pk.locked ? 1 : 0) | (pk.scored ? 2 : 0) | (pk.gone ? 4 : 0), pk.last]);
+      const m0 = S.m[0], m1 = S.m[1];
+      nsend({ k: 's', w: Math.round(w * 1000), r: S.round, ph: PHI[S.phase], pt: r3(S.pt), pT: r3(S.playT), bt: r3(S.bt), ts: r3(S.ts),
+        sl: S.slow ? 1 : 0, f: S.final ? 1 : 0, s2: S.spawned2 ? 1 : 0, kk: paused || V.resumeT > 0 ? 0 : 1, ac: r3(S.acc * 1000),
+        fz: Math.round(Math.max(0, V.freeze) * 1000), sw: Math.round(Math.max(0, V.slowT) * 1000), g: Math.round(NH.Dg * 1000),
+        m: [r1(m0.x), r1(m0.y), r1(m1.x), r1(m1.y)], mv: [Math.round(m0.vx), Math.round(m0.vy), Math.round(m1.vx), Math.round(m1.vy)], p: P });
+    }
+    // événements à rejouer chez l'invité (sons, étincelles, but…), groupés par image, canal fiable
+    function hostEv(e) {
+      const o = NH.ev, n0 = o.length;
+      switch (e.type) {
+        case 'hit': NH.hitNow = true; o.push({ ty: 'h', p: e.p, i: e.id, x: r1(e.x), y: r1(e.y), nx: r3(e.nx), ny: r3(e.ny), pw: r3(e.pow) }); dbgHit(e.f == null ? NH.W1 : tickW(e.f), e); break;
+        case 'wall': o.push({ ty: 'w', i: e.id, x: r1(e.x), y: r1(e.y), pw: r3(e.pow) }); break;
+        case 'post': o.push({ ty: 'po', i: e.id, x: r1(e.x), y: r1(e.y), pw: r3(e.pow) }); break;
+        case 'bump': o.push({ ty: 'b', bi: e.i, i: e.id, x: r1(e.x), y: r1(e.y), pw: r3(e.pow) }); break;
+        case 'pp': o.push({ ty: 'pp', x: r1(e.x), y: r1(e.y), pw: r3(e.pow) }); break;
+        case 'slow': o.push({ ty: 'sl' }); break;
+        case 'relaunch': o.push({ ty: 'rl', p: e.p, i: e.id, x: r1(e.x), y: r1(e.y), fx: r1(e.fx), fy: r1(e.fy) }); break;
+        case 'spawn2': o.push({ ty: 's2', i: 1, x: r1(e.x), y: r1(e.y) }); break;
+        case 'goal': o.push({ ty: 'g', sc: e.scorer, i: e.id, x: r1(e.x), y: r1(e.y), own: e.own ? 1 : 0, bank: e.bank || 0, vb: e.viaBump ? 1 : 0, pw: r3(e.pow), over: V.over ? 1 : 0 }); break;
+        default: break;
+      }
+      // instant exact dans l'image (ms avant la fin de l'image)
+      if (o.length > n0 && e.f != null) { const dw = Math.round((tickW(e.f) - NH.W1) * 1000); if (dw) o[n0].dw = dw; }
+    }
+    function hostEvFlush() {
+      if (!NH.ev.length) return;
+      nsend({ k: 'e', w: Math.round(fNow * 1000), r: S.round, e: NH.ev }, true);
+      NH.ev = [];
+    }
+
+    // ---- invité : réception
+    const NG = {
+      snaps: [], del: [], Ds: 0.12, dsT: 0, Dg: 0.1, hist: [], sendT: -9, hiT: -9, haveRd: false, rdQ: null, applied: 0,
+      ev: [], done: [], off: [0, 0], rate: [0, 0], mine: [false, false], offG: 0, offP0: -0.15, capAvg: -0.15, tfP: null, tauP: [null, null], err: [[0, 0], [0, 0]], fresh: false,
+      prevPh: -1, prevPt: 0, goal: null, kDisp: 1,
+      stat: { h1: 0, late1: 0, lateH: [0, 0, 0], h0: 0, early0: 0, corrN: 0, corrSum: 0, corrMax: 0, snaps: 0, rew: 0, snap: 0 }
+    };
+    function guestSnap(m) {
+      const w = +m.w / 1000;
+      if (!isFinite(w) || !Array.isArray(m.p) || !Array.isArray(m.m) || m.m.length < 4) return;
+      const d = rawNow() - w;
+      if (d > -0.5 && d < 3) { NG.del.push(d); if (NG.del.length > 90) NG.del.shift(); }
+      if (+m.g > 0) NG.Dg = clamp(+m.g / 1000, 0.005, 0.5);
+      const A = NG.snaps;
+      let i = A.length;
+      while (i > 0 && A[i - 1].w > w) i--;
+      if (i > 0 && A[i - 1].w === w) return;
+      m.w = w; m.fresh = true; m.r = +m.r || 0;
+      A.splice(i, 0, m);
+      NG.fresh = true; NG.stat.snaps++;
+    }
+    function guestEvents(m) {
+      const w = +m.w / 1000;
+      if (!isFinite(w) || !Array.isArray(m.e)) return;
+      for (const e of m.e) if (e && typeof e.ty === 'string') { e.w = w + (+e.dw || 0) / 1000; e.r = +m.r || 0; NG.ev.push(e); }
+    }
+    function guestRound(m) {
+      const r = Math.floor(+m.r), w = +m.w / 1000;
+      if (!(r >= 1) || !isFinite(w)) return;
+      NG.haveRd = true;
+      if (r <= NG.applied || (NG.rdQ && NG.rdQ.r >= r)) return;
+      NG.rdQ = { r, sd: (+m.sd) >>> 0, sv: m.sv === 1 ? 1 : 0, sc: Array.isArray(m.sc) ? [+m.sc[0] || 0, +m.sc[1] || 0] : null, w };
+    }
+    // retard d'affichage « passé » : ~95 % des états reçus + un intervalle (il en faut deux autour de l'instant montré)
+    function guestTuneDs(dt) {
+      NG.dsT += dt;
+      if (NG.dsT < 0.25 || NG.del.length < 6) return;
+      const el = NG.dsT;
+      NG.dsT = 0;
+      const a = NG.del.slice().sort((p, q) => p - q), p95 = a[Math.min(a.length - 1, Math.floor(a.length * 0.95))];
+      const tgt = clamp(p95 + 1 / 30 + 0.008, 0.04, 0.6), lim = 0.3 * el;
+      NG.Ds += clamp((tgt - NG.Ds) * (tgt > NG.Ds ? 0.6 : 0.15), -lim, lim);
+    }
+    // simulation de l'invité (mêmes règles que l'hôte, sans hasard : ni remise en jeu ni 2e palet)
+    const RS = newState();
+    RS.sim = true;
+    const RPK = [mkPuck(CX, MID, 0), mkPuck(CX, MID, 1)];
+    function guestApplyRound(now) {
+      const q = NG.rdQ;
+      if (!q) return;
+      if (NG.applied > 0 && now + NG.offG < q.w) return;        // on montre encore la fin de la manche précédente
+      NG.rdQ = null; NG.applied = q.r;
+      newRound(S, q.r, q.sd, q.sv, q.sc || scoresNow(), TARGET);
+      V.bump = S.bumpers.map(() => ({ flash: 0, sad: 0, pop: 0, ouch: 0 }));
+      RS.round = S.round; RS.seed = S.seed; RS.server = S.server; RS.vmax = S.vmax; RS.fr = S.fr; RS.goalW = S.goalW; RS.two = S.two;
+      RS.layout = S.layout; RS.bspin = S.bspin; RS.bph = S.bph; RS.mp = S.mp.slice(); RS.introDur = S.introDur; RS.spawn2At = S.spawn2At;
+      RS.bumpers = S.bumpers.map((b) => ({ i: b.i, x: b.x, y: b.y, vx: 0, vy: 0, r: b.r }));
+      // l'intro démarre à son début, puis le décalage glisse doucement vers celui du palet d'engagement
+      NG.offG = clamp(q.w - now, -NG.Ds - 0.3, NG.Dg);
+      NG.off[0] = NG.off[1] = NG.offG; NG.tauP = [null, null];
+      NG.err = [[0, 0], [0, 0]]; NG.done.length = 0; NG.goal = null;
+      NG.ev = NG.ev.filter((e) => e.r >= q.r);
+      NG.prevPh = 0; NG.prevPt = 0;
+      // état de départ (en attendant les états de l'hôte) : palet bloqué au point d'engagement
+      const A = NG.snaps, lastS = A.length ? A[A.length - 1] : null, pk = S.pucks[0];
+      const syn = { w: q.w, r: q.r, ph: 0, pt: 0, pT: 0, bt: 0, ts: 1, sl: 0, f: 0, s2: 0, kk: 1, fz: 0, sw: 0, syn: 1,
+        m: lastS ? lastS.m.slice(0, 4) : [S.m[0].x, S.m[0].y, S.m[1].x, S.m[1].y], p: [[0, pk.x, pk.y, 0, 0, 1, -1]] };
+      let i = A.length;
+      while (i > 0 && A[i - 1].w > q.w) i--;
+      A.splice(i, 0, syn);
+    }
+    function loadSnap(R, sn) {
+      R.phase = PHN[sn.ph] || 'play'; R.pt = +sn.pt || 0; R.playT = +sn.pT || 0; R.bt = +sn.bt || 0;
+      R.ts = isFinite(+sn.ts) ? +sn.ts : 1; R.slow = !!sn.sl; R.final = !!sn.f; R.spawned2 = !!sn.s2;
+      R.kk = sn.kk === 0 ? 0 : 1; R.fz = (+sn.fz || 0) / 1000; R.sw = (+sn.sw || 0) / 1000; R.kNow = R.kk;
+      R.acc = clamp((+sn.ac || 0) / 1000, 0, TICK * 0.999);
+      for (let p = 0; p < 2; p++) { const o = R.m[p]; o.x = o.px = +sn.m[p * 2]; o.y = o.py = +sn.m[p * 2 + 1]; o.vx = o.vy = 0; }
+      R.last[0] = R.last[1] = null;
+      R.pucks.length = 0;
+      for (const a of sn.p) {
+        const pk = RPK[a[0] === 1 ? 1 : 0];
+        pk.x = +a[1]; pk.y = +a[2]; pk.vx = +a[3]; pk.vy = +a[4];
+        pk.locked = !!(a[5] & 1); pk.scored = !!(a[5] & 2); pk.gone = !!(a[5] & 4); pk.last = a[6] === 0 || a[6] === 1 ? a[6] : -1;
+        pk.hitCd[0] = pk.hitCd[1] = 0; pk.wallCd = 0; pk.bank = 0; pk.viaBump = false; pk.still = 0; pk.ax = pk.x; pk.ay = pk.y;
+        pk.hitT[0] = pk.hitT[1] = -99;
+        R.pucks.push(pk);
+      }
+      if (R.pucks.length === 2 && R.pucks[0].id === 1) R.pucks.reverse();
+      placeBumpers(R, 0);
+      R.ev.length = 0;
+    }
+    // poussoir de l'hôte à l'instant w : courbe lisse (Catmull-Rom) passant par les positions reçues
+    let P0S = null;                                              // (états utilisés : sans les nouveaux pour l'ancien chemin)
+    function p0At(w, out) {
+      const A = P0S || NG.snaps, n = A.length;
+      if (!n) { out.x = S.m[0].x; out.y = S.m[0].y; return out; }
+      if (w <= A[0].w) { out.x = +A[0].m[0]; out.y = +A[0].m[1]; return out; }
+      if (w >= A[n - 1].w) {
+        const L = A[n - 1];
+        out.x = +L.m[0]; out.y = +L.m[1];
+        // au-delà du dernier état : il continue sur sa lancée en ralentissant (une frappe adverse en cours est à peu près prévue)
+        const k = 0.08 * (1 - Math.exp(-(w - L.w) / 0.08));
+        if (Array.isArray(L.mv)) { out.x += clamp(+L.mv[0] || 0, -VMAX, VMAX) * k; out.y += clamp(+L.mv[1] || 0, -VMAX, VMAX) * k; }
+        else if (n > 1) {
+          const P = A[n - 2], dd = L.w - P.w;
+          if (dd > 0.005) { out.x += (L.m[0] - P.m[0]) / dd * k; out.y += (L.m[1] - P.m[1]) / dd * k; }
+        }
+        return out;
+      }
+      let lo = 0, hi = n - 1;
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (A[mid].w <= w) lo = mid; else hi = mid; }
+      const a = A[lo], b = A[hi], z = A[lo > 0 ? lo - 1 : lo], c = A[hi + 1 < n ? hi + 1 : hi];
+      const hd = b.w - a.w, u = hd > 0 ? (w - a.w) / hd : 0, u2 = u * u, u3 = u2 * u;
+      const H00 = 2 * u3 - 3 * u2 + 1, H10 = u3 - 2 * u2 + u, H01 = -2 * u3 + 3 * u2, H11 = u3 - u2;
+      for (let j = 0; j < 2; j++) {
+        const pa = +a.m[j], pb = +b.m[j];
+        const ma = (pb - +z.m[j]) / Math.max(1e-3, b.w - z.w), mb = (+c.m[j] - pa) / Math.max(1e-3, c.w - a.w);
+        const v = H00 * pa + H10 * hd * ma + H01 * pb + H11 * hd * mb;
+        if (j === 0) out.x = v; else out.y = v;
+      }
+      return out;
+    }
+    // mon poussoir tel que je l'ai envoyé, à l'instant w (l'hôte l'utilise à w + Dg)
+    function p1At(w, out) {
+      const A = NG.hist, n = A.length;
+      if (!n) return false;
+      if (w <= A[0].w) { out.x = A[0].x; out.y = A[0].y; return true; }
+      if (w >= A[n - 1].w) { out.x = A[n - 1].x; out.y = A[n - 1].y; return true; }
+      let lo = 0, hi = n - 1;
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (A[mid].w <= w) lo = mid; else hi = mid; }
+      const a = A[lo], b = A[hi], u = (w - a.w) / Math.max(1e-6, b.w - a.w);
+      out.x = a.x + (b.x - a.x) * u; out.y = a.y + (b.y - a.y) * u;
+      return true;
+    }
+    // un pas d'horloge (TICK de temps réel) de la simulation de l'invité, comme update() + step() chez l'hôte
+    const RT = [{ x: 0, y: 0 }, { x: 0, y: 0 }], RTO = [RT[0], RT[1]], RIN = [{ has: false, kx: 0, ky: 0 }, { has: false, kx: 0, ky: 0 }];
+    function rsStep(R, w) {
+      let k = R.kk;
+      if (R.sw > 0) { R.sw -= TICK; k = Math.min(k, 0.35); }
+      if (R.fz > 0) { R.fz -= TICK; k = 0; }
+      R.kNow = k;
+      if (k <= 0) return 0;
+      let want = 1;
+      if (R.phase === 'play' && (R.mp[0] || R.mp[1])) for (const pk of R.pucks) if (!pk.locked && !pk.scored && !pk.gone && threat(R, pk)) want = SLOW_TS;
+      if (R.phase === 'goal' && R.final) want = 0.32;
+      if (want < 1 && !R.slow) { R.slow = true; R.ev.push({ type: 'slow' }); } else if (want >= 1) R.slow = false;
+      const dw = TICK * k;
+      R.ts += (want - R.ts) * Math.min(1, dw * (want < R.ts ? 16 : 4));
+      if (Math.abs(R.ts - want) < 0.003) R.ts = want;
+      R.acc += dw * R.ts;
+      if (R.acc < TICK) return 0;
+      R.acc -= TICK;
+      const wt = w - R.acc / Math.max(0.05, k * R.ts);          // instant exact de ce pas (comme tickW chez l'hôte)
+      p0At(wt, RT[0]);
+      RTO[1] = p1At(wt - NG.Dg, RT[1]) ? RT[1] : null;
+      const e0 = R.ev.length;
+      tick(R, TICK, 1, RIN, RTO, RTO);
+      for (let j = e0; j < R.ev.length; j++) if (R.ev[j].type === 'goal') { R.fz = 0.09; R.sw = 0.42; }   // comme onGoal chez l'hôte
+      return wt;
+    }
+    // trajectoire enregistrée : [w, phase, pt, playT, bt, ts, slow, k, palet0 (on, x, y, vx, vy, drapeaux, last), palet1 (…)]
+    const RSZ = 22, MAXR = 1400, TRD = GUEST ? new Float64Array(RSZ * MAXR) : null, PEV = [];   // (seulement chez l'invité)
+    let TRn = 0;
+    function rec(R, w, k) {
+      while (TRn > 0 && TRD[(TRn - 1) * RSZ] >= w) TRn--;      // (un nouvel état reçu remplace la fin prédite)
+      if (TRn >= MAXR) return;
+      const o = TRn * RSZ;
+      TRn++;
+      TRD[o] = w; TRD[o + 1] = PHI[R.phase]; TRD[o + 2] = R.pt; TRD[o + 3] = R.playT; TRD[o + 4] = R.bt; TRD[o + 5] = R.ts;
+      TRD[o + 6] = R.slow ? 1 : 0; TRD[o + 7] = k; TRD[o + 8] = 0; TRD[o + 15] = 0;
+      for (const pk of R.pucks) {
+        const b = o + 8 + pk.id * 7;
+        TRD[b] = 1; TRD[b + 1] = pk.x; TRD[b + 2] = pk.y; TRD[b + 3] = pk.vx; TRD[b + 4] = pk.vy;
+        TRD[b + 5] = (pk.locked ? 1 : 0) | (pk.scored ? 2 : 0) | (pk.gone ? 4 : 0); TRD[b + 6] = pk.last;
+      }
+    }
+    // re-simule de l'état reçu juste avant tMin jusqu'à tEnd, en repartant de chaque nouvel état reçu (la vérité de l'hôte)
+    function build(useFresh, tMin, tEnd, collect) {
+      TRn = 0;
+      if (collect) PEV.length = 0;
+      const L = [];
+      for (const sn of NG.snaps) if (sn.r === S.round && (useFresh || !sn.fresh)) L.push(sn);
+      if (!L.length) return false;
+      P0S = useFresh ? NG.snaps : NG.snaps.filter((q) => !q.fresh);
+      try { return buildFrom(L, tMin, tEnd, collect); } finally { P0S = null; }
+    }
+    function buildFrom(L, tMin, tEnd, collect) {
+      let b = 0, seg0 = -1;
+      for (let i = 0; i < L.length; i++) if (L[i].w <= tMin) b = i;
+      for (let j = b; j < L.length; j++) {
+        const sn = L[j], lastSeg = j === L.length - 1;
+        const wEnd = lastSeg ? Math.max(tEnd, sn.w) : L[j + 1].w;
+        if (!lastSeg && wEnd < tMin - 0.05) continue;
+        loadSnap(RS, sn);
+        let w = sn.w;
+        // l'état reçu est celui du dernier pas de l'hôte, un peu avant la fin de son image
+        const w0 = RS.kk > 0 && RS.fz <= 0 ? w - RS.acc / Math.max(0.05, RS.ts * (RS.sw > 0 ? 0.35 : 1)) : w;
+        while (TRn > 0 && TRD[(TRn - 1) * RSZ] >= w0) TRn--;
+        if (seg0 >= 0 && TRn > seg0) spread(seg0, w0);
+        seg0 = TRn;
+        rec(RS, w0, RS.kk);
+        const stop = lastSeg ? Math.min(wEnd, sn.w + 1.2) + TICK * 0.5 : wEnd - TICK * 0.25;
+        while (w + TICK <= stop) {
+          w += TICK;
+          const e0 = RS.ev.length, wt = rsStep(RS, w);
+          if (collect && lastSeg) for (let k = e0; k < RS.ev.length; k++) { const e = RS.ev[k]; e.w = wt || w; if (e.id == null) e.id = 0; PEV.push(e); }
+          if (wt) rec(RS, wt, RS.kNow);
+          if (TRn >= MAXR) return true;
+        }
+        if (lastSeg) rec(RS, w, RS.kNow);                          // (état final tenu jusqu'au bout)
+      }
+      return TRn > 0;
+    }
+    // la fin prédite d'un segment rejoint en douceur l'état reçu suivant (pas de saut en passant d'un état reçu à l'autre)
+    function spread(i0, w1) {
+      const i1 = TRn - 1, t0 = TRD[i0 * RSZ], span = w1 - t0;
+      if (i1 < i0 || span <= 1e-4) return;
+      for (const pk of RS.pucks) {
+        const o1 = i1 * RSZ + 8 + pk.id * 7;
+        if (!(TRD[o1] > 0) || TRD[o1 + 5] !== ((pk.locked ? 1 : 0) | (pk.scored ? 2 : 0) | (pk.gone ? 4 : 0))) continue;
+        const d1 = w1 - TRD[i1 * RSZ];
+        const ex = pk.x - (TRD[o1 + 1] + TRD[o1 + 3] * d1), ey = pk.y - (TRD[o1 + 2] + TRD[o1 + 4] * d1);
+        if (ex * ex + ey * ey > 120 * 120) continue;
+        for (let i = i0; i <= i1; i++) {
+          const o = i * RSZ, bb = o + 8 + pk.id * 7;
+          if (!(TRD[bb] > 0)) continue;
+          const u = (TRD[o] - t0) / span;
+          TRD[bb + 1] += ex * u; TRD[bb + 2] += ey * u;
+        }
+      }
+    }
+    function trIdx(t) {
+      let lo = 0, hi = TRn - 1;
+      if (hi < 0) return -1;
+      if (t <= TRD[0]) return 0;
+      if (t >= TRD[hi * RSZ]) return hi;
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (TRD[mid * RSZ] <= t) lo = mid; else hi = mid; }
+      return lo;
+    }
+    function trPuck(t, id, out) {
+      out.on = false;
+      const i = trIdx(t);
+      if (i < 0) return out;
+      const a = i * RSZ, b = Math.min(i + 1, TRn - 1) * RSZ, ta = TRD[a], tb = TRD[b];
+      const u = tb > ta ? clamp((t - ta) / (tb - ta), 0, 1) : 0;
+      let s0 = a + 8 + id * 7, s1 = b + 8 + id * 7, uu = u;
+      const ina = TRD[s0] > 0, inb = TRD[s1] > 0;
+      if (!ina && !inb) return out;
+      if (!ina) { if (u < 0.5) return out; s0 = s1; uu = 0; } else if (!inb) { s1 = s0; uu = 0; }
+      // (un palet qui se téléporte entre deux points — remise en jeu — n'est pas interpolé)
+      if (Math.abs(TRD[s1 + 1] - TRD[s0 + 1]) + Math.abs(TRD[s1 + 2] - TRD[s0 + 2]) > 60) { if (uu >= 0.5) s0 = s1; uu = 0; }
+      out.on = true;
+      out.x = TRD[s0 + 1] + (TRD[s1 + 1] - TRD[s0 + 1]) * uu;
+      out.y = TRD[s0 + 2] + (TRD[s1 + 2] - TRD[s0 + 2]) * uu;
+      out.vx = TRD[s0 + 3] + (TRD[s1 + 3] - TRD[s0 + 3]) * uu;
+      out.vy = TRD[s0 + 4] + (TRD[s1 + 4] - TRD[s0 + 4]) * uu;
+      const sf = uu < 0.5 ? s0 : s1;
+      out.fl = TRD[sf + 5]; out.last = TRD[sf + 6];
+      return out;
+    }
+
+    // ---- invité : chaque image
+    const SNAP = 300;
+    const rewWin = () => clamp(NG.Dg + NG.Ds + 0.15, 0.35, 0.8);   // (jusqu'où un palet peut être recalé dans le temps)
+    const TMP = { on: false, x: 0, y: 0, vx: 0, vy: 0, fl: 0, last: -1 }, TMP2 = { on: false, x: 0, y: 0, vx: 0, vy: 0, fl: 0, last: -1 };
+    const OLD = [{ on: false, x: 0, y: 0 }, { on: false, x: 0, y: 0 }];
+    const DP = [mkPuck(CX, MID, 0), mkPuck(CX, MID, 1)];
+    const P0T = { x: 0, y: 0 }, P0U = { x: 0, y: 0 };
+    // mon poussoir : il suit mon doigt tout de suite (mêmes bornes que chez l'hôte)
+    function guestMallet(dt, now) {
+      const m = S.m[1], q = IN[1];
+      m.px = m.x; m.py = m.y;
+      let tx = m.x, ty = m.y;
+      if (q.has) { tx = q.x; ty = q.y; }
+      else if (q.kx || q.ky) { const L = Math.hypot(q.kx, q.ky); tx = m.x + q.kx / L * VKEY * dt; ty = m.y + q.ky / L * VKEY * dt; }
+      let dx = tx - m.x, dy = ty - m.y;
+      const d = Math.hypot(dx, dy), mx = VMAX * dt;
+      if (d > mx) { dx *= mx / d; dy *= mx / d; }
+      m.x += dx; m.y += dy;
+      clampHalf(m, 1);
+      for (const b of S.bumpers) pushOut(m, b.x, b.y, MR + b.r, 1);
+      for (const pk of S.pucks) if (pk.locked) pushOut(m, pk.x, pk.y, MR + PR + 3, 1);
+      clampHalf(m, 1);
+      NG.hist.push({ w: now, x: m.x, y: m.y });
+      while (NG.hist.length > 2 && NG.hist[0].w < now - 1.6) NG.hist.shift();
+    }
+    function guestSend(dt, now) {
+      const m = S.m[1], x = r1(m.x), y = r1(m.y), H = NG.hist[NG.hist.length - 1];
+      if (H && H.w === now) { H.x = x; H.y = y; }                 // ce que l'hôte recevra exactement
+      m.vx = dt > 0 ? (m.x - m.px) / dt : 0; m.vy = dt > 0 ? (m.y - m.py) / dt : 0;
+      if (now - NG.sendT >= 1 / 65) {                            // ~60 fois/s, avec les 2 positions précédentes (pertes)
+        const msg = { k: 'i', w: Math.round(now * 1000), x, y }, Hs = NG.hist, n = Hs.length, pv = [];
+        for (let i = n - 2; i >= 0 && i >= n - 3; i--) pv.push([Math.round(Hs[i].w * 1000) - msg.w, r1(Hs[i].x), r1(Hs[i].y)]);
+        if (pv.length) msg.p = pv;
+        nsend(msg); NG.sendT = now;
+      }
+    }
+    // Décalage d'affichage de chaque palet (temps montré = maintenant + décalage) : +Dg dans ma moitié, l'instant connu le plus
+    // récent près du poussoir adverse. Il avance ou recule en douceur (accélération bornée) pour avoir la bonne valeur AU MOMENT
+    // du contact : vers moi, le palet paraît plus rapide (≤ ×1,8) ; vers l'hôte, un peu plus lent (≥ ×0,6).
+    const RATE_UP = 0.8, RATE_DN = 0.4, RATE_ACC = 4, INTRO_RATE = 0.2;
+    const towards = (v, t, m) => (v < t ? Math.min(t, v + m) : Math.max(t, v - m));
+    function offTarget(pk, lo, hi, out) {
+      const g = S.m[1], h = S.m[0], R = MR + PR, y = pk.y, vy = pk.vy;
+      // qui le touchera ensuite ? dans ma moitié, seul mon poussoir l'atteint : moi ; dans la sienne : l'hôte (sauf s'il file vers moi)
+      let mine = y < MID - PR || vy < -200;
+      if (y > MID + PR) {                                                   // tout près du poussoir adverse et pas en train de s'en éloigner
+        const dx = pk.x - h.x, dy = y - h.y, d = Math.hypot(dx, dy) || 1;
+        if (d < R + 90 && ((pk.vx - h.vx) * dx + (vy - h.vy) * dy) / d < 150) mine = false;
+      }
+      let T = 0.4;                                                          // temps (de jeu) avant ce contact
+      if (mine && vy < -1) T = Math.max(0, (y - Math.min(g.y + R, MID + PR)) / -vy);
+      else if (!mine && vy > 1) T = Math.max(0, (Math.max(h.y - R, MID - PR) - y) / vy);
+      if (mine) {                                                           // (mon poussoir va droit dessus ?)
+        const dx = pk.x - g.x, dy = y - g.y, d = Math.hypot(dx, dy) || 1, cl = -((pk.vx - g.vx) * dx + (vy - g.vy) * dy) / d;
+        if (cl > 50) T = Math.min(T, Math.max(0, d - R) / cl);
+      }
+      out.t = mine ? hi : lo; out.T = T;
+      return out;
+    }
+    const OT = { t: 0, T: 0 };
+    function guestOffsets(dt) {
+      // « passé » : l'instant le plus récent où le poussoir adverse est connu (en moyenne), au pire −Ds
+      const lo = Math.max(-NG.Ds, NG.capAvg - 0.012), hi = NG.Dg;
+      if (NG.goal || S.phase === 'goal') { NG.off[0] = NG.off[1] = NG.offG; NG.rate[0] = NG.rate[1] = 0; return; }
+      if (S.phase !== 'play') {
+        NG.offG = towards(NG.offG, S.server === 1 ? hi : lo, INTRO_RATE * dt);
+        NG.off[0] = NG.off[1] = NG.offG; NG.rate[0] = NG.rate[1] = 0;
+        return;
+      }
+      let mn = 1e9, has1 = false;
+      for (const pk of S.pucks) {
+        if (pk.scored || pk.gone) continue;
+        const id = pk.id;
+        if (id === 1) has1 = true;
+        offTarget(pk, lo, hi, OT);
+        // le palet change de camp (il vient d'être frappé) : la vitesse du temps montré peut changer d'un coup, le choc le cache
+        const mineNow = OT.t === hi;
+        if (mineNow !== NG.mine[id]) { NG.mine[id] = mineNow; if (mineNow ? NG.rate[id] < 0 : NG.rate[id] > 0) NG.rate[id] = 0; }
+        // pour arriver au bon décalage pile au contact : vitesse du temps montré = T / (T − écart)
+        const gap = OT.t - NG.off[id], stop = Math.sqrt(2 * RATE_ACC * Math.abs(gap));   // (freine à temps : pas de dépassement)
+        const want = clamp(clamp(gap / Math.max(0.03, OT.T - gap), -RATE_DN, RATE_UP), -stop, stop);
+        NG.rate[id] = towards(NG.rate[id], want, RATE_ACC * dt);
+        let o = NG.off[id] + NG.rate[id] * dt;
+        if (o > hi) { o = hi; NG.rate[id] = Math.min(0, NG.rate[id]); }
+        if (o < lo - 0.3) { o = lo - 0.3; NG.rate[id] = Math.max(0, NG.rate[id]); }
+        NG.off[id] = o;
+        mn = Math.min(mn, NG.off[id]);
+      }
+      if (!has1) { NG.off[1] = NG.off[0]; NG.rate[1] = NG.rate[0]; }        // le 2e palet apparaîtra dans le même temps
+      if (mn < 1e9) NG.offG = towards(NG.offG, mn, 0.8 * dt);           // (plots, phase : sans à-coup)
+    }
+    // événements → sons et effets, au moment où le palet concerné les vit à l'écran
+    const HT = { h: 'hit', w: 'wall', po: 'post', b: 'bump', pp: 'pp', sl: 'slow', rl: 'relaunch', s2: 'spawn2', g: 'goal' };
+    function isDup(type, id, p, w) {
+      for (const d of NG.done) {
+        if (d.type !== type) continue;
+        if (type === 'goal' || type === 'spawn2') return true;
+        if (type !== 'pp' && type !== 'slow' && d.id !== id) continue;
+        if (type === 'hit' && d.p !== p) continue;
+        if (Math.abs(d.w - w) < (type === 'hit' ? 0.16 : 0.1)) return true;
+      }
+      return false;
+    }
+    function markDone(type, id, p, w) { NG.done.push({ type, id, p, w }); if (NG.done.length > 48) NG.done.shift(); }
+    function guestGoal(e, w, pred) {
+      if (NG.goal) {
+        // but déjà montré (prédit) : l'hôte confirme ; la fin de match est la sienne
+        if (!pred && NG.goal.pred) {
+          NG.goal.pred = false;
+          if (!!e.over !== V.over) { V.over = !!e.over; V.winner = V.over ? e.scorer : -1; S.final = V.over; V.overT = 0; }
+        }
+        return;
+      }
+      const id = e.id === 1 ? 1 : 0, sc = scoresNow();
+      const over = pred ? sc[e.scorer] + 1 >= TARGET : !!e.over;
+      NG.goal = { w, id, pred, at: fNow };
+      NG.offG = NG.off[id]; NG.off[0] = NG.off[1] = NG.offG;       // tout l'affichage suit le palet qui a marqué
+      S.ev.push({ type: 'goal', scorer: e.scorer, x: e.x, y: e.y, own: !!e.own, bank: e.bank || 0, viaBump: !!e.viaBump, pow: e.pow || 0, id, over });
+    }
+    function guestFx(now) {
+      const E = NG.ev;
+      for (let j = 0; j < E.length; j++) {
+        const e = E[j];
+        if (e.r > S.round) continue;                              // manche suivante : plus tard
+        if (e.r < S.round) { E.splice(j--, 1); continue; }
+        const id = e.i === 1 ? 1 : 0, tau = e.ty === 'pp' || e.ty === 'sl' ? now + NG.offG : now + NG.off[id];
+        if (tau < e.w) continue;
+        E.splice(j--, 1);
+        const type = HT[e.ty], p = e.p === 1 ? 1 : 0;
+        if (!type || isDup(type, id, p, e.w)) continue;
+        markDone(type, id, p, e.w);
+        const ev = { type, id, p, x: +e.x || 0, y: +e.y || 0, nx: +e.nx || 0, ny: +e.ny || 0, pow: +e.pw || 0, i: +e.bi || 0,
+          scorer: e.sc === 1 ? 1 : 0, own: !!e.own, bank: +e.bank || 0, viaBump: !!e.vb, over: !!e.over, fx: +e.fx || 0, fy: +e.fy || 0 };
+        if (type === 'goal') { guestGoal(ev, e.w, false); continue; }
+        if (type === 'relaunch' || type === 'spawn2') { NG.err[id][0] = NG.err[id][1] = 0; }
+        if (type === 'hit' && p === 0) { NG.stat.h0++; NG.stat.early0 += Math.abs(NG.off[id] - NG.offP0); }
+        S.ev.push(ev);
+      }
+      // prédits (au-delà du dernier état reçu) : les bandes, les plots, un but… quand le palet montré les vit ;
+      // MES chocs, eux, tout de suite : au moment où mon poussoir les fait (l'hôte les verra dans Dg, au même instant du jeu)
+      for (const e of PEV) {
+        const id = e.id === 1 ? 1 : 0, mine = e.type === 'hit' && e.p === 1;
+        const tp = mine ? NG.tfP : NG.tauP[id], tn = mine ? now + NG.Dg : now + NG.off[id];
+        if (tp == null || !(e.w > tp && e.w <= tn)) continue;
+        if (e.type === 'count' || e.type === 'go' || e.type === 'round' || (e.type === 'hit' && e.p === 0)) continue;
+        const p = e.p === 1 ? 1 : 0;
+        if (isDup(e.type, id, p, e.w)) continue;
+        markDone(e.type, id, p, e.w);
+        if (e.type === 'goal') { guestGoal(e, e.w, true); continue; }
+        if (e.type === 'hit') {
+          const lt = NG.Dg - NG.off[id];
+          NG.stat.h1++; NG.stat.late1 += lt; NG.stat.lateH[lt < 0.02 ? 0 : lt < 0.06 ? 1 : 2]++; dbgHit(e.w, e);
+          // le palet montré était en retard (tir adverse trop rapide) : il file (×2) rejoindre mon poussoir
+          const gap = e.w - (now + NG.off[id]);
+          if (gap > 0.02) NG.rate[id] = Math.max(NG.rate[id], Math.min(1, gap / 0.09));
+        }
+        S.ev.push(e);
+      }
+    }
+    function guestUpdate(dt, frozen) {
+      sndBudget = 8;
+      const now = fNow;
+      if (!NG.haveRd && now - NG.hiT > 0.5) { NG.hiT = now; nsend({ k: 'hi' }, true); }
+      guestTuneDs(dt);
+      if (!frozen) {
+        guestApplyRound(now);
+        guestMallet(dt, now);
+        guestOffsets(dt);
+      } else {                                 // compte à rebours de reprise : mon poussoir ne bouge pas (comme chez l'hôte)
+        const m = S.m[1];
+        m.px = m.x; m.py = m.y;
+        NG.hist.push({ w: now, x: m.x, y: m.y });
+      }
+      const tau = [now + NG.off[0], now + NG.off[1]];
+      // (quand un état arrive, on re-simule aussi un peu de passé : un palet montré trop en avance peut y être recalé)
+      const tMin = Math.min(tau[0], tau[1], now + NG.offG) - (NG.fresh ? rewWin() + 0.01 : 0.002), tEnd = Math.max(now + NG.Dg, tau[0], tau[1]) + 0.004;
+      // les états trop vieux ne servent plus
+      const A = NG.snaps;
+      while (A.length > 6 && A[1].w < tMin - 0.3) A.shift();
+      // corrections de l'hôte : écart entre la position montrée SANS et AVEC les nouveaux états → fondu en douceur
+      // (un grand écart se résorbe un peu moins vite : il ressemble à un rebond, pas à un saut)
+      for (const e of NG.err) { const dec = Math.exp(-dt / (0.06 + 0.07 * Math.min(1, Math.hypot(e[0], e[1]) / 160))); e[0] *= dec; e[1] *= dec; }
+      const fresh = NG.fresh;
+      if (fresh) {
+        const ok = build(false, tMin, tEnd, false);
+        for (let id = 0; id < 2; id++) {
+          const o = OLD[id];
+          o.on = false;
+          if (ok) { trPuck(tau[id], id, TMP); if (TMP.on && !(TMP.fl & 6)) { o.on = true; o.x = TMP.x; o.y = TMP.y; } }
+        }
+        for (const sn of A) sn.fresh = false;
+        NG.fresh = false;
+      }
+      if (build(true, tMin, tEnd, true)) {
+        const live = [];
+        for (let id = 0; id < 2; id++) {
+          trPuck(tau[id], id, TMP);
+          if (!TMP.on) { if (id === 1) NG.tauP[1] = null; continue; }
+          const er = NG.err[id];
+          if (fresh && OLD[id].on && !(TMP.fl & 6)) {
+            // là où le palet est montré en ce moment, et l'écart avec le nouveau chemin au même instant
+            const sx = OLD[id].x + er[0], sy = OLD[id].y + er[1];
+            let d0 = Math.hypot(sx - TMP.x - er[0], sy - TMP.y - er[1]);
+            if (sy > MID - 30 && Math.hypot(OLD[id].x - TMP.x, OLD[id].y - TMP.y) > 3) {
+              // le même chemin un peu plus tôt ou plus tard ? (une frappe adverse que je ne pouvais pas prévoir : le palet
+              // repart d'où il est montré, au bon moment du vrai chemin, au lieu de sauter)
+              const t0 = Math.max(TRD[0], tau[id] - rewWin()), t1 = tau[id] + 0.03;
+              let bt = tau[id], bd = Math.hypot(sx - TMP.x, sy - TMP.y);
+              for (let t = t0; t <= t1; t += 0.004) {
+                trPuck(t, id, TMP2);
+                if (!TMP2.on || (TMP2.fl & 6)) continue;
+                const d = Math.hypot(sx - TMP2.x, sy - TMP2.y);
+                if (d < bd - 0.5) { bd = d; bt = t; }
+              }
+              if (bt !== tau[id] && bd < 0.6 * Math.hypot(sx - TMP.x, sy - TMP.y) && bd < SNAP) {
+                NG.off[id] = bt - now; tau[id] = bt; NG.stat.rew++;
+                NG.rate[id] = Math.max(0, NG.rate[id]);
+                trPuck(bt, id, TMP);
+              }
+            }
+            const dx = sx - TMP.x, dy = sy - TMP.y;
+            d0 = Math.hypot(dx - er[0], dy - er[1]);
+            if (Math.hypot(dx, dy) > SNAP) { er[0] = er[1] = 0; NG.stat.snap++; }  // très gros écart (remise en jeu…) : pas de fondu
+            else { er[0] = dx; er[1] = dy; if (d0 > 0.01) { NG.stat.corrN++; NG.stat.corrSum += d0; NG.stat.corrMax = Math.max(NG.stat.corrMax, d0); } }
+          }
+          const P = DP[id];
+          P.locked = !!(TMP.fl & 1); P.scored = !!(TMP.fl & 2); P.gone = !!(TMP.fl & 4); P.last = TMP.last;
+          P.x = TMP.x + er[0]; P.y = TMP.y + er[1]; P.vx = TMP.vx; P.vy = TMP.vy;
+          live.push(P);
+        }
+        S.pucks = live;
+        // le poussoir adverse : au même instant que le palet quand les états reçus le permettent (au pire −Ds)
+        let lastW = -1e9;
+        for (let i = A.length - 1; i >= 0; i--) if (!A[i].syn) { lastW = A[i].w; break; }
+        const cap = Math.max(-NG.Ds, lastW + 0.012 - now);
+        NG.capAvg += (cap - NG.capAvg) * Math.min(1, dt * 1.5);
+        NG.offP0 = clamp(towards(NG.offP0, Math.max(-NG.Ds, Math.min(NG.offG, cap)), 0.5 * dt), -NG.Ds - 0.2, cap);
+        const tp = now + NG.offP0, m0 = S.m[0];
+        p0At(tp, P0T); p0At(tp - 1 / 120, P0U);
+        m0.px = m0.x; m0.py = m0.y; m0.x = P0T.x; m0.y = P0T.y;
+        clampHalf(m0, 0);
+        m0.vx = (P0T.x - P0U.x) * 120; m0.vy = (P0T.y - P0U.y) * 120;
+      }
+      guestSend(dt, now);
+      if (!frozen) guestFx(now);
+      NG.tfP = now + NG.Dg;
+      // phase, temps de manche, plots : à l'instant montré
+      const Tg = now + NG.offG, gi = trIdx(Tg);
+      if (gi >= 0) {
+        const a = gi * RSZ, b = Math.min(gi + 1, TRn - 1) * RSZ, same = b !== a && TRD[a + 1] === TRD[b + 1] && TRD[b] > TRD[a];
+        const u = same ? clamp((Tg - TRD[a]) / (TRD[b] - TRD[a]), 0, 1) : 0;
+        S.phase = PHN[TRD[a + 1]] || 'play';
+        S.pt = TRD[a + 2] + (TRD[b + 2] - TRD[a + 2]) * u;
+        S.playT = TRD[a + 3] + (TRD[b + 3] - TRD[a + 3]) * u;
+        S.bt = TRD[a + 4] + (TRD[b + 4] - TRD[a + 4]) * u;
+        S.ts = TRD[a + 5]; S.slow = TRD[a + 6] > 0; NG.kDisp = TRD[a + 7];
+      }
+      if (NG.goal && S.phase !== 'goal') { S.phase = 'goal'; S.pt = Math.max(0, Tg - NG.goal.w); }
+      S.spawned2 = S.pucks.some((q) => q.id === 1);
+      placeBumpers(S, 0);
+      // un but prédit que l'hôte n'a jamais confirmé (rare) : on reprend le jeu
+      if (NG.goal && NG.goal.pred && now - NG.goal.at > NG.Dg + NG.Ds + 0.6) {
+        const L = A.length ? A[A.length - 1] : null;
+        if (L && L.r === S.round && L.ph === 1 && L.w > NG.goal.w + 0.15) {
+          NG.goal = null;
+          if (V.over) { V.over = false; V.winner = -1; S.final = false; }
+        }
+      }
+      // compte à rebours et GO (à l'instant montré)
+      const ph = PHI[S.phase];
+      if (ph === 0 && NG.prevPh === 0) {
+        const c0 = S.introDur - 1.8;
+        for (let k = 0; k < 3; k++) { const tk = c0 + k * 0.6; if (NG.prevPt < tk && S.pt >= tk) S.ev.push({ type: 'count', n: 3 - k }); }
+      } else if (ph === 1 && NG.prevPh === 0) S.ev.push({ type: 'go' });
+      NG.prevPh = ph; NG.prevPt = S.pt;
+      for (const P of S.pucks) NG.tauP[P.id] = now + NG.off[P.id];
+      if (frozen) return;
+      handleEvents();
+      updVisuals(dt * NG.kDisp * S.ts, dt);
+    }
+
+    // ------------------------------------------------------------- IA (api.ai) : un « doigt » virtuel pour le joueur du haut
+    // Elle ne voit que ce qu'un joueur voit (palets, poussoir adverse) avec un temps de réaction humain, anticipe plus ou moins
+    // bien la trajectoire (rebonds compris en difficile / extrême), choisit où tirer (loin du poussoir adverse, en bande, avec
+    // feintes en extrême) et bouge son doigt avec une vitesse et une accélération bornées : jamais de saut. moveMallet lui
+    // applique ensuite exactement les règles d'un vrai doigt (vitesse max du poussoir, sa moitié du terrain).
+    // Tout est calculé dans « son » repère (elle en haut, son but en y = 0) : le terrain est symétrique par rapport au centre.
+    const AI_LEVELS = {
+      // react : temps de réaction (s) ; think : temps entre deux décisions ; vF / aF : vitesse / accélération du doigt ;
+      // strike : vitesse de frappe ; aim : erreur de visée (unités au but) ; pred : anticipation (0 rien, 1 en ligne droite,
+      // 2 avec les rebonds, 3 rebonds + plots) ; look : part du temps de réaction rattrapée en anticipant ; guard : placement
+      // défensif (0 suit mollement, 1 se place sur la ligne palet-but) ; distract : [entre deux, durée] ; miss : tir raté ;
+      // bank / feint : part des tirs en bande / avec feinte ; back : élan avant la frappe
+      facile: { react: 0.55, think: 0.25, vF: 800, aF: 4200, strike: 800, aim: 40, pred: 1, look: 0, guard: 0.4, distract: [1.5, 3.5, 0.4, 1.0], miss: 0.2, bank: 0, feint: 0, back: 13, naive: true },
+      moyen: { react: 0.26, think: 0.11, vF: 1800, aF: 12000, strike: 1900, aim: 30, pred: 2, look: 0.75, guard: 0.8, distract: [6, 10, 0.2, 0.4], miss: 0.06, bank: 0, feint: 0, back: 30 },
+      difficile: { react: 0.18, think: 0.07, vF: 2300, aF: 18000, strike: 2450, aim: 14, pred: 2, look: 0.95, guard: 0.95, distract: null, miss: 0.02, bank: 0.2, feint: 0.2, back: 36 },
+      extreme: { react: 0.15, think: 0.05, vF: 2600, aF: 22000, strike: 2600, aim: 8, pred: 3, look: 1, guard: 1, distract: null, miss: 0, bank: 0.3, feint: 0.4, back: 40 }
+    };
+    const AIL = AIA ? (AI_LEVELS[AIA.level] || (() => { const k = +AIA.k || 0.5; return k <= 0.3 ? AI_LEVELS.facile : k <= 0.6 ? AI_LEVELS.moyen : k <= 0.85 ? AI_LEVELS.difficile : AI_LEVELS.extreme; })()) : null;
+    const AI = AIA ? { F: { x: CX, y: 118, vx: 0, vy: 0 }, obs: [], thinkT: 0, mode: 'home', tx: CX, ty: 118, v: 800, until: 0, aim: null, real: null,
+      dNext: 0, dUntil: -1, rnd: mulberry32((Math.random() * 4294967296) >>> 0), path: [], path2: [], X: null, eta: 0, side: false, feinted: false, init: false } : null;
+    // repère de l'IA : identité pour le joueur du haut, symétrie centrale pour celui du bas
+    const aiX = (x) => (AIP === 1 ? x : RW - x), aiY = (y) => (AIP === 1 ? y : RH - y), aiS = AIP === 1 ? 1 : -1;
+    function aiRand(a, b) { return a + AI.rnd() * (b - a); }
+    function aiGauss() { return (AI.rnd() + AI.rnd() + AI.rnd() - 1.5) / 0.5; }   // ~ loi normale (écart-type ≈ 1)
+    // ce qu'elle voit à cet instant (gardé ~1 s pour le temps de réaction)
+    function aiObserve() {
+      const o = { t: V.st, ph: S.phase, pk: [], om: null };
+      for (const pk of S.pucks) if (!pk.gone && !pk.scored) o.pk.push({ id: pk.id, x: aiX(pk.x), y: aiY(pk.y), vx: aiS * pk.vx, vy: aiS * pk.vy, locked: pk.locked });
+      const om = S.m[1 - AIP];
+      o.om = { x: aiX(om.x), y: aiY(om.y), vx: aiS * om.vx, vy: aiS * om.vy };
+      AI.obs.push(o);
+      while (AI.obs.length > 2 && AI.obs[1].t <= V.st - 1.2) AI.obs.shift();
+    }
+    function aiSeen() {
+      // (juste après sa propre frappe, elle sait à peu près où elle a envoyé le palet : réaction plus courte)
+      // (et un palet tout près de mon but qui y file : réflexe, même pour la plus lente)
+      const last = AI.obs[AI.obs.length - 1], alarm = last && last.pk.some((z) => z.y < 150 && z.vy < -60);
+      const t = V.st - (AI.hitAt && V.st - AI.hitAt < 0.35 ? AIL.react * 0.35 : alarm ? Math.min(AIL.react, 0.3) : AIL.react);
+      let o = AI.obs[0];
+      for (const x of AI.obs) { if (x.t <= t) o = x; else break; }
+      return o;
+    }
+    // trajectoire imaginée du palet (dans son repère) : rien, ligne droite, rebonds, rebonds + plots
+    const APK = mkPuck(CX, MID, 0), AST = { goalW: 220, fr: 0.24, vmax: 1150, bumpers: [], ev: [], layout: 'none', bph: 0, bspin: 0, bt: 0 };
+    function aiPath(src, T, out) {
+      out.length = 0;
+      AST.goalW = S.goalW; AST.fr = S.fr; AST.vmax = S.vmax; AST.layout = S.layout; AST.bph = S.bph; AST.bspin = S.bspin; AST.bt = S.bt;
+      if (AIL.pred >= 3) { if (AST.bumpers.length !== S.bumpers.length) AST.bumpers = S.bumpers.map((b) => ({ i: b.i, x: b.x, y: b.y, vx: 0, vy: 0, r: b.r })); } else AST.bumpers.length = 0;
+      const pk = APK, h = 1 / 120;
+      pk.x = src.x; pk.y = src.y; pk.vx = src.vx; pk.vy = src.vy; pk.scored = false; pk.locked = false; pk.wallCd = 0;
+      out.push({ t: 0, x: pk.x, y: pk.y, vx: pk.vx, vy: pk.vy });
+      if (AIL.pred === 0 || src.locked) return out;
+      for (let t = h; t <= T; t += h) {
+        const f = Math.exp(-AST.fr * h);
+        pk.vx *= f; pk.vy *= f; pk.x += pk.vx * h; pk.y += pk.vy * h;
+        if (AIL.pred === 1) {                                     // ligne droite : elle ne voit pas plus loin que la bande
+          if (pk.x < PR || pk.x > RW - PR) break;
+        } else {
+          walls(AST, pk, false);
+          if (AST.bumpers.length) { AST.bt += h; placeBumpers(AST, h); for (const b of AST.bumpers) bumper(AST, pk, b); AST.ev.length = 0; walls(AST, pk, false); }
+        }
+        if (pk.y < -PR || pk.y > RH + PR) break;
+        out.push({ t, x: pk.x, y: pk.y, vx: pk.vx, vy: pk.vy });
+      }
+      return out;
+    }
+    function aiAt(path, t) {
+      if (!path.length) return null;
+      const h = 1 / 120, i = Math.min(path.length - 1, Math.max(0, Math.round(t / h)));
+      return path[i];
+    }
+    // où tirer : vers un coin du but loin du poussoir adverse ; en bande (difficile / extrême) si le tir direct est bouché
+    function aiAim(X, om) {
+      const gw = Math.max(16, S.goalW / 2 - PR - 6), c = [], L = AIL, reach = MR + PR + 4;
+      for (const fx of [-0.85, -0.45, 0, 0.45, 0.85]) c.push({ x: CX + fx * gw, y: RH, b: 0 });
+      if (L.bank > 0) for (const fx of [-0.6, 0.6]) { const gx = CX + fx * gw; c.push({ x: -gx, y: RH, b: -1 }, { x: 2 * RW - gx, y: RH, b: 1 }); }
+      for (const a of c) {
+        // le poussoir adverse (reflété pour un tir en bande) : à quelle distance de la ligne de tir ?
+        const mx = a.b === -1 ? -om.x : a.b === 1 ? 2 * RW - om.x : om.x, my = om.y;
+        const dx = a.x - X.x, dy = a.y - X.y, L2 = dx * dx + dy * dy || 1, u = clamp(((mx - X.x) * dx + (my - X.y) * dy) / L2, 0, 1);
+        const clear = Math.hypot(X.x + dx * u - mx, X.y + dy * u - my) - reach;
+        // libre de plus de 20 unités : très bien ; un tir en bande est un peu moins sûr
+        a.s = Math.min(clear, 40) - (a.b ? 12 : 0) + aiGauss() * 6;
+        // (moyen et mieux : elle « voit » le tir partir — rebonds compris — avec le poussoir adverse là où il est)
+        if (L.pred >= 2) { const r = aiShot(X, a.x, a.y, om); a.s += r === 'goal' ? 60 : r === 'own' ? -200 : r === 'block' ? -25 : 0; }
+      }
+      let best = null;
+      if (L.naive) {                                             // facile : un côté du but, plutôt le plus libre
+        const side = c.filter((a) => !a.b && a.x !== CX && Math.abs(a.x - CX) > gw * 0.6);
+        best = AI.rnd() < 0.85 ? (side[0].s > side[1].s ? side[0] : side[1]) : side[(AI.rnd() * 2) | 0];
+      } else for (const a of c) if (!best || a.s > best.s) best = a;
+      return { x: best.x + aiGauss() * L.aim * (best.b ? 0.5 : 1), y: RH, b: best.b };
+    }
+    // un tir franc depuis X vers (ax, ay) : rentre-t-il ? (poussoir adverse supposé immobile pendant ce court instant)
+    function aiShot(X, ax, ay, om) {
+      const pk = APK, h = 1 / 120, dx = ax - X.x, dy = ay - X.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(S.vmax, AIL.strike * 1.4);
+      AST.goalW = S.goalW; AST.fr = S.fr; AST.vmax = S.vmax;
+      pk.x = X.x; pk.y = X.y; pk.vx = dx / d * sp; pk.vy = dy / d * sp; pk.scored = false; pk.locked = false; pk.wallCd = 0;
+      for (let t = 0; t < 1.3; t += h) {
+        const f = Math.exp(-AST.fr * h);
+        pk.vx *= f; pk.vy *= f; pk.x += pk.vx * h; pk.y += pk.vy * h;
+        walls(AST, pk, false);
+        if (Math.hypot(pk.x - om.x, pk.y - om.y) < MR + PR) return 'block';
+        if (pk.y > RH + PR * 0.35) return 'goal';
+        if (pk.y < -PR * 0.35) return 'own';
+      }
+      return 'none';
+    }
+    // point d'élan derrière le palet X pour l'envoyer vers « aim » (si le palet colle à une bande, on tourne autour de lui)
+    const AROT = [0, 0.26, -0.26, 0.52, -0.52, 0.78, -0.78, 1.05, -1.05];
+    function aiApproach(X, aim, back) {
+      let ux = X.x - aim.x, uy = X.y - aim.y;
+      const d = Math.hypot(ux, uy) || 1, R = MR + PR + back;
+      ux /= d; uy /= d;
+      for (const a of AROT) {
+        const c = Math.cos(a), sn = Math.sin(a), vx = ux * c - uy * sn, vy = ux * sn + uy * c, ax = X.x + vx * R, ay = X.y + vy * R;
+        if (ax >= MR && ax <= RW - MR && ay >= MR && ay <= MID - MR) return { x: ax, y: ay, ux: vx, uy: vy };
+      }
+      return { x: clamp(X.x + ux * R, MR, RW - MR), y: clamp(X.y + uy * R, MR, MID - MR), ux, uy };
+    }
+    // ce qu'elle a vu il y a « react » s, plus ou moins bien prolongé jusqu'à maintenant
+    function aiNow(q, o) {
+      if (!q || q.locked || AIL.look <= 0) return q;
+      const lag = (V.st - o.t) * AIL.look;
+      return aiAt(aiPath(q, lag + 0.01, AI.path2), lag) || q;
+    }
+    // sa décision (toutes les « think » secondes)
+    function aiPlan() {
+      const o = aiSeen(), my = { x: aiX(S.m[AIP].x), y: aiY(S.m[AIP].y) }, L = AIL;
+      const home = (x, y) => { AI.mode = 'home'; AI.v = L.vF * 0.8; AI.tx = x; AI.ty = y; AI.real = null; AI.feinted = false; AI.X = null; };
+      if (!o) { home(CX, 118); return; }
+      const om = o.om;
+      // le palet qui compte : celui qui file vers mon but, sinon le plus proche dans ma moitié, sinon le plus proche du centre
+      let pk = null, best = 1e9;
+      for (const q of o.pk) {
+        const threat = q.vy < -100 ? q.y / -q.vy : 9, near = Math.hypot(q.x - my.x, q.y - my.y) / 1000 + (q.y > MID ? 1 : 0);
+        const sc = threat < 1.4 ? threat : 5 + near;              // (un palet qui file vers mon but passe avant tout)
+        if (sc < best) { best = sc; pk = q; }
+      }
+      const P = aiNow(pk, o);
+      const rx = CX + ((P ? P.x : CX) - CX) * L.guard * 0.45;
+      if (!P || o.ph === 'goal') { home(rx, 118); return; }
+      if (o.ph === 'intro') {
+        home(rx, 118);
+        if (pk.locked && P.y < MID) {                             // à moi l'engagement : je me place derrière le palet
+          if (!AI.aim || AI.mode !== 'ready') AI.aim = aiAim(P, om);
+          const A = aiApproach(P, AI.aim, L.back);
+          AI.mode = 'ready'; AI.X = P; AI.tx = A.x; AI.ty = A.y; AI.side = false;
+        }
+        return;
+      }
+      const path = aiPath(P, 1.4, AI.path), speed = Math.hypot(P.vx, P.vy);
+      // 0) le palet file vers mon but et je suis derrière lui (entre lui et l'autre but) : surtout ne pas le pousser dedans,
+      //    je m'écarte de sa route (puis je reviendrai défendre par le côté)
+      if (P.vy < -150 && my.y > P.y - 6 && Math.abs(my.x - P.x) < MR + PR + 34 && my.y - P.y < 240) {
+        const sd = my.x >= P.x ? 1 : -1, wx = P.x + sd * (MR + PR + 46);
+        AI.mode = 'dodge'; AI.v = L.vF; AI.real = null; AI.feinted = false; AI.X = null;
+        AI.tx = wx < MR + 4 || wx > RW - MR - 4 ? P.x - sd * (MR + PR + 46) : wx; AI.ty = my.y + 20;
+        return;
+      }
+      // 1) un palet à frapper : dans ma moitié (ou qui y arrive), pas trop rapide, et que je peux rejoindre à temps derrière lui
+      //    (un palet qui bouge, je ne vais pas le chercher trop loin de mon but : je l'attends ; un palet qui fonce, je le bloque)
+      const maxSpd = 260 + L.strike * 0.45, maxY = 250 + 70 * (1 - L.guard), fastIn = 300 + 650 * L.guard;
+      // (le palet prévu file droit dans mon but : je bloque d'abord, sauf s'il est lent)
+      let danger = false;
+      if (L.pred > 0) for (const q of path) { if (q.t > 0.9) break; if (q.y < 30 && Math.abs(q.x - CX) < S.goalW / 2 + 12) { danger = true; break; } }
+      for (let i = 0; i < path.length && !(danger && speed > 420); i += 4) {
+        const X = path[i], sX = Math.hypot(X.vx, X.vy);
+        if (X.y > MID + PR - 8 || X.y < (sX < 300 ? 22 : 70) || sX > maxSpd) continue;   // (jusqu'à un peu après la ligne)
+        if (X.y < 115 && sX > 380 && L.guard > 0.5) continue;    // (près de mon but, un palet rapide : je ne joue pas avec le feu)
+        if (sX > 200 && X.y > maxY) continue;
+        if (X.vy < -100 && (my.y > X.y - 25 || sX > fastIn)) continue;   // (il arrive vers mon but : je ne frappe que si je suis au-dessus)
+        const keep = AI.aim && AI.X && (AI.mode === 'approach' || AI.mode === 'ready') && Math.hypot(AI.X.x - X.x, AI.X.y - X.y) < 70;
+        // (un palet lent qui traîne devant mon but : je le dégage sur le côté)
+        const aim = keep ? AI.aim : X.y < 75 ? { x: X.x < CX ? -80 : RW + 80, y: X.y + 170, b: 0 } : aiAim(X, om), A = aiApproach(X, aim, L.back);
+        // (s'il faut contourner le palet, c'est plus long)
+        const ahead = (my.x - X.x) * -A.ux + (my.y - X.y) * -A.uy > -PR;
+        const need = (Math.hypot(A.x - AI.F.x, A.y - AI.F.y) + (ahead ? 90 : 0)) / (L.vF * 0.8) + 0.06;
+        if (need > X.t && speed > 150) continue;
+        AI.mode = 'approach'; AI.aim = aim; AI.X = X; AI.v = L.vF; AI.eta = V.st + X.t;   // (quand le palet sera en X)
+        if (ahead) {                                              // contourner le palet par mon côté, sans le pousser vers mon but
+          const px = -A.uy, py = A.ux, sd = (my.x - X.x) * px + (my.y - X.y) * py >= 0 ? 1 : -1;
+          AI.tx = X.x + px * sd * (MR + PR + 26) + A.ux * 12; AI.ty = X.y + py * sd * (MR + PR + 26) + A.uy * 12;
+          AI.side = true;
+        } else {
+          AI.tx = A.x; AI.ty = A.y; AI.side = false;
+          // feinte : je fais mine de viser l'autre côté jusqu'au dernier moment
+          if (!AI.feinted && L.feint > 0 && speed < 220 && AI.rnd() < L.feint) {
+            AI.real = aim;
+            const fake = { x: 2 * CX - aim.x, y: RH, b: 0 }, Af = aiApproach(X, fake, L.back);
+            AI.aim = fake; AI.tx = Af.x; AI.ty = Af.y;
+          }
+          AI.feinted = true;
+        }
+        return;
+      }
+      // 2) un palet qui fonce vers mon but : je me mets sur sa route, entre lui et le but
+      if (P.vy < -80 || danger) {
+        // (ligne de défense devant mon but ; si le palet est déjà plus près du but, je recule entre lui et le but)
+        const yb0 = 64 + 70 * (1 - L.guard) + (L.pred >= 2 ? 0 : 30), yb = L.guard >= 0.5 ? Math.max(MR + 2, Math.min(yb0, P.y - 45)) : yb0;
+        AI.mode = 'block'; AI.v = L.vF; AI.real = null; AI.feinted = false; AI.X = null;
+        let X = null;
+        if (L.pred > 0) for (const q of path) { if (q.y <= yb + 30) { X = q; break; } }
+        if (X) { AI.tx = clamp(X.x, CX - S.goalW * 0.6, CX + S.goalW * 0.6); AI.ty = clamp(X.y - 10, MR, MID - MR); }
+        else { AI.tx = CX + (P.x - CX) * (0.35 + 0.45 * L.guard); AI.ty = yb; }
+        return;
+      }
+      // 3) sinon : en garde devant mon but, sur la ligne palet → centre du but (plus ou moins bien)
+      const dx = P.x - CX, dy = P.y, d = Math.hypot(dx, dy) || 1, Rg = 118;
+      const ax = CX + dx / d * Rg, ay = Math.max(MR + 8, dy / d * Rg);
+      home(rx + (ax - rx) * L.guard, 118 + (ay - 118) * L.guard);
+    }
+    // chaque image : décision, frappe, puis le doigt glisse vers sa cible (vitesse et accélération bornées : aucun saut)
+    function aiUpdate(dt) {
+      if (!AI || paused) return;
+      aiObserve();
+      const L = AIL, F = AI.F;
+      if (!AI.init) { AI.init = true; F.x = aiX(S.m[AIP].x); F.y = aiY(S.m[AIP].y); AI.dNext = V.st + (L.distract ? aiRand(L.distract[0], L.distract[1]) : 1e9); }
+      // distraction (facile, moyen) : elle regarde ailleurs un instant
+      if (L.distract && V.st >= AI.dNext) { AI.dUntil = V.st + aiRand(L.distract[2], L.distract[3]); AI.dNext = AI.dUntil + aiRand(L.distract[0], L.distract[1]); }
+      const so = aiSeen(), calm = !so || !so.pk.some((z) => z.y < MID + 60 || z.vy < -100);
+      const distracted = V.st < AI.dUntil && AI.mode !== 'strike' && calm;
+      if (!distracted && AI.mode !== 'strike' && AI.mode !== 'recover') {
+        AI.thinkT -= dt;
+        if (AI.thinkT <= 0) { AI.thinkT = L.think * aiRand(0.8, 1.25); aiPlan(); }
+      }
+      // arrivée au point d'élan : la feinte se dévoile, puis la frappe à travers le palet
+      const seen = aiSeen();
+      // (un palet qui arrive : j'attends au point d'élan qu'il soit presque là, le temps de mon élan)
+      const tC = Math.sqrt(2 * (L.back + 4) / L.aF) + 0.012;
+      const atA = Math.hypot(F.x - AI.tx, F.y - AI.ty), mA = Math.hypot(aiX(S.m[AIP].x) - AI.tx, aiY(S.m[AIP].y) - AI.ty), late = AI.mode === 'approach' && AI.eta - V.st <= tC;
+      if ((AI.mode === 'approach' || AI.mode === 'ready') && AI.X && !AI.side && seen && seen.ph === 'play' &&
+          ((atA < 7 && mA < 9 && Math.hypot(F.vx, F.vy) < 420) || (late && atA < 22)) && (AI.mode === 'ready' || !(AI.eta - V.st > tC))) {
+        if (AI.real) { AI.aim = AI.real; AI.real = null; const A = aiApproach(AI.X, AI.aim, L.back * 0.6); AI.tx = A.x; AI.ty = A.y; }
+        else {
+          let X = AI.X;
+          if (Math.hypot(X.vx, X.vy) < 150) for (const z of seen.pk) if (Math.hypot(z.x - AI.X.x, z.y - AI.X.y) < 140) { X = aiNow(z, seen); break; }
+          const A = aiApproach(X, AI.aim, 0);
+          let sx = X.x - A.ux * (MR + PR) * 1.6, sy = X.y - A.uy * (MR + PR) * 1.6;
+          if (AI.rnd() < L.miss) { sx += aiGauss() * 45; sy += aiGauss() * 12; }   // tir raté
+          AI.mode = 'strike'; AI.tx = sx; AI.ty = sy; AI.v = L.strike; AI.until = V.st + 0.24;
+        }
+      }
+      if (AI.mode === 'strike' && (V.st >= AI.until || AI.hitAt > AI.until - 0.24)) {   // après la frappe (ou dès le contact) : on recule
+        AI.mode = 'recover'; AI.until = V.st + 0.16; AI.tx = F.x + (CX - F.x) * 0.3; AI.ty = Math.max(90, F.y - 60); AI.v = L.vF * 0.7;
+        AI.X = null; AI.real = null; AI.feinted = false;
+      }
+      if (AI.mode === 'recover' && V.st >= AI.until) { AI.mode = 'home'; AI.thinkT = 0; }
+      let tx = AI.tx, ty = AI.ty;
+      // contourner un palet qui se trouve sur le chemin du doigt (sauf en frappe) : jamais de poussée vers mon propre but
+      // (un palet tout près de mon poussoir, je le vois tout de suite, même à la vision périphérique)
+      if (AI.mode !== 'strike' && seen) {
+        const near = [];
+        for (const q of S.pucks) if (!q.gone && !q.scored && Math.hypot(aiX(q.x) - F.x, aiY(q.y) - F.y) < 150) near.push({ x: aiX(q.x), y: aiY(q.y), locked: true });
+        for (const z of near.length ? near : seen.pk) {
+          const P = z.locked ? z : aiNow(z, seen), sx = tx - F.x, sy = ty - F.y, L2 = sx * sx + sy * sy;
+          if (L2 < 1) continue;
+          const u = clamp(((P.x - F.x) * sx + (P.y - F.y) * sy) / L2, 0, 1), cx = F.x + sx * u, cy = F.y + sy * u;
+          const need = MR + PR + 8, dd = Math.hypot(P.x - cx, P.y - cy);
+          if (dd >= need || u <= 0.02 || u >= 0.98) continue;
+          let nx = cx - P.x, ny = cy - P.y;
+          if (Math.hypot(nx, ny) < 1e-3) { nx = -sy; ny = sx; }
+          if (ny > 0 && Math.abs(nx) < Math.abs(ny) * 0.5) { nx = nx >= 0 ? 1 : -1; ny = -0.4; }   // (de préférence par le côté)
+          const k = Math.hypot(nx, ny);
+          tx = P.x + nx / k * (need + 8); ty = P.y + ny / k * (need + 8);
+          break;
+        }
+      }
+      if (distracted) { tx = F.x; ty = F.y; }
+      tx = clamp(tx, MR - 10, RW - MR + 10); ty = clamp(ty, MR - 10, MID - MR + 20);
+      // le doigt : il accélère, file, freine pour s'arrêter pile (ou traverse le palet pendant une frappe)
+      const dx = tx - F.x, dy = ty - F.y, d = Math.hypot(dx, dy);
+      const vmax = Math.min(VMAX, AI.v), vd = AI.mode === 'strike' ? vmax : Math.min(vmax, Math.sqrt(2 * L.aF * d) * 0.85);
+      let ex = (d > 0.01 ? dx / d * vd : 0) - F.vx, ey = (d > 0.01 ? dy / d * vd : 0) - F.vy;
+      const e = Math.hypot(ex, ey), mx = L.aF * dt;
+      if (e > mx) { ex *= mx / e; ey *= mx / e; }
+      F.vx += ex; F.vy += ey;
+      F.x += F.vx * dt; F.y += F.vy * dt;
+      // (le doigt ne s'éloigne pas trop de son poussoir quand celui-ci est bloqué par la ligne, un bord ou le palet)
+      const mx0 = aiX(S.m[AIP].x), my0 = aiY(S.m[AIP].y), far = Math.hypot(F.x - mx0, F.y - my0);
+      if (far > 70 && AI.mode !== 'strike') { F.x = mx0 + (F.x - mx0) * 70 / far; F.y = my0 + (F.y - my0) * 70 / far; }
+      const q = IN[AIP];
+      q.has = true; q.x = aiX(F.x); q.y = aiY(F.y); q.kx = q.ky = 0;
+    }
+
     // ------------------------------------------------------------- pause / reprise
     function pause() {
       if (destroyed || paused) return;
       paused = true;
+      if (HOST) hostSnap(true, Math.max(fNow + 0.001, rawNow()));   // l'invité voit tout s'arrêter au bon instant
       clearInputs();
       render();
     }
@@ -2285,6 +3306,7 @@
       last = now;
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
+      if (NET) tickClock(ts);
       if (paused) { if ((pausedFrames++ % 20) === 0) render(); return; }
       const t0 = performance.now();
       V.st += dt;
@@ -2295,11 +3317,15 @@
         const n1 = V.resumeT > 0 ? Math.ceil(V.resumeT / 0.6) : 0;
         if (n1 !== n0) SFX.tick(n1);
         V.rt += dt;
-      } else update(dt);
+        if (GUEST) guestUpdate(dt, true);      // (l'invité continue d'afficher l'hôte, figé lui aussi : pas de saut à la reprise)
+      } else if (GUEST) guestUpdate(dt, false);
+      else { if (HOST) hostPre(dt); if (AIA) aiUpdate(dt); update(dt); }
       headT += dt;
       if (headT > 1) { headT = 0; if (refreshHeads()) buildSprites(); }
       const t1 = performance.now();
       render();
+      if (HOST) hostSnap(NH.hitNow); NH.hitNow = false;
+      if (NET) traceFrame(ts);
       // qualité adaptative : si le téléphone peine, on baisse un peu la résolution
       const r = performance.now();
       profU += (t1 - t0 - profU) * 0.05; profR += (r - t1 - profR) * 0.05;
@@ -2325,7 +3351,8 @@
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => resize()); ro.observe(root); }
     else on(window, 'resize', resize);
     resize();
-    startRound();
+    if (NET) netStart();
+    if (!GUEST) startRound();          // en ligne, l'invité attend la manche de l'hôte
     raf = requestAnimationFrame(frame);
 
     function destroy() {
@@ -2339,6 +3366,7 @@
       later.length = 0;
       ptrs.clear();
       V.parts = []; V.rings = []; V.floats = []; V.faces = []; V.lights = [];
+      NG.snaps = []; NG.hist = []; NG.ev = []; NH.buf = []; NH.ev = []; PEV.length = 0;   // (les messages reçus ensuite sont ignorés)
       bgCv = iceCv = marksCv = staticCv = null; SPR = null;
       while (root.firstChild) root.removeChild(root.firstChild);
     }
@@ -2349,10 +3377,33 @@
         mp: S.mp.slice(), final: S.final, paused, resumeT: V.resumeT, over: V.over, winner: V.winner, t: S.t, seed: S.seed,
         pucks: S.pucks.map((q) => ({ id: q.id, x: q.x, y: q.y, vx: q.vx, vy: q.vy, locked: q.locked, scored: q.scored, gone: q.gone, last: q.last })),
         mallets: S.m.map((m) => ({ x: m.x, y: m.y, vx: m.vx, vy: m.vy })), bumpers: S.bumpers.map((b) => ({ x: b.x, y: b.y, r: b.r })),
-        view: { s, ox, oy, cw, ch, dpr }, parts: V.parts.length, quality, prof: [+profU.toFixed(2), +profR.toFixed(2)], stats: Object.assign({}, V.stats)
+        view: { s, ox, oy, cw, ch, dpr }, parts: V.parts.length, quality, prof: [+profU.toFixed(2), +profR.toFixed(2)], stats: Object.assign({}, V.stats),
+        net: NET ? { role: NET.role, Dg: +(HOST ? NH.Dg : NG.Dg).toFixed(4), Ds: +NG.Ds.toFixed(4), off: NG.off.map((v) => +v.toFixed(4)), offG: +NG.offG.toFixed(4),
+          err: NG.err.map((e) => +Math.hypot(e[0], e[1]).toFixed(2)), snaps: NG.snaps.length, trn: TRn, buf: NH.buf.length, out: NS.out, outB: NS.outB, inn: NS.inn,
+          stat: JSON.parse(JSON.stringify(NG.stat)), goal: NG.goal ? { pred: NG.goal.pred } : null, hits: DBH.slice() } : null,
+        ai: AI ? { mode: AI.mode, tx: +AI.tx.toFixed(1), ty: +AI.ty.toFixed(1), fx: +AI.F.x.toFixed(1), fy: +AI.F.y.toFixed(1), level: AIA.level,
+          aim: AI.aim ? { x: +AI.aim.x.toFixed(1), y: AI.aim.y, b: AI.aim.b } : null, hitAt: AI.hitAt || 0 } : null
       };
     }
-    return { destroy, pause, resume, snapshot };
+    // trace image par image (tests en ligne) : [temps, palet x, y, poussoir x, y, cible du doigt x, y, phase, manche, drapeaux,
+    //   heure commune (ms), heure montrée du palet (ms), écart de correction en cours]
+    const TRW = 13, TRC = { n: 0, a: NET ? new Float64Array(1200 * TRW) : null };
+    function traceFrame(ts) {
+      const o = (TRC.n % 1200) * TRW, pk = S.pucks.find((q) => q.id === 0), m = S.m[ME], q = IN[ME], A = TRC.a;
+      TRC.n++;
+      A[o] = ts; A[o + 1] = pk ? pk.x : NaN; A[o + 2] = pk ? pk.y : NaN; A[o + 3] = m.x; A[o + 4] = m.y;
+      A[o + 5] = q.has ? q.x : NaN; A[o + 6] = q.has ? q.y : NaN; A[o + 7] = PHI[S.phase]; A[o + 8] = S.round;
+      A[o + 9] = pk ? (pk.locked ? 1 : 0) | (pk.scored ? 2 : 0) | (pk.gone ? 4 : 0) : -1;
+      A[o + 10] = fNow * 1000; A[o + 11] = (fNow + (GUEST ? NG.off[0] : 0)) * 1000; A[o + 12] = GUEST ? Math.hypot(NG.err[0][0], NG.err[0][1]) : 0;
+    }
+    function trace() {
+      const n = Math.min(TRC.n, 1200), out = [];
+      if (!TRC.a) return out;
+      for (let i = TRC.n - n; i < TRC.n; i++) { const o = (i % 1200) * TRW; out.push(Array.from(TRC.a.subarray(o, o + TRW))); }
+      TRC.n = 0;
+      return out;
+    }
+    return { destroy, pause, resume, snapshot, trace };
   }
 
   window.JDW_DUOS = window.JDW_DUOS || {};
@@ -2364,6 +3415,8 @@
     accent: '#5ef0ff',
     target: TARGET,
     layout: 'shared',
+    net: true,                 // jeu en ligne : l'hôte simule, l'invité prédit son poussoir et lisse le reste (api.net)
+    ai: true,                  // contre l'IA (api.ai) : 4 niveaux, elle joue le joueur du haut avec un doigt virtuel
     preview,
     mount
   };

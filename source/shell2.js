@@ -2501,7 +2501,7 @@ function buildDuoLibrary() {
     b.querySelector('.tile-name').textContent = d.title;
     b.querySelector('.duo-emoji').textContent = d.emoji || '⚔️';
     b.addEventListener('click', () => {
-      if (DUEL_WHERE === 'online') { netCreate(d); return; }
+      if (DUEL_WHERE === 'online') { if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } netCreate(d); return; }
       if (aiBlocks(d)) { ensureAiPlayer(); toastCheer('Je ne sais pas encore jouer à ce jeu !', AI_NAME, true); return; }
       openDuo(d);
     });
@@ -2517,10 +2517,12 @@ function buildDuoLibrary() {
 }
 // contre l'IA : seuls les jeux qui savent la faire jouer (ai: true dans le module) ; les autres restent grisés
 const aiBlocks = d => DUEL_WHERE !== 'online' && seatName(1) === AI_NAME && !d.ai;
+// en ligne : seuls les jeux qui ont leur vrai jeu en ligne (net: true, chacun fait tourner la partie) ; pas de vidéo
+const netBlocks = d => DUEL_WHERE === 'online' && !d.net;
 function refreshDuoTiles() {
   for (const t of duoTiles) {
-    const w = pairWins(t.g.id), off = aiBlocks(t.g);
-    t.tag.textContent = off ? 'Bientôt contre l\'IA' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
+    const w = pairWins(t.g.id), noNet = netBlocks(t.g), off = noNet || aiBlocks(t.g);
+    t.tag.textContent = noNet ? 'Bientôt en ligne' : off ? 'Bientôt contre l\'IA' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
     t.tag.classList.toggle('tally', !off && !!(w[0] + w[1]) && !sameSeats());
     t.el.classList.toggle('no-ai', off); t.el.setAttribute('aria-disabled', String(off));
   }
@@ -3432,7 +3434,7 @@ $('jdw-net-cancel').addEventListener('click', () => netEnd(true));
 let netInvite = null;
 function netOnInvite(p) {
   if (cleanName(p.to) !== cleanName(profile.name) || NET.role) return;
-  const d = duoById(p.g); if (!d) return;
+  const d = duoById(p.g); if (!d || !d.net) return;   // jeu pas encore disponible en ligne de ce côté : on ignore
   netInvite = { code: String(p.code || '').slice(0, 12), g: d.id, from: cleanName(p.n) };
   const hd = $('jdw-netinv-head'); hd.textContent = ''; hd.appendChild(chatHead(netInvite.from, { passive: true }));
   $('jdw-netinv-t').textContent = netInvite.from + ' te défie à ' + d.title + (/[!?]\s*$/.test(d.title) ? '' : ' !');

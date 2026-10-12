@@ -167,6 +167,8 @@ Tailles : `&hw=390&hh=780&gw=1280&gh=720` (hôte téléphone, invité PC…) —
 `window.__net` donne `{ host: __duo de l'hôte, guest: __duo de l'invité, sent, lost }`. Vérifie la fluidité chez l'invité (son objet colle
 au doigt, le reste glisse sans saccade), la cohérence (même score, même manche), avec lat 20, 80 et 200, jit 40, loss 5.
 
+Pas de jeu en ligne sans `net: true` : la bibliothèque grise alors la tuile en ligne (« Bientôt en ligne »), il n'y a plus de vidéo.
+
 ## Ajout : jouer contre l'IA
 `api.ai` (absent = deux humains) : `{ p: 1, level: 'facile' | 'moyen' | 'difficile' | 'extreme', k: 0.25 | 0.5 | 0.75 | 1 }`.
 Le joueur `p` (celui du haut) est piloté par TON IA : ignore les doigts dans sa moitié et joue à sa place avec les mêmes règles et la

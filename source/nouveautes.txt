@@ -1,6 +1,5 @@
-Duel contre l'IA : choisis « IA » en haut et son niveau, de Facile à Extrême (méga intelligente)
-L'IA sait déjà jouer à Trouve-le !, Mots mêlés, Canards, Duel spatial, Chat et souris et Casse-briques (le palet et Boum arrivent)
-Duel en ligne bien plus fluide : chaque téléphone fait tourner la partie, sans vidéo (6 jeux, le palet et Boum arrivent)
+Duel contre l'IA dans les 8 duels : choisis « IA » en haut et son niveau, de Facile à Extrême (méga intelligente)
+Duel en ligne fluide dans les 8 duels : chaque téléphone fait tourner la partie, sans vidéo ni décalage
 Pareil sur téléphone, dans l'appli ou dans un navigateur, même sur ordinateur
 Dans une salle, tu ne vois plus que les membres de ta salle
 Plein Gaz : plus de plantage quand le boss explose

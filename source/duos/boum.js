@@ -8,12 +8,15 @@
   // Le terrain est à symétrie centrale parfaite : la case (x, y) et la case
   // (cols-1-x, rows-1-y) sont toujours identiques (même caisse, même bonus caché).
   //
-  // Organisation (prête pour le jeu en ligne) :
+  // Organisation :
   //   1. outils, constantes, PRNG à graine, génération du terrain (pur)
   //   2. simulation pure : newRound(cfg) → état S ; step(S, dt, inputs) ; S.events
+  //   2 bis. jeu en ligne : outils purs (bombe posée pour l'invité, explosion reçue, état complet, lissage des positions)
   //   3. peinture (sprites pré-rendus : sol, piliers, caisses, bombes, flammes, bonus, personnages)
   //   4. vignette (preview)
-  //   5. mount() : mise en page, entrées multi-touch / clavier, boucle, sons, particules, manches
+  //   5. mount() : mise en page, entrées multi-touch / clavier, boucle, sons, particules, manches, réseau (api.net)
+  // En ligne (api.net) : chacun sur son téléphone, même arène logique 11x15 partout ; l'hôte (P0) simule tout et arbitre,
+  // l'invité (P1) bouge sans attendre et prédit le reste (mèches, explosions, caisses, bonus) ; voir « jeu en ligne » dans mount().
   // ===========================================================================
 
   const TAU = Math.PI * 2;
@@ -298,7 +301,7 @@
     if (!b || b.slide >= 0 || b.pass[a.p]) return;
     if (!bombCanEnter(S, nx + DX[d], ny + DY[d], b)) return;
     b.slide = d;
-    S.events.push({ type: 'push', p: a.p, x: nx, y: ny, d });
+    S.events.push({ type: 'push', p: a.p, x: nx, y: ny, d, id: b.id });
   }
   function placeBomb(S, a) {
     if (!a.alive || a.active >= a.bombsMax) return false;
@@ -321,12 +324,12 @@
       if (atC) {
         b.x = rx; b.y = ry;
         tx = rx + DX[d]; ty = ry + DY[d];
-        if (!bombCanEnter(S, tx, ty, b)) { b.slide = -1; S.events.push({ type: 'stop', x: rx, y: ry }); break; }
+        if (!bombCanEnter(S, tx, ty, b)) { b.slide = -1; S.events.push({ type: 'stop', x: rx, y: ry, id: b.id }); break; }
       } else {
         tx = DX[d] > 0 ? Math.ceil(b.x) : DX[d] < 0 ? Math.floor(b.x) : rx;
         ty = DY[d] > 0 ? Math.ceil(b.y) : DY[d] < 0 ? Math.floor(b.y) : ry;
         const ti = cellAt(S, tx, ty);
-        if (ti < 0 || S.cells[ti] !== EMPTY) { b.x = tx - DX[d]; b.y = ty - DY[d]; b.slide = -1; S.events.push({ type: 'stop', x: b.x, y: b.y }); break; }
+        if (ti < 0 || S.cells[ti] !== EMPTY) { b.x = tx - DX[d]; b.y = ty - DY[d]; b.slide = -1; S.events.push({ type: 'stop', x: b.x, y: b.y, id: b.id }); break; }
       }
       const room = Math.abs(tx - b.x) + Math.abs(ty - b.y), st = Math.min(dist, room);
       if (room - st < 1e-4) { b.x = tx; b.y = ty; } else { b.x += DX[d] * st; b.y += DY[d] * st; }
@@ -338,7 +341,10 @@
       for (const o of S.actors) if (o.alive && Math.abs(o.x - b.x) < 0.98 && Math.abs(o.y - b.y) < 0.98) b.pass[o.p] = true;
     }
   }
-  function addFlame(S, i, bits, owner) { S.flameT[i] = FLAME_DUR; S.flameM[i] |= bits; S.flameO[i] = owner; }
+  function addFlame(S, i, bits, owner) {
+    S.flameT[i] = FLAME_DUR; S.flameM[i] |= bits; S.flameO[i] = owner;
+    if (S.burnLog) S.burnLog.push({ i, a: S.t, b: S.t + FLAME_DUR - FLAME_SAFE, o: owner });   // en ligne (hôte) : historique pour juger l'invité
+  }
   function explode(S, b) {
     const k = S.bombs.indexOf(b);
     if (k >= 0) S.bombs.splice(k, 1);
@@ -422,10 +428,11 @@
       if (b.cell !== i) continue;
       S.bombs.splice(k, 1);
       S.actors[b.owner].active = Math.max(0, S.actors[b.owner].active - 1);
-      S.events.push({ type: 'squash', i, x: i % S.cols, y: (i / S.cols) | 0 });
+      S.events.push({ type: 'squash', i, x: i % S.cols, y: (i / S.cols) | 0, id: b.id });
     }
     const x = i % S.cols, y = (i / S.cols) | 0;
-    for (const a of S.actors) if (a.alive && live && Math.round(a.x) === x && Math.round(a.y) === y) hitActor(S, a, 'crush');
+    if (S.landLog) S.landLog.push({ i, t: S.t });                 // en ligne (hôte) : l'invité est jugé quand ses positions arrivent
+    for (const a of S.actors) if (a.alive && live && !a.lagc && Math.round(a.x) === x && Math.round(a.y) === y) hitActor(S, a, 'crush');
     S.events.push({ type: 'land', i, x, y });
   }
   function suddenDeath(S, dt) {
@@ -453,6 +460,7 @@
     else {
       const loser = d0 ? 0 : 1;
       if (S.t - S.hitAt[loser] < DRAW_WIN) return;
+      if (S.waitLag && S.waitLag(loser)) return;                 // en ligne : on attend de savoir si l'invité a aussi été touché
       S.result = { winner: 1 - loser, loser, why: S.actors[loser].why };
       S.actors[1 - loser].win = true;
     }
@@ -481,15 +489,18 @@
       if (!a.alive) { a.deadT += dt; continue; }
       if (!live) { a.moving = false; continue; }
       const inp = (inputs && inputs[a.p]) || NOIN;
-      moveActor(S, a, inp.mx || 0, inp.my || 0, dt);
-      if (inp.bomb) placeBomb(S, a);
+      if (inp.remote) { a.x = inp.x; a.y = inp.y; a.dir = inp.dir; a.moving = inp.moving; }   // en ligne (hôte) : position envoyée par l'invité
+      else {
+        moveActor(S, a, inp.mx || 0, inp.my || 0, dt);
+        if (inp.bomb) placeBomb(S, a);
+      }
       const ci = cellAt(S, Math.round(a.x), Math.round(a.y));
       if (ci >= 0 && S.items[ci] >= 0) pickItem(S, a, ci);
     }
     updateBombs(S, dt, live);
     if (live) {
       for (const a of S.actors) {
-        if (!a.alive) continue;
+        if (!a.alive || a.lagc) continue;                          // a.lagc : l'invité est jugé à l'arrivée de ses positions
         const ci = cellAt(S, Math.round(a.x), Math.round(a.y));
         if (ci >= 0 && S.flameT[ci] > FLAME_SAFE) hitActor(S, a, S.flameO[ci] === a.p ? 'self' : 'flame');
       }
@@ -518,6 +529,670 @@
         if (c === CRATE || bombAtCell(S, i) || S.items[i] >= 0) break;
       }
     }
+  }
+
+  // ===========================================================================
+  // 2 bis. Jeu en ligne — outils purs. L'hôte fait toute la simulation (arbitre) ; l'invité tient un « miroir »
+  // de la manche (même graine) qu'il fait avancer en prédiction, corrigé par les événements fiables de l'hôte.
+  // ===========================================================================
+  const NET_COLS = 11, NET_ROWS = 15;           // arène commune en ligne : la grande arène « portrait » (avec ses consoles), sur tout écran
+  const PFIELD = ['bombsMax', 'range', 'speedLvl', 'push', 'shield'];   // pouvoir modifié par chaque bonus
+  const B36 = '0123456789abcdefghijklmnopqrstuvwxyz';
+  const r3 = (v) => Math.round(v * 1000) / 1000;
+  function powerVal(a, it) { const f = PFIELD[it]; return f ? +a[f] : 0; }   // valeur du pouvoir touché par ce bonus (envoyée telle quelle : idempotent)
+  function setPower(a, it, v) { const f = PFIELD[it]; if (f) a[f] = (it === IT_PUSH || it === IT_SHIELD) ? !!v : (v | 0); }
+  // hôte : bombe de l'invité, posée à la case qu'il annonce (mèche raccourcie du retard du réseau : elle part à la même heure des deux côtés)
+  function placeBombAt(S, a, cx, cy, fuse, g) {
+    if (!a.alive || a.active >= a.bombsMax) return false;
+    const i = cellAt(S, cx, cy);
+    if (i < 0 || S.cells[i] !== EMPTY || bombAtCell(S, i)) return false;
+    const b = { id: S.nextId++, owner: a.p, x: cx, y: cy, cell: i, fuse: clamp(fuse, 0.05, S.P.fuse), fuse0: S.P.fuse, range: a.range, slide: -1, pass: [false, false], t: 0, g };
+    for (const o of S.actors) if (o.alive && Math.abs(o.x - cx) < 0.98 && Math.abs(o.y - cy) < 0.98) b.pass[o.p] = true;
+    S.bombs.push(b);
+    a.active++;
+    S.events.push({ type: 'drop', p: a.p, x: cx, y: cy, id: b.id, g });
+    return true;
+  }
+  function boomCells(S, x, y, reach) {            // cases d'une explosion connue (centre + bras)
+    const out = new Set(), ci = cellAt(S, x, y);
+    if (ci < 0) return out;
+    out.add(ci);
+    for (let d = 0; d < 4; d++) for (let r = 1; r <= reach[d]; r++) { const i = cellAt(S, x + DX[d] * r, y + DY[d] * r); if (i < 0) break; out.add(i); }
+    return out;
+  }
+  // invité : allume les flammes d'une explosion décidée par l'hôte (age = temps déjà écoulé depuis)
+  function applyBoom(S, x, y, owner, reach, ends, age) {
+    const ci = cellAt(S, x, y);
+    if (ci < 0) return;
+    const dur = FLAME_DUR - Math.max(0, age);
+    if (dur > 0) {
+      const lit = (i, bits) => { if (S.flameT[i] < dur) S.flameT[i] = dur; S.flameM[i] |= bits; S.flameO[i] = owner; };
+      lit(ci, 16);
+      for (let d = 0; d < 4; d++) {
+        let prev = ci;
+        for (let r = 1; r <= reach[d]; r++) {
+          const i = cellAt(S, x + DX[d] * r, y + DY[d] * r);
+          if (i < 0) break;
+          S.flameM[prev] |= BIT[d];
+          lit(i, BIT[(d + 2) % 4]);
+          prev = i;
+        }
+      }
+    }
+    for (let d = 0; d < 4; d++) {                 // bombe prise dans le souffle : elle part aussi (son explosion suivra)
+      if (ends[d] !== 2) continue;
+      const i = cellAt(S, x + DX[d] * reach[d], y + DY[d] * reach[d]);
+      const ob = i >= 0 ? bombAtCell(S, i) : null;
+      if (ob && ob.fuse > 0.08) ob.fuse = 0.08;
+    }
+  }
+  // état complet compact (~0,5 Ko) : pour un invité qui arrive en cours de manche
+  function encodeState(S) {
+    let g = '';
+    for (let i = 0; i < S.N; i++) g += B36[S.cells[i] * 6 + S.items[i] + 1];
+    const bk = [], fl = [], fa = [];
+    for (let i = 0; i < S.N; i++) {
+      if (S.cells[i] === BREAKING) bk.push(i, r3(S.breakT[i]));
+      if (S.flameT[i] > 0) fl.push(i, r3(S.flameT[i]), S.flameM[i], S.flameO[i]);
+      if (S.fallen[i]) fa.push(i);
+    }
+    return {
+      t: r3(S.t), g, bk, fl, fa, id: S.nextId,
+      bo: S.bombs.map((b) => [b.id, b.owner, r3(b.x), r3(b.y), r3(b.fuse), b.range, b.slide]),
+      ac: S.actors.map((a) => [r3(a.x), r3(a.y), a.dir, a.alive ? 1 : 0, a.bombsMax, a.active, a.range, a.speedLvl, a.push ? 1 : 0, a.shield ? 1 : 0, r3(a.invul), a.why || '', r3(a.deadT)]),
+      sd: [S.sd.on ? 1 : 0, S.sd.idx, r3(S.sd.timer), S.sd.falling.map((f) => [f.i, r3(f.t)])],
+      re: S.result ? [S.result.winner, S.result.loser, S.result.why] : null, ht: S.hitAt.map(r3)
+    };
+  }
+  function applyState(S, z) {
+    if (!z || typeof z.g !== 'string' || z.g.length !== S.N) return false;
+    for (let i = 0; i < S.N; i++) {
+      const v = B36.indexOf(z.g[i]);
+      if (v < 0) continue;
+      S.cells[i] = (v / 6) | 0; S.items[i] = (v % 6) - 1; S.breakT[i] = 0; S.flameT[i] = 0; S.flameM[i] = 0; S.fallen[i] = 0; S.itemT[i] = 1;
+    }
+    const bk = z.bk || [], fl = z.fl || [];
+    for (let k = 0; k + 1 < bk.length; k += 2) if (bk[k] >= 0 && bk[k] < S.N) S.breakT[bk[k]] = +bk[k + 1] || 0;
+    for (let k = 0; k + 3 < fl.length; k += 4) { const i = fl[k]; if (i >= 0 && i < S.N) { S.flameT[i] = +fl[k + 1] || 0; S.flameM[i] = fl[k + 2] | 0; S.flameO[i] = fl[k + 3] | 0; } }
+    for (const i of z.fa || []) if (i >= 0 && i < S.N) S.fallen[i] = 1;
+    S.t = +z.t || 0; S.nextId = (z.id | 0) || S.nextId;
+    S.bombs = (z.bo || []).map((q) => {
+      const x = +q[2], y = +q[3];
+      return { id: q[0], owner: q[1] ? 1 : 0, x, y, cell: cellAt(S, Math.round(x), Math.round(y)), fuse: +q[4], fuse0: S.P.fuse, range: q[5] | 0, slide: q[6] | 0, pass: [false, false], t: 1 };
+    });
+    (z.ac || []).forEach((q, p) => {
+      const a = S.actors[p];
+      if (!a || !q) return;
+      a.x = +q[0]; a.y = +q[1]; a.dir = q[2] | 0; a.alive = !!q[3]; a.bombsMax = q[4] | 0; a.active = q[5] | 0; a.range = q[6] | 0; a.speedLvl = q[7] | 0;
+      a.push = !!q[8]; a.shield = !!q[9]; a.invul = +q[10] || 0; a.why = q[11] || ''; a.deadT = +q[12] || 0;
+    });
+    if (z.sd) {
+      S.sd.on = !!z.sd[0]; S.sd.idx = z.sd[1] | 0; S.sd.timer = +z.sd[2] || 0;
+      S.sd.order = S.sd.on ? spiralOrder(S.cols, S.rows) : null;
+      S.sd.falling = (z.sd[3] || []).map((f) => ({ i: f[0], t: +f[1] }));
+    }
+    if (z.re) { S.result = { winner: z.re[0], loser: z.re[1], why: z.re[2] }; if (z.re[0] >= 0) S.actors[z.re[0]].win = true; }
+    if (z.ht) S.hitAt = z.ht.slice(0, 2).map(Number);
+    for (const b of S.bombs) for (const a of S.actors) if (a.alive && Math.abs(a.x - b.x) < 0.98 && Math.abs(a.y - b.y) < 0.98) b.pass[a.p] = true;
+    return true;
+  }
+  // trajectoire lissée d'un objet distant : tampon d'états horodatés (horloge commune), lu avec un léger retard adaptatif
+  function mkIp(every) { return { b: [], lat: -1, dev: 0.004, D: -1, every }; }
+  function ipAdd(I, s, now) {
+    const b = I.b;
+    if (b.length && s.c <= b[b.length - 1].c) {             // arrivé dans le désordre : on l'insère à sa place (ou on l'oublie)
+      if (s.c <= b[0].c) return;
+      let k = b.length - 1;
+      while (k > 0 && b[k - 1].c >= s.c) k--;
+      if (b[k].c === s.c) return;
+      b.splice(k, 0, s);
+    } else b.push(s);
+    if (b.length > 48) b.splice(0, b.length - 48);
+    const l = now - s.c;
+    if (I.lat < 0) { I.lat = l; I.dev = 0.004; } else { I.dev += (Math.abs(l - I.lat) - I.dev) * 0.08; I.lat += (l - I.lat) * 0.08; }
+  }
+  function ipTarget(I) { return clamp(I.lat + I.every * 1.25 + I.dev * 2.2 + 0.006, 0.02, 0.8); }
+  function ipAt(I, rt) {                            // position à l'instant rt (interpolation ; courte extrapolation si le tampon est vide)
+    const b = I.b, n = b.length;
+    if (!n) return null;
+    if (rt <= b[0].c || n === 1) return b[0];
+    for (let k = n - 1; k > 0; k--) {
+      const a = b[k - 1], c = b[k];
+      if (rt >= a.c) {
+        if (rt > c.c) break;
+        const f = (rt - a.c) / Math.max(1e-6, c.c - a.c);
+        return { c: rt, x: a.x + (c.x - a.x) * f, y: a.y + (c.y - a.y) * f, d: c.d, m: c.m || a.m };
+      }
+    }
+    const a = b[n - 2], c = b[n - 1], ex = Math.min(rt - c.c, 0.1), dtc = Math.max(1e-3, c.c - a.c);
+    if (!c.m || ex <= 0) return c;
+    return { c: rt, x: c.x + (c.x - a.x) / dtc * ex, y: c.y + (c.y - a.y) / dtc * ex, d: c.d, m: c.m };
+  }
+
+  // ===========================================================================
+  // 2 ter. IA (api.ai : le joueur du haut est piloté par le jeu). Mêmes règles et mêmes vitesses qu'un joueur, sans tricher :
+  // elle ne voit que ce qu'un joueur voit (les bonus cachés dans les caisses lui sont inconnus) et réagit avec un délai humain.
+  // Carte des dangers dans le temps (mèches, réactions en chaîne, flammes, blocs qui tombent, spirale de la mort subite)
+  // → trajets sûrs (avec l'heure de passage dans chaque case) → buts : fuir, bonus, caisses, chasse, pièges, poussées.
+  // ===========================================================================
+  const AI_LV = {
+    // react : délai avant de remarquer une bombe / de voir où est l'autre ; period : temps de réflexion ; margin : marge de sécurité (s)
+    // forget : bombes « pas vues » ; risky : bombe posée sans vérifier la sortie ; wander : buts au hasard ; hesit : hésitations
+    // aggro : envie d'attaquer ; trap : goût des pièges (cases de fuite de l'autre) ; push : pousse les bombes ; mob : garde des sorties ;
+    // sd : connaît la spirale de la mort subite ; depth : nombre de buts « bombe » vérifiés à fond (sortie + piège)
+    facile:    { react: 0.6, period: 0.36, margin: 0.05, forget: 0.7, notice: 0.22, risky: 0.1, wander: 0.45, hesit: 0.2, aggro: 0.12, trap: 0, push: 0, mob: 0, sd: 0, shadow: 0.7, counter: 0, depth: 2 },
+    moyen:     { react: 0.45, period: 0.3, margin: 0.07, forget: 0.5, notice: 0.3, risky: 0.05, wander: 0.3, hesit: 0.15, aggro: 0.3, trap: 0.25, push: 0, mob: 0.2, sd: 0, shadow: 0.62, counter: 0, depth: 2 },
+    difficile: { react: 0.25, period: 0.15, margin: 0.11, forget: 0.05, notice: 0.5, risky: 0, wander: 0, hesit: 0, aggro: 0.8, trap: 1, push: 1, mob: 0.8, sd: 1, shadow: 0.25, counter: 0, depth: 5 },
+    extreme:   { react: 0.15, period: 0.08, margin: 0.16, forget: 0, notice: 0.5, risky: 0, wander: 0, hesit: 0, aggro: 1, trap: 1.6, push: 1, mob: 1.2, sd: 1, shadow: 0.12, counter: 2, depth: 8 }
+  };
+  const AI_SPIRAL = new Map();
+  function aiNew(level, seed) {
+    return { L: AI_LV[level] || AI_LV.moyen, level: AI_LV[level] ? level : 'moyen', rng: mulberry32(seed >>> 0), t: 0, next: 0,
+      path: [], pdep: [], goal: -1, act: '', pushD: -1, pushT: 0, wantBomb: false, hesit: 0, hist: [], forgot: new Map(), nbSeen: -1,
+      stuckT: 0, lastX: -9, lastY: -9, noBomb: new Map(), out: { mx: 0, my: 0, bomb: false }, opp: null, why: '',
+      st: { crate: 0, hit: 0, trap: 0, push: 0, flee: 0 } };
+  }
+  function aiOpp(ai, S, me) {                      // où elle « voit » l'autre : avec son temps de réaction
+    const O = S.actors[1 - me], h = ai.hist;
+    h.push([S.t, O.x, O.y]);
+    while (h.length > 2 && h[1][0] <= S.t - ai.L.react) h.shift();
+    const e = h[0], x = Math.round(e[1]), y = Math.round(e[2]);
+    return { x: e[1], y: e[2], cx: x, cy: y, cell: cellAt(S, x, y), alive: O.alive, speed: speedOf(O) };
+  }
+  function aiBombs(ai, S, me) {                    // les bombes qu'elle a remarquées (et où s'arrêtera une bombe qui glisse)
+    const L = ai.L, out = [];
+    for (const b of S.bombs) {
+      const mine = b.owner === me;
+      if (!mine && b.t < L.react) continue;
+      if (!mine && L.forget) {
+        if (!ai.forgot.has(b.id)) ai.forgot.set(b.id, ai.rng() < L.forget);
+        if (ai.forgot.get(b.id) && b.fuse > (L.notice || 0.45)) continue;
+      }
+      let x = Math.round(b.x), y = Math.round(b.y);
+      if (b.slide >= 0) {
+        for (let k = 0; k < 20; k++) {
+          const i = cellAt(S, x + DX[b.slide], y + DY[b.slide]);
+          if (i < 0 || S.cells[i] !== EMPTY || bombAtCell(S, i)) break;
+          x += DX[b.slide]; y += DY[b.slide];
+        }
+      }
+      out.push({ x, y, ci: cellAt(S, x, y), te: Math.max(0, b.fuse), range: b.range, owner: b.owner });
+    }
+    return out;
+  }
+  // cases d'une explosion (gone : heure à laquelle une caisse / un bonus a disparu, s'il disparaît avant cette explosion)
+  function aiBlast(S, x, y, range, bl, te, gone) {
+    const out = [], ci = cellAt(S, x, y);
+    if (ci < 0) return out;
+    out.push(ci);
+    for (let d = 0; d < 4; d++) {
+      for (let r = 1; r <= range; r++) {
+        const i = cellAt(S, x + DX[d] * r, y + DY[d] * r);
+        if (i < 0) break;
+        const c = S.cells[i], g = gone ? gone.get(i) : undefined, cleared = g !== undefined && g <= te;
+        if (c === PILLAR || c === SOLID) break;
+        if (c === BREAKING && !cleared) break;
+        out.push(i);
+        if (c === CRATE && !cleared) break;
+        if (S.items[i] >= 0 && !cleared) break;
+        let hit = false;
+        for (const o of bl) if (o.ci === i && o.te >= te) { hit = true; break; }
+        if (hit) break;
+      }
+    }
+    return out;
+  }
+  // carte des dangers : pour chaque case, intervalles [début, fin] (s, à partir de maintenant) où elle tue
+  function aiDanger(ai, S, bl) {
+    const N = S.N, L = ai.L, dz = new Array(N).fill(null);
+    const add = (i, a, b) => { (dz[i] || (dz[i] = [])).push(a, b); };
+    for (let i = 0; i < N; i++) if (S.flameT[i] > FLAME_SAFE) add(i, -1, S.flameT[i] - FLAME_SAFE);
+    const list = bl.map((b) => ({ x: b.x, y: b.y, ci: b.ci, te: b.te, range: b.range }));
+    for (let pass = 0; pass < 6; pass++) {         // réactions en chaîne : une bombe dans un souffle part 0,08 s après
+      list.sort((a, b) => a.te - b.te);
+      let ch = false;
+      for (const A of list) {
+        const cells = aiBlast(S, A.x, A.y, A.range, list, A.te, null);
+        for (const B of list) if (B !== A && B.te > A.te + 0.08 && cells.indexOf(B.ci) >= 0) { B.te = A.te + 0.08; ch = true; }
+      }
+      if (!ch) break;
+    }
+    const gone = new Map();                        // caisses brisées / bonus brûlés par les explosions précédentes
+    for (let i = 0; i < N; i++) if (S.cells[i] === BREAKING) gone.set(i, S.breakT[i]);
+    list.sort((a, b) => a.te - b.te);
+    for (const A of list) {
+      const cells = aiBlast(S, A.x, A.y, A.range, list, A.te, gone);
+      for (const i of cells) {
+        add(i, A.te, A.te + FLAME_DUR - FLAME_SAFE);
+        if (!gone.has(i)) { if (S.cells[i] === CRATE) gone.set(i, A.te + BREAK_DUR); else if (S.items[i] >= 0) gone.set(i, A.te); }
+      }
+    }
+    for (const f of S.sd.falling) if (DROP_WARN - f.t >= L.shadow) add(f.i, f.t - 0.08, 1e9);   // ombres des blocs qui tombent (remarquées après shadow s)
+    if (L.sd) {                                    // la spirale qui se referme (le motif se voit) : les prochaines cases à tomber
+      const sd = S.sd;
+      let order = sd.order, idx = sd.idx, timer = sd.timer, t = 0;
+      if (!sd.on) {
+        const w = S.P.sdStart - S.t;
+        if (w > 3.5) order = null;
+        else {
+          const key = S.cols + 'x' + S.rows;
+          if (!AI_SPIRAL.has(key)) AI_SPIRAL.set(key, spiralOrder(S.cols, S.rows));
+          order = AI_SPIRAL.get(key); idx = 0; timer = 0; t = Math.max(0, w);
+        }
+      }
+      for (let g = 0; order && g < 400 && t < 3.2 && idx < order.length; g++) {
+        if (timer > 0) { t += timer; timer = 0; continue; }
+        const i = order[idx++];
+        if (S.cells[i] === PILLAR || S.cells[i] === SOLID) continue;
+        add(i, t + DROP_WARN - 0.1, 1e9);
+        if (N - 1 - i !== i) add(N - 1 - i, t + DROP_WARN - 0.1, 1e9);
+        timer += DROP_EVERY;
+      }
+    }
+    return dz;
+  }
+  function dzHit(dz, i, a, b) { const z = dz[i]; if (!z) return false; for (let k = 0; k < z.length; k += 2) if (z[k] < b && z[k + 1] > a) return true; return false; }
+  function dzFree(dz, i, a) { const z = dz[i]; if (!z) return true; for (let k = 0; k < z.length; k += 2) if (z[k + 1] > a) return false; return true; }
+  function dzNext(dz, i, a) { let m = 1e9; const z = dz[i]; if (z) for (let k = 0; k < z.length; k += 2) if (z[k + 1] > a && z[k] < m) m = z[k]; return m; }
+  // départ au plus tôt de la case i (où l'on est arrivé à l'heure ti) vers la case j, sans brûler : on peut ATTENDRE dans i
+  // qu'une flamme s'éteigne dans j (i doit rester sûre pendant l'attente). e0 / e1 : délais entrée / centre de j après le départ ;
+  // on est dans j de l'entrée jusqu'à une demi-case après son centre.
+  function aiDepart(dz, i, j, ti, e0, e1, half, margin) {
+    let dep = ti;
+    for (let k = 0; k < 4; k++) {
+      const a = dep + e0 - margin, b = dep + e1 + half + margin, z = dz[j];
+      let end = -1;
+      if (z) for (let q = 0; q < z.length; q += 2) if (z[q] < b && z[q + 1] > a && z[q + 1] > end) end = z[q + 1];
+      if (end < 0) break;
+      if (end > 1e8) return -1;                    // bloc tombé : plus jamais
+      dep = end + margin - e0 + 1e-3;
+    }
+    if (dep > ti + 2.5) return -1;
+    if (i >= 0 && dep > ti + 1e-4 && dzHit(dz, i, ti, dep + e0 + margin)) return -1;   // attendre dans i doit être sûr
+    return dep;
+  }
+  // trajets sûrs depuis (x, y) à l'heure t0 : heure d'arrivée au centre de chaque case (avec attentes éventuelles)
+  function aiPaths(S, x, y, t0, v, dz, margin, bl) {
+    const N = S.N, at = new Float32Array(N).fill(1e9), dep = new Float32Array(N).fill(0), from = new Int16Array(N).fill(-1);
+    const rx = Math.round(x), ry = Math.round(y), c0 = cellAt(S, rx, ry), half = 0.5 / v, step = 1 / v;
+    const P = { at, dep, from, c0, half };
+    if (c0 < 0) return P;
+    at[c0] = t0;                                   // on y est déjà
+    const bomb = new Uint8Array(N);
+    for (const b of S.bombs) if (b.cell >= 0) bomb[b.cell] = 1;
+    for (const b of bl) if (b.ci >= 0) bomb[b.ci] = 1;
+    const q = [];
+    // premier pas depuis la position EXACTE (souvent déjà à mi-chemin d'une case voisine) : entrée dans la case voisine =
+    // rejoindre le couloir + atteindre la frontière ; centre = + une demi-case
+    for (let d = 0; d < 4; d++) {
+      const j = cellAt(S, rx + DX[d], ry + DY[d]);
+      if (j < 0 || S.cells[j] !== EMPTY || bomb[j]) continue;
+      const along = (x - rx) * DX[d] + (y - ry) * DY[d], perp = Math.abs((x - rx) * DY[d]) + Math.abs((y - ry) * DX[d]);
+      const e0 = (perp + Math.max(0, 0.5 - along)) / v, e1 = (perp + 1 - along) / v;
+      const t = aiDepart(dz, c0, j, t0, e0, e1, half, margin);
+      if (t < 0) continue;
+      at[j] = t + e1; dep[j] = t; from[j] = c0; q.push(j);
+    }
+    q.sort((a, b) => at[a] - at[b]);
+    for (let h = 0; h < q.length && h < 4000; h++) {   // (une case atteinte plus tôt par un autre chemin est reprise)
+      const i = q[h], cx = i % S.cols, cy = (i / S.cols) | 0;
+      for (let d = 0; d < 4; d++) {
+        const j = cellAt(S, cx + DX[d], cy + DY[d]);
+        if (j < 0 || j === c0 || S.cells[j] !== EMPTY || bomb[j]) continue;
+        if (at[i] + step >= at[j] - 1e-6) continue;
+        const t = aiDepart(dz, i, j, at[i], half, step, half, margin);
+        if (t < 0 || t + step >= at[j] - 1e-6) continue;
+        at[j] = t + step; dep[j] = t; from[j] = i; q.push(j);
+      }
+    }
+    return P;
+  }
+  function aiRoute(P, j) { const r = []; for (let k = j; k >= 0 && k !== P.c0 && r.length < 300; k = P.from[k]) r.push(k); return r.reverse(); }
+  function aiGo(ai, P, j) {                        // suivre le trajet vers j (avec l'heure de départ de chaque étape : attentes)
+    ai.path = j >= 0 && j !== P.c0 ? aiRoute(P, j) : [];
+    ai.pdep = ai.path.map((k) => ai.t + P.dep[k]);
+  }
+  function aiHaven(dz, P, j, margin) { return P.at[j] < 1e9 && dzFree(dz, j, P.at[j] - P.half - margin); }
+  function aiOpen(S, i) {                          // sorties autour d'une case (pour ne pas se faire coincer)
+    let n = 0;
+    const x = i % S.cols, y = (i / S.cols) | 0;
+    for (let d = 0; d < 4; d++) { const j = cellAt(S, x + DX[d], y + DY[d]); if (j >= 0 && S.cells[j] === EMPTY && !bombAtCell(S, j)) n++; }
+    return n;
+  }
+  function aiHunt(S, cell) {                       // distance jusqu'à l'autre (une caisse « coûte » 3 cases : il faudra la casser)
+    const D = new Float32Array(S.N).fill(1e9);
+    if (cell < 0) return D;
+    D[cell] = 0;
+    const q = [cell];
+    for (let h = 0; h < q.length && h < 3000; h++) {
+      const i = q[h], x = i % S.cols, y = (i / S.cols) | 0;
+      for (let d = 0; d < 4; d++) {
+        const j = cellAt(S, x + DX[d], y + DY[d]);
+        if (j < 0) continue;
+        const c = S.cells[j];
+        if (c === PILLAR || c === SOLID) continue;
+        const w = c === CRATE || c === BREAKING ? 3 : 1;
+        if (D[i] + w < D[j]) { D[j] = D[i] + w; q.push(j); }
+      }
+    }
+    return D;
+  }
+  // menace : l'autre peut-il, en moins de ~0,8 s, atteindre une case d'où sa bombe couvrirait la case j ?
+  function aiThreatMap(ai, S, me, bl) {
+    const O = S.actors[1 - me], op = ai.opp;
+    ai.oThreat = null;
+    if (!O.alive || !op || op.cell < 0 || O.active >= O.bombsMax || !ai.L.mob) return;
+    const reach = new Uint8Array(S.N), D = new Float32Array(S.N).fill(1e9), lim = 0.85 * op.speed;
+    D[op.cell] = 0;
+    const q = [op.cell];
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h], x = i % S.cols, y = (i / S.cols) | 0;
+      reach[i] = 1;
+      for (let d = 0; d < 4; d++) {
+        const j = cellAt(S, x + DX[d], y + DY[d]);
+        if (j < 0 || D[j] < 1e9 || S.cells[j] !== EMPTY || bombAtCell(S, j) || D[i] + 1 > lim) continue;
+        D[j] = D[i] + 1; q.push(j);
+      }
+    }
+    ai.oThreat = { reach, range: O.range };
+  }
+  function aiThreat(ai, S, bl, j) {                // pénalité d'une case exposée (cul-de-sac, couloir) à une bombe de l'autre
+    const T = ai.oThreat;
+    if (!T) return 0;
+    let hit = false;
+    for (const k of aiBlast(S, j % S.cols, (j / S.cols) | 0, T.range, bl, 9, null)) if (T.reach[k]) { hit = true; break; }
+    if (!hit) return 0;
+    const o = aiOpen(S, j);
+    return o <= 1 ? -12 * ai.L.mob : o === 2 ? -4 * ai.L.mob : -1 * ai.L.mob;
+  }
+  function aiItemValue(A, it) {
+    if (it === IT_BOMB) return A.bombsMax < 3 ? 1 : A.bombsMax < 5 ? 0.6 : 0.2;
+    if (it === IT_RANGE) return A.range < 4 ? 1 : A.range < 6 ? 0.5 : 0.15;
+    if (it === IT_SPEED) return A.speedLvl < 2 ? 0.9 : A.speedLvl < 3 ? 0.4 : 0.05;
+    if (it === IT_PUSH) return A.push ? 0.05 : 0.6;
+    if (it === IT_SHIELD) return A.shield ? 0.1 : 1;
+    return 0;
+  }
+  // une bombe posée en (cx, cy) à l'heure tc : existe-t-il une sortie sûre ? (renvoie l'abri choisi)
+  function aiEscape(ai, S, me, bl, cx, cy, tc) {
+    const A = S.actors[me], v = speedOf(A), ci = cellAt(S, cx, cy), L = ai.L;
+    const bl2 = bl.concat([{ x: cx, y: cy, ci, te: tc + S.P.fuse, range: A.range, owner: me }]);
+    const best = aiOut(ai, S, me, bl2, cx, cy, tc, v, false);
+    if (!best) return null;
+    // (extrême) et si l'autre répond tout de suite par une bombe là où il est (ou à un pas) ? Elle part avec la nôtre
+    // (réaction en chaîne) : pas question de se retrouver prise en sandwich entre les deux
+    const op = ai.opp, O = S.actors[1 - me];
+    if (L.counter && op && op.alive && op.cell >= 0 && O.active < O.bombsMax && Math.abs(op.cx - cx) + Math.abs(op.cy - cy) <= A.range + O.range + 2) {
+      const cells = [[op.cell, 0]];
+      if (L.counter > 1) {
+        for (let d = 0; d < 4; d++) {
+          const j = cellAt(S, op.cx + DX[d], op.cy + DY[d]);
+          if (j >= 0 && S.cells[j] === EMPTY) cells.push([j, 1 / op.speed]);
+        }
+      }
+      for (const [oc, dt] of cells) {
+        if (oc === ci || bombAtCell(S, oc) || bl2.some((b) => b.ci === oc)) continue;
+        const bl3 = bl2.concat([{ x: oc % S.cols, y: (oc / S.cols) | 0, ci: oc, te: tc + dt + S.P.fuse, range: O.range, owner: 1 - me }]);
+        if (!aiOut(ai, S, me, bl3, cx, cy, tc, v, true)) return null;
+      }
+    }
+    return best;
+  }
+  // l'abri où fuir après une bombe (bl2 la contient) ; (extrême) en écartant les fuites que l'autre peut boucher
+  function aiOut(ai, S, me, bl2, cx, cy, tc, v, quick) {
+    const dz2 = aiDanger(ai, S, bl2);
+    const P2 = aiPaths(S, cx, cy, tc, v, dz2, ai.L.margin, bl2);
+    const hv = [];
+    for (let j = 0; j < S.N; j++) if (j !== P2.c0 && aiHaven(dz2, P2, j, ai.L.margin)) hv.push([j, -P2.at[j] * 6 + aiThreat(ai, S, bl2, j)]);
+    hv.sort((a, b) => b[1] - a[1]);
+    const lim = ai.oT && !quick ? 3 : 1;
+    for (let n = 0; n < hv.length && n < lim; n++) {
+      const j = hv[n][0];
+      if (ai.L.mob >= 0.8 && aiThreat(ai, S, bl2, j) <= -12 * ai.L.mob) continue;   // un cul-de-sac à sa portée
+      if (lim > 1 && !aiRobust(ai, S, me, bl2, P2, j, v)) continue;
+      return { cell: j, P: P2, bl: bl2 };
+    }
+    return null;
+  }
+  // l'autre peut-il arriver AVANT elle sur la case k du chemin (et la boucher d'une bombe) ? (il est vu avec du retard)
+  function aiCutAt(ai, P, k) { return ai.oT[k] < P.at[k] - P.half + ai.L.react + 0.1; }
+  // (extrême) la fuite vers j tient-elle si l'autre pose une bombe sur le chemin, là où il arrive avant elle ?
+  // Elle ne s'en apercevrait qu'avec son temps de réaction : il lui faut alors encore un abri depuis là où elle serait.
+  function aiRobust(ai, S, me, bl, P, j, v) {
+    const O = S.actors[1 - me];
+    if (!ai.oT || O.active >= O.bombsMax) return true;
+    const route = aiRoute(P, j);
+    let n = 0;
+    for (const k of route) {
+      if (!aiCutAt(ai, P, k)) continue;
+      if (++n > 3) return false;
+      const tb = Math.max(0, ai.oT[k]), tn = tb + ai.L.react;
+      let r = P.c0;
+      for (const q of route) { if (q === k || P.at[q] > tn) break; r = q; }
+      const bl3 = bl.concat([{ x: k % S.cols, y: (k / S.cols) | 0, ci: k, te: tb + S.P.fuse, range: O.range, owner: 1 - me }]);
+      const dz3 = aiDanger(ai, S, bl3);
+      const P3 = aiPaths(S, r % S.cols, (r / S.cols) | 0, Math.max(tn, P.at[r]), v, dz3, ai.L.margin, bl3);
+      let ok = false;
+      for (let q = 0; q < S.N && !ok; q++) if (aiHaven(dz3, P3, q, ai.L.margin)) ok = true;
+      if (!ok) return false;
+    }
+    return true;
+  }
+  // heure d'arrivée de l'autre dans chaque case (d'où il est vu)
+  function aiReach(S, op, bl) {
+    const T = new Float32Array(S.N).fill(1e9);
+    if (!op || op.cell < 0) return T;
+    const bomb = new Uint8Array(S.N);
+    for (const b of S.bombs) if (b.cell >= 0) bomb[b.cell] = 1;
+    for (const b of bl) if (b.ci >= 0) bomb[b.ci] = 1;
+    T[op.cell] = 0;
+    const q = [op.cell];
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h], x = i % S.cols, y = (i / S.cols) | 0;
+      for (let d = 0; d < 4; d++) {
+        const j = cellAt(S, x + DX[d], y + DY[d]);
+        if (j < 0 || T[j] < 1e9 || S.cells[j] !== EMPTY || bomb[j]) continue;
+        T[j] = T[i] + 1 / op.speed; q.push(j);
+      }
+    }
+    return T;
+  }
+  // combien d'abris l'autre peut-il encore atteindre (avec cette bombe en plus) ? 0 = il est piégé
+  function aiHavens(ai, S, opp, bl, extra) {
+    const bl2 = extra ? bl.concat([extra]) : bl;
+    const dz2 = aiDanger(ai, S, bl2);
+    const P = aiPaths(S, opp.x, opp.y, 0, opp.speed, dz2, 0, bl2);
+    let n = 0;
+    for (let j = 0; j < S.N; j++) if (aiHaven(dz2, P, j, 0)) n++;
+    return n;
+  }
+  // réflexion : où aller, et que faire en arrivant (poser une bombe, pousser)
+  function aiThink(ai, S, me) {
+    const L = ai.L, A = S.actors[me], v = speedOf(A), op = ai.opp, rng = ai.rng;
+    const bl = aiBombs(ai, S, me), dz = aiDanger(ai, S, bl), P = aiPaths(S, A.x, A.y, 0, v, dz, L.margin, bl);
+    const c0 = P.c0, half = P.half, cols = S.cols;
+    aiThreatMap(ai, S, me, bl);
+    ai.dz = dz; ai.dzT = ai.t;
+    ai.oT = L.counter && ai.opp && ai.opp.alive && S.actors[1 - me].alive ? aiReach(S, ai.opp, bl) : null;
+    ai.act = ''; ai.pushD = -1;
+    if (c0 < 0) { ai.path = []; return; }
+    // Buts possibles = cases ABRIS (sûres pour toujours une fois atteintes) joignables par des passages sûrs dans le temps.
+    // Si sa case va brûler, on choisit parmi eux en privilégiant le plus proche (on peut traverser une case qui brûlera
+    // plus tard : pas de va-et-vient). Aucun abri joignable : fuite « au mieux » (voir plus bas).
+    const danger0 = !dzFree(dz, c0, -0.5);
+    if (L.hesit && !danger0 && rng() < L.hesit) ai.hesit = ai.t + 0.2 + 0.4 * rng();   // (facile) hésite parfois — jamais en danger
+    const O = S.actors[1 - me], oAlive = O.alive && op && op.alive && op.cell >= 0;
+    const canBomb = A.active < A.bombsMax;
+    const sdNear = S.sd.on || S.P.sdStart - S.t < 6, mx = (cols - 1) / 2, my = (S.rows - 1) / 2;
+    const HD = oAlive && L.aggro ? aiHunt(S, op.cell) : null;   // chasse : se rapprocher de l'autre, en cassant les caisses du chemin
+    const oSh = O.shield ? 0.35 : 1;               // un bouclier encaisse une explosion : le piège ne fait que le lui enlever
+    const mdir = A.moving && !danger0 ? A.dir : -1; // élan : faire demi-tour doit en valoir la peine (pas de volte-face pour rien)
+    const cands = [];
+    for (let j = 0; j < S.N; j++) {
+      const tj = P.at[j];
+      if (tj >= 1e9 || !aiHaven(dz, P, j, L.margin)) continue;
+      const jx = j % cols, jy = (j / cols) | 0;
+      let s = -tj * 2, bombV = 0, hitOpp = false;
+      if (S.items[j] >= 0) s += 9 * aiItemValue(A, S.items[j]);
+      if (canBomb && S.cells[j] === EMPTY && !(ai.noBomb.get(j) > S.t)) {
+        let cr = 0, route = 0;
+        for (const i of aiBlast(S, jx, jy, A.range, bl, 9, null)) {
+          if (S.cells[i] === CRATE) { cr++; if (HD && HD[i] < HD[j]) route++; }   // caisse qui barre le chemin vers l'autre
+          if (oAlive && i === op.cell) hitOpp = true;
+        }
+        if (cr) bombV += (3.2 * cr + 2.5 * L.aggro * route) * (S.sd.on ? 0.3 : 1);
+        if (hitOpp) bombV += L.aggro * 12 * oSh;
+      }
+      if (HD && HD[j] < 1e9) s -= L.aggro * 0.9 * HD[j];
+      if (sdNear && L.sd) s -= 1.6 * (Math.abs(jx - mx) + Math.abs(jy - my));
+      if (L.mob) s += L.mob * 0.6 * aiOpen(S, j) + aiThreat(ai, S, bl, j);
+      if (mdir >= 0) {
+        let k = j;
+        while (k !== c0 && P.from[k] >= 0 && P.from[k] !== c0) k = P.from[k];
+        if ((k % cols - A.x) * DX[mdir] + (((k / cols) | 0) - A.y) * DY[mdir] < -0.3) s -= 2.5;
+      }
+      cands.push({ j, s, bombV, hitOpp, tj });
+    }
+    if (!cands.length) {                           // aucun abri joignable : on tente au mieux (marges réduites, sinon là où le danger arrive le plus tard)
+      let best = -1, bs = -1e9, PP = P;
+      for (const m of [L.margin, Math.min(L.margin, 0.05), 0]) {
+        if (m !== L.margin) PP = aiPaths(S, A.x, A.y, 0, v, dz, m, bl);
+        best = -1; bs = -1e9;
+        let haven = false;
+        for (let j = 0; j < S.N; j++) {
+          if (PP.at[j] >= 1e9) continue;
+          const h = aiHaven(dz, PP, j, m);
+          const sc = h ? 100 - PP.at[j] * 10 + aiThreat(ai, S, bl, j) : dzNext(dz, j, PP.at[j]) - PP.at[j] - 50;
+          if (sc > bs) { bs = sc; best = j; haven = h; }
+        }
+        if (haven || m === 0) break;
+      }
+      aiGo(ai, PP, best);
+      ai.goal = best; ai.mode = 'fuite'; ai.act = '';
+      return;
+    }
+    for (const c of cands) c.tot = c.s + c.bombV;
+    cands.sort((a, b) => b.tot - a.tot);
+    // buts « bombe » : il faut une sortie sûre une fois là-bas ; le piège se mesure aux abris qu'il reste à l'autre
+    // (avec les bombes déjà posées et les réactions en chaîne, qui raccourcissent les mèches)
+    const h0 = L.trap && oAlive ? aiHavens(ai, S, op, bl, null) : 99;
+    const evalBomb = (c) => {
+      c.done = true;
+      const jx = c.j % cols, jy = (c.j / cols) | 0;
+      const risky = L.risky && rng() < L.risky;
+      if (!risky && !aiEscape(ai, S, me, bl, jx, jy, c.tj)) { c.tot -= c.bombV; c.bombV = 0; return; }
+      if (L.trap && oAlive && Math.abs(jx - op.cx) + Math.abs(jy - op.cy) <= A.range + 4) {
+        const h = aiHavens(ai, S, op, bl, { x: jx, y: jy, ci: c.j, te: c.tj + S.P.fuse, range: A.range, owner: me });
+        c.trap = h === 0 && !O.shield;
+        const v = (h === 0 ? 30 : Math.max(0, Math.min(h0, 12) - h) * 1.5 + Math.max(0, 5 - h) * 1.5) * L.trap * oSh;
+        c.bombV += v; c.tot += v;
+      }
+    };
+    let checked = 0;
+    for (const c of cands) {
+      if (checked >= L.depth) break;
+      if (!c.bombV) continue;
+      checked++;
+      evalBomb(c);
+    }
+    if (L.trap >= 1 && oAlive && canBomb) {        // (difficile, extrême) les cases au plus près de l'autre : de quoi lui couper la route ?
+      const dist = (c) => Math.abs(c.j % cols - op.cx) + Math.abs(((c.j / cols) | 0) - op.cy);
+      const near = cands.filter((c) => !c.done && S.cells[c.j] === EMPTY && !(ai.noBomb.get(c.j) > S.t) && dist(c) <= A.range + 3);
+      near.sort((a, b) => dist(a) - dist(b));
+      for (const c of near.slice(0, L.trap > 1.2 ? 6 : 3)) evalBomb(c);
+    }
+    cands.sort((a, b) => b.tot - a.tot);
+    if (danger0 && ai.oT) {                        // (extrême) en danger : pas de fuite que l'autre pourrait boucher d'une bombe
+      for (let n = 0; n < cands.length && n < 6; n++) if (!aiRobust(ai, S, me, bl, P, cands[n].j, v)) cands[n].tot -= 60;
+      cands.sort((a, b) => b.tot - a.tot);
+    }
+    let pick = cands[0];
+    // constance : on garde son but tant qu'il tient (pas de va-et-vient entre deux idées qui se valent)
+    if (pick && ai.goal >= 0 && ai.goal !== c0 && ai.goal !== pick.j) {
+      const prev = cands.find((c) => c.j === ai.goal);
+      if (prev && (prev.bombV > 0) === (ai.act === 'bomb') && pick.tot - prev.tot < 3) pick = prev;
+    }
+    if (L.wander && cands.length > 3 && rng() < L.wander * 0.35) pick = cands[(rng() * Math.min(cands.length, 12)) | 0];
+    if (!pick) { ai.path = []; return; }
+    // 3) pousser une bombe vers l'autre (avec le gant), si c'est mieux
+    if (L.push && A.push && oAlive) {
+      const cx = c0 % cols, cy = (c0 / cols) | 0;
+      for (let d = 0; d < 4; d++) {
+        const b = bombAtCell(S, cellAt(S, cx + DX[d], cy + DY[d]));
+        if (!b || b.slide >= 0 || b.pass[me] || b.fuse < 0.5) continue;
+        let x = cx + DX[d], y = cy + DY[d];
+        for (let k = 0; k < 20; k++) {
+          const i = cellAt(S, x + DX[d], y + DY[d]);
+          if (i < 0 || S.cells[i] !== EMPTY || bombAtCell(S, i) || i === op.cell) break;
+          x += DX[d]; y += DY[d];
+        }
+        if (x === cx + DX[d] && y === cy + DY[d]) continue;            // elle ne bougerait pas
+        const blast = aiBlast(S, x, y, b.range, bl, 9, null);
+        if (blast.indexOf(op.cell) < 0 || blast.indexOf(c0) >= 0) continue;
+        const h = aiHavens(ai, S, op, bl.filter((o) => o.ci !== b.cell), { x, y, ci: cellAt(S, x, y), te: b.fuse, range: b.range, owner: b.owner });
+        if (12 * L.aggro + (h === 0 ? 20 : Math.max(0, 6 - h)) > pick.tot) { ai.pushD = d; ai.pushT = ai.t + 0.35; ai.path = []; ai.st.push++; return; }
+      }
+    }
+    ai.goal = pick.j; ai.mode = danger0 ? 'fuite' : 'but';
+    ai.act = pick.bombV > 0 ? 'bomb' : '';
+    aiGo(ai, P, pick.j);
+    // déjà sur place : poser la bombe maintenant
+    if (ai.act === 'bomb' && pick.j === c0 && canBomb && !bombAtCell(S, c0) && S.flameT[c0] <= 0) {
+      const cx = c0 % cols, cy = (c0 / cols) | 0;
+      if ((L.risky && rng() < L.risky) || aiEscape(ai, S, me, bl, cx, cy, 0)) { ai.wantBomb = true; ai.st[pick.trap ? 'trap' : pick.hitOpp ? 'hit' : 'crate']++; }
+      else ai.noBomb.set(c0, S.t + 1.5);
+    }
+  }
+  // une image : l'entrée { mx, my, bomb } du joueur me (comme une manette)
+  function aiTick(ai, S, me, dt) {
+    const L = ai.L, A = S.actors[me], out = ai.out;
+    out.mx = 0; out.my = 0; out.bomb = false;
+    ai.t += dt;
+    ai.opp = aiOpp(ai, S, me);
+    if (!A.alive || S.result) return out;
+    let nb = 0;
+    for (const b of S.bombs) if (b.owner === me || b.t >= L.react) nb++;
+    if (nb !== ai.nbSeen) { ai.nbSeen = nb; ai.next = Math.min(ai.next, ai.t); }   // une bombe de plus (ou de moins) remarquée
+    // bloquée (une bombe, un bloc…) : on repense
+    if (Math.abs(A.x - ai.lastX) + Math.abs(A.y - ai.lastY) > 0.02) { ai.lastX = A.x; ai.lastY = A.y; ai.stuckT = 0; }
+    else if ((ai.path.length && !(ai.pdep[0] > ai.t) || ai.pushD >= 0) && (ai.stuckT += dt) > 0.4) { ai.stuckT = 0; ai.next = ai.t; ai.path = []; }
+    let thought = false;
+    if (ai.t >= ai.next) { aiThink(ai, S, me); ai.next = ai.t + L.period * (0.75 + 0.5 * ai.rng()); thought = true; }
+    if (ai.hesit > ai.t) return out;
+    if (ai.wantBomb) { out.bomb = true; ai.wantBomb = false; }
+    if (ai.pushD >= 0) {
+      if (ai.t > ai.pushT) { ai.pushD = -1; ai.next = ai.t; }
+      else { out.mx = DX[ai.pushD]; out.my = DY[ai.pushD]; return out; }
+    }
+    const cols = S.cols;
+    while (ai.path.length) {                       // case suivante du trajet (on passe à la suivante près de son centre)
+      const k = ai.path[0], kx = k % cols, ky = (k / cols) | 0;
+      if (Math.abs(A.x - kx) + Math.abs(A.y - ky) < (ai.path.length > 1 ? 0.3 : 0.1)) {
+        ai.path.shift(); ai.pdep.shift();
+        if (!ai.path.length) {                     // arrivée : on repense tout de suite, sans marquer d'arrêt
+          if (thought) { ai.next = ai.t; break; }
+          thought = true;
+          aiThink(ai, S, me); ai.next = ai.t + L.period * (0.75 + 0.5 * ai.rng());
+          if (ai.wantBomb) { out.bomb = true; ai.wantBomb = false; }
+          if (ai.pushD >= 0 || ai.hesit > ai.t) break;
+        }
+        continue;
+      }
+      if (ai.pdep[0] > ai.t + 0.01 && ai.dz) {     // en avance sur le plan : on n'attend que si entrer maintenant serait dangereux
+        const tt = ai.t - ai.dzT, dd = Math.abs(A.x - kx) + Math.abs(A.y - ky), v = speedOf(A);
+        if (dzHit(ai.dz, k, tt + Math.max(0, dd - 0.5) / v - L.margin, tt + (dd + 0.5) / v + L.margin)) break;
+      }
+      // réflexe : ne jamais mettre le pied dans une flamme qui brûle encore, ni sous un bloc qui tombe
+      if (Math.abs(A.x - kx) + Math.abs(A.y - ky) < 0.66) {
+        let bad = S.flameT[k] > FLAME_SAFE - 0.02;
+        for (const f of S.sd.falling) if (f.i === k && f.t < 0.2) bad = true;
+        if (bad) break;
+      }
+      const dx = kx - A.x, dy = ky - A.y, l = Math.hypot(dx, dy) || 1;
+      out.mx = dx / l; out.my = dy / l;
+      break;
+    }
+    return out;
   }
 
   // ===========================================================================
@@ -1347,12 +2022,23 @@
     const NAMES = PL.map((p, i) => String((p && p.name) || 'JOUEUR ' + (i + 1)).toUpperCase().slice(0, 12));
     const F = fx();
     let destroyed = false, raf = 0, paused = false;
+    // jeu en ligne : chaque téléphone fait tourner le jeu ; l'hôte (P0) est l'arbitre, l'invité (P1) prédit son personnage
+    const NETAPI = api.net && typeof api.net.send === 'function' && typeof api.net.onMessage === 'function' ? api.net : null;
+    const GUEST = !!NETAPI && (NETAPI.role === 'guest' || NETAPI.me === 1);
+    const HOST = !!NETAPI && !GUEST;
+    const AIP = !NETAPI && api.ai && (api.ai.p === 0 || api.ai.p === 1) ? api.ai : null;   // contre l'IA : ce joueur est piloté par le jeu
+    const SOLO = !!NETAPI || !!AIP;                // un seul joueur humain devant cet écran
+    const ME = NETAPI ? (GUEST ? 1 : 0) : AIP ? 1 - AIP.p : -1, OPP = 1 - ME;
+    const ROT = ME === 1;                          // en ligne, tout est dessiné pour le joueur de CE téléphone (l'invité : tourné, son écran est retourné)
+    const SELF_FLIP = GUEST && !NETAPI.flipped;    // bibliothèque qui ne retourne pas l'écran de l'invité : le jeu retourne son canvas
+    const FLIP = !!(NETAPI && (NETAPI.flipped || SELF_FLIP));   // doigts reçus en coordonnées d'écran : on les retourne
+    const VIEWERS = SOLO ? [ME] : [0, 1];          // à qui s'adressent les grands textes du canvas
     const listeners = [];
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
 
     const canvas = document.createElement('canvas');
     canvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;' +
-      '-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;outline:none;';
+      '-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;outline:none;' + (SELF_FLIP ? 'transform:rotate(180deg);' : '');
     root.appendChild(canvas);
     const ctx = canvas.getContext('2d');
 
@@ -1399,7 +2085,7 @@
     };
     let lastVib = -9;
     function vib(ms) { if (clock - lastVib < 0.12) return; lastVib = clock; try { if (api.vibrate) api.vibrate(ms); } catch (e) { /* rien */ } }
-    function say(text, o) { try { if (api.say) api.say(text, o || {}); } catch (e) { /* rien */ } }
+    function say(text, o) { if (GUEST) return; try { if (api.say) api.say(text, o || {}); } catch (e) { /* rien */ } }   // en ligne, la bibliothèque recopie ceux de l'hôte
 
     // ----------------------------------------------------------------- mise en page et sprites
     let W = 360, H = 640, dpr = 1, T = 30, ox = 0, oy = 0, aw = 0, ah = 0, fr = 10;
@@ -1669,6 +2355,7 @@
       const ev = S.events;
       for (let k = 0; k < ev.length; k++) {
         const e = ev[k];
+        if (HOST) netEv(e);                        // en ligne : l'hôte transmet l'événement à l'invité (lot fiable)
         switch (e.type) {
           case 'drop':
             SFX.drop();
@@ -1946,24 +2633,26 @@
       drawFlames();
     }
     function drawActors() {
-      const ord = S.actors[0].y <= S.actors[1].y ? [0, 1] : [1, 0];
+      if (phase === 'wait') return;
+      const V0 = vpos(0), V1 = vpos(1);            // positions affichées (en ligne : l'adversaire est lissé)
+      const ord = V0.y <= V1.y ? [0, 1] : [1, 0];
       ctx.globalCompositeOperation = 'lighter';    // chaque personnage éclaire le sol à sa couleur
       for (const p of ord) {
-        const a = S.actors[p];
+        const a = S.actors[p], v = vpos(p);
         if (!a.alive || (phase === 'intro' && phaseT < 0.5 + p * 0.12)) continue;
         ctx.globalAlpha = 0.3;
-        ctx.drawImage(F.p[p], X(a.x) - T * 1.15, Y(a.y) - T * 0.85, T * 2.3, T * 2.3);
+        ctx.drawImage(F.p[p], X(v.x) - T * 1.15, Y(v.y) - T * 0.85, T * 2.3, T * 2.3);
       }
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       for (const p of ord) {
-        const a = S.actors[p];
+        const a = S.actors[p], v = vpos(p);
         let drop = null;
         if (phase === 'intro') { drop = clamp((phaseT - 0.5 - p * 0.12) / 0.38, 0, 1); if (drop <= 0) continue; }
         const won = a.win || (lastRes && lastRes.winner === p && phase !== 'intro' && phase !== 'play');
-        drawHero(ctx, X(a.x), Y(a.y), T, {
-          p, body: SPR.body[p], head: SPR.head[p], sad: SPR.sad[p], t: vt + p * 1.3, walk: a.walk, moving: a.moving && phase === 'play',
-          lean: a.moving ? (p === 0 ? DX[a.dir] : -DX[a.dir]) : 0, dead: !a.alive, deadT: a.deadT, why: a.why, win: won,
-          shield: a.shield, invul: a.invul, danger: a.alive && phase === 'play' && dangerAt(a), drop, headH: HEADH
+        drawHero(ctx, X(v.x), Y(v.y), T, {
+          p, body: SPR.body[p], head: SPR.head[p], sad: SPR.sad[p], t: vt + p * 1.3, walk: v.walk, moving: v.moving && phase === 'play',
+          lean: v.moving ? (p === 0 ? DX[v.dir] : -DX[v.dir]) : 0, dead: !a.alive, deadT: a.deadT, why: a.why, win: won,
+          shield: a.shield, invul: a.invul, danger: a.alive && phase === 'play' && dangerAt(v), drop, headH: HEADH
         });
       }
     }
@@ -1972,24 +2661,28 @@
       fn(); ctx.restore();
     }
     function drawMarkers() {
-      if (phase === 'intro' && phaseT > 0.85) {    // « TOI » au-dessus de chaque personnage
+      if (phase === 'intro' && phaseT > 0.85) {    // « TOI » au-dessus de chaque personnage (en ligne : TOI sur le mien, le nom de l'autre)
         const a = clamp((phaseT - 0.85) / 0.25, 0, 1) * clamp((introDur + 0.3 - phaseT) / 0.3, 0, 1);
         for (let p = 0; p < 2; p++) {
-          const A = S.actors[p];
+          const A = vpos(p);
           drawLocal(p, X(A.x), Y(A.y), () => {
             const b = Math.abs(Math.sin(vt * 5)) * T * 0.16;
             ctx.globalAlpha = a;
             ctx.fillStyle = PCOL[p]; ctx.strokeStyle = '#05080c'; ctx.lineWidth = 3;
             const yy = -(HEADH + 0.32) * T - b;
             poly(ctx, [-T * 0.2, yy - T * 0.18, T * 0.2, yy - T * 0.18, 0, yy + T * 0.08]); ctx.stroke(); ctx.fill();
-            txtOut(ctx, 'TOI', 0, yy - T * 0.48, Math.round(clamp(T * 0.5, 12, 22)), PCOL[p], FD, 'center', 4);
+            if (SOLO && p !== ME) {                // en ligne / contre l'IA : le nom de l'adversaire, lisible pour moi
+              const nm = NAMES[p].length > 8 ? NAMES[p].slice(0, 8) : NAMES[p];
+              ctx.translate(0, yy - T * 0.48); ctx.rotate(Math.PI);
+              txtOut(ctx, nm, 0, 0, Math.round(clamp(T * 0.42, 11, 19)), PCOL[p], FD, 'center', 4);
+            } else txtOut(ctx, 'TOI', 0, yy - T * 0.48, Math.round(clamp(T * 0.5, 12, 22)), PCOL[p], FD, 'center', 4);
             ctx.globalAlpha = 1;
           });
         }
       }
       if ((phase === 'end' || phase === 'over') && lastRes) {
         for (let p = 0; p < 2; p++) {
-          const A = S.actors[p];
+          const A = vpos(p);
           const won = lastRes.winner === p;
           drawLocal(p, X(A.x), Y(A.y), () => {
             const k = clamp(endT / 0.35, 0, 1);
@@ -2085,7 +2778,7 @@
         const x = clamp(m[0], ox + fs * 1.6, ox + aw - fs * 1.6);
         const y = clamp(m[1], oy + fs * 0.8, oy + ah - fs * 0.8);
         ctx.globalAlpha = Math.min(1, k * 3);
-        drawLocal(t.p, x, y, () => {
+        drawLocal(SOLO ? ME : t.p, x, y, () => {    // en ligne / contre l'IA : tous les textes à l'endroit pour le joueur
           ctx.scale(sc, sc);
           txtOut(ctx, t.s, 0, 0, Math.round(clamp(T * 0.5, 12, 24) * t.size), t.col, FD, 'center', Math.max(3, T * 0.13));
         });
@@ -2115,7 +2808,7 @@
     // rayons de victoire qui tournent derrière le gagnant
     function drawRays() {
       if (!(phase === 'end' || phase === 'over') || !lastRes || lastRes.winner < 0) return;
-      const A = S.actors[lastRes.winner], x = X(A.x), y = Y(A.y) + (A.p ? 0.45 : -0.45) * T;
+      const A = vpos(lastRes.winner), x = X(A.x), y = Y(A.y) + (lastRes.winner === 1 ? 0.45 : -0.45) * T;
       const k = clamp(endT / 0.5, 0, 1), R = T * (2.2 + 1.4 * easeOut(k)), n = 12, rot = vt * 0.6;
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.5 * k;
@@ -2137,7 +2830,7 @@
       if (a <= 0.01) return;
       ctx.beginPath();
       ctx.rect(ox - fr, oy - fr, aw + fr * 2, ah + fr * 2);
-      for (const A of S.actors) { const x = X(A.x), y = Y(A.y) + (A.p ? 0.3 : -0.3) * T; ctx.moveTo(x + T * 1.6, y); ctx.arc(x, y, T * 1.6, 0, TAU, true); }
+      for (const A0 of S.actors) { const A = vpos(A0.p), x = X(A.x), y = Y(A.y) + (A0.p ? 0.3 : -0.3) * T; ctx.moveTo(x + T * 1.6, y); ctx.arc(x, y, T * 1.6, 0, TAU, true); }
       ctx.fillStyle = 'rgba(2,5,9,' + a.toFixed(3) + ')';
       ctx.fill('evenodd');
     }
@@ -2286,7 +2979,7 @@
         act = true;
         bx = p ? W - st.bx : st.bx; by = p ? H - st.by : st.by; kx = p ? W - st.kx : st.kx; ky = p ? H - st.ky : st.ky;
       } else {
-        const kv = kbVec(p);
+        const kv = NETAPI ? kbNet() : kbVec(p);
         if (kv[0] || kv[1]) { const l = Math.hypot(kv[0], kv[1]); kx = bx + (p ? -1 : 1) * kv[0] / l * ctl.R * 0.6; ky = by + (p ? -1 : 1) * kv[1] / l * ctl.R * 0.6; }
       }
       drawInfo(p);
@@ -2294,12 +2987,92 @@
       drawStick(p, bx, by, kx, ky, act);
       ctx.restore();
     }
+    // en ligne : petite rangée de pouvoirs (comme dans drawInfo)
+    function chipsRow(p, x, y, w, cs) {
+      const A = S.actors[p];
+      const chips = [[IT_BOMB, A.bombsMax], [IT_RANGE, A.range], [IT_SPEED, 1 + A.speedLvl]];
+      if (A.push) chips.push([IT_PUSH, -1]);
+      if (A.shield) chips.push([IT_SHIELD, -1]);
+      let cx = x, cy = y;
+      for (const [it, n] of chips) {
+        const cw = cs + (n >= 0 ? cs * 0.62 : 0) + 6;
+        if (cx + cw > x + w + 4) { cx = x; cy += cs + 6; }
+        ctx.drawImage(SPR.mini[it].cv, cx, cy - cs / 2, cs, cs);
+        if (n >= 0) txtOut(ctx, String(n), cx + cs + 2, cy + 1, Math.round(cs * 0.62), '#e9f0f3', FD, 'left', 3);
+        cx += cw;
+      }
+    }
+    const AI_TAG = { facile: ['FACILE', '#4cc36a'], moyen: ['MOYEN', '#ffd34d'], difficile: ['DIFFICILE', '#ff7a3c'], extreme: ['EXTRÊME', '#ff4d5e'] };
+    function drawTag(x, y, s) {                    // à droite de la carte : le réseau (en ligne) ou le niveau de l'IA
+      if (!AIP) { drawPing(x, y, s); return; }
+      const lv = AI_TAG[AIP.level] || AI_TAG.moyen, n = ['facile', 'moyen', 'difficile', 'extreme'].indexOf(AIP.level) + 1 || 2;
+      const fs = Math.round(s);
+      ctx.font = fs + 'px ' + FD;
+      const tw = ctx.measureText(lv[0]).width, bw = Math.max(2, s * 0.22);
+      let bx = x - tw - bw * 6 - 10;
+      for (let i = 0; i < 4; i++) {
+        const h = s * (0.35 + i * 0.22);
+        ctx.fillStyle = i < n ? lv[1] : 'rgba(255,255,255,0.16)';
+        ctx.fillRect(bx, y + s * 0.5 - h, bw, h);
+        bx += bw * 1.5;
+      }
+      txtOut(ctx, lv[0], x, y + 1, fs, lv[1], FD, 'right', 3);
+    }
+    function drawPing(x, y, s) {                   // qualité du réseau : 3 barres + aller-retour en ms (aligné à droite sur x)
+      const ms = Math.round(nrtt() * 1000), col = ms < 120 ? '#4cc36a' : ms < 250 ? '#ffd34d' : '#ff4d5e', lv = ms < 120 ? 3 : ms < 250 ? 2 : 1;
+      const label = ms + ' ms', fs = Math.round(s);
+      ctx.font = fs + 'px ' + FB;
+      const tw = ctx.measureText(label).width, bw = Math.max(2, s * 0.22);
+      let bx = x - tw - bw * 3 - 10;
+      for (let i = 0; i < 3; i++) {
+        const h = s * (0.4 + i * 0.3);
+        ctx.fillStyle = i < lv ? col : 'rgba(255,255,255,0.16)';
+        ctx.fillRect(bx, y + s * 0.5 - h, bw, h);
+        bx += bw * 1.5;
+      }
+      txtOut(ctx, label, x, y + 1, fs, '#8aa0ae', FB, 'right', 0);
+    }
+    // en ligne : la bande de l'adversaire (à l'endroit pour moi) : sa tête, son nom, ses pouvoirs, le réseau — pas de manette
+    function drawOppCard() {
+      const p = OPP;
+      ctx.save();
+      if (ROT) { ctx.translate(W, H); ctx.rotate(Math.PI); }
+      if (!ctl.land) {
+        const bh = H - ctl.y0, cy = bh / 2;        // bande du haut, symétrique de la mienne
+        const ph = Math.round(clamp(bh * 0.62, 34, 64));
+        const px = Math.max(ctl.sx - ctl.R * 0.2, 16 + ph * 0.42);
+        drawPortrait(p, px, cy, ph);
+        const x = px + ph * 0.62, w = W - 16 - x;
+        const ns = Math.round(clamp(bh * 0.19, 12, 18));
+        ctx.font = ns + 'px ' + FD;
+        let nm = NAMES[p];
+        while (nm.length > 3 && ctx.measureText(nm).width > w * 0.6) nm = nm.slice(0, -1);
+        txtOut(ctx, nm, x, cy - ns * 0.72, ns, PCOL[p], FD, 'left', 3);
+        drawTag(W - 18, cy - ns * 0.72, Math.max(10, ns * 0.68));
+        chipsRow(p, x, cy + ns * 0.62, w, Math.round(clamp(bh * 0.2, 16, 22)));
+      } else {
+        const x0 = 12, w = ctl.mw - 24, top = 18, bot = H / 2 - 48;   // marge de gauche, moitié du haut (loin du bouton menu)
+        const ph = Math.round(clamp(Math.min(w * 0.45, (bot - top) * 0.42), 34, 96));
+        const ns = Math.round(clamp(w / 9.5, 11, 17)), cs = Math.round(clamp(w / 8, 16, 24));
+        let y = top + ph * 0.55;
+        drawPortrait(p, x0 + w / 2, y, ph);
+        y += ph * 0.55 + ns * 0.9;
+        ctx.font = ns + 'px ' + FD;
+        let nm = NAMES[p];
+        while (nm.length > 3 && ctx.measureText(nm).width > w) nm = nm.slice(0, -1);
+        txtOut(ctx, nm, x0 + w / 2, y, ns, PCOL[p], FD, 'center', 3);
+        y += ns * 1.5;
+        if (y + cs < bot) chipsRow(p, x0, y, w, cs);
+        if (y + cs * 2.2 < bot) drawTag(x0 + w, bot - 6, Math.max(10, ns * 0.7));
+      }
+      ctx.restore();
+    }
 
     // ----------------------------------------------------------------- écrans par-dessus (décompte, consignes, pause, transitions)
     function drawCount(label, k) {
       const size = Math.round(clamp(Math.min(W, H) * 0.22, 52, 120));
       const go = label === 'GO !';
-      for (let p = 0; p < 2; p++) {
+      for (const p of VIEWERS) {
         ctx.save();
         if (p) { ctx.translate(W, H); ctx.rotate(Math.PI); }
         const cx = W / 2, cy = H * 0.75;
@@ -2324,7 +3097,7 @@
       }
     }
     function drawPanel(lines, a, title) {
-      for (let p = 0; p < 2; p++) {
+      for (const p of VIEWERS) {
         ctx.save();
         if (p) { ctx.translate(W, H); ctx.rotate(Math.PI); }
         ctx.globalAlpha = a;
@@ -2412,6 +3185,7 @@
         const a = clamp((phaseT - 0.35) / 0.25, 0, 1) * clamp((introDur - 0.15 - phaseT) / 0.3, 0, 1);
         if (a > 0) drawPanel(bannerTxt || [], a, bannerTitle);
       }
+      if (phase === 'wait') drawPanel([GUEST ? 'Connexion à la partie…' : 'En attente de l’adversaire…'], clamp(waitT * 3, 0, 1), 'EN LIGNE');
       // décompte
       let cl = null, ck = 0;
       if (resumeT > 0) { const n = Math.ceil(resumeT / 0.5); cl = String(Math.min(3, n)); ck = 1 - (resumeT - (n - 1) * 0.5) / 0.5; }
@@ -2428,7 +3202,7 @@
       // pause
       if (paused) {
         ctx.fillStyle = 'rgba(3,6,10,0.62)'; ctx.fillRect(0, 0, W, H);
-        for (let p = 0; p < 2; p++) {
+        for (const p of VIEWERS) {
           ctx.save();
           if (p) { ctx.translate(W, H); ctx.rotate(Math.PI); }
           txtOut(ctx, 'PAUSE', W / 2, H * 0.75, Math.round(clamp(W * 0.12, 30, 60)), '#ffffff', FD, 'center', 6);
@@ -2457,8 +3231,8 @@
       ctx.restore();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       drawTexts();
-      drawHud(0);
-      drawHud(1);
+      if (SOLO) { drawHud(ME); drawOppCard(); }    // en ligne / contre l'IA : mes commandes + la carte de l'adversaire
+      else { drawHud(0); drawHud(1); }
       drawOverlays();
     }
 
@@ -2477,7 +3251,16 @@
       press[p] = 1;
       if (phase === 'play' && !paused && resumeT <= 0) inputs[p].bomb = true;
     }
-    function localXY(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+    function kbNet() {                             // en ligne : toutes les touches pilotent mon personnage, dans le sens de MON écran
+      let x = 0, y = 0;
+      for (const k of keys) { const m = KEYMAP[k]; if (m) { x += DX[m[1]]; y += DY[m[1]]; } }
+      x = clamp(x, -1, 1); y = clamp(y, -1, 1);
+      return ROT ? [-x, -y] : [x, y];
+    }
+    function localXY(e) {
+      const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      return FLIP ? [W - x, H - y] : [x, y];       // écran retourné par la bibliothèque (invité) : on revient dans le repère du jeu
+    }
     function updStick(s) {
       const R = ctl.R;
       let dx = s.kx - s.bx, dy = s.ky - s.by;
@@ -2490,14 +3273,15 @@
       if (e.cancelable) e.preventDefault();
       if (paused) return;
       const [x, y] = localXY(e);
-      const p = y >= H / 2 ? 0 : 1;
+      const p = NETAPI ? ME : y >= H / 2 ? 0 : 1;   // en ligne, tout l'écran est à moi
+      if (AIP && p === AIP.p) return;              // contre l'IA : sa moitié ne répond pas aux doigts
       const stickSide = p === 0 ? x < W / 2 : x > W / 2;
       try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ }
       if (stickSide) {
         const s = sticks[p], R = ctl.R;
         s.id = e.pointerId;
         s.bx = clamp(x, R + 4, W - R - 4);
-        s.by = p === 0 ? clamp(y, H / 2 + R * 0.5, H - R - 4) : clamp(y, R + 4, H / 2 - R * 0.5);
+        s.by = NETAPI ? clamp(y, R + 4, H - R - 4) : p === 0 ? clamp(y, H / 2 + R * 0.5, H - R - 4) : clamp(y, R + 4, H / 2 - R * 0.5);
         s.kx = x; s.ky = y;
         updStick(s);
         ptrs.set(e.pointerId, { p, role: 0 });
@@ -2526,27 +3310,635 @@
       const tg = e.target;
       if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable)) return;
       const k = String(e.key || '').toLowerCase();
-      if (k === ' ' || k === 'spacebar' || k === 'enter') { e.preventDefault(); if (!e.repeat) pressBomb(0); return; }
-      if (k === 'e') { if (!e.repeat) pressBomb(1); return; }
+      if (k === ' ' || k === 'spacebar' || k === 'enter') { e.preventDefault(); if (!e.repeat && !(AIP && AIP.p === 0)) pressBomb(NETAPI ? ME : 0); return; }
+      if (k === 'e') { if (!e.repeat && !(AIP && AIP.p === 1)) pressBomb(NETAPI ? ME : 1); return; }
       if (KEYMAP[k]) { e.preventDefault(); keys.add(k); }
     }
     function onKeyUp(e) { keys.delete(String(e.key || '').toLowerCase()); }
     function onBlur() { keys.clear(); }
     function setInputs() {
+      if (NETAPI) {
+        const st = sticks[ME], inp = inputs[ME];
+        if (st.id != null) { inp.mx = st.vx; inp.my = st.vy; } else { const v = kbNet(); inp.mx = v[0]; inp.my = v[1]; }
+        return;
+      }
       for (let p = 0; p < 2; p++) {
+        if (AIP && p === AIP.p) continue;          // contre l'IA : ses entrées viennent de aiTick()
         const st = sticks[p];
         if (st.id != null) { inputs[p].mx = st.vx; inputs[p].my = st.vy; }
         else { const v = kbVec(p); inputs[p].mx = v[0]; inputs[p].my = v[1]; }
       }
     }
 
+    // ----------------------------------------------------------------- jeu en ligne (api.net)
+    // Hôte (P0) : fait toute la simulation ; reçoit la position de l'invité (~60/s, acceptée si vraisemblable) et ses bombes
+    //   (fiable, posées à la case annoncée) ; envoie ~30/s sa position + son horloge de simulation, et chaque image un lot
+    //   FIABLE d'événements (bombe posée avec heure d'explosion, explosion + cases, caisse, bonus, mort, point, mort subite…).
+    //   L'invité est jugé à l'heure où il était là (compensation de latence) : un historique des flammes et des blocs tombés.
+    // Invité (P1) : son personnage bouge tout de suite (mêmes règles, sur un « miroir » de la manche créé avec la même graine) ;
+    //   ce miroir avance tout seul (mèches, explosions, caisses, bonus, mort subite) calé sur l'horloge de l'hôte, et chaque
+    //   événement de l'hôte confirme ou corrige la prédiction. Il n'appelle jamais api.point ni api.say.
+    const PH = { wait: 'w', intro: 'i', play: 'p', end: 'e', over: 'o' };
+    let netR = 0, curBan = 0, waitT = 0, stAcc = 0, stN = 0, posAcc = 0, netQ = 1;
+    let aiS = null;                                // contre l'IA : son état (une par manche)
+    const inbox = [];                              // messages reçus, traités dans update() dans l'ordre d'arrivée
+    const outEv = [];                              // hôte : événements de l'image, envoyés en un lot fiable
+    const ip = mkIp(GUEST ? 1 / 30 : 1 / 60);       // positions reçues de l'adversaire (lissage)
+    const view = [null, null];                     // position AFFICHÉE de chaque personnage (null : celle de la simulation)
+    // hôte
+    const remoteIn = { remote: true, x: 0, y: 0, dir: 1, moving: false };
+    const hostIn = [inputs[0], remoteIn];
+    let gLast = null, gSeenT = -1, gArr = -1, gRejT = -1, gCorrT = -9;
+    const gMap = new Map();                        // numéro d'une bombe chez l'invité → numéro chez l'hôte
+    // invité
+    let tErr = 0, lastSt = null, lastW = null, lastEvC = -1, frozen = -1, gseq = 0, helloAt = -9, resyncAt = -9, resync = false, cBatchT = -1;
+    let cset = new Set(), uset = new Set();        // caisses cassées / bonus brûlés annoncés par le lot d'événements en cours
+    const pred = new Map();                        // explosions prédites, en attente de l'hôte (id → {x, y, reach, ends, crates, burns, t})
+    const pendPick = new Map();                    // bonus ramassés en prédiction (case → {it, v : valeur d'avant, t})
+    const predLand = new Map();                    // blocs de mort subite tombés en prédiction (case → contenu d'avant)
+    const NST = { fix: 0, crate: 0, undo: 0, corr: 0, rej: 0, nbomb: 0, warp: 0, freeze: 0, unfreeze: 0, lagko: 0 };   // compteurs (tests)
+
+    function nnow() { try { const v = Number(NETAPI.now()); if (isFinite(v)) return v / 1000; } catch (e) { /* rien */ } return performance.now() / 1000; }
+    // heure commune DE L'IMAGE (calée sur l'horodatage de requestAnimationFrame) : positions envoyées et affichées
+    // aux mêmes instants que les images → mouvement parfaitement régulier, quel que soit le moment du calcul dans l'image
+    let clkOff = null, fNow = 0;
+    function frameClock(ms) {
+      const o = nnow() - ms / 1000;
+      if (clkOff == null || Math.abs(o - clkOff) > 0.25) clkOff = o; else clkOff += (o - clkOff) * 0.02;
+      fNow = ms / 1000 + clkOff;
+    }
+    function nsend(m, rel) { try { NETAPI.send(m, { reliable: !!rel }); } catch (e) { /* rien */ } }
+    function nrtt() { try { const v = Number(NETAPI.rtt()); if (isFinite(v) && v >= 0) return v / 1000; } catch (e) { /* rien */ } return 0.15; }
+    function vpos(p) { return view[p] || S.actors[p]; }   // où dessiner le personnage p
+
+    // ---- hôte
+    function hostRoundStart() {
+      netR++;
+      S.burnLog = []; S.landLog = [];
+      S.actors[1].lagc = true;                     // l'invité est jugé quand ses positions arrivent (à l'heure où il y était)
+      S.waitLag = waitLag;
+      gLast = null; gSeenT = -1; gArr = -1; gRejT = -1; gMap.clear();
+      const B = S.actors[1];
+      remoteIn.x = B.x; remoteIn.y = B.y; remoteIn.dir = B.dir; remoteIn.moving = false;
+      ip.b.length = 0; view[0] = view[1] = null;
+      nsend(roundMsg(false), true);
+    }
+    function roundMsg(withState) {
+      const m = { k: 'R', r: netR, seed: S.seed, n: S.round, ban: curBan, c: Math.round(nnow() * 1000), ph: PH[phase] || 'i', pt: r3(phaseT) };
+      if (withState) m.z = encodeState(S);
+      return m;
+    }
+    function waitLag(loser) {                      // l'hôte est touché : l'invité l'a-t-il été aussi (égalité) ? on attend ses positions
+      if (loser !== 0 || !S.actors[1].alive) return false;
+      return gSeenT < S.hitAt[0] + DRAW_WIN && S.t - S.hitAt[0] < DRAW_WIN + 0.8;
+    }
+    function hostNet() {
+      for (let k = 0; k < inbox.length; k++) {
+        const m = inbox[k];
+        try {
+          if (m.k === 'H') { if (phase === 'wait') startRound(false); else nsend(roundMsg(phase !== 'intro'), true); continue; }
+          if (m.r !== netR) continue;
+          if (m.k === 'p') hostPos(m);
+          else if (m.k === 'B') hostBomb(m);
+          else if (m.k === 'P') hostPush(m);
+        } catch (e) { /* message abîmé : ignoré */ }
+      }
+      inbox.length = 0;
+      if (S.burnLog) {
+        while (S.burnLog.length && S.burnLog[0].b < S.t - 2.5) S.burnLog.shift();
+        while (S.landLog.length && S.landLog[0].t < S.t - 2.5) S.landLog.shift();
+      }
+      // plus de nouvelles de l'invité depuis 0,6 s : il est jugé sur sa dernière position connue
+      S.actors[1].lagc = !(phase === 'play' && gArr >= 0 && nnow() - gArr > 0.6);
+    }
+    // la case où il se tient doit être libre (une caisse qui finit de se briser est tolérée : petit décalage d'horloge) ;
+    // la case qu'il chevauche ne peut pas être un pilier ni une caisse (un bloc tombé à côté de lui, oui : il n'est pas écrasé)
+    function walkable(x, y, t) {
+      const rx = Math.round(x), ry = Math.round(y), i0 = cellAt(S, rx, ry);
+      if (i0 < 0) return false;
+      const c0 = S.cells[i0];
+      const lateBlock = c0 === SOLID && S.landLog.some((L) => L.i === i0 && L.t > t);   // bloc tombé APRÈS cette position : la case était libre
+      if (c0 !== EMPTY && !(c0 === BREAKING && S.breakT[i0] < 0.12) && !lateBlock) return false;
+      const ox2 = Math.abs(x - rx) < 0.03 ? rx : (x > rx ? rx + 1 : rx - 1), oy2 = Math.abs(y - ry) < 0.03 ? ry : (y > ry ? ry + 1 : ry - 1);
+      const i1 = cellAt(S, ox2, oy2);
+      if (i1 < 0) return false;
+      const c1 = S.cells[i1];
+      return c1 !== PILLAR && c1 !== CRATE;
+    }
+    function reject() {                            // position refusée ; si l'invité s'obstine (prédiction fausse), on le recale
+      const now = nnow();
+      NST.rej++;
+      if (gRejT < 0) gRejT = now;
+      if (now - gRejT > 0.25 && now - gCorrT > 0.6) {
+        gCorrT = now;
+        const B = S.actors[1];
+        nsend({ k: 'C', r: netR, x: r3(B.x), y: r3(B.y) }, true);
+      }
+    }
+    function remoteHit(x, y, t, why) {             // l'invité touché à l'heure t (renvoie vrai s'il est mort)
+      const B = S.actors[1];
+      if (!B.alive || S.result) return true;
+      const px = B.x, py = B.y;
+      B.x = x; B.y = y;
+      hitActor(S, B, why);
+      if (!B.alive) { S.hitAt[1] = Math.min(S.t, t); remoteIn.x = x; remoteIn.y = y; remoteIn.moving = false; NST.lagko++; return true; }
+      B.x = px; B.y = py;                          // bouclier : toujours debout
+      return false;
+    }
+    // trajet de l'invité depuis sa dernière position : flammes et blocs rencontrés À L'HEURE où il y était
+    function lagSweep(a, b) {
+      const dist = Math.abs(b.x - a.x) + Math.abs(b.y - a.y), n = Math.max(1, Math.min(40, Math.ceil(dist / 0.2)));
+      for (let k = gLast ? 1 : 0; k <= n; k++) {
+        const f = k / n, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f, t = a.t + (b.t - a.t) * f;
+        const ci = cellAt(S, Math.round(x), Math.round(y));
+        if (ci < 0) continue;
+        for (const L of S.landLog) if (L.i === ci && t >= L.t - 1e-4 && t <= L.t + 0.25) { remoteHit(x, y, L.t, 'crush'); return true; }
+        for (const B of S.burnLog) {
+          if (B.i !== ci || t < B.a - 1e-4 || t >= B.b) continue;
+          if (remoteHit(x, y, t, B.o === 1 ? 'self' : 'flame')) return true;
+        }
+      }
+      return false;
+    }
+    function hostPos(m) {
+      const B = S.actors[1];
+      const x = +m.x, y = +m.y, t = +m.t;
+      if (!isFinite(x) || !isFinite(y) || !isFinite(t) || !isFinite(m.c)) return;
+      if (phase !== 'play' || !B.alive || S.result) return;
+      if (gLast && t <= gLast.t) return;          // arrivée dans le désordre : déjà dépassée
+      gSeenT = Math.max(gSeenT, t); gArr = m.at;
+      const from = gLast || { x: B.x, y: B.y, t: 0 };
+      // 1) vraisemblance : dans l'arène, sur un couloir, pas plus vite que ses chaussures
+      const inb = x >= -0.01 && y >= -0.01 && x <= S.cols - 0.99 && y <= S.rows - 0.99;
+      const lane = Math.min(Math.abs(x - Math.round(x)), Math.abs(y - Math.round(y))) < 0.03;
+      const vmax = BASE_SPEED + SPEED_STEP * Math.min(MAX_SPEED, B.speedLvl + 1);
+      const far = Math.abs(x - from.x) + Math.abs(y - from.y) > vmax * Math.max(0, t - from.t) * 1.3 + 0.35;
+      if (!inb || !lane || far) { reject(); return; }
+      // 2) flammes / blocs sur le trajet (compensation de la latence)
+      if (lagSweep(from, { x, y, t })) return;
+      // 3) piliers, blocs, caisses de l'hôte
+      if (!walkable(x, y, t)) { reject(); return; }
+      gLast = { x, y, t }; gRejT = -1;
+      remoteIn.x = x; remoteIn.y = y; remoteIn.dir = m.d & 3; remoteIn.moving = !!m.m;
+      ipAdd(ip, { c: m.c / 1000, x, y, d: m.d & 3, m: m.m ? 1 : 0 }, m.at);
+    }
+    function hostBomb(m) {
+      const g = m.g | 0, late = clamp(S.t - (isFinite(+m.t) ? +m.t : S.t), 0, 1);
+      const ok = phase === 'play' && !S.result && placeBombAt(S, S.actors[1], m.x | 0, m.y | 0, S.P.fuse - late, g);
+      if (ok) gMap.set(g, S.bombs[S.bombs.length - 1].id);
+      else { outEv.push(['n', g]); NST.nbomb++; }
+    }
+    function hostPush(m) {
+      const id = m.id > 0 ? m.id : gMap.get(-m.id);
+      const b = S.bombs.find((o) => o.id === id);
+      if (!b) return;
+      const d = m.d & 3;
+      if (phase !== 'play' || S.result || !S.actors[1].alive || b.slide >= 0 ||
+        !bombCanEnter(S, Math.round(b.x) + DX[d], Math.round(b.y) + DY[d], b)) {
+        if (b.slide < 0) outEv.push(['s', b.id, r3(b.x), r3(b.y)]);   // poussée refusée : l'invité la remet en place
+        return;
+      }
+      b.slide = d;
+      S.events.push({ type: 'push', p: 1, x: b.x, y: b.y, d, id: b.id });
+      const late = clamp(S.t - (isFinite(+m.t) ? +m.t : S.t), 0, 0.5);
+      if (late > 0) slideBomb(S, b, late);        // rattrape le temps de trajet du message
+    }
+    function netEv(e) {                            // événement de la simulation → lot fiable pour l'invité
+      switch (e.type) {
+        case 'drop': {
+          const b = S.bombs.find((o) => o.id === e.id);
+          outEv.push(['d', e.id, e.p, e.x, e.y, r3(b ? S.t + b.fuse : S.t), b ? b.range : S.actors[e.p].range, e.g || 0]);
+          break;
+        }
+        case 'boom': outEv.push(['b', e.id, e.x, e.y, e.owner, e.range].concat(e.reach, e.ends)); break;
+        case 'crate': outEv.push(['c', e.i, e.d]); break;
+        case 'item': outEv.push(['i', e.i, e.it]); break;
+        case 'burn': outEv.push(['u', e.i]); break;
+        case 'pick': outEv.push(['k', e.p, e.i, e.it, powerVal(S.actors[e.p], e.it)]); break;
+        case 'push': outEv.push(['p', e.p, e.id, e.d, r3(e.x), r3(e.y)]); break;
+        case 'stop': outEv.push(['s', e.id, r3(e.x), r3(e.y)]); break;
+        case 'shield': outEv.push(['h', e.p]); break;
+        case 'ko': outEv.push(['o', e.p, e.why, r3(e.x), r3(e.y)]); break;
+        case 'sd': outEv.push(['z']); break;
+        case 'land': outEv.push(['l', e.i]); break;
+        default: break;                            // 'result' : par onResult (avec « fin du match ») ; 'squash' : l'invité le déduit
+      }
+    }
+    function flushEv() {
+      if (!outEv.length) return;
+      const head = { k: 'e', r: netR, t: r3(S.t), c: Math.round(nnow() * 1000) };
+      let batch = [], size = 70;
+      for (const ev of outEv) {
+        const s = JSON.stringify(ev).length + 1;
+        if (batch.length && size + s > 900) { nsend(Object.assign({ ev: batch }, head), true); batch = []; size = 70; }
+        batch.push(ev); size += s;
+      }
+      nsend(Object.assign({ ev: batch }, head), true);
+      outEv.length = 0;
+    }
+    function hostTick(dt) {                        // fin d'image : lot d'événements + état (~30/s ; 5/s en pause)
+      flushEv();
+      stAcc += dt;
+      if (stAcc < (paused ? 0.2 : 1 / 30) - 0.004) return;
+      stAcc = 0;
+      const A = S.actors[0], B = S.actors[1];
+      const m = { k: 's', r: netR, c: Math.round(fNow * 1000), t: r3(S.t), q: paused || resumeT > 0 ? 0 : r3(netQ), ph: PH[phase] || 'w', pt: r3(phaseT),
+        a: [r3(A.x), r3(A.y), A.dir, A.moving && phase === 'play' ? 1 : 0] };
+      if (++stN % 6 === 0) m.w = [A.bombsMax, A.range, A.speedLvl, A.push ? 1 : 0, B.bombsMax, B.range, B.speedLvl, B.push ? 1 : 0];
+      nsend(m, false);
+    }
+
+    // ---- invité
+    function onState(m, now) {                     // état rapide de l'hôte (appelé à l'arrivée)
+      if (!Array.isArray(m.a) || !isFinite(m.c) || !isFinite(m.t)) return;
+      if (m.ph === 'p' || m.ph === 'e' || m.ph === 'o') ipAdd(ip, { c: m.c / 1000, x: +m.a[0], y: +m.a[1], d: m.a[2] & 3, m: m.a[3] ? 1 : 0 }, now);
+      if (!lastSt || m.c > lastSt.c) lastSt = m;
+      if (Array.isArray(m.w) && (!lastW || m.c > lastW.c)) lastW = { c: m.c, w: m.w, done: false };
+    }
+    function applyBanner(ban, rn) {
+      bannerTitle = ban === 1 ? '' : PATTERNS[S.pattern].toUpperCase();
+      introDur = ban === 1 ? 4.7 : 3.2;
+      bannerTxt = ban === 1 ? RULE : ban === 2 ? ['Égalité… on rejoue !'] : ban === 3 ? ['Balle de match !'] : ban === 4 && HINTS[rn] ? [HINTS[rn]] : null;
+    }
+    function guestRound(m, now) {                  // nouvelle manche (graine de l'hôte), ou arrivée en cours de manche
+      resync = false;
+      netR = m.r | 0;
+      const rn = Math.max(1, m.n | 0);
+      S = newRound({ cols: NET_COLS, rows: NET_ROWS, notch: true, seed: m.seed >>> 0, round: rn });
+      danger = new Float32Array(S.N); flameDist = new Uint8Array(S.N);
+      PT.length = 0; RG.length = 0; TX.length = 0; decals.length = 0;
+      lastRes = null; endT = 0; zoom = 1; zoomTo = 1; slowT = 0; hitStop = 0; countSaid = -1; lastTick = -1; sdFlash = 0;
+      inputs[0].bomb = false; inputs[1].bomb = false;
+      applyBanner(m.ban | 0, rn);
+      firstRound = false;
+      pred.clear(); pendPick.clear(); predLand.clear(); frozen = -1; tErr = 0; lastSt = null; lastW = null; lastEvC = -1; cBatchT = -1;
+      ip.b.length = 0; view[0] = view[1] = null;
+      const el = clamp((+m.pt || 0) + Math.max(0, now - (+m.c || 0) / 1000), 0, 600);
+      phase = 'intro'; phaseT = el;
+      if (m.ph !== 'i' && m.z && applyState(S, m.z)) {
+        phase = m.ph === 'e' ? 'end' : m.ph === 'o' ? 'over' : 'play';
+        if (S.result) lastRes = { winner: S.result.winner, loser: S.result.loser, why: S.result.why };
+      }
+      layout();
+      iris = { t: 0, dur: 0.65, open: true, x: (S.cols - 1) / 2, y: (S.rows - 1) / 2 };
+    }
+    function askResync(now) { if (now - resyncAt > 0.5) { resyncAt = now; resync = true; nsend({ k: 'H' }, true); } }
+    function guestNet() {
+      const now = nnow();
+      for (let k = 0; k < inbox.length; k++) {
+        const m = inbox[k];
+        try {
+          if (m.k === 'R') { if (m.r !== netR || resync) guestRound(m, now); continue; }
+          if (m.r !== netR) { if (m.r > netR) askResync(now); continue; }
+          if (m.k === 'e') guestBatch(m);
+          else if (m.k === 'C') { const A = S.actors[ME]; if (A.alive && isFinite(+m.x) && isFinite(+m.y)) { A.x = +m.x; A.y = +m.y; NST.corr++; } }
+        } catch (e) { /* message abîmé : ignoré */ }
+      }
+      inbox.length = 0;
+      if (phase === 'wait' && now - helloAt > 0.5) { helloAt = now; nsend({ k: 'H' }, true); }
+      for (const [k, r] of pred) if (S.t - r.t > 3) pred.delete(k);
+      for (const [k, r] of pendPick) if (S.t - r.t > 2) pendPick.delete(k);
+    }
+    function guestSync(now) {                      // horloge, décompte, position logique de l'adversaire, pouvoirs
+      const m = lastSt;
+      if (!m || m.r !== netR) { tErr = 0; return; }
+      const age = Math.max(0, now - m.c / 1000);    // état trop vieux (réseau ou hôte bloqué) : on ne s'y cale pas
+      tErr = phase === 'play' && m.ph === 'p' && !paused && resumeT <= 0 && age < 0.35 ? (+m.t + age * (+m.q || 0)) - S.t : 0;
+      if (phase === 'intro' && m.ph === 'i' && age < 0.35) { const est = +m.pt + age; if (Math.abs(est - phaseT) > 0.03) phaseT += (est - phaseT) * 0.25; }
+      const o = S.actors[OPP];
+      if (o.alive && phase === 'play' && (m.ph === 'p' || m.ph === 'e')) { o.x = +m.a[0]; o.y = +m.a[1]; o.dir = m.a[2] & 3; o.moving = !!m.a[3]; }
+      if (lastW && !lastW.done && lastW.c > lastEvC) {   // filet de sécurité : pouvoirs absolus (jamais plus vieux qu'un événement reçu)
+        lastW.done = true;
+        for (const p of [0, 1]) {
+          if (p === ME && pendPick.size) continue;
+          const a = S.actors[p], w = lastW.w, o4 = p * 4;
+          a.bombsMax = w[o4] | 0 || a.bombsMax; a.range = w[o4 + 1] | 0 || a.range; a.speedLvl = w[o4 + 2] | 0; a.push = !!w[o4 + 3];
+        }
+      }
+    }
+    function restoreCrate(i) {                     // caisse cassée à tort en prédiction : on la remet
+      if (S.fallen[i]) return;
+      if (S.cells[i] === BREAKING || (S.cells[i] === EMPTY && (S.items[i] < 0 || S.items[i] === S.loot[i]))) {
+        S.cells[i] = CRATE; S.breakT[i] = 0; NST.crate++;
+        if (S.items[i] >= 0) S.items[i] = -1;
+      }
+    }
+    function undoPick(i) {                         // bonus pris en prédiction mais pas par moi chez l'hôte
+      const pp = pendPick.get(i);
+      pendPick.delete(i);
+      if (pp) { setPower(S.actors[ME], pp.it, pp.v); NST.undo++; }
+    }
+    // fin de manche chez l'hôte : explosions, chutes de blocs et bonus prédits mais jamais confirmés sont défaits
+    // (pendant ~la latence, l'invité a continué de prédire alors que la manche était déjà figée) → même arène des deux côtés
+    function undoUnconfirmed() {
+      for (const [id, rec] of pred) {
+        for (const i of boomCells(S, rec.x, rec.y, rec.reach)) { S.flameT[i] = 0; S.flameM[i] = 0; }
+        for (const i of rec.crates) restoreCrate(i);
+        for (const q of rec.burns) if (S.items[q[0]] < 0 && S.cells[q[0]] === EMPTY) S.items[q[0]] = q[1];
+        const ci = cellAt(S, rec.x, rec.y);
+        if (ci >= 0 && !bombAtCell(S, ci) && rec.owner != null) {
+          S.bombs.push({ id, owner: rec.owner, x: rec.x, y: rec.y, cell: ci, fuse: 0.05, fuse0: S.P.fuse, range: rec.range || 2, slide: -1, pass: [true, true], t: 1 });
+          S.actors[rec.owner].active++;
+          NST.fix++;
+        }
+      }
+      pred.clear();
+      for (const [i, q] of predLand) { S.cells[i] = q.c; S.fallen[i] = 0; S.items[i] = q.it; NST.fix++; }
+      predLand.clear();
+      for (const [i, pp] of pendPick) { setPower(S.actors[ME], pp.it, pp.v); if (S.items[i] < 0 && S.cells[i] === EMPTY) S.items[i] = pp.it; NST.undo++; }
+      pendPick.clear();
+    }
+    function fixBoom(rec, x, y, ow, reach, ends, age) {
+      for (const i of rec.crates) if (!cset.has(i)) restoreCrate(i);
+      for (const q of rec.burns) if (!uset.has(q[0]) && S.items[q[0]] < 0 && S.cells[q[0]] === EMPTY) S.items[q[0]] = q[1];
+      let same = rec.x === x && rec.y === y;
+      for (let d = 0; d < 4 && same; d++) if (rec.reach[d] !== reach[d] || rec.ends[d] !== ends[d]) same = false;
+      if (same) return;
+      NST.fix++;
+      const real = boomCells(S, x, y, reach);
+      for (const i of boomCells(S, rec.x, rec.y, rec.reach)) if (!real.has(i)) { S.flameT[i] = 0; S.flameM[i] = 0; }
+      applyBoom(S, x, y, ow, reach, ends, age);
+    }
+    function guestBatch(m) {
+      if (!Array.isArray(m.ev)) return;
+      const tEv = +m.t || 0, age = Math.max(0, S.t - tEv);
+      if (tEv !== cBatchT) { cBatchT = tEv; cset = new Set(); uset = new Set(); }
+      for (const e of m.ev) { if (!Array.isArray(e)) continue; if (e[0] === 'c') cset.add(e[1]); else if (e[0] === 'u') uset.add(e[1]); }
+      for (const e of m.ev) if (Array.isArray(e)) gEv(e, age);
+      if (m.c > lastEvC) lastEvC = m.c;
+    }
+    function gEv(e, age) {                         // un événement fiable de l'hôte : confirme ou corrige le miroir
+      const A = S.actors, cxy = (i) => [i % S.cols, (i / S.cols) | 0];
+      switch (e[0]) {
+        case 'd': {                                // bombe posée (numéro, poseur, case, heure d'explosion, portée)
+          const id = e[1], ow = e[2] ? 1 : 0, x = e[3] | 0, y = e[4] | 0, xt = +e[5], g = e[7] | 0;
+          if (ow === ME && g) {                    // la mienne : l'hôte confirme son numéro et son heure
+            const b0 = S.bombs.find((o) => o.g === g && o.owner === ME);
+            if (b0) { b0.id = id; if (Math.abs(S.t + b0.fuse - xt) > 0.05) b0.fuse = Math.max(0, xt - S.t); break; }
+            if (pred.has(-g)) { pred.set(id, pred.get(-g)); pred.delete(-g); break; }
+          }
+          if (pred.has(id) || S.bombs.some((o) => o.id === id)) break;
+          const i = cellAt(S, x, y);
+          if (i < 0) break;
+          const b = { id, owner: ow, x, y, cell: i, fuse: Math.max(0, xt - S.t), fuse0: S.P.fuse, range: (e[6] | 0) || A[ow].range, slide: -1, pass: [false, false], t: 0 };
+          b.pass[ow] = true;
+          const me = A[ME];
+          if (me.alive && Math.abs(me.x - x) < 0.98 && Math.abs(me.y - y) < 0.98) b.pass[ME] = true;   // posée sur moi : je peux en sortir
+          S.bombs.push(b); A[ow].active++;
+          S.events.push({ type: 'drop', p: ow, x, y, id });
+          break;
+        }
+        case 'n': {                                // ma bombe refusée (case prise entre-temps…) : pschitt
+          const k = S.bombs.findIndex((o) => o.g === (e[1] | 0) && o.owner === ME);
+          if (k >= 0) { const b = S.bombs[k]; S.bombs.splice(k, 1); A[ME].active = Math.max(0, A[ME].active - 1); puffs(b.x, b.y, 4, 0.8, 0.6, 0.4, 1.0, 0.6); NST.nbomb++; }
+          break;
+        }
+        case 'b': {                                // explosion (numéro, case, poseur, portée, bras atteints, bouts)
+          const id = e[1], x = e[2] | 0, y = e[3] | 0, ow = e[4] ? 1 : 0, rg = e[5] | 0;
+          const reach = [e[6] | 0, e[7] | 0, e[8] | 0, e[9] | 0], ends = [e[10] | 0, e[11] | 0, e[12] | 0, e[13] | 0];
+          const rec = pred.get(id);
+          if (rec) { pred.delete(id); fixBoom(rec, x, y, ow, reach, ends, age); break; }
+          const k = S.bombs.findIndex((o) => o.id === id);
+          if (k >= 0) { S.bombs.splice(k, 1); A[ow].active = Math.max(0, A[ow].active - 1); }
+          applyBoom(S, x, y, ow, reach, ends, age);
+          S.events.push({ type: 'boom', x, y, owner: ow, range: rg, reach, ends, id, auth: 1 });
+          break;
+        }
+        case 'c': {                                // caisse touchée
+          const i = e[1] | 0;
+          if (i >= 0 && i < S.N && S.cells[i] === CRATE) {
+            S.cells[i] = BREAKING; S.breakT[i] = Math.max(0.02, BREAK_DUR - age);
+            const q = cxy(i);
+            S.events.push({ type: 'crate', i, x: q[0], y: q[1], kind: S.kind[i], face: S.face[i], d: e[2] & 3 });
+          }
+          break;
+        }
+        case 'i': {                                // bonus apparu
+          const i = e[1] | 0, it = e[2] | 0;
+          if (i >= 0 && i < S.N && S.items[i] !== it && !pendPick.has(i) && S.cells[i] !== PILLAR && S.cells[i] !== SOLID) {
+            S.cells[i] = EMPTY; S.items[i] = it; S.itemT[i] = age;
+            const q = cxy(i);
+            S.events.push({ type: 'item', i, it, x: q[0], y: q[1] });
+          }
+          break;
+        }
+        case 'u': {                                // bonus brûlé
+          const i = e[1] | 0;
+          if (pendPick.has(i)) undoPick(i);
+          if (i >= 0 && i < S.N && S.items[i] >= 0) { const it = S.items[i], q = cxy(i); S.items[i] = -1; S.events.push({ type: 'burn', i, x: q[0], y: q[1], it }); }
+          break;
+        }
+        case 'k': {                                // bonus ramassé (joueur, case, bonus, nouvelle valeur du pouvoir)
+          const p = e[1] ? 1 : 0, i = e[2] | 0, it = e[3] | 0;
+          if (it < 0 || it >= ITEMS.length) break;
+          if (pendPick.has(i)) {
+            if (p === ME) { pendPick.delete(i); setPower(A[p], it, e[4]); break; }   // prédit : confirmé
+            undoPick(i);                           // c'est l'autre qui l'a eu
+          }
+          if (i >= 0 && i < S.N) S.items[i] = -1;
+          setPower(A[p], it, e[4]); A[p].picks++;
+          const q = cxy(i);
+          S.events.push({ type: 'pick', p, it, i, x: q[0], y: q[1] });
+          break;
+        }
+        case 'p': {                                // bombe poussée
+          const p = e[1] ? 1 : 0, d = e[3] & 3, x = +e[4], y = +e[5];
+          const b = S.bombs.find((o) => o.id === e[2]);
+          if (!b) break;
+          if (p === ME && b.myPush) { b.myPush = false; break; }
+          if (b.slide === d) break;
+          b.x = x; b.y = y; b.cell = cellAt(S, Math.round(x), Math.round(y)); b.slide = d;
+          if (age > 0) slideBomb(S, b, Math.min(age, 0.5));
+          S.events.push({ type: 'push', p, x, y, d, id: b.id });
+          break;
+        }
+        case 's': {                                // bombe arrêtée (position exacte)
+          const b = S.bombs.find((o) => o.id === e[1]);
+          if (!b) break;
+          const x = +e[2], y = +e[3], was = b.slide >= 0;
+          b.slide = -1; b.myPush = false; b.x = x; b.y = y; b.cell = cellAt(S, Math.round(x), Math.round(y));
+          if (was) S.events.push({ type: 'stop', x, y, id: b.id });
+          break;
+        }
+        case 'h': {                                // bouclier usé
+          const p = e[1] ? 1 : 0, a = A[p], v = vpos(p);
+          a.shield = false; a.invul = Math.max(a.invul, 1.3 - age);
+          if (p === ME) frozen = -1;
+          S.events.push({ type: 'shield', p, x: v.x, y: v.y });
+          break;
+        }
+        case 'o': {                                // personnage touché (verdict de l'hôte)
+          const p = e[1] ? 1 : 0, a = A[p];
+          if (p === ME) frozen = -1;
+          if (!a.alive) break;
+          a.alive = false; a.deadT = age; a.why = e[2] || 'flame'; a.moving = false;
+          if (isFinite(+e[3]) && isFinite(+e[4])) { a.x = +e[3]; a.y = +e[4]; }
+          if (p === ME) view[p] = null;
+          S.events.push({ type: 'ko', p, why: a.why, x: a.x, y: a.y });
+          break;
+        }
+        case 'z':                                  // mort subite (déjà prévue par l'horloge, normalement)
+          if (!S.sd.on) { S.sd.on = true; S.sd.order = spiralOrder(S.cols, S.rows); S.sd.idx = 0; S.sd.timer = 0; S.events.push({ type: 'sd' }); }
+          break;
+        case 'l': {                                // bloc tombé
+          const i = e[1] | 0;
+          predLand.delete(i);
+          if (i < 0 || i >= S.N || S.cells[i] === SOLID || S.cells[i] === PILLAR) break;
+          const fall = S.sd.falling;
+          for (let k = fall.length - 1; k >= 0; k--) if (fall[k].i === i) fall.splice(k, 1);
+          landBlock(S, i, false);
+          break;
+        }
+        case 'r': {                                // fin de manche (gagnant, perdant, pourquoi, fin du match)
+          if (S.result) break;
+          const w = e[1] | 0;
+          S.result = { winner: w, loser: e[2] | 0, why: e[3] || '' };
+          if (w >= 0) A[w].win = true;
+          S.sd.falling.length = 0;
+          undoUnconfirmed();                       // l'hôte a figé la manche : ce que j'ai prédit depuis n'a pas eu lieu
+          S.events.push({ type: 'result', winner: w, loser: S.result.loser, why: S.result.why, over: !!e[4] });
+          break;
+        }
+        default: break;
+      }
+    }
+    // un pas du miroir : le monde (dt, calé sur l'hôte) et mon personnage (dm : tout de suite, sans attendre)
+    function guestStep(dt, dm, inp) {
+      S.t += dt;
+      const live = !S.result;
+      if (!live) S.endT += dt;
+      for (let i = 0; i < S.N; i++) {
+        if (S.flameT[i] > 0) { S.flameT[i] -= dt; if (S.flameT[i] <= 0) { S.flameT[i] = 0; S.flameM[i] = 0; } }
+        if (S.cells[i] === BREAKING) {
+          S.breakT[i] -= dt;
+          if (S.breakT[i] <= 0) {
+            S.cells[i] = EMPTY;
+            if (S.loot[i] >= 0) { S.items[i] = S.loot[i]; S.itemT[i] = 0; S.events.push({ type: 'item', i, it: S.loot[i], x: i % S.cols, y: (i / S.cols) | 0 }); }
+          }
+        }
+        if (S.items[i] >= 0) S.itemT[i] += dt;
+      }
+      for (const a of S.actors) {
+        if (a.invul > 0) a.invul = Math.max(0, a.invul - dt);
+        if (!a.alive) { a.deadT += dt; continue; }
+        if (!live) { a.moving = false; continue; }
+        if (a.p !== ME) continue;                  // l'adversaire : positions de l'hôte
+        if (frozen >= 0) { a.moving = false; continue; }   // pris dans les flammes : on attend le verdict de l'hôte
+        const ne = S.events.length;
+        moveActor(S, a, inp.mx || 0, inp.my || 0, dm);
+        for (let k = ne; k < S.events.length; k++) {
+          const ev = S.events[k];
+          if (ev.type !== 'push') continue;
+          const b = S.bombs.find((o) => o.id === ev.id);
+          if (b) b.myPush = true;
+          nsend({ k: 'P', r: netR, id: ev.id, d: ev.d, t: r3(S.t) }, true);
+        }
+        if (inp.bomb && placeBomb(S, a)) {         // ma bombe : posée tout de suite, annoncée à l'hôte
+          const b = S.bombs[S.bombs.length - 1];
+          b.g = ++gseq; b.id = -b.g;
+          for (let k = S.events.length - 1; k >= 0; k--) if (S.events[k].type === 'drop') { S.events[k].id = b.id; break; }
+          nsend({ k: 'B', r: netR, g: b.g, x: b.x, y: b.y, t: r3(S.t) }, true);
+        }
+        const ci = cellAt(S, Math.round(a.x), Math.round(a.y));
+        if (ci >= 0 && S.items[ci] >= 0) { const it = S.items[ci]; pendPick.set(ci, { it, v: powerVal(a, it), t: S.t }); pickItem(S, a, ci); }
+      }
+      const ne = S.events.length;
+      updateBombs(S, dt, live);                    // mèches et explosions prédites (même heure que chez l'hôte)
+      if (S.events.length > ne) {
+        let crates = [], burns = [];
+        for (let k = ne; k < S.events.length; k++) {
+          const e = S.events[k];
+          if (e.type === 'crate') crates.push(e.i);
+          else if (e.type === 'burn') burns.push([e.i, e.it]);
+          else if (e.type === 'boom') { pred.set(e.id, { x: e.x, y: e.y, owner: e.owner, range: e.range, reach: e.reach.slice(), ends: e.ends.slice(), crates, burns, t: S.t }); crates = []; burns = []; }
+        }
+      }
+      if (live) suddenDeath(S, dt);
+      const fall = S.sd.falling;
+      for (let k = fall.length - 1; k >= 0; k--) {
+        const f = fall[k];
+        f.t -= dt;
+        if (f.t <= 0) {
+          fall.splice(k, 1);
+          if (S.cells[f.i] !== SOLID && S.cells[f.i] !== PILLAR) predLand.set(f.i, { c: S.cells[f.i], it: S.items[f.i] });
+          landBlock(S, f.i, false);
+          const a = S.actors[ME];
+          if (live && a.alive && frozen < 0 && cellAt(S, Math.round(a.x), Math.round(a.y)) === f.i) frozen = nnow();
+        }
+      }
+    }
+    function guestAdvance(d) {
+      let dw = d;
+      if (phase === 'play') {                      // le monde suit l'horloge de simulation de l'hôte (petite accélération / attente)
+        // (en avance, même beaucoup — après une pause, l'invité a joué ~2 latences de plus — : on ralentit, sans jamais figer :
+        //  ses positions doivent toujours porter une heure qui avance)
+        if (tErr > 0.5) { NST.warp++; const T2 = Math.min(tErr, 2), n2 = Math.ceil(T2 / 0.0085); for (let i = 0; i < n2; i++) guestStep(T2 / n2, 0, NOIN); tErr = 0; }
+        else dw = d * (1 + clamp(tErr * 1.5, -0.4, 0.3));
+      }
+      const inp = inputs[ME];
+      const n = Math.max(1, Math.ceil(Math.max(d, dw) / 0.0085));
+      for (let i = 0; i < n; i++) { guestStep(dw / n, d / n, inp); inp.bomb = false; }
+      // pris dans des flammes (prévues) : je ne bouge plus jusqu'au verdict de l'hôte
+      const A = S.actors[ME];
+      if (phase === 'play' && A.alive && !S.result) {
+        if (frozen < 0) {
+          const ci = cellAt(S, Math.round(A.x), Math.round(A.y));
+          if (ci >= 0 && S.flameT[ci] > FLAME_SAFE && !A.shield && A.invul <= 0) { frozen = nnow(); NST.freeze++; }
+        } else if (nnow() - frozen > nrtt() + 0.35 + Math.max(0, -tErr)) { frozen = -1; NST.unfreeze++; }   // l'hôte ne m'a pas vu touché : je repars
+      }
+    }
+    function guestTick(dt) {                       // ma position (~60/s) pendant la manche
+      if (phase !== 'play' || !netR) return;
+      posAcc += dt;
+      if (posAcc < 1 / 60 - 0.004) return;
+      posAcc = 0;
+      const A = S.actors[ME];
+      if (!A.alive) return;
+      nsend({ k: 'p', r: netR, c: Math.round(fNow * 1000), t: r3(S.t), x: r3(A.x), y: r3(A.y), d: A.dir, m: A.moving ? 1 : 0 }, false);
+    }
+    function updView(dt) {                         // l'adversaire glisse : lecture du tampon avec un léger retard adaptatif
+      const p = OPP, a = S.actors[p];
+      if (!a.alive && view[p]) {                   // touché : il glisse jusqu'à l'endroit où il est tombé (pas de téléportation)
+        const v = view[p], k = 1 - Math.exp(-dt * 24);
+        v.x += (a.x - v.x) * k; v.y += (a.y - v.y) * k; v.moving = false;
+        if (Math.abs(a.x - v.x) + Math.abs(a.y - v.y) < 0.004) view[p] = null;
+        return;
+      }
+      if (!a.alive || phase === 'intro' || phase === 'wait' || !ip.b.length) { view[p] = null; return; }
+      const tg = ipTarget(ip);                    // retard de lecture : suit la latence observée, sans à-coup (±5 % de vitesse au plus)
+      if (ip.D < 0) ip.D = tg; else if (Math.abs(tg - ip.D) > 0.006) ip.D += clamp(tg - ip.D, -0.05 * dt, 0.05 * dt);
+      const s = ipAt(ip, fNow - ip.D);
+      if (!s) { view[p] = null; return; }
+      let v = view[p];
+      if (!v) v = view[p] = { x: s.x, y: s.y, dir: s.d, moving: false, walk: a.walk };
+      let nx = s.x, ny = s.y;
+      const gap = Math.abs(nx - v.x) + Math.abs(ny - v.y);
+      const vmax = (BASE_SPEED + SPEED_STEP * MAX_SPEED) * Math.max(dt, 1 / 120) * 1.3 + 0.015;   // plus grand pas possible en une image
+      if (gap > vmax) {                            // messages en retard / image bloquée : on rattrape en glissant (~50 ms), jamais d'un coup
+        const k = Math.min(1, Math.max(vmax, gap * (1 - Math.exp(-dt * 20))) / gap);
+        nx = v.x + (nx - v.x) * k; ny = v.y + (ny - v.y) * k;
+      }
+      v.walk += Math.abs(nx - v.x) + Math.abs(ny - v.y);
+      v.x = nx; v.y = ny; v.dir = s.d; v.moving = !!s.m && phase === 'play';
+    }
+    function placeholder() {                       // en attendant l'autre téléphone : l'arène vide
+      S = newRound({ cols: NET_COLS, rows: NET_ROWS, notch: true, seed: 1, round: 1 });
+      for (let i = 0; i < S.N; i++) if (S.cells[i] === CRATE) S.cells[i] = EMPTY;
+      S.loot.fill(-1);
+      danger = new Float32Array(S.N); flameDist = new Uint8Array(S.N);
+      phase = 'wait'; phaseT = 0; waitT = 0;
+      layout();
+    }
+
     // ----------------------------------------------------------------- manches
     function startRound(isReplay) {
+      if (HOST) flushEv();                         // en ligne : derniers événements de la manche qui se termine
       let rn = 1;
       try { rn = Math.max(1, Number(api.round ? api.round() : 1) | 0) || 1; } catch (e) { rn = 1; }
       const r = root.getBoundingClientRect();
       const port = (r.height || H) >= (r.width || W);
-      S = newRound({ cols: port ? 11 : 15, rows: port ? 15 : 11, notch: port, seed: (Math.random() * 4294967296) >>> 0, round: rn });
+      // en ligne : même arène logique sur tous les écrans (la grande arène portrait), chacun l'affiche à son échelle
+      S = newRound({ cols: NETAPI ? NET_COLS : port ? 11 : 15, rows: NETAPI ? NET_ROWS : port ? 15 : 11, notch: NETAPI ? true : port, seed: (Math.random() * 4294967296) >>> 0, round: rn });
       danger = new Float32Array(S.N); flameDist = new Uint8Array(S.N);
       PT.length = 0; RG.length = 0; TX.length = 0; decals.length = 0;
       lastRes = null; endT = 0; zoom = 1; zoomTo = 1; slowT = 0; hitStop = 0; countSaid = -1; lastTick = -1; sdFlash = 0;
@@ -2554,18 +3946,20 @@
       let sc = [0, 0];
       try { sc = (api.scores && api.scores()) || [0, 0]; } catch (e) { sc = [0, 0]; }
       bannerTitle = firstRound && !isReplay ? '' : PATTERNS[S.pattern].toUpperCase();
-      if (firstRound && !isReplay) { bannerTxt = RULE; introDur = 4.7; }
+      if (firstRound && !isReplay) { bannerTxt = RULE; introDur = 4.7; curBan = 1; }
       else {
         introDur = 3.2;
-        if (isReplay) bannerTxt = ['Égalité… on rejoue !'];
-        else if (Math.max(sc[0] || 0, sc[1] || 0) >= BOUM.target - 1) bannerTxt = ['Balle de match !'];
-        else bannerTxt = HINTS[rn] ? [HINTS[rn]] : null;
+        if (isReplay) { bannerTxt = ['Égalité… on rejoue !']; curBan = 2; }
+        else if (Math.max(sc[0] || 0, sc[1] || 0) >= BOUM.target - 1) { bannerTxt = ['Balle de match !']; curBan = 3; }
+        else { bannerTxt = HINTS[rn] ? [HINTS[rn]] : null; curBan = 4; }
       }
       firstRound = false;
       phase = 'intro'; phaseT = 0;
       layout();
       iris = { t: 0, dur: 0.65, open: true, x: (S.cols - 1) / 2, y: (S.rows - 1) / 2 };
       say(isReplay ? 'On rejoue !' : 'Manche ' + rn, { color: ACCENT, ms: 1000 });
+      if (HOST) hostRoundStart();
+      if (AIP) aiS = aiNew(AIP.level, (S.seed ^ 0x9e3779b9) >>> 0);   // contre l'IA : une IA fraîche à chaque manche
     }
     function onResult(e) {
       lastRes = { winner: e.winner, loser: e.loser, why: e.why };
@@ -2573,8 +3967,10 @@
       if (e.winner >= 0) {
         const why = e.why === 'crush' ? 'Écrasé !' : e.why === 'self' ? 'Auto-boum !' : 'Boum !';
         let res = null;
-        try { res = api.point ? api.point(e.winner, why) : null; } catch (er) { res = null; }
-        const A = S.actors[e.winner];
+        if (GUEST) res = { over: !!e.over };         // en ligne : seul l'hôte compte les points (la bibliothèque les recopie)
+        else { try { res = api.point ? api.point(e.winner, why) : null; } catch (er) { res = null; } }
+        if (HOST) outEv.push(['r', e.winner, e.loser, e.why, res && res.over ? 1 : 0]);
+        const A = vpos(e.winner);
         SFX.win();
         confetti(A.x, A.y - 0.4, 48, [PCOL[e.winner], '#ffd34d', '#ffffff', '#ff5fae']);
         ring(A.x, A.y, 0.3, 3.4, 0.75, PCOL[e.winner], 0.14);
@@ -2587,6 +3983,7 @@
         SFX.draw();
         say('Égalité !', { color: '#e9f0f3', ms: 1300 });
         phase = 'end';
+        if (HOST) outEv.push(['r', -1, -1, e.why || 'draw', 0]);
       }
     }
     function computeDanger() {
@@ -2629,6 +4026,11 @@
       updFx(dt);
       updMotes(dt);
       updDecals(dt);
+      if (NETAPI) {                                // en ligne : messages reçus (dans l'ordre), puis attente de l'autre téléphone
+        if (HOST) hostNet(); else guestNet();
+        if (phase === 'wait') { waitT += dt; if (HOST && waitT > 3) startRound(false); return; }
+        if (GUEST) guestSync(nnow());
+      }
       if (resumeT > 0) {
         const b0 = Math.ceil(resumeT / 0.5);
         resumeT -= dt;
@@ -2656,13 +4058,23 @@
       let d = dt;
       if (hitStop > 0) { hitStop -= dt; d = 0; }
       else if (slowT > 0) { slowT -= dt; d = dt * (slowT > 0.35 ? 0.3 : lerp(1, 0.3, Math.max(0, slowT) / 0.35)); }
+      if (HOST) netQ = dt > 0 ? d / dt : 1;
       if (d > 0) {
         setInputs();
-        const n = Math.max(1, Math.ceil(d / 0.0085));
-        for (let i = 0; i < n; i++) { step(S, d / n, inputs); inputs[0].bomb = false; inputs[1].bomb = false; }
+        if (AIP && aiS && phase === 'play') {      // contre l'IA : elle « tient sa manette » comme un joueur
+          const o = aiTick(aiS, S, AIP.p, d), inp = inputs[AIP.p];
+          inp.mx = o.mx; inp.my = o.my;
+          if (o.bomb) { inp.bomb = true; press[AIP.p] = 1; }
+        }
+        if (GUEST) guestAdvance(d);                // invité : mon personnage tout de suite, le reste en prédiction
+        else {
+          const n = Math.max(1, Math.ceil(d / 0.0085));
+          for (let i = 0; i < n; i++) { step(S, d / n, HOST ? hostIn : inputs); inputs[0].bomb = false; inputs[1].bomb = false; }
+        }
         for (const b of S.bombs) if (Math.random() < d * 18) { const tp = fuseTip(b); part(1, tp[0], tp[1], (Math.random() - 0.5) * 1.8, (Math.random() - 0.5) * 1.8, 0.28, 0.17, 0.02, F.hot, 1.5); }
-        for (const A of S.actors) {
-          if (!A.alive || !A.moving || Math.random() > d * (5 + A.speedLvl * 6)) continue;
+        for (const A0 of S.actors) {
+          const A = vpos(A0.p);
+          if (!A0.alive || !A.moving || Math.random() > d * (5 + A0.speedLvl * 6)) continue;
           const q = part(1, A.x - DX[A.dir] * 0.25 + (Math.random() - 0.5) * 0.2, A.y + 0.3 - DY[A.dir] * 0.25, -DX[A.dir] * 0.5, -DY[A.dir] * 0.5, 0.45, 0.16, 0.5, F.dust, 1.5);
           q.a0 = 0.35;
         }
@@ -2679,11 +4091,12 @@
         endT += dt;
         const tEnd = lastRes && lastRes.winner < 0 ? 2.1 : 2.5;
         if ((!iris || iris.open) && endT >= tEnd - 0.45) {
-          const fA = lastRes && lastRes.winner >= 0 ? S.actors[lastRes.winner] : null;
+          const fA = lastRes && lastRes.winner >= 0 ? vpos(lastRes.winner) : null;
           iris = { t: 0, dur: 0.45, open: false, x: fA ? fA.x : (S.cols - 1) / 2, y: fA ? fA.y : (S.rows - 1) / 2 };
         }
-        if (endT >= tEnd) startRound(!!(lastRes && lastRes.winner < 0));
+        if (endT >= tEnd && !GUEST) startRound(!!(lastRes && lastRes.winner < 0));   // l'invité attend la manche de l'hôte
       } else if (phase === 'over') endT += dt;
+      if (NETAPI) updView(dt);
     }
 
     // ----------------------------------------------------------------- boucle et cycle de vie
@@ -2691,12 +4104,19 @@
     function frame(now) {
       if (destroyed) return;
       raf = requestAnimationFrame(frame);
+      if (NETAPI) frameClock(now);
       let dt = last ? (now - last) / 1000 : 0;
       last = now;
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
-      if (paused) { prevReal = 0; if ((pFrames++ % 6) === 0) { try { render(); } catch (e) { /* rien */ } } return; }
+      if (paused) {
+        prevReal = 0;
+        if (HOST) { try { hostTick(dt); } catch (e) { /* rien */ } }
+        if ((pFrames++ % 6) === 0) { try { render(); } catch (e) { /* rien */ } }
+        return;
+      }
       update(dt);
+      if (NETAPI) { try { if (HOST) hostTick(dt); else guestTick(dt); } catch (e) { /* le réseau ne casse jamais la boucle */ } }
       try { render(); } catch (e) { /* ne jamais casser la boucle */ }
       // qualité adaptative : si l'appareil n'arrive pas à suivre (< ~48 i/s), on baisse la résolution du canvas
       const rn = performance.now();
@@ -2738,7 +4158,18 @@
       ro.observe(root);
     } else on(window, 'resize', () => { if (!destroyed && S) layout(); });
 
-    startRound(false);
+    if (NETAPI) {
+      try {
+        NETAPI.onMessage((m) => {
+          if (destroyed || !m || typeof m !== 'object') return;
+          const now = nnow();
+          if (GUEST && m.k === 's') { if (m.r === netR) onState(m, now); return; }   // état rapide : lu tout de suite
+          m.at = now;
+          if (inbox.length < 800) inbox.push(m);
+        });
+      } catch (e) { /* rien */ }
+      placeholder();                               // on attend l'autre téléphone (l'hôte démarre à son « bonjour », 3 s au plus)
+    } else startRound(false);
     raf = requestAnimationFrame(frame);
     // police Bungee chargée après coup : on repeint les têtes de secours (initiale)
     try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!destroyed && SPR) buildHeads(); }); } catch (e) { /* rien */ }
@@ -2755,6 +4186,7 @@
         listeners.length = 0;
         later.length = 0; PT.length = 0; RG.length = 0; TX.length = 0;
         ptrs.clear(); keys.clear();
+        inbox.length = 0; outEv.length = 0;
         root.innerHTML = '';
       },
       // état lisible pour les tests automatiques
@@ -2768,8 +4200,19 @@
           itemList: Array.from(S.items).map((it, i) => [i, it]).filter((q) => q[1] >= 0),
           bombList: S.bombs.map((b) => [b.x, b.y, b.fuse, b.range, b.owner, b.slide]),
           flames: Array.from(S.flameT).map((f, i) => [i, f]).filter((q) => q[1] > 0).map((q) => q[0]),
-          falling: S.sd.falling.map((f) => f.i)
+          falling: S.sd.falling.map((f) => f.i),
+          net: NETAPI ? {
+            role: HOST ? 'host' : 'guest', me: ME, r: netR, seed: S.seed, view: view.map((v) => v && [v.x, v.y, v.moving]), D: ip.D, lat: ip.lat,
+            tErr, frozen: frozen >= 0, pred: pred.size, pend: pendPick.size, seen: gSeenT, loot: Array.from(S.loot).join(','), st: Object.assign({}, NST),
+            ui: ctl ? { sx: ctl.sx, sy: ctl.sy, bx: ctl.bx, by: ctl.by, R: ctl.R, RB: ctl.RB, W, H } : null
+          } : undefined,
+          ai: AIP ? { level: AIP.level, p: AIP.p, goal: aiS ? aiS.goal : -1, act: aiS ? aiS.act : '', st: aiS ? Object.assign({}, aiS.st) : null } : undefined
         };
+      },
+      // sonde légère pour les tests (une lecture par image) : positions affichées et positions de la simulation
+      probe() {
+        if (!S) return null;
+        return { t: S.t, ph: phase, r: netR, v: [0, 1].map((p) => { const v = vpos(p); return [v.x, v.y]; }), a: S.actors.map((a) => [a.x, a.y, a.alive ? 1 : 0, a.moving ? 1 : 0]) };
       }
     };
   }
@@ -2782,6 +4225,8 @@
     accent: ACCENT,
     target: 3,
     layout: 'shared',
+    net: true,                                     // sait jouer en ligne (api.net) : chacun sur son téléphone
+    ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
     preview,
     mount
   };
