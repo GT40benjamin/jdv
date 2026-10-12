@@ -54,6 +54,8 @@ window.JDW_DUOS['<id>'] = {
   Pour « Manche 2 », « 3… 2… 1… GO ! », « Trop tôt ! »… Tu peux aussi dessiner tes propres textes dans le canvas.
 - `api.vibrate(ms)` : petite vibration du téléphone (sans effet sur PC).
 - `api.hasMusic` : vrai si la bibliothèque joue déjà une musique pour ce duel → le jeu ne joue pas sa propre musique (ses bruitages, si).
+- `api.turn(p)` (facultatif, jeux au tour par tour) : appelle-le quand la main passe au joueur `p` (-1 = personne) ; en duel en ligne,
+  la bibliothèque ne laisse alors toucher l'écran qu'à l'appareil de ce joueur.
 
 ## Cycle de vie
 - Après `mount()`, montre l'intro de la manche (« Manche 1 », compte à rebours court) puis on joue. Chaque manche gagnée → `api.point(p)`.

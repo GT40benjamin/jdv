@@ -1102,6 +1102,8 @@ function onPoke(topic, event, p) {
   if (p.from === clientId) return;
   if (p.t === 'cmp') { if (room && topic === 'jdw-room-' + room.id) cmpOnSignal(p); return; }
   if (p.t === 'rtc') { if (room && topic === 'jdw-room-' + room.id) rtcOnSignal(p); return; }
+  if (p.t === 'net') { if (NET.topic && topic === NET.topic) netOnSignal(p); return; }
+  if (p.t === 'netinv') { if (room && topic === 'jdw-room-' + room.id) netOnInvite(p); return; }
   if (p.t === 'rx') { if (room && topic === 'jdw-room-' + room.id) rxShow(cleanName(p.n), cleanName(p.to), String(p.e || '').slice(0, 40)); return; }
   if (p.t === 'version') { checkSiteVersion(); return; }
   if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
@@ -2369,6 +2371,9 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
 /* ================= Duel : deux joueurs face à face sur le même téléphone ================= */
 // P0 = en bas (écran à l'endroit), P1 = en haut (écran à l'envers). Les jeux : source/duos/*.js (DUO-CONTRACT.md).
 const DUO_COLORS = ['#ffa630', '#5ef0ff'];
+// duel en ligne (bêta) : voir la section « Duel en ligne » plus bas
+const NET = { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: null, peer: '', peerCid: '', seats: null, turn: -1, blocked: new Set(),
+  pend: [], remote: false, helloT: 0, waitT: 0, guestInfo: null, stream: null, dest: null, vSender: null, aSender: null, start: null, ids: new Map() };
 // musique de chaque duel : morceaux des jeux solo qui vont bien
 const DUO_MUSIC = { trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
   souris: ['glouton', 'calm'], spatial: ['ilo', 'intense'], mots: ['accueil', 'calm'], guerre: ['canards', 'calm'] };
@@ -2380,7 +2385,7 @@ function defaultSeats() {
   return [me, other || GUEST];
 }
 if (!Array.isArray(seats) || seats.length !== 2 || !seats[0]) seats = defaultSeats();
-const seatName = i => seats[i] || GUEST;
+const seatName = i => (NET.seats ? NET.seats[i] : seats[i]) || GUEST;
 const sameSeats = () => seatName(0) === seatName(1);
 function seatPlayer(i) {
   const name = seatName(i), rec = name === GUEST ? null : players.get(name);
@@ -2407,7 +2412,7 @@ function renderSeats() {
 let pickSeat = 0;
 function openSeatPick(i) {
   pickSeat = i;
-  $('jdw-seatpick-h').textContent = i === 0 ? 'Qui joue en bas ?' : 'Qui joue en haut ?';
+  $('jdw-seatpick-h').textContent = i === 0 ? 'Qui joue en bas ?' : 'Qui joue en haut ?';
   const list = $('jdw-seatpick-list'); list.textContent = '';
   const seen = new Set(), rows = [];
   const add = (n, tag) => { n = cleanName(n); if (!n || n === GUEST || seen.has(n)) return; seen.add(n); rows.push([n, tag]); };
@@ -2434,7 +2439,9 @@ $('jdw-seat-1').addEventListener('click', () => openSeatPick(1));
 $('jdw-seat-swap').addEventListener('click', () => { seats = [seats[1], seats[0]]; store.set('jdw.seats', seats); renderSeats(); });
 $('jdw-seatpick-close').addEventListener('click', () => closeSheet('jdw-seatpick'));
 $('jdw-seatpick').addEventListener('click', e => { if (e.target === $('jdw-seatpick')) closeSheet('jdw-seatpick'); });
+let DUEL_WHERE = 'local';
 function setDuelWhere(w) {
+  DUEL_WHERE = w;
   for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.setAttribute('aria-selected', String(b.dataset.where === w));
   $('jdw-duel-local').hidden = w !== 'local'; $('jdw-duel-online').hidden = w !== 'online';
 }
@@ -2450,7 +2457,7 @@ function buildDuoLibrary() {
     b.innerHTML = '<div class="tile-img"><canvas aria-hidden="true"></canvas><span class="duo-emoji" aria-hidden="true"></span></div><div class="tile-meta"><div class="tile-name"></div><div class="duo-tag"></div></div>';
     b.querySelector('.tile-name').textContent = d.title;
     b.querySelector('.duo-emoji').textContent = d.emoji || '⚔️';
-    b.addEventListener('click', () => openDuo(d));
+    b.addEventListener('click', () => { if (DUEL_WHERE === 'online') netCreate(d); else openDuo(d); });
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', d.accent || COLORS.amber);
     wrap.appendChild(b); grid.appendChild(wrap);
     duoTiles.push({ g: d, el: b, canvas: b.querySelector('canvas'), tag: b.querySelector('.duo-tag'), visible: false });
@@ -2484,6 +2491,7 @@ function duoSay(text, o) {
     el.appendChild(dv); clearTimeout(DUO.sayT[p]);
     DUO.sayT[p] = setTimeout(() => { el.textContent = ''; }, Math.max(300, Math.min(6000, +o.ms || 1000)));
   }
+  if (NET.role === 'host') netCtl({ h: 'say', text: String(text || ''), o: { ms: o.ms, p: o.p, color: o.color, small: o.small } });
 }
 function duoPills(scored) {
   const t = DUO.d ? DUO.d.target || 5 : 5;
@@ -2492,6 +2500,7 @@ function duoPills(scored) {
     pl.classList.toggle('mp', !DUO.over && DUO.scores[i] === t - 1);
     if (scored === i) { pl.classList.remove('bump'); void pl.offsetWidth; pl.classList.add('bump'); }
   }
+  if (NET.role === 'host') netCtl({ h: 'pills', s: DUO.scores, p: scored });
 }
 function duoApi(d, seq) {
   const P = [seatPlayer(0), seatPlayer(1)];
@@ -2519,6 +2528,7 @@ function duoApi(d, seq) {
     round: () => DUO.scores[0] + DUO.scores[1] + 1,
     scores: () => DUO.scores.slice(),
     say: (text, o) => { if (mine()) duoSay(text, o); },
+    turn: (p) => { if (mine()) NET.turn = p === 0 || p === 1 ? p : -1; },   // jeux au tour par tour : qui a la main (duel en ligne)
     hasMusic: !!duoMusicId(d),   // la bibliothèque joue une musique pour ce duel : le jeu ne joue pas la sienne
     vibrate: (ms) => { try { if (navigator.vibrate) navigator.vibrate(Math.max(10, Math.min(400, +ms || 30))); } catch (e) {} },
     online: false
@@ -2544,9 +2554,10 @@ function mountDuo() {
   DUO.mp = false;
   const mid = duoMusicId(d), m = mid ? [mid, 'calm'] : DUO_MUSIC[d.id] || ['accueil', 'calm']; musicBaseLevel(0.7); MUS.override = false; setMusic(m[0], m[1]);
   preloadStings(['point', 'match', 'win']);
-  DUO.api = duoApi(d, seq);
+  DUO.api = duoApi(d, seq); NET.turn = -1;
   try { DUO.inst = d.mount(root, DUO.api) || {}; }
   catch (e) { DUO.inst = {}; reportError('Duel ' + d.id + ' : ' + e.message, e.stack); toastCheer('Oups, ce duel a eu un souci.', profile.name, true); }
+  if (NET.role === 'host') setTimeout(netAttach, 60);   // l'image du nouveau plateau part chez l'adversaire
   setWhere('duel-' + d.id);
 }
 function unmountDuo() {
@@ -2589,7 +2600,7 @@ function resHalf(i, land) {
     : land ? d.title + ' · victoires : ' + seatName(0) + ' ' + pw[0] + ' – ' + pw[1] + ' ' + seatName(1)
     : d.title + ' · tes victoires : ' + pw[i] + ' – ' + pw[1 - i] + ' contre ' + oth.name;
   const row = document.createElement('div'); row.className = 'dr-btns';
-  row.append(duoBtn('Revanche !', 'btn btn-play', () => mountDuo()), duoBtn('Autre duel', 'btn btn-ghost', closeDuo));
+  row.append(duoBtn('Revanche !', 'btn btn-play', duoRematch), duoBtn('Autre duel', 'btn btn-ghost', duoLeave));
   el.append(heads, h, sc, sub, row);
   // le gagnant peut l'annoncer dans le chat de la salle
   if ((win || land) && ONLINE && room && !sameSeats()) {
@@ -2607,6 +2618,7 @@ function resHalf(i, land) {
 function duoResults() {
   const d = DUO.d; if (!d) return;
   const w = DUO.winner, land = d.layout === 'landscape';
+  if (NET.role === 'host') netCtl({ h: 'res', w, s: DUO.scores });
   unmountDuo();
   addWin(d.id, w);
   resHalf(0, land); if (!land) resHalf(1, false);
@@ -2618,7 +2630,13 @@ function duoResults() {
   if (wn !== GUEST) setTimeout(() => playCri(wn), 1800);
   setWhere('menu');
 }
+function duoRematch() {
+  if (NET.role === 'guest') { netCtl({ h: 'rematch' }); $('jdw-duo-res').hidden = true; $('jdw-duo-hud').hidden = false; duoSay('Revanche demandée…', { small: true, ms: 2500 }); return; }
+  mountDuo();
+}
+function duoLeave() { if (NET.role) netEnd(true); else closeDuo(); }
 function closeDuo() {
+  if (NET.role) { netEnd(true); return; }
   unmountDuo();
   DUO.d = null; DUO.waitRot = false; DUO.paused = false;
   $('jdw-duo').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-rotate').hidden = true;
@@ -2627,27 +2645,40 @@ function closeDuo() {
   if (siteNew) setTimeout(maybeReload, 800);
 }
 function duoPause() {
+  if (NET.role === 'guest') { if (!DUO.over) netCtl({ h: 'pausereq' }); return; }
   if (!DUO.inst || DUO.over) return;
+  if (NET.role === 'host') netCtl({ h: 'pause' });
   if (!DUO.paused) { DUO.paused = true; try { if (DUO.inst.pause) DUO.inst.pause(); } catch (e) {} musicBaseLevel(0.35); }
-  $('jdw-duo-pause-sub').textContent = seatPlayer(0).name + ' ' + DUO.scores[0] + ' – ' + DUO.scores[1] + ' ' + seatPlayer(1).name + ' · ' + DUO.d.title;
+  // les deux joueurs, leur tête et le score à leurs couleurs
+  const sub = $('jdw-duo-pause-sub'); sub.textContent = '';
+  const side = i => { const b = document.createElement('span'); b.className = 'dp-side'; b.style.setProperty('--pc', DUO_COLORS[i]);
+    const n = document.createElement('b'); n.textContent = seatPlayer(i).name; b.append(chatHead(seatPlayer(i).name, { passive: true }), n); return b; };
+  const sc = document.createElement('span'); sc.className = 'dp-score';
+  const s0 = document.createElement('b'), s1 = document.createElement('b'); s0.textContent = DUO.scores[0]; s0.style.color = DUO_COLORS[0]; s1.textContent = DUO.scores[1]; s1.style.color = DUO_COLORS[1];
+  sc.append(s0, ' – ', s1);
+  const g = document.createElement('small'); g.className = 'dp-game'; g.textContent = DUO.d.title + ' · en ' + (DUO.d.target || 5) + ' points';
+  sub.append(side(0), sc, side(1), g);
+  $('jdw-duo-pause').style.setProperty('--acc', DUO.d.accent || COLORS.amber);
   $('jdw-duo-pause').hidden = false;
   setTimeout(() => { const b = $('jdw-duo-resume'); if (b && !$('jdw-duo-pause').hidden) b.focus({ preventScroll: true }); }, 30);
 }
 function duoResume() {
   $('jdw-duo-pause').hidden = true;
+  if (NET.role === 'guest') { netCtl({ h: 'resumereq' }); return; }
+  if (NET.role === 'host') netCtl({ h: 'resume' });
   if (!DUO.paused) return;
   DUO.paused = false; musicBaseLevel(0.7);
   try { if (DUO.inst && DUO.inst.resume) DUO.inst.resume(); } catch (e) {}
 }
 function duoBack() {
-  if (!$('jdw-duo-res').hidden || DUO.waitRot) { closeDuo(); return; }
+  if (!$('jdw-duo-res').hidden || DUO.waitRot) { duoLeave(); return; }
   if (!$('jdw-duo-pause').hidden) { duoResume(); return; }
   duoPause();
 }
 $('jdw-duo-menu').addEventListener('click', duoPause);
 $('jdw-duo-resume').addEventListener('click', duoResume);
-$('jdw-duo-restart').addEventListener('click', () => mountDuo());
-$('jdw-duo-quit').addEventListener('click', closeDuo);
+$('jdw-duo-restart').addEventListener('click', () => { if (NET.role === 'guest') { netCtl({ h: 'rematch' }); $('jdw-duo-pause').hidden = true; } else mountDuo(); });
+$('jdw-duo-quit').addEventListener('click', duoLeave);
 $('jdw-duo-rotate-skip').addEventListener('click', () => mountDuo());
 $('jdw-duo-rotate-back').addEventListener('click', closeDuo);
 addEventListener('resize', () => { if (DUO.waitRot && innerWidth > innerHeight) mountDuo(); });
@@ -3233,6 +3264,305 @@ function watchSend(e, btn) {
 $('jdw-watch-back').addEventListener('click', () => watchStop());
 document.addEventListener('visibilitychange', () => { if (document.hidden && WATCH.sid) watchStop(); });
 
+/* ================= Duel en ligne (bêta) : chacun sur son téléphone ================= */
+// La partie tourne chez celui qui lance le défi (l'hôte, joueur du bas). Son image et son son partent en direct chez l'adversaire
+// (WebRTC, de téléphone à téléphone) ; les touches de l'adversaire reviennent par un canal de données et sont rejouées dans le jeu
+// comme des doigts posés sur la moitié du haut. Bannières, scores, pause et résultats sont recopiés chez lui.
+// Signaux « net » dans un canal propre au duel (jdw-duel-<code>) ; invitation « netinv » dans le canal de la salle ou par un lien ?duel=<code>.
+const NET_LINK = () => location.origin + location.pathname + '?duel=' + NET.code;
+function rtBroadcastTo(topic, data) { return rtSend(topic, 'broadcast', { type: 'broadcast', event: 'poke', payload: Object.assign({ from: clientId }, data) }); }
+function netSig(data) { if (NET.topic) rtBroadcastTo(NET.topic, Object.assign({ t: 'net', code: NET.code }, data)); }
+function netCtl(m) { if (NET.ctl && NET.ctl.readyState === 'open') try { NET.ctl.send(JSON.stringify(m)); } catch (e) {} }
+// les doigts rejoués ont des numéros >= 1000 : pas de capture de pointeur pour eux
+for (const k of ['setPointerCapture', 'releasePointerCapture']) { const f = Element.prototype[k]; if (f) Element.prototype[k] = function (id) { if (id >= 1000) return; return f.call(this, id); }; }
+{ const f = Element.prototype.hasPointerCapture; if (f) Element.prototype.hasPointerCapture = function (id) { return id >= 1000 ? true : f.call(this, id); }; }
+function netReset() {
+  if (NET.pc) try { NET.pc.close(); } catch (e) {}
+  if (NET.stream) try { NET.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  if (NET.topic) rtLeave(NET.topic);
+  clearInterval(NET.helloT); clearTimeout(NET.waitT);
+  Object.assign(NET, { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: null, peer: '', peerCid: '', seats: null, turn: -1, pend: [], remote: false, guestInfo: null, stream: null, vSender: null, aSender: null, start: null });
+  NET.blocked.clear(); NET.ids.clear();
+  $('jdw-duo').classList.remove('net-guest', 'net-host');
+  $('jdw-net-stage').hidden = true; const v = $('jdw-net-video'); try { v.pause(); } catch (e) {} v.srcObject = null;
+}
+function netEnd(notify, msg) {
+  if (!NET.role) return;
+  if (notify) { netCtl({ h: 'quit' }); netSig({ k: 'bye' }); }
+  const wasGuest = NET.role === 'guest';
+  netReset();
+  if (!$('jdw-net').hidden) closeSheet('jdw-net');
+  if (!$('jdw-duo').hidden) { unmountDuo(); DUO.d = null; DUO.waitRot = false; DUO.paused = false; $('jdw-duo').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-rotate').hidden = true; $('jdw-lib').hidden = false; setWhere('menu'); refreshDuoTiles(); }
+  musicBaseLevel(1); MUS.override = false; setMusic('accueil');
+  if (msg) toastCheer(msg, profile.name, true);
+  else if (wasGuest && notify) {}
+}
+// ---------- l'hôte : lancer le défi, inviter ----------
+function netCreate(d) {
+  if (!profile.name) { startWelcome(); return; }
+  if (!ONLINE || !window.RTCPeerConnection) { toastCheer('Le duel en ligne demande une connexion internet.', profile.name, true); return; }
+  if (!room) { openRooms(); return; }
+  netReset(); Audio.ensure();
+  NET.code = Math.random().toString(36).slice(2, 8); NET.role = 'host'; NET.d = d; NET.topic = 'jdw-duel-' + NET.code;
+  rtJoin(NET.topic);
+  $('jdw-net-game').textContent = d.title + ' · duel en ligne';
+  $('jdw-net-h').textContent = 'Défi lancé !';
+  $('jdw-net-sub').textContent = 'Invite un copain : dès qu\'il accepte, la partie commence chez vous deux.';
+  $('jdw-net-sharebox').hidden = false; $('jdw-net-lh').hidden = false;
+  $('jdw-net').style.setProperty('--acc', d.accent || COLORS.amber);
+  netRenderList(); openSheet('jdw-net', 'jdw-net-share');
+}
+function netRenderList() {
+  const list = $('jdw-net-list'); list.textContent = '';
+  const me = cleanName(profile.name), seen = new Set();
+  const on = presList().filter(x => x.name !== me && x.cid && !seen.has(x.name) && seen.add(x.name));
+  if (!on.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'Personne d\'autre en ligne dans ta salle pour le moment : envoie-lui le lien.'; list.appendChild(p); return; }
+  for (const x of on) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pick-row';
+    const t = document.createElement('span'); t.className = 'pr-t'; const bb = document.createElement('b'); bb.textContent = x.name; const sm = document.createElement('small');
+    sm.textContent = x.game && x.game !== 'menu' ? gameLabel(x.game) : 'dans le menu'; t.append(bb, sm);
+    const go = document.createElement('span'); go.className = 'cg-go'; go.textContent = 'Défier';
+    b.append(chatHead(x.name, { passive: true }), t, go);
+    b.addEventListener('click', () => {
+      rtBroadcast({ t: 'netinv', code: NET.code, g: NET.d.id, n: me, to: x.name });
+      go.textContent = 'Invité ✓'; b.disabled = true;
+      $('jdw-net-sub').textContent = 'Invitation envoyée à ' + x.name + ' : en attente de sa réponse…';
+    });
+    list.appendChild(b);
+  }
+}
+async function netShare() {
+  const txt = cleanName(profile.name) + ' te défie à ' + NET.d.title + ' sur la borne d\'arcade ! Touche le lien pour jouer :';
+  try { if (navigator.share) { await navigator.share({ title: 'Duel : ' + NET.d.title, text: txt, url: NET_LINK() }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  netCopy();
+}
+async function netCopy() {
+  try { await navigator.clipboard.writeText(NET_LINK()); toastCheer('Lien copié : colle-le dans Messenger, SMS…', profile.name, true); }
+  catch (e) { $('jdw-net-sub').textContent = 'Envoie ce lien à ton copain : ' + NET_LINK(); }
+}
+$('jdw-net-share').addEventListener('click', netShare);
+$('jdw-net-copy').addEventListener('click', netCopy);
+$('jdw-net-cancel').addEventListener('click', () => netEnd(true));
+// ---------- l'invité : invitation reçue ou lien ouvert ----------
+let netInvite = null;
+function netOnInvite(p) {
+  if (cleanName(p.to) !== cleanName(profile.name) || NET.role) return;
+  const d = duoById(p.g); if (!d) return;
+  netInvite = { code: String(p.code || '').slice(0, 12), g: d.id, from: cleanName(p.n) };
+  const hd = $('jdw-netinv-head'); hd.textContent = ''; hd.appendChild(chatHead(netInvite.from, { passive: true }));
+  $('jdw-netinv-t').textContent = netInvite.from + ' te défie à ' + d.title + (/[!?]\s*$/.test(d.title) ? '' : ' !');
+  $('jdw-netinv').hidden = false; Audio.tone(784, 0.1, 'square', 0.05, 1046);
+  clearTimeout(netInvite.t); netInvite.t = setTimeout(() => { $('jdw-netinv').hidden = true; }, 40000);
+}
+$('jdw-netinv-ok').addEventListener('click', () => { $('jdw-netinv').hidden = true; if (netInvite) netJoin(netInvite.code, netInvite.g, netInvite.from); });
+$('jdw-netinv-no').addEventListener('click', () => { $('jdw-netinv').hidden = true; if (netInvite) rtBroadcastTo('jdw-duel-' + netInvite.code, { t: 'net', code: netInvite.code, k: 'no', n: cleanName(profile.name) }); netInvite = null; });
+function netJoin(code, g, from) {
+  if (!profile.name) { startWelcome(); return; }
+  if (!window.RTCPeerConnection) { toastCheer('Ce téléphone ne permet pas le duel en ligne.', profile.name, true); return; }
+  netReset(); Audio.ensure();
+  NET.code = code; NET.role = 'guest'; NET.topic = 'jdw-duel-' + code; NET.d = g ? duoById(g) : null;
+  rtJoin(NET.topic);
+  $('jdw-net-game').textContent = (NET.d ? NET.d.title + ' · ' : '') + 'duel en ligne';
+  $('jdw-net-h').textContent = 'Connexion au duel…';
+  $('jdw-net-sub').textContent = from ? 'On rejoint la partie de ' + from + '.' : 'On rejoint la partie de ton copain.';
+  $('jdw-net-sharebox').hidden = true; $('jdw-net-lh').hidden = true; $('jdw-net-list').textContent = '';
+  openSheet('jdw-net', 'jdw-net-cancel');
+  const hello = () => netSig({ k: 'hello', n: cleanName(profile.name), cid: clientId });
+  hello(); NET.helloT = setInterval(hello, 1500);
+  NET.waitT = setTimeout(() => { if (NET.role === 'guest' && !NET.pc) netEnd(false, 'Le duel n\'a pas répondu : il a peut-être été annulé.'); }, 25000);
+}
+// ---------- signaux ----------
+function netOnSignal(p) {
+  if (p.code !== NET.code || (p.to && p.to !== clientId)) return;
+  if (NET.role === 'host') {
+    if (p.k === 'hello') { if (NET.peerCid && NET.peerCid !== p.cid) { netSig({ k: 'busy', to: p.cid }); return; } if (!NET.pc) { NET.peer = cleanName(p.n); NET.peerCid = p.cid; netHostStart(); } return; }
+    if (p.k === 'answer' && NET.pc) { NET.pc.setRemoteDescription({ type: 'answer', sdp: p.sdp }).then(() => { NET.remote = true; for (const c of NET.pend.splice(0)) NET.pc.addIceCandidate(c).catch(() => {}); }).catch(() => {}); return; }
+    if (p.k === 'no') { $('jdw-net-sub').textContent = cleanName(p.n) + ' ne peut pas jouer maintenant. Invite quelqu\'un d\'autre ?'; return; }
+  } else if (NET.role === 'guest') {
+    if (p.k === 'offer' && !NET.pc) { clearInterval(NET.helloT); NET.peer = cleanName(p.n); NET.peerCid = p.from; netGuestOffer(p); return; }
+    if (p.k === 'busy') { netEnd(false, 'Ce duel a déjà un adversaire.'); return; }
+  }
+  if (p.k === 'ice' && NET.pc) { if (NET.remote) NET.pc.addIceCandidate(p.c).catch(() => {}); else NET.pend.push(p.c); return; }
+  if (p.k === 'bye' && NET.role) netEnd(false, (NET.peer || 'Ton adversaire') + ' a quitté le duel.');
+}
+function netWatchPc(pc) {
+  pc.onicecandidate = e => { if (e.candidate && NET.peerCid) netSig({ k: 'ice', to: NET.peerCid, c: e.candidate.toJSON() }); };
+  pc.onconnectionstatechange = () => {
+    if (NET.pc !== pc) return;
+    if (pc.connectionState === 'failed') netEnd(false, 'Connexion perdue avec ' + (NET.peer || 'ton adversaire') + ' (réseau).');
+    if (pc.connectionState === 'disconnected') setTimeout(() => { if (NET.pc === pc && pc.connectionState === 'disconnected') netEnd(false, (NET.peer || 'Ton adversaire') + ' s\'est déconnecté.'); }, 6000);
+  };
+}
+// ---------- l'hôte : connexion, partie, image ----------
+async function netHostStart() {
+  $('jdw-net-h').textContent = 'Connexion avec ' + NET.peer + '…';
+  $('jdw-net-sub').textContent = 'La partie démarre dans un instant.';
+  $('jdw-net-sharebox').hidden = true; $('jdw-net-lh').hidden = true; $('jdw-net-list').textContent = '';
+  try {
+    const pc = NET.pc = new RTCPeerConnection(RTC_CFG); netWatchPc(pc);
+    NET.vSender = pc.addTransceiver('video', { direction: 'sendonly' }).sender;
+    NET.aSender = pc.addTransceiver('audio', { direction: 'sendonly' }).sender;
+    NET.ctl = pc.createDataChannel('ctl');
+    NET.inp = pc.createDataChannel('inp', { ordered: false, maxRetransmits: 0 });
+    NET.ctl.onopen = () => { NET.waitT = setTimeout(netHostGo, 1500); };   // on attend sa tête (message « me ») 1,5 s au plus
+    NET.ctl.onmessage = e => { try { netCtlHost(JSON.parse(e.data)); } catch (x) {} };
+    NET.inp.onmessage = e => { try { netInject(JSON.parse(e.data)); } catch (x) {} };
+    await pc.setLocalDescription(await pc.createOffer());
+    netSig({ k: 'offer', to: NET.peerCid, sdp: pc.localDescription.sdp, g: NET.d.id, n: cleanName(profile.name) });
+  } catch (e) { netEnd(true, 'Impossible de lancer le duel en ligne.'); reportError('Duel en ligne : ' + e.message, e.stack, { quiet: true }); }
+}
+function netHostGo() {
+  if (NET.role !== 'host' || NET.start) return;
+  clearTimeout(NET.waitT); NET.start = true;
+  const gi = NET.guestInfo;
+  if (gi && gi.photo && /^data:image\//.test(gi.photo) && !players.has(NET.peer)) setPlayer(NET.peer, gi.photo, gi.sound || null);
+  NET.seats = [cleanName(profile.name), NET.peer];
+  if (!$('jdw-net').hidden) closeSheet('jdw-net');
+  $('jdw-duo').classList.add('net-host');
+  openDuo(NET.d);
+}
+function netCtlHost(m) {
+  if (m.h === 'me') { NET.guestInfo = m; if (NET.ctl && NET.ctl.readyState === 'open' && !NET.start) netHostGo(); return; }
+  if (m.h === 'pausereq') { duoPause(); return; }
+  if (m.h === 'resumereq') { duoResume(); return; }
+  if (m.h === 'rematch') { if (DUO.over || !$('jdw-duo-res').hidden || DUO.paused) mountDuo(); return; }
+  if (m.h === 'quit') netEnd(false, NET.peer + ' a quitté le duel.');
+}
+function duoCanvas() {
+  if (!DUO.root) return null;
+  let best = null, area = 0;
+  for (const c of DUO.root.querySelectorAll('canvas')) { if (c.offsetParent === null) continue; const r = c.getBoundingClientRect(), a = r.width * r.height; if (a > area) { best = c; area = a; } }
+  return best;
+}
+async function netAttach() {
+  if (NET.role !== 'host' || !NET.pc) return;
+  const cv = duoCanvas(); if (!cv || !cv.captureStream) { setTimeout(netAttach, 200); return; }
+  try {
+    if (NET.stream) NET.stream.getVideoTracks().forEach(t => t.stop());
+    NET.stream = cv.captureStream(30);
+    const vt = NET.stream.getVideoTracks()[0]; try { vt.contentHint = 'motion'; } catch (e) {}
+    await NET.vSender.replaceTrack(vt);
+    try { const prm = NET.vSender.getParameters(); if (prm.encodings && prm.encodings[0]) { Object.assign(prm.encodings[0], { maxBitrate: 1500000, maxFramerate: 30, scaleResolutionDownBy: cv.width > 1000 ? 2 : 1 }); await NET.vSender.setParameters(prm); } } catch (e) {}
+    if (!NET.dest && Audio.ctx) { NET.dest = Audio.ctx.createMediaStreamDestination(); Audio.master.connect(NET.dest); if (MUS.gain) MUS.gain.connect(NET.dest); }
+    if (NET.dest) await NET.aSender.replaceTrack(NET.dest.stream.getAudioTracks()[0]);
+    netCtl({ h: 'start', g: DUO.d.id, layout: DUO.d.layout, w: cv.clientWidth, hh: cv.clientHeight, names: NET.seats, s: DUO.scores });
+  } catch (e) { reportError('Duel en ligne (image) : ' + e.message, e.stack, { quiet: true }); }
+}
+// les doigts de l'adversaire, rejoués sur le plateau (moitié du haut ; au tour par tour : seulement quand c'est son tour)
+function netInject(m) {
+  if (NET.role !== 'host' || !DUO.root || !DUO.d) return;
+  const cv = duoCanvas(); if (!cv) return;
+  const land = DUO.d.layout === 'landscape', id = 1000 + ((m.id | 0) % 50);
+  const type = { d: 'pointerdown', m: 'pointermove', u: 'pointerup', c: 'pointercancel' }[m.t]; if (!type) return;
+  if (type === 'pointerdown') {
+    if (land ? NET.turn !== 1 : m.y > 0.5) { NET.ids.set(id, false); return; }   // pas sa moitié / pas son tour
+    NET.ids.set(id, true);
+  } else if (!NET.ids.get(id)) return;
+  if (type === 'pointerup' || type === 'pointercancel') NET.ids.delete(id);
+  const r = cv.getBoundingClientRect();
+  const x = r.left + Math.max(0, Math.min(1, +m.x || 0)) * r.width, y = r.top + Math.max(0, Math.min(1, +m.y || 0)) * r.height;
+  const ev = new PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: false, bubbles: true, cancelable: true, composed: true,
+    clientX: x, clientY: y, screenX: x, screenY: y, buttons: type === 'pointerup' || type === 'pointercancel' ? 0 : 1, button: type === 'pointermove' ? -1 : 0, pressure: type === 'pointerup' ? 0 : 0.5, width: 20, height: 20 });
+  cv.dispatchEvent(ev);
+}
+// chez l'hôte, ses propres doigts n'agissent pas sur la moitié (ou le tour) de l'adversaire
+function netGuard(e) {
+  if (NET.role !== 'host' || !e.isTrusted || !DUO.root || !DUO.d) return;
+  if (DUO.d.layout === 'landscape') { if (NET.turn === 1) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); } return; }
+  if (e.type === 'pointerdown') { const r = DUO.root.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) NET.blocked.add(e.pointerId); }
+  if (NET.blocked.has(e.pointerId)) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); if (e.type === 'pointerup' || e.type === 'pointercancel') NET.blocked.delete(e.pointerId); }
+}
+for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) $('jdw-duo-host').addEventListener(t, netGuard, true);
+// ---------- l'invité : la vidéo, les doigts, l'habillage ----------
+async function netGuestOffer(p) {
+  try {
+    const pc = NET.pc = new RTCPeerConnection(RTC_CFG); netWatchPc(pc);
+    pc.ontrack = e => { const v = $('jdw-net-video'); const st = e.streams[0] || new MediaStream([e.track]); if (v.srcObject !== st) { if (!v.srcObject) v.srcObject = st; else st.getTracks().forEach(t => { try { v.srcObject.addTrack(t); } catch (x) {} }); } v.play().catch(() => {}); };
+    pc.ondatachannel = e => {
+      const ch = e.channel;
+      if (ch.label === 'ctl') { NET.ctl = ch; ch.onopen = netGuestHello; ch.onmessage = ev => { try { netCtlGuest(JSON.parse(ev.data)); } catch (x) {} }; if (ch.readyState === 'open') netGuestHello(); }
+      else if (ch.label === 'inp') NET.inp = ch;
+    };
+    await pc.setRemoteDescription({ type: 'offer', sdp: p.sdp });
+    NET.remote = true; for (const c of NET.pend.splice(0)) pc.addIceCandidate(c).catch(() => {});
+    await pc.setLocalDescription(await pc.createAnswer());
+    netSig({ k: 'answer', to: NET.peerCid, sdp: pc.localDescription.sdp });
+    $('jdw-net-h').textContent = 'Connexion avec ' + NET.peer + '…';
+  } catch (e) { netEnd(true, 'Impossible de rejoindre le duel.'); reportError('Rejoindre un duel : ' + e.message, e.stack, { quiet: true }); }
+}
+function netGuestHello() {
+  // ma tête (si elle est petite) et mon nom, pour que l'hôte me dessine dans le jeu
+  const ph = profile.consent && profile.photo && profile.photo.length < 200000 ? profile.photo : '';
+  netCtl({ h: 'me', name: cleanName(profile.name), photo: ph });
+}
+function netCtlGuest(m) {
+  if (m.h === 'start') { netGuestShow(m); return; }
+  if (!NET.start) return;
+  if (m.h === 'say') { duoSay(m.text, m.o || {}); return; }
+  if (m.h === 'pills') { DUO.scores = Array.isArray(m.s) ? m.s.slice(0, 2) : DUO.scores; DUO.over = false; duoPills(m.p); return; }
+  if (m.h === 'res') { DUO.winner = m.w; DUO.scores = m.s; DUO.over = true; addWin(DUO.d.id, m.w); resHalf(0, DUO.d.layout === 'landscape'); if (DUO.d.layout !== 'landscape') resHalf(1, false); $('jdw-duo-res').hidden = false; $('jdw-duo-hud').hidden = true; return; }
+  if (m.h === 'pause') { DUO.paused = true; netGuestPauseCard(); return; }
+  if (m.h === 'resume') { DUO.paused = false; $('jdw-duo-pause').hidden = true; return; }
+  if (m.h === 'quit') netEnd(false, NET.peer + ' a quitté le duel.');
+}
+function netGuestShow(m) {
+  const d = duoById(m.g); if (!d) { netEnd(true, 'Ce duel n\'existe pas sur ta version : mets la borne à jour.'); return; }
+  NET.d = d; NET.start = { w: +m.w || 390, h: +m.hh || 780 }; NET.seats = Array.isArray(m.names) ? m.names.map(cleanName) : [NET.peer, cleanName(profile.name)];
+  if (!$('jdw-net').hidden) closeSheet('jdw-net');
+  DUO.d = d; DUO.scores = Array.isArray(m.s) ? m.s.slice(0, 2) : [0, 0]; DUO.over = false; DUO.winner = null; DUO.paused = false; DUO.inst = null;
+  $('jdw-lib').hidden = true; $('jdw-duo').hidden = false;
+  $('jdw-duo').classList.toggle('land', d.layout === 'landscape');
+  $('jdw-duo').classList.add('net-guest');
+  $('jdw-duo').classList.toggle('net-flip', d.layout !== 'landscape');   // l'image est tournée : ma moitié (celle du haut chez l'hôte) en bas
+  $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-hud').hidden = false; $('jdw-duo-rotate').hidden = true;
+  for (const i of [0, 1]) { const av = $('jdw-duo-pill' + i).querySelector('.dp-av'); av.textContent = ''; av.appendChild(chatHead(seatPlayer(i).name, { passive: true })); }
+  duoPills();
+  $('jdw-net-stage').hidden = false; netFitStage();
+  musicOut(0.4);   // on entend le son de la partie de l'hôte
+  setWhere('duel-' + d.id);
+}
+function netFitStage() {
+  if (!NET.start || NET.role !== 'guest') return;
+  const st = $('jdw-net-stage'), W = innerWidth, H = innerHeight, k = Math.min(W / NET.start.w, H / NET.start.h);
+  const w = Math.round(NET.start.w * k), h = Math.round(NET.start.h * k);
+  Object.assign(st.style, { width: w + 'px', height: h + 'px', left: Math.round((W - w) / 2) + 'px', top: Math.round((H - h) / 2) + 'px' });
+}
+addEventListener('resize', netFitStage);
+function netGuestPauseCard() {
+  const sub = $('jdw-duo-pause-sub'); sub.textContent = '';
+  const side = i => { const b = document.createElement('span'); b.className = 'dp-side'; b.style.setProperty('--pc', DUO_COLORS[i]); const n = document.createElement('b'); n.textContent = seatPlayer(i).name; b.append(chatHead(seatPlayer(i).name, { passive: true }), n); return b; };
+  const sc = document.createElement('span'); sc.className = 'dp-score'; sc.textContent = DUO.scores[0] + ' – ' + DUO.scores[1];
+  sub.append(side(0), sc, side(1));
+  $('jdw-duo-pause').hidden = false;
+}
+// doigts de l'invité → hôte (coordonnées 0..1 du plateau de l'hôte ; image tournée : on retourne)
+(() => {
+  const st = $('jdw-net-stage'); let lastMove = 0;
+  const send = (t, e) => {
+    if (NET.role !== 'guest' || !NET.inp || NET.inp.readyState !== 'open') return;
+    const r = st.getBoundingClientRect(); let x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    if ($('jdw-duo').classList.contains('net-flip')) { x = 1 - x; y = 1 - y; }
+    try { NET.inp.send(JSON.stringify({ t, id: e.pointerId % 50, x: +x.toFixed(4), y: +y.toFixed(4) })); } catch (x2) {}
+  };
+  st.addEventListener('pointerdown', e => { e.preventDefault(); try { st.setPointerCapture(e.pointerId); } catch (x) {} send('d', e); });
+  st.addEventListener('pointermove', e => { if (!e.buttons && e.pointerType === 'mouse') return; const now = performance.now(); if (now - lastMove < 12) return; lastMove = now; send('m', e); });
+  st.addEventListener('pointerup', e => send('u', e));
+  st.addEventListener('pointercancel', e => send('c', e));
+  st.addEventListener('contextmenu', e => e.preventDefault());
+})();
+// lien d'invitation ouvert : ?duel=<code>
+(() => {
+  let code = ''; try { code = new URLSearchParams(location.search).get('duel') || ''; } catch (e) {}
+  if (!/^[a-z0-9]{4,12}$/.test(code)) return;
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  setTimeout(() => {
+    netInvite = { code, g: '', from: '' };
+    const hd = $('jdw-netinv-head'); hd.textContent = ''; hd.textContent = '⚔️';
+    $('jdw-netinv-t').textContent = 'Un copain t\'a défié en duel !';
+    $('jdw-netinv').hidden = false;
+  }, 1200);
+})();
+
 /* ================= Lancer un jeu ================= */
 let current = null, mountSeq = 0;
 function mountGame(g) {
@@ -3538,6 +3868,7 @@ function alertBox(txt) { $('jdw-rooms-status').textContent = txt; openRooms(); }
 
 /* ================= Appli Android : retour + mise à jour ================= */
 window.JDW_BACK = () => {
+  if (!$('jdw-net').hidden) { netEnd(true); return true; }
   if (!$('jdw-watch').hidden) { watchStop(); return true; }
   if (!$('jdw-cmp-pick').hidden) { cmpClosePick(); return true; }
   if (!$('jdw-podium').hidden) { cmpClosePodium(); return true; }
@@ -3564,7 +3895,7 @@ checkAppVersion();
 })();
 
 /* ================= Démarrage ================= */
-['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch'].forEach(id => { if ($(id)) $(id).hidden = true; });
+['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
 $('jdw-lib').hidden = false;
 syncOwnPlayer();

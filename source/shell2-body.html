@@ -49,17 +49,15 @@
           <div class="duo-phone" aria-hidden="true"><span class="dp-top">🙃</span><span class="dp-line"></span><span class="dp-bot">🙂</span></div>
           <p>Posez le téléphone à plat entre vous deux : l'écran est coupé en deux, chacun joue de son côté, <b>en même temps</b>.</p>
         </div>
-        <p class="eyebrow grid-h">Choisis le duel</p>
-        <section class="grid duo-grid" id="jdw-duo-grid" aria-label="Jeux de duel"></section>
       </div>
       <div class="duel-online" id="jdw-duel-online" hidden>
-        <ol class="soon-steps">
-          <li><b>Tu ouvres un duel</b> et tu choisis le jeu.</li>
-          <li><b>Tu envoies l'invitation</b> à un copain de ta salle, ou par Messenger, SMS, WhatsApp.</li>
-          <li><b>Il touche le lien</b> : chacun sur son téléphone, en direct et sans lag.</li>
-        </ol>
-        <p class="soon-foot"><span class="soon-tag">Bientôt</span> Les mêmes 8 duels, chacun chez soi.</p>
+        <div class="duo-how net-how">
+          <div class="net-ic" aria-hidden="true">📡</div>
+          <p>Chacun sur son téléphone : choisis un duel, invite un copain de ta salle ou envoie-lui le lien (Messenger, SMS…). Ta partie s'affiche en direct chez lui et il joue de son côté. <span class="soon-tag">Bêta</span></p>
+        </div>
       </div>
+      <p class="eyebrow grid-h">Choisis le duel</p>
+      <section class="grid duo-grid" id="jdw-duo-grid" aria-label="Jeux de duel"></section>
     </section>
     <section class="mode-page" id="jdw-page-compet" aria-label="Mode Compétition">
       <div class="cmp-none" id="jdw-cmp-none" hidden>
@@ -208,6 +206,7 @@
 <!-- Duel : deux joueurs face à face sur le même téléphone -->
 <div id="jdw-duo" hidden>
   <div id="jdw-duo-host"></div>
+  <div class="net-stage" id="jdw-net-stage" hidden><video id="jdw-net-video" playsinline autoplay></video></div>
   <div class="duo-hud" id="jdw-duo-hud">
     <div class="duo-half h1"><div class="duo-say" id="jdw-duo-say1"></div></div>
     <div class="duo-half h0"><div class="duo-say" id="jdw-duo-say0"></div></div>
@@ -268,6 +267,30 @@
       <div class="row podium-btns"><button class="btn btn-play" id="jdw-podium-again" type="button">Revanche !</button><button class="btn btn-ghost" id="jdw-podium-close" type="button">Fermer</button></div>
     </div>
   </div>
+</div>
+
+<!-- Duel en ligne : défi lancé / connexion -->
+<div class="sheet" id="jdw-net" hidden>
+  <div class="card net-card" role="dialog" aria-modal="true" aria-labelledby="jdw-net-h">
+    <div class="card-body">
+      <p class="eyebrow" id="jdw-net-game"></p>
+      <h2 class="net-h" id="jdw-net-h">Défi lancé !</h2>
+      <p class="small" id="jdw-net-sub"></p>
+      <div class="net-share" id="jdw-net-sharebox">
+        <button class="btn btn-play" id="jdw-net-share" type="button">📨 Envoyer l'invitation</button>
+        <button class="btn btn-ghost" id="jdw-net-copy" type="button">Copier le lien</button>
+      </div>
+      <p class="eyebrow" id="jdw-net-lh">Copains en ligne dans ta salle</p>
+      <div class="pick-list" id="jdw-net-list"></div>
+      <button class="btn btn-ghost" id="jdw-net-cancel" type="button">Annuler</button>
+    </div>
+  </div>
+</div>
+<!-- Duel en ligne : invitation reçue -->
+<div class="netinv" id="jdw-netinv" role="alertdialog" aria-labelledby="jdw-netinv-t" hidden>
+  <span class="netinv-head" id="jdw-netinv-head"></span>
+  <span class="netinv-t" id="jdw-netinv-t"></span>
+  <span class="netinv-btns"><button class="btn btn-play btn-sm" id="jdw-netinv-ok" type="button">Accepter</button><button class="btn btn-ghost btn-sm" id="jdw-netinv-no" type="button">Non merci</button></span>
 </div>
 
 <!-- Duel : qui joue ? -->

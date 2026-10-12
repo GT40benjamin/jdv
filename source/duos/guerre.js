@@ -1481,6 +1481,7 @@
       const bp = S.bp;
       if (S.turnNo >= bp.crateFirst && (S.turnNo - bp.crateFirst) % bp.crateEvery === 0 && S.crates.length <= 2) spawnCratePair();
       S.active = d; S.lastShooter = d.team; S.turnsBy[d.team]++;
+      if (api.turn) api.turn(d.team);         // duel en ligne : la bibliothèque sait qui a la main
       if (S.turnNo % 2 === 1) { S.pairWind = Math.round((S.rng() * 2 - 1) * bp.windMax * 20) / 20; S.wind = S.pairWind; }
       else S.wind = -S.pairWind;              // même vent, en miroir, pour l'autre joueur
       S.turnT = TURN_TIME; S.fired = false; S.charging = false; S.power = 0; S.lastTick = 99;
@@ -1491,6 +1492,7 @@
       emit('turn', { d, team: d.team });
     }
     function startRise() {
+      if (api.turn) api.turn(-1);
       const amt = Math.min(26, 14 + 5 * S.rises);
       S.rises++;
       S.rise = { from: S.waterY, to: Math.max(100, S.waterY - amt) };

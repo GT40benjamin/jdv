@@ -1,5 +1,6 @@
 Nouveau mode DUEL : 8 jeux à deux sur le même téléphone, face à face, en même temps (onglet Duel en bas)
 Trouve-le !, Le palet, Casse-briques, Boum !, Chat et souris, Duel spatial, Mots mêlés et Canards : la guerre
 Nouveau mode COMPÉTITION : toute la salle sur le même jeu en mode difficile, têtes et scores en direct, podium
+Duel en ligne (bêta) : défie un copain à distance, chacun sur son téléphone, invitation dans la salle ou par lien
 Regarde un copain jouer en direct (👁 dans la liste des joueurs) et déstabilise-le avec des messages
 Nouvelles musiques pour les duels, jingles de victoire et coup de gong au départ des compétitions
