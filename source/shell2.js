@@ -287,7 +287,9 @@ $('jdw-rescue-ok').addEventListener('click', () => {
   if (sc > 0) quitGame(); else { const g = current.game; unmountGame(); mountGame(g); }
 });
 $('jdw-rescue-x').addEventListener('click', () => { $('jdw-rescue').hidden = true; });
-addEventListener('error', e => reportError(e.message, (e.error && e.error.stack) || ((e.filename || '') + ':' + e.lineno + ':' + e.colno)));
+// erreurs d'extensions du navigateur (ex. iGraal qui relance ses scripts quand la page s'ouvre) : pas la borne, on les ignore
+const foreignError = e => /^(chrome|moz|safari(-web)?)-extension:|^webkit-masked-url:/.test(e.filename || '') || /duplicate variable|has already been declared/i.test(e.message || '');
+addEventListener('error', e => { if (!foreignError(e)) reportError(e.message, (e.error && e.error.stack) || ((e.filename || '') + ':' + e.lineno + ':' + e.colno)); });
 addEventListener('unhandledrejection', e => { const r = e.reason; reportError('Promesse : ' + ((r && r.message) || r), r && r.stack, { quiet: true }); });
 
 /* ================= Musique (assets/music/<morceau>.mp3, ElevenLabs) ================= */
