@@ -90,7 +90,12 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
   TEMPS sur le même téléphone posé à plat (P0 en bas, P1 en haut tourné de 180°, multi-touch). 8 jeux : trouve, palet, briques, boum,
   souris, spatial, mots, guerre (paysage, au tour par tour). La bibliothèque gère les places (« Qui joue ? » : profils, membres de la
   salle, invité), le score du match (api.point), les bannières (api.say), la pause, les résultats des deux côtés (Revanche), les victoires
-  par paire (jdw.duostats) et l'annonce dans le chat. Onglet « En ligne » : pas encore fait (prévu : WebRTC, invitation).
+  par paire (jdw.duostats) et l'annonce dans le chat.
+- **Duel en ligne (bêta)** (onglet « En ligne » de la page Duel, section « Duel en ligne » de shell2.js) : la partie tourne chez l'hôte
+  (celui qui lance le défi, P0) ; vidéo + son de son plateau envoyés en WebRTC à l'adversaire (image tournée de 180° pour que sa moitié
+  soit en bas), touches de l'adversaire renvoyées par un canal de données et rejouées comme des PointerEvent (numéros ≥ 1000) sur la
+  moitié du haut ; scores, bannières, pause, résultats et revanche recopiés. Signaux « net » dans le canal `jdw-duel-<code>`, invitation
+  « netinv » dans le canal de la salle ou lien `?duel=<code>`. Jeux au tour par tour : api.turn(p) dit qui a la main. Test : test-net.js.
 - **Compétition** : toute la salle sur un jeu solo (sauf canards) en mode difficile (CONTRACT.md Ajout 6 : api.startLevel / api.mode /
   api.seed ; niveaux de départ COMPET_START dans shell2.js). Aucune table : la présence de la salle porte `cmp: {id, g, r, st, s, t, seed}`
   et des signaux « cmp » (open, go, sc, out, re) passent dans le direct. L'hôte (premier inscrit encore là) donne le GO (10 s, démo =
