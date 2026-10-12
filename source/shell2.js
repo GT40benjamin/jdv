@@ -3020,6 +3020,8 @@ function rxShow(from, to, e) {
     fl.style.setProperty('--dx', (shellRand() * 40 - 20).toFixed(0) + 'px');
     document.body.appendChild(fl); setTimeout(() => fl.remove(), 1500);
   }
+  // je regarde celui qui reçoit ça : je le vois aussi, comme lui
+  if (WATCH.sid && to === WATCH.name && from !== cleanName(profile.name)) watchBubble(from, e);
   // pour moi en pleine partie : la tête de celui qui m'envoie ça, en grand
   if (to === cleanName(profile.name) && from !== to && !$('jdw-play').hidden) {
     const box = document.createElement('div'); box.className = 'rx-me' + (e.length > 4 ? ' txt' : '');
@@ -3234,19 +3236,35 @@ async function castWant(p) {
     CAST.set(p.sid, sess);
     pc.onicecandidate = e => { iceSeen(pc, e); if (e.candidate) rtcSignal({ k: 'ice', to: p.fromCid, sid: p.sid, c: e.candidate.toJSON() }); };
     pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') iceReport('Diffusion vers ' + sess.name, pc, 'échec'); if (pc.connectionState === 'failed' || pc.connectionState === 'closed') castEnd(p.sid); };
-    const stream = cv.captureStream(24); sess.stream = stream;
-    const senders = stream.getVideoTracks().map(tr => { try { tr.contentHint = 'motion'; } catch (e) {} return pc.addTrack(tr, stream); });
+    const stream = cv.captureStream(CASTQ.fps); sess.stream = stream; sess.cv = cv;
+    sess.senders = stream.getVideoTracks().map(tr => { if (CASTQ.hint) try { tr.contentHint = CASTQ.hint; } catch (e) {} return pc.addTrack(tr, stream); });
+    // encodeur vidéo matériel du téléphone (H.264) en priorité s'il existe : image plus nette pour le même débit, moins de chauffe
+    if (CASTQ.h264 !== false) try { const caps = RTCRtpSender.getCapabilities('video'), h = caps.codecs.filter(c => /h264/i.test(c.mimeType)); for (const tv of pc.getTransceivers()) if (h.length && tv.setCodecPreferences) tv.setCodecPreferences(h.concat(caps.codecs.filter(c => !/h264/i.test(c.mimeType)))); } catch (e) {}
     sess.dc = pc.createDataChannel('hud');
     await pc.setLocalDescription(await pc.createOffer());
-    // image allégée : la puce vidéo encode une image réduite, le jeu garde sa fluidité
-    for (const sd of senders) { try { const prm = sd.getParameters(); if (prm.encodings && prm.encodings[0]) { Object.assign(prm.encodings[0], { maxBitrate: 900000, maxFramerate: 24, scaleResolutionDownBy: cv.width > 900 ? 2 : 1 }); await sd.setParameters(prm); } } catch (e) {} }
+    castTune();
     rtcSignal({ k: 'offer', to: p.fromCid, sid: p.sid, sdp: pc.localDescription.sdp, g: current.game.id });
     renderWatchers();
   } catch (e) { castEnd(p.sid); rtcSignal({ k: 'no', to: p.fromCid, sid: p.sid, why: 'erreur' }); reportError('Diffusion : ' + e.message, e.stack, { quiet: true }); }
 }
+// qualité de l'image envoyée : nette (côté le plus long jusqu'à 1280 px, 30 images/s) ; le débit se partage entre les spectateurs
+// (chacun reçoit sa propre image : 2,5 Mbit/s pour un seul, moins quand ils sont plusieurs, pour que le jeu reste fluide)
+const CASTQ = Object.assign({ fps: 30, side: 1280, deg: 'balanced', rates: [2500000, 1500000, 1100000] }, store.get('jdw.castq', {}) || {});   // réglages (essais : localStorage jdw.castq)
+function castTune() {
+  const n = CAST.size, rate = CASTQ.rates[Math.min(2, Math.max(0, n - 1))];
+  for (const s of CAST.values()) for (const sd of s.senders || []) {
+    try {
+      const prm = sd.getParameters(), cv = s.cv;
+      if (!prm.encodings || !prm.encodings[0]) continue;
+      Object.assign(prm.encodings[0], { maxBitrate: rate, maxFramerate: CASTQ.fps, scaleResolutionDownBy: cv ? Math.max(1, Math.max(cv.width, cv.height) / CASTQ.side) : 1 });
+      prm.degradationPreference = CASTQ.deg;
+      sd.setParameters(prm).catch(() => {});
+    } catch (e) {}
+  }
+}
 function castEnd(sid, quiet) {
   const s = CAST.get(sid); if (!s) return;
-  CAST.delete(sid);
+  CAST.delete(sid); castTune();
   try { s.stream && s.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
   try { s.pc.close(); } catch (e) {}
   if (!quiet) rtcSignal({ k: 'bye', to: s.cid, sid });
@@ -3342,7 +3360,7 @@ function watchStatus(t, end) {
 function watchClosePc() { if (WATCH.pc) { try { WATCH.pc.close(); } catch (e) {} WATCH.pc = null; } clearTimeout(WATCH.timer); $('jdw-watch-live').classList.remove('on'); }
 function watchStop(silent) {
   if (WATCH.sid && !silent) rtcSignal({ k: 'quit', to: WATCH.cid, sid: WATCH.sid });
-  watchClosePc(); WATCH.sid = ''; WATCH.live = false;
+  watchClosePc(); WATCH.sid = ''; WATCH.live = false; watchPanel(false);
   const v = $('jdw-watch-video'); try { v.pause(); } catch (e) {} v.srcObject = null;
   if (!$('jdw-watch').hidden) { $('jdw-watch').hidden = true; musicBaseLevel(1); }
 }
@@ -3353,10 +3371,23 @@ function buildWatchBar() {
     for (const t of TAUNTS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'say-btn'; b.textContent = t; b.addEventListener('click', () => watchSend(t, b)); say.appendChild(b); }
   }
 }
+function watchBubble(from, e) {
+  const box = document.createElement('div'); box.className = 'rx-me in-watch' + (e.length > 4 ? ' txt' : '');
+  const hd = chatHead(from, { passive: true }), em = document.createElement('span'); em.className = 'rx-me-e'; em.textContent = e;
+  const nm = document.createElement('b'); nm.textContent = from; box.append(hd, em, nm);
+  for (const old of $('jdw-watch').querySelectorAll('.rx-me')) old.remove();
+  $('jdw-watch').appendChild(box); setTimeout(() => box.remove(), e.length > 14 ? 3400 : 1900);
+}
+function watchPanel(open) {
+  $('jdw-watch-panel').hidden = !open; $('jdw-watch-more').setAttribute('aria-expanded', String(!!open)); $('jdw-watch-more').classList.toggle('on', !!open);
+}
+$('jdw-watch-more').addEventListener('click', () => watchPanel($('jdw-watch-panel').hidden));
 function watchSend(e, btn) {
   if (!WATCH.sid || Date.now() - WATCH.rxLast < 1200) return;
+  if (e.length > 4) setTimeout(() => watchPanel(false), 350);   // message envoyé : on referme, le jeu redevient entièrement visible
   WATCH.rxLast = Date.now();
   rtBroadcast({ t: 'rx', n: cleanName(profile.name), to: WATCH.name, e });
+  watchBubble(cleanName(profile.name), e);
   if (btn) { btn.classList.remove('sent'); void btn.offsetWidth; btn.classList.add('sent'); }
   const r = btn ? btn.getBoundingClientRect() : null, fl = document.createElement('span');
   fl.className = 'rx-fly'; fl.textContent = e.length > 4 ? '💬' : e;

@@ -1,4 +1,5 @@
-Duel en ligne et « regarder un copain » marchent maintenant partout, même en 4G (relais quand la liaison directe est bloquée)
+Regarder un copain : image bien plus nette et fluide (environ 4 fois plus de détails, 30 images par seconde)
+Le jeu reste entièrement visible : réactions sur une ligne, messages rangés derrière 💬
+Tes messages s'affichent aussi chez toi, comme ton copain les voit
+Duel en ligne et « regarder » marchent partout, même en 4G (relais quand la liaison directe est bloquée)
 Sous chaque jeu : qui joue en ce moment, avec « 👁 Voir » pour le regarder en direct
-En regardant un copain, écris ton propre message (40 lettres) en plus des messages tout prêts
-Si la connexion échoue, un message clair dit pourquoi

@@ -108,6 +108,10 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
   jdw.relay = true force le passage par le relais (essais). Échecs de liaison notés dans le journal (iceReport : candidats vus, relais oui/non).
   Tests : test-relay.js (relais seul), RELAY=1 test-net-real.js / test-watch-tile.js (ID/TOK en variables).
 - Sous chaque tuile : « X joue » + bouton « 👁 Voir » (tilePlayers) ; en regardant : message libre de 40 lettres (#jdw-watch-own).
+- Image de « regarder » : H.264 en priorité (matériel du téléphone), côté le plus long ≤ 1280 px, 30 i/s, 2,5 / 1,5 / 1,1 Mbit/s selon
+  1 / 2 / 3 spectateurs (castTune, réglages d'essai : localStorage jdw.castq). Mesuré (test-watch-q2.js) : 630×1280 à 30 i/s dès 6 s, contre
+  294×597 à 24 i/s avant (VP8 900 kbit/s). Écran du spectateur : la vidéo a sa propre ligne (rien ne la couvre), réactions sur une ligne,
+  messages derrière 💬 ; le spectateur voit ses messages et ceux des autres spectateurs par-dessus la vidéo (watchBubble).
 - **Contre l'IA** : dans « Qui joue en haut ? », la ligne « 🤖 IA » (tête de robot dessinée, joueur « IA ») + niveau Facile / Moyen /
   Difficile / Extrême (jdw.ailevel) → api.ai = { p: 1, level, k } (DUO-CONTRACT.md, « Ajout : jouer contre l'IA ») ; chaque jeu pilote le
   joueur du haut avec sa propre IA et le déclare par `ai: true` dans son module : sans ce drapeau, la tuile est grisée (« Bientôt contre
