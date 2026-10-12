@@ -1917,8 +1917,9 @@
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
       try { fine = !!(window.matchMedia && window.matchMedia('(pointer: fine)').matches); } catch (e) { fine = false; }
-      hudH = 52;
-      const gap = 6, pad = 8;
+      hudH = H < 430 ? 40 : 52;   // écran bas (téléphone à l'horizontale) : bandeau plus fin, le plateau grandit
+      pauseBtn.style.width = pauseBtn.style.height = (hudH - 6) + 'px'; pauseBtn.style.top = '3px';
+      const gap = 6, pad = 8, mB = H < 430 ? 6 : 12;
       // option A : barre en bas
       const oneRow = (W - 2 * pad - 6 * gap) / 7 >= 64;
       const bhA = Math.round(clamp(H * 0.095, 58, 78));
@@ -1931,7 +1932,7 @@
       const colsB = Math.ceil(7 / rowsB);
       const bwB = Math.round(clamp(W * 0.1, 70, 92));
       const barW = colsB * bwB + (colsB - 1) * gap + pad;
-      const sB = rowsB >= 2 ? Math.min((W - barW - pad - 12) / LW, (H - hudH - 12) / LH) : 0;
+      const sB = rowsB >= 2 ? Math.min((W - barW - pad - 12) / LW, (H - hudH - mB) / LH) : 0;
       sideMode = sB > sA * 1.06;
       let s = sideMode ? sB : sA;
       s = Math.max(0.6, s);
@@ -2307,7 +2308,7 @@
       ];
       const scoreB = { v: fmt(score), l: 'EN JEU ' + inPlayCount };
       const left = 10, right = W - 60;
-      let fs = 24, sub = 11, gap = 18, widths = null, scW = 0;
+      let fs = Math.min(24, Math.round(hudH * 0.46)), sub = 11, gap = 18, widths = null, scW = 0;
       for (let it = 0; it < 12; it++) {
         sub = Math.max(9, Math.round(fs * 0.55));
         gap = Math.round(fs * 0.8);

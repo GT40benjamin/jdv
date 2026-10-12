@@ -3360,7 +3360,7 @@ function watchStatus(t, end) {
 function watchClosePc() { if (WATCH.pc) { try { WATCH.pc.close(); } catch (e) {} WATCH.pc = null; } clearTimeout(WATCH.timer); $('jdw-watch-live').classList.remove('on'); }
 function watchStop(silent) {
   if (WATCH.sid && !silent) rtcSignal({ k: 'quit', to: WATCH.cid, sid: WATCH.sid });
-  watchClosePc(); WATCH.sid = ''; WATCH.live = false; watchPanel(false);
+  watchClosePc(); WATCH.sid = ''; WATCH.live = false; watchPanel(false); $('jdw-watch').classList.remove('zoom'); $('jdw-watch-zoom').hidden = true;
   const v = $('jdw-watch-video'); try { v.pause(); } catch (e) {} v.srcObject = null;
   if (!$('jdw-watch').hidden) { $('jdw-watch').hidden = true; musicBaseLevel(1); }
 }
@@ -3382,6 +3382,19 @@ function watchPanel(open) {
   $('jdw-watch-panel').hidden = !open; $('jdw-watch-more').setAttribute('aria-expanded', String(!!open)); $('jdw-watch-more').classList.toggle('on', !!open);
 }
 $('jdw-watch-more').addEventListener('click', () => watchPanel($('jdw-watch-panel').hidden));
+// zoom : quand l'image ne remplit pas l'écran (joueur sur ordinateur, regardé sur téléphone), elle peut remplir l'écran en recadrant au centre
+function watchZoomCheck() {
+  const v = $('jdw-watch-video'), z = $('jdw-watch-zoom');
+  if (!v.videoWidth || !v.clientWidth) { z.hidden = true; return; }
+  const fill = Math.min(1, (v.videoWidth / v.videoHeight) / (v.clientWidth / v.clientHeight), (v.clientWidth / v.clientHeight) / (v.videoWidth / v.videoHeight));
+  z.hidden = fill > 0.8;   // l'image remplit déjà plus de 80 % de la place
+  if (z.hidden) $('jdw-watch').classList.remove('zoom');
+  z.textContent = $('jdw-watch').classList.contains('zoom') ? '🔍 Image entière' : '🔍 Zoom';
+}
+$('jdw-watch-zoom').addEventListener('click', () => { $('jdw-watch').classList.toggle('zoom'); watchZoomCheck(); });
+$('jdw-watch-video').addEventListener('resize', watchZoomCheck);
+$('jdw-watch-video').addEventListener('loadedmetadata', watchZoomCheck);
+window.addEventListener('resize', () => { if (!$('jdw-watch').hidden) watchZoomCheck(); });
 function watchSend(e, btn) {
   if (!WATCH.sid || Date.now() - WATCH.rxLast < 1200) return;
   if (e.length > 4) setTimeout(() => watchPanel(false), 350);   // message envoyé : on referme, le jeu redevient entièrement visible
