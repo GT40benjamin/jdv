@@ -4,3 +4,4 @@ Nouveau mode COMPÉTITION : toute la salle sur le même jeu en mode difficile, t
 Duel en ligne (bêta) : défie un copain à distance, chacun sur son téléphone, invitation dans la salle ou par lien
 Regarde un copain jouer en direct (👁 dans la liste des joueurs) et déstabilise-le avec des messages
 Nouvelles musiques pour les duels, jingles de victoire et coup de gong au départ des compétitions
+Plein Gaz : plus de plantage quand le boss explose

@@ -241,7 +241,7 @@ function emit(x, y, n, o) {
 }
 function updateParts(dt, dx) {
   for (let i = parts.length - 1; i >= 0; i--) {
-    const p = parts[i];
+    const p = parts[i]; if (!p) continue;
     p.vy += p.g * dt; p.vx *= 1 - p.drag * dt; p.vy *= 1 - p.drag * dt;
     p.x += p.vx * dt - dx; p.y += p.vy * dt; p.s += p.grow * dt; p.life -= dt;
     if (p.y > FLOOR - 1 && p.g > 0) { p.y = FLOOR - 1; p.vy *= -0.3; }
@@ -813,7 +813,7 @@ function update(dt) {
   if (hyperT > 0 && P.alive) trail.push({ x: P.x - 36, y: P.y + 6, h: (time * 360) % 360 });
   if (trail.length > 50 || (hyperT <= 0 && trail.length)) trail.shift();
   for (let i = floaters.length - 1; i >= 0; i--) {
-    const f = floaters[i]; f.t += dt; f.y -= 45 * dt; f.x -= dx * 0.3;
+    const f = floaters[i]; if (!f) continue; f.t += dt; f.y -= 45 * dt; f.x -= dx * 0.3;
     if (f.t > 0.8) floaters.splice(i, 1);
   }
   dist += dx;
@@ -879,7 +879,7 @@ function update(dt) {
 
   // Arcs électriques
   for (let i = zappers.length - 1; i >= 0; i--) {
-    const z = zappers[i];
+    const z = zappers[i]; if (!z) continue;
     z.x -= dx; z.ang += z.rot * dt;
     if (z.gate) {
       const g = z.gate.g;
@@ -897,7 +897,7 @@ function update(dt) {
 
   // Tags censurés
   for (let i = tags.length - 1; i >= 0; i--) {
-    const g = tags[i];
+    const g = tags[i]; if (!g) continue;
     g.x -= dx; g.t += dt; g.y = g.y0 + Math.sin(g.t * g.f) * g.amp;
     if (playing && P.alive && Math.abs(g.x - P.x) < 70 &&
         playerHits((x, y, r) => Math.hypot(x - clamp(x, g.x - 14, g.x + 14), y - clamp(y, g.y - 27, g.y + 27)) < r - 1)) hit('tag', g);
@@ -906,7 +906,7 @@ function update(dt) {
 
   // Jets de flammes : bouffées d'avertissement, puis colonne de feu, puis pause
   for (let i = vents.length - 1; i >= 0; i--) {
-    const v = vents[i];
+    const v = vents[i]; if (!v) continue;
     v.x -= dx; v.t += dt;
     const ph = v.t % v.period, fire = ph > 0.75 && ph < 1.75;
     v.fire = fire ? Math.min(1, (ph - 0.75) / 0.12, (1.75 - ph) / 0.12) : 0;
@@ -923,7 +923,7 @@ function update(dt) {
 
   // Scies circulaires sur rail
   for (let i = saws.length - 1; i >= 0; i--) {
-    const s = saws[i];
+    const s = saws[i]; if (!s) continue;
     s.x -= dx; s.t += dt; s.spin += dt * 14; s.y = s.y0 + Math.sin(s.t * s.f) * s.amp;
     if (Math.random() < 0.08) emit(s.x - 16, s.y + 10, 1, { vx: -80, vy: -60, spread: 60, g: 400, life: [.2, .4], size: [1.5, 2.5], color: COL.gold, add: true });
     if (playing && P.alive && Math.abs(s.x - P.x) < 60 &&
@@ -933,7 +933,7 @@ function update(dt) {
 
   // Drones : suivent ta hauteur (lentement) tant qu'ils ne t'ont pas dépassé
   for (let i = drones.length - 1; i >= 0; i--) {
-    const q = drones[i];
+    const q = drones[i]; if (!q) continue;
     q.t += dt; q.x -= dx + (q.minion ? 70 : 30) * dt;
     if (q.x > P.x + 150) q.y += clamp(P.y - 8 - q.y, -q.vmax * dt, q.vmax * dt);
     q.y = clamp(q.y + Math.sin(q.t * 5) * 0.4, CEIL + 16, FLOOR - 16);
@@ -946,7 +946,7 @@ function update(dt) {
   // Pièces
   if (coinStreakT > 0) coinStreakT -= dt; else coinStreak = 0;
   for (let i = gems.length - 1; i >= 0; i--) {
-    const g = gems[i];
+    const g = gems[i]; if (!g) continue;
     g.x -= dx;
     if (g.gate) g.y = g.gate.c;
     if (P.alive && playing) {
@@ -964,7 +964,7 @@ function update(dt) {
 
   // Bouclier
   for (let i = powerups.length - 1; i >= 0; i--) {
-    const u = powerups[i];
+    const u = powerups[i]; if (!u) continue;
     u.x -= dx; u.t += dt;
     const uy = u.y + Math.sin(u.t * 3) * 6;
     if (P.alive && playing && Math.hypot(P.x - u.x, P.y - uy) < (u.kind === 'star' ? 32 : 26)) {
@@ -985,7 +985,7 @@ function update(dt) {
 
   // Missiles
   for (let i = missiles.length - 1; i >= 0; i--) {
-    const m = missiles[i];
+    const m = missiles[i]; if (!m) continue;
     m.t += dt;
     if (m.phase === 'warn') {
       if (m.t < 0) continue;
@@ -1007,7 +1007,7 @@ function update(dt) {
 
   // Lasers (fixes à l'écran)
   for (let i = lasers.length - 1; i >= 0; i--) {
-    const L = lasers[i];
+    const L = lasers[i]; if (!L) continue;
     L.t += dt;
     if (L.t > 1.3 && !L.buzzed) { L.buzzed = true; tone(110, 0.9, 'sawtooth', 0.06, 90); shake = Math.max(shake, 3); }
     if (playing && P.alive && L.t > 1.36 && L.t < 2.2 &&
@@ -1018,7 +1018,7 @@ function update(dt) {
 
   // Tirs du joueur
   for (let i = shots.length - 1; i >= 0; i--) {
-    const s = shots[i];
+    const s = shots[i]; if (!s) continue;
     s.x += 760 * dt;
     const dr = drones.find(q => Math.abs(s.x - q.x) < 14 && Math.abs(s.y - q.y) < 14);
     if (dr) {
@@ -1038,7 +1038,7 @@ function update(dt) {
       emit(s.x, s.y, 3, { vx: -80, spread: 90, life: [.1, .25], size: [1.5, 3], color: COL.gold, add: true });
       if (boss.hp % 4 === 0) tone(180, 0.04, 'square', 0.03);
       shots.splice(i, 1);
-      if (boss.hp <= 0) bossDie();
+      if (boss.hp <= 0) { bossDie(); break; }   // la mort du boss vide la liste des tirs : on arrête la boucle
       continue;
     }
     if (s.x > W + 20) shots.splice(i, 1);
@@ -1046,7 +1046,7 @@ function update(dt) {
 
   // Cerises : flottent, puis se décrochent quand on arrive dessous, et explosent au sol
   for (let i = cherries.length - 1; i >= 0; i--) {
-    const c = cherries[i];
+    const c = cherries[i]; if (!c) continue;
     c.x -= dx; c.t += dt;
     if (!c.falling) {
       c.y = c.y0 + Math.sin(c.t * 2.6) * 7;
@@ -1073,7 +1073,7 @@ function update(dt) {
 
   // Tirs ennemis
   for (let i = bullets.length - 1; i >= 0; i--) {
-    const q = bullets[i];
+    const q = bullets[i]; if (!q) continue;
     q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += dt * 8;
     if (q.g && q.y > FLOOR - q.r && !q.bounced) { q.y = FLOOR - q.r; q.vy *= -0.55; q.bounced = true; }
     if (playing && P.alive && Math.abs(q.x - P.x) < 30 &&
