@@ -1,5 +1,4 @@
-Duel contre l'IA dans les 8 duels : choisis « IA » en haut et son niveau, de Facile à Extrême (méga intelligente)
-Duel en ligne fluide dans les 8 duels : chaque téléphone fait tourner la partie, sans vidéo ni décalage
-Pareil sur téléphone, dans l'appli ou dans un navigateur, même sur ordinateur
-Dans une salle, tu ne vois plus que les membres de ta salle
-Plein Gaz : plus de plantage quand le boss explose
+Duel en ligne et « regarder un copain » marchent maintenant partout, même en 4G (relais quand la liaison directe est bloquée)
+Sous chaque jeu : qui joue en ce moment, avec « 👁 Voir » pour le regarder en direct
+En regardant un copain, écris ton propre message (40 lettres) en plus des messages tout prêts
+Si la connexion échoue, un message clair dit pourquoi

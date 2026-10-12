@@ -101,6 +101,13 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
   api.net (send rapide sur le canal « g » / fiable sur « ctl », onMessage, now() horloge commune par ping/pong, rtt(), flipped).
   Bannières seulement du côté du joueur concerné, un seul écran de résultat. Page de test deux appareils : source/test/duo-net.html
   (faux réseau lat/jit/loss, tailles hw/hh/gw/gh) ; dans la borne : test-netdata.js (faux jeu), test-net-real.js (GAME=…).
+- **Relais TURN (Cloudflare Realtime)** : sans lui, la liaison directe de téléphone à téléphone (duel en ligne, regarder) échoue
+  sur certains réseaux (4G, box strictes). Clé TURN de l'utilisateur dans ses variables Windows CF_TURN_ID / CF_TURN_TOKEN, copiée
+  côté serveur par source/turn.sql (table turn_cfg illisible depuis le site ; RPC get_turn(p_code) → identifiants de 24 h via
+  l'extension http). Le site appelle loadTurn() (démarrage, duel, regarder) et ajoute le relais à RTC_CFG ; localStorage
+  jdw.relay = true force le passage par le relais (essais). Échecs de liaison notés dans le journal (iceReport : candidats vus, relais oui/non).
+  Tests : test-relay.js (relais seul), RELAY=1 test-net-real.js / test-watch-tile.js (ID/TOK en variables).
+- Sous chaque tuile : « X joue » + bouton « 👁 Voir » (tilePlayers) ; en regardant : message libre de 40 lettres (#jdw-watch-own).
 - **Contre l'IA** : dans « Qui joue en haut ? », la ligne « 🤖 IA » (tête de robot dessinée, joueur « IA ») + niveau Facile / Moyen /
   Difficile / Extrême (jdw.ailevel) → api.ai = { p: 1, level, k } (DUO-CONTRACT.md, « Ajout : jouer contre l'IA ») ; chaque jeu pilote le
   joueur du haut avec sa propre IA et le déclare par `ai: true` dans son module : sans ce drapeau, la tuile est grisée (« Bientôt contre

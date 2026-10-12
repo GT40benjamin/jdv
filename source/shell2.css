@@ -846,6 +846,18 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .watch-rx button.sent,.say-btn.sent{animation:sentPop .4s ease-out}
 @keyframes sentPop{40%{transform:scale(1.18);border-color:var(--volt)}}
 .rx-me.txt .rx-me-e{font:400 17px/1.15 var(--display);color:var(--gold)}
+.rx-me.txt{max-width:min(92%,420px)} .rx-me.txt .rx-me-e{white-space:normal}
+.watch-own{display:flex;gap:6px}
+.watch-own input{flex:1 1 auto;min-width:0;height:42px;padding:0 12px;border-radius:12px;border:1px solid var(--steel2);background:rgba(17,29,39,.92);color:var(--ink);font:600 15px var(--body)}
+.watch-own input::placeholder{color:var(--muted)}
+.watch-own button{flex:0 0 auto;height:42px;padding:0 14px;border-radius:12px;border:0;background:var(--volt);color:var(--night);font:400 14px var(--display);letter-spacing:.04em;cursor:pointer}
+.watch-own button.sent{animation:sentPop .4s ease-out}
+/* sous les tuiles : regarder celui qui joue */
+.tile-watch{position:absolute;right:8px;bottom:9px;z-index:3;padding:5px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--online) 60%,transparent);background:color-mix(in srgb,var(--online) 18%,var(--card));color:var(--ink);font:700 12px/1 var(--body);cursor:pointer;white-space:nowrap}
+.tile-watch[hidden]{display:none}
+.tile-watch:active{transform:scale(.95)}
+.tile-wrap.can-watch .tile-online{padding-right:66px}
+.tile-online span{overflow:hidden;text-overflow:ellipsis}
 /* résultats du duel : à la hauteur des jeux */
 .dr-half{position:relative;isolation:isolate;--pc:var(--amber)}
 .dr-half.win{background:radial-gradient(75% 60% at 50% 42%,color-mix(in srgb,var(--pc) 30%,transparent),transparent 72%),linear-gradient(color-mix(in srgb,var(--pc) 10%,#0b141c),#0b141c)}

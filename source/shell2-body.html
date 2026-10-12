@@ -204,7 +204,7 @@
 <!-- Duel : deux joueurs face à face sur le même téléphone -->
 <div id="jdw-duo" hidden>
   <div id="jdw-duo-host"></div>
-  <div class="net-stage" id="jdw-net-stage" hidden><video id="jdw-net-video" playsinline autoplay></video></div>
+  <div class="net-stage" id="jdw-net-stage" hidden><video id="jdw-net-video" playsinline autoplay poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video></div>
   <div class="duo-hud" id="jdw-duo-hud">
     <div class="duo-half h1"><div class="duo-say" id="jdw-duo-say1"></div></div>
     <div class="duo-half h0"><div class="duo-say" id="jdw-duo-say0"></div></div>
@@ -239,7 +239,7 @@
 
 <!-- Regarder un copain jouer en direct -->
 <div id="jdw-watch" hidden>
-  <video id="jdw-watch-video" playsinline autoplay muted></video>
+  <video id="jdw-watch-video" playsinline autoplay muted poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
   <div class="watch-top">
     <button class="btn btn-ghost btn-sm" id="jdw-watch-back" type="button">✕ Retour</button>
     <div class="watch-who"><span class="watch-head" id="jdw-watch-head"></span><span class="watch-tx"><b id="jdw-watch-name"></b><small id="jdw-watch-game"></small></span></div>
@@ -250,6 +250,7 @@
     <p class="watch-hint">Déstabilise-le :</p>
     <div class="watch-rx" id="jdw-watch-rx"></div>
     <div class="watch-say" id="jdw-watch-say"></div>
+    <form class="watch-own" id="jdw-watch-own" autocomplete="off"><input id="jdw-watch-in" type="text" maxlength="40" placeholder="Ton message…" enterkeyhint="send" aria-label="Ton message (40 lettres au plus)"><button type="submit" id="jdw-watch-send">Envoyer</button></form>
   </div>
 </div>
 

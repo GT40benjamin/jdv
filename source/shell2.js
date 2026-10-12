@@ -1293,8 +1293,11 @@ function buildLibrary() {
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', g.accent || COLORS.amber);
     const ch = document.createElement('button'); ch.type = 'button'; ch.className = 'tile-champ'; ch.hidden = true;
     ch.addEventListener('click', e => { e.stopPropagation(); openBoardFor(g.id); });
-    wrap.append(b, ch); grid.appendChild(wrap);
-    tiles.push({ g, el: b, champ: ch, canvas: b.querySelector('canvas'), on: b.querySelector('.tile-online'), visible: true });
+    // « 👁 Voir » : regarder celui qui joue à ce jeu en ce moment (plusieurs : la liste des joueurs, chacun avec son 👁)
+    const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'tile-watch'; wb.hidden = true; wb.textContent = '👁 Voir';
+    wb.addEventListener('click', e => { e.stopPropagation(); const ps = tilePlayers(g.id); if (ps.length === 1) watchStart(ps[0].name, g.id); else openMembers(); });
+    wrap.append(b, ch, wb); grid.appendChild(wrap);
+    tiles.push({ g, el: b, champ: ch, watch: wb, canvas: b.querySelector('canvas'), on: b.querySelector('.tile-online'), visible: true });
   }
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => es.forEach(e => { const t = tiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
@@ -1336,12 +1339,15 @@ function refreshOnline() {
   else ot.textContent = ONLINE ? 'Connexion…' : 'Mode local';
   $('jdw-online').setAttribute('aria-label', live ? (total <= 1 ? (total === 1 ? '1 joueur en ligne' : 'Personne en ligne') : total + ' joueurs en ligne') + ' : voir les joueurs' : 'Voir les joueurs de la salle');
   for (const t of tiles) {
-    const n = counts[t.g.id] || 0, span = t.on.querySelector('span');
+    const n = counts[t.g.id] || 0, span = t.on.querySelector('span'), ps = live ? tilePlayers(t.g.id) : [];
     t.on.classList.toggle('live', live && n > 0);
-    if (live) span.textContent = n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
+    if (live) span.textContent = ps.length ? ps[0].name + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue' : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
     else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + b.name : 'Pas encore de record'; }
+    if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
   }
 }
+// joueurs de la salle (pas moi) qui jouent à ce jeu en ce moment et qu'on peut regarder
+function tilePlayers(gid) { try { const me = cleanName(profile.name); return presList().filter(m => m.game === gid && m.name !== me && m.cid && watchable(m.game)); } catch (e) { return []; } }
 function refreshMe() {
   $('jdw-me-name').textContent = profile.name || 'Joueur';
   avatarInto($('jdw-me-av'), profile.name);
@@ -3019,7 +3025,7 @@ function rxShow(from, to, e) {
     const box = document.createElement('div'); box.className = 'rx-me' + (e.length > 4 ? ' txt' : '');
     const hd = chatHead(from, { passive: true }); const em = document.createElement('span'); em.className = 'rx-me-e'; em.textContent = e;
     const nm = document.createElement('b'); nm.textContent = from; box.append(hd, em, nm);
-    $('jdw-play').appendChild(box); setTimeout(() => box.remove(), 1900);
+    $('jdw-play').appendChild(box); setTimeout(() => box.remove(), e.length > 14 ? 3400 : 1900);
     Audio.tone(880, 0.06, 'sine', 0.05, 1320);
   }
 }
@@ -3175,7 +3181,33 @@ function cmpLine(el) {
 /* ================= Regarder un copain jouer en direct (vidéo de téléphone à téléphone, WebRTC) ================= */
 // Le direct de la salle sert seulement à présenter les deux appareils (signaux « rtc ») ; l'image va ensuite directement
 // du téléphone du joueur à celui du spectateur. Rien n'est filmé tant que personne ne regarde ; 3 spectateurs au plus.
-const RTC_CFG = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+const RTC_STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+const RTC_CFG = { iceServers: RTC_STUN };   // complété en place par le relais TURN dès qu'il est connu
+// Relais TURN (Cloudflare) : quand la liaison directe entre deux téléphones est impossible (4G, box stricte), tout passe par lui.
+// Identifiants temporaires donnés par le serveur (get_turn, clé gardée côté serveur) ; sans eux : liaison directe seule.
+const TURN = { ice: null, until: 0, t: 0 };
+async function loadTurn() {
+  if (!ONLINE || !CODE() || Date.now() - TURN.t < 60000) return;
+  if (TURN.ice && Date.now() < TURN.until - 3600000) return;
+  TURN.t = Date.now();
+  try {
+    const r = await rpc('get_turn', { p_code: CODE() });
+    const ice = r && Array.isArray(r.iceServers) ? r.iceServers : null;
+    if (!ice || !ice.length) return;
+    // le port 53 est bloqué par les navigateurs : on l'enlève pour ne pas attendre pour rien
+    TURN.ice = ice.map(x => Object.assign({}, x, { urls: [].concat(x.urls || []).filter(u => !/:53(\?|$)/.test(u)) })).filter(x => x.urls.length);
+    TURN.until = +r.until || Date.now() + 6 * 3600000;
+    RTC_CFG.iceServers = RTC_STUN.concat(TURN.ice);
+    if (store.get('jdw.relay', false)) RTC_CFG.iceTransportPolicy = 'relay';   // essai : tout passe par le relais (localStorage jdw.relay = true)
+  } catch (e) {}
+}
+setInterval(loadTurn, 30 * 60000);
+// types de liaison essayés (host = même réseau, srflx = directe par internet, relay = relais) : pour comprendre un échec
+function iceSeen(pc, e) { if (e.candidate && e.candidate.type) (pc.__kinds = pc.__kinds || new Set()).add(e.candidate.type); }
+function iceReport(what, pc, stage) {
+  const net = navigator.connection && navigator.connection.type ? navigator.connection.type + '/' + (navigator.connection.effectiveType || '') : '?';
+  reportError(what + ' : liaison impossible (' + stage + ')', 'candidats : ' + (pc && pc.__kinds ? [...pc.__kinds].join('+') : 'aucun') + ' · relais : ' + (TURN.ice ? 'oui' : 'non') + ' · réseau : ' + net, { quiet: true });
+}
 const TAUNTS = ['Tu vas perdre !', 'Attention !', 'Derrière toi !', 'Raté !', 'Trop fort 😮', 'Allez !'];
 const CAST = new Map();   // moi qui joue : sid → { pc, name, cid, stream, dc, pend }
 const WATCH = { sid: '', pc: null, cid: '', name: '', game: '', live: false, timer: 0, pend: [], rxLast: 0, hudT: 0 };
@@ -3200,8 +3232,8 @@ async function castWant(p) {
   try {
     const pc = new RTCPeerConnection(RTC_CFG), sess = { pc, name: cleanName(p.fromName), cid: p.fromCid, pend: [], remote: false };
     CAST.set(p.sid, sess);
-    pc.onicecandidate = e => { if (e.candidate) rtcSignal({ k: 'ice', to: p.fromCid, sid: p.sid, c: e.candidate.toJSON() }); };
-    pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') castEnd(p.sid); };
+    pc.onicecandidate = e => { iceSeen(pc, e); if (e.candidate) rtcSignal({ k: 'ice', to: p.fromCid, sid: p.sid, c: e.candidate.toJSON() }); };
+    pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') iceReport('Diffusion vers ' + sess.name, pc, 'échec'); if (pc.connectionState === 'failed' || pc.connectionState === 'closed') castEnd(p.sid); };
     const stream = cv.captureStream(24); sess.stream = stream;
     const senders = stream.getVideoTracks().map(tr => { try { tr.contentHint = 'motion'; } catch (e) {} return pc.addTrack(tr, stream); });
     sess.dc = pc.createDataChannel('hud');
@@ -3271,9 +3303,16 @@ function watchStart(name, game) {
   buildWatchBar();
   $('jdw-watch').hidden = false; watchStatus('Connexion à ' + name + '…');
   musicBaseLevel(0.4);
+  loadTurn();
   rtcSignal({ k: 'want', to: cid, sid });
   clearTimeout(WATCH.timer);
-  WATCH.timer = setTimeout(() => { if (WATCH.sid === sid && !WATCH.live) { watchStatus('Impossible de se connecter à ' + name + ' (réseau).', true); watchClosePc(); } }, 15000);
+  WATCH.timer = setTimeout(() => {
+    if (WATCH.sid !== sid || WATCH.live) return;
+    // pas de réponse du tout = son téléphone ne répond pas ; réponse mais pas d'image = le réseau entre vous bloque
+    if (!WATCH.pc) { watchStatus(name + ' ne répond pas (écran éteint ou réseau coupé ?).', true); iceReport('Regarder ' + name, null, 'pas de réponse'); }
+    else { watchStatus('Impossible de recevoir l\'image de ' + name + ' (réseau).', true); iceReport('Regarder ' + name, WATCH.pc, WATCH.pc.connectionState); }
+    watchClosePc();
+  }, 15000);
 }
 async function watchOffer(p) {
   const sid = p.sid;
@@ -3281,11 +3320,11 @@ async function watchOffer(p) {
     const pc = new RTCPeerConnection(RTC_CFG); WATCH.pc = pc;
     pc.ontrack = e => { const v = $('jdw-watch-video'); if (v.srcObject !== e.streams[0]) { v.srcObject = e.streams[0]; v.play().catch(() => {}); } };
     pc.ondatachannel = e => { e.channel.onmessage = m => { try { const d = JSON.parse(m.data); watchHud(d); } catch (x) {} }; };
-    pc.onicecandidate = e => { if (e.candidate && WATCH.sid === sid) rtcSignal({ k: 'ice', to: WATCH.cid, sid, c: e.candidate.toJSON() }); };
+    pc.onicecandidate = e => { iceSeen(pc, e); if (e.candidate && WATCH.sid === sid) rtcSignal({ k: 'ice', to: WATCH.cid, sid, c: e.candidate.toJSON() }); };
     pc.onconnectionstatechange = () => {
       if (WATCH.sid !== sid) return;
       if (pc.connectionState === 'connected') { WATCH.live = true; watchStatus(''); $('jdw-watch-live').classList.add('on'); }
-      else if (pc.connectionState === 'failed') { watchStatus('Connexion perdue.', true); watchClosePc(); }
+      else if (pc.connectionState === 'failed') { watchStatus('Impossible de recevoir l\'image de ' + WATCH.name + ' (réseau).', true); iceReport('Regarder ' + WATCH.name, pc, 'échec'); watchClosePc(); }
     };
     await pc.setRemoteDescription({ type: 'offer', sdp: p.sdp });
     for (const c of WATCH.pend.splice(0)) pc.addIceCandidate(c).catch(() => {});
@@ -3324,6 +3363,12 @@ function watchSend(e, btn) {
   fl.style.left = (r ? r.left + r.width / 2 : innerWidth / 2) + 'px'; fl.style.top = (r ? r.top : innerHeight / 2) + 'px'; fl.style.setProperty('--dx', '0px');
   document.body.appendChild(fl); setTimeout(() => fl.remove(), 1500);
 }
+$('jdw-watch-own').addEventListener('submit', e => {
+  e.preventDefault();
+  const inp = $('jdw-watch-in'), t = inp.value.replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (!t || !WATCH.sid) return;
+  watchSend(t, $('jdw-watch-send')); inp.value = ''; inp.blur();
+});
 $('jdw-watch-back').addEventListener('click', () => watchStop());
 document.addEventListener('visibilitychange', () => { if (document.hidden && WATCH.sid) watchStop(); });
 
@@ -3386,6 +3431,7 @@ function netEnd(notify, msg) {
 }
 // ---------- l'hôte : lancer le défi, inviter ----------
 function netCreate(d) {
+  loadTurn();
   if (!profile.name) { startWelcome(); return; }
   if (!ONLINE || !window.RTCPeerConnection) { toastCheer('Le duel en ligne demande une connexion internet.', profile.name, true); return; }
   if (!room) { openRooms(); return; }
@@ -3444,6 +3490,7 @@ function netOnInvite(p) {
 $('jdw-netinv-ok').addEventListener('click', () => { $('jdw-netinv').hidden = true; if (netInvite) netJoin(netInvite.code, netInvite.g, netInvite.from); });
 $('jdw-netinv-no').addEventListener('click', () => { $('jdw-netinv').hidden = true; if (netInvite) rtBroadcastTo('jdw-duel-' + netInvite.code, { t: 'net', code: netInvite.code, k: 'no', n: cleanName(profile.name) }); netInvite = null; });
 function netJoin(code, g, from) {
+  loadTurn();
   if (!profile.name) { startWelcome(); return; }
   if (!window.RTCPeerConnection) { toastCheer('Ce téléphone ne permet pas le duel en ligne.', profile.name, true); return; }
   netReset(); Audio.ensure();
@@ -3473,10 +3520,10 @@ function netOnSignal(p) {
   if (p.k === 'bye' && NET.role) netEnd(false, (NET.peer || 'Ton adversaire') + ' a quitté le duel.');
 }
 function netWatchPc(pc) {
-  pc.onicecandidate = e => { if (e.candidate && NET.peerCid) netSig({ k: 'ice', to: NET.peerCid, c: e.candidate.toJSON() }); };
+  pc.onicecandidate = e => { iceSeen(pc, e); if (e.candidate && NET.peerCid) netSig({ k: 'ice', to: NET.peerCid, c: e.candidate.toJSON() }); };
   pc.onconnectionstatechange = () => {
     if (NET.pc !== pc) return;
-    if (pc.connectionState === 'failed') netEnd(false, 'Connexion perdue avec ' + (NET.peer || 'ton adversaire') + ' (réseau).');
+    if (pc.connectionState === 'failed') { iceReport('Duel en ligne avec ' + (NET.peer || '?'), pc, 'échec'); netEnd(false, 'Connexion impossible avec ' + (NET.peer || 'ton adversaire') + ' (réseau).'); }
     if (pc.connectionState === 'disconnected') setTimeout(() => { if (NET.pc === pc && pc.connectionState === 'disconnected') netEnd(false, (NET.peer || 'Ton adversaire') + ' s\'est déconnecté.'); }, 6000);
   };
 }
@@ -4028,6 +4075,7 @@ window.JDW_BACK = () => {
   return false;
 };
 checkAppVersion();
+setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou la première diffusion
 // juste après une mise à jour automatique : message + notification avec les nouveautés
 (() => {
   let rf = ''; try { rf = sessionStorage.getItem('jdw.reloadfor') || ''; } catch (e) {}
