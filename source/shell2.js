@@ -348,7 +348,7 @@ function musicVariants(id, mode) {
   return list.length ? list : [id];
 }
 // niveau à partir duquel la musique devient énergique, par jeu
-const INTENSE_AT = { ilo: 4, pleingaz: 4, empilo: 6, glouton: 6, mouches: 7, carreaux: 7, rouleaux: 9, canards: 6 };
+const INTENSE_AT = { ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 9, canards: 6 };
 // morceaux chiffrés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée du mot de passe
 const MUSIC_ENC = new Set(window.JDW_MUSIC_ENC || []);
 const binKeys = {};
@@ -2901,7 +2901,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && !$(
 // Rien de plus sur le serveur : la présence de la salle dit qui participe (rôle, état, score) et des signaux « cmp »
 // portent le GO, les scores en direct, les sorties et les réactions. L'hôte (le premier inscrit encore là) donne le GO
 // dès que 2 joueurs sont prêts ; chacun joue sur son téléphone, au même niveau difficile et avec la même graine.
-const COMPET_START = { ilo: 4, pleingaz: 4, empilo: 5, glouton: 6, mouches: 7, carreaux: 7, rouleaux: 9 };
+const COMPET_START = { ilo: 4, pleingaz: 4, empilo: 5, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 9 };
 const COMPET_GO_MS = 10000;
 const REACTIONS = ['😂', '🔥', '💩', '😱', '👏', '😈'];
 const CMP = { id: null, g: null, role: null, st: null, t: 0, seed: 0, score: 0, goAt: 0, goFor: '', goSent: 0, goN: 0,
