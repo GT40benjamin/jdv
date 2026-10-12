@@ -3400,7 +3400,9 @@ async function netHostStart() {
   $('jdw-net-sharebox').hidden = true; $('jdw-net-lh').hidden = true; $('jdw-net-list').textContent = '';
   try {
     const pc = NET.pc = new RTCPeerConnection(RTC_CFG); netWatchPc(pc);
-    NET.vSender = pc.addTransceiver('video', { direction: 'sendonly' }).sender;
+    const tv = pc.addTransceiver('video', { direction: 'sendonly' }); NET.vSender = tv.sender;
+    // encodeur vidéo matériel du téléphone (H.264) en priorité : moins de délai, moins de chauffe
+    try { const caps = RTCRtpSender.getCapabilities('video'); const h = caps.codecs.filter(c => /h264/i.test(c.mimeType)); if (h.length && tv.setCodecPreferences) tv.setCodecPreferences(h.concat(caps.codecs.filter(c => !/h264/i.test(c.mimeType)))); } catch (e) {}
     NET.aSender = pc.addTransceiver('audio', { direction: 'sendonly' }).sender;
     NET.ctl = pc.createDataChannel('ctl');
     NET.inp = pc.createDataChannel('inp', { ordered: false, maxRetransmits: 0 });
@@ -3442,7 +3444,7 @@ async function netAttach() {
     NET.stream = cv.captureStream(30);
     const vt = NET.stream.getVideoTracks()[0]; try { vt.contentHint = 'motion'; } catch (e) {}
     await NET.vSender.replaceTrack(vt);
-    try { const prm = NET.vSender.getParameters(); if (prm.encodings && prm.encodings[0]) { Object.assign(prm.encodings[0], { maxBitrate: 1500000, maxFramerate: 30, scaleResolutionDownBy: cv.width > 1000 ? 2 : 1 }); await NET.vSender.setParameters(prm); } } catch (e) {}
+    try { const prm = NET.vSender.getParameters(); if (prm.encodings && prm.encodings[0]) { Object.assign(prm.encodings[0], { maxBitrate: 1200000, maxFramerate: 30, scaleResolutionDownBy: Math.max(1, cv.width / 480) }); prm.degradationPreference = 'maintain-framerate'; await NET.vSender.setParameters(prm); } } catch (e) {}
     if (!NET.dest && Audio.ctx) { NET.dest = Audio.ctx.createMediaStreamDestination(); Audio.master.connect(NET.dest); if (MUS.gain) MUS.gain.connect(NET.dest); }
     if (NET.dest) await NET.aSender.replaceTrack(NET.dest.stream.getAudioTracks()[0]);
     netCtl({ h: 'start', g: DUO.d.id, layout: DUO.d.layout, w: cv.clientWidth, hh: cv.clientHeight, names: NET.seats, s: DUO.scores });
@@ -3477,7 +3479,10 @@ for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) $(
 async function netGuestOffer(p) {
   try {
     const pc = NET.pc = new RTCPeerConnection(RTC_CFG); netWatchPc(pc);
-    pc.ontrack = e => { const v = $('jdw-net-video'); const st = e.streams[0] || new MediaStream([e.track]); if (v.srcObject !== st) { if (!v.srcObject) v.srcObject = st; else st.getTracks().forEach(t => { try { v.srcObject.addTrack(t); } catch (x) {} }); } v.play().catch(() => {}); };
+    pc.ontrack = e => {
+      // délai minimal à la réception : on affiche chaque image dès qu'elle arrive
+      try { if (e.track.kind === 'video') { e.receiver.jitterBufferTarget = 0; e.receiver.playoutDelayHint = 0; } } catch (x) {}
+      const v = $('jdw-net-video'); const st = e.streams[0] || new MediaStream([e.track]); if (v.srcObject !== st) { if (!v.srcObject) v.srcObject = st; else st.getTracks().forEach(t => { try { v.srcObject.addTrack(t); } catch (x) {} }); } v.play().catch(() => {}); };
     pc.ondatachannel = e => {
       const ch = e.channel;
       if (ch.label === 'ctl') { NET.ctl = ch; ch.onopen = netGuestHello; ch.onmessage = ev => { try { netCtlGuest(JSON.parse(ev.data)); } catch (x) {} }; if (ch.readyState === 'open') netGuestHello(); }
