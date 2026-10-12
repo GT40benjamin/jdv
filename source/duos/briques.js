@@ -245,10 +245,13 @@
       phase: 'idle', t: 0, clock: 0, slow: 1,
       R: 4, patIdx: -1, patName: '', bricks: [], cells: [], movers: [], balls: [], caps: [], left: 0,
       pl: [newPlayer(), newPlayer()], serve: [], introDur: 3, receiver: 0, lastConceder: -1, scorer: -1,
-      matchOver: false, nextAsked: false, nid: 1, ev: [], rally: 0, playT: 0, headCount: 0
+      matchOver: false, nextAsked: false, nid: 1, ev: [], rally: 0, playT: 0, headCount: 0,
+      // jeu en ligne : gt = temps de jeu (ralenti compris) ; nh = « je suis l'hôte » ; pend = passages devant la raquette
+      // de l'invité qui attendent son verdict ; dry = balle prédite (ne casse rien) ; evTs = heure des événements (ms)
+      gt: 0, nh: false, pend: [], dry: false, evTs: null, nowTs: 0, ack: 0, capWait: 1
     };
   }
-  function emit(S, e) { if (S.ev.length < 300) S.ev.push(e); }
+  function emit(S, e) { if (S.evTs != null) { e.ts = S.evTs; if (S.ff) e.rp = 1; } if (S.ev.length < 300) S.ev.push(e); }
   function wallFront(S) { return LANE + S.R * BH; }        // distance du centre à la face avant du mur
   function padFace(p) { return p === 0 ? PY[0] - PH / 2 - BR - 0.5 : PY[1] + PH / 2 + BR + 0.5; }
 
@@ -271,6 +274,7 @@
     planServe(S);
     S.introDur = round === 1 ? 4.2 : 3.0;
     S.phase = 'intro'; S.t = 0; S.nextAsked = false; S.scorer = -1; S.rally = 0; S.playT = 0; S.slow = 1; S.sudden = false;
+    S.pend = [];
     emit(S, { k: 'round', round });
   }
 
@@ -377,6 +381,7 @@
       pl.w += (tw - pl.w) * Math.min(1, dt * 12);
       let x = pl.x;
       if (S.phase !== 'over') {
+        if (inp.abs != null) x = inp.abs;                 // en ligne : position envoyée par l'invité (bornée juste après)
         if (inp.dx) x += inp.dx;
         if (inp.target != null) { const mx = 1700 * dt; x += clamp(inp.target - x, -mx, mx); }
         if (inp.dir) x += inp.dir * KEY_SPEED * dt;
@@ -401,11 +406,12 @@
   }
 
   function hitBrick(S, br, b, kill) {
-    if (br.dead) return;
+    if (br.dead || S.dry || br.ghost) return;             // balle prédite chez l'invité / brique « du passé » : rebond sans casse
+    if (b && b.pv) { b.pv.touched = true; return; }       // hôte en ligne : trajet provisoire, on ne casse qu'au verdict
     br.hp = kill ? 0 : br.hp - 1;
     const owner = b ? b.owner : -1;
     if (br.hp > 0) { emit(S, { k: 'chip', br, owner, x: b ? b.x : br.x + br.w / 2, y: b ? b.y : br.y + br.h / 2 }); return; }
-    br.dead = true;
+    br.dead = true; br.deadG = S.gt;
     for (const i of br.cells) if (S.cells[i] === br) S.cells[i] = null;
     S.left--;
     const cx = br.x + br.w / 2, cy = br.y + br.h / 2;
@@ -512,21 +518,22 @@
   }
 
   function shieldSave(S, b, p) {
+    if (S.nh && p === 1) { const r = S.pend.find(q => q.id === b.id); if (r) r.shield = true; }   // à rendre si l'invité l'avait renvoyée
     S.pl[p].shield = false;
     b.y = p === 0 ? SHIELD_Y[0] - BR : SHIELD_Y[1] + BR;
     b.vy = p === 0 ? -Math.abs(b.vy) : Math.abs(b.vy);
     b.owner = p;
-    emit(S, { k: 'shield', p, x: b.x, y: p === 0 ? SHIELD_Y[0] : SHIELD_Y[1] });
+    emit(S, { k: 'shield', p, x: b.x, y: p === 0 ? SHIELD_Y[0] : SHIELD_Y[1], pv: b.pv ? 1 : 0 });
   }
 
-  function applyPower(S, p, type, x) {
+  function applyPower(S, p, type, x, cid) {
     const pl = S.pl[p], op = S.pl[1 - p], P = POWERS[type];
     switch (type) {
       case 'big': pl.eff.big = P.dur; pl.eff.shrink = 0; break;
       case 'shrink': op.eff.shrink = P.dur; op.eff.big = 0; break;
-      case 'fire': pl.eff.fire = P.dur; break;
+      case 'fire': if (!(pl.eff.fire > 0)) pl.fireOnG = S.gt; pl.eff.fire = P.dur; break;
       case 'glue': pl.eff.glue = P.dur; break;
-      case 'shield': pl.shield = true; break;
+      case 'shield': pl.shield = true; pl.shieldG = S.gt; break;
       case 'multi': {
         let sp = speedFloor(S);
         for (const b of S.balls) if (!b.dead) sp = Math.max(sp, b.sp);
@@ -539,7 +546,7 @@
       }
       default: break;
     }
-    emit(S, { k: 'power', p, type, x });
+    emit(S, { k: 'power', p, type, x, cap: cid || 0 });
   }
 
   function updateCaps(S, dt) {
@@ -547,6 +554,11 @@
       c.t += dt;
       c.y += c.vy * dt;
       const pl = S.pl[c.to];
+      if (S.nh && c.to === 1) {
+        // en ligne : c'est l'invité qui dit s'il a attrapé son bonus (il le voit sous SA raquette) ; on l'attend un peu
+        if (c.y < -24) { c.y = -24; c.hold = (c.hold || 0) + dt; if (c.hold > S.capWait) { c.got = true; emit(S, { k: 'capmiss', to: 1, x: c.x }); } }
+        continue;
+      }
       if (Math.abs(c.y - PY[c.to]) <= PH / 2 + 9 && Math.abs(c.x - pl.x) <= pl.w / 2 + 13) { c.got = true; applyPower(S, c.to, c.type, c.x); }
       else if (c.to === 0 ? c.y > H + 24 : c.y < -24) { c.got = true; emit(S, { k: 'capmiss', to: c.to, x: c.x }); }
     }
@@ -561,7 +573,7 @@
     emit(S, { k: 'goal', p: scorer, x: clamp(b.x, 0, W), fire: !!b.fire, multi: alive > 1, shrunk: S.pl[conc].eff.shrink > 0,
       rally: S.rally, owner: b.owner, vx: b.vx, vy: b.vy });
     S.phase = 'point'; S.t = 0; S.scorer = scorer; S.lastConceder = conc;
-    S.balls = []; S.caps = [];
+    S.balls = []; S.caps = []; S.pend = [];
     for (const pl of S.pl) { pl.eff.glue = 0; pl.eff.fire = 0; }
   }
 
@@ -573,7 +585,8 @@
       b.y = padFace(p);
       b.stickT -= dt;
       const inp = inputs && inputs[p];
-      if (b.stickT <= 0 || (inp && inp.release)) {
+      // en ligne, l'invité lâche lui-même sa balle collée (message) ; l'hôte ne tranche qu'en dernier recours
+      if (b.stickT <= (S.nh && p === 1 ? -1.2 : 0) || (inp && inp.release)) {
         launchFrom(S, b, p, clamp(b.offX / (pl.w / 2), -1, 1));
         emit(S, { k: 'launch', p, x: b.x, y: b.y });
       }
@@ -585,24 +598,68 @@
     const h = dt / n;
     const zone = wallFront(S) + BR + 1;
     for (let i = 0; i < n; i++) {
+      if (S.nh && b.vy > 0) { b.xr = 0; b.skip1 = false; }   // la balle repart vers l'hôte : nouveau passage possible chez l'invité
       b.x += b.vx * h;
       b.y += b.vy * h;
-      if (b.x < BR) { b.x = BR; b.vx = Math.abs(b.vx); emit(S, { k: 'wall', x: 0, y: b.y, owner: b.owner }); }
-      else if (b.x > W - BR) { b.x = W - BR; b.vx = -Math.abs(b.vx); emit(S, { k: 'wall', x: W, y: b.y, owner: b.owner }); }
-      b.fire = b.owner >= 0 && S.pl[b.owner].eff.fire > 0;
+      if (b.x < BR) { b.x = BR; b.vx = Math.abs(b.vx); emit(S, { k: 'wall', x: 0, y: b.y, owner: b.owner, id: b.id, pv: b.pv ? 1 : 0 }); }
+      else if (b.x > W - BR) { b.x = W - BR; b.vx = -Math.abs(b.vx); emit(S, { k: 'wall', x: W, y: b.y, owner: b.owner, id: b.id, pv: b.pv ? 1 : 0 }); }
+      b.fire = b.owner >= 0 && fireOn(S, b.owner);
       const dy = Math.abs(b.y - MID);
       if (dy < zone && dy > LANE - BR - 1) {
         collideBricks(S, b);
         if (S.movers.length) collideMovers(S, b);
       }
       if (b.vy > 0 && b.y > MID) { if (paddleHit(S, b, 0) && b.stuck >= 0) return; }
-      else if (b.vy < 0 && b.y < MID) { if (paddleHit(S, b, 1) && b.stuck >= 0) return; }
+      else if (b.vy < 0 && b.y < MID) {
+        if (S.nh ? netCross1(S, b, S.gt - dt + (i + 1) * h) : paddleHit(S, b, 1) && b.stuck >= 0) return;
+      }
       if (b.vy > 0 && S.pl[0].shield && b.y + BR >= SHIELD_Y[0]) shieldSave(S, b, 0);
-      else if (b.vy < 0 && S.pl[1].shield && b.y - BR <= SHIELD_Y[1]) shieldSave(S, b, 1);
+      else if (b.vy < 0 && S.pl[1].shield && !(S.pl[1].shieldG > S.gt) && b.y - BR <= SHIELD_Y[1]) shieldSave(S, b, 1);
       if (b.y - BR > H + 2) { goal(S, 1, b); return; }
-      if (b.y + BR < -2) { goal(S, 0, b); return; }
+      if (b.y + BR < -2) {
+        // en ligne : pas de but tant que l'invité n'a pas dit s'il l'a renvoyée
+        if (S.nh && S.pend.some(r => r.id === b.id)) { if (b.y < -70) b.y = -70; continue; }   // elle sort un peu, puis attend
+        goal(S, 0, b); return;
+      }
     }
     fixVel(b);
+  }
+
+  // En ligne (hôte) : la raquette de l'invité (P1) est jugée CHEZ L'INVITÉ, sur ce qu'il voit. Ici, au passage de la balle,
+  // on note son état (pour pouvoir rejouer ce passage) et on fait un rebond PROVISOIRE avec la position connue de sa raquette.
+  // Renvoie vrai si la balle vient de se coller (même convention que paddleHit dans updateBall).
+  function netCross1(S, b, gNow) {
+    if (b.skip1 || b.xr || b.y - BR > PY[1] + PH / 2 || b.y < PY[1] - 3) return false;
+    b.xr = 1;                                               // un seul jugement provisoire par passage
+    if (S.pend.length > 24) S.pend.shift();
+    const rec = { id: b.id, g: gNow, ts: S.evTs != null ? S.evTs : S.nowTs, clk: S.clock, rally: S.rally, prov: 0, off: 0, spin: 0, shield: false, w: S.pl[1].w,
+      snap: { x: b.x, y: b.y, vx: b.vx, vy: b.vy, sp: b.sp, owner: b.owner, fire: b.fire, stuck: b.stuck, offX: b.offX, stickT: b.stickT } };
+    S.pend.push(rec);
+    b.pv = rec;
+    if (S.onRec) S.onRec(rec, b);
+    // supposition : où sera la raquette quand l'invité verra cette balle (dernière position reçue, prolongée par sa vitesse) ;
+    // plus le réseau est lent, plus on parie qu'il l'aura rattrapée (les joueurs renvoient bien plus qu'ils ne ratent)
+    const pl = S.pl[1], half = pl.w / 2, g1 = S.g1;
+    const gx = g1 ? clamp(g1.x + g1.v * Math.min(g1.lead, 0.15), half, W - half) : pl.x;
+    const reach = g1 ? clamp(g1.lead * 250, 0, 120) : 0;
+    if (Math.abs(b.x - gx) > half + BR * 0.8 + reach) return false;   // provisoirement ratée
+    const off = clamp((b.x - gx) / (half + BR * 0.5), -1, 1) * (g1 ? 0.6 : 1);
+    const sx = pl.x;
+    pl.x = b.x - off * (half + BR * 0.5);
+    const hit = paddleHit(S, b, 1);
+    pl.x = sx;
+    if (!hit) return false;
+    rec.prov = 1; rec.off = off; rec.spin = clamp(pl.vx / 2600, -0.1, 0.1);
+    if (b.stuck >= 0) { rec.st = 1; rec.ox = b.offX; }
+    return b.stuck >= 0;
+  }
+
+  // balle de feu ? Pendant un rejeu (hôte en ligne), on regarde si le feu était allumé À CE MOMENT-LÀ
+  function fireOn(S, o) {
+    const pl = S.pl[o];
+    if (!S.ff) return pl.eff.fire > 0;
+    if (pl.eff.fire > 0) return !(pl.fireOnG > S.gt);
+    return pl.fireOffG > S.gt;
   }
 
   // une balle a dépassé une raquette : ralenti dramatique (dérivé de l'état → déterministe)
@@ -615,13 +672,17 @@
     S.slow += (want - S.slow) * Math.min(1, dt * 20);
     const d = dt * S.slow;
     S.t += d;
+    S.gt += d;
     movePaddles(S, d, inputs);
     if (S.phase === 'intro') {
       if (S.t >= S.introDur) serve(S);
     } else if (S.phase === 'play') {
       S.playT += d;
       if (!S.sudden && S.playT > SUDDEN) { S.sudden = true; emit(S, { k: 'sudden' }); }
-      for (const pl of S.pl) for (const k of EFF_KEYS) if (pl.eff[k] > 0) pl.eff[k] = Math.max(0, pl.eff[k] - d);
+      for (const pl of S.pl) for (const k of EFF_KEYS) if (pl.eff[k] > 0) {
+        pl.eff[k] = Math.max(0, pl.eff[k] - d);
+        if (pl.eff[k] === 0) { if (k === 'glue') pl.glueG = S.gt; else if (k === 'fire') pl.fireOffG = S.gt; }
+      }
       updateMovers(S, d);
       const list = S.balls.slice();
       for (const b of list) { updateBall(S, b, d, inputs); if (S.phase !== 'play') break; }
@@ -1043,6 +1104,11 @@
     });
     const PC = [PLAYERS[0].color, PLAYERS[1].color];
     let destroyed = false, paused = false;
+    // --- jeu en ligne (api.net) : sans lui, rien ne change
+    const NET = api.net && (api.net.role === 'host' || api.net.role === 'guest') && typeof api.net.send === 'function' ? api.net : null;
+    const HOST = !!NET && NET.role === 'host', GUEST = !!NET && NET.role === 'guest';
+    const ME = GUEST ? 1 : 0;                               // le joueur de CET appareil
+    const FLIP = GUEST && !!NET.flipped;                    // écran de l'invité tourné de 180° par la bibliothèque
     const coarse = (() => { try { return window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })();
 
     // --- sons (sobres) et vibrations
@@ -1071,6 +1137,8 @@
 
     // --- simulation
     const S = newSim((Math.random() * 4294967296) >>> 0);
+    S.nh = HOST;
+    if (HOST) S.onRec = (rec, b) => nlog(['rec', rec.id, r3(rec.g), Math.round(b.x), Math.round(b.vx), Math.round(b.vy)]);
     const inputs = [{ dx: 0, target: null, dir: 0, release: false }, { dx: 0, target: null, dir: 0, release: false }];
 
     // --- état de l'affichage (cosmétique : Math.random autorisé ici)
@@ -1084,7 +1152,7 @@
 
     // --- dimensions
     let cw = 1, ch = 1, dpr = 1, scale = 1, offX = 0, offY = 0, K = 1;
-    let bg = null, nebImg = null, planets = null;
+    let bg = null, nebImg = null, planets = null, nebs = null;
     const sprites = new Map(), stickers = new Map();
     const GLW = mkGlow('#ffffff'), GLP = [mkGlow(PC[0]), mkGlow(PC[1])], GLF = mkFire(), GLH = [mkGlow(PC[0], true), mkGlow(PC[1], true)];
     const glowCache = new Map();
@@ -1176,7 +1244,7 @@
         pr.then(a => {
           if (destroyed || !a) return;
           const n = (a.nebulas || []).filter(imgOk), p = (a.planets || []).filter(imgOk);
-          if (n.length) nebImg = n[(S.matchSeed >>> 3) % n.length];
+          if (n.length) { nebs = n; nebImg = n[(S.matchSeed >>> 3) % n.length]; }
           if (p.length) planets = p;
           bg = null;
         }, () => { /* sans images : le fond procédural suffit */ });
@@ -1347,7 +1415,12 @@
       if (!S.ev.length) return;
       const evs = S.ev;
       S.ev = [];
-      for (const e of evs) { try { onEvent(e); } catch (err) { /* un effet raté ne doit jamais casser la partie */ } }
+      for (const e of evs) {
+        // rejeu d'un passage (hôte) : rebonds sur les côtés et bouclier déjà montrés pendant le trajet provisoire
+        if (!(e.rp && (e.k === 'wall' || e.k === 'shield'))) { try { onEvent(e); } catch (err) { /* un effet raté ne doit jamais casser la partie */ } }
+        // trajet provisoire ou rejeu : l'invité montre lui-même ces rebonds (il prédit cette balle), on ne les lui envoie pas
+        if (HOST && !((e.pv || e.rp) && (e.k === 'wall' || e.k === 'shield'))) { try { netEv(e); } catch (err) { /* rien */ } }
+      }
     }
     function onEvent(e) {
       switch (e.k) {
@@ -1424,7 +1497,7 @@
           break;
         }
         case 'goal': onGoal(e); break;
-        case 'next': beginRound(); break;
+        case 'next': if (!GUEST) beginRound(); break;
         default: break;
       }
     }
@@ -1484,16 +1557,20 @@
 
     function onGoal(e) {
       const s = e.p, c = 1 - s, gx = e.x, gy = c === 0 ? H : 0;
-      // pourquoi ? (petit mot pour la bannière de la bibliothèque)
-      let why = pick(['But !', 'Imparable !', 'Dans le mille !', 'Trop fort !']);
-      if (e.fire) why = 'Balle de feu !';
-      else if (e.owner === c) why = pick(['Retour à l’envoyeur !', 'Le mur a renvoyé !', 'Ricochet fatal !']);
-      else if (e.owner < 0) why = 'Pris par surprise !';
-      else if (e.shrunk) why = 'Raquette mini !';
-      else if (e.multi) why = 'Avalanche !';
-      else if (e.rally >= 8) why = 'Quel échange !';
       let res = null;
-      try { res = api.point ? api.point(s, why) : null; } catch (err) { res = null; }
+      if (GUEST) res = e.ov ? { over: true } : null;        // l'invité ne décide de rien : l'hôte a déjà compté le point
+      else {
+        // pourquoi ? (petit mot pour la bannière de la bibliothèque)
+        let why = pick(['But !', 'Imparable !', 'Dans le mille !', 'Trop fort !']);
+        if (e.fire) why = 'Balle de feu !';
+        else if (e.owner === c) why = pick(['Retour à l’envoyeur !', 'Le mur a renvoyé !', 'Ricochet fatal !']);
+        else if (e.owner < 0) why = 'Pris par surprise !';
+        else if (e.shrunk) why = 'Raquette mini !';
+        else if (e.multi) why = 'Avalanche !';
+        else if (e.rally >= 8) why = 'Quel échange !';
+        try { res = api.point ? api.point(s, why) : null; } catch (err) { res = null; }
+        e.ov = res && res.over ? 1 : 0;
+      }
       if (res && res.over) { S.matchOver = true; S.phase = 'over'; V.overT = 0; V.winner = s; }
       V.lastPoint = { s, x: gx, t: 0 };
       // gros effet : arrêt sur image, flash, ondes de choc, gerbe d'étincelles, tremblement
@@ -1535,9 +1612,8 @@
       try { r = api.round ? +api.round() : 0; } catch (e) { r = 0; }
       return r >= 1 ? Math.floor(r) : S.round + 1;
     }
-    function beginRound() {
-      if (destroyed || S.matchOver) return;
-      // le mur de la manche précédente se vaporise
+    // le mur de la manche précédente se vaporise
+    function vaporizeWall() {
       let n = 0;
       for (const br of S.bricks) {
         if (br.dead || n > 120) continue;
@@ -1546,9 +1622,20 @@
         addPart({ k: 'b', x: br.x + br.w / 2, y: br.y + br.h / 2, w: br.w, h: br.h, vx: 0, vy: 0, life: 0.3 + Math.random() * 0.15, max: 0.45, col: shade(col, 0.3), drag: 0 });
       }
       if (n) noise(0.3, 0.08, 2400);
+    }
+    function beginRound() {
+      if (destroyed || S.matchOver || GUEST) return;          // chez l'invité, les manches viennent de l'hôte
+      vaporizeWall();
       V.heads = fetchHeads();
       for (const k of Array.from(stickers.keys())) if (k.charAt(0) === 'c') stickers.delete(k);
+      const pre = { nid: S.nid, pp: S.patIdx, lc: S.lastConceder };
       startRound(S, curRound(), V.heads.length);
+      if (HOST) {
+        // tout ce qu'il faut à l'invité pour construire EXACTEMENT le même mur (graine, compteurs, têtes des copains)
+        N.lastR = { k: 'R', r: S.round, hc: S.headCount, ms: S.matchSeed, nid: pre.nid, pp: pre.pp, lc: pre.lc,
+          hn: V.heads.map(h => String((h && h.name) || '').slice(0, 16)) };
+        nsend(Object.assign({ ts: Math.round(S.nowTs) }, N.lastR), true);
+      }
     }
 
     // --- mise à jour de l'affichage (temps réel, cosmétique)
@@ -1566,7 +1653,7 @@
         V.goalFlash[p] = Math.max(0, V.goalFlash[p] - dt * 1.3);
         V.powFx[p] = Math.max(0, V.powFx[p] - dt * 2.2);
         let threat = false;
-        if (S.phase === 'play') for (const b of S.balls) if (behind(b) && (p === 0 ? b.vy > 0 : b.vy < 0)) threat = true;
+        if (S.phase === 'play') for (const b of viewBalls()) if (behind(b) && (p === 0 ? b.vy > 0 : b.vy < 0)) threat = true;
         if (threat && V.danger[p] < 0.5) tone(330, 0.35, 'sine', 0.045, 110);
         V.danger[p] = threat ? 1 : Math.max(0, V.danger[p] - dt * 4);
         // l'explication s'efface au « GO ! » pour ne jamais cacher la balle
@@ -1598,7 +1685,7 @@
       }
       V.cries = V.cries.filter(c => c.t < 1.6);
       const seen = new Set();
-      for (const b of S.balls) {
+      for (const b of viewBalls()) {
         seen.add(b.id);
         let tr = V.trails.get(b.id);
         if (!tr) { tr = { p: [], t: -1 }; V.trails.set(b.id, tr); }
@@ -2013,7 +2100,8 @@
       W0();
       ctx.globalCompositeOperation = 'lighter';
       ctx.lineCap = 'round';
-      for (const b of S.balls) {
+      const VBL = viewBalls();
+      for (const b of VBL) {
         const tr = V.trails.get(b.id), col = b.fire ? '#ff7a2a' : b.owner >= 0 ? PC[b.owner] : '#ffffff';
         if (tr && tr.p.length >= 2 && b.stuck < 0) {
           const pts = tr.p.concat([b.x, b.y]), n = pts.length / 2;
@@ -2037,7 +2125,7 @@
         ctx.globalAlpha = 1; ctx.drawImage(gl, b.x - sz / 2, b.y - sz / 2, sz, sz);
       }
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-      for (const b of S.balls) {
+      for (const b of VBL) {
         if (b.stuck < 0) continue;
         const pl = S.pl[b.stuck], off = clamp(b.offX / (pl.w / 2), -1, 1), a = off * 62 * DEG;
         const dx = Math.sin(a), dy = b.stuck === 0 ? -Math.cos(a) : Math.cos(a);
@@ -2051,7 +2139,7 @@
         ctx.strokeStyle = COL.gold; ctx.lineWidth = 2; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.arc(b.x, b.y, BR + 4, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(b.stickT / 1.25, 0, 1)); ctx.stroke();
       }
-      for (const b of S.balls) {
+      for (const b of VBL) {
         const col = b.owner >= 0 ? PC[b.owner] : '#e9f0f3';
         const g = ctx.createRadialGradient(b.x - BR * 0.35, b.y - BR * 0.35, 0.5, b.x, b.y, BR);
         g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, b.fire ? '#ffe6a8' : shade(col, 0.65)); g.addColorStop(1, b.fire ? '#ff6a1a' : col);
@@ -2192,7 +2280,8 @@
       ctx.fillStyle = 'rgba(2,6,14,0.78)'; rr(ctx, W / 2 - bw / 2, y - bh / 2, bw, bh, 12); ctx.fill();
       ctx.strokeStyle = rgba(PC[p], 0.85); ctx.lineWidth = 1.4; ctx.stroke();
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const l1 = coarse ? 'GLISSE TON DOIGT DE CE CÔTÉ' : p === 0 ? 'FLÈCHES ← → OU SOURIS' : 'TOUCHES Q / D OU SOURIS';
+      const l1 = NET ? (coarse ? (p === ME ? 'GLISSE TON DOIGT SUR L’ÉCRAN' : 'GLISSE TON DOIGT') : 'FLÈCHES ← → OU SOURIS')
+        : coarse ? 'GLISSE TON DOIGT DE CE CÔTÉ' : p === 0 ? 'FLÈCHES ← → OU SOURIS' : 'TOUCHES Q / D OU SOURIS';
       strokeText(ctx, l1, W / 2, y - 8, 11.5, PC[p], FD, 0);
       strokeText(ctx, 'Envoie la balle derrière la raquette d’en face !', W / 2, y + 9, 11.5, '#ffffff', FB, 0, true);
       // petite main qui glisse
@@ -2284,6 +2373,16 @@
         strokeText(ctx, 'PAUSE', W / 2, MID + 150, 34, '#ffffff', FD, 6);
       }
     }
+    function drawWaiting() {
+      for (let p = 0; p < 2; p++) {
+        LP(p);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.globalAlpha = 0.6 + 0.4 * Math.sin(V.rt * 4);
+        strokeText(ctx, 'CONNEXION…', W / 2, MID + 150, 22, PC[ME], FD, 5);
+        ctx.globalAlpha = 1;
+      }
+      W0();
+    }
     function drawResume() {
       const n = Math.max(1, Math.ceil(V.resumeT / 0.5)), k = 1 - (V.resumeT - (n - 1) * 0.5) / 0.5;
       for (let p = 0; p < 2; p++) { LP(p); drawCount(String(n), MID + 150, k, p, false); }
@@ -2319,6 +2418,7 @@
       }
       drawFloats();
       drawIntro();
+      if (GUEST && !N.gotR) drawWaiting();
       if (paused) drawPauseOverlay();
       else if (V.resumeT > 0) drawResume();
       if (V.flash > 0.01) {
@@ -2345,10 +2445,16 @@
       if (k === 'ArrowUp' || k === 'ArrowDown') return [-1, ''];
       return null;
     }
+    // en ligne : toutes les touches pilotent le joueur de CET appareil ; chez l'invité (écran tourné), gauche et droite s'inversent
+    function keyMap(m) {
+      if (!NET || m[0] < 0) return m;
+      return [ME, FLIP && (m[1] === 'l' || m[1] === 'r') ? (m[1] === 'l' ? 'r' : 'l') : m[1]];
+    }
     function onKeyDown(e) {
       if (destroyed || !visible() || isTyping(e)) return;
-      const m = keyOf(e);
+      let m = keyOf(e);
       if (!m) return;
+      m = keyMap(m);
       if (m[0] >= 0 && !paused) {
         if (m[1] === 'l') keys[m[0]].l = true;
         else if (m[1] === 'r') keys[m[0]].r = true;
@@ -2359,8 +2465,9 @@
     }
     function onKeyUp(e) {
       if (destroyed) return;
-      const m = keyOf(e);
+      let m = keyOf(e);
       if (!m || m[0] < 0) return;
+      m = keyMap(m);
       if (m[1] === 'l') keys[m[0]].l = false;
       else if (m[1] === 'r') keys[m[0]].r = false;
       syncKeys();
@@ -2372,8 +2479,12 @@
       for (const inp of inputs) { inp.dx = 0; inp.target = null; inp.dir = 0; inp.release = false; }
     }
     function onBlur() { if (!destroyed) clearInputs(); }
-    function fieldX(clientX, rect) { return (clientX - rect.left - offX) / scale; }
-    function fieldY(clientY, rect) { return (clientY - rect.top - offY) / scale; }
+    // position du doigt dans le canvas (px CSS) ; chez l'invité l'écran est tourné de 180° : on la retourne
+    function pxy(e, rect) {
+      let x = e.clientX - rect.left, y = e.clientY - rect.top;
+      if (FLIP) { x = rect.width - x; y = rect.height - y; }
+      return [x, y];
+    }
     function onPointerDown(e) {
       if (destroyed) return;
       e.preventDefault();
@@ -2381,23 +2492,25 @@
       const mouse = e.pointerType === 'mouse';
       if (mouse && e.button !== 0) return;
       const rect = canvas.getBoundingClientRect();
-      const p = e.clientY - rect.top > rect.height / 2 ? 0 : 1;      // moitié du bas = P0
-      ptrs.set(e.pointerId, { p, lastX: e.clientX, sx: e.clientX, sy: e.clientY, t: performance.now(), moved: false, mouse });
+      const c = pxy(e, rect);
+      const p = NET ? ME : c[1] > rect.height / 2 ? 0 : 1;          // moitié du bas = P0 ; en ligne : tout l'écran est à moi
+      ptrs.set(e.pointerId, { p, lastX: c[0], sx: e.clientX, sy: e.clientY, t: performance.now(), moved: false, mouse });
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
-      if (mouse) inputs[p].target = fieldX(e.clientX, rect);
-      V.touches.set(e.pointerId, { p, x: fieldX(e.clientX, rect), y: fieldY(e.clientY, rect), t: 0 });
+      if (mouse) inputs[p].target = (c[0] - offX) / scale;
+      V.touches.set(e.pointerId, { p, x: (c[0] - offX) / scale, y: (c[1] - offY) / scale, t: 0 });
     }
     function onPointerMove(e) {
       const pt = ptrs.get(e.pointerId);
       if (!pt || destroyed || paused) return;
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
-      if (pt.mouse) inputs[pt.p].target = fieldX(e.clientX, rect);
-      else inputs[pt.p].dx += ((e.clientX - pt.lastX) / scale) * TOUCH_GAIN;
-      pt.lastX = e.clientX;
+      const c = pxy(e, rect);
+      if (pt.mouse) inputs[pt.p].target = (c[0] - offX) / scale;
+      else inputs[pt.p].dx += ((c[0] - pt.lastX) / scale) * TOUCH_GAIN;
+      pt.lastX = c[0];
       if (Math.abs(e.clientX - pt.sx) > 12 || Math.abs(e.clientY - pt.sy) > 12) pt.moved = true;
       const tc = V.touches.get(e.pointerId);
-      if (tc) { tc.x = fieldX(e.clientX, rect); tc.y = fieldY(e.clientY, rect); }
+      if (tc) { tc.x = (c[0] - offX) / scale; tc.y = (c[1] - offY) / scale; }
     }
     function onPointerUp(e) {
       V.touches.delete(e.pointerId);
@@ -2415,6 +2528,690 @@
     }
     function prevent(e) { e.preventDefault(); }
 
+    // ===========================================================================
+    // JEU EN LIGNE (api.net)
+    //  - L'HÔTE simule tout. ~30 fois/s il envoie l'état (balles avec leurs vitesses, raquettes, bonus en vol, briques
+    //    mobiles, temps de jeu), et en FIABLE les événements datés (manche + graine, briques, bonus, buts, sons).
+    //  - L'INVITÉ affiche l'état de l'hôte avec un petit retard constant (interpolation sur l'horloge commune, prolongée
+    //    par les vitesses s'il manque un paquet, corrections douces). Sa raquette suit son doigt sans attendre (~60 envois/s).
+    //  - Les rebonds sur la raquette de l'invité se jugent CHEZ L'INVITÉ, sur ce qu'il voit : il montre tout de suite le
+    //    rebond (prédiction) et envoie son verdict ; l'hôte rejoue alors ce passage (retour en arrière + avance rapide).
+    //    En attendant, l'hôte fait un rebond provisoire avec la dernière position connue, et ne marque jamais sans verdict.
+    // Tout est en unités du terrain logique (W x H), le même sur tous les écrans.
+    // ===========================================================================
+    let VB = null;                                           // balles affichées chez l'hôte (corrections lissées), sinon S.balls
+    function viewBalls() { return VB || S.balls; }
+    const PHS = ['idle', 'intro', 'play', 'point', 'over'];
+    const r1 = v => Math.round(v * 10) / 10, r3 = v => Math.round(v * 1000) / 1000;
+    const num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
+    function pct(arr, q) { if (!arr.length) return 0; const a = arr.slice().sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(q * (a.length - 1) + 0.5))]; }
+    const N = NET ? {
+      now: 0, off: null, stats: { out: 0, bytes: 0, snaps: 0, evs: 0, verdicts: 0, rewinds: 0, extrap: 0, frames: 0, hits: 0, misses: 0, caps: 0 },
+      // hôte
+      q: [], batch: [], snapAcc: 0, snapN: 0, lastR: null, boff: new Map(), p1: [], p1N: -1, p1Ages: [], p1Delay: -1, p1From: null, p1To: null,
+      // invité
+      buf: [], ages: [], delay: -1, delayInit: false, tr: 0, g: 0, gPrev: null, evq: [], pred: new Map(), disp: new Map(), cross: new Map(),
+      capJ: new Set(), capLocal: new Set(), ghosts: [], seq: 0, padN: 0, padT: -1e9, padLast: null, pad: { x: W / 2, vx: 0 }, gotR: false, hiT: 0.8
+    } : null;
+    function nlog(a) { const L = N.stats.log || (N.stats.log = []); if (L.length < 400) L.push(a); }   // journal (tests)
+    function rttMs() { try { return num(typeof NET.rtt === 'function' ? NET.rtt() : NaN, 160); } catch (e) { return 160; } }
+    function nsend(m, rel) {
+      try { NET.send(m, { reliable: !!rel }); } catch (e) { return; }
+      N.stats.out++;
+      try {
+        const L = JSON.stringify(m).length;
+        N.stats.bytes += L;
+        const k = m.k === 's' ? 'S' : m.k;                      // tailles par type (états, événements, raquette…)
+        const z = N.stats.sizes || (N.stats.sizes = {});
+        const e = z[k] || (z[k] = [0, 0, 0]);
+        e[0]++; e[1] += L; if (L > e[2]) e[2] = L;
+      } catch (e) { /* rien */ }
+    }
+    function onNet(m) {
+      if (destroyed || !m || typeof m !== 'object') return;
+      if (HOST) {
+        if (m.k === 'p') hostPadSample(m);
+        else if ((m.k === 'v' || m.k === 'c' || m.k === 'hi') && N.q.length < 300) N.q.push(m);
+        return;
+      }
+      if (m.k === 's') guestSnap(m);
+      else if (m.k === 'e') guestEvents(m);
+      else if (m.k === 'R') N.evq.push({ ts: m.rs || !N.gotR ? -Infinity : num(m.ts, -Infinity), R: m });
+    }
+    // horloge commune (celle de l'hôte), lissée et calée sur les images : pas de tremblement d'une image à l'autre
+    function netClock(tsMs) {
+      let o = 0;
+      try { o = num(NET.now(), 0) - tsMs; } catch (e) { o = 0; }
+      if (N.off == null || Math.abs(o - N.off) > 60) N.off = o; else N.off += (o - N.off) * 0.03;
+      N.now = tsMs + N.off;
+      if (HOST) S.nowTs = N.now;
+    }
+
+    // ---------------- hôte ----------------
+    function hostPadSample(m) {
+      const x = num(m.x, NaN), t = num(m.t, NaN), n = num(m.n, 0);
+      if (x !== x || t !== t || n <= N.p1N) return;          // abîmé, ou plus vieux que le dernier reçu (désordre)
+      N.p1N = n;
+      N.p1.push({ t, x: clamp(x, 0, W), v: clamp(num(m.v, 0), -4000, 4000) });
+      if (N.p1.length > 120) N.p1.splice(0, N.p1.length - 120);
+      N.p1Ages.push(num(NET.now(), 0) - t); if (N.p1Ages.length > 60) N.p1Ages.shift();
+    }
+    // position de la raquette de l'invité, interpolée entre ses envois (petit retard réglé sur le réseau)
+    function hostP1(dt) {
+      const B = N.p1;
+      if (!B.length) return null;
+      const want = clamp(pct(N.p1Ages, 0.9) + 22, 12, 450);
+      if (N.p1Delay < 0) N.p1Delay = want; else N.p1Delay += clamp(want - N.p1Delay, -dt * 60, dt * 60);
+      const t = N.now - N.p1Delay;
+      let i = 0;
+      while (i + 1 < B.length && B[i + 1].t <= t) i++;
+      if (i > 0) B.splice(0, i);
+      const a = B[0], b = B[1];
+      if (t <= a.t) return a.x;
+      if (b) return a.x + (b.x - a.x) * clamp((t - a.t) / Math.max(1, b.t - a.t), 0, 1);
+      return a.x + (a.v * clamp(t - a.t, 0, 60)) / 1000;
+    }
+    function hostNetIn(dt) {
+      const q = N.q; N.q = [];
+      for (const m of q) {
+        try { if (m.k === 'v') hostVerdict(m); else if (m.k === 'c') hostCap(m); else hostHello(); } catch (e) { /* message abîmé : ignoré */ }
+      }
+      const wait = clamp(rttMs() / 1000 + 0.45, 0.6, 1.6);  // au-delà, on garde le résultat provisoire
+      S.capWait = wait;
+      // pas de verdict à temps (réseau coupé ?) : le résultat provisoire devient définitif
+      for (const r of S.pend.filter(q => S.clock - q.clk >= wait)) {
+        const i = S.pend.indexOf(r);
+        if (i < 0) continue;
+        S.pend.splice(i, 1);
+        nlog(['timeout', r.id, r.prov]);
+        const b = S.balls.find(o => o.id === r.id);
+        if (b && S.phase === 'play') resolveRec(r, b, !!r.prov, { o: r.off, sp: r.spin, bx: r.snap.x, st: r.st, ox: r.ox });
+      }
+      const x = hostP1(dt);
+      if (x != null) { N.p1From = N.p1To == null ? x : N.p1To; N.p1To = x; }
+      const last = N.p1[N.p1.length - 1];
+      S.g1 = last ? { x: last.x, v: last.v, lead: clamp((N.now - last.t) / 1000 + rttMs() / 2000 + 0.06, 0, 0.8) } : null;
+    }
+    function hostNetOut(dt) {
+      if (N.batch.length) flushEvents();
+      N.snapAcc += dt;
+      if (N.snapAcc >= 1 / 30 - 0.004) { N.snapAcc = Math.min(N.snapAcc - 1 / 30, 0.02); sendSnap(); }
+    }
+    function sendSnap() {
+      const e = [];
+      for (const pl of S.pl) e.push(r1(pl.eff.big), r1(pl.eff.shrink), r1(pl.eff.fire), r1(pl.eff.glue), pl.shield ? 1 : 0);
+      nsend({
+        k: 's', n: ++N.snapN, ts: Math.round(S.nowTs), g: r3(S.gt), ph: Math.max(0, PHS.indexOf(S.phase)), t: r3(S.t), pt: r3(S.playT),
+        sl: Math.round(S.slow * 100) / 100, r: S.round, a: S.ack,
+        p: [r1(S.pl[0].x), r1(S.pl[0].w), r1(S.pl[1].x), r1(S.pl[1].w)], e,
+        b: S.balls.map(b => [b.id, r1(b.x), r1(b.y), r1(b.vx), r1(b.vy), r1(b.sp), (b.owner + 1) | (b.fire ? 4 : 0) | ((b.stuck + 1) << 3),
+          r1(b.offX || 0), Math.round((b.stickT || 0) * 100) / 100]),
+        c: S.caps.map(c => [c.id, r1(c.x), r1(c.y), POWER_KEYS.indexOf(c.type), c.to]),
+        m: S.movers.map(g => [r1(g.off), r1(g.vx)])
+      }, false);
+    }
+    // événement de la simulation → tableau compact, daté (ms) par rapport au paquet
+    function netEv(e) {
+      let a;
+      switch (e.k) {
+        case 'go': case 'sudden': a = [e.k]; break;
+        case 'paddle': a = ['paddle', e.p, r1(e.x), r1(e.y), r3(e.off || 0), r1(e.sp || 0), e.fire ? 1 : 0]; break;
+        case 'wall': a = ['wall', r1(e.x), r1(e.y), e.owner, e.id || 0]; break;
+        case 'chip': a = ['chip', e.br.id, e.br.hp, e.owner, r1(e.x), r1(e.y)]; break;
+        case 'break': a = ['break', e.br.id, e.owner, r1(e.x), r1(e.y), e.fire ? 1 : 0, Math.round(e.vx || 0), Math.round(e.vy || 0)]; break;
+        case 'cap': a = ['cap', e.to, r1(e.x), r1(e.y), e.type]; break;
+        case 'power': a = ['power', e.p, e.type, r1(e.x), e.cap || 0]; break;
+        case 'shield': a = ['shield', e.p, r1(e.x), r1(e.y)]; break;
+        case 'stick': case 'launch': a = [e.k, e.p, r1(e.x), r1(e.y)]; break;
+        case 'goal': a = ['goal', e.p, r1(e.x), e.fire ? 1 : 0, e.ov ? 1 : 0]; break;
+        default: return;                                     // 'round' part à part (message R) ; 'next', 'capmiss' : rien à rejouer
+      }
+      a.splice(1, 0, Math.round((e.ts != null ? e.ts : S.nowTs) - S.nowTs));
+      N.batch.push(a);
+    }
+    function flushEvents() {
+      const ts = Math.round(S.nowTs);
+      let pack = [], len = 0;
+      const out = () => { if (pack.length) { nsend({ k: 'e', ts, l: pack }, true); N.stats.evs += pack.length; } pack = []; len = 0; };
+      for (const a of N.batch) { const n = JSON.stringify(a).length + 1; if (len + n > 850) out(); pack.push(a); len += n; }
+      out();
+      N.batch = [];
+    }
+    // l'invité vient d'arriver (ou s'est perdu) : on lui redonne la manche en cours, briques cassées comprises
+    function hostHello() {
+      if (!N.lastR) return;
+      const d = [], h = [];
+      for (const br of S.bricks) { if (br.dead) d.push(br.id); else if (br.hp !== br.maxHp) h.push([br.id, br.hp]); }
+      nsend(Object.assign({ ts: Math.round(S.nowTs), rs: 1, d, h }, N.lastR), true);
+    }
+    // verdict de l'invité sur SA raquette : h = 1 renvoyée, 0 ratée, 2 balle collée lâchée
+    function hostVerdict(m) {
+      const s = num(m.s, 0) | 0;
+      if (s > S.ack) S.ack = s;
+      N.stats.verdicts++;
+      if (S.phase !== 'play') return;
+      const b = S.balls.find(o => o.id === m.id && !o.dead);
+      const pl = S.pl[1], half = pl.w / 2;
+      if (m.h === 2) {
+        if (!b || b.stuck !== 1) return;
+        const before = { x: b.x, y: b.y }, dur = clamp(S.gt - num(m.g, S.gt), 0, 0.6);
+        pl.x = clamp(num(m.x, pl.x), half, W - half);
+        b.offX = clamp(num(m.ox, b.offX), -half + 3, half - 3);
+        b.x = pl.x + b.offX;
+        launchFrom(S, b, 1, clamp(b.offX / half, -1, 1));
+        emit(S, { k: 'launch', p: 1, x: b.x, y: b.y });
+        ffBall(b, dur, S.nowTs - dur * 1000);
+        jumpFx(b, before);
+        return;
+      }
+      let i = -1, best = 1e9;
+      const mg = num(m.g, NaN);
+      S.pend.forEach((r, j) => {
+        if (r.id !== m.id) return;
+        const dgap = mg === mg ? mg - r.g : 0;                 // le verdict arrive pendant ou juste après l'entrée de la balle
+        if (dgap < -0.12 || dgap > 0.45) return;
+        if (Math.abs(dgap - 0.03) < best) { best = Math.abs(dgap - 0.03); i = j; }
+      });
+      if (i < 0) { nlog(['nopend', m.id, m.h, b ? [Math.round(b.x), Math.round(b.y), Math.round(b.vy), b.stuck, b.xr || 0, b.skip1 ? 1 : 0] : null, S.pend.map(r => r.id), r3(num(m.g, 0)), r3(S.gt)]); return; }
+      const rec = S.pend[i];
+      S.pend.splice(i, 1);
+      if (!b) { nlog(['noball', m.id, m.h]); return; }
+      let hit = m.h === 1;
+      if (hit) {                                              // vérification (règles du jeu) : la balle était là, la raquette aussi
+        const hw = Math.max(half, (rec.w || pl.w) / 2), px = clamp(num(m.x, -1e3), hw, W - hw), bx = num(m.bx, rec.snap.x);
+        const slope = Math.abs(rec.snap.vx) / Math.max(1, Math.abs(rec.snap.vy));
+        if (Math.abs(bx - rec.snap.x) > 30 + slope * 22 || Math.abs(bx - px) > hw + BR + 10) { hit = false; nlog(['refus', m.id, Math.round(bx), Math.round(rec.snap.x), Math.round(px), Math.round(half), r3(num(m.g, 0)), r3(rec.g), Math.round(rec.snap.vx)]); }
+      }
+      if (hit) N.stats.hits++; else N.stats.misses++;
+      nlog([hit ? 'hit' : 'miss', m.id, rec.prov, Math.round((S.clock - rec.clk) * 1000), r3(num(m.o, 0)), r3(rec.off), rec.touched ? 1 : 0]);
+      resolveRec(rec, b, hit, m);
+    }
+    // résultat définitif d'un passage. Si le trajet provisoire était faux, ou s'il a touché des briques (« à sec »),
+    // on le rejoue : retour à l'arrivée de la balle, verdict appliqué, puis avance rapide jusqu'à maintenant (briques cassées pour de vrai)
+    function resolveRec(rec, b, hit, m) {
+      const pl = S.pl[1];
+      if (b.pv === rec) b.pv = null;
+      const same = hit ? rec.prov && !m.st && !rec.st && b.stuck < 0 && Math.abs(num(m.o, 0) - rec.off) < 0.03 && Math.abs(num(m.sp, 0) - rec.spin) < 0.01
+        : !rec.prov;
+      if (same && !rec.touched) return;                       // la balle est déjà sur le bon chemin
+      S.pend = S.pend.filter(r => r.id !== b.id || r.g < rec.g);
+      const before = { x: b.x, y: b.y };
+      Object.assign(b, rec.snap);
+      b.xr = 1; b.skip1 = false; b.pv = null;
+      if (rec.prov) S.rally = rec.rally;
+      let g0 = rec.g;
+      if (hit) {
+        g0 = clamp(num(m.g, rec.g), rec.g - 0.05, rec.g + 0.12);
+        if (rec.shield) pl.shield = true;
+        forceHit1(b, m, rec.prov === 1);
+      } else b.skip1 = true;
+      N.stats.rewinds++;
+      const dur = clamp(S.gt - g0, 0, 1);
+      ffBall(b, dur, S.nowTs - dur * 1000);
+      jumpFx(b, before);
+    }
+    function forceHit1(b, m, quiet) {
+      const pl = S.pl[1], half = pl.w / 2;
+      b.x = clamp(num(m.bx, b.x), BR, W - BR);
+      b.sp = Math.min(speedCap(S), Math.max(speedFloor(S), b.sp * 1.045));
+      b.owner = 1; pl.hits++; S.rally++;
+      if (m.st && (pl.eff.glue > 0 || S.gt - (pl.glueG || -9) < 1.5)) {
+        b.stuck = 1; b.offX = clamp(num(m.ox, b.x - pl.x), -half + 3, half - 3); b.stickT = 1.25;
+        b.y = padFace(1); b.vx = 0; b.vy = 0;
+        if (!quiet) emit(S, { k: 'stick', p: 1, x: b.x, y: b.y });
+      } else {
+        const off = clamp(num(m.o, 0), -1, 1);
+        launchFrom(S, b, 1, off, clamp(num(m.sp, 0), -0.1, 0.1));
+        if (!quiet) emit(S, { k: 'paddle', p: 1, x: b.x, y: b.y, off, sp: b.sp, fire: pl.eff.fire > 0 });
+      }
+    }
+    // avance rapide d'une seule balle (après un verdict), événements datés à leur vrai moment
+    function ffBall(b, dur, ts0) {
+      const gEnd = S.gt, g0 = gEnd - dur;
+      // briques cassées (par une autre balle) APRÈS le début du passage rejoué : à l'époque elles étaient encore là
+      const later = S.bricks.filter(br => br.dead && br.deadG > g0);
+      let el = 0;
+      S.ff = true;
+      try {
+        while (dur - el > 1e-6 && S.phase === 'play' && S.balls.indexOf(b) >= 0) {
+          const h = Math.min(STEP, dur - el);
+          S.evTs = ts0 + el * 1000;
+          S.gt = g0 + el + h;
+          for (const br of later) {
+            const was = br.deadG > S.gt;
+            if (was && br.dead) { br.dead = false; br.ghost = true; for (const c of br.cells) if (!S.cells[c]) S.cells[c] = br; }
+            else if (!was && br.ghost) { br.dead = true; br.ghost = false; for (const c of br.cells) if (S.cells[c] === br) S.cells[c] = null; }
+          }
+          updateBall(S, b, h, null);
+          el += h;
+        }
+      } finally {
+        for (const br of later) if (br.ghost) { br.dead = true; br.ghost = false; for (const c of br.cells) if (S.cells[c] === br) S.cells[c] = null; }
+        S.gt = gEnd; S.evTs = null; S.ff = false;
+      }
+    }
+    // la balle a « sauté » (verdict rejoué) : à l'écran de l'hôte elle glisse vers sa nouvelle place au lieu de se téléporter
+    function jumpFx(b, before) {
+      if (b.stuck >= 0 || S.balls.indexOf(b) < 0) return;
+      const o = N.boff.get(b.id) || { x: 0, y: 0 };
+      o.x += before.x - b.x; o.y += before.y - b.y;
+      if (Math.hypot(o.x, o.y) > 320) { N.boff.delete(b.id); return; }
+      N.boff.set(b.id, o);
+    }
+    function hostDisplayBalls(dt) {
+      VB = null;
+      if (!N.boff.size) return;
+      const out = [];
+      for (const b of S.balls) {
+        const o = N.boff.get(b.id);
+        if (!o) { out.push(b); continue; }
+        const m = Math.hypot(o.x, o.y), k = Math.exp(-dt / (0.1 + m / 1000));   // glisse en ~0,1-0,3 s : une courbe, pas un saut
+        o.x *= k; o.y *= k;
+        if (m < 0.4 || b.stuck >= 0) { N.boff.delete(b.id); out.push(b); continue; }
+        out.push(Object.assign({}, b, { x: b.x + o.x, y: b.y + o.y }));
+      }
+      for (const id of Array.from(N.boff.keys())) if (!S.balls.some(b => b.id === id)) N.boff.delete(id);
+      VB = out;
+    }
+    // bonus de l'invité : attrapé (g = 1) ou raté, d'après ce qu'il a vu
+    function hostCap(m) {
+      if (S.phase !== 'play') return;
+      const c = S.caps.find(o => o.id === m.id && !o.got && o.to === 1);
+      if (!c) return;
+      c.got = true;
+      N.stats.caps++;
+      if (m.g && c.y < PY[1] + 140) {
+        const pl = S.pl[1];
+        pl.x = clamp(num(m.x, pl.x), pl.w / 2, W - pl.w / 2);
+        applyPower(S, 1, c.type, c.x, c.id);
+        if (c.type === 'shield') pl.shieldG = clamp(num(m.t, S.gt), S.gt - 1.5, S.gt);   // daté : quand l'invité l'a attrapé
+      } else emit(S, { k: 'capmiss', to: 1, x: c.x });
+      S.caps = S.caps.filter(o => !o.got);
+    }
+
+    // ---------------- invité ----------------
+    function guestSnap(m) {
+      if (typeof m.ts !== 'number' || typeof m.g !== 'number' || !Array.isArray(m.b) || !Array.isArray(m.p) || !Array.isArray(m.e)) return;
+      N.ages.push(num(NET.now(), 0) - m.ts); if (N.ages.length > 60) N.ages.shift();
+      const B = N.buf;
+      for (let j = B.length - 1; j >= 0 && j >= B.length - 8; j--) if (B[j].n === m.n) return;
+      let i = B.length;
+      while (i > 0 && B[i - 1].ts > m.ts) i--;               // arrivé dans le désordre : on le range à sa place
+      B.splice(i, 0, m);
+      if (B.length > 90) B.splice(0, B.length - 90);
+      N.stats.snaps++;
+    }
+    function guestEvents(m) {
+      if (!Array.isArray(m.l)) return;
+      const ts = num(m.ts, -Infinity);
+      for (const a of m.l) if (Array.isArray(a) && typeof a[0] === 'string') N.evq.push({ ts: ts + num(a[1], 0), a });
+      if (N.evq.length > 800) N.evq.splice(0, N.evq.length - 800);
+    }
+    function guestFrame(dt) {
+      N.stats.frames++;
+      // retard d'affichage : juste assez pour avoir presque toujours deux états autour de l'instant montré
+      const want = N.ages.length >= 3 ? clamp(pct(N.ages, 0.9) + 40, 45, 700) : clamp(rttMs() / 2 + 60, 60, 700);
+      if (!N.delayInit && N.ages.length >= 3) { N.delay = want; N.delayInit = true; }
+      // changement lent (3 %) et seulement s'il vaut la peine : le temps affiché avance régulièrement
+      if (N.delay < 0) N.delay = want; else if (Math.abs(want - N.delay) > 6) N.delay += clamp(want - N.delay, -dt * 30, dt * 30);
+      N.tr = N.now - N.delay;
+      if (!N.gotR) { N.hiT -= dt; if (N.hiT <= 0) { N.hiT = 0.8; nsend({ k: 'hi' }, true); } }
+      // événements de l'hôte, rejoués à l'heure où ils se sont produits (sur la même horloge que l'affichage)
+      while (N.evq.length && (N.evq[0].ts <= N.tr || N.evq[0].ts - N.tr > 3000)) {
+        const q = N.evq.shift();
+        try { if (q.R) guestRound(q.R); else guestEv(q.a, q.ts); } catch (e) { V.err++; }
+      }
+      drainEvents();
+      guestPad(dt);
+      if (N.gotR) guestView(dt);
+      guestSendPad();
+    }
+    // ma raquette : tout de suite sous mon doigt (mêmes règles qu'en local), envoyée à l'hôte
+    function guestPad(dt) {
+      const pl = S.pl[1], inp = inputs[1], P = N.pad;
+      let x = P.x;
+      if (S.phase !== 'over') {
+        if (inp.dx) x += inp.dx;
+        if (inp.target != null) { const mx = 1700 * dt; x += clamp(inp.target - x, -mx, mx); }
+        if (inp.dir) x += inp.dir * KEY_SPEED * dt;
+      }
+      inp.dx = 0;
+      x = clamp(x, pl.w / 2, W - pl.w / 2);
+      const v = dt > 0 ? (x - P.x) / dt : 0;
+      P.vx += (v - P.vx) * Math.min(1, dt * 25);              // vitesse lissée (~40 ms) : l'effet donné à la balle
+      P.x = x; pl.x = x; pl.vx = P.vx;
+    }
+    function guestSendPad() {
+      if (N.now - N.padT < 14) return;
+      const x = r1(N.pad.x);
+      if (x === N.padLast && N.now - N.padT < 100) return;
+      N.padT = N.now; N.padLast = x;
+      nsend({ k: 'p', n: ++N.padN, x, v: Math.round(N.pad.vx), t: Math.round(N.now) }, false);
+    }
+    function headsByName(names) {
+      let all = [];
+      try { const h = api.heads ? api.heads() : null; if (Array.isArray(h)) all = h.filter(x => x); } catch (e) { all = []; }
+      return names.slice(0, 12).map(n => all.find(x => String(x.name || '') === String(n) && imgOk(x.img)) || { name: String(n || ''), img: null, sad: null });
+    }
+    function killBrick(br) {
+      br.dead = true;
+      for (const i of br.cells) if (S.cells[i] === br) S.cells[i] = null;
+      S.left--;
+    }
+    // nouvelle manche : le même mur que chez l'hôte (même graine, mêmes compteurs)
+    function guestRound(m) {
+      const r = num(m.r, 0) | 0;
+      if (r < 1) return;
+      if (N.gotR && !m.rs) vaporizeWall();
+      N.gotR = true;
+      const seed = num(m.ms, S.matchSeed) >>> 0;
+      if (seed !== S.matchSeed) { S.matchSeed = seed; if (nebs) nebImg = nebs[(seed >>> 3) % nebs.length]; bg = null; }
+      S.nid = num(m.nid, S.nid) | 0; S.patIdx = num(m.pp, -1) | 0; S.lastConceder = num(m.lc, -1) | 0; S.matchOver = false;
+      V.heads = headsByName(Array.isArray(m.hn) ? m.hn : []);
+      for (const k of Array.from(stickers.keys())) if (k.charAt(0) === 'c') stickers.delete(k);
+      startRound(S, r, num(m.hc, 0));
+      S.bmap = new Map();
+      for (const br of S.bricks) S.bmap.set(br.id, br);
+      if (Array.isArray(m.d)) for (const id of m.d) { const br = S.bmap.get(id); if (br && !br.dead) killBrick(br); }
+      if (Array.isArray(m.h)) for (const q of m.h) { const br = Array.isArray(q) ? S.bmap.get(q[0]) : null; if (br && !br.dead) br.hp = clamp(num(q[1], br.hp) | 0, 1, br.maxHp); }
+      N.pred.clear(); N.cross.clear(); N.disp.clear(); N.capJ.clear(); N.capLocal.clear(); N.ghosts = []; N.myShield = 0;
+      N.pad.x = W / 2; S.pl[1].x = W / 2;
+    }
+    function guestEv(a, ts) {
+      const k = a[0], p = a[2] === 1 ? 1 : 0;
+      switch (k) {
+        case 'go': onEvent({ k: 'go' }); break;
+        case 'sudden': S.sudden = true; onEvent({ k: 'sudden' }); break;
+        case 'paddle': if (p !== 1) onEvent({ k: 'paddle', p, x: num(a[3], W / 2), y: num(a[4], PY[p]), off: num(a[5], 0), sp: num(a[6], 300), fire: !!a[7] }); break;
+        case 'wall': if (!N.pred.has(a[5])) onEvent({ k: 'wall', x: num(a[2], 0), y: num(a[3], MID), owner: a[4] === 0 || a[4] === 1 ? a[4] : -1 }); break;
+        case 'chip': {
+          const br = S.bmap && S.bmap.get(a[2]);
+          if (!br || br.dead) break;
+          br.hp = clamp(num(a[3], br.hp) | 0, 1, br.maxHp);
+          onEvent({ k: 'chip', br, owner: num(a[4], -1), x: num(a[5], br.x), y: num(a[6], br.y) });
+          break;
+        }
+        case 'break': {
+          const br = S.bmap && S.bmap.get(a[2]);
+          if (!br || br.dead) break;
+          killBrick(br);
+          // cassée à l'heure ts chez l'hôte : pour mes balles prédites, elle existe encore tant que l'image montrée est avant ts
+          // (la balle de l'hôte a rebondi dessus juste à ce moment-là)
+          if (N.ghosts.length > 30) N.ghosts.shift();
+          N.ghosts.push({ br, ts: num(ts, -1e12) + 40 });
+          onEvent({ k: 'break', br, owner: num(a[3], -1), x: num(a[4], br.x + br.w / 2), y: num(a[5], br.y + br.h / 2), fire: !!a[6], vx: num(a[7], 0), vy: num(a[8], 0) });
+          break;
+        }
+        case 'cap': if (POWERS[a[5]]) onEvent({ k: 'cap', to: a[2] === 1 ? 1 : 0, x: num(a[3], W / 2), y: num(a[4], MID), type: a[5] }); break;
+        case 'power': if (POWERS[a[3]] && !(p === 1 && a[5] && N.capLocal.has(a[5]))) onEvent({ k: 'power', p, type: a[3], x: num(a[4], W / 2) }); break;
+        case 'shield': onEvent({ k: 'shield', p, x: num(a[3], W / 2), y: num(a[4], SHIELD_Y[p]) }); break;
+        case 'stick': case 'launch': if (p !== 1) onEvent({ k, p, x: num(a[3], W / 2), y: num(a[4], PY[p]) }); break;
+        case 'goal':
+          N.pred.clear(); N.cross.clear(); N.goalR = S.round;
+          onEvent({ k: 'goal', p, x: num(a[3], W / 2), fire: !!a[4], ov: a[5] ? 1 : 0 });
+          break;
+        default: break;
+      }
+    }
+    // balle a (tableau d'un état) après d secondes de jeu (d < 0 : avant), rebonds sur les côtés compris
+    function reflX(x, vx, d) {
+      const L = W - 2 * BR, M = 2 * L;
+      let u = x - BR + vx * d;
+      u = ((u % M) + M) % M;
+      return u > L ? [BR + M - u, -vx] : [BR + u, vx];
+    }
+    function bAt(a, d, padX) {
+      const f = a[6] | 0, st = (f >> 3) - 1;
+      const o = { id: a[0], x: num(a[1], W / 2), y: num(a[2], MID), vx: num(a[3], 0), vy: num(a[4], 0), sp: num(a[5], 300), owner: (f & 3) - 1,
+        fire: !!(f & 4), stuck: st === 0 || st === 1 ? st : -1, offX: num(a[7], 0), stickT: num(a[8], 0) - Math.max(0, d), dead: false, hold: 0 };
+      if (o.stuck >= 0) { o.x = padX[o.stuck] + o.offX; o.y = padFace(o.stuck); o.vx = 0; o.vy = 0; return o; }
+      if (d) { const r = reflX(o.x, o.vx, d); o.x = r[0]; o.vx = r[1]; o.y += o.vy * d; }
+      return o;
+    }
+    function moverClamp(gm, off) {
+      let mn = Infinity, mx = -Infinity;
+      for (const br of gm.cells) if (!br.dead) { mn = Math.min(mn, br.x0); mx = Math.max(mx, br.x0 + BW); }
+      return mn === Infinity ? off : clamp(off, -mn, W - mx);
+    }
+    // ce que montre l'écran de l'invité : l'état de l'hôte à l'instant N.tr (interpolé), + mes prédictions
+    function guestView(dt) {
+      const B = N.buf;
+      if (!B.length) return;
+      let k = B.length;
+      while (k > 0 && B[k - 1].ts > N.tr) k--;
+      if (k > 3) { B.splice(0, k - 3); k = 3; }
+      let s0 = k > 0 ? B[k - 1] : null, s1 = k < B.length ? B[k] : null, u = 0, g;
+      if (!s0) { s0 = s1; s1 = null; g = s0.g; }
+      else if (s1) { u = clamp((N.tr - s0.ts) / Math.max(1, s1.ts - s0.ts), 0, 1); g = s0.g + (s1.g - s0.g) * u; }
+      else { g = s0.g + (clamp(N.tr - s0.ts, 0, 250) / 1000) * num(s0.sl, 1); N.stats.extrap++; }   // paquet en retard : on prolonge
+      if (s1 && s1.r !== s0.r) s1 = null;
+      const dg = N.gPrev == null ? 0 : clamp(g - N.gPrev, 0, 0.1);
+      N.gPrev = g; N.g = g;
+      if (s0.r !== S.round) { if (S.phase === 'intro') S.t += dt; return; }   // état d'une autre manche : on attend le bon
+      const d0 = g - s0.g;
+      S.phase = PHS[s0.ph] || S.phase;
+      S.t = Math.max(0, num(s0.t, 0) + d0);
+      S.playT = Math.max(0, num(s0.pt, 0) + (S.phase === 'play' ? d0 : 0));
+      S.slow = num(s0.sl, 1);
+      // raquettes (la mienne reste sous mon doigt), effets en cours
+      const pl0 = S.pl[0], pl1 = S.pl[1];
+      const lp = i => num(s1 ? s0.p[i] + (s1.p[i] - s0.p[i]) * u : s0.p[i], NaN);
+      const x0 = lp(0), w0 = lp(1), w1 = lp(3);
+      if (x0 === x0) pl0.x = x0;
+      if (w0 === w0) pl0.w = w0;
+      if (w1 === w1) pl1.w = w1;
+      const dec = S.phase === 'play' ? d0 : 0;
+      for (let j = 0; j < 4; j++) {
+        pl0.eff[EFF_KEYS[j]] = Math.max(0, num(s0.e[j], 0) - dec);
+        pl1.eff[EFF_KEYS[j]] = Math.max(0, num(s0.e[5 + j], 0) - dec);
+      }
+      pl0.shield = !!s0.e[4]; pl1.shield = !!s0.e[9];
+      if (pl1.shield && N.myShield) N.myShield = 0;
+      if (!pl1.shield) N.shUsed = false;                        // l'hôte l'a consommé lui aussi : prêt pour le prochain
+      pl1.x = N.pad.x = clamp(N.pad.x, pl1.w / 2, W - pl1.w / 2);
+      // briques qui bougent
+      if (Array.isArray(s0.m)) S.movers.forEach((gm, j) => {
+        const a = s0.m[j];
+        if (!Array.isArray(a)) return;
+        let off = num(a[0], 0) + num(a[1], 0) * dec;
+        const b = s1 && Array.isArray(s1.m) ? s1.m[j] : null;
+        if (Array.isArray(b)) off += (num(b[0], 0) + num(b[1], 0) * (S.phase === 'play' ? g - s1.g : 0) - off) * u;
+        gm.off = moverClamp(gm, off);
+        for (const br of gm.cells) br.x = br.x0 + gm.off;
+      });
+      // bonus en vol
+      const caps = [];
+      for (const a of Array.isArray(s0.c) ? s0.c : []) {
+        if (!Array.isArray(a) || N.capLocal.has(a[0])) continue;
+        const to = a[4] === 1 ? 1 : 0, vy = (to === 0 ? 1 : -1) * S.P.capSpeed;
+        let y = num(a[2], MID) + vy * dec;
+        const b = s1 && Array.isArray(s1.c) ? s1.c.find(c => Array.isArray(c) && c[0] === a[0]) : null;
+        if (b) y += (num(b[2], MID) + vy * (S.phase === 'play' ? g - s1.g : 0) - y) * u;
+        caps.push({ id: a[0], x: num(a[1], W / 2), y, type: POWER_KEYS[a[3]] || 'big', to, vy, t: 0, got: false });
+      }
+      S.caps = caps;
+      // balles : mes prédictions confirmées par l'hôte s'arrêtent (il a pris en compte mon dernier verdict),
+      // sauf si la balle prédite est justement en train de revenir vers ma raquette
+      const ack = num(s0.a, 0);
+      for (const [id, p] of N.pred) {
+        const b = p.b, coming = b.stuck < 0 && b.vy < 0 && b.y <= approachY(b);
+        if ((p.seq > 0 && ack >= p.seq && !coming) || V.rt - p.t0 > 2.5) {
+          nlog(['end', id, r3(N.g), p.seq, ack, Math.round(b.y), V.rt - p.t0 > 2.5 ? 'timeout' : 'ack']);
+          N.pred.delete(id);
+          if (!coming) N.cross.delete(id);                     // un nouveau passage pourra être pris en main
+        }
+      }
+      const padX = [pl0.x, pl1.x], list = [];
+      for (const a of s0.b) {
+        if (!Array.isArray(a) || N.pred.has(a[0])) continue;
+        const a1 = s1 ? s1.b.find(q => Array.isArray(q) && q[0] === a[0]) : null;
+        let T = bAt(a, d0, padX);
+        if (a1) {
+          const Tb = bAt(a1, g - s1.g, padX);
+          // la balle rebondit chez l'hôte tout près de MA raquette : c'est moi qui juge, on ne mélange pas les deux états
+          const nearMe = num(a[4], 0) < 0 && num(a1[4], 0) > 0 && num(a1[2], MID) < PY[1] + 90 && T.y < PY[1] + 120;
+          if (T.stuck < 0 && Tb.stuck < 0) {
+            if (!nearMe) {
+              T.x += (Tb.x - T.x) * u; T.y += (Tb.y - T.y) * u; T.vx += (Tb.vx - T.vx) * u; T.vy += (Tb.vy - T.vy) * u; T.sp += (Tb.sp - T.sp) * u;
+              if (u >= 0.5) { T.owner = Tb.owner; T.fire = Tb.fire; }
+            }
+          } else if (u >= 0.5) T = Tb;
+        }
+        // elle arrive sur ma raquette : je prends la main (prédiction locale) avant que l'hôte ne décide quoi que ce soit
+        if (T.stuck < 0 && T.vy > 0) N.cross.delete(T.id);
+        else if (S.phase === 'play' && N.goalR !== S.round && T.stuck < 0 && T.vy < 0 && !N.cross.has(T.id) && T.y <= approachY(T) &&
+          (a1 || num(a[2], MID) < MID - wallFront(S) - BR)) {   // jamais à partir d'une position prolongée à travers le mur
+          N.cross.set(T.id, 1);
+          N.pred.set(T.id, { b: T, seq: 0, judged: false, t0: V.rt, fresh: true });
+          nlog(['appr', T.id, r3(N.g), Math.round(T.x), Math.round(T.y), a1 ? 1 : 0]);
+          continue;
+        }
+        list.push(T);
+      }
+      for (const p of N.pred.values()) {
+        if (!p.fresh) guestPredict(p, dg);
+        p.fresh = false;
+        if (!p.b.hold) list.push(p.b);                         // sortie du terrain : on attend le but de l'hôte
+      }
+      if (N.goalR === S.round) list.length = 0;               // le but est marqué : les balles ont disparu chez l'hôte aussi
+      // affichage : corrections douces (un saut de l'état cible glisse en ~0,1 s au lieu de se voir)
+      const out = [];
+      for (const T of list) {
+        let d = N.disp.get(T.id);
+        if (!d) { d = { tx: T.x, ty: T.y, vx: T.vx, vy: T.vy, ex: 0, ey: 0, st: T.stuck, o: {} }; N.disp.set(T.id, d); }
+        else if (T.stuck < 0 && d.st < 0) {
+          const mv = Math.hypot(T.x - d.tx, T.y - d.ty), lim = Math.max(T.sp, 60) * Math.max(dg, 0.004) * 1.3 + 2.5;
+          if (mv > lim) {
+            if (mv < 300) { d.ex += d.tx + d.vx * dg - T.x; d.ey += d.ty + d.vy * dg - T.y; } else { d.ex = 0; d.ey = 0; }
+          }
+        } else { d.ex = 0; d.ey = 0; }
+        const em = Math.hypot(d.ex, d.ey);
+        if (em > 0.05) { const kk = Math.exp(-dt / (0.075 + em / 3000)); d.ex *= kk; d.ey *= kk; } else { d.ex = 0; d.ey = 0; }
+        d.tx = T.x; d.ty = T.y; d.vx = T.vx; d.vy = T.vy; d.st = T.stuck;
+        const o = d.o;
+        o.id = T.id; o.x = T.x + d.ex; o.y = T.y + d.ey; o.vx = T.vx; o.vy = T.vy; o.sp = T.sp; o.owner = T.owner; o.fire = T.fire;
+        o.stuck = T.stuck; o.offX = T.offX; o.stickT = T.stickT; o.dead = false;
+        out.push(o);
+      }
+      if (N.disp.size > out.length) for (const id of Array.from(N.disp.keys())) if (!out.some(o => o.id === id)) N.disp.delete(id);
+      S.balls = out;
+      // ma balle collée : je la lâche (tape, touche, ou fin du temps)
+      if (inputs[1].release) { inputs[1].release = false; guestRelease(null); }
+      for (const o of out) if (o.stuck === 1 && o.stickT <= 0) guestRelease(o.id);
+      if (S.phase === 'play') guestCaps();
+    }
+    // zone d'approche de ma raquette : on y prend la main un peu avant le rebond (plus tôt si la balle va vite)
+    function approachY(b) { return PY[1] + PH / 2 + BR + clamp(b.sp * 0.1, 24, 90); }
+    // balle prédite chez moi : rebonds sur les côtés et les briques (sans les casser), bouclier, et MON verdict à ma raquette
+    function guestPredict(p, dg) {
+      const b = p.b, pl = S.pl[1];
+      if (b.stuck === 1) { b.x = pl.x + b.offX; b.y = padFace(1); b.stickT -= dg; return; }
+      if (b.hold || !(dg > 0)) return;
+      if (b.owner >= 0) { const fl = speedFloor(S); if (b.sp < fl) b.sp = Math.min(fl, b.sp + 30 * dg); }
+      b.fire = b.owner >= 0 && S.pl[b.owner].eff.fire > 0;
+      fixVel(b);
+      const n = Math.max(1, Math.ceil((b.sp * dg) / (BR * 0.5))), h = dg / n, zone = wallFront(S) + BR + 1;
+      S.dry = true;
+      const gh = [], fx = [];
+      for (const q of N.ghosts) if (q.ts > N.tr && q.br.dead) {      // pas encore cassée à l'instant montré : encore solide
+        q.br.dead = false;
+        for (const c of q.br.cells) if (!S.cells[c]) S.cells[c] = q.br;
+        gh.push(q.br);
+      }
+      try {
+        for (let i = 0; i < n && b.stuck < 0 && !b.hold; i++) {
+          b.x += b.vx * h; b.y += b.vy * h;
+          if (b.x < BR) { b.x = BR; b.vx = Math.abs(b.vx); fx.push({ k: 'wall', x: 0, y: b.y, owner: b.owner }); }
+          else if (b.x > W - BR) { b.x = W - BR; b.vx = -Math.abs(b.vx); fx.push({ k: 'wall', x: W, y: b.y, owner: b.owner }); }
+          const dy = Math.abs(b.y - MID);
+          if (dy < zone && dy > LANE - BR - 1) { collideBricks(S, b); if (S.movers.length) collideMovers(S, b); }
+          if (b.vy > 0) p.judged = false;                     // elle repart : le prochain passage sera jugé aussi
+          else if (!p.judged && b.vy < 0 && b.y - BR <= PY[1] + PH / 2) {
+            if (b.y < PY[1] - 3) guestMiss(p);
+            else if (Math.abs(b.x - pl.x) <= pl.w / 2 + BR * 0.8 + 1) guestHit(p);
+          }
+          if (b.vy > 0 && S.pl[0].shield && b.y + BR >= SHIELD_Y[0]) { b.y = SHIELD_Y[0] - BR; b.vy = -Math.abs(b.vy); }
+          else if (b.vy < 0 && ((pl.shield && !N.shUsed) || N.myShield === 1) && b.y - BR <= SHIELD_Y[1]) {
+            b.y = SHIELD_Y[1] + BR; b.vy = Math.abs(b.vy);
+            if (N.myShield === 1) N.myShield = 2;               // utilisé (l'hôte fera pareil)
+            N.shUsed = true;                                     // un bouclier ne sert qu'une fois, même avec plusieurs balles
+            fx.push({ k: 'shield', p: 1, x: b.x, y: SHIELD_Y[1] });
+          }
+          if (b.y < -70) { b.y = -70; b.hold = 1; }
+          else if (b.y > H + 70) { b.y = H + 70; b.hold = 1; }
+        }
+      } finally {
+        S.dry = false;
+        for (const br of gh) { br.dead = true; for (const c of br.cells) if (S.cells[c] === br) S.cells[c] = null; }
+      }
+      for (const e of fx) onEvent(e);                          // étincelles et sons de MA balle, au moment où je la vois rebondir
+      if (b.stuck < 0) fixVel(b);
+    }
+    function guestHit(p) {
+      const b = p.b, pl = S.pl[1], half = pl.w / 2, bx = b.x;
+      const off = clamp((bx - pl.x) / (half + BR * 0.5), -1, 1), spin = clamp(pl.vx / 2600, -0.1, 0.1);
+      b.sp = Math.min(speedCap(S), Math.max(speedFloor(S), b.sp * 1.045));
+      b.owner = 1;
+      const m = { k: 'v', s: ++N.seq, id: b.id, h: 1, bx: r1(bx), x: r1(pl.x), o: r3(off), sp: r3(spin), g: r3(N.g) };
+      nlog(['vHit', b.id, m.g, Math.round(bx), m.s]);
+      if (pl.eff.glue > 0) {
+        b.stuck = 1; b.offX = clamp(bx - pl.x, -half + 3, half - 3); b.stickT = 1.25; b.y = padFace(1); b.vx = 0; b.vy = 0;
+        m.ox = r1(b.offX); m.st = 1;
+        onEvent({ k: 'stick', p: 1, x: b.x, y: b.y });
+      } else {
+        launchFrom(S, b, 1, off, spin);
+        onEvent({ k: 'paddle', p: 1, x: b.x, y: b.y, off, sp: b.sp, fire: pl.eff.fire > 0 });   // effet et son tout de suite
+      }
+      p.seq = m.s; p.t0 = V.rt; p.judged = true;
+      nsend(m, true);
+    }
+    function guestMiss(p) {
+      p.seq = ++N.seq; p.t0 = V.rt; p.judged = true;
+      nlog(['vMiss', p.b.id, r3(N.g), Math.round(p.b.x), p.seq, S.pl[1].shield ? 1 : 0, N.myShield || 0]);
+      nsend({ k: 'v', s: p.seq, id: p.b.id, h: 0, bx: r1(p.b.x), x: r1(S.pl[1].x), g: r3(N.g) }, true);
+    }
+    function guestRelease(only) {
+      const pl = S.pl[1], half = pl.w / 2;
+      for (const o of S.balls) {
+        if (o.stuck !== 1 || (only != null && o.id !== only)) continue;
+        let p = N.pred.get(o.id);
+        if (!p) {
+          p = { b: { id: o.id, x: o.x, y: o.y, vx: 0, vy: 0, sp: o.sp, owner: 1, fire: o.fire, stuck: 1, offX: o.offX, stickT: o.stickT, dead: false, hold: 0 }, seq: 0, judged: true, t0: V.rt };
+          N.pred.set(o.id, p);
+        }
+        const b = p.b;
+        if (b.stuck !== 1) continue;
+        b.offX = clamp(b.offX, -half + 3, half - 3);
+        b.x = pl.x + b.offX;
+        launchFrom(S, b, 1, clamp(b.offX / half, -1, 1));
+        onEvent({ k: 'launch', p: 1, x: b.x, y: b.y });
+        p.seq = ++N.seq; p.t0 = V.rt; p.judged = true;
+        N.cross.set(b.id, 1);
+        nsend({ k: 'v', s: p.seq, id: b.id, h: 2, x: r1(pl.x), ox: r1(b.offX), g: r3(N.g) }, true);
+      }
+    }
+    // mes bonus : c'est moi qui vois s'ils tombent sur ma raquette
+    function guestCaps() {
+      const pl = S.pl[1];
+      for (const c of S.caps) {
+        if (c.to !== 1 || N.capJ.has(c.id)) continue;
+        if (Math.abs(c.y - PY[1]) <= PH / 2 + 9 && Math.abs(c.x - pl.x) <= pl.w / 2 + 13) {
+          N.capJ.add(c.id); N.capLocal.add(c.id);
+          if (c.type === 'shield') N.myShield = 1;              // je l'ai : il protège mes balles prédites tout de suite
+          onEvent({ k: 'power', p: 1, type: c.type, x: c.x });
+          nsend({ k: 'c', id: c.id, g: 1, x: r1(pl.x), t: r3(N.g) }, true);
+        } else if (c.y < PY[1] - PH / 2 - 9) {
+          N.capJ.add(c.id);
+          nsend({ k: 'c', id: c.id, g: 0 }, true);
+        }
+      }
+      if (N.capLocal.size) S.caps = S.caps.filter(c => !N.capLocal.has(c.id));
+    }
+    function netInfo() {
+      return { role: NET.role, delay: Math.round(N.delay), p1Delay: Math.round(N.p1Delay), ack: S.ack, seq: N.seq, pend: S.pend.length,
+        preds: N.pred.size, predIds: Array.from(N.pred.keys()), buf: N.buf.length, evq: N.evq.length, stats: Object.assign({}, N.stats), tr: N.tr, now: N.now, g: N.g, pad: N.pad.x };
+    }
+
     // --- boucle : pas fixe pour la simulation, affichage à chaque image
     let raf = 0, last = -1, acc = 0, pausedFrames = 0;
     function frame(ts) {
@@ -2427,22 +3224,47 @@
       if (dt > 0.05) dt = 0.05;
       if (paused) { if ((pausedFrames++ % 20) === 0) render(); return; }
       V.rt += dt;
+      if (NET) netClock(ts);
+      if (GUEST) {
+        // l'invité ne simule rien : il affiche l'état de l'hôte, lissé, et prédit sa propre raquette
+        if (V.resumeT > 0) resumeTick(dt);
+        else { try { guestFrame(dt); } catch (e) { V.err++; } }
+        updView(dt);
+        try { render(); } catch (e) { V.err++; }
+        return;
+      }
+      if (HOST) { try { hostNetIn(dt); } catch (e) { V.err++; } }
       if (V.resumeT > 0) {
-        V.resumeT -= dt;
-        const n = V.resumeT > 0 ? Math.ceil(V.resumeT / 0.5) : 0;
-        if (n !== V.resumeN) { V.resumeN = n; if (n > 0) tone(n === 1 ? 740 : 620, 0.08, 'square', 0.04); else tone(880, 0.12, 'square', 0.04, 1320); }
-        for (const inp of inputs) { inp.dx = 0; inp.release = false; }
+        resumeTick(dt);
       } else if (V.freeze > 0) {
         V.freeze -= dt;
       } else {
         acc += dt;
         let n = 0;
-        while (acc >= STEP && n < 8) { step(S, STEP, inputs); acc -= STEP; n++; }
+        if (HOST) {
+          // raquette de l'invité : de la position de l'image précédente à la nouvelle, pas à pas ; événements datés au pas près
+          const ns = Math.min(8, Math.floor(acc / STEP));
+          while (acc >= STEP && n < 8) {
+            if (N.p1To != null) inputs[1].abs = N.p1From + (N.p1To - N.p1From) * ((n + 1) / ns);
+            S.evTs = S.nowTs - (ns - 1 - n) * STEP * 1000;
+            step(S, STEP, inputs); acc -= STEP; n++;
+          }
+          S.evTs = null;
+        } else {
+          while (acc >= STEP && n < 8) { step(S, STEP, inputs); acc -= STEP; n++; }
+        }
         if (n >= 8) acc = 0;
         drainEvents();
       }
+      if (HOST) { try { hostNetOut(dt); } catch (e) { V.err++; } hostDisplayBalls(dt); }
       updView(dt);
       try { render(); } catch (e) { V.err++; }
+    }
+    function resumeTick(dt) {
+      V.resumeT -= dt;
+      const n = V.resumeT > 0 ? Math.ceil(V.resumeT / 0.5) : 0;
+      if (n !== V.resumeN) { V.resumeN = n; if (n > 0) tone(n === 1 ? 740 : 620, 0.08, 'square', 0.04); else tone(880, 0.12, 'square', 0.04, 1320); }
+      for (const inp of inputs) { inp.dx = 0; inp.release = false; }
     }
 
     // --- cycle de vie
@@ -2458,6 +3280,7 @@
       paused = false;
       last = -1; acc = 0;
       clearInputs();
+      if (N) { N.snapAcc = 0; N.gPrev = null; }
       if (S.phase === 'play' || S.phase === 'intro') { V.resumeT = 1.5; V.resumeN = 0; }
     }
     function destroy() {
@@ -2478,8 +3301,9 @@
       V.sq = []; V.parts = []; V.rings = []; V.floats = []; V.cries = [];
       V.trails.clear(); V.touches.clear(); ptrs.clear();
       sprites.clear(); stickers.clear(); glowCache.clear();
-      bg = null; nebImg = null; planets = null;
-      S.ev = []; S.balls = []; S.bricks = []; S.caps = [];
+      bg = null; nebImg = null; planets = null; nebs = null;
+      S.ev = []; S.balls = []; S.bricks = []; S.caps = []; S.pend = [];
+      if (N) { N.q = []; N.batch = []; N.buf = []; N.evq = []; N.p1 = []; N.pred.clear(); N.disp.clear(); N.cross.clear(); N.boff.clear(); }
       while (root.firstChild) root.removeChild(root.firstChild);
     }
 
@@ -2496,11 +3320,13 @@
     const ro = new ResizeObserver(() => { if (!destroyed) resize(); });
     ro.observe(root);
     resize();
+    if (NET) { try { NET.onMessage(onNet); } catch (e) { /* rien */ } S.nowTs = num(NET.now(), 0); }
+    if (GUEST) nsend({ k: 'hi' }, true);                    // « je suis prêt » : l'hôte (re)donne la manche en cours
     beginRound();
     raf = requestAnimationFrame(frame);
 
-    // state() : lecture seule de l'état, pour les tests automatiques
-    return { destroy, pause, resume, state: () => S, viewErrors: () => V.err };
+    // state() : lecture seule de l'état, pour les tests automatiques ; net() : mesures du jeu en ligne
+    return { destroy, pause, resume, state: () => S, shown: () => viewBalls(), viewErrors: () => V.err, net: () => (N ? netInfo() : null) };
   }
 
   window.JDW_DUOS = window.JDW_DUOS || {};
@@ -2512,6 +3338,7 @@
     accent: '#ffa630',
     target: TARGET,
     layout: 'shared',
+    net: true,                    // jeu en ligne : l'hôte simule, l'invité affiche en douceur et prédit sa raquette
     preview,
     mount
   };

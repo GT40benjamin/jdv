@@ -127,3 +127,59 @@ canvas 300x170 ; 0 erreur pageerror/console ; avec `heads`, sans têtes, avec `g
 Prends des captures et REGARDE-LES (outil Read sur les .png) : beau, lisible des DEUX côtés (textes du haut bien tournés), rien
 sous les zones réservées. Corrige tout ce qui cloche. Ne touche à AUCUN autre fichier que les tiens.
 Réponse finale : 8 lignes max — fichier, règles en une phrase, commandes, `target`, problèmes connus.
+
+## Ajout : le jeu EN LIGNE (chacun sur son téléphone, vraiment fluide)
+Quand deux joueurs s'affrontent à distance, CHAQUE téléphone fait tourner ton jeu, en pleine qualité. La bibliothèque les relie
+(WebRTC, canal de données direct) et te donne `api.net` ; sans `api.net`, rien ne change (jeu sur un seul téléphone).
+Déclare `net: true` dans l'enregistrement quand ton jeu sait jouer en ligne.
+- `api.net.role` : `'host'` (l'hôte, joueur 0, en bas) ou `'guest'` (l'invité, joueur 1).
+- `api.net.me` : l'indice du joueur de CE téléphone (hôte 0, invité 1).
+- `api.net.send(msg, { reliable })` : envoie un objet JSON (petit : < 1 Ko, idéalement < 300 octets) à l'autre téléphone.
+  Par défaut rapide mais peut se perdre ou arriver dans le désordre (états fréquents) ; `{ reliable: true }` = arrive toujours, dans l'ordre
+  (événements ponctuels : début de manche, but, fin…).
+- `api.net.onMessage(fn)` : `fn(msg)` à chaque message reçu de l'autre téléphone.
+- `api.net.now()` : horloge commune en ms (celle de l'hôte, synchronisée chez l'invité) → pour départager équitablement.
+- `api.net.rtt()` : aller-retour réseau estimé en ms.
+- `api.net.flipped` : vrai chez l'invité pour les layouts 'split' et 'shared' : la bibliothèque TOURNE le root de 180° (CSS) pour que le
+  joueur 1 se voie en bas. Ton jeu dessine donc exactement comme chez l'hôte (P1 en haut, ses textes tournés) ; MAIS les coordonnées des
+  doigts arrivent à l'écran : inverse-les (x = largeur − x, y = hauteur − y) avant de les utiliser. En 'landscape' : pas de rotation.
+TOUS LES APPAREILS : téléphone contre téléphone, téléphone contre PC, appli Android ou navigateur (Chrome, Safari…) : ça doit marcher
+pareil. Les deux écrans n'ont PAS la même taille ni la même forme : en ligne, la simulation utilise un TERRAIN LOGIQUE identique des
+deux côtés (dimensions fixes du jeu, ou celles que l'hôte envoie au début), indépendant des pixels ; chaque appareil l'affiche à l'échelle
+de son écran (centré, marges décorées) et convertit les doigts / la souris dans ce repère. Tous les messages sont en unités du terrain.
+Principe (autorité de l'hôte, prédiction locale, lissage) :
+1. L'HÔTE fait tourner toute la simulation (les deux joueurs), comme en local : ses doigts pilotent P0, les entrées de P1 arrivent par le
+   réseau (l'invité envoie ses entrées ~60 fois/s ou à chaque changement). L'hôte envoie l'état utile ~30 fois/s (positions, vitesses, objets
+   qui bougent, temps de manche…) + des événements fiables (début de manche avec sa graine, point, effets importants, sons à rejouer).
+   L'hôte appelle `api.point` / `api.say` comme d'habitude : la bibliothèque les recopie chez l'invité.
+2. L'INVITÉ ne décide de rien : il affiche l'état reçu en le LISSANT (interpolation entre les deux derniers états, ~1 état de retard, ou
+   extrapolation courte), et PRÉDIT son propre objet (raquette, poussoir, vaisseau, personnage…) directement sous son doigt, SANS attendre
+   l'hôte (zéro décalage pour lui) ; l'hôte accepte la position envoyée par l'invité pour son objet (dans les limites du jeu). Il rejoue les
+   mêmes effets et SONS à partir des événements reçus. Il n'appelle JAMAIS `api.point` ni `api.say` (la bibliothèque recopie ceux de l'hôte).
+3. Jeux où le premier qui trouve gagne (Trouve-le, Mots mêlés) : même manche des deux côtés (graine envoyée par l'hôte) ; l'invité envoie
+   « trouvé à t = api.net.now() » ; l'hôte compare les heures et donne le point au plus rapide (équitable malgré le réseau).
+4. Jeux au tour par tour : celui dont c'est le tour pilote ; l'hôte reste l'arbitre de la simulation et diffuse l'état.
+5. Pertes : un état perdu n'est pas grave (le suivant le remplace) ; ne mets JAMAIS dans le canal rapide ce qui doit forcément arriver.
+6. pause()/resume() et destroy() fonctionnent pareil des deux côtés (la bibliothèque les appelle sur les deux téléphones).
+Test obligatoire : `C:/Users/Benjamin/jdv/source/test/duo-net.html?g=<id>&heads&lat=80&jit=30&loss=3` affiche les DEUX appareils côte à côte
+(hôte à gauche, invité à droite, tourné), reliés par un faux réseau (lat = délai ms, jit = variation ms, loss = % de messages rapides perdus).
+Tailles : `&hw=390&hh=780&gw=1280&gh=720` (hôte téléphone, invité PC…) — teste aussi téléphone contre PC dans les deux sens.
+`window.__net` donne `{ host: __duo de l'hôte, guest: __duo de l'invité, sent, lost }`. Vérifie la fluidité chez l'invité (son objet colle
+au doigt, le reste glisse sans saccade), la cohérence (même score, même manche), avec lat 20, 80 et 200, jit 40, loss 5.
+
+## Ajout : jouer contre l'IA
+`api.ai` (absent = deux humains) : `{ p: 1, level: 'facile' | 'moyen' | 'difficile' | 'extreme', k: 0.25 | 0.5 | 0.75 | 1 }`.
+Le joueur `p` (celui du haut) est piloté par TON IA : ignore les doigts dans sa moitié et joue à sa place avec les mêmes règles et la
+même physique (pas de triche : elle ne voit que ce qu'un joueur voit, réagit avec un délai humain, ne se téléporte pas).
+- facile : un enfant de 8 ans doit pouvoir gagner (réactions lentes ~600 ms, erreurs fréquentes, pas de stratégie) ;
+- moyen : un joueur moyen gagne environ une fois sur deux ;
+- difficile : il faut bien jouer pour gagner (anticipe, vise, se protège) ;
+- extrême : « méga intelligente » : quasi parfaite (anticipe les trajectoires, stratégie, esquive, pièges), réactions rapides (~150 ms),
+  battable seulement par un excellent joueur.
+Sa tête (un robot) est fournie dans `api.players[p]` comme pour un joueur normal (avec sa version triste) : mets-la en valeur comme les autres.
+Pas d'IA en ligne (`api.net` et `api.ai` ne sont jamais présents ensemble). Le reste du jeu (manches, points, effets) ne change pas.
+Déclare `ai: true` dans le module (à côté de `net: true`) quand ton IA est prête : sans ce drapeau, la tuile du jeu reste grisée
+(« Bientôt contre l'IA ») quand l'IA est choisie en haut.
+Test : harnais `test/duo.html?g=<id>&heads&ai=<niveau>` (P1 joué par ton IA, P0 par toi ou par un petit robot de test) : vérifie que
+chaque niveau se comporte comme décrit (mesure le taux de victoire de l'IA contre un même robot de test à chaque niveau : il doit monter
+nettement de facile à extrême), aucune erreur, captures regardées.

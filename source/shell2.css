@@ -658,6 +658,9 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .duo-tile .tile-name{white-space:normal;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.1}
 .duo-tag{font-size:12px;line-height:1.3;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .duo-tag.tally{color:var(--gold);font-weight:600}
+.duo-tile.no-ai .tile-img{filter:grayscale(.85) brightness(.7)}
+.duo-tile.no-ai .tile-name{opacity:.6}
+.duo-tile.no-ai .duo-tag{color:var(--muted);font-style:italic}
 .pick-list{display:grid;gap:6px;max-height:60vh;overflow:auto}
 .pick-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--night);cursor:pointer;text-align:left}
 .pick-row:hover{border-color:var(--steel2)}
@@ -902,8 +905,21 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .net-stage{position:absolute;z-index:1;background:#000}
 .net-stage[hidden]{display:none}
 .net-stage video{width:100%;height:100%;display:block;object-fit:fill;pointer-events:none}
-#jdw-duo.net-guest #jdw-duo-host{display:none}
+#jdw-duo.net-video #jdw-duo-host{display:none}
 #jdw-duo.net-flip{transform:rotate(180deg)}
 #jdw-duo.net-flip .duo-pause-card{transform:rotate(180deg)}
 #jdw-duo.net-flip .net-stage{touch-action:none}
 .net-stage{touch-action:none}
+/* ---------- duel contre l'IA ---------- */
+.ai-level{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;border-radius:14px;background:var(--card);border:1px solid color-mix(in srgb,#5ef0ff 40%,var(--line))}
+.ai-level[hidden]{display:none}
+.ai-lab{grid-column:1/-1;padding:4px 6px 2px;font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:#5ef0ff}
+.ai-level button{min-height:40px;border:0;border-radius:10px;background:none;color:var(--muted);font:400 12px var(--display);cursor:pointer}
+.ai-level button[aria-checked="true"]{background:color-mix(in srgb,#5ef0ff 22%,var(--steel));color:var(--ink);box-shadow:inset 0 -2px 0 #5ef0ff}
+.ai-level button[data-lv="extreme"][aria-checked="true"]{background:color-mix(in srgb,var(--alarm) 30%,var(--steel));box-shadow:inset 0 -2px 0 var(--alarm)}
+.pick-row.ai-row{border-color:color-mix(in srgb,#5ef0ff 50%,var(--line))}
+/* duel en ligne : pastilles à l'endroit pour le joueur de cet appareil, un seul écran de résultat (le sien) */
+#jdw-duo.net-host .duo-pill.p1{transform:none}
+#jdw-duo.net-guest.net-flip .duo-pill.p0{transform:rotate(180deg)}
+#jdw-duo.net-single .duo-res{grid-template-rows:1fr}
+#jdw-duo.net-single.net-host #jdw-duo-r1,#jdw-duo.net-single.net-guest #jdw-duo-r0{display:none}

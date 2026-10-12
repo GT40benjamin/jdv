@@ -41,6 +41,7 @@ body.land .res > div:first-child{display:none}
 </div>
 <script>
 // paramètres : ?g=<id> &heads (fausses têtes) &guest (joueur 1 sans tête) &noassets (sans images ILO) &fast (temps accéléré)
+// jeu en ligne (page duo-net.html) : &net=host|guest &epoch=<ms> &rtt=<ms> — les messages passent par la page parente (faux réseau)
 const Q = new URLSearchParams(location.search), GID = Q.get('g') || 'palet';
 if (Q.has('fast')) {
   let fakeNow = 0;
@@ -79,6 +80,8 @@ document.write('<script src="../duos/' + GID + '.js"><\/script>');
     { name: 'MOMO', img: fakeHead('#ffd9c0', '#d9902a', 18), sad: fakeHead('#ffd9c0', '#d9902a', 18, true) },
     { name: 'LEO', img: fakeHead('#e8b48a', '#8a2a1a', 24), sad: fakeHead('#e8b48a', '#8a2a1a', 24, true) }
   ] : [];
+  const AI = Q.get('ai');   // &ai=facile|moyen|difficile|extreme : le joueur du haut est l'IA du jeu
+  const robot = AI ? fakeHead('#9fb2bf', '#5d7484', 20) : null, robotSad = AI ? fakeHead('#9fb2bf', '#5d7484', 20, true) : null;
   const P = [
     { name: 'PATOU', img: H[0] ? H[0].img : null, sad: H[0] ? H[0].sad : null, color: '#ffa630' },
     Q.has('guest') || !H[1] ? { name: 'INVITÉ', img: null, sad: null, color: '#5ef0ff' } : { name: 'JUJU', img: H[1].img, sad: H[1].sad, color: '#5ef0ff' }
@@ -109,6 +112,20 @@ document.write('<script src="../duos/' + GID + '.js"><\/script>');
   };
   const scores = [0, 0];
   const sayT = [0, 0];
+  // ---- jeu en ligne : ce téléphone est l'hôte ou l'invité ----
+  const NETROLE = Q.get('net'), EPOCH = +(Q.get('epoch') || Date.now()), RTT = +(Q.get('rtt') || 120);
+  const netFns = [];
+  const flipped = NETROLE === 'guest' && D.layout !== 'landscape';
+  duo.role = NETROLE || 'local';
+  if (flipped) document.documentElement.style.transform = 'rotate(180deg)';   // comme la bibliothèque : l'invité se voit en bas
+  const toParent = m => { try { parent.postMessage(m, '*'); } catch (e) {} };
+  const net = NETROLE ? {
+    role: NETROLE, me: NETROLE === 'host' ? 0 : 1, flipped,
+    send(msg, o) { duo.netSent = (duo.netSent || 0) + 1; toParent({ __net: 1, msg, reliable: !!(o && o.reliable) }); },
+    onMessage(fn) { if (typeof fn === 'function') netFns.push(fn); },
+    now: () => Date.now() - EPOCH,
+    rtt: () => RTT
+  } : null;
   function say(text, o = {}) {
     duo.says.push(text);
     for (const p of (o.p === 0 || o.p === 1) ? [o.p] : [0, 1]) {
@@ -118,6 +135,7 @@ document.write('<script src="../duos/' + GID + '.js"><\/script>');
     }
   }
   function showResults(w) {
+    if (duo.destroyed) return;
     const r = document.createElement('div'); r.className = 'res';
     const top = document.createElement('div'), bot = document.createElement('div');
     top.textContent = w === 1 ? '🏆 GAGNÉ !' : 'PERDU…'; bot.textContent = w === 0 ? '🏆 GAGNÉ !' : 'PERDU…';
@@ -133,6 +151,7 @@ document.write('<script src="../duos/' + GID + '.js"><\/script>');
     colors: { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae', amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a' },
     assets,
     point(p, why) {
+      if (NETROLE === 'guest') { duo.errors.push("point() appelé chez l'invité (interdit : seul l'hôte décide)"); return { scores: scores.slice(), over: duo.over, winner: duo.winner }; }
       if (p !== 0 && p !== 1) { duo.errors.push('point(' + p + ') invalide'); return { scores: scores.slice(), over: duo.over, winner: duo.winner }; }
       if (duo.over) return { scores: scores.slice(), over: true, winner: duo.winner };
       scores[p]++; duo.points.push([p, why || '', scores.slice()]);
@@ -140,13 +159,38 @@ document.write('<script src="../duos/' + GID + '.js"><\/script>');
       const over = scores[p] >= D.target;
       say((why ? why + ' ' : '') + 'Point pour ' + P[p].name + ' !', { ms: 1200, color: P[p].color, small: true });
       if (over) { duo.over = true; duo.winner = p; setTimeout(() => showResults(p), 1500); }
+      if (NETROLE === 'host') toParent({ __hud: { k: 'point', p, why: why || '', scores: scores.slice(), over } });
       return { scores: scores.slice(), over, winner: over ? p : null };
     },
     round: () => scores[0] + scores[1] + 1,
     scores: () => scores.slice(),
-    say,
-    vibrate() {}
+    say: NETROLE === 'guest' ? (text) => { duo.errors.push("say() appelé chez l'invité : « " + text + " » (interdit : la bibliothèque recopie ceux de l'hôte)"); }
+      : NETROLE === 'host' ? (text, o) => { say(text, o || {}); toParent({ __hud: { k: 'say', text, o: o || {} } }); } : say,
+    vibrate() {},
+    net
   };
+  if (!net) delete api.net;
+  if (AI) { P[1] = { name: 'IA', img: robot, sad: robotSad, color: '#5ef0ff', ai: true }; api.ai = { p: 1, level: AI, k: { facile: 0.25, moyen: 0.5, difficile: 0.75, extreme: 1 }[AI] || 0.5 }; duo.ai = api.ai; }
+  // ce que la bibliothèque recopie chez l'invité (scores, bannières, fin), et les messages du jeu
+  addEventListener('message', e => {
+    const d = e.data || {};
+    if (d.__netin) { for (const f of netFns) try { f(d.msg); } catch (x) { duo.errors.push('onMessage : ' + x.message); } return; }
+    if (d.__hud && NETROLE === 'guest') {
+      const h = d.__hud;
+      if (h.k === 'say') say(h.text, h.o || {});
+      if (h.k === 'point') {
+        scores[0] = h.scores[0]; scores[1] = h.scores[1]; duo.points.push([h.p, h.why, h.scores.slice()]);
+        document.getElementById('pill0').textContent = scores[0]; document.getElementById('pill1').textContent = scores[1];
+        say((h.why ? h.why + ' ' : '') + 'Point pour ' + P[h.p].name + ' !', { ms: 1200, color: P[h.p].color, small: true });
+        if (h.over) { duo.over = true; duo.winner = h.p; setTimeout(() => showResults(h.p), 1500); }
+      }
+    }
+    if (d.__ctl && duo.inst) {
+      duo.paused = d.__ctl === 'pause';
+      try { if (duo.paused) duo.inst.pause(); else duo.inst.resume(); } catch (x) { duo.errors.push('pause : ' + x.message); }
+      document.getElementById('menu').textContent = duo.paused ? '▶' : 'II';
+    }
+  });
   duo.api = api;
   try { duo.inst = D.mount(document.getElementById('root'), api) || {}; } catch (e) { duo.errors.push('mount : ' + e.message); }
   document.getElementById('menu').addEventListener('click', () => {
@@ -154,6 +198,7 @@ document.write('<script src="../duos/' + GID + '.js"><\/script>');
     duo.paused = !duo.paused;
     try { if (duo.paused) duo.inst.pause(); else duo.inst.resume(); } catch (e) { duo.errors.push('pause : ' + e.message); }
     document.getElementById('menu').textContent = duo.paused ? '▶' : 'II';
+    if (NETROLE) toParent({ __ctl: duo.paused ? 'pause' : 'resume' });   // pause des deux côtés
   });
 })();
 </script>

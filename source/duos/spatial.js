@@ -10,7 +10,8 @@
   // champs de mines (manche 2+), drone géant neutre « invité surprise » (manche 3+).
   // 3 points de bouclier par manche ; vaisseau détruit = point pour l'autre.
   // Simulation pure (état + step(dt, inputs), hasard à graine mulberry32 par manche),
-  // entrées et affichage séparés (prêt pour le jeu en ligne).
+  // entrées et affichage séparés. En ligne (api.net, net: true) : l'hôte simule tout, l'invité prédit
+  // son vaisseau et ses tirs et lisse le reste (voir « JEU EN LIGNE » dans mount).
   // ===========================================================================
 
   const ID = 'spatial';
@@ -537,8 +538,9 @@
       rs: seed | 0, round, LW, capM, cfg: roundCfg(round), t: 0, it: 0, introLen, entry: introLen > 4 ? 1.55 : 0.2, phase: 'intro',
       ships: [mkShip(0, LW), mkShip(1, LW)], shots: [], mis: [], obs: [], mines: [], caps: [], eb: [], drone: null,
       rockT: 2.4, capT: 3.2, mineI: 0, droneDone: false, heat: false, closeSaid: false, shift: 0,
-      winner: -1, loser: -1, endT: 0, uid: 1, ev: []
+      winner: -1, loser: -1, endT: 0, uid: 1, pid: 1, ev: []
     };
+    // en ligne (hôte seulement) : S.born / S.died reçoivent les projectiles créés / détruits par un choc
     // décor de départ, symétrique : une planète sur la ligne du milieu, deux paires d'astéroïdes
     spawnPlanet(S, true);
     spawnRockPair(S, true); spawnRockPair(S, true);
@@ -591,16 +593,20 @@
     const vx = (rng(S) < 0.5 ? -1 : 1) * (14 + rng(S) * 14);
     const c = { id: S.uid++, k: kind, x: clamp(x, S.capM, S.LW - S.capM), y, vx, t: 0, life: 11, ph: rng(S) * TAU, dead: false };
     S.caps.push(c);
-    S.ev.push({ k: 'capIn', x: c.x, y: c.y, c: kind });
+    S.ev.push({ k: 'capIn', x: c.x, y: c.y, c: kind, id: c.id, vx: c.vx, ph: c.ph, life: c.life });
   }
   function spawnMines(S) {                       // champ de mines : deux rangées jumelles autour du milieu
-    const n = S.cfg.mineCols, LW = S.LW, m = 26;
+    const n = S.cfg.mineCols, LW = S.LW, m = 26, l = [];
     const vx = (rng(S) < 0.5 ? -1 : 1) * (6 + rng(S) * 8);
     for (let i = 0; i < n; i++) {
       const x = m + (i + 0.5) * (LW - 2 * m) / n;
-      for (let s = -1; s <= 1; s += 2) S.mines.push({ id: S.uid++, x, y: LH / 2 + s * 40, vx, t: 0, life: 26, ang: rng(S) * TAU, by: -1, dead: false });
+      for (let s = -1; s <= 1; s += 2) {
+        const q = { id: S.uid++, x, y: LH / 2 + s * 40, vx, t: 0, life: 26, ang: rng(S) * TAU, by: -1, dead: false };
+        S.mines.push(q);
+        l.push([q.id, q.x, q.y, q.ang]);
+      }
     }
-    S.ev.push({ k: 'mines' });
+    S.ev.push({ k: 'mines', vx, l });
   }
   function spawnDrone(S) {
     const side = rng(S) < 0.5 ? -1 : 1;
@@ -633,11 +639,11 @@
     o.hp -= dmg; o.hitT = 0.07;
     if (by >= 0) o.by = by;
     if (o.hp <= 0) { breakObs(S, o, by); return; }
-    S.ev.push({ k: 'ohit', x, y, p: by, o: o.k });
+    S.ev.push({ k: 'ohit', x, y, p: by, o: o.k, id: o.id });
   }
   function breakObs(S, o, by) {
     o.dead = true;
-    S.ev.push({ k: 'oboom', x: o.x, y: o.y, r: o.r, o: o.k, img: o.img, by });
+    S.ev.push({ k: 'oboom', x: o.x, y: o.y, r: o.r, o: o.k, img: o.img, by, id: o.id });
     if (by >= 0) addGauge(S, S.ships[by], OBS_G[o.k] || 0.02);
     if (o.k !== 'S') {
       const sub = o.k === 'M' ? 'S' : 'M', n = o.k === 'P' ? 3 : 2;
@@ -655,9 +661,9 @@
     const n = 8, v = S.cfg.ebSpd;
     for (let i = 0; i < n; i++) {
       const a = Math.PI / n + (i * TAU) / n;
-      S.eb.push({ x: m.x + Math.cos(a) * 7, y: m.y + Math.sin(a) * 7, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 4, src: 'mine', dead: false });
+      addEB(S, m.x + Math.cos(a) * 7, m.y + Math.sin(a) * 7, Math.cos(a) * v, Math.sin(a) * v, 4, 'mine');
     }
-    S.ev.push({ k: 'mboom', x: m.x, y: m.y, by });
+    S.ev.push({ k: 'mboom', x: m.x, y: m.y, by, id: m.id });
     if (by >= 0) addGauge(S, S.ships[by], 0.03);
   }
   function droneHit(S, dmg, by, x, y) {
@@ -675,7 +681,7 @@
     if (c.dead) return;
     c.dead = true;
     const sh = S.ships[p], op = S.ships[1 - p];
-    if (!sh.alive) return;
+    if (!sh.alive) { S.ev.push({ k: 'capGone', id: c.id }); return; }
     switch (c.k) {
       case 'T': sh.tri = DUR.T; break;
       case 'B': sh.bub = DUR.B; sh.bubN = 2; break;
@@ -688,13 +694,23 @@
       default: if (op.alive) { op.slow = DUR.R; S.ev.push({ k: 'slowed', p: op.p, x: op.x, y: op.y }); }
     }
     addGauge(S, sh, 0.2);
-    S.ev.push({ k: 'cap', p, c: c.k, x: c.x, y: c.y });
+    S.ev.push({ k: 'cap', p, c: c.k, x: c.x, y: c.y, id: c.id });
   }
   function zoneY(S, p) {
     const s = S.shift;
     return p === 0 ? [LH - FAR - s, LH - NEAR - s * 1.2] : [NEAR + s * 1.2, FAR + s];
   }
-  function shot(S, p, x, y, vx, vy, k) { S.shots.push({ p, x, y, vx, vy, r: k ? 3 : 3.6, dmg: 1, k, dead: false }); }
+  function shot(S, p, x, y, vx, vy, k) {
+    const s = { id: S.pid++, p, x, y, vx, vy, r: k ? 3 : 3.6, dmg: 1, k, dead: false };
+    S.shots.push(s);
+    if (S.born) S.born.push(s);
+  }
+  function addEB(S, x, y, vx, vy, r, src) {      // balle neutre (éclat de mine, tir du drone géant)
+    const b = { id: S.pid++, x, y, vx, vy, r, src, dead: false };
+    S.eb.push(b);
+    if (S.born) S.born.push(b);
+  }
+  function pkill(S, o) { o.dead = true; if (S.died) S.died.push(o.id); }   // projectile détruit par un choc
   function volley(S, sh) {
     const v = S.cfg.bspd * (S.heat ? 1.1 : 1), d = sh.dir, lat = sh.bank * -d * 50;   // le tir garde un peu de l'élan latéral
     if (sh.tri > 0) {
@@ -736,6 +752,26 @@
     else sh.lasB = Math.max(0, sh.lasB - dt * 0.5);
     sh.lasLen = Math.abs(best - y0);
   }
+  // longueur du laser, sans dégâts (affichage chez l'invité en ligne : les dégâts sont décidés par l'hôte)
+  function laserReach(S, sh) {
+    const d = sh.dir, x = sh.x, y0 = sh.y + d * 34, w = 4.5, op = S.ships[1 - sh.p];
+    let best = d < 0 ? -10 : LH + 10;
+    const nearer = (y) => (d < 0 ? y > best && y < y0 + 4 : y < best && y > y0 - 4);
+    const test = (ox, oy, r) => {
+      const dx = Math.abs(ox - x);
+      if (dx >= r + w) return;
+      const yy = oy - d * Math.sqrt(Math.max(0, (r + w) * (r + w) - dx * dx));
+      if (nearer(yy)) best = yy;
+    };
+    for (const o of S.obs) if (!o.dead) test(o.x, o.y, o.r);
+    for (const m of S.mines) if (!m.dead) test(m.x, m.y, 9);
+    if (S.drone) {
+      const dd = S.drone, dx = Math.abs(dd.x - x), rx = 50 + w;
+      if (dx < rx) { const yy = dd.y - d * 20 * Math.sqrt(1 - (dx / rx) * (dx / rx)); if (nearer(yy)) best = yy; }
+    }
+    if (op.alive && Math.abs(op.x - x) < SHIP_RX + w) { const yy = op.y - d * SHIP_RY; if (nearer(yy)) best = yy; }
+    return Math.abs(best - y0);
+  }
   // MÉGA-RAYON (SUPER) : traverse tout, balaie la colonne devant le vaisseau
   function superBeam(S, sh, dt) {
     const d = sh.dir, x = sh.x, y0 = sh.y + d * 30, hw = 22, op = S.ships[1 - sh.p];
@@ -745,9 +781,9 @@
     for (const m of S.mines) if (!m.dead && inCol(m.x, 9) && ahead(m.y)) mineBoom(S, m, sh.p);
     if (S.drone && inCol(S.drone.x, 40) && ahead(S.drone.y)) droneHit(S, 42 * dt, sh.p, x, S.drone.y);
     for (const c of S.caps) if (!c.dead && inCol(c.x, 13) && ahead(c.y)) collect(S, c, sh.p);
-    for (const s of S.shots) if (!s.dead && s.p !== sh.p && inCol(s.x, s.r) && ahead(s.y)) { s.dead = true; S.ev.push({ k: 'zap', x: s.x, y: s.y, p: sh.p }); }
-    for (const m of S.mis) if (!m.dead && m.p !== sh.p && inCol(m.x, 5) && ahead(m.y)) { m.dead = true; S.ev.push({ k: 'mboomS', x: m.x, y: m.y }); }
-    for (const b of S.eb) if (!b.dead && inCol(b.x, b.r) && ahead(b.y)) { b.dead = true; S.ev.push({ k: 'zap', x: b.x, y: b.y, p: sh.p }); }
+    for (const s of S.shots) if (!s.dead && s.p !== sh.p && inCol(s.x, s.r) && ahead(s.y)) { pkill(S, s); S.ev.push({ k: 'zap', x: s.x, y: s.y, p: sh.p }); }
+    for (const m of S.mis) if (!m.dead && m.p !== sh.p && inCol(m.x, 5) && ahead(m.y)) { m.dead = true; S.ev.push({ k: 'mboomS', x: m.x, y: m.y, id: m.id }); }
+    for (const b of S.eb) if (!b.dead && inCol(b.x, b.r) && ahead(b.y)) { pkill(S, b); S.ev.push({ k: 'zap', x: b.x, y: b.y, p: sh.p }); }
     if (op.alive && inCol(op.x, SHIP_RX) && ahead(op.y)) hurt(S, op, sh.p, 'super');
   }
   function updShip(S, sh, ip, dt) {
@@ -761,14 +797,21 @@
       sh.bank *= Math.max(0, 1 - dt * 6);
       return;
     }
-    const z = zoneY(S, sh.p);
-    sh.tx = clamp(sh.tx + ip.mx + ip.kx * 270 * dt, 18, S.LW - 18);
-    sh.ty = clamp(sh.ty + ip.my + ip.ky * 270 * dt, z[0], z[1]);
-    sh.tx = clamp(sh.tx, sh.x - 70, sh.x + 70); sh.ty = clamp(sh.ty, sh.y - 70, sh.y + 70);
-    const spd = 600 * (sh.slow > 0 ? 0.4 : 1) * (sh.sup === 2 ? 0.6 : sh.las > 0 ? 0.7 : 1);
-    const ox = sh.x, oy = sh.y, kk = Math.min(1, dt * 18);
-    sh.x += clamp((sh.tx - sh.x) * kk, -spd * dt, spd * dt);
-    sh.y += clamp((sh.ty - sh.y) * kk, -spd * dt, spd * dt);
+    const z = zoneY(S, sh.p), ox = sh.x, oy = sh.y;
+    if (ip.ax != null) {                          // en ligne : position envoyée par l'appareil de ce joueur (dans les limites du jeu)
+      const lim = 1500 * dt;
+      sh.x = clamp(clamp(ip.ax, 18, S.LW - 18), ox - lim, ox + lim);
+      sh.y = clamp(clamp(ip.ay, z[0], z[1]), oy - lim, oy + lim);
+      sh.tx = sh.x; sh.ty = sh.y;
+    } else {
+      sh.tx = clamp(sh.tx + ip.mx + ip.kx * 270 * dt, 18, S.LW - 18);
+      sh.ty = clamp(sh.ty + ip.my + ip.ky * 270 * dt, z[0], z[1]);
+      sh.tx = clamp(sh.tx, sh.x - 70, sh.x + 70); sh.ty = clamp(sh.ty, sh.y - 70, sh.y + 70);
+      const spd = 600 * (sh.slow > 0 ? 0.4 : 1) * (sh.sup === 2 ? 0.6 : sh.las > 0 ? 0.7 : 1);
+      const kk = Math.min(1, dt * 18);
+      sh.x += clamp((sh.tx - sh.x) * kk, -spd * dt, spd * dt);
+      sh.y += clamp((sh.ty - sh.y) * kk, -spd * dt, spd * dt);
+    }
     sh.y = clamp(sh.y, z[0], z[1]);
     sh.vx = (sh.x - ox) / Math.max(dt, 1e-4); sh.vy = (sh.y - oy) / Math.max(dt, 1e-4);
     sh.bank += (clamp((sh.vx / 240) * -sh.dir, -1, 1) - sh.bank) * Math.min(1, dt * 10);   // roulis dans le repère du vaisseau
@@ -798,7 +841,7 @@
     else if (sh.sup === 2) { sh.supT += dt; superBeam(S, sh, dt); if (sh.supT >= 1.45) { sh.sup = 0; sh.supT = 0; S.ev.push({ k: 'supEnd', p: sh.p }); } }
     if (sh.sup === 0) {
       if (sh.las > 0) { sh.lasOn = true; laserBeam(S, sh, dt); }
-      else {
+      else if (!ip.ext) {                         // (en ligne, l'appareil du joueur tire lui-même : ses salves arrivent par le réseau)
         sh.fireT -= dt * (sh.slow > 0 ? 0.55 : 1);
         if (sh.fireT <= 0) { sh.fireT += S.cfg.fire * (S.heat ? 0.78 : 1); if (sh.fireT < 0) sh.fireT = 0; volley(S, sh); }
       }
@@ -807,11 +850,11 @@
       sh.misT -= dt;
       if (sh.misT <= 0) {
         sh.misT = 0.72; sh.misS = -sh.misS;
-        S.mis.push({ p: sh.p, x: sh.x + sh.misS * 16, y: sh.y + sh.dir * 4, vx: sh.misS * 110, vy: sh.dir * 70, life: 3.4, dead: false });
+        S.mis.push({ id: S.pid++, p: sh.p, x: sh.x + sh.misS * 16, y: sh.y + sh.dir * 4, vx: sh.misS * 110, vy: sh.dir * 70, life: 3.4, dead: false });
         S.ev.push({ k: 'misGo', p: sh.p });
       }
     }
-    if (sh.dro > 0) {
+    if (sh.dro > 0 && !ip.ext) {
       sh.droT -= dt;
       if (sh.droT <= 0) {
         sh.droT = 0.34;
@@ -840,14 +883,15 @@
     for (const m of S.mis) {
       if (m.dead || m.p === s.p) continue;
       const dx = m.x - s.x, dy = m.y - s.y, rr = 6 + s.r;
-      if (dx * dx + dy * dy < rr * rr) { m.dead = true; S.ev.push({ k: 'mboomS', x: m.x, y: m.y }); addGauge(S, S.ships[s.p], 0.02); return true; }
+      if (dx * dx + dy * dy < rr * rr) { m.dead = true; S.ev.push({ k: 'mboomS', x: m.x, y: m.y, id: m.id }); addGauge(S, S.ships[s.p], 0.02); return true; }
     }
     const op = S.ships[1 - s.p];
     if (op.dro > 0) {
-      for (const d of op.drones) {
+      for (let i = 0; i < 2; i++) {
+        const d = op.drones[i];
         if (d.hp <= 0) continue;
         const dx = d.x - s.x, dy = d.y - s.y, rr = 7 + s.r;
-        if (dx * dx + dy * dy < rr * rr) { d.hp--; S.ev.push({ k: 'drohit', p: op.p, x: d.x, y: d.y, dead: d.hp <= 0 }); return true; }
+        if (dx * dx + dy * dy < rr * rr) { d.hp--; S.ev.push({ k: 'drohit', p: op.p, x: d.x, y: d.y, dead: d.hp <= 0, i }); return true; }
       }
     }
     if (op.alive && hitShip(op, s.x, s.y, s.r) && hurt(S, op, s.p, 'tir')) return true;
@@ -859,7 +903,7 @@
       if (s.dead) continue;
       s.x += s.vx * dt; s.y += s.vy * dt;
       if (s.y < -30 || s.y > LH + 30 || s.x < -30 || s.x > LW + 30) { s.dead = true; continue; }
-      if (shotHits(S, s)) s.dead = true;
+      if (shotHits(S, s)) pkill(S, s);
     }
   }
   function updMissiles(S, dt) {
@@ -891,13 +935,14 @@
         const dx = c.x - m.x, dy = c.y - m.y;
         if (dx * dx + dy * dy < 18 * 18) { collect(S, c, m.p); break; }
       }
-      if (!boom && tg.dro > 0) for (const d of tg.drones) {
+      if (!boom && tg.dro > 0) for (let i = 0; i < 2; i++) {
+        const d = tg.drones[i];
         if (d.hp <= 0) continue;
         const dx = d.x - m.x, dy = d.y - m.y;
-        if (dx * dx + dy * dy < 12 * 12) { d.hp--; S.ev.push({ k: 'drohit', p: tg.p, x: d.x, y: d.y, dead: d.hp <= 0 }); boom = true; break; }
+        if (dx * dx + dy * dy < 12 * 12) { d.hp--; S.ev.push({ k: 'drohit', p: tg.p, x: d.x, y: d.y, dead: d.hp <= 0, i }); boom = true; break; }
       }
       if (!boom && tg.alive && hitShip(tg, m.x, m.y, 5)) { hurt(S, tg, m.p, 'missile'); boom = true; }
-      if (boom) { m.dead = true; S.ev.push({ k: 'mboomS', x: m.x, y: m.y }); }
+      if (boom) { m.dead = true; S.ev.push({ k: 'mboomS', x: m.x, y: m.y, id: m.id }); }
     }
   }
   function updEB(S, dt) {
@@ -909,17 +954,18 @@
       for (const o of S.obs) {
         if (o.dead) continue;
         const dx = o.x - b.x, dy = o.y - b.y, rr = o.r + b.r;
-        if (dx * dx + dy * dy < rr * rr) { b.dead = true; S.ev.push({ k: 'absorb', x: b.x, y: b.y }); break; }
+        if (dx * dx + dy * dy < rr * rr) { pkill(S, b); S.ev.push({ k: 'absorb', x: b.x, y: b.y }); break; }
       }
       if (b.dead) continue;
       for (const sh of S.ships) {
-        if (sh.dro > 0) for (const d of sh.drones) {
+        if (sh.dro > 0) for (let i = 0; i < 2; i++) {
+          const d = sh.drones[i];
           if (d.hp <= 0) continue;
           const dx = d.x - b.x, dy = d.y - b.y, rr = 7 + b.r;
-          if (dx * dx + dy * dy < rr * rr) { d.hp--; b.dead = true; S.ev.push({ k: 'drohit', p: sh.p, x: d.x, y: d.y, dead: d.hp <= 0 }); break; }
+          if (dx * dx + dy * dy < rr * rr) { d.hp--; pkill(S, b); S.ev.push({ k: 'drohit', p: sh.p, x: d.x, y: d.y, dead: d.hp <= 0, i }); break; }
         }
         if (b.dead) break;
-        if (sh.alive && hitShip(sh, b.x, b.y, b.r) && hurt(S, sh, -1, b.src)) { b.dead = true; break; }
+        if (sh.alive && hitShip(sh, b.x, b.y, b.r) && hurt(S, sh, -1, b.src)) { pkill(S, b); break; }
       }
     }
   }
@@ -976,7 +1022,7 @@
       m.t += dt; m.x += m.vx * dt; m.ang += dt * 0.8;
       if (m.x < -14) m.x += LW + 28; else if (m.x > LW + 14) m.x -= LW + 28;
       m.life -= dt;
-      if (m.life <= 0) { m.dead = true; S.ev.push({ k: 'mineOff', x: m.x, y: m.y }); continue; }
+      if (m.life <= 0) { m.dead = true; S.ev.push({ k: 'mineOff', x: m.x, y: m.y, id: m.id }); continue; }
       for (const o of S.obs) {
         if (o.dead) continue;
         const dx = o.x - m.x, dy = o.y - m.y, rr = o.r + 8;
@@ -1006,7 +1052,7 @@
       const ox = d.x, oy = d.y - sh.dir * 26, a = Math.atan2(sh.y - oy, sh.x - ox);
       for (let i = 0; i < n; i++) {
         const aa = a + (i - (n - 1) / 2) * spread;
-        S.eb.push({ x: ox, y: oy, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, r: 4.5, src: 'drone', dead: false });
+        addEB(S, ox, oy, Math.cos(aa) * v, Math.sin(aa) * v, 4.5, 'drone');
       }
     };
     d.st -= dt;
@@ -1015,7 +1061,7 @@
     if (d.st2 <= 0) {
       d.st2 = 4.4;
       const n = 14;
-      for (let i = 0; i < n; i++) { const a = Math.PI / n + (i * TAU) / n; S.eb.push({ x: d.x + Math.cos(a) * 30, y: d.y + Math.sin(a) * 14, vx: Math.cos(a) * v * 0.8, vy: Math.sin(a) * v * 0.8, r: 4.5, src: 'drone', dead: false }); }
+      for (let i = 0; i < n; i++) { const a = Math.PI / n + (i * TAU) / n; addEB(S, d.x + Math.cos(a) * 30, d.y + Math.sin(a) * 14, Math.cos(a) * v * 0.8, Math.sin(a) * v * 0.8, 4.5, 'drone'); }
       S.ev.push({ k: 'dring', x: d.x, y: d.y });
     }
     if (rage) {
@@ -1029,7 +1075,7 @@
       c.t += dt; c.x += c.vx * dt;
       if (c.x < S.capM) { c.x = S.capM; c.vx = Math.abs(c.vx); } else if (c.x > S.LW - S.capM) { c.x = S.LW - S.capM; c.vx = -Math.abs(c.vx); }
       c.y += clamp(LH / 2 - c.y, -30 * dt, 30 * dt);
-      if (c.t >= c.life) { c.dead = true; S.ev.push({ k: 'capOff', x: c.x, y: c.y }); }
+      if (c.t >= c.life) { c.dead = true; S.ev.push({ k: 'capOff', x: c.x, y: c.y, id: c.id }); }
     }
   }
   function spawners(S, dt) {
@@ -1109,10 +1155,20 @@
       return { name: nm.length > 12 ? nm.slice(0, 11) + '.' : nm, img: imgOk(q.img) ? q.img : null, sad: imgOk(q.sad) ? q.sad : null, color: PCOL[i] };
     });
     let destroyed = false, paused = false, raf = 0;
+    // jeu en ligne : api.net (sans lui, tout reste comme sur un seul téléphone)
+    const NET = api.net && typeof api.net.send === 'function' && typeof api.net.onMessage === 'function' &&
+      (api.net.role === 'host' || api.net.role === 'guest') ? api.net : null;
+    const HOST = !!NET && NET.role === 'host', GUEST = !!NET && NET.role === 'guest';
+    const ME = GUEST ? 1 : 0;                      // en ligne : le joueur de CET appareil
+    const FLIP = !!(NET && NET.flipped);           // invité : la bibliothèque tourne l'écran de 180°
     const listeners = [];
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
-    function say(text, o) { if (destroyed) return; try { if (typeof api.say === 'function') api.say(text, o || {}); } catch (e) { /* rien */ } }
-    function vibrate(ms) { if (destroyed || paused) return; try { if (typeof api.vibrate === 'function') api.vibrate(ms); } catch (e) { /* rien */ } }
+    // (l'invité n'appelle jamais api.say : la bibliothèque recopie les messages de l'hôte)
+    function say(text, o) { if (destroyed || GUEST) return; try { if (typeof api.say === 'function') api.say(text, o || {}); } catch (e) { /* rien */ } }
+    function vibrate(ms, p) {                      // p : joueur concerné (en ligne, seul son téléphone vibre)
+      if (destroyed || paused || (NET && p != null && p !== ME)) return;
+      try { if (typeof api.vibrate === 'function') api.vibrate(ms); } catch (e) { /* rien */ }
+    }
 
     // ------------------------------------------------------------- sons (sobres, limités)
     let rt = 0;                                  // temps réel écoulé hors pause (s)
@@ -1215,6 +1271,7 @@
       if (destroyed) return;
       if (!started) { tryStart(); return; }
       layout();
+      if (GUEST) gHello(false);                    // (l'hôte en tiendra compte à la prochaine manche)
       if (!raf || paused) render();
     }
 
@@ -1825,8 +1882,14 @@
     function drawShots() {
       ctx.globalCompositeOperation = 'lighter';
       for (const s of S.shots) {
+        let x = s.x, y = s.y;
+        if (s.lag) {                               // (hôte en ligne) tir de l'invité : part de son vaisseau tel qu'affiché ici
+          const back = s.lag * (1 - trapz(Math.abs(y - s.y0) / s.D));
+          x -= s.vx * back; y -= s.vy * back;
+          if ((x - s.x0) * s.vx + (y - s.y0) * s.vy < 0) continue;
+        }
         const sp = s.k ? SPR.boltS[s.p] : SPR.bolt[s.p], a = Math.atan2(s.vx, -s.vy), c = Math.cos(a) * KZ, sn = Math.sin(a) * KZ;
-        ctx.setTransform(c, sn, -sn, c, OXd + s.x * KZ, OYd + s.y * KZ);
+        ctx.setTransform(c, sn, -sn, c, OXd + x * KZ, OYd + y * KZ);
         ctx.drawImage(sp.cv, -sp.w / 2, -sp.h / 2, sp.w, sp.h);
       }
       S0();
@@ -2026,7 +2089,7 @@
       poly(ctx, [lx + 2 * k, ly - 8 * k, lx - 5 * k, ly + 1 * k, lx - 0.5 * k, ly + 1 * k, lx - 2 * k, ly + 8 * k, lx + 5 * k, ly - 1.5 * k, lx + 0.5 * k, ly - 1.5 * k]);
       ctx.fill();
       txt(act ? 'FEU !' : 'SUPER', x, y + 12 * u, 9.5 * u, full || act ? '#ffffff' : hexA(col, 0.9), 'center', false, full ? 3 : 0);
-      if (full && !act) {
+      if (full && !act && p !== AIP) {
         ctx.globalAlpha = 0.65 + 0.35 * Math.sin(rt * 7);
         txt('2e doigt ou ici !', x - (g.land ? 0 : r * 0.55), y - r - 9 * u, 11 * u, col, g.land ? 'center' : 'center', true, 3.5);
         ctx.globalAlpha = 1;
@@ -2145,7 +2208,7 @@
       const a0 = introFull ? 1.75 : 0;
       const a = S.phase === 'intro' ? clamp((S.it - a0) / 0.35, 0, 1) : S.phase === 'play' && S.t < 1.2 ? Math.max(0, 1 - (S.t - 0.3) / 0.9) : 0;
       if (a <= 0.01) return;
-      const lines = introFull ? INTRO_LINES : [hintStr];
+      const lines = p === AIP ? (introFull ? ['IA · niveau ' + AIN, 'Bonne chance, humain !'] : [hintStr]) : introFull ? INTRO_LINES : [hintStr];
       hudFrame(p);
       fontKey = '';
       const u = U, fs = Math.round(13.5 * u), lh = 19 * u, col = PCOL[p];
@@ -2206,7 +2269,7 @@
       hudHit[e.p] = 1;
       if (e.left > 0) {
         ftext(e.x, towardCenter(sh, 50), e.left === 1 ? 'DERNIER BOUCLIER !' : '-1 BOUCLIER', e.left === 1 ? '#ff4d5e' : col, e.left === 1 ? 15 : 13, 1.2, e.p, e.left === 1);
-        SFX.shield(); vibrate(45);
+        SFX.shield(); vibrate(45, e.p);
       }
     }
     function koFx(e) {
@@ -2224,9 +2287,12 @@
       BOOMQ.push({ t: 0.16, x: e.x + 16, y: e.y - 12, s: 2 }, { t: 0.34, x: e.x - 18, y: e.y + 10, s: 3 }, { t: 0.52, x: e.x + 6, y: e.y + 16, s: 2 }, { t: 0.72, x: e.x, y: e.y, s: 4, fin: e.p });
       SFX.death(); vibrate(260);
       after(0.35, () => SFX.sad());
-      addFace(HEAD[e.p][1], e.x, e.y, lerp(clamp(e.x, 60, LW - 60), LW / 2, 0.6), e.p === 0 ? LH * 0.7 : LH * 0.3, 80, e.p, pick(SNIF), col, 0.3);
+      const snif = e.snif || pick(SNIF);
+      e.snif = snif;                               // (en ligne : même petite phrase chez l'invité)
+      addFace(HEAD[e.p][1], e.x, e.y, lerp(clamp(e.x, 60, LW - 60), LW / 2, 0.6), e.p === 0 ? LH * 0.7 : LH * 0.3, 80, e.p, snif, col, 0.3);
       chunks(e.x, e.y, e.p, 14, 240);
       hudPop[w] = 1;
+      if (GUEST) return;                           // l'invité attend le point décidé par l'hôte
       const why = pick(WHY[e.how] || WHY.tir);
       after(0.85, () => givePoint(w, why), true);
     }
@@ -2237,6 +2303,7 @@
       }
       freezeT = 0.12; slowT = 1.4; slowK = 0.35; flashA = 1; flashCol = '#ffffff'; shake = 20;
       SFX.death(); vibrate(200);
+      if (GUEST) return;                           // l'invité attend la manche relancée par l'hôte
       after(0.7, () => say('Égalité ! On rejoue la manche', { ms: 1500, color: ACCENT, small: true }));
       after(2.4, () => { if (!matchOver) startRound(false, true); }, true);
     }
@@ -2249,7 +2316,7 @@
         if (q) q.drag = 0.5;
       }
       ftext(sh.x, towardCenter(sh, 54), e.c === 'R' ? 'ADVERSAIRE GELÉ !' : CAPN[e.c] + ' !', col, 16, 1.4, e.p, true);
-      SFX.pick(e.p); vibrate(20);
+      SFX.pick(e.p); vibrate(20, e.p);
       hudPop[e.p] = Math.max(hudPop[e.p], 0.4);
     }
     function onEvents() {
@@ -2289,7 +2356,7 @@
           case 'zap': sparks(e.x, e.y, 3, PG[e.p], 130, 0.3, 7); break;
           case 'bump': SFX.bump(); sparks(e.x, e.y, 2, GL.o, 40, 0.3, 4); break;
           case 'hit': shipHitFx(e); break;
-          case 'bubHit': ring(e.x, e.y, 22, 52, 0.35, '#8cffb4', 3); sparks(e.x, e.y, 8, GL.g, 150, 0.4, 7); SFX.bubble(); vibrate(20); break;
+          case 'bubHit': ring(e.x, e.y, 22, 52, 0.35, '#8cffb4', 3); sparks(e.x, e.y, 8, GL.g, 150, 0.4, 7); SFX.bubble(); vibrate(20, e.p); break;
           case 'bubPop': ring(e.x, e.y, 30, 72, 0.4, '#8cffb4', 2); sparks(e.x, e.y, 14, GL.g, 160, 0.5, 6); SFX.pop(); break;
           case 'cap': capFx(e); break;
           case 'capIn': ring(e.x, e.y, 4, 42, 0.5, CAPC[e.c], 2.5); sparks(e.x, e.y, 10, CAPG[e.c], 110, 0.5, 6); SFX.capIn(); break;
@@ -2298,7 +2365,7 @@
             const sh = S.ships[e.p];
             ring(e.x, e.y, 10, 60, 0.5, '#bff4ff', 3); sparks(e.x, e.y, 16, GL.i, 160, 0.6, 7);
             ftext(sh.x, towardCenter(sh, 54), 'GELÉ ! TU RALENTIS', '#9fe8ff', 16, 1.5, e.p, true);
-            SFX.slowed(); vibrate(30);
+            SFX.slowed(); vibrate(30, e.p);
             break;
           }
           case 'end': { const sh = S.ships[e.p]; if (sh.alive) ftext(sh.x, towardCenter(sh, 50), e.c === 'R' ? 'DÉGELÉ !' : CAPN[e.c] + ' : FINI', e.c === 'R' ? '#9fe8ff' : '#a9b6cc', 11, 1, e.p); break; }
@@ -2306,13 +2373,13 @@
           case 'supNo': SFX.no(); hudNo[e.p] = 0.4; break;
           case 'supCharge': {
             const sh = S.ships[e.p];
-            SFX.charge(); vibrate(30);
+            SFX.charge(); vibrate(30, e.p);
             for (let j = 0; j < 14; j++) { const a = Math.random() * TAU, d = 40 + Math.random() * 30; const q = part(sh.x + Math.cos(a) * d, sh.y + sh.dir * 34 + Math.sin(a) * d, -Math.cos(a) * d * 2, -Math.sin(a) * d * 2, 0.45, 8, 2, PGH[e.p], true, 0); if (q) q.drag = 0; }
             break;
           }
           case 'supFire': {
             const sh = S.ships[e.p];
-            SFX.superFire(); vibrate(90);
+            SFX.superFire(); vibrate(90, e.p);
             shake = Math.max(shake, 12); flashA = Math.max(flashA, 0.3); flashCol = PCOL[e.p];
             ring(sh.x, sh.y + sh.dir * 30, 10, 90, 0.5, '#ffffff', 4);
             ftext(sh.x, towardCenter(sh, 64), 'MÉGA-RAYON !', PCOL[e.p], 18, 1.3, e.p, true);
@@ -2321,9 +2388,10 @@
           case 'misGo': SFX.missile(); break;
           case 'drohit': sparks(e.x, e.y, 5, GL.v, 100, 0.3, 6); if (e.dead) { explode(e.x, e.y, 1, GL.v); SFX.pop(); } else SFX.clink(); break;
           case 'droneIn': {
-            const h = friendHead();
+            const h = GUEST ? headByName(e.name) : friendHead();   // en ligne : le même copain que chez l'hôte
             droneFace = h ? friendDisc(h, false) : null; droneFaceSad = h ? friendDisc(h, true) : null;
             droneName = h ? String(h.name || '').trim().toUpperCase().slice(0, 12) : '';
+            e.name = droneName;
             say(droneName ? 'Invité surprise : ' + droneName + ' !' : 'Invité surprise !', { ms: 1700, color: '#ff4d5e' });
             SFX.warn(); vibrate(40);
             break;
@@ -2348,6 +2416,7 @@
           case 'draw': LOG.push({ r: S.round, t: +S.t.toFixed(1), p: -1, how: 'draw' }); drawFx(); break;
           default: break;
         }
+        if (HOST) hostEv(e);                       // en ligne : l'hôte recopie l'événement chez l'invité
       }
       ev.length = 0;
     }
@@ -2355,17 +2424,19 @@
     // ------------------------------------------------------------- enchaînement des manches
     let S = null, matchOver = false, winnerP = -1, overT = 0, resumeT = 0, introFull = true;
     function startRound(first, replay) {
-      if (destroyed) return;
+      if (destroyed || GUEST) return;              // en ligne, seul l'hôte lance les manches
       let round = 1;
       try { round = typeof api.round === 'function' ? Math.max(1, api.round() | 0) : 1; } catch (e) { round = 1; }
       measure();
       LW = desiredLW();
+      if (HOST && HN.hello) LW = Math.min(LW, clamp(Math.round((LH * HN.hello.w) / Math.max(1, HN.hello.h)), 300, 470));   // terrain commun
       layout();
       introFull = !!first;
       bgHue = HUES[(round - 1) % HUES.length]; bgPl = BGPL[(round - 1) % BGPL.length];
       const seed = (Math.random() * 4294967296) | 0;
-      S = newRound(seed, round, LW, capMargin(), first ? 4.6 : 2.7);
+      S = newRound(seed, round, LW, HOST ? netCapM() : capMargin(), first ? 4.6 : 2.7);
       hintStr = replay ? 'Égalité : on rejoue la manche !' : roundHint();
+      if (HOST) hostRound(seed);
       ptN = 0; rgN = 0; txN = 0; stkN = 0; FACES.length = 0; BOOMQ.length = 0; ARCS.length = 0;
       freezeT = 0; slowT = 0; zoomT = 0; hudHit[0] = hudHit[1] = 0; hudPop[0] = hudPop[1] = 0;
       droneFace = droneFaceSad = null; droneName = '';
@@ -2376,38 +2447,47 @@
       tone(392, 0.14, 'triangle', 0.04); after(0.14, () => tone(523, 0.2, 'triangle', 0.04));
     }
     function givePoint(w, why) {
-      if (destroyed || matchOver) return;
+      if (destroyed || matchOver || GUEST) return;  // l'invité n'appelle jamais api.point (seul l'hôte décide)
       let res = null;
       try { res = typeof api.point === 'function' ? api.point(w, why) : null; } catch (e) { res = null; }
+      const over = !!(res && res.over);
+      if (HOST) HN.out.push({ k: 'pt', w, over: over ? 1 : 0 });
+      pointFx(w, over);
+      if (!over) after(1.45, () => { if (!matchOver) startRound(false); }, true);
+    }
+    function pointFx(w, over) {                     // effets du point (rejoués tels quels chez l'invité)
       const ws = S && S.ships[w];
       if (ws && ws.alive) {
         ring(ws.x, ws.y, 12, 110, 0.6, PCOL[w], 4); ring(ws.x, ws.y, 6, 70, 0.45, '#ffe9a8', 3);
         sparks(ws.x, ws.y, 26, PGH[w], 300, 0.8, 9); streaks(ws.x, ws.y, 18, 420, '#ffe9a8', 0.6, 2);
-        if (!(res && res.over)) ftext(ws.x, towardCenter(ws, 66), 'POINT !', '#ffd34d', 24, 1.8, w, true);
+        if (!over) ftext(ws.x, towardCenter(ws, 66), 'POINT !', '#ffd34d', 24, 1.8, w, true);
       }
       hudWin[w] = 1; hudPop[w] = 1;
       tone(659, 0.1, 'triangle', 0.05); after(0.1, () => tone(880, 0.1, 'triangle', 0.05)); after(0.2, () => tone(1175, 0.22, 'triangle', 0.05));
-      if (res && res.over) {
+      if (over) {
         matchOver = true; winnerP = w; overT = 0;
         if (S) S.phase = 'over';
         SFX.win(); vibrate(150);
         const sh = S && S.ships[w];
         if (sh) for (let i = 0; i < 4; i++) after(0.12 * i, () => { ring(sh.x, sh.y, 10, 120 + i * 30, 0.7, i & 1 ? '#ffffff' : PCOL[w], 3); sparks(sh.x, sh.y, 18, PGH[w], 260, 0.8, 8); });
-      } else after(1.45, () => { if (!matchOver) startRound(false); }, true);
+      }
     }
 
     // ------------------------------------------------------------- entrées : multi-touch (un doigt = le joueur de sa moitié), clavier
     const IN = [{ mx: 0, my: 0, kx: 0, ky: 0, sup: false }, { mx: 0, my: 0, kx: 0, ky: 0, sup: false }];
     const SUB = [{ mx: 0, my: 0, kx: 0, ky: 0, sup: false }, { mx: 0, my: 0, kx: 0, ky: 0, sup: false }];
     const KEYS = [{ l: false, r: false, u: false, d: false }, { l: false, r: false, u: false, d: false }];
-    const BOT = [false, false];
+    const BOT = [false, false], STEER = [null, null];   // (tests)
     const PTR = new Map();
     function clearInputs() {
       PTR.clear();
       for (const q of IN) { q.mx = q.my = 0; q.sup = false; }
       for (const k of KEYS) k.l = k.r = k.u = k.d = false;
     }
-    function localXY(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+    function localXY(e) {                          // (invité en ligne : l'écran est tourné de 180°, on remet les doigts à l'endroit)
+      const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      return FLIP ? [r.width - x, r.height - y] : [x, y];
+    }
     function inSuperBtn(p, x, y) {
       const g = hudGeo(), qx = p === 0 ? x : cw - x, qy = p === 0 ? y : ch - y, dx = qx - g.sx, dy = qy - g.sy, r = g.sr + 12;
       return dx * dx + dy * dy < r * r;
@@ -2416,7 +2496,8 @@
       if (destroyed) return;
       e.preventDefault();
       if (paused) return;
-      const [x, y] = localXY(e), p = y > ch / 2 ? 0 : 1;
+      const [x, y] = localXY(e), p = NET ? ME : y > ch / 2 ? 0 : 1;   // en ligne : tout l'écran est à moi
+      if (p === AIP) return;                       // la moitié de l'IA : les doigts n'y comptent pas
       let hasDrag = false;
       for (const v of PTR.values()) if (v.p === p && v.role === 'drag') { hasDrag = true; break; }
       // le 1er doigt pilote (même posé sur le bouton) ; le bouton SUPER ou un 2e doigt déclenchent le méga-rayon
@@ -2432,6 +2513,7 @@
       if (v.role === 'drag' && !paused) {
         const sens = v.mouse ? 1 : 1.3;
         IN[v.p].mx += ((x - v.x) / scale) * sens; IN[v.p].my += ((y - v.y) / scale) * sens;
+        if (REC) { FING.x += ((x - v.x) / scale) * sens; FING.y += ((y - v.y) / scale) * sens; FING.n++; }
       }
       v.x = x; v.y = y;
     }
@@ -2446,18 +2528,21 @@
       const t = e.target;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       const k = e.key && e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      const a = NET ? ME : 0, b = NET ? ME : 1;      // en ligne : les deux jeux de touches pilotent mon vaisseau
+      if (AIP >= 0 && k && ((b === AIP && k.length === 1 && 'qadzwse'.includes(k)) ||
+        (a === AIP && (k.startsWith('Arrow') || k === ' ' || k === 'Spacebar' || k === 'Enter')))) return;   // touches du vaisseau de l'IA
       let used = true;
       switch (k) {
-        case 'ArrowLeft': KEYS[0].l = down; break;
-        case 'ArrowRight': KEYS[0].r = down; break;
-        case 'ArrowUp': KEYS[0].u = down; break;
-        case 'ArrowDown': KEYS[0].d = down; break;
-        case ' ': case 'Spacebar': case 'Enter': if (down && !e.repeat && !paused) IN[0].sup = true; break;
-        case 'q': case 'a': KEYS[1].l = down; break;
-        case 'd': KEYS[1].r = down; break;
-        case 'z': case 'w': KEYS[1].u = down; break;
-        case 's': KEYS[1].d = down; break;
-        case 'e': if (down && !e.repeat && !paused) IN[1].sup = true; break;
+        case 'ArrowLeft': KEYS[a].l = down; break;
+        case 'ArrowRight': KEYS[a].r = down; break;
+        case 'ArrowUp': KEYS[a].u = down; break;
+        case 'ArrowDown': KEYS[a].d = down; break;
+        case ' ': case 'Spacebar': case 'Enter': if (down && !e.repeat && !paused) IN[a].sup = true; break;
+        case 'q': case 'a': KEYS[b].l = down; break;
+        case 'd': KEYS[b].r = down; break;
+        case 'z': case 'w': KEYS[b].u = down; break;
+        case 's': KEYS[b].d = down; break;
+        case 'e': if (down && !e.repeat && !paused) IN[b].sup = true; break;
         default: used = false;
       }
       if (used && down && !paused) e.preventDefault();
@@ -2479,6 +2564,1262 @@
       IN[p].mx += clamp(tx - me.x, -7, 7);
       IN[p].my += clamp((d < 0 ? LH - 130 : 130) - me.y, -2, 2);
       if (me.gauge >= 1 && op.alive && Math.abs(op.x - me.x) < 34) IN[p].sup = true;
+    }
+
+    // ===========================================================================
+    // IA (api.ai = { p, level, k }) : pilote le vaisseau du haut avec les MÊMES contrôles qu'un doigt (même vitesse,
+    // même zone, tir automatique). Elle ne voit que ce qu'un joueur voit, avec un temps de réaction humain (elle décide
+    // sur ce qu'elle a vu il y a « délai » secondes). Elle esquive (trajectoires prévues le long de SON propre trajet,
+    // recherche des trous), vise en anticipant le déplacement de l'adversaire, se cache derrière les astéroïdes quand
+    // il le faut, tire sur les capsules utiles, garde son SUPER pour le bon moment, esquive mines et drone.
+    // ===========================================================================
+    const AIC = !NET && api.ai && (api.ai.p === 0 || api.ai.p === 1) ? api.ai : null;
+    const AIP = AIC ? AIC.p : -1;
+    const AIK = AIC ? clamp(+AIC.k > 0 ? +AIC.k : ({ facile: 0.25, moyen: 0.5, difficile: 0.75, extreme: 1 })[AIC.level] || 0.5, 0.1, 1) : 0;
+    const AIN = AIK < 0.375 ? 'Facile' : AIK < 0.625 ? 'Moyen' : AIK < 0.875 ? 'Difficile' : 'Extrême';
+    const AIL = (() => {                            // réglages par niveau (interpolés entre facile 0,25 … extrême 1)
+      const T = {   //          facile  moyen  difficile extrême
+        delay:   [0.60, 0.32, 0.24, 0.15],     // temps de réaction (s)
+        decide:  [0.15, 0.10, 0.065, 0.035],   // intervalle entre deux décisions (s)
+        notice:  [0.45, 0.85, 0.93, 1],        // part des tirs qu'elle remarque
+        extrap:  [0.35, 0.9, 1, 1],            // prévision des trajectoires (1 = parfaite)
+        horizon: [0.45, 0.72, 0.85, 1.1],      // jusqu'où elle anticipe (s)
+        fingerV: [320, 620, 780, 1050],        // vitesse du « doigt » (unités/s)
+        fingerA: [3000, 7000, 12000, 20000],   // accélération du « doigt » (un vrai doigt repart dans l'autre sens en ~0,1 s)
+        aimErr:  [48, 18, 10, 3],              // erreur de visée (unités)
+        lead:    [0, 0.65, 0.9, 1],            // anticipation du déplacement adverse
+        aimW:    [0.7, 1, 1.2, 1.4],
+        caps:    [0, 0.5, 1, 1],               // intérêt pour les capsules
+        cover:   [0, 0.35, 0.7, 1],            // se mettre à l'abri, se méfier du SUPER adverse
+        blocked: [0, 0.6, 1, 1],               // sait que les obstacles arrêtent les tirs
+        wall:    [0, 0.2, 0.6, 1],             // évite de se faire coincer contre un bord
+        margin:  [-3, 3, 5, 7],                // marge de sécurité (unités)
+        wander:  [1, 0.6, 0.3, 0.15],          // flâne / hésite
+        mistake: [0.35, 0.07, 0.03, 0]         // bévues par seconde
+      };
+      const o = {}, u = clamp((AIK - 0.25) / 0.75 * 3, 0, 3), i = Math.min(2, Math.floor(u)), f = u - i;
+      for (const k in T) o[k] = T[k][i] + (T[k][i + 1] - T[k][i]) * f;
+      o.superMode = AIK < 0.375 ? 0 : AIK < 0.625 ? 1 : AIK < 0.875 ? 2 : 3;
+      return o;
+    })();
+    const AI = { fx: 0, fy: 0, vx: 0, vy: 0, gx: 0, gy: 0, decT: 0, aimOff: 0, aimT: 0, fullT: -1, supAt: -1, blT: 0, bx: 0, ovx: 0,
+      ph: AIC ? Math.random() * TAU : 0, seed: AIC ? Math.random() * 1000 : 0, on: false, danger: 0, mode: '', fired: 0,
+      still: 0, swAt: -1, g2x: 0, g2y: 0, oFull: 0, expo: 0, vq: [], lastVol: 0, oSh: 3, oHitAt: -9, effE: 0, effA: 0, eff: 0.75, pred: null };   // (sans IA : aucun tirage)
+    const AIH = [];                                // ce que l'IA a vu, image par image (elle réagit avec retard)
+    const CAPV = { T: 0.9, B: 0.5, M: 0.8, L: 1, D: 0.8, R: 0.9 };
+    function aiObserve() {
+      const op = S.ships[1 - AIP];
+      const o = { t: rt, ox: op.x, oy: op.y, oal: op.alive, oinv: op.inv > 0, osup: op.sup, osupT: op.supT, olas: op.lasOn, oslow: op.slow > 0,
+        osh: op.shield, obub: op.bub > 0, ogauge: op.gauge, oinvT: Math.max(0, op.inv), ostrong: op.tri > 0 || op.mis > 0 || op.las > 0 || op.dro > 0, th: [], ob: [], caps: [], bl: [],
+        dr: S.drone ? [S.drone.x, S.drone.y, S.drone.hp] : null };
+      for (const s of S.shots) if (!s.dead && s.p !== AIP) o.th.push([s.id, s.x, s.y, s.vx, s.vy, s.r, 0]);
+      for (const b of S.eb) if (!b.dead) o.th.push([b.id, b.x, b.y, b.vx, b.vy, b.r, 1]);
+      for (const m of S.mis) if (!m.dead && m.p !== AIP) o.th.push([m.id, m.x, m.y, m.vx, m.vy, 5, 2]);
+      for (const q of S.obs) if (!q.dead) o.ob.push([q.x, q.y, q.vx, q.vy, q.r]);
+      for (const m of S.mines) if (!m.dead) o.bl.push([m.x, m.y, m.vx, 0, 9]);
+      for (const c of S.caps) if (!c.dead) o.caps.push([c.x, c.y, c.vx, c.k, c.life - c.t]);
+      AIH.push(o);
+      while (AIH.length > 2 && AIH[1].t <= rt - AIL.delay - 0.3) AIH.shift();
+    }
+    function aiCapX(x, vx, t) {                     // où sera une capsule dans t s (elle rebondit sur les bords)
+      const lo = S.capM, w = LW - 2 * S.capM;
+      if (w <= 0) return LW / 2;
+      let q = (x + vx * t - lo) % (2 * w);
+      if (q < 0) q += 2 * w;
+      return lo + (q <= w ? q : 2 * w - q);
+    }
+    function aiDecide(me) {
+      const P = AIL, dir = me.dir;
+      let iO = 0;
+      for (let i = AIH.length - 1; i >= 0; i--) if (AIH[i].t <= rt - P.delay) { iO = i; break; }
+      const O = AIH[iO], age = rt - O.t;
+      let O2 = O;
+      for (let i = iO - 1; i >= 0; i--) if (O.t - AIH[i].t >= 0.12) { O2 = AIH[i]; break; }
+      const ovx = O2 !== O ? clamp((O.ox - O2.ox) / Math.max(0.05, O.t - O2.t), -320, 320) : 0;
+      AI.ovx += (ovx - AI.ovx) * 0.35;
+      AI.still = Math.abs(AI.ovx) < 25 && O.oal ? AI.still + P.decide : 0;   // depuis quand il ne bouge plus
+      const z = zoneY(S, AIP), back = dir > 0 ? z[0] : z[1], front = dir > 0 ? z[1] : z[0];
+      const H = P.horizon, STEP = 0.05, NT = Math.ceil(H / STEP), NS = Math.max(NT, 22), m = P.margin;
+      const bv = S.cfg.bspd * (S.heat ? 1.1 : 1);
+      // ---- menaces remarquées, trajectoires prévues pas à pas (arrêtées par les obstacles si elle le sait)
+      const TH = [];
+      const addT = (x0, y0, vx, vy, r, kind) => {
+        const xs = [], ys = [];
+        let x = x0, y = y0, near = false, end = NT + 1;
+        for (let k = 0; k <= NT; k++) {
+          if (k) {
+            if (kind === 2) {                       // missile : il me suit
+              const cur = Math.atan2(vy, vx), na = cur + clamp(angDiff(cur, Math.atan2(me.y - y, me.x - x)), -2.7 * STEP, 2.7 * STEP);
+              const sp = Math.min(290, Math.sqrt(vx * vx + vy * vy) + 320 * STEP);
+              vx = Math.cos(na) * sp; vy = Math.sin(na) * sp;
+            }
+            x += vx * STEP; y += vy * STEP;
+          }
+          xs.push(x); ys.push(y);
+          if (Math.abs(y - me.y) < 130) near = true;
+          if (end > NT && P.blocked >= 0.5 && kind < 2) {
+            const t = age + k * STEP;
+            for (const b of O.ob) { const bx = b[0] + b[2] * t, by = b[1] + b[3] * t, dx = bx - x, dy = by - y, rr = b[4] + r; if (dx * dx + dy * dy < rr * rr) { end = k; break; } }
+            if (end > NT && kind === 0) for (const b of O.bl) { const bx = b[0] + b[2] * t, dx = bx - x, dy = b[1] - y, rr = b[4] + r; if (dx * dx + dy * dy < rr * rr) { end = k; break; } }
+          }
+        }
+        if (near && end > 0) {
+          let x0b = 1e9, x1b = -1e9, y0b = 1e9, y1b = -1e9;
+          for (let k = 0; k < Math.min(end, NT + 1); k++) { const a = xs[k], b = ys[k]; if (a < x0b) x0b = a; if (a > x1b) x1b = a; if (b < y0b) y0b = b; if (b > y1b) y1b = b; }
+          const ex = SHIP_RX + r + m, ey = SHIP_RY + r + m;
+          TH.push({ xs, ys, r, end, x0: x0b - ex, x1: x1b + ex, y0: y0b - ey, y1: y1b + ey });
+        }
+      };
+      for (const q of O.th) {
+        if (q[6] !== 2 && hash(q[0] * 1.37 + AI.seed) > P.notice) continue;   // (les missiles se voient toujours)
+        const e = P.extrap;
+        addT(q[1] + q[3] * age * e, q[2] + q[4] * age * e, q[3], q[4], q[5], q[6]);
+      }
+      for (const b of O.ob) if (Math.abs(b[1] - me.y) < 150) addT(b[0] + b[2] * age, b[1] + b[3] * age, b[2], b[3], b[4] * 0.85, 3);   // astéroïdes (zones avancées)
+      // ---- l'adversaire : où il est, où il sera ; ce que valent une touche donnée / reçue
+      const opNow = clamp(O.ox + AI.ovx * age * P.lead, 18, LW - 18);
+      const opAt = (t) => clamp(opNow + AI.ovx * Math.min(t, 0.45) * P.lead, 18, LW - 18);
+      const oinvT = Math.max(0, O.oinvT - age);
+      const dealVal = O.osh <= 1 ? 2.4 : 1;          // le coup de grâce vaut cher
+      const takeCost = me.shield <= 1 ? 2.6 : me.shield === 2 ? (O.osh <= 1 ? 1 : 1.3) : 1;   // je prends des risques quand j'ai de l'avance
+      const def = (me.shield <= 1 ? 1 : me.shield === 2 ? 0.5 : 0.25) * (O.ostrong || O.osup > 0 ? 1.5 : 1) * (me.bub > 0 ? 0.4 : 1);
+      const segBlocked = (x0, y0, x1, y1, t) => {   // un obstacle coupe-t-il la ligne de tir ?
+        for (const b of O.ob) {
+          const bx = b[0] + b[2] * t, by = b[1] + b[3] * t;
+          if ((by - y0) * (by - y1) > 0) continue;
+          const f = (by - y0) / ((y1 - y0) || 1), lx = x0 + (x1 - x0) * f;
+          if (Math.abs(bx - lx) < b[4] - 2) return true;
+        }
+        return false;
+      };
+      // ---- mes prochains tirs (je connais mon rythme), mon rayon, mes drones
+      const slowF = me.slow > 0 ? 0.55 : 1, fireInt = (S.cfg.fire * (S.heat ? 0.78 : 1)) / slowF;
+      const VT = [], DT = [];
+      if (me.sup === 0 && !(me.las > 0)) for (let t = Math.max(0, me.fireT) / slowF; t <= 1.05 && VT.length < 4; t += fireInt) VT.push(t);
+      if (me.dro > 0) for (let t = Math.max(0, me.droT); t <= Math.min(1.05, me.dro) && DT.length < 3; t += 0.34) DT.push(t);
+      const beamFrom = me.sup === 1 ? Math.max(0, 0.5 - me.supT) : me.sup === 2 ? 0 : 99;
+      const beamTo = me.sup === 1 ? beamFrom + 1.45 : me.sup === 2 ? 1.45 - me.supT : -1;
+      const invT = Math.max(0, me.inv), bubOn = me.bub > 0 && me.bubN > 0;
+      // ---- mon trajet si mon doigt va vers (ax, ay) puis, après tsw s, vers (bx, by) : mêmes réactions que le vrai
+      const spd = 600 * (me.slow > 0 ? 0.4 : 1) * (me.sup === 2 ? 0.6 : me.las > 0 ? 0.7 : 1);
+      const PX = new Float32Array(NS + 1), PY = new Float32Array(NS + 1), PB = new Float32Array(NS + 1);
+      const path = (ax, ay, tsw, bx2, by2) => {
+        let fx = AI.fx, fy = AI.fy, vx = AI.vx, vy = AI.vy, x = me.x, y = me.y, bank = me.bank;
+        const h = STEP / 3, a = P.fingerA * h, kk = Math.min(1, h * 18), kb = Math.min(1, h * 10);
+        PX[0] = x; PY[0] = y; PB[0] = bank;
+        for (let k = 1; k <= NS; k++) {
+          for (let j = 0; j < 3; j++) {
+            const t = (k - 1) * STEP + j * h, gx = t < tsw ? ax : bx2, gy = t < tsw ? ay : by2;
+            const dx = gx - fx, dy = gy - fy, dist = Math.sqrt(dx * dx + dy * dy), want = Math.min(P.fingerV, dist * 9);
+            vx += clamp((dist > 1e-3 ? (dx / dist) * want : 0) - vx, -a, a); vy += clamp((dist > 1e-3 ? (dy / dist) * want : 0) - vy, -a, a);
+            fx += vx * h; fy += vy * h;
+            const tx = clamp(fx, x - 70, x + 70), ty = clamp(fy, y - 70, y + 70), ox = x;
+            x += clamp((tx - x) * kk, -spd * h, spd * h); y = clamp(y + clamp((ty - y) * kk, -spd * h, spd * h), z[0], z[1]);
+            bank += (clamp(((x - ox) / h / 240) * -dir, -1, 1) - bank) * kb;
+          }
+          PX[k] = x; PY[k] = y; PB[k] = bank;
+        }
+      };
+      // ---- touche reçue : la première (après, je suis invulnérable un moment)
+      const takeEval = () => {
+        let px0 = 1e9, px1 = -1e9, py0 = 1e9, py1 = -1e9;
+        for (let k = 0; k <= NT; k++) { const a = PX[k], b = PY[k]; if (a < px0) px0 = a; if (a > px1) px1 = a; if (b < py0) py0 = b; if (b > py1) py1 = b; }
+        const hit = new Uint8Array(TH.length);
+        for (let j = 0; j < TH.length; j++) { const q = TH[j]; if (q.x1 < px0 || q.x0 > px1 || q.y1 < py0 || q.y0 > py1) hit[j] = 2; }
+        let tCol = 99, n = 0, beamC = opNow, lasC = 0;
+        for (let k = 0; k <= NT; k++) {
+          const t = k * STEP, sx = PX[k], sy = PY[k], inv = t < invT;
+          for (let j = 0; j < TH.length; j++) {
+            const q = TH[j];
+            if (hit[j] || k >= q.end) continue;
+            if (t >= beamFrom && t <= beamTo && Math.abs(q.xs[k] - sx) < 22 && (q.ys[k] - sy) * dir > 0) continue;   // mon rayon l'efface
+            const dx = (q.xs[k] - sx) / (SHIP_RX + q.r + m), dy = (q.ys[k] - sy) / (SHIP_RY + q.r + m);
+            if (dx * dx + dy * dy < 1) { hit[j] = 1; if (!inv) { n++; if (t < tCol) tCol = t; } }
+          }
+          if (O.osup > 0) {                         // MÉGA-RAYON adverse : sa colonne me poursuit (≈ 360 unités/s)
+            const fireIn = O.osup === 1 ? Math.max(0, 0.5 - O.osupT - age) : 0, left = O.osup === 2 ? 1.45 - O.osupT - age : 1.95;
+            if (k && t > 0.12) beamC += clamp(PX[k - 1] - beamC, -330 * STEP, 330 * STEP);
+            if (!inv && t >= fireIn - 0.05 && t <= fireIn + left && Math.abs(sx - beamC) < 22 + SHIP_RX + m + 6) { n++; if (t < tCol) tCol = t; }
+          }
+          if (O.olas) {                             // laser adverse : il brûle après ~0,5 s de contact
+            if (Math.abs(sx - O.ox) < 4.5 + SHIP_RX + m + 4 && !segBlocked(O.ox, O.oy, sx, sy, age + t)) lasC += STEP; else lasC = Math.max(0, lasC - STEP * 0.5);
+            if (lasC >= 0.4 && !inv && t < tCol) { tCol = t; n++; }
+          }
+        }
+        if (tCol > 50) return 0;
+        const c = takeCost * (1.3 - 0.6 * Math.min(1, tCol / H)) + 0.15 * (n - 1);
+        return bubOn ? c * 0.4 : c;
+      };
+      // ---- touche donnée : mes salves (vraies trajectoires : dérive quand je glisse, éventail du tir triple), drones, rayon, laser
+      const shotP = (bx, by, bvx, bvy, tf) => {
+        const T = (O.oy - by) / bvy;
+        if (!(T > 0)) return 0;
+        const ta = tf + T;
+        if (ta < oinvT) return 0;
+        const ax = bx + bvx * T, ox = opAt(ta) + AI.aimOff, miss = Math.abs(ax - ox) - (SHIP_RX + 3.2);
+        const sg = 4 + Math.abs(AI.ovx) * (0.1 + (1 - P.lead) * 0.3) * ta;
+        let p = miss <= 0 ? 1 : Math.exp(-(miss * miss) / (2 * sg * sg));
+        if (p > 0.05 && P.blocked > 0 && segBlocked(bx, by, ax, O.oy, age + tf + T * 0.5)) p *= 1 - P.blocked;
+        return p;
+      };
+      const xpE = clamp((AIK - 0.25) / 0.5, 0, 1);   // (facile ne tire pas de leçons, difficile et extrême complètement)
+      const dealEval = () => {
+        let pMiss = 1, tHit = 99;
+        const add = (p, t) => { if (p > 0.01) { pMiss *= 1 - p; if (p > 0.3 && t < tHit) tHit = t; } };
+        for (const tf of VT) {
+          const k = Math.min(NS, Math.round(tf / STEP)), x = PX[k], y = PY[k], lat = PB[k] * -dir * 50;
+          let pv = 0;
+          if (me.tri > 0) {
+            pv = shotP(x, y + dir * 36, lat, dir * bv, tf);
+            for (let s = -1; s <= 1; s += 2) { const a = s * 0.21; pv = Math.max(pv, shotP(x + s * 7, y + dir * 30, lat + Math.sin(a) * bv, dir * Math.cos(a) * bv, tf)); }
+          } else for (let s = -1; s <= 1; s += 2) pv = Math.max(pv, shotP(x + s * 7, y + dir * 32, lat, dir * bv, tf));
+          add(pv, tf);
+        }
+        for (const tf of DT) {                      // drones d'escorte : ils tirent de part et d'autre de moi
+          const k = Math.min(NS, Math.round(tf / STEP));
+          let pv = 0;
+          for (let i = 0; i < 2; i++) {
+            if (me.drones[i].hp <= 0) continue;
+            const g = me.droA + 2.4 * tf + i * Math.PI;
+            pv = Math.max(pv, shotP(PX[k] + Math.cos(g) * 34, PY[k] + Math.sin(g) * 12 - dir * 4 + dir * 6, 0, dir * bv * 0.95, tf));
+          }
+          add(pv, tf);
+        }
+        if (beamTo > 0) for (let k = 0; k <= NS; k++) {   // mon méga-rayon : il traverse tout
+          const t = k * STEP;
+          if (t >= beamFrom && t <= beamTo && t >= oinvT && Math.abs(PX[k] - opAt(t)) < 22 + SHIP_RX - 3) { pMiss = 0; if (t < tHit) tHit = t; break; }
+        }
+        if (me.las > 0 && me.sup === 0) {           // mon laser : il brûle après ~0,5 s de contact
+          let c = 0;
+          for (let k = 0; k <= NS; k++) {
+            const t = k * STEP;
+            if (Math.abs(PX[k] - opAt(t)) < 4.5 + SHIP_RX - 2 && !segBlocked(PX[k], PY[k], opAt(t), O.oy, age + t)) c += STEP; else c = Math.max(0, c - STEP * 0.5);
+            if (c >= 0.5 && t >= oinvT) { pMiss = 0; if (t < tHit) tHit = t; break; }
+          }
+        }
+        const p = 1 - pMiss;
+        return p > 0 ? dealVal * p * (1.15 - 0.3 * Math.min(1, tHit / 1.05)) * Math.pow(AI.eff, xpE) : 0;
+      };
+      // ---- son SUPER est (presque) prêt : je ne reste pas dans sa ligne… sauf s'il ne s'en sert jamais
+      const xp1 = clamp((P.cover - 0.7) / 0.3, 0, 1);
+      if (O.ogauge >= 1 && O.osup === 0) { AI.oFull += P.decide; if (Math.abs(me.x - O.ox) < 34) AI.expo += P.decide; } else { AI.oFull = 0; AI.expo = 0; }
+      const passive = clamp(1 - Math.max(0, AI.oFull - 2) / 4 - AI.expo / 1.2, 0.15, 1);
+      const supRisk = O.osup === 0 && O.oal && P.cover > 0 && O.ogauge >= 1 - 0.25 * xp1 ? (me.slow > 0 ? 1.6 : 1) * (O.ogauge >= 1 ? 1 : 0.6) * (0.45 + 0.55 * xp1) * passive : 0;
+      const opSoon = clamp(opNow + AI.ovx * 0.25, 18, LW - 18);
+      const cur = AI.swAt > 0 && rt >= AI.swAt, hx = cur ? AI.g2x : AI.gx, hy = cur ? AI.g2y : AI.gy;   // mon idée actuelle
+      const score = (ax, ay, tsw, bx2, by2) => {
+        path(ax, ay, tsw, bx2, by2);
+        const take = takeEval(), deal = O.oal ? dealEval() : 0;
+        let sc = 2.2 * P.aimW * deal - 2.6 * take;
+        const cx = tsw < 50 ? bx2 : ax, cy = tsw < 50 ? by2 : ay;
+        if (supRisk) for (const xx of tsw < 50 ? [ax, cx] : [cx]) { const d = Math.min(Math.abs(xx - opNow), Math.abs(xx - opSoon)), q = clamp((60 - d) / 60, 0, 1); sc -= 2.6 * P.cover * supRisk * q * q * (3 - 2 * q); }
+        if (O.oal && P.cover > 0) { const d = Math.abs(cx - opAt(1)), q = clamp((34 - d) / 34, 0, 1); sc -= 0.8 * takeCost * P.cover * q; }   // finir dans sa colonne : ses prochaines salves
+        if (P.caps > 0 && me.sup === 0) for (const c of O.caps) {   // capsules utiles : je les tire
+          if (c[4] - age < 1.2) continue;
+          const T = Math.abs(c[1] - (cy + dir * 32)) / bv, xc = aiCapX(c[0], c[2], age + T), d = cx - xc;
+          const val = c[3] === 'B' ? (me.shield <= 2 ? 1.2 : 0.4) : CAPV[c[3]] || 0.5;
+          sc += P.caps * val * 0.8 * Math.exp(-(d * d) / (2 * 11 * 11));
+        }
+        if (O.dr && me.sup === 0) { const d = cx - O.dr[0]; sc += 0.15 * P.caps * Math.exp(-(d * d) / (2 * 30 * 30)); }   // le drone géant rapporte du SUPER
+        if (me.gauge < 1 && P.caps > 0) for (const b of O.ob) { if (Math.abs(b[0] + b[2] * (age + 0.4) - cx) < b[4]) { sc += 0.06 * P.caps; break; } }   // casser un rocher : du SUPER
+        if (P.cover > 0) {                          // à l'abri : un astéroïde entre lui et moi (ses tirs vont tout droit)
+          let cov = false;
+          for (const b of O.ob) { const bx = b[0] + b[2] * (age + 0.5), by = b[1] + b[3] * (age + 0.5); if ((by - cy) * (by - O.oy) < 0 && Math.abs(bx - cx) < b[4] - 3) { cov = true; break; } }
+          if (cov) sc += 0.25 * P.cover * def;
+        }
+        sc -= P.wall * Math.max(0, 1 - Math.min(cx - 18, LW - 18 - cx) / 45) * 0.6;
+        sc += (Math.abs(cy - front) < 12 ? 0.04 : 0) - (Math.abs(cy - back) < 12 ? 0 : 0.03 * def);
+        sc -= Math.abs(ax - me.x) * 0.0012 + Math.abs(ay - me.y) * 0.0015;
+        const dg = Math.hypot(ax - hx, ay - hy);
+        sc += 0.25 * Math.exp(-(dg * dg) / (2 * 22 * 22));   // garde son idée (pas de va-et-vient)
+        return { sc, take };
+      };
+      // ---- les plans : rester quelque part, ou « plonger » dans sa colonne le temps d'une salve puis ressortir
+      let best = null, plan = null;
+      const tryPlan = (ax, ay, tsw, bx2, by2) => {
+        ax = clamp(ax, 18, LW - 18); bx2 = clamp(bx2, 18, LW - 18); ay = clamp(ay, z[0], z[1]); by2 = clamp(by2, z[0], z[1]);
+        const r = score(ax, ay, tsw, bx2, by2);
+        if (!best || r.sc > best.sc) { best = r; plan = [ax, ay, tsw, bx2, by2]; }
+      };
+      const ys = [back + (front - back) * 0.08, (back + front) / 2, front - (front - back) * 0.08];
+      for (let x = 20; x <= LW - 20; x += 24) for (const y of ys) tryPlan(x, y, 99, x, y);
+      const cx0 = plan[0];
+      for (const x of [cx0 - 12, cx0 - 6, cx0 + 6, cx0 + 12]) for (const y of ys) tryPlan(x, y, 99, x, y);
+      tryPlan(me.x, me.y, 99, me.x, me.y);
+      tryPlan(AI.gx, AI.gy, 99, AI.gx, AI.gy);
+      if (O.oal && me.sup === 1) { const side = me.x < opNow ? -1 : 1; for (const yy of ys) tryPlan(opNow + side * 46, yy, beamFrom, opAt(beamFrom + 0.1), yy); }   // je charge à côté, je m'y glisse quand il part
+      if (O.oal && me.sup === 2) for (const yy of ys) tryPlan(opNow, yy, 99, opNow, yy);
+      if (AI.swAt > rt) tryPlan(AI.gx, AI.gy, AI.swAt - rt, AI.g2x, AI.g2y);   // le plongeon en cours
+      if (O.oal && VT.length && P.caps > 0 && (AIK >= 0.7 || AI.still > 1)) {   // plongeons (moyen : seulement sur une cible immobile ; facile : jamais)
+        const side = me.x < opNow ? -1 : 1;
+        for (let i = 0; i < Math.min(2, VT.length); i++) {
+          const tf = VT[i];
+          for (const yy of [ys[1], ys[2], ys[0]]) {
+            const T = Math.abs(O.oy - (yy + dir * 32)) / bv, xin = opAt(tf + T);
+            for (const d of [0, side * 7]) tryPlan(xin + d, yy, tf + 0.03, xin + side * 52, yy);
+          }
+        }
+      }
+      AI.danger = best.take;
+      AI.pred = { t: rt, opNow, ovx: AI.ovx, oy: O.oy, inv: rt + oinvT };
+      let [ax, ay, tsw, bx2, by2] = plan;
+      // bévues (niveaux faciles) : part un moment au mauvais endroit
+      if (AI.blT > 0) { AI.blT -= P.decide; ax = bx2 = AI.bx; tsw = 99; }
+      else if (Math.random() < P.mistake * P.decide) { AI.blT = 0.3 + Math.random() * 0.6; AI.bx = 20 + Math.random() * (LW - 40); }
+      AI.gx = ax; AI.gy = ay; AI.g2x = bx2; AI.g2y = by2; AI.swAt = tsw < 50 ? rt + tsw : -1;
+      AI.mode = me.sup > 0 ? 'rayon' : me.las > 0 ? 'laser' : tsw < 50 ? 'plongeon' : best.take > 0.3 ? 'esquive' : 'attaque';
+      // SUPER : seulement au bon moment (jamais pendant celui de l'adversaire : il me ralentirait)
+      if (me.gauge >= 1 && me.sup === 0 && S.phase === 'play') {
+        if (AI.fullT < 0) AI.fullT = rt;
+        if (!(O.osup > 0 && AIL.superMode >= 1) && aiSuper(me, O, opNow, z)) { IN[AIP].sup = true; AI.fullT = -1; AI.supAt = -1; AI.fired++; }
+      } else if (me.gauge < 1) { AI.fullT = -1; AI.supAt = -1; }
+    }
+    function aiSuper(me, O, opx, z) {
+      if (!O.oal) return false;
+      const dx = Math.abs(me.x - opx), held = rt - AI.fullT;
+      switch (AIL.superMode) {
+        case 0:                                     // facile : n'importe quand, après une petite attente
+          if (AI.supAt < 0) AI.supAt = rt + 0.5 + Math.random() * 3.5;
+          return rt >= AI.supAt;
+        case 1: return !O.oinv && (dx < 30 || (AI.still > 1.5 && dx < 60));   // moyen : à peu près en face (ou il ne bouge plus)
+        case 2:                                     // difficile : en face et il aura du mal à s'échapper (ou il ne bouge plus)
+          return !O.oinv && !O.obub && ((AI.still > 0.8 && dx < 80) || (dx < 24 && (O.oslow || Math.abs(AI.ovx) < 120 || O.osh === 1 || held > 10)));
+        default: {                                  // extrême : le piège
+          if (O.oinv || O.obub) return held > 14 && dx < 22;
+          if (AI.still > 0.5 && dx < 95) return true;               // il ne bouge plus : je charge à côté et je m'y glisse
+          const wall = Math.min(opx - 18, LW - 18 - opx), towardWall = (opx - me.x) * (opx < LW / 2 ? -1 : 1) >= 0;
+          if (O.oslow && dx < 34) return true;                      // il est gelé : il ne pourra pas sortir de la colonne
+          if (wall < 60 && towardWall && dx < 30) return true;      // coincé contre un bord, je lui bloque la sortie
+          if (O.osh === 1 && dx < 22 && Math.abs(AI.ovx) < 220) return true;   // le coup de grâce
+          if (dx < 16 && Math.abs(AI.ovx) < 60) return true;        // il ne bouge presque pas
+          if (O.dr && O.dr[2] < 50 && Math.abs(O.dr[0] - me.x) < 26 && dx > 60) return true;   // achever le drone : SUPER rendu
+          return held > 9 && dx < 24;
+        }
+      }
+    }
+    function aiLearn(me) {                         // ses salves : touché prévu / touché réel → elle sait si l'adversaire esquive
+      const op = S.ships[1 - AIP];
+      if (op.shield < AI.oSh) AI.oHitAt = rt;
+      AI.oSh = op.shield;
+      if (me.vol !== AI.lastVol && AI.pred && me.sup === 0) {
+        AI.lastVol = me.vol;
+        const Pq = AI.pred, bv = S.cfg.bspd * (S.heat ? 1.1 : 1), lat = me.bank * -me.dir * 50, T = Math.abs(Pq.oy - (me.y + me.dir * 32)) / bv;
+        const ox = clamp(Pq.opNow + Pq.ovx * Math.min(rt - Pq.t + T, 0.45) * AIL.lead, 18, LW - 18), miss = Math.abs(me.x + lat * T - ox) - 25;
+        const pr = miss <= 0 ? 1 : Math.exp(-(miss * miss) / (2 * 100));
+        if (pr > 0.3 && rt + T > Pq.inv) AI.vq.push([rt + T, pr]);
+      } else if (me.vol !== AI.lastVol) AI.lastVol = me.vol;
+      while (AI.vq.length && rt > AI.vq[0][0] + 0.2) {
+        const q = AI.vq.shift(), hit = Math.abs(AI.oHitAt - q[0]) < 0.25;
+        AI.effE = AI.effE * 0.97 + q[1]; AI.effA = AI.effA * 0.97 + (hit ? 1 : 0);
+        AI.eff = clamp((AI.effA + 1.5) / (AI.effE + 2), 0.2, 1.1);
+      }
+    }
+    function aiInput(dt) {                         // chaque image : ce qu'elle voit, puis son « doigt » glisse vers son but
+      const me = S.ships[AIP], ip = IN[AIP];
+      aiObserve();
+      aiLearn(me);
+      if (!AI.on || S.phase === 'intro' || !me.alive) {
+        AI.on = S.phase !== 'intro' && me.alive;
+        AI.fx = AI.gx = AI.g2x = me.tx; AI.fy = AI.gy = AI.g2y = me.ty; AI.vx = AI.vy = 0; AI.decT = 0.2 + AIL.delay; AI.swAt = -1;
+        return;
+      }
+      AI.aimT -= dt;
+      if (AI.aimT <= 0) { AI.aimT = 1.2 + Math.random() * 1.2; AI.aimOff = (Math.random() * 2 - 1) * AIL.aimErr * (0.35 + 0.65 * Math.min(1, Math.abs(AI.ovx) / 150)); }
+      AI.decT -= dt;
+      if (AI.decT <= 0) { AI.decT = AIL.decide * (0.8 + Math.random() * 0.4); aiDecide(me); }
+      const calm = AI.danger < 0.2 ? 1 : 0.2;      // un humain ne reste jamais parfaitement immobile
+      const sw = AI.swAt > 0 && rt >= AI.swAt, px = sw ? AI.g2x : AI.gx, py = sw ? AI.g2y : AI.gy;
+      const gx = px + Math.sin(rt * 1.1 + AI.ph) * 7 * AIL.wander * calm, gy = py + Math.sin(rt * 0.7 + AI.ph * 2) * 4 * AIL.wander * calm;
+      const dx = gx - AI.fx, dy = gy - AI.fy, dist = Math.sqrt(dx * dx + dy * dy), want = Math.min(AIL.fingerV, dist * 9);
+      const tvx = dist > 1e-3 ? (dx / dist) * want : 0, tvy = dist > 1e-3 ? (dy / dist) * want : 0, a = AIL.fingerA * dt;
+      AI.vx += clamp(tvx - AI.vx, -a, a); AI.vy += clamp(tvy - AI.vy, -a, a);
+      const z = zoneY(S, AIP);
+      AI.fx = clamp(AI.fx + AI.vx * dt, 18, LW - 18); AI.fy = clamp(AI.fy + AI.vy * dt, z[0], z[1]);
+      ip.mx = AI.fx - me.tx; ip.my = AI.fy - me.ty; ip.kx = 0; ip.ky = 0;
+    }
+
+    // ===========================================================================
+    // JEU EN LIGNE (api.net) — chaque appareil fait tourner le jeu en pleine qualité.
+    // HÔTE (joueur 0) : toute la simulation (vaisseaux, tirs, astéroïdes, capsules, drone, dégâts). Il envoie
+    //   ~30 fois/s un instantané compact (vaisseaux, obstacles, missiles, drone, en unités du terrain) et, en fiable,
+    //   les événements datés en temps de jeu G (ms) : début de manche + graine, naissance des projectiles
+    //   (position, vitesse, heure), chocs, explosions, bonus, touches, points, sons…
+    // INVITÉ (joueur 1) : son vaisseau et ses tirs sont prédits sur place (zéro décalage) et envoyés à l'hôte (~60/s) ;
+    //   le reste est lissé (interpolation ~1 instantané en retard + extrapolation courte). Les projectiles sont
+    //   recréés à partir de leur naissance et « recalés » doucement dans le temps : près du canon ils partent du
+    //   vaisseau affiché, près de leur cible ils sont là où l'hôte les verra (touché juste, des deux côtés).
+    // Horloges : api.net.now() (T, ms, commune) ; G = temps de jeu de l'hôte (avance avec la simulation, ralentis
+    //   compris) ; chaque instantané donne le couple (T, G).
+    // ===========================================================================
+    const R10 = (v) => Math.round(v * 10);
+    const RND1 = (v) => (typeof v === 'number' ? Math.round(v * 10) / 10 : Array.isArray(v) ? v.map(RND1) : v);
+    const PHC = { intro: 0, play: 1, ko: 2, draw: 3, over: 4 }, PHN = ['intro', 'play', 'ko', 'draw', 'over'];
+    const NERR = [];                               // messages illisibles (tests)
+    let REC = null;                                // enregistrement image par image (tests de fluidité)
+    const FING = { x: 0, y: 0, n: 0 }, NSTAT = {};
+    function nsend(msg, rel) {
+      if (!NET || destroyed) return;
+      if (REC) { const q = NSTAT[msg.k] || (NSTAT[msg.k] = [0, 0, 0]); q[0]++; const n = JSON.stringify(msg).length; q[1] += n; q[2] = Math.max(q[2], n); }
+      try { NET.send(msg, rel ? { reliable: true } : undefined); } catch (e) { /* rien */ }
+    }
+    let clkOff = null;
+    function netNow() {                            // horloge commune (ms), lissée : pas d'à-coups d'une image à l'autre
+      const pn = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      let n = NaN;
+      try { n = +NET.now(); } catch (e) { /* rien */ }
+      if (isFinite(n)) {
+        const off = n - pn;
+        if (clkOff === null || Math.abs(off - clkOff) > 250) clkOff = off; else clkOff += (off - clkOff) * 0.02;
+      }
+      return pn + (clkOff || 0);
+    }
+    let frameT = -1;                               // horodatage de l'image en cours (requestAnimationFrame) : base de temps régulière
+    function frameNow() { netNow(); return (frameT >= 0 ? frameT : performance.now()) + (clkOff || 0); }
+    function trapz(u) {                            // 0 → 1 en douceur (vitesse en trapèze, sans pointe)
+      if (u <= 0) return 0;
+      if (u >= 1) return 1;
+      const a = 0.2;
+      if (u < a) return (u * u) / (2 * a * (1 - a));
+      if (u > 1 - a) return 1 - ((1 - u) * (1 - u)) / (2 * a * (1 - a));
+      return (u - a / 2) / (1 - a);
+    }
+    // lissage des corrections : après une extrapolation (message en retard ou perdu), on rejoint le vrai chemin en douceur
+    function mkSm() { return { rid: -1, rx: 0, ry: 0, vx: 0, vy: 0, ex: 0, ey: 0, was: 0 }; }
+    function smooth(m, rid, rx, ry, ext, dt) {
+      if (m.rid !== rid || !(dt > 0) || dt > 0.1) { m.rid = rid; m.ex = m.ey = 0; m.vx = m.vy = 0; m.rx = rx; m.ry = ry; m.was = ext; return [rx + m.ex, ry + m.ey]; }
+      let jumped = false;
+      if (m.was || ext) {
+        const jx = rx - (m.rx + m.vx * dt), jy = ry - (m.ry + m.vy * dt), j2 = jx * jx + jy * jy;
+        if (j2 > 0.09 && j2 < 3600) { m.ex -= jx; m.ey -= jy; jumped = true; }
+      }
+      if (!jumped) { m.vx = (rx - m.rx) / dt; m.vy = (ry - m.ry) / dt; }
+      m.rx = rx; m.ry = ry; m.was = ext;
+      const f = Math.exp(-dt / 0.11);
+      m.ex *= f; m.ey *= f;
+      return [rx + m.ex, ry + m.ey];
+    }
+    function headByName(n) {                       // le copain pilote du drone, choisi par l'hôte
+      const name = String(n || '').trim().toUpperCase();
+      if (!name) return null;
+      try {
+        const l = typeof api.heads === 'function' ? api.heads() : [];
+        for (const h of (Array.isArray(l) ? l : [])) if (h && imgOk(h.img) && String(h.name || '').trim().toUpperCase().slice(0, 12) === name) return h;
+      } catch (e) { /* rien */ }
+      return null;
+    }
+
+    // ------------------------------------------------------------- HÔTE
+    const HN = {
+      hello: null, waitT: 0, rid: 0, G: 0, k: 1, iv: 17,
+      p1: [], Lm: 0, Ld: 12, Ln: 0, dH: 120,       // positions reçues de l'invité [T, x, y] ; retard de lissage dH (ms)
+      births: [], sup: false, t: null, x0: 0, y0: 0, sm: mkSm(),
+      lastSnap: -1e9, seq: 0, maxObs: 0, out: [], outB: [], outX: []
+    };
+    function hostMsg(m) {
+      switch (m.k) {
+        case 'h':                                  // l'invité est prêt (taille de son écran → terrain commun)
+          HN.hello = { w: clamp(+m.w || 390, 200, 5000), h: clamp(+m.h || 780, 200, 5000) };
+          if (m.j && S && started) hostSync();     // (re)venue en cours de manche : on lui renvoie tout ; sinon simple taille d'écran
+          break;
+        case 'i': {                                // position de l'invité (~60 fois/s, peut se perdre)
+          const T = +m.T;
+          if (m.r !== HN.rid || !isFinite(T) || !isFinite(+m.x) || !isFinite(+m.y)) break;
+          const L = netNow() - T;
+          if (HN.Ln++ === 0) HN.Lm = L;
+          else { HN.Lm += (L - HN.Lm) * 0.03; HN.Ld += (Math.abs(L - HN.Lm) - HN.Ld) * 0.03; }
+          const a = HN.p1;
+          if (a.length && T > a[a.length - 1][0]) HN.iv += (clamp(T - a[a.length - 1][0], 5, 100) - HN.iv) * 0.05;   // cadence de ses envois
+          let i = a.length;
+          while (i > 0 && a[i - 1][0] > T) i--;
+          if (i > 0 && a[i - 1][0] === T) break;
+          a.splice(i, 0, [T, m.x / 10, m.y / 10]);
+          while (a.length > 4 && a[0][0] < T - 1500) a.shift();
+          break;
+        }
+        case 'B': if (m.r === HN.rid) HN.births.push(m); break;   // ses salves (fiable)
+        case 'S': if (m.r === HN.rid) HN.sup = true; break;       // il a déclenché le SUPER
+        default: break;
+      }
+    }
+    function hostP1() {                            // position de l'invité, lissée avec un petit retard constant
+      const a = HN.p1;
+      if (!a.length) return null;
+      const T = frameNow() - HN.dH;
+      let i = a.length - 1;
+      while (i >= 0 && a[i][0] > T) i--;
+      if (i < 0) return [T, a[0][1], a[0][2], 0];
+      if (i === a.length - 1) {                    // rien de plus récent : courte extrapolation (lissée ensuite)
+        const s = a[i], q = a[i - 1];
+        if (!q || s[0] <= q[0]) return [T, s[1], s[2], 1];
+        const k = Math.min(T - s[0], 70) / (s[0] - q[0]);
+        return [T, s[1] + (s[1] - q[1]) * k, s[2] + (s[2] - q[2]) * k, 1];
+      }
+      const s0 = a[i], s1 = a[i + 1], k = (T - s0[0]) / Math.max(1e-3, s1[0] - s0[0]);
+      return [T, lerp(s0[1], s1[1], k), lerp(s0[2], s1[2], k), 0];
+    }
+    function hostBefore(dt) {
+      const tgt = clamp(HN.Lm + 2 * HN.Ld + Math.max(28, HN.iv + 12), 30, 700);   // retard de lissage : suit la latence (et la cadence), très progressivement
+      if (HN.Ln > 10) HN.dH += clamp(tgt - HN.dH, -0.6, 0.6);
+      if (HN.births.length) hostBirths();
+      if (HN.sup) { HN.sup = false; IN[1].sup = true; }
+      const sh = S.ships[1], r = S.phase !== 'intro' && sh.alive ? hostP1() : null;
+      if (r) { const q = smooth(HN.sm, HN.rid, r[1], r[2], r[3], dt); HN.t = [r[0], q[0], q[1]]; } else HN.t = null;
+      HN.x0 = sh.x; HN.y0 = sh.y;
+    }
+    function hostHold() {                          // gel d'impact ici : le vaisseau de l'invité, lui, ne gèle pas chez lui
+      const sh = S.ships[1];
+      if (!HN.t || !sh.alive || S.phase === 'intro') return;
+      const z = zoneY(S, 1);
+      sh.x = sh.tx = clamp(HN.t[1], 18, S.LW - 18); sh.y = sh.ty = clamp(HN.t[2], z[0], z[1]);
+    }
+    function hostSub(i, n) {                       // sous-pas : la position de l'invité avance régulièrement
+      const b = SUB[1];
+      b.ext = true;
+      if (HN.t) { const q = (i + 1) / n; b.ax = lerp(HN.x0, HN.t[1], q); b.ay = lerp(HN.y0, HN.t[2], q); }
+      else { b.ax = undefined; b.ay = undefined; }
+    }
+    function hostBirths() {                        // salves de l'invité : créées à leur vraie place (trajet déjà fait compris)
+      const sh = S.ships[1], rid = HN.rid;
+      for (const m of HN.births) {
+        if (m.r !== rid || S.phase !== 'play' || !sh.alive) continue;
+        const a = Array.isArray(m.b) ? m.b : [], el = clamp(HN.G - (+m.g || 0) / 1000, 0, 0.6);
+        let vol = false;
+        for (let i = 0; i + 5 < a.length; i += 6) {
+          const k = a[i + 1] === 3 ? 1 : 0;
+          const s = { id: a[i], p: 1, x: a[i + 2] / 10, y: a[i + 3] / 10, vx: a[i + 4] / 10, vy: a[i + 5] / 10, r: k ? 3 : 3.6, dmg: 1, k, dead: false,
+            x0: 0, y0: 0, lag: HN.dH / 1000, D: 120 };
+          if (![s.id, s.x, s.y, s.vx, s.vy].every(isFinite)) continue;
+          s.x0 = s.x; s.y0 = s.y; s.D = Math.max(120, Math.abs(s.y0 - S.ships[0].y) - 30);
+          if (!k) vol = true;
+          for (let left = el; left > 1e-6 && !s.dead;) {
+            const h = Math.min(1 / 60, left);
+            left -= h; s.x += s.vx * h; s.y += s.vy * h;
+            if (s.y < -30 || s.y > LH + 30 || s.x < -30 || s.x > S.LW + 30) s.dead = true;
+            else if (shotHits(S, s)) pkill(S, s);
+          }
+          if (!s.dead) S.shots.push(s);
+        }
+        if (vol) {                                 // flash + son au canon de l'invité, tel qu'il est affiché ici
+          after(Math.max(0, HN.dH / 1000 - el), () => {
+            if (S && HN.rid === rid && sh.alive && S.phase === 'play') { sh.vol++; S.ev.push({ k: 'fire', p: 1, x: sh.x, y: sh.y + sh.dir * 34 }); }
+          });
+        }
+      }
+      HN.births.length = 0;
+    }
+    function hostEv(e) {                           // événement de la simulation → recopié chez l'invité (fiable)
+      if (e.k === 'fire') return;                  // (les tirs partent avec les projectiles)
+      const c = {};
+      for (const key in e) c[key] = RND1(e[key]);
+      HN.out.push(c);
+    }
+    function obsMsg(o) {
+      return { k: 'o+', id: o.id, o: o.k, x: R10(o.x) / 10, y: R10(o.y) / 10, r: Math.round(o.r * 100) / 100, v: o.v, img: o.img,
+        hp: R10(o.hp) / 10, max: o.max, ang: Math.round(o.ang * 1000) / 1000, vr: Math.round(o.vr * 1000) / 1000 };
+    }
+    function hostFlush() {                         // un ou plusieurs messages fiables, chacun < 1 Ko
+      let e = HN.out, b = HN.outB, x = HN.outX;
+      HN.out = []; HN.outB = []; HN.outX = [];
+      const g = Math.round(HN.G * 1000);
+      while (e.length || b.length || x.length) {
+        let sz = 50, ne = 0, nb = 0, nx = 0;
+        while (ne < e.length) { const n = JSON.stringify(e[ne]).length + 1; if (ne && sz + n > 760) break; sz += n; ne++; }
+        while (nb < b.length && sz + 30 <= 860) { nb += 6; sz += 30; }
+        while (nx < x.length && sz + 6 <= 900) { nx++; sz += 6; }
+        nsend({ k: 'E', r: HN.rid, g, e: e.slice(0, ne), b: b.slice(0, nb), x: x.slice(0, nx) }, true);
+        e = e.slice(ne); b = b.slice(nb); x = x.slice(nx);
+      }
+    }
+    function shipArr(s, short) {                   // (short : vaisseau de l'invité, sa position lui est inutile, il la prédit)
+      return (short ? [] : [R10(s.x), R10(s.y), Math.round(s.bank * 100), Math.round(s.vx), Math.round(s.vy)]).concat([
+        (s.alive ? 1 : 0) | (s.lasOn ? 2 : 0) | (s.full ? 4 : 0) | ((s.bubN & 3) << 3), s.shield, Math.round(s.gauge * 100),
+        Math.round(Math.max(0, s.inv) * 100), Math.round(Math.max(0, s.hitT) * 100), s.sup, Math.round(s.supT * 100),
+        R10(s.tri), R10(s.bub), R10(s.mis), R10(s.las), Math.round(s.lasLen), R10(s.dro),
+        Math.max(0, s.drones[0].hp) + 4 * Math.max(0, s.drones[1].hp), Math.round((((s.droA % TAU) + TAU) % TAU) * 100), R10(s.slow)]);
+    }
+    function hostSnap(now, frozen) {
+      const o = [], ms = [], d = S.drone;
+      for (const q of S.obs) if (!q.dead) o.push(q.id, R10(q.x), R10(q.y), R10(q.hp));
+      for (const m of S.mis) if (!m.dead) ms.push(m.id, m.p, R10(m.x), R10(m.y), Math.round(m.vx), Math.round(m.vy));
+      const m = { k: 's', n: ++HN.seq, r: HN.rid, T: Math.round(now), G: Math.round(HN.G * 1000), h: Math.round(HN.dH),
+        f: PHC[S.phase], i: Math.round(S.it * 1000), t: Math.round(S.t * 1000), a: shipArr(S.ships[0], false), b: shipArr(S.ships[1], true), o };
+      const q = frozen ? 0 : Math.round(HN.k * 100);
+      if (q !== 100) m.q = q;                      // vitesse du temps (gel, ralenti) : seulement si elle n'est pas normale
+      if (ms.length) m.m = ms;
+      if (d) m.d = [R10(d.x), R10(d.y), R10(d.hp), d.max, Math.round(d.t * 100), d.enter ? 1 : 0];
+      return m;
+    }
+    function hostAfter() {                         // fin d'image : nouveaux projectiles, chocs, obstacles, instantané
+      if (!S || !S.born) return;
+      for (const o of S.born) {
+        if (o.dead) continue;
+        const ty = o.src ? (o.src === 'mine' ? 4 : 5) : o.p === 0 ? (o.k ? 1 : 0) : -1;
+        if (ty >= 0) HN.outB.push(o.id, ty, R10(o.x), R10(o.y), R10(o.vx), R10(o.vy));
+      }
+      S.born.length = 0;
+      for (const id of S.died) HN.outX.push(id);
+      S.died.length = 0;
+      for (const o of S.obs) if (!o.dead && o.id > HN.maxObs) { HN.maxObs = o.id; HN.out.push(obsMsg(o)); }
+      hostFlush();
+      const now = frameNow();
+      if (now - HN.lastSnap >= 31) { HN.lastSnap = now; nsend(hostSnap(now, false), false); }
+      if (REC) {
+        const a = S.ships[0], b = S.ships[1], r = [Math.round(now * 10) / 10, HN.G * 1000, a.x, a.y, b.x, b.y, HN.dH, HN.rid];
+        for (const o of S.obs) if (!o.dead && r.length < 17) r.push(o.id, o.x, o.y);
+        REC.push(r);
+      }
+    }
+    function roundMsg(sync) {
+      const m = { k: 'R', id: HN.rid, r: S.round, seed: S.seed0, lw: S.LW, cm: Math.round(S.capM * 100) / 100, il: S.introLen,
+        f: introFull ? 1 : 0, hint: hintStr, g: Math.round(HN.G * 1000) };
+      if (sync) { const p = S.ships[1]; m.sync = 1; m.p1 = [R10(p.x), R10(p.y), p.sup, Math.round(p.supT * 100)]; }
+      return m;
+    }
+    function hostRound(seed) {                     // nouvelle manche : graine et terrain envoyés à l'invité
+      hostFlush();
+      HN.rid++;
+      HN.p1.length = 0; HN.births.length = 0; HN.sup = false; HN.t = null;
+      S.born = []; S.died = []; S.seed0 = seed;
+      HN.maxObs = 0;
+      for (const o of S.obs) HN.maxObs = Math.max(HN.maxObs, o.id);
+      nsend(roundMsg(false), true);
+    }
+    function netCapM() {                           // capsules loin des boutons, sur les DEUX écrans
+      let m = capMargin();
+      if (HN.hello) {
+        const w = HN.hello.w, h = HN.hello.h, sc = Math.min(w / LW, h / LH), cx = (w - LW * sc) / 2;
+        m = Math.max(m, Math.max(36, (100 - cx) / sc + 16));
+      }
+      return m;
+    }
+    function hostSync() {                          // l'invité arrive en cours de manche : on lui renvoie tout
+      hostFlush();
+      nsend(roundMsg(true), true);
+      const e = HN.out, b = HN.outB, ml = [];
+      for (const o of S.obs) if (!o.dead) e.push(obsMsg(o));
+      for (const c of S.caps) if (!c.dead) e.push(RND1obj({ k: 'capIn', x: c.x, y: c.y, c: c.k, id: c.id, vx: c.vx, ph: c.ph, life: c.life, age: c.t, sync: 1 }));
+      for (const m of S.mines) if (!m.dead) ml.push([m.id, m.x, m.y, m.ang, m.life, m.vx]);
+      if (ml.length) e.push({ k: 'mines', l: RND1(ml), sync: 1 });
+      for (const s of S.shots) if (!s.dead && s.p === 0) b.push(s.id, s.k ? 1 : 0, R10(s.x), R10(s.y), R10(s.vx), R10(s.vy));
+      for (const q of S.eb) if (!q.dead) b.push(q.id, q.src === 'mine' ? 4 : 5, R10(q.x), R10(q.y), R10(q.vx), R10(q.vy));
+      hostFlush();
+    }
+    function RND1obj(o) { const c = {}; for (const k in o) c[k] = RND1(o[k]); return c; }
+
+    // ------------------------------------------------------------- INVITÉ
+    const GN = {
+      snaps: [], q: [], imm: [], rid: 0, gotR: false, helloT: 0, helloWH: '',
+      I: 120, Lm: 0, Ld: 12, Ln: 0, dH: 120,       // I : retard d'interpolation (ms) ; dH : retard de lissage de l'hôte
+      Gr: -1e15, Gn: -1e15, Gt: -1e15, Tr: 0,      // temps de jeu affiché / actuel / « vu par l'hôte quand il me lira »
+      pj: new Map(), nid: 0, outB: [], lastSend: -1e9,
+      obs: new Map(), dead: new Set(), caps: new Map(), mines: new Map(), drone: null, droneGone: false,
+      misV: new Map(), misHit: new Set(),
+      latest: null, ownSnap: null, p1G: -1e15, go: false, endPend: false, supHold: false, gaugeG: -1e15, hist: [], fireG: -1, ex: 0,
+      nMax: 0, tMax: 0, iv: 34, nRec: [], sm: mkSm(), supEndG: -1e15, absG: [-1e15, -1e15]
+    };
+    const IMM = { hit: 1, bubHit: 1, bubPop: 1, cap: 1, slowed: 1, end: 1, full: 1, supNo: 1, supCharge: 1, supFire: 1, supEnd: 1, drohit: 1, ko: 1 };
+    function gHello(join) {                        // join : je (re)demande tout l'état ; sinon juste ma taille d'écran si elle a changé
+      const key = Math.round(cw) + 'x' + Math.round(ch);
+      if (!join && key === GN.helloWH) return;
+      GN.helloWH = key;
+      nsend({ k: 'h', w: Math.round(cw), h: Math.round(ch), j: join ? 1 : 0 }, true);
+    }
+    function guestMsg(m) {
+      switch (m.k) {
+        case 's': gSnap(m); break;
+        case 'R':
+          GN.gotR = true;
+          if (!S || m.sync) gStartRound(m); else GN.q.push({ R: m, g: +m.g || 0 });
+          break;
+        case 'E': {
+          const rid = m.r, g = +m.g || 0, b = Array.isArray(m.b) ? m.b : [];
+          for (let i = 0; i + 5 < b.length; i += 6) gBirth(rid, g, b[i], b[i + 1], b[i + 2] / 10, b[i + 3] / 10, b[i + 4] / 10, b[i + 5] / 10);
+          for (const id of (Array.isArray(m.x) ? m.x : [])) { const p = GN.pj.get(id); if (p && p.rid === rid && g < p.killG) p.killG = g; }
+          for (const e of (Array.isArray(m.e) ? m.e : [])) {
+            if (!e || typeof e.k !== 'string') continue;
+            e.g = g; e.rid = rid;
+            if ((e.k === 'ko' || e.k === 'draw') && rid === GN.rid) GN.endPend = true;   // plus de tirs dès maintenant
+            if (rid === GN.rid && S && IMM[e.k] && e.p === ME) GN.imm.push(e); else GN.q.push(e);
+          }
+          break;
+        }
+        default: break;
+      }
+    }
+    function gBirth(rid, g, id, ty, x, y, vx, vy) {   // projectile de l'hôte (tir de son vaisseau ou balle neutre)
+      if (![id, ty, x, y, vx, vy].every(isFinite)) return;
+      const old = GN.pj.get(id);
+      if (old && old.rid === rid) return;
+      const eb = ty >= 4, k = ty === 1 ? 1 : 0, own = S && S.ships[ME];
+      const p = { id, rid, own: false, eb, p: eb ? -1 : 1 - ME, k, r: eb ? (ty === 4 ? 4 : 4.5) : k ? 3 : 3.6, x0: x, y0: y, vx, vy, g0: g,
+        killG: Infinity, hid: 0, hidG: 0, seen: false, x, y, D: 200, warp: ME === 1 ? vy < -1 : vy > 1 };
+      const myY = own ? own.y : ME === 1 ? 100 : LH - 100;
+      p.D = Math.max(eb ? 90 : 140, Math.abs(y - myY) - 25);
+      GN.pj.set(id, p);
+    }
+    function decShip(a) {
+      if (!Array.isArray(a) || (a.length !== 21 && a.length !== 16)) return null;
+      if (a.length === 16) a = [0, 0, 0, 0, 0].concat(a);   // vaisseau de l'invité (sans position)
+      const f = a[5];
+      return { x: a[0] / 10, y: a[1] / 10, bank: a[2] / 100, vx: a[3], vy: a[4], alive: !!(f & 1), lasOn: !!(f & 2), full: !!(f & 4), bubN: (f >> 3) & 3,
+        shield: a[6], gauge: a[7] / 100, inv: a[8] / 100, hitT: a[9] / 100, sup: a[10], supT: a[11] / 100, tri: a[12] / 10, bub: a[13] / 10,
+        mis: a[14] / 10, las: a[15] / 10, lasLen: a[16], dro: a[17] / 10, d0: a[18] & 3, d1: (a[18] >> 2) & 3, droA: a[19] / 100, slow: a[20] / 10 };
+    }
+    function gSnap(m) {
+      const T = +m.T, G = +m.G;
+      if (!isFinite(T) || !isFinite(G)) return;
+      const L = netNow() - T;                      // retard réel de cet instantané (horloge commune)
+      if (GN.Ln++ === 0) GN.Lm = L;
+      else { GN.Lm += (L - GN.Lm) * 0.03; GN.Ld += (Math.abs(L - GN.Lm) - GN.Ld) * 0.03; }
+      const o = new Map(), ms = new Map(), oa = Array.isArray(m.o) ? m.o : [], ma = Array.isArray(m.m) ? m.m : [];
+      for (let i = 0; i + 3 < oa.length; i += 4) o.set(oa[i], { x: oa[i + 1] / 10, y: oa[i + 2] / 10, hp: oa[i + 3] / 10 });
+      for (let i = 0; i + 5 < ma.length; i += 6) ms.set(ma[i], { p: ma[i + 1], x: ma[i + 2] / 10, y: ma[i + 3] / 10, vx: ma[i + 4], vy: ma[i + 5] });
+      const d = Array.isArray(m.d) ? { x: m.d[0] / 10, y: m.d[1] / 10, hp: m.d[2] / 10, max: m.d[3], t: m.d[4] / 100, enter: !!m.d[5] } : null;
+      const s = { n: +m.n || 0, r: m.r, T, G, q: m.q == null ? 1 : (+m.q || 0) / 100, ph: PHN[m.f] || 'play', it: (+m.i || 0) / 1000, t: (+m.t || 0) / 1000,
+        a: decShip(m.a), b: decShip(m.b), o, ms, d };
+      if (+m.h > 0) GN.dH = +m.h;
+      if (s.n > GN.nMax) {                         // pertes et cadence des instantanés (fenêtre glissante)
+        if (GN.nMax > 0 && s.n === GN.nMax + 1 && GN.tMax > 0) GN.iv += (clamp(T - GN.tMax, 10, 120) - GN.iv) * 0.05;
+        GN.nMax = s.n; GN.tMax = T;
+      }
+      GN.nRec.push(s.n);
+      while (GN.nRec.length > 0 && GN.nRec[0] <= GN.nMax - 60) GN.nRec.shift();
+      const a = GN.snaps;
+      let i = a.length;
+      while (i > 0 && a[i - 1].T > T) i--;
+      if (i > 0 && a[i - 1].n === s.n) return;
+      a.splice(i, 0, s);
+      while (a.length > 100) a.shift();
+      if (s.r === GN.rid && (!GN.latest || s.n > GN.latest.n)) GN.latest = s;
+    }
+    function gAt(T, cap) {                         // temps de jeu de l'hôte à l'heure commune T (interpolé / extrapolé, cap ms au plus)
+      const a = GN.snaps, n = a.length;
+      if (!n) return -1e15;
+      let i = n - 1;
+      while (i >= 0 && a[i].T > T) i--;
+      if (i === n - 1) { const s = a[i]; return s.G + s.q * Math.min(T - s.T, cap); }
+      if (i < 0) return a[0].G - (a[0].T - T);
+      const s0 = a[i], s1 = a[i + 1];
+      return s0.G + ((s1.G - s0.G) * (T - s0.T)) / Math.max(1, s1.T - s0.T);
+    }
+    function gClock(cur, target, q, dt) {          // horloge prolongée (« maintenant » chez l'hôte) : avance au rythme de l'hôte,
+      const ms = dt * 1000, pred = cur + ms * q;   // corrigée en douceur (pas de bond quand un instantané arrive)
+      if (!(cur > -1e14) || Math.abs(target - pred) > 400) return Math.max(cur, target);
+      return Math.max(cur, pred + clamp((target - pred) * 0.12, -0.5 * ms, 0.5 * ms));
+    }
+    function gStartRound(R) {                      // même manche que l'hôte : même graine, même terrain logique
+      GN.rid = +R.id || 0; GN.gotR = true;
+      const round = Math.max(1, +R.r || 1);
+      LW = clamp(+R.lw || 360, 200, 600);
+      layout();
+      introFull = !!R.f;
+      bgHue = HUES[(round - 1) % HUES.length]; bgPl = BGPL[(round - 1) % BGPL.length];
+      S = newRound((+R.seed) | 0, round, LW, +R.cm || 40, +R.il || 2.7);
+      hintStr = String(R.hint || '');
+      ptN = 0; rgN = 0; txN = 0; stkN = 0; FACES.length = 0; BOOMQ.length = 0; ARCS.length = 0;
+      freezeT = 0; slowT = 0; zoomT = 0; hudHit[0] = hudHit[1] = 0; hudPop[0] = hudPop[1] = 0;
+      droneFace = droneFaceSad = null; droneName = '';
+      for (const q of IN) { q.mx = q.my = 0; q.sup = false; }
+      GN.obs.clear(); GN.dead.clear(); GN.caps.clear(); GN.mines.clear(); GN.misV.clear(); GN.misHit.clear();
+      GN.drone = null; GN.droneGone = false;
+      if (!R.sync) for (const o of S.obs) { o.ang0 = o.ang; o.g0 = +R.g || 0; GN.obs.set(o.id, o); }   // décor de départ (graine)
+      S.obs = [];
+      for (const [id, p] of GN.pj) if (p.rid !== GN.rid) GN.pj.delete(id);
+      GN.latest = null;
+      for (const s of GN.snaps) if (s.r === GN.rid && (!GN.latest || s.n > GN.latest.n)) GN.latest = s;
+      GN.ownSnap = null; GN.p1G = -1e15; GN.go = false; GN.endPend = false; GN.supHold = false; GN.gaugeG = -1e15; GN.fireG = -1;
+      GN.absG[0] = GN.absG[1] = -1e15;
+      const me = S.ships[ME];
+      if (R.sync && Array.isArray(R.p1)) { me.x = me.tx = R.p1[0] / 10; me.y = me.ty = R.p1[1] / 10; me.sup = R.p1[2] | 0; me.supT = (R.p1[3] || 0) / 100; }
+      if (!R.sync) {
+        if (introFull) after(1.38, () => SFX.whoosh());
+        tone(392, 0.14, 'triangle', 0.04); after(0.14, () => tone(523, 0.2, 'triangle', 0.04));
+      }
+    }
+    function gEvents() {                           // événements de l'hôte, rejoués à leur heure (celle de l'image affichée)
+      const q = GN.q;
+      while (q.length) {
+        const e = q[0];
+        if (e.R) { if (S && e.g > GN.Gr) break; q.shift(); gStartRound(e.R); continue; }
+        if (e.rid < GN.rid) { q.shift(); continue; }
+        if (e.rid > GN.rid || e.g > GN.Gr) break;
+        q.shift();
+        gApply(e, false);
+      }
+      if (GN.imm.length) {                         // ceux qui concernent MON vaisseau : tout de suite
+        const l = GN.imm;
+        GN.imm = [];
+        for (const e of l) if (e.rid === GN.rid) gApply(e, true);
+      }
+    }
+    function gOwnDown(sh) { sh.alive = false; sh.sup = 0; sh.las = 0; sh.dro = 0; sh.mis = 0; sh.tri = 0; sh.bub = 0; sh.lasOn = false; }
+    function gBonus(sh, c) {                       // bonus pris par mon vaisseau (décidé par l'hôte)
+      switch (c) {
+        case 'T': sh.tri = DUR.T; break;
+        case 'B': sh.bub = DUR.B; sh.bubN = 2; break;
+        case 'M': sh.mis = DUR.M; break;
+        case 'L': sh.las = DUR.L; break;
+        case 'D': sh.dro = DUR.D; sh.droT = 0.3; for (const d of sh.drones) { d.hp = 3; d.x = sh.x; d.y = sh.y; } break;
+        default: break;
+      }
+      sh.gauge = Math.min(1, sh.gauge + 0.2);
+    }
+    function gApply(e, imm) {
+      const own = S.ships[ME], mine = e.p === ME;
+      switch (e.k) {
+        case 'o+':
+          GN.obs.set(e.id, { id: e.id, k: e.o, x: e.x, y: e.y, vx: 0, vy: 0, r: e.r, hp: e.hp, max: e.max, ang: e.ang, ang0: e.ang, g0: e.g, vr: e.vr || 0,
+            v: e.v | 0, img: e.img | 0, hitT: 0, by: -1, grace: 0, dead: false });
+          GN.dead.delete(e.id);
+          return;
+        case 'pt': pointFx(e.w === 1 ? 1 : 0, !!e.over); return;
+        case 'capIn':
+          GN.caps.set(e.id, { id: e.id, k: e.c, x: e.x, y: e.y, x0: e.x, y0: e.y, vx: e.vx || 0, t: 0, age0: e.age || 0, g0: e.g, life: e.life || 11, ph: e.ph || 0, dead: false });
+          if (e.sync) return;
+          break;
+        case 'cap': case 'capOff': case 'capGone': {
+          const c = GN.caps.get(e.id);
+          if (c) { e.x = c.x; e.y = c.y; GN.caps.delete(e.id); }
+          if (e.k === 'capGone') return;
+          if (e.k === 'cap' && mine) gBonus(own, e.c);
+          break;
+        }
+        case 'mines':
+          for (const q of (Array.isArray(e.l) ? e.l : [])) {
+            GN.mines.set(q[0], { id: q[0], x0: q[1], x: q[1], y: q[2], ang0: q[3], ang: q[3], life0: q[4] != null ? q[4] : 26, life: 26,
+              vx: q[5] != null ? q[5] : e.vx || 0, g0: e.g, t: 0, dead: false });
+          }
+          if (e.sync) return;
+          break;
+        case 'mboom': case 'mineOff': GN.mines.delete(e.id); break;
+        case 'oboom': GN.dead.add(e.id); break;
+        case 'ohit': { const o = GN.obs.get(e.id); if (o) o.hitT = 0.07; break; }
+        case 'dhit': if (GN.drone) GN.drone.hitT = 0.06; break;
+        case 'dboom': GN.droneGone = true; S.drone = null; break;
+        case 'hit':
+          if (mine) {
+            own.shield = Math.min(own.shield, e.left); own.inv = 1.4; own.hitT = 0.5; own.by = e.by; own.how = e.how;
+            if (e.left <= 0) gOwnDown(own);
+            e.x = own.x; e.y = own.y;
+          }
+          break;
+        case 'bubHit': if (mine) { own.bubN = Math.max(0, own.bubN - 1); own.inv = 0.35; e.x = own.x; e.y = own.y; } break;
+        case 'bubPop': if (mine) { own.bub = 0; own.bubN = 0; e.x = own.x; e.y = own.y; } break;
+        case 'slowed': if (mine) { own.slow = DUR.R; e.x = own.x; e.y = own.y; } break;
+        case 'end':
+          if (mine) {
+            if (e.c === 'T') own.tri = 0; else if (e.c === 'M') own.mis = 0; else if (e.c === 'L') { own.las = 0; own.lasLen = 0; }
+            else if (e.c === 'D') { own.dro = 0; for (const d of own.drones) d.hp = 0; } else if (e.c === 'R') own.slow = 0;
+          }
+          break;
+        case 'supNo': if (mine && GN.supHold) { GN.supHold = false; own.sup = 0; own.supT = 0; } break;   // refusé : on annule
+        case 'supCharge': case 'supFire': case 'supEnd':
+          if (mine) {                              // déjà joué ici (prédit) : l'hôte confirme seulement
+            if (e.k === 'supCharge') { GN.supHold = false; GN.gaugeG = e.g; }
+            GN.p1G = Math.max(GN.p1G, e.g);
+            return;
+          }
+          break;
+        case 'drohit': if (mine) { const dr = own.drones[e.i | 0]; if (dr) { dr.hp = Math.max(0, dr.hp - 1); e.x = dr.x; e.y = dr.y; } } break;
+        case 'ko': S.loser = e.p; S.winner = 1 - e.p; if (mine) { gOwnDown(own); e.x = own.x; e.y = own.y; } break;
+        case 'mboomS': if (GN.misHit.has(e.id)) return; break;
+        default: break;
+      }
+      if (imm && mine) GN.p1G = Math.max(GN.p1G, e.g);
+      S.ev.push(e);
+    }
+    function herm(p0, v0, p1, v1, s, D) {
+      const s2 = s * s, s3 = s2 * s;
+      return (2 * s3 - 3 * s2 + 1) * p0 + (s3 - 2 * s2 + s) * D * v0 + (3 * s2 - 2 * s3) * p1 + (s3 - s2) * D * v1;
+    }
+    function gSmooth(sh, dt) {                     // l'adversaire rejoint son vrai chemin en douceur après une extrapolation
+      const q = smooth(GN.sm, GN.rid, sh.x, sh.y, GN.ex, dt);
+      sh.x = q[0]; sh.y = q[1];
+      for (let i = 0; i < 2; i++) { const g = sh.droA + i * Math.PI, dr = sh.drones[i]; dr.x = sh.x + Math.cos(g) * 34; dr.y = sh.y + Math.sin(g) * 12 - sh.dir * 4; }
+    }
+    function gShip(dst, a, b, k, c) {              // vaisseau de l'adversaire : interpolé entre deux instantanés
+      const L = (key) => (b ? a[key] + (b[key] - a[key]) * k : a[key]);
+      dst.x = L('x'); dst.y = L('y'); dst.bank = clamp(L('bank'), -1, 1); dst.vx = L('vx'); dst.vy = L('vy');
+      dst.alive = c.alive; dst.lasOn = c.lasOn; dst.full = c.full; dst.bubN = c.bubN; dst.shield = c.shield; dst.sup = c.sup;
+      dst.gauge = clamp(L('gauge'), 0, 1); dst.inv = Math.max(0, L('inv')); dst.hitT = Math.max(0, L('hitT'));
+      dst.supT = b && a.sup === b.sup ? Math.max(0, L('supT')) : c.supT;
+      dst.tri = Math.max(0, L('tri')); dst.bub = Math.max(0, L('bub')); dst.mis = Math.max(0, L('mis'));
+      dst.las = Math.max(0, L('las')); dst.dro = Math.max(0, L('dro')); dst.slow = Math.max(0, L('slow'));
+      dst.lasLen = Math.max(0, L('lasLen'));
+      const da = b ? a.droA + angDiff(a.droA, b.droA) * k : a.droA;
+      dst.droA = da;
+      dst.drones[0].hp = c.d0; dst.drones[1].hp = c.d1;
+      for (let i = 0; i < 2; i++) { const g = da + i * Math.PI, dr = dst.drones[i]; dr.x = dst.x + Math.cos(g) * 34; dr.y = dst.y + Math.sin(g) * 12 - dst.dir * 4; }
+    }
+    function ownAt(T) {                            // où était mon vaisseau à l'heure T (pour les missiles)
+      const h = GN.hist;
+      for (let i = h.length - 1; i >= 0; i--) if (h[i][0] <= T) return h[i];
+      return h[0] || null;
+    }
+    function gMisAhead(id, own) {                  // missile qui me vise, prolongé jusqu'à l'heure où l'hôte me lira
+      const s = GN.latest, m = s && s.ms.get(id);
+      if (!m) return null;
+      let x = m.x, y = m.y, vx = m.vx, vy = m.vy;
+      const t = clamp((GN.Gt - s.G) / 1000, 0, 0.7);
+      const n = Math.ceil(t * 60);
+      for (let i = 0; i < n; i++) {
+        const h = t / n, cur = Math.atan2(vy, vx), na = cur + clamp(angDiff(cur, Math.atan2(own.y - y, own.x - x)), -2.7 * h, 2.7 * h);
+        const sp = Math.min(290, Math.sqrt(vx * vx + vy * vy) + 320 * h);
+        vx = Math.cos(na) * sp; vy = Math.sin(na) * sp; x += vx * h; y += vy * h;
+      }
+      return [x, y];
+    }
+    function gWorld(Tr, dt) {                      // le monde vu de l'invité : instantanés de l'hôte, lissés
+      let A = null, B = null, P = null;
+      for (const s of GN.snaps) {
+        if (s.r !== GN.rid) continue;
+        if (s.T <= Tr) { P = A; A = s; } else { B = s; break; }
+      }
+      if (!A && !B) return;
+      let k = 0;
+      if (A && B) k = (Tr - A.T) / Math.max(1, B.T - A.T);
+      else if (!A) { A = B; B = null; }
+      else if (P) { B = A; A = P; k = 1 + Math.min(Tr - B.T, 100) / Math.max(1, B.T - A.T); }   // instantané en retard : courte extrapolation
+      GN.ex = k > 1 ? 1 : 0;
+      const D = B && k >= 1 ? B : A;
+      const L = (a, b) => (B ? a + (b - a) * k : a);
+      if (S.phase !== 'over') S.phase = D.ph;
+      S.it = B ? L(A.it, B.it) : A.it; S.t = B ? L(A.t, B.t) : A.t;
+      S.shift = clamp((S.t - 62) / 10, 0, 1) * 60; S.heat = S.t >= 40;
+      const oi = 1 - ME, sa = oi ? A.b : A.a, sb = B ? (oi ? B.b : B.a) : null;
+      if (sa) {
+        const sh = S.ships[oi];
+        gShip(sh, sa, sb, k, D === A ? sa : sb || sa);
+        if (sb && A.ph !== 'intro' && B.ph !== 'intro') {   // courbe d'Hermite (vitesses envoyées) : pas d'angles à chaque instantané
+          const Ds = Math.max(1e-3, (B.G - A.G) / 1000);
+          if (k <= 1) { sh.x = herm(sa.x, sa.vx, sb.x, sb.vx, k, Ds); sh.y = herm(sa.y, sa.vy, sb.y, sb.vy, k, Ds); }
+          else { sh.x = sb.x + sb.vx * (k - 1) * Ds; sh.y = sb.y + sb.vy * (k - 1) * Ds; }
+        }
+        gSmooth(sh, dt);
+      }
+      // obstacles (infos fixes reçues à leur naissance, positions des instantanés, rotation calculée)
+      const ol = [];
+      for (const [id, pa] of A.o) {
+        if (GN.dead.has(id)) continue;
+        const o = GN.obs.get(id);
+        if (!o) continue;
+        const pb = B ? B.o.get(id) : null;
+        if (pb) { o.x = L(pa.x, pb.x); o.y = L(pa.y, pb.y); o.hp = Math.max(0, L(pa.hp, pb.hp)); } else { o.x = pa.x; o.y = pa.y; o.hp = pa.hp; }
+        ol.push(o);
+      }
+      if (B) for (const [id, pb] of B.o) {
+        if (A.o.has(id) || GN.dead.has(id)) continue;
+        const o = GN.obs.get(id);
+        if (!o) continue;
+        o.x = pb.x; o.y = pb.y; o.hp = pb.hp;
+        ol.push(o);
+      }
+      for (const o of ol) { o.ang = o.ang0 + (o.vr * (GN.Gr - o.g0)) / 1000; if (o.hitT > 0) o.hitT -= dt; }
+      S.obs = ol;
+      // drone géant
+      const da = A.d, db = B ? B.d : null;
+      if ((da || db) && !GN.droneGone) {
+        const v = GN.drone || (GN.drone = { x: 0, y: 0, hp: 1, max: 1, t: 0, hitT: 0, enter: false });
+        const src = da || db;
+        if (da && db) { v.x = L(da.x, db.x); v.y = L(da.y, db.y); v.hp = L(da.hp, db.hp); v.t = L(da.t, db.t); }
+        else { v.x = src.x; v.y = src.y; v.hp = src.hp; v.t = src.t; }
+        v.max = src.max || 1; v.enter = (D.d || src).enter;
+        if (v.hitT > 0) v.hitT -= dt;
+        S.drone = v;
+      } else S.drone = null;
+      // missiles (les miens partent de mon vaisseau ; ceux qui me visent sont montrés là où l'hôte me lira)
+      const own = S.ships[ME], ml = [];
+      const addM = (id, ma, mb) => {
+        if (GN.misHit.has(id)) return;
+        let v = GN.misV.get(id);
+        if (!v) {
+          v = { id, p: ma.p, x: ma.x, y: ma.y, vx: ma.vx, vy: ma.vy, ox: 0, oy: 0, t0: GN.Gr, seen: GN.Gr };
+          GN.misV.set(id, v);
+          if (ma.p === ME) { const h = ownAt(Tr - GN.dH); if (h) { v.ox = own.x - h[1]; v.oy = own.y - h[2]; } }
+        }
+        let x = mb ? L(ma.x, mb.x) : ma.x, y = mb ? L(ma.y, mb.y) : ma.y;
+        const age = (GN.Gr - v.t0) / 1000;
+        if (ma.p === ME) { const f = 1 - ease(clamp(age / 0.45, 0, 1)); x += v.ox * f; y += v.oy * f; }
+        else if (own.alive) {
+          const pr = gMisAhead(id, own);
+          if (pr) { const f = 1 - clamp((Math.sqrt((x - own.x) * (x - own.x) + (y - own.y) * (y - own.y)) - 50) / 160, 0, 1); x = lerp(x, pr[0], f); y = lerp(y, pr[1], f); }
+        }
+        v.x = x; v.y = y; v.vx = mb ? L(ma.vx, mb.vx) : ma.vx; v.vy = mb ? L(ma.vy, mb.vy) : ma.vy; v.p = ma.p; v.seen = GN.Gr;
+        if (ma.p !== ME && own.alive && hitShip(own, x, y, 5)) {   // il me touche ici : boum tout de suite (l'hôte confirme les dégâts)
+          GN.misHit.add(id); explode(x, y, 1, GL.o); SFX.pop();
+          return;
+        }
+        ml.push(v);
+      };
+      for (const [id, ma] of A.ms) { const mb = B ? B.ms.get(id) : null; if (B && !mb && k >= 0.5) continue; addM(id, ma, mb); }
+      if (B) for (const [id, mb] of B.ms) if (!A.ms.has(id)) addM(id, mb, null);
+      for (const [id, v] of GN.misV) if (GN.Gr - v.seen > 3000) GN.misV.delete(id);
+      S.mis = ml;
+    }
+    function gPlaying() { return GN.go && !GN.endPend && !matchOver && !!GN.latest && GN.latest.ph === 'play'; }
+    function gOwnHost(sh) {                        // l'état de mon vaisseau décidé par l'hôte (boucliers, bonus, jauge…)
+      const s = GN.latest;
+      if (!s || s === GN.ownSnap) return;
+      GN.ownSnap = s;
+      if (s.G < GN.p1G) return;                    // plus vieux qu'un événement déjà appliqué ici
+      const h = ME === 0 ? s.a : s.b;
+      if (!h) return;
+      const el = Math.max(0, (GN.Gn - s.G) / 1000);
+      sh.alive = sh.alive && h.alive;
+      sh.shield = h.shield;
+      if (!GN.supHold && s.G >= GN.gaugeG) { sh.gauge = h.gauge; sh.full = h.full; }
+      if (!GN.supHold && sh.sup === 0 && h.sup > 0 && s.G > GN.supEndG + 700) { sh.sup = h.sup; sh.supT = h.supT + el; }
+      sh.inv = Math.max(0, h.inv - el); sh.hitT = Math.max(0, h.hitT - el);
+      sh.tri = Math.max(0, h.tri - el); sh.bub = Math.max(0, h.bub - el); sh.bubN = h.bubN; sh.mis = Math.max(0, h.mis - el);
+      sh.las = Math.max(0, h.las - el); sh.dro = Math.max(0, h.dro - el); sh.slow = Math.max(0, h.slow - el);
+      sh.drones[0].hp = h.d0; sh.drones[1].hp = h.d1;
+      if (sh.dro > 0 && Math.abs(angDiff(sh.droA, h.droA + 2.4 * el)) > 0.6) sh.droA = h.droA + 2.4 * el;
+    }
+    function gOwnShot(x, y, vx, vy, k) {           // mon tir : créé ici tout de suite, envoyé à l'hôte
+      const id = --GN.nid, op = S.ships[1 - ME];
+      const p = { id, rid: GN.rid, own: true, eb: false, p: ME, k, r: k ? 3 : 3.6, x0: x, y0: y, vx, vy, g0: GN.Gn, killG: Infinity, hid: 0, hidG: 0,
+        seen: true, x, y, D: Math.max(140, Math.abs(y - op.y) - 25), warp: true };
+      GN.pj.set(id, p);
+      GN.outB.push(id, k ? 3 : 2, R10(x), R10(y), R10(vx), R10(vy));
+    }
+    function gVolley(sh, heat) {                   // même salve que volley() chez l'hôte
+      const v = S.cfg.bspd * (heat ? 1.1 : 1), d = sh.dir, lat = sh.bank * -d * 50;
+      if (sh.tri > 0) {
+        gOwnShot(sh.x, sh.y + d * 36, lat, d * v, 0);
+        for (let s = -1; s <= 1; s += 2) { const a = s * 0.21; gOwnShot(sh.x + s * 7, sh.y + d * 30, lat + Math.sin(a) * v, d * Math.cos(a) * v, 0); }
+      } else {
+        for (let s = -1; s <= 1; s += 2) gOwnShot(sh.x + s * 7, sh.y + d * 32, lat, d * v, 0);
+      }
+      sh.vol++;
+      S.ev.push({ k: 'fire', p: ME, x: sh.x, y: sh.y + d * 34, tri: sh.tri > 0 });
+    }
+    function gOwn(dt, d) {                         // MON vaisseau : prédit sur place, mêmes règles que chez l'hôte
+      const sh = S.ships[ME], ip = IN[ME];
+      gOwnHost(sh);
+      if (sh.inv > 0) sh.inv -= d;
+      if (sh.hitT > 0) sh.hitT -= d;
+      for (const key of ['tri', 'mis', 'las', 'dro', 'slow']) if (sh[key] > 0) sh[key] = Math.max(0, sh[key] - d);
+      if (sh.bub > 0) { sh.bub = Math.max(0, sh.bub - d); if (sh.bub <= 0) sh.bubN = 0; }
+      if (sh.las <= 0) sh.lasLen = 0;
+      const kb = KEYS[ME], fl = FLIP ? -1 : 1;
+      ip.kx = fl * ((kb.r ? 1 : 0) - (kb.l ? 1 : 0)); ip.ky = fl * ((kb.d ? 1 : 0) - (kb.u ? 1 : 0));
+      if (!GN.go && GN.latest && GN.latest.ph !== 'intro') GN.go = true;
+      if (BOT[ME] && GN.go) botInput(ME);
+      sh.lasOn = false;
+      if (!sh.alive) { ip.mx = ip.my = 0; ip.sup = false; return; }
+      if (!GN.go) {                                // entrée en scène, comme chez l'hôte
+        const q = clamp((S.it - S.entry) / 1.05, 0, 1), kq = 1 - (1 - q) * (1 - q) * (1 - q);
+        sh.tx = S.LW / 2; sh.ty = ME === 0 ? LH - 100 : 100;
+        sh.x = sh.tx; sh.y = lerp(ME === 0 ? LH + 80 : -80, sh.ty, kq); sh.vx = 0; sh.vy = 0;
+        sh.bank *= Math.max(0, 1 - dt * 6);
+        ip.mx = ip.my = 0; ip.sup = false;
+        return;
+      }
+      if (resumeT > 0) { resumeT -= dt; ip.mx = ip.my = 0; ip.sup = false; return; }
+      const playing = gPlaying();
+      const tNow = S.phase === 'play' ? S.t + Math.max(0, GN.Gn - GN.Gr) / 1000 : S.t;
+      const shift = clamp((tNow - 62) / 10, 0, 1) * 60;
+      const z = ME === 0 ? [LH - FAR - shift, LH - NEAR - shift * 1.2] : [NEAR + shift * 1.2, FAR + shift];
+      if (d > 0) {
+        const n = Math.max(1, Math.ceil(d / 0.0167 - 1e-6)), h = d / n;
+        for (let i = 0; i < n; i++) {
+          sh.tx = clamp(sh.tx + ip.mx / n + ip.kx * 270 * h, 18, S.LW - 18);
+          sh.ty = clamp(sh.ty + ip.my / n + ip.ky * 270 * h, z[0], z[1]);
+          sh.tx = clamp(sh.tx, sh.x - 70, sh.x + 70); sh.ty = clamp(sh.ty, sh.y - 70, sh.y + 70);
+          const spd = 600 * (sh.slow > 0 ? 0.4 : 1) * (sh.sup === 2 ? 0.6 : sh.las > 0 ? 0.7 : 1);
+          const ox = sh.x, oy = sh.y, kk = Math.min(1, h * 18);
+          sh.x += clamp((sh.tx - sh.x) * kk, -spd * h, spd * h);
+          sh.y += clamp((sh.ty - sh.y) * kk, -spd * h, spd * h);
+          sh.y = clamp(sh.y, z[0], z[1]);
+          sh.vx = (sh.x - ox) / Math.max(h, 1e-4); sh.vy = (sh.y - oy) / Math.max(h, 1e-4);
+          sh.bank += (clamp((sh.vx / 240) * -sh.dir, -1, 1) - sh.bank) * Math.min(1, h * 10);
+        }
+      }
+      ip.mx = ip.my = 0;                           // (gel d'impact : comme sur un seul téléphone, le doigt ne compte pas)
+      if (sh.dro > 0) {
+        sh.droA += d * 2.4;
+        for (let i = 0; i < 2; i++) { const dr = sh.drones[i], a = sh.droA + i * Math.PI; dr.x = sh.x + Math.cos(a) * 34; dr.y = sh.y + Math.sin(a) * 12 - sh.dir * 4; }
+      }
+      if (!playing) { ip.sup = false; return; }
+      if (ip.sup) {                                // SUPER : prédit tout de suite si ma jauge est pleine ; l'hôte confirme
+        if (sh.gauge >= 1 && sh.sup === 0) {
+          sh.gauge = 0; sh.full = false; sh.sup = 1; sh.supT = 0; GN.supHold = true;
+          nsend({ k: 'S', r: GN.rid }, true);
+          S.ev.push({ k: 'supCharge', p: ME });
+        } else if (sh.sup === 0) S.ev.push({ k: 'supNo', p: ME });
+        ip.sup = false;
+      }
+      if (d <= 0) return;
+      if (sh.sup === 1) { sh.supT += d; if (sh.supT >= 0.5) { sh.sup = 2; sh.supT = 0; S.ev.push({ k: 'supFire', p: ME }); } }
+      else if (sh.sup === 2) { sh.supT += d; if (sh.supT >= 1.45) { sh.sup = 0; sh.supT = 0; GN.supEndG = GN.Gn; S.ev.push({ k: 'supEnd', p: ME }); } }
+      if (sh.sup === 0) {
+        if (sh.las > 0) { sh.lasOn = true; sh.lasLen = laserReach(S, sh); }
+        else {
+          sh.fireT -= d * (sh.slow > 0 ? 0.55 : 1);
+          if (sh.fireT <= 0) { sh.fireT += S.cfg.fire * (tNow >= 40 ? 0.78 : 1); if (sh.fireT < 0) sh.fireT = 0; gVolley(sh, tNow >= 40); }
+        }
+      }
+      if (sh.dro > 0) {
+        sh.droT -= d;
+        if (sh.droT <= 0) { sh.droT = 0.34; const v = S.cfg.bspd * 0.95; for (const dr of sh.drones) if (dr.hp > 0) gOwnShot(dr.x, dr.y + sh.dir * 6, 0, sh.dir * v, 1); }
+      }
+    }
+    function gCos(p, x, y, own, opp, vuln, ovuln) { // choc vu ici (cosmétique : l'hôte décide des dégâts) ; 2 = touche un vaisseau
+      const r = p.r * 0.9;
+      if (!p.own) {
+        if (vuln && hitShip(own, x, y, r)) { sparks(x, y, 5, p.eb ? GL.r : PG[1 - ME], 140, 0.3, 7); return 2; }
+        if (own.dro > 0) for (const d of own.drones) { if (d.hp <= 0) continue; const dx = d.x - x, dy = d.y - y; if (dx * dx + dy * dy < (7 + r) * (7 + r)) return true; }
+        if (!p.eb) for (const m of S.mis) { if (m.p !== ME) continue; const dx = m.x - x, dy = m.y - y; if (dx * dx + dy * dy < (6 + r) * (6 + r)) return true; }
+      } else {
+        if (ovuln && hitShip(opp, x, y, r)) return 2;
+        if (opp.dro > 0) for (const d of opp.drones) { if (d.hp <= 0) continue; const dx = d.x - x, dy = d.y - y; if (dx * dx + dy * dy < (7 + r) * (7 + r)) return true; }
+        for (const m of S.mis) { if (m.p === ME) continue; const dx = m.x - x, dy = m.y - y; if (dx * dx + dy * dy < (6 + r) * (6 + r)) return true; }
+      }
+      for (const o of S.obs) { const dx = o.x - x, dy = o.y - y, rr = (o.r + p.r) * 0.88; if (dx * dx + dy * dy < rr * rr) return true; }
+      if (p.eb) return false;
+      for (const m of S.mines) { const dx = m.x - x, dy = m.y - y, rr = (9 + p.r) * 0.88; if (dx * dx + dy * dy < rr * rr) return true; }
+      if (S.drone && droneTouch(S.drone, x, y, r)) return true;
+      for (const c of S.caps) { const dx = c.x - x, dy = c.y - y, rr = (13 + p.r) * 0.88; if (dx * dx + dy * dy < rr * rr) return true; }
+      return false;
+    }
+    function gProj() {                             // tirs et balles : position à « leur » heure (recalage doux)
+      const own = S.ships[ME], opp = S.ships[1 - ME], shots = [], ebs = [];
+      const Gr = GN.Gr, Gn = GN.Gn, Gt = GN.Gt, vuln = own.alive && own.inv <= 0 && gPlaying();
+      const ovuln = opp.alive && opp.inv <= 0 && S.phase === 'play';
+      for (const [id, p] of GN.pj) {
+        if (p.rid !== GN.rid) { if (p.rid < GN.rid) GN.pj.delete(id); continue; }
+        // mes tirs : partent de mon vaisseau (maintenant), arrivent sur l'adversaire tel qu'il est affiché (Gr) ;
+        // ceux qui me visent : partent du canon affiché (Gr), arrivent quand l'hôte lira ma position (Gt)
+        const TA = p.own ? Gn : Gr, TB = p.own ? Gr : p.warp ? Gt : Gr;
+        const u = (Math.abs(p.vy) * Math.max(0, TA - p.g0)) / 1000 / p.D;
+        const Td = TA + (TB - TA) * trapz(u);
+        if (Td < p.g0) continue;                   // pas encore tiré (dans le temps affiché)
+        if (Td >= p.killG) { GN.pj.delete(id); continue; }
+        const t = (Td - p.g0) / 1000, x = p.x0 + p.vx * t, y = p.y0 + p.vy * t, m = p.eb ? 20 : 30;
+        if (y < -m || y > LH + m || x < -m || x > S.LW + m) { GN.pj.delete(id); continue; }
+        p.x = x; p.y = y;
+        if (p.hid) {
+          if (p.killG === Infinity && Gr > p.hidG + 120) {   // l'hôte ne l'a pas arrêté : il réapparaît
+            p.hid = 0;
+            if (p.hidG === GN.absG[p.own ? 1 : 0]) GN.absG[p.own ? 1 : 0] = -1e15;
+          } else { if (Gr > p.hidG + 2500) GN.pj.delete(id); continue; }
+        }
+        if (!p.seen) {                             // salve de l'adversaire : flash + son au canon affiché
+          p.seen = true;
+          if (!p.eb && !p.k && p.g0 !== GN.fireG) { GN.fireG = p.g0; opp.vol++; S.ev.push({ k: 'fire', p: p.p, x: opp.x, y: opp.y + opp.dir * 34 }); }
+        }
+        // après une touche (vue ici), le vaisseau touché devient invulnérable chez l'hôte : les tirs suivants le traversent
+        const a = GN.absG[p.own ? 1 : 0], safe = Td > a && Td < a + (p.own ? 1400 : own.bub > 0 ? 350 : 1400);
+        const c = gCos(p, x, y, own, opp, vuln && !safe, ovuln && !safe);
+        if (c) { p.hid = 1; p.hidG = Td; if (c === 2) GN.absG[p.own ? 1 : 0] = Td; continue; }
+        (p.eb ? ebs : shots).push(p);
+      }
+      S.shots = shots; S.eb = ebs;
+    }
+    function gObjects() {                          // capsules et mines : mouvement connu dès leur naissance
+      const Gr = GN.Gr, caps = [], mines = [];
+      for (const c of GN.caps.values()) {
+        const dt0 = (Gr - c.g0) / 1000;
+        if (dt0 < 0) continue;
+        c.t = c.age0 + dt0;
+        if (c.t >= c.life) continue;
+        const lo = S.capM, w = S.LW - 2 * S.capM;
+        let x = c.x0 + c.vx * dt0;
+        if (w > 0) { let q = (x - lo) % (2 * w); if (q < 0) q += 2 * w; x = lo + (q <= w ? q : 2 * w - q); } else x = S.LW / 2;
+        const dy = LH / 2 - c.y0;
+        c.x = x; c.y = c.y0 + Math.sign(dy) * Math.min(Math.abs(dy), 30 * dt0);
+        caps.push(c);
+      }
+      S.caps = caps;
+      const P = S.LW + 28;
+      for (const m of GN.mines.values()) {
+        const t = (Gr - m.g0) / 1000;
+        if (t < 0) continue;
+        m.life = m.life0 - t;
+        if (m.life <= 0) continue;
+        const x = m.x0 + m.vx * t;
+        m.x = ((((x + 14) % P) + P) % P) - 14; m.ang = m.ang0 + 0.8 * t; m.t = t;
+        mines.push(m);
+      }
+      S.mines = mines;
+    }
+    function gSend(now) {                          // ma position (~60 fois/s, rapide) et mes salves (fiable)
+      const sh = S.ships[ME];
+      if (GN.outB.length) { nsend({ k: 'B', r: GN.rid, g: Math.round(GN.Gn), b: GN.outB }, true); GN.outB = []; }
+      if (now - GN.lastSend >= 14) { GN.lastSend = now; nsend({ k: 'i', r: GN.rid, T: Math.round(now), x: R10(sh.x), y: R10(sh.y) }, false); }
+      GN.hist.push([now, sh.x, sh.y]);
+      if (GN.hist.length > 150) GN.hist.splice(0, GN.hist.length - 150);
+    }
+    function gUpdate(dt) {
+      if (!S) {                                    // en attente de la 1re manche (et du contact avec l'hôte)
+        GN.helloT += dt;
+        if (started && GN.helloT > 2) { GN.helloT = 0; gHello(true); }
+        updStars(dt);
+        return;
+      }
+      if (shake > 0) shake = Math.max(0, shake - dt * (9 + shake * 3));
+      if (flashA > 0) flashA = Math.max(0, flashA - dt * 2.8);
+      if (zoomT > 0) zoomT = Math.max(0, zoomT - dt);
+      if (matchOver) overT += dt;
+      const now = frameNow();
+      const lost = GN.nMax > 60 ? 1 - GN.nRec.length / 60 : 0;   // un instantané perdu de temps en temps : on garde une marge d'un intervalle
+      const tgt = clamp(GN.Lm + 2 * GN.Ld + GN.iv + 6 + (lost > 0.008 ? GN.iv : 0), 40, 900);   // retard d'interpolation, ajusté très progressivement
+      if (GN.Ln > 10) GN.I += clamp(tgt - GN.I, -0.6, 0.6);
+      const Tr = now - GN.I;
+      GN.Tr = Tr;
+      GN.Gr = Math.max(GN.Gr, gAt(Tr, 100));          // (si l'hôte a un raté, l'image affichée ne part pas en avant)
+      const q = GN.latest ? GN.latest.q : 1;
+      GN.Gn = Math.max(gClock(GN.Gn, gAt(now, GN.I + 100), q, dt), GN.Gr);
+      GN.Gt = Math.max(gClock(GN.Gt, gAt(now + GN.dH, GN.I + GN.dH + 100), q, dt), GN.Gn);
+      gEvents();
+      if (!S) return;
+      gWorld(Tr, dt);
+      let k = 1;
+      if (freezeT > 0) { freezeT -= dt; k = 0; }
+      else if (slowT > 0) { slowT -= dt; k = slowT > 0.5 ? slowK : lerp(1, slowK, Math.max(0, slowT) / 0.5); }
+      const d = dt * k;
+      gOwn(dt, d);
+      gObjects();
+      gProj();
+      gSend(now);
+      onEvents();
+      ambientFx();
+      updFx(d, dt);
+      updStars(Math.max(d, dt * 0.25));
+      if (REC) {
+        const o = S.ships[1 - ME], m = S.ships[ME], r = [Math.round(now * 10) / 10, GN.Gr, GN.Gn, GN.Gt, o.x, o.y, m.x, m.y, FING.x, FING.y, GN.I, S.shots.length, GN.rid, GN.ex];
+        for (const q of S.obs) if (r.length < 23) r.push(q.id, q.x, q.y);
+        while (r.length < 23) r.push(null, 0, 0);
+        let mine = 0, theirs = 0;
+        for (const q of S.shots) { if (q.own && mine < 2) { mine++; r.push(q.id, q.x, q.y); } }
+        while (r.length < 29) r.push(null, 0, 0);
+        for (const q of S.shots) { if (!q.own && theirs < 2) { theirs++; r.push(q.id, q.x, q.y); } }
+        while (r.length < 35) r.push(null, 0, 0);
+        REC.push(r);
+      }
+    }
+    function renderWaiting() {                     // avant la 1re manche : le ciel, et « connexion… » pour moi
+      if (!SPR) return;
+      fontKey = '';
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      drawBackground();
+      drawMidLine();
+      hudFrame(ME);
+      fontKey = '';
+      ctx.globalAlpha = 0.55 + 0.45 * Math.sin(rt * 3);
+      txt('Connexion avec ton adversaire…', cw / 2, ch * 0.5 + ch * 0.16, Math.round(15 * U), PCOL[ME], 'center', true, 3.5);
+      ctx.globalAlpha = 1;
+    }
+    if (NET) {
+      let rtt = 160;
+      try { rtt = clamp(+NET.rtt() || 160, 0, 2000); } catch (e) { /* rien */ }
+      HN.dH = rtt / 2 + 40; GN.I = rtt / 2 + 60; GN.dH = rtt / 2 + 40;
+      try {
+        NET.onMessage((m) => {
+          if (destroyed || !m || typeof m !== 'object') return;
+          try { if (HOST) hostMsg(m); else guestMsg(m); } catch (e) { if (NERR.length < 20) NERR.push(String(e && e.message)); }
+        });
+      } catch (e) { /* rien */ }
     }
 
     // ------------------------------------------------------------- mise à jour
@@ -2548,21 +3889,30 @@
       rt += dt;
       sndBudget = 6;
       for (let i = later.length - 1; i >= 0; i--) if (later[i].t <= rt) { const f = later[i].fn; later.splice(i, 1); try { f(); } catch (e) { /* rien */ } }
-      if (destroyed || paused || !S) return;
+      if (destroyed || paused) return;
+      if (GUEST) { gUpdate(dt); return; }          // invité en ligne : prédiction + lissage (voir plus haut)
+      if (!S) { if (HOST && !started) { HN.waitT += dt; updStars(dt); tryStart(); } return; }
       if (shake > 0) shake = Math.max(0, shake - dt * (9 + shake * 3));
       if (flashA > 0) flashA = Math.max(0, flashA - dt * 2.8);
       if (zoomT > 0) zoomT = Math.max(0, zoomT - dt);
       if (matchOver) overT += dt;
-      if (resumeT > 0) { resumeT -= dt; for (const q of IN) { q.mx = q.my = 0; q.sup = false; } updFx(0, dt); return; }
+      if (resumeT > 0) {
+        resumeT -= dt; for (const q of IN) { q.mx = q.my = 0; q.sup = false; } updFx(0, dt);
+        if (HOST) { HN.k = 0; hostAfter(); }
+        return;
+      }
       let k = 1;
       if (freezeT > 0) { freezeT -= dt; k = 0; }
       else if (slowT > 0) { slowT -= dt; k = slowT > 0.5 ? slowK : lerp(1, slowK, Math.max(0, slowT) / 0.5); }
       const d = dt * k;
       for (let p = 0; p < 2; p++) {
+        if (p === AIP) { aiInput(dt); continue; }  // le vaisseau de l'IA
         const kb = KEYS[p];
         IN[p].kx = (kb.r ? 1 : 0) - (kb.l ? 1 : 0); IN[p].ky = (kb.d ? 1 : 0) - (kb.u ? 1 : 0);
         if (BOT[p]) botInput(p);
+        if (STEER[p] && S.ships[p].alive) { IN[p].mx = STEER[p][0] - S.ships[p].tx; IN[p].my = STEER[p][1] - S.ships[p].ty; }
       }
+      if (HOST) { HN.k = k; hostBefore(dt); if (d <= 0) hostHold(); }
       if (d > 0) {
         const n = Math.max(1, Math.ceil(d / 0.0167 - 1e-6)), h = d / n;
         for (let i = 0; i < n; i++) {
@@ -2570,20 +3920,25 @@
             const a = IN[p], b = SUB[p];
             b.mx = a.mx / n; b.my = a.my / n; b.kx = a.kx; b.ky = a.ky; b.sup = i === 0 && a.sup;
           }
+          if (HOST) hostSub(i, n);
           step(S, h, SUB);
         }
+        if (HOST) HN.G += d;
         for (const q of IN) { q.mx = q.my = 0; q.sup = false; }
         lastStepT = rt;
         onEvents();
         ambientFx();
       } else { for (const q of IN) { q.mx = q.my = 0; } }
+      if (HOST) hostAfter();
+      else if (REC) REC.push([Math.round(performance.now() * 10) / 10, 0, 0, 0, S.ships[0].x, S.ships[0].y, S.ships[1].x, S.ships[1].y, FING.x, FING.y, 0, 0, 0, 0]);   // (tests)
       updFx(d, dt);
       updStars(Math.max(d, dt * 0.25));
     }
 
     // ------------------------------------------------------------- rendu
     function render() {
-      if (destroyed || !SPR || !S) return;
+      if (destroyed || !SPR) return;
+      if (!S) { if (NET) renderWaiting(); return; }
       let sx = 0, sy = 0;
       if (shake > 0.05 && !paused) { sx = (Math.random() * 2 - 1) * shake; sy = (Math.random() * 2 - 1) * shake; }
       let z = 1;
@@ -2614,6 +3969,7 @@
       if (destroyed || paused) return;
       raf = requestAnimationFrame(frame);
       if (hold) { last = 0; return; }
+      frameT = now;
       let dt = last ? (now - last) / 1000 : 0;
       last = now;
       if (!(dt > 0)) dt = 0;
@@ -2652,7 +4008,13 @@
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => resize()); ro.observe(root); }
     else on(window, 'resize', resize);
     let started = false;                         // la 1re manche attend que root ait une vraie taille
-    function tryStart() { measure(); if (!started && cw > 20 && ch > 20) { started = true; startRound(true); } }
+    function tryStart() {
+      measure();
+      if (started || cw <= 20 || ch <= 20) return;
+      if (GUEST) { started = true; LW = desiredLW(); layout(); gHello(true); return; }   // l'invité attend la manche de l'hôte
+      if (HOST && !HN.hello && HN.waitT < 2.5) { LW = desiredLW(); layout(); return; }    // l'hôte attend l'invité (2,5 s max)
+      started = true; startRound(true);
+    }
     tryStart();
     raf = requestAnimationFrame(frame);
 
@@ -2667,6 +4029,7 @@
         particles: ptN, streaks: stkN, msU: Math.round(profU * 100) / 100, msR: Math.round(profR * 100) / 100, matchOver, winner: winnerP, paused, resumeT: Math.round(resumeT * 100) / 100, fps: Math.round(fpsAvg), ptr: PTR.size, later: later.length, raf: !!raf
       }),
       bot: (p, onoff, ph) => { BOT[p] = !!onoff; if (ph != null) botPh[p] = +ph; },
+      steer: (p, x, y) => { STEER[p] = x == null ? null : [+x, +y]; },
       log: () => LOG.slice(),
       gauge: (p, v) => { S.ships[p].gauge = clamp(+v || 0, 0, 1); },
       give: (p, k) => { collect(S, { k, dead: false, x: LW / 2, y: LH / 2 }, p); },
@@ -2691,6 +4054,17 @@
       droneKill: (p) => { if (S.drone) droneHit(S, 9999, p, S.drone.x, S.drone.y); },
       mineBoom: () => { const m = S.mines.find((q) => !q.dead); if (m) mineBoom(S, m, -1); },
       cap: (k, x) => { spawnCap(S, x == null ? LW / 2 : x, LH / 2); if (k) S.caps[S.caps.length - 1].k = k; },
+      net: () => (NET ? {
+        role: NET.role, me: ME, rid: HOST ? HN.rid : GN.rid, I: Math.round(GN.I), dH: Math.round(HOST ? HN.dH : GN.dH), G: Math.round(HN.G * 1000),
+        Gr: Math.round(GN.Gr), Gn: Math.round(GN.Gn), Gt: Math.round(GN.Gt), Lm: Math.round(HOST ? HN.Lm : GN.Lm), Ld: Math.round(HOST ? HN.Ld : GN.Ld),
+        snaps: GN.snaps.length, q: GN.q.length, pj: GN.pj.size, p1: HN.p1.length, hello: !!HN.hello, errs: NERR.slice(), LW, phase: S ? S.phase : null,
+        own: S && GUEST ? { x: S.ships[ME].x, y: S.ships[ME].y, alive: S.ships[ME].alive, shield: S.ships[ME].shield, gauge: S.ships[ME].gauge, sup: S.ships[ME].sup } : null
+      } : null),
+      resync: () => { if (GUEST) gHello(true); },
+      ai: () => (AIC ? { level: AIN, k: AIK, gx: AI.gx, gy: AI.gy, fx: AI.fx, fy: AI.fy, mode: AI.mode, danger: AI.danger, supers: AI.fired, delay: AIL.delay, eff: AI.eff } : null),
+      rec: (on) => { REC = on ? [] : null; },
+      recGet: () => REC,
+      nstat: () => NSTAT,
       adv: (sec) => { const n = Math.max(1, Math.round((+sec || 0) * 60)); for (let i = 0; i < n && !destroyed; i++) update(1 / 60); render(); }
     };
 
@@ -2701,6 +4075,7 @@
         paused = true;
         if (raf) { cancelAnimationFrame(raf); raf = 0; }
         clearInputs();
+        if (HOST && S) { hostFlush(); nsend(hostSnap(netNow(), true), true); }   // l'invité fige tout de suite son image
         render();
       },
       resume() {
@@ -2740,6 +4115,8 @@
     accent: ACCENT,
     target: 3,
     layout: 'shared',
+    net: true,                                     // sait jouer en ligne (chacun sur son appareil, voir « JEU EN LIGNE »)
+    ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
     preview,
     mount
   };

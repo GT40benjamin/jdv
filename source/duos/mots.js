@@ -343,7 +343,8 @@
       phase: 'wait', t: 0, clock: 0, starts: 0, roundNo: 1, introDur: 3,
       R: 6, C: 6, g: [], word: '', theme: -1, nameIdx: -1, cells: [], dirK: 0,
       timeLeft: ROUND_TIME, winner: -1, matchOver: false, lastTheme: -1, again: false,
-      used: new Set(), nameSlots: new Set(), pl: [mkPl(), mkPl()], fx: []
+      used: new Set(), nameSlots: new Set(), pl: [mkPl(), mkPl()], fx: [],
+      net: null                                  // jeu en ligne : { go, end } (heures communes, ms) ; null = un seul téléphone
     };
     // « 1 manche sur 4 » : un prénom de copain, placé au hasard (à graine) dans chaque bloc de 4 manches, jamais la toute première
     const mr = mulberry32(hash32(S.seed, 77));
@@ -351,7 +352,8 @@
     return S;
   }
   // armed : doigts posés pendant le décompte ou le gel ; ils commencent à tracer dès qu'ils bougent une fois le jeu ouvert
-  function mkPl() { return { trace: null, freeze: 0, kb: { on: false, r: 0, c: 0 }, armed: {} }; }
+  // claim (en ligne) : bon mot tracé, en attente de l'arbitrage de l'hôte { t: heure commune du lâcher, cells }
+  function mkPl() { return { trace: null, freeze: 0, kb: { on: false, r: 0, c: 0 }, armed: {}, claim: null }; }
   function startRound(S, again) {
     S.starts++;
     let n = 1;
@@ -396,25 +398,32 @@
     for (let i = 0; i <= tr.n; i++) out.push((tr.r0 + dr * i) * S.C + tr.c0 + dc * i);
     return out;
   }
-  function validate(S, p, tr) {
+  function validate(S, p, tr, tc) {
     if (tr.n < 1) return;                                  // simple appui : rien
     const cells = traceCells(S, tr);
     let s = '';
     for (const i of cells) s += S.g[i];
     const rev = s.split('').reverse().join('');
     if (s === S.word || rev === S.word) {
+      if (S.net) {                                         // en ligne : on réclame la manche, l'hôte départage avec les heures
+        S.pl[p].claim = { t: +tc || 0, cells: s === S.word ? cells : cells.slice().reverse() };
+        S.fx.push({ k: 'claim', p, t: S.pl[p].claim.t, cells: S.pl[p].claim.cells });
+        return;
+      }
       S.phase = 'found'; S.t = 0; S.winner = p;
       for (const q of S.pl) q.trace = null;
       S.fx.push({ k: 'found', p, cells: s === S.word ? cells : cells.slice().reverse() });
     } else {
       S.pl[p].freeze = FREEZE;
-      S.fx.push({ k: 'wrong', p, cells, r0: tr.r0, c0: tr.c0, dk: tr.k, n: tr.n });
+      const w = { k: 'wrong', p, cells, r0: tr.r0, c0: tr.c0, dk: tr.k, n: tr.n };
+      if (S.net) w.t = +tc || 0;
+      S.fx.push(w);
     }
   }
   function handle(S, ev) {
     const p = ev.p, pl = S.pl[p];
     if (!pl) return;
-    const canTrace = S.phase === 'play' && pl.freeze <= 0;
+    const canTrace = S.phase === 'play' && pl.freeze <= 0 && !(S.net && (pl.claim || S.timeLeft <= 0));
     const inGrid = (x, y) => x > -0.5 - TOL && x < S.C - 0.5 + TOL && y > -0.5 - TOL && y < S.R - 0.5 + TOL;
     const begin = (x, y) => {
       pl.trace = { id: ev.id, r0: clamp(Math.round(y), 0, S.R - 1), c0: clamp(Math.round(x), 0, S.C - 1), k: -1, n: 0, x, y, kbd: false };
@@ -445,7 +454,7 @@
       const tr = pl.trace;
       if (!tr || tr.kbd || tr.id !== ev.id) return;
       pl.trace = null;
-      if (ev.t === 'up' && canTrace) { tr.x = ev.x; tr.y = ev.y; selUpdate(tr, ev.x, ev.y, S.R, S.C); validate(S, p, tr); }
+      if (ev.t === 'up' && canTrace) { tr.x = ev.x; tr.y = ev.y; selUpdate(tr, ev.x, ev.y, S.R, S.C); validate(S, p, tr, ev.tc); }
       else S.fx.push({ k: 'drop', p });
     } else if (ev.t === 'key') {
       const kb = pl.kb;
@@ -453,7 +462,7 @@
       if (ev.a === 'x') {
         if (!canTrace) return;
         if (!pl.trace) { pl.trace = { id: -1, r0: kb.r, c0: kb.c, k: -1, n: 0, x: kb.c, y: kb.r, kbd: true }; S.fx.push({ k: 'sel', p, n: 1 }); }
-        else if (pl.trace.kbd) { const tr = pl.trace; pl.trace = null; validate(S, p, tr); }
+        else if (pl.trace.kbd) { const tr = pl.trace; pl.trace = null; validate(S, p, tr, ev.tc); }
         return;
       }
       if (ev.a === 'u') kb.r--; else if (ev.a === 'd') kb.r++; else if (ev.a === 'l') kb.c--; else if (ev.a === 'r') kb.c++;
@@ -502,6 +511,63 @@
     } else if (S.phase === 'reveal') {
       if (S.t >= REVEAL_DUR) startRound(S, true);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // JEU EN LIGNE (api.net) : la même simulation, mais l'intro et le chrono suivent l'HORLOGE COMMUNE `now` (ms, une entrée
+  // comme les autres) : GO à S.net.go, fin du chrono à S.net.end, sur les deux appareils. Chacun ne simule que SES doigts ;
+  // un bon tracé devient une réclamation datée (claim) et c'est l'hôte qui départage (le plus tôt gagne) puis annonce
+  // « trouvé » ou « temps écoulé ». Les manches (grille, mot) viennent de l'hôte.
+  // ---------------------------------------------------------------------------
+  function netRound(S, rd, now) {                 // installe une manche reçue de l'hôte
+    S.starts = rd.s; S.roundNo = rd.n; S.R = rd.R; S.C = rd.C; S.g = rd.g; S.word = rd.w; S.theme = rd.th; S.nameIdx = rd.ni;
+    S.cells = rd.c; S.dirK = rd.d; S.introDur = rd.id; S.again = !!rd.ag; S.winner = -1; S.timeLeft = ROUND_TIME;
+    S.net.go = rd.go; S.net.end = rd.go + ROUND_TIME * 1000;
+    S.phase = 'intro'; S.t = clamp(S.introDur - (rd.go - now) / 1000, 0, S.introDur);
+    for (const pl of S.pl) {
+      pl.trace = null; pl.freeze = 0; pl.claim = null; pl.armed = {};
+      pl.kb.r = clamp(pl.kb.r, 0, S.R - 1); pl.kb.c = clamp(pl.kb.c, 0, S.C - 1);
+    }
+    S.fx.push({ k: 'round', n: rd.n, again: !!rd.ag, first: !!rd.f });
+  }
+  function stepNet(S, dt, inputs, now) {
+    S.clock += dt;
+    let evs = [];
+    if (inputs) {
+      for (let p = 0; p < 2; p++) if (inputs[p]) for (const e of inputs[p]) { e.p = p; evs.push(e); }
+      if (evs.length > 1) evs = evs.sort((a, b) => (a.seq || 0) - (b.seq || 0));
+    }
+    for (const e of evs) handle(S, e);
+    for (const pl of S.pl) if (pl.freeze > 0) pl.freeze = Math.max(0, pl.freeze - dt);
+    const N = S.net;
+    if (S.phase === 'intro') {
+      const D = S.introDur, t0 = S.t, t1 = Math.max(t0, Math.min(D, D - (N.go - now) / 1000));
+      S.t = t1;
+      if (t0 < D - 1.5 && t1 >= D - 1.5) S.fx.push({ k: 'count', n: 3 });
+      if (t0 < D - 1.0 && t1 >= D - 1.0) S.fx.push({ k: 'count', n: 2 });
+      if (t0 < D - 0.5 && t1 >= D - 0.5) S.fx.push({ k: 'count', n: 1 });
+      if (now >= N.go) { S.phase = 'play'; S.t = 0; S.fx.push({ k: 'go' }); }
+    }
+    if (S.phase === 'play') {
+      const before = S.timeLeft;
+      S.timeLeft = clamp((N.end - now) / 1000, 0, ROUND_TIME);
+      S.t = Math.max(0, (now - N.go) / 1000);
+      const s0 = Math.ceil(before - 1e-9), s1 = Math.ceil(S.timeLeft - 1e-9);
+      if (s1 < s0 && s1 >= 1 && s1 <= 5) S.fx.push({ k: 'tick', s: s1 });
+      // chrono à zéro : plus aucun tracé ; on attend la décision de l'hôte (une réclamation peut encore arriver)
+      if (S.timeLeft <= 0) for (let p = 0; p < 2; p++) if (S.pl[p].trace) { S.pl[p].trace = null; S.fx.push({ k: 'drop', p }); }
+    } else if (S.phase === 'found' || S.phase === 'reveal') S.t += dt;
+  }
+  // décision de l'hôte appliquée de chaque côté
+  function netFound(S, p, cells, info) {
+    S.phase = 'found'; S.t = 0; S.winner = p;
+    for (const q of S.pl) { q.trace = null; q.claim = null; }
+    S.fx.push(Object.assign({ k: 'found', p, cells: cells || S.cells.slice() }, info || {}));
+  }
+  function netTimeout(S) {
+    S.phase = 'reveal'; S.t = 0; S.timeLeft = 0;
+    for (const q of S.pl) { q.trace = null; q.claim = null; }
+    S.fx.push({ k: 'timeout' });
   }
 
   // ===========================================================================
@@ -810,6 +876,18 @@
       return { name, img: src.img || null, sad: src.sad || null, color: isHex(src.color) ? src.color : (p ? COL.volt : COL.amber) };
     });
     const PC = [PL[0].color, PL[1].color];
+    // ------------------------------------------------------------- jeu en ligne (api.net) : chacun sur son appareil
+    // NET null = un seul téléphone (rien ne change). En ligne : ME = joueur de cet appareil (hôte 0, invité 1), OP = l'autre.
+    // Chaque appareil dessine SA vue (sa grille en grand, le mot, l'adversaire) ; VF = 1 si la bibliothèque tourne le root
+    // de 180° (invité) : la vue est alors dessinée tournée, pour apparaître à l'endroit (et les doigts arrivent déjà dans le repère de la vue).
+    const NET = (api.net && typeof api.net.send === 'function' && typeof api.net.onMessage === 'function') ? api.net : null;
+    const GUEST = !!NET && NET.role === 'guest', HOST = !!NET && !GUEST;
+    const ME = NET ? (GUEST ? 1 : 0) : 0, OP = 1 - ME, VF = NET && NET.flipped ? 1 : 0;
+    function nowC() {
+      try { const v = +NET.now(); if (isFinite(v)) return v; } catch (e) { /* rien */ }
+      return performance.now();
+    }
+    function rttMs() { try { const v = +NET.rtt(); if (isFinite(v) && v >= 0) return Math.min(v, 3000); } catch (e) { /* rien */ } return 150; }
     let destroyed = false, paused = false, raf = 0, last = -1, rt = 0, resumeT = 0, points = 0;
     const listeners = [];
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
@@ -837,7 +915,7 @@
       victory() { [523, 659, 784, 1047, 1319].forEach((f, i) => after(i * 0.09, () => tone(f, 0.2, 'triangle', 0.05))); after(0.5, () => { tone(1047, 0.5, 'sine', 0.04); tone(1319, 0.5, 'sine', 0.03); }); },
       rcount() { tone(520, 0.08, 'triangle', 0.03); }
     };
-    function say(text, o) { try { if (typeof api.say === 'function') api.say(text, o || {}); } catch (e) { /* rien */ } }
+    function say(text, o) { if (GUEST) return; try { if (typeof api.say === 'function') api.say(text, o || {}); } catch (e) { /* rien */ } }
     function vibrate(ms) { try { if (typeof api.vibrate === 'function') api.vibrate(ms); } catch (e) { /* rien */ } }
     function scores() { try { const s = typeof api.scores === 'function' ? api.scores() : null; if (Array.isArray(s)) return s; } catch (e) { /* rien */ } return [0, 0]; }
 
@@ -875,6 +953,7 @@
       names: NAMES,
       round: () => { try { const n = typeof api.round === 'function' ? api.round() : 0; if (n > 0) return n; } catch (e) { /* rien */ } return points + 1; }
     });
+    if (NET) sim.net = { go: 0, end: 0 };
     const inputs = [[], []];
     let seq = 0;
 
@@ -882,7 +961,10 @@
     let W = 1, H = 1, dpr = 1, quality = 1;
     const Lo = { HH: 0, band: 0, gx: 0, gy: 0, G: 100, pad: 6, hx: 0, hy: 0, hw: 60, hh: 74, freeL: 0, freeR: 0, plY: 0, plH: 30,
       listX: 0, listY: 0, listW: 0, listBig: false, wide: false, nameY: 0, tagPx: 12, rad: 10, sideY: 0 };
+    // emplacements des têtes (tête, nom, liste des mots trouvés) : en local les deux joueurs partagent les mesures de Lo
+    let HS = [Lo, Lo];
     function layout() {
+      if (NET) { layoutNet(); return; }
       const HH = H / 2;
       const band = clamp(HH * 0.118, 38, 64);
       const mBot = clamp(HH * 0.018, 5, 16);
@@ -907,6 +989,113 @@
       Lo.plY = HH + 4; Lo.plH = band - 8;
       if (wide && W - (gx + G) - colGap - side >= 110) { Lo.listX = gx + G + colGap + 10; Lo.listW = Math.min(260, W - Lo.listX - side); Lo.sideY = gy + 4; Lo.listY = gy + clamp(G * 0.2, 54, 96); Lo.listBig = true; }
       else { Lo.listX = hx; Lo.listY = Lo.nameY + Lo.tagPx * 0.9 + 8; Lo.listW = headW; Lo.listBig = false; }
+    }
+    // mise en page EN LIGNE (repère de la vue : celle du joueur de cet appareil, à l'endroit). La grille de ce joueur en grand,
+    // le mot bien visible, et les deux joueurs (têtes, noms, tracé en direct, mots trouvés). Trois dispositions, on garde
+    // celle qui donne la plus grande grille. Rien d'important dans les zones réservées (72x60 aux bouts de la ligne du milieu).
+    const ZW = 72, ZH = 30;
+    function layoutNet() {
+      const HH = H / 2, m0 = Math.min(W, H);
+      const mg = clamp(m0 * 0.03, 8, 24), plH = clamp(m0 * 0.12, 42, 64), gap = clamp(m0 * 0.022, 8, 14), PX = 10;
+      // A « empilé » (téléphone en portrait) : en-tête des joueurs en haut, le mot SUR la ligne du milieu, la grille dessous
+      const topA = HH + plH / 2 + gap + PX, hdrA = HH - plH / 2 - gap - mg;
+      const GA = hdrA < 110 ? 0 : Math.min(W - 2 * (mg + PX), H - topA - mg - PX);
+      // C « haut » (tablette en portrait) : en-tête, le mot, puis la grille qui passe la ligne du milieu ENTRE les zones réservées
+      const hdrMin = clamp(H * 0.2, 120, 260);
+      const GC = Math.min(W - 2 * (ZW + 6 + PX), H - 2 * mg - hdrMin - plH - 2 * gap - 2 * PX);
+      // B « côte à côte » (paysage, PC) : le mot au-dessus de la grille centrée, un panneau par joueur de chaque côté
+      const sideMin = clamp(W * 0.17, 120, 300);
+      const GB = Math.min(H - 2 * mg - plH - gap - 2 * PX, W - 2 * (sideMin + mg + PX));
+      let mode = 'stack', G = GA;
+      if (GC > G) { mode = 'tall'; G = GC; }
+      if (GB > G) { mode = 'side'; G = GB; }
+      G = Math.max(80, Math.floor(G));
+      Lo.mode = mode; Lo.HH = HH; Lo.G = G; Lo.wide = true; Lo.band = plH; Lo.mg = mg;
+      Lo.pad = clamp(G * 0.022, 4, 12); Lo.rad = clamp(G * 0.045, 8, 20);
+      Lo.plH = plH;
+      const S0 = { p: ME }, S1 = { p: OP };
+      HS = [null, null]; HS[ME] = S0; HS[OP] = S1;
+      Lo.vs = null;
+      if (mode === 'side') {
+        const blockH = plH + gap + 2 * PX + G, y0 = Math.max(mg, (H - blockH) / 2);
+        Lo.plY = y0; Lo.gx = Math.round((W - G) / 2); Lo.gy = Math.round(y0 + plH + gap + PX);
+        Lo.freeL = Lo.gx - PX; Lo.freeR = Lo.gx + G + PX;
+        Lo.tmW = G * 0.46;
+        const pw = Lo.gx - PX - 2 * mg;
+        panelSlot(S0, mg, pw, HH, mg);
+        panelSlot(S1, W - mg - pw, pw, HH, mg);
+      } else {
+        let hdrBot;
+        if (mode === 'stack') {
+          Lo.plY = HH - plH / 2; Lo.freeL = ZW + 6; Lo.freeR = W - ZW - 6;
+          const avail = H - topA - mg - PX;
+          Lo.gx = Math.round((W - G) / 2); Lo.gy = Math.round(topA + Math.max(0, avail - G) * 0.3);
+          hdrBot = Lo.plY - gap;
+          Lo.tmW = Math.min(W / 2 - ZW - 8, G * 0.46);
+        } else {
+          const free = H - 2 * mg - hdrMin - plH - 2 * gap - 2 * PX - G;
+          Lo.gx = Math.round((W - G) / 2); Lo.gy = Math.round(H - mg - PX - G - Math.max(0, free) * 0.25);
+          Lo.plY = Lo.gy - PX - gap - plH; Lo.freeL = Lo.gx - PX; Lo.freeR = Lo.gx + G + PX;
+          hdrBot = Lo.plY - gap;
+          Lo.tmW = G * 0.46;
+        }
+        headerSlots(S0, S1, mg, hdrBot);
+        Lo.info = null;
+      }
+      Lo.plCX = W / 2; Lo.tmY = Lo.plY + plH + gap * 0.5;
+      // champs du mode local encore lus ici ou là
+      Lo.hw = S0.hw; Lo.hh = S0.hh; Lo.hx = S0.hx; Lo.hy = S0.hy; Lo.tagPx = S0.tagPx; Lo.nameY = S0.nameY;
+      Lo.listX = S0.listX; Lo.listY = S0.listY; Lo.listW = S0.listW; Lo.listBig = S0.listBig; Lo.sideY = 0;
+    }
+    // un joueur par panneau latéral (paysage) : tête + nom + tracé au-dessus de la ligne du milieu, mots trouvés dessous
+    function panelSlot(S, x0, pw, HH, mg) {
+      const bandTop = HH - ZH - 6, bandBot = HH + ZH + 6, topH = bandTop - mg;
+      const tagPx = clamp(pw * 0.065, 12, 20), trH = clamp(pw * 0.1, 18, 34);
+      let hh = clamp(topH - tagPx * 1.9 - trH - 30, 50, 250), hw = hh / 1.2;
+      if (hw > pw * 0.78) { hw = pw * 0.78; hh = hw * 1.2; }
+      const blockH = hh + tagPx * 1.9 + 10 + trH;
+      const y0 = mg + Math.max(0, (topH - blockH) * 0.55), cx = x0 + pw / 2;
+      S.hw = hw; S.hh = hh; S.hx = cx - hw / 2; S.hy = y0; S.tagPx = tagPx; S.nameY = y0 + hh + tagPx * 0.9 + 4;
+      S.trH = trH; S.trCX = cx; S.trY = S.nameY + tagPx * 0.9 + 6 + trH * 0.68; S.trW = pw;
+      S.listW = Math.min(pw, 300); S.listX = cx - S.listW / 2; S.listY = bandBot + 4; S.listBig = true; S.listAlign = 'center';
+      S.listPx = clamp(pw * 0.075, 12, 20);
+      S.listRows = Math.max(1, Math.floor((H - mg - S.listY) / (S.listPx * 1.5)) - 1);
+      if (S.p === ME) {                                // « MANCHE N » et le thème au-dessus de ma liste
+        const ih = Math.ceil(clamp(S.listW * 0.085, 14, 24) * 2.9);
+        Lo.info = { x: cx, y: S.listY, w: S.listW };
+        S.listY += ih + 6; S.listRows = Math.max(1, Math.floor((H - mg - S.listY) / (S.listPx * 1.5)) - 1);
+      }
+    }
+    // en-tête (portrait) : les deux têtes face à face autour d'un « VS », moi à gauche, l'adversaire à droite
+    function headerSlots(S0, S1, top, bot) {
+      const hH = bot - top, colW = W / 2;
+      let hh = clamp(hH * (colW > 300 ? 0.62 : 0.5), 56, 250), hw = hh / 1.2;
+      if (hw > colW * 0.68) { hw = colW * 0.68; hh = hw * 1.2; }
+      const tagPx = clamp(hw * 0.14, 11, 18), trH = clamp(hw * 0.22, 18, 34), LH = 1.32;
+      let listPx = clamp(hw * 0.11, 11, 16);
+      const blockH = hh + tagPx * 1.9 + 10 + trH * 1.36;
+      const rowsBelow = Math.floor((hH - blockH - 14) / (listPx * LH));
+      const beside = rowsBelow < 3 && colW - hw > 150;      // en-tête large et bas : la liste à côté de la tête (côté extérieur)
+      if (!beside) listPx = clamp(hw * 0.1, 11, 15);
+      const listRes = beside ? 0 : listPx * LH * 5 + 6;       // place gardée pour les mots trouvés (le bloc est centré)
+      const y0 = top + Math.max(hw * 0.09, (hH - blockH - listRes) * (beside ? 0.5 : 0.42));
+      for (const [S, side] of [[S0, -1], [S1, 1]]) {
+        const cx = beside ? W / 2 + side * (hw * 0.5 + clamp(colW * 0.16, 34, 90)) : W / 2 + side * colW / 2;
+        S.hw = hw; S.hh = hh; S.hx = cx - hw / 2; S.hy = y0; S.tagPx = tagPx; S.nameY = y0 + hh + tagPx * 0.9 + 4;
+        S.trH = trH; S.trCX = cx; S.trY = S.nameY + tagPx * 0.9 + 6 + trH * 0.68; S.trW = beside ? hw + 24 : colW - 14;
+        S.listPx = listPx; S.listBig = true; S.listLH = LH;
+        if (beside) {
+          const xa = side < 0 ? Lo.mg || 10 : cx + hw / 2 + 16, xb = side < 0 ? cx - hw / 2 - 16 : W - (Lo.mg || 10);
+          S.listW = Math.max(60, xb - xa); S.listX = xa; S.listY = y0 + 6; S.listAlign = side < 0 ? 'right' : 'left';
+          S.listRows = Math.max(1, Math.floor((bot - S.listY) / (listPx * LH)) - 1);
+        } else {
+          S.listW = colW - 20; S.listX = cx - S.listW / 2; S.listY = S.trY + trH * 0.68 + 4; S.listAlign = 'center';
+          const rows = Math.floor((Math.min(bot, H / 2 - ZH - 4) - S.listY - 8) / (listPx * LH));   // jamais dans les zones réservées
+          S.listNoTitle = rows < 6;                         // pas la place pour « TROUVÉS » + 5 mots : les ✓ suffisent
+          S.listRows = Math.max(1, Math.min(5, rows - (S.listNoTitle ? 0 : 1)));
+        }
+      }
+      Lo.vs = { x: W / 2, y: y0 + hh * 0.5, s: clamp((beside ? clamp(colW * 0.16, 34, 90) * 2 : colW - hw) * 0.42, 16, 46) };
     }
 
     // ------------------------------------------------------------- sprites et caches (tout ce qui est coûteux est pré-rendu)
@@ -1049,13 +1238,13 @@
     }
     function buildStickers() {
       for (let p = 0; p < 2; p++) {
-        const pl = PL[p];
+        const pl = PL[p], hw = HS[p].hw, hh = HS[p].hh;
         const fb = { initial: (normName(pl.name) || pl.name || '?').trim().charAt(0).toUpperCase() || '?', sad: false };
-        const n = makeSticker(pl.img, Lo.hw, Lo.hh, PC[p], dpr, fb, FD);
+        const n = makeSticker(pl.img, hw, hh, PC[p], dpr, fb, FD);
         const sadImg = imgOk(pl.sad) ? pl.sad : null;
-        const s = sadImg ? makeSticker(sadImg, Lo.hw, Lo.hh, PC[p], dpr, fb, FD)
-          : imgOk(pl.img) ? tintSad(makeSticker(pl.img, Lo.hw, Lo.hh, PC[p], dpr, fb, FD))
-            : makeSticker(null, Lo.hw, Lo.hh, PC[p], dpr, { initial: fb.initial, sad: true }, FD);
+        const s = sadImg ? makeSticker(sadImg, hw, hh, PC[p], dpr, fb, FD)
+          : imgOk(pl.img) ? tintSad(makeSticker(pl.img, hw, hh, PC[p], dpr, fb, FD))
+            : makeSticker(null, hw, hh, PC[p], dpr, { initial: fb.initial, sad: true }, FD);
         stickers[p] = { n, s };
       }
       nameSticker = null; nameStickerKey = '';
@@ -1101,51 +1290,63 @@
     function buildTags() {
       for (let p = 0; p < 2; p++) {
         const nm = PL[p].name.length > 10 ? PL[p].name.slice(0, 9) + '.' : PL[p].name;
-        const px = Lo.tagPx;
+        const px = HS[p].tagPx;
         ctx.font = px.toFixed(1) + 'px ' + FD;
-        const maxW = Lo.hw + 14;
+        const maxW = HS[p].hw + 14;
         let tw = ctx.measureText(nm).width, k = 1;
-        if (tw > maxW - 12) { k = (maxW - 12) / tw; tw = maxW - 12; }
-        const w = Math.ceil(tw + 16), h = Math.ceil(px * 1.55);
+        // contre l'IA : son niveau en 4 crans à côté du nom (1 = facile … 4 = extrême)
+        const pips = AIN && p === AIP ? AIL.n : 0, pw = pips ? px * 2.4 : 0;
+        if (tw > maxW - 12 - pw) { k = (maxW - 12 - pw) / tw; tw = maxW - 12 - pw; }
+        const w = Math.ceil(tw + 16 + pw), h = Math.ceil(px * 1.55);
         const cv = mkCanvas((w + 2) * dpr, (h + 2) * dpr), c = cv.getContext('2d');
         c.scale(dpr, dpr); c.translate(1, 1);
         rrect(c, 0, 0, w, h, h / 2);
         c.fillStyle = 'rgba(5,10,15,0.85)'; c.fill();
         c.lineWidth = 1.2; c.strokeStyle = rgba(PC[p], 0.85); c.stroke();
+        if (pips) {
+          for (let i = 0; i < 4; i++) {
+            const bw = px * 0.36, bh = px * (0.38 + i * 0.16), x = w - 8 - pw + px * 0.2 + i * px * 0.52, y = h / 2 + px * 0.45 - bh;
+            c.fillStyle = i < pips ? (i === 3 ? COL.alarm : COL.gold) : 'rgba(160,190,210,0.25)';
+            rrect(c, x, y, bw, bh, bw * 0.3); c.fill();
+          }
+        }
         c.font = px.toFixed(1) + 'px ' + FD; c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.translate(w / 2, h / 2 + px * 0.05); c.scale(k, 1);
+        c.translate(w / 2 - pw / 2, h / 2 + px * 0.05); c.scale(k, 1);
         c.fillStyle = PC[p]; c.fillText(nm, 0, 0);
         tagCv[p] = { cv, w: w + 2, h: h + 2 };
       }
     }
     function buildList(p) {
-      const list = V.found[p], key = list.join(',') + '|' + Lo.listW + '|' + dpr + '|' + (fontsOK ? 1 : 0);
+      const S = HS[p], list = V.found[p], key = list.join(',') + '|' + S.listW + '|' + dpr + '|' + (fontsOK ? 1 : 0);
       if (key === listKey[p]) return listCv[p];
       listKey[p] = key;
       if (!list.length) { listCv[p] = null; return null; }
-      const big = Lo.listBig;
-      const px = big ? clamp(Lo.listW * 0.09, 12, 18) : clamp(Lo.hw * 0.15, 9, 12);
-      const rows = Math.min(list.length, 8) + (big ? 1 : 0);
-      const w = Math.ceil(Lo.listW), h = Math.ceil(rows * px * 1.5 + 6);
+      const big = S.listBig, al = S.listAlign || (big ? 'left' : 'center');   // en ligne : alignement selon l'emplacement
+      const px = S.listPx || (big ? clamp(S.listW * 0.09, 12, 18) : clamp(S.hw * 0.15, 9, 12));
+      const lh = S.listLH || 1.5, title = big && !S.listNoTitle;   // en ligne : lignes plus serrées, titre ôté si la place manque
+      const maxRows = S.listRows || 8;
+      const rows = Math.min(list.length, 8, maxRows) + (title ? 1 : 0);
+      const w = Math.ceil(S.listW), h = Math.ceil(rows * px * lh + 6);
       const cv = mkCanvas(w * dpr, h * dpr), c = cv.getContext('2d');
       c.scale(dpr, dpr);
       c.textBaseline = 'middle'; c.lineJoin = 'round';
+      const ax = al === 'left' ? 0 : al === 'right' ? w : w / 2;
       let y = px * 0.8;
-      if (big) { c.font = '600 ' + (px * 0.85).toFixed(1) + 'px ' + FB; c.textAlign = 'left'; c.fillStyle = rgba(PC[p], 0.8); c.fillText('TROUVÉS', 0, y); y += px * 1.5; }
-      for (let i = list.length - 1, n = 0; i >= 0 && n < 8; i--, n++) {
+      if (title) { c.font = '600 ' + (px * 0.85).toFixed(1) + 'px ' + FB; c.textAlign = al; c.fillStyle = rgba(PC[p], 0.8); c.fillText('TROUVÉS', ax, y); y += px * lh; }
+      for (let i = list.length - 1, n = 0; i >= 0 && n < Math.min(8, maxRows); i--, n++) {
         c.font = (big ? '' : '600 ') + px.toFixed(1) + 'px ' + (big ? FD : FB);
-        c.textAlign = big ? 'left' : 'center';
-        const x = big ? 0 : w / 2, s = (big ? '✓ ' : '') + list[i];
+        c.textAlign = big ? al : 'center';
+        const x = big ? ax : w / 2, s = (big ? '✓ ' : '') + list[i];
         c.lineWidth = 2.5; c.strokeStyle = 'rgba(3,7,11,0.9)'; c.strokeText(s, x, y, w);
         c.fillStyle = n === 0 ? shade(PC[p], 0.25) : rgba(PC[p], 0.72); c.fillText(s, x, y, w);
-        y += px * 1.5;
+        y += px * lh;
       }
       listCv[p] = { cv, w, h };
       return listCv[p];
     }
     function buildExplain() {
       const w = Math.min(Lo.G * 0.92, 360), px = clamp(Lo.G * 0.05, 12.5, 19);
-      const lines = ['Trace du doigt le mot affiché', 'au milieu, avant l’autre !'];
+      const lines = NET ? ['Trace du doigt le mot affiché', 'avant ' + PL[OP].name + ' !'] : AIN ? ['Trace du doigt le mot affiché', 'au milieu, avant l’IA !'] : ['Trace du doigt le mot affiché', 'au milieu, avant l’autre !'];
       const h = Math.ceil(px * 1.45 * 2 + px * 2.6);
       const cv = mkCanvas(w * dpr, h * dpr), c = cv.getContext('2d');
       c.scale(dpr, dpr);
@@ -1162,17 +1363,60 @@
       explainCv = { cv, w, h };
     }
     // fond fixe pré-rendu : dégradés, nébuleuse d'ILO si disponible, papier « mots mêlés », vignettage
-    function buildBg() {
-      const cv = mkCanvas(W * dpr, H * dpr), c = cv.getContext('2d');
-      c.scale(dpr, dpr);
-      c.fillStyle = '#060c12'; c.fillRect(0, 0, W, H);
-      // motif de lettres (une petite tuile répétée)
+    function letterTile() {
       const T = 176, tile = mkCanvas(T, T), tc = tile.getContext('2d'), rng = mulberry32(4242);
       tc.font = '600 11px ' + FB; tc.textAlign = 'center'; tc.textBaseline = 'middle';
       for (let y = 11; y < T; y += 22) for (let x = 11; x < T; x += 22) {
         tc.fillStyle = 'rgba(170,205,230,' + (0.03 + rng() * 0.045).toFixed(3) + ')';
         tc.fillText(randLetter(rng), x, y);
       }
+      return tile;
+    }
+    // fond EN LIGNE (repère de la vue) : ma couleur du côté de ma grille, celle de l'adversaire derrière sa tête
+    function buildBgNet() {
+      const cv = mkCanvas(W * dpr, H * dpr), c = cv.getContext('2d');
+      if (VF) c.setTransform(-dpr, 0, 0, -dpr, W * dpr, H * dpr); else c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.fillStyle = '#060c12'; c.fillRect(0, 0, W, H);
+      const side = Lo.mode === 'side', so = HS[OP], sm = HS[ME];
+      let g = side ? c.createLinearGradient(0, 0, W, 0) : c.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, mix('#0b141c', PC[side ? ME : OP], 0.13)); g.addColorStop(0.5, '#0a1219'); g.addColorStop(1, mix('#0b141c', PC[side ? OP : ME], 0.13));
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      const glow = (x, y, r, col, a) => {
+        const rg = c.createRadialGradient(x, y, 4, x, y, r);
+        rg.addColorStop(0, rgba(col, a)); rg.addColorStop(0.5, rgba(col, a * 0.25)); rg.addColorStop(1, rgba(col, 0));
+        c.fillStyle = rg; c.fillRect(0, 0, W, H);
+      };
+      glow(Lo.gx + Lo.G / 2, side ? H : H + Lo.G * 0.1, Math.max(Lo.G, W * 0.5) * 1.05, PC[ME], 0.22);
+      glow(so.hx + so.hw / 2, so.hy + so.hh * 0.5, Math.max(so.hw * 3, side ? H * 0.6 : Lo.HH * 0.9), PC[OP], 0.2);
+      glow(sm.hx + sm.hw / 2, sm.hy + sm.hh * 0.5, Math.max(sm.hw * 2.4, side ? H * 0.45 : Lo.HH * 0.7), PC[ME], 0.12);
+      if (NEB) {
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.5;
+        const sz = Math.max(W, H) * 0.95;
+        if (NEB[OP]) c.drawImage(NEB[OP], so.hx + so.hw / 2 - sz / 2, so.hy + so.hh * 0.5 - sz / 2, sz, sz);
+        if (NEB[ME]) c.drawImage(NEB[ME], Lo.gx + Lo.G / 2 - sz / 2, Lo.gy + Lo.G * 0.75 - sz / 2, sz, sz);
+        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+      }
+      let pat = null;
+      try { pat = c.createPattern(letterTile(), 'repeat'); } catch (e) { pat = null; }
+      if (pat) { c.fillStyle = pat; c.fillRect(0, 0, W, H); }
+      if (Lo.mode === 'stack') {
+        g = c.createLinearGradient(0, Lo.HH - 70, 0, Lo.HH + 70);
+        g.addColorStop(0, 'rgba(4,8,12,0)'); g.addColorStop(0.5, 'rgba(4,8,12,0.6)'); g.addColorStop(1, 'rgba(4,8,12,0)');
+        c.fillStyle = g; c.fillRect(0, Lo.HH - 70, W, 140);
+      }
+      g = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.5)');
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      bgCv = cv;
+      seamGrad = null; plateKey = ''; redVig = null;
+    }
+    function buildBg() {
+      if (NET) { buildBgNet(); return; }
+      const cv = mkCanvas(W * dpr, H * dpr), c = cv.getContext('2d');
+      c.scale(dpr, dpr);
+      c.fillStyle = '#060c12'; c.fillRect(0, 0, W, H);
+      // motif de lettres (une petite tuile répétée)
+      const tile = letterTile();
       let pat = null;
       try { pat = c.createPattern(tile, 'repeat'); } catch (e) { pat = null; }
       for (let p = 0; p < 2; p++) {
@@ -1226,6 +1470,14 @@
       return s;
     }
     function seedDecor() {
+      if (NET) {                                     // en ligne : un seul décor, sur toute la vue
+        BGL[0].length = 0; DUST[0].length = 0; BGL[1].length = 0; DUST[1].length = 0;
+        const n = Math.round(clamp((W * H) / 90000, 4, 9));
+        for (let i = 0; i < n; i++) BGL[0].push(newGhost(true));
+        const nd = Math.round(clamp((W * H) / 9000, 24, 70));
+        for (let i = 0; i < nd; i++) DUST[0].push({ x: Math.random() * W, y: Math.random() * H, vx: rnd(-4, 4), vy: rnd(-10, -3), ph: Math.random() * TAU, s: rnd(0.8, 2.2), c: i % 2 });
+        return;
+      }
       for (let p = 0; p < 2; p++) {
         BGL[p].length = 0; DUST[p].length = 0;
         const n = Math.round(clamp((W * H) / 70000, 3, 6));
@@ -1236,6 +1488,10 @@
     }
     function newGhost(any) {
       const size = rnd(60, 150);
+      if (NET) {
+        return { ch: 'ABCDEFGHIJKLMNOPRSTUVZ'[(Math.random() * 22) | 0], x: Math.random() * W, y: any ? Math.random() * H : H + size * 0.6,
+          size, vy: -(5 + 16 * (size - 60) / 90), rot: rnd(-0.4, 0.4), vr: rnd(-0.05, 0.05), a: rnd(0.06, 0.12), c: Math.random() < 0.5 ? 0 : 1 };
+      }
       return { ch: 'ABCDEFGHIJKLMNOPRSTUVZ'[(Math.random() * 22) | 0], x: Math.random() * W, y: any ? H / 2 + Math.random() * H / 2 : H + size * 0.6,
         size, vy: -(5 + 16 * (size - 60) / 90), rot: rnd(-0.4, 0.4), vr: rnd(-0.05, 0.05), a: rnd(0.07, 0.14) };
     }
@@ -1251,7 +1507,7 @@
       let iconW, pf, m, sp, need;
       const fit = (withIcon) => {
         iconW = withIcon ? (nameR ? ph * 1.1 : ph * 0.95) : ph * 0.1;
-        pf = Math.min(ph * 0.66, 30); m = meas(pf); sp = pf * 0.14;
+        pf = Math.min(ph * 0.66, NET ? 40 : 30); m = meas(pf); sp = pf * 0.14;
         need = padX * 2 + iconW + m.tot + sp * Math.max(0, word.length - 1);
         if (need > maxW) {
           const k = (maxW - padX * 2 - iconW) / (m.tot + sp * Math.max(0, word.length - 1));
@@ -1263,7 +1519,7 @@
       if (!nameR && pf < ph * 0.56) fit(false);
       PW.icon = iconW > ph * 0.2;
       const pw = clamp(Math.max(need, ph * 5.2), 0, maxW);
-      const cx = clamp(W / 2, Lo.freeL + pw / 2, Lo.freeR - pw / 2);
+      const cx = clamp(NET ? Lo.plCX : W / 2, Lo.freeL + pw / 2, Lo.freeR - pw / 2);
       const content = iconW + m.tot + sp * Math.max(0, word.length - 1);
       let x = cx - content / 2 + iconW;
       PW.xs = [];
@@ -1339,7 +1595,9 @@
       cap: [mkCap(), mkCap()], wcap: [null, null], gshake: [0, 0], hshake: [0, 0], hit: [0, 0], nope: [0, 0],
       mood: ['idle', 'idle'], moodT: [0, 0], found: [[], []],
       flyers: [], landed: 0, plateHit: [], flashA: 0, flashCol: '#ffffff', goT: -1, countT: 9, countN: 0,
-      oldT: 9, over: false, overT: 0, winner: -1, perf: { sum: 0, n: 0, prev: 0, upd: 0, ren: 0, au: 0, ar: 0 }
+      oldT: 9, over: false, overT: 0, winner: -1, perf: { sum: 0, n: 0, prev: 0, upd: 0, ren: 0, au: 0, ar: 0 },
+      // en ligne : réclamation en attente (mon bon tracé), tracé en direct de chacun sous sa tête, adversaire qui trace
+      lock: null, oppFocus: 0, capA: [0, 0], capShow: [null, null], capRed: [0, 0], burstOp: false
     };
     function mkCap() { return { on: false, ax: 0, ay: 0, bx: 0, by: 0, a: 0, fx: 0, fy: 0, kbd: false }; }
     // particules (réserve fixe, pas d'allocation en jeu) : k 0 confetti, 1 étincelle additive, 2 larme
@@ -1391,11 +1649,12 @@
           case 'round': onRound(e); break;
           case 'count':
             SFX.count(); V.countT = 0; V.countN = e.n;
-            for (let p = 0; p < 2; p++) ring(p, Lo.gx + Lo.G / 2, Lo.gy + Lo.G / 2, Lo.G * 0.12, Lo.G * 0.46, 0.5, COL.gold, 4);
+            for (let p = 0; p < 2; p++) if (!NET || p === ME) ring(p, Lo.gx + Lo.G / 2, Lo.gy + Lo.G / 2, Lo.G * 0.12, Lo.G * 0.46, 0.5, COL.gold, 4);
             break;
           case 'go': onGo(); break;
           case 'sel': onSel(e.p, e.n); break;
-          case 'wrong': onWrong(e); break;
+          case 'wrong': onWrong(e); if (NET && e.p === ME) netSend({ k: 'wr', s: N.s, t: Math.round(e.t * 10) / 10 }, true); break;
+          case 'claim': onClaim(e); break;
           case 'found': onFound(e); break;
           case 'tick': SFX.tick(e.s); break;
           case 'timeout': onTimeout(); break;
@@ -1415,6 +1674,7 @@
       if (sim.starts === 1) pickDemo();
       V.goT = -1; V.countT = 9; V.countN = 0; V.flyers.length = 0; V.landed = 0; V.plateHit = []; V.winner = -1;
       for (let p = 0; p < 2; p++) { V.cap[p].on = false; V.cap[p].a = 0; V.wcap[p] = null; }
+      if (NET) { V.lock = null; V.burstOp = false; V.capShow = [null, null]; V.capA = [0, 0]; V.capRed = [0, 0]; buildInfoNet(); }
       const sc = scores();
       if (e.again) say('Nouveau mot !', { ms: 950, color: COL.gold });
       else if (sc[0] === TARGET - 1 || sc[1] === TARGET - 1) say(sc[0] === sc[1] ? 'Dernière manche !' : 'Balle de match !', { ms: 1100, color: COL.alarm });
@@ -1427,6 +1687,7 @@
       const cy = Lo.plY + Lo.plH / 2;
       for (let p = 0; p < 2; p++) {
         if (V.mood[p] !== 'idle') { V.mood[p] = 'idle'; V.moodT[p] = 0; }
+        if (NET && p !== ME) continue;                 // en ligne : une seule vue
         ring(p, PW.cx, cy, Lo.plH * 0.5, PW.pw * 0.75, 0.55, COL.gold, 3);
         sparks(p, PW.cx, cy, 10, GL.gold, 170, 0.5, 14);
       }
@@ -1454,7 +1715,8 @@
       const p = e.p, word = sim.word;
       points++;
       let res = null;
-      try { if (typeof api.point === 'function') res = api.point(p, word + ' !'); } catch (er) { res = null; }
+      if (NET) res = { over: !!e.over };            // en ligne : l'hôte a déjà compté le point ; l'invité ne l'appelle jamais
+      else { try { if (typeof api.point === 'function') res = api.point(p, word + ' !'); } catch (er) { res = null; } }
       if (res && res.over) { sim.matchOver = true; V.over = true; V.overT = 0; }
       V.winner = p;
       SFX.found(); vibrate(res && res.over ? 120 : 55);
@@ -1466,17 +1728,358 @@
       V.flyers.length = 0; V.landed = 0; V.plateHit = new Array(word.length).fill(0);
       const cells = e.cells;
       const curv = Math.random() < 0.5 ? -1 : 1;
+      // en ligne, mot trouvé par l'adversaire : les lettres quittent ma grille et filent vers sa tête
+      const toOp = NET && p === OP, so = HS[OP];
+      V.burstOp = toOp;
       for (let i = 0; i < cells.length; i++) {
         const r = (cells[i] / sim.C) | 0, c = cells[i] % sim.C;
-        const x0 = cellCX(c), y0 = cellCY(r), x1 = PW.xs[i] != null ? PW.xs[i] : PW.cx, y1 = Lo.plY + Lo.plH / 2;
-        V.flyers.push({ i, ch: word[i], x0, y0, x1, y1, qx: (x0 + x1) / 2 + curv * rnd(30, 70), qy: Math.min(y0, y1) - rnd(10, 50), t: -(0.36 + i * 0.055), dur: 0.5, done: false });
+        let x1 = PW.xs[i] != null ? PW.xs[i] : PW.cx, y1 = Lo.plY + Lo.plH / 2;
+        const x0 = cellCX(c), y0 = cellCY(r);
+        if (toOp) { x1 = so.hx + so.hw / 2 + (i - (cells.length - 1) / 2) * so.hw * 0.07; y1 = so.hy + so.hh * 0.52; }
+        V.flyers.push({ i, ch: word[i], x0, y0, x1, y1, qx: (x0 + x1) / 2 + curv * rnd(30, 70), qy: Math.min(y0, y1) - rnd(10, 50), t: -(0.36 + i * 0.055), dur: toOp ? 0.62 : 0.5, done: false, s1: toOp ? 0.34 : undefined });
         sparks(p, x0, y0, 3, glowP(p), 110, 0.5, 14);
       }
       if (V.over) after(0.9, () => SFX.victory());
+      if (NET) {
+        const lk = V.lock;
+        V.lock = null;
+        if (p === OP && lk && lk.cells.length) {     // j'avais trouvé aussi… mais un peu plus tard (heure commune)
+          const a = lk.cells[0], b = lk.cells[lk.cells.length - 1];
+          const x = (cellCX(a % sim.C) + cellCX(b % sim.C)) / 2, y = (cellCY((a / sim.C) | 0) + cellCY((b / sim.C) | 0)) / 2;
+          ftext(ME, textSprite('TROP TARD !', clamp(TM.cs * 0.5, 15, 26), COL.alarm, false, 4), x, y - TM.cs * 0.7, 1.2);
+        }
+        if (e.by >= 0 && e.by < 1500) {              // photo-finish : on montre l'écart, de la même façon des deux côtés
+          const s = 'à ' + (Math.max(1, Math.round(e.by / 10)) / 100).toFixed(2).replace('.', ',') + ' s près !';
+          ftext(ME, textSprite(s, clamp(TM.cs * 0.42, 14, 22), COL.gold, false, 4), Lo.gx + Lo.G / 2, Lo.gy + TM.cs * 0.55, 1.6);
+        }
+      }
     }
     function onTimeout() {
       SFX.timeout();
       V.mood[0] = 'sad'; V.mood[1] = 'sad'; V.moodT[0] = 0; V.moodT[1] = 0;
+      if (NET) V.lock = null;
+    }
+    // en ligne : mon bon tracé est « verrouillé » tout de suite (son, éclat), en attendant l'arbitrage de l'hôte
+    function onClaim(e) {
+      if (!NET || e.p !== ME || !e.cells || !e.cells.length) return;
+      V.lock = { cells: e.cells.slice(), t: 0 };
+      tone(1318, 0.07, 'triangle', 0.04); tone(1976, 0.12, 'sine', 0.025);
+      vibrate(20);
+      const b = e.cells[e.cells.length - 1];
+      sparks(ME, cellCX(b % sim.C), cellCY((b / sim.C) | 0), 6, glowP(ME), 120, 0.4, 12);
+      if (GUEST) netSend({ k: 'cl', s: N.s, t: Math.round(e.t * 10) / 10, c: e.cells.slice() }, true);
+    }
+    // en ligne : l'adversaire a raté un tracé (message) → sa tête tremble, anneau de gel, « RATÉ ! » au-dessus de lui
+    function onOppWrong() {
+      const S = HS[OP], x = S.hx + S.hw / 2;
+      sim.pl[OP].freeze = FREEZE;                    // affichage seulement (son appareil applique son gel ; l'hôte le vérifie)
+      V.hit[OP] = 0.6; V.capRed[OP] = 0.5;
+      tone(150, 0.2, 'sawtooth', 0.018, 80);
+      if (!ratSpr) ratSpr = textSprite('RATÉ !', clamp(TM.cs * 0.5, 15, 24), COL.alarm, false, 4);
+      ftext(OP, ratSpr, x, S.hy + S.hh * 0.1, 0.8);
+      sparks(OP, x, S.hy + S.hh * 0.45, 8, GL.red, 120, 0.4, 12);
+    }
+
+    // ------------------------------------------------------------- réseau (jeu en ligne)
+    // Messages (petits, en unités de jeu : cases, heures communes en ms) :
+    //   hôte → invité, fiables : rd (manche : grille, mot, heure du GO), fd (trouvé : gagnant, écart), to (temps écoulé),
+    //                            wr (raté), rs (reprise après pause : heure commune de reprise + GO décalé), rj (réclamation refusée)
+    //   invité → hôte, fiables : hi (je suis prêt), cl (trouvé à t), wr (raté à t)
+    //   les deux, rapides (~20/s, perte sans gravité) : st { t, tracé en cours, heure de la réclamation }
+    // Équité : chacun date son lâcher avec l'horloge commune ; l'hôte attend de savoir que l'invité n'a pas trouvé AVANT lui
+    // (un état de l'invité daté après sa propre réclamation, ou au pire un délai de grâce) : le plus rapide gagne,
+    // même si son message arrive après.
+    const N = {
+      q: [], snap: null, s: 0, go: 0, end: 0, fnow: 0, ready: false, gotRound: false, waitT: 0, hiT: 0,
+      gClaim: null, seen: 0, gWr: [], decided: false, outcome: null, pauseAt: 0,
+      snapT: -1, snapKey: '', snapFd: -1, opp: { t: -1, rt: -9, tr: null, fd: 0, cells: null },
+      log: [], rx: 0, tx: 0
+    };
+    function netSend(m, reliable) { if (!NET || destroyed) return; try { NET.send(m, { reliable: !!reliable }); N.tx++; } catch (e) { /* rien */ } }
+    if (NET) {
+      try {
+        NET.onMessage((m) => {
+          if (destroyed || !m || typeof m !== 'object') return;
+          N.rx++;
+          if (m.k === 'st') { const o = N.snap; if (!o || m.s > o.s || (m.s === o.s && m.t >= o.t)) N.snap = m; return; }
+          if (N.q.length < 300) N.q.push(m);
+        });
+      } catch (e) { /* rien */ }
+    }
+    const graceMs = () => clamp(rttMs() * 1.2 + 250, 300, 1500);
+    function roundMsg() {
+      return { k: 'rd', s: N.s, n: sim.roundNo, R: sim.R, C: sim.C, g: sim.g.join(''), w: sim.word, c: sim.cells.slice(), d: sim.dirK, th: sim.theme,
+        nm: sim.nameIdx >= 0 && NAMES[sim.nameIdx] ? NAMES[sim.nameIdx].key : '', id: sim.introDur, ag: sim.again ? 1 : 0, f: sim.starts === 1 ? 1 : 0, go: Math.round(N.go) };
+    }
+    function hostStartRound(again, now) {
+      startRound(sim, again);
+      for (const pl of sim.pl) { pl.claim = null; pl.armed = {}; }
+      N.s = sim.starts; N.go = sim.net.go = now + sim.introDur * 1000; N.end = sim.net.end = N.go + ROUND_TIME * 1000;
+      N.gClaim = null; N.seen = 0; N.gWr = []; N.decided = false; N.outcome = null; N.opp.tr = null; N.opp.fd = 0; N.opp.cells = null;
+      netSend(roundMsg(), true);
+    }
+    function guestClaimOk(c) {
+      if (!(c.t >= N.go - 250 && c.t <= N.end + 250)) return false;
+      for (const t of N.gWr) if (c.t > t && c.t < t + FREEZE * 1000 - 150) return false;   // trouvé pendant son gel : impossible
+      if (c.cells) {
+        let s = '';
+        for (const i of c.cells) { if (!(i >= 0 && i < sim.g.length)) return false; s += sim.g[i]; }
+        if (s !== sim.word && s.split('').reverse().join('') !== sim.word) return false;
+      }
+      return true;
+    }
+    function hostDecide(now) {
+      if (sim.phase !== 'play' || N.decided) return;
+      const c0 = sim.pl[0].claim;
+      let c1 = N.gClaim;
+      if (c1 && !guestClaimOk(c1)) { N.gClaim = null; c1 = null; netSend({ k: 'rj', s: N.s }, true); }
+      let w = -1;
+      if (c1 && (!c0 || c1.t < c0.t)) w = 1;                        // l'invité a lâché avant moi (ou je n'ai rien)
+      else if (c0 && (c1 || N.seen >= c0.t || now >= c0.t + graceMs())) w = 0;   // sûr que l'invité n'a rien trouvé avant moi
+      if (w >= 0) {
+        N.decided = true;
+        const tw = w ? c1.t : c0.t, other = w ? c0 : c1;
+        const by = other ? Math.round(Math.abs(other.t - tw)) : -1;
+        let res = null;
+        try { if (typeof api.point === 'function') res = api.point(w, sim.word + ' !'); } catch (er) { res = null; }
+        const over = !!(res && res.over);
+        N.outcome = { k: 'fd', s: N.s, p: w, by, ov: over ? 1 : 0 };
+        netSend(N.outcome, true);
+        if (N.log.length < 60) N.log.push({ s: N.s, w, t0: c0 ? c0.t : 0, t1: c1 ? c1.t : 0, by, wait: Math.round(now - tw), seen: N.seen >= tw });
+        netFound(sim, w, sim.cells.slice(), { over, by });
+        return;
+      }
+      if (!c0 && !c1 && now >= N.end && (N.seen >= N.end || now >= N.end + graceMs())) {
+        N.decided = true;
+        N.outcome = { k: 'to', s: N.s };
+        netSend(N.outcome, true);
+        if (N.log.length < 60) N.log.push({ s: N.s, w: -1, wait: Math.round(now - N.end) });
+        netTimeout(sim);
+      }
+    }
+    function guestRound(m, now) {
+      const s = m.s | 0, R = m.R | 0, C = m.C | 0;
+      if (!(s > 0) || (N.gotRound && s <= N.s)) return;               // déjà reçue (renvoi après « hi »)
+      if (!(R >= 3 && R <= 12 && C >= 3 && C <= 12) || typeof m.g !== 'string' || m.g.length !== R * C || typeof m.w !== 'string' || !m.w || !Array.isArray(m.c)) return;
+      const cells = m.c.map((v) => v | 0).filter((v) => v >= 0 && v < R * C);
+      let ni = -1;
+      if (m.nm) {
+        ni = NAMES.findIndex((x) => x.key === m.nm);
+        if (ni < 0) { NAMES.push({ key: String(m.nm), img: null, sad: null }); ni = NAMES.length - 1; }   // copain inconnu ici : avatar
+      }
+      const th = (m.th | 0) < THEMES.length ? m.th | 0 : -1;
+      netRound(sim, { s, n: (m.n | 0) || 1, R, C, g: m.g.split(''), w: m.w, c: cells, d: m.d | 0, th, ni, id: clamp(+m.id || 2.7, 1, 8), ag: m.ag, f: m.f, go: +m.go || now }, now);
+      N.s = s; N.go = sim.net.go; N.end = sim.net.end; N.gotRound = true; N.ready = true; N.decided = false;
+      N.opp.tr = null; N.opp.fd = 0; N.opp.cells = null;
+    }
+    function hostMsg(m) {
+      if (m.k === 'hi') {
+        N.ready = true;
+        if (N.s && sim.phase !== 'wait') { netSend(roundMsg(), true); if (N.outcome) netSend(N.outcome, true); }
+      } else if (m.k === 'cl') {
+        if (m.s === N.s && !N.decided && !N.gClaim) N.gClaim = { t: +m.t || 0, cells: Array.isArray(m.c) ? m.c : null };
+        else if (m.s === N.s && N.gClaim && !N.gClaim.cells && Array.isArray(m.c)) N.gClaim.cells = m.c;
+      } else if (m.k === 'wr') {
+        if (m.s === N.s) { N.gWr.push(+m.t || 0); onOppWrong(); }
+      }
+    }
+    function guestMsg(m, now) {
+      const live = m.s === N.s && (sim.phase === 'intro' || sim.phase === 'play');
+      if (m.k === 'rd') guestRound(m, now);
+      else if (m.k === 'fd') {
+        if (!live) return;
+        const cl = sim.pl[ME].claim;
+        if (N.log.length < 60) N.log.push({ s: N.s, w: m.p ? 1 : 0, by: +m.by, lock: cl ? Math.round(now - cl.t) : -1 });
+        netFound(sim, m.p ? 1 : 0, sim.cells.slice(), { over: !!m.ov, by: +m.by });
+        if (m.ov) sim.matchOver = true;
+      } else if (m.k === 'to') { if (live) { if (N.log.length < 60) N.log.push({ s: N.s, w: -1 }); netTimeout(sim); } }
+      else if (m.k === 'wr') { if (m.s === N.s) onOppWrong(); }
+      else if (m.k === 'rj') { if (m.s === N.s && sim.pl[ME].claim) { sim.pl[ME].claim = null; V.lock = null; } }
+      else if (m.k === 'rs') {
+        if (m.s === N.s && +m.go > 0) {
+          N.go = sim.net.go = +m.go; N.end = sim.net.end = N.go + ROUND_TIME * 1000;
+          if (resumeT > 0) resumeT = clamp((+m.at - now) / 1000, 0, 2.5);   // fin du « 3, 2, 1 » à la même heure que l'hôte
+        }
+      }
+    }
+    // début d'image : messages reçus (dans l'ordre), dernier état rapide de l'adversaire
+    function netPre(now) {
+      N.fnow = now;
+      if (N.q.length) {
+        const q = N.q.splice(0, N.q.length);
+        for (const m of q) { try { if (HOST) hostMsg(m); else guestMsg(m, now); } catch (e) { /* message illisible : ignoré */ } }
+      }
+      const sn = N.snap;
+      if (sn && sn.s === N.s && N.s) {
+        const o = N.opp;
+        if (sn.t !== o.t) {
+          o.t = sn.t; o.rt = rt; o.fd = +sn.fd || 0;
+          o.tr = Array.isArray(sn.tr) && sn.tr.length === 4 ? sn.tr.map((v) => v | 0) : null;
+          if (o.tr) { const c = oppCells(o.tr); if (c) o.cells = c; else o.tr = null; }
+        }
+        if (HOST && sim.phase === 'play' && !N.decided) {
+          if (o.fd > 0) { if (!N.gClaim) N.gClaim = { t: o.fd, cells: null }; }      // sa réclamation, arrivée par le canal rapide
+          else if (+sn.t > N.seen) N.seen = +sn.t;                                   // à cette heure-là, il n'avait rien trouvé
+        }
+      }
+    }
+    function oppCells(tr) {
+      const r0 = tr[0], c0 = tr[1], k = tr[2], n = tr[3];
+      if (!(r0 >= 0 && r0 < sim.R && c0 >= 0 && c0 < sim.C && k >= 0 && k < 8 && n >= 0 && n < 12)) return null;
+      const out = [], dr = DIRS[k][0], dc = DIRS[k][1];
+      for (let i = 0; i <= n; i++) { const r = r0 + dr * i, c = c0 + dc * i; if (r < 0 || r >= sim.R || c < 0 || c >= sim.C) return null; out.push(r * sim.C + c); }
+      return out;
+    }
+    function netStep(dt) {
+      const now = N.fnow;
+      if (sim.phase === 'wait') {
+        N.waitT += dt;
+        if (HOST && (N.ready || N.waitT > 2.5)) hostStartRound(false, now);
+        else return;
+      }
+      stepNet(sim, dt, inputs, now);
+      if (HOST) {
+        hostDecide(now);
+        if (sim.phase === 'found' && sim.t >= NEXT_DELAY) { if (sim.matchOver) { sim.phase = 'over'; sim.t = 0; } else hostStartRound(false, now); }
+        else if (sim.phase === 'reveal' && sim.t >= REVEAL_DUR) hostStartRound(true, now);
+      } else if (sim.phase === 'found' && sim.matchOver && sim.t >= NEXT_DELAY) { sim.phase = 'over'; sim.t = 0; }
+    }
+    // fin d'image : « je suis là » (invité, tant qu'il n'a pas de manche) et état rapide (tracé en cours, réclamation)
+    function netPost() {
+      if (GUEST && !N.gotRound && rt >= N.hiT) { netSend({ k: 'hi' }, true); N.hiT = rt + 0.8; }
+      if (sim.phase !== 'play' || !N.s) return;
+      const pl = sim.pl[ME], tr = pl.trace, cl = pl.claim;
+      const key = tr ? tr.r0 + ',' + tr.c0 + ',' + tr.k + ',' + tr.n : '-', fd = cl ? Math.round(cl.t * 10) / 10 : 0;
+      const changed = key !== N.snapKey || fd !== N.snapFd;
+      if (rt - N.snapT >= (changed ? 0.04 : 0.07)) {
+        netSend({ k: 'st', s: N.s, t: Math.floor(N.fnow), tr: tr ? [tr.r0, tr.c0, tr.k < 0 ? 0 : tr.k, tr.n] : 0, fd }, false);
+        N.snapT = rt; N.snapKey = key; N.snapFd = fd;
+      }
+    }
+
+    // ------------------------------------------------------------- CONTRE L'IA (api.ai) : le joueur du haut est un robot
+    // Elle « cherche » (un viseur balaie sa grille, sa tête suit du regard), trouve au bout d'un temps qui dépend du niveau ET de
+    // la difficulté de la manche (taille de grille, diagonale / à l'envers, mot court), puis trace le mot comme un doigt : de
+    // vraies entrées de joueur (posé, glissé, levé), donc mêmes règles, mêmes effets, mêmes sons. Facile / moyen : parfois un
+    // faux départ (tracé raté → gelée comme un humain). Aucun passe-droit : si le joueur lâche le bon mot avant elle, il gagne.
+    // Ses choix viennent d'un hasard à graine (graine du match + n° de manche) ; seul son « regard » utilise Math.random.
+    const AIN = !NET && api.ai && typeof api.ai === 'object' ? api.ai : null;
+    const AIP = AIN ? (AIN.p === 0 ? 0 : 1) : -1;
+    const AI_LEVELS = {
+      //          délai (s, du GO au lâcher)  s/case  faux départs (1, 2)   regard (s/cible)   « ! » avant de poser le doigt
+      facile: { lo: 12, hi: 22, cell: 0.16, err: 0.6, err2: 0.3, scan: [0.55, 1.0], aha: 0.55, n: 1 },
+      moyen: { lo: 6, hi: 11, cell: 0.12, err: 0.35, err2: 0.08, scan: [0.4, 0.8], aha: 0.42, n: 2 },
+      difficile: { lo: 3, hi: 6, cell: 0.09, err: 0, err2: 0, scan: [0.28, 0.55], aha: 0.32, n: 3 },
+      extreme: { lo: 1.5, hi: 3, cell: 0.07, err: 0, err2: 0, scan: [0.2, 0.4], aha: 0.24, n: 4 }
+    };
+    const AIL = AIN ? AI_LEVELS[String(AIN.level || '').toLowerCase().replace('ê', 'e')] ||
+      (+AIN.k <= 0.3 ? AI_LEVELS.facile : +AIN.k <= 0.6 || !(+AIN.k > 0) ? AI_LEVELS.moyen : +AIN.k <= 0.85 ? AI_LEVELS.difficile : AI_LEVELS.extreme) : null;
+    const AI = { s: -1, plan: null, act: null, fid: 90000, rng: null, rx: 2.5, ry: 2.5, tx: 2.5, ty: 2.5, nextT: 0, look: 0, think: 0, bang: -1, bangFor: -1, bangOk: true, scanA: 0, ping: 0 };
+    // difficulté de la manche pour un humain : grande grille, diagonale ou à l'envers, mot court
+    function roundDifficulty() {
+      const k = sim.dirK, L = sim.word.length;
+      const dirD = k === 0 || k === 2 ? 0 : k === 1 || k === 7 ? 0.5 : k === 4 || k === 6 ? 0.7 : 1;
+      return clamp(0.35 * (sim.R - 6) / 3 + 0.4 * dirD + 0.25 * clamp((8 - L) / 4, 0, 1), 0, 1);
+    }
+    // un faux départ plausible : part de la 1re lettre du mot et suit une autre ligne (de préférence un « faux préfixe » de la grille)
+    function aiDecoy(rng) {
+      const R = sim.R, C = sim.C, w = sim.word, L = w.length;
+      const good = [sim.cells.join(','), sim.cells.slice().reverse().join(',')];
+      let best = [], bestScore = -1;
+      for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+        if (sim.g[r * C + c] !== w[0]) continue;
+        for (let k = 0; k < 8; k++) {
+          const path = [];
+          for (let i = 0; i < L; i++) { const rr = r + DIRS[k][0] * i, cc = c + DIRS[k][1] * i; if (rr < 0 || rr >= R || cc < 0 || cc >= C) break; path.push(rr * C + cc); }
+          if (path.length < 3 || good.indexOf(path.join(',')) >= 0) continue;
+          const s = path.map((i) => sim.g[i]).join('');
+          if (s === w || s.split('').reverse().join('') === w) continue;
+          let m = 0;
+          while (m < s.length && s[m] === w[m]) m++;
+          const score = m * 10 + path.length;
+          if (score > bestScore) { bestScore = score; best = [path]; } else if (score === bestScore) best.push(path);
+        }
+      }
+      return best.length ? best[(rng() * best.length) | 0] : null;
+    }
+    // le plan de la manche : quand elle lâche le bon mot, et ses éventuels faux départs avant
+    function aiPlan() {
+      AI.s = sim.starts; AI.act = null; AI.bangFor = -1;
+      const rng = AI.rng = mulberry32(hash32(sim.seed ^ 0x5EED1A, 700 + sim.starts));
+      const d = roundDifficulty(), u = rng();
+      const tRel = AIL.lo + (AIL.hi - AIL.lo) * clamp(0.65 * d + 0.35 * u, 0, 1);   // surtout la difficulté, un peu de hasard
+      const dur = (p) => 0.06 + (p.length - 1) * AIL.cell + 0.07;
+      const tOk = Math.max(0.4, tRel - dur(sim.cells));
+      const acts = [];
+      const nErr = rng() < AIL.err ? (rng() < AIL.err2 ? 2 : 1) : 0;
+      let from = 0.8;
+      for (let i = 0; i < nErr; i++) {
+        const bad = aiDecoy(rng);
+        if (!bad) break;
+        const t0 = from + rng() * Math.max(0, tOk - from - dur(bad) - FREEZE - 0.5) * 0.7;
+        if (t0 + dur(bad) + FREEZE + 0.5 > tOk) break;
+        acts.push({ path: bad, t0, ok: false });
+        from = t0 + dur(bad) + FREEZE + 0.4;
+      }
+      acts.push({ path: sim.cells.slice(), t0: tOk, ok: true });
+      AI.plan = { tRel, d, acts, i: 0 };
+    }
+    const aiXY = (idx) => [idx % sim.C, (idx / sim.C) | 0];         // case → coordonnées de grille (x = colonne, y = rangée)
+    // une image : avant step(), comme un doigt (les entrées passent par la même file que celles des joueurs)
+    function aiTick(dt) {
+      if (sim.starts !== AI.s && (sim.phase === 'intro' || sim.phase === 'play')) aiPlan();
+      const P = AI.plan, pl = sim.pl[AIP];
+      if (sim.phase !== 'play' || !P) { AI.act = null; return; }
+      const t = sim.t + dt;                          // le temps qu'atteindra cette image (step ajoute dt avant de lire les entrées)
+      let a = AI.act;
+      if (!a) {
+        const nx = P.acts[P.i];
+        if (!nx || sim.timeLeft <= dt) return;
+        if (t < nx.t0 - AIL.aha) return;             // elle cherche encore
+        if (AI.bangFor !== P.i) { AI.bangFor = P.i; AI.bang = 0; AI.bangOk = nx.ok; tone(988, 0.05, 'square', 0.018); after(0.07, () => tone(1480, 0.08, 'triangle', 0.022)); }
+        if (t < nx.t0 || pl.freeze > 0 || pl.trace) return;
+        const rng = AI.rng, p0 = aiXY(nx.path[0]);
+        a = AI.act = { path: nx.path, ok: nx.ok, t0: t, id: ++AI.fid, wob: (rng() - 0.5) * 0.36, jx: (rng() - 0.5) * 0.22, jy: (rng() - 0.5) * 0.22, hold: 0.05 + rng() * 0.05 };
+        push(AIP, { t: 'down', id: a.id, x: p0[0] + a.jx, y: p0[1] + a.jy });
+        return;
+      }
+      const n = a.path.length, T = Math.max(0.01, (n - 1) * AIL.cell), e = t - a.t0 - 0.06;
+      const A = aiXY(a.path[0]), B = aiXY(a.path[n - 1]);
+      if (e >= T + a.hold) {                          // au bout du mot : elle lève le doigt
+        push(AIP, { t: 'up', id: a.id, x: B[0], y: B[1] });
+        AI.act = null; P.i++;
+        return;
+      }
+      const k = clamp(e / T, 0, 1), kk = k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);   // un doigt accélère puis freine
+      const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy) || 1, w = a.wob * Math.sin(k * Math.PI);
+      push(AIP, { t: 'move', id: a.id, x: A[0] + a.jx * (1 - k) + dx * kk - (dy / len) * w, y: A[1] + a.jy * (1 - k) + dy * kk + (dx / len) * w });
+    }
+    // son « regard » (cosmétique) : un viseur qui balaie la grille, file vers la 1re lettre quand elle a trouvé, puis suit son doigt
+    function aiView(dt) {
+      const P = AI.plan, a = AI.act, ph = sim.phase, C = sim.C, R = sim.R;
+      const nx = P && P.acts[P.i];
+      const play = ph === 'play' && !paused;
+      let searching = false;
+      if (play && a) {
+        const tr = sim.pl[AIP].trace;
+        if (tr) { const dk = DIRS[tr.k < 0 ? 0 : tr.k]; AI.tx = tr.c0 + dk[1] * tr.n; AI.ty = tr.r0 + dk[0] * tr.n; }
+      } else if (play && nx && sim.t >= nx.t0 - AIL.aha) { const q = aiXY(nx.path[0]); AI.tx = q[0]; AI.ty = q[1]; }
+      else if (play && sim.pl[AIP].freeze <= 0) {
+        searching = true;
+        AI.nextT -= dt;
+        if (AI.nextT <= 0) {
+          AI.nextT = rnd(AIL.scan[0], AIL.scan[1]);
+          const r = (Math.random() * R) | 0, c = (Math.random() * C) | 0;
+          AI.tx = clamp(c + rnd(-0.2, 0.2), 0, C - 1); AI.ty = clamp(r + rnd(-0.2, 0.2), 0, R - 1);
+        }
+      }
+      const sp = a ? 24 : searching ? 6 : 14;
+      AI.rx += (AI.tx - AI.rx) * Math.min(1, dt * sp); AI.ry += (AI.ty - AI.ry) * Math.min(1, dt * sp);
+      AI.scanA += ((play && !hideLetters() ? 1 : 0) - AI.scanA) * Math.min(1, dt * 6);
+      AI.think += ((searching ? 1 : 0) - AI.think) * Math.min(1, dt * 5);
+      AI.look += (clamp((AI.rx - (C - 1) / 2) / Math.max(1, C / 2), -1, 1) - AI.look) * Math.min(1, dt * 5);
+      if (AI.bang >= 0) { AI.bang += dt; if (AI.bang > 1.1) AI.bang = -1; }
+      AI.ping += dt;
     }
 
     // ------------------------------------------------------------- entrées : pointeurs (multi-touch) et clavier
@@ -1484,16 +2087,18 @@
     function toGrid(p, clientX, clientY) {
       const rc = canvas.getBoundingClientRect();
       let x = clientX - rc.left, y = clientY - rc.top;
-      if (p === 1) { x = W - x; y = H - y; }
+      // en ligne : la vue de l'invité est dessinée tournée dans un root tourné → les coordonnées écran sont déjà celles de la vue
+      if (p === 1 && !NET) { x = W - x; y = H - y; }
       return { x: (x - Lo.gx) / TM.cs - 0.5, y: (y - Lo.gy) / TM.cs - 0.5 };
     }
-    function push(p, ev) { if (paused || destroyed) return; ev.seq = ++seq; if (inputs[p].length < 400) inputs[p].push(ev); }
+    function push(p, ev) { if (paused || destroyed) return; ev.seq = ++seq; if (NET) ev.tc = nowC(); if (inputs[p].length < 400) inputs[p].push(ev); }
     function onDown(e) {
       if (destroyed) return;
       if (e.cancelable) e.preventDefault();
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       const rc = canvas.getBoundingClientRect();
-      const p = e.clientY - rc.top > H / 2 ? 0 : 1;
+      const p = NET ? ME : e.clientY - rc.top > H / 2 ? 0 : 1;   // en ligne : tout l'écran est à moi
+      if (p === AIP) return;                                       // contre l'IA : sa moitié n'écoute pas les doigts
       ptrs.set(e.pointerId, p);
       try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ }
       const g = toGrid(p, e.clientX, e.clientY);
@@ -1529,7 +2134,8 @@
       if (!k) return;
       e.preventDefault();
       if (e.repeat && k[1] === 'x') return;
-      push(k[0], { t: 'key', a: k[1] });
+      if (k[0] === AIP) return;                                    // les touches du joueur remplacé par l'IA
+      push(NET ? ME : k[0], { t: 'key', a: k[1] });
     }
     on(canvas, 'pointerdown', onDown);
     on(canvas, 'pointermove', onMove);
@@ -1548,6 +2154,7 @@
       digitSpr = [null];
       for (let i = 1; i <= 3; i++) digitSpr.push(textSprite(String(i), clamp(Lo.G * 0.3, 44, 130), COL.gold, false, clamp(Lo.G * 0.022, 4, 8)));
       PW.cur = PW.pw;
+      if (NET) buildNetSprites();
     }
     // polices arrivées après le démarrage : seuls les caches qui contiennent du texte sont refaits, étalés sur plusieurs images
     function fontsChanged() {
@@ -1559,6 +2166,7 @@
         () => { digitSpr = [null]; for (let i = 1; i <= 3; i++) digitSpr.push(textSprite(String(i), clamp(Lo.G * 0.3, 44, 130), COL.gold, false, clamp(Lo.G * 0.022, 4, 8))); }
       ];
       if (!imgOk(PL[0].img) || !imgOk(PL[1].img)) jobs.push(buildStickers);
+      if (NET) jobs.push(buildNetSprites);
       warm.unshift(...jobs);
     }
     let sizeKey = '';
@@ -1685,21 +2293,38 @@
             SFX.land(fl.i);
             if (V.landed === V.flyers.length) {
               const cy = Lo.plY + Lo.plH / 2;
-              ring(w, PW.cx, cy, Lo.plH * 0.4, Math.max(W, Lo.HH) * 0.7, 0.75, shade(PC[w], 0.3), 5);
-              ring(w, PW.cx, cy, Lo.plH * 0.3, PW.pw * 0.9, 0.5, '#ffffff', 3);
-              confetti(w, PW.cx, cy + Lo.plH * 0.3, V.over ? 100 : 70, 1.25, -1);
-              sparks(w, PW.cx, cy, 16, GL.white, 260, 0.6, 18);
-              V.flashA = Math.max(V.flashA, 0.16); V.flashCol = PC[w]; V.hshake[w] = 5;
-              SFX.burst();
+              if (V.burstOp) {                       // en ligne : le mot a filé chez l'adversaire → bouquet sur sa tête
+                const so = HS[OP], hx = so.hx + so.hw / 2, hy = so.hy + so.hh * 0.5;
+                ring(w, hx, hy, so.hw * 0.2, so.hw * 1.3, 0.6, shade(PC[w], 0.3), 4);
+                confetti(w, hx, hy, V.over ? 80 : 55, 1.25, -1);
+                sparks(w, hx, hy, 14, GL.white, 230, 0.55, 16);
+                V.hshake[w] = 5; V.nope[w] = 0;
+                SFX.burst();
+              } else {
+                ring(w, PW.cx, cy, Lo.plH * 0.4, Math.max(W, Lo.HH) * 0.7, 0.75, shade(PC[w], 0.3), 5);
+                ring(w, PW.cx, cy, Lo.plH * 0.3, PW.pw * 0.9, 0.5, '#ffffff', 3);
+                confetti(w, PW.cx, cy + Lo.plH * 0.3, V.over ? 100 : 70, 1.25, -1);
+                sparks(w, PW.cx, cy, 16, GL.white, 260, 0.6, 18);
+                V.flashA = Math.max(V.flashA, 0.16); V.flashCol = PC[w]; V.hshake[w] = 5;
+                SFX.burst();
+              }
             }
           }
         }
       }
       for (let i = 0; i < V.plateHit.length; i++) if (V.plateHit[i] > 0) V.plateHit[i] = Math.max(0, V.plateHit[i] - dt * 2.2);
       if (V.over && V.overT > 1.0 && V.overT - dt <= 1.0 && w >= 0) {
-        confetti(w, W * 0.22, Lo.HH + 10, 45, 0.9, -1);
-        confetti(w, W * 0.78, Lo.HH + 10, 45, 0.9, -1);
+        if (NET) {                                   // en ligne : pluie de confettis autour du vainqueur
+          const S = HS[w], hx = S.hx + S.hw / 2, hy = S.hy + S.hh * 0.4;
+          confetti(w, hx - S.hw * 0.6, hy, 40, 0.9, -1);
+          confetti(w, hx + S.hw * 0.6, hy, 40, 0.9, -1);
+        } else {
+          confetti(w, W * 0.22, Lo.HH + 10, 45, 0.9, -1);
+          confetti(w, W * 0.78, Lo.HH + 10, 45, 0.9, -1);
+        }
       }
+      if (NET) updateNetView(dt);
+      if (AIN) aiView(dt);
       // particules
       for (let i = ptN - 1; i >= 0; i--) {
         const q = PT[i];
@@ -1713,16 +2338,17 @@
       for (let i = ftN - 1; i >= 0; i--) { const t = FT[i]; t.life -= dt; t.y += t.vy * dt; t.vy *= Math.max(0, 1 - dt * 3); if (t.life <= 0) { FT[i] = FT[ftN - 1]; FT[ftN - 1] = t; ftN--; } }
       if (V.flashA > 0) V.flashA = Math.max(0, V.flashA - dt * 1.6);
       // décor
+      const dTop = NET ? 0 : H / 2;
       for (let p = 0; p < 2; p++) {
         const list = BGL[p];
         for (let i = 0; i < list.length; i++) {
           const b = list[i];
           b.y += b.vy * dt; b.rot += b.vr * dt;
-          if (b.y < H / 2 - b.size * 0.6) list[i] = newGhost(false);
+          if (b.y < dTop - b.size * 0.6) list[i] = newGhost(false);
         }
         for (const d of DUST[p]) {
           d.x += d.vx * dt; d.y += d.vy * dt;
-          if (d.y < H / 2) { d.y = H; d.x = Math.random() * W; }
+          if (d.y < dTop) { d.y = H; d.x = Math.random() * W; }
           if (d.x < 0) d.x += W; else if (d.x > W) d.x -= W;
         }
       }
@@ -1868,7 +2494,7 @@
       }
       // contenu
       if (hideLetters()) { txt(paused ? 'PAUSE' : 'PRÊTS ?', cx, cy + 1, ph * 0.42, COL.muted, 'center', false, 0); return; }
-      if (ph1 === 'wait') return;
+      if (ph1 === 'wait') { if (NET && N.waitT > 0.3) txt('CONNEXION…', cx, cy + 1, ph * 0.36, COL.muted, 'center', false, 0); return; }
       if (ph1 === 'intro') { drawPlateIntro(p, px, pw, cy, ph); return; }
       if (ph1 === 'reveal' && sim.t < 1.0) {
         const k = backOut(sim.t / 0.25);
@@ -1946,7 +2572,14 @@
         return;
       }
       const R = sim.R, C = sim.C, cs = TM.cs, ph = sim.phase, g = gridCv[p];
-      if (ph === 'wait') { if (shk) unlocal(); return; }
+      if (ph === 'wait') {
+        if (NET && N.waitT > 0.3) {
+          txt('En attente de', cx0, cy0 - Lo.G * 0.05, clamp(Lo.G * 0.05, 12, 20), COL.muted, 'center', true, 0);
+          txt(PL[OP].name + '…', cx0, cy0 + Lo.G * 0.05, clamp(Lo.G * 0.075, 16, 30), PC[OP], 'center', false, 3);
+        }
+        if (shk) unlocal();
+        return;
+      }
       // sortie de l'ancienne grille
       if (gridOld && V.oldT < 0.3 && ph === 'intro' && gridOld.cv[p]) {
         const k = V.oldT / 0.3, s = 1 - 0.08 * k, cx = gridOld.x + gridOld.s / 2, cy = gridOld.y + gridOld.s / 2;
@@ -2047,6 +2680,8 @@
       // mot trouvé / révélé
       if ((ph === 'found' || ph === 'over') && sim.winner >= 0) drawWordEnd(p, p === sim.winner ? 'f' : 'g');
       else if (ph === 'reveal') drawWordEnd(p, 'o');
+      // contre l'IA : son viseur qui balaie la grille
+      if (AIN && p === AIP && ph === 'play' && AI.scanA > 0.02) drawAiScan(p);
       // tracé raté (rouge)
       const wc = V.wcap[p];
       if (wc) {
@@ -2079,6 +2714,8 @@
           ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
         }
       }
+      // en ligne : mon bon tracé, verrouillé en attendant l'arbitrage (quelques centièmes de seconde)
+      if (NET && p === ME && V.lock && ph === 'play') drawLock(p);
       // curseur clavier
       const kb = sim.pl[p].kb;
       if (kb.on && (ph === 'play' || ph === 'intro')) {
@@ -2169,39 +2806,42 @@
     }
 
     function drawHead(p) {
-      const st = stickers[p];
+      const st = stickers[p], L0 = HS[p];
       if (!st) return;
       const mood = V.mood[p], mt = V.moodT[p];
       const spr = mood === 'sad' ? st.s : st.n;
-      const x = Lo.hx + Lo.hw / 2, yb = Lo.hy + Lo.hh;
+      const x = L0.hx + L0.hw / 2, yb = L0.hy + L0.hh;
       const t = rt + p * 1.7;
       let dx = 0, dy = 0, rot = 0, sx = 1, sy = 1;
       if (mood === 'happy') {
         const damp = V.over ? 1 : Math.max(0, 1 - mt * 0.45);
         const j = Math.abs(Math.sin(mt * 7.5)) * damp;
-        dy = -j * Lo.hh * 0.14; sy = 1 + j * 0.06; sx = 1 - j * 0.04; rot = Math.sin(mt * 9) * 0.06 * damp;
+        dy = -j * L0.hh * 0.14; sy = 1 + j * 0.06; sx = 1 - j * 0.04; rot = Math.sin(mt * 9) * 0.06 * damp;
       } else if (mood === 'sad') {
-        rot = -0.08 + Math.sin(t * 1.2) * 0.015; dy = Lo.hh * 0.03;
+        rot = -0.08 + Math.sin(t * 1.2) * 0.015; dy = L0.hh * 0.03;
       } else {
         dy = Math.sin(t * 1.7) * 1.3; rot = Math.sin(t * 0.9) * 0.025;
       }
-      const focus = V.cap[p].on ? V.cap[p].a : 0;          // il trace : la tête se penche vers sa grille
+      // il trace : la tête se penche vers sa grille (en ligne, l'adversaire : d'après son tracé reçu)
+      const focus = NET && p === OP ? V.oppFocus : V.cap[p].on ? V.cap[p].a : 0;
       if (focus > 0) { sx *= 1 + 0.05 * focus; sy *= 1 + 0.05 * focus; rot += 0.06 * focus; }
       const fz = sim.pl[p].freeze, hit = V.hit[p];
       if (fz > 0 || hit > 0) dx = Math.sin(rt * 55) * 3.5 * Math.max(fz / FREEZE, hit);
-      if (V.nope[p] > 0) { const k = V.nope[p] / 0.7; dx += Math.sin((0.7 - V.nope[p]) * 26) * Lo.hw * 0.08 * k; rot += Math.sin((0.7 - V.nope[p]) * 26) * 0.08 * k; }
+      if (V.nope[p] > 0) { const k = V.nope[p] / 0.7; dx += Math.sin((0.7 - V.nope[p]) * 26) * L0.hw * 0.08 * k; rot += Math.sin((0.7 - V.nope[p]) * 26) * 0.08 * k; }
+      if (AIN && p === AIP && mood === 'idle') { dx += AI.look * L0.hw * 0.06; rot += AI.look * 0.07; }   // l'IA suit son viseur du regard
       // halo
       ctx.globalCompositeOperation = 'lighter';
-      glowAt(glowP(p), x, yb - Lo.hh * 0.45, Lo.hw * 2.0, mood === 'happy' ? 0.55 + 0.2 * Math.sin(rt * 10) : 0.3 + 0.2 * focus);
-      if (hit > 0) glowAt(GL.red, x, yb - Lo.hh * 0.45, Lo.hw * 1.8, hit);
+      glowAt(glowP(p), x, yb - L0.hh * 0.45, L0.hw * 2.0, mood === 'happy' ? 0.55 + 0.2 * Math.sin(rt * 10) : 0.3 + 0.2 * focus);
+      if (hit > 0) glowAt(GL.red, x, yb - L0.hh * 0.45, L0.hw * 1.8, hit);
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       local(x + dx, yb + dy, rot, sx, sy);
       ctx.drawImage(spr.cv, -spr.w / 2, -spr.h + spr.pb, spr.w, spr.h);
       unlocal();
+      if (AIN && p === AIP) drawAiMind(p, x + dx, yb + dy, L0);
       // couronne du vainqueur du match
       if (V.over && p === V.winner && V.overT > 0.25) {
-        const k = backOut((V.overT - 0.25) / 0.35), cw = Lo.hw * 0.62 * k, chh = cw * 0.62;
-        const cx = x + dx, cy = yb + dy - Lo.hh - chh * 0.15 + Math.sin(rt * 4) * 2;
+        const k = backOut((V.overT - 0.25) / 0.35), cw = L0.hw * 0.62 * k, chh = cw * 0.62;
+        const cx = x + dx, cy = yb + dy - L0.hh + (NET ? chh * 0.22 : -chh * 0.15) + Math.sin(rt * 4) * 2;   // en ligne : posée sur la tête (en-tête près du bord)
         ctx.globalCompositeOperation = 'lighter';
         glowAt(GL.gold, cx, cy, cw * 2.4, 0.6);
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -2217,16 +2857,71 @@
         for (const j of [-0.25, 0, 0.25]) { ctx.beginPath(); ctx.arc(cx + cw * j, cy + chh * 0.3, Math.max(1.5, cw * 0.06), 0, TAU); ctx.fill(); }
       }
       // larmes de la tête triste
-      if (mood === 'sad' && mt < 2.5 && Math.random() < 0.05) part(p, 2, x + rnd(-Lo.hw * 0.2, Lo.hw * 0.2), yb - Lo.hh * 0.5, rnd(-10, 10), 20, 0.9, rnd(2.5, 4), '#9fe0ff', null, 0.5, 160);
+      if (mood === 'sad' && mt < 2.5 && Math.random() < 0.05) part(p, 2, x + rnd(-L0.hw * 0.2, L0.hw * 0.2), yb - L0.hh * 0.5, rnd(-10, 10), 20, 0.9, rnd(2.5, 4), '#9fe0ff', null, 0.5, 160);
       // anneau du gel
       if (fz > 0) {
         ctx.strokeStyle = COL.alarm; ctx.lineWidth = 3; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.arc(x, yb - Lo.hh * 0.45, Lo.hw * 0.62, -Math.PI / 2, -Math.PI / 2 + TAU * (fz / FREEZE)); ctx.stroke();
+        ctx.beginPath(); ctx.arc(x, yb - L0.hh * 0.45, L0.hw * 0.62, -Math.PI / 2, -Math.PI / 2 + TAU * (fz / FREEZE)); ctx.stroke();
       }
-      blit(tagCv[p], x, Lo.nameY);
-      if (Lo.listBig && sideCv && sim.phase !== 'wait') ctx.drawImage(sideCv.cv, Lo.listX, Lo.sideY, sideCv.w, sideCv.h);
+      blit(tagCv[p], x, L0.nameY);
+      if (!NET && Lo.listBig && sideCv && sim.phase !== 'wait') ctx.drawImage(sideCv.cv, Lo.listX, Lo.sideY, sideCv.w, sideCv.h);
       const lc = buildList(p);
-      if (lc) ctx.drawImage(lc.cv, Lo.listBig ? Lo.listX : Lo.listX + Lo.listW / 2 - lc.w / 2, Lo.listY, lc.w, lc.h);
+      if (lc) ctx.drawImage(lc.cv, L0.listBig ? L0.listX : L0.listX + L0.listW / 2 - lc.w / 2, L0.listY, lc.w, lc.h);
+    }
+    // le viseur de l'IA : anneau à crans qui tourne ; il se resserre et passe à l'or quand elle « voit » le mot
+    function drawAiScan(p) {
+      const x = cellCX(AI.rx), y = cellCY(AI.ry), r = TM.cs * 0.5;
+      const hot = AI.bang >= 0 && AI.bang < 0.9;
+      const s = hot ? 1 - 0.22 * smooth(AI.bang / 0.22) + 0.14 * bump(AI.bang / 0.3) : 1 + 0.05 * Math.sin(AI.ping * 7);
+      const col = hot ? COL.gold : shade(PC[p], 0.35), a = AI.scanA * (AI.act ? 0.3 : 0.8);
+      ctx.globalCompositeOperation = 'lighter';
+      glowAt(hot ? GL.gold : glowP(p), x, y, TM.cs * 1.7 * s, 0.32 * a);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = col; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, r * s, 0, TAU); ctx.stroke();
+      ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      const ro = AI.ping * 1.5;
+      for (let i = 0; i < 4; i++) {
+        const an = ro + i * Math.PI / 2, c = Math.cos(an), n = Math.sin(an);
+        ctx.moveTo(x + c * r * s * 0.74, y + n * r * s * 0.74); ctx.lineTo(x + c * r * s * 1.2, y + n * r * s * 1.2);
+      }
+      ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 1.8, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    // ce que pense l'IA : bulle « … » pendant qu'elle cherche, « ! » quand elle a trouvé (ou croit avoir trouvé)
+    function drawAiMind(p, x, yb, L0) {
+      const R0 = clamp(L0.hw * 0.17, 9, 22), bx = x + L0.hw * 0.42, by = yb - L0.hh * 0.95;
+      if (AI.think > 0.02 && AI.bang < 0) {
+        const a = AI.think;
+        ctx.globalAlpha = a * 0.95;
+        ctx.fillStyle = 'rgba(8,14,20,0.9)'; ctx.strokeStyle = rgba(PC[p], 0.85); ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.arc(bx - R0 * 0.95, by + R0 * 1.3, R0 * 0.17, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(bx - R0 * 0.5, by + R0 * 0.8, R0 * 0.27, 0, TAU); ctx.fill(); ctx.stroke();
+        rrect(ctx, bx - R0 * 0.75, by - R0 * 0.58, R0 * 2.3, R0 * 1.16, R0 * 0.58); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = shade(PC[p], 0.45);
+        for (let i = 0; i < 3; i++) {
+          const k = 0.5 + 0.5 * Math.sin(AI.ping * 7 - i * 0.9);
+          ctx.globalAlpha = a * (0.35 + 0.65 * k);
+          ctx.beginPath(); ctx.arc(bx - R0 * 0.18 + i * R0 * 0.58, by - k * R0 * 0.12, R0 * 0.15, 0, TAU); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      if (AI.bang >= 0) {
+        const t = AI.bang, k = backOut(t / 0.22), a = clamp((1.1 - t) / 0.3, 0, 1);
+        ctx.globalCompositeOperation = 'lighter';
+        glowAt(GL.gold, bx, by, R0 * 4.2 * k, 0.5 * a);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = a;
+        ctx.fillStyle = COL.gold; ctx.beginPath(); ctx.arc(bx, by, R0 * 0.9 * k, 0, TAU); ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(3,7,11,0.85)'; ctx.stroke();
+        local(bx, by, Math.PI, 1, 1);                // personne n'est assis côté IA : le « ! » se lit depuis la place du joueur
+        txt('!', 0, -R0 * 0.06, R0 * 1.35 * k, '#0b141c', 'center', false, 0);
+        unlocal();
+        ctx.globalAlpha = 1;
+      }
     }
     function drawFlyers(p) {
       if (V.winner !== p) return;
@@ -2235,7 +2930,7 @@
         const k = smooth(fl.t / fl.dur);
         const x = (1 - k) * (1 - k) * fl.x0 + 2 * (1 - k) * k * fl.qx + k * k * fl.x1;
         const y = (1 - k) * (1 - k) * fl.y0 + 2 * (1 - k) * k * fl.qy + k * k * fl.y1;
-        const s = lerp(1.15, (PW.pf * 1.25) / TM.ts, k);
+        const s = lerp(1.15, fl.s1 != null ? fl.s1 : (PW.pf * 1.25) / TM.ts, k);
         ctx.globalCompositeOperation = 'lighter';
         glowAt(glowP(p), x, y, TM.cs * 2 * s, 0.7);
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -2314,16 +3009,227 @@
       ctx.restore();
     }
 
+    // ------------------------------------------------------------- rendu EN LIGNE : une seule vue, celle du joueur de cet appareil
+    let vsCv = null, infoCv = null;
+    function buildNetSprites() {
+      vsCv = Lo.vs ? textSprite('VS', Lo.vs.s, COL.gold, false, Math.max(3, Lo.vs.s * 0.13)) : null;
+      buildInfoNet();
+    }
+    // « MANCHE N » (+ le thème sur grand écran)
+    function buildInfoNet() {
+      infoCv = null;
+      if (!NET || !sim.roundNo || sim.phase === 'wait') return;
+      const T = sim.nameIdx >= 0 ? NAME_THEME : THEMES[sim.theme] || null;
+      if (Lo.info) {
+        const w = Math.ceil(Lo.info.w), px = clamp(w * 0.085, 14, 24), h = Math.ceil(px * 2.9);
+        const cv = mkCanvas(w * dpr, h * dpr), c = cv.getContext('2d');
+        c.scale(dpr, dpr); c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round';
+        const t1 = 'MANCHE ' + sim.roundNo;
+        c.font = px + 'px ' + FD; c.lineWidth = 4; c.strokeStyle = 'rgba(3,7,11,0.9)'; c.strokeText(t1, w / 2, px * 1.05, w);
+        c.fillStyle = COL.gold; c.fillText(t1, w / 2, px * 1.05, w);
+        c.font = '600 ' + (px * 0.62).toFixed(1) + 'px ' + FB; c.fillStyle = '#cfe6f5';
+        c.fillText(sim.nameIdx >= 0 ? 'Prénom d’un copain' : T ? 'Thème : ' + T.name.charAt(0) + T.name.slice(1).toLowerCase() : '', w / 2, px * 2.2, w);
+        infoCv = { cv, w, h };
+      } else if (Lo.vs) {
+        const s = Lo.vs.s, w = Math.ceil(s * 2.6), h = Math.ceil(s * 1.25);
+        const cv = mkCanvas(w * dpr, h * dpr), c = cv.getContext('2d');
+        c.scale(dpr, dpr); c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+        c.font = '600 ' + (s * 0.3).toFixed(1) + 'px ' + FB; c.fillStyle = rgba(COL.gold, 0.85);
+        c.fillText('MANCHE', w / 2, s * 0.2, w);
+        c.font = (s * 0.62).toFixed(1) + 'px ' + FD; c.lineWidth = 3; c.strokeStyle = 'rgba(3,7,11,0.9)';
+        c.strokeText(String(sim.roundNo), w / 2, s * 0.78); c.fillStyle = '#ffe9a6'; c.fillText(String(sim.roundNo), w / 2, s * 0.78);
+        infoCv = { cv, w, h };
+      }
+    }
+    function updateNetView(dt) {
+      if (V.lock) V.lock.t += dt;
+      const o = N.opp, live = sim.phase === 'play' && rt - o.rt < 0.6;
+      const oppTr = live && o.tr ? o.cells : null, oppLock = live && o.fd > 0 && o.cells ? o.cells : null;
+      V.oppFocus += ((oppTr || oppLock ? 1 : 0) - V.oppFocus) * Math.min(1, dt * 8);
+      for (let p = 0; p < 2; p++) {
+        let cells = null, st = 's';
+        if (p === ME) {
+          const pl = sim.pl[ME];
+          if (V.wcap[ME] && V.wcap[ME].t < 0.45) { cells = V.wcap[ME].cells; st = 'x'; }
+          else if (V.lock) { cells = V.lock.cells; st = 'f'; }
+          else if (pl.trace) cells = traceCells(sim, pl.trace);
+        } else if (V.capRed[OP] > 0 && V.capShow[OP]) { cells = V.capShow[OP].cells; st = 'x'; }
+        else if (oppLock) { cells = oppLock; st = 'f'; }
+        else if (oppTr) cells = oppTr;
+        if (V.capRed[p] > 0) V.capRed[p] = Math.max(0, V.capRed[p] - dt);
+        if (cells && cells.length && sim.phase === 'play') { V.capShow[p] = { cells, st }; V.capA[p] = Math.min(1, V.capA[p] + dt * 12); }
+        else V.capA[p] = Math.max(0, V.capA[p] - dt * 5);
+      }
+    }
+    // le tracé de chaque joueur, en petites cases sous sa tête (celui de l'adversaire arrive par le réseau)
+    function drawTraceCap(p) {
+      const sh = V.capShow[p], a = V.capA[p], S = HS[p];
+      if (!S.trH) return;
+      // il cherche (pas de tracé en cours) : petite pastille à trois points qui ondulent
+      const ia = sim.phase === 'play' && !hideLetters() ? (1 - a) * Math.min(1, sim.t * 3) : 0;
+      if (ia > 0.02) {
+        const r = S.trH * 0.11, w = S.trH * 1.9, h = S.trH * 0.9, y = S.trY;
+        ctx.globalAlpha = ia * 0.85;
+        rrect(ctx, S.trCX - w / 2, y - h / 2, w, h, h / 2);
+        ctx.fillStyle = 'rgba(5,10,15,0.7)'; ctx.fill();
+        ctx.lineWidth = 1.2; ctx.strokeStyle = rgba(PC[p], 0.45); ctx.stroke();
+        ctx.fillStyle = shade(PC[p], 0.3);
+        for (let i = 0; i < 3; i++) {
+          const k = 0.5 + 0.5 * Math.sin(rt * 6 - i * 0.9 + p);
+          ctx.globalAlpha = ia * (0.35 + 0.6 * k);
+          ctx.beginPath(); ctx.arc(S.trCX + (i - 1) * r * 3.6, y - k * r * 0.8, r, 0, TAU); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      if (!sh || a < 0.02) return;
+      const cells = sh.cells, n = cells.length, gp = S.trH * 0.12;
+      const ts = Math.min(S.trH, (S.trW - 18) / n - gp);
+      if (ts < 6) return;
+      const w = n * ts + (n - 1) * gp + ts * 0.7, h = ts * 1.36, x0 = S.trCX - w / 2, y = S.trY;
+      const col = sh.st === 'x' ? COL.alarm : PC[p];
+      ctx.globalAlpha = a;
+      if (sh.st === 'f') { ctx.globalCompositeOperation = 'lighter'; glowAt(glowP(p), S.trCX, y, w * 1.25, a * (0.45 + 0.25 * Math.sin(rt * 14))); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a; }
+      rrect(ctx, x0, y - h / 2, w, h, h / 2);
+      ctx.fillStyle = 'rgba(5,10,15,0.84)'; ctx.fill();
+      ctx.lineWidth = 1.4; ctx.strokeStyle = rgba(col, sh.st === 's' ? 0.75 : 1); ctx.stroke();
+      for (let i = 0; i < n; i++) {
+        const ch = sim.g[cells[i]];
+        if (!ch) continue;
+        drawTile(sh.st, ch, col, x0 + ts * 0.35 + ts / 2 + i * (ts + gp), y, ts / TM.ts, a);
+      }
+      ctx.globalAlpha = 1;
+    }
+    // ma réclamation : cases allumées qui pulsent + éclat qui court le long du mot
+    function drawLock(p) {
+      const cl = V.lock.cells, C = sim.C, t = V.lock.t;
+      const a = cl[0], b = cl[cl.length - 1];
+      const ax = cellCX(a % C), ay = cellCY((a / C) | 0), bx = cellCX(b % C), by = cellCY((b / C) | 0);
+      const pulse = 0.5 + 0.5 * Math.sin(t * 16);
+      stadium(ctx, ax, ay, bx, by, TM.ts * 0.6);
+      ctx.fillStyle = rgba(PC[p], 0.3); ctx.fill();
+      for (let i = 0; i < cl.length; i++) {
+        const idx = cl[i];
+        drawTile('s', sim.g[idx], PC[p], cellCX(idx % C), cellCY((idx / C) | 0), 1 + 0.05 * bump(clamp(t * 5 - i * 0.25, 0, 1)) + 0.02 * pulse, 1);
+      }
+      drawCapsule(ax, ay, bx, by, shade(PC[p], 0.4), 0.75 + 0.25 * pulse, 1);
+      const k = (t * 2.4) % 1;
+      ctx.globalCompositeOperation = 'lighter';
+      glowAt(GL.white, lerp(ax, bx, k), lerp(ay, by, k), TM.cs * 1.7, 0.75 * bump(k));
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
+    function drawVS() {
+      if (Lo.vs && vsCv) {
+        const v = Lo.vs, k = 1 + 0.04 * Math.sin(rt * 2.4);
+        ctx.globalCompositeOperation = 'lighter';
+        glowAt(GL.gold, v.x, v.y, v.s * 3.2, 0.32);
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(vsCv.cv, v.x - vsCv.w * k / 2, v.y - vsCv.h * k / 2, vsCv.w * k, vsCv.h * k);
+        if (infoCv) ctx.drawImage(infoCv.cv, v.x - infoCv.w / 2, v.y + v.s * 0.62, infoCv.w, infoCv.h);
+      } else if (Lo.info && infoCv) ctx.drawImage(infoCv.cv, Lo.info.x - infoCv.w / 2, Lo.info.y, infoCv.w, infoCv.h);
+    }
+    // chrono : barre d'énergie sous le mot, qui se resserre vers le centre (même lecture sur tous les appareils)
+    function drawTimerNet() {
+      const cx = Lo.plCX, y = Lo.tmY, maxHalf = Lo.tmW;
+      let k = 0, col = COL.gold, alpha = 1;
+      if (sim.phase === 'play') k = sim.timeLeft / ROUND_TIME;
+      else if (sim.phase === 'intro') k = smooth((sim.t - (sim.introDur - 1.5)) / 1.5);
+      else if (sim.phase === 'found' || sim.phase === 'over') { k = Math.max(0, 1 - sim.t * 2.5) * 0.6; col = PC[sim.winner >= 0 ? sim.winner : 0]; }
+      if (sim.phase === 'play') {
+        if (sim.timeLeft < 5) { col = COL.alarm; alpha = 0.65 + 0.35 * Math.sin(sim.clock * 14); }
+        else if (sim.timeLeft < 10) col = '#ff8a3d';
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fillRect(cx - maxHalf, y - 1.5, maxHalf * 2, 3);
+      if (k > 0.002) {
+        const half = maxHalf * k;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(cx - half - 1.5, y - 3.5, half * 2 + 3, 7);
+        ctx.fillStyle = col; ctx.fillRect(cx - half, y - 2.5, half * 2, 5);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(cx - half, y - 2.5, half * 2, 1.5);
+        ctx.globalCompositeOperation = 'lighter';
+        const gg = col === COL.alarm ? GL.red : col === COL.gold ? GL.gold : glowP(sim.winner >= 0 ? sim.winner : 0);
+        ctx.globalAlpha = 0.35 * alpha; ctx.drawImage(gg, cx - half - 12, y - 10, half * 2 + 24, 20);
+        ctx.globalAlpha = 0.95 * alpha;
+        ctx.drawImage(gg, cx - half - 9, y - 9, 18, 18); ctx.drawImage(gg, cx + half - 9, y - 9, 18, 18);
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+    function drawSeamNet() {                          // disposition « empilée » : la ligne du milieu sépare l'en-tête de ma grille
+      const HH = Lo.HH;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.3; ctx.drawImage(GL.gold, -W * 0.15, HH - 16, W * 1.3, 32);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      if (!seamGrad) {
+        seamGrad = ctx.createLinearGradient(0, 0, W, 0);
+        seamGrad.addColorStop(0, 'rgba(255,211,77,0)'); seamGrad.addColorStop(0.18, 'rgba(255,211,77,0.55)'); seamGrad.addColorStop(0.5, 'rgba(255,244,210,0.95)');
+        seamGrad.addColorStop(0.82, 'rgba(255,211,77,0.55)'); seamGrad.addColorStop(1, 'rgba(255,211,77,0)');
+      }
+      ctx.fillStyle = seamGrad; ctx.fillRect(0, HH - 0.75, W, 1.5);
+    }
+    function drawBgNet() {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (bgCv) ctx.drawImage(bgCv, 0, 0);
+      else { ctx.fillStyle = NIGHT; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+      setFrame(VF, 0, 0);
+      ctx.globalCompositeOperation = 'lighter';
+      const t = rt * 0.16, A = Math.max(W, H) * 0.75, so = HS[OP];
+      ctx.globalAlpha = 0.14 + 0.05 * Math.sin(t * 1.7);
+      ctx.drawImage(SOFT[ME], Lo.gx + Lo.G * (0.5 + 0.35 * Math.sin(t)) - A * 0.6, Lo.gy + Lo.G - A * 0.42 + Math.cos(t * 1.3) * 24, A * 1.2, A * 0.85);
+      ctx.globalAlpha = 0.12 + 0.05 * Math.sin(t * 1.3 + 2);
+      ctx.drawImage(SOFT[OP], so.hx + so.hw / 2 - A * 0.45 + Math.sin(t * 0.8) * 30, so.hy + so.hh * 0.5 - A * 0.35, A * 0.9, A * 0.7);
+      for (const b of BGL[0]) {
+        const s = b.size / 110;
+        ctx.globalAlpha = b.a;
+        local(b.x, b.y, b.rot, s, s);
+        ctx.drawImage(ghostSprite(b.ch, b.c ? OP : ME), -55, -55);
+      }
+      unlocal();
+      const d0 = DUST[0];
+      for (let c = 0; c < 2; c++) {
+        ctx.fillStyle = shade(PC[c ? OP : ME], 0.55);
+        for (let pass = 0; pass < 2; pass++) {
+          ctx.globalAlpha = pass ? 0.6 : 0.2;
+          ctx.beginPath();
+          for (let i = 0; i < d0.length; i++) {
+            const d = d0[i];
+            if ((d.c || 0) !== c) continue;
+            const tw = Math.sin(rt * 2.2 + d.ph);
+            if ((tw > 0) !== (pass === 1)) continue;
+            const r = d.s * (pass ? 0.75 + tw * 0.5 : 0.9);
+            ctx.moveTo(d.x + r, d.y); ctx.arc(d.x, d.y, r, 0, TAU);
+          }
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
+    function drawNet() {
+      const sh = V.hshake[ME];
+      const ox = sh > 0.05 ? (Math.random() * 2 - 1) * sh : 0, oy = sh > 0.05 ? (Math.random() * 2 - 1) * sh : 0;
+      setFrame(VF, ox, oy);
+      if (Lo.mode === 'stack') drawSeamNet();
+      drawVS();
+      drawHead(OP); drawHead(ME);
+      drawTraceCap(OP); drawTraceCap(ME);
+      drawPlate(ME);
+      drawTimerNet();
+      drawGrid(ME);
+      if (V.winner >= 0) drawFlyers(V.winner);
+      drawParticles(OP); drawParticles(ME);
+    }
+
     function render() {
       if (destroyed) return;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-      drawBg();
+      if (NET) drawBgNet(); else drawBg();
       // la plaque s'adapte en douceur à la longueur du mot
       PW.cur += (PW.pw - PW.cur) * 0.2;
       if (Math.abs(PW.cur - PW.pw) < 0.3) PW.cur = PW.pw;
-      for (let p = 0; p < 2; p++) drawHalf(p);
-      drawSeam();
+      if (NET) drawNet();
+      else {
+        for (let p = 0; p < 2; p++) drawHalf(p);
+        drawSeam();
+      }
       if (sim.phase === 'play' && sim.timeLeft < 5 && !hideLetters()) {
         if (!redVig) {
           redVig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.72);
@@ -2351,16 +3257,19 @@
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
       rt += dt;
+      if (NET) netPre(nowC());
       if (resumeT > 0) {
         const r0 = resumeT;
         resumeT = Math.max(0, resumeT - dt);
         if (Math.ceil(r0 / 0.5) !== Math.ceil(resumeT / 0.5) && resumeT > 0) SFX.rcount();
         inputs[0].length = 0; inputs[1].length = 0;
       } else {
-        step(sim, dt, inputs);
+        if (AIN) aiTick(dt);
+        if (NET) netStep(dt); else step(sim, dt, inputs);
         inputs[0].length = 0; inputs[1].length = 0;
         drain();
       }
+      if (NET) netPost();
       const t0 = performance.now();
       updateView(dt);
       const t1 = performance.now();
@@ -2386,6 +3295,7 @@
       inputs[0].length = 0; inputs[1].length = 0;
       if (raf) { cancelAnimationFrame(raf); raf = 0; }
       V.perf.prev = 0;
+      if (NET) N.pauseAt = nowC();
       render();
     }
     function resume() {
@@ -2395,6 +3305,13 @@
       resumeT = sim.phase === 'over' ? 0 : 1.5;
       last = -1;
       SFX.rcount();
+      if (NET) {
+        // en ligne : le chrono est en heure commune → on le décale de la durée de la pause (+ le « 3, 2, 1 ») ;
+        // l'hôte annonce l'heure commune de reprise, l'invité s'y cale à la réception
+        const now = nowC(), endR = now + resumeT * 1000, shift = Math.max(0, endR - (N.pauseAt || now));
+        if (sim.phase === 'intro' || sim.phase === 'play') { N.go += shift; N.end += shift; sim.net.go = N.go; sim.net.end = N.end; }
+        if (HOST && N.s) netSend({ k: 'rs', s: N.s, at: Math.round(endR), go: Math.round(N.go) }, true);
+      }
       raf = requestAnimationFrame(frame);
     }
     function destroy() {
@@ -2429,15 +3346,42 @@
         return {
           phase: sim.phase, t: sim.t, round: sim.roundNo, starts: sim.starts, word: sim.word, R: sim.R, C: sim.C, grid: sim.g.join(''),
           cells: sim.cells.slice(), dirK: sim.dirK, timeLeft: sim.timeLeft, freeze: [sim.pl[0].freeze, sim.pl[1].freeze],
-          trace: [!!sim.pl[0].trace, !!sim.pl[1].trace], matchOver: sim.matchOver, paused, resumeT, nameIdx: sim.nameIdx,
+          trace: [!!sim.pl[0].trace, !!sim.pl[1].trace], kb: [sim.pl[0].kb.on, sim.pl[1].kb.on], matchOver: sim.matchOver, paused, resumeT, nameIdx: sim.nameIdx,
           name: sim.nameIdx >= 0 ? NAMES[sim.nameIdx].key : '', theme: sim.theme >= 0 ? THEMES[sim.theme].name : '', winner: sim.winner,
           font: TM.font, cs: TM.cs, dpr, quality, particles: ptN, neb: !!NEB, fontsOK,
           perf: { upd: V.perf.upd, ren: V.perf.ren, au: V.perf.au, ar: V.perf.ar },
           screen: [0, 1].map((p) => sim.cells.map((i) => scr(p, i))),
-          cellXY: [0, 1].map((p) => { const out = []; for (let i = 0; i < sim.R * sim.C; i++) out.push(scr(p, i)); return out; })
+          cellXY: [0, 1].map((p) => { const out = []; for (let i = 0; i < sim.R * sim.C; i++) out.push(scr(p, i)); return out; }),
+          net: NET ? netTest(rc) : null,
+          ai: AIN ? { level: AIN.level, p: AIP, lo: AIL.lo, hi: AIL.hi, s: AI.s, i: AI.plan ? AI.plan.i : 0, act: !!AI.act, think: AI.think, bang: AI.bang, scan: [AI.rx, AI.ry],
+            plan: AI.plan ? { tRel: AI.plan.tRel, d: AI.plan.d, acts: AI.plan.acts.map((a) => ({ t0: a.t0, ok: a.ok, n: a.path.length })) } : null } : null
         };
       }
     };
+    // en ligne : où sont les choses (coordonnées écran de MA grille, rectangles de la vue) et état du réseau, pour les tests
+    function netTest(rc) {
+      const scrV = (idx) => [Math.round((rc.left + cellCX(idx % sim.C)) * 10) / 10, Math.round((rc.top + cellCY((idx / sim.C) | 0)) * 10) / 10];
+      const all = [];
+      for (let i = 0; i < sim.R * sim.C; i++) all.push(scrV(i));
+      const box = (x, y, w, h) => [Math.round(x), Math.round(y), Math.round(w), Math.round(h)];
+      return {
+        role: GUEST ? 'guest' : 'host', me: ME, flipped: !!VF, mode: Lo.mode, W, H, s: N.s, go: N.go, end: N.end, now: nowC(),
+        word: sim.cells.map(scrV), cells: all, claim: sim.pl[ME].claim ? sim.pl[ME].claim.t : 0, lock: !!V.lock, decided: N.decided,
+        gClaim: N.gClaim ? N.gClaim.t : 0, seen: N.seen, log: N.log.slice(), rx: N.rx, tx: N.tx, opp: { tr: N.opp.tr, fd: N.opp.fd, focus: V.oppFocus, cap: V.capA[OP] },
+        found: [V.found[0].slice(), V.found[1].slice()], over: V.over,
+        rects: {
+          grid: box(Lo.gx - Lo.pad, Lo.gy - Lo.pad, Lo.G + 2 * Lo.pad, Lo.G + 2 * Lo.pad),
+          plate: box(clamp(PW.cx - PW.pw / 2, Lo.freeL, Lo.freeR - PW.pw), Lo.plY, PW.pw, Lo.plH),
+          timer: box(Lo.plCX - Lo.tmW, Lo.tmY - 4, Lo.tmW * 2, 8),
+          heads: [0, 1].map((p) => box(HS[p].hx, HS[p].hy, HS[p].hw, HS[p].hh)),
+          caps: [0, 1].map((p) => box(HS[p].trCX - HS[p].trW / 2, HS[p].trY - HS[p].trH * 0.7, HS[p].trW, HS[p].trH * 1.4)),
+          names: [0, 1].map((p) => box(HS[p].hx + HS[p].hw / 2 - (tagCv[p] ? tagCv[p].w / 2 : 0), HS[p].nameY - (tagCv[p] ? tagCv[p].h / 2 : 0), tagCv[p] ? tagCv[p].w : 0, tagCv[p] ? tagCv[p].h : 0)),
+          lists: [0, 1].map((p) => box(HS[p].listX, HS[p].listY, HS[p].listW, ((HS[p].listRows || 5) + (HS[p].listNoTitle ? 0 : 1)) * (HS[p].listPx || 12) * (HS[p].listLH || 1.5) + 6)),
+          vs: Lo.vs ? box(Lo.vs.x - Lo.vs.s * 1.3, Lo.vs.y - Lo.vs.s * 0.7, Lo.vs.s * 2.6, Lo.vs.s * 2.6) : null,
+          info: Lo.info ? box(Lo.info.x - Lo.info.w / 2, Lo.info.y, Lo.info.w, clamp(Lo.info.w * 0.085, 14, 24) * 2.9) : null
+        }
+      };
+    }
   }
 
   window.JDW_DUOS = window.JDW_DUOS || {};
@@ -2449,6 +3393,8 @@
     accent: ACCENT,
     target: TARGET,
     layout: 'split',
+    net: true,                 // sait jouer en ligne (api.net) : chacun sa grille en grand, l'hôte départage à l'heure commune
+    ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
     preview,
     mount
   };

@@ -81,6 +81,17 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
+  function mkRng(seed) {                           // même suite que mulberry32, mais son état se lit / se remet (jeu en ligne)
+    let a = seed | 0;
+    const f = function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    f.get = () => a; f.set = (v) => { a = v | 0; };
+    return f;
+  }
   function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
   function imgOk(im) {
     if (!im || typeof im !== 'object') return false;
@@ -551,6 +562,18 @@
     let destroyed = false, paused = false, raf = 0;
     const listeners = [];
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
+    // ---- jeu en ligne (api.net, DUO-CONTRACT.md) : sans api.net, NET = null et rien ne change
+    const NET = api.net && typeof api.net === 'object' && (api.net.role === 'host' || api.net.role === 'guest') &&
+      typeof api.net.send === 'function' && typeof api.net.onMessage === 'function' ? api.net : null;
+    const HOST = !!NET && NET.role === 'host', GST = !!NET && !HOST, ME = NET ? (HOST ? 0 : 1) : -1;
+    let QUIET = false;                             // invité pendant un tour : le monde bouge, mais seul l'hôte décide (mines, caisses, noyades…)
+    // ---- contre l'IA (api.ai) : l'équipe AIP est jouée par le jeu ; sans api.ai (ou en ligne), AI = null et rien ne change
+    const AI = !NET && api.ai && typeof api.ai === 'object' && (api.ai.p === 0 || api.ai.p === 1) ? api.ai : null;
+    const AIP = AI ? AI.p : -1;
+    const NS = { wait: GST, joinPending: false, helloT: 0, peer: false, hold: 0, inbox: [], kbuf: [], blockT: 0, log: [], base: 0, bpl: -1,
+      stepEv: [], outE: [], kick: new Set(), sid: 0, sidN: 0, mine: 0, replay: false, settled: false, exact: false, rb: [], rclk: null, sq: 0, sT: 0,
+      rWalk: false, rSunk: false, rLast: 0, rT: 99, hostT: 0, stepT: 0, track: null, hist: [],
+      stats: { tx: 0, rx: 0, txB: 0, acts: 0, go: 0, fix: 0, settled: 0, carveFix: 0, resyncReq: 0, resync: 0, aborted: 0, posErr: 0, hpFix: 0, late: 0, delay: 0, delayMax: 0, delayN: 0 } };
 
     // ------------------------------------------------------------- sons (sobres, limités)
     let rt = 0;                                    // temps réel de la vue (s), s'arrête en pause
@@ -990,6 +1013,7 @@
       return 'rgb(' + px[i * 4] + ',' + px[i * 4 + 1] + ',' + px[i * 4 + 2] + ')';
     }
     function carve(cx, cy, r) {                    // cratère : trou + bord roussi
+      if (NET) NS.log.push([cx, cy, r]);          // en ligne : chaque cratère est noté (comparé entre les deux appareils)
       const r2 = r * r, ro = (r + 4) * (r + 4);
       const x0 = Math.max(0, Math.floor(cx - r - 5)), x1 = Math.min(WW - 1, Math.ceil(cx + r + 5));
       const y0 = Math.max(0, Math.floor(cy - r - 5)), y1 = Math.min(WH - 1, Math.ceil(cy + r + 5));
@@ -1020,7 +1044,13 @@
       charging: false, power: 0, wind: 0, pairWind: 0, waterY: WATER0, rises: 0, rise: null, ammo: [{}, {}], weapon: [0, 0], target: [null, null],
       dmg: [0, 0], nextIdx: [0, 0], lastShooter: 0, starter: 0, winner: -1, tie: false, deathQ: [], deathT: 0, focus: { x: WW / 2, y: WH / 2 },
       shotTeam: -1, shotHit: false, shotSelf: false, lastTick: 99, introDur: 4, walkSnd: 0, spots: [], decor: {}, glowPts: [], turnsBy: [0, 0] };
-    function emit(type, d) { S.events.push({ type, d: d || {} }); }
+    function emit(type, d) {
+      if (QUIET && !QUIET_OK[type]) return;
+      const e = { type, d: d || {} };
+      S.events.push(e);
+      if (NET) netCapture(e.type, e.d);
+    }
+    const QUIET_OK = { land: 1, thud: 1, cratedown: 1, beep: 1, bounce: 1, fuse: 1, step: 1, tick: 1 };
     function newDuck(team, i) {
       return { team, i, name: DUCK_NAMES[team][i], x: 0, y: 0, vx: 0, vy: 0, hp: 100, maxHp: 100, dispHp: 100, alive: true, air: false,
         facing: team === 0 ? 1 : -1, aim: { a: 42, p: 0.6 }, walkAcc: 0, waddle: 0, walking: false, hurtT: 0, sadT: 0, drown: null, dead: false,
@@ -1123,7 +1153,7 @@
     function duckPhys(d, dt) {
       if (d.drown) { d.drown.t += dt; d.x += d.drown.dir * 22 * dt; return; }
       if (d.dead) { d.poofT += dt; return; }
-      if (!d.alive) return;
+      if (!d.alive || d.sunk) return;
       if (d.y + R * 0.3 > S.waterY) { drown(d); return; }
       if (!d.air) {
         if (!onGround(d)) { d.air = true; d.vx = 0; d.vy = 0; }
@@ -1141,7 +1171,7 @@
             const imp = Math.max(0, -vn);
             d.air = false; d.vx = 0; d.vy = 0; d.rot = 0; d.spin = 0;
             for (let k = 0; k < 4 && !onGround(d) && !circleHit(d.x, d.y + 1); k++) d.y += 1;
-            if (imp > 330) hurt(d, Math.min(15, Math.round((imp - 330) / 14)), null);
+            if (imp > 330) fallHurt(d, Math.min(15, Math.round((imp - 330) / 14)));
             else if (imp > 110) emit('land', { d, imp });
           } else {
             if (vn < 0) { d.vx -= 1.35 * vn * nr.x; d.vy -= 1.35 * vn * nr.y; }
@@ -1168,8 +1198,14 @@
       if (by === d) S.shotSelf = true;
       emit('hurt', { d, dmg, by: bt, self: by === d, friendly: bt === d.team && by !== d });
     }
+    function fallHurt(d, dmg) {                    // chute trop haute
+      if (NET && QUIET) return;                    // invité : l'hôte décide
+      if (NET && d === ownDuck()) { netSend({ t: 'D', tk: tkey(), dmg }, true); return; }   // mon canard : l'hôte applique
+      hurt(d, dmg, null);
+    }
     function drown(d) {
       if (!d.alive) return;
+      if (NET && (QUIET || d === ownDuck())) { d.sunk = true; d.vx = 0; d.vy = 0; return; }   // invité : on attend la décision de l'hôte
       d.alive = false; d.hp = 0;
       d.drown = { t: 0, dir: d.x < HALF ? -1 : 1 };
       d.y = S.waterY; d.vx = 0; d.vy = 0; d.air = false; d.rot = 0; d.spin = 0;
@@ -1195,6 +1231,7 @@
           const l = Math.hypot(nx, ny) || 1, kb = w.kb * (0.3 + 0.7 * f);
           d.vx += nx / l * kb; d.vy += ny / l * kb; d.air = true;
           d.spin = (nx >= 0 ? 1 : -1) * (5 + 9 * f);
+          if (NET) NS.kick.add(d);
         }
       }
       for (const m of S.mines) if (Math.hypot(m.x - x, m.y - y) < w.r + 12) { if (!m.armed) { m.armed = true; m.t = 0.35; } else m.t = Math.min(m.t, 0.35); }
@@ -1328,14 +1365,14 @@
           const n = Math.max(1, Math.ceil(m.vy * dt / 2));
           for (let k = 0; k < n; k++) { if (solid(m.x, m.y + 4 + m.vy * dt / n)) { m.vy = 0; break; } m.y += m.vy * dt / n; }
         } else m.vy = 0;
-        if (m.y > S.waterY || m.y > WH + 10) { emit('splash', { x: m.x, big: false }); S.mines.splice(i, 1); continue; }
+        if (m.y > S.waterY || m.y > WH + 10) { if (QUIET) continue; emit('splash', { x: m.x, big: false }); S.mines.splice(i, 1); continue; }
         if (!m.armed) {
-          if (S.phase === 'intro') continue;
+          if (S.phase === 'intro' || QUIET) continue;
           for (const d of S.ducks) if (d.alive && Math.hypot(d.x - m.x, d.y - m.y) < 17) { m.armed = true; m.t = 1.0; emit('mine', { m }); break; }
         } else {
           m.t -= dt; m.beep -= dt;
           if (m.beep <= 0) { m.beep = 0.22; emit('beep'); }
-          if (m.t <= 0) { S.mines.splice(i, 1); explode(m.x, m.y, MINE, null); }
+          if (m.t <= 0) { if (QUIET) { m.t = 0; continue; } S.mines.splice(i, 1); explode(m.x, m.y, MINE, null); }
         }
       }
     }
@@ -1361,6 +1398,7 @@
           c.vy = c.para ? Math.min(c.vy + G * dt, 70) : Math.min(c.vy + G * dt, 420);
           c.y += c.vy * dt;
         } else { if (c.para) emit('cratedown', { c }); c.vy = 0; c.para = false; let g = 0; while (solid(c.x, c.y + 6) && g++ < 10) c.y -= 1; }
+        if (QUIET) continue;                       // invité pendant un tour : chutes et ramassages décidés par l'hôte
         if (c.y > S.waterY) { emit('splash', { x: c.x, big: false }); S.crates.splice(i, 1); continue; }
         for (const d of S.ducks) {
           if (!d.alive || Math.abs(d.x - c.x) > R + 11 || Math.abs(d.y - c.y) > R + 12) continue;
@@ -1481,6 +1519,7 @@
       const bp = S.bp;
       if (S.turnNo >= bp.crateFirst && (S.turnNo - bp.crateFirst) % bp.crateEvery === 0 && S.crates.length <= 2) spawnCratePair();
       S.active = d; S.lastShooter = d.team; S.turnsBy[d.team]++;
+      if (NET) { NS.base = NS.log.length; NS.hostT = TURN_TIME; }   // cratères comparés à partir d'ici ; montre de secours de l'hôte
       if (api.turn) api.turn(d.team);         // duel en ligne : la bibliothèque sait qui a la main
       if (S.turnNo % 2 === 1) { S.pairWind = Math.round((S.rng() * 2 - 1) * bp.windMax * 20) / 20; S.wind = S.pairWind; }
       else S.wind = -S.pairWind;              // même vent, en miroir, pour l'autre joueur
@@ -1590,13 +1629,15 @@
       for (const d of S.ducks) d.walking = false;
       const ph = S.phase;
       if (ph === 'intro') {
-        if (S.phaseT >= S.introDur) startTurn();
+        if (HOST && !NS.peer && NS.hold < 6) { NS.hold += dt; if (S.phaseT > 1.2) S.phaseT = 1.2; }   // on attend l'invité (6 s max)
+        if (S.phaseT >= S.introDur && !GST) startTurn();
       } else if (ph === 'turnstart') {
         if (S.phaseT >= 0.9) { S.phase = 'turn'; S.phaseT = 0; }
       } else if (ph === 'turn') {
         const d = S.active;
-        if (!d || !d.alive) endTurn();
-        else {
+        if (isRemote(d)) remoteTurn(d, dt);    // en ligne : le canard de l'adversaire est piloté depuis son appareil
+        else if (!d || !d.alive) { if (!GST) endTurn(); }
+        else if (!d.sunk) {
           applyInput(d, inputs[d.team], dt);
           if (S.phase === 'turn' && !S.fired) {
             S.turnT -= dt;
@@ -1607,44 +1648,60 @@
               else { emit('timeout', { d }); endTurn(); }
             }
           }
-        }
+        } else S.turnT -= dt;                      // (en ligne) mon canard a coulé : l'hôte va trancher
       } else if (ph === 'fly') {
         if (!S.projs.length && !S.jets.length && !S.swing && !S.plane) { S.phase = 'settle'; S.phaseT = 0; }
         else if (S.phaseT > 16) { S.projs.length = 0; S.jets.length = 0; S.swing = null; S.plane = null; }
       } else if (ph === 'settle') {
         if ((S.phaseT > 1.0 && allRest()) || S.phaseT > 7) {
-          for (const d of S.ducks) if (d.alive && d.air) { d.air = false; d.vx = 0; d.vy = 0; d.rot = 0; d.spin = 0; }
-          if (S.shotTeam >= 0 && !S.shotHit && !S.shotSelf) emit('miss', { team: S.shotTeam });
-          S.shotTeam = -1;
-          S.deathQ = S.ducks.filter((d) => d.alive && d.hp <= 0);
-          S.deathT = 0.25; S.phase = 'deaths'; S.phaseT = 0;
+          if (GST) {                               // invité : la fin du tour est confirmée par l'hôte (on attend, figé)
+            if (NS.settled) return endStep(dt, inputs);
+            NS.settled = true;
+            for (const d of S.ducks) if (d.alive && d.air) { d.air = false; d.vx = 0; d.vy = 0; d.rot = 0; d.spin = 0; }
+          } else {
+            for (const d of S.ducks) if (d.alive && d.air) { d.air = false; d.vx = 0; d.vy = 0; d.rot = 0; d.spin = 0; }
+            if (S.shotTeam >= 0 && !S.shotHit && !S.shotSelf) emit('miss', { team: S.shotTeam });
+            S.shotTeam = -1;
+            S.deathQ = S.ducks.filter((d) => d.alive && d.hp <= 0);
+            S.deathT = 0.25; S.phase = 'deaths'; S.phaseT = 0;
+          }
         }
       } else if (ph === 'deaths') {
         S.deathT -= dt;
         if (S.deathT <= 0) {
           if (S.deathQ.length) { const d = S.deathQ.shift(); S.focus = { x: d.x, y: d.y }; poof(d); S.deathT = 1.1; }
-          else if (S.phaseT > 0.55) resolve();
+          else if (S.phaseT > 0.55 && !GST) resolve();
         }
       } else if (ph === 'rise') {
         S.waterY = lerp(S.rise.from, S.rise.to, ease(Math.min(1, S.phaseT / 1.5)));
-        if ((S.phaseT > 1.9 && allRest()) || S.phaseT > 6) afterRise();
+        if (((S.phaseT > 1.9 && allRest()) || S.phaseT > 6) && !GST) afterRise();
       } else if (ph === 'victory') {
-        if (S.phaseT >= 1.6) { S.phase = 'done'; S.phaseT = 0; emit('done', { p: S.winner }); }
+        if (S.phaseT >= 1.6 && !GST) { S.phase = 'done'; S.phaseT = 0; emit('done', { p: S.winner }); }
       }
       if (S.phase === 'victory' || S.phase === 'done') celebrate(dt);
-      for (const d of S.ducks) duckPhys(d, dt);
+      const q = GST && !NS.exact && (S.phase === 'turn' || S.phase === 'turnstart'), own = q ? ownDuck() : null;
+      QUIET = q;
+      for (const d of S.ducks) {
+        if (NET && isRemote(d)) continue;          // piloté depuis l'autre appareil (positions lissées)
+        if (d === own) { QUIET = false; duckPhys(d, dt); QUIET = q; } else duckPhys(d, dt);
+      }
       if (S.phase !== 'victory' && S.phase !== 'done') { updateMines(dt); updateCrates(dt); }
       updateProjs(dt); updateJets(dt); updateSwing(dt); updatePlane(dt);
+      QUIET = false;
+      endStep(dt, inputs);
+    }
+    function endStep(dt, inputs) {
       for (const d of S.ducks) { if (d.hurtT > 0) d.hurtT -= dt; if (d.sadT > 0) d.sadT -= dt; }
       for (const inp of inputs) { inp.jump = false; inp.fire = false; inp.weapon = -1; inp.target = null; inp.aim = null; }
     }
     let battleCount = 0, prevLoser = -1;
-    function newBattle() {
+    function newBattle(o) {                        // o (invité en ligne) : { seed, b, bc, pl } envoyés par l'hôte
       battleCount++;
       let b = battleCount;
-      try { if (typeof api.round === 'function') { const r = api.round() | 0; if (r >= 1) b = r; } } catch (e) { /* rien */ }
-      S.seed = (Math.random() * 4294967296) >>> 0;
-      S.rng = mulberry32(S.seed);
+      if (o) { battleCount = o.bc; b = o.b; prevLoser = o.pl; }
+      else try { if (typeof api.round === 'function') { const r = api.round() | 0; if (r >= 1) b = r; } } catch (e) { /* rien */ }
+      S.seed = o ? o.seed >>> 0 : (Math.random() * 4294967296) >>> 0;
+      S.rng = mkRng(S.seed);
       S.battle = b; S.bp = bparams(b); S.type = (b - 1) % 3;
       S.waterY = WATER0; S.rises = 0; S.rise = null;
       S.projs = []; S.jets = []; S.mines = []; S.crates = []; S.plane = null; S.swing = null;
@@ -1662,7 +1719,9 @@
       S.turnTeam = S.starter; S.lastShooter = 1 - S.starter;
       S.phase = 'intro'; S.phaseT = 0; S.introDur = b === 1 ? 5.4 : 3.8;
       S.focus = { x: WW / 2, y: WH / 2 };
+      if (NET) { NS.log = []; NS.base = 0; NS.bpl = prevLoser; NS.replay = false; NS.mine = 0; NS.settled = false; NS.rb.length = 0; NS.rclk = null; }
       emit('battle', { b });
+      if (HOST) netSend({ t: 'B', b, seed: S.seed, bc: battleCount, pl: NS.bpl, cs: maskSum(), log: [] }, true);   // même terrain chez l'invité
     }
 
     // ===================================================================
@@ -1766,7 +1825,7 @@
       if ((ph === 'turn' || ph === 'turnstart') && S.active) {
         const d = S.active, w = WEAPONS[S.weapon[d.team]];
         if (w.aim === 'target' && S.target[d.team] != null) return frameTwo(d.x, d.y, S.target[d.team], surfaceY(S.target[d.team], 0), 1);
-        const tg = nearestEnemy(d);
+        const tg = AI && d.team === AIP && ai.target && ai.target.alive ? ai.target : nearestEnemy(d);
         if (tg) return frameTwo(d.x, d.y, tg.x, tg.y, 1);
         return { x: d.x + d.facing * 40, y: d.y - 20, z: baseZ };
       }
@@ -1790,7 +1849,7 @@
       return { x: S.focus.x, y: S.focus.y, z: baseZ * 0.85 };
     }
     function updateCam(dt) {
-      if (camManual && (S.phase === 'turn' || S.phase === 'turnstart')) { clampCam(); return; }
+      if (camManual && (S.phase === 'turn' || S.phase === 'turnstart' || (NET && S.phase !== 'intro'))) { clampCam(); return; }
       camManual = false;
       const t = camTarget();
       if (camSnap) { cam.x = t.x; cam.y = t.y; cam.z = t.z; camSnap = false; clampCam(); return; }
@@ -1813,9 +1872,16 @@
     const pressFx = {};
     let trayOpen = false, aimDrag = null;
     function teamNow() { return S.active ? S.active.team : S.turnTeam; }
-    function canControl() { return !paused && resumeT <= 0 && ctl.mode === 'battle' && S.phase === 'turn' && !!S.active && S.active.alive && !S.fired; }
+    function canControl() {
+      return !paused && resumeT <= 0 && ctl.mode === 'battle' && S.phase === 'turn' && !!S.active && S.active.alive && !S.fired &&
+        (!NET || (S.active.team === ME && !S.active.sunk && !NS.wait)) &&   // en ligne : seulement mon canard, pendant mon tour
+        S.active.team !== AIP;                    // contre l'IA : jamais son équipe
+    }
     function curWeapon() { return WEAPONS[S.weapon[teamNow()]] || WEAPONS[0]; }
-    function local(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    function local(e) {
+      const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      return NET && NET.flipped ? { x: W - x, y: H - y } : { x, y };   // (écran tourné par la bibliothèque : jamais en paysage)
+    }
     function inRect(r, p, m) { m = m || 0; return !!r && p.x >= r.x - m && p.x <= r.x + r.w + m && p.y >= r.y - m && p.y <= r.y + r.h + m; }
     function trayCell(i) {
       const T = L.tray, c = i % 4, r2 = (i / 4) | 0;
@@ -1888,7 +1954,7 @@
       e.preventDefault();
       const p = local(e), dx = p.x - rec.x, dy = p.y - rec.y;
       rec.moved += Math.abs(dx) + Math.abs(dy);
-      const free = S.phase === 'turn' || S.phase === 'turnstart';
+      const free = S.phase === 'turn' || S.phase === 'turnstart' || (!!NET && S.phase !== 'intro');
       if (rec.mode === 'aim') {
         if (canControl() && (rec.armed || Math.hypot(p.x - rec.sx, p.y - rec.sy) > 10)) { rec.armed = true; aimFrom(p); }
       } else if (rec.mode === 'target' && rec.moved > 14) rec.mode = 'pan';
@@ -1925,7 +1991,7 @@
     function onWheel(e) {
       if (destroyed) return;
       e.preventDefault();
-      if (paused || !(S.phase === 'turn' || S.phase === 'turnstart')) return;
+      if (paused || !(S.phase === 'turn' || S.phase === 'turnstart' || (NET && S.phase !== 'intro'))) return;
       const p = local(e);
       zoomAt(p.x, p.y, cam.z * Math.exp(-e.deltaY * 0.0015));
       camManual = true;
@@ -1952,6 +2018,8 @@
         return;
       }
       if (p < 0) return;
+      if (NET) p = ME;                             // en ligne : toutes les touches pilotent mon équipe
+      if (AI) p = 1 - AIP;                         // contre l'IA : toutes les touches pilotent le joueur
       e.preventDefault();
       if (paused) return;
       if (f === 'j') { if (down && !e.repeat && canControl() && teamNow() === p) inputs[p].jump = true; return; }
@@ -1964,6 +2032,7 @@
         let mv = k.r - k.l;
         if (p === t) mv += (held.right ? 1 : 0) - (held.left ? 1 : 0);
         inp.move = clamp(mv, -1, 1); inp.aimDir = k.u - k.d; inp.charge = !!k.f;
+        if ((NET && (p !== ME || t !== ME)) || p === AIP) { inp.move = 0; inp.aimDir = 0; inp.charge = false; }
       }
     }
     on(canvas, 'pointerdown', onPDown);
@@ -2058,6 +2127,10 @@
       }
     }
     const dbgCounts = {};
+    // textes « pour rire » : sur un seul appareil, Math.random comme avant ; en ligne, le même tirage des deux côtés (tour + canard)
+    function rnd2(salt) { return NET ? hash(tkey() * 0.731 + salt * 1.37 + 0.5) : Math.random(); }
+    function pk(a, salt) { return NET ? a[Math.floor(rnd2(salt) * a.length) % a.length] : pick(a); }
+    const dsalt = (v) => (v ? v.team * 3 + v.i + 1 : 0);
     function onEvent(type, d) {
       dbgCounts[type] = (dbgCounts[type] || 0) + 1;
       switch (type) {
@@ -2071,9 +2144,9 @@
           SFX.turn(d.team); vibrate(15);
           break;
         case 'tick': SFX.tick(d.sec); break;
-        case 'timeout': { const a = S.active || d.d; if (a) ftext(a.x, a.y, pick(T_SLOW), COL.muted, 17, 1.5, -aboveHead(a)); SFX.deny(); break; }
-        case 'step': SFX.step(); camManual = false; break;
-        case 'jump': SFX.jump(); puff(d.d.x, d.d.y + R, 5); camManual = false; break;
+        case 'timeout': { const a = S.active || d.d; if (a) ftext(a.x, a.y, pk(T_SLOW, 1), COL.muted, 17, 1.5, -aboveHead(a)); SFX.deny(); break; }
+        case 'step': SFX.step(); if (!NET || (d.d && d.d.team === ME)) camManual = false; break;
+        case 'jump': SFX.jump(); puff(d.d.x, d.d.y + R, 5); if (!NET || d.d.team === ME) camManual = false; break;
         case 'land': SFX.land(); puff(d.d.x, d.d.y + R, 4); d.d.squash = clamp(d.imp / 380, 0.35, 1); break;
         case 'thud': SFX.bounce(); break;
         case 'fire': {
@@ -2092,7 +2165,8 @@
           const v = d.d, col = PL[v.team].color;
           ftext(v.x, v.y, '-' + d.dmg, col, d.dmg >= 40 ? 24 : 19, 1.3, -aboveHead(v));
           let fun = null;
-          if (d.by >= 0) { if (d.self) fun = pick(T_SELF); else if (d.friendly) fun = pick(T_FRIEND); else if (d.dmg >= 40) fun = pick(T_BIG); else if (Math.random() < 0.45) fun = pick(T_HIT); }
+          const sl = 10 + dsalt(v) * 7 + d.dmg * 0.01;
+          if (d.by >= 0) { if (d.self) fun = pk(T_SELF, sl); else if (d.friendly) fun = pk(T_FRIEND, sl); else if (d.dmg >= 40) fun = pk(T_BIG, sl); else if (rnd2(sl + 3) < 0.45) fun = pk(T_HIT, sl + 5); }
           if (fun) ftext(v.x, v.y, fun, d.self || d.friendly ? '#ffd0d0' : '#ffffff', 15, 1.5, -aboveHead(v) - 24);
           SFX.quack(v.team === 1);
           if (d.dmg >= 30) { vibrate(25); if (d.dmg >= 40) freezeT = Math.max(freezeT, 0.06); }
@@ -2101,8 +2175,8 @@
         case 'drown': {
           const v = d.d;
           splashFx(v.x, S.waterY, 26, true);
-          ftext(v.x, S.waterY, pick(T_DROWN), '#a8e4ff', 22, 1.6, -40);
-          sadPop(v, pick(T_SAD).replace('NOM', PL[v.team].name));
+          ftext(v.x, S.waterY, pk(T_DROWN, 30 + dsalt(v)), '#a8e4ff', 22, 1.6, -40);
+          sadPop(v, pk(T_SAD, 40 + dsalt(v)).replace('NOM', PL[v.team].name));
           SFX.splash(true); after(0.25, () => SFX.sad()); vibrate(40); slowmo(0.45, 0.55);
           break;
         }
@@ -2115,8 +2189,8 @@
           for (let i = 0; i < 8; i++) { const an = -Math.PI * Math.random(), v2 = 90 + Math.random() * 150; chunk(v.x, v.y, Math.cos(an) * v2, Math.sin(an) * v2 - 60, 1.4, 2.6 + Math.random() * 1.5, i % 2 ? col : TC[v.team].dark, 1); }
           confetti(v.x, v.y, 18, [col, TC[v.team].light, '#ffffff'], 3);
           ring(v.x, v.y, 4, 84, 0.6, col, 4); ring(v.x, v.y, 4, 50, 0.35, '#ffffff', 2.5);
-          ftext(v.x, v.y, pick(T_KO), col, 24, 1.7, -aboveHead(v));
-          sadPop(v, pick(T_SAD).replace('NOM', PL[v.team].name));
+          ftext(v.x, v.y, pk(T_KO, 50 + dsalt(v)), col, 24, 1.7, -aboveHead(v));
+          sadPop(v, pk(T_SAD, 60 + dsalt(v)).replace('NOM', PL[v.team].name));
           SFX.boom(false); SFX.quack(true); after(0.3, () => SFX.sad()); vibrate(45); slowmo(0.4, 0.6);
           shake = Math.max(shake, 7); flashA = Math.max(flashA, 0.14); flashCol = TC[v.team].light;
           break;
@@ -2148,13 +2222,13 @@
           break;
         case 'jethit': splashFx(d.x, d.y, 12, false); break;
         case 'jetwall': for (let k = 0; k < 8; k++) part(d.x, d.y, (Math.random() - 0.5) * 80 - d.dx * 40, -Math.random() * 60, 0.8, 3, 1, BUB, false, 1.5, -10); break;
-        case 'plane': SFX.plane(); planePilot = friends.length ? pick(friends) : null; break;
+        case 'plane': SFX.plane(); planePilot = friends.length ? pk(friends, 70) : null; break;
         case 'drop': SFX.drop(); break;
         case 'weapon': SFX.weapon(d.i); trayOpen = false; break;
         case 'deny': SFX.deny(); if (S.active) ftext(S.active.x, S.active.y, 'Plus de munitions !', COL.muted, 14, 1.1, -aboveHead(S.active)); break;
         case 'needtarget': SFX.deny(); if (S.active) ftext(S.active.x, S.active.y, 'Touche la carte pour viser !', COL.gold, 14, 1.4, -aboveHead(S.active)); break;
         case 'charge': SFX.charge(); break;
-        case 'miss': ftext(S.focus.x, S.focus.y, pick(T_MISS), COL.muted, 16, 1.4, -40); break;
+        case 'miss': ftext(S.focus.x, S.focus.y, pk(T_MISS, 80), COL.muted, 16, 1.4, -40); break;
         case 'hop': if (Math.random() < 0.35) SFX.quack(d.d.team === 1); d.d.squash = 0.5; break;
         case 'victory': {
           vicBan = { p: d.p, t: 0, tie: d.tie };
@@ -2165,6 +2239,7 @@
           break;
         }
         case 'done': {
+          if (GST) break;                          // invité : c'est l'hôte qui marque le point (message « done »)
           const p = d.p;
           prevLoser = 1 - p;
           let res = null;
@@ -2752,7 +2827,8 @@
       if (!d || !d.alive || S.phase !== 'turn' || S.fired || ctl.mode !== 'battle') return;
       const w = WEAPONS[S.weapon[d.team]], col = PL[d.team].color, s = duckScreen(d), dir = aimDir(d);
       if (w.aim === 'target') return;
-      if (!aimDrag) {                               // invitation : anneau en pointillés autour du canard
+      const aiHand = AI && d.team === AIP && (ai.st === 'aim' || ai.st === 'hold');
+      if (!aimDrag && (!NET || d.team === ME) && d.team !== AIP) {    // invitation : anneau en pointillés autour du canard
         ctx.strokeStyle = rgba(col, 0.38 + 0.2 * Math.sin(rt * 4)); ctx.lineWidth = 2; ctx.setLineDash([5, 7]); ctx.lineDashOffset = -rt * 14;
         circ(ctx, s.x, s.y - headPx * 0.25, Math.max(44, headPx * 1.05)); ctx.stroke();
         ctx.setLineDash([]); ctx.lineDashOffset = 0;
@@ -2798,7 +2874,8 @@
       // poignée
       ctx.globalCompositeOperation = 'lighter'; glowAt(GL.t[d.team], ex, ey, 40, 0.5 + 0.2 * Math.sin(rt * 6)); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = col; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5;
-      circ(ctx, ex, ey, aimDrag ? 11 : 9); ctx.fill(); ctx.stroke();
+      circ(ctx, ex, ey, aimDrag || aiHand ? 11 : 9); ctx.fill(); ctx.stroke();
+      if (aiHand) drawFingertip(ex, ey);           // le « doigt » de l'IA sur la poignée
       if (w.aim === 'power') {
         const pc = Math.round(Math.max(0.05, pw) * 100) + '%';
         const lx = ex + (dir.x >= 0 ? 16 : -16), ly = Math.max(L.plate.y + L.plate.h + 12, ey - 16);
@@ -3021,10 +3098,14 @@
       if (hot) { ctx.strokeStyle = 'rgba(127,208,255,' + (0.55 + 0.4 * Math.abs(Math.sin(rt * 4))).toFixed(2) + ')'; ctx.lineWidth = 1.5; rr(ctx, x, y, w, h, h / 2); ctx.stroke(); }
     }
     function drawHint() {
-      if (!canControl() || trayOpen) return;
+      const watch = !!NET && S.phase === 'turn' && !!S.active && S.active.team !== ME && ctl.mode === 'battle' && !S.fired && !paused;
+      const aiTurn = !!AI && S.phase === 'turn' && !!S.active && S.active.team === AIP && ctl.mode === 'battle' && !S.fired && !paused;
+      if ((!canControl() && !watch && !aiTurn) || trayOpen) return;
       const t = S.active.team, w = WEAPONS[S.weapon[t]];
       let s = null;
-      if (w.aim === 'target') s = S.target[t] == null ? 'Touche la carte pour placer la cible' : 'TIRER pour appeler l’avion !';
+      if (watch) s = 'Au tour de ' + PL[t].name + '… (glisse pour regarder)';   // en ligne : on regarde l'adversaire jouer
+      else if (aiTurn) s = PL[t].name + (ai.st === 'walk' ? ' se met en place…' : ai.st === 'weapon' ? ' choisit son arme…' : ai.st === 'aim' || ai.st === 'hold' || ai.st === 'done' ? ' vise…' : ' réfléchit…');
+      else if (w.aim === 'target') s = S.target[t] == null ? 'Touche la carte pour placer la cible' : 'TIRER pour appeler l’avion !';
       else if (S.battle === 1 && S.turnsBy[t] <= 2 && !aimDrag) s = w.aim === 'melee' ? 'Colle-toi à un ennemi puis TIRER pour cogner !' : 'Glisse depuis ton canard pour viser, puis TIRER !';
       else if (w.aim === 'melee' && !aimDrag) s = 'Corps à corps : colle-toi à un ennemi !';
       if (!s) return;
@@ -3044,7 +3125,7 @@
       const r = L.btn[name];
       if (!r) return;
       const o = turnOwner(), t = o >= 0 ? o : S.turnTeam, col = PL[t].color, tc = TC[t];
-      const enabled = canControl() || (S.phase === 'turnstart' && name !== 'fire');
+      const enabled = canControl() || (S.phase === 'turnstart' && name !== 'fire' && (!NET || t === ME) && t !== AIP);
       const pressed = (pressFx[name] > 0) || (name === 'left' && held.left > 0) || (name === 'right' && held.right > 0);
       const w = WEAPONS[S.weapon[t]], am = S.ammo[t][w.id];
       const ready = !(w.aim === 'target' && S.target[t] == null);
@@ -3094,7 +3175,8 @@
       }
     }
     function drawTray() {
-      if (!trayOpen || !canControl()) { if (!canControl()) trayOpen = false; return; }
+      const aiT = !!AI && ai.tray > 0 && !!S.active && S.active.team === AIP && S.phase === 'turn' && !S.fired;
+      if (!aiT && (!trayOpen || !canControl())) { if (!canControl()) trayOpen = false; return; }
       const T = L.tray, t = S.active.team, col = PL[t].color;
       ctx.fillStyle = 'rgba(0,0,0,0.4)'; rr(ctx, T.x, T.y + 5, T.w, T.h, 14); ctx.fill();
       ctx.fillStyle = '#0a141c'; rr(ctx, T.x, T.y, T.w, T.h, 14); ctx.fill();
@@ -3113,6 +3195,7 @@
         txt(lab, c.x + c.w - 6, c.y + 9, 10, ok ? COL.gold : COL.muted, 'right', false, 0);
         ctx.globalAlpha = 1;
       }
+      if (aiT && ai.wt > 0.3) { const c = trayCell(ai.wi); drawFingertip(c.x + c.w / 2, c.y + c.h / 2); }   // l'IA touche son arme
     }
     function drawHUD() {
       drawPanel(0); drawPanel(1);
@@ -3291,6 +3374,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
       drawBackground();
+      if (NS.wait) { drawWait(); if (paused) drawPause(); return; }
       let shx = 0, shy = 0;
       if (shake > 0.05 && !paused) { shx = (Math.random() * 2 - 1) * shake; shy = (Math.random() * 2 - 1) * shake; }
       const z = cam.z;
@@ -3343,6 +3427,7 @@
       if (vk !== vigKey) { vigKey = vk; vig = rad(ctx, W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.75, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,0,0,0.42)']); }
       ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
       drawTargetMarker(); drawAim(); drawTags(); drawTexts(); drawSads(); drawOffscreen();
+      if (AI) drawAiBubble();
       if (S.phase === 'done') { ctx.globalAlpha = Math.min(0.42, S.phaseT * 1.2); ctx.fillStyle = '#03070c'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
       drawHUD();
       drawBanners();
@@ -3380,13 +3465,14 @@
         k = 0;
       } else if (freezeT > 0) { freezeT -= dt; k = 0; }
       else if (slowT > 0) { slowT -= dt; k = slowT > 0.25 ? slowK : lerp(1, slowK, Math.max(0, slowT) / 0.25); }
+      if (NET) netPre(dt, resumeT <= 0);
       if (k > 0) {
         gatherInputs();
         acc += dt * k;
         let n = 0;
-        while (acc >= STEP && n < 8) { step(STEP, inputs); acc -= STEP; n++; if (S.events.length) flushEvents(); }
+        while (acc >= STEP && n < 8) { simStep(); acc -= STEP; n++; }
         if (n >= 8) acc = 0;
-        if (ctl.mode === 'between') { ctl.t += dt; if (ctl.t >= 1.4) { ctl.mode = 'battle'; newBattle(); flushEvents(); } }
+        if (ctl.mode === 'between' && !GST) { ctl.t += dt; if (ctl.t >= 1.4) { ctl.mode = 'battle'; newBattle(); flushEvents(); } }
         if (ctl.mode !== 'battle' || S.phase === 'done') {
           confT -= dt;
           if (confT <= 0 && S.winner >= 0) {
@@ -3397,17 +3483,798 @@
         }
         updateFx(dt * k);
       }
+      if (NET) netPost(dt);
       updateCam(dt);
       const tr0 = performance.now();
       render();
       perf.r += performance.now() - tr0; perf.n++;
     }
 
+    // ===================================================================
+    // JEU EN LIGNE (api.net) — l'hôte est l'arbitre, chaque appareil affiche le même terrain logique (1000 x 560) à sa taille.
+    // - Aux moments clés (début de tour, fin de tour ou tir, fin des chutes, montée de l'eau, victoire), l'hôte envoie de façon
+    //   fiable un instantané EXACT de l'état (nombres JSON exacts), la liste des cratères du tour et une somme de contrôle du terrain.
+    // - Pendant un tour, l'appareil du joueur actif pilote son canard sans attendre (marche, saut, visée, arme) et envoie son état
+    //   ~30 fois/s (canal rapide) ; l'autre appareil le lit avec ~100 ms de retard et l'interpole (mouvements lissés, visée en direct).
+    // - Un tir (ou la fin du temps) de l'invité part tout de suite chez lui ; il envoie l'état exact d'avant ce pas + ses commandes :
+    //   l'hôte rejoue ce même pas, puis les deux appareils calculent la même trajectoire et la même explosion (déterministe).
+    //   L'hôte confirme la fin (dégâts, terrain creusé, canards éjectés) ; l'invité corrige toute dérive (terrain restauré et recreusé).
+    // - L'invité ne décide de rien (mines, caisses, noyades, points) : il rejoue les effets et les sons, n'appelle jamais api.point / api.say.
+    // ===================================================================
+    const ACT_EV = { jump: 1, land: 1, thud: 1, weapon: 1, deny: 1, needtarget: 1, charge: 1 };   // gestes du joueur actif (effets seulement)
+    const WORLD_EV = { mine: 1, pickup: 1, boom: 1, hurt: 1, drown: 1, poof: 1, splash: 1, crateburst: 1, frags: 1, melee: 1, jethit: 1, jetwall: 1, plane: 1, drop: 1 };
+    const DELAY = 100;                              // ms de retard de lecture du canard de l'adversaire (lissage)
+    const DI = (d) => (d ? S.ducks.indexOf(d) : -1), DO = (i) => (i >= 0 ? S.ducks[i] || null : null);
+    const r3 = (v) => Math.round(v * 1000) / 1000, r2 = (v) => Math.round(v * 100) / 100;
+    let bkMask = null, bkPx = null, bkLen = 0;     // terrain du début du tour (invité), pour défaire une dérive
+    function tkey() { return battleCount * 100 + S.turnNo; }
+    function isTurnPh() { return S.phase === 'turn' || S.phase === 'turnstart'; }
+    function isRemote(d) { return !!NET && !!d && d === S.active && d.team !== ME && !NS.exact && isTurnPh(); }
+    function ownDuck() { return GST && !NS.exact && isTurnPh() && S.active && S.active.team === ME ? S.active : null; }
+    function myTurn() { return !!NET && !!S.active && S.active.team === ME && isTurnPh(); }
+    function netNow() { try { const v = +NET.now(); if (isFinite(v)) return v; } catch (e) { /* rien */ } return performance.now(); }
+    function netGrace() { let r = 400; try { r = +NET.rtt() || 400; } catch (e) { /* rien */ } return 2.5 + clamp(r, 0, 3000) / 1000 * 1.5; }
+    function blankInp() { return { move: 0, aimDir: 0, charge: false, jump: false, fire: false, weapon: -1, target: null, aim: null }; }
+    // ---- transport : messages fiables découpés en morceaux de < 1 Ko, remis dans l'ordre
+    function netSend(m, rel) {
+      if (!NET || destroyed) return;
+      try {
+        const s = JSON.stringify(m);
+        NS.stats.tx++; NS.stats.txB += s.length;
+        if (!rel) { NET.send(m); return; }
+        if (s.length <= 900) { NET.send(m, { reliable: true }); return; }
+        const n = Math.ceil(s.length / 760);
+        for (let i = 0; i < n; i++) NET.send({ t: 'K', i, n, s: s.slice(i * 760, (i + 1) * 760) }, { reliable: true });
+      } catch (e) { /* réseau indisponible : la partie continue */ }
+    }
+    function netRecv(m) {                           // appelé par la bibliothèque à chaque message de l'autre appareil
+      if (destroyed || !m || typeof m !== 'object') return;
+      NS.stats.rx++;
+      if (m.t === 'K') {
+        if (m.i === 0) NS.kbuf = [];
+        NS.kbuf.push(String(m.s));
+        if (m.i >= m.n - 1) { let full = null; try { full = JSON.parse(NS.kbuf.join('')); } catch (e) { full = null; } NS.kbuf = []; if (full) netRecv(full); }
+        return;
+      }
+      if (m.t === 's') { netStreamIn(m); return; }
+      NS.inbox.push(m);                            // traité dans la boucle (jamais pendant un pas de simulation)
+    }
+    if (NET) { try { NET.onMessage(netRecv); } catch (e) { /* rien */ } }
+    // ---- instantanés exacts de la simulation
+    function netSnap() {
+      return {
+        ph: S.phase, pt: S.phaseT, tm: S.time, tn: S.turnNo, tt: S.turnTeam, ac: DI(S.active), T: S.turnT,
+        f: (S.fired ? 1 : 0) | (S.charging ? 2 : 0) | (S.tie ? 4 : 0) | (S.shotHit ? 8 : 0) | (S.shotSelf ? 16 : 0),
+        pw: S.power, w: S.wind, w2: S.pairWind, wy: S.waterY, rs: S.rises, ri: S.rise ? [S.rise.from, S.rise.to] : 0,
+        am: S.ammo.map((a) => WEAPONS.map((x) => (a[x.id] === Infinity ? -1 : a[x.id]))), wp: S.weapon.slice(), tg: S.target.slice(),
+        dm: S.dmg.slice(), ni: S.nextIdx.slice(), ls: S.lastShooter, st: S.starter, tb: S.turnsBy.slice(), wi: S.winner, sh: S.shotTeam,
+        rg: S.rng.get ? S.rng.get() : 0, dq: S.deathQ.map(DI), de: S.deathT, fo: [r3(S.focus.x), r3(S.focus.y)], lt: S.lastTick,
+        D: S.ducks.map((d) => [d.x, d.y, d.vx, d.vy, d.hp, (d.alive ? 1 : 0) | (d.air ? 2 : 0) | (d.dead ? 4 : 0) | (d.drown ? 8 : 0) | (d.sunk ? 16 : 0),
+          d.facing, d.aim.a, d.aim.p, r3(d.rot), r3(d.spin), d.drown ? r3(d.drown.t) : 0, d.drown ? d.drown.dir : 0, r3(d.poofT), r3(d.hopT), d.walkAcc, r3(d.hurtT), r3(d.sadT)]),
+        M: S.mines.map((m) => [m.x, m.y, m.vy, m.armed ? 1 : 0, m.t, r3(m.beep)]),
+        C: S.crates.map((c) => [c.x, c.y, c.vy, c.kind === 'soin' ? 0 : 1, c.wid || 0, c.para ? 1 : 0, r3(c.t)]),
+        P: S.projs.map((p) => [p.kind, p.x, p.y, p.vx, p.vy, p.age, p.fuse, DI(p.owner), p.rest ? 1 : 0, r3(p.rot), p.dir0 || 0, p.rolling ? 1 : 0, p.dir || 0, p.lastS == null ? null : p.lastS]),
+        J: S.jets.map((j) => [j.x, j.y, j.dx, j.dy, j.len, j.t, j.life, DI(j.hitD), j.hitT ? 1 : 0, j.hx, j.hy, j.done ? 1 : 0, DI(j.owner)]),
+        sw: S.swing ? [DI(S.swing.d), S.swing.t, S.swing.dir, S.swing.done ? 1 : 0] : 0,
+        pl: S.plane ? [S.plane.x, S.plane.y, S.plane.vx, S.plane.drops.slice(), S.plane.i, S.plane.team, DI(S.plane.owner), S.plane.tx] : 0
+      };
+    }
+    // mode 'fix' (événement de l'hôte pendant un tour) : on garde le mouvement du canard piloté (le mien, ou celui de l'adversaire lissé)
+    function netApply(z, mode, kk) {
+      const fix = mode === 'fix', rem = isRemote(S.active) ? S.active : null, own = fix ? ownDuck() : null;
+      if (!fix) {
+        S.phase = z.ph; S.phaseT = z.pt; S.time = z.tm; S.turnNo = z.tn; S.turnTeam = z.tt; S.turnT = z.T;
+        S.fired = !!(z.f & 1); S.charging = !!(z.f & 2); S.tie = !!(z.f & 4); S.shotHit = !!(z.f & 8); S.shotSelf = !!(z.f & 16);
+        S.power = z.pw; S.wind = z.w; S.pairWind = z.w2; S.waterY = z.wy; S.rises = z.rs; S.rise = z.ri ? { from: z.ri[0], to: z.ri[1] } : null;
+        S.weapon = z.wp.slice(); S.target = z.tg.slice(); S.nextIdx = z.ni.slice(); S.lastShooter = z.ls; S.starter = z.st; S.turnsBy = z.tb.slice();
+        S.winner = z.wi; S.shotTeam = z.sh; if (S.rng.set) S.rng.set(z.rg); S.deathT = z.de; S.focus = { x: z.fo[0], y: z.fo[1] }; S.lastTick = z.lt;
+      }
+      S.dmg = z.dm.slice();
+      S.ammo = z.am.map((a) => { const o = {}; WEAPONS.forEach((x, i) => { o[x.id] = a[i] < 0 ? Infinity : a[i]; }); return o; });
+      z.D.forEach((a, i) => {
+        const d = S.ducks[i];
+        if (!d) return;
+        d.hp = a[4]; d.alive = !!(a[5] & 1); d.dead = !!(a[5] & 4); d.drown = (a[5] & 8) ? { t: a[11], dir: a[12] } : null; d.sunk = !!(a[5] & 16);
+        d.poofT = a[13]; d.hurtT = a[16]; d.sadT = a[17];
+        if (fix && d === rem) return;
+        if (fix && d === own) { if (kk && kk.indexOf(i) >= 0) { d.vx = a[2]; d.vy = a[3]; d.air = !!(a[5] & 2); d.spin = a[10]; } return; }
+        d.x = a[0]; d.y = a[1]; d.vx = a[2]; d.vy = a[3]; d.air = !!(a[5] & 2); d.facing = a[6]; d.aim.a = a[7]; d.aim.p = a[8];
+        d.rot = a[9]; d.spin = a[10]; d.hopT = a[14]; d.walkAcc = a[15];
+      });
+      S.mines = z.M.map((a) => ({ x: a[0], y: a[1], vy: a[2], armed: !!a[3], t: a[4], beep: a[5] }));
+      S.crates = z.C.map((a) => ({ x: a[0], y: a[1], vy: a[2], kind: a[3] ? 'arme' : 'soin', wid: a[3] ? a[4] : null, para: !!a[5], t: a[6] }));
+      if (fix) return;
+      S.active = DO(z.ac); S.deathQ = z.dq.map(DO).filter(Boolean);
+      S.projs = z.P.map((a) => ({ kind: a[0], x: a[1], y: a[2], vx: a[3], vy: a[4], age: a[5], fuse: a[6], owner: DO(a[7]), rest: !!a[8], rot: a[9],
+        dir0: a[10], rolling: !!a[11], dir: a[12], lastS: a[13] == null ? undefined : a[13] }));
+      S.jets = z.J.map((a) => ({ x: a[0], y: a[1], dx: a[2], dy: a[3], len: a[4], t: a[5], life: a[6], hitD: DO(a[7]), hitT: !!a[8], hx: a[9], hy: a[10], done: !!a[11], owner: DO(a[12]) }));
+      S.swing = z.sw ? { d: DO(z.sw[0]), t: z.sw[1], dir: z.sw[2], done: !!z.sw[3] } : null;
+      S.plane = z.pl ? { x: z.pl[0], y: z.pl[1], vx: z.pl[2], drops: z.pl[3].slice(), i: z.pl[4], team: z.pl[5], owner: DO(z.pl[6]), tx: z.pl[7] } : null;
+    }
+    // l'hôte reçoit l'état exact de l'invité juste avant son tir : positions, visée, minuteur (dans les limites du jeu)
+    function netApplyPre(z) {
+      (z.D || []).forEach((a, i) => {
+        const d = S.ducks[i];
+        if (!d || !d.alive || !Array.isArray(a)) return;
+        d.x = clamp(+a[0] || 0, -300, WW + 300); d.y = clamp(+a[1] || 0, -400, WH + 60); d.vx = +a[2] || 0; d.vy = +a[3] || 0; d.air = !!(a[5] & 2); d.sunk = false;
+        d.facing = a[6] === -1 ? -1 : 1; d.aim.a = clamp(+a[7] || 0, -88, 88); d.aim.p = clamp(+a[8] || 0.05, 0.05, 1); d.rot = +a[9] || 0; d.spin = +a[10] || 0; d.walkAcc = +a[15] || 0;
+      });
+      const t = 1 - ME;
+      if (Array.isArray(z.wp) && WEAPONS[z.wp[t]]) S.weapon[t] = z.wp[t];
+      if (Array.isArray(z.tg)) S.target[t] = z.tg[t] == null ? null : clamp(+z.tg[t] || 0, 30, WW - 30);
+      S.turnT = Math.min(TURN_TIME, +z.T || 0); S.charging = !!(z.f & 2); S.power = clamp(+z.pw || 0, 0, 1); S.phaseT = +z.pt || 0; S.lastTick = z.lt;
+      if (Array.isArray(z.M) && z.M.length === S.mines.length) z.M.forEach((a, i) => { const m = S.mines[i]; m.x = a[0]; m.y = a[1]; m.vy = a[2]; m.armed = !!a[3]; m.t = a[4]; m.beep = a[5]; });
+      if (Array.isArray(z.C) && z.C.length === S.crates.length) z.C.forEach((a, i) => { const c = S.crates[i]; c.x = a[0]; c.y = a[1]; c.vy = a[2]; c.para = !!a[5]; });
+    }
+    // ---- événements (effets et sons rejoués de l'autre côté) : canards par numéro, mines / caisses par position
+    function encEv(type, d) {
+      const o = {};
+      for (const k in d) {
+        const v = d[k];
+        if (v && typeof v === 'object') o[k] = v.aim && v.team != null ? { _d: DI(v) } : Array.isArray(v) ? v.slice(0, 4) : { x: v.x, y: v.y };
+        else o[k] = v;
+      }
+      return [type, o];
+    }
+    function decEv(a) {
+      if (!Array.isArray(a) || typeof a[0] !== 'string') return null;
+      const d = {}, o = a[1] || {};
+      for (const k in o) { const v = o[k]; d[k] = v && typeof v === 'object' && v._d != null ? DO(v._d) : v; }
+      return { type: a[0], d };
+    }
+    function netPlay(list) {
+      if (!Array.isArray(list) || !list.length) return;
+      for (const a of list) { const e = decEv(a); if (e) S.events.push(e); }
+      flushEvents();
+    }
+    function netCapture(type, d) {                  // chaque événement de la simulation (appelé par emit)
+      if (HOST) { NS.stepEv.push([type, d]); return; }
+      if (ACT_EV[type] && ownDuck() && (!d.d || d.d === S.active)) NS.outE.push(encEv(type, d));   // mes gestes : l'hôte les voit
+    }
+    // ---- terrain : somme de contrôle, liste des cratères, sauvegarde du début de tour, envoi complet (secours)
+    function maskSum() {
+      let h = 2166136261 | 0;
+      for (let i = 0, n = mask.length; i < n; i += 4) h = Math.imul(h ^ (mask[i] | (mask[i + 1] << 1) | (mask[i + 2] << 2) | (mask[i + 3] << 3)), 16777619);
+      return h >>> 0;
+    }
+    function takeBackup() {
+      if (!GST) return;
+      if (!bkMask) { bkMask = new Uint8Array(WW * WH); bkPx = new Uint8ClampedArray(WW * WH * 4); }
+      bkMask.set(mask); bkPx.set(px); bkLen = NS.log.length;
+    }
+    function netCarves(cb, cv, cs, force) {          // la liste de l'hôte depuis le cratère n° cb ; la nôtre doit être identique
+      if (typeof cb !== 'number' || !Array.isArray(cv)) return;
+      const mine = NS.log.slice(cb);
+      let same = !force && mine.length <= cv.length;
+      for (let i = 0; same && i < mine.length; i++) { const a = mine[i], b = cv[i]; if (!a || a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2]) same = false; }
+      if (same) { for (let i = mine.length; i < cv.length; i++) carve(cv[i][0], cv[i][1], cv[i][2]); }
+      else {
+        NS.stats.carveFix += force ? 0 : 1;
+        if (bkMask && bkLen >= cb && bkLen <= cb + cv.length) {   // on revient au terrain du début du tour puis on creuse comme l'hôte
+          mask.set(bkMask); px.set(bkPx); NS.log.length = bkLen; tctx.putImageData(timg, 0, 0);
+          for (let i = bkLen - cb; i < cv.length; i++) carve(cv[i][0], cv[i][1], cv[i][2]);
+        } else { NS.log.length = Math.min(NS.log.length, cb); for (const c of cv) carve(c[0], c[1], c[2]); cs = -1; }
+      }
+      if (cs != null && maskSum() !== cs) { NS.stats.resyncReq++; netSend({ t: 'Q' }, true); }   // toujours différent : terrain complet
+    }
+    function maskRLE() {                             // colonnes : ordonnées où l'on passe vide <-> plein (base 36, 2 caractères)
+      const cols = [];
+      for (let x = 0; x < WW; x++) {
+        let s = '', cur = 0;
+        for (let y = 0, i = x; y < WH; y++, i += WW) if (mask[i] !== cur) { cur = mask[i]; s += (y < 36 ? '0' : '') + y.toString(36); }
+        cols.push(s);
+      }
+      return cols.join(',');
+    }
+    function netTerrainIn(m) {
+      const cols = typeof m.d === 'string' ? m.d.split(',') : [];
+      if (cols.length !== WW) return;
+      for (let x = 0; x < WW; x++) {
+        const c = cols[x];
+        let cur = 0, k = 0, next = c.length >= 2 ? parseInt(c.slice(0, 2), 36) : WH, fr = 120, fg = 160, fb = 180;
+        for (let y = 0, i = x; y < WH; y++, i += WW) {
+          while (y === next) { cur ^= 1; k += 2; next = k + 1 < c.length ? parseInt(c.slice(k, k + 2), 36) : WH; }
+          const p = i * 4;
+          if (cur) {
+            if (!mask[i]) { mask[i] = 1; if (!(px[p] | px[p + 1] | px[p + 2])) { px[p] = fr; px[p + 1] = fg; px[p + 2] = fb; } px[p + 3] = 255; }
+            fr = px[p]; fg = px[p + 1]; fb = px[p + 2];
+          } else if (mask[i]) { mask[i] = 0; px[p + 3] = 0; }
+        }
+      }
+      tctx.putImageData(timg, 0, 0);
+      const n = m.n | 0;
+      NS.log.length = Math.min(NS.log.length, n); while (NS.log.length < n) NS.log.push(null);
+      takeBackup();
+      NS.stats.resync++;
+    }
+    // ---- canard de l'adversaire : envoi ~30 fois/s, lecture avec ~100 ms de retard, interpolation
+    function netStreamOut() {
+      const d = S.active, t = d.team;
+      netSend({ t: 's', tk: tkey(), q: ++NS.sq, tm: Math.round(netNow()), d: [r2(d.x), r2(d.y), d.facing, r2(d.aim.a), r3(d.aim.p), S.weapon[t],
+        (d.air ? 1 : 0) | (d.walking ? 2 : 0) | (S.charging ? 4 : 0) | (d.sunk ? 8 : 0), r3(S.power), S.target[t] == null ? null : r2(S.target[t]), r2(d.rot), r2(S.turnT)] }, false);
+    }
+    function netStreamIn(m) {
+      if (!Array.isArray(m.d) || m.d.length < 11 || typeof m.tm !== 'number' || typeof m.tk !== 'number') return;
+      for (const i of [0, 1, 3, 4, 7, 10]) if (typeof m.d[i] !== 'number' || !isFinite(m.d[i])) return;   // paquet abîmé : ignoré
+      const rb = NS.rb;
+      if (rb.length && rb[0].tk !== m.tk) { if (m.tk < rb[0].tk) return; rb.length = 0; }   // nouveau tour : on repart de zéro
+      let i = rb.length;
+      while (i > 0 && rb[i - 1].tm > m.tm) i--;                                            // arrivé dans le désordre : rangé à sa place
+      if (i > 0 && rb[i - 1].q === m.q) return;
+      rb.splice(i, 0, m);
+      if (rb.length > 40) rb.shift();
+      NS.rLast = performance.now(); NS.rT = rb[rb.length - 1].d[10];   // l'adversaire est bien là, avec tant de secondes
+    }
+    function netRemoteApply(dt) {
+      const d = S.active;
+      if (!isRemote(d)) { NS.rclk = null; NS.rWalk = false; NS.rSunk = false; return; }
+      const rb = NS.rb, n = rb.length;
+      if (!n || rb[0].tk !== tkey()) return;
+      const target = rb[n - 1].tm - DELAY;
+      if (NS.rclk == null || Math.abs(target - NS.rclk) > 350) NS.rclk = target;
+      else NS.rclk += dt * 1000 + (target - NS.rclk) * Math.min(1, dt * 1.5);         // horloge de lecture, recalée en douceur
+      let i = 0;
+      while (i < n - 1 && rb[i + 1].tm <= NS.rclk) i++;
+      const A = rb[i], B = i < n - 1 ? rb[i + 1] : A, a = A.d, b = B.d;
+      const k = B === A ? 0 : clamp((NS.rclk - A.tm) / Math.max(1, B.tm - A.tm), 0, 1);
+      const kk = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]) > 90 ? (k < 0.5 ? 0 : 1) : k, c = k < 0.5 ? a : b, t = d.team;
+      d.x = lerp(a[0], b[0], kk); d.y = lerp(a[1], b[1], kk);
+      if (HOST) { d.x = clamp(d.x, -300, WW + 300); d.y = clamp(d.y, -400, WH + 60); }
+      d.facing = c[2] === -1 ? -1 : 1; d.aim.a = clamp(lerp(a[3], b[3], kk), -88, 88); d.aim.p = clamp(lerp(a[4], b[4], kk), 0.05, 1); d.rot = lerp(a[9] || 0, b[9] || 0, kk);
+      const w = c[5] | 0;
+      if (WEAPONS[w] && S.ammo[t][WEAPONS[w].id] > 0) S.weapon[t] = w;
+      d.air = !!(c[6] & 1); NS.rWalk = !!(c[6] & 2); S.charging = !!(c[6] & 4); NS.rSunk = !!(B.d[6] & 8); S.power = clamp(lerp(a[7], b[7], kk), 0, 1);
+      S.target[t] = a[8] != null && b[8] != null ? lerp(a[8], b[8], kk) : c[8] == null ? null : clamp(+c[8], 30, WW - 30);
+      S.turnT = clamp(lerp(a[10], b[10], kk), -9, TURN_TIME);           // sa montre à lui (affichage)
+    }
+    function remoteTurn(d, dt) {                    // tour de l'adversaire : son canard bouge depuis son appareil
+      S.turnT -= dt;                                // (recalé à chaque image sur sa montre à lui)
+      const sec = Math.ceil(S.turnT);
+      if (sec <= 5 && sec > 0 && sec !== S.lastTick) { S.lastTick = sec; emit('tick', { sec }); }
+      if (!HOST || S.fired) return;
+      NS.hostT -= dt;
+      if (NS.rSunk || d.y > S.waterY - 3 || d.x < -250 || d.x > WW + 250) { drown(d); return; }   // tombé à l'eau chez lui : l'hôte tranche
+      // plus de nouvelles (appareil figé, réseau coupé) : l'hôte termine le tour ; un appareil lent mais vivant garde tout son temps
+      const live = NS.rb.length > 0 && NS.rb[0].tk === tkey() && performance.now() - NS.rLast < 2500 && NS.rT > 0.05;
+      if (NS.hostT < -netGrace() && (!live || NS.hostT < -TURN_TIME)) { emit('timeout', { d }); endTurn(); }
+    }
+    // ---- hôte : après chaque pas, ce qu'il faut dire à l'invité
+    function netPrint(k) {                          // empreinte exacte de l'état (tests : comparée entre les deux appareils)
+      if (NS.hist.length > 300) NS.hist.shift();
+      NS.hist.push({ k, tk: tkey(), cs: maskSum(), hp: S.ducks.map((d) => d.hp), alive: S.ducks.map((d) => d.alive),
+        pos: S.ducks.map((d) => (d.alive ? [d.x, d.y] : 0)), mines: S.mines.map((m) => [m.x, m.y, m.armed]), crates: S.crates.map((c) => [c.x, c.y, c.kind, c.wid]),
+        ammo: S.ammo.map((a) => WEAPONS.map((x) => (a[x.id] === Infinity ? -1 : a[x.id]))), dmg: S.dmg.slice(), wy: S.waterY, wind: S.wind, wi: S.winner });
+    }
+    function netState(k, evs, sid) {
+      if (k === 'turn' || k === 'settled') netPrint(k);
+      const m = { t: 'S', k, tk: tkey(), at: Math.round(netNow()), z: netSnap(), e: evs.map((e) => encEv(e[0], e[1])), cb: NS.base, cv: NS.log.slice(NS.base) };
+      if (sid) m.sid = sid;
+      if (k === 'turn' || k === 'settled' || k === 'set') m.cs = maskSum();
+      if (k === 'set') { m.cm = ctl.mode; m.ct = ctl.t; }
+      if (k === 'fix') m.kk = [...NS.kick].map(DI);
+      netSend(m, true);
+    }
+    function netHostAfterStep(prev) {
+      const ev = NS.stepEv, ph = S.phase, wasT = prev === 'turn' || prev === 'turnstart', isT = isTurnPh();
+      NS.stepEv = [];
+      const kick = NS.kick.size > 0;
+      const pick = (f) => ev.filter((e) => f(e[0], e[1]));
+      const actv = (t, d) => !!ACT_EV[t] && (!d.d || d.d === S.active);
+      if (isT && !wasT) netState('turn', pick((t) => t === 'turn' || t === 'crates' || !!WORLD_EV[t]));
+      else if (wasT && !isT) netState('go', ev, NS.sid);
+      else if (ph === 'deaths' && prev === 'settle') netState('settled', pick((t) => t === 'miss'));
+      else if (ph === 'rise' && prev !== 'rise') netState('rise', pick((t) => t === 'rise'));
+      else if (ph === 'victory' && prev !== 'victory') netState('win', pick((t) => t === 'victory'));
+      else if (ph === 'done' && prev !== 'done') netSend({ t: 'S', k: 'done', tk: tkey(), p: S.winner, over: ctl.mode === 'over' ? 1 : 0 }, true);
+      else if (isT && ev.length) {
+        if (ev.some((e) => WORLD_EV[e[0]]) || kick) netState('fix', pick((t, d) => !!WORLD_EV[t] || actv(t, d)));   // mine, caisse, dégâts…
+        else for (const e of ev) if (actv(e[0], e[1]) && myTurn()) NS.outE.push(encEv(e[0], e[1]));   // mes gestes (sons, poussière)
+      }
+      NS.kick.clear();
+    }
+    // l'invité a tiré (ou son temps est fini) : on rejoue exactement le même pas, puis la suite est calculée pareil des deux côtés
+    function netHostAct(m) {
+      const d = S.active;
+      if (m.tk !== tkey() || !d || d.team === ME || S.phase !== 'turn' || S.fired || !m.z || !m.inp) { NS.stats.late++; return; }
+      if (typeof m.tm === 'number') { const dl = netNow() - m.tm, st = NS.stats; if (dl >= 0 && dl < 60000) { st.delay = (st.delay * st.delayN + dl) / (st.delayN + 1); st.delayN++; st.delayMax = Math.max(st.delayMax, dl); } }
+      netApplyPre(m.z);
+      const q = m.inp, num = (v, a, b, def) => (typeof v === 'number' && isFinite(v) ? clamp(v, a, b) : def);
+      const gi = { move: Math.sign(num(q.move, -1, 1, 0)), aimDir: num(q.aimDir, -1, 1, 0), charge: !!q.charge, jump: !!q.jump, fire: !!q.fire,
+        weapon: Number.isInteger(q.weapon) ? q.weapon : -1, target: num(q.target, 30, WW - 30, null),
+        aim: q.aim && typeof q.aim === 'object' ? { f: q.aim.f === -1 ? -1 : 1, a: num(q.aim.a, -88, 88, 42), p: q.aim.p == null ? null : num(q.aim.p, 0.05, 1, 0.6) } : null };
+      const prev = S.phase, inp = [blankInp(), gi];
+      NS.exact = true; NS.sid = m.sid | 0;
+      step(STEP, inp);
+      NS.exact = false;
+      if (S.events.length) flushEvents();
+      netHostAfterStep(prev);
+      NS.sid = 0; NS.stats.acts++;
+    }
+    function netHostMsg(m) {
+      if (m.t === 'H') {                            // l'invité arrive (ou revient) : la bataille en cours + l'état complet
+        NS.peer = true;
+        netSend({ t: 'B', b: S.battle, seed: S.seed, bc: battleCount, pl: NS.bpl, cs: maskSum(), log: NS.log }, true);
+        netState('set', []);
+      } else if (m.t === 'A') netHostAct(m);
+      else if (m.t === 'D') {                       // chute trop haute de son canard (calculée chez lui)
+        const d = S.active;
+        if (m.tk === tkey() && d && d.team !== ME && isTurnPh()) { const prev = S.phase; hurt(d, clamp(m.dmg | 0, 0, 15), null); if (S.events.length) flushEvents(); netHostAfterStep(prev); }
+      } else if (m.t === 'E') { if (m.tk === tkey() && isRemote(S.active)) netPlay(m.l); }
+      else if (m.t === 'Q') netSend({ t: 'X', n: NS.log.length, d: maskRLE() }, true);
+    }
+    // ---- invité
+    function netGuestBattle(m) {
+      if (!NS.wait && m.bc === battleCount && (m.seed >>> 0) === S.seed) { NS.joinPending = false; return; }   // déjà dans cette bataille
+      newBattle({ seed: m.seed, b: m.b, bc: m.bc, pl: m.pl });
+      for (const c of Array.isArray(m.log) ? m.log : []) if (c) carve(c[0], c[1], c[2]);
+      NS.wait = false; NS.joinPending = true; ctl.mode = 'battle'; ctl.t = 0;
+      if (maskSum() !== m.cs) { NS.stats.resyncReq++; netSend({ t: 'Q' }, true); }   // terrain différent (autre navigateur ?) : on le demande
+      takeBackup();
+      flushEvents();
+    }
+    function netMeasure(z) {                        // écart entre ma simulation du tir et celle de l'hôte (mesures)
+      let e = 0, h = 0;
+      z.D.forEach((a, i) => { const d = S.ducks[i]; if (!d) return; if ((a[5] & 1) && d.alive) e = Math.max(e, Math.hypot(d.x - a[0], d.y - a[1])); if (d.hp !== a[4] || d.alive !== !!(a[5] & 1)) h++; });
+      NS.stats.posErr = Math.max(NS.stats.posErr, e); if (h) NS.stats.hpFix++;
+      NS.stats.settled++;
+    }
+    function netGuestMsg(m) {
+      if (m.t === 'B') { netGuestBattle(m); return; }
+      if (NS.wait) return;
+      if (m.t === 'E') { if (m.tk === tkey() && isRemote(S.active)) netPlay(m.l); return; }
+      if (m.t === 'X') { netTerrainIn(m); return; }
+      if (m.t !== 'S') return;
+      const k = m.k;
+      if (typeof m.at === 'number') {                 // mesure : délai entre la décision de l'hôte et son application ici (horloge commune)
+        const dl = netNow() - m.at, st = NS.stats;
+        if (dl >= 0 && dl < 60000) { st.delay = (st.delay * st.delayN + dl) / (st.delayN + 1); st.delayN++; st.delayMax = Math.max(st.delayMax, dl); }
+      }
+      if (k === 'done') { S.phase = 'done'; S.phaseT = 0; S.winner = m.p; prevLoser = 1 - m.p; ctl.mode = m.over ? 'over' : 'between'; ctl.t = 0; return; }
+      if (!m.z) return;
+      if (k === 'set') {
+        if (!NS.joinPending) return;
+        NS.joinPending = false;
+        netApply(m.z, null); NS.base = m.cb; netCarves(m.cb, m.cv, m.cs);
+        ctl.mode = m.cm || 'battle'; ctl.t = m.ct || 0;
+        NS.replay = !isTurnPh(); NS.mine = 0; NS.settled = false; NS.rclk = null;
+        takeBackup();
+      } else if (k === 'turn') {
+        netApply(m.z, null);
+        NS.log.length = Math.min(NS.log.length, m.cb); while (NS.log.length < m.cb) NS.log.push(null);
+        NS.base = m.cb; netCarves(m.cb, m.cv, m.cs);
+        takeBackup();
+        netPrint('turn');
+        NS.replay = false; NS.mine = 0; NS.settled = false; NS.rclk = null;
+        try { if (api.turn) api.turn(S.active ? S.active.team : -1); } catch (e) { /* rien */ }
+        netPlay(m.e);
+      } else if (k === 'go') {
+        NS.stats.go++;
+        if (NS.mine) {
+          if (m.sid === NS.mine) { NS.mine = 0; return; }   // mon tir : il tourne déjà chez moi, à l'identique
+          NS.mine = 0; NS.stats.aborted++;                   // l'hôte a fini le tour autrement : on défait mon tir local
+          netCarves(m.cb, m.cv, null, true);
+        } else netCarves(m.cb, m.cv, null);
+        netApply(m.z, null);
+        NS.replay = true; NS.settled = false;
+        netPlay(m.e);
+      } else if (k === 'fix') {
+        NS.stats.fix++;
+        if (NS.replay || NS.mine) return;                    // mon tir est déjà parti : la fin du tour corrigera tout
+        netApply(m.z, 'fix', m.kk); netCarves(m.cb, m.cv, null);
+        netPlay(m.e);
+      } else if (k === 'settled') {
+        netMeasure(m.z); netPrint('local');           // ma simulation du tir, avant la confirmation de l'hôte
+        netApply(m.z, null); netCarves(m.cb, m.cv, m.cs);
+        netPrint('settled');
+        NS.replay = true; NS.mine = 0; NS.settled = false;
+        netPlay(m.e);
+      } else if (k === 'rise' || k === 'win') {
+        netApply(m.z, null); netCarves(m.cb, m.cv, null);
+        NS.replay = true; NS.mine = 0; NS.settled = false;
+        if (k === 'rise') try { if (api.turn) api.turn(-1); } catch (e) { /* rien */ }
+        netPlay(m.e);
+      }
+    }
+    function netInbox(dt) {
+      let guard = 0;
+      while (NS.inbox.length && guard++ < 60 && !destroyed) {
+        const m = NS.inbox[0];
+        if (GST && m.t === 'S' && m.k === 'settled' && !NS.wait && (S.phase === 'fly' || (S.phase === 'settle' && !NS.settled))) {
+          NS.blockT += dt;                           // ma propre simulation du tir n'est pas encore finie : on la laisse finir (1,6 s max)
+          if (NS.blockT < 1.6) return;
+          NS.stats.late++;
+        }
+        NS.inbox.shift(); NS.blockT = 0;
+        if (HOST) netHostMsg(m); else netGuestMsg(m);
+      }
+    }
+    // ---- dans la boucle
+    function simStep() {                            // un pas de simulation (+ ce que le jeu en ligne doit en dire)
+      if (!NET) { if (AI) aiStep(); step(STEP, inputs); if (S.events.length) flushEvents(); return; }
+      if (NS.wait) return;
+      const prev = S.phase;
+      let pre = null, inp = null, e0 = 0;
+      if (GST && prev === 'turn' && ownDuck() && !S.active.sunk && !S.fired) {
+        const i = inputs[ME];
+        if (i.fire || i.charge || S.charging || S.turnT <= STEP * 2) {
+          pre = netSnap();
+          inp = { move: i.move, aimDir: i.aimDir, charge: i.charge, jump: i.jump, fire: i.fire, weapon: i.weapon, target: i.target, aim: i.aim ? { f: i.aim.f, a: i.aim.a, p: i.aim.p } : null };
+        }
+        e0 = NS.outE.length;
+      }
+      step(STEP, inputs);
+      if (S.events.length) flushEvents();
+      if (HOST) netHostAfterStep(prev);
+      else if (pre && !isTurnPh()) {                // mon tir (ou la fin de mon temps) : parti chez moi, envoyé à l'hôte qui rejoue ce pas
+        NS.outE.length = e0;
+        NS.mine = ++NS.sidN; NS.replay = true; NS.settled = false;
+        netSend({ t: 'A', sid: NS.mine, tk: tkey(), tm: Math.round(netNow()), z: pre, inp }, true);
+      }
+    }
+    function netPre(dt, live) {
+      if (GST && NS.wait) { NS.helloT -= dt; if (NS.helloT <= 0) { NS.helloT = 1; netSend({ t: 'H' }, true); } }
+      if (live) netInbox(dt);
+      netRemoteApply(dt);
+    }
+    function netPost(dt) {
+      if (NS.wait) return;
+      if (myTurn() && !S.fired) { NS.sT -= dt; if (NS.sT <= 0) { NS.sT = 1 / 30; netStreamOut(); } } else NS.sT = 0;
+      if (NS.outE.length) { netSend({ t: 'E', tk: tkey(), l: NS.outE }, true); NS.outE = []; }
+      const d = S.active;
+      if (isRemote(d)) {                            // l'adversaire marche : dandinement et petits pas
+        d.walking = NS.rWalk && !d.air;
+        if (d.walking) { d.waddle += dt * 14; NS.stepT -= dt; if (NS.stepT <= 0) { NS.stepT = 0.22; SFX.step(); } }
+      }
+      if (NS.track && d) { NS.track.push([Math.round(performance.now() * 10) / 10, r2(d.x), r2(d.y), r2(d.aim.a)]); if (NS.track.length > 4000) NS.track.shift(); }
+    }
+    function drawWait() {                           // invité : en attendant la bataille de l'hôte
+      const cx = W / 2, cy = H * 0.46;
+      ctx.fillStyle = 'rgba(2,6,10,0.5)'; ctx.fillRect(0, 0, W, H);
+      txt('EN LIGNE', cx, cy - clamp(H * 0.1, 28, 52), clamp(H * 0.08, 22, 42), ACC, 'center', false, 5);
+      txt('Connexion avec ' + PL[0].name + '…', cx, cy + 4, clamp(H * 0.045, 13, 20), '#e9f0f3', 'center', true, 3);
+      for (let i = 0; i < 6; i++) {
+        const a = rt * 2.6 + i * TAU / 6;
+        ctx.globalAlpha = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(rt * 5 - i));
+        ctx.fillStyle = PL[i % 2].color; circ(ctx, cx + Math.cos(a) * 22, cy + clamp(H * 0.11, 34, 60) + Math.sin(a) * 9, 4.5); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // ===================================================================
+    // CONTRE L'IA (api.ai) — l'équipe de l'IA joue comme un humain qu'on regarde : elle réfléchit (bulle), choisit sa cible (canard
+    // fragile, près de l'eau, à découvert) et son arme, se déplace un peu si c'est utile, fait glisser la ligne de visée comme un doigt,
+    // puis tire. Elle prévoit ses coups avec la même physique que le jeu (trajectoires avec le vent, explosions, canards projetés à l'eau)
+    // et n'agit qu'à travers ses « doigts » (inputs) ; plus le niveau est bas, plus elle juge mal le vent et plus sa main tremble.
+    // ===================================================================
+    const AIL = AI ? (() => {
+      const L = {   // think : réflexion (s) ; da/dp : finesse de la recherche ; wind : vent perçu ; sa/sp : erreur de la main ; ms : calcul par pas
+        facile: { think: [3.8, 5.6], aim: [1.4, 2.0], hold: [0.45, 0.75], da: 6, dp: 0.09, wind: 0, sa: 11, sp: 0.16, smart: 0, water: false, self: 0.3, move: false, ms: 1.2, blunder: 0.35 },
+        moyen: { think: [2.8, 4.4], aim: [1.1, 1.6], hold: [0.3, 0.55], da: 5, dp: 0.075, wind: 0.3, sa: 5, sp: 0.075, smart: 1, water: false, self: 1.2, move: false, ms: 1.8, blunder: 0.1 },
+        difficile: { think: [2.2, 3.4], aim: [0.9, 1.25], hold: [0.25, 0.45], da: 4, dp: 0.06, wind: 1, sa: 1.6, sp: 0.025, smart: 2, water: true, self: 2, move: true, ms: 2.6, blunder: 0 },
+        extreme: { think: [2.0, 2.8], aim: [0.75, 1.05], hold: [0.15, 0.3], da: 4, dp: 0.06, wind: 1, sa: 0.2, sp: 0.004, smart: 3, water: true, self: 3, move: true, ms: 3.4, blunder: 0 }
+      };
+      const k = +AI.k || 0.5;
+      return L[AI.level] || (k <= 0.3 ? L.facile : k <= 0.6 ? L.moyen : k <= 0.85 ? L.difficile : L.extreme);
+    })() : null;
+    const arnd = AI ? mulberry32((Math.random() * 4294967296) >>> 0) : null;   // son propre hasard (le jeu garde le sien)
+    const ai = { tk: -1, st: 'idle', t: 0, think: 0, jobs: [], ji: 0, best: null, here: null, top: [], pass: 0, ready: false, walked: false, d: null,
+      tgt: null, naive: 'bazooka', target: null, plan: null, fin: null, wi: 0, wt: 0, tray: 0, path: null, at: 0, aimDur: 1, ht: 0,
+      walkX: 0, walkT: 0, lastX: 0, stuck: 0, evals: 0, cpu: 0 };
+    function aiR(a, b) { return a + (b - a) * arnd(); }
+    function aiGauss() { let u = 0; while (u === 0) u = arnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * arnd()); }
+    function aiNear(x, y, team) { let m = 1e9; for (const o of S.ducks) if (o.alive && o.team !== team) m = Math.min(m, Math.hypot(o.x - x, o.y - y)); return m; }
+    function aiFly(q) {                              // un projectile d'essai, jusqu'à son explosion (avec le vent tel que l'IA le juge)
+      const w0 = S.wind;
+      S.wind = w0 * AIL.wind;
+      let r = null;
+      for (let i = 0; i < 780 && !r; i++) r = projStep(q, STEP, true);
+      S.wind = w0;
+      return r || 'out';
+    }
+    let aiCr = null;                                  // le cratère de l'explosion essayée (ces pixels-là seront creusés, comme carve)
+    function aiSolid(x, y) {
+      if (!solid(x, y)) return false;
+      if (aiCr) { const dx = Math.floor(x) + 0.5 - aiCr.x, dy = Math.floor(y) + 0.5 - aiCr.y; if (dx * dx + dy * dy < aiCr.r2) return false; }
+      return true;
+    }
+    function aiCircleHit(cx, cy) { if (aiSolid(cx, cy)) return true; for (let i = 0; i < 16; i++) if (aiSolid(cx + CPTS[i][0], cy + CPTS[i][1])) return true; return false; }
+    function aiCircleNormal(cx, cy) {
+      let nx = 0, ny = 0;
+      for (let i = 0; i < 16; i++) { const ox = CPTS[i][0] * 1.2, oy = CPTS[i][1] * 1.2; if (aiSolid(cx + ox, cy + oy)) { nx -= ox; ny -= oy; } }
+      const l = Math.hypot(nx, ny);
+      return l < 0.001 ? { x: 0, y: -1 } : { x: nx / l, y: ny / l };
+    }
+    function aiWet(o, vx, vy) {                      // ce canard, poussé ainsi, finirait-il dans l'eau ? (même physique que duckPhys)
+      let x = o.x, y = o.y;
+      for (let s2 = 0; s2 < 240; s2++) {
+        if (y + R * 0.3 > S.waterY) return true;
+        vy = Math.min(700, vy + G * STEP);
+        const n = Math.max(1, Math.ceil(Math.hypot(vx, vy) * STEP / 2)), sx = vx * STEP / n, sy = vy * STEP / n;
+        for (let i = 0; i < n; i++) {
+          if (aiCircleHit(x + sx, y + sy)) {
+            const nr = aiCircleNormal(x + sx, y + sy), vn = vx * nr.x + vy * nr.y, spd = Math.hypot(vx, vy);
+            if ((nr.y < -0.6 && vn <= 0) || (spd < 45 && aiCircleHit(x, y + 2))) return false;   // il se pose
+            if (vn < 0) { vx -= 1.35 * vn * nr.x; vy -= 1.35 * vn * nr.y; }
+            vx *= 0.8; vy *= 0.8;
+            let g = 0;
+            while (aiCircleHit(x, y) && g++ < 8) { x += nr.x; y += nr.y; }
+            break;
+          }
+          x += sx; y += sy;
+          if (y > S.waterY - 3) return true;
+        }
+        if (x < -250 || x > WW + 250) return true;
+      }
+      return false;
+    }
+    function aiHit(acc, o, dmg, vx, vy) {
+      if (acc.once && acc.dmg.has(o)) { acc.dmg.set(o, acc.dmg.get(o) + dmg * 0.3); return; }   // déjà projeté : les bombes suivantes le ratent souvent
+      acc.dmg.set(o, (acc.dmg.get(o) || 0) + dmg);
+      if (AIL.water && !acc.dry && !acc.wet.has(o) && aiWet(o, vx, vy)) acc.wet.add(o);
+    }
+    function aiBoom(acc, x, y, w, team) {            // comme explode() : dégâts et poussée selon la distance (après le cratère)
+      acc.miss = Math.min(acc.miss, aiNear(x, y, team));
+      aiCr = { x, y, r2: w.r * w.r };
+      for (const o of S.ducks) {
+        if (!o.alive) continue;
+        const dx = o.x - x, dy = o.y - y, dist = Math.hypot(dx, dy), reach = w.r + R + 4;
+        if (dist >= reach) continue;
+        const f = 1 - dist / reach;
+        let nx = dist > 0.5 ? dx / dist : 0, ny = dist > 0.5 ? dy / dist : -1;
+        ny -= 0.65;
+        const l = Math.hypot(nx, ny) || 1, kb = w.kb * (0.3 + 0.7 * f);
+        aiHit(acc, o, Math.max(1, Math.round(w.dmg * (0.15 + 0.85 * f))), nx / l * kb, ny / l * kb);
+      }
+      aiCr = null;
+    }
+    function aiRun(j) {                               // évalue un coup (le canard de l'IA peut être déplacé le temps de l'essai)
+      const d = ai.d, team = d.team, x0 = d.x, y0 = d.y;
+      if (j.pos) { d.x = j.pos.x; d.y = j.pos.y; }
+      const acc = { dmg: new Map(), wet: new Set(), miss: 1e9 };
+      let ix = d.x, iy = d.y, ok = true;
+      if (j.k === 'p') {                              // bazooka, grenade, bouée, rouleau
+        const rad = j.a * Math.PI / 180, dx = Math.cos(rad) * j.f, dy = -Math.sin(rad), sp = Math.max(0.05, j.p) * VMAX;
+        const q = { kind: j.kind, x: d.x + dx * 12, y: d.y + dy * 12, vx: dx * sp, vy: dy * sp, age: 0, fuse: WBY[j.kind].fuse || 0, owner: d, rest: false, rot: 0, dir0: j.f };
+        const r = aiFly(q);
+        ix = q.x; iy = q.y; ok = r === 'boom';
+        if (ok && j.kind === 'bouee') {               // bouée : 5 morceaux partent au hasard -> pas de pari sur l'eau, et prudence près de soi
+          acc.dry = true;
+          aiBoom(acc, q.x, q.y, WBY.bouee, team);
+          for (const o of S.ducks) { if (!o.alive) continue; const dd = Math.hypot(o.x - q.x, o.y - q.y); if (dd < 75) acc.dmg.set(o, (acc.dmg.get(o) || 0) + 14 * (1 - dd / 75)); }
+        } else if (ok) aiBoom(acc, q.x, q.y, WBY[j.kind], team);
+        else acc.miss = r === 'water' ? aiNear(q.x, S.waterY, team) + 80 : 900;
+      } else if (j.k === 'j') {                       // jet de douche : il pousse fort (idéal pour faire tomber à l'eau)
+        const rad = j.a * Math.PI / 180, ux = Math.cos(rad) * j.f, uy = -Math.sin(rad), ox = d.x + ux * 11, oy = d.y + uy * 11;
+        acc.miss = 400;
+        for (let len = 0; len < WBY.douche.range; len += 2) {
+          const x = ox + ux * len, y = oy + uy * len;
+          if (y >= S.waterY || solid(x, y)) break;
+          const o = S.ducks.find((e) => e.alive && e !== d && hitsDuck(x, y, e, 1));
+          if (o) { aiHit(acc, o, WBY.douche.dmg, ux * WBY.douche.kb, uy * WBY.douche.kb - 150); ix = o.x; iy = o.y; break; }
+        }
+      } else if (j.k === 'm') {                       // coup de ventouse : il faut être collé à l'ennemi
+        acc.miss = 400;
+        for (const o of S.ducks) {
+          if (!o.alive || o === d) continue;
+          const dx = (o.x - d.x) * j.f, dy = o.y - d.y;
+          if (dx > -4 && dx < 32 && Math.abs(dy) < 20) { aiHit(acc, o, WBY.ventouse.dmg, j.f * WBY.ventouse.kb, -210); ix = o.x; iy = o.y; }
+        }
+      } else if (j.k === 'a') {                       // frappe aérienne : 5 bombes autour de tx
+        const drops = [];
+        for (let k = -2; k <= 2; k++) drops.push(j.tx + k * 26);
+        let top = WH;
+        for (const x of drops) top = Math.min(top, surfaceY(x, 0));
+        const py = clamp(top - 150, 60, 260);
+        acc.once = true;
+        for (const x of drops) {
+          const q = { kind: 'bomb', x, y: py + 10, vx: 0, vy: 40, age: 0, fuse: 0, owner: d, rest: false, rot: 0 };
+          if (aiFly(q) === 'boom') aiBoom(acc, q.x, q.y, WBY.bomb, team);
+        }
+        ix = j.tx; iy = surfaceY(j.tx, 0);
+      }
+      d.x = x0; d.y = y0;
+      // valeur : canards perdus (tous leurs PV + bonus), dégâts ; ses propres canards comptent lourd ; à défaut, tomber près d'un ennemi
+      let v = 0, any = false, tg = null, tv = -1;
+      for (const [o, dmg] of acc.dmg) {
+        const lost = acc.wet.has(o) || dmg >= o.hp;
+        if (o.team !== team) { const g = lost ? o.hp + 55 : dmg; v += g; any = true; if (g > tv) { tv = g; tg = o; } }
+        else v -= (lost ? o.hp + 110 : dmg) * AIL.self;
+      }
+      if (AIL.smart === 0) v = -(ai.tgt ? Math.hypot(ix - ai.tgt.x, iy - ai.tgt.y) : Math.min(acc.miss, 600)) * 0.2 + (any ? 10 : 0) + (ok ? 0 : -30) + Math.min(0, v);
+      else if (!any) v -= Math.min(acc.miss, 600) * 0.08;
+      j.v = v; j.tg = tg;
+      ai.evals++;
+      if (!ai.best || v > ai.best.v) ai.best = j;
+      if (!j.pos && (!ai.here || v > ai.here.v)) ai.here = j;   // le meilleur coup sans bouger
+      if (j.k === 'p') {                              // les 3 meilleurs tirs « en cloche », pour les affiner ensuite
+        const tp = ai.top;
+        if (tp.length < 3 || v > tp[tp.length - 1].v) {
+          const i2 = tp.findIndex((o) => o.kind === j.kind && o.f === j.f && Math.abs(o.a - j.a) < AIL.da * 2.5);
+          if (i2 >= 0) { if (tp[i2].v < v) tp[i2] = j; } else tp.push(j);
+          tp.sort((a, b) => b.v - a.v); if (tp.length > 3) tp.length = 3;
+        }
+      }
+    }
+    function aiJobs(d, pos, coarse) {                 // tous les coups à essayer depuis ici (ou depuis pos)
+      const J = [], team = d.team, am = S.ammo[team], sm = AIL.smart;
+      const da = AIL.da * (coarse ? 2 : 1), dp = AIL.dp * (coarse ? 1.6 : 1);
+      const kinds = sm === 0 ? [ai.naive] : ['bazooka', 'grenade'];
+      if (sm >= 2 && !pos) { if (am.bouee > 0) kinds.push('bouee'); if (am.rouleau > 0) kinds.push('rouleau'); }
+      for (const kind of kinds) for (const f of [-1, 1]) for (let a = -12; a <= 84; a += da) for (let p = 0.18; p <= 1.0001; p += dp) J.push({ k: 'p', kind, f, a, p: Math.min(1, p), pos });
+      if (sm >= 2) {
+        for (const f of [-1, 1]) for (let a = -45; a <= 60; a += coarse ? 10 : 5) J.push({ k: 'j', f, a, pos });
+        for (const f of [-1, 1]) J.push({ k: 'm', f, pos });
+      }
+      if (sm >= 1 && !pos && am.avion > 0) for (const o of S.ducks) if (o.alive && o.team !== team) for (const off of [-26, 0, 26]) J.push({ k: 'a', tx: clamp(o.x + off, 30, WW - 30) });
+      for (let i = J.length - 1; i > 0; i--) { const k = Math.floor(arnd() * (i + 1)), t = J[i]; J[i] = J[k]; J[k] = t; }   // ordre mélangé : un calcul interrompu reste juste
+      return J;
+    }
+    function aiWalkSim(d, tx) {                       // peut-on marcher jusque-là sans tomber ni marcher sur une mine ? (essai, le canard ne bouge pas)
+      const g = { x: d.x, y: d.y, vx: 0, vy: 0, air: false, facing: d.facing }, dir = tx > d.x ? 1 : -1;
+      for (let i = 0; i < 160 && Math.abs(g.x - tx) >= 1; i++) {
+        if (!stepDuck(g, dir) || g.air || g.y > S.waterY - 24) return null;
+        if (S.mines.some((m) => Math.hypot(m.x - g.x, m.y - g.y) < 26)) return null;
+      }
+      return { x: g.x, y: g.y };
+    }
+    function aiNextPass() {                           // calcul suivant : affiner les meilleurs tirs, puis voir si bouger aide
+      const d = ai.d;
+      while (!ai.ready) {
+        ai.pass++;
+        if (ai.pass === 1 && AIL.smart >= 2) {
+          for (const b of ai.top) for (let a = b.a - AIL.da; a <= b.a + AIL.da + 0.001; a += AIL.da / 4) for (let p = b.p - AIL.dp; p <= b.p + AIL.dp + 0.0001; p += AIL.dp / 4) {
+            if (p > 0.05 && p <= 1) ai.jobs.push({ k: 'p', kind: b.kind, f: b.f, a, p, pos: b.pos });
+          }
+        } else if (ai.pass === 2 && AIL.move && !ai.walked && ai.best && ai.best.v < 100) {   // pas de canard à couler d'ici : et en bougeant ?
+          const xs = [-60, -30, 30, 60].map((k) => d.x + k);
+          for (const o of S.ducks) if (o.alive && o.team !== d.team && Math.abs(o.y - d.y) < 30 && Math.abs(o.x - d.x) < 120) xs.push(o.x - Math.sign(o.x - d.x) * 16);
+          for (const x of xs) { const pos = aiWalkSim(d, x); if (pos) ai.jobs.push(...aiJobs(d, pos, true)); }
+        } else if (ai.pass > 2) ai.ready = true;
+        if (ai.ji < ai.jobs.length) return;
+      }
+    }
+    function aiBegin(d, tk) {                         // début du tour de l'IA
+      Object.assign(ai, { tk, d, st: 'think', t: 0, think: aiR(AIL.think[0], AIL.think[1]), ji: 0, best: null, here: null, top: [], pass: 0, ready: false, walked: false,
+        plan: null, fin: null, tray: 0, path: null, evals: 0, cpu: 0 });
+      const foes = S.ducks.filter((o) => o.alive && o.team !== d.team);
+      // la cible qu'elle regarde d'abord : la plus fragile (peu de PV, près de l'eau, pas trop loin) ; « facile » en prend une au hasard
+      foes.sort((a, b) => (a.hp + (S.waterY - a.y) * 0.3 + Math.abs(a.x - d.x) * 0.05) - (b.hp + (S.waterY - b.y) * 0.3 + Math.abs(b.x - d.x) * 0.05));
+      ai.tgt = AIL.smart === 0 ? foes[Math.floor(arnd() * foes.length)] || null : foes[0] || null;
+      ai.target = ai.tgt;
+      ai.naive = arnd() < 0.7 || !(S.ammo[d.team].grenade > 0) ? 'bazooka' : 'grenade';
+      ai.jobs = AIL.smart === 0 ? [] : aiJobs(d, null, false);
+      if (AIL.smart === 0 && ai.tgt) ai.best = aiGuess(d, ai.tgt);
+    }
+    function aiGuess(d, o) {                          // « facile » : un tir en cloche à l'estime (ni le relief ni le vent), comme un enfant
+      const f = o.x >= d.x ? 1 : -1, dx = Math.max(20, Math.abs(o.x - d.x)), h = d.y - o.y;
+      let a = aiR(35, 60), v2 = -1;
+      for (let k = 0; k < 6 && v2 <= 0; k++, a += 6) { const r2 = a * Math.PI / 180, den = 2 * Math.cos(r2) * Math.cos(r2) * (dx * Math.tan(r2) - h); v2 = den > 0 ? G * dx * dx / den : -1; }
+      const p = v2 > 0 ? clamp(Math.sqrt(v2) / VMAX, 0.15, 1) : 0.8;
+      return { k: 'p', kind: ai.naive, f, a: clamp(a - 6, -10, 80), p, v: 0, tg: o };
+    }
+    function aiGo(d) {                                // décision prise : se déplacer, ou choisir l'arme et viser
+      ai.plan = ai.best || { k: 'p', kind: 'bazooka', f: d.facing, a: 45, p: 0.6 };
+      if (ai.plan.pos && ai.here && ai.plan.v < ai.here.v + 25) ai.plan = ai.here;   // marcher seulement si ça vaut vraiment le coup
+      if (ai.plan.tg && ai.plan.tg.alive) ai.target = ai.plan.tg;
+      if (ai.plan.pos && !ai.walked) { Object.assign(ai, { st: 'walk', walkX: ai.plan.pos.x, walkT: 0, lastX: d.x, stuck: 0 }); return; }
+      const pl = ai.plan, kind = pl.k === 'p' ? pl.kind : pl.k === 'j' ? 'douche' : pl.k === 'm' ? 'ventouse' : 'avion';
+      ai.wi = Math.max(0, WEAPONS.findIndex((w) => w.id === kind));
+      if (!(S.ammo[d.team][WEAPONS[ai.wi].id] > 0)) ai.wi = 0;
+      let a = pl.a != null ? pl.a : 15, p = pl.p != null ? pl.p : null, tx = pl.tx != null ? pl.tx : null;
+      if (pl.k === 'p' || pl.k === 'j') { a += aiGauss() * AIL.sa; if (p != null) p = clamp(p + aiGauss() * AIL.sp, 0.08, 1); }   // la main n'est pas parfaite
+      if (AIL.blunder && arnd() < AIL.blunder) { a += (arnd() < 0.5 ? -1 : 1) * aiR(8, 18); if (p != null) p = clamp(p * aiR(0.7, 1.3), 0.1, 1); }
+      if (tx != null) tx = clamp(tx + aiGauss() * AIL.sa * 4, 30, WW - 30);
+      ai.fin = { f: pl.f || d.facing, a: clamp(a, -88, 88), p, tx };
+      ai.st = 'weapon'; ai.wt = 0;
+      ai.tray = S.weapon[d.team] !== ai.wi ? 0.8 : 0;   // elle ouvre le plateau d'armes et touche la bonne
+      if (ai.tray) pressFx.weapon = 0.16;
+    }
+    function aiAimStart(d) {                          // la poignée part de là où elle est, va vers un premier jet, puis s'ajuste
+      const fin = ai.fin, w = WEAPONS[S.weapon[d.team]];
+      ai.st = 'aim'; ai.at = 0; ai.path = null;
+      if (w.aim === 'target') { ai.aimDur = aiR(0.5, 0.9); return; }
+      if (w.aim === 'melee') { ai.aimDur = aiR(0.25, 0.45); return; }
+      const th = (f, a) => (f > 0 ? a : 180 - a), t1 = th(fin.f, fin.a), p1 = fin.p == null ? d.aim.p : fin.p;
+      const off = (arnd() < 0.5 ? -1 : 1) * aiR(5, 12) * (1.4 - AIL.smart * 0.25);
+      ai.path = { t0: th(d.facing, d.aim.a), p0: d.aim.p, gt: t1 + off, gp: clamp(p1 + aiR(-0.14, 0.14), 0.1, 1), t1, p1 };
+      ai.aimDur = aiR(AIL.aim[0], AIL.aim[1]);
+    }
+    function aiStep() {                               // avant chaque pas : les « doigts » de l'IA (mêmes commandes qu'un joueur)
+      const d = S.active;
+      if (!d || d.team !== AIP || S.phase !== 'turn' || S.fired || !d.alive || ctl.mode !== 'battle') { if (S.phase !== 'turn') ai.st = 'idle'; return; }
+      const tk = tkey();
+      if (ai.tk !== tk) aiBegin(d, tk);
+      if (d.air && ai.st !== 'aim' && ai.st !== 'hold') return;   // attend d'être posée
+      ai.t += STEP;
+      const inp = inputs[AIP];
+      if (ai.st === 'think') {
+        const c0 = performance.now();
+        if (!ai.ready) {
+          while (performance.now() - c0 < AIL.ms) {
+            if (ai.ji >= ai.jobs.length) { aiNextPass(); if (ai.ready) break; }
+            aiRun(ai.jobs[ai.ji++]);
+          }
+          ai.cpu += performance.now() - c0;
+        }
+        if ((ai.ready && ai.t >= ai.think) || ai.t > ai.think + 4) aiGo(d);
+      } else if (ai.st === 'walk') {
+        ai.walkT += STEP;
+        const dx = ai.walkX - d.x;
+        if (Math.abs(dx) < 1 || ai.walkT > 4 || ai.stuck > 0.4) {   // arrivée : elle repense son coup depuis là
+          inp.move = 0;
+          Object.assign(ai, { walked: true, st: 'think', think: ai.t + aiR(0.5, 0.9), jobs: aiJobs(d, null, AIL.smart < 3), ji: 0, best: null, here: null, top: [], pass: 0, ready: false });
+        } else {
+          inp.move = dx > 0 ? 1 : -1;
+          if (Math.abs(d.x - ai.lastX) < 0.01) ai.stuck += STEP; else { ai.stuck = 0; ai.lastX = d.x; }
+        }
+      } else if (ai.st === 'weapon') {
+        ai.wt += STEP;
+        if (ai.tray > 0) {
+          ai.tray -= STEP;
+          if (ai.wt >= 0.45 && S.weapon[AIP] !== ai.wi) inp.weapon = ai.wi;
+          if (ai.tray <= 0) { ai.tray = 0; aiAimStart(d); }
+        } else if (ai.wt >= 0.15) aiAimStart(d);
+      } else if (ai.st === 'aim') {
+        ai.at += STEP;
+        const w = WEAPONS[S.weapon[AIP]], P = ai.path, fin = ai.fin;
+        if (w.aim === 'target') {
+          if (ai.at >= ai.aimDur && fin.tx != null) { inp.target = fin.tx; ring(fin.tx, surfaceY(fin.tx, 0) - 4, 3, 26, 0.45, PL[AIP].color, 3); ai.st = 'hold'; ai.ht = aiR(AIL.hold[0], AIL.hold[1]) + 0.2; }
+        } else if (w.aim === 'melee' || !P) {
+          inp.aim = { f: fin.f, a: 12, p: null };
+          if (ai.at >= ai.aimDur) { ai.st = 'hold'; ai.ht = aiR(AIL.hold[0], AIL.hold[1]); }
+        } else {
+          const k = clamp(ai.at / ai.aimDur, 0, 1), k1 = 0.56;
+          let t, p;
+          if (k < k1) { const e = ease(k / k1); t = lerp(P.t0, P.gt, e); p = lerp(P.p0, P.gp, e); }
+          else if (k < k1 + 0.1) { t = P.gt; p = P.gp; }                    // une petite pause : elle regarde où ça tombe
+          else { const e = ease((k - k1 - 0.1) / (0.9 - k1)); t = lerp(P.gt, P.t1, e); p = lerp(P.gp, P.p1, e); }
+          t += Math.sin(ai.at * 23) * 0.35 * (1 - k);                      // la main tremble un peu
+          let f = Math.cos(t * Math.PI / 180) >= 0 ? 1 : -1, a = clamp(f > 0 ? t : 180 - t, -88, 88);
+          if (k >= 1) { f = fin.f; a = fin.a; p = P.p1; }
+          inp.aim = { f, a, p: w.aim === 'power' ? clamp(p, 0.05, 1) : null };
+          if (k >= 1) { ai.st = 'hold'; ai.ht = aiR(AIL.hold[0], AIL.hold[1]); }
+        }
+      } else if (ai.st === 'hold') {
+        ai.ht -= STEP;
+        if (ai.ht <= 0) { inp.fire = true; pressFx.fire = 0.16; ai.st = 'done'; }
+      }
+      if (S.turnT < 2.2 && ai.st !== 'done') { inp.fire = true; pressFx.fire = 0.16; ai.st = 'done'; }   // ne laisse jamais filer son temps
+    }
+    function drawFingertip(x, y) {                    // un bout de doigt translucide (la main de l'IA)
+      ctx.save();
+      ctx.translate(x + 6, y + 9); ctx.rotate(-0.55);
+      ctx.globalAlpha = 0.22; ctx.fillStyle = '#04080e';
+      ctx.beginPath(); ctx.ellipse(2, 3, 12, 16, 0, 0, TAU); ctx.fill();                  // petite ombre sous le doigt
+      ctx.globalAlpha = 0.42; ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.ellipse(0, 0, 11.5, 15.5, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.75; ctx.strokeStyle = '#eaf6ff'; ctx.lineWidth = 1.8; ctx.stroke();
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(-2, -7, 5, 3, 0, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    function drawAiBubble() {                         // bulle « elle réfléchit » au-dessus de la tête du robot
+      const d = S.active;
+      if (!d || d.team !== AIP || S.phase !== 'turn' || S.fired || paused || ai.st !== 'think') return;
+      const ps = duckPose(d), col = PL[AIP].color, u = UI;
+      const hx = SX(ps.x), hy = SY(ps.y) - headH(d) * cam.z - 26;
+      const side = hx + 90 * u > W - 10 ? -1 : 1, bx = hx + side * 46 * u, by = hy - 30 * u;
+      ctx.fillStyle = 'rgba(236,246,252,0.95)'; ctx.strokeStyle = col; ctx.lineWidth = 2;
+      circ(ctx, hx + side * 14 * u, hy - 6 * u, 3.5 * u); ctx.fill(); ctx.stroke();
+      circ(ctx, hx + side * 24 * u, hy - 15 * u, 5.5 * u); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      for (const [ox, oy, r] of [[-20, 2, 13], [-6, -8, 16], [12, -6, 15], [22, 4, 12], [2, 8, 14]]) { ctx.moveTo(bx + ox * u + r * u, by + oy * u); ctx.arc(bx + ox * u, by + oy * u, r * u, 0, TAU); }
+      ctx.stroke(); ctx.fill();
+      for (let i = 0; i < 3; i++) {                  // trois points qui sautillent
+        const ph = rt * 6 - i * 0.9, jy = Math.max(0, Math.sin(ph)) * 4 * u;
+        ctx.fillStyle = i === Math.floor((rt * 2.2) % 3) ? col : '#3a5568';
+        circ(ctx, bx + (i - 1) * 11 * u, by - jy, 3.6 * u); ctx.fill();
+      }
+    }
+
     // ---- démarrage
     const ro = new ResizeObserver(() => { layout(); pausedDrawn = 0; });
     ro.observe(root);
     layout();
-    newBattle();
+    if (!GST) newBattle();                          // invité en ligne : la bataille arrive de l'hôte (même graine, même terrain)
     flushEvents();
     raf = requestAnimationFrame(frame);
 
@@ -3459,7 +4326,68 @@
         aimPoint: (f, a, p) => { const d = S.active; if (!d) return null; const s = duckScreen(d), ar = a * Math.PI / 180; return { x: s.x + Math.cos(ar) * f * p * powR, y: s.y - Math.sin(ar) * p * powR }; },
         worldToScreen: (x, y) => ({ x: SX(x), y: SY(y) }),
         hurtTeam: (t, n) => { for (const d of S.ducks) if (d.team === t && d.alive) hurt(d, n || 200, null); if (S.phase === 'turn') endTurn(); },
-        skipTo: (n) => { S.turnNo = Math.max(S.turnNo, n | 0); }
+        skipTo: (n) => { S.turnNo = Math.max(S.turnNo, n | 0); },
+        // jeu en ligne
+        net: () => ({ role: NET ? NET.role : 'local', wait: NS.wait, tk: tkey(), bc: battleCount, phase: S.phase, turnNo: S.turnNo, battle: S.battle, ctl: ctl.mode,
+          team: S.active ? S.active.team : -1, mine: myTurn(), can: canControl(), cs: maskSum(), logLen: NS.log.length, base: NS.base, replay: NS.replay, act: NS.mine,
+          inbox: NS.inbox.length, settled: NS.settled, winner: S.winner, waterY: S.waterY, wind: S.wind, seed: S.seed, turnT: S.turnT,
+          hp: S.ducks.map((d) => d.hp), alive: S.ducks.map((d) => d.alive), pos: S.ducks.map((d) => [r2(d.x), r2(d.y)]), ammo: S.ammo.map((a) => WEAPONS.map((x) => (a[x.id] === Infinity ? -1 : a[x.id]))),
+          mines: S.mines.map((m) => [r2(m.x), r2(m.y), m.armed]), crates: S.crates.map((c) => [r2(c.x), r2(c.y), c.kind]), dmg: S.dmg.slice(), stats: Object.assign({}, NS.stats) }),
+        act: (o) => {                               // comme les doigts : visée, arme, cible, marche, saut, tir (seulement si c'est mon tour)
+          if (!canControl()) return false;
+          const inp = inputs[S.active.team];
+          if (o.weapon != null) inp.weapon = o.weapon;
+          if (o.aim) inp.aim = { f: o.aim.f, a: o.aim.a, p: o.aim.p == null ? null : o.aim.p };
+          if (o.target != null) inp.target = o.target;
+          if (o.jump) inp.jump = true;
+          if (o.fire) inp.fire = true;
+          if (o.move != null) { held.left = o.move < 0 ? 1 : 0; held.right = o.move > 0 ? 1 : 0; }
+          return true;
+        },
+        track: (on) => { const v = NS.track; NS.track = on ? [] : null; return v; },
+        hist: () => NS.hist.slice(),
+        ai: () => (AI ? { level: AI.level, st: ai.st, t: +ai.t.toFixed(2), think: +ai.think.toFixed(2), jobs: ai.jobs.length, ji: ai.ji, evals: ai.evals, cpu: +ai.cpu.toFixed(1),
+          best: ai.best ? { k: ai.best.k, kind: ai.best.kind, f: ai.best.f, a: ai.best.a, p: ai.best.p, tx: ai.best.tx, v: +ai.best.v.toFixed(1), pos: !!ai.best.pos } : null,
+          fin: ai.fin, target: ai.target ? S.ducks.indexOf(ai.target) : -1, walked: ai.walked } : null),
+        aiWetCheck: () => {                         // test : prévision « à l'eau » de l'IA contre la vraie physique des canards
+          if (!AI) return null;
+          const res = { tp: 0, fp: 0, fn: 0, tn: 0 }, ev0 = S.events.length;
+          for (const o of S.ducks) {
+            if (!o.alive) continue;
+            for (const ox of [-34, -22, -12, -4, 4, 12, 22, 34]) for (const oy of [-6, 6, 14]) {
+              const dist = Math.hypot(ox, oy), reach = 30 + R + 4;
+              if (dist >= reach) continue;
+              const f = 1 - dist / reach; let nx = -ox / dist, ny = -oy / dist; ny -= 0.65;
+              const l = Math.hypot(nx, ny), kb = 340 * (0.3 + 0.7 * f), vx = nx / l * kb, vy = ny / l * kb;
+              const ex = o.x + ox, ey = o.y + oy;
+              aiCr = { x: ex, y: ey, r2: 900 };
+              const pred = aiWet(o, vx, vy);
+              aiCr = null;
+              const x0 = Math.max(0, Math.floor(ex - 36)), x1 = Math.min(WW - 1, Math.ceil(ex + 36)), y0 = Math.max(0, Math.floor(ey - 36)), y1 = Math.min(WH - 1, Math.ceil(ey + 36));
+              const saveM = [], saveP = [];
+              for (let y = y0; y <= y1; y++) { saveM.push(mask.slice(y * WW + x0, y * WW + x1 + 1)); saveP.push(px.slice((y * WW + x0) * 4, (y * WW + x1 + 1) * 4)); }
+              carve(ex, ey, 30);
+              const c = Object.assign({}, o, { vx, vy, air: true, aim: Object.assign({}, o.aim), drown: null });
+              for (let i = 0; i < 600 && c.alive && (c.air || i === 0); i++) duckPhys(c, STEP);
+              const real = !c.alive;
+              for (let y = y0; y <= y1; y++) { mask.set(saveM[y - y0], y * WW + x0); px.set(saveP[y - y0], (y * WW + x0) * 4); }
+              tctx.putImageData(timg, 0, 0);
+              res[pred ? (real ? 'tp' : 'fp') : (real ? 'fn' : 'tn')]++;
+            }
+          }
+          S.events.length = ev0;
+          return res;
+        },
+        corrupt: (x, y) => { cut(x == null ? WW / 2 : x, y == null ? 300 : y, 30); tctx.putImageData(timg, 0, 0); return maskSum(); },
+        ground: (x) => surfaceY(x, 0),
+        place: (i, x) => { const d = S.ducks[i]; if (!d) return null; d.x = Math.round(x) + 0.5; d.y = surfaceY(d.x, 0) - R - 1.5; d.air = false; d.vx = 0; d.vy = 0; return [d.x, d.y]; },   // test : poser un canard
+        spawn: (kind, x) => {                       // test : une mine ou une caisse apparaît (chez l'hôte, qui décide)
+          x = Math.round(x) + 0.5;
+          const sy = surfaceY(x, 0);
+          if (kind === 'mine') S.mines.push({ x, y: sy - 3, vy: 0, armed: false, t: 0, beep: 0 });
+          else S.crates.push({ x, y: sy - 9, vy: 0, kind: kind === 'soin' ? 'soin' : 'arme', wid: kind === 'soin' ? null : 'rouleau', para: false, t: 0 });
+          return sy;
+        }
       }
     };
   }
@@ -3473,6 +4401,8 @@
     accent: ACC,
     target: 2,
     layout: 'landscape',
+    net: true,                                     // jeu en ligne : chacun sur son appareil (voir « JEU EN LIGNE »)
+    ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
     preview,
     mount
   };

@@ -96,6 +96,17 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
   soit en bas), touches de l'adversaire renvoyées par un canal de données et rejouées comme des PointerEvent (numéros ≥ 1000) sur la
   moitié du haut ; scores, bannières, pause, résultats et revanche recopiés. Signaux « net » dans le canal `jdw-duel-<code>`, invitation
   « netinv » dans le canal de la salle ou lien `?duel=<code>`. Jeux au tour par tour : api.turn(p) dit qui a la main. Test : test-net.js.
+  Ce mode « vidéo » ne sert plus qu'en secours : les jeux marqués `net: true` jouent en mode « données » (DUO-CONTRACT.md, « Ajout : le jeu
+  EN LIGNE ») : chaque appareil fait tourner le jeu (l'invité avec #jdw-duo tourné de 180°), l'hôte décide, l'invité prédit son objet ;
+  api.net (send rapide sur le canal « g » / fiable sur « ctl », onMessage, now() horloge commune par ping/pong, rtt(), flipped).
+  Bannières seulement du côté du joueur concerné, un seul écran de résultat. Page de test deux appareils : source/test/duo-net.html
+  (faux réseau lat/jit/loss, tailles hw/hh/gw/gh) ; dans la borne : test-netdata.js (faux jeu), test-net-real.js (GAME=…).
+- **Contre l'IA** : dans « Qui joue en haut ? », la ligne « 🤖 IA » (tête de robot dessinée, joueur « IA ») + niveau Facile / Moyen /
+  Difficile / Extrême (jdw.ailevel) → api.ai = { p: 1, level, k } (DUO-CONTRACT.md, « Ajout : jouer contre l'IA ») ; chaque jeu pilote le
+  joueur du haut avec sa propre IA et le déclare par `ai: true` dans son module : sans ce drapeau, la tuile est grisée (« Bientôt contre
+  l'IA ») et un toucher fait dire au robot qu'il ne sait pas encore y jouer. Tests : test-ai-real.js (GAME, LEVEL, WAIT), test-noai.js.
+- Présence de la salle : seuls les MEMBRES (room_members) comptent (presList filtre) — un appareil branché sur le canal sans avoir
+  rejoint n'apparaît ni dans « en ligne », ni dans les défis, ni en compétition.
 - **Compétition** : toute la salle sur un jeu solo (sauf canards) en mode difficile (CONTRACT.md Ajout 6 : api.startLevel / api.mode /
   api.seed ; niveaux de départ COMPET_START dans shell2.js). Aucune table : la présence de la salle porte `cmp: {id, g, r, st, s, t, seed}`
   et des signaux « cmp » (open, go, sc, out, re) passent dans le direct. L'hôte (premier inscrit encore là) donne le GO (10 s, démo =

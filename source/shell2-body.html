@@ -45,17 +45,15 @@
           <button class="seat-swap" id="jdw-seat-swap" type="button" aria-label="Échanger les places">VS<small>⇅</small></button>
           <button class="seat" id="jdw-seat-1" type="button" aria-label="Choisir le joueur du haut"><span class="seat-head"></span><span class="seat-tx"><small>En haut</small><b class="seat-name"></b></span></button>
         </div>
-        <div class="duo-how">
-          <div class="duo-phone" aria-hidden="true"><span class="dp-top">🙃</span><span class="dp-line"></span><span class="dp-bot">🙂</span></div>
-          <p>Posez le téléphone à plat entre vous deux : l'écran est coupé en deux, chacun joue de son côté, <b>en même temps</b>.</p>
+        <div class="ai-level" id="jdw-ai-level" role="radiogroup" aria-label="Niveau de l'IA" hidden>
+          <span class="ai-lab">🤖 Niveau de l'IA</span>
+          <button type="button" role="radio" data-lv="facile">Facile</button>
+          <button type="button" role="radio" data-lv="moyen">Moyen</button>
+          <button type="button" role="radio" data-lv="difficile">Difficile</button>
+          <button type="button" role="radio" data-lv="extreme">Extrême</button>
         </div>
       </div>
-      <div class="duel-online" id="jdw-duel-online" hidden>
-        <div class="duo-how net-how">
-          <div class="net-ic" aria-hidden="true">📡</div>
-          <p>Chacun sur son téléphone : choisis un duel, invite un copain de ta salle ou envoie-lui le lien (Messenger, SMS…). Ta partie s'affiche en direct chez lui et il joue de son côté. <span class="soon-tag">Bêta</span></p>
-        </div>
-      </div>
+      <div class="duel-online" id="jdw-duel-online" hidden></div>
       <p class="eyebrow grid-h">Choisis le duel</p>
       <section class="grid duo-grid" id="jdw-duo-grid" aria-label="Jeux de duel"></section>
     </section>

@@ -9,6 +9,8 @@
   // Mauvais objet = gelé 1 s. Personne en 20 s = manche nulle, on rejoue.
   // Organisation : génération à graine (genRound) → simulation pure (simStep) →
   // contrôleur (entrées, événements, sons) → affichage (render).
+  // En ligne (api.net) : chacun son téléphone, son plateau en grand ; même manche des deux côtés sur
+  // l'horloge commune, l'hôte arbitre à l'heure des touches (voir « JEU EN LIGNE » dans mount).
   // ===========================================================================
 
   const ID = 'trouve';
@@ -19,6 +21,15 @@
   const NEXT_DELAY = 1.4;       // s entre le point et la manche suivante
   const DRAW_DELAY = 2.3;       // s après une manche nulle
   const COUNT_STEP = 0.5;       // s par chiffre du compte à rebours
+  const ROUND_MS = ROUND_TIME * 1000, FREEZE_MS = FREEZE_TIME * 1000;   // en ligne : heures en ms d'horloge de manche
+  // contre l'IA : temps pour trouver (s, de la manche la plus simple à la plus dure), réaction (s), vitesse du viseur,
+  // durée des regards, risque d'erreur (multiplié par la ressemblance du meilleur leurre)
+  const AI_LEVELS = {
+    facile: { lo: 6, hi: 11, react: 0.7, speed: 0.85, dwell: 1.6, err: 0.55 },
+    moyen: { lo: 3.5, hi: 6, react: 0.5, speed: 1.15, dwell: 1.2, err: 0.3 },
+    difficile: { lo: 2, hi: 3.5, react: 0.36, speed: 1.55, dwell: 0.9, err: 0 },
+    extreme: { lo: 0.9, hi: 1.8, react: 0.24, speed: 2.1, dwell: 0.62, err: 0 }
+  };
   const LW = 1000;              // largeur logique d'un plateau (la hauteur dépend du format)
   const MAX_PARTS = 280;
   const FD0 = "'Bungee', Impact, sans-serif";
@@ -984,6 +995,35 @@
     });
     const PC = [PL[0].color, PL[1].color];
 
+    // ------------------------------------------------------------- jeu en ligne (api.net) : qui est qui
+    // Sans api.net, NET = null et rien de ce qui suit n'est utilisé : le jeu reste celui d'un seul téléphone.
+    const NET = (() => {
+      try { const n = api.net; return n && typeof n.send === 'function' && typeof n.onMessage === 'function' && typeof n.now === 'function' ? n : null; } catch (e) { return null; }
+    })();
+    const GUEST = !!NET && (NET.role === 'guest' || (NET.role !== 'host' && NET.me === 1));
+    const ME = GUEST ? 1 : 0, OPP = 1 - ME;           // joueur de CE téléphone (hôte 0, invité 1) et son adversaire
+    const FLIP = !!(NET && NET.flipped);              // chez l'invité, la bibliothèque tourne le root de 180°
+    const NS = NET ? {
+      rn: 0, t0: 0, play0: 0, ep: 0, aspect: 0,      // manche en cours : numéro, heure commune de l'intro et du GO, époque, proportions
+      pend: null, inbox: [], peer: null, gotR: false, started: false, mountT: 0, hiT: -1e9, capsDirty: false, lastCaps: '',
+      my: { hit: null, frz: -1e9 },                   // ma touche « trouvé » en attente du verdict, fin de mon gel (ms d'horloge de manche)
+      op: { frz: -1e9, shake: 0, flash: 0 },          // l'adversaire (affichage)
+      stopped: false, endSeen: false, winC: 0, photo: null,
+      sent: 0, hbT: 0, arb: null, lastR: null, lastEnd: null,
+      pausedAt: 0, resAt: 0, resQ: 0, resApplied: 0, resMsg: null, waitRes: false, waitT: 0, reanchor: false,
+      log: [], taps: []
+    } : null;
+    let netBg = null;
+
+    // ------------------------------------------------------------- contre l'IA (api.ai) : le joueur du haut est un robot
+    // Sans api.ai, AI = null et rien de ce qui suit n'est utilisé (jamais en même temps que le jeu en ligne).
+    const AI = (() => {
+      try { const a = api.ai; return !NET && a && (a.p === 0 || a.p === 1) ? a : null; } catch (e) { return null; }
+    })();
+    const AIP = AI ? AI.p : -1;
+    const AILV = AI ? (AI_LEVELS[AI.level] || AI_LEVELS[(+AI.k || 0.5) <= 0.3 ? 'facile' : (+AI.k || 0.5) <= 0.55 ? 'moyen' : (+AI.k || 0.5) <= 0.8 ? 'difficile' : 'extreme']) : null;
+    const AIS = { R: null, Rseen: null, segs: [], sx: LW / 2, sy: 300, x: LW / 2, y: 300, trail: [], press: 0, alpha: 0, lock: 0, tFind: 0, miss: -1, d: 0, log: [] };
+
     // ------------------------------------------------------------- sons (sobres, avec budget)
     let ct = 0;                                    // horloge du contrôleur (s'arrête en pause)
     const later = [];
@@ -1013,7 +1053,7 @@
     function curRound() { try { const r = typeof api.round === 'function' ? api.round() : 1; return r > 0 ? r | 0 : 1; } catch (e) { return 1; } }
 
     // ------------------------------------------------------------- têtes et planètes
-    let planets = [], nebulas = [];
+    let planets = [], nebulas = [], planetsAll = [];
     try {
       const pr = typeof api.assets === 'function' ? api.assets('ilo') : null;
       if (pr && typeof pr.then === 'function') {
@@ -1022,6 +1062,7 @@
           planets = a && Array.isArray(a.planets) ? a.planets.filter(imgOk) : [];
           nebulas = a && Array.isArray(a.nebulas) ? a.nebulas.filter(imgOk) : [];
           boardBg = {};
+          if (NET) { planetsAll = a && Array.isArray(a.planets) ? a.planets.slice() : []; NS.capsDirty = true; }
         }, () => { /* sans images : le jeu reste complet */ });
       }
     } catch (e) { /* rien */ }
@@ -1032,7 +1073,7 @@
       if (!P.sadGen) { try { P.sadGen = makeSad(P.img); } catch (e) { P.sadGen = null; } }
       return P.sadGen;
     }
-    function collectHeads() {
+    function collectHeads(max) {
       const out = [], seen = {};
       const add = (name, img, sad, player) => {
         if (!imgOk(img)) return;
@@ -1047,7 +1088,7 @@
       try { list = typeof api.heads === 'function' ? api.heads() || [] : []; } catch (e) { list = []; }
       if (Array.isArray(list)) for (const h of list) if (h) add(h.name, h.img, h.sad, null);
       for (const h of out) if (!h.sad) { try { h.sad = h.player != null ? sadOfPlayer(h.player) : makeSad(h.img); } catch (e) { h.sad = null; } }
-      return out.filter((h) => imgOk(h.sad)).slice(0, 12);
+      return out.filter((h) => imgOk(h.sad)).slice(0, max || 12);
     }
     const content = { heads: [], planets: [] };
 
@@ -1127,9 +1168,10 @@
       dpr = Math.min(2, window.devicePixelRatio || 1);
       canvas.width = Math.max(1, Math.round(cw * dpr));
       canvas.height = Math.max(1, Math.round(ch * dpr));
-      L = layout(cw, ch);
+      L = NET ? netLayout(cw, ch) : layout(cw, ch);
       halfBg = [null, null]; boardBg = {}; medalBase = [null, null]; avatarCache = {}; sprites = new Map();
       TXT.clear(); ribbons.clear(); vign = null; hatchCv = null;
+      if (NET) { netBg = null; NS.capsDirty = true; }
       if (paused || !raf) render();
     }
 
@@ -1320,6 +1362,15 @@
       const R = S.R;
       prevMode = R.mode; seen[R.mode] = (seen[R.mode] || 0) + 1;
       // titre de la manche + une astuce quand un nouveau piège apparaît (une seule à la fois)
+      const hint = roundHint(R, round);
+      const b1 = hint ? (hint === EXPLAIN ? 2.9 : 2.15) : 1.05;
+      banner = { b0: 0.05, b1, top: replay ? 'ON REJOUE !' : 'MANCHE ' + round, hint };
+      S.introDur = b1 + 0.15 + 3 * COUNT_STEP;
+      for (const f of FX) { f.wrong = -1; f.wrongT = 0; }
+      cursor[0] = cursor[1] = -1;
+    }
+    // astuce du bandeau d'intro (une seule par manche, chaque piège expliqué une fois)
+    function roundHint(R, round) {
       const tgt = R.objs[R.target].d;
       let hasMirror = false, hasSad = false;
       for (const ob of R.objs) {
@@ -1337,11 +1388,7 @@
       else if (hasSad && R.mode === 'objet' && !hinted.sad) { hint = 'Attention : certains font la tête !'; hinted.sad = true; }
       else if (R.conveyor && !hinted.conv) { hint = 'Ça défile ! Garde l’œil ouvert'; hinted.conv = true; }
       hinted[R.mode] = true;
-      const b1 = hint ? (hint === EXPLAIN ? 2.9 : 2.15) : 1.05;
-      banner = { b0: 0.05, b1, top: replay ? 'ON REJOUE !' : 'MANCHE ' + round, hint };
-      S.introDur = b1 + 0.15 + 3 * COUNT_STEP;
-      for (const f of FX) { f.wrong = -1; f.wrongT = 0; }
-      cursor[0] = cursor[1] = -1;
+      return hint;
     }
 
     // ------------------------------------------------------------- conversions de coordonnées
@@ -1417,6 +1464,7 @@
 
     // ------------------------------------------------------------- événements de la simulation
     function handle(e) {
+      if (NET) { netHandle(e); return; }
       switch (e.type) {
         case 'count': SFX.count(); break;
         case 'go':
@@ -1579,6 +1627,7 @@
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       }
       const T = R.target;
+      if (NET && NS.my.hit && S.phase === 'play') drawNetTouched(NS.my.hit.i, true);    // lueur derrière l'objet touché
       for (let i = 0; i < (DBG.noObj ? 0 : R.N); i++) {
         if (i === T && (won || draw)) continue;
         let ap = objAppear(i);
@@ -1601,6 +1650,7 @@
       }
       ctx.globalAlpha = 1;
       reset();
+      if (NET && NS.my.hit && S.phase === 'play') drawNetTouched(NS.my.hit.i, false);   // anneau par-dessus
       // croix rouge sur le mauvais objet
       if (F.wrong >= 0 && F.wrongT > 0 && S.phase === 'play') {
         const q = objLocal(F.wrong), a = Math.min(1, F.wrongT * 2.5), r = R.size * k * 0.32 * (1 + (1 - Math.min(1, (FREEZE_TIME - F.wrongT) * 8)) * 0.6);
@@ -1672,7 +1722,7 @@
         circ(ctx, x, y, rr0); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
         // au-dessus ou au-dessous du cercle, en évitant le bandeau « Point pour… » de la bibliothèque (centre de la moitié)
         const lab = S.phase === 'draw' ? 'C’ÉTAIT LÀ !' : 'ICI !', up = y - rr0 - 14, down = y + rr0 + 16;
-        const inBanner = (yy) => Math.abs(yy - L.HH / 2) < 48 && Math.abs(x - L.W / 2) < 170;
+        const inBanner = (yy) => Math.abs(yy - (L.banY != null ? L.banY : L.HH / 2)) < 48 && Math.abs(x - L.W / 2) < 170;
         let ty = up < L.by + 10 ? down : up;
         if (inBanner(ty)) { const alt = ty === up ? down : up; if (!inBanner(alt) && alt > L.by + 10 && alt < L.HH - 10) ty = alt; }
         const hw = textWidth(lab, 14, false) / 2 + 8;
@@ -1706,6 +1756,7 @@
         return S.winner === p ? ['TROUVÉ !', PC[p]] : ['TROP TARD !', '#5d7385'];
       }
       if (S.phase === 'draw') return ['TEMPS ÉCOULÉ', '#5d7385'];
+      if (NET && NS.my.hit && S.phase === 'play') return ['TOUCHÉ !', PC[p]];
       let s = R.label;
       if (R.mode === 'tete') {
         const H = content.heads[R.headOwner];
@@ -1858,7 +1909,18 @@
         return;
       }
       // portrait : « MANCHE n » + puce du chrono à gauche, fils du médaillon vers la puce et l'avatar
-      const x0 = 14, ly = L.my + 3, cy = L.my + 25, cw0 = 70, chh = 26;
+      const x0 = 14, cy = L.my + 25, cw0 = 70;
+      drawClock(x0, L.my + 3, cy, p);
+      // fils
+      ctx.strokeStyle = rgba(PC[p], 0.32); ctx.lineWidth = 1;
+      const mx0 = L.W / 2 - L.mr - 13, mx1 = L.W / 2 + L.mr + 13;
+      ctx.beginPath(); ctx.moveTo(x0 + cw0 + 6, cy); ctx.lineTo(mx0, cy); ctx.moveTo(mx1, ay); ctx.lineTo(ax - ar - 7, ay); ctx.stroke();
+      ctx.fillStyle = rgba(PC[p], 0.6);
+      circ(ctx, mx0, cy, 2); ctx.fill(); circ(ctx, mx1, ay, 2); ctx.fill();
+    }
+    // « MANCHE n » + puce du chrono (petite horloge + secondes), coin haut gauche en (x0, ly), puce centrée sur cy
+    function drawClock(x0, ly, cy, p) {
+      const cw0 = 70, chh = 26;
       text('MANCHE ' + S.round, x0 + 2, ly, 10.5, '#8aa0ae', { body: true, stroke: 0, align: 'left' });
       const late = S.phase === 'play' && ROUND_TIME - S.clock < 5, wonMe = S.phase === 'won' && S.winner === p;
       const col = late ? '#ff4d5e' : wonMe ? PC[p] : rgba(PC[p], 0.5);
@@ -1870,18 +1932,12 @@
       const ha = S.phase === 'play' ? (S.clock / ROUND_TIME) * TAU - Math.PI / 2 : -Math.PI / 2;
       ctx.beginPath(); ctx.moveTo(ix, iy); ctx.lineTo(ix + Math.cos(ha) * 4.2, iy + Math.sin(ha) * 4.2); ctx.moveTo(ix, iy); ctx.lineTo(ix, iy - 3); ctx.stroke();
       if (S.R) text(timeStr(p), x0 + 25, cy + 1, 14, timeCol(p), { align: 'left', stroke: 3 });
-      // fils
-      ctx.strokeStyle = rgba(PC[p], 0.32); ctx.lineWidth = 1;
-      const mx0 = L.W / 2 - L.mr - 13, mx1 = L.W / 2 + L.mr + 13;
-      ctx.beginPath(); ctx.moveTo(x0 + cw0 + 6, cy); ctx.lineTo(mx0, cy); ctx.moveTo(mx1, ay); ctx.lineTo(ax - ar - 7, ay); ctx.stroke();
-      ctx.fillStyle = rgba(PC[p], 0.6);
-      circ(ctx, mx0, cy, 2); ctx.fill(); circ(ctx, mx1, ay, 2); ctx.fill();
     }
     function timeStr(p) {
       if (!S.R) return '';
       if (S.phase === 'intro') return String(ROUND_TIME);
       if (S.phase === 'play') return String(Math.max(0, Math.ceil(ROUND_TIME - S.clock)));
-      if (S.phase === 'won') return S.winner === p ? S.clock.toFixed(1).replace('.', ',') + ' s' : '—';
+      if (S.phase === 'won') return S.winner === p ? (NET ? NS.winC / 1000 : S.clock).toFixed(1).replace('.', ',') + ' s' : '—';
       return '0';
     }
     function timeCol(p) {
@@ -2024,6 +2080,7 @@
       if (!DBG.noHalf) ctx.drawImage(halfBg[p], 0, 0, L.W, L.HH);
       setBase(p, ox, oy);
       drawBoard(p);
+      if (AI && p === AIP) drawAI(p);               // le viseur de l'IA sur son plateau
       drawIntroBanner(p);
       drawCountdown(p);
       setBase(p, ox * 0.4, oy * 0.4);
@@ -2092,6 +2149,10 @@
         rr(ctx, L.W / 2 + s * 0.19, cy - s * 1.55, s * 0.36, s * 1.0, 4); ctx.fill();
         text('PAUSE', L.W / 2, cy + s * 0.2, s, ACCENT, { stroke: 6 });
         text('Le plateau est caché pendant la pause', L.W / 2, cy + s * 0.2 + 34, 13, '#a9bccb', { body: true, stroke: 0 });
+      } else if (NET && NS.waitRes) {                // en ligne : on attend l'heure de reprise commune
+        ctx.globalAlpha = 0.6 + 0.4 * Math.sin(performance.now() / 160);
+        text('On reprend…', L.W / 2, cy, 16, '#cfe0ea', { body: true, stroke: 0 });
+        ctx.globalAlpha = 1;
       } else {
         const n = Math.max(1, Math.ceil(resumeT / 0.5)), f = 1 - (resumeT - (n - 1) * 0.5) / 0.5;
         const sz = clamp(L.bh * 0.4, 44, 100);
@@ -2113,6 +2174,7 @@
       if (destroyed || !L) return;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = COL.night; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (NET) { drawNetView(); return; }
       drawHalf(0);
       drawHalf(1);
       drawMidLine();
@@ -2131,6 +2193,7 @@
       if (dt > 0.05) dt = 0.05;
       if (!L) resize();
       if (!L) return;
+      if (NET) { netFrame(dt); return; }
       if (!S.R) beginRound(false);
       if (resumeT > 0) {
         resumeT -= dt;
@@ -2147,6 +2210,7 @@
       }
       const prevClock = S.clock, wasPlay = S.phase === 'play';
       const ev = [];
+      if (AI) aiStep();                              // l'IA touche (mêmes règles : ses touches passent par la simulation)
       simStep(S, dt, inputs, ev);
       // étincelles de la cascade
       if (wasPlay && S.phase === 'play' && S.R) {
@@ -2161,6 +2225,7 @@
         }
       }
       for (const e of ev) handle(e);
+      if (AI) aiUpdate(dt);
       if (overT >= 0) overT += dt;
       updFx(dt);
       const r0 = performance.now();
@@ -2168,6 +2233,985 @@
       profMs += (performance.now() - r0 - profMs) * 0.05;
     }
     let profMs = 0;
+
+    // ===========================================================================
+    // CONTRE L'IA (api.ai) : le robot du haut cherche sur SON plateau, avec les mêmes règles qu'un joueur.
+    //  · Son temps pour trouver dépend du niveau ET de la manche : nombre d'objets, leurres ressemblants (reflet,
+    //    humeur, couleur, même tête, planètes voisines), défilement, mouvement.
+    //    facile ≈ 6–11 s, moyen ≈ 3,5–6 s, difficile ≈ 2–3,5 s, extrême ≈ 0,9–1,8 s.
+    //  · Un viseur à sa couleur parcourt son plateau : il s'attarde sur ce qui ressemble à la cible, puis fonce dessus.
+    //  · Facile et moyen : parfois il touche un leurre (surtout un très ressemblant) et se fait geler 1 s.
+    //  · Ses touches passent par la simulation comme celles d'un joueur : si le joueur trouve avant, il gagne.
+    // ===========================================================================
+    // ressemblance d'un objet avec la cible (0 : rien à voir ; 1 : presque identique)
+    function aiSim(a, t) {
+      if (a.k !== t.k) return 0.1;
+      if (a.k === 'head') return a.h === t.h ? 0.95 : 0.45;
+      if (a.k === 'planet') return a.p === t.p ? 0.95 : 0.4;
+      const dc = (a.c | 0) !== (t.c | 0), dm = (a.m | 0) !== (t.m | 0), ds = (a.s | 0) !== (t.s | 0);
+      if (!dc && (dm || ds)) return 0.95;
+      return dc && !dm && !ds ? 0.6 : 0.5;
+    }
+    // l'intrus : une couleur différente saute aux yeux ; un reflet ou une humeur, beaucoup moins
+    function aiOddHard(R) {
+      const t = R.objs[R.target].d, b = R.objs[R.target === 0 ? 1 : 0].d;
+      if (t.k === 'head') return t.h !== b.h ? 0.45 : 0.9;
+      if (t.k === 'planet') return t.p !== b.p ? 0.5 : 0.92;
+      return (t.c | 0) !== (b.c | 0) ? 0.3 : 0.9;
+    }
+    function aiObjAt(i, mt) {                       // position d'un objet (unités du plateau) à l'instant mt
+      const R = S.R, o = R.objs[i];
+      let x;
+      if (R.conveyor) { x = o.hx + R.rowV[o.row] * mt; x -= Math.floor(x / LW) * LW; } else x = o.hx + o.ax * Math.sin(mt * o.fx + o.px);
+      return [x, o.hy + o.ay * Math.sin(mt * o.fy + o.py)];
+    }
+    function aiWrapDx(dx) { return S.R.conveyor ? dx - Math.round(dx / LW) * LW : dx; }
+    function aiPick(ws, tot) {                      // tirage pondéré (jamais un poids nul)
+      if (!(tot > 0)) return -1;
+      let u = Math.random() * tot, lastOk = -1;
+      for (let i = 0; i < ws.length; i++) { if (ws[i] <= 0) continue; lastOk = i; u -= ws[i]; if (u <= 0) return i; }
+      return lastOk;
+    }
+    // au GO : quand il trouvera, où il regardera avant, et peut-être où il se trompera
+    function aiPlan() {
+      const R = S.R, lv = AILV, T = R.target, tgt = R.objs[T].d;
+      AIS.R = R; AIS.segs = []; AIS.lock = 0; AIS.sx = AIS.x; AIS.sy = AIS.y;
+      const sims = R.objs.map((o, i) => (i === T ? 0 : R.mode === 'intrus' ? aiOddHard(R) : aiSim(o.d, tgt)));
+      let simSum = 0, simTop = 0;
+      for (const s of sims) { if (s >= 0.3) simSum += s; if (s > simTop) simTop = s; }
+      const hard = R.mode === 'intrus' ? simTop : clamp(simSum / 5, 0, 1);
+      const nN = clamp((R.N - 8) / 32, 0, 1), motion = clamp((R.round - 1) / 5, 0, 1);
+      const d = clamp(0.42 * nN + 0.33 * hard + 0.15 * (R.conveyor ? 1 : 0) + 0.1 * motion, 0, 1);
+      let tFind = clamp(lerp(lv.lo, lv.hi, d) * (0.9 + Math.random() * 0.2), lv.lo * 0.97, lv.hi * 1.05);
+      tFind = Math.max(tFind, R.objs[T].ap + lv.react + 0.25);
+      // une erreur ? (facile, moyen) — surtout quand un leurre ressemble beaucoup à la cible
+      let miss = -1, tm = 0;
+      if (lv.err > 0 && R.N > 1 && Math.random() < lv.err * (0.35 + 0.65 * simTop)) {
+        const w = sims.map((s, i) => (i === T ? 0 : R.mode === 'intrus' ? 1 : s * s));
+        let tot = 0;
+        for (const v of w) tot += v;
+        miss = aiPick(w, tot);
+        if (miss >= 0) {
+          tm = Math.max(lv.react + 0.8, R.objs[miss].ap + 0.4, tFind * (0.3 + Math.random() * 0.35));
+          tFind = Math.max(tFind + 0.7, tm + FREEZE_TIME + 0.5);
+        }
+      }
+      // le parcours du viseur : des regards (plus longs sur ce qui ressemble), puis la cible
+      const segs = [], spd = 1300 * lv.speed;
+      let t = lv.react * (0.85 + Math.random() * 0.3), px = AIS.x, py = AIS.y, missDone = miss < 0;
+      const seen = new Map();
+      const travel = (i, at, fast) => {
+        const q = aiObjAt(i, at), dist = Math.hypot(aiWrapDx(q[0] - px), q[1] - py);
+        return fast ? clamp(dist / (spd * 1.9), 0.09, 0.3) : clamp(dist / spd, 0.13, 0.55);
+      };
+      const push = (i, s, a, l, tap) => { segs.push({ i, s, a, l, tap, sim: sims[i], done: false }); const q = aiObjAt(i, l); px = q[0]; py = q[1]; seen.set(i, (seen.get(i) || 0) + 1); };
+      const doMiss = () => {                        // il va sur le leurre, le touche à tm, puis reste gelé dessus
+        const tr = travel(miss, t + 0.2), s = Math.max(t, tm - tr - Math.max(0.25, 0.5 * lv.dwell));
+        push(miss, s, s + tr, Math.max(s + tr + 0.05, tm), 1);
+        t = segs[segs.length - 1].l + FREEZE_TIME + 0.12;
+        missDone = true;
+      };
+      for (let guard = 0; guard < 80; guard++) {
+        if (!missDone && t + travel(miss, t + 0.2) + 0.3 >= tm - 0.55) { doMiss(); continue; }
+        // prochain regard : un objet déjà visible, plutôt pas encore vu, plutôt ressemblant, plutôt proche
+        let tot = 0;
+        const ws = [];
+        for (let i = 0; i < R.N; i++) {
+          let w = 0;
+          if (i !== T && (missDone || i !== miss) && R.objs[i].ap <= t + 0.15) {
+            const q = aiObjAt(i, t), dist = Math.hypot(aiWrapDx(q[0] - px), q[1] - py);
+            w = (1 + 3 * sims[i]) / (1 + dist / 350) / (1 + 2.5 * (seen.get(i) || 0));
+            if (dist < 30) w *= 0.1;
+          }
+          ws.push(w); tot += w;
+        }
+        const j = aiPick(ws, tot);
+        const tr = j >= 0 ? travel(j, t + 0.2) : 0, dw = j >= 0 ? (0.12 + 0.55 * sims[j]) * lv.dwell * (0.8 + Math.random() * 0.45) : 0;
+        if (j < 0 || t + tr + dw > (missDone ? tFind - 0.37 : tm - 0.6)) { if (!missDone) { doMiss(); continue; } break; }
+        push(j, t, t + tr, t + tr + dw, 0);
+        t += tr + dw;
+      }
+      // il fonce sur la cible, la « verrouille » un instant, et touche
+      const ft = travel(T, Math.max(t, tFind - 0.3), true), s0 = Math.max(t, tFind - ft - 0.12), last = segs[segs.length - 1];
+      if (last && last.tap === 1) { if (s0 > last.l) push(last.i, last.l, last.l, s0, 0); }
+      else if (last) last.l = Math.max(last.l, s0);
+      push(T, s0, s0 + ft, Math.max(s0 + ft + 0.05, tFind), 2);
+      AIS.segs = segs; AIS.tFind = segs[segs.length - 1].l; AIS.miss = miss; AIS.d = d;
+    }
+    function aiSeg() {                              // le regard en cours
+      const segs = AIS.segs, t = S.clock;
+      if (!segs.length || t < segs[0].s) return null;
+      let k = 0;
+      while (k + 1 < segs.length && segs[k + 1].s <= t) k++;
+      return segs[k];
+    }
+    function aiPos(t) {                             // le viseur ne se téléporte jamais : trajets en douceur, légèrement courbes
+      const segs = AIS.segs;
+      if (!segs.length || t < segs[0].s) return [AIS.sx, AIS.sy];
+      let k = 0;
+      while (k + 1 < segs.length && segs[k + 1].s <= t) k++;
+      const g = segs[k], to = aiObjAt(g.i, t);
+      if (t >= g.a) return to;
+      const from = k === 0 ? [AIS.sx, AIS.sy] : aiObjAt(segs[k - 1].i, g.s);
+      const dx = aiWrapDx(to[0] - from[0]), dy = to[1] - from[1], u = easeInOut((t - g.s) / Math.max(0.01, g.a - g.s)), arc = Math.sin(u * Math.PI) * 0.12;
+      return [from[0] + dx * u - dy * arc, from[1] + dy * u + dx * arc];
+    }
+    function aiStep() {                             // avant chaque pas de simulation : l'IA touche quand son heure est venue
+      if (!S.R || S.phase !== 'play') return;
+      if (AIS.R !== S.R) aiPlan();
+      for (const g of AIS.segs) {
+        if (!g.tap || g.done || S.clock < g.l) continue;
+        if (S.freeze[AIP] > 0) { g.l = S.clock + 0.15; continue; }      // (par sécurité : jamais pendant un gel)
+        g.done = true;
+        inputs[AIP].push({ idx: g.i, seq: ++seq });
+        AIS.press = 1;
+        const q = objLocal(g.i);
+        FX[AIP].ripple.push({ x: q[0], y: q[1], t: 0 });
+        if (g.tap === 2) { AIS.log.push({ round: S.round, mode: S.R.mode, n: S.R.N, d: +AIS.d.toFixed(2), plan: +AIS.tFind.toFixed(2), t: +S.clock.toFixed(2), miss: AIS.miss >= 0 }); if (AIS.log.length > 60) AIS.log.shift(); }
+      }
+    }
+    function aiUpdate(dt) {
+      const R = S.R;
+      if (!R) return;
+      if (AIS.Rseen !== R) {                        // nouvelle manche : le viseur attend au centre de son plateau
+        AIS.Rseen = R; AIS.R = null; AIS.segs = []; AIS.trail.length = 0;
+        AIS.x = AIS.sx = LW / 2; AIS.y = AIS.sy = R.LH / 2;
+      }
+      const ox = AIS.x, oy = AIS.y;
+      if (S.phase === 'play' && AIS.R === R) { const q = aiPos(S.clock); AIS.x = q[0]; AIS.y = q[1]; }
+      const mv = Math.hypot(aiWrapDx(AIS.x - ox), AIS.y - oy);
+      if (mv > 0.6 && Math.abs(AIS.x - ox) < LW / 2) { AIS.trail.push([AIS.x, AIS.y]); if (AIS.trail.length > 9) AIS.trail.shift(); }
+      else if (AIS.trail.length) AIS.trail.shift();
+      AIS.press = Math.max(0, AIS.press - dt * 3.5);
+      const want = S.phase === 'play' ? 1 : S.phase === 'intro' ? 0.5 : 0;
+      AIS.alpha += (want - AIS.alpha) * Math.min(1, dt * (want > AIS.alpha ? 6 : 4));
+      const g = S.phase === 'play' ? aiSeg() : null;
+      AIS.lock = g && g.tap === 2 && S.clock >= g.a ? Math.min(1, AIS.lock + dt * 12) : Math.max(0, AIS.lock - dt * 6);
+    }
+    // le viseur : crochets qui tournent à la couleur du robot, traînée de comète, arc « d'analyse » quand il examine
+    function drawAI(p) {
+      const R = S.R;
+      if (!R || AIS.alpha < 0.02 || AIS.Rseen !== R) return;
+      const k = boardK(), off = boardOff();
+      const sx = (x) => off[0] + (R.conveyor ? x - Math.floor(x / LW) * LW : x) * k, sy = (y) => off[1] + y * k;
+      const g = S.phase === 'play' ? aiSeg() : null, dwell = !!g && S.clock >= g.a && S.clock < g.l;
+      const frozen = S.phase === 'play' && S.freeze[p] > 0, col = frozen ? '#ff4d5e' : PC[p];
+      const r = clamp(R.size * k * 0.54, 13, 64), a = AIS.alpha;
+      const x = sx(AIS.x) + (frozen ? Math.sin(ct * 60) * 3 * (S.freeze[p] / FREEZE_TIME) : 0), y = sy(AIS.y);
+      reset();
+      ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+      // traînée de comète (quand il se déplace) : un trait qui s'affine derrière lui
+      let prev = null;
+      const tr = AIS.trail.concat([[AIS.x, AIS.y]]);
+      for (let j = 0; j < tr.length; j++) {
+        const q = [sx(tr[j][0]), sy(tr[j][1])], f = (j + 1) / tr.length;
+        if (prev && Math.hypot(q[0] - prev[0], q[1] - prev[1]) < LW * k * 0.4) {
+          ctx.strokeStyle = rgba(col, 0.42 * f * a); ctx.lineWidth = 1.5 + r * 0.32 * f;
+          ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+        }
+        prev = q;
+      }
+      glowAt(glow(AIS.lock > 0.5 ? '#ffffff' : col), x, y, r * (2.3 + AIS.lock), (dwell ? 0.2 : 0.28) * a + 0.3 * AIS.lock);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      const breathe = S.phase === 'intro' ? 1 + Math.sin(ct * 3) * 0.05 : 1;
+      const sc = breathe * (dwell ? 0.9 : 1.04) * (1 - 0.3 * Math.sin(Math.min(1, AIS.press) * Math.PI)) * (1 - 0.2 * AIS.lock);
+      const rot = ct * (dwell ? 2.2 : 0.8), core = AIS.lock > 0.5 ? '#ffffff' : col;
+      const brackets = () => { ctx.beginPath(); for (let j = 0; j < 4; j++) { const a0 = j * Math.PI / 2 - 0.45; ctx.moveTo(Math.cos(a0) * r, Math.sin(a0) * r); ctx.arc(0, 0, r, a0, a0 + 0.9); } };
+      const ticks = () => { ctx.beginPath(); for (let j = 0; j < 4; j++) { const an = j * Math.PI / 2 + Math.PI / 4; ctx.moveTo(Math.cos(an) * r * 1.12, Math.sin(an) * r * 1.12); ctx.lineTo(Math.cos(an) * r * 0.8, Math.sin(an) * r * 0.8); } };
+      ctx.save();
+      at(x, y, rot, sc);
+      ctx.globalAlpha = a; ctx.lineCap = 'round';
+      ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(4,8,14,0.4)'; brackets(); ctx.stroke(); ticks(); ctx.stroke();   // lisible sur les autocollants blancs
+      ctx.globalCompositeOperation = 'lighter';                                                                       // néon
+      ctx.lineWidth = 9; ctx.strokeStyle = rgba(col, 0.26); brackets(); ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineWidth = 3.2; ctx.strokeStyle = core; brackets(); ctx.stroke();
+      ctx.lineWidth = 1.1; ctx.strokeStyle = 'rgba(255,255,255,0.8)'; brackets(); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = rgba(core, 0.95); ticks(); ctx.stroke();
+      if (dwell || AIS.lock > 0) {                  // il examine : un arc pointillé tourne à l'intérieur
+        ctx.setLineDash([3.5, 4.5]); ctx.lineWidth = 1.7; ctx.strokeStyle = AIS.lock > 0.5 ? '#ffffff' : rgba(col, 0.85);
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.6, -rot * 2.4, -rot * 2.4 + 4.4); ctx.stroke(); ctx.setLineDash([]);
+      }
+      circ(ctx, 0, 0, 3.6); ctx.fillStyle = 'rgba(4,8,14,0.6)'; ctx.fill();
+      circ(ctx, 0, 0, 2.3); ctx.fillStyle = core; ctx.fill();
+      ctx.restore(); reset(); ctx.globalAlpha = 1;
+      // il hésite sur un leurre qui ressemble à la cible : petite bulle « ? »
+      if (dwell && g.tap === 0 && g.sim >= 0.5 && !frozen) {
+        const k2 = easeBack(clamp((S.clock - g.a) / 0.18, 0, 1)) * Math.min(1, (g.l - S.clock) / 0.12), br = clamp(r * 0.32, 7, 12);
+        if (k2 > 0.02) {
+          ctx.save(); at(x + r * 0.82, y - r * 0.82, Math.sin(ct * 5) * 0.12, k2);
+          ctx.globalAlpha = a;
+          circ(ctx, 0, 0, br + 1.5); ctx.fillStyle = 'rgba(4,8,14,0.6)'; ctx.fill();
+          circ(ctx, 0, 0, br); ctx.fillStyle = col; ctx.fill();
+          text('?', 0, br * 0.08, br * 1.35, '#06222a', { stroke: 0 });
+          ctx.restore(); reset(); ctx.globalAlpha = 1;
+        }
+      }
+    }
+
+    // ===========================================================================
+    // JEU EN LIGNE (api.net) : chacun sur son appareil, vraiment équitable.
+    //  · L'hôte fixe chaque manche : graine, mode, proportions du plateau logique, têtes et planètes que les
+    //    DEUX appareils possèdent, et l'heure commune de départ (api.net.now() + petite marge). Message fiable.
+    //  · Les deux appareils construisent le MÊME plateau (genRound est pur) et déroulent intro, apparition et
+    //    chrono sur l'horloge commune : même manche au même instant, quel que soit l'écran.
+    //  · Chacun ne touche que SON plateau, avec un retour immédiat chez lui. L'invité envoie « touché / raté à
+    //    at = api.net.now() », soit c = ms depuis le GO (fiable) ; l'hôte range toutes les touches par heure, applique les gels et donne le
+    //    point au plus rapide, même si son message arrive après : il attend pour cela le « filigrane » de l'invité
+    //    (battements rapides { c, k } : k = touches fiables déjà envoyées), preuve qu'aucune touche plus ancienne
+    //    n'est encore en route.
+    //  · Verdict fiable { gagnant, heure, écart } : les deux appareils jouent la même fin, mêmes effets et sons.
+    //    L'invité n'appelle jamais api.point ni api.say (la bibliothèque recopie ceux de l'hôte).
+    //  · Pause : la reprise a lieu à une heure commune fixée par l'hôte (la manche est décalée d'autant).
+    // ===========================================================================
+    function nowC() { try { const v = +NET.now(); if (isFinite(v)) return v; } catch (e) { /* rien */ } return performance.now(); }
+    function netRtt() { try { const v = +NET.rtt(); if (isFinite(v) && v > 0) return Math.min(v, 3000); } catch (e) { /* rien */ } return 150; }
+    function nsend(m, rel) { if (destroyed) return; try { NET.send(m, { reliable: !!rel }); } catch (e) { /* rien */ } }
+    function secs(ms, d) { return (Math.max(0, ms) / 1000).toFixed(d == null ? 2 : d).replace('.', ',') + ' s'; }
+    function fitIn(rw, rh, a) { return rw / rh > a ? [rh * a, rh] : [rw, rw / a]; }
+
+    // ------------------------------------------------------------- en ligne : mise en page (vue du joueur, à l'endroit)
+    // Le joueur de ce téléphone a SON plateau en grand ; le médaillon et l'adversaire restent visibles.
+    // La ligne du milieu (menu et scores de la bibliothèque à ses deux bouts) reste libre comme en local.
+    function netLayout(W, H) {
+      const m = clamp(Math.min(W, H) * 0.025, 8, 18), HH = H / 2;
+      const o = { W, H, HH: H, line: HH, m, banY: H * 0.75 };
+      if (W < H) {
+        // portrait : médaillon posé sur la ligne du milieu, plateau sur toute la moitié du bas, adversaire en haut
+        o.tall = true; o.wide = false;
+        o.rx = m; o.ry = HH + 34; o.rw = W - 2 * m; o.rh = Math.max(60, H - m - o.ry);
+        o.mr = clamp(Math.min(W * 0.18, HH * 0.19), 32, 86);
+        o.ribH = clamp(o.mr * 0.36, 18, 28);
+        o.mx = W / 2; o.my = HH + 4 - o.mr * 0.92;
+        const medTop = o.my - o.mr - 12;
+        o.oar = clamp(Math.min(W * 0.12, (medTop - m) * 0.27), 22, 60);
+        o.oax = W / 2;
+        // sa pastille (nom + statut) reste au-dessus de la bannière de la bibliothèque (centre de la moitié du haut)
+        const place = () => { o.oay = Math.max(m + o.oar + 4, (medTop - (o.oar * 2 + 54)) * 0.25 + o.oar); o.opY = o.oay + o.oar + 36; };
+        const pillH = (r) => clamp(r * 0.3, 12, 18) + clamp(r * 0.25, 11, 15) + 17;
+        place();
+        while (o.oar > 24 && o.opY + pillH(o.oar) / 2 > H / 4 - 18) { o.oar -= 1; place(); }
+        // de chaque côté du médaillon (au-dessus des zones de la ligne) : manche + chrono à gauche, moi à droite
+        const side = (W - 2 * (o.mr + 10)) / 2;
+        o.avr = clamp(Math.min(o.mr * 0.44, side * 0.3), 18, 36);
+        o.avx = W - m - side / 2 + 4;
+        o.avy = Math.min(o.my - o.mr * 0.15, HH - 34 - 18 - o.avr);
+        o.nameY = o.avy + o.avr + 12;
+        o.ck = clamp(W / 390, 1, 1.45);
+        o.clx = m + side / 2 - 4; o.ccy = o.avy;
+      } else {
+        // paysage, PC : plateau au centre sur toute la hauteur ; à gauche l'adversaire (haut) et moi (bas),
+        // à droite le médaillon (haut), la manche et le chrono (bas) ; la bande de la ligne du milieu reste libre
+        o.tall = false; o.wide = true;
+        const pw = clamp(W * 0.2, 140, 300), zt = HH - 34, zb = HH + 34;
+        o.pw = pw;
+        o.rx = m + pw + 14; o.ry = m; o.rw = Math.max(60, W - 2 * o.rx); o.rh = H - 2 * m;
+        o.mr = clamp(Math.min(pw * 0.36, (zt - m - 16) / 2.55), 24, 96);
+        o.ribH = clamp(o.mr * 0.4, 17, 28);
+        const mh = o.mr * 1.92 + 13 + o.ribH * 1.2 + 6;
+        o.mx = W - m - pw / 2; o.my = m + Math.max(6, (zt - m - mh) / 2) + o.mr + 6.5;
+        o.oar = clamp(Math.min(pw * 0.3, (zt - m - 70) / 2), 20, 64);
+        const blockH = o.oar * 2 + 18 + 36;
+        o.oax = m + pw / 2; o.oay = m + Math.max(8, (zt - m - blockH) / 2) + o.oar; o.opY = o.oay + o.oar + 36;
+        const bh = H - m - zb;
+        o.avr = clamp(Math.min(pw * 0.26, (bh - 56) / 2), 18, 56);
+        o.avx = o.oax; o.avy = zb + Math.max(8, (bh - o.avr * 2 - 34) / 2) + o.avr; o.nameY = o.avy + o.avr + 18;
+        o.titleY = H - m - clamp(bh * 0.14, 20, 34);
+        o.ik = clamp(pw / 210, 1, 1.4);           // manche + chrono, plus grands sur grand écran, centrés au-dessus du titre
+        o.infoY = zb + 8 + Math.max(10, (o.titleY - 26 - zb - 8 - (12 + 46 * o.ik)) / 2) + 6 * o.ik;
+        o.panels = [[m, m, pw, zt - m - 4, 'opp'], [m, zb + 4, pw, H - m - zb - 4, 'me'], [W - m - pw, m, pw, zt - m - 4, 'medal'], [W - m - pw, zb + 4, pw, H - m - zb - 4, 'info']];
+      }
+      // le plateau : le plus grand rectangle aux proportions de la manche (les mêmes sur les deux appareils)
+      const a = NS.aspect > 0 ? NS.aspect : o.rw / o.rh, f = fitIn(o.rw, o.rh, a);
+      o.aspect = a; o.bw = f[0]; o.bh = f[1]; o.bx = o.rx + (o.rw - f[0]) / 2; o.by = o.ry + (o.rh - f[1]) / 2;
+      o.br = clamp(Math.min(o.bw, o.bh) * 0.05, 10, 18);
+      return o;
+    }
+
+    // ------------------------------------------------------------- en ligne : contenu commun aux deux appareils
+    function netHeadsAll() { return collectHeads(30).filter((h) => h.name.charAt(0) !== '#'); }
+    function netPlanetN() { return planetsAll.length >= 10 && planetsAll.every(imgOk) ? planetsAll.length : 0; }
+    function netCaps(t) { return { t, hn: netHeadsAll().map((h) => h.name), np: netPlanetN(), w: Math.round(L ? L.rw : 0), h: Math.round(L ? L.rh : 0) }; }
+    // proportions du plateau logique : compromis entre les deux écrans (chacun l'affiche à son échelle)
+    function netAspect() {
+      const a1 = L.rw / Math.max(1, L.rh), p = NS.peer;
+      const a2 = p && p.w > 20 && p.h > 20 ? p.w / p.h : a1;
+      return Math.round(clamp(Math.sqrt(a1 * a2), 0.72, 2.2) * 1000) / 1000;
+    }
+    function netCap(a) {
+      let f = fitIn(L.rw, L.rh, a), area = f[0] * f[1];
+      const p = NS.peer;
+      if (p && p.w > 20 && p.h > 20) { f = fitIn(p.w, p.h, a); area = Math.min(area, f[0] * f[1]); }
+      return Math.max(8, Math.floor(area / (40 * 40)));
+    }
+    // secours (ne devrait pas servir : l'hôte n'utilise que ce que les deux appareils ont)
+    function stubHead(name) {
+      const PAL = ['#ffb36b', '#7fd0ff', '#b9f27c', '#ff9ad1', '#c9a8ff', '#ffe27a', '#8ff0d6'];
+      let hs = 0;
+      for (const chr of String(name)) hs = (hs * 31 + chr.charCodeAt(0)) >>> 0;
+      const col = PAL[hs % PAL.length], c = mk(160, 200), g = c.getContext('2d');
+      ell(g, 80, 104, 62, 80); g.fillStyle = col; g.fill(); g.lineWidth = 6; g.strokeStyle = shade(col, -0.5); g.stroke();
+      g.font = '86px ' + FD; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = shade(col, -0.6);
+      g.fillText((String(name).trim().charAt(0) || '?').toUpperCase(), 80, 110);
+      let sad = c;
+      try { sad = makeSad(c); } catch (e) { /* rien */ }
+      return { img: c, sad };
+    }
+    function stubPlanet(i) {
+      const c = mk(128, 128), g = c.getContext('2d'), hue = (i * 47) % 360;
+      circ(g, 64, 64, 58);
+      g.fillStyle = rad(g, 46, 42, 4, 64, 64, 60, [0, 'hsl(' + hue + ',85%,80%)', 0.55, 'hsl(' + hue + ',60%,46%)', 1, 'hsl(' + hue + ',55%,18%)']);
+      g.fill();
+      return c;
+    }
+
+    // ------------------------------------------------------------- en ligne : manches
+    // hôte : prépare la manche suivante et l'annonce (même heure de départ des deux côtés)
+    function netStartRound(replay) {
+      if (destroyed || GUEST || !L) return;
+      const peerSet = NS.peer && Array.isArray(NS.peer.hn) ? new Set(NS.peer.hn) : null;
+      const heads = peerSet ? netHeadsAll().filter((h) => peerSet.has(h.name)).slice(0, 12) : [];
+      let np = NS.peer ? Math.min(netPlanetN(), NS.peer.np | 0) : 0;
+      if (np < 10) np = 0;
+      const a = netAspect(), cap = netCap(a);
+      const round = forced && forced.round ? forced.round : curRound();
+      const seed = (Math.random() * 4294967296) >>> 0;
+      const hp = heads.map((h) => (h.player === 0 || h.player === 1 ? h.player : -1));
+      const ph = hp.map((v, i) => (v >= 0 ? i : -1)).filter((i) => i >= 0);
+      // le mode est tiré ici (même logique qu'en local), puis imposé aux deux appareils
+      const mode = pickMode(mulberry32((seed ^ 0x2545f491) >>> 0), { round, nHeads: heads.length, nPlanets: np, prevMode, seen, replay: !!replay, force: forced ? forced.mode : null });
+      const R = genRound(seed, { round, aspect: a, cap, nHeads: heads.length, nPlanets: np, playerHeads: ph, replay: !!replay, force: mode });
+      prevMode = R.mode; seen[R.mode] = (seen[R.mode] || 0) + 1;
+      const hint = roundHint(R, round);
+      const b1 = hint ? (hint === EXPLAIN ? 2.9 : 2.15) : 1.05;
+      const margin = clamp(netRtt() * 0.6 + 140, 180, 1200);
+      const m = { t: 'r', n: (NS.lastR ? NS.lastR.n : 0) + 1, sd: seed, md: R.mode, rd: round, rp: replay ? 1 : 0, a, cap,
+        hn: heads.map((h) => h.name), hp, np, t0: Math.round(nowC() + margin), id: Math.round((b1 + 0.15 + 3 * COUNT_STEP) * 1000) / 1000, b1, h: hint };
+      NS.lastR = m; NS.lastEnd = null;
+      nsend(m, true);
+      NS.pend = m;                                  // appliquée à son heure, comme chez l'invité
+    }
+    // les deux appareils : construit la manche annoncée (plateau identique) — appelée à l'heure de départ
+    function netApplyRound(m) {
+      NS.pend = null; NS.gotR = true;
+      const local = new Map();
+      for (const h of netHeadsAll()) local.set(h.name, h);
+      const hn = Array.isArray(m.hn) ? m.hn.slice(0, 12).map(String) : [];
+      content.heads = hn.map((name, i) => {
+        const h = local.get(name) || stubHead(name);
+        const pl = Array.isArray(m.hp) && (m.hp[i] === 0 || m.hp[i] === 1) ? m.hp[i] : null;
+        return { name, img: h.img, sad: h.sad, player: pl };
+      });
+      const np = Math.max(0, m.np | 0);
+      content.planets = [];
+      for (let i = 0; i < np; i++) content.planets.push(planetsAll[i] && imgOk(planetsAll[i]) ? planetsAll[i] : stubPlanet(i));
+      sprites = new Map();
+      const ph = content.heads.map((h, i) => (h.player != null ? i : -1)).filter((i) => i >= 0);
+      NS.aspect = clamp(+m.a || 1, 0.5, 3);
+      S.round = Math.max(1, m.rd | 0); S.replay = !!m.rp;
+      S.R = genRound(m.sd >>> 0, { round: S.round, aspect: NS.aspect, cap: Math.max(6, m.cap | 0), nHeads: content.heads.length, nPlanets: np, playerHeads: ph, replay: S.replay, force: String(m.md || 'objet') });
+      S.phase = 'intro'; S.t = 0; S.clock = 0; S.mt = 0;
+      S.freeze[0] = S.freeze[1] = 0; S.winner = -1; S.nextSent = false; S.hold = 0;
+      S.introDur = clamp(+m.id || 2.7, 1, 6); S.countNext = 3; S.tickNext = ROUND_TIME - 5;
+      positions(S.R, 0);
+      NS.rn = m.n | 0; NS.t0 = isFinite(+m.t0) ? +m.t0 : nowC(); NS.play0 = NS.t0 + S.introDur * 1000; NS.ep = 0;
+      NS.my.hit = null; NS.my.frz = -1e9; NS.op.frz = -1e9;
+      NS.stopped = false; NS.endSeen = false; NS.winC = 0; NS.photo = null; NS.sent = 0; NS.hbT = 0; NS.reanchor = false;
+      if (!GUEST) NS.arb = { n: NS.rn, q: [], gwm: -1e12, ep: 0, frz: [-1e9, -1e9], recv: 0, hbs: [], done: false, w: -2, wc: 0, lastAdv: performance.now() };
+      prevMode = S.R.mode;
+      banner = { b0: 0.05, b1: clamp(+m.b1 || 1.05, 0.5, 4), top: m.rp ? 'ON REJOUE !' : 'MANCHE ' + S.round, hint: typeof m.h === 'string' && m.h ? m.h : null };
+      for (const f of FX) { f.wrong = -1; f.wrongT = 0; }
+      cursor[0] = cursor[1] = -1;
+      if (!L || Math.abs(L.aspect - NS.aspect) > 1e-9) resize();     // le cadre prend les proportions de la manche
+    }
+    // intro, GO et chrono sur l'horloge commune (et non sur le temps écoulé de chaque appareil)
+    function netTimeline(ev) {
+      const now = nowC();
+      if (NS.pend && now >= NS.pend.t0 - 1) netApplyRound(NS.pend);
+      if (!S.R || !NS.rn || (S.phase !== 'intro' && S.phase !== 'play')) return;
+      const T = (now - NS.t0) / 1000, re = NS.reanchor;
+      NS.reanchor = false;
+      if (S.phase === 'intro') {
+        const prevT = S.t;
+        S.t = re ? clamp(T, 0, S.introDur) : Math.max(S.t, clamp(T, 0, S.introDur));
+        const left = S.introDur - S.t;
+        while (S.countNext > 0 && left <= S.countNext * COUNT_STEP) {
+          if (left > S.countNext * COUNT_STEP - 0.25) ev.push({ type: 'count', n: S.countNext });   // pas de rafale si on rattrape
+          S.countNext--;
+        }
+        if (prevT < 0.32 && S.t >= 0.32 && S.t < 0.62) { SFX.reveal(); FX[ME].medFlash = 1; ring(ME, L.mx, L.my, L.mr * 0.7, L.mr * 1.9, 0.5, '#ffffff', 3); }
+        if (T >= S.introDur) {
+          S.phase = 'play'; S.t = 0; S.clock = 0; S.mt = 0;
+          if (T - S.introDur < 0.5) ev.push({ type: 'go' });
+          if (NS.arb) NS.arb.lastAdv = performance.now();
+        }
+      }
+      if (S.phase === 'play') {
+        const cms = (T - S.introDur) * 1000, c = clamp(cms / 1000, 0, ROUND_TIME);
+        S.clock = re ? c : Math.max(S.clock, c); S.mt = S.clock;
+        positions(S.R, S.mt);
+        S.freeze[ME] = clamp((NS.my.frz - cms) / 1000, 0, FREEZE_TIME);
+        S.freeze[OPP] = clamp((NS.op.frz - cms) / 1000, 0, FREEZE_TIME);
+        if (!NS.stopped) {
+          while (S.tickNext < S.clock - 0.3 && S.tickNext < ROUND_TIME - 0.01) S.tickNext += 1;
+          if (S.clock >= S.tickNext && S.tickNext < ROUND_TIME - 0.01) { ev.push({ type: 'tick', n: Math.round(ROUND_TIME - S.tickNext) }); S.tickNext += 1; }
+          if (cms >= ROUND_MS) NS.stopped = true;   // chrono à zéro : plus de touches, on attend le verdict de l'hôte
+        }
+      }
+    }
+
+    // ------------------------------------------------------------- en ligne : touches (retour immédiat chez soi)
+    function netTapAt(vx, vy) {
+      if (!S.R || S.phase !== 'play' || NS.stopped || NS.my.hit || NS.endSeen) return;
+      if (vx < L.bx - 12 || vx > L.bx + L.bw + 12 || vy < L.by - 12 || vy > L.by + L.bh + 12) return;
+      const k = boardK(), o = boardOff(), x = (vx - o[0]) / k, y = (vy - o[1]) / k;
+      netLocalTap(hitTest(S.R, S.clock, x, y, 26 / k), x, y);
+    }
+    function netKeySelect(idx) {
+      if (!S.R || S.phase !== 'play' || NS.stopped || NS.my.hit || NS.endSeen || idx < 0 || idx >= S.R.N) return;
+      netLocalTap(S.clock >= S.R.objs[idx].ap ? idx : -1, null, null);
+    }
+    function netLocalTap(i, x, y) {
+      const now = nowC(), c = Math.round(now - NS.play0);    // heure de la touche : commune (t) et en ms depuis le GO (c)
+      if (c < 0 || c >= ROUND_MS || c < NS.my.frz) return;
+      if (i < 0) { if (x != null) netHandle({ type: 'empty', p: ME, x, y }); return; }
+      const hit = i === S.R.target;
+      NS.taps.push({ n: NS.rn, c, i, h: hit ? 1 : 0 });
+      if (NS.taps.length > 80) NS.taps.shift();
+      if (hit) { NS.my.hit = { c, i }; netTouchFx(i); }
+      else { NS.my.frz = c + FREEZE_MS; S.freeze[ME] = FREEZE_TIME; netHandle({ type: 'miss', p: ME, i }); }
+      if (GUEST) { NS.sent++; nsend({ t: 'tap', n: NS.rn, c, at: Math.round(now), i, h: hit ? 1 : 0, e: NS.ep }, true); }
+      else if (NS.arb && NS.arb.n === NS.rn) {
+        NS.arb.q.push({ p: 0, c, i, h: hit });
+        if (!hit) nsend({ t: 'miss', n: NS.rn, p: 0, c, i }, true);
+      }
+    }
+    // invité : battement rapide (non fiable) = « mon horloge de manche en est là, et j'ai envoyé k touches »
+    function netBeat() {
+      if (!GUEST || !S.R || S.phase !== 'play' || NS.endSeen || paused) return;
+      const t = performance.now();
+      if (t - NS.hbT < (NS.stopped || NS.my.hit ? 30 : 45)) return;
+      NS.hbT = t;
+      nsend({ t: 'hb', n: NS.rn, c: Math.round(nowC() - NS.play0), k: NS.sent, e: NS.ep }, false);
+    }
+
+    // ------------------------------------------------------------- en ligne : messages
+    function netPump() {
+      if (!NS.inbox.length) return;
+      const box = NS.inbox;
+      NS.inbox = [];
+      for (const m of box) { if (destroyed) return; try { netOnMsg(m); } catch (e) { /* message abîmé : ignoré */ } }
+    }
+    function netOnMsg(m) {
+      const t = m.t;
+      if (!GUEST) {
+        if (t === 'hi' || t === 'caps') {
+          NS.peer = { hn: Array.isArray(m.hn) ? m.hn.slice(0, 40).map(String) : [], np: m.np | 0, w: +m.w || 0, h: +m.h || 0 };
+          if (t === 'hi' && NS.lastR) { nsend(NS.lastR, true); if (NS.lastEnd) nsend(NS.lastEnd, true); }   // l'invité (re)démarre
+          return;
+        }
+        const A = NS.arb;
+        if (!A || (m.n | 0) !== A.n) return;
+        if (t === 'tap') {
+          const c = +m.c, i = m.i | 0, h = !!m.h;
+          if (!isFinite(c)) return;
+          A.recv++;
+          if ((m.e | 0) === A.ep && c > A.gwm) { A.gwm = c; A.lastAdv = performance.now(); }
+          netHbFlush(A);
+          if (A.done) { if (h && A.w === 0 && c >= A.wc) netPhoto(1, c - A.wc, true); return; }
+          A.q.push({ p: 1, c, i, h });
+          if (!h && S.R && i >= 0 && i < S.R.N) netOppMiss(c);
+        } else if (t === 'hb') {
+          const c = +m.c, k = m.k | 0;
+          if ((m.e | 0) !== A.ep || !isFinite(c)) return;
+          if (k <= A.recv) { if (c > A.gwm) { A.gwm = c; A.lastAdv = performance.now(); } }
+          else { A.hbs.push({ c, k }); if (A.hbs.length > 40) A.hbs.shift(); }
+        }
+        return;
+      }
+      if (t === 'r') {
+        const n = m.n | 0;
+        if (n <= NS.rn || (NS.pend && n < NS.pend.n)) return;
+        NS.gotR = true;
+        if (nowC() >= (+m.t0 || 0) - 1) netApplyRound(m); else NS.pend = m;
+      } else if (t === 'end') {
+        if ((m.n | 0) === NS.rn && !NS.endSeen && S.R) netApplyEnd(m);
+      } else if (t === 'miss') {
+        if ((m.n | 0) === NS.rn && !NS.endSeen && (m.p | 0) === OPP) netOppMiss(+m.c);
+      } else if (t === 'late') {
+        if ((m.n | 0) === NS.rn) netPhoto(m.p | 0, +m.ms, false);
+      }
+    }
+    function netHbFlush(A) {
+      for (let j = A.hbs.length - 1; j >= 0; j--) {
+        const b = A.hbs[j];
+        if (b.k <= A.recv) { if (b.c > A.gwm) { A.gwm = b.c; A.lastAdv = performance.now(); } A.hbs.splice(j, 1); }
+      }
+    }
+    function netOppMiss(c) {
+      if (!S.R || S.phase !== 'play' || !isFinite(c)) return;
+      NS.op.frz = Math.max(NS.op.frz, c + FREEZE_MS);
+      NS.op.shake = 9; NS.op.flash = 1;
+      SFX.miss();
+    }
+    function netHello() {
+      const t = performance.now();
+      if (GUEST) {
+        if (!NS.gotR) { if (t - NS.hiT > 400) { NS.hiT = t; const c = netCaps('hi'); NS.lastCaps = JSON.stringify(c.hn) + c.np + '|' + c.w + 'x' + c.h; nsend(c, true); } }
+        else if (NS.capsDirty && t - NS.hiT > 250) {
+          NS.capsDirty = false; NS.hiT = t;
+          const c = netCaps('caps'), key = JSON.stringify(c.hn) + c.np + '|' + c.w + 'x' + c.h;
+          if (key !== NS.lastCaps) { NS.lastCaps = key; nsend(c, true); }     // seulement si quelque chose a changé
+        }
+      } else if (!NS.started && (NS.peer || t - NS.mountT > 2500)) { NS.started = true; netStartRound(false); }
+    }
+
+    // ------------------------------------------------------------- en ligne : pause et reprise à une heure commune
+    function netResume() {
+      resumeStep = 0;
+      if (GUEST) {
+        if (NS.resMsg && (NS.resMsg.q | 0) > NS.resApplied) netApplyRes(NS.resMsg);
+        else { NS.waitRes = true; NS.waitT = performance.now(); resumeT = 1.5; }
+        return;
+      }
+      // hôte : on reprend dans 1,5 s (3-2-1) ; la manche (et celle en attente) est décalée de la durée de la pause
+      const now = nowC(), at = now + 1500, shift = NS.pausedAt ? at - NS.pausedAt : 0;
+      if (shift > 0 && S.R && NS.rn && (S.phase === 'intro' || S.phase === 'play')) {
+        const old0 = NS.play0;
+        NS.t0 += shift; NS.play0 += shift; NS.ep++;
+        const A = NS.arb;
+        if (A && A.n === NS.rn) { A.ep = NS.ep; A.gwm = Math.min(A.gwm, NS.pausedAt - old0); A.hbs.length = 0; A.lastAdv = performance.now() + 1500; }
+        if (NS.lastR && NS.lastR.n === NS.rn) NS.lastR.t0 = NS.t0;
+      }
+      if (shift > 0 && NS.pend) NS.pend.t0 += shift;
+      NS.resAt = at; resumeT = 1.5; NS.pausedAt = 0;
+      nsend({ t: 'res', q: ++NS.resQ, n: NS.rn, t0: NS.t0, e: NS.ep, pn: NS.pend ? NS.pend.n : 0, pt0: NS.pend ? NS.pend.t0 : 0, at }, true);
+    }
+    function netOnRes(m) {                         // invité (reçu même en pause)
+      if (!GUEST || (m.q | 0) <= NS.resApplied) return;
+      NS.resMsg = m;
+      if (!paused) netApplyRes(m);
+    }
+    function netApplyRes(m) {
+      NS.resApplied = m.q | 0; NS.resMsg = null;
+      const map = {};
+      if (isFinite(+m.t0)) map[m.n | 0] = +m.t0;
+      if ((m.pn | 0) > 0 && isFinite(+m.pt0)) map[m.pn | 0] = +m.pt0;
+      if (S.R && NS.rn && map[NS.rn] != null && (S.phase === 'intro' || S.phase === 'play')) {
+        NS.t0 = map[NS.rn]; NS.play0 = NS.t0 + S.introDur * 1000; NS.ep = NS.rn === (m.n | 0) ? m.e | 0 : 0; NS.reanchor = true;
+      }
+      if (NS.pend && map[NS.pend.n] != null) NS.pend.t0 = map[NS.pend.n];
+      NS.resAt = isFinite(+m.at) ? +m.at : nowC(); NS.waitRes = false;
+      resumeT = Math.max(0.001, (NS.resAt - nowC()) / 1000); resumeStep = 0;
+    }
+
+    // ------------------------------------------------------------- en ligne : arbitrage (hôte)
+    function netArbitrate() {
+      const A = NS.arb;
+      if (!A || A.done || !S.R || S.phase !== 'play' || A.n !== NS.rn) return;
+      const hostC = nowC() - NS.play0;            // mes propres touches sont connues tout de suite
+      let limit = Math.min(hostC, A.gwm);         // celles de l'invité : jusqu'à son filigrane
+      const waiting = hostC >= ROUND_MS || A.q.some((e) => e.h);
+      if (waiting && performance.now() - A.lastAdv > Math.max(1500, 4 * netRtt())) limit = hostC;   // plus de nouvelles : on tranche
+      if (A.q.length > 1) A.q.sort((a, b) => a.c - b.c);
+      let k = 0;
+      for (; k < A.q.length; k++) {
+        const e = A.q[k];
+        if (e.c > limit) break;
+        if (e.c >= ROUND_MS || e.c < A.frz[e.p] - 2) continue;      // trop tard, ou joueur gelé à ce moment-là
+        if (e.h) {
+          let w = e;                               // égalité à la milliseconde près : pile ou face
+          for (let j = k + 1; j < A.q.length && A.q[j].c === e.c; j++) { const f = A.q[j]; if (f.h && f.p !== e.p && f.c >= A.frz[f.p] - 2 && Math.random() < 0.5) w = f; }
+          A.q.splice(0, k);
+          netDecide(w.p, w.c);
+          return;
+        }
+        A.frz[e.p] = e.c + FREEZE_MS;
+      }
+      if (k) A.q.splice(0, k);
+      if (limit >= ROUND_MS) netDecide(-1, ROUND_MS);
+    }
+    function netDecide(w, c) {
+      const A = NS.arb;
+      A.done = true; A.w = w; A.wc = c;
+      let ov = 0, d = null;
+      if (w >= 0) {
+        for (const e of A.q) if (e.p !== w && e.h && e.c >= c && e.c < ROUND_MS && e.c >= A.frz[e.p] - 2) { d = Math.round(e.c - c); break; }
+        let res = null;
+        try { res = typeof api.point === 'function' ? api.point(w, WHY[(Math.random() * WHY.length) | 0]) : null; } catch (err) { res = null; }
+        ov = res && res.over ? 1 : 0;
+      }
+      A.q.length = 0;
+      const m = { t: 'end', n: A.n, w, c: Math.round(c), i: S.R.target, ov, d };
+      NS.lastEnd = m;
+      nsend(m, true);
+      netApplyEnd(m);
+    }
+    // les deux appareils : même fin de manche (qui a trouvé, où), mêmes effets et sons
+    function netApplyEnd(m) {
+      NS.endSeen = true; NS.stopped = true; NS.my.hit = null;
+      const w = m.w === 0 || m.w === 1 ? m.w : -1;
+      NS.winC = isFinite(+m.c) ? +m.c : 0;
+      if (m.ov) S.matchOver = true;
+      S.freeze[0] = S.freeze[1] = 0;
+      NS.log.push({ n: m.n | 0, w, c: NS.winC, i: m.i | 0, ov: !!m.ov, d: m.d == null ? null : +m.d, lag: Math.round(nowC() - (NS.play0 + NS.winC)) });
+      if (NS.log.length > 40) NS.log.shift();
+      if (w >= 0) {
+        S.phase = 'won'; S.t = 0; S.winner = w; S.hold = 0.11;
+        netHandle({ type: 'win', p: w, i: S.R.target });
+        if (m.d != null && isFinite(+m.d)) netPhoto(1 - w, +m.d, false);
+      } else {
+        S.phase = 'draw'; S.t = 0;
+        netHandle({ type: 'timeout' });
+      }
+    }
+    // photo-finish : le perdant avait trouvé aussi, à quelques centièmes près
+    function netPhoto(p, ms, send) {
+      if (NS.photo || !(ms >= 0) || ms > 2500) return;
+      NS.photo = { p, ms: Math.round(ms) };
+      if (send) nsend({ t: 'late', n: NS.rn, p, ms: Math.round(ms) }, true);
+      if (p === ME && S.R && L) float(ME, L.bx + L.bw / 2, L.by + L.bh * 0.16, 'À ' + secs(ms) + ' PRÈS !', PL[OPP].name + ' a été plus rapide', '#ffd34d', 20);
+    }
+
+    // ------------------------------------------------------------- en ligne : effets et sons
+    function netHandle(e) {
+      const me = ME, F = FX[me];
+      switch (e.type) {
+        case 'count': SFX.count(); break;
+        case 'go':
+          SFX.go();
+          F.flash = 0.2; F.flashCol = '#ffffff';
+          ring(me, L.bx + L.bw / 2, L.by + L.bh / 2, 12, Math.max(L.bw, L.bh) * 0.62, 0.6, PC[me], 5);
+          ring(me, L.bx + L.bw / 2, L.by + L.bh / 2, 6, Math.max(L.bw, L.bh) * 0.4, 0.45, '#ffffff', 3);
+          break;
+        case 'tick': SFX.tick(e.n); break;
+        case 'empty': {
+          const k = boardK(), o = boardOff();
+          F.ripple.push({ x: o[0] + e.x * k, y: o[1] + e.y * k, t: 0 });
+          SFX.empty();
+          break;
+        }
+        case 'miss': {
+          if (e.p !== me) break;
+          const pos = objLocal(e.i);
+          F.shake = Math.max(F.shake, 7); F.flash = 0.42; F.flashCol = '#ff2a44'; F.wrong = e.i; F.wrongT = FREEZE_TIME;
+          sparks(me, pos[0], pos[1], 14, '#ff4d5e', 220, 0.45, 18);
+          ring(me, pos[0], pos[1], 6, 46, 0.4, '#ff4d5e', 3);
+          float(me, pos[0], pos[1] - 26, 'RATÉ !', missWhy(e.i), '#ff4d5e', 26);
+          SFX.miss(); vibrate(35);
+          break;
+        }
+        case 'win': netWinFx(e); break;
+        case 'timeout':
+          FX[0].floats.length = 0; FX[1].floats.length = 0;
+          F.flash = 0.3; F.flashCol = '#3a5568';
+          SFX.timeout();
+          break;
+        case 'next': if (!GUEST) netStartRound(false); break;
+        case 'replay': if (!GUEST) netStartRound(true); break;
+      }
+    }
+    function netWinFx(e) {
+      const p = e.p, me = ME, F = FX[me];
+      if (S.matchOver) overT = 0;
+      FX[0].floats.length = 0; FX[1].floats.length = 0;
+      if (p === me) {                               // j'ai trouvé : la grande fête sur mon plateau
+        const pos = objLocal(e.i);
+        F.shake = 10; F.flash = 0.62; F.flashCol = '#ffffff';
+        ring(me, pos[0], pos[1], 10, 150, 0.7, PC[me], 6);
+        ring(me, pos[0], pos[1], 6, 95, 0.5, '#ffffff', 4);
+        ring(me, pos[0], pos[1], 20, 210, 0.95, '#ffd34d', 3);
+        sparks(me, pos[0], pos[1], 34, PC[me], 420, 0.8, 26);
+        sparks(me, pos[0], pos[1], 14, '#ffffff', 300, 0.6, 18);
+        for (let i = 0; i < 8; i++) { const a = Math.random() * TAU, v = 90 + Math.random() * 200; addPart(me, { k: 2, x: pos[0], y: pos[1], vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.7 + Math.random() * 0.5, max: 1.2, s: 22 + Math.random() * 16, col: '#ffffff', drag: 2.6, g: 0 }); }
+        confetti(me, pos[0], pos[1], 64, [PC[me], '#ffd34d', '#ffffff', ACCENT, PC[me]], 520);
+        F.medFlash = 1;
+        ring(me, L.mx, L.my, L.mr * 0.8, L.mr * 2.2, 0.6, PC[me], 4);
+        if (S.matchOver) {
+          S.hold = 0.24; F.flashCol = '#fff3c4';
+          ring(me, pos[0], pos[1], 30, 320, 1.2, '#ffd34d', 5);
+          after(0.35, () => { confetti(me, L.bx + L.bw / 2, L.by + L.bh * 0.3, 70, ['#ffd34d', PC[me], '#ffffff', ACCENT], 620); ring(me, L.bx + L.bw / 2, L.by + L.bh * 0.3, 10, 260, 0.9, PC[me], 5); FX[me].shake = Math.max(FX[me].shake, 6); });
+        }
+        vibrate(S.matchOver ? 120 : 70);
+      } else {                                      // l'adversaire a trouvé : mon plateau montre où c'était, sa tête fait la fête
+        F.flash = 0.3; F.flashCol = '#0a1018'; F.shake = 3;
+        ring(me, L.oax, L.oay, L.oar * 0.9, L.oar * 2.5, 0.7, PC[OPP], 5);
+        ring(me, L.oax, L.oay, L.oar * 1.05, L.oar * 1.9, 0.5, '#ffffff', 3);
+        for (let i = 0; i < 14; i++) {              // étincelles qui partent du bord de sa tête (le visage reste net)
+          const a = Math.random() * TAU, v = 160 + Math.random() * 200, r0 = L.oar * 1.05;
+          addPart(me, { k: 0, x: L.oax + Math.cos(a) * r0, y: L.oay + Math.sin(a) * r0, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.35 + Math.random() * 0.35, max: 0.7, s: 12 + Math.random() * 10, col: PC[OPP], drag: 2.4, g: 0 });
+        }
+        confetti(me, L.oax, L.oay - L.oar * 0.4, S.matchOver ? 60 : 34, [PC[OPP], '#ffd34d', '#ffffff', ACCENT], 420);
+        if (S.matchOver) S.hold = 0.24;
+        vibrate(30);
+      }
+      SFX.win(); if (S.matchOver) SFX.victory();
+    }
+    // « touché ! » : retour immédiat sur mon plateau en attendant le verdict de l'hôte
+    function netTouchFx(i) {
+      const pos = objLocal(i), F = FX[ME];
+      ring(ME, pos[0], pos[1], 8, 74, 0.45, '#ffffff', 4);
+      ring(ME, pos[0], pos[1], 4, 52, 0.35, PC[ME], 3);
+      sparks(ME, pos[0], pos[1], 12, PC[ME], 260, 0.45, 18);
+      F.flash = Math.max(F.flash, 0.16); F.flashCol = '#ffffff';
+      tone(1175, 0.07, 'triangle', 0.045); tone(1568, 0.09, 'triangle', 0.03);
+      vibrate(25);
+    }
+    function drawNetTouched(i, behind) {
+      const q = objLocal(i), r = S.R.size * boardK() * 0.66, w = Math.sin(ct * 14);
+      if (behind) {
+        ctx.globalCompositeOperation = 'lighter';
+        glowAt(glow(PC[ME]), q[0], q[1], r * 3.4, 0.6 + 0.25 * w);
+        ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+        return;
+      }
+      ctx.strokeStyle = PC[ME]; ctx.lineWidth = 3.5; ctx.setLineDash([9, 6]); ctx.lineDashOffset = -ct * 60;
+      circ(ctx, q[0], q[1], r + w * 2); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    }
+
+    // ------------------------------------------------------------- en ligne : boucle
+    function netFrame(dt) {
+      if (NS.waitRes) {                             // invité : reprise demandée, on attend l'heure commune de l'hôte
+        if (performance.now() - NS.waitT > 3000) { NS.waitRes = false; NS.resAt = nowC() + 900; }
+        else { resumeT = 1.5; render(); return; }
+      }
+      if (resumeT > 0) {                            // 3-2-1 jusqu'à l'heure commune de reprise
+        resumeT = Math.max(0, (NS.resAt - nowC()) / 1000);
+        const n = Math.ceil(resumeT / 0.5);
+        if (n !== resumeStep) { resumeStep = n; if (n > 0) SFX.resume(); }
+        if (resumeT > 0) { render(); return; }
+        SFX.go();
+      }
+      ct += dt;
+      for (let i = later.length - 1; i >= 0; i--) if (later[i].t <= ct) { const f = later[i].fn; later.splice(i, 1); try { f(); } catch (e) { /* rien */ } }
+      netPump();
+      if (destroyed) return;
+      netHello();
+      const ev = [];
+      const prevClock = S.clock, wasPlay = S.phase === 'play';
+      if (S.phase === 'won' || S.phase === 'draw') simStep(S, dt, inputs, ev);   // fin de manche (et « suivante » chez l'hôte)
+      netTimeline(ev);
+      if (wasPlay && S.phase === 'play' && S.R) {   // étincelles de la cascade
+        let n = 0;
+        for (let i = 0; i < S.R.N; i++) {
+          const ap = S.R.objs[i].ap;
+          if (prevClock < ap && S.clock >= ap) {
+            const q = objLocal(i);
+            FX[ME].ripple.push({ x: q[0], y: q[1], t: 0.1, soft: true, r0: S.R.size * boardK() * 0.3 });
+            if (n % 2 === 0) sparks(ME, q[0], q[1], 2, '#ffffff', 90, 0.35, 12);
+            if (n++ % 3 === 0) SFX.pop(i);
+          }
+        }
+      }
+      for (const e of ev) netHandle(e);
+      netBeat();
+      if (!GUEST) netArbitrate();
+      const o = NS.op;
+      if (o.shake > 0) o.shake = Math.max(0, o.shake - dt * 30);
+      if (o.flash > 0) o.flash = Math.max(0, o.flash - dt * 2.2);
+      if (overT >= 0) overT += dt;
+      updFx(dt);
+      const r0 = performance.now();
+      render();
+      profMs += (performance.now() - r0 - profMs) * 0.05;
+    }
+
+    // ------------------------------------------------------------- en ligne : dessin
+    function netBase(ox, oy) {                     // vue du joueur ; chez l'invité, dessinée tournée (le root l'est aussi)
+      base = FLIP ? [-dpr, 0, 0, -dpr, dpr * (L.W - ox), dpr * (L.H - oy)] : [dpr, 0, 0, dpr, dpr * ox, dpr * oy];
+      ctx.setTransform(base[0], base[1], base[2], base[3], base[4], base[5]);
+    }
+    function buildNetBg() {
+      const W = L.W, H = L.H, c = mk(W * dpr, H * dpr), g = c.getContext('2d');
+      g.scale(dpr, dpr);
+      const col = PC[ME], oc = PC[OPP], bcx = L.bx + L.bw / 2, bcy = L.by + L.bh / 2, y = L.line;
+      g.fillStyle = lin(g, 0, 0, 0, H, [0, '#0e1a24', 0.45, '#0b141c', 1, '#081017']); g.fillRect(0, 0, W, H);
+      g.fillStyle = rad(g, bcx, bcy, 10, bcx, bcy, Math.max(L.bw, L.bh) * 0.95, [0, rgba(col, 0.12), 1, 'rgba(0,0,0,0)']); g.fillRect(0, 0, W, H);
+      g.fillStyle = rad(g, L.oax, L.oay, 4, L.oax, L.oay, L.oar * 4.5, [0, rgba(oc, 0.15), 1, 'rgba(0,0,0,0)']); g.fillRect(0, 0, W, H);
+      g.fillStyle = rad(g, L.mx, L.my, 4, L.mx, L.my, L.mr * 3.2, [0, rgba(ACCENT, 0.1), 1, 'rgba(0,0,0,0)']); g.fillRect(0, 0, W, H);
+      // trame de points
+      g.fillStyle = 'rgba(255,255,255,0.035)';
+      for (let yy = 8, j = 0; yy < H; yy += 14, j++) for (let x = 6 + (j % 2) * 7; x < W; x += 14) g.fillRect(x, yy, 1.4, 1.4);
+      if (L.tall) {
+        // la ligne du milieu, où la bibliothèque pose menu et scores : le médaillon est posé dessus
+        g.fillStyle = lin(g, 0, y - 46, 0, y + 46, [0, 'rgba(0,0,0,0)', 0.5, rgba(ACCENT, 0.14), 1, 'rgba(0,0,0,0)']); g.fillRect(0, y - 46, W, 92);
+        g.fillStyle = lin(g, 0, 0, W, 0, [0, rgba(ACCENT, 0.2), 0.5, rgba(ACCENT, 0.95), 1, rgba(ACCENT, 0.2)]); g.fillRect(0, y - 0.8, W, 1.6);
+      } else {
+        // panneaux décorés de chaque côté (coupés à la ligne du milieu, sous le menu et les scores)
+        for (const P of L.panels) {
+          const pc = P[4] === 'opp' ? oc : P[4] === 'medal' ? ACCENT : col;
+          rr(g, P[0], P[1], P[2], P[3], 16);
+          g.fillStyle = lin(g, 0, P[1], 0, P[1] + P[3], [0, 'rgba(22,38,51,0.75)', 1, 'rgba(12,21,29,0.6)']); g.fill();
+          g.lineWidth = 1.2; g.strokeStyle = rgba(pc, 0.3); g.stroke();
+          g.fillStyle = rgba(pc, 0.55); g.fillRect(P[0] + 18, P[1], P[2] - 36, 2);
+        }
+        const x0 = L.bx - 10, x1 = L.bx + L.bw + 10;
+        g.fillStyle = lin(g, 0, 0, x0, 0, [0, rgba(ACCENT, 0.1), 1, rgba(ACCENT, 0.8)]); g.fillRect(0, y - 0.8, x0, 1.6);
+        g.fillStyle = lin(g, x1, 0, W, 0, [0, rgba(ACCENT, 0.8), 1, rgba(ACCENT, 0.1)]); g.fillRect(x1, y - 0.8, W - x1, 1.6);
+      }
+      // cadre du plateau (halo à ma couleur) + coins de viseur
+      g.save();
+      g.shadowColor = rgba(col, 0.7); g.shadowBlur = 18;
+      rr(g, L.bx - 2, L.by - 2, L.bw + 4, L.bh + 4, L.br + 2); g.fillStyle = '#0a141b'; g.fill();
+      g.restore();
+      rr(g, L.bx - 2, L.by - 2, L.bw + 4, L.bh + 4, L.br + 2); g.lineWidth = 2; g.strokeStyle = rgba(col, 0.85); g.stroke();
+      g.strokeStyle = col; g.lineWidth = 3.2; g.lineCap = 'round';
+      const k = Math.min(22, L.bw * 0.08), o = 6;
+      const cs = [[L.bx - o, L.by - o, 1, 1], [L.bx + L.bw + o, L.by - o, -1, 1], [L.bx - o, L.by + L.bh + o, 1, -1], [L.bx + L.bw + o, L.by + L.bh + o, -1, -1]];
+      for (const q of cs) { g.beginPath(); g.moveTo(q[0], q[1] + q[3] * k); g.lineTo(q[0], q[1]); g.lineTo(q[0] + q[2] * k, q[1]); g.stroke(); }
+      return c;
+    }
+    function drawNetView() {
+      const F = FX[ME];
+      let ox = 0, oy = 0;
+      if (F.shake > 0.05 && !paused) { ox = (Math.random() * 2 - 1) * F.shake; oy = (Math.random() * 2 - 1) * F.shake; }
+      ctx.save();
+      netBase(ox * 0.5, oy * 0.5);
+      if (!netBg) netBg = buildNetBg();
+      ctx.drawImage(netBg, 0, 0, L.W, L.H);
+      if (L.tall) {                                 // lueurs qui filent sur la ligne du milieu
+        const ph = (ct * 0.4) % 1, x1 = L.W / 2 + ph * L.W * 0.55, x2 = L.W / 2 - ph * L.W * 0.55;
+        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7 * (1 - ph);
+        ctx.drawImage(glow(ACCENT), x1 - 40, L.line - 8, 80, 16); ctx.drawImage(glow(ACCENT), x2 - 40, L.line - 8, 80, 16);
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      }
+      netBase(ox, oy);
+      drawBoard(ME);
+      if (!S.R) {                                   // avant la 1re manche
+        reset();
+        ctx.globalAlpha = 0.7 + 0.3 * Math.sin(ct * 3);
+        text(GUEST || NS.peer ? 'La partie commence…' : 'En attente de ' + PL[OPP].name + '…', L.bx + L.bw / 2, L.by + L.bh / 2, clamp(L.bw * 0.045, 13, 20), '#cfe0ea', { body: true, stroke: 3 });
+        ctx.globalAlpha = 1;
+      }
+      drawIntroBanner(ME);
+      drawCountdown(ME);
+      netBase(ox * 0.4, oy * 0.4);
+      drawMedal(ME);
+      drawNetInfo();
+      netBase(ox, oy);
+      drawFx(ME);
+      if (S.phase === 'play' && S.R && !NS.stopped && ROUND_TIME - S.clock < 5) {
+        const since = (S.clock - (ROUND_TIME - 5)) % 1, k = Math.pow(1 - since, 3) * (0.35 + 0.35 * (1 - (ROUND_TIME - S.clock) / 5));
+        reset(); ctx.globalAlpha = k; ctx.drawImage(vignette(), 0, 0, L.W, L.H); ctx.globalAlpha = 1;
+      }
+      if (F.flash > 0.01) { reset(); ctx.globalAlpha = Math.min(1, F.flash); ctx.fillStyle = F.flashCol; ctx.fillRect(-20, -20, L.W + 40, L.H + 40); ctx.globalAlpha = 1; }
+      if (S.phase === 'won' && S.matchOver && S.winner === ME) drawVictoryRain(ME);
+      if (paused || resumeT > 0 || NS.waitRes) drawCover(ME);
+      ctx.restore();
+    }
+    // ce que fait l'adversaire : [texte, couleur, alerte]
+    function oppStatus() {
+      const grey = '#9fb3c2';
+      if (!S.R) return [GUEST || NS.peer ? 'prêt !' : 'connexion…', grey];
+      if (S.phase === 'intro') return ['prêt !', grey];
+      if (S.phase === 'won') {
+        if (S.matchOver) return S.winner === OPP ? ['VICTOIRE !', '#ffd34d'] : ['PERDU…', grey];
+        if (S.winner === OPP) return ['TROUVÉ en ' + secs(NS.winC, 1), PC[OPP]];
+        return [NS.photo && NS.photo.p === OPP ? 'trop tard de ' + secs(NS.photo.ms) : 'TROP TARD', grey];
+      }
+      if (S.phase === 'draw') return ['TEMPS ÉCOULÉ', grey];
+      if (S.freeze[OPP] > 0) return ['RATÉ ! gelé', '#ff6b7a', true];
+      if (NS.stopped) return ['…', grey];
+      return ['cherche…', '#cfe0ea'];
+    }
+    function drawNetInfo() {
+      reset();
+      // ---------- l'adversaire : sa tête (son humeur), son nom, ce qu'il fait
+      const op = NS.op, om = avatarMood(OPP), r = L.oar;
+      const ax = L.oax + (op.shake > 0.05 ? Math.sin(ct * 70) * op.shake * 0.8 : 0), ay = L.oay;
+      let sc = 1;
+      if (om === 'win') sc = 1 + 0.12 * Math.max(0, Math.sin(S.t * 10)) * Math.max(0, 1 - S.t / 1.2);
+      ctx.globalCompositeOperation = 'lighter';
+      if (om === 'win') { ctx.save(); at(ax, ay, ct * 0.6); glowAt(RAYS, 0, 0, r * 4.6, 0.42 * clamp(S.t / 0.3, 0, 1)); ctx.restore(); reset(); ctx.globalCompositeOperation = 'lighter'; }
+      glowAt(glow(PC[OPP]), ax, ay, r * (om === 'win' ? 3.4 : 2.4), om === 'win' ? 0.8 : 0.3);
+      if (op.flash > 0.01) glowAt(glow('#ff4d5e'), ax, ay, r * 3.2, op.flash * 0.85);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      const av = avatarSprite(OPP, om === 'sad', r), s2 = av.S * sc;
+      ctx.drawImage(av.c, ax - s2 / 2, ay - s2 / 2, s2, s2);
+      if (S.freeze[OPP] > 0 && S.phase === 'play') {                 // gel : arc rouge qui se vide
+        ctx.lineCap = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#ff4d5e';
+        ctx.beginPath(); ctx.arc(ax, ay, r + 7, -Math.PI / 2, -Math.PI / 2 + TAU * (S.freeze[OPP] / FREEZE_TIME)); ctx.stroke();
+      }
+      if (S.phase === 'won' && S.matchOver && S.winner === OPP && S.t > 0.3) drawCrown(ax, ay - r - 6, r * 0.55, ct);
+      const st = oppStatus(), nm = PL[OPP].name;
+      const fN = clamp(r * 0.3, 12, 18), fS = clamp(r * 0.25, 11, 15);
+      const pw = Math.min(L.W - 2 * L.m, Math.max(textWidth(nm, fN, false), textWidth(st[0], fS, true), r * 1.6) + 36), ph = fN + fS + 17;
+      const py = L.opY;
+      rr(ctx, L.oax - pw / 2, py - ph / 2, pw, ph, 12); ctx.fillStyle = 'rgba(8,15,22,0.9)'; ctx.fill();
+      ctx.lineWidth = 1.4; ctx.strokeStyle = st[2] ? 'rgba(255,77,94,0.95)' : rgba(PC[OPP], 0.7); ctx.stroke();
+      text(nm, L.oax, py - ph / 2 + 7 + fN * 0.55, fN, PC[OPP], { stroke: 3 });
+      if (st[0] === 'cherche…') ctx.globalAlpha = 0.65 + 0.35 * Math.sin(ct * 4);
+      text(st[0], L.oax, py + ph / 2 - 7 - fS * 0.55, fS, st[1], { body: true, stroke: 0 });
+      ctx.globalAlpha = 1;
+      // ---------- moi
+      const mm = avatarMood(ME);
+      let bob = 0, msc = 1;
+      if (mm === 'win') { msc = 1 + 0.12 * Math.max(0, Math.sin(S.t * 10)) * Math.max(0, 1 - S.t / 1.2); bob = -3 * Math.abs(Math.sin(S.t * 8)); }
+      else if (mm === 'sad' && S.freeze[ME] > 0) bob = Math.sin(ct * 50) * 1.5;
+      if (mm === 'win') { ctx.globalCompositeOperation = 'lighter'; glowAt(glow(PC[ME]), L.avx, L.avy, L.avr * 3.2, 0.7); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
+      const mav = avatarSprite(ME, mm === 'sad', L.avr), m2 = mav.S * msc;
+      ctx.drawImage(mav.c, L.avx - m2 / 2 + (S.freeze[ME] > 0 ? bob : 0), L.avy - m2 / 2 + (mm === 'win' ? bob : 0), m2, m2);
+      text(PL[ME].name, L.avx, L.nameY, clamp(L.avr * 0.4, 11, 20), PC[ME], { stroke: 3.5 });
+      // ---------- manche + chrono
+      if (L.tall) {
+        ctx.save(); at(L.clx, L.ccy, 0, L.ck); drawClock(-35, -22, 0, ME); ctx.restore(); reset();
+        // fils du médaillon vers la puce et vers moi
+        const mx0 = L.mx - L.mr - 13, mx1 = L.mx + L.mr + 13, px1 = L.clx + 35 * L.ck + 6, ax0 = L.avx - L.avr - 7;
+        ctx.strokeStyle = rgba(PC[ME], 0.32); ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (mx0 > px1 + 4) { ctx.moveTo(px1, L.ccy); ctx.lineTo(mx0, L.ccy); }
+        if (ax0 > mx1 + 4) { ctx.moveTo(mx1, L.avy); ctx.lineTo(ax0, L.avy); }
+        ctx.stroke();
+        ctx.fillStyle = rgba(PC[ME], 0.6);
+        if (mx0 > px1 + 4) { circ(ctx, mx0, L.ccy, 2); ctx.fill(); }
+        if (ax0 > mx1 + 4) { circ(ctx, mx1, L.avy, 2); ctx.fill(); }
+      } else {
+        const rx = L.mx, y0 = L.infoY, k = L.ik;
+        text('MANCHE ' + S.round, rx, y0, 13 * k, '#9fb3c2', { body: true, stroke: 0 });
+        if (S.R) {
+          const ch2 = 34 * k, cw2 = Math.min(L.pw - 30, 120 * k), late = S.phase === 'play' && ROUND_TIME - S.clock < 5;
+          rr(ctx, rx - cw2 / 2, y0 + 12 * k, cw2, ch2, ch2 / 2); ctx.fillStyle = 'rgba(8,15,22,0.88)'; ctx.fill();
+          ctx.lineWidth = late ? 2 : 1.3; ctx.strokeStyle = late ? '#ff4d5e' : rgba(PC[ME], S.phase === 'won' && S.winner === ME ? 1 : 0.5); ctx.stroke();
+          text(timeStr(ME), rx, y0 + 12 * k + ch2 / 2 + 1, 19 * k, timeCol(ME), { stroke: 4 });
+        }
+        if (L.titleY - (y0 + 46 * k) > 30) text('TROUVE-LE !', rx, L.titleY, clamp(L.pw * 0.085, 13, 22), ACCENT, { stroke: 4 });
+      }
+    }
+
+    // ------------------------------------------------------------- en ligne : accès de test
+    function boardSig(R) {
+      const f = (v) => (+v).toFixed(4);
+      let s = R.mode + '|' + R.N + '|' + R.target + '|' + f(R.LH) + '|' + (R.conveyor ? 1 : 0) + '|' + f(R.size) + '|' + R.rowV.map(f).join(',');
+      for (const o of R.objs) s += '|' + descKey(o.d) + '@' + [o.hx, o.hy, o.ax, o.ay, o.fx, o.fy, o.px, o.py, o.r0, o.wa, o.wf, o.wp, o.sc, o.ap].map(f).join(',');
+      let h = 2166136261;
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return (h >>> 0).toString(16) + '-' + R.N + '-' + R.mode;
+    }
+    function netInfo(wrong) {
+      const R = S.R, A = NS.arb;
+      const pos = (i) => { if (!R || i < 0) return null; const q = objLocal(i); return { x: q[0], y: q[1] }; };   // vue du joueur = écran
+      return { phase: S.phase, t: S.t, introDur: S.introDur, clock: S.clock, round: S.round, mode: R ? R.mode : null, n: R ? R.N : 0, conveyor: R ? R.conveyor : false,
+        freeze: S.freeze.slice(), winner: S.winner, matchOver: S.matchOver, paused, resumeT, parts: totalParts,
+        target: R ? pos(R.target) : null, wrong: wrong >= 0 ? pos(wrong) : null, targetIdx: R ? R.target : -1,
+        heads: content.heads.map((h) => h.name), planets: content.planets.length, label: R ? R.label : '', size: R ? R.size * boardK() : 0, renderMs: +profMs.toFixed(3),
+        banner: R ? bannerBig(ME) : null, ribbon: ribbonInfo(ME)[0],
+        net: { role: GUEST ? 'guest' : 'host', me: ME, flip: FLIP, rn: NS.rn, t0: NS.t0, play0: NS.play0, ep: NS.ep, aspect: NS.aspect, sig: R ? boardSig(R) : null,
+          hit: NS.my.hit, frz: NS.my.frz, stopped: NS.stopped, endSeen: NS.endSeen, winC: NS.winC, photo: NS.photo, pend: NS.pend ? NS.pend.n : 0, peer: !!NS.peer,
+          waitRes: NS.waitRes, resAt: NS.resAt, now: nowC(), log: NS.log.slice(), taps: NS.taps.slice(),
+          arb: A ? { n: A.n, q: A.q.length, gwm: A.gwm, done: A.done, w: A.w, wc: A.wc, recv: A.recv } : null,
+          L: { tall: !!L.tall, W: L.W, H: L.H, bx: L.bx, by: L.by, bw: L.bw, bh: L.bh, mx: L.mx, my: L.my, mr: L.mr, oax: L.oax, oay: L.oay, oar: L.oar, avx: L.avx, avy: L.avy } } };
+    }
+    if (NET) {
+      NS.mountT = performance.now();
+      try {
+        NET.onMessage((m) => {
+          if (destroyed || !m || typeof m !== 'object') return;
+          if (m.t === 'res') { netOnRes(m); return; }   // l'heure de reprise est notée même en pause
+          NS.inbox.push(m);
+          if (NS.inbox.length > 600) NS.inbox.splice(0, NS.inbox.length - 600);
+        });
+      } catch (e) { /* rien */ }
+    }
 
     // ------------------------------------------------------------- entrées
     function visible() { return root.offsetParent !== null; }
@@ -2186,7 +3230,17 @@
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       const r = canvas.getBoundingClientRect();
       const x = e.clientX - r.left, y = e.clientY - r.top;
+      if (NET) {
+        // En ligne, chaque doigt de ce téléphone est à son joueur. Chez l'invité, le root est tourné de 180° :
+        // les coordonnées d'écran, inversées (largeur − x, hauteur − y), donnent le point du canvas ; et sa vue,
+        // dessinée elle aussi tournée de 180°, inverse de nouveau : la vue du joueur est donc le repère de l'écran.
+        if (NS.waitRes) return;
+        usedKeys[ME] = false;
+        netTapAt(x, y);
+        return;
+      }
       const p = y > r.height / 2 ? 0 : 1;
+      if (AI && p === AIP) return;                   // la moitié de l'IA ne se touche pas
       owners.set(e.pointerId, p);
       const lx = p === 0 ? x : L.W - x, ly = p === 0 ? y - L.HH : L.HH - y;
       usedKeys[p] = false;
@@ -2194,10 +3248,10 @@
     }
     function onPointerUp(e) { owners.delete(e.pointerId); }
     function prevent(e) { e.preventDefault(); }
-    function moveCursor(p, sx, sy) {
+    function moveCursor(p, sx, sy, upright) {
       const R = S.R;
       if (!R || S.phase !== 'play') return;
-      const dx = p === 0 ? sx : -sx, dy = p === 0 ? sy : -sy;      // directions de l'écran → repère du joueur
+      const dx = p === 0 || upright ? sx : -sx, dy = p === 0 || upright ? sy : -sy;      // directions de l'écran → repère du joueur
       let cur = cursor[p];
       const vis = [];
       for (let i = 0; i < R.N; i++) if (S.clock >= R.objs[i].ap) vis.push(i);
@@ -2236,8 +3290,19 @@
         case 'e': case 'E': p = 1; sel = true; break;
         default: return;
       }
+      if (AI && p === AIP) return;                   // les touches du joueur de l'IA sont ignorées
       e.preventDefault();
       if (!S.R || S.phase !== 'play') return;
+      if (NET) {                                    // en ligne : toutes les touches pilotent le joueur de ce téléphone (vue droite)
+        if (NS.waitRes) return;
+        p = ME; usedKeys[p] = true;
+        if (dir) moveCursor(p, dir[0], dir[1], true);
+        else if (sel) {
+          if (cursor[p] < 0) { moveCursor(p, 0, 0, true); return; }
+          if (!e.repeat) netKeySelect(cursor[p]);
+        }
+        return;
+      }
       usedKeys[p] = true;
       if (dir) moveCursor(p, dir[0], dir[1]);
       else if (sel) {
@@ -2265,12 +3330,14 @@
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       inputs[0].length = inputs[1].length = 0; owners.clear();
+      if (NET) NS.pausedAt = nowC();
       render();
     }
     function resume() {
       if (destroyed || !paused) return;
       paused = false; last = -1;
-      resumeT = S.R && S.phase !== 'idle' ? 1.5 : 0; resumeStep = 0;
+      if (NET) netResume();                         // en ligne : reprise à une heure commune fixée par l'hôte
+      else { resumeT = S.R && S.phase !== 'idle' ? 1.5 : 0; resumeStep = 0; }
       if (!raf) raf = requestAnimationFrame(frame);
     }
     function destroy() {
@@ -2283,6 +3350,7 @@
       listeners.length = 0; later.length = 0; banner = null;
       owners.clear(); sprites = new Map(); halfBg = [null, null]; boardBg = {}; medalBase = [null, null]; avatarCache = {};
       for (const f of FX) { f.parts.length = 0; f.rings.length = 0; f.floats.length = 0; f.ripple.length = 0; }
+      if (NS) { NS.inbox.length = 0; NS.pend = null; NS.arb = null; NS.resMsg = null; netBg = null; }
       while (root.firstChild) root.removeChild(root.firstChild);
     }
 
@@ -2293,10 +3361,17 @@
         const pos = (p, i) => { if (!R || i < 0) return null; const q = objLocal(i); const s = toScreen(p, q[0], q[1]); return { x: s[0], y: s[1] }; };
         let wrong = -1;
         if (R) for (let i = 0; i < R.N; i++) if (i !== R.target && S.clock >= R.objs[i].ap + 0.1) { wrong = i; break; }
-        return { phase: S.phase, t: S.t, introDur: S.introDur, clock: S.clock, round: S.round, mode: R ? R.mode : null, n: R ? R.N : 0, conveyor: R ? R.conveyor : false,
+        if (NET) return netInfo(wrong);
+        const out = { phase: S.phase, t: S.t, introDur: S.introDur, clock: S.clock, round: S.round, mode: R ? R.mode : null, n: R ? R.N : 0, conveyor: R ? R.conveyor : false,
           freeze: S.freeze.slice(), winner: S.winner, matchOver: S.matchOver, paused, resumeT, parts: totalParts,
           target: R ? [pos(0, R.target), pos(1, R.target)] : null, wrong: wrong >= 0 ? [pos(0, wrong), pos(1, wrong)] : null,
           heads: content.heads.length, planets: content.planets.length, label: R ? R.label : '', size: R ? R.size * boardK() : 0, builds: BUILDS, sprites: sprites.size, renderMs: +profMs.toFixed(3) };
+        if (AI) {
+          const q = R ? toScreen(AIP, boardOff()[0] + (AIS.x - Math.floor(AIS.x / LW) * (R.conveyor ? LW : 0)) * boardK(), boardOff()[1] + AIS.y * boardK()) : null;
+          const ms = AIS.segs.find((g) => g.tap === 1);
+          out.ai = { p: AIP, level: AI.level, tFind: AIS.tFind, d: AIS.d, miss: AIS.miss, missAt: ms ? ms.l : null, segs: AIS.segs.length, alpha: AIS.alpha, reticle: q ? { x: q[0], y: q[1] } : null, log: AIS.log.slice() };
+        }
+        return out;
       },
       catalog(cv, px) {
         const g = cv.getContext('2d'), P = px || 90, cell = P * 1.25;
@@ -2323,8 +3398,12 @@
         return (performance.now() - t0) / (n || 20);
       },
       // relance une manche précise (numéro, mode) pour les captures de test
-      start(round, mode) { forced = { round: round | 0, mode: mode || null }; beginRound(false); forced = null; },
-      clock(sec) { if (S.phase === 'play') { S.clock = sec; S.mt = sec; S.tickNext = Math.max(ROUND_TIME - 5, Math.ceil(sec)); } }
+      start(round, mode) {
+        forced = { round: round | 0, mode: mode || null };
+        if (!NET) beginRound(false); else if (!GUEST) { NS.started = true; netStartRound(false); }
+        forced = null;
+      },
+      clock(sec) { if (!NET && S.phase === 'play') { S.clock = sec; S.mt = sec; S.tickNext = Math.max(ROUND_TIME - 5, Math.ceil(sec)); } }
     };
 
     return { destroy, pause, resume, _debug };
@@ -2339,6 +3418,8 @@
     accent: ACCENT,
     target: 5,
     layout: 'split',
+    net: true,                    // sait jouer en ligne (api.net) : chacun sur son appareil, même manche, arbitrage à l'heure
+    ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
     preview,
     mount
   };

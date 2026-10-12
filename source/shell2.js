@@ -196,7 +196,7 @@ function sadUrl(p) {
 }
 function headsList() {
   const out = [];
-  for (const p of players.values()) if (p.img && p.img.complete && p.img.naturalWidth) out.push({ name: p.name, img: p.img, sad: sadOf(p) || p.img });
+  for (const p of players.values()) if (p.name !== 'IA' && p.img && p.img.complete && p.img.naturalWidth) out.push({ name: p.name, img: p.img, sad: sadOf(p) || p.img });
   return out;
 }
 function playerObj() {
@@ -225,6 +225,7 @@ async function loadPlayers() {
     }
     playersAt = Date.now();
     syncOwnPlayer();
+    if (PRES.ok) setTimeout(presChanged, 0);
     refreshAll();
     if (!$('jdw-members').hidden) renderMembers();
   } catch (e) { serverOk = false; onRoomError(e); refreshAll(); }
@@ -1038,11 +1039,20 @@ function presApply(d) {
   }
   clearTimeout(PRES.timer); PRES.timer = setTimeout(presChanged, 80);
 }
+// présents dans le canal de la salle : seulement les membres de la salle (ceux qui l'ont rejointe), et moi
+function roomMember(name) { const p = players.get(name); return name === cleanName(profile.name) || !!(p && p.member); }
 function presList() {
   const out = [];
-  for (const metas of Object.values(PRES.state)) { const m = metas[metas.length - 1]; if (m && m.name) out.push({ name: cleanName(m.name), game: m.game || 'menu', ver: m.ver || '', cmp: m.cmp || null, cid: m.cid || '' }); }
+  for (const metas of Object.values(PRES.state)) {
+    const m = metas[metas.length - 1]; if (!m || !m.name) continue;
+    const name = cleanName(m.name);
+    if (playersAt && !roomMember(name)) continue;   // un appareil branché sur la salle sans en être membre n'apparaît nulle part
+    out.push({ name, game: m.game || 'menu', ver: m.ver || '', cmp: m.cmp || null, cid: m.cid || '' });
+  }
   return out;
 }
+// les noms inconnus de la présence : on recharge les membres (un nouveau venu apparaît dès que le serveur le confirme)
+function presUnknown() { for (const metas of Object.values(PRES.state)) { const m = metas[metas.length - 1]; if (m && m.name && !roomMember(cleanName(m.name))) return true; } return false; }
 function presChanged() {
   if (!PRES.ok) return;
   const list = presList(), live = new Map(), liveVer = new Map();
@@ -1051,13 +1061,11 @@ function presChanged() {
   for (const x of list) counts[x.game] = (counts[x.game] || 0) + 1;
   // joueurs d'une ancienne version (sans le direct) : vus en ligne par le serveur dans les 45 dernières secondes
   for (const p of players.values()) if (p.member && p.dbGame && !live.has(p.name)) { total++; counts[p.dbGame] = (counts[p.dbGame] || 0) + 1; }
-  let unknown = false;
   for (const p of players.values()) {
     if (live.has(p.name)) { p.live = true; p.game = live.get(p.name); p.liveVer = liveVer.get(p.name) || ''; }
     else { if (p.live) p.seen = Date.now(); p.live = false; if (p.member) p.game = null; }
   }
-  for (const n of live.keys()) { const p = players.get(n); if (!p || !p.member) unknown = true; }
-  if (unknown) loadPlayers();
+  if (presUnknown() && Date.now() - playersAt > 5000) loadPlayers();
   serverOk = true;
   refreshOnline(); if (chat.open) refreshChatOnline();
   if (!$('jdw-members').hidden) renderMembers();
@@ -2313,7 +2321,7 @@ function enterRoom(rm) {
   room = rm; store.set('jdw.room', room); remoteLoaded = false; roomDenied = false;
   if (prevId && prevId !== room.id) { rtLeave('jdw-room-' + prevId); presReset(); }
   rtJoin('jdw-room-' + room.id);
-  players.clear(); syncOwnPlayer(); remote = {}; counts = {}; total = 0;
+  players.clear(); syncOwnPlayer(); if (typeof ensureAiPlayer === 'function') ensureAiPlayer(); remote = {}; counts = {}; total = 0;
   $('jdw-joinbox').hidden = true; closeSheet('jdw-rooms');
   chatReset(); closeChat();
   refreshAll(); pushProfile(); loadPlayers(); loadScores(); heartbeat(); loadChat();
@@ -2344,7 +2352,7 @@ $('jdw-new-ok').addEventListener('click', async () => {
 // le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
 const MODES = {
   classique: null,
-  duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain : face à face sur le même téléphone, ou en ligne avec ta salle.' },
+  duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain ou l\'IA.' },
   compet: { ic: '🏆', t: 'Compétition', sub: 'Toute la salle sur le même jeu, en mode difficile : têtes et scores en direct, et que le meilleur gagne !' },
 };
 let MODE = 'classique';
@@ -2373,11 +2381,33 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
 const DUO_COLORS = ['#ffa630', '#5ef0ff'];
 // duel en ligne (bêta) : voir la section « Duel en ligne » plus bas
 const NET = { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: null, peer: '', peerCid: '', seats: null, turn: -1, blocked: new Set(),
-  pend: [], remote: false, helloT: 0, waitT: 0, guestInfo: null, stream: null, dest: null, vSender: null, aSender: null, start: null, ids: new Map() };
+  pend: [], remote: false, helloT: 0, waitT: 0, guestInfo: null, stream: null, dest: null, vSender: null, aSender: null, start: null, ids: new Map(),
+  data: false, g: null, handlers: [], queue: [], off: 0, rttv: 0, pings: [], pingT: 0 };
 // musique de chaque duel : morceaux des jeux solo qui vont bien
 const DUO_MUSIC = { trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
   souris: ['glouton', 'calm'], spatial: ['ilo', 'intense'], mots: ['accueil', 'calm'], guerre: ['canards', 'calm'] };
 const GUEST = 'INVITÉ';
+const AI_NAME = 'IA';
+const AI_LEVELS = { facile: ['Facile', 0.25], moyen: ['Moyen', 0.5], difficile: ['Difficile', 0.75], extreme: ['Extrême', 1] };
+let aiLevel = store.get('jdw.ailevel', 'moyen'); if (!(aiLevel in AI_LEVELS)) aiLevel = 'moyen';
+// tête de robot de l'IA (dessinée une fois, enregistrée comme la photo d'un joueur : la version triste se fait toute seule)
+var AI_PHOTO = '';   // var : lisible sans erreur même avant cette ligne (changement de salle au démarrage)
+(() => {
+  const c = document.createElement('canvas'); c.width = 160; c.height = 200; const g = c.getContext('2d');
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  g.strokeStyle = '#8aa0ae'; g.lineWidth = 6; g.beginPath(); g.moveTo(80, 44); g.lineTo(80, 18); g.stroke();
+  const ball = g.createRadialGradient(76, 12, 2, 80, 16, 14); ball.addColorStop(0, '#fff'); ball.addColorStop(0.4, '#ff5fae'); ball.addColorStop(1, '#a01a5c');
+  g.fillStyle = ball; g.beginPath(); g.arc(80, 16, 12, 0, 7); g.fill();
+  const body = g.createLinearGradient(0, 44, 0, 190); body.addColorStop(0, '#e9f0f3'); body.addColorStop(0.5, '#9fb2bf'); body.addColorStop(1, '#5d7484');
+  g.fillStyle = body; rr(14, 44, 132, 146, 34); g.fill();
+  g.fillStyle = '#5d7484'; rr(2, 96, 16, 44, 8); g.fill(); rr(142, 96, 16, 44, 8); g.fill();
+  g.fillStyle = '#0b141c'; rr(28, 70, 104, 64, 24); g.fill();
+  for (const x of [58, 102]) { const e = g.createRadialGradient(x, 100, 1, x, 102, 17); e.addColorStop(0, '#ffffff'); e.addColorStop(0.35, '#5ef0ff'); e.addColorStop(1, 'rgba(94,240,255,0)'); g.fillStyle = e; g.beginPath(); g.arc(x, 102, 17, 0, 7); g.fill(); }
+  g.fillStyle = '#22394a'; rr(50, 148, 60, 22, 8); g.fill();
+  g.fillStyle = '#5ef0ff'; for (let k = 0; k < 5; k++) { rr(56 + k * 10, 154, 6, 10, 2); g.fill(); }
+  AI_PHOTO = c.toDataURL('image/png'); setPlayer(AI_NAME, AI_PHOTO, null);
+})();
+function ensureAiPlayer() { if (AI_PHOTO && !players.has(AI_NAME)) setPlayer(AI_NAME, AI_PHOTO, null); }   // après un changement de salle (players vidé)
 let seats = store.get('jdw.seats', null);
 function defaultSeats() {
   const me = cleanName(profile.name) || 'JOUEUR';
@@ -2388,7 +2418,9 @@ if (!Array.isArray(seats) || seats.length !== 2 || !seats[0]) seats = defaultSea
 const seatName = i => (NET.seats ? NET.seats[i] : seats[i]) || GUEST;
 const sameSeats = () => seatName(0) === seatName(1);
 function seatPlayer(i) {
+  if (seatName(i) === AI_NAME) ensureAiPlayer();
   const name = seatName(i), rec = name === GUEST ? null : players.get(name);
+  if (name === AI_NAME) { const ok = !!(rec && rec.img && rec.img.complete && rec.img.naturalWidth); return { name: AI_NAME, img: ok ? rec.img : null, sad: ok ? (sadOf(rec) || rec.img) : null, color: DUO_COLORS[i], ai: true }; }
   const ok = !!(rec && rec.img && rec.img.complete && rec.img.naturalWidth);
   return { name: name === GUEST && sameSeats() ? GUEST + ' ' + (i + 1) : name, img: ok ? rec.img : null, sad: ok ? (sadOf(rec) || rec.img) : null, color: DUO_COLORS[i] };
 }
@@ -2402,13 +2434,21 @@ function addWin(id, w) {
   g[n] = (g[n] || 0) + 1; store.set('jdw.duostats', duoStats);
 }
 function renderSeats() {
+  const me = cleanName(profile.name);
+  if (me && seats.includes('JOUEUR') && !seats.includes(me)) { seats[seats.indexOf('JOUEUR')] = me; store.set('jdw.seats', seats); }   // nom choisi après le chargement
   for (const i of [0, 1]) {
     const b = $('jdw-seat-' + i), pl = seatPlayer(i), hd = b.querySelector('.seat-head');
     hd.textContent = ''; hd.appendChild(chatHead(pl.name, { passive: true }));
     b.querySelector('.seat-name').textContent = pl.name;
+    b.querySelector('.seat-tx small').textContent = (i === 0 ? 'En bas' : 'En haut') + (pl.ai ? ' · ' + AI_LEVELS[aiLevel][0] : '');
   }
+  // niveau de l'IA quand elle joue en haut
+  const ai = seatName(1) === AI_NAME;
+  $('jdw-ai-level').hidden = !ai;
+  for (const bt of document.querySelectorAll('#jdw-ai-level button')) bt.setAttribute('aria-checked', String(bt.dataset.lv === aiLevel));
   refreshDuoTiles();
 }
+for (const bt of document.querySelectorAll('#jdw-ai-level button')) bt.addEventListener('click', () => { aiLevel = bt.dataset.lv; store.set('jdw.ailevel', aiLevel); renderSeats(); });
 let pickSeat = 0;
 function openSeatPick(i) {
   pickSeat = i;
@@ -2416,13 +2456,15 @@ function openSeatPick(i) {
   const list = $('jdw-seatpick-list'); list.textContent = '';
   const seen = new Set(), rows = [];
   const add = (n, tag) => { n = cleanName(n); if (!n || n === GUEST || seen.has(n)) return; seen.add(n); rows.push([n, tag]); };
+  if (i === 1) { ensureAiPlayer(); rows.push([AI_NAME, 'l\'ordinateur joue contre toi · facile à extrême']); }   // l'IA joue en haut
   for (const p of profiles) add(p.name, 'sur ce téléphone');
   for (const p of [...players.values()].filter(p => p.member).sort((a, b) => a.name.localeCompare(b.name))) add(p.name, room ? 'de la salle' : '');
   rows.push([GUEST, 'un copain sans compte']);
   for (const [n, tag] of rows) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'pick-row' + (seatName(i) === n ? ' on' : '');
     const t = document.createElement('span'); t.className = 'pr-t';
-    const bb = document.createElement('b'); bb.textContent = n; const sm = document.createElement('small'); sm.textContent = tag; t.append(bb, sm);
+    const bb = document.createElement('b'); bb.textContent = n === AI_NAME ? '🤖 IA' : n; const sm = document.createElement('small'); sm.textContent = tag; t.append(bb, sm);
+    if (n === AI_NAME) b.classList.add('ai-row');
     b.append(chatHead(n, { passive: true }), t);
     b.addEventListener('click', () => {
       const o = 1 - i;
@@ -2436,7 +2478,7 @@ function openSeatPick(i) {
 }
 $('jdw-seat-0').addEventListener('click', () => openSeatPick(0));
 $('jdw-seat-1').addEventListener('click', () => openSeatPick(1));
-$('jdw-seat-swap').addEventListener('click', () => { seats = [seats[1], seats[0]]; store.set('jdw.seats', seats); renderSeats(); });
+$('jdw-seat-swap').addEventListener('click', () => { if (seats[1] === AI_NAME || seats[0] === AI_NAME) return; seats = [seats[1], seats[0]]; store.set('jdw.seats', seats); renderSeats(); });   // l'IA reste en haut
 $('jdw-seatpick-close').addEventListener('click', () => closeSheet('jdw-seatpick'));
 $('jdw-seatpick').addEventListener('click', e => { if (e.target === $('jdw-seatpick')) closeSheet('jdw-seatpick'); });
 let DUEL_WHERE = 'local';
@@ -2444,6 +2486,7 @@ function setDuelWhere(w) {
   DUEL_WHERE = w;
   for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.setAttribute('aria-selected', String(b.dataset.where === w));
   $('jdw-duel-local').hidden = w !== 'local'; $('jdw-duel-online').hidden = w !== 'online';
+  if (duoTiles.length) refreshDuoTiles();
 }
 for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.addEventListener('click', () => setDuelWhere(b.dataset.where));
 // tuiles des duels (vignette animée + score de la paire)
@@ -2457,7 +2500,11 @@ function buildDuoLibrary() {
     b.innerHTML = '<div class="tile-img"><canvas aria-hidden="true"></canvas><span class="duo-emoji" aria-hidden="true"></span></div><div class="tile-meta"><div class="tile-name"></div><div class="duo-tag"></div></div>';
     b.querySelector('.tile-name').textContent = d.title;
     b.querySelector('.duo-emoji').textContent = d.emoji || '⚔️';
-    b.addEventListener('click', () => { if (DUEL_WHERE === 'online') netCreate(d); else openDuo(d); });
+    b.addEventListener('click', () => {
+      if (DUEL_WHERE === 'online') { netCreate(d); return; }
+      if (aiBlocks(d)) { ensureAiPlayer(); toastCheer('Je ne sais pas encore jouer à ce jeu !', AI_NAME, true); return; }
+      openDuo(d);
+    });
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', d.accent || COLORS.amber);
     wrap.appendChild(b); grid.appendChild(wrap);
     duoTiles.push({ g: d, el: b, canvas: b.querySelector('canvas'), tag: b.querySelector('.duo-tag'), visible: false });
@@ -2468,11 +2515,14 @@ function buildDuoLibrary() {
   } else duoTiles.forEach(t => { t.visible = true; });
   refreshDuoTiles();
 }
+// contre l'IA : seuls les jeux qui savent la faire jouer (ai: true dans le module) ; les autres restent grisés
+const aiBlocks = d => DUEL_WHERE !== 'online' && seatName(1) === AI_NAME && !d.ai;
 function refreshDuoTiles() {
   for (const t of duoTiles) {
-    const w = pairWins(t.g.id);
-    t.tag.textContent = w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
-    t.tag.classList.toggle('tally', !!(w[0] + w[1]) && !sameSeats());
+    const w = pairWins(t.g.id), off = aiBlocks(t.g);
+    t.tag.textContent = off ? 'Bientôt contre l\'IA' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
+    t.tag.classList.toggle('tally', !off && !!(w[0] + w[1]) && !sameSeats());
+    t.el.classList.toggle('no-ai', off); t.el.setAttribute('aria-disabled', String(off));
   }
 }
 // ---------- la partie ----------
@@ -2483,7 +2533,9 @@ function duoBtn(text, cls, fn) { const b = document.createElement('button'); b.t
 function duoSay(text, o) {
   o = o || {};
   const land = DUO.d && DUO.d.layout === 'landscape';
-  const ps = land ? [0] : (o.p === 0 || o.p === 1) ? [o.p] : [0, 1];
+  let ps = land ? [0] : (o.p === 0 || o.p === 1) ? [o.p] : [0, 1];
+  // en ligne, chacun ne regarde que son écran : la bannière n'apparaît que de son côté (l'invité voit l'écran tourné : sa moitié = 1)
+  if (NET.role && NET.data && !land) { const me = NET.role === 'host' ? 0 : 1; ps = ps.filter(p => p === me); }
   for (const p of ps) {
     const el = $('jdw-duo-say' + p); el.textContent = '';
     const dv = document.createElement('div'); dv.className = 'duo-say-t' + (o.small ? ' small' : '');
@@ -2511,7 +2563,7 @@ function duoApi(d, seq) {
     audio: audioApi, colors: COLORS, fonts: FONTS,
     assets: (name) => window.JDW_ASSETS.load(name || 'ilo'),
     point(p, why) {
-      if (!mine() || (p !== 0 && p !== 1)) return { scores: DUO.scores.slice(), over: DUO.over, winner: DUO.winner };
+      if (!mine() || (p !== 0 && p !== 1) || NET.role === 'guest') return { scores: DUO.scores.slice(), over: DUO.over, winner: DUO.winner };
       if (DUO.over) return { scores: DUO.scores.slice(), over: true, winner: DUO.winner };
       DUO.scores[p]++;
       const over = DUO.scores[p] >= (d.target || 5);
@@ -2527,11 +2579,14 @@ function duoApi(d, seq) {
     },
     round: () => DUO.scores[0] + DUO.scores[1] + 1,
     scores: () => DUO.scores.slice(),
-    say: (text, o) => { if (mine()) duoSay(text, o); },
+    say: (text, o) => { if (mine() && NET.role !== 'guest') duoSay(text, o); },
     turn: (p) => { if (mine()) NET.turn = p === 0 || p === 1 ? p : -1; },   // jeux au tour par tour : qui a la main (duel en ligne)
     hasMusic: !!duoMusicId(d),   // la bibliothèque joue une musique pour ce duel : le jeu ne joue pas la sienne
     vibrate: (ms) => { try { if (navigator.vibrate) navigator.vibrate(Math.max(10, Math.min(400, +ms || 30))); } catch (e) {} },
-    online: false
+    online: !!(NET.role && NET.data),
+    // l'IA pilote le joueur du haut (DUO-CONTRACT.md, « Ajout : jouer contre l'IA »)
+    ai: !NET.role && seatName(1) === AI_NAME ? { p: 1, level: aiLevel, k: AI_LEVELS[aiLevel][1] } : undefined,
+    net: NET.role && NET.data ? netApi(seq) : undefined
   };
 }
 function openDuo(d) {
@@ -2548,16 +2603,20 @@ function mountDuo() {
   const d = DUO.d; if (!d) return;
   unmountDuo();
   DUO.waitRot = false; $('jdw-duo-rotate').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-hud').hidden = false;
+  $('jdw-duo').classList.remove('net-single');
   const seq = DUO.seq;
   DUO.scores = [0, 0]; DUO.over = false; DUO.winner = null; DUO.paused = false; DUO.shared = false; duoPills();
   const root = document.createElement('div'); root.className = 'duo-root'; $('jdw-duo-host').appendChild(root); DUO.root = root;
   DUO.mp = false;
   const mid = duoMusicId(d), m = mid ? [mid, 'calm'] : DUO_MUSIC[d.id] || ['accueil', 'calm']; musicBaseLevel(0.7); MUS.override = false; setMusic(m[0], m[1]);
   preloadStings(['point', 'match', 'win']);
-  DUO.api = duoApi(d, seq); NET.turn = -1;
+  NET.turn = -1; NET.handlers = [];
+  if (NET.role === 'host' && NET.data) netCtl({ h: 'start', mode: 'data', g: d.id, layout: d.layout, names: NET.seats, photo: netMyPhoto() });
+  DUO.api = duoApi(d, seq);
   try { DUO.inst = d.mount(root, DUO.api) || {}; }
   catch (e) { DUO.inst = {}; reportError('Duel ' + d.id + ' : ' + e.message, e.stack); toastCheer('Oups, ce duel a eu un souci.', profile.name, true); }
-  if (NET.role === 'host') setTimeout(netAttach, 60);   // l'image du nouveau plateau part chez l'adversaire
+  if (NET.role && NET.data) { const q = NET.queue.splice(0); for (const m of q) netDeliver(m); }   // messages arrivés pendant le montage
+  else if (NET.role === 'host') setTimeout(netAttach, 60);   // mode vidéo : l'image du nouveau plateau part chez l'adversaire
   setWhere('duel-' + d.id);
 }
 function unmountDuo() {
@@ -2621,7 +2680,9 @@ function duoResults() {
   if (NET.role === 'host') netCtl({ h: 'res', w, s: DUO.scores });
   unmountDuo();
   addWin(d.id, w);
-  resHalf(0, land); if (!land) resHalf(1, false);
+  const single = NET.role && NET.data && !land;   // en ligne : chacun ne voit que son propre résultat
+  $('jdw-duo').classList.toggle('net-single', !!single);
+  resHalf(0, land); if (!land && !single) resHalf(1, false);
   $('jdw-duo-res').hidden = false; $('jdw-duo-hud').hidden = true;
   musicBaseLevel(0.5);
   if (!sting('win', 0.9)) { Audio.tone(523, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(659, 0.12, 'square', 0.06), 130); setTimeout(() => Audio.tone(784, 0.3, 'square', 0.06), 260); }
@@ -3273,6 +3334,29 @@ const NET_LINK = () => location.origin + location.pathname + '?duel=' + NET.code
 function rtBroadcastTo(topic, data) { return rtSend(topic, 'broadcast', { type: 'broadcast', event: 'poke', payload: Object.assign({ from: clientId }, data) }); }
 function netSig(data) { if (NET.topic) rtBroadcastTo(NET.topic, Object.assign({ t: 'net', code: NET.code }, data)); }
 function netCtl(m) { if (NET.ctl && NET.ctl.readyState === 'open') try { NET.ctl.send(JSON.stringify(m)); } catch (e) {} }
+// ce que le jeu voit en ligne (DUO-CONTRACT.md, « Ajout : le jeu EN LIGNE »)
+function netApi(seq) {
+  const mine = () => DUO.seq === seq;
+  return {
+    role: NET.role, me: NET.role === 'host' ? 0 : 1,
+    flipped: NET.role === 'guest' && !!NET.d && NET.d.layout !== 'landscape',
+    send(msg, o) {
+      if (!mine()) return;
+      try {
+        if (o && o.reliable) { if (NET.ctl && NET.ctl.readyState === 'open') NET.ctl.send(JSON.stringify({ h: 'g', m: msg })); }
+        else if (NET.g && NET.g.readyState === 'open') NET.g.send(JSON.stringify(msg));
+      } catch (e) {}
+    },
+    onMessage(fn) { if (typeof fn === 'function' && mine()) NET.handlers.push(fn); },
+    now: () => performance.now() + (NET.role === 'guest' ? NET.off : 0),
+    rtt: () => NET.rttv || 120
+  };
+}
+function netDeliver(m) {
+  if (!NET.handlers.length) { NET.queue.push(m); if (NET.queue.length > 300) NET.queue.shift(); return; }
+  for (const f of NET.handlers) try { f(m); } catch (e) { reportError('Duel en ligne (message) : ' + e.message, e.stack, { quiet: true }); }
+}
+function netMyPhoto() { return profile.consent && profile.photo && profile.photo.length < 200000 ? profile.photo : ''; }
 // les doigts rejoués ont des numéros >= 1000 : pas de capture de pointeur pour eux
 for (const k of ['setPointerCapture', 'releasePointerCapture']) { const f = Element.prototype[k]; if (f) Element.prototype[k] = function (id) { if (id >= 1000) return; return f.call(this, id); }; }
 { const f = Element.prototype.hasPointerCapture; if (f) Element.prototype.hasPointerCapture = function (id) { return id >= 1000 ? true : f.call(this, id); }; }
@@ -3280,10 +3364,11 @@ function netReset() {
   if (NET.pc) try { NET.pc.close(); } catch (e) {}
   if (NET.stream) try { NET.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
   if (NET.topic) rtLeave(NET.topic);
-  clearInterval(NET.helloT); clearTimeout(NET.waitT);
-  Object.assign(NET, { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: null, peer: '', peerCid: '', seats: null, turn: -1, pend: [], remote: false, guestInfo: null, stream: null, vSender: null, aSender: null, start: null });
+  clearInterval(NET.helloT); clearTimeout(NET.waitT); clearInterval(NET.pingT);
+  Object.assign(NET, { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: null, peer: '', peerCid: '', seats: null, turn: -1, pend: [], remote: false, guestInfo: null, stream: null, vSender: null, aSender: null, start: null,
+    data: false, g: null, handlers: [], queue: [], off: 0, rttv: 0, pings: [] });
   NET.blocked.clear(); NET.ids.clear();
-  $('jdw-duo').classList.remove('net-guest', 'net-host');
+  $('jdw-duo').classList.remove('net-guest', 'net-host', 'net-video', 'net-flip', 'net-single');
   $('jdw-net-stage').hidden = true; const v = $('jdw-net-video'); try { v.pause(); } catch (e) {} v.srcObject = null;
 }
 function netEnd(notify, msg) {
@@ -3400,10 +3485,15 @@ async function netHostStart() {
   $('jdw-net-sharebox').hidden = true; $('jdw-net-lh').hidden = true; $('jdw-net-list').textContent = '';
   try {
     const pc = NET.pc = new RTCPeerConnection(RTC_CFG); netWatchPc(pc);
-    const tv = pc.addTransceiver('video', { direction: 'sendonly' }); NET.vSender = tv.sender;
-    // encodeur vidéo matériel du téléphone (H.264) en priorité : moins de délai, moins de chauffe
-    try { const caps = RTCRtpSender.getCapabilities('video'); const h = caps.codecs.filter(c => /h264/i.test(c.mimeType)); if (h.length && tv.setCodecPreferences) tv.setCodecPreferences(h.concat(caps.codecs.filter(c => !/h264/i.test(c.mimeType)))); } catch (e) {}
-    NET.aSender = pc.addTransceiver('audio', { direction: 'sendonly' }).sender;
+    NET.data = !!NET.d.net;   // le jeu sait jouer en ligne : chaque appareil le fait tourner (sinon : image vidéo, en secours)
+    if (!NET.data) {
+      const tv = pc.addTransceiver('video', { direction: 'sendonly' }); NET.vSender = tv.sender;
+      // encodeur vidéo matériel du téléphone (H.264) en priorité : moins de délai, moins de chauffe
+      try { const caps = RTCRtpSender.getCapabilities('video'); const h = caps.codecs.filter(c => /h264/i.test(c.mimeType)); if (h.length && tv.setCodecPreferences) tv.setCodecPreferences(h.concat(caps.codecs.filter(c => !/h264/i.test(c.mimeType)))); } catch (e) {}
+      NET.aSender = pc.addTransceiver('audio', { direction: 'sendonly' }).sender;
+    }
+    NET.g = pc.createDataChannel('g', { ordered: false, maxRetransmits: 0 });
+    NET.g.onmessage = e => { try { netDeliver(JSON.parse(e.data)); } catch (x) {} };
     NET.ctl = pc.createDataChannel('ctl');
     NET.inp = pc.createDataChannel('inp', { ordered: false, maxRetransmits: 0 });
     NET.ctl.onopen = () => { NET.waitT = setTimeout(netHostGo, 1500); };   // on attend sa tête (message « me ») 1,5 s au plus
@@ -3424,6 +3514,8 @@ function netHostGo() {
   openDuo(NET.d);
 }
 function netCtlHost(m) {
+  if (m.h === 'g') { netDeliver(m.m); return; }
+  if (m.h === 'ping') { netCtl({ h: 'pong', t: m.t, th: performance.now() }); return; }
   if (m.h === 'me') { NET.guestInfo = m; if (NET.ctl && NET.ctl.readyState === 'open' && !NET.start) netHostGo(); return; }
   if (m.h === 'pausereq') { duoPause(); return; }
   if (m.h === 'resumereq') { duoResume(); return; }
@@ -3469,8 +3561,9 @@ function netInject(m) {
 }
 // chez l'hôte, ses propres doigts n'agissent pas sur la moitié (ou le tour) de l'adversaire
 function netGuard(e) {
-  if (NET.role !== 'host' || !e.isTrusted || !DUO.root || !DUO.d) return;
-  if (DUO.d.layout === 'landscape') { if (NET.turn === 1) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); } return; }
+  if (!(NET.role === 'host' || (NET.role === 'guest' && NET.data)) || !e.isTrusted || !DUO.root || !DUO.d) return;
+  // tour par tour : en mode données, le jeu gère lui-même qui a la main (on peut toujours bouger sa caméra) ; en mode vidéo, la bibliothèque bloque
+  if (DUO.d.layout === 'landscape') { if (!NET.data && NET.role === 'host' && NET.turn === 1) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); } return; }
   if (e.type === 'pointerdown') { const r = DUO.root.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) NET.blocked.add(e.pointerId); }
   if (NET.blocked.has(e.pointerId)) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); if (e.type === 'pointerup' || e.type === 'pointercancel') NET.blocked.delete(e.pointerId); }
 }
@@ -3487,6 +3580,7 @@ async function netGuestOffer(p) {
       const ch = e.channel;
       if (ch.label === 'ctl') { NET.ctl = ch; ch.onopen = netGuestHello; ch.onmessage = ev => { try { netCtlGuest(JSON.parse(ev.data)); } catch (x) {} }; if (ch.readyState === 'open') netGuestHello(); }
       else if (ch.label === 'inp') NET.inp = ch;
+      else if (ch.label === 'g') { NET.g = ch; ch.onmessage = ev => { try { netDeliver(JSON.parse(ev.data)); } catch (x) {} }; }
     };
     await pc.setRemoteDescription({ type: 'offer', sdp: p.sdp });
     NET.remote = true; for (const c of NET.pend.splice(0)) pc.addIceCandidate(c).catch(() => {});
@@ -3496,28 +3590,71 @@ async function netGuestOffer(p) {
   } catch (e) { netEnd(true, 'Impossible de rejoindre le duel.'); reportError('Rejoindre un duel : ' + e.message, e.stack, { quiet: true }); }
 }
 function netGuestHello() {
+  // horloge commune : quelques allers-retours rapides, puis un toutes les 2 s
+  clearInterval(NET.pingT); let n = 0;
+  const ping = () => netCtl({ h: 'ping', t: performance.now() });
+  ping(); NET.pingT = setInterval(() => { ping(); if (++n === 6) { clearInterval(NET.pingT); NET.pingT = setInterval(ping, 2000); } }, 200);
   // ma tête (si elle est petite) et mon nom, pour que l'hôte me dessine dans le jeu
   const ph = profile.consent && profile.photo && profile.photo.length < 200000 ? profile.photo : '';
   netCtl({ h: 'me', name: cleanName(profile.name), photo: ph });
 }
 function netCtlGuest(m) {
+  if (m.h === 'g') { netDeliver(m.m); return; }
+  if (m.h === 'pong') {
+    const now = performance.now(), rtt = now - m.t; if (!(rtt >= 0) || rtt > 5000) return;
+    NET.pings.push({ rtt, off: m.th + rtt / 2 - now }); if (NET.pings.length > 10) NET.pings.shift();
+    const best = NET.pings.reduce((a, b) => (b.rtt < a.rtt ? b : a));
+    NET.off = best.off; NET.rttv = NET.pings.map(x => x.rtt).sort((a, b) => a - b)[NET.pings.length >> 1];
+    return;
+  }
   if (m.h === 'start') { netGuestShow(m); return; }
   if (!NET.start) return;
   if (m.h === 'say') { duoSay(m.text, m.o || {}); return; }
-  if (m.h === 'pills') { DUO.scores = Array.isArray(m.s) ? m.s.slice(0, 2) : DUO.scores; DUO.over = false; duoPills(m.p); return; }
-  if (m.h === 'res') { DUO.winner = m.w; DUO.scores = m.s; DUO.over = true; addWin(DUO.d.id, m.w); resHalf(0, DUO.d.layout === 'landscape'); if (DUO.d.layout !== 'landscape') resHalf(1, false); $('jdw-duo-res').hidden = false; $('jdw-duo-hud').hidden = true; return; }
-  if (m.h === 'pause') { DUO.paused = true; netGuestPauseCard(); return; }
-  if (m.h === 'resume') { DUO.paused = false; $('jdw-duo-pause').hidden = true; return; }
+  if (m.h === 'pills') {
+    DUO.scores = Array.isArray(m.s) ? m.s.slice(0, 2) : DUO.scores; DUO.over = false; duoPills(m.p);
+    if (NET.data && (m.p === 0 || m.p === 1)) {   // mode données : les sons sont joués ici (pas de son envoyé par l'hôte)
+      sting('point', 0.55, false);
+      if (DUO.scores[m.p] === (DUO.d.target || 5) - 1 && !DUO.mp) { DUO.mp = true; setTimeout(() => { sting('match', 0.6); if (duoMusicId(DUO.d)) setMusic(duoMusicId(DUO.d), 'intense'); }, 700); }
+    }
+    return;
+  }
+  if (m.h === 'res') {
+    DUO.winner = m.w; DUO.scores = m.s; DUO.over = true; addWin(DUO.d.id, m.w);
+    if (NET.data) unmountDuo();
+    const landR = DUO.d.layout === 'landscape', single = NET.data && !landR;
+    $('jdw-duo').classList.toggle('net-single', !!single);
+    if (single) resHalf(1, false); else { resHalf(0, landR); if (!landR) resHalf(1, false); }
+    $('jdw-duo-res').hidden = false; $('jdw-duo-hud').hidden = true;
+    if (NET.data) { musicBaseLevel(0.5); sting('win', 0.9); if ((window.JDW_MUSIC || {}).dscores) setMusic('dscores', 'calm'); const wn = seatName(m.w); if (wn !== GUEST) setTimeout(() => playCri(wn), 1800); }
+    return;
+  }
+  if (m.h === 'pause') { DUO.paused = true; if (NET.data && DUO.inst && DUO.inst.pause) try { DUO.inst.pause(); } catch (e) {} netGuestPauseCard(); return; }
+  if (m.h === 'resume') { DUO.paused = false; if (NET.data && DUO.inst && DUO.inst.resume) try { DUO.inst.resume(); } catch (e) {} $('jdw-duo-pause').hidden = true; return; }
   if (m.h === 'quit') netEnd(false, NET.peer + ' a quitté le duel.');
 }
 function netGuestShow(m) {
   const d = duoById(m.g); if (!d) { netEnd(true, 'Ce duel n\'existe pas sur ta version : mets la borne à jour.'); return; }
+  if (m.mode === 'data') {   // le jeu tourne aussi ici : on le monte, tourné pour que ma moitié soit en bas
+    NET.data = true; NET.d = d; NET.start = { data: true };
+    NET.seats = Array.isArray(m.names) ? m.names.map(cleanName) : [NET.peer, cleanName(profile.name)];
+    if (m.photo && /^data:image\//.test(m.photo) && !players.has(NET.seats[0])) setPlayer(NET.seats[0], m.photo);
+    if (!$('jdw-net').hidden) closeSheet('jdw-net');
+    $('jdw-lib').hidden = true; $('jdw-duo').hidden = false;
+    $('jdw-duo').classList.toggle('land', d.layout === 'landscape');
+    $('jdw-duo').classList.add('net-guest'); $('jdw-duo').classList.remove('net-video');
+    $('jdw-duo').classList.toggle('net-flip', d.layout !== 'landscape');
+    $('jdw-net-stage').hidden = true;
+    DUO.d = d; DUO.waitRot = false;
+    for (const i of [0, 1]) { const av = $('jdw-duo-pill' + i).querySelector('.dp-av'); av.textContent = ''; av.appendChild(chatHead(seatPlayer(i).name, { passive: true })); }
+    mountDuo();
+    return;
+  }
   NET.d = d; NET.start = { w: +m.w || 390, h: +m.hh || 780 }; NET.seats = Array.isArray(m.names) ? m.names.map(cleanName) : [NET.peer, cleanName(profile.name)];
   if (!$('jdw-net').hidden) closeSheet('jdw-net');
   DUO.d = d; DUO.scores = Array.isArray(m.s) ? m.s.slice(0, 2) : [0, 0]; DUO.over = false; DUO.winner = null; DUO.paused = false; DUO.inst = null;
   $('jdw-lib').hidden = true; $('jdw-duo').hidden = false;
   $('jdw-duo').classList.toggle('land', d.layout === 'landscape');
-  $('jdw-duo').classList.add('net-guest');
+  $('jdw-duo').classList.add('net-guest', 'net-video');
   $('jdw-duo').classList.toggle('net-flip', d.layout !== 'landscape');   // l'image est tournée : ma moitié (celle du haut chez l'hôte) en bas
   $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-hud').hidden = false; $('jdw-duo-rotate').hidden = true;
   for (const i of [0, 1]) { const av = $('jdw-duo-pill' + i).querySelector('.dp-av'); av.textContent = ''; av.appendChild(chatHead(seatPlayer(i).name, { passive: true })); }

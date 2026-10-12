@@ -545,6 +545,599 @@
     const n = Math.max(1, Math.ceil(dt / 0.008 - 1e-9)), h = dt / n;
     for (let k = 0; k < n && !S.result; k++) sub(S, h, I);
   }
+
+  // ----- jeu en ligne (toujours pur : aucun DOM, aucune horloge) -----
+  // Tous les échanges sont en cases du labyrinthe (9 x 17), identiques sur tous les écrans.
+  const cl = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const dirOk = (d) => (d === 0 || d === 1 || d === 2 || d === 3 ? d : -1);
+  const r3 = (v) => Math.round((+v || 0) * 1e3) / 1e3, r4 = (v) => Math.round((+v || 0) * 1e4) / 1e4;
+  const ST = ['play', 'fly', 'home'];
+  // état compact d'un personnage : [x, y, dir, face, vitesse, voulu, voulu2, état, temps d'état (ou du bond), départ du vol x, y, bond, récup., super]
+  function encX(e, lng) {
+    return [r4(e.x), r4(e.y), e.dir, e.face, r3(e.spd), e.want, e.want2, Math.max(0, ST.indexOf(e.st)), r3(lng ? e.pounce : e.stT),
+      r4(e.fx), r4(e.fy), lng ? 1 : 0, r3(Math.max(0, e.rec)), r3(Math.max(0, e.sup))];
+  }
+  // retrouve le couloir parcouru (edge) d'après la position et la direction
+  function fixEdge(S, e) {
+    if (e.x < -0.5) e.x += COLS; else if (e.x >= COLS - 0.5) e.x -= COLS;
+    if (isCenter(e) || e.dir < 0) {
+      const cr = cellOf(e);
+      e.x = cr[0]; e.y = cl(cr[1], 0, ROWS - 1); e.edge = -1; e.edgeT = 0; e.from = e.y * COLS + e.x;
+      return;
+    }
+    let c, r;
+    if (DX[e.dir]) { c = DX[e.dir] > 0 ? Math.floor(e.x + EPS) : Math.ceil(e.x - EPS); r = cl(Math.round(e.y), 0, ROWS - 1); e.y = r; }
+    else { r = DY[e.dir] > 0 ? Math.floor(e.y + EPS) : Math.ceil(e.y - EPS); c = Math.round(e.x); e.x = ((c % COLS) + COLS) % COLS; r = cl(r, 0, ROWS - 1); }
+    c = ((c % COLS) + COLS) % COLS;
+    e.edge = edgeId(c, r, e.dir); e.edgeT = edgeType(S.M, c, r, e.dir); e.from = r * COLS + c;
+  }
+  function decX(S, a, g) {
+    if (!Array.isArray(a) || a.length < 7) return false;
+    const x = +a[0], y = +a[1];
+    if (!isFinite(x) || !isFinite(y)) return false;
+    g.x = cl(x, -0.5, COLS - 0.5001); g.y = cl(y, 0, ROWS - 1);
+    g.dir = dirOk(a[2]); g.face = dirOk(a[3]); if (g.face < 0) g.face = g.p === 0 ? 3 : 1;
+    g.spd = cl(+a[4] || 0, 0, 12); g.want = dirOk(a[5]); g.want2 = dirOk(a[6]);
+    if (a.length >= 14) {
+      g.st = ST[a[7] | 0] || 'play'; g.stT = +a[8] || 0; g.fx = +a[9] || 0; g.fy = +a[10] || 0;
+      g.lng = a[11] ? 1 : 0; g.rec = cl(+a[12] || 0, 0, 3); g.sup = cl(+a[13] || 0, 0, TUNE.superT);
+    }
+    g.lunge = false;
+    fixEdge(S, g);
+    return true;
+  }
+  // position annoncée sur un couloir praticable ? (murs fixes seulement : portes et trous au repos acceptés)
+  function onGrid(S, x, y, mouse) {
+    if (!(y > -0.02 && y < ROWS - 1 + 0.02) || !(x >= -0.52 && x < COLS - 0.48)) return false;
+    const M = S.M, rx = Math.round(x), ry = Math.round(y), ix = Math.abs(x - rx) < 0.02, iy = Math.abs(y - ry) < 0.02;
+    if (ix && iy) return ry >= 0 && ry < ROWS && !M.X[ry][((rx % COLS) + COLS) % COLS];
+    if (iy) {
+      const c0 = Math.floor(x);
+      if (c0 < 0 || c0 >= COLS - 1) return !!mouse && M.V[ry][0] === TUNNEL;
+      const t = M.V[ry][c0 + 1];
+      return t !== WALL && (mouse || (t !== HOLE && t !== TUNNEL)) && !M.X[ry][c0] && !M.X[ry][c0 + 1];
+    }
+    if (ix) {
+      const r0 = Math.floor(y), c = ((rx % COLS) + COLS) % COLS;
+      if (r0 < 0 || r0 >= ROWS - 1) return false;
+      const t = M.H[r0 + 1][c];
+      return t !== WALL && (mouse || t !== HOLE) && !M.X[r0][c] && !M.X[r0 + 1][c];
+    }
+    return false;
+  }
+  // fait avancer une COPIE de personnage (adversaire affiché, estimation) avec les mêmes règles ; G = { M, cd, closed, ev }
+  function ghostStep(G, e, dt, mul) {
+    if (!(dt > 0)) return;
+    const n = Math.max(1, Math.ceil(dt / 0.008 - 1e-9)), h = dt / n, inp = { want: e.want, want2: e.want2 };
+    for (let k = 0; k < n; k++) {
+      if (e.st === 'fly' || e.st === 'home') { e.stT += h; continue; }
+      if (e.lng) {                                   // bond du chat : tout droit, au plus pounceMax
+        if (e.stT >= TUNE.pounceMax) continue;
+        e.stT += h; e.lunge = true; travel(G, e, TUNE.pounceV * h); e.lunge = false;
+        continue;
+      }
+      let m = mul;
+      if (e.kind === 'cat') { if (e.rec > 0) { e.rec -= h; m *= 0.5; } } else if (e.sup > 0) { e.sup = Math.max(0, e.sup - h); m *= 1.12; }
+      moveEnt(G, e, inp, h, m);
+    }
+  }
+  function eatNet(S, N) {
+    const m = S.mouse;
+    for (const q of S.cheese) {
+      if (q.on && near(m, q.c, q.r, TUNE.eatR)) { q.on = 0; S.left--; ev(S, 'eat', m, q); }
+    }
+    if (S.left <= 0) { N.end(S.mouseP, 'Tout le fromage !', 'cheese'); return; }
+    if (S.big.st === 1 && near(m, S.big.c, S.big.r, TUNE.eatR + 0.05)) {
+      S.big.st = 2; m.sup = TUNE.superT;
+      ev(S, 'super', m);
+      if (S.phase === 'pounce') endPounce(S, S.cat);
+    }
+  }
+  // Pas de simulation de l'HÔTE en ligne. N.rem = joueur de l'autre téléphone : sa position arrive par le réseau (déjà posée
+  // dans S), sauf quand l'hôte pilote son chat (bond, vol plané, sieste). Les contacts entre les deux joueurs (capture,
+  // coup de la super-souris) sont jugés à part, en comparant les positions au même instant. Les fins « fromages » et
+  // « temps » attendent (N.end) que les positions de l'invité jusqu'à cet instant soient arrivées.
+  function subNet(S, h, I, N) {
+    S.t += h;
+    const ids = S.M.cdIds;
+    for (let i = 0; i < ids.length; i++) if (S.cd[ids[i]] > 0) S.cd[ids[i]] = Math.max(0, S.cd[ids[i]] - h);
+    doorsStep(S, h);
+    if (S.big.st === 0 && S.t >= TUNE.bigAt) { S.big.st = 1; ev(S, 'bigspawn'); }
+    const m = S.mouse, c = S.cat, remM = S.mouseP === N.rem;
+    if (remM) { if (m.sup > 0) { m.sup -= h; if (m.sup <= 0) { m.sup = 0; ev(S, 'superend', m); } } }
+    else { mouseStep(S, m, I[S.mouseP], h); eatNet(S, N); }
+    if (S.result || N.held()) return;
+    if (!remM && c.st === 'play' && S.phase !== 'pounce') { if (c.pcd > 0) c.pcd -= h; if (c.rec > 0) c.rec -= h; }
+    else if (remM && c.st === 'play' && S.phase === 'pounce') {      // bond du chat de l'hôte vers la souris de l'invité
+      if (c.pcd > 0) c.pcd -= h;
+      if (c.rec > 0) c.rec -= h;
+      c.pounce += h;
+      c.lunge = true; travel(S, c, TUNE.pounceV * h); c.lunge = false;
+      if (c.dir < 0 || c.pounce >= TUNE.pounceMax) N.hold();      // raté ? on attend de savoir où était la souris
+    } else catStep(S, c, I[S.catP], h);
+    if (S.result || N.held()) return;
+    if (S.phase === 'play' && c.st === 'play') tryPounce(S);
+    if (S.t >= S.dur) N.end(S.mouseP, 'Elle a tenu !', 'time');
+  }
+
+  // ===========================================================================
+  // IA (pure, sans DOM) — joue la SOURIS ou le CHAT avec exactement les règles du joueur : elle ne fait que donner des
+  // « directions voulues », comme un doigt sur l'écran. Elle voit l'adversaire avec un temps de réaction humain (ce qu'il
+  // faisait il y a « react » s, qu'elle prolonge selon sa direction — anticipation), jamais ses intentions.
+  //  - cartes de temps (Dijkstra sur la grille, virages comptés : le chat perd du temps à chaque virage, la souris presque pas) ;
+  //  - CHAT : vise où la souris va être, choisit le côté qui lui laisse le moins de cases sûres (coupe les routes, garde les
+  //    sorties de trous et de tunnels), se méfie du gros fromage, fuit la super-souris ;
+  //  - SOURIS : carte de danger (le chat arrive-t-il avant elle ?), fromages sûrs avec une issue, trous et tunnels, gros fromage
+  //    au bon moment pour renvoyer le chat, et tient jusqu'à la fin du temps quand c'est plus sûr ;
+  //  - en fuite, la souris décide à chaque carrefour en regardant 1 (moyen), 2 (difficile) ou 3 (extrême) carrefours plus loin :
+  //    un chemin vaut sa marge la plus faible sur le chat ; les culs-de-sac sont évités ;
+  //  - niveaux : temps de réaction (~0,6 s en facile … ~0,15 s en extrême), erreurs, anticipation, profondeur de recherche.
+  // ===========================================================================
+  const NC = COLS * ROWS;
+  const AI_LV = {
+    // réaction moyenne ≈ react + think / 2 : ~0,6 s (facile) … ~0,15 s (extrême)
+    // react : retard de perception ; think : entre deux réflexions ; err : erreurs ; look : anticipation ; depth : carrefours regardés
+    facile: { react: 0.45, think: 0.34, err: 0.34, look: 0, tier: 1, hold: 0.8, safe: 0 },
+    moyen: { react: 0.3, think: 0.25, err: 0.12, look: 0.4, tier: 2, hold: 0.6, safe: 0.25 },
+    difficile: { react: 0.2, think: 0.16, err: 0.03, look: 0.85, tier: 3, depth: 2, hold: 0.45, safe: 0.45 },
+    extreme: { react: 0.1, think: 0.1, err: 0, look: 1, tier: 3, depth: 3, hold: 0.35, safe: 0.5 }
+  };
+  function hpush(H, key, val) {
+    let i = H.n++;
+    while (i > 0) { const p = (i - 1) >> 1; if (H.k[p] <= key) break; H.k[i] = H.k[p]; H.v[i] = H.v[p]; i = p; }
+    H.k[i] = key; H.v[i] = val;
+  }
+  function hpop(H) {
+    const top = H.v[0], last = --H.n;
+    if (last > 0) {
+      const key = H.k[last], val = H.v[last];
+      let i = 0;
+      for (;;) {
+        let c = 2 * i + 1;
+        if (c >= last) break;
+        if (c + 1 < last && H.k[c + 1] < H.k[c]) c++;
+        if (H.k[c] >= key) break;
+        H.k[i] = H.k[c]; H.v[i] = H.v[c]; i = c;
+      }
+      H.k[i] = key; H.v[i] = val;
+    }
+    return top;
+  }
+  const HP = { k: new Float64Array(NC * 24), v: new Int32Array(NC * 24), n: 0 };
+  const TBEST = new Float32Array(NC * 5);
+  const nbrK = (c, r, d) => (r + DY[d]) * COLS + ((c + DX[d] + COLS) % COLS);
+  // passage pour la planification : 0 = règles du jeu ; 1 = en plus, les portes qui vont se fermer sont évitées ;
+  // 2 = souris maladroite qui n'ose pas les trous ni les tunnels
+  // pendant une réflexion, les passages (case × direction) sont lus dans des tables calculées une seule fois
+  const PTAB = { on: false, t: [new Uint8Array(NC * 4), new Uint8Array(NC * 4), new Uint8Array(NC * 4), new Uint8Array(NC * 4)] };
+  function aiTables(S) {
+    PTAB.on = false;
+    for (let i = 0; i < 4; i++) {
+      const T = PTAB.t[i], mouse = i >= 2, opt = i === 1 ? 1 : i === 3 ? 2 : 0;
+      for (let k = 0; k < NC; k++) { const c = k % COLS, r = (k / COLS) | 0; for (let d = 0; d < 4; d++) T[k * 4 + d] = aiPass(S, c, r, d, mouse, opt) ? 1 : 0; }
+    }
+    PTAB.on = true;
+  }
+  function aiPass(S, c, r, d, mouse, opt) {
+    if (PTAB.on) return PTAB.t[(mouse ? 2 : 0) + (opt ? 1 : 0)][(r * COLS + c) * 4 + d] === 1;
+    if (!canPass(S, c, r, d, mouse)) return false;
+    if (opt) {
+      const t = edgeType(S.M, c, r, d);
+      if (opt === 1 && (t === DOOR_A || t === DOOR_B) && S.warn[t - DOOR_A]) return false;
+      if (opt === 2 && (t === HOLE || t === TUNNEL)) return false;
+    }
+    return true;
+  }
+  function profOf(S, kind, sup) {
+    if (kind === 'cat') return { step: 1 / (S.cat.vmax * (sup ? 0.6 : 1)), turn: 0.1, rev: 0.22 };
+    return { step: 1 / (S.mouse.vmax * (sup ? 1.12 : 1)), turn: 0.012, rev: 0.03 };
+  }
+  // case vers laquelle on va (ou la case actuelle), reste à parcourir, case d'où l'on vient (-1 si on est au centre)
+  function fwdOf(e) {
+    if (e.dir < 0 || isCenter(e)) { const cr = cellOf(e); return { k: cr[1] * COLS + cr[0], c: cr[0], r: cr[1], rem: 0, bk: -1 }; }
+    let fc, fr, rem;
+    if (DX[e.dir]) { fc = DX[e.dir] > 0 ? Math.floor(e.x + EPS) + 1 : Math.ceil(e.x - EPS) - 1; rem = Math.abs(fc - e.x); fr = Math.round(e.y); }
+    else { fr = DY[e.dir] > 0 ? Math.floor(e.y + EPS) + 1 : Math.ceil(e.y - EPS) - 1; rem = Math.abs(fr - e.y); fc = Math.round(e.x); }
+    const bc = (((fc - DX[e.dir]) % COLS) + COLS) % COLS, br = cl(fr - DY[e.dir], 0, ROWS - 1);
+    fc = ((fc % COLS) + COLS) % COLS; fr = cl(fr, 0, ROWS - 1);
+    return { k: fr * COLS + fc, c: fc, r: fr, rem: cl(rem, 0, 1), bk: br * COLS + bc };
+  }
+  function seedsOf(e, prof) {
+    const f = fwdOf(e);
+    if (f.bk < 0) return [[f.k, e.dir, 0]];
+    return [[f.k, e.dir, f.rem * prof.step], [f.bk, OPP[e.dir], (1 - f.rem) * prof.step + prof.rev]];
+  }
+  // temps d'arrivée dans chaque case (Dijkstra sur (case, direction d'arrivée) : les virages coûtent)
+  function tmap(S, seeds, mouse, prof, out, opt) {
+    TBEST.fill(1e9); out.fill(1e9); HP.n = 0;
+    for (const s of seeds) {
+      const st = s[0] * 5 + (s[1] + 1);
+      if (s[2] < TBEST[st]) { TBEST[st] = s[2]; hpush(HP, TBEST[st], st); }   // (la valeur rangée, arrondie en Float32)
+    }
+    while (HP.n) {
+      const t = HP.k[0], st = hpop(HP);
+      if (t > TBEST[st]) continue;
+      const k = (st / 5) | 0, hd = (st % 5) - 1, c = k % COLS, r = (k / COLS) | 0;
+      if (t < out[k]) out[k] = t;
+      for (let d = 0; d < 4; d++) {
+        if (!aiPass(S, c, r, d, mouse, opt)) continue;
+        const ns = nbrK(c, r, d) * 5 + d + 1;
+        const nt = t + prof.step + (hd < 0 || hd === d ? 0 : hd === OPP[d] ? prof.rev : prof.turn);
+        if (nt < TBEST[ns]) { TBEST[ns] = nt; hpush(HP, TBEST[ns], ns); }
+      }
+    }
+    return out;
+  }
+  // coût pour rejoindre le but depuis chaque case (1 par case + « extra » : danger)
+  function cmap(S, goal, mouse, opt, extra, out) {
+    out.fill(1e9); HP.n = 0;
+    if (goal < 0) return out;
+    out[goal] = 0; hpush(HP, 0, goal);
+    while (HP.n) {
+      const t = HP.k[0], k = hpop(HP);
+      if (t > out[k]) continue;
+      const c = k % COLS, r = (k / COLS) | 0;
+      for (let d = 0; d < 4; d++) {
+        if (!aiPass(S, c, r, d, mouse, opt)) continue;
+        const nk = nbrK(c, r, d), nt = t + 1 + (extra ? extra[k] : 0);
+        if (nt < out[nk]) { out[nk] = nt; hpush(HP, out[nk], nk); }
+      }
+    }
+    return out;
+  }
+  // nombre de pas (BFS, sans virages) — rapide, pour les simulations de l'IA extrême
+  const BQ = new Int32Array(NC);
+  function steps(S, k0, mouse, out) {
+    out.fill(-1);
+    if (k0 < 0) return out;
+    out[k0] = 0; BQ[0] = k0;
+    let qn = 1;
+    for (let h = 0; h < qn; h++) {
+      const k = BQ[h], c = k % COLS, r = (k / COLS) | 0;
+      for (let d = 0; d < 4; d++) {
+        if (!aiPass(S, c, r, d, mouse, 0)) continue;
+        const nk = nbrK(c, r, d);
+        if (out[nk] < 0) { out[nk] = out[k] + 1; BQ[qn++] = nk; }
+      }
+    }
+    return out;
+  }
+  function mkAI(level, p, seed) {
+    const prm = AI_LV[level] || AI_LV.moyen;
+    return {
+      level: AI_LV[level] ? level : 'moyen', prm, p, rng: mulberry32((seed >>> 0) || 7), obs: [], next: 0, goal: -1, force: -1, forceK: -1,
+      opt: 0, lastRev: -9, lastDir: -1, forceT: 0, flee: 0, mP: null, G: new Float32Array(NC), tA: new Float32Array(NC), tB: new Float32Array(NC), tC: new Float32Array(NC),
+      ex: new Float32Array(NC), sA: new Int16Array(NC), sB: new Int16Array(NC), own: new Int16Array(NC), hol: new Uint8Array(NC), mk: new Int32Array(NC), stamp: 1,
+      W: { M: null, cd: new Float32Array(400), closed: null, ev: [], warn: [0, 0] }, want: -1, want2: -1, think: 0, msMax: 0, msSum: 0
+    };
+  }
+  function aiWorld(A, S) { const W = A.W; W.M = S.M; W.cd.set(S.cd); W.closed = S.closed; W.warn = S.warn; W.ev.length = 0; return W; }
+  // ce que l'IA voit de l'adversaire : son état d'il y a « react » secondes
+  function aiObserve(A, S, rt) {
+    const o = A.p === S.mouseP ? S.cat : S.mouse;
+    A.obs.push({ t: rt, x: o.x, y: o.y, dir: o.dir, face: o.face, st: o.st, stT: o.stT, sup: S.mouse.sup, phase: S.phase });
+    while (A.obs.length > 2 && A.obs[1].t <= rt - 1.5) A.obs.shift();
+  }
+  function aiSeen(A, rt) {
+    const T = rt - A.prm.react;
+    let best = A.obs[0], prev = A.obs[0];
+    for (let i = 0; i < A.obs.length; i++) { if (A.obs[i].t <= T) best = A.obs[i]; else break; }
+    for (let i = 0; i < A.obs.length; i++) { if (A.obs[i].t <= T - 0.35) prev = A.obs[i]; else break; }
+    // a-t-il vraiment avancé dans sa direction ces derniers instants ? (sinon : il hésite, on ne le prolonge pas)
+    if (best && prev) {
+      let dx = best.x - prev.x;
+      if (dx > COLS / 2) dx -= COLS; else if (dx < -COLS / 2) dx += COLS;
+      const dy = best.y - prev.y, d = best.dir;
+      best.steady = d >= 0 && (DX[d] * dx + DY[d] * dy) > 0.25;
+    }
+    return best;
+  }
+  // l'adversaire tel qu'on l'imagine maintenant : vu il y a « react » s, prolongé tout droit (anticipation)
+  function aiGuess(A, S, v, ahead) {
+    const src = A.p === S.mouseP ? S.cat : S.mouse;
+    const g = Object.assign({}, src);
+    g.x = v.x; g.y = v.y; g.dir = v.dir; g.face = v.face; g.st = v.st; g.stT = v.stT; g.lng = 0; g.rec = 0;
+    g.sup = g.kind === 'mouse' ? v.sup : 0; g.want = v.dir; g.want2 = -1; g.lunge = false;
+    fixEdge(S, g);
+    if (ahead > 0 && g.dir >= 0 && g.st === 'play' && v.steady) {
+      const W = aiWorld(A, S), s0 = g.sup;
+      ghostStep(W, g, ahead, g.kind === 'cat' && v.sup > 0 ? 0.6 : 1);
+      W.ev.length = 0; g.sup = s0;
+    }
+    return g;
+  }
+  function aiTick(A, S, rt) {
+    aiObserve(A, S, rt);
+    const me = A.p === S.mouseP ? S.mouse : S.cat;
+    if (rt >= A.next) {
+      const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
+      A.next = rt + A.prm.think * (0.8 + 0.4 * A.rng());
+      A.think++;
+      aiTables(S);
+      try { if (me.kind === 'cat') aiThinkCat(A, S, rt); else aiThinkMouse(A, S, rt); } finally { PTAB.on = false; }
+      if (t0) { const d = performance.now() - t0; A.msSum += d; if (d > A.msMax) A.msMax = d; }
+    }
+    aiSteer(A, S, me, rt);
+    return A;
+  }
+  // une erreur de débutant : un but au hasard pas loin
+  function aiBlunder(A, S, me) {
+    const f = fwdOf(me), cand = [];
+    for (let d = 0; d < 4; d++) if (aiPass(S, f.c, f.r, d, me.kind === 'mouse', 0)) cand.push(d);
+    if (!cand.length) return false;
+    const d = cand[(A.rng() * cand.length) | 0];
+    let k = nbrK(f.c, f.r, d);
+    for (let i = 0; i < 3; i++) {             // on file un peu dans ce couloir
+      const c = k % COLS, r = (k / COLS) | 0;
+      if (!aiPass(S, c, r, d, me.kind === 'mouse', 0)) break;
+      k = nbrK(c, r, d);
+    }
+    A.goal = k; A.force = d; A.forceK = f.k; A.opt = 0;
+    cmap(S, k, me.kind === 'mouse', 0, null, A.G);
+    return true;
+  }
+  function aiThinkCat(A, S, rt) {
+    const prm = A.prm, c = S.cat, v = aiSeen(A, rt);
+    if (!v || c.st !== 'play') return;
+    if (A.rng() < prm.err && aiBlunder(A, S, c)) return;
+    const mSup = v.sup > 0;
+    const mv = aiGuess(A, S, v, prm.look * prm.react + (prm.tier >= 3 ? 0.12 : 0));
+    const cP = profOf(S, 'cat', mSup), mP = profOf(S, 'mouse', mSup), opt = prm.tier >= 3 ? 1 : 0;
+    const catT = tmap(S, seedsOf(c, cP), false, cP, A.tA, opt);
+    const mouT = tmap(S, seedsOf(mv, mP), true, mP, A.tB, 0);
+    const mk = fwdOf(mv).k;
+    A.opt = opt; A.force = -1;
+    // la super-souris : on fuit (le facile n'y pense qu'une fois sur deux)
+    if (mSup && (prm.tier > 1 || A.rng() < 0.5)) {
+      let best = -1, bv = -1e9;
+      for (let k = 0; k < NC; k++) {
+        if (catT[k] > 50) continue;
+        const s = Math.min(mouT[k], 6) - catT[k] * 0.6 + (prm.tier >= 3 ? 0.15 * Math.min(mouT[k] - catT[k], 3) : 0);
+        if (s > bv) { bv = s; best = k; }
+      }
+      A.goal = best;
+      for (let k = 0; k < NC; k++) A.ex[k] = mouT[k] < catT[k] + 0.3 ? 3 : 0;   // ne pas passer près d'elle
+      cmap(S, best, false, opt, A.ex, A.G);
+      return;
+    }
+    // poursuite : où la souris va-t-elle être ?
+    let goal = prm.tier === 1 ? fwdOf(aiGuess(A, S, v, 0)).k : mk;
+    // gros fromage : si la souris peut le prendre avant que je l'attrape, je ne reste pas dans les parages
+    const bigK = S.big.c + S.big.r * COLS;
+    const bigRisk = prm.tier >= 2 && (S.big.st === 1 || (S.big.st === 0 && S.t > TUNE.bigAt - 2)) && mouT[bigK] < Math.min(catT[mk], 3.5) && mouT[bigK] + 0.2 < catT[bigK];
+    if (prm.tier >= 3 && prm.terr !== 0 && catT[mk] < (prm.terrR || 2.2)) {
+      // de quel côté partir ? parmi les directions presque aussi rapides que le plus court chemin, celle qui laisse le moins
+      // de cases où la souris arrive avant moi (elle coupe les routes, garde les sorties de trous et de tunnels)
+      const f = fwdOf(c), cands = [];
+      for (let d = 0; d < 4; d++) if (aiPass(S, f.c, f.r, d, false, opt)) cands.push([f.k, d, f.rem * cP.step + (c.dir >= 0 && d !== c.dir ? (d === OPP[c.dir] ? cP.rev : cP.turn) : 0)]);
+      const res = [];
+      let bestClose = 1e9;
+      for (const cd of cands) {
+        const seeds = cd[1] === -2 ? [[cd[0], OPP[c.dir], cd[2]]] : [[nbrK(cd[0] % COLS, (cd[0] / COLS) | 0, cd[1]), cd[1], cd[2] + cP.step]];
+        const ct = tmap(S, seeds, false, cP, A.tC, opt);
+        let owned = 0;
+        if (catT[mk] < 2) for (let k = 0; k < NC; k++) if (mouT[k] < 50 && mouT[k] + 0.15 < ct[k]) owned += 1 + (mouT[k] < 1.2 ? 1 : 0);
+        const close = ct[mk] + (bigRisk ? 2 * Math.max(0, 1.7 - ct[bigK]) : 0);
+        res.push([cd[1], close, owned]);
+        if (close < bestClose) bestClose = close;
+      }
+      let bestD = -9, bv = 1e9;
+      for (const r of res) {
+        if (r[1] > bestClose + 0.12) continue;
+        const sc = r[2] + 8 * (r[1] - bestClose) + (r[0] === c.dir ? -1.5 : 0);
+        if (sc < bv) { bv = sc; bestD = r[0]; }
+      }
+      if (bestD !== -9) { A.force = bestD === -2 ? OPP[c.dir] : bestD; A.forceK = bestD === -2 ? -2 : f.k; A.forceT = rt + prm.think * 1.6; }
+    }
+    A.goal = goal;
+    if (bigRisk) { const bc = S.big.c, br = S.big.r; for (let k = 0; k < NC; k++) { const dc = Math.abs((k % COLS) - bc), dr = Math.abs(((k / COLS) | 0) - br); A.ex[k] = dc + dr <= 2 ? 1.5 : 0; } cmap(S, goal, false, opt, A.ex, A.G); }
+    else cmap(S, goal, false, opt, null, A.G);
+  }
+  // le long d'un couloir jusqu'au prochain carrefour : temps, marge la plus faible (chat − souris), cul-de-sac ?
+  function walkC(S, k, d, t, mP, catT, mouse) {
+    let c = k % COLS, r = (k / COLS) | 0, mm = catT[k] - t;
+    for (let n = 0; ; n++) {
+      let ex = -1, cnt = 0;
+      for (let q = 0; q < 4; q++) if (q !== OPP[d] && aiPass(S, c, r, q, mouse, 0)) { cnt++; ex = q; }
+      if (cnt !== 1 || n >= 7) return { k, d, t, mm, dead: cnt === 0 };
+      t += mP.step + (ex !== d ? mP.turn : 0); d = ex; k = nbrK(c, r, d); c = k % COLS; r = (k / COLS) | 0;
+      mm = Math.min(mm, catT[k] - t);
+    }
+  }
+  // meilleure issue en regardant « depth » carrefours plus loin : un chemin vaut sa marge la plus faible ; culs-de-sac pénalisés
+  function escapeVal(A, S, k, d, t, mP, catT, depth) {
+    const w = walkC(S, k, d, t, mP, catT, true);
+    if (w.dead) return { v: Math.min(w.mm, 0) - 4, end: w.k };
+    if (depth <= 1) return { v: Math.min(w.mm, 3) + 0.12 * A.own[w.k] + 0.4 * A.hol[w.k], end: w.k };
+    let best = -1e9, end = w.k;
+    const c = w.k % COLS, r = (w.k / COLS) | 0;
+    for (let q = 0; q < 4; q++) {
+      if (q === OPP[w.d] || !aiPass(S, c, r, q, true, 0)) continue;
+      const sub2 = escapeVal(A, S, nbrK(c, r, q), q, w.t + mP.step + (q !== w.d ? mP.turn : 0), mP, catT, depth - 1);
+      const v = Math.min(w.mm, sub2.v);
+      if (v > best) { best = v; end = sub2.end; }
+    }
+    return best > -1e9 ? { v: best, end } : { v: w.mm - 4, end: w.k };
+  }
+  function aiThinkMouse(A, S, rt) {
+    const prm = A.prm, m = S.mouse, v = aiSeen(A, rt);
+    if (!v) return;
+    if (A.rng() < prm.err && aiBlunder(A, S, m)) return;
+    const sup = m.sup > 0, opt = prm.tier === 1 ? 2 : 0;
+    const cv = aiGuess(A, S, v, prm.look * prm.react);
+    const cP = profOf(S, 'cat', sup), mP = profOf(S, 'mouse', sup);
+    const catT = tmap(S, seedsOf(cv, cP), false, cP, A.tA, 0);
+    if (cv.st !== 'play') {                       // chat renvoyé dans son panier : il ne repart qu'après sa sieste
+      const wait = cv.st === 'fly' ? TUNE.flyT - cv.stT + TUNE.homeT : TUNE.homeT - cv.stT;
+      const hm = S.homes[S.catP];
+      tmap(S, [[hm.r * COLS + hm.c, -1, Math.max(0, wait)]], false, cP, catT, 0);
+    }
+    const mouT = tmap(S, seedsOf(m, mP), true, mP, A.tB, opt);
+    const mar = A.tC;
+    for (let k = 0; k < NC; k++) mar[k] = catT[k] - mouT[k];
+    const ck = fwdOf(cv).k, left = S.dur - S.t;
+    let goal = -1;
+    A.opt = opt; A.force = -1;
+    if (prm.tier === 1) {
+      // facile : le fromage le plus proche, et la fuite seulement quand le chat est tout près
+      const near = catT[fwdOf(m).k] < 0.8 && cv.st === 'play';
+      if (!near) { let bv = 1e9; for (const q of S.cheese) { const k = q.r * COLS + q.c; if (q.on && mouT[k] < bv) { bv = mouT[k]; goal = k; } } }
+      if (goal < 0) { let bv = -1e9; for (let k = 0; k < NC; k++) if (mouT[k] < 3 && catT[k] < 50) { const s = catT[k] - 0.3 * mouT[k]; if (s > bv) { bv = s; goal = k; } } }
+      A.goal = goal;
+      cmap(S, goal, true, opt, null, A.G);
+      return;
+    }
+    const safe = prm.safe;
+    // autour de chaque case : combien de cases sûres à moins de 3 pas (pas de cul-de-sac), et un trou ou un tunnel tout près
+    const own = A.own, hol = A.hol;
+    for (let k = 0; k < NC; k++) {
+      own[k] = 0; hol[k] = 0;
+      if (mouT[k] > 40 || !(mar[k] > 0)) continue;
+      const c0 = k % COLS, r0 = (k / COLS) | 0;
+      for (let d = 0; d < 4; d++) { const t = edgeType(S.M, c0, r0, d); if ((t === HOLE || t === TUNNEL) && aiPass(S, c0, r0, d, true, 0)) hol[k] = 1; }
+      const st = ++A.stamp;
+      let qn = 1; BQ[0] = k; A.mk[k] = st;
+      for (let h = 0, depth = 0, end = 1; h < qn && depth < 3; depth++) {
+        for (; h < end; h++) {
+          const q = BQ[h], c = q % COLS, r = (q / COLS) | 0;
+          for (let d = 0; d < 4; d++) {
+            if (!aiPass(S, c, r, d, true, 0)) continue;
+            const nk = nbrK(c, r, d);
+            if (A.mk[nk] === st) continue;
+            A.mk[nk] = st; BQ[qn++] = nk;
+            if (mar[nk] > safe) own[k]++;
+          }
+        }
+        end = qn;
+      }
+    }
+    // super-souris : je fonce sur le chat pour le renvoyer dans son panier (s'il est à portée)
+    if (sup && cv.st === 'play' && mouT[ck] < m.sup - 0.15) goal = ck;
+    // le chat approche : je fuis, carrefour par carrefour (aiSteer), vers la case la plus loin de lui ; on choisit l'issue
+    // en regardant les carrefours suivants (profondeur selon le niveau)
+    const fm = fwdOf(m), here = mar[fm.k];
+    const near = A.flee ? catT[fm.k] < 2.9 || here < 1.4 : catT[fm.k] < 2.2 || here < 1;   // (hystérésis : on ne change pas d'avis sans arrêt)
+    A.flee = 0;
+    if (goal < 0 && !sup && cv.st === 'play' && near && prm.tier >= 2) {
+      steps(S, fwdOf(cv).k, false, A.sA);
+      A.flee = 1; A.goal = fm.k; A.mP = mP;
+      return;
+    }
+    if (goal < 0 && !sup && cv.st === 'play' && (catT[fm.k] < 2.2 || here < 1)) {
+      const depth = prm.tier >= 3 ? prm.depth || 2 : 1, starts = [];
+      if (fm.bk < 0) { for (let d = 0; d < 4; d++) if (aiPass(S, fm.c, fm.r, d, true, 0)) starts.push([nbrK(fm.c, fm.r, d), d, mP.step + (m.dir >= 0 && d !== m.dir ? (d === OPP[m.dir] ? mP.rev : mP.turn) : 0), d]); }
+      else {
+        for (let d = 0; d < 4; d++) if (d !== OPP[m.dir] && aiPass(S, fm.c, fm.r, d, true, 0)) starts.push([nbrK(fm.c, fm.r, d), d, (fm.rem + 1) * mP.step + (d !== m.dir ? mP.turn : 0), d]);
+        starts.push([fm.bk, OPP[m.dir], (1 - fm.rem) * mP.step + mP.rev, -2]);
+      }
+      let bv = -1e9, bd = -9, be = -1;
+      for (const st of starts) {
+        const e = escapeVal(A, S, st[0], st[1], st[2], mP, catT, depth);
+        const v = e.v + (st[3] === m.dir ? 0.15 : 0) + (st[3] === -2 ? -0.1 : 0);
+        if (v > bv) { bv = v; bd = st[3]; be = e.end; }
+      }
+      if (bd !== -9) {
+        A.force = bd === -2 ? OPP[m.dir] : bd; A.forceK = bd === -2 ? -2 : fm.k; A.forceT = rt + prm.think * 1.6;
+        goal = be;
+      }
+    }
+    // gros fromage : à prendre quand c'est sûr et que le chat est assez près pour être renvoyé
+    const bigK = S.big.c + S.big.r * COLS;
+    if (goal < 0 && S.big.st === 1 && mar[bigK] > safe) {
+      const catNear = catT[bigK] < TUNE.superT * 0.75, danger = mar[fwdOf(m).k] < 0.9;
+      if (catNear || danger || prm.tier >= 3 && left < 14) goal = bigK;
+    }
+    // fromages sûrs (le chat arrive après moi, avec une marge) et pas au fond d'un cul-de-sac
+    let need = 0;
+    for (const q of S.cheese) if (q.on) need++;
+    const endgame = prm.tier >= 3 && left < 7 && need > 2;      // plus le temps : je tiens jusqu'au bout
+    if (goal < 0 && !endgame) {
+      let bv = 1e9;
+      for (const q of S.cheese) {
+        if (!q.on) continue;
+        const k = q.r * COLS + q.c;
+        if (!(mar[k] > safe) || mouT[k] > 40 || (prm.tier >= 3 && own[k] < 3 && need > 1)) continue;
+        const s = mouT[k] - 0.35 * Math.min(mar[k], 2.5) - (prm.tier >= 3 ? 0.12 * own[k] + 0.3 * hol[k] : 0) - (need === 1 ? 2 : 0);
+        if (s < bv) { bv = s; goal = k; }
+      }
+    }
+    // sinon : un refuge (j'y arrive bien avant le chat, beaucoup de cases sûres autour, un trou ou un tunnel tout près)
+    if (goal < 0) {
+      let bv = -1e9;
+      for (let k = 0; k < NC; k++) {
+        if (mouT[k] > 30 || !(mar[k] > 0)) continue;
+        const s = Math.min(mar[k], 2.5) + 0.3 * own[k] + 0.6 * hol[k] - 0.1 * mouT[k];
+        if (s > bv) { bv = s; goal = k; }
+      }
+    }
+    // piégée : le plus loin possible du chat (gagner du temps, il peut se tromper)
+    if (goal < 0) {
+      let bv = -1e9;
+      for (let k = 0; k < NC; k++) if (mouT[k] < 4 && catT[k] < 50 && catT[k] - 0.5 * mouT[k] > bv) { bv = catT[k] - 0.5 * mouT[k]; goal = k; }
+    }
+    A.goal = goal;
+    // chemin : on évite les cases où le chat arrive avant (ou presque)
+    for (let k = 0; k < NC; k++) { const g = mar[k] - 0.35; A.ex[k] = g < 0 ? (sup && cv.st === 'play' ? 0 : 8 + 6 * Math.min(-g, 2)) : g < 0.6 ? (0.6 - g) * 4 : 0; }
+    if (sup) A.ex.fill(0);
+    cmap(S, goal, true, opt, A.ex, A.G);
+  }
+  // pilotage à chaque image : à la prochaine case de décision, la direction qui rapproche le plus du but (carte A.G)
+  function aiSteer(A, S, me, rt) {
+    A.want = -1; A.want2 = -1;
+    if (me.st !== 'play' || A.goal < 0) return;
+    const mouse = me.kind === 'mouse', f = fwdOf(me), G = A.G, opt = A.opt;
+    if (A.flee && mouse) {                                       // fuite : la voisine la plus loin du chat (pour lui)
+      const D = A.sA;
+      if (f.bk >= 0 && 1 - f.rem < 0.34) { A.want = me.dir; return; }
+      let b1 = -1, v1 = -1e9;
+      const look = A.prm.tier >= 3 ? A.prm.depth || 2 : 0, mP = A.mP, t0 = f.rem * (mP ? mP.step : 0.22);
+      for (let d = 0; d < 4; d++) {
+        if (!canPass(S, f.c, f.r, d, true)) continue;
+        const nk = nbrK(f.c, f.r, d);
+        let v = D[nk] < 0 ? 30 : D[nk];
+        if (me.dir >= 0 && d === OPP[me.dir]) v -= rt - A.lastRev > A.prm.hold || (D[f.k] >= 0 && D[f.k] <= 3) ? 1.5 : 50;
+        // difficile / extrême : on regarde les carrefours suivants (marge la plus faible du chemin, culs-de-sac)
+        if (look && mP) v += 2.5 * Math.min(escapeVal(A, S, nk, d, t0 + mP.step + (me.dir >= 0 && d !== me.dir ? mP.turn : 0), mP, A.tA, look).v, 1.5);
+        if (v > v1) { v1 = v; b1 = d; }
+      }
+      if (f.bk >= 0) {                                           // demi-tour en plein couloir si le chat arrive en face
+        const vb = D[f.bk] < 0 ? 30 : D[f.bk], vf = D[f.k] < 0 ? 30 : D[f.k];
+        const close = Math.min(vb, vf) <= 3;
+        if (vb > vf + (close ? 0.5 : A.prm.revM == null ? 1.5 : A.prm.revM) && rt - A.lastRev > A.prm.hold * (close ? 0.5 : 1)) { A.want = OPP[me.dir]; A.lastRev = rt; return; }
+      }
+      if (b1 >= 0 && me.dir >= 0 && b1 === OPP[me.dir]) A.lastRev = rt;
+      A.want = b1;
+      return;
+    }
+    // demi-tour en plein couloir si revenir en arrière rapproche nettement du but (pas trop souvent : naturel)
+    if (f.bk >= 0) {
+      const fwd = f.rem + G[f.k], back = (1 - f.rem) + G[f.bk] + 0.4;
+      const forced = A.forceK === -2 && A.force === OPP[me.dir];
+      const keep = A.forceT > rt && A.forceK !== -2 && me.dir === A.force;   // je suis la route choisie à la dernière réflexion
+      if ((forced || (back < fwd - 1.2 && !keep)) && rt - A.lastRev > A.prm.hold) { A.want = OPP[me.dir]; A.lastRev = rt; A.forceK = -1; return; }
+    }
+    if (A.forceK === -2 && f.bk < 0) A.forceK = -1;
+    if (A.forceK === f.k && A.force >= 0 && aiPass(S, f.c, f.r, A.force, mouse, 0)) {
+      A.want = f.bk >= 0 && 1 - f.rem < (mouse ? 0.34 : 0.26) && A.force !== me.dir && A.force !== OPP[me.dir] ? me.dir : A.force;
+      return;
+    }
+    if (A.forceK !== f.k && A.forceK !== -2) A.forceK = -1;
+    let b1 = -1, v1 = 1e9, b2 = -1, v2 = 1e9;
+    for (let d = 0; d < 4; d++) {
+      if (!aiPass(S, f.c, f.r, d, mouse, opt === 2 ? 2 : 0)) continue;
+      let val = G[nbrK(f.c, f.r, d)];
+      if (me.dir >= 0 && d === OPP[me.dir]) val += rt - A.lastRev > A.prm.hold ? 2 : 50;   // revenir sur ses pas : seulement si ça vaut vraiment le coup
+      if (d === me.dir || d === A.lastDir) val -= 0.7;            // on garde sa route (comme un joueur qui tient son doigt)
+      if (val < v1) { b2 = b1; v2 = v1; b1 = d; v1 = val; } else if (val < v2) { b2 = d; v2 = val; }
+    }
+    if (G[f.k] <= 0 && f.bk < 0) { A.want = -1; return; }       // arrivé au but : on attend
+    // juste après un carrefour, un virage demandé serait pris pour un « virage tardif » à ce carrefour-là :
+    // comme un joueur, on n'indique le virage suivant qu'un peu plus loin
+    if (f.bk >= 0 && 1 - f.rem < (mouse ? 0.34 : 0.26) && b1 >= 0 && b1 !== me.dir && b1 !== OPP[me.dir]) { A.want = me.dir; return; }
+    if (b1 >= 0 && me.dir >= 0 && b1 === OPP[me.dir]) A.lastRev = rt;
+    A.want = b1; A.want2 = b2;
+    if (b1 >= 0) A.lastDir = b1;
+  }
   // ===== SIM-END =====
 
   // ===========================================================================
@@ -1708,6 +2301,10 @@
         lastMaze = mazeIdx;
         mazeIdx = pickMaze(Math.ceil(rn / 2), layoutSeed);
       }
+      beginRound(rn, mouseP);
+      if (HOST) netRoundStart();
+    }
+    function beginRound(rn, mouseP) {                 // même manche chez l'invité (labyrinthe, graine et rôles reçus de l'hôte)
       S = newRound({ round: rn, maze: mazeIdx, layoutSeed, mouseP });
       PT = []; RG = []; PR = []; doorK.fill(0);
       for (const d of S.M.doors) doorK[d.id] = S.closed[d.id];
@@ -1719,6 +2316,8 @@
       introDur = rn === 1 ? 6.4 : 4.9;
       shake = 0; flash = 0; slowVis = 0; superVis = 0; tickLast = 99; musI = 0; musT = 0.4; rays = 0; camZ = 1; camX = 4; camY = 8; hitStop = 0;
       for (const p of [0, 1]) { queued[p] = -1; BAN[p] = null; }
+      ban10 = false;
+      if (AIP) AIB = mkAI(aiLevel(), AIP.p, (layoutSeed ^ Math.imul(rn, 2654435761)) >>> 0);   // une IA neuve à chaque manche
     }
     function entOf(p) { return S ? (S.mouseP === p ? S.mouse : S.cat) : null; }
 
@@ -2339,7 +2938,7 @@
       const tx = px + hs * 0.78, tw = x0 + cw - 14 - tx;
       const top = 'MANCHE ' + S.round + ' · ' + S.M.name.toUpperCase();
       txt(top, tx, y0 + 24, fitPx(top, tw, 12, true), '#8aa0ae', 'left', true, 0);
-      const T = ROLE_TXT[role];
+      const T = AIP && p === AIP.p ? [role === 'mouse' ? 'L’IA EST LA SOURIS' : 'L’IA EST LE CHAT', 'niveau ' + AI_NAME[aiLevel()].toLowerCase()] : ROLE_TXT[role];
       const t1 = fitPx(T[0], tw, Math.round(Math.min(26, ch * 0.13)), false);
       txt(T[0], tx, y0 + 30 + t1, t1, PL[p].color, 'left', false, 4);
       const t2 = fitPx(T[1], tw, Math.round(Math.min(19, ch * 0.1)), true);
@@ -2352,7 +2951,7 @@
         : ['Glisse ton doigt pour courir. Les petits trous sont réservés à la souris !',
           'Fonce en ligne droite : tout près d’elle, tu bondis !',
           S.M.doors.length ? 'Attention, les portes s’ouvrent et se ferment !' : 'Coupe-lui la route aux carrefours !'];
-      const info = tips[Math.min(2, S.round - 1)];
+      const info = AIP && p === AIP.p ? AI_TIP[aiLevel()] : tips[Math.min(2, S.round - 1)];
       const ip = Math.round(Math.min(14, ch * 0.075));
       const lines = wrap(info, tw, ip, true).slice(0, 3);
       for (let i = 0; i < lines.length; i++) txt(lines[i], tx, y0 + 46 + t1 + t2 * 1.1 + ip * 1.3 * (i + 1), ip, '#a9c2d4', 'left', true, 0);
@@ -2419,7 +3018,9 @@
       ctx.restore();
       ctx.globalAlpha = 1;
     }
+    const evN = {};                                  // compteur d'événements (tests automatiques)
     function fire(ev) {
+      evN[ev.k] = (evN[ev.k] || 0) + 1;
       const m = S.mouse, c = S.cat;
       switch (ev.k) {
         case 'eat': {
@@ -2483,20 +3084,26 @@
           else I.want = queued[p];
         }
       }
+      if (AIB) { const I = INP[AIB.p]; I.want = AIB.want; I.want2 = AIB.want2; }   // le joueur de l'IA : ses directions à elle
     }
     function startEnd() {
       const R = S.result;
       const winner = R.winner, loser = 1 - winner;
       endI = { kind: R.kind, why: R.why, winner, loser, t: 0, cine: R.kind === 'caught' ? 0.62 : 0.05, called: false, cx: S.cat.x, cy: S.cat.y };
+      if (NET) { endI.cx += dOff[S.cat.p][0]; endI.cy += dOff[S.cat.p][1]; }   // le bond part de là où on voit le chat
       mode = 'end'; modeT = 0;
       if (R.kind === 'caught') { slowVis = 1; SFX.pounce(); }
+      if (HOST) netEndSend();
     }
     function endImpact() {
       const R = endI, m = S.mouse;
       R.called = true;
       let res = null;
-      try { res = typeof api.point === 'function' ? api.point(R.winner, R.why) : null; } catch (e) { res = null; }
-      matchOver = !!(res && res.over);
+      if (!GUEST) {                                     // l'invité ne compte jamais les points : l'hôte décide, la bibliothèque recopie
+        try { res = typeof api.point === 'function' ? api.point(R.winner, R.why) : null; } catch (e) { res = null; }
+        matchOver = !!(res && res.over);
+        if (HOST) nsend({ k: 'P', i: S.round, over: matchOver ? 1 : 0 }, true);
+      }
       if (R.kind === 'caught') {
         SFX.miaou(); after(0.05, SFX.squeak); vibrate(220);
         flash = 0.7; flashCol = '#ffffff'; shake = 1; hitStop = 0.11;
@@ -2521,8 +3128,9 @@
       rt += dt;
       sndBudget = 8;
       for (let i = later.length - 1; i >= 0; i--) if (later[i].t <= rt) { const f = later[i].fn; later.splice(i, 1); try { f(); } catch (e) { /* rien */ } }
+      if (NET) netIn(dt);
       if (!S) return;
-      if (hitStop > 0) { hitStop -= dt; return; }        // arrêt sur image à l'impact
+      if (hitStop > 0) { hitStop -= dt; if (NET) netOut(dt); return; }        // arrêt sur image à l'impact
       modeT += dt;
       // caméra : petit zoom sur les grands moments
       const zt = endI ? (endI.kind === 'caught' ? (endI.t < endI.cine ? 1 + 0.12 * ease(endI.t / endI.cine) : 1.12 - 0.12 * ease((endI.t - endI.cine - 0.7) / 0.9)) : 1 + 0.08 * Math.min(1, endI.t * 4) - 0.08 * ease((endI.t - 1) / 0.8)) : S.phase === 'pounce' ? 1.06 : 1;
@@ -2547,15 +3155,20 @@
           resumeT -= dt;
           if (resumeT <= 0) { resumeT = 0; SFX.go(); goT = 0.7; } else if (Math.ceil(resumeT / 0.5) !== before) SFX.count();
         } else {
-          computeInputs();
           const k = S.phase === 'pounce' ? TUNE.slow : 1;
-          step(S, dt * k, INP);
-          for (const ev of S.ev) fire(ev);
-          S.ev.length = 0;
+          if (HOST) hostPlay(dt, k);
+          else if (GUEST) guestPlay(dt, k);
+          else {
+            if (AIB) aiTick(AIB, S, rt);
+            computeInputs();
+            step(S, dt * k, INP);
+            for (const ev of S.ev) fire(ev);
+            S.ev.length = 0;
+          }
           // tic-tac des dernières secondes
           const left = S.dur - S.t, sec = Math.ceil(left);
           if (left < 5.5 && sec !== tickLast && sec > 0) { tickLast = sec; SFX.tick(sec <= 3); }
-          if (left < 10 && left + dt * k >= 10) bannerRoles('PLUS QUE 10 s À TENIR !', ACCENT, 'VITE, PLUS QUE 10 s !', '#ff4d5e');
+          if (GUEST ? left < 10 && left > 8.5 && !ban10 : left < 10 && left + dt * k >= 10) { ban10 = true; bannerRoles('PLUS QUE 10 s À TENIR !', ACCENT, 'VITE, PLUS QUE 10 s !', '#ff4d5e'); }
           // cœur qui bat quand le chat est tout près
           const d = Math.hypot(S.mouse.x - S.cat.x, S.mouse.y - S.cat.y);
           VM.danger = S.cat.st === 'play' && S.mouse.sup <= 0 && d < 2.4 ? Math.min(1, (VM.danger || 0) + dt * 4) : Math.max(0, (VM.danger || 0) - dt * 3);
@@ -2566,7 +3179,7 @@
       } else if (mode === 'end') {
         endI.t += dt;
         if (!endI.called && endI.t >= endI.cine) endImpact();
-        if (endI.called && endI.t >= endI.cine + 1.55 && !matchOver) startRound();
+        if (endI.called && endI.t >= endI.cine + 1.55 && !matchOver && !GUEST) startRound();   // l'invité attend la manche de l'hôte
       }
       if (goT > 0) goT -= dt;
       for (const b of BAN) if (b) b.t += dt;
@@ -2574,8 +3187,9 @@
       // portes (animation)
       for (const d of S.M.doors) { const tgt = S.closed[d.id] ? 1 : 0; doorK[d.id] += (tgt - doorK[d.id]) * Math.min(1, dt * 12); }
       // personnages
-      updVis(S.mouse, VM, dt);
-      updVis(S.cat, VC, dt);
+      if (NET) withOff(() => { updVis(S.mouse, VM, dt); updVis(S.cat, VC, dt); });
+      else { updVis(S.mouse, VM, dt); updVis(S.cat, VC, dt); }
+      if (NET) netOut(dt);
       if (S.mouse.sup > 0 && Math.random() < dt * 22) part('spark', S.mouse.x + rnd(-0.3, 0.3), S.mouse.y + rnd(-0.3, 0.3), rnd(-0.5, 0.5), rnd(-0.8, -0.2), 0.5, 0.2, 'gold', true);
       if (S.cat.st === 'play' && S.mouse.sup > 0 && Math.random() < dt * 3) part('drop', S.cat.x + rnd(-0.3, 0.3), S.cat.y - 0.4, rnd(-0.6, 0.6), rnd(-0.4, 0.2), 0.6, 0.06, '', false);
       // particules
@@ -2598,7 +3212,7 @@
     // ------------------------------------------------------------- rendu
     let ox = 0, oy = 0;
     function render() {
-      if (destroyed || !S) return;
+      if (destroyed || !S) { if (!destroyed && GUEST) drawWait(); return; }
       if (!bgC) buildBg();
       ox = 0; oy = 0;
       if (shake > 0.01 && !paused) { ox = (Math.random() * 2 - 1) * shake * cs * 0.16; oy = (Math.random() * 2 - 1) * shake * cs * 0.16; }
@@ -2657,8 +3271,8 @@
       last = now;
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
-      try { update(dt); } catch (e) { /* la boucle ne doit jamais casser */ }
-      try { render(); } catch (e) { /* idem */ }
+      try { update(dt); } catch (e) { errN++; lastErr = String((e && e.stack) || e).slice(0, 300); }   // la boucle ne doit jamais casser
+      try { if (NET) withOff(render); else render(); } catch (e) { errN++; lastErr = String((e && e.stack) || e).slice(0, 300); }
       // qualité adaptative (téléphones modestes) : moyenne sur 150 images de jeu
       const r = performance.now();
       if (prevReal && mode === 'play' && resumeT <= 0) {
@@ -2684,13 +3298,17 @@
       if (ax >= ay) { j.dir = dx > 0 ? 0 : 2; j.dir2 = ay > ax * 0.42 ? (dy > 0 ? 1 : 3) : -1; }
       else { j.dir = dy > 0 ? 1 : 3; j.dir2 = ax > ay * 0.42 ? (dx > 0 ? 0 : 2) : -1; }
     }
-    function local(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+    function local(e) {
+      const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      return FLIP ? [W - x, H - y] : [x, y];          // en ligne, l'écran de l'invité est tourné de 180° par la bibliothèque
+    }
     function onDown(e) {
       if (destroyed) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault();
       const [x, y] = local(e);
-      const p = y > H / 2 ? 0 : 1;
+      const p = NET ? ME : y > H / 2 ? 0 : 1;          // en ligne : tout l'écran pilote le joueur de ce téléphone
+      if (AIP && p === AIP.p) return;                  // contre l'IA : sa moitié de l'écran ne réagit pas aux doigts
       const j = { id: e.pointerId, p, bx: x, by: y, x, y, dir: -1, dir2: -1, t: rt };
       ptrs.set(e.pointerId, j);
       joy[p] = j;
@@ -2728,14 +3346,18 @@
       const k = keyOf(e);
       if (!k) { if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); return; }
       e.preventDefault();
-      const [p, d] = k, l = keys[p], i = l.indexOf(d);
+      const [p, d] = netKey(k), l = keys[p], i = l.indexOf(d);
+      if (AIP && p === AIP.p) return;                  // (les touches du joueur de l'IA sont ignorées)
       if (i >= 0) l.splice(i, 1);
       l.push(d);
     }
+    // en ligne : flèches et ZQSD pilotent le joueur de ce téléphone, dans le sens de SON écran
+    function netKey(k) { return NET ? [ME, FLIP ? OPP[k[1]] : k[1]] : k; }
     function onKeyUp(e) {
       const k = keyOf(e);
       if (!k) return;
-      const [p, d] = k, l = keys[p], i = l.indexOf(d);
+      const [p, d] = netKey(k), l = keys[p], i = l.indexOf(d);
+      if (AIP && p === AIP.p) return;
       if (i >= 0) l.splice(i, 1);
       if (!l.length) queued[p] = d;
     }
@@ -2757,9 +3379,537 @@
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(onResize); ro.observe(root); }
     else on(window, 'resize', onResize);
 
+    // ------------------------------------------------------------- jeu EN LIGNE (api.net), chacun sur son téléphone
+    // HÔTE (joueur 0) : toute la simulation, comme sur un seul téléphone. La position du personnage de l'invité arrive ~60 fois/s
+    // (horodatée avec api.net.now()), acceptée si elle est plausible (couloir praticable, vitesse possible) puis prolongée sur la
+    // grille jusqu'à « maintenant ». L'hôte renvoie ~30 fois/s son personnage, le temps, les portes… et en FIABLE les événements
+    // (fromage, super-souris, bond, chat renvoyé, fin de manche, sons).
+    // INVITÉ (joueur 1) : son personnage bouge tout de suite sous son doigt (mêmes règles de déplacement), l'adversaire est
+    // prolongé sur la grille et lissé, les sons et effets sont rejoués d'après les événements. Il ne compte jamais de points.
+    // CAPTURE / COUP DE LA SUPER-SOURIS : l'hôte compare les positions des deux joueurs AU MÊME INSTANT de l'horloge commune :
+    // celle que l'invité avait chez lui (horodatée) et celle de l'hôte (historique d'1,5 s), rayon de capture inchangé.
+    // Les fins « fromages » et « temps » attendent l'arrivée des positions de l'invité jusqu'à cet instant (≤ 0,4 s).
+    const NET = api.net && typeof api.net.send === 'function' && typeof api.net.onMessage === 'function' ? api.net : null;
+    const ME = NET ? (NET.me === 1 || NET.role === 'guest' ? 1 : 0) : -1, REM = NET ? 1 - ME : -1;
+    const HOST = !!NET && ME === 0, GUEST = !!NET && ME === 1, FLIP = !!(NET && NET.flipped);
+    const dOff = [[0, 0], [0, 0]];                // décalage d'affichage (en cases) qui fond : corrections réseau sans à-coup
+    const relQ = [], gQ = [], hist = [], NLOG = [], TMP = {};
+    let snapIn = null, ctlEp = 0, netEp = 0, ownCtl = true, gRep = null, rejN = 0, evOut = [];
+    let lastSnap = -1e9, lastRep = -1e9, lastHi = -1e9, snapT = -1, hostRun = 0, hostSeen = -1e9, tT = -1, predEat = {};
+    let errN = 0, lastErr = '', ban10 = false, nIn = 0, nOut = 0, lastSig = 0, pendS = null;
+    // prolongation de l'adversaire : au plus 0,1 s (au-delà, il est montré un peu en retard plutôt que deviné de travers) ;
+    // une correction fond en ~0,1 s, jamais plus vite que 4,5 cases/s de plus que sa vraie vitesse
+    const MAXEX = 0.1, STALE = 450, OFF_TAU = 0.07, OFF_VMAX = 4.5;
+    const nnow = () => { try { const v = +NET.now(); return isFinite(v) ? v : 0; } catch (e) { return 0; } };
+    function nsend(m, rel) { if (!NET || destroyed) return; nOut++; try { NET.send(m, { reliable: !!rel }); } catch (e) { /* rien */ } }
+    if (NET) {
+      try {
+        NET.onMessage((m) => {
+          if (destroyed || !m || typeof m !== 'object') return;
+          nIn++;
+          if (m.k === 's') { if (!snapIn || +m.T > +snapIn.T) snapIn = m; } else if (m.k === 'g') { if (gQ.length < 120) gQ.push(m); } else if (relQ.length < 3000) relQ.push(m);
+        });
+      } catch (e) { /* rien */ }
+    }
+    const dxy = (ax, ay, bx, by) => { let dx = Math.abs(ax - bx); dx = Math.min(dx, COLS - dx); const dy = ay - by; return Math.sqrt(dx * dx + dy * dy); };
+    function lerpW(a, b, f) {
+      let d = b - a;
+      if (d > COLS / 2) d -= COLS; else if (d < -COLS / 2) d += COLS;
+      let x = a + d * f;
+      if (x < -0.5) x += COLS; else if (x >= COLS - 0.5) x -= COLS;
+      return x;
+    }
+    const cheeseMask = () => S.cheese.reduce((a, q, i) => a | (q.on ? 1 << i : 0), 0);
+    const countOn = () => S.cheese.reduce((a, q) => a + (q.on ? 1 : 0), 0);
+
+    // --- personnage piloté ailleurs : dernier état reçu, prolongé sur la grille (monde « fantôme », S n'est jamais modifié)
+    const GS = { M: null, cd: new Float32Array(400), closed: null, ev: [] };
+    function gs() { GS.M = S.M; GS.cd.set(S.cd); GS.closed = S.closed; GS.ev.length = 0; return GS; }
+    function mkTrack() { return { e: null, T: -1, run: 0, wait: 0 }; }
+    let trR = mkTrack(), trO = mkTrack();         // l'adversaire ; mon chat quand l'hôte le pilote (invité)
+    const catMul = () => (S.mouse.sup > 0 ? 0.6 : 1);
+    // L'adversaire est montré à l'instant « maintenant − D » : D = délai moyen (lissé) au-delà de MAXEX, 0 en général.
+    // Un délai moyen, pas celui de chaque message : la gigue du réseau ne devient pas une gigue d'affichage.
+    let latAvg = -1;
+    function trackSet(tr, ent, a, T, run, now, k, local) {
+      if (!(T > tr.T)) return false;
+      const g = tr.e || Object.assign({}, ent);
+      g.kind = ent.kind; g.p = ent.p; g.vmax = ent.vmax; g.vturn = ent.vturn; g.acc = ent.acc;
+      if (!decX(S, a, g)) return false;
+      tr.T = T; tr.run = run ? 1 : 0; tr.e = g; tr.wait = 0;
+      const lat = Math.max(0, now - T);
+      if (!local) latAvg = latAvg < 0 ? lat : latAvg + (lat - latAvg) * 0.05;   // (pas pour un état fabriqué ici)
+      const D = Math.max(0, latAvg - MAXEX * 1000), age = Math.min(MAXEX + 0.12, Math.max(0, (lat - D) / 1000));
+      if (tr.run && age > 0) { ghostStep(gs(), g, age * k, g.kind === 'cat' ? catMul() : 1); GS.ev.length = 0; }
+      return true;
+    }
+    function trackStep(tr, h, now, fx) {
+      const g = tr.e;
+      if (!g || !tr.run || !(h > 0) || now - tr.T > STALE || (tr.wait && now < tr.wait)) return;
+      ghostStep(gs(), g, h, g.kind === 'cat' ? catMul() : 1);
+      if (fx) for (const e of GS.ev) if (e.k === 'turn' || e.k === 'start' || e.k === 'stop') fire(e);
+      GS.ev.length = 0;
+    }
+    function reanchor(e, nx, ny) {               // nouvelle position, mais l'affichage part de là où on voyait le personnage
+      const o = dOff[e.p];
+      let dx = e.x + o[0] - nx;
+      if (dx > COLS / 2) dx -= COLS; else if (dx < -COLS / 2) dx += COLS;
+      const dy = e.y + o[1] - ny;
+      e.x = nx; e.y = ny;
+      if (Math.abs(dx) + Math.abs(dy) > 2) { o[0] = 0; o[1] = 0; } else { o[0] = dx; o[1] = dy; }
+    }
+    function applyTrack(tr, e, full, re) {
+      const g = tr.e;
+      if (!g) return;
+      if (re) reanchor(e, g.x, g.y); else { e.x = g.x; e.y = g.y; }
+      e.dir = g.dir; e.face = g.face; e.spd = g.spd; e.want = g.want; e.want2 = g.want2; e.edge = g.edge; e.edgeT = g.edgeT; e.from = g.from;
+      if (full) { e.st = g.st; e.stT = g.stT; e.fx = g.fx; e.fy = g.fy; e.rec = g.rec; if (e.kind === 'mouse') e.sup = g.sup; }
+    }
+    function withOff(fn) {                        // dessin avec le lissage (la simulation garde les vraies positions)
+      const a = S && S.mouse, b = S && S.cat;
+      if (!a || !b) return fn();
+      const ax = a.x, ay = a.y, bx = b.x, by = b.y;
+      const sh = (e, o) => {
+        if (!o[0] && !o[1]) return;
+        const inside = e.x >= 0 && e.x <= COLS - 1;
+        e.x += o[0]; e.y += o[1];
+        if (inside) e.x = cl(e.x, 0, COLS - 1);
+      };
+      sh(a, dOff[a.p]); sh(b, dOff[b.p]);
+      try { return fn(); } finally { a.x = ax; a.y = ay; b.x = bx; b.y = by; }
+    }
+
+    // --- HÔTE
+    function roundMsg() {
+      const dc = [];
+      for (const d of S.M.doors) if (S.closed[d.id]) dc.push(d.id);
+      return { k: 'R', i: S.round, mz: S.M.idx, sd: layoutSeed, mp: S.mouseP, ep: ctlEp, T: nnow(), mt: r3(modeT), md: mode === 'play' ? 1 : 0, q: cheeseMask(), b: S.big.st, dc, t: r3(S.t) };
+    }
+    function netRoundStart() {                    // chaque manche : labyrinthe, graine et rôles envoyés de façon fiable
+      ctlEp++; gRep = null; rejN = 0; hist.length = 0; gQ.length = 0; evOut = []; trR = mkTrack();
+      for (const o of dOff) { o[0] = 0; o[1] = 0; }
+      nsend(roundMsg(), true);
+    }
+    const hostHasCat = () => !!S && S.catP === REM && (S.phase === 'pounce' || S.cat.st !== 'play');   // l'hôte pilote le chat de l'invité
+    const NI = {
+      rem: REM,
+      end(w, why, kind) { endAt(nnow(), w, why, kind); },
+      hold() { if (S && !S.hold) { const t = nnow(); S.hold = { T: t, at: t, miss: true }; } },
+      held() { return !!(S && S.hold); }
+    };
+    function endAt(T, w, why, kind) {
+      if (!S || S.result || (S.hold && !S.hold.miss)) return;
+      if (hostHasCat() || !gRep || gRep.T >= T) { S.hold = null; finish(S, w, why, kind); return; }
+      S.hold = { T, at: nnow(), w, why, kind };
+    }
+    function checkHold(now) {
+      const hd = S.hold;
+      if (!hd || S.result) return;
+      if (hd.miss && S.phase !== 'pounce') { S.hold = null; return; }
+      if ((gRep && gRep.T >= hd.T) || now - hd.at > 400 || hostHasCat()) {
+        S.hold = null;
+        if (hd.miss) endPounce(S, S.cat); else finish(S, hd.w, hd.why, hd.kind);
+      }
+    }
+    // 0 = impossible (hors d'un couloir praticable : jamais acceptée), 1 = plausible, 2 = trop rapide depuis la précédente
+    function plausible(g, T, remM) {
+      if (!onGrid(S, g.x, g.y, remM)) return 0;
+      if (gRep && T - gRep.T < 600) {
+        const v = g.vmax * (remM ? 1.12 : 1);
+        if (dxy(gRep.x, gRep.y, g.x, g.y) > v * ((T - gRep.T) / 1000) * 1.3 + 0.35) return 2;
+      }
+      return 1;
+    }
+    function histPush(now) {
+      const e = entOf(ME);
+      hist.push({ T: now, x: e.x, y: e.y, pz: S.phase === 'pounce' ? 1 : 0, su: S.mouse.sup > 0 ? 1 : 0, st: S.cat.st });
+      while (hist.length > 3 && hist[0].T < now - 1500) hist.shift();
+    }
+    function histAt(T) {
+      const n = hist.length;
+      if (!n) return null;
+      if (T <= hist[0].T) return hist[0];
+      if (T >= hist[n - 1].T) return hist[n - 1];
+      let i = n - 1;
+      while (i > 1 && hist[i - 1].T > T) i--;
+      const a = hist[i - 1], b = hist[i], f = (T - a.T) / Math.max(1e-6, b.T - a.T), c = f < 0.5 ? a : b;
+      return { x: lerpW(a.x, b.x, f), y: a.y + (b.y - a.y) * f, pz: c.pz, su: c.su, st: c.st };
+    }
+    // contacts jugés au même instant T : invité = ses positions horodatées (interpolées entre deux envois), hôte = son historique
+    function rewind(A, B) {
+      const remM = S.mouseP === REM, t0 = A.T, span = B.T - A.T;
+      if (!(span > 0)) return;
+      const n = Math.max(1, Math.min(40, Math.ceil(span / 8))), from = span > 400 ? n : 1;
+      for (let i = from; i <= n; i++) {
+        const f = i / n, T = t0 + span * f;
+        if (S.hold && !S.hold.miss && T > S.hold.T) return;       // la manche était déjà finie à cet instant
+        const H = histAt(T);
+        if (!H) return;
+        if (remM && H.st !== 'play') continue;                     // chat de l'hôte en vol plané ou en sieste
+        const gx = lerpW(A.x, B.x, f), gy = A.y + (B.y - A.y) * f;
+        const sup = remM ? S.big.st >= 1 && (A.u - (T - t0) / 1000 > 0 || (B.u > 0 && T >= B.T - (TUNE.superT - B.u) * 1000)) : !!H.su;
+        const d = dxy(gx, gy, H.x, H.y);
+        if (sup) { if (d < TUNE.bonkR) { if (S.cat.st === 'play') bonk(S); return; } continue; }
+        if (d < TUNE.captureR + (H.pz ? 0.08 : 0)) {
+          S.hold = null; S.capT = T;
+          reanchor(entOf(REM), gx, gy);                            // le personnage de l'invité, là où il était à cet instant
+          finish(S, S.catP, 'Attrapée !', 'caught');
+          return;
+        }
+      }
+    }
+    function hostReports(now, live) {
+      if (!gQ.length || !S) { gQ.length = 0; return; }
+      gQ.sort((a, b) => (+a.T || 0) - (+b.T || 0));
+      const remE = entOf(REM), remM = S.mouseP === REM;
+      for (const r of gQ) {
+        if (S.result) break;
+        const T = +r.T;
+        if ((r.i | 0) !== S.round || (r.c | 0) !== ctlEp || !isFinite(T) || (gRep && !(T > gRep.T)) || hostHasCat()) continue;
+        Object.assign(TMP, remE);
+        if (!decX(S, r.s, TMP)) continue;
+        const pl = plausible(TMP, T, remM);
+        if (!pl || (pl === 2 && ++rejN < 6)) continue;             // invraisemblable : ignorée (trop rapide 6 fois de suite : on se recale)
+        rejN = 0;
+        const rep = { T, x: TMP.x, y: TMP.y, u: remM ? TMP.sup : 0, run: r.r ? 1 : 0 };
+        if (live && gRep && (rep.run || gRep.run)) rewind(gRep, rep);
+        gRep = rep;
+        if (S.result) break;
+        if (trackSet(trR, remE, r.s, T, rep.run, now, S.phase === 'pounce' ? TUNE.slow : 1)) applyTrack(trR, remE, false, true);
+      }
+      gQ.length = 0;
+    }
+    function hostX(m, now) {                      // ce que la souris de l'invité a fait chez lui (fiable)
+      if (!S || (m.i | 0) !== S.round || S.result || mode !== 'play' || S.mouseP !== REM) return;
+      const T = +m.T, lat = isFinite(T) ? Math.max(0, (now - T) / 1000) : 0, mo = S.mouse;
+      if (m.a === 'eat') {
+        const q = S.cheese[m.n | 0];
+        if (!q || !q.on || dxy(mo.x, mo.y, q.c, q.r) > 3) return;
+        q.on = 0; S.left--;
+        fire({ k: 'eat', who: 'mouse', x: q.c, y: q.r, d: q });
+        if (S.left <= 0) endAt(isFinite(T) ? T : now, S.mouseP, 'Tout le fromage !', 'cheese');
+      } else if (m.a === 'big') {
+        if (S.big.st !== 1 || dxy(mo.x, mo.y, S.big.c, S.big.r) > 3) return;
+        S.big.st = 2; mo.sup = Math.max(0.05, TUNE.superT - lat);
+        fire({ k: 'super', who: 'mouse', x: mo.x, y: mo.y, d: null });
+        if (S.phase === 'pounce') endPounce(S, S.cat);
+      } else if (m.a === 'holein' || m.a === 'hole' || m.a === 'tunnel') {
+        const id = m.n | 0;
+        if (m.a !== 'holein' && id >= 0 && id < 400) S.cd[id] = Math.max(S.cd[id], TUNE.holeCd - lat);
+        fire({ k: m.a, who: 'mouse', x: +m.x || 0, y: +m.y || 0, d: id });
+      }
+    }
+    const FWD = { eat: 1, bigspawn: 1, super: 1, superend: 1, pounce: 1, miss: 1, bonk: 1, land: 1, wake: 1, holein: 1, hole: 1, tunnel: 1, door: 1, dooropen: 1 };
+    function handBack(now) {                      // l'hôte rend le chat à l'invité : on le prolonge dès que l'invité a pu le reprendre
+      const c = S.cat;
+      gRep = { T: now, x: c.x, y: c.y, u: 0, run: 1 };
+      trR = mkTrack();
+      trackSet(trR, c, encX(c, false), now, 1, now, 1, true);
+      let half = 60;
+      try { half = Math.min(250, Math.max(0, +NET.rtt() / 2 || 0)); } catch (e) { /* rien */ }
+      trR.wait = now + half;
+    }
+    function hostFwd(e, now) {
+      if (!FWD[e.k]) return;
+      const remCat = S.catP === REM;
+      if (!remCat && e.who === 'mouse' && (e.k === 'superend' || e.k === 'holein' || e.k === 'hole' || e.k === 'tunnel')) return;   // déjà joué chez l'invité
+      const o = [e.k, r3(e.x), r3(e.y)], c = S.cat;
+      if (e.k === 'eat') o.push(S.cheese.indexOf(e.d));
+      else if (e.k === 'holein' || e.k === 'hole' || e.k === 'tunnel' || e.k === 'door' || e.k === 'dooropen') o.push(e.d | 0);
+      else if (e.k === 'super') o.push(r3(S.mouse.sup));
+      else if (e.k === 'pounce' || e.k === 'bonk') { if (remCat) ctlEp++; o.push(ctlEp, encX(c, e.k === 'pounce')); }
+      else if (e.k === 'miss' || e.k === 'wake') { if (remCat) { ctlEp++; handBack(now); } o.push(ctlEp, encX(c, false)); }
+      evOut.push(o);
+    }
+    function flushEv(now) { if (evOut.length && S) { nsend({ k: 'e', i: S.round, T: now, L: evOut }, true); evOut = []; } }
+    function snapMsg(now) {
+      const own = entOf(ME), c = S.cat, pz = S.phase === 'pounce';
+      const o = { k: 's', i: S.round, T: now, m: mode === 'play' ? 1 : 0, mt: r3(modeT), t: r3(S.t), ph: pz ? 1 : 0,
+        rs: mode === 'play' && resumeT <= 0 && !S.result && !S.hold ? 1 : 0, w: (S.warn[0] ? 1 : 0) | (S.warn[1] ? 2 : 0),
+        q: cheeseMask(), b: S.big.st, h: encX(own, own === c && pz) };
+      if (hostHasCat()) { o.g = encX(c, pz); o.ep = ctlEp; }
+      return o;
+    }
+    function netEndSend() {
+      flushEv(nnow());
+      const R = S.result, m = S.mouse, c = S.cat;
+      nsend({ k: 'E', i: S.round, w: R.winner, y: R.why, kd: R.kind, m: [r4(m.x), r4(m.y)], c: [r4(c.x), r4(c.y), c.face], q: cheeseMask(), b: S.big.st, T: nnow() }, true);
+    }
+    function hostPlay(dt, k) {
+      computeInputs();
+      const now = nnow();
+      // l'invité : on prolonge d'abord l'estimation d'une image, puis on la recale sur ses nouvelles positions (même instant)
+      if (!hostHasCat()) { trackStep(trR, dt * k, now, true); applyTrack(trR, entOf(REM), false, false); }
+      hostReports(now, true);
+      if (!S.result && S.hold) checkHold(now);
+      if (!S.result) {
+        if (!S.hold && dt > 0) {
+          const h = dt * k, n = Math.max(1, Math.ceil(h / 0.008 - 1e-9)), hh = h / n;
+          for (let i = 0; i < n && !S.result && !S.hold; i++) subNet(S, hh, INP, NI);
+        }
+      }
+      for (const e of S.ev) { fire(e); hostFwd(e, now); }
+      S.ev.length = 0;
+      histPush(now);
+    }
+
+    // --- INVITÉ
+    function guestRound(m, now) {
+      const rn = Math.max(1, m.i | 0), T = +m.T, lat = isFinite(T) ? Math.max(0, (now - T) / 1000) : 0;
+      if (S && rn <= S.round) {                   // renvoi de la même manche (après « hi ») : on recale juste l'intro
+        if (rn === S.round && mode === 'intro' && !m.md) modeT = Math.max(modeT, Math.min(introDur - 0.02, (+m.mt || 0) + lat));
+        return;
+      }
+      mazeIdx = (((m.mz | 0) % PARSED.length) + PARSED.length) % PARSED.length;
+      layoutSeed = (+m.sd || 1) >>> 0;
+      beginRound(rn, m.mp ? 1 : 0);
+      netEp = m.ep | 0; ownCtl = true; trR = mkTrack(); trO = mkTrack(); predEat = {}; snapT = -1; hostRun = 0; tT = -1;
+      for (const o of dOff) { o[0] = 0; o[1] = 0; }
+      if (typeof m.q === 'number') S.cheese.forEach((q, i) => { q.on = (m.q >> i) & 1; });
+      S.left = countOn();
+      S.big.st = Math.max(0, Math.min(2, m.b | 0));
+      if (Array.isArray(m.dc)) for (const d of S.M.doors) { S.closed[d.id] = m.dc.indexOf(d.id) >= 0 ? 1 : 0; doorK[d.id] = S.closed[d.id]; }
+      S.t = Math.max(0, +m.t || 0);
+      const mt = (+m.mt || 0) + lat;
+      if (m.md) { mode = 'play'; modeT = mt; } else modeT = Math.min(introDur - 0.02, mt);
+      introFired = 0;
+      for (let i = 0; i < 3; i++) if (modeT >= introDur - 1.75 + i * 0.55) introFired = i + 1;
+    }
+    function guestSnap(s, now) {
+      if (!S) return;
+      const si = s.i | 0, T = +s.T;
+      if (si !== S.round) { if (si > S.round && now - lastHi > 1000) { lastHi = now; nsend({ k: 'hi' }, true); } return; }
+      if (!(T > snapT)) return;
+      snapT = T; hostRun = s.rs ? 1 : 0; hostSeen = now;
+      if (S.result) return;
+      const lat = Math.max(0, (now - T) / 1000), pz = !!s.ph, k = pz ? TUNE.slow : 1;
+      S.phase = pz ? 'pounce' : 'play';
+      S.warn[0] = s.w & 1; S.warn[1] = (s.w >> 1) & 1;
+      tT = (+s.t || 0) + (s.rs ? lat * k : 0);
+      for (let i = 0; i < S.cheese.length; i++) {
+        const q = S.cheese[i], on = (s.q >> i) & 1;
+        if (on && !q.on && predEat[i] && now - predEat[i] > 1500) { q.on = 1; delete predEat[i]; }   // jamais confirmé par l'hôte
+        else if (!on && predEat[i]) delete predEat[i];
+      }
+      S.left = countOn();
+      if ((s.b | 0) > S.big.st) S.big.st = Math.min(2, s.b | 0);
+      pendS = s;                                  // positions : appliquées après la prolongation de l'image (applyPend)
+      if (mode === 'intro') {
+        if (s.m === 1) { mode = 'play'; modeT = lat; SFX.go(); goT = 0.8; } else {
+          const tm = (+s.mt || 0) + lat, dm = tm - modeT;      // l'intro suit celle de l'hôte, en douceur (sauf gros écart)
+          modeT = Math.abs(dm) > 1 ? tm : modeT + cl(dm, -0.06, 0.06);
+        }
+      }
+    }
+    function applyPend(now) {
+      const s = pendS;
+      pendS = null;
+      if (!s || !S || (s.i | 0) !== S.round || S.result) return;
+      const k = s.ph ? TUNE.slow : 1, T = +s.T, he = entOf(REM);
+      if (trackSet(trR, he, s.h, T, s.rs, now, k)) applyTrack(trR, he, true, true);
+      if (!ownCtl && Array.isArray(s.g)) { const me = entOf(ME); if (trackSet(trO, me, s.g, T, s.rs, now, k)) applyTrack(trO, me, true, true); }
+    }
+    function catSt(st, stT, fx, fy, home) {
+      const tr = S.catP === ME ? trO : trR;
+      for (const o of [S.cat, tr.e]) {
+        if (!o) continue;
+        o.st = st; o.stT = stT; o.lng = 0;
+        if (fx != null) { o.fx = fx; o.fy = fy; }
+        if (home) { const hm = S.homes[S.catP]; o.x = hm.c; o.y = hm.r; o.dir = -1; o.edge = -1; o.edgeT = 0; o.from = hm.r * COLS + hm.c; o.face = S.catP === 0 ? 3 : 1; }
+      }
+      if (home) { dOff[S.catP][0] = 0; dOff[S.catP][1] = 0; }
+    }
+    function takeOwn(a, T, now, k) {              // l'hôte pilote mon chat (bond, vol plané, sieste)
+      ownCtl = false; trO = mkTrack();
+      const me = entOf(ME);
+      if (trackSet(trO, me, a, T, 1, now, k)) applyTrack(trO, me, true, true);
+    }
+    function giveOwn(ep, a, lat) {                // … puis me le rend, à l'endroit exact choisi par l'hôte
+      const me = entOf(ME), g = Object.assign({}, me);
+      netEp = ep | 0;
+      if (decX(S, a, g)) {
+        reanchor(me, g.x, g.y);
+        me.dir = g.dir; me.face = g.face; me.spd = g.spd; me.edge = g.edge; me.edgeT = g.edgeT; me.from = g.from;
+        me.rec = Math.max(0, g.rec - lat);
+      }
+      me.st = 'play'; me.stT = 0; me.lunge = false;
+      ownCtl = true; trO = mkTrack();
+    }
+    function guestEvents(m, now) {
+      if (!S || (m.i | 0) !== S.round || S.result || !Array.isArray(m.L)) return;
+      const T = +m.T, lat = isFinite(T) ? Math.max(0, (now - T) / 1000) : 0, ownCat = S.catP === ME;
+      for (const o of m.L) {
+        if (!Array.isArray(o)) continue;
+        const k = String(o[0]), E = { k, who: '', x: +o[1] || 0, y: +o[2] || 0, d: null };
+        switch (k) {
+          case 'eat': { const q = S.cheese[o[3] | 0]; if (q && q.on) { q.on = 0; S.left = countOn(); E.who = 'mouse'; E.d = q; fire(E); } break; }
+          case 'bigspawn': S.big.st = Math.max(S.big.st, 1); fire(E); break;
+          case 'super':
+            S.big.st = 2; S.mouse.sup = Math.max(0.05, (+o[3] || TUNE.superT) - lat);
+            if (trR.e && S.mouseP === REM) trR.e.sup = S.mouse.sup;
+            E.who = 'mouse'; fire(E); break;
+          case 'superend': S.mouse.sup = 0; if (trR.e && S.mouseP === REM) trR.e.sup = 0; E.who = 'mouse'; fire(E); break;
+          case 'pounce':
+            S.phase = 'pounce';
+            if (ownCat) takeOwn(o[4], T, now, TUNE.slow);
+            else if (trackSet(trR, S.cat, o[4], T, 1, now, TUNE.slow)) applyTrack(trR, S.cat, true, true);
+            E.who = 'cat'; E.d = o[3]; fire(E); break;
+          case 'miss': S.phase = 'play'; if (ownCat) giveOwn(o[3], o[4], lat); else if (trR.e) trR.e.lng = 0; E.who = 'cat'; fire(E); break;
+          case 'bonk':
+            catSt('fly', lat, E.x, E.y, false);
+            if (ownCat) takeOwn(o[4], T, now, 1);
+            if (!(snapT >= T)) { S.t = Math.min(S.dur, S.t + TUNE.bonkGain); if (tT >= 0) tT += TUNE.bonkGain; }   // « +5 s » tout de suite
+            E.who = 'cat'; fire(E); break;
+          case 'land': catSt('home', 0, null, null, true); E.who = 'cat'; fire(E); break;
+          case 'wake': catSt('play', 0, null, null, false); if (ownCat) giveOwn(o[3], o[4], 0); break;
+          case 'holein': E.who = 'mouse'; fire(E); break;
+          case 'hole': case 'tunnel': { const id = o[3] | 0; if (id >= 0 && id < 400) S.cd[id] = Math.max(S.cd[id], TUNE.holeCd - lat); E.who = 'mouse'; E.d = id; fire(E); break; }
+          case 'door': case 'dooropen': { const id = o[3] | 0; if (id >= 0 && id < 400) S.closed[id] = k === 'door' ? 1 : 0; E.d = id; fire(E); break; }
+          default: break;
+        }
+      }
+    }
+    function guestEnd(m) {
+      if (!S || (m.i | 0) !== S.round || S.result) return;
+      const kind = m.kd === 'caught' || m.kd === 'cheese' ? m.kd : 'time';
+      S.result = { winner: m.w ? 1 : 0, why: String(m.y || ''), kind };
+      S.phase = kind;
+      ownCtl = false;
+      if (typeof m.q === 'number') { S.cheese.forEach((q, i) => { q.on = (m.q >> i) & 1; }); S.left = countOn(); }   // l'hôte a le dernier mot
+      if (typeof m.b === 'number') S.big.st = Math.max(0, Math.min(2, m.b | 0));
+      const P = (a) => (Array.isArray(a) && isFinite(+a[0]) && isFinite(+a[1]) ? [cl(+a[0], -0.5, COLS - 0.5001), cl(+a[1], 0, ROWS - 1)] : null);
+      const pm = P(m.m), pc = P(m.c);
+      if (pm) reanchor(S.mouse, pm[0], pm[1]);
+      if (pc) { reanchor(S.cat, pc[0], pc[1]); const f = dirOk(m.c[2]); if (f >= 0) S.cat.face = f; }
+      if (mode === 'play' || mode === 'intro') { resumeT = 0; startEnd(); }
+    }
+    function guestEat(now) {                      // prédiction : je mange tout de suite, l'hôte confirme
+      const m = S.mouse;
+      for (let i = 0; i < S.cheese.length; i++) {
+        const q = S.cheese[i];
+        if (q.on && near(m, q.c, q.r, TUNE.eatR)) {
+          q.on = 0; predEat[i] = now; S.left = countOn();
+          ev(S, 'eat', m, q);
+          nsend({ k: 'x', i: S.round, a: 'eat', n: i, T: now }, true);
+        }
+      }
+      if (S.big.st === 1 && near(m, S.big.c, S.big.r, TUNE.eatR + 0.05)) {
+        S.big.st = 2; m.sup = TUNE.superT;
+        ev(S, 'super', m);
+        nsend({ k: 'x', i: S.round, a: 'big', T: now }, true);
+      }
+    }
+    const guestRunning = () => mode === 'play' && resumeT <= 0 && ownCtl && !paused && !!S && !S.result;
+    function guestPlay(dt, k) {
+      if (S.result) return;
+      const now = nnow(), me = entOf(ME), h = dt * k;
+      if (ownCtl) {                               // MON personnage : tout de suite, sans attendre le réseau
+        computeInputs();
+        if (h > 0) {
+          const n = Math.max(1, Math.ceil(h / 0.008 - 1e-9)), hh = h / n;
+          for (let i = 0; i < n; i++) {
+            if (me.kind === 'mouse') {
+              if (me.sup > 0) { me.sup -= hh; if (me.sup <= 0) { me.sup = 0; ev(S, 'superend', me); } }
+              moveEnt(S, me, INP[ME], hh, me.sup > 0 ? 1.12 : 1);
+              guestEat(now);
+            } else {
+              if (me.rec > 0) me.rec -= hh;
+              moveEnt(S, me, INP[ME], hh, (S.mouse.sup > 0 ? 0.6 : 1) * (me.rec > 0 ? 0.5 : 1));
+            }
+          }
+        }
+      } else { trackStep(trO, h, now, false); applyTrack(trO, me, true, false); }
+      if (hostRun) { trackStep(trR, h, now, true); applyTrack(trR, entOf(REM), true, false); }
+      applyPend(now);                             // puis recalage sur le dernier état reçu (même instant : seule l'erreur est lissée)
+      // temps de manche : avance ici, recalé en douceur sur celui de l'hôte
+      if (hostRun && now - hostSeen < STALE) S.t += h;
+      if (tT >= 0) {
+        const d = tT + (hostRun ? ((now - hostSeen) / 1000) * k : 0) - S.t;
+        S.t += Math.abs(d) > 1 ? d : d * Math.min(1, dt * 4);
+      }
+      S.t = cl(S.t, 0, S.dur);
+      const ids = S.M.cdIds;
+      for (let i = 0; i < ids.length; i++) if (S.cd[ids[i]] > 0) S.cd[ids[i]] = Math.max(0, S.cd[ids[i]] - h);
+      for (const e of S.ev) {                     // effets de mes déplacements tout de suite ; trous et tunnels : l'hôte est prévenu
+        fire(e);
+        if (e.who === me.kind && (e.k === 'holein' || e.k === 'hole' || e.k === 'tunnel')) nsend({ k: 'x', i: S.round, a: e.k, n: e.d | 0, x: r3(e.x), y: r3(e.y), T: now }, true);
+      }
+      S.ev.length = 0;
+    }
+
+    // --- tous les messages passent ici, une fois par image (jamais pendant la pause)
+    function netIn() {
+      const now = nnow();
+      if (HOST) {
+        for (const m of relQ) {
+          if (m.k === 'hi') { if (S && (mode === 'intro' || mode === 'play')) nsend(roundMsg(), true); } else if (m.k === 'x') hostX(m, now);
+        }
+        relQ.length = 0;
+        if (S && !(mode === 'play' && resumeT <= 0)) hostReports(now, false);   // hors jeu : on suit sans juger de contact
+      } else {
+        for (const m of relQ) {
+          if (m.k === 'R') guestRound(m, now);
+          else if (m.k === 'e') guestEvents(m, now);
+          else if (m.k === 'E') guestEnd(m);
+          else if (m.k === 'P') { if (S && (m.i | 0) === S.round) matchOver = !!m.over; }
+        }
+        relQ.length = 0;
+        if (snapIn) { const s = snapIn; snapIn = null; guestSnap(s, now); }
+        if (pendS && !(mode === 'play' && resumeT <= 0)) applyPend(now);   // pas de prolongation cette image : recalage direct
+        if (!S && now - lastHi > 1000) { lastHi = now; nsend({ k: 'hi' }, true); }
+      }
+    }
+    function netOut(dt) {
+      for (const o of dOff) {                     // le décalage d'affichage fond : vite s'il est petit, à vitesse bornée s'il est grand
+        const m = Math.hypot(o[0], o[1]);
+        if (m < 2e-3) { o[0] = 0; o[1] = 0; continue; }
+        const cut = Math.min(m * (1 - Math.exp(-Math.max(0, dt) / OFF_TAU)), OFF_VMAX * Math.max(0, dt)), k = (m - cut) / m;
+        o[0] *= k; o[1] *= k;
+      }
+      if (!S || paused) return;
+      const now = nnow();
+      if (HOST) {
+        flushEv(now);
+        // ~30 fois/s, et tout de suite quand mon personnage change de direction (l'invité voit les demi-tours au plus tôt)
+        const own = entOf(ME), sig = own.dir * 25 + own.want * 5 + own.want2;
+        if ((mode === 'play' || mode === 'intro') && (now - lastSnap >= (mode === 'play' ? 30 : 90) || (sig !== lastSig && now - lastSnap >= 8))) {
+          lastSnap = now; lastSig = sig; nsend(snapMsg(now), false);
+        }
+      } else if (mode === 'play' && !S.result && now - lastRep >= (guestRunning() ? 15 : 90)) {   // ~60 fois/s (même sur écran 120 Hz)
+        lastRep = now;
+        nsend({ k: 'g', i: S.round, c: netEp, T: now, r: guestRunning() ? 1 : 0, s: encX(entOf(ME), false) }, false);
+      }
+      const a = S.mouse, b = S.cat;                // journal (tests) : positions affichées à chaque image
+      NLOG.push([Math.round(rt * 1e4) / 10, r4(a.x + dOff[a.p][0]), r4(a.y + dOff[a.p][1]), r4(b.x + dOff[b.p][0]), r4(b.y + dOff[b.p][1]), mode === 'play' && resumeT <= 0 && !S.result ? 1 : 0, S.round, S.mouseP, ST.indexOf(S.cat.st), S.phase === 'pounce' ? 1 : 0, Math.round(now)]);
+      if (NLOG.length > 1500) NLOG.splice(0, 300);
+    }
+    function drawWait() {                         // invité, avant la première manche de l'hôte
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = '#0b141c'; ctx.fillRect(0, 0, W, H);
+      ctx.save(); ctx.translate(W, H); ctx.rotate(Math.PI);
+      ctx.globalAlpha = 0.55 + 0.45 * Math.sin(rt * 4);
+      txt('CONNEXION…', W / 2, H / 2, 18, '#8aa0ae', 'center', false, 0);
+      ctx.restore(); ctx.globalAlpha = 1;
+    }
+
+    // ------------------------------------------------------------- contre l'IA (api.ai) : le joueur du haut est piloté par l'IA du jeu
+    // (mêmes règles : elle ne fait que choisir des directions, voit avec un temps de réaction ; jamais en ligne)
+    const AIP = !NET && api.ai && (api.ai.p === 0 || api.ai.p === 1) ? api.ai : null;
+    let AIB = null;
+    const AI_NAME = { facile: 'FACILE', moyen: 'MOYEN', difficile: 'DIFFICILE', extreme: 'EXTRÊME' };
+    function aiLevel() {                              // le niveau demandé (ou, à défaut, d'après k : 0,25 … 1)
+      const l = AIP && String(AIP.level || '');
+      if (AI_LV[l]) return l;
+      const k = AIP ? +AIP.k : 0.5;
+      return k >= 0.9 ? 'extreme' : k >= 0.7 ? 'difficile' : k >= 0.4 ? 'moyen' : 'facile';
+    }
+    const AI_TIP = { facile: 'Elle réfléchit lentement : à toi de jouer !', moyen: 'Une adversaire coriace : reste concentré !',
+      difficile: 'Elle anticipe et coupe les routes !', extreme: 'Méga intelligente : bonne chance !' };
+
     // ------------------------------------------------------------- départ
     layout();
-    startRound();
+    if (GUEST) { lastHi = nnow(); nsend({ k: 'hi' }, true); } else startRound();
     raf = requestAnimationFrame(frame);
 
     function pause() {
@@ -2784,6 +3934,7 @@
       if (ro) { try { ro.disconnect(); } catch (e) { /* rien */ } }
       for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
       listeners.length = 0; later.length = 0; ptrs.clear();
+      relQ.length = 0; gQ.length = 0; snapIn = null; hist.length = 0; evOut = [];
       PT = []; RG = []; PR = []; HEADS.clear(); bgC = null; SPR = null; S = null;
       try { root.innerHTML = ''; } catch (e) { /* rien */ }
     }
@@ -2791,10 +3942,14 @@
       destroy, pause, resume,
       // lecture seule, pour les tests automatiques
       _dbg: () => (S ? {
-        mode, paused, round: S.round, maze: S.M.name, mazeIdx: S.M.idx, mouseP: S.mouseP, catP: S.catP, phase: S.phase, t: S.t, dur: S.dur, left: S.left,
+        mode, modeT, paused, round: S.round, maze: S.M.name, mazeIdx: S.M.idx, mouseP: S.mouseP, catP: S.catP, phase: S.phase, t: S.t, dur: S.dur, left: S.left,
         mouse: { x: S.mouse.x, y: S.mouse.y, dir: S.mouse.dir, sup: S.mouse.sup }, cat: { x: S.cat.x, y: S.cat.y, dir: S.cat.dir, st: S.cat.st },
-        big: S.big.st, result: S.result, cs, mx, my, W, H, sh, cheese: S.cheese.filter((q) => q.on).map((q) => ({ c: q.c, r: q.r })), joy: joy.map((j) => (j ? { dir: j.dir, dir2: j.dir2 } : null)), parts: PT.length
+        big: S.big.st, result: S.result, cs, mx, my, W, H, sh, cheese: S.cheese.filter((q) => q.on).map((q) => ({ c: q.c, r: q.r })), joy: joy.map((j) => (j ? { dir: j.dir, dir2: j.dir2 } : null)), parts: PT.length,
+        err: errN, lastErr,
+        net: NET ? { me: ME, ownCtl, ep: HOST ? ctlEp : netEp, hold: !!S.hold, resumeT, mask: cheeseMask(), off: [dOff[0].slice(), dOff[1].slice()], nIn, nOut, gRepT: gRep ? gRep.T : null, capT: S.capT || null } : null
       } : null),
+      _net: () => ({ log: NLOG.slice(), err: errN, lastErr, ev: Object.assign({}, evN) }),
+      _ai: () => (AIB ? { level: AIB.level, p: AIB.p, want: AIB.want, goal: AIB.goal, flee: AIB.flee, think: AIB.think, msMax: AIB.msMax, msAvg: AIB.think ? AIB.msSum / AIB.think : 0 } : null),
       _can: (c, r, d, mouse) => (S ? canPass(S, c, r, d, mouse) : false)
     };
   }
@@ -2808,6 +3963,8 @@
     accent: ACCENT,
     target: 4,
     layout: 'shared',
+    net: true,                  // sait jouer EN LIGNE (chacun sur son téléphone, voir « jeu EN LIGNE » dans mount)
+    ai: true,                   // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
     preview,
     mount
   };
