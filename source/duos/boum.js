@@ -3038,34 +3038,47 @@
       ctx.save();
       if (ROT) { ctx.translate(W, H); ctx.rotate(Math.PI); }
       if (!ctl.land) {
+        // vue solo : juste une petite étiquette « nom » à sa couleur (petite tête + nom), pas de HUD ; à droite, réseau / niveau de l'IA
         const bh = H - ctl.y0, cy = bh / 2;        // bande du haut, symétrique de la mienne
-        const ph = Math.round(clamp(bh * 0.62, 34, 64));
-        const px = Math.max(ctl.sx - ctl.R * 0.2, 16 + ph * 0.42);
-        drawPortrait(p, px, cy, ph);
-        const x = px + ph * 0.62, w = W - 16 - x;
-        const ns = Math.round(clamp(bh * 0.19, 12, 18));
+        const ns = Math.round(clamp(bh * 0.17, 12, 17)), tg = Math.max(10, Math.round(ns * 0.66));
+        const ph = Math.round(clamp(bh * 0.4, 28, 44)), lh = Math.round(ns * 2.05);
+        const x0 = 16, tagW = AIP ? tg * 7.2 + 20 : tg * 5 + 20;
         ctx.font = ns + 'px ' + FD;
         let nm = NAMES[p];
-        while (nm.length > 3 && ctx.measureText(nm).width > w * 0.6) nm = nm.slice(0, -1);
-        txtOut(ctx, nm, x, cy - ns * 0.72, ns, PCOL[p], FD, 'left', 3);
-        drawTag(W - 18, cy - ns * 0.72, Math.max(10, ns * 0.68));
-        chipsRow(p, x, cy + ns * 0.62, w, Math.round(clamp(bh * 0.2, 16, 22)));
+        const maxW = Math.max(40, W - 16 - tagW - 24 - x0 - ph * 0.9 - ns * 1.4);
+        while (nm.length > 3 && ctx.measureText(nm).width > maxW) nm = nm.slice(0, -1);
+        const tw = ctx.measureText(nm).width, pw = ph * 0.9 + tw + ns * 1.4;
+        drawPill(p, x0, cy, pw, lh);
+        drawPortrait(p, x0 + ph * 0.42, cy - ph * 0.04, ph);
+        txtOut(ctx, nm, x0 + ph * 0.9 + ns * 0.45, cy + 1, ns, PCOL[p], FD, 'left', 3);
+        drawTag(W - 18, cy, tg);
       } else {
         const x0 = 12, w = ctl.mw - 24, top = 18, bot = H / 2 - 48;   // marge de gauche, moitié du haut (loin du bouton menu)
-        const ph = Math.round(clamp(Math.min(w * 0.45, (bot - top) * 0.42), 34, 96));
-        const ns = Math.round(clamp(w / 9.5, 11, 17)), cs = Math.round(clamp(w / 8, 16, 24));
+        const ph = Math.round(clamp(Math.min(w * 0.32, (bot - top) * 0.3), 30, 60));
+        const ns = Math.round(clamp(w / 9.5, 11, 16)), lh = Math.round(ns * 2.05);
         let y = top + ph * 0.55;
         drawPortrait(p, x0 + w / 2, y, ph);
-        y += ph * 0.55 + ns * 0.9;
+        y += ph * 0.55 + lh * 0.6;
         ctx.font = ns + 'px ' + FD;
         let nm = NAMES[p];
-        while (nm.length > 3 && ctx.measureText(nm).width > w) nm = nm.slice(0, -1);
-        txtOut(ctx, nm, x0 + w / 2, y, ns, PCOL[p], FD, 'center', 3);
-        y += ns * 1.5;
-        if (y + cs < bot) chipsRow(p, x0, y, w, cs);
-        if (y + cs * 2.2 < bot) drawTag(x0 + w, bot - 6, Math.max(10, ns * 0.7));
+        while (nm.length > 3 && ctx.measureText(nm).width > w - ns * 1.6) nm = nm.slice(0, -1);
+        const pw = ctx.measureText(nm).width + ns * 1.6;
+        drawPill(p, x0 + w / 2 - pw / 2, y, pw, lh);
+        txtOut(ctx, nm, x0 + w / 2, y + 1, ns, PCOL[p], FD, 'center', 3);
+        y += lh;
+        if (y + ns * 1.6 < bot) drawTag(x0 + w, bot - 6, Math.max(10, ns * 0.7));
       }
       ctx.restore();
+    }
+    function drawPill(p, x, cy, w, h) {           // étiquette néon discrète à la couleur du joueur
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.22;
+      ctx.drawImage(F.p[p], x - h * 0.6, cy - h * 1.3, w + h * 1.2, h * 2.6);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      rrect(ctx, x, cy - h / 2, w, h, h / 2);
+      ctx.fillStyle = 'rgba(4,9,14,0.82)'; ctx.fill();
+      ctx.strokeStyle = hexA(PCOL[p], 0.75); ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.fillStyle = lin(ctx, x + w * 0.15, 0, x + w * 0.85, 0, [0, hexA(PCOL[p], 0), 0.5, hexA(PCOL[p], 0.8), 1, hexA(PCOL[p], 0)]);
+      ctx.fillRect(x + w * 0.15, cy + h / 2 - 1, w * 0.7, 2);
     }
 
     // ----------------------------------------------------------------- écrans par-dessus (décompte, consignes, pause, transitions)

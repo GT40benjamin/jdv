@@ -594,7 +594,6 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 /* une page par mode */
 .mode-hero,.mode-page{display:none}
 #jdw-lib:not([data-mode="classique"]) .lib-title,
-#jdw-lib:not([data-mode="classique"]) #jdw-roomrow,
 #jdw-lib:not([data-mode="classique"]) #jdw-note{display:none!important}
 #jdw-lib:not([data-mode="classique"]) #jdw-grid{display:none!important}
 #jdw-lib:not([data-mode="classique"]) .mode-hero{display:flex}
@@ -956,6 +955,23 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .pick-row.ai-row{border-color:color-mix(in srgb,#5ef0ff 50%,var(--line))}
 /* duel en ligne : pastilles à l'endroit pour le joueur de cet appareil, un seul écran de résultat (le sien) */
 #jdw-duo.net-host .duo-pill.p1{transform:none}
+#jdw-duo.ai-solo .duo-pill.p1{transform:none}
 #jdw-duo.net-guest.net-flip .duo-pill.p0{transform:rotate(180deg)}
 #jdw-duo.net-single .duo-res{grid-template-rows:1fr}
+#jdw-duo.ai-single .duo-res{grid-template-rows:1fr}#jdw-duo.ai-single #jdw-duo-r1{display:none}
 #jdw-duo.net-single.net-host #jdw-duo-r1,#jdw-duo.net-single.net-guest #jdw-duo-r0{display:none}
+
+/* ---------- Ma tête et mon cri : partout ou seulement dans la salle ---------- */
+.look-box{display:grid;gap:8px;min-width:0}
+.look-lbl{margin:0;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.look-scope button{display:flex;align-items:center;justify-content:center;gap:.3em;min-width:0;padding:4px 10px;line-height:1.15}
+.look-scope button b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.look-scope button .look-only{flex:0 0 auto}
+.look-scope button[aria-pressed="true"] b{color:var(--gold)}
+@media (max-width:420px){.look-scope button{flex-direction:column;gap:0;font-size:13px}.look-scope button b{max-width:100%}}
+.look-hint{min-height:1.4em}
+.look-hint b{color:var(--ink);font-weight:600}
+.look-av{position:relative;flex:0 0 auto;display:block}
+.look-tag{position:absolute;right:-2px;bottom:-2px;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  background:var(--gold);color:var(--night);font-size:14px;box-shadow:0 0 0 3px var(--panel)}
+.look-reset{justify-self:start;max-width:100%;white-space:normal;text-align:left}

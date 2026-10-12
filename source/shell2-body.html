@@ -17,9 +17,6 @@
     </button>
   </div>
   <div class="lib-wrap">
-    <h1 class="lib-title">Borne d'arcade <span class="plaque">entre amis</span></h1>
-    <button class="update-bar" id="jdw-siteupd" type="button" hidden><b>Nouvelle version du site</b><span>Touche ici pour l'avoir tout de suite</span></button>
-    <a class="update-bar" id="jdw-update" href="telecharger/" hidden><b>Nouvelle version de l'appli</b><span id="jdw-update-txt">Touchez pour la télécharger</span></a>
     <div class="room-row" id="jdw-roomrow" hidden>
     <button class="room-bar" id="jdw-roombar" type="button">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h9l5 3v15"/><path d="M15 3v18M2 21h20"/><circle cx="12" cy="12" r="1"/></svg>
@@ -30,6 +27,9 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/></svg>
     </button>
     </div>
+    <h1 class="lib-title">Borne d'arcade <span class="plaque">entre amis</span></h1>
+    <button class="update-bar" id="jdw-siteupd" type="button" hidden><b>Nouvelle version du site</b><span>Touche ici pour l'avoir tout de suite</span></button>
+    <a class="update-bar" id="jdw-update" href="telecharger/" hidden><b>Nouvelle version de l'appli</b><span id="jdw-update-txt">Touchez pour la télécharger</span></a>
     <header class="mode-hero" id="jdw-mode-hero">
       <span class="mh-ic" id="jdw-mh-ic" aria-hidden="true"></span>
       <div class="mh-tx"><h1 id="jdw-mh-title"></h1><p id="jdw-mh-sub"></p></div>
@@ -358,10 +358,18 @@
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-set-h">
     <div class="card-body">
       <div class="card-head"><h2 id="jdw-set-h">Paramètres</h2><button class="btn btn-ghost btn-sm" id="jdw-set-close" type="button">Fermer</button></div>
-      <div class="me-big"><span class="avatar" id="jdw-set-av"></span><div class="field" style="flex:1 1 auto;min-width:0">
+      <div class="me-big"><span class="look-av"><span class="avatar" id="jdw-set-av"></span><span class="look-tag" id="jdw-look-tag" hidden>🏠</span></span><div class="field" style="flex:1 1 auto;min-width:0">
         <label for="jdw-set-name">Ton nom</label>
         <input class="input" id="jdw-set-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" enterkeyhint="done">
       </div></div>
+      <div class="look-box" id="jdw-look" hidden>
+        <p class="look-lbl">Ma tête et mon cri</p>
+        <div class="scope look-scope" id="jdw-look-scope" role="group" aria-label="Où utiliser ma tête et mon cri">
+          <button type="button" data-look="all" aria-pressed="true">🌍 Partout</button>
+          <button type="button" data-look="room" aria-pressed="false"><span class="look-only">🏠 Seulement dans</span> <b id="jdw-look-room"></b></button>
+        </div>
+        <p class="small look-hint" id="jdw-look-hint"></p>
+      </div>
       <div class="row">
         <button class="btn btn-ghost btn-sm" id="jdw-set-edit" type="button" hidden>✨ Modifier ma tête</button>
         <button class="btn btn-ghost btn-sm" id="jdw-set-photo" type="button">Prendre une photo</button>
@@ -371,6 +379,7 @@
         <button class="btn btn-ghost btn-sm" id="jdw-set-cri" type="button">🎙️ Enregistrer mon cri</button>
         <button class="btn btn-ghost btn-sm" id="jdw-set-cri-play" type="button" hidden>▶ Mon cri</button>
       </div>
+      <button class="btn btn-ghost btn-sm look-reset" id="jdw-set-lookreset" type="button" hidden>↩ Revenir à mon profil principal dans cette salle</button>
       <div class="snd-rows">
         <label class="switch-row"><span>🔊 Effets sonores</span><input type="checkbox" id="jdw-set-sfx"></label>
         <label class="switch-row"><span>🎵 Musique</span><input type="checkbox" id="jdw-set-music"></label>

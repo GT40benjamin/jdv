@@ -1113,6 +1113,11 @@
     // --- contre l'IA (api.ai) : jamais en ligne ; la raquette du joueur api.ai.p (en haut) est jouée par l'ordinateur
     const AIC = !NET && api.ai && typeof api.ai === 'object' ? api.ai : null;
     const AIP = AIC ? (AIC.p === 0 ? 0 : 1) : -1;
+    // --- vue solo (contre l'IA ou en ligne : un seul lecteur par écran) : tous les textes tournés vers lui,
+    // l'adversaire réduit à une étiquette « nom ». En local (deux sur le même téléphone), rien ne change.
+    const SOLO = !!(api.ai || api.net);
+    const VIEWER = (api.net && api.net.flipped) ? 1 : 0;      // repère du lecteur : 1 = invité (root tourné par la bibliothèque)
+    const OPP = 1 - VIEWER;
     const coarse = (() => { try { return window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })();
 
     // --- sons (sobres) et vibrations
@@ -1492,6 +1497,7 @@
         case 'launch': tone(520, 0.06, 'triangle', 0.045, 900); break;
         case 'sudden': {
           for (let p = 0; p < 2; p++) {
+            if (SOLO && p !== VIEWER) continue;                // vue solo : une seule fois, pour le lecteur
             const yy = MID + wallFront(S) + 40;
             addFloat(p, W / 2, p === 0 ? yy : H - yy, 'MORT SUBITE !', COL.alarm, 20, 2.2);
             addFloat(p, W / 2, p === 0 ? yy + 25 : H - yy - 25, 'Les raquettes rétrécissent…', '#ffffff', 12, 2.2, true);
@@ -2014,6 +2020,7 @@
       const wob = sad ? Math.sin(V.rt * 8) * 0.07 : 0;
       ctx.save();
       ctx.translate(x, cy - bounce); ctx.rotate(wob);
+      if (SOLO && p !== VIEWER) ctx.rotate(Math.PI);           // vue solo : la tête de l'adversaire à l'endroit pour le lecteur
       if (st) {
         ctx.drawImage(st.cv, (-st.w * sk) / 2, (-st.h * sk) / 2, st.w * sk, st.h * sk);
         if (sad && !imgOk(PLAYERS[p].sad)) drawTears(0, 0, h, V.rt);
@@ -2088,11 +2095,19 @@
           drawBar(p, x, y, pl.w);
           const hx = clamp(x, hp.hh * 0.45, W - hp.hh * 0.45);
           drawPlayerHead(p, hx, hp.hy, hp.hh, sad, K);
-          if (hp.mode === 2 && p === V.winner) drawCrown(hx, hp.hy - hp.hh * 0.5 - 5 - Math.abs(Math.sin(V.rt * 5)) * 3, 1.05);
+          const opp = SOLO && p !== VIEWER;
+          if (hp.mode === 2 && p === V.winner) {
+            if (opp) {                                            // vue solo : couronne au-dessus de la tête (vue du lecteur)
+              ctx.save(); ctx.translate(hx, Math.min(H - 16, hp.hy + hp.hh * 0.5 + 5 + Math.abs(Math.sin(V.rt * 5)) * 3)); ctx.rotate(Math.PI);
+              drawCrown(0, 0, 1.05); ctx.restore();
+            } else drawCrown(hx, hp.hy - hp.hh * 0.5 - 5 - Math.abs(Math.sin(V.rt * 5)) * 3, 1.05);
+          }
           const bt = hp.mode === 1 ? V.big.t : V.overT;
           if (sad && bt > 0.3) {
             const side = hx > W / 2 ? -1 : 1;
-            drawBubble('Snif…', clamp(hx + side * (hp.hh * 0.42 + 44), 48, W - 48), hp.hy - hp.hh * 0.2 + Math.sin(V.rt * 3) * 2, '#e6f6ff', '#1f6fa8');
+            const bx = clamp(hx + side * (hp.hh * 0.42 + 44), 48, W - 48), by = hp.hy - hp.hh * 0.2 + Math.sin(V.rt * 3) * 2;
+            if (opp) { LP(VIEWER); drawBubble('Snif…', W - bx, H - by, '#e6f6ff', '#1f6fa8'); LP(p); }
+            else drawBubble('Snif…', bx, by, '#e6f6ff', '#1f6fa8');
           }
         }
         drawEffIcons(p, x, y);
@@ -2212,8 +2227,9 @@
     function drawFloats() {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (const f of V.floats) {
-        LP(f.p);
-        const x = f.p === 0 ? f.x : W - f.x, y = f.p === 0 ? f.y : H - f.y;
+        const fp = SOLO ? VIEWER : f.p;                       // vue solo : tous les textes tournés vers le lecteur
+        LP(fp);
+        const x = fp === 0 ? f.x : W - f.x, y = fp === 0 ? f.y : H - f.y;
         const k = f.life / f.max, pop = Math.min(1, (f.max - f.life) / 0.12);
         ctx.font = (f.body ? '600 ' : '') + f.size + 'px ' + (f.body ? FB : FD);
         const tw = ctx.measureText(f.text).width, xx = clamp(x, tw / 2 + 6, W - tw / 2 - 6);
@@ -2300,6 +2316,10 @@
     function drawIntro() {
       const yc = introY();
       for (let p = 0; p < 2; p++) {
+        if (SOLO && p !== VIEWER) {                           // vue solo : ni bannière ni consigne pour l'adversaire
+          if (p === AIP && V.explain[p] > 0.01) drawAIBadge(V.explain[p]);
+          continue;
+        }
         LP(p);
         if (S.phase === 'intro') {
           const tEnd = S.introDur - 1.55;
@@ -2349,6 +2369,7 @@
       if (offX < 90) return;
       const cwid = Math.min(offX - 24, 250), hh = Math.min(cwid * 0.78, ch * 0.25);
       for (let p = 0; p < 2; p++) {
+        if (SOLO && p === OPP) { drawOppCard(cwid, hh); continue; }   // vue solo : l'adversaire = petite carte « nom »
         // P0 : marge gauche, en bas, à l'endroit ; P1 : marge droite, en haut, tourné
         if (p === 1) ctx.setTransform(-dpr, 0, 0, -dpr, cw * dpr, ch * dpr); else ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         const cx = offX / 2, fs = Math.min(22, Math.max(13, cwid * 0.11));
@@ -2381,10 +2402,51 @@
       }
     }
 
+    // --- vue solo : l'adversaire réduit à son nom (et sa petite tête dans la marge des écrans larges), tourné vers le lecteur
+    function soloTf() { if (VIEWER === 1) ctx.setTransform(-dpr, 0, 0, -dpr, cw * dpr, ch * dpr); else ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    function drawOppCard(cwid, hh) {
+      soloTf();
+      const p = OPP, cx = cw - offX / 2, w = Math.min(cwid, 170), hs = Math.round(Math.min(hh * 0.5, 64)), fs = Math.min(15, Math.max(11, w * 0.085));
+      const top = 24, bot = top + hs + fs + 34, hy = top + 12 + hs / 2;
+      ctx.fillStyle = 'rgba(6,12,20,0.5)'; rr(ctx, cx - w / 2, top, w, bot - top, 14); ctx.fill();
+      ctx.strokeStyle = rgba(PC[p], 0.4); ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = PC[p]; rr(ctx, cx - w * 0.25, bot - 1.5, w * 0.5, 3, 1.5); ctx.fill();
+      const sad = V.sadPad[p] || (V.overT >= 0 && V.winner !== p);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35;
+      ctx.drawImage(GLP[p], cx - hs, hy - hs * 0.8, hs * 2, hs * 1.6);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      const st = playerSticker(p, sad, dpr, hs);
+      if (st) ctx.drawImage(st.cv, cx - st.w / 2, hy - st.h / 2, st.w, st.h);
+      else { ctx.save(); ctx.translate(cx, hy); paintAvatar(ctx, PLAYERS[p].name, PC[p], hs * 0.42, sad, FD, V.rt); ctx.restore(); }
+      if (V.overT >= 0 && V.winner === p) { ctx.save(); ctx.translate(cx, hy - hs * 0.62 - 4); ctx.scale(hs / 70, hs / 70); drawCrown(0, 0, 1); ctx.restore(); }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      strokeText(ctx, PLAYERS[p].name, cx, bot - fs * 0.5 - 10, fs, PC[p], FD, 3);
+    }
+    function drawOppTag() {
+      if (offX >= 90) return;                                   // écrans larges : la petite carte de la marge suffit
+      LP(VIEWER);
+      const p = OPP, name = PLAYERS[p].name, m = offY / scale;
+      ctx.font = '11px ' + FD;
+      const tw = ctx.measureText(name).width, w = tw + 30, h = 19;
+      const inMargin = m >= 24, x = inMargin ? W / 2 : 6 + w / 2, y = inMargin ? -m / 2 : 13;
+      ctx.globalAlpha = inMargin ? 1 : 0.85;
+      ctx.fillStyle = 'rgba(2,6,14,0.74)'; rr(ctx, x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
+      ctx.strokeStyle = rgba(PC[p], 0.75); ctx.lineWidth = 1.1; ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha *= 0.8;
+      ctx.drawImage(GLP[p], x - w / 2 + 2, y - 8, 16, 16);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = inMargin ? 1 : 0.85;
+      ctx.fillStyle = PC[p]; ctx.beginPath(); ctx.arc(x - w / 2 + 10, y, 3, 0, TAU); ctx.fill();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      strokeText(ctx, name, x + 6, y + 0.5, 11, PC[p], FD, 0);
+      ctx.globalAlpha = 1;
+      W0();
+    }
+
     function drawPauseOverlay() {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = 'rgba(2,5,10,0.62)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       for (let p = 0; p < 2; p++) {
+        if (SOLO && p !== VIEWER) continue;
         LP(p);
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         strokeText(ctx, 'PAUSE', W / 2, MID + 150, 34, '#ffffff', FD, 6);
@@ -2392,6 +2454,7 @@
     }
     function drawWaiting() {
       for (let p = 0; p < 2; p++) {
+        if (SOLO && p !== VIEWER) continue;
         LP(p);
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.globalAlpha = 0.6 + 0.4 * Math.sin(V.rt * 4);
@@ -2402,7 +2465,7 @@
     }
     function drawResume() {
       const n = Math.max(1, Math.ceil(V.resumeT / 0.5)), k = 1 - (V.resumeT - (n - 1) * 0.5) / 0.5;
-      for (let p = 0; p < 2; p++) { LP(p); drawCount(String(n), MID + 150, k, p, false); }
+      for (let p = 0; p < 2; p++) { if (SOLO && p !== VIEWER) continue; LP(p); drawCount(String(n), MID + 150, k, p, false); }
       W0();
     }
 
@@ -2433,6 +2496,7 @@
         drawParticles();
         drawPaddles();
       }
+      if (SOLO) drawOppTag();
       drawFloats();
       drawIntro();
       if (GUEST && !N.gotR) drawWaiting();

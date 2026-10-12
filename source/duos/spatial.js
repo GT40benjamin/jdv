@@ -1161,6 +1161,11 @@
     const HOST = !!NET && NET.role === 'host', GUEST = !!NET && NET.role === 'guest';
     const ME = GUEST ? 1 : 0;                      // en ligne : le joueur de CET appareil
     const FLIP = !!(NET && NET.flipped);           // invité : la bibliothèque tourne l'écran de 180°
+    // vue solo (contre l'IA ou en ligne) : un seul lecteur par écran → tous les textes tournés vers lui,
+    // la moitié de l'adversaire réduite à son nom (+ petite tête). En local (deux sur le même téléphone) : rien ne change.
+    const SOLO = !!(api.ai || api.net);
+    const VIEWER = (api.net && api.net.flipped) ? 1 : 0, OPP = 1 - VIEWER, VROT = VIEWER === 1 ? Math.PI : 0;
+    const SOLO_SKIP = { 'SUPER PRÊT !': 1, 'POINT !': 1, 'DÉGELÉ !': 1, 'GELÉ ! TU RALENTIS': 1, 'ADVERSAIRE GELÉ !': 1 };
     const listeners = [];
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
     // (l'invité n'appelle jamais api.say : la bibliothèque recopie les messages de l'hôte)
@@ -1462,6 +1467,8 @@
     }
     // texte flottant dans le terrain, tourné vers le joueur p (P1 : 180°)
     function ftext(x, y, s, col, size, life, p, big) {
+      if (SOLO && p === OPP && (SOLO_SKIP[s] || / : FINI$/.test(s))) return;   // vue solo : pas les consignes de l'adversaire
+      if (SOLO) p = VIEWER;                                                      // vue solo : tourné vers le lecteur
       const rot = p === 1 ? Math.PI : 0;
       for (let i = 0; i < txN; i++) {
         const o = TX[i];
@@ -1488,7 +1495,7 @@
     function addFace(img, x, y, tx, ty, size, p, txt, col, delay) {
       if (!img) return;
       if (FACES.length >= 3) FACES.shift();
-      FACES.push({ img, x, y, x0: x, y0: y, tx, ty, t: 0, life: 2.6, size, rot: p === 1 ? Math.PI : 0, txt, col, delay: delay || 0 });
+      FACES.push({ img, x, y, x0: x, y0: y, tx, ty, t: 0, life: 2.6, size, rot: SOLO ? VROT : p === 1 ? Math.PI : 0, txt, col, delay: delay || 0 });
     }
 
     // ------------------------------------------------------------- décor : nébuleuse, étoiles, grosses planètes
@@ -1793,7 +1800,7 @@
       const fr = clamp(Math.round((sh.bank + 1) * 3), 0, 6);
       dsprR(SPR.ship[p][fr], sh.x, sh.y, rot, 1);
       const hx = sh.x + sh.bank * 2 * -d, hy = sh.y + d;
-      imgR(HEAD[p][sh.hitT > 0 && S.phase === 'play' ? 1 : 0], hx, hy, 13.8, rot);
+      imgR(HEAD[p][sh.hitT > 0 && S.phase === 'play' ? 1 : 0], hx, hy, 13.8, SOLO ? VROT : rot);   // vue solo : têtes à l'endroit pour le lecteur
       dsprR(SPR.glass, hx, hy, rot, 13.8 / 14.4);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'lighter';
@@ -2117,6 +2124,21 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = 'rgba(3,2,10,' + (0.45 * dim).toFixed(3) + ')'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       for (let p = 0; p < 2; p++) {
+        if (SOLO && p === OPP) {                   // vue solo : l'adversaire, à l'endroit pour le lecteur, file vers son étiquette
+          hudFrame(VIEWER);
+          fontKey = '';
+          const kin = clamp(t / 0.45, 0, 1), back = 1 + 2.7 * Math.pow(kin - 1, 3) + 1.7 * Math.pow(kin - 1, 2);
+          const kout = ease(clamp((t - 1.4) / 0.5, 0, 1)), T = oppTagGeo();
+          let x = cw - lerp(-v.r * 2, v.x, back), y = ch - v.y, r = v.r;
+          x = lerp(x, T.x, kout); y = lerp(y, T.y, kout); r = lerp(r, T.r, kout);
+          drawPortrait(p, x, y, r, u * (1 + (1 - kout) * 0.4), false, kout < 0.5, 0);
+          if (kout < 0.5) {
+            ctx.globalAlpha = Math.min(1, kin * 2) * (1 - kout * 2);
+            txt(PL[p].name, x, y - r - 14 * u, Math.round(18 * u), PCOL[p], 'center', false, 4.5);
+            ctx.globalAlpha = 1;
+          }
+          continue;
+        }
         hudFrame(p);
         fontKey = '';
         const kin = clamp(t / 0.45, 0, 1), back = 1 + 2.7 * Math.pow(kin - 1, 3) + 1.7 * Math.pow(kin - 1, 2);   // entrée avec rebond
@@ -2149,7 +2171,38 @@
         ctx.globalAlpha = 1;
       }
     }
+    // vue solo : étiquette de l'adversaire (petite tête + nom), dans le repère du lecteur, coin de l'adversaire
+    function oppTagGeo() {
+      const g = hudGeo(), u = g.u, r = g.hr * 0.78;
+      if (g.land) return { x: cw - g.hx, y: ch - g.hy, r, u, land: true };
+      const m = 10 * u;
+      return { x: cw - m - r, y: m + r, r, u, land: false };
+    }
+    function drawOppTag() {
+      const T = oppTagGeo(), u = T.u, p = OPP, sh = S.ships[p], col = PCOL[p];
+      hudFrame(VIEWER);
+      fontKey = '';
+      ctx.textBaseline = 'alphabetic';
+      const lost = ((S.phase === 'ko' || S.phase === 'over') && S.loser === p) || S.phase === 'draw' || (matchOver && winnerP !== p);
+      const won = ((S.phase === 'ko' || S.phase === 'over') && S.winner === p) || (matchOver && winnerP === p);
+      const hk = hudHit[p], hx = T.x + (hk > 0 ? Math.sin(rt * 60) * 3 * hk : 0), hy = T.y, hr = T.r * (1 + hudPop[p] * 0.2);
+      const fs = Math.round(12 * u), name = PL[p].name;
+      setFont(fs, false);
+      const tw = ctx.measureText(name).width, ph = 22 * u;
+      if (!vsActive()) {
+        let bx, by, bw;
+        if (T.land) { bw = tw + 22 * u; bx = hx - bw / 2; by = hy - hr - 8 * u - ph; }   // au-dessus : loin de la ligne du milieu
+        else { bx = hx - hr - 12 * u - tw - 12 * u; by = hy - ph / 2; bw = hx - bx; }
+        rrect(ctx, bx, by, bw, ph, ph / 2);
+        ctx.fillStyle = 'rgba(6,8,18,0.78)'; ctx.fill();
+        ctx.strokeStyle = hexA(col, 0.6); ctx.lineWidth = 1.3; ctx.stroke();
+        if (T.land) txt(name, hx, by + ph / 2 + fs * 0.36, fs, col, 'center', false, 3);
+        else txt(name, hx - hr - 12 * u, hy + fs * 0.36, fs, col, 'right', false, 3);
+        drawPortrait(p, hx, hy, hr, u * 0.8, lost || (sh.hitT > 0 && !won), won, hk);
+      }
+    }
     function drawHUD(p) {
+      if (SOLO && p === OPP) { drawOppTag(); return; }   // vue solo : juste le nom de l'adversaire
       const g = hudGeo(), u = g.u, sh = S.ships[p], pl = PL[p], col = pl.color;
       hudFrame(p);
       fontKey = '';
@@ -2205,6 +2258,7 @@
     }
     let hintStr = '';
     function drawIntroText(p) {
+      if (SOLO && p === OPP) return;               // vue solo : la carte d'intro ne concerne que le lecteur
       const a0 = introFull ? 1.75 : 0;
       const a = S.phase === 'intro' ? clamp((S.it - a0) / 0.35, 0, 1) : S.phase === 'play' && S.t < 1.2 ? Math.max(0, 1 - (S.t - 0.3) / 0.9) : 0;
       if (a <= 0.01) return;
@@ -2226,7 +2280,7 @@
     function drawOverlays() {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       if (slowT > 0 || freezeT > 0) { ctx.fillStyle = 'rgba(30,10,60,' + (0.14 * Math.min(1, slowT / 0.5)).toFixed(3) + ')'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-      if (matchOver && winnerP >= 0) {          // VICTOIRE dans la moitié du gagnant
+      if (matchOver && winnerP >= 0 && !(SOLO && winnerP === OPP)) {          // VICTOIRE dans la moitié du gagnant (vue solo : seulement le lecteur)
         hudFrame(winnerP);
         fontKey = '';
         const k = Math.min(1, overT / 0.35), s = (1 + (1 - ease(k)) * 0.8) * (1 + Math.sin(rt * 5) * 0.025), u = U, fs = Math.round(36 * u);

@@ -76,7 +76,7 @@ let serverOk = false, netDown = false, roomDenied = false, remoteLoaded = false;
 let room = store.get('jdw.room', null);
 let roomCodes = store.get('jdw.roomcodes', {}) || {};
 const RP = () => ({ p_room: room ? room.id : null, p_room_code: room ? (roomCodes[room.id] || '') : '' });
-async function rpc(fn, args) {
+async function rpc(fn, args, opts) {
   const h = { 'Content-Type': 'application/json', apikey: CFG.key };
   if (!/^sb_/.test(CFG.key)) h.Authorization = 'Bearer ' + CFG.key;
   let r;
@@ -87,7 +87,7 @@ async function rpc(fn, args) {
     const t = await r.text().catch(() => '');
     const er = new Error(fn + ' ' + r.status + ' ' + t.slice(0, 120)); er.status = r.status; er.denied = /acces refuse/.test(t);
     // les refus du serveur me sont remontés (une fois par session), pour comprendre ce qui bloque chez chacun
-    if (fn !== 'log_error' && !/trop de messages/.test(t)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
+    if (fn !== 'log_error' && !/trop de messages/.test(t) && !(opts && opts.quiet404 && r.status === 404)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
     throw er;
   }
   const txt = await r.text();
@@ -154,8 +154,35 @@ function fitHeadWhenReady(img, p) {
   if (img.complete && img.naturalWidth) go(); else img.addEventListener('load', go, { once: true });
 }
 function syncOwnPlayer() {
-  for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) setPlayer(pr.name, pr.consent ? pr.photo : null, pr.sound || undefined);
-  if (profile.name) setPlayer(profile.name, profile.consent ? profile.photo : null, profile.sound === '' ? null : (profile.sound || undefined));
+  // la tête et le cri ACTIFS : ceux de la salle actuelle s'il y en a, sinon ceux du profil principal
+  for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) { const L = curLook(pr); setPlayer(pr.name, activePhoto(pr), (L && L.sound) || pr.sound || undefined); }
+  if (profile.name) setPlayer(profile.name, activePhoto(profile), activeSound(profile));
+}
+/* ---- Tête et cri par salle : profile.rooms[idSalle] = { photo, photoBase, photoAcc, sound, at, sent } ----
+   Rien pour la salle (ou null) = profil principal. « at » = dernier changement, « sent » = dernier envoi réussi (save_room_look). */
+function lookOf(pr, rid) { const L = pr && pr.rooms && rid != null ? pr.rooms[rid] : null; return L && (L.photo || L.sound) ? L : null; }
+function curLook(pr) { return lookOf(pr || profile, room ? room.id : null); }
+function activePhoto(pr) { pr = pr || profile; const L = curLook(pr); return L && L.photo ? L.photo : (pr.consent ? pr.photo : null); }
+function activeSound(pr) { pr = pr || profile; const L = curLook(pr); if (L && L.sound) return L.sound; return pr.sound === '' ? null : (pr.sound || undefined); }
+function lookSlot(rid) {
+  if (!profile.rooms || typeof profile.rooms !== 'object') profile.rooms = {};
+  return profile.rooms[rid] || (profile.rooms[rid] = { photo: null, photoBase: null, photoAcc: null, sound: null, at: 0, sent: 0 });
+}
+function lookTouch(rid) { const L = lookSlot(rid); L.at = Date.now(); if (L.at <= (L.sent || 0)) L.at = (L.sent || 0) + 1; return L; }
+let roomLookMissing = false;          // le serveur n'a pas encore save_room_look (room-look.sql pas lancé) : on n'insiste pas
+async function pushRoomLook() {
+  if (!ONLINE || !room || !profile.name || roomLookMissing) return true;
+  const rid = room.id, L = profile.rooms && profile.rooms[rid];
+  if (!L || (L.sent || 0) >= (L.at || 0)) return true;
+  const at = L.at, pid = profile.pid;
+  // la salle entière (photo + cri) : '' = rien de spécial, on revient au profil principal
+  const args = Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_photo: L.photo || '', p_sound: L.sound || '' });
+  try {
+    await rpc('save_room_look', args, { quiet404: true });
+    const L2 = profile.pid === pid && profile.rooms && profile.rooms[rid];
+    if (L2 && L2.at === at) { L2.sent = at; if (!L2.photo && !L2.sound) delete profile.rooms[rid]; saveProfile(); }
+    poke('players'); return true;
+  } catch (e) { if (e.status === 404) roomLookMissing = true; return false; }
 }
 // Tête triste : même taille que la photo, teinte bleue, larmes et petit nuage de pluie.
 function makeSad(img) {
@@ -235,8 +262,11 @@ async function pushProfile() {
   if (!ONLINE || !profile.name) return true;
   const args = { p_code: CODE(), p_name: profile.name, p_photo: profile.consent ? profile.photo : null, p_consent: !!profile.consent };
   if (profile.sound !== undefined && profile.sound !== null) args.p_sound = profile.sound;   // '' = retirer le cri
-  try { await rpc('save_player', args); poke('players'); return true; }
-  catch (e) { return false; }
+  let ok = true;
+  try { await rpc('save_player', args); poke('players'); }
+  catch (e) { ok = false; }
+  if (ok) await pushRoomLook();
+  return ok;
 }
 
 /* ================= Erreurs : remontées au serveur + sauvetage du score ================= */
@@ -416,10 +446,13 @@ let criAudio = null;
 function hasCri(name) { const p = players.get(cleanName(name)); return !!(p && p.sound); }
 function playCri(name, el) {
   const p = players.get(cleanName(name));
-  if (!p || !p.sound || !criOn) return false;
+  return !!(p && p.sound) && playCriSrc(p.sound, el);
+}
+function playCriSrc(src, el) {
+  if (!src || !criOn) return false;
   try { if (criAudio) { criAudio.pause(); criAudio = null; } } catch (e) {}
   try {
-    criAudio = new window.Audio(p.sound); criAudio.volume = 1;
+    criAudio = new window.Audio(src); criAudio.volume = 1;
     duckMusic(0.22, 3600);                                          // la musique s'efface derrière le cri
     criAudio.addEventListener('loadedmetadata', () => { if (isFinite(criAudio.duration)) duckMusic(0.22, criAudio.duration * 1000 + 250); });
     criAudio.addEventListener('ended', unduckMusic);
@@ -1343,13 +1376,15 @@ function refreshOnline() {
   for (const t of tiles) {
     const n = counts[t.g.id] || 0, span = t.on.querySelector('span'), ps = live ? tilePlayers(t.g.id) : [];
     t.on.classList.toggle('live', live && n > 0);
-    if (live) span.textContent = ps.length ? ps[0].name + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue' : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
+    if (live) span.textContent = ps.length ? (ps.length === 1 && ps[0].name === cleanName(profile.name) ? 'Toi, sur un autre appareil' : tileName(ps[0].name) + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue') : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
     else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + b.name : 'Pas encore de record'; }
     if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
   }
 }
 // joueurs de la salle (pas moi) qui jouent à ce jeu en ce moment et qu'on peut regarder
-function tilePlayers(gid) { try { const me = cleanName(profile.name); return presList().filter(m => m.game === gid && m.name !== me && m.cid && watchable(m.game)); } catch (e) { return []; } }
+// (moi-même sur un autre appareil compris : pratique pour se regarder ; jamais cet appareil-ci)
+function tilePlayers(gid) { try { return presList().filter(m => m.game === gid && m.cid && m.cid !== clientId && watchable(m.game)); } catch (e) { return []; } }
+const tileName = n => n === cleanName(profile.name) ? 'Toi (autre appareil)' : n;
 function refreshMe() {
   $('jdw-me-name').textContent = profile.name || 'Joueur';
   avatarInto($('jdw-me-av'), profile.name);
@@ -1458,18 +1493,73 @@ $('jdw-board-close').addEventListener('click', () => closeSheet('jdw-board'));
 $('jdw-board').addEventListener('click', e => { if (e.target === $('jdw-board')) closeSheet('jdw-board'); });
 
 /* ================= Paramètres ================= */
+let lookScope = 'all';                 // réglages : « Partout » (profil principal) ou « room » (seulement dans la salle actuelle)
+let lookEdit = null;                   // salle visée par la photo / le cri en cours (null = profil principal)
+const lookHere = () => lookScope === 'room' && room ? room.id : null;
 function openSettings() {
   $('jdw-set-name').value = profile.name;
-  avatarInto($('jdw-set-av'), profile.name);
+  lookScope = curLook() ? 'room' : 'all';
   $('jdw-set-sfx').checked = !muted; $('jdw-set-music').checked = MUS.on; $('jdw-set-cris').checked = criOn; syncSoundMenu();
-  $('jdw-set-delphoto').hidden = !profile.photo; $('jdw-set-edit').hidden = !profile.photo;
-  const hasMine = !!(profile.sound && profile.sound !== '');
-  $('jdw-set-cri').textContent = hasMine ? '🎙️ Changer mon cri' : '🎙️ Enregistrer mon cri';
-  $('jdw-set-cri-play').hidden = !hasMine;
-  $('jdw-set-photo').textContent = profile.photo ? 'Changer ma photo' : 'Prendre une photo';
+  renderLook();
   $('jdw-set-status').textContent = ONLINE ? (netDown ? 'Pas de connexion pour le moment.' : 'Connecté au classement commun.') : 'Mode local (pas de serveur).';
   $('jdw-set-version').textContent = versionText();
   openSheet('jdw-settings', 'jdw-set-name');
+}
+// tête dans le rond des réglages : celle du choix affiché (profil principal ou salle), sinon l'initiale
+function photoInto(el, photo, name) {
+  el.textContent = ''; el.style.background = ''; el.classList.remove('has-photo');
+  if (!photo) {
+    const n = cleanName(name) || '?'; let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360;
+    el.style.background = 'hsl(' + h + ' 45% 32%)'; el.textContent = n[0]; return;
+  }
+  const im = document.createElement('img'); im.alt = ''; im.src = photo; el.appendChild(im); el.classList.add('has-photo'); fitHeadWhenReady(im, null);
+}
+function renderLook() {
+  const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null, inRoom = !!(room && profile.name);
+  $('jdw-look').hidden = !inRoom;
+  if (inRoom) {
+    $('jdw-look-room').textContent = room.name;
+    for (const b of document.querySelectorAll('#jdw-look-scope button')) b.setAttribute('aria-pressed', String(b.dataset.look === (rid != null ? 'room' : 'all')));
+  }
+  const mainPhoto = profile.consent ? profile.photo : null, mainCri = !!(profile.sound && profile.sound !== '');
+  photoInto($('jdw-set-av'), L && L.photo ? L.photo : mainPhoto, profile.name);
+  $('jdw-look-tag').hidden = !(rid != null && L);
+  const h = $('jdw-look-hint'); h.textContent = '';
+  const B = t => { const b = document.createElement('b'); b.textContent = t; return b; };
+  if (rid != null) {
+    if (!L) h.append('Rien de spécial ici pour l’instant : dans ', B(room.name), ', c’est ton profil principal. Prends une photo ou un cri : ils ne serviront que dans cette salle.');
+    else {
+      const both = L.photo && L.sound;
+      h.append('Dans ', B(room.name), ', ' + (both ? 'ta tête et ton cri sont' : L.photo ? 'ta tête est' : 'ton cri est') + ' à part.' + (both ? '' : ' Le reste vient de ton profil principal.'));
+    }
+    if (roomLookMissing) h.append(' (Le serveur ne connaît pas encore cette option : visible seulement sur cet appareil.)');
+  } else if (inRoom) {
+    const here = curLook();
+    h.append('Ton profil principal, pour toutes les salles' + (here ? ' sauf ' : '.'));
+    if (here) h.append(B(room.name), ' (tête ou cri à part).');
+  }
+  const hasPhoto = rid != null ? !!(L && L.photo) : !!profile.photo;
+  const hasCri = rid != null ? !!(L && L.sound) : mainCri;
+  $('jdw-set-edit').hidden = !hasPhoto;
+  $('jdw-set-delphoto').hidden = !hasPhoto;
+  $('jdw-set-delphoto').textContent = rid != null ? 'Retirer la photo d’ici' : 'Retirer ma tête';
+  $('jdw-set-photo').textContent = rid != null ? (hasPhoto ? 'Changer ma photo d’ici' : '📸 Une photo pour cette salle') : (profile.photo ? 'Changer ma photo' : 'Prendre une photo');
+  $('jdw-set-cri').textContent = rid != null ? (hasCri ? '🎙️ Changer mon cri d’ici' : '🎙️ Un cri pour cette salle') : (hasCri ? '🎙️ Changer mon cri' : '🎙️ Enregistrer mon cri');
+  $('jdw-set-cri-play').hidden = !(hasCri || (rid != null && mainCri));
+  $('jdw-set-lookreset').hidden = !(rid != null && L);
+}
+for (const b of document.querySelectorAll('#jdw-look-scope button')) b.addEventListener('click', () => {
+  lookScope = b.dataset.look === 'room' && room ? 'room' : 'all'; renderLook(); $('jdw-set-status').textContent = '';
+});
+// la salle n'a plus rien de spécial (photo, cri ou les deux) : on revient au profil principal, ici et sur le serveur
+async function lookReset(rid, what) {
+  const L = profile.rooms && profile.rooms[rid]; if (!L) return;
+  if (!what || what === 'photo') { L.photo = null; L.photoBase = null; L.photoAcc = null; try { localStorage.removeItem(photoSrcKey(rid)); } catch (e) {} }
+  if (!what || what === 'sound') L.sound = null;
+  lookTouch(rid); saveProfile();
+  players.delete(cleanName(profile.name)); syncOwnPlayer(); refreshAll();
+  if (!$('jdw-settings').hidden) renderLook();
+  if (room && room.id === rid) await pushRoomLook();
 }
 // « Version du 11/10/2026 à 23:12 · appli Android v4 »
 function versionText() {
@@ -1488,15 +1578,28 @@ $('jdw-set-close').addEventListener('click', () => closeSheet('jdw-settings'));
 $('jdw-set-sfx').addEventListener('change', () => { muted = !$('jdw-set-sfx').checked; store.set('jdw.muted', muted); Audio.ensure(); syncMute(); if (!muted) Audio.tone(660, 0.08, 'square', 0.05); });
 $('jdw-set-music').addEventListener('change', () => { setMusicOn($('jdw-set-music').checked); syncMute(); });
 $('jdw-set-cris').addEventListener('change', () => { criOn = $('jdw-set-cris').checked; syncMute(); store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } else playCri(profile.name); });
-$('jdw-set-photo').addEventListener('click', () => startPhoto());
-$('jdw-set-cri').addEventListener('click', openCri);
-$('jdw-set-edit').addEventListener('click', editHead);
-$('jdw-set-cri-play').addEventListener('click', () => { if (!playCri(profile.name)) $('jdw-set-status').textContent = muted ? 'Le son est coupé.' : ''; });
+$('jdw-set-photo').addEventListener('click', () => { lookEdit = lookHere(); startPhoto(); });
+$('jdw-set-cri').addEventListener('click', () => { lookEdit = lookHere(); openCri(); });
+$('jdw-set-edit').addEventListener('click', () => { lookEdit = lookHere(); editHead(); });
+$('jdw-set-cri-play').addEventListener('click', () => {
+  const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null;
+  const src = (L && L.sound) || profile.sound || '';
+  if (!(src ? playCriSrc(src) : !(curLook() || {}).sound && playCri(profile.name))) $('jdw-set-status').textContent = muted || !criOn ? 'Le son est coupé.' : '';
+});
+$('jdw-set-lookreset').addEventListener('click', async () => {
+  const rid = lookHere(); if (rid == null) return;
+  const nm = room.name;
+  await lookReset(rid);
+  $('jdw-set-status').textContent = 'Dans cette salle, tu reprends ton profil principal.';
+  toastCheer('Profil principal dans « ' + nm + ' »', profile.name, true);
+});
 $('jdw-set-delphoto').addEventListener('click', async () => {
+  const rid = lookHere();
+  if (rid != null) { await lookReset(rid, 'photo'); $('jdw-set-status').textContent = 'Ici, tu reprends la tête de ton profil principal.'; return; }
   profile.photo = null; profile.photoBase = null; profile.photoAcc = null; profile.consent = false; saveProfile(); try { localStorage.removeItem(photoSrcKey()); } catch (e) {}
   players.delete(cleanName(profile.name)); syncOwnPlayer();
-  $('jdw-set-status').textContent = 'Ta tête est retirée des jeux.'; $('jdw-set-delphoto').hidden = true;
-  avatarInto($('jdw-set-av'), profile.name); refreshAll(); await pushProfile();
+  $('jdw-set-status').textContent = 'Ta tête est retirée des jeux.'; renderLook();
+  refreshAll(); await pushProfile();
 });
 $('jdw-set-save').addEventListener('click', async () => {
   const n = cleanName($('jdw-set-name').value);
@@ -1504,6 +1607,7 @@ $('jdw-set-save').addEventListener('click', async () => {
   const changed = n !== profile.name, old = cleanName(profile.name);
   if (changed && deviceNames().includes(n)) { $('jdw-set-status').textContent = 'Ce nom est déjà un profil de cet appareil : change de joueur avec ta tête en haut.'; return; }
   if (changed && old && bests[old] && !bests[n]) { bests[n] = bests[old]; delete bests[old]; store.set('jdw.bests2', bests); }
+  if (changed && profile.rooms) for (const k in profile.rooms) if (profile.rooms[k]) profile.rooms[k].sent = 0;   // à renvoyer sous le nouveau nom
   profile.name = n; saveProfile(); syncOwnPlayer(); refreshAll();
   closeSheet('jdw-settings');
   await pushProfile();
@@ -1582,15 +1686,19 @@ function criState(st) {
 function openCri() {
   Audio.ensure();
   CR.data = ''; CR.levels = []; drawWave();
-  const has = profile.sound && profile.sound !== '';
+  if (lookEdit != null && !(room && room.id === lookEdit)) lookEdit = null;
+  const L = lookEdit != null ? lookOf(profile, lookEdit) : null;
+  const has = lookEdit != null ? !!(L && L.sound) : profile.sound && profile.sound !== '';
   $('jdw-cri-del').hidden = !has;
+  $('jdw-cri-del').textContent = lookEdit != null ? 'Retirer le cri de cette salle' : 'Retirer mon cri';
+  $('jdw-cri-h').textContent = lookEdit != null ? 'Ton cri dans « ' + room.name + ' »' : 'Ton cri';
   criHint(criMime() === null ? "Ton navigateur n'enregistre pas le son : choisis plutôt un fichier." : 'Touche le micro et crie, ris ou chante (3 secondes) !');
   criState('idle');
   if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
   if (!$('jdw-chat').hidden) closeChat();
   openSheet('jdw-cri', 'jdw-cri-rec');
 }
-function closeCri() { criStop(true); closeSheet('jdw-cri'); if (welReturn) reopenWelcome(); }
+function closeCri() { criStop(true); closeSheet('jdw-cri'); lookEdit = null; if (welReturn) reopenWelcome(); }
 function drawWave(live) {
   const cv = $('jdw-cri-wave'), dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth || 300, h = cv.clientHeight || 64;
   if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
@@ -1698,6 +1806,16 @@ $('jdw-cri-input').addEventListener('change', () => { const f = $('jdw-cri-input
 $('jdw-cri-close').addEventListener('click', closeCri);
 $('jdw-cri-ok').addEventListener('click', async () => {
   if (!CR.data) return;
+  const rid = welReturn ? null : lookEdit;
+  if (rid != null) {                       // cri seulement pour cette salle
+    const nm = room ? room.name : '';
+    lookTouch(rid).sound = CR.data; saveProfile(); syncOwnPlayer();
+    closeCri(); refreshAll();
+    const ok = await pushRoomLook() && !roomLookMissing;
+    toastCheer(ok ? 'Ton cri pour « ' + nm + ' » est prêt !' : 'Cri de « ' + nm + ' » gardé sur cet appareil.', profile.name, true);
+    setTimeout(() => playCri(profile.name), 300);
+    return;
+  }
   profile.sound = CR.data;
   if (welReturn) { closeCri(); return; }
   saveProfile(); syncOwnPlayer();
@@ -1707,6 +1825,8 @@ $('jdw-cri-ok').addEventListener('click', async () => {
   setTimeout(() => playCri(profile.name), 300);
 });
 $('jdw-cri-del').addEventListener('click', async () => {
+  const rid = welReturn ? null : lookEdit;
+  if (rid != null) { closeCri(); await lookReset(rid, 'sound'); toastCheer('Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
   profile.sound = ''; saveProfile(); syncOwnPlayer(); closeCri(); refreshAll();
   await pushProfile(); toastCheer('Ton cri est retiré.', profile.name, true);
 });
@@ -1821,6 +1941,8 @@ $('jdw-file').addEventListener('change', async () => {
     $('jdw-ph-zoom').value = '1.4'; $('jdw-ph-consent').checked = !!profile.consent; $('jdw-ph-ok').disabled = !profile.consent;
     if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
     if (!$('jdw-welcome').hidden) { $('jdw-welcome').hidden = true; welReturn = true; }
+    if (welReturn || (lookEdit != null && !(room && room.id === lookEdit))) lookEdit = null;
+    photoTitle();
     openSheet('jdw-photo', 'jdw-ph-zoom');
     drawCrop(); scheduleOut();
   };
@@ -1835,13 +1957,16 @@ function shrinkPhoto(im) {
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.85);
   } catch (e) { return ''; }
 }
-const photoSrcKey = () => 'jdw.photosrc.' + profile.pid;
+const photoSrcKey = rid => 'jdw.photosrc.' + profile.pid + (rid != null ? '.r' + rid : '');
 // « Modifier ma tête » : recadrer + accessoires (photo d'origine gardée) ; sinon accessoires seuls sur la tête actuelle
 function editHead() {
-  const saved = store.get(photoSrcKey(), null);
+  if (lookEdit != null && !(room && room.id === lookEdit)) lookEdit = null;
+  const LK = lookEdit != null ? lookSlot(lookEdit) : profile;   // la tête de la salle, ou celle du profil principal
+  const saved = store.get(photoSrcKey(lookEdit), null);
+  photoTitle();
   $('jdw-ph-consent').checked = true; $('jdw-ph-ok').disabled = false;
   if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
-  Object.assign(ACC, { glasses: '', hat: '', face: '', back: '', tab: 'glasses' }, profile.photoAcc || {});
+  Object.assign(ACC, { glasses: '', hat: '', face: '', back: '', tab: 'glasses' }, LK.photoAcc || {});
   if (saved && saved.src) {
     const im = new Image();
     im.onload = () => {
@@ -1862,9 +1987,10 @@ function editHead() {
     openSheet('jdw-photo', 'jdw-ph-ok'); renderAcc(); composeOut();
     detectFace(c).then(f => { if (f && PH.base === c) { PH.geo = headGeo(c, f); composeOut(); renderAcc(); } }).catch(() => {});
   };
-  base.src = profile.photoBase || profile.photo;
+  base.src = LK.photoBase || LK.photo;
 }
-function closePhoto() { $('jdw-photo').hidden = true; if (PH.img && PH.img.src.startsWith('blob:')) URL.revokeObjectURL(PH.img.src); PH.img = null; }
+function photoTitle() { $('jdw-ph-h').textContent = lookEdit != null && room ? 'Ta tête dans « ' + room.name + ' »' : 'Cadre ta tête'; }
+function closePhoto() { lookEdit = null; $('jdw-photo').hidden = true; if (PH.img && PH.img.src.startsWith('blob:')) URL.revokeObjectURL(PH.img.src); PH.img = null; }
 $('jdw-ph-cancel').addEventListener('click', () => { closePhoto(); if (welReturn) reopenWelcome(); else afterOnboarding(); });
 $('jdw-ph-redo').addEventListener('click', startPhoto);
 $('jdw-ph-rot').addEventListener('click', () => { PH.rot = (PH.rot + 90) % 360; drawCrop(); scheduleOut(); });
@@ -2230,6 +2356,19 @@ $('jdw-ph-ok').addEventListener('click', async () => {
   let data = '';
   try { data = fin.toDataURL('image/webp', 0.85); } catch (e) {}
   if (!data.startsWith('data:image/webp')) data = fin.toDataURL('image/png');
+  const rid = welReturn ? null : lookEdit;
+  if (rid != null) {                       // tête seulement pour cette salle : le profil principal ne bouge pas
+    const L = lookTouch(rid), nm = room ? room.name : '';
+    try { if (PH.base) { const b = document.createElement('canvas'); b.width = OUT_W; b.height = OUT_H; b.getContext('2d').drawImage(PH.base, 0, 0, OUT_W, OUT_H); L.photoBase = b.toDataURL('image/webp', 0.85); } } catch (e) {}
+    L.photoAcc = { glasses: ACC.glasses, hat: ACC.hat, face: ACC.face, back: ACC.back };
+    if (PH.img && PH.srcData) store.set(photoSrcKey(rid), { src: PH.srcData, crop: { rot: PH.rot, zoom: PH.zoom, ox: PH.ox, oy: PH.oy } });
+    L.photo = data; saveProfile();
+    players.delete(cleanName(profile.name)); syncOwnPlayer();
+    closePhoto(); refreshAll();
+    const ok = await pushRoomLook() && !roomLookMissing;
+    toastCheer(ok ? 'Ta tête pour « ' + nm + ' » est dans les jeux !' : 'Tête de « ' + nm + ' » gardée sur cet appareil.', profile.name, true);
+    return;
+  }
   // la tête sans accessoires et les accessoires choisis sont gardés pour pouvoir les changer plus tard
   try { if (PH.base) { const b = document.createElement('canvas'); b.width = OUT_W; b.height = OUT_H; b.getContext('2d').drawImage(PH.base, 0, 0, OUT_W, OUT_H); profile.photoBase = b.toDataURL('image/webp', 0.85); } } catch (e) {}
   profile.photoAcc = { glasses: ACC.glasses, hat: ACC.hat, face: ACC.face, back: ACC.back };
@@ -2546,6 +2685,7 @@ function duoSay(text, o) {
   let ps = land ? [0] : (o.p === 0 || o.p === 1) ? [o.p] : [0, 1];
   // en ligne, chacun ne regarde que son écran : la bannière n'apparaît que de son côté (l'invité voit l'écran tourné : sa moitié = 1)
   if (NET.role && NET.data && !land) { const me = NET.role === 'host' ? 0 : 1; ps = ps.filter(p => p === me); }
+  else if (!NET.role && seatName(1) === AI_NAME && !land) ps = ps.filter(p => p === 0);   // contre l'IA : seul le joueur du bas lit
   for (const p of ps) {
     const el = $('jdw-duo-say' + p); el.textContent = '';
     const dv = document.createElement('div'); dv.className = 'duo-say-t' + (o.small ? ' small' : '');
@@ -2613,7 +2753,8 @@ function mountDuo() {
   const d = DUO.d; if (!d) return;
   unmountDuo();
   DUO.waitRot = false; $('jdw-duo-rotate').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-hud').hidden = false;
-  $('jdw-duo').classList.remove('net-single');
+  $('jdw-duo').classList.remove('net-single', 'ai-single');
+  $('jdw-duo').classList.toggle('ai-solo', !NET.role && seatName(1) === AI_NAME);   // contre l'IA : tout à l'endroit pour le joueur du bas
   const seq = DUO.seq;
   DUO.scores = [0, 0]; DUO.over = false; DUO.winner = null; DUO.paused = false; DUO.shared = false; duoPills();
   const root = document.createElement('div'); root.className = 'duo-root'; $('jdw-duo-host').appendChild(root); DUO.root = root;
@@ -2690,8 +2831,9 @@ function duoResults() {
   if (NET.role === 'host') netCtl({ h: 'res', w, s: DUO.scores });
   unmountDuo();
   addWin(d.id, w);
-  const single = NET.role && NET.data && !land;   // en ligne : chacun ne voit que son propre résultat
-  $('jdw-duo').classList.toggle('net-single', !!single);
+  const aiSolo = !NET.role && seatName(1) === AI_NAME && !land;   // contre l'IA : un seul résultat, à l'endroit
+  const single = (NET.role && NET.data && !land) || aiSolo;   // en ligne : chacun ne voit que son propre résultat
+  $('jdw-duo').classList.toggle('net-single', !!(single && !aiSolo)); $('jdw-duo').classList.toggle('ai-single', aiSolo);
   resHalf(0, land); if (!land && !single) resHalf(1, false);
   $('jdw-duo-res').hidden = false; $('jdw-duo-hud').hidden = true;
   musicBaseLevel(0.5);
@@ -3216,7 +3358,7 @@ const TAUNTS = ['Tu vas perdre !', 'Attention !', 'Derrière toi !', 'Raté !', 
 const CAST = new Map();   // moi qui joue : sid → { pc, name, cid, stream, dc, pend }
 const WATCH = { sid: '', pc: null, cid: '', name: '', game: '', live: false, timer: 0, pend: [], rxLast: 0, hudT: 0 };
 const watchable = g => !!g && g !== 'menu' && !/^duel-/.test(g) && !!gameById(g);
-function presCid(name, game) { const x = presList().find(m => m.name === name && m.game === game && m.cid); return x ? x.cid : ''; }
+function presCid(name, game) { const x = presList().find(m => m.name === name && m.game === game && m.cid && m.cid !== clientId); return x ? x.cid : ''; }
 function rtcSignal(o) { return rtBroadcast(Object.assign({ t: 'rtc', fromCid: clientId, fromName: cleanName(profile.name) }, o)); }
 // ---------- côté joueur : quelqu'un veut me regarder ----------
 function gameCanvas() {
@@ -3449,7 +3591,7 @@ function netDeliver(m) {
   if (!NET.handlers.length) { NET.queue.push(m); if (NET.queue.length > 300) NET.queue.shift(); return; }
   for (const f of NET.handlers) try { f(m); } catch (e) { reportError('Duel en ligne (message) : ' + e.message, e.stack, { quiet: true }); }
 }
-function netMyPhoto() { return profile.consent && profile.photo && profile.photo.length < 200000 ? profile.photo : ''; }
+function netMyPhoto() { const ph = activePhoto(profile); return ph && ph.length < 200000 ? ph : ''; }
 // les doigts rejoués ont des numéros >= 1000 : pas de capture de pointeur pour eux
 for (const k of ['setPointerCapture', 'releasePointerCapture']) { const f = Element.prototype[k]; if (f) Element.prototype[k] = function (id) { if (id >= 1000) return; return f.call(this, id); }; }
 { const f = Element.prototype.hasPointerCapture; if (f) Element.prototype.hasPointerCapture = function (id) { return id >= 1000 ? true : f.call(this, id); }; }
@@ -3690,8 +3832,7 @@ function netGuestHello() {
   const ping = () => netCtl({ h: 'ping', t: performance.now() });
   ping(); NET.pingT = setInterval(() => { ping(); if (++n === 6) { clearInterval(NET.pingT); NET.pingT = setInterval(ping, 2000); } }, 200);
   // ma tête (si elle est petite) et mon nom, pour que l'hôte me dessine dans le jeu
-  const ph = profile.consent && profile.photo && profile.photo.length < 200000 ? profile.photo : '';
-  netCtl({ h: 'me', name: cleanName(profile.name), photo: ph });
+  netCtl({ h: 'me', name: cleanName(profile.name), photo: netMyPhoto() });
 }
 function netCtlGuest(m) {
   if (m.h === 'g') { netDeliver(m.m); return; }
@@ -4163,6 +4304,7 @@ requestAnimationFrame(previewLoop);
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }
 if (!profile.name) startWelcome(); else if (ONLINE && !room) openRooms();
 loadPlayers(); loadScores(); heartbeat(); loadChat();
+setTimeout(pushRoomLook, 2500);    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)
 if (ONLINE) { rtJoin('jdw-all'); if (room) rtJoin('jdw-room-' + room.id); rtConnect(); }
 setTimeout(checkSiteVersion, 4000);
 // les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)

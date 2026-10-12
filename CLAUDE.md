@@ -101,6 +101,10 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
   api.net (send rapide sur le canal « g » / fiable sur « ctl », onMessage, now() horloge commune par ping/pong, rtt(), flipped).
   Bannières seulement du côté du joueur concerné, un seul écran de résultat. Page de test deux appareils : source/test/duo-net.html
   (faux réseau lat/jit/loss, tailles hw/hh/gw/gh) ; dans la borne : test-netdata.js (faux jeu), test-net-real.js (GAME=…).
+- **Tête et cri par salle** : room_members.photo/sound/look_at (source/room-look.sql), RPC save_room_look, get_players/get_presence
+  renvoient la version de la salle sinon le profil principal ; site : profile.rooms[id], activePhoto/activeSound, pushRoomLook, réglages
+  « Partout | Seulement dans <salle> ». Tests : test-roomlook.js (MISSING=1 = serveur pas à jour), test-roomlook-sql.mjs.
+- Duel contre l'IA : bannières seulement en bas, un seul écran de résultat (classe ai-single).
 - **Relais TURN (Cloudflare Realtime)** : sans lui, la liaison directe de téléphone à téléphone (duel en ligne, regarder) échoue
   sur certains réseaux (4G, box strictes). Clé TURN de l'utilisateur dans ses variables Windows CF_TURN_ID / CF_TURN_TOKEN, copiée
   côté serveur par source/turn.sql (table turn_cfg illisible depuis le site ; RPC get_turn(p_code) → identifiants de 24 h via

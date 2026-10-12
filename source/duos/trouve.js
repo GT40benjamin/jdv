@@ -1023,6 +1023,11 @@
     const AIP = AI ? AI.p : -1;
     const AILV = AI ? (AI_LEVELS[AI.level] || AI_LEVELS[(+AI.k || 0.5) <= 0.3 ? 'facile' : (+AI.k || 0.5) <= 0.55 ? 'moyen' : (+AI.k || 0.5) <= 0.8 ? 'difficile' : 'extreme']) : null;
     const AIS = { R: null, Rseen: null, segs: [], sx: LW / 2, sy: 300, x: LW / 2, y: 300, trail: [], press: 0, alpha: 0, lock: 0, tFind: 0, miss: -1, d: 0, log: [] };
+    // VUE SOLO (contre l'IA ou en ligne) : un seul lecteur par écran → tous les textes orientés pour lui ; la moitié de
+    // l'adversaire ne montre que son nom (+ petite tête). En local (deux humains face à face) : rien ne change.
+    const SOLO = !!(AI || NET);
+    const VIEWER = FLIP ? 1 : 0;                       // joueur qui lit cet écran (l'invité en ligne voit le root retourné)
+    function oppHalf(p) { return SOLO && p !== VIEWER; }
 
     // ------------------------------------------------------------- sons (sobres, avec budget)
     let ct = 0;                                    // horloge du contrôleur (s'arrête en pause)
@@ -1715,7 +1720,13 @@
       const spr = sprite(o.d, bigPx), sz = (spr.N / spr.px) * zs * sc;
       at(x, y, lerp(S.R.A[R.target], 0, winBoard ? zk : 0)); ctx.drawImage(spr.c, -sz / 2, -sz / 2, sz, sz);
       reset();
-      if (!winBoard) {                              // « c'était là » : cercle pointillé qui pulse
+      if (!winBoard && oppHalf(p)) {                // vue solo : le cercle seulement (le « ICI ! » est sur le plateau du lecteur)
+        const rr0 = baseSz * 0.68 + Math.sin(t * 8) * 3;
+        ctx.globalAlpha = 1 - outK;
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.lineDashOffset = -t * 40;
+        circ(ctx, x, y, rr0); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+        ctx.globalAlpha = 1;
+      } else if (!winBoard) {                       // « c'était là » : cercle pointillé qui pulse
         const rr0 = baseSz * 0.68 + Math.sin(t * 8) * 3;
         ctx.globalAlpha = 1 - outK;
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.lineDashOffset = -t * 40;
@@ -1918,6 +1929,33 @@
       ctx.fillStyle = rgba(PC[p], 0.6);
       circ(ctx, mx0, cy, 2); ctx.fill(); circ(ctx, mx1, ay, 2); ctx.fill();
     }
+    // vue solo : étiquette de l'adversaire (petite tête + nom à sa couleur), orientée pour le lecteur ;
+    // portrait : à la place du médaillon (centre du bandeau) ; écran large : à la place de son avatar
+    function drawOppTag(p) {
+      const mood = avatarMood(p), sad = mood === 'sad';
+      const wide = L.wide, ar = wide ? clamp(L.avr * 0.8, 18, 46) : clamp(L.avr * 1.05, 16, 30);
+      const name = PL[p].name, fs = wide ? clamp(ar * 0.4, 12, 18) : clamp(ar * 0.55, 12, 15);
+      const tw = textWidth(name, fs, false), pw = Math.ceil(tw + 26), ph = Math.round(fs + 13);
+      let ax, ay, px, py;                            // repère du lecteur, centré sur l'étiquette
+      if (wide) { ax = 0; ay = -(ph + 8) / 2; px = -pw / 2; py = ay + ar + 8; }
+      else { const gw = 2 * ar + 8 + pw; ax = -gw / 2 + ar; ay = 0; px = ax + ar + 8; py = -ph / 2; }
+      ctx.save();
+      at(wide ? L.avx : L.mx, wide ? L.avy : L.my, Math.PI);
+      let bob = 0, sc = 1;
+      if (mood === 'win') {
+        sc = 1 + 0.12 * Math.max(0, Math.sin(S.t * 10)) * Math.max(0, 1 - S.t / 1.2); bob = -3 * Math.abs(Math.sin(S.t * 8));
+        ctx.globalCompositeOperation = 'lighter'; glowAt(glow(PC[p]), ax, ay, ar * 3.2, 0.7); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      }
+      if (sad && S.freeze[p] > 0 && S.phase === 'play') bob = Math.sin(ct * 50) * 1.5;
+      const av = avatarSprite(p, sad, ar), s2 = av.S * sc;
+      ctx.drawImage(av.c, ax - s2 / 2 + (mood === 'sad' ? bob : 0), ay - s2 / 2 + (mood === 'win' ? bob : 0), s2, s2);
+      rr(ctx, px, py, pw, ph, ph / 2);
+      ctx.fillStyle = 'rgba(8,15,22,0.86)'; ctx.fill();
+      ctx.lineWidth = 1.4; ctx.strokeStyle = sad ? 'rgba(111,138,166,0.8)' : rgba(PC[p], mood === 'win' ? 1 : 0.7); ctx.stroke();
+      ctx.fillStyle = rgba(PC[p], 0.55); ctx.fillRect(px + ph / 2, py + ph - 1.6, pw - ph, 1.2);
+      text(name, px + pw / 2, py + ph / 2 + 0.5, fs, sad ? '#9fb3c2' : PC[p], { stroke: 3 });
+      ctx.restore(); reset(); ctx.globalAlpha = 1;
+    }
     // « MANCHE n » + puce du chrono (petite horloge + secondes), coin haut gauche en (x0, ly), puce centrée sur cy
     function drawClock(x0, ly, cy, p) {
       const cw0 = 70, chh = 26;
@@ -1982,6 +2020,11 @@
         const k = f.t / f.life, pop = 1 + Math.max(0, 0.25 - f.t) * 2.4, a = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
         ctx.globalAlpha = a;
         const y = f.y - easeOut(k) * 28;
+        if (oppHalf(p)) {                           // vue solo : bulle à l'endroit pour le lecteur (sous-titre dessous, de son point de vue)
+          ctx.save(); at(f.x, y, Math.PI, pop); text(f.text, 0, 0, f.size, f.col, { stroke: 6 }); ctx.restore(); reset();
+          if (f.sub) { ctx.globalAlpha = a; ctx.save(); at(f.x, y, Math.PI); text(f.sub, 0, f.size * 0.8, 13, '#ffffff', { body: true, stroke: 3.5 }); ctx.restore(); reset(); }
+          continue;
+        }
         ctx.save(); at(f.x, y, 0, pop); text(f.text, 0, 0, f.size, f.col, { stroke: 6 }); ctx.restore(); reset();
         if (f.sub) { ctx.globalAlpha = a; text(f.sub, f.x, y + f.size * 0.8, 13, '#ffffff', { body: true, stroke: 3.5 }); }
       }
@@ -2081,11 +2124,16 @@
       setBase(p, ox, oy);
       drawBoard(p);
       if (AI && p === AIP) drawAI(p);               // le viseur de l'IA sur son plateau
-      drawIntroBanner(p);
-      drawCountdown(p);
-      setBase(p, ox * 0.4, oy * 0.4);
-      if (!DBG.noMedal) drawMedal(p);
-      if (!DBG.noInfo) drawBandInfo(p);
+      if (oppHalf(p)) {                             // vue solo, moitié de l'adversaire : ni bannière, ni compte à rebours, ni HUD
+        setBase(p, ox * 0.4, oy * 0.4);
+        drawOppTag(p);
+      } else {
+        drawIntroBanner(p);
+        drawCountdown(p);
+        setBase(p, ox * 0.4, oy * 0.4);
+        if (!DBG.noMedal) drawMedal(p);
+        if (!DBG.noInfo) drawBandInfo(p);
+      }
       setBase(p, ox, oy);
       drawFx(p);
       // dernières secondes : bords rouges qui battent à chaque seconde
@@ -2142,6 +2190,7 @@
       ctx.fillRect(0, 0, L.W, L.HH);
       const cy = L.by + L.bh * 0.42;
       ctx.globalCompositeOperation = 'lighter'; glowAt(glow(paused ? ACCENT : PC[p]), L.W / 2, cy, Math.min(L.W, L.HH) * 0.9, 0.22); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      if (oppHalf(p)) { drawOppTag(p); return; }    // vue solo : « PAUSE » et la reprise ne s'affichent que chez le lecteur
       if (paused) {
         const s = Math.min(46, L.W * 0.12);
         ctx.fillStyle = '#ffffff';
@@ -2439,7 +2488,7 @@
       if (dwell && g.tap === 0 && g.sim >= 0.5 && !frozen) {
         const k2 = easeBack(clamp((S.clock - g.a) / 0.18, 0, 1)) * Math.min(1, (g.l - S.clock) / 0.12), br = clamp(r * 0.32, 7, 12);
         if (k2 > 0.02) {
-          ctx.save(); at(x + r * 0.82, y - r * 0.82, Math.sin(ct * 5) * 0.12, k2);
+          ctx.save(); at(x + r * 0.82, y - r * 0.82, Math.sin(ct * 5) * 0.12 + (oppHalf(p) ? Math.PI : 0), k2);
           ctx.globalAlpha = a;
           circ(ctx, 0, 0, br + 1.5); ctx.fillStyle = 'rgba(4,8,14,0.6)'; ctx.fill();
           circ(ctx, 0, 0, br); ctx.fillStyle = col; ctx.fill();

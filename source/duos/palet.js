@@ -851,6 +851,10 @@
     // contre l'IA (jamais en ligne) : le joueur api.ai.p (en haut) est joué par l'IA, les doigts de sa moitié sont ignorés
     const AIA = !NET && api.ai && typeof api.ai === 'object' ? api.ai : null;
     const AIP = AIA ? (AIA.p === 0 ? 0 : 1) : -1;
+    // vue solo (contre l'IA ou en ligne) : un seul lecteur par écran → tous les textes tournés vers lui,
+    // l'adversaire réduit à une petite étiquette « nom » ; en local (deux sur le même téléphone) rien ne change
+    const SOLO = !!(api.ai || api.net);
+    const VIEWER = (api.net && api.net.flipped) ? 1 : 0, OPP = 1 - VIEWER;
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
 
     // ------------------------------------------------------------- joueurs et copains
@@ -1404,6 +1408,7 @@
       V.count = n; V.countT = 0;
       SFX.count(n);
       for (let p = 0; p < 2; p++) {
+        if (SOLO && p !== VIEWER) continue;
         const col = V.intro && V.intro.mp ? COL.alarm : PL[p].color;
         ring(CX, p === 0 ? BAND_Y - 6 : RH - BAND_Y + 6, 20, 62, 0.45, col, 2.5);
       }
@@ -1417,7 +1422,7 @@
         ring(pk.x, pk.y, PR, 60, 0.4, '#ffffff', 2, 0.06);
         sparks(pk.x, pk.y, 16, col, 280, 0.45, 2);
       }
-      for (let p = 0; p < 2; p++) ring(CX, p === 0 ? BAND_Y - 4 : RH - BAND_Y + 4, 26, 96, 0.5, COL.leaf, 3);
+      for (let p = 0; p < 2; p++) if (!SOLO || p === VIEWER) ring(CX, p === 0 ? BAND_Y - 4 : RH - BAND_Y + 4, 26, 96, 0.5, COL.leaf, 3);
     }
     const fxT = [0, 0];
     function onHit(e) {
@@ -1457,7 +1462,7 @@
       if (b.ouch <= 0 && bumpHeads[e.i]) {
         b.ouch = 1.6;
         const side = e.y >= o.y ? 0 : 1;
-        floatText(o.x, o.y + (side === 0 ? -36 : 36), pick(OUCH), '#eadfff', 15, 0.95, side);
+        floatText(o.x, o.y + (side === 0 ? -36 : 36), pick(OUCH), '#eadfff', 15, 0.95, SOLO ? VIEWER : side);
       }
     }
     function onRelaunch(e) {
@@ -1468,7 +1473,7 @@
       ring(e.x, e.y, 4, 40, 0.4, '#ffffff', 2, 0.08);
       sparks(e.x, e.y, 12, col, 220, 0.4, 1.6);
       V.trails[e.id] = [];
-      floatText(e.x, e.y + (e.p === 0 ? 52 : -52), 'Remise en jeu !', col, 15, 1.4, e.p);
+      floatText(e.x, e.y + (e.p === 0 ? 52 : -52), 'Remise en jeu !', col, 15, 1.4, SOLO ? VIEWER : e.p);
     }
     function onSpawn2(e) {
       SFX.spawn2();
@@ -1478,8 +1483,11 @@
       sparks(e.x, e.y, 22, c, 320, 0.5, 2);
       V.flash = Math.max(V.flash, 0.22); V.flashCol = c;
       V.trails[1] = [];
-      floatText(CX, MID + 74, '2e PALET !', c, 22, 1.3, 0);
-      floatText(CX, MID - 74, '2e PALET !', c, 22, 1.3, 1);
+      if (SOLO) floatText(CX, VIEWER === 0 ? MID + 74 : MID - 74, '2e PALET !', c, 22, 1.3, VIEWER);
+      else {
+        floatText(CX, MID + 74, '2e PALET !', c, 22, 1.3, 0);
+        floatText(CX, MID - 74, '2e PALET !', c, 22, 1.3, 1);
+      }
     }
     function onGoal(e) {
       const sc = e.scorer, cn = 1 - sc, col = PL[sc].color, top = e.y < MID;
@@ -1681,6 +1689,7 @@
       drawUnder();
       drawLeds();
       drawCenter();
+      if (SOLO) drawOppTag();
       drawGoals();
       drawBumpers();
       drawTrails();
@@ -1691,7 +1700,7 @@
       drawFloats();
       drawSweep();
       if (paused) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.5; ctx.fillStyle = '#02060c'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalAlpha = 1; }
-      for (let p = 0; p < 2; p++) drawSide(p);
+      for (let p = 0; p < 2; p++) if (!SOLO || p === VIEWER) drawSide(p);
       drawScreen();
     }
     function drawUnder() {
@@ -1950,9 +1959,10 @@
       for (const f of V.faces) {
         const pop = f.t < 0.35 ? backOut(f.t / 0.35) : 1;
         const a = clamp(f.t > f.life - 0.45 ? (f.life - f.t) / 0.45 : 1, 0, 1);
-        side(f.p);
-        const x = f.p === 0 ? f.x : RW - f.x;
-        const y = (f.p === 0 ? f.y : RH - f.y) - easeOut(Math.min(1, f.t / 1.2)) * 12 + Math.sin(f.t * 7) * 2;
+        const fp = SOLO ? VIEWER : f.p;
+        side(fp);
+        const x = fp === 0 ? f.x : RW - f.x;
+        const y = (fp === 0 ? f.y : RH - f.y) - easeOut(Math.min(1, f.t / 1.2)) * 12 + Math.sin(f.t * 7) * 2;
         const sp = SPR.face[f.p];
         ctx.globalAlpha = a;
         ctx.save();
@@ -2159,8 +2169,8 @@
       if (free < 28 || SPR.card) return;
       const fs = Math.round(clamp(free * 0.42, 13, 22)), hr = fs * 0.85;
       for (let p = 0; p < 2; p++) {
-        const cy = p === 0 ? ch - free / 2 : free / 2;
-        ctx.setTransform(p === 1 ? -dpr : dpr, 0, 0, p === 1 ? -dpr : dpr, (cw / 2 + PADS) * dpr, (cy + PADS) * dpr);
+        const cy = p === 0 ? ch - free / 2 : free / 2, fl = (SOLO ? VIEWER : p) === 1;
+        ctx.setTransform(fl ? -dpr : dpr, 0, 0, fl ? -dpr : dpr, (cw / 2 + PADS) * dpr, (cy + PADS) * dpr);
         ctx.font = fs + 'px ' + FD; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         const name = PL[p].name, tw = Math.min(ctx.measureText(name).width, cw * 0.6), total = hr * 2 + 8 + tw, x0 = -total / 2;
         const sp = SPR.m[p][V.sad[p] > 0 ? 1 : 0], w = sp.w * hr / MR, bob = V.joy[p] > 0 ? -Math.abs(Math.sin(V.joy[p] * 9)) * 4 : 0;
@@ -2171,6 +2181,31 @@
       }
       ctx.textAlign = 'center';
     }
+    // vue solo, sans plaque ni carte : petite étiquette « tête + nom » de l'adversaire devant son but (sous les objets du jeu)
+    function drawOppTag() {
+      if (SPR.card || topH - 40 * s >= 28) return;   // (plaque ou carte déjà affichée)
+      side(VIEWER);
+      const P = PL[OPP], fs = 13, hr = 10, h = 26, y0 = 26;
+      setFont(fs, false);
+      const tw = Math.min(ctx.measureText(P.name).width, 140), wt = 4 + hr * 2 + 6 + tw + 12, x0 = CX - wt / 2;
+      ctx.globalCompositeOperation = 'lighter';
+      glowRect(P.color, CX, y0 + h / 2, wt + 50, h + 30, 0.22);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 0.92;
+      rr(ctx, x0, y0, wt, h, h / 2);
+      ctx.fillStyle = 'rgba(4,10,18,0.78)'; ctx.fill();
+      ctx.strokeStyle = rgba(P.color, 0.7); ctx.lineWidth = 1.3; ctx.stroke();
+      const sp = SPR.m[OPP][V.sad[OPP] > 0 ? 1 : 0], w = sp.w * hr / MR;
+      ctx.drawImage(sp.cv, x0 + 4 + hr - w / 2, y0 + h / 2 - w / 2, w, w);
+      ctx.textAlign = 'left';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(2,5,10,0.9)'; ctx.lineJoin = 'round';
+      const tx = x0 + 4 + hr * 2 + 6;
+      ctx.strokeText(P.name, tx, y0 + h / 2 + 1, tw);
+      ctx.fillStyle = P.color; ctx.fillText(P.name, tx, y0 + h / 2 + 1, tw);
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = 1;
+      W0();
+    }
     // grandes marges (tablette, PC) : cartes des joueurs et tribunes de copains
     function drawSides() {
       drawPlates();
@@ -2178,6 +2213,23 @@
       const r = SPR.cardR * s;
       for (let p = 0; p < 2; p++) {
         const cx = p === 0 ? sideW / 2 : cw - sideW / 2, cy = p === 0 ? ch * 0.72 : ch * 0.28;
+        if (SOLO) {
+          // vue solo : tout tourné vers le lecteur ; l'adversaire = petite tête + son nom
+          const fl = VIEWER === 1, ks = p === OPP ? 0.6 : 1;
+          ctx.setTransform(fl ? -dpr : dpr, 0, 0, fl ? -dpr : dpr, (cx + PADS) * dpr, (cy + PADS) * dpr);
+          const bob = Math.sin(V.rt * 1.6 + p * 2) * 3 * ks - (V.joy[p] > 0 ? Math.abs(Math.sin(V.joy[p] * 9)) * 10 * ks : 0);
+          const sp = SPR.card[p][V.sad[p] > 0 ? 1 : 0], dw = sp.w * s * ks, dh = sp.h * s * ks;
+          ctx.drawImage(sp.cv, -dw / 2, -dh / 2 + bob, dw, dh);
+          const fs = Math.round(clamp(r * 0.36 * (ks < 1 ? 0.8 : 1), 13, 26)), ny = r * 1.32 * ks + fs * 0.6;
+          ctx.font = fs + 'px ' + FD; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.lineWidth = fs * 0.28; ctx.strokeStyle = 'rgba(2,5,10,0.9)'; ctx.lineJoin = 'round';
+          ctx.strokeText(PL[p].name, 0, ny, sideW - 24);
+          ctx.fillStyle = PL[p].color; ctx.fillText(PL[p].name, 0, ny, sideW - 24);
+          if (ks < 1) continue;
+          ctx.font = '600 ' + Math.round(fs * 0.58) + 'px ' + FB; ctx.fillStyle = '#8aa0ae';
+          ctx.fillText(V.sad[p] > 0 ? 'Snif…' : V.joy[p] > 0 ? 'BUT !' : 'Premier à ' + TARGET + ' buts', 0, ny + fs * 1.05, sideW - 24);
+          continue;
+        }
         ctx.setTransform(p === 1 ? -dpr : dpr, 0, 0, p === 1 ? -dpr : dpr, (cx + PADS) * dpr, (cy + PADS) * dpr);
         const bob = Math.sin(V.rt * 1.6 + p * 2) * 3 - (V.joy[p] > 0 ? Math.abs(Math.sin(V.joy[p] * 9)) * 10 : 0);
         const sp = SPR.card[p][V.sad[p] > 0 ? 1 : 0];
@@ -2195,7 +2247,8 @@
       if (st) {
         for (let q = 0; q < 2; q++) {
           const pc = PL[q].color, cx = q === 1 ? sideW / 2 : cw - sideW / 2, cy = q === 1 ? ch * 0.25 : ch * 0.75;
-          ctx.setTransform(q === 1 ? -dpr : dpr, 0, 0, q === 1 ? -dpr : dpr, (cx + PADS) * dpr, (cy + PADS) * dpr);
+          const fq = (SOLO ? VIEWER : q) === 1;
+          ctx.setTransform(fq ? -dpr : dpr, 0, 0, fq ? -dpr : dpr, (cx + PADS) * dpr, (cy + PADS) * dpr);
           const pw = st.pw, ph = st.ph, top = -ph / 2;
           rr(ctx, -pw / 2, top, pw, ph, 14);
           ctx.fillStyle = 'rgba(8,16,24,0.6)'; ctx.fill();

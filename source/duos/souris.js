@@ -2060,6 +2060,10 @@
       const s = (api.players && api.players[p]) || {};
       return { name: String(s.name || (p ? 'Joueur 2' : 'Joueur 1')).trim().slice(0, 14) || '?', img: s.img || null, sad: s.sad || null, color: s.color || PCOL[p] };
     });
+    // vue SOLO (contre l'IA ou en ligne : un seul lecteur par écran) : tous les textes tournés vers le lecteur,
+    // la moitié de l'adversaire réduite à son nom. VIEWER = joueur qui regarde cet écran (l'invité en ligne : 1).
+    const SOLO = !!(api.ai || api.net);
+    const VIEWER = (api.net && api.net.flipped) ? 1 : 0;
     let destroyed = false, paused = false, raf = 0, last = 0, rt = 0;
     const listeners = [];
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
@@ -2380,6 +2384,7 @@
       for (const r of M.tunnels) { paintArch(g, mx, PY(r), true, cs, th, true); paintArch(g, mx + mw, PY(r), true, cs, th, true); }
       // bandeaux des joueurs (fond)
       for (const p of [0, 1]) {
+        if (SOLO && p !== VIEWER) { paintOppStrip(g, p); continue; }
         g.save();
         if (p === 1) { g.translate(W, H); g.rotate(Math.PI); }
         const y0 = H - sh, x0 = mx > 40 ? mx : 0, w = mx > 40 ? mw : W;
@@ -2403,6 +2408,7 @@
       const others = heads.filter((h) => h.img !== PL[0].img && h.img !== PL[1].img);
       const lines = (txt, maxW) => { const out = []; let cur = ''; for (const w of txt.split(' ')) { const t = cur ? cur + ' ' + w : w; if (g.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; } if (cur) out.push(cur); return out; };
       for (const p of [0, 1]) {
+        if (SOLO && p !== VIEWER) { paintOppSide(g, p, others); continue; }
         g.save();
         if (p === 1) { g.translate(W, H); g.rotate(Math.PI); }
         const pw = Math.min(260, mx - 24), x0 = mx - 12 - pw, y0 = H / 2 + 46, f1 = Math.round(clamp(pw * 0.1, 12, 26)), f2 = Math.round(clamp(pw * 0.075, 11, 18)), f3 = Math.round(clamp(pw * 0.06, 10, 15));
@@ -2448,6 +2454,76 @@
         }
         g.restore();
       }
+    }
+    // ----- vue SOLO : repère du lecteur (textes à l'endroit pour lui) et moitié de l'adversaire réduite à son nom
+    function viewFrame(c) { if (VIEWER === 1) { c.translate(W, H); c.rotate(Math.PI); } }
+    function paintOppStrip(g, p) {
+      const col = PL[p].color;
+      g.save();                                     // fond du bandeau (comme d'habitude, sans HUD)
+      if (p === 1) { g.translate(W, H); g.rotate(Math.PI); }
+      const y0 = H - sh, x0 = mx > 40 ? mx : 0, w = mx > 40 ? mw : W;
+      g.fillStyle = lin(g, 0, y0, 0, H, [0, 'rgba(8,14,20,0.2)', 0.25, 'rgba(10,18,26,0.92)', 1, 'rgba(6,11,16,0.98)']);
+      g.fillRect(x0, y0, w, sh);
+      g.fillStyle = lin(g, x0, 0, x0 + w, 0, [0, hexA(col, 0), 0.2, hexA(col, 0.55), 0.8, hexA(col, 0.55), 1, hexA(col, 0)]);
+      g.fillRect(x0, y0 + 1, w, 1.5);
+      g.restore();
+      // étiquette « nom » à sa couleur, tournée vers le lecteur (en haut de son écran)
+      g.save(); viewFrame(g);
+      const role = S.mouseP === p ? 'mouse' : 'cat', name = PL[p].name.toUpperCase();
+      const fs = Math.round(clamp(sh * 0.36, 10, 15)), ic = Math.min(sh * 0.74, 28);
+      g.font = fs + 'px ' + FD;
+      const tw = Math.min(g.measureText(name).width, W * 0.5);
+      const ph = Math.round(clamp(sh * 0.66, 18, 28)), pw = ic * 0.9 + 12 + tw + 14, cy = Math.min(sh * 0.46, sh - ph / 2 - 3);
+      const px0 = (mx > 40 ? mx : 0) + 8;           // à gauche, comme le rôle dans le bandeau du lecteur (le centre reste au personnage)
+      rrect(g, px0, cy - ph / 2, pw, ph, ph / 2);
+      g.fillStyle = 'rgba(6,11,16,0.86)'; g.fill();
+      g.lineWidth = 3; g.strokeStyle = hexA(col, 0.18); g.stroke();
+      g.lineWidth = 1.5; g.strokeStyle = hexA(col, 0.85); g.stroke();
+      g.save(); g.translate(px0 + ic * 0.45 + 4, cy + ic * 0.04); cartoonHead(g, role, ic, col, '', 0.3); g.restore();
+      g.textAlign = 'left'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+      g.lineWidth = 3; g.strokeStyle = 'rgba(2,6,10,0.88)'; g.strokeText(name, px0 + ic * 0.9 + 10, cy + fs * 0.04, tw);
+      g.fillStyle = col; g.fillText(name, px0 + ic * 0.9 + 10, cy + fs * 0.04, tw);
+      g.textBaseline = 'alphabetic';
+      g.restore();
+    }
+    function friendFrame(g, hd, fx, fy, fw, fh, tilt) {
+      g.save(); g.translate(fx + fw / 2, fy + fh / 2); g.rotate(tilt);
+      g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 14; g.shadowOffsetY = 4;
+      rrect(g, -fw / 2, -fh / 2, fw, fh, 8); g.fillStyle = '#c9a24a'; g.fill();
+      g.shadowColor = 'transparent';
+      rrect(g, -fw / 2 + 6, -fh / 2 + 6, fw - 12, fh - 12, 5); g.fillStyle = lin(g, 0, -fh / 2, 0, fh / 2, [0, '#24485a', 1, '#11232d']); g.fill();
+      g.save(); rrect(g, -fw / 2 + 6, -fh / 2 + 6, fw - 12, fh - 12, 5); g.clip();
+      try { const iw = hd.img.naturalWidth || hd.img.width, ih = hd.img.naturalHeight || hd.img.height, hh = fh - 16, ww = (hh * iw) / ih; g.drawImage(hd.img, -ww / 2, -hh / 2 + 4, ww, hh); } catch (e) { /* rien */ }
+      g.fillStyle = 'rgba(255,255,255,0.1)'; g.beginPath(); g.moveTo(-fw / 2, -fh * 0.1); g.lineTo(fw * 0.1, -fh / 2); g.lineTo(fw * 0.35, -fh / 2); g.lineTo(-fw / 2, fh * 0.15); g.fill();
+      g.restore();
+      g.font = '600 ' + Math.round(clamp(fw * 0.13, 10, 13)) + 'px ' + FB; g.textAlign = 'center'; g.fillStyle = '#ffe9a8';
+      g.fillText(String(hd.name || '').slice(0, 12), 0, fh / 2 + 16);
+      g.restore();
+    }
+    function paintOppSide(g, p, others) {             // grands écrans : petite carte « tête + nom » de l'adversaire, à l'endroit pour le lecteur
+      const col = PL[p].color;
+      g.save(); viewFrame(g);
+      const pw = Math.min(200, mx - 24);
+      if (pw >= 90) {
+        const hs = clamp(pw * 0.32, 40, 66), f1 = Math.round(clamp(pw * 0.09, 12, 18));
+        const ph = hs * 1.3 + f1 + 26, x0 = W - mx + 12, y0 = H / 2 - 46 - ph;
+        rrect(g, x0, y0, pw, ph, 14);
+        g.fillStyle = lin(g, 0, y0, 0, y0 + ph, [0, 'rgba(16,28,38,0.8)', 1, 'rgba(8,14,20,0.8)']); g.fill();
+        g.lineWidth = 1.5; g.strokeStyle = hexA(col, 0.5); g.stroke();
+        g.fillStyle = col; g.fillRect(x0 + 14, y0, pw - 28, 3);
+        g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.45;
+        const G = glows(); g.drawImage(p ? G.cyan : G.amber, x0 + pw / 2 - hs, y0 + 12 + hs * 0.65 - hs, hs * 2, hs * 2);
+        g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+        g.save(); g.translate(x0 + pw / 2, y0 + 12 + hs * 0.65);
+        drawHeadAt(g, p, S.mouseP === p ? 'mouse' : 'cat', 'n', hs, 0, 0, 0, 0, 0);
+        g.restore();
+        g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+        g.font = f1 + 'px ' + FD; g.fillStyle = col; g.fillText(PL[p].name.toUpperCase(), x0 + pw / 2, y0 + ph - 12, pw - 14);
+      }
+      const hd = others.length ? others[p % others.length] : null;
+      const fw = Math.min(110, mx - 34), fh = fw * 1.25;
+      if (hd && fw >= 60 && H / 2 + 46 + fh + 30 < H) friendFrame(g, hd, W - (mx + mw + (mx - fw) / 2) - fw, 34, fw, fh, p ? 0.05 : -0.05);
+      g.restore();
     }
 
     // ------------------------------------------------------------- dessin d'un personnage
@@ -2580,12 +2656,14 @@
       drawBody(ctx, cat, k, v.walk, v.moving, { stretch: leap ? 1.32 : 1, leap: !!leap, puff: cat && mood === 'sad' && S.mouse.sup > 0, cape: !cat && e.sup > 0 });
       ctx.restore();
       // tête : à l'avant du corps, toujours à l'endroit pour son joueur
-      const up = p === 1 ? 1 : -1;
+      // (vue SOLO : toutes les têtes à l'endroit pour le lecteur de cet écran)
+      const hp = SOLO ? VIEWER : p;
+      const up = hp === 1 ? 1 : -1;
       const hx = Math.cos(v.ang) * k * (cat ? 0.3 : 0.24), hy = Math.sin(v.ang) * k * (cat ? 0.3 : 0.24) + up * k * 0.12 + up * Math.abs(Math.sin(v.walk)) * k * 0.035 * (v.moving ? 1 : 0);
       ctx.translate(hx, hy * squash);
-      if (p === 1) ctx.rotate(Math.PI);
+      if (hp === 1) ctx.rotate(Math.PI);
       // petite inclinaison dans le sens de la course (vue par le propriétaire)
-      const ownerDX = p === 1 ? -Math.cos(v.ang) : Math.cos(v.ang);
+      const ownerDX = hp === 1 ? -Math.cos(v.ang) : Math.cos(v.ang);
       ctx.rotate(ownerDX * 0.12 * (v.moving ? 1 : 0.3) + (v.startle > 0 ? Math.sin(rt * 40) * 0.1 * v.startle : 0));
       if (squash < 1) ctx.scale(1.15, 0.8);
       const hs = k * (cat ? 1.1 : 0.98) * (1 + v.startle * 0.15);
@@ -2979,6 +3057,7 @@
       // assombrir le décor pendant les cartes, projecteurs sur les personnages
       const cardIn = 0.35, cardOut = D - 2.1;
       for (const p of [0, 1]) {
+        if (SOLO && p !== VIEWER) continue;          // vue SOLO : la carte d'intro et le compte à rebours du lecteur seulement
         if (t > cardIn && t < cardOut + 0.4) {
           const kin = easeOut((t - cardIn) / 0.45), kout = t > cardOut ? easeOut((t - cardOut) / 0.4) : 0;
           drawCard(p, 1 - kout, kin * (1 - kout * 0.4));
@@ -3245,11 +3324,19 @@
       }
       if (zoomed) ctx.restore();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (SOLO) {                                  // vue SOLO : seulement le HUD, les bannières et les cartes du lecteur
+        drawStrip(VIEWER);
+        if (mode === 'play' || mode === 'end') drawBanner(VIEWER);
+        if (mode === 'intro') drawIntro();
+        if (goT > 0) drawCount(VIEWER, 'GO !', 1 - goT / 0.8, ACCENT);
+        if (mode === 'play' && resumeT > 0) { const i = Math.ceil(resumeT / 0.5), k = 1 - (resumeT % 0.5) / 0.5; drawCount(VIEWER, String(i), k, '#ffffff'); }
+      } else {
       drawStrip(0); drawStrip(1);
       if (mode === 'play' || mode === 'end') { drawBanner(0); drawBanner(1); }
       if (mode === 'intro') drawIntro();
       if (goT > 0) { for (const p of [0, 1]) drawCount(p, 'GO !', 1 - goT / 0.8, ACCENT); }
       if (mode === 'play' && resumeT > 0) { const i = Math.ceil(resumeT / 0.5), k = 1 - (resumeT % 0.5) / 0.5; for (const p of [0, 1]) drawCount(p, String(i), k, '#ffffff'); }
+      }
       drawJoy(0); drawJoy(1);
       if (flash > 0.01) {
         ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, flash) * 0.6;

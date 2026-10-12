@@ -989,6 +989,11 @@
       Lo.plY = HH + 4; Lo.plH = band - 8;
       if (wide && W - (gx + G) - colGap - side >= 110) { Lo.listX = gx + G + colGap + 10; Lo.listW = Math.min(260, W - Lo.listX - side); Lo.sideY = gy + 4; Lo.listY = gy + clamp(G * 0.2, 54, 96); Lo.listBig = true; }
       else { Lo.listX = hx; Lo.listY = Lo.nameY + Lo.tagPx * 0.9 + 8; Lo.listW = headW; Lo.listBig = false; }
+      if (SOLOAI) {                                   // vue solo (contre l'IA) : en haut, juste l'adversaire (petite tête + nom), à l'endroit
+        const ow = clamp(Math.min(W * 0.18, HH * 0.3), 54, 112), oh = ow * 1.2, otp = clamp(ow * 0.2, 11, 17);
+        const oy = HH * 0.5 - (oh + otp * 1.9 + 4) / 2;
+        HS = [Lo, { hw: ow, hh: oh, hx: W / 2 - ow / 2, hy: oy, tagPx: otp, nameY: oy + oh + otp * 0.9 + 4, listX: 0, listY: 0, listW: ow, listBig: false }];
+      }
     }
     // mise en page EN LIGNE (repère de la vue : celle du joueur de cet appareil, à l'endroit). La grille de ce joueur en grand,
     // le mot bien visible, et les deux joueurs (têtes, noms, tracé en direct, mots trouvés). Trois dispositions, on garde
@@ -1436,7 +1441,10 @@
           c.drawImage(NEB[p], W / 2 - sz / 2 + (p ? -W * 0.14 : W * 0.14), HH + HH * 0.55 - sz / 2, sz, sz);
           c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
         }
-        if (pat) { c.fillStyle = pat; c.fillRect(0, HH, W, HH); }
+        if (pat) {
+          if (SOLOAI && p === 1) { c.setTransform(dpr, 0, 0, dpr, 0, 0); c.fillStyle = pat; c.fillRect(0, 0, W, HH); }   // lettres du motif à l'endroit
+          else { c.fillStyle = pat; c.fillRect(0, HH, W, HH); }
+        }
         c.restore();
       }
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1965,6 +1973,10 @@
     // Ses choix viennent d'un hasard à graine (graine du match + n° de manche) ; seul son « regard » utilise Math.random.
     const AIN = !NET && api.ai && typeof api.ai === 'object' ? api.ai : null;
     const AIP = AIN ? (AIN.p === 0 ? 0 : 1) : -1;
+    // vue solo : un seul lecteur par écran. En ligne, la vue est déjà celle du joueur de l'appareil (layoutNet / drawNet) ;
+    // contre l'IA (le lecteur = P0 en bas), la moitié du haut ne montre plus que l'adversaire, à l'endroit (drawOppSolo).
+    const SOLO = !!(api.ai || api.net);
+    const SOLOAI = SOLO && !NET && !!AIN && AIP === 1;
     const AI_LEVELS = {
       //          délai (s, du GO au lâcher)  s/case  faux départs (1, 2)   regard (s/cible)   « ! » avant de poser le doigt
       facile: { lo: 12, hi: 22, cell: 0.16, err: 0.6, err2: 0.3, scan: [0.55, 1.0], aha: 0.55, n: 1 },
@@ -2392,7 +2404,7 @@
         for (const b of BGL[p]) {
           const s = b.size / 110;
           ctx.globalAlpha = b.a;
-          local(b.x, b.y, b.rot, s, s);
+          local(b.x, b.y, SOLOAI && p === AIP ? b.rot + Math.PI : b.rot, s, s);
           ctx.drawImage(ghostSprite(b.ch, p), -55, -55);
         }
         unlocal();
@@ -2805,7 +2817,7 @@
       ctx.globalAlpha = 1;
     }
 
-    function drawHead(p) {
+    function drawHead(p, solo) {
       const st = stickers[p], L0 = HS[p];
       if (!st) return;
       const mood = V.mood[p], mt = V.moodT[p];
@@ -2837,7 +2849,7 @@
       local(x + dx, yb + dy, rot, sx, sy);
       ctx.drawImage(spr.cv, -spr.w / 2, -spr.h + spr.pb, spr.w, spr.h);
       unlocal();
-      if (AIN && p === AIP) drawAiMind(p, x + dx, yb + dy, L0);
+      if (AIN && p === AIP) drawAiMind(p, x + dx, yb + dy, L0, solo);
       // couronne du vainqueur du match
       if (V.over && p === V.winner && V.overT > 0.25) {
         const k = backOut((V.overT - 0.25) / 0.35), cw = L0.hw * 0.62 * k, chh = cw * 0.62;
@@ -2857,13 +2869,23 @@
         for (const j of [-0.25, 0, 0.25]) { ctx.beginPath(); ctx.arc(cx + cw * j, cy + chh * 0.3, Math.max(1.5, cw * 0.06), 0, TAU); ctx.fill(); }
       }
       // larmes de la tête triste
-      if (mood === 'sad' && mt < 2.5 && Math.random() < 0.05) part(p, 2, x + rnd(-L0.hw * 0.2, L0.hw * 0.2), yb - L0.hh * 0.5, rnd(-10, 10), 20, 0.9, rnd(2.5, 4), '#9fe0ff', null, 0.5, 160);
+      if (!solo && mood === 'sad' && mt < 2.5 && Math.random() < 0.05) part(p, 2, x + rnd(-L0.hw * 0.2, L0.hw * 0.2), yb - L0.hh * 0.5, rnd(-10, 10), 20, 0.9, rnd(2.5, 4), '#9fe0ff', null, 0.5, 160);
       // anneau du gel
       if (fz > 0) {
         ctx.strokeStyle = COL.alarm; ctx.lineWidth = 3; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.arc(x, yb - L0.hh * 0.45, L0.hw * 0.62, -Math.PI / 2, -Math.PI / 2 + TAU * (fz / FREEZE)); ctx.stroke();
       }
       blit(tagCv[p], x, L0.nameY);
+      if (solo) {                                     // vue solo : l'adversaire n'a que sa tête et son nom (+ « RATÉ ! », anneau de victoire)
+        if (V.hit[p] > 0 && ratSpr) blit(ratSpr, x, L0.hy - ratSpr.h * 0.2 - (0.6 - V.hit[p]) * 22, clamp(V.hit[p] / 0.25, 0, 1));
+        if (mood === 'happy' && mt < 0.8) {
+          const k = mt / 0.8;
+          ctx.globalAlpha = 1 - k; ctx.lineWidth = 3 * (1 - k) + 1; ctx.strokeStyle = shade(PC[p], 0.4);
+          ctx.beginPath(); ctx.arc(x, yb - L0.hh * 0.45, L0.hw * (0.6 + 1.2 * easeOut(k)), 0, TAU); ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        return;
+      }
       if (!NET && Lo.listBig && sideCv && sim.phase !== 'wait') ctx.drawImage(sideCv.cv, Lo.listX, Lo.sideY, sideCv.w, sideCv.h);
       const lc = buildList(p);
       if (lc) ctx.drawImage(lc.cv, L0.listBig ? L0.listX : L0.listX + L0.listW / 2 - lc.w / 2, L0.listY, lc.w, lc.h);
@@ -2892,7 +2914,7 @@
       ctx.globalAlpha = 1;
     }
     // ce que pense l'IA : bulle « … » pendant qu'elle cherche, « ! » quand elle a trouvé (ou croit avoir trouvé)
-    function drawAiMind(p, x, yb, L0) {
+    function drawAiMind(p, x, yb, L0, solo) {
       const R0 = clamp(L0.hw * 0.17, 9, 22), bx = x + L0.hw * 0.42, by = yb - L0.hh * 0.95;
       if (AI.think > 0.02 && AI.bang < 0) {
         const a = AI.think;
@@ -2917,7 +2939,7 @@
         ctx.globalAlpha = a;
         ctx.fillStyle = COL.gold; ctx.beginPath(); ctx.arc(bx, by, R0 * 0.9 * k, 0, TAU); ctx.fill();
         ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(3,7,11,0.85)'; ctx.stroke();
-        local(bx, by, Math.PI, 1, 1);                // personne n'est assis côté IA : le « ! » se lit depuis la place du joueur
+        local(bx, by, solo ? 0 : Math.PI, 1, 1);     // personne n'est assis côté IA : le « ! » se lit depuis la place du joueur
         txt('!', 0, -R0 * 0.06, R0 * 1.35 * k, '#0b141c', 'center', false, 0);
         unlocal();
         ctx.globalAlpha = 1;
@@ -2995,6 +3017,7 @@
     }
 
     function drawHalf(p) {
+      if (SOLOAI && p === AIP) { drawOppSolo(p); return; }
       const sh = V.hshake[p];
       const ox = sh > 0.05 ? (Math.random() * 2 - 1) * sh : 0, oy = sh > 0.05 ? (Math.random() * 2 - 1) * sh : 0;
       setFrame(p, 0, 0);
@@ -3006,6 +3029,18 @@
       drawHead(p);
       drawFlyers(p);
       drawParticles(p);
+      ctx.restore();
+    }
+
+    // vue solo (contre l'IA) : la moitié du haut, dessinée à l'endroit pour le joueur du bas ; ni grille, ni plaque, ni liste
+    function drawOppSolo(p) {
+      const sh = V.hshake[p];
+      const ox = sh > 0.05 ? (Math.random() * 2 - 1) * sh : 0, oy = sh > 0.05 ? (Math.random() * 2 - 1) * sh : 0;
+      setFrame(0, 0, 0);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, W, Lo.HH); ctx.clip();
+      setFrame(0, ox, oy);
+      drawHead(p, true);
       ctx.restore();
     }
 
