@@ -24,6 +24,8 @@
   const ease = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k));
   const hsl = (h, s, l, a) => 'hsla(' + Math.round(((h % 360) + 360) % 360) + ',' + s + '%,' + l + '%,' + (a == null ? 1 : a) + ')';
   function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+  // générateur à graine (mode compétition : api.seed) — mulberry32 standard
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function hexA(hex, a) {
     const n = parseInt(hex.slice(1), 16);
     return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
@@ -1147,6 +1149,23 @@
     const TRAIL = new Float32Array(2 * 16);      // traînée lumineuse (bouts d'ailes)
     let trailN = 0, trailT = 0;
 
+    // ------------------------------------------------------------- mode compétition (CONTRACT.md Ajout 6)
+    // api.startLevel : départ direct au niveau cycle * 8 + secteur (borné à 80 = cycle X secteur 8) ; api.mode 'compet' : badge.
+    // api.seed : le hasard du jeu (vagues, groupes, événements, ennemis, mini-boss, boss, capsules, éclats) vient de mulberry32,
+    // re-grainé par secteur, vague, groupe, salve, ennemi et boss → même partie pour tous, quoi que fassent les joueurs.
+    // Les effets (particules, explosions, étoiles, décor, sons, tremblements) et le choix des têtes restent sur Math.random.
+    // Sans graine, rng et luck restent null : exactement les mêmes appels à Math.random qu'avant.
+    const COMPET = api.mode === 'compet';
+    const START = Math.min(80, Math.max(1, Math.floor(Number(api.startLevel)) || 1));
+    const SEED = typeof api.seed === 'number' && Number.isFinite(api.seed) ? api.seed >>> 0 : null;
+    let lvlSeed = 0, rng = null, luck = null;      // rng : tirage du contenu en cours ; luck : capsules du secteur
+    const crand = () => (rng ? rng() : Math.random());
+    const crnd = (a, b) => a + crand() * (b - a);
+    const crndi = (a, b) => a + Math.floor(crand() * (b - a + 1));
+    const cchance = (p) => crand() < p;
+    const lrand = () => (luck ? luck() : Math.random());
+    function subRng(k) { return mulberry32((lvlSeed ^ Math.imul(k + 1, 0x85EBCA6B)) >>> 0); }
+
     // ------------------------------------------------------------- réserves d'objets (pas d'allocation en jeu)
     function pool(n, mk) { const a = new Array(n); for (let i = 0; i < n; i++) a[i] = mk(); return a; }
     const EB = pool(MAXEB, () => ({ x: 0, y: 0, vx: 0, vy: 0, r: 4, col: 'p', sz: 0, t: 0, acc: 0, turn: 0, rot: false, spr: null, delay: 0, life: 99 }));
@@ -1299,18 +1318,18 @@
     // ------------------------------------------------------------- éclats et capsules
     function shards(x, y, n) {
       for (let i = 0; i < n && shN < MAXSH; i++) {
-        const s = SH[shN++], a = Math.random() * TAU, v = 30 + Math.random() * 100;
-        s.x = x + rnd(-4, 4); s.y = y + rnd(-4, 4); s.vx = Math.cos(a) * v; s.vy = Math.sin(a) * v - 30; s.t = 0; s.mag = false;
+        const s = SH[shN++], a = crand() * TAU, v = 30 + crand() * 100;
+        s.x = x + crnd(-4, 4); s.y = y + crnd(-4, 4); s.vx = Math.cos(a) * v; s.vy = Math.sin(a) * v - 30; s.t = 0; s.mag = false;
       }
     }
     function capsule(x, y, k) {
       if (cpN >= MAXCP) return;
       const c = CP[cpN++];
-      c.x = clamp(x, 20, LW - 20); c.y = y; c.vx = rnd(-18, 18); c.vy = -50; c.k = k; c.t = 0;
+      c.x = clamp(x, 20, LW - 20); c.y = y; c.vx = crnd(-18, 18); c.vy = -50; c.k = k; c.t = 0;
     }
     function chooseCap() {
       // capsule au hasard : la puissance, la bulle et les bombes sont rares
-      const r = Math.random();
+      const r = lrand();
       if (r < 0.22) return P.power < 6 ? 'P' : 'M';
       if (r < 0.44) return 'M';
       if (r < 0.66) return 'O';
@@ -1649,11 +1668,12 @@
       e.x = x; e.y = y; e.vx = 0; e.vy = 0;
       e.max = e.hp = Math.max(1, d.hp * hpMul());
       e.r = d.r; e.pts = d.pts; e.hyp = d.hyp; e.sh = d.sh;
-      e.t = 0; e.delay = delay || 0; e.ang = 0; e.flash = 0; e.st = rnd(0.6, 1.6); e.st2 = 0; e.mv = 0;
+      e.t = 0; e.delay = delay || 0; e.ang = 0; e.flash = 0; e.st = crnd(0.6, 1.6); e.st2 = 0; e.mv = 0;
       e.x0 = x; e.y0 = y; e.ty = 0; e.hold = 0; e.drop = ''; e.head = null; e.mini = false; e.var = 0;
       e.lead = null; e.seg = 0; e.hist = null; e.hi = 0; e.histT = 0; e.cloak = 1; e.hue = 0; e.vr = 0; e.size = ''; e.seed = 0; e.rich = false;
-      e.ph = Math.random() * TAU; e.amp = 0; e.w = 1; e.spd = 0; e.k = 0; e.aim = Math.PI / 2; e.entered = false; e.fire = true;
+      e.ph = crand() * TAU; e.amp = 0; e.w = 1; e.spd = 0; e.k = 0; e.aim = Math.PI / 2; e.entered = false; e.fire = true;
       e.p0 = e.p1 = e.p2 = e.p3 = e.p4 = e.p5 = e.p6 = e.p7 = 0; e.dur = 1; e.beam = null; e.said = false; e.die = 0; e.tx = x; e.ty2 = y; e.s2 = 0;
+      e.rng = rng ? mulberry32((rng() * 4294967296) >>> 0) : null;   // graine : l'ennemi a son propre tirage (tirs, trajets, débris)
       return e;
     }
     function bez(e, u) {
@@ -1691,15 +1711,16 @@
       if (dx * dx + dy * dy < 95 * 95 || e.y > P.y - 40) return;
       const ty = e.type;
       if (L >= 2 && (ty === 'swarm' || ty === 'dart' || ty === 'drone' || ty === 'rockS' || ty === 'stealth')) {
-        if (cycle >= 2 || Math.random() < (cycle >= 1 ? 0.8 : 0.35)) fireAimed(e.x, e.y, 95, 'p', 0, cycle >= 2 && Math.random() < 0.5 ? 3 : 1, 0.22);
+        if (cycle >= 2 || crand() < (cycle >= 1 ? 0.8 : 0.35)) fireAimed(e.x, e.y, 95, 'p', 0, cycle >= 2 && crand() < 0.5 ? 3 : 1, 0.22);
       } else if (L >= 3 && (ty === 'frigate' || ty === 'elite' || ty === 'cruiser' || ty === 'weaver' || ty === 'sentinel')) {
-        fireRing(e.x, e.y, 8 + Math.min(8, cycle * 4), 80, 'p', 0, Math.random());
+        fireRing(e.x, e.y, 8 + Math.min(8, cycle * 4), 80, 'p', 0, crand());
       }
     }
     function killEnemy(e, byPlayer) {
       if (!e.alive) return;
       e.alive = false;
-      const ty = e.type;
+      const ty = e.type, r0 = rng;
+      rng = e.rng;                                 // graine : riposte, éclats, capsule et débris de roche suivent le tirage de l'ennemi
       if (byPlayer) {
         kills++;
         addPts(e.pts, e.x, e.y - 12, e.pts >= 500 || mult >= 5);
@@ -1717,7 +1738,7 @@
         case 'dart': explode(e.x, e.y, 1, 'o'); SFX.pop(); break;
         case 'mine':
           explode(e.x, e.y, 1, 'r'); SFX.pop();
-          if (!byPlayer) fireRing(e.x, e.y, 8 + Math.min(6, L >> 1), 92, 'r', 0, Math.random());
+          if (!byPlayer) fireRing(e.x, e.y, 8 + Math.min(6, L >> 1), 92, 'r', 0, crand());
           break;
         case 'snakeB': explode(e.x, e.y, 1, 'g'); SFX.pop(); break;
         case 'rockS': explode(e.x, e.y, 1, 'o'); debris(e.x, e.y, 3, 80); SFX.pop(); break;
@@ -1726,14 +1747,14 @@
           if (byPlayer) {
             const n = ty === 'rockL' ? 3 : 2, sub = ty === 'rockL' ? 'rockM' : 'rockS';
             for (let i = 0; i < n; i++) {
-              const r = spawnEnemy(sub, e.x + rnd(-8, 8), e.y + rnd(-8, 8), 0);
+              const r = spawnEnemy(sub, e.x + crnd(-8, 8), e.y + crnd(-8, 8), 0);
               if (!r) break;
-              const a = -Math.PI / 2 + (i - (n - 1) / 2) * 1.1 + rnd(-0.2, 0.2), v = rnd(50, 90);
-              r.mv = 5; r.vx = Math.cos(a) * v * 0.9 + e.vx * 0.3; r.vy = Math.max(30, Math.sin(a) * v * 0.3 + e.vy); r.vr = rnd(-2, 2); r.seed = rndi(0, 2);
+              const a = -Math.PI / 2 + (i - (n - 1) / 2) * 1.1 + crnd(-0.2, 0.2), v = crnd(50, 90);
+              r.mv = 5; r.vx = Math.cos(a) * v * 0.9 + e.vx * 0.3; r.vy = Math.max(30, Math.sin(a) * v * 0.3 + e.vy); r.vr = crnd(-2, 2); r.seed = crndi(0, 2);
               r.entered = true;
             }
             if (e.rich) { capsule(e.x, e.y, chooseCap()); shards(e.x, e.y, 10); }
-            else if (ty === 'rockL' && Math.random() < 0.25) capsule(e.x, e.y, 'P');
+            else if (ty === 'rockL' && lrand() < 0.25) capsule(e.x, e.y, 'P');
           }
           break;
         }
@@ -1753,6 +1774,7 @@
         }
         default: explode(e.x, e.y, 2, ty === 'miner' ? 'g' : ty === 'stealth' ? 'v' : ty === 'weaver' ? 'y' : ty === 'carrier' ? 'y' : 'o'); SFX.boom();
       }
+      rng = r0;
     }
 
     function updEnemies(dt) {
@@ -1836,7 +1858,7 @@
         if (dt > 0) { e.vx = e.mv === 5 || e.mv === 9 ? e.vx : (e.x - ox) / dt; e.vy = e.mv === 5 || e.mv === 9 ? e.vy : (e.y - oy) / dt; }
         if (!e.entered && e.y > -e.r * 0.5 && e.x > -e.r && e.x < LW + e.r) { e.entered = true; if (e.head) sayFriend(e); }
         // comportement (tirs)
-        if (e.entered && canFire && e.y < LH - 40) behave(e, dt, fm);
+        if (e.entered && canFire && e.y < LH - 40) { rng = e.rng; behave(e, dt, fm); rng = null; }
         // sortie de l'écran
         if (e.entered && (e.y > LH + 70 || e.y < -280 || e.x < -160 || e.x > LW + 160)) { e.alive = false; if (e === miniRef) miniRef = null; continue; }
         if (!e.entered && e.t > 14) { e.alive = false; continue; }
@@ -1861,14 +1883,14 @@
         case 'swarm':
           if (e.fire && e.y > 8 && e.y < LH * 0.62) {
             e.st -= dt * fm;
-            if (e.st <= 0) { e.st = rnd(2.2, 4); fireAimed(e.x, e.y + 7, 112, 'p', 0, L >= 9 ? 3 : L >= 4 ? 2 : 1, 0.16); }
+            if (e.st <= 0) { e.st = crnd(2.2, 4); fireAimed(e.x, e.y + 7, 112, 'p', 0, L >= 9 ? 3 : L >= 4 ? 2 : 1, 0.16); }
           }
           break;
         case 'frigate': {
           e.aim += angDiff(e.aim, aimAt(e.x, e.y)) * Math.min(1, dt * 3);
           if (!e.fire) break;
           e.st -= dt * fm;
-          if (e.st <= 0 && e.y > 10) { e.st = rnd(2.1, 2.9); e.k = 3 + Math.min(3, Math.floor(L / 3)); e.st2 = 0; }
+          if (e.st <= 0 && e.y > 10) { e.st = crnd(2.1, 2.9); e.k = 3 + Math.min(3, Math.floor(L / 3)); e.st2 = 0; }
           if (e.k > 0) {
             e.st2 -= dt;
             if (e.st2 <= 0) {
@@ -1897,12 +1919,12 @@
         case 'sentinel':
           if (!e.fire) break;
           e.st -= dt * Math.min(fm, 1.6);
-          if (e.st <= 0 && !e.beam && e.t > e.dur) { e.st = rnd(3.4, 4.6); e.beam = addBeam(e, aimAt(e.x, e.y + 8), 1.0, 0.75, 9, 'm', 0, 8, false); }
+          if (e.st <= 0 && !e.beam && e.t > e.dur) { e.st = crnd(3.4, 4.6); e.beam = addBeam(e, aimAt(e.x, e.y + 8), 1.0, 0.75, 9, 'm', 0, 8, false); }
           if (e.beam && BEAMS.indexOf(e.beam) < 0) e.beam = null;
           break;
         case 'snakeB':
           e.st -= dt * fm;
-          if (e.st <= 0 && e.y > 20) { e.st = rnd(3.2, 5.5); fireAimed(e.x, e.y, 104, 'g', 3, 1, 0); }
+          if (e.st <= 0 && e.y > 20) { e.st = crnd(3.2, 5.5); fireAimed(e.x, e.y, 104, 'g', 3, 1, 0); }
           break;
         case 'cruiser': {
           const want = Math.atan2(P.y - e.y, P.x - e.x) - Math.PI / 2;
@@ -1910,7 +1932,7 @@
           if (!e.fire) break;
           e.st -= dt * fm;
           if (e.st <= 0 && e.y > 10) {
-            e.st = rnd(2.2, 2.8);
+            e.st = crnd(2.2, 2.8);
             const fa = e.ang + Math.PI / 2;
             fireArc(e.x + Math.cos(fa) * 26, e.y + Math.sin(fa) * 26, fa, 0.95, L >= 8 ? 7 : 5, 118, 'v', 2);
           }
@@ -1925,7 +1947,7 @@
             if (e.st <= 0) { e.k = 2; e.st = 0.7; fireAimed(e.x, e.y + 8, 150, 'v', 2, 3, 0.16); }
           } else if (e.k === 2) {
             e.st -= dt;
-            if (e.st <= 0) { e.k = 0; e.st = rnd(1.5, 2.3); e.s2 = (e.s2 || 0) + 1; e.tx = rnd(40, LW - 40); e.ty2 = rnd(70, LH * 0.45); if (e.s2 >= 4) { e.tx = e.x < LW / 2 ? -100 : LW + 100; e.ty2 = e.y + 60; } }
+            if (e.st <= 0) { e.k = 0; e.st = crnd(1.5, 2.3); e.s2 = (e.s2 || 0) + 1; e.tx = crnd(40, LW - 40); e.ty2 = crnd(70, LH * 0.45); if (e.s2 >= 4) { e.tx = e.x < LW / 2 ? -100 : LW + 100; e.ty2 = e.y + 60; } }
           }
           break;
         }
@@ -1942,7 +1964,7 @@
               if (L >= 10) ebA(e.x, e.y, e.aim + Math.PI / 2, v, 'y', 3);
               e.k -= 0.12;
             }
-          } else if (e.st <= 0) { e.st = rnd(1.6, 2.2); e.k = 1.5; }
+          } else if (e.st <= 0) { e.st = crnd(1.6, 2.2); e.k = 1.5; }
           break;
         }
         case 'elite':
@@ -1950,13 +1972,13 @@
           e.st -= dt * fm;
           if (e.st <= 0) {
             e.st = 1.5; e.k++;
-            if (e.k % (L >= 6 ? 2 : 3) === 0) fireRing(e.x, e.y, 12 + Math.min(8, L), 96, 'p', 0, Math.random());
+            if (e.k % (L >= 6 ? 2 : 3) === 0) fireRing(e.x, e.y, 12 + Math.min(8, L), 96, 'p', 0, crand());
             else fireAimed(e.x, e.y + 16, 138, 'p', 3, 3, 0.2);
           }
           break;
         case 'drone':
           e.st -= dt * fm;
-          if (e.st <= 0) { e.st = rnd(2.4, 4); if (e.y < P.y - 60) fireAimed(e.x, e.y, 118, 'g', 0, 1, 0); }
+          if (e.st <= 0) { e.st = crnd(2.4, 4); if (e.y < P.y - 60) fireAimed(e.x, e.y, 118, 'g', 0, 1, 0); }
           break;
         case 'gardien': gardienFire(e, dt, fm); break;
         default: break;
@@ -1966,12 +1988,14 @@
     // ------------------------------------------------------------- mini-boss : le Gardien (4 variantes de tirs)
     let miniRef = null;
     function spawnGardien() {
+      if (SEED !== null) rng = subRng(50);         // graine : tirage propre au mini-boss
       const e = spawnEnemy('gardien', LW / 2, -70, 0);
-      if (!e) return null;
+      if (!e) { rng = null; return null; }
       e.mv = 10; e.y0 = -70; e.ty = 128; e.r = 40; e.mini = true; e.var = secI % 4; e.hue = secHue;
       e.max = e.hp = ET.gardien.hp * 1.5 * (1 + 0.45 * L + 1.0 * cycle) * (1 + (rank() - 1) * 0.6);
       e.pts = 8000 + 2000 * L;
-      if (heads.length && chance(0.4)) e.head = pickHead();
+      if (heads.length && cchance(0.4)) e.head = pickHead();
+      rng = null;
       e.st = 2.8;
       miniRef = e;
       return e;
@@ -1984,7 +2008,7 @@
       const v = e.var;
       if (v === 0) {
         if (e.st <= 0) { e.st = 1.7; fireAimed(e.x, e.y + 30, 130, 'o', 3, rage ? 7 : 5, 0.17); }
-        if (e.st2 <= 0) { e.st2 = 3.6; fireRing(e.x, e.y, rage ? 22 : 16, 92, 'p', 0, Math.random()); }
+        if (e.st2 <= 0) { e.st2 = 3.6; fireRing(e.x, e.y, rage ? 22 : 16, 92, 'p', 0, crand()); }
       } else if (v === 1) {
         if (e.st <= 0) {
           e.st = 0.1; e.aim += rage ? 0.29 : 0.24; e.k++;
@@ -1994,7 +2018,7 @@
       } else if (v === 2) {
         if (e.st <= 0) {
           e.st = rage ? 0.9 : 1.3;
-          for (let s = -1; s <= 1; s += 2) { const m = spawnEnemy('mine', e.x + s * 44, e.y + 30, 0); if (m) { m.mv = 5; m.vx = s * rnd(10, 40); m.vy = rnd(40, 70); m.vr = 1; m.entered = true; m.pts = 20; m.sh = 0; } }
+          for (let s = -1; s <= 1; s += 2) { const m = spawnEnemy('mine', e.x + s * 44, e.y + 30, 0); if (m) { m.mv = 5; m.vx = s * crnd(10, 40); m.vy = crnd(40, 70); m.vr = 1; m.entered = true; m.pts = 20; m.sh = 0; } }
         }
         if (e.st2 <= 0) { e.st2 = 1.9; fireAimed(e.x, e.y + 30, 135, 'g', 3, rage ? 5 : 3, 0.22); }
       } else {
@@ -2061,7 +2085,7 @@
     let tally = [];                              // lignes du bilan de secteur
 
     // ------------------------------------------------------------- directeur : secteurs, vagues, événements
-    const dir = { phase: 'intro', t: 0, wave: 0, nW: 5, plan: [], pi: 0, groups: [], gi: 0, wt: 0, last: 0, ev: null, evT: 0, evNext: 0, swapped: false, prevGap: LW / 2 };
+    const dir = { phase: 'intro', t: 0, wave: 0, nW: 5, plan: [], pi: 0, groups: [], gi: 0, wt: 0, last: 0, ev: null, evT: 0, evNext: 0, swapped: false, prevGap: LW / 2, evS: 0, evK: 0 };
     const GROUPS = [                             // [sorte, secteur d'apparition, poids]
       ['col', 0, 3], ['vee', 0, 2], ['sweepL', 0, 2], ['sweepR', 0, 2], ['loop', 0, 2], ['darts', 0, 2],
       ['frig', 1, 3], ['rocks', 1, 1.5], ['elite', 0, 0.9], ['miner', 2, 2.2], ['snake', 2, 1.6], ['sent', 3, 2.2], ['drones', 3, 1.4],
@@ -2072,7 +2096,7 @@
       let tot = 0;
       const lim = cycle > 0 ? 7 : secI;
       for (let i = 0; i < GROUPS.length; i++) { const g = GROUPS[i]; if (g[1] <= lim) tot += g[2] * (g[1] === secI ? 1.8 : 1); }
-      let r = Math.random() * tot;
+      let r = crand() * tot;
       for (let i = 0; i < GROUPS.length; i++) {
         const g = GROUPS[i];
         if (g[1] > lim) continue;
@@ -2100,25 +2124,26 @@
       for (let i = 0; i < nG; i++) {
         const k = pickGroup();
         g.push(W(t, k, 0));
-        t += gap * (k === 'frig' || k === 'cruiser' || k === 'elite' || k === 'snake' || k === 'weaver' ? 1.55 : 1) * rnd(0.85, 1.15);
+        t += gap * (k === 'frig' || k === 'cruiser' || k === 'elite' || k === 'snake' || k === 'weaver' ? 1.55 : 1) * crnd(0.85, 1.15);
       }
-      g.push(W(rnd(2.5, Math.max(3, t * 0.6)), 'carrier', 0, '?'));
-      if (L >= 6 && chance(0.5)) g.push(W(rnd(4, Math.max(5, t * 0.8)), 'carrier', 0, '?'));
+      g.push(W(crnd(2.5, Math.max(3, t * 0.6)), 'carrier', 0, '?'));
+      if (L >= 6 && cchance(0.5)) g.push(W(crnd(4, Math.max(5, t * 0.8)), 'carrier', 0, '?'));
       g.sort((a, b) => a.at - b.at);
       return g;
     }
-    function sz(base, extra) { return Math.max(1, Math.round((base + Math.random() * extra) * densMul())); }
+    function sz(base, extra) { return Math.max(1, Math.round((base + crand() * extra) * densMul())); }
     function setFire(e) { e.fire = !(cycle === 0 && secI === 0 && dir.wave <= 1); }
     function spawnGroup(G) {
       const k = G.k, X = LW;
+      if (G.s !== undefined) rng = mulberry32(G.s);   // graine : chaque groupe a son propre tirage
       switch (k) {
         case 'col': {
-          const n = G.n || sz(5, 3), x = G.a >= 0 ? G.a : rnd(70, X - 70), amp = G.b >= 0 ? G.b : rnd(30, 90), spd = rnd(70, 92) * Math.min(1.35, spdMul() + 0.1);
+          const n = G.n || sz(5, 3), x = G.a >= 0 ? G.a : crnd(70, X - 70), amp = G.b >= 0 ? G.b : crnd(30, 90), spd = crnd(70, 92) * Math.min(1.35, spdMul() + 0.1);
           for (let i = 0; i < n; i++) { const e = spawnEnemy('swarm', x, -20, i * 0.34); if (!e) break; e.mv = 1; e.x0 = x; e.amp = amp; e.w = 1.7; e.ph = 0; e.spd = spd; setFire(e); }
           break;
         }
         case 'vee': {
-          const n = G.n || sz(7, 4), cx = G.a >= 0 ? G.a : rnd(110, X - 110), mid = (n - 1) / 2, spd = rnd(64, 80) * Math.min(1.3, spdMul() + 0.1);
+          const n = G.n || sz(7, 4), cx = G.a >= 0 ? G.a : crnd(110, X - 110), mid = (n - 1) / 2, spd = crnd(64, 80) * Math.min(1.3, spdMul() + 0.1);
           for (let i = 0; i < n; i++) {
             const e = spawnEnemy('swarm', 0, -20, Math.abs(i - mid) * 0.2); if (!e) break;
             e.mv = 1; e.x0 = clamp(cx + (i - mid) * 25, 16, X - 16); e.x = e.x0; e.amp = 10; e.w = 2; e.ph = i * 0.5; e.spd = spd; setFire(e);
@@ -2126,7 +2151,7 @@
           break;
         }
         case 'sweepL': case 'sweepR': {
-          const n = G.n || sz(6, 4), s = k === 'sweepL' ? 1 : -1, y0 = rnd(40, 110), dur = rnd(4.4, 5.2) / Math.min(1.25, spdMul() + 0.15);
+          const n = G.n || sz(6, 4), s = k === 'sweepL' ? 1 : -1, y0 = crnd(40, 110), dur = crnd(4.4, 5.2) / Math.min(1.25, spdMul() + 0.15);
           for (let i = 0; i < n; i++) {
             const e = spawnEnemy('swarm', 0, 0, i * 0.24); if (!e) break;
             e.mv = 2; e.dur = dur;
@@ -2137,7 +2162,7 @@
           break;
         }
         case 'loop': {
-          const n = G.n || sz(6, 3), x = rnd(60, X * 0.4), s = chance(0.5), xa = s ? x : X - x, xb = X - xa, dur = rnd(5, 5.8);
+          const n = G.n || sz(6, 3), x = crnd(60, X * 0.4), s = cchance(0.5), xa = s ? x : X - x, xb = X - xa, dur = crnd(5, 5.8);
           for (let i = 0; i < n; i++) {
             const e = spawnEnemy('swarm', 0, 0, i * 0.26); if (!e) break;
             e.mv = 2; e.dur = dur;
@@ -2149,24 +2174,24 @@
         case 'darts': {
           const n = G.n || sz(2, 3);
           for (let i = 0; i < n; i++) {
-            const x = clamp(X / 2 + (i - (n - 1) / 2) * 62 + rnd(-20, 20), 24, X - 24);
+            const x = clamp(X / 2 + (i - (n - 1) / 2) * 62 + crnd(-20, 20), 24, X - 24);
             const e = spawnEnemy('dart', x, -24, i * 0.45); if (!e) break;
-            e.mv = 3; e.x0 = x; e.ty = rnd(60, 150); e.hold = rnd(0.9, 1.4);
+            e.mv = 3; e.x0 = x; e.ty = crnd(60, 150); e.hold = crnd(0.9, 1.4);
           }
           if (!dir.dartsSaid && secI === 0 && cycle === 0) { dir.dartsSaid = true; ftext(X / 2, 120, 'Attention : kamikazes !', '#ff9a1f', 14, 2, -6, 0); }
           break;
         }
         case 'carrier': {
-          const e = spawnEnemy('carrier', rnd(50, X - 50), -24, 0); if (!e) break;
+          const e = spawnEnemy('carrier', crnd(50, X - 50), -24, 0); if (!e) break;
           e.mv = 1; e.x0 = e.x; e.amp = 30; e.w = 1.2; e.spd = 48; e.drop = G.a !== -1 ? G.a : '?';
           break;
         }
         case 'frig': {
-          const n = G.n || (L >= 4 && chance(0.6) ? 2 : 1);
+          const n = G.n || (L >= 4 && cchance(0.6) ? 2 : 1);
           for (let i = 0; i < n; i++) {
-            const x = n === 1 ? rnd(80, X - 80) : (i === 0 ? rnd(60, X * 0.4) : rnd(X * 0.6, X - 60));
+            const x = n === 1 ? crnd(80, X - 80) : (i === 0 ? crnd(60, X * 0.4) : crnd(X * 0.6, X - 60));
             const e = spawnEnemy('frigate', x, -40, i * 0.8); if (!e) break;
-            e.mv = 4; e.y0 = -40; e.ty = rnd(90, 170); e.dur = 1.6; e.hold = rnd(8, 10.5); e.amp = 30; e.w = 0.8; e.st = 1.2;
+            e.mv = 4; e.y0 = -40; e.ty = crnd(90, 170); e.dur = 1.6; e.hold = crnd(8, 10.5); e.amp = 30; e.w = 0.8; e.st = 1.2;
           }
           break;
         }
@@ -2176,56 +2201,56 @@
           break;
         }
         case 'miner': {
-          const s = chance(0.5) ? 1 : -1;
-          const e = spawnEnemy('miner', s > 0 ? -30 : X + 30, rnd(70, 150), 0); if (!e) break;
-          e.mv = 6; e.vx = s * rnd(58, 72); e.ty = e.y; e.st = 0.6; e.entered = true;
+          const s = cchance(0.5) ? 1 : -1;
+          const e = spawnEnemy('miner', s > 0 ? -30 : X + 30, crnd(70, 150), 0); if (!e) break;
+          e.mv = 6; e.vx = s * crnd(58, 72); e.ty = e.y; e.st = 0.6; e.entered = true;
           break;
         }
         case 'sent': {
           const n = G.n || (L >= 5 ? 2 : 1);
           for (let i = 0; i < n; i++) {
-            const x = n === 1 ? rnd(70, X - 70) : (i === 0 ? rnd(40, 110) : rnd(X - 110, X - 40));
+            const x = n === 1 ? crnd(70, X - 70) : (i === 0 ? crnd(40, 110) : crnd(X - 110, X - 40));
             const e = spawnEnemy('sentinel', x, -30, i * 0.6); if (!e) break;
-            e.mv = 4; e.y0 = -30; e.ty = rnd(70, 140); e.dur = 1.5; e.hold = 10; e.amp = 12; e.w = 0.9; e.st = 0.8;
+            e.mv = 4; e.y0 = -30; e.ty = crnd(70, 140); e.dur = 1.5; e.hold = 10; e.amp = 12; e.w = 0.9; e.st = 0.8;
           }
           break;
         }
         case 'snake': {
-          const n = G.n || sz(7, 4), x = rnd(110, X - 110);
+          const n = G.n || sz(7, 4), x = crnd(110, X - 110);
           const h = spawnEnemy('snakeH', x, -20, 0); if (!h) break;
-          h.mv = 7; h.x0 = x; h.amp = rnd(60, 100); h.w = rnd(1, 1.4); h.spd = rnd(46, 58) * Math.min(1.3, spdMul() + 0.1); h.ph = 0;
+          h.mv = 7; h.x0 = x; h.amp = crnd(60, 100); h.w = crnd(1, 1.4); h.spd = crnd(46, 58) * Math.min(1.3, spdMul() + 0.1); h.ph = 0;
           h.hist = new Float32Array(128);
           for (let j = 0; j < 64; j++) { h.hist[j * 2] = x; h.hist[j * 2 + 1] = -20; }
-          for (let i = 0; i < n; i++) { const s = spawnEnemy('snakeB', x, -30, 0); if (!s) break; s.mv = 8; s.lead = h; s.seg = i; s.st = rnd(1.5, 4) + i * 0.25; }
+          for (let i = 0; i < n; i++) { const s = spawnEnemy('snakeB', x, -30, 0); if (!s) break; s.mv = 8; s.lead = h; s.seg = i; s.st = crnd(1.5, 4) + i * 0.25; }
           break;
         }
         case 'cruiser': {
-          const e = spawnEnemy('cruiser', rnd(90, X - 90), -40, 0); if (!e) break;
-          e.mv = 4; e.y0 = -40; e.ty = rnd(110, 150); e.dur = 2; e.hold = 13; e.amp = 40; e.w = 0.55; e.st = 1.6;
+          const e = spawnEnemy('cruiser', crnd(90, X - 90), -40, 0); if (!e) break;
+          e.mv = 4; e.y0 = -40; e.ty = crnd(110, 150); e.dur = 2; e.hold = 13; e.amp = 40; e.w = 0.55; e.st = 1.6;
           for (let i = 0; i < 2; i++) { const s = spawnEnemy('swarm', 0, 0, 1 + i * 0.3); if (!s) break; s.mv = 1; s.x0 = clamp(e.x + (i ? 40 : -40), 20, X - 20); s.amp = 18; s.w = 2; s.spd = 60; }
           break;
         }
         case 'stealth': {
           const n = G.n || sz(2, 2);
           for (let i = 0; i < n; i++) {
-            const e = spawnEnemy('stealth', rnd(40, X - 40), -20, i * 0.7); if (!e) break;
-            e.mv = 12; e.cloak = 0.15; e.k = 0; e.st = rnd(1.4, 2.2); e.tx = rnd(40, X - 40); e.ty2 = rnd(70, LH * 0.42);
+            const e = spawnEnemy('stealth', crnd(40, X - 40), -20, i * 0.7); if (!e) break;
+            e.mv = 12; e.cloak = 0.15; e.k = 0; e.st = crnd(1.4, 2.2); e.tx = crnd(40, X - 40); e.ty2 = crnd(70, LH * 0.42);
           }
           break;
         }
         case 'weaver': {
           const n = G.n || (L >= 9 ? 2 : 1);
           for (let i = 0; i < n; i++) {
-            const e = spawnEnemy('weaver', n === 1 ? rnd(90, X - 90) : (i ? X * 0.72 : X * 0.28), -30, i * 0.5); if (!e) break;
-            e.mv = 4; e.y0 = -30; e.ty = rnd(100, 160); e.dur = 1.6; e.hold = 9; e.amp = 20; e.w = 0.6; e.st = 0.5;
+            const e = spawnEnemy('weaver', n === 1 ? crnd(90, X - 90) : (i ? X * 0.72 : X * 0.28), -30, i * 0.5); if (!e) break;
+            e.mv = 4; e.y0 = -30; e.ty = crnd(100, 160); e.dur = 1.6; e.hold = 9; e.amp = 20; e.w = 0.6; e.st = 0.5;
           }
           break;
         }
         case 'elite': {
-          const e = spawnEnemy('elite', rnd(80, X - 80), -40, 0); if (!e) break;
-          e.mv = 11; e.y0 = -40; e.ty = rnd(100, 140); e.dur = 1.8; e.hold = rnd(12, 14); e.tx = e.x; e.st = 1.4;
+          const e = spawnEnemy('elite', crnd(80, X - 80), -40, 0); if (!e) break;
+          e.mv = 11; e.y0 = -40; e.ty = crnd(100, 140); e.dur = 1.8; e.hold = crnd(12, 14); e.tx = e.x; e.st = 1.4;
           eliteSeq++;
-          if (heads.length && (eliteSeq % 3 === 1 || chance(0.2))) e.head = pickHead();
+          if (heads.length && (eliteSeq % 3 === 1 || cchance(0.2))) e.head = pickHead();
           e.drop = 'P';
           break;
         }
@@ -2233,36 +2258,37 @@
           const n = G.n || sz(4, 3);
           for (let i = 0; i < n; i++) {
             const s = i & 1 ? 1 : -1;
-            const e = spawnEnemy('drone', s > 0 ? X + 20 : -20, rnd(40, 120), i * 0.35); if (!e) break;
-            e.mv = 9; e.vx = -s * 90; e.vy = 20; e.st = rnd(1.5, 3);
+            const e = spawnEnemy('drone', s > 0 ? X + 20 : -20, crnd(40, 120), i * 0.35); if (!e) break;
+            e.mv = 9; e.vx = -s * 90; e.vy = 20; e.st = crnd(1.5, 3);
           }
           break;
         }
         default: break;
       }
+      rng = null;
     }
     function spawnRock(delay) {
-      const r = Math.random(), size = r < 0.3 ? 'rockL' : r < 0.72 ? 'rockM' : 'rockS';
-      const e = spawnEnemy(size, rnd(20, LW - 20), -40, delay || 0);
+      const r = crand(), size = r < 0.3 ? 'rockL' : r < 0.72 ? 'rockM' : 'rockS';
+      const e = spawnEnemy(size, crnd(20, LW - 20), -40, delay || 0);
       if (!e) return;
-      e.mv = 5; e.vx = rnd(-22, 22); e.vy = rnd(48, 96) * Math.min(1.4, spdMul() + 0.15); e.vr = rnd(-1.6, 1.6); e.seed = rndi(0, 2);
-      e.rich = size !== 'rockS' && chance(0.13);
+      e.mv = 5; e.vx = crnd(-22, 22); e.vy = crnd(48, 96) * Math.min(1.4, spdMul() + 0.15); e.vr = crnd(-1.6, 1.6); e.seed = crndi(0, 2);
+      e.rich = size !== 'rockS' && cchance(0.13);
       if (e.rich) { e.pts *= 2; e.sh += 4; }
     }
 
     // ---- événements de secteur
     const EVS = ['rocks', 'mines', 'storm', 'dark', 'lasers', 'hole'];
     function chooseEvent(w) {
-      if (SEC.event === 'mix') return w === 1 || w === 3 || w === 4 ? EVS[(w * 7 + cycle * 3 + rndi(0, 5)) % 6] : null;
+      if (SEC.event === 'mix') return w === 1 || w === 3 || w === 4 ? EVS[(w * 7 + cycle * 3 + crndi(0, 5)) % 6] : null;
       if (SEC.event && (w === 1 || w === 3 || (cycle > 0 && w === 4))) return SEC.event;
-      if (cycle > 0 && w === 2 && secI > 0) return EVS[rndi(0, Math.min(5, secI - 1))];
+      if (cycle > 0 && w === 2 && secI > 0) return EVS[crndi(0, Math.min(5, secI - 1))];
       return null;
     }
     function startEvent(ev) {
       dir.ev = ev; dir.evT = 0; dir.evNext = 1.2;
       banner(EVENT_NAMES[ev], EVENT_TIPS[ev], SEC.acc, 2.4, 1);
       SFX.warn();
-      if (ev === 'hole') hole = { x: rnd(90, LW - 90), y: -100, k: 0, t: 0, leaving: false };
+      if (ev === 'hole') hole = { x: crnd(90, LW - 90), y: -100, k: 0, t: 0, leaving: false };
       if (ev === 'dark') darkOn = true;
     }
     function endEvent() {
@@ -2276,28 +2302,30 @@
         dir.evT += dt; dir.evNext -= dt;
         const ev = dir.ev;
         if (dir.evNext <= 0) {
-          if (ev === 'rocks') { spawnRock(0); dir.evNext = rnd(0.5, 0.85) / Math.sqrt(densMul()); }
+          if (SEED !== null) rng = mulberry32((dir.evS ^ Math.imul(++dir.evK, 0x9E3779B1)) >>> 0);   // graine : une par salve
+          if (ev === 'rocks') { spawnRock(0); dir.evNext = crnd(0.5, 0.85) / Math.sqrt(densMul()); }
           else if (ev === 'mines') {
             dir.evNext = 1.8;
-            const gapC = rnd(50, LW - 50);
+            const gapC = crnd(50, LW - 50);
             for (let x = 22; x < LW - 10; x += 46) {
-              if (Math.abs(x - gapC) < 50 || chance(0.3)) continue;
-              const m = spawnEnemy('mine', x + rnd(-8, 8), -20, 0);
+              if (Math.abs(x - gapC) < 50 || cchance(0.3)) continue;
+              const m = spawnEnemy('mine', x + crnd(-8, 8), -20, 0);
               if (m) { m.mv = 5; m.vx = 0; m.vy = 40; m.vr = rnd(-1, 1); m.pts = 40; }
             }
           } else if (ev === 'storm') {
-            dir.evNext = rnd(1.3, 2.3) / Math.sqrt(densMul());
-            BOLTS.push({ x: clamp(P.x + rnd(-70, 70), 16, LW - 16), t: 0, warn: 1.1, dur: 0.32, seed: Math.random() * 100 });
+            dir.evNext = crnd(1.3, 2.3) / Math.sqrt(densMul());
+            BOLTS.push({ x: clamp(P.x + crnd(-70, 70), 16, LW - 16), t: 0, warn: 1.1, dur: 0.32, seed: Math.random() * 100 });
             if (chance(0.4)) glitch = 0.35;
           } else if (ev === 'lasers') {
             dir.evNext = clamp(3.8 - 0.1 * L, 2.6, 3.8);
-            const two = L >= 9 && chance(0.5), gw = two ? 76 : 92;
-            let c = clamp(dir.prevGap + rnd(-120, 120), gw / 2 + 10, LW - gw / 2 - 10);
+            const two = L >= 9 && cchance(0.5), gw = two ? 76 : 92;
+            let c = clamp(dir.prevGap + crnd(-120, 120), gw / 2 + 10, LW - gw / 2 - 10);
             dir.prevGap = c;
             let gaps = [c - gw / 2, c + gw / 2];
-            if (two) { const c2 = c < LW / 2 ? c + rnd(140, 180) : c - rnd(140, 180); if (c2 > gw / 2 && c2 < LW - gw / 2) gaps = c2 < c ? [c2 - gw / 2, c2 + gw / 2, c - gw / 2, c + gw / 2] : [c - gw / 2, c + gw / 2, c2 - gw / 2, c2 + gw / 2]; }
+            if (two) { const c2 = c < LW / 2 ? c + crnd(140, 180) : c - crnd(140, 180); if (c2 > gw / 2 && c2 < LW - gw / 2) gaps = c2 < c ? [c2 - gw / 2, c2 + gw / 2, c - gw / 2, c + gw / 2] : [c - gw / 2, c + gw / 2, c2 - gw / 2, c2 + gw / 2]; }
             GATES.push({ y: -12, t: 0, gaps });
           } else dir.evNext = 99;
+          rng = null;
         }
       }
       for (let i = BOLTS.length - 1; i >= 0; i--) {
@@ -2350,10 +2378,16 @@
     function startWave() {
       dir.wave++; dir.phase = 'wave'; dir.t = 0; dir.wt = 0; dir.gi = 0; dir.last = 0;
       L = secI + 8 * cycle + (dir.wave - 1) * 0.12;
+      if (SEED !== null) rng = subRng(dir.wave);   // graine : la vague ne dépend pas de ce qui s'est passé avant
       dir.groups = buildWave(dir.wave - 1);
       const ev = chooseEvent(dir.wave - 1);
       if (ev) startEvent(ev);
       else if (dir.wave > 1) banner('VAGUE ' + dir.wave + ' / ' + dir.nW, '', SEC.acc, 1.3, 5);
+      if (rng) {                                   // … ni ses groupes, ni les salves de son événement
+        for (let i = 0; i < dir.groups.length; i++) dir.groups[i].s = (rng() * 4294967296) >>> 0;
+        dir.evS = (rng() * 4294967296) >>> 0; dir.evK = 0; dir.prevGap = LW / 2;
+        rng = null;
+      }
     }
     function nextStep() {
       if (dir.pi >= dir.plan.length) return;
@@ -2430,10 +2464,14 @@
       secNoHit = true; tally = [];
       dir.wave = 0; dir.plan = makePlan(); dir.pi = 0; dir.dartsSaid = false; dir.prevGap = LW / 2;
       L = secI + 8 * cycle;
+      if (SEED !== null) { lvlSeed = (SEED ^ Math.imul(cycle * 8 + secI + 1, 0x9E3779B1)) >>> 0; luck = subRng(0); }   // graine du secteur
       fetchHeads();
       bgDirty = true;
       newSectorBg();
-      if (withTitle) banner(cycle > 0 ? 'CYCLE ' + ROMAN[Math.min(9, cycle)] + ' · SECTEUR ' + (secI + 1) : 'SECTEUR ' + (secI + 1), SEC.name, SEC.acc, 3.2, 3, cycle > 0 && secI === 0 ? 'Tout revient… en plus coriace !' : SEC.news);
+      if (withTitle) secBanner(3.2);
+    }
+    function secBanner(dur) {                    // titre du secteur (cycle compris)
+      banner(cycle > 0 ? 'CYCLE ' + ROMAN[Math.min(9, cycle)] + ' · SECTEUR ' + (secI + 1) : 'SECTEUR ' + (secI + 1), SEC.name, SEC.acc, dur, 3, cycle > 0 && secI === 0 ? 'Tout revient… en plus coriace !' : SEC.news);
     }
 
     // ------------------------------------------------------------- BOSS : infrastructure
@@ -2454,7 +2492,7 @@
       const face = heads.length && want ? pickHead() : null;
       B = { kind, x: LW / 2, y: -160, t: 0, hp: 0, maxHp: 0, phase: 0, nph: 3 + (cycle > 0 ? 1 : 0), ready: false, inv: 0, dying: false, dT: 0,
         parts: [], head: face, head2: null, st: 0, st2: 0, st3: 0, a: 0, a2: 0, k: 0, k2: 0, mode: 0, mT: 0, name: BOSS_NAMES[kind], flash: 0,
-        enterT: 2.6, ty: 150, custom: false, bx: LW / 2, by: 150, open: 0, boomT: 0, cv: null, rage: 0 };
+        enterT: 2.6, ty: 150, custom: false, bx: LW / 2, by: 150, open: 0, boomT: 0, cv: null, rage: 0, rng: SEED === null ? null : subRng(60) };
       BINIT[kind](B);
       B.maxHp = B.hp;
       banner(B.name, face ? OH(headName(face)) : (cycle > 0 ? 'Version ' + ROMAN[Math.min(9, cycle)] + ' — plus féroce !' : ''), '#ff6b8a', 2.6, 8);
@@ -2633,8 +2671,8 @@
         b.st3 -= dt * bfm();
         if (b.st3 <= 0) {
           b.st3 = 1.8;
-          fireRing(b.x, b.y, 18 + Math.min(10, L), 88, 'o', 1, Math.random());
-          if (alive > 0 && chance(0.55)) {           // une lune fonce sur le joueur (avertissement : elle clignote)
+          fireRing(b.x, b.y, 18 + Math.min(10, L), 88, 'o', 1, crand());
+          if (alive > 0 && cchance(0.55)) {           // une lune fonce sur le joueur (avertissement : elle clignote)
             for (let i = 0; i < 3; i++) {
               const m = b.moons[i];
               if (m.alive && !m.dash && !m.hide) { m.dash = true; const a = aimAt(m.x, m.y); m.vx = Math.cos(a) * 190 * spdMul(); m.vy = Math.sin(a) * 190 * spdMul(); ftext(m.x, m.y - 20, 'Attention !', '#ffb347', 11, 1, -10, 0); break; }
@@ -2759,7 +2797,7 @@
         b.st -= dt * bfm();
         if (b.st <= 0) {                           // balayage laser (avertissement puis tir)
           b.st = b.phase >= 3 ? 4.2 : 5.2;
-          const side = chance(0.5) ? 1 : -1;
+          const side = cchance(0.5) ? 1 : -1;
           const bm = addBeam(b.core, Math.PI / 2 + side * 0.85, 1.1, 2.2, 14, 'o', 0, 0, false);
           bm.spin = -side * 0.78;
         }
@@ -2767,7 +2805,7 @@
         if (b.st2 <= 0) { b.st2 = b.phase >= 3 ? 1.2 : 1.7; fireArc(cx, cy + 10, aimAt(cx, cy), 1.1, b.phase >= 3 ? 9 : 7, 120, 'v', 2); }
         if (b.phase >= 3) {
           b.st3 -= dt * bfm();
-          if (b.st3 <= 0) { b.st3 = 2.4; fireRing(cx, cy, 20, 84, 'o', 3, Math.random()); }
+          if (b.st3 <= 0) { b.st3 = 2.4; fireRing(cx, cy, 20, 84, 'o', 3, crand()); }
         }
       }
     };
@@ -2838,7 +2876,7 @@
         if (b.phase >= 1 && b.mT > 8.5 && act) { b.mode = 1; b.mT = 0; b.diveN = b.phase >= 2 ? 3 : 2; }
       } else if (b.mode === 1) {                  // remonte et sort par le haut
         hd.y -= 260 * dt; hd.x += (clamp(hd.x, 60, LW - 60) - hd.x) * dt;
-        if (hd.y < -90 - b.n * 18) { b.mode = 2; b.mT = 0; b.warnX = clamp(P.x + rnd(-30, 30), 40, LW - 40); hd.x = b.warnX; hd.y = -110; wormTrail(b, hd.x, hd.y); SFX.warn(); }
+        if (hd.y < -90 - b.n * 18) { b.mode = 2; b.mT = 0; b.warnX = clamp(P.x + crnd(-30, 30), 40, LW - 40); hd.x = b.warnX; hd.y = -110; wormTrail(b, hd.x, hd.y); SFX.warn(); }
       } else if (b.mode === 2) {                  // avertissement : colonne rouge
         hd.y = -110;
         if (b.mT > 1.15) { b.mode = 3; b.mT = 0; shake = Math.max(shake, 5); }
@@ -2848,14 +2886,14 @@
           b.st3 -= dt;
           if (b.st3 <= 0) {
             b.st3 = 0.12;
-            const s = b.segs[(Math.random() * b.n) | 0];
+            const s = b.segs[(crand() * b.n) | 0];
             if (s.y > 20 && s.y < LH - 40) { const v = 70 * spdMul(); eb(s.x, s.y, -v, 10, 'v', 3); eb(s.x, s.y, v, 10, 'v', 3); }
           }
         }
         if (hd.y > LH + 380) {
           b.diveN--;
-          if (b.diveN > 0) { b.mode = 2; b.mT = 0; b.warnX = clamp(P.x + rnd(-30, 30), 40, LW - 40); hd.x = b.warnX; hd.y = -110; SFX.warn(); }
-          else { b.mode = 0; b.mT = 0; hd.x = rnd(80, LW - 80); hd.y = -80; b.u = Math.random() * 10; }
+          if (b.diveN > 0) { b.mode = 2; b.mT = 0; b.warnX = clamp(P.x + crnd(-30, 30), 40, LW - 40); hd.x = b.warnX; hd.y = -110; SFX.warn(); }
+          else { b.mode = 0; b.mT = 0; hd.x = crnd(80, LW - 80); hd.y = -80; b.u = crand() * 10; }
           wormTrail(b, hd.x, hd.y);
         }
       }
@@ -2894,7 +2932,7 @@
       b.st2 -= dt * bfm();
       if (b.st2 <= 0 && !hd.hide) {
         b.st2 = b.phase >= 2 ? 1.8 : 2.2;
-        if (b.phase >= 2) fireRing(hd.x, hd.y, 14 + Math.min(8, L >> 1), 92, 'g', 0, Math.random());
+        if (b.phase >= 2) fireRing(hd.x, hd.y, 14 + Math.min(8, L >> 1), 92, 'g', 0, crand());
         else fireAimed(hd.x, hd.y, 125, 'g', 0, 3, 0.22);
       }
     };
@@ -2945,7 +2983,7 @@
         for (let i = 0; i < enN; i++) if (EN[i].alive && EN[i].type === 'drone') n++;
         if (n < 6 + b.phase * 2) for (let s = -1; s <= 1; s += 2) {
           const e = spawnEnemy('drone', b.x + s * 27, b.y + 8, 0);
-          if (e) { e.mv = 9; e.vx = s * 120; e.vy = 60; e.st = rnd(1.5, 3); e.pts = 60; e.sh = 1; e.entered = true; part(e.x, e.y, 0, 0, 0.2, 10, 24, GL.g, true, 0); }
+          if (e) { e.mv = 9; e.vx = s * 120; e.vy = 60; e.st = crnd(1.5, 3); e.pts = 60; e.sh = 1; e.entered = true; part(e.x, e.y, 0, 0, 0.2, 10, 24, GL.g, true, 0); }
         }
       }
       b.st2 -= dt * f;
@@ -3042,7 +3080,7 @@
           b.st2 = 0.12; b.a2 += 0.33; b.k2++;
           if (b.k2 % 40 < 24) { const v = 92 * spdMul(); ebA(b.x, b.y, b.a2, v, 'y', 0); ebA(b.x, b.y, b.a2 + Math.PI, v, 'y', 0); }
         }
-        if (b.phase >= 2) { b.st3 -= dt * f; if (b.st3 <= 0) { b.st3 = 2.2; fireRing(b.x, b.y, 20 + Math.min(8, L >> 1), 86, 'g', 1, Math.random()); } }
+        if (b.phase >= 2) { b.st3 -= dt * f; if (b.st3 <= 0) { b.st3 = 2.2; fireRing(b.x, b.y, 20 + Math.min(8, L >> 1), 86, 'g', 1, crand()); } }
       }
     };
     BDRAW.gaia = (b) => {
@@ -3126,7 +3164,7 @@
       const f = bfm();
       if (b.A.alive) {
         b.A.st -= dt * f * (b.rage ? 1.4 : 1);
-        if (b.A.st <= 0) { b.A.st = b.phase >= 1 ? 2.1 : 2.6; fireRing(b.A.x, b.A.y, 12 + b.phase * 2 + Math.min(6, L >> 1), 84, 'v', 0, Math.random()); }
+        if (b.A.st <= 0) { b.A.st = b.phase >= 1 ? 2.1 : 2.6; fireRing(b.A.x, b.A.y, 12 + b.phase * 2 + Math.min(6, L >> 1), 84, 'v', 0, crand()); }
       }
       if (b.Z.alive) {
         b.Z.st -= dt * f * (b.rage ? 1.4 : 1);
@@ -3135,7 +3173,7 @@
       }
       if (both && b.phase >= 2) {
         b.st -= dt * f;
-        if (b.st <= 0) { b.st = 0.55; const k = Math.random(); eb(lerp(b.A.x, b.Z.x, k), lerp(b.A.y, b.Z.y, k), rnd(-20, 20), 70 * spdMul(), 'p', 0); }
+        if (b.st <= 0) { b.st = 0.55; const k = crand(); eb(lerp(b.A.x, b.Z.x, k), lerp(b.A.y, b.Z.y, k), crnd(-20, 20), 70 * spdMul(), 'p', 0); }
       }
       if (b.rage) {
         const s = b.A.alive ? b.A : b.Z;
@@ -3276,7 +3314,7 @@
     BUPD.blanc = (b, dt, act) => {
       if (b.ready) {
         b.dashT -= dt;
-        if (b.dashT <= 0 && act) { b.dashT = rnd(3.2, 5); b.dash = 0.45; b.tx = clamp(b.x + (b.x < LW / 2 ? 1 : -1) * rnd(90, 150), 60, LW - 60); }
+        if (b.dashT <= 0 && act) { b.dashT = crnd(3.2, 5); b.dash = 0.45; b.tx = clamp(b.x + (b.x < LW / 2 ? 1 : -1) * crnd(90, 150), 60, LW - 60); }
         if (b.dash > 0) { b.dash -= dt; if (b.ghosts.length < 6 && (b.t * 30) % 1 < 0.5) b.ghosts.push({ x: b.x, y: b.y, t: 0.35 }); }
         else b.tx += (clamp(P.x, 60, LW - 60) - b.tx) * Math.min(1, dt * 0.8);
         const nx = b.x + (b.tx - b.x) * Math.min(1, dt * (b.dash > 0 ? 7 : 1.6));
@@ -3323,7 +3361,7 @@
         if (b.k2 <= 0) {
           b.k2 = 2.6;
           const m = spawnEnemy('mine', b.x, b.y + 30, 0);
-          if (m) { m.mv = 5; m.vx = rnd(-40, 40); m.vy = 70; m.k = 1; m.st2 = 1.3; m.entered = true; m.pts = 20; m.sh = 0; }
+          if (m) { m.mv = 5; m.vx = crnd(-40, 40); m.vy = 70; m.k = 1; m.st2 = 1.3; m.entered = true; m.pts = 20; m.sh = 0; }
         }
       }
     };
@@ -4019,6 +4057,15 @@
       for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + Math.PI / 6; if (i) ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); else ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
       ctx.closePath();
     }
+    function compBadge(x, y) {                   // pastille « COMPÉTITION » centrée sur y ; renvoie sa largeur
+      setFont(9, false);
+      const w = ctx.measureText('COMPÉTITION').width + 10;
+      rrect(ctx, x, y - 6.5, w, 13, 6.5);
+      ctx.fillStyle = 'rgba(30,18,2,0.66)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,166,48,0.8)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.textAlign = 'left'; ctx.fillStyle = '#ffd34d'; ctx.fillText('COMPÉTITION', x + 5, y + 3.3);
+      return w;
+    }
     function drawHUD() {
       S0();
       if (!hudGrad || hudGradLH !== LH) { hudGradLH = LH; hudGrad = ctx.createLinearGradient(0, 0, 0, 60); hudGrad.addColorStop(0, 'rgba(1,4,10,0.86)'); hudGrad.addColorStop(0.7, 'rgba(1,4,10,0.5)'); hudGrad.addColorStop(1, 'rgba(1,4,10,0)'); }
@@ -4044,7 +4091,12 @@
         const ph = dir.phase === 'boss' || dir.phase === 'warn' || dir.phase === 'bossdead' ? 'BOSS' : dir.phase === 'mini' || dir.phase === 'mwarn' ? 'MINI-BOSS' : dir.wave > 0 ? 'VAGUE ' + dir.wave + '/' + dir.nW : '';
         lineStr = cyc + 'SECTEUR ' + (secI + 1) + (ph ? ' · ' + ph : '');
       }
-      txt(lineStr, 10 + jx, 43, 10, '#a9c2d4', 'left', true, 0);
+      if (!COMPET) txt(lineStr, 10 + jx, 43, 10, '#a9c2d4', 'left', true, 0);
+      else {                                         // mode compétition : badge devant le secteur (ligne tassée si elle atteint les bombes)
+        const lx = 10 + jx + compBadge(10 + jx, 39.5) + 6;
+        setFont(10, true); ctx.textAlign = 'left'; ctx.fillStyle = '#a9c2d4';
+        ctx.fillText(lineStr, lx, 43, Math.max(40, hudRight() - 34 - lx));
+      }
       // bulle de protection (une seule : sans elle, un coup = mort)
       const hr = hudRight();
       {
@@ -4292,7 +4344,7 @@
         if (state === 'play') updDirector(dt);
         updEvent(dt);
         updEnemies(dt * es);
-        updBoss(dt * es);
+        rng = B ? B.rng : null; updBoss(dt * es); rng = null;   // graine : le boss suit son propre tirage
         updEB(dt * es);
       }
       updatePlayer(dt);
@@ -4324,7 +4376,7 @@
         if (stT >= 0.75 && !goSaid) { goSaid = true; SFX.go(); }
         if (stT >= 1.25) {
           state = 'play'; stT = 0; P.auto = 0; dir.phase = 'intro'; dir.t = 0;
-          banner('SECTEUR ' + (secI + 1), SEC.name, SEC.acc, 2.8, 3, SEC.news);
+          secBanner(2.8);
         }
       } else if (state === 'dying') {
         if (stT > 0.18 && stT - dt <= 0.18) { explode(P.x + 14, P.y - 12, 2, 'c'); sparks(P.x, P.y, 20, GL.c, 260, 0.7, 9); }
@@ -4522,6 +4574,11 @@
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => resize()); ro.observe(root); }
     else on(window, 'resize', resize);
     resize();
+    if (START > 1) {                             // compétition : on démarre au niveau START, comme si les précédents étaient réussis
+      secI = (START - 1) % SECTORS.length; cycle = Math.floor((START - 1) / SECTORS.length);
+      sectorsDone = bossCount = START - 1;         // (sans leurs points ni leurs félicitations)
+      P.shield = 1; P.power = 2;                   // butin du dernier boss battu : capsules S et P
+    }
     applySector(false);
     P.x = LW / 2; P.y = LH + 50;
     state = loading ? 'load' : 'ready'; stT = 0;

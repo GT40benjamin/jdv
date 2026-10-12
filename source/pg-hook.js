@@ -45,7 +45,8 @@ function pgPreview(c, w, h, t) {
   c.restore();
 }
 /* têtes des copains : pilote casqué, intro « Let's go », têtes volantes */
-function pgPickHead() { return PG_HEADS.length ? PG_HEADS[Math.floor(Math.random() * PG_HEADS.length)].img : null; }
+const pgRandom = Math.random;   // hasard des effets, même pendant la génération d'un parcours à graine (compétition, plus bas)
+function pgPickHead() { return PG_HEADS.length ? PG_HEADS[Math.floor(pgRandom() * PG_HEADS.length)].img : null; }
 function pgHelmetize(img) {
   const W = 154, H = 200, c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
@@ -132,6 +133,51 @@ function pgDrawBossSad() {
   label('+' + PG_BOSS_BONUS + ' m', s.x, y + 66, 15, COL.gold);
   ctx.globalAlpha = 1;
 }
+/* mode compétition (CONTRACT.md Ajout 6) :
+   - api.startLevel : départ direct au niveau n, comme si les précédents étaient réussis (zone, difficulté, obstacles
+     débloqués, nouveautés déjà vues), mais score à 0 ;
+   - api.seed : même parcours pour tous — pendant la génération du parcours (obstacles, événement, étoile, lasers),
+     Math.random est remplacé par un PRNG à graine (mulberry32), re-graîné au début de chaque niveau, avec un sous-tirage
+     par appel (un écart chez un joueur ne décale pas la suite du parcours) ; les effets (particules, têtes, boss…)
+     restent sur Math.random. Sans ces paramètres, rien ne change. */
+let pgSeed = null, pgRng = null;
+function pgMulberry32(a) {
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function pgSeeded(fn) {
+  return function () {
+    if (!pgRng) return fn.apply(this, arguments);
+    const r = Math.random; Math.random = pgMulberry32(pgRng() * 4294967296 >>> 0);
+    try { return fn.apply(this, arguments); } finally { Math.random = r; }
+  };
+}
+spawn = pgSeeded(spawn); startEvent = pgSeeded(startEvent); launchLasers = pgSeeded(launchLasers);
+const pgPlanEvent = pgSeeded(planEvent);
+planEvent = function () {   // au début de chaque niveau (reset, finishLevel, pgStartAt) : graine du niveau, puis étoile et événement
+  if (pgSeed !== null) {
+    pgRng = pgMulberry32((pgSeed ^ Math.imul(level, 0x9E3779B1)) >>> 0);
+    starAt = levelStart + (0.35 + 0.4 * pgRng()) * (levelEnd - levelStart);
+  }
+  pgPlanEvent();
+};
+function pgStartAt(n) {
+  for (let k = 1; k < n; k++) skipDist += lvlLen(k);
+  level = n; levelStart = 0; levelEnd = lvlLen(n); T = zoneOf(n);
+  for (const [k, lv] of NEW_AT) if (lv < n) seen[k] = true;   // nouveautés des niveaux précédents : déjà découvertes
+  starAt = rand(0.35, 0.75) * levelEnd;
+  planEvent();
+  introSub2 = 'Zone : ' + zoneName(n);
+}
+// petit badge « COMPÉTITION » dans le HUD (style des badges du jeu), sous le compteur de mètres
+function pgCompetBadge(on) {
+  let b = $('pgCompet');
+  if (!b && on) {
+    b = document.createElement('span'); b.id = 'pgCompet'; b.className = 'badge'; b.textContent = 'COMPÉTITION';
+    b.style.cssText = 'grid-column:1/span 3;font-size:10px;padding:2px 6px';
+    $('hud').appendChild(b);
+  }
+  if (b) b.hidden = !on;
+}
 window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.pleingaz = {
   id: 'pleingaz', title: 'Plein Gaz', accent: '#ffa630', scoreLabel: 'm', external: 'jdw-pg',
@@ -143,14 +189,19 @@ window.JDW_GAMES.pleingaz = {
     PG_HEADS = (api.heads && api.heads()) || [];
     PG_PILOT_IMG = api.player && api.player.img ? pgHelmetize(api.player.img) : null;
     muted = api.isMuted();
+    // compétition : niveau de départ (1 à 99), graine du parcours, badge
+    const n = Math.max(1, Math.min(99, Math.floor(+api.startLevel) || 1)), sd = Number(api.seed);
+    pgSeed = api.seed != null && api.seed !== '' && Number.isFinite(sd) ? sd | 0 : null; pgRng = null;
     resize(); last = performance.now(); acc = 0;
     start();
+    if (n > 1) pgStartAt(n);
+    pgCompetBadge(api.mode === 'compet');
     if (master) master.gain.value = muted ? 0 : 0.5;
     return {
       currentScore() { return state === 'play' || state === 'paused' ? score() : 0; },   // bouton Quitter
       currentLevel() { return level; },                                                  // musique plus énergique aux niveaux difficiles
       destroy() {
-        PG_ACTIVE = false; PG_API = null;
+        PG_ACTIVE = false; PG_API = null; pgSeed = pgRng = null;
         holding = false; thrustPointer = null; setThrustSound(false);
         state = 'menu'; introT = 0;
         ['hud', 'paused', 'over', 'banner', 'menu'].forEach(id => { const el = $(id); if (el) el.hidden = true; });

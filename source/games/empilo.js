@@ -101,6 +101,8 @@
     return s.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   }
   function hash(i) { const s = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); }
+  // PRNG à graine (mode compétition : le même contenu pour tous les concurrents)
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   // ---------- Carreaux de faïence (cache) ----------
   const tileCache = new Map();
@@ -327,6 +329,20 @@
       amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a'
     }, api.colors || {});
     let ACC = '#3fb6ff', theme = THEMES[0];
+
+    // ---------- Mode compétition (CONTRACT.md, Ajout 6) ----------
+    // départ direct au niveau api.startLevel (entier ≥ 1, borné à 99, sinon 1) : niveau = départ + lignes / 10,
+    // les lignes affichées partent de 0 (comme le score)
+    const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
+    const lvl0 = num(api.startLevel) >= 1 ? Math.min(99, num(api.startLevel)) : 1;
+    const COMPET = api.mode === 'compet';
+    // hasard du contenu : Math.random sans api.seed (comme avant) ; avec une graine, un flux mulberry32 par sorte de
+    // contenu → même partie pour tous les concurrents (0x50000000 = 2^28 pas de mulberry32 : flux décalés de 2^28
+    // tirages, sans chevauchement). Les effets (particules, tremblements, sons, textes, têtes) restent sur Math.random.
+    const SEED = Number.isFinite(num(api.seed)) ? num(api.seed) | 0 : null;
+    const rng = (k) => (SEED === null ? () => Math.random() : mulberry32(SEED + k * 0x50000000));
+    // sac de 7, pièces tordues, pastilles, carreaux dorés / à tête, événements, trous des lignes sales
+    const rBag = rng(1), rOdd = rng(2), rB = rng(3), rTile = rng(4), rEv = rng(5), rGarb = rng(6);
 
     // ---------- Têtes des copains ----------
     function imgOk(im) {
@@ -589,7 +605,7 @@
     let bag = [];
     const nextQ = [];
     let cur = null, hold = null, holdUsed = false;
-    let score = 0, lines = 0, level = 1, dispScore = 0, scorePulse = 0;
+    let score = 0, lines = 0, level = lvl0, dispScore = 0, scorePulse = 0;
     let state = 'ready', stateT = 0, paused = false, time = 0;
     let fallT = 0, lockT = 0, lockResets = 0, lowestY = 0;
     let clearing = null;
@@ -606,7 +622,7 @@
     // score : combos, enchaînements de 4 lignes, multiplicateur doré
     let combo = -1, b2b = false, mult = 1, multT = 0;
     // pastilles
-    let piecesSinceB = 0, nextB = 12 + Math.floor(Math.random() * 6);
+    let piecesSinceB = 0, nextB = 12 + Math.floor(rB() * 6);
     // événements
     let ev = null, evNext = -1, evLast = '';
     let darkCv = null;
@@ -656,7 +672,7 @@
       if (board[0].some(v => v)) { endGame(); return; }
       board.shift(); headBoard.shift(); goldBoard.shift();
       const row = new Array(COLS).fill('G');
-      row[Math.floor(Math.random() * COLS)] = null;
+      row[Math.floor(rGarb() * COLS)] = null;
       board.push(row);
       headBoard.push(new Array(COLS).fill(-1));
       goldBoard.push(new Array(COLS).fill(0));
@@ -720,7 +736,7 @@
     }
 
     // ---------- Événements ----------
-    function evGap() { return Math.max(12, 38 - level * 1.1) + Math.random() * 10; }
+    function evGap() { return Math.max(12, 38 - level * 1.1) + rEv() * 10; }
     function startEvent(k) {
       const d = EVDEF[k];
       if (!d) return;
@@ -758,20 +774,20 @@
       if (ev) { ev.t += dt; if (ev.t >= ev.dur) endEvent(); return; }
       const avail = Object.keys(EVDEF).filter(k => level >= EVDEF[k].from);
       if (!avail.length) return;
-      if (evNext < 0) evNext = 16 + Math.random() * 8;
+      if (evNext < 0) evNext = 16 + rEv() * 8;
       evNext -= dt;
       if (evNext <= 0) {
         let pool = avail.filter(k => k !== evLast);
         if (!pool.length) pool = avail;
         // la mousse (repos) revient un peu moins souvent quand c'est dur
-        if (level >= 15 && pool.length > 1 && Math.random() < 0.4) pool = pool.filter(k => k !== 'mousse');
-        startEvent(pool[Math.floor(Math.random() * pool.length)]);
+        if (level >= 15 && pool.length > 1 && rEv() < 0.4) pool = pool.filter(k => k !== 'mousse');
+        startEvent(pool[Math.floor(rEv() * pool.length)]);
       }
     }
 
     function refill() {
       const b = TYPES.slice();
-      for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; }
+      for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(rBag() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; }
       bag = bag.concat(b);
     }
     function oddChance() { return level < 7 ? 0 : Math.min(0.24, 0.06 + (level - 7) * 0.012); }
@@ -779,15 +795,18 @@
       while (nextQ.length < 4) {
         if (!bag.length) refill();
         let t = bag.shift();
-        if (Math.random() < oddChance()) t = ODD[Math.floor(Math.random() * ODD.length)];
+        if (rOdd() < oddChance()) t = ODD[Math.floor(rOdd() * ODD.length)];
         if (level >= 2) {
           piecesSinceB++;
-          if (piecesSinceB >= nextB) { piecesSinceB = 0; nextB = 13 + Math.floor(Math.random() * 8) + Math.min(8, Math.floor(level / 4)); nextQ.push('B'); }
+          if (piecesSinceB >= nextB) { piecesSinceB = 0; nextB = 13 + Math.floor(rB() * 8) + Math.min(8, Math.floor(level / 4)); nextQ.push('B'); }
         }
         nextQ.push(t);
       }
     }
     fillQ();
+    // départ direct à un niveau (mode compétition) : décor, saboteur et premier événement de ce niveau,
+    // comme en y arrivant (levelUp), mais sans bonus, sans annonces ni api.celebrate
+    if (lvl0 > 1) { applyTheme(); planLevel(3.5); }
 
     // Vitesse de chute : douce au début, puis de plus en plus rapide sans plafond (jusqu'à la chute quasi instantanée)
     function gravity() {
@@ -818,12 +837,12 @@
         const nc = ROT[t][0].length;
         if (heads.length) {
           piecesSinceSpecial++;
-          if (piecesSinceSpecial > 4 && Math.random() < 0.09) {
+          if (piecesSinceSpecial > 4 && rTile() < 0.09) {
             piecesSinceSpecial = 0;
-            cur.head = { k: Math.floor(Math.random() * nc), idx: Math.floor(Math.random() * heads.length) };
+            cur.head = { k: Math.floor(rTile() * nc), idx: Math.floor(rTile() * heads.length) };
           }
         }
-        if (!cur.head && level >= 3 && Math.random() < 0.075) cur.gold = Math.floor(Math.random() * nc);
+        if (!cur.head && level >= 3 && rTile() < 0.075) cur.gold = Math.floor(rTile() * nc);
       }
       if (ODD.indexOf(t) >= 0 && !seenOdd) {
         seenOdd = true;
@@ -834,7 +853,7 @@
       fallT = 0; lockT = 0; lockResets = 0; lowestY = cur.y;
       return true;
     }
-    let seenOdd = false;
+    let seenOdd = lvl0 > 7;   // départ après le niveau 7 : pièces tordues déjà découvertes
     function spawnNext() { fillQ(); const t = nextQ.shift(); fillQ(); return spawn(t); }
 
     function moveReset() {
@@ -998,7 +1017,7 @@
         tone(700 + Math.min(10, combo) * 60, 0.08, 'square', 0.035);
       }
       lines += n;
-      level = 1 + Math.floor(lines / 10);
+      level = lvl0 + Math.floor(lines / 10);
       scorePulse = 1;
       clearing = { rows, t: 0 };
       // particules de carreaux
@@ -1099,9 +1118,13 @@
           tone(988, 0.08, 'square', 0.04); later(0.1, () => tone(1319, 0.12, 'square', 0.04));
         });
       }
+      planLevel(newTheme || news ? 5 : 3.5);
+    }
+    // saboteur et premier événement du niveau qui commence (aussi au départ direct à un niveau)
+    function planLevel(sabDelay) {
       // le copain saboteur (ou une fuite) : un niveau sur deux, puis à chaque niveau dès le 16
       const sabLvl = level >= 16 || (level % 2 === 0 && (heads.length || level >= 4));
-      if (sabLvl && !sab) sabPending = newTheme || news ? 5 : 3.5;
+      if (sabLvl && !sab) sabPending = sabDelay;
       // le premier événement arrive un peu après la nouveauté
       if (!ev && evNext < 0 && Object.keys(EVDEF).some(k => level >= EVDEF[k].from)) evNext = 14;
     }
@@ -1472,6 +1495,28 @@
         ctx.fillStyle = ACC;
         if (prog > 0) { rr(ctx, gx, by, gridW * prog, 3, 1.5); ctx.fill(); }
       }
+      if (COMPET) drawCompet(left, val);
+    }
+    // badge « COMPÉTITION » : dans la bande du HUD juste à gauche du score s'il y a la place (paysage),
+    // sinon juste sous la bande, aligné sur le score (portrait), entre le score (même grossi) et la grille
+    function drawCompet(left, val) {
+      const fs = Math.round(clamp(hudH * 0.21, 10, 12));
+      ctx.font = fs + 'px ' + FD;
+      const tx = 'COMPÉTITION', bw = Math.round(ctx.measureText(tx).width + fs * 1.4), bh = Math.round(fs * 1.8);
+      let bx = left - 10 - bw, by = Math.round((hudH - bh) / 2);
+      if (bx < 8) {
+        bx = left;
+        by = Math.round(Math.max(hudH * 0.36 + Math.round(val * 1.15) * 0.98 + 2, Math.min(hudH + 4, gy - 2 - bh)));
+      }
+      ctx.fillStyle = 'rgba(8,16,22,0.8)';
+      rr(ctx, bx, by, bw, bh, bh / 2); ctx.fill();
+      ctx.strokeStyle = rgba(GOLD, 0.55);
+      ctx.lineWidth = 1;
+      rr(ctx, bx + 0.5, by + 0.5, bw - 1, bh - 1, bh / 2); ctx.stroke();
+      ctx.fillStyle = GOLD;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(tx, bx + bw / 2, by + bh / 2 + 1);
     }
 
     function drawPanels() {
@@ -2056,6 +2101,8 @@
         const lt = isGo ? stateT - 0.6 : stateT;
         const sc = 1 + Math.max(0, 0.25 - lt) * 2;
         bigText(isGo ? 'GO !' : 'PRÊT ?', gx + gridW / 2, gy + gridH * 0.42, Math.round(c * 2), isGo ? COL.leaf : COL.gold, gridW * 0.9, 1, sc);
+        // départ direct à un niveau : on annonce lequel
+        if (lvl0 > 1) bigText('NIVEAU ' + level, gx + gridW / 2, gy + gridH * 0.42 + c * 1.9, Math.round(c * 0.9), ACC, gridW * 0.9, 1, 1);
       }
       if (state === 'over') {
         const a = Math.min(1, overT / 0.6);
@@ -2098,7 +2145,7 @@
       _debug: {
         info: () => ({ score, lines, level, state, paused, cur: cur ? { t: cur.t, x: cur.x, y: cur.y, r: cur.r, gold: cur.gold } : null, hold, next: nextQ.slice(0, 3),
           mult, combo, ev: ev ? ev.k : null, evNext, theme: theme.name, gravity: gravity(), lockDelay: lockDelay(), sab: sab ? sab.idx : null }),
-        setLevel: (n) => { level = Math.max(1, n | 0); lines = (level - 1) * 10; applyTheme(); bag.length = 0; nextQ.length = 0; fillQ(); if (level >= 5) evNext = 3; },
+        setLevel: (n) => { level = Math.max(lvl0, n | 0); lines = (level - lvl0) * 10; applyTheme(); bag.length = 0; nextQ.length = 0; fillQ(); if (level >= 5) evNext = 3; },
         event: (k) => { if (state === 'play') startEvent(k); },
         gold: () => { if (cur && cur.t !== 'B') cur.gold = 0; },
         queue: (t) => { nextQ.unshift(t); },
@@ -2116,7 +2163,7 @@
         summon: () => summonSab(),
         sab: () => (sab ? { phase: sab.phase, riseT: sab.riseT, rises: sab.rises } : null),
         sabFast: () => { if (sab) sab.riseT = Math.min(sab.riseT, 0.5); },
-        setLines: (n) => { lines = n; level = 1 + Math.floor(n / 10); },
+        setLines: (n) => { lines = n; level = lvl0 + Math.floor(n / 10); },
         special: () => { if (cur && heads.length) cur.head = { k: 0, idx: 0 }; },
         fillBottom: (n, gapCol) => {
           for (let k = 0; k < n; k++) {

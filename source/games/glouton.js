@@ -633,6 +633,16 @@
     return ['Ça accélère !', 'Les microbes s\'énervent !', 'Plus vite, petit canard !', 'Ça mousse de partout !'][L % 4];
   }
 
+  // PRNG à graine (mode compétition : tous les concurrents ont le même contenu)
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
   // ---------------------------------------------------------------------------
   // Le jeu
   // ---------------------------------------------------------------------------
@@ -640,6 +650,10 @@
     api = api || {};
     const fonts = api.fonts || { display: 'Impact, sans-serif', body: 'system-ui, sans-serif' };
     const audio = api.audio || null;
+    // mode compétition (CONTRACT.md Ajout 6) : niveau de départ (entier ≥ 1, borné à 99 ; sinon 1), badge, graine
+    const startLevel = Math.min(99, Math.max(1, Math.floor(Number(api.startLevel)) || 1));
+    const compet = api.mode === 'compet';
+    const seed = typeof api.seed === 'number' && isFinite(api.seed) ? api.seed >>> 0 : null;
     const doc = document;
     let destroyed = false, raf = 0;
     const listeners = [];
@@ -823,8 +837,8 @@
     }
 
     // ----- État du jeu -----
-    let score = 0, level = 1;                       // une seule vie
-    let P = levelParams(1), F = levelFeatures(1);
+    let score = 0, level = startLevel;              // une seule vie ; en compétition : départ au niveau demandé, score à 0
+    let P = levelParams(level), F = levelFeatures(level);
     let dots = [], dotsLeft = 0, dotsTotal = 1, eatenLevel = 0, levelT = 0;
     let heads = [], frameHeads = [];
     function fetchHeads() {
@@ -846,11 +860,21 @@
     let freezeGhost = null, freezePts = 0;
     let particles = [];
     let traps = new Set(), slime = new Map(), siphons = new Map();
-    let pu = null, puNext = 14, palmesT = 0, iceT = 0, magnetT = 0, magnetTick = 0;
+    let pu = null, puNext = 14, puN = 0, palmesT = 0, iceT = 0, magnetT = 0, magnetTick = 0;
     let darkPhase = 0, darkAmt = 0;
     let banner = null;                    // { title, sub, color }
     const player = { x: START.x, y: START.y, dir: 2, flip: -1, qdir: -1, stopped: false, chomp: 0, lastTp: -1 };
     let ghosts = [];
+
+    // Hasard du jeu (têtes des microbes, pièges, bonus spéciaux, choix des microbes) : Math.random, ou avec api.seed
+    // un mulberry32 re-graîné à chaque tirage de contenu (niveau + étape : têtes, pièges, n-ième bonus) pour que le
+    // niveau N soit le même pour tous quoi que fasse le joueur. Purement visuel (particules, secousses, têtes des
+    // cadres et du bonus, textes) : toujours Math.random.
+    let rng = null;
+    function reseed(k) {
+      if (seed !== null) rng = mulberry32((seed ^ Math.imul(level, 0x9E3779B1) ^ Math.imul(k, 0x85EBCA6B)) >>> 0);
+    }
+    function rand() { return rng ? rng() : Math.random(); }
 
     const K = (c, r) => r * COLS + c;
 
@@ -902,7 +926,7 @@
       }
       let n = F.traps, guard = 0;
       while (n > 0 && guard++ < 400 && cand.length) {
-        const [c, r] = cand[(Math.random() * cand.length) | 0];
+        const [c, r] = cand[(rand() * cand.length) | 0];
         const k = K(c, r);
         if (traps.has(k) || siphons.has(k)) continue;
         if (traps.has(K(c + 1, r)) || traps.has(K(c - 1, r)) || traps.has(K(c, r + 1)) || traps.has(K(c, r - 1))) continue;
@@ -942,27 +966,30 @@
       fetchHeads();
       makeGhosts();
       // 1 ou 2 microbes (au hasard) portent la tête d'un copain ; le boss en porte toujours une
+      reseed(0);
       if (heads.length) {
         const hp = heads.slice();
         const boss = ghosts.find(g => g.boss);
-        if (boss) boss.head = hp.splice((Math.random() * hp.length) | 0, 1)[0];
+        if (boss) boss.head = hp.splice((rand() * hp.length) | 0, 1)[0];
         if (!hp.length) hp.push(...heads);
-        const n = heads.length >= 2 && Math.random() < 0.4 ? 2 : 1;
+        const n = heads.length >= 2 && rand() < 0.4 ? 2 : 1;
         const gp = ghosts.filter(g => !g.boss);
         for (let k = 0; k < n && hp.length && gp.length; k++) {
-          const g = gp.splice((Math.random() * gp.length) | 0, 1)[0];
-          g.head = hp.splice((Math.random() * hp.length) | 0, 1)[0];
+          const g = gp.splice((rand() * gp.length) | 0, 1)[0];
+          g.head = hp.splice((rand() * hp.length) | 0, 1)[0];
         }
       }
+      reseed(1);                            // pièges : indépendants du nombre de têtes de l'appareil
       placeTraps();
       bonusSpawned = 0;
-      pu = null; puNext = 12 + Math.random() * 6; palmesT = 0; iceT = 0; magnetT = 0;
+      pu = null; puNext = 12 + rand() * 6; puN = 0; palmesT = 0; iceT = 0; magnetT = 0;
       darkPhase = 0; darkAmt = 0;
       const zoneStart = (level - 1) % 5 === 0 && level > 1;
       banner = {
         title: 'NIVEAU ' + level,
         sub: newsFor(level),
-        zone: zoneStart || level === 1 ? 'ZONE ' + (zone + 1) + ' · ' + theme.name.toUpperCase() + ROMAN[Math.min(9, Math.floor(zone / THEMES.length))] : MAZE_NAMES[mi].toUpperCase()
+        // la zone est annoncée à chaque début de zone et au premier niveau de la partie (niveau 1, ou départ de compétition)
+        zone: zoneStart || level === startLevel ? 'ZONE ' + (zone + 1) + ' · ' + theme.name.toUpperCase() + ROMAN[Math.min(9, Math.floor(zone / THEMES.length))] : MAZE_NAMES[mi].toUpperCase()
       };
       readyDur = level === 1 ? 2.2 : 2.8;
       resetPositions();
@@ -1173,7 +1200,7 @@
       let rnd = 0;
       if (g.fright && g.state === 'active') rnd = 1;
       else if (g.state === 'active' && !isScatter()) rnd = g.kind === 'wander' ? P.wander : g.kind === 'slimer' ? P.wander * 0.6 : 0;
-      if (rnd && Math.random() < rnd) { g.dir = opts[(Math.random() * opts.length) | 0]; return false; }
+      if (rnd && rand() < rnd) { g.dir = opts[(rand() * opts.length) | 0]; return false; }
       const tg = g.state === 'eyes' ? DOOR : ghostTarget(g);
       let best = opts[0], bd = Infinity;
       for (const d of opts) {
@@ -1224,7 +1251,7 @@
           if (Math.abs(g.x - DOOR.x) > 1e-3) { g.y = approach(g.y, HOUSE_Y, dt * 3); g.x = approach(g.x, DOOR.x, dt * 2.6); g.dir = g.x < DOOR.x ? 0 : 2; }
           else {
             g.x = DOOR.x; g.y = approach(g.y, DOOR.y, dt * 2.6); g.dir = 3;
-            if (g.y === DOOR.y) { g.state = 'active'; g.dir = Math.random() < 0.5 ? 0 : 2; g.lastKey = -1; }
+            if (g.y === DOOR.y) { g.state = 'active'; g.dir = rand() < 0.5 ? 0 : 2; g.lastKey = -1; }
           }
           return;
         }
@@ -1337,9 +1364,9 @@
 
     function spawnPowerup() {
       const kinds = ['palmes', 'glacon', 'aimant'];
-      const kind = kinds[(Math.random() * kinds.length) | 0];
+      const kind = kinds[(rand() * kinds.length) | 0];
       for (let tries = 0; tries < 60; tries++) {
-        const c = 1 + ((Math.random() * (COLS - 2)) | 0), r = 1 + ((Math.random() * (ROWS - 2)) | 0);
+        const c = 1 + ((rand() * (COLS - 2)) | 0), r = 1 + ((rand() * (ROWS - 2)) | 0);
         if (!walkable(c, r) || inHouseZone(c, r) || MAP[r][c] === ' ') continue;
         if (Math.abs(c - player.x) + Math.abs(r - player.y) < 6) continue;
         if (traps.has(K(c, r)) || siphons.has(K(c, r))) continue;
@@ -1371,7 +1398,7 @@
       if (bonus) { bonus.t -= dt; if (bonus.t <= 0) bonus = null; }
       if (F.powerups) {
         if (pu) { pu.t -= dt; if (pu.t <= 0) pu = null; }
-        else { puNext -= dt; if (puNext <= 0) { puNext = 18 + Math.random() * 10; spawnPowerup(); } }
+        else { puNext -= dt; if (puNext <= 0) { reseed(2 + puN++); puNext = 18 + rand() * 10; spawnPowerup(); } }
       }
       if (F.dark) {
         // cycle : 7 s de lumière, 1,2 s de clignotement, 9 s de noir
@@ -1923,7 +1950,8 @@
       ctx.textAlign = 'center';
       ctx.font = '600 ' + lblSize + 'px ' + fonts.body;
       ctx.fillStyle = '#8aa0ae';
-      ctx.fillText('NIVEAU · ZONE ' + (Math.floor((level - 1) / 5) + 1), lvX, 15);
+      const lvLbl = 'NIVEAU · ZONE ' + (Math.floor((level - 1) / 5) + 1);
+      ctx.fillText(lvLbl, lvX, 15);
       ctx.font = valSize + 'px ' + fonts.display;
       ctx.fillStyle = F.boss ? '#ff5fae' : ACCENT;
       ctx.fillText(String(level) + (F.boss ? ' BOSS' : ''), lvX, hudH - 11);
@@ -1939,6 +1967,34 @@
         ctx.beginPath(); ctx.arc(right - ds / 2, cy, ds * 0.72, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, act[1])); ctx.stroke();
       } else {
         drawDuck(ctx, right - ds / 2, cy + 2, ds, { dir: 2, flip: -1, t: 0, flap: 0.3 });
+      }
+      // badge « COMPÉTITION » : petite pastille sombre à liseré ambre sur la ligne des étiquettes, après SCORE
+      // (rétrécit si la place manque avant « NIVEAU · ZONE » : ne cache ni les valeurs, ni le canard, ni le bouton pause)
+      if (compet) {
+        ctx.save();
+        ctx.font = '600 ' + lblSize + 'px ' + fonts.body;
+        const bx = Math.round(12 + ctx.measureText('SCORE').width + 7);
+        const room = lvX - ctx.measureText(lvLbl).width / 2 - 8 - bx;
+        const txt = 'COMPÉTITION';
+        let fs = lblSize;
+        ctx.font = fs + 'px ' + fonts.display;
+        let tw = ctx.measureText(txt).width;
+        if (tw + fs > room) {
+          fs = Math.max(7, Math.floor(room / (tw / fs + 1)));
+          ctx.font = fs + 'px ' + fonts.display;
+          tw = ctx.measureText(txt).width;
+        }
+        const bh = Math.round(fs * 1.4), bw = Math.round(tw + fs), by = Math.round(15 - lblSize * 0.35 - bh / 2);
+        ctx.fillStyle = 'rgba(5,10,16,0.62)';
+        ctx.strokeStyle = 'rgba(255,166,48,0.8)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); rrect(ctx, bx + 0.5, by + 0.5, bw, bh, bh / 2); ctx.fill(); ctx.stroke();
+        const capH = ctx.measureText('H').actualBoundingBoxAscent || fs * 0.72;
+        ctx.fillStyle = ACCENT;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(txt, bx + 0.5 + fs / 2, by + 0.5 + bh / 2 + capH / 2);
+        ctx.restore();
       }
     }
 

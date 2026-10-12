@@ -111,6 +111,15 @@
     while (d < -Math.PI) d += Math.PI * 2;
     return a + d * k;
   }
+  // PRNG à graine (mode compétition : même contenu de vagues pour tous les concurrents)
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
 
   // ------------------------------------------------------------ dessin : mouche
   // Mouche vue de dessus, tête vers le bas (vers le joueur). Origine = centre.
@@ -736,6 +745,20 @@
     let destroyed = false;
     const timers = [];
 
+    // ---- mode compétition (CONTRACT.md Ajout 6) : vague de départ, badge, graine
+    const compet = api.mode === 'compet';
+    const startN = Math.floor(Number(api.startLevel));
+    const startWave = startN >= 1 ? Math.min(99, startN) : 1;      // absent / invalide = vague 1 ; plafond 99
+    const seed = api.seed != null && api.seed !== '' && isFinite(api.seed) ? Number(api.seed) : null;
+    // hasard du contenu des vagues (composition, piqués, gouttes, bonus…) et des têtes : Math.random, ou
+    // mulberry32 re-grainé à chaque vague quand api.seed est fourni ; les effets visuels restent sur Math.random
+    let crng = null, hrng = null;
+    const crand = () => (crng ? crng() : Math.random());
+    const hrand = () => (hrng ? hrng() : Math.random());
+    const crnd = (a, b) => a + crand() * (b - a);
+    const cpick = (arr) => arr[(crand() * arr.length) | 0];
+    const hpick = (arr) => arr[(hrand() * arr.length) | 0];
+
     const sfx = {
       tone(f, d, type, vol, fe) {
         if (destroyed || !audio || typeof audio.tone !== 'function') return;
@@ -794,12 +817,12 @@
     function pickHeads() {
       fetchHeads();
       if (!heads.length) { beeHead = rollHead = null; rollHeadIdx = -1; return; }
-      beeHead = pick(heads);
+      beeHead = hpick(heads);
       rollHead = beeHead;
       if (heads.length > 1) {
-        for (let k = 0; k < 8 && rollHead === beeHead; k++) rollHead = pick(heads);
+        for (let k = 0; k < 8 && rollHead === beeHead; k++) rollHead = hpick(heads);
       }
-      rollHeadIdx = (Math.random() * 4) | 0;
+      rollHeadIdx = (hrand() * 4) | 0;
     }
     function headName(h) {
       const n = String((h && h.name) || 'un copain').trim().toUpperCase();
@@ -997,13 +1020,19 @@
         pat: e ? e[1] : PAT_LIST[(w * 3) % PAT_LIST.length], rows: w >= 12 ? 6 : 5, wind, dark };
     }
 
-    function rowTypes(w, R) {
-      if (w <= 3) return w === 1 ? ['blue', 'green', 'green', 'gnat', 'gnat'] : ['blue', 'blue', 'green', 'green', 'gnat'];
+    // types de mouches possibles à la vague w (à partir de la vague 4)
+    function typePool(w) {
       const pool = ['gnat', 'green', 'blue'];
       if (w >= 4) pool.push('taon');
       if (w >= 6) pool.push('mosq');
       if (w >= 7) pool.push('red');
       if (w >= 11) pool.push('fat');
+      return pool;
+    }
+
+    function rowTypes(w, R) {
+      if (w <= 3) return w === 1 ? ['blue', 'green', 'green', 'gnat', 'gnat'] : ['blue', 'blue', 'green', 'green', 'gnat'];
+      const pool = typePool(w);
       pool.sort((a, b) => TYPES[a].lv - TYPES[b].lv);
       const shift = Math.min(2, Math.max(0, Math.floor((w - 8) / 6)));
       const cnt = {};
@@ -1013,10 +1042,10 @@
         const fr = R > 1 ? r / (R - 1) : 0;
         let ty, tries = 0;
         do {
-          const idx = clamp(Math.round((1 - fr) * (pool.length - 1) + shift + rnd(-1.2, 0.6)), 0, pool.length - 1);
+          const idx = clamp(Math.round((1 - fr) * (pool.length - 1) + shift + crnd(-1.2, 0.6)), 0, pool.length - 1);
           ty = pool[idx];
         } while (++tries < 10 && bad(ty));
-        if (bad(ty)) ty = pick(pool.filter((p) => !bad(p)));
+        if (bad(ty)) ty = cpick(pool.filter((p) => !bad(p)));
         cnt[ty] = (cnt[ty] || 0) + 1;
         out.push(ty);
       }
@@ -1024,7 +1053,7 @@
     }
 
     function newFly(type, extra) {
-      const f = { type, hp: TYPES[type].hp, alive: true, ph: Math.random() * FRAMES, mode: 'form', slot: false,
+      const f = { type, hp: TYPES[type].hp, alive: true, ph: crand() * FRAMES, mode: 'form', slot: false,
         x: 0, y: 0, sx: 0, sy: 0, ang: 0, hitT: 0, warn: 0, vx: 0, vy: 0, dt0: 0, dropped: false, jump: false };
       if (extra) Object.assign(f, extra);
       return f;
@@ -1058,15 +1087,15 @@
       }
       form.total = flies.length;
       if (heads.length) {
-        const n = 2 + ((Math.random() * 2) | 0);
+        const n = 2 + ((hrand() * 2) | 0);
         const pool = flies.filter((f) => f.r <= 2 && f.type !== 'fat');
         const used = [];
         let guard = 0;
         for (let k = 0; k < n && pool.length && guard < 40; k++, guard++) {
-          const f = pool.splice((Math.random() * pool.length) | 0, 1)[0];
+          const f = pool.splice((hrand() * pool.length) | 0, 1)[0];
           if (used.some((u) => Math.abs(u.c - f.c) <= 1 && Math.abs(u.r - f.r) <= 1)) { k--; continue; }
-          let h = pick(heads);
-          for (let j = 0; j < 6 && heads.length > used.length && used.some((u) => u.head === h); j++) h = pick(heads);
+          let h = hpick(heads);
+          for (let j = 0; j < 6 && heads.length > used.length && used.some((u) => u.head === h); j++) h = hpick(heads);
           f.head = h;
           used.push(f);
         }
@@ -1265,12 +1294,12 @@
 
     // ---- power-ups
     function maybeDropCap(x, y, chance) {
-      if (caps.length || state !== 'play' || Math.random() >= chance) return;
+      if (caps.length || state !== 'play' || crand() >= chance) return;
       const w = [['double', 3], ['rapid', 3], ['pierce', 2], ['slow', 2], ['bomb', 1]];
       if (shieldLoss() > 0.3) w.push(['rolls', 3]);
       let tot = 0;
       for (const e of w) tot += e[1];
-      let r = Math.random() * tot, kind = 'double';
+      let r = crand() * tot, kind = 'double';
       for (const e of w) { r -= e[1]; if (r <= 0) { kind = e[0]; break; } }
       caps.push({ x: clamp(x, 20, W - 20), y, kind, t: 0 });
       sfx.tone(980, 0.12, 'sine', 0.03, 1400);
@@ -1330,6 +1359,11 @@
     function beginWave(n) {
       const wasBoss = info && info.kind === 'boss';
       wave = n;
+      // compétition : la vague n commence pareil pour tous, quel que soit le hasard consommé avant
+      if (seed !== null) {
+        crng = mulberry32((seed ^ Math.imul(n, 0x9E3779B1)) >>> 0);
+        hrng = mulberry32((seed ^ Math.imul(n, 0x85EBCA6B) ^ 0x5BD1E995) >>> 0);
+      }
       info = waveInfo(n);
       pickHeads();
       boss = null; swarm = null; flies = []; drops = []; shots = []; caps = []; bee = null;
@@ -1370,9 +1404,9 @@
       if (info.dark) ann.sub2 = info.wind ? 'Vent ET coupure de courant !' : 'Coupure de courant !';
       state = 'ready';
       stateT = info.kind === 'boss' ? 2.6 : (ann.sub ? 2.2 : 1.4);
-      beeT = 12 + Math.random() * 10;
+      beeT = 12 + crand() * 10;
       dropT = 1.8;
-      diveT = diveGap() * rnd(0.8, 1.2) + 1.5;
+      diveT = diveGap() * crnd(0.8, 1.2) + 1.5;
       fireCd = 0.2;
       bonusT = 15;
     }
@@ -1483,7 +1517,7 @@
       f.vx = (f.x < W / 2 ? -1 : 1) * 70;
       f.vy = -110;
       // piqué « boomerang » (remonte avant les rouleaux) : toujours au début, de plus en plus rare ensuite
-      f.swoop = f.type !== 'mosq' && f.slot && Math.random() < (wave < 6 ? 1 : wave < 10 ? 0.5 : 0.2);
+      f.swoop = f.type !== 'mosq' && f.slot && crand() < (wave < 6 ? 1 : wave < 10 ? 0.5 : 0.2);
       f.turn = false;
       sfx.tone(1100, 0.35, 'sine', 0.022, 380);
     }
@@ -1513,7 +1547,7 @@
       if (f.y > H + 30 || f.x < -60 || f.x > W + 60) {
         f.jump = true;
         if (f.slot) { f.mode = 'return'; f.x = f.sx; f.y = -30; }
-        else { f.x = rnd(40, W - 40); f.y = -30; f.vx = 0; f.vy = spd * 0.5; f.dropped = true; f.dt0 = 0; }
+        else { f.x = crnd(40, W - 40); f.y = -30; f.vx = 0; f.vy = spd * 0.5; f.dropped = true; f.dt0 = 0; }
       }
     }
 
@@ -1525,7 +1559,7 @@
         f.jump = true;
         if (f.passes >= 2) {
           f.mode = 'dive';
-          f.x = rnd(40, W - 40); f.y = -30; f.vx = 0; f.vy = 80; f.dt0 = 0; f.dropped = true;
+          f.x = crnd(40, W - 40); f.y = -30; f.vx = 0; f.vy = 80; f.dt0 = 0; f.dropped = true;
         } else {
           f.x = f.dir > 0 ? -30 : W + 30;
           f.by = Math.min(f.by + 34, 330);
@@ -1544,16 +1578,16 @@
       const n = Math.min(5, remaining, swarm.maxAlive - alive);
       const pool = ['gnat', 'gnat', 'green', 'mosq', 'blue'];
       if (wave >= 12) pool.push('red', 'green');
-      const ty = pick(pool);
-      const dir = Math.random() < 0.5 ? 1 : -1;
-      const by = rnd(90, 230);
+      const ty = cpick(pool);
+      const dir = crand() < 0.5 ? 1 : -1;
+      const by = crnd(90, 230);
       const sp = 95 + 3 * Math.min(wave, 30);
-      const hasHead = heads.length && Math.random() < 0.35;
+      const hasHead = heads.length && hrand() < 0.35;
       for (let k = 0; k < n; k++) {
         const f = newFly(ty, { mode: 'stream', dir, by, sp, passes: 0, ph: k * 0.7 });
         f.x = dir > 0 ? -24 - k * 30 : W + 24 + k * 30;
         f.y = by;
-        if (hasHead && k === 0) f.head = pick(heads);
+        if (hasHead && k === 0) f.head = hpick(heads);
         flies.push(f);
         swarm.spawned++;
       }
@@ -1645,7 +1679,7 @@
       if (info.kind !== 'normal' || maxDivers() <= 0) return;
       diveT -= dt;
       if (diveT > 0) return;
-      diveT = diveGap() * rnd(0.7, 1.3);
+      diveT = diveGap() * crnd(0.7, 1.3);
       let nd = 0;
       const cands = [];
       for (const f of flies) {
@@ -1655,9 +1689,9 @@
       }
       if (nd >= maxDivers() || !cands.length) return;
       const mos = cands.filter((f) => f.type === 'mosq');
-      const f = (mos.length && Math.random() < 0.6) ? pick(mos) : pick(cands);
+      const f = (mos.length && crand() < 0.6) ? cpick(mos) : cpick(cands);
       launchDive(f);
-      if (wave >= 10 && Math.random() < 0.4 && nd + 1 < maxDivers()) {
+      if (wave >= 10 && crand() < 0.4 && nd + 1 < maxDivers()) {
         const mate = cands.find((g) => g !== f && g.r === f.r && Math.abs(g.c - f.c) === 1);
         if (mate) launchDive(mate);
       }
@@ -1696,7 +1730,7 @@
           if (dead) break;
           // bourdon bonus
           if (bee && Math.abs(bee.x - s.x) < (bee.head ? 26 : 20) && Math.abs(bee.y - s.y) < (bee.head ? 17 : 13)) {
-            const pts = pick(BONUS_PTS) * mult();
+            const pts = cpick(BONUS_PTS) * mult();
             addScore(pts);
             burst(bee.x, bee.y, 24, ['#ffc93a', '#1d1a14', '#fff2a0'], 150, 0.8, 2.8, 100);
             burst(bee.x, bee.y, 14, ['#ff7fc0', '#c58bff'], 90, 0.7, 3.5, -10);
@@ -1755,23 +1789,23 @@
       let shooter = null, aimed = false;
       if (swarm) {
         const c = flies.filter((f) => f.alive && f.mode === 'stream' && f.x > 16 && f.x < W - 16);
-        if (c.length) shooter = pick(c);
+        if (c.length) shooter = cpick(c);
       } else {
         const inForm = flies.filter((f) => f.alive && f.mode === 'form' && !(f.warn > 0));
         const reds = inForm.filter((f) => f.type === 'red');
-        if (reds.length && Math.random() < 0.35) shooter = pick(reds);
+        if (reds.length && crand() < 0.35) shooter = cpick(reds);
         else {
           const byCol = {};
           for (const f of inForm) if (!byCol[f.c] || f.r > byCol[f.c].r) byCol[f.c] = f;
           const cands = Object.keys(byCol).map((k) => byCol[k]);
           if (cands.length) {
-            if (Math.random() < 0.4) {
+            if (crand() < 0.4) {
               let best = 1e9;
               for (const f of cands) {
                 const d = Math.abs(f.x - player.x);
                 if (d < best) { best = d; shooter = f; }
               }
-            } else shooter = pick(cands);
+            } else shooter = cpick(cands);
           }
         }
       }
@@ -1793,7 +1827,7 @@
       if (shooting && playT > 1.2 && state === 'play') {
         dropT -= dt;
         if (dropT <= 0) {
-          dropT = (1 / dropRate()) * (0.55 + Math.random() * 0.9);
+          dropT = (1 / dropRate()) * (0.55 + crand() * 0.9);
           let n = 0;
           for (const d of drops) if (d.kind !== 2) n++;
           if (n < maxDrops()) spawnFlyDrop();
@@ -1924,7 +1958,7 @@
         b.y = 150 + Math.sin(b.t * 1.3) * 16;
         b.a -= dt;
         if (b.a <= 0) {
-          b.a = Math.max(1.1, 3.0 - 0.18 * (L - 1)) * (ph2 ? 0.8 : 1) * rnd(0.85, 1.15);
+          b.a = Math.max(1.1, 3.0 - 0.18 * (L - 1)) * (ph2 ? 0.8 : 1) * crnd(0.85, 1.15);
           const n = Math.min(5 + Math.floor(L / 2), 11), spread = Math.min(0.85 + 0.08 * L, 1.5), spd = Math.min(105 + 9 * L, 210);
           const base = (ph2 && L >= 2) ? aimAng(b.x, mouthY) * 0.5 : 0;
           for (let i = 0; i < n; i++) bossShoot(b.x, mouthY, base - spread / 2 + (spread * i) / (n - 1), spd);
@@ -1933,7 +1967,7 @@
         }
         b.b -= dt;
         if (b.b <= 0) {
-          b.b = Math.max(0.9, 2.1 - 0.12 * L) * rnd(0.85, 1.2);
+          b.b = Math.max(0.9, 2.1 - 0.12 * L) * crnd(0.85, 1.2);
           const k = Math.min(1 + Math.floor(L / 2), 4), a0 = aimAng(b.x, mouthY);
           for (let j = 0; j < k; j++) bossShoot(b.x, mouthY, a0 + (j - (k - 1) / 2) * 0.14, Math.min(140 + 8 * L, 240));
         }
@@ -2024,7 +2058,7 @@
           b.mt -= dt;
           if (b.mt <= 0) {
             let tx, ty, k = 0;
-            do { tx = rnd(60, W - 60); ty = rnd(110, 230); } while (++k < 10 && Math.hypot(tx - b.x, ty - b.y) < 90);
+            do { tx = crnd(60, W - 60); ty = crnd(110, 230); } while (++k < 10 && Math.hypot(tx - b.x, ty - b.y) < 90);
             b.tx = tx; b.ty = ty;
             b.mode = 'dash';
             sfx.tone(1400, 0.12, 'sine', 0.02, 2000);
@@ -2043,9 +2077,9 @@
         let n = 0;
         for (const f of flies) if (f.alive) n++;
         if (beeT <= 0 && n >= 6) {
-          const dir = Math.random() < 0.5 ? 1 : -1;
+          const dir = crand() < 0.5 ? 1 : -1;
           bee = { x: dir > 0 ? -34 : W + 34, y: 60, dir, sp: 70 + Math.min(wave, 10) * 6, head: beeHead };
-          beeT = 18 + Math.random() * 12;
+          beeT = 18 + crand() * 12;
         } else if (beeT <= 0) {
           beeT = 4;
         }
@@ -2455,6 +2489,29 @@
       }
     }
 
+    // badge « COMPÉTITION » (api.mode === 'compet') : petite pastille ambre sur la ligne du libellé SCORE,
+    // entre SCORE et VAGUE (le coin haut-droit reste au bouton pause)
+    function drawCompetBadge() {
+      const label = 'COMPÉTITION';
+      ctx.font = '600 10px ' + FB;                      // police des libellés SCORE et VAGUE
+      const x = 19 + ctx.measureText('SCORE').width, room = 171 - ctx.measureText('VAGUE').width / 2 - x - 12;
+      ctx.font = '11px ' + FD;
+      const w0 = ctx.measureText(label).width;
+      const k = clamp(room / Math.max(1, w0), 0.6, 1);    // police large : on réduit un peu
+      const tw = w0 * k, y = 3, h = 13.5;
+      ctx.fillStyle = 'rgba(42,26,6,0.82)';
+      roundRect(ctx, x, y, tw + 12, h, 6.5);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,166,48,0.8)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.font = (11 * k).toFixed(2) + 'px ' + FD;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffd34d';
+      ctx.fillText(label, x + 6, y + h / 2 + 0.5);
+    }
+
     function drawHUD() {
       ctx.fillStyle = 'rgba(8,14,20,0.78)';
       ctx.fillRect(0, 0, W, 38);
@@ -2516,6 +2573,7 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(info2, W / 2, 53.5);
       }
+      if (compet) drawCompetBadge();
     }
 
     function drawOverlays() {
@@ -2730,7 +2788,11 @@
     pauseBtn.addEventListener('pointerdown', onBtnDown);
     pauseBtn.addEventListener('click', onBtnClick);
 
-    beginWave(1);
+    // départ direct à une vague avancée (compétition) : les nouveautés des vagues sautées sont déjà connues
+    for (let w = 2; w < startWave; w++) {
+      if (waveInfo(w).kind === 'normal') for (const ty of typePool(w)) if (TYPE_INTRO[ty]) introduced.add(ty);
+    }
+    beginWave(startWave);
 
     let ro = null;
     if (typeof ResizeObserver !== 'undefined') {

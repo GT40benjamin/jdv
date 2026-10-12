@@ -279,6 +279,8 @@ let T = ZONES[0];              // thème courant
 
 /* Nouveautés annoncées la première fois qu'elles apparaissent */
 const NEWS = { vent: 'Jets de flammes', saw: 'Scies circulaires', gate: 'Portes électriques', drone: 'Drones de garde', corridor: 'Couloir électrique', slalom: 'Slalom', salvo: 'Salve de missiles', slow: 'Sablier : ralenti' };
+// niveau d'arrivée de chaque nouveauté (elle est imposée au début de « son » niveau)
+const NEW_AT = [['vent', 3], ['corridor', 4], ['saw', 5], ['slalom', 6], ['gate', 7], ['salvo', 8], ['drone', 9]];
 
 let state = 'menu';            // menu | play | paused | dead
 let holding = false, time = 0, dist = 0, speed = 140, coins = 0, shake = 0, deadT = 0, overShown = false;
@@ -288,6 +290,7 @@ let vents = [], saws = [], drones = [], seen = {}, bonusM = 0, slowT = 0, darkT 
 let thrustPointer = null;
 let level = 1, phase = 'run', phaseT = 0, levelStart = 0, levelEnd = lvlLen(1), boss = null, fireT = 0, bannerT = 0, lastBossName = '';
 let hyperT = 0, hyperNoteT = 0, hyperStep = 0, hyperStack = 0, starSeen = false, starAt = 0, trail = [], floaters = [];
+let skipDist = 0;              // départ à un niveau avancé (compétition) : distance des niveaux sautés, comptée pour débloquer les obstacles
 const HYPER_NOTES = [523, 659, 784, 1047, 1319, 1047, 784, 659];
 let best = 0;
 try { best = +localStorage.getItem('pleingaz.best') || 0; } catch (e) {}
@@ -306,7 +309,7 @@ function reset() {
   time = 0; dist = 0; speed = 230; coins = 0; shake = 0; deadT = 0; overShown = false;
   nextAt = 700; laserQueue = 0; coinStreak = 0;
   zappers = []; gems = []; missiles = []; lasers = []; powerups = []; tags = []; shots = []; bullets = []; cherries = []; parts.length = 0;
-  vents = []; saws = []; drones = []; seen = {}; bonusM = 0; slowT = 0; darkT = 0; salvo = null; rainT = 0; T = ZONES[0];
+  vents = []; saws = []; drones = []; seen = {}; bonusM = 0; slowT = 0; darkT = 0; salvo = null; rainT = 0; T = ZONES[0]; skipDist = 0;
   level = 1; phase = 'run'; phaseT = 0; levelStart = 0; levelEnd = lvlLen(1); boss = null; fireT = 0;
   introT = 0; hyperT = 0; hyperStep = 0; hyperStack = 0; starSeen = false; starAt = rand(0.35, 0.75) * lvlLen(1); trail = []; floaters = [];
   Object.assign(P, { y: FLOOR - 15, vy: 0, ang: 0, spin: 0, alive: true, onGround: true, shield: false, inv: 0, thrust: false, lives: MAX_LIVES });
@@ -333,17 +336,17 @@ function announce(kind) {
   if (NEWS[kind]) banner('Nouveau', NEWS[kind] + ' !', kind !== 'slow', 1.6);
 }
 function spawn() {
-  const d = diff(), x = extra();
+  const d = diff(), x = extra(), far = dist + skipDist;   // far : distance parcourue, niveaux sautés compris
   const table = [
     ['zap', 1],
     ['coins', Math.max(0.7, 1.4 - 0.05 * heat())],
-    ['tag', dist > 2400 ? 0.35 + 0.15 * d : 0],
-    ['missile', dist > 4500 ? 0.2 + 0.25 * d : 0],
-    ['double', dist > 7500 ? 0.1 + 0.25 * d : 0],
-    ['laser', dist > 10500 && !lasers.length && !laserQueue ? 0.08 + 0.15 * d : 0],
-    ['shield', !P.shield && !powerups.length && dist > 3000 ? 0.07 : 0],
+    ['tag', far > 2400 ? 0.35 + 0.15 * d : 0],
+    ['missile', far > 4500 ? 0.2 + 0.25 * d : 0],
+    ['double', far > 7500 ? 0.1 + 0.25 * d : 0],
+    ['laser', far > 10500 && !lasers.length && !laserQueue ? 0.08 + 0.15 * d : 0],
+    ['shield', !P.shield && !powerups.length && far > 3000 ? 0.07 : 0],
     ['slow', level >= 2 && slowT <= 0 && !powerups.length ? 0.05 : 0],
-    ['cherry', dist > 3000 ? 0.3 + 0.15 * d : 0],
+    ['cherry', far > 3000 ? 0.3 + 0.15 * d : 0],
     // nouveautés, une par zone, qui restent ensuite dans le mélange
     ['vent', level >= 3 ? 0.55 + 0.1 * Math.min(4, x) : 0],
     ['corridor', level >= 4 ? 0.18 + 0.03 * Math.min(5, x) : 0],
@@ -356,7 +359,7 @@ function spawn() {
   let sum = table.reduce((a, t) => a + t[1], 0), r = Math.random() * sum, pick = 'zap';
   for (const t of table) { if ((r -= t[1]) <= 0) { pick = t[0]; break; } }
   // chaque nouveauté arrive dès le début de « son » niveau, pour qu'on la découvre
-  for (const [k, lv] of [['vent', 3], ['corridor', 4], ['saw', 5], ['slalom', 6], ['gate', 7], ['salvo', 8], ['drone', 9]])
+  for (const [k, lv] of NEW_AT)
     if (!seen[k] && level >= lv && dist - levelStart > 900) { pick = k; break; }
   if (!starSeen && dist >= starAt) pick = 'star';   // une seule étoile par niveau, placée au hasard dans le niveau
   // écart entre obstacles : se resserre doucement et sans fin (plancher jouable)

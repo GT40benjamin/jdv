@@ -64,6 +64,11 @@ const api = {
   fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
   colors: { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae', amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a' }
 };
+// mode compétition (CONTRACT.md Ajout 6) : ?start=N ?compet ?seed=S (sans ces paramètres, rien ne change)
+const mS = Q.match(/[?&]start=([^&]*)/), mD = Q.match(/[?&]seed=([^&]*)/);
+if (mS) api.startLevel = mS[1] !== '' && !isNaN(mS[1]) ? +mS[1] : decodeURIComponent(mS[1]);
+if (/[?&]compet(&|=|$)/.test(Q)) api.mode = 'compet';
+if (mD) api.seed = Number(mD[1]);
 window.__api = api;
 window.__inst = window.JDW_GAMES.ilo.mount(document.getElementById('root'), api);
 </script>

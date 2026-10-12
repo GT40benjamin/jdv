@@ -1,4 +1,5 @@
-Galaxy Wars beaucoup plus dur : un seul coup et c'est fini, la puissance redescend
-9 musiques dans Galaxy Wars, dont 2 musiques de boss
-Les mises à jour arrivent en direct, et ce message te prévient quand elles sont installées
-Compteur « en ligne » compact sur téléphone
+Nouveau mode DUEL : 8 jeux à deux sur le même téléphone, face à face, en même temps (onglet Duel en bas)
+Trouve-le !, Le palet, Casse-briques, Boum !, Chat et souris, Duel spatial, Mots mêlés et Canards : la guerre
+Nouveau mode COMPÉTITION : toute la salle sur le même jeu en mode difficile, têtes et scores en direct, podium
+Regarde un copain jouer en direct (👁 dans la liste des joueurs) et déstabilise-le avec des messages
+Nouvelles musiques pour les duels, jingles de victoire et coup de gong au départ des compétitions

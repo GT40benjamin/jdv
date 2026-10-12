@@ -83,3 +83,29 @@ Le script peut être relancé : il garde les données (salles, scores, joueurs, 
 - Un jeu peut demander un morceau précis : api.music('iloboss') (musique de boss de Galaxy Wars), api.music() pour revenir.
 - Nouveautés d'une version : `source/nouveautes.txt` (une ligne par nouveauté) → affichées dans la cloche après la mise à jour
   automatique, avec le message « ✨ Mise à jour X installée ! ». À réécrire avant chaque publication importante.
+
+## Modes de jeu (version 1.6)
+Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compétition** (une page par mode, `#jdw-lib[data-mode]`, setMode()).
+- **Duel** (`source/duos/<id>.js`, contrat `source/DUO-CONTRACT.md`, harnais `source/test/duo.html?g=<id>&heads`) : deux joueurs EN MÊME
+  TEMPS sur le même téléphone posé à plat (P0 en bas, P1 en haut tourné de 180°, multi-touch). 8 jeux : trouve, palet, briques, boum,
+  souris, spatial, mots, guerre (paysage, au tour par tour). La bibliothèque gère les places (« Qui joue ? » : profils, membres de la
+  salle, invité), le score du match (api.point), les bannières (api.say), la pause, les résultats des deux côtés (Revanche), les victoires
+  par paire (jdw.duostats) et l'annonce dans le chat. Onglet « En ligne » : pas encore fait (prévu : WebRTC, invitation).
+- **Compétition** : toute la salle sur un jeu solo (sauf canards) en mode difficile (CONTRACT.md Ajout 6 : api.startLevel / api.mode /
+  api.seed ; niveaux de départ COMPET_START dans shell2.js). Aucune table : la présence de la salle porte `cmp: {id, g, r, st, s, t, seed}`
+  et des signaux « cmp » (open, go, sc, out, re) passent dans le direct. L'hôte (premier inscrit encore là) donne le GO (10 s, démo =
+  preview du jeu) dès 2 joueurs prêts ; colonne des têtes + scores en direct pendant la partie, réactions (emoji), podium, message dans
+  le chat posté par l'hôte. Un inscrit occupé ailleurs au GO passe spectateur.
+- **Regarder un copain en direct** : bouton 👁 dans la liste des joueurs (et dans la compétition) → vidéo WebRTC pair-à-pair du canvas
+  du jeu (captureStream, 3 spectateurs max, STUN Google, pas de TURN : certains réseaux 4G peuvent bloquer). Signaux « rtc » dans le direct.
+  Le spectateur envoie des réactions / phrases (« Tu vas perdre ! ») qui s'affichent en pleine partie chez le joueur (signal « rx »).
+- Tests à plusieurs appareils sans toucher au vrai serveur : `node ~/jdv-tools/fake-rt.js` (faux direct sur ws://localhost:8766) puis
+  `test-compet.js`, `test-watch.js` (les pages de test redirigent le WebSocket) ; `test-duel.js` (faux duels) ; `~/jdv-tools/tbuild.sh`
+  construit le site de test (SKIP_GAMES=… pour exclure des jeux).
+
+## Musiques de la collection (Asset Store)
+`source/pack-music.js` : WAV de « Ultimate Game Music Collection » (projet Unity ILO) → volume égalisé → AAC (encodeur WebCodecs de Chrome,
+pas besoin de ffmpeg) → CHIFFRÉ → `assets/music/<id>.bin` (même sel pour tous : `source/music-salt.hex`). `d<duel>-<n>` / `d<duel>-x<n>`
+(énergique, à la balle de match), `dscores-<n>` (écran des résultats), `sting-<nom>` (jingles : win, podium, point, go, match…).
+build2.py liste les .bin dans window.JDW_MUSIC_ENC ; shell2.js les déchiffre (decryptBin) ; sting(name) joue un jingle.
+Si le mot de passe change : relancer pack-music.js (et pack-ilo.js).

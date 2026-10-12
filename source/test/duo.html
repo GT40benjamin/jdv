@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Test duel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap">
+<style>
+html,body{margin:0;height:100%;background:#0b141c;overflow:hidden;font-family:'Chakra Petch',system-ui,sans-serif;color:#e9f0f3}
+#root{position:absolute;inset:0}
+/* imitation de l'habillage de la bibliothèque (mode Duel) */
+.hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+.menu{position:absolute;left:8px;top:50%;width:40px;height:40px;margin-top:-20px;border-radius:50%;background:rgba(17,29,39,.92);
+  border:1px solid #3a5568;color:#e9f0f3;font:700 16px/38px system-ui;text-align:center;pointer-events:auto;padding:0;cursor:pointer}
+.pill{position:absolute;min-width:34px;height:26px;padding:0 7px;border-radius:9px;font:400 17px/26px 'Bungee',Impact,sans-serif;text-align:center;
+  background:rgba(11,20,28,.92);box-sizing:border-box}
+.pill.p0{right:8px;top:calc(50% + 3px);color:#ffa630;border:1.5px solid #ffa630}
+.pill.p1{right:8px;bottom:calc(50% + 3px);color:#5ef0ff;border:1.5px solid #5ef0ff;transform:rotate(180deg)}
+.half{position:absolute;left:0;right:0;height:50%;display:grid;place-items:center;pointer-events:none}
+.half.h0{bottom:0}.half.h1{top:0;transform:rotate(180deg)}
+.say{max-width:92%;font:400 clamp(24px,7.5vw,44px)/1.1 'Bungee',Impact,sans-serif;text-align:center;
+  text-shadow:0 3px 0 rgba(0,0,0,.55),0 0 18px currentColor;animation:pop .22s ease-out}
+.say.small{font-size:clamp(15px,4.4vw,22px);font-family:'Chakra Petch',system-ui,sans-serif;font-weight:600}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+/* paysage (jeu au tour par tour) : pastilles en haut, sans rotation */
+body.land .menu{left:50%;top:8px;margin:0 0 0 -20px}
+body.land .pill.p0{left:12px;right:auto;top:10px}
+body.land .pill.p1{right:12px;left:auto;top:10px;bottom:auto;transform:none}
+body.land .half.h1{display:none}
+body.land .half.h0{top:0;bottom:auto;height:100%}
+.res{position:absolute;inset:0;z-index:9;display:grid;grid-template-rows:1fr 1fr;background:rgba(8,14,20,.82)}
+.res > div{display:grid;place-items:center;font:400 34px 'Bungee',Impact,sans-serif}
+.res > div:first-child{transform:rotate(180deg)}
+body.land .res > div:first-child{display:none}
+</style>
+</head><body>
+<div id="root"></div>
+<div class="hud" id="hud">
+  <div class="half h1"><div id="say1"></div></div>
+  <div class="half h0"><div id="say0"></div></div>
+  <span class="pill p0" id="pill0">0</span><span class="pill p1" id="pill1">0</span>
+  <button class="menu" id="menu" type="button" aria-label="Pause">II</button>
+</div>
+<script>
+// paramètres : ?g=<id> &heads (fausses têtes) &guest (joueur 1 sans tête) &noassets (sans images ILO) &fast (temps accéléré)
+const Q = new URLSearchParams(location.search), GID = Q.get('g') || 'palet';
+if (Q.has('fast')) {
+  let fakeNow = 0;
+  window.requestAnimationFrame = (cb) => setTimeout(() => { fakeNow += 50; cb(fakeNow); }, 2);
+  window.cancelAnimationFrame = (id) => clearTimeout(id);
+}
+window.__duo = { inst: null, api: null, points: [], says: [], over: false, winner: null, destroyed: false, rootEmpty: null, errors: [], sounds: 0, paused: false };
+addEventListener('error', e => window.__duo.errors.push(String(e.message)));
+addEventListener('unhandledrejection', e => window.__duo.errors.push('rejet : ' + (e.reason && e.reason.message || e.reason)));
+document.write('<script src="../duos/' + GID + '.js"><\/script>');
+</script>
+<script>
+(() => {
+  const duo = window.__duo, D = (window.JDW_DUOS || {})[GID];
+  if (!D) { duo.errors.push('jeu introuvable : ' + GID); return; }
+  if (D.layout === 'landscape') document.body.classList.add('land');
+  function fakeHead(skin, hair, mood, sad) {
+    const c = document.createElement('canvas'); c.width = 160; c.height = 200;
+    const g = c.getContext('2d');
+    g.fillStyle = skin; g.beginPath(); g.ellipse(80, 108, 62, 80, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = hair; g.beginPath(); g.ellipse(80, 50, 66, 40, 0, Math.PI, 0); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(56, 100, 13, 0, 7); g.arc(104, 100, 13, 0, 7); g.fill();
+    g.fillStyle = '#222'; g.beginPath(); g.arc(58, 102, 6, 0, 7); g.arc(102, 102, 6, 0, 7); g.fill();
+    g.strokeStyle = '#7a2a2a'; g.lineWidth = 6; g.beginPath();
+    if (sad) g.arc(80, 160, 22, 1.15 * Math.PI, 1.85 * Math.PI); else g.arc(80, 140, mood, 0.15 * Math.PI, 0.85 * Math.PI);
+    g.stroke();
+    if (sad) {
+      g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(70,120,210,.38)'; g.fillRect(0, 0, 160, 200); g.globalCompositeOperation = 'source-over';
+      g.fillStyle = '#9fe0ff'; for (const x of [56, 104]) { g.beginPath(); g.ellipse(x, 128, 6, 11, 0, 0, 7); g.fill(); }
+    }
+    return c;
+  }
+  const H = Q.has('heads') ? [
+    { name: 'PATOU', img: fakeHead('#f2c39b', '#5a3a1a', 22), sad: fakeHead('#f2c39b', '#5a3a1a', 22, true) },
+    { name: 'JUJU', img: fakeHead('#c98b5e', '#1a1a1a', 26), sad: fakeHead('#c98b5e', '#1a1a1a', 26, true) },
+    { name: 'MOMO', img: fakeHead('#ffd9c0', '#d9902a', 18), sad: fakeHead('#ffd9c0', '#d9902a', 18, true) },
+    { name: 'LEO', img: fakeHead('#e8b48a', '#8a2a1a', 24), sad: fakeHead('#e8b48a', '#8a2a1a', 24, true) }
+  ] : [];
+  const P = [
+    { name: 'PATOU', img: H[0] ? H[0].img : null, sad: H[0] ? H[0].sad : null, color: '#ffa630' },
+    Q.has('guest') || !H[1] ? { name: 'INVITÉ', img: null, sad: null, color: '#5ef0ff' } : { name: 'JUJU', img: H[1].img, sad: H[1].sad, color: '#5ef0ff' }
+  ];
+  // images d'ILO pour les tests (WebP en clair, hors dépôt)
+  const DIR = '../../../jdv-tools/ilo-assets';
+  const loadImg = u => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
+  let assetsP = null;
+  const assets = (n) => {
+    if (Q.has('noassets') || n !== 'ilo') return Promise.reject(new Error('pas d\'images'));
+    if (!assetsP) assetsP = Promise.all([
+      Promise.all(Array.from({ length: 32 }, (_, i) => loadImg(DIR + '/planets/' + String(i + 1).padStart(2, '0') + '.webp'))),
+      Promise.all(Array.from({ length: 4 }, (_, i) => loadImg(DIR + '/nebulas/' + String(i + 1).padStart(2, '0') + '.webp')))
+    ]).then(([planets, nebulas]) => ({ planets, nebulas }));
+    return assetsP;
+  };
+  let AC = null;
+  const audio = {
+    tone(f, dur, type = 'square', vol = 0.08, f2) {
+      duo.sounds++;
+      try {
+        AC = AC || new AudioContext(); const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+        o.type = type; o.frequency.setValueAtTime(Math.max(20, f), t); if (f2) o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+        g.gain.setValueAtTime(vol * 0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + 0.03);
+      } catch (e) {}
+    },
+    noise() { duo.sounds++; }
+  };
+  const scores = [0, 0];
+  const sayT = [0, 0];
+  function say(text, o = {}) {
+    duo.says.push(text);
+    for (const p of (o.p === 0 || o.p === 1) ? [o.p] : [0, 1]) {
+      const el = document.getElementById('say' + p); el.textContent = '';
+      const d = document.createElement('div'); d.className = 'say' + (o.small ? ' small' : ''); d.style.color = o.color || '#e9f0f3'; d.textContent = text;
+      el.appendChild(d); clearTimeout(sayT[p]); sayT[p] = setTimeout(() => { el.textContent = ''; }, o.ms || 1000);
+    }
+  }
+  function showResults(w) {
+    const r = document.createElement('div'); r.className = 'res';
+    const top = document.createElement('div'), bot = document.createElement('div');
+    top.textContent = w === 1 ? '🏆 GAGNÉ !' : 'PERDU…'; bot.textContent = w === 0 ? '🏆 GAGNÉ !' : 'PERDU…';
+    r.append(top, bot); document.body.appendChild(r);
+    try { duo.inst && duo.inst.destroy && duo.inst.destroy(); } catch (e) { duo.errors.push('destroy : ' + e.message); }
+    duo.destroyed = true; duo.rootEmpty = document.getElementById('root').childElementCount === 0;
+  }
+  const api = {
+    players: P,
+    heads: () => H.slice(),
+    audio,
+    fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+    colors: { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae', amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a' },
+    assets,
+    point(p, why) {
+      if (p !== 0 && p !== 1) { duo.errors.push('point(' + p + ') invalide'); return { scores: scores.slice(), over: duo.over, winner: duo.winner }; }
+      if (duo.over) return { scores: scores.slice(), over: true, winner: duo.winner };
+      scores[p]++; duo.points.push([p, why || '', scores.slice()]);
+      document.getElementById('pill0').textContent = scores[0]; document.getElementById('pill1').textContent = scores[1];
+      const over = scores[p] >= D.target;
+      say((why ? why + ' ' : '') + 'Point pour ' + P[p].name + ' !', { ms: 1200, color: P[p].color, small: true });
+      if (over) { duo.over = true; duo.winner = p; setTimeout(() => showResults(p), 1500); }
+      return { scores: scores.slice(), over, winner: over ? p : null };
+    },
+    round: () => scores[0] + scores[1] + 1,
+    scores: () => scores.slice(),
+    say,
+    vibrate() {}
+  };
+  duo.api = api;
+  try { duo.inst = D.mount(document.getElementById('root'), api) || {}; } catch (e) { duo.errors.push('mount : ' + e.message); }
+  document.getElementById('menu').addEventListener('click', () => {
+    if (!duo.inst) return;
+    duo.paused = !duo.paused;
+    try { if (duo.paused) duo.inst.pause(); else duo.inst.resume(); } catch (e) { duo.errors.push('pause : ' + e.message); }
+    document.getElementById('menu').textContent = duo.paused ? '▶' : 'II';
+  });
+})();
+</script>
+</body></html>

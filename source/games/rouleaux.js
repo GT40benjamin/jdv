@@ -48,6 +48,15 @@
   }
   function fmt(n) { return String(Math.max(0, Math.floor(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
   function mmss(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  // PRNG à graine (mode compétition : même tirage pour tous les concurrents)
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
 
   // ---------- Palettes ----------
   const TILE_PALS = [
@@ -1763,6 +1772,11 @@
       night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae',
       amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a'
     }, api.colors || {});
+    // mode compétition (CONTRACT.md Ajout 6) : niveau de départ (borné à 999 : au-delà tout est déjà au plus dur),
+    // badge dans le HUD, graine du tirage des copains (le contenu des niveaux est dessiné à la main, sans hasard)
+    const START = (() => { const n = Math.floor(+api.startLevel); return n >= 1 ? Math.min(n, 999) : 1; })();
+    const COMPET = api.mode === 'compet';
+    const SEED = api.seed != null && api.seed !== '' && isFinite(api.seed) ? Math.floor(+api.seed) : null;
 
     let destroyed = false, raf = 0;
     const listeners = [];
@@ -1847,17 +1861,22 @@
     }
     function savePts() { return 100 + 20 * cycle; }
     function shake(d, m) { shakeT = Math.max(shakeT, d); shakeMag = Math.max(shakeMag * (shakeT > 0 ? 1 : 0), m); }
+    // tirage des copains du niveau : Math.random d'habitude, PRNG re-graine à chaque niveau avec api.seed
+    let lvlRng = null;
+    function rnd() { return lvlRng ? lvlRng() : Math.random(); }
 
     function loadLevel(n) {
       const P = levelParams(n);
       levelN = n; def = P.def; cycle = P.cycle; req = P.req;
+      lvlRng = SEED == null ? null : mulberry32((SEED ^ Math.imul(n + 1, 0x9E3779B1)) >>> 0);
       wd = makeWorld(def, { total: P.total, rate: P.rate, emit: onWorldEvent, mirror: P.mirror });
       wd.savePts = 100 + 20 * P.cycle;
       levelInfo = P;
       heads = getHeads();
       if (heads.length) {
         const pool = heads.slice();
-        for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp; }
+        if (lvlRng) pool.sort((a, b) => { const x = String(a.name), y = String(b.name); return x < y ? -1 : x > y ? 1 : 0; });   // même ordre sur tous les appareils
+        for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp; }
         const wantVillain = wd.traps.length > 0 && (levelN + cycle) % 2 === 0;
         if (wantVillain) {
           const v = pool[0];
@@ -1883,6 +1902,8 @@
 
     // ---------- Layout ----------
     let W = 300, H = 300, dpr = 1, S = 1, playX = 0, playY = 0, playW = LW, playH = LH, hudH = 52, sideMode = false, fine = false;
+    const BADGE_H = 17;
+    let badgeBelow = false, capOff = 0;   // badge COMPÉTITION sous la barre du haut → nom du niveau (portrait) décalé d'autant
     const btns = [];
     const BTN_IDS = ['stop', 'dig', 'bash', 'build', 'float', 'boom', 'speed'];
     for (let i = 0; i < BTN_IDS.length; i++) btns.push({ id: BTN_IDS[i], key: i < 6 ? String(i + 1) : 'F', x: 0, y: 0, w: 10, h: 10, press: 0 });
@@ -1947,6 +1968,9 @@
           b.x = x0 + c * (bwB + gap); b.y = y0 + rr2 * (bhB + gap); b.w = bwB; b.h = bhB;
         });
       }
+      // badge COMPÉTITION : sous la barre du haut s'il reste de la place au-dessus de l'aire de jeu, sinon dans la barre
+      badgeBelow = COMPET && playY - 5 - hudH >= BADGE_H + 10;
+      capOff = badgeBelow ? BADGE_H + 3 : 0;
     }
 
     // ---------- Entrées ----------
@@ -2083,7 +2107,7 @@
     const ro = new ResizeObserver(() => layout());
     ro.observe(root);
     layout();
-    loadLevel(0);
+    loadLevel(START - 1);   // compétition : directement au niveau demandé (les précédents comptent comme réussis, sans leurs points)
 
     // ---------- Fin de niveau ----------
     function finish(reason) {
@@ -2294,7 +2318,7 @@
         });
         ctx.font = fs + 'px ' + FD; scW = ctx.measureText(scoreB.v).width;
         ctx.font = '700 ' + sub + 'px ' + FB; scW = Math.max(scW, ctx.measureText(scoreB.l).width);
-        const tot = widths.reduce((a2, b2) => a2 + b2, 0) + gap * 3 + scW;
+        const tot = widths.reduce((a2, b2) => a2 + b2, 0) + gap * 3 + scW + (COMPET && !badgeBelow ? 22 + gap : 0);   // + place de la coupe du badge
         if (tot <= right - left || fs <= 12) break;
         fs -= 1;
       }
@@ -2318,6 +2342,34 @@
       ctx.font = fs + 'px ' + FD; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
       ctx.fillStyle = COL.gold; ctx.fillText(scoreB.v, right, y1);
       smallText(scoreB.l, right, y2, sub, COL.muted, 'right', 700);
+      if (COMPET) drawBadge(x - gap / 2, right - scW - gap / 2);
+    }
+    // petit badge « COMPÉTITION » : pastille sombre, coupe et texte or ; juste sous la barre (centré sur l'aire de jeu)
+    // s'il y a la place, sinon dans la barre entre les compteurs et le score (x0 → x1), la coupe seule sur un écran minuscule
+    function drawBadge(x0, x1) {
+      ctx.save();
+      ctx.font = '12px ' + FD; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      const caps = ctx.measureText('COMPETITION');   // hauteur réelle des capitales (Bungee ou police de repli) pour bien centrer
+      const bh = BADGE_H;
+      let bw = Math.ceil(ctx.measureText('COMPÉTITION').width) + 28, cx = playX + playW / 2, cy = hudH + 4 + bh / 2;
+      if (!badgeBelow) {
+        if (x1 - x0 < bw) bw = 22;
+        if (x1 - x0 < bw) { ctx.restore(); return; }
+        cx = clamp(W / 2, x0 + bw / 2, x1 - bw / 2); cy = hudH / 2;
+      }
+      const bx = Math.round(cx - bw / 2) + 0.5, by = Math.round(cy - bh / 2) + 0.5;
+      rr(ctx, bx, by, bw, bh, bh / 2);
+      ctx.fillStyle = 'rgba(6,12,18,0.72)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,211,77,0.6)'; ctx.lineWidth = 1; ctx.stroke();
+      const ix = bx + 11, iy = by + bh / 2;
+      ctx.fillStyle = COL.gold; ctx.strokeStyle = COL.gold;
+      ctx.beginPath(); ctx.moveTo(ix - 3.2, iy - 4); ctx.lineTo(ix + 3.2, iy - 4);
+      ctx.quadraticCurveTo(ix + 3.2, iy + 0.8, ix, iy + 1); ctx.quadraticCurveTo(ix - 3.2, iy + 0.8, ix - 3.2, iy - 4); ctx.fill();
+      ctx.beginPath(); ctx.arc(ix - 3.2, iy - 2.4, 1.5, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(ix + 3.2, iy - 2.4, 1.5, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+      ctx.fillRect(ix - 0.6, iy + 1, 1.2, 1.8); ctx.fillRect(ix - 2.4, iy + 2.6, 4.8, 1.4);
+      if (bw > 22) ctx.fillText('COMPÉTITION', bx + 19, iy + ((caps.actualBoundingBoxAscent || 9) - (caps.actualBoundingBoxDescent || 0)) / 2);
+      ctx.restore();
     }
 
     function drawBar() {
@@ -2451,7 +2503,7 @@
         }
         return;
       }
-      const zone = playY - hudH >= 120;
+      const zone = playY - hudH >= 120 + capOff;
       const hintDur = zone ? 1e9 : 6.5;
       if (hintT < hintDur && def.hint) {
         const a = Math.min(1, hintT / 0.3) * Math.min(1, (hintDur - hintT) / 0.5);
@@ -2462,7 +2514,7 @@
         let mw = 0; ctx.font = '700 ' + size + 'px ' + FB; for (const l of lines) mw = Math.max(mw, ctx.measureText(l).width);
         const bw = mw + 24;
         const bx = playX + (playW - bw) / 2;
-        const zTop = hudH + 58;
+        const zTop = hudH + 58 + capOff;
         const by = zone ? zTop + Math.max(0, (playY - 8 - zTop - bh) / 2) : (wd && wd.villain ? playY + 8 : playY + playH - bh - 8);
         ctx.fillStyle = 'rgba(11,20,28,0.85)'; rr(ctx, bx, by, bw, bh, 10); ctx.fill();
         ctx.strokeStyle = 'rgba(127,211,255,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
@@ -2472,10 +2524,10 @@
     }
 
     function drawCaption() {
-      if (!def || playY - hudH < 120 || state === 'intro') return;
+      if (!def || playY - hudH < 120 + capOff || state === 'intro') return;
       const t = 19;
-      bigText(def.name.toUpperCase(), W / 2, hudH + 20, t, '#ffffff', W - 24, 1, 1);
-      smallText('Sauve ' + req + ' rouleaux sur ' + (wd ? wd.total : 0) + (cycle > 0 ? '  ·  série ' + (cycle + 1) : ''), W / 2, hudH + 42, 13, ACC, 'center', 700);
+      bigText(def.name.toUpperCase(), W / 2, hudH + 20 + capOff, t, '#ffffff', W - 24, 1, 1);
+      smallText('Sauve ' + req + ' rouleaux sur ' + (wd ? wd.total : 0) + (cycle > 0 ? '  ·  série ' + (cycle + 1) : ''), W / 2, hudH + 42 + capOff, 13, ACC, 'center', 700);
     }
     function drawToasts() {
       const size = Math.round(clamp(W * 0.034, 13, 16));
@@ -2561,7 +2613,7 @@
 
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
-      currentLevel: () => (cycle || 0) * 16 + levelN,       // niveau en cours, séries comprises (musique plus énergique ensuite)
+      currentLevel: () => levelN + 1,                       // niveau affiché (levelN compte déjà les séries de 16 ; 17 = série 2 niveau 1)
       // accès de diagnostic (harnais de test uniquement)
       _debug: {
         info: () => ({

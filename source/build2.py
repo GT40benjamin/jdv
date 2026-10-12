@@ -73,6 +73,8 @@ script = "let PG_ACTIVE = false, PG_API = null, PG_HEADS = [], PG_PILOT_IMG = nu
 # ---------- assemblage ----------
 SKIP = [x for x in os.environ.get('SKIP_GAMES', '').split(',') if x]   # ex. SKIP_GAMES=ilo : jeu pas encore prêt
 GAMES = [g for g in ['ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
+# jeux de duel (deux joueurs face à face) : source/duos/<id>.js, contrat DUO-CONTRACT.md
+DUOS = [d for d in ['trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'] if os.path.exists(J + 'duos/' + d + '.js') and d not in SKIP]
 def notes_list():
     # nouveautés de la version (une par ligne), affichées après une mise à jour
     f = J + 'nouveautes.txt'
@@ -83,15 +85,20 @@ def music_list():
     d = os.path.join(J, '..', 'assets', 'music'); out = {}
     if os.path.isdir(d):
         for f in sorted(os.listdir(d)):
-            m = re.match(r'^([a-z0-9]+)-(x?)(\d+)\.mp3$', f)
+            m = re.match(r'^([a-z0-9]+)-(x?)(\d+)\.(?:mp3|bin)$', f)
             if m: out.setdefault(m.group(1), {'c': [], 'x': []})['x' if m.group(2) else 'c'].append(m.group(1) + '-' + m.group(2) + m.group(3))
     return out
+def music_enc():
+    # morceaux chiffrés (assets/music/<nom>.bin, collection de l'Asset Store) : la page les déchiffre avec le mot de passe
+    d = os.path.join(J, '..', 'assets', 'music')
+    return sorted(f[:-4] for f in os.listdir(d) if f.endswith('.bin')) if os.path.isdir(d) else []
 def page(config=None):
     body = open(J + 'shell2-body.html').read().replace('PG_MARKUP', '<section id="jdw-pg" hidden>\n' + markup + '\n</section>')
     games = ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
+    games += ''.join('<script>\n' + open(J + 'duos/' + d + '.js', encoding='utf-8').read() + '\n</script>\n' for d in DUOS)
     cfg = ('<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else '') + \
           '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + '; window.JDW_VERSION = ' + json.dumps(os.environ.get('SITE_VERSION', '')) + '; window.JDW_NOTES = ' + json.dumps(notes_list()) + ';</script>\n' + \
-          '<script>window.JDW_MUSIC = ' + json.dumps(music_list()) + ';</script>\n'
+          '<script>window.JDW_MUSIC = ' + json.dumps(music_list()) + '; window.JDW_MUSIC_ENC = ' + json.dumps(music_enc()) + ';</script>\n'
     return ('<title>Jeux des WC</title>\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
             '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap">\n'

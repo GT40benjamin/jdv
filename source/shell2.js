@@ -1,10 +1,16 @@
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
+// hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
+const shellRand = Math.random.bind(Math);
 const ORDER = ['ilo', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 const NEW_GAMES = new Set(['ilo']);
 const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(Boolean);
 const gameById = id => GAMES.find(g => g.id === id);
+// jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
+const DUO_ORDER = ['trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
+const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(Boolean);
+const duoById = id => DUOS.find(d => d.id === id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
@@ -36,7 +42,7 @@ const Audio = {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.master = this.ctx.createGain(); this.master.gain.value = muted ? 0 : 0.6; this.master.connect(this.ctx.destination);
       this.buf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
-      const d = this.buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const d = this.buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = shellRand() * 2 - 1;
     } catch (e) { this.ctx = null; }
   },
   tone(f, dur, type = 'square', vol = 0.08, f2) {
@@ -56,7 +62,7 @@ const Audio = {
       s.buffer = this.buf; f.type = 'lowpass';
       f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(60, t + dur);
       g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      s.connect(f).connect(g).connect(this.master); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+      s.connect(f).connect(g).connect(this.master); s.start(t, shellRand() * 0.5); s.stop(t + dur + 0.05);
     } catch (e) {}
   }
 };
@@ -88,11 +94,11 @@ async function rpc(fn, args) {
   return txt ? JSON.parse(txt) : null;
 }
 let clientId = store.get('jdw.client', '');
-if (!clientId) { clientId = 'c' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); store.set('jdw.client', clientId); }
+if (!clientId) { clientId = 'c' + shellRand().toString(36).slice(2, 12) + Date.now().toString(36); store.set('jdw.client', clientId); }
 
 /* ================= Profils de l'appareil & têtes ================= */
 // Plusieurs joueurs peuvent partager le même téléphone : chaque profil a un identifiant (pid).
-const newPid = () => 'p' + Math.random().toString(36).slice(2, 10);
+const newPid = () => 'p' + shellRand().toString(36).slice(2, 10);
 const blankProfile = () => ({ pid: newPid(), name: '', photo: null, consent: false, askedFor: '' });
 let profile = Object.assign(blankProfile(), store.get('jdw.profile', {}));
 if (!profile.pid) profile.pid = newPid();
@@ -310,15 +316,52 @@ function musicVariants(id, mode) {
 }
 // niveau à partir duquel la musique devient énergique, par jeu
 const INTENSE_AT = { ilo: 4, pleingaz: 4, empilo: 8, glouton: 6, mouches: 7, carreaux: 7, rouleaux: 9, canards: 6 };
+// morceaux chiffrés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée du mot de passe
+const MUSIC_ENC = new Set(window.JDW_MUSIC_ENC || []);
+const binKeys = {};
+async function decryptBin(u8) {
+  const salt = u8.slice(0, 16), k = Array.prototype.join.call(salt, '.');
+  if (!binKeys[k]) binKeys[k] = (async () => {
+    const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(CODE()), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  })();
+  try { return await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u8.slice(16, 28) }, await binKeys[k], u8.slice(28)); }
+  catch (e) { delete binKeys[k]; throw e; }
+}
 async function musicBuffer(id) {
   if (MUS.buf[id]) return MUS.buf[id];
-  const r = await fetch('assets/music/' + id + '.mp3'); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
-  const ab = await r.arrayBuffer();
+  const enc = MUSIC_ENC.has(id);
+  const r = await fetch('assets/music/' + id + (enc ? '.bin' : '.mp3')); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
+  let ab = await r.arrayBuffer();
+  if (enc) ab = await decryptBin(new Uint8Array(ab));
   const b = await new Promise((res, rej) => Audio.ctx.decodeAudioData(ab, res, rej));
   MUS.buf[id] = b; MUS.order.push(id);
   while (MUS.order.length > 4) delete MUS.buf[MUS.order.shift()];   // on garde peu de morceaux en mémoire
   return b;
 }
+// petits jingles (victoire, point, GO…) : sting-<nom>.bin, joués avec les bruitages (coupés avec eux)
+const STINGS = {};
+function stingBuffer(id) {
+  if (!STINGS[id]) STINGS[id] = (async () => {
+    const r = await fetch('assets/music/' + id + '.bin'); if (!r.ok) throw new Error('jingle ' + id + ' ' + r.status);
+    const ab = await decryptBin(new Uint8Array(await r.arrayBuffer()));
+    return new Promise((res, rej) => Audio.ctx.decodeAudioData(ab, res, rej));
+  })().catch(e => { delete STINGS[id]; throw e; });
+  return STINGS[id];
+}
+const hasSting = name => MUSIC_ENC.has('sting-' + name);
+function sting(name, vol, duck) {
+  const id = 'sting-' + name;
+  if (muted || !Audio.ctx || !MUSIC_ENC.has(id)) return false;
+  stingBuffer(id).then(b => {
+    if (muted || !Audio.ctx) return;
+    const A = Audio.ctx, src = A.createBufferSource(), g = A.createGain();
+    g.gain.value = 0.9 * (vol == null ? 1 : vol); src.buffer = b; src.connect(g).connect(Audio.master); src.start();
+    if (duck !== false) duckMusic(0.3, Math.min(7000, b.duration * 1000));
+  }).catch(() => {});
+  return true;
+}
+function preloadStings(names) { if (Audio.ctx) for (const n of names) if (hasSting(n)) stingBuffer('sting-' + n).catch(() => {}); }
 function musicOut(t) {
   const c = MUS.cur; MUS.cur = null; MUS.id = ''; clearTimeout(MUS.loopT);
   if (!c || !Audio.ctx) return;
@@ -350,7 +393,7 @@ async function setMusic(id, mode) {
   if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
   if (MUS.id === id && MUS.mode === mode && MUS.cur) return;
   MUS.mode = mode;
-  const seq = ++MUS.seq, list = musicVariants(id, mode), idx = Math.floor(Math.random() * list.length);
+  const seq = ++MUS.seq, list = musicVariants(id, mode), idx = Math.floor(shellRand() * list.length);
   let b; try { b = await musicBuffer(list[idx]); } catch (e) { return; }
   if (seq !== MUS.seq || MUS.want !== id || !MUS.on) return;
   musicOut(0.9);
@@ -977,9 +1020,10 @@ const roomTopic = () => room ? 'jdw-room-' + room.id : null;
 // Arrivées, changements de jeu et départs arrivent chez les autres en une seconde environ.
 const PRES = { state: {}, ok: false, timer: 0 };
 function presReset() { PRES.state = {}; PRES.ok = false; }
+function rtBroadcast(data) { const t = roomTopic(); return t ? rtSend(t, 'broadcast', { type: 'broadcast', event: 'poke', payload: Object.assign({ from: clientId }, data) }) : false; }
 function rtTrack() {
-  const t = roomTopic(); if (!t || !profile.name || document.hidden) return;
-  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId, ver: myVersionTag() } });
+  const t = roomTopic(); if (!t || !profile.name || document.hidden || !RT.ws || RT.ws.readyState !== 1) return;
+  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId, ver: myVersionTag(), cmp: cmpMeta() } });
 }
 function rtUntrack() { const t = roomTopic(); if (t) rtSend(t, 'presence', { type: 'presence', event: 'untrack' }); }
 function presApply(d) {
@@ -996,7 +1040,7 @@ function presApply(d) {
 }
 function presList() {
   const out = [];
-  for (const metas of Object.values(PRES.state)) { const m = metas[metas.length - 1]; if (m && m.name) out.push({ name: cleanName(m.name), game: m.game || 'menu', ver: m.ver || '' }); }
+  for (const metas of Object.values(PRES.state)) { const m = metas[metas.length - 1]; if (m && m.name) out.push({ name: cleanName(m.name), game: m.game || 'menu', ver: m.ver || '', cmp: m.cmp || null, cid: m.cid || '' }); }
   return out;
 }
 function presChanged() {
@@ -1017,6 +1061,7 @@ function presChanged() {
   serverOk = true;
   refreshOnline(); if (chat.open) refreshChatOnline();
   if (!$('jdw-members').hidden) renderMembers();
+  cmpOnPresence();
 }
 function rtConnect() {
   if (!ONLINE || !window.WebSocket || (RT.ws && RT.ws.readyState <= 1)) return;
@@ -1055,6 +1100,9 @@ function poke(kind, topic) {
 const pokeTimers = {};
 function onPoke(topic, event, p) {
   if (p.from === clientId) return;
+  if (p.t === 'cmp') { if (room && topic === 'jdw-room-' + room.id) cmpOnSignal(p); return; }
+  if (p.t === 'rtc') { if (room && topic === 'jdw-room-' + room.id) rtcOnSignal(p); return; }
+  if (p.t === 'rx') { if (room && topic === 'jdw-room-' + room.id) rxShow(cleanName(p.n), cleanName(p.to), String(p.e || '').slice(0, 40)); return; }
   if (p.t === 'version') { checkSiteVersion(); return; }
   if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
   if (!room || topic !== 'jdw-room-' + room.id) return;
@@ -1108,7 +1156,7 @@ async function checkAppVersion() {
 }
 let saving = 0;
 function calmMoment() {
-  if (!$('jdw-play').hidden || chat.open || saving > 0) return false;
+  if (!$('jdw-play').hidden || !$('jdw-duo').hidden || chat.open || saving > 0 || CMP.id) return false;
   for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) return false;
   const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA)$/.test(a.tagName));
 }
@@ -1139,7 +1187,7 @@ function seenText(t) {
   if (s < 86400) return 'vu il y a ' + Math.round(s / 3600) + ' h';
   const d = Math.round(s / 86400); return d === 1 ? 'vu hier' : 'vu il y a ' + d + ' jours';
 }
-function gameLabel(id) { if (!id || id === 'menu') return 'dans le menu'; const g = gameById(id); return g ? 'joue à ' + g.title : 'en ligne'; }
+function gameLabel(id) { if (!id || id === 'menu') return 'dans le menu'; if (/^duel-/.test(id)) { const d = duoById(id.slice(5)); return '⚔️ en duel' + (d ? ' · ' + d.title : ''); } const g = gameById(id); return g ? 'joue à ' + g.title : 'en ligne'; }
 function renderMembers() {
   const me = cleanName(profile.name), list = [...players.values()].filter(p => p.member || p.name === me);
   const isOn = p => p.name === me || !!p.live || !!p.dbGame || (!PRES.ok && !!p.game);
@@ -1155,7 +1203,7 @@ function renderMembers() {
       const tx = document.createElement('div'); tx.className = 'mem-txt';
       const n = document.createElement('b'); n.textContent = p.name === me ? p.name + ' (moi)' : p.name;
       const st = document.createElement('small');
-      st.textContent = online ? (p.name === me ? gameLabel(current ? current.game.id : 'menu') : gameLabel(p.live ? p.game : (p.dbGame || p.game))) : seenText(p.seen);
+      st.textContent = online ? (p.name === me ? gameLabel(where) : gameLabel(p.live ? p.game : (p.dbGame || p.game))) : seenText(p.seen);
       const vt = p.name === me ? myVersionTag() : (online && p.live ? (p.liveVer || '') : (p.dbVer || ''));
       const vl = document.createElement('small'); vl.className = 'mem-ver';
       vl.textContent = vt ? versionLabel(vt) : (online && p.live ? 'ancienne version' : '');
@@ -1168,6 +1216,8 @@ function renderMembers() {
       cr.textContent = p.sound ? '🔊 cri' : 'pas de cri'; cr.disabled = !p.sound;
       if (p.sound) { cr.setAttribute('aria-label', 'Écouter le cri de ' + p.name); cr.addEventListener('click', () => playCri(p.name, hd)); }
       tags.append(ph, cr);
+      const live = online && p.name !== me && p.live && watchable(p.game) && presCid(p.name, p.game);
+      if (live) { const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'mem-tag watch-btn'; wb.textContent = '👁 Regarder'; wb.setAttribute('aria-label', 'Regarder ' + p.name + ' jouer en direct'); wb.addEventListener('click', () => { closeSheet('jdw-members'); watchStart(p.name, p.game); }); tags.prepend(wb); }
       row.append(hd, tx, tags); wrap.appendChild(row);
     }
   };
@@ -1304,7 +1354,7 @@ function previewLoop(ts) {
   if ($('jdw-lib').hidden || ts - prevT < 32) return;
   prevT = ts;
   const dpr = Math.min(window.devicePixelRatio || 1, 2), t = ts / 1000;
-  for (const tl of tiles) {
+  for (const tl of tiles.concat(duoTiles, cmpTiles)) {
     if (!tl.visible) continue;
     const c = tl.canvas, w = c.clientWidth, h = c.clientHeight;
     if (!w || !h) continue;
@@ -1324,6 +1374,8 @@ addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (chat.open) { closeChat(); return; }
   if (!$('jdw-cri').hidden) { closeCri(); return; }
+  if (!$('jdw-duo').hidden) { duoBack(); return; }
+  if (!$('jdw-seatpick').hidden) { closeSheet('jdw-seatpick'); return; }
   for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members']) if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else closeSheet(id); break; }
 });
 
@@ -2178,7 +2230,7 @@ let cheerTimer = 0;
 function toastCheer(text, name, force) {
   const heads = headsList();
   let h = name ? heads.find(x => x.name === cleanName(name)) : null;
-  if (!h && heads.length) h = heads[Math.floor(Math.random() * heads.length)];
+  if (!h && heads.length) h = heads[Math.floor(shellRand() * heads.length)];
   const p = h ? players.get(h.name) : (force ? players.get(cleanName(name)) : null);
   if ((!p || !p.photo) && !force) return;
   const el = $('jdw-cheer');
@@ -2286,6 +2338,901 @@ $('jdw-new-ok').addEventListener('click', async () => {
   $('jdw-new-ok').disabled = false;
 });
 
+/* ================= Onglets : Classique / Local / Duel / Compétition ================= */
+// le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
+const MODES = {
+  classique: null,
+  duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain : face à face sur le même téléphone, ou en ligne avec ta salle.' },
+  compet: { ic: '🏆', t: 'Compétition', sub: 'Toute la salle sur le même jeu, en mode difficile : têtes et scores en direct, et que le meilleur gagne !' },
+};
+let MODE = 'classique';
+try { const m = sessionStorage.getItem('jdw.mode'); if (m && m in MODES) MODE = m; } catch (e) {}
+function setMode(m, user) {
+  if (!(m in MODES)) m = 'classique';
+  const changed = m !== MODE; MODE = m;
+  try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}
+  $('jdw-lib').dataset.mode = m;
+  for (const b of document.querySelectorAll('#jdw-modes button')) { if (b.dataset.mode === m) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
+  const md = MODES[m];
+  if (md) { $('jdw-mh-ic').textContent = md.ic; $('jdw-mh-title').textContent = md.t; $('jdw-mh-sub').textContent = md.sub; }
+  if (m === 'duel') renderSeats();
+  if (m === 'compet') renderCompet();
+  if (user && changed) {
+    const w = document.querySelector('.lib-wrap'); w.classList.remove('page-in'); void w.offsetWidth; w.classList.add('page-in');
+    $('jdw-lib').scrollTo({ top: 0 });
+    Audio.ensure(); Audio.tone(660, 0.05, 'sine', 0.03, 990);
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
+  }
+}
+for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListener('click', () => setMode(b.dataset.mode, true));
+
+/* ================= Duel : deux joueurs face à face sur le même téléphone ================= */
+// P0 = en bas (écran à l'endroit), P1 = en haut (écran à l'envers). Les jeux : source/duos/*.js (DUO-CONTRACT.md).
+const DUO_COLORS = ['#ffa630', '#5ef0ff'];
+// musique de chaque duel : morceaux des jeux solo qui vont bien
+const DUO_MUSIC = { trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
+  souris: ['glouton', 'calm'], spatial: ['ilo', 'intense'], mots: ['accueil', 'calm'], guerre: ['canards', 'calm'] };
+const GUEST = 'INVITÉ';
+let seats = store.get('jdw.seats', null);
+function defaultSeats() {
+  const me = cleanName(profile.name) || 'JOUEUR';
+  const other = profiles.map(p => cleanName(p.name)).find(n => n && n !== me);
+  return [me, other || GUEST];
+}
+if (!Array.isArray(seats) || seats.length !== 2 || !seats[0]) seats = defaultSeats();
+const seatName = i => seats[i] || GUEST;
+const sameSeats = () => seatName(0) === seatName(1);
+function seatPlayer(i) {
+  const name = seatName(i), rec = name === GUEST ? null : players.get(name);
+  const ok = !!(rec && rec.img && rec.img.complete && rec.img.naturalWidth);
+  return { name: name === GUEST && sameSeats() ? GUEST + ' ' + (i + 1) : name, img: ok ? rec.img : null, sad: ok ? (sadOf(rec) || rec.img) : null, color: DUO_COLORS[i] };
+}
+// victoires par paire de joueurs et par duel (sur cet appareil)
+let duoStats = store.get('jdw.duostats', {}) || {};
+const pairKey = () => [seatName(0), seatName(1)].sort().join('|');
+function pairWins(id) { const s = (duoStats[pairKey()] || {})[id] || {}; return [s[seatName(0)] || 0, s[seatName(1)] || 0]; }
+function addWin(id, w) {
+  if (sameSeats()) return;
+  const k = pairKey(), n = seatName(w), s = duoStats[k] = duoStats[k] || {}, g = s[id] = s[id] || {};
+  g[n] = (g[n] || 0) + 1; store.set('jdw.duostats', duoStats);
+}
+function renderSeats() {
+  for (const i of [0, 1]) {
+    const b = $('jdw-seat-' + i), pl = seatPlayer(i), hd = b.querySelector('.seat-head');
+    hd.textContent = ''; hd.appendChild(chatHead(pl.name, { passive: true }));
+    b.querySelector('.seat-name').textContent = pl.name;
+  }
+  refreshDuoTiles();
+}
+let pickSeat = 0;
+function openSeatPick(i) {
+  pickSeat = i;
+  $('jdw-seatpick-h').textContent = i === 0 ? 'Qui joue en bas ?' : 'Qui joue en haut ?';
+  const list = $('jdw-seatpick-list'); list.textContent = '';
+  const seen = new Set(), rows = [];
+  const add = (n, tag) => { n = cleanName(n); if (!n || n === GUEST || seen.has(n)) return; seen.add(n); rows.push([n, tag]); };
+  for (const p of profiles) add(p.name, 'sur ce téléphone');
+  for (const p of [...players.values()].filter(p => p.member).sort((a, b) => a.name.localeCompare(b.name))) add(p.name, room ? 'de la salle' : '');
+  rows.push([GUEST, 'un copain sans compte']);
+  for (const [n, tag] of rows) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pick-row' + (seatName(i) === n ? ' on' : '');
+    const t = document.createElement('span'); t.className = 'pr-t';
+    const bb = document.createElement('b'); bb.textContent = n; const sm = document.createElement('small'); sm.textContent = tag; t.append(bb, sm);
+    b.append(chatHead(n, { passive: true }), t);
+    b.addEventListener('click', () => {
+      const o = 1 - i;
+      if (n !== GUEST && seats[o] === n) seats[o] = seats[i];   // déjà assis en face : on échange
+      seats[i] = n; store.set('jdw.seats', seats);
+      closeSheet('jdw-seatpick'); renderSeats();
+    });
+    list.appendChild(b);
+  }
+  openSheet('jdw-seatpick', 'jdw-seatpick-close');
+}
+$('jdw-seat-0').addEventListener('click', () => openSeatPick(0));
+$('jdw-seat-1').addEventListener('click', () => openSeatPick(1));
+$('jdw-seat-swap').addEventListener('click', () => { seats = [seats[1], seats[0]]; store.set('jdw.seats', seats); renderSeats(); });
+$('jdw-seatpick-close').addEventListener('click', () => closeSheet('jdw-seatpick'));
+$('jdw-seatpick').addEventListener('click', e => { if (e.target === $('jdw-seatpick')) closeSheet('jdw-seatpick'); });
+function setDuelWhere(w) {
+  for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.setAttribute('aria-selected', String(b.dataset.where === w));
+  $('jdw-duel-local').hidden = w !== 'local'; $('jdw-duel-online').hidden = w !== 'online';
+}
+for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.addEventListener('click', () => setDuelWhere(b.dataset.where));
+// tuiles des duels (vignette animée + score de la paire)
+const duoTiles = [];
+function buildDuoLibrary() {
+  const grid = $('jdw-duo-grid');
+  for (const d of DUOS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tile duo-tile'; b.style.setProperty('--acc', d.accent || COLORS.amber);
+    b.setAttribute('aria-label', 'Duel : ' + d.title);
+    b.innerHTML = '<div class="tile-img"><canvas aria-hidden="true"></canvas><span class="duo-emoji" aria-hidden="true"></span></div><div class="tile-meta"><div class="tile-name"></div><div class="duo-tag"></div></div>';
+    b.querySelector('.tile-name').textContent = d.title;
+    b.querySelector('.duo-emoji').textContent = d.emoji || '⚔️';
+    b.addEventListener('click', () => openDuo(d));
+    const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', d.accent || COLORS.amber);
+    wrap.appendChild(b); grid.appendChild(wrap);
+    duoTiles.push({ g: d, el: b, canvas: b.querySelector('canvas'), tag: b.querySelector('.duo-tag'), visible: false });
+  }
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => { const t = duoTiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
+    duoTiles.forEach(t => io.observe(t.el));
+  } else duoTiles.forEach(t => { t.visible = true; });
+  refreshDuoTiles();
+}
+function refreshDuoTiles() {
+  for (const t of duoTiles) {
+    const w = pairWins(t.g.id);
+    t.tag.textContent = w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
+    t.tag.classList.toggle('tally', !!(w[0] + w[1]) && !sameSeats());
+  }
+}
+// ---------- la partie ----------
+const DUO = { d: null, inst: null, root: null, seq: 0, scores: [0, 0], over: false, winner: null, paused: false, waitRot: false, sayT: [0, 0], shared: false };
+// musique propre au duel (collection) si elle est là : d<id>-<n>.bin
+function duoMusicId(d) { const v = (window.JDW_MUSIC || {})['d' + d.id]; return v && (v.c.length || v.x.length) ? 'd' + d.id : ''; }
+function duoBtn(text, cls, fn) { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = text; b.addEventListener('click', fn); return b; }
+function duoSay(text, o) {
+  o = o || {};
+  const land = DUO.d && DUO.d.layout === 'landscape';
+  const ps = land ? [0] : (o.p === 0 || o.p === 1) ? [o.p] : [0, 1];
+  for (const p of ps) {
+    const el = $('jdw-duo-say' + p); el.textContent = '';
+    const dv = document.createElement('div'); dv.className = 'duo-say-t' + (o.small ? ' small' : '');
+    dv.style.color = o.color || COLORS.ink; dv.textContent = String(text || '');
+    el.appendChild(dv); clearTimeout(DUO.sayT[p]);
+    DUO.sayT[p] = setTimeout(() => { el.textContent = ''; }, Math.max(300, Math.min(6000, +o.ms || 1000)));
+  }
+}
+function duoPills(scored) {
+  const t = DUO.d ? DUO.d.target || 5 : 5;
+  for (const i of [0, 1]) {
+    const pl = $('jdw-duo-pill' + i); pl.querySelector('b').textContent = DUO.scores[i];
+    pl.classList.toggle('mp', !DUO.over && DUO.scores[i] === t - 1);
+    if (scored === i) { pl.classList.remove('bump'); void pl.offsetWidth; pl.classList.add('bump'); }
+  }
+}
+function duoApi(d, seq) {
+  const P = [seatPlayer(0), seatPlayer(1)];
+  const mine = () => DUO.seq === seq;
+  return {
+    players: P,
+    heads: () => headsList(),
+    audio: audioApi, colors: COLORS, fonts: FONTS,
+    assets: (name) => window.JDW_ASSETS.load(name || 'ilo'),
+    point(p, why) {
+      if (!mine() || (p !== 0 && p !== 1)) return { scores: DUO.scores.slice(), over: DUO.over, winner: DUO.winner };
+      if (DUO.over) return { scores: DUO.scores.slice(), over: true, winner: DUO.winner };
+      DUO.scores[p]++;
+      const over = DUO.scores[p] >= (d.target || 5);
+      if (over) { DUO.over = true; DUO.winner = p; }
+      duoPills(p);
+      duoSay((why ? why + ' ' : '') + (over ? P[p].name + ' gagne le match !' : 'Point pour ' + P[p].name + ' !'), { ms: 1300, color: P[p].color, small: true });
+      if (!sting('point', 0.55, false)) Audio.tone(over ? 784 : 660, 0.12, 'square', 0.05, over ? 1175 : 880);
+      if (!over && DUO.scores[p] === (d.target || 5) - 1 && !DUO.mp) {   // balle de match : la musique s'emballe
+        DUO.mp = true; setTimeout(() => { if (mine()) { sting('match', 0.6); if (duoMusicId(d)) setMusic(duoMusicId(d), 'intense'); } }, 700);
+      }
+      if (over) setTimeout(() => { if (mine()) duoResults(); }, 1500);
+      return { scores: DUO.scores.slice(), over, winner: over ? p : null };
+    },
+    round: () => DUO.scores[0] + DUO.scores[1] + 1,
+    scores: () => DUO.scores.slice(),
+    say: (text, o) => { if (mine()) duoSay(text, o); },
+    hasMusic: !!duoMusicId(d),   // la bibliothèque joue une musique pour ce duel : le jeu ne joue pas la sienne
+    vibrate: (ms) => { try { if (navigator.vibrate) navigator.vibrate(Math.max(10, Math.min(400, +ms || 30))); } catch (e) {} },
+    online: false
+  };
+}
+function openDuo(d) {
+  if (!d) return;
+  Audio.ensure();
+  DUO.d = d; DUO.shared = false;
+  $('jdw-lib').hidden = true; $('jdw-duo').hidden = false;
+  $('jdw-duo').classList.toggle('land', d.layout === 'landscape');
+  for (const i of [0, 1]) { const av = $('jdw-duo-pill' + i).querySelector('.dp-av'); av.textContent = ''; av.appendChild(chatHead(seatPlayer(i).name, { passive: true })); }
+  if (d.layout === 'landscape' && innerHeight > innerWidth) { DUO.waitRot = true; $('jdw-duo-rotate').hidden = false; setWhere('duel-' + d.id); return; }
+  mountDuo();
+}
+function mountDuo() {
+  const d = DUO.d; if (!d) return;
+  unmountDuo();
+  DUO.waitRot = false; $('jdw-duo-rotate').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-hud').hidden = false;
+  const seq = DUO.seq;
+  DUO.scores = [0, 0]; DUO.over = false; DUO.winner = null; DUO.paused = false; DUO.shared = false; duoPills();
+  const root = document.createElement('div'); root.className = 'duo-root'; $('jdw-duo-host').appendChild(root); DUO.root = root;
+  DUO.mp = false;
+  const mid = duoMusicId(d), m = mid ? [mid, 'calm'] : DUO_MUSIC[d.id] || ['accueil', 'calm']; musicBaseLevel(0.7); MUS.override = false; setMusic(m[0], m[1]);
+  preloadStings(['point', 'match', 'win']);
+  DUO.api = duoApi(d, seq);
+  try { DUO.inst = d.mount(root, DUO.api) || {}; }
+  catch (e) { DUO.inst = {}; reportError('Duel ' + d.id + ' : ' + e.message, e.stack); toastCheer('Oups, ce duel a eu un souci.', profile.name, true); }
+  setWhere('duel-' + d.id);
+}
+function unmountDuo() {
+  DUO.seq++;   // les rappels de l'ancienne partie deviennent sans effet
+  if (DUO.inst) { try { if (DUO.inst.destroy) DUO.inst.destroy(); } catch (e) { reportError('Duel ' + (DUO.d && DUO.d.id) + ' (fin) : ' + e.message, e.stack, { quiet: true }); } }
+  DUO.inst = null;
+  if (DUO.root) { DUO.root.remove(); DUO.root = null; }
+  for (const p of [0, 1]) { clearTimeout(DUO.sayT[p]); $('jdw-duo-say' + p).textContent = ''; }
+}
+function resHalf(i, land) {
+  const el = $('jdw-duo-r' + i); el.textContent = '';
+  const d = DUO.d, w = DUO.winner, win = i === w, me = seatPlayer(i), oth = seatPlayer(1 - i), pw = pairWins(d.id);
+  el.className = 'dr-half ' + (win || land ? 'win' : 'lose');
+  el.style.setProperty('--pc', DUO_COLORS[land ? w : i]);
+  // décor : rayons et confettis pour le gagnant, petite pluie pour le perdant
+  const deco = document.createElement('div'); deco.className = 'dr-deco'; deco.setAttribute('aria-hidden', 'true');
+  if (win || land) {
+    const rays = document.createElement('div'); rays.className = 'dr-rays'; deco.appendChild(rays);
+    const cols = ['#ffd34d', '#ffa630', '#5ef0ff', '#ff5fae', '#4cc36a', '#ffffff'];
+    for (let k = 0; k < 26; k++) { const c = document.createElement('i'); c.className = 'dr-conf'; c.style.left = (shellRand() * 100).toFixed(1) + '%'; c.style.setProperty('--c', cols[k % cols.length]); c.style.setProperty('--d', (shellRand() * 1.2).toFixed(2) + 's'); c.style.setProperty('--r', (shellRand() * 720 - 360).toFixed(0) + 'deg'); c.style.setProperty('--x', (shellRand() * 80 - 40).toFixed(0) + 'px'); deco.appendChild(c); }
+  } else {
+    for (let k = 0; k < 22; k++) { const r = document.createElement('i'); r.className = 'dr-rain'; r.style.left = (shellRand() * 100).toFixed(1) + '%'; r.style.setProperty('--d', (shellRand() * 1.2).toFixed(2) + 's'); r.style.setProperty('--s', (0.7 + shellRand() * 0.5).toFixed(2) + 's'); deco.appendChild(r); }
+  }
+  el.appendChild(deco);
+  const heads = document.createElement('div'); heads.className = 'dr-heads';
+  const hd = (pl, isWin) => {
+    const b = document.createElement('div'); b.className = 'dr-head' + (isWin ? ' w' : '');
+    b.appendChild(chatHead(pl.name, { passive: true, sad: !isWin }));
+    if (isWin) { const cr = document.createElement('span'); cr.className = 'dr-crown'; cr.textContent = '👑'; b.appendChild(cr); }
+    return b;
+  };
+  if (land) heads.append(hd(seatPlayer(w), true), hd(seatPlayer(1 - w), false)); else heads.append(hd(me, win));
+  const h = document.createElement('h2'); h.textContent = land ? '🏆 ' + seatPlayer(w).name + ' gagne !' : win ? 'Gagné !' : 'Perdu…';
+  const sc = document.createElement('p'); sc.className = 'dr-score';
+  const a = land ? w : i, b2 = 1 - a, s1 = document.createElement('b'), s2 = document.createElement('b');
+  s1.textContent = DUO.scores[a]; s1.style.color = DUO_COLORS[a]; s2.textContent = DUO.scores[b2]; s2.style.color = DUO_COLORS[b2];
+  sc.append(s1, ' – ', s2);
+  const sub = document.createElement('p'); sub.className = 'dr-sub';
+  sub.textContent = sameSeats() ? (win ? 'Bravo !' : 'Revanche ?')
+    : land ? d.title + ' · victoires : ' + seatName(0) + ' ' + pw[0] + ' – ' + pw[1] + ' ' + seatName(1)
+    : d.title + ' · tes victoires : ' + pw[i] + ' – ' + pw[1 - i] + ' contre ' + oth.name;
+  const row = document.createElement('div'); row.className = 'dr-btns';
+  row.append(duoBtn('Revanche !', 'btn btn-play', () => mountDuo()), duoBtn('Autre duel', 'btn btn-ghost', closeDuo));
+  el.append(heads, h, sc, sub, row);
+  // le gagnant peut l'annoncer dans le chat de la salle
+  if ((win || land) && ONLINE && room && !sameSeats()) {
+    const sh = duoBtn('📣 Annoncer dans le chat', 'btn btn-ghost btn-sm dr-share', async () => {
+      if (DUO.shared) return; DUO.shared = true; sh.disabled = true; sh.textContent = 'Envoi…';
+      const W = seatPlayer(w).name, L = seatPlayer(1 - w).name;
+      try {
+        await rpc('post_message', Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_body: '⚔️ ' + W + ' a battu ' + L + ' ' + DUO.scores[w] + ' à ' + DUO.scores[1 - w] + ' en duel · ' + d.title + ' !' }));
+        poke('chat'); sh.textContent = '✓ Annoncé';
+      } catch (e) { DUO.shared = false; sh.disabled = false; sh.textContent = '📣 Annoncer dans le chat'; }
+    });
+    el.appendChild(sh);
+  }
+}
+function duoResults() {
+  const d = DUO.d; if (!d) return;
+  const w = DUO.winner, land = d.layout === 'landscape';
+  unmountDuo();
+  addWin(d.id, w);
+  resHalf(0, land); if (!land) resHalf(1, false);
+  $('jdw-duo-res').hidden = false; $('jdw-duo-hud').hidden = true;
+  musicBaseLevel(0.5);
+  if (!sting('win', 0.9)) { Audio.tone(523, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(659, 0.12, 'square', 0.06), 130); setTimeout(() => Audio.tone(784, 0.3, 'square', 0.06), 260); }
+  if ((window.JDW_MUSIC || {}).dscores) setMusic('dscores', 'calm');
+  const wn = seatName(w);
+  if (wn !== GUEST) setTimeout(() => playCri(wn), 1800);
+  setWhere('menu');
+}
+function closeDuo() {
+  unmountDuo();
+  DUO.d = null; DUO.waitRot = false; DUO.paused = false;
+  $('jdw-duo').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-rotate').hidden = true;
+  $('jdw-lib').hidden = false;
+  setWhere('menu'); refreshDuoTiles(); musicBaseLevel(1); MUS.override = false; setMusic('accueil');
+  if (siteNew) setTimeout(maybeReload, 800);
+}
+function duoPause() {
+  if (!DUO.inst || DUO.over) return;
+  if (!DUO.paused) { DUO.paused = true; try { if (DUO.inst.pause) DUO.inst.pause(); } catch (e) {} musicBaseLevel(0.35); }
+  $('jdw-duo-pause-sub').textContent = seatPlayer(0).name + ' ' + DUO.scores[0] + ' – ' + DUO.scores[1] + ' ' + seatPlayer(1).name + ' · ' + DUO.d.title;
+  $('jdw-duo-pause').hidden = false;
+  setTimeout(() => { const b = $('jdw-duo-resume'); if (b && !$('jdw-duo-pause').hidden) b.focus({ preventScroll: true }); }, 30);
+}
+function duoResume() {
+  $('jdw-duo-pause').hidden = true;
+  if (!DUO.paused) return;
+  DUO.paused = false; musicBaseLevel(0.7);
+  try { if (DUO.inst && DUO.inst.resume) DUO.inst.resume(); } catch (e) {}
+}
+function duoBack() {
+  if (!$('jdw-duo-res').hidden || DUO.waitRot) { closeDuo(); return; }
+  if (!$('jdw-duo-pause').hidden) { duoResume(); return; }
+  duoPause();
+}
+$('jdw-duo-menu').addEventListener('click', duoPause);
+$('jdw-duo-resume').addEventListener('click', duoResume);
+$('jdw-duo-restart').addEventListener('click', () => mountDuo());
+$('jdw-duo-quit').addEventListener('click', closeDuo);
+$('jdw-duo-rotate-skip').addEventListener('click', () => mountDuo());
+$('jdw-duo-rotate-back').addEventListener('click', closeDuo);
+addEventListener('resize', () => { if (DUO.waitRot && innerWidth > innerHeight) mountDuo(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && !$('jdw-duo').hidden && DUO.inst && !DUO.over) duoPause(); });
+
+/* ================= Compétition : toute la salle sur le même jeu, en mode difficile ================= */
+// Rien de plus sur le serveur : la présence de la salle dit qui participe (rôle, état, score) et des signaux « cmp »
+// portent le GO, les scores en direct, les sorties et les réactions. L'hôte (le premier inscrit encore là) donne le GO
+// dès que 2 joueurs sont prêts ; chacun joue sur son téléphone, au même niveau difficile et avec la même graine.
+const COMPET_START = { ilo: 4, pleingaz: 4, empilo: 8, glouton: 6, mouches: 7, carreaux: 7, rouleaux: 9 };
+const COMPET_GO_MS = 10000;
+const REACTIONS = ['😂', '🔥', '💩', '😱', '👏', '😈'];
+const CMP = { id: null, g: null, role: null, st: null, t: 0, seed: 0, score: 0, goAt: 0, goFor: '', goSent: 0, goN: 0,
+  playing: false, practice: false, roster: new Map(), rid: null, seen: new Set(), ended: '', lastSc: 0, lastTrack: 0, rxLast: 0, pickFor: '' };
+const cmpGame = id => gameById(id);
+function cmpMeta() { return CMP.id ? { id: CMP.id, g: CMP.g, r: CMP.role, st: CMP.st, s: CMP.score, t: CMP.t, seed: CMP.seed } : null; }
+function cmpReset() {
+  Object.assign(CMP, { id: null, g: null, role: null, st: null, t: 0, seed: 0, score: 0, goAt: 0, goFor: '', goSent: 0, goN: 0, playing: false, practice: false, ended: '' });
+}
+// compétitions annoncées dans la salle (normalement une seule : la plus ancienne gagne)
+function cmpAll() {
+  const by = new Map();
+  for (const x of presList()) {
+    const c = x.cmp; if (!c || !c.id || !cmpGame(c.g)) continue;
+    const e = by.get(c.id) || { id: c.id, g: c.g, t: Infinity, members: new Map() };
+    e.t = Math.min(e.t, +c.t || 0); e.members.set(x.name, { name: x.name, r: c.r, st: c.st, s: +c.s || 0, t: +c.t || 0, seed: +c.seed || 0 });
+    by.set(c.id, e);
+  }
+  return [...by.values()].sort((a, b) => a.t - b.t);
+}
+const cmpFinished = c => { const ps = [...c.members.values()].filter(m => m.r === 'p'); return ps.length > 0 && ps.every(m => m.st === 'out'); };
+function cmpView() {   // la compétition affichée : la mienne, sinon celle en cours dans la salle, sinon la dernière terminée
+  const all = cmpAll();
+  if (CMP.id) return all.find(c => c.id === CMP.id) || { id: CMP.id, g: CMP.g, t: CMP.t, members: new Map() };
+  return all.find(c => !cmpFinished(c)) || all[all.length - 1] || null;
+}
+// liste des concurrents de la compétition affichée, gardée même si quelqu'un s'en va (son dernier score compte)
+function cmpSync() {
+  const v = cmpView();
+  if (!v) { CMP.rid = null; CMP.roster = new Map(); return null; }
+  if (CMP.rid !== v.id) { CMP.rid = v.id; CMP.roster = new Map(); }
+  for (const m of v.members.values()) {
+    const o = CMP.roster.get(m.name) || {};
+    CMP.roster.set(m.name, Object.assign({}, o, m, { s: Math.max(m.s, o.s || 0), gone: false }));
+  }
+  for (const [n, o] of CMP.roster) if (!v.members.has(n) && !o.gone) { o.gone = true; if (o.st === 'play') o.st = 'out'; if (o.st !== 'out') CMP.roster.delete(n); }
+  if (CMP.id) {   // moi, sans attendre l'écho de la présence
+    const me = cleanName(profile.name), o = CMP.roster.get(me) || {};
+    CMP.roster.set(me, Object.assign({}, o, { name: me, r: CMP.role, st: CMP.st, s: Math.max(CMP.score, CMP.st === 'out' ? 0 : o.s || 0), t: CMP.t, gone: false }));
+    if (CMP.st === 'out') CMP.roster.get(me).s = CMP.score;
+  }
+  return v;
+}
+const cmpPlayers = () => [...CMP.roster.values()].filter(m => m.r === 'p');
+function cmpHost() {
+  const ps = cmpPlayers().filter(m => !m.gone).sort((a, b) => a.t - b.t || a.name.localeCompare(b.name));
+  return ps.length ? ps[0].name : '';
+}
+function cmpPhase() {
+  const ps = cmpPlayers();
+  if (ps.some(m => m.st === 'play')) return 'play';
+  if (ps.some(m => m.st === 'out') && !ps.some(m => m.st === 'lobby' && !m.gone)) return 'end';
+  if (CMP.goAt && CMP.goFor === CMP.rid) return 'countdown';
+  return 'lobby';
+}
+function cmpRanking() {
+  return cmpPlayers().filter(m => m.st === 'play' || m.st === 'out').sort((a, b) => b.s - a.s || a.name.localeCompare(b.name));
+}
+// ---------- actions ----------
+function cmpCreate(g) {
+  if (!room) { openRooms(); return; }
+  const v = cmpView(); if (v && !CMP.id && !cmpFinished(v)) { cmpJoin('p'); return; }
+  Audio.ensure();
+  cmpReset(); CMP.id = 'c' + Date.now().toString(36) + shellRand().toString(36).slice(2, 6);
+  CMP.g = g.id; CMP.role = 'p'; CMP.st = 'lobby'; CMP.t = Date.now(); preloadStings(['go', 'podium']);
+  rtTrack(); rtBroadcast({ t: 'cmp', k: 'open', id: CMP.id, g: g.id, n: cleanName(profile.name) });
+  cmpSync(); renderCompet();
+}
+function cmpJoin(role) {
+  const v = cmpView(); if (!v) return;
+  Audio.ensure();
+  const was = CMP.id === v.id ? CMP.t : 0;
+  CMP.id = v.id; CMP.g = v.g; CMP.role = role; CMP.st = role === 'p' ? 'lobby' : 'watch'; CMP.t = was || Date.now(); preloadStings(['go', 'podium']);
+  CMP.seed = [...v.members.values()].map(m => m.seed).find(Boolean) || CMP.seed;   // arrivée en cours de partie : même graine que les autres
+  if (role === 'p') CMP.score = 0;
+  rtTrack(); cmpSync();
+  if (role === 'p' && cmpPhase() === 'play') { cmpStartGame(); return; }   // on rejoint une partie en cours : départ immédiat
+  renderCompet();
+}
+function cmpLeave() {
+  if (CMP.playing) return;
+  cmpReset(); rtTrack(); cmpSync(); renderCompet();
+}
+function cmpStartGame() {
+  const g = cmpGame(CMP.g); if (!g) return;
+  if (current) { CMP.practice = false; unmountGame(); }
+  CMP.practice = false; CMP.playing = true; CMP.st = 'play'; CMP.score = 0; CMP.lastSc = 0; CMP.goAt = 0;
+  rtTrack(); rtBroadcast({ t: 'cmp', k: 'sc', id: CMP.id, n: cleanName(profile.name), s: 0 });
+  cmpOpenGame(g);
+}
+function cmpOpenGame(g) {
+  $('jdw-play').classList.add('cmp'); $('jdw-cmp-side').hidden = false; renderCmpSide();
+  openGame(g);
+  setTimeout(() => dispatchEvent(new Event('resize')), 80);   // Plein Gaz se mesure au redimensionnement
+}
+function cmpPractice() {
+  const g = cmpGame(CMP.g); if (!g || CMP.playing) return;
+  CMP.practice = true; cmpOpenGame(g);
+  toastCheer('Entraînement : ça ne compte pas. Dès qu\'un copain est prêt : GO !', profile.name, true);
+}
+function cmpPracticeOver() {
+  CMP.practice = false; backToLibrary(); setMode('compet');
+}
+function cmpOut(score) {
+  CMP.playing = false; CMP.st = 'out'; CMP.score = Math.max(0, Math.floor(+score || 0));
+  rtTrack(); rtBroadcast({ t: 'cmp', k: 'out', id: CMP.id, n: cleanName(profile.name), s: CMP.score });
+  backToLibrary(); setMode('compet');
+  cmpSync();
+  renderCompet(); cmpCheckEnd();
+  if ($('jdw-podium').hidden) {   // les autres jouent encore : où j'en suis
+    const rk = cmpRanking().findIndex(m => m.name === cleanName(profile.name)) + 1;
+    toastCheer('Terminé : ' + fmt(CMP.score) + ' points' + (rk ? ', ' + (rk === 1 ? '1er' : rk + 'e') + ' pour l\'instant' : '') + ' !', profile.name, true);
+  }
+}
+// ---------- signaux en direct ----------
+function cmpOnSignal(p) {
+  if (p.k === 'open') { cmpOnPresence(); return; }
+  if (p.id !== CMP.rid && p.id !== CMP.id) return;
+  if (p.k === 'go') {
+    CMP.goAt = Date.now() + Math.max(0, Math.min(15000, +p.in || 0)); CMP.goFor = p.id; CMP.seed = +p.seed || CMP.seed;
+    if (CMP.id === p.id) rtTrack();
+    renderCompet(); return;
+  }
+  const n = cleanName(p.n); if (!n) return;
+  const o = CMP.roster.get(n) || { name: n, r: 'p', t: Date.now() };
+  if (p.k === 'sc') { o.s = Math.max(0, +p.s || 0); if (o.st !== 'out') o.st = 'play'; CMP.roster.set(n, o); }
+  else if (p.k === 'out') { o.s = Math.max(0, +p.s || 0); o.st = 'out'; CMP.roster.set(n, o); cmpCheckEnd(); }
+  else if (p.k === 're') { cmpShowReact(n, cleanName(p.to), String(p.e || '').slice(0, 4)); return; }
+  renderCompetSoon();
+}
+let cmpRenderT = 0;
+function renderCompetSoon() { if (cmpRenderT) return; cmpRenderT = setTimeout(() => { cmpRenderT = 0; renderCompet(); renderCmpSide(); }, 120); }
+function cmpOnPresence() {
+  const before = CMP.rid;
+  const v = cmpSync();
+  // une nouvelle compétition dans la salle : on prévient (sauf si c'est moi qui l'ai lancée)
+  for (const c of cmpAll()) if (!CMP.seen.has(c.id)) {
+    CMP.seen.add(c.id);
+    const first = [...c.members.values()].sort((a, b) => a.t - b.t)[0];
+    const g = cmpGame(c.g);
+    if (first && g && c.id !== CMP.id && first.name !== cleanName(profile.name) && PRES.ok && Date.now() - c.t < 120000)
+      toastCheer('🏆 ' + first.name + ' lance une compétition : ' + g.title + ' ! Viens jouer (onglet Compétition).', first.name, true);
+  }
+  $('jdw-cmp-badge').hidden = !cmpAll().some(c => !cmpFinished(c));
+  if (CMP.id && !v) { /* ma compétition n'est plus annoncée (coupure) : on garde l'état local */ }
+  if (v && before !== v.id) renderCompet();
+  renderCompetSoon();
+  cmpCheckEnd();
+}
+// ---------- l'hôte donne le GO ; tout le monde démarre à l'heure ----------
+function cmpTick() {
+  if (!CMP.rid) return;
+  const ph = cmpPhase(), me = cleanName(profile.name);
+  const ready = cmpPlayers().filter(m => m.st === 'lobby' && !m.gone);
+  if (CMP.id && cmpHost() === me && ph === 'lobby' && ready.length >= 2 && !CMP.goAt) {
+    CMP.seed = (Date.now() ^ (shellRand() * 0x7fffffff)) & 0x7fffffff;
+    CMP.goAt = Date.now() + COMPET_GO_MS; CMP.goFor = CMP.rid; CMP.goN = ready.length; CMP.goSent = Date.now();
+    rtBroadcast({ t: 'cmp', k: 'go', id: CMP.rid, in: COMPET_GO_MS, seed: CMP.seed }); rtTrack();
+  } else if (CMP.id && cmpHost() === me && CMP.goAt && (ready.length !== CMP.goN || Date.now() - CMP.goSent > 3000) && CMP.goAt - Date.now() > 800) {
+    // quelqu'un vient d'arriver pendant le compte à rebours : on lui redonne l'heure du GO
+    CMP.goN = ready.length; CMP.goSent = Date.now();
+    rtBroadcast({ t: 'cmp', k: 'go', id: CMP.rid, in: CMP.goAt - Date.now(), seed: CMP.seed });
+  }
+  if (CMP.goAt && Date.now() >= CMP.goAt) {
+    CMP.goAt = 0;
+    if (CMP.id && CMP.role === 'p' && CMP.st === 'lobby' && cmpPlayers().filter(m => m.st === 'lobby' || m.st === 'play').length >= 2) {
+      // occupé ailleurs (autre partie, duel, vidéo) : on ne coupe rien, on passe spectateur (on peut rejoindre ensuite)
+      if ((current && !CMP.practice) || !$('jdw-duo').hidden || WATCH.sid || document.hidden) {
+        CMP.role = 'w'; CMP.st = 'watch'; rtTrack();
+        const g = cmpGame(CMP.g); toastCheer('La compétition ' + (g ? g.title + ' ' : '') + 'a commencé : rejoins-la quand tu veux (onglet Compétition).', me, true);
+        renderCompet(); return;
+      }
+      toastCheer('GO ! Que le meilleur gagne !', me, true); sting('go', 0.9); cmpStartGame(); return;
+    }
+  }
+  // scores en direct pendant ma partie
+  if (CMP.playing && current && current.inst && current.inst.currentScore) {
+    let sc = 0; try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
+    if (sc !== CMP.score) { CMP.score = sc; rtBroadcast({ t: 'cmp', k: 'sc', id: CMP.id, n: me, s: sc }); }
+    if (Date.now() - CMP.lastTrack > 5000) { CMP.lastTrack = Date.now(); rtTrack(); }
+  }
+  if (!$('jdw-lib').hidden && MODE === 'compet') renderCompetTimer();
+  if (CMP.playing || CMP.practice) renderCmpSide();
+}
+setInterval(cmpTick, 500);
+function cmpCheckEnd() {
+  if (!CMP.rid || CMP.ended === CMP.rid || cmpPhase() !== 'end') return;
+  const rank = cmpRanking(); if (!rank.length) return;
+  if (CMP.id !== CMP.rid) return;   // le podium s'affiche chez les participants (joueurs et spectateurs)
+  CMP.ended = CMP.rid;
+  cmpPodium(rank);
+}
+function cmpPodium(rank) {
+  const g = cmpGame(CMP.g), me = cleanName(profile.name);
+  $('jdw-podium-game').textContent = (g ? g.title : '') + ' · compétition';
+  const solo = rank.length < 2;
+  $('jdw-podium-h').textContent = solo ? 'Tout seul…' : '🏆 ' + rank[0].name + ' gagne !';
+  const st = $('jdw-podium-steps'); st.textContent = '';
+  const order = [1, 0, 2];
+  for (const i of order) {
+    const r = rank[i]; if (!r) continue;
+    const col = document.createElement('div'); col.className = 'pod pod' + (i + 1) + (r.name === me ? ' me' : '');
+    const hd = chatHead(r.name, { passive: true, sad: i > 0 });
+    if (i === 0) { const cr = document.createElement('span'); cr.className = 'champ-crown'; cr.textContent = '👑'; hd.appendChild(cr); }
+    const nm = document.createElement('b'); nm.textContent = r.name;
+    const sc = document.createElement('span'); sc.className = 'pod-s'; sc.textContent = fmt(r.s);
+    const blk = document.createElement('div'); blk.className = 'pod-blk'; blk.textContent = String(i + 1);
+    col.append(hd, nm, sc, blk); st.appendChild(col);
+  }
+  const ol = $('jdw-podium-rest'); ol.textContent = '';
+  rank.slice(3).forEach((r, k) => { const sp = document.createElement('span'); sp.className = 's'; sp.textContent = (k + 4) + 'e · ' + fmt(r.s); ol.appendChild(rowEl(r.name, sp, r.name === me)); });
+  if (solo) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Personne d\'autre n\'a joué : cette compétition ne compte pas.'; ol.appendChild(li); }
+  openSheet('jdw-podium', 'jdw-podium-again');
+  if (!solo) {
+    if (!sting('podium', 0.9)) { Audio.tone(523, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(659, 0.12, 'square', 0.06), 130); setTimeout(() => Audio.tone(784, 0.3, 'square', 0.06), 260); }
+    setTimeout(() => playCri(rank[0].name), 2200);
+    // l'hôte annonce le podium dans le chat de la salle (un seul message)
+    if (cmpHost() === me || (rank[0].name === me && !CMP.roster.has(cmpHost()))) {
+      const body = '🏆 Compétition ' + (g ? g.title : '') + ' : ' + rank.slice(0, 5).map((r, k) => (k + 1) + '. ' + r.name + ' ' + fmt(r.s)).join(' · ');
+      rpc('post_message', Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_body: body })).then(() => poke('chat')).catch(() => {});
+    }
+  }
+}
+function cmpClosePodium() { closeSheet('jdw-podium'); cmpReset(); rtTrack(); cmpSync(); renderCompet(); }
+$('jdw-podium-close').addEventListener('click', cmpClosePodium);
+$('jdw-podium-again').addEventListener('click', () => { const g = cmpGame(CMP.g); cmpClosePodium(); if (g) cmpCreate(g); });
+// ---------- réactions ----------
+function cmpOpenPick(name, anchor) {
+  const pk = $('jdw-cmp-pick'); pk.textContent = ''; CMP.pickFor = name;
+  for (const e of REACTIONS) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = e; b.setAttribute('role', 'menuitem'); b.setAttribute('aria-label', 'Envoyer ' + e + ' à ' + name);
+    b.addEventListener('click', ev => { ev.stopPropagation(); cmpReact(name, e); cmpClosePick(); });
+    pk.appendChild(b);
+  }
+  const lab = document.createElement('span'); lab.className = 'pk-to'; lab.textContent = '→ ' + name; pk.appendChild(lab);
+  pk.hidden = false;
+  const r = anchor.getBoundingClientRect(), w = pk.offsetWidth, hh = pk.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2, y = r.top - hh - 8;
+  if (y < 8) y = r.bottom + 8;
+  x = Math.max(8, Math.min(innerWidth - w - 8, x));
+  pk.style.left = x + 'px'; pk.style.top = y + 'px';
+}
+function cmpClosePick() { $('jdw-cmp-pick').hidden = true; CMP.pickFor = ''; }
+document.addEventListener('pointerdown', e => { if (!$('jdw-cmp-pick').hidden && !$('jdw-cmp-pick').contains(e.target) && !(e.target.closest && e.target.closest('[data-rx]'))) cmpClosePick(); }, true);
+function cmpReact(to, e) {
+  if (Date.now() - CMP.rxLast < 1200) return;
+  CMP.rxLast = Date.now();
+  const me = cleanName(profile.name);
+  rtBroadcast({ t: 'cmp', k: 're', id: CMP.rid, n: me, to, e });
+  cmpShowReact(me, to, e);
+}
+const rxIn = {};
+function cmpShowReact(from, to, e) { rxShow(from, to, e); }
+function rxShow(from, to, e) {
+  const k = from, now = Date.now(); rxIn[k] = (rxIn[k] || []).filter(t => now - t < 1000); if (rxIn[k].length >= 3) return; rxIn[k].push(now);
+  for (const el of document.querySelectorAll('[data-rx="' + CSS.escape(to) + '"]')) {
+    if (!el.offsetParent) continue;
+    const r = el.getBoundingClientRect(), fl = document.createElement('span');
+    fl.className = 'rx-fly'; fl.textContent = e; fl.style.left = (r.left + r.width / 2) + 'px'; fl.style.top = (r.top + r.height / 2) + 'px';
+    fl.style.setProperty('--dx', (shellRand() * 40 - 20).toFixed(0) + 'px');
+    document.body.appendChild(fl); setTimeout(() => fl.remove(), 1500);
+  }
+  // pour moi en pleine partie : la tête de celui qui m'envoie ça, en grand
+  if (to === cleanName(profile.name) && from !== to && !$('jdw-play').hidden) {
+    const box = document.createElement('div'); box.className = 'rx-me' + (e.length > 4 ? ' txt' : '');
+    const hd = chatHead(from, { passive: true }); const em = document.createElement('span'); em.className = 'rx-me-e'; em.textContent = e;
+    const nm = document.createElement('b'); nm.textContent = from; box.append(hd, em, nm);
+    $('jdw-play').appendChild(box); setTimeout(() => box.remove(), 1900);
+    Audio.tone(880, 0.06, 'sine', 0.05, 1320);
+  }
+}
+// ---------- affichage : page Compétition ----------
+function cmpRowStatus(m) {
+  if (m.r === 'w') return { t: '👁 regarde', c: 'w' };
+  if (m.st === 'play') return { t: '● en jeu', c: 'p' };
+  if (m.st === 'out') return { t: m.gone ? 'parti' : 'terminé', c: 'o' };
+  return { t: 'prêt', c: 'l' };
+}
+function renderCompet() {
+  if (MODE !== 'compet') return;
+  const v = cmpSync(), noRoom = !ONLINE || !room;
+  $('jdw-cmp-none').hidden = !noRoom;
+  const ph = v ? cmpPhase() : 'lobby', ended = !!v && CMP.id !== v.id && cmpFinished(v);
+  $('jdw-cmp-idle').hidden = noRoom || (!!v && !ended);
+  $('jdw-cmp-card').hidden = noRoom || !v;
+  if (noRoom) return;
+  if (!v || ended) renderCmpGames();
+  if (!v) return;
+  const g = cmpGame(v.g), me = cleanName(profile.name);
+  $('jdw-cmp-card').style.setProperty('--acc', g ? g.accent : COLORS.amber);
+  $('jdw-cmp-game').textContent = g ? g.title : v.g;
+  $('jdw-cmp-hint').textContent = g ? (g.tagline || '') + ' Départ au niveau ' + (COMPET_START[g.id] || 1) + ', une seule vie.' : '';
+  const ps = cmpPlayers(), watchers = [...CMP.roster.values()].filter(m => m.r === 'w' && !m.gone);
+  $('jdw-cmp-count').textContent = ps.filter(m => !m.gone).length + ' 🎮' + (watchers.length ? ' · ' + watchers.length + ' 👁' : '');
+  // concurrents, triés par score
+  const ol = $('jdw-cmp-list'); ol.textContent = '';
+  const rows = [...CMP.roster.values()].filter(m => !(m.gone && m.st !== 'out')).sort((a, b) => (b.r === 'p') - (a.r === 'p') || b.s - a.s || a.t - b.t);
+  rows.forEach(m => {
+    const li = document.createElement('li'); li.className = 'cmp-row' + (m.name === me ? ' me' : '') + (m.st === 'out' ? ' out' : '');
+    const hb = document.createElement('button'); hb.type = 'button'; hb.className = 'cmp-head'; hb.dataset.rx = m.name; hb.setAttribute('aria-label', 'Réagir à ' + m.name);
+    hb.appendChild(chatHead(m.name, { passive: true, sad: m.st === 'out' && ph === 'end' && rows[0] !== m }));
+    hb.addEventListener('click', () => { if (m.name !== me) cmpOpenPick(m.name, hb); });
+    const tx = document.createElement('span'); tx.className = 'cmp-tx';
+    const nb = document.createElement('b'); nb.textContent = m.name; const stt = cmpRowStatus(m); const sm = document.createElement('small'); sm.className = 'st-' + stt.c; sm.textContent = stt.t;
+    tx.append(nb, sm);
+    const sc = document.createElement('span'); sc.className = 'cmp-sc'; sc.textContent = m.r === 'p' && (m.st === 'play' || m.st === 'out') ? fmt(m.s) : '';
+    li.append(hb, tx, sc);
+    if (m.st === 'play' && m.name !== me && presCid(m.name, v.g)) { const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'cmp-watch'; wb.textContent = '👁'; wb.setAttribute('aria-label', 'Regarder ' + m.name + ' jouer'); wb.addEventListener('click', () => watchStart(m.name, v.g)); li.appendChild(wb); }
+    ol.appendChild(li);
+  });
+  // boutons selon mon état
+  const bt = $('jdw-cmp-btns'); bt.textContent = '';
+  const mk = (t, cls, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = t; b.addEventListener('click', fn); bt.appendChild(b); return b; };
+  if (CMP.id !== v.id && ended) {
+    mk('🏆 Nouvelle compétition', 'btn btn-play', () => { if (g) cmpCreate(g); });
+  } else if (CMP.id !== v.id) {
+    mk(ph === 'play' ? '🎮 Rejoindre la partie' : '🎮 Je joue', 'btn btn-play', () => cmpJoin('p'));
+    mk('👁 Je regarde', 'btn btn-ghost', () => cmpJoin('w'));
+  } else if (CMP.role === 'w') {
+    if (ph !== 'end') mk('🎮 Je joue aussi', 'btn btn-play', () => cmpJoin('p'));
+    mk('Quitter', 'btn btn-ghost', cmpLeave);
+  } else if (CMP.st === 'lobby') {
+    if (ph === 'lobby') mk('S\'entraîner en attendant', 'btn btn-ghost', cmpPractice);
+    mk('Quitter', 'btn btn-ghost', cmpLeave);
+  } else if (CMP.st === 'out') {
+    mk('Quitter', 'btn btn-ghost', cmpLeave);
+  }
+  renderCompetTimer();
+  cmpDemoRun();
+}
+function renderCompetTimer() {
+  if (MODE !== 'compet' || $('jdw-cmp-card').hidden) return;
+  const ph = cmpPhase(), go = $('jdw-cmp-go'), ps = cmpPlayers().filter(m => !m.gone);
+  let txt;
+  if (ph === 'countdown') {
+    const left = Math.max(0, Math.ceil((CMP.goAt - Date.now()) / 1000));
+    txt = 'GO dans ' + left + ' s !'; go.hidden = false; if (go.textContent !== String(left)) { go.textContent = String(left); go.classList.remove('tick'); void go.offsetWidth; go.classList.add('tick'); }
+  } else {
+    go.hidden = true;
+    txt = ph === 'play' ? 'En cours · ' + ps.filter(m => m.st === 'play').length + ' en piste'
+      : ph === 'end' ? 'Terminé'
+      : ps.filter(m => m.st === 'lobby').length < 2 ? 'En attente d\'un 2e joueur : dès qu\'il arrive, GO !' : 'Prêts…';
+  }
+  if ($('jdw-cmp-phase').textContent !== txt) $('jdw-cmp-phase').textContent = txt;
+}
+// démo rapide : la vignette animée du jeu en grand
+let cmpDemoOn = false;
+function cmpDemoRun() { if (!cmpDemoOn) { cmpDemoOn = true; requestAnimationFrame(cmpDemoFrame); } }
+function cmpDemoFrame(ts) {
+  const card = $('jdw-cmp-card');
+  if (MODE !== 'compet' || card.hidden || $('jdw-lib').hidden || document.hidden) { cmpDemoOn = false; return; }
+  requestAnimationFrame(cmpDemoFrame);
+  const v = cmpView(), g = v && cmpGame(v.g); if (!g) return;
+  const c = $('jdw-cmp-canvas'), w = c.clientWidth, h = c.clientHeight; if (!w || !h) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const ctx = c.getContext('2d'); ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  try { g.preview(ctx, w, h, ts / 1000); } catch (e) { ctx.fillStyle = COLORS.night; ctx.fillRect(0, 0, w, h); }
+  ctx.restore();
+}
+function renderCmpGames() {
+  const wrap = $('jdw-cmp-games'); if (wrap.childElementCount) return;
+  for (const g of GAMES) {
+    if (!(g.id in COMPET_START)) continue;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'cmp-game'; b.style.setProperty('--acc', g.accent || COLORS.amber);
+    const t = document.createElement('span'); t.className = 'cg-t';
+    const nb = document.createElement('b'); nb.textContent = g.title; const sm = document.createElement('small'); sm.textContent = 'Départ au niveau ' + COMPET_START[g.id];
+    t.append(nb, sm);
+    const go = document.createElement('span'); go.className = 'cg-go'; go.textContent = 'Lancer';
+    const cv = document.createElement('canvas'); cv.className = 'cg-img'; cv.setAttribute('aria-hidden', 'true');
+    b.append(cv, t, go); b.addEventListener('click', () => cmpCreate(g)); wrap.appendChild(b);
+    cmpTiles.push({ g, el: b, canvas: cv, visible: false });
+  }
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => { const t = cmpTiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
+    cmpTiles.forEach(t => io.observe(t.el));
+  } else cmpTiles.forEach(t => { t.visible = true; });
+}
+const cmpTiles = [];   // vignettes animées des jeux à lancer en compétition
+$('jdw-cmp-room').addEventListener('click', () => openRooms());
+// ---------- pendant la partie : la colonne des concurrents ----------
+function renderCmpSide() {
+  const side = $('jdw-cmp-side'); if (side.hidden) return;
+  const me = cleanName(profile.name);
+  const rows = cmpPlayers().filter(m => m.st === 'play' || m.st === 'out' || m.name === me).sort((a, b) => b.s - a.s || a.name.localeCompare(b.name));
+  if (CMP.practice) { const mine = rows.find(m => m.name === me); if (mine) mine.s = 0; }
+  const key = rows.map(m => m.name + ':' + m.s + ':' + m.st).join('|') + (CMP.practice ? 'P' : '');
+  if (side.dataset.k === key) return; side.dataset.k = key; side.textContent = '';
+  if (CMP.practice) { const p = document.createElement('div'); p.className = 'cs-practice'; p.textContent = 'Entraînement'; side.appendChild(p); }
+  rows.forEach((m, k) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'cs-item' + (m.name === me ? ' me' : '') + (m.st === 'out' ? ' out' : '');
+    b.dataset.rx = m.name; b.setAttribute('aria-label', (k + 1) + 'e ' + m.name + ' ' + fmt(m.s) + (m.name === me ? '' : ', réagir'));
+    const rk = document.createElement('span'); rk.className = 'cs-rk'; rk.textContent = String(k + 1);
+    const sc = document.createElement('span'); sc.className = 'cs-sc'; sc.textContent = m.s >= 100000 ? Math.round(m.s / 1000) + 'k' : fmt(m.s);
+    b.append(chatHead(m.name, { passive: true, sad: m.st === 'out' }), rk, sc);
+    b.addEventListener('click', () => { if (m.name !== me) cmpOpenPick(m.name, b); });
+    side.appendChild(b);
+  });
+  const w = [...CMP.roster.values()].filter(m => m.r === 'w' && !m.gone).length;
+  if (w) { const e = document.createElement('div'); e.className = 'cs-watch'; e.textContent = '👁 ' + w; side.appendChild(e); }
+}
+function cmpLine(el) {
+  const me = cleanName(profile.name);
+  let cur = 0; try { if (current && !current.over && current.inst && current.inst.currentScore) cur = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
+  // mon score en direct (les autres : dernier score reçu)
+  const rank = cmpPlayers().filter(m => m.st === 'play' || m.st === 'out').map(m => m.name === me ? Object.assign({}, m, { s: Math.max(m.s, cur) }) : m).sort((a, b) => b.s - a.s);
+  let txt;
+  if (CMP.practice) txt = CMP.goAt && CMP.goFor === CMP.rid ? '⏱ GO dans ' + Math.max(0, Math.ceil((CMP.goAt - Date.now()) / 1000)) + ' s !' : '🏋️ Entraînement · en attente d\'un 2e joueur';
+  else {
+    const pos = rank.findIndex(m => m.name === me) + 1, lead = rank[0];
+    txt = '🏆 ' + (pos ? (pos === 1 ? '1er' : pos + 'e') + ' sur ' + rank.length : 'Compétition') + (lead && lead.name !== me ? ' · ' + lead.name + ' ' + fmt(lead.s) : '') + ' · toi ' + fmt(cur);
+  }
+  txt = watchersTxt() + txt;
+  el.hidden = false;
+  if (!MUS.override && MUS.wantMode !== 'intense' && current && !current.over) setMusic(current.game.id, 'intense');   // départ à un niveau difficile
+  const cls = 'recline cmp' + (CMP.practice ? '' : ' me');
+  if (el.className !== cls) el.className = cls;
+  if (el.textContent !== txt) el.textContent = txt;
+}
+
+/* ================= Regarder un copain jouer en direct (vidéo de téléphone à téléphone, WebRTC) ================= */
+// Le direct de la salle sert seulement à présenter les deux appareils (signaux « rtc ») ; l'image va ensuite directement
+// du téléphone du joueur à celui du spectateur. Rien n'est filmé tant que personne ne regarde ; 3 spectateurs au plus.
+const RTC_CFG = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+const TAUNTS = ['Tu vas perdre !', 'Attention !', 'Derrière toi !', 'Raté !', 'Trop fort 😮', 'Allez !'];
+const CAST = new Map();   // moi qui joue : sid → { pc, name, cid, stream, dc, pend }
+const WATCH = { sid: '', pc: null, cid: '', name: '', game: '', live: false, timer: 0, pend: [], rxLast: 0, hudT: 0 };
+const watchable = g => !!g && g !== 'menu' && !/^duel-/.test(g) && !!gameById(g);
+function presCid(name, game) { const x = presList().find(m => m.name === name && m.game === game && m.cid); return x ? x.cid : ''; }
+function rtcSignal(o) { return rtBroadcast(Object.assign({ t: 'rtc', fromCid: clientId, fromName: cleanName(profile.name) }, o)); }
+// ---------- côté joueur : quelqu'un veut me regarder ----------
+function gameCanvas() {
+  if (!current || !current.root) return null;
+  let best = null, area = 0;
+  for (const c of current.root.querySelectorAll('canvas')) {
+    if (c.offsetParent === null) continue;
+    const r = c.getBoundingClientRect(), a = r.width * r.height;
+    if (a > area) { best = c; area = a; }
+  }
+  return best;
+}
+async function castWant(p) {
+  const cv = gameCanvas();
+  if (!cv || !cv.captureStream || !window.RTCPeerConnection || current.over) { rtcSignal({ k: 'no', to: p.fromCid, sid: p.sid, why: 'pas en jeu' }); return; }
+  if (CAST.size >= 3 && !CAST.has(p.sid)) { rtcSignal({ k: 'no', to: p.fromCid, sid: p.sid, why: 'complet' }); return; }
+  try {
+    const pc = new RTCPeerConnection(RTC_CFG), sess = { pc, name: cleanName(p.fromName), cid: p.fromCid, pend: [], remote: false };
+    CAST.set(p.sid, sess);
+    pc.onicecandidate = e => { if (e.candidate) rtcSignal({ k: 'ice', to: p.fromCid, sid: p.sid, c: e.candidate.toJSON() }); };
+    pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') castEnd(p.sid); };
+    const stream = cv.captureStream(24); sess.stream = stream;
+    const senders = stream.getVideoTracks().map(tr => { try { tr.contentHint = 'motion'; } catch (e) {} return pc.addTrack(tr, stream); });
+    sess.dc = pc.createDataChannel('hud');
+    await pc.setLocalDescription(await pc.createOffer());
+    // image allégée : la puce vidéo encode une image réduite, le jeu garde sa fluidité
+    for (const sd of senders) { try { const prm = sd.getParameters(); if (prm.encodings && prm.encodings[0]) { Object.assign(prm.encodings[0], { maxBitrate: 900000, maxFramerate: 24, scaleResolutionDownBy: cv.width > 900 ? 2 : 1 }); await sd.setParameters(prm); } } catch (e) {} }
+    rtcSignal({ k: 'offer', to: p.fromCid, sid: p.sid, sdp: pc.localDescription.sdp, g: current.game.id });
+    renderWatchers();
+  } catch (e) { castEnd(p.sid); rtcSignal({ k: 'no', to: p.fromCid, sid: p.sid, why: 'erreur' }); reportError('Diffusion : ' + e.message, e.stack, { quiet: true }); }
+}
+function castEnd(sid, quiet) {
+  const s = CAST.get(sid); if (!s) return;
+  CAST.delete(sid);
+  try { s.stream && s.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { s.pc.close(); } catch (e) {}
+  if (!quiet) rtcSignal({ k: 'bye', to: s.cid, sid });
+  renderWatchers();
+}
+function castEndAll(score) {
+  if (!CAST.size) return;
+  let sc = score || 0; try { if (!sc && current && current.inst && current.inst.currentScore) sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
+  for (const [sid, s] of [...CAST]) { rtcSignal({ k: 'bye', to: s.cid, sid, s: sc }); castEnd(sid, true); }
+}
+const castSeen = new Set();
+function renderWatchers() {
+  const names = [...new Set([...CAST.values()].map(s => s.name))];
+  for (const n of names) if (!castSeen.has(n)) { castSeen.add(n); toastCheer('👁 ' + n + ' te regarde jouer !', n); }
+  for (const n of [...castSeen]) if (!names.includes(n)) castSeen.delete(n);
+  recLine();
+}
+const watchersTxt = () => CAST.size ? '👁 ' + new Set([...CAST.values()].map(s => s.name)).size + '  ·  ' : '';
+// score et niveau envoyés aux spectateurs, deux fois par seconde
+setInterval(() => {
+  if (!CAST.size || !current || !current.inst) return;
+  let sc = 0, lv = 0; try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); lv = current.inst.currentLevel ? +current.inst.currentLevel() || 0 : 0; } catch (e) {}
+  const msg = JSON.stringify({ s: sc, l: lv });
+  for (const s of CAST.values()) if (s.dc && s.dc.readyState === 'open') try { s.dc.send(msg); } catch (e) {}
+}, 500);
+// ---------- signaux ----------
+function rtcOnSignal(p) {
+  if (p.to !== clientId) return;
+  const s = CAST.get(p.sid), mineW = WATCH.sid === p.sid;
+  if (p.k === 'want') castWant(p);
+  else if (p.k === 'answer' && s) s.pc.setRemoteDescription({ type: 'answer', sdp: p.sdp }).then(() => { s.remote = true; for (const c of s.pend.splice(0)) s.pc.addIceCandidate(c).catch(() => {}); }).catch(() => {});
+  else if (p.k === 'ice') {
+    if (s) { if (s.remote) s.pc.addIceCandidate(p.c).catch(() => {}); else s.pend.push(p.c); }
+    else if (mineW) { if (WATCH.pc && WATCH.pc.remoteDescription) WATCH.pc.addIceCandidate(p.c).catch(() => {}); else WATCH.pend.push(p.c); }
+  }
+  else if (p.k === 'offer' && mineW) watchOffer(p);
+  else if (p.k === 'quit' && s) castEnd(p.sid, true);
+  else if ((p.k === 'no' || p.k === 'bye') && mineW) {
+    watchStatus(p.k === 'bye' ? 'Partie terminée' + (p.s ? ' : ' + fmt(p.s) + ' points !' : ' !') : p.why === 'complet' ? 'Déjà 3 spectateurs : réessaie dans un moment.' : WATCH.name + ' ne joue plus.', true);
+    watchClosePc();
+  }
+}
+// ---------- côté spectateur ----------
+function watchStart(name, game) {
+  const cid = presCid(name, game); if (!cid || !window.RTCPeerConnection) { toastCheer('Impossible de regarder ' + name + ' pour le moment.', name, true); return; }
+  watchStop(true);
+  Audio.ensure();
+  const sid = 'w' + Date.now().toString(36) + shellRand().toString(36).slice(2, 6), g = gameById(game);
+  Object.assign(WATCH, { sid, cid, name, game, live: false, pend: [] });
+  const hd = $('jdw-watch-head'); hd.textContent = ''; hd.appendChild(chatHead(name, { passive: true }));
+  $('jdw-watch-name').textContent = name; $('jdw-watch-game').textContent = g ? g.title : '';
+  $('jdw-watch-live').classList.remove('on');
+  const v = $('jdw-watch-video'); v.srcObject = null;
+  buildWatchBar();
+  $('jdw-watch').hidden = false; watchStatus('Connexion à ' + name + '…');
+  musicBaseLevel(0.4);
+  rtcSignal({ k: 'want', to: cid, sid });
+  clearTimeout(WATCH.timer);
+  WATCH.timer = setTimeout(() => { if (WATCH.sid === sid && !WATCH.live) { watchStatus('Impossible de se connecter à ' + name + ' (réseau).', true); watchClosePc(); } }, 15000);
+}
+async function watchOffer(p) {
+  const sid = p.sid;
+  try {
+    const pc = new RTCPeerConnection(RTC_CFG); WATCH.pc = pc;
+    pc.ontrack = e => { const v = $('jdw-watch-video'); if (v.srcObject !== e.streams[0]) { v.srcObject = e.streams[0]; v.play().catch(() => {}); } };
+    pc.ondatachannel = e => { e.channel.onmessage = m => { try { const d = JSON.parse(m.data); watchHud(d); } catch (x) {} }; };
+    pc.onicecandidate = e => { if (e.candidate && WATCH.sid === sid) rtcSignal({ k: 'ice', to: WATCH.cid, sid, c: e.candidate.toJSON() }); };
+    pc.onconnectionstatechange = () => {
+      if (WATCH.sid !== sid) return;
+      if (pc.connectionState === 'connected') { WATCH.live = true; watchStatus(''); $('jdw-watch-live').classList.add('on'); }
+      else if (pc.connectionState === 'failed') { watchStatus('Connexion perdue.', true); watchClosePc(); }
+    };
+    await pc.setRemoteDescription({ type: 'offer', sdp: p.sdp });
+    for (const c of WATCH.pend.splice(0)) pc.addIceCandidate(c).catch(() => {});
+    await pc.setLocalDescription(await pc.createAnswer());
+    rtcSignal({ k: 'answer', to: WATCH.cid, sid, sdp: pc.localDescription.sdp });
+  } catch (e) { watchStatus('Impossible de recevoir la vidéo.', true); reportError('Regarder : ' + e.message, e.stack, { quiet: true }); }
+}
+function watchHud(d) {
+  const g = gameById(WATCH.game);
+  $('jdw-watch-game').textContent = (g ? g.title + ' · ' : '') + fmt(+d.s || 0) + (g ? unit(g) : '') + (d.l ? ' · niveau ' + d.l : '');
+}
+function watchStatus(t, end) {
+  const m = $('jdw-watch-msg'); m.textContent = t; m.hidden = !t; m.classList.toggle('end', !!end);
+}
+function watchClosePc() { if (WATCH.pc) { try { WATCH.pc.close(); } catch (e) {} WATCH.pc = null; } clearTimeout(WATCH.timer); $('jdw-watch-live').classList.remove('on'); }
+function watchStop(silent) {
+  if (WATCH.sid && !silent) rtcSignal({ k: 'quit', to: WATCH.cid, sid: WATCH.sid });
+  watchClosePc(); WATCH.sid = ''; WATCH.live = false;
+  const v = $('jdw-watch-video'); try { v.pause(); } catch (e) {} v.srcObject = null;
+  if (!$('jdw-watch').hidden) { $('jdw-watch').hidden = true; musicBaseLevel(1); }
+}
+function buildWatchBar() {
+  const rx = $('jdw-watch-rx'), say = $('jdw-watch-say');
+  if (!rx.childElementCount) {
+    for (const e of REACTIONS) { const b = document.createElement('button'); b.type = 'button'; b.textContent = e; b.setAttribute('aria-label', 'Envoyer ' + e); b.addEventListener('click', () => watchSend(e, b)); rx.appendChild(b); }
+    for (const t of TAUNTS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'say-btn'; b.textContent = t; b.addEventListener('click', () => watchSend(t, b)); say.appendChild(b); }
+  }
+}
+function watchSend(e, btn) {
+  if (!WATCH.sid || Date.now() - WATCH.rxLast < 1200) return;
+  WATCH.rxLast = Date.now();
+  rtBroadcast({ t: 'rx', n: cleanName(profile.name), to: WATCH.name, e });
+  if (btn) { btn.classList.remove('sent'); void btn.offsetWidth; btn.classList.add('sent'); }
+  const r = btn ? btn.getBoundingClientRect() : null, fl = document.createElement('span');
+  fl.className = 'rx-fly'; fl.textContent = e.length > 4 ? '💬' : e;
+  fl.style.left = (r ? r.left + r.width / 2 : innerWidth / 2) + 'px'; fl.style.top = (r ? r.top : innerHeight / 2) + 'px'; fl.style.setProperty('--dx', '0px');
+  document.body.appendChild(fl); setTimeout(() => fl.remove(), 1500);
+}
+$('jdw-watch-back').addEventListener('click', () => watchStop());
+document.addEventListener('visibilitychange', () => { if (document.hidden && WATCH.sid) watchStop(); });
+
 /* ================= Lancer un jeu ================= */
 let current = null, mountSeq = 0;
 function mountGame(g) {
@@ -2307,12 +3254,15 @@ function mountGame(g) {
     isMuted: () => muted,
     heads: () => headsList(),
     player: playerObj(),
+    mode: CMP.playing || CMP.practice ? 'compet' : 'normal',
+    startLevel: CMP.playing || CMP.practice ? COMPET_START[g.id] || 1 : 1,
+    seed: CMP.playing ? CMP.seed : undefined,
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
       const sc = Math.max(0, Math.floor(+score || 0));
-      setTimeout(() => { if (current && current.seq === seq) showEnd(sc); }, 900);
+      setTimeout(() => { if (current && current.seq === seq) { if (CMP.playing) cmpOut(sc); else if (CMP.practice) cmpPracticeOver(); else showEnd(sc); } }, 900);
     }
   };
   current = { game: g, root, seq, over: false, inst: null };
@@ -2323,6 +3273,7 @@ function mountGame(g) {
 }
 function unmountGame() {
   if (!current) return;
+  castEndAll();
   const { game, root, inst } = current;
   try { inst && inst.destroy && inst.destroy(); } catch (e) {}
   if (game.external) root.hidden = true; else root.remove();
@@ -2361,11 +3312,19 @@ function backToLibrary() {
   waitRotate = null; $('jdw-rotate').hidden = true;
   unmountGame();
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
+  $('jdw-play').classList.remove('cmp'); $('jdw-cmp-side').hidden = true; cmpClosePick();
   setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic('accueil');
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
 function quitGame() {
+  if (CMP.playing || CMP.practice) {   // compétition : quitter = sortir avec le score atteint
+    let sc = 0;
+    try { if (current && !current.over && current.inst && current.inst.currentScore) sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
+    if (current) current.over = true;
+    if (CMP.playing) cmpOut(sc); else cmpPracticeOver();
+    return;
+  }
   if (current && !current.over && current.inst && current.inst.currentScore) {
     let sc = 0;
     try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) { sc = 0; }
@@ -2408,6 +3367,7 @@ const REC = { leader: '', score: -1, passed: '', flashUntil: 0 };
 function recReset() { REC.leader = ''; REC.score = -1; REC.passed = ''; REC.flashUntil = 0; }
 function recLine() {
   const el = $('jdw-recline');
+  if ((CMP.playing || CMP.practice) && current && !$('jdw-play').hidden) { cmpLine(el); return; }
   if (!current || $('jdw-play').hidden || !$('jdw-end').hidden) { el.hidden = true; return; }
   const g = current.game, me = cleanName(profile.name), lead = top(g.id)[0], u = unit(g);
   let cur = 0;
@@ -2432,6 +3392,7 @@ function recLine() {
     }
   } else txt = '👑 ' + lead.name + ' · ' + fmt(lead.score) + u + (cur ? '   ·   toi ' + fmt(cur) : '');
   if (Date.now() < REC.flashUntil) cls += ' flash';
+  txt = watchersTxt() + txt;
   try {
     const lvl = current.inst && current.inst.currentLevel ? +current.inst.currentLevel() : 0;
     if (!MUS.override && lvl >= (INTENSE_AT[g.id] || 99) && MUS.wantMode !== 'intense' && !current.over) setMusic(g.id, 'intense');
@@ -2489,6 +3450,7 @@ function buildWho(record) {
 $('jdw-who-ok').addEventListener('click', () => { const n = cleanName($('jdw-who-name').value); if (n) commitScore(n); else $('jdw-who-name').focus(); });
 $('jdw-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-who-ok').click(); } });
 async function showEnd(score) {
+  castEndAll(score);   // les spectateurs voient le score final
   flushPending(); musicBaseLevel(0.5);
   const g = current.game, me = cleanName(profile.name);
   const before = top(g.id);
@@ -2530,7 +3492,7 @@ async function showEnd(score) {
       const first = before[0] && before[0].name === crier;
       const says = first ? ['garde la 1re place et se moque de toi !', 'est toujours le roi de ce jeu…', 'reste premier et te chambre !']
                          : ['reste devant toi et se moque !', 'garde son avance et rigole…', 'te devance encore !'];
-      $('jdw-taunt-say').textContent = ' ' + says[Math.floor(Math.random() * says.length)] + ' (' + fmt(ahead.score) + unit(g) + ')';
+      $('jdw-taunt-say').textContent = ' ' + says[Math.floor(shellRand() * says.length)] + ' (' + fmt(ahead.score) + unit(g) + ')';
       taunt.hidden = false; taunt.onclick = () => playCri(crier, head.firstChild);
       setTimeout(() => { if (!$('jdw-end').hidden) playCri(crier, head.firstChild); }, 450);
     } else {
@@ -2576,12 +3538,18 @@ function alertBox(txt) { $('jdw-rooms-status').textContent = txt; openRooms(); }
 
 /* ================= Appli Android : retour + mise à jour ================= */
 window.JDW_BACK = () => {
+  if (!$('jdw-watch').hidden) { watchStop(); return true; }
+  if (!$('jdw-cmp-pick').hidden) { cmpClosePick(); return true; }
+  if (!$('jdw-podium').hidden) { cmpClosePodium(); return true; }
+  if (!$('jdw-duo').hidden) { duoBack(); return true; }
+  if (!$('jdw-seatpick').hidden) { closeSheet('jdw-seatpick'); return true; }
   if (chat.open) { closeChat(); return true; }
   if (!$('jdw-cri').hidden) { closeCri(); return true; }
   for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members', 'jdw-welcome']) {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
   if (!$('jdw-play').hidden) { quitGame(); return true; }
+  if (MODE !== 'classique' && !$('jdw-lib').hidden) { setMode('classique', true); return true; }   // les autres modes sont des pages : retour à la page normale
   return false;
 };
 checkAppVersion();
@@ -2596,11 +3564,11 @@ checkAppVersion();
 })();
 
 /* ================= Démarrage ================= */
-['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members'].forEach(id => { if ($(id)) $(id).hidden = true; });
+['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
 $('jdw-lib').hidden = false;
 syncOwnPlayer();
-buildLibrary(); buildTabs(); syncMute(); refreshAll();
+buildLibrary(); buildDuoLibrary(); buildTabs(); syncMute(); refreshAll(); setMode(MODE);
 requestAnimationFrame(previewLoop);
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }
 if (!profile.name) startWelcome(); else if (ONLINE && !room) openRooms();
@@ -2609,5 +3577,5 @@ if (ONLINE) { rtJoin('jdw-all'); if (room) rtJoin('jdw-room-' + room.id); rtConn
 setTimeout(checkSiteVersion, 4000);
 // les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)
 setTimeout(() => { if (CODE()) for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
-window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst };   // diagnostic (tests)
+window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api, cmp: () => CMP };   // diagnostic (tests)
 })();

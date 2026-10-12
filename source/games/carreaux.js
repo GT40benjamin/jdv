@@ -193,8 +193,9 @@
   ];
 
   // niveau procédural (au-delà des niveaux dessinés) : { name, map }
-  function genLevel(level, boss) {
-    const q = mulberry(level * 7919 + 1234567);
+  // q = PRNG de la compétition (api.seed) ; sinon graine fixe par niveau
+  function genLevel(level, boss, q) {
+    q = q || mulberry(level * 7919 + 1234567);
     const pat = PATTERNS[Math.floor(q() * PATTERNS.length)];
     const ph = q() * 6.28;
     const R = boss ? Math.min(8, 6 + Math.floor(level / 14)) : Math.min(11, 6 + Math.floor(level / 7));
@@ -1190,6 +1191,16 @@
     const tone = (f, d, ty, v, fe) => { if (destroyed) return; try { api.audio && api.audio.tone(f, d, ty, v, fe); } catch (e) { /* */ } };
     const noise = (d, v, lp) => { if (destroyed) return; try { api.audio && api.audio.noise(d, v, lp); } catch (e) { /* */ } };
     const coarse = (() => { try { return window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })();
+    // mode compétition (CONTRACT.md Ajout 6) : niveau de départ (entier ≥ 1, borné à 999), badge, graine du hasard
+    const toInt = (v) => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '') ? Math.floor(Number(v)) : NaN);
+    const START = toInt(api.startLevel) >= 1 ? Math.min(999, toInt(api.startLevel)) : 1;
+    const COMPET = api.mode === 'compet';
+    const SEED = Number.isFinite(toInt(api.seed)) ? toInt(api.seed) >>> 0 : null;
+    // hasard du jeu (dispositions générées, bonus, portraits, boss et ses gouttes, service et lancer) : Math.random, ou avec
+    // api.seed un PRNG re-graine au début de chaque niveau (le niveau N commence pareil pour tous) ; les effets visuels restent sur Math.random
+    let rng = null;
+    const rnd = () => (rng ? rng() : Math.random());
+    const crand = (a, b) => a + rnd() * (b - a);
 
     // --- DOM
     const canvas = document.createElement('canvas');
@@ -1209,7 +1220,7 @@
     // --- état
     const S = {
       state: 'ready', stateT: 0, readyDur: 1.25, clock: 0,
-      level: 1, score: 0, dispScore: 0, lives: 1,
+      level: START, score: 0, dispScore: 0, lives: 1,
       bricks: [], rows: 0, remaining: 0,
       balls: [], caps: [], parts: [], floats: [], decor: [], sq: [],
       paddle: { x: W / 2, w: 84, flash: 0 },
@@ -1331,7 +1342,7 @@
         w[k] = L < P.from ? 0 : P.weight * (P.bad ? bad : good);
         tot += w[k];
       }
-      let v = Math.random() * tot;
+      let v = rnd() * tot;
       for (const k of POWER_KEYS) { v -= w[k]; if (v <= 0) return k; }
       return 'large';
     }
@@ -1347,9 +1358,10 @@
         delay: r * 0.05 + c * 0.025, seed: Math.random() * 3, regrow: type === 'z' ? 2 : 0 };
     }
     function buildLevel() {
+      if (SEED !== null) rng = mulberry((SEED ^ Math.imul(S.level, 0x9E3779B1)) >>> 0);
       const heads = fetchHeads();
       const isBoss = bossLevel(S.level, heads);
-      const L = S.level <= DESIGNED ? LEVELS[S.level - 1] : genLevel(S.level, isBoss);
+      const L = S.level <= DESIGNED ? LEVELS[S.level - 1] : genLevel(S.level, isBoss, rng);
       const map = L.map;
       S.levelName = L.name;
       S.tip = L.tip || '';
@@ -1369,7 +1381,7 @@
         if (heads.length) {
           let cands = heads.filter(h => h.name !== S.lastBoss);
           if (!cands.length) cands = heads;
-          head = cands[(Math.random() * cands.length) | 0];
+          head = cands[(rnd() * cands.length) | 0];
           S.lastBoss = head.name;
           const rest = heads.filter(h => h !== head);
           if (rest.length) portraitHeads = rest;
@@ -1378,8 +1390,8 @@
         const hp = Math.min(40, 6 + Math.ceil(S.level * 0.6));
         S.boss = {
           head, name: head ? String(head.name || 'COPAIN').slice(0, 14) : 'GRAND CANARD',
-          x: rand(W * 0.35, W * 0.65), y: BOSS_Y, w: BOSS_W, h: BOSS_H, vx: 0,
-          dir: Math.random() < 0.5 ? -1 : 1, speed: Math.min(120, 28 + S.level * 2.2),
+          x: crand(W * 0.35, W * 0.65), y: BOSS_Y, w: BOSS_W, h: BOSS_H, vx: 0,
+          dir: rnd() < 0.5 ? -1 : 1, speed: Math.min(120, 28 + S.level * 2.2),
           hp, maxHp: hp, flash: 0, wob: 0, hitCd: 0, cracks: [],
           alive: true, deadT: 0, gone: false, appearT: 0, dropT: 2.6, seed: Math.random() * 3
         };
@@ -1418,7 +1430,7 @@
       S.total = S.remaining;
       S.par = 25 + S.total * 0.9;
       for (let i = breakables.length - 1; i > 0; i--) {
-        const j = (Math.random() * (i + 1)) | 0;
+        const j = (rnd() * (i + 1)) | 0;
         const tmp = breakables[i]; breakables[i] = breakables[j]; breakables[j] = tmp;
       }
       const nPow = Math.max(1, Math.round(breakables.length * Math.max(0.07, 0.13 - S.level * 0.002)));
@@ -1445,7 +1457,7 @@
     function placePortraits(heads) {
       if (!heads || !heads.length) return;
       for (let i = heads.length - 1; i > 0; i--) {
-        const j = (Math.random() * (i + 1)) | 0;
+        const j = (rnd() * (i + 1)) | 0;
         const tmp = heads[i]; heads[i] = heads[j]; heads[j] = tmp;
       }
       // éviter de remontrer la même tête en premier d'un niveau à l'autre
@@ -1457,7 +1469,7 @@
           const cells = [r * COLS + c, r * COLS + c + 1, (r + 1) * COLS + c, (r + 1) * COLS + c + 1];
           let n = 0, ok = true;
           for (const i of cells) { const b = S.bricks[i]; if (b) { if (b.type === 'm') ok = false; n++; } }
-          if (ok && n >= 2) cands.push({ r, c, cells, n, k: n + Math.random() * 0.9 });
+          if (ok && n >= 2) cands.push({ r, c, cells, n, k: n + rnd() * 0.9 });
         }
       }
       cands.sort((a, b) => b.k - a.k);
@@ -1502,7 +1514,7 @@
       S.stun = 0;
     }
     function serve() {
-      S.balls = [{ x: S.paddle.x, y: PY - BR - 1, vx: 0, vy: 0, stuck: true, offX: (Math.random() < 0.5 ? -1 : 1) * 7, stickT: 5, trail: 0 }];
+      S.balls = [{ x: S.paddle.x, y: PY - BR - 1, vx: 0, vy: 0, stuck: true, offX: (rnd() < 0.5 ? -1 : 1) * 7, stickT: 5, trail: 0 }];
       S.combo = 0;
     }
 
@@ -1510,7 +1522,7 @@
       const p = S.paddle;
       const off = clamp(b.offX / (p.w / 2), -1, 1);
       let ang = off * 55 * DEG;
-      if (Math.abs(ang) < 12 * DEG) ang = (off < 0 ? -1 : 1) * rand(12, 20) * DEG;
+      if (Math.abs(ang) < 12 * DEG) ang = (off < 0 ? -1 : 1) * crand(12, 20) * DEG;
       const sp = targetSpeed();
       b.vx = Math.sin(ang) * sp;
       b.vy = -Math.cos(ang) * sp;
@@ -1850,12 +1862,12 @@
         if (S.drops.length < Math.min(6, 2 + Math.floor(S.level / 8))) {
           S.drops.push({ x: bo.x, y: bo.y + bo.h + 12, vy: 55, t: 0, trail: 0 });
           // les boss coriaces lâchent parfois deux gouttes en éventail
-          if (S.level >= 14 && Math.random() < Math.min(0.6, (S.level - 10) * 0.025)) {
-            S.drops.push({ x: bo.x, y: bo.y + bo.h + 12, vy: 55, vx: (Math.random() < 0.5 ? -1 : 1) * rand(40, 70), t: 0, trail: 0 });
+          if (S.level >= 14 && rnd() < Math.min(0.6, (S.level - 10) * 0.025)) {
+            S.drops.push({ x: bo.x, y: bo.y + bo.h + 12, vy: 55, vx: (rnd() < 0.5 ? -1 : 1) * crand(40, 70), t: 0, trail: 0 });
           }
           tone(700, 0.12, 'sine', 0.04, 260);
         }
-        bo.dropT = rand(3.4, 5.2) * Math.max(0.32, 1 - (S.level - 2) * 0.022);
+        bo.dropT = crand(3.4, 5.2) * Math.max(0.32, 1 - (S.level - 2) * 0.022);
       }
     }
 
@@ -2258,6 +2270,33 @@
       ctx.fillText(String(S.level), W * 0.5, 37);
       // une seule bulle : la vie unique
       if (S.lives > 0) drawBubble(ctx, W - 64, 30, 6, S.clock);
+      if (COMPET) drawCompetBadge();
+    }
+
+    // badge « COMPÉTITION » : petite pastille sombre à liseré doré, sur la ligne des libellés entre « SCORE » et « NIVEAU »
+    function drawCompetBadge() {
+      const txt = 'COMPÉTITION';
+      ctx.save();
+      ctx.font = '600 9px ' + FB;
+      const x = 12 + ctx.measureText('SCORE').width + 6;
+      const room = W * 0.5 - ctx.measureText('NIVEAU').width / 2 - 8 - x;
+      let fs = 9.5;
+      ctx.font = fs + 'px ' + FD;
+      let tw = ctx.measureText(txt).width;
+      // police plus large que prévu : on réduit pour ne jamais toucher « NIVEAU »
+      if (tw + 12 > room) { fs = Math.max(7, fs * (room - 12) / tw); ctx.font = fs.toFixed(2) + 'px ' + FD; tw = ctx.measureText(txt).width; }
+      const h = 13.5, y = 4.5;
+      ctx.fillStyle = 'rgba(5,10,15,0.62)';
+      rr(ctx, x, y, tw + 12, h, h / 2);
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255,166,48,0.85)';
+      ctx.stroke();
+      ctx.fillStyle = COL.gold;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(txt, x + 6, y + h / 2 + 0.5);
+      ctx.restore();
     }
 
     function drawEffects() {
@@ -2659,11 +2698,12 @@
           ctx.textBaseline = 'middle';
           ctx.fillText(S.tip, W / 2, midY + 58.5, W - 28);
         }
-        if (S.level === 1 && t < S.readyDur) {
+        // aide aux contrôles sur le premier niveau de la partie (niveau de départ en compétition), sous l'astuce s'il y en a une
+        if (S.level === START && t < S.readyDur) {
           ctx.font = '600 12px ' + FB;
           ctx.textAlign = 'center';
           ctx.fillStyle = COL.muted;
-          ctx.fillText(coarse ? 'Glisse le doigt pour bouger la brosse' : '← → / souris pour bouger la brosse', W / 2, midY + 48);
+          ctx.fillText(coarse ? 'Glisse le doigt pour bouger la brosse' : '← → / souris pour bouger la brosse', W / 2, midY + (S.tip ? 96 : 48));
         }
       } else if (S.state === 'play') {
         if (S.balls.some(b => b.stuck) && S.eff.sticky <= 0 && Math.sin(S.clock * 5) > -0.3) {
@@ -2812,6 +2852,8 @@
 
     buildLevel();
     serve();
+    // départ direct à un niveau avancé : annonce « NIVEAU N » et brosse de ce niveau, comme si on y était arrivé
+    if (START > 1) { S.readyDur = S.tip || S.newTheme ? 2.7 : 2; S.paddle.w = basePW(); }
 
     let raf = 0;
     let last = -1;

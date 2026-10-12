@@ -47,5 +47,10 @@ const api = {
   fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
   colors: { night:'#0b141c', panel:'#111d27', steel:'#22394a', steel2:'#3a5568', ink:'#e9f0f3', muted:'#8aa0ae', amber:'#ffa630', gold:'#ffd34d', alarm:'#ff4d5e', volt:'#5ef0ff', spray:'#ff5fae', leaf:'#4cc36a' }
 };
+// mode compétition (CONTRACT.md Ajout 6) : ?start=N&compet&seed=S (sans ces paramètres, rien ne change)
+const QS = new URLSearchParams(location.search);
+if (QS.has('start')) api.startLevel = Number(QS.get('start'));
+if (QS.has('compet')) api.mode = 'compet';
+if (QS.has('seed')) api.seed = Number(QS.get('seed'));
 window.__inst = window.JDW_GAMES.rouleaux.mount(document.getElementById('root'), api);
 </script></body></html>
