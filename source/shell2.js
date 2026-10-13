@@ -226,7 +226,9 @@ function sadUrl(p) {
 }
 function headsList() {
   const out = [];
-  for (const p of players.values()) if (p.name !== 'IA' && p.img && p.img.complete && p.img.naturalWidth) out.push({ name: p.name, img: p.img, sad: sadOf(p) || p.img });
+  const me = cleanName(profile.name);
+  // seulement les membres de la salle (et moi) : un compte de l'appareil retiré de la salle n'apparaît plus dans les jeux
+  for (const p of players.values()) if (p.name !== 'IA' && (p.name === me || !knownNotMember(p.name)) && p.img && p.img.complete && p.img.naturalWidth) out.push({ name: p.name, img: p.img, sad: sadOf(p) || p.img });
   return out;
 }
 function playerObj() {
@@ -4449,17 +4451,19 @@ function hueShift(hex, deg) {
 const mapRng = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
 // Galaxy Wars (games/ilo.js) : 8 secteurs par cycle, mini-boss + boss par secteur, niveau = cycle * 8 + secteur
+// (noms des boss = BOSS_NAMES / MINI_NAMES de ilo.js ; bk = clé du boss dans le jeu, sert au dessin du repère de boss)
 const GW_SEC = [
-  { name: "Ceinture d'Ilo", hue: 196, sat: 80, bg0: '#020812', bg1: '#06243a', acc: '#38e1ff', land: 10, deco: [11, 13], boss: 'La Planète vivante', mini: 'Le Gardien', news: 'Le Vaisseau Noir décolle' },
-  { name: 'Nébuleuse Ambre', hue: 28, sat: 85, bg0: '#0d0602', bg1: '#2e1404', acc: '#ffa630', land: 29, deco: [4, 20], boss: 'Croiseur Vela', mini: 'Le Bélier ambre', news: 'Astéroïdes et frégates' },
-  { name: 'Champ de Kepra', hue: 148, sat: 75, bg0: '#020c06', bg1: '#06301c', acc: '#46f08a', land: 6, deco: [8, 2], boss: "Ver de l'hyperespace", mini: 'La Mère-mine', news: 'Poseurs de mines' },
-  { name: 'Tempête Ionique', hue: 262, sat: 80, bg0: '#07031a', bg1: '#1d0b45', acc: '#a77bff', land: 31, deco: [9, 17], boss: "Reine de l'essaim", mini: 'Le Paratonnerre', news: 'Sentinelles laser' },
-  { name: "Abysse d'Obsidienne", hue: 222, sat: 55, bg0: '#010205', bg1: '#060b1c', acc: '#7fa8ff', land: 12, deco: [21, 23], boss: 'Station Gaïa', mini: 'Le Spectre', news: 'Éclaireurs furtifs' },
-  { name: 'Couloir Écarlate', hue: 350, sat: 85, bg0: '#0e0206', bg1: '#330818', acc: '#ff4d6d', land: 15, deco: [14, 19], boss: 'Les Jumelles', mini: 'La Herse écarlate', news: 'Croiseurs à bouclier' },
-  { name: "Gouffre d'Ophis", hue: 292, sat: 75, bg0: '#08020c', bg1: '#25062e', acc: '#ff5fd2', land: 27, deco: [30, 24], boss: "L'Œil du gouffre", mini: 'Le Pèlerin noir', news: 'Trou noir !' },
-  { name: "Cœur d'ILO", hue: 46, sat: 90, bg0: '#0c0802', bg1: '#2c2108', acc: '#ffd34d', land: 25, deco: [16, 18], boss: 'Le Vaisseau blanc', mini: "Le Héraut d'ILO", news: 'Tout à la fois !' }
+  { name: "Ceinture d'Ilo", hue: 196, sat: 80, bg0: '#020812', bg1: '#06243a', acc: '#38e1ff', land: 10, deco: [11, 13], boss: 'La Planète vivante', bk: 'planete', mini: 'Le Gardien', news: 'Le Vaisseau Noir décolle' },
+  { name: 'Nébuleuse Ambre', hue: 28, sat: 85, bg0: '#0d0602', bg1: '#2e1404', acc: '#ffa630', land: 29, deco: [4, 20], boss: 'Croiseur Vela', bk: 'vela', mini: 'Le Bélier ambre', news: 'Astéroïdes et frégates' },
+  { name: 'Champ de Kepra', hue: 148, sat: 75, bg0: '#020c06', bg1: '#06301c', acc: '#46f08a', land: 6, deco: [8, 2], boss: "Ver de l'hyperespace", bk: 'ver', mini: 'La Mère-mine', news: 'Poseurs de mines' },
+  { name: 'Tempête Ionique', hue: 262, sat: 80, bg0: '#07031a', bg1: '#1d0b45', acc: '#a77bff', land: 31, deco: [9, 17], boss: "Reine de l'essaim", bk: 'reine', mini: 'Le Paratonnerre', news: 'Sentinelles laser' },
+  { name: "Abysse d'Obsidienne", hue: 222, sat: 55, bg0: '#010205', bg1: '#060b1c', acc: '#7fa8ff', land: 12, deco: [21, 23], boss: 'Station Gaïa', bk: 'gaia', mini: 'Le Spectre', news: 'Éclaireurs furtifs' },
+  { name: 'Couloir Écarlate', hue: 350, sat: 85, bg0: '#0e0206', bg1: '#330818', acc: '#ff4d6d', land: 15, deco: [14, 19], boss: 'Les Jumelles', bk: 'jumelles', mini: 'La Herse écarlate', news: 'Croiseurs à bouclier' },
+  { name: "Gouffre d'Ophis", hue: 292, sat: 75, bg0: '#08020c', bg1: '#25062e', acc: '#ff5fd2', land: 27, deco: [30, 24], boss: "L'Œil du gouffre", bk: 'oeil', mini: 'Le Pèlerin noir', news: 'Trou noir !' },
+  { name: "Cœur d'ILO", hue: 46, sat: 90, bg0: '#0c0802', bg1: '#2c2108', acc: '#ffd34d', land: 25, deco: [16, 18], boss: 'Le Vaisseau blanc', bk: 'blanc', mini: "Le Héraut d'ILO", news: 'Tout à la fois !' }
 ];
 // Plein Gaz (pleingaz-src.html) : une zone tous les 2 niveaux, 5 zones puis la tournée recommence (II, III…), un boss à chaque niveau
+// (BOSSES du jeu, dans l'ordre, puis « Mk2 », « Mk3 »… tous les 5 niveaux)
 const PG_ZONES = [
   { name: "Hall d'assemblage", short: 'Hall', wall: '#14222e', dk: '#0e1922', sky: '#1b3346', steel: '#22394a', steel2: '#3a5568', lamp: '#ffa630' },
   { name: 'La Fonderie', short: 'Fonderie', wall: '#2a1813', dk: '#1b0f0b', sky: '#6b2c10', steel: '#3e2a24', steel2: '#6d4a3c', lamp: '#ff7a2e' },
@@ -4468,10 +4472,12 @@ const PG_ZONES = [
   { name: 'Les Toits', short: 'Toits', wall: '#0c1424', dk: '#070d18', sky: '#13234a', steel: '#26324a', steel2: '#45567a', lamp: '#ffd34d' }
 ];
 const PG_BOSSES = ['Presse-7', 'Grue folle', 'Turbine mère', 'Foreuse', 'Ruche-Drone'];
+const PG_BK = ['presse', 'grue', 'turbine', 'foreuse', 'ruche'];
 const PG_NEWS = { 3: 'Jets de flammes', 4: 'Couloir électrique', 5: 'Scies circulaires', 6: 'Slalom', 7: 'Portes électriques', 8: 'Salve de missiles', 9: 'Drones de garde' };
 
 // Description d'une carte : count(max) = niveaux dessinés ; level(n) = { tier, kicker, name, lines, acc, bg, bg0, … } ;
-// tier(t) = palier (bandeau) ; theme = peintre du décor ('space' | 'factory') ; start / cap = textes du départ et du haut.
+// tier(t) = palier (bandeau) ; theme = peintre du décor ('space' | 'factory') ; start / cap = textes du départ et du haut ;
+// boss(n) = le boss qui ferme le niveau n { bk (dessin), name, kicker, final (boss de fin de cycle : couronne) } → étape « BOSS » sur le chemin.
 const MAP_DEFS = {
   ilo: {
     theme: 'space', word: 'Secteur', tierGap: 170, tierAt: 0.58,
@@ -4479,10 +4485,14 @@ const MAP_DEFS = {
     level(lv) {
       const i = (lv - 1) % 8, c = Math.floor((lv - 1) / 8), S = GW_SEC[i], rot = c * 41;
       return { lv, tier: c, i, kicker: (c ? 'Cycle ' + mapRoman(c) + ' · ' : '') + 'Secteur ' + (i + 1), name: S.name,
-        lines: ['☠ ' + S.boss + (c ? ' ' + mapRoman(c) : ''), c ? 'Mini-boss : ' + S.mini : '✦ ' + S.news],
+        lines: [c ? 'Mini-boss : ' + S.mini : '✦ ' + S.news],
         acc: S.acc, bg: hueShift(S.bg1, rot), bg0: hueShift(S.bg0, rot), hue: (S.hue + rot) % 360, sat: S.sat, planet: S.land, deco: S.deco };
     },
     short(lv) { const i = (lv - 1) % 8, c = Math.floor((lv - 1) / 8); return (c ? 'Cycle ' + mapRoman(c) + ' · ' : '') + 'Secteur ' + (i + 1) + ' · ' + GW_SEC[i].name; },
+    boss(lv) {
+      const i = (lv - 1) % 8, c = Math.floor((lv - 1) / 8), S = GW_SEC[i];
+      return { lv, bk: S.bk, name: S.boss + (c ? ' ' + mapRoman(c) : ''), final: i === 7, kicker: i === 7 ? 'Fin du cycle ' + mapRoman(c) : (c ? 'Cycle ' + mapRoman(c) + ' · fin du secteur ' : 'Fin du secteur ') + (i + 1) };
+    },
     tier(c) {
       return { kicker: c ? 'Palier ' + (c + 1) : 'Palier 1', title: 'Cycle ' + mapRoman(c), acc: hueShift('#38e1ff', c * 41), acc2: hueShift('#ff3fb4', c * 41),
         sub: c ? 'Les 8 secteurs reviennent, plus coriaces' : 'Huit secteurs, un boss au bout de chacun' };
@@ -4496,10 +4506,11 @@ const MAP_DEFS = {
     level(lv) {
       const z = Math.floor((lv - 1) / 2), Z = PG_ZONES[z % 5], tour = Math.floor(z / 5), mk = Math.floor((lv - 1) / 5);
       return { lv, tier: z, kicker: 'Niveau ' + lv, name: Z.name + (tour ? ' ' + mapRoman(tour) : ''),
-        lines: ['☠ ' + PG_BOSSES[(lv - 1) % 5] + (mk ? ' Mk' + (mk + 1) : ''), PG_NEWS[lv] ? '✦ ' + PG_NEWS[lv] : ''].filter(Boolean),
+        lines: PG_NEWS[lv] ? ['✦ ' + PG_NEWS[lv]] : [],
         acc: Z.lamp, bg: Z.wall, bg0: Z.dk, zone: Z };
     },
     short(lv) { const z = Math.floor((lv - 1) / 2), tour = Math.floor(z / 5); return 'Niveau ' + lv + ' · ' + PG_ZONES[z % 5].name + (tour ? ' ' + mapRoman(tour) : ''); },
+    boss(lv) { const t = (lv - 1) % 5, mk = Math.floor((lv - 1) / 5); return { lv, bk: PG_BK[t], name: PG_BOSSES[t] + (mk ? ' Mk' + (mk + 1) : ''), final: false, kicker: 'Fin du niveau ' + lv }; },
     tier(z) {
       const Z = PG_ZONES[z % 5], tour = Math.floor(z / 5);
       return { kicker: 'Zone ' + (z + 1), title: Z.name + (tour ? ' ' + mapRoman(tour) : ''), acc: Z.lamp, zone: Z,
@@ -4641,27 +4652,34 @@ function closeMap() {
 function mapLayout(def, n, W, VH) {
   const S = Math.round(Math.max(118, Math.min(150, VH * 0.165)));
   const wide = W >= 700, A = Math.min(W * (wide ? 0.2 : 0.26), 190);
-  const nodes = [], tiers = [];
+  const nodes = [], tiers = [], bosses = [];
+  // chaque niveau = sa pastille puis, plus haut sur le chemin, l'étape « BOSS » qui le ferme (assez loin pour les têtes posées sur la pastille)
+  const toBoss = Math.round(S * 0.5 + 94), fromBoss = Math.round(S * 0.5 + 58);
   let d = 150, prevTier = null;       // distance depuis le bas ; le départ est à 150 px du bas
   const start = { d, k: 0 };
   for (let lv = 1; lv <= n; lv++) {
     const info = def.level(lv);
-    let gap = S;
+    const base = lv === 1 ? S : fromBoss;
+    let gap = base;
     if (info.tier !== prevTier) {
       const T = def.tier(info.tier);
       const G = T.major && def.majorGap ? def.majorGap : def.tierGap;
-      gap = S + G; tiers.push({ t: info.tier, T, dMid: d + gap * (T.major && def.majorGap ? 0.66 : def.tierAt || 0.6), dLo: d, dHi: d + gap });
+      gap = base + G; tiers.push({ t: info.tier, T, dMid: d + gap * (T.major && def.majorGap ? 0.66 : def.tierAt || 0.6), dLo: d, dHi: d + gap });
       prevTier = info.tier;
     }
     d += gap;
-    nodes.push({ lv, info, d, k: lv });
+    const nd = { lv, info, d, k: lv };
+    nodes.push(nd);
+    d += toBoss;
+    nd.boss = { lv, info, bi: Object.assign({ acc: info.acc }, def.boss(lv)), d, k: lv + 0.5, isBoss: true };
+    bosses.push(nd.boss);
   }
   const H = d + S * 0.5 + 250;
   const xAt = k => W / 2 + A * Math.sin(k * 0.95 - 0.35);
-  const all = [start, ...nodes];
+  const all = [start, ...nodes, ...bosses];
   for (const p of all) { p.y = H - p.d; p.x = xAt(p.k); }
   for (const t of tiers) { t.y = H - t.dMid; t.yLo = H - t.dLo; t.yHi = H - t.dHi; }
-  return { W, H, S, A, start, nodes, tiers, capY: H - (d + S * 0.5 + 110) };
+  return { W, H, S, A, start, nodes, bosses, tiers, capY: H - (d + S * 0.5 + 110) };
 }
 // fond : dégradé continu d'un niveau à l'autre (couleurs du secteur / de la zone)
 function mapStops(L, def) {
@@ -4833,6 +4851,255 @@ function mapNodeCanvas(def, info, size) {
   }
   return c;
 }
+// repère de boss : dessins des boss en code (formes et couleurs du jeu), dans un carré de -50 à 50 (aucune image)
+function mapPoly(x, pts) { x.beginPath(); x.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) x.lineTo(pts[i], pts[i + 1]); x.closePath(); }
+function mapMirror(half) { const out = half.slice(); for (let i = half.length - 2; i >= 0; i -= 2) out.push(-half[i], half[i + 1]); return out; }
+function mapHex(x, cx, cy, r, rot) { x.beginPath(); for (let k = 0; k < 6; k++) { const a = (rot || 0) + k * Math.PI / 3; x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } x.closePath(); }
+function mapRadial(x, cx, cy, r, stops) { const g = x.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.08, cx, cy, r); stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c)); return g; }
+function mapGlow(x, cx, cy, r, col, a) { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, rgbaHex(col, a)); g.addColorStop(1, rgbaHex(col, 0)); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); }
+function mapRect(x, rx, ry, w, h, r) { x.beginPath(); if (x.roundRect) x.roundRect(rx, ry, w, h, r); else x.rect(rx, ry, w, h); }
+function mapEye(x, cx, cy, r, col) {   // œil rouge des machines de Plein Gaz
+  x.fillStyle = '#0b1015'; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+  mapGlow(x, cx, cy, r * 2.2, col, 0.55);
+  x.fillStyle = col; x.beginPath(); x.arc(cx, cy, r * 0.55, 0, 7); x.fill();
+  x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.arc(cx - r * 0.2, cy - r * 0.22, r * 0.17, 0, 7); x.fill();
+}
+function mapStripes(x, rx, ry, w, h, a, b, step) {   // bande « danger » en biais
+  x.save(); x.beginPath(); x.rect(rx, ry, w, h); x.clip(); x.fillStyle = b; x.fillRect(rx, ry, w, h); x.fillStyle = a;
+  for (let k = -h; k < w + h; k += step * 2) { x.beginPath(); x.moveTo(rx + k, ry + h); x.lineTo(rx + k + step, ry + h); x.lineTo(rx + k + step + h, ry); x.lineTo(rx + k + h, ry); x.fill(); }
+  x.restore();
+}
+function mapLetter(x, t, px, py, size, col) { x.fillStyle = col; x.font = '400 ' + size + 'px Bungee, Impact, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(t, px, py); }
+const BOSS_ICON = {
+  // ---- Galaxy Wars (games/ilo.js, BDRAW)
+  planete(x) {          // planète orange au visage fâché, avec ses lunes
+    x.fillStyle = mapRadial(x, -30, -24, 7, ['#f2f4f8', '#9aa3b0', '#3b4250']); x.beginPath(); x.arc(-30, -24, 7, 0, 7); x.fill();
+    mapGlow(x, 0, 2, 46, '#ff8a3a', 0.35);
+    x.fillStyle = mapRadial(x, 0, 2, 30, ['#ffe0b8', '#f39a52', '#c55a24', '#5e1f0c']); x.beginPath(); x.arc(0, 2, 30, 0, 7); x.fill();
+    x.save(); x.beginPath(); x.arc(0, 2, 30, 0, 7); x.clip(); x.globalAlpha = 0.28; x.fillStyle = '#9a3d14';
+    for (const [yy, hh] of [[-16, 4], [-6, 3], [9, 5], [20, 3]]) { x.beginPath(); x.ellipse(0, yy, 34, hh, -0.12, 0, 7); x.fill(); }
+    x.restore();
+    for (const s of [-1, 1]) {
+      x.fillStyle = '#fff6ec'; x.beginPath(); x.ellipse(s * 10, -3, 6.2, 7.4, 0, 0, 7); x.fill();
+      x.fillStyle = '#d4002a'; x.beginPath(); x.arc(s * 9.4, -1.6, 3.2, 0, 7); x.fill();
+      x.fillStyle = '#1a0a12'; x.beginPath(); x.arc(s * 9.4, -1.6, 1.6, 0, 7); x.fill();
+      x.strokeStyle = '#1a0a12'; x.lineWidth = 3; x.lineCap = 'round'; x.beginPath(); x.moveTo(s * 17, -14); x.lineTo(s * 5, -9.5); x.stroke();
+    }
+    x.fillStyle = '#1a0610'; x.beginPath(); x.ellipse(0, 15, 8.5, 4, 0, 0, 7); x.fill();
+    x.fillStyle = '#ff5a3c'; x.beginPath(); x.ellipse(0, 16.5, 4.5, 1.8, 0, 0, 7); x.fill();
+    x.fillStyle = mapRadial(x, 31, 22, 6, ['#e9edf2', '#8f98a6', '#363c48']); x.beginPath(); x.arc(31, 22, 6, 0, 7); x.fill();
+  },
+  vela(x) {             // croiseur gris, ailes larges, liserés ambre, 4 tourelles
+    mapGlow(x, -7, -30, 9, '#ffa630', 0.9); mapGlow(x, 7, -30, 9, '#ffa630', 0.9);
+    x.lineJoin = 'round';
+    mapPoly(x, mapMirror([0, -14, 14, -16, 44, -8, 46, 2, 40, 8, 14, 4]));
+    x.fillStyle = '#3b3a4a'; x.fill(); x.strokeStyle = '#ffa630'; x.lineWidth = 1.6; x.stroke();
+    mapPoly(x, mapMirror([0, -27, 12, -27, 15, 8, 0, 30]));
+    const hg = x.createLinearGradient(0, -27, 0, 30); hg.addColorStop(0, '#45435a'); hg.addColorStop(1, '#221f2c'); x.fillStyle = hg; x.fill(); x.stroke();
+    x.strokeStyle = '#ffa630'; x.lineWidth = 1.2; x.strokeRect(-6, -9, 12, 15);
+    x.fillStyle = '#ffd34d'; for (let k = -1; k <= 1; k++) x.fillRect(k * 4 - 1.2, -22, 2.4, 2.4);
+    for (const [tx, ty] of [[-33, -2], [-21, 1], [21, 1], [33, -2]]) {
+      x.fillStyle = '#16131e'; x.beginPath(); x.arc(tx, ty, 5.2, 0, 7); x.fill(); x.strokeStyle = '#ffa630'; x.lineWidth = 1.3; x.stroke();
+      x.fillStyle = '#38e1ff'; x.beginPath(); x.arc(tx, ty, 1.8, 0, 7); x.fill();
+    }
+  },
+  ver(x) {              // ver violet à épines, tête aux yeux cyan
+    const seg = [];
+    for (let i = 0; i < 10; i++) seg.push([-14 + 22 * Math.sin(i * 0.5 - 1.2) + i * 1.2, -40 + i * 7.2, 3.6 + i * 0.55]);
+    for (const [sx, sy, r] of seg) {
+      x.fillStyle = '#c9a8ff';
+      for (const s of [-1, 1]) { mapPoly(x, [sx + s * r * 0.6, sy - r * 0.5, sx + s * (r + 5), sy, sx + s * r * 0.6, sy + r * 0.5]); x.fill(); }
+      x.fillStyle = mapRadial(x, sx, sy, r, ['#e2d2ff', '#9b5cf0', '#4a1a94']); x.beginPath(); x.arc(sx, sy, r, 0, 7); x.fill();
+    }
+    const hx = seg[9][0] + 11, hy = seg[9][1] + 9;
+    mapGlow(x, hx, hy, 24, '#a77bff', 0.45);
+    x.strokeStyle = '#d6b8ff'; x.lineWidth = 1.6; x.lineCap = 'round';
+    x.beginPath(); x.moveTo(hx + 6, hy - 10); x.quadraticCurveTo(hx + 16, hy - 22, hx + 21, hy - 13); x.stroke();
+    x.fillStyle = mapRadial(x, hx, hy, 13, ['#e6d8ff', '#8a48e6', '#35106e']); x.beginPath(); x.ellipse(hx, hy, 14, 12, 0.4, 0, 7); x.fill();
+    mapGlow(x, hx + 5, hy - 2, 9, '#38e1ff', 0.6);
+    x.fillStyle = '#38e1ff'; x.beginPath(); x.ellipse(hx + 5, hy - 2, 4.2, 3, 0.4, 0, 7); x.fill(); x.beginPath(); x.ellipse(hx - 3, hy + 5, 2.6, 2, 0.4, 0, 7); x.fill();
+  },
+  reine(x) {            // reine insecte : ailes vertes translucides, œil rouge
+    for (const s of [-1, 1]) {
+      mapPoly(x, [s * 6, -6, s * 47, -24, s * 44, 8, s * 8, 5]);
+      x.fillStyle = 'rgba(160,236,170,.42)'; x.fill(); x.strokeStyle = '#7fe28e'; x.lineWidth = 1.4; x.stroke();
+      x.strokeStyle = 'rgba(127,226,142,.55)'; x.lineWidth = 0.8;
+      for (const t of [0.35, 0.65]) { x.beginPath(); x.moveTo(s * 7, -1); x.lineTo(s * (47 - 3 * t), -24 + 32 * t); x.stroke(); }
+      x.fillStyle = '#0d2a12'; x.fillRect(s * 38 - 3, -14, 6, 4);
+      x.strokeStyle = '#7fe28e'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(s * 3, -13); x.quadraticCurveTo(s * 6, -24, s * 11, -26); x.stroke();
+    }
+    for (const [yy, rx, ry] of [[26, 5.5, 4.5], [18, 7.5, 5.5], [9, 9, 6.5]]) {
+      x.fillStyle = mapRadial(x, 0, yy, rx, ['#9ff0a8', '#3c9a46', '#123d18']); x.beginPath(); x.ellipse(0, yy, rx, ry, 0, 0, 7); x.fill();
+    }
+    x.fillStyle = mapRadial(x, 0, -4, 12, ['#8fe39a', '#2f8a3a', '#0e3214']); x.beginPath(); x.ellipse(0, -4, 12.5, 10.5, 0, 0, 7); x.fill();
+    mapGlow(x, 0, -5, 16, '#ff3b2e', 0.5);
+    x.fillStyle = '#ffa630'; x.beginPath(); x.arc(0, -5, 8, 0, 7); x.fill();
+    x.fillStyle = mapRadial(x, 0, -5, 6.4, ['#ff9b80', '#ff2a14', '#7a0800']); x.beginPath(); x.arc(0, -5, 6.4, 0, 7); x.fill();
+    x.fillStyle = '#1a0402'; x.beginPath(); x.ellipse(0, -5, 1.6, 4.6, 0, 0, 7); x.fill();
+  },
+  gaia(x) {             // station en anneau, nœuds hexagonaux verts, moyeu
+    x.strokeStyle = '#2b5a48'; x.lineWidth = 2;
+    for (let k = 0; k < 3; k++) { const a = k * 2.1 + 0.4; x.beginPath(); x.moveTo(Math.cos(a) * 11, Math.sin(a) * 11); x.lineTo(Math.cos(a) * 34, Math.sin(a) * 34); x.stroke(); }
+    x.strokeStyle = '#3f7f68'; x.lineWidth = 7; x.beginPath(); x.arc(0, 0, 35, 0, 7); x.stroke();
+    x.strokeStyle = 'rgba(70,240,138,.55)'; x.lineWidth = 1.2; x.beginPath(); x.arc(0, 0, 35, 0, 7); x.stroke();
+    for (let k = 0; k < 6; k++) {
+      const a = -Math.PI / 2 + k * Math.PI / 3, nx = Math.cos(a) * 35, ny = Math.sin(a) * 35;
+      mapHex(x, nx, ny, 6.6, Math.PI / 6); x.fillStyle = '#1f2c2a'; x.fill(); x.strokeStyle = '#7fa89a'; x.lineWidth = 1.4; x.stroke();
+      x.fillStyle = '#46f08a'; x.beginPath(); x.arc(nx, ny, 2.2, 0, 7); x.fill();
+    }
+    x.fillStyle = mapRadial(x, 0, 0, 12, ['#6f8a84', '#2a3936', '#121a19']); x.beginPath(); x.arc(0, 0, 12, 0, 7); x.fill();
+    x.strokeStyle = '#9fc2b6'; x.lineWidth = 1.4; x.stroke();
+    x.strokeStyle = 'rgba(159,194,182,.6)'; x.lineWidth = 1;
+    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * 11, Math.sin(a) * 11); x.stroke(); }
+    mapGlow(x, 0, 0, 9, '#46f08a', 0.6);
+  },
+  jumelles(x) {         // deux planètes jumelles : l'une de feu, l'autre pâle
+    mapGlow(x, 13, -12, 30, '#ff6a2a', 0.4);
+    x.fillStyle = mapRadial(x, 13, -12, 19, ['#ffe27a', '#ff7a2a', '#c0306a', '#4a0820']); x.beginPath(); x.arc(13, -12, 19, 0, 7); x.fill();
+    x.save(); x.beginPath(); x.arc(13, -12, 19, 0, 7); x.clip(); x.globalAlpha = 0.35; x.strokeStyle = '#ffd34d'; x.lineWidth = 2.4;
+    for (const yy of [-22, -15, -8, -1]) { x.beginPath(); x.moveTo(-8, yy); x.quadraticCurveTo(13, yy - 6, 34, yy + 2); x.stroke(); }
+    x.restore();
+    mapGlow(x, -9, 8, 30, '#ffb28a', 0.3);
+    x.fillStyle = mapRadial(x, -9, 8, 22, ['#fff0e2', '#f6b48c', '#c2603e', '#4a160c']); x.beginPath(); x.arc(-9, 8, 22, 0, 7); x.fill();
+    x.globalAlpha = 0.3; x.fillStyle = '#a3482a';
+    for (const [cx2, cy2, r2] of [[-16, 2, 4], [-3, 14, 5], [-12, 19, 2.6], [0, 0, 2.4]]) { x.beginPath(); x.arc(cx2, cy2, r2, 0, 7); x.fill(); }
+    x.globalAlpha = 1;
+  },
+  oeil(x) {             // spirale rose autour d'un trou noir qui ouvre l'œil
+    x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
+    for (let arm = 0; arm < 3; arm++) {
+      for (let k = 0; k < 40; k++) {
+        const t = k / 40, a = arm * 2.094 + t * 5.2, r = 13 + t * 30;
+        x.strokeStyle = 'rgba(255,' + Math.round(80 + 100 * t) + ',' + Math.round(200 + 40 * t) + ',' + (0.85 - t * 0.6).toFixed(2) + ')';
+        x.lineWidth = 5.5 - t * 4;
+        x.beginPath(); x.arc(0, 0, r, a, a + 0.16); x.stroke();
+      }
+    }
+    x.globalCompositeOperation = 'source-over';
+    x.fillStyle = '#05000a'; x.beginPath(); x.arc(0, 0, 14, 0, 7); x.fill();
+    x.strokeStyle = '#ff5fd2'; x.lineWidth = 1.6; x.stroke();
+    x.beginPath(); x.moveTo(-10, 0); x.quadraticCurveTo(0, -8, 10, 0); x.quadraticCurveTo(0, 8, -10, 0); x.fillStyle = '#2a0024'; x.fill();
+    x.strokeStyle = '#ff9be6'; x.lineWidth = 1.5; x.stroke();
+    x.fillStyle = '#ff3fb4'; x.beginPath(); x.arc(0, 0, 3.6, 0, 7); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.arc(-1.2, -1.2, 1, 0, 7); x.fill();
+  },
+  blanc(x) {            // vaisseau blanc, liserés roses, pointé vers toi
+    mapGlow(x, -6, -34, 10, '#38e1ff', 0.9); mapGlow(x, 6, -34, 10, '#38e1ff', 0.9);
+    x.lineJoin = 'round';
+    mapPoly(x, mapMirror([0, -32, 7, -30, 9, -8, 38, 2, 40, 12, 12, 10, 7, 24, 0, 40]));
+    const g = x.createLinearGradient(0, -32, 0, 40); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c4cadb');
+    x.fillStyle = g; x.fill(); x.strokeStyle = '#ff3fb4'; x.lineWidth = 1.8; x.stroke();
+    x.lineWidth = 1.4;
+    for (const s of [-1, 1]) { x.beginPath(); x.moveTo(s * 12, 1); x.lineTo(s * 34, 7); x.stroke(); }
+    x.fillStyle = '#16141f'; mapPoly(x, mapMirror([0, -2, 4, 2, 3, 20, 0, 28])); x.fill();
+    x.fillStyle = '#38e1ff'; x.beginPath(); x.ellipse(0, 10, 2.4, 7, 0, 0, 7); x.fill();
+  },
+  // ---- Plein Gaz (pleingaz-src.html, drawBoss)
+  presse(x) {           // bloc d'acier, bande danger, piston, œil rouge, plaque P-7, réacteurs
+    for (const s of [-1, 1]) { mapGlow(x, s * 12, 27, 10, '#ffa630', 0.7); x.fillStyle = '#ffd34d'; mapPoly(x, [s * 12 - 5, 22, s * 12 + 5, 22, s * 12, 34]); x.fill(); }
+    x.fillStyle = '#3a5568'; x.fillRect(-5, -36, 10, 14); x.fillStyle = '#22394a'; x.fillRect(-9, -38, 18, 5);
+    const g = x.createLinearGradient(0, -24, 0, 22); g.addColorStop(0, '#2f4b5e'); g.addColorStop(1, '#152330');
+    x.fillStyle = g; x.fillRect(-26, -24, 52, 46); x.strokeStyle = '#0b1015'; x.lineWidth = 2.4; x.strokeRect(-26, -24, 52, 46);
+    mapStripes(x, -25, -23, 9, 44, '#ffd34d', '#11161b', 4);
+    mapEye(x, 4, -7, 8, '#ff3344');
+    x.fillStyle = '#0b1015'; x.fillRect(-4, 6, 22, 10); mapLetter(x, 'P-7', 7, 11.5, 8, '#ffd34d');
+  },
+  grue(x) {             // grue orange : flèche rayée, câble et crochet, œil rouge
+    const ex = -6 - 40 * Math.cos(0.42), ey = -12 - 40 * Math.sin(0.42);
+    x.save(); x.translate(-6, -12); x.rotate(0.42); mapStripes(x, -40, -4, 40, 8, '#ffd34d', '#11161b', 4); x.strokeStyle = '#0b1015'; x.lineWidth = 1.4; x.strokeRect(-40, -4, 40, 8); x.restore();
+    x.strokeStyle = '#9fb3c2'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(ex + 2, ey + 2); x.lineTo(ex + 2, 16); x.stroke();
+    x.strokeStyle = '#d7e3ea'; x.lineWidth = 2.4; x.lineCap = 'round'; x.beginPath(); x.arc(ex + 2, 21, 4.5, -Math.PI * 0.5, Math.PI * 0.9); x.stroke();
+    for (const s of [-1, 1]) { mapGlow(x, 14 + s * 9, 25, 9, '#ffa630', 0.7); x.fillStyle = '#ffd34d'; mapPoly(x, [14 + s * 9 - 4, 20, 14 + s * 9 + 4, 20, 14 + s * 9, 31]); x.fill(); }
+    const g = x.createLinearGradient(0, -20, 0, 20); g.addColorStop(0, '#ffbe5c'); g.addColorStop(1, '#d9761a');
+    x.fillStyle = g; mapRect(x, -6, -20, 40, 40, 5); x.fill(); x.strokeStyle = '#7a3a06'; x.lineWidth = 2; x.stroke();
+    x.fillStyle = '#0b1015'; x.fillRect(-1, -14, 18, 14); mapEye(x, 8, -7, 5.5, '#ff3344');
+    mapLetter(x, 'G', 26, 8, 11, '#0b1015');
+  },
+  turbine(x) {          // turbine sombre, pales, cœur rouge
+    x.fillStyle = mapRadial(x, 0, 0, 34, ['#4a5568', '#262c38', '#11151c']); x.beginPath(); x.arc(0, 0, 34, 0, 7); x.fill();
+    x.strokeStyle = '#5a6a80'; x.lineWidth = 3; x.stroke();
+    x.fillStyle = '#8a98aa'; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; x.beginPath(); x.arc(Math.cos(a) * 30, Math.sin(a) * 30, 1.6, 0, 7); x.fill(); }
+    for (let k = 0; k < 7; k++) {
+      x.save(); x.rotate(k * Math.PI * 2 / 7);
+      x.beginPath(); x.moveTo(6, -3); x.quadraticCurveTo(20, -12, 27, -3); x.quadraticCurveTo(18, 1, 7, 4); x.closePath();
+      x.fillStyle = '#6b7a90'; x.fill(); x.strokeStyle = '#1a2029'; x.lineWidth = 1; x.stroke(); x.restore();
+    }
+    mapGlow(x, 0, 0, 24, '#ff3366', 0.75);
+    x.fillStyle = mapRadial(x, 0, 0, 9, ['#ffd0dc', '#ff3366', '#7a0a2a']); x.beginPath(); x.arc(0, 0, 9, 0, 7); x.fill();
+  },
+  foreuse(x) {          // foreuse jaune : cône de forage, chenilles, plaque F
+    const cg = x.createLinearGradient(0, -18, 0, 12); cg.addColorStop(0, '#e6edf1'); cg.addColorStop(1, '#6d7a84');
+    mapPoly(x, [-6, -18, -6, 12, -44, -3]); x.fillStyle = cg; x.fill(); x.strokeStyle = '#3a4650'; x.lineWidth = 1.2; x.stroke();
+    x.strokeStyle = '#4c5862'; x.lineWidth = 1.3;
+    for (let k = 1; k <= 4; k++) { const t = k / 5, xx = -6 - 38 * t, hh = 15 * (1 - t); x.beginPath(); x.moveTo(xx + 3, -3 - hh); x.lineTo(xx - 3, -3 + hh); x.stroke(); }
+    x.fillStyle = '#1b232b'; mapRect(x, -6, 13, 40, 11, 5); x.fill();
+    x.fillStyle = '#ffd34d'; for (let k = 0; k < 5; k++) { x.beginPath(); x.arc(-1 + k * 7.5, 18.5, 1.8, 0, 7); x.fill(); }
+    x.fillStyle = '#3a4650'; x.fillRect(22, -28, 5, 10);
+    const g = x.createLinearGradient(0, -20, 0, 14); g.addColorStop(0, '#ffe27a'); g.addColorStop(1, '#d4a10c');
+    x.fillStyle = g; x.fillRect(-6, -20, 38, 34); x.strokeStyle = '#6a4e00'; x.lineWidth = 2; x.strokeRect(-6, -20, 38, 34);
+    x.fillStyle = '#0b1015'; x.fillRect(0, -15, 14, 10); mapEye(x, 7, -10, 4.4, '#ff3344');
+    x.fillStyle = '#0b1015'; x.fillRect(16, -2, 12, 12); mapLetter(x, 'F', 22, 4.5, 9, '#ffd34d');
+  },
+  ruche(x) {            // ruche hexagonale orange, plaques-boucliers cyan en orbite
+    for (let k = 0; k < 3; k++) {
+      const a = -Math.PI / 2 + 0.5 + k * 2.1, px = Math.cos(a) * 40, py = Math.sin(a) * 40;
+      x.save(); x.translate(px, py); x.rotate(a + Math.PI / 2);
+      x.fillStyle = 'rgba(94,240,255,.3)'; x.strokeStyle = '#5ef0ff'; x.lineWidth = 1.5;
+      mapRect(x, -7, -5, 14, 10, 2.5); x.fill(); x.stroke(); x.restore();
+    }
+    mapGlow(x, 0, 0, 40, '#ffa630', 0.35);
+    mapHex(x, 0, 0, 30, Math.PI / 6); x.fillStyle = mapRadial(x, 0, 0, 30, ['#ffd08a', '#ffa630', '#b25e0e']); x.fill(); x.strokeStyle = '#6a3604'; x.lineWidth = 2.2; x.stroke();
+    x.strokeStyle = 'rgba(122,58,6,.75)'; x.lineWidth = 1.4;
+    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; mapHex(x, Math.cos(a) * 17, Math.sin(a) * 17, 6.5, Math.PI / 6); x.stroke(); }
+    mapEye(x, 0, 0, 8, '#ff3344');
+  }
+};
+// médaillon du boss : cadre menaçant (couronne de pointes / octogone danger) + dessin du boss ; or + couronne pour le boss de fin de cycle
+function mapBossCanvas(def, bi, size) {
+  const c = document.createElement('canvas'), dpr = Math.min(3, (window.devicePixelRatio || 1) * (MAP.z || 1)), P = size + 34;
+  c.width = c.height = Math.round(P * dpr); c.style.width = c.style.height = P + 'px';
+  const x = c.getContext('2d'); x.scale(dpr, dpr);
+  const cx = P / 2, cy = P / 2 + (bi.final ? 3 : 0), r = size / 2, gold = bi.final;
+  const rim = gold ? '#ffd34d' : '#ff3b55', rim2 = gold ? '#a85a00' : '#7a0018';
+  mapGlow(x, cx, cy, r + 17, gold ? '#ffb22e' : '#ff2448', 0.55);
+  if (def.theme === 'space') {
+    const n = 18, sp = x.createRadialGradient(cx, cy, r - 2, cx, cy, r + 10);
+    sp.addColorStop(0, rim); sp.addColorStop(1, rim2);
+    x.beginPath();
+    for (let k = 0; k < n * 2; k++) { const a = k * Math.PI / n - Math.PI / 2, rr = k % 2 ? r + 1 : r + 9; x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+    x.closePath(); x.fillStyle = sp; x.fill();
+    x.fillStyle = mapRadial(x, cx, cy, r, [mixHex(bi.acc || rim, '#000000', 0.45), mixHex(bi.acc || rim, '#000000', 0.82), '#030108']);
+    x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+    x.strokeStyle = rim; x.lineWidth = 2.4; x.beginPath(); x.arc(cx, cy, r - 0.5, 0, 7); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, r - 4.5, 0, 7); x.stroke();
+  } else {
+    const oct = (rr, keep) => { if (!keep) x.beginPath(); for (let k = 0; k < 8; k++) { const a = Math.PI / 8 + k * Math.PI / 4; x[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.closePath(); };
+    x.fillStyle = 'rgba(0,0,0,.5)'; x.save(); x.translate(0, 3); oct(r + 8); x.fill(); x.restore();
+    oct(r + 8); x.fillStyle = '#0b1015'; x.fill();
+    x.save(); oct(r + 6); oct(r - 2, true); x.clip('evenodd');
+    mapStripes(x, cx - r - 8, cy - r - 8, size + 16, size + 16, rim, '#14090c', 5); x.restore();
+    oct(r - 2); x.fillStyle = mapRadial(x, cx, cy, r, [mixHex(bi.acc || '#3a5568', '#000000', 0.55), '#0e151c', '#06090c']); x.fill();
+    x.strokeStyle = '#0b1015'; x.lineWidth = 2; x.stroke();
+    for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; x.fillStyle = mapRadial(x, cx + Math.cos(a) * (r + 2), cy + Math.sin(a) * (r + 2), 2.6, ['#c0ccd4', '#55687a', '#1b252e']); x.beginPath(); x.arc(cx + Math.cos(a) * (r + 2), cy + Math.sin(a) * (r + 2), 2.6, 0, 7); x.fill(); }
+  }
+  const draw = BOSS_ICON[bi.bk];
+  if (draw) {
+    x.save(); x.beginPath(); x.arc(cx, cy, r - 2, 0, 7); x.clip();
+    const k = (r - 2) / 45; x.translate(cx, cy); x.scale(k, k);
+    try { draw(x); } catch (e) {}
+    x.restore();
+  }
+  if (gold) {   // couronne du boss de fin de cycle
+    x.save(); x.translate(cx, cy - r - 3);
+    mapPoly(x, [-14, 0, 14, 0, 16, -15, 8, -7, 0, -19, -8, -7, -16, -15]);
+    const cg = x.createLinearGradient(0, -19, 0, 0); cg.addColorStop(0, '#fff3b0'); cg.addColorStop(0.5, '#ffd34d'); cg.addColorStop(1, '#c98a00');
+    x.fillStyle = cg; x.fill(); x.strokeStyle = '#5a3500'; x.lineWidth = 1.4; x.lineJoin = 'round'; x.stroke();
+    x.fillStyle = '#ff3b55'; x.beginPath(); x.arc(0, -6, 2.4, 0, 7); x.fill();
+    x.fillStyle = '#38e1ff'; for (const s of [-1, 1]) { x.beginPath(); x.arc(s * 8, -3.5, 1.6, 0, 7); x.fill(); }
+    x.restore();
+  }
+  return c;
+}
 function mapSegPath(a, b) {
   const my = (a.y + b.y) / 2;
   return 'M' + a.x.toFixed(1) + ' ' + a.y.toFixed(1) + ' C' + a.x.toFixed(1) + ' ' + my.toFixed(1) + ' ' + b.x.toFixed(1) + ' ' + my.toFixed(1) + ' ' + b.x.toFixed(1) + ' ' + b.y.toFixed(1);
@@ -4889,6 +5156,31 @@ function mapBuild(animate) {
     for (const ln of nd.info.lines) mapEl('span', ln[0] === '☠' ? 'boss' : '', lab).textContent = ln;
     MAP.nodeEls.push(el); nd.el = el;
   }
+  // étapes « BOSS » : médaillon sur le chemin, badge rouge, nom en grand, état (vaincu / à battre)
+  const SKULL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c-5 0-8.6 3.4-8.6 8 0 2.7 1.3 4.6 3 5.8V19c0 .9.7 1.6 1.6 1.6h.7v-2h1.6v2h3.4v-2h1.6v2h.7c.9 0 1.6-.7 1.6-1.6v-3c1.7-1.2 3-3.1 3-5.8 0-4.6-3.6-8-8.6-8zM8.4 14.2a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6zm7.2 0a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6zM12 14.6l1.3 2.2h-2.6z"/></svg>';
+  const CROWN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 7.5l5 4 4.5-7 4.5 7 5-4-2 11h-15zM4.8 20h14.4v2H4.8z"/></svg>';
+  for (const nd of L.nodes) {
+    const bs = nd.boss, bi = bs.bi;
+    const el = mapEl('div', 'gmap-boss' + (bi.final ? ' final' : ''), world); el.style.left = bs.x + 'px'; el.style.top = bs.y + 'px';
+    el.style.setProperty('--nc', nd.info.acc); el.setAttribute('role', 'img');
+    const em = mapEl('div', 'gb-em', el); em.appendChild(mapBossCanvas(def, bi, def.theme === 'space' ? (bi.final ? 70 : 64) : 62));
+    const badge = mapEl('span', 'gb-badge', em); badge.innerHTML = bi.final ? CROWN : SKULL; mapEl('b', '', badge).textContent = bi.final ? 'Boss final' : 'Boss';
+    mapEl('i', 'gb-ok', em).textContent = '✓';
+    let side = Math.abs(bs.x - W / 2) < L.A * 0.3 ? (nd.lv % 2 ? 'l' : 'r') : bs.x < W / 2 ? 'r' : 'l';
+    const lab = mapEl('div', 'gb-lab ' + side, el);
+    let room = side === 'r' ? W - 10 - (bs.x + 54) : bs.x - 54 - 10;
+    const other = side === 'r' ? bs.x - 54 - 10 : W - 10 - (bs.x + 54);
+    if (room < 150 && other > room) { side = side === 'r' ? 'l' : 'r'; room = other; lab.className = 'gb-lab ' + side; }
+    const lw = Math.max(100, Math.min(260, room));
+    lab.style.width = lw + 'px';
+    mapEl('small', '', lab).textContent = bi.kicker;
+    const nm = mapEl('b', 'gb-name', lab); nm.textContent = bi.name;
+    // le nom en grand, sans couper un mot : taille calée sur le mot le plus long (Bungee ≈ 0,8 em par lettre)
+    const longest = Math.max(...bi.name.split(/\s+/).map(w => w.length));
+    nm.style.fontSize = Math.max(12, Math.min(bi.final ? 23 : 20, (lw - 22) / (longest * 0.8))).toFixed(1) + 'px';
+    mapEl('span', 'gb-st', lab);
+    bs.el = el;
+  }
   MAP.headLayer = mapEl('div', 'gmap-heads', world);
   mapUpdate(animate);
   mapCenter(false);   // centrée sur moi
@@ -4917,10 +5209,24 @@ function mapUpdate(animate) {
     el.setAttribute('aria-label', nd.info.kicker + ', ' + nd.info.name + (who.length ? ' : ' + who.map(w => w === me ? 'toi' : w).join(', ') : ''));
     if (animate) el.style.setProperty('--d', (0.15 + Math.min(i, 26) * 0.035).toFixed(3) + 's');
   });
+  // étapes « BOSS » : vaincu par moi / ma prochaine / vaincu par d'autres / pas encore atteint
+  const nextB = Math.max(1, mine);
+  for (const nd of L.nodes) {
+    const bs = nd.boss, el = bs.el, lv = nd.lv; if (!el) continue;
+    const beaten = mine > lv, next = !beaten && lv === nextB, by = [...people].filter(([, v]) => v > lv).map(([n]) => n).filter(n => n !== me);
+    el.classList.toggle('beaten', beaten); el.classList.toggle('next', next); el.classList.toggle('others', !beaten && by.length > 0);
+    el.classList.toggle('far', !beaten && !next && lv > max);
+    const st = el.querySelector('.gb-st');
+    st.textContent = beaten ? 'Boss vaincu ✓' : next ? (lv <= max && by.length ? 'À toi de le battre !' : mine ? 'Ton prochain boss' : 'Ton premier boss')
+      : by.length ? 'Vaincu par ' + (by.length > 2 ? by.slice(0, 2).join(', ') + ' +' + (by.length - 2) : by.join(' et ')) : lv <= max ? 'Encore invaincu !' : '';
+    st.hidden = !st.textContent;
+    el.setAttribute('aria-label', 'Boss : ' + bs.bi.name + ', ' + bs.bi.kicker.toLowerCase() + (st.textContent ? ' — ' + st.textContent.replace(' ✓', '') : ''));
+    if (animate) el.style.setProperty('--d', (0.3 + Math.min(lv - 1, 26) * 0.035).toFixed(3) + 's');
+  }
   for (const t of $('jdw-map-world').querySelectorAll('.gmap-tier')) { const tt = +t.dataset.tier, first = L.nodes.find(nd => nd.info.tier === tt); t.classList.toggle('far', !!first && first.lv > max); }
   // chemin : groove + segments
   const svg = MAP.svg; svg.textContent = '';
-  const pts = [L.start, ...L.nodes];
+  const pts = [L.start]; for (const nd of L.nodes) pts.push(nd, nd.boss);
   const groove = document.createElementNS(SVGNS, 'path');
   groove.setAttribute('d', pts.slice(1).map((b, i) => mapSegPath(pts[i], b)).join(' '));
   groove.setAttribute('class', 'gp-groove'); svg.appendChild(groove);
