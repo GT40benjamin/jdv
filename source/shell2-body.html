@@ -505,5 +505,17 @@
     </div>
   </div>
 </div>
+<div class="gmap" id="jdw-map" role="dialog" aria-modal="true" aria-labelledby="jdw-map-title" hidden>
+  <div class="gmap-scroll" id="jdw-map-scroll"><div class="gmap-world" id="jdw-map-world"></div></div>
+  <header class="gmap-top">
+    <button class="gmap-btn" id="jdw-map-close" type="button" aria-label="Fermer la carte"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="gmap-ttl"><small id="jdw-map-kicker">Carte d’avancement</small><h2 id="jdw-map-title">Carte</h2></div>
+    <button class="gmap-btn" id="jdw-map-me" type="button" aria-label="Revenir à ma position"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3.5M12 18v3.5M2.5 12H6M18 12h3.5"/><circle cx="12" cy="12" r="7.5"/></svg></button>
+  </header>
+  <footer class="gmap-foot">
+    <div class="gmap-sum" id="jdw-map-sum"></div>
+    <button class="btn btn-play gmap-play" id="jdw-map-play" type="button">▶ Jouer</button>
+  </footer>
+</div>
 <input type="file" id="jdw-cri-input" accept="audio/*" hidden>
 <input type="file" id="jdw-file" accept="image/*" capture="user" hidden>

@@ -268,6 +268,8 @@ async function loadPlayers() {
     if (PRES.ok) setTimeout(presChanged, 0);
     refreshAll();
     if (!$('jdw-members').hidden) renderMembers();
+    if (PROG.room === rid) progBoot();
+    if (MAP.open) mapUpdate();
   } catch (e) { serverOk = false; onRoomError(e); refreshAll(); }
 }
 async function pushProfile() {
@@ -1169,7 +1171,7 @@ function onPoke(topic, event, p) {
   if (p.t === 'version') { checkSiteVersion(); return; }
   if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
   if (!room || topic !== 'jdw-room-' + room.id) return;
-  const run = { chat: () => loadChat(), scores: () => { loadScores(); if (!$('jdw-board').hidden) loadWorld(); }, players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions() }[p.t];   // heartbeat : compteurs des tuiles + liste des joueurs
+  const run = { chat: () => loadChat(), scores: () => { loadScores(); if (!$('jdw-board').hidden) loadWorld(); }, players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions(), progress: () => progOnPoke() }[p.t];   // heartbeat : compteurs des tuiles + liste des joueurs
   if (!run) return;
   clearTimeout(pokeTimers[p.t]); pokeTimers[p.t] = setTimeout(run, p.t === 'chat' ? 60 : 250);   // regroupe les rafales
 }
@@ -1179,7 +1181,7 @@ function refreshEverything(force) {
   if (!force && Date.now() - lastRefresh < 2500) return;
   lastRefresh = Date.now();
   if (ONLINE && (!RT.ws || RT.ws.readyState > 1)) rtConnect();
-  heartbeat(); loadScores(); loadChat(); flushUnsent(); checkSiteVersion();
+  heartbeat(); loadScores(); loadChat(); flushUnsent(); checkSiteVersion(); progLoad();
 }
 window.JDW_RESUME = () => refreshEverything(true);      // appelé par l'appli Android quand on revient dedans
 document.addEventListener('visibilitychange', () => { if (document.hidden) rtUntrack(); else refreshEverything(); });
@@ -1219,7 +1221,7 @@ async function checkAppVersion() {
 }
 let saving = 0;
 function calmMoment() {
-  if (!$('jdw-play').hidden || !$('jdw-duo').hidden || chat.open || saving > 0 || CMP.id) return false;
+  if (!$('jdw-play').hidden || !$('jdw-duo').hidden || chat.open || saving > 0 || CMP.id || MAP.open) return false;
   for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) return false;
   const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA)$/.test(a.tagName));
 }
@@ -1463,7 +1465,16 @@ function buildLibrary() {
     // « 👁 Voir » : regarder celui qui joue à ce jeu en ce moment (plusieurs : la liste des joueurs, chacun avec son 👁)
     const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'tile-watch'; wb.hidden = true; wb.textContent = '👁 Voir';
     wb.addEventListener('click', e => { e.stopPropagation(); const ps = tilePlayers(g.id); if (ps.length === 1) watchStart(ps[0].name, g.id); else openMembers(); });
-    wrap.append(b, ch, wb); grid.appendChild(wrap);
+    wrap.append(b, ch, wb);
+    // carte d'avancement (seulement les jeux qui en ont une : MAP_DEFS)
+    if (MAP_DEFS[g.id]) {
+      const mb = document.createElement('button'); mb.type = 'button'; mb.className = 'tile-map';
+      mb.setAttribute('aria-label', 'Carte d’avancement de ' + g.title); mb.title = 'Carte d’avancement';
+      mb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="tm-fold" d="M3 6.5 8.5 4l7 2.5L21 4v13.5L15.5 20l-7-2.5L3 20z"/><path class="tm-route" d="M6 16.5c2.5-.5 2.2-4 5-4.2s3.4-2.6 4.6-5.3"/><path class="tm-flag" d="M15.6 7V2.6l3.2 1.3-3.2 1.3"/></svg><span class="tm-t">Carte</span>';
+      mb.addEventListener('click', e => { e.stopPropagation(); openMap(g.id, mb); });
+      wrap.appendChild(mb); wrap.classList.add('has-map');
+    }
+    grid.appendChild(wrap);
     tiles.push({ g, el: b, champ: ch, watch: wb, canvas: b.querySelector('canvas'), on: b.querySelector('.tile-online'), visible: true });
   }
   if ('IntersectionObserver' in window) {
@@ -1509,6 +1520,7 @@ function refreshOnline() {
     const n = counts[t.g.id] || 0, span = t.on.querySelector('span'), ps = live ? tilePlayers(t.g.id) : [];
     t.on.classList.toggle('live', live && n > 0);
     if (live) span.textContent = ps.length ? (ps.length === 1 && ps[0].name === cleanName(profile.name) ? 'Toi, sur un autre appareil' : tileName(ps[0].name) + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue') : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
+    if (live && / joue$/.test(span.textContent)) { const v = document.createElement('em'); v.className = 'tile-verb'; v.textContent = ' joue'; span.textContent = span.textContent.slice(0, -5); span.appendChild(v); }   // « joue » s'efface sur téléphone à côté de 👁 + carte
     else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + b.name : 'Pas encore de record'; }
     if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
   }
@@ -1557,6 +1569,7 @@ function openSheet(id, focusId) { lastFocus = document.activeElement; $(id).hidd
 function closeSheet(id) { $(id).hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); }
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
+  if (MAP.open) { closeMap(); return; }
   if (chat.open) { closeChat(); return; }
   if (!$('jdw-cri').hidden) { closeCri(); return; }
   if (!$('jdw-duo').hidden) { duoBack(); return; }
@@ -2614,7 +2627,7 @@ function enterRoom(rm) {
   players.clear(); syncOwnPlayer(); if (typeof ensureAiPlayer === 'function') ensureAiPlayer(); remote = {}; counts = {}; total = 0;
   $('jdw-joinbox').hidden = true; closeSheet('jdw-rooms');
   chatReset(); closeChat();
-  refreshAll(); pushProfile(); loadPlayers(); loadScores(); heartbeat(); loadChat();
+  refreshAll(); pushProfile(); loadPlayers(); loadScores(); heartbeat(); loadChat(); progLoad();
   setTimeout(() => poke('players'), 600);
 }
 $('jdw-roombar').addEventListener('click', openRooms);
@@ -4116,7 +4129,7 @@ function mountGame(g) {
       setTimeout(() => { if (current && current.seq === seq) { if (CMP.playing) cmpOut(sc); else if (CMP.practice) cmpPracticeOver(); else showEnd(sc); } }, 900);
     }
   };
-  current = { game: g, root, seq, over: false, inst: null };
+  current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id) };
   recReset(); setTimeout(recLine, 50);
   musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
   try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }
@@ -4307,8 +4320,10 @@ function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
   let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
   if (!(lv >= 1) || current.mode === 'compet') return;
-  const all = store.get('jdw.bestlv', {}) || {}, k = (me || '?') + '|' + g.id, best = +all[k] || 0;
-  if (lv > best) { all[k] = lv; store.set('jdw.bestlv', all); }
+  // record d'avant la partie (pendant la partie, progTick garde déjà chaque nouveau niveau sur l'appareil)
+  const best = current.lvBase != null && cleanName(profile.name) === me ? current.lvBase : lvBest(me, g.id);
+  const had = lvBest(me, g.id);
+  if (lv > had && me) { lvSetBest(me, g.id, lv); progPush(me, g.id, lv); }   // dernier niveau pas encore vu par progTick
   const word = LV_WORD[g.id] || 'Niveau', top = Math.max(lv, best), n = Math.max(10, Math.ceil((top + 2) / 5) * 5);
   const h = document.createElement('p'); h.className = 'lv-h';
   const b = document.createElement('b'); b.textContent = word + ' ' + lv; h.append(b, document.createTextNode(lv > best ? (best ? ' · nouveau record ! (avant : ' + best + ')' : ' · premier record !') : lv === best ? ' · ton record égalé !' : ' · ton record : ' + best + ' (encore ' + (best - lv) + ')'));
@@ -4408,10 +4423,583 @@ $('jdw-invite').addEventListener('click', async () => {
 });
 function alertBox(txt) { $('jdw-rooms-status').textContent = txt; openRooms(); }
 
+/* ================= Carte d'avancement ================= */
+// Bouton « carte » sous les tuiles des jeux qui en ont une (MAP_DEFS : une description par jeu, facile à étendre) →
+// carte plein écran : chemin du niveau 1 (en bas) vers le haut, paliers, têtes des joueurs de la salle sur leur meilleur niveau.
+// Progression partagée : table progress (source/progress.sql), save_progress dès qu'un nouveau record de niveau tombe en pleine
+// partie (jdw.bestlv sur l'appareil, envoyé seulement quand il monte), get_progress à l'ouverture et au signal « progress » du direct.
+// Serveur pas à jour (404) : la carte marche avec la progression de l'appareil, sans erreur visible.
+const MAP_ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+const mapRoman = i => MAP_ROMAN[i] || String(i + 1);
+const hexRgb = h => { h = String(h).replace('#', ''); if (h.length === 3) h = h.replace(/./g, c => c + c); const n = parseInt(h, 16) || 0; return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const rgbHex = (r, g, b) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const mixHex = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return rgbHex(A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + (B[2] - A[2]) * t); };
+const rgbaHex = (h, a) => { const c = hexRgb(h); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; };
+function hueShift(hex, deg) {
+  if (!deg) return hex;
+  let [r, g, b] = hexRgb(hex).map(v => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0, s = 0;
+  if (d) { s = d / (1 - Math.abs(2 * l - 1)); h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+  h = ((h + deg) % 360 + 360) % 360;
+  const C = (1 - Math.abs(2 * l - 1)) * s, X = C * (1 - Math.abs((h / 60) % 2 - 1)), m = l - C / 2;
+  [r, g, b] = h < 60 ? [C, X, 0] : h < 120 ? [X, C, 0] : h < 180 ? [0, C, X] : h < 240 ? [0, X, C] : h < 300 ? [X, 0, C] : [C, 0, X];
+  return rgbHex((r + m) * 255, (g + m) * 255, (b + m) * 255);
+}
+const mapRng = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+// Galaxy Wars (games/ilo.js) : 8 secteurs par cycle, mini-boss + boss par secteur, niveau = cycle * 8 + secteur
+const GW_SEC = [
+  { name: "Ceinture d'Ilo", hue: 196, sat: 80, bg0: '#020812', bg1: '#06243a', acc: '#38e1ff', land: 10, deco: [11, 13], boss: 'La Planète vivante', mini: 'Le Gardien', news: 'Le Vaisseau Noir décolle' },
+  { name: 'Nébuleuse Ambre', hue: 28, sat: 85, bg0: '#0d0602', bg1: '#2e1404', acc: '#ffa630', land: 29, deco: [4, 20], boss: 'Croiseur Vela', mini: 'Le Bélier ambre', news: 'Astéroïdes et frégates' },
+  { name: 'Champ de Kepra', hue: 148, sat: 75, bg0: '#020c06', bg1: '#06301c', acc: '#46f08a', land: 6, deco: [8, 2], boss: "Ver de l'hyperespace", mini: 'La Mère-mine', news: 'Poseurs de mines' },
+  { name: 'Tempête Ionique', hue: 262, sat: 80, bg0: '#07031a', bg1: '#1d0b45', acc: '#a77bff', land: 31, deco: [9, 17], boss: "Reine de l'essaim", mini: 'Le Paratonnerre', news: 'Sentinelles laser' },
+  { name: "Abysse d'Obsidienne", hue: 222, sat: 55, bg0: '#010205', bg1: '#060b1c', acc: '#7fa8ff', land: 12, deco: [21, 23], boss: 'Station Gaïa', mini: 'Le Spectre', news: 'Éclaireurs furtifs' },
+  { name: 'Couloir Écarlate', hue: 350, sat: 85, bg0: '#0e0206', bg1: '#330818', acc: '#ff4d6d', land: 15, deco: [14, 19], boss: 'Les Jumelles', mini: 'La Herse écarlate', news: 'Croiseurs à bouclier' },
+  { name: "Gouffre d'Ophis", hue: 292, sat: 75, bg0: '#08020c', bg1: '#25062e', acc: '#ff5fd2', land: 27, deco: [30, 24], boss: "L'Œil du gouffre", mini: 'Le Pèlerin noir', news: 'Trou noir !' },
+  { name: "Cœur d'ILO", hue: 46, sat: 90, bg0: '#0c0802', bg1: '#2c2108', acc: '#ffd34d', land: 25, deco: [16, 18], boss: 'Le Vaisseau blanc', mini: "Le Héraut d'ILO", news: 'Tout à la fois !' }
+];
+// Plein Gaz (pleingaz-src.html) : une zone tous les 2 niveaux, 5 zones puis la tournée recommence (II, III…), un boss à chaque niveau
+const PG_ZONES = [
+  { name: "Hall d'assemblage", short: 'Hall', wall: '#14222e', dk: '#0e1922', sky: '#1b3346', steel: '#22394a', steel2: '#3a5568', lamp: '#ffa630' },
+  { name: 'La Fonderie', short: 'Fonderie', wall: '#2a1813', dk: '#1b0f0b', sky: '#6b2c10', steel: '#3e2a24', steel2: '#6d4a3c', lamp: '#ff7a2e' },
+  { name: "L'Entrepôt", short: 'Entrepôt', wall: '#16251c', dk: '#0d1811', sky: '#1f3b2b', steel: '#25402f', steel2: '#41694e', lamp: '#c9ff6b' },
+  { name: 'La Centrale', short: 'Centrale', wall: '#1c1631', dk: '#120d22', sky: '#2b2153', steel: '#2f2952', steel2: '#4f4785', lamp: '#5ef0ff' },
+  { name: 'Les Toits', short: 'Toits', wall: '#0c1424', dk: '#070d18', sky: '#13234a', steel: '#26324a', steel2: '#45567a', lamp: '#ffd34d' }
+];
+const PG_BOSSES = ['Presse-7', 'Grue folle', 'Turbine mère', 'Foreuse', 'Ruche-Drone'];
+const PG_NEWS = { 3: 'Jets de flammes', 4: 'Couloir électrique', 5: 'Scies circulaires', 6: 'Slalom', 7: 'Portes électriques', 8: 'Salve de missiles', 9: 'Drones de garde' };
+
+// Description d'une carte : count(max) = niveaux dessinés ; level(n) = { tier, kicker, name, lines, acc, bg, bg0, … } ;
+// tier(t) = palier (bandeau) ; theme = peintre du décor ('space' | 'factory') ; start / cap = textes du départ et du haut.
+const MAP_DEFS = {
+  ilo: {
+    theme: 'space', word: 'Secteur', tierGap: 170, tierAt: 0.58,
+    count: max => Math.min(160, Math.max(16, Math.ceil((max + 1) / 8) * 8)),
+    level(lv) {
+      const i = (lv - 1) % 8, c = Math.floor((lv - 1) / 8), S = GW_SEC[i], rot = c * 41;
+      return { lv, tier: c, i, kicker: (c ? 'Cycle ' + mapRoman(c) + ' · ' : '') + 'Secteur ' + (i + 1), name: S.name,
+        lines: ['☠ ' + S.boss + (c ? ' ' + mapRoman(c) : ''), c ? 'Mini-boss : ' + S.mini : '✦ ' + S.news],
+        acc: S.acc, bg: hueShift(S.bg1, rot), bg0: hueShift(S.bg0, rot), hue: (S.hue + rot) % 360, sat: S.sat, planet: S.land, deco: S.deco };
+    },
+    short(lv) { const i = (lv - 1) % 8, c = Math.floor((lv - 1) / 8); return (c ? 'Cycle ' + mapRoman(c) + ' · ' : '') + 'Secteur ' + (i + 1) + ' · ' + GW_SEC[i].name; },
+    tier(c) {
+      return { kicker: c ? 'Palier ' + (c + 1) : 'Palier 1', title: 'Cycle ' + mapRoman(c), acc: hueShift('#38e1ff', c * 41), acc2: hueShift('#ff3fb4', c * 41),
+        sub: c ? 'Les 8 secteurs reviennent, plus coriaces' : 'Huit secteurs, un boss au bout de chacun' };
+    },
+    start: { title: 'Départ', sub: 'Le Vaisseau Noir décolle' },
+    cap: { title: 'La galaxie continue…', sub: 'Chaque cycle recommence, toujours plus féroce' }
+  },
+  pleingaz: {
+    theme: 'factory', word: 'Niveau', tierGap: 110, majorGap: 200, tierAt: 0.6,
+    count: max => Math.min(200, Math.max(20, Math.ceil((max + 2) / 10) * 10)),
+    level(lv) {
+      const z = Math.floor((lv - 1) / 2), Z = PG_ZONES[z % 5], tour = Math.floor(z / 5), mk = Math.floor((lv - 1) / 5);
+      return { lv, tier: z, kicker: 'Niveau ' + lv, name: Z.name + (tour ? ' ' + mapRoman(tour) : ''),
+        lines: ['☠ ' + PG_BOSSES[(lv - 1) % 5] + (mk ? ' Mk' + (mk + 1) : ''), PG_NEWS[lv] ? '✦ ' + PG_NEWS[lv] : ''].filter(Boolean),
+        acc: Z.lamp, bg: Z.wall, bg0: Z.dk, zone: Z };
+    },
+    short(lv) { const z = Math.floor((lv - 1) / 2), tour = Math.floor(z / 5); return 'Niveau ' + lv + ' · ' + PG_ZONES[z % 5].name + (tour ? ' ' + mapRoman(tour) : ''); },
+    tier(z) {
+      const Z = PG_ZONES[z % 5], tour = Math.floor(z / 5);
+      return { kicker: 'Zone ' + (z + 1), title: Z.name + (tour ? ' ' + mapRoman(tour) : ''), acc: Z.lamp, zone: Z,
+        major: z % 5 === 0, majorTitle: tour ? 'Tournée ' + mapRoman(tour) : 'Tournée I', majorSub: tour ? "L'usine recommence, en plus folle !" : 'Les 5 zones de l’usine' };
+    },
+    start: { title: 'Entrée', sub: "Les portes de l'usine" },
+    cap: { title: "L'usine continue…", sub: 'Nouvelle tournée tous les 10 niveaux' }
+  }
+};
+
+/* ---------- progression : appareil + serveur ---------- */
+const PROG = { room: null, rows: [], at: 0, missing: false, loading: null, mine: {}, busy: false };
+let progQ = store.get('jdw.progq', []); if (!Array.isArray(progQ)) progQ = [];
+const lvKey = (name, gid) => (cleanName(name) || '?') + '|' + gid;
+function lvBest(name, gid) { const all = store.get('jdw.bestlv', {}) || {}; return +all[lvKey(name, gid)] || 0; }
+function lvSetBest(name, gid, lv) { const all = store.get('jdw.bestlv', {}) || {}; const k = lvKey(name, gid); if (lv > (+all[k] || 0)) { all[k] = lv; store.set('jdw.bestlv', all); } }
+// en pleine partie : un nouveau record de niveau est gardé sur l'appareil et part en ligne (seulement quand il monte)
+function progTick() {
+  if (!current || !current.inst || current.over || !current.inst.currentLevel || CMP.playing || CMP.practice || $('jdw-play').hidden) return;
+  let lv = 0; try { lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) { return; }
+  const me = cleanName(profile.name), gid = current.game.id;
+  if (!me || !(lv >= 1) || lv > 9999 || lv <= lvBest(me, gid)) return;
+  lvSetBest(me, gid, lv);
+  progPush(me, gid, lv);
+}
+setInterval(progTick, 1000);
+function progPush(name, gid, lv) {
+  if (!ONLINE || !room) { if (MAP.open && MAP.gid === gid) mapUpdate(); return; }
+  const rid = room.id, k = rid + '|' + name + '|' + gid;
+  PROG.mine[k] = Math.max(PROG.mine[k] || 0, lv);
+  const q = progQ.find(x => x.room === rid && x.name === name && x.game === gid);
+  if (q) q.level = Math.max(q.level, lv); else progQ.push({ room: rid, code: roomCodes[rid] || '', name, game: gid, level: lv });
+  progQ = progQ.slice(-40); store.set('jdw.progq', progQ);
+  if (MAP.open && MAP.gid === gid) mapUpdate();
+  progFlush();
+}
+async function progFlush() {
+  if (PROG.busy || PROG.missing || !ONLINE || !progQ.length) return;
+  PROG.busy = true;
+  let sent = false;
+  try {
+    while (progQ.length && !PROG.missing) {
+      const it = progQ[0];
+      if (knownNotMember(it.name) && room && room.id === it.room) { progQ.shift(); continue; }   // pas membre : rien à garder
+      try {
+        await rpc('save_progress', { p_code: CODE(), p_room: it.room, p_room_code: it.code || roomCodes[it.room] || '', p_name: it.name, p_game: it.game, p_level: it.level }, { quiet404: true });
+        sent = true;
+        const cur = progQ[0]; if (cur === it) progQ.shift();
+      } catch (e) {
+        if (e.status === 404) { PROG.missing = true; break; }
+        if (e.denied || e.status === 400) { progQ.shift(); continue; }   // refus (code de salle, valeur) : on n'insiste pas
+        break;                                                            // pas de réseau : renvoyé plus tard
+      }
+    }
+  } finally { PROG.busy = false; store.set('jdw.progq', progQ); }
+  if (sent) poke('progress');
+}
+async function progLoad() {
+  if (!ONLINE || !room || PROG.missing) { progFlush(); return; }
+  const rid = room.id;
+  if (PROG.loading && PROG.loadingFor === rid) return PROG.loading;
+  PROG.loadingFor = rid;
+  const job = PROG.loading = (async () => {
+    try {
+      const rows = await rpc('get_progress', Object.assign({ p_code: CODE() }, RP()), { quiet404: true }) || [];
+      if (!room || room.id !== rid) return;
+      PROG.room = rid; PROG.at = Date.now();
+      PROG.rows = rows.map(r => ({ name: cleanName(r.r_name), game: String(r.r_game || ''), level: Math.floor(+r.r_level || 0) })).filter(r => r.name && r.level > 0);
+      progBoot();
+    } catch (e) { if (e.status === 404) PROG.missing = true; }
+  })();
+  try { await job; } finally { if (PROG.loading === job) PROG.loading = null; }
+  progFlush();
+}
+// première fois dans cette salle avec la carte : le meilleur niveau déjà gardé sur l'appareil part une fois (pas après un retrait)
+function progBoot() {
+  const me = cleanName(profile.name); if (!me || !room || knownNotMember(me) || membersFor !== room.id) return;
+  const boot = store.get('jdw.progboot', {}) || {};
+  for (const gid of Object.keys(MAP_DEFS)) {
+    const k = room.id + '|' + me + '|' + gid; if (boot[k]) continue;
+    boot[k] = 1;
+    const loc = lvBest(me, gid), srv = (PROG.rows.find(r => r.name === me && r.game === gid) || {}).level || 0;
+    if (loc > srv) progPush(me, gid, loc);
+  }
+  store.set('jdw.progboot', boot);
+}
+function progOnPoke() { PROG.at = 0; if (MAP.open) progLoad().then(() => { if (MAP.open) mapUpdate(); }); }
+// qui est où sur la carte de ce jeu : Map NOM → meilleur niveau (0 = au départ)
+function mapPeople(gid) {
+  const me = cleanName(profile.name), out = new Map();
+  const srv = ONLINE && room && !PROG.missing && PROG.room === room.id;
+  if (srv) for (const r of PROG.rows) if (r.game === gid) out.set(r.name, Math.max(out.get(r.name) || 0, r.level));
+  if (ONLINE && room && membersFor === room.id) for (const n of memberNames) if (n !== 'IA' && !out.has(n)) out.set(n, 0);
+  if (!ONLINE) for (const n of deviceNames()) if (n !== me) { const b = lvBest(n, gid); if (b) out.set(n, b); }
+  if (me) {
+    let mine = out.get(me) || 0;
+    if (!srv || knownNotMember(me)) mine = Math.max(mine, lvBest(me, gid));
+    else mine = Math.max(mine, PROG.mine[room.id + '|' + me + '|' + gid] || 0);
+    out.set(me, mine);
+  }
+  return out;
+}
+
+/* ---------- carte plein écran ---------- */
+const MAP = { open: false, gid: null, def: null, L: null, heads: new Map(), opener: null, rt: 0, closing: 0 };
+const SVGNS = 'http://www.w3.org/2000/svg';
+function mapEl(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; if (parent) parent.appendChild(e); return e; }
+function openMap(gid, opener) {
+  const def = MAP_DEFS[gid], g = gameById(gid); if (!def || !g) return;
+  clearTimeout(MAP.closing); MAP.closing = 0;
+  MAP.open = true; MAP.gid = gid; MAP.def = def; MAP.opener = opener || null; MAP.heads = new Map(); MAP.auto = true;
+  const box = $('jdw-map');
+  box.dataset.theme = def.theme; box.style.setProperty('--acc', g.accent);
+  $('jdw-map-title').textContent = g.title;
+  $('jdw-map-kicker').textContent = room && ONLINE ? 'Carte d’avancement · ' + room.name : 'Carte d’avancement';
+  $('jdw-map-play').setAttribute('aria-label', 'Jouer à ' + g.title);
+  // ouverture : la carte se déplie depuis le bouton de la tuile
+  const r = opener && opener.getBoundingClientRect ? opener.getBoundingClientRect() : null;
+  box.style.setProperty('--ox', r ? Math.round(r.left + r.width / 2) + 'px' : '50%');
+  box.style.setProperty('--oy', r ? Math.round(r.top + r.height / 2) + 'px' : '90%');
+  box.classList.remove('closing'); box.classList.add('opening'); box.hidden = false;
+  mapBuild(true);
+  setTimeout(() => box.classList.remove('opening'), 1600);
+  setTimeout(() => $('jdw-map-close').focus({ preventScroll: true }), 60);
+  Audio.ensure(); Audio.tone(392, 0.09, 'triangle', 0.035, 523); setTimeout(() => Audio.tone(659, 0.16, 'triangle', 0.03), 90);
+  if (ONLINE && room) {
+    const fresh = PROG.room === room.id && Date.now() - PROG.at < 8000;
+    if (!fresh) progLoad().then(() => { if (MAP.open && MAP.gid === gid) { mapUpdate(); if (MAP.auto) mapCenter(true); } });
+    if (membersFor !== room.id) loadPlayers();
+  }
+}
+function closeMap() {
+  if (!MAP.open) return;
+  MAP.open = false;
+  const box = $('jdw-map'); box.classList.remove('opening'); box.classList.add('closing');
+  MAP.closing = setTimeout(() => { box.hidden = true; box.classList.remove('closing'); $('jdw-map-world').textContent = ''; MAP.closing = 0; }, 260);
+  if (MAP.opener && MAP.opener.focus) MAP.opener.focus({ preventScroll: true });
+}
+function mapLayout(def, n, W, VH) {
+  const S = Math.round(Math.max(118, Math.min(150, VH * 0.165)));
+  const wide = W >= 700, A = Math.min(W * (wide ? 0.2 : 0.26), 190);
+  const nodes = [], tiers = [];
+  let d = 150, prevTier = null;       // distance depuis le bas ; le départ est à 150 px du bas
+  const start = { d, k: 0 };
+  for (let lv = 1; lv <= n; lv++) {
+    const info = def.level(lv);
+    let gap = S;
+    if (info.tier !== prevTier) {
+      const T = def.tier(info.tier);
+      const G = T.major && def.majorGap ? def.majorGap : def.tierGap;
+      gap = S + G; tiers.push({ t: info.tier, T, dMid: d + gap * (T.major && def.majorGap ? 0.66 : def.tierAt || 0.6), dLo: d, dHi: d + gap });
+      prevTier = info.tier;
+    }
+    d += gap;
+    nodes.push({ lv, info, d, k: lv });
+  }
+  const H = d + S * 0.5 + 250;
+  const xAt = k => W / 2 + A * Math.sin(k * 0.95 - 0.35);
+  const all = [start, ...nodes];
+  for (const p of all) { p.y = H - p.d; p.x = xAt(p.k); }
+  for (const t of tiers) { t.y = H - t.dMid; t.yLo = H - t.dLo; t.yHi = H - t.dHi; }
+  return { W, H, S, A, start, nodes, tiers, capY: H - (d + S * 0.5 + 110) };
+}
+// fond : dégradé continu d'un niveau à l'autre (couleurs du secteur / de la zone)
+function mapStops(L, def) {
+  const st = [];
+  if (def.theme === 'space') {
+    st.push([L.H, '#010409'], [L.start.y, '#020812']);
+    let prev = null;
+    for (const n of L.nodes) { if (prev) st.push([(prev.y + n.y) / 2, mixHex(prev.info.bg0, n.info.bg0, 0.5)]); st.push([n.y, n.info.bg]); prev = n; }
+    st.push([L.capY, '#03050c'], [0, '#010208']);
+  } else {
+    st.push([L.H, '#0b1015'], [L.start.y, '#121b22']);
+    let prev = null;
+    for (const n of L.nodes) {
+      if (prev && prev.info.tier !== n.info.tier) { const t = L.tiers.find(x => x.t === n.info.tier); st.push([t.y + 10, prev.info.bg0], [t.y - 10, n.info.bg0]); }
+      st.push([n.y, n.info.bg]); prev = n;
+    }
+    st.push([L.capY, '#0a0f16'], [0, '#05080c']);
+  }
+  return st.sort((a, b) => a[0] - b[0]);
+}
+function mapGrad(x, stops, y0, h) {
+  const g = x.createLinearGradient(0, 0, 0, h);
+  const at = y => {   // couleur interpolée à la hauteur y
+    if (y <= stops[0][0]) return stops[0][1];
+    for (let i = 1; i < stops.length; i++) if (y <= stops[i][0]) { const a = stops[i - 1], b = stops[i]; return mixHex(a[1], b[1], (y - a[0]) / Math.max(1, b[0] - a[0])); }
+    return stops[stops.length - 1][1];
+  };
+  g.addColorStop(0, at(y0));
+  for (const s of stops) if (s[0] > y0 && s[0] < y0 + h) g.addColorStop((s[0] - y0) / h, s[1]);
+  g.addColorStop(1, at(y0 + h));
+  return g;
+}
+function gwPlanetImg(i) {
+  const c = window.JDW_ASSETS && window.JDW_ASSETS.cache && window.JDW_ASSETS.cache.ilo;
+  const im = c && c.planets && c.planets.length >= 8 ? c.planets[i % c.planets.length] : null;
+  return im && im.complete && im.naturalWidth ? im : null;
+}
+function drawProcPlanet(x, cx, cy, r, col, seed) {
+  const R = mapRng(seed);
+  const g = x.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r);
+  g.addColorStop(0, mixHex(col, '#ffffff', 0.45)); g.addColorStop(0.55, col); g.addColorStop(1, mixHex(col, '#000000', 0.75));
+  x.save(); x.beginPath(); x.arc(cx, cy, r, 0, 7); x.clip();
+  x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2);
+  x.globalAlpha = 0.22;
+  for (let k = 0; k < 4; k++) { x.fillStyle = k % 2 ? mixHex(col, '#000000', 0.5) : mixHex(col, '#ffffff', 0.3); x.fillRect(cx - r, cy - r + (0.2 + R() * 1.6) * r, r * 2, r * (0.08 + R() * 0.16)); }
+  x.globalAlpha = 1;
+  const sh = x.createRadialGradient(cx - r * 0.5, cy - r * 0.5, r * 0.6, cx - r * 0.2, cy - r * 0.2, r * 1.6);
+  sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.75)');
+  x.fillStyle = sh; x.fillRect(cx - r, cy - r, r * 2, r * 2);
+  x.restore();
+}
+function paintSpace(x, L, W, y0, h) {
+  x.globalCompositeOperation = 'lighter';
+  for (const n of L.nodes) {                                     // nébuleuses du secteur
+    if (n.y + 380 < y0 || n.y - 380 > y0 + h) continue;
+    const R = mapRng(n.lv * 7919 + 13);
+    for (let k = 0; k < 3; k++) {
+      const cx = W * (0.08 + R() * 0.84), cy = n.y - y0 + (R() - 0.5) * L.S * 1.3, rad = (120 + R() * 150) * (W > 700 ? 1.5 : 1);
+      const hue = Math.round(n.info.hue + (R() - 0.5) * 36), col = 'hsla(' + hue + ',' + n.info.sat + '%,' + Math.round(42 + R() * 16) + '%,';
+      const gg = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+      gg.addColorStop(0, col + (0.2 + R() * 0.14).toFixed(2) + ')'); gg.addColorStop(0.45, col + '0.08)'); gg.addColorStop(1, col + '0)');
+      x.fillStyle = gg; x.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+    }
+  }
+  for (const t of L.tiers) if (t.t > 0 && t.y + 200 > y0 && t.y - 200 < y0 + h) {   // saut hyperespace entre deux cycles
+    const R = mapRng(t.t * 911 + 5);
+    for (let k = 0; k < 46; k++) {
+      const sx = R() * W, len = 40 + R() * 160, sy = t.y - y0 + (R() - 0.5) * 240;
+      const lg = x.createLinearGradient(0, sy - len / 2, 0, sy + len / 2);
+      const c = R() < 0.5 ? t.T.acc : t.T.acc2;
+      lg.addColorStop(0, rgbaHex(c, 0)); lg.addColorStop(0.5, rgbaHex(c, 0.35 + R() * 0.3)); lg.addColorStop(1, rgbaHex(c, 0));
+      x.fillStyle = lg; x.fillRect(sx, sy - len / 2, R() < 0.2 ? 2 : 1, len);
+    }
+  }
+  const R = mapRng(Math.floor(y0) * 31 + 7), count = Math.round(W * h / 1400);   // étoiles
+  for (let i = 0; i < count; i++) {
+    const sx = R() * W, sy = R() * h, b = R();
+    x.fillStyle = 'rgba(' + (b > 0.8 ? '255,246,220' : '214,236,255') + ',' + (0.25 + b * 0.6).toFixed(2) + ')';
+    const s = b > 0.96 ? 1.9 : b > 0.75 ? 1.25 : 0.8; x.fillRect(sx, sy, s, s);
+    if (b > 0.988) { x.fillStyle = 'rgba(220,240,255,.35)'; x.fillRect(sx - 4, sy + 0.5, 9.5, 0.9); x.fillRect(sx + 0.5, sy - 4, 0.9, 9.5); }
+  }
+  x.globalCompositeOperation = 'source-over';
+  for (const n of L.nodes) {                                    // planètes lointaines du secteur
+    if (n.lv % 2) continue;
+    const R2 = mapRng(n.lv * 131 + 3), side = n.x > W / 2 ? -1 : 1;
+    const sz = (W > 700 ? 150 : 96) + R2() * 70, cx = side < 0 ? W * 0.02 + R2() * 16 : W * 0.98 - R2() * 16, cy = n.y - y0 - L.S * (0.3 + R2() * 0.4);
+    if (cy + sz < 0 || cy - sz > h) continue;
+    const im = gwPlanetImg(n.info.deco[n.lv % 2]);
+    x.globalAlpha = 0.3;
+    if (im) x.drawImage(im, cx - sz / 2, cy - sz / 2, sz, sz); else drawProcPlanet(x, cx, cy, sz * 0.42, hueShift(n.info.acc, 30), n.lv);
+    x.globalAlpha = 1;
+  }
+}
+function paintFactory(x, L, W, y0, h) {
+  const zoneAt = y => { let z = L.tiers[0]; for (const t of L.tiers) if (y <= t.y) z = t; return z.T.zone; };
+  x.lineWidth = 1;                                              // panneaux du mur
+  for (let yy = Math.floor(y0 / 58) * 58; yy < y0 + h; yy += 58) {
+    const Z = zoneAt(yy);
+    x.fillStyle = rgbaHex(Z.dk, 0.55); x.fillRect(0, yy - y0, W, 2);
+    x.fillStyle = 'rgba(255,255,255,.035)'; x.fillRect(0, yy - y0 + 2, W, 1);
+    const off = (yy / 58) % 2 ? 0 : 60;
+    for (let xx = off; xx < W; xx += 120) { x.fillStyle = rgbaHex(Z.dk, 0.45); x.fillRect(xx, yy - y0, 2, 58); }
+  }
+  for (const n of L.nodes) {                                     // fenêtres en arc + lampes
+    if (n.y + 260 < y0 || n.y - 260 > y0 + h) continue;
+    const Z = n.info.zone, R = mapRng(n.lv * 977 + 1), wide = W > 700;
+    const side = n.lv % 2 ? 1 : -1, ww = wide ? 86 : 58, wh = wide ? 112 : 78;
+    const wx = side < 0 ? (wide ? W * 0.1 : 20) : W - (wide ? W * 0.1 : 20) - ww, wy = n.y - y0 - L.S * 0.55 - wh / 2;
+    x.fillStyle = Z.dk; x.beginPath(); x.moveTo(wx - 6, wy + wh + 6); x.lineTo(wx - 6, wy + ww / 2); x.arc(wx + ww / 2, wy + ww / 2, ww / 2 + 6, Math.PI, 0); x.lineTo(wx + ww + 6, wy + wh + 6); x.fill();
+    const sg = x.createLinearGradient(0, wy, 0, wy + wh); sg.addColorStop(0, mixHex(Z.sky, '#ffffff', 0.08)); sg.addColorStop(1, mixHex(Z.sky, '#000000', 0.35));
+    x.fillStyle = sg; x.beginPath(); x.moveTo(wx, wy + wh); x.lineTo(wx, wy + ww / 2); x.arc(wx + ww / 2, wy + ww / 2, ww / 2, Math.PI, 0); x.lineTo(wx + ww, wy + wh); x.fill();
+    x.fillStyle = 'rgba(255,255,255,.5)'; for (let k = 0; k < 5; k++) x.fillRect(wx + 4 + R() * (ww - 8), wy + 6 + R() * (wh - 16), 1.2, 1.2);
+    x.fillStyle = Z.dk; x.fillRect(wx + ww / 2 - 1.5, wy + 2, 3, wh - 2); x.fillRect(wx, wy + wh * 0.5, ww, 3);
+    if (wide) { x.fillRect(wx + ww * 0.25 - 1, wy + ww * 0.2, 2, wh - ww * 0.2); x.fillRect(wx + ww * 0.75 - 1, wy + ww * 0.2, 2, wh - ww * 0.2); }
+    // lampe suspendue de l'autre côté, avec son cône de lumière
+    const lx = side < 0 ? W - (wide ? W * 0.16 : 44) : (wide ? W * 0.16 : 44), ly = n.y - y0 - L.S * 0.5 - 40;
+    x.fillStyle = Z.steel2; x.fillRect(lx - 1, ly - 60, 2, 60);
+    x.fillStyle = Z.steel; x.beginPath(); x.moveTo(lx - 12, ly + 9); x.lineTo(lx - 6, ly); x.lineTo(lx + 6, ly); x.lineTo(lx + 12, ly + 9); x.fill();
+    x.globalCompositeOperation = 'lighter';
+    const cg = x.createLinearGradient(0, ly + 9, 0, ly + 150); cg.addColorStop(0, rgbaHex(Z.lamp, 0.2)); cg.addColorStop(1, rgbaHex(Z.lamp, 0));
+    x.fillStyle = cg; x.beginPath(); x.moveTo(lx - 10, ly + 9); x.lineTo(lx + 10, ly + 9); x.lineTo(lx + 62, ly + 150); x.lineTo(lx - 62, ly + 150); x.fill();
+    const bg = x.createRadialGradient(lx, ly + 10, 0, lx, ly + 10, 26); bg.addColorStop(0, rgbaHex(Z.lamp, 0.85)); bg.addColorStop(1, rgbaHex(Z.lamp, 0));
+    x.fillStyle = bg; x.fillRect(lx - 26, ly - 16, 52, 52);
+    x.globalCompositeOperation = 'source-over';
+  }
+  for (const n of L.nodes) {                                     // piliers d'acier sur les bords
+    if (n.y + 200 < y0 || n.y - 200 > y0 + h) continue;
+    const Z = n.info.zone, top = n.y - y0 - L.S / 2 - 2, hh = L.S + 4, pw = W > 700 ? 22 : 12;
+    for (const px of [0, W - pw]) { x.fillStyle = Z.steel; x.fillRect(px, top, pw, hh); x.fillStyle = Z.steel2; x.fillRect(px + (px ? 2 : pw - 4), top, 2, hh); }
+  }
+}
+function mapPaint(world, L, def) {
+  const stops = mapStops(L, def), W = L.W;
+  let dpr = Math.min(2.5, (window.devicePixelRatio || 1) * (MAP.z || 1));
+  if (W * L.H * dpr * dpr > 14e6) dpr = Math.max(1, Math.sqrt(14e6 / (W * L.H)));
+  const CH = 1000;
+  for (let y0 = 0; y0 < L.H; y0 += CH) {
+    const h = Math.min(CH, L.H - y0), c = mapEl('canvas', 'gmap-bg', world);
+    c.width = Math.round(W * dpr); c.height = Math.round(h * dpr); c.style.top = y0 + 'px'; c.style.height = h + 'px';
+    const x = c.getContext('2d'); x.scale(dpr, dpr);
+    x.fillStyle = mapGrad(x, stops, y0, h); x.fillRect(0, 0, W, h);
+    try { if (def.theme === 'space') paintSpace(x, L, W, y0, h); else paintFactory(x, L, W, y0, h); } catch (e) {}
+  }
+}
+// pastille d'un niveau : planète du secteur (Galaxy Wars) ou cadran d'usine (Plein Gaz)
+function mapNodeCanvas(def, info, size) {
+  const c = document.createElement('canvas'), dpr = Math.min(3, (window.devicePixelRatio || 1) * (MAP.z || 1)), P = size + 24;
+  c.width = c.height = Math.round(P * dpr); c.style.width = c.style.height = P + 'px';
+  const x = c.getContext('2d'); x.scale(dpr, dpr);
+  const cx = P / 2, cy = P / 2, r = size / 2;
+  if (def.theme === 'space') {
+    const glow = x.createRadialGradient(cx, cy, r * 0.7, cx, cy, r + 12); glow.addColorStop(0, rgbaHex(info.acc, 0.55)); glow.addColorStop(1, rgbaHex(info.acc, 0));
+    x.fillStyle = glow; x.beginPath(); x.arc(cx, cy, r + 12, 0, 7); x.fill();
+    const im = gwPlanetImg(info.planet);
+    if (im) { x.save(); x.beginPath(); x.arc(cx, cy, r, 0, 7); x.clip(); x.fillStyle = '#000'; x.fillRect(0, 0, P, P); x.drawImage(im, cx - r * 1.04, cy - r * 1.04, r * 2.08, r * 2.08); x.restore(); }
+    else drawProcPlanet(x, cx, cy, r, info.acc, info.lv * 17 + 3);
+    x.strokeStyle = rgbaHex(mixHex(info.acc, '#ffffff', 0.35), 0.9); x.lineWidth = 1.6; x.beginPath(); x.arc(cx, cy, r + 0.5, 0, 7); x.stroke();
+  } else {
+    const Z = info.zone;
+    x.fillStyle = 'rgba(0,0,0,.45)'; x.beginPath(); x.arc(cx, cy + 3, r + 2, 0, 7); x.fill();
+    const rim = x.createLinearGradient(0, cy - r, 0, cy + r); rim.addColorStop(0, mixHex(Z.steel2, '#ffffff', 0.25)); rim.addColorStop(1, Z.steel);
+    x.fillStyle = rim; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+    x.save(); x.beginPath(); x.arc(cx, cy, r - 5, 0, 7); x.arc(cx, cy, r - 12, 0, 7, true); x.clip();   // bande jaune et noire
+    for (let k = 0; k < 16; k++) { x.fillStyle = k % 2 ? '#141a20' : info.acc; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, r, k * Math.PI / 8, (k + 1) * Math.PI / 8); x.fill(); }
+    x.restore();
+    const core = x.createRadialGradient(cx, cy - 4, 2, cx, cy, r - 12); core.addColorStop(0, mixHex(Z.sky, '#ffffff', 0.1)); core.addColorStop(1, '#0b1015');
+    x.fillStyle = core; x.beginPath(); x.arc(cx, cy, r - 12, 0, 7); x.fill();
+    for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; x.fillStyle = '#0b1015'; x.beginPath(); x.arc(cx + Math.cos(a) * (r - 2.5), cy + Math.sin(a) * (r - 2.5), 2.2, 0, 7); x.fill(); }
+  }
+  return c;
+}
+function mapSegPath(a, b) {
+  const my = (a.y + b.y) / 2;
+  return 'M' + a.x.toFixed(1) + ' ' + a.y.toFixed(1) + ' C' + a.x.toFixed(1) + ' ' + my.toFixed(1) + ' ' + b.x.toFixed(1) + ' ' + my.toFixed(1) + ' ' + b.x.toFixed(1) + ' ' + b.y.toFixed(1);
+}
+function mapBuild(animate) {
+  const def = MAP.def, scroll = $('jdw-map-scroll'), world = $('jdw-map-world');
+  // grand écran (PC) : toute la carte est agrandie (zoom), les dessins restent nets
+  const W0 = scroll.clientWidth, VH0 = scroll.clientHeight;
+  const z = W0 >= 700 ? Math.max(1, Math.min(1.45, W0 / 600, VH0 / 680)) : 1;
+  const W = Math.max(280, Math.floor(W0 / z)), VH = Math.max(400, VH0 / z);
+  MAP.z = z; world.style.zoom = z === 1 ? '' : z.toFixed(3); world.style.width = W + 'px';
+  const people = mapPeople(MAP.gid), me = cleanName(profile.name);
+  let max = 0; for (const v of people.values()) max = Math.max(max, v);
+  const n = def.count(max), L = mapLayout(def, n, W, VH);
+  MAP.L = L; MAP.n = n; MAP.heads = new Map();
+  world.textContent = ''; world.style.height = L.H + 'px';
+  world.classList.toggle('anim', !!animate);
+  mapPaint(world, L, def);
+  // chemin
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'gmap-path'); svg.setAttribute('width', W); svg.setAttribute('height', L.H);
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + L.H); svg.setAttribute('aria-hidden', 'true');
+  world.appendChild(svg); MAP.svg = svg;
+  // paliers
+  for (const t of L.tiers) {
+    const b = mapEl('div', 'gmap-tier' + (t.T.major ? ' major' : '') + (t.t === 0 ? ' first' : ''), world);
+    b.style.top = t.y + 'px'; b.style.setProperty('--tc', t.T.acc); if (t.T.acc2) b.style.setProperty('--tc2', t.T.acc2);
+    if (t.T.major && def.majorGap) { const m = mapEl('div', 'gt-major', b); mapEl('b', '', m).textContent = t.T.majorTitle; mapEl('small', '', m).textContent = t.T.majorSub; }
+    const p = mapEl('div', 'gt-plate', b);
+    mapEl('small', '', p).textContent = t.T.kicker;
+    mapEl('b', '', p).textContent = t.T.title;
+    if (t.T.sub) mapEl('span', '', p).textContent = t.T.sub;
+    b.dataset.tier = t.t;
+  }
+  // départ et suite
+  const st = mapEl('div', 'gmap-start', world); st.style.left = L.start.x + 'px'; st.style.top = L.start.y + 'px';
+  mapEl('i', 'gs-pad', st);
+  if (def.theme === 'space') st.insertAdjacentHTML('beforeend', '<svg class="gs-ship" viewBox="0 0 40 56" aria-hidden="true"><defs><linearGradient id="gsF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3fb4"/><stop offset="1" stop-color="#ff3fb4" stop-opacity="0"/></linearGradient></defs><path class="gs-flame" d="M15 43 20 56 25 43z" fill="url(#gsF)"/><path d="M20 2 26 19 36 33v7l-10-3-2 7h-8l-2-7-10 3v-7l10-14z" fill="#0b0f16" stroke="#38e1ff" stroke-width="1.3" stroke-linejoin="round"/><path d="M20 9c2 3 2.6 8 2.6 12h-5.2c0-4 .6-9 2.6-12z" fill="#38e1ff"/><path d="M6 36l8-3M34 36l-8-3" stroke="#ff3fb4" stroke-width="1.2"/></svg>');
+  const stt = mapEl('div', 'gs-txt', st); mapEl('b', '', stt).textContent = def.start.title; mapEl('small', '', stt).textContent = def.start.sub;
+  const cap = mapEl('div', 'gmap-cap', world); cap.style.top = L.capY + 'px';
+  mapEl('b', '', cap).textContent = def.cap.title; mapEl('small', '', cap).textContent = def.cap.sub;
+  // niveaux
+  MAP.nodeEls = [];
+  for (const nd of L.nodes) {
+    const el = mapEl('div', 'gmap-node', world); el.style.left = nd.x + 'px'; el.style.top = nd.y + 'px'; el.style.setProperty('--nc', nd.info.acc);
+    el.setAttribute('role', 'img');
+    const pin = mapEl('div', 'gn-pin', el); pin.appendChild(mapNodeCanvas(def, nd.info, def.theme === 'space' ? 54 : 52));
+    mapEl('b', 'gn-num', pin).textContent = def.theme === 'space' ? String((nd.lv - 1) % 8 + 1) : String(nd.lv);
+    const side = Math.abs(nd.x - W / 2) < L.A * 0.3 ? (nd.lv % 2 ? 'r' : 'l') : nd.x < W / 2 ? 'r' : 'l';
+    const lab = mapEl('div', 'gn-lab ' + side, el);
+    const room = side === 'r' ? W - 10 - (nd.x + 40) : nd.x - 40 - 10;
+    lab.style.width = Math.max(110, Math.min(250, room)) + 'px';
+    mapEl('small', '', lab).textContent = nd.info.kicker;
+    mapEl('b', '', lab).textContent = nd.info.name;
+    for (const ln of nd.info.lines) mapEl('span', ln[0] === '☠' ? 'boss' : '', lab).textContent = ln;
+    MAP.nodeEls.push(el); nd.el = el;
+  }
+  MAP.headLayer = mapEl('div', 'gmap-heads', world);
+  mapUpdate(animate);
+  mapCenter(false);   // centrée sur moi
+}
+function mapCenter(smooth) {
+  if (!MAP.L) return;
+  const mine = mapPeople(MAP.gid).get(cleanName(profile.name)) || 0, p = mine ? MAP.L.nodes[Math.min(mine, MAP.L.nodes.length) - 1] : MAP.L.start;
+  const sc = $('jdw-map-scroll'), top = Math.max(0, (p.y - 30) * (MAP.z || 1) - sc.clientHeight * 0.5);
+  if (smooth) sc.scrollTo({ top, behavior: 'smooth' }); else sc.scrollTop = top;
+}
+for (const ev of ['pointerdown', 'wheel', 'touchstart', 'keydown']) $('jdw-map-scroll').addEventListener(ev, () => { MAP.auto = false; }, { passive: true });
+// états des niveaux, chemin et têtes (appelé aussi à chaque nouvelle progression, sans tout redessiner)
+function mapUpdate(animate) {
+  if (!MAP.open || !MAP.L) return;
+  const def = MAP.def, L = MAP.L, people = mapPeople(MAP.gid), me = cleanName(profile.name);
+  let max = 0; for (const v of people.values()) max = Math.max(max, v);
+  if (def.count(max) !== MAP.n) { const sc = $('jdw-map-scroll'), keep = sc.scrollTop; mapBuild(false); sc.scrollTop = keep; return; }
+  const mine = people.get(me) || 0;
+  // niveaux : atteints par moi / par d'autres / par personne
+  const here = new Map();
+  for (const [nm, lv] of people) { if (!here.has(lv)) here.set(lv, []); here.get(lv).push(nm); }
+  L.nodes.forEach((nd, i) => {
+    const el = nd.el; el.classList.toggle('mine', nd.lv <= mine); el.classList.toggle('reached', nd.lv <= max); el.classList.toggle('far', nd.lv > max);
+    el.classList.toggle('me-here', nd.lv === mine);
+    const who = here.get(nd.lv) || [];
+    el.setAttribute('aria-label', nd.info.kicker + ', ' + nd.info.name + (who.length ? ' : ' + who.map(w => w === me ? 'toi' : w).join(', ') : ''));
+    if (animate) el.style.setProperty('--d', (0.15 + Math.min(i, 26) * 0.035).toFixed(3) + 's');
+  });
+  for (const t of $('jdw-map-world').querySelectorAll('.gmap-tier')) { const tt = +t.dataset.tier, first = L.nodes.find(nd => nd.info.tier === tt); t.classList.toggle('far', !!first && first.lv > max); }
+  // chemin : groove + segments
+  const svg = MAP.svg; svg.textContent = '';
+  const pts = [L.start, ...L.nodes];
+  const groove = document.createElementNS(SVGNS, 'path');
+  groove.setAttribute('d', pts.slice(1).map((b, i) => mapSegPath(pts[i], b)).join(' '));
+  groove.setAttribute('class', 'gp-groove'); svg.appendChild(groove);
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], lv = b.lv, col = b.info.acc;
+    const state = lv <= mine ? 'mine' : lv <= max ? 'others' : 'far';
+    if (state !== 'far') {
+      const gl = document.createElementNS(SVGNS, 'path'); gl.setAttribute('d', mapSegPath(a, b)); gl.setAttribute('class', 'gp-glow ' + state); gl.setAttribute('stroke', col); svg.appendChild(gl);
+    }
+    const s = document.createElementNS(SVGNS, 'path'); s.setAttribute('d', mapSegPath(a, b)); s.setAttribute('class', 'gp-seg ' + state);
+    s.setAttribute('stroke', state === 'far' ? 'rgba(255,255,255,.22)' : col);
+    if (state !== 'far') { s.setAttribute('pathLength', '1'); if (animate) s.style.setProperty('--d', (0.12 + Math.min(i - 1, 26) * 0.035).toFixed(3) + 's'); }
+    svg.appendChild(s);
+    if (state === 'mine') { const f = document.createElementNS(SVGNS, 'path'); f.setAttribute('d', mapSegPath(a, b)); f.setAttribute('class', 'gp-flow'); svg.appendChild(f); }
+  }
+  // têtes : regroupées par niveau, moi au centre et en grand
+  const layer = MAP.headLayer, seen = new Set();
+  const top = max > 0 ? [...people].filter(([, v]) => v === max).map(([n]) => n) : [];
+  for (const [lv, names0] of here) {
+    const names = names0.slice().sort((a, b) => (b === me) - (a === me) || a.localeCompare(b));
+    const pos = lv >= 1 ? L.nodes[Math.min(lv, L.nodes.length) - 1] : L.start;
+    const cap = lv < 1 ? 6 : 4;          // au départ il y a plus de place
+    const shown = names.length > cap ? names.slice(0, cap - 1) : names, extra = names.length - shown.length;
+    const m = shown.length + (extra ? 1 : 0);
+    // éventail : les places les plus proches du milieu d'abord (moi au milieu)
+    const mid = (m - 1) / 2, slots = [...Array(m).keys()].sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid) || a - b);
+    const step = 46;
+    for (const [k, nm] of shown.entries()) {
+      const slot = slots[k];
+      const dx = (slot - mid) * step, dy = -Math.abs(slot - mid) * 8;   // les côtés un peu plus haut : loin des étiquettes
+      let h = MAP.heads.get(nm);
+      if (!h) {
+        h = mapEl('div', 'gmap-head' + (nm === me ? ' me' : ''), layer);
+        const hd = chatHead(nm, { passive: true }); hd.classList.add('gh-face'); h.appendChild(hd);
+        mapEl('span', 'gh-name', h).textContent = nm === me ? 'Toi' : nm;
+        if (animate) h.style.setProperty('--d', (0.45 + Math.min(lv, 26) * 0.035).toFixed(3) + 's');
+        MAP.heads.set(nm, h);
+      }
+      h.classList.toggle('lead', top.length === 1 && top[0] === nm && people.size > 1);
+      h.classList.toggle('start', lv < 1);
+      h.style.left = (pos.x + dx) + 'px'; h.style.top = (pos.y - (lv >= 1 ? 34 : 30) + dy) + 'px';
+      h.title = (nm === me ? 'Toi' : nm) + ' · ' + (lv >= 1 ? def.short(lv) : 'pas encore parti');
+      seen.add(nm);
+    }
+    const kx = 'more' + lv;
+    let more = MAP.heads.get(kx);
+    if (extra) {
+      if (!more) { more = mapEl('div', 'gmap-more', layer); MAP.heads.set(kx, more); }
+      more.textContent = ''; mapEl('span', '', more).textContent = '+' + extra; more.title = names.slice(shown.length).join(', ');
+      const ms = slots[m - 1]; more.style.left = (pos.x + (ms - mid) * step) + 'px'; more.style.top = (pos.y - 34 - Math.abs(ms - mid) * 8) + 'px';
+      seen.add(kx);
+    }
+  }
+  for (const [k, el] of [...MAP.heads]) if (!seen.has(k)) { el.remove(); MAP.heads.delete(k); }
+  // résumé en bas
+  const sum = $('jdw-map-sum'); sum.textContent = '';
+  const av = mapEl('span', 'avatar', sum); avatarInto(av, me);
+  const tx = mapEl('span', 'gm-sumtx', sum), mi = mine ? def.level(mine) : null;
+  if (mi) sum.style.setProperty('--nc', mi.acc);
+  mapEl('small', 'gm-k', tx).textContent = mi ? 'Toi · ' + mi.kicker : 'Toi';
+  mapEl('b', '', tx).textContent = mi ? mi.name : 'Pas encore parti';
+  const others = [...people].filter(([n]) => n !== me).sort((a, b) => b[1] - a[1]);
+  mapEl('small', '', tx).textContent = others.length && others[0][1] > 0
+    ? (others[0][1] > mine ? 'Devant toi : ' + others[0][0] + ' · ' + def.word + ' ' + others[0][1] : mine >= others[0][1] && mine > 0 ? (others[0][1] === mine ? 'À égalité en tête avec ' + others[0][0] : 'Tu mènes la salle !') : '')
+    : mine ? 'Ton meilleur ' + def.word.toLowerCase() : 'Lance une partie pour poser ta tête sur la carte';
+}
+$('jdw-map-close').addEventListener('click', closeMap);
+$('jdw-map-play').addEventListener('click', () => { const g = gameById(MAP.gid); closeMap(); if (g) setTimeout(() => openGame(g), 120); });
+$('jdw-map-me').addEventListener('click', () => {
+  mapCenter(true);
+  const h = MAP.heads.get(cleanName(profile.name)); if (h) { h.classList.remove('ping'); void h.offsetWidth; h.classList.add('ping'); }
+});
+addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); MAP.rt = setTimeout(() => { if (MAP.open) mapBuild(false); }, 180); });
+
 /* ================= Appli Android : retour + mise à jour ================= */
 window.JDW_BACK = () => {
   if (!$('jdw-net').hidden) { netEnd(true); return true; }
   if (!$('jdw-watch').hidden) { watchStop(); return true; }
+  if (MAP.open) { closeMap(); return true; }
   if (!$('jdw-cmp-pick').hidden) { cmpClosePick(); return true; }
   if (!$('jdw-podium').hidden) { cmpClosePodium(); return true; }
   if (!$('jdw-duo').hidden) { duoBack(); return true; }
@@ -4438,7 +5026,7 @@ setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou 
 })();
 
 /* ================= Démarrage ================= */
-['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv'].forEach(id => { if ($(id)) $(id).hidden = true; });
+['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
 $('jdw-lib').hidden = false;
 syncOwnPlayer();
@@ -4446,7 +5034,7 @@ buildLibrary(); buildDuoLibrary(); buildTabs(); syncMute(); refreshAll(); setMod
 requestAnimationFrame(previewLoop);
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }
 if (!profile.name) startWelcome(); else if (ONLINE && !room) openRooms();
-loadPlayers(); loadScores(); heartbeat(); loadChat();
+loadPlayers(); loadScores(); heartbeat(); loadChat(); setTimeout(progLoad, 1500);
 setTimeout(pushRoomLook, 2500);    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)
 if (ONLINE) { rtJoin('jdw-all'); if (room) rtJoin('jdw-room-' + room.id); rtConnect(); }
 setTimeout(checkSiteVersion, 4000);
