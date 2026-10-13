@@ -202,6 +202,38 @@
   </div>
 </div>
 
+<!-- Retirer un joueur de la salle / quitter la salle (confirmation) -->
+<div class="sheet sheet-top" id="jdw-kick" hidden>
+  <div class="card ask-card" role="alertdialog" aria-modal="true" aria-labelledby="jdw-kick-h" aria-describedby="jdw-kick-txt">
+    <div class="card-body">
+      <div class="ask-head" id="jdw-kick-head"></div>
+      <h2 class="ask-h" id="jdw-kick-h"></h2>
+      <p class="small ask-txt" id="jdw-kick-txt"></p>
+      <p class="small ask-status" id="jdw-kick-status" role="status"></p>
+      <div class="row">
+        <button class="btn btn-danger" id="jdw-kick-ok" type="button">Retirer</button>
+        <button class="btn btn-ghost" id="jdw-kick-no" type="button">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Profil de l'appareil pas encore dans la salle : « Ajouter X à la salle ? » -->
+<div class="sheet sheet-top" id="jdw-askjoin" hidden>
+  <div class="card ask-card" role="alertdialog" aria-modal="true" aria-labelledby="jdw-askjoin-h" aria-describedby="jdw-askjoin-txt">
+    <div class="card-body">
+      <div class="ask-head" id="jdw-askjoin-head"></div>
+      <h2 class="ask-h" id="jdw-askjoin-h"></h2>
+      <p class="small ask-txt" id="jdw-askjoin-txt"></p>
+      <p class="small ask-status" id="jdw-askjoin-status" role="status"></p>
+      <div class="row">
+        <button class="btn btn-play" id="jdw-askjoin-yes" type="button">Oui</button>
+        <button class="btn btn-ghost" id="jdw-askjoin-no" type="button">Non</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Duel : deux joueurs face à face sur le même téléphone -->
 <div id="jdw-duo" hidden>
   <div id="jdw-duo-host"></div>

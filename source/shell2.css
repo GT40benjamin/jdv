@@ -975,3 +975,28 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .look-tag{position:absolute;right:-2px;bottom:-2px;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
   background:var(--gold);color:var(--night);font-size:14px;box-shadow:0 0 0 3px var(--panel)}
 .look-reset{justify-self:start;max-width:100%;white-space:normal;text-align:left}
+
+/* ---------- Membres : retirer / quitter / rejoindre la salle ---------- */
+.mem-x{flex:0 0 auto;align-self:center;width:28px;height:28px;margin-left:-6px;display:grid;place-items:center;padding:0;border-radius:50%;
+  border:1px solid var(--line);background:none;color:var(--muted);font:600 14px/1 var(--body);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.mem-x:hover,.mem-x:focus-visible{color:var(--alarm);border-color:var(--alarm);background:color-mix(in srgb,var(--alarm) 12%,transparent)}
+.mem-x svg{width:13px;height:13px;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;fill:none}
+.mem-tag.join-btn{border-color:var(--amber);color:var(--ink);cursor:pointer;background:color-mix(in srgb,var(--amber) 18%,transparent)}
+.mem-row.notmem{outline:1px dashed var(--steel2);outline-offset:-1px}
+.mem-row.notmem .mem-txt small{color:var(--amber)}
+.mem-row.notmem .mem-txt small::before{content:none}
+.mem-owner{margin-left:5px;font-size:12px;vertical-align:1px}
+#jdw-members .mem-row{gap:10px}
+.sheet.sheet-top{z-index:70}
+.ask-card{max-width:380px;text-align:center}
+.ask-card .card-body{justify-items:center;gap:12px;padding:24px 20px 20px}
+.ask-head .chead{width:76px;height:76px}
+.ask-head .chead i{font-size:32px}
+.ask-h{margin:0;font-family:var(--display);font-weight:400;font-size:21px;line-height:1.15;overflow-wrap:anywhere}
+.ask-h em{font-style:normal;color:var(--amber)}
+.ask-txt{max-width:30ch}
+.ask-status{min-height:0;color:var(--amber)}
+.ask-status:empty{display:none}
+.ask-card .row{width:100%}
+.btn-danger{background:var(--alarm);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.45)}
+.btn:disabled{opacity:.6;cursor:default}

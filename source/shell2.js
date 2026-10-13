@@ -112,13 +112,15 @@ function saveProfile() {
 }
 const deviceNames = () => profiles.map(p => cleanName(p.name)).filter(Boolean);
 const players = new Map();          // NOM -> { name, photo, img, sad }
+let membersFor = null;               // salle dont on connaît la liste exacte des membres (get_players)
+let memberNames = new Set();         // membres de cette salle (gardés à part : une entrée de players peut être recréée)
 function setPlayer(name, photo, sound) {
   name = cleanName(name); if (!name) return;
   const cur = players.get(name);
   if (sound === undefined) sound = cur ? cur.sound : null;
   if (cur && cur.photo === (photo || null)) { cur.sound = sound || null; return; }
   const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null,
-    member: cur ? cur.member : false, seen: cur ? cur.seen : 0, game: cur ? cur.game : null, updated: cur ? cur.updated : 0 };
+    member: cur ? cur.member : memberNames.has(name), seen: cur ? cur.seen : 0, game: cur ? cur.game : null, updated: cur ? cur.updated : 0 };
   if (photo) {
     const im = new Image(); im.decoding = 'async';
     im.onload = () => { try { p.box = photoBox(im); p.topFrac = p.box.y0; } catch (e) {} setTimeout(() => { try { refreshChamps(true); } catch (e) {} }, 0); };
@@ -172,6 +174,7 @@ function lookTouch(rid) { const L = lookSlot(rid); L.at = Date.now(); if (L.at <
 let roomLookMissing = false;          // le serveur n'a pas encore save_room_look (room-look.sql pas lancé) : on n'insiste pas
 async function pushRoomLook() {
   if (!ONLINE || !room || !profile.name || roomLookMissing) return true;
+  if (knownNotMember(profile.name)) return true;          // pas dans la salle : rien à envoyer (renvoyé en la rejoignant)
   const rid = room.id, L = profile.rooms && profile.rooms[rid];
   if (!L || (L.sent || 0) >= (L.at || 0)) return true;
   const at = L.at, pid = profile.pid;
@@ -240,17 +243,27 @@ function avatarInto(el, name) {
   el.textContent = n[0];
 }
 let playersAt = 0;
+// vrai seulement quand on SAIT que ce nom n'est pas membre de la salle actuelle (liste chargée) ; inconnu = faux
+function knownNotMember(name) { return !!room && membersFor === room.id && !memberNames.has(cleanName(name)); }
+let selfLeave = '';                  // nom que cet appareil vient de retirer lui-même (pas de message « on t'a retiré »)
 async function loadPlayers() {
   if (!ONLINE || !room) return;
+  const rid = room.id;
   try {
     const rows = await rpc('get_players', Object.assign({ p_code: CODE() }, RP())) || [];
+    if (!room || room.id !== rid) return;
     serverOk = true;
+    const me = cleanName(profile.name), wasMe = membersFor === rid && !knownNotMember(me);
+    for (const p of players.values()) p.member = false;    // un joueur retiré de la salle n'en fait plus partie
+    memberNames = new Set(rows.map(r => cleanName(r.r_name)));
     for (const r of rows) {
       setPlayer(r.r_name, r.r_photo, r.r_sound || null);
       const p = players.get(cleanName(r.r_name));
       if (p) { p.member = true; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; if (r.r_version) p.dbVer = r.r_version; }
     }
-    playersAt = Date.now();
+    playersAt = Date.now(); membersFor = rid;
+    if (wasMe && me && knownNotMember(me) && selfLeave !== me) toastCheer(me + ' ne fait plus partie de « ' + room.name + ' ».', me, true);
+    if (selfLeave === me && !knownNotMember(me)) selfLeave = '';
     syncOwnPlayer();
     if (PRES.ok) setTimeout(presChanged, 0);
     refreshAll();
@@ -525,7 +538,8 @@ async function saveScore(game, score, forName) {
     saving++;
     try {
       await rpc('add_score', Object.assign({ p_code: CODE() }, RP(), { p_game: game, p_name: name, p_score: score }));
-      (remote[game] = remote[game] || []).push(entry); serverOk = true;
+      if (!knownNotMember(name)) (remote[game] = remote[game] || []).push(entry);
+      serverOk = true;
       poke('scores'); poke('chat');
       loadScores();
       return 'shared';
@@ -816,6 +830,9 @@ function renderChat(fromPoll, quiet) {
 async function sendChat(text) {
   text = String(text || '').replace(/[\u0000-\u001f]+/g, ' ').trim().slice(0, 300);
   if (!text || !room) return;
+  if (knownNotMember(profile.name)) {
+    if (!(await askJoin(profile.name, true)) || !(await joinHere())) { $('jdw-chat-status').textContent = 'Pour écrire ici, il faut faire partie de la salle.'; return; }
+  }
   const m = { id: 0, name: cleanName(profile.name), body: text, kind: 'msg', at: Date.now(), pending: true };
   chat.pending.push(m); renderChat(false);
   Audio.ensure(); Audio.tone(880, 0.06, 'sine', 0.04, 1320);
@@ -832,7 +849,8 @@ async function sendChat(text) {
 function renderBand() {
   const band = $('jdw-chat-band'); band.textContent = '';
   const me = cleanName(profile.name);
-  const names = [...players.keys()].sort((x, y) => (x === me) - (y === me) || (!!(players.get(y) || {}).photo - !!(players.get(x) || {}).photo) || x.localeCompare(y));
+  const inRoom = n => n === me || !room || membersFor !== room.id || memberNames.has(n);   // bande = membres de la salle (+ moi)
+  const names = [...players.keys()].filter(inRoom).sort((x, y) => (x === me) - (y === me) || (!!(players.get(y) || {}).photo - !!(players.get(x) || {}).photo) || x.localeCompare(y));
   for (const n of names) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'band-p' + (n === me ? ' me' : '');
     b.setAttribute('aria-label', n === me ? 'Moi' : 'Parler à ' + n);
@@ -1239,16 +1257,20 @@ function renderMembers() {
   const on = list.filter(isOn).sort((a, b) => (b.name === me) - (a.name === me) || a.name.localeCompare(b.name));
   const off = list.filter(p => !isOn(p)).sort((a, b) => (b.seen || 0) - (a.seen || 0) || a.name.localeCompare(b.name));
   const wrap = $('jdw-members-list'); wrap.textContent = '';
+  const owner = room && room.owner ? cleanName(room.owner) : '', mine = new Set(deviceNames());
   const section = (title, arr, online) => {
     if (!arr.length) return;
     const h = document.createElement('p'); h.className = 'eyebrow mem-h'; h.textContent = title + ' · ' + arr.length; wrap.appendChild(h);
     for (const p of arr) {
-      const row = document.createElement('div'); row.className = 'mem-row' + (online ? ' on' : '');
+      const outside = p.name === me && knownNotMember(me);     // moi, sur cet appareil, sans être dans la salle
+      const row = document.createElement('div'); row.className = 'mem-row' + (online ? ' on' : '') + (outside ? ' notmem' : '');
       const hd = chatHead(p.name); hd.classList.add('mem-head');
       const tx = document.createElement('div'); tx.className = 'mem-txt';
-      const n = document.createElement('b'); n.textContent = p.name === me ? p.name + ' (moi)' : p.name;
+      const n = document.createElement('b'); n.textContent = p.name;
+      if (owner && p.name === owner) { const cr = document.createElement('span'); cr.className = 'mem-owner'; cr.textContent = '👑'; cr.title = 'Créateur de la salle'; cr.setAttribute('aria-label', 'créateur de la salle'); n.append(cr); }
+      if (p.name === me) n.append(' (moi)');
       const st = document.createElement('small');
-      st.textContent = online ? (p.name === me ? gameLabel(where) : gameLabel(p.live ? p.game : (p.dbGame || p.game))) : seenText(p.seen);
+      st.textContent = outside ? 'pas dans la salle' : online ? (p.name === me ? gameLabel(where) : gameLabel(p.live ? p.game : (p.dbGame || p.game))) : seenText(p.seen);
       const vt = p.name === me ? myVersionTag() : (online && p.live ? (p.liveVer || '') : (p.dbVer || ''));
       const vl = document.createElement('small'); vl.className = 'mem-ver';
       vl.textContent = vt ? versionLabel(vt) : (online && p.live ? 'ancienne version' : '');
@@ -1263,7 +1285,19 @@ function renderMembers() {
       tags.append(ph, cr);
       const live = online && p.name !== me && p.live && watchable(p.game) && presCid(p.name, p.game);
       if (live) { const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'mem-tag watch-btn'; wb.textContent = '👁 Regarder'; wb.setAttribute('aria-label', 'Regarder ' + p.name + ' jouer en direct'); wb.addEventListener('click', () => { closeSheet('jdw-members'); watchStart(p.name, p.game); }); tags.prepend(wb); }
-      row.append(hd, tx, tags); wrap.appendChild(row);
+      if (outside) { const jb = document.createElement('button'); jb.type = 'button'; jb.className = 'mem-tag join-btn'; jb.textContent = '+ Rejoindre'; jb.setAttribute('aria-label', 'Ajouter ' + p.name + ' à la salle ' + room.name); jb.addEventListener('click', async () => { if (await askJoin(p.name)) joinHere(); }); tags.prepend(jb); }
+      row.append(hd, tx, tags);
+      // ✕ : le créateur peut retirer tout le monde ; chacun peut se retirer lui-même (et les profils de son appareil)
+      const self = p.name === me || mine.has(p.name);
+      if (p.member && (self || (owner && owner === me))) {
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'mem-x';
+        x.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+        const lab = p.name === me ? 'Quitter la salle ' + room.name : 'Retirer ' + p.name + ' de la salle';
+        x.setAttribute('aria-label', lab); x.title = p.name === me ? 'Quitter cette salle' : 'Retirer de la salle';
+        x.addEventListener('click', () => openKick(p.name, self ? p.name : me));
+        row.append(x);
+      }
+      wrap.appendChild(row);
     }
   };
   section('En ligne', on, true); section('Hors ligne', off, false);
@@ -1274,7 +1308,105 @@ async function openMembers() {
   if (!ONLINE) return;
   if (!room) { openRooms(); return; }
   renderMembers(); openSheet('jdw-members', 'jdw-members-close');
+  if (!room.owner) refreshOwner();
   await loadPlayers(); if (!$('jdw-members').hidden) renderMembers();
+}
+// créateur de la salle (rooms.owner, donné par list_rooms) : seul lui voit le ✕ sur les autres joueurs
+async function refreshOwner() {
+  const rid = room && room.id; if (!rid) return;
+  try {
+    const rows = await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' }) || [];
+    const r = rows.find(x => x.r_id === rid);
+    if (r && r.r_owner && room && room.id === rid) { room.owner = r.r_owner; store.set('jdw.room', room); if (!$('jdw-members').hidden) renderMembers(); }
+  } catch (e) {}
+}
+/* ---- Retirer un joueur de la salle (créateur) / quitter la salle (soi-même ou un profil de cet appareil) ---- */
+const KICK = { name: '', by: '', busy: false };
+function openKick(name, by) {
+  if (!room) return;
+  KICK.name = cleanName(name); KICK.by = cleanName(by); KICK.busy = false;
+  const self = KICK.name === cleanName(profile.name), dev = KICK.name === KICK.by;
+  const hd = $('jdw-kick-head'); hd.textContent = ''; hd.append(chatHead(KICK.name, { passive: true }));
+  const h = $('jdw-kick-h'); h.textContent = '';
+  const em = document.createElement('em'); em.textContent = room.name;
+  h.append(self ? 'Quitter la salle ' : 'Retirer ' + KICK.name + ' de la salle ', em, ' ?');
+  $('jdw-kick-txt').textContent = self
+    ? 'Tes scores, messages et ta tête dans cette salle seront effacés. Tu restes au classement mondial. Pour revenir, il faudra rejoindre la salle.'
+    : 'Ses scores, messages et sa tête dans cette salle seront effacés. Il reste au classement mondial.' + (dev ? ' Il pourra jouer sur cet appareil sans être dans la salle.' : " Il ne reviendra que s'il rejoint la salle lui-même.");
+  $('jdw-kick-ok').textContent = self ? 'Quitter' : 'Retirer'; $('jdw-kick-ok').disabled = false;
+  $('jdw-kick-status').textContent = '';
+  openSheet('jdw-kick', 'jdw-kick-no');
+}
+async function doKick() {
+  if (KICK.busy || !room || !KICK.name) return;
+  const name = KICK.name, rid = room.id, rname = room.name, self = name === cleanName(profile.name);
+  KICK.busy = true; $('jdw-kick-ok').disabled = true; $('jdw-kick-status').textContent = self ? 'On quitte la salle…' : 'On retire ' + name + '…';
+  try {
+    await rpc('remove_member', Object.assign({ p_code: CODE() }, RP(), { p_name: name, p_by: KICK.by }), { quiet404: true });
+  } catch (e) {
+    KICK.busy = false; $('jdw-kick-ok').disabled = false;
+    $('jdw-kick-status').textContent = e.status === 404 ? "Pas encore possible : le serveur de la borne doit d'abord être mis à jour."
+      : /createur/.test(String(e.message)) ? 'Seul le créateur de la salle peut retirer un joueur.'
+      : e.offline ? 'Pas de réseau : réessaie dans un instant.' : "Impossible pour l'instant, réessaie plus tard.";
+    return;
+  }
+  KICK.busy = false; closeSheet('jdw-kick');
+  if (!room || room.id !== rid) return;
+  if (self) selfLeave = name;
+  const p = players.get(name); if (p) p.member = false; memberNames.delete(name);
+  for (const g in remote) remote[g] = (remote[g] || []).filter(x => x.name !== name);   // ses scores de la salle sont effacés
+  refreshAll(); if (!$('jdw-members').hidden) renderMembers();
+  poke('players'); poke('scores'); poke('chat');
+  loadPlayers(); loadScores(); if (chat.open) loadChat();
+  toastCheer(self ? 'Tu as quitté « ' + rname + ' ».' : name + ' ne fait plus partie de « ' + rname + ' ».', self ? name : cleanName(profile.name), true);
+}
+$('jdw-kick-ok').addEventListener('click', doKick);
+$('jdw-kick-no').addEventListener('click', () => closeSheet('jdw-kick'));
+$('jdw-kick').addEventListener('click', e => { if (e.target === $('jdw-kick')) closeSheet('jdw-kick'); });
+/* ---- « Ajouter X à la salle ? » : un profil de l'appareil n'entre dans une salle que si on le veut ---- */
+let askJoinDone = null;
+function askJoin(name, forChat) {
+  if (!room) return Promise.resolve(false);
+  if (askJoinDone) askJoinDone(false);
+  name = cleanName(name);
+  const hd = $('jdw-askjoin-head'); hd.textContent = ''; hd.append(chatHead(name, { passive: true }));
+  const h = $('jdw-askjoin-h'); h.textContent = '';
+  const em = document.createElement('em'); em.textContent = room.name;
+  h.append('Ajouter ' + name + ' à la salle ', em, ' ?');
+  $('jdw-askjoin-txt').textContent = (forChat ? 'Pour écrire dans le chat, il faut faire partie de la salle. ' : '')
+    + 'Dans la salle, ' + name + ' apparaît dans les joueurs, le classement et le chat. Sinon, ' + name + ' joue quand même sur cet appareil.';
+  $('jdw-askjoin-status').textContent = '';
+  openSheet('jdw-askjoin', 'jdw-askjoin-yes');
+  return new Promise(res => { askJoinDone = v => { askJoinDone = null; closeSheet('jdw-askjoin'); res(v); }; });
+}
+$('jdw-askjoin-yes').addEventListener('click', () => { if (askJoinDone) askJoinDone(true); });
+$('jdw-askjoin-no').addEventListener('click', () => { if (askJoinDone) askJoinDone(false); });
+$('jdw-askjoin').addEventListener('click', e => { if (e.target === $('jdw-askjoin') && askJoinDone) askJoinDone(false); });
+// rejoindre la salle actuelle avec le joueur actuel (volontaire : seul chemin, avec doJoin, pour devenir membre)
+async function joinHere() {
+  if (!ONLINE || !room || !profile.name) return false;
+  const rid = room.id, name = cleanName(profile.name);
+  try {
+    const ok = await rpc('join_room', { p_code: CODE(), p_room: rid, p_room_code: roomCodes[rid] || '', p_name: name });
+    if (!ok) { toastCheer('Le code de la salle a changé : choisis-la de nouveau dans Salles.', name, true); return false; }
+  } catch (e) { toastCheer("Impossible d'entrer dans la salle pour l'instant.", name, true); return false; }
+  if (!room || room.id !== rid) return false;
+  if (selfLeave === name) selfLeave = '';
+  const p = players.get(name); if (p) p.member = true; memberNames.add(name);
+  await loadPlayers(); poke('players'); rtTrack();
+  if (profile.rooms && profile.rooms[rid]) await pushRoomLook();
+  toastCheer('Bienvenue ' + name + ' dans « ' + room.name + ' » !', name, true);
+  return true;
+}
+// après un changement de joueur : s'il n'est pas dans la salle, on lui demande (jamais d'ajout automatique)
+async function maybeAskJoin() {
+  if (!ONLINE || !room || !profile.name) return;
+  const pid = profile.pid, rid = room.id;
+  if (membersFor !== rid) await loadPlayers();
+  if (profile.pid !== pid || !room || room.id !== rid || membersFor !== rid || !knownNotMember(profile.name)) return;
+  const name = cleanName(profile.name);
+  if (await askJoin(name)) { if (profile.pid === pid) await joinHere(); }
+  else if (profile.pid === pid) toastCheer(name + ' joue sur cet appareil, sans être dans « ' + room.name + ' ».', name, true);
 }
 $('jdw-online').addEventListener('click', openMembers);
 setInterval(() => { if (!$('jdw-members').hidden) { renderMembers(); refreshPresence(); } }, 15000);   // « vu il y a… » et en ligne, à jour tout seuls
@@ -1608,8 +1740,13 @@ $('jdw-set-save').addEventListener('click', async () => {
   if (changed && deviceNames().includes(n)) { $('jdw-set-status').textContent = 'Ce nom est déjà un profil de cet appareil : change de joueur avec ta tête en haut.'; return; }
   if (changed && old && bests[old] && !bests[n]) { bests[n] = bests[old]; delete bests[old]; store.set('jdw.bests2', bests); }
   if (changed && profile.rooms) for (const k in profile.rooms) if (profile.rooms[k]) profile.rooms[k].sent = 0;   // à renvoyer sous le nouveau nom
+  // changer de nom, c'est le même joueur : s'il était dans la salle, il y reste sous son nouveau nom (choix volontaire, pas un ajout implicite)
+  const keepIn = changed && ONLINE && room && membersFor === room.id && memberNames.has(old) ? room.id : null;
   profile.name = n; saveProfile(); syncOwnPlayer(); refreshAll();
   closeSheet('jdw-settings');
+  if (keepIn != null) {
+    try { if (await rpc('join_room', { p_code: CODE(), p_room: keepIn, p_room_code: roomCodes[keepIn] || '', p_name: n }) && room && room.id === keepIn) { memberNames.add(n); const pl = players.get(n); if (pl) pl.member = true; poke('players'); } } catch (e) {}
+  }
   await pushProfile();
 });
 $('jdw-set-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-set-save').click(); } });
@@ -1649,7 +1786,7 @@ function afterSwitch() {
   bests[cleanName(profile.name)] = bests[cleanName(profile.name)] || {};
   syncOwnPlayer(); refreshAll(); refreshBell();
   pushProfile();
-  if (ONLINE && room) rpc('join_room', Object.assign({ p_code: CODE(), p_room: room.id, p_room_code: roomCodes[room.id] || '', p_name: profile.name })).catch(() => {});
+  maybeAskJoin();          // un profil n'entre dans la salle que si on le veut (« Ajouter X à la salle ? »)
   heartbeat(); loadNotifs(); refreshChatBtn(); if (chat.open) renderChat(false);
   rtTrack();
 }
@@ -2406,6 +2543,8 @@ async function listRooms() {
     try { roomsCache = await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' }) || []; }
     catch (e) { if (e.status === 404) roomsCache = await rpc('list_rooms', { p_code: CODE() }) || []; else throw e; }   // ancien serveur
     serverOk = true; roomsStatus('');
+    const cr = room && roomsCache.find(x => x.r_id === room.id);
+    if (cr && cr.r_owner && room.owner !== cr.r_owner) { room.owner = cr.r_owner; store.set('jdw.room', room); }
   }
   catch (e) { roomsStatus('Impossible de charger les salles. Vérifie ta connexion et réessaie.'); }
   renderRooms();
@@ -2431,7 +2570,7 @@ function renderRooms() {
     const on = document.createElement('span'); on.className = r.r_online ? 'on' : ''; on.innerHTML = '<i></i>'; on.append(r.r_online ? r.r_online + ' en ligne' : 'calme');
     meta.append(mem, on);
     b.append(sign, meta);
-    if (cur) { const bd = document.createElement('span'); bd.className = 'rt-badge'; bd.textContent = 'Ta salle'; b.append(bd); }
+    if (cur) { const bd = document.createElement('span'); bd.className = 'rt-badge'; bd.textContent = knownNotMember(profile.name) ? 'Pas encore membre' : 'Ta salle'; b.append(bd); }
     else if (r.r_member) { const bd = document.createElement('span'); bd.className = 'rt-badge member'; bd.textContent = 'Tu en fais partie'; b.append(bd); }
     if (r.r_private) { const lk = document.createElement('span'); lk.className = 'rt-lock'; lk.innerHTML = ICON_LOCK; lk.title = 'Salle privée'; b.append(lk); }
     b.addEventListener('click', () => chooseRoom(r));
@@ -2445,7 +2584,11 @@ function openRooms() {
   openSheet('jdw-rooms'); return listRooms();
 }
 async function chooseRoom(r) {
-  if (room && room.id === r.r_id) { closeSheet('jdw-rooms'); return; }
+  if (room && room.id === r.r_id) {
+    closeSheet('jdw-rooms');
+    if (knownNotMember(profile.name) && await askJoin(profile.name)) await joinHere();   // sa salle, mais pas (plus) membre : on la rejoint
+    return;
+  }
   if (r.r_private && !roomCodes[r.r_id]) { askCode(r); return; }
   await doJoin(r, roomCodes[r.r_id] || '');
 }
@@ -2460,12 +2603,12 @@ async function doJoin(r, code) {
     const ok = await rpc('join_room', { p_code: CODE(), p_room: r.r_id, p_room_code: code, p_name: profile.name });
     if (!ok) { delete roomCodes[r.r_id]; store.set('jdw.roomcodes', roomCodes); askCode(r, 'Ce code ne marche pas. Demande-le au chef de la salle.'); return; }
     if (code) { roomCodes[r.r_id] = code; store.set('jdw.roomcodes', roomCodes); }
-    enterRoom({ id: r.r_id, name: r.r_name, priv: !!r.r_private });
+    enterRoom({ id: r.r_id, name: r.r_name, priv: !!r.r_private, owner: r.r_owner || null });
   } catch (e) { roomsStatus("Impossible de rejoindre cette salle pour l'instant."); }
 }
 function enterRoom(rm) {
   const prevId = room ? room.id : null;
-  room = rm; store.set('jdw.room', room); remoteLoaded = false; roomDenied = false;
+  room = rm; store.set('jdw.room', room); remoteLoaded = false; roomDenied = false; membersFor = null; memberNames = new Set();
   if (prevId && prevId !== room.id) { rtLeave('jdw-room-' + prevId); presReset(); }
   rtJoin('jdw-room-' + room.id);
   players.clear(); syncOwnPlayer(); if (typeof ensureAiPlayer === 'function') ensureAiPlayer(); remote = {}; counts = {}; total = 0;
@@ -2486,7 +2629,7 @@ $('jdw-new-ok').addEventListener('click', async () => {
     const id = await rpc('create_room', { p_code: CODE(), p_name: name, p_room_code: code, p_owner: profile.name });
     if (code) { roomCodes[id] = code; store.set('jdw.roomcodes', roomCodes); }
     $('jdw-new-name').value = ''; $('jdw-new-code').value = '';
-    enterRoom({ id, name, priv: !!code });
+    enterRoom({ id, name, priv: !!code, owner: cleanName(profile.name) });
     poke('rooms', 'jdw-all');
     toastCheer('Bienvenue dans « ' + name + ' » ! Donne le nom' + (code ? ' et le code' : '') + ' aux copains.', profile.name);
   } catch (e) {
