@@ -2,6 +2,7 @@
 # Reconstruit tout ce qui est publié (site PUBLIC depuis la 1.7 : plus de mot de passe du site, plus rien de chiffré dans les pages) :
 #   index.html             page d'accueil publique (copie de source/accueil.html ; visuels dans accueil/, voir accueil-media.js)
 #   jouer/index.html       la borne (build2.py, SITE_ROOT=../)
+#   jouer/sw.js            service worker de la borne : elle s'ouvre et se joue sans réseau (cache jdw-core-<BUILD_ID>, voir source/sw.js)
 #   telecharger/           page de téléchargement publique + borne-arcade.apk (fichier direct) ; version.json est à mettre à jour à la main
 #   site.json              numéro de version : les appareils rechargent la borne quand il change
 #   ./publier.sh                 avec l'APK déjà construit ($APK, par défaut ~/jdv-tools/borne-arcade.apk)
@@ -25,6 +26,8 @@ PY=$(command -v python3 >/dev/null && python3 -c 1 2>/dev/null && echo python3 |
 # la borne : dans jouer/ (elle lit ../assets, ../site.json, ../telecharger/version.json)
 SITE_ROOT=../ PYTHONUTF8=1 $PY build2.py "$T/art.html" "$T/standalone.html" "$T/site.html" "$SUPABASE_URL" "$SUPABASE_KEY"
 mkdir -p ../jouer && cp "$T/site.html" ../jouer/index.html
+# service worker de la borne (jeu hors ligne) : écrit par build2.py à côté de site.html, son cache porte le numéro BUILD_ID
+cp "$T/sw.js" ../jouer/sw.js
 # page d'accueil publique
 cp accueil.html ../index.html
 # page de téléchargement publique + APK en fichier direct (l'appli 1.7 n'embarque plus aucun mot de passe)

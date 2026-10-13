@@ -1559,3 +1559,49 @@ body.jdw-guest #jdw-scope{display:none}
 .rooms-card .join-box .lead{font-weight:600}
 /* la liste ne montre que mes salles : « Tu en fais partie » est inutile */
 .rooms-card .rt-badge.member{display:none}
+
+/* ================= Hors ligne : bandeau, pastille, fonctions grisées ================= */
+.net-bar{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 12px 12px 12px;border-radius:18px;
+  background:radial-gradient(120% 160% at 0% 0%,rgba(255,166,48,.17),transparent 58%),linear-gradient(135deg,#1a1a22,#121b26);
+  border:1px solid rgba(255,166,48,.38);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06);animation:nb-in .45s cubic-bezier(.2,1.3,.4,1) both}
+.net-bar[hidden]{display:none}
+.net-bar.leaving{animation:nb-out .4s ease forwards}
+.net-bar.pulse{animation:nb-pulse .6s ease}
+.nb-orb{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;border:1px solid rgba(255,166,48,.5);
+  background:radial-gradient(circle at 35% 30%,rgba(255,166,48,.42),rgba(255,166,48,.05) 70%);box-shadow:0 0 18px rgba(255,166,48,.22)}
+.nb-orb svg{width:26px;height:26px;fill:none;stroke:var(--amber);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nb-orb circle{fill:var(--amber);stroke:none}
+.nb-orb .nb-wave{opacity:.55}
+.nb-orb .nb-ok{display:none}
+.nb-tx{display:grid;gap:2px;min-width:0}
+.nb-tx b{font-family:var(--display);font-weight:400;font-size:16px;line-height:1.15;color:#ffd9a6;letter-spacing:.01em}
+.nb-tx span{font-size:13px;line-height:1.35;color:#c4ced6}
+.nb-retry{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--ink);font-size:20px;line-height:1;cursor:pointer}
+.nb-retry:active{transform:scale(.94)}
+.nb-retry.spin{animation:nb-spin .8s linear infinite}
+.net-bar[data-state=ok]{border-color:rgba(76,195,106,.5);background:radial-gradient(120% 160% at 0% 0%,rgba(76,195,106,.2),transparent 58%),linear-gradient(135deg,#12201a,#121b26)}
+.net-bar[data-state=ok] .nb-orb{border-color:rgba(76,195,106,.55);background:radial-gradient(circle at 35% 30%,rgba(76,195,106,.45),rgba(76,195,106,.06) 70%);box-shadow:0 0 18px rgba(76,195,106,.28)}
+.net-bar[data-state=ok] .nb-orb svg{stroke:var(--leaf)}
+.net-bar[data-state=ok] .nb-wave,.net-bar[data-state=ok] .nb-cut,.net-bar[data-state=ok] circle{display:none}
+.net-bar[data-state=ok] .nb-ok{display:inline;stroke-width:2.4}
+.net-bar[data-state=ok] .nb-tx b{color:#bff3cc}
+.net-bar[data-state=ok] .nb-retry{display:none}
+@keyframes nb-in{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes nb-out{to{opacity:0;transform:translateY(-6px) scale(.98)}}
+@keyframes nb-pulse{0%,100%{transform:none}30%{transform:scale(1.025);box-shadow:0 0 0 3px rgba(255,166,48,.35),0 10px 30px rgba(0,0,0,.35)}}
+@keyframes nb-spin{to{transform:rotate(360deg)}}
+/* pastille passagère (en partie, sur une fenêtre, ou « il faut du réseau ») */
+.net-pill{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));z-index:2147483300;transform:translate(-50%,-140%);max-width:calc(100vw - 32px);
+  display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;pointer-events:none;font:600 13.5px/1.25 var(--body,'Chakra Petch',system-ui,sans-serif);
+  color:#ffe7c6;background:rgba(20,22,30,.92);border:1px solid rgba(255,166,48,.5);box-shadow:0 8px 26px rgba(0,0,0,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:transform .35s cubic-bezier(.2,1.3,.4,1),opacity .3s;opacity:0}
+.net-pill.on{transform:translate(-50%,0);opacity:1}
+.net-pill[data-kind=ok]{color:#c9f5d4;border-color:rgba(76,195,106,.6)}
+/* fonctions qui demandent le réseau : grisées (un toucher dit « Il faut du réseau ») */
+body.net-off #jdw-chat-btn,body.net-off #jdw-roombar,body.net-off #jdw-invite,body.net-off #jdw-online,
+body.net-off #jdw-modes [data-mode=compet],body.net-off #jdw-duel-switch [data-where=online]{opacity:.42;filter:grayscale(.85)}
+body.net-off #jdw-modes [data-mode=compet] .mb-soon{display:none}
+body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · réseau";font-size:.85em;opacity:.8}
+body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";display:block;font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+#jdw-cmp-none.net-need p{color:#ffd9a6}
+#jdw-board.net-off #jdw-scope [data-scope=world]{opacity:.5}

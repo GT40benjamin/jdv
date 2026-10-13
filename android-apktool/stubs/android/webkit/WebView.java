@@ -5,4 +5,5 @@ public class WebView extends android.view.View {
   public void setWebViewClient(WebViewClient c) {} public void setWebChromeClient(WebChromeClient c) {}
   public void loadUrl(String u) {} public void evaluateJavascript(String s, ValueCallback<String> cb) {}
   public void onPause() {} public void onResume() {} public void reload() {}
+  public void loadDataWithBaseURL(String base, String data, String mime, String enc, String hist) {}
 }

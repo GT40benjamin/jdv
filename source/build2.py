@@ -96,6 +96,7 @@ def music_enc():
     return sorted(f[:-4] for f in os.listdir(d) if f.endswith('.bin')) if os.path.isdir(d) else []
 # dossier racine du site vu depuis la borne : publiée dans jouer/ -> SITE_ROOT=../ (publier.sh) ; site de test : vide
 ROOT = os.environ.get('SITE_ROOT', '')
+FONT_CSS = 'https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap'
 def page(config=None):
     body = open(J + 'shell2-body.html').read().replace('PG_MARKUP', '<section id="jdw-pg" hidden>\n' + markup + '\n</section>')
     games = ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
@@ -106,7 +107,7 @@ def page(config=None):
           '<script>window.JDW_ASSET_KEY = ' + json.dumps(open(J + 'asset-key.txt', encoding='utf-8').read().strip()) + '; window.JDW_ROOT = ' + json.dumps(ROOT) + ';</script>\n'
     return ('<title>Borne d\'arcade entre amis</title>\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
-            '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap">\n'
+            '<link rel="stylesheet" href="' + FONT_CSS + '">\n'
             '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n</style>\n' + body + '\n'
             '<script>\n(() => {\n' + script + '\n})();\n</script>\n' + games + cfg +
             '<script>\n' + open(J + 'shell2.js').read() + '\n</script>\n')
@@ -122,4 +123,27 @@ open(sys.argv[1], 'w').write(art)
 open(sys.argv[2], 'w').write(full_doc(art))
 if len(sys.argv) > 5:
     open(sys.argv[3], 'w').write(full_doc(page({'url': sys.argv[4], 'key': sys.argv[5]})))
+
+# ---------- service worker (jouer/sw.js, à côté de la borne publiée) : jeu hors ligne ----------
+# numéro de cache = BUILD_ID ; empreinte de chaque asset (un fichier changé est retéléchargé) ; assets gardés dès l'installation
+def write_sw(out):
+    import hashlib
+    A = os.path.join(J, '..', 'assets'); assets = {}
+    for d, sub in ((A, ''), (os.path.join(A, 'music'), 'music/')):
+        if not os.path.isdir(d): continue
+        for f in sorted(os.listdir(d)):
+            if re.match(r'^[a-z0-9_.-]+\.(bin|mp3)$', f) and os.path.isfile(os.path.join(d, f)):
+                assets['assets/' + sub + f] = hashlib.sha1(open(os.path.join(d, f), 'rb').read()).hexdigest()[:12]
+    enc = set(music_enc()); ext = lambda n: n + ('.bin' if n in enc else '.mp3')
+    pre = [k for k in assets if re.match(r'^assets/[a-z0-9_-]+\.bin$', k)]                        # images des jeux (ilo.bin)
+    pre += ['assets/music/' + ext(n) for n in sorted(enc) if n.startswith('sting-')]           # jingles
+    acc = music_list().get('accueil', {}); first = (acc.get('c') or acc.get('x') or [None])[0]
+    if first: pre.append('assets/music/' + ext(first))                                          # une musique de l'accueil
+    sw = open(J + 'sw.js', encoding='utf-8').read()
+    sw = sw.replace("'__BUILD__'", json.dumps(os.environ.get('BUILD_ID', 'dev'))).replace('__ASSETS__', json.dumps(assets)) \
+           .replace('__PRE__', json.dumps([p for p in pre if p in assets])).replace('__FONT_CSS__', json.dumps(FONT_CSS))
+    assert ('__' + 'BUILD__') not in sw and ('__' + 'ASSETS__') not in sw and ('__' + 'PRE__') not in sw
+    open(out, 'w', encoding='utf-8').write(sw)
+if len(sys.argv) > 5 and ROOT:      # borne publiée (jouer/) : sw.js à côté de la page
+    write_sw(os.path.join(os.path.dirname(os.path.abspath(sys.argv[3])), 'sw.js'))
 print('built', len(art))

@@ -12,6 +12,7 @@ têtes des copains (selfies détourés) dans les jeux. Site : https://gt40benjam
 - `assets/ilo.bin`, `assets/music/*.bin` : images et musiques de l'Asset Store, EMBALLÉES (AES-GCM) avec la clé intégrée au site
   (`source/asset-key.txt`, pas un secret : jamais de fichier lisible directement). Les .mp3 (ElevenLabs) sont en clair.
 - `manifest.webmanifest` (start_url `jouer/`), `icon-*.png`.
+- `jouer/sw.js` : service worker de la borne (portée `jouer/`), écrit par build2.py depuis `source/sw.js` (voir « Hors ligne »).
 - Jamais dans le dépôt : l'ancien mot de passe (variable `ARCADE_CODE`, sert encore à `get_errors` / `erreurs.js`), les photos des copains,
   les assets de l'Asset Store en clair. `source/verifier-publication.js` (lancé par publier.sh) le vérifie sur tous les fichiers publiés.
 
@@ -116,6 +117,33 @@ du site public : à relancer si members.sql, room-look.sql, progress.sql, accoun
 - Un jeu peut demander un morceau précis : api.music('iloboss') (musique de boss de Galaxy Wars), api.music() pour revenir.
 - Nouveautés d'une version : `source/nouveautes.txt` (une ligne par nouveauté) → affichées dans la cloche après la mise à jour
   automatique, avec le message « ✨ Mise à jour X installée ! ». À réécrire avant chaque publication importante.
+
+## Hors ligne (service worker + bandeau, octobre 2026)
+- **`source/sw.js` → `jouer/sw.js`** (build2.py `write_sw`, à côté de la borne publiée ; publier.sh le copie). Cache `jdw-core-<BUILD_ID>` (page de
+  ce build prise avec `?v=<build>`, icônes, manifeste) remplacé à chaque build (skipWaiting + clients.claim, anciens `jdw-core-*` supprimés) ;
+  `jdw-media` gardé d'un build à l'autre, chaque asset porte son empreinte (`x-jdw-h`, sha1 calculé par build2.py) : un fichier changé est
+  retéléchargé, un fichier disparu retiré ; `jdw-fonts` (polices Google, CSS + woff2). Dès l'installation : page, ilo.bin, jingles, une
+  musique de l'accueil, polices (~5 Mo) ; au calme, en ligne, une fois par build (swWarm, pas en économie de données) : une musique par jeu
+  + l'accueil (~7 Mo) ; le reste des musiques gardé à l'usage. Page : réseau d'abord (3,5 s ; 10 s pour `?v=` : la mise à jour automatique
+  marche comme avant), puis le cache, sinon page « Pas de connexion » + Réessayer. Assets : cache d'abord. JAMAIS en cache : Supabase
+  (/rest, /auth, realtime), site.json, telecharger/version.json, MediaPipe (le service worker ne touche à rien d'autre).
+  Enregistré par shell2.js seulement pour la borne publiée (ROOT = '../', BUILD ≠ dev) : le site de test (8765) n'en a pas.
+- **État du réseau** (shell2.js, `NETS` / `netOff()` / `netFetch`, en haut à côté de rpc) : un appel au serveur qui échoue (ou 20 s sans
+  réponse) → hors ligne ; une réponse (même un refus) ou le direct qui s'ouvre → en ligne ; navigator.onLine = false → hors ligne tout de suite.
+  Hors ligne : sonde no-cors `GET <supabase>/rest/v1/` (4 s puis jusqu'à 30 s ; tout de suite à « online », au bouton ↻ ou en touchant une
+  fonction grisée). Dans la WebView Android navigator.onLine reste souvent à « en ligne » : c'est l'échec des appels qui compte.
+- **Section « Hors ligne »** de shell2.js : bandeau `#jdw-netbar` (« Pas de connexion : tu joues hors ligne, tes scores partiront au retour du
+  réseau » ; « Connexion retrouvée ✓ » 3,5 s), pastille `#jdw-netpill` (en partie, ou « X : il faut du réseau »), `body.net-off` grise chat,
+  salle, joueurs, Compétition (page « Il faut du réseau » + Réessayer), duel en ligne (tuiles « Il faut du réseau »), regarder ; classement :
+  records de l'appareil (mondial : « Il faut du réseau ») ; carte : dernière carte connue (`jdw.progcache`) sinon « il faut du réseau ».
+  Jouables : jeux solo, duels sur le téléphone, contre l'IA, musique (morceaux gardés, sinon ceux de l'accueil). Au retour :
+  refreshEverything (flushUnsent, progFlush, rtConnect, jeton). Files : `jdw.unsent` (un seul envoi par salle/joueur/jeu, le meilleur ;
+  add_score est sans doublon côté serveur), `jdw.progq`. Pas d'erreur remontée ni d'écran « Oups » pour une coupure réseau ; la session
+  gardée suffit (un rafraîchissement du jeton qui échoue faute de réseau ne déconnecte pas, il est refait au retour).
+- **Appli Android** : `onReceivedError` (page principale) → page « Pas de connexion » + Réessayer intégrée à l'appli (premier lancement sans
+  réseau, rien de gardé). Les service workers marchent dans la WebView sans réglage de plus (setDomStorageEnabled déjà là). Changement dans
+  MainActivity.java (même 1.7 / versionCode 8) : il ne sert qu'après reconstruction de l'APK.
+- Test : `node ~/jdv-tools/test-offline.js` (après pubtest.sh ; sert lui-même le site sur 8769 et l'arrête pour « hors ligne » ; fake-rt 8766).
 
 ## Modes de jeu (version 1.6)
 Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compétition** (une page par mode, `#jdw-lib[data-mode]`, setMode()).

@@ -78,6 +78,50 @@ try { localStorage.removeItem('jdw.code'); } catch (e) {}      // l'ancien mot d
 // dossier racine du site publié (la borne est dans jouer/ : '../') ; vide pour le site de test
 const ROOT = window.JDW_ROOT || '';
 let serverOk = false, netDown = false, roomDenied = false, remoteLoaded = false;
+/* ---- Hors ligne : l'état RÉEL du réseau (section « Hors ligne » plus bas pour le bandeau et les fonctions grisées) ----
+   navigator.onLine ne suffit pas (« en ligne » derrière un Wi-Fi sans internet, ou l'inverse dans certaines WebView) : un appel au
+   serveur qui échoue → hors ligne ; une réponse du serveur (même un refus) → en ligne. Hors ligne, une petite sonde (no-cors, sans
+   données) regarde si le serveur répond à nouveau (4 s, puis de plus en plus espacé, et tout de suite à l'événement « online »). */
+const NETS = { off: ONLINE && navigator.onLine === false, t: 0, probing: false, wait: 4000 };
+const netOff = () => ONLINE && NETS.off;
+function netFail() {
+  if (!ONLINE) return;
+  netDown = true;
+  if (NETS.off) { if (!NETS.t && !NETS.probing) netProbeSoon(); return; }
+  NETS.off = true; NETS.wait = 4000; netProbeSoon();
+  setTimeout(() => { try { netChanged(false); } catch (e) {} }, 0);
+}
+function netOk() {
+  netDown = false;
+  if (!NETS.off) return;
+  NETS.off = false; clearTimeout(NETS.t); NETS.t = 0;
+  setTimeout(() => { try { netChanged(true); } catch (e) {} }, 0);
+}
+function netProbeSoon(ms) { clearTimeout(NETS.t); NETS.t = setTimeout(() => { NETS.t = 0; netProbe(); }, ms != null ? ms : NETS.wait); }
+async function netProbe() {
+  if (!ONLINE || !NETS.off || NETS.probing) return;
+  NETS.probing = true;
+  let ok = false;
+  if (navigator.onLine !== false) {
+    const ac = window.AbortController ? new AbortController() : null, to = setTimeout(() => { if (ac) ac.abort(); }, 8000);
+    try { await fetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/', { mode: 'no-cors', cache: 'no-store', signal: ac ? ac.signal : undefined }); ok = true; } catch (e) {}
+    clearTimeout(to);
+  }
+  NETS.probing = false;
+  if (ok) netOk();
+  else { NETS.wait = Math.min(30000, Math.round(NETS.wait * 1.6)); netProbeSoon(); }
+}
+addEventListener('offline', netFail);
+addEventListener('online', () => { if (NETS.off) netProbeSoon(250); });
+if (NETS.off) { netDown = true; netProbeSoon(); }
+// appel au serveur avec délai maximal (réseau qui ne répond plus du tout) ; échec = hors ligne ; réponse = en ligne
+async function netFetch(url, init, ms) {
+  if (ONLINE && navigator.onLine === false) { netFail(); throw Object.assign(new Error('pas de réseau'), { offline: true }); }
+  const ac = window.AbortController ? new AbortController() : null, to = ac ? setTimeout(() => ac.abort(), ms || 20000) : 0;
+  try { const r = await fetch(url, Object.assign({}, init, ac ? { signal: ac.signal } : {})); netOk(); return r; }
+  catch (e) { netFail(); throw Object.assign(new Error('pas de réseau'), { offline: true }); }
+  finally { clearTimeout(to); }
+}
 let room = store.get('jdw.room', null);
 let roomCodes = store.get('jdw.roomcodes', {}) || {};
 const RP = () => ({ p_room: room ? room.id : null, p_room_code: room ? (roomCodes[room.id] || '') : '' });
@@ -116,9 +160,8 @@ async function rpc(fn, args, opts) {
   }
   if (tok) h.Authorization = 'Bearer ' + tok;
   let r;
-  try { r = await fetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args) }); }
-  catch (e) { const er = new Error(fn + ' : pas de réseau'); er.offline = true; netDown = true; throw er; }
-  netDown = false;
+  try { r = await netFetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args) }); }
+  catch (e) { const er = new Error(fn + ' : pas de réseau'); er.offline = true; throw er; }   // netFetch : hors ligne noté (bandeau, sonde)
   if (!r.ok) {
     const t = await r.text().catch(() => '');
     // jeton refusé (expiré, révoqué) : on le rafraîchit une fois ; sinon on repasse par la clé publique
@@ -363,6 +406,8 @@ function appVersion() { const m = navigator.userAgent.match(/BorneArcade\/(\d+)/
 function reportError(message, detail, opts) {
   message = String(message || 'Erreur inconnue').slice(0, 500);
   if (/ResizeObserver loop|^Script error\.?$/.test(message)) return;          // bruit sans conséquence
+  // réseau coupé : ce n'est pas un bug de la borne (ni journal, ni écran « Oups »)
+  if ((netOff() || navigator.onLine === false) && /fetch|network|réseau|load failed|connexion|offline|timeout|abort/i.test(message + ' ' + (detail || '').slice(0, 300))) return;
   let game = 'démarrage';
   try { game = current ? current.game.id : where; } catch (e) {}   // erreur pendant le chargement de la page
   const key = game + '|' + message;
@@ -372,7 +417,7 @@ function reportError(message, detail, opts) {
   try { if (current && current.inst && current.inst.currentScore) sc = current.inst.currentScore(); } catch (e) {}
   const d = String(detail || '').slice(0, 3500) + (sc !== null ? '\nscore en cours : ' + sc : '') + '\nécran : ' + innerWidth + 'x' + innerHeight;
   errLog.unshift({ at: Date.now(), game, message, detail: d }); errLog = errLog.slice(0, 20); store.set('jdw.errors', errLog);
-  if (ONLINE && CFG) rpc('log_error', { p_code: CODE(), p_name: profile.name || '', p_room: room ? room.id : null, p_game: game, p_message: message,
+  if (ONLINE && CFG && !netOff()) rpc('log_error', { p_code: CODE(), p_name: profile.name || '', p_room: room ? room.id : null, p_game: game, p_message: message,
     p_detail: d, p_ua: navigator.userAgent.slice(0, 300), p_version: appVersion() }).catch(() => {});
   try { if (!(opts && opts.quiet) && current && !current.over && !$('jdw-play').hidden) offerRescue(); } catch (e) {}
 }
@@ -434,6 +479,16 @@ async function decryptBin(u8) {
   })();
   try { return await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u8.slice(16, 28) }, await binKeys[k], u8.slice(28)); }
   catch (e) { delete binKeys[k]; throw e; }
+}
+const musicPath = id => 'assets/music/' + id + (MUSIC_ENC.has(id) ? '.bin' : '.mp3');
+// morceaux disponibles sans réseau : en mémoire, ou gardés par le service worker (jouer/sw.js)
+async function musicAvail(list) {
+  const out = [];
+  for (const n of list) {
+    if (MUS.buf[n]) { out.push(n); continue; }
+    try { if (window.caches && await caches.match(new URL(ROOT + musicPath(n), location.href).href)) out.push(n); } catch (e) {}
+  }
+  return out;
 }
 async function musicBuffer(id) {
   if (MUS.buf[id]) return MUS.buf[id];
@@ -500,9 +555,15 @@ async function setMusic(id, mode) {
   if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
   if (MUS.id === id && MUS.mode === mode && MUS.cur) return;
   MUS.mode = mode;
-  const seq = ++MUS.seq, list = musicVariants(id, mode), idx = Math.floor(shellRand() * list.length);
-  let b; try { b = await musicBuffer(list[idx]); } catch (e) { return; }
-  if (seq !== MUS.seq || MUS.want !== id || !MUS.on) return;
+  const seq = ++MUS.seq;
+  let list = musicVariants(id, mode);
+  // hors ligne : seulement les morceaux gardés sur l'appareil (sinon ceux de l'accueil)
+  if (netOff()) { let a = await musicAvail(list); if (!a.length && id !== 'accueil') a = await musicAvail(musicVariants('accueil')); if (a.length) list = a; }
+  if (seq !== MUS.seq) return;
+  // un morceau qui ne vient pas (réseau coupé) : on essaie les autres variantes
+  let idx = Math.floor(shellRand() * list.length), b = null;
+  for (let k = 0; k < list.length && !b; k++) { const j = (idx + k) % list.length; try { b = await musicBuffer(list[j]); idx = j; } catch (e) {} if (seq !== MUS.seq) return; }
+  if (!b || seq !== MUS.seq || MUS.want !== id || !MUS.on) return;
   musicOut(0.9);
   musicLoop(id, b, Audio.ctx.currentTime + 0.05, 0.9, seq, list, idx);
 }
@@ -615,22 +676,32 @@ async function saveScore(game, score, forName) {
 }
 // scores pas encore partis (réseau coupé) : renvoyés dès que le serveur répond
 let unsent = store.get('jdw.unsent', []); if (!Array.isArray(unsent)) unsent = [];
+// Un seul envoi en attente par (salle, joueur, jeu) : le meilleur (le serveur ne garde que le meilleur score, add_score est sans doublon).
 function queueScore(game, name, score) {
   if (!room) return;
-  unsent.push({ room: room.id, code: roomCodes[room.id] || '', game, name, score });
+  const same = unsent.find(u => u.room === room.id && u.name === name && u.game === game);
+  if (same) { same.score = Math.max(+same.score || 0, score); same.code = roomCodes[room.id] || same.code || ''; }
+  else unsent.push({ room: room.id, code: roomCodes[room.id] || '', game, name, score });
   unsent = unsent.slice(-30); store.set('jdw.unsent', unsent);
 }
 let flushing = false;
 async function flushUnsent() {
-  if (flushing || !ONLINE || !unsent.length) return;
+  if (flushing || !ONLINE || !unsent.length || netOff()) return;
   flushing = true;
-  const left = [], before = unsent.length;
-  for (const u of unsent) {
-    try { await rpc('add_score', { p_code: CODE(), p_room: u.room, p_room_code: u.code, p_game: u.game, p_name: u.name, p_score: u.score }); }
-    catch (e) { if (e.acct || !/ 4\d\d /.test(String(e.message))) left.push(u); }   // refus définitif (4xx) : on abandonne ; « compte requis » : gardé jusqu'à la connexion
-  }
-  unsent = left; store.set('jdw.unsent', unsent); flushing = false;
-  if (left.length < before) loadScores();
+  let sent = 0;
+  try {
+    for (const u of unsent.slice()) {
+      let drop = false; const sc = u.score;
+      try { await rpc('add_score', { p_code: CODE(), p_room: u.room, p_room_code: u.code, p_game: u.game, p_name: u.name, p_score: sc }); drop = u.score === sc; sent++; }   // battu pendant l'envoi : le nouveau part au tour suivant
+      catch (e) {
+        if (e.offline) break;                                                    // réseau coupé en route : la suite attend le retour
+        if (!e.acct && !e.guest && / 4\d\d /.test(String(e.message))) drop = true;   // refus définitif (4xx) : on abandonne ; « compte requis » : gardé jusqu'à la connexion
+      }
+      // retiré par identité : un score ajouté pendant l'envoi reste dans la file
+      if (drop) { unsent = unsent.filter(x => x !== u); store.set('jdw.unsent', unsent); }
+    }
+  } finally { flushing = false; }
+  if (sent) { poke('scores'); loadScores(); }
 }
 
 /* ================= Notifications « X a battu ton record » ================= */
@@ -933,6 +1004,7 @@ function renderBand() {
 }
 function openChat() {
   if (!room) return;
+  if (netOff()) { netNeed('Le chat'); return; }
   chat.open = true; lastFocus = document.activeElement;
   $('jdw-chat-room').textContent = room.name;
   $('jdw-chat').hidden = false; document.body.classList.add('chat-open'); fitChat();
@@ -1198,7 +1270,7 @@ function presChanged() {
   cmpOnPresence();
 }
 async function rtConnect() {
-  if (!ONLINE || !window.WebSocket || (RT.ws && RT.ws.readyState <= 1) || RT.opening || isGuest()) return;
+  if (!ONLINE || !window.WebSocket || (RT.ws && RT.ws.readyState <= 1) || RT.opening || isGuest() || netOff()) return;
   RT.opening = true;
   try { await rtAuth(); } finally { RT.opening = false; }
   if (!RT.tok || isGuest() || (RT.ws && RT.ws.readyState <= 1)) return;
@@ -1207,7 +1279,7 @@ async function rtConnect() {
   catch (e) { return; }
   RT.ws = ws;
   ws.onopen = () => {
-    RT.retry = 0; RT.ok = true;
+    RT.retry = 0; RT.ok = true; netOk();
     for (const t of RT.topics) rtJoin(t);
     clearInterval(RT.hb); RT.hb = setInterval(() => rtSend('phoenix', 'heartbeat', {}), 25000);
     refreshEverything(true);                     // on a peut-être raté des choses pendant la coupure
@@ -1226,7 +1298,7 @@ async function rtConnect() {
   ws.onclose = () => {
     RT.ok = false; presReset(); clearInterval(RT.hb); if (RT.ws === ws) RT.ws = null;
     const d = Math.min(30000, 1000 * Math.pow(2, RT.retry++));
-    setTimeout(() => { if (!document.hidden && !isGuest()) rtConnect(); }, d);
+    setTimeout(() => { if (!document.hidden && !isGuest() && !netOff()) rtConnect(); }, d);
   };
   ws.onerror = () => { try { ws.close(); } catch (e) {} };
 }
@@ -1484,7 +1556,7 @@ async function maybeAskJoin() {
   if (await askJoin(name)) { if (profile.pid === pid) await joinHere(); }
   else if (profile.pid === pid) toastCheer(name + ' joue sur cet appareil, sans être dans « ' + room.name + ' ».', name, true);
 }
-$('jdw-online').addEventListener('click', () => { if (isGuest()) guestAsk('Les salles'); else openMembers(); });
+$('jdw-online').addEventListener('click', () => { if (isGuest()) guestAsk('Les salles'); else if (netOff()) netNeed('Les joueurs de la salle'); else openMembers(); });
 setInterval(() => { if (!$('jdw-members').hidden) { renderMembers(); refreshPresence(); } }, 15000);   // « vu il y a… » et en ligne, à jour tout seuls
 $('jdw-members-close').addEventListener('click', () => closeSheet('jdw-members'));
 $('jdw-members').addEventListener('click', e => { if (e.target === $('jdw-members')) closeSheet('jdw-members'); });
@@ -1588,7 +1660,7 @@ function refreshOnline() {
   // court sur téléphone : « 1 » + icône ; « 1 en ligne » quand il y a la place
   const ot = $('jdw-online-txt'); ot.textContent = '';
   if (live) { const nb = document.createElement('b'); nb.textContent = String(total); const w = document.createElement('span'); w.className = 'ol-word'; w.textContent = ' en ligne'; ot.append(nb, w); }
-  else ot.textContent = ONLINE ? 'Connexion…' : 'Mode local';
+  else ot.textContent = !ONLINE ? 'Mode local' : netOff() ? 'Hors ligne' : 'Connexion…';
   $('jdw-online').setAttribute('aria-label', live ? (total <= 1 ? (total === 1 ? '1 joueur en ligne' : 'Personne en ligne') : total + ' joueurs en ligne') + ' : voir les joueurs' : 'Voir les joueurs de la salle');
   for (const t of tiles) {
     const n = counts[t.g.id] || 0, span = t.on.querySelector('span'), ps = live ? tilePlayers(t.g.id) : [];
@@ -1618,7 +1690,7 @@ function refreshAll() {
   $('jdw-note').textContent = !ONLINE ? 'Mode local : le classement est gardé sur cet appareil.'
     : isGuest() ? 'En invité, les scores ne sont pas enregistrés : crée ton compte pour entrer au classement.'
     : roomDenied ? 'Le code de ta salle manque sur cet appareil : touche « Changer » pour le retaper.'
-    : netDown ? 'Pas de connexion pour le moment : tes scores partiront dès que le réseau revient.'
+    : netOff() || netDown ? 'Pas de connexion : records gardés sur cet appareil ; tes scores partiront dès que le réseau revient.'
     : 'Classement de la salle et classement mondial, mis à jour en direct.';
   if (!$('jdw-board').hidden) renderBoardTab();
 }
@@ -1785,10 +1857,12 @@ function renderBoardTab() {
   const ol = $('jdw-board-list'); ol.textContent = '';
   const me = cleanName(profile.name), W = boardScope === 'world';
   for (const b of document.querySelectorAll('#jdw-scope button')) b.setAttribute('aria-pressed', String(b.dataset.scope === boardScope));
-  $('jdw-board-h').textContent = W ? 'Classement mondial' : 'Classement · ' + (room ? room.name : 'cet appareil');
-  if (W && !worldLoaded) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = worldErr ? "Le classement mondial arrive bientôt (mise à jour du serveur en cours)." : 'Chargement du classement mondial…'; ol.appendChild(li); return; }
+  const offDev = !W && netOff() && !remoteLoaded;           // hors ligne : records gardés sur cet appareil
+  $('jdw-board-h').textContent = W ? 'Classement mondial' : offDev ? 'Classement · cet appareil' : 'Classement · ' + (room ? room.name : 'cet appareil');
+  $('jdw-board').classList.toggle('net-off', netOff());
+  if (W && !worldLoaded) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = netOff() ? '📡 Il faut du réseau pour le classement mondial. Tes records sont gardés sur cet appareil : touche « Ma salle ».' : worldErr ? "Le classement mondial arrive bientôt (mise à jour du serveur en cours)." : 'Chargement du classement mondial…'; ol.appendChild(li); return; }
   if (boardTab === 'general') {
-    $('jdw-board-hint').textContent = (W ? 'Toutes les salles réunies. ' : '') + 'Le nombre de jeux où chacun est premier, puis deuxième, puis troisième.';
+    $('jdw-board-hint').textContent = (offDev ? 'Hors ligne : records gardés sur cet appareil. ' : netOff() && !W ? 'Hors ligne : dernier classement connu. ' : W ? 'Toutes les salles réunies. ' : '') + 'Le nombre de jeux où chacun est premier, puis deuxième, puis troisième.';
     const rows = generalRanking();
     if (!rows.length) return emptyRow(ol);
     for (const r of rows) {
@@ -1798,7 +1872,7 @@ function renderBoardTab() {
     }
   } else {
     const g = gameById(boardTab);
-    $('jdw-board-hint').textContent = g ? (W ? 'Top 10 mondial · ' : 'Top 10 de la salle · ') + g.tagline : '';
+    $('jdw-board-hint').textContent = g ? (offDev ? 'Hors ligne · records de cet appareil · ' : netOff() && !W ? 'Hors ligne · dernier classement connu · ' : W ? 'Top 10 mondial · ' : 'Top 10 de la salle · ') + g.tagline : '';
     const rows = top(boardTab, boardScope);
     if (!rows.length) return emptyRow(ol);
     for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me, W)); }
@@ -2496,7 +2570,7 @@ async function authReq(path, body, token, method) {
   const h = { 'Content-Type': 'application/json', apikey: CFG.key };
   if (token) h.Authorization = 'Bearer ' + token; else if (!/^sb_/.test(CFG.key)) h.Authorization = 'Bearer ' + CFG.key;
   let r;
-  try { r = await fetch(CFG.url.replace(/\/+$/, '') + '/auth/v1/' + path, { method: method || 'POST', headers: h, body: body ? JSON.stringify(body) : undefined }); }
+  try { r = await netFetch(CFG.url.replace(/\/+$/, '') + '/auth/v1/' + path, { method: method || 'POST', headers: h, body: body ? JSON.stringify(body) : undefined }); }
   catch (e) { const er = new Error('pas de réseau'); er.offline = true; throw er; }
   const txt = await r.text().catch(() => '');
   let j = {}; try { j = txt ? JSON.parse(txt) : {}; } catch (e) {}
@@ -3605,6 +3679,7 @@ function renderRooms() {
 function openRooms() {
   if (!ONLINE) return;
   if (isGuest()) { guestAsk('Les salles'); return; }
+  if (netOff()) { netNeed('Les salles'); return; }
   if (!profile.name) { startWelcome(); return; }
   roomsStatus('Chargement des salles…'); $('jdw-joinbox').hidden = true; pendingRoom = null;
   showRoomsTab('mine');
@@ -3854,7 +3929,7 @@ function buildDuoLibrary() {
     b.querySelector('.tile-name').textContent = d.title;
     b.querySelector('.duo-emoji').textContent = d.emoji || '⚔️';
     b.addEventListener('click', () => {
-      if (DUEL_WHERE === 'online') { if (guestBlocks()) { guestAsk('Duel en ligne'); return; } if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } netCreate(d); return; }
+      if (DUEL_WHERE === 'online') { if (guestBlocks()) { guestAsk('Duel en ligne'); return; } if (netOff()) { netNeed('Le duel en ligne'); return; } if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } netCreate(d); return; }
       if (aiBlocks(d)) { ensureAiPlayer(); toastCheer('Je ne sais pas encore jouer à ce jeu !', AI_NAME, true); return; }
       openDuo(d);
     });
@@ -3875,8 +3950,8 @@ const guestBlocks = () => DUEL_WHERE === 'online' && isGuest();      // duel en 
 const netBlocks = d => DUEL_WHERE === 'online' && !d.net;
 function refreshDuoTiles() {
   for (const t of duoTiles) {
-    const w = pairWins(t.g.id), noNet = netBlocks(t.g), gb = guestBlocks(), off = noNet || gb || aiBlocks(t.g);
-    t.tag.textContent = noNet ? 'Bientôt en ligne' : gb ? 'En ligne avec un compte' : off ? 'Bientôt contre l\'IA' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
+    const w = pairWins(t.g.id), noNet = netBlocks(t.g), gb = guestBlocks(), nr = DUEL_WHERE === 'online' && netOff(), off = noNet || gb || nr || aiBlocks(t.g);
+    t.tag.textContent = noNet ? 'Bientôt en ligne' : gb ? 'En ligne avec un compte' : nr ? 'Il faut du réseau' : off ? 'Bientôt contre l\'IA' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
     t.tag.classList.toggle('tally', !off && !!(w[0] + w[1]) && !sameSeats());
     t.el.classList.toggle('no-ai', off); t.el.setAttribute('aria-disabled', String(off));
   }
@@ -4391,10 +4466,13 @@ function cmpRowStatus(m) {
 }
 function renderCompet() {
   if (MODE !== 'compet') return;
-  const v = cmpSync(), noRoom = !ONLINE || !room, gst = isGuest();
+  const off = netOff() && !CMP.id && !isGuest(), v = off ? null : cmpSync(), noRoom = !ONLINE || !room || off, gst = isGuest();
   $('jdw-cmp-none').hidden = !noRoom;
-  $('jdw-cmp-none').querySelector('p').textContent = gst ? 'La compétition se joue en direct avec les copains de ta salle : crée ton compte pour y participer.' : 'La compétition se joue en direct avec les copains de ta salle.';
-  $('jdw-cmp-room').textContent = gst ? 'Créer mon compte' : 'Choisir une salle';
+  $('jdw-cmp-none').classList.toggle('net-need', off);
+  $('jdw-cmp-none').querySelector('p').textContent = gst ? 'La compétition se joue en direct avec les copains de ta salle : crée ton compte pour y participer.'
+    : off ? 'Il faut du réseau : la compétition se joue en direct avec les copains de ta salle. En attendant, les jeux solo et les duels sur ce téléphone marchent hors ligne.'
+    : 'La compétition se joue en direct avec les copains de ta salle.';
+  $('jdw-cmp-room').textContent = gst ? 'Créer mon compte' : off ? '↻ Réessayer' : 'Choisir une salle';
   const ph = v ? cmpPhase() : 'lobby', ended = !!v && CMP.id !== v.id && cmpFinished(v);
   $('jdw-cmp-idle').hidden = noRoom || (!!v && !ended);
   $('jdw-cmp-card').hidden = noRoom || !v;
@@ -4492,7 +4570,7 @@ function renderCmpGames() {
   } else cmpTiles.forEach(t => { t.visible = true; });
 }
 const cmpTiles = [];   // vignettes animées des jeux à lancer en compétition
-$('jdw-cmp-room').addEventListener('click', () => { if (isGuest()) guestAsk('Compétition'); else openRooms(); });
+$('jdw-cmp-room').addEventListener('click', () => { if (isGuest()) guestAsk('Compétition'); else if (netOff()) { netProbeSoon(0); netNeed('La compétition'); } else openRooms(); });
 // ---------- pendant la partie : la colonne des concurrents ----------
 function renderCmpSide() {
   const side = $('jdw-cmp-side'); if (side.hidden) return;
@@ -4663,6 +4741,7 @@ function rtcOnSignal(p) {
 // ---------- côté spectateur ----------
 function watchStart(name, game) {
   if (isGuest()) return;
+  if (netOff()) { netNeed('Regarder un copain'); return; }
   const cid = presCid(name, game); if (!cid || !window.RTCPeerConnection) { toastCheer('Impossible de regarder ' + name + ' pour le moment.', name, true); return; }
   watchStop(true);
   Audio.ensure();
@@ -4830,6 +4909,7 @@ function netEnd(notify, msg) {
 // ---------- l'hôte : lancer le défi, inviter ----------
 function netCreate(d) {
   if (isGuest()) { guestAsk('Duel en ligne'); return; }
+  if (netOff()) { netNeed('Le duel en ligne'); return; }
   loadTurn();
   if (!profile.name) { startWelcome(); return; }
   if (!ONLINE || !window.RTCPeerConnection) { toastCheer('Le duel en ligne demande une connexion internet.', profile.name, true); return; }
@@ -5345,7 +5425,7 @@ async function commitScore(name) {
   const res = await saveScore(p.game, p.score, name);
   if (!live()) return;
   st.textContent = (prev ? 'Nouveau record pour ' + name + ' ! ' : 'Premier score de ' + name + ' ici ! ') +
-    (res === 'shared' ? 'Enregistré en ligne dans le classement de la salle.' : (ONLINE ? "Pas de connexion : gardé sur cet appareil, réessaie plus tard." : 'Enregistré sur cet appareil.'));
+    (res === 'shared' ? 'Enregistré en ligne dans le classement de la salle.' : (ONLINE ? "Pas de connexion : gardé sur cet appareil, il partira au retour du réseau." : 'Enregistré sur cet appareil.'));
   if (res === 'shared') loadChat();
   renderEndBoard(g, cleanName(profile.name));
 }
@@ -5583,6 +5663,7 @@ const MAP_DEFS = {
 /* ---------- progression : appareil + serveur ---------- */
 const PROG = { room: null, rows: [], at: 0, missing: false, loading: null, mine: {}, busy: false };
 let progQ = store.get('jdw.progq', []); if (!Array.isArray(progQ)) progQ = [];
+{ const pc = store.get('jdw.progcache', null); if (pc && room && pc.room === room.id && Array.isArray(pc.rows)) { PROG.room = pc.room; PROG.rows = pc.rows; } }   // dernière carte connue (PROG.at = 0 : rechargée dès que possible)
 const lvKey = (name, gid) => (cleanName(name) || '?') + '|' + gid;
 function lvBest(name, gid) { const all = store.get('jdw.bestlv', {}) || {}; return +all[lvKey(name, gid)] || 0; }
 function lvSetBest(name, gid, lv) { const all = store.get('jdw.bestlv', {}) || {}; const k = lvKey(name, gid); if (lv > (+all[k] || 0)) { all[k] = lv; store.set('jdw.bestlv', all); } }
@@ -5607,7 +5688,7 @@ function progPush(name, gid, lv) {
   progFlush();
 }
 async function progFlush() {
-  if (PROG.busy || PROG.missing || !ONLINE || !progQ.length) return;
+  if (PROG.busy || PROG.missing || !ONLINE || !progQ.length || netOff()) return;
   PROG.busy = true;
   let sent = false;
   try {
@@ -5615,9 +5696,10 @@ async function progFlush() {
       const it = progQ[0];
       if (knownNotMember(it.name) && room && room.id === it.room) { progQ.shift(); continue; }   // pas membre : rien à garder
       try {
-        await rpc('save_progress', { p_code: CODE(), p_room: it.room, p_room_code: it.code || roomCodes[it.room] || '', p_name: it.name, p_game: it.game, p_level: it.level }, { quiet404: true });
+        const lv = it.level;
+        await rpc('save_progress', { p_code: CODE(), p_room: it.room, p_room_code: it.code || roomCodes[it.room] || '', p_name: it.name, p_game: it.game, p_level: lv }, { quiet404: true });
         sent = true;
-        const cur = progQ[0]; if (cur === it) progQ.shift();
+        const cur = progQ[0]; if (cur === it && it.level === lv) progQ.shift();   // niveau monté pendant l'envoi : il repart au tour suivant
       } catch (e) {
         if (e.status === 404) { PROG.missing = true; break; }
         if (e.denied || e.status === 400) { progQ.shift(); continue; }   // refus (code de salle, valeur) : on n'insiste pas
@@ -5638,6 +5720,7 @@ async function progLoad() {
       if (!room || room.id !== rid) return;
       PROG.room = rid; PROG.at = Date.now();
       PROG.rows = rows.map(r => ({ name: cleanName(r.r_name), game: String(r.r_game || ''), level: Math.floor(+r.r_level || 0) })).filter(r => r.name && r.level > 0);
+      store.set('jdw.progcache', { room: rid, rows: PROG.rows.slice(0, 400), at: Date.now() });
       progBoot();
     } catch (e) { if (e.status === 404) PROG.missing = true; }
   })();
@@ -5680,12 +5763,14 @@ function mapEl(tag, cls, parent) { const e = document.createElement(tag); if (cl
 function openMap(gid, opener) {
   const def = MAP_DEFS[gid], g = gameById(gid); if (!def || !g) return;
   if (isGuest()) { guestAsk('Les salles'); return; }
+  const mapOld = netOff() && !!room;                     // hors ligne : la dernière carte connue (gardée sur l'appareil), sinon rien à montrer
+  if (mapOld && PROG.room !== room.id) { netNeed('La carte d’avancement'); return; }
   clearTimeout(MAP.closing); MAP.closing = 0;
   MAP.open = true; MAP.gid = gid; MAP.def = def; MAP.opener = opener || null; MAP.heads = new Map(); MAP.auto = true;
   const box = $('jdw-map');
   box.dataset.theme = def.theme; box.style.setProperty('--acc', g.accent);
   $('jdw-map-title').textContent = g.title;
-  $('jdw-map-kicker').textContent = room && ONLINE ? 'Carte d’avancement · ' + room.name : 'Carte d’avancement';
+  $('jdw-map-kicker').textContent = mapOld ? 'Hors ligne · dernière carte connue' : room && ONLINE ? 'Carte d’avancement · ' + room.name : 'Carte d’avancement';
   $('jdw-map-play').setAttribute('aria-label', 'Jouer à ' + g.title);
   // ouverture : la carte se déplie depuis le bouton de la tuile
   const r = opener && opener.getBoundingClientRect ? opener.getBoundingClientRect() : null;
@@ -5696,7 +5781,7 @@ function openMap(gid, opener) {
   setTimeout(() => box.classList.remove('opening'), 1600);
   setTimeout(() => $('jdw-map-close').focus({ preventScroll: true }), 60);
   Audio.ensure(); Audio.tone(392, 0.09, 'triangle', 0.035, 523); setTimeout(() => Audio.tone(659, 0.16, 'triangle', 0.03), 90);
-  if (ONLINE && room) {
+  if (ONLINE && room && !mapOld) {
     const fresh = PROG.room === room.id && Date.now() - PROG.at < 8000;
     if (!fresh) progLoad().then(() => { if (MAP.open && MAP.gid === gid) { mapUpdate(); if (MAP.auto) mapCenter(true); } });
     if (membersFor !== room.id) loadPlayers();
@@ -6490,6 +6575,88 @@ $('jdw-guestask').addEventListener('click', e => { if (e.target === $('jdw-guest
 $('jdw-end-guest-new').addEventListener('click', () => { backToLibrary(); guestCreate(); });
 $('jdw-end-guest-login').addEventListener('click', () => { backToLibrary(); guestLogin(); });
 
+/* ================= Hors ligne : bandeau, pastille, fonctions grisées, service worker ================= */
+// État : NETS / netOff() / netFail() / netOk() (en haut, à côté de rpc). Sans réseau : jeux solo, duels sur le téléphone, contre l'IA et
+// musique (gardée par jouer/sw.js) ; salles, chat, duel en ligne, compétition, regarder, classement en ligne : « Il faut du réseau ».
+// Les scores et records de niveau attendent (jdw.unsent, jdw.progq) et partent au retour (refreshEverything → flushUnsent, progFlush).
+let netBarT = 0;
+function netBar(back) {
+  const bar = $('jdw-netbar'); if (!bar) return;
+  clearTimeout(netBarT); bar.classList.remove('leaving');
+  if (netOff()) {
+    bar.dataset.state = 'off'; $('jdw-netbar-t').textContent = 'Pas de connexion';
+    $('jdw-netbar-s').textContent = isGuest() ? 'Tu joues hors ligne : jeux solo, duels sur ce téléphone, contre l’IA et musique.' : 'Tu joues hors ligne, tes scores partiront au retour du réseau.';
+    bar.hidden = false; return;
+  }
+  if (back && !bar.hidden) {
+    bar.dataset.state = 'ok'; $('jdw-netbar-t').textContent = 'Connexion retrouvée ✓';
+    $('jdw-netbar-s').textContent = unsent.length || progQ.length ? 'Tes scores partent en ligne.' : 'Salles, chat et classements sont de retour.';
+    netBarT = setTimeout(() => { bar.classList.add('leaving'); netBarT = setTimeout(() => { bar.hidden = true; bar.classList.remove('leaving'); }, 400); }, 3500);
+    return;
+  }
+  bar.hidden = true;
+}
+let netPillT = 0;
+function netPill(text, kind) {
+  let el = $('jdw-netpill');
+  if (!el) { el = document.createElement('div'); el.id = 'jdw-netpill'; el.className = 'net-pill'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
+  el.textContent = text; el.dataset.kind = kind || 'off';
+  clearTimeout(netPillT); requestAnimationFrame(() => el.classList.add('on'));
+  netPillT = setTimeout(() => el.classList.remove('on'), kind === 'need' ? 2600 : 3400);
+}
+// une fonction qui demande le réseau, touchée hors ligne
+function netNeed(what) {
+  netPill('📡 ' + what + ' : il faut du réseau', 'need');
+  const bar = $('jdw-netbar'); if (bar && !bar.hidden) { bar.classList.remove('pulse'); void bar.offsetWidth; bar.classList.add('pulse'); }
+  if (navigator.vibrate) try { navigator.vibrate(12); } catch (e) {}
+  netProbeSoon(0);                                   // et on regarde tout de suite si le réseau est revenu
+}
+const onLibrary = () => !$('jdw-lib').hidden && $('jdw-play').hidden && $('jdw-duo').hidden;
+function netChanged(back) {
+  if (!ONLINE) return;
+  document.body.classList.toggle('net-off', netOff());
+  netBar(back);
+  try { refreshAll(); refreshChatBtn(); } catch (e) {}
+  try { if (MODE === 'compet') renderCompet(); if (duoTiles.length) refreshDuoTiles(); } catch (e) {}
+  if (!back) {
+    rtClose();                                         // le direct reviendra avec le réseau (refreshEverything → rtConnect)
+    try { if (chat.open) closeChat(); for (const id of ['jdw-rooms', 'jdw-members']) if ($(id) && !$(id).hidden) closeSheet(id); } catch (e) {}
+    if (!onLibrary()) netPill('📡 Pas de connexion : la partie continue', 'off');   // court : le jeu reste lisible (le score attendra, voir fin de partie)
+  } else {
+    if (!onLibrary()) netPill('Connexion retrouvée ✓', 'ok');
+    lastRefresh = 0; refreshEverything(true); loadPlayers(); acctTick();
+    if (!$('jdw-board').hidden) loadWorld();
+    setTimeout(swWarm, 10000);
+  }
+}
+$('jdw-netbar-retry').addEventListener('click', () => {
+  const b = $('jdw-netbar-retry'); b.classList.add('spin'); setTimeout(() => b.classList.remove('spin'), 1600);
+  NETS.wait = 4000; netProbeSoon(0);
+});
+// le toucher d'un bouton grisé (chat, salle, joueurs) : le message plutôt que rien
+for (const id of ['jdw-chat-btn', 'jdw-roombar', 'jdw-invite']) {
+  const el = $(id); if (!el) continue;
+  el.addEventListener('click', e => { if (!netOff()) return; e.stopImmediatePropagation(); e.preventDefault(); netNeed(id === 'jdw-chat-btn' ? 'Le chat' : 'Les salles'); }, true);
+}
+for (const b of document.querySelectorAll('#jdw-modes [data-mode=compet]')) b.addEventListener('click', () => { if (netOff() && !isGuest()) netNeed('La compétition'); });
+// Service worker (jouer/sw.js) : la borne s'ouvre sans réseau (page, images, jingles, polices, musiques gardées à l'usage).
+// Seulement pour la borne publiée (jouer/, SITE_ROOT=../) ; jamais pour les appels du serveur (Supabase).
+const SW_OK = 'serviceWorker' in navigator && !!ROOT && BUILD !== 'dev' && /^https?:$/.test(location.protocol);
+if (SW_OK) setTimeout(() => { navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' }).catch(() => {}); }, 1500);
+// au calme et en ligne : une musique par jeu gardée sur l'appareil (pour jouer en musique sans réseau), une fois par version
+function swWarm() {
+  if (!SW_OK || netOff() || document.hidden) return;
+  const ctl = navigator.serviceWorker.controller, c = navigator.connection;
+  if (!ctl || (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')))) return;
+  let done = ''; try { done = localStorage.getItem('jdw.swwarm') || ''; } catch (e) {}
+  if (done === BUILD) return;
+  const M = window.JDW_MUSIC || {}, list = [];
+  for (const id of ['accueil', ...GAMES.map(g => g.id)]) if (M[id]) for (const v of (id === 'accueil' ? musicVariants('accueil') : musicVariants(id, 'calm').slice(0, 1))) list.push(musicPath(v));
+  if (MUSIC_ENC.has('dscores-1')) list.push(musicPath('dscores-1'));
+  try { ctl.postMessage({ t: 'warm', list }); localStorage.setItem('jdw.swwarm', BUILD); } catch (e) {}
+}
+if (SW_OK) setTimeout(swWarm, 25000);
+
 /* ================= Démarrage ================= */
 ['jdw-guestask', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
@@ -6501,7 +6668,8 @@ requestAnimationFrame(previewLoop);
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }
 for (const a of document.querySelectorAll('[data-root-href]')) a.setAttribute('href', ROOT + a.dataset.rootHref);   // borne publiée dans jouer/
 guestSync();                    // invité : pas de salle, bandeau « Crée ton compte »
-if (ONLINE && !isGuest() && !room) openRooms();
+if (netOff()) { document.body.classList.add('net-off'); netBar(); }   // ouverte sans réseau (service worker) : bandeau tout de suite
+if (ONLINE && !isGuest() && !room && !netOff()) openRooms();
 acctBar(); acctStart();         // comptes : bannière « Protège ton compte », lien reçu par e-mail, jetons rafraîchis
 loadPlayers(); loadScores(); heartbeat(); loadChat(); setTimeout(progLoad, 1500);
 setTimeout(pushRoomLook, 2500);    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)

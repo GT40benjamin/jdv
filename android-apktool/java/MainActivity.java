@@ -27,6 +27,17 @@ public class MainActivity extends Activity {
     static final String BORNE = HOME + "jouer/";   // la borne (la racine est la page d'accueil publique)
     static final int VERSION = __VC__;
     static final String VNAME = "__VN__";   // même numéro que le site (ex. 1.5)
+    // sans réseau au tout premier lancement (rien de gardé) : jolie page plutôt que l'erreur d'Android ; Réessayer = recharger la borne
+    static final String OFFLINE_PAGE = "<!doctype html><html lang=fr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+        + "<style>html,body{margin:0;height:100%;background:#0b141c;color:#e9f0f3;font:16px/1.45 sans-serif}"
+        + "main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;box-sizing:border-box}"
+        + ".orb{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#22394a,#111d27);box-shadow:0 0 0 2px #22394a,0 0 40px rgba(255,166,48,.2);font-size:42px}"
+        + "h1{font:800 26px/1.15 sans-serif;letter-spacing:.04em;margin:22px 0 8px;color:#ffd34d}p{margin:0 0 22px;color:#8aa0ae;max-width:320px}"
+        + "a{display:inline-block;font:700 17px sans-serif;color:#0b141c;background:#ffa630;border-radius:14px;padding:14px 30px;text-decoration:none;box-shadow:0 6px 0 #b86d10}"
+        + "a:active{transform:translateY(3px);box-shadow:0 3px 0 #b86d10}</style></head><body><main><div class=orb>📡</div><h1>Pas de connexion</h1>"
+        + "<p>La borne a besoin d'internet la première fois. Vérifie le Wi-Fi ou les données mobiles, puis réessaie.</p>"
+        + "<a id=r href='" + "https://gt40benjamin.github.io/jdv/jouer/" + "'>Réessayer</a></main>"
+        + "<script>addEventListener('online',function(){setTimeout(function(){location.href=document.getElementById('r').href},800)})</script></body></html>";
     static final int REQ_FILE = 42;
     static final int REQ_MIC = 43;
     PermissionRequest micReq;
@@ -104,6 +115,12 @@ public class MainActivity extends Activity {
                 if (url.startsWith(HOME) && url.indexOf("/telecharger") < 0) return false;
                 try { startActivity(new Intent("android.intent.action.VIEW", Uri.parse(url))); } catch (Throwable ignore) { }
                 return true;
+            }
+            // La borne ne vient pas (pas de réseau ET pas encore gardée par son service worker, jouer/sw.js) : page « Pas de connexion »
+            // avec un bouton Réessayer, plutôt que la page d'erreur d'Android. (Appelée seulement pour la page principale.)
+            @Override
+            public void onReceivedError(WebView v, int code, String desc, String failingUrl) {
+                try { v.loadDataWithBaseURL(null, OFFLINE_PAGE, "text/html", "utf-8", null); } catch (Throwable ignore) { }
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
