@@ -3,41 +3,74 @@
 Salle d'arcade web pour une bande de copains : 7 mini-jeux à une seule vie, salles, classements communs,
 têtes des copains (selfies détourés) dans les jeux. Site : https://gt40benjamin.github.io/jdv/ (GitHub Pages, branche main, racine).
 
-## Ce qui est publié (racine du dépôt)
-- `index.html` : page CHIFFRÉE (AES-GCM, mot de passe du site) générée par `source/encrypt.js` à partir du site complet.
-- `telecharger/` : page de téléchargement chiffrée + `borne-arcade.apk` + `version.json` (lu par l'appli pour annoncer les mises à jour).
-- `manifest.webmanifest`, `icon-*.png` : icône installable (PWA).
-- Ne jamais mettre en clair dans le dépôt (public) : le mot de passe, les photos. Le mot de passe se passe par la variable `ARCADE_CODE`.
+## Ce qui est publié (racine du dépôt) — site PUBLIC depuis la 1.7 (plus de mot de passe du site)
+- `index.html` : page d'accueil publique (copie de `source/accueil.html`), visuels dans `accueil/` (boucles WebM + WebP fabriquées
+  UNIQUEMENT à partir des preview() des jeux par `source/accueil-media.js` ; jamais de photo). Redirige vers `jouer/` dans l'appli,
+  en PWA installée, ou si l'adresse a des paramètres (?v=, ?duel=) ou un lien d'e-mail (#access_token…).
+- `jouer/index.html` : la borne (build2.py avec SITE_ROOT=../ : elle lit ../assets, ../site.json, ../telecharger/version.json).
+- `telecharger/` : page publique + `borne-arcade.apk` en fichier direct + `version.json` (lu par l'appli pour annoncer les mises à jour).
+- `assets/ilo.bin`, `assets/music/*.bin` : images et musiques de l'Asset Store, EMBALLÉES (AES-GCM) avec la clé intégrée au site
+  (`source/asset-key.txt`, pas un secret : jamais de fichier lisible directement). Les .mp3 (ElevenLabs) sont en clair.
+- `manifest.webmanifest` (start_url `jouer/`), `icon-*.png`.
+- Jamais dans le dépôt : l'ancien mot de passe (variable `ARCADE_CODE`, sert encore à `get_errors` / `erreurs.js`), les photos des copains,
+  les assets de l'Asset Store en clair. `source/verifier-publication.js` (lancé par publier.sh) le vérifie sur tous les fichiers publiés.
 
 ## Sources (`source/`)
 - `games/*.js` : un module par jeu, contrat dans `CONTRACT.md` (api.gameOver, api.audio, api.heads() → {name,img,sad}, api.player, api.celebrate).
-  empilo (blocs), glouton (labyrinthe), mouches (shooter), carreaux (casse-briques), rouleaux (façon Lemmings), canards (artillerie façon Worms).
-- `pleingaz-src.html` + `pg-hook.js` : Plein Gaz (jeu d'origine), branché dans la bibliothèque. Ses photos sont dans `photos.enc.json` (chiffrées).
+  empilo (blocs), glouton (labyrinthe), mouches (shooter), carreaux (casse-briques), rouleaux (façon Lemmings), canards (artillerie façon Worms,
+  retiré du mode Classique : build2.py ne l'inclut pas).
+- `pleingaz-src.html` + `pg-hook.js` : Plein Gaz. Ses personnages par défaut sont NEUTRES et dessinés (`pg-neutral/*.svg`, injectés par build2.py) ;
+  les membres connectés voient les têtes de la salle (api.heads) et leur propre tête en pilote. Plus de photos.enc.json (sauvegarde hors dépôt :
+  `~/jdv-tools/old-photos/`).
 - `shell2.js` / `shell2.css` / `shell2-body.html` : la bibliothèque (accueil 2 colonnes, salles, classement en onglets, profil + selfie,
   détourage MediaPipe chargé depuis jsDelivr avec repli ovale, joueurs en ligne, fin de partie « Tu as battu… », bouton Inviter, paysage).
-- `supabase.sql` : schéma Supabase (tables + fonctions RPC protégées par le mot de passe). Projet : wplictorvvtkfikpfdnl.
+- `supabase.sql` : schéma Supabase complet (se termine par `accounts.sql` puis `public.sql`). Projet : wplictorvvtkfikpfdnl.
+- `accueil.html`, `accueil-media.js`, `telecharger-plain.html`, `telecharger.js` : pages publiques.
 - `test/*.html` : harnais de test par jeu (Playwright).
 
 ## Construire et publier
-Tout se fait avec `source/publier.sh` (Linux ou Git Bash sous Windows) :
-- mot de passe : variable `ARCADE_CODE` (sous Windows elle est enregistrée dans les variables utilisateur avec `setx`, le script la lit) ;
+Tout se fait avec `source/publier.sh` (Linux ou Git Bash sous Windows), sans mot de passe :
 - clé Supabase publique : `SUPABASE_KEY` ou `~/jdv-tools/supabase-key.txt` (hors dépôt) ;
-- APK : `APK` ou `~/jdv-tools/borne-arcade.apk` (hors dépôt).
-Le script reconstruit `index.html` (site chiffré) et `telecharger/index.html` (page chiffrée qui CONTIENT l'APK en base64 :
-l'APK embarque le mot de passe, il ne doit jamais être publié en clair). Puis commit + push sur main : GitHub Pages republie en ~1 min.
-Photos de Plein Gaz : `node photos.js dec|enc` (chiffrées avec ARCADE_CODE). Si le mot de passe change : déchiffrer avec l'ancien,
-rechiffrer avec le nouveau, et changer `club.pass_hash` dans Supabase (SQL Editor).
+- APK : `APK` ou `~/jdv-tools/borne-arcade.apk` (hors dépôt ; depuis la 1.7 il ne contient plus aucun secret : publié en fichier direct).
+Le script reconstruit `index.html`, `jouer/index.html`, `telecharger/` et `site.json`, lance `verifier-publication.js`, puis commit + push
+sur main à faire à la main : GitHub Pages republie en ~1 min. `BUMP=minor ./publier.sh` pour une nouvelle version (1.6 → 1.7).
+Visuels de l'accueil : `node source/accueil-media.js` (ONLY=ilo,palet pour quelques-uns). Assets : `node pack-ilo.js` / `node pack-music.js`
+(clé d'emballage source/asset-key.txt) ; `reemballer.js` a servi une fois à passer de l'ancien mot de passe à cette clé.
+Tests du site publié sans rien publier : `bash ~/jdv-tools/pubtest.sh` + `node ~/jdv-tools/pubserve.js` (8767) + `node ~/jdv-tools/test-public.js`.
 
 ## Appli Android (`android-apktool/`)
-WebView plein écran sur le site (Java dans `java/MainActivity.java`). Construite sans SDK Android :
-`ARCADE_CODE=… ./build-apk.sh <versionCode> <versionName> sortie.apk` (javac + stubs, dx 30.0.2, apktool 2.9.3, uber-apk-signer 1.3.0 ;
-outils téléchargés depuis les releases GitHub, chemin dans `TOOLS`, par défaut `~/jdv-tools/apk`). Clé de signature : `android/app/borne.keystore`.
-L'appli donne le mot de passe au site (BorneApp.code()) ; si c'est un ancien mot de passe, la page le demande une fois et le retient.
-Publier : copier l'APK dans `~/jdv-tools/borne-arcade.apk`, augmenter `versionCode`/`size` dans `telecharger/version.json`, lancer publier.sh.
+WebView plein écran sur la borne (`https://gt40benjamin.github.io/jdv/jouer/`, Java dans `java/MainActivity.java`). Construite sans SDK :
+`./build-apk.sh <versionCode> <versionName> sortie.apk` (javac + stubs, dx 30.0.2, apktool 2.9.3, uber-apk-signer 1.3.0 ; outils dans `TOOLS`,
+par défaut `~/jdv-tools/apk`). Clé de signature : `android/app/borne.keystore`. Depuis la 1.7 (versionCode 8) : plus de BorneApp.code().
+Les appareils en 1.6 chargent la racine → l'accueil les renvoie vers jouer/ → la cloche annonce « Nouvelle appli 1.7 » (telecharger/version.json).
+Publier : copier l'APK dans `~/jdv-tools/borne-arcade.apk`, mettre `versionCode`/`versionName`/`size` dans `telecharger/version.json`, lancer publier.sh.
 
 ## Serveur (Supabase)
-`supabase.sql` = schéma complet (contient la ligne du mot de passe : remplacer CHANGE-MOI avant de lancer).
-Le script peut être relancé : il garde les données (salles, scores, joueurs, messages) et remet les fonctions à jour.
+`supabase.sql` = schéma complet (contient la ligne de l'ancien mot de passe, gardé seulement pour get_errors / login_email : remplacer CHANGE-MOI).
+Le script peut être relancé : il garde les données et remet les fonctions à jour. `public.sql` (aussi à la fin de supabase.sql) = règles
+du site public : à relancer si members.sql, room-look.sql, progress.sql, accounts.sql ou turn.sql sont relancés seuls.
+
+## Site public (version 1.7)
+- **Plus de mot de passe du site** : `CODE()` renvoie '' ; les RPC gardent `p_code` (ignoré par `public.sql`). Ce qui protège : le jeton du
+  compte (rpc() envoie celui du joueur au nom duquel on agit, sinon celui du joueur actuel). Règles serveur (public.sql) : toute lecture /
+  écriture de salle exige un compte dont un pseudo est MEMBRE (room_guard : « connexion requise » / « membre requis ») ; agir au nom d'un
+  pseudo exige qu'il soit à ce compte (acct_check strict) ; list_rooms = mes salles ; find_room (nom exact, 30 essais / 10 min) +
+  join_room (code exigé, sauf si un autre pseudo du compte est déjà membre) ; login_name (e-mail seulement avec le bon mot de passe),
+  recover_hint (e-mail masqué) ; check_name sans photo pour le public ; get_world_scores et log_error publics (20 / min sans compte) ;
+  get_turn : compte requis ; rt_topic_ok + politiques sur realtime.messages.
+- **Direct privé** : canaux `jdw-room-<id>`, `jdw-all`, `jdw-duel-<code>` rejoints avec `config.private: true` + `access_token` (jeton du compte
+  du joueur actuel, renvoyé à chaque rafraîchissement : rtToken) ; un invité n'ouvre pas de websocket. À la main dans Supabase : Realtime >
+  Settings > désactiver « Allow public access » après la transition.
+- **Invité** (isGuest() : pas de compte connecté pour le joueur actuel, profils « sans compte » compris) : jeux solo, duels sur l'appareil ou
+  contre l'IA (places TOI / COPAIN / IA), aucun score enregistré (saveScore, fin de partie « Garde tes records ! »), pas de salle, chat,
+  direct, duel en ligne, compétition, regarder, carte, pseudo, tête ni cri (api.heads() = [], api.player sans photo), rpc() refuse tout sauf
+  GUEST_RPC sans appel réseau. Bandeau `#jdw-guestbar` (Créer un compte / J'ai déjà un compte), fenêtre `#jdw-guestask`. La salle reste
+  retenue (jdw.room) et revient avec le compte (guestSync). Un profil « sans compte » sur un appareil connecté : « Ajouter LOUIS au compte ».
+- **Ordinateur sans écran tactile** (TOUCH : pointer coarse, any-pointer coarse, appli, ou maxTouchPoints sans souris) : page Duel seulement
+  « En ligne » (`#jdw-duel-pc` : « Sur ordinateur : défie un copain en ligne » ; invité : « Créer un compte »).
+- Tests : test-public.js (accueil, invité, PC, compte, salle par nom + code, direct privé, enfant rattaché, refus « membre requis », connexion
+  par pseudo, appli 1.6 → 1.7, téléchargement), test-public-sql.mjs (PGlite). Les anciens tests de salle utilisent `~/jdv-tools/acct-shim.js`
+  (profils = comptes connectés factices) et ACCOUNTS=1.
 
 ## Fait (octobre 2026)
 - Copains en méchants/boss dans tous les jeux (CONTRACT.md « Ajout 2 »), Plein Gaz compris.
@@ -64,14 +97,14 @@ Le script peut être relancé : il garde les données (salles, scores, joueurs, 
 - Appli Android 1.3 : clavier en plein écran corrigé (redimensionnement du WebView), JDW_RESUME au retour dans l'appli, micro pour le cri.
 - Jeu « Galaxy Wars » (id technique `ilo`, `games/ilo.js`, shoot'em up spatial) avec les planètes et nébuleuses du projet Unity ILO de l'utilisateur
   (packs Asset Store : jamais en clair dans le dépôt). `source/pack-ilo.js` (à relancer si le mot de passe change) redimensionne,
-  compresse en WebP et CHIFFRE le tout dans `assets/ilo.bin` ; la page le déchiffre avec le mot de passe (window.JDW_ASSETS.load,
+  compresse en WebP et EMBALLE le tout dans `assets/ilo.bin` ; la page le déballe avec la clé intégrée (window.JDW_ASSETS.load,
   api.assets — CONTRACT.md Ajout 4). Copies en clair pour les tests : `~/jdv-tools/ilo-assets` (hors dépôt), harnais `source/test/ilo.html`.
 - Les scores acceptent tout nom de jeu valide (`^[a-z0-9_-]{2,20}$`) : ajouter un jeu ne demande plus de modifier la base.
 - Musiques : `assets/music/<jeu>-<n>.mp3` (3 variantes par jeu + accueil, ElevenLabs Music, compte payg de l'utilisateur, clé dans la variable
   utilisateur ELEVENLABS_API_KEY, jamais affichée ; scripts `~/jdv-tools/musiques2.js`). build2.py injecte la liste (window.JDW_MUSIC) ;
   le lecteur (Web Audio) enchaîne les variantes en fondu, baisse sous les cris, et se règle à part (musique / bruitages / cris : ⚙ et menu 🔊 en jeu).
   Un jeu peut changer de morceau : api.music('<jeu>') (variantes) — à utiliser par niveau plus tard.
-- Classement « Ma salle / Monde » (get_world_scores) ; list_rooms(p_code, p_name) dit « Tu en fais partie ».
+- Classement « Ma salle / Monde » (get_world_scores) ; list_rooms(p_code, p_name) dit « Tu en fais partie » (1.7 : seulement mes salles).
 - Nouveaux jeux : badge NOUVEAU tant que le joueur n'y a pas joué + notification « Nouveau jeu disponible » (NEW_GAMES dans shell2.js) ;
   la cloche ne montre que les nouveautés (historique sur demande).
 - Photo : accessoires (lunettes posées sur les yeux via MediaPipe Face Detection, sinon estimation ; chapeaux ; visage ; effets derrière).
@@ -106,13 +139,13 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
   « Partout | Seulement dans <salle> ». Tests : test-roomlook.js (MISSING=1 = serveur pas à jour), test-roomlook-sql.mjs.
 - Duel contre l'IA : bannières seulement en bas, un seul écran de résultat (classe ai-single).
 - **Comptes joueurs** (source/accounts.sql, ACCOUNTS.md) : Supabase Auth e-mail + mot de passe (API REST /auth/v1, sans SDK), un compte = plusieurs
-  pseudos (players.user_id), connexion par e-mail ou pseudo (login_email protégé par p_code, essais limités), mot de passe oublié par e-mail
+  pseudos (players.user_id), connexion par e-mail ou pseudo (1.7 : login_name, l'e-mail n'est donné qu'avec le bon mot de passe ; essais limités), mot de passe oublié par e-mail
   (SMTP Brevo), passage obligatoire « Protège ton pseudo » pour les anciens profils ; les RPC au nom d'un pseudo lié exigent auth.uid()
   (acct_check). Pseudo par salle : room_members.alias (save_room_alias). Tests : test-accounts.js, test-alias.js, test-accounts-sql.mjs.
 - **Connecteur Supabase** (claude.ai) : j'applique les SQL moi-même (apply_migration).
 - **Relais TURN (Cloudflare Realtime)** : sans lui, la liaison directe de téléphone à téléphone (duel en ligne, regarder) échoue
   sur certains réseaux (4G, box strictes). Clé TURN de l'utilisateur dans ses variables Windows CF_TURN_ID / CF_TURN_TOKEN, copiée
-  côté serveur par source/turn.sql (table turn_cfg illisible depuis le site ; RPC get_turn(p_code) → identifiants de 24 h via
+  côté serveur par source/turn.sql (table turn_cfg illisible depuis le site ; RPC get_turn(p_code) (1.7 : compte requis) → identifiants de 24 h via
   l'extension http). Le site appelle loadTurn() (démarrage, duel, regarder) et ajoute le relais à RTC_CFG ; localStorage
   jdw.relay = true force le passage par le relais (essais). Échecs de liaison notés dans le journal (iceReport : candidats vus, relais oui/non).
   Tests : test-relay.js (relais seul), RELAY=1 test-net-real.js / test-watch-tile.js (ID/TOK en variables).
@@ -142,7 +175,6 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
 
 ## Musiques de la collection (Asset Store)
 `source/pack-music.js` : WAV de « Ultimate Game Music Collection » (projet Unity ILO) → volume égalisé → AAC (encodeur WebCodecs de Chrome,
-pas besoin de ffmpeg) → CHIFFRÉ → `assets/music/<id>.bin` (même sel pour tous : `source/music-salt.hex`). `d<duel>-<n>` / `d<duel>-x<n>`
+pas besoin de ffmpeg) → EMBALLÉ (clé source/asset-key.txt) → `assets/music/<id>.bin` (même sel pour tous : `source/music-salt.hex`). `d<duel>-<n>` / `d<duel>-x<n>`
 (énergique, à la balle de match), `dscores-<n>` (écran des résultats), `sting-<nom>` (jingles : win, podium, point, go, match…).
-build2.py liste les .bin dans window.JDW_MUSIC_ENC ; shell2.js les déchiffre (decryptBin) ; sting(name) joue un jingle.
-Si le mot de passe change : relancer pack-music.js (et pack-ilo.js).
+build2.py liste les .bin dans window.JDW_MUSIC_ENC et injecte window.JDW_ASSET_KEY ; shell2.js les déballe (decryptBin) ; sting(name) joue un jingle.

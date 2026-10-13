@@ -1,6 +1,6 @@
 // Musiques des duels et de la compétition, tirées de la collection « Ultimate Game Music Collection » du projet Unity ILO
 // (Asset Store : jamais en clair dans le dépôt public). WAV → volume égalisé → AAC (encodeur de Chrome, WebCodecs) → CHIFFRÉ.
-//   ARCADE_CODE=… node pack-music.js [seulement-ces-id,...]
+//   node pack-music.js [seulement-ces-id,...]   (clé d'emballage : source/asset-key.txt)
 // Sortie : ../assets/music/<id>.bin = sel(16) + iv(12) + AES-GCM(fichier AAC ADTS), clé PBKDF2-SHA256 200 000 tours.
 // Le même sel pour tous les morceaux (dans le fichier music-salt.hex, à côté) : la page ne calcule la clé qu'une fois.
 // <jeu>-<n> = morceau calme, <jeu>-x<n> = morceau énergique (balle de match) ; sting-<nom> = petit jingle.
@@ -23,7 +23,7 @@ const STINGS = {
   'sting-match': 'Short Cues/Losing/Alert STING 1.wav'
 };
 (async () => {
-  const pw = process.env.ARCADE_CODE; if (!pw) { console.error('Définis ARCADE_CODE'); process.exit(1); }
+  const pw = fs.readFileSync(path.join(__dirname, 'asset-key.txt'), 'utf8').trim();   // clé d'emballage intégrée au site (pas un secret)
   const only = (process.argv[2] || '').split(',').filter(Boolean);
   const todo = Object.entries(Object.assign({}, LOOPS, STINGS)).filter(([id]) => !only.length || only.includes(id));
   // petite page locale (contexte sécurisé : WebCodecs) qui sert aussi les WAV

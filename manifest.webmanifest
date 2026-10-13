@@ -1,7 +1,7 @@
 {
  "name": "Borne d'arcade entre amis",
  "short_name": "Borne d'arcade",
- "start_url": "./",
+ "start_url": "jouer/",
  "scope": "./",
  "display": "fullscreen",
  "orientation": "any",

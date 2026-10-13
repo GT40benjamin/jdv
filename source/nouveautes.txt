@@ -1,6 +1,6 @@
-Comptes : ton pseudo est protégé par ton e-mail et un mot de passe ; connexion avec l'e-mail ou le pseudo ; mot de passe oublié par e-mail
-Un compte peut avoir plusieurs joueurs (toute la famille), et un pseudo différent par salle (⚙)
-Carte d'avancement : chaque BOSS annoncé sur le chemin (vaincu ✓, à battre, boss final), et ceux qui avaient déjà joué y sont placés
-Les comptes retirés d'une salle n'apparaissent plus dans ses jeux
-Carte d'avancement de Galaxy Wars et Plein Gaz (bouton carte sous la tuile) : où chacun de la salle est arrivé, secteurs, boss et paliers
-Dans « Les joueurs » : ✕ pour retirer quelqu'un de la salle (le créateur 👑) ou la quitter ; ses traces dans la salle sont effacées, il reste au mondial
+Plus de mot de passe du site : la borne est ouverte à tous, ce sont les comptes qui protègent les salles
+Les copains de passage jouent en invité (jeux solo, duels sur le téléphone ou contre l'IA), sans score enregistré
+Rejoindre une salle : son nom (et son code) ; la liste ne montre plus que tes salles
+Un enfant sans compte s'ajoute au compte de l'appareil en un geste (un compte = plusieurs joueurs)
+Sur ordinateur, les duels se jouent en ligne ; à deux sur le même écran, c'est sur téléphone ou tablette
+Nouvelle appli Android 1.7 (sans mot de passe) : à télécharger depuis la cloche

@@ -1,10 +1,24 @@
 # Comptes des joueurs : mise en service
 
 Les joueurs ont maintenant de vrais comptes (Supabase Auth : e-mail + mot de passe). Un compte peut avoir **plusieurs joueurs**
-(ex. PATOU, LOUIS, LÉONIE sur le compte de Benjamin). Le mot de passe du site (commun à la bande) reste exigé en plus.
+(ex. PATOU, LOUIS, LÉONIE sur le compte de Benjamin). Depuis la 1.7 il n'y a plus de mot de passe du site : le site est public, c'est le
+compte qui ouvre les salles (voir « Site public (1.7) » plus bas).
 Chaque salle peut aussi donner à un joueur un **pseudo de salle** (affiché seulement dans cette salle).
 
-## Ordre conseillé
+## Site public (1.7) : à faire, dans l'ordre
+
+1. **SQL** : appliquer `source/public.sql` (autonome, relançable ; il est aussi à la fin de `supabase.sql`) AVANT de publier le site 1.7.
+   Effet immédiat : toutes les fonctions acceptent `p_code = ''` ; les salles (scores, joueurs, chat, direct…) ne répondent plus qu'aux
+   comptes connectés dont un pseudo est membre. Les appareils encore en 1.6 et connectés à un compte continuent de marcher ; les profils
+   sans compte perdent l'accès aux salles (ils pourront être rattachés au compte de l'appareil en 1.7).
+2. **Publier** : `BUMP=minor ./publier.sh` puis commit + push ; `node ~/jdv-tools/annonce.js` une fois GitHub Pages à jour.
+3. **Realtime** (tableau de bord Supabase > Realtime > Settings) : désactiver **Allow public access** une fois les appareils passés en 1.7
+   (quelques heures / un jour) : seuls les canaux privés restent possibles, autorisés par les politiques de `public.sql` (membres de la salle).
+   Tant que c'est activé, les anciens canaux publics restent ouverts à quiconque a la clé publique.
+4. **URL Configuration** : rien à changer (`https://gt40benjamin.github.io/jdv/**` couvre `jouer/`). Les liens des e-mails arrivent sur
+   `jouer/` (nouveau site) ou sur la racine (anciens liens : l'accueil les renvoie vers `jouer/` avec le jeton).
+
+## Ordre conseillé (mise en service des comptes, octobre 2026 : déjà fait)
 
 1. **SQL** : lancer `source/accounts.sql` (ou `supabase.sql` en entier : il le contient à la fin) dans Supabase > SQL Editor.
    Peut être relancé. Si plus tard `members.sql`, `room-look.sql` ou `progress.sql` sont relancés **seuls**, relancer `accounts.sql` après.
@@ -33,7 +47,7 @@ Tant que `accounts.sql` n'est pas lancé, le site publié marche exactement comm
   - `https://gt40benjamin.github.io/jdv/**`
 
 Le site envoie `redirect_to` = sa propre adresse. Les liens des e-mails s'ouvrent dans le **navigateur** du téléphone (pas dans l'appli
-Android) : on y tape le mot de passe du site, puis l'écran « Choisis ton nouveau mot de passe » (ou « E-mail confirmé ») apparaît.
+Android) : la borne s'ouvre directement (plus de mot de passe du site), puis l'écran « Choisis ton nouveau mot de passe » (ou « E-mail confirmé ») apparaît.
 Le nouveau mot de passe sert ensuite partout, appli comprise.
 
 ## 3. Authentication > Emails > Templates (en français, prêts à coller)
@@ -134,14 +148,15 @@ Puis **Authentication > Rate Limits** : « Rate limit for sending emails » à 3
 
 ## Ce que voient les joueurs
 
-- **Nouvel appareil** : « Nouveau joueur » (pseudo + tête + cri + e-mail + mot de passe ; ou « sans compte » pour un enfant) |
+- **Nouvel appareil** : la borne s'ouvre en **invité** (bandeau « Crée ton compte pour enregistrer tes scores et rejoindre tes copains ») ;
+  « Créer un compte » (pseudo + tête + cri + e-mail + mot de passe ; un enfant va sur le compte de l'appareil) |
   « J'ai déjà un compte » (**e-mail ou pseudo** + mot de passe ; avec l'e-mail et plusieurs joueurs sur le compte : « qui joue ? »).
   Un pseudo protégé tapé dans « Nouveau joueur » : « REMS a un compte : connecte-toi ».
 - **Appareil déjà connecté** : un nouveau joueur est rattaché au compte de l'appareil (choix si plusieurs comptes, ou « Nouveau compte »).
   « Qui joue ? » montre les « Joueurs de mon compte » à ajouter sur l'appareil.
 - **Joueurs existants** (passage obligatoire) : au retour, fenêtre « Protège ton pseudo » qu'on ne peut pas fermer : pseudo à confirmer
   (ou changer), e-mail + mot de passe, et « Ajouter aussi LOUIS et LÉONIE à ce compte » pour les autres joueurs de l'appareil. Sorties :
-  « J'ai déjà un compte », « Ce profil reste sur cet appareil, sans compte » (enfant, confirmé en 2 touches), « Changer de joueur ».
+  « J'ai déjà un compte », « Plus tard : jouer en invité » (sans salle ni score, confirmé en 2 touches), « Changer de joueur ».
   Pseudo déjà protégé par quelqu'un d'autre : « Connecte-toi » ou « choisir un autre pseudo ». Sans réseau, rien ne bloque.
 - **⚙** : e-mail du compte (masqué : `be•••@domaine.fr`), « Changer mon mot de passe », « Se déconnecter de cet appareil » (le compte
   et ses joueurs quittent l'appareil). Pseudo de salle : dans « Seulement dans <salle> », champ « Mon pseudo dans <salle> ».
@@ -166,10 +181,13 @@ Supprimer un utilisateur (Authentication > Users) libère aussi tous ses pseudos
 - **Première protection** : pendant la transition, un pseudo existant sans compte est protégé par le **premier** compte qui le réclame
   (le serveur ne sait pas quel appareil l'utilisait avant). Un copain malin pourrait protéger « REMS » avant REMS : voir « Dépannage ».
   Conseil : prévenir la bande et la faire passer vite (le passage est obligatoire dès la mise à jour).
-- **Connexion par pseudo** : `login_email` renvoie l'e-mail du compte à quiconque a le mot de passe du site (il n'est jamais affiché, mais
+- **Connexion par pseudo** (1.7) : `login_name` ne renvoie l'e-mail du compte qu'avec le BON mot de passe ; « mot de passe oublié » depuis un
+  pseudo ne montre que l'adresse masquée (`recover_hint`) et demande de la taper en entier. Essais limités (10 par pseudo, 60 en tout / 10 min).
+  `login_email` reste pour les vieux appareils mais exige l'ancien mot de passe du site (jamais publié).
   visible dans les outils du navigateur). Limité à 10 essais par pseudo et 60 en tout par 10 minutes. Supabase limite en plus les
   essais de mot de passe.
-- **Profils « sans compte »** (enfants) : leur pseudo n'est pas protégé ; s'il est protégé ailleurs plus tard, l'appareil devra se connecter
+- **Profils « sans compte »** (enfants) : depuis la 1.7 ils jouent en invité (pas de salle) ; sur un appareil connecté, le bandeau propose
+  « Ajouter LOUIS au compte » (un compte = plusieurs joueurs) ; « Protège ton pseudo » propose aussi de les ajouter.
   ou changer de pseudo.
 - **E-mail pas encore confirmé** : le pseudo reste non protégé jusqu'au clic sur le lien (bannière de rappel, pas de blocage).
 - **Jetons** gardés dans le stockage local de l'appareil (comme le fait Supabase lui-même) ; rafraîchis automatiquement ;

@@ -71,7 +71,12 @@ const audioApi = { tone: (...a) => Audio.tone(...a), noise: (...a) => Audio.nois
 /* ================= Serveur (Supabase) ou mode local ================= */
 const CFG = window.JDW_CONFIG || null;
 const ONLINE = !!(CFG && CFG.url && CFG.key);
-const CODE = () => store.get('jdw.code', '') || window.JDW_CODE || '';
+// Plus de mot de passe du site (site public depuis la 1.7) : les fonctions du serveur gardent leur paramètre p_code (vieux appareils),
+// le site envoie ''. Ce qui protège les salles : le compte connecté (jeton), membre de la salle (source/public.sql).
+const CODE = () => '';
+try { localStorage.removeItem('jdw.code'); } catch (e) {}      // l'ancien mot de passe ne traîne plus sur les appareils
+// dossier racine du site publié (la borne est dans jouer/ : '../') ; vide pour le site de test
+const ROOT = window.JDW_ROOT || '';
 let serverOk = false, netDown = false, roomDenied = false, remoteLoaded = false;
 let room = store.get('jdw.room', null);
 let roomCodes = store.get('jdw.roomcodes', {}) || {};
@@ -79,6 +84,17 @@ const RP = () => ({ p_room: room ? room.id : null, p_room_code: room ? (roomCode
 // Comptes (source/accounts.sql, section « Comptes ») : état commun, déclaré tôt car rpc() s'en sert dès le démarrage.
 // ready = le serveur connaît les comptes (sinon : tout comme avant, jamais de jeton envoyé).
 const ACCT = { ready: !!store.get('jdw.acctok', false), probed: false, busy: {}, gateT: 0, netFail: false, s: store.get('jdw.accts', {}) || {} };
+// Invité : le joueur actuel n'a pas de compte connecté sur l'appareil (visiteur, profil « sans compte »…). Il joue aux jeux solo et
+// aux duels sur l'appareil (ou contre l'IA), sans score enregistré, sans salle, chat, direct, duel en ligne, compétition ni « regarder »,
+// sans pseudo, tête ni cri (les jeux montrent des personnages neutres). Mode local (pas de serveur : tests) : jamais invité.
+function isGuest() {      // = acctState(profile) !== 'on', sans dépendre de l'ordre de chargement
+  if (!ONLINE) return false;
+  if (!ACCT.ready) return true;
+  const a = profile && profile.acct, se = a && a.uid ? ACCT.s[a.uid] : null;
+  return !(profile && profile.name && se && se.rt);
+}
+// seules fonctions du serveur permises à un invité (toutes les autres sont refusées ici, sans appel réseau)
+const GUEST_RPC = new Set(['check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name']);
 // le joueur au nom duquel une fonction agit (son jeton est envoyé s'il est connecté sur cet appareil)
 function rpcActor(fn, args) {
   if (!args) return '';
@@ -88,11 +104,16 @@ function rpcActor(fn, args) {
 }
 async function rpc(fn, args, opts) {
   opts = opts || {};
+  if (!opts.token && !GUEST_RPC.has(fn) && isGuest()) { const er = new Error(fn + ' : invité (compte requis)'); er.guest = true; throw er; }
   const h = { 'Content-Type': 'application/json', apikey: CFG.key };
   if (!/^sb_/.test(CFG.key)) h.Authorization = 'Bearer ' + CFG.key;
   // joueur connecté : son jeton (Authorization) à la place de la clé publique ; apikey reste la clé publique
   let pr = null, tok = opts.token || '';
-  if (!tok && ACCT.ready && !opts.anon) { pr = acctFor(rpcActor(fn, args)); if (pr) tok = await acctToken(pr); }
+  if (!tok && ACCT.ready && !opts.anon) {
+    pr = acctFor(rpcActor(fn, args));
+    if (!pr && acctLive(profile)) pr = profile;          // lectures de la salle (sans p_name) : le compte du joueur actuel
+    if (pr) tok = await acctToken(pr);
+  }
   if (tok) h.Authorization = 'Bearer ' + tok;
   let r;
   try { r = await fetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args) }); }
@@ -106,10 +127,11 @@ async function rpc(fn, args, opts) {
       return rpc(fn, args, Object.assign({}, opts, { retry: (opts.retry || 0) + 1, anon: !!opts.retry || !(pr && acctLive(pr)) }));
     }
     const er = new Error(fn + ' ' + r.status + ' ' + t.slice(0, 120)); er.status = r.status; er.denied = /acces refuse/.test(t);
+    er.member = /membre requis|connexion requise/.test(t);   // salle dont aucun joueur du compte n'est membre (ou pas connecté)
     er.acct = /compte requis/.test(t);                    // pseudo protégé : il faut être connecté à son compte
     if (er.acct && !opts.token) { try { acctNeed(rpcActor(fn, args)); } catch (e) {} }
     // les refus du serveur me sont remontés (une fois par session), pour comprendre ce qui bloque chez chacun
-    if (fn !== 'log_error' && !er.acct && !opts.quiet && !/trop de messages/.test(t) && !(opts.quiet404 && r.status === 404)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
+    if (fn !== 'log_error' && !er.acct && !er.member && !opts.quiet && !/trop de messages/.test(t) && !(opts.quiet404 && r.status === 404)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
     throw er;
   }
   const txt = await r.text();
@@ -179,6 +201,7 @@ function fitHeadWhenReady(img, p) {
 }
 function syncOwnPlayer() {
   // la tête et le cri ACTIFS : ceux de la salle actuelle s'il y en a, sinon ceux du profil principal
+  if (isGuest()) { for (const pr of profiles) if (pr.name && !players.get(cleanName(pr.name))?.member) players.delete(cleanName(pr.name)); return; }   // invité : ni tête ni cri
   for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) { const L = curLook(pr); setPlayer(pr.name, activePhoto(pr), (L && L.sound) || pr.sound || undefined); }
   if (profile.name) setPlayer(profile.name, activePhoto(profile), activeSound(profile));
 }
@@ -248,12 +271,14 @@ function sadUrl(p) {
 }
 function headsList() {
   const out = [];
+  if (isGuest()) return out;          // invité : personnages neutres, aucune tête de copain
   const me = cleanName(profile.name);
   // seulement les membres de la salle (et moi) : un compte de l'appareil retiré de la salle n'apparaît plus dans les jeux
   for (const p of players.values()) if (p.name !== 'IA' && (p.name === me || !knownNotMember(p.name)) && p.img && p.img.complete && p.img.naturalWidth) out.push({ name: p.name, img: p.img, sad: sadOf(p) || p.img });
   return out;
 }
 function playerObj() {
+  if (isGuest()) return { name: 'INVITÉ', img: null };
   const p = players.get(cleanName(profile.name));
   return { name: profile.name ? dispName(profile.name) : 'JOUEUR', img: p && p.img && p.img.complete && p.img.naturalWidth ? p.img : null };
 }
@@ -397,13 +422,14 @@ function musicVariants(id, mode) {
 }
 // niveau à partir duquel la musique devient énergique, par jeu
 const INTENSE_AT = { ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 9, canards: 6 };
-// morceaux chiffrés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée du mot de passe
+// morceaux emballés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée de la clé d'emballage
+// intégrée au site (window.JDW_ASSET_KEY, source/asset-key.txt) : pas un secret, les fichiers ne sont simplement jamais lisibles directement
 const MUSIC_ENC = new Set(window.JDW_MUSIC_ENC || []);
 const binKeys = {};
 async function decryptBin(u8) {
   const salt = u8.slice(0, 16), k = Array.prototype.join.call(salt, '.');
   if (!binKeys[k]) binKeys[k] = (async () => {
-    const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(CODE()), 'PBKDF2', false, ['deriveKey']);
+    const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(window.JDW_ASSET_KEY || ''), 'PBKDF2', false, ['deriveKey']);
     return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
   })();
   try { return await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u8.slice(16, 28) }, await binKeys[k], u8.slice(28)); }
@@ -412,7 +438,7 @@ async function decryptBin(u8) {
 async function musicBuffer(id) {
   if (MUS.buf[id]) return MUS.buf[id];
   const enc = MUSIC_ENC.has(id);
-  const r = await fetch('assets/music/' + id + (enc ? '.bin' : '.mp3')); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
+  const r = await fetch(ROOT + 'assets/music/' + id + (enc ? '.bin' : '.mp3')); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
   let ab = await r.arrayBuffer();
   if (enc) ab = await decryptBin(new Uint8Array(ab));
   const b = await new Promise((res, rej) => Audio.ctx.decodeAudioData(ab, res, rej));
@@ -424,7 +450,7 @@ async function musicBuffer(id) {
 const STINGS = {};
 function stingBuffer(id) {
   if (!STINGS[id]) STINGS[id] = (async () => {
-    const r = await fetch('assets/music/' + id + '.bin'); if (!r.ok) throw new Error('jingle ' + id + ' ' + r.status);
+    const r = await fetch(ROOT + 'assets/music/' + id + '.bin'); if (!r.ok) throw new Error('jingle ' + id + ' ' + r.status);
     const ab = await decryptBin(new Uint8Array(await r.arrayBuffer()));
     return new Promise((res, rej) => Audio.ctx.decodeAudioData(ab, res, rej));
   })().catch(e => { delete STINGS[id]; throw e; });
@@ -530,6 +556,7 @@ function bestPerName(rows) {
 let world = {}, worldLoaded = false, worldErr = false, boardScope = store.get('jdw.boardscope', 'room');
 function top(game, scope) {
   if (scope === 'world') return bestPerName(world[game] || []).slice(0, 10);
+  if (isGuest()) return [];
   return bestPerName(ONLINE && room && remoteLoaded ? (remote[game] || []) : (local[game] || [])).slice(0, 10);
 }
 async function loadWorld() {
@@ -543,6 +570,8 @@ async function loadWorld() {
   if (!$('jdw-board').hidden) renderBoardTab();
 }
 function onRoomError(e) {
+  // salle retenue sur l'appareil, mais aucun joueur de ce compte n'en est membre : on la choisit à nouveau
+  if (e && e.member && room && !isGuest()) { const t = roomTopic(); room = null; store.set('jdw.room', null); if (t) rtLeave(t); refreshAll(); setTimeout(openRooms, 300); return; }
   if (!e || !e.denied || !room || roomDenied) return;
   roomDenied = true; refreshAll();
   if (room.priv) setTimeout(() => {
@@ -562,6 +591,7 @@ async function loadScores() {
   loadNotifs();
 }
 async function saveScore(game, score, forName) {
+  if (isGuest()) return 'guest';       // invité : aucun score enregistré, ni en ligne ni sur l'appareil
   const name = cleanName(forName || profile.name) || 'JOUEUR';
   const entry = { name, score, at: Date.now() };
   if (!ONLINE) localNotify(game, name, score);
@@ -683,7 +713,7 @@ function notifRow(n, isNew) {
     const b = document.createElement('b'); b.textContent = app ? 'Nouvelle appli ' + n.v + ' à télécharger' : 'Mise à jour ' + n.v + ' disponible';
     const sm = document.createElement('small'); sm.textContent = app ? 'Touche ici pour télécharger la nouvelle appli' : 'Touche ici pour l\'installer maintenant';
     tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
-    li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (app) location.href = 'telecharger/'; else reloadNow(); });
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (app) location.href = ROOT + 'telecharger/'; else reloadNow(); });
     return li;
   }
   if (n.kind === 'game') {
@@ -1096,13 +1126,20 @@ setInterval(() => { if (!document.hidden && $('jdw-lib').hidden) loadScores(); }
 
 /* ================= En direct : signaux instantanés entre appareils (Supabase Realtime) ================= */
 // Les signaux ne contiennent aucune donnée : « recharge le chat / les scores / les joueurs ». Les données passent par les RPC protégées.
-const RT = { ws: null, ref: 0, topics: new Set(), hb: 0, retry: 0, ok: false, joinRefs: {} };
+// Canaux PRIVÉS (Supabase Realtime Authorization, source/public.sql : rt_topic_ok) : chaque appareil s'y joint avec le jeton du compte
+// du joueur actuel (access_token), le serveur n'accepte que les membres de la salle. Invité : pas de direct du tout.
+const RT = { ws: null, ref: 0, topics: new Set(), hb: 0, retry: 0, ok: false, joinRefs: {}, tok: '', uid: '', opening: false };
 function rtSend(topic, event, payload) {
   if (!RT.ws || RT.ws.readyState !== 1) return false;
   const ref = String(++RT.ref);
   try { RT.ws.send(JSON.stringify({ topic: 'realtime:' + topic, event, payload, ref })); return ref; } catch (e) { return false; }
 }
-function rtJoin(topic) { RT.topics.add(topic); const r = rtSend(topic, 'phx_join', { config: { broadcast: { self: false, ack: false }, presence: { key: '' }, private: false } }); if (r) RT.joinRefs[topic] = r; }
+function rtJoin(topic) { RT.topics.add(topic); const r = rtSend(topic, 'phx_join', { config: { broadcast: { self: false, ack: false }, presence: { key: '' }, private: true }, access_token: RT.tok }); if (r) RT.joinRefs[topic] = r; }
+// jeton du compte du joueur actuel ; rafraîchi : envoyé à tous les canaux ouverts (sinon le serveur coupe à l'expiration)
+async function rtAuth() { const a = profile.acct; RT.uid = (a && a.uid) || ''; RT.tok = RT.uid ? await tokenFor(RT.uid) : ''; return RT.tok; }
+function rtToken(uid, tok) { if (!uid || uid !== RT.uid || !tok || tok === RT.tok) return; RT.tok = tok; for (const t of RT.topics) rtSend(t, 'access_token', { access_token: tok }); }
+// coupe le direct (invité, ou changement de compte : rtConnect le rouvre avec le bon jeton)
+function rtClose() { const ws = RT.ws; RT.ws = null; RT.ok = false; presReset(); clearInterval(RT.hb); if (ws) { ws.onclose = null; try { ws.close(); } catch (e) {} } }
 function rtLeave(topic) { RT.topics.delete(topic); rtSend(topic, 'phx_leave', {}); if (topic === roomTopic()) presReset(); }
 const roomTopic = () => room ? 'jdw-room-' + room.id : null;
 
@@ -1160,8 +1197,11 @@ function presChanged() {
   if (!$('jdw-members').hidden) renderMembers();
   cmpOnPresence();
 }
-function rtConnect() {
-  if (!ONLINE || !window.WebSocket || (RT.ws && RT.ws.readyState <= 1)) return;
+async function rtConnect() {
+  if (!ONLINE || !window.WebSocket || (RT.ws && RT.ws.readyState <= 1) || RT.opening || isGuest()) return;
+  RT.opening = true;
+  try { await rtAuth(); } finally { RT.opening = false; }
+  if (!RT.tok || isGuest() || (RT.ws && RT.ws.readyState <= 1)) return;
   let ws;
   try { ws = new WebSocket(CFG.url.replace(/^http/, 'ws').replace(/\/+$/, '') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(CFG.key) + '&vsn=1.0.0'); }
   catch (e) { return; }
@@ -1186,7 +1226,7 @@ function rtConnect() {
   ws.onclose = () => {
     RT.ok = false; presReset(); clearInterval(RT.hb); if (RT.ws === ws) RT.ws = null;
     const d = Math.min(30000, 1000 * Math.pow(2, RT.retry++));
-    setTimeout(() => { if (!document.hidden) rtConnect(); }, d);
+    setTimeout(() => { if (!document.hidden && !isGuest()) rtConnect(); }, d);
   };
   ws.onerror = () => { try { ws.close(); } catch (e) {} };
 }
@@ -1228,7 +1268,7 @@ let siteNew = false;
 async function checkSiteVersion() {
   if (BUILD === 'dev' || !/^https?:$/.test(location.protocol)) return;
   try {
-    const r = await fetch('site.json?t=' + Date.now(), { cache: 'no-store' });
+    const r = await fetch(ROOT + 'site.json?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) return;
     const v = await r.json();
     if (v && v.build && v.build !== BUILD) {
@@ -1245,7 +1285,7 @@ async function checkSiteVersion() {
 async function checkAppVersion() {
   const m = navigator.userAgent.match(/BorneArcade\/(\d+)/); if (!m) return;
   try {
-    const r = await fetch('telecharger/version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+    const r = await fetch(ROOT + 'telecharger/version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
     const v = await r.json();
     if (+v.versionCode > +m[1]) {
       $('jdw-update-txt').textContent = 'Version ' + v.versionName + ' disponible : touche ici pour la télécharger.'; $('jdw-update').hidden = false;
@@ -1444,23 +1484,23 @@ async function maybeAskJoin() {
   if (await askJoin(name)) { if (profile.pid === pid) await joinHere(); }
   else if (profile.pid === pid) toastCheer(name + ' joue sur cet appareil, sans être dans « ' + room.name + ' ».', name, true);
 }
-$('jdw-online').addEventListener('click', openMembers);
+$('jdw-online').addEventListener('click', () => { if (isGuest()) guestAsk('Les salles'); else openMembers(); });
 setInterval(() => { if (!$('jdw-members').hidden) { renderMembers(); refreshPresence(); } }, 15000);   // « vu il y a… » et en ligne, à jour tout seuls
 $('jdw-members-close').addEventListener('click', () => closeSheet('jdw-members'));
 $('jdw-members').addEventListener('click', e => { if (e.target === $('jdw-members')) closeSheet('jdw-members'); });
 
-/* ================= Images des jeux (paquets chiffrés : assets/<jeu>.bin) ================= */
-// Les images de l'Asset Store ne sont jamais publiées en clair : le paquet est déchiffré ici avec le mot de passe du site.
+/* ================= Images des jeux (paquets emballés : assets/<jeu>.bin) ================= */
+// Les images de l'Asset Store ne sont jamais publiées en fichiers lisibles : le paquet est déballé ici (clé intégrée au site).
 const ASSET_GAMES = new Set(['ilo']);
 window.JDW_ASSETS = { cache: {}, pending: {} };
 window.JDW_ASSETS.load = function (id) {
   if (this.cache[id]) return Promise.resolve(this.cache[id]);
   if (this.pending[id]) return this.pending[id];
   const p = (async () => {
-    const r = await fetch('assets/' + id + '.bin');
+    const r = await fetch(ROOT + 'assets/' + id + '.bin');
     if (!r.ok) throw new Error('images ' + id + ' : ' + r.status);
     const buf = new Uint8Array(await r.arrayBuffer());
-    const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(CODE()), 'PBKDF2', false, ['deriveKey']);
+    const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(window.JDW_ASSET_KEY || ''), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
     const hl = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0, true);
@@ -1564,16 +1604,19 @@ function refreshOnline() {
 function tilePlayers(gid) { try { return presList().filter(m => m.game === gid && m.cid && m.cid !== clientId && watchable(m.game)); } catch (e) { return []; } }
 const tileName = n => n === cleanName(profile.name) ? 'Toi (autre appareil)' : dispName(n);
 function refreshMe() {
-  $('jdw-me-name').textContent = profile.name ? dispName(profile.name) : 'Joueur';
+  $('jdw-me-name').textContent = isGuest() && !profile.name ? 'Invité' : profile.name ? dispName(profile.name) : 'Joueur';
+  if (isGuest() && !profile.name) { const av = $('jdw-me-av'); av.textContent = ''; av.style.background = ''; av.classList.add('guest-av'); av.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>'; return; }
+  $('jdw-me-av').classList.remove('guest-av');
   avatarInto($('jdw-me-av'), profile.name);
 }
 function refreshAll() {
   refreshOnline(); refreshMe(); refreshNewBadges();
-  $('jdw-roomrow').hidden = !ONLINE;
+  $('jdw-roomrow').hidden = !ONLINE || isGuest();
   $('jdw-invite').hidden = !room;
   $('jdw-roomname').textContent = room ? room.name : 'Choisis une salle';
   { const L = room ? room.name.length : 0; $('jdw-roomname').style.fontSize = L > 30 ? '13px' : L > 22 ? '14.5px' : L > 14 ? '16px' : ''; }   // nom toujours en entier
   $('jdw-note').textContent = !ONLINE ? 'Mode local : le classement est gardé sur cet appareil.'
+    : isGuest() ? 'En invité, les scores ne sont pas enregistrés : crée ton compte pour entrer au classement.'
     : roomDenied ? 'Le code de ta salle manque sur cet appareil : touche « Changer » pour le retaper.'
     : netDown ? 'Pas de connexion pour le moment : tes scores partiront dès que le réseau revient.'
     : 'Classement de la salle et classement mondial, mis à jour en direct.';
@@ -1665,7 +1708,7 @@ function renderBoardTab() {
   }
 }
 function emptyRow(ol) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = "Personne n'a encore de score ici. La place est libre !"; ol.appendChild(li); }
-$('jdw-open-board').addEventListener('click', () => { loadScores(); loadWorld(); renderBoardTab(); openSheet('jdw-board', 'jdw-board-close'); });
+$('jdw-open-board').addEventListener('click', () => { if (isGuest()) boardScope = 'world'; loadScores(); loadWorld(); renderBoardTab(); openSheet('jdw-board', 'jdw-board-close'); });   // invité : le classement mondial (public)
 for (const b of document.querySelectorAll('#jdw-scope button')) b.addEventListener('click', () => {
   boardScope = b.dataset.scope; store.set('jdw.boardscope', boardScope); if (boardScope === 'world') loadWorld(); renderBoardTab();
 });
@@ -1677,11 +1720,13 @@ let lookScope = 'all';                 // réglages : « Partout » (profil prin
 let lookEdit = null;                   // salle visée par la photo / le cri en cours (null = profil principal)
 const lookHere = () => lookScope === 'room' && room ? room.id : null;
 function openSettings() {
+  $('jdw-settings').classList.toggle('is-guest', isGuest());       // invité : seulement le son (ni pseudo, ni tête, ni cri)
+  $('jdw-set-guest').hidden = !isGuest();
   $('jdw-set-name').value = profile.name;
   lookScope = curLook() ? 'room' : 'all';
   $('jdw-set-sfx').checked = !muted; $('jdw-set-music').checked = MUS.on; $('jdw-set-cris').checked = criOn; syncSoundMenu();
   renderLook();
-  $('jdw-set-status').textContent = ONLINE ? (netDown ? 'Pas de connexion pour le moment.' : 'Connecté au classement commun.') : 'Mode local (pas de serveur).';
+  $('jdw-set-status').textContent = !ONLINE ? 'Mode local (pas de serveur).' : isGuest() ? '' : netDown ? 'Pas de connexion pour le moment.' : 'Connecté au classement commun.';
   $('jdw-set-version').textContent = versionText();
   renderAcctSet();
   openSheet('jdw-settings', 'jdw-set-name');
@@ -1816,7 +1861,10 @@ $('jdw-set-delphoto').addEventListener('click', async () => {
   $('jdw-set-status').textContent = 'Ta tête est retirée des jeux.'; renderLook();
   refreshAll(); await pushProfile();
 });
+$('jdw-set-guest-new').addEventListener('click', () => { closeSheet('jdw-settings'); guestCreate(); });
+$('jdw-set-guest-login').addEventListener('click', () => { closeSheet('jdw-settings'); guestLogin(); });
 $('jdw-set-save').addEventListener('click', async () => {
+  if (isGuest()) { closeSheet('jdw-settings'); return; }
   if (profile.acct && profile.acct.uid) $('jdw-set-name').value = profile.name;   // pseudo lié à un compte : il ne change plus
   const n = cleanName($('jdw-set-name').value);
   if (!n) { $('jdw-set-status').textContent = 'Il faut un nom.'; return; }
@@ -1843,7 +1891,7 @@ $('jdw-set-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.
 
 /* ================= Qui joue ? (plusieurs joueurs sur le même appareil) ================= */
 function openProfiles() {
-  if (!profile.name) { startWelcome(); return; }
+  if (!profile.name && !profiles.some(p => p.name)) { if (isGuest()) guestAsk('Ton joueur'); else startWelcome(); return; }
   const wrap = $('jdw-prof-list'); wrap.textContent = '';
   for (const pr of profiles) {
     if (!pr.name) continue;
@@ -2079,7 +2127,8 @@ function renderWelcome() {
 // WEL.uid : compte de l'appareil auquel rattacher le nouveau joueur ('' = nouveau compte) ; WEL.noAcct : joueur sans compte (enfant)
 const WEL = { tab: 'new', noAcct: false, uid: '', busy: false, pick: null };
 function startWelcome() {
-  $('jdw-wel-cancel').hidden = !adding;
+  $('jdw-wel-cancel').hidden = !adding && !isGuest();
+  $('jdw-wel-cancel').textContent = adding ? 'Annuler' : 'Plus tard';
   $('jdw-wel-h').textContent = adding ? 'Nouveau joueur' : 'Crée ton joueur';
   $('jdw-wel-eyebrow').textContent = adding ? 'Un copain de plus sur cet appareil' : "Bienvenue à la Borne d'arcade";
   $('jdw-wel-name').value = profile.name || '';
@@ -2121,7 +2170,8 @@ function welAcctUi() {
   if (WEL.uid && !liveUid(WEL.uid)) WEL.uid = '';
   $('jdw-wel-tabs').hidden = !on;
   $('jdw-wel-acct').hidden = !on || WEL.noAcct;
-  $('jdw-wel-noacct').hidden = !on;
+  $('jdw-wel-noacct').hidden = true;     // plus de joueur « sans compte » : un enfant va sur le compte de l'appareil (un compte = plusieurs joueurs)
+  if (WEL.noAcct) WEL.noAcct = false;
   $('jdw-wel-noacct').textContent = WEL.noAcct ? '↩ Finalement, je le mets sur un compte' : "Pas d'e-mail (un enfant) ? Jouer sans compte, sur cet appareil";
   acctChips($('jdw-wel-acctpick'), WEL.uid, u => { WEL.uid = u; welMsg(''); welAcctUi(); }, true);
   $('jdw-wel-acct-in').hidden = !!WEL.uid;
@@ -2132,7 +2182,7 @@ function welAcctUi() {
   pk.hidden = !picking; $('jdw-wel-lfields').hidden = picking; $('jdw-wel-lpassbox').hidden = picking; $('jdw-wel-forgot').hidden = picking;
   $('jdw-wel-login-txt').textContent = picking ? 'Ce compte a plusieurs joueurs : qui joue sur cet appareil ?' : 'Tu as déjà joué sur un autre appareil ? Connecte-toi avec ton e-mail ou ton pseudo : on récupère ton joueur, sa tête et son cri.';
   $('jdw-wel-ok').hidden = picking;
-  $('jdw-wel-ok').textContent = WEL.tab === 'login' ? 'Me connecter' : "C'est parti !";
+  $('jdw-wel-ok').textContent = WEL.tab === 'login' ? 'Me connecter' : on && !WEL.uid ? 'Créer mon compte' : "C'est parti !";
   $('jdw-wel-foot').hidden = WEL.tab === 'login';
 }
 function welBusy(on, t) {
@@ -2287,7 +2337,7 @@ async function welcomeOk() {
   if (acct && acct.pending) setTimeout(() => openAcct('confirm'), 900); else afterOnboarding();
 }
 $('jdw-wel-cancel').addEventListener('click', () => {
-  if (!adding) return;
+  if (!adding) { closeSheet('jdw-welcome'); guestSync(); return; }      // invité : il continue à jouer en invité
   profile = adding; adding = null; store.set('jdw.profile', profile);
   closeSheet('jdw-welcome'); refreshAll();
 });
@@ -2363,19 +2413,19 @@ function claimMsg(e, n) {
   if (/nom trop court/.test(m)) return 'Le pseudo doit faire au moins 2 lettres.';
   return 'Le serveur n’a pas pu protéger ' + n + ' : réessaie.';
 }
-// e-mail tapé, ou e-mail du compte d'un pseudo (demandé au serveur, jamais affiché)
-async function acctEmailOf(idf) {
+// e-mail tapé, ou e-mail du compte d'un pseudo : le serveur ne le donne qu'avec le BON mot de passe du compte (login_name, jamais affiché)
+async function acctEmailOf(idf, pass) {
   idf = String(idf || '').trim();
   if (idf.includes('@')) { if (!validEmail(idf)) throw uiErr("Cette adresse e-mail n'est pas valide."); return { email: idf, name: '' }; }
   const n = cleanName(idf); if (n.length < 2) throw uiErr('Tape ton e-mail ou ton pseudo.');
   let e;
-  try { e = await rpc('login_email', { p_code: CODE(), p_name: n }, { anon: true, quiet: true }); }
+  try { e = await rpc('login_name', { p_code: CODE(), p_name: n, p_password: String(pass || '') }, { anon: true, quiet: true }); }
   catch (x) { throw uiErr(/trop d essais/.test(x.message) ? 'Trop d’essais avec ce pseudo : attends quelques minutes.' : x.offline ? 'Pas de connexion internet : réessaie dans un instant.' : 'Le serveur ne répond pas comme prévu : réessaie.'); }
-  if (!e) throw Object.assign(uiErr(n + ' n’a pas de compte. Vérifie le pseudo, ou connecte-toi avec ton e-mail.'), { nouser: true, name: n });
+  if (!e) throw Object.assign(uiErr('Pseudo ou mot de passe incorrect (ou ' + n + ' n’a pas de compte). Tu peux aussi te connecter avec ton e-mail.'), { nouser: true, name: n });
   return { email: e, name: n };
 }
 async function acctLogin(idf, pass) {
-  const who = await acctEmailOf(idf);
+  const who = await acctEmailOf(idf, pass);
   try { return { s: await authPassword(who.email, pass), name: who.name }; }
   catch (e) { throw uiErr(authMsg(e, who.name ? 'login-pseudo' : 'login')); }
 }
@@ -2403,6 +2453,7 @@ function acctSetSess(s) {
   const u = s.user || {}, uid = u.id, old = ACCT.s[uid] || {};
   ACCT.s[uid] = { email: u.email || old.email || '', at: s.access_token, rt: s.refresh_token, exp: Date.now() + (+s.expires_in || 3600) * 1000 };
   store.set('jdw.accts', ACCT.s);
+  rtToken(uid, s.access_token);
   return uid;
 }
 function acctState(pr) {
@@ -2586,7 +2637,7 @@ async function acctStart() {
 
 /* ---- bannière d'accueil + réglages + « Joueurs de mon compte » ---- */
 function acctUi() {
-  acctBar();
+  acctBar(); guestSync();
   if (!$('jdw-welcome').hidden) welAcctUi();
   if (!$('jdw-settings').hidden) renderAcctSet();
 }
@@ -2641,7 +2692,7 @@ async function acctLogout() {
   profiles = profiles.filter(p => !(p.acct && p.acct.uid === uid)); store.set('jdw.profiles', profiles);
   closeSheet('jdw-settings');
   if (profiles.length) switchProfile(profiles[0].pid);
-  else { profile = blankProfile(); store.set('jdw.profile', profile); syncOwnPlayer(); refreshAll(); rtTrack(); startWelcome(); }
+  else { profile = blankProfile(); store.set('jdw.profile', profile); syncOwnPlayer(); refreshAll(); }
   setTimeout(() => toastCheer(gone.join(', ') + (gone.length > 1 ? ' sont déconnectés' : ' est déconnecté') + ' de cet appareil.', profile.name || gone[0], true), 50);
   acctUi();
 }
@@ -2709,15 +2760,15 @@ function openAcct(mode, o) {
   $('jdw-acct-name').value = o.name !== undefined ? o.name : N;
   $('jdw-acct-name-s').textContent = o.name === '' ? 'Choisis un autre pseudo.' : 'C’est bien ton pseudo ? Tu peux encore le changer.';
   // les autres joueurs de l'appareil sans compte : à ajouter au même compte
-  AS.others = mode === 'protect' || mode === 'connect-mine' ? profiles.filter(p => p.name && p.pid !== profile.pid && acctState(p) === 'none').map(p => p.pid) : [];
+  AS.others = mode === 'protect' || mode === 'connect-mine' ? profiles.filter(p => p.name && p.pid !== profile.pid && ['none', 'local'].includes(acctState(p))).map(p => p.pid) : [];
   acctSheetUi();
   const L = $('jdw-acct-links'); L.textContent = '';
   const link = (t, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'link-btn'; b.textContent = t; b.addEventListener('click', () => fn(b)); L.appendChild(b); };
   if (mode === 'protect') {
     link('J’ai déjà un compte : me connecter', () => openAcct('connect-mine', { locked: AS.locked }));
-    link('Pas d’e-mail (un enfant) ? Ce profil reste sur cet appareil, sans compte', b => {
-      if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Sûr ? ' + N + ' ne sera pas protégé (touche encore pour confirmer)'; return; }
-      for (const p of acctObjs()) if (p.pid === AS.pid) p.acctNever = true; saveProfile(); AS.locked = false; closeSheet('jdw-acct'); acctUi(); toastCheer(N + ' reste sur cet appareil, sans compte.', N, true);
+    link('Plus tard : jouer en invité (sans salle ni score enregistré)', b => {
+      if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Sûr ? ' + N + ' jouera en invité : pas de salle, scores non enregistrés (touche encore pour confirmer)'; return; }
+      for (const p of acctObjs()) if (p.pid === AS.pid) p.acctNever = true; saveProfile(); AS.locked = false; closeSheet('jdw-acct'); acctUi(); toastCheer(N + ' joue en invité sur cet appareil.', N, true);
     });
   }
   if (mode === 'connect') link('Ce n’est pas moi : choisir un autre pseudo', () => openAcct('protect', { locked: AS.locked, name: '' }));
@@ -2781,6 +2832,15 @@ async function acctOk() {
   if (mode === 'forgot') {
     acctSetBusy(true, 'Envoi…');
     try {
+      if (!idf.includes('@')) {        // pseudo : le serveur ne donne que l'adresse masquée, on demande de la taper en entier
+        const n = cleanName(idf); let hint = null;
+        try { hint = await rpc('recover_hint', { p_code: CODE(), p_name: n }, { anon: true, quiet: true }); }
+        catch (x) { throw uiErr(/trop d essais/.test(x.message) ? 'Trop d’essais avec ce pseudo : attends quelques minutes.' : 'Le serveur ne répond pas comme prévu : réessaie.'); }
+        if (!hint) throw uiErr(n + ' n’a pas de compte. Vérifie le pseudo, ou tape ton e-mail.');
+        const em = $('jdw-acct-email'); em.value = ''; em.placeholder = hint;
+        acctMsg('Le compte de ' + n + ' utilise l’adresse ' + hint + ' : tape-la en entier pour recevoir le lien.', 'info');
+        acctSetBusy(false); em.focus(); return;
+      }
       const who = await acctEmailOf(idf);
       await authRecover(who.email);
       acctMsg(who.name ? 'C’est envoyé ! Un e-mail part à l’adresse du compte de ' + who.name + ' (regarde aussi les spams).' : 'C’est envoyé ! Si un compte existe pour ' + idf + ', l’e-mail arrive dans une minute (regarde aussi les spams).', 'ok');
@@ -3354,8 +3414,7 @@ let roomsCache = [], pendingRoom = null;
 function roomsStatus(t) { $('jdw-rooms-status').textContent = t || ''; }
 async function listRooms() {
   try {
-    try { roomsCache = await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' }) || []; }
-    catch (e) { if (e.status === 404) roomsCache = await rpc('list_rooms', { p_code: CODE() }) || []; else throw e; }   // ancien serveur
+    roomsCache = await rpc('list_rooms', { p_code: CODE(), p_name: profile.name || '' }) || [];   // seulement les salles de mon compte (source/public.sql)
     serverOk = true; roomsStatus('');
     const cr = room && roomsCache.find(x => x.r_id === room.id);
     if (cr && cr.r_owner && room.owner !== cr.r_owner) { room.owner = cr.r_owner; store.set('jdw.room', room); }
@@ -3368,7 +3427,7 @@ const ICON_USERS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" c
 const ICON_LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 function renderRooms() {
   const wrap = $('jdw-roomlist'); wrap.textContent = '';
-  if (!roomsCache.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = "Aucune salle pour l'instant. Crée la première juste en dessous !"; wrap.appendChild(p); return; }
+  if (!roomsCache.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = "Tu n'es encore dans aucune salle : rejoins celle de ta bande (son nom et son code), ou crée la tienne juste en dessous."; wrap.appendChild(p); return; }
   const list = [...roomsCache].sort((a, b) => (room && b.r_id === room.id) - (room && a.r_id === room.id) || !!b.r_member - !!a.r_member || b.r_online - a.r_online || b.r_members - a.r_members);
   for (const r of list) {
     const cur = room && room.id === r.r_id;
@@ -3393,6 +3452,7 @@ function renderRooms() {
 }
 function openRooms() {
   if (!ONLINE) return;
+  if (isGuest()) { guestAsk('Les salles'); return; }
   if (!profile.name) { startWelcome(); return; }
   roomsStatus('Chargement des salles…'); $('jdw-joinbox').hidden = true; pendingRoom = null;
   openSheet('jdw-rooms'); return listRooms();
@@ -3432,6 +3492,23 @@ function enterRoom(rm) {
   setTimeout(() => poke('players'), 600);
 }
 $('jdw-roombar').addEventListener('click', openRooms);
+// rejoindre une salle par son nom (et son code si elle en a un) : la liste ne montre que les salles du compte
+async function findRoom() {
+  const name = $('jdw-find-name').value.trim().slice(0, 24), code = $('jdw-find-code').value.trim().slice(0, 24).toUpperCase();
+  if (name.length < 2) { roomsStatus('Tape le nom de la salle (demande-le aux copains).'); $('jdw-find-name').focus(); return; }
+  roomsStatus('Recherche de la salle…'); $('jdw-find-ok').disabled = true;
+  try {
+    const r = ((await rpc('find_room', { p_code: CODE(), p_room_name: name })) || [])[0];
+    if (!r) { roomsStatus('Aucune salle ne s’appelle « ' + name + ' ». Vérifie le nom exact avec les copains.'); return; }
+    if (r.r_private && !code && !r.r_member) { askCode(r, 'Cette salle a un code : demande-le au chef de la salle.'); return; }
+    $('jdw-find-name').value = ''; $('jdw-find-code').value = '';
+    await doJoin(r, code || roomCodes[r.r_id] || '');
+  } catch (e) { roomsStatus(/trop d essais/.test(String(e.message)) ? 'Trop d’essais : attends quelques minutes.' : 'Impossible de chercher la salle pour l’instant.'); }
+  finally { $('jdw-find-ok').disabled = false; }
+}
+$('jdw-find-ok').addEventListener('click', findRoom);
+$('jdw-find-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-find-code').focus(); } });
+$('jdw-find-code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); findRoom(); } });
 $('jdw-rooms-close').addEventListener('click', () => closeSheet('jdw-rooms'));
 $('jdw-join-ok').addEventListener('click', () => { const c = $('jdw-join-code').value.trim().toUpperCase(); if (pendingRoom && c) doJoin(pendingRoom, c); });
 $('jdw-join-code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-join-ok').click(); } });
@@ -3519,13 +3596,18 @@ function defaultSeats() {
   return [me, other || GUEST];
 }
 if (!Array.isArray(seats) || seats.length !== 2 || !seats[0]) seats = defaultSeats();
-const seatName = i => (NET.seats ? NET.seats[i] : seats[i]) || GUEST;
+// invité : seulement « invité » (deux fois) ou l'IA en haut, jamais les joueurs de l'appareil ou de la salle (ni tête, ni pseudo)
+const seatName = i => (NET.seats ? NET.seats[i] : isGuest() ? (i === 1 && seats[1] === AI_NAME ? AI_NAME : GUEST) : seats[i]) || GUEST;
+// appareil tactile ? (téléphone, tablette, appli Android, PC à écran tactile) : sinon pas de duel « sur ce téléphone » (à deux sur le même écran)
+// (maxTouchPoints seul ne suffit pas : certains navigateurs d'ordinateur en annoncent sans écran tactile ; on le croit si la souris n'est pas le pointeur principal)
+const TOUCH = (() => { try { return /BorneArcade/.test(navigator.userAgent) || matchMedia('(pointer: coarse)').matches || matchMedia('(any-pointer: coarse)').matches || ((navigator.maxTouchPoints || 0) > 0 && !matchMedia('(pointer: fine)').matches); } catch (e) { return true; } })();
 const sameSeats = () => seatName(0) === seatName(1);
 function seatPlayer(i) {
   if (seatName(i) === AI_NAME) ensureAiPlayer();
   const name = seatName(i), rec = name === GUEST ? null : players.get(name);
   if (name === AI_NAME) { const ok = !!(rec && rec.img && rec.img.complete && rec.img.naturalWidth); return { name: AI_NAME, img: ok ? rec.img : null, sad: ok ? (sadOf(rec) || rec.img) : null, color: DUO_COLORS[i], ai: true }; }
   const ok = !!(rec && rec.img && rec.img.complete && rec.img.naturalWidth);
+  if (name === GUEST && isGuest()) return { name: i === 0 ? 'TOI' : 'COPAIN', img: null, sad: null, color: DUO_COLORS[i] };   // invité : noms courts, pas de tête
   return { name: name === GUEST && sameSeats() ? GUEST + ' ' + (i + 1) : name, img: ok ? rec.img : null, sad: ok ? (sadOf(rec) || rec.img) : null, color: DUO_COLORS[i] };
 }
 // victoires par paire de joueurs et par duel (sur cet appareil)
@@ -3561,9 +3643,11 @@ function openSeatPick(i) {
   const seen = new Set(), rows = [];
   const add = (n, tag) => { n = cleanName(n); if (!n || n === GUEST || seen.has(n)) return; seen.add(n); rows.push([n, tag]); };
   if (i === 1) { ensureAiPlayer(); rows.push([AI_NAME, 'l\'ordinateur joue contre toi · facile à extrême']); }   // l'IA joue en haut
-  for (const p of profiles) add(p.name, 'sur ce téléphone');
-  for (const p of [...players.values()].filter(p => p.member).sort((a, b) => a.name.localeCompare(b.name))) add(p.name, room ? 'de la salle' : '');
-  rows.push([GUEST, 'un copain sans compte']);
+  if (!isGuest()) {
+    for (const p of profiles) add(p.name, 'sur ce téléphone');
+    for (const p of [...players.values()].filter(p => p.member).sort((a, b) => a.name.localeCompare(b.name))) add(p.name, room ? 'de la salle' : '');
+  }
+  rows.push([GUEST, isGuest() ? (i === 0 ? 'toi' : 'un copain à côté de toi') : 'un copain sans compte']);
   for (const [n, tag] of rows) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'pick-row' + (seatName(i) === n ? ' on' : '');
     const t = document.createElement('span'); t.className = 'pr-t';
@@ -3585,14 +3669,26 @@ $('jdw-seat-1').addEventListener('click', () => openSeatPick(1));
 $('jdw-seat-swap').addEventListener('click', () => { if (seats[1] === AI_NAME || seats[0] === AI_NAME) return; seats = [seats[1], seats[0]]; store.set('jdw.seats', seats); renderSeats(); });   // l'IA reste en haut
 $('jdw-seatpick-close').addEventListener('click', () => closeSheet('jdw-seatpick'));
 $('jdw-seatpick').addEventListener('click', e => { if (e.target === $('jdw-seatpick')) closeSheet('jdw-seatpick'); });
-let DUEL_WHERE = 'local';
+let DUEL_WHERE = TOUCH ? 'local' : 'online';
 function setDuelWhere(w) {
+  if (!TOUCH) w = 'online';            // ordinateur : on ne joue pas à deux sur le même écran
   DUEL_WHERE = w;
+  const pc = $('jdw-duel-pc'); if (pc) {
+    pc.hidden = TOUCH && !(w === 'online' && isGuest());
+    $('jdw-duel-pc-t').textContent = !TOUCH ? 'Sur ordinateur : défie un copain en ligne' : 'Le duel en ligne demande un compte';
+    $('jdw-duel-pc-s').textContent = isGuest() ? 'Chacun sur son appareil : crée ton compte (gratuit) pour défier tes copains.' : 'Les duels à deux sur le même écran se jouent sur un téléphone ou une tablette, posés à plat.';
+    $('jdw-duel-pc-go').hidden = !isGuest();
+  }
+  $('jdw-page-duel').classList.toggle('no-touch', !TOUCH);
+  $('jdw-page-duel').classList.toggle('guest-online', w === 'online' && isGuest());
   for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.setAttribute('aria-selected', String(b.dataset.where === w));
   $('jdw-duel-local').hidden = w !== 'local'; $('jdw-duel-online').hidden = w !== 'online';
   if (duoTiles.length) refreshDuoTiles();
 }
-for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.addEventListener('click', () => setDuelWhere(b.dataset.where));
+for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.addEventListener('click', () => { if (!TOUCH && b.dataset.where === 'local') { toastCheer('Sur ordinateur, les duels se jouent en ligne : à deux sur le même écran, prends un téléphone ou une tablette.', profile.name, true); return; } setDuelWhere(b.dataset.where); });
+$('jdw-duel-pc-go').addEventListener('click', () => guestAsk('Duel en ligne'));
+for (const b of document.querySelectorAll('#jdw-duel-switch button')) if (!TOUCH && b.dataset.where === 'local') { b.setAttribute('aria-disabled', 'true'); b.classList.add('off'); b.title = 'Sur ordinateur : défie un copain en ligne'; }
+setTimeout(() => setDuelWhere(DUEL_WHERE), 0);
 // tuiles des duels (vignette animée + score de la paire)
 const duoTiles = [];
 function buildDuoLibrary() {
@@ -3605,7 +3701,7 @@ function buildDuoLibrary() {
     b.querySelector('.tile-name').textContent = d.title;
     b.querySelector('.duo-emoji').textContent = d.emoji || '⚔️';
     b.addEventListener('click', () => {
-      if (DUEL_WHERE === 'online') { if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } netCreate(d); return; }
+      if (DUEL_WHERE === 'online') { if (guestBlocks()) { guestAsk('Duel en ligne'); return; } if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } netCreate(d); return; }
       if (aiBlocks(d)) { ensureAiPlayer(); toastCheer('Je ne sais pas encore jouer à ce jeu !', AI_NAME, true); return; }
       openDuo(d);
     });
@@ -3621,12 +3717,13 @@ function buildDuoLibrary() {
 }
 // contre l'IA : seuls les jeux qui savent la faire jouer (ai: true dans le module) ; les autres restent grisés
 const aiBlocks = d => DUEL_WHERE !== 'online' && seatName(1) === AI_NAME && !d.ai;
+const guestBlocks = () => DUEL_WHERE === 'online' && isGuest();      // duel en ligne : compte requis
 // en ligne : seuls les jeux qui ont leur vrai jeu en ligne (net: true, chacun fait tourner la partie) ; pas de vidéo
 const netBlocks = d => DUEL_WHERE === 'online' && !d.net;
 function refreshDuoTiles() {
   for (const t of duoTiles) {
-    const w = pairWins(t.g.id), noNet = netBlocks(t.g), off = noNet || aiBlocks(t.g);
-    t.tag.textContent = noNet ? 'Bientôt en ligne' : off ? 'Bientôt contre l\'IA' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
+    const w = pairWins(t.g.id), noNet = netBlocks(t.g), gb = guestBlocks(), off = noNet || gb || aiBlocks(t.g);
+    t.tag.textContent = noNet ? 'Bientôt en ligne' : gb ? 'En ligne avec un compte' : off ? 'Bientôt contre l\'IA' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
     t.tag.classList.toggle('tally', !off && !!(w[0] + w[1]) && !sameSeats());
     t.el.classList.toggle('no-ai', off); t.el.setAttribute('aria-disabled', String(off));
   }
@@ -4141,8 +4238,10 @@ function cmpRowStatus(m) {
 }
 function renderCompet() {
   if (MODE !== 'compet') return;
-  const v = cmpSync(), noRoom = !ONLINE || !room;
+  const v = cmpSync(), noRoom = !ONLINE || !room, gst = isGuest();
   $('jdw-cmp-none').hidden = !noRoom;
+  $('jdw-cmp-none').querySelector('p').textContent = gst ? 'La compétition se joue en direct avec les copains de ta salle : crée ton compte pour y participer.' : 'La compétition se joue en direct avec les copains de ta salle.';
+  $('jdw-cmp-room').textContent = gst ? 'Créer mon compte' : 'Choisir une salle';
   const ph = v ? cmpPhase() : 'lobby', ended = !!v && CMP.id !== v.id && cmpFinished(v);
   $('jdw-cmp-idle').hidden = noRoom || (!!v && !ended);
   $('jdw-cmp-card').hidden = noRoom || !v;
@@ -4240,7 +4339,7 @@ function renderCmpGames() {
   } else cmpTiles.forEach(t => { t.visible = true; });
 }
 const cmpTiles = [];   // vignettes animées des jeux à lancer en compétition
-$('jdw-cmp-room').addEventListener('click', () => openRooms());
+$('jdw-cmp-room').addEventListener('click', () => { if (isGuest()) guestAsk('Compétition'); else openRooms(); });
 // ---------- pendant la partie : la colonne des concurrents ----------
 function renderCmpSide() {
   const side = $('jdw-cmp-side'); if (side.hidden) return;
@@ -4410,6 +4509,7 @@ function rtcOnSignal(p) {
 }
 // ---------- côté spectateur ----------
 function watchStart(name, game) {
+  if (isGuest()) return;
   const cid = presCid(name, game); if (!cid || !window.RTCPeerConnection) { toastCheer('Impossible de regarder ' + name + ' pour le moment.', name, true); return; }
   watchStop(true);
   Audio.ensure();
@@ -4576,6 +4676,7 @@ function netEnd(notify, msg) {
 }
 // ---------- l'hôte : lancer le défi, inviter ----------
 function netCreate(d) {
+  if (isGuest()) { guestAsk('Duel en ligne'); return; }
   loadTurn();
   if (!profile.name) { startWelcome(); return; }
   if (!ONLINE || !window.RTCPeerConnection) { toastCheer('Le duel en ligne demande une connexion internet.', profile.name, true); return; }
@@ -4890,6 +4991,7 @@ function netGuestPauseCard() {
   let code = ''; try { code = new URLSearchParams(location.search).get('duel') || ''; } catch (e) {}
   if (!/^[a-z0-9]{4,12}$/.test(code)) return;
   try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  if (isGuest()) { setTimeout(() => guestAsk('Duel en ligne'), 1200); return; }
   setTimeout(() => {
     netInvite = { code, g: '', from: '' };
     const hd = $('jdw-netinv-head'); hd.textContent = ''; hd.textContent = '⚔️';
@@ -4949,8 +5051,10 @@ const LANDSCAPE = new Set(['pleingaz', 'canards', 'rouleaux']);
 const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 900px)');
 let waitRotate = null;
 function openGame(g) {
-  if (!profile.name) { startWelcome(); return; }
-  if (ONLINE && !room) { openRooms(); return; }
+  if (!isGuest()) {                    // invité : il joue tout de suite (score non enregistré)
+    if (!profile.name) { startWelcome(); return; }
+    if (ONLINE && !room) { openRooms(); return; }
+  }
   markGameSeen(g.id);
   Audio.ensure();
   $('jdw-lib').hidden = true; $('jdw-play').hidden = false;
@@ -5034,7 +5138,7 @@ function recReset() { REC.leader = ''; REC.score = -1; REC.passed = ''; REC.flas
 function recLine() {
   const el = $('jdw-recline');
   if ((CMP.playing || CMP.practice) && current && !$('jdw-play').hidden) { cmpLine(el); return; }
-  if (!current || $('jdw-play').hidden || !$('jdw-end').hidden) { el.hidden = true; return; }
+  if (!current || $('jdw-play').hidden || !$('jdw-end').hidden || isGuest()) { el.hidden = true; return; }   // invité : pas de classement
   const g = current.game, me = cleanName(profile.name), lead = top(g.id)[0], u = unit(g);
   let cur = 0;
   try { if (!current.over && current.inst && current.inst.currentScore) cur = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
@@ -5120,7 +5224,7 @@ const LV_WORD = { ilo: 'Secteur', mouches: 'Vague' };
 function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
   let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
-  if (!(lv >= 1) || current.mode === 'compet') return;
+  if (!(lv >= 1) || current.mode === 'compet' || isGuest()) return;
   // record d'avant la partie (pendant la partie, progTick garde déjà chaque nouveau niveau sur l'appareil)
   const best = current.lvBase != null && cleanName(profile.name) === me ? current.lvBase : lvBest(me, g.id);
   const had = lvBest(me, g.id);
@@ -5188,9 +5292,11 @@ async function showEnd(score) {
       setTimeout(() => { if (!$('jdw-end').hidden) playCri(crier, $('jdw-beat-img')); }, 450);
     }
   }
-  const st = $('jdw-status'), record = score > 0 && score > myBest;
-  pending = score > 0 ? { game: g.id, score, record, done: false } : null;
-  if (record) st.textContent = 'Nouveau record ! Enregistrement en ligne…';
+  const st = $('jdw-status'), record = score > 0 && score > myBest && !isGuest();
+  $('jdw-end-guest').hidden = !isGuest();
+  pending = score > 0 && !isGuest() ? { game: g.id, score, record, done: false } : null;
+  if (isGuest()) st.textContent = score > 0 ? 'Joli score ! En invité, il n’est pas enregistré.' : 'Pas de points cette fois. Retente ta chance !';
+  else if (record) st.textContent = 'Nouveau record ! Enregistrement en ligne…';
   else st.textContent = myBest ? 'Ton record : ' + fmt(myBest) + unit(g) + '. Encore un effort !' : 'Pas de points cette fois. Retente ta chance !';
   if (pending && !record) buildWho(false); else $('jdw-who').hidden = true;
   $('jdw-end').hidden = false;
@@ -5201,6 +5307,8 @@ async function showEnd(score) {
 }
 function renderEndBoard(g, me) {
   const ol = $('jdw-endboard'); ol.textContent = '';
+  ol.hidden = isGuest();                // invité : pas de classement (scores non enregistrés)
+  if (ol.hidden) return;
   const rows = top(g.id).slice(0, 5);
   if (!rows.length) return emptyRow(ol);
   for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me)); }
@@ -5209,11 +5317,10 @@ function renderEndBoard(g, me) {
 /* ================= Inviter (tous les membres peuvent inviter) ================= */
 $('jdw-invite').addEventListener('click', async () => {
   if (!room) { openRooms(); return; }
-  const site = location.origin + location.pathname.replace(/[^/]*$/, '');
+  const site = new URL(ROOT || './', location.href).href;          // la page d'accueil publique
   const code = roomCodes[room.id];
   const txt = 'Viens jouer avec moi sur la Borne d\'arcade entre amis 🎮\n' + site +
-    '\nMot de passe du site : ' + (CODE() || '(demande-le moi)') +
-    '\nSalle : ' + room.name + (code ? '\nCode de la salle : ' + code : '');
+    '\nCrée ton compte (gratuit), puis « Rejoindre une salle » :\nSalle : ' + room.name + (code ? '\nCode de la salle : ' + code : '');
   try { if (navigator.share) { await navigator.share({ title: 'Borne d\'arcade', text: txt }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   let ok = false;
   try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {
@@ -5419,6 +5526,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 function mapEl(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; if (parent) parent.appendChild(e); return e; }
 function openMap(gid, opener) {
   const def = MAP_DEFS[gid], g = gameById(gid); if (!def || !g) return;
+  if (isGuest()) { guestAsk('Les salles'); return; }
   clearTimeout(MAP.closing); MAP.closing = 0;
   MAP.open = true; MAP.gid = gid; MAP.def = def; MAP.opener = opener || null; MAP.heads = new Map(); MAP.auto = true;
   const box = $('jdw-map');
@@ -6131,21 +6239,121 @@ setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou 
   setTimeout(() => { refreshBell(); toastCheer('✨ Mise à jour ' + (window.JDW_VERSION || '') + ' installée !', profile.name, true); }, 1800);
 })();
 
+
+/* ================= Invité (site public, sans compte) ================= */
+// Un visiteur joue tout de suite : jeux solo, duels sur l'appareil ou contre l'IA. Le reste (scores, salles, chat, duel en ligne,
+// compétition, regarder, pseudo, tête, cri) demande un compte : bandeau « Crée ton compte », fenêtre jdw-guestask.
+let guestWas = null;
+function guestSync() {
+  const g = isGuest();
+  $('jdw-lib').classList.toggle('guest', g); document.body.classList.toggle('jdw-guest', g);
+  guestBar();
+  if (g === guestWas) return;
+  const first = guestWas === null; guestWas = g;
+  if (g) {
+    const t = roomTopic(); room = null; if (t) RT.topics.delete(t);       // la salle reste retenue sur l'appareil (jdw.room)
+    rtClose(); RT.topics.clear();
+    players.clear(); memberNames = new Set(); membersFor = null; remote = {}; remoteLoaded = false; counts = {}; total = 0;
+    ensureAiPlayer();
+    if (!first) { try { chatReset(); closeChat(); } catch (e) {} }
+  } else {
+    syncOwnPlayer();
+    const saved = store.get('jdw.room', null);
+    if (!first && !room && saved && saved.id != null) enterRoom(saved);
+    RT.topics.add('jdw-all'); if (room) RT.topics.add('jdw-room-' + room.id);
+    if (RT.ws && RT.uid && profile.acct && profile.acct.uid !== RT.uid) rtClose();   // autre compte : autre jeton
+    rtConnect();
+  }
+  if (first) return;
+  refreshAll(); refreshChatBtn(); refreshBell();
+  if (MODE === 'duel') renderSeats(); else if (MODE === 'compet') renderCompet();
+  setDuelWhere(DUEL_WHERE);
+}
+// joueur « sans compte » de l'appareil (enfant) et compte connecté sur l'appareil : on peut l'y rattacher (un compte = plusieurs joueurs)
+function guestKidUid() {
+  if (!profile.name || !ONLINE || !ACCT.ready) return '';
+  const st = acctState(profile); if (st !== 'local' && st !== 'none') return '';
+  return acctUids()[0] || '';
+}
+function guestBar() {
+  const bar = $('jdw-guestbar'); if (!bar) return;
+  const st = ONLINE && ACCT.ready ? acctState(profile) : 'off';
+  const show = isGuest() && st !== 'pending';          // e-mail à confirmer : c'est la bannière du compte qui parle
+  bar.hidden = !show; if (!show) return;
+  const kid = guestKidUid(), N = cleanName(profile.name);
+  bar.dataset.kind = kid ? 'kid' : st === 'need' ? 'need' : 'new';
+  $('jdw-guestbar-t').textContent = kid ? N + ' n’a pas encore de compte' : st === 'need' ? N + ' a un compte' : 'Tu joues en invité';
+  $('jdw-guestbar-s').textContent = kid ? 'Ajoute-le au compte de ' + acctLabel(kid) + ' : ses scores seront enregistrés et il rejoindra la salle.'
+    : st === 'need' ? 'Connecte-toi pour enregistrer tes scores et retrouver tes copains.'
+    : 'Crée ton compte pour enregistrer tes scores et rejoindre tes copains.';
+  $('jdw-guest-new').textContent = kid ? 'Ajouter ' + N + ' au compte' : st === 'need' ? '🔑 Me connecter' : 'Créer un compte';
+  $('jdw-guest-login').textContent = kid || st === 'need' ? 'Changer de joueur' : 'J’ai déjà un compte';
+}
+function guestCreate() {
+  closeSheet('jdw-guestask');
+  if (profile.name) { adding = profile; profile = blankProfile(); }
+  startWelcome();
+}
+function guestLogin() {
+  closeSheet('jdw-guestask');
+  if (profile.name) { adding = profile; profile = blankProfile(); }
+  startWelcome(); welTab('login');
+  setTimeout(() => $('jdw-wel-lemail').focus(), 40);
+}
+async function guestAttachKid() {
+  const uid = guestKidUid(), N = cleanName(profile.name), pid = profile.pid; if (!uid) return;
+  const b = $('jdw-guest-new'); b.disabled = true;
+  try {
+    const tok = await tokenFor(uid); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
+    await rpc('claim_name', { p_code: CODE(), p_name: N }, { token: tok });
+    acctPut(pid, { uid }); acctUi(); pushProfile(); maybeAskJoin();
+    toastCheer('🔒 ' + N + ' est sur le compte de ' + acctLabel(uid) + ' !', N, true);
+  } catch (e) { toastCheer(e.status === 401 ? 'La connexion du compte a expiré : reconnecte-toi.' : claimMsg(e, N), N, true); }
+  b.disabled = false;
+}
+$('jdw-guest-new').addEventListener('click', () => {
+  const kind = $('jdw-guestbar').dataset.kind;
+  if (kind === 'kid') guestAttachKid(); else if (kind === 'need') openAcct('connect'); else guestCreate();
+});
+$('jdw-guest-login').addEventListener('click', () => { const kind = $('jdw-guestbar').dataset.kind; if (kind === 'kid' || kind === 'need') openProfiles(); else guestLogin(); });
+// une fonction réservée aux comptes touchée par un invité : petite fenêtre qui explique
+const GUEST_WHY = {
+  'Les salles': 'Une salle, c’est ta bande : classement commun, chat, têtes et cris des copains.',
+  'Duel en ligne': 'Défie un copain sur son téléphone, chacun chez soi.',
+  'Compétition': 'Toute la salle sur le même jeu, en direct : que le meilleur gagne !',
+  'Ton joueur': 'Ton pseudo, ta tête détourée et ton cri, dans tous les jeux.',
+  'Le classement': 'Tes records enregistrés, le classement de ta salle et le classement mondial.'
+};
+function guestAsk(what) {
+  $('jdw-guestask-h').textContent = what || 'Avec un compte';
+  $('jdw-guestask-s').textContent = (GUEST_WHY[what] ? GUEST_WHY[what] + ' ' : '') + 'Crée ton compte (gratuit) : tes scores sont enregistrés et tu rejoins tes copains.';
+  openSheet('jdw-guestask', 'jdw-guestask-new');
+}
+$('jdw-guestask-new').addEventListener('click', guestCreate);
+$('jdw-guestask-login').addEventListener('click', guestLogin);
+$('jdw-guestask-close').addEventListener('click', () => closeSheet('jdw-guestask'));
+$('jdw-guestask').addEventListener('click', e => { if (e.target === $('jdw-guestask')) closeSheet('jdw-guestask'); });
+$('jdw-end-guest-new').addEventListener('click', () => { backToLibrary(); guestCreate(); });
+$('jdw-end-guest-login').addEventListener('click', () => { backToLibrary(); guestLogin(); });
+
 /* ================= Démarrage ================= */
-['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
+['jdw-guestask', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
 $('jdw-lib').hidden = false;
+if (isGuest()) room = null;      // la salle reste retenue sur l'appareil (jdw.room) : elle revient avec le compte
 syncOwnPlayer();
 buildLibrary(); buildDuoLibrary(); buildTabs(); syncMute(); refreshAll(); setMode(MODE);
 requestAnimationFrame(previewLoop);
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }
-if (!profile.name) startWelcome(); else if (ONLINE && !room) openRooms();
+for (const a of document.querySelectorAll('[data-root-href]')) a.setAttribute('href', ROOT + a.dataset.rootHref);   // borne publiée dans jouer/
+guestSync();                    // invité : pas de salle, bandeau « Crée ton compte »
+if (ONLINE && !isGuest() && !room) openRooms();
 acctBar(); acctStart();         // comptes : bannière « Protège ton compte », lien reçu par e-mail, jetons rafraîchis
 loadPlayers(); loadScores(); heartbeat(); loadChat(); setTimeout(progLoad, 1500);
 setTimeout(pushRoomLook, 2500);    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)
-if (ONLINE) { rtJoin('jdw-all'); if (room) rtJoin('jdw-room-' + room.id); rtConnect(); }
+if (ONLINE && !isGuest()) { RT.topics.add('jdw-all'); if (room) RT.topics.add('jdw-room-' + room.id); rtConnect(); }   // joints à l'ouverture (jeton prêt)
 setTimeout(checkSiteVersion, 4000);
 // les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)
-setTimeout(() => { if (CODE()) for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
+setTimeout(() => { for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
 window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api, cmp: () => CMP };   // diagnostic (tests)
 })();

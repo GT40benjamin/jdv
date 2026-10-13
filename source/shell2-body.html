@@ -28,6 +28,11 @@
     </button>
     </div>
     <h1 class="lib-title">Borne d'arcade <span class="plaque">entre amis</span></h1>
+    <div class="guest-bar" id="jdw-guestbar" data-kind="new" hidden>
+      <span class="gb-orb" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 21v-1a6 6 0 0 1 12 0v1"/><circle cx="12" cy="8" r="4"/><path d="M19 3l.7 1.6L21.3 5l-1.6.7L19 7.3l-.7-1.6L16.7 5l1.6-.7z"/></svg></span>
+      <div class="gb-tx"><b id="jdw-guestbar-t">Tu joues en invité</b><span id="jdw-guestbar-s">Crée ton compte pour enregistrer tes scores et rejoindre tes copains.</span></div>
+      <div class="gb-btns"><button class="btn btn-play btn-sm" id="jdw-guest-new" type="button">Créer un compte</button><button class="btn btn-ghost btn-sm" id="jdw-guest-login" type="button">J’ai déjà un compte</button></div>
+    </div>
     <div class="acct-bar" id="jdw-acctbar" data-state="none" hidden>
       <button class="acct-bar-go" id="jdw-acctbar-go" type="button">
         <span class="acct-bar-ic" id="jdw-acctbar-ic" aria-hidden="true">🔒</span>
@@ -37,7 +42,7 @@
       <button class="acct-bar-x" id="jdw-acctbar-x" type="button" aria-label="Plus tard">✕</button>
     </div>
     <button class="update-bar" id="jdw-siteupd" type="button" hidden><b>Nouvelle version du site</b><span>Touche ici pour l'avoir tout de suite</span></button>
-    <a class="update-bar" id="jdw-update" href="telecharger/" hidden><b>Nouvelle version de l'appli</b><span id="jdw-update-txt">Touchez pour la télécharger</span></a>
+    <a class="update-bar" id="jdw-update" href="telecharger/" data-root-href="telecharger/" hidden><b>Nouvelle version de l'appli</b><span id="jdw-update-txt">Touchez pour la télécharger</span></a>
     <header class="mode-hero" id="jdw-mode-hero">
       <span class="mh-ic" id="jdw-mh-ic" aria-hidden="true"></span>
       <div class="mh-tx"><h1 id="jdw-mh-title"></h1><p id="jdw-mh-sub"></p></div>
@@ -62,6 +67,11 @@
         </div>
       </div>
       <div class="duel-online" id="jdw-duel-online" hidden></div>
+      <div class="duel-pc" id="jdw-duel-pc" hidden>
+        <span class="dp-ic" aria-hidden="true">🌐</span>
+        <div class="dp-tx"><b id="jdw-duel-pc-t">Sur ordinateur : défie un copain en ligne</b><span id="jdw-duel-pc-s"></span></div>
+        <button class="btn btn-play btn-sm" id="jdw-duel-pc-go" type="button" hidden>Créer un compte</button>
+      </div>
       <p class="eyebrow grid-h">Choisis le duel</p>
       <section class="grid duo-grid" id="jdw-duo-grid" aria-label="Jeux de duel"></section>
     </section>
@@ -141,6 +151,10 @@
           <button class="taunt" id="jdw-taunt" type="button" hidden><span class="taunt-head" id="jdw-taunt-head"></span><span class="taunt-txt"><b id="jdw-taunt-name"></b><span id="jdw-taunt-say"></span></span><span class="taunt-play" aria-hidden="true">🔊</span></button>
           <div class="beat" id="jdw-beat" hidden><img id="jdw-beat-img" alt=""><p id="jdw-beat-txt"></p></div>
           <p class="small" id="jdw-status"></p>
+          <div class="end-guest" id="jdw-end-guest" hidden>
+            <p><b>Garde tes records !</b> Crée ton compte (gratuit) pour enregistrer tes scores et défier tes copains au classement.</p>
+            <div class="row"><button class="btn btn-play btn-sm" id="jdw-end-guest-new" type="button">Créer un compte</button><button class="btn btn-ghost btn-sm" id="jdw-end-guest-login" type="button">J’ai déjà un compte</button></div>
+          </div>
           <div class="who" id="jdw-who" hidden>
             <p class="small" id="jdw-who-q">Enregistrer ce score pour :</p>
             <div class="who-list" id="jdw-who-list"></div>
@@ -372,13 +386,38 @@
   </div>
 </div>
 
+<!-- Invité : fonction réservée aux comptes -->
+<div class="sheet" id="jdw-guestask" hidden>
+  <div class="card guestask-card" role="dialog" aria-modal="true" aria-labelledby="jdw-guestask-h">
+    <div class="card-body">
+      <div class="ga-top"><span class="ga-orb" aria-hidden="true">🔒</span><button class="btn btn-ghost btn-sm" id="jdw-guestask-close" type="button">Fermer</button></div>
+      <p class="eyebrow">Avec un compte</p>
+      <h2 id="jdw-guestask-h" class="wel-h">Les salles</h2>
+      <p class="small" id="jdw-guestask-s"></p>
+      <ul class="ga-list">
+        <li><b>🏆</b><span>Tes scores enregistrés, au classement de ta salle et au mondial</span></li>
+        <li><b>👥</b><span>Tes copains : salles, chat, duels en ligne, compétitions</span></li>
+        <li><b>😎</b><span>Ton pseudo, ta tête et ton cri dans tous les jeux</span></li>
+      </ul>
+      <button class="btn btn-play" id="jdw-guestask-new" type="button">Créer un compte</button>
+      <button class="btn btn-ghost" id="jdw-guestask-login" type="button">J’ai déjà un compte</button>
+    </div>
+  </div>
+</div>
+
 <!-- Salles -->
 <div class="sheet" id="jdw-rooms" hidden>
   <div class="card board-card" role="dialog" aria-modal="true" aria-labelledby="jdw-rooms-h">
     <div class="card-body">
       <div class="card-head"><h2 id="jdw-rooms-h">Les salles</h2><button class="btn btn-ghost btn-sm" id="jdw-rooms-close" type="button">Fermer</button></div>
-      <p class="small">Rejoins la salle de ta bande, ou crée la tienne. Chaque salle a ses joueurs, ses têtes et ses classements.</p>
+      <p class="small">Tes salles. Chaque salle a ses joueurs, ses têtes et ses classements.</p>
       <div class="room-list" id="jdw-roomlist"></div>
+      <div class="find-box">
+        <p class="eyebrow">Rejoindre une salle</p>
+        <p class="small">Demande aux copains le nom exact de leur salle (et son code, si elle en a un).</p>
+        <input class="input" id="jdw-find-name" type="text" maxlength="24" placeholder="NOM DE LA SALLE" autocomplete="off" spellcheck="false" enterkeyhint="next">
+        <div class="row"><input class="input" id="jdw-find-code" type="text" maxlength="24" placeholder="CODE (S'IL Y EN A UN)" autocomplete="off" spellcheck="false" enterkeyhint="go" style="flex:1 1 160px"><button class="btn btn-play" id="jdw-find-ok" type="button" style="flex:0 0 auto">Rejoindre</button></div>
+      </div>
       <div class="join-box" id="jdw-joinbox" hidden>
         <p class="lead" id="jdw-join-title">Salle privée</p>
         <div class="row"><input class="input" id="jdw-join-code" type="text" maxlength="24" placeholder="CODE DE LA SALLE" autocomplete="off" spellcheck="false" enterkeyhint="go" style="flex:1 1 160px"><button class="btn btn-play" id="jdw-join-ok" type="button" style="flex:0 0 auto">Entrer</button></div>
@@ -399,6 +438,10 @@
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-set-h">
     <div class="card-body">
       <div class="card-head"><h2 id="jdw-set-h">Paramètres</h2><button class="btn btn-ghost btn-sm" id="jdw-set-close" type="button">Fermer</button></div>
+      <div class="set-guest" id="jdw-set-guest" hidden>
+        <p><b>Tu joues en invité.</b> Ton pseudo, ta tête et ton cri arrivent avec ton compte (gratuit).</p>
+        <div class="row"><button class="btn btn-play btn-sm" id="jdw-set-guest-new" type="button">Créer un compte</button><button class="btn btn-ghost btn-sm" id="jdw-set-guest-login" type="button">J’ai déjà un compte</button></div>
+      </div>
       <div class="me-big"><span class="look-av"><span class="avatar" id="jdw-set-av"></span><span class="look-tag" id="jdw-look-tag" hidden>🏠</span></span><div class="field" style="flex:1 1 auto;min-width:0">
         <label for="jdw-set-name">Ton nom</label>
         <input class="input" id="jdw-set-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" enterkeyhint="done">
@@ -422,12 +465,12 @@
           <small class="alias-s" id="jdw-alias-s">Les copains de cette salle te verront sous ce nom. Vide : ton pseudo principal.</small>
         </div>
       </div>
-      <div class="row">
+      <div class="row set-me">
         <button class="btn btn-ghost btn-sm" id="jdw-set-edit" type="button" hidden>✨ Modifier ma tête</button>
         <button class="btn btn-ghost btn-sm" id="jdw-set-photo" type="button">Prendre une photo</button>
         <button class="btn btn-ghost btn-sm" id="jdw-set-delphoto" type="button">Retirer ma tête</button>
       </div>
-      <div class="row">
+      <div class="row set-me">
         <button class="btn btn-ghost btn-sm" id="jdw-set-cri" type="button">🎙️ Enregistrer mon cri</button>
         <button class="btn btn-ghost btn-sm" id="jdw-set-cri-play" type="button" hidden>▶ Mon cri</button>
       </div>

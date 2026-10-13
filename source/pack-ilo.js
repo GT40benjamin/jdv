@@ -1,6 +1,6 @@
 // Prépare les images du jeu « ILO Hyperespace » à partir du projet Unity ILO (packs de l'Asset Store) :
-// redimensionne, compresse en WebP, puis CHIFFRE le paquet avec le mot de passe du site (licence : jamais d'images en clair dans le dépôt public).
-//   ARCADE_CODE=… node pack-ilo.js [dossier_test]
+// redimensionne, compresse en WebP, puis EMBALLE (chiffre) le paquet avec la clé intégrée au site, source/asset-key.txt (licence : jamais d'images en clair, lisibles directement, dans le dépôt public).
+//   node pack-ilo.js [dossier_test]
 // Sortie : ../assets/ilo.bin (chiffré, publié) ; si dossier_test est donné, les WebP en clair y sont aussi écrits (tests locaux, hors dépôt).
 // Format de ilo.bin : sel(16) + iv(12) + AES-GCM( [taille de l'en-tête sur 4 octets][en-tête JSON][WebP concaténés] ), clé PBKDF2-SHA256 200 000 tours.
 const fs = require('fs'), path = require('path'), { webcrypto } = require('crypto'); const subtle = webcrypto.subtle;
@@ -12,7 +12,7 @@ const items = [
   ...NEBULAS.map(f => ({ kind: 'nebulas', src: ILO + '/SpaceFusion/Shared/Skybox/Skybox Galaxy 2/Textures/' + f, size: 768, q: 0.72 }))
 ];
 (async () => {
-  const pw = process.env.ARCADE_CODE; if (!pw) { console.error('Définis ARCADE_CODE'); process.exit(1); }
+  const pw = fs.readFileSync(path.join(__dirname, 'asset-key.txt'), 'utf8').trim();   // clé d'emballage intégrée au site (pas un secret)
   const testDir = process.argv[2];
   const { chromium } = require(process.env.PLAYWRIGHT || 'C:/Users/Benjamin/jdv-tools/node_modules/playwright-core');
   const b = await chromium.launch({ executablePath: process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe', args: ['--allow-file-access-from-files'] });

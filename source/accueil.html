@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<script>
+// Appli Android, appli installée (PWA), lien avec paramètres (?v=…, ?duel=…) ou retour de connexion (#access_token=…) : direct à la borne.
+(function () {
+  try {
+    var l = location, s = l.search || '', h = l.hash || '', ua = navigator.userAgent || '';
+    var mm = function (q) { return window.matchMedia && matchMedia(q).matches; };
+    var app = !!window.BorneApp || ua.indexOf('BorneArcade') >= 0;
+    var pwa = mm('(display-mode: standalone)') || mm('(display-mode: fullscreen)') || navigator.standalone === true;
+    var auth = /(access_token=|error_description=|error_code=|type=recovery)/.test(h);
+    if (app || pwa || s.length > 1 || auth) {
+      document.documentElement.style.visibility = 'hidden';
+      l.replace('jouer/' + s + h);
+    }
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Borne d'arcade entre amis · 15 jeux gratuits à plusieurs</title>
+<meta name="description" content="15 jeux d'arcade gratuits pour jouer entre copains et en famille : 7 jeux solo, 8 duels sur le même téléphone, contre l'IA ou en ligne, compétitions et salles entre amis.">
+<meta name="theme-color" content="#0b141c">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="Borne d'arcade entre amis">
+<meta property="og:title" content="Borne d'arcade entre amis">
+<meta property="og:description" content="15 jeux gratuits, en solo ou en duel, sur ton téléphone ou ton PC. Joue tout de suite, ou crée ta salle avec tes copains.">
+<meta property="og:url" content="https://gt40benjamin.github.io/jdv/">
+<meta property="og:image" content="https://gt40benjamin.github.io/jdv/accueil/partage.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Borne d'arcade entre amis : les vignettes des jeux">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;500;600;700&display=swap">
+<link rel="preload" as="image" href="accueil/hero.webp">
+<style>
+:root{
+  --night:#0b141c;--deep:#060b11;--panel:#0f1b25;--panel2:#132331;--line:#23394b;
+  --ink:#eef5f8;--soft:#c3d4dd;--muted:#8fa6b4;
+  --amber:#ffa630;--gold:#ffd34d;--volt:#5ef0ff;--rose:#ff5fae;--violet:#9b7bff;--leaf:#4cc36a;
+  --display:'Bungee',Impact,'Arial Black',system-ui,sans-serif;
+  --text:'Chakra Petch',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --pad:clamp(16px,4.5vw,40px);--max:1240px;
+  color-scheme:dark
+}
+*{box-sizing:border-box}
+html{background:var(--deep);-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:var(--ink);font:500 17px/1.55 var(--text);overflow-x:hidden}
+img,video{display:block;max-width:100%}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--volt);outline-offset:3px;border-radius:10px}
+
+/* ---------- ciel : nébuleuses + étoiles (comme Galaxy Wars) ---------- */
+.sky{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;
+  background:
+    radial-gradient(60vmax 45vmax at 85% 8%,rgba(155,123,255,.22),transparent 60%),
+    radial-gradient(55vmax 40vmax at 8% 30%,rgba(94,240,255,.13),transparent 62%),
+    radial-gradient(50vmax 45vmax at 70% 75%,rgba(255,95,174,.13),transparent 60%),
+    radial-gradient(45vmax 35vmax at 15% 95%,rgba(255,166,48,.12),transparent 60%),
+    linear-gradient(180deg,#05090f 0%,#0b141c 40%,#08111a 100%)}
+.stars{position:absolute;inset:-50% 0 0 0;height:200%;background-repeat:repeat;opacity:.85;animation:drift 120s linear infinite}
+.stars.s1{background-image:
+  radial-gradient(1.2px 1.2px at 20px 30px,#fff,transparent),radial-gradient(1px 1px at 140px 90px,#cfefff,transparent),
+  radial-gradient(1.4px 1.4px at 260px 160px,#fff,transparent),radial-gradient(1px 1px at 90px 220px,#ffe7b8,transparent),
+  radial-gradient(1.2px 1.2px at 330px 40px,#fff,transparent),radial-gradient(1px 1px at 200px 280px,#d8d0ff,transparent);
+  background-size:360px 320px}
+.stars.s2{background-image:
+  radial-gradient(1.8px 1.8px at 60px 120px,#fff,transparent),radial-gradient(2px 2px at 400px 300px,#bff6ff,transparent),
+  radial-gradient(1.6px 1.6px at 520px 60px,#ffd9ef,transparent);
+  background-size:620px 480px;opacity:.6;animation-duration:70s}
+@keyframes drift{to{transform:translateY(50%)}}
+
+/* ---------- en-tête ---------- */
+.top{position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  background:linear-gradient(180deg,rgba(6,11,17,.86),rgba(6,11,17,.55));border-bottom:1px solid rgba(94,240,255,.10)}
+.top .in{max-width:var(--max);margin:0 auto;padding:10px var(--pad);display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;min-width:0}
+.brand img{width:34px;height:34px;border-radius:9px;box-shadow:0 0 0 1px #ffffff1a,0 0 18px rgba(255,166,48,.35)}
+.brand span{font:400 15px/1 var(--display);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand span b{font-weight:400;color:var(--gold)}
+.top nav{margin-left:auto;display:flex;gap:6px;align-items:center}
+.top nav a{text-decoration:none;font-weight:600;font-size:15px;color:var(--soft);padding:8px 12px;border-radius:10px}
+.top nav a:hover{color:var(--ink);background:#ffffff0d}
+.top nav a.play{color:var(--night);background:var(--amber);box-shadow:0 0 18px rgba(255,166,48,.45)}
+.top nav .opt{display:none}
+@media (min-width:760px){.top nav .opt{display:inline-block}}
+
+/* ---------- boutons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:56px;padding:0 26px;border-radius:16px;
+  text-decoration:none;font:700 18px/1.1 var(--text);letter-spacing:.01em;transition:transform .15s,box-shadow .2s,background .2s}
+.btn:active{transform:translateY(2px) scale(.99)}
+.btn svg{width:22px;height:22px;flex:none}
+.btn-play{color:#1a0e00;background:linear-gradient(180deg,#ffc15e,var(--amber) 55%,#f08c12);
+  box-shadow:0 0 0 1px #ffd59a inset,0 6px 0 #a3570a,0 10px 34px rgba(255,166,48,.45)}
+.btn-play:hover{box-shadow:0 0 0 1px #ffd59a inset,0 6px 0 #a3570a,0 12px 46px rgba(255,166,48,.7)}
+.btn-play .nm{font-family:var(--display);font-weight:400;font-size:19px}
+.btn-ghost{color:var(--ink);background:rgba(94,240,255,.07);box-shadow:0 0 0 1.5px rgba(94,240,255,.55) inset,0 0 24px rgba(94,240,255,.12)}
+.btn-ghost:hover{background:rgba(94,240,255,.14);box-shadow:0 0 0 1.5px var(--volt) inset,0 0 30px rgba(94,240,255,.3)}
+
+/* ---------- héros ---------- */
+main{overflow-x:clip}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--pad)}
+.hero{display:grid;gap:28px;padding:34px 0 26px;align-items:center}
+.eyebrow{display:inline-flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;padding:0;list-style:none}
+.eyebrow li{font:700 12.5px/1 var(--text);letter-spacing:.12em;text-transform:uppercase;color:var(--volt);
+  padding:7px 11px;border-radius:99px;background:rgba(94,240,255,.08);border:1px solid rgba(94,240,255,.25)}
+.eyebrow li.g{color:var(--gold);background:rgba(255,211,77,.08);border-color:rgba(255,211,77,.3)}
+h1{margin:0;font:400 clamp(40px,11.2vw,84px)/.98 var(--display);letter-spacing:-.005em;
+  text-shadow:0 0 34px rgba(94,240,255,.25),0 3px 0 rgba(0,0,0,.45)}
+h1 .l2{display:block;color:var(--gold);text-shadow:0 0 22px rgba(255,166,48,.6),0 0 60px rgba(255,95,174,.35),0 3px 0 rgba(0,0,0,.45)}
+.lead{margin:18px 0 0;max-width:34em;font-size:clamp(17px,2.1vw,20px);color:var(--soft)}
+.lead b{color:var(--ink)}
+.ctas{display:flex;flex-wrap:wrap;gap:14px;margin-top:26px}
+.ctas .btn{flex:1 1 auto;white-space:nowrap}
+.reassure{margin:16px 0 0;font-size:14.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+.reassure i{font-style:normal;color:var(--leaf)}
+
+.screen{position:relative;border-radius:22px;padding:10px;
+  background:linear-gradient(145deg,#1b2d3c,#0c1720);
+  box-shadow:0 0 0 1px #ffffff14,0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(94,240,255,.18)}
+.screen::before{content:'';position:absolute;inset:-2px;border-radius:24px;padding:2px;
+  background:linear-gradient(120deg,var(--volt),var(--violet) 40%,var(--rose) 70%,var(--amber));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.85}
+.screen .vid{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#02060f}
+.screen .vid img,.screen .vid video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.screen .vid video{opacity:0;transition:opacity .45s}.screen .vid video.on{opacity:1}
+.screen .vid::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.10) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;opacity:.55}
+.screen .tag{position:absolute;left:22px;top:22px;z-index:2;display:flex;align-items:center;gap:8px;
+  font:400 13px/1 var(--display);color:#fff;padding:8px 12px;border-radius:10px;background:rgba(2,6,15,.72);
+  border:1px solid rgba(56,225,255,.35);box-shadow:0 0 18px rgba(56,225,255,.25)}
+.screen .tag::before{content:'';width:8px;height:8px;border-radius:50%;background:#ff4d5e;box-shadow:0 0 10px #ff4d5e;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
+.floaters{position:absolute;inset:0;pointer-events:none}
+.mini{position:absolute;width:30%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#000;
+  box-shadow:0 0 0 2px #ffffff22,0 16px 40px rgba(0,0,0,.6)}
+.mini img{width:100%;height:100%;object-fit:cover}
+.mini.a{right:-4%;top:-12%;transform:rotate(6deg);box-shadow:0 0 0 2px rgba(94,240,255,.7),0 0 26px rgba(94,240,255,.4),0 16px 40px rgba(0,0,0,.6)}
+.mini.b{left:-5%;bottom:-13%;transform:rotate(-7deg);box-shadow:0 0 0 2px rgba(255,110,199,.75),0 0 26px rgba(255,110,199,.4),0 16px 40px rgba(0,0,0,.6)}
+.hero-art{position:relative;margin:10px 4px 24px}
+.hero-art::before{content:'';position:absolute;inset:-18% -4%;z-index:-1;pointer-events:none;
+  background:radial-gradient(closest-side at 40% 50%,rgba(94,240,255,.30),transparent),radial-gradient(closest-side at 75% 40%,rgba(255,95,174,.28),transparent),radial-gradient(closest-side at 30% 85%,rgba(155,123,255,.32),transparent);filter:blur(10px)}
+@media (min-width:980px){
+  .hero{grid-template-columns:1.02fr 1fr;gap:56px;padding:64px 0 54px;min-height:min(78vh,720px)}
+  .hero-art{margin:0}
+}
+
+/* ---------- chiffres ---------- */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 0}
+.stat{padding:14px 16px;border-radius:16px;background:rgba(15,27,37,.7);border:1px solid var(--line)}
+.stat b{display:block;font:400 26px/1 var(--display);color:var(--gold);text-shadow:0 0 14px rgba(255,211,77,.35)}
+.stat span{display:block;margin-top:6px;font-size:14px;color:var(--soft);line-height:1.3}
+@media (min-width:760px){.stats{grid-template-columns:repeat(4,1fr);gap:14px}.stat{padding:18px 20px}.stat b{font-size:32px}}
+
+/* ---------- sections ---------- */
+section.wrap{padding-top:clamp(56px,8vw,96px);padding-bottom:8px}
+.head{display:grid;gap:10px;margin-bottom:24px}
+.kicker{font:700 13px/1 var(--text);letter-spacing:.16em;text-transform:uppercase;color:var(--k,var(--volt))}
+h2{margin:0;font:400 clamp(28px,6.4vw,46px)/1.04 var(--display)}
+h2 em{font-style:normal;color:var(--k,var(--volt));text-shadow:0 0 22px color-mix(in srgb,var(--k,var(--volt)) 55%,transparent)}
+.head p{margin:0;max-width:44em;color:var(--soft)}
+
+.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:700px){.games{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
+@media (min-width:1080px){.games{grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}}
+.card{--a:var(--volt);position:relative;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;text-decoration:none;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--a) 30%,transparent),0 14px 34px rgba(0,0,0,.45);
+  transition:transform .2s,box-shadow .25s}
+.card:hover{transform:translateY(-4px);box-shadow:0 0 0 1.5px var(--a),0 0 34px color-mix(in srgb,var(--a) 40%,transparent),0 18px 40px rgba(0,0,0,.5)}
+.media{position:relative;aspect-ratio:4/3;background:#05090f;overflow:hidden}
+.media img,.media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.media video{opacity:0;transition:opacity .45s}
+.media video.on{opacity:1}
+.card .body{padding:12px 13px 14px;display:grid;gap:5px;border-top:2px solid var(--a)}
+.card h3{margin:0;font:700 16.5px/1.2 var(--text);color:#fff;display:flex;align-items:flex-start;gap:7px}
+.card h3::before{content:'';width:8px;height:8px;margin-top:.38em;border-radius:50%;flex:none;background:var(--a);box-shadow:0 0 10px var(--a)}
+.card p{margin:0;font-size:13.5px;line-height:1.42;color:var(--muted)}
+@media (min-width:700px){.card .body{padding:14px 16px 17px;gap:6px}.card h3{font-size:18.5px}.card p{font-size:15px;color:var(--soft)}}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 20px}
+.chip{display:inline-flex;align-items:center;gap:7px;font:600 14px/1 var(--text);padding:9px 13px;border-radius:99px;color:var(--ink);
+  background:rgba(255,95,174,.08);border:1px solid rgba(255,95,174,.35)}
+
+/* ---------- modes ---------- */
+.modes{display:grid;gap:14px}
+@media (min-width:700px){.modes{grid-template-columns:repeat(2,1fr);gap:18px}}
+@media (min-width:1080px){.modes{grid-template-columns:repeat(6,1fr)}.modes .m{grid-column:span 2}.modes .m.w{grid-column:span 3}}
+.m{--a:var(--volt);position:relative;padding:22px 20px 20px;border-radius:20px;overflow:hidden;
+  background:radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--a) 16%,transparent),transparent 60%),linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid color-mix(in srgb,var(--a) 32%,transparent)}
+.m .ic{width:52px;height:52px;display:grid;place-items:center;border-radius:15px;font-size:27px;
+  background:color-mix(in srgb,var(--a) 14%,#0b141c);box-shadow:0 0 0 1px color-mix(in srgb,var(--a) 45%,transparent),0 0 22px color-mix(in srgb,var(--a) 30%,transparent)}
+.m h3{margin:14px 0 6px;font:700 20px/1.2 var(--text)}
+.m p{margin:0;color:var(--soft);font-size:15.5px}
+.m ul{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.m li{font-size:13.5px;font-weight:600;padding:5px 10px;border-radius:9px;background:#ffffff0b;color:var(--ink)}
+
+/* ---------- invité / compte ---------- */
+.two{display:grid;gap:16px}
+@media (min-width:860px){.two{grid-template-columns:1fr 1.25fr;gap:22px}}
+.p{position:relative;padding:26px 22px 24px;border-radius:22px;display:flex;flex-direction:column;gap:12px}
+.p h3{margin:0;font:400 clamp(22px,4.6vw,28px)/1.1 var(--display)}
+.p p{margin:0;color:var(--soft)}
+.p .btn{margin-top:auto;align-self:flex-start}
+.guest{background:linear-gradient(180deg,#112130,#0d1822);border:1px solid var(--line)}
+.guest h3{color:var(--volt)}
+.acct{background:radial-gradient(90% 120% at 100% 0%,rgba(255,166,48,.20),transparent 60%),linear-gradient(180deg,#1a1d22,#11161c);
+  border:1px solid rgba(255,166,48,.45);box-shadow:0 0 40px rgba(255,166,48,.12)}
+.acct h3{color:var(--gold)}
+.acct h3 small{font:700 14px/1 var(--text);color:var(--night);background:var(--leaf);padding:5px 9px;border-radius:8px;vertical-align:middle;margin-left:6px;letter-spacing:.02em}
+.ticks{margin:2px 0 6px;padding:0;list-style:none;display:grid;gap:10px}
+.ticks li{display:flex;gap:11px;align-items:flex-start}
+.ticks li::before{content:'';flex:none;width:22px;height:22px;margin-top:1px;border-radius:7px;
+  background:var(--amber) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.2 4L19 7' fill='none' stroke='%231a0e00' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat;
+  box-shadow:0 0 12px rgba(255,166,48,.5)}
+.guest .ticks li::before{background-color:var(--volt);box-shadow:0 0 12px rgba(94,240,255,.45)}
+.p .btn{min-height:52px;font-size:17px}
+
+/* ---------- appli ---------- */
+.app{display:grid;gap:20px;align-items:center;padding:26px 22px;border-radius:24px;
+  background:radial-gradient(70% 140% at 100% 50%,rgba(76,195,106,.18),transparent 60%),radial-gradient(60% 120% at 0% 0%,rgba(94,240,255,.12),transparent 60%),linear-gradient(180deg,#0f1d29,#0b151e);
+  border:1px solid rgba(76,195,106,.35)}
+.app h2{font-size:clamp(24px,5.4vw,36px)}
+.app p{margin:8px 0 0;color:var(--soft)}
+.app .ctas{margin-top:0}
+.app small{display:block;margin-top:12px;color:var(--muted);font-size:14px}
+@media (min-width:860px){.app{grid-template-columns:1.4fr 1fr;padding:36px 40px}}
+
+/* ---------- pied ---------- */
+footer{margin-top:64px;padding:28px 0 calc(34px + env(safe-area-inset-bottom));border-top:1px solid rgba(94,240,255,.10);color:var(--muted);font-size:14.5px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;justify-content:space-between}
+footer nav{display:flex;gap:18px;flex-wrap:wrap}
+footer a{color:var(--soft);text-decoration:none}
+footer a:hover{color:var(--ink);text-decoration:underline}
+
+/* ---------- apparition douce ---------- */
+.rv{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .stars{animation:none}.rv{opacity:1;transform:none;transition:none}.screen .tag::before{animation:none}
+  .card,.btn{transition:none}html{scroll-behavior:auto}
+}
+@media (max-width:420px){
+  .btn{min-height:54px;padding:0 18px;font-size:17px}
+  .ctas .btn{flex:1 1 100%}
+  .brand span{font-size:12.5px}
+}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><div class="stars s1"></div><div class="stars s2"></div></div>
+
+<header class="top"><div class="in">
+  <a class="brand" href="./" aria-label="Borne d'arcade entre amis, accueil"><img src="icon-192.png" alt="" width="34" height="34"><span>Borne d'arcade <b>entre amis</b></span></a>
+  <nav aria-label="Navigation">
+    <a class="opt" href="#jeux">Les jeux</a>
+    <a class="opt" href="#modes">Les modes</a>
+    <a class="opt" href="telecharger/">Appli Android</a>
+    <a class="play" href="jouer/">Jouer</a>
+  </nav>
+</div></header>
+
+<main>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <ul class="eyebrow"><li class="g">Gratuit</li><li>15 jeux</li><li>Téléphone &amp; PC</li></ul>
+      <h1>Borne d'arcade <span class="l2">entre amis</span></h1>
+      <p class="lead">Une petite salle d'arcade rien que pour la bande : <b>des jeux rapides et déjantés</b>, des duels sur le même téléphone et des records à battre entre copains, petits et grands.</p>
+      <div class="ctas">
+        <a class="btn btn-play" id="play" href="jouer/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg><span class="nm">Jouer</span></a>
+        <a class="btn btn-ghost" href="telecharger/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Télécharger l'appli Android</a>
+      </div>
+      <p class="reassure"><i>●</i> Sans inscription : tu peux jouer tout de suite en invité.</p>
+    </div>
+    <div class="hero-art">
+      <div class="screen">
+        <div class="vid">
+          <img src="accueil/hero.webp" alt="Galaxy Wars : un vaisseau fonce entre les planètes et tire sur les vagues d'ennemis" width="960" height="540">
+          <video id="herov" muted loop playsinline preload="none" poster="accueil/hero.webp" data-src="accueil/hero.webm" aria-hidden="true"></video>
+        </div>
+        <span class="tag">Galaxy Wars</span>
+      </div>
+      <div class="floaters" aria-hidden="true">
+        <div class="mini a"><img src="accueil/palet.webp" alt=""></div>
+        <div class="mini b"><img src="accueil/empilo.webp" alt=""></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats rv">
+    <div class="stat"><b>7</b><span>jeux solo, des records à battre</span></div>
+    <div class="stat"><b>8</b><span>duels face à face</span></div>
+    <div class="stat"><b>4</b><span>niveaux d'IA, de Facile à Extrême</span></div>
+    <div class="stat"><b>0 €</b><span>tout est gratuit</span></div>
+  </div>
+</div>
+
+<section id="jeux" class="wrap" style="--k:var(--gold)">
+  <div class="head rv">
+    <span class="kicker">Jeux solo</span>
+    <h2>7 jeux pour <em>battre tous les records</em></h2>
+    <p>Une seule vie, des niveaux de plus en plus fous et des boss. Ton meilleur score s'affiche dans le classement de ta salle… et dans celui du monde entier.</p>
+  </div>
+  <div class="games" id="solo"></div>
+</section>
+
+<section id="duels" class="wrap" style="--k:var(--rose)">
+  <div class="head rv">
+    <span class="kicker">Duels</span>
+    <h2>8 duels pour <em>se chambrer</em></h2>
+    <p>Pose le téléphone à plat entre vous deux : chacun joue de son côté, en même temps. Pas de copain sous la main ? Défie l'IA ou joue en ligne.</p>
+  </div>
+  <div class="chips rv"><span class="chip">📱 Sur le même téléphone</span><span class="chip">🤖 Contre l'IA</span><span class="chip">🌍 En ligne</span></div>
+  <div class="games" id="duo"></div>
+</section>
+
+<section id="modes" class="wrap" style="--k:var(--volt)">
+  <div class="head rv">
+    <span class="kicker">Comment on joue</span>
+    <h2>Seul, à deux <em>ou toute la bande</em></h2>
+  </div>
+  <div class="modes">
+    <article class="m rv" style="--a:var(--rose)"><div class="ic">📱</div><h3>Duel sur le même téléphone</h3><p>Le téléphone posé à plat, un joueur de chaque côté : multi-touch, en même temps, revanche en un geste.</p></article>
+    <article class="m rv" style="--a:var(--violet)"><div class="ic">🤖</div><h3>Contre l'IA</h3><p>Un robot prend la place du haut. Facile pour les petits, Extrême pour ceux qui se croient forts.</p></article>
+    <article class="m rv" style="--a:var(--volt)"><div class="ic">🌍</div><h3>Duel en ligne</h3><p>Lance un défi à un copain de ta salle, chacun sur son téléphone, où qu'il soit.</p></article>
+    <article class="m w rv" style="--a:var(--amber)"><div class="ic">🏁</div><h3>Compétition de toute la salle</h3><p>Tout le monde sur le même jeu, top départ en même temps : scores en direct, réactions et podium à la fin.</p></article>
+    <article class="m w rv" style="--a:var(--gold)"><div class="ic">🏠</div><h3>Les salles entre copains</h3><p>Une salle pour ta bande, ta famille ou ta classe, avec un code pour y entrer.</p>
+      <ul><li>🏆 Classement</li><li>💬 Chat</li><li>😜 Têtes des copains</li><li>📣 Cris</li><li>👁 Regarder en direct</li></ul></article>
+  </div>
+</section>
+
+<section id="compte" class="wrap" style="--k:var(--amber)">
+  <div class="head rv">
+    <span class="kicker">Pour commencer</span>
+    <h2>Joue tout de suite, <em>ou crée ton compte</em></h2>
+  </div>
+  <div class="two">
+    <div class="p guest rv">
+      <h3>Joue tout de suite en invité</h3>
+      <p>Rien à remplir : ouvre la borne et lance un jeu. Parfait pour essayer ou prêter le téléphone à un copain.</p>
+      <ul class="ticks"><li>Tous les jeux solo et les duels</li><li>Duels contre l'IA</li></ul>
+      <a class="btn btn-ghost" href="jouer/">Jouer en invité</a>
+    </div>
+    <div class="p acct rv">
+      <h3>Crée ton compte <small>GRATUIT</small></h3>
+      <p>En une minute, avec ton e-mail et un mot de passe :</p>
+      <ul class="ticks">
+        <li>tes scores sont enregistrés et comptent dans les classements</li>
+        <li>tu rejoins tes copains dans une salle (chat, défis, compétitions)</li>
+        <li>tu choisis ton pseudo, rien qu'à toi</li>
+        <li>tu ajoutes ta tête (un selfie détouré) et ton cri, qui apparaissent dans les jeux des copains</li>
+      </ul>
+      <a class="btn btn-play" href="jouer/"><span class="nm">Créer mon compte</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="app rv">
+    <div>
+      <span class="kicker" style="--k:var(--leaf)">Appli Android</span>
+      <h2 style="margin-top:10px">La borne en plein écran</h2>
+      <p>Une toute petite appli : les jeux en plein écran, sans barre du navigateur, avec le micro pour enregistrer ton cri.</p>
+      <small>iPhone ou PC ? Ouvre la borne puis « Ajouter à l'écran d'accueil » : tu obtiens la même icône.</small>
+    </div>
+    <div class="ctas"><a class="btn btn-ghost" href="telecharger/" style="flex:1 1 100%"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Télécharger l'appli</a></div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">
+  <span>Borne d'arcade entre amis · faite maison, pour jouer entre copains</span>
+  <nav aria-label="Liens"><a href="jouer/">Jouer</a><a href="telecharger/">Appli Android</a><a href="#jeux">Les jeux</a></nav>
+</div></footer>
+
+<script>
+(function () {
+  var SOLO = [
+    ['ilo', 'Galaxy Wars', "Fonce à travers l'espace d'ILO, pulvérise les vagues et les boss planétaires.", '#38e1ff'],
+    ['pleingaz', 'Plein Gaz', "Pilote ton jet dans l'usine, esquive les obstacles et bats un boss à chaque niveau.", '#ffa630'],
+    ['empilo', 'Empilo', 'Empile les bonbons de verre et fais tout exploser ligne par ligne !', '#ff6ec7'],
+    ['glouton', 'Glouton', 'Un canard en plastique gobe les bulles et dévore les microbes, de bain en bain !', '#ffd34d'],
+    ['mouches', 'Chasse aux mouches', 'Arrose les escadrilles de mouches vague après vague, jusqu’aux boss !', '#ff5fae'],
+    ['carreaux', 'Casse-Carreaux', 'Renvoie la bulle de savon avec ta brosse et casse tous les carreaux de la salle de bain !', '#4cc36a'],
+    ['rouleaux', "Les P'tits Rouleaux", "Donne des rôles aux petits rouleaux pour les guider jusqu'à la cuvette !", '#7fd3ff'],
+  ];
+  var DUO = [
+    ['trouve', 'Trouve-le !', 'Repère l’objet du médaillon sur ton plateau avant ton adversaire !', '#ff5fae'],
+    ['palet', 'Le palet', 'Hockey néon à deux : frappe le palet et marque dans le but d’en face !', '#5ef0ff'],
+    ['briques', 'Casse-briques face à face', 'Casse le mur, attrape les bonus et envoie la balle derrière la raquette d’en face !', '#ffa630'],
+    ['boum', 'Boum !', 'Duel de bombes : fais sauter les caisses et piège l’autre !', '#ff4d5e'],
+    ['souris', 'Chat et souris', 'La souris mange le fromage, le chat la chasse… puis on échange !', '#f5c542'],
+    ['spatial', 'Duel spatial', 'Deux vaisseaux face à face : esquive, ramasse les bonus et pulvérise ton copain !', '#9b7bff'],
+    ['mots', 'Mots mêlés', 'Le premier qui trace le mot caché dans sa grille gagne la manche !', '#ffd34d'],
+    ['guerre', 'Canards : la guerre', 'Chacun son tour, canarde l’équipe d’en face et coule ses 3 canards !', '#4cc36a']
+  ];
+  function card(g) {
+    var a = document.createElement('a');
+    a.className = 'card rv'; a.href = 'jouer/'; a.style.setProperty('--a', g[3]);
+    a.setAttribute('aria-label', g[1] + ' : ' + g[2]);
+    a.innerHTML = '<div class="media"><img loading="lazy" decoding="async" width="560" height="420" alt=""><video muted loop playsinline preload="none" aria-hidden="true"></video></div><div class="body"><h3></h3><p></p></div>';
+    var img = a.querySelector('img'), v = a.querySelector('video');
+    img.src = 'accueil/' + g[0] + '.webp';
+    v.setAttribute('poster', 'accueil/' + g[0] + '.webp');
+    v.setAttribute('data-src', 'accueil/' + g[0] + '.webm');
+    a.querySelector('h3').textContent = g[1];
+    a.querySelector('p').textContent = g[2];
+    return a;
+  }
+  var solo = document.getElementById('solo'), duo = document.getElementById('duo');
+  SOLO.forEach(function (g) { solo.appendChild(card(g)); });
+  DUO.forEach(function (g) { duo.appendChild(card(g)); });
+
+  // Bouton Jouer personnalisé si un profil existe déjà sur cet appareil (texte seulement)
+  try {
+    var p = JSON.parse(localStorage.getItem('jdw.profile') || 'null');
+    var nm = p && typeof p.name === 'string' ? p.name.replace(/\s+/g, ' ').trim().slice(0, 16) : '';
+    if (nm) document.querySelector('#play .nm').textContent = 'Jouer · ' + nm.toUpperCase();
+  } catch (e) {}
+
+  // Vidéos : seulement si le navigateur sait lire le WebM VP9, chargées quand elles arrivent à l'écran, en pause hors écran.
+  var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var test = document.createElement('video');
+  var canPlay = !!(test.canPlayType && test.canPlayType('video/webm; codecs="vp9"'));
+  var vids = [].slice.call(document.querySelectorAll('video[data-src]'));
+  // boucle sans saut : à la fin de la vidéo, une jumelle repart du début en fondu par-dessus, puis elles échangent les rôles
+  function play(x) { var pr = x.play(); if (pr && pr.catch) pr.catch(function () {}); }
+  function start(v) {
+    if (!v.src) {
+      v.src = v.getAttribute('data-src'); v.loop = false;
+      var t = v.cloneNode(false); t.removeAttribute('id'); t.removeAttribute('data-src'); t.removeAttribute('poster'); t.loop = false; t.src = v.src; t.preload = 'auto';
+      t.style.zIndex = 1; v.parentNode.insertBefore(t, v.nextSibling); v.twin = t; t.twin = v; t.isTwin = true;
+      [v, t].forEach(function (x) {
+        x.addEventListener('playing', function () { x.classList.add('on'); });
+        x.addEventListener('timeupdate', function () {
+          var o = x.twin;
+          if (!x.classList.contains('on') || o.classList.contains('on') || !x.duration || x.currentTime < x.duration - 0.5) return;
+          o.currentTime = 0; play(o);
+          setTimeout(function () { x.classList.remove('on'); x.pause(); x.style.zIndex = 0; o.style.zIndex = 1; }, 450);
+        });
+        x.addEventListener('ended', function () { if (!x.twin.classList.contains('on')) { x.currentTime = 0; play(x); } });
+      });
+    }
+    var cur = v.twin && v.twin.classList.contains('on') ? v.twin : v; play(cur);
+  }
+  if (canPlay && !still) {
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) start(e.target); else { e.target.pause(); if (e.target.twin) e.target.twin.pause(); } });
+      }, { rootMargin: '120px 0px', threshold: 0.15 });
+      vids.forEach(function (v) { io.observe(v); });
+    } else vids.forEach(start);
+  } else vids.forEach(function (v) { v.remove(); });
+  var hv = document.getElementById('herov'); if (hv) hv.style.transition = 'opacity .5s';
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) vids.forEach(function (v) { if (v.isConnected && (!v.paused || (v.twin && !v.twin.paused))) { v.dataset.was = '1'; v.pause(); if (v.twin) v.twin.pause(); } });
+    else vids.forEach(function (v) { if (v.dataset.was) { delete v.dataset.was; start(v); } });
+  });
+
+  // Typographie française : espace insécable avant ! ? : ; (évite un « ! » seul en début de ligne)
+  var tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
+  while ((n = tw.nextNode())) if (/ [!?:;»]/.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(/ ([!?:;»])/g, ' $1');
+
+  // Apparition douce des blocs
+  var rv = [].slice.call(document.querySelectorAll('.rv'));
+  if (!still && 'IntersectionObserver' in window) {
+    var ro = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -6% 0px' });
+    rv.forEach(function (el) { ro.observe(el); });
+  } else rv.forEach(function (el) { el.classList.add('in'); });
+})();
+</script>
+</body></html>

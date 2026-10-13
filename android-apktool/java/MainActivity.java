@@ -24,6 +24,7 @@ import android.widget.TextView;
 /** Borne d'arcade : ouvre la salle d'arcade en plein écran. Les jeux viennent du site et se mettent à jour tout seuls. */
 public class MainActivity extends Activity {
     static final String HOME = "https://gt40benjamin.github.io/jdv/";
+    static final String BORNE = HOME + "jouer/";   // la borne (la racine est la page d'accueil publique)
     static final int VERSION = __VC__;
     static final String VNAME = "__VN__";   // même numéro que le site (ex. 1.5)
     static final int REQ_FILE = 42;
@@ -124,7 +125,7 @@ public class MainActivity extends Activity {
                 } catch (Throwable e) { try { r.deny(); } catch (Throwable ignore) { } }
             }
         });
-        web.loadUrl(HOME);
+        web.loadUrl(BORNE);
         immersive();
         fitKeyboard();
     }
@@ -244,7 +245,6 @@ public class MainActivity extends Activity {
     }
 
     public static class Bridge {
-        @JavascriptInterface public String code() { return "__CODE__"; }
         @JavascriptInterface public int version() { return VERSION; }
     }
 }

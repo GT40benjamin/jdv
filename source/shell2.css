@@ -1361,3 +1361,62 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .alias-row .btn{flex:0 0 auto}
 .alias-s{font-size:12.5px;color:var(--muted);line-height:1.35}
 .alias-s.ok{color:var(--leaf)} .alias-s.err{color:#ff9aa5}
+
+/* ---------- Invité (site public) : bandeau « Crée ton compte », fenêtre « Avec un compte », fin de partie, réglages ---------- */
+.guest-bar{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 14px;padding:14px 14px 14px 12px;border-radius:18px;
+  background:radial-gradient(120% 140% at 0% 0%,rgba(94,240,255,.16),transparent 55%),radial-gradient(120% 140% at 100% 100%,rgba(255,95,174,.16),transparent 55%),linear-gradient(135deg,#0f2030,#111a2a);
+  border:1px solid transparent;background-clip:padding-box;box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06);isolation:isolate}
+.guest-bar::before{content:"";position:absolute;inset:-1px;z-index:-1;border-radius:19px;padding:1px;background:linear-gradient(120deg,var(--volt),#7a6bff 45%,var(--spray));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.75}
+.guest-bar[hidden]{display:none}
+.gb-orb{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:radial-gradient(circle at 35% 30%,rgba(94,240,255,.45),rgba(94,240,255,.06) 70%);
+  border:1px solid rgba(94,240,255,.45);box-shadow:0 0 18px rgba(94,240,255,.25)}
+.gb-orb svg{width:26px;height:26px;fill:none;stroke:var(--volt);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.gb-tx{display:grid;gap:3px;min-width:0}
+.gb-tx b{font-family:var(--display);font-weight:400;font-size:17px;line-height:1.1;letter-spacing:.01em;background:linear-gradient(90deg,#fff,#bff8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gb-tx span{font-size:13px;line-height:1.35;color:#b6c7d2}
+.gb-btns{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:8px}
+.gb-btns .btn{flex:1 1 140px}
+.guest-bar[data-kind=kid] .gb-orb,.guest-bar[data-kind=need] .gb-orb{border-color:rgba(255,211,77,.5);background:radial-gradient(circle at 35% 30%,rgba(255,211,77,.4),rgba(255,211,77,.05) 70%);box-shadow:0 0 18px rgba(255,211,77,.22)}
+.guest-bar[data-kind=kid] .gb-orb svg,.guest-bar[data-kind=need] .gb-orb svg{stroke:var(--gold)}
+@media (min-width:720px){.guest-bar{grid-template-columns:auto minmax(0,1fr) auto}.gb-btns{grid-column:auto;flex-wrap:nowrap}.gb-btns .btn{flex:0 0 auto}}
+/* invité : ce qui demande un compte disparaît de l'accueil */
+#jdw-lib.guest #jdw-online,#jdw-lib.guest .tile-map,#jdw-lib.guest .tile-watch,#jdw-lib.guest .tile-champ,#jdw-lib.guest .tile-online{display:none}
+#jdw-lib.guest .tile-wrap.has-map .tile-meta{padding-right:10px}
+body.jdw-guest #jdw-scope{display:none}
+/* fenêtre « Avec un compte » */
+.guestask-card{--acc:var(--amber);background:radial-gradient(120% 80% at 50% 0%,rgba(94,240,255,.12),transparent 60%),var(--panel)}
+.ga-top{display:flex;align-items:center;justify-content:space-between}
+.ga-orb{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;font-size:26px;background:var(--night);border:1px solid rgba(255,211,77,.45);box-shadow:0 0 22px rgba(255,211,77,.18)}
+.ga-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ga-list li{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:13.5px;line-height:1.3}
+.ga-list b{font-size:18px}
+/* fin de partie en invité */
+.end-guest{display:grid;gap:10px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(94,240,255,.10),rgba(255,95,174,.10));border:1px solid rgba(94,240,255,.35)}
+.end-guest[hidden]{display:none}
+.end-guest p{margin:0;font-size:13.5px;line-height:1.4;color:#c9d6de}
+.end-guest b{color:var(--ink);font-family:var(--display);font-weight:400;font-size:15px}
+/* réglages en invité : seulement le son */
+.set-guest{display:grid;gap:10px;padding:12px 14px;border-radius:14px;background:var(--card);border:1px solid rgba(94,240,255,.35)}
+.set-guest[hidden]{display:none}
+.set-guest p{margin:0;font-size:13.5px;line-height:1.4;color:#c9d6de}
+#jdw-settings.is-guest .me-big,#jdw-settings.is-guest #jdw-set-name-hint,#jdw-settings.is-guest #jdw-set-acct,#jdw-settings.is-guest #jdw-look,
+#jdw-settings.is-guest .set-me,#jdw-settings.is-guest #jdw-set-lookreset{display:none!important}
+/* salles : rejoindre par nom + code */
+.find-box{display:grid;gap:10px;padding:14px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.find-box .small{margin:0}
+/* duel : ordinateur sans écran tactile (seulement en ligne) ; invité en ligne */
+.duel-pc{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(94,240,255,.12),rgba(122,107,255,.10));border:1px solid rgba(94,240,255,.4)}
+.duel-pc[hidden]{display:none}
+.dp-ic{flex:0 0 auto;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--night);font-size:21px;border:1px solid rgba(94,240,255,.35)}
+.dp-tx{flex:1 1 auto;display:grid;gap:2px;min-width:0}
+.dp-tx b{font-family:var(--display);font-weight:400;font-size:15px;line-height:1.15}
+.dp-tx span{font-size:12.5px;color:var(--muted);line-height:1.35}
+@media (max-width:480px){.duel-pc{flex-wrap:wrap}.duel-pc .btn{flex:1 1 100%}}
+#jdw-page-duel.no-touch .duel-local{display:none}
+#jdw-duel-switch button.off{opacity:.45;cursor:not-allowed}
+.avatar.guest-av{display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,rgba(94,240,255,.35),rgba(94,240,255,.08) 70%)!important;border:1px solid rgba(94,240,255,.45)}
+.avatar.guest-av svg{width:62%;height:62%;fill:none;stroke:var(--volt);stroke-width:2;stroke-linecap:round}
+.gb-btns .btn{white-space:nowrap;font-size:12.5px;padding:11px 10px}
+.board[hidden]{display:none!important}
+#jdw-settings.is-guest #jdw-set-save{display:none!important}

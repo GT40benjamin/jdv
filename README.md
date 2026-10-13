@@ -1,5 +1,6 @@
-# Jeux des WC
+# Borne d'arcade entre amis
 
-La salle d'arcade de la bande : 7 jeux, une seule vie, un classement commun.
+La salle d'arcade de la bande : des jeux à une seule vie, des duels, des salles entre copains et des classements communs.
 
-Le site est protégé par un mot de passe : la page est chiffrée et ne s'ouvre qu'avec lui.
+Site public : https://gt40benjamin.github.io/jdv/ (page d'accueil), la borne dans `jouer/`, l'appli Android dans `telecharger/`.
+On peut jouer en invité ; un compte (e-mail + mot de passe) enregistre les scores et ouvre les salles.

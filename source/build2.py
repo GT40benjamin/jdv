@@ -5,10 +5,12 @@ import re, sys, json
 import os
 J = os.path.dirname(os.path.abspath(__file__)) + '/'
 src = open(J + 'pleingaz-src.html').read()
-if '__IMG_' in src:   # photos chiffrées : déchiffrées avec ARCADE_CODE
-    import subprocess
-    photos = json.loads(subprocess.run(['node', J + 'photos.js', 'dec', J + 'photos.enc.json'], check=True, capture_output=True, text=True).stdout)
-    for k, v in photos.items(): src = src.replace('__IMG_' + k + '__', v)
+if '__IMG_' in src:   # personnages neutres dessinés (jamais de photo de copain dans les fichiers publiés)
+    import base64
+    for k in ('PILOT', 'HEAD', 'FACE'):
+        svg = open(J + 'pg-neutral/' + k.lower() + '.svg', 'rb').read()
+        src = src.replace('__IMG_' + k + '__', 'data:image/svg+xml;base64,' + base64.b64encode(svg).decode())
+    assert '__IMG_' not in src
 css = src[src.index('<style>') + 7: src.index('</style>')]
 after_style = src[src.index('</style>') + 8:]
 markup = after_style[:after_style.index('<script>')].strip()
@@ -92,14 +94,17 @@ def music_enc():
     # morceaux chiffrés (assets/music/<nom>.bin, collection de l'Asset Store) : la page les déchiffre avec le mot de passe
     d = os.path.join(J, '..', 'assets', 'music')
     return sorted(f[:-4] for f in os.listdir(d) if f.endswith('.bin')) if os.path.isdir(d) else []
+# dossier racine du site vu depuis la borne : publiée dans jouer/ -> SITE_ROOT=../ (publier.sh) ; site de test : vide
+ROOT = os.environ.get('SITE_ROOT', '')
 def page(config=None):
     body = open(J + 'shell2-body.html').read().replace('PG_MARKUP', '<section id="jdw-pg" hidden>\n' + markup + '\n</section>')
     games = ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
     games += ''.join('<script>\n' + open(J + 'duos/' + d + '.js', encoding='utf-8').read() + '\n</script>\n' for d in DUOS)
     cfg = ('<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else '') + \
           '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + '; window.JDW_VERSION = ' + json.dumps(os.environ.get('SITE_VERSION', '')) + '; window.JDW_NOTES = ' + json.dumps(notes_list()) + ';</script>\n' + \
-          '<script>window.JDW_MUSIC = ' + json.dumps(music_list()) + '; window.JDW_MUSIC_ENC = ' + json.dumps(music_enc()) + ';</script>\n'
-    return ('<title>Jeux des WC</title>\n'
+          '<script>window.JDW_MUSIC = ' + json.dumps(music_list()) + '; window.JDW_MUSIC_ENC = ' + json.dumps(music_enc()) + ';</script>\n' + \
+          '<script>window.JDW_ASSET_KEY = ' + json.dumps(open(J + 'asset-key.txt', encoding='utf-8').read().strip()) + '; window.JDW_ROOT = ' + json.dumps(ROOT) + ';</script>\n'
+    return ('<title>Borne d\'arcade entre amis</title>\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
             '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap">\n'
             '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n</style>\n' + body + '\n'
@@ -109,7 +114,8 @@ def full_doc(p):
     i = p.index('<style>'); head = p[:i]; rest = p[i:]; j = rest.index('</style>') + 8
     return ('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">\n'
-            '<meta name="theme-color" content="#0b141c">\n' + head + rest[:j] + '\n</head>\n<body>\n' + rest[j:] + '\n</body>\n</html>\n')
+            '<meta name="theme-color" content="#0b141c">\n<meta name="robots" content="noindex">\n'
+            '<link rel="manifest" href="' + ROOT + 'manifest.webmanifest">\n<link rel="icon" href="' + ROOT + 'icon-192.png">\n' + head + rest[:j] + '\n</head>\n<body>\n' + rest[j:] + '\n</body>\n</html>\n')
 
 art = page()
 open(sys.argv[1], 'w').write(art)
