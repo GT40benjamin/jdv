@@ -1643,9 +1643,106 @@ function previewLoop(ts) {
 /* ================= Feuilles (ouverture / fermeture) ================= */
 let lastFocus = null;
 function openSheet(id, focusId) { lastFocus = document.activeElement; $(id).hidden = false; const f = focusId && $(focusId); if (f) setTimeout(() => f.focus({ preventScroll: true }), 30); }
-function closeSheet(id) { $(id).hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); }
+function closeSheet(id) { helpClose(); menuClose(); $(id).hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); }
+/* ---- aide « ? » : une seule bulle pour toute la borne, remplie avec l'explication cachée (data-help = id de la source) ---- */
+const POP = { help: null, menu: null };
+// place une bulle (position fixe) sous son bouton, ou au-dessus quand il n'y a pas la place ; --ax = position de la flèche
+function popPlace(el, anchor, align) {
+  const r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth || innerWidth, vh = innerHeight, m = 12;
+  el.style.left = '0px'; el.style.top = '0px'; el.style.maxWidth = Math.min(align === 'center' ? 340 : 300, vw - 2 * m) + 'px';
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let x = align === 'start' ? r.left : align === 'end' ? r.right - w : r.left + r.width / 2 - w / 2;
+  x = Math.max(m, Math.min(vw - m - w, x));
+  let y = r.bottom + 10, up = false;
+  if (y + h > vh - m && r.top - 10 - h > m) { y = r.top - 10 - h; up = true; }
+  el.style.left = Math.round(x) + 'px'; el.style.top = Math.round(Math.max(m, y)) + 'px';
+  el.style.setProperty('--ax', Math.round(Math.max(16, Math.min(w - 16, r.left + r.width / 2 - x))) + 'px');
+  el.classList.toggle('up', up);
+  el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
+}
+function helpOpen(btn) {
+  const src = $(btn.dataset.help), inn = $('jdw-help-in'), pop = $('jdw-help');
+  if (!src) return;
+  helpClose(); menuClose();
+  inn.textContent = '';
+  for (const n of src.childNodes) {
+    const c = n.cloneNode(true);
+    if (c.nodeType === 1) { if (c.hidden || !c.textContent.trim()) continue; c.removeAttribute('id'); for (const e of c.querySelectorAll('[id]')) e.removeAttribute('id'); }
+    inn.appendChild(c);
+  }
+  if (!inn.textContent.trim()) return;
+  pop.hidden = false; POP.help = btn; btn.setAttribute('aria-expanded', 'true');
+  popPlace(pop, btn, 'center');
+  try { pop.focus({ preventScroll: true }); } catch (e) {}
+}
+function helpClose(refocus) {
+  const b = POP.help; if (!b) return false;
+  POP.help = null; $('jdw-help').hidden = true; b.setAttribute('aria-expanded', 'false');
+  if (refocus) try { b.focus({ preventScroll: true }); } catch (e) {}
+  return true;
+}
+/* ---- petits menus (Ma tête, Mon cri) : sous leur bouton, fermés au toucher ailleurs, par Échap ou le retour Android ---- */
+function menuOpen(btn, menu) {
+  if (POP.menu && POP.menu.el === menu) { menuClose(); return; }
+  helpClose(); menuClose();
+  menu.hidden = false; menu.style.minWidth = Math.round(btn.getBoundingClientRect().width) + 'px';
+  POP.menu = { el: menu, btn }; btn.setAttribute('aria-expanded', 'true');
+  popPlace(menu, btn, btn.dataset.align || 'start');
+  const first = [...menu.querySelectorAll('[role=menuitem]')].find(x => !x.hidden);
+  if (first) try { first.focus({ preventScroll: true }); } catch (e) {}
+}
+function menuClose(refocus) {
+  const m = POP.menu; if (!m) return false;
+  POP.menu = null; m.el.hidden = true; m.btn.setAttribute('aria-expanded', 'false');
+  if (refocus) try { m.btn.focus({ preventScroll: true }); } catch (e) {}
+  return true;
+}
+const popCloseAll = refocus => helpClose(refocus) || menuClose(refocus);
+document.addEventListener('click', e => {
+  const q = e.target.closest && e.target.closest('.help-q'); if (!q) return;
+  e.preventDefault(); if (POP.help === q) helpClose(); else helpOpen(q);
+});
+// un toucher n'importe où ferme la bulle (sauf sur son « ? », qui la referme lui-même) et le menu (sauf dedans)
+document.addEventListener('pointerdown', e => {
+  if (POP.help && !POP.help.contains(e.target)) helpClose();
+  if (POP.menu && !POP.menu.el.contains(e.target) && !POP.menu.btn.contains(e.target)) menuClose();
+}, true);
+document.addEventListener('scroll', e => { if (POP.menu && POP.menu.el.contains(e.target)) return; helpClose(); menuClose(); }, true);
+addEventListener('resize', () => { helpClose(); menuClose(); });
+for (const m of document.querySelectorAll('.act-menu')) {
+  m.addEventListener('click', e => { if (e.target.closest('[role=menuitem]')) menuClose(); });
+  m.addEventListener('keydown', e => {
+    const I = [...m.querySelectorAll('[role=menuitem]')].filter(x => !x.hidden), i = I.indexOf(document.activeElement);
+    const k = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+    if (k && I.length) { e.preventDefault(); I[(i + k + I.length) % I.length].focus(); }
+    else if (e.key === 'Tab') menuClose();
+  });
+}
+/* ---- onglets (role=tab) : un seul panneau, ses blocs [data-in="me room"] s'affichent selon l'onglet ---- */
+function tabsInit(listId, onPick) {
+  const list = $(listId);
+  list.addEventListener('click', e => { const b = e.target.closest('[role=tab]'); if (b && !b.hidden) onPick(b.dataset.tab, true); });
+  list.addEventListener('keydown', e => {
+    const T = [...list.querySelectorAll('[role=tab]')].filter(b => !b.hidden), i = T.indexOf(document.activeElement);
+    const k = { ArrowRight: 1, ArrowLeft: -1, Home: -99, End: 99 }[e.key]; if (i < 0 || !k) return;
+    e.preventDefault();
+    const n = T[k === -99 ? 0 : k === 99 ? T.length - 1 : (i + k + T.length) % T.length];
+    onPick(n.dataset.tab, true); n.focus();
+  });
+}
+function tabsShow(listId, paneId, t, avail) {
+  const list = $(listId), pane = $(paneId);
+  for (const b of list.querySelectorAll('[role=tab]')) {
+    const on = b.dataset.tab === t; if (avail) b.hidden = !avail.includes(b.dataset.tab);
+    b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; if (on) pane.setAttribute('aria-labelledby', b.id);
+  }
+  list.style.setProperty('--n', [...list.querySelectorAll('[role=tab]')].filter(b => !b.hidden).length);
+  pane.dataset.tab = t;
+  for (const el of pane.querySelectorAll('[data-in]')) el.classList.toggle('tab-off', !el.dataset.in.split(' ').includes(t));
+}
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
+  if (popCloseAll(true)) { e.preventDefault(); return; }   // d'abord la bulle « ? » ou le petit menu, la feuille reste ouverte
   if (MAP.open) { closeMap(); return; }
   if (chat.open) { closeChat(); return; }
   if (!$('jdw-cri').hidden) { closeCri(); return; }
@@ -1719,18 +1816,42 @@ $('jdw-board').addEventListener('click', e => { if (e.target === $('jdw-board'))
 let lookScope = 'all';                 // réglages : « Partout » (profil principal) ou « room » (seulement dans la salle actuelle)
 let lookEdit = null;                   // salle visée par la photo / le cri en cours (null = profil principal)
 const lookHere = () => lookScope === 'room' && room ? room.id : null;
+// onglets : 👤 Moi (tête, cri, pseudo) · 🏠 Salle (tête, cri et pseudo propres à la salle) · 🔐 Compte · 🔊 Son ; le dernier ouvert est retenu
+function setTabsAvail() {
+  if (isGuest()) return ['snd'];                                   // invité : seulement le son (ni pseudo, ni tête, ni cri)
+  const A = [];
+  if (profile.name) A.push('me');
+  if (room && profile.name && ONLINE) A.push('room');
+  if (acctState(profile) !== 'off') A.push('acct');
+  A.push('snd'); return A;
+}
+function showSetTab(t, user) {
+  const A = setTabsAvail(); if (!A.includes(t)) t = A.includes('me') ? 'me' : A[0];
+  if (user) { store.set('jdw.settab', t); $('jdw-set-status').textContent = ''; }
+  $('jdw-set-tabs').hidden = A.length < 2;
+  tabsShow('jdw-set-tabs', 'jdw-set-pane', t, A);
+  $('jdw-set-help').dataset.help = 'jdw-help-set-' + t;
+  helpClose(); menuClose();
+  const want = t === 'room' ? 'room' : 'all';
+  if (lookScope !== want || user) { lookScope = want; renderLook(); }
+}
+tabsInit('jdw-set-tabs', showSetTab);
 function openSettings() {
-  $('jdw-settings').classList.toggle('is-guest', isGuest());       // invité : seulement le son (ni pseudo, ni tête, ni cri)
+  $('jdw-settings').classList.toggle('is-guest', isGuest());
   $('jdw-set-guest').hidden = !isGuest();
   $('jdw-set-name').value = profile.name;
-  lookScope = curLook() ? 'room' : 'all';
   $('jdw-set-sfx').checked = !muted; $('jdw-set-music').checked = MUS.on; $('jdw-set-cris').checked = criOn; syncSoundMenu();
-  renderLook();
-  $('jdw-set-status').textContent = !ONLINE ? 'Mode local (pas de serveur).' : isGuest() ? '' : netDown ? 'Pas de connexion pour le moment.' : 'Connecté au classement commun.';
+  $('jdw-set-status').textContent = !ONLINE ? 'Mode local (pas de serveur).' : isGuest() ? '' : netDown ? 'Pas de connexion pour le moment.' : '';
   $('jdw-set-version').textContent = versionText();
   renderAcctSet();
-  openSheet('jdw-settings', 'jdw-set-name');
+  lookScope = '';                                                  // renderLook au premier affichage de l'onglet
+  showSetTab(store.get('jdw.settab', 'me'));
+  const sel = $('jdw-set-tabs').hidden ? 'jdw-set-close' : $('jdw-set-tabs').querySelector('[aria-selected="true"]').id;
+  openSheet('jdw-settings', sel);
 }
+// « Enregistrer » n'apparaît que si le pseudo a changé (un pseudo lié à un compte ne change plus)
+function nameDirty() { $('jdw-set-save').hidden = isGuest() || $('jdw-set-name').readOnly || cleanName($('jdw-set-name').value) === cleanName(profile.name); }
+$('jdw-set-name').addEventListener('input', nameDirty);
 // tête dans le rond des réglages : celle du choix affiché (profil principal ou salle), sinon l'initiale
 function photoInto(el, photo, name) {
   el.textContent = ''; el.style.background = ''; el.classList.remove('has-photo');
@@ -1740,13 +1861,10 @@ function photoInto(el, photo, name) {
   }
   const im = document.createElement('img'); im.alt = ''; im.src = photo; el.appendChild(im); el.classList.add('has-photo'); fitHeadWhenReady(im, null);
 }
+const lbl = (id, t) => { $(id).querySelector('span').textContent = t; };
 function renderLook() {
   const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null, inRoom = !!(room && profile.name);
-  $('jdw-look').hidden = !inRoom;
-  if (inRoom) {
-    $('jdw-look-room').textContent = room.name;
-    for (const b of document.querySelectorAll('#jdw-look-scope button')) b.setAttribute('aria-pressed', String(b.dataset.look === (rid != null ? 'room' : 'all')));
-  }
+  if (inRoom) $('jdw-look-room').textContent = room.name;
   const mainPhoto = profile.consent ? profile.photo : null, mainCri = !!(profile.sound && profile.sound !== '');
   photoInto($('jdw-set-av'), L && L.photo ? L.photo : mainPhoto, profile.name);
   $('jdw-look-tag').hidden = !(rid != null && L);
@@ -1768,11 +1886,18 @@ function renderLook() {
   const hasCri = rid != null ? !!(L && L.sound) : mainCri;
   $('jdw-set-edit').hidden = !hasPhoto;
   $('jdw-set-delphoto').hidden = !hasPhoto;
-  $('jdw-set-delphoto').textContent = rid != null ? 'Retirer la photo d’ici' : 'Retirer ma tête';
-  $('jdw-set-photo').textContent = rid != null ? (hasPhoto ? 'Changer ma photo d’ici' : '📸 Une photo pour cette salle') : (profile.photo ? 'Changer ma photo' : 'Prendre une photo');
-  $('jdw-set-cri').textContent = rid != null ? (hasCri ? '🎙️ Changer mon cri d’ici' : '🎙️ Un cri pour cette salle') : (hasCri ? '🎙️ Changer mon cri' : '🎙️ Enregistrer mon cri');
+  lbl('jdw-set-delphoto', rid != null ? 'Retirer la photo d’ici' : 'Retirer ma tête');
+  lbl('jdw-set-photo', rid != null ? (hasPhoto ? 'Changer ma photo d’ici' : 'Une photo pour cette salle') : (profile.photo ? 'Changer ma photo' : 'Prendre une photo'));
+  lbl('jdw-set-cri', rid != null ? (hasCri ? 'Changer mon cri d’ici' : 'Un cri pour cette salle') : (hasCri ? 'Changer mon cri' : 'Enregistrer mon cri'));
   $('jdw-set-cri-play').hidden = !(hasCri || (rid != null && mainCri));
+  $('jdw-set-cridel').hidden = !hasCri;
+  lbl('jdw-set-cridel', rid != null ? 'Retirer le cri d’ici' : 'Retirer mon cri');
   $('jdw-set-lookreset').hidden = !(rid != null && L);
+  // sous les deux gros boutons : où on en est, en deux mots
+  $('jdw-set-head-s').textContent = rid != null ? (L && L.photo ? 'Spéciale ici' : 'Comme partout') : hasPhoto ? 'Prête ✓' : 'À ajouter';
+  $('jdw-set-crib-s').textContent = rid != null ? (L && L.sound ? 'Spécial ici' : 'Comme partout') : hasCri ? 'Prêt ✓' : 'À ajouter';
+  $('jdw-set-head').classList.toggle('on', rid != null ? !!(L && L.photo) : hasPhoto);
+  $('jdw-set-crib').classList.toggle('on', rid != null ? !!(L && L.sound) : hasCri);
   renderAlias(rid);
 }
 // pseudo de salle (réglages, choix « Seulement dans <salle> ») : save_room_alias, unique dans la salle
@@ -1784,7 +1909,7 @@ function renderAlias(rid) {
   $('jdw-alias-room').textContent = room.name;
   const i = $('jdw-alias-in'); i.placeholder = cleanName(profile.name);
   if (document.activeElement !== i) i.value = (me && me.alias) || '';
-  const s = $('jdw-alias-s'); s.className = 'alias-s'; s.textContent = 'Les copains de cette salle te verront sous ce nom. Vide : ton pseudo principal.';
+  const s = $('jdw-alias-s'); s.className = 'alias-s'; s.textContent = '';
 }
 async function saveAlias() {
   if (!room || !profile.name) return;
@@ -1808,9 +1933,6 @@ async function saveAlias() {
 }
 $('jdw-alias-ok').addEventListener('click', saveAlias);
 $('jdw-alias-in').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveAlias(); } });
-for (const b of document.querySelectorAll('#jdw-look-scope button')) b.addEventListener('click', () => {
-  lookScope = b.dataset.look === 'room' && room ? 'room' : 'all'; renderLook(); $('jdw-set-status').textContent = '';
-});
 // la salle n'a plus rien de spécial (photo, cri ou les deux) : on revient au profil principal, ici et sur le serveur
 async function lookReset(rid, what) {
   const L = profile.rooms && profile.rooms[rid]; if (!L) return;
@@ -1838,6 +1960,8 @@ $('jdw-set-close').addEventListener('click', () => closeSheet('jdw-settings'));
 $('jdw-set-sfx').addEventListener('change', () => { muted = !$('jdw-set-sfx').checked; store.set('jdw.muted', muted); Audio.ensure(); syncMute(); if (!muted) Audio.tone(660, 0.08, 'square', 0.05); });
 $('jdw-set-music').addEventListener('change', () => { setMusicOn($('jdw-set-music').checked); syncMute(); });
 $('jdw-set-cris').addEventListener('change', () => { criOn = $('jdw-set-cris').checked; syncMute(); store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } else playCri(profile.name); });
+$('jdw-set-head').addEventListener('click', () => menuOpen($('jdw-set-head'), $('jdw-set-headmenu')));
+$('jdw-set-crib').addEventListener('click', () => menuOpen($('jdw-set-crib'), $('jdw-set-crimenu')));
 $('jdw-set-photo').addEventListener('click', () => { lookEdit = lookHere(); startPhoto(); });
 $('jdw-set-cri').addEventListener('click', () => { lookEdit = lookHere(); openCri(); });
 $('jdw-set-edit').addEventListener('click', () => { lookEdit = lookHere(); editHead(); });
@@ -1861,6 +1985,7 @@ $('jdw-set-delphoto').addEventListener('click', async () => {
   $('jdw-set-status').textContent = 'Ta tête est retirée des jeux.'; renderLook();
   refreshAll(); await pushProfile();
 });
+$('jdw-set-cridel').addEventListener('click', () => criRemove(lookHere()));
 $('jdw-set-guest-new').addEventListener('click', () => { closeSheet('jdw-settings'); guestCreate(); });
 $('jdw-set-guest-login').addEventListener('click', () => { closeSheet('jdw-settings'); guestLogin(); });
 $('jdw-set-save').addEventListener('click', async () => {
@@ -2102,12 +2227,14 @@ $('jdw-cri-ok').addEventListener('click', async () => {
   toastCheer(ok ? 'Ton cri est prêt : les copains vont l’entendre !' : 'Cri gardé sur cet appareil.', profile.name, true);
   setTimeout(() => playCri(profile.name), 300);
 });
-$('jdw-cri-del').addEventListener('click', async () => {
-  const rid = welReturn ? null : lookEdit;
-  if (rid != null) { closeCri(); await lookReset(rid, 'sound'); toastCheer('Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
-  profile.sound = ''; saveProfile(); syncOwnPlayer(); closeCri(); refreshAll();
+$('jdw-cri-del').addEventListener('click', () => criRemove(welReturn ? null : lookEdit, true));
+// retirer le cri (fenêtre du cri, ou menu « Mon cri » des paramètres) : dans une salle, on reprend le cri principal
+async function criRemove(rid, fromCri) {
+  if (rid != null) { if (fromCri) closeCri(); await lookReset(rid, 'sound'); toastCheer('Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
+  profile.sound = ''; saveProfile(); syncOwnPlayer(); if (fromCri) closeCri(); refreshAll();
+  if (!$('jdw-settings').hidden) renderLook();
   await pushProfile(); toastCheer('Ton cri est retiré.', profile.name, true);
-});
+}
 
 /* ================= Nouveau joueur (pseudo + tête + cri) ================= */
 let adding = null;                                // profil précédent pendant l'ajout d'un joueur
@@ -2180,10 +2307,10 @@ function welAcctUi() {
   // connexion : liste des joueurs du compte quand il en a plusieurs
   const pk = $('jdw-wel-pick'), picking = !!WEL.pick;
   pk.hidden = !picking; $('jdw-wel-lfields').hidden = picking; $('jdw-wel-lpassbox').hidden = picking; $('jdw-wel-forgot').hidden = picking;
-  $('jdw-wel-login-txt').textContent = picking ? 'Ce compte a plusieurs joueurs : qui joue sur cet appareil ?' : 'Tu as déjà joué sur un autre appareil ? Connecte-toi avec ton e-mail ou ton pseudo : on récupère ton joueur, sa tête et son cri.';
+  $('jdw-wel-login-txt').hidden = !picking; $('jdw-wel-login-txt').textContent = 'Ce compte a plusieurs joueurs : qui joue sur cet appareil ?';
   $('jdw-wel-ok').hidden = picking;
   $('jdw-wel-ok').textContent = WEL.tab === 'login' ? 'Me connecter' : on && !WEL.uid ? 'Créer mon compte' : "C'est parti !";
-  $('jdw-wel-foot').hidden = WEL.tab === 'login';
+  $('jdw-wel-help').dataset.help = WEL.tab === 'login' ? 'jdw-help-wel-login' : 'jdw-help-wel-new';   // explications derrière « ? »
 }
 function welBusy(on, t) {
   WEL.busy = on; $('jdw-wel-ok').disabled = on;
@@ -2659,7 +2786,8 @@ $('jdw-acctbar-x').addEventListener('click', () => {
 function renderAcctSet() {
   const st = acctState(profile), a = profile.acct || {}, box = $('jdw-set-acct'), se = sessOf(a.uid) || {};
   const linked = !!(a.uid && st !== 'off');
-  $('jdw-set-name').readOnly = linked; $('jdw-set-name-hint').hidden = !linked;
+  $('jdw-set-name').readOnly = linked; $('jdw-set-name-hint').hidden = !linked; nameDirty();
+  $('jdw-set-name-help').textContent = linked ? '🔒 Ton pseudo est lié à ton compte : il ne change plus.' : 'Ton pseudo se change ici, puis « Enregistrer ».';
   box.hidden = st === 'off'; if (st === 'off') return;
   const others = a.uid ? acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid && p.pid !== profile.pid).map(p => cleanName(p.name)) : [];
   const T = { on: ['🔒', 'Compte protégé', maskEmail(se.email) + (others.length ? ' · aussi ' + [...new Set(others)].join(', ') : '')],
@@ -2668,12 +2796,16 @@ function renderAcctSet() {
     local: ['🧒', 'Sans compte', 'Joueur de cet appareil seulement : son pseudo n’est pas protégé.'],
     none: ['🔓', 'Pseudo pas encore protégé', "N'importe qui peut jouer sous ce nom."] }[st];
   box.dataset.state = st;
-  $('jdw-set-acct-ic').textContent = T[0]; $('jdw-set-acct-t').textContent = T[1]; $('jdw-set-acct-s').textContent = T[2] || '';
+  $('jdw-set-acct-ic').textContent = T[0]; $('jdw-set-acct-t').textContent = T[1];
+  // visible : l'e-mail (masqué) ; les explications vont derrière « ? »
+  $('jdw-set-acct-s').textContent = st === 'on' || st === 'pending' ? T[2] || '' : '';
+  $('jdw-set-acct-help').textContent = st === 'on' ? 'Ton compte protège ton pseudo : personne d’autre ne peut jouer sous ce nom, et tu le retrouves sur n’importe quel appareil.'
+    : st === 'pending' ? 'Clique sur le lien reçu par e-mail (regarde aussi les spams), puis « J’ai confirmé ».' : T[2] || '';
   const btns = $('jdw-set-acct-btns'); btns.textContent = '';
   const B = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm ' + (cls || 'btn-ghost'); b.textContent = t; b.addEventListener('click', () => fn(b)); btns.appendChild(b); return b; };
   if (st === 'on') {
     B('🔑 Changer mon mot de passe', () => openAcct('change'));
-    B('Se déconnecter de cet appareil', b => {
+    B('🚪 Se déconnecter de cet appareil', b => {
       const names = [...new Set(acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid).map(p => cleanName(p.name)))];
       if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Sûr ? ' + names.join(', ') + (names.length > 1 ? ' quitteront' : ' quittera') + ' cet appareil'; return; }
       acctLogout();
@@ -2729,19 +2861,21 @@ function openAcct(mode, o) {
   Object.assign(AS, { mode, pid: profile.pid, name: N, busy: false, locked: !!o.locked });
   const lead = $('jdw-acct-lead'); lead.textContent = '';
   const Bo = t => { const b = document.createElement('b'); b.textContent = t; return b; };
+  // [icône, sur-titre, titre, phrase essentielle (visible), champ e-mail, mot de passe, bouton, fermer, explication (derrière « ? »)]
   const C = {
-    protect: ['🔒', 'Nouveau : les comptes', 'Protège ton pseudo', ['Pour continuer à jouer, mets ton joueur sur un compte (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouveras sur n’importe quel appareil. Un compte peut avoir plusieurs joueurs.'], 'email', 'new', 'Protéger mon pseudo', 'Plus tard'],
-    'connect-mine': ['🔑', N, 'Connecte-toi', ['Connecte-toi à ton compte avec ton e-mail ou un de tes pseudos : ', Bo(N), ' y sera ajouté et protégé.'], 'idf', 'cur', 'Me connecter', 'Plus tard'],
-    connect: ['🔑', N, 'Connecte-toi', [Bo(N), ' est protégé par un compte. C’est toi ? Tape le mot de passe du compte. Sinon, choisis un autre pseudo.'], 'idf', 'cur', 'Me connecter', 'Plus tard'],
-    'connect-any': ['🔑', 'Mon compte', 'Connecte-toi', ['Connecte-toi avec ton e-mail ou ton pseudo, et le mot de passe du compte.'], 'idf', 'cur', 'Me connecter', 'Fermer'],
-    confirm: ['📧', 'Presque fini', 'Confirme ton e-mail', ['On a envoyé un lien à ', Bo(maskEmail(a.email) || 'ton adresse'), '. Ouvre-le (regarde aussi les spams) pour activer ton compte, puis reviens ici et tape ton mot de passe.'], '', 'cur', "J'ai confirmé : me connecter", 'Plus tard'],
-    forgot: ['✉️', 'Mot de passe oublié', 'Pas de panique', ['Tape ton e-mail ou ton pseudo : on envoie un lien à l’adresse du compte pour choisir un nouveau mot de passe.'], 'idf', null, 'Envoyer le lien', 'Fermer'],
-    newpass: ['🔑', AS.sess && AS.sess.user ? maskEmail(AS.sess.user.email) : 'Mon compte', 'Choisis ton nouveau mot de passe', ['Au moins 6 caractères. Il sert pour tous les joueurs du compte, sur tous tes appareils.'], '', 'new', 'Enregistrer', 'Annuler'],
-    change: ['🔑', maskEmail((sessOf(a.uid) || {}).email) || 'Mon compte', 'Changer mon mot de passe', ['Choisis ton nouveau mot de passe (au moins 6 caractères). Il sert pour tous les joueurs du compte.'], '', 'new', 'Changer', 'Annuler']
+    protect: ['🔒', 'Nouveau : les comptes', 'Protège ton pseudo', ['Personne d’autre ne pourra jouer sous ton pseudo.'], 'email', 'new', 'Protéger mon pseudo', 'Plus tard', 'Pour continuer à jouer, mets ton joueur sur un compte (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouveras sur n’importe quel appareil. Un compte peut avoir plusieurs joueurs.'],
+    'connect-mine': ['🔑', N, 'Connecte-toi', [Bo(N), ' sera ajouté à ton compte.'], 'idf', 'cur', 'Me connecter', 'Plus tard', 'Connecte-toi à ton compte avec ton e-mail ou un de tes pseudos : ' + N + ' y sera ajouté et protégé.'],
+    connect: ['🔑', N, 'Connecte-toi', [Bo(N), ' est protégé par un compte. C’est toi ?'], 'idf', 'cur', 'Me connecter', 'Plus tard', 'Tape le mot de passe du compte. Si ce n’est pas toi, choisis un autre pseudo.'],
+    'connect-any': ['🔑', 'Mon compte', 'Connecte-toi', [], 'idf', 'cur', 'Me connecter', 'Fermer', 'Connecte-toi avec ton e-mail ou ton pseudo, et le mot de passe du compte.'],
+    confirm: ['📧', 'Presque fini', 'Confirme ton e-mail', ['Lien envoyé à ', Bo(maskEmail(a.email) || 'ton adresse'), '.'], '', 'cur', "J'ai confirmé : me connecter", 'Plus tard', 'Ouvre le lien reçu par e-mail (regarde aussi les spams) pour activer ton compte, puis reviens ici et tape ton mot de passe.'],
+    forgot: ['✉️', 'Mot de passe oublié', 'Pas de panique', ['On t’envoie un lien par e-mail.'], 'idf', null, 'Envoyer le lien', 'Fermer', 'Tape ton e-mail ou ton pseudo : on envoie un lien à l’adresse du compte pour choisir un nouveau mot de passe.'],
+    newpass: ['🔑', AS.sess && AS.sess.user ? maskEmail(AS.sess.user.email) : 'Mon compte', 'Choisis ton nouveau mot de passe', [], '', 'new', 'Enregistrer', 'Annuler', 'Au moins 6 caractères. Il sert pour tous les joueurs du compte, sur tous tes appareils.'],
+    change: ['🔑', maskEmail((sessOf(a.uid) || {}).email) || 'Mon compte', 'Changer mon mot de passe', [], '', 'new', 'Changer', 'Annuler', 'Au moins 6 caractères. Le mot de passe sert pour tous les joueurs du compte.']
   }[mode];
   if (!C) return;
   $('jdw-acct-ic').textContent = C[0]; $('jdw-acct-eyebrow').textContent = C[1]; $('jdw-acct-h').textContent = C[2];
-  lead.append(...C[3]);
+  lead.append(...C[3]); lead.hidden = !C[3].length;
+  $('jdw-acct-help-t').textContent = C[8] || ''; $('jdw-acct-help').hidden = !C[8];
   // choix du compte (protéger avec un compte déjà connecté sur l'appareil)
   AS.uid = mode === 'protect' ? (o.uid !== undefined ? o.uid : acctUids()[0] || '') : '';
   const em = $('jdw-acct-email'), pw = $('jdw-acct-pass');
@@ -2753,7 +2887,7 @@ function openAcct(mode, o) {
   $('jdw-acct-pw').dataset.kind = C[5] || '';
   pw.value = '';
   pw.autocomplete = C[5] === 'new' ? 'new-password' : 'current-password';
-  pw.placeholder = C[5] === 'new' ? (mode === 'protect' ? 'Mot de passe (6 caractères min.)' : 'Nouveau mot de passe') : 'Mot de passe du compte';
+  pw.placeholder = C[5] === 'new' ? (mode === 'protect' ? 'Mot de passe (6 caractères min.)' : 'Nouveau mot de passe (6 car. min.)') : 'Mot de passe du compte';
   $('jdw-acct-ok').textContent = C[6]; $('jdw-acct-ok').disabled = false; $('jdw-acct-close').textContent = C[7];
   $('jdw-acct-close').hidden = AS.locked; $('jdw-acct').classList.toggle('locked', AS.locked);
   $('jdw-acct-namebox').hidden = mode !== 'protect';
@@ -3425,9 +3559,27 @@ async function listRooms() {
 function roomHue(name) { let h = 7; for (const c of String(name).toUpperCase()) h = (h * 31 + c.charCodeAt(0)) % 9973; return Math.round((h * 137.508) % 360); }
 const ICON_USERS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg>';
 const ICON_LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+// onglets des salles : Mes salles | Rejoindre | Créer (explications derrière « ? »)
+function showRoomsTab(t, user) {
+  if (!['mine', 'join', 'new'].includes(t)) t = 'mine';
+  tabsShow('jdw-rooms-tabs', 'jdw-rooms-pane', t);
+  $('jdw-rooms-help').dataset.help = 'jdw-help-rooms-' + t;
+  helpClose();
+  if (user) { roomsStatus(''); $('jdw-joinbox').hidden = true; pendingRoom = null; const f = { join: 'jdw-find-name', new: 'jdw-new-name' }[t]; if (f && !TOUCH) setTimeout(() => $(f).focus({ preventScroll: true }), 30); }
+}
+tabsInit('jdw-rooms-tabs', showRoomsTab);
 function renderRooms() {
   const wrap = $('jdw-roomlist'); wrap.textContent = '';
-  if (!roomsCache.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = "Tu n'es encore dans aucune salle : rejoins celle de ta bande (son nom et son code), ou crée la tienne juste en dessous."; wrap.appendChild(p); return; }
+  if (!roomsCache.length) {
+    // aucune salle : deux gros boutons vers Rejoindre / Créer
+    const e = document.createElement('div'); e.className = 'rooms-empty';
+    const t = document.createElement('p'); t.textContent = 'Aucune salle pour l’instant'; e.appendChild(t);
+    for (const [k, ic, tx] of [['join', '🔑', 'Rejoindre la salle des copains'], ['new', '✨', 'Créer ma salle']]) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (k === 'join' ? 'btn-play' : 'btn-ghost'); b.textContent = ic + ' ' + tx;
+      b.addEventListener('click', () => showRoomsTab(k, true)); e.appendChild(b);
+    }
+    wrap.appendChild(e); return;
+  }
   const list = [...roomsCache].sort((a, b) => (room && b.r_id === room.id) - (room && a.r_id === room.id) || !!b.r_member - !!a.r_member || b.r_online - a.r_online || b.r_members - a.r_members);
   for (const r of list) {
     const cur = room && room.id === r.r_id;
@@ -3455,6 +3607,7 @@ function openRooms() {
   if (isGuest()) { guestAsk('Les salles'); return; }
   if (!profile.name) { startWelcome(); return; }
   roomsStatus('Chargement des salles…'); $('jdw-joinbox').hidden = true; pendingRoom = null;
+  showRoomsTab('mine');
   openSheet('jdw-rooms'); return listRooms();
 }
 async function chooseRoom(r) {
@@ -6210,6 +6363,7 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 
 /* ================= Appli Android : retour + mise à jour ================= */
 window.JDW_BACK = () => {
+  if (popCloseAll()) return true;
   if (!$('jdw-net').hidden) { netEnd(true); return true; }
   if (!$('jdw-watch').hidden) { watchStop(); return true; }
   if (MAP.open) { closeMap(); return true; }

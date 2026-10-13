@@ -1,6 +1,6 @@
+Menus simplifiés : paramètres en onglets (Moi, Salle, Compte, Son), salles en onglets (Mes salles, Rejoindre, Créer), l'aide derrière le « ? »
 Plus de mot de passe du site : la borne est ouverte à tous, ce sont les comptes qui protègent les salles
 Les copains de passage jouent en invité (jeux solo, duels sur le téléphone ou contre l'IA), sans score enregistré
 Rejoindre une salle : son nom (et son code) ; la liste ne montre plus que tes salles
 Un enfant sans compte s'ajoute au compte de l'appareil en un geste (un compte = plusieurs joueurs)
 Sur ordinateur, les duels se jouent en ligne ; à deux sur le même écran, c'est sur téléphone ou tablette
-Nouvelle appli Android 1.7 (sans mot de passe) : à télécharger depuis la cloche

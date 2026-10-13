@@ -1506,6 +1506,145 @@ body.jdw-guest #jdw-scope{display:none}
 .board[hidden]{display:none!important}
 #jdw-settings.is-guest #jdw-set-save{display:none!important}
 
+/* =========================================================================================
+   Menus simplifiés : un onglet par rubrique, de gros boutons, les explications derrière « ? »
+   ========================================================================================= */
+.tab-off{display:none!important}
+/* onglets (Paramètres, Salles) */
+.seg-tabs{--n:4;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;
+  background:linear-gradient(180deg,#09111a,#0c1720);border:1px solid var(--line);box-shadow:inset 0 2px 8px rgba(0,0,0,.4)}
+.seg-tabs[hidden],.seg-tabs [role=tab][hidden]{display:none}
+.seg-tabs [role=tab]{position:relative;display:grid;justify-items:center;align-content:center;gap:4px;min-width:0;min-height:60px;padding:8px 4px 10px;
+  border:0;border-radius:12px;background:none;color:var(--muted);font:700 12.5px/1.1 var(--body);letter-spacing:.02em;cursor:pointer;
+  transition:background .18s,color .18s,box-shadow .18s;-webkit-tap-highlight-color:transparent}
+.seg-tabs [role=tab] i{font-style:normal;font-size:21px;line-height:1;filter:grayscale(.7) brightness(.8);transition:filter .18s,transform .18s}
+.seg-tabs [role=tab] span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg-tabs [role=tab]:hover{color:var(--ink)}
+.seg-tabs [role=tab]:hover i{filter:none}
+.seg-tabs [role=tab][aria-selected=true]{color:var(--ink);background:linear-gradient(180deg,#24394a,#182a37);
+  box-shadow:inset 0 0 0 1px rgba(94,240,255,.3),0 6px 16px rgba(0,0,0,.4)}
+.seg-tabs [role=tab][aria-selected=true] i{filter:none;transform:scale(1.1)}
+.seg-tabs [role=tab][aria-selected=true]::after{content:"";position:absolute;left:30%;right:30%;bottom:4px;height:3px;border-radius:3px;background:var(--volt);box-shadow:0 0 10px var(--volt)}
+.set-pane{display:grid;gap:14px;min-width:0}
+.set-pane > :not(.tab-off){animation:paneIn .22s ease-out}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* les feuilles à onglets restent en place quand on change d'onglet (le haut ne bouge pas) */
+#jdw-settings > .card,#jdw-rooms > .card{margin:min(9vh,80px) auto auto}
+
+/* bouton « ? » : petit, rond, discret */
+.help-q{flex:0 0 auto;display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--steel2);
+  background:rgba(255,255,255,.03);color:var(--muted);font:700 14px/1 var(--body);cursor:pointer;transition:color .15s,border-color .15s,box-shadow .15s,background .15s}
+.help-q:hover,.help-q[aria-expanded=true]{color:var(--volt);border-color:var(--volt);background:rgba(94,240,255,.1);box-shadow:0 0 14px rgba(94,240,255,.35)}
+.help-q[hidden]{display:none}
+.card-head:has(.help-q) h2{flex:0 1 auto}
+.card-head > div{min-width:0}
+.card-head:not(:has(.help-q)) > div{flex:1 1 auto}
+.card-head .help-q{margin-right:auto}
+.h-row{display:flex;align-items:center;gap:10px;min-width:0}
+.acct-hero .help-q{margin-left:auto;align-self:flex-start}
+/* la bulle d'aide */
+.help-pop{position:fixed;z-index:2147483100;padding:14px 16px;border-radius:16px;outline:none;color:var(--ink);transform-origin:var(--ax,50%) 0;
+  background:linear-gradient(180deg,#18283a,#0c151d);border:1px solid rgba(94,240,255,.45);
+  box-shadow:0 18px 44px rgba(0,0,0,.62),0 0 26px rgba(94,240,255,.16)}
+.help-pop[hidden]{display:none}
+.help-pop::before{content:"";position:absolute;top:-7px;left:calc(var(--ax,50%) - 6px);width:11px;height:11px;transform:rotate(45deg);
+  background:#18283a;border-left:1px solid rgba(94,240,255,.45);border-top:1px solid rgba(94,240,255,.45)}
+.help-pop.up{transform-origin:var(--ax,50%) 100%}
+.help-pop.up::before{top:auto;bottom:-7px;transform:rotate(225deg);background:#0c151d}
+.help-pop.in,.act-menu.in{animation:popIn .18s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes popIn{from{opacity:0;transform:translateY(-4px) scale(.95)}to{opacity:1;transform:none}}
+.help-in{display:grid;gap:8px;font-size:14px;line-height:1.45;color:#cdd9e0}
+.help-in p{margin:0}
+.help-in b{color:var(--ink);font-weight:700}
+.help-src{display:none}
+
+/* Paramètres : Moi / Salle */
+.set-card .field label{display:flex;align-items:center;gap:6px}
+.name-lock{font-size:12px}
+.set-card #jdw-set-name[readonly]{color:var(--muted);border-style:dashed}
+.set-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+.act-tile{position:relative;display:grid;justify-items:center;align-content:center;gap:5px;min-width:0;min-height:150px;padding:16px 8px 14px;border-radius:18px;
+  border:1px solid var(--line);color:var(--ink);text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  background:radial-gradient(120% 80% at 50% 0%,rgba(94,240,255,.10),transparent 62%),linear-gradient(180deg,var(--card-hi),var(--card));
+  box-shadow:0 8px 22px rgba(0,0,0,.35);transition:transform .15s,border-color .15s,box-shadow .15s}
+.act-tile:hover{border-color:rgba(94,240,255,.45)}
+.act-tile:active{transform:scale(.97)}
+.act-tile[aria-expanded=true]{border-color:var(--volt);box-shadow:0 0 0 3px rgba(94,240,255,.14),0 8px 22px rgba(0,0,0,.35)}
+.act-tile b{margin-top:4px;font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.02em;line-height:1}
+.act-tile small{font-size:12px;font-weight:600;color:var(--muted)}
+.act-tile.on small{color:var(--leaf)}
+.act-tile .look-av .avatar{width:74px;height:74px;font-size:28px;box-shadow:0 0 0 2px var(--steel2)}
+.act-tile.on .look-av .avatar{box-shadow:0 0 0 2px var(--leaf),0 0 18px rgba(76,210,122,.28)}
+.act-ic{display:grid;place-items:center;width:74px;height:74px;border-radius:50%;border:1px solid rgba(255,95,174,.4);
+  background:radial-gradient(circle at 35% 30%,rgba(255,95,174,.32),rgba(255,95,174,.05) 70%)}
+.act-ic svg{width:34px;height:34px;fill:none;stroke:#ff86c2;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.act-tile.on .act-ic{border-color:var(--leaf);box-shadow:0 0 18px rgba(76,210,122,.28)}
+/* petit menu sous « Ma tête » / « Mon cri » */
+.act-menu{position:fixed;z-index:60;display:grid;gap:2px;padding:6px;border-radius:16px;transform-origin:var(--ax,30%) 0;
+  background:linear-gradient(180deg,#18283a,#0f1a23);border:1px solid var(--steel2);box-shadow:0 18px 44px rgba(0,0,0,.62)}
+.act-menu[hidden],.act-menu [role=menuitem][hidden]{display:none}
+.act-menu.up{transform-origin:var(--ax,30%) 100%}
+.act-menu [role=menuitem]{display:flex;align-items:center;gap:12px;min-height:50px;padding:0 16px 0 12px;border:0;border-radius:11px;background:none;
+  color:var(--ink);font:600 15px var(--body);text-align:left;white-space:nowrap;cursor:pointer}
+.act-menu [role=menuitem]:hover,.act-menu [role=menuitem]:focus-visible{background:var(--steel);outline:none}
+.act-menu [role=menuitem] i{flex:0 0 26px;font-style:normal;font-size:19px;text-align:center}
+.act-menu .act-del{color:#ff9aa5}
+.act-menu [role=menuitem]:not([hidden]) ~ .act-del{margin-top:4px;box-shadow:inset 0 1px 0 var(--line);border-radius:0 0 11px 11px}
+/* onglet Salle */
+.set-room{margin:0;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;padding:12px 14px;border-radius:14px;
+  background:radial-gradient(100% 140% at 50% 0%,rgba(255,211,77,.12),transparent 70%),var(--night);border:1px solid rgba(255,211,77,.3)}
+.set-room span{font-size:20px}
+.set-room b{min-width:0;font-family:var(--display);font-weight:400;font-size:19px;line-height:1.1;color:var(--gold);text-transform:uppercase;overflow-wrap:anywhere;
+  text-shadow:0 0 12px rgba(255,211,77,.35)}
+.set-card .alias-box{padding:0;border:0;background:none;gap:6px}
+.set-card .alias-box[hidden]{display:none}
+.set-card .alias-box label{font-size:13px;font-weight:600;color:var(--muted)}
+.set-card .alias-row .input{font:600 18px var(--body);padding:12px 14px}
+.set-card .alias-row .btn{padding-inline:18px}
+.alias-s:empty{display:none}
+.set-card .look-reset{justify-self:center;text-align:center}
+.set-card .look-tag{width:28px;height:28px;right:-4px;bottom:-4px}
+/* onglet Compte */
+.set-card #jdw-set-acct{gap:14px;padding:16px}
+.set-card #jdw-set-acct[hidden]{display:none}
+.set-card .acct-line-ic{font-size:30px}
+.set-card .acct-line-txt b{font-family:var(--display);font-weight:400;font-size:18px}
+.set-card .acct-line-txt small{font-size:13.5px}
+.set-card .acct-line-txt small:empty{display:none}
+.acct-btns{display:grid;gap:8px}
+.acct-btns .btn{width:100%;padding:14px 16px;font-size:14px}
+/* onglet Son : de vrais interrupteurs */
+.set-card .snd-rows{gap:0;padding:2px 16px}
+.set-card .switch-row{min-height:58px;font-size:16px;font-weight:600;cursor:pointer}
+.set-card .switch-row + .switch-row{border-top:1px solid var(--line)}
+.set-card .switch-row span{display:flex;align-items:center;gap:12px}
+.set-card .switch-row span i{font-style:normal;font-size:20px;width:26px;text-align:center}
+.set-card .snd-rows input{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 auto;width:50px;height:30px;margin:0;border-radius:15px;cursor:pointer;
+  background:var(--steel);border:1px solid var(--steel2);transition:background .18s,border-color .18s}
+.set-card .snd-rows input::before{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:transform .2s cubic-bezier(.3,1.4,.5,1),background .18s,box-shadow .18s}
+.set-card .snd-rows input:checked{background:color-mix(in srgb,var(--amber) 30%,var(--steel));border-color:var(--amber)}
+.set-card .snd-rows input:checked::before{transform:translateX(20px);background:var(--amber);box-shadow:0 0 10px rgba(255,166,48,.6)}
+.set-card .set-version{margin-top:2px}
+.set-status:empty,.rooms-status:empty{display:none}
+.set-status{text-align:center;color:var(--ink)}
+/* invité : le bandeau « Crée ton compte » + le son */
+.set-card .set-guest{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px 14px;padding:14px;border-radius:18px;
+  background:radial-gradient(120% 120% at 0% 0%,rgba(94,240,255,.14),transparent 60%),var(--card);border:1px solid rgba(94,240,255,.4)}
+.set-card .set-guest p{display:grid;gap:2px}
+.set-card .set-guest p b{font-family:var(--display);font-weight:400;font-size:18px;color:var(--ink)}
+.set-card .set-guest p span{font-size:13px;color:var(--muted)}
+.set-card .set-guest .row{grid-column:1 / -1}
+
+/* Salles : Mes salles | Rejoindre | Créer */
+.rooms-pane .find-box,.rooms-pane .create-box{display:grid;gap:10px;padding:0;border:0;border-radius:0;background:none}
+.rooms-pane .find-box .btn,.rooms-pane .create-box .btn{width:100%;margin-top:2px}
+.rooms-empty{grid-column:1 / -1;display:grid;gap:10px;padding:14px 0 4px;text-align:center}
+.rooms-empty p{margin:0 0 6px;font-family:var(--display);font-size:19px;color:var(--muted)}
+.rooms-card .join-box{border-style:solid;border-color:rgba(255,211,77,.45)}
+.rooms-card .join-box .lead{font-weight:600}
+/* la liste ne montre que mes salles : « Tu en fais partie » est inutile */
+.rooms-card .rt-badge.member{display:none}
+
 </style>
 </head>
 <body>
@@ -1759,17 +1898,18 @@ body.jdw-guest #jdw-scope{display:none}
 <div class="sheet" id="jdw-board" hidden>
   <div class="card board-card board-big" role="dialog" aria-modal="true" aria-labelledby="jdw-board-h">
     <div class="card-body">
-      <div class="card-head"><h2 id="jdw-board-h">Classement</h2><button class="btn btn-ghost btn-sm" id="jdw-board-close" type="button">Fermer</button></div>
+      <div class="card-head"><h2 id="jdw-board-h">Classement</h2><button class="help-q" type="button" data-help="jdw-help-board" aria-label="Explications" aria-expanded="false" aria-controls="jdw-help">?</button><button class="btn btn-ghost btn-sm" id="jdw-board-close" type="button">Fermer</button></div>
       <div class="scope" id="jdw-scope" role="group" aria-label="Quel classement">
         <button type="button" data-scope="room" aria-pressed="true">🏠 Ma salle</button>
         <button type="button" data-scope="world" aria-pressed="false">🌍 Monde</button>
       </div>
       <div class="tabs" id="jdw-tabs" role="tablist" aria-label="Jeux"></div>
-      <p class="small" id="jdw-board-hint"></p>
       <ol class="board" id="jdw-board-list"></ol>
     </div>
   </div>
 </div>
+
+<div class="help-src" id="jdw-help-board" hidden><p id="jdw-board-hint"></p><p><b>Ma salle</b> : les copains de ta salle. <b>Monde</b> : toutes les salles réunies.</p></div>
 
 <!-- Chat de la salle -->
 <div class="chat-wrap" id="jdw-chat" hidden>
@@ -1800,12 +1940,13 @@ body.jdw-guest #jdw-scope{display:none}
 <div class="sheet" id="jdw-members" hidden>
   <div class="card board-card" role="dialog" aria-modal="true" aria-labelledby="jdw-members-h">
     <div class="card-body">
-      <div class="card-head"><div><h2 id="jdw-members-h">Les joueurs</h2><p class="small" id="jdw-members-sub"></p></div><button class="btn btn-ghost btn-sm" id="jdw-members-close" type="button">Fermer</button></div>
+      <div class="card-head"><div><h2 id="jdw-members-h">Les joueurs</h2><p class="small" id="jdw-members-sub"></p></div><button class="help-q" type="button" data-help="jdw-help-members" aria-label="Explications" aria-expanded="false" aria-controls="jdw-help">?</button><button class="btn btn-ghost btn-sm" id="jdw-members-close" type="button">Fermer</button></div>
       <div class="mem-list" id="jdw-members-list"></div>
-      <p class="small">Touche une tête ou « 🔊 cri » pour écouter le cri du copain.</p>
     </div>
   </div>
 </div>
+
+<div class="help-src" id="jdw-help-members" hidden><p>Touche une tête ou « 🔊 cri » pour écouter le cri du copain, et 👁 pour le regarder jouer en direct.</p><p>Le chef de la salle (👑) peut retirer un joueur avec ✕ ; sur ta ligne, ✕ te fait quitter la salle.</p></div>
 
 <!-- Retirer un joueur de la salle / quitter la salle (confirmation) -->
 <div class="sheet sheet-top" id="jdw-kick" hidden>
@@ -1957,8 +2098,7 @@ body.jdw-guest #jdw-scope{display:none}
 <div class="sheet" id="jdw-profiles" hidden>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-prof-h">
     <div class="card-body">
-      <div class="card-head"><h2 id="jdw-prof-h">Qui joue ?</h2><button class="btn btn-ghost btn-sm" id="jdw-prof-close" type="button">Fermer</button></div>
-      <p class="small">Plusieurs joueurs sur cet appareil ? Chacun son nom, sa tête et ses records.</p>
+      <div class="card-head"><h2 id="jdw-prof-h">Qui joue ?</h2><button class="help-q" type="button" data-help="jdw-help-prof" aria-label="Explications" aria-expanded="false" aria-controls="jdw-help">?</button><button class="btn btn-ghost btn-sm" id="jdw-prof-close" type="button">Fermer</button></div>
       <div class="prof-list" id="jdw-prof-list"></div>
       <div class="prof-acct" id="jdw-prof-acct" hidden></div>
       <div class="row">
@@ -1968,6 +2108,8 @@ body.jdw-guest #jdw-scope{display:none}
     </div>
   </div>
 </div>
+
+<div class="help-src" id="jdw-help-prof" hidden><p>Plusieurs joueurs sur cet appareil ? Chacun son pseudo, sa tête et ses records. Touche un joueur pour jouer à sa place.</p></div>
 
 <!-- Invité : fonction réservée aux comptes -->
 <div class="sheet" id="jdw-guestask" hidden>
@@ -1988,94 +2130,117 @@ body.jdw-guest #jdw-scope{display:none}
   </div>
 </div>
 
-<!-- Salles -->
+<!-- Salles : Mes salles | Rejoindre | Créer -->
 <div class="sheet" id="jdw-rooms" hidden>
-  <div class="card board-card" role="dialog" aria-modal="true" aria-labelledby="jdw-rooms-h">
+  <div class="card board-card rooms-card" role="dialog" aria-modal="true" aria-labelledby="jdw-rooms-h">
     <div class="card-body">
-      <div class="card-head"><h2 id="jdw-rooms-h">Les salles</h2><button class="btn btn-ghost btn-sm" id="jdw-rooms-close" type="button">Fermer</button></div>
-      <p class="small">Tes salles. Chaque salle a ses joueurs, ses têtes et ses classements.</p>
-      <div class="room-list" id="jdw-roomlist"></div>
-      <div class="find-box">
-        <p class="eyebrow">Rejoindre une salle</p>
-        <p class="small">Demande aux copains le nom exact de leur salle (et son code, si elle en a un).</p>
-        <input class="input" id="jdw-find-name" type="text" maxlength="24" placeholder="NOM DE LA SALLE" autocomplete="off" spellcheck="false" enterkeyhint="next">
-        <div class="row"><input class="input" id="jdw-find-code" type="text" maxlength="24" placeholder="CODE (S'IL Y EN A UN)" autocomplete="off" spellcheck="false" enterkeyhint="go" style="flex:1 1 160px"><button class="btn btn-play" id="jdw-find-ok" type="button" style="flex:0 0 auto">Rejoindre</button></div>
+      <div class="card-head"><h2 id="jdw-rooms-h">Les salles</h2><button class="help-q" id="jdw-rooms-help" type="button" data-help="jdw-help-rooms-mine" aria-label="Explications" aria-expanded="false" aria-controls="jdw-help">?</button><button class="btn btn-ghost btn-sm" id="jdw-rooms-close" type="button">Fermer</button></div>
+      <div class="seg-tabs" id="jdw-rooms-tabs" role="tablist" aria-label="Les salles">
+        <button type="button" role="tab" id="jdw-rooms-t-mine" data-tab="mine" aria-controls="jdw-rooms-pane" aria-selected="true"><i aria-hidden="true">🏠</i><span>Mes salles</span></button>
+        <button type="button" role="tab" id="jdw-rooms-t-join" data-tab="join" aria-controls="jdw-rooms-pane" aria-selected="false" tabindex="-1"><i aria-hidden="true">🔑</i><span>Rejoindre</span></button>
+        <button type="button" role="tab" id="jdw-rooms-t-new" data-tab="new" aria-controls="jdw-rooms-pane" aria-selected="false" tabindex="-1"><i aria-hidden="true">✨</i><span>Créer</span></button>
+      </div>
+      <div class="set-pane rooms-pane" id="jdw-rooms-pane" role="tabpanel" aria-labelledby="jdw-rooms-t-mine" data-tab="mine">
+        <div class="room-list" id="jdw-roomlist" data-in="mine"></div>
+        <div class="find-box" data-in="join">
+          <input class="input" id="jdw-find-name" type="text" maxlength="24" placeholder="NOM DE LA SALLE" aria-label="Nom de la salle" autocomplete="off" spellcheck="false" enterkeyhint="next">
+          <input class="input" id="jdw-find-code" type="text" maxlength="24" placeholder="CODE (S'IL Y EN A UN)" aria-label="Code de la salle, s'il y en a un" autocomplete="off" spellcheck="false" enterkeyhint="go">
+          <button class="btn btn-play" id="jdw-find-ok" type="button">Rejoindre</button>
+        </div>
+        <div class="create-box" data-in="new">
+          <input class="input" id="jdw-new-name" type="text" maxlength="24" placeholder="NOM DE LA SALLE" aria-label="Nom de la nouvelle salle" autocomplete="off" spellcheck="false" enterkeyhint="next">
+          <input class="input" id="jdw-new-code" type="text" maxlength="24" placeholder="CODE SECRET (FACULTATIF)" aria-label="Code secret, facultatif" autocomplete="off" spellcheck="false" enterkeyhint="go">
+          <button class="btn btn-play" id="jdw-new-ok" type="button">Créer et entrer</button>
+        </div>
       </div>
       <div class="join-box" id="jdw-joinbox" hidden>
         <p class="lead" id="jdw-join-title">Salle privée</p>
-        <div class="row"><input class="input" id="jdw-join-code" type="text" maxlength="24" placeholder="CODE DE LA SALLE" autocomplete="off" spellcheck="false" enterkeyhint="go" style="flex:1 1 160px"><button class="btn btn-play" id="jdw-join-ok" type="button" style="flex:0 0 auto">Entrer</button></div>
+        <div class="row"><input class="input" id="jdw-join-code" type="text" maxlength="24" placeholder="CODE DE LA SALLE" aria-label="Code de la salle" autocomplete="off" spellcheck="false" enterkeyhint="go" style="flex:1 1 160px"><button class="btn btn-play" id="jdw-join-ok" type="button" style="flex:0 0 auto">Entrer</button></div>
       </div>
-      <p class="small" id="jdw-rooms-status" role="status"></p>
-      <div class="create-box">
-        <p class="eyebrow">Créer une salle</p>
-        <input class="input" id="jdw-new-name" type="text" maxlength="24" placeholder="NOM DE LA SALLE" autocomplete="off" spellcheck="false">
-        <input class="input" id="jdw-new-code" type="text" maxlength="24" placeholder="CODE SECRET (FACULTATIF)" autocomplete="off" spellcheck="false">
-        <button class="btn btn-play" id="jdw-new-ok" type="button">Créer et entrer</button>
-      </div>
+      <p class="small rooms-status" id="jdw-rooms-status" role="status"></p>
     </div>
   </div>
 </div>
+<div class="help-src" id="jdw-help-rooms-mine" hidden><p>Chaque salle a ses joueurs, ses têtes, son chat et ses classements. Touche une salle pour y entrer.</p></div>
+<div class="help-src" id="jdw-help-rooms-join" hidden><p>Demande aux copains <b>le nom exact</b> de leur salle, et <b>son code</b> si elle en a un.</p></div>
+<div class="help-src" id="jdw-help-rooms-new" hidden><p>Le code est facultatif : avec un code, seuls ceux qui le connaissent peuvent entrer.</p><p>Ensuite, donne le nom (et le code) aux copains, ou touche le bouton Inviter.</p></div>
 
-<!-- Paramètres -->
+<!-- Paramètres : un onglet par rubrique (Moi / Salle / Compte / Son), les explications derrière « ? » -->
 <div class="sheet" id="jdw-settings" hidden>
-  <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-set-h">
+  <div class="card set-card" role="dialog" aria-modal="true" aria-labelledby="jdw-set-h">
     <div class="card-body">
-      <div class="card-head"><h2 id="jdw-set-h">Paramètres</h2><button class="btn btn-ghost btn-sm" id="jdw-set-close" type="button">Fermer</button></div>
+      <div class="card-head"><h2 id="jdw-set-h">Paramètres</h2><button class="help-q" id="jdw-set-help" type="button" data-help="jdw-help-set-me" aria-label="Explications" aria-expanded="false" aria-controls="jdw-help">?</button><button class="btn btn-ghost btn-sm" id="jdw-set-close" type="button">Fermer</button></div>
+      <div class="seg-tabs" id="jdw-set-tabs" role="tablist" aria-label="Rubriques des paramètres">
+        <button type="button" role="tab" id="jdw-set-t-me" data-tab="me" aria-controls="jdw-set-pane" aria-selected="true"><i aria-hidden="true">👤</i><span>Moi</span></button>
+        <button type="button" role="tab" id="jdw-set-t-room" data-tab="room" aria-controls="jdw-set-pane" aria-selected="false" tabindex="-1"><i aria-hidden="true">🏠</i><span>Salle</span></button>
+        <button type="button" role="tab" id="jdw-set-t-acct" data-tab="acct" aria-controls="jdw-set-pane" aria-selected="false" tabindex="-1"><i aria-hidden="true">🔐</i><span>Compte</span></button>
+        <button type="button" role="tab" id="jdw-set-t-snd" data-tab="snd" aria-controls="jdw-set-pane" aria-selected="false" tabindex="-1"><i aria-hidden="true">🔊</i><span>Son</span></button>
+      </div>
       <div class="set-guest" id="jdw-set-guest" hidden>
-        <p><b>Tu joues en invité.</b> Ton pseudo, ta tête et ton cri arrivent avec ton compte (gratuit).</p>
+        <span class="gb-orb" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 21v-1a6 6 0 0 1 12 0v1"/><circle cx="12" cy="8" r="4"/><path d="M19 3l.7 1.6L21.3 5l-1.6.7L19 7.3l-.7-1.6L16.7 5l1.6-.7z"/></svg></span>
+        <p><b>Crée ton compte</b><span>Ton pseudo, ta tête et ton cri</span></p>
         <div class="row"><button class="btn btn-play btn-sm" id="jdw-set-guest-new" type="button">Créer un compte</button><button class="btn btn-ghost btn-sm" id="jdw-set-guest-login" type="button">J’ai déjà un compte</button></div>
       </div>
-      <div class="me-big"><span class="look-av"><span class="avatar" id="jdw-set-av"></span><span class="look-tag" id="jdw-look-tag" hidden>🏠</span></span><div class="field" style="flex:1 1 auto;min-width:0">
-        <label for="jdw-set-name">Ton nom</label>
-        <input class="input" id="jdw-set-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" enterkeyhint="done">
-      </div></div>
-      <p class="small acct-name-hint" id="jdw-set-name-hint" hidden>🔒 Pseudo lié à ton compte : il ne change plus.</p>
-      <div class="acct-box" id="jdw-set-acct" hidden>
-        <p class="look-lbl">Mon compte</p>
-        <div class="acct-line"><span class="acct-line-ic" id="jdw-set-acct-ic" aria-hidden="true">🔒</span><span class="acct-line-txt"><b id="jdw-set-acct-t"></b><small id="jdw-set-acct-s"></small></span></div>
-        <div class="row" id="jdw-set-acct-btns"></div>
-      </div>
-      <div class="look-box" id="jdw-look" hidden>
-        <p class="look-lbl">Ma tête et mon cri</p>
-        <div class="scope look-scope" id="jdw-look-scope" role="group" aria-label="Où utiliser ma tête et mon cri">
-          <button type="button" data-look="all" aria-pressed="true">🌍 Partout</button>
-          <button type="button" data-look="room" aria-pressed="false"><span class="look-only">🏠 Seulement dans</span> <b id="jdw-look-room"></b></button>
+      <div class="set-pane" id="jdw-set-pane" role="tabpanel" aria-labelledby="jdw-set-t-me" data-tab="me">
+        <div class="field" data-in="me">
+          <label for="jdw-set-name">Ton pseudo <span class="name-lock" id="jdw-set-name-hint" hidden title="Pseudo lié à ton compte">🔒</span></label>
+          <input class="input" id="jdw-set-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" enterkeyhint="done">
         </div>
-        <p class="small look-hint" id="jdw-look-hint"></p>
-        <div class="alias-box" id="jdw-alias" hidden>
-          <label for="jdw-alias-in">🏷️ Mon pseudo dans <b id="jdw-alias-room"></b></label>
+        <p class="set-room" data-in="room"><span aria-hidden="true">🏠</span><b id="jdw-look-room"></b></p>
+        <div class="alias-box" id="jdw-alias" data-in="room" hidden>
+          <label for="jdw-alias-in">Mon pseudo ici</label>
           <div class="alias-row"><input class="input" id="jdw-alias-in" type="text" maxlength="12" autocomplete="off" spellcheck="false" enterkeyhint="done"><button class="btn btn-ghost btn-sm" id="jdw-alias-ok" type="button">OK</button></div>
-          <small class="alias-s" id="jdw-alias-s">Les copains de cette salle te verront sous ce nom. Vide : ton pseudo principal.</small>
+          <small class="alias-s" id="jdw-alias-s" role="status"></small>
         </div>
+        <div class="set-acts" id="jdw-look" data-in="me room">
+          <button class="act-tile" id="jdw-set-head" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-set-headmenu">
+            <span class="look-av"><span class="avatar" id="jdw-set-av"></span><span class="look-tag" id="jdw-look-tag" hidden>🏠</span></span>
+            <b>Ma tête</b><small id="jdw-set-head-s"></small>
+          </button>
+          <button class="act-tile" id="jdw-set-crib" type="button" data-align="end" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-set-crimenu">
+            <span class="act-ic" id="jdw-set-crib-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></span>
+            <b>Mon cri</b><small id="jdw-set-crib-s"></small>
+          </button>
+          <div class="act-menu" id="jdw-set-headmenu" role="menu" aria-label="Ma tête" hidden>
+            <button type="button" role="menuitem" id="jdw-set-photo"><i aria-hidden="true">📸</i><span>Prendre une photo</span></button>
+            <button type="button" role="menuitem" id="jdw-set-edit" hidden><i aria-hidden="true">✨</i><span>Modifier ma tête</span></button>
+            <button type="button" role="menuitem" class="act-del" id="jdw-set-delphoto" hidden><i aria-hidden="true">🗑️</i><span>Retirer ma tête</span></button>
+          </div>
+          <div class="act-menu" id="jdw-set-crimenu" role="menu" aria-label="Mon cri" hidden>
+            <button type="button" role="menuitem" id="jdw-set-cri-play" hidden><i aria-hidden="true">▶️</i><span>Écouter</span></button>
+            <button type="button" role="menuitem" id="jdw-set-cri"><i aria-hidden="true">🎙️</i><span>Enregistrer mon cri</span></button>
+            <button type="button" role="menuitem" class="act-del" id="jdw-set-cridel" hidden><i aria-hidden="true">🗑️</i><span>Retirer mon cri</span></button>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm look-reset" id="jdw-set-lookreset" type="button" data-in="room" hidden>↩ Comme partout</button>
+        <button class="btn btn-play" id="jdw-set-save" type="button" data-in="me">Enregistrer</button>
+        <div class="acct-box" id="jdw-set-acct" data-in="acct" hidden>
+          <div class="acct-line"><span class="acct-line-ic" id="jdw-set-acct-ic" aria-hidden="true">🔒</span><span class="acct-line-txt"><b id="jdw-set-acct-t"></b><small id="jdw-set-acct-s"></small></span></div>
+          <div class="acct-btns" id="jdw-set-acct-btns"></div>
+        </div>
+        <div class="snd-rows" data-in="snd">
+          <label class="switch-row"><span><i aria-hidden="true">🎵</i>Musique</span><input type="checkbox" id="jdw-set-music"></label>
+          <label class="switch-row"><span><i aria-hidden="true">💥</i>Bruitages</span><input type="checkbox" id="jdw-set-sfx"></label>
+          <label class="switch-row"><span><i aria-hidden="true">📣</i>Cris des copains</span><input type="checkbox" id="jdw-set-cris"></label>
+        </div>
+        <p class="small set-version" id="jdw-set-version" data-in="snd"></p>
       </div>
-      <div class="row set-me">
-        <button class="btn btn-ghost btn-sm" id="jdw-set-edit" type="button" hidden>✨ Modifier ma tête</button>
-        <button class="btn btn-ghost btn-sm" id="jdw-set-photo" type="button">Prendre une photo</button>
-        <button class="btn btn-ghost btn-sm" id="jdw-set-delphoto" type="button">Retirer ma tête</button>
-      </div>
-      <div class="row set-me">
-        <button class="btn btn-ghost btn-sm" id="jdw-set-cri" type="button">🎙️ Enregistrer mon cri</button>
-        <button class="btn btn-ghost btn-sm" id="jdw-set-cri-play" type="button" hidden>▶ Mon cri</button>
-      </div>
-      <button class="btn btn-ghost btn-sm look-reset" id="jdw-set-lookreset" type="button" hidden>↩ Revenir à mon profil principal dans cette salle</button>
-      <div class="snd-rows">
-        <label class="switch-row"><span>🔊 Effets sonores</span><input type="checkbox" id="jdw-set-sfx"></label>
-        <label class="switch-row"><span>🎵 Musique</span><input type="checkbox" id="jdw-set-music"></label>
-        <label class="switch-row"><span>📣 Cris des copains</span><input type="checkbox" id="jdw-set-cris"></label>
-      </div>
-      <p class="small" id="jdw-set-status"></p>
-      <button class="btn btn-play" id="jdw-set-save" type="button">Enregistrer</button>
-      <p class="small set-version" id="jdw-set-version"></p>
+      <p class="small set-status" id="jdw-set-status" role="status"></p>
     </div>
   </div>
 </div>
+<!-- explications des paramètres (montrées dans la bulle « ? ») -->
+<div class="help-src" id="jdw-help-set-me" hidden><p><b>Ta tête et ton cri</b> apparaissent dans les jeux et le chat de toutes tes salles.</p><p id="jdw-set-name-help">Ton pseudo se change ici, puis « Enregistrer ».</p></div>
+<div class="help-src" id="jdw-help-set-room" hidden><p class="look-hint" id="jdw-look-hint"></p><p>Tout ce que tu changes ici ne sert que dans <b id="jdw-alias-room"></b>. « Mon pseudo ici » vide : ton pseudo principal.</p></div>
+<div class="help-src" id="jdw-help-set-acct" hidden><p id="jdw-set-acct-help"></p><p>Un compte peut avoir plusieurs joueurs : tous gardent le même mot de passe.</p></div>
+<div class="help-src" id="jdw-help-set-snd" hidden><p><b>Cris des copains</b> : le cri d’un copain sonne quand tu le bats, et quand tu touches sa tête dans le chat.</p><p>En pleine partie, le bouton 🔊 en haut règle aussi le son.</p></div>
 
 <!-- Nouveau joueur : pseudo + tête + cri dans une seule fenêtre -->
 <div class="sheet" id="jdw-welcome" hidden>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-wel-h">
     <div class="card-body">
       <p class="eyebrow" id="jdw-wel-eyebrow">Bienvenue à la Borne d'arcade</p>
-      <h2 id="jdw-wel-h" class="wel-h">Crée ton joueur</h2>
+      <div class="h-row"><h2 id="jdw-wel-h" class="wel-h">Crée ton joueur</h2><button class="help-q" id="jdw-wel-help" type="button" data-help="jdw-help-wel-new" aria-label="Explications" aria-expanded="false" aria-controls="jdw-help">?</button></div>
       <div class="scope wel-tabs" id="jdw-wel-tabs" role="group" aria-label="Nouveau joueur ou compte existant" hidden>
         <button type="button" data-tab="new" aria-pressed="true">✨ Nouveau joueur</button>
         <button type="button" data-tab="login" aria-pressed="false">🔑 J'ai déjà un compte</button>
@@ -2105,7 +2270,7 @@ body.jdw-guest #jdw-scope{display:none}
         <span class="wel-cri-go" aria-hidden="true">›</span>
       </button>
       <div class="acct-fields" id="jdw-wel-acct" hidden>
-        <p class="acct-lbl"><b>🔒 Ton compte</b><span>Personne d'autre ne pourra jouer sous ton pseudo, et tu le retrouves sur n'importe quel appareil.</span></p>
+        <p class="acct-lbl"><b>🔒 Ton compte</b></p>
         <div class="acct-pick" id="jdw-wel-acctpick" role="group" aria-label="Compte du nouveau joueur" hidden></div>
         <p class="acct-sess" id="jdw-wel-sess" hidden></p>
         <div class="acct-inputs" id="jdw-wel-acct-in">
@@ -2116,7 +2281,7 @@ body.jdw-guest #jdw-scope{display:none}
       <button class="link-btn" id="jdw-wel-noacct" type="button" hidden>Pas d'e-mail (un enfant) ? Jouer sans compte, sur cet appareil</button>
       </div>
       <div class="wel-pane" id="jdw-wel-login" hidden>
-        <p class="small" id="jdw-wel-login-txt">Tu as déjà joué sur un autre appareil ? Connecte-toi : on récupère ton pseudo, ta tête et ton cri.</p>
+        <p class="small" id="jdw-wel-login-txt" hidden></p>
         <div class="field" id="jdw-wel-lfields"><label for="jdw-wel-lemail">E-mail ou pseudo</label><input class="input input-plain" id="jdw-wel-lemail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ton@email.fr ou TON PSEUDO"></div>
         <div class="field" id="jdw-wel-lpassbox"><label for="jdw-wel-lpass">Mot de passe du compte</label><span class="pw-wrap"><input class="input input-plain" id="jdw-wel-lpass" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Ton mot de passe"><button class="pw-eye" type="button" aria-label="Afficher le mot de passe" data-for="jdw-wel-lpass">👁</button></span></div>
         <button class="link-btn" id="jdw-wel-forgot" type="button">Mot de passe oublié ?</button>
@@ -2127,16 +2292,19 @@ body.jdw-guest #jdw-scope{display:none}
         <button class="btn btn-play" id="jdw-wel-ok" type="button">C'est parti !</button>
         <button class="btn btn-ghost" id="jdw-wel-cancel" type="button" hidden>Annuler</button>
       </div>
-      <p class="small" id="jdw-wel-foot">La tête et le cri sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains qui ont le mot de passe les voient.</p>
+      <p class="small" id="jdw-wel-foot" hidden></p>
     </div>
   </div>
 </div>
+
+<div class="help-src" id="jdw-help-wel-new" hidden><p><b>Ton compte</b> (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouves sur n’importe quel appareil.</p><p>La tête et le cri sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains de tes salles les voient.</p></div>
+<div class="help-src" id="jdw-help-wel-login" hidden><p>Tu as déjà joué sur un autre appareil ? Connecte-toi avec ton e-mail ou ton pseudo, et le mot de passe du compte : on récupère ton joueur, sa tête et son cri.</p></div>
 
 <!-- Compte : protéger, se connecter, confirmer, mot de passe oublié / nouveau / changer -->
 <div class="sheet sheet-top" id="jdw-acct" hidden>
   <div class="card acct-card" role="dialog" aria-modal="true" aria-labelledby="jdw-acct-h">
     <div class="card-body">
-      <div class="acct-hero"><span class="acct-hero-ic" id="jdw-acct-ic" aria-hidden="true">🔒</span><div class="acct-hero-tx"><p class="eyebrow" id="jdw-acct-eyebrow">Mon compte</p><h2 id="jdw-acct-h" class="wel-h">Protège ton compte</h2></div></div>
+      <div class="acct-hero"><span class="acct-hero-ic" id="jdw-acct-ic" aria-hidden="true">🔒</span><div class="acct-hero-tx"><p class="eyebrow" id="jdw-acct-eyebrow">Mon compte</p><h2 id="jdw-acct-h" class="wel-h">Protège ton compte</h2></div><button class="help-q" id="jdw-acct-help" type="button" data-help="jdw-help-acct" aria-label="Explications" aria-expanded="false" aria-controls="jdw-help" hidden>?</button></div>
       <p class="lead acct-lead" id="jdw-acct-lead"></p>
       <div class="acct-inputs" id="jdw-acct-in">
         <div class="acct-name" id="jdw-acct-namebox" hidden><label for="jdw-acct-name">Ton pseudo</label><input class="input" id="jdw-acct-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" placeholder="TON PSEUDO"><small id="jdw-acct-name-s">C'est bien toi ? Tu peux le changer maintenant.</small></div>
@@ -2154,6 +2322,8 @@ body.jdw-guest #jdw-scope{display:none}
     </div>
   </div>
 </div>
+
+<div class="help-src" id="jdw-help-acct" hidden><p id="jdw-acct-help-t"></p></div>
 
 <div class="sheet" id="jdw-photo" hidden>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-ph-h">
@@ -2173,7 +2343,7 @@ body.jdw-guest #jdw-scope{display:none}
         <div class="acc-grid" id="jdw-acc-grid"></div>
         <p class="small" id="jdw-acc-hint"></p>
       </div>
-      <label class="check"><input type="checkbox" id="jdw-ph-consent"><span>J'accepte que ma tête apparaisse dans les jeux, visible par les copains qui ont le mot de passe.</span></label>
+      <label class="check"><input type="checkbox" id="jdw-ph-consent"><span>J'accepte que ma tête apparaisse dans les jeux, visible par les copains de mes salles.</span></label>
       <button class="btn btn-play" id="jdw-ph-ok" type="button" disabled>Valider ma tête</button>
     </div>
   </div>
@@ -2212,6 +2382,7 @@ body.jdw-guest #jdw-scope{display:none}
 </div>
 <input type="file" id="jdw-cri-input" accept="audio/*" hidden>
 <input type="file" id="jdw-file" accept="image/*" capture="user" hidden>
+<div class="help-pop" id="jdw-help" role="dialog" aria-label="Explications" tabindex="-1" hidden><div class="help-in" id="jdw-help-in"></div></div>
 
 <script>
 (() => {
@@ -54197,7 +54368,7 @@ window.JDW_GAMES.pleingaz = {
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261013203142"; window.JDW_VERSION = "1.7"; window.JDW_NOTES = ["Plus de mot de passe du site : la borne est ouverte \u00e0 tous, ce sont les comptes qui prot\u00e8gent les salles", "Les copains de passage jouent en invit\u00e9 (jeux solo, duels sur le t\u00e9l\u00e9phone ou contre l'IA), sans score enregistr\u00e9", "Rejoindre une salle : son nom (et son code) ; la liste ne montre plus que tes salles", "Un enfant sans compte s'ajoute au compte de l'appareil en un geste (un compte = plusieurs joueurs)", "Sur ordinateur, les duels se jouent en ligne ; \u00e0 deux sur le m\u00eame \u00e9cran, c'est sur t\u00e9l\u00e9phone ou tablette", "Nouvelle appli Android 1.7 (sans mot de passe) : \u00e0 t\u00e9l\u00e9charger depuis la cloche"];</script>
+<script>window.JDW_BUILD = "20261013230545"; window.JDW_VERSION = "1.7"; window.JDW_NOTES = ["Menus simplifi\u00e9s : param\u00e8tres en onglets (Moi, Salle, Compte, Son), salles en onglets (Mes salles, Rejoindre, Cr\u00e9er), l'aide derri\u00e8re le \u00ab ? \u00bb", "Plus de mot de passe du site : la borne est ouverte \u00e0 tous, ce sont les comptes qui prot\u00e8gent les salles", "Les copains de passage jouent en invit\u00e9 (jeux solo, duels sur le t\u00e9l\u00e9phone ou contre l'IA), sans score enregistr\u00e9", "Rejoindre une salle : son nom (et son code) ; la liste ne montre plus que tes salles", "Un enfant sans compte s'ajoute au compte de l'appareil en un geste (un compte = plusieurs joueurs)", "Sur ordinateur, les duels se jouent en ligne ; \u00e0 deux sur le m\u00eame \u00e9cran, c'est sur t\u00e9l\u00e9phone ou tablette"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -55846,9 +56017,106 @@ function previewLoop(ts) {
 /* ================= Feuilles (ouverture / fermeture) ================= */
 let lastFocus = null;
 function openSheet(id, focusId) { lastFocus = document.activeElement; $(id).hidden = false; const f = focusId && $(focusId); if (f) setTimeout(() => f.focus({ preventScroll: true }), 30); }
-function closeSheet(id) { $(id).hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); }
+function closeSheet(id) { helpClose(); menuClose(); $(id).hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); }
+/* ---- aide « ? » : une seule bulle pour toute la borne, remplie avec l'explication cachée (data-help = id de la source) ---- */
+const POP = { help: null, menu: null };
+// place une bulle (position fixe) sous son bouton, ou au-dessus quand il n'y a pas la place ; --ax = position de la flèche
+function popPlace(el, anchor, align) {
+  const r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth || innerWidth, vh = innerHeight, m = 12;
+  el.style.left = '0px'; el.style.top = '0px'; el.style.maxWidth = Math.min(align === 'center' ? 340 : 300, vw - 2 * m) + 'px';
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let x = align === 'start' ? r.left : align === 'end' ? r.right - w : r.left + r.width / 2 - w / 2;
+  x = Math.max(m, Math.min(vw - m - w, x));
+  let y = r.bottom + 10, up = false;
+  if (y + h > vh - m && r.top - 10 - h > m) { y = r.top - 10 - h; up = true; }
+  el.style.left = Math.round(x) + 'px'; el.style.top = Math.round(Math.max(m, y)) + 'px';
+  el.style.setProperty('--ax', Math.round(Math.max(16, Math.min(w - 16, r.left + r.width / 2 - x))) + 'px');
+  el.classList.toggle('up', up);
+  el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
+}
+function helpOpen(btn) {
+  const src = $(btn.dataset.help), inn = $('jdw-help-in'), pop = $('jdw-help');
+  if (!src) return;
+  helpClose(); menuClose();
+  inn.textContent = '';
+  for (const n of src.childNodes) {
+    const c = n.cloneNode(true);
+    if (c.nodeType === 1) { if (c.hidden || !c.textContent.trim()) continue; c.removeAttribute('id'); for (const e of c.querySelectorAll('[id]')) e.removeAttribute('id'); }
+    inn.appendChild(c);
+  }
+  if (!inn.textContent.trim()) return;
+  pop.hidden = false; POP.help = btn; btn.setAttribute('aria-expanded', 'true');
+  popPlace(pop, btn, 'center');
+  try { pop.focus({ preventScroll: true }); } catch (e) {}
+}
+function helpClose(refocus) {
+  const b = POP.help; if (!b) return false;
+  POP.help = null; $('jdw-help').hidden = true; b.setAttribute('aria-expanded', 'false');
+  if (refocus) try { b.focus({ preventScroll: true }); } catch (e) {}
+  return true;
+}
+/* ---- petits menus (Ma tête, Mon cri) : sous leur bouton, fermés au toucher ailleurs, par Échap ou le retour Android ---- */
+function menuOpen(btn, menu) {
+  if (POP.menu && POP.menu.el === menu) { menuClose(); return; }
+  helpClose(); menuClose();
+  menu.hidden = false; menu.style.minWidth = Math.round(btn.getBoundingClientRect().width) + 'px';
+  POP.menu = { el: menu, btn }; btn.setAttribute('aria-expanded', 'true');
+  popPlace(menu, btn, btn.dataset.align || 'start');
+  const first = [...menu.querySelectorAll('[role=menuitem]')].find(x => !x.hidden);
+  if (first) try { first.focus({ preventScroll: true }); } catch (e) {}
+}
+function menuClose(refocus) {
+  const m = POP.menu; if (!m) return false;
+  POP.menu = null; m.el.hidden = true; m.btn.setAttribute('aria-expanded', 'false');
+  if (refocus) try { m.btn.focus({ preventScroll: true }); } catch (e) {}
+  return true;
+}
+const popCloseAll = refocus => helpClose(refocus) || menuClose(refocus);
+document.addEventListener('click', e => {
+  const q = e.target.closest && e.target.closest('.help-q'); if (!q) return;
+  e.preventDefault(); if (POP.help === q) helpClose(); else helpOpen(q);
+});
+// un toucher n'importe où ferme la bulle (sauf sur son « ? », qui la referme lui-même) et le menu (sauf dedans)
+document.addEventListener('pointerdown', e => {
+  if (POP.help && !POP.help.contains(e.target)) helpClose();
+  if (POP.menu && !POP.menu.el.contains(e.target) && !POP.menu.btn.contains(e.target)) menuClose();
+}, true);
+document.addEventListener('scroll', e => { if (POP.menu && POP.menu.el.contains(e.target)) return; helpClose(); menuClose(); }, true);
+addEventListener('resize', () => { helpClose(); menuClose(); });
+for (const m of document.querySelectorAll('.act-menu')) {
+  m.addEventListener('click', e => { if (e.target.closest('[role=menuitem]')) menuClose(); });
+  m.addEventListener('keydown', e => {
+    const I = [...m.querySelectorAll('[role=menuitem]')].filter(x => !x.hidden), i = I.indexOf(document.activeElement);
+    const k = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+    if (k && I.length) { e.preventDefault(); I[(i + k + I.length) % I.length].focus(); }
+    else if (e.key === 'Tab') menuClose();
+  });
+}
+/* ---- onglets (role=tab) : un seul panneau, ses blocs [data-in="me room"] s'affichent selon l'onglet ---- */
+function tabsInit(listId, onPick) {
+  const list = $(listId);
+  list.addEventListener('click', e => { const b = e.target.closest('[role=tab]'); if (b && !b.hidden) onPick(b.dataset.tab, true); });
+  list.addEventListener('keydown', e => {
+    const T = [...list.querySelectorAll('[role=tab]')].filter(b => !b.hidden), i = T.indexOf(document.activeElement);
+    const k = { ArrowRight: 1, ArrowLeft: -1, Home: -99, End: 99 }[e.key]; if (i < 0 || !k) return;
+    e.preventDefault();
+    const n = T[k === -99 ? 0 : k === 99 ? T.length - 1 : (i + k + T.length) % T.length];
+    onPick(n.dataset.tab, true); n.focus();
+  });
+}
+function tabsShow(listId, paneId, t, avail) {
+  const list = $(listId), pane = $(paneId);
+  for (const b of list.querySelectorAll('[role=tab]')) {
+    const on = b.dataset.tab === t; if (avail) b.hidden = !avail.includes(b.dataset.tab);
+    b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; if (on) pane.setAttribute('aria-labelledby', b.id);
+  }
+  list.style.setProperty('--n', [...list.querySelectorAll('[role=tab]')].filter(b => !b.hidden).length);
+  pane.dataset.tab = t;
+  for (const el of pane.querySelectorAll('[data-in]')) el.classList.toggle('tab-off', !el.dataset.in.split(' ').includes(t));
+}
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
+  if (popCloseAll(true)) { e.preventDefault(); return; }   // d'abord la bulle « ? » ou le petit menu, la feuille reste ouverte
   if (MAP.open) { closeMap(); return; }
   if (chat.open) { closeChat(); return; }
   if (!$('jdw-cri').hidden) { closeCri(); return; }
@@ -55922,18 +56190,42 @@ $('jdw-board').addEventListener('click', e => { if (e.target === $('jdw-board'))
 let lookScope = 'all';                 // réglages : « Partout » (profil principal) ou « room » (seulement dans la salle actuelle)
 let lookEdit = null;                   // salle visée par la photo / le cri en cours (null = profil principal)
 const lookHere = () => lookScope === 'room' && room ? room.id : null;
+// onglets : 👤 Moi (tête, cri, pseudo) · 🏠 Salle (tête, cri et pseudo propres à la salle) · 🔐 Compte · 🔊 Son ; le dernier ouvert est retenu
+function setTabsAvail() {
+  if (isGuest()) return ['snd'];                                   // invité : seulement le son (ni pseudo, ni tête, ni cri)
+  const A = [];
+  if (profile.name) A.push('me');
+  if (room && profile.name && ONLINE) A.push('room');
+  if (acctState(profile) !== 'off') A.push('acct');
+  A.push('snd'); return A;
+}
+function showSetTab(t, user) {
+  const A = setTabsAvail(); if (!A.includes(t)) t = A.includes('me') ? 'me' : A[0];
+  if (user) { store.set('jdw.settab', t); $('jdw-set-status').textContent = ''; }
+  $('jdw-set-tabs').hidden = A.length < 2;
+  tabsShow('jdw-set-tabs', 'jdw-set-pane', t, A);
+  $('jdw-set-help').dataset.help = 'jdw-help-set-' + t;
+  helpClose(); menuClose();
+  const want = t === 'room' ? 'room' : 'all';
+  if (lookScope !== want || user) { lookScope = want; renderLook(); }
+}
+tabsInit('jdw-set-tabs', showSetTab);
 function openSettings() {
-  $('jdw-settings').classList.toggle('is-guest', isGuest());       // invité : seulement le son (ni pseudo, ni tête, ni cri)
+  $('jdw-settings').classList.toggle('is-guest', isGuest());
   $('jdw-set-guest').hidden = !isGuest();
   $('jdw-set-name').value = profile.name;
-  lookScope = curLook() ? 'room' : 'all';
   $('jdw-set-sfx').checked = !muted; $('jdw-set-music').checked = MUS.on; $('jdw-set-cris').checked = criOn; syncSoundMenu();
-  renderLook();
-  $('jdw-set-status').textContent = !ONLINE ? 'Mode local (pas de serveur).' : isGuest() ? '' : netDown ? 'Pas de connexion pour le moment.' : 'Connecté au classement commun.';
+  $('jdw-set-status').textContent = !ONLINE ? 'Mode local (pas de serveur).' : isGuest() ? '' : netDown ? 'Pas de connexion pour le moment.' : '';
   $('jdw-set-version').textContent = versionText();
   renderAcctSet();
-  openSheet('jdw-settings', 'jdw-set-name');
+  lookScope = '';                                                  // renderLook au premier affichage de l'onglet
+  showSetTab(store.get('jdw.settab', 'me'));
+  const sel = $('jdw-set-tabs').hidden ? 'jdw-set-close' : $('jdw-set-tabs').querySelector('[aria-selected="true"]').id;
+  openSheet('jdw-settings', sel);
 }
+// « Enregistrer » n'apparaît que si le pseudo a changé (un pseudo lié à un compte ne change plus)
+function nameDirty() { $('jdw-set-save').hidden = isGuest() || $('jdw-set-name').readOnly || cleanName($('jdw-set-name').value) === cleanName(profile.name); }
+$('jdw-set-name').addEventListener('input', nameDirty);
 // tête dans le rond des réglages : celle du choix affiché (profil principal ou salle), sinon l'initiale
 function photoInto(el, photo, name) {
   el.textContent = ''; el.style.background = ''; el.classList.remove('has-photo');
@@ -55943,13 +56235,10 @@ function photoInto(el, photo, name) {
   }
   const im = document.createElement('img'); im.alt = ''; im.src = photo; el.appendChild(im); el.classList.add('has-photo'); fitHeadWhenReady(im, null);
 }
+const lbl = (id, t) => { $(id).querySelector('span').textContent = t; };
 function renderLook() {
   const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null, inRoom = !!(room && profile.name);
-  $('jdw-look').hidden = !inRoom;
-  if (inRoom) {
-    $('jdw-look-room').textContent = room.name;
-    for (const b of document.querySelectorAll('#jdw-look-scope button')) b.setAttribute('aria-pressed', String(b.dataset.look === (rid != null ? 'room' : 'all')));
-  }
+  if (inRoom) $('jdw-look-room').textContent = room.name;
   const mainPhoto = profile.consent ? profile.photo : null, mainCri = !!(profile.sound && profile.sound !== '');
   photoInto($('jdw-set-av'), L && L.photo ? L.photo : mainPhoto, profile.name);
   $('jdw-look-tag').hidden = !(rid != null && L);
@@ -55971,11 +56260,18 @@ function renderLook() {
   const hasCri = rid != null ? !!(L && L.sound) : mainCri;
   $('jdw-set-edit').hidden = !hasPhoto;
   $('jdw-set-delphoto').hidden = !hasPhoto;
-  $('jdw-set-delphoto').textContent = rid != null ? 'Retirer la photo d’ici' : 'Retirer ma tête';
-  $('jdw-set-photo').textContent = rid != null ? (hasPhoto ? 'Changer ma photo d’ici' : '📸 Une photo pour cette salle') : (profile.photo ? 'Changer ma photo' : 'Prendre une photo');
-  $('jdw-set-cri').textContent = rid != null ? (hasCri ? '🎙️ Changer mon cri d’ici' : '🎙️ Un cri pour cette salle') : (hasCri ? '🎙️ Changer mon cri' : '🎙️ Enregistrer mon cri');
+  lbl('jdw-set-delphoto', rid != null ? 'Retirer la photo d’ici' : 'Retirer ma tête');
+  lbl('jdw-set-photo', rid != null ? (hasPhoto ? 'Changer ma photo d’ici' : 'Une photo pour cette salle') : (profile.photo ? 'Changer ma photo' : 'Prendre une photo'));
+  lbl('jdw-set-cri', rid != null ? (hasCri ? 'Changer mon cri d’ici' : 'Un cri pour cette salle') : (hasCri ? 'Changer mon cri' : 'Enregistrer mon cri'));
   $('jdw-set-cri-play').hidden = !(hasCri || (rid != null && mainCri));
+  $('jdw-set-cridel').hidden = !hasCri;
+  lbl('jdw-set-cridel', rid != null ? 'Retirer le cri d’ici' : 'Retirer mon cri');
   $('jdw-set-lookreset').hidden = !(rid != null && L);
+  // sous les deux gros boutons : où on en est, en deux mots
+  $('jdw-set-head-s').textContent = rid != null ? (L && L.photo ? 'Spéciale ici' : 'Comme partout') : hasPhoto ? 'Prête ✓' : 'À ajouter';
+  $('jdw-set-crib-s').textContent = rid != null ? (L && L.sound ? 'Spécial ici' : 'Comme partout') : hasCri ? 'Prêt ✓' : 'À ajouter';
+  $('jdw-set-head').classList.toggle('on', rid != null ? !!(L && L.photo) : hasPhoto);
+  $('jdw-set-crib').classList.toggle('on', rid != null ? !!(L && L.sound) : hasCri);
   renderAlias(rid);
 }
 // pseudo de salle (réglages, choix « Seulement dans <salle> ») : save_room_alias, unique dans la salle
@@ -55987,7 +56283,7 @@ function renderAlias(rid) {
   $('jdw-alias-room').textContent = room.name;
   const i = $('jdw-alias-in'); i.placeholder = cleanName(profile.name);
   if (document.activeElement !== i) i.value = (me && me.alias) || '';
-  const s = $('jdw-alias-s'); s.className = 'alias-s'; s.textContent = 'Les copains de cette salle te verront sous ce nom. Vide : ton pseudo principal.';
+  const s = $('jdw-alias-s'); s.className = 'alias-s'; s.textContent = '';
 }
 async function saveAlias() {
   if (!room || !profile.name) return;
@@ -56011,9 +56307,6 @@ async function saveAlias() {
 }
 $('jdw-alias-ok').addEventListener('click', saveAlias);
 $('jdw-alias-in').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveAlias(); } });
-for (const b of document.querySelectorAll('#jdw-look-scope button')) b.addEventListener('click', () => {
-  lookScope = b.dataset.look === 'room' && room ? 'room' : 'all'; renderLook(); $('jdw-set-status').textContent = '';
-});
 // la salle n'a plus rien de spécial (photo, cri ou les deux) : on revient au profil principal, ici et sur le serveur
 async function lookReset(rid, what) {
   const L = profile.rooms && profile.rooms[rid]; if (!L) return;
@@ -56041,6 +56334,8 @@ $('jdw-set-close').addEventListener('click', () => closeSheet('jdw-settings'));
 $('jdw-set-sfx').addEventListener('change', () => { muted = !$('jdw-set-sfx').checked; store.set('jdw.muted', muted); Audio.ensure(); syncMute(); if (!muted) Audio.tone(660, 0.08, 'square', 0.05); });
 $('jdw-set-music').addEventListener('change', () => { setMusicOn($('jdw-set-music').checked); syncMute(); });
 $('jdw-set-cris').addEventListener('change', () => { criOn = $('jdw-set-cris').checked; syncMute(); store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } else playCri(profile.name); });
+$('jdw-set-head').addEventListener('click', () => menuOpen($('jdw-set-head'), $('jdw-set-headmenu')));
+$('jdw-set-crib').addEventListener('click', () => menuOpen($('jdw-set-crib'), $('jdw-set-crimenu')));
 $('jdw-set-photo').addEventListener('click', () => { lookEdit = lookHere(); startPhoto(); });
 $('jdw-set-cri').addEventListener('click', () => { lookEdit = lookHere(); openCri(); });
 $('jdw-set-edit').addEventListener('click', () => { lookEdit = lookHere(); editHead(); });
@@ -56064,6 +56359,7 @@ $('jdw-set-delphoto').addEventListener('click', async () => {
   $('jdw-set-status').textContent = 'Ta tête est retirée des jeux.'; renderLook();
   refreshAll(); await pushProfile();
 });
+$('jdw-set-cridel').addEventListener('click', () => criRemove(lookHere()));
 $('jdw-set-guest-new').addEventListener('click', () => { closeSheet('jdw-settings'); guestCreate(); });
 $('jdw-set-guest-login').addEventListener('click', () => { closeSheet('jdw-settings'); guestLogin(); });
 $('jdw-set-save').addEventListener('click', async () => {
@@ -56305,12 +56601,14 @@ $('jdw-cri-ok').addEventListener('click', async () => {
   toastCheer(ok ? 'Ton cri est prêt : les copains vont l’entendre !' : 'Cri gardé sur cet appareil.', profile.name, true);
   setTimeout(() => playCri(profile.name), 300);
 });
-$('jdw-cri-del').addEventListener('click', async () => {
-  const rid = welReturn ? null : lookEdit;
-  if (rid != null) { closeCri(); await lookReset(rid, 'sound'); toastCheer('Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
-  profile.sound = ''; saveProfile(); syncOwnPlayer(); closeCri(); refreshAll();
+$('jdw-cri-del').addEventListener('click', () => criRemove(welReturn ? null : lookEdit, true));
+// retirer le cri (fenêtre du cri, ou menu « Mon cri » des paramètres) : dans une salle, on reprend le cri principal
+async function criRemove(rid, fromCri) {
+  if (rid != null) { if (fromCri) closeCri(); await lookReset(rid, 'sound'); toastCheer('Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
+  profile.sound = ''; saveProfile(); syncOwnPlayer(); if (fromCri) closeCri(); refreshAll();
+  if (!$('jdw-settings').hidden) renderLook();
   await pushProfile(); toastCheer('Ton cri est retiré.', profile.name, true);
-});
+}
 
 /* ================= Nouveau joueur (pseudo + tête + cri) ================= */
 let adding = null;                                // profil précédent pendant l'ajout d'un joueur
@@ -56383,10 +56681,10 @@ function welAcctUi() {
   // connexion : liste des joueurs du compte quand il en a plusieurs
   const pk = $('jdw-wel-pick'), picking = !!WEL.pick;
   pk.hidden = !picking; $('jdw-wel-lfields').hidden = picking; $('jdw-wel-lpassbox').hidden = picking; $('jdw-wel-forgot').hidden = picking;
-  $('jdw-wel-login-txt').textContent = picking ? 'Ce compte a plusieurs joueurs : qui joue sur cet appareil ?' : 'Tu as déjà joué sur un autre appareil ? Connecte-toi avec ton e-mail ou ton pseudo : on récupère ton joueur, sa tête et son cri.';
+  $('jdw-wel-login-txt').hidden = !picking; $('jdw-wel-login-txt').textContent = 'Ce compte a plusieurs joueurs : qui joue sur cet appareil ?';
   $('jdw-wel-ok').hidden = picking;
   $('jdw-wel-ok').textContent = WEL.tab === 'login' ? 'Me connecter' : on && !WEL.uid ? 'Créer mon compte' : "C'est parti !";
-  $('jdw-wel-foot').hidden = WEL.tab === 'login';
+  $('jdw-wel-help').dataset.help = WEL.tab === 'login' ? 'jdw-help-wel-login' : 'jdw-help-wel-new';   // explications derrière « ? »
 }
 function welBusy(on, t) {
   WEL.busy = on; $('jdw-wel-ok').disabled = on;
@@ -56862,7 +57160,8 @@ $('jdw-acctbar-x').addEventListener('click', () => {
 function renderAcctSet() {
   const st = acctState(profile), a = profile.acct || {}, box = $('jdw-set-acct'), se = sessOf(a.uid) || {};
   const linked = !!(a.uid && st !== 'off');
-  $('jdw-set-name').readOnly = linked; $('jdw-set-name-hint').hidden = !linked;
+  $('jdw-set-name').readOnly = linked; $('jdw-set-name-hint').hidden = !linked; nameDirty();
+  $('jdw-set-name-help').textContent = linked ? '🔒 Ton pseudo est lié à ton compte : il ne change plus.' : 'Ton pseudo se change ici, puis « Enregistrer ».';
   box.hidden = st === 'off'; if (st === 'off') return;
   const others = a.uid ? acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid && p.pid !== profile.pid).map(p => cleanName(p.name)) : [];
   const T = { on: ['🔒', 'Compte protégé', maskEmail(se.email) + (others.length ? ' · aussi ' + [...new Set(others)].join(', ') : '')],
@@ -56871,12 +57170,16 @@ function renderAcctSet() {
     local: ['🧒', 'Sans compte', 'Joueur de cet appareil seulement : son pseudo n’est pas protégé.'],
     none: ['🔓', 'Pseudo pas encore protégé', "N'importe qui peut jouer sous ce nom."] }[st];
   box.dataset.state = st;
-  $('jdw-set-acct-ic').textContent = T[0]; $('jdw-set-acct-t').textContent = T[1]; $('jdw-set-acct-s').textContent = T[2] || '';
+  $('jdw-set-acct-ic').textContent = T[0]; $('jdw-set-acct-t').textContent = T[1];
+  // visible : l'e-mail (masqué) ; les explications vont derrière « ? »
+  $('jdw-set-acct-s').textContent = st === 'on' || st === 'pending' ? T[2] || '' : '';
+  $('jdw-set-acct-help').textContent = st === 'on' ? 'Ton compte protège ton pseudo : personne d’autre ne peut jouer sous ce nom, et tu le retrouves sur n’importe quel appareil.'
+    : st === 'pending' ? 'Clique sur le lien reçu par e-mail (regarde aussi les spams), puis « J’ai confirmé ».' : T[2] || '';
   const btns = $('jdw-set-acct-btns'); btns.textContent = '';
   const B = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm ' + (cls || 'btn-ghost'); b.textContent = t; b.addEventListener('click', () => fn(b)); btns.appendChild(b); return b; };
   if (st === 'on') {
     B('🔑 Changer mon mot de passe', () => openAcct('change'));
-    B('Se déconnecter de cet appareil', b => {
+    B('🚪 Se déconnecter de cet appareil', b => {
       const names = [...new Set(acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid).map(p => cleanName(p.name)))];
       if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Sûr ? ' + names.join(', ') + (names.length > 1 ? ' quitteront' : ' quittera') + ' cet appareil'; return; }
       acctLogout();
@@ -56932,19 +57235,21 @@ function openAcct(mode, o) {
   Object.assign(AS, { mode, pid: profile.pid, name: N, busy: false, locked: !!o.locked });
   const lead = $('jdw-acct-lead'); lead.textContent = '';
   const Bo = t => { const b = document.createElement('b'); b.textContent = t; return b; };
+  // [icône, sur-titre, titre, phrase essentielle (visible), champ e-mail, mot de passe, bouton, fermer, explication (derrière « ? »)]
   const C = {
-    protect: ['🔒', 'Nouveau : les comptes', 'Protège ton pseudo', ['Pour continuer à jouer, mets ton joueur sur un compte (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouveras sur n’importe quel appareil. Un compte peut avoir plusieurs joueurs.'], 'email', 'new', 'Protéger mon pseudo', 'Plus tard'],
-    'connect-mine': ['🔑', N, 'Connecte-toi', ['Connecte-toi à ton compte avec ton e-mail ou un de tes pseudos : ', Bo(N), ' y sera ajouté et protégé.'], 'idf', 'cur', 'Me connecter', 'Plus tard'],
-    connect: ['🔑', N, 'Connecte-toi', [Bo(N), ' est protégé par un compte. C’est toi ? Tape le mot de passe du compte. Sinon, choisis un autre pseudo.'], 'idf', 'cur', 'Me connecter', 'Plus tard'],
-    'connect-any': ['🔑', 'Mon compte', 'Connecte-toi', ['Connecte-toi avec ton e-mail ou ton pseudo, et le mot de passe du compte.'], 'idf', 'cur', 'Me connecter', 'Fermer'],
-    confirm: ['📧', 'Presque fini', 'Confirme ton e-mail', ['On a envoyé un lien à ', Bo(maskEmail(a.email) || 'ton adresse'), '. Ouvre-le (regarde aussi les spams) pour activer ton compte, puis reviens ici et tape ton mot de passe.'], '', 'cur', "J'ai confirmé : me connecter", 'Plus tard'],
-    forgot: ['✉️', 'Mot de passe oublié', 'Pas de panique', ['Tape ton e-mail ou ton pseudo : on envoie un lien à l’adresse du compte pour choisir un nouveau mot de passe.'], 'idf', null, 'Envoyer le lien', 'Fermer'],
-    newpass: ['🔑', AS.sess && AS.sess.user ? maskEmail(AS.sess.user.email) : 'Mon compte', 'Choisis ton nouveau mot de passe', ['Au moins 6 caractères. Il sert pour tous les joueurs du compte, sur tous tes appareils.'], '', 'new', 'Enregistrer', 'Annuler'],
-    change: ['🔑', maskEmail((sessOf(a.uid) || {}).email) || 'Mon compte', 'Changer mon mot de passe', ['Choisis ton nouveau mot de passe (au moins 6 caractères). Il sert pour tous les joueurs du compte.'], '', 'new', 'Changer', 'Annuler']
+    protect: ['🔒', 'Nouveau : les comptes', 'Protège ton pseudo', ['Personne d’autre ne pourra jouer sous ton pseudo.'], 'email', 'new', 'Protéger mon pseudo', 'Plus tard', 'Pour continuer à jouer, mets ton joueur sur un compte (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouveras sur n’importe quel appareil. Un compte peut avoir plusieurs joueurs.'],
+    'connect-mine': ['🔑', N, 'Connecte-toi', [Bo(N), ' sera ajouté à ton compte.'], 'idf', 'cur', 'Me connecter', 'Plus tard', 'Connecte-toi à ton compte avec ton e-mail ou un de tes pseudos : ' + N + ' y sera ajouté et protégé.'],
+    connect: ['🔑', N, 'Connecte-toi', [Bo(N), ' est protégé par un compte. C’est toi ?'], 'idf', 'cur', 'Me connecter', 'Plus tard', 'Tape le mot de passe du compte. Si ce n’est pas toi, choisis un autre pseudo.'],
+    'connect-any': ['🔑', 'Mon compte', 'Connecte-toi', [], 'idf', 'cur', 'Me connecter', 'Fermer', 'Connecte-toi avec ton e-mail ou ton pseudo, et le mot de passe du compte.'],
+    confirm: ['📧', 'Presque fini', 'Confirme ton e-mail', ['Lien envoyé à ', Bo(maskEmail(a.email) || 'ton adresse'), '.'], '', 'cur', "J'ai confirmé : me connecter", 'Plus tard', 'Ouvre le lien reçu par e-mail (regarde aussi les spams) pour activer ton compte, puis reviens ici et tape ton mot de passe.'],
+    forgot: ['✉️', 'Mot de passe oublié', 'Pas de panique', ['On t’envoie un lien par e-mail.'], 'idf', null, 'Envoyer le lien', 'Fermer', 'Tape ton e-mail ou ton pseudo : on envoie un lien à l’adresse du compte pour choisir un nouveau mot de passe.'],
+    newpass: ['🔑', AS.sess && AS.sess.user ? maskEmail(AS.sess.user.email) : 'Mon compte', 'Choisis ton nouveau mot de passe', [], '', 'new', 'Enregistrer', 'Annuler', 'Au moins 6 caractères. Il sert pour tous les joueurs du compte, sur tous tes appareils.'],
+    change: ['🔑', maskEmail((sessOf(a.uid) || {}).email) || 'Mon compte', 'Changer mon mot de passe', [], '', 'new', 'Changer', 'Annuler', 'Au moins 6 caractères. Le mot de passe sert pour tous les joueurs du compte.']
   }[mode];
   if (!C) return;
   $('jdw-acct-ic').textContent = C[0]; $('jdw-acct-eyebrow').textContent = C[1]; $('jdw-acct-h').textContent = C[2];
-  lead.append(...C[3]);
+  lead.append(...C[3]); lead.hidden = !C[3].length;
+  $('jdw-acct-help-t').textContent = C[8] || ''; $('jdw-acct-help').hidden = !C[8];
   // choix du compte (protéger avec un compte déjà connecté sur l'appareil)
   AS.uid = mode === 'protect' ? (o.uid !== undefined ? o.uid : acctUids()[0] || '') : '';
   const em = $('jdw-acct-email'), pw = $('jdw-acct-pass');
@@ -56956,7 +57261,7 @@ function openAcct(mode, o) {
   $('jdw-acct-pw').dataset.kind = C[5] || '';
   pw.value = '';
   pw.autocomplete = C[5] === 'new' ? 'new-password' : 'current-password';
-  pw.placeholder = C[5] === 'new' ? (mode === 'protect' ? 'Mot de passe (6 caractères min.)' : 'Nouveau mot de passe') : 'Mot de passe du compte';
+  pw.placeholder = C[5] === 'new' ? (mode === 'protect' ? 'Mot de passe (6 caractères min.)' : 'Nouveau mot de passe (6 car. min.)') : 'Mot de passe du compte';
   $('jdw-acct-ok').textContent = C[6]; $('jdw-acct-ok').disabled = false; $('jdw-acct-close').textContent = C[7];
   $('jdw-acct-close').hidden = AS.locked; $('jdw-acct').classList.toggle('locked', AS.locked);
   $('jdw-acct-namebox').hidden = mode !== 'protect';
@@ -57628,9 +57933,27 @@ async function listRooms() {
 function roomHue(name) { let h = 7; for (const c of String(name).toUpperCase()) h = (h * 31 + c.charCodeAt(0)) % 9973; return Math.round((h * 137.508) % 360); }
 const ICON_USERS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg>';
 const ICON_LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+// onglets des salles : Mes salles | Rejoindre | Créer (explications derrière « ? »)
+function showRoomsTab(t, user) {
+  if (!['mine', 'join', 'new'].includes(t)) t = 'mine';
+  tabsShow('jdw-rooms-tabs', 'jdw-rooms-pane', t);
+  $('jdw-rooms-help').dataset.help = 'jdw-help-rooms-' + t;
+  helpClose();
+  if (user) { roomsStatus(''); $('jdw-joinbox').hidden = true; pendingRoom = null; const f = { join: 'jdw-find-name', new: 'jdw-new-name' }[t]; if (f && !TOUCH) setTimeout(() => $(f).focus({ preventScroll: true }), 30); }
+}
+tabsInit('jdw-rooms-tabs', showRoomsTab);
 function renderRooms() {
   const wrap = $('jdw-roomlist'); wrap.textContent = '';
-  if (!roomsCache.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = "Tu n'es encore dans aucune salle : rejoins celle de ta bande (son nom et son code), ou crée la tienne juste en dessous."; wrap.appendChild(p); return; }
+  if (!roomsCache.length) {
+    // aucune salle : deux gros boutons vers Rejoindre / Créer
+    const e = document.createElement('div'); e.className = 'rooms-empty';
+    const t = document.createElement('p'); t.textContent = 'Aucune salle pour l’instant'; e.appendChild(t);
+    for (const [k, ic, tx] of [['join', '🔑', 'Rejoindre la salle des copains'], ['new', '✨', 'Créer ma salle']]) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (k === 'join' ? 'btn-play' : 'btn-ghost'); b.textContent = ic + ' ' + tx;
+      b.addEventListener('click', () => showRoomsTab(k, true)); e.appendChild(b);
+    }
+    wrap.appendChild(e); return;
+  }
   const list = [...roomsCache].sort((a, b) => (room && b.r_id === room.id) - (room && a.r_id === room.id) || !!b.r_member - !!a.r_member || b.r_online - a.r_online || b.r_members - a.r_members);
   for (const r of list) {
     const cur = room && room.id === r.r_id;
@@ -57658,6 +57981,7 @@ function openRooms() {
   if (isGuest()) { guestAsk('Les salles'); return; }
   if (!profile.name) { startWelcome(); return; }
   roomsStatus('Chargement des salles…'); $('jdw-joinbox').hidden = true; pendingRoom = null;
+  showRoomsTab('mine');
   openSheet('jdw-rooms'); return listRooms();
 }
 async function chooseRoom(r) {
@@ -60413,6 +60737,7 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 
 /* ================= Appli Android : retour + mise à jour ================= */
 window.JDW_BACK = () => {
+  if (popCloseAll()) return true;
   if (!$('jdw-net').hidden) { netEnd(true); return true; }
   if (!$('jdw-watch').hidden) { watchStop(); return true; }
   if (MAP.open) { closeMap(); return true; }

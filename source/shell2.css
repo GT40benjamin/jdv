@@ -1420,3 +1420,142 @@ body.jdw-guest #jdw-scope{display:none}
 .gb-btns .btn{white-space:nowrap;font-size:12.5px;padding:11px 10px}
 .board[hidden]{display:none!important}
 #jdw-settings.is-guest #jdw-set-save{display:none!important}
+
+/* =========================================================================================
+   Menus simplifiés : un onglet par rubrique, de gros boutons, les explications derrière « ? »
+   ========================================================================================= */
+.tab-off{display:none!important}
+/* onglets (Paramètres, Salles) */
+.seg-tabs{--n:4;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;
+  background:linear-gradient(180deg,#09111a,#0c1720);border:1px solid var(--line);box-shadow:inset 0 2px 8px rgba(0,0,0,.4)}
+.seg-tabs[hidden],.seg-tabs [role=tab][hidden]{display:none}
+.seg-tabs [role=tab]{position:relative;display:grid;justify-items:center;align-content:center;gap:4px;min-width:0;min-height:60px;padding:8px 4px 10px;
+  border:0;border-radius:12px;background:none;color:var(--muted);font:700 12.5px/1.1 var(--body);letter-spacing:.02em;cursor:pointer;
+  transition:background .18s,color .18s,box-shadow .18s;-webkit-tap-highlight-color:transparent}
+.seg-tabs [role=tab] i{font-style:normal;font-size:21px;line-height:1;filter:grayscale(.7) brightness(.8);transition:filter .18s,transform .18s}
+.seg-tabs [role=tab] span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg-tabs [role=tab]:hover{color:var(--ink)}
+.seg-tabs [role=tab]:hover i{filter:none}
+.seg-tabs [role=tab][aria-selected=true]{color:var(--ink);background:linear-gradient(180deg,#24394a,#182a37);
+  box-shadow:inset 0 0 0 1px rgba(94,240,255,.3),0 6px 16px rgba(0,0,0,.4)}
+.seg-tabs [role=tab][aria-selected=true] i{filter:none;transform:scale(1.1)}
+.seg-tabs [role=tab][aria-selected=true]::after{content:"";position:absolute;left:30%;right:30%;bottom:4px;height:3px;border-radius:3px;background:var(--volt);box-shadow:0 0 10px var(--volt)}
+.set-pane{display:grid;gap:14px;min-width:0}
+.set-pane > :not(.tab-off){animation:paneIn .22s ease-out}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* les feuilles à onglets restent en place quand on change d'onglet (le haut ne bouge pas) */
+#jdw-settings > .card,#jdw-rooms > .card{margin:min(9vh,80px) auto auto}
+
+/* bouton « ? » : petit, rond, discret */
+.help-q{flex:0 0 auto;display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--steel2);
+  background:rgba(255,255,255,.03);color:var(--muted);font:700 14px/1 var(--body);cursor:pointer;transition:color .15s,border-color .15s,box-shadow .15s,background .15s}
+.help-q:hover,.help-q[aria-expanded=true]{color:var(--volt);border-color:var(--volt);background:rgba(94,240,255,.1);box-shadow:0 0 14px rgba(94,240,255,.35)}
+.help-q[hidden]{display:none}
+.card-head:has(.help-q) h2{flex:0 1 auto}
+.card-head > div{min-width:0}
+.card-head:not(:has(.help-q)) > div{flex:1 1 auto}
+.card-head .help-q{margin-right:auto}
+.h-row{display:flex;align-items:center;gap:10px;min-width:0}
+.acct-hero .help-q{margin-left:auto;align-self:flex-start}
+/* la bulle d'aide */
+.help-pop{position:fixed;z-index:2147483100;padding:14px 16px;border-radius:16px;outline:none;color:var(--ink);transform-origin:var(--ax,50%) 0;
+  background:linear-gradient(180deg,#18283a,#0c151d);border:1px solid rgba(94,240,255,.45);
+  box-shadow:0 18px 44px rgba(0,0,0,.62),0 0 26px rgba(94,240,255,.16)}
+.help-pop[hidden]{display:none}
+.help-pop::before{content:"";position:absolute;top:-7px;left:calc(var(--ax,50%) - 6px);width:11px;height:11px;transform:rotate(45deg);
+  background:#18283a;border-left:1px solid rgba(94,240,255,.45);border-top:1px solid rgba(94,240,255,.45)}
+.help-pop.up{transform-origin:var(--ax,50%) 100%}
+.help-pop.up::before{top:auto;bottom:-7px;transform:rotate(225deg);background:#0c151d}
+.help-pop.in,.act-menu.in{animation:popIn .18s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes popIn{from{opacity:0;transform:translateY(-4px) scale(.95)}to{opacity:1;transform:none}}
+.help-in{display:grid;gap:8px;font-size:14px;line-height:1.45;color:#cdd9e0}
+.help-in p{margin:0}
+.help-in b{color:var(--ink);font-weight:700}
+.help-src{display:none}
+
+/* Paramètres : Moi / Salle */
+.set-card .field label{display:flex;align-items:center;gap:6px}
+.name-lock{font-size:12px}
+.set-card #jdw-set-name[readonly]{color:var(--muted);border-style:dashed}
+.set-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+.act-tile{position:relative;display:grid;justify-items:center;align-content:center;gap:5px;min-width:0;min-height:150px;padding:16px 8px 14px;border-radius:18px;
+  border:1px solid var(--line);color:var(--ink);text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  background:radial-gradient(120% 80% at 50% 0%,rgba(94,240,255,.10),transparent 62%),linear-gradient(180deg,var(--card-hi),var(--card));
+  box-shadow:0 8px 22px rgba(0,0,0,.35);transition:transform .15s,border-color .15s,box-shadow .15s}
+.act-tile:hover{border-color:rgba(94,240,255,.45)}
+.act-tile:active{transform:scale(.97)}
+.act-tile[aria-expanded=true]{border-color:var(--volt);box-shadow:0 0 0 3px rgba(94,240,255,.14),0 8px 22px rgba(0,0,0,.35)}
+.act-tile b{margin-top:4px;font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.02em;line-height:1}
+.act-tile small{font-size:12px;font-weight:600;color:var(--muted)}
+.act-tile.on small{color:var(--leaf)}
+.act-tile .look-av .avatar{width:74px;height:74px;font-size:28px;box-shadow:0 0 0 2px var(--steel2)}
+.act-tile.on .look-av .avatar{box-shadow:0 0 0 2px var(--leaf),0 0 18px rgba(76,210,122,.28)}
+.act-ic{display:grid;place-items:center;width:74px;height:74px;border-radius:50%;border:1px solid rgba(255,95,174,.4);
+  background:radial-gradient(circle at 35% 30%,rgba(255,95,174,.32),rgba(255,95,174,.05) 70%)}
+.act-ic svg{width:34px;height:34px;fill:none;stroke:#ff86c2;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.act-tile.on .act-ic{border-color:var(--leaf);box-shadow:0 0 18px rgba(76,210,122,.28)}
+/* petit menu sous « Ma tête » / « Mon cri » */
+.act-menu{position:fixed;z-index:60;display:grid;gap:2px;padding:6px;border-radius:16px;transform-origin:var(--ax,30%) 0;
+  background:linear-gradient(180deg,#18283a,#0f1a23);border:1px solid var(--steel2);box-shadow:0 18px 44px rgba(0,0,0,.62)}
+.act-menu[hidden],.act-menu [role=menuitem][hidden]{display:none}
+.act-menu.up{transform-origin:var(--ax,30%) 100%}
+.act-menu [role=menuitem]{display:flex;align-items:center;gap:12px;min-height:50px;padding:0 16px 0 12px;border:0;border-radius:11px;background:none;
+  color:var(--ink);font:600 15px var(--body);text-align:left;white-space:nowrap;cursor:pointer}
+.act-menu [role=menuitem]:hover,.act-menu [role=menuitem]:focus-visible{background:var(--steel);outline:none}
+.act-menu [role=menuitem] i{flex:0 0 26px;font-style:normal;font-size:19px;text-align:center}
+.act-menu .act-del{color:#ff9aa5}
+.act-menu [role=menuitem]:not([hidden]) ~ .act-del{margin-top:4px;box-shadow:inset 0 1px 0 var(--line);border-radius:0 0 11px 11px}
+/* onglet Salle */
+.set-room{margin:0;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;padding:12px 14px;border-radius:14px;
+  background:radial-gradient(100% 140% at 50% 0%,rgba(255,211,77,.12),transparent 70%),var(--night);border:1px solid rgba(255,211,77,.3)}
+.set-room span{font-size:20px}
+.set-room b{min-width:0;font-family:var(--display);font-weight:400;font-size:19px;line-height:1.1;color:var(--gold);text-transform:uppercase;overflow-wrap:anywhere;
+  text-shadow:0 0 12px rgba(255,211,77,.35)}
+.set-card .alias-box{padding:0;border:0;background:none;gap:6px}
+.set-card .alias-box[hidden]{display:none}
+.set-card .alias-box label{font-size:13px;font-weight:600;color:var(--muted)}
+.set-card .alias-row .input{font:600 18px var(--body);padding:12px 14px}
+.set-card .alias-row .btn{padding-inline:18px}
+.alias-s:empty{display:none}
+.set-card .look-reset{justify-self:center;text-align:center}
+.set-card .look-tag{width:28px;height:28px;right:-4px;bottom:-4px}
+/* onglet Compte */
+.set-card #jdw-set-acct{gap:14px;padding:16px}
+.set-card #jdw-set-acct[hidden]{display:none}
+.set-card .acct-line-ic{font-size:30px}
+.set-card .acct-line-txt b{font-family:var(--display);font-weight:400;font-size:18px}
+.set-card .acct-line-txt small{font-size:13.5px}
+.set-card .acct-line-txt small:empty{display:none}
+.acct-btns{display:grid;gap:8px}
+.acct-btns .btn{width:100%;padding:14px 16px;font-size:14px}
+/* onglet Son : de vrais interrupteurs */
+.set-card .snd-rows{gap:0;padding:2px 16px}
+.set-card .switch-row{min-height:58px;font-size:16px;font-weight:600;cursor:pointer}
+.set-card .switch-row + .switch-row{border-top:1px solid var(--line)}
+.set-card .switch-row span{display:flex;align-items:center;gap:12px}
+.set-card .switch-row span i{font-style:normal;font-size:20px;width:26px;text-align:center}
+.set-card .snd-rows input{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 auto;width:50px;height:30px;margin:0;border-radius:15px;cursor:pointer;
+  background:var(--steel);border:1px solid var(--steel2);transition:background .18s,border-color .18s}
+.set-card .snd-rows input::before{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:transform .2s cubic-bezier(.3,1.4,.5,1),background .18s,box-shadow .18s}
+.set-card .snd-rows input:checked{background:color-mix(in srgb,var(--amber) 30%,var(--steel));border-color:var(--amber)}
+.set-card .snd-rows input:checked::before{transform:translateX(20px);background:var(--amber);box-shadow:0 0 10px rgba(255,166,48,.6)}
+.set-card .set-version{margin-top:2px}
+.set-status:empty,.rooms-status:empty{display:none}
+.set-status{text-align:center;color:var(--ink)}
+/* invité : le bandeau « Crée ton compte » + le son */
+.set-card .set-guest{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px 14px;padding:14px;border-radius:18px;
+  background:radial-gradient(120% 120% at 0% 0%,rgba(94,240,255,.14),transparent 60%),var(--card);border:1px solid rgba(94,240,255,.4)}
+.set-card .set-guest p{display:grid;gap:2px}
+.set-card .set-guest p b{font-family:var(--display);font-weight:400;font-size:18px;color:var(--ink)}
+.set-card .set-guest p span{font-size:13px;color:var(--muted)}
+.set-card .set-guest .row{grid-column:1 / -1}
+
+/* Salles : Mes salles | Rejoindre | Créer */
+.rooms-pane .find-box,.rooms-pane .create-box{display:grid;gap:10px;padding:0;border:0;border-radius:0;background:none}
+.rooms-pane .find-box .btn,.rooms-pane .create-box .btn{width:100%;margin-top:2px}
+.rooms-empty{grid-column:1 / -1;display:grid;gap:10px;padding:14px 0 4px;text-align:center}
+.rooms-empty p{margin:0 0 6px;font-family:var(--display);font-size:19px;color:var(--muted)}
+.rooms-card .join-box{border-style:solid;border-color:rgba(255,211,77,.45)}
+.rooms-card .join-box .lead{font-weight:600}
+/* la liste ne montre que mes salles : « Tu en fais partie » est inutile */
+.rooms-card .rt-badge.member{display:none}
