@@ -28,6 +28,14 @@
     </button>
     </div>
     <h1 class="lib-title">Borne d'arcade <span class="plaque">entre amis</span></h1>
+    <div class="acct-bar" id="jdw-acctbar" data-state="none" hidden>
+      <button class="acct-bar-go" id="jdw-acctbar-go" type="button">
+        <span class="acct-bar-ic" id="jdw-acctbar-ic" aria-hidden="true">🔒</span>
+        <span class="acct-bar-txt"><b id="jdw-acctbar-t">Protège ton compte</b><span id="jdw-acctbar-s">Ajoute ton e-mail et un mot de passe</span></span>
+        <span class="acct-bar-cta" id="jdw-acctbar-cta">Protéger</span>
+      </button>
+      <button class="acct-bar-x" id="jdw-acctbar-x" type="button" aria-label="Plus tard">✕</button>
+    </div>
     <button class="update-bar" id="jdw-siteupd" type="button" hidden><b>Nouvelle version du site</b><span>Touche ici pour l'avoir tout de suite</span></button>
     <a class="update-bar" id="jdw-update" href="telecharger/" hidden><b>Nouvelle version de l'appli</b><span id="jdw-update-txt">Touchez pour la télécharger</span></a>
     <header class="mode-hero" id="jdw-mode-hero">
@@ -355,6 +363,7 @@
       <div class="card-head"><h2 id="jdw-prof-h">Qui joue ?</h2><button class="btn btn-ghost btn-sm" id="jdw-prof-close" type="button">Fermer</button></div>
       <p class="small">Plusieurs joueurs sur cet appareil ? Chacun son nom, sa tête et ses records.</p>
       <div class="prof-list" id="jdw-prof-list"></div>
+      <div class="prof-acct" id="jdw-prof-acct" hidden></div>
       <div class="row">
         <button class="btn btn-play" id="jdw-prof-add" type="button">+ Ajouter un joueur</button>
         <button class="btn btn-ghost" id="jdw-prof-edit" type="button">Modifier mon profil</button>
@@ -394,6 +403,12 @@
         <label for="jdw-set-name">Ton nom</label>
         <input class="input" id="jdw-set-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" enterkeyhint="done">
       </div></div>
+      <p class="small acct-name-hint" id="jdw-set-name-hint" hidden>🔒 Pseudo lié à ton compte : il ne change plus.</p>
+      <div class="acct-box" id="jdw-set-acct" hidden>
+        <p class="look-lbl">Mon compte</p>
+        <div class="acct-line"><span class="acct-line-ic" id="jdw-set-acct-ic" aria-hidden="true">🔒</span><span class="acct-line-txt"><b id="jdw-set-acct-t"></b><small id="jdw-set-acct-s"></small></span></div>
+        <div class="row" id="jdw-set-acct-btns"></div>
+      </div>
       <div class="look-box" id="jdw-look" hidden>
         <p class="look-lbl">Ma tête et mon cri</p>
         <div class="scope look-scope" id="jdw-look-scope" role="group" aria-label="Où utiliser ma tête et mon cri">
@@ -401,6 +416,11 @@
           <button type="button" data-look="room" aria-pressed="false"><span class="look-only">🏠 Seulement dans</span> <b id="jdw-look-room"></b></button>
         </div>
         <p class="small look-hint" id="jdw-look-hint"></p>
+        <div class="alias-box" id="jdw-alias" hidden>
+          <label for="jdw-alias-in">🏷️ Mon pseudo dans <b id="jdw-alias-room"></b></label>
+          <div class="alias-row"><input class="input" id="jdw-alias-in" type="text" maxlength="12" autocomplete="off" spellcheck="false" enterkeyhint="done"><button class="btn btn-ghost btn-sm" id="jdw-alias-ok" type="button">OK</button></div>
+          <small class="alias-s" id="jdw-alias-s">Les copains de cette salle te verront sous ce nom. Vide : ton pseudo principal.</small>
+        </div>
       </div>
       <div class="row">
         <button class="btn btn-ghost btn-sm" id="jdw-set-edit" type="button" hidden>✨ Modifier ma tête</button>
@@ -430,6 +450,11 @@
     <div class="card-body">
       <p class="eyebrow" id="jdw-wel-eyebrow">Bienvenue à la Borne d'arcade</p>
       <h2 id="jdw-wel-h" class="wel-h">Crée ton joueur</h2>
+      <div class="scope wel-tabs" id="jdw-wel-tabs" role="group" aria-label="Nouveau joueur ou compte existant" hidden>
+        <button type="button" data-tab="new" aria-pressed="true">✨ Nouveau joueur</button>
+        <button type="button" data-tab="login" aria-pressed="false">🔑 J'ai déjà un compte</button>
+      </div>
+      <div class="wel-pane" id="jdw-wel-new">
       <div class="wel-grid">
         <button class="wel-face" id="jdw-wel-photo" type="button" aria-label="Prendre ma tête en photo">
           <span class="wel-face-in" id="jdw-wel-face"></span><span class="wel-face-tag" id="jdw-wel-face-tag">📸 Ma tête</span>
@@ -442,7 +467,7 @@
       </div>
       <div class="wel-claim" id="jdw-wel-claim" hidden>
         <span class="wel-claim-face" id="jdw-wel-claim-face"></span>
-        <div class="wel-claim-txt"><b id="jdw-wel-claim-t">Ce pseudo existe déjà</b><span>C'est bien toi, sur un autre téléphone ?</span></div>
+        <div class="wel-claim-txt"><b id="jdw-wel-claim-t">Ce pseudo existe déjà</b><span id="jdw-wel-claim-s">C'est bien toi, sur un autre téléphone ?</span></div>
         <div class="wel-claim-btns">
           <button class="btn btn-play btn-sm" id="jdw-wel-claim-yes" type="button">Oui, c'est moi</button>
           <button class="btn btn-ghost btn-sm" id="jdw-wel-claim-no" type="button">Non, je change</button>
@@ -453,11 +478,53 @@
         <span class="wel-cri-txt"><b id="jdw-wel-cri-t">Ajouter mon cri</b><small id="jdw-wel-cri-s">3 secondes pour faire rire les copains</small></span>
         <span class="wel-cri-go" aria-hidden="true">›</span>
       </button>
+      <div class="acct-fields" id="jdw-wel-acct" hidden>
+        <p class="acct-lbl"><b>🔒 Ton compte</b><span>Personne d'autre ne pourra jouer sous ton pseudo, et tu le retrouves sur n'importe quel appareil.</span></p>
+        <div class="acct-pick" id="jdw-wel-acctpick" role="group" aria-label="Compte du nouveau joueur" hidden></div>
+        <p class="acct-sess" id="jdw-wel-sess" hidden></p>
+        <div class="acct-inputs" id="jdw-wel-acct-in">
+          <input class="input input-plain" id="jdw-wel-email" type="email" inputmode="email" autocomplete="email" spellcheck="false" placeholder="ton@email.fr" aria-label="Ton e-mail">
+          <span class="pw-wrap"><input class="input input-plain" id="jdw-wel-pass" type="password" autocomplete="new-password" placeholder="Mot de passe (6 car. min.)" aria-label="Choisis un mot de passe"><button class="pw-eye" type="button" aria-label="Afficher le mot de passe" data-for="jdw-wel-pass">👁</button></span>
+        </div>
+      </div>
+      <button class="link-btn" id="jdw-wel-noacct" type="button" hidden>Pas d'e-mail (un enfant) ? Jouer sans compte, sur cet appareil</button>
+      </div>
+      <div class="wel-pane" id="jdw-wel-login" hidden>
+        <p class="small" id="jdw-wel-login-txt">Tu as déjà joué sur un autre appareil ? Connecte-toi : on récupère ton pseudo, ta tête et ton cri.</p>
+        <div class="field" id="jdw-wel-lfields"><label for="jdw-wel-lemail">E-mail ou pseudo</label><input class="input input-plain" id="jdw-wel-lemail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ton@email.fr ou TON PSEUDO"></div>
+        <div class="field" id="jdw-wel-lpassbox"><label for="jdw-wel-lpass">Mot de passe du compte</label><span class="pw-wrap"><input class="input input-plain" id="jdw-wel-lpass" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Ton mot de passe"><button class="pw-eye" type="button" aria-label="Afficher le mot de passe" data-for="jdw-wel-lpass">👁</button></span></div>
+        <button class="link-btn" id="jdw-wel-forgot" type="button">Mot de passe oublié ?</button>
+        <div class="acct-players" id="jdw-wel-pick" hidden></div>
+      </div>
+      <p class="acct-msg" id="jdw-wel-msg" role="alert" hidden></p>
       <div class="row">
         <button class="btn btn-play" id="jdw-wel-ok" type="button">C'est parti !</button>
         <button class="btn btn-ghost" id="jdw-wel-cancel" type="button" hidden>Annuler</button>
       </div>
-      <p class="small">La tête et le cri sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains qui ont le mot de passe les voient.</p>
+      <p class="small" id="jdw-wel-foot">La tête et le cri sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains qui ont le mot de passe les voient.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Compte : protéger, se connecter, confirmer, mot de passe oublié / nouveau / changer -->
+<div class="sheet sheet-top" id="jdw-acct" hidden>
+  <div class="card acct-card" role="dialog" aria-modal="true" aria-labelledby="jdw-acct-h">
+    <div class="card-body">
+      <div class="acct-hero"><span class="acct-hero-ic" id="jdw-acct-ic" aria-hidden="true">🔒</span><div class="acct-hero-tx"><p class="eyebrow" id="jdw-acct-eyebrow">Mon compte</p><h2 id="jdw-acct-h" class="wel-h">Protège ton compte</h2></div></div>
+      <p class="lead acct-lead" id="jdw-acct-lead"></p>
+      <div class="acct-inputs" id="jdw-acct-in">
+        <div class="acct-name" id="jdw-acct-namebox" hidden><label for="jdw-acct-name">Ton pseudo</label><input class="input" id="jdw-acct-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" placeholder="TON PSEUDO"><small id="jdw-acct-name-s">C'est bien toi ? Tu peux le changer maintenant.</small></div>
+        <div class="acct-pick" id="jdw-acct-pick" role="group" aria-label="Compte" hidden></div>
+        <input class="input input-plain" id="jdw-acct-email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="ton@email.fr" aria-label="E-mail">
+        <span class="pw-wrap" id="jdw-acct-pw"><input class="input input-plain" id="jdw-acct-pass" type="password" autocomplete="new-password" enterkeyhint="go" placeholder="Mot de passe" aria-label="Mot de passe"><button class="pw-eye" type="button" aria-label="Afficher le mot de passe" data-for="jdw-acct-pass">👁</button></span>
+      </div>
+      <div class="acct-others" id="jdw-acct-others" hidden></div>
+      <p class="acct-msg" id="jdw-acct-msg" role="alert" hidden></p>
+      <div class="row">
+        <button class="btn btn-play" id="jdw-acct-ok" type="button">Valider</button>
+        <button class="btn btn-ghost" id="jdw-acct-close" type="button">Plus tard</button>
+      </div>
+      <div class="acct-links" id="jdw-acct-links"></div>
     </div>
   </div>
 </div>

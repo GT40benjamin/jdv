@@ -105,6 +105,11 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
   renvoient la version de la salle sinon le profil principal ; site : profile.rooms[id], activePhoto/activeSound, pushRoomLook, réglages
   « Partout | Seulement dans <salle> ». Tests : test-roomlook.js (MISSING=1 = serveur pas à jour), test-roomlook-sql.mjs.
 - Duel contre l'IA : bannières seulement en bas, un seul écran de résultat (classe ai-single).
+- **Comptes joueurs** (source/accounts.sql, ACCOUNTS.md) : Supabase Auth e-mail + mot de passe (API REST /auth/v1, sans SDK), un compte = plusieurs
+  pseudos (players.user_id), connexion par e-mail ou pseudo (login_email protégé par p_code, essais limités), mot de passe oublié par e-mail
+  (SMTP Brevo), passage obligatoire « Protège ton pseudo » pour les anciens profils ; les RPC au nom d'un pseudo lié exigent auth.uid()
+  (acct_check). Pseudo par salle : room_members.alias (save_room_alias). Tests : test-accounts.js, test-alias.js, test-accounts-sql.mjs.
+- **Connecteur Supabase** (claude.ai) : j'applique les SQL moi-même (apply_migration).
 - **Relais TURN (Cloudflare Realtime)** : sans lui, la liaison directe de téléphone à téléphone (duel en ligne, regarder) échoue
   sur certains réseaux (4G, box strictes). Clé TURN de l'utilisateur dans ses variables Windows CF_TURN_ID / CF_TURN_TOKEN, copiée
   côté serveur par source/turn.sql (table turn_cfg illisible depuis le site ; RPC get_turn(p_code) → identifiants de 24 h via

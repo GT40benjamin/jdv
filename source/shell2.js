@@ -76,18 +76,40 @@ let serverOk = false, netDown = false, roomDenied = false, remoteLoaded = false;
 let room = store.get('jdw.room', null);
 let roomCodes = store.get('jdw.roomcodes', {}) || {};
 const RP = () => ({ p_room: room ? room.id : null, p_room_code: room ? (roomCodes[room.id] || '') : '' });
+// Comptes (source/accounts.sql, section « Comptes ») : état commun, déclaré tôt car rpc() s'en sert dès le démarrage.
+// ready = le serveur connaît les comptes (sinon : tout comme avant, jamais de jeton envoyé).
+const ACCT = { ready: !!store.get('jdw.acctok', false), probed: false, busy: {}, gateT: 0, netFail: false, s: store.get('jdw.accts', {}) || {} };
+// le joueur au nom duquel une fonction agit (son jeton est envoyé s'il est connecté sur cet appareil)
+function rpcActor(fn, args) {
+  if (!args) return '';
+  if (fn === 'remove_member') return args.p_by || '';
+  if (fn === 'create_room') return args.p_owner || '';
+  return args.p_name || '';
+}
 async function rpc(fn, args, opts) {
+  opts = opts || {};
   const h = { 'Content-Type': 'application/json', apikey: CFG.key };
   if (!/^sb_/.test(CFG.key)) h.Authorization = 'Bearer ' + CFG.key;
+  // joueur connecté : son jeton (Authorization) à la place de la clé publique ; apikey reste la clé publique
+  let pr = null, tok = opts.token || '';
+  if (!tok && ACCT.ready && !opts.anon) { pr = acctFor(rpcActor(fn, args)); if (pr) tok = await acctToken(pr); }
+  if (tok) h.Authorization = 'Bearer ' + tok;
   let r;
   try { r = await fetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: h, body: JSON.stringify(args) }); }
   catch (e) { const er = new Error(fn + ' : pas de réseau'); er.offline = true; netDown = true; throw er; }
   netDown = false;
   if (!r.ok) {
     const t = await r.text().catch(() => '');
+    // jeton refusé (expiré, révoqué) : on le rafraîchit une fois ; sinon on repasse par la clé publique
+    if (tok && !opts.token && (r.status === 401 || r.status === 403) && (opts.retry || 0) < 2) {
+      if (!opts.retry && pr) await acctRefresh(pr.acct.uid, true).catch(() => {});
+      return rpc(fn, args, Object.assign({}, opts, { retry: (opts.retry || 0) + 1, anon: !!opts.retry || !(pr && acctLive(pr)) }));
+    }
     const er = new Error(fn + ' ' + r.status + ' ' + t.slice(0, 120)); er.status = r.status; er.denied = /acces refuse/.test(t);
+    er.acct = /compte requis/.test(t);                    // pseudo protégé : il faut être connecté à son compte
+    if (er.acct && !opts.token) { try { acctNeed(rpcActor(fn, args)); } catch (e) {} }
     // les refus du serveur me sont remontés (une fois par session), pour comprendre ce qui bloque chez chacun
-    if (fn !== 'log_error' && !/trop de messages/.test(t) && !(opts && opts.quiet404 && r.status === 404)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
+    if (fn !== 'log_error' && !er.acct && !opts.quiet && !/trop de messages/.test(t) && !(opts.quiet404 && r.status === 404)) { try { reportError('Serveur : ' + fn + ' ' + r.status, t.slice(0, 300), { quiet: true }); } catch (e) {} }
     throw er;
   }
   const txt = await r.text();
@@ -119,7 +141,7 @@ function setPlayer(name, photo, sound) {
   const cur = players.get(name);
   if (sound === undefined) sound = cur ? cur.sound : null;
   if (cur && cur.photo === (photo || null)) { cur.sound = sound || null; return; }
-  const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null,
+  const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null, alias: cur ? cur.alias || null : null,
     member: cur ? cur.member : memberNames.has(name), seen: cur ? cur.seen : 0, game: cur ? cur.game : null, updated: cur ? cur.updated : 0 };
   if (photo) {
     const im = new Image(); im.decoding = 'async';
@@ -233,8 +255,17 @@ function headsList() {
 }
 function playerObj() {
   const p = players.get(cleanName(profile.name));
-  return { name: profile.name || 'JOUEUR', img: p && p.img && p.img.complete && p.img.naturalWidth ? p.img : null };
+  return { name: profile.name ? dispName(profile.name) : 'JOUEUR', img: p && p.img && p.img.complete && p.img.naturalWidth ? p.img : null };
 }
+// Pseudo de salle (room_members.alias, source/accounts.sql) : le nom AFFICHÉ dans la salle actuelle ; le pseudo principal reste la clé
+// partout (scores, membres, messages, présence). Classement mondial : pseudo principal (rowEl(…, world)).
+function dispName(name) {
+  const k = cleanName(name); if (!k || !room) return k || String(name || '');
+  const p = players.get(k);
+  return (p && p.alias) || k;
+}
+// têtes données aux jeux : même joueur, nom de la salle
+const headsShown = () => headsList().map(h => Object.assign({}, h, { name: dispName(h.name) }));
 function avatarInto(el, name) {
   el.textContent = ''; el.style.background = '';
   const p = players.get(cleanName(name));
@@ -256,12 +287,12 @@ async function loadPlayers() {
     if (!room || room.id !== rid) return;
     serverOk = true;
     const me = cleanName(profile.name), wasMe = membersFor === rid && !knownNotMember(me);
-    for (const p of players.values()) p.member = false;    // un joueur retiré de la salle n'en fait plus partie
+    for (const p of players.values()) { p.member = false; p.alias = null; }    // un joueur retiré de la salle n'en fait plus partie
     memberNames = new Set(rows.map(r => cleanName(r.r_name)));
     for (const r of rows) {
       setPlayer(r.r_name, r.r_photo, r.r_sound || null);
       const p = players.get(cleanName(r.r_name));
-      if (p) { p.member = true; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; if (r.r_version) p.dbVer = r.r_version; }
+      if (p) { p.member = true; p.alias = r.r_alias ? cleanName(r.r_alias) : null; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; if (r.r_version) p.dbVer = r.r_version; }
     }
     playersAt = Date.now(); membersFor = rid;
     if (wasMe && me && knownNotMember(me) && selfLeave !== me) toastCheer(me + ' ne fait plus partie de « ' + room.name + ' ».', me, true);
@@ -566,7 +597,7 @@ async function flushUnsent() {
   const left = [], before = unsent.length;
   for (const u of unsent) {
     try { await rpc('add_score', { p_code: CODE(), p_room: u.room, p_room_code: u.code, p_game: u.game, p_name: u.name, p_score: u.score }); }
-    catch (e) { if (!/ 4\d\d /.test(String(e.message))) left.push(u); }   // refus définitif (4xx) : on abandonne
+    catch (e) { if (e.acct || !/ 4\d\d /.test(String(e.message))) left.push(u); }   // refus définitif (4xx) : on abandonne ; « compte requis » : gardé jusqu'à la connexion
   }
   unsent = left; store.set('jdw.unsent', unsent); flushing = false;
   if (left.length < before) loadScores();
@@ -666,7 +697,7 @@ function notifRow(n, isNew) {
   }
   const g = gameById(n.game);
   const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, n.actor);
-  const b = document.createElement('b'); b.textContent = n.actor;
+  const b = document.createElement('b'); b.textContent = dispName(n.actor);
   tx.append(b, ' a battu ton record' + (g ? ' à ' + g.title : ''));
   const sm = document.createElement('small'); sm.textContent = fmt(n.score) + unit(g) + ' contre ' + fmt(n.prev) + unit(g) + ' pour toi · ' + timeAgo(n.at);
   tx.append(sm); li.append(av, tx);
@@ -756,7 +787,7 @@ function chatHead(name, opts) {
     im.src = opts.sad ? sadUrl(p) : p.photo; inner.appendChild(im); el.classList.add('photo');
     fitHeadWhenReady(im, p);   // la tête sad a le même contour que la normale
   } else { const i = document.createElement('i'); i.textContent = (cleanName(name) || '?')[0]; inner.appendChild(i); }
-  if (opts.title) el.title = cleanName(name);
+  if (opts.title) el.title = dispName(name);
   if (hasCri(name)) {
     el.classList.add('has-cri');
     if (!opts.passive) { el.setAttribute('role', 'button'); el.tabIndex = 0; el.setAttribute('aria-label', 'Écouter le cri de ' + cleanName(name));
@@ -783,7 +814,7 @@ function recordCard(m) {
   heads.append(b, a);
   const tx = document.createElement('div'); tx.className = 'cr-txt';
   const eb = document.createElement('small'); eb.textContent = '🏆 Nouveau record' + (g ? ' · ' + g.title : '');
-  const t = document.createElement('b'); t.textContent = m.name + ' détrône ' + m.beaten + ' !';
+  const t = document.createElement('b'); t.textContent = dispName(m.name) + ' détrône ' + dispName(m.beaten) + ' !';
   const sc = document.createElement('span'); sc.textContent = fmt(m.score) + unit(g) + ' contre ' + fmt(m.beatenScore) + unit(g) + ' · ' + hhmm(m.at);
   tx.append(eb, t, sc);
   el.append(heads, tx);
@@ -818,7 +849,7 @@ function renderChat(fromPoll, quiet) {
     if (m === lastOther) hd.classList.add('talk');
     row.appendChild(hd);
     const col = document.createElement('div'); col.className = 'chat-col';
-    if (!grouped) { const n = document.createElement('span'); n.className = 'chat-name'; n.textContent = mine ? 'Moi' : m.name; col.appendChild(n); }
+    if (!grouped) { const n = document.createElement('span'); n.className = 'chat-name'; n.textContent = mine ? 'Moi' : dispName(m.name); col.appendChild(n); }
     const bub = document.createElement('div'); bub.className = 'chat-bubble' + (onlyEmoji(m.body) ? ' big' : '') + (!mine && m.body.toUpperCase().includes('@' + me) ? ' ping' : '');
     bub.textContent = m.body;
     const tm = document.createElement('time'); tm.textContent = m.failed ? 'Non envoyé · toucher pour réessayer' : (m.pending ? 'Envoi…' : hhmm(m.at));
@@ -1038,6 +1069,7 @@ async function refreshPresence() {
       const p = players.get(cleanName(r.r_name)), up = Date.parse(r.r_updated) || 0;
       if (!p || !p.member || (p.updated || 0) !== up) { stale = true; continue; }
       p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; if (r.r_version) p.dbVer = r.r_version;
+      if (r.r_alias !== undefined && (r.r_alias ? cleanName(r.r_alias) : null) !== (p.alias || null)) stale = true;
     }
     if (stale) await loadPlayers(); else if (!$('jdw-members').hidden) renderMembers();
     if (PRES.ok) presChanged();
@@ -1270,7 +1302,7 @@ function renderMembers() {
       const row = document.createElement('div'); row.className = 'mem-row' + (online ? ' on' : '') + (outside ? ' notmem' : '');
       const hd = chatHead(p.name); hd.classList.add('mem-head');
       const tx = document.createElement('div'); tx.className = 'mem-txt';
-      const n = document.createElement('b'); n.textContent = p.name;
+      const n = document.createElement('b'); n.textContent = dispName(p.name);
       if (owner && p.name === owner) { const cr = document.createElement('span'); cr.className = 'mem-owner'; cr.textContent = '👑'; cr.title = 'Créateur de la salle'; cr.setAttribute('aria-label', 'créateur de la salle'); n.append(cr); }
       if (p.name === me) n.append(' (moi)');
       const st = document.createElement('small');
@@ -1505,8 +1537,8 @@ function refreshChamps(force) {
     cr.style.top = crownTop + 'px';
     ch.style.top = Math.max(6, 4 - crownTop) + 'px';     // la bulle descend juste assez pour que la couronne reste dans la tuile
     ch.append(hd, cr);
-    ch.setAttribute('aria-label', 'Champion de la salle à ' + t.g.title + ' : ' + lead.name + ', ' + fmt(lead.score) + unit(t.g) + '. Voir le classement de la salle');
-    ch.title = lead.name + ' · ' + fmt(lead.score) + unit(t.g);
+    ch.setAttribute('aria-label', 'Champion de la salle à ' + t.g.title + ' : ' + dispName(lead.name) + ', ' + fmt(lead.score) + unit(t.g) + '. Voir le classement de la salle');
+    ch.title = dispName(lead.name) + ' · ' + fmt(lead.score) + unit(t.g);
   }
 }
 function refreshOnline() {
@@ -1523,16 +1555,16 @@ function refreshOnline() {
     t.on.classList.toggle('live', live && n > 0);
     if (live) span.textContent = ps.length ? (ps.length === 1 && ps[0].name === cleanName(profile.name) ? 'Toi, sur un autre appareil' : tileName(ps[0].name) + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue') : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
     if (live && / joue$/.test(span.textContent)) { const v = document.createElement('em'); v.className = 'tile-verb'; v.textContent = ' joue'; span.textContent = span.textContent.slice(0, -5); span.appendChild(v); }   // « joue » s'efface sur téléphone à côté de 👁 + carte
-    else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + b.name : 'Pas encore de record'; }
+    else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + dispName(b.name) : 'Pas encore de record'; }
     if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
   }
 }
 // joueurs de la salle (pas moi) qui jouent à ce jeu en ce moment et qu'on peut regarder
 // (moi-même sur un autre appareil compris : pratique pour se regarder ; jamais cet appareil-ci)
 function tilePlayers(gid) { try { return presList().filter(m => m.game === gid && m.cid && m.cid !== clientId && watchable(m.game)); } catch (e) { return []; } }
-const tileName = n => n === cleanName(profile.name) ? 'Toi (autre appareil)' : n;
+const tileName = n => n === cleanName(profile.name) ? 'Toi (autre appareil)' : dispName(n);
 function refreshMe() {
-  $('jdw-me-name').textContent = profile.name || 'Joueur';
+  $('jdw-me-name').textContent = profile.name ? dispName(profile.name) : 'Joueur';
   avatarInto($('jdw-me-av'), profile.name);
 }
 function refreshAll() {
@@ -1574,6 +1606,7 @@ addEventListener('keydown', e => {
   if (MAP.open) { closeMap(); return; }
   if (chat.open) { closeChat(); return; }
   if (!$('jdw-cri').hidden) { closeCri(); return; }
+  if (!$('jdw-acct').hidden) { if (!AS.locked) closeSheet('jdw-acct'); return; }
   if (!$('jdw-duo').hidden) { duoBack(); return; }
   if (!$('jdw-seatpick').hidden) { closeSheet('jdw-seatpick'); return; }
   for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members']) if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else closeSheet(id); break; }
@@ -1592,10 +1625,10 @@ function buildTabs() {
     wrap.appendChild(b);
   }
 }
-function rowEl(name, right, me) {
+function rowEl(name, right, me, world) {
   const li = document.createElement('li'); if (me) li.className = 'me';
   const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, name);
-  const n = document.createElement('span'); n.className = 'n'; n.textContent = name;
+  const n = document.createElement('span'); n.className = 'n'; n.textContent = world ? name : dispName(name);
   li.append(av, n, right); return li;
 }
 function generalRanking() {
@@ -1621,14 +1654,14 @@ function renderBoardTab() {
     for (const r of rows) {
       const s = document.createElement('span'); s.className = 'medals';
       r.m.forEach((v, i) => { if (!v) return; const md = document.createElement('span'); md.className = 'medal m' + (i + 1); md.innerHTML = '<i></i>'; md.append('×' + v); s.appendChild(md); });
-      ol.appendChild(rowEl(r.name, s, r.name === me));
+      ol.appendChild(rowEl(r.name, s, r.name === me, W));
     }
   } else {
     const g = gameById(boardTab);
     $('jdw-board-hint').textContent = g ? (W ? 'Top 10 mondial · ' : 'Top 10 de la salle · ') + g.tagline : '';
     const rows = top(boardTab, boardScope);
     if (!rows.length) return emptyRow(ol);
-    for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me)); }
+    for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me, W)); }
   }
 }
 function emptyRow(ol) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = "Personne n'a encore de score ici. La place est libre !"; ol.appendChild(li); }
@@ -1650,6 +1683,7 @@ function openSettings() {
   renderLook();
   $('jdw-set-status').textContent = ONLINE ? (netDown ? 'Pas de connexion pour le moment.' : 'Connecté au classement commun.') : 'Mode local (pas de serveur).';
   $('jdw-set-version').textContent = versionText();
+  renderAcctSet();
   openSheet('jdw-settings', 'jdw-set-name');
 }
 // tête dans le rond des réglages : celle du choix affiché (profil principal ou salle), sinon l'initiale
@@ -1694,7 +1728,41 @@ function renderLook() {
   $('jdw-set-cri').textContent = rid != null ? (hasCri ? '🎙️ Changer mon cri d’ici' : '🎙️ Un cri pour cette salle') : (hasCri ? '🎙️ Changer mon cri' : '🎙️ Enregistrer mon cri');
   $('jdw-set-cri-play').hidden = !(hasCri || (rid != null && mainCri));
   $('jdw-set-lookreset').hidden = !(rid != null && L);
+  renderAlias(rid);
 }
+// pseudo de salle (réglages, choix « Seulement dans <salle> ») : save_room_alias, unique dans la salle
+let aliasMissing = false;
+function renderAlias(rid) {
+  const me = players.get(cleanName(profile.name)), box = $('jdw-alias');
+  box.hidden = !(ONLINE && rid != null && room && profile.name && !aliasMissing && !knownNotMember(profile.name));
+  if (box.hidden) return;
+  $('jdw-alias-room').textContent = room.name;
+  const i = $('jdw-alias-in'); i.placeholder = cleanName(profile.name);
+  if (document.activeElement !== i) i.value = (me && me.alias) || '';
+  const s = $('jdw-alias-s'); s.className = 'alias-s'; s.textContent = 'Les copains de cette salle te verront sous ce nom. Vide : ton pseudo principal.';
+}
+async function saveAlias() {
+  if (!room || !profile.name) return;
+  const want = cleanName($('jdw-alias-in').value), s = $('jdw-alias-s'), rid = room.id, nm = room.name;
+  if (want && want.length < 2) { s.className = 'alias-s err'; s.textContent = '2 lettres minimum.'; return; }
+  s.className = 'alias-s'; s.textContent = 'Enregistrement…';
+  try {
+    const got = await rpc('save_room_alias', Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_alias: want }), { quiet404: true });
+    if (!room || room.id !== rid) return;
+    const me = players.get(cleanName(profile.name)); if (me) me.alias = got ? cleanName(got) : null;
+    s.className = 'alias-s ok'; s.textContent = got ? 'Dans « ' + nm + ' », tu t’appelles ' + cleanName(got) + '.' : 'Dans « ' + nm + ' », tu reprends ton pseudo principal.';
+    $('jdw-alias-in').value = got ? cleanName(got) : '';
+    refreshAll(); if (chat.open) renderChat(false); poke('players');
+  } catch (e) {
+    const m = String(e.message || '');
+    if (e.status === 404) { aliasMissing = true; s.className = 'alias-s err'; s.textContent = 'Le serveur ne connaît pas encore les pseudos de salle.'; return; }
+    s.className = 'alias-s err';
+    s.textContent = /deja pris/.test(m) ? 'Ce pseudo est déjà pris dans la salle (par un autre membre).' : /trop court/.test(m) ? '2 lettres minimum.' : /pas membre/.test(m) ? 'Rejoins d’abord la salle.'
+      : e.acct ? 'Connecte-toi à ton compte pour changer ce pseudo.' : e.offline ? 'Pas de connexion internet : réessaie.' : 'Le serveur a refusé ce pseudo : réessaie.';
+  }
+}
+$('jdw-alias-ok').addEventListener('click', saveAlias);
+$('jdw-alias-in').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveAlias(); } });
 for (const b of document.querySelectorAll('#jdw-look-scope button')) b.addEventListener('click', () => {
   lookScope = b.dataset.look === 'room' && room ? 'room' : 'all'; renderLook(); $('jdw-set-status').textContent = '';
 });
@@ -1749,21 +1817,28 @@ $('jdw-set-delphoto').addEventListener('click', async () => {
   refreshAll(); await pushProfile();
 });
 $('jdw-set-save').addEventListener('click', async () => {
+  if (profile.acct && profile.acct.uid) $('jdw-set-name').value = profile.name;   // pseudo lié à un compte : il ne change plus
   const n = cleanName($('jdw-set-name').value);
   if (!n) { $('jdw-set-status').textContent = 'Il faut un nom.'; return; }
-  const changed = n !== profile.name, old = cleanName(profile.name);
+  const changed = n !== profile.name;
   if (changed && deviceNames().includes(n)) { $('jdw-set-status').textContent = 'Ce nom est déjà un profil de cet appareil : change de joueur avec ta tête en haut.'; return; }
+  if (changed && profile.acct && !profile.acct.uid) delete profile.acct;   // « ce n'est pas moi » : nouveau pseudo, plus d'attente de compte
+  closeSheet('jdw-settings');
+  await renameProfile(n);
+  if (changed) { acctUi(); acctCheckMine(); }
+});
+// changer de nom, c'est le même joueur : records, tête et cri de salle suivent ; s'il était dans la salle, il y reste sous son nouveau nom
+async function renameProfile(n) {
+  const changed = n !== profile.name, old = cleanName(profile.name);
   if (changed && old && bests[old] && !bests[n]) { bests[n] = bests[old]; delete bests[old]; store.set('jdw.bests2', bests); }
   if (changed && profile.rooms) for (const k in profile.rooms) if (profile.rooms[k]) profile.rooms[k].sent = 0;   // à renvoyer sous le nouveau nom
-  // changer de nom, c'est le même joueur : s'il était dans la salle, il y reste sous son nouveau nom (choix volontaire, pas un ajout implicite)
   const keepIn = changed && ONLINE && room && membersFor === room.id && memberNames.has(old) ? room.id : null;
-  profile.name = n; saveProfile(); syncOwnPlayer(); refreshAll();
-  closeSheet('jdw-settings');
+  profile.name = n; profile.askedFor = n; saveProfile(); syncOwnPlayer(); refreshAll();
   if (keepIn != null) {
     try { if (await rpc('join_room', { p_code: CODE(), p_room: keepIn, p_room_code: roomCodes[keepIn] || '', p_name: n }) && room && room.id === keepIn) { memberNames.add(n); const pl = players.get(n); if (pl) pl.member = true; poke('players'); } } catch (e) {}
   }
   await pushProfile();
-});
+}
 $('jdw-set-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-set-save').click(); } });
 
 /* ================= Qui joue ? (plusieurs joueurs sur le même appareil) ================= */
@@ -1781,6 +1856,7 @@ function openProfiles() {
     const nm = document.createElement('span'); nm.className = 'n'; nm.textContent = pr.name;
     b.append(av, nm);
     if (cur) { const t = document.createElement('span'); t.className = 'prof-tag'; t.textContent = 'Joue en ce moment'; b.append(t); }
+    if (acctLive(pr)) { const t = document.createElement('span'); t.className = 'prof-lock'; t.title = 'Protégé par un compte'; t.textContent = '🔒'; nm.append(' ', t); }
     b.addEventListener('click', () => { if (cur) closeSheet('jdw-profiles'); else switchProfile(pr.pid); });
     row.append(b);
     if (!cur) {
@@ -1794,6 +1870,7 @@ function openProfiles() {
     }
     wrap.appendChild(row);
   }
+  acctProfList();
   if (!$('jdw-profiles').hidden) return;
   openSheet('jdw-profiles', 'jdw-prof-close');
 }
@@ -1804,6 +1881,7 @@ function afterSwitch() {
   maybeAskJoin();          // un profil n'entre dans la salle que si on le veut (« Ajouter X à la salle ? »)
   heartbeat(); loadNotifs(); refreshChatBtn(); if (chat.open) renderChat(false);
   rtTrack();
+  acctUi(); acctCheckMine();
 }
 function switchProfile(pid) {
   const pr = profiles.find(p => p.pid === pid); if (!pr) return;
@@ -1997,23 +2075,95 @@ function renderWelcome() {
   $('jdw-wel-cri-t').textContent = cri ? 'Cri enregistré ✓' : 'Ajouter mon cri';
   $('jdw-wel-cri-s').textContent = cri ? 'Touche pour le refaire' : '3 secondes pour faire rire les copains';
 }
+// fenêtre « Nouveau joueur » : onglets Nouveau joueur | J'ai déjà un compte (seulement si le serveur connaît les comptes)
+// WEL.uid : compte de l'appareil auquel rattacher le nouveau joueur ('' = nouveau compte) ; WEL.noAcct : joueur sans compte (enfant)
+const WEL = { tab: 'new', noAcct: false, uid: '', busy: false, pick: null };
 function startWelcome() {
   $('jdw-wel-cancel').hidden = !adding;
   $('jdw-wel-h').textContent = adding ? 'Nouveau joueur' : 'Crée ton joueur';
   $('jdw-wel-eyebrow').textContent = adding ? 'Un copain de plus sur cet appareil' : "Bienvenue à la Borne d'arcade";
   $('jdw-wel-name').value = profile.name || '';
   Object.assign(NAMECK, { n: '', state: '', photo: null, sound: null, claimed: '' });
+  const uids = acctUids();
+  Object.assign(WEL, { tab: 'new', noAcct: false, busy: false, pick: null, uid: adding && acctLive(adding) ? adding.acct.uid : uids[0] || '' });
+  for (const id of ['jdw-wel-email', 'jdw-wel-pass', 'jdw-wel-lemail', 'jdw-wel-lpass']) $(id).value = '';
   $('jdw-wel-check').textContent = ''; $('jdw-wel-check').className = 'wel-check'; $('jdw-wel-claim').hidden = true;
+  welTab('new');
   renderWelcome();
   openSheet('jdw-welcome', 'jdw-wel-name');
 }
 function reopenWelcome() { welReturn = false; renderWelcome(); $('jdw-welcome').hidden = false; }
 function nameMsg(t, cls) { const el = $('jdw-wel-check'); el.textContent = t; el.className = 'wel-check' + (cls ? ' ' + cls : ''); }
+function welMsg(t, cls) { const el = $('jdw-wel-msg'); el.textContent = t || ''; el.className = 'acct-msg' + (cls ? ' ' + cls : ''); el.hidden = !t; }
+const welAcctOn = () => ONLINE && ACCT.ready;
+function welTab(t) {
+  WEL.tab = welAcctOn() && t === 'login' ? 'login' : 'new';
+  if (WEL.tab === 'new') WEL.pick = null;
+  for (const b of document.querySelectorAll('#jdw-wel-tabs button')) b.setAttribute('aria-pressed', String(b.dataset.tab === WEL.tab));
+  $('jdw-wel-new').hidden = WEL.tab !== 'new'; $('jdw-wel-login').hidden = WEL.tab !== 'login';
+  welMsg('');
+  welAcctUi();
+}
+// petites puces « Compte de PATOU, LOUIS » | « ✉️ Nouveau compte » (choix du compte d'un nouveau joueur)
+function acctChips(box, cur, onPick, withNew) {
+  const uids = acctUids(); box.textContent = '';
+  box.hidden = !uids.length; if (!uids.length) return;
+  const chip = (uid, label) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'acct-chip'; b.textContent = label;
+    b.setAttribute('aria-pressed', String(cur === uid)); b.addEventListener('click', () => onPick(uid)); box.appendChild(b);
+  };
+  for (const u of uids) chip(u, '🔒 ' + acctLabel(u));
+  if (withNew) chip('', '✉️ Nouveau compte');
+}
+function welAcctUi() {
+  const on = welAcctOn();
+  if (!on && WEL.tab === 'login') { welTab('new'); return; }
+  if (WEL.uid && !liveUid(WEL.uid)) WEL.uid = '';
+  $('jdw-wel-tabs').hidden = !on;
+  $('jdw-wel-acct').hidden = !on || WEL.noAcct;
+  $('jdw-wel-noacct').hidden = !on;
+  $('jdw-wel-noacct').textContent = WEL.noAcct ? '↩ Finalement, je le mets sur un compte' : "Pas d'e-mail (un enfant) ? Jouer sans compte, sur cet appareil";
+  acctChips($('jdw-wel-acctpick'), WEL.uid, u => { WEL.uid = u; welMsg(''); welAcctUi(); }, true);
+  $('jdw-wel-acct-in').hidden = !!WEL.uid;
+  const se = $('jdw-wel-sess'); se.hidden = !WEL.uid;
+  if (WEL.uid) se.textContent = '✓ Ce joueur sera ajouté au compte de ' + acctLabel(WEL.uid) + '.';
+  // connexion : liste des joueurs du compte quand il en a plusieurs
+  const pk = $('jdw-wel-pick'), picking = !!WEL.pick;
+  pk.hidden = !picking; $('jdw-wel-lfields').hidden = picking; $('jdw-wel-lpassbox').hidden = picking; $('jdw-wel-forgot').hidden = picking;
+  $('jdw-wel-login-txt').textContent = picking ? 'Ce compte a plusieurs joueurs : qui joue sur cet appareil ?' : 'Tu as déjà joué sur un autre appareil ? Connecte-toi avec ton e-mail ou ton pseudo : on récupère ton joueur, sa tête et son cri.';
+  $('jdw-wel-ok').hidden = picking;
+  $('jdw-wel-ok').textContent = WEL.tab === 'login' ? 'Me connecter' : "C'est parti !";
+  $('jdw-wel-foot').hidden = WEL.tab === 'login';
+}
+function welBusy(on, t) {
+  WEL.busy = on; $('jdw-wel-ok').disabled = on;
+  if (on) { $('jdw-wel-ok').textContent = t || '…'; welMsg(''); } else welAcctUi();
+}
+// plusieurs joueurs sur le compte : on choisit lequel arrive sur l'appareil
+function welPick(s, rows) {
+  if ($('jdw-welcome').hidden) { if (profile.name) { adding = profile; profile = blankProfile(); } startWelcome(); }
+  WEL.pick = { s, rows }; welTab('login'); WEL.pick = { s, rows };
+  const pk = $('jdw-wel-pick'); pk.textContent = '';
+  for (const r of rows) {
+    const n = cleanName(r.r_name), b = document.createElement('button'); b.type = 'button'; b.className = 'acct-player';
+    const av = document.createElement('span'); av.className = 'avatar'; photoInto(av, r.r_photo, n);
+    const t = document.createElement('b'); t.textContent = n;
+    const on = profiles.some(p => cleanName(p.name) === n); const sm = document.createElement('small'); sm.textContent = on ? 'déjà sur cet appareil' : 'jouer avec ' + n;
+    const tx = document.createElement('span'); tx.className = 'acct-player-tx'; tx.append(t, sm);
+    b.append(av, tx); b.addEventListener('click', () => { const pr = acctUse({ name: n, me: r }, s); toastCheer('Re-bonjour ' + pr.name + ' !', pr.name, true); setTimeout(() => playCri(pr.name), 400); });
+    pk.appendChild(b);
+  }
+  welAcctUi();
+}
 function showClaim() {
-  const f = $('jdw-wel-claim-face'); f.textContent = '';
+  const f = $('jdw-wel-claim-face'); f.textContent = ''; f.style.background = '';
   if (NAMECK.photo) { const im = document.createElement('img'); im.alt = ''; im.src = NAMECK.photo; f.appendChild(im); }
   else { f.textContent = NAMECK.n[0] || '?'; f.style.background = 'hsl(' + nameHue(NAMECK.n) + ' 45% 32%)'; }
-  $('jdw-wel-claim-t').textContent = NAMECK.n + ' existe déjà';
+  const prot = NAMECK.state === 'protected';
+  $('jdw-wel-claim').classList.toggle('prot', prot);
+  $('jdw-wel-claim-t').textContent = prot ? '🔒 ' + NAMECK.n + ' a un compte' : NAMECK.n + ' existe déjà';
+  $('jdw-wel-claim-s').textContent = prot ? "Ce pseudo est protégé. C'est toi ? Connecte-toi pour le retrouver ici." : "C'est bien toi, sur un autre téléphone ?";
+  $('jdw-wel-claim-yes').textContent = prot ? '🔑 Me connecter' : "Oui, c'est moi";
   $('jdw-wel-claim').hidden = false;
 }
 async function checkName() {
@@ -2032,11 +2182,20 @@ async function checkName() {
   catch (e) { r = known ? { r_exists: true, r_photo: known.photo, r_sound: known.sound } : undefined; }
   if (seq !== NAMECK.seq) return;
   if (r === undefined) { NAMECK.state = 'unknown'; nameMsg(''); return; }   // serveur indisponible : on ne bloque pas
-  if (r && r.r_exists) { NAMECK.state = 'taken'; NAMECK.photo = r.r_photo || null; NAMECK.sound = r.r_sound || null; nameMsg('Pseudo déjà utilisé.', 'warn'); showClaim(); }
+  if (r && r.r_protected) { NAMECK.state = 'protected'; NAMECK.photo = r.r_photo || null; NAMECK.sound = r.r_sound || null; nameMsg('🔒 Pseudo protégé par un compte.', 'warn'); showClaim(); }
+  else if (r && r.r_exists) { NAMECK.state = 'taken'; NAMECK.photo = r.r_photo || null; NAMECK.sound = r.r_sound || null; nameMsg('Pseudo déjà utilisé.', 'warn'); showClaim(); }
   else { NAMECK.state = 'free'; nameMsg('✓ Pseudo libre', 'ok'); }
 }
 $('jdw-wel-name').addEventListener('input', () => { clearTimeout(NAMECK.timer); NAMECK.timer = setTimeout(checkName, 380); });
 $('jdw-wel-claim-yes').addEventListener('click', () => {
+  if (NAMECK.state === 'protected') {          // pseudo protégé : on se connecte à son compte, on ne le « réclame » pas
+    $('jdw-wel-claim').hidden = true;
+    const n = NAMECK.n;
+    welTab('login'); $('jdw-wel-lemail').value = n;
+    welMsg('Tape le mot de passe du compte de ' + n + '.', 'info');
+    setTimeout(() => $('jdw-wel-lpass').focus(), 30);
+    return;
+  }
   NAMECK.claimed = NAMECK.n; $('jdw-wel-claim').hidden = true;
   if (!profile.photo && NAMECK.photo) { profile.photo = NAMECK.photo; profile.consent = true; }
   if (profile.sound === undefined && NAMECK.sound) profile.sound = undefined;   // le cri reste sur le serveur
@@ -2047,23 +2206,85 @@ $('jdw-wel-claim-yes').addEventListener('click', () => {
 $('jdw-wel-claim-no').addEventListener('click', () => {
   $('jdw-wel-claim').hidden = true; const i = $('jdw-wel-name'); i.select(); i.focus(); nameMsg('Choisis un autre pseudo.', 'warn');
 });
+// compte du nouveau joueur : compte de l'appareil, ou nouveau compte ; renvoie profile.acct, ou null (message déjà affiché)
+async function welSignup(n) {
+  if (WEL.uid) {
+    welBusy(true, 'Un instant…');
+    const tok = await tokenFor(WEL.uid);
+    if (!tok) { welBusy(false); welMsg('La connexion de ce compte a expiré : reconnecte-toi (« J’ai déjà un compte »).', 'err'); return null; }
+    try { await rpc('claim_name', { p_code: CODE(), p_name: n }, { token: tok }); }
+    catch (e) { welBusy(false); welMsg(claimMsg(e, n), 'err'); return null; }
+    welBusy(false);
+    return { uid: WEL.uid };
+  }
+  const email = $('jdw-wel-email').value.trim(), pass = $('jdw-wel-pass').value;
+  if (!validEmail(email)) { welMsg(email ? "Cette adresse e-mail n'est pas valide." : 'Il faut ton e-mail (ou « Jouer sans compte » pour un enfant).', 'err'); $('jdw-wel-email').focus(); return null; }
+  if (pass.length < 6) { welMsg('Le mot de passe doit faire au moins 6 caractères.', 'err'); $('jdw-wel-pass').focus(); return null; }
+  welBusy(true, 'Création du compte…');
+  let r;
+  try { r = await authSignup(email, pass, n); }
+  catch (e) {
+    welBusy(false);
+    if (authExists(e)) { welTab('login'); $('jdw-wel-lemail').value = email; welMsg('Cet e-mail a déjà un compte : connecte-toi.', 'info'); $('jdw-wel-lpass').focus(); }
+    else welMsg(authMsg(e), 'err');
+    return null;
+  }
+  if (!r.access_token) {                                  // confirmation de l'e-mail demandée par le serveur
+    welBusy(false);
+    const ids = r.identities || (r.user && r.user.identities);
+    if (Array.isArray(ids) && !ids.length) { welTab('login'); $('jdw-wel-lemail').value = email; welMsg('Cet e-mail a déjà un compte : connecte-toi.', 'info'); return null; }
+    return { email, pending: true };
+  }
+  const uid = acctSetSess(r);
+  try { await rpc('claim_name', { p_code: CODE(), p_name: n }, { token: r.access_token }); }
+  catch (e) { welBusy(false); WEL.uid = uid; welAcctUi(); welMsg(claimMsg(e, n), 'err'); return null; }   // compte gardé : un autre pseudo suffira
+  welBusy(false);
+  return { uid };
+}
+async function welLogin() {
+  const idf = $('jdw-wel-lemail').value.trim(), pass = $('jdw-wel-lpass').value;
+  if (!idf) { welMsg('Tape ton e-mail ou ton pseudo.', 'err'); $('jdw-wel-lemail').focus(); return; }
+  if (!pass) { welMsg('Il faut le mot de passe du compte.', 'err'); $('jdw-wel-lpass').focus(); return; }
+  welBusy(true, 'Connexion…');
+  let L;
+  try { L = await acctLogin(idf, pass); } catch (e) { welBusy(false); welMsg(e.ui ? e.message : authMsg(e, 'login'), 'err'); return; }
+  const res = await acctAdopt(L.s, { name: L.name });
+  welBusy(false);
+  if (res.pick) { welPick(L.s, res.pick); return; }
+  if (res.nopseudo) {                                     // compte sans joueur (inscription jamais terminée) : on choisit le pseudo
+    WEL.uid = acctSetSess(L.s); welTab('new'); welMsg(res.err || 'Ton compte n’a pas encore de joueur : choisis ton pseudo.', res.err ? 'err' : 'info');
+    $('jdw-wel-name').focus(); return;
+  }
+  if (res.err) { welMsg(res.err, 'err'); return; }
+  const pr = acctUse(res, L.s);
+  toastCheer('Re-bonjour ' + pr.name + ' !', pr.name, true);
+  setTimeout(() => playCri(pr.name), 400);
+}
 async function welcomeOk() {
+  if (WEL.busy) return;
+  if (WEL.tab === 'login') { welLogin(); return; }
   clearTimeout(NAMECK.timer);
   const n = cleanName($('jdw-wel-name').value);
   if (!n || n.length < 2) { nameMsg(n ? '2 lettres minimum.' : 'Il faut un pseudo.', 'warn'); $('jdw-wel-name').focus(); return; }
   if (NAMECK.n !== n) await checkName();
+  if (NAMECK.state === 'protected') { showClaim(); return; }
   if (NAMECK.state === 'taken' && NAMECK.claimed !== n) { showClaim(); return; }
   Audio.ensure();
   const existing = profiles.find(p => cleanName(p.name) === n && p.pid !== profile.pid);
   if (existing) { adding = null; closeSheet('jdw-welcome'); switchProfile(existing.pid); return; }
+  let acct = null;
+  if (welAcctOn() && !WEL.noAcct) { acct = await welSignup(n); if (!acct) return; }
   const wasAdding = !!adding; adding = null;
-  profile.name = n; profile.askedFor = n; saveProfile(); syncOwnPlayer();
+  profile.name = n; profile.askedFor = n;
+  if (acct) { profile.acct = acct; delete profile.acctNever; } else if (welAcctOn() && WEL.noAcct) profile.acctNever = true;
+  saveProfile(); syncOwnPlayer();
   if (NAMECK.claimed === n && NAMECK.sound && !profile.sound) setPlayer(n, profile.consent ? profile.photo : null, NAMECK.sound);
   closeSheet('jdw-welcome'); refreshAll();
   if (wasAdding) afterSwitch(); else pushProfile();
-  toastCheer((NAMECK.claimed === n ? 'Re-bonjour ' : 'Bienvenue ') + n + ' !', n, true);
+  toastCheer((NAMECK.claimed === n ? 'Re-bonjour ' : 'Bienvenue ') + n + (acct && acct.uid ? ' 🔒' : '') + ' !', n, true);
   setTimeout(() => playCri(n), 400);
-  afterOnboarding();
+  acctUi();
+  if (acct && acct.pending) setTimeout(() => openAcct('confirm'), 900); else afterOnboarding();
 }
 $('jdw-wel-cancel').addEventListener('click', () => {
   if (!adding) return;
@@ -2073,8 +2294,586 @@ $('jdw-wel-cancel').addEventListener('click', () => {
 function afterOnboarding() { if (ONLINE && !room && profile.name) setTimeout(openRooms, 250); }
 $('jdw-wel-ok').addEventListener('click', welcomeOk);
 $('jdw-wel-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); welcomeOk(); } });
+$('jdw-wel-lpass').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); welcomeOk(); } });
+$('jdw-wel-lemail').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-wel-lpass').focus(); } });
+$('jdw-wel-pass').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); welcomeOk(); } });
+for (const b of document.querySelectorAll('#jdw-wel-tabs button')) b.addEventListener('click', () => { if (!WEL.busy) welTab(b.dataset.tab); });
+$('jdw-wel-noacct').addEventListener('click', () => { WEL.noAcct = !WEL.noAcct; welMsg(WEL.noAcct ? 'Sans compte, ce joueur ne vit que sur cet appareil et son pseudo n’est pas protégé. Tu pourras le mettre sur un compte plus tard dans ⚙.' : '', 'info'); welAcctUi(); });
+$('jdw-wel-forgot').addEventListener('click', () => openAcct('forgot', { email: $('jdw-wel-lemail').value.trim() }));
 $('jdw-wel-photo').addEventListener('click', () => { welReturn = true; startPhoto(); });
 $('jdw-wel-cri').addEventListener('click', () => { welReturn = true; $('jdw-welcome').hidden = true; openCri(); });
+
+/* ================= Comptes (Supabase Auth : e-mail + mot de passe) =================
+   API REST de Supabase Auth, sans SDK : /auth/v1/signup, token?grant_type=password|refresh_token, recover, resend, user, logout.
+   UN compte peut avoir PLUSIEURS joueurs. Sessions par compte : ACCT.s[uid] = { email, at (jeton), rt (rafraîchissement), exp (ms) }
+   (jdw.accts) ; un profil lié porte profile.acct = { uid }. Autres états du profil : { email, pending } (inscription à confirmer par
+   e-mail), { need } (pseudo protégé sur le serveur, appareil pas connecté). profile.acctNever = joueur gardé sans compte (enfant).
+   rpc() envoie le jeton du compte du joueur au nom duquel il agit (p_name, p_by, p_owner) ; le serveur (accounts.sql) vérifie auth.uid().
+   Connexion avec l'e-mail OU un pseudo (login_email : e-mail du compte, jamais affiché). Serveur sans accounts.sql : ACCT.ready = false. */
+const ACCT_LATER = 12 * 3600e3;            // « Plus tard » sur la bannière « Confirme ton e-mail » : elle revient 12 h après
+const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || ''));
+const SITE_URL = () => location.origin + location.pathname.replace(/index\.html$/, '');
+const maskEmail = e => { const m = String(e || '').match(/^(.{1,2})[^@]*(@.+)$/); return m ? m[1] + '•••' + m[2] : ''; };
+const uiErr = m => Object.assign(new Error(m), { ui: true });
+async function authReq(path, body, token, method) {
+  const h = { 'Content-Type': 'application/json', apikey: CFG.key };
+  if (token) h.Authorization = 'Bearer ' + token; else if (!/^sb_/.test(CFG.key)) h.Authorization = 'Bearer ' + CFG.key;
+  let r;
+  try { r = await fetch(CFG.url.replace(/\/+$/, '') + '/auth/v1/' + path, { method: method || 'POST', headers: h, body: body ? JSON.stringify(body) : undefined }); }
+  catch (e) { const er = new Error('pas de réseau'); er.offline = true; throw er; }
+  const txt = await r.text().catch(() => '');
+  let j = {}; try { j = txt ? JSON.parse(txt) : {}; } catch (e) {}
+  if (!r.ok) {
+    const er = new Error(String(j.msg || j.error_description || j.message || ('auth ' + r.status)));
+    er.status = r.status; er.code = String(j.error_code || j.code || j.error || ''); throw er;
+  }
+  return j;
+}
+const redirectQ = () => '?redirect_to=' + encodeURIComponent(SITE_URL());
+const authSignup = (email, password, pseudo) => authReq('signup' + redirectQ(), { email, password, data: { pseudo } });
+const authPassword = (email, password) => authReq('token?grant_type=password', { email, password });
+const authRecover = email => authReq('recover' + redirectQ(), { email });
+const authResend = email => authReq('resend' + redirectQ(), { type: 'signup', email });
+const authUser = token => authReq('user', null, token, 'GET');
+const authSetPassword = (token, password) => authReq('user', { password }, token, 'PUT');
+const authExists = e => /user_already_exists|email_exists/.test(e.code) || /already (been )?registered|already exists/i.test(e.message);
+// messages clairs en français pour chaque refus du serveur d'authentification
+function authMsg(e, ctx) {
+  const c = e.code || '', m = e.message || '';
+  if (e.offline) return 'Pas de connexion internet : réessaie dans un instant.';
+  if (/over_email_send_rate_limit/.test(c) || (e.status === 429 && /email/i.test(m))) return 'Trop d’e-mails envoyés : attends quelques minutes avant d’en redemander un.';
+  if (e.status === 429 || /over_request_rate_limit|rate.?limit/i.test(c + m)) return 'Trop d’essais : attends quelques minutes avant de réessayer.';
+  if (/email_not_confirmed/.test(c) || /not confirmed/i.test(m)) return 'Ton e-mail n’est pas encore confirmé : clique sur le lien reçu (regarde aussi les spams).';
+  if (/invalid_credentials/.test(c) || /invalid login credentials/i.test(m) || (/^login/.test(ctx || '') && /invalid_grant/.test(c))) return ctx === 'login-pseudo' ? 'Mot de passe incorrect.' : 'E-mail ou mot de passe incorrect.';
+  if (authExists(e)) return 'Cet e-mail a déjà un compte : choisis « J’ai déjà un compte ».';
+  if (/same_password/.test(c) || /different from the old/i.test(m)) return 'C’est déjà ton mot de passe : choisis-en un nouveau.';
+  if (/weak_password/.test(c) || /password should be/i.test(m)) return 'Mot de passe trop faible : au moins 6 caractères, et évite les trop simples (123456…).';
+  if (/email_address_invalid|email_address_not_authorized/.test(c) || /invalid.*email|email.*invalid/i.test(m)) return 'Cette adresse e-mail n’est pas acceptée : vérifie-la.';
+  if (/signup_disabled|email_provider_disabled/.test(c) || /signups not allowed|disabled/i.test(m)) return 'Les comptes ne sont pas encore ouverts sur le serveur. Réessaie plus tard.';
+  if (/session_not_found|session_expired|bad_jwt|otp_expired|refresh_token/.test(c) || e.status === 401 || e.status === 403) return 'La connexion a expiré : recommence.';
+  if (e.status >= 500) return 'Le serveur des comptes ne répond pas (' + e.status + ') : réessaie dans un moment.';
+  return 'Ça n’a pas marché (' + (c || e.status || '?') + ') : réessaie.';
+}
+// refus de claim_name (rattacher le pseudo au compte)
+function claimMsg(e, n) {
+  const m = String(e && e.message || '');
+  if (e && e.offline) return 'Pas de connexion internet : réessaie dans un instant.';
+  if (/pseudo deja protege/.test(m)) return n + ' est déjà protégé par un autre compte : choisis un autre pseudo.';
+  if (/trop de joueurs/.test(m)) return 'Ce compte a déjà 20 joueurs : c’est le maximum.';
+  if (/nom trop court/.test(m)) return 'Le pseudo doit faire au moins 2 lettres.';
+  return 'Le serveur n’a pas pu protéger ' + n + ' : réessaie.';
+}
+// e-mail tapé, ou e-mail du compte d'un pseudo (demandé au serveur, jamais affiché)
+async function acctEmailOf(idf) {
+  idf = String(idf || '').trim();
+  if (idf.includes('@')) { if (!validEmail(idf)) throw uiErr("Cette adresse e-mail n'est pas valide."); return { email: idf, name: '' }; }
+  const n = cleanName(idf); if (n.length < 2) throw uiErr('Tape ton e-mail ou ton pseudo.');
+  let e;
+  try { e = await rpc('login_email', { p_code: CODE(), p_name: n }, { anon: true, quiet: true }); }
+  catch (x) { throw uiErr(/trop d essais/.test(x.message) ? 'Trop d’essais avec ce pseudo : attends quelques minutes.' : x.offline ? 'Pas de connexion internet : réessaie dans un instant.' : 'Le serveur ne répond pas comme prévu : réessaie.'); }
+  if (!e) throw Object.assign(uiErr(n + ' n’a pas de compte. Vérifie le pseudo, ou connecte-toi avec ton e-mail.'), { nouser: true, name: n });
+  return { email: e, name: n };
+}
+async function acctLogin(idf, pass) {
+  const who = await acctEmailOf(idf);
+  try { return { s: await authPassword(who.email, pass), name: who.name }; }
+  catch (e) { throw uiErr(authMsg(e, who.name ? 'login-pseudo' : 'login')); }
+}
+const sessOf = uid => (uid && ACCT.s[uid]) || null;
+const liveUid = uid => !!(sessOf(uid) && sessOf(uid).rt);
+const acctObjs = () => [profile, adding, ...profiles].filter(Boolean);
+const acctLive = pr => !!(pr && pr.acct && liveUid(pr.acct.uid));
+function acctFor(name) {
+  const n = cleanName(name); if (!n) return null;
+  return acctObjs().find(p => p.name && cleanName(p.name) === n && acctLive(p)) || null;
+}
+// comptes connectés sur l'appareil, et leur nom affiché (« PATOU, LOUIS » : jamais l'e-mail en entier)
+function acctUids() { const u = []; for (const p of acctObjs()) if (p.name && acctLive(p) && !u.includes(p.acct.uid)) u.push(p.acct.uid); for (const k in ACCT.s) if (liveUid(k) && !u.includes(k) && ACCT.s[k].bare) u.push(k); return u; }
+function acctLabel(uid) {
+  const names = [...new Set(acctObjs().filter(p => p.name && p.acct && p.acct.uid === uid).map(p => cleanName(p.name)))];
+  return names.length ? names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '') : 'ton compte (' + maskEmail((sessOf(uid) || {}).email) + ')';
+}
+function acctStoreProfiles() { if (profile.name) store.set('jdw.profile', profile); store.set('jdw.profiles', profiles); }
+// range l'état du compte d'un profil partout où il est gardé (profil actuel, liste des profils)
+function acctPut(pid, acct) {
+  for (const p of acctObjs()) if (p.pid === pid) { if (acct) p.acct = acct; else delete p.acct; if (acct && acct.uid) delete p.acctNever; }
+  acctStoreProfiles();
+}
+function acctSetSess(s) {
+  const u = s.user || {}, uid = u.id, old = ACCT.s[uid] || {};
+  ACCT.s[uid] = { email: u.email || old.email || '', at: s.access_token, rt: s.refresh_token, exp: Date.now() + (+s.expires_in || 3600) * 1000 };
+  store.set('jdw.accts', ACCT.s);
+  return uid;
+}
+function acctState(pr) {
+  if (!ONLINE || !ACCT.ready || !pr || !pr.name) return 'off';
+  const a = pr.acct;
+  if (a && a.uid) return liveUid(a.uid) ? 'on' : 'need';
+  if (a && a.need) return 'need';
+  if (a && a.pending) return 'pending';
+  return pr.acctNever ? 'local' : 'none';
+}
+async function tokenFor(uid) {
+  let s = sessOf(uid); if (!s || !s.rt) return '';
+  if (!s.at || s.exp - Date.now() < 60e3) { await acctRefresh(uid).catch(() => {}); s = sessOf(uid) || {}; }
+  return s.at || '';
+}
+const acctToken = pr => pr && pr.acct && pr.acct.uid ? tokenFor(pr.acct.uid) : Promise.resolve('');
+// nouveau jeton avant expiration (une seule demande à la fois par compte) ; refus = session perdue, il faudra se reconnecter
+function acctRefresh(uid, force) {
+  const a = sessOf(uid);
+  if (!a || !a.rt) return Promise.resolve(false);
+  if (ACCT.busy[uid]) return ACCT.busy[uid];
+  if (!force && a.at && a.exp - Date.now() > 5 * 60e3) return Promise.resolve(true);
+  return (ACCT.busy[uid] = (async () => {
+    try { const s = await authReq('token?grant_type=refresh_token', { refresh_token: a.rt }); if (!s.user) s.user = { id: uid, email: a.email }; acctSetSess(s); return true; }
+    catch (e) {
+      if (!e.offline && e.status >= 400 && e.status < 500 && e.status !== 429) {
+        ACCT.s[uid] = { email: a.email, lost: true }; store.set('jdw.accts', ACCT.s); acctUi();
+        if (profile.acct && profile.acct.uid === uid) setTimeout(acctGate, 300);
+      }
+      return false;
+    } finally { delete ACCT.busy[uid]; }
+  })());
+}
+function acctTick() { if (ACCT.netFail) acctProbe().then(acctCheckMine); for (const k in ACCT.s) { const a = ACCT.s[k]; if (a && a.rt && a.exp - Date.now() < 5 * 60e3) acctRefresh(k); } }
+// le serveur a répondu « compte requis » pour ce pseudo : il faut se connecter (passage obligatoire)
+function acctNeed(name) {
+  const n = cleanName(name); if (!n || !ACCT.ready) return;
+  let hit = false;
+  for (const p of acctObjs()) if (p.name && cleanName(p.name) === n && !acctLive(p)) { if (!(p.acct && p.acct.uid)) p.acct = { need: true }; hit = true; }
+  if (!hit) return;
+  acctStoreProfiles(); acctUi();
+  if (cleanName(profile.name) === n) setTimeout(acctGate, 300);
+}
+// passage obligatoire : un joueur sans compte (ou dont le pseudo est protégé ailleurs) doit protéger / confirmer son pseudo ou se
+// connecter avant de continuer. Exception : profil gardé « sur cet appareil » (acctNever). En pleine partie : ce sera au retour.
+function acctGate() {
+  clearTimeout(ACCT.gateT); ACCT.gateT = 0;
+  const st = acctState(profile);
+  if (st !== 'none' && st !== 'need') { if (AS.locked && !$('jdw-acct').hidden) { AS.locked = false; closeSheet('jdw-acct'); } return; }
+  if (!$('jdw-acct').hidden || !$('jdw-welcome').hidden) return;
+  if (!ACCT.probed || ACCT.netFail || netDown) return;      // pas de réseau : on ne bloque personne, on redemandera
+  const busy = ['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-profiles', 'jdw-photo', 'jdw-cri', 'jdw-settings', 'jdw-podium'].some(id => $(id) && !$(id).hidden);
+  if (busy) { ACCT.gateT = setTimeout(acctGate, 3000); return; }
+  openAcct(st === 'need' ? 'connect' : 'protect', { locked: true });
+}
+// au démarrage et à chaque changement de joueur : ce pseudo est-il protégé sans que l'appareil soit connecté ?
+async function acctCheckMine() {
+  if (!ACCT.ready || !profile.name) return;
+  const st = acctState(profile);
+  if (st === 'on') { acctRefresh(profile.acct.uid); return; }
+  if (st === 'none' || st === 'need' && !(profile.acct && profile.acct.uid)) {
+    try {
+      const r = (await rpc('check_name', { p_code: CODE(), p_name: profile.name }, { anon: true, quiet: true }) || [])[0];
+      if (r && r.r_protected) acctNeed(profile.name);
+      else if (r && profile.acct && profile.acct.need) { acctPut(profile.pid, null); acctUi(); }   // plus protégé (libéré) : on repart de zéro
+    } catch (e) {}
+  }
+  acctGate();
+}
+// le serveur connaît-il les comptes ? (get_my_players sans connexion : liste vide ; 404 = accounts.sql pas encore lancé)
+async function acctProbe() {
+  if (!ONLINE) return;
+  ACCT.netFail = false;
+  try { await rpc('get_my_players', { p_code: CODE() }, { anon: true, quiet404: true, quiet: true }); ACCT.ready = true; }
+  catch (e) { if (e.status === 404) ACCT.ready = false; else if (e.offline) ACCT.netFail = true; }
+  ACCT.probed = true; store.set('jdw.acctok', ACCT.ready);
+  acctUi();
+}
+// après une connexion : le joueur du compte qui arrive sur l'appareil (pseudo, tête, cri ; rien n'est écrasé sur le serveur)
+// ctx.name : le joueur voulu ; ctx.claim : le rattacher au compte s'il n'y est pas encore. Renvoie { name, me } | { pick } | { nopseudo } | { err }
+async function acctAdopt(s, ctx) {
+  ctx = ctx || {};
+  const tok = s.access_token;
+  if (!s.user) { try { s.user = await authUser(tok); } catch (e) { return { err: authMsg(e) }; } }
+  let rows;
+  try { rows = await rpc('get_my_players', { p_code: CODE() }, { token: tok }) || []; }
+  catch (e) { return { err: e.offline ? 'Pas de connexion internet : réessaie dans un instant.' : 'Le serveur ne répond pas comme prévu : réessaie.' }; }
+  const want = cleanName(ctx.name || '');
+  let me = want ? rows.find(r => cleanName(r.r_name) === want) || null : null;
+  if (want && !me) {
+    if (!ctx.claim) return { err: want + ' n’est pas sur ce compte.' };
+    try { await rpc('claim_name', { p_code: CODE(), p_name: want }, { token: tok }); }
+    catch (e) { return { err: claimMsg(e, want) }; }
+    me = { r_name: want, r_photo: null, r_consent: false, r_sound: null }; rows.push(me);
+  }
+  if (!me) {
+    if (rows.length === 1) me = rows[0];
+    else if (rows.length > 1) return { pick: rows };
+    else {
+      const meta = cleanName(s.user.user_metadata && s.user.user_metadata.pseudo || '');
+      if (!meta) return { nopseudo: true };
+      try { await rpc('claim_name', { p_code: CODE(), p_name: meta }, { token: tok }); }
+      catch (e) { return { nopseudo: true, err: claimMsg(e, meta) }; }
+      me = { r_name: meta, r_photo: null, r_consent: false, r_sound: null };
+    }
+  }
+  return { name: cleanName(me.r_name), me };
+}
+// le joueur connecté devient le joueur de l'appareil (profil existant complété, ou nouveau profil rempli depuis le serveur)
+function acctUse(res, s, uidIn) {
+  const uid = s ? acctSetSess(s) : uidIn, me = res.me, n = res.name;
+  let pr = acctObjs().find(p => p.name && cleanName(p.name) === n) || null;
+  if (pr && pr.pid !== profile.pid) pr = profiles.find(p => p.pid === pr.pid) || pr;
+  let push = false;
+  if (pr) {
+    if (me && me.r_photo) { if (pr.photo !== me.r_photo) { pr.photo = me.r_photo; pr.photoBase = null; pr.photoAcc = null; } pr.consent = true; }
+    else if (pr.photo && pr.consent) push = true;                // la tête de l'appareil part sur le serveur (il n'en avait pas)
+    if (me && me.r_sound) pr.sound = me.r_sound; else if (pr.sound) push = true;
+  } else {
+    pr = Object.assign(blankProfile(), { name: n, askedFor: n, photo: (me && me.r_photo) || null, consent: !!(me && me.r_photo) });
+    if (me && me.r_sound) pr.sound = me.r_sound;
+  }
+  pr.acct = { uid }; delete pr.acctNever;
+  WEL.pick = null;
+  if (!$('jdw-welcome').hidden) { adding = null; closeSheet('jdw-welcome'); }
+  if (!$('jdw-profiles').hidden) closeSheet('jdw-profiles');
+  profile = pr; saveProfile(); acctPut(pr.pid, { uid });
+  players.delete(n); bests[n] = bests[n] || {};
+  syncOwnPlayer(); refreshAll(); refreshBell();
+  maybeAskJoin(); heartbeat(); loadNotifs(); refreshChatBtn(); if (chat.open) renderChat(false); rtTrack();
+  if (push) pushProfile(); else poke('players');
+  flushUnsent(); acctUi(); afterOnboarding();
+  return pr;
+}
+// d'autres joueurs de l'appareil (sans compte) rejoignent le compte (« ajouter aussi LOUIS et LÉONIE à mon compte ? »)
+async function acctClaimOthers(pids, tok, uid) {
+  const bad = [];
+  for (const pid of pids) {
+    const p = profiles.find(x => x.pid === pid); if (!p || !p.name) continue;
+    try { await rpc('claim_name', { p_code: CODE(), p_name: p.name }, { token: tok }); acctPut(pid, { uid }); }
+    catch (e) { bad.push(cleanName(p.name)); }
+  }
+  if (bad.length) setTimeout(() => toastCheer(bad.join(', ') + ' : déjà protégé ailleurs, à régler en passant sur ce joueur.', profile.name, true), 2900);
+}
+// lien reçu par e-mail : #access_token=…&refresh_token=…&type=recovery|signup… (ou #error=…)
+async function acctArrive(h) {
+  if (h.err) { openAcct('connect-any', { msg: /expired|invalid/i.test(h.errCode + h.err) ? 'Ce lien a expiré ou a déjà servi : redemande un e-mail.' : 'Le lien n’a pas marché : ' + h.err, cls: 'err' }); return; }
+  const s = { access_token: h.at, refresh_token: h.rt, expires_in: h.exp || 3600 };
+  try { s.user = await authUser(h.at); } catch (e) { openAcct('forgot', { msg: 'Ce lien a expiré ou a déjà servi : redemande un e-mail.', cls: 'err' }); return; }
+  if (h.type === 'recovery') { AS.sess = s; openAcct('newpass'); return; }
+  const res = await acctAdopt(s, {});
+  acctAfterAdopt(res, s, 'E-mail confirmé ! Choisis ton pseudo.', p => toastCheer('✓ E-mail confirmé : bienvenue ' + p.name + ' 🔒', p.name, true));
+}
+// suite commune après une connexion sans joueur précis (lien reçu, nouveau mot de passe)
+function acctAfterAdopt(res, s, nopseudoMsg, done) {
+  if (res.pick) { welPick(s, res.pick); return; }
+  if (res.nopseudo) {
+    const uid = acctSetSess(s); ACCT.s[uid].bare = true; store.set('jdw.accts', ACCT.s);
+    if (profile.name) { adding = profile; profile = blankProfile(); }
+    startWelcome(); WEL.uid = uid; welAcctUi(); welMsg(res.err || nopseudoMsg, res.err ? 'err' : 'ok'); return;
+  }
+  if (res.err) { openAcct('connect-any', { msg: res.err, cls: 'err' }); return; }
+  done(acctUse(res, s));
+}
+const ACCT_HASH = (() => {                 // lu tout de suite au chargement, puis retiré de l'adresse
+  const hs = String(location.hash || '');
+  if (!/access_token=|error_description=|error_code=/.test(hs)) return null;
+  const P = new URLSearchParams(hs.slice(1));
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  return { at: P.get('access_token') || '', rt: P.get('refresh_token') || '', exp: +P.get('expires_in') || 3600, type: P.get('type') || '',
+    err: P.get('error_description') || (P.get('error') && !P.get('access_token') ? P.get('error') : ''), errCode: P.get('error_code') || '' };
+})();
+async function acctStart() {
+  if (!ONLINE) return;
+  await acctProbe();
+  if (ACCT_HASH && ACCT.ready) await acctArrive(ACCT_HASH);
+  else acctCheckMine();
+  setInterval(acctTick, 60e3); setInterval(() => { if (!ACCT.gateT) acctGate(); }, 5000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) acctTick(); });
+}
+
+/* ---- bannière d'accueil + réglages + « Joueurs de mon compte » ---- */
+function acctUi() {
+  acctBar();
+  if (!$('jdw-welcome').hidden) welAcctUi();
+  if (!$('jdw-settings').hidden) renderAcctSet();
+}
+function acctBar() {
+  const bar = $('jdw-acctbar'), st = acctState(profile);
+  const later = (store.get('jdw.acctlater', {}) || {})[profile.pid] || 0;
+  const show = st === 'pending' && Date.now() - later > ACCT_LATER;
+  bar.hidden = !show; if (!show) return;
+  bar.dataset.state = st;
+  const a = profile.acct || {};
+  $('jdw-acctbar-ic').textContent = '📧'; $('jdw-acctbar-t').textContent = 'Confirme ton e-mail';
+  $('jdw-acctbar-s').textContent = 'Clique sur le lien reçu' + (a.email ? ' à ' + maskEmail(a.email) : '') + ', puis touche ici'; $('jdw-acctbar-cta').textContent = "J'ai confirmé";
+}
+$('jdw-acctbar-go').addEventListener('click', () => { const st = acctState(profile); openAcct(st === 'need' ? 'connect' : st === 'pending' ? 'confirm' : 'protect', { locked: st !== 'pending' }); });
+$('jdw-acctbar-x').addEventListener('click', () => {
+  const l = store.get('jdw.acctlater', {}) || {}; l[profile.pid] = Date.now(); store.set('jdw.acctlater', l); acctBar();
+  toastCheer('D’accord : pense à cliquer sur le lien reçu par e-mail.', profile.name, true);
+});
+function renderAcctSet() {
+  const st = acctState(profile), a = profile.acct || {}, box = $('jdw-set-acct'), se = sessOf(a.uid) || {};
+  const linked = !!(a.uid && st !== 'off');
+  $('jdw-set-name').readOnly = linked; $('jdw-set-name-hint').hidden = !linked;
+  box.hidden = st === 'off'; if (st === 'off') return;
+  const others = a.uid ? acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid && p.pid !== profile.pid).map(p => cleanName(p.name)) : [];
+  const T = { on: ['🔒', 'Compte protégé', maskEmail(se.email) + (others.length ? ' · aussi ' + [...new Set(others)].join(', ') : '')],
+    pending: ['📧', 'E-mail à confirmer', a.email ? 'Lien envoyé à ' + maskEmail(a.email) : ''],
+    need: ['🔑', se.lost ? 'Reconnecte-toi' : 'Ce pseudo a un compte', se.lost ? 'La connexion a expiré sur cet appareil.' : 'Connecte-toi pour jouer sous ce nom.'],
+    local: ['🧒', 'Sans compte', 'Joueur de cet appareil seulement : son pseudo n’est pas protégé.'],
+    none: ['🔓', 'Pseudo pas encore protégé', "N'importe qui peut jouer sous ce nom."] }[st];
+  box.dataset.state = st;
+  $('jdw-set-acct-ic').textContent = T[0]; $('jdw-set-acct-t').textContent = T[1]; $('jdw-set-acct-s').textContent = T[2] || '';
+  const btns = $('jdw-set-acct-btns'); btns.textContent = '';
+  const B = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm ' + (cls || 'btn-ghost'); b.textContent = t; b.addEventListener('click', () => fn(b)); btns.appendChild(b); return b; };
+  if (st === 'on') {
+    B('🔑 Changer mon mot de passe', () => openAcct('change'));
+    B('Se déconnecter de cet appareil', b => {
+      const names = [...new Set(acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid).map(p => cleanName(p.name)))];
+      if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Sûr ? ' + names.join(', ') + (names.length > 1 ? ' quitteront' : ' quittera') + ' cet appareil'; return; }
+      acctLogout();
+    }, 'btn-ghost acct-out');
+  } else if (st === 'pending') { B("J'ai confirmé : me connecter", () => openAcct('confirm'), 'btn-play'); B("Renvoyer l'e-mail", () => openAcct('confirm', { resend: true })); }
+  else if (st === 'need') B('🔑 Me connecter', () => openAcct('connect'), 'btn-play');
+  else B('🔒 Protéger mon pseudo', () => openAcct('protect'), 'btn-play');
+}
+// se déconnecter : le compte et tous ses joueurs quittent l'appareil
+async function acctLogout() {
+  const uid = profile.acct && profile.acct.uid; if (!uid) return;
+  const se = sessOf(uid) || {};
+  if (se.at) authReq('logout?scope=local', null, se.at).catch(() => {});
+  const gone = [...new Set(profiles.filter(p => p.acct && p.acct.uid === uid).map(p => cleanName(p.name)))];
+  delete ACCT.s[uid]; store.set('jdw.accts', ACCT.s);
+  profiles = profiles.filter(p => !(p.acct && p.acct.uid === uid)); store.set('jdw.profiles', profiles);
+  closeSheet('jdw-settings');
+  if (profiles.length) switchProfile(profiles[0].pid);
+  else { profile = blankProfile(); store.set('jdw.profile', profile); syncOwnPlayer(); refreshAll(); rtTrack(); startWelcome(); }
+  setTimeout(() => toastCheer(gone.join(', ') + (gone.length > 1 ? ' sont déconnectés' : ' est déconnecté') + ' de cet appareil.', profile.name || gone[0], true), 50);
+  acctUi();
+}
+// « Qui joue ? » : les autres joueurs des comptes connectés, à ajouter sur l'appareil
+async function acctProfList() {
+  const box = $('jdw-prof-acct'); box.textContent = ''; box.hidden = true;
+  const uids = ONLINE && ACCT.ready ? acctUids() : [];
+  for (const uid of uids) {
+    let rows = [];
+    try { rows = await rpc('get_my_players', { p_code: CODE() }, { token: await tokenFor(uid), quiet: true }) || []; } catch (e) { continue; }
+    rows = rows.filter(r => !profiles.some(p => cleanName(p.name) === cleanName(r.r_name)));
+    if (!rows.length) continue;
+    const h = document.createElement('p'); h.className = 'eyebrow'; h.textContent = uids.length > 1 ? 'Compte de ' + acctLabel(uid) : 'Joueurs de mon compte';
+    box.appendChild(h);
+    for (const r of rows) {
+      const n = cleanName(r.r_name), b = document.createElement('button'); b.type = 'button'; b.className = 'acct-player';
+      const av = document.createElement('span'); av.className = 'avatar'; photoInto(av, r.r_photo, n);
+      const tx = document.createElement('span'); tx.className = 'acct-player-tx'; const t = document.createElement('b'); t.textContent = n; const sm = document.createElement('small'); sm.textContent = 'Ajouter sur cet appareil';
+      tx.append(t, sm); b.append(av, tx);
+      b.addEventListener('click', () => { const pr = acctUse({ name: n, me: r }, null, uid); toastCheer('Salut ' + pr.name + ' ! À toi de jouer.', pr.name, true); });
+      box.appendChild(b);
+    }
+    box.hidden = false;
+  }
+}
+
+/* ---- fenêtre du compte : protéger, se connecter, confirmer, mot de passe oublié / nouveau / changer ---- */
+const AS = { mode: '', pid: '', name: '', sess: null, busy: false, locked: false, signed: null, uid: '', others: [] };
+function acctMsg(t, cls) { const el = $('jdw-acct-msg'); el.textContent = t || ''; el.className = 'acct-msg' + (cls ? ' ' + cls : ''); el.hidden = !t; }
+function openAcct(mode, o) {
+  o = o || {};
+  const N = profile.name, a = profile.acct || {};
+  if (AS.pid !== profile.pid) AS.signed = null;            // compte créé dans cette fenêtre (pseudo pas encore lié) : gardé pour réessayer
+  Object.assign(AS, { mode, pid: profile.pid, name: N, busy: false, locked: !!o.locked });
+  const lead = $('jdw-acct-lead'); lead.textContent = '';
+  const Bo = t => { const b = document.createElement('b'); b.textContent = t; return b; };
+  const C = {
+    protect: ['🔒', 'Nouveau : les comptes', 'Protège ton pseudo', ['Pour continuer à jouer, mets ton joueur sur un compte (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouveras sur n’importe quel appareil. Un compte peut avoir plusieurs joueurs.'], 'email', 'new', 'Protéger mon pseudo', 'Plus tard'],
+    'connect-mine': ['🔑', N, 'Connecte-toi', ['Connecte-toi à ton compte avec ton e-mail ou un de tes pseudos : ', Bo(N), ' y sera ajouté et protégé.'], 'idf', 'cur', 'Me connecter', 'Plus tard'],
+    connect: ['🔑', N, 'Connecte-toi', [Bo(N), ' est protégé par un compte. C’est toi ? Tape le mot de passe du compte. Sinon, choisis un autre pseudo.'], 'idf', 'cur', 'Me connecter', 'Plus tard'],
+    'connect-any': ['🔑', 'Mon compte', 'Connecte-toi', ['Connecte-toi avec ton e-mail ou ton pseudo, et le mot de passe du compte.'], 'idf', 'cur', 'Me connecter', 'Fermer'],
+    confirm: ['📧', 'Presque fini', 'Confirme ton e-mail', ['On a envoyé un lien à ', Bo(maskEmail(a.email) || 'ton adresse'), '. Ouvre-le (regarde aussi les spams) pour activer ton compte, puis reviens ici et tape ton mot de passe.'], '', 'cur', "J'ai confirmé : me connecter", 'Plus tard'],
+    forgot: ['✉️', 'Mot de passe oublié', 'Pas de panique', ['Tape ton e-mail ou ton pseudo : on envoie un lien à l’adresse du compte pour choisir un nouveau mot de passe.'], 'idf', null, 'Envoyer le lien', 'Fermer'],
+    newpass: ['🔑', AS.sess && AS.sess.user ? maskEmail(AS.sess.user.email) : 'Mon compte', 'Choisis ton nouveau mot de passe', ['Au moins 6 caractères. Il sert pour tous les joueurs du compte, sur tous tes appareils.'], '', 'new', 'Enregistrer', 'Annuler'],
+    change: ['🔑', maskEmail((sessOf(a.uid) || {}).email) || 'Mon compte', 'Changer mon mot de passe', ['Choisis ton nouveau mot de passe (au moins 6 caractères). Il sert pour tous les joueurs du compte.'], '', 'new', 'Changer', 'Annuler']
+  }[mode];
+  if (!C) return;
+  $('jdw-acct-ic').textContent = C[0]; $('jdw-acct-eyebrow').textContent = C[1]; $('jdw-acct-h').textContent = C[2];
+  lead.append(...C[3]);
+  // choix du compte (protéger avec un compte déjà connecté sur l'appareil)
+  AS.uid = mode === 'protect' ? (o.uid !== undefined ? o.uid : acctUids()[0] || '') : '';
+  const em = $('jdw-acct-email'), pw = $('jdw-acct-pass');
+  em.dataset.kind = C[4];
+  em.type = C[4] === 'email' ? 'email' : 'text';
+  em.placeholder = C[4] === 'idf' ? 'ton@email.fr ou TON PSEUDO' : 'ton@email.fr';
+  em.setAttribute('aria-label', C[4] === 'idf' ? 'E-mail ou pseudo' : 'E-mail');
+  em.value = o.email !== undefined ? o.email : C[4] === 'idf' && N && mode !== 'connect-any' ? N : '';
+  $('jdw-acct-pw').dataset.kind = C[5] || '';
+  pw.value = '';
+  pw.autocomplete = C[5] === 'new' ? 'new-password' : 'current-password';
+  pw.placeholder = C[5] === 'new' ? (mode === 'protect' ? 'Mot de passe (6 caractères min.)' : 'Nouveau mot de passe') : 'Mot de passe du compte';
+  $('jdw-acct-ok').textContent = C[6]; $('jdw-acct-ok').disabled = false; $('jdw-acct-close').textContent = C[7];
+  $('jdw-acct-close').hidden = AS.locked; $('jdw-acct').classList.toggle('locked', AS.locked);
+  $('jdw-acct-namebox').hidden = mode !== 'protect';
+  $('jdw-acct-name').value = o.name !== undefined ? o.name : N;
+  $('jdw-acct-name-s').textContent = o.name === '' ? 'Choisis un autre pseudo.' : 'C’est bien ton pseudo ? Tu peux encore le changer.';
+  // les autres joueurs de l'appareil sans compte : à ajouter au même compte
+  AS.others = mode === 'protect' || mode === 'connect-mine' ? profiles.filter(p => p.name && p.pid !== profile.pid && acctState(p) === 'none').map(p => p.pid) : [];
+  acctSheetUi();
+  const L = $('jdw-acct-links'); L.textContent = '';
+  const link = (t, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'link-btn'; b.textContent = t; b.addEventListener('click', () => fn(b)); L.appendChild(b); };
+  if (mode === 'protect') {
+    link('J’ai déjà un compte : me connecter', () => openAcct('connect-mine', { locked: AS.locked }));
+    link('Pas d’e-mail (un enfant) ? Ce profil reste sur cet appareil, sans compte', b => {
+      if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Sûr ? ' + N + ' ne sera pas protégé (touche encore pour confirmer)'; return; }
+      for (const p of acctObjs()) if (p.pid === AS.pid) p.acctNever = true; saveProfile(); AS.locked = false; closeSheet('jdw-acct'); acctUi(); toastCheer(N + ' reste sur cet appareil, sans compte.', N, true);
+    });
+  }
+  if (mode === 'connect') link('Ce n’est pas moi : choisir un autre pseudo', () => openAcct('protect', { locked: AS.locked, name: '' }));
+  if (/^connect|confirm/.test(mode)) link('Mot de passe oublié ?', () => openAcct('forgot', { email: mode === 'confirm' ? '' : em.value.trim() }));
+  if (mode === 'confirm') { link('Renvoyer l’e-mail', acctResend); link('Changer d’adresse e-mail', () => openAcct('protect', { uid: '' })); }
+  if (AS.locked) link('Changer de joueur', () => { AS.locked = false; closeSheet('jdw-acct'); openProfiles(); });
+  acctMsg(o.msg || '', o.cls || 'info');
+  $('jdw-acct').hidden = false;
+  if (!$('jdw-settings').hidden && mode !== 'change') closeSheet('jdw-settings');
+  setTimeout(() => { const f = mode === 'protect' && o.name === '' ? $('jdw-acct-name') : !em.hidden && !em.value ? em : !$('jdw-acct-pw').hidden ? pw : $('jdw-acct-ok'); try { f.focus({ preventScroll: true }); } catch (e) {} }, 40);
+  if (o.resend) acctResend();
+}
+// parties de la fenêtre qui dépendent du choix du compte et des autres joueurs
+function acctSheetUi() {
+  const mode = AS.mode, useUid = mode === 'protect' && !!AS.uid;
+  acctChips($('jdw-acct-pick'), AS.uid, u => { AS.uid = u; acctMsg(''); acctSheetUi(); }, true);
+  if (mode !== 'protect') $('jdw-acct-pick').hidden = true;
+  $('jdw-acct-email').hidden = !$('jdw-acct-email').dataset.kind || useUid;
+  $('jdw-acct-pw').hidden = !$('jdw-acct-pw').dataset.kind || useUid;
+  const ob = $('jdw-acct-others'); ob.textContent = '';
+  const list = AS.others.map(pid => profiles.find(p => p.pid === pid)).filter(Boolean);
+  ob.hidden = !list.length; if (!list.length) return;
+  const h = document.createElement('p'); h.className = 'acct-others-h'; h.textContent = 'Ajouter aussi à ce compte (même mot de passe) :'; ob.appendChild(h);
+  const row = document.createElement('div'); row.className = 'acct-others-row'; ob.appendChild(row);
+  for (const p of list) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'acct-other'; b.dataset.pid = p.pid;
+    const av = document.createElement('span'); av.className = 'avatar'; photoInto(av, p.consent ? p.photo : null, p.name);
+    const t = document.createElement('b'); t.textContent = cleanName(p.name);
+    b.append(av, t); b.setAttribute('aria-pressed', 'true');
+    b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')));
+    row.appendChild(b);
+  }
+}
+const acctOthersPicked = () => [...document.querySelectorAll('#jdw-acct-others .acct-other[aria-pressed="true"]')].map(b => b.dataset.pid);
+async function acctResend() {
+  const a = profile.acct || {}; if (!a.email) return;
+  acctMsg('Envoi…', 'info');
+  try { await authResend(a.email); acctMsg('C’est renvoyé à ' + maskEmail(a.email) + ' : regarde aussi les spams.', 'ok'); }
+  catch (e) { acctMsg(authMsg(e), 'err'); }
+}
+function acctSetBusy(on, t) { AS.busy = on; const b = $('jdw-acct-ok'); b.disabled = on; if (on) { AS.label = b.textContent; b.textContent = t || '…'; } else if (AS.label) b.textContent = AS.label; }
+// le profil visé par la fenêtre (celui qui l'a ouverte), même si on a changé de joueur entre-temps
+const acctTarget = () => acctObjs().find(p => p.pid === AS.pid) || profile;
+// le joueur visé est rattaché au compte (tête / cri du serveur repris s'il en a, sinon ceux de l'appareil partent sur le serveur)
+function acctAttach(pr, uid, me) {
+  acctPut(pr.pid, { uid });
+  if (pr.pid !== profile.pid) return;
+  if (me && me.r_photo && profile.photo !== me.r_photo) { profile.photo = me.r_photo; profile.consent = true; profile.photoBase = null; profile.photoAcc = null; saveProfile(); players.delete(cleanName(profile.name)); syncOwnPlayer(); refreshAll(); }
+  if (me && me.r_sound && !profile.sound) { profile.sound = me.r_sound; saveProfile(); syncOwnPlayer(); }
+  if ((!me || !me.r_photo) && profile.photo && profile.consent) pushProfile(); else poke('players');
+  acctUi(); flushUnsent(); heartbeat();
+}
+async function acctOk() {
+  if (AS.busy) return;
+  const mode = AS.mode, idf = $('jdw-acct-email').value.trim(), pass = $('jdw-acct-pass').value, pr = acctTarget(), N = pr.name;
+  const needEmail = !$('jdw-acct-email').hidden, needPass = !$('jdw-acct-pw').hidden, kind = $('jdw-acct-email').dataset.kind;
+  if (needEmail && kind === 'email' && !validEmail(idf)) { acctMsg(idf ? "Cette adresse e-mail n'est pas valide." : 'Il faut ton e-mail.', 'err'); $('jdw-acct-email').focus(); return; }
+  if (needEmail && kind === 'idf' && !idf) { acctMsg('Tape ton e-mail ou ton pseudo.', 'err'); $('jdw-acct-email').focus(); return; }
+  if (needPass && $('jdw-acct-pw').dataset.kind === 'new' && pass.length < 6) { acctMsg('Le mot de passe doit faire au moins 6 caractères.', 'err'); $('jdw-acct-pass').focus(); return; }
+  if (needPass && !pass) { acctMsg('Il faut le mot de passe du compte.', 'err'); $('jdw-acct-pass').focus(); return; }
+  if (mode === 'forgot') {
+    acctSetBusy(true, 'Envoi…');
+    try {
+      const who = await acctEmailOf(idf);
+      await authRecover(who.email);
+      acctMsg(who.name ? 'C’est envoyé ! Un e-mail part à l’adresse du compte de ' + who.name + ' (regarde aussi les spams).' : 'C’est envoyé ! Si un compte existe pour ' + idf + ', l’e-mail arrive dans une minute (regarde aussi les spams).', 'ok');
+    } catch (e) { acctMsg(e.ui ? e.message : authMsg(e), 'err'); }
+    acctSetBusy(false); return;
+  }
+  if (mode === 'change') {
+    acctSetBusy(true, 'Un instant…');
+    try {
+      const tok = await acctToken(pr); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
+      await authSetPassword(tok, pass);
+      acctSetBusy(false); closeSheet('jdw-acct'); toastCheer('🔑 Mot de passe changé !', N, true);
+    } catch (e) { acctSetBusy(false); acctMsg(authMsg(e), 'err'); }
+    return;
+  }
+  if (mode === 'newpass') {
+    acctSetBusy(true, 'Enregistrement…');
+    const s = AS.sess;
+    try { await authSetPassword(s.access_token, pass); } catch (e) { acctSetBusy(false); acctMsg(authMsg(e), 'err'); return; }
+    const res = await acctAdopt(s, {});
+    acctSetBusy(false); closeSheet('jdw-acct'); AS.sess = null;
+    acctAfterAdopt(res, s, 'Mot de passe changé ! Choisis ton pseudo.', p => toastCheer('🔑 Nouveau mot de passe enregistré !', p.name, true));
+    return;
+  }
+  if (mode === 'protect') {
+    const N2 = cleanName($('jdw-acct-name').value);
+    if (N2.length < 2) { acctMsg(N2 ? 'Le pseudo doit faire au moins 2 lettres.' : 'Il faut un pseudo.', 'err'); $('jdw-acct-name').focus(); return; }
+    if (N2 !== cleanName(N) && profiles.some(p => p.pid !== pr.pid && cleanName(p.name) === N2)) { acctMsg(N2 + ' est déjà un autre joueur de cet appareil.', 'err'); $('jdw-acct-name').focus(); return; }
+    const others = acctOthersPicked();
+    let tok = '', uid = AS.uid;
+    if (uid) { acctSetBusy(true, 'Un instant…'); tok = await tokenFor(uid); if (!tok) { acctSetBusy(false); acctMsg('La connexion de ce compte a expiré : choisis « J’ai déjà un compte ».', 'err'); return; } }
+    else if (AS.signed && AS.signed.email === idf) { acctSetBusy(true, 'Un instant…'); uid = AS.signed.uid; tok = await tokenFor(uid); }
+    else {
+      acctSetBusy(true, 'Vérification…');
+      try { const ck = (await rpc('check_name', { p_code: CODE(), p_name: N2 }, { anon: true, quiet: true }) || [])[0]; if (ck && ck.r_protected) { acctSetBusy(false); acctMsg(N2 + ' est déjà protégé par un compte. C’est toi ? « J’ai déjà un compte ». Sinon, choisis un autre pseudo.', 'err'); $('jdw-acct-name').focus(); return; } } catch (e) {}
+      acctSetBusy(false); acctSetBusy(true, 'Création du compte…');
+      let r;
+      try { r = await authSignup(idf, pass, N2); }
+      catch (e) { acctSetBusy(false); if (authExists(e)) openAcct('connect-mine', { email: idf, locked: AS.locked, msg: 'Cet e-mail a déjà un compte : connecte-toi avec son mot de passe.' }); else acctMsg(authMsg(e), 'err'); return; }
+      if (!r.access_token) {
+        acctSetBusy(false);
+        const ids = r.identities || (r.user && r.user.identities);
+        if (Array.isArray(ids) && !ids.length) { openAcct('connect-mine', { email: idf, locked: AS.locked, msg: 'Cet e-mail a déjà un compte : connecte-toi avec son mot de passe.' }); return; }
+        acctPut(pr.pid, { email: idf, pending: true });
+        if (N2 !== cleanName(N) && pr.pid === profile.pid) await renameProfile(N2);
+        AS.locked = false; acctUi(); openAcct('confirm');
+        return;
+      }
+      uid = acctSetSess(r); tok = r.access_token; AS.signed = { email: idf, uid };
+    }
+    try { await rpc('claim_name', { p_code: CODE(), p_name: N2 }, { token: tok }); }
+    catch (e) {
+      acctSetBusy(false);
+      acctMsg(/pseudo deja protege/.test(e.message) ? N2 + ' est déjà protégé par un autre compte. C’est toi ? « J’ai déjà un compte ». Sinon, choisis un autre pseudo ci-dessus.' : claimMsg(e, N2), 'err');
+      $('jdw-acct-name').focus(); return;
+    }
+    acctSetBusy(false); AS.signed = null;
+    acctPut(pr.pid, { uid });
+    AS.locked = false; closeSheet('jdw-acct');
+    if (N2 !== cleanName(N) && pr.pid === profile.pid) await renameProfile(N2); else pushProfile();
+    await acctClaimOthers(others, tok, uid);
+    acctUi(); flushUnsent();
+    toastCheer('🔒 ' + N2 + ' est protégé !', N2, true);
+    return;
+  }
+  // connect / connect-mine / connect-any / confirm : connexion (e-mail ou pseudo) + mot de passe
+  acctSetBusy(true, 'Connexion…');
+  let L;
+  try { L = needEmail ? await acctLogin(idf, pass) : { s: await authPassword((pr.acct && pr.acct.email) || '', pass), name: '' }; }
+  catch (e) { acctSetBusy(false); acctMsg(e.ui ? e.message : authMsg(e, 'login'), 'err'); return; }
+  const s = L.s, others = acctOthersPicked();
+  const res = mode === 'connect-any' ? await acctAdopt(s, { name: L.name }) : await acctAdopt(s, { name: N, claim: mode !== 'connect' });
+  acctSetBusy(false);
+  if (mode === 'connect-any') { closeSheet('jdw-acct'); acctAfterAdopt(res, s, 'Ton compte n’a pas encore de joueur : choisis ton pseudo.', p => toastCheer('Re-bonjour ' + p.name + ' !', p.name, true)); return; }
+  if (res.err) { acctMsg(res.err, 'err'); return; }
+  const uid = acctSetSess(s);
+  AS.locked = false; closeSheet('jdw-acct');
+  acctAttach(pr, uid, res.me);
+  if (others.length) await acctClaimOthers(others, s.access_token, uid);
+  toastCheer('✓ Connecté : ' + N + ' 🔒', N, true);
+}
+$('jdw-acct-ok').addEventListener('click', acctOk);
+$('jdw-acct-pass').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); acctOk(); } });
+$('jdw-acct-email').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if ($('jdw-acct-pw').hidden) acctOk(); else $('jdw-acct-pass').focus(); } });
+$('jdw-acct-close').addEventListener('click', () => { if (AS.locked) return; closeSheet('jdw-acct'); AS.sess = null; setTimeout(acctGate, 300); });
+$('jdw-acct-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-acct-email').focus(); } });
+// œil : afficher / cacher le mot de passe
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.pw-eye'); if (!b) return;
+  const i = $(b.dataset.for); if (!i) return;
+  const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.classList.toggle('on', show);
+  b.setAttribute('aria-label', show ? 'Cacher le mot de passe' : 'Afficher le mot de passe');
+});
 
 /* ================= Photo : cadrage + détourage ================= */
 const PH = { img: null, rot: 0, zoom: 1.4, ox: 0, oy: 0, mask: null, seg: undefined, busy: false, timer: 0 };
@@ -2545,7 +3344,7 @@ function toastCheer(text, name, force) {
   const el = $('jdw-cheer');
   if (el.parentNode !== document.body) document.body.appendChild(el);   // toujours au-dessus de tout, en bas à droite
   if (p && p.photo) { $('jdw-cheer-img').src = p.photo; $('jdw-cheer-img').hidden = false; } else $('jdw-cheer-img').hidden = true;
-  $('jdw-cheer-name').textContent = p ? p.name : (cleanName(name) || ''); $('jdw-cheer-txt').textContent = String(text || '').slice(0, 60);
+  $('jdw-cheer-name').textContent = p ? dispName(p.name) : (cleanName(name) || ''); $('jdw-cheer-txt').textContent = String(text || '').slice(0, 60);
   el.hidden = true; void el.offsetWidth; el.hidden = false;
   clearTimeout(cheerTimer); cheerTimer = setTimeout(() => { el.hidden = true; }, 2700);
 }
@@ -2744,7 +3543,7 @@ function renderSeats() {
   for (const i of [0, 1]) {
     const b = $('jdw-seat-' + i), pl = seatPlayer(i), hd = b.querySelector('.seat-head');
     hd.textContent = ''; hd.appendChild(chatHead(pl.name, { passive: true }));
-    b.querySelector('.seat-name').textContent = pl.name;
+    b.querySelector('.seat-name').textContent = dispName(pl.name);
     b.querySelector('.seat-tx small').textContent = (i === 0 ? 'En bas' : 'En haut') + (pl.ai ? ' · ' + AI_LEVELS[aiLevel][0] : '');
   }
   // niveau de l'IA quand elle joue en haut
@@ -2867,7 +3666,7 @@ function duoApi(d, seq) {
   const mine = () => DUO.seq === seq;
   return {
     players: P,
-    heads: () => headsList(),
+    heads: () => headsShown(),
     audio: audioApi, colors: COLORS, fonts: FONTS,
     assets: (name) => window.JDW_ASSETS.load(name || 'ilo'),
     point(p, why) {
@@ -2958,7 +3757,7 @@ function resHalf(i, land) {
     return b;
   };
   if (land) heads.append(hd(seatPlayer(w), true), hd(seatPlayer(1 - w), false)); else heads.append(hd(me, win));
-  const h = document.createElement('h2'); h.textContent = land ? '🏆 ' + seatPlayer(w).name + ' gagne !' : win ? 'Gagné !' : 'Perdu…';
+  const h = document.createElement('h2'); h.textContent = land ? '🏆 ' + dispName(seatPlayer(w).name) + ' gagne !' : win ? 'Gagné !' : 'Perdu…';
   const sc = document.createElement('p'); sc.className = 'dr-score';
   const a = land ? w : i, b2 = 1 - a, s1 = document.createElement('b'), s2 = document.createElement('b');
   s1.textContent = DUO.scores[a]; s1.style.color = DUO_COLORS[a]; s2.textContent = DUO.scores[b2]; s2.style.color = DUO_COLORS[b2];
@@ -3023,7 +3822,7 @@ function duoPause() {
   // les deux joueurs, leur tête et le score à leurs couleurs
   const sub = $('jdw-duo-pause-sub'); sub.textContent = '';
   const side = i => { const b = document.createElement('span'); b.className = 'dp-side'; b.style.setProperty('--pc', DUO_COLORS[i]);
-    const n = document.createElement('b'); n.textContent = seatPlayer(i).name; b.append(chatHead(seatPlayer(i).name, { passive: true }), n); return b; };
+    const n = document.createElement('b'); n.textContent = dispName(seatPlayer(i).name); b.append(chatHead(seatPlayer(i).name, { passive: true }), n); return b; };
   const sc = document.createElement('span'); sc.className = 'dp-score';
   const s0 = document.createElement('b'), s1 = document.createElement('b'); s0.textContent = DUO.scores[0]; s0.style.color = DUO_COLORS[0]; s1.textContent = DUO.scores[1]; s1.style.color = DUO_COLORS[1];
   sc.append(s0, ' – ', s1);
@@ -3256,7 +4055,7 @@ function cmpPodium(rank) {
   const g = cmpGame(CMP.g), me = cleanName(profile.name);
   $('jdw-podium-game').textContent = (g ? g.title : '') + ' · compétition';
   const solo = rank.length < 2;
-  $('jdw-podium-h').textContent = solo ? 'Tout seul…' : '🏆 ' + rank[0].name + ' gagne !';
+  $('jdw-podium-h').textContent = solo ? 'Tout seul…' : '🏆 ' + dispName(rank[0].name) + ' gagne !';
   const st = $('jdw-podium-steps'); st.textContent = '';
   const order = [1, 0, 2];
   for (const i of order) {
@@ -3264,7 +4063,7 @@ function cmpPodium(rank) {
     const col = document.createElement('div'); col.className = 'pod pod' + (i + 1) + (r.name === me ? ' me' : '');
     const hd = chatHead(r.name, { passive: true, sad: i > 0 });
     if (i === 0) { const cr = document.createElement('span'); cr.className = 'champ-crown'; cr.textContent = '👑'; hd.appendChild(cr); }
-    const nm = document.createElement('b'); nm.textContent = r.name;
+    const nm = document.createElement('b'); nm.textContent = dispName(r.name);
     const sc = document.createElement('span'); sc.className = 'pod-s'; sc.textContent = fmt(r.s);
     const blk = document.createElement('div'); blk.className = 'pod-blk'; blk.textContent = String(i + 1);
     col.append(hd, nm, sc, blk); st.appendChild(col);
@@ -3294,7 +4093,7 @@ function cmpOpenPick(name, anchor) {
     b.addEventListener('click', ev => { ev.stopPropagation(); cmpReact(name, e); cmpClosePick(); });
     pk.appendChild(b);
   }
-  const lab = document.createElement('span'); lab.className = 'pk-to'; lab.textContent = '→ ' + name; pk.appendChild(lab);
+  const lab = document.createElement('span'); lab.className = 'pk-to'; lab.textContent = '→ ' + dispName(name); pk.appendChild(lab);
   pk.hidden = false;
   const r = anchor.getBoundingClientRect(), w = pk.offsetWidth, hh = pk.offsetHeight;
   let x = r.left + r.width / 2 - w / 2, y = r.top - hh - 8;
@@ -3328,7 +4127,7 @@ function rxShow(from, to, e) {
   if (to === cleanName(profile.name) && from !== to && !$('jdw-play').hidden) {
     const box = document.createElement('div'); box.className = 'rx-me' + (e.length > 4 ? ' txt' : '');
     const hd = chatHead(from, { passive: true }); const em = document.createElement('span'); em.className = 'rx-me-e'; em.textContent = e;
-    const nm = document.createElement('b'); nm.textContent = from; box.append(hd, em, nm);
+    const nm = document.createElement('b'); nm.textContent = dispName(from); box.append(hd, em, nm);
     $('jdw-play').appendChild(box); setTimeout(() => box.remove(), e.length > 14 ? 3400 : 1900);
     Audio.tone(880, 0.06, 'sine', 0.05, 1320);
   }
@@ -3365,7 +4164,7 @@ function renderCompet() {
     hb.appendChild(chatHead(m.name, { passive: true, sad: m.st === 'out' && ph === 'end' && rows[0] !== m }));
     hb.addEventListener('click', () => { if (m.name !== me) cmpOpenPick(m.name, hb); });
     const tx = document.createElement('span'); tx.className = 'cmp-tx';
-    const nb = document.createElement('b'); nb.textContent = m.name; const stt = cmpRowStatus(m); const sm = document.createElement('small'); sm.className = 'st-' + stt.c; sm.textContent = stt.t;
+    const nb = document.createElement('b'); nb.textContent = dispName(m.name); const stt = cmpRowStatus(m); const sm = document.createElement('small'); sm.className = 'st-' + stt.c; sm.textContent = stt.t;
     tx.append(nb, sm);
     const sc = document.createElement('span'); sc.className = 'cmp-sc'; sc.textContent = m.r === 'p' && (m.st === 'play' || m.st === 'out') ? fmt(m.s) : '';
     li.append(hb, tx, sc);
@@ -3472,7 +4271,7 @@ function cmpLine(el) {
   if (CMP.practice) txt = CMP.goAt && CMP.goFor === CMP.rid ? '⏱ GO dans ' + Math.max(0, Math.ceil((CMP.goAt - Date.now()) / 1000)) + ' s !' : '🏋️ Entraînement · en attente d\'un 2e joueur';
   else {
     const pos = rank.findIndex(m => m.name === me) + 1, lead = rank[0];
-    txt = '🏆 ' + (pos ? (pos === 1 ? '1er' : pos + 'e') + ' sur ' + rank.length : 'Compétition') + (lead && lead.name !== me ? ' · ' + lead.name + ' ' + fmt(lead.s) : '') + ' · toi ' + fmt(cur);
+    txt = '🏆 ' + (pos ? (pos === 1 ? '1er' : pos + 'e') + ' sur ' + rank.length : 'Compétition') + (lead && lead.name !== me ? ' · ' + dispName(lead.name) + ' ' + fmt(lead.s) : '') + ' · toi ' + fmt(cur);
   }
   txt = watchersTxt() + txt;
   el.hidden = false;
@@ -3617,7 +4416,7 @@ function watchStart(name, game) {
   const sid = 'w' + Date.now().toString(36) + shellRand().toString(36).slice(2, 6), g = gameById(game);
   Object.assign(WATCH, { sid, cid, name, game, live: false, pend: [] });
   const hd = $('jdw-watch-head'); hd.textContent = ''; hd.appendChild(chatHead(name, { passive: true }));
-  $('jdw-watch-name').textContent = name; $('jdw-watch-game').textContent = g ? g.title : '';
+  $('jdw-watch-name').textContent = dispName(name); $('jdw-watch-game').textContent = g ? g.title : '';
   $('jdw-watch-live').classList.remove('on');
   const v = $('jdw-watch-video'); v.srcObject = null;
   buildWatchBar();
@@ -3676,7 +4475,7 @@ function buildWatchBar() {
 function watchBubble(from, e) {
   const box = document.createElement('div'); box.className = 'rx-me in-watch' + (e.length > 4 ? ' txt' : '');
   const hd = chatHead(from, { passive: true }), em = document.createElement('span'); em.className = 'rx-me-e'; em.textContent = e;
-  const nm = document.createElement('b'); nm.textContent = from; box.append(hd, em, nm);
+  const nm = document.createElement('b'); nm.textContent = dispName(from); box.append(hd, em, nm);
   for (const old of $('jdw-watch').querySelectorAll('.rx-me')) old.remove();
   $('jdw-watch').appendChild(box); setTimeout(() => box.remove(), e.length > 14 ? 3400 : 1900);
 }
@@ -3798,14 +4597,14 @@ function netRenderList() {
   if (!on.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'Personne d\'autre en ligne dans ta salle pour le moment : envoie-lui le lien.'; list.appendChild(p); return; }
   for (const x of on) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'pick-row';
-    const t = document.createElement('span'); t.className = 'pr-t'; const bb = document.createElement('b'); bb.textContent = x.name; const sm = document.createElement('small');
+    const t = document.createElement('span'); t.className = 'pr-t'; const bb = document.createElement('b'); bb.textContent = dispName(x.name); const sm = document.createElement('small');
     sm.textContent = x.game && x.game !== 'menu' ? gameLabel(x.game) : 'dans le menu'; t.append(bb, sm);
     const go = document.createElement('span'); go.className = 'cg-go'; go.textContent = 'Défier';
     b.append(chatHead(x.name, { passive: true }), t, go);
     b.addEventListener('click', () => {
       rtBroadcast({ t: 'netinv', code: NET.code, g: NET.d.id, n: me, to: x.name });
       go.textContent = 'Invité ✓'; b.disabled = true;
-      $('jdw-net-sub').textContent = 'Invitation envoyée à ' + x.name + ' : en attente de sa réponse…';
+      $('jdw-net-sub').textContent = 'Invitation envoyée à ' + dispName(x.name) + ' : en attente de sa réponse…';
     });
     list.appendChild(b);
   }
@@ -4066,7 +4865,7 @@ function netFitStage() {
 addEventListener('resize', netFitStage);
 function netGuestPauseCard() {
   const sub = $('jdw-duo-pause-sub'); sub.textContent = '';
-  const side = i => { const b = document.createElement('span'); b.className = 'dp-side'; b.style.setProperty('--pc', DUO_COLORS[i]); const n = document.createElement('b'); n.textContent = seatPlayer(i).name; b.append(chatHead(seatPlayer(i).name, { passive: true }), n); return b; };
+  const side = i => { const b = document.createElement('span'); b.className = 'dp-side'; b.style.setProperty('--pc', DUO_COLORS[i]); const n = document.createElement('b'); n.textContent = dispName(seatPlayer(i).name); b.append(chatHead(seatPlayer(i).name, { passive: true }), n); return b; };
   const sc = document.createElement('span'); sc.className = 'dp-score'; sc.textContent = DUO.scores[0] + ' – ' + DUO.scores[1];
   sub.append(side(0), sc, side(1));
   $('jdw-duo-pause').hidden = false;
@@ -4118,7 +4917,7 @@ function mountGame(g) {
       setMusic(g.id, lvl >= (INTENSE_AT[g.id] || 99) ? 'intense' : 'calm');
     },
     isMuted: () => muted,
-    heads: () => headsList(),
+    heads: () => headsShown(),
     player: playerObj(),
     mode: CMP.playing || CMP.practice ? 'compet' : 'normal',
     startLevel: CMP.playing || CMP.practice ? COMPET_START[g.id] || 1 : 1,
@@ -4244,20 +5043,20 @@ function recLine() {
   if (lead && REC.leader && (REC.leader !== lead.name || REC.score !== lead.score) && lead.name !== me) {
     // un copain vient de prendre (ou d'améliorer) la 1re place pendant qu'on joue
     REC.flashUntil = Date.now() + 2500;
-    toastCheer(lead.name + (REC.leader === lead.name ? ' améliore son record : ' : ' prend la 1re place : ') + fmt(lead.score) + u + ' !', lead.name);
+    toastCheer(dispName(lead.name) + (REC.leader === lead.name ? ' améliore son record : ' : ' prend la 1re place : ') + fmt(lead.score) + u + ' !', lead.name);
   }
   if (lead) { REC.leader = lead.name; REC.score = lead.score; }
   if (!lead) { txt = cur > 0 ? '👑 Toi · ' + fmt(cur) + u + ' · premier record !' : '👑 Pas encore de record : à toi !'; if (cur > 0) cls += ' me'; }
   else if (lead.name === me) { cls += ' me'; txt = cur > lead.score ? '👑 Toi · ' + fmt(cur) + u + ' · nouveau record !' : '👑 Toi · ' + fmt(lead.score) + u + (cur ? ' · en cours ' + fmt(cur) : ''); }
   else if (cur > lead.score) {
-    cls += ' me'; txt = '👑 Toi · ' + fmt(cur) + u + ' · devant ' + lead.name + ' !';
+    cls += ' me'; txt = '👑 Toi · ' + fmt(cur) + u + ' · devant ' + dispName(lead.name) + ' !';
     const key = lead.name + ':' + lead.score;
     if (REC.passed !== key) {
       REC.passed = key; REC.flashUntil = Date.now() + 2500;
-      toastCheer('Tu passes devant ' + lead.name + ' ! 👑', me, true);
+      toastCheer('Tu passes devant ' + dispName(lead.name) + ' ! 👑', me, true);
       Audio.tone(784, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(1046, 0.22, 'square', 0.06), 120);
     }
-  } else txt = '👑 ' + lead.name + ' · ' + fmt(lead.score) + u + (cur ? '   ·   toi ' + fmt(cur) : '');
+  } else txt = '👑 ' + dispName(lead.name) + ' · ' + fmt(lead.score) + u + (cur ? '   ·   toi ' + fmt(cur) : '');
   if (Date.now() < REC.flashUntil) cls += ' flash';
   txt = watchersTxt() + txt;
   try {
@@ -4357,7 +5156,7 @@ async function showEnd(score) {
     const victim = beaten[0], wasFirst = before[0] && victim.name === before[0].name;
     const p = players.get(victim.name);
     $('jdw-beat-txt').innerHTML = '';
-    const b = document.createElement('b'); b.textContent = (wasFirst ? 'Tu as battu le premier : ' : 'Tu as battu ') + victim.name + ' !';
+    const b = document.createElement('b'); b.textContent = (wasFirst ? 'Tu as battu le premier : ' : 'Tu as battu ') + dispName(victim.name) + ' !';
     $('jdw-beat-txt').append(b, (wasFirst ? 'Nouveau record de la bande. ' : '') + 'Son score : ' + fmt(victim.score) + unit(g) + (p && p.photo ? '. Snif, ' + victim.name + ' pleure !' : ''));
     if (p && p.photo) { $('jdw-beat-img').src = sadUrl(p); $('jdw-beat-img').hidden = false; } else $('jdw-beat-img').hidden = true;
     beat.hidden = false;
@@ -5261,7 +6060,7 @@ function mapUpdate(animate) {
       if (!h) {
         h = mapEl('div', 'gmap-head' + (nm === me ? ' me' : ''), layer);
         const hd = chatHead(nm, { passive: true }); hd.classList.add('gh-face'); h.appendChild(hd);
-        mapEl('span', 'gh-name', h).textContent = nm === me ? 'Toi' : nm;
+        mapEl('span', 'gh-name', h).textContent = nm === me ? 'Toi' : dispName(nm);
         if (animate) h.style.setProperty('--d', (0.45 + Math.min(lv, 26) * 0.035).toFixed(3) + 's');
         MAP.heads.set(nm, h);
       }
@@ -5312,6 +6111,7 @@ window.JDW_BACK = () => {
   if (!$('jdw-seatpick').hidden) { closeSheet('jdw-seatpick'); return true; }
   if (chat.open) { closeChat(); return true; }
   if (!$('jdw-cri').hidden) { closeCri(); return true; }
+  if (!$('jdw-acct').hidden) { if (!AS.locked) closeSheet('jdw-acct'); return true; }
   for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members', 'jdw-welcome']) {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
@@ -5332,7 +6132,7 @@ setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou 
 })();
 
 /* ================= Démarrage ================= */
-['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map'].forEach(id => { if ($(id)) $(id).hidden = true; });
+['jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
 $('jdw-lib').hidden = false;
 syncOwnPlayer();
@@ -5340,6 +6140,7 @@ buildLibrary(); buildDuoLibrary(); buildTabs(); syncMute(); refreshAll(); setMod
 requestAnimationFrame(previewLoop);
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }
 if (!profile.name) startWelcome(); else if (ONLINE && !room) openRooms();
+acctBar(); acctStart();         // comptes : bannière « Protège ton compte », lien reçu par e-mail, jetons rafraîchis
 loadPlayers(); loadScores(); heartbeat(); loadChat(); setTimeout(progLoad, 1500);
 setTimeout(pushRoomLook, 2500);    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)
 if (ONLINE) { rtJoin('jdw-all'); if (room) rtJoin('jdw-room-' + room.id); rtConnect(); }
