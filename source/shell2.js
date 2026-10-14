@@ -4,7 +4,17 @@ const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
 const ORDER = ['ilo', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
-const NEW_GAMES = new Set(['ilo']);
+// Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
+// id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
+// seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
+const TILE_NEWS = {
+  ilo: { kind: 'new', at: '2026-10-12 00:27' },
+  glouton: { kind: 'maj', at: '2026-10-13 00:55' },
+  empilo: { kind: 'maj', at: '2026-10-14 12:10' },
+  mouches: { kind: 'maj', at: '2026-10-14 12:43' }
+};
+const NEWS_DAYS = 30;
+const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(Boolean);
 const gameById = id => GAMES.find(g => g.id === id);
 // jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
@@ -18,15 +28,51 @@ const store = {
 // lien d'invitation …/jouer/?salle=<jeton> : lu tout de suite au chargement, avant tout changement d'adresse (section « Inviter par un lien »)
 const INV_URL = (() => { try { const s = new URLSearchParams(location.search); return s.has('salle') ? String(s.get('salle') || '') : null; } catch (e) { return null; } })();
 const INV_RX = /^[A-Za-z0-9_-]{16,64}$/;
+// vues par joueur de l'appareil (invité sans nom : '*') : jdw.tileseen = { JOUEUR: { id: date de la nouveauté vue } } ;
+// jdw.seengames = l'ancienne liste des jeux « Nouveau » déjà ouverts (toujours lue). Appareil tout neuf (aucune donnée jdw.*) :
+// les nouveautés déjà là ne s'affichent pas (jdw.tilebase), seulement celles qui arriveront ensuite.
 let seenGames = store.get('jdw.seengames', {}) || {};
-const gameSeen = (id) => (seenGames[cleanName(profile.name)] || []).includes(id);
-const isNewGame = (id) => NEW_GAMES.has(id) && !!profile.name && !gameSeen(id);
+let tileSeen = store.get('jdw.tileseen', {}) || {};
+const TILE_BASE = (() => {
+  const b = store.get('jdw.tilebase', null); if (typeof b === 'string') return b;
+  let fresh = true;
+  try { for (let i = 0; i < localStorage.length; i++) if (/^jdw\./.test(localStorage.key(i) || '')) { fresh = false; break; } } catch (e) { fresh = false; }
+  const v = fresh ? Object.values(TILE_NEWS).reduce((m, x) => x.at > m ? x.at : m, '') : '';
+  store.set('jdw.tilebase', v); return v;
+})();
+const seenKey = () => cleanName(profile.name) || '*';
+// l'étiquette de ce jeu / duel pour le joueur actuel : 'new', 'maj' ou ''
+function tileNews(id) {
+  const x = TILE_NEWS[id]; if (!x || x.at <= TILE_BASE) return '';
+  if (!(Date.now() - Date.parse(x.at.replace(' ', 'T')) < NEWS_DAYS * 86400e3)) return '';
+  const me = seenKey();
+  if (((tileSeen[me] || {})[id] || '') >= x.at) return '';
+  if (x.kind === 'new' && (seenGames[me] || []).includes(id)) return '';
+  return x.kind;
+}
+const gameSeen = (id) => tileNews(id) !== 'new';
+// clic sur la tuile (jeu ouvert, duel lancé) : l'étiquette s'en va pour ce joueur
 function markGameSeen(id) {
-  const me = cleanName(profile.name); if (!me || !NEW_GAMES.has(id) || gameSeen(id)) return;
-  (seenGames[me] = seenGames[me] || []).push(id); store.set('jdw.seengames', seenGames);
+  const x = TILE_NEWS[id]; if (!x || !tileNews(id)) return;
+  const me = seenKey(); (tileSeen[me] = tileSeen[me] || {})[id] = x.at; store.set('jdw.tileseen', tileSeen);
   refreshNewBadges(); refreshBell();
 }
-function refreshNewBadges() { let list = []; try { list = tiles; } catch (e) { return; } for (const t of list) { const nb = t.el.querySelector('.tile-new'); if (nb) nb.hidden = !isNewGame(t.g.id); } }
+function refreshNewBadges() {
+  const put = (el, k) => {
+    let nb = el.querySelector('.tile-new');
+    if (!k) { if (nb) nb.hidden = true; return; }
+    if (!nb) { nb = document.createElement('span'); nb.className = 'tile-new'; el.appendChild(nb); }
+    nb.hidden = false; nb.classList.toggle('maj', k === 'maj'); nb.textContent = k === 'new' ? 'Nouveau' : 'Mis à jour';
+  };
+  const section = list => { let k = ''; for (const t of list) { const n = tileNews(t.g.id); put(t.el, n); if (n === 'new' || (n && !k)) k = n; } return k; };
+  let a = '', b = '';
+  try { a = section(tiles); } catch (e) {}
+  try { b = section(duoTiles); } catch (e) {}
+  for (const [id, k] of [['jdw-cls-badge', a], ['jdw-duo-badge', b]]) {
+    const e = $(id); if (!e) continue;
+    e.hidden = !k; e.textContent = k === 'new' ? 'nouveau' : 'mis à jour'; e.classList.toggle('maj', k === 'maj');
+  }
+}
 const fmt = n => Math.floor(n).toLocaleString('fr-FR');
 const unit = g => g && g.scoreLabel === 'm' ? ' m' : '';
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 12).toUpperCase();
@@ -754,7 +800,7 @@ function updateNotifs() {
 }
 function gameNotifs() {
   const me = cleanName(profile.name); if (!me) return [];
-  return [...NEW_GAMES].filter(id => gameById(id) && !gameSeen(id) && !(gameNotifSeen[me] || []).includes(id)).map(id => ({ kind: 'game', game: id }));
+  return [...NEW_GAMES].filter(id => gameById(id) && tileNews(id) === 'new' && !(gameNotifSeen[me] || []).includes(id)).map(id => ({ kind: 'game', game: id }));
 }
 function unseenCount() { const s = notifSeen[notifKey()] || 0; return notifs.filter(n => n.id > s).length + gameNotifs().length + updateNotifs().length; }
 function refreshBell() {
@@ -1607,8 +1653,7 @@ function buildLibrary() {
     b.setAttribute('aria-label', 'Jouer à ' + g.title);
     b.innerHTML = '<div class="tile-img"><canvas aria-hidden="true"></canvas></div><div class="tile-meta"><div class="tile-name"></div><div class="tile-online"><i></i><span></span></div></div>';
     b.querySelector('.tile-name').textContent = g.title;
-    if (NEW_GAMES.has(g.id)) { const nb = document.createElement('span'); nb.className = 'tile-new'; nb.textContent = 'Nouveau'; nb.hidden = !isNewGame(g.id); b.appendChild(nb); }
-    b.addEventListener('click', () => openGame(g));
+    b.addEventListener('click', () => { markGameSeen(g.id); openGame(g); });   // clic sur la tuile : l'étiquette « Nouveau » / « Mis à jour » s'en va
     // la tuile est enveloppée : la bulle du champion est un bouton à part (elle ouvre le classement de la salle, pas le jeu)
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', g.accent || COLORS.amber);
     const ch = document.createElement('button'); ch.type = 'button'; ch.className = 'tile-champ'; ch.hidden = true;
@@ -3940,6 +3985,7 @@ function buildDuoLibrary() {
     b.querySelector('.tile-name').textContent = d.title;
     b.querySelector('.duo-emoji').textContent = d.emoji || '⚔️';
     b.addEventListener('click', () => {
+      markGameSeen(d.id);   // clic sur la tuile : l'étiquette « Nouveau » / « Mis à jour » s'en va (même si le duel demande d'abord un compte)
       if (DUEL_WHERE === 'online') { if (guestBlocks()) { guestAsk('Duel en ligne'); return; } if (netOff()) { netNeed('Le duel en ligne'); return; } if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } netCreate(d); return; }
       if (aiBlocks(d)) { ensureAiPlayer(); toastCheer('Je ne sais pas encore jouer à ce jeu !', AI_NAME, true); return; }
       openDuo(d);
@@ -4194,7 +4240,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && !$(
 // Rien de plus sur le serveur : la présence de la salle dit qui participe (rôle, état, score) et des signaux « cmp »
 // portent le GO, les scores en direct, les sorties et les réactions. L'hôte (le premier inscrit encore là) donne le GO
 // dès que 2 joueurs sont prêts ; chacun joue sur son téléphone, au même niveau difficile et avec la même graine.
-const COMPET_START = { ilo: 4, pleingaz: 4, empilo: 5, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 9 };
+const COMPET_START = { ilo: 4, pleingaz: 4, empilo: 5, glouton: 4, mouches: 4, carreaux: 7, rouleaux: 9 };
 const COMPET_GO_MS = 10000;
 const REACTIONS = ['😂', '🔥', '💩', '😱', '👏', '😈'];
 const CMP = { id: null, g: null, role: null, st: null, t: 0, seed: 0, score: 0, goAt: 0, goFor: '', goSent: 0, goN: 0,

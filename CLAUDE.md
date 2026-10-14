@@ -41,6 +41,9 @@ sur main à faire à la main : GitHub Pages republie en ~1 min. `BUMP=minor ./pu
 Visuels de l'accueil : `node source/accueil-media.js` (ONLY=ilo,palet pour quelques-uns). Assets : `node pack-ilo.js` / `node pack-music.js`
 (clé d'emballage source/asset-key.txt) ; `reemballer.js` a servi une fois à passer de l'ancien mot de passe à cette clé.
 Tests du site publié sans rien publier : `bash ~/jdv-tools/pubtest.sh` + `node ~/jdv-tools/pubserve.js` (8767) + `node ~/jdv-tools/test-public.js`.
+**À chaque nouveau jeu / duel ou refonte publiée** : l'ajouter dans `TILE_NEWS` en tête de shell2.js (`{ kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' }`)
+→ étiquette « Nouveau » / « Mis à jour » sur la tuile jusqu'au clic (par joueur de l'appareil, 30 jours au plus) et sur le bouton Classique / Duel
+tant qu'il contient une nouveauté pas vue ; un appareil tout neuf ne voit que les nouveautés suivantes (jdw.tilebase). Test : test-badges.js.
 
 ## Appli Android (`android-apktool/`)
 WebView plein écran sur la borne (`https://gt40benjamin.github.io/jdv/jouer/`, Java dans `java/MainActivity.java`). Construite sans SDK :
