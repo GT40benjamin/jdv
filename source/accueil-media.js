@@ -115,7 +115,7 @@ h1 b{font-weight:400;color:#ffd34d;display:block}
 p{margin-top:26px;font-size:30px;font-weight:600;color:#cfe6ef;line-height:1.3}
 .pill{display:inline-block;margin-top:30px;padding:10px 22px;border-radius:99px;background:#ffa630;color:#0b141c;font:400 24px Bungee,sans-serif;box-shadow:0 0 30px #ffa63088}
 </style></head><body><div class=hero></div><div class=grid>${cells}</div><div class=shade></div>
-<div class=t><h1>Borne d'arcade<b>entre amis</b></h1><p>16 jeux gratuits, en solo ou en duel,<br>sur ton téléphone ou ton PC.</p><span class=pill>Jouer</span></div></body></html>`);
+<div class=t><h1>Borne d'arcade<b>entre amis</b></h1><p>15 jeux gratuits, en solo ou en duel,<br>sur ton téléphone ou ton PC.</p><span class=pill>Jouer</span></div></body></html>`);
     await share.evaluate(() => document.fonts.ready);
     await share.waitForTimeout(400);
     await share.screenshot({ path: path.join(OUT, 'partage.jpg'), type: 'jpeg', quality: 84 });
