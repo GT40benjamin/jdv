@@ -5520,16 +5520,38 @@ function showLevelProgress(g, me) {
   const best = current.lvBase != null && cleanName(profile.name) === me ? current.lvBase : lvBest(me, g.id);
   const had = lvBest(me, g.id);
   if (lv > had && me) { lvSetBest(me, g.id, lv); progPush(me, g.id, lv); }   // dernier niveau pas encore vu par progTick
-  const word = LV_WORD[g.id] || 'Niveau', top = Math.max(lv, best), n = Math.max(10, Math.ceil((top + 2) / 5) * 5);
+  // jeu à mondes (Empilo : g.worlds + g.worldOf) : le monde atteint à côté du niveau, la piste se colore monde par monde
+  let wo = null; try { if (Array.isArray(g.worlds) && typeof g.worldOf === 'function') wo = g.worldOf(lv); } catch (e) { wo = null; }
+  const per = wo ? (g.levelsPerWorld || 3) * g.worlds.length : 5;
+  const word = LV_WORD[g.id] || 'Niveau', top = Math.max(lv, best), n = wo ? Math.max(per, Math.ceil((top + 1) / per) * per) : Math.max(10, Math.ceil((top + 2) / 5) * 5);
   const h = document.createElement('p'); h.className = 'lv-h';
-  const b = document.createElement('b'); b.textContent = word + ' ' + lv; h.append(b, document.createTextNode(lv > best ? (best ? ' · nouveau record ! (avant : ' + best + ')' : ' · premier record !') : lv === best ? ' · ton record égalé !' : ' · ton record : ' + best + ' (encore ' + (best - lv) + ')'));
-  const track = document.createElement('div'); track.className = 'lv-track'; track.style.setProperty('--n', n);
+  const b = document.createElement('b'); b.textContent = word + ' ' + lv; h.append(b);
+  if (wo) {
+    const c = document.createElement('span'); c.className = 'lv-w'; c.style.setProperty('--wc', wo.world.colors.accent);
+    c.textContent = wo.world.emoji + ' Monde ' + wo.n + ' · ' + wo.world.name + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : '');
+    h.append(c);
+  }
+  const recTxt = lv > best ? (best ? 'nouveau record ! (avant : ' + best + ')' : 'premier record !') : lv === best ? 'ton record égalé !' : 'ton record : ' + best + ' (encore ' + (best - lv) + ')';
+  if (wo) { const r = document.createElement('span'); r.className = 'lv-rec'; r.textContent = recTxt; h.append(r); } else h.append(document.createTextNode(' · ' + recTxt));
+  const track = document.createElement('div'); track.className = 'lv-track' + (wo ? ' worlds' : ''); track.style.setProperty('--n', n);
   for (let i = 1; i <= n; i++) {
     const d = document.createElement('i'); if (i <= lv) d.className = 'on'; if (i === lv) d.classList.add('now');
     if (i === best && best !== lv) { d.classList.add('best'); d.title = 'ton record'; }
+    if (wo) { const wi = g.worldOf(i); d.style.setProperty('--acc', wi.world.colors.accent); if (wi.stage === 0 && i > 1) d.classList.add('wstart'); }
     d.style.setProperty('--d', (i * 0.05).toFixed(2) + 's'); track.appendChild(d);
   }
-  box.append(h, track); box.hidden = false;
+  box.append(h, track);
+  if (wo) {      // sous la piste : l'emoji de chaque monde, celui atteint en grand
+    const row = document.createElement('div'); row.className = 'lv-worlds'; row.style.setProperty('--n', n / (g.levelsPerWorld || 3));
+    for (let i = 1; i <= n; i += g.levelsPerWorld || 3) {
+      const wi = g.worldOf(i), e = document.createElement('i');
+      e.textContent = wi.world.emoji; e.title = wi.world.name + (wi.tour ? ' · Tour ' + mapRoman(wi.tour) : '');
+      if (wi.w === wo.w && wi.tour === wo.tour) e.className = 'now'; else if (i <= lv) e.className = 'on';
+      e.style.setProperty('--d', (i * 0.05 + 0.15).toFixed(2) + 's'); row.appendChild(e);
+    }
+    box.append(row);
+  }
+  box.hidden = false;
 }
 async function showEnd(score) {
   castEndAll(score);   // les spectateurs voient le score final
@@ -5913,8 +5935,11 @@ const PG_BK = ['presse', 'grue', 'turbine', 'foreuse', 'ruche'];
 const PG_NEWS = { 3: 'Jets de flammes', 4: 'Couloir électrique', 5: 'Scies circulaires', 6: 'Slalom', 7: 'Portes électriques', 8: 'Salve de missiles', 9: 'Drones de garde' };
 
 // Description d'une carte : count(max) = niveaux dessinés ; level(n) = { tier, kicker, name, lines, acc, bg, bg0, … } ;
-// tier(t) = palier (bandeau) ; theme = peintre du décor ('space' | 'factory') ; start / cap = textes du départ et du haut ;
-// boss(n) = le boss qui ferme le niveau n { bk (dessin), name, kicker, final (boss de fin de cycle : couronne) } → étape « BOSS » sur le chemin.
+// tier(t) = palier (bandeau ; emoji en grand au-dessus du titre s'il y en a un) ; theme = peintre du décor ('space' | 'factory' | 'empilo') ;
+// start / cap = textes du départ et du haut ; boss(n) = le boss qui ferme le niveau n { bk (dessin), name, kicker, final (boss de fin de
+// cycle : couronne) } → étape « BOSS » sur le chemin. Sans boss() : un niveau tous les `step` px. Un jeu peut dessiner lui-même sa carte :
+// stops(L) (dégradé du fond), paint(x, L, W, y0, h) (décor d'un morceau de 1000 px), node(x, info, size, P) (pastille d'un niveau) ;
+// bgDpr = résolution plafonnée du décor (doux : pas besoin de 2,5) ; lazy = les morceaux loin de l'écran se peignent juste après l'ouverture.
 const MAP_DEFS = {
   ilo: {
     theme: 'space', word: 'Secteur', tierGap: 170, tierAt: 0.58,
@@ -5955,6 +5980,33 @@ const MAP_DEFS = {
     },
     start: { title: 'Entrée', sub: "Les portes de l'usine" },
     cap: { title: "L'usine continue…", sub: 'Nouvelle tournée tous les 10 niveaux' }
+  },
+  // Empilo (games/empilo.js) : 5 mondes de 3 niveaux (Plaine, Océan, Ciel, Espace, Au-delà), puis le Tour II, III… Pas de boss :
+  // chaque niveau est une marche, avec l'ambiance de son moment (le matin, plein soleil…). Fond, transitions et marches : le jeu.
+  empilo: {
+    theme: 'empilo', word: 'Niveau', tierGap: 150, majorGap: 250, tierAt: 0.5, step: 168, nodeSize: 62, bgDpr: 1.6, lazy: true,
+    count: max => Math.min(150, Math.max(15, Math.ceil((max + 2) / 15) * 15)),
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.empilo; return G && G.worlds && G.worldOf ? G : null; },
+    level(lv) {
+      const G = this.game(), wo = G ? G.worldOf(lv) : { w: Math.floor((lv - 1) / 3) % 5, tour: Math.floor((lv - 1) / 15), stage: (lv - 1) % 3 };
+      const D = G && G.worlds[wo.w], A = G && G.mapArt, news = A ? A.news(lv) : '';
+      return { lv, tier: wo.tour * 5 + wo.w, w: wo.w, tour: wo.tour, stage: wo.stage,
+        kicker: 'Niveau ' + lv + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''), name: D ? D.stages[wo.stage] : 'Monde ' + (wo.w + 1),
+        lines: news ? ['✦ ' + news] : [], acc: A ? A.acc(lv) : D ? D.colors.accent : '#a98bff' };
+    },
+    short(lv) { const G = this.game(), wo = G ? G.worldOf(lv) : null; return 'Niveau ' + lv + (wo ? ' · ' + wo.world.name + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : '') : ''); },
+    tier(t) {
+      const G = this.game(), w = t % 5, tour = Math.floor(t / 5), D = G ? G.worlds[w] : null;
+      return { kicker: (tour ? 'Tour ' + mapRoman(tour) + ' · ' : '') + 'Monde ' + (w + 1), title: D ? D.name : 'Monde ' + (w + 1), emoji: D ? D.emoji : '',
+        sub: D ? D.special.emoji + ' ' + D.special.name + ' : ' + D.special.text.replace(/^./, c => c.toLowerCase()) : '',
+        acc: D ? D.colors.accent : '#a98bff', acc2: D ? D.colors.accent2 : '#ff6ec7', w, tour,
+        major: w === 0 && tour > 0, majorTitle: 'Tour ' + mapRoman(tour), majorSub: 'Les 5 mondes reviennent, encore plus vite !' };
+    },
+    stops(L) { const G = this.game(); return G && G.mapArt ? G.mapArt.stops(L) : null; },
+    paint(x, L, W, y0, h) { const G = this.game(); if (G && G.mapArt) G.mapArt.paint(x, L, W, y0, h); },
+    node(x, info, size, P) { const G = this.game(); if (G && G.mapArt) G.mapArt.node(x, info, size, P); },
+    start: { title: 'Départ', sub: 'La prairie, au petit matin' },
+    cap: { title: 'Le voyage continue…', sub: 'Un nouveau tour tous les 15 niveaux, toujours plus vite' }
   }
 };
 
@@ -6126,11 +6178,12 @@ function mapLayout(def, n, W, VH) {
   const nodes = [], tiers = [], bosses = [];
   // chaque niveau = sa pastille puis, plus haut sur le chemin, l'étape « BOSS » qui le ferme (assez loin pour les têtes posées sur la pastille)
   const toBoss = Math.round(S * 0.5 + 94), fromBoss = Math.round(S * 0.5 + 58);
+  const hasBoss = typeof def.boss === 'function', step = def.step || fromBoss + toBoss;   // sans boss : un niveau tous les « step » px
   let d = 150, prevTier = null;       // distance depuis le bas ; le départ est à 150 px du bas
   const start = { d, k: 0 };
   for (let lv = 1; lv <= n; lv++) {
     const info = def.level(lv);
-    const base = lv === 1 ? S : fromBoss;
+    const base = lv === 1 ? S : hasBoss ? fromBoss : step;
     let gap = base;
     if (info.tier !== prevTier) {
       const T = def.tier(info.tier);
@@ -6141,6 +6194,7 @@ function mapLayout(def, n, W, VH) {
     d += gap;
     const nd = { lv, info, d, k: lv };
     nodes.push(nd);
+    if (!hasBoss) continue;
     d += toBoss;
     nd.boss = { lv, info, bi: Object.assign({ acc: info.acc }, def.boss(lv)), d, k: lv + 0.5, isBoss: true };
     bosses.push(nd.boss);
@@ -6154,6 +6208,7 @@ function mapLayout(def, n, W, VH) {
 }
 // fond : dégradé continu d'un niveau à l'autre (couleurs du secteur / de la zone)
 function mapStops(L, def) {
+  if (def.stops) { try { const own = def.stops(L); if (own && own.length) return own.sort((a, b) => a[0] - b[0]); } catch (e) {} }
   const st = [];
   if (def.theme === 'space') {
     st.push([L.H, '#010409'], [L.start.y, '#020812']);
@@ -6170,6 +6225,11 @@ function mapStops(L, def) {
     st.push([L.capY, '#0a0f16'], [0, '#05080c']);
   }
   return st.sort((a, b) => a[0] - b[0]);
+}
+function mapAt(stops, y) {   // couleur du fond à la hauteur y
+  if (y <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) if (y <= stops[i][0]) { const a = stops[i - 1], b = stops[i]; return mixHex(a[1], b[1], (y - a[0]) / Math.max(1, b[0] - a[0])); }
+  return stops[stops.length - 1][1];
 }
 function mapGrad(x, stops, y0, h) {
   const g = x.createLinearGradient(0, 0, 0, h);
@@ -6282,18 +6342,31 @@ function paintFactory(x, L, W, y0, h) {
     for (const px of [0, W - pw]) { x.fillStyle = Z.steel; x.fillRect(px, top, pw, hh); x.fillStyle = Z.steel2; x.fillRect(px + (px ? 2 : pw - 4), top, 2, hh); }
   }
 }
-function mapPaint(world, L, def) {
+function mapPaint(world, L, def, focusY) {
   const stops = mapStops(L, def), W = L.W;
-  let dpr = Math.min(2.5, (window.devicePixelRatio || 1) * (MAP.z || 1));
+  let dpr = Math.min(def.bgDpr || 2.5, (window.devicePixelRatio || 1) * (MAP.z || 1));
   if (W * L.H * dpr * dpr > 14e6) dpr = Math.max(1, Math.sqrt(14e6 / (W * L.H)));
-  const CH = 1000;
+  const CH = 1000, later = [];
   for (let y0 = 0; y0 < L.H; y0 += CH) {
-    const h = Math.min(CH, L.H - y0), c = mapEl('canvas', 'gmap-bg', world);
+    // (chaque morceau déborde de 2 px sur le suivant : pas de fine ligne entre deux morceaux quand la carte est agrandie sur PC)
+    const h = Math.min(CH + 2, L.H - y0), c = mapEl('canvas', 'gmap-bg', world);
     c.width = Math.round(W * dpr); c.height = Math.round(h * dpr); c.style.top = y0 + 'px'; c.style.height = h + 'px';
-    const x = c.getContext('2d'); x.scale(dpr, dpr);
-    x.fillStyle = mapGrad(x, stops, y0, h); x.fillRect(0, 0, W, h);
-    try { if (def.theme === 'space') paintSpace(x, L, W, y0, h); else paintFactory(x, L, W, y0, h); } catch (e) {}
+    const paint = () => {
+      const x = c.getContext('2d'); x.scale(dpr, dpr);
+      x.fillStyle = mapGrad(x, stops, y0, h); x.fillRect(0, 0, W, h);
+      try { if (def.paint) def.paint(x, L, W, y0, h); else if (def.theme === 'space') paintSpace(x, L, W, y0, h); else paintFactory(x, L, W, y0, h); } catch (e) {}
+    };
+    // def.lazy : loin de l'écran, un dégradé CSS en attendant ; le décor se peint juste après l'ouverture, un morceau à la fois, au calme
+    if (def.lazy && focusY != null && (y0 > focusY + 600 || y0 + h < focusY - 600)) {
+      c.style.background = 'linear-gradient(' + mapAt(stops, y0) + ',' + mapAt(stops, y0 + h) + ')';
+      later.push([Math.abs(y0 + h / 2 - focusY), c, paint]);
+    } else paint();
   }
+  if (!later.length) return;
+  later.sort((a, b) => a[0] - b[0]);
+  const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 600 }) : setTimeout(f, 50));
+  const next = () => { const j = later.shift(); if (!j || !j[1].isConnected) return; j[2](); j[1].style.background = ''; if (later.length) idle(next); };
+  setTimeout(() => idle(next), 750);
 }
 // pastille d'un niveau : planète du secteur (Galaxy Wars) ou cadran d'usine (Plein Gaz)
 function mapNodeCanvas(def, info, size) {
@@ -6301,6 +6374,7 @@ function mapNodeCanvas(def, info, size) {
   c.width = c.height = Math.round(P * dpr); c.style.width = c.style.height = P + 'px';
   const x = c.getContext('2d'); x.scale(dpr, dpr);
   const cx = P / 2, cy = P / 2, r = size / 2;
+  if (def.node) { try { def.node(x, info, size, P); } catch (e) {} return c; }
   if (def.theme === 'space') {
     const glow = x.createRadialGradient(cx, cy, r * 0.7, cx, cy, r + 12); glow.addColorStop(0, rgbaHex(info.acc, 0.55)); glow.addColorStop(1, rgbaHex(info.acc, 0));
     x.fillStyle = glow; x.beginPath(); x.arc(cx, cy, r + 12, 0, 7); x.fill();
@@ -6578,7 +6652,7 @@ function mapSegPath(a, b) {
 function mapBuild(animate) {
   const def = MAP.def, scroll = $('jdw-map-scroll'), world = $('jdw-map-world');
   // grand écran (PC) : toute la carte est agrandie (zoom), les dessins restent nets
-  const W0 = scroll.clientWidth, VH0 = scroll.clientHeight;
+  const W0 = scroll.clientWidth, VH0 = scroll.clientHeight, keepY = (scroll.scrollTop + VH0 / 2) / (MAP.z || 1);
   const z = W0 >= 700 ? Math.max(1, Math.min(1.45, W0 / 600, VH0 / 680)) : 1;
   const W = Math.max(280, Math.floor(W0 / z)), VH = Math.max(400, VH0 / z);
   MAP.z = z; world.style.zoom = z === 1 ? '' : z.toFixed(3); world.style.width = W + 'px';
@@ -6588,7 +6662,8 @@ function mapBuild(animate) {
   MAP.L = L; MAP.n = n; MAP.heads = new Map();
   world.textContent = ''; world.style.height = L.H + 'px';
   world.classList.toggle('anim', !!animate);
-  mapPaint(world, L, def);
+  const meLv = people.get(me) || 0;      // à l'ouverture, la carte se centre sur moi : c'est là qu'on peint d'abord
+  mapPaint(world, L, def, animate ? (meLv ? L.nodes[Math.min(meLv, L.nodes.length) - 1].y : L.start.y) : keepY);
   // chemin
   const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'gmap-path'); svg.setAttribute('width', W); svg.setAttribute('height', L.H);
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + L.H); svg.setAttribute('aria-hidden', 'true');
@@ -6599,6 +6674,7 @@ function mapBuild(animate) {
     b.style.top = t.y + 'px'; b.style.setProperty('--tc', t.T.acc); if (t.T.acc2) b.style.setProperty('--tc2', t.T.acc2);
     if (t.T.major && def.majorGap) { const m = mapEl('div', 'gt-major', b); mapEl('b', '', m).textContent = t.T.majorTitle; mapEl('small', '', m).textContent = t.T.majorSub; }
     const p = mapEl('div', 'gt-plate', b);
+    if (t.T.emoji) mapEl('i', 'gt-emo', p).textContent = t.T.emoji;
     mapEl('small', '', p).textContent = t.T.kicker;
     mapEl('b', '', p).textContent = t.T.title;
     if (t.T.sub) mapEl('span', '', p).textContent = t.T.sub;
@@ -6616,7 +6692,7 @@ function mapBuild(animate) {
   for (const nd of L.nodes) {
     const el = mapEl('div', 'gmap-node', world); el.style.left = nd.x + 'px'; el.style.top = nd.y + 'px'; el.style.setProperty('--nc', nd.info.acc);
     el.setAttribute('role', 'img');
-    const pin = mapEl('div', 'gn-pin', el); pin.appendChild(mapNodeCanvas(def, nd.info, def.theme === 'space' ? 54 : 52));
+    const pin = mapEl('div', 'gn-pin', el); pin.appendChild(mapNodeCanvas(def, nd.info, def.nodeSize || (def.theme === 'space' ? 54 : 52)));
     mapEl('b', 'gn-num', pin).textContent = def.theme === 'space' ? String((nd.lv - 1) % 8 + 1) : String(nd.lv);
     const side = Math.abs(nd.x - W / 2) < L.A * 0.3 ? (nd.lv % 2 ? 'r' : 'l') : nd.x < W / 2 ? 'r' : 'l';
     const lab = mapEl('div', 'gn-lab ' + side, el);
@@ -6631,7 +6707,8 @@ function mapBuild(animate) {
   const SKULL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c-5 0-8.6 3.4-8.6 8 0 2.7 1.3 4.6 3 5.8V19c0 .9.7 1.6 1.6 1.6h.7v-2h1.6v2h3.4v-2h1.6v2h.7c.9 0 1.6-.7 1.6-1.6v-3c1.7-1.2 3-3.1 3-5.8 0-4.6-3.6-8-8.6-8zM8.4 14.2a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6zm7.2 0a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6zM12 14.6l1.3 2.2h-2.6z"/></svg>';
   const CROWN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 7.5l5 4 4.5-7 4.5 7 5-4-2 11h-15zM4.8 20h14.4v2H4.8z"/></svg>';
   for (const nd of L.nodes) {
-    const bs = nd.boss, bi = bs.bi;
+    const bs = nd.boss; if (!bs) continue;
+    const bi = bs.bi;
     const el = mapEl('div', 'gmap-boss' + (bi.final ? ' final' : ''), world); el.style.left = bs.x + 'px'; el.style.top = bs.y + 'px';
     el.style.setProperty('--nc', nd.info.acc); el.setAttribute('role', 'img');
     const em = mapEl('div', 'gb-em', el); em.appendChild(mapBossCanvas(def, bi, def.theme === 'space' ? (bi.final ? 70 : 64) : 62));
@@ -6683,7 +6760,7 @@ function mapUpdate(animate) {
   // étapes « BOSS » : vaincu par moi / ma prochaine / vaincu par d'autres / pas encore atteint
   const nextB = Math.max(1, mine);
   for (const nd of L.nodes) {
-    const bs = nd.boss, el = bs.el, lv = nd.lv; if (!el) continue;
+    const bs = nd.boss, el = bs && bs.el, lv = nd.lv; if (!el) continue;
     const beaten = mine > lv, next = !beaten && lv === nextB, by = [...people].filter(([, v]) => v > lv).map(([n]) => n).filter(n => n !== me);
     el.classList.toggle('beaten', beaten); el.classList.toggle('next', next); el.classList.toggle('others', !beaten && by.length > 0);
     el.classList.toggle('far', !beaten && !next && lv > max);
@@ -6697,7 +6774,7 @@ function mapUpdate(animate) {
   for (const t of $('jdw-map-world').querySelectorAll('.gmap-tier')) { const tt = +t.dataset.tier, first = L.nodes.find(nd => nd.info.tier === tt); t.classList.toggle('far', !!first && first.lv > max); }
   // chemin : groove + segments
   const svg = MAP.svg; svg.textContent = '';
-  const pts = [L.start]; for (const nd of L.nodes) pts.push(nd, nd.boss);
+  const pts = [L.start]; for (const nd of L.nodes) { pts.push(nd); if (nd.boss) pts.push(nd.boss); }
   const groove = document.createElementNS(SVGNS, 'path');
   groove.setAttribute('d', pts.slice(1).map((b, i) => mapSegPath(pts[i], b)).join(' '));
   groove.setAttribute('class', 'gp-groove'); svg.appendChild(groove);

@@ -870,6 +870,17 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .lv-track i.best::after{content:"👑";position:absolute;left:50%;bottom:11px;transform:translateX(-50%);font-size:12px;line-height:1}
 @keyframes lvIn{from{opacity:0;transform:scaleY(.2)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.lv-track i{animation:none;opacity:1}}
+/* jeux à mondes (Empilo) : le monde atteint à côté du niveau, la piste colorée monde par monde, l'emoji de chaque monde dessous */
+.lv-w{display:inline-block;margin:0 7px 0 5px;padding:3px 10px 3px 8px;border-radius:999px;vertical-align:1px;font:700 12.5px/1.2 var(--body);color:#fff;white-space:nowrap;
+  background:color-mix(in srgb,var(--wc) 24%,rgba(8,12,24,.6));border:1px solid color-mix(in srgb,var(--wc) 70%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--wc) 35%,transparent)}
+.lv-rec{white-space:nowrap}
+.lv-track.worlds i.wstart{margin-left:5px}
+.lv-worlds{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px;margin-top:6px;text-align:center}
+.lv-worlds i{font-style:normal;font-size:14px;line-height:1.2;opacity:0;filter:grayscale(1);animation:lvWIn .35s ease-out var(--d) forwards}
+.lv-worlds i.on{filter:none;--o:.75}
+.lv-worlds i.now{filter:none;font-size:20px;line-height:1;--o:1;text-shadow:0 0 10px rgba(255,255,255,.6)}
+@keyframes lvWIn{from{opacity:0;transform:translateY(-6px)}to{opacity:var(--o,.35);transform:none}}
+@media (prefers-reduced-motion:reduce){.lv-worlds i{animation:none;opacity:var(--o,.35)}}
 .watch-own{display:flex;gap:6px}
 .watch-own input{flex:1 1 auto;min-width:0;height:42px;padding:0 12px;border-radius:12px;border:1px solid var(--steel2);background:rgba(17,29,39,.92);color:var(--ink);font:600 15px var(--body)}
 .watch-own input::placeholder{color:var(--muted)}
@@ -1268,6 +1279,40 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 @media (prefers-reduced-motion:reduce){
   .gb-em::before,.gb-badge,.gmap-boss.next .gb-st,.gmap-boss.next .gb-em canvas,.gmap-world.anim .gmap-boss *{animation:none!important}
 }
+/* Empilo : le voyage (décor dessiné par le jeu), un bandeau par monde (emoji, nom, particularité), une marche par niveau */
+.gmap[data-theme=empilo]{background:#0b1626}
+.gmap[data-theme=empilo] .gmap-ttl h2{background:linear-gradient(90deg,#9cff6a,#ffe45a 22%,#4ff0ff 44%,#c9a6ff 66%,#ff7ad0 88%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(8,10,30,.85)) drop-shadow(0 0 16px rgba(169,139,255,.55))}
+.gmap[data-theme=empilo] .gp-groove{stroke:rgba(10,14,40,.32);stroke-width:14}
+.gmap[data-theme=empilo] .gp-seg.far{stroke:rgba(255,255,255,.55)!important;stroke-dasharray:.5 11;stroke-width:4}
+.gmap[data-theme=empilo] .gn-num{left:50%;bottom:7px;transform:translateX(-50%);min-width:22px;padding:4px 6px 3px;border-radius:8px;background:rgba(10,8,30,.9);
+  border:1.5px solid var(--nc);font:400 12px/1 var(--display);color:#fff;text-align:center;box-shadow:0 2px 0 rgba(0,0,0,.35),0 0 10px color-mix(in srgb,var(--nc) 60%,transparent)}
+.gmap[data-theme=empilo] .gn-lab{border-radius:14px;background:linear-gradient(180deg,rgba(14,14,40,.84),rgba(8,8,26,.8));border:1.5px solid color-mix(in srgb,var(--nc) 55%,transparent);
+  box-shadow:0 8px 20px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.1);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.gmap[data-theme=empilo] .gn-lab small{color:var(--nc)}
+.gmap[data-theme=empilo] .gn-lab span{color:#ffe9a8}
+.gmap[data-theme=empilo] .gn-lab.r{left:42px}
+.gmap[data-theme=empilo] .gn-lab.l{right:42px}
+.gmap[data-theme=empilo] .gmap-node.me-here .gn-pin::before,.gmap[data-theme=empilo] .gmap-node.me-here .gn-pin::after{margin-top:-36px}
+.gmap[data-theme=empilo] .gt-plate{padding:30px 22px 13px;border-radius:22px;gap:5px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tc) 26%,rgba(10,10,32,.9)),rgba(10,10,32,.9) 75%);
+  border:2px solid color-mix(in srgb,var(--tc) 75%,transparent);box-shadow:0 0 0 4px rgba(10,10,32,.35),0 0 34px color-mix(in srgb,var(--tc) 35%,transparent),0 14px 30px rgba(0,0,0,.4)}
+.gmap[data-theme=empilo] .gt-emo{position:absolute;left:50%;top:-30px;transform:translateX(-50%);width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:30px;line-height:1;
+  background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--tc) 45%,#141432),#0c0c26 72%);border:2px solid var(--tc);box-shadow:0 0 18px color-mix(in srgb,var(--tc) 60%,transparent),0 4px 10px rgba(0,0,0,.4)}
+.gmap[data-theme=empilo] .gt-plate small{color:var(--tc);font-size:10.5px;letter-spacing:.28em}
+.gmap[data-theme=empilo] .gt-plate b{font-size:30px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.45),0 0 18px color-mix(in srgb,var(--tc) 70%,transparent)}
+.gmap[data-theme=empilo] .gt-plate span{color:#f2f4ff;max-width:300px}
+.gmap[data-theme=empilo] .gt-major{top:92px;gap:5px;padding:9px 24px 11px;border-radius:20px;background:linear-gradient(180deg,rgba(40,18,74,.78),rgba(22,10,46,.78));border:1.5px solid rgba(255,255,255,.45);
+  box-shadow:0 0 0 4px rgba(255,255,255,.12),0 10px 26px rgba(40,10,80,.3)}
+.gmap[data-theme=empilo] .gt-major b{font:400 34px/1 var(--display);background:linear-gradient(90deg,#9cff6a,#ffe45a 25%,#4ff0ff 50%,#c9a6ff 75%,#ff7ad0);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.5))}
+.gmap[data-theme=empilo] .gt-major small{font:600 12.5px/1.2 var(--body);color:#f2e8ff}
+.gmap[data-theme=empilo] .gs-pad{left:-54px;width:108px;top:-14px;height:28px;border-radius:50%;border:2px solid #fff6c8;
+  background:radial-gradient(ellipse at 50% 40%,#fff6c8,#86e35a 55%,#3f9e44);box-shadow:0 0 22px rgba(255,246,200,.75),0 4px 0 rgba(0,0,0,.18)}
+.gmap[data-theme=empilo] .gs-txt b{color:#173a14;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.gmap[data-theme=empilo] .gs-txt small{color:#24521f;font-weight:700}
+.gmap[data-theme=empilo] .gmap-cap{opacity:1}
+.gmap[data-theme=empilo] .gmap-cap b,.gmap[data-theme=empilo] .gmap-cap small{color:#fff;text-shadow:0 2px 0 rgba(26,6,48,.95),0 0 12px rgba(26,6,48,.95),0 0 26px rgba(26,6,48,.8)}
 
 /* ---------- Comptes (e-mail + mot de passe) ---------- */
 .input-plain{text-transform:none;font-size:16px;font-weight:600}

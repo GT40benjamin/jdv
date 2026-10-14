@@ -600,6 +600,9 @@
   // ox / oy = décalage de caméra (voyages), mx = parallaxe horizontale (−1..1).
   // ===========================================================================
   function mkCv(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
+  // fait dessiner une image tout de suite (le navigateur attend sinon son premier affichage) : on en paie le coût au calme
+  let rasterX = null;
+  function rasterNow(cv) { try { if (!rasterX) rasterX = mkCv(1, 1).getContext('2d'); rasterX.clearRect(0, 0, 1, 1); rasterX.drawImage(cv, 0, 0, 1, 1); } catch (e) { /* */ } }
   function lerp(a, b, k) { return a + (b - a) * k; }
   function stCol(arr, st) { const i = Math.min(arr.length - 2, Math.max(0, Math.floor(st))); return mixHex(arr[i], arr[i + 1], clamp(st - i, 0, 1)); }
   function stNum(arr, st) { const i = Math.min(arr.length - 2, Math.max(0, Math.floor(st))); return lerp(arr[i], arr[i + 1], clamp(st - i, 0, 1)); }
@@ -615,6 +618,13 @@
     x.setTransform(q, 0, 0, q, 0, 0);
     paint(x, w, h);
     cv._w = w; cv._h = h;
+    if (S.lazy) rasterNow(cv);      // décor construit en arrière-plan : rendu dans cette étape, pas au premier affichage
+    return cv;
+  }
+  // grande image du décor peinte en plusieurs étapes : le peintre est un générateur, chaque part est rendue tout de suite
+  function* spriteSteps(S, w, h, paint, k) {
+    const cv = sprite(S, w, h, () => { /* */ }, k), it = paint(cv.getContext('2d'), w, h);
+    for (;;) { const r = it.next(); if (S.lazy) rasterNow(cv); if (r.done) break; yield; }
     return cv;
   }
   function strip(S, h, paint) { return sprite(S, S.W + 2 * S.m, h, paint); }
@@ -695,8 +705,8 @@
     ctx.fillStyle = '#2a1a10'; ctx.beginPath(); ctx.ellipse(0, 0, s * 0.07, s * 0.36, 0, 0, TAU); ctx.fill();
     ctx.restore();
   }
-  function starsPaint(x, w, h, n, seed, rMin, rMax, cols) {
-    for (let i = 0; i < n; i++) {
+  function starsPaint(x, w, h, n, seed, rMin, rMax, cols, i0) {
+    for (let i = i0 || 0; i < n; i++) {
       const px = hash(seed + i * 1.37) * w, py = hash(seed * 2 + i * 2.71) * h, r = rMin + Math.pow(hash(seed * 3 + i * 0.77), 3) * (rMax - rMin);
       x.globalAlpha = 0.35 + hash(i * 5.3 + seed) * 0.65;
       x.fillStyle = cols[i % cols.length];
@@ -704,6 +714,8 @@
     }
     x.globalAlpha = 1;
   }
+  // champ d'étoiles peint par paquets de 350 (une étape chacun)
+  function* starsSteps(x, w, h, n, seed, rMin, rMax, cols) { for (let i = 0; i < n; i += 350) { starsPaint(x, w, h, Math.min(n, i + 350), seed, rMin, rMax, cols, i); if (i + 350 < n) yield; } }
   function planetPaint(x, cx, cy, r, c0, c1, c2, bands, seed) {
     const g = x.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
     g.addColorStop(0, c0); g.addColorStop(0.55, c1); g.addColorStop(1, c2);
@@ -804,7 +816,7 @@
         }
       });
       yield;
-      sp.meadow = strip(S, H * 0.2, (x, w, h) => {
+      sp.meadow = yield* spriteSteps(S, S.W + 2 * S.m, H * 0.2, function* (x, w, h) {
         const top = (X) => h * 0.36 - ridge(X / w * 2.2, 31, 2) * h * 0.1;
         x.beginPath(); x.moveTo(0, h); for (let X = 0; X <= w + 6; X += 6) x.lineTo(X, top(X)); x.lineTo(w, h); x.closePath();
         const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#58b84e'); g.addColorStop(1, '#23702f');
@@ -815,7 +827,9 @@
           const X = hash(i * 0.913 + 2) * w, y0 = top(X) + h * (0.05 + hash(i * 3.71) * 0.55), bh = h * (0.12 + hash(i * 1.37) * 0.22), lean = (hash(i * 7.3) - 0.5) * bh * 0.6;
           x.fillStyle = greens[i % 4];
           x.beginPath(); x.moveTo(X - 1.6, y0); x.quadraticCurveTo(X + lean * 0.3, y0 - bh * 0.6, X + lean, y0 - bh); x.quadraticCurveTo(X + lean * 0.2, y0 - bh * 0.5, X + 1.8, y0); x.closePath(); x.fill();
+          if (i % 300 === 299) yield;
         }
+        yield;
         const fl = [['#ffffff', '#ffd23a'], ['#ffd23a', '#ff8a2a'], ['#ff8fc4', '#fff1a0'], ['#c9a3ff', '#ffffff'], ['#ff5a5a', '#2a1a10']];
         for (let i = 0; i < w / 19; i++) {
           const X = hash(i * 2.31 + 9) * w, Y = top(X) + h * (0.08 + hash(i * 6.1) * 0.5), r = h * (0.035 + hash(i * 3.9) * 0.03);
@@ -901,9 +915,10 @@
         x.globalCompositeOperation = 'destination-out'; x.fillStyle = f; x.fillRect(0, 0, w, h);
       }, 0.5);
       yield;
-      sp.caus = strip(S, H * 0.3, (x, w, h) => {
+      sp.caus = yield* spriteSteps(S, S.W + 2 * S.m, H * 0.3, function* (x, w, h) {
         x.lineCap = 'round';
         for (let k = 0; k < 2; k++) for (let i = 0; i < 16; i++) {
+          if (i % 8 === 0 && (k || i)) yield;
           x.strokeStyle = 'rgba(230,255,255,' + (0.1 + hash(i * 3.1 + k) * 0.14) + ')'; x.lineWidth = 1.2 + hash(i * 1.7 + k) * 2.4;
           x.beginPath();
           const y0 = h * (i / 16), f1 = 0.012 + hash(i + k * 9) * 0.01, f2 = 0.031 + hash(i * 2 + k) * 0.02;
@@ -933,11 +948,12 @@
         for (let i = 0; i < w / 70; i++) { const X = hash(i * 3.7 + 1) * w, hh = h * (0.25 + hash(i * 1.3) * 0.3); x.beginPath(); x.moveTo(X - hh * 0.2, h); x.quadraticCurveTo(X - hh * 0.3, h - hh * 0.7, X, h - hh); x.quadraticCurveTo(X + hh * 0.3, h - hh * 0.6, X + hh * 0.25, h); x.fill(); }
       });
       yield;
-      sp.reef = strip(S, H * 0.3, (x, w, h) => {
+      sp.reef = yield* spriteSteps(S, S.W + 2 * S.m, H * 0.3, function* (x, w, h) {
         x.fillStyle = '#2a4a6a';
         x.beginPath(); x.moveTo(0, h); for (let X = 0; X <= w + 6; X += 6) x.lineTo(X, h * 0.72 - Math.abs(ridge(X / w * 3, 61, 3)) * h * 0.22); x.lineTo(w, h); x.closePath(); x.fill();
         const n = Math.round(w / 26);
         for (let i = 0; i < n; i++) {
+          if (i % 25 === 24) yield;
           const X = (i + hash(i * 1.3)) / n * w, base = h * (0.66 + hash(i * 2.7) * 0.2), kind = i % 5, s = h * (0.16 + hash(i * 4.1) * 0.14);
           const col = ['#ff6f9a', '#ff9a4a', '#b47cff', '#ffd25a', '#4fe0b0'][(i * 3) % 5];
           if (kind === 0 || kind === 3) {      // corail branchu
@@ -1149,7 +1165,7 @@
         x.fillStyle = 'rgba(200,190,170,0.5)'; x.beginPath(); x.arc(w * 0.44, w * 0.46, w * 0.05, 0, TAU); x.arc(w * 0.56, w * 0.58, w * 0.035, 0, TAU); x.fill();
       });
       yield;
-      sp.stars = sprite(S, W, H * 0.6, (x, w, h) => starsPaint(x, w, h, Math.round(w * h / 2600), 7, 0.5, 1.6, ['#ffffff', '#ffe6c8', '#d8e4ff']));
+      sp.stars = yield* spriteSteps(S, W, H * 0.6, (x, w, h) => starsSteps(x, w, h, Math.round(w * h / 2600), 7, 0.5, 1.6, ['#ffffff', '#ffe6c8', '#d8e4ff']));
       S.cl = [];
       for (let i = 0; i < 14; i++) {
         const d = i < 6 ? 0.12 : i < 11 ? 0.45 : 0.95;
@@ -1207,9 +1223,9 @@
   PAINT[3] = {
     *init(S) {
       const W = S.W, H = S.H, U = Math.min(W, H), sp = S.sp;
-      sp.far = sprite(S, W + 2 * S.m, H, (x, w, h) => starsPaint(x, w, h, Math.round(w * h / 1500), 3, 0.4, 1.1, ['#ffffff', '#cfe0ff', '#ffe6d0']));
+      sp.far = yield* spriteSteps(S, W + 2 * S.m, H, (x, w, h) => starsSteps(x, w, h, Math.round(w * h / 1500), 3, 0.4, 1.1, ['#ffffff', '#cfe0ff', '#ffe6d0']));
       yield;
-      sp.near = sprite(S, W + 2 * S.m, H, (x, w, h) => starsPaint(x, w, h, Math.round(w * h / 9000), 5, 0.8, 2.1, ['#ffffff', '#bfe0ff', '#fff0c8']));
+      sp.near = yield* spriteSteps(S, W + 2 * S.m, H, (x, w, h) => starsSteps(x, w, h, Math.round(w * h / 9000), 5, 0.8, 2.1, ['#ffffff', '#bfe0ff', '#fff0c8']));
       yield;
       sp.flare = sprite(S, U * 0.08, U * 0.08, (x, w) => {
         const g = x.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.2, 'rgba(200,220,255,0.35)'); g.addColorStop(1, 'rgba(200,220,255,0)');
@@ -1267,11 +1283,12 @@
         }
       }, 0.5);
       yield;
-      sp.gal = sprite(S, U * 0.26, U * 0.26, (x, w) => {
+      sp.gal = yield* spriteSteps(S, U * 0.26, U * 0.26, function* (x, w) {
         const cx = w / 2;
         const g = x.createRadialGradient(cx, cx, 0, cx, cx, w * 0.5); g.addColorStop(0, 'rgba(255,240,220,0.9)'); g.addColorStop(0.15, 'rgba(255,180,230,0.35)'); g.addColorStop(1, 'rgba(160,120,255,0)');
         x.fillStyle = g; x.fillRect(0, 0, w, w);
-        for (let i = 0; i < 500; i++) { const arm = i % 2, k = hash(i * 1.31), a = arm * Math.PI + k * 5.5, r = k * w * 0.46; x.fillStyle = rgba(['#ffd9f2', '#bfe0ff'][arm], 0.6 * (1 - k)); x.fillRect(cx + Math.cos(a) * r + (hash(i * 7.7) - 0.5) * w * 0.05, cx + Math.sin(a) * r * 0.55 + (hash(i * 3.9) - 0.5) * w * 0.04, 1.2, 1.2); }
+        for (let i = 0; i < 500; i++) {
+          if (i % 200 === 0) yield; const arm = i % 2, k = hash(i * 1.31), a = arm * Math.PI + k * 5.5, r = k * w * 0.46; x.fillStyle = rgba(['#ffd9f2', '#bfe0ff'][arm], 0.6 * (1 - k)); x.fillRect(cx + Math.cos(a) * r + (hash(i * 7.7) - 0.5) * w * 0.05, cx + Math.sin(a) * r * 0.55 + (hash(i * 3.9) - 0.5) * w * 0.04, 1.2, 1.2); }
       });
       yield;
       sp.astro = sprite(S, U * 0.09, U * 0.11, (x, w, h) => {
@@ -1340,7 +1357,7 @@
   PAINT[4] = {
     *init(S) {
       const W = S.W, H = S.H, U = Math.min(W, H), M = Math.max(W, H), sp = S.sp;
-      sp.far = sprite(S, W + 2 * S.m, H, (x, w, h) => starsPaint(x, w, h, Math.round(w * h / 1800), 9, 0.4, 1.3, ['#ffffff', '#ffd9f2', '#d8f0ff', '#fff2b0']));
+      sp.far = yield* spriteSteps(S, W + 2 * S.m, H, (x, w, h) => starsSteps(x, w, h, Math.round(w * h / 1800), 9, 0.4, 1.3, ['#ffffff', '#ffd9f2', '#d8f0ff', '#fff2b0']));
       // galaxie spirale : bras de nuées colorées (or au centre, rose, violet, bleu au bord), poussière sombre, étoiles
       yield;
       const G = M * 1.2, gq = Math.min(S.q, 820 / G), gal = mkCv(G * gq, G * gq), x = gal.getContext('2d');
@@ -1348,14 +1365,16 @@
       const blob = (col) => { const b = mkCv(64, 64), bx = b.getContext('2d'), g = bx.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, rgba(col, 1)); g.addColorStop(0.4, rgba(col, 0.45)); g.addColorStop(1, rgba(col, 0)); bx.fillStyle = g; bx.fillRect(0, 0, 64, 64); return b; };
       const BL = IRIS.concat(['#ffe2a8', '#ffffff']).map(blob);
       const cx = G / 2, b2 = Math.log(12) / (3.3 * Math.PI);
+      yield;
       x.globalCompositeOperation = 'lighter';
+      let acc = 0;      // surface peinte depuis la dernière étape
       for (let arm = 0; arm < 2; arm++) for (let th = 1.1; th < 3.3 * Math.PI; th += 0.045) {
-        if (Math.floor(th / 2.6) !== Math.floor((th - 0.045) / 2.6)) { x.globalAlpha = 1; yield; x.globalCompositeOperation = 'lighter'; }
+        if (acc > G * G * 0.25) { acc = 0; x.globalAlpha = 1; rasterNow(gal); yield; x.globalCompositeOperation = 'lighter'; }
         const r = G * 0.04 * Math.exp(b2 * th), a = th + arm * Math.PI, k = r / (G * 0.5);
         for (let j = 0; j < 2; j++) {
           const jr = (hash(th * 13.1 + arm * 7 + j) - 0.5) * G * 0.05 * (0.4 + k), ja = (hash(th * 5.7 + j * 3 + arm) - 0.5) * 0.25;
           const px = cx + Math.cos(a + ja) * (r + jr), py = cx + Math.sin(a + ja) * (r + jr), z = G * (0.028 + k * 0.05) * (0.7 + hash(th * 3.3 + j) * 0.6);
-          x.globalAlpha = (0.13 + 0.1 * k) * (j ? 0.7 : 1);
+          x.globalAlpha = (0.13 + 0.1 * k) * (j ? 0.7 : 1); acc += z * z;
           // bras arc-en-ciel : or au centre, puis les couleurs défilent le long du bras
           x.drawImage(k < 0.16 ? BL[6] : BL[Math.floor(th / (3.3 * Math.PI) * 6 + arm * 3) % 6], px - z / 2, py - z / 2, z, z);
         }
@@ -1371,7 +1390,7 @@
       yield;
       const SC = ['#ffffff', '#ffe0f4', '#d8ecff', '#fff0c0'];
       for (let i = 0; i < 2600; i++) {
-        if (i === 1300) { yield; x.globalCompositeOperation = 'lighter'; }
+        if (i && i % 520 === 0) { x.globalAlpha = 1; rasterNow(gal); yield; x.globalCompositeOperation = 'lighter'; }
         const arm = i % 2, th = hash(i * 1.71) * 3.3 * Math.PI, r = G * 0.04 * Math.exp(b2 * th), sp2 = G * 0.06 * (0.3 + r / G);
         const px = cx + Math.cos(th + arm * Math.PI) * r + (hash(i * 3.9) - 0.5) * sp2, py = cx + Math.sin(th + arm * Math.PI) * r + (hash(i * 6.3) - 0.5) * sp2;
         x.globalAlpha = 0.35 + hash(i * 2.2) * 0.65; x.fillStyle = SC[i % 4];
@@ -1441,7 +1460,7 @@
   };
   // un décor se construit d'un coup, ou par petites étapes (lazy) pendant les images calmes avant le voyage
   function makeScene(w, W, H, q, lazy) {
-    const S = { w, W: Math.max(50, W), H: Math.max(50, H), q: q || 1, m: Math.round(Math.max(50, W) * 0.05) + 8, sp: {} };
+    const S = { w, W: Math.max(50, W), H: Math.max(50, H), q: q || 1, m: Math.round(Math.max(50, W) * 0.05) + 8, sp: {}, lazy: !!lazy };
     try { S.gen = PAINT[w].init(S); } catch (e) { S.bad = true; }
     if (!lazy) buildScene(S);
     return S;
@@ -1709,6 +1728,7 @@
 
   // ===========================================================================
   function mount(root, api) {
+    mapPlaying++;      // (la carte ne prépare rien pendant une partie)
     api = api || {};
     const AU = api.audio || {};
     const FD = (api.fonts && api.fonts.display) || "'Bungee', Impact, sans-serif";
@@ -1916,6 +1936,9 @@
     const L = { hold: { x: 0, y: 0, w: 60, h: 50 }, stats: { x: 0, y: 0, w: 100, h: 50 }, next: [], mascot: null, keys: null, voyage: null, pause: { x: 0, y: 0, s: 46 } };
     let wells = [], frameCache = new Map();
     let scenes = [], sceneQ = 1, sceneKey = '', warmQ = [];
+    // préparation au calme (voir prepTick) : tâches en attente, gros textes prêts, textes en cours de préparation
+    const prepQ = [], textCache = new Map(), volCache = new Map(), textJobs = new Map();
+    let prepCalm = true, prepWait = 0, prepT = 5.4, workAvg = 4, calmT = 1;
 
     function layout() {
       if (destroyed) return;
@@ -1987,6 +2010,7 @@
       // décors : redessinés seulement si la taille change (couches à 1–1,5 px par px CSS : elles sont douces et derrière le verre)
       const q = clamp(dpr, 1, 1.5) * (W * H > 1100000 ? 0.8 : 1), key = Math.round(W) + 'x' + Math.round(H) + '@' + q.toFixed(2);
       if (key !== sceneKey) { sceneKey = key; sceneQ = q; scenes = []; warmQ = []; if (trip) { trip.sf = sceneFor(trip.from); trip.sto = sceneFor(trip.to); } }
+      prepQ.length = 0; textJobs.clear(); prepT = 5.4;      // tailles changées : les textes attendus se repréparent
     }
     function sceneFor(w) { return scenes[w] || (scenes[w] = makeScene(w, W, H, sceneQ)); }
 
@@ -2757,6 +2781,7 @@
       if (news) later(2.6, () => { if (trip || tripPend || WI !== nw0) return; addPop('NOUVEAU : ' + news[0], news[1], COL.volt, 2.2, true); tone(988, 0.08, 'square', 0.04); later(0.1, () => tone(1319, 0.12, 'square', 0.04)); });
       planLevel(news ? 5 : 3.5);
       if (nw.stage === 2) later(1.3, prefetchNext);      // le décor du monde suivant se prépare au calme
+      later(1.3, prepPlan);                                // et les textes du prochain niveau aussi
     }
     function planLevel(sabDelay) {
       const sabLvl = level >= 16 || (level % 2 === 0 && (heads.length || level >= 4));
@@ -2796,6 +2821,7 @@
       if (news) later(1.2, () => { if (trip || tripPend || WI !== nw0) return; addPop('NOUVEAU : ' + news[0], news[1], COL.volt, 2.2, true); });
       planLevel(news ? 5 : 3.5);
       later(0.4, () => { pickMascot(); mascotSay(4, ['Salut !', 'Coucou !', 'Quel voyage !', 'Me voilà !']); });
+      prepPlan();
     }
     function tripSkip() { if (trip && trip.t > 0.8 && trip.t < TRIP_DUR - 0.55) { trip.t = TRIP_DUR - 0.55; SFX.tick(); } }
 
@@ -3127,6 +3153,46 @@
     function sceneSprites(S) { const out = []; for (const k in S.sp) { const v = S.sp[k]; if (Array.isArray(v)) out.push(...v); else if (v && v.getContext) out.push(v); } return out; }
     // le décor du monde suivant se construit en arrière-plan, par petites étapes (≈ 2 ms par image)
     function prefetchNext() { const nx = (WI + 1) % NW; if (!destroyed && !trip && !scenes[nx]) scenes[nx] = makeScene(nx, W, H, sceneQ, true); }
+    // ---------- Préparation au calme ----------
+    // Ce qui va servir bientôt se prépare d'avance, un petit morceau par image tranquille (jamais pendant une casse,
+    // un voyage ou une image déjà chargée) : d'abord le décor du monde suivant, puis les gros textes attendus (bannière
+    // du prochain niveau, nouveauté, intrus, événements, casses, chiffres, carte du voyage). La montée de niveau n'a
+    // ainsi plus rien de lourd à dessiner.
+    function prepTick(spent, dt) {
+      if (destroyed || state === 'over') return;
+      workAvg += (Math.min(spent, 40) - workAvg) * 0.05;
+      const busy = !!(clearing || trip || tripPend || (banner && banner.t < 0.5)) || spent > workAvg * 1.5 + 1;
+      if (busy) { calmT = 0; prepWait += dt; } else calmT += dt;
+      prepCalm = calmT > 0.3;
+      if (!prepCalm && (prepWait < 1 || trip)) return;      // (au bout d'1 s sans calme, on avance quand même un peu)
+      prepWait = 0;
+      const t0 = performance.now();
+      for (const S of scenes) if (S && S.gen) { if (buildScene(S, 1.5)) warmQ = sceneSprites(S); return; }
+      if (!prepQ.length) { prepT += dt; if (prepT > 6) { prepT = 0; prepPlan(); } return; }
+      while (prepQ.length && performance.now() - t0 < 1.5) {
+        let done = true;
+        try { done = prepQ[0].next().done; } catch (e) { done = true; }
+        if (done) prepQ.shift();
+      }
+    }
+    function prepPlan() { if (!destroyed && prepQ.length < 40) prepQ.push(planJob()); }
+    function* planJob() {
+      const nl = level + 1, nw = worldOf(nl), pop = Math.round(c * 0.78), pw = gridW * 0.96, cm = Math.min(W - 16, gridW) * 0.86;
+      const T = [];
+      if (nw.w === WI && nw.tour === TOUR) T.push(['NIVEAU ' + nl, c * 1.45, palFor(nl).a, W - 24, true]);
+      else { const TL = tripLayout(nw.w); T.push([EMPILO_WORLDS[nw.w].name.toUpperCase(), TL.ts, WPAL[nw.w][0].a, TL.cw - 30, true]); }
+      const nn = newsFor(nl);
+      if (nn) T.push(['NOUVEAU : ' + nn[0], pop, COL.volt, pw, false]);
+      const hs = getHeads();
+      if (!hs.length) T.push([SAB_W[WI].name, pop, COL.volt, pw, false]);
+      else for (const h of hs.slice(0, 4)) { const nm = String(h.name || 'un copain').toUpperCase(); T.push(["OH ! C'EST " + nm + ' !', pop, COL.spray, pw, false], [nm + ' DÉBARQUE !', pop, COL.spray, pw, false], ['ATTENTION, ' + nm + ' !', pop, COL.spray, pw, false]); }
+      for (const k in EVDEF) if (nl >= EVDEF[k].from) { const N = evName(k, WI); T.push([N.name, pop, N.col, pw, false]); }
+      T.push(['DOUBLE', 1.15 * c, '#7df9ff', cm, true], ['TRIPLE !', 1.35 * c, '#ffd23f', cm, true], ['QUADRA !', 1.75 * c, '#ff6ec7', cm, true], [QUAD_SUB[WI], 0.62 * c, '#ffffff', cm, false],
+        ['COMBO ×2', (0.72 + Math.min(0.5, 1 * 0.06)) * c, COL.amber, cm, false], ['COMBO ×3', (0.72 + Math.min(0.5, 2 * 0.06)) * c, COL.amber, cm, false], ['B2B ×1', 0.62 * c, GOLD, cm, false],
+        ['+0123456789\u202f', c * 0.7, '#ffffff', gridW, false], ['+0123456789\u202f', c * 0.9, GOLD, gridW, false],
+        ['TERMINUS !', c * 1.7, '#ff4467', gridW * 0.92, true], [EMPILO_WORLDS[WI].name.toUpperCase() + ' · NIVEAU ' + level, c * 0.66, '#ffffff', gridW * 0.9, false]);
+      for (const t of T) { yield; yield* textPrep(t[0], t[1], t[2], t[3], t[4]); }
+    }
     if (W0.stage === 2) later(2.5, prefetchNext);
     function update(dt) {
       time += dt;
@@ -3134,7 +3200,6 @@
         sfxQ[i].t -= dt;
         if (sfxQ[i].t <= 0) { const f = sfxQ[i].fn; sfxQ.splice(i, 1); f(); }
       }
-      for (const S of scenes) if (S && S.gen) { if (buildScene(S, 2)) warmQ = sceneSprites(S); break; }
       if (paused) return;
       // le décor évolue doucement d'un niveau à l'autre ; la caméra suit un peu la pièce (parallaxe)
       if (stT < 2.2) { stT += dt; stNow = stFrom + (stTo - stFrom) * ease(stT / 2.2); }
@@ -3548,7 +3613,12 @@
     // ---------- Carte du voyage : 5 mondes reliés par un chemin, le marqueur du joueur ----------
     function mapNodes(x, y, w, h, names) {
       const P = [];
-      for (let i = 0; i < NW; i++) P.push([x + w * (0.1 + 0.2 * i), y + h * (names ? 0.42 : 0.5) + (i % 2 ? -1 : 1) * h * (names ? 0.05 : 0.14)]);
+      let mid = y + h * 0.5, amp = h * 0.14;
+      if (names) {      // le rond en cours (et son battement) en haut, les deux lignes de texte en bas : tout tient dans la carte
+        const r = Math.min(w * 0.072, h * 0.22), fs = Math.round(clamp(r * 0.5, 8, 13)), top = r * 1.3, bot = r * 1.16 + Math.max(4, r * 0.2) + fs * 2.3;
+        amp = h * 0.05; mid = y + amp + top + Math.max(0, (h - 2 * amp - top - bot) / 2);
+      }
+      for (let i = 0; i < NW; i++) P.push([x + w * (0.1 + 0.2 * i), mid + (i % 2 ? -1 : 1) * amp]);
       return P;
     }
     function mapPoint(P, u) {      // point du chemin (u de 0 à 4)
@@ -3574,6 +3644,22 @@
       }
       ctx.restore();
       ctx.strokeStyle = ACC; ctx.lineWidth = Math.max(1.5, s * 0.07); ctx.beginPath(); ctx.arc(x, yy, s * 0.46, 0, TAU); ctx.stroke();
+    }
+    // la tête du joueur en médaillon (mêmes proportions que l'épingle), légère ombre, petit balancement
+    function headBadge(x, y, R) {
+      const im = api.player && imgOk(api.player.img) ? api.player.img : null;
+      y += Math.sin(time * 4) * R * 0.07;
+      ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.beginPath(); ctx.arc(x + R * 0.1, y + R * 0.16, R * 1.02, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(x, y, R * 0.83, 0, TAU); ctx.clip();
+      if (im) { ctx.fillStyle = rgba(ACC, 0.5); ctx.fillRect(x - R, y - R, R * 2, R * 2); drawHead(im, x, y + R * 0.08, R * 1.8, 0, 1, 1, false); }
+      else {
+        const g = ctx.createLinearGradient(0, y - R, 0, y + R); g.addColorStop(0, shade(ACC, 0.3)); g.addColorStop(1, shade(ACC, -0.3));
+        ctx.fillStyle = g; ctx.fillRect(x - R, y - R, R * 2, R * 2);
+        ctx.fillStyle = '#ffffff'; star5(ctx, x, y + R * 0.06, R * 0.58, R * 0.25); ctx.fill();
+      }
+      ctx.restore();
+      ctx.strokeStyle = ACC; ctx.lineWidth = Math.max(1.5, R * 0.15); ctx.beginPath(); ctx.arc(x, y, R * 0.96, 0, TAU); ctx.stroke();
     }
     // o : { cur (monde atteint), prog (position du marqueur 0..4), names, tour, alphaMark, pulse (monde mis en avant) }
     function drawMap(x, y, w, h, o) {
@@ -3631,7 +3717,9 @@
       if (o.alphaMark > 0) {
         const [mx2, my2] = mapPoint(P, done);
         ctx.globalAlpha = o.alphaMark;
-        playerMarker(mx2, my2 - r * 0.62, r * 1.05, 1);
+        // cartes avec les noms : la tête, en médaillon sur le bord du rond, file au niveau des mondes (jamais sur les textes au-dessus)
+        if (names) headBadge(mx2 + r * 0.66, my2 - r * 0.6, r * 0.5);
+        else playerMarker(mx2, my2 - r * 0.62, r * 1.05, 1);
         ctx.globalAlpha = 1;
       }
     }
@@ -3674,21 +3762,25 @@
       if (line && out.length < maxN) out.push(line);
       return out;
     }
+    // mise en page de la carte d'arrivée : en-tête, description (2 lignes au plus), particularité, carte
+    function tripLayout(to) {
+      const cw = Math.min(W - 20, Math.max(gridW + 24, 300), 460);
+      let ts = clamp(cw * 0.1, 24, 40), mapH = clamp(cw * 0.35, 104, 136);
+      const fsd = Math.round(clamp(cw * 0.036, 12, 15)), sfs = Math.round(clamp(cw * 0.032, 10, 13)), sh2 = sfs * 2.6;
+      const desc = to === 0 ? 'Nouveau tour : les mondes reviennent, encore plus vite !' : EMPILO_WORLDS[to].desc;
+      ctx.font = '700 ' + fsd + 'px ' + FB;
+      let dl = wrapLines(desc, cw - 34, 2);
+      let ch = 34 + ts * 1.3 + dl.length * fsd * 1.25 + 6 + sh2 + 8 + mapH + 6;
+      if (ch > H - 16) { dl = dl.slice(0, 1); ts = Math.max(20, ts * 0.85); ch = 34 + ts * 1.3 + fsd * 1.25 + 6 + sh2 + 8 + mapH + 6; if (ch > H - 16) { mapH = Math.max(72, mapH - (ch - (H - 16))); ch = Math.min(ch, H - 16); } }
+      return { cw, ts, mapH, fsd, sfs, sh2, dl, ch };
+    }
     function drawTripCard() {
       if (!trip) return;
       const t = trip.t, kin = clamp((t - 0.55) / 0.4, 0, 1), kout = clamp((t - (TRIP_DUR - 0.5)) / 0.35, 0, 1);
       if (kin <= 0 || kout >= 1) return;
       const a = easeOutCubic(kin) * (1 - kout);
       const D = EMPILO_WORLDS[trip.to], A2 = WPAL[trip.to][0].a, ret = trip.to === 0;
-      const cw = Math.min(W - 20, Math.max(gridW + 24, 300), 460);
-      // mise en page calculée d'avance : en-tête, description (2 lignes au plus), particularité, carte
-      let ts = clamp(cw * 0.1, 24, 40), mapH = clamp(cw * 0.35, 104, 136);
-      const fsd = Math.round(clamp(cw * 0.036, 12, 15)), sfs = Math.round(clamp(cw * 0.032, 10, 13)), sh2 = sfs * 2.6;
-      const desc = ret ? 'Nouveau tour : les mondes reviennent, encore plus vite !' : D.desc;
-      ctx.font = '700 ' + fsd + 'px ' + FB;
-      let dl = wrapLines(desc, cw - 34, 2);
-      let ch = 34 + ts * 1.3 + dl.length * fsd * 1.25 + 6 + sh2 + 8 + mapH + 6;
-      if (ch > H - 16) { dl = dl.slice(0, 1); ts = Math.max(20, ts * 0.85); ch = 34 + ts * 1.3 + fsd * 1.25 + 6 + sh2 + 8 + mapH + 6; if (ch > H - 16) { mapH = Math.max(72, mapH - (ch - (H - 16))); ch = Math.min(ch, H - 16); } }
+      const TL = tripLayout(trip.to), cw = TL.cw, ts = TL.ts, mapH = TL.mapH, fsd = TL.fsd, sfs = TL.sfs, sh2 = TL.sh2, dl = TL.dl, ch = TL.ch;
       const cx = clamp(gx + gridW / 2, cw / 2 + 10, W - cw / 2 - 10), x0 = cx - cw / 2;
       const y0 = clamp(gy + gridH * 0.08, 8, H - ch - 8) - (1 - easeOutBack(kin)) * 40 - kout * 30;
       ctx.save();
@@ -4365,31 +4457,61 @@
       }
     }
 
-    // gros textes : dessinés une fois dans un petit canvas (contour + dégradé + halo), puis simplement posés
-    const textCache = new Map();
-    function textSprite(text, sz, color, glow) {
-      const key = text + '|' + sz + '|' + color + '|' + (glow ? 1 : 0) + '|' + dpr;
-      let cv = textCache.get(key);
-      if (cv) return cv;
-      if (textCache.size > 48) textCache.clear();
+    // gros textes : dessinés une fois dans un petit canvas (halo + contour + dégradé), puis simplement posés.
+    // Une grosse lettre jamais vue coûte cher la première fois : le dessin se fait en plusieurs étapes (4 lettres à la fois,
+    // couche par couche, au pixel près comme d'un seul coup), que prepTick avance au calme pour les textes attendus.
+    // Les points qui s'envolent (« +1 200 ») ont leur propre petite réserve : ils ne chassent pas les textes préparés.
+    function textKey(text, sz, color, glow) { return text + '|' + sz + '|' + color + '|' + (glow ? 1 : 0) + '|' + dpr; }
+    function textStore(text) { return text.charCodeAt(0) === 43 ? volCache : textCache; }
+    function* textBuild(text, sz, color, glow, key) {
       ctx.font = sz + 'px ' + FD;
-      const tw = ctx.measureText(text).width;
-      const pad = Math.ceil(sz * (glow ? 0.32 : 0.16)) + 2;
-      cv = document.createElement('canvas');
+      const tw = ctx.measureText(text).width, pad = Math.ceil(sz * (glow ? 0.32 : 0.16)) + 2;
+      const ch = Array.from(text), parts = [];
+      const per = sz > 36 ? 2 : 4;      // (les très grosses lettres : 2 à la fois)
+      for (let i = 0; i < ch.length; i += per) parts.push([ch.slice(i, i + per).join(''), pad + (i ? ctx.measureText(ch.slice(0, i).join('')).width : 0)]);
+      const cv = document.createElement('canvas');
       cv.width = Math.ceil((tw + pad * 2) * dpr); cv.height = Math.ceil((sz * 1.3 + pad * 2) * dpr);
       const x = cv.getContext('2d');
       x.setTransform(dpr, 0, 0, dpr, 0, 0);
       x.font = sz + 'px ' + FD;
-      x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round';
-      const cx = tw / 2 + pad, cy = sz * 0.65 + pad;
-      if (glow) { x.lineWidth = sz * 0.5; x.strokeStyle = rgba(color, 0.25); x.strokeText(text, cx, cy); }
-      x.lineWidth = Math.max(3, sz * 0.22); x.strokeStyle = '#12061f'; x.strokeText(text, cx, cy);
+      x.textAlign = 'left'; x.textBaseline = 'middle'; x.lineJoin = 'round';
+      const cy = sz * 0.65 + pad;
+      yield;
+      if (glow) { x.lineWidth = sz * 0.5; x.strokeStyle = rgba(color, 0.25); for (const [s, px] of parts) { x.strokeText(s, px, cy); rasterNow(cv); yield; } }
+      x.lineWidth = Math.max(3, sz * 0.22); x.strokeStyle = '#12061f';
+      for (const [s, px] of parts) { x.strokeText(s, px, cy); rasterNow(cv); yield; }
       const g = x.createLinearGradient(0, cy - sz * 0.5, 0, cy + sz * 0.5);
       g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, color); g.addColorStop(1, shade(color, -0.2));
-      x.fillStyle = g; x.fillText(text, cx, cy);
+      x.fillStyle = g;
+      for (const [s, px] of parts) x.fillText(s, px, cy);
+      rasterNow(cv);
       cv._w = tw + pad * 2; cv._h = sz * 1.3 + pad * 2; cv._cy = cy;
-      textCache.set(key, cv);
+      const store = textStore(text);
+      store.set(key, cv);
+      while (store.size > (store === volCache ? 24 : 72)) store.delete(store.keys().next().value);
       return cv;
+    }
+    function textSprite(text, sz, color, glow) {
+      const key = textKey(text, sz, color, glow), store = textStore(text);
+      const cv = store.get(key);
+      if (cv) { if (store === textCache) { store.delete(key); store.set(key, cv); } return cv; }      // le plus récent reste
+      const job = textJobs.get(key) || textBuild(text, sz, color, glow, key);
+      textJobs.delete(key);
+      let r;
+      do { r = job.next(); } while (!r.done);
+      return r.value || store.get(key);
+    }
+    // un texte attendu, préparé d'avance à sa taille exacte (même calcul que bigText)
+    function* textPrep(text, size, color, maxW, glow) {
+      if (!text) return;
+      const sz = fitFont(text, maxW, Math.max(8, Math.round(size)), FD), key = textKey(text, sz, color, glow);
+      if (textStore(text).has(key) || textJobs.has(key)) return;
+      yield;
+      if (textStore(text).has(key) || textJobs.has(key)) return;
+      const job = textBuild(text, sz, color, glow, key);
+      textJobs.set(key, job);
+      yield* job;
+      textJobs.delete(key);
     }
     function bigText(text, x, y, size, color, maxW, alpha, scale, rot, glow) {
       if (alpha <= 0.01 || !text) return 0;
@@ -4636,7 +4758,7 @@
 
     function render() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (warmQ.length) { const cv = warmQ.shift(); try { ctx.drawImage(cv, 0, 0, 1, 1); } catch (e) { /* */ } }
+      if (warmQ.length && prepCalm) { const cv = warmQ.shift(); try { ctx.drawImage(cv, 0, 0, 1, 1); } catch (e) { /* */ } }
       drawWorld();
       let sx = 0, sy = 0;
       if (shakeT > 0 && !paused) {
@@ -4746,8 +4868,10 @@
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
       rtime += dt; sndBudget = 8;
+      const t0 = performance.now();
       update(dt);
       render();
+      prepTick(performance.now() - t0, dt);
     }
     raf = requestAnimationFrame(frame);
 
@@ -4767,9 +4891,9 @@
         skipTuto: () => { if (state === 'tuto') tutoNext(true); },
         setLevel: (n) => { const old = level; level = Math.max(lvl0, n | 0); lines = (level - lvl0) * 10; if (level > old) { levelUp(old); if (tripPend && !clearing && state === 'play') startTrip(tripPend); } },
         // saut direct à un niveau (décor et monde du niveau, sans voyage) : pour les captures
-        goto: (n) => { level = Math.max(1, n | 0); lines = Math.max(0, (level - lvl0) * 10); const Wd = worldOf(level); WI = Wd.w; TOUR = Wd.tour; stNow = stFrom = stTo = Wd.stage; stT = 9; trip = null; tripPend = null; palFrom = palTo = palFor(level); palK = 1; transT = -1; ACC = palTo.a; },
+        goto: (n) => { level = Math.max(1, n | 0); lines = Math.max(0, (level - lvl0) * 10); const Wd = worldOf(level); WI = Wd.w; TOUR = Wd.tour; stNow = stFrom = stTo = Wd.stage; stT = 9; trip = null; tripPend = null; palFrom = palTo = palFor(level); palK = 1; transT = -1; ACC = palTo.a; prepPlan(); },
         skipTrip: () => tripSkip(),
-        sceneSteps: (w) => { const S = makeScene(w, W, H, sceneQ, true), t = []; while (S.gen) { const a = performance.now(); buildScene(S, 0); t.push(+(performance.now() - a).toFixed(1)); } return t; },
+        sceneSteps: (w, keys) => { const S = makeScene(w, W, H, sceneQ, true), t = []; let k0 = Object.keys(S.sp); while (S.gen) { const a = performance.now(); buildScene(S, 0); const ms = +(performance.now() - a).toFixed(1), k1 = Object.keys(S.sp); t.push(keys ? ms + ':' + k1.filter(k => k0.indexOf(k) < 0).join('+') : ms); k0 = k1; } return t; },
         tripAt: (t) => { if (trip) trip.t = t; },
         air: () => { if (cur && cur.t !== 'B') cur.air = 0; },
         event: (k) => { if (state === 'play') startEvent(k); },
@@ -4795,6 +4919,7 @@
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        mapPlaying = Math.max(0, mapPlaying - 1);
         cancelAnimationFrame(raf);
         try { ro.disconnect(); } catch (e) { /* */ }
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* */ } }
@@ -4804,6 +4929,404 @@
       }
     };
   }
+
+  // ===========================================================================
+  // CARTE D'AVANCEMENT (bibliothèque, shell2.js : MAP_DEFS.empilo, thème « empilo ») — le jeu dessine lui-même son voyage,
+  // de bas en haut : la prairie au petit matin, la surface de l'eau, l'Océan jusqu'aux abysses, la mer de nuages, le Ciel au
+  // crépuscule, le noir de l'espace, les planètes, puis la galaxie arc-en-ciel de l'Au-delà ; au-dessus, le Tour II recommence
+  // sous un arc-en-ciel. L (mise en page de la bibliothèque) : nodes [{ lv, x, y, info: { w, tour, stage, tier } }],
+  // tiers [{ t, y, yLo, yHi }], start, H. Chaque niveau est une marche (trois blocs dans la matière du monde) qui porte une
+  // pastille : le vrai décor du jeu à ce moment-là, en miniature.
+  const MAPC = [      // fond : [juste après la transition, 1er moment, 2e, 3e, en haut du monde]
+    ['#ffeccc', '#c4dcf2', '#64bdf6', '#ffb86c', '#ff9a62'],      // Plaine : le matin, plein soleil, après-midi doré
+    ['#63e9f2', '#1fb8e0', '#0b72b8', '#062a5a', '#06244e'],      // Océan : le lagon, le récif, les abysses
+    ['#fdf4ff', '#7ec4ff', '#a6d2ff', '#f2879e', '#2c2a70'],      // Ciel : l'envol, la mer de nuages, le crépuscule
+    ['#151c4c', '#081030', '#07091f', '#1c0b3a', '#0b0519'],      // Espace : l'orbite, les planètes, la nébuleuse
+    ['#160733', '#1e0840', '#2b0b4c', '#4a1a5c', '#2a0a46']       // Au-delà : la spirale, l'arc-en-ciel, le cœur
+  ];
+  const MAP_SOFT = [80, 3, 26, 110, 110];      // fondu du fond à l'entrée de chaque monde (l'eau a une vraie surface)
+  const MAP_TRIO = [['#3ee26a', '#ffc928', '#ff8d2a'], ['#22d3ff', '#3f73ff', '#b65cff'], ['#ffc928', '#ff4467', '#22d3ff'], ['#b65cff', '#3f73ff', '#22d3ff'], ['#ff4467', '#ffc928', '#3ee26a']];
+  const capFirst = (t) => t.toLowerCase().replace(/^./, c => c.toUpperCase());
+  const MAP_NEWS = { 3: (w) => capFirst(GOLD_NAME[w]) + ' : la ligne compte double', 5: (w) => capFirst(evName('buee', w).name.replace(' !', '')) + ' : on ne voit plus venir',
+    6: (w) => capFirst(evName('mousse', w).name.replace(' !', '')) + ' : une pause douceur', 8: () => 'Astuce : le T-spin rapporte gros',
+    9: (w) => capFirst(evName('essorage', w).name.replace(' !', '')) + ' : ça tombe vite', 12: (w) => capFirst(evName('panne', w).name.replace(' !', '')) + ' : garde ton sang-froid',
+    17: () => 'Un intrus à chaque niveau', 20: () => 'Pose éclair : les pièces se fixent plus vite' };
+  function mapRnd(seed) { let a = Math.floor(seed * 9973) | 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  // la transition qui mène au monde du palier i (un peu au-dessus de la dernière marche du monde d'avant)
+  function mapSeam(L, i) {
+    if (!i) return L.H;
+    const t = L.tiers[i], gap = t.yLo - t.yHi, w = t.t % NW;
+    return t.yLo - (w === 1 || w === 2 ? Math.min(84, gap * 0.26) : gap * (w === 0 ? 0.3 : 0.42));
+  }
+  function mapBands(L) {
+    const out = [];
+    for (let i = 0; i < L.tiers.length; i++) {
+      const t = L.tiers[i], w = t.t % NW, ns = L.nodes.filter(n => n.info.tier === t.t);
+      out.push({ i, t, w, tour: Math.floor(t.t / NW), ns, bot: mapSeam(L, i), top: i + 1 < L.tiers.length ? mapSeam(L, i + 1) : 0, last: i + 1 >= L.tiers.length });
+    }
+    return out;
+  }
+  function mapStopsFor(L) {
+    const st = [], B = mapBands(L), up = [];
+    for (const b of B) {      // le haut de chaque monde : sa couleur de sortie s'il y a la place avant le fondu suivant
+      const C = MAPC[b.w], last = b.ns[b.ns.length - 1];
+      let col = last ? C[1 + last.info.stage] : C[0];
+      if (last) {
+        const ey = b.last ? b.top + Math.max(30, (last.y - b.top) * 0.4) : b.top + MAP_SOFT[B[b.i + 1].w] + 8;
+        if (ey < last.y - 20) { st.push([ey, C[4]]); col = C[4]; }
+      }
+      up.push(col);
+    }
+    for (const b of B) {
+      const C = MAPC[b.w], sf = MAP_SOFT[b.w];
+      if (b.i) { const pn = B[b.i - 1].ns, pl = pn[pn.length - 1]; st.push([pl ? Math.min(b.bot + sf, pl.y - 8) : b.bot + sf, up[b.i - 1]]); }
+      st.push([b.bot - sf, b.w === 0 && b.tour ? '#fff3dc' : C[0]]);
+      for (const n of b.ns) st.push([n.y, C[1 + n.info.stage]]);
+    }
+    const lb = B[B.length - 1];
+    st.push([L.H, '#ffe7c4'], [0, lb ? shade(MAPC[lb.w][4], -0.35) : '#05060c']);
+    return st;
+  }
+  // petites images de la carte (gardées d'une ouverture à l'autre)
+  const mapImgs = new Map();
+  function mapImg(key, w, h, paint) {
+    let cv = mapImgs.get(key);
+    if (cv) return cv;
+    if (mapImgs.size > 120) mapImgs.delete(mapImgs.keys().next().value);
+    cv = mkCv(w * 2, h * 2); const x = cv.getContext('2d'); x.scale(2, 2); paint(x, w, h); cv._w = w; cv._h = h;
+    mapImgs.set(key, cv);
+    return cv;
+  }
+  const mapCloud = (k, lit, shadow, rim, w) => mapImg('cl' + k + lit + shadow + rim + Math.round(w), w, w * 0.46, (x, ww, hh) => cloudPaint(x, ww, hh, k, lit, shadow, rim));
+  const mapFish = (k, w) => mapImg('fi' + k + Math.round(w), w, w * 0.6, (x, ww, hh) => fishPaint(x, ww, hh, k));
+  function mapGlow(x, cx, cy, r, col, a) { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, rgba(col, a)); g.addColorStop(1, rgba(col, 0)); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); }
+  // ---- les mondes ----
+  function mapSheep(x, X, Y, s, flip) {
+    x.save(); x.translate(X, Y); if (flip) x.scale(-1, 1);
+    x.fillStyle = '#2a2430'; x.fillRect(-s * 0.45, s * 0.1, s * 0.12, s * 0.38); x.fillRect(s * 0.25, s * 0.1, s * 0.12, s * 0.38);
+    x.fillStyle = '#ffffff'; x.beginPath(); for (const [a, b, r] of [[-0.4, 0, 0.32], [0, -0.15, 0.36], [0.38, 0, 0.3], [0, 0.12, 0.34]]) { x.moveTo(a * s + r * s, b * s); x.arc(a * s, b * s, r * s, 0, TAU); } x.fill();
+    x.fillStyle = '#2a2430'; x.beginPath(); x.ellipse(s * 0.66, -s * 0.06, s * 0.2, s * 0.15, 0.3, 0, TAU); x.fill();
+    x.restore();
+  }
+  function mapPlaine(x, W, b, R) {
+    const n0 = b.ns[0], n2 = b.ns[2] || b.ns[b.ns.length - 1], n1 = b.ns[1] || n0;
+    if (!n0) return;
+    // soleil de l'après-midi doré, du côté libre
+    const sx = n2.x > W / 2 ? W * 0.2 : W * 0.8, sy = n2.y - 30;
+    mapGlow(x, sx, sy, 210, '#ffd27a', 0.55); mapGlow(x, sx, sy, 80, '#fff2c0', 0.85);
+    const sg = x.createLinearGradient(0, sy - 30, 0, sy + 30); sg.addColorStop(0, '#fff8d8'); sg.addColorStop(1, '#ffc24a');
+    x.fillStyle = sg; x.beginPath(); x.arc(sx, sy, 30, 0, TAU); x.fill();
+    // collines (3 plans) qui montent depuis le bas du monde : arbres, buissons, fleurs, moutons, petite maison
+    const base = b.bot, hy = n0.y + 34;
+    const top = (k, X) => hy + k * 42 - ridge(X / W * (1.2 + k * 0.45), 21 + k * 16 + b.tour * 7, 2) * (34 - k * 7) - Math.sin(X / W * 3 + k * 1.7) * 10;
+    const HC = [['#b2e28e', '#6bb862'], ['#86cf66', '#459a48'], ['#64bd52', '#2f8a3a']];
+    for (let k = 0; k < 3; k++) {
+      x.beginPath(); x.moveTo(0, base);
+      for (let X = 0; X <= W + 8; X += 8) x.lineTo(X, top(k, X));
+      x.lineTo(W, base); x.closePath();
+      const g = x.createLinearGradient(0, hy + k * 42 - 40, 0, Math.min(base, hy + k * 42 + 260)); g.addColorStop(0, HC[k][0]); g.addColorStop(1, HC[k][1]); x.fillStyle = g; x.fill();
+      const nt = Math.round(W / (k === 2 ? 60 : k ? 80 : 110));
+      for (let i = 0; i < nt; i++) {
+        const X = R() * W, Y = top(k, X) + 8 + R() * 18;
+        if (Y > base - 8) continue;
+        if (R() < 0.7) treePaint(x, X, Y, 8 + R() * 5 + k * 3, ['#3f8a46', '#2f7a3c', '#256b32'][k], ['#6fbf62', '#5cb054', '#4fa04a'][k]);
+        else { x.fillStyle = ['#4f9a4a', '#3f8a40', '#2f7a36'][k]; x.beginPath(); x.arc(X - 5, Y, 6, 0, TAU); x.arc(X + 3, Y - 2, 7, 0, TAU); x.arc(X + 9, Y + 1, 5, 0, TAU); x.fill(); }
+      }
+      const FC = ['#ffffff', '#ffd23a', '#ff8fc4', '#c9a3ff'];
+      for (let i = 0; i < W / (k === 2 ? 14 : 26); i++) { const X = R() * W, Y = top(k, X) + 14 + R() * 60; if (Y < base - 4) { x.fillStyle = FC[i % 4]; x.beginPath(); x.arc(X, Y, 1.6 + R() * 1.2, 0, TAU); x.fill(); } }
+      if (k === 1) for (let i = 0; i < 3; i++) { const X = W * (0.12 + R() * 0.76); mapSheep(x, X, top(k, X) + 22 + R() * 14, 9, R() < 0.5); }
+    }
+    if (b.tour === 0) {      // la maison (premier tour)
+      const hx = W * 0.84, hyy = top(0, W * 0.84) + 20, hs = 11;
+      x.fillStyle = '#f4ead8'; x.fillRect(hx - hs, hyy - hs, hs * 2, hs * 1.1);
+      x.fillStyle = '#d4483a'; x.beginPath(); x.moveTo(hx - hs * 1.3, hyy - hs); x.lineTo(hx, hyy - hs * 2.1); x.lineTo(hx + hs * 1.3, hyy - hs); x.closePath(); x.fill();
+      x.fillStyle = '#6b4a2a'; x.fillRect(hx - hs * 0.25, hyy - hs * 0.55, hs * 0.5, hs * 0.65);
+      x.fillStyle = '#ffe9a0'; x.fillRect(hx + hs * 0.35, hyy - hs * 0.7, hs * 0.4, hs * 0.35);
+    }
+    // nuages du matin (rosés), de midi (blancs), du soir (dorés)
+    for (let i = 0; i < 7; i++) {
+      const st = i % 3, n = b.ns[st] || n0, cw = 70 + R() * 70, cx = R() * (W + cw) - cw / 2, cy = n.y - 40 - R() * 100;
+      const cl = [['#fff4f6', '#d6c8e8'], ['#ffffff', '#c6d6ee'], ['#fff2d8', '#e8a888']][st];
+      x.globalAlpha = 0.92; x.drawImage(mapCloud(1 + (i % 3), cl[0], cl[1], 'rgba(255,255,255,0.5)', 120), cx - cw / 2, cy, cw, cw * 0.46); x.globalAlpha = 1;
+    }
+    // oiseaux et papillons
+    x.strokeStyle = 'rgba(40,50,80,0.6)'; x.lineWidth = 1.6; x.lineCap = 'round';
+    for (let i = 0; i < 5; i++) { const n = i % 2 ? n2 : n1; birdPath(x, R() * W, n.y - 60 - R() * 90, 5 + R() * 4, 0.8); }
+    const BC = ['#ffb13a', '#ff8fc4', '#7fc8ff', '#c9a3ff', '#ffe25a'];
+    for (let i = 0; i < 6; i++) { const n = i % 2 ? n1 : n0; butterfly(x, R() * W, n.y + 10 + R() * 60, 6 + R() * 3, 0.5 + R() * 0.5, BC[i % 5], (R() - 0.5) * 0.6); }
+  }
+  function mapOcean(x, W, b, R) {
+    const n0 = b.ns[0];
+    if (!n0) return;
+    const top = b.top, bot = b.bot;
+    // rayons de lumière qui partent de la surface (en bas) et s'éteignent vers les abysses
+    x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 5; i++) {
+      const X = (i + 0.3 + R() * 0.4) / 5 * W, w = 22 + R() * 30, len = (bot - n0.y) + 150 + R() * 120;
+      const g = x.createLinearGradient(0, bot, 0, bot - len); g.addColorStop(0, 'rgba(200,255,255,0.22)'); g.addColorStop(1, 'rgba(200,255,255,0)');
+      x.fillStyle = g; x.beginPath(); x.moveTo(X - w / 2, bot); x.lineTo(X + w / 2, bot); x.lineTo(X + w * 0.9 + 30, bot - len); x.lineTo(X - w * 0.2 + 30, bot - len); x.closePath(); x.fill();
+    }
+    x.globalCompositeOperation = 'source-over';
+    // récif sur les deux bords (le récif = 2e moment), algues
+    const n1 = b.ns[1] || n0, CO = ['#ff6f9a', '#ff9a4a', '#b47cff', '#ffd25a', '#4fe0b0'];
+    for (const side of [0, 1]) {
+      for (let i = 0; i < 7; i++) {
+        const X = side ? W - 6 - R() * W * 0.16 : 6 + R() * W * 0.16, Y = n1.y + 30 + (i - 3) * 30 + R() * 12, s = 18 + R() * 16, col = CO[(i + side * 2) % 5];
+        if (i % 3 === 0) { x.strokeStyle = col; x.lineCap = 'round'; x.lineWidth = s * 0.14; const br = (bx, by, len, ang, d) => { const ex = bx + Math.cos(ang) * len, ey = by + Math.sin(ang) * len; x.beginPath(); x.moveTo(bx, by); x.lineTo(ex, ey); x.stroke(); if (d > 0) { br(ex, ey, len * 0.7, ang - 0.5, d - 1); br(ex, ey, len * 0.7, ang + 0.45, d - 1); } }; br(X, Y, s * 0.5, -Math.PI / 2 + (side ? -0.3 : 0.3), 2); }
+        else if (i % 3 === 1) { const g = x.createRadialGradient(X - s * 0.2, Y - s * 0.4, s * 0.05, X, Y - s * 0.25, s * 0.6); g.addColorStop(0, mixHex(col, '#ffffff', 0.4)); g.addColorStop(1, shade(col, -0.25)); x.fillStyle = g; x.beginPath(); x.ellipse(X, Y - s * 0.2, s * 0.5, s * 0.38, 0, Math.PI, TAU); x.lineTo(X + s * 0.5, Y); x.lineTo(X - s * 0.5, Y); x.fill(); }
+        else { x.strokeStyle = '#2fae6a'; x.lineCap = 'round'; x.lineWidth = 3; x.beginPath(); x.moveTo(X, Y); for (let k = 1; k <= 5; k++) x.lineTo(X + Math.sin(k * 1.3 + i) * 6, Y - k * s * 0.32); x.stroke(); }
+      }
+    }
+    // poissons (lagon, récif), méduses lumineuses (abysses)
+    for (let i = 0; i < 8; i++) {
+      const n = b.ns[i % 2] || n0, fw = 26 + R() * 16, X = R() * (W - fw), Y = n.y - 70 - R() * 100, f = mapFish(i % 4, 60);
+      x.save(); if (R() < 0.5) { x.translate(X + fw, Y); x.scale(-1, 1); x.drawImage(f, 0, 0, fw, fw * 0.6); } else x.drawImage(f, X, Y, fw, fw * 0.6); x.restore();
+    }
+    const n2 = b.ns[2] || n1;
+    for (let i = 0; i < 4; i++) {
+      const X = (i % 2 ? 0.74 : 0.2) * W + (R() - 0.5) * 50, Y = n2.y - 30 + (R() - 0.5) * 140, s = 16 + R() * 10, col = i % 2 ? '#ff7ad8' : '#5ef0ff';
+      x.globalCompositeOperation = 'lighter'; mapGlow(x, X, Y, s * 2.4, col, 0.3); x.globalCompositeOperation = 'source-over';
+      x.fillStyle = rgba(col, 0.55); x.beginPath(); x.ellipse(X, Y, s, s * 0.7, 0, Math.PI, TAU); x.fill();
+      x.strokeStyle = rgba(col, 0.6); x.lineWidth = 1.5;
+      for (let k = 0; k < 4; k++) { const bx = X - s * 0.6 + k * s * 0.4; x.beginPath(); x.moveTo(bx, Y); for (let j = 1; j <= 5; j++) x.lineTo(bx + Math.sin(j * 1.4 + k) * 3, Y + j * s * 0.32); x.stroke(); }
+    }
+    // neige marine (abysses) et bulles qui montent
+    x.fillStyle = 'rgba(220,240,255,0.5)';
+    for (let i = 0; i < 40; i++) { const Y = n2.y + 60 - R() * Math.max(60, n2.y + 60 - top); x.fillRect(R() * W, Y, 1.4, 1.4); }
+    x.strokeStyle = 'rgba(230,252,255,0.75)'; x.lineWidth = 1.2;
+    for (let i = 0; i < 46; i++) { const r = 2 + R() * 5, Y = bot - R() * (bot - top); x.beginPath(); x.arc(R() * W, Y, r, 0, TAU); x.stroke(); }
+  }
+  function mapCiel(x, W, b, R) {
+    const n0 = b.ns[0];
+    if (!n0) return;
+    const n2 = b.ns[2] || b.ns[b.ns.length - 1], n1 = b.ns[1] || n0;
+    // soleil couchant (crépuscule), lune en haut
+    const sx = n2.x > W / 2 ? W * 0.22 : W * 0.78, sy = n2.y + 30;
+    mapGlow(x, sx, sy, 190, '#ffb070', 0.5);
+    const sg = x.createLinearGradient(0, sy - 34, 0, sy + 34); sg.addColorStop(0, '#fff2b8'); sg.addColorStop(1, '#ff8a5a');
+    x.fillStyle = sg; x.beginPath(); x.arc(sx, sy, 34, 0, TAU); x.fill();
+    const mx = W - sx, my = b.top + Math.max(MAP_SOFT[3] + 30, (n2.y - b.top) * 0.45);
+    mapGlow(x, mx, my, 50, '#e8f0ff', 0.35); x.fillStyle = '#eef3ff'; x.beginPath(); x.arc(mx, my, 13, 0, TAU); x.fill();
+    x.fillStyle = 'rgba(160,170,210,0.5)'; x.beginPath(); x.arc(mx + 4, my - 3, 3, 0, TAU); x.arc(mx - 4, my + 4, 2, 0, TAU); x.fill();
+    // étoiles qui s'allument au-dessus du crépuscule
+    for (let i = 0; i < 40; i++) { const Y = b.top + R() * Math.max(20, (n2.y - 40 - b.top)); x.fillStyle = 'rgba(255,255,255,' + (0.3 + R() * 0.6).toFixed(2) + ')'; x.fillRect(R() * W, Y, 1.4, 1.4); }
+    // nuages : l'envol (blancs), la mer de nuages (grande nappe), le crépuscule (roses et dorés)
+    for (let i = 0; i < 6; i++) { const cw = 80 + R() * 80, X = R() * W, Y = n0.y - 20 - R() * 90; x.drawImage(mapCloud(2 + (i % 3), '#ffffff', '#b8cbe8', 'rgba(255,255,255,0.7)', 130), X - cw / 2, Y, cw, cw * 0.46); }
+    for (let k = 0; k < Math.ceil(W / 60) + 2; k++) { const cw = 110 + R() * 60, X = k * 60 - 40 + R() * 20, Y = n1.y + 34 + R() * 16; x.drawImage(mapCloud(4 + (k % 3), '#ffffff', '#c8d8f0', 'rgba(255,255,255,0.8)', 140), X - cw / 2, Y, cw, cw * 0.46); }
+    for (let i = 0; i < 5; i++) { const cw = 70 + R() * 70, X = R() * W, Y = n2.y - 70 + R() * 120; x.globalAlpha = 0.95; x.drawImage(mapCloud(7 + (i % 3), '#ffd2c0', '#a85a98', 'rgba(255,236,200,0.6)', 120), X - cw / 2, Y, cw, cw * 0.46); x.globalAlpha = 1; }
+    // oiseaux, montgolfière
+    x.strokeStyle = 'rgba(30,40,80,0.55)'; x.lineWidth = 1.6; x.lineCap = 'round';
+    for (let i = 0; i < 6; i++) birdPath(x, R() * W, n0.y - 80 - R() * 60, 5 + R() * 4, 0.7);
+    const bx = n1.x > W / 2 ? W * 0.16 : W * 0.84, by = n1.y - 90;
+    x.strokeStyle = 'rgba(80,60,40,0.7)'; x.lineWidth = 1; x.beginPath(); x.moveTo(bx - 9, by + 14); x.lineTo(bx - 5, by + 30); x.moveTo(bx + 9, by + 14); x.lineTo(bx + 5, by + 30); x.stroke();
+    x.fillStyle = '#8a5a2a'; x.fillRect(bx - 6, by + 29, 12, 9);
+    const COLS = ['#ff5a7a', '#ffd23a', '#3fd2ff', '#ffffff'];
+    for (let k = 0; k < 4; k++) { x.fillStyle = COLS[k]; x.beginPath(); x.ellipse(bx, by, 18 * (1 - k * 0.25), 22, 0, 0, TAU); x.fill(); }
+    x.fillStyle = 'rgba(255,255,255,0.35)'; x.beginPath(); x.ellipse(bx - 7, by - 8, 4, 8, -0.3, 0, TAU); x.fill();
+  }
+  function mapEspace(x, W, b, R) {
+    const n0 = b.ns[0];
+    if (!n0) return;
+    const n1 = b.ns[1] || n0, n2 = b.ns[2] || n1, bot = b.bot, top = b.top;
+    // étoiles
+    for (let i = 0; i < Math.round(W * (bot - top) / 1600); i++) {
+      const bb = R(); x.fillStyle = 'rgba(' + (bb > 0.8 ? '255,246,220' : '214,236,255') + ',' + (0.3 + bb * 0.6).toFixed(2) + ')';
+      const s = bb > 0.96 ? 2 : bb > 0.75 ? 1.4 : 0.9; x.fillRect(R() * W, top + R() * (bot - top), s, s);
+    }
+    // l'orbite : le bord bleu de la Terre, juste au-dessus de la transition
+    const er = W * 1.6, ecy = bot + er - 64;
+    x.globalCompositeOperation = 'lighter'; mapGlow(x, W * 0.5, bot - 40, W * 0.7, '#3f8cff', 0.22); x.globalCompositeOperation = 'source-over';
+    const eg = x.createLinearGradient(0, bot - 64, 0, bot + 6); eg.addColorStop(0, 'rgba(36,104,200,0.95)'); eg.addColorStop(0.35, 'rgba(14,52,120,0.85)'); eg.addColorStop(1, 'rgba(14,52,120,0)');
+    x.fillStyle = eg; x.beginPath(); x.arc(W * 0.5, ecy, er, Math.PI * 1.1, Math.PI * 1.9); x.lineTo(W * 0.5, ecy); x.fill();
+    x.strokeStyle = 'rgba(150,215,255,0.85)'; x.lineWidth = 2.5; x.beginPath(); x.arc(W * 0.5, ecy, er, Math.PI * 1.1, Math.PI * 1.9); x.stroke();
+    x.globalCompositeOperation = 'lighter'; x.strokeStyle = 'rgba(90,170,255,0.35)'; x.lineWidth = 12; x.beginPath(); x.arc(W * 0.5, ecy, er + 3, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); x.globalCompositeOperation = 'source-over';
+    // les planètes : la géante à anneaux et la rouge
+    const px = n1.x > W / 2 ? W * 0.2 : W * 0.8, py = n1.y - 40, pr = Math.min(64, W * 0.13);
+    x.save(); x.translate(px, py); x.rotate(-0.32); x.strokeStyle = 'rgba(240,210,160,0.7)'; x.lineWidth = pr * 0.12; x.beginPath(); x.ellipse(0, 0, pr * 1.6, pr * 0.4, 0, Math.PI, TAU); x.stroke(); x.restore();
+    planetPaint(x, px, py, pr, '#ffe0a8', '#e0a058', '#5a2a10', 7, 13);
+    x.save(); x.translate(px, py); x.rotate(-0.32); x.strokeStyle = 'rgba(240,210,160,0.85)'; x.lineWidth = pr * 0.12; x.beginPath(); x.ellipse(0, 0, pr * 1.6, pr * 0.4, 0, 0, Math.PI); x.stroke(); x.restore();
+    planetPaint(x, W - px * 0.6 - W * 0.12, n1.y + 70, pr * 0.42, '#ffb08a', '#d0503a', '#3a0a08', 4, 21);
+    // la nébuleuse (gardée dans son monde : le haut se fond dans l'Au-delà)
+    x.globalCompositeOperation = 'lighter';
+    const NC = ['#ff4fd8', '#3fe0ff', '#7a5cff', '#ff7a8a', '#5a8cff'];
+    for (let i = 0; i < 6; i++) { const r = 70 + R() * 90, cy = clamp(n2.y - 20 + (R() - 0.5) * 200, top + r + MAP_SOFT[4] * 0.3, bot - r); mapGlow(x, R() * W, cy, r, NC[i % 5], 0.15 + R() * 0.1); }
+    x.globalCompositeOperation = 'source-over';
+    // comète
+    const cx0 = W * (0.15 + R() * 0.7), cy0 = n0.y - 80;
+    const cg = x.createLinearGradient(cx0, cy0, cx0 - 90, cy0 + 40); cg.addColorStop(0, 'rgba(220,240,255,0.9)'); cg.addColorStop(1, 'rgba(220,240,255,0)');
+    x.strokeStyle = cg; x.lineWidth = 3; x.lineCap = 'round'; x.beginPath(); x.moveTo(cx0, cy0); x.lineTo(cx0 - 90, cy0 + 40); x.stroke();
+    x.fillStyle = '#ffffff'; x.beginPath(); x.arc(cx0, cy0, 3.2, 0, TAU); x.fill();
+  }
+  function mapAudela(x, W, b, R) {
+    const n0 = b.ns[0];
+    if (!n0) return;
+    const n2 = b.ns[2] || b.ns[b.ns.length - 1], bot = b.bot, top = b.top;
+    for (let i = 0; i < Math.round(W * (bot - top) / 1900); i++) { x.fillStyle = IRIS[i % 6]; x.globalAlpha = 0.35 + R() * 0.5; x.fillRect(R() * W, top + R() * (bot - top), 1.5, 1.5); }
+    x.globalAlpha = 1;
+    // la galaxie arc-en-ciel : grande spirale au-dessus du monde, le cœur tout en haut (dans son monde : un tour au-dessus, elle s'y fond)
+    const G = Math.max(W * 0.9, 420), gx = W * 0.5, gy = b.last ? Math.max(top + 150, n2.y - 70) : Math.max(top + G * 0.36 + MAP_SOFT[0] * 0.5, n2.y - 110);
+    x.globalCompositeOperation = 'lighter';
+    mapGlow(x, gx, gy, G * 0.55, '#b07bff', 0.22);
+    const b2 = Math.log(12) / (3.3 * Math.PI);
+    for (let arm = 0; arm < 2; arm++) for (let th = 1.1; th < 3.3 * Math.PI; th += 0.09) {
+      const r = G * 0.04 * Math.exp(b2 * th), a = th + arm * Math.PI, k = r / (G * 0.5), z = G * (0.03 + k * 0.05);
+      const col = k < 0.16 ? '#ffe2a8' : IRIS[Math.floor(th / (3.3 * Math.PI) * 6 + arm * 3) % 6];
+      mapGlow(x, gx + Math.cos(a) * r, gy + Math.sin(a) * r * 0.62, z, col, 0.22 + 0.12 * (1 - k));
+    }
+    mapGlow(x, gx, gy, G * 0.16, '#fff4d0', 0.85);
+    for (let i = 0; i < 360; i++) {
+      const arm = i % 2, th = R() * 3.3 * Math.PI, r = G * 0.04 * Math.exp(b2 * th), sp2 = G * 0.05 * (0.3 + r / G);
+      x.fillStyle = ['#ffffff', '#ffe0f4', '#d8ecff', '#fff0c0'][i % 4]; x.globalAlpha = 0.4 + R() * 0.6;
+      x.fillRect(gx + Math.cos(th + arm * Math.PI) * r + (R() - 0.5) * sp2, gy + (Math.sin(th + arm * Math.PI) * r + (R() - 0.5) * sp2) * 0.62, 1.6, 1.6);
+    }
+    x.globalAlpha = 1;
+    // prismes et étoiles arc-en-ciel
+    for (let i = 0; i < 16; i++) star4(x, R() * W, top + R() * (bot - top), 3 + R() * 5, IRIS[i % 6]);
+    x.globalCompositeOperation = 'source-over';
+  }
+  const MAP_WORLD = [mapPlaine, mapOcean, mapCiel, mapEspace, mapAudela];
+  // ---- les transitions (au bas de chaque monde) ----
+  function mapSeamArt(x, W, from, to, m, R) {
+    if (to === 1) {      // la surface de l'eau : la mer au loin, la vague et son écume, la lumière sous l'eau
+      const sg = x.createLinearGradient(0, m, 0, m + 70); sg.addColorStop(0, 'rgba(40,160,220,0.95)'); sg.addColorStop(1, 'rgba(40,160,220,0)');
+      x.fillStyle = sg; x.fillRect(0, m, W, 70);
+      x.fillStyle = 'rgba(255,255,255,0.8)'; for (let i = 0; i < W / 7; i++) x.fillRect(R() * W, m + 4 + R() * 40, 3 + R() * 7, 1);
+      const wave = (X, k) => m + Math.sin(X * 0.035 + k) * 5 + Math.sin(X * 0.011 + k * 2) * 4;
+      const wg = x.createLinearGradient(0, m - 110, 0, m); wg.addColorStop(0, 'rgba(160,250,255,0)'); wg.addColorStop(1, 'rgba(170,252,255,0.85)');
+      x.fillStyle = wg; x.beginPath(); x.moveTo(0, m - 110); x.lineTo(W, m - 110); for (let X = W; X >= -6; X -= 6) x.lineTo(X, wave(X, 0)); x.closePath(); x.fill();
+      x.strokeStyle = '#ffffff'; x.lineWidth = 3.5; x.lineJoin = 'round'; x.beginPath(); for (let X = 0; X <= W + 6; X += 6) { const y = wave(X, 0); if (X) x.lineTo(X, y); else x.moveTo(X, y); } x.stroke();
+      x.strokeStyle = 'rgba(255,255,255,0.5)'; x.lineWidth = 2; x.beginPath(); for (let X = 0; X <= W + 6; X += 6) { const y = wave(X, 2.1) - 12; if (X) x.lineTo(X, y); else x.moveTo(X, y); } x.stroke();
+      x.strokeStyle = 'rgba(255,255,255,0.35)'; x.lineWidth = 1.2;
+      for (let i = 0; i < 9; i++) { const X = R() * W, Y = m - 20 - R() * 90, w = 30 + R() * 50; x.beginPath(); x.moveTo(X, Y); x.quadraticCurveTo(X + w / 2, Y - 6, X + w, Y); x.stroke(); }
+      x.fillStyle = '#ffffff'; for (let i = 0; i < 18; i++) { x.beginPath(); x.arc(R() * W, m - 4 - R() * 18, 1.5 + R() * 2.5, 0, TAU); x.fill(); }
+    } else if (to === 2) {      // la mer de nuages : on sort de l'eau par une nappe de nuages
+      mapGlow(x, W / 2, m - 30, Math.max(W, 400) * 0.55, '#ffffff', 0.35);
+      const n = Math.ceil(W / 62) + 3;
+      for (let row = 0; row < 2; row++) for (let k = 0; k < n; k++) {
+        const cw = 150 + R() * 60 - row * 20, X = k * 62 - 60 + R() * 24 + row * 30, Y = m - 46 + row * 28 + R() * 12;
+        const cl = row ? ['#e6eefc', '#8aa4d2'] : ['#ffffff', '#c8d6f0'];
+        x.drawImage(mapCloud(10 + (k % 4), cl[0], cl[1], 'rgba(255,255,255,0.8)', 150), X - cw / 2, Y, cw, cw * 0.46);
+      }
+    } else if (to === 3) {      // le noir de l'espace : le ciel s'éteint, la ligne bleue de l'atmosphère, les premières étoiles
+      x.globalCompositeOperation = 'lighter';
+      const ag = x.createLinearGradient(0, m - 20, 0, m + 30); ag.addColorStop(0, 'rgba(120,190,255,0)'); ag.addColorStop(0.45, 'rgba(140,200,255,0.5)'); ag.addColorStop(1, 'rgba(140,200,255,0)');
+      x.fillStyle = ag; x.fillRect(0, m - 20, W, 50);
+      x.globalCompositeOperation = 'source-over';
+      for (let i = 0; i < W / 7; i++) { const Y = m - R() * 160; x.fillStyle = 'rgba(255,255,255,' + (R() * 0.8 * (1 - (m - Y) / 220)).toFixed(2) + ')'; x.fillRect(R() * W, Y, 1.3, 1.3); }
+    } else if (to === 4) {      // vers l'Au-delà : un voile irisé
+      x.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 7; i++) mapGlow(x, (i + 0.5) / 7 * W + (R() - 0.5) * 40, m - 10 + (R() - 0.5) * 50, 120 + R() * 70, IRIS[i % 6], 0.16);
+      x.globalCompositeOperation = 'source-over';
+    } else if (to === 0) {      // retour à la Plaine (tour suivant) : la lumière du cœur, puis le jour se lève sous un arc-en-ciel
+      const lg = x.createLinearGradient(0, m - 130, 0, m + 120); lg.addColorStop(0, 'rgba(255,248,232,0)'); lg.addColorStop(0.5, 'rgba(255,248,232,0.95)'); lg.addColorStop(0.62, 'rgba(255,240,250,0.9)'); lg.addColorStop(1, 'rgba(255,230,250,0)');
+      x.fillStyle = lg; x.fillRect(0, m - 130, W, 250);
+      x.globalCompositeOperation = 'lighter';
+      mapGlow(x, W / 2, m + 20, Math.max(W, 420) * 0.62, '#fff2d0', 0.35);
+      for (let i = 0; i < 26; i++) {
+        const X = R() * W, len = 60 + R() * 120, Y = m + 30 + R() * 90, c = IRIS[i % 6];
+        const g = x.createLinearGradient(0, Y - len / 2, 0, Y + len / 2); g.addColorStop(0, rgba(c, 0)); g.addColorStop(0.5, rgba(c, 0.3 + R() * 0.3)); g.addColorStop(1, rgba(c, 0));
+        x.fillStyle = g; x.fillRect(X, Y - len / 2, 1.6, len);
+      }
+      x.globalCompositeOperation = 'source-over';
+      const Rr = Math.max(W * 0.58, 230), cy = m + Rr * 0.5, a0 = Math.PI + 0.5, a1 = TAU - 0.5;
+      x.lineCap = 'round';
+      for (let k = 0; k < 5; k++) { x.strokeStyle = rgba(IRIS[k], 0.55); x.lineWidth = Rr * 0.04; x.beginPath(); x.arc(W / 2, cy, Rr - k * Rr * 0.04, a0, a1); x.stroke(); }
+      x.strokeStyle = 'rgba(255,255,255,0.25)'; x.lineWidth = Rr * 0.03; x.beginPath(); x.arc(W / 2, cy, Rr - 5 * Rr * 0.04, a0, a1); x.stroke();
+    }
+  }
+  // la prairie tout en bas (départ)
+  function mapGround(x, W, Y, R) {
+    const top = (X) => Y - Math.sin(X / W * 4) * 6 - ridge(X / W * 2.2, 31, 2) * 10;
+    x.beginPath(); x.moveTo(0, Y + 400); for (let X = 0; X <= W + 6; X += 6) x.lineTo(X, top(X)); x.lineTo(W, Y + 400); x.closePath();
+    const g = x.createLinearGradient(0, Y - 14, 0, Y + 140); g.addColorStop(0, '#6cc85a'); g.addColorStop(0.5, '#3f9e44'); g.addColorStop(1, '#23702f'); x.fillStyle = g; x.fill();
+    const greens = ['#2f8a3a', '#3fa846', '#6cc85a', '#8fe070'];
+    for (let i = 0; i < W / 2.6; i++) {
+      const X = R() * W, y0 = top(X) + 6 + R() * 120, bh = 8 + R() * 16, lean = (R() - 0.5) * bh * 0.6;
+      x.fillStyle = greens[i % 4]; x.beginPath(); x.moveTo(X - 1.6, y0); x.quadraticCurveTo(X + lean * 0.3, y0 - bh * 0.6, X + lean, y0 - bh); x.quadraticCurveTo(X + lean * 0.2, y0 - bh * 0.5, X + 1.8, y0); x.closePath(); x.fill();
+    }
+    const fl = [['#ffffff', '#ffd23a'], ['#ffd23a', '#ff8a2a'], ['#ff8fc4', '#fff1a0'], ['#c9a3ff', '#ffffff'], ['#ff5a5a', '#2a1a10']];
+    for (let i = 0; i < W / 16; i++) { const X = R() * W, Yf = top(X) + 10 + R() * 110, f = fl[i % fl.length]; flower5(x, X, Yf, 3 + R() * 3, f[0], f[1]); }
+  }
+  function mapPaintChunk(x, L, W, y0, h) {
+    const B = mapBands(L);
+    x.save(); x.translate(0, -y0);
+    for (const b of B) {
+      if (b.top > y0 + h + 260 || b.bot < y0 - 260) continue;
+      x.save(); x.beginPath(); x.rect(0, b.top - 1, W, b.bot - b.top + 2); x.clip();
+      try { MAP_WORLD[b.w](x, W, b, mapRnd(b.t.t * 17.3 + 5)); } catch (e) { /* */ }
+      x.restore();
+    }
+    for (const b of B) {
+      if (!b.i || b.bot - 260 > y0 + h || b.bot + 260 < y0) continue;
+      try { mapSeamArt(x, W, B[b.i - 1].w, b.w, b.bot, mapRnd(b.t.t * 31.7 + 3)); } catch (e) { /* */ }
+    }
+    if (L.H - 200 < y0 + h && B.length && B[0].w === 0) mapGround(x, W, L.start.y - 4, mapRnd(7.1));
+    x.restore();
+  }
+  // ---- pastille d'un niveau : le décor du jeu à ce moment (vraie scène en miniature) posé sur une marche de trois blocs ----
+  const mapScn = [], mapVig = new Map();
+  function mapScene(w) { return mapScn[w] || (mapScn[w] = makeScene(w, 180, 180, 1, true)); }
+  const VIG = 168, TPX = 48;      // miniatures et blocs à taille fixe (réduits au dessin) : préparés d'avance quel que soit l'écran
+  function mapVignette(w, st) {
+    const key = w + '.' + st;
+    let cv = mapVig.get(key);
+    if (cv) return cv;
+    cv = mkCv(VIG, VIG);
+    const x = cv.getContext('2d'); x.scale(VIG / 180, VIG / 180);
+    try { drawScene(mapScene(w), x, 3 + w * 1.7 + st * 2.3, st, 0, 0, 0); } catch (e) { /* */ }
+    mapVig.set(key, cv);
+    return cv;
+  }
+  // les miniatures se préparent quand la page est vraiment au calme (jamais pendant une partie d'Empilo), par petits morceaux :
+  // l'ouverture de la carte n'a plus qu'à les poser
+  let mapPlaying = 0;
+  function mapWarm() {
+    if (!window.requestIdleCallback) return;
+    const idle = (f) => requestIdleCallback((dl) => { if (mapPlaying) setTimeout(() => idle(f), 3000); else if (dl.timeRemaining() < 4 && !dl.didTimeout) idle(f); else f(); }, { timeout: 2500 });
+    const CL = [[1, '#fff4f6', '#d6c8e8', 'rgba(255,255,255,0.5)', 120], [1, '#ffffff', '#c6d6ee', 'rgba(255,255,255,0.5)', 120], [1, '#fff2d8', '#e8a888', 'rgba(255,255,255,0.5)', 120], [2, '#fff4f6', '#d6c8e8', 'rgba(255,255,255,0.5)', 120],
+      [2, '#ffffff', '#c6d6ee', 'rgba(255,255,255,0.5)', 120], [2, '#fff2d8', '#e8a888', 'rgba(255,255,255,0.5)', 120], [3, '#fff4f6', '#d6c8e8', 'rgba(255,255,255,0.5)', 120], [3, '#ffffff', '#c6d6ee', 'rgba(255,255,255,0.5)', 120],
+      [3, '#fff2d8', '#e8a888', 'rgba(255,255,255,0.5)', 120], [2, '#ffffff', '#b8cbe8', 'rgba(255,255,255,0.7)', 130], [3, '#ffffff', '#b8cbe8', 'rgba(255,255,255,0.7)', 130], [4, '#ffffff', '#b8cbe8', 'rgba(255,255,255,0.7)', 130],
+      [4, '#ffffff', '#c8d8f0', 'rgba(255,255,255,0.8)', 140], [5, '#ffffff', '#c8d8f0', 'rgba(255,255,255,0.8)', 140], [6, '#ffffff', '#c8d8f0', 'rgba(255,255,255,0.8)', 140], [7, '#ffd2c0', '#a85a98', 'rgba(255,236,200,0.6)', 120],
+      [8, '#ffd2c0', '#a85a98', 'rgba(255,236,200,0.6)', 120], [9, '#ffd2c0', '#a85a98', 'rgba(255,236,200,0.6)', 120], [10, '#ffffff', '#c8d6f0', 'rgba(255,255,255,0.8)', 150], [10, '#e6eefc', '#8aa4d2', 'rgba(255,255,255,0.8)', 150],
+      [11, '#ffffff', '#c8d6f0', 'rgba(255,255,255,0.8)', 150], [11, '#e6eefc', '#8aa4d2', 'rgba(255,255,255,0.8)', 150], [12, '#ffffff', '#c8d6f0', 'rgba(255,255,255,0.8)', 150], [12, '#e6eefc', '#8aa4d2', 'rgba(255,255,255,0.8)', 150],
+      [13, '#ffffff', '#c8d6f0', 'rgba(255,255,255,0.8)', 150], [13, '#e6eefc', '#8aa4d2', 'rgba(255,255,255,0.8)', 150]];
+    // la liste des petites tâches : décors miniatures (par étapes), miniatures de chaque moment, nuages, poissons, blocs des marches
+    const jobs = [];
+    for (let w = 0; w < NW; w++) jobs.push(() => buildScene(mapScene(w), 4));
+    for (let w = 0; w < NW; w++) for (let st = 0; st < 3; st++) jobs.push(() => { rasterNow(mapVignette(w, st)); return true; });
+    for (const c of CL) jobs.push(() => { rasterNow(mapCloud(c[0], c[1], c[2], c[3], c[4])); return true; });
+    for (let f = 0; f < 4; f++) jobs.push(() => { rasterNow(mapFish(f, 60)); return true; });
+    for (let w = 0; w < NW; w++) for (let c = 0; c < 3; c++) jobs.push(() => { rasterNow(tileImg(MAP_TRIO[w][c], TPX, w, c)); return true; });
+    const step = () => { if (!jobs.length) return; if (jobs[0]()) jobs.shift(); idle(step); };
+    setTimeout(() => idle(step), 2500);
+  }
+  try { mapWarm(); } catch (e) { /* */ }
+  function mapNode(x, info, size, P) {
+    const w = info.w | 0, st = info.stage | 0, A = WPAL[w][st].a;
+    const cx = P / 2, cy = P / 2 - size * 0.08, r = size * 0.42, ts = Math.round(size * 0.27), sy = cy + r * 0.7;
+    // marche : trois blocs dans la matière du monde, avec leur ombre
+    x.fillStyle = 'rgba(0,0,0,0.3)'; x.beginPath(); x.ellipse(cx, sy + ts + 2, ts * 1.8, ts * 0.32, 0, 0, TAU); x.fill();
+    for (let k = 0; k < 3; k++) {
+      const c = (k + info.lv) % 3;
+      x.drawImage(tileImg(MAP_TRIO[w][c], TPX, w, c), cx + (k - 1.5) * ts, sy, ts, ts);
+    }
+    const gl = x.createRadialGradient(cx, cy, r * 0.7, cx, cy, r + 10); gl.addColorStop(0, rgba(A, 0.55)); gl.addColorStop(1, rgba(A, 0));
+    x.fillStyle = gl; x.beginPath(); x.arc(cx, cy, r + 10, 0, TAU); x.fill();
+    x.save(); x.beginPath(); x.arc(cx, cy, r, 0, TAU); x.clip();
+    x.drawImage(mapVignette(w, st), cx - r, cy - r, r * 2, r * 2);
+    const sh = x.createLinearGradient(0, cy - r, 0, cy + r); sh.addColorStop(0, 'rgba(255,255,255,0.18)'); sh.addColorStop(0.5, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,20,0.18)');
+    x.fillStyle = sh; x.fillRect(cx - r, cy - r, r * 2, r * 2);
+    x.restore();
+    x.lineWidth = 3; x.strokeStyle = A; x.beginPath(); x.arc(cx, cy, r + 0.5, 0, TAU); x.stroke();
+    x.lineWidth = 1.2; x.strokeStyle = 'rgba(255,255,255,0.85)'; x.beginPath(); x.arc(cx, cy, r - 1.6, 0, TAU); x.stroke();
+  }
+  const mapArt = {
+    acc: (lv) => palFor(lv).a,
+    news: (lv) => { const f = MAP_NEWS[lv]; return f ? f(worldOf(lv).w) : ''; },
+    stops: mapStopsFor,
+    paint: mapPaintChunk,
+    node: mapNode
+  };
 
   window.JDW_GAMES = window.JDW_GAMES || {};
   window.JDW_GAMES['empilo'] = {
@@ -4815,6 +5338,7 @@
     worlds: EMPILO_WORLDS,          // le parcours (carte d'avancement de la bibliothèque)
     levelsPerWorld: WPL,
     worldOf,                        // niveau → { w, n, tour, stage, world }
+    mapArt,                         // la carte d'avancement de la bibliothèque, dessinée par le jeu
     preview,
     mount
   };
