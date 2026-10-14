@@ -38,7 +38,7 @@ Tout se fait avec `source/publier.sh` (Linux ou Git Bash sous Windows), sans mot
 - APK : `APK` ou `~/jdv-tools/borne-arcade.apk` (hors dépôt ; depuis la 1.7 il ne contient plus aucun secret : publié en fichier direct).
 Le script reconstruit `index.html`, `jouer/index.html`, `telecharger/` et `site.json`, lance `verifier-publication.js`, puis commit + push
 sur main à faire à la main : GitHub Pages republie en ~1 min. `BUMP=minor ./publier.sh` pour une nouvelle version (1.6 → 1.7).
-Visuels de l'accueil : `node source/accueil-media.js` (ONLY=ilo,palet pour quelques-uns). Assets : `node pack-ilo.js` / `node pack-music.js`
+Visuels de l'accueil : `node source/accueil-media.js` (ONLY=ilo,palet pour quelques-uns). Assets : `node pack-ilo.js` / `node pack-music.js` / `node pack-rouleaux.js` (rendus Blender d'objets de Magic_1_Interior pour les Rouleaux)
 (clé d'emballage source/asset-key.txt) ; `reemballer.js` a servi une fois à passer de l'ancien mot de passe à cette clé.
 Tests du site publié sans rien publier : `bash ~/jdv-tools/pubtest.sh` + `node ~/jdv-tools/pubserve.js` (8767) + `node ~/jdv-tools/test-public.js`.
 **À chaque nouveau jeu / duel ou refonte publiée** : l'ajouter dans `TILE_NEWS` en tête de shell2.js (`{ kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' }`)

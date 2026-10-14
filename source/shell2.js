@@ -11,7 +11,8 @@ const TILE_NEWS = {
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
   glouton: { kind: 'maj', at: '2026-10-13 00:55' },
   empilo: { kind: 'maj', at: '2026-10-14 12:10' },
-  mouches: { kind: 'maj', at: '2026-10-14 12:43' }
+  mouches: { kind: 'maj', at: '2026-10-14 12:43' },
+  rouleaux: { kind: 'maj', at: '2026-10-14 13:32' }
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
@@ -515,7 +516,7 @@ function musicVariants(id, mode) {
   return list.length ? list : [id];
 }
 // niveau à partir duquel la musique devient énergique, par jeu
-const INTENSE_AT = { ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 9, canards: 6 };
+const INTENSE_AT = { ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
 // morceaux emballés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée de la clé d'emballage
 // intégrée au site (window.JDW_ASSET_KEY, source/asset-key.txt) : pas un secret, les fichiers ne sont simplement jamais lisibles directement
 const MUSIC_ENC = new Set(window.JDW_MUSIC_ENC || []);
@@ -1614,7 +1615,7 @@ $('jdw-members').addEventListener('click', e => { if (e.target === $('jdw-member
 
 /* ================= Images des jeux (paquets emballés : assets/<jeu>.bin) ================= */
 // Les images de l'Asset Store ne sont jamais publiées en fichiers lisibles : le paquet est déballé ici (clé intégrée au site).
-const ASSET_GAMES = new Set(['ilo']);
+const ASSET_GAMES = new Set(['ilo', 'rouleaux']);
 window.JDW_ASSETS = { cache: {}, pending: {} };
 window.JDW_ASSETS.load = function (id) {
   if (this.cache[id]) return Promise.resolve(this.cache[id]);
@@ -4240,7 +4241,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && !$(
 // Rien de plus sur le serveur : la présence de la salle dit qui participe (rôle, état, score) et des signaux « cmp »
 // portent le GO, les scores en direct, les sorties et les réactions. L'hôte (le premier inscrit encore là) donne le GO
 // dès que 2 joueurs sont prêts ; chacun joue sur son téléphone, au même niveau difficile et avec la même graine.
-const COMPET_START = { ilo: 4, pleingaz: 4, empilo: 5, glouton: 4, mouches: 4, carreaux: 7, rouleaux: 9 };
+const COMPET_START = { ilo: 4, pleingaz: 4, empilo: 5, glouton: 4, mouches: 4, carreaux: 7, rouleaux: 7 };
 const COMPET_GO_MS = 10000;
 const REACTIONS = ['😂', '🔥', '💩', '😱', '👏', '😈'];
 const CMP = { id: null, g: null, role: null, st: null, t: 0, seed: 0, score: 0, goAt: 0, goFor: '', goSent: 0, goN: 0,
