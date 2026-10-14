@@ -369,6 +369,16 @@
 .mf-room small{display:block;text-align:center;font:600 11px/1.2 ${FB};letter-spacing:.01em;color:#d6c8ee;text-shadow:0 1px 3px rgba(0,0,0,.8);margin-top:2px;white-space:normal;overflow:hidden;max-height:2.5em}
 .mf-score{font:400 22px ${FD};line-height:1;padding-top:5px;color:#fff;background:linear-gradient(180deg,#fff8d8,#ffc24a 70%,#ff9a2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 0 rgba(90,40,0,.55));text-align:right;min-width:64px}
 .mf-score.bump{animation:mfBump .3s}
+.mf-score.bump2{animation:mfBump2 .5s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes mfBump2{0%{transform:scale(1)}30%{transform:scale(1.45);filter:drop-shadow(0 2px 0 rgba(90,40,0,.55)) drop-shadow(0 0 16px rgba(255,210,90,1))}100%{transform:scale(1)}}
+.mf-fly{position:absolute;left:0;top:0;width:24px;height:24px;pointer-events:none;will-change:transform,opacity;filter:drop-shadow(0 0 6px rgba(255,214,90,.95)) drop-shadow(0 2px 0 rgba(90,40,0,.6))}
+.mf-fly svg{display:block;width:100%;height:100%;fill:#ffd65a}
+.mf-fly.blue svg{fill:#a8f2ff}.mf-fly.blue{filter:drop-shadow(0 0 6px rgba(120,220,255,.95))}
+.mf-exit{position:absolute;left:0;top:0;width:60px;height:60px;margin:-30px 0 0 -30px;pointer-events:none;opacity:0;transition:opacity .35s;z-index:4}
+.mf-exit.on{opacity:1}
+.mf-exit i{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(255,226,140,.6),rgba(255,170,60,.22) 58%,rgba(255,170,60,0) 72%);animation:mfExitP .9s ease-in-out infinite}
+.mf-exit svg{position:absolute;left:10px;top:10px;width:40px;height:40px;fill:#ffe7a0;filter:drop-shadow(0 2px 0 rgba(90,40,0,.75)) drop-shadow(0 0 8px rgba(255,200,90,.95))}
+@keyframes mfExitP{50%{transform:scale(1.28)}}
 @keyframes mfBump{40%{transform:scale(1.18)}}
 .mf-pause{position:absolute;top:8px;right:8px;width:46px;height:46px;border-radius:13px;border:1.5px solid rgba(255,214,140,.45);background:rgba(16,8,30,.7);color:#f4eefc;display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;padding:0;transition:opacity .4s}
 .mf-boss{position:absolute;left:50%;top:62px;transform:translate(-50%,-14px);width:min(460px,78%);opacity:0;transition:opacity .5s,transform .5s cubic-bezier(.2,1.4,.4,1);text-align:center}
@@ -382,7 +392,7 @@
 .mf-boss.hit .mf-bbar{animation:mfShakeX .25s}
 @keyframes mfShakeX{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .mf-banner{position:absolute;left:0;right:0;top:34%;transform:translateY(-50%);text-align:center;pointer-events:none;opacity:0}
-.mf-banner b{display:block;font:400 clamp(30px,9.5vw,68px) ${FD};line-height:1.05;letter-spacing:.02em;color:#fff;background:linear-gradient(180deg,#fffbe8 10%,#ffd36a 55%,#ff8f3a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 0 rgba(70,20,0,.65)) drop-shadow(0 0 22px rgba(255,170,60,.55));padding:0 12px}
+.mf-banner b{display:block;font:400 clamp(26px,min(9.5vw,12vh),68px) ${FD};line-height:1.05;letter-spacing:.02em;color:#fff;background:linear-gradient(180deg,#fffbe8 10%,#ffd36a 55%,#ff8f3a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 0 rgba(70,20,0,.65)) drop-shadow(0 0 22px rgba(255,170,60,.55));padding:0 12px}
 .mf-banner.blue b{background:linear-gradient(180deg,#f3feff 10%,#8fe9ff 55%,#4f8dff);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 4px 0 rgba(0,20,70,.65)) drop-shadow(0 0 22px rgba(80,200,255,.6))}
 .mf-banner.red b{background:linear-gradient(180deg,#fff0ee 10%,#ff8a7a 55%,#ff2d55);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 4px 0 rgba(70,0,10,.7)) drop-shadow(0 0 22px rgba(255,60,80,.6))}
 .mf-banner span{display:block;margin-top:8px;font:600 clamp(14px,3.8vw,19px) ${FB};color:#efe6ff;text-shadow:0 2px 6px rgba(0,0,0,.85);padding:0 16px}
@@ -418,7 +428,7 @@
 .mf-pop.big{font-size:20px;color:#fff3c0}
 .mf-pop.crit{font-size:19px;color:#9ff0ff;text-shadow:0 2px 0 rgba(0,30,60,.85),0 0 10px rgba(80,200,255,.7)}
 .mf-pop.dmg{font-size:16px;color:#ff8a8a;text-shadow:0 2px 0 rgba(60,0,0,.85)}
-.mf-pop.gold{font-size:14px;color:#ffd75a}
+.mf-pop.huge{font-size:32px;color:#fff6c8;text-shadow:0 3px 0 rgba(90,40,0,.9),0 0 18px rgba(255,200,80,.95)}
 .mf-pop.info{font:600 14px ${FB};color:#e8f6ff;text-shadow:0 2px 3px rgba(0,0,0,.9)}
 .mf-cine i{position:absolute;left:0;right:0;height:10vh;max-height:80px;background:#000;transition:transform .7s cubic-bezier(.3,.8,.3,1);pointer-events:none}
 .mf-cine i:first-child{top:0;transform:translateY(-100%)}
@@ -445,6 +455,42 @@
 .mf-overlay span{margin-top:10px;font:600 16px ${FB};color:#e6dcff}
 .mf-help{position:absolute;right:12px;bottom:12px;max-width:310px;padding:10px 13px;border-radius:12px;background:rgba(16,8,30,.8);box-shadow:inset 0 0 0 1px rgba(255,214,140,.2);font:600 12.5px/1.6 ${FB};color:#e8defa;opacity:0;transition:opacity .6s}
 .mf-help.on{opacity:1}
+@media (max-height:520px){.mf-banner{top:46%}}
+.mf-help{display:none!important}
+.mf-bar{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) scale(var(--bs,1));transform-origin:50% 100%;display:none;align-items:flex-end;gap:12px;padding:10px 16px 8px;border-radius:22px;
+ background:linear-gradient(180deg,rgba(28,18,46,.72),rgba(12,6,24,.82));box-shadow:inset 0 0 0 1px rgba(255,214,140,.22),0 8px 26px rgba(0,0,0,.45);transition:opacity .4s}
+.mf:not(.touch) .mf-bar{display:flex}
+.mf.cine .mf-bar{opacity:0;pointer-events:none}
+.mf-slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;border:0;padding:0;background:none;cursor:pointer;color:#fff;font:inherit;pointer-events:auto}
+.mf-slot .ic{position:relative;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 36%,var(--c1),var(--c2));
+ box-shadow:0 0 0 2px rgba(255,255,255,.28),0 4px 0 rgba(0,0,0,.38),0 0 16px var(--gl);transition:transform .15s}
+.mf-slot.atk .ic{width:64px;height:64px}
+.mf-slot .ic svg{width:46%;height:46%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.mf-slot .cd{position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(6,2,14,.74) var(--p,0%),transparent 0);pointer-events:none}
+.mf-slot .cdn{position:absolute;font:400 16px ${FD};color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.6)}
+.mf-slot .k{min-width:22px;padding:1px 6px;border-radius:6px;background:#2b1d48;box-shadow:inset 0 -2px 0 rgba(0,0,0,.4);font:400 11px ${FD};color:#ffe2a6;white-space:nowrap}
+.mf-slot:hover .ic{transform:translateY(-2px)}
+.mf-slot.down .ic{transform:scale(.9);box-shadow:0 0 0 2px rgba(255,255,255,.6),0 1px 0 rgba(0,0,0,.35),0 0 26px var(--gl)}
+.mf-slot.ready .ic{animation:mfReady .45s}
+.mf-slot.sel .ic{transform:translateY(-6px) scale(1.1);box-shadow:0 0 0 3px #ffd36a,0 4px 0 rgba(0,0,0,.38),0 0 26px rgba(255,200,90,.85)}
+.mf-selring{position:absolute;left:0;top:-14px;transform:translateX(0);transition:transform .22s cubic-bezier(.3,1.4,.5,1);pointer-events:none;display:flex;align-items:center;gap:30px;margin-left:-44px;width:88px;justify-content:space-between}
+.mf-selring b{display:none}
+.mf-selring b:last-child{animation-delay:.7s}
+.mf-selring em{position:absolute;left:50%;top:-6px;transform:translateX(-50%);font:400 10px ${FD};font-style:normal;color:#1c1030;background:linear-gradient(180deg,#fff2c2,#ffc24a);padding:1px 6px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 0 rgba(90,40,0,.6)}
+.mf-selring.spin em{animation:mfBump .3s}
+@keyframes mfNudge{50%{opacity:.35}}
+.mf-rot{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(78%,300px);padding:16px 16px 14px;border-radius:18px;text-align:center;pointer-events:auto;
+ background:linear-gradient(180deg,rgba(34,20,58,.92),rgba(14,8,28,.92));box-shadow:inset 0 0 0 1px rgba(255,214,140,.3),0 10px 30px rgba(0,0,0,.5);animation:mfRotIn .45s cubic-bezier(.2,1.3,.4,1)}
+.mf-rot.out{animation:mfRotOut .4s forwards}
+.mf-rot p{margin:10px 0 0;font:600 15px/1.35 ${FB};color:#f1e8ff}
+.mf-rot b{color:#ffd36a}
+.mf-rot .ph{margin:0 auto;width:34px;height:58px;border-radius:7px;border:3px solid #ffd36a;box-shadow:0 0 14px rgba(255,200,90,.6);position:relative;animation:mfTurn 2.2s ease-in-out infinite}
+.mf-rot .ph i{position:absolute;left:50%;bottom:4px;width:8px;height:3px;margin-left:-4px;border-radius:2px;background:#ffd36a}
+@keyframes mfTurn{0%,18%{transform:rotate(0)}48%,78%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@keyframes mfRotIn{from{opacity:0;transform:translate(-50%,-40%) scale(.9)}}
+@keyframes mfRotOut{to{opacity:0;transform:translate(-50%,-56%) scale(.95)}}
+.mf-top{padding-left:calc(10px + env(safe-area-inset-left,0px));padding-right:calc(62px + env(safe-area-inset-right,0px))}
+.mf-pause{right:calc(8px + env(safe-area-inset-right,0px))!important}
 .mf-help kbd{display:inline-block;min-width:18px;padding:0 5px;border-radius:5px;background:#2b1d48;box-shadow:inset 0 -2px 0 rgba(0,0,0,.4);font:400 11px ${FD};color:#ffe2a6;text-align:center}
 .mf-load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#2a1c3c,#07050c 72%);pointer-events:auto;transition:opacity .6s}
 .mf-load.out{opacity:0;pointer-events:none}
@@ -633,7 +679,7 @@
     const G = {
       phase: 'load', t: 0, slow: 1, slowT: 0, stop: 0, trauma: 0, flash: 0, hurt: 0,
       hearts: MAXH, shield: MAXS, shieldT: 0, shieldHit: 0, kills: 0, combo: 0, comboT: 0, comboBest: 0, noHit: true,
-      coins: 0, chests: 0, worldKills: 0, worldT0: 0, worldHurt: 0, tour: 0, hpMul: 1, spMul: 1, ptsMul: 1, aggro: 1, wi: 0
+      chests: 0, worldKills: 0, worldT0: 0, worldHurt: 0, tour: 0, hpMul: 1, spMul: 1, ptsMul: 1, aggro: 1, wi: 0
     };
 
     // ------------------------------------------------------------- HUD (DOM, toujours net quelle que soit la résolution 3D)
@@ -651,8 +697,9 @@
       }
     }
     function hudScore() {
-      if (score === shownScore) return;
-      shownScore = score; H.score.textContent = fmt(score);
+      const sh = Math.max(0, score - (typeof scoreHold === 'number' ? scoreHold : 0));
+      if (sh === shownScore) return;
+      shownScore = sh; H.score.textContent = fmt(sh);
       H.score.classList.remove('bump'); void H.score.offsetWidth; H.score.classList.add('bump');
     }
     function hudRoom(title, sub) { H.room.textContent = title; if (sub) { const s = document.createElement('small'); s.textContent = sub; H.room.appendChild(s); } }
@@ -719,7 +766,7 @@
     const IN = { atk: false, kAtk: false, padAtk: false, fireQ: false, iceQ: false, stormQ: false, rollQ: false, mouseAim: false, mouseX: 0, mouseY: 0,
       joyId: -1, joyX: 0, joyY: 0, joyDX: 0, joyDY: 0, padX: 0, padY: 0, padAX: 0, padAY: 0, padOn: false, padPrev: [] };
     let TOUCH = TOUCH0;
-    function setTouch(t) { if (t === TOUCH) return; TOUCH = t; el.classList.toggle('touch', t); layoutButtons(); H.help.classList.toggle('on', !t && started && G.t < 14); }
+    function setTouch(t) { if (t === TOUCH) return; TOUCH = t; el.classList.toggle('touch', t); layoutButtons(); }
     const visible = () => root.offsetParent !== null || el.offsetParent !== null;
     function audioWake() { audioInit(); if (SND.ctx && SND.ctx.state === 'suspended' && !paused) SND.ctx.resume().catch(() => {}); }
     on(window, 'keydown', (e) => {
@@ -727,7 +774,7 @@
       const c = e.code;
       if (c === 'KeyP' || c === 'Escape') { if (started && !over) setPaused(!paused); e.preventDefault(); return; }
       if (paused) { if (c === 'Space' || c === 'Enter') { setPaused(false); e.preventDefault(); } return; }
-      keys[c] = true;
+      keys[c] = true; barMode('kb');
       if (/^(Arrow|Space)/.test(c)) e.preventDefault();
       if (c === 'Space' || c === 'ShiftLeft' || c === 'ShiftRight') IN.rollQ = true;
       if (c === 'KeyK' || c === 'Digit1' || c === 'Numpad1') IN.fireQ = true;
@@ -752,8 +799,8 @@
       if (paused) { if (started && !over) setPaused(false); e.preventDefault(); return; }
       if (G.phase === 'win') { winSkip(); e.preventDefault(); return; }
       if (e.pointerType === 'mouse') {
-        setTouch(false); IN.mouseX = e.clientX; IN.mouseY = e.clientY; IN.mouseAim = true;
-        if (e.button === 0) IN.atk = true; else if (e.button === 2) IN.fireQ = true; else if (e.button === 1) IN.stormQ = true;
+        setTouch(false); barMode('kb'); IN.mouseX = e.clientX; IN.mouseY = e.clientY; IN.mouseAim = true;
+        if (e.button === 0) IN.atk = true; else if (e.button === 2 || e.button === 1) castSelected();     // clic droit : le sort choisi
         e.preventDefault(); return;
       }
       setTouch(true);
@@ -805,22 +852,33 @@
       // croix directionnelle
       if (pr(12)) IN.padY = -1; if (pr(13)) IN.padY = 1; if (pr(14)) IN.padX = -1; if (pr(15)) IN.padX = 1;
       const now = bt.map((b, i) => pr(i)), was = IN.padPrev, edge = (i) => now[i] && !was[i];
-      if (now.some(Boolean) || IN.padX || IN.padY) { if (!IN.padOn) { IN.padOn = true; if (TOUCH) setTouch(false); } audioWake(); }
+      if (now.some(Boolean) || IN.padX || IN.padY) { if (!IN.padOn) { IN.padOn = true; if (TOUCH) setTouch(false); } audioWake(); barMode('pad'); }
       if (edge(9) || edge(8)) { if (started && !over) setPaused(!paused); }
       if (paused) { if (edge(0)) setPaused(false); IN.padPrev = now; return; }
       if (G.phase === 'win' && (edge(0) || edge(1))) winSkip();
-      IN.padAtk = now[0] || now[7];
-      if (edge(1)) IN.rollQ = true;
-      if (edge(2)) IN.fireQ = true;
-      if (edge(3)) IN.iceQ = true;
-      if (edge(5) || edge(4) || edge(6)) IN.stormQ = true;
+      IN.padAtk = now[0] || now[6];                    // A (ou LT) maintenu : éclairs
+      if (edge(1)) IN.rollQ = true;                    // B : roulade
+      if (edge(2)) IN.fireQ = true;                    // X : nova de feu
+      if (edge(3)) IN.iceQ = true;                     // Y : éclats de glace
+      if (edge(4)) selectSpell(selSpell - 1);          // LB / RB : choisir le sort
+      if (edge(5)) selectSpell(selSpell + 1);
+      if (edge(7)) castSelected();                     // RT : lancer le sort choisi
       IN.padPrev = now;
     }
     // place des boutons : arc autour du gros bouton d'éclair, sous le pouce droit
     let VW = 390, VH = 700;
+    let saProbe = null;
+    function safeArea() {
+      try {
+        if (!saProbe) { saProbe = document.createElement('div'); saProbe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)'; el.appendChild(saProbe); }
+        const cs = getComputedStyle(saProbe);
+        return { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+      } catch (e) { return { t: 0, r: 0, b: 0, l: 0 }; }
+    }
     function layoutButtons() {
       const port = VH > VW, big = port ? 86 : 80, sm = port ? 60 : 56, rr = port ? 98 : 92;
-      const cx = VW - (port ? 76 : 80), cy = VH - (port ? 92 : 84);
+      const sa = safeArea();
+      const cx = VW - (port ? 76 : 80) - sa.r, cy = VH - (port ? 92 : 84) - sa.b;
       const place = (b, x, y, s) => { Object.assign(b.el.style, { width: s + 'px', height: s + 'px', left: (x - s / 2) + 'px', top: (y - s / 2) + 'px' }); };
       place(BTN.atk, cx, cy, big);
       const at = (deg) => [cx + Math.cos(deg * Math.PI / 180) * rr, cy - Math.sin(deg * Math.PI / 180) * rr];
@@ -828,7 +886,127 @@
       p = at(140); place(BTN.fire, p[0], p[1], sm);
       p = at(100); place(BTN.ice, p[0], p[1], sm);
       p = at(60); place(BTN.storm, p[0], p[1], sm);
+      if (BAR.el) { BAR.el.style.setProperty('--bs', clamp(VH / 820, 0.82, 1.45).toFixed(3)); selectSpell(selSpell, true, true); }
     }
+
+    // ===========================================================================
+    // BARRE DE SORTS (ordinateur et borne à manette ; le téléphone garde ses gros boutons)
+    // En bas au centre : éclairs, nova de feu, éclats de glace, chaîne d'éclairs, roulade — mêmes icônes, couleurs et anneaux de
+    // recharge que sur le téléphone. Un sort spécial est « choisi » (cadre doré) : la MOLETTE le change, le CLIC DROIT le lance ;
+    // 1 · 2 · 3 lancent directement (et K · L · I comme avant). Manette : LB / RB changent, RT lance, X nova, Y glace, A éclairs, B roulade.
+    // ===========================================================================
+    const SPELLS = ['fire', 'ice', 'storm'];
+    const SPELL_NAME = { fire: 'Nova de feu', ice: 'Éclats de glace', storm: 'Chaîne d’éclairs' };
+    let selSpell = 2;                                   // la chaîne d'éclairs (le seul sort sans touche directe à la manette)
+    const BAR = { el: null, slots: {}, mode: 'kb', ring: null, wheelT: 0 };
+    function barBuild() {
+      const b = document.createElement('div'); b.className = 'mf-bar';
+      const spec = [['atk', 'Éclairs', ICON.bolt, BTN.atk], ['fire', SPELL_NAME.fire, ICON.fire, BTN.fire], ['ice', SPELL_NAME.ice, ICON.ice, BTN.ice], ['storm', SPELL_NAME.storm, ICON.storm, BTN.storm], ['roll', 'Roulade', ICON.roll, BTN.roll]];
+      for (const [key, name, icon, tb] of spec) {
+        const s = document.createElement('button'); s.type = 'button'; s.className = 'mf-slot ' + key; s.setAttribute('aria-label', name); s.title = name;
+        for (const v of ['--c1', '--c2', '--gl']) s.style.setProperty(v, tb.el.style.getPropertyValue(v));
+        s.innerHTML = '<div class="ic">' + icon + '<div class="cd"></div><div class="cdn"></div></div><span class="k"></span>';
+        b.appendChild(s);
+        BAR.slots[key] = { key, el: s, cd: s.querySelector('.cd'), cdn: s.querySelector('.cdn'), k: s.querySelector('.k'), shown: -1 };
+        on(s, 'pointerdown', (e) => {
+          e.preventDefault(); e.stopPropagation(); audioWake();
+          if (paused) { setPaused(false); return; }
+          if (G.phase === 'win') { winSkip(); return; }
+          s.classList.add('down');
+          if (key === 'atk') IN.atk = true; else if (key === 'roll') IN.rollQ = true;
+          else { selectSpell(SPELLS.indexOf(key), true); IN[key + 'Q'] = true; }
+        });
+        const up = (e) => { s.classList.remove('down'); if (key === 'atk') IN.atk = false; };
+        on(s, 'pointerup', up); on(s, 'pointerleave', up); on(s, 'pointercancel', up);
+      }
+      // le cadre doré du sort choisi (glisse d'une case à l'autre) + les petites flèches « molette »
+      const ring = document.createElement('div'); ring.className = 'mf-selring'; ring.innerHTML = '<b>‹</b><em></em><b>›</b>'; b.appendChild(ring);
+      BAR.ring = ring; BAR.ringLbl = ring.querySelector('em'); BAR.el = b;
+      ui.appendChild(b);
+      barLabels(); selectSpell(selSpell, false, true);
+    }
+    function barLabels() {
+      const pad = BAR.mode === 'pad', S = BAR.slots; if (!S.atk) return;
+      S.atk.k.textContent = pad ? 'A' : 'Clic G'; S.fire.k.textContent = pad ? 'X' : '1'; S.ice.k.textContent = pad ? 'Y' : '2';
+      S.storm.k.textContent = pad ? '—' : '3'; S.roll.k.textContent = pad ? 'B' : 'Espace';
+      BAR.ringLbl.textContent = pad ? 'RT' : 'Clic D';
+      BAR.el.classList.toggle('pad', pad);
+    }
+    function barMode(m) { if (BAR.mode === m) return; BAR.mode = m; barLabels(); }
+    function selectSpell(i, quiet, first) {
+      i = ((i % SPELLS.length) + SPELLS.length) % SPELLS.length;
+      const changed = i !== selSpell; selSpell = i;
+      for (const k of SPELLS) BAR.slots[k] && BAR.slots[k].el.classList.toggle('sel', k === SPELLS[i]);
+      const s = BAR.slots[SPELLS[i]]; if (!s || !BAR.ring) return;
+      BAR.ring.style.transform = 'translateX(' + (s.el.offsetLeft + s.el.offsetWidth / 2) + 'px)';
+      if (changed && !quiet && !first) {
+        tone(1180 + i * 140, 0.045, 'triangle', 0.035); BAR.ring.classList.remove('spin'); void BAR.ring.offsetWidth; BAR.ring.classList.add('spin');
+        pop(hero.x, 2.9, hero.z, SPELL_NAME[SPELLS[i]], 'info', 0.8);
+      }
+    }
+    function castSelected() { IN[SPELLS[selSpell] + 'Q'] = true; }
+    function barUpdate() {
+      if (!BAR.el || TOUCH) return;
+      const set = (b, cd, max) => {
+        const p = cd > 0 ? Math.round(cd / max * 100) : 0;
+        if (p === b.shown) return;
+        if (p === 0 && b.shown > 0) { b.el.classList.remove('ready'); void b.el.offsetWidth; b.el.classList.add('ready'); }
+        b.shown = p; b.cd.style.setProperty('--p', p + '%'); b.cdn.textContent = cd > 1 ? String(Math.ceil(cd)) : '';
+      };
+      const S = BAR.slots;
+      set(S.fire, hero.fireCd, CD.fire); set(S.ice, hero.iceCd, CD.ice); set(S.storm, hero.stormCd, CD.storm); set(S.roll, Math.max(hero.rollCd, 0), CD.roll);
+      S.atk.el.classList.toggle('down', !!(IN.atk || IN.kAtk || IN.padAtk));
+    }
+    // molette : choisir le sort (un cran = un sort ; pas plus de 8 changements par seconde)
+    on(el, 'wheel', (e) => {
+      if (TOUCH || !started || paused || over) return;
+      e.preventDefault();
+      const t = performance.now(); if (t - BAR.wheelT < 120) return; BAR.wheelT = t;
+      barMode('kb'); selectSpell(selSpell + (e.deltaY > 0 ? 1 : -1));
+    }, { passive: false });
+
+    // ------------------------------------------------------------- conseils d'un instant (les premières parties seulement)
+    function tipsStart() {
+      let n = 0; try { n = +(localStorage.getItem('jdw.magic.astuces') || 0); } catch (e) { /* rien */ }
+      if (TOUCH || n >= 3) return;
+      try { localStorage.setItem('jdw.magic.astuces', String(n + 1)); } catch (e) { /* rien */ }
+      after(2.2, () => { if (!TOUCH) hint(BAR.mode === 'pad' ? 'Stick gauche : marcher · A : éclairs' : 'ZQSD ou flèches : marcher · Clic gauche : éclairs (vers la souris)', 3.6); });
+      after(6.2, () => { if (!TOUCH) hint(BAR.mode === 'pad' ? 'LB / RB : choisir un sort · RT : le lancer' : 'Molette : choisir un sort · Clic droit : le lancer', 3.8); });
+    }
+
+    // ------------------------------------------------------------- téléphone : le paysage, c'est mieux (sans l'imposer)
+    const PHONE = TOUCH0 && Math.min(screen.width || 9999, screen.height || 9999) < 560;
+    function tryLandscape() {
+      if (!PHONE) return;
+      try { if (document.fullscreenElement && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* rien */ }
+    }
+    on(document, 'fullscreenchange', () => tryLandscape());
+    tryLandscape();
+    let rotTip = null;
+    function rotTipShow() {
+      if (!PHONE || VW > VH || rotTip) return;
+      let n = 0; try { n = +(sessionStorage.getItem('jdw.magic.tourne') || 0); } catch (e) { /* rien */ }
+      if (n >= 2) return;
+      try { sessionStorage.setItem('jdw.magic.tourne', String(n + 1)); } catch (e) { /* rien */ }
+      const t = document.createElement('div'); t.className = 'mf-rot';
+      t.innerHTML = '<div class="ph"><i></i></div><p><b>Conseil</b> : tourne ton téléphone en paysage pour mieux voir le donjon</p>';
+      ui.appendChild(t); rotTip = t;
+      on(t, 'pointerdown', (e) => { e.stopPropagation(); rotTipHide(); });
+      after(7, rotTipHide);
+    }
+    function rotTipHide() { if (!rotTip) return; const t = rotTip; rotTip = null; t.classList.add('out'); setTimeout(() => t.remove(), 450); }
+    // rotation pendant la partie : on lâche le joystick et les boutons (pas de doigt « collé ») ; le conseil s'en va
+    let wasPort = null;
+    function orientCheck() {
+      const port = VH > VW;
+      if (wasPort !== null && port !== wasPort) {
+        IN.joyId = -1; IN.joyDX = IN.joyDY = 0; IN.atk = false; if (H.joy) H.joy.classList.remove('on');
+        for (const b of Object.values(BTN)) b.el.classList.remove('down');
+        if (!port) rotTipHide();
+      }
+      wasPort = port;
+    }
+    barBuild();
 
     // ===========================================================================
     // MOTEUR 3D (three.js)
@@ -837,6 +1015,7 @@
     const DISPOSE = new Set();
     const keep = (x) => { if (x) DISPOSE.add(x); return x; };
     let Q = null;                                 // réglages de qualité
+    let DYN = 1;                                  // résolution dynamique (0,6 à 1) : réglée pendant le jeu
     const PK = {};                                // paquets déballés (monde1, monde2…)
     const TEX = {};                               // textures
     const MAT = {};                               // matériaux partagés
@@ -846,23 +1025,39 @@
       floorAO: { value: null }, floorRect: { value: null }, lavaK: { value: 0 } };
 
     // ------------------------------------------------------------- qualité : niveau de départ selon l'appareil, puis réglage tout seul
+    // maxDpr : pixels par point au plus (un téléphone en a 2,6 à 3 : on n'en dessine jamais autant) ; la résolution « DYN » (0,6 à 1)
+    // s'ajuste toute seule pendant la partie ; si ça ne suffit pas, on descend d'un niveau (lueur allégée puis coupée, ombres, lumières).
     const TIERS = [
-      { name: 'économe', scale: 0.62, maxDpr: 1.5, shadow: 0, shadowSize: 0, parts: 220, lights: 2, aa: false, bloom: false, dust: 10 },
-      { name: 'léger', scale: 0.78, maxDpr: 2, shadow: 1, shadowSize: 1024, parts: 340, lights: 3, aa: false, bloom: true, dust: 18 },
-      { name: 'beau', scale: 0.88, maxDpr: 2, shadow: 1, shadowSize: 2048, parts: 520, lights: 4, aa: false, bloom: true, dust: 26 },
-      { name: 'superbe', scale: 1, maxDpr: 1.6, shadow: 2, shadowSize: 2048, parts: 800, lights: 6, aa: true, bloom: true, dust: 40 }
+      { name: 'économe', maxDpr: 1, shadow: 0, shadowSize: 0, parts: 160, lights: 2, aa: false, bloom: 0, dust: 8, lavaOct: 2 },
+      { name: 'léger', maxDpr: 1.25, shadow: 0, shadowSize: 0, parts: 260, lights: 3, aa: false, bloom: 1, dust: 14, lavaOct: 3 },
+      { name: 'beau', maxDpr: 1.5, shadow: 1, shadowSize: 1024, parts: 420, lights: 4, aa: false, bloom: 2, dust: 22, lavaOct: 4 },
+      { name: 'superbe', maxDpr: 2, shadow: 2, shadowSize: 2048, parts: 800, lights: 6, aa: true, bloom: 2, dust: 40, lavaOct: 4 }
     ];
+    // mémoire de l'appareil (réglage trouvé la dernière fois) : { gpu, tier, dyn }
+    const AQ_KEY = 'jdw.magic.qualite';
+    function aqLoad() { try { const o = JSON.parse(localStorage.getItem(AQ_KEY) || 'null'); return o && typeof o.tier === 'number' ? o : null; } catch (e) { return null; } }
+    let aqSaveT = 0;
+    function aqSave(now) {
+      if (!Q || Q.forced) return;
+      const t = performance.now(); if (!now && t - aqSaveT < 2500) return; aqSaveT = t;
+      try { localStorage.setItem(AQ_KEY, JSON.stringify({ gpu: Q.gpu, tier: Q.tier, dyn: +DYN.toFixed(2) })); } catch (e) { /* rien */ }
+    }
     function detectTier(g) {
       let gpu = '';
       try { const ext = g.getExtension('WEBGL_debug_renderer_info'); if (ext) gpu = String(g.getParameter(ext.UNMASKED_RENDERER_WEBGL) || ''); } catch (e) { /* rien */ }
+      if (typeof window !== 'undefined' && window.JDW_MAGIC_FAKEGPU) gpu = String(window.JDW_MAGIC_FAKEGPU);   // essais : « faire comme un téléphone »
       const mobile = TOUCH0 || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '');
       const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 4;
       let t = mobile ? 2 : 3;
       if (mobile && (cores <= 4 || mem <= 2 || /Mali-(4|T)|Adreno \(TM\) [345]\d\d|PowerVR|SGX|Mali-G(31|51|52|57)\b/i.test(gpu))) t = 1;
       if (/SwiftShader|llvmpipe|Software|Microsoft Basic/i.test(gpu)) t = Math.min(t, 1);
       const force = typeof window !== 'undefined' && window.JDW_MAGIC_Q;      // essais (tests) seulement
-      if (force != null && TIERS[force]) t = force;
-      return { t, gpu, mobile };
+      const max = t;
+      if (force != null && TIERS[force]) return { t: force, max: force, gpu, mobile, forced: true };
+      // la dernière fois sur cet appareil, il avait fallu descendre ? on repart de là (sans dépasser ce que l'appareil peut)
+      const st = aqLoad();
+      if (st && st.gpu === gpu) { t = Math.min(max, Math.max(0, st.tier | 0)); DYN = clamp(+st.dyn || 1, 0.6, 1); }
+      return { t, max, gpu, mobile };
     }
     const PERF = { acc: 0, n: 0, slowS: 0, fastS: 0, lastAdj: 0, fps: 60, hist: [] };
     let contextLost = false;
@@ -872,7 +1067,7 @@
       if (!probe) throw new Error('WebGL 2 indisponible');
       const det = detectTier(probe);
       try { const lx = probe.getExtension('WEBGL_lose_context'); if (lx) lx.loseContext(); } catch (e) { /* rien */ }
-      Q = Object.assign({ tier: det.t, gpu: det.gpu, mobile: det.mobile }, TIERS[det.t]);
+      Q = Object.assign({ tier: det.t, maxTier: det.max, gpu: det.gpu, mobile: det.mobile, forced: !!det.forced }, TIERS[det.t]);
       renderer = new T.WebGLRenderer({ canvas, antialias: Q.aa, alpha: false, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
       gl = renderer.getContext(); renderer.info.autoReset = false;
       renderer.outputColorSpace = T.SRGBColorSpace;
@@ -969,7 +1164,7 @@
         let cut = '';
         if (o.cut) cut = '{ vec2 nd = vMfC.xy / vMfC.w; vec2 dd = (nd - uMfP.xy) * vec2(uMfA, 1.0); float rr = length(dd);\n' +
           '  if (vMfC.w < uMfP.z - 0.6 && rr < uMfR && vMfW.y > 0.35) { float k = smoothstep(uMfR, uMfR * 0.45, rr);\n' +
-          '    vec2 q = mod(floor(gl_FragCoord.xy), 4.0); float bay = mod(q.x * 2.0 + q.y * 3.0 + q.x * q.y, 4.0) / 4.0 + 0.125; if (bay < k * 0.95) discard; } }\n';
+          '    float bay = fract(sin(dot(floor(vMfW * 9.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453); if (bay < k * 0.92) discard; } }\n';
         if (o.dis) cut += 'float mfDisE = 0.0;\nif (uDis > 0.001) { float dn = fract(sin(dot(floor(vMfW * 8.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453);\n' +
           '  float dh = dn * 0.5 + clamp(vMfW.y / uDisH, 0.0, 1.0) * 0.5; if (dh < uDis) discard; mfDisE = smoothstep(uDis + 0.09, uDis, dh); }\n';
         let out = '';
@@ -1118,15 +1313,36 @@ void main(){ vec4 t = texture2D(map, vUv); float a = t.a * vCol.a; if (a < 0.003
       // lune (froide) qui porte les ombres, + un contre-jour chaud
       sun = new T.DirectionalLight(0xc8d4ff, 1.35); sun.position.set(-10, 24, 8); scene.add(sun); scene.add(sun.target);
       fill = new T.DirectionalLight(0x8090ff, 0.4); fill.position.set(14, 10, -12); scene.add(fill); scene.add(fill.target);
+      sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04;
       if (Q.shadow) {
         sun.castShadow = true;
         sun.shadow.mapSize.set(Q.shadowSize, Q.shadowSize);
-        sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04;
         if (Q.tier >= 3) sun.shadow.radius = 3;
       }
       for (let i = 0; i < Q.lights; i++) {
         const L = new T.PointLight(0xffa040, 0, 9, 1.6); L.position.set(0, -50, 0); scene.add(L); plights.push(L);
       }
+    }
+    // changement de niveau pendant la partie (rare : la vitesse mesurée le demande)
+    function setTier(t) {
+      t = clamp(t, 0, TIERS.length - 1); if (!Q || t === Q.tier) return;
+      const N = TIERS[t], up = t > Q.tier;
+      Q.tier = t; Q.name = N.name; Q.maxDpr = N.maxDpr; Q.parts = N.parts; Q.dust = N.dust; Q.lavaOct = N.lavaOct;
+      // lumières ponctuelles
+      while (plights.length > N.lights) { const L = plights.pop(); scene.remove(L); L.dispose && L.dispose(); }
+      while (plights.length < N.lights) { const L = new T.PointLight(0xffa040, 0, 9, 1.6); L.position.set(0, -50, 0); scene.add(L); plights.push(L); }
+      Q.lights = N.lights;
+      // ombres : on peut les couper tout de suite ; les remettre attend le prochain monde (les objets doivent être refaits)
+      if (!up && Q.shadow > N.shadow) {
+        Q.shadow = N.shadow; Q.shadowSize = N.shadowSize;
+        if (!Q.shadow) { renderer.shadowMap.enabled = false; sun.castShadow = false; if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+        else { renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true; }
+      }
+      // lueur : allégée (flou plus petit) ou coupée
+      Q.bloom = N.bloom;
+      if (Q.bloom && !PP.ok) ppInit();
+      PP.lite = Q.bloom === 1; PP.on = PP.ok && Q.bloom > 0; PP.w = 0;
+      resize();
     }
     function addLight(x, y, z, col, i, d, flick, tag) {
       const s = { x, y, z, col: new T.Color(col), i, d: d || 9, flick: flick == null ? 1 : flick, ph: FXR() * 9, tag };
@@ -1151,12 +1367,12 @@ void main(){ vec4 t = texture2D(map, vUv); float a = t.a * vCol.a; if (a < 0.003
     // ------------------------------------------------------------- lueur (bloom) + vignettage + étalonnage, sur les appareils qui le supportent
     // La scène est rendue dans une image « HDR » (demi-flottants), on garde ce qui brille, on le floute à 1/2 et 1/4 de la taille,
     // puis on recompose (tons ACES, vignettage doux, ombres teintées / lumières chaudes). Coupé tout seul si l'appareil peine.
-    const PP = { ok: false, on: false, rt: null, b: [], q: null, qs: null, qc: null, m: {}, w: 0, h: 0 };
+    const PP = { ok: false, on: false, lite: false, rt: null, b: [], q: null, qs: null, qc: null, m: {}, w: 0, h: 0, v2: null };
     const PPV = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
     function ppInit() {
       try {
         const ext = renderer.extensions;
-        if (!Q.bloom || !(ext.has('EXT_color_buffer_float') || ext.has('EXT_color_buffer_half_float'))) return;
+        if (PP.ok || !Q.bloom || !(ext.has('EXT_color_buffer_float') || ext.has('EXT_color_buffer_half_float'))) return;
         const mk = (o) => keep(new T.WebGLRenderTarget(4, 4, Object.assign({ type: T.HalfFloatType, depthBuffer: false, minFilter: T.LinearFilter, magFilter: T.LinearFilter }, o || {})));
         PP.rt = mk({ depthBuffer: true, samples: Q.tier >= 3 ? 4 : 0 });
         PP.b = [mk(), mk(), mk(), mk()];
@@ -1187,17 +1403,18 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
  float l2 = dot(c, vec3(0.299, 0.587, 0.114)); c = mix(vec3(l2), c, sat);
  gl_FragColor = vec4(c, 1.0); }`, { tex: { value: null }, b1: { value: null }, b2: { value: null }, str: { value: 0.85 }, expo: { value: 1.0 }, vig: { value: 0.5 }, flash: { value: 0 },
           shadowTint: { value: new T.Vector3(0.92, 0.95, 1.1) }, hiTint: { value: new T.Vector3(1.06, 1.0, 0.92) }, sat: { value: 1.1 } });
-        PP.ok = true; PP.on = true;
+        PP.ok = true; PP.on = true; PP.lite = Q.bloom === 1;
       } catch (e) { PP.ok = false; PP.on = false; }
     }
     function ppSize() {
       if (!PP.ok) return;
-      const v = renderer.getDrawingBufferSize(new T.Vector2()), w = Math.max(4, v.x | 0), h = Math.max(4, v.y | 0);
+      const v = renderer.getDrawingBufferSize(PP.v2 || (PP.v2 = new T.Vector2())), w = Math.max(4, v.x | 0), h = Math.max(4, v.y | 0);
       if (w === PP.w && h === PP.h) return;
       PP.w = w; PP.h = h;
       PP.rt.setSize(w, h);
-      PP.b[0].setSize(Math.max(2, w >> 1), Math.max(2, h >> 1)); PP.b[1].setSize(Math.max(2, w >> 1), Math.max(2, h >> 1));
-      PP.b[2].setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); PP.b[3].setSize(Math.max(2, w >> 2), Math.max(2, h >> 2));
+      const s1 = PP.lite ? 2 : 1, s2 = PP.lite ? 3 : 2;       // lueur légère : flous au quart et au huitième
+      PP.b[0].setSize(Math.max(2, w >> s1), Math.max(2, h >> s1)); PP.b[1].setSize(Math.max(2, w >> s1), Math.max(2, h >> s1));
+      PP.b[2].setSize(Math.max(2, w >> s2), Math.max(2, h >> s2)); PP.b[3].setSize(Math.max(2, w >> s2), Math.max(2, h >> s2));
     }
     function ppGrade(o) {          // étalonnage du monde : { shadow:[r,g,b], hi:[r,g,b], sat, bloom, vig, expo }
       if (!PP.ok) { if (o.expo) renderer.toneMappingExposure = o.expo; return; }
@@ -1366,9 +1583,11 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
         root.traverse((o) => {
           if (!o.isMesh) return;
           const rel = new T.Matrix4().multiplyMatrices(inv, o.matrixWorld);
-          const nm = o.name || '';
+          let pn = o; while (pn && pn !== root && (!pn.name || /^mesh_\d+(_\d+|_instance_\d+)*$/.test(pn.name))) pn = pn.parent;   // noms donnés par le chargeur = pas de nom
+          const nm = (pn && pn !== root && pn.name) || '';
           if (o !== root && SUBPART.test(nm)) {
-            const pivot = new T.Vector3().setFromMatrixPosition(rel);
+            const prel = new T.Matrix4().multiplyMatrices(inv, pn.matrixWorld);
+            const pivot = new T.Vector3().setFromMatrixPosition(prel);
             const key = /_lid$/.test(nm) ? 'lid' : /_door$/.test(nm) ? 'door' : 'spikes';
             entry.sub[key] = { geo: keep(bakeGeo(o, new T.Matrix4().makeTranslation(-pivot.x, -pivot.y, -pivot.z).multiply(rel))), pivot };
             return;
@@ -1376,6 +1595,7 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
           geos.push(bakeGeo(o, rel));
         });
         if (geos.length) { const g = geos.length > 1 ? T.mergeGeometries(geos, false) : geos[0]; g.computeBoundingBox(); entry.geo = keep(g); entry.box = g.boundingBox.clone(); }
+        if (/spikes$/.test(root.name) && !entry.sub.spikes && entry.geo) splitSpikes(entry);
         LIB[root.name] = entry;
       }
     }
@@ -1679,6 +1899,19 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
     }
 
     // ------------------------------------------------------------- objets qui bougent : tonneaux et caisses, coffres, pièges, portes
+    // carreau à pics : les triangles hauts (les pics) deviennent une sous-partie qui monte et descend
+    function splitSpikes(entry) {
+      const g = entry.geo, pos = g.getAttribute('position'), ix = g.index ? g.index.array : null, n = ix ? ix.length : pos.count;
+      const hi = [], lo = [];
+      for (let t = 0; t < n; t += 3) {
+        const a = ix ? ix[t] : t, b = ix ? ix[t + 1] : t + 1, c = ix ? ix[t + 2] : t + 2;
+        (Math.max(pos.getY(a), pos.getY(b), pos.getY(c)) > 0.15 ? hi : lo).push(a, b, c);
+      }
+      if (!hi.length || !lo.length) return;
+      const sub = (list) => { const o = new T.BufferGeometry(); for (const k of Object.keys(g.attributes)) o.setAttribute(k, g.getAttribute(k)); o.setIndex(list); o.computeBoundingBox(); o.computeBoundingSphere(); return keep(o); };
+      entry.geo = sub(lo); entry.box = entry.geo.boundingBox.clone();
+      entry.sub.spikes = { geo: sub(hi), pivot: new T.Vector3() };
+    }
     function dynMesh(n, x, y, z, ry, s) {
       const L = LIB[n]; if (!L || !L.geo) return null;
       const m = new T.Mesh(L.geo, MAT.world); m.position.set(x, y || 0, z); m.rotation.y = (ry || 0) * Math.PI / 180; if (s) m.scale.setScalar(s);
@@ -1703,12 +1936,14 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
     }
     function addSpikes(x, z) {
       const L = LIB.floor_tile_big_spikes; if (!L) return;
-      const base = dynMesh('floor_tile_big_spikes', x, -0.05, z, 0); if (!base) return;
+      // le carreau est posé 1 cm AU-DESSUS du sol (avant : ses bords tombaient pile à la hauteur du sol → scintillement)
+      const base = dynMesh('floor_tile_big_spikes', x, 0.012, z, 0); if (!base) return;
       base.castShadow = false;
       const subK = Object.keys(L.sub)[0];
       let sp = null;
-      if (subK) { sp = new T.Mesh(L.sub[subK].geo, MAT.world); sp.position.set(x, -2.2, z); sp.castShadow = false; wadd(sp); }
-      SPIKES.push({ x, z, base, sp, t: FXR() * 3, st: 'down', h: -2.2, hit: new Set() });
+      if (subK) { sp = new T.Mesh(L.sub[subK].geo, MAT.world); sp.position.set(x, -2.05, z); sp.castShadow = false; wadd(sp); }
+      const warn = addStatic({ x, y: 0.09, z, s: 4.6, cell: 'softc', col: 0xff2a3a, k: 1.5, mode: 1, a: 0.75, vis: 0, pulse: 9 });
+      SPIKES.push({ x, z, base, sp, warn, t: FXR() * 3, st: 'down', h: -2.05, hit: new Set() });
     }
 
     // ------------------------------------------------------------- grille de marche (0,5 m) : collisions + chemins des monstres
@@ -2074,7 +2309,7 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
     function buildHero() {
       const c = makeChar('mage', hero.x, hero.z); hero.c = c;
       play(c, 'Idle', { half: 'L', fade: 0 }); play(c, 'Idle', { half: 'U', fade: 0 });
-      hero.shadow = addStatic({ x: 0, y: 0.05, z: 0, s: 1.5, cell: 'blob', col: 0x000000, a: 0.55, mode: 1, add: false });
+      hero.shadow = addStatic({ x: 0, y: 0.07, z: 0, s: 1.5, cell: 'blob', col: 0x000000, a: 0.55, mode: 1, add: false });
       hero.tipGlow = addStatic({ x: 0, y: 0, z: 0, s: 0.75, cell: 'glow', col: 0x7dffb0, k: 2.2, a: 0.85, pulse: 3 });
       hero.tipCore = addStatic({ x: 0, y: 0, z: 0, s: 0.22, cell: 'dot', col: 0xe8fff0, k: 3, a: 1 });
       hero.light = addLight(0, 2, 0, 0x9fe8ff, 7, 7.5, 0.15, 'hero'); hero.light.prio = 600;
@@ -2136,6 +2371,11 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       hero.light.x = hero.x + 0.8; hero.light.y = 4.4; hero.light.z = hero.z + 0.8; hero.light.i = 5 + ck * 9;
       hero.shadow.x = hero.x; hero.shadow.z = hero.z; hero.shadow.s = hero.roll > 0 ? 1.2 : 1.5;
       hero.tipGlow.hidden = hero.tipCore.hidden = !c.root.visible;
+      // ordinateur : petit cercle au sol sous la souris (les éclairs partent vers lui ; près d'un monstre, ils l'accrochent)
+      if (!hero.ret) hero.ret = addStatic({ x: 0, y: 0.1, z: 0, s: 1.1, cell: 'ring', col: 0x9fe8ff, k: 1.6, mode: 1, a: 0.6, vr: 1.2, vis: 0 });
+      const showRet = !TOUCH && IN.mouseAim && !IN.padOn && mouseGround && G.phase === 'play' && !hero.dead;
+      if (showRet) { hero.ret.x = mouseGround.x; hero.ret.z = mouseGround.z; }
+      hero.ret.vis = damp(hero.ret.vis || 0, showRet ? 1 : 0, 8, dt);
       // bouclier
       const sh = clamp(G.shield / MAXS, 0, 1), B = hero.bubble;
       B.visible = !hero.dead && (sh > 0.02 || G.shieldHit > 0) && G.phase !== 'load';
@@ -2155,15 +2395,15 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     // anim : noms des clips (bibliothèque commune) ; atk : attaques au corps à corps ; ranged : tir ; spawn : sortie de terre
     const KIND = {
       minion: { tpl: 'sk_minion', name: 'Squelette', hp: 30, sp: 3.0, r: 0.5, pts: 100, dmg: 1, reach: 1.7, cool: [0.9, 1.5],
-        idle: 'Idle', walk: 'Walking_D_Skeletons', run: 'Running_C', runSp: 4.2, atk: ['1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Diagonal'], strike: 0.42, hit: ['Hit_A', 'Hit_B'], spawn: 'Spawn_Ground_Skeletons', spawnSp: 1.7, coins: [1, 3] },
+        idle: 'Idle', walk: 'Walking_D_Skeletons', run: 'Running_C', runSp: 4.2, atk: ['1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Diagonal'], strike: 0.42, hit: ['Hit_A', 'Hit_B'], spawn: 'Spawn_Ground_Skeletons', spawnSp: 1.7 },
       rogue: { tpl: 'sk_rogue', name: 'Squelette voleur', hp: 24, sp: 4.6, r: 0.48, pts: 150, dmg: 1, reach: 1.6, cool: [0.7, 1.2], dodge: 0.35, lunge: 7,
-        idle: 'Idle_Combat', walk: 'Running_A', run: 'Running_A', runSp: 5.5, atk: ['Dualwield_Melee_Attack_Stab', 'Dualwield_Melee_Attack_Slice'], strike: 0.36, hit: ['Hit_A'], spawn: 'Spawn_Air', spawnSp: 1.2, coins: [2, 3] },
+        idle: 'Idle_Combat', walk: 'Running_A', run: 'Running_A', runSp: 5.5, atk: ['Dualwield_Melee_Attack_Stab', 'Dualwield_Melee_Attack_Slice'], strike: 0.36, hit: ['Hit_A'], spawn: 'Spawn_Air', spawnSp: 1.2 },
       warrior: { tpl: 'sk_warrior', name: 'Squelette guerrier', hp: 90, sp: 2.3, r: 0.6, pts: 250, dmg: 2, reach: 1.9, cool: [1.2, 1.8], shield: true, leap: '1H_Melee_Attack_Jump_Chop',
-        idle: 'Idle_Combat', walk: 'Walking_D_Skeletons', run: 'Walking_D_Skeletons', runSp: 2.3, atk: ['1H_Melee_Attack_Chop'], strike: 0.5, hit: ['Block_Hit'], block: 'Blocking', spawn: 'Skeletons_Awaken_Standing', spawnSp: 1.0, coins: [3, 5] },
+        idle: 'Idle_Combat', walk: 'Walking_D_Skeletons', run: 'Walking_D_Skeletons', runSp: 2.3, atk: ['1H_Melee_Attack_Chop'], strike: 0.5, hit: ['Block_Hit'], block: 'Blocking', spawn: 'Skeletons_Awaken_Standing', spawnSp: 1.0 },
       mage: { tpl: 'sk_mage', name: 'Squelette sorcier', hp: 40, sp: 2.4, r: 0.48, pts: 300, dmg: 1, reach: 0, cool: [2.4, 3.2], ranged: 'orb', summon: true,
-        idle: 'Idle_Combat', walk: 'Walking_A', run: 'Walking_A', runSp: 2.4, cast: 'Spellcast_Shoot', summonAnim: 'Spellcast_Summon', hit: ['Hit_A'], spawn: 'Skeletons_Awaken_Standing', spawnSp: 1.0, coins: [3, 6] },
+        idle: 'Idle_Combat', walk: 'Walking_A', run: 'Walking_A', runSp: 2.4, cast: 'Spellcast_Shoot', summonAnim: 'Spellcast_Summon', hit: ['Hit_A'], spawn: 'Skeletons_Awaken_Standing', spawnSp: 1.0 },
       archer: { tpl: 'sk_archer', name: 'Squelette arbalétrier', hp: 26, sp: 3.0, r: 0.46, pts: 200, dmg: 1, reach: 0, cool: [1.8, 2.6], ranged: 'bolt',
-        idle: 'Idle_Combat', walk: 'Walking_A', run: 'Running_A', runSp: 3.4, aim: '1H_Ranged_Aiming', shoot: '1H_Ranged_Shoot', reload: '1H_Ranged_Reload', hit: ['Hit_A'], spawn: 'Spawn_Ground_Skeletons', spawnSp: 1.7, coins: [2, 4] }
+        idle: 'Idle_Combat', walk: 'Walking_A', run: 'Running_A', runSp: 3.4, aim: '1H_Ranged_Aiming', shoot: '1H_Ranged_Shoot', reload: '1H_Ranged_Reload', hit: ['Hit_A'], spawn: 'Spawn_Ground_Skeletons', spawnSp: 1.7 }
     };
     const MON = [];                   // monstres vivants (et mourants)
     function makeMonster(kind, x, z, o) {
@@ -2174,7 +2414,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         hp: Math.round(K.hp * (K.boss ? 1 + 0.55 * G.tour : G.hpMul)), hpMax: 0, st: 'spawn', t: 0, cd: rnd(K.cool[0] * 0.5, K.cool[1]), flash: 0, frozen: 0, slowed: 0, burn: 0, stun: 0, kbx: 0, kbz: 0,
         dead: false, gone: false, voiceT: 0, sh: null, zone: o.zone || null };
       m.hpMax = m.hp;
-      m.sh = addStatic({ x, y: 0.05, z, s: K.r * 3.0, cell: 'blob', col: 0x000000, a: 0.5, mode: 1, add: false });
+      m.sh = addStatic({ x, y: 0.07, z, s: K.r * 3.0, cell: 'blob', col: 0x000000, a: 0.5, mode: 1, add: false });
       c.root.rotation.y = m.face;
       if (MAPDEF && MAPDEF.lava && !K.q) { MAT.glowLava = MAT.glowLava || keep(new T.MeshBasicMaterial({ color: new T.Color(0xff3a10).multiplyScalar(3.6) })); c.mats[1] = MAT.glowLava; c.mesh.material = c.mats; }
       MON.push(m);
@@ -2207,17 +2447,17 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     }
     const QFLY = { idle: 'Flying_Idle', walk: 'Flying_Idle', run: 'Fast_Flying', hit: ['HitReact'], death: 'Death', cheer: 'Yes', fly: true };
     KIND.ghost = Object.assign({ tpl: 'q_ghost', q: true, alt: 'rogue', name: 'Spectre', hp: 26, sp: 3.3, r: 0.5, pts: 180, dmg: 1, reach: 2.0, cool: [1.1, 1.7], lunge: 9,
-      runSp: 4.6, atk: ['Headbutt'], strike: 0.4, slash: 0xc8a0ff, qsp: 'smoke', spawnDur: 1.0, coins: [1, 3], snd: 'ghost' }, QFLY);
+      runSp: 4.6, atk: ['Headbutt'], strike: 0.4, slash: 0xc8a0ff, qsp: 'smoke', spawnDur: 1.0, snd: 'ghost' }, QFLY);
     KIND.orc = { tpl: 'q_orc', q: true, alt: 'warrior', name: 'Orc au crâne', hp: 110, sp: 2.2, r: 0.72, pts: 320, dmg: 2, reach: 2.3, cool: [1.3, 1.9], charge: true, heavy: true,
-      idle: 'Idle', walk: 'Walk', run: 'Run', runSp: 3.2, atk: ['Weapon'], strike: 0.55, hit: ['HitReact'], death: 'Death', cheer: 'Yes', qsp: 'rise', spawnDur: 1.15, coins: [3, 6], snd: 'orc' };
+      idle: 'Idle', walk: 'Walk', run: 'Run', runSp: 3.2, atk: ['Weapon'], strike: 0.55, hit: ['HitReact'], death: 'Death', cheer: 'Yes', qsp: 'rise', spawnDur: 1.15, snd: 'orc' };
     KIND.blob = { tpl: 'q_blob', q: true, alt: 'mage', name: 'Sorcier gluant', hp: 34, sp: 2.1, r: 0.55, pts: 220, dmg: 1, reach: 0, cool: [2.0, 2.8], ranged: 'orb',
-      idle: 'Idle', walk: 'Walk', run: 'Walk', runSp: 2.6, cast: 'Jump', hit: ['HitRecieve'], death: 'Death', cheer: 'Yes', qsp: 'drop', spawnDur: 1.0, coins: [2, 4], snd: 'blob' };
+      idle: 'Idle', walk: 'Walk', run: 'Walk', runSp: 2.6, cast: 'Jump', hit: ['HitRecieve'], death: 'Death', cheer: 'Yes', qsp: 'drop', spawnDur: 1.0, snd: 'blob' };
     KIND.demon = { tpl: 'q_demon', q: true, alt: 'warrior', name: 'Démon des forges', hp: 95, sp: 2.6, r: 0.66, pts: 320, dmg: 2, reach: 2.3, cool: [1.1, 1.7], lunge: 4, leap: 'Jump', fireLeap: true, heavy: true,
-      idle: 'Idle', walk: 'Walk', run: 'Run', runSp: 4.0, atk: ['Weapon'], strike: 0.5, hit: ['HitReact'], death: 'Death', cheer: 'Yes', qsp: 'lava', spawnDur: 1.15, coins: [3, 6], snd: 'demon' };
+      idle: 'Idle', walk: 'Walk', run: 'Run', runSp: 4.0, atk: ['Weapon'], strike: 0.5, hit: ['HitReact'], death: 'Death', cheer: 'Yes', qsp: 'lava', spawnDur: 1.15, snd: 'demon' };
     KIND.imp = Object.assign({ tpl: 'q_imp', q: true, alt: 'archer', name: 'Diablotin', hp: 30, sp: 3.0, r: 0.5, pts: 220, dmg: 1, reach: 0, cool: [2.2, 3.0], ranged: 'fire',
-      runSp: 4.2, cast: 'Punch', qsp: 'fly', spawnDur: 1.0, coins: [2, 4], snd: 'imp' }, QFLY);
+      runSp: 4.2, cast: 'Punch', qsp: 'fly', spawnDur: 1.0, snd: 'imp' }, QFLY);
     KIND.drake = Object.assign({ tpl: 'q_drake', q: true, alt: 'rogue', name: 'Dragonnet', hp: 40, sp: 3.2, r: 0.55, pts: 240, dmg: 1, reach: 2.1, cool: [1.0, 1.5], lunge: 8,
-      runSp: 4.8, atk: ['Headbutt'], strike: 0.42, slash: 0xffa040, qsp: 'fly', spawnDur: 1.0, coins: [2, 4], snd: 'drake' }, QFLY);
+      runSp: 4.8, atk: ['Headbutt'], strike: 0.42, slash: 0xffa040, qsp: 'fly', spawnDur: 1.0, snd: 'drake' }, QFLY);
 
     // cris et bruits propres à chaque sorte (sons Imphenzia déjà dans le paquet)
     function qVoice(m, what) {
@@ -2672,9 +2912,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       if (m.frozen > 0) { burst(m.x, 1.0, m.z, 0xdffcff, 14, 7, 0.6, 0.32, 'shard', 2.4); sfx('shatter', 0.45, frnd(0.95, 1.1), 0.05, m.x); }
       if (!m.K.q) sfx('bones', 0.55, frnd(0.9, 1.1), 0.04, m.x);
       hitStop(G.combo >= 5 ? 0.06 : 0.04); shake(0.16);
-      // butin
-      const nc = Math.round(rnd(m.K.coins[0], m.K.coins[1]));
-      for (let i = 0; i < nc; i++) dropCoin(m.x, m.z, 1.2);
+      // butin : parfois un cœur quand on en a besoin
       if (G.hearts < MAXH && FXR() < (G.hearts <= 2 ? 0.16 : 0.05)) dropHeart(m.x, m.z);
     }
     let comboShown = 0;
@@ -2692,43 +2930,8 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     }
 
     // ===========================================================================
-    // BUTIN : pièces (KayKit), cœurs, coffres, tonneaux et caisses
+    // BUTIN : des points (étoiles qui volent au compteur, voir p6b), des cœurs, des recharges de bouclier ; coffres, tonneaux, caisses
     // ===========================================================================
-    const COINS = []; let coinIM = null; const COIN_MAX = 180;
-    function coinInit() {
-      if (coinIM || !LIB.coin) return;
-      MAT.coin = MAT.coin || keep(lam({ map: TEX.kkt_dungeon, emissive: 0x4a2a00 }));
-      coinIM = new T.InstancedMesh(LIB.coin.geo, MAT.coin, COIN_MAX); coinIM.count = 0; coinIM.frustumCulled = false;
-      coinIM.instanceMatrix.setUsage(T.DynamicDrawUsage); scene.add(coinIM);
-    }
-    function dropCoin(x, z, sp) {
-      if (COINS.length >= COIN_MAX) return;
-      const a = FXR() * TAU, v = frnd(1.5, 3.2) * (sp || 1);
-      COINS.push({ x, y: 0.8, z, vx: Math.cos(a) * v, vy: frnd(4.5, 7), vz: Math.sin(a) * v, rot: FXR() * 6, t: 0, val: 10 });
-    }
-    const cm = { m: null, q: null, p: null, s: null, e: null };
-    function coinsUpdate(dt) {
-      if (!coinIM) return;
-      if (!cm.m) { cm.m = new T.Matrix4(); cm.q = new T.Quaternion(); cm.p = new T.Vector3(); cm.s = new T.Vector3(1.3, 1.3, 1.3); cm.e = new T.Euler(); }
-      for (let i = COINS.length - 1; i >= 0; i--) {
-        const c = COINS[i]; c.t += dt;
-        const dx = hero.x - c.x, dz = hero.z - c.z, d = Math.hypot(dx, dz);
-        if (c.t > 0.45 && !hero.dead && d < 5.5) { const sp = 8 + (5.5 - d) * 5; c.vx = damp(c.vx, dx / (d || 1) * sp, 9, dt); c.vz = damp(c.vz, dz / (d || 1) * sp, 9, dt); c.vy = damp(c.vy, (1.2 - c.y) * 6, 6, dt); c.mag = true; }
-        else if (!c.mag) { c.vy -= 16 * dt; c.vx *= Math.exp(-1.2 * dt); c.vz *= Math.exp(-1.2 * dt); }
-        c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt; c.rot += dt * 7;
-        if (c.y < 0.2 && !c.mag) { c.y = 0.2; c.vy = Math.abs(c.vy) * 0.38; if (c.vy < 0.6) c.vy = 0; c.vx *= 0.6; c.vz *= 0.6; }
-        if (!free(c.x, c.z) && !c.mag) { c.vx = -c.vx * 0.5; c.vz = -c.vz * 0.5; c.x += c.vx * dt * 2; c.z += c.vz * dt * 2; }
-        if ((d < 0.7 && c.t > 0.3 && !hero.dead) || c.t > 25) {
-          if (c.t <= 25) { addScore(c.val * G.ptsMul); G.coins++; sfx('coin', 0.22, frnd(1.0, 1.25), 0.03); fx({ x: c.x, y: c.y, z: c.z, life: 0.25, s0: 0.3, s1: 0.9, c0: 0xffe08a, k: 2.4, cell: 'star4', rot: FXR() * 6 }); }
-          COINS[i] = COINS[COINS.length - 1]; COINS.pop(); continue;
-        }
-        if (FXR() < dt * 2) fx({ x: c.x + frnd(-0.15, 0.15), y: c.y + 0.15, z: c.z + frnd(-0.15, 0.15), life: 0.4, s0: 0.18, s1: 0, c0: 0xfff0a0, k: 2.6, cell: 'star4', rot: FXR() * 6 });
-      }
-      for (let i = 0; i < COINS.length; i++) {
-        const c = COINS[i]; cm.p.set(c.x, c.y, c.z); cm.e.set(Math.PI / 2 * 0.15, c.rot, Math.PI / 2 * 0.85); cm.q.setFromEuler(cm.e); cm.m.compose(cm.p, cm.q, cm.s); coinIM.setMatrixAt(i, cm.m);
-      }
-      coinIM.count = COINS.length; coinIM.instanceMatrix.needsUpdate = true;
-    }
     const HEARTS = [];
     function dropHeart(x, z) {
       const st = addStatic({ x, y: 0.8, z, s: 0.75, cell: 'heart', col: 0xff3d5e, k: 2.2, a: 1, pulse: 6 });
@@ -2741,14 +2944,20 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         const bob = Math.sin(h.t * 3) * 0.12; h.st.x = h.gl1.x = h.x; h.st.z = h.gl1.z = h.z; h.st.y = h.gl1.y = h.y + bob;
         const d = Math.hypot(hero.x - h.x, hero.z - h.z);
         if (d < 1.0 && h.t > 0.4 && !hero.dead) {
+          if (h.shield) {
+            G.shield = MAXS; G.shieldHit = 0.6; sfx('shield', 0.6, 1.2); sfx('power', 0.4, 1.3, 0.1);
+            pop(h.x, 1.9, h.z, 'Bouclier rechargé !', 'big', 1.3);
+            for (let k = 0; k < 14; k++) fx({ x: hero.x + frnd(-0.6, 0.6), y: frnd(0.3, 2), z: hero.z + frnd(-0.6, 0.6), vy: frnd(1, 2.4), life: frnd(0.6, 1), s0: 0.3, s1: 0.06, c0: 0x9fe8ff, k: 2.4, cell: 'star4', fin: 0.1 });
+          } else {
           G.hearts = Math.min(MAXH, G.hearts + 1); addScore(50); sfx('potion', 0.55);
           pop(h.x, 1.9, h.z, '+1 ❤', 'big', 1.1);
           for (let k = 0; k < 10; k++) fx({ x: hero.x + frnd(-0.5, 0.5), y: frnd(0.3, 1.6), z: hero.z + frnd(-0.5, 0.5), vy: frnd(1, 2.4), life: frnd(0.6, 1), s0: 0.3, s1: 0.1, c0: 0xff6d8a, k: 2, cell: 'heart', fin: 0.1 });
+          }
           delStatic(h.st); delStatic(h.gl1); HEARTS.splice(i, 1);
         } else if (h.t > 30) { delStatic(h.st); delStatic(h.gl1); HEARTS.splice(i, 1); }
       }
     }
-    // tonneaux et caisses : se cassent en planches et lâchent des pièces
+    // tonneaux et caisses : se cassent en planches et donnent quelques points (étoiles)
     function hitBreakable(b, dmg) {
       if (!b.alive) return;
       b.hp -= dmg; b.hit = 0.12;
@@ -2757,12 +2966,13 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       sfx('woodbreak', 0.5, frnd(0.9, 1.1), 0.04, b.x);
       for (let i = 0; i < 14; i++) { const a = FXR() * TAU, v = frnd(2, 6); fx({ x: b.x, y: frnd(0.3, 1.2), z: b.z, vx: Math.cos(a) * v, vy: frnd(2, 6), vz: Math.sin(a) * v, g: 16, drag: 0.8, floor: true, life: frnd(0.8, 1.4), s0: frnd(0.25, 0.45), s1: 0.2, c0: 0x9a6038, k: 1, cell: 'debris', add: false, rot: FXR() * 6, vr: frnd(-10, 10), a0: 1, fade: 0.7 }); }
       dust(b.x, b.z, 6, 1.2, 0xc8a882);
-      const n = b.kind === 'crate' ? 3 : 2; for (let i = 0; i < n; i++) dropCoin(b.x, b.z, 0.8);
+      scoreBurst(b.x, 0.9, b.z, (b.kind === 'crate' ? 60 : 40) * G.ptsMul, { n: 3, small: true });
       if (G.hearts < MAXH && FXR() < 0.12) dropHeart(b.x, b.z);
       gridRefresh();
     }
     function breakUpdate(dt) { for (const b of BREAK) if (b.alive && b.hit > 0) { b.hit -= dt; const k = Math.max(0, b.hit) / 0.12; b.mesh.scale.set(1 + k * 0.12, 1 - k * 0.1, 1 + k * 0.12); } }
-    // coffres : apparaissent (salle nettoyée), s'ouvrent quand on s'approche : rayon doré, pièces qui jaillissent
+    // coffres : apparaissent (salle terminée), s'ouvrent quand on s'approche : rayon doré, une gerbe d'étoiles = des points,
+    // et souvent un cœur ou une recharge de bouclier quand on en a besoin
     function chestsUpdate(dt) {
       for (const C of CHESTS) {
         C.t += dt;
@@ -2771,29 +2981,48 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
           C.g.position.y = (1 - easeOut(k)) * 3;
           if (k >= 1) { C.st = 'closed'; C.t = 0; dust(C.x, C.z, 8, 1.2); sfx('slam', 0.35, 1.4, 0.1); shake(0.12); }
         } else if (C.st === 'closed') {
+          // il tressaute de temps en temps (« il y a quelque chose dedans »)
           C.g.rotation.z = Math.sin(C.t * 9) * 0.02 * (Math.sin(C.t * 1.6) > 0.6 ? 1 : 0);
           if (Math.hypot(hero.x - C.x, hero.z - C.z) < 2.2 && !hero.dead && G.phase === 'play') openChest(C);
+        } else if (C.st === 'shake') {
+          // l'attente : il tremble, se soulève un peu… clic !
+          const k = C.t / 0.42;
+          C.g.rotation.z = Math.sin(C.t * 46) * 0.07 * (1 - k * 0.3); C.g.position.y = Math.abs(Math.sin(C.t * 23)) * 0.07;
+          if (C.lid) C.lid.rotation.x = -Math.abs(Math.sin(C.t * 30)) * 0.08;
+          if (FXR() < dt * 30) fx({ x: C.x + frnd(-0.5, 0.5), y: 0.95, z: C.z + frnd(-0.4, 0.4), vy: frnd(0.5, 1.5), life: 0.4, s0: 0.16, s1: 0, c0: 0xffe7a0, k: 3, cell: 'star4', rot: FXR() * 6 });
+          if (C.t >= 0.42) { C.st = 'open'; C.t = 0; C.g.rotation.z = 0; C.g.position.y = 0; chestBurst(C); }
         } else if (C.st === 'open') {
-          C.open = Math.min(1, C.open + dt * 2.4);
-          if (C.lid) C.lid.rotation.x = -easeBack(C.open) * 1.9;
+          // le couvercle bascule sur sa charnière (un petit rebond), la lueur dorée s'éteint doucement ; le coffre reste ouvert, vide
+          C.open = Math.min(1, C.open + dt * 2.6);
+          if (C.lid) C.lid.rotation.x = -easeBack(C.open) * 1.95;
+          if (C.glow) { const f = clamp(1 - (C.t - 1.2) / 3.5, 0.18, 1); C.glow.a = 0.9 * f; C.rays.a = 0.85 * f * (C.t < 4.7 ? 1 : 0); if (C.L) C.L.i = 24 * f; }
+          if (C.t < 2.2 && FXR() < dt * 22) fx({ x: C.x + frnd(-0.35, 0.35), y: 0.9, z: C.z + frnd(-0.25, 0.25), vy: frnd(1.2, 2.6), vx: frnd(-0.3, 0.3), vz: frnd(-0.3, 0.3), life: frnd(0.6, 1.0), s0: 0.2, s1: 0.03, c0: 0xffe28a, k: 2.8, cell: 'star4', rot: FXR() * 6, drag: 1 });
         }
       }
     }
     function openChest(C) {
-      C.st = 'open'; C.t = 0; G.chests++;
-      sfx('chest', 0.6, 1); sfx('treasure', 0.5, 1, 0.2);
+      C.st = 'shake'; C.t = 0; G.chests++;
+      sfx('chest', 0.7, 1.05); sfx('stone', 0.25, 1.8, 0.05);
+      if (C.beam) { delStatic(C.beam); C.beam = null; }
+    }
+    // le couvercle s'ouvre : lumière qui jaillit du coffre, PUIS la gerbe d'étoiles qui file au compteur (+ le gros « +500 »)
+    function chestBurst(C) {
       const x = C.x, z = C.z;
-      if (C.beam) delStatic(C.beam);
-      flash(x, 1.4, z, 0xffe08a, 5, 0.5, 2.4);
-      ringFx(x, z, 0xffd36a, 0.4, 4.5, 0.6, 'rays', 0.9, 2);
-      for (let i = 0; i < 18; i++) fx({ x: x + frnd(-0.4, 0.4), y: 1.0, z: z + frnd(-0.4, 0.4), vy: frnd(3, 8), vx: frnd(-1, 1), vz: frnd(-1, 1), life: frnd(0.6, 1.1), s0: 0.3, s1: 0.05, c0: 0xfff0a0, k: 3, cell: 'star4', rot: FXR() * 6, drag: 1.5 });
-      const L = addLight(x, 2, z, 0xffc860, 40, 10, 0, 'chest'); L.prio = 700; after(0.6, () => { L.i = 14; }); after(1.4, () => delLight(L));
-      const n = C.gold ? 26 : 14;
-      for (let i = 0; i < n; i++) after(0.1 + i * 0.03, () => dropCoin(x, z, 1.4));
-      if (G.hearts < MAXH || C.gold) after(0.4, () => dropHeart(x + frnd(-0.8, 0.8), z + 1.2));
-      const bonus = Math.round((C.gold ? 1000 : 400) * G.ptsMul); addScore(bonus);
-      pop(x, 2.6, z, 'TRÉSOR ! +' + fmt(bonus), 'big', 1.6);
-      if (FXR() < 0.6) callout(fpick(['Un trésor !!', 'Des pièces d’or !', 'On est riches !', 'Ça brille !']), { prio: 1 });
+      sfx('treasure', 0.55, 1, 0.1); sfx('chest', 0.35, 1.5, 0.05);
+      C.glow = addStatic({ x, y: 1.05, z, s: 2.6, cell: 'glow', col: 0xffd36a, k: 1.9, a: 0.9, pulse: 3 });
+      C.rays = addStatic({ x, y: 1.6, z, s: 3.4, cell: 'rays', col: 0xffe6a0, k: 1.8, a: 0.85, vr: 0.6 });
+      C.L = addLight(x, 1.8, z, 0xffc860, 24, 9, 0.1, 'chest'); C.L.prio = 700;
+      flash(x, 1.2, z, 0xffe08a, 4.5, 0.45, 2.4);
+      ringFx(x, z, 0xffd36a, 0.4, 3.8, 0.55, 'rays', 0.9, 2);
+      // colonne de lumière qui monte du coffre ouvert
+      for (let i = 0; i < 14; i++) fx({ x: x + frnd(-0.3, 0.3), y: 0.9, z: z + frnd(-0.25, 0.25), vy: frnd(4, 9), vx: frnd(-0.6, 0.6), vz: frnd(-0.6, 0.6), life: frnd(0.5, 0.9), s0: 0.3, s1: 0.05, c0: 0xfff0a0, k: 3, cell: 'star4', rot: FXR() * 6, drag: 1.6 });
+      const pts = Math.round((C.gold ? 1000 : 500) * G.ptsMul);
+      after(0.28, () => { scoreBurst(x, 1.7, z, pts, { n: C.gold ? 16 : 12, huge: true }); sfx('combo', 0.4, 1.2, 0.1); });
+      const needH = G.hearts < MAXH, needS = G.shield < MAXS - 0.05;
+      if (needH && (C.gold || G.hearts <= 3 || FXR() < 0.5)) after(0.6, () => dropHeart(x + frnd(-0.8, 0.8), z + 1.3));
+      else if (needS && (C.gold || FXR() < 0.6)) after(0.6, () => dropShield(x + frnd(-0.8, 0.8), z + 1.3));
+      if (FXR() < 0.6) after(0.4, () => callout(fpick(['Un trésor !!', 'Waouh, plein d’étoiles !', 'Ça brille !', 'Encore des points !']), { prio: 1 }));
+      after(5.5, () => { if (C.L) { delLight(C.L); C.L = null; } });
     }
 
     // ===========================================================================
@@ -2935,18 +3164,78 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     // pièges à pics : en bas → ils tremblent (attention) → ils sortent (ça pique) → ils rentrent
     function spikesUpdate(dt) {
       for (const S of SPIKES) {
-        if (!S.on) continue;
+        if (!S.on) { if (S.warn) S.warn.vis = 0; if (S.sp && S.sp.position.y > -2.04) S.sp.position.y = damp(S.sp.position.y, -2.05, 6, dt); continue; }
         S.t += dt;
-        let target = -2.2;
+        let target = -2.05;
         if (S.st === 'down' && S.t > 2.4) { S.st = 'warn'; S.t = 0; sfx('spikewarn', 0.22, 1, 0.3, S.x); }
-        else if (S.st === 'warn') { target = -1.75 + Math.sin(S.t * 40) * 0.04; if (S.t > 0.7) { S.st = 'up'; S.t = 0; S.hit.clear(); sfx('spikes', 0.45, frnd(0.95, 1.05), 0.1, S.x); dust(S.x, S.z, 5, 1.2); } }
-        else if (S.st === 'up') { target = -0.95; if (S.t > 1.0) { S.st = 'down'; S.t = 0; } }
+        else if (S.st === 'warn') { target = -1.8 + Math.sin(S.t * 40) * 0.04; if (S.t > 0.7) { S.st = 'up'; S.t = 0; S.hit.clear(); sfx('spikes', 0.45, frnd(0.95, 1.05), 0.1, S.x); dust(S.x, S.z, 5, 1.2); } }
+        else if (S.st === 'up') { target = -0.55; if (S.t > 1.0) { S.st = 'down'; S.t = 0; } }
         if (S.sp) S.sp.position.y = damp(S.sp.position.y, target, S.st === 'up' ? 40 : 8, dt);
+        if (S.warn) S.warn.vis = S.st === 'warn' ? 1 : S.st === 'up' ? 0.45 : 0;
         if (S.st === 'up' && S.t < 0.9) {
           if (!S.hit.has(hero) && Math.abs(hero.x - S.x) < 1.8 && Math.abs(hero.z - S.z) < 1.8) { S.hit.add(hero); hurtHero(1, S.x, S.z); }
           for (const m of MON) if (!m.dead && !m.K.boss && !S.hit.has(m) && Math.abs(m.x - S.x) < 1.8 && Math.abs(m.z - S.z) < 1.8) { S.hit.add(m); hurtMonster(m, 25, S, 'fire'); }
         }
       }
+    }
+
+    // ===========================================================================
+    // POINTS QUI S'ENVOLENT (plus de pièces : « l'argent » n'avait pas de sens) — un coffre, une caisse, un boss vaincu lâchent des
+    // étoiles qui filent jusqu'au compteur de points ; le compteur monte au fur et à mesure et rebondit à la fin.
+    // Le score réel est compté tout de suite (fin de partie juste) ; seul l'affichage attend les étoiles.
+    // ===========================================================================
+    const FLY = []; let scoreHold = 0;
+    const flyV = { r: null };
+    function scoreBurst(x, y, z, pts, o) {
+      o = o || {};
+      pts = Math.max(0, Math.round(pts)); if (!pts) return;
+      addScore(pts);
+      // éclat d'étoiles et d'étincelles dans le monde
+      const m = o.n || clamp(Math.round(pts / 70), 3, 14);
+      for (let i = 0; i < m * 2; i++) fx({ x: x + frnd(-0.3, 0.3), y, z: z + frnd(-0.3, 0.3), vx: frnd(-2.6, 2.6), vy: frnd(3, 7.5), vz: frnd(-2.6, 2.6), g: 9, drag: 1.2,
+        life: frnd(0.5, 0.9), s0: frnd(0.26, 0.42), s1: 0.06, c0: i % 3 ? 0xffe27a : 0x9ff0ff, k: 2.8, cell: i % 2 ? 'star4' : 'fsparkle', rot: FXR() * 6, vr: frnd(-6, 6) });
+      flash(x, y, z, 0xffe08a, 2.6, 0.3, 2.2);
+      if (o.pop !== false) pop(x, y + 0.5, z, '+' + fmt(pts), o.huge ? 'big huge' : o.small ? '' : 'big', o.huge ? 1.7 : 1.2);
+      if (!camera || !H.pops) return;
+      // les étoiles qui volent (DOM, au-dessus du jeu)
+      const v = camTmp.v.set(x, y, z).project(camera);
+      const sx = (v.x * 0.5 + 0.5) * VW, sy = (-v.y * 0.5 + 0.5) * VH;
+      scoreHold += pts;
+      let left = pts;
+      for (let i = 0; i < m; i++) {
+        const e = document.createElement('div'); e.className = 'mf-fly' + (i % 4 === 3 ? ' blue' : '');
+        e.innerHTML = ICON.star; e.style.opacity = '0'; H.pops.appendChild(e);
+        const val = i === m - 1 ? left : Math.round(pts / m); left -= val;
+        FLY.push({ el: e, x0: sx + frnd(-34, 34), y0: sy + frnd(-26, 18), t: -(o.delay || 0) - i * 0.05, dur: frnd(0.6, 0.85), val, wob: frnd(-1, 1), last: i === m - 1 });
+      }
+    }
+    function flyUpdate(rdt) {
+      if (!FLY.length) { if (scoreHold) scoreHold = 0; return; }
+      const r = H.score.getBoundingClientRect(), base = H.pops.getBoundingClientRect();
+      const tx = r.left + r.width * 0.7 - base.left, ty = r.top + r.height * 0.55 - base.top;
+      for (let i = FLY.length - 1; i >= 0; i--) {
+        const f = FLY[i]; f.t += rdt;
+        if (f.t < 0) continue;
+        const k = Math.min(1, f.t / f.dur), e = k * k * (3 - 2 * k);
+        // courbe : l'étoile jaillit vers le haut puis file vers le compteur
+        const cx = (f.x0 + tx) * 0.5 + f.wob * 70, cy = Math.min(f.y0, ty) - 110;
+        const x = (1 - e) * (1 - e) * f.x0 + 2 * (1 - e) * e * cx + e * e * tx, y = (1 - e) * (1 - e) * f.y0 + 2 * (1 - e) * e * cy + e * e * ty;
+        f.el.style.opacity = k < 0.08 ? (k / 0.08).toFixed(2) : '1';
+        f.el.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) translate(-50%,-50%) scale(' + (1.35 - e * 0.65).toFixed(3) + ') rotate(' + (k * 280 * f.wob).toFixed(0) + 'deg)';
+        if (k >= 1) {
+          scoreHold = Math.max(0, scoreHold - f.val); f.el.remove(); FLY.splice(i, 1);
+          sfx('coin', 0.1, 1.1 + FXR() * 0.5, 0.02);
+          if (f.last || !FLY.length) { H.score.classList.remove('bump2'); void H.score.offsetWidth; H.score.classList.add('bump2'); }
+        }
+      }
+      if (!FLY.length) scoreHold = 0;
+    }
+    function flyClear() { for (const f of FLY) f.el.remove(); FLY.length = 0; scoreHold = 0; }
+    // recharge du bouclier (dans un coffre) : un cristal bleu à ramasser, bien visible
+    function dropShield(x, z) {
+      const st = addStatic({ x, y: 0.8, z, s: 0.8, cell: 'shard', col: 0x7fe6ff, k: 2.6, a: 1, pulse: 6 });
+      const gl1 = addStatic({ x, y: 0.8, z, s: 2.0, cell: 'glow', col: 0x58c8ff, k: 1.4, a: 0.65, pulse: 4 });
+      HEARTS.push({ x, z, y: 0.8, vy: 4, st, gl1, t: 0, shield: true });
     }
 
     // ===========================================================================
@@ -3207,7 +3496,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     // Il dort sous le sol de l'antre, en sort dans un fracas, frappe (cercles rouges annoncés), lance des rochers,
     // appelle des squelettes à 66 % et 33 %, fait tomber des pierres du plafond à la fin. Mort spectaculaire.
     // ===========================================================================
-    KIND.golem = { tpl: 'golem', name: 'Le Gardien de pierre', boss: true, h: 4.7, r: 1.45, hp: 1500, sp: 1.7, pts: 5000, dmg: 2, coins: [0, 0], hit: ['hitl'] };
+    KIND.golem = { tpl: 'golem', name: 'Le Gardien de pierre', boss: true, h: 4.7, r: 1.45, hp: 1500, sp: 1.7, pts: 5000, dmg: 2, hit: ['hitl'] };
     const BOSS = { m: null, st: 'none', t: 0, phase: 1, atk: null, cd: 2, pend: null, rocksT: 0, glow: 0 };
     function prepGolem(gltf) {
       gltf.scene.updateMatrixWorld(true);
@@ -3227,7 +3516,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       const c = { tp: { h: K.h }, root, rig: inner, mixer, acts, mats: [mat], mesh: null, byName: {}, cur: null };
       const m = { kind: 'golem', K, c, x, z, r: K.r, vx: 0, vz: 0, face: Math.PI * 0.25, hp: Math.round(K.hp * (1 + 0.55 * G.tour)), hpMax: 0, st: 'boss', t: 0, cd: 2, flash: 0, frozen: 0, slowed: 0, burn: 0, stun: 0, kbx: 0, kbz: 0, dead: false, sleeping: true, y: -5.2 };
       m.hpMax = m.hp;
-      m.sh = addStatic({ x, y: 0.05, z, s: 5.5, cell: 'blob', col: 0x000000, a: 0, mode: 1, add: false });
+      m.sh = addStatic({ x, y: 0.07, z, s: 5.5, cell: 'blob', col: 0x000000, a: 0, mode: 1, add: false });
       MON.push(m);
       return m;
     }
@@ -3408,7 +3697,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         for (let i = 0; i < 50; i++) { const a = FXR() * TAU, v = frnd(3, 12); fx({ x: m.x, y: frnd(0.5, 4), z: m.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: frnd(2, 10), g: 16, drag: 0.6, floor: true, life: frnd(1.2, 2.2), s0: frnd(0.4, 0.9), s1: 0.3, c0: 0xa89a88, k: 1, cell: 'rocks', add: false, rot: FXR() * 6, vr: frnd(-8, 8), a0: 1, fade: 0.7 }); }
         smokePuff(m.x, 1, m.z, 0x9a8a7a, 14, 2.8);
         m.c.root.visible = false; if (m.sh) { delStatic(m.sh); m.sh = null; } BOSS.rune.a = 0.1; BOSS.rune2.a = 0.05;
-        for (let i = 0; i < 30; i++) dropCoin(m.x + frnd(-1.5, 1.5), m.z + frnd(-1.5, 1.5), 1.6);
+        scoreBurst(m.x, 3, m.z, 1000 * G.ptsMul, { n: 16, huge: true, delay: 0.25, pop: false });
         const pts = Math.round(KIND.golem.pts * G.ptsMul); addScore(pts); pop(m.x, 5, m.z, '+' + fmt(pts), 'big', 2);
       });
       after(3.0, () => { cineEnd(); el.classList.remove('cine'); worldWon(); });
@@ -3443,12 +3732,12 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       LAVA.holes.length = 0; LAVA.mesh = null;
       if (!MAPDEF.lava) return;
       const mat = keep(new T.ShaderMaterial({
-        uniforms: { uT: UNI.time },
+        uniforms: { uT: UNI.time }, defines: { OCT: Q.lavaOct || 4 },
         vertexShader: 'varying vec2 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }',
         fragmentShader: `uniform float uT; varying vec2 vW;
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
-float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
+float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < OCT; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
 void main(){ vec2 p = vW * 0.16;
  vec2 q = vec2(fbm(p + vec2(uT * 0.05, 0.0)), fbm(p + vec2(5.2, 1.3) - vec2(0.0, uT * 0.04)));
  float n = fbm(p + 2.4 * q + vec2(uT * 0.03, -uT * 0.02));
@@ -3462,7 +3751,7 @@ void main(){ vec2 p = vW * 0.16;
 #include <colorspace_fragment>
 }`, fog: false }));
       const m = new T.Mesh(keep(new T.PlaneGeometry(MAP.W * 2.2, MAP.H * 2.2)), mat);
-      m.rotation.x = -Math.PI / 2; m.position.set(MAP.W / 2, -1.6, MAP.H / 2); m.renderOrder = -1; wadd(m); LAVA.mesh = m;
+      m.rotation.x = -Math.PI / 2; m.position.set(MAP.W / 2, -1.6, MAP.H / 2); m.renderOrder = 2; wadd(m); LAVA.mesh = m;
       // trous de lave dans les salles : lueur + vraie lumière + braises
       for (let j = 0; j < MAP.NJ; j++) for (let i = 0; i < MAP.NI; i++) if (MAP.at(i, j) === 'L') {
         const x = i * CELL + 2, z = j * CELL + 2;
@@ -3491,7 +3780,7 @@ void main(){ vec2 p = vW * 0.16;
     // BRAISE, LE DRAGON : il arrive en planant, se pose dans un fracas, griffe, crache des boules de feu, souffle un cône
     // de flammes (annoncé en rouge) ; à 60 % il s'envole et arrose l'arène depuis le ciel, à 30 % il enrage (la lave jaillit).
     // ===========================================================================
-    KIND.dragon = { tpl: 'dragon', name: 'Braise, le dragon', boss: true, h: 7.6, r: 3.0, hp: 2200, sp: 2.4, pts: 8000, dmg: 2, coins: [0, 0], hit: ['hit'] };
+    KIND.dragon = { tpl: 'dragon', name: 'Braise, le dragon', boss: true, h: 7.6, r: 3.0, hp: 2200, sp: 2.4, pts: 8000, dmg: 2, hit: ['hit'] };
     let coneMesh = null;
     function makeDragon(x, z) {
       const tp = TPL.dragon; if (!tp) return null;
@@ -3506,7 +3795,7 @@ void main(){ vec2 p = vW * 0.16;
       const c = { tp: { h: K.h }, root, rig: inner, mixer, acts, mats: [mat], mesh: null, byName: {}, cur: null, head };
       const m = { kind: 'dragon', K, c, x, z, r: K.r, vx: 0, vz: 0, face: 0, hp: Math.round(K.hp * (1 + 0.55 * G.tour)), hpMax: 0, st: 'boss', t: 0, cd: 2, flash: 0, frozen: 0, slowed: 0, burn: 0, stun: 0, kbx: 0, kbz: 0, dead: false, sleeping: true, y: 0 };
       m.hpMax = m.hp;
-      m.sh = addStatic({ x, y: 0.05, z, s: 7, cell: 'blob', col: 0x000000, a: 0, mode: 1, add: false });
+      m.sh = addStatic({ x, y: 0.07, z, s: 7, cell: 'blob', col: 0x000000, a: 0, mode: 1, add: false });
       MON.push(m);
       // cône de souffle (annonce au sol)
       if (!coneMesh) {
@@ -3758,7 +4047,7 @@ void main(){ vec2 p = vW * 0.16;
         for (let i = 0; i < 60; i++) { const a = FXR() * TAU, v = frnd(3, 13); fx({ x: m.x, y: frnd(0.5, 4), z: m.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: frnd(2, 10), g: 12, drag: 0.6, life: frnd(1, 2), s0: frnd(0.1, 0.2), s1: 0.03, c0: 0xffb050, k: 3.4, cell: 'dot' }); }
         smokePuff(m.x, 1.5, m.z, 0x3a2a24, 16, 3);
         m.c.root.visible = false; if (m.sh) { delStatic(m.sh); m.sh = null; } BOSS.rune.a = 0.1; BOSS.rune2.a = 0.05;
-        for (let i = 0; i < 40; i++) dropCoin(m.x + frnd(-2, 2), m.z + frnd(-2, 2), 1.8);
+        scoreBurst(m.x, 3, m.z, 1000 * G.ptsMul, { n: 16, huge: true, delay: 0.25, pop: false });
         const pts = Math.round(KIND.dragon.pts * G.ptsMul); addScore(pts); pop(m.x, 5, m.z, '+' + fmt(pts), 'big', 2);
       });
       after(3.2, () => { cineEnd(); el.classList.remove('cine'); worldWon(); });
@@ -3847,7 +4136,7 @@ void main(){ if (vK >= 0.999) discard;
  float a = (0.25 + 0.55 * s1 * s2 + 0.35 * step(0.95, n)) * e;
  float dis = step(vK, h(floor(vUv * vec2(26.0, 30.0))) * 0.95);
  a *= dis * (1.0 - vK * 0.6) * (0.75 + 0.25 * sin(uT * 2.0));
- vec3 c = mix(vec3(0.15, 0.3, 1.0), vec3(0.6, 0.2, 1.0), s2) * (0.9 + 1.4 * s1);
+ vec3 c = mix(vec3(1.0, 0.16, 0.1), vec3(1.0, 0.42, 0.14), s2) * (0.75 + 1.2 * s1);
  gl_FragColor = vec4(c, a);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
@@ -3860,7 +4149,7 @@ void main(){ if (vK >= 0.999) discard;
         const geo = keep(new T.PlaneGeometry(w, h)); const bk = new Float32Array(geo.getAttribute('position').count).fill(1); geo.setAttribute('bk', new T.BufferAttribute(bk, 1));
         const m = new T.Mesh(geo, barMat); m.position.set(D.x, h / 2, D.z); m.rotation.y = vertical ? Math.PI / 2 : 0; m.renderOrder = 17; m.visible = false; wadd(m);
         D.mesh = m; D.bk = bk; D.k = 1; D.closed = false;
-        D.glow = addStatic({ x: D.x, y: 0.08, z: D.z, s: w * 1.6, cell: 'glow', col: 0x7a6cff, k: 1.4, mode: 1, a: 0.55, pulse: 2, vis: 0 });
+        D.glow = addStatic({ x: D.x, y: 0.08, z: D.z, s: w * 1.6, cell: 'glow', col: 0xff3a30, k: 1.4, mode: 1, a: 0.6, pulse: 2, vis: 0 });
         if (D.wood && DL) {
           // battant de la porte : pivot sur le montant, tourné comme le mur
           const g = new T.Group(), a = D.ry * Math.PI / 180, px = DL.pivot.x, pz = DL.pivot.z;
@@ -3868,6 +4157,7 @@ void main(){ if (vK >= 0.999) discard;
           const leaf = new T.Mesh(DL.geo, MAT.world); leaf.castShadow = Q.shadow > 0; g.add(leaf); wadd(g);
           D.leaf = g; D.ry0 = a; D.open = 1;
         }
+        doorLockBuild(D);
       }
     }
     function setDoor(D, closed, quiet) {
@@ -3885,7 +4175,9 @@ void main(){ if (vK >= 0.999) discard;
         if (D.k !== target) { D.k = target > D.k ? Math.min(1, D.k + dt * 1.2) : Math.max(0, D.k - dt * 2.6); D.bk.fill(D.k); D.mesh.geometry.getAttribute('bk').needsUpdate = true; }
         D.mesh.visible = D.k < 0.999; D.glow.vis = 1 - D.k;
         if (D.leaf) { D.open = damp(D.open, D.closed ? 0 : 1, D.closed ? 9 : 3, dt); D.leaf.rotation.y = D.ry0 + D.open * 1.75; }
+        doorLockUpdate(D, dt);
       }
+      guideUpdate(dt);
     }
 
     // ===========================================================================
@@ -3921,6 +4213,7 @@ void main(){ if (vK >= 0.999) discard;
       for (const D of DOORS) {
         let closed = false; for (const R of ROOMS) if ((D.Z === R || D.O === R) && R.state !== 'clear' && isExit(D, R)) closed = true;
         setDoor(D, closed, true); D.k = closed ? 0 : 1; D.bk.fill(D.k); D.mesh.geometry.getAttribute('bk').needsUpdate = true; if (D.leaf) D.open = closed ? 0 : 1;
+        D.lockOn = closed; D.lockK = closed ? 1 : 0; D.quietLand = true; if (D.bars) D.barY = closed ? 0 : -(D.barH + 0.5);
       }
       // coffres (cachés jusqu'à la fin du combat), squelettes couchés, pièges, boss
       for (const R of ROOMS) {
@@ -3936,7 +4229,8 @@ void main(){ if (vK >= 0.999) discard;
       level = worldBase() + R.room + 1;
       const W = PLAYABLE[G.wi];
       hudRoom('SALLE ' + level + (G.tour ? ' · TOUR ' + roman(G.tour) : ''), W.rooms[R.room]);
-      for (const D of roomDoors(R)) setDoor(D, true);
+      guideStop();
+      for (const D of roomDoors(R)) { setDoor(D, true); D.lockOn = true; }
       fetchHeads();
       if (R.boss) { bossIntro(); return; }
       banner('SALLE ' + level, W.rooms[R.room], '', 2.0);
@@ -3964,15 +4258,24 @@ void main(){ if (vK >= 0.999) discard;
       R.state = 'clear';
       for (const S of SPIKES) if (R.has(S.x, S.z)) S.on = false;
       const bonus = Math.round(500 * (R.room + 1) * G.ptsMul); addScore(bonus);
-      for (const D of roomDoors(R)) setDoor(D, false);
+      let exitD = null;
+      for (const D of roomDoors(R)) { if (isExit(D, R)) { const d0 = exitD; after(0.35, () => unlockExit(D)); if (!d0) exitD = D; } else D.lockOn = false; }
       sfx('clear', 0.7);
-      banner('SALLE NETTOYÉE !', '+' + fmt(bonus) + ' points', 'blue', 2.2);
+      banner('SALLE TERMINÉE !', 'La porte s’ouvre : suis la flèche ➜', 'blue', 2.8);
+      pop(hero.x, 3.2, hero.z, '+' + fmt(bonus), 'big', 1.5);
+      if (exitD) {
+        const next = ROOMS.find((r) => r.room === R.room + 1), e = next && (next.spots.entry || [4, 4]);
+        const D = exitD;
+        after(0.6, () => { if (G.phase === 'play' || G.phase === 'won') guideTo(next ? next.x0 + e[0] : D.x + D.nx * -3, next ? next.z0 + e[1] : D.z + D.nz * -3, D, R); });
+        // coup d'œil vers la porte si elle est loin du mage
+        if (Math.hypot(D.x - hero.x, D.z - hero.z) > 5) { after(0.5, () => { CAM.focus = [D.x, D.z]; CAM.focusK = 0.6; }); after(2.0, () => { if (CAM.focus && CAM.focus[0] === D.x && CAM.focus[1] === D.z) CAM.focus = null; }); }
+      }
       callout(fpick(['Salle nettoyée, bravo !', 'Les squelettes ont filé !', 'Quel mage !', 'Abracadabra, c’est gagné !', 'Trop facile !']), { prio: 2 });
       if (R.chest) after(0.9, () => {
         const C = R.chest; C.st = 'appear'; C.t = 0; C.g.position.y = 3; flash(C.x, 1.5, C.z, 0xffe08a, 4, 0.5, 2); sfx('treasure', 0.4, 1.2, 0.2);
         C.beam = addStatic({ x: C.x, y: 0.08, z: C.z, s: 3.6, cell: 'rays', col: 0xffd36a, k: 1.6, mode: 1, a: 0.7, vr: 0.5, pulse: 2 });
       });
-      after(2.6, () => hint(R.chest ? 'Un coffre est apparu ! Et la porte s’ouvre : continue !' : 'La porte magique s’ouvre : continue !', 3.5));
+      if (G.tour === 0 && G.wi === 0 && R.room === 0) after(2.8, () => hint(R.chest ? 'Un coffre ! Ouvre-le pour des points, puis suis les flèches dorées.' : 'Suis les flèches dorées jusqu’à la porte !', 4));
     }
     function roomsUpdate() {
       if (G.phase !== 'play') return;
@@ -3989,8 +4292,8 @@ void main(){ if (vK >= 0.999) discard;
         const last = R.wave >= R.waves.length - 1;
         if (!last && alive <= (R.wave < 0 ? 0 : 1)) {
           R.wave++; spawnWave(R, R.wave);
-          if (G.tour === 0 && G.wi === 0 && R.room === 0 && R.wave === 1) after(1, () => hint(TOUCH ? 'Bouton 🔥 : la nova de feu repousse tout le monde !' : 'K ou clic droit : nova de feu, elle repousse tout le monde !', 4));
-          if (G.tour === 0 && G.wi === 0 && R.room === 0 && R.wave === 2) after(1, () => hint(TOUCH ? 'Bouton gris : roulade (on esquive tout) · ❄ glace · violet : éclairs en chaîne' : 'Espace : roulade (on esquive tout) · L : glace · I : éclairs en chaîne', 4.5));
+          if (G.tour === 0 && G.wi === 0 && R.room === 0 && R.wave === 1) after(1, () => hint(TOUCH ? 'Bouton 🔥 : la nova de feu repousse tout le monde !' : 'Touche 1 : nova de feu, elle repousse tout le monde ! (ou molette + clic droit)', 4));
+          if (G.tour === 0 && G.wi === 0 && R.room === 0 && R.wave === 2) after(1, () => hint(TOUCH ? 'Bouton gris : roulade (on esquive tout) · ❄ glace · violet : éclairs en chaîne' : 'Espace : roulade (on esquive tout) · 2 : glace · 3 : éclairs en chaîne', 4.5));
         } else if (last && alive === 0) clearRoom(R);
       }
     }
@@ -4010,7 +4313,7 @@ void main(){ if (vK >= 0.999) discard;
       const stars = 1 + (G.worldHurt <= 3 ? 1 : 0) + (secs < 300 || G.comboBest >= 12 ? 1 : 0);
       winRes = { total, applied: false };
       H.winT.textContent = 'VICTOIRE !'; H.winS.textContent = W.name + (G.tour ? ' · Tour ' + roman(G.tour) : '') + ' — ' + W.boss.name + ' est vaincu !';
-      const rows = [['Monstres vaincus', G.worldKills], ['Trésors ouverts', G.chests], ['Plus long combo', '×' + G.comboBest], ['Temps', Math.floor(secs / 60) + ' min ' + String(secs % 60).padStart(2, '0')],
+      const rows = [['Monstres vaincus', G.worldKills], ['Coffres ouverts', G.chests], ['Plus long combo', '×' + G.comboBest], ['Temps', Math.floor(secs / 60) + ' min ' + String(secs % 60).padStart(2, '0')],
         [G.worldHurt === 0 ? 'Sans une égratignure !' : 'Coups reçus', G.worldHurt === 0 ? '+' + fmt(noHit) : G.worldHurt], ['Bonus du monde', '+' + fmt(total)]];
       H.winRows.textContent = '';
       rows.forEach(([a, b], i) => { const r = document.createElement('div'); r.className = 'mf-wrow' + (i === rows.length - 1 ? ' tot' : ''); r.innerHTML = '<span></span><b></b>'; r.firstChild.textContent = a; r.lastChild.textContent = String(b); H.winRows.appendChild(r); setTimeout(() => r.classList.add('on'), 700 + i * 260); });
@@ -4044,7 +4347,8 @@ void main(){ if (vK >= 0.999) discard;
       sfx('portal', 0.8);
       const next = PLAYABLE[G.wi + 1];
       hint(next ? 'Entre dans le portail : direction « ' + next.name + ' » !' : 'Entre dans le portail : le donjon recommence… en plus fort !', 6);
-      for (const D of DOORS) setDoor(D, false, true);
+      for (const D of DOORS) { setDoor(D, false, true); D.lockOn = false; }
+      after(0.4, () => guideTo(x, z, null, null));
     }
     function portalUpdate(dt) {
       if (!PORTAL) return;
@@ -4105,19 +4409,23 @@ void main(){ if (vK >= 0.999) discard;
       MON.length = 0; BOSS.m = null; BOSS.st = 'none';
       for (const B of BURSTS) { scene.remove(B.holder); disposeChar(B.c); } BURSTS.length = 0;
       for (const f of FOES) { if (f.L) delLight(f.L); if (f.mesh) scene.remove(f.mesh); } FOES.length = 0;
-      SHOTS.length = 0; DANGER.length = 0; ARCS.length = 0; COINS.length = 0; HEARTS.length = 0; parts.length = 0; LATER.length = 0; G.nova = null;
+      SHOTS.length = 0; DANGER.length = 0; ARCS.length = 0; HEARTS.length = 0; flyClear(); parts.length = 0; LATER.length = 0; G.nova = null;
       const shared = new Set(); for (const L of Object.values(LIB)) { if (L.geo) shared.add(L.geo); for (const s of Object.values(L.sub)) shared.add(s.geo); }
       for (const o of WMESH) { scene.remove(o); o.traverse((x) => { if (x.geometry && !shared.has(x.geometry)) x.geometry.dispose(); }); }
       WMESH.length = 0;
-      const keepSt = new Set([hero.shadow, hero.tipGlow, hero.tipCore]);
+      const keepSt = new Set([hero.shadow, hero.tipGlow, hero.tipCore, hero.ret]);
       for (let i = statics.length - 1; i >= 0; i--) if (!keepSt.has(statics[i])) statics.splice(i, 1);
       for (let i = lightSrc.length - 1; i >= 0; i--) if (lightSrc[i] !== hero.light) lightSrc.splice(i, 1);
       ZONES.length = 0; ROOMS.length = 0; DOORS.length = 0; BREAK.length = 0; CHESTS.length = 0; SPIKES.length = 0; TORCHES.length = 0; RAYS.length = 0; PL.length = 0; SOLIDS.length = 0;
+      guideStop(); GUIDE.st.length = 0;
       PORTAL = null; H.boss.classList.remove('on'); if (coneMesh) coneMesh.visible = false; LAVA.mesh = null; LAVA.holes.length = 0;
     }
     function enterWorld(lv) {
       const wo = worldOf(lv); G.wi = wo.w; G.tour = wo.tour; applyTour();
       const W = PLAYABLE[wo.w];
+      // ombres selon le niveau actuel (un niveau remonté entre deux mondes les retrouve ici)
+      { const TN = TIERS[Q.tier]; Q.shadow = TN.shadow; Q.shadowSize = TN.shadowSize; renderer.shadowMap.enabled = Q.shadow > 0; renderer.shadowMap.autoUpdate = Q.shadow === 2; sun.castShadow = Q.shadow > 0;
+        if (Q.shadow && sun.shadow.mapSize.x !== Q.shadowSize) { sun.shadow.mapSize.set(Q.shadowSize, Q.shadowSize); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } } }
       buildWorld(W.id);
       const look = MAPDEF.look;
       hemi.color.set(look.hemi[0]); hemi.groundColor.set(look.hemi[1]); hemi.intensity = look.hemi[2];
@@ -4125,12 +4433,13 @@ void main(){ if (vK >= 0.999) discard;
       scene.fog.color.set(look.fog); renderer.setClearColor(look.fog, 1);
       UNI.dark.value[0] = look.dark[0]; UNI.dark.value[1] = look.dark[1]; UNI.dark.value[2] = look.dark[2];
       ppGrade(look.grade); setWorldLook(look);
-      buildDoors(); zonePath(); gridInit(); buildAbyss(); buildLava(); coinInit();
+      buildDoors(); zonePath(); gridInit(); buildAbyss(); buildLava();
       if (!hero.c) buildHero();
       if (Q.shadow) {
         const cam = sun.shadow.camera;
         if (Q.shadow === 1) {
           const cx = MAP.W / 2, cz = MAP.H / 2, r = Math.max(MAP.W, MAP.H) * 0.62;
+          sun.shadow.normalBias = Math.max(0.04, 2 * r / Q.shadowSize * 1.1);      // texel plus gros = décalage plus grand (pas d'« acné »)
           sun.target.position.set(cx, 0, cz); sun.position.set(cx - 20, 48, cz + 16);
           cam.left = -r; cam.right = r; cam.top = r; cam.bottom = -r; cam.near = 5; cam.far = 160;
           cam.updateProjectionMatrix(); renderer.shadowMap.needsUpdate = true;
@@ -4167,7 +4476,7 @@ void main(){ if (vK >= 0.999) discard;
     }
     function worldUpdate(dt) {
       monstersUpdate(dt); shotsUpdate(dt); foesUpdate(dt); dangerUpdate(dt); novaUpdate(dt); arcsUpdate(dt);
-      coinsUpdate(dt); heartsUpdate(dt); chestsUpdate(dt); breakUpdate(dt); spikesUpdate(dt); shieldUpdate(dt);
+      heartsUpdate(dt); chestsUpdate(dt); breakUpdate(dt); spikesUpdate(dt); shieldUpdate(dt);
       doorsUpdate(dt); torchesUpdate(dt); roomsUpdate(dt); portalUpdate(dt); lavaUpdate(dt); coneUpdate();
       if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) G.combo = 0; }
       hudCombo(false);
@@ -4181,11 +4490,191 @@ void main(){ if (vK >= 0.999) discard;
     }
 
     // ===========================================================================
+    // PORTES QU'ON COMPREND
+    //  - fermée pendant le combat : herse de fer (sort du sol avec un « clang »), lueur rouge au sol, cadenas rouge qui flotte ;
+    //  - salle terminée : le cadenas éclate, la herse s'enfonce dans le sol, la porte s'ouvre, une lumière dorée en sort,
+    //    la caméra jette un coup d'œil vers elle, des chevrons dorés au sol mènent le mage jusqu'à la salle suivante
+    //    (et une flèche au bord de l'écran quand la porte est hors de vue).
+    // ===========================================================================
+    const BARGEO = {};
+    function barGeo(w, h) {
+      const k = w.toFixed(2) + 'x' + h.toFixed(2); if (BARGEO[k]) return BARGEO[k];
+      const parts = [], n = Math.max(4, Math.round(w / 0.42));
+      for (let i = 0; i < n; i++) {
+        const x = -w / 2 + (i + 0.5) * w / n;
+        const g = new T.BoxGeometry(0.1, h, 0.1); g.translate(x, h / 2, 0); parts.push(g);
+        const tip = new T.ConeGeometry(0.1, 0.32, 4); tip.translate(x, h + 0.14, 0); parts.push(tip);    // pointes en haut de la herse
+      }
+      for (const y of [h * 0.3, h * 0.72]) { const g = new T.BoxGeometry(w + 0.12, 0.11, 0.13); g.translate(0, y, 0); parts.push(g); }
+      const geo = keep(T.mergeGeometries(parts.map((g) => g.index ? g.toNonIndexed() : g), false));
+      for (const g of parts) g.dispose();
+      geo.computeBoundingSphere();
+      return (BARGEO[k] = geo);
+    }
+    // côté « salle » d'une porte (là où se trouve le joueur quand elle est fermée)
+    function doorInward(D) {
+      const R = D.Z && D.Z.kind === 'room' ? D.Z : D.O && D.O.kind === 'room' ? D.O : D.Z;
+      let nx = D.side === 'w' ? 1 : D.side === 'e' ? -1 : 0, nz = D.side === 'n' ? 1 : D.side === 's' ? -1 : 0;
+      if (R !== D.Z) { nx = -nx; nz = -nz; }
+      return { R, nx, nz };
+    }
+    function doorLockBuild(D) {
+      if (!MAT.iron) MAT.iron = keep(patchMat(lam({ color: 0x5a5466 }), { rim: true, dark: true, rimCol: 0xff6a50, rimK: 0.4 }));
+      const vertical = D.side === 'w' || D.side === 'e', iw = D.wood ? 2.2 : 3.3, ih = D.wood ? 2.75 : 2.5;
+      const { nx, nz } = doorInward(D); D.nx = nx; D.nz = nz;
+      const off = D.wood ? 0.42 : 0.05;
+      const bars = new T.Mesh(barGeo(iw, ih), MAT.iron);
+      bars.position.set(D.x + nx * off, -(ih + 0.5), D.z + nz * off); bars.rotation.y = vertical ? Math.PI / 2 : 0; bars.castShadow = false; bars.visible = false; wadd(bars);
+      D.bars = bars; D.barH = ih; D.barY = -(ih + 0.5);
+      D.lockSt = addStatic({ x: D.x + nx * 0.95, y: 1.45, z: D.z + nz * 0.95, s: 0.62, cell: 'lock', col: 0xff5a48, k: 2.4, a: 1, pulse: 3.2, vis: 0 });
+      D.lockGl = addStatic({ x: D.x + nx * 0.95, y: 1.45, z: D.z + nz * 0.95, s: 1.7, cell: 'glow', col: 0xff3a30, k: 1.4, a: 0.7, pulse: 3.2, vis: 0 });
+      D.rune = addStatic({ x: D.x + nx * 0.9, y: 0.095, z: D.z + nz * 0.9, s: 2.9, cell: 'rune', col: 0xff3a30, k: 1.5, mode: 1, a: 0.55, vr: 0.6, vis: 0 });
+      D.lockK = 0; D.lockOn = false; D.quietLand = true;
+    }
+    // la herse : monte vite (fermeture, choc), descend doucement (ouverture) ; cadenas et lueurs suivent l'état « verrouillé »
+    function doorLockUpdate(D, dt) {
+      if (!D.bars) return;
+      const top = 0, low = -(D.barH + 0.5);
+      if (D.closed) {
+        if (D.barY < top) {
+          D.barY = Math.min(top, D.barY + dt * (D.barH + 0.5) / 0.2);
+          if (D.barY >= top) { if (!D.quietLand) { sfx('clang', 0.45, 0.62, 0.08, D.x); sfx('stomp', 0.35, 1.3, 0.08, D.x); dust(D.x + D.nx * 0.4, D.z + D.nz * 0.4, 7, 1.3); shake(0.1); } D.quietLand = false; }
+        }
+      } else if (D.barY > low) D.barY = Math.max(low, D.barY - dt * (D.barH + 0.5) / 1.0);
+      D.bars.position.y = D.barY; D.bars.visible = D.barY > low + 0.05;
+      D.lockK = damp(D.lockK, D.lockOn && D.closed ? 1 : 0, 6, dt);
+      D.lockSt.vis = D.lockGl.vis = D.lockK; D.rune.vis = D.lockK;
+      D.lockSt.y = D.lockGl.y = 1.45 + Math.sin(UNI.time.value * 2.2 + D.x) * 0.08;
+    }
+    // le cadenas éclate : la sortie est ouverte
+    function unlockExit(D) {
+      const px = D.x + D.nx * 0.95, pz = D.z + D.nz * 0.95;
+      if (D.lockK > 0.3) {
+        burst(px, 1.45, pz, 0xffd36a, 16, 6, 0.6, 0.3, 'star4', 2.6); burst(px, 1.45, pz, 0xff5a48, 10, 5, 0.5, 0.25, 'shard', 2.2);
+        flash(px, 1.45, pz, 0xffe08a, 3.4, 0.35, 2.6); sfx('shatter', 0.4, 1.35, 0.05, D.x);
+      }
+      D.lockOn = false;
+      setDoor(D, false);
+      sfx('quake', 0.22, 1.7, 0.1, D.x); dust(D.x + D.nx * 0.5, D.z + D.nz * 0.5, 10, 1.5);
+      for (let i = 0; i < 18; i++) { const u = frnd(-1.4, 1.4), vert = D.side === 'w' || D.side === 'e'; fx({ x: D.x + (vert ? 0 : u) + D.nx * 0.3, y: 0.15, z: D.z + (vert ? u : 0) + D.nz * 0.3, vx: frnd(-0.6, 0.6) + D.nx * 1.5, vy: frnd(1.5, 3.5), vz: frnd(-0.6, 0.6) + D.nz * 1.5, g: 9, life: frnd(0.5, 0.9), s0: 0.18, s1: 0.04, c0: 0xffc060, k: 2.6, cell: 'spark', drag: 1 }); }
+      exitGlow(D, true);
+    }
+    // lumière dorée qui sort de la porte ouverte (tant que le guide mène là)
+    function exitGlow(D, on) {
+      if (on && !D.eg) {
+        const nx = D.nx, nz = D.nz;
+        D.eg = {
+          rays: addStatic({ x: D.x + nx * 0.2, y: 1.5, z: D.z + nz * 0.2, s: 3.6, cell: 'rays', col: 0xffd890, k: 1.7, a: 0.8, pulse: 1.4, vr: 0.25 }),
+          c1: addStatic({ x: D.x + nx * 1.3, y: 0.1, z: D.z + nz * 1.3, s: 3.4, cell: 'softc', col: 0xffc860, k: 1.4, mode: 1, a: 0.75, pulse: 2 }),
+          c2: addStatic({ x: D.x + nx * 3.4, y: 0.1, z: D.z + nz * 3.4, s: 3.0, cell: 'softc', col: 0xffb850, k: 1.2, mode: 1, a: 0.45, pulse: 2, ph: 1.5 }),
+          L: addLight(D.x + nx * 1.4, 2.4, D.z + nz * 1.4, 0xffd08a, 16, 10, 0.15, 'exit'), t: 0
+        };
+        D.eg.L.prio = 650;
+      } else if (!on && D.eg) {
+        delStatic(D.eg.rays); delStatic(D.eg.c1); delStatic(D.eg.c2); delLight(D.eg.L); D.eg = null;
+      }
+    }
+    function exitGlowUpdate(D, dt) {
+      if (!D.eg) return;
+      D.eg.t += dt;
+      if (FXR() < dt * 14) { const u = frnd(-1.2, 1.2), vert = D.side === 'w' || D.side === 'e'; fx({ x: D.x + (vert ? 0 : u), y: frnd(0.4, 2.4), z: D.z + (vert ? u : 0), vx: D.nx * frnd(0.6, 1.4), vy: frnd(-0.1, 0.4), vz: D.nz * frnd(0.6, 1.4), life: frnd(1.2, 2), s0: frnd(0.12, 0.22), s1: 0.02, c0: 0xffe7a0, k: 2.6, cell: 'star4', rot: FXR() * 6, vr: frnd(-2, 2), fin: 0.2 }); }
+    }
+
+    // ------------------------------------------------------------- le chemin doré (chevrons au sol) + la flèche au bord de l'écran
+    const GUIDE = { on: false, tx: 0, tz: 0, D: null, R: null, dist: null, st: [], pts: [], sm: [], rt: 0, t: 0, el: null };
+    const GN = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    function guideTo(tx, tz, D, R) {
+      if (!GR.walk) return;
+      const W = GR.w, Hh = GR.h, N = W * Hh;
+      if (!GUIDE.dist || GUIDE.dist.length !== N) { GUIDE.dist = new Int32Array(N); GUIDE.q = new Int32Array(N); }
+      const dist = GUIDE.dist, q = GUIDE.q; dist.fill(-1);
+      let [ci, cj] = cellOf(tx, tz);
+      if (!walkable(ci, cj)) { let best = null; for (let r = 1; r < 8 && !best; r++) for (let j = cj - r; j <= cj + r; j++) for (let i = ci - r; i <= ci + r; i++) if (!best && walkable(i, j)) best = [i, j]; if (!best) return; [ci, cj] = best; }
+      let h0 = 0, t0 = 0; dist[cj * W + ci] = 0; q[t0++] = cj * W + ci;
+      while (h0 < t0) {
+        const k = q[h0++], i = k % W, j = (k - i) / W, d = dist[k] + 1;
+        for (const [di, dj] of GN) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= W || jj >= Hh) continue; const kk = jj * W + ii; if (dist[kk] >= 0 || !walkable(ii, jj)) continue; if (di && dj && (!walkable(i + di, j) || !walkable(i, j + dj))) continue; dist[kk] = d; q[t0++] = kk; }
+      }
+      GUIDE.on = true; GUIDE.tx = tx; GUIDE.tz = tz; GUIDE.D = D || null; GUIDE.R = R || null; GUIDE.rt = 0; GUIDE.t = 0;
+      if (!GUIDE.st.length) for (let i = 0; i < 11; i++) GUIDE.st.push(addStatic({ x: 0, y: 0.11, z: 0, s: 0.95, cell: 'arrow', col: 0xffd36a, k: 2.3, mode: 1, a: 1, vis: 0 }));
+      if (!GUIDE.el) { GUIDE.el = document.createElement('div'); GUIDE.el.className = 'mf-exit'; GUIDE.el.innerHTML = '<i></i><svg viewBox="0 0 24 24"><path d="M4 10.2h10.6L10.4 6l2.1-2.1L20.6 12l-8.1 8.1-2.1-2.1 4.2-4.2H4z"/></svg>'; ui.appendChild(GUIDE.el); }
+    }
+    function guideStop() {
+      if (GUIDE.D) exitGlow(GUIDE.D, false);
+      GUIDE.on = false; GUIDE.D = null; GUIDE.R = null;
+      for (const s of GUIDE.st) s.vis = 0;
+      if (GUIDE.el) GUIDE.el.classList.remove('on');
+    }
+    // trace : on descend les distances depuis le mage, puis on tend le fil (lignes droites tant qu'on voit le point suivant)
+    function guideTrace() {
+      const W = GR.w, dist = GUIDE.dist, pts = GUIDE.pts, sm = GUIDE.sm; pts.length = 0; sm.length = 0;
+      let [i, j] = cellOf(hero.x, hero.z), d = walkable(i, j) ? dist[j * W + i] : -1;
+      if (d < 0) { for (const [di, dj] of GN) { const k = (j + dj) * W + i + di; if (walkable(i + di, j + dj) && dist[k] >= 0 && (d < 0 || dist[k] < d)) { d = dist[k]; i += di; j += dj; break; } } }
+      if (d < 0) return;
+      pts.push(hero.x, hero.z);
+      for (let s = 0; s < 260 && d > 0; s++) {
+        let bi = -1, bj = -1, bd = d;
+        for (const [di, dj] of GN) { const ii = i + di, jj = j + dj; if (!walkable(ii, jj)) continue; const v = dist[jj * W + ii]; if (v >= 0 && v < bd) { bd = v; bi = ii; bj = jj; } }
+        if (bi < 0) break; i = bi; j = bj; d = bd;
+        pts.push(GR.x0 + (i + 0.5) * GR.cs, GR.z0 + (j + 0.5) * GR.cs);
+      }
+      const n = pts.length / 2;
+      sm.push(pts[0], pts[1]);
+      let a = 0;
+      while (a < n - 1) {
+        let b = Math.min(n - 1, a + 1);
+        for (let c = Math.min(n - 1, a + 40); c > a + 1; c--) if (sight(pts[a * 2], pts[a * 2 + 1], pts[c * 2], pts[c * 2 + 1])) { b = c; break; }
+        sm.push(pts[b * 2], pts[b * 2 + 1]); a = b;
+      }
+    }
+    function guideUpdate(dt) {
+      if (!GUIDE.on) return;
+      if (GUIDE.D) exitGlowUpdate(GUIDE.D, dt);
+      GUIDE.t += dt; GUIDE.rt -= dt;
+      if (GUIDE.rt <= 0) { GUIDE.rt = 0.18; guideTrace(); }
+      const sm = GUIDE.sm, n = sm.length / 2, st = GUIDE.st, tt = UNI.time.value;
+      const reach = Math.hypot(hero.x - GUIDE.tx, hero.z - GUIDE.tz);
+      const show = G.phase === 'play' && !hero.dead && reach > 2.2;
+      // chevrons le long du fil, tous les 1,3 m, à partir de 1,2 m devant le mage
+      let k = 0, want = 1.2, acc = 0;
+      for (let s = 0; s < n - 1 && k < st.length && show; s++) {
+        const x0 = sm[s * 2], z0 = sm[s * 2 + 1], x1 = sm[s * 2 + 2], z1 = sm[s * 2 + 3], L = Math.hypot(x1 - x0, z1 - z0);
+        if (L < 1e-3) continue;
+        while (want <= acc + L && k < st.length) {
+          const f = (want - acc) / L, x = lerp(x0, x1, f), z = lerp(z0, z1, f), dx = (x1 - x0) / L, dz = (z1 - z0) / L, S = st[k];
+          S.x = x; S.z = z; S.rot = Math.atan2(-dx, -dz);
+          const wave = 0.5 + 0.5 * Math.sin(tt * 6.5 - k * 0.95);
+          S.vis = Math.min(1, GUIDE.t * 2) * (0.35 + 0.65 * wave * wave) * (k > st.length - 3 ? 0.6 : 1);
+          S.s = 0.85 + wave * 0.18;
+          k++; want += 1.3;
+        }
+        acc += L;
+      }
+      for (; k < st.length; k++) st[k].vis = 0;
+      if (reach < 2.2 && G.phase === 'play') { guideStop(); return; }
+      // flèche au bord de l'écran : vers la porte tant qu'on est dans la salle terminée, puis vers le but
+      const el2 = GUIDE.el; if (!el2) return;
+      const inRoom = GUIDE.R && GUIDE.D && GUIDE.R.has(hero.x, hero.z);
+      const px = inRoom ? GUIDE.D.x : GUIDE.tx, pz = inRoom ? GUIDE.D.z : GUIDE.tz;
+      const v = camTmp.v.set(px, 1.0, pz).project(camera);
+      let sx = (v.x * 0.5 + 0.5) * VW, sy = (-v.y * 0.5 + 0.5) * VH;
+      const behind = v.z > 1; if (behind) { sx = VW - sx; sy = VH - sy; }
+      const mL = 40, mR = 40, mT = 112, mB = TOUCH ? 40 : 96;
+      const inside = !behind && sx > mL && sx < VW - mR && sy > mT && sy < VH - mB;
+      if (inside || !show) { el2.classList.remove('on'); return; }
+      const cx = VW / 2, cy = VH / 2, ddx = sx - cx, ddy = sy - cy;
+      const kx = ddx > 0 ? (VW - mR - 6 - cx) / ddx : ddx < 0 ? (mL + 6 - cx) / ddx : 1e9, ky = ddy > 0 ? (VH - mB - 6 - cy) / ddy : ddy < 0 ? (mT + 6 - cy) / ddy : 1e9;
+      const kk = Math.min(kx, ky, 1), ex = cx + ddx * kk, ey = cy + ddy * kk;
+      el2.style.transform = 'translate(' + ex.toFixed(1) + 'px,' + ey.toFixed(1) + 'px) rotate(' + (Math.atan2(ddy, ddx) * 180 / Math.PI).toFixed(1) + 'deg)';
+      el2.classList.add('on');
+    }
+
+    // ===========================================================================
     // BOUCLE, TAILLE, QUALITÉ, PAUSE
     // ===========================================================================
     const LATER = [];
     function after(d, fn) { LATER.push({ t: G.t + d, fn }); }
-    let last = 0, ro = null;
+    let last = 0, ro = null, nextT = 0;
     function update(dt, rdt) {
       G.t += dt; UNI.time.value += rdt;
       for (let i = LATER.length - 1; i >= 0; i--) if (LATER[i].t <= G.t) { const f = LATER[i].fn; LATER.splice(i, 1); try { f(); } catch (e) { try { console.error(e); } catch (x) { /* rien */ } } }
@@ -4198,7 +4687,7 @@ void main(){ if (vK >= 0.999) discard;
       camUpdate(dt, rdt);
       lightsUpdate(UNI.time.value, CAM.x, CAM.z);
       fxUpdate(dt);
-      popsUpdate(rdt);
+      popsUpdate(rdt); flyUpdate(rdt);
       hudLife(); hudScore(); hudButtons();
       if (G.flash > 0) G.flash = Math.max(0, G.flash - rdt * 1.6);
       if (!PP.on) { const fo = (G.flash * 0.6).toFixed(2); if (H.flash.style.opacity !== fo) H.flash.style.opacity = fo; }
@@ -4207,8 +4696,10 @@ void main(){ if (vK >= 0.999) discard;
     function frame(now) {
       raf = requestAnimationFrame(frame);
       if (destroyed || paused || contextLost) return;
+      // pas plus de 60 images par seconde, mais au rythme juste sur TOUS les écrans (90 Hz : 2 images sur 3, pas 45 i/s)
+      if (last && now < nextT - 2.5) return;
       const elapsed = now - last;
-      if (elapsed < 14 && last) return;               // pas plus de 60 images par seconde (écrans 90/120 Hz : on économise)
+      nextT = Math.max(nextT + 1000 / 60, now - 4);
       const rdt = Math.min(0.05, last ? elapsed / 1000 : 0.016); last = now;
       perfTrack(elapsed);
       if (G.slowT > 0) { G.slowT -= rdt; if (G.slowT <= 0) G.slow = 1; }
@@ -4220,28 +4711,35 @@ void main(){ if (vK >= 0.999) discard;
         PERF.ju = (PERF.ju || 0) * 0.95 + (t1 - t0) * 0.05; PERF.jr = (PERF.jr || 0) * 0.95 + (t2 - t1) * 0.05;
       } catch (e) { if (!G.errShown) { G.errShown = true; try { console.error(e); } catch (x) { /* rien */ } } }
     }
-    // réglage automatique : si le téléphone peine (moins de 45 images/s), on baisse la résolution ; s'il est à l'aise, on remonte
-    let DYN = 1;
+    // réglage automatique, mesuré pendant le jeu : d'abord la résolution (DYN, de 1 à 0,6), puis le niveau (lueur, ombres, lumières,
+    // particules) ; s'il est à l'aise longtemps, on remonte. Le réglage trouvé est gardé sur l'appareil (localStorage).
     function perfTrack(ms) {
-      if (!ms || ms > 250) return;
-      PERF.acc += ms; PERF.n++;
-      if (PERF.n < 45) return;
+      if (!ms || ms > 1500 || G.phase === 'load' || !started) return;
+      if (ms > 50) PERF.hitch = (PERF.hitch || 0) + 1;
+      // une image très lente compte pour 120 ms au plus (un à-coup isolé ne fait pas tout baisser, un appareil lent si)
+      PERF.acc += Math.min(ms, 120); PERF.n++;
+      if ((PERF.n < 24 && PERF.acc < 1000) || PERF.n < 4) return;
       const avg = PERF.acc / PERF.n; PERF.acc = 0; PERF.n = 0; PERF.fps = 1000 / avg; PERF.hist.push(Math.round(PERF.fps));
       if (PERF.hist.length > 40) PERF.hist.shift();
-      if (G.phase === 'load') return;
-      if (avg > 22.5 && DYN > 0.7) { DYN = Math.max(0.7, DYN - 0.1); resize(); PERF.fastS = 0; }
-      else if (avg > 22.5 && PP.on) { PP.on = false; PERF.fastS = 0; PERF.ppOff = true; }
-      else if (avg > 22.5 && DYN > 0.5) { DYN = Math.max(0.5, DYN - 0.1); resize(); PERF.fastS = 0; }
-      else if (avg > 22.5 && Q.parts > 160) Q.parts = Math.max(160, Math.round(Q.parts * 0.8));
-      else if (avg < 17.6) { PERF.fastS++; if (PERF.fastS >= 4 && DYN < 1) { DYN = Math.min(1, DYN + 0.05); resize(); PERF.fastS = 0; } }
-      else PERF.fastS = 0;
+      if (Q.forced && !/[?&]adapt/.test(location.search)) return;          // essais : niveau imposé
+      const now = performance.now();
+      if (now < (PERF.holdT || 0)) return;                                 // un changement vient d'avoir lieu : on attend son effet
+      if (avg > 21) {                                                      // moins de ~48 images/s
+        PERF.fastS = 0;
+        if (DYN > 0.601) { DYN = Math.max(0.6, DYN - (avg > 32 ? 0.15 : 0.08)); resize(); PERF.holdT = now + 900; aqSave(); }
+        else if (Q.tier > 0 && ++PERF.slowS >= 2) { PERF.slowS = 0; setTier(Q.tier - 1); DYN = 0.85; resize(); PERF.holdT = now + 2500; aqSave(true); }
+      } else if (avg < 17.8) {                                             // à l'aise (60 i/s)
+        PERF.slowS = 0; PERF.fastS = (PERF.fastS || 0) + 1;
+        if (DYN < 0.999 && PERF.fastS >= 3) { DYN = Math.min(1, DYN + 0.05); PERF.fastS = 0; resize(); PERF.holdT = now + 900; aqSave(); }
+        else if (DYN >= 0.999 && PERF.fastS >= 30 && Q.tier < Q.maxTier) { PERF.fastS = 0; setTier(Q.tier + 1); DYN = 0.8; resize(); PERF.holdT = now + 2500; aqSave(true); }
+      } else { PERF.slowS = 0; PERF.fastS = 0; }
     }
     function resize() {
       if (destroyed) return;
       VW = Math.max(1, root.clientWidth || el.clientWidth || 390); VH = Math.max(1, root.clientHeight || el.clientHeight || 700);
-      layoutButtons();
+      layoutButtons(); orientCheck();
       if (!renderer) return;
-      let dpr = Math.min(window.devicePixelRatio || 1, Q.maxDpr) * Q.scale * DYN;
+      let dpr = Math.min(window.devicePixelRatio || 1, Q.maxDpr) * DYN;
       const maxPix = Q.mobile ? 1.6e6 : 3.2e6;
       if (VW * VH * dpr * dpr > maxPix) dpr = Math.sqrt(maxPix / (VW * VH));
       renderer.setPixelRatio(Math.max(0.4, dpr));
@@ -4274,6 +4772,7 @@ void main(){ if (vK >= 0.999) discard;
     }
     // boutons : temps de recharge (anneau sombre qui tourne)
     function hudButtons() {
+      barUpdate();
       if (!TOUCH) return;
       const set = (b, cd, max) => {
         const p = cd > 0 ? Math.round(cd / max * 100) : 0;
@@ -4333,7 +4832,7 @@ void main(){ if (vK >= 0.999) discard;
         setLoad(0.95, 'Le donjon se construit…');
         decodeSounds(pack);
         makeLights(); ppInit();
-        FXA = makeFxSystem(Q.parts + 160, true); FXN = makeFxSystem(260, false);
+        FXA = makeFxSystem(TIERS[TIERS.length - 1].parts + 160, true); FXN = makeFxSystem(260, false);
         const W0 = PLAYABLE[worldOf(START).w];
         if (W0.pack && W0.pack !== 'monde1') { setLoad(0.96, 'Le portail s’ouvre sur « ' + W0.name + ' »…'); await ensurePack(W0.pack); if (destroyed) return; }
         enterWorld(START);
@@ -4347,9 +4846,8 @@ void main(){ if (vK >= 0.999) discard;
         H.load.classList.add('out');
         setTimeout(() => { if (H.load.parentNode) H.load.remove(); }, 700);
         started = true;
-        if (!TOUCH) H.help.classList.add('on');
         startIntro();
-        after(14, () => H.help.classList.remove('on'));
+        tipsStart(); after(1.2, rotTipShow);
         last = 0; raf = requestAnimationFrame(frame);
       } catch (e) {
         if (destroyed) return;
@@ -4370,6 +4868,8 @@ void main(){ if (vK >= 0.999) discard;
     function destroy() {
       if (destroyed) return;
       destroyed = true;
+      try { if (Q && started) aqSave(true); } catch (e) { /* rien */ }
+      try { if (PHONE && screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { /* rien */ }
       cancelAnimationFrame(raf); cancelAnimationFrame(loadRaf);
       clearTimeout(bannerTimer); clearTimeout(hintTimer); clearTimeout(callTimer);
       if (ro) ro.disconnect();
@@ -4393,7 +4893,7 @@ void main(){ if (vK >= 0.999) discard;
       currentScore: () => Math.max(0, Math.floor(score)),
       currentLevel: () => Math.max(1, level),
       _dbg: typeof window !== 'undefined' && window.JDW_MAGIC_DBG ? { IN, keys, CD, setTouch, routeDir, PP, TEX, MAT, LIB, TPL, CLIPS, G, hero, MON, ROOMS, ZONES, DOORS, CHESTS, BREAK, Q: () => Q, PERF, CAM, T: () => T, renderer: () => renderer,
-        setPaused, statics, parts, info: () => renderer && renderer.info, lightSrc, plights, DANGER, SHOTS, FOES, BOSS, SPIKES, COINS, GR, free, SOLIDS, gridRefresh, portal: () => PORTAL, winSkip, hurtMonster, spawnMonster, play, KIND, QDEAD,
+        setPaused, statics, parts, info: () => renderer && renderer.info, lightSrc, plights, DANGER, SHOTS, FOES, BOSS, SPIKES, GR, free, SOLIDS, gridRefresh, portal: () => PORTAL, winSkip, hurtMonster, spawnMonster, play, KIND, QDEAD, DYNQ: () => DYN, setTier, barMode, selectSpell: (i) => selectSpell(i), sel: () => SPELLS[selSpell], rotTipShow, BAR,
         calm: () => { for (const m of MON) if (!m.dead && !m.K.boss && m.st !== 'spawn') { m.st = 'cheer'; m.vx = m.vz = 0; play(m.c, m.K.idle, { fade: 0.2 }); } },
         killHero: () => { G.shield = 0; hero.inv = 0; hero.roll = 0; G.phase = 'play'; hurtHero(9, hero.x + 1, hero.z); },
         checkPaths: () => { const was = DOORS.map((D) => D.closed); for (const D of DOORS) D.closed = false; gridRefresh(); const bad = []; const S = ZONES.find((z) => z.kind === 'start');
