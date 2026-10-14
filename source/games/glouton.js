@@ -2943,6 +2943,7 @@
     layout();
     if (doc.hidden) paused = true;
     raf = requestAnimationFrame(frame);
+    mapPlaying++;      // (la carte d'avancement ne prépare rien pendant une partie)
 
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
@@ -2967,6 +2968,7 @@
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        mapPlaying = Math.max(0, mapPlaying - 1);
         cancelAnimationFrame(raf);
         if (ro) { try { ro.disconnect(); } catch (e) { /* rien */ } }
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
@@ -2978,6 +2980,457 @@
     };
   }
 
+  // ===========================================================================
+  // CARTE D'AVANCEMENT (bibliothèque, shell2.js : MAP_DEFS.glouton, thème « glouton ») — les pièces d'eau de la maison, de bas
+  // en haut : la salle de bain, la douche, le hammam, la tuyauterie, la laverie, le spa de minuit, puis le tour suivant (un niveau
+  // = une pièce, comme dans le jeu). Chaque pièce est peinte avec son VRAI labyrinthe de néons (genMaze, paintFloor, paintWalls,
+  // la baignoire, les bulles et les savonnettes) et son ambiance (bulles, pluie, vapeur, tuyaux, mousse, étoiles) ; une porte
+  // néon entre deux pièces, la surface de l'eau à chaque nouveau tour ; un niveau = un médaillon avec le microbe qu'on y
+  // rencontre ; le Gros Microbe (tous les 5 niveaux) = l'étape « BOSS ». Rien de tout ça ne sert pendant une partie.
+  // L (mise en page de la bibliothèque) : nodes [{ lv, x, y, info, boss? }], tiers [{ t (= niveau - 1), y, yLo, yHi }], start, H.
+  // ===========================================================================
+  const ROOMS = [
+    { id: 'bain', emoji: '🛁', tag: 'Bulles et carrelage qui brille' },
+    { id: 'douche', emoji: '🚿', tag: 'Il pleut dans le labyrinthe !' },
+    { id: 'hammam', emoji: '♨️', tag: 'Tout chaud, plein de vapeur' },
+    { id: 'tuyaux', emoji: '🔧', tag: 'Ça glougloute dans les tuyaux' },
+    { id: 'laverie', emoji: '🧺', tag: 'Les machines tournent : ça mousse !' },
+    { id: 'spa', emoji: '🌙', tag: 'Bain de minuit sous les étoiles' }
+  ];
+  const NR = THEMES.length;
+  // le tableau des pièces (lisible par la bibliothèque : fin de partie, carte)
+  const WORLDS = THEMES.map((th, i) => ({
+    n: i + 1, id: ROOMS[i].id, name: th.name, emoji: ROOMS[i].emoji, tag: ROOMS[i].tag, fx: th.fx,
+    colors: { accent: th.neon, accent2: th.neon2, bg0: th.bg2, bg1: th.bg1, floor: th.floor, wall: th.wall, wall2: th.wall2 }
+  }));
+  // niveau (1, 2, 3…) → pièce, tour (0 = le premier), boss ; jamais d'erreur
+  function worldOf(level) {
+    const L = Math.max(1, Math.floor(Number(level)) || 1), w = (L - 1) % NR;
+    return { level: L, w, n: w + 1, tour: Math.floor((L - 1) / NR), stage: 0, world: WORLDS[w], boss: levelFeatures(L).boss };
+  }
+  const mName = (k) => MICROBES[k].name.toLowerCase().replace(/(^|\s)(\S)/g, (m, a, c) => a + c.toUpperCase());
+  // les microbes qui débarquent (comme le bandeau « NOUVEAU » du jeu) ; au niveau 8, le Zinzin rejoint le grand mélange
+  const MAP_NEW = { 1: ['chase', 'ambush'], 2: ['shy'], 3: ['slimer'], 4: ['sprinter'], 6: ['stealth'], 7: ['teleport'], 8: ['wander'] };
+  // trois microbes du mélange (toujours les mêmes pour un niveau donné ; le Collant, toujours là, laisse la place aux autres)
+  function mapTrio(L) {
+    const ks = kindsFor(L, mulberry32(L * 7919 + 17)).filter((k) => k !== 'chase');
+    return [ks[0] || 'ambush', ks[1] || 'shy', ks[2] || 'slimer'];
+  }
+  // les textes d'un niveau sur la carte : nom, ligne, microbes du médaillon (null = boss : médaillon de la pièce)
+  function mapLevel(level) {
+    const L = Math.max(1, Math.floor(Number(level)) || 1), f = levelFeatures(L), news = newsFor(L), nw = MAP_NEW[L];
+    if (f.boss) return { name: 'Le boss !', line: '☠ ' + (L === 5 ? 'Le Gros Microbe arrive' : 'Le Gros Microbe, encore plus gros'), kinds: null };
+    if (nw) return { name: nw.map((k, i) => (i ? mName(k).replace(/^L/, 'l') : mName(k))).join(' et '), line: '✦ ' + (L === 8 ? 'Tous les microbes s\'en mêlent !' : news), kinds: nw };
+    return { name: 'La bande des ' + kindsFor(L, () => 0.5).length, line: '✦ ' + news, kinds: mapTrio(L) };
+  }
+
+  // ---- petits outils de dessin ----
+  function mkCv(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
+  function mix(a, b, t) { const A = hexRgb(a), B = hexRgb(b); return '#' + [0, 1, 2].map((i) => Math.round(A[i] + (B[i] - A[i]) * t).toString(16).padStart(2, '0')).join(''); }
+  function glowDot(x, cx, cy, r, col, a) {
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, rgba(col, a)); g.addColorStop(0.45, rgba(col, a * 0.4)); g.addColorStop(1, rgba(col, 0));
+    x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, TAU); x.fill();
+  }
+  // le pictogramme d'une pièce, en tube néon (rayon 1 ; reste dans un cercle de 0,7)
+  function roomPicto(x, w) {
+    x.beginPath();
+    if (w === 0) {          // la baignoire, son robinet, des bulles
+      x.moveTo(-0.62, -0.04); x.lineTo(0.62, -0.04);
+      x.moveTo(-0.52, -0.04); x.quadraticCurveTo(-0.5, 0.38, -0.2, 0.38); x.lineTo(0.2, 0.38); x.quadraticCurveTo(0.5, 0.38, 0.52, -0.04);
+      x.moveTo(-0.3, 0.38); x.lineTo(-0.38, 0.54); x.moveTo(0.3, 0.38); x.lineTo(0.38, 0.54);
+      x.moveTo(0.42, -0.04); x.lineTo(0.42, -0.46); x.quadraticCurveTo(0.42, -0.58, 0.3, -0.58); x.lineTo(0.22, -0.5);
+      x.stroke();
+      x.beginPath(); x.arc(-0.24, -0.26, 0.12, 0, TAU); x.moveTo(0.06, -0.36); x.arc(-0.02, -0.36, 0.08, 0, TAU); x.moveTo(-0.38, -0.47); x.arc(-0.44, -0.47, 0.06, 0, TAU);
+    } else if (w === 1) {   // le pommeau de douche et la pluie
+      x.moveTo(0.5, 0.6); x.lineTo(0.5, -0.36); x.quadraticCurveTo(0.5, -0.6, 0.26, -0.6); x.lineTo(-0.08, -0.6); x.lineTo(-0.08, -0.5);
+      x.moveTo(-0.36, -0.26); x.arc(-0.08, -0.26, 0.28, Math.PI, 0); x.closePath();
+      for (let i = -2; i <= 2; i++) { const px = -0.08 + i * 0.12; x.moveTo(px, -0.1); x.lineTo(px - 0.04, 0.06 + (i & 1) * 0.1); x.moveTo(px - 0.07, 0.22 + (i & 1) * 0.08); x.lineTo(px - 0.1, 0.36 + (i & 1) * 0.08); }
+    } else if (w === 2) {   // la vapeur qui monte d'une vasque
+      x.moveTo(-0.52, 0.12); x.lineTo(0.52, 0.12); x.arc(0, 0.12, 0.52, 0, Math.PI); x.closePath();
+      for (const o of [-0.26, 0, 0.26]) { x.moveTo(o, 0.0); x.bezierCurveTo(o - 0.16, -0.14, o + 0.16, -0.3, o, -0.44); x.bezierCurveTo(o - 0.08, -0.52, o, -0.6, o + 0.04, -0.64); }
+    } else if (w === 3) {   // un coude de tuyau et sa vanne
+      x.moveTo(-0.64, 0.3); x.lineTo(0.04, 0.3); x.quadraticCurveTo(0.3, 0.3, 0.3, 0.04); x.lineTo(0.3, -0.64);
+      x.moveTo(-0.34, 0.16); x.lineTo(-0.34, 0.44); x.moveTo(0.16, -0.3); x.lineTo(0.44, -0.3);
+      x.moveTo(-0.05, -0.3); x.arc(-0.27, -0.3, 0.22, 0, TAU);
+      x.moveTo(-0.43, -0.3); x.lineTo(-0.11, -0.3); x.moveTo(-0.27, -0.46); x.lineTo(-0.27, -0.14); x.moveTo(-0.27, -0.08); x.lineTo(-0.27, 0.16);
+    } else if (w === 4) {   // la machine à laver : hublot, mousse, boutons
+      rrect(x, -0.48, -0.58, 0.96, 1.16, 0.14);
+      x.moveTo(-0.48, -0.32); x.lineTo(0.48, -0.32);
+      x.moveTo(0.42, 0.14); x.arc(0.12, 0.14, 0.3, 0, TAU);
+      x.moveTo(-0.24, -0.45); x.arc(-0.29, -0.45, 0.05, 0, TAU); x.moveTo(-0.08, -0.45); x.arc(-0.13, -0.45, 0.05, 0, TAU);
+      x.moveTo(0.36, -0.45); x.arc(0.29, -0.45, 0.07, 0, TAU);
+      x.stroke();
+      x.beginPath(); x.arc(0.04, 0.2, 0.08, 0, TAU); x.moveTo(0.28, 0.08); x.arc(0.2, 0.08, 0.08, 0, TAU); x.moveTo(0.24, 0.27); x.arc(0.19, 0.27, 0.05, 0, TAU);
+    } else {                // le spa de minuit : la lune, les étoiles, l'eau
+      x.moveTo(0.417, -0.1); x.arc(0.12, -0.22, 0.32, 0.385, 4.659); x.arc(0.26, -0.32, 0.27, 4.093, 0.952, true); x.closePath();
+      for (const [sx, sy, r] of [[-0.4, -0.36, 0.13], [-0.14, -0.02, 0.08]]) { x.moveTo(sx, sy - r); x.lineTo(sx, sy + r); x.moveTo(sx - r, sy); x.lineTo(sx + r, sy); }
+      for (const wy of [0.3, 0.5]) for (let i = 0; i <= 12; i++) { const px = -0.56 + i * 0.0933, py = wy + Math.sin(i * 1.3) * 0.05; if (i) x.lineTo(px, py); else x.moveTo(px, py); }
+    }
+    x.stroke();
+  }
+  // médaillon d'une pièce (rayon r, centré en 0, 0) : émail sombre, anneau néon, pictogramme en tube néon
+  function paintRoomIcon(x, w, r) {
+    const th = THEMES[((w % NR) + NR) % NR];
+    const g = x.createRadialGradient(0, -r * 0.3, r * 0.1, 0, 0, r);
+    g.addColorStop(0, th.wall2); g.addColorStop(1, th.floor);
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, r, 0, TAU); x.fill();
+    x.save();
+    x.beginPath(); x.arc(0, 0, r * 0.94, 0, TAU); x.clip();
+    x.scale(r, r);
+    x.lineCap = 'round'; x.lineJoin = 'round';
+    // le pictogramme : un halo large et doux, puis le tube (néon + cœur clair)
+    x.strokeStyle = rgba(th.neon, 0.35); x.lineWidth = 0.26; roomPicto(x, w);
+    x.strokeStyle = th.neon; x.lineWidth = 0.13; roomPicto(x, w);
+    x.strokeStyle = th.neon2; x.lineWidth = 0.05; roomPicto(x, w);
+    x.restore();
+    x.lineWidth = Math.max(1, r * 0.11); x.strokeStyle = th.neon;
+    x.beginPath(); x.arc(0, 0, r - x.lineWidth / 2, 0, TAU); x.stroke();
+    x.lineWidth = Math.max(0.6, r * 0.035); x.strokeStyle = th.neon2;
+    x.beginPath(); x.arc(0, 0, r - r * 0.055, 0, TAU); x.stroke();
+  }
+
+  // ---- le décor : une bande par pièce (du haut de sa porte au haut de la porte suivante) ----
+  // la porte vers la pièce du palier i : juste sous l'enseigne de la pièce (bandeau de la bibliothèque, ~100 px de haut, centré en t.y) ;
+  // au début d'un tour, la surface de l'eau passe sous le grand bandeau « Tour II » (posé 92 px sous l'enseigne)
+  function mapSeam(L, i) {
+    if (!i) return L.H;
+    const t = L.tiers[i], major = t.t > 0 && t.t % NR === 0;
+    return Math.min(t.yLo - 40, t.y + (major ? 196 : 76));
+  }
+  function mapBands(L) {
+    const out = [];
+    for (let i = 0; i < L.tiers.length; i++) {
+      const t = L.tiers[i], tt = Math.max(0, t.t | 0);
+      out.push({ i, t, lv: tt + 1, w: tt % NR, tour: Math.floor(tt / NR), bot: mapSeam(L, i), top: i + 1 < L.tiers.length ? mapSeam(L, i + 1) : 0, last: i + 1 >= L.tiers.length });
+    }
+    return out;
+  }
+  // où passe le chemin (courbes de la bibliothèque : M a C (a.x, mi) (b.x, mi) b) à la hauteur y → x
+  function mapPathX(L, y) {
+    const pts = [L.start];
+    for (const n of L.nodes) { pts.push(n); if (n.boss) pts.push(n.boss); }
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (y > a.y || y < b.y) continue;
+      const my = (a.y + b.y) / 2;
+      let lo = 0, hi = 1;
+      for (let k = 0; k < 22; k++) { const t = (lo + hi) / 2, u = 1 - t, yy = a.y * u * u * u + 3 * my * u * u * t + 3 * my * u * t * t + b.y * t * t * t; if (yy > y) lo = t; else hi = t; }
+      const t = (lo + hi) / 2, u = 1 - t;
+      return a.x * u * u * u + 3 * a.x * u * u * t + 3 * b.x * u * t * t + b.x * t * t * t;
+    }
+    return L.W / 2;
+  }
+  const mapTile = (MW) => Math.round(clamp(MW / C, 22, 30));
+  // fond (sous les décors) : la couleur de chaque pièce, pour les bords et le temps que les décors se peignent
+  function mapStopsFor(L) {
+    const st = [];
+    for (const b of mapBands(L)) { const th = THEMES[b.w]; st.push([b.bot - 2, mix(th.floor, th.bg1, 0.35)], [Math.max(b.top + 2, (b.top + b.bot) / 2), th.floor]); }
+    st.push([L.H, THEMES[0].floor], [0, '#03060a']);
+    return st;
+  }
+  // le labyrinthe d'une pièce (toujours le même pour une pièce), dessiné comme dans le jeu : sol carrelé, baignoire et sa bonde,
+  // murs en tubes néon, bulles, savonnettes ; gardé (un par pièce et par taille)
+  const mapMz = new Map();
+  function mapMaze(w, T, k) {
+    const key = w + '|' + T + '@' + k.toFixed(2);
+    let cv = mapMz.get(key);
+    if (cv) return cv;
+    if (mapMz.size > 7) mapMz.delete(mapMz.keys().next().value);
+    const th = THEMES[w], rows = genMaze(mulberry32(0x5EED + (w + 1) * 7919), mazeStyle(w + 1)).rows;
+    cv = mkCv(C * T * k, R * T * k);
+    const g = cv.getContext('2d');
+    g.scale(k, k);
+    paintFloor(g, C, R, T, th);
+    const eg = g.createLinearGradient(0, 13 * T, 0, 16 * T);
+    eg.addColorStop(0, '#24414f'); eg.addColorStop(1, '#122633');
+    g.fillStyle = eg; g.fillRect(5 * T, 13 * T, 5 * T, 3 * T);
+    paintWalls(g, (c, r) => c >= 0 && c < C && r >= 0 && r < R && rows[r][c] === '#', C, R, T, th, false);
+    const cx = 7.5 * T, cy = 14.5 * T, cg = g.createLinearGradient(cx - T, cy - T, cx + T, cy + T);
+    cg.addColorStop(0, '#f6fcff'); cg.addColorStop(0.5, '#9db4c2'); cg.addColorStop(1, '#e6f2f8');
+    g.fillStyle = cg; g.beginPath(); g.arc(cx, cy, T * 0.62, 0, TAU); g.fill();
+    g.fillStyle = '#0d1a22'; g.beginPath(); g.arc(cx, cy, T * 0.46, 0, TAU); g.fill();
+    g.fillStyle = '#6f8898'; g.beginPath(); g.arc(cx, cy, T * 0.08, 0, TAU); g.fill();
+    for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.beginPath(); g.arc(cx + Math.cos(a) * T * 0.27, cy + Math.sin(a) * T * 0.27, T * 0.065, 0, TAU); g.fill(); }
+    g.save();
+    g.shadowColor = 'rgba(255,95,174,0.9)'; g.shadowBlur = T * 0.4 * k;
+    g.fillStyle = '#ff9fd0'; g.beginPath(); rrect(g, 7 * T - T * 0.05, 12 * T + T * 0.4, T * 1.1, T * 0.2, T * 0.1); g.fill();
+    g.restore();
+    // les bulles (12 teintes pré-dessinées, comme dans le jeu) et les savonnettes des coins
+    const rad = T * 0.15, bs = Math.ceil(rad * 2 + 4), spr = [];
+    for (let i = 0; i < 12; i++) { const c = mkCv(bs * k, bs * k), sg = c.getContext('2d'); sg.scale(k, k); drawBubbleDirect(sg, bs / 2, bs / 2, rad, i * 30); spr.push(c); }
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      const ch = rows[r][c];
+      if (ch === '.') g.drawImage(spr[(c * 2 + r * 3) % 12], (c + 0.5) * T - bs / 2, (r + 0.5) * T - bs / 2, bs, bs);
+      else if (ch === 'o') drawSoap(g, (c + 0.5) * T, (r + 0.5) * T, T, 0.6 + c * 0.3);
+    }
+    mapMz.set(key, cv);
+    return cv;
+  }
+  // l'ambiance de la pièce, figée (les mêmes dessins que le décor animé du jeu)
+  function mapAmbient(x, th, MW, top, bot, R0) {
+    const fx = th.fx, col = th.neon, h = bot - top, area = (MW * h) / (390 * 700);
+    x.save();
+    if (fx === 'bubbles' || fx === 'foam') {
+      const n = Math.round((fx === 'foam' ? 26 : 22) * area);
+      x.lineWidth = 1.3;
+      for (let i = 0; i < n; i++) {
+        const s = 0.5 + R0(), px = R0() * MW, py = top + R0() * h, r = (fx === 'foam' ? 7 : 4.4) * s;
+        x.globalAlpha = 0.3; x.strokeStyle = fx === 'foam' ? '#ffffff' : col;
+        x.beginPath(); x.arc(px, py, r, 0, TAU); x.stroke();
+        x.globalAlpha = 0.4; x.fillStyle = '#ffffff';
+        x.fillRect(px - r * 0.45, py - r * 0.5, r * 0.3, r * 0.3);
+      }
+    } else if (fx === 'rain') {
+      x.strokeStyle = col; x.lineWidth = 1.2; x.globalAlpha = 0.22;
+      x.beginPath();
+      for (let i = 0, n = Math.round(46 * area); i < n; i++) { const px = R0() * MW, py = top + R0() * h, s = 0.5 + R0(); x.moveTo(px, py); x.lineTo(px - 2.5, py - 20 * s); }
+      x.stroke();
+    } else if (fx === 'steam') {
+      for (let i = 0, n = Math.max(3, Math.round(9 * area)); i < n; i++) {
+        const r = 50 + R0() * 90, px = R0() * MW, py = top + R0() * h;
+        const g = x.createRadialGradient(px, py, 0, px, py, r);
+        g.addColorStop(0, 'rgba(255,240,225,0.09)'); g.addColorStop(0.5, 'rgba(255,240,225,0.04)'); g.addColorStop(1, 'rgba(255,240,225,0)');
+        x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2);
+      }
+    } else if (fx === 'pipes') {
+      x.globalCompositeOperation = 'lighter';
+      for (let i = 0, n = Math.round(16 * area); i < n; i++) {
+        const px = R0() * MW, py = top + R0() * h, len = 60 + R0() * 80;
+        const g = x.createLinearGradient(px - len / 2, 0, px + len / 2, 0);
+        g.addColorStop(0, rgba(col, 0)); g.addColorStop(0.5, rgba(col, 0.2)); g.addColorStop(1, rgba(col, 0));
+        x.fillStyle = g; x.fillRect(px - len / 2, py - 2.5, len, 5);
+      }
+    } else if (fx === 'stars') {
+      x.globalCompositeOperation = 'lighter';
+      x.fillStyle = col;
+      for (let i = 0, n = Math.round(34 * area); i < n; i++) {
+        const k2 = 0.25 + R0() * 0.75, px = R0() * MW, py = top + R0() * h, r = 1.5 + 2.5 * k2;
+        x.globalAlpha = 0.55 * k2;
+        x.fillRect(px - r, py - 0.6, r * 2, 1.2); x.fillRect(px - 0.6, py - r, 1.2, r * 2);
+      }
+    }
+    x.restore();
+  }
+  // une pièce : son labyrinthe (voilé : c'est un décor), sa lumière, ses reflets d'eau, son ambiance
+  function mapRoom(x, L, MW, b, T, k, y0, h) {
+    const th = THEMES[b.w], top = Math.max(b.top, y0 - 4), bot = Math.min(b.bot, y0 + h + 4);
+    if (bot <= top) return;
+    x.save();
+    x.beginPath(); x.rect(0, top, MW, bot - top); x.clip();
+    // (la baignoire du labyrinthe, sa bonde en 7,5 × 14,5 cases, se cache sous l'enseigne de la pièce : rien ne dépasse du médaillon)
+    const mz = mapMaze(b.w, T, k), tw = C * T, tH = R * T;
+    let xs = (MW - tw) / 2; while (xs > 0) xs -= tw;
+    let ys = b.t.y - 14.5 * T; while (ys > top) ys -= tH;
+    for (let yy = ys; yy < bot; yy += tH) for (let xx = xs; xx < MW; xx += tw) x.drawImage(mz, xx, yy, tw, tH);
+    // voile : le labyrinthe reste au fond ; un peu plus sombre sur les bords
+    x.fillStyle = rgba(th.bg2, 0.5); x.fillRect(0, top, MW, bot - top);
+    const vg = x.createLinearGradient(0, 0, MW, 0);
+    vg.addColorStop(0, rgba(th.bg2, 0.35)); vg.addColorStop(0.3, rgba(th.bg2, 0)); vg.addColorStop(0.7, rgba(th.bg2, 0)); vg.addColorStop(1, rgba(th.bg2, 0.35));
+    x.fillStyle = vg; x.fillRect(0, top, MW, bot - top);
+    // la lumière de la pièce et deux reflets d'eau qui dansent (figés)
+    const R0 = mulberry32(b.lv * 977 + 31);
+    x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 2; i++) glowDot(x, MW * (0.2 + 0.6 * R0()), b.top + (b.bot - b.top) * (0.25 + 0.5 * R0()), Math.max(MW, 400) * (0.3 + 0.12 * R0()), th.neon, 0.08);
+    x.globalCompositeOperation = 'source-over';
+    mapAmbient(x, th, MW, b.top, Math.min(b.bot, L.H), R0);
+    x.restore();
+  }
+  // entre deux pièces : un mur néon (comme ceux du labyrinthe) avec sa porte rose là où passe le chemin
+  function mapDoor(x, L, MW, b, T) {
+    const th = THEMES[b.w], y = b.bot, px = mapPathX(L, y);
+    let gx = ((MW - C * T) / 2) % T; if (gx > 0) gx -= T;
+    const n = Math.ceil((MW - gx) / T) + 1, d0 = Math.round((px - gx) / T) - 1, d1 = d0 + 1;      // la porte : 2 cases autour du chemin
+    x.save();
+    x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(0, y + T * 0.42, MW, T * 0.5);
+    x.translate(gx, y - T / 2);
+    paintWalls(x, (c, r) => r === 0 && c >= 0 && c < n && (c < d0 || c > d1), n, 1, T, th, false);
+    const dx = d0 * T - T * 0.08, dw = (d1 - d0 + 1) * T + T * 0.16;
+    x.shadowColor = 'rgba(255,95,174,0.95)'; x.shadowBlur = T * 0.5 * (Math.abs(x.getTransform().a) || 1);
+    x.fillStyle = '#ff9fd0'; x.beginPath(); rrect(x, dx, T * 0.4, dw, T * 0.2, T * 0.1); x.fill();
+    x.restore();
+  }
+  // nouveau tour : la surface de l'eau (comme le passage d'un niveau à l'autre dans le jeu), des bulles qui remontent
+  function mapWater(x, L, MW, b, T) {
+    const th = THEMES[b.w], y = b.bot, R0 = mulberry32(b.lv * 131 + 7);
+    // (une houle douce, tracée finement : figée, une vague trop serrée ferait un éclair)
+    const wv = (px) => y + Math.sin(px * 0.022 + b.lv) * 7 + Math.sin(px * 0.052 - b.lv * 0.6) * 2.6;
+    const line = (dy) => { x.beginPath(); x.moveTo(0, wv(0) + dy); for (let px = 6; px <= MW + 12; px += 6) x.lineTo(px, wv(px) + dy); };
+    x.save();
+    line(0); x.lineTo(MW + 12, y + 150); x.lineTo(0, y + 150); x.closePath();
+    const g = x.createLinearGradient(0, y - 12, 0, y + 150);
+    g.addColorStop(0, rgba(th.neon, 0.7)); g.addColorStop(0.12, rgba(th.wall2, 0.75)); g.addColorStop(0.55, rgba(th.bg2, 0.35)); g.addColorStop(1, rgba(th.bg2, 0));
+    x.fillStyle = g; x.fill();
+    x.strokeStyle = 'rgba(255,255,255,0.32)'; x.lineWidth = 1.5;
+    for (let i = 0; i < Math.round(MW / 26); i++) {
+      const bx = R0() * MW, by = y - 14 - R0() * 150, r = 3 + R0() * 7;
+      x.globalAlpha = 0.25 + 0.6 * (1 - (y - by) / 170);
+      x.beginPath(); x.arc(bx, by, r, 0, TAU); x.stroke();
+    }
+    x.globalAlpha = 1;
+    x.lineJoin = 'round'; x.lineCap = 'round';
+    x.strokeStyle = 'rgba(255,255,255,0.28)'; x.lineWidth = 1.4; line(7); x.stroke();      // l'écume, juste sous la surface
+    x.shadowColor = th.neon; x.shadowBlur = 10;
+    x.strokeStyle = 'rgba(255,255,255,0.9)'; x.lineWidth = 3; line(0); x.stroke();
+    x.restore();
+  }
+  function mapPaintChunk(x, L, MW, y0, h) {
+    const B = mapBands(L), k = Math.max(1, Math.min(1.6, Math.abs(x.getTransform().a) || 1)), T = mapTile(MW);
+    x.save(); x.translate(0, -y0);
+    for (const b of B) { if (b.top > y0 + h + 4 || b.bot < y0 - 4) continue; try { mapRoom(x, L, MW, b, T, k, y0, h); } catch (e) { /* */ } }
+    for (const b of B) {
+      if (!b.i || b.bot - 180 > y0 + h || b.bot + 160 < y0) continue;
+      try { if (b.w === 0) mapWater(x, L, MW, b, T); else mapDoor(x, L, MW, b, T); } catch (e) { /* */ }
+    }
+    // tout en haut : la suite se perd dans le noir
+    const capB = B.length ? B[B.length - 1] : null, fadeTo = capB ? Math.min(capB.bot - 60, L.capY != null ? L.capY + 120 : 300) : 300;
+    if (y0 < fadeTo) { const g = x.createLinearGradient(0, 0, 0, fadeTo); g.addColorStop(0, 'rgba(3,6,10,0.92)'); g.addColorStop(1, 'rgba(3,6,10,0)'); x.fillStyle = g; x.fillRect(0, y0, MW, Math.min(h, fadeTo - y0)); }
+    x.restore();
+  }
+
+  // ---- un niveau : le médaillon, avec le(s) microbe(s) qu'on y rencontre, sur le sol de sa pièce ----
+  const mapMed = new Map();
+  function mapMedImg(key, P, dpr, paint) {
+    let cv = mapMed.get(key);
+    if (cv) return cv;
+    if (mapMed.size > 160) mapMed.delete(mapMed.keys().next().value);
+    cv = mkCv(P * dpr, P * dpr);
+    const g = cv.getContext('2d'); g.scale(dpr, dpr);
+    try { paint(g); } catch (e) { /* */ }
+    mapMed.set(key, cv);
+    return cv;
+  }
+  const nodeKey = (lv, size, P, dpr) => { const m = mapLevel(lv); return 'n' + ((lv - 1) % NR) + (m.kinds ? m.kinds.join('') : 'B') + '|' + size + '|' + P + '|' + dpr.toFixed(2); };
+  function mapNode(x, info, size, P) {
+    const dpr = x.canvas.width / P, lv = Math.max(1, (info && info.lv) | 0);
+    x.drawImage(mapMedImg(nodeKey(lv, size, P, dpr), P, dpr, (g) => mapNodePaint(g, lv, size, P)), 0, 0, P, P);
+  }
+  function mapMicrobe(x, k, cx, cy, s, look) {
+    const m = MICROBES[k];
+    glowDot(x, cx, cy, s * 0.95, m.color, 0.45);
+    drawMicrobe(x, cx, cy, s, { color: m.color, light: m.light, dark: m.dark, t: 0.35, seed: 1.3 + s * 0.01, lookX: look || 0, lookY: 0.25, mode: 'n' });
+  }
+  function mapNodePaint(x, lv, size, P) {
+    const w = (lv - 1) % NR, th = THEMES[w], m = mapLevel(lv), cx = P / 2, cy = P / 2, r = size / 2;
+    glowDot(x, cx, cy, r + 12, th.neon, 0.55);
+    if (!m.kinds) { x.save(); x.translate(cx, cy); paintRoomIcon(x, w, r); x.restore(); return; }
+    // le sol de la pièce : carrelage en damier, lumière au milieu
+    x.save();
+    x.beginPath(); x.arc(cx, cy, r - 1, 0, TAU); x.clip();
+    x.fillStyle = th.floor; x.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+    const ts = r / 2.5;
+    x.fillStyle = rgba(th.neon, 0.09);
+    for (let j = -3; j < 3; j++) for (let i = -3; i < 3; i++) if ((i + j) & 1) x.fillRect(cx + i * ts, cy + j * ts, ts, ts);
+    glowDot(x, cx, cy - r * 0.15, r * 1.1, th.bg1, 0.9);
+    const ks = m.kinds;
+    if (ks.length === 1) mapMicrobe(x, ks[0], cx, cy + r * 0.08, r * 1.28, 0);
+    else if (ks.length === 2) { mapMicrobe(x, ks[0], cx - r * 0.38, cy + r * 0.12, r * 0.92, 0.7); mapMicrobe(x, ks[1], cx + r * 0.38, cy + r * 0.12, r * 0.92, -0.7); }
+    else {      // la bande : trois microbes en triangle, celui du fond d'abord
+      mapMicrobe(x, ks[1], cx, cy - r * 0.26, r * 0.72, 0);
+      mapMicrobe(x, ks[0], cx - r * 0.36, cy + r * 0.28, r * 0.72, 0.55);
+      mapMicrobe(x, ks[2], cx + r * 0.36, cy + r * 0.28, r * 0.72, -0.55);
+    }
+    x.restore();
+    // l'anneau : un tube néon de la pièce
+    x.save();
+    x.shadowColor = th.neon; x.shadowBlur = r * 0.35 * (x.getTransform().a || 1);
+    x.lineWidth = r * 0.15; x.strokeStyle = th.neon;
+    x.beginPath(); x.arc(cx, cy, r - r * 0.075, 0, TAU); x.stroke();
+    x.restore();
+    x.lineWidth = Math.max(0.8, r * 0.045); x.strokeStyle = th.neon2;
+    x.beginPath(); x.arc(cx, cy, r - r * 0.075, 0, TAU); x.stroke();
+  }
+
+  // ---- le boss : le Gros Microbe, sa couronne d'or, dans un médaillon hérissé de picots ----
+  const bossKey = (bi, size, P, dpr) => 'b' + (((bi.lv | 0) - 1) % NR) + '|' + size + '|' + P + '|' + dpr.toFixed(2);
+  function mapBoss(x, bi, size, P) {
+    const dpr = x.canvas.width / P;
+    x.drawImage(mapMedImg(bossKey(bi, size, P, dpr), P, dpr, (g) => mapBossPaint(g, bi, size, P)), 0, 0, P, P);
+  }
+  function mapBossPaint(x, bi, size, P) {
+    const B = MICROBES.boss, th = THEMES[(Math.max(1, bi.lv | 0) - 1) % NR], cx = P / 2, cy = P / 2 + 3, r = size / 2;
+    glowDot(x, cx, cy, r + 17, B.color, 0.6);
+    // les picots (comme ceux du microbe), en rose néon
+    x.beginPath();
+    const n = 18;
+    for (let k = 0; k < n * 2; k++) { const a = (k * Math.PI) / n - Math.PI / 2, rr = k % 2 ? r + 1 : r + 9; x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+    x.closePath();
+    const sp = x.createRadialGradient(cx, cy, r - 2, cx, cy, r + 10);
+    sp.addColorStop(0, B.color); sp.addColorStop(1, B.dark);
+    x.fillStyle = sp; x.fill();
+    // le disque : le sol sombre de la pièce, lumière rose
+    const dg = x.createRadialGradient(cx, cy - r * 0.2, r * 0.1, cx, cy, r);
+    dg.addColorStop(0, mix(B.color, '#000000', 0.45)); dg.addColorStop(0.6, mix(th.floor, B.dark, 0.35)); dg.addColorStop(1, '#0a0206');
+    x.fillStyle = dg; x.beginPath(); x.arc(cx, cy, r, 0, TAU); x.fill();
+    // le Gros Microbe, sourcils froncés
+    const s = r * 1.42, my = cy + r * 0.2;
+    x.save();
+    x.beginPath(); x.arc(cx, cy, r - 1.5, 0, TAU); x.clip();
+    drawMicrobe(x, cx, my, s, { color: B.color, light: B.light, dark: B.dark, t: 0.2, seed: 5.3, lookX: 0, lookY: 0.45, mode: 'n' });
+    x.strokeStyle = '#3a0418'; x.lineCap = 'round'; x.lineWidth = s * 0.06;
+    x.beginPath();
+    x.moveTo(cx - s * 0.29, my - s * 0.31); x.lineTo(cx - s * 0.05, my - s * 0.22);
+    x.moveTo(cx + s * 0.29, my - s * 0.31); x.lineTo(cx + s * 0.05, my - s * 0.22);
+    x.stroke();
+    x.restore();
+    // l'anneau
+    x.strokeStyle = B.color; x.lineWidth = 2.4; x.beginPath(); x.arc(cx, cy, r - 0.5, 0, TAU); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,0.22)'; x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, r - 4.5, 0, TAU); x.stroke();
+    // la couronne d'or du jeu, posée sur sa tête
+    const cyy = my - s * 0.52, cw = s * 0.3;
+    x.fillStyle = '#ffd34d'; x.strokeStyle = '#8a5a00'; x.lineWidth = Math.max(1, s * 0.035); x.lineJoin = 'round';
+    x.beginPath();
+    x.moveTo(cx - cw, cyy + s * 0.12); x.lineTo(cx - cw, cyy - s * 0.07); x.lineTo(cx - cw * 0.5, cyy + s * 0.03);
+    x.lineTo(cx, cyy - s * 0.12); x.lineTo(cx + cw * 0.5, cyy + s * 0.03); x.lineTo(cx + cw, cyy - s * 0.07);
+    x.lineTo(cx + cw, cyy + s * 0.12); x.closePath();
+    x.fill(); x.stroke();
+    x.fillStyle = '#ff3d8b'; x.beginPath(); x.arc(cx, cyy + s * 0.03, s * 0.03, 0, TAU); x.fill();
+  }
+
+  // ---- le départ : le canard, sur l'eau du bain ----
+  function mapStart(x, P) {
+    const cx = P / 2, cy = P * 0.56;
+    x.save();
+    x.strokeStyle = 'rgba(94,240,255,0.55)'; x.lineWidth = 1.5;
+    for (let i = 0; i < 2; i++) { x.globalAlpha = 0.7 - i * 0.3; x.beginPath(); x.ellipse(cx - P * 0.02, cy + P * 0.2, P * (0.3 + i * 0.12), P * (0.07 + i * 0.03), 0, 0, TAU); x.stroke(); }
+    x.globalAlpha = 1;
+    drawDuck(x, cx, cy, P * 0.62, { dir: 0, flip: 1, t: 0.3, chomp: 0.25, flap: 0.35 });
+    drawBubbleDirect(x, cx + P * 0.38, cy - P * 0.3, P * 0.05, 200);
+    drawBubbleDirect(x, cx + P * 0.3, cy - P * 0.44, P * 0.035, 300);
+    x.restore();
+  }
+
+  // ---- au calme sur l'accueil : les labyrinthes des pièces et les médaillons se préparent (rien pendant une partie) ----
+  let mapPlaying = 0;
+  function mapWarm(L, k, dpr, sizes) {
+    if (!window.requestIdleCallback || !L) return;
+    const idle = (f) => requestIdleCallback((dl) => { if (mapPlaying) setTimeout(() => idle(f), 3000); else if (dl.timeRemaining() < 4 && !dl.didTimeout) idle(f); else f(); }, { timeout: 2500 });
+    const kk = Math.max(1, Math.min(1.6, k || 1)), T = mapTile(L.W), jobs = [], seen = new Set();
+    for (const b of mapBands(L)) if (!seen.has('m' + b.w)) { seen.add('m' + b.w); const w = b.w; jobs.push(() => rasterNow(mapMaze(w, T, kk))); }
+    const ns = (sizes && sizes.node) || 56, bs = (sizes && sizes.boss) || 66;
+    for (const nd of L.nodes) {
+      const lv = nd.lv, P = ns + 24, key = nodeKey(lv, ns, P, dpr);
+      if (!seen.has(key)) { seen.add(key); jobs.push(() => rasterNow(mapMedImg(key, P, dpr, (g) => mapNodePaint(g, lv, ns, P)))); }
+      if (nd.boss) { const bi = nd.boss.bi || { lv }, P2 = bs + 34, key2 = bossKey(bi, bs, P2, dpr); if (!seen.has(key2)) { seen.add(key2); jobs.push(() => rasterNow(mapMedImg(key2, P2, dpr, (g) => mapBossPaint(g, bi, bs, P2)))); } }
+    }
+    const step = () => { const j = jobs.shift(); if (!j) return; try { j(); } catch (e) { /* */ } idle(step); };
+    idle(step);
+  }
+  function rasterNow(cv) { try { const g = (rasterNow.x = rasterNow.x || mkCv(1, 1).getContext('2d')); g.clearRect(0, 0, 1, 1); g.drawImage(cv, 0, 0, 1, 1); } catch (e) { /* */ } }
+  const mapArt = {
+    warm: mapWarm,
+    level: mapLevel,
+    stops: mapStopsFor,
+    paint: mapPaintChunk,
+    node: mapNode,
+    boss: mapBoss,
+    start: mapStart
+  };
+  // médaillon d'une pièce (n = 1..6) centré en (x, y), rayon r — pour la fin de partie et les bandeaux de la carte
+  function drawWorldIcon(ctx, n, x, y, r) {
+    try { ctx.save(); ctx.translate(x, y); paintRoomIcon(ctx, (Math.max(1, n | 0) - 1) % NR, r); ctx.restore(); } catch (e) { try { ctx.restore(); } catch (e2) { /* rien */ } }
+  }
+
   window.JDW_GAMES = window.JDW_GAMES || {};
   window.JDW_GAMES['glouton'] = {
     id: 'glouton',
@@ -2985,6 +3438,12 @@
     tagline: 'Un canard en plastique gobe les bulles et dévore les microbes, de bain en bain !',
     accent: ACCENT,
     scoreLabel: 'points',
+    worlds: WORLDS,                      // les 6 pièces d'eau (une par niveau, puis le tour suivant) : nom, emoji, couleurs
+    worldOf,                             // niveau → { w, n, tour, stage, world, boss }
+    levelsPerWorld: 1,                   // une pièce = un niveau
+    worldWord: '',                       // fin de partie : « La douche · Tour II » (pas de « Monde n »)
+    drawWorldIcon,                       // médaillon néon d'une pièce (n = 1..6) centré en (x, y), rayon r
+    mapArt,                              // la carte d'avancement de la bibliothèque, dessinée par le jeu
     preview,
     mount
   };

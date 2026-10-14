@@ -5351,13 +5351,15 @@ $('jdw-who-ok').addEventListener('click', () => { const n = cleanName($('jdw-who
 $('jdw-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-who-ok').click(); } });
 // fin de partie : jusqu'où je suis allé dans les niveaux, comparé à mon meilleur niveau (gardé sur l'appareil, par joueur et par jeu)
 const LV_WORD = { magic: 'Salle', ilo: 'Secteur', mouches: 'Vague' };
-// jeux à mondes : Empilo (g.worlds[] + g.worldOf) ou Chasse aux mouches (g.worlds.list + g.worlds.at) → une seule façon de les lire
+// jeux à mondes : Empilo, Glouton (g.worlds[] + g.worldOf ; Glouton : une pièce par niveau, médaillon g.drawWorldIcon) ou Chasse aux mouches
+// (g.worlds.list + g.worlds.at) → une seule façon de les lire
 function lvWorlds(g) {
   try {
-    if (Array.isArray(g.worlds) && typeof g.worldOf === 'function') return { per: g.levelsPerWorld || 3, count: g.worlds.length,
-      at: i => { const o = g.worldOf(i); return { n: o.n, stage: o.stage, name: o.world.name, emoji: o.world.emoji, acc: o.world.colors.accent, cyc: o.tour ? 'Tour ' + mapRoman(o.tour) : '', boss: false }; } };
+    if (Array.isArray(g.worlds) && typeof g.worldOf === 'function') return { per: g.levelsPerWorld || 3, count: g.worlds.length, word: g.worldWord != null ? g.worldWord : 'Monde',
+      icon: typeof g.drawWorldIcon === 'function' ? (x, n, r) => g.drawWorldIcon(x, n, 0, 0, r) : null,
+      at: i => { const o = g.worldOf(i); return { n: o.n, stage: o.stage, name: o.world.name, emoji: o.world.emoji, acc: o.world.colors.accent, cyc: o.tour ? 'Tour ' + mapRoman(o.tour) : '', boss: !!o.boss }; } };
     const W = g.worlds;
-    if (W && Array.isArray(W.list) && typeof W.at === 'function') return { per: W.perWorld || 3, count: W.list.length, icon: typeof W.drawIcon === 'function' ? (x, n, r) => W.drawIcon(x, n, 0, 0, r) : null,
+    if (W && Array.isArray(W.list) && typeof W.at === 'function') return { per: W.perWorld || 3, count: W.list.length, word: 'Monde', icon: typeof W.drawIcon === 'function' ? (x, n, r) => W.drawIcon(x, n, 0, 0, r) : null,
       at: i => { const a = W.at(i), d = W.list[a.world - 1]; return { n: a.world, stage: a.stage - 1, name: d.name, emoji: '', acc: d.colors.acc, cyc: a.cycle > 1 ? (W.cycleWord || 'Jour') + ' ' + a.cycle : '', boss: !!a.boss }; } };
   } catch (e) {}
   return null;
@@ -5385,7 +5387,7 @@ function showLevelProgress(g, me) {
   if (wo) {
     const c = document.createElement('span'); c.className = 'lv-w'; c.style.setProperty('--wc', wo.acc);
     if (WS.icon) c.append(lvIcon(WS, wo.n, 16), ' ');
-    c.append((wo.emoji ? wo.emoji + ' ' : '') + 'Monde ' + wo.n + ' · ' + wo.name + (wo.cyc ? ' · ' + wo.cyc : ''));
+    c.append((wo.emoji && !WS.icon ? wo.emoji + ' ' : '') + (WS.word ? WS.word + ' ' + wo.n + ' · ' : '') + wo.name + (wo.cyc ? ' · ' + wo.cyc : ''));
     h.append(c);
   }
   const recTxt = lv > best ? (best ? 'nouveau record ! (avant : ' + best + ')' : 'premier record !') : lv === best ? 'ton record égalé !' : 'ton record : ' + best + ' (encore ' + (best - lv) + ')';
@@ -5394,17 +5396,26 @@ function showLevelProgress(g, me) {
   for (let i = 1; i <= n; i++) {
     const d = document.createElement('i'); if (i <= lv) d.className = 'on'; if (i === lv) d.classList.add('now');
     if (i === best && best !== lv) { d.classList.add('best'); d.title = 'ton record'; }
-    if (wo) { const wi = WS.at(i); d.style.setProperty('--acc', wi.acc); if (wi.stage === 0 && i > 1) d.classList.add('wstart'); if (wi.boss) d.classList.add('boss'); }
+    if (wo) { const wi = WS.at(i); d.style.setProperty('--acc', wi.acc); if (i > 1 && (WS.per > 1 ? wi.stage === 0 : wi.n === 1)) d.classList.add('wstart'); if (wi.boss) d.classList.add('boss'); }
     d.style.setProperty('--d', (i * 0.05).toFixed(2) + 's'); track.appendChild(d);
   }
   box.append(h, track);
-  if (wo) {      // sous la piste : l'emoji (ou le médaillon) de chaque monde, celui atteint en grand
+  if (wo) {      // sous la piste : l'emoji (ou le médaillon) de chaque monde, celui atteint en grand (plus petits quand ils sont nombreux)
     const row = document.createElement('div'); row.className = 'lv-worlds'; row.style.setProperty('--n', n / WS.per);
-    for (let i = 1; i <= n; i += WS.per) {
-      const wi = WS.at(i), e = document.createElement('i'), now = wi.n === wo.n && wi.cyc === wo.cyc;
-      if (WS.icon) e.append(lvIcon(WS, wi.n, now ? 24 : 18)); else e.textContent = wi.emoji;
-      e.title = wi.name + (wi.cyc ? ' · ' + wi.cyc : '');
-      if (now) e.className = 'now'; else if (i <= lv) e.className = 'on';
+    const nI = n / WS.per, isz = nI > 12 ? 13 : 18, tours = WS.per === 1 && nI > 18;
+    // une pièce par niveau et plus de 3 tours (Glouton) : sous la piste, le numéro de chaque tour (les médaillons seraient minuscules)
+    for (let i = 1; i <= n; i += tours ? WS.count : WS.per) {
+      const wi = WS.at(i), e = document.createElement('i');
+      if (tours) {
+        const last = Math.min(n, i + WS.count - 1), here = lv >= i && lv <= last;
+        e.className = 'tour' + (here ? ' now' : lv > last ? ' on' : ''); e.style.gridColumn = 'span ' + (last - i + 1);
+        e.textContent = (here ? 'Tour ' : '') + mapRoman(Math.floor((i - 1) / WS.count));
+      } else {
+        const now = wi.n === wo.n && wi.cyc === wo.cyc;
+        if (WS.icon) e.append(lvIcon(WS, wi.n, now ? isz + (nI > 12 ? 5 : 6) : isz)); else e.textContent = wi.emoji;
+        e.title = wi.name + (wi.cyc ? ' · ' + wi.cyc : '');
+        if (now) e.className = 'now'; else if (i <= lv) e.className = 'on';
+      }
       e.style.setProperty('--d', (i * 0.05 + 0.15).toFixed(2) + 's'); row.appendChild(e);
     }
     box.append(row);
@@ -5799,7 +5810,8 @@ const PG_NEWS = { 3: 'Jets de flammes', 4: 'Couloir électrique', 5: 'Scies circ
 // stops(L) (dégradé du fond), paint(x, L, W, y0, h) (décor d'un morceau de 1000 px), node(x, info, size, P) (pastille d'un niveau) ;
 // bgDpr = résolution plafonnée du décor (doux : pas besoin de 2,5) ; lazy = les morceaux loin de l'écran se peignent juste après l'ouverture ;
 // boss(n) peut rendre null (pas de boss à ce niveau) ; bossArt(x, bi, size, P) = médaillon du boss dessiné par le jeu ; T.icon(x, r) = icône du palier ;
-// warm(L, bgDpr, dpr, tailles) = le jeu prépare ses dessins d'avance, au calme sur l'accueil (même mise en page qu'à l'ouverture).
+// warm(L, bgDpr, dpr, tailles) = le jeu prépare ses dessins d'avance, au calme sur l'accueil (même mise en page qu'à l'ouverture) ;
+// startArt(x, P) = le héros du jeu dessiné au départ (canvas P × P posé sur le départ).
 const MAP_DEFS = {
   ilo: {
     theme: 'space', word: 'Secteur', tierGap: 170, tierAt: 0.58,
@@ -5903,6 +5915,43 @@ const MAP_DEFS = {
     warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
     start: { title: 'Départ', sub: '8 h : la maison s’éveille' },
     cap: { title: 'La chasse continue…', sub: 'Un nouveau jour toutes les 18 vagues, plus coriace' }
+  },
+  // Glouton (games/glouton.js) : les pièces d'eau de la maison en néons, une par niveau comme dans le jeu (la salle de bain, la douche,
+  // le hammam, la tuyauterie, la laverie, le spa de minuit), puis le tour suivant ; le Gros Microbe tous les 5 niveaux. Décor (le vrai
+  // labyrinthe de chaque pièce), médaillons (le microbe qu'on rencontre à chaque niveau), boss et canard du départ : le jeu (mapArt).
+  glouton: {
+    theme: 'glouton', word: 'Niveau', tierGap: 180, majorGap: 290, tierAt: 0.52, step: 150, nodeSize: 56, bossSize: 66, bgDpr: 1.6, lazy: true,
+    count: max => Math.min(120, Math.max(12, Math.ceil((max + 2) / 6) * 6)),
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.glouton; return G && Array.isArray(G.worlds) && G.worldOf && G.mapArt ? G : null; },
+    wo(lv) { const G = this.game(); return G ? G.worldOf(lv) : { w: (lv - 1) % 6, tour: Math.floor((lv - 1) / 6), boss: lv % 5 === 0, world: null }; },
+    level(lv) {
+      const G = this.game(), wo = this.wo(lv), D = wo.world, m = G ? G.mapArt.level(lv) : null;
+      return { lv, tier: lv - 1, w: wo.w, tour: wo.tour, boss: !!wo.boss,
+        kicker: 'Niveau ' + lv + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''), name: m ? m.name : D ? D.name : 'Niveau ' + lv,
+        lines: m && m.line ? [m.line] : [], acc: D ? D.colors.accent : '#ffd34d' };
+    },
+    short(lv) { const wo = this.wo(lv); return 'Niveau ' + lv + (wo.world ? ' · ' + wo.world.name : '') + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''); },
+    boss(lv) {
+      const wo = this.wo(lv); if (!wo.boss) return null;
+      const k = Math.floor(lv / 5), nm = wo.world ? wo.world.name : '';
+      return { lv, bk: 'microbe', name: 'Le Gros Microbe' + (k > 1 ? ' ' + mapRoman(k - 1) : ''), final: false,
+        kicker: (wo.tour ? 'Tour ' + mapRoman(wo.tour) + ' · ' : '') + (nm ? 'Dans ' + nm.charAt(0).toLowerCase() + nm.slice(1) : 'Niveau ' + lv) };
+    },
+    tier(t) {
+      const G = this.game(), w = t % 6, tour = Math.floor(t / 6), D = G ? G.worlds[w] : null;
+      return { kicker: (tour ? 'Tour ' + mapRoman(tour) + ' · ' : '') + 'Pièce ' + (w + 1), title: D ? D.name : 'Pièce ' + (w + 1),
+        icon: G && G.drawWorldIcon ? (x, r) => G.drawWorldIcon(x, w + 1, 0, 0, r) : null, emoji: D ? D.emoji : '',
+        sub: D ? D.tag : '', acc: D ? D.colors.accent : '#ffd34d', acc2: D ? D.colors.accent2 : '#ffffff', w, tour,
+        major: w === 0 && tour > 0, majorTitle: 'Tour ' + mapRoman(tour), majorSub: 'Les 6 pièces reviennent, encore plus vite !' };
+    },
+    stops(L) { const G = this.game(); return G ? G.mapArt.stops(L) : [[L.H, '#061520'], [0, '#05090f']]; },
+    paint(x, L, W, y0, h) { const G = this.game(); if (G) G.mapArt.paint(x, L, W, y0, h); },
+    node(x, info, size, P) { const G = this.game(); if (G) G.mapArt.node(x, info, size, P); },
+    bossArt(x, bi, size, P) { const G = this.game(); if (G) G.mapArt.boss(x, bi, size, P); },
+    startArt(x, P) { const G = this.game(); if (G && G.mapArt.start) G.mapArt.start(x, P); },
+    warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
+    start: { title: 'Départ', sub: 'Le canard saute dans le bain' },
+    cap: { title: 'Le bain continue…', sub: 'Un nouveau tour toutes les 6 pièces, toujours plus vite' }
   }
 };
 
@@ -6614,6 +6663,11 @@ function mapBuild(animate) {
   const st = mapEl('div', 'gmap-start', world); st.style.left = L.start.x + 'px'; st.style.top = L.start.y + 'px';
   mapEl('i', 'gs-pad', st);
   if (def.theme === 'space') st.insertAdjacentHTML('beforeend', '<svg class="gs-ship" viewBox="0 0 40 56" aria-hidden="true"><defs><linearGradient id="gsF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3fb4"/><stop offset="1" stop-color="#ff3fb4" stop-opacity="0"/></linearGradient></defs><path class="gs-flame" d="M15 43 20 56 25 43z" fill="url(#gsF)"/><path d="M20 2 26 19 36 33v7l-10-3-2 7h-8l-2-7-10 3v-7l10-14z" fill="#0b0f16" stroke="#38e1ff" stroke-width="1.3" stroke-linejoin="round"/><path d="M20 9c2 3 2.6 8 2.6 12h-5.2c0-4 .6-9 2.6-12z" fill="#38e1ff"/><path d="M6 36l8-3M34 36l-8-3" stroke="#ff3fb4" stroke-width="1.2"/></svg>');
+  if (def.startArt) {
+    const dz = Math.min(3, (window.devicePixelRatio || 1) * (MAP.z || 1)), SP = 72, cv = mapEl('canvas', 'gs-art', st), cx = cv.getContext('2d');
+    cv.width = cv.height = Math.round(SP * dz); cv.style.width = cv.style.height = SP + 'px'; cx.scale(dz, dz);
+    try { def.startArt(cx, SP); } catch (e) {}
+  }
   const stt = mapEl('div', 'gs-txt', st); mapEl('b', '', stt).textContent = def.start.title; mapEl('small', '', stt).textContent = def.start.sub;
   const cap = mapEl('div', 'gmap-cap', world); cap.style.top = L.capY + 'px';
   mapEl('b', '', cap).textContent = def.cap.title; mapEl('small', '', cap).textContent = def.cap.sub;
