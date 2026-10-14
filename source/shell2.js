@@ -5808,7 +5808,8 @@ const PG_NEWS = { 3: 'Jets de flammes', 4: 'Couloir électrique', 5: 'Scies circ
 // start / cap = textes du départ et du haut ; boss(n) = le boss qui ferme le niveau n { bk (dessin), name, kicker, final (boss de fin de
 // cycle : couronne) } → étape « BOSS » sur le chemin. Sans boss() : un niveau tous les `step` px. Un jeu peut dessiner lui-même sa carte :
 // stops(L) (dégradé du fond), paint(x, L, W, y0, h) (décor d'un morceau de 1000 px), node(x, info, size, P) (pastille d'un niveau) ;
-// bgDpr = résolution plafonnée du décor (doux : pas besoin de 2,5) ; lazy = les morceaux loin de l'écran se peignent juste après l'ouverture ;
+// bgDpr = résolution plafonnée du décor (doux : pas besoin de 2,5) ; lazy = les morceaux loin de l'écran se peignent juste après l'ouverture
+// (chunk = hauteur d'un morceau, 1000 px par défaut ; near = distance à l'écran peinte tout de suite, 600 px par défaut) ;
 // boss(n) peut rendre null (pas de boss à ce niveau) ; bossArt(x, bi, size, P) = médaillon du boss dessiné par le jeu ; T.icon(x, r) = icône du palier ;
 // warm(L, bgDpr, dpr, tailles) = le jeu prépare ses dessins d'avance, au calme sur l'accueil (même mise en page qu'à l'ouverture) ;
 // startArt(x, P) = le héros du jeu dessiné au départ (canvas P × P posé sur le départ).
@@ -5952,6 +5953,36 @@ const MAP_DEFS = {
     warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
     start: { title: 'Départ', sub: 'Le canard saute dans le bain' },
     cap: { title: 'Le bain continue…', sub: 'Un nouveau tour toutes les 6 pièces, toujours plus vite' }
+  },
+  // Les P'tits Rouleaux (games/rouleaux.js) : 5 mondes de 3 niveaux (Salle de bain, Château magique, Usine à tuyaux, Égouts, Station
+  // spatiale), puis le Tour II (niveaux en miroir un tour sur deux). Chaque niveau est un étage : le vrai niveau du jeu en miniature ;
+  // médaillons, décor, plancher et tuyau entre deux mondes, tourbillon de la chasse d'eau à chaque tour : le jeu (mapArt).
+  rouleaux: {
+    theme: 'rouleaux', word: 'Niveau', tierGap: 170, majorGap: 280, tierAt: 0.5, step: 208, nodeSize: 60, bgDpr: 1.5, lazy: true, chunk: 520, near: 480,
+    count: max => Math.min(150, Math.max(15, Math.ceil((max + 2) / 15) * 15)),
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.rouleaux; return G && Array.isArray(G.worlds) && G.worldOf && G.mapArt ? G : null; },
+    wo(lv) { const G = this.game(); return G ? G.worldOf(lv) : { w: Math.floor((lv - 1) / 3) % 5, tour: Math.floor((lv - 1) / 15), stage: (lv - 1) % 3, world: null }; },
+    level(lv) {
+      const G = this.game(), wo = this.wo(lv), D = wo.world, m = G ? G.mapArt.level(lv) : null;
+      return { lv, tier: wo.tour * 5 + wo.w, w: wo.w, tour: wo.tour, stage: wo.stage,
+        kicker: 'Niveau ' + lv + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''), name: m ? m.name : D ? D.stages[wo.stage] : 'Niveau ' + lv,
+        lines: m && m.line ? [m.line] : [], acc: D ? D.colors.accent : '#4fc3ff' };
+    },
+    short(lv) { const wo = this.wo(lv); return 'Niveau ' + lv + (wo.world ? ' · ' + wo.world.name : '') + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''); },
+    tier(t) {
+      const G = this.game(), w = t % 5, tour = Math.floor(t / 5), D = G ? G.worlds[w] : null;
+      return { kicker: (tour ? 'Tour ' + mapRoman(tour) + ' · ' : '') + 'Monde ' + (w + 1), title: D ? D.name : 'Monde ' + (w + 1),
+        icon: G && G.drawWorldIcon ? (x, r) => G.drawWorldIcon(x, w + 1, 0, 0, r) : null, emoji: D ? D.emoji : '',
+        sub: D ? 'Ton WC : ' + D.wc.name : '', acc: D ? D.colors.accent : '#4fc3ff', acc2: D ? D.colors.accent2 : '#ff8fc8', w, tour,
+        major: w === 0 && tour > 0, majorTitle: 'Tour ' + mapRoman(tour), majorSub: 'Chasse d’eau ! Les 5 mondes reviennent' + (tour % 2 ? ', en miroir' : '') };
+    },
+    stops(L) { const G = this.game(); return G ? G.mapArt.stops(L) : [[L.H, '#cfe4ee'], [0, '#05060c']]; },
+    paint(x, L, W, y0, h) { const G = this.game(); if (G) G.mapArt.paint(x, L, W, y0, h); },
+    node(x, info, size, P) { const G = this.game(); if (G) G.mapArt.node(x, info, size, P); },
+    startArt(x, P) { const G = this.game(); if (G && G.mapArt.start) G.mapArt.start(x, P); },
+    warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize }); },
+    start: { title: 'Départ', sub: 'Le premier rouleau sort du distributeur' },
+    cap: { title: 'Le voyage continue…', sub: 'Un nouveau tour tous les 15 niveaux : moins d’outils, plus de rouleaux' }
   }
 };
 
@@ -6317,7 +6348,7 @@ function mapWarmSoon(gid) {
 function mapPaint(world, L, def, focusY) {
   const stops = mapStops(L, def), W = L.W;
   const dpr = mapBgDpr(def, L, MAP.z);
-  const CH = 1000, later = [];
+  const CH = def.chunk || 1000, NEAR = def.near || 600, later = [];   // (def.chunk / def.near : morceaux plus petits, moins à peindre à l'ouverture)
   for (let y0 = 0; y0 < L.H; y0 += CH) {
     // (chaque morceau déborde de 2 px sur le suivant : pas de fine ligne entre deux morceaux quand la carte est agrandie sur PC)
     const h = Math.min(CH + 2, L.H - y0), c = mapEl('canvas', 'gmap-bg', world);
@@ -6328,7 +6359,7 @@ function mapPaint(world, L, def, focusY) {
       try { if (def.paint) def.paint(x, L, W, y0, h); else if (def.theme === 'space') paintSpace(x, L, W, y0, h); else paintFactory(x, L, W, y0, h); } catch (e) {}
     };
     // def.lazy : loin de l'écran, un dégradé CSS en attendant ; le décor se peint juste après l'ouverture, un morceau à la fois, au calme
-    if (def.lazy && focusY != null && (y0 > focusY + 600 || y0 + h < focusY - 600)) {
+    if (def.lazy && focusY != null && (y0 > focusY + NEAR || y0 + h < focusY - NEAR)) {
       c.style.background = 'linear-gradient(' + mapAt(stops, y0) + ',' + mapAt(stops, y0 + h) + ')';
       later.push([Math.abs(y0 + h / 2 - focusY), c, paint]);
     } else paint();

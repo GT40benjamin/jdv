@@ -5361,6 +5361,7 @@
     else { state = 'arrive'; stateT = 0; SFX.arrive(); }
     if (doc.hidden) paused = true;
     raf = requestAnimationFrame(frame);
+    mapPlaying++;      // (la carte d'avancement ne prépare rien pendant une partie)
 
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
@@ -5411,6 +5412,7 @@
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        mapPlaying = Math.max(0, mapPlaying - 1);
         cancelAnimationFrame(raf);
         if (ro) { try { ro.disconnect(); } catch (e) { /* rien */ } }
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
@@ -5423,6 +5425,442 @@
     };
   }
 
+  // ===========================================================================
+  // CARTE D'AVANCEMENT (bibliothèque, shell2.js : MAP_DEFS.rouleaux, thème « rouleaux ») — le grand voyage des rouleaux, de bas en
+  // haut. Chaque niveau est un ÉTAGE : le vrai niveau du jeu en miniature (mur du monde, décor, terrain, eau, pièges, distributeur
+  // et WC), trois étages par monde ; entre deux mondes, le plancher et le tuyau de la chasse d'eau ; à chaque nouveau tour (niveaux en
+  // miroir un tour sur deux, comme dans le jeu), le grand tourbillon de la chasse d'eau. Un niveau = un médaillon : le rouleau du
+  // monde (son costume) avec l'outil ou le piège qu'on y découvre. Rien de tout ça ne sert pendant une partie.
+  // L (mise en page de la bibliothèque) : nodes [{ lv, x, y, info: { w, tour, stage, tier } }], tiers [{ t, y, yLo, yHi }], start, H.
+  // ===========================================================================
+  const MAP_UP = 40;                                   // la pastille d'un niveau : 40 px au-dessus du sol de son étage (y = 100 du niveau)
+  const mapK = (W) => clamp(W / LW, 1.3, 1.62);        // pixels de la carte par unité du niveau (un étage = un niveau de 240 × 128)
+  const MAP_DW = { window: 34, towel: 24, shelf: 38, sink: 24, tub: 56, banner: 18, potions: 40, pipes: 15, grate: 30, screen: 30 };
+  const MAP_BG = [bgBain, bgChateau, bgUsine, bgEgouts, bgEspace];
+  const MAP_FOUND = [['#e4f2f8', '#9cc4d6', '#6f97ad'], ['#5a527c', '#2a2444', '#16112a'], ['#6a7c8c', '#33404c', '#141c24'], ['#5a4a40', '#33281f', '#120c08'], ['#9aa8bc', '#3a4670', '#070a1c']];
+  const mapA = () => (window.JDW_ASSETS && window.JDW_ASSETS.cache && window.JDW_ASSETS.cache.rouleaux) || null;
+  // ce qu'on découvre à chaque niveau du Tour I (médaillon + ligne de l'étiquette)
+  const MAP_LV = [
+    { k: 'bash', t: 'PERCE : perce un mur tout droit' }, { k: 'dig', t: 'CREUSE : un trou vers le bas' }, { k: 'stop', t: 'STOP : les autres font demi-tour' },
+    { k: 'build', t: 'ESCALIER : pose 10 marches' }, { k: 'float', t: 'PARACHUTE : saute de la tour' }, { k: 'portal', t: 'PORTAILS : ils téléportent les rouleaux' },
+    { k: 'climb', t: 'GRIMPE : escalade le grand mur' }, { k: 'press', t: 'Les PRESSES écrasent tout' }, { k: 'belt', t: 'Le tapis file droit au broyeur !' },
+    { k: 'swim', t: 'BOUÉE : nage dans l’eau' }, { k: 'current', t: 'Le COURANT emporte les nageurs' }, { k: 'flood', t: 'LA CRUE : l’eau monte, vite !' },
+    { k: 'drift', t: 'APESANTEUR : on tombe tout doucement' }, { k: 'lift', t: 'Les ASCENSEURS À BULLES font monter' }, { k: 'wc', t: 'La grande finale !' }
+  ];
+  // les textes d'un niveau sur la carte
+  function mapLevel(level) {
+    const n = Math.max(1, Math.floor(Number(level)) || 1), idx = (n - 1) % LEVELS.length, tour = Math.floor((n - 1) / LEVELS.length);
+    const P = levelParams(n - 1);
+    return { name: LEVELS[idx].name, line: '✦ ' + (tour ? 'Sauve ' + P.req + ' rouleaux sur ' + P.total : MAP_LV[idx].t), idx, tour };
+  }
+
+  // ---- le pictogramme d'un monde (le même que sur la carte d'arrivée du jeu), dans un médaillon ----
+  function mapPicto(x, id) {
+    x.lineJoin = 'round'; x.lineCap = 'round';
+    if (id === 0) {          // baignoire
+      x.fillStyle = '#ffffff'; x.beginPath(); x.moveTo(-11, -2); x.lineTo(11, -2); x.quadraticCurveTo(10, 7, 4, 7); x.lineTo(-4, 7); x.quadraticCurveTo(-10, 7, -11, -2); x.closePath(); x.fill();
+      x.fillStyle = '#4fc3ff'; x.fillRect(-10, -3.5, 20, 2);
+      x.fillStyle = '#ffd34d'; x.fillRect(-7, 7, 2, 3); x.fillRect(5, 7, 2, 3);
+      x.strokeStyle = '#c8d6e0'; x.lineWidth = 2; x.beginPath(); x.moveTo(8, -2); x.lineTo(8, -10); x.lineTo(4, -10); x.stroke();
+      x.fillStyle = 'rgba(255,255,255,0.9)'; for (const [bx, by, r] of [[-5, -6, 2.4], [-1, -8, 1.8], [2, -5.5, 1.6]]) { x.beginPath(); x.arc(bx, by, r, 0, TAU); x.fill(); }
+    } else if (id === 1) {   // château
+      x.fillStyle = '#c18bff';
+      x.fillRect(-10, -4, 20, 14); x.fillRect(-11, -10, 6, 8); x.fillRect(5, -10, 6, 8); x.fillRect(-3, -8, 6, 6);
+      x.fillStyle = '#1a1030'; x.beginPath(); x.arc(0, 6, 3.4, Math.PI, 0); x.fillRect(-3.4, 6, 6.8, 4); x.fill();
+      x.fillStyle = '#ffcf4a'; x.beginPath(); x.moveTo(0, -8); x.lineTo(0, -14); x.lineTo(5, -12); x.lineTo(0, -10.5); x.fill();
+    } else if (id === 2) {   // usine
+      x.fillStyle = '#ffb02e'; x.beginPath(); x.moveTo(-11, 10); x.lineTo(-11, -2); x.lineTo(-4, 2); x.lineTo(-4, -2); x.lineTo(3, 2); x.lineTo(3, -2); x.lineTo(11, 2); x.lineTo(11, 10); x.closePath(); x.fill();
+      x.fillRect(6, -11, 4, 12);
+      x.fillStyle = 'rgba(230,240,250,0.8)'; x.beginPath(); x.arc(8, -13, 2.4, 0, TAU); x.arc(11, -15, 1.8, 0, TAU); x.fill();
+      x.fillStyle = '#1b252c'; x.fillRect(-8, 4, 3, 3); x.fillRect(-1, 4, 3, 3); x.fillRect(6, 4, 3, 3);
+    } else if (id === 3) {   // vagues
+      x.strokeStyle = '#3ff0b0'; x.lineWidth = 3;
+      for (let k = 0; k < 3; k++) { x.beginPath(); for (let i = -11; i <= 11; i += 2) x.lineTo(i, -6 + k * 6 + Math.sin(i * 0.5 + k) * 2); x.stroke(); }
+    } else {                 // fusée
+      x.fillStyle = '#e6eef8'; x.beginPath(); x.moveTo(0, -12); x.quadraticCurveTo(6, -4, 4, 6); x.lineTo(-4, 6); x.quadraticCurveTo(-6, -4, 0, -12); x.fill();
+      x.fillStyle = '#ff5fd2'; x.beginPath(); x.moveTo(-4, 1); x.lineTo(-8, 8); x.lineTo(-4, 6); x.fill(); x.beginPath(); x.moveTo(4, 1); x.lineTo(8, 8); x.lineTo(4, 6); x.fill();
+      x.fillStyle = '#5ef0ff'; x.beginPath(); x.arc(0, -3, 2.2, 0, TAU); x.fill();
+      x.fillStyle = '#ffb02e'; x.beginPath(); x.moveTo(-2.4, 6); x.lineTo(2.4, 6); x.lineTo(0, 11.5); x.fill();
+    }
+  }
+  // médaillon d'un monde (n = 1..5) centré en (x, y), rayon r — enseignes de la carte et fin de partie
+  function drawWorldIcon(ctx, n, x, y, r) {
+    const w = (Math.max(1, n | 0) - 1) % NW, C = ROULEAUX_WORLDS[w].colors;
+    try {
+      ctx.save(); ctx.translate(x, y);
+      const g = ctx.createRadialGradient(0, -r * 0.35, r * 0.1, 0, 0, r);
+      g.addColorStop(0, mixHex(C.accent, C.dark, 0.45)); g.addColorStop(1, C.dark);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.92, 0, TAU); ctx.clip();
+      const s = r / 15; ctx.scale(s, s); ctx.translate(0, 0.5);
+      mapPicto(ctx, w);
+      ctx.restore();
+      ctx.lineWidth = Math.max(1, r * 0.12); ctx.strokeStyle = C.accent;
+      ctx.beginPath(); ctx.arc(0, 0, r - ctx.lineWidth / 2, 0, TAU); ctx.stroke();
+      ctx.lineWidth = Math.max(0.6, r * 0.04); ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath(); ctx.arc(0, 0, r - r * 0.16, 0, TAU); ctx.stroke();
+      ctx.restore();
+    } catch (e) { try { ctx.restore(); } catch (e2) { /* rien */ } }
+  }
+
+  // ---- un étage = le vrai niveau, posé sous sa pastille ----
+  function mapBox(nd, K) { const bot = nd.y + MAP_UP + (LH - 100) * K; return { top: bot - LH * K, bot }; }
+  // les mondes (paliers) de bas en haut avec leurs étages ; bot = le plancher sous le monde (le haut du dernier étage du monde d'en dessous)
+  function mapBands(L, K) {
+    const B = [];
+    for (let i = 0; i < L.tiers.length; i++) {
+      const t = L.tiers[i], tt = Math.max(0, t.t | 0), ns = L.nodes.filter((n) => n.info && n.info.tier === t.t);
+      B.push({ i, t, w: tt % NW, tour: Math.floor(tt / NW), ns, bx: ns.map((n) => mapBox(n, K)) });
+    }
+    for (let i = 0; i < B.length; i++) { const p = B[i - 1]; B[i].bot = !i ? L.H : p.bx.length ? p.bx[p.bx.length - 1].top : p.t.yHi; }
+    for (let i = 0; i < B.length; i++) B[i].top = i + 1 < B.length ? B[i + 1].bot : 0;
+    return B;
+  }
+  // où passe le chemin (courbes de la bibliothèque : M a C (a.x, mi) (b.x, mi) b) à la hauteur y → x
+  function mapPathX(L, y) {
+    const pts = [L.start].concat(L.nodes);
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (y > a.y || y < b.y) continue;
+      const my = (a.y + b.y) / 2;
+      let lo = 0, hi = 1;
+      for (let k = 0; k < 22; k++) { const t = (lo + hi) / 2, u = 1 - t, yy = a.y * u * u * u + 3 * my * u * u * t + 3 * my * u * t * t + b.y * t * t * t; if (yy > y) lo = t; else hi = t; }
+      const t = (lo + hi) / 2, u = 1 - t;
+      return a.x * u * u * u + 3 * a.x * u * u * t + 3 * b.x * u * t * t + b.x * t * t * t;
+    }
+    return L.W / 2;
+  }
+  // terrain d'un niveau : dessiné une fois (KT pixels par unité) avec son ombre ; le miroir des tours pairs = le même, retourné
+  const mapTer = new Map(), mapPat = new Map();
+  function mapPats(wi, KT) {
+    const key = wi + '|' + KT;
+    let p = mapPat.get(key);
+    if (!p) { const set = MATS[wi] || MATS[0]; p = [set.soft.map((s, i) => makePatternData(s, KT, i + 1)), set.hard.map((s, i) => makePatternData(s, KT, i + 11))]; mapPat.set(key, p); }
+    return p;
+  }
+  function mapTerrain(idx, KT) {
+    const key = idx + '|' + KT;
+    let T = mapTer.get(key);
+    if (T) return T;
+    const def = LEVELS[idx], wi = def.world | 0, wd = makeWorld(def, {});
+    const cv = mkCanvas(wd.W * KT, wd.H * KT), g = cv.getContext('2d'), img = g.createImageData(cv.width, cv.height);
+    paintTerrain({ K: KT, buf: new Uint32Array(img.data.buffer), stride: cv.width, pats: mapPats(wi, KT), wi }, wd, 0, 0, wd.W - 1, wd.H - 1);
+    g.putImageData(img, 0, 0);
+    const sh = mkCanvas(wd.W, wd.H), sg = sh.getContext('2d'), si = sg.createImageData(wd.W, wd.H), sb = new Uint32Array(si.data.buffer);
+    for (let i = 0; i < wd.T.length; i++) sb[i] = wd.T[i] ? 0xff000000 : 0;
+    sg.putImageData(si, 0, 0);
+    T = { cv, sh };
+    mapTer.set(key, T);
+    return T;
+  }
+  // les objets d'un niveau (eau, tapis, pièges, portails, ascenseurs, distributeur, WC), miroir compris
+  const mapObj = new Map();
+  function mapObjects(idx, mirror) {
+    const key = idx + (mirror ? 'm' : '');
+    let wd = mapObj.get(key);
+    if (wd) return wd;
+    wd = makeWorld(LEVELS[idx], { mirror });
+    wd.entryTop = -4;
+    for (let y = wd.entry.y - 14; y >= 0; y--) if (solidAt(wd, wd.entry.x, y)) { wd.entryTop = y + 1; break; }
+    for (const tr of wd.traps) { tr.lift = 0; tr.warn = false; }
+    wd.T = null; wd.V = null;     // (le terrain n'est plus utile : déjà dessiné)
+    mapObj.set(key, wd);
+    return wd;
+  }
+  // le mur d'un monde sur la hauteur d'un étage (le même pour les trois étages d'un monde) : dessiné une fois, gardé
+  const mapWall = new Map();
+  function mapWallImg(wi, W, K, sc, A) {
+    const key = wi + '|' + W + '|' + K.toFixed(3) + '|' + sc.toFixed(2) + '|' + (A ? 1 : 0);
+    let cv = mapWall.get(key);
+    if (cv) return cv;
+    if (mapWall.size > 10) mapWall.delete(mapWall.keys().next().value);
+    const ox = (W - LW * K) / 2;
+    cv = mkCanvas(W * sc, LH * K * sc);
+    const g = cv.getContext('2d');
+    g.setTransform(sc * K, 0, 0, sc * K, sc * ox, 0);
+    const vw = { x0: -ox / K - 1, y0: -1, x1: (W - ox) / K + 1, y1: LH + 1 };
+    g.fillStyle = ROULEAUX_WORLDS[wi].colors.dark; g.fillRect(vw.x0, vw.y0, vw.x1 - vw.x0, vw.y1 - vw.y0);
+    try { MAP_BG[wi](g, vw, { w: LW, h: LH }, A); } catch (e) { /* */ }
+    try { edgePillars(g, wi, { x0: vw.x0, y0: -1, x1: vw.x1, y1: LH }, { w: LW, h: LH }); } catch (e) { /* */ }
+    mapWall.set(key, cv);
+    return cv;
+  }
+  // un étage : la bande [r0, r1] de la carte, dont le niveau idx (−1 : seulement le mur du monde wi) a sa boîte en box
+  function mapFloor(x, W, K, KT, sc, box, r0, r1, idx, mirror, wi, A) {
+    if (r1 <= r0) return;
+    const ox = (W - LW * K) / 2, def = idx >= 0 ? LEVELS[idx] : null;
+    x.save();
+    x.beginPath(); x.rect(0, r0, W, r1 - r0); x.clip();
+    // le mur : l'image gardée pour la hauteur du niveau, dessiné directement au-dessus et au-dessous (entrée du monde, haut de la carte)
+    const b0 = Math.max(r0, box.top), b1 = Math.min(r1, box.bot);
+    if (def && b1 > b0) x.drawImage(mapWallImg(wi, W, K, sc, A), 0, box.top, W, LH * K);
+    for (const [a, z] of [[r0, def ? Math.min(r1, box.top) : r1], [def ? Math.max(r0, box.bot) : r1, r1]]) {
+      if (z <= a) continue;
+      x.save(); x.beginPath(); x.rect(0, a, W, z - a); x.clip();
+      x.translate(ox, box.top); x.scale(K, K);
+      const vw = { x0: -ox / K - 1, y0: (a - box.top) / K - 1, x1: (W - ox) / K + 1, y1: (z - box.top) / K + 1 };
+      x.fillStyle = ROULEAUX_WORLDS[wi].colors.dark; x.fillRect(vw.x0, vw.y0, vw.x1 - vw.x0, vw.y1 - vw.y0);
+      try { MAP_BG[wi](x, vw, { w: LW, h: LH }, A); } catch (e) { /* */ }
+      x.restore();
+    }
+    if (def && b1 > b0) {
+      const t = 0.7;
+      x.translate(ox, box.top); x.scale(K, K);
+      for (const d0 of def.deco || []) {
+        const d = mirror ? Object.assign({}, d0, { x: LW - d0.x - (MAP_DW[d0.k] || 0) }) : d0;
+        try { if (DECO[d.k]) DECO[d.k](x, d.x, d.y, wi, A, d); } catch (e) { /* un décor raté ne casse rien */ }
+      }
+      const T = mapTerrain(idx, KT);
+      x.save();
+      if (mirror) { x.translate(LW, 0); x.scale(-1, 1); }
+      x.globalAlpha = 0.42; x.drawImage(T.sh, 1.2, 1.9, LW, LH);
+      x.globalAlpha = 1; x.drawImage(T.cv, 0, 0, LW, LH);
+      x.restore();
+      const wd = mapObjects(idx, mirror);
+      try {
+        for (const b of wd.belts) drawBelt(x, b, t);
+        for (const l of wd.lifts) drawLift(x, l, t);
+        for (const s of wd.portals) drawPortal(x, wi, s, t);
+        for (const tr of wd.traps) {
+          if (tr.type === 'pit') drawPit(x, wi, tr, t, A);
+          else if (tr.type === 'press') drawPress(x, wi, tr, t);
+          else if (tr.type === 'laser') drawLaser(x, tr, t, true, false);
+        }
+        drawWC(x, wi, wd.exit.x, wd.exit.y, t, { noArrow: true, A });
+        for (const z of wd.water) drawWater(x, wi, z, t);
+        drawDispenser(x, wi, wd.entry, 1, t, A, wd.entryTop);
+      } catch (e) { /* */ }
+    }
+    x.restore();
+    // sur un grand écran, les côtés (hors du niveau) un peu plus sombres : chaque étage est encadré
+    if (ox > 4) {
+      x.fillStyle = 'rgba(0,0,0,0.22)';
+      x.fillRect(0, r0, ox - 6 * K, r1 - r0); x.fillRect(ox + (LW + 6) * K, r0, W - ox - (LW + 6) * K, r1 - r0);
+    }
+  }
+  // entre deux mondes : le plancher (dalle du monde d'en dessous) et le tuyau de la chasse d'eau, là où passe le chemin
+  function mapSeam(x, L, W, K, b, prev) {
+    const y = b.bot, px = mapPathX(L, y), F = MAP_FOUND[prev.w], th = Math.round(11 * K);
+    x.save();
+    const sg = x.createLinearGradient(0, y - 18, 0, y); sg.addColorStop(0, 'rgba(0,0,0,0)'); sg.addColorStop(1, 'rgba(0,0,0,0.35)');
+    x.fillStyle = sg; x.fillRect(0, y - 18, W, 18);
+    const g = x.createLinearGradient(0, y, 0, y + th); g.addColorStop(0, F[0]); g.addColorStop(0.35, F[1]); g.addColorStop(1, F[2]);
+    x.fillStyle = g; x.fillRect(0, y, W, th);
+    x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(0, y, W, 1.2);
+    x.fillStyle = 'rgba(0,0,0,0.25)'; for (let X = ((px % 46) + 46) % 46 - 46; X < W; X += 46) x.fillRect(X, y + 2, 1, th - 2);
+    // le tuyau : chromé, avec ses deux colliers ; il traverse le plancher
+    const pw = 15 * K / 1.62 + 6, top = y - 26, bot = y + th + 22;
+    const pg = x.createLinearGradient(px - pw / 2, 0, px + pw / 2, 0);
+    pg.addColorStop(0, '#5d6f7e'); pg.addColorStop(0.3, '#e6eef3'); pg.addColorStop(0.55, '#b4c3cf'); pg.addColorStop(1, '#4a5a68');
+    x.fillStyle = pg; x.fillRect(px - pw / 2, top, pw, bot - top);
+    for (const cy of [top, bot - 7]) {
+      const cg = x.createLinearGradient(px - pw / 2 - 4, 0, px + pw / 2 + 4, 0);
+      cg.addColorStop(0, '#4a5a68'); cg.addColorStop(0.35, '#f4f8fb'); cg.addColorStop(1, '#3a4652');
+      x.fillStyle = cg; rr(x, px - pw / 2 - 4, cy, pw + 8, 7, 2); x.fill();
+      x.strokeStyle = 'rgba(20,30,40,0.6)'; x.lineWidth = 0.8; x.stroke();
+    }
+    x.restore();
+  }
+  // nouveau tour : la chasse d'eau ! un grand tourbillon d'eau bleue, des bulles qui remontent, l'écume
+  function mapFlush(x, L, W, b) {
+    const y = b.bot, cx = mapPathX(L, y + 10), R0 = mulberry32(b.tour * 131 + 7);
+    x.save();
+    const lg = x.createLinearGradient(0, y - 120, 0, y + 70);
+    lg.addColorStop(0, 'rgba(79,195,255,0)'); lg.addColorStop(0.55, 'rgba(79,195,255,0.45)'); lg.addColorStop(0.8, 'rgba(160,230,255,0.55)'); lg.addColorStop(1, 'rgba(79,195,255,0)');
+    x.fillStyle = lg; x.fillRect(0, y - 120, W, 190);
+    x.translate(cx, y);
+    for (let k = 0; k < 7; k++) {
+      const rx = 22 + k * 22, ry = 7 + k * 6.5;
+      x.strokeStyle = k % 2 ? 'rgba(255,255,255,0.75)' : 'rgba(79,195,255,0.85)'; x.lineWidth = 3.2 - k * 0.3;
+      x.beginPath(); x.ellipse(0, 0, rx, ry, 0, 0.3 + k * 0.7, 0.3 + k * 0.7 + Math.PI * 1.45); x.stroke();
+    }
+    const cg = x.createRadialGradient(0, 0, 2, 0, 0, 26); cg.addColorStop(0, 'rgba(10,40,80,0.9)'); cg.addColorStop(1, 'rgba(10,40,80,0)');
+    x.fillStyle = cg; x.beginPath(); x.ellipse(0, 0, 26, 9, 0, 0, TAU); x.fill();
+    x.strokeStyle = 'rgba(255,255,255,0.8)'; x.lineWidth = 1.4;
+    for (let i = 0; i < 22; i++) { const a = R0() * TAU, d = 30 + R0() * Math.max(120, W * 0.4), r = 2 + R0() * 4.5; x.beginPath(); x.arc(Math.cos(a) * d, -10 - R0() * 100, r, 0, TAU); x.stroke(); }
+    x.restore();
+  }
+  // fond sous les décors (couleurs des mondes) : pour le temps que les étages se peignent
+  function mapStopsFor(L) {
+    const K = mapK(L.W), B = mapBands(L, K), st = [];
+    for (const b of B) { const C = ROULEAUX_WORLDS[b.w].colors; st.push([b.bot - 2, mix2(C.sky, C.dark, 0.35)], [Math.max(b.top + 2, (b.top + b.bot) / 2), mix2(C.sky, C.dark, 0.55)]); }
+    st.push([L.H, '#cfe4ee'], [0, '#05060c']);
+    return st;
+  }
+  function mix2(a, b, k) { const A = hexRgb(a), Bc = hexRgb(b); return '#' + [0, 1, 2].map((i) => Math.round(A[i] + (Bc[i] - A[i]) * k).toString(16).padStart(2, '0')).join(''); }
+  function mapPaintChunk(x, L, W, y0, h) {
+    const K = mapK(W), sc = Math.abs(x.getTransform().a) || 1, KT = clamp(Math.round(K * sc), 2, 3), A = mapA(), B = mapBands(L, K);
+    x.save(); x.translate(0, -y0);
+    for (const b of B) {
+      if (b.top > y0 + h + 4 || b.bot < y0 - 4) continue;
+      const m = b.bx.length;
+      for (let k = 0; k < m; k++) {
+        const r1 = k === 0 ? b.bot : b.bx[k].bot, r0 = k + 1 < m ? b.bx[k + 1].bot : b.top;
+        if (r0 > y0 + h + 4 || r1 < y0 - 4) continue;
+        const nd = b.ns[k], idx = (nd.lv - 1) % LEVELS.length;
+        try { mapFloor(x, W, K, KT, sc, b.bx[k], Math.max(r0, y0 - 4), Math.min(r1, y0 + h + 4), idx, b.tour % 2 === 1, b.w, A); } catch (e) { /* */ }
+      }
+      if (!m) try { mapFloor(x, W, K, KT, sc, { top: b.bot - LH * K, bot: b.bot }, Math.max(b.top, y0 - 4), Math.min(b.bot, y0 + h + 4), -1, false, b.w, A); } catch (e) { /* */ }
+    }
+    for (const b of B) {
+      if (!b.i || b.bot - 200 > y0 + h || b.bot + 200 < y0) continue;
+      try { if (b.w === 0 && b.tour > 0) mapFlush(x, L, W, b); else mapSeam(x, L, W, K, b, B[b.i - 1]); } catch (e) { /* */ }
+    }
+    // tout en haut : la suite se perd dans le noir
+    const top = B.length ? B[B.length - 1] : null, fadeTo = top && top.bx.length ? Math.min(top.bx[top.bx.length - 1].top + 60, L.capY != null ? L.capY + 150 : 300) : 300;
+    if (y0 < fadeTo) { const g = x.createLinearGradient(0, 0, 0, fadeTo); g.addColorStop(0, 'rgba(5,6,12,0.94)'); g.addColorStop(1, 'rgba(5,6,12,0)'); x.fillStyle = g; x.fillRect(0, y0, W, Math.min(h, fadeTo - y0)); }
+    x.restore();
+  }
+
+  // ---- un niveau : le médaillon (le rouleau du monde avec ce qu'on y découvre, sur le mur et le sol du monde) ----
+  const mapMed = new Map();
+  function mapMedImg(key, P, dpr, paint) {
+    let cv = mapMed.get(key);
+    if (cv) return cv;
+    if (mapMed.size > 90) mapMed.delete(mapMed.keys().next().value);
+    cv = mkCanvas(P * dpr, P * dpr);
+    const g = cv.getContext('2d'); g.scale(dpr, dpr);
+    try { paint(g); } catch (e) { /* */ }
+    mapMed.set(key, cv);
+    return cv;
+  }
+  const nodeKey = (lv, size, P, dpr) => 'n' + ((lv - 1) % LEVELS.length) + (Math.floor((lv - 1) / LEVELS.length) % 2 ? 'm' : '') + '|' + size + '|' + P + '|' + dpr.toFixed(2);
+  function mapNode(x, info, size, P) {
+    const dpr = x.canvas.width / P, lv = Math.max(1, (info && info.lv) | 0);
+    x.drawImage(mapMedImg(nodeKey(lv, size, P, dpr), P, dpr, (g) => mapNodePaint(g, lv, size, P)), 0, 0, P, P);
+  }
+  function mapNodePaint(x, lv, size, P) {
+    const idx = (lv - 1) % LEVELS.length, def = LEVELS[idx], wi = def.world | 0, C = ROULEAUX_WORLDS[wi].colors;
+    const flip = Math.floor((lv - 1) / LEVELS.length) % 2 === 1, d = flip ? -1 : 1, kind = MAP_LV[idx].k;
+    const cx = P / 2, cy = P / 2, r = size / 2, u = size / 30;      // 1 unité du niveau = u px (le médaillon montre ~30 × 30 unités)
+    const gl = x.createRadialGradient(cx, cy, r * 0.7, cx, cy, r + 11); gl.addColorStop(0, rgba(C.accent, 0.55)); gl.addColorStop(1, rgba(C.accent, 0));
+    x.fillStyle = gl; x.beginPath(); x.arc(cx, cy, r + 11, 0, TAU); x.fill();
+    x.save();
+    x.beginPath(); x.arc(cx, cy, r - 1, 0, TAU); x.clip();
+    x.translate(cx, cy + r); x.scale(u, u);       // (0, 0) = le sol, au milieu, en bas du médaillon ; y vers le bas
+    const vw = { x0: -16, y0: -31, x1: 16, y1: 1 };
+    x.fillStyle = C.dark; x.fillRect(vw.x0, vw.y0, 32, 32);
+    x.save(); x.translate(0, -40); try { MAP_BG[wi](x, { x0: -16, y0: 9, x1: 16, y1: 41 }, { w: LW, h: LH }, null); } catch (e) { /* */ } x.restore();
+    const lt = x.createRadialGradient(0, -16, 2, 0, -14, 20); lt.addColorStop(0, rgba(C.light, 0.28)); lt.addColorStop(1, rgba(C.light, 0));
+    x.fillStyle = lt; x.fillRect(-16, -31, 32, 32);
+    const GY = -7;                                // le sol de la scène
+    const spec = (MATS[wi] || MATS[0]).soft[0];
+    const floor = (x0, x1, y) => {
+      const fg = x.createLinearGradient(0, y, 0, y + 8); fg.addColorStop(0, shade(spec.c[0], 0.12)); fg.addColorStop(1, shade(spec.c[0], -0.28));
+      x.fillStyle = fg; x.fillRect(x0, y, x1 - x0, 9);
+      x.fillStyle = 'rgba(255,255,255,0.55)'; x.fillRect(x0, y, x1 - x0, 0.45);
+      x.fillStyle = rgba(INK, 0.55); x.fillRect(x0, y - 0.35, x1 - x0, 0.35);
+      x.fillStyle = 'rgba(0,0,0,0.12)'; for (let X = x0 + 3; X < x1; X += 6) x.fillRect(X, y + 0.6, 0.35, 8);
+    };
+    const roll = (o) => drawRoll(x, Object.assign({ dir: d, time: 0.4, id: idx, wi, ph: 1.2 }, o));
+    const T = 0.6;
+    if (kind === 'bash') {
+      floor(-16, 16, GY);
+      const bx = d > 0 ? 3.5 : -12.5;
+      x.fillStyle = shade(spec.c[0], -0.05); rr(x, bx, GY - 14, 9, 14, 1); x.fill(); x.strokeStyle = rgba(INK, 0.7); x.lineWidth = 0.35; x.stroke();
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.beginPath(); x.ellipse(d > 0 ? bx + 0.6 : bx + 8.4, GY - 5.2, 1.8, 2.6, 0, 0, TAU); x.fill();
+      roll({ x: -2.4 * d, y: GY, pose: 'bash' });
+    } else if (kind === 'dig') {
+      floor(-16, -4.6, GY); floor(4.6, 16, GY); floor(-4.6, 4.6, GY + 4);
+      x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(-4.6, GY, 9.2, 4);
+      roll({ x: 0, y: GY + 4, pose: 'dig', ph: 2 });
+    } else if (kind === 'stop') {
+      floor(-16, 16, GY);
+      roll({ x: 0, y: GY, pose: 'stop', dir: 1 });
+    } else if (kind === 'build') {
+      floor(-16, 16, GY);
+      x.fillStyle = BUILT_COL[wi] || BUILT_COL[0]; x.strokeStyle = INK; x.lineWidth = 0.3;
+      for (let k = 0; k < 3; k++) { rr(x, (-10 + k * 4.2) * d - (d < 0 ? 4.2 : 0), GY - 1.3 * (k + 1), 4.2, 1.3, 0.35); x.fill(); x.stroke(); }
+      roll({ x: 4.4 * d, y: GY - 3.9, pose: 'build', ph: 2 });
+    } else if (kind === 'float') {
+      floor(-16, 16, GY + 3);
+      x.save(); x.translate(0, GY + 3); x.scale(0.8, 0.8);
+      roll({ x: 0, y: -4, pose: 'fall', floater: true, floatOpen: true });
+      x.restore();
+    } else if (kind === 'portal') {
+      floor(-16, 16, GY);
+      drawPortal(x, wi, { x1: 7 * d, y1: GY, x2: -60, y2: -60, hit: 0 }, T);
+      roll({ x: -4 * d, y: GY, pose: 'walk' });
+    } else if (kind === 'climb') {
+      floor(-16, 16, GY);
+      const wx = d > 0 ? 4.5 : -16;
+      x.fillStyle = shade(spec.c[0], -0.08); rr(x, wx, -33, 11.5, 33 + GY, 0.6); x.fill(); x.strokeStyle = rgba(INK, 0.6); x.lineWidth = 0.35; x.stroke();
+      roll({ x: 0.9 * d, y: GY - 6, pose: 'climb', climber: true });
+    } else if (kind === 'press') {
+      floor(-16, 16, GY);
+      drawPress(x, wi, { x: -6, w: 12, floor: GY, lift: 13, warn: false }, T);
+      roll({ x: -9 * d, y: GY, pose: 'walk' });
+    } else if (kind === 'belt') {
+      floor(-16, 16, GY);
+      drawBelt(x, { x: -15, y: GY - 5, w: 30, h: 5, dir: d }, T);
+      roll({ x: -2 * d, y: GY - 5, pose: 'walk' });
+    } else if (kind === 'swim' || kind === 'current' || kind === 'flood') {
+      floor(-16, 16, GY + 6);
+      const s = kind === 'flood' ? GY - 7 : GY - 2;
+      const z = { x: -17, y: s, s, y0: s, h: GY + 6 - s, w: 34, flow: kind === 'current' ? d : 0, rise: kind === 'flood' ? 0.6 : 0, top: s };
+      roll({ x: 0, y: s + 2.6, pose: 'swim', swimmer: true });
+      drawWater(x, wi, z, T);
+      if (kind === 'current') { x.fillStyle = 'rgba(255,255,255,0.85)'; for (const ax of [-11, 9]) { x.beginPath(); x.moveTo(ax + 3 * d, s + 3); x.lineTo(ax, s + 1.2); x.lineTo(ax, s + 4.8); x.closePath(); x.fill(); } }
+      if (kind === 'flood') { x.fillStyle = '#ffffff'; x.beginPath(); x.moveTo(11, -22); x.lineTo(14, -18); x.lineTo(12, -18); x.lineTo(12, -13); x.lineTo(10, -13); x.lineTo(10, -18); x.lineTo(8, -18); x.closePath(); x.fill(); }
+    } else if (kind === 'drift') {
+      x.fillStyle = 'rgba(255,255,255,0.85)'; for (const [sx, sy] of [[-11, -24], [9, -26], [12, -12], [-13, -11]]) star(x, sx, sy, 0.9);
+      floor(-16, 16, GY + 3);
+      roll({ x: 0, y: GY - 5, pose: 'drift', rot: 0.25 * d });
+    } else if (kind === 'lift') {
+      floor(-16, 16, GY);
+      drawLift(x, { x: -5, y: -30, w: 10, h: 30 + GY, hit: 0 }, T);
+      roll({ x: 0, y: GY - 9, pose: 'lift' });
+    } else {      // la grande finale : le rouleau fête son arrivée devant les WC de l'espace
+      floor(-16, 16, GY);
+      x.save(); x.translate(6 * d, GY); x.scale(0.62 * d, 0.62); drawWC(x, wi, 0, 0, T, { noArrow: true, A: null }); x.restore();
+      roll({ x: -6 * d, y: GY, pose: 'cheer', happy: true });
+      x.fillStyle = '#ffd34d'; for (const [sx, sy] of [[-12, -20], [-1, -24], [12, -22]]) star(x, sx * d, sy, 1);
+    }
+    x.restore();
+    // l'anneau, à la couleur du monde
+    x.lineWidth = 3.2; x.strokeStyle = C.accent; x.beginPath(); x.arc(cx, cy, r - 1.2, 0, TAU); x.stroke();
+    x.lineWidth = 1.1; x.strokeStyle = 'rgba(255,255,255,0.85)'; x.beginPath(); x.arc(cx, cy, r - 3.4, 0, TAU); x.stroke();
+  }
+
+  // ---- le départ : le premier rouleau, tout content, sous son distributeur ----
+  function mapStart(x, P) {
+    x.save();
+    x.translate(P / 2, P * 0.9); const s = P / 34; x.scale(s, s);
+    drawDispenser(x, 0, { x: 0, y: -15.5 }, 1, 0.4, null, -28.5);      // le distributeur de la salle de bain, juste au-dessus
+    x.fillStyle = 'rgba(0,0,0,0.18)'; x.beginPath(); x.ellipse(0, 0.4, 7, 1.4, 0, 0, TAU); x.fill();
+    drawRoll(x, { x: 0, y: 0, dir: 1, pose: 'cheer', happy: true, time: 0.3, id: 2, wi: 0 });
+    x.fillStyle = '#ffd34d'; for (const [sx, sy] of [[-11, -12], [10, -16], [12, -5]]) star(x, sx, sy, 1.1);
+    x.restore();
+  }
+
+  // ---- au calme sur l'accueil : terrains, motifs et médaillons se préparent (rien pendant une partie) ----
+  let mapPlaying = 0;
+  function mapWarm(L, bgDpr, dpr, sizes) {
+    if (!window.requestIdleCallback || !L) return;
+    const idle = (f) => requestIdleCallback((dl) => { if (mapPlaying) setTimeout(() => idle(f), 3000); else if (dl.timeRemaining() < 4 && !dl.didTimeout) idle(f); else f(); }, { timeout: 2500 });
+    const K = mapK(L.W), KT = clamp(Math.round(K * Math.max(1, bgDpr || 1)), 2, 3), jobs = [], seen = new Set();
+    const ns = (sizes && sizes.node) || 60, sc = Math.max(1, bgDpr || 1);
+    for (const nd of L.nodes) {
+      const w = nd.info ? nd.info.w | 0 : 0;
+      if (!seen.has('w' + w)) { seen.add('w' + w); jobs.push(() => rasterNow(mapWallImg(w, L.W, K, sc, mapA()))); }
+      const idx = (nd.lv - 1) % LEVELS.length;
+      if (!seen.has('t' + idx)) { seen.add('t' + idx); jobs.push(() => mapTerrain(idx, KT)); }
+      const key = nodeKey(nd.lv, ns, ns + 24, dpr);
+      if (!seen.has(key)) { seen.add(key); const lv = nd.lv; jobs.push(() => rasterNow(mapMedImg(key, ns + 24, dpr, (g) => mapNodePaint(g, lv, ns, ns + 24)))); }
+    }
+    const step = () => { const j = jobs.shift(); if (!j) return; try { j(); } catch (e) { /* */ } idle(step); };
+    idle(step);
+  }
+  function rasterNow(cv) { try { const g = (rasterNow.x = rasterNow.x || mkCanvas(1, 1).getContext('2d')); g.clearRect(0, 0, 1, 1); g.drawImage(cv, 0, 0, 1, 1); } catch (e) { /* */ } }
+  const mapArt = {
+    warm: mapWarm,
+    level: mapLevel,
+    stops: mapStopsFor,
+    paint: mapPaintChunk,
+    node: mapNode,
+    start: mapStart
+  };
+
   window.JDW_GAMES = window.JDW_GAMES || {};
   window.JDW_GAMES['rouleaux'] = {
     id: 'rouleaux',
@@ -5434,6 +5872,9 @@
     mount,
     worlds: ROULEAUX_WORLDS,          // le parcours (carte d'avancement de la bibliothèque)
     worldOf,                          // niveau → { w, n, tour, stage, world }
+    levelsPerWorld: WPL,              // 3 niveaux par monde
+    drawWorldIcon,                    // médaillon d'un monde (n = 1..5) centré en (x, y), rayon r : enseignes de la carte, fin de partie
+    mapArt,                           // la carte d'avancement de la bibliothèque, dessinée par le jeu (un étage = un vrai niveau)
     // accès de test (simulation sans affichage : niveaux, pas de simulation, rôles)
     sim: { LEVELS, levelParams, makeWorld, stepWorld, applyRole, canAssign, countAlive, nukeWorld, ALIVE, TICK, ROLES, solidAt, waterAt, LW, LH }
   };
