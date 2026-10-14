@@ -398,20 +398,7 @@
 .mf-banner span{display:block;margin-top:8px;font:600 clamp(14px,3.8vw,19px) ${FB};color:#efe6ff;text-shadow:0 2px 6px rgba(0,0,0,.85);padding:0 16px}
 .mf-banner.show{animation:mfBan var(--d,2.2s) cubic-bezier(.2,.9,.25,1) forwards}
 @keyframes mfBan{0%{opacity:0;transform:translateY(-50%) scale(1.6)}12%{opacity:1;transform:translateY(-50%) scale(.96)}18%{transform:translateY(-50%) scale(1)}82%{opacity:1;transform:translateY(-50%) scale(1)}100%{opacity:0;transform:translateY(-50%) scale(.92)}}
-.mf-hint{position:absolute;left:50%;top:calc(var(--hintTop,150px) + env(safe-area-inset-top,0px));transform:translateX(-50%);max-width:88%;text-align:center;font:600 14px ${FB};color:#fff;padding:7px 14px;border-radius:12px;background:rgba(16,8,30,.76);box-shadow:inset 0 0 0 1px rgba(127,230,255,.3);opacity:0;transition:opacity .4s}
-.mf-hint.on{opacity:1}
-.mf-call{position:absolute;left:10px;top:84px;display:flex;align-items:flex-start;gap:8px;max-width:min(78%,360px);opacity:0;transform:translateX(-30px);transition:opacity .3s,transform .45s cubic-bezier(.2,1.5,.4,1)}
-.mf-call.on{opacity:1;transform:none}
-.mf-call .pt{position:relative;flex:none;width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#4a3a7a,#1a1030);box-shadow:0 0 0 2.5px #ffc75a,0 0 0 5px rgba(60,30,0,.55),0 6px 16px rgba(0,0,0,.5);overflow:hidden}
-.mf-call .pt canvas{position:absolute;left:50%;bottom:-2px;width:118%;transform:translateX(-50%)}
-.mf-call.on .pt{animation:mfPop .5s cubic-bezier(.2,1.6,.4,1)}
 @keyframes mfPop{0%{transform:scale(.4) rotate(-15deg)}70%{transform:scale(1.1) rotate(4deg)}100%{transform:scale(1)}}
-.mf-call .bub{position:relative;margin-top:6px;padding:8px 12px 9px;border-radius:14px;background:#fff7e8;color:#2a1838;font:600 14.5px/1.25 ${FB};box-shadow:0 6px 18px rgba(0,0,0,.45)}
-.mf-call .bub b{display:block;font:400 10.5px ${FD};letter-spacing:.06em;color:#a0522d;margin-bottom:2px}
-.mf-call .bub::before{content:"";position:absolute;left:-7px;top:16px;border:7px solid transparent;border-right-color:#fff7e8;border-left:0}
-.mf-call.boss .pt{box-shadow:0 0 0 2.5px #ff5a5a,0 0 0 5px rgba(80,0,0,.55),0 0 22px rgba(255,60,60,.6)}
-.mf-call.boss .bub{background:#fff0ee}
-.mf-call.boss .bub::before{border-right-color:#fff0ee}
 .mf-combo{position:absolute;right:12px;top:42%;text-align:right;opacity:0;transition:opacity .35s;pointer-events:none}
 .mf-combo.on{opacity:1}
 .mf-combo b{display:block;font:400 34px ${FD};line-height:1;color:#fff;background:linear-gradient(180deg,#fffbe8 10%,#ffd36a 55%,#ff7a2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 rgba(70,20,0,.65)) drop-shadow(0 0 14px rgba(255,150,40,.55))}
@@ -547,20 +534,7 @@
     const COMPET = api.mode === 'compet';
     const TOUCH0 = (() => { try { return matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints || 0) > 0 && !matchMedia('(pointer: fine)').matches; } catch (e) { return false; } })();
 
-    // ------------------------------------------------------------- têtes des copains : seulement dans les annonces (bulles)
-    let heads = [], lastHead = null;
-    function fetchHeads() {
-      try { const l = typeof api.heads === 'function' ? api.heads() : []; heads = Array.isArray(l) ? l.filter((h) => h && imgOk(h.img)) : []; } catch (e) { heads = []; }
-    }
-    function pickHead(notName) {
-      if (!heads.length) return null;
-      const pool = heads.filter((h) => h !== lastHead && h.name !== notName);
-      const h = (pool.length ? pool : heads)[Math.floor(FXR() * (pool.length ? pool.length : heads.length))];
-      lastHead = h; return h;
-    }
-    function headName(h) { const n = String((h && h.name) || '').trim().toUpperCase(); return n.length > 12 ? n.slice(0, 11) + '.' : n; }
     function celebrate(text, name) { try { if (typeof api.celebrate === 'function') api.celebrate(text, name); } catch (e) { /* rien */ } }
-    fetchHeads();
     const player = api.player || {};
     const myName = String(player.name || '').trim().toUpperCase();
 
@@ -575,8 +549,7 @@
       '<div class="mf-top"><div class="mf-life"><div class="mf-hearts"></div><div class="mf-gems"></div></div>' +
       '<div class="mf-mid"><div class="mf-room"></div></div><div class="mf-score">0</div></div>' +
       '<div class="mf-boss"><b></b><div class="mf-bbar"><i class="lag"></i><i class="hp"></i></div></div>' +
-      '<div class="mf-flash"></div><div class="mf-pops"></div><div class="mf-banner"><b></b><span></span></div><div class="mf-hint"></div>' +
-      '<div class="mf-call"><div class="pt"></div><div class="bub"><b></b><span></span></div></div>' +
+      '<div class="mf-flash"></div><div class="mf-pops"></div><div class="mf-banner"><b></b><span></span></div>' +
       '<div class="mf-combo"><b></b><span>COMBO</span><i></i></div>' +
       '<div class="mf-ctl"><div class="mf-joy"><div class="mf-knob"></div></div></div>' +
       '<div class="mf-help"></div><div class="mf-cine"><i></i><i></i></div>' +
@@ -589,9 +562,8 @@
     const H = {
       hearts: $('.mf-hearts'), gems: $('.mf-gems'), room: $('.mf-room'), score: $('.mf-score'), boss: $('.mf-boss'), bossName: $('.mf-boss b'),
       bossHp: $('.mf-bbar .hp'), bossLag: $('.mf-bbar .lag'), bbar: $('.mf-bbar'), banner: $('.mf-banner'), bannerB: $('.mf-banner b'), bannerS: $('.mf-banner span'),
-      hint: $('.mf-hint'), flash: $('.mf-flash'), pops: $('.mf-pops'), ctl: $('.mf-ctl'), joy: $('.mf-joy'), knob: $('.mf-knob'), help: $('.mf-help'), paused: $('.mf-paused'),
+      flash: $('.mf-flash'), pops: $('.mf-pops'), ctl: $('.mf-ctl'), joy: $('.mf-joy'), knob: $('.mf-knob'), help: $('.mf-help'), paused: $('.mf-paused'),
       load: $('.mf-load'), loadCv: $('.mf-load canvas'), loadP: $('.mf-load p'), loadBar: $('.mf-lbar i'),
-      call: $('.mf-call'), callPt: $('.mf-call .pt'), callName: $('.mf-call .bub b'), callTxt: $('.mf-call .bub span'),
       combo: $('.mf-combo'), comboN: $('.mf-combo b'), comboBar: $('.mf-combo i'), hurtv: $('.mf-hurtv'), lowv: $('.mf-lowv'),
       win: $('.mf-win'), winT: $('.mf-wcard h2'), winS: $('.mf-wcard h3'), winStars: [...ui.querySelectorAll('.mf-stars svg')], winRows: $('.mf-wrows'), winNext: $('.mf-wnext'),
       fade: $('.mf-fade')
@@ -711,45 +683,6 @@
       H.banner.style.setProperty('--d', dur + 's');
       void H.banner.offsetWidth; H.banner.classList.add('show');
       clearTimeout(bannerTimer); bannerTimer = setTimeout(() => { H.banner.classList.remove('show'); }, dur * 1000 + 50);
-    }
-    let hintTimer = 0;
-    function hint(text, dur) {
-      H.hint.textContent = text; H.hint.classList.add('on');
-      clearTimeout(hintTimer); hintTimer = setTimeout(() => H.hint.classList.remove('on'), (dur || 3.5) * 1000);
-    }
-    // ------------------------------------------------------------- annonces : la tête d'un copain (ou le Grimoire) dans une bulle
-    // portrait du Grimoire (quand il n'y a pas de têtes : invité, hors ligne)
-    function grimoireCanvas() {
-      const c = document.createElement('canvas'); c.width = 160; c.height = 160; const g = c.getContext('2d');
-      g.translate(80, 92);
-      g.fillStyle = '#7a2440'; g.beginPath(); g.moveTo(-58, -40); g.lineTo(58, -40); g.lineTo(54, 50); g.lineTo(-54, 50); g.closePath(); g.fill();
-      g.fillStyle = '#f3e7c9'; g.fillRect(-50, -34, 100, 10); g.fillStyle = '#9b2f50'; g.fillRect(-58, -48, 116, 16);
-      g.fillStyle = '#ffd36a'; g.beginPath(); g.arc(0, 8, 20, 0, TAU); g.fill(); g.fillStyle = '#9b2f50'; g.beginPath(); g.arc(0, 8, 13, 0, TAU); g.fill();
-      for (const sx of [-22, 22]) { g.fillStyle = '#fff'; g.beginPath(); g.ellipse(sx, -12, 11, 13, 0, 0, TAU); g.fill(); g.fillStyle = '#2a1838'; g.beginPath(); g.arc(sx + 2, -10, 6, 0, TAU); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(sx + 4, -13, 2, 0, TAU); g.fill(); }
-      g.strokeStyle = '#2a1838'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.arc(0, 26, 12, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
-      return c;
-    }
-    let GRIM = null, callTimer = 0, callUntil = 0, callPrio = 0;
-    function portraitOf(img) {
-      const c = document.createElement('canvas'), w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
-      c.width = 140; c.height = Math.round(140 * h0 / Math.max(1, w0)); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c;
-    }
-    // callout(texte, { head: tête | null (Grimoire) | undefined (au hasard), kind: 'boss' | '', dur, prio })
-    function callout(text, o) {
-      o = o || {};
-      const now = G.t, prio = o.prio || 1;
-      if (now < callUntil && prio <= callPrio) return false;
-      let h = o.head === undefined ? pickHead() : o.head, img = null, nm = '';
-      if (h && imgOk(o.sad && imgOk(h.sad) ? h.sad : h.img)) { img = portraitOf(o.sad && imgOk(h.sad) ? h.sad : h.img); nm = headName(h); }
-      else { GRIM = GRIM || grimoireCanvas(); img = GRIM; nm = 'LE GRIMOIRE'; }
-      H.callPt.textContent = ''; H.callPt.appendChild(img === GRIM ? (() => { const c = document.createElement('canvas'); c.width = 160; c.height = 160; c.getContext('2d').drawImage(GRIM, 0, 0); return c; })() : img);
-      H.callName.textContent = nm; H.callTxt.textContent = text;
-      H.call.className = 'mf-call' + (o.kind ? ' ' + o.kind : '');
-      void H.call.offsetWidth; H.call.classList.add('on');
-      const dur = o.dur || 2.8; callUntil = now + dur; callPrio = prio;
-      clearTimeout(callTimer); callTimer = setTimeout(() => { H.call.classList.remove('on'); }, dur * 1000);
-      if (!o.quiet) sfx('call', 0.35, 1, 0.3);
-      return true;
     }
     // textes qui s'envolent (points, dégâts, « Esquivé ! ») : suivent un point de la scène
     const pops = [];
@@ -965,14 +898,6 @@
       barMode('kb'); selectSpell(selSpell + (e.deltaY > 0 ? 1 : -1));
     }, { passive: false });
 
-    // ------------------------------------------------------------- conseils d'un instant (les premières parties seulement)
-    function tipsStart() {
-      let n = 0; try { n = +(localStorage.getItem('jdw.magic.astuces') || 0); } catch (e) { /* rien */ }
-      if (TOUCH || n >= 3) return;
-      try { localStorage.setItem('jdw.magic.astuces', String(n + 1)); } catch (e) { /* rien */ }
-      after(2.2, () => { if (!TOUCH) hint(BAR.mode === 'pad' ? 'Stick gauche : marcher · A : éclairs' : 'ZQSD ou flèches : marcher · Clic gauche : éclairs (vers la souris)', 3.6); });
-      after(6.2, () => { if (!TOUCH) hint(BAR.mode === 'pad' ? 'LB / RB : choisir un sort · RT : le lancer' : 'Molette : choisir un sort · Clic droit : le lancer', 3.8); });
-    }
 
     // ------------------------------------------------------------- téléphone : le paysage, c'est mieux (sans l'imposer)
     const PHONE = TOUCH0 && Math.min(screen.width || 9999, screen.height || 9999) < 560;
@@ -2877,7 +2802,6 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
           sparks(m.x + Math.sin(m.face) * 0.6, 1.1, m.z + Math.cos(m.face) * 0.6, 0xffe7a0, 6, 6);
           sfx('clang', 0.3, frnd(0.9, 1.15), 0.08, m.x);
           if (m.st === 'chase' || m.st === 'block') { m.st = 'block'; m.t = 0; play(m.c, 'Block_Hit', { once: true, fade: 0.05, restart: true }); }
-          if (!m.blockTold && G.wi === 0 && G.tour === 0) { m.blockTold = true; hint('Le guerrier pare de face : prends-le de côté, ou au feu 🔥 !', 3.5); }
         }
       }
       if (m.frozen > 0) dmg = Math.round(dmg * 1.5);
@@ -2926,7 +2850,6 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       const b = n * 25 * G.ptsMul; addScore(b);
       pop(hero.x, 3.0, hero.z, 'COMBO ×' + n + ' +' + fmt(b), 'big', 1.4);
       sfx('combo', 0.5, 1 + Math.min(n, 20) * 0.01, 0.3);
-      callout(fpick(n >= 15 ? ['INCROYABLE !!', 'C’est un carnage d’os !', 'Personne ne t’arrête !'] : n >= 10 ? ['Combo ×' + n + ' !! Trop fort !', 'Wouah, quelle série !', 'Ça vole de partout !'] : ['Combo ×' + n + ' !', 'Belle série !', 'Ça déménage !']), { prio: 1 });
     }
 
     // ===========================================================================
@@ -3021,7 +2944,6 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       const needH = G.hearts < MAXH, needS = G.shield < MAXS - 0.05;
       if (needH && (C.gold || G.hearts <= 3 || FXR() < 0.5)) after(0.6, () => dropHeart(x + frnd(-0.8, 0.8), z + 1.3));
       else if (needS && (C.gold || FXR() < 0.6)) after(0.6, () => dropShield(x + frnd(-0.8, 0.8), z + 1.3));
-      if (FXR() < 0.6) after(0.4, () => callout(fpick(['Un trésor !!', 'Waouh, plein d’étoiles !', 'Ça brille !', 'Encore des points !']), { prio: 1 }));
       after(5.5, () => { if (C.L) { delLight(C.L); C.L = null; } });
     }
 
@@ -3051,7 +2973,6 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       burst(hero.x, 1.2, hero.z, 0xff6d8a, 10, 4, 0.5, 0.3, 'heart', 2);
       pop(hero.x, 2.6, hero.z, '-' + n + ' ❤', 'dmg', 1.0);
       if (G.hearts <= 0) heroDie();
-      else if (G.hearts === 1) { callout(fpick(['Attention, plus qu’un cœur !', 'Aïe aïe aïe ! Fais gaffe !', 'Cherche un cœur, vite !']), { prio: 2 }); }
       return true;
     }
     function heroDie() {
@@ -3059,7 +2980,6 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       heroFull('Death_A', { once: true, fade: 0.1 });
       sfx('bossdie', 0.4, 1.5); tone(330, 0.5, 'triangle', 0.05, 110);
       banner('OH NON…', fpick(['Le mage a besoin d’une sieste.', 'Les squelettes dansent de joie…', 'Le donjon a gagné… cette fois.']), 'red', 2.6);
-      const h = pickHead(); callout(fpick(['Nooon ! Le mage est tombé…', 'Snif… On y était presque !', 'Allez, on recommence ?']), { head: h, sad: true, prio: 3, dur: 2.6 });
       smokePuff(hero.x, 0.5, hero.z, 0xb8a8d8, 8, 1.1);
       // les squelettes se moquent
       for (const m of MON) if (!m.dead && !m.K.boss && !m.sleeping) after(frnd(0.2, 0.8), () => { if (!m.dead) { m.st = 'cheer'; play(m.c, m.K.q ? m.K.cheer : fpick(['Cheer', 'Taunt']), { fade: 0.2 }); } });
@@ -3569,9 +3489,8 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         [2.4, () => { sfx('roar', 1.0, 0.85); shake(0.7); hitStop(0.08); flash(m.x, 3.5, m.z, 0x9ff0ff, 9, 0.4, 2.2); ringFx(m.x, m.z, 0x9ff0ff, 1, 12, 0.8, 'ring', 1, 2); }],
         [2.6, () => {
           banner(W.boss.title, W.boss.line, 'red', 3.2); H.bossName.textContent = W.boss.name + (G.tour ? ' ' + roman(G.tour) : ''); H.boss.classList.add('on'); hudBoss();
-          const h = pickHead(); callout(fpick(['C’est quoi CE truc ?!', 'Il est ÉNORME !!', 'Cours, mage, cours !', 'On va le réduire en gravier !']), { head: h, kind: 'boss', prio: 3, dur: 3 });
         }],
-        [4.4, () => { cineEnd(); el.classList.remove('cine'); G.phase = 'play'; BOSS.st = 'walk'; BOSS.t = 0; m.sleeping = false; gPlay('walk'); if (G.tour === 0 && G.wi === 0) hint('Fuis les cercles rouges, roule à travers les ondes !', 4); }]
+        [4.4, () => { cineEnd(); el.classList.remove('cine'); G.phase = 'play'; BOSS.st = 'walk'; BOSS.t = 0; m.sleeping = false; gPlay('walk'); }]
       ];
       for (const [t, f] of tl) after(t, f);
     }
@@ -3643,7 +3562,6 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         A.ev.push([0.4, () => {
           sfx('roar', 0.9, 0.95); shake(0.55); hitStop(0.06);
           banner(BOSS.phase === 3 ? 'IL EST FURIEUX !' : 'IL APPELLE À L’AIDE !', BOSS.phase === 3 ? 'Les pierres tombent du plafond…' : 'Les squelettes sortent de terre !', 'red', 2.2);
-          callout(BOSS.phase === 3 ? fpick(['Il s’énerve !!', 'Attention au plafond !']) : fpick(['Encore des squelettes ?!', 'Ils arrivent de partout !']), { prio: 2 });
           const Z = BOSS.zone, sp = Z.spots.spawns || [], n = BOSS.phase === 3 ? 4 : 3;
           for (let i = 0; i < n; i++) { const p = sp[(i * 2 + BOSS.phase) % sp.length]; after(0.3 + i * 0.35, () => spawnMonster(BOSS.phase === 3 && i % 2 ? (TPL.q_ghost ? 'ghost' : 'rogue') : 'minion', Z.x0 + p[0], Z.z0 + p[1], { zone: Z })); }
         }]);
@@ -3849,9 +3767,8 @@ void main(){ vec2 p = vW * 0.16;
         [3.5, () => { dPlay('breath', { once: true, speed: 1.0, fade: 0.2 }); BOSS.roarFire = 1.6; sfx('dragonroar', 1.0, 0.9); sfx('breath', 0.6, 0.8); shake(0.6); }],
         [4.0, () => {
           banner(W.boss.title, W.boss.line, 'red', 3.2); H.bossName.textContent = W.boss.name + (G.tour ? ' ' + roman(G.tour) : ''); H.boss.classList.add('on'); hudBoss();
-          const h = pickHead(); callout(fpick(['UN DRAGON ?! Sérieux ?!', 'Il crache du feu !! Cours !', 'Attention à ses flammes !', 'On va lui refroidir les idées !']), { head: h, kind: 'boss', prio: 3, dur: 3 });
         }],
-        [5.6, () => { cineEnd(); el.classList.remove('cine'); G.phase = 'play'; BOSS.st = 'walk'; BOSS.t = 0; m.sleeping = false; dPlay('walk'); if (G.tour === 0) hint('Le cône rouge annonce son souffle : sors-en, ou roule !', 4); }]
+        [5.6, () => { cineEnd(); el.classList.remove('cine'); G.phase = 'play'; BOSS.st = 'walk'; BOSS.t = 0; m.sleeping = false; dPlay('walk'); }]
       ];
       for (const [t, f] of tl) after(t, f);
     }
@@ -3921,14 +3838,13 @@ void main(){ vec2 p = vW * 0.16;
         // il s'envole : flammes depuis le ciel, boules de feu, squelettes de feu ; puis il se repose
         A.noRage = true; A.dur = 1.9; dPlay('takeoff', { once: true, fade: 0.2 }); sfx('wings', 0.9, 0.8); sfx('dragonroar', 0.8, 1.0);
         banner('IL S’ENVOLE !', 'Gare au feu qui tombe du ciel…', 'red', 2.2);
-        callout(fpick(['Il vole maintenant ?!', 'Regarde le ciel !', 'Planque-toi derrière les piliers !']), { prio: 2 });
         A.move = (dt2) => { m.y = Math.min(6.5, m.y + dt2 * 4.2); };
         A.next = () => dragonAir(m);
         const Z = BOSS.zone, sp = Z.spots.spawns || [];
         for (let i = 0; i < 3; i++) after(0.6 + i * 0.4, () => { const p = sp[(i * 3 + 1) % sp.length]; spawnMonster(TPL.q_imp ? (i === 1 ? 'imp' : 'drake') : i === 1 ? 'archer' : 'minion', Z.x0 + p[0], Z.z0 + p[1], { zone: Z }); });
       } else if (kind === 'enrage') {
         A.dur = 2.2; dPlay('look', { once: true, speed: 1.6, fade: 0.2 }); BOSS.roarFire = 1.4; sfx('dragonroar', 1, 1.1); shake(0.6); hitStop(0.06);
-        banner('IL ENRAGE !', 'La lave jaillit du sol…', 'red', 2.2); callout(fpick(['Il est en colère !!', 'Ça chauffe, ça chauffe !']), { prio: 2 });
+        banner('IL ENRAGE !', 'La lave jaillit du sol…', 'red', 2.2);
       }
     }
     // phase aérienne : le dragon plane au-dessus de l'arène, souffle des lignes de feu et crache des boules de feu
@@ -4231,12 +4147,9 @@ void main(){ if (vK >= 0.999) discard;
       hudRoom('SALLE ' + level + (G.tour ? ' · TOUR ' + roman(G.tour) : ''), W.rooms[R.room]);
       guideStop();
       for (const D of roomDoors(R)) { setDoor(D, true); D.lockOn = true; }
-      fetchHeads();
       if (R.boss) { bossIntro(); return; }
       banner('SALLE ' + level, W.rooms[R.room], '', 2.0);
       for (const S of SPIKES) if (R.has(S.x, S.z)) S.on = true;
-      if (R.room === 0 && G.tour === 0 && G.wi === 0) after(1.2, () => callout(fpick(['Attention ! Ça bouge sous le sol…', 'Des squelettes ! Lance tes éclairs !', 'À l’attaque, petit mage !']), { prio: 1 }));
-      else after(1.0, () => callout(fpick(['Encore eux ?!', 'Ils sont plus nombreux ici…', 'Courage, mage !', 'On ne lâche rien !']), { prio: 1 }));
     }
     function spawnWave(R, w) {
       const list = R.waves[w]; if (!list) return;
@@ -4270,12 +4183,10 @@ void main(){ if (vK >= 0.999) discard;
         // coup d'œil vers la porte si elle est loin du mage
         if (Math.hypot(D.x - hero.x, D.z - hero.z) > 5) { after(0.5, () => { CAM.focus = [D.x, D.z]; CAM.focusK = 0.6; }); after(2.0, () => { if (CAM.focus && CAM.focus[0] === D.x && CAM.focus[1] === D.z) CAM.focus = null; }); }
       }
-      callout(fpick(['Salle nettoyée, bravo !', 'Les squelettes ont filé !', 'Quel mage !', 'Abracadabra, c’est gagné !', 'Trop facile !']), { prio: 2 });
       if (R.chest) after(0.9, () => {
         const C = R.chest; C.st = 'appear'; C.t = 0; C.g.position.y = 3; flash(C.x, 1.5, C.z, 0xffe08a, 4, 0.5, 2); sfx('treasure', 0.4, 1.2, 0.2);
         C.beam = addStatic({ x: C.x, y: 0.08, z: C.z, s: 3.6, cell: 'rays', col: 0xffd36a, k: 1.6, mode: 1, a: 0.7, vr: 0.5, pulse: 2 });
       });
-      if (G.tour === 0 && G.wi === 0 && R.room === 0) after(2.8, () => hint(R.chest ? 'Un coffre ! Ouvre-le pour des points, puis suis les flèches dorées.' : 'Suis les flèches dorées jusqu’à la porte !', 4));
     }
     function roomsUpdate() {
       if (G.phase !== 'play') return;
@@ -4292,8 +4203,6 @@ void main(){ if (vK >= 0.999) discard;
         const last = R.wave >= R.waves.length - 1;
         if (!last && alive <= (R.wave < 0 ? 0 : 1)) {
           R.wave++; spawnWave(R, R.wave);
-          if (G.tour === 0 && G.wi === 0 && R.room === 0 && R.wave === 1) after(1, () => hint(TOUCH ? 'Bouton 🔥 : la nova de feu repousse tout le monde !' : 'Touche 1 : nova de feu, elle repousse tout le monde ! (ou molette + clic droit)', 4));
-          if (G.tour === 0 && G.wi === 0 && R.room === 0 && R.wave === 2) after(1, () => hint(TOUCH ? 'Bouton gris : roulade (on esquive tout) · ❄ glace · violet : éclairs en chaîne' : 'Espace : roulade (on esquive tout) · 2 : glace · 3 : éclairs en chaîne', 4.5));
         } else if (last && alive === 0) clearRoom(R);
       }
     }
@@ -4323,7 +4232,6 @@ void main(){ if (vK >= 0.999) discard;
       H.win.classList.add('on');
       // feux d'artifice dorés autour du mage
       for (let i = 0; i < 6; i++) after(0.4 + i * 0.35, () => { const a = FXR() * TAU, px = hero.x + Math.cos(a) * 3, pz = hero.z + Math.sin(a) * 3; burst(px, frnd(3, 5), pz, fpick([0xffd36a, 0x9fe8ff, 0xff8ad8]), 18, 7, 0.9, 0.3, 'star4', 2.6); sfx('pop', 0.3, frnd(0.9, 1.2), 0.05); });
-      const h = pickHead(); setTimeout(() => callout(fpick(['VICTOIRE !! Tu es trop fort !', 'Waouh, quel combat !', 'Champion du donjon !']), { head: h, prio: 3, dur: 3 }), 300);
     }
     function winSkip() {
       if (G.phase !== 'win' || !H.winNext.classList.contains('on')) return;
@@ -4345,8 +4253,6 @@ void main(){ if (vK >= 0.999) discard;
         addStatic({ x, y: 1.7, z, s: 3.0, cell: 'rays', col: 0xc8ffd8, k: 2, a: 0.8, vr: 1.4 })] };
       PORTAL.L = addLight(x, 2.2, z, 0x6fff9a, 22, 12, 0.3, 'portal'); PORTAL.L.prio = 500;
       sfx('portal', 0.8);
-      const next = PLAYABLE[G.wi + 1];
-      hint(next ? 'Entre dans le portail : direction « ' + next.name + ' » !' : 'Entre dans le portail : le donjon recommence… en plus fort !', 6);
       for (const D of DOORS) { setDoor(D, false, true); D.lockOn = false; }
       after(0.4, () => guideTo(x, z, null, null));
     }
@@ -4466,7 +4372,6 @@ void main(){ if (vK >= 0.999) discard;
       const W = PLAYABLE[G.wi];
       after(0.2, () => { banner(W.name.toUpperCase(), 'Monde ' + (G.wi + 1) + (G.tour ? ' · Tour ' + roman(G.tour) : ''), '', 2.0); sfx('page', 0.5); tone(660, 0.12, 'triangle', 0.04); });
       after(1.9, () => { banner('GO !', '', 'blue', 0.9); tone(990, 0.25, 'triangle', 0.05); tone(1320, 0.3, 'triangle', 0.035); G.phase = 'play'; });
-      after(2.4, () => { if (TOUCH && G.tour === 0 && G.wi === 0 && START === 1) hint('Pouce gauche : marcher · garde ⚡ appuyé : éclairs !', 4.5); });
     }
     function torchesUpdate(dt) {
       for (const t of TORCHES) {
@@ -4847,7 +4752,7 @@ void main(){ if (vK >= 0.999) discard;
         setTimeout(() => { if (H.load.parentNode) H.load.remove(); }, 700);
         started = true;
         startIntro();
-        tipsStart(); after(1.2, rotTipShow);
+        after(1.2, rotTipShow);
         last = 0; raf = requestAnimationFrame(frame);
       } catch (e) {
         if (destroyed) return;
@@ -4871,7 +4776,7 @@ void main(){ if (vK >= 0.999) discard;
       try { if (Q && started) aqSave(true); } catch (e) { /* rien */ }
       try { if (PHONE && screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { /* rien */ }
       cancelAnimationFrame(raf); cancelAnimationFrame(loadRaf);
-      clearTimeout(bannerTimer); clearTimeout(hintTimer); clearTimeout(callTimer);
+      clearTimeout(bannerTimer);
       if (ro) ro.disconnect();
       for (const [t, ty, fn, o] of listeners) t.removeEventListener(ty, fn, o);
       listeners.length = 0;

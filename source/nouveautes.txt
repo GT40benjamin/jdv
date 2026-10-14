@@ -1,2 +1,1 @@
-🧙 Nouveau jeu : Magic Force ! Deviens un petit mage dans un donjon en 3D : sorts de feu, de glace et d'éclairs, squelettes, monstres et coffres à points, jusqu'à Braise le dragon
-📱 Sur téléphone, Magic Force se joue en paysage ; sur ordinateur, la molette choisit le sort et le clic droit le lance
+🧙 Magic Force : écran plus clair, plus de textes ni de bulles pendant la partie
