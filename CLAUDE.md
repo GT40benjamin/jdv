@@ -61,12 +61,13 @@ gardés après la 1re partie), musiques `assets/music/magic-*.bin`. Depuis la 1.
 décor KayKit Dungeon Remastered, 6 monstres Quaternius Ultimate Monsters (tous CC0, sources dans D:\Games\Assets_MagicForce\), boss
 Heroic Fantasy Creatures. Atelier : `~/jdv-tools/duotest/magic` (parties src/parts assemblées, outils, tests ; fiche REPRISE.md). Refaire les données : `node source/pack-magic.js` (Blender 5, Pillow, Chrome,
 modules npm de `~/jdv-tools/duotest/magic/node_modules`). Pas encore de carte d'avancement (le jeu expose ce qu'il faut). Test : test-labo.js (à adapter : Magic Force est visible sans ?labo).
-**Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux, Casse-Carreaux : tous les jeux solo ont la leur ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
+**Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Magic Force, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux, Casse-Carreaux : tous les jeux solo ont la leur ;
+Magic Force 1.12.2 : dessinée entièrement par la bibliothèque, MAP_DEFS.magic, à partir de worlds / worldOf / levelsPerWorld / drawWorldIcon du jeu ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte
 sans boss, nodeSize, bgDpr, lazy, startArt = héros dessiné au départ, ex. le canard de Glouton, chunk / near = morceaux du décor plus petits,
 moins à peindre à l'ouverture, ex. les Rouleaux). Fin de partie : si le jeu expose `worlds` / `worldOf`,
 l'écran montre le monde atteint (facultatifs : levelsPerWorld, worldWord, drawWorldIcon ; Glouton : une pièce par niveau, « La douche · Tour II »,
-au-delà de 3 tours le numéro de chaque tour sous la piste). Tests : test-map.js (GLOUTON=1 / ROULEAUX=1 / CARREAUX=1 exigent leur bouton),
+au-delà de 3 tours le numéro de chaque tour sous la piste). Tests : test-map.js (MAGIC=1 / GLOUTON=1 / ROULEAUX=1 / CARREAUX=1 exigent leur bouton),
 test-map-est.js. (Chasse aux mouches : le dessin de sa carte est dans ses parties, p8-loop.js, assemblées par assemble.sh ; Casse-Carreaux : dans sa part
 `~/jdv-tools/duotest/carreaux-v2/parts/p8b-carte.js`, même principe.)
 
@@ -210,10 +211,21 @@ seulement le bouton. iPhone/iPad (pas d'API) : astuce « Partager puis Sur l'éc
 ## Modes de jeu (version 1.6)
 Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compétition** (une page par mode, `#jdw-lib[data-mode]`, setMode()).
 - **Duel** (`source/duos/<id>.js`, contrat `source/DUO-CONTRACT.md`, harnais `source/test/duo.html?g=<id>&heads`) : deux joueurs EN MÊME
-  TEMPS sur le même téléphone posé à plat (P0 en bas, P1 en haut tourné de 180°, multi-touch). 8 jeux : trouve, palet, briques, boum,
+  TEMPS sur le même téléphone posé à plat (P0 en bas, P1 en haut tourné de 180°, multi-touch). 9 jeux : pingpong, trouve, palet, briques, boum,
   souris, spatial, mots, guerre (paysage, au tour par tour). La bibliothèque gère les places (« Qui joue ? » : profils, membres de la
   salle, invité), le score du match (api.point), les bannières (api.say), la pause, les résultats des deux côtés (Revanche), les victoires
   par paire (jdw.duostats) et l'annonce dans le chat.
+- **Ping-pong** (`duos/pingpong.js`, 1.13) : tennis de table en 3D (petit moteur WebGL écrit pour le jeu, aucune librairie ni fichier),
+  chacun voit la table depuis SA raquette ; glisser = frapper (haut lifté, bas coupé, courbe = effet, balle haute + vite = smash,
+  toucher = renvoi simple), placement automatique, anneau de timing. 11 points, 2 d'écart (`winBy: 2`), service 2 / 2 (1 / 1 à 10-10),
+  let, filet, balle de bord, ralenti de la balle de match. `local: false` : seulement contre l'IA (4 niveaux) ou en ligne (DUO-CONTRACT.md,
+  dernier ajout ; netGuard ne bloque pas la moitié haute pour ces jeux). En ligne : chaque appareil calcule SES frappes (simulation
+  déterministe à pas fixe, + − × ÷ et racine seulement), l'autre rejoue la même trajectoire avec un léger retard d'affichage qui se
+  rattrape ; une frappe reçue en retard (paquet renvoyé, pic de réseau) est remontrée depuis la frappe ; l'hôte compte les points.
+  Vignette : salle 3D préparée une fois par page au calme (décor 2D en attendant), `warm()` pour accueil-media.js. Musiques
+  `assets/music/dpingpong-*.bin` (collection). Le fichier est ASSEMBLÉ depuis `~/jdv-tools/duotest/pingpong/parts/` (`node assemble.js`,
+  fiche REPRISE.md) : modifier les parts, pas pingpong.js. Tests : `~/jdv-tools/duotest/pingpong/tests/` (borne-ai.js, borne-net.js,
+  review.js, spike.js, pv-longtask.js, net.js, smooth.js, touch.js, matrix.js…).
 - **Duel en ligne (bêta)** (onglet « En ligne » de la page Duel, section « Duel en ligne » de shell2.js) : la partie tourne chez l'hôte
   (celui qui lance le défi, P0) ; vidéo + son de son plateau envoyés en WebRTC à l'adversaire (image tournée de 180° pour que sa moitié
   soit en bas), touches de l'adversaire renvoyées par un canal de données et rejouées comme des PointerEvent (numéros ≥ 1000) sur la

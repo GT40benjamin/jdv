@@ -6111,8 +6111,760 @@ const MAP_DEFS = {
     warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
     start: { title: 'Départ', sub: 'Lisbonne, au petit matin : en route !' },
     cap: { title: 'Le tour du monde continue…', sub: 'Un nouveau tour tous les 18 niveaux, plus coriace' }
+  },
+  // Magic Force (games/magic.js, jeu 3D) : le donjon du mage, salle par salle (3 salles par monde, la 3e = l'antre du boss), puis le Tour II
+  // par le portail. Le jeu ne fournit que worlds / worldOf / drawWorldIcon : la carte est dessinée ICI (fonctions mf… plus bas) : chaque
+  // salle vue de dessus (dalles, murs, torches, décor de la salle), une porte entre deux salles, une grande arche entre deux mondes, le
+  // portail vert au Tour II ; médaillons des salles, du Gardien de pierre et de Braise, le mage au départ.
+  magic: {
+    theme: 'magic', word: 'Salle', tierGap: 200, majorGap: 330, tierAt: 0.5, step: 176, nodeSize: 58, bossSize: 70, bgDpr: 1.6, lazy: true,
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.magic; return G && Array.isArray(G.worlds) && G.worlds.length && typeof G.worldOf === 'function' ? G : null; },
+    nw() { const G = this.game(); return G ? G.worlds.length : 2; },
+    per() { const G = this.game(); return (G && G.levelsPerWorld) || 3; },
+    count(max) { const t = this.nw() * this.per(); return Math.min(120, Math.max(2 * t, Math.ceil((max + 2) / t) * t)); },
+    wo(lv) {
+      const G = this.game();
+      if (G) { try { const o = G.worldOf(lv); if (o && o.world) return o; } catch (e) {} }
+      const per = this.per(), nw = this.nw(), i = Math.max(0, lv - 1), wi = Math.floor(i / per);
+      return { w: wi % nw, n: wi % nw + 1, tour: Math.floor(wi / nw), stage: i % per, boss: i % per === per - 1, world: null };
+    },
+    level(lv) {
+      const wo = this.wo(lv), D = wo.world;
+      return { lv, tier: wo.tour * this.nw() + wo.w, w: wo.w, tour: wo.tour, stage: wo.stage, boss: !!wo.boss, wid: D ? D.id : '',
+        kicker: 'Salle ' + lv + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''), name: D && D.rooms && D.rooms[wo.stage] ? D.rooms[wo.stage] : 'Salle ' + lv,
+        lines: [mfLine(wo)].filter(Boolean), acc: D ? D.colors.accent : '#9b7bff' };
+    },
+    short(lv) { const wo = this.wo(lv); return 'Salle ' + lv + (wo.world ? ' · ' + wo.world.name : '') + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''); },
+    boss(lv) {
+      const wo = this.wo(lv), D = wo.world; if (!wo.boss || !D || !D.boss) return null;
+      return { lv, bk: D.boss.key, wid: D.id, name: D.boss.name, final: wo.w === this.nw() - 1,
+        kicker: (wo.tour ? 'Tour ' + mapRoman(wo.tour) + ' · ' : '') + 'Fin ' + mfDe(D.name) };
+    },
+    tier(t) {
+      const G = this.game(), nw = this.nw(), w = t % nw, tour = Math.floor(t / nw), D = G ? G.worlds[w] : null;
+      return { kicker: (tour ? 'Tour ' + mapRoman(tour) + ' · ' : '') + 'Monde ' + (w + 1), title: D ? D.name : 'Monde ' + (w + 1),
+        icon: G && typeof G.drawWorldIcon === 'function' ? (x, r) => G.drawWorldIcon(x, w + 1, 0, 0, r) : null, emoji: D ? D.emoji : '',
+        sub: D && D.boss ? (D.rooms ? D.rooms.length + ' salles · ' : '') + 'Boss : ' + mfArt(D.boss.name) : '',
+        acc: D ? D.colors.accent : '#9b7bff', acc2: D ? D.colors.accent2 : '#ffd36a', w, tour,
+        major: w === 0 && tour > 0, majorTitle: 'Tour ' + mapRoman(tour), majorSub: 'Le portail ramène au début du donjon, en plus fort !' };
+    },
+    stops(L) { return mfStops(L, this); },
+    paint(x, L, W, y0, h) { mfPaint(x, L, W, y0, h, this); },
+    node(x, info, size, P) { mfNode(x, info, size, P, this); },
+    bossArt(x, bi, size, P) { mfBoss(x, bi, size, P, this); },
+    startArt(x, P) { mfMage(x, P); },
+    warm(L, bgDpr, dpr) { mfWarm(L, bgDpr, dpr, this); },
+    start: { title: 'Départ', sub: 'Le mage entre dans le donjon' },
+    get cap() { return { title: 'Le donjon continue…', sub: 'Un nouveau tour toutes les ' + this.nw() * this.per() + ' salles, plus coriace' }; }
   }
 };
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Magic Force : la carte du donjon, dessinée par la bibliothèque (MAP_DEFS.magic ; le jeu 3D n'a pas de dessin 2D à prêter). Vue de
+// dessus, comme la caméra du jeu : dalles hexagonales, murs de pierre, torches ; chaque salle a son décor (la Salle des gardes, les
+// Catacombes, l'Antre du Gardien, le Pont de lave, la Grande Forge, le Nid du dragon) ; une porte (herse levée, chevrons dorés) entre
+// deux salles, une arche à braseros entre deux mondes, le portail vert au début de chaque tour. Médaillons et mage : en code aussi.
+// Un monde que la carte ne connaît pas encore (les mondes 3 à 6 du jeu) prend ses couleurs dans JDW_GAMES.magic.worlds.
+// ---------------------------------------------------------------------------------------------------------------------------------
+const MF_T = Math.PI * 2;
+const MF_LINES = {
+  crypte: ['Les squelettes sortent de terre !', 'Les morts se relèvent des tombeaux', 'Le Gardien de pierre se réveille'],
+  forge: ['La lave coule dans les forges !', 'Démons et diablotins de feu', 'Braise crache le feu du volcan']
+};
+const MF_BOSS_SHORT = { golem: 'Le Gardien', dragon: 'Braise' };
+const mfArt = (s) => String(s).replace(/^L(es|e|a) /, 'l$1 ').replace(/^L’|^L'/, 'l’');
+const mfDe = (s) => { s = String(s); return /^Les /.test(s) ? 'des ' + s.slice(4) : /^Le /.test(s) ? 'du ' + s.slice(3) : /^La /.test(s) ? 'de la ' + s.slice(3) : /^L[’']/.test(s) ? 'de l’' + s.slice(2) : 'de ' + s; };
+function mfLine(wo) {
+  const D = wo.world; if (!D) return '';
+  if (wo.tour) return wo.boss ? '☠ ' + ((D.boss && MF_BOSS_SHORT[D.boss.key]) || D.boss.name) + ' revient, plus fort' : wo.stage === 0 ? '✦ Plus de monstres, points ×1,5' : '';
+  const L = MF_LINES[D.id], t = L ? L[wo.stage] : wo.boss ? D.boss.name + ' t’attend' : wo.stage === 0 ? D.news : '';
+  return t ? (wo.boss ? '☠ ' : '✦ ') + t : '';
+}
+const mfHash = (a, b) => { let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+// les couleurs d'un monde : la crypte et les forges sont réglées à la main, les mondes à venir prennent les couleurs du jeu
+const MF_STYLE = {
+  crypte: { floor: ['#ab9a83', '#9f8f79', '#b6a58d', '#958673'], grout: '#2b2530', wall: '#96909e', wall2: '#6a6474', wallDk: '#26222e', face: '#433d4d',
+    void0: '#06040c', void1: '#1d1534', light: '#ffae52', dark: 'rgba(14,8,30,0.46)', kind: 'stone' },
+  forge: { floor: ['#6c4335', '#603b2f', '#774b3b', '#56342a'], grout: '#150705', wall: '#7c4d3d', wall2: '#55322a', wallDk: '#1c0906', face: '#3a1c14',
+    void0: '#0b0302', void1: '#2e0c05', light: '#ff8a3d', dark: 'rgba(34,8,2,0.40)', kind: 'lava' }
+};
+function mfStyle(wid, def) {
+  if (MF_STYLE[wid]) return MF_STYLE[wid];
+  const G = def && def.game(), D = G ? G.worlds.find((d) => d.id === wid) : null, c = D ? D.colors : { accent: '#9b7bff', dark: '#0a0618', light: '#2a1a57' };
+  const f = mixHex(c.light, '#a0a0a0', 0.5);
+  return MF_STYLE[wid] = { floor: [f, mixHex(f, '#000000', 0.08), mixHex(f, '#ffffff', 0.07), mixHex(f, '#000000', 0.14)], grout: mixHex(c.dark, '#000000', 0.3),
+    wall: mixHex(c.light, '#b0b0b0', 0.5), wall2: mixHex(c.light, '#606060', 0.4), wallDk: c.dark, face: mixHex(c.dark, '#808080', 0.25), void0: mixHex(c.dark, '#000000', 0.4), void1: c.dark,
+    light: c.accent, dark: rgbaHex(c.dark, 0.42), kind: 'stone' };
+}
+function mfGeo(MW) { const wide = MW >= 600, RW = wide ? Math.min(MW - 56, 780) : MW, x0 = Math.round((MW - RW) / 2); return { x0, x1: x0 + RW, wt: wide ? 22 : 14, wide }; }
+// où passe le chemin (courbes de la bibliothèque : M a C (a.x, mi) (b.x, mi) b) à la hauteur y → x
+function mfPathX(L, y) {
+  const pts = [L.start];
+  for (const n of L.nodes) { pts.push(n); if (n.boss) pts.push(n.boss); }
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    if (y > a.y || y < b.y) continue;
+    const my = (a.y + b.y) / 2;
+    let lo = 0, hi = 1;
+    for (let k = 0; k < 22; k++) { const t = (lo + hi) / 2, u = 1 - t, yy = a.y * u * u * u + 3 * my * u * u * t + 3 * my * u * t * t + b.y * t * t * t; if (yy > y) lo = t; else hi = t; }
+    const t = (lo + hi) / 2, u = 1 - t;
+    return a.x * u * u * u + 3 * a.x * u * u * t + 3 * b.x * u * t * t + b.x * t * t * t;
+  }
+  return L.W / 2;
+}
+// une salle par niveau : du mur (ou de l'arche) du dessous au mur du dessus
+function mfBands(L, def) {
+  const N = L.nodes, out = [];
+  const gateY = (nd) => { const t = L.tiers.find((q) => q.t === nd.info.tier); return t ? (t.T.major ? t.y + 214 : t.y + 74) : nd.y + 120; };
+  for (let k = 0; k < N.length; k++) {
+    const nd = N[k], st = nd.info.stage, nx = N[k + 1];
+    const bot = k === 0 ? L.H : st === 0 ? gateY(nd) : (N[k - 1].y + nd.y) / 2;
+    const top = !nx ? 0 : nx.info.stage === 0 ? gateY(nx) : (nd.y + nx.y) / 2;
+    const entry = k === 0 ? 'start' : st === 0 ? (nd.info.w === 0 && nd.info.tour > 0 ? 'portal' : 'gate') : 'door';
+    out.push({ k, nd, info: nd.info, wid: nd.info.wid, stage: st, tour: nd.info.tour, top, bot, entry, last: !nx });
+  }
+  return out;
+}
+function mfStops(L, def) {
+  const st = [];
+  for (const b of mfBands(L, def)) { const Y = mfStyle(b.wid, def); st.push([b.bot - 1, mixHex(Y.floor[3], '#000000', 0.35)], [b.top + 1, mixHex(Y.floor[0], '#000000', 0.3)]); }
+  st.push([L.H, '#2a2430'], [0, '#05030a']);
+  return st;
+}
+// ---- les dalles hexagonales du sol (chaque dalle sa nuance, un liseré clair en haut à gauche, les joints sombres) ----
+function mfFloor(x, Y, gx0, gx1, top, bot) {
+  // les dalles : une bande de 6 rangées dessinée une fois par monde (et par taille), posée autant de fois qu'il faut (rapide)
+  const R = 21, hh = R * Math.sqrt(3), H6 = 6 * hh, k = Math.max(1, Math.min(2, Math.abs(x.getTransform().a) || 1));
+  const st = mfFloorStrip(Y, Math.ceil(gx1) + 40, k);
+  const sx = Math.max(0, Math.floor(gx0)), sw = Math.min(st.width / k, Math.ceil(gx1)) - sx;      // seulement entre les murs (sur PC, le vide reste noir)
+  for (let y = Math.floor(top / H6) * H6; y < bot; y += H6) x.drawImage(st, sx * k, 0, sw * k, st.height, sx, y, sw, H6);
+}
+const MF_STRIP = new Map();
+function mfFloorStrip(Y, w, k) {
+  const key = Y.floor.join() + '|' + Math.ceil(w / 64) + '|' + k.toFixed(2);
+  let cv = MF_STRIP.get(key);
+  if (cv) return cv;
+  if (MF_STRIP.size > 8) MF_STRIP.delete(MF_STRIP.keys().next().value);
+  const R = 21, hw = R * 1.5, hh = R * Math.sqrt(3), H6 = 6 * hh, W = Math.ceil(w / 64) * 64;
+  cv = document.createElement('canvas'); cv.width = Math.ceil(W * k); cv.height = Math.ceil(H6 * k);
+  const x = cv.getContext('2d'); x.scale(k, k);
+  const hex = (cx, cy, r) => { for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; x[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r); } x.closePath(); };
+  const cells = [];
+  for (let c = -1; c <= Math.ceil(W / hw) + 1; c++) for (let r = -1; r <= 6; r++) { const rr = ((r % 6) + 6) % 6; cells.push([c * hw, r * hh + (c & 1 ? hh / 2 : 0), Math.floor(mfHash(c * 7 + 3, rr * 13 + 1) * Y.floor.length), mfHash(c * 3 + 11, rr * 5 + 2)]); }
+  for (let i = 0; i < Y.floor.length; i++) { x.fillStyle = Y.floor[i]; x.beginPath(); for (const q of cells) if (q[2] === i) hex(q[0], q[1], R); x.fill(); }
+  x.save(); x.translate(1.3, 1.3); x.strokeStyle = 'rgba(255,240,220,0.16)'; x.lineWidth = 1.4; x.beginPath(); for (const q of cells) hex(q[0], q[1], R - 1); x.stroke(); x.restore();
+  x.strokeStyle = Y.grout; x.lineWidth = 2.6; x.beginPath(); for (const q of cells) hex(q[0], q[1], R); x.stroke();
+  x.fillStyle = 'rgba(0,0,0,0.10)';      // usure : quelques taches
+  for (const q of cells) { const h = q[3]; if (h < 0.18) { x.beginPath(); x.ellipse(q[0] + (h - 0.09) * 60, q[1] + (h * 7 % 1 - 0.5) * 10, 5 + h * 20, 3 + h * 10, h * 6, 0, MF_T); x.fill(); } }
+  MF_STRIP.set(key, cv);
+  return cv;
+}
+// ---- un mur vu de dessus : la crête en blocs de pierre, l'ombre sur le sol ----
+function mfWallV(x, Y, wx, top, bot, w, side) {
+  // un mur de côté vu de dessus : la crête en blocs (lumière en haut), la face intérieure sombre, l'ombre sur le sol
+  const inner = side < 0 ? wx + w : wx;
+  const sg = x.createLinearGradient(inner, 0, inner - side * 40, 0); sg.addColorStop(0, 'rgba(0,0,0,0.5)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = sg; x.fillRect(side < 0 ? inner : inner - 40, top, 40, bot - top);
+  x.fillStyle = Y.face; x.fillRect(side < 0 ? inner : inner - 6, top, 6, bot - top);      // la face intérieure
+  x.fillStyle = Y.wallDk; x.fillRect(wx, top, w, bot - top);
+  const bh = 24;
+  for (let y = Math.floor(top / bh) * bh; y < bot; y += bh) {
+    const row = Math.round(y / bh), sh = mfHash(row, wx | 0);
+    x.fillStyle = mixHex(Y.wall, Y.wall2, 0.2 + sh * 0.5); x.fillRect(wx + 1, y + 1, w - 2, bh - 2);
+    x.fillStyle = 'rgba(255,255,255,0.16)'; x.fillRect(wx + 1, y + 1, w - 2, 2.2);
+    x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(wx + 1, y + bh - 4, w - 2, 3);
+    if (row & 1) { x.fillStyle = Y.wallDk; x.fillRect(wx + w / 2 - 0.6, y, 1.2, bh); }
+  }
+}
+function mfWallH(x, Y, x0, x1, y, th, gaps) {
+  // un mur entre deux salles, vu de dessus et un peu de face (comme la caméra du jeu) : la crête en blocs, la face avant, son ombre ;
+  // gaps = [[gx0, gx1], …] les ouvertures
+  const segs = []; let cur = x0;
+  for (const g of gaps.slice().sort((a, b) => a[0] - b[0])) { if (g[0] > cur) segs.push([cur, g[0]]); cur = Math.max(cur, g[1]); }
+  if (cur < x1) segs.push([cur, x1]);
+  const fh = Math.round(th * 0.55), top = y - th / 2, fy = y + th / 2;
+  const sg = x.createLinearGradient(0, fy + fh, 0, fy + fh + 22); sg.addColorStop(0, 'rgba(0,0,0,0.55)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+  const fg = x.createLinearGradient(0, fy, 0, fy + fh); fg.addColorStop(0, Y.face); fg.addColorStop(1, mixHex(Y.face, '#000000', 0.45));
+  for (const [a, b] of segs) {
+    x.fillStyle = sg; x.fillRect(a, fy + fh, b - a, 22);
+    x.fillStyle = fg; x.fillRect(a, fy, b - a, fh);      // la face avant
+    x.fillStyle = 'rgba(0,0,0,0.35)'; for (let bx = a + 17; bx < b; bx += 34) x.fillRect(bx, fy, 1.2, fh);
+    x.fillStyle = Y.wallDk; x.fillRect(a, top, b - a, th);
+    const bw = 34;
+    for (let bx = a - ((a % bw) + bw) % bw; bx < b; bx += bw) {
+      const sh = mfHash(Math.round(bx / bw), Math.round(y)), l = Math.max(a, bx + 1), r = Math.min(b, bx + bw - 1);
+      if (r <= l) continue;
+      x.fillStyle = mixHex(Y.wall, Y.wall2, 0.15 + sh * 0.5); x.fillRect(l, top + 1, r - l, th - 2);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(l, top + 1, r - l, 2.2);
+      x.fillStyle = 'rgba(0,0,0,0.16)'; x.fillRect(l, fy - 4, r - l, 3);
+    }
+  }
+}
+// ---- la lumière : torche murale, brasero, lueurs ----
+function mfGlow(x, cx, cy, r, col, a) { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, rgbaHex(col, a)); g.addColorStop(0.45, rgbaHex(col, a * 0.38)); g.addColorStop(1, rgbaHex(col, 0)); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); }
+function mfFlame(x, cx, cy, s) {
+  const g = x.createRadialGradient(cx, cy + s * 0.2, 0, cx, cy, s * 1.1); g.addColorStop(0, '#fff6c8'); g.addColorStop(0.35, '#ffcf4a'); g.addColorStop(0.75, '#ff7a1f'); g.addColorStop(1, 'rgba(255,90,20,0)');
+  x.fillStyle = g; x.beginPath(); x.moveTo(cx, cy - s * 1.25); x.bezierCurveTo(cx + s * 0.75, cy - s * 0.35, cx + s * 0.62, cy + s * 0.55, cx, cy + s * 0.6);
+  x.bezierCurveTo(cx - s * 0.62, cy + s * 0.55, cx - s * 0.75, cy - s * 0.35, cx, cy - s * 1.25); x.fill();
+}
+function mfTorch(x, Y, cx, cy, side, lit) {
+  // une torche murale : le support (avec le mur), puis la flamme et sa lumière chaude (après l'ombre de la salle)
+  const fx = cx + side * 12;
+  if (!lit) { x.fillStyle = '#2a2026'; x.fillRect(Math.min(cx, fx), cy - 2, 12, 4); x.fillStyle = '#4a3a30'; x.beginPath(); x.ellipse(fx, cy, 4.4, 3.4, 0, 0, MF_T); x.fill(); return; }
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, fx + side * 8, cy, 135, Y.light, 0.5); mfGlow(x, fx, cy - 4, 22, '#fff0c0', 0.55); x.restore();
+  mfFlame(x, fx, cy - 4, 7.5);
+}
+function mfBrazier(x, Y, cx, cy, s) {
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, s * 9, Y.light, 0.4); x.restore();
+  x.fillStyle = 'rgba(0,0,0,0.35)'; x.beginPath(); x.ellipse(cx + s * 0.4, cy + s * 0.6, s * 1.5, s * 1.2, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#3a3036'; x.beginPath(); x.arc(cx, cy, s * 1.3, 0, MF_T); x.fill();
+  x.strokeStyle = '#7a6a60'; x.lineWidth = s * 0.22; x.beginPath(); x.arc(cx, cy, s * 1.2, 0, MF_T); x.stroke();
+  const g = x.createRadialGradient(cx, cy, 0, cx, cy, s); g.addColorStop(0, '#fff3b0'); g.addColorStop(0.5, '#ffb03a'); g.addColorStop(1, '#c2400f');
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, s, 0, MF_T); x.fill();
+  mfFlame(x, cx, cy - s * 0.4, s * 0.9);
+}
+// ---- décor ----
+function mfBarrel(x, cx, cy, r) {
+  x.fillStyle = 'rgba(0,0,0,0.38)'; x.beginPath(); x.ellipse(cx + r * 0.3, cy + r * 0.35, r * 1.05, r * 0.95, 0, 0, MF_T); x.fill();
+  const g = x.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r); g.addColorStop(0, '#c08a52'); g.addColorStop(1, '#5e3519');
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, MF_T); x.fill();
+  x.save(); x.beginPath(); x.arc(cx, cy, r, 0, MF_T); x.clip();
+  x.strokeStyle = 'rgba(50,24,8,0.55)'; x.lineWidth = 1; x.beginPath(); for (let i = -2; i <= 2; i++) { x.moveTo(cx + i * r * 0.38, cy - r); x.lineTo(cx + i * r * 0.38, cy + r); } x.stroke();
+  x.restore();
+  x.strokeStyle = '#2c2420'; x.lineWidth = r * 0.16; x.beginPath(); x.arc(cx, cy, r * 0.9, 0, MF_T); x.stroke();
+  x.lineWidth = r * 0.1; x.beginPath(); x.arc(cx, cy, r * 0.5, 0, MF_T); x.stroke();
+  x.fillStyle = 'rgba(255,230,190,0.25)'; x.beginPath(); x.ellipse(cx - r * 0.35, cy - r * 0.38, r * 0.32, r * 0.18, -0.6, 0, MF_T); x.fill();
+}
+function mfTable(x, cx, cy, w, h) {
+  x.fillStyle = 'rgba(0,0,0,0.38)'; x.fillRect(cx - w / 2 + 6, cy - h / 2 + 7, w, h);
+  const g = x.createLinearGradient(0, cy - h / 2, 0, cy + h / 2); g.addColorStop(0, '#9a6236'); g.addColorStop(1, '#6a3e1e');
+  x.fillStyle = g; mapRect(x, cx - w / 2, cy - h / 2, w, h, 4); x.fill();
+  x.strokeStyle = 'rgba(40,18,6,0.5)'; x.lineWidth = 1; x.beginPath(); for (let i = 1; i < 4; i++) { x.moveTo(cx - w / 2 + 3, cy - h / 2 + i * h / 4); x.lineTo(cx + w / 2 - 3, cy - h / 2 + i * h / 4); } x.stroke();
+  x.strokeStyle = '#3a200c'; x.lineWidth = 1.6; mapRect(x, cx - w / 2, cy - h / 2, w, h, 4); x.stroke();
+  for (let i = 0; i < 3; i++) {      // assiettes, gobelet
+    const px = cx - w / 2 + w * (0.2 + i * 0.3), py = cy + (i & 1 ? -h * 0.18 : h * 0.16);
+    x.fillStyle = '#d8d2c8'; x.beginPath(); x.arc(px, py, h * 0.2, 0, MF_T); x.fill(); x.fillStyle = '#b8b0a4'; x.beginPath(); x.arc(px, py, h * 0.12, 0, MF_T); x.fill();
+  }
+  x.fillStyle = '#3aa86a'; x.beginPath(); x.ellipse(cx + w * 0.38, cy - h * 0.2, h * 0.09, h * 0.2, 0.5, 0, MF_T); x.fill();
+}
+function mfBanner(x, bx, by, side, col) {      // bannière accrochée au mur (rouge et blanc, comme dans la Salle des gardes)
+  const w = 15, h = 50, l = side < 0 ? bx : bx - w;
+  x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(l + side * 4, by + 4, w, h);
+  x.fillStyle = col; x.beginPath(); x.moveTo(l, by); x.lineTo(l + w, by); x.lineTo(l + w, by + h); x.lineTo(l + w / 2, by + h - 7); x.lineTo(l, by + h); x.closePath(); x.fill();
+  x.fillStyle = '#f2ebe0'; x.fillRect(l + w * 0.36, by, w * 0.28, h - 6);
+  x.fillStyle = '#c9a046'; x.fillRect(l - 2, by - 2, w + 4, 3);
+}
+function mfSkull(x, cx, cy, s, eye) {
+  x.fillStyle = '#e9e0cc'; x.beginPath(); x.ellipse(cx, cy - s * 0.12, s * 0.5, s * 0.46, 0, 0, MF_T); x.fill();
+  mapRect(x, cx - s * 0.28, cy + s * 0.12, s * 0.56, s * 0.3, s * 0.08); x.fill();
+  x.fillStyle = '#1a1026'; x.beginPath(); x.ellipse(cx - s * 0.19, cy - s * 0.08, s * 0.13, s * 0.15, 0, 0, MF_T); x.ellipse(cx + s * 0.19, cy - s * 0.08, s * 0.13, s * 0.15, 0, 0, MF_T); x.fill();
+  x.beginPath(); x.moveTo(cx, cy + s * 0.06); x.lineTo(cx - s * 0.05, cy + s * 0.15); x.lineTo(cx + s * 0.05, cy + s * 0.15); x.closePath(); x.fill();
+  x.fillRect(cx - s * 0.16, cy + s * 0.3, s * 0.05, s * 0.1); x.fillRect(cx - s * 0.025, cy + s * 0.3, s * 0.05, s * 0.1); x.fillRect(cx + s * 0.11, cy + s * 0.3, s * 0.05, s * 0.1);
+  if (eye) { x.fillStyle = eye; x.beginPath(); x.arc(cx - s * 0.19, cy - s * 0.07, s * 0.05, 0, MF_T); x.arc(cx + s * 0.19, cy - s * 0.07, s * 0.05, 0, MF_T); x.fill(); }
+}
+function mfBone(x, cx, cy, len, rot) {
+  x.save(); x.translate(cx, cy); x.rotate(rot);
+  x.fillStyle = '#ddd3bc'; x.fillRect(-len / 2, -1.6, len, 3.2);
+  for (const e of [-len / 2, len / 2]) { x.beginPath(); x.arc(e, -1.8, 2.2, 0, MF_T); x.arc(e, 1.8, 2.2, 0, MF_T); x.fill(); }
+  x.restore();
+}
+function mfTomb(x, cx, cy, w, h, rot) {
+  x.save(); x.translate(cx, cy); x.rotate(rot);
+  x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(-w / 2 + 5, -h / 2 + 6, w, h);
+  const g = x.createLinearGradient(0, -h / 2, 0, h / 2); g.addColorStop(0, '#a9a3ad'); g.addColorStop(1, '#6e6874');
+  x.fillStyle = g; mapRect(x, -w / 2, -h / 2, w, h, 5); x.fill();
+  x.strokeStyle = '#3a3440'; x.lineWidth = 1.4; x.stroke();
+  x.fillStyle = 'rgba(40,34,48,0.75)'; x.fillRect(-w * 0.07, -h * 0.34, w * 0.14, h * 0.6); x.fillRect(-w * 0.26, -h * 0.18, w * 0.52, w * 0.13);
+  x.fillStyle = 'rgba(80,120,60,0.45)'; x.beginPath(); x.ellipse(w * 0.28, h * 0.36, w * 0.18, h * 0.08, 0.3, 0, MF_T); x.fill();
+  x.restore();
+}
+function mfCobweb(x, cx, cy, s, dx, dy) {
+  x.save(); x.strokeStyle = 'rgba(230,230,240,0.32)'; x.lineWidth = 0.9;
+  for (let i = 0; i <= 4; i++) { const a = (i / 4) * Math.PI / 2; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + dx * Math.cos(a) * s, cy + dy * Math.sin(a) * s); x.stroke(); }
+  for (let k = 1; k <= 3; k++) { const rr = s * k / 3.4; x.beginPath(); for (let i = 0; i <= 4; i++) { const a = (i / 4) * Math.PI / 2; x[i ? 'lineTo' : 'moveTo'](cx + dx * Math.cos(a) * rr, cy + dy * Math.sin(a) * rr); } x.stroke(); }
+  x.restore();
+}
+function mfCandles(x, Y, cx, cy) {
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, 46, Y.light, 0.3); x.restore();
+  for (const [dx, dy, h] of [[-5, 2, 9], [3, -2, 12], [7, 4, 7]]) {
+    x.fillStyle = '#efe6d2'; x.fillRect(cx + dx - 2, cy + dy - h, 4, h);
+    mfFlame(x, cx + dx, cy + dy - h - 2.5, 2.4);
+  }
+}
+// cercle de runes au sol (l'Antre du Gardien en bleu, le Nid du dragon en rouge, le portail en vert)
+function mfRunes(x, cx, cy, R, col, a) {
+  // cercle de runes au sol (l'Antre du Gardien en bleu, le Nid du dragon en rouge, le portail en vert) : un trait large et doux
+  // puis un trait fin et vif (une lueur sans « shadowBlur », bien plus rapide)
+  const draw = () => {
+    x.beginPath(); x.arc(cx, cy, R, 0, MF_T); x.moveTo(cx + R * 0.8, cy); x.arc(cx, cy, R * 0.8, 0, MF_T);
+    for (let k = 0; k <= 5; k++) { const ang = -Math.PI / 2 + k * 4 * Math.PI / 5; x[k ? 'lineTo' : 'moveTo'](cx + Math.cos(ang) * R * 0.8, cy + Math.sin(ang) * R * 0.8); }
+    for (let k = 0; k < 18; k++) {
+      const ang = k * MF_T / 18, rx = cx + Math.cos(ang) * R * 0.9, ry = cy + Math.sin(ang) * R * 0.9, s = R * 0.05, h = mfHash(k, 7), ca = Math.cos(ang + Math.PI / 2), sa = Math.sin(ang + Math.PI / 2);
+      const P = (u, v) => [rx + u * ca - v * sa, ry + u * sa + v * ca];
+      let q = P(-s, -s); x.moveTo(q[0], q[1]); q = P(h < 0.5 ? s : 0, s); x.lineTo(q[0], q[1]);
+      if (h > 0.3) { q = P(s, -s); x.moveTo(q[0], q[1]); q = P(-s * 0.2, 0); x.lineTo(q[0], q[1]); }
+      if (h > 0.66) { q = P(-s, s * 0.2); x.moveTo(q[0], q[1]); q = P(s, s * 0.2); x.lineTo(q[0], q[1]); }
+    }
+  };
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, R * 1.5, col, 0.22 * a);
+  x.lineCap = 'round'; x.lineJoin = 'round';
+  draw(); x.strokeStyle = rgbaHex(col, 0.22 * a); x.lineWidth = 7; x.stroke();
+  x.strokeStyle = rgbaHex(col, 0.9 * a); x.lineWidth = 1.8; x.stroke();
+  x.restore();
+}
+function mfLavaBand(x, x0, x1, y, th, R) {      // une rivière de lave qui traverse la salle
+  const wav = (X, k) => y + k * th / 2 + Math.sin(X * 0.035 + k * 1.7) * 5 + Math.sin(X * 0.011 - k) * 4;
+  x.save();
+  x.globalCompositeOperation = 'lighter'; mfGlow(x, (x0 + x1) / 2, y, Math.max(140, (x1 - x0) * 0.6), '#ff6a20', 0.35); x.globalCompositeOperation = 'source-over';
+  x.beginPath(); x.moveTo(x0, wav(x0, -1)); for (let X = x0; X <= x1 + 8; X += 8) x.lineTo(X, wav(X, -1)); for (let X = x1 + 8; X >= x0 - 8; X -= 8) x.lineTo(X, wav(X, 1)); x.closePath();
+  const g = x.createLinearGradient(0, y - th / 2, 0, y + th / 2); g.addColorStop(0, '#c2300c'); g.addColorStop(0.3, '#ff8a1f'); g.addColorStop(0.5, '#ffe27a'); g.addColorStop(0.7, '#ff8a1f'); g.addColorStop(1, '#b0280a');
+  x.fillStyle = g; x.fill();
+  x.save(); x.clip();
+  x.fillStyle = 'rgba(60,14,4,0.55)';      // la croûte qui flotte
+  for (let i = 0; i < (x1 - x0) / 26; i++) { const cx = x0 + R() * (x1 - x0), cy = y + (R() - 0.5) * th * 0.7; x.beginPath(); x.ellipse(cx, cy, 6 + R() * 12, 2.5 + R() * 4, R() * 0.6 - 0.3, 0, MF_T); x.fill(); }
+  x.restore();
+  x.strokeStyle = '#2a0c04'; x.lineWidth = 3; for (const k of [-1, 1]) { x.beginPath(); for (let X = x0; X <= x1 + 8; X += 8) x[X === x0 ? 'moveTo' : 'lineTo'](X, wav(X, k)); x.stroke(); }
+  x.restore();
+}
+function mfBridge(x, cx, y, len, w) {
+  x.fillStyle = 'rgba(0,0,0,0.45)'; x.fillRect(cx - w / 2 + 5, y - len / 2 + 5, w, len);
+  x.fillStyle = '#7a6a5e'; x.fillRect(cx - w / 2, y - len / 2, w, len);
+  for (let i = 0; i < len / 12; i++) { x.fillStyle = mixHex('#8e7e70', '#5e5048', mfHash(i, cx | 0)); x.fillRect(cx - w / 2 + 3, y - len / 2 + i * 12 + 1, w - 6, 10); }
+  x.fillStyle = '#4a3c34'; x.fillRect(cx - w / 2 - 3, y - len / 2, 5, len); x.fillRect(cx + w / 2 - 2, y - len / 2, 5, len);
+}
+function mfAnvil(x, cx, cy, s) {
+  x.fillStyle = 'rgba(0,0,0,0.42)'; x.beginPath(); x.ellipse(cx + 5, cy + 6, s * 1.25, s * 0.6, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#2c2a30';
+  x.beginPath(); x.moveTo(cx - s * 1.2, cy - s * 0.3); x.lineTo(cx + s * 0.7, cy - s * 0.3); x.quadraticCurveTo(cx + s * 1.3, cy - s * 0.25, cx + s * 1.35, cy); x.lineTo(cx + s * 0.7, cy + s * 0.12);
+  x.lineTo(cx + s * 0.5, cy + s * 0.5); x.lineTo(cx - s * 0.6, cy + s * 0.5); x.lineTo(cx - s * 0.75, cy + s * 0.12); x.lineTo(cx - s * 1.2, cy + s * 0.05); x.closePath(); x.fill();
+  x.fillStyle = 'rgba(255,255,255,0.22)'; x.fillRect(cx - s * 1.1, cy - s * 0.28, s * 1.8, s * 0.08);
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx - s * 0.2, cy - s * 0.35, s * 1.1, '#ff8a2a', 0.55); x.restore();
+  x.fillStyle = '#ffb04a'; mapRect(x, cx - s * 0.45, cy - s * 0.45, s * 0.6, s * 0.16, s * 0.05); x.fill();
+}
+function mfLavaPool(x, cx, cy, rx, ry, R) {
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, Math.max(rx, ry) * 1.9, '#ff6a20', 0.4); x.restore();
+  x.beginPath(); for (let k = 0; k < 14; k++) { const a = k * MF_T / 14, q = 0.82 + R() * 0.3; x[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rx * q, cy + Math.sin(a) * ry * q); } x.closePath();
+  const g = x.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry)); g.addColorStop(0, '#fff0a0'); g.addColorStop(0.4, '#ffa02a'); g.addColorStop(1, '#b8300c');
+  x.fillStyle = g; x.fill(); x.strokeStyle = '#2a0c04'; x.lineWidth = 3; x.stroke();
+}
+function mfPillar(x, Y, cx, cy, r) {
+  x.fillStyle = 'rgba(0,0,0,0.4)'; x.beginPath(); x.ellipse(cx + r * 0.4, cy + r * 0.5, r * 1.1, r, 0, 0, MF_T); x.fill();
+  mapHex(x, cx, cy, r * 1.08, Math.PI / 8); x.fillStyle = Y.wallDk; x.fill();
+  const g = x.createLinearGradient(cx - r, cy - r, cx + r, cy + r); g.addColorStop(0, Y.wall); g.addColorStop(1, Y.wall2);
+  mapHex(x, cx, cy, r, Math.PI / 8); x.fillStyle = g; x.fill();
+  x.strokeStyle = 'rgba(255,255,255,0.18)'; x.lineWidth = 1.2; mapHex(x, cx, cy, r * 0.62, Math.PI / 8); x.stroke();
+}
+function mfEmbers(x, x0, x1, top, bot, n, R) {
+  x.save(); x.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) { const px = x0 + R() * (x1 - x0), py = top + R() * (bot - top), s = 0.8 + R() * 1.8; x.fillStyle = rgbaHex(R() < 0.5 ? '#ffb04a' : '#ff6a2a', 0.5 + R() * 0.4); x.fillRect(px, py, s, s); }
+  x.restore();
+}
+function mfDust(x, x0, x1, top, bot, n, R) {
+  x.save(); x.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) { const px = x0 + R() * (x1 - x0), py = top + R() * (bot - top); x.fillStyle = 'rgba(255,236,200,' + (0.12 + R() * 0.25).toFixed(2) + ')'; x.beginPath(); x.arc(px, py, 0.8 + R() * 1.4, 0, MF_T); x.fill(); }
+  x.restore();
+}
+// ---- une salle ----
+function mfRoom(x, L, MW, b, def) {
+  const Y = mfStyle(b.wid, def), G = mfGeo(MW), R = mapRng(b.k * 977 + 31), top = b.top, bot = b.bot, i0 = G.x0 + G.wt, i1 = G.x1 - G.wt;
+  const pathAt = (y) => mfPathX(L, y), away = (y) => (pathAt(y) < MW / 2 ? 1 : -1);      // le côté où le chemin ne passe pas
+  const lit = [];      // ce qui brille (lave, runes, flammes) : dessiné après l'ombre de la salle
+  if (G.wide) {      // le vide autour du donjon
+    const g = x.createLinearGradient(0, top, 0, bot); g.addColorStop(0, Y.void1); g.addColorStop(1, Y.void0);
+    x.fillStyle = g; x.fillRect(0, top, G.x0, bot - top); x.fillRect(G.x1, top, MW - G.x1, bot - top);
+    for (const [a, z] of [[G.x0, G.x0 - 44], [G.x1, G.x1 + 44]]) { const sg = x.createLinearGradient(a, 0, z, 0); sg.addColorStop(0, 'rgba(0,0,0,0.6)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = sg; x.fillRect(Math.min(a, z), top, 44, bot - top); }
+    x.save(); x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < (bot - top) * MW / 9000; i++) { const px = R() < 0.5 ? R() * G.x0 : G.x1 + R() * (MW - G.x1), py = top + R() * (bot - top); x.fillStyle = Y.kind === 'lava' ? 'rgba(255,120,40,' + (0.2 + R() * 0.5).toFixed(2) + ')' : 'rgba(210,200,255,' + (0.15 + R() * 0.5).toFixed(2) + ')'; x.fillRect(px, py, 1.3, 1.3); }
+    x.restore();
+  }
+  mfFloor(x, Y, i0, i1, top, bot);
+  const id = b.wid + ':' + b.stage, cy = (top + bot) / 2, nd = b.nd, bossY = nd.boss ? nd.boss.y : null;
+  try {
+    if (id === 'crypte:0') {      // la Salle des gardes : le plancher rouge, la grande table, les tonneaux, les bannières
+      const ty = top + (bot - top) * 0.62, sd = away(ty), tx = MW / 2 + sd * Math.min(MW * 0.27, 150), pw = Math.min(170, (i1 - i0) * 0.46), ph = Math.min(120, (bot - top) * 0.36);
+      x.fillStyle = '#5a2a1c'; x.fillRect(tx - pw / 2 - 3, ty - ph / 2 - 3, pw + 6, ph + 6);
+      for (let k = 0; k < ph / 11; k++) { x.fillStyle = mixHex('#a4482e', '#7e3420', mfHash(k, b.k)); x.fillRect(tx - pw / 2, ty - ph / 2 + k * 11 + 0.6, pw, 10); }
+      x.strokeStyle = 'rgba(30,8,4,0.4)'; x.lineWidth = 1; x.beginPath(); for (let k = 0; k < ph / 11; k++) { const off = (k * 37) % 60; for (let px = tx - pw / 2 + off; px < tx + pw / 2; px += 60) { x.moveTo(px, ty - ph / 2 + k * 11); x.lineTo(px, ty - ph / 2 + k * 11 + 11); } } x.stroke();
+      mfTable(x, tx, ty, Math.min(110, MW * 0.28), 34);
+      for (const [dx, dy, r] of [[0.0, 0.2, 12], [0.06, 0.3, 9], [-0.04, 0.88, 11]]) { const by = top + (bot - top) * dy, s2 = away(by); mfBarrel(x, (s2 > 0 ? i1 - 24 : i0 + 24) - s2 * dx * MW, by, r); }
+      mfBanner(x, i0, top + (bot - top) * 0.3, -1, '#c0302c'); mfBanner(x, i1, top + (bot - top) * 0.55, 1, '#c0302c');
+    } else if (id === 'crypte:1') {      // les Catacombes : les tombeaux, les os, les toiles d'araignée, les bougies
+      for (let j = 0; j < 4; j++) {
+        const ty = top + (bot - top) * (0.2 + j * 0.2), sd = j & 1 ? 1 : -1, px = pathAt(ty);
+        const tx = sd > 0 ? Math.max(px + 52, i1 - 46) : Math.min(px - 52, i0 + 46);
+        if (tx > i0 + 18 && tx < i1 - 18) mfTomb(x, tx, ty, 30, 46, (R() - 0.5) * 0.3);
+      }
+      for (let j = 0; j < 6; j++) { const py = top + R() * (bot - top), px = i0 + 20 + R() * (i1 - i0 - 40); if (Math.abs(px - pathAt(py)) > 40) mfBone(x, px, py, 9 + R() * 6, R() * 3); }
+      mfSkull(x, i1 - 30, top + (bot - top) * 0.82, 11, null); mfSkull(x, i0 + 34, top + (bot - top) * 0.12, 9, null);
+      mfCobweb(x, i0, top + 4, 46, 1, 1); mfCobweb(x, i1, bot - 4, 40, -1, -1);
+      lit.push(() => { mfCandles(x, Y, i0 + 22, top + (bot - top) * 0.55); mfCandles(x, Y, i1 - 24, top + (bot - top) * 0.3); });
+    } else if (id === 'crypte:2') {      // l'Antre du Gardien : le cercle de runes bleu sous le boss, les piliers
+      for (const [fx, fy] of [[0.12, 0.28], [0.88, 0.28], [0.12, 0.8], [0.88, 0.8]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = top + (bot - top) * fy; if (Math.abs(px - pathAt(py)) > 46) mfPillar(x, Y, px, py, 15); }
+      lit.push(() => { if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(84, MW * 0.21), '#6fd8ff', 1); mfCandles(x, Y, MW / 2 + away(cy) * Math.min(MW * 0.3, 160), cy + 30); });
+    } else if (id === 'forge:0') {      // le Pont de lave : la rivière de lave (entre la porte et la salle) et son pont de pierre
+      const room = Math.max(40, nd.y - top), ly = nd.y - room * 0.55, th = Math.min(40, room * 0.42), px = pathAt(ly);
+      lit.push(() => { mfLavaBand(x, i0, i1, ly, th, R); mfBridge(x, px, ly, th + 26, 44); mfEmbers(x, i0, i1, top, bot, 40, R); });
+    } else if (id === 'forge:1') {      // la Grande Forge : les enclumes, les rigoles de lave le long des murs, les braises
+      for (const fy of [0.3, 0.72]) { const py = top + (bot - top) * fy, sd = away(py); mfAnvil(x, MW / 2 + sd * Math.min(MW * 0.27, 150), py, 15); }
+      lit.push(() => {
+        for (const sd of [-1, 1]) {
+          const lx = sd < 0 ? i0 + 12 : i1 - 12;
+          x.save(); x.globalCompositeOperation = 'lighter'; const gg = x.createLinearGradient(lx - sd * 46, 0, lx, 0); gg.addColorStop(0, 'rgba(255,100,30,0)'); gg.addColorStop(1, 'rgba(255,120,40,0.5)'); x.fillStyle = gg; x.fillRect(Math.min(lx, lx - sd * 46), top, 46, bot - top); x.restore();
+          x.fillStyle = '#1c0906'; x.fillRect(lx - 7, top, 14, bot - top);
+          const g2 = x.createLinearGradient(lx - 5, 0, lx + 5, 0); g2.addColorStop(0, '#c2300c'); g2.addColorStop(0.5, '#ffe08a'); g2.addColorStop(1, '#c2300c'); x.fillStyle = g2; x.fillRect(lx - 5, top, 10, bot - top);
+        }
+        for (const fy of [0.3, 0.72]) { const py = top + (bot - top) * fy, sd = away(py), ax = MW / 2 + sd * Math.min(MW * 0.27, 150); x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, ax - 3, py - 5, 34, '#ff8a2a', 0.5); x.restore(); x.fillStyle = '#ffcf6a'; mapRect(x, ax - 7, py - 7, 9, 2.6, 1); x.fill(); }
+        mfEmbers(x, i0, i1, top, bot, 50, R);
+      });
+    } else if (id === 'forge:2') {      // le Nid du dragon : le cercle de runes rouge, les mares de lave, les os
+      for (let j = 0; j < 5; j++) { const py = top + R() * (bot - top), px = i0 + 20 + R() * (i1 - i0 - 40); if (Math.abs(px - pathAt(py)) > 46) mfBone(x, px, py, 10 + R() * 6, R() * 3); }
+      lit.push(() => {
+        if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(86, MW * 0.21), '#ff5a2a', 1);
+        mfLavaPool(x, i0 + 40, top + (bot - top) * 0.22, 34, 22, R); mfLavaPool(x, i1 - 44, top + (bot - top) * 0.78, 38, 24, R);
+        mfEmbers(x, i0, i1, top, bot, 40, R);
+      });
+    } else {      // un monde que la carte ne connaît pas encore : tonneaux et bougies
+      mfBarrel(x, i0 + 26, top + (bot - top) * 0.3, 11); mfBarrel(x, i1 - 26, top + (bot - top) * 0.7, 11);
+      lit.push(() => mfCandles(x, Y, i1 - 30, top + (bot - top) * 0.25));
+    }
+  } catch (e) { /* un décor raté ne casse rien */ }
+  if (G.wide) {
+    for (const sd of [-1, 1]) for (let j = 0; j < 2; j++) {
+      const py = top + (bot - top) * (0.28 + j * 0.44 + (R() - 0.5) * 0.1), px = sd < 0 ? i0 + 40 + R() * 60 : i1 - 40 - R() * 60;
+      if (Math.abs(px - pathAt(py)) < 120) continue;
+      if (Y.kind === 'lava') { if (R() < 0.5) lit.push(() => mfLavaPool(x, px, py, 26, 16, R)); else mfAnvil(x, px, py, 13); }
+      else if (R() < 0.45) { mfBarrel(x, px, py, 11); mfBarrel(x, px + sd * -18, py + 14, 9); }
+      else mfPillar(x, Y, px, py, 14);
+    }
+  }
+  // l'ombre de la salle (plus sombre le long des murs), les murs, puis tout ce qui brille
+  x.fillStyle = Y.dark; x.fillRect(i0, top, i1 - i0, bot - top);
+  for (const [a, z] of [[i0, i0 + 80], [i1, i1 - 80]]) { const g = x.createLinearGradient(a, 0, z, 0); g.addColorStop(0, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(Math.min(a, z), top, 80, bot - top); }
+  mfWallV(x, Y, G.x0, top, bot, G.wt, -1); mfWallV(x, Y, G.x1 - G.wt, top, bot, G.wt, 1);
+  const torches = [];
+  for (let y = bot - 80, j = 0; y > top + 50; y -= 190, j++) { const sd = (b.k + j) & 1 ? 1 : -1; torches.push([sd < 0 ? G.x0 + G.wt : G.x1 - G.wt, y, sd < 0 ? 1 : -1]); }
+  for (const t of torches) mfTorch(x, Y, t[0], t[1], t[2], false);
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, nd.x, nd.y, G.wide ? 220 : 160, Y.light, 0.13); x.restore();
+  for (const f of lit) { try { f(); } catch (e) { /* */ } }
+  for (const t of torches) mfTorch(x, Y, t[0], t[1], t[2], true);
+  if (Y.kind !== 'lava') mfDust(x, i0, i1, top, bot, (bot - top) / 22, R);
+}
+// ---- entre deux salles : la porte (herse levée, lumière dorée, chevrons vers la salle suivante) ----
+function mfDoor(x, L, MW, b, def) {
+  // entre deux salles : une porte ouverte (herse levée), la lumière dorée et les chevrons vers la salle suivante (comme dans le jeu)
+  const Y = mfStyle(b.wid, def), G = mfGeo(MW), y = b.bot, th = Math.round(G.wt * 1.25), px = mfPathX(L, y), gw = 70;
+  const g0 = Math.max(G.x0 + G.wt + 10, px - gw / 2), g1 = Math.min(G.x1 - G.wt - 10, px + gw / 2);
+  mfWallH(x, Y, G.x0, G.x1, y, th, [[g0, g1]]);
+  x.fillStyle = '#1e1a24'; x.fillRect(g0, y - th / 2, g1 - g0, 5);      // la herse levée : la barre et ses pointes
+  for (let gx = g0 + 5; gx < g1 - 2; gx += 8) { x.beginPath(); x.moveTo(gx - 2, y - th / 2 + 5); x.lineTo(gx, y - th / 2 + 10); x.lineTo(gx + 2, y - th / 2 + 5); x.closePath(); x.fill(); }
+  for (const ex of [g0 - 6, g1 + 6]) {      // les montants de la porte
+    x.fillStyle = 'rgba(0,0,0,0.45)'; x.fillRect(ex - 5, y + th / 2, 14, 18);
+    x.fillStyle = Y.wallDk; x.fillRect(ex - 8, y - th / 2 - 6, 16, th + 12);
+    const pg = x.createLinearGradient(ex - 7, 0, ex + 7, 0); pg.addColorStop(0, mixHex(Y.wall, '#ffffff', 0.25)); pg.addColorStop(1, Y.wall2);
+    x.fillStyle = pg; x.fillRect(ex - 7, y - th / 2 - 5, 14, th + 10);
+  }
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, (g0 + g1) / 2, y - 4, 90, '#ffd36a', 0.45); x.restore();
+  x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
+  for (let i = 0; i < 2; i++) {
+    const cy = y - th / 2 - 18 - i * 16, cx = mfPathX(L, cy); x.globalAlpha = 0.9 - i * 0.3;
+    x.beginPath(); x.moveTo(cx - 17, cy + 7); x.lineTo(cx, cy - 4); x.lineTo(cx + 17, cy + 7);
+    x.strokeStyle = 'rgba(255,176,48,0.35)'; x.lineWidth = 8; x.stroke(); x.strokeStyle = '#ffd36a'; x.lineWidth = 3.4; x.stroke();
+  }
+  x.restore();
+}
+// ---- entre deux mondes : une grande arche, deux braseros, l'escalier ----
+function mfGate(x, L, MW, b, def) {
+  // entre deux mondes : un grand mur, une arche avec ses marches, deux braseros aux couleurs du monde qui commence
+  const Y = mfStyle(b.wid, def), G = mfGeo(MW), y = b.bot, th = Math.round(G.wt * 2), px = mfPathX(L, y), gw = 100;
+  const g0 = Math.max(G.x0 + G.wt + 16, px - gw / 2), g1 = Math.min(G.x1 - G.wt - 16, px + gw / 2);
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, (g0 + g1) / 2, y - 26, 170, Y.light, 0.4); x.restore();
+  mfWallH(x, Y, G.x0, G.x1, y, th, [[g0, g1]]);
+  for (let s = 0; s < 4; s++) { const sy = y + th / 2 - (s + 1) * th / 4; x.fillStyle = mixHex(Y.wall, '#000000', 0.12 + s * 0.12); x.fillRect(g0, sy, g1 - g0, th / 4 - 1.2); x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(g0, sy, g1 - g0, 1.4); }
+  for (const ex of [g0 - 9, g1 + 9]) {
+    x.fillStyle = 'rgba(0,0,0,0.45)'; x.fillRect(ex - 7, y + th / 2, 18, 22);
+    x.fillStyle = Y.wallDk; x.fillRect(ex - 10, y - th / 2 - 9, 20, th + 18);
+    const pg = x.createLinearGradient(ex - 9, 0, ex + 9, 0); pg.addColorStop(0, mixHex(Y.wall, '#ffffff', 0.3)); pg.addColorStop(1, Y.wall2);
+    x.fillStyle = pg; x.fillRect(ex - 9, y - th / 2 - 8, 18, th + 16);
+    x.fillStyle = mixHex(Y.wall, '#ffffff', 0.4); x.fillRect(ex - 11, y - th / 2 - 11, 22, 5);
+  }
+  mfBrazier(x, Y, g0 - 30, y + th / 2 + 20, 7.5); mfBrazier(x, Y, g1 + 30, y + th / 2 + 20, 7.5);
+}
+// ---- au début d'un tour : le portail vert (cercle de runes, tourbillon de lumière) ----
+function mfPortal(x, L, MW, b, def) {
+  const y = b.bot, px = mfPathX(L, y), R = Math.min(78, MW * 0.2);
+  mfRunes(x, px, y, R, '#5cff94', 1);
+  x.save(); x.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 4; k++) {
+    x.strokeStyle = rgbaHex(k & 1 ? '#c8ffd8' : '#6fff9a', 0.55); x.lineWidth = 3 - k * 0.4; x.beginPath();
+    for (let i = 0; i <= 40; i++) { const u = i / 40, a = k * Math.PI / 2 + u * 4.2, r = R * 0.72 * (1 - u * 0.9); x[i ? 'lineTo' : 'moveTo'](px + Math.cos(a) * r, y + Math.sin(a) * r); }
+    x.stroke();
+  }
+  mfGlow(x, px, y, R * 0.55, '#d8ffe4', 0.6);
+  x.restore();
+}
+// ---- le départ : l'entrée du donjon (l'escalier qui remonte de dehors) ----
+function mfEntrance(x, L, MW, b, def) {
+  const Y = mfStyle(b.wid, def), G = mfGeo(MW), y = L.H - 26, px = L.start.x, gw = 120;
+  mfWallH(x, Y, G.x0, G.x1, y, 30, [[px - gw / 2, px + gw / 2]]);
+  for (let s = 0; s < 3; s++) { x.fillStyle = mixHex(Y.wall, '#000000', 0.1 + s * 0.15); x.fillRect(px - gw / 2, y - 15 + s * 10, gw, 9); }
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, px, y + 10, 90, '#9fd8ff', 0.3); x.restore();
+}
+function mfPaint(x, L, MW, y0, h, def) {
+  const B = mfBands(L, def);
+  x.save(); x.translate(0, -y0);
+  for (const b of B) {
+    if (b.top > y0 + h + 4 || b.bot < y0 - 4) continue;
+    x.save(); x.beginPath(); x.rect(0, b.top - 1, MW, b.bot - b.top + 2); x.clip();
+    try { mfRoom(x, L, MW, b, def); } catch (e) { /* */ }
+    x.restore();
+  }
+  for (const b of B) {      // portes, arches, portail, entrée : par-dessus les salles
+    if (b.bot - 140 > y0 + h || b.bot + 140 < y0) continue;
+    try { if (b.entry === 'door') mfDoor(x, L, MW, b, def); else if (b.entry === 'gate') mfGate(x, L, MW, b, def); else if (b.entry === 'portal') mfPortal(x, L, MW, b, def); else mfEntrance(x, L, MW, b, def); } catch (e) { /* */ }
+  }
+  // tout en haut : un mur et sa herse baissée (la suite du donjon reste à découvrir), le noir au-dessus
+  const lb = B.length ? B[B.length - 1] : null;
+  if (lb && L.capY != null) {
+    const yW = L.capY + 66, G = mfGeo(MW), Y = mfStyle(lb.wid, def), px = lb.nd.boss ? lb.nd.boss.x : lb.nd.x;
+    if (yW - 200 < y0 + h) {
+      const g = x.createLinearGradient(0, yW - 150, 0, yW); g.addColorStop(0, 'rgba(5,3,10,0.97)'); g.addColorStop(1, 'rgba(5,3,10,0.55)');
+      x.fillStyle = 'rgba(5,3,10,0.97)'; x.fillRect(0, y0, MW, Math.max(0, yW - 150 - y0)); x.fillStyle = g; x.fillRect(0, yW - 150, MW, 150);
+      try {
+        mfWallH(x, Y, G.x0, G.x1, yW, Math.round(G.wt * 1.4), [[px - 34, px + 34]]);
+        x.fillStyle = '#100c16'; x.fillRect(px - 34, yW - G.wt * 0.7, 68, G.wt * 1.4);
+        x.fillStyle = '#4a4452'; for (let gx = px - 30; gx <= px + 30; gx += 8) x.fillRect(gx - 1.2, yW - G.wt * 0.7, 2.4, G.wt * 1.4 + 6);      // la herse baissée
+        x.fillRect(px - 34, yW - 2, 68, 3);
+        for (const ex of [px - 40, px + 40]) { x.fillStyle = Y.wallDk; x.fillRect(ex - 7, yW - G.wt * 0.7 - 5, 14, G.wt * 1.4 + 10); x.fillStyle = mixHex(Y.wall, '#ffffff', 0.15); x.fillRect(ex - 6, yW - G.wt * 0.7 - 4, 12, G.wt * 1.4 + 8); }
+        x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, px, yW - 30, 70, '#9b7bff', 0.25); x.restore();
+      } catch (e) { /* */ }
+    }
+  }
+  x.restore();
+}
+
+// ---- les médaillons : un disque de pierre à rivets, l'emblème de la salle au milieu ----
+const MF_MED = new Map();
+function mfMedImg(key, P, dpr, paint) {
+  let cv = MF_MED.get(key);
+  if (cv) return cv;
+  if (MF_MED.size > 80) MF_MED.delete(MF_MED.keys().next().value);
+  cv = document.createElement('canvas'); cv.width = cv.height = Math.max(1, Math.round(P * dpr));
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  try { paint(g); } catch (e) { /* */ }
+  MF_MED.set(key, cv);
+  return cv;
+}
+function mfNode(x, info, size, P, def) {
+  const dpr = x.canvas.width / P, key = 'n' + (info.wid || '?') + info.stage + '|' + size + '|' + P + '|' + dpr.toFixed(2);
+  x.drawImage(mfMedImg(key, P, dpr, (g) => mfNodePaint(g, info, size, P, def)), 0, 0, P, P);
+}
+function mfDisc(x, cx, cy, r, Y, acc) {      // le disque de pierre : anneau gris, rivets, fond sombre teinté du monde
+  mapGlow(x, cx, cy, r + 11, acc, 0.5);
+  const rim = x.createLinearGradient(0, cy - r, 0, cy + r); rim.addColorStop(0, mixHex(Y.wall, '#ffffff', 0.25)); rim.addColorStop(1, Y.wall2);
+  x.fillStyle = rim; x.beginPath(); x.arc(cx, cy, r, 0, MF_T); x.fill();
+  x.strokeStyle = Y.wallDk; x.lineWidth = 1.4; x.stroke();
+  for (let k = 0; k < 8; k++) { const a = Math.PI / 8 + k * Math.PI / 4, rx = cx + Math.cos(a) * (r - 3.2), ry = cy + Math.sin(a) * (r - 3.2); x.fillStyle = Y.wallDk; x.beginPath(); x.arc(rx, ry, 1.7, 0, MF_T); x.fill(); x.fillStyle = 'rgba(255,255,255,0.45)'; x.beginPath(); x.arc(rx - 0.5, ry - 0.5, 0.7, 0, MF_T); x.fill(); }
+  const ri = r * 0.78, bg = x.createRadialGradient(cx, cy - ri * 0.3, ri * 0.1, cx, cy, ri);
+  bg.addColorStop(0, mixHex(Y.void1, acc, 0.28)); bg.addColorStop(1, Y.void0);
+  x.fillStyle = bg; x.beginPath(); x.arc(cx, cy, ri, 0, MF_T); x.fill();
+  return ri;
+}
+function mfNodePaint(x, info, size, P, def) {
+  const Y = mfStyle(info.wid, def), cx = P / 2, cy = P / 2, r = size / 2, acc = info.acc || Y.light;
+  const ri = mfDisc(x, cx, cy, r, Y, acc), s = ri;
+  x.save(); x.beginPath(); x.arc(cx, cy, ri, 0, MF_T); x.clip(); x.translate(cx, cy);
+  const id = info.wid + ':' + info.stage;
+  if (id === 'crypte:0') {      // deux épées croisées et un crâne : la Salle des gardes
+    for (const sg of [-1, 1]) {
+      x.save(); x.rotate(sg * 0.72);
+      const bl = x.createLinearGradient(-s * 0.08, 0, s * 0.08, 0); bl.addColorStop(0, '#9aa6b4'); bl.addColorStop(0.5, '#f4f8fc'); bl.addColorStop(1, '#8a96a4');
+      x.fillStyle = bl; x.beginPath(); x.moveTo(-s * 0.07, s * 0.42); x.lineTo(-s * 0.07, -s * 0.62); x.lineTo(0, -s * 0.78); x.lineTo(s * 0.07, -s * 0.62); x.lineTo(s * 0.07, s * 0.42); x.closePath(); x.fill();
+      x.strokeStyle = '#3a3440'; x.lineWidth = 0.8; x.stroke();
+      x.fillStyle = '#ffcf4a'; x.fillRect(-s * 0.24, s * 0.4, s * 0.48, s * 0.09); x.fillStyle = '#6a3e1e'; x.fillRect(-s * 0.05, s * 0.49, s * 0.1, s * 0.22); x.fillStyle = '#ffcf4a'; x.beginPath(); x.arc(0, s * 0.74, s * 0.07, 0, MF_T); x.fill();
+      x.restore();
+    }
+    mfSkull(x, 0, s * 0.05, s * 0.78, '#ffb04a');
+  } else if (id === 'crypte:1') {      // la tombe et la main qui sort de terre : les Catacombes
+    x.fillStyle = '#2a1c14'; x.fillRect(-s, s * 0.42, s * 2, s);
+    const g = x.createLinearGradient(0, -s * 0.7, 0, s * 0.5); g.addColorStop(0, '#b4aeb8'); g.addColorStop(1, '#6e6874');
+    x.fillStyle = g; x.beginPath(); x.moveTo(-s * 0.42, s * 0.48); x.lineTo(-s * 0.42, -s * 0.3); x.arc(0, -s * 0.3, s * 0.42, Math.PI, 0); x.lineTo(s * 0.42, s * 0.48); x.closePath(); x.fill();
+    x.strokeStyle = '#3a3440'; x.lineWidth = 1; x.stroke();
+    x.fillStyle = 'rgba(40,34,48,0.8)'; x.fillRect(-s * 0.06, -s * 0.48, s * 0.12, s * 0.5); x.fillRect(-s * 0.2, -s * 0.34, s * 0.4, s * 0.1);
+    x.fillStyle = '#e9e0cc';      // la main de squelette
+    x.save(); x.translate(-s * 0.48, s * 0.46);
+    x.fillRect(-s * 0.05, -s * 0.22, s * 0.1, s * 0.24);
+    for (let k = 0; k < 4; k++) { x.save(); x.translate(-s * 0.08 + k * s * 0.055, -s * 0.24); x.rotate(-0.35 + k * 0.22); x.fillRect(-s * 0.018, -s * 0.16, s * 0.036, s * 0.16); x.restore(); }
+    x.restore();
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, s * 0.56, s * 0.1, s * 0.5, '#ffb04a', 0.6); x.restore();
+    x.fillStyle = '#efe6d2'; x.fillRect(s * 0.5, s * 0.12, s * 0.12, s * 0.32); mfFlame(x, s * 0.56, s * 0.06, s * 0.09);
+  } else if (id === 'crypte:2') {      // le cercle de runes bleu : l'Antre du Gardien
+    mfRunes(x, 0, 0, s * 0.82, '#6fd8ff', 1);
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, 0, s * 0.5, '#bff2ff', 0.7); x.restore();
+  } else if (id === 'forge:0') {      // le pont de pierre au-dessus de la lave
+    const lg = x.createLinearGradient(0, s * 0.1, 0, s); lg.addColorStop(0, '#ffe27a'); lg.addColorStop(0.4, '#ff8a1f'); lg.addColorStop(1, '#a8280a');
+    x.fillStyle = lg; x.beginPath(); x.moveTo(-s, s * 0.2); for (let X = -s; X <= s; X += s / 8) x.lineTo(X, s * 0.2 + Math.sin(X / s * 7) * s * 0.05); x.lineTo(s, s); x.lineTo(-s, s); x.closePath(); x.fill();
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, s * 0.4, s * 0.9, '#ff6a20', 0.5); x.restore();
+    x.fillStyle = '#6e5e54'; x.beginPath(); x.moveTo(-s, -s * 0.05); x.lineTo(s, -s * 0.05); x.lineTo(s, s * 0.55); x.lineTo(s * 0.55, s * 0.55); x.quadraticCurveTo(0, -s * 0.05, -s * 0.55, s * 0.55); x.lineTo(-s, s * 0.55); x.closePath(); x.fill();
+    x.strokeStyle = '#3a2c26'; x.lineWidth = 1; x.stroke();
+    x.fillStyle = '#8e7e72'; x.fillRect(-s, -s * 0.16, s * 2, s * 0.13);
+    x.strokeStyle = 'rgba(40,28,22,0.6)'; x.beginPath(); for (let X = -s; X < s; X += s * 0.28) { x.moveTo(X, -s * 0.16); x.lineTo(X, -s * 0.03); } x.stroke();
+  } else if (id === 'forge:1') {      // l'enclume, le marteau et les étincelles : la Grande Forge
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, s * 0.55, s * 1.1, '#ff6a20', 0.55); x.restore();
+    const an = (k) => { x.beginPath(); x.moveTo(-s * 0.8, -s * 0.02); x.lineTo(s * 0.42, -s * 0.02); x.quadraticCurveTo(s * 0.86, 0, s * 0.9, s * 0.16); x.lineTo(s * 0.42, s * 0.2);
+      x.lineTo(s * 0.32, s * 0.42); x.lineTo(s * 0.46, s * 0.6); x.lineTo(-s * 0.46, s * 0.6); x.lineTo(-s * 0.32, s * 0.42); x.lineTo(-s * 0.42, s * 0.2); x.lineTo(-s * 0.8, s * 0.14); x.closePath(); };
+    const ag = x.createLinearGradient(0, -s * 0.05, 0, s * 0.6); ag.addColorStop(0, '#9a98a6'); ag.addColorStop(0.3, '#55535e'); ag.addColorStop(1, '#2a2830');
+    an(); x.fillStyle = ag; x.fill(); x.strokeStyle = '#141218'; x.lineWidth = 1.1; x.stroke();
+    x.fillStyle = 'rgba(255,170,90,0.55)'; x.fillRect(-s * 0.76, -s * 0.02, s * 1.2, s * 0.05);      // le reflet du feu sur l'enclume
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, -s * 0.1, -s * 0.1, s * 0.42, '#ffb03a', 0.9); x.restore();
+    x.fillStyle = '#ffe9a0'; mapRect(x, -s * 0.32, -s * 0.11, s * 0.42, s * 0.1, s * 0.03); x.fill();      // le métal chauffé à blanc
+    x.save(); x.translate(s * 0.34, -s * 0.46); x.rotate(-0.75);
+    x.fillStyle = '#8a5a32'; x.fillRect(-s * 0.045, -s * 0.02, s * 0.09, s * 0.62);
+    const hg = x.createLinearGradient(0, -s * 0.18, 0, 0); hg.addColorStop(0, '#c8c6d2'); hg.addColorStop(1, '#5a5866'); x.fillStyle = hg; mapRect(x, -s * 0.24, -s * 0.18, s * 0.48, s * 0.18, s * 0.03); x.fill();
+    x.strokeStyle = '#141218'; x.lineWidth = 1; x.stroke();
+    x.restore();
+    x.save(); x.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 9; k++) { const a = -Math.PI * (0.15 + 0.7 * mfHash(k, 3)), d = s * (0.18 + 0.4 * mfHash(k, 5)); x.fillStyle = k & 1 ? '#ffd36a' : '#ff8a2a'; x.beginPath(); x.arc(-s * 0.12 + Math.cos(a) * d, -s * 0.05 + Math.sin(a) * d, s * 0.035, 0, MF_T); x.fill(); }
+    x.restore();
+  } else if (id === 'forge:2') {      // l'œuf du dragon dans les braises : le Nid du dragon
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, s * 0.4, s, '#ff6a20', 0.6); x.restore();
+    for (let k = 0; k < 7; k++) { const a = Math.PI * (0.05 + k / 7.5); mfFlame(x, Math.cos(a) * s * 0.55, s * 0.5 - Math.sin(a) * s * 0.1, s * 0.16); }
+    const eg = x.createRadialGradient(-s * 0.15, -s * 0.25, s * 0.05, 0, 0, s * 0.6); eg.addColorStop(0, '#ffb07a'); eg.addColorStop(0.55, '#d8452a'); eg.addColorStop(1, '#6a1408');
+    x.fillStyle = eg; x.beginPath(); x.ellipse(0, -s * 0.02, s * 0.36, s * 0.5, 0, 0, MF_T); x.fill();
+    x.strokeStyle = 'rgba(80,14,4,0.6)'; x.lineWidth = 1;
+    for (let rr = -2; rr <= 2; rr++) for (let cc = -1; cc <= 1; cc++) { x.beginPath(); x.arc(cc * s * 0.18 + (rr & 1) * s * 0.09, rr * s * 0.17, s * 0.09, 0.2, Math.PI - 0.2); x.stroke(); }
+    x.fillStyle = 'rgba(255,240,220,0.35)'; x.beginPath(); x.ellipse(-s * 0.14, -s * 0.24, s * 0.08, s * 0.14, -0.3, 0, MF_T); x.fill();
+    x.fillStyle = '#2a1410'; for (let k = 0; k < 5; k++) { x.beginPath(); x.ellipse(-s * 0.5 + k * s * 0.25, s * 0.56, s * 0.16, s * 0.08, 0, 0, MF_T); x.fill(); }
+  } else {      // un monde à venir : son emblème, dessiné par le jeu
+    const G = def && def.game(); if (G && G.drawWorldIcon) G.drawWorldIcon(x, (info.w | 0) + 1, 0, 0, s * 0.9);
+  }
+  x.restore();
+  x.strokeStyle = rgbaHex(acc, 0.85); x.lineWidth = 1.6; x.beginPath(); x.arc(cx, cy, ri, 0, MF_T); x.stroke();
+}
+// ---- les boss : le Gardien de pierre (golem aux veines bleues), Braise le dragon ----
+function mfBoss(x, bi, size, P, def) {
+  const dpr = x.canvas.width / P, key = 'b' + (bi.bk || '?') + (bi.final ? 'F' : '') + '|' + size + '|' + P + '|' + dpr.toFixed(2);
+  x.drawImage(mfMedImg(key, P, dpr, (g) => mfBossPaint(g, bi, size, P, def)), 0, 0, P, P);
+}
+function mfBossPaint(x, bi, size, P, def) {
+  const golem = bi.bk === 'golem', dragon = bi.bk === 'dragon', col = golem ? '#6fd8ff' : dragon ? '#ff6a2a' : (bi.acc || '#9b7bff'), Y = mfStyle(bi.wid, def);
+  const cx = P / 2, cy = P / 2 + 2, r = size / 2, gold = bi.final;
+  mapGlow(x, cx, cy, r + 17, gold ? '#ffb22e' : col, 0.6);
+  // l'anneau de pierre gravé de runes
+  x.fillStyle = gold ? '#a87a1c' : '#2c2834'; x.beginPath(); x.arc(cx, cy, r + 7, 0, MF_T); x.fill();
+  const rim = x.createLinearGradient(0, cy - r - 6, 0, cy + r + 6); rim.addColorStop(0, gold ? '#ffe9a0' : '#8e8896'); rim.addColorStop(1, gold ? '#b8860b' : '#4a4452');
+  x.fillStyle = rim; x.beginPath(); x.arc(cx, cy, r + 5.5, 0, MF_T); x.fill();
+  x.save(); x.strokeStyle = gold ? '#fff6c8' : col; x.lineWidth = 1.3; x.shadowColor = col; x.shadowBlur = 5 * dpr2(x);
+  for (let k = 0; k < 12; k++) { const a = k * MF_T / 12, rx = cx + Math.cos(a) * (r + 2.6), ry = cy + Math.sin(a) * (r + 2.6); x.save(); x.translate(rx, ry); x.rotate(a + Math.PI / 2); x.beginPath(); x.moveTo(-1.6, -1.6); x.lineTo(1.6, 1.6); if (k & 1) { x.moveTo(1.6, -1.6); x.lineTo(0, 0); } x.stroke(); x.restore(); }
+  x.restore();
+  const bg = x.createRadialGradient(cx, cy - r * 0.3, r * 0.1, cx, cy, r);
+  bg.addColorStop(0, golem ? '#1f3a5a' : dragon ? '#5a1608' : mixHex(Y.void1, col, 0.3)); bg.addColorStop(1, golem ? '#060c18' : dragon ? '#140402' : Y.void0);
+  x.fillStyle = bg; x.beginPath(); x.arc(cx, cy, r, 0, MF_T); x.fill();
+  x.save(); x.beginPath(); x.arc(cx, cy, r - 1, 0, MF_T); x.clip(); x.translate(cx, cy);
+  if (golem) mfGolem(x, r); else if (dragon) mfDragon(x, r);
+  else { const G = def && def.game(); if (G && G.drawWorldIcon) G.drawWorldIcon(x, 1, 0, 0, r * 0.8); }
+  x.restore();
+  x.strokeStyle = gold ? '#ffd34d' : col; x.lineWidth = 2.2; x.beginPath(); x.arc(cx, cy, r - 0.5, 0, MF_T); x.stroke();
+}
+function dpr2(x) { return Math.abs(x.getTransform().a) || 1; }
+function mfGolem(x, r) {
+  // le Gardien de pierre : un géant de roches (épaules, tête taillée à la hache, arcade lourde), des yeux et des veines bleus qui brillent
+  const rock = (pts, k, cx0, cy0) => {
+    x.beginPath(); pts.forEach((p, i) => x[i ? 'lineTo' : 'moveTo'](p[0] * r, p[1] * r)); x.closePath();
+    const g = x.createLinearGradient(cx0 * r - r * 0.5, cy0 * r - r * 0.5, cx0 * r + r * 0.5, cy0 * r + r * 0.6);
+    g.addColorStop(0, mixHex('#9aa6b8', '#ffffff', k)); g.addColorStop(0.55, '#5f6b7e'); g.addColorStop(1, '#2c3442');
+    x.fillStyle = g; x.fill(); x.strokeStyle = '#141a26'; x.lineWidth = 1.3; x.stroke();
+  };
+  rock([[-1.05, 0.42], [-0.72, 0.22], [-0.38, 0.3], [-0.3, 0.62], [-0.42, 1.05], [-1.05, 1.05]], 0.06, -0.7, 0.62);      // épaule gauche
+  rock([[1.05, 0.4], [0.7, 0.2], [0.36, 0.3], [0.3, 0.64], [0.44, 1.05], [1.05, 1.05]], 0, 0.7, 0.62);      // épaule droite
+  rock([[-0.42, 0.5], [0.42, 0.5], [0.5, 1.05], [-0.5, 1.05]], 0, 0, 0.78);      // le torse
+  rock([[-0.5, -0.5], [-0.2, -0.72], [0.26, -0.7], [0.54, -0.46], [0.58, 0.02], [0.46, 0.38], [0.14, 0.52], [-0.18, 0.52], [-0.48, 0.36], [-0.6, 0.0]], 0.16, -0.05, -0.15);      // la tête
+  x.fillStyle = '#2c3444'; x.beginPath(); x.moveTo(-0.6 * r, -0.2 * r); x.lineTo(0.6 * r, -0.24 * r); x.lineTo(0.5 * r, -0.04 * r); x.lineTo(0.1 * r, -0.08 * r); x.lineTo(-0.1 * r, -0.04 * r); x.lineTo(-0.52 * r, -0.02 * r); x.closePath(); x.fill();      // l'arcade
+  x.fillStyle = '#0c1018'; x.beginPath(); x.ellipse(-0.24 * r, 0.03 * r, 0.17 * r, 0.08 * r, 0.1, 0, MF_T); x.ellipse(0.24 * r, 0.03 * r, 0.17 * r, 0.08 * r, -0.1, 0, MF_T); x.fill();
+  x.fillStyle = '#141a24'; x.beginPath(); x.moveTo(-0.26 * r, 0.3 * r); x.lineTo(0.26 * r, 0.28 * r); x.lineTo(0.18 * r, 0.38 * r); x.lineTo(-0.2 * r, 0.39 * r); x.closePath(); x.fill();      // la bouche
+  x.save(); x.globalCompositeOperation = 'lighter';
+  for (const ex of [-0.24, 0.24]) { mapGlow(x, ex * r, 0.03 * r, 0.36 * r, '#6fd8ff', 0.9); x.fillStyle = '#eafcff'; x.beginPath(); x.ellipse(ex * r, 0.03 * r, 0.12 * r, 0.035 * r, 0, 0, MF_T); x.fill(); }
+  mapGlow(x, 0, 0.33 * r, 0.22 * r, '#6fd8ff', 0.35);
+  x.strokeStyle = 'rgba(140,235,255,0.95)'; x.lineWidth = 1.5; x.lineJoin = 'round'; x.shadowColor = '#6fd8ff'; x.shadowBlur = 7 * dpr2(x);
+  const vein = (pts) => { x.beginPath(); pts.forEach((p, i) => x[i ? 'lineTo' : 'moveTo'](p[0] * r, p[1] * r)); x.stroke(); };
+  vein([[-0.36, -0.6], [-0.26, -0.44], [-0.34, -0.3]]); vein([[0.1, -0.68], [0.18, -0.5], [0.34, -0.42], [0.4, -0.3]]); vein([[0.46, 0.2], [0.3, 0.3]]);
+  vein([[-0.86, 0.46], [-0.7, 0.62], [-0.76, 0.84], [-0.62, 1]]); vein([[0.8, 0.44], [0.66, 0.6], [0.74, 0.8]]); vein([[-0.08, 0.6], [0.06, 0.76], [-0.02, 0.98]]);
+  x.restore();
+  x.fillStyle = 'rgba(96,150,80,0.7)'; x.beginPath(); x.ellipse(0.06 * r, -0.66 * r, 0.24 * r, 0.06 * r, 0.05, 0, MF_T); x.ellipse(-0.8 * r, 0.34 * r, 0.16 * r, 0.05 * r, -0.4, 0, MF_T); x.fill();
+}
+function mfDragon(x, r) {
+  // Braise : tête de profil (vers la gauche), cornes, œil jaune, petite flamme
+  x.save();
+  x.globalCompositeOperation = 'lighter'; mapGlow(x, -r * 0.62, r * 0.28, r * 0.6, '#ff8a2a', 0.8); x.globalCompositeOperation = 'source-over';
+  mfFlame(x, -r * 0.78, r * 0.3, r * 0.2);
+  const sk = x.createLinearGradient(0, -r * 0.6, 0, r * 0.8); sk.addColorStop(0, '#ff7a3a'); sk.addColorStop(0.55, '#d0391c'); sk.addColorStop(1, '#7a160a');
+  // le cou et l'arrière de la tête
+  x.fillStyle = sk; x.beginPath(); x.moveTo(r * 0.2, -r * 0.42); x.quadraticCurveTo(r * 0.75, -r * 0.3, r * 0.85, r * 0.2); x.lineTo(r * 1.05, r * 1.05); x.lineTo(r * 0.1, r * 1.05); x.quadraticCurveTo(r * 0.25, r * 0.45, -r * 0.05, r * 0.32); x.closePath(); x.fill();
+  // les piques du cou
+  x.fillStyle = '#ffcf6a'; for (let k = 0; k < 4; k++) { const t = k / 4, px = r * (0.42 + t * 0.42), py = -r * 0.36 + t * r * 0.9; x.beginPath(); x.moveTo(px, py); x.lineTo(px + r * 0.2, py - r * 0.04); x.lineTo(px + r * 0.06, py + r * 0.12); x.closePath(); x.fill(); }
+  // la tête et le museau
+  x.fillStyle = sk; x.beginPath(); x.moveTo(r * 0.36, -r * 0.4); x.quadraticCurveTo(-r * 0.05, -r * 0.5, -r * 0.42, -r * 0.18); x.lineTo(-r * 0.84, -r * 0.02);
+  x.quadraticCurveTo(-r * 0.92, r * 0.1, -r * 0.8, r * 0.16); x.lineTo(-r * 0.42, r * 0.18); x.lineTo(-r * 0.66, r * 0.34); x.quadraticCurveTo(-r * 0.2, r * 0.46, r * 0.18, r * 0.3); x.quadraticCurveTo(r * 0.5, r * 0.1, r * 0.36, -r * 0.4); x.closePath(); x.fill();
+  x.strokeStyle = '#4a0c04'; x.lineWidth = 1.3; x.stroke();
+  // le dessous clair de la mâchoire
+  x.fillStyle = 'rgba(255,190,110,0.55)'; x.beginPath(); x.moveTo(-r * 0.62, r * 0.32); x.quadraticCurveTo(-r * 0.2, r * 0.42, r * 0.14, r * 0.28); x.lineTo(r * 0.06, r * 0.22); x.quadraticCurveTo(-r * 0.25, r * 0.3, -r * 0.5, r * 0.24); x.closePath(); x.fill();
+  // les crocs
+  x.fillStyle = '#fff4e0'; for (const fx of [-0.72, -0.56]) { x.beginPath(); x.moveTo(r * fx, r * 0.17); x.lineTo(r * (fx + 0.06), r * 0.17); x.lineTo(r * (fx + 0.03), r * 0.27); x.closePath(); x.fill(); }
+  // les cornes
+  const hg = x.createLinearGradient(r * 0.1, -r * 0.4, r * 0.9, -r * 0.95); hg.addColorStop(0, '#f2e2c4'); hg.addColorStop(1, '#9a8060');
+  x.fillStyle = hg;
+  x.beginPath(); x.moveTo(r * 0.02, -r * 0.42); x.quadraticCurveTo(r * 0.3, -r * 0.95, r * 0.82, -r * 0.92); x.quadraticCurveTo(r * 0.36, -r * 0.7, r * 0.22, -r * 0.36); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(r * 0.26, -r * 0.36); x.quadraticCurveTo(r * 0.62, -r * 0.62, r * 0.98, -r * 0.48); x.quadraticCurveTo(r * 0.6, -r * 0.4, r * 0.38, -r * 0.22); x.closePath(); x.fill();
+  // la narine, l'arcade, l'œil
+  x.fillStyle = '#3a0804'; x.beginPath(); x.ellipse(-r * 0.74, -r * 0.03, r * 0.05, r * 0.03, -0.3, 0, MF_T); x.fill();
+  x.fillStyle = '#7a160a'; x.beginPath(); x.moveTo(-r * 0.2, -r * 0.3); x.quadraticCurveTo(r * 0.0, -r * 0.42, r * 0.16, -r * 0.3); x.lineTo(r * 0.12, -r * 0.24); x.quadraticCurveTo(-r * 0.02, -r * 0.32, -r * 0.18, -r * 0.24); x.closePath(); x.fill();
+  x.globalCompositeOperation = 'lighter'; mapGlow(x, -r * 0.02, -r * 0.17, r * 0.22, '#ffd23a', 0.8); x.globalCompositeOperation = 'source-over';
+  x.fillStyle = '#ffd23a'; x.beginPath(); x.ellipse(-r * 0.02, -r * 0.17, r * 0.1, r * 0.065, -0.2, 0, MF_T); x.fill();
+  x.fillStyle = '#2a0a04'; x.beginPath(); x.ellipse(-r * 0.01, -r * 0.17, r * 0.022, r * 0.06, 0, 0, MF_T); x.fill();
+  // la fumée qui sort de la narine
+  x.fillStyle = 'rgba(80,60,60,0.35)'; for (let k = 0; k < 3; k++) { x.beginPath(); x.arc(-r * 0.86 - k * r * 0.08, -r * 0.14 - k * r * 0.14, r * (0.06 + k * 0.03), 0, MF_T); x.fill(); }
+  x.restore();
+}
+// ---- le départ : le mage (grand chapeau violet à bande orange, cape rouge, bâton à boule verte) ----
+function mfMage(x, P) {
+  const s = P / 72, cx = P / 2, by = P * 0.92;
+  x.save();
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.beginPath(); x.ellipse(cx, by, 18 * s, 4.5 * s, 0, 0, MF_T); x.fill();
+  // le bâton et sa boule verte
+  x.strokeStyle = '#6a3e1e'; x.lineWidth = 2.4 * s; x.lineCap = 'round'; x.beginPath(); x.moveTo(cx + 15 * s, by - 2 * s); x.lineTo(cx + 19 * s, by - 40 * s); x.stroke();
+  x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, cx + 19.5 * s, by - 43 * s, 13 * s, '#7dff9a', 0.85); x.restore();
+  x.fillStyle = '#9dffb4'; x.beginPath(); x.arc(cx + 19.5 * s, by - 43 * s, 4 * s, 0, MF_T); x.fill();
+  // la cape et la robe
+  x.fillStyle = '#b8322a'; x.beginPath(); x.moveTo(cx - 12 * s, by - 26 * s); x.quadraticCurveTo(cx - 16 * s, by - 6 * s, cx - 14 * s, by - 2 * s); x.lineTo(cx + 14 * s, by - 2 * s); x.quadraticCurveTo(cx + 16 * s, by - 6 * s, cx + 12 * s, by - 26 * s); x.closePath(); x.fill();
+  const rb = x.createLinearGradient(0, by - 30 * s, 0, by); rb.addColorStop(0, '#6a52d8'); rb.addColorStop(1, '#3a2a8a');
+  x.fillStyle = rb; x.beginPath(); x.moveTo(cx - 8 * s, by - 28 * s); x.lineTo(cx - 12 * s, by - 2 * s); x.lineTo(cx + 12 * s, by - 2 * s); x.lineTo(cx + 8 * s, by - 28 * s); x.closePath(); x.fill();
+  x.fillStyle = '#ffb04a'; x.fillRect(cx - 9.5 * s, by - 14 * s, 19 * s, 2.4 * s);
+  x.fillStyle = '#f2c9a0'; x.beginPath(); x.arc(cx + 12.5 * s, by - 16 * s, 2.8 * s, 0, MF_T); x.fill();      // la main sur le bâton
+  // la tête
+  x.fillStyle = '#f6d2b0'; x.beginPath(); x.arc(cx, by - 33 * s, 8.5 * s, 0, MF_T); x.fill();
+  x.fillStyle = '#2a1a14'; x.beginPath(); x.arc(cx - 3 * s, by - 33 * s, 1.3 * s, 0, MF_T); x.arc(cx + 3 * s, by - 33 * s, 1.3 * s, 0, MF_T); x.fill();
+  x.fillStyle = 'rgba(255,120,120,0.45)'; x.beginPath(); x.arc(cx - 5.5 * s, by - 30 * s, 1.6 * s, 0, MF_T); x.arc(cx + 5.5 * s, by - 30 * s, 1.6 * s, 0, MF_T); x.fill();
+  // le grand chapeau
+  const hg = x.createLinearGradient(cx - 18 * s, 0, cx + 18 * s, 0); hg.addColorStop(0, '#3e4cc0'); hg.addColorStop(0.5, '#5a6ae6'); hg.addColorStop(1, '#3442a8');
+  x.fillStyle = hg; x.beginPath(); x.ellipse(cx, by - 39 * s, 19 * s, 5.5 * s, 0, 0, MF_T); x.fill();
+  x.beginPath(); x.moveTo(cx - 11 * s, by - 40 * s); x.quadraticCurveTo(cx - 6 * s, by - 58 * s, cx + 4 * s, by - 66 * s); x.quadraticCurveTo(cx + 10 * s, by - 68 * s, cx + 13 * s, by - 63 * s);
+  x.quadraticCurveTo(cx + 6 * s, by - 60 * s, cx + 6 * s, by - 54 * s); x.quadraticCurveTo(cx + 9 * s, by - 46 * s, cx + 11 * s, by - 40 * s); x.closePath(); x.fill();
+  x.fillStyle = '#ff8a30'; x.beginPath(); x.moveTo(cx - 11 * s, by - 40 * s); x.quadraticCurveTo(cx, by - 44 * s, cx + 11 * s, by - 40 * s); x.lineTo(cx + 10.5 * s, by - 44.5 * s); x.quadraticCurveTo(cx, by - 48 * s, cx - 10 * s, by - 44.5 * s); x.closePath(); x.fill();
+  x.fillStyle = 'rgba(255,255,255,0.18)'; x.beginPath(); x.ellipse(cx - 7 * s, by - 41 * s, 6 * s, 1.6 * s, 0, 0, MF_T); x.fill();
+  x.restore();
+}
+// ---- au calme sur l'accueil : les médaillons se préparent ----
+function mfWarm(L, bgDpr, dpr, def) {
+  if (!window.requestIdleCallback || !L) return;
+  const jobs = [], seen = new Set(), ns = def.nodeSize || 58, bs = def.bossSize || 70, G = mfGeo(L.W), k = Math.max(1, Math.min(2, bgDpr || 1));
+  for (const nd of L.nodes) { const wid = nd.info.wid; if (!seen.has('f' + wid)) { seen.add('f' + wid); jobs.push(() => mfFloorStrip(mfStyle(wid, def), Math.ceil(G.x1 - G.wt) + 40, k)); } }      // les dalles
+  for (const nd of L.nodes) {
+    const info = nd.info, P = ns + 24, key = 'n' + (info.wid || '?') + info.stage + '|' + ns + '|' + P + '|' + dpr.toFixed(2);
+    if (!seen.has(key)) { seen.add(key); jobs.push(() => mfMedImg(key, P, dpr, (g) => mfNodePaint(g, info, ns, P, def))); }
+    if (nd.boss) { const bi = nd.boss.bi, P2 = bs + 34, key2 = 'b' + (bi.bk || '?') + (bi.final ? 'F' : '') + '|' + bs + '|' + P2 + '|' + dpr.toFixed(2); if (!seen.has(key2)) { seen.add(key2); jobs.push(() => mfMedImg(key2, P2, dpr, (g) => mfBossPaint(g, bi, bs, P2, def))); } }
+  }
+  const step = () => { const j = jobs.shift(); if (!j) return; try { j(); } catch (e) { /* */ } requestIdleCallback(step, { timeout: 2500 }); };
+  requestIdleCallback(step, { timeout: 2500 });
+}
 
 /* ---------- progression : appareil + serveur ---------- */
 const PROG = { room: null, rows: [], at: 0, missing: false, loading: null, mine: {}, busy: false };
