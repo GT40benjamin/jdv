@@ -411,7 +411,7 @@
     if (mode !== 'e') {
       let col = o.color, dk = o.dark, lt = o.light;
       if (mode === 'f') {
-        col = '#9cc4ff'; dk = '#3a5fb4'; lt = '#e4efff';
+        col = '#4f74ff'; dk = '#2433a6'; lt = '#c2d3ff';
         ctx.translate(Math.sin(t * 61 + sd) * 0.03, Math.cos(t * 47 + sd) * 0.025);
       } else if (mode === 'w') {
         col = '#f4f8ff'; dk = '#8d9ad8'; lt = '#ffffff';
@@ -503,6 +503,339 @@
       ctx.fill();
     }
     ctx.restore();
+  }
+
+  // ---------------------------------------------------------------------------
+  // La tête d'un copain sur un microbe MANGEABLE a peur : « une peur bleue ». Deux versions par tête, dessinées UNE fois
+  // (gardées tant que l'image de la tête existe) : bleuie (ses traits restent reconnaissables) avec un liseré glacé et un
+  // halo bleu qui suivent sa forme ; blanche au liseré rose pour le clignotement de fin de fuite. Sur le visage : le
+  // sourire est effacé, grands yeux ronds, sourcils levés, posés sur les vrais traits (findFace). En jeu, on ne fait que
+  // poser cette toile, la faire trembler, lâcher deux gouttes de sueur et animer pupilles et bouche (drawFearFace).
+  // ---------------------------------------------------------------------------
+  // Où sont les yeux et la bouche sur une tête détourée (selfie cadré dans l'ovale, avec ou sans accessoires) ? Les têtes
+  // n'arrivent dans les jeux que sous forme d'image. 1) les « pupilles » : petites taches plus sombres que ce qu'il y a à
+  // leur gauche ET à leur droite (le blanc de l'œil, la peau ; une mèche ou un sourcil, eux, ne sont pas des taches),
+  // cherchées à trois tailles ; 2) la meilleure PAIRE : à peu près à la même hauteur, l'arête du nez plus claire entre les
+  // deux et les joues plus claires dessous, écart tenu par la largeur de la tête (2,25 à 3,4 écarts dans accessoires.js,
+  // marge comprise), au milieu de la tête ; 3) la bouche : la ligne la plus sombre sous le nez. null si rien de net.
+  function findFace(d, L0, w, h) {
+    // contraste ramené à la tête (peau claire ou mate, photo sombre ou floue : mêmes seuils)
+    const hist = new Uint32Array(64);
+    let n0 = 0;
+    for (let p = 0; p < w * h; p++) if (d[p * 4 + 3] > 127) { hist[Math.min(63, (L0[p] * 64) | 0)]++; n0++; }
+    if (n0 < w * h * 0.15) return null;
+    let lo = 0, hi = 1;
+    for (let b = 0, acc = 0; b < 64; b++) { acc += hist[b]; if (acc >= n0 * 0.04) { lo = b / 64; break; } }
+    for (let b = 63, acc = 0; b >= 0; b--) { acc += hist[b]; if (acc >= n0 * 0.04) { hi = (b + 1) / 64; break; } }
+    const kL = 1 / Math.max(0.15, hi - lo), L = new Float32Array(w * h);
+    for (let p = 0; p < w * h; p++) L[p] = clamp((L0[p] - lo) * kL, 0, 1);
+    const W1 = w + 1, IA = new Float32Array(W1 * (h + 1)), IL = new Float32Array(W1 * (h + 1)), IQ = new Float32Array(W1 * (h + 1));
+    const left = new Int16Array(h).fill(-1), right = new Int16Array(h).fill(-1);
+    for (let y = 0; y < h; y++) {
+      let ra = 0, rl = 0, rq = 0;
+      for (let x = 0; x < w; x++) {
+        const p = y * w + x, on = d[p * 4 + 3] > 127 ? 1 : 0;
+        if (on) { if (left[y] < 0) left[y] = x; right[y] = x; }
+        ra += on; rl += on * L[p]; rq += on * L[p] * L[p];
+        IA[(y + 1) * W1 + x + 1] = IA[y * W1 + x + 1] + ra;
+        IL[(y + 1) * W1 + x + 1] = IL[y * W1 + x + 1] + rl;
+        IQ[(y + 1) * W1 + x + 1] = IQ[y * W1 + x + 1] + rq;
+      }
+    }
+    // lumière moyenne d'une boîte (−1 si elle déborde de la tête) ; rugosité (écart type : la peau est lisse, les cheveux non)
+    let bq = 0;
+    const box = (x0, y0, x1, y1) => {
+      x0 = Math.max(0, Math.round(x0)); y0 = Math.max(0, Math.round(y0)); x1 = Math.min(w, Math.round(x1)); y1 = Math.min(h, Math.round(y1));
+      if (x1 <= x0 || y1 <= y0) return -1;
+      const a = IA[y1 * W1 + x1] - IA[y0 * W1 + x1] - IA[y1 * W1 + x0] + IA[y0 * W1 + x0];
+      if (a < (x1 - x0) * (y1 - y0) * 0.85) return -1;
+      const m = (IL[y1 * W1 + x1] - IL[y0 * W1 + x1] - IL[y1 * W1 + x0] + IL[y0 * W1 + x0]) / a;
+      bq = Math.sqrt(Math.max(0, (IQ[y1 * W1 + x1] - IQ[y0 * W1 + x1] - IQ[y1 * W1 + x0] + IQ[y0 * W1 + x0]) / a - m * m));
+      return m;
+    };
+    // 1) taches sombres (pupilles possibles), meilleure taille gardée pour chaque point (boîtes entières : rapide)
+    const y0 = Math.round(h * 0.22), y1 = Math.round(h * 0.68), x0 = Math.round(w * 0.12), x1 = Math.round(w * 0.88);
+    const SW = x1 - x0 + 1, sp = new Float32Array(SW * (y1 - y0 + 1)), sc = new Float32Array(sp.length), sr = new Float32Array(sp.length);
+    const mean = (xa, ya, xb, yb) => {                          // (dans l'image, coins entiers ; −1 si hors de la tête)
+      const a = IA[yb * W1 + xb] - IA[ya * W1 + xb] - IA[yb * W1 + xa] + IA[ya * W1 + xa];
+      return a < (xb - xa) * (yb - ya) * 0.85 ? -1 : (IL[yb * W1 + xb] - IL[ya * W1 + xb] - IL[yb * W1 + xa] + IL[ya * W1 + xa]) / a;
+    };
+    for (const r1 of [Math.max(1.2, w * 0.013), Math.max(1.5, w * 0.025), w * 0.038, w * 0.055]) {
+      const a1 = Math.max(1, Math.round(r1)), a2 = Math.max(a1 + 1, Math.round(r1 * 2.3));
+      for (let y = Math.max(y0, a2); y <= Math.min(y1, h - a2 - 1); y++) {
+        if (left[y] < 0) continue;
+        const xa = Math.max(x0, left[y] + a1, a2), xb = Math.min(x1, right[y] - a1, w - a2 - 1);
+        for (let x = xa; x <= xb; x++) {
+          const c = mean(x - a1, y - a1, x + a1 + 1, y + a1 + 1); if (c < 0) continue;
+          const l = mean(x - a2, y - a1, x - a1, y + a1 + 1); if (l < 0 || l - c < 0.03) continue;
+          const r = mean(x + a1 + 1, y - a1, x + a2 + 1, y + a1 + 1); if (r < 0 || r - c < 0.03) continue;
+          const dn = mean(x - a1, y + a1 + 1, x + a1 + 1, y + a2 + 1);
+          const hz = Math.min(l, r) - c, vt = dn - c;
+          if (dn < 0 || vt < 0.02) continue;                         // une tache : plus claire à gauche, à droite et dessous
+          const s = hz + 0.5 * Math.min(vt, hz * 2);
+          const i = (y - y0) * SW + (x - x0);
+          if (s > sp[i]) { sp[i] = s; sc[i] = c; sr[i] = r1; }
+        }
+      }
+    }
+    const cand = [];
+    for (let y = y0 + 1; y < y1; y++) for (let x = x0 + 1; x < x1; x++) {
+      const i = (y - y0) * SW + (x - x0), s = sp[i];
+      if (s < 0.06) continue;
+      let top = true;
+      const rr = Math.max(2, Math.round(sr[i]));
+      for (let dy = -rr; dy <= rr && top; dy++) for (let dx = -rr; dx <= rr; dx++) {
+        const yy = y + dy, xx = x + dx;
+        if ((dx || dy) && yy >= y0 && yy <= y1 && xx >= x0 && xx <= x1 && sp[(yy - y0) * SW + (xx - x0)] > s) { top = false; break; }
+      }
+      if (top) cand.push({ x: x + 0.5, y: y + 0.5, s, c: sc[i], r: sr[i] });
+    }
+    cand.sort((a, b) => b.s - a.s);
+    cand.length = Math.min(cand.length, 18);
+    // le point le plus sombre de chaque tache (la pupille, même au milieu d'un grand blanc d'œil)
+    const dark = (q) => {
+      let bx = q.x, by = q.y, bl = 9;
+      const rr = Math.max(1, Math.round(q.r));
+      for (let y = Math.round(q.y) - rr; y <= Math.round(q.y) + rr; y++) for (let x = Math.round(q.x) - rr; x <= Math.round(q.x) + rr; x++) {
+        const l = box(x - 1, y - 1, x + 1, y + 1);
+        if (l >= 0 && l < bl) { bl = l; bx = x; by = y; }
+      }
+      return { x: bx, y: by, l: bl };
+    };
+    for (const q of cand) { const k = dark(q); q.dk = k.l; q.px = k.x; q.py = k.y; }
+    // 2) la meilleure paire
+    let best = null, bs = 0.12;
+    const pairs = [];
+    for (let i = 0; i < cand.length; i++) for (let j = 0; j < cand.length; j++) {
+      const A = cand[i], B = cand[j];
+      if (B.x <= A.x) continue;
+      const dd = B.x - A.x, dy = Math.abs(B.y - A.y);
+      if (dy > dd * 0.3) continue;
+      const ym = Math.round((A.y + B.y) / 2), xm = (A.x + B.x) / 2;
+      if (left[ym] < 0) continue;
+      const rw = right[ym] - left[ym] + 1, rc = (left[ym] + right[ym]) / 2;
+      if (dd < rw / 4.6 || dd > rw / 1.8 || Math.abs(xm - rc) > rw * 0.16) continue;
+      const rb = Math.max(1, Math.min(A.r, B.r));
+      const bridge = box(xm - dd * 0.12, ym - rb, xm + dd * 0.12, ym + rb), qB = bq;
+      if (bridge < 0 || bridge < Math.max(A.dk, B.dk) + 0.06) continue;
+      const chA = box(A.x - rb, A.y + dd * 0.45, A.x + rb, A.y + dd * 0.45 + 2 * rb), qA = bq;
+      const chB = box(B.x - rb, B.y + dd * 0.45, B.x + rb, B.y + dd * 0.45 + 2 * rb), qC = bq;
+      if (chA < 0 || chB < 0) continue;
+      const cheek = Math.min(chA - A.dk, chB - B.dk);
+      const s = A.s + B.s - 0.7 * Math.abs(A.s - B.s) - 1.5 * dy / dd + 0.4 * Math.min(bridge - A.dk, bridge - B.dk) + 0.4 * cheek
+        - 1.2 * (qB + (qA + qC) / 2)
+        - 0.3 * Math.abs(Math.log(A.r / B.r)) - 0.8 * Math.abs(A.dk - B.dk) - 0.8 * Math.abs(xm - rc) / dd;   // deux yeux pareils, au milieu
+      if (s > 0.12) pairs.push([A, B, s]);
+      if (s > bs) { bs = s; best = [A, B]; }
+    }
+    if (!best) return null;
+    // des sourcils (ou le haut d'une monture) font aussi une « paire » : si une autre paire du même écart se trouve juste
+    // dessous, ce sont les yeux
+    for (let guard = 0; guard < 3; guard++) {
+      const A0 = best[0], B0 = best[1], d0 = B0.x - A0.x, xm0 = (A0.x + B0.x) / 2, ym0 = (A0.y + B0.y) / 2;
+      let low = null;
+      for (const [A, B, s] of pairs) {
+        const dd = B.x - A.x, xm = (A.x + B.x) / 2, ym = (A.y + B.y) / 2;
+        if (s < bs * 0.5 || Math.abs(dd - d0) > d0 * 0.3 || Math.abs(xm - xm0) > d0 * 0.2 || ym - ym0 < d0 * 0.18 || ym - ym0 > d0 * 0.7) continue;
+        if (!low || s > low[2]) low = [A, B, s];
+      }
+      if (!low) break;
+      best = [low[0], low[1]];
+    }
+    // chaque œil entre le centre de sa tache et sa pupille
+    const el = { x: (best[0].x + best[0].px) / 2, y: (best[0].y + best[0].py) / 2 }, er = { x: (best[1].x + best[1].px) / 2, y: (best[1].y + best[1].py) / 2 };
+    const ed = Math.hypot(er.x - el.x, er.y - el.y);
+    const ang = clamp(Math.atan2(er.y - el.y, er.x - el.x), -0.35, 0.35);
+    const E = { x: (el.x + er.x) / 2, y: (el.y + er.y) / 2 };
+    // 3) la bouche, entre 0,75 et 1,4 écart sous les yeux : la ligne la plus marquée (lèvres sombres, dents claires : plus
+    // sombre que les autres et contrastée) ; sinon 1,05 écart, comme un visage moyen
+    let mb = 1.05;
+    const rows = [];
+    for (let b = 0.75; b <= 1.401; b += 0.05) {
+      const cx = E.x - Math.sin(ang) * ed * b, cy = E.y + Math.cos(ang) * ed * b;
+      const l = box(cx - ed * 0.3, cy - 1, cx + ed * 0.3, cy + 1);
+      if (l >= 0) rows.push([b, l, bq]);
+    }
+    if (rows.length) {
+      const avg = rows.reduce((t, r) => t + r[1], 0) / rows.length;
+      let bm = 0.06;
+      for (const [b, l, q] of rows) { const v = (avg - l) + 1.2 * q; if (v > bm) { bm = v; mb = b; } }
+    }
+    return { el, er, ed, ang, m: { x: E.x - Math.sin(ang) * ed * mb, y: E.y + Math.cos(ang) * ed * mb }, score: bs };
+  }
+  // place moyenne des traits d'un selfie cadré dans l'ovale (quand rien n'est trouvé : comme la tête triste de la bibliothèque)
+  function guessFace(w, h) { return { el: { x: w * 0.39, y: h * 0.46 }, er: { x: w * 0.61, y: h * 0.46 }, ed: w * 0.22, ang: 0, m: { x: w * 0.5, y: h * 0.69 }, guess: true }; }
+  // la frimousse de la peur sur la toile de la tête : le sourire effacé (voile couleur de peau), grands yeux ronds bordés,
+  // sourcils levés en accent circonflexe (les pupilles et la bouche, animées, sont dessinées à chaque image)
+  function paintFearFace(g, F, skin, white) {
+    const e = F.ed, ink = white ? '#3a2350' : '#0b1440';
+    g.save();
+    // le sourire disparaît sous un voile couleur de peau aux bords doux
+    g.translate(F.m.x, F.m.y); g.rotate(F.ang); g.scale(1, 0.6);
+    const sg = g.createRadialGradient(0, 0, 0, 0, 0, e * 0.62);
+    sg.addColorStop(0, skin); sg.addColorStop(0.62, skin); sg.addColorStop(1, skin.replace(/,\s*[\d.]+\)$/, ',0)'));
+    g.fillStyle = sg; g.beginPath(); g.arc(0, 0, e * 0.62, 0, TAU); g.fill();
+    g.restore();
+    g.save();
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    for (const [q, s] of [[F.el, -1], [F.er, 1]]) {
+      g.save(); g.translate(q.x, q.y); g.rotate(F.ang);
+      // sourcil levé : bout intérieur plus haut, en arc
+      g.strokeStyle = ink; g.lineWidth = Math.max(1.2, e * 0.13);
+      g.beginPath(); g.moveTo(s * e * 0.42, -e * 0.54); g.quadraticCurveTo(s * e * 0.06, -e * 0.9, -s * e * 0.2, -e * 0.78); g.stroke();
+      // grand œil rond, bien blanc et bordé
+      g.fillStyle = '#ffffff'; g.lineWidth = Math.max(1, e * 0.07);
+      g.beginPath(); g.ellipse(0, 0, e * 0.37, e * 0.44, 0, 0, TAU); g.fill(); g.stroke();
+      g.restore();
+    }
+    g.restore();
+  }
+  const fearCache = new WeakMap();
+  function fearHead(img) {
+    if (!img || !(img.naturalWidth || img.width) || img.complete === false) return null;   // (image pas encore prête)
+    let e = fearCache.get(img);
+    if (e === undefined) {
+      try { e = makeFearHeads(img); } catch (err) { e = null; }
+      fearCache.set(img, e);
+    }
+    return e;
+  }
+  function makeFearHeads(img) {
+    const iw = img.naturalWidth || img.width || 1, ih = img.naturalHeight || img.height || 1;
+    const h = Math.round(clamp(ih, 64, 150)), w = Math.max(1, Math.round(h * iw / ih)), pad = Math.ceil(h * 0.12);
+    const W2 = w + pad * 2, H2 = h + pad * 2;
+    const mk = (a, b) => { const c = document.createElement('canvas'); c.width = a; c.height = b; return c; };
+    // lumière de chaque point de la tête (une seule lecture des pixels), ramenée vers le milieu (photo sombre ou claire :
+    // même tête bien lisible), un peu plus contrastée
+    const src = mk(w, h), sx = src.getContext('2d', { willReadFrequently: true });
+    sx.drawImage(img, 0, 0, w, h);
+    let px = null, lum = null, face = null;
+    try {
+      px = sx.getImageData(0, 0, w, h);
+      const d = px.data, hist = new Uint32Array(32);
+      lum = new Float32Array(w * h);
+      let n = 0, med = 0.55;
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        const L = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) / 255;
+        lum[p] = L;
+        if (d[i + 3] > 128) { hist[Math.min(31, (L * 32) | 0)]++; n++; }
+      }
+      try { face = findFace(d, lum, w, h); } catch (err) { face = null; }
+      for (let b = 0, acc = 0; b < 32 && n; b++) { acc += hist[b]; if (acc >= n / 2) { med = (b + 0.5) / 32; break; } }
+      const gam = clamp(Math.log(0.55) / Math.log(clamp(med, 0.05, 0.95)), 0.6, 1.4);
+      for (let i = 3, p = 0; p < lum.length; i += 4, p++) if (d[i]) { const L = Math.pow(lum[p], gam); lum[p] = L * L * (3 - 2 * L); }
+    } catch (err) { px = null; }                       // (image illisible : simple voile de couleur)
+    if (!face) face = guessFace(w, h);
+    // liseré : la silhouette recopiée en cercle tout autour (blanche ici, colorée pour chaque version)
+    const ring = mk(W2, H2), rg = ring.getContext('2d');
+    const r = Math.max(1.5, h * 0.04);
+    for (let i = 0; i < 12; i++) { const a = i * TAU / 12; rg.drawImage(src, pad + Math.cos(a) * r, pad + Math.sin(a) * r); }
+    function build(white) {
+      // la tête teintée : chaque point garde sa lumière (les traits restent reconnaissables) et prend les couleurs de la
+      // peur, du plus sombre au plus clair : bleu nuit → bleu roi → glace (ou gris-mauve → blanc pour le clignotement)
+      const P = white ? [70, 60, 100, 214, 214, 232, 255, 255, 255] : [12, 24, 96, 58, 112, 255, 226, 238, 255];
+      const t = mk(w, h), tg = t.getContext('2d');
+      let skin = white ? 'rgba(236,236,246,1)' : 'rgba(150,182,255,1)';
+      if (px) {
+        const out = tg.createImageData(w, h), o = out.data, d = px.data;
+        for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+          if (!d[i + 3]) continue;
+          const L = lum[p], j = L < 0.5 ? 0 : 3, k = L < 0.5 ? L * 2 : L * 2 - 1;
+          o[i] = P[j] + (P[j + 3] - P[j]) * k; o[i + 1] = P[j + 1] + (P[j + 4] - P[j + 1]) * k; o[i + 2] = P[j + 2] + (P[j + 5] - P[j + 2]) * k; o[i + 3] = d[i + 3];
+        }
+        tg.putImageData(out, 0, 0);
+        // couleur de la peau teintée, prise sur les joues (pour effacer le sourire)
+        let sr = 0, sgn = 0, sb = 0, sn = 0;
+        for (const q of [face.el, face.er]) {
+          const x0 = Math.round(q.x), y0 = Math.round(q.y + face.ed * 0.62), r2 = Math.max(1, Math.round(face.ed * 0.1));
+          for (let y = y0 - r2; y <= y0 + r2; y++) for (let x = x0 - r2; x <= x0 + r2; x++) {
+            if (x < 0 || y < 0 || x >= w || y >= h) continue;
+            const i = (y * w + x) * 4;
+            if (o[i + 3] > 200) { sr += o[i]; sgn += o[i + 1]; sb += o[i + 2]; sn++; }
+          }
+        }
+        if (sn) skin = 'rgba(' + Math.round(sr / sn) + ',' + Math.round(sgn / sn) + ',' + Math.round(sb / sn) + ',1)';
+        tg.globalCompositeOperation = 'source-atop';
+      } else {
+        tg.drawImage(src, 0, 0);
+        tg.globalCompositeOperation = 'source-atop';
+        tg.fillStyle = white ? 'rgba(255,255,255,0.6)' : 'rgba(60,110,255,0.55)';
+        tg.fillRect(0, 0, w, h);
+      }
+      // « il blêmit » : une ombre froide descend du haut de la tête
+      const gg = tg.createLinearGradient(0, 0, 0, h * 0.5);
+      gg.addColorStop(0, white ? 'rgba(110,50,100,0.4)' : 'rgba(8,10,60,0.55)');
+      gg.addColorStop(1, white ? 'rgba(110,50,100,0)' : 'rgba(8,10,60,0)');
+      tg.fillStyle = gg; tg.fillRect(0, 0, w, h * 0.5);
+      // la frimousse de la peur, posée sur ses vrais traits
+      tg.globalCompositeOperation = 'source-atop';
+      paintFearFace(tg, face, skin, white);
+      tg.globalCompositeOperation = 'source-over';
+      // assemblage : halo (une seule ombre floue) et liseré glacé (ou rose), puis la tête
+      const ln = mk(W2, H2), lg = ln.getContext('2d');
+      lg.drawImage(ring, 0, 0);
+      lg.globalCompositeOperation = 'source-in';
+      lg.fillStyle = white ? '#ff7a96' : '#eaf4ff';
+      lg.fillRect(0, 0, W2, H2);
+      const c = mk(W2, H2), g = c.getContext('2d');
+      g.shadowColor = white ? 'rgba(255,95,135,0.95)' : 'rgba(60,130,255,1)';
+      g.shadowBlur = h * 0.1;
+      g.drawImage(ln, 0, 0);
+      g.shadowColor = 'rgba(0,0,0,0)'; g.shadowBlur = 0;
+      g.drawImage(t, pad, pad);
+      return { c, w, h, pad };
+    }
+    return { f: build(false), w: build(true), face };
+  }
+  // à chaque image, sur la tête qui a peur : petites pupilles qui tremblent et jettent des regards inquiets, bouche en
+  // zigzag qui grelotte (et de temps en temps un « oh ! » tout rond). Repère : centre de la tête ; k = échelle de la toile.
+  function drawFearFace(ctx, v, F, k, t, seed, white) {
+    const e = F.ed * k, ink = white ? '#3a2350' : '#0b1440';
+    const X = (p) => (p.x - v.w / 2) * k, Y = (p) => (p.y - v.h / 2) * k;
+    const look = Math.sin(t * 2.6 + seed * 1.7) * 0.1 * e, jx = Math.sin(t * 53 + seed) * 0.035 * e, jy = Math.cos(t * 41 + seed) * 0.035 * e;
+    ctx.fillStyle = ink;
+    for (const q of [F.el, F.er]) { ctx.beginPath(); ctx.arc(X(q) + look + jx, Y(q) + jy + 0.04 * e, Math.max(0.65, e * 0.11), 0, TAU); ctx.fill(); }
+    ctx.save();
+    ctx.translate(X(F.m), Y(F.m)); ctx.rotate(F.ang);
+    if ((((t * 0.6 + seed * 0.31) % 1) + 1) % 1 > 0.8) {          // « oh ! »
+      ctx.beginPath(); ctx.ellipse(0, 0, Math.max(0.9, e * 0.17), Math.max(1.2, e * 0.23), 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = white ? '#ff8fa8' : '#ff7a9a';
+      ctx.beginPath(); ctx.ellipse(0, e * 0.1, e * 0.1, e * 0.07, 0, 0, TAU); ctx.fill();
+    } else {                                                       // zigzag qui grelotte (les fantômes apeurés de Pac-Man)
+      const amp = e * 0.09 * (1 + 0.4 * Math.sin(t * 38 + seed * 2));
+      ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1, e * 0.13); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i <= 6; i++) { const x = (i / 6 - 0.5) * e * 0.86, y = (i % 2 ? -amp : amp) + Math.sin(t * 47 + i) * e * 0.015; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // deux gouttes de sueur qui perlent aux tempes puis s'envolent (repère : centre de la tête, u = hauteur de la tête)
+  function drawSweat(ctx, u, t, seed) {
+    ctx.lineWidth = Math.max(0.8, u * 0.022);
+    ctx.strokeStyle = '#2c6fe0';
+    for (let k = 0; k < 2; k++) {
+      const side = k ? 1 : -1;
+      const p = ((t * 1.5 + k * 0.5 + seed * 0.37) % 1 + 1) % 1;
+      const grow = p < 0.14 ? easeOutBack(p / 0.14) : p > 0.82 ? Math.max(0, 1 - (p - 0.82) / 0.18) : 1;
+      const s = u * 0.15 * grow;
+      if (s < 0.4) continue;
+      const m = Math.max(0, p - 0.14);
+      ctx.save();
+      ctx.translate(side * u * (0.38 + 0.2 * m), -u * (0.2 - 0.42 * m * m));
+      ctx.rotate(side * (0.55 - m * 0.4));
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 1.1);
+      ctx.quadraticCurveTo(s * 0.55, -s * 0.35, s * 0.5, 0);
+      ctx.arc(0, 0, s * 0.5, 0, Math.PI);
+      ctx.quadraticCurveTo(-s * 0.55, -s * 0.35, 0, -s * 1.1);
+      ctx.closePath();
+      ctx.fillStyle = '#c4ecff';
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(-s * 0.17, -s * 0.05, s * 0.15, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
   }
 
   function drawSoap(ctx, x, y, T, t) {
@@ -1130,7 +1463,7 @@
     let stats = { eaten: 0, bestCombo: 0, bombs: 0 };
     const player = { x: START.x, y: START.y, dir: 2, qdir: -1, qT: 0, stopped: false, chomp: 0, lastTp: -1, sflip: -1 };
     let ghosts = [];
-    let heads = [], frameHeads = [];
+    let heads = [], frameHeads = [], fearQ = [];
 
     // ---------- Têtes des copains ----------
     function imgOk(im) { return !!im && (im.width || im.naturalWidth) > 0 && im.complete !== false; }
@@ -1247,6 +1580,8 @@
           const g = gp.splice((rand() * gp.length) | 0, 1)[0];
           g.head = hp.splice((rand() * hp.length) | 0, 1)[0];
         }
+        // leur tête qui a peur est préparée pendant le bandeau du niveau (une par image), pas en pleine fuite
+        fearQ = ghosts.filter(g => g.head).map(g => g.head.img);
       }
       reseed(1);
       placeTraps();
@@ -1833,6 +2168,7 @@
       for (let i = pops.length - 1; i >= 0; i--) { pops[i].t += dt; if (pops[i].t >= pops[i].life) pops.splice(i, 1); }
       for (let i = callouts.length - 1; i >= 0; i--) { callouts[i].t += dt; if (callouts[i].t >= callouts[i].life) callouts.splice(i, 1); }
       updateAmbient(dt);
+      if (fearQ.length) fearHead(fearQ.shift());      // têtes qui ont peur du niveau : une préparée par image
       if (wipe) {
         wipe.t += dt;
         if (!wipe.swapped && wipe.t >= 0.55) { wipe.swapped = true; level++; resetLevel(); }
@@ -2200,7 +2536,7 @@
       for (const g of ghosts) {
         let mode = 'n';
         if (g.state === 'eyes' || g.state === 'entering') mode = 'e';
-        else if (g.fright) mode = (frightT < 1.8 && bombT <= 0 && Math.floor(frightT * 6) % 2 === 0) ? 'w' : 'f';
+        else if (g.fright) mode = (frightT < 1.8 && Math.floor(frightT * 6) % 2 === 0) ? 'w' : 'f';   // clignote : la fuite (savonnette ou bombe) finit
         const sd = sdir(g.dir);
         const o = { color: g.m.color, light: g.m.light, dark: g.m.dark, t: (iceT > 0 && mode !== 'e') ? 0 : gT, seed: g.seed, lookX: DX[sd] || 0, lookY: DY[sd] || 0, mode };
         const sc = g.boss ? 1.75 : 1;
@@ -2224,11 +2560,22 @@
           if (g.head && mode !== 'e' && alpha > 0.5) {
             o.noFace = true;
             const hh = Math.max(30, T * 1.3) * sc * (1 + Math.max(0, g.popT || 0) * 0.6);
-            const shk = mode !== 'n' ? Math.sin(gT * 61 + g.seed) * T * 0.03 : 0;
+            // mangeable : la tête a une peur bleue (version pré-dessinée), tremble et transpire
+            const fear = mode !== 'n' ? fearHead(g.head.img) : null;
+            const shk = mode !== 'n' ? Math.sin(o.t * 61 + g.seed) * T * (fear ? 0.07 : 0.03) : 0;
             drawMicrobe(ctx, cx, cy + T * 0.08 * sc, T * 1.25 * sc, o);
             ctx.save();
-            if (mode === 'f') ctx.globalAlpha = 0.92;
-            drawHeadImg(g.head.img, cx + shk, cy - T * 0.3 * sc, hh);
+            if (fear) {
+              const v = mode === 'w' ? fear.w : fear.f, k = hh / v.h;
+              ctx.translate(cx + shk, cy - T * 0.3 * sc);
+              ctx.rotate(Math.sin(o.t * 43 + g.seed * 2) * 0.07);
+              ctx.drawImage(v.c, -(v.w / 2 + v.pad) * k, -(v.h / 2 + v.pad) * k, (v.w + v.pad * 2) * k, (v.h + v.pad * 2) * k);
+              drawFearFace(ctx, v, fear.face, k, o.t, g.seed, mode === 'w');
+              drawSweat(ctx, hh, o.t, g.seed);
+            } else {
+              if (mode === 'f') ctx.globalAlpha = 0.92;
+              drawHeadImg(g.head.img, cx + shk, cy - T * 0.3 * sc, hh);
+            }
             ctx.restore();
           } else {
             o.noFace = false;
