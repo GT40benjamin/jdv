@@ -668,22 +668,37 @@
 <div class="help-src" id="jdw-help-acct" hidden><p id="jdw-acct-help-t"></p></div>
 
 <div class="sheet" id="jdw-photo" hidden>
-  <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-ph-h">
+  <div class="card ph-card" role="dialog" aria-modal="true" aria-labelledby="jdw-ph-h">
     <div class="card-body">
       <div class="card-head"><h2 id="jdw-ph-h">Cadre ta tête</h2><button class="btn btn-ghost btn-sm" id="jdw-ph-cancel" type="button">Annuler</button></div>
-      <p class="small">Fais glisser la photo pour mettre ton visage dans l'ovale, et zoome avec le curseur.</p>
-      <div class="cropper" id="jdw-cropper"><canvas id="jdw-crop-cv"></canvas></div>
-      <input type="range" id="jdw-ph-zoom" min="1" max="4" step="0.01" value="1.4" aria-label="Zoom">
-      <div class="row">
-        <button class="btn btn-ghost btn-sm" id="jdw-ph-rot" type="button">↻ Tourner</button>
-        <button class="btn btn-ghost btn-sm" id="jdw-ph-redo" type="button">Autre photo</button>
-      </div>
-      <div class="preview-out"><canvas id="jdw-ph-out" width="160" height="200"></canvas><p class="small" id="jdw-ph-info">Détourage en cours…</p></div>
-      <div class="acc" id="jdw-acc">
-        <p class="eyebrow">Accessoires (facultatif)</p>
-        <div class="acc-tabs" id="jdw-acc-tabs" role="group" aria-label="Type d'accessoire"></div>
-        <div class="acc-grid" id="jdw-acc-grid"></div>
-        <p class="small" id="jdw-acc-hint"></p>
+      <div class="ph-cols">
+        <div class="ph-left">
+          <p class="small ph-howto">Fais glisser la photo pour mettre ton visage dans l'ovale, et zoome avec le curseur.</p>
+          <div class="cropper" id="jdw-cropper"><canvas id="jdw-crop-cv"></canvas></div>
+          <input type="range" id="jdw-ph-zoom" min="1" max="4" step="0.01" value="1.4" aria-label="Zoom">
+          <div class="row">
+            <button class="btn btn-ghost btn-sm" id="jdw-ph-rot" type="button">↻ Tourner</button>
+            <button class="btn btn-ghost btn-sm" id="jdw-ph-redo" type="button">Autre photo</button>
+          </div>
+          <p class="small" id="jdw-ph-info">Détourage en cours…</p>
+        </div>
+        <div class="acc" id="jdw-acc">
+          <div class="acc-top">
+            <div class="preview-out">
+              <canvas id="jdw-ph-out" width="160" height="200" aria-label="Ta tête avec ses accessoires"></canvas>
+              <div class="pv-side">
+                <span class="pv-bubble" title="Dans les bulles des jeux"><canvas id="jdw-acc-bubble" width="128" height="128" aria-hidden="true"></canvas></span>
+                <div class="acc-acts">
+                  <button class="btn btn-ghost btn-sm acc-rand" id="jdw-acc-rand" type="button"><span aria-hidden="true">🎲</span> Au hasard</button>
+                  <button class="btn btn-ghost btn-sm acc-clear" id="jdw-acc-clear" type="button">Tout enlever</button>
+                </div>
+              </div>
+            </div>
+            <div class="acc-tabs" id="jdw-acc-tabs" role="tablist" aria-label="Accessoires"></div>
+          </div>
+          <div class="acc-grid" id="jdw-acc-grid" role="tabpanel"></div>
+          <p class="small" id="jdw-acc-hint"></p>
+        </div>
       </div>
       <label class="check"><input type="checkbox" id="jdw-ph-consent"><span>J'accepte que ma tête apparaisse dans les jeux, visible par les copains de mes salles.</span></label>
       <button class="btn btn-play" id="jdw-ph-ok" type="button" disabled>Valider ma tête</button>

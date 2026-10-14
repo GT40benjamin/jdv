@@ -193,8 +193,6 @@ button:focus-visible,input:focus-visible,[role=tab]:focus-visible{outline:3px so
 /* photo */
 .cropper{position:relative;width:100%;max-width:300px;aspect-ratio:4/5;margin:0 auto;border-radius:14px;overflow:hidden;background:#000;touch-action:none;cursor:grab}
 .cropper canvas{display:block;width:100%;height:100%}
-.preview-out{display:flex;align-items:center;justify-content:center;gap:16px;padding:10px;border-radius:12px;background:var(--night)}
-.preview-out canvas{width:96px;height:120px}
 input[type=range]{width:100%;accent-color:var(--amber)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
@@ -490,17 +488,7 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .soundmenu{position:absolute;right:10px;top:calc(var(--tbh,52px) + env(safe-area-inset-top,0px));z-index:40;display:grid;gap:2px;min-width:210px;padding:8px 12px;
   border-radius:14px;background:var(--panel);border:1px solid var(--steel2);box-shadow:0 14px 34px rgba(0,0,0,.55);animation:recPop .18s ease-out}
 .soundmenu input{width:22px;height:22px;accent-color:var(--amber)}
-/* ---------- accessoires ---------- */
-.acc{display:grid;gap:8px}
-.acc-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-.acc-tabs::-webkit-scrollbar{display:none}
-.acc-tab{flex:0 0 auto;min-height:38px;padding:0 12px;border-radius:19px;border:1px solid var(--steel2);background:var(--night);color:var(--muted);font:600 14px var(--body);cursor:pointer}
-.acc-tab[aria-pressed="true"]{background:var(--steel);color:var(--ink);border-color:var(--amber)}
-.acc-tab.set::after{content:" •";color:var(--amber)}
-.acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
-.acc-item{display:grid;justify-items:center;gap:2px;padding:8px 4px;border-radius:12px;border:1px solid var(--line);background:var(--night);color:var(--ink);font:600 11px var(--body);cursor:pointer}
-.acc-item .acc-ic{font-size:24px;line-height:1.1}
-.acc-item[aria-pressed="true"]{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 18%,var(--night))}
+/* ---------- accessoires de la tête : accessoires.css ---------- */
 /* fenêtres plus hautes que l'écran : centrées quand ça tient, sinon on peut faire défiler jusqu'en haut (plus rien de coupé) */
 .sheet{display:flex;flex-direction:column;align-items:center}
 .sheet > .card{margin:auto;flex:0 0 auto}

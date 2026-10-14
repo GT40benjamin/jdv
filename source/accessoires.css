@@ -1,0 +1,69 @@
+/* ---------- éditeur de tête : aperçu, onglets d'accessoires, grille de miniatures (accessoires.js) ---------- */
+#jdw-photo .ph-card{overflow:clip}                      /* « clip » (pas « hidden ») : l'aperçu reste collé en haut pendant qu'on fait défiler */
+.ph-cols{display:grid;gap:14px;min-width:0}
+.ph-left{display:grid;gap:12px;min-width:0;align-content:start}
+#jdw-photo.acc-only .ph-howto{display:none}
+.acc{display:grid;gap:10px;min-width:0}
+.acc-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:3;display:grid;gap:10px;margin:0 -20px;padding:8px 20px 10px;background:var(--panel)}
+.acc-top::after{content:"";position:absolute;left:0;right:0;top:100%;height:12px;background:linear-gradient(var(--panel),rgba(17,29,39,0));pointer-events:none}
+.preview-out{display:flex;align-items:center;gap:14px;min-width:0;padding:8px 12px;border-radius:16px;border:1px solid var(--line);
+  background:radial-gradient(120% 140% at 18% 30%,#22394a 0%,#14222e 55%,var(--night) 100%)}
+#jdw-ph-out{flex:0 0 auto;width:96px;height:120px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.pv-side{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+.pv-bubble{flex:0 0 auto;display:block;width:56px;height:56px;border-radius:50%;box-shadow:0 0 0 2px var(--steel2),0 4px 12px rgba(0,0,0,.45)}
+.pv-bubble canvas{display:block;width:100%;height:100%;border-radius:50%}
+.acc-acts{flex:1 1 110px;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;max-width:200px}
+.acc-acts .btn{min-height:38px;padding:8px 8px;font-size:12px;white-space:nowrap}
+.acc-rand{border-color:var(--amber);color:var(--amber)}
+.acc-rand span{display:inline-block}
+.acc-rand.roll span{animation:accDice .55s cubic-bezier(.3,.7,.3,1.2)}
+@keyframes accDice{0%{transform:rotate(0) scale(1)}50%{transform:rotate(200deg) scale(1.35)}100%{transform:rotate(360deg) scale(1)}}
+.acc-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  -webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent);padding-right:18px}
+.acc-tabs::-webkit-scrollbar{display:none}
+.acc-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--steel2);
+  background:var(--night);color:var(--muted);font:600 14px var(--body);cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:background .15s,color .15s,border-color .15s}
+.acc-tab:hover{color:var(--ink);border-color:var(--muted)}
+.acc-tab-ic{font-size:17px;line-height:1}
+.acc-tab[aria-selected="true"]{background:var(--amber);border-color:var(--amber);color:var(--night)}
+.acc-dot{display:none;width:7px;height:7px;border-radius:50%;background:var(--amber)}
+.acc-tab.set .acc-dot{display:block}
+.acc-tab[aria-selected="true"] .acc-dot{background:var(--night)}
+.acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:7px;min-width:0}
+.acc-item{position:relative;display:grid;justify-items:center;align-content:start;gap:3px;min-width:0;padding:4px 3px 5px;border-radius:13px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 11px/1.15 var(--body);cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:transform .12s,border-color .15s,background .15s}
+.acc-item:hover{border-color:var(--steel2);background:var(--card-hi)}
+.acc-item:active{transform:scale(.94)}
+.acc-th{position:relative;display:block;width:100%;aspect-ratio:4/5;border-radius:10px;overflow:hidden;
+  background:radial-gradient(circle at 50% 36%,#29425a 0%,#172836 62%,#111c25 100%)}
+.acc-th canvas{display:block;width:100%;height:100%}
+.acc-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%;min-height:2.3em;text-align:center;overflow-wrap:break-word;hyphens:auto}
+.acc-item[aria-pressed="true"]{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,var(--card));box-shadow:inset 0 0 0 1px var(--amber)}
+.acc-item[aria-pressed="true"]::after{content:"✓";position:absolute;top:2px;right:2px;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
+  background:var(--amber);color:var(--night);font:700 12px/1 var(--body);box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.acc-item.none .acc-th canvas{opacity:.55}
+.acc-none{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #ff6b78;background:rgba(11,20,28,.55)}
+.acc-none::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:3px;margin-left:-1.5px;background:#ff6b78;transform:rotate(45deg);border-radius:2px}
+#jdw-acc-hint:empty{display:none}
+@media (max-height:700px) and (max-width:859px){#jdw-ph-out{width:84px;height:105px}.pv-bubble{width:48px;height:48px}.preview-out{padding:6px 10px}}
+/* ordinateur : recadrage à gauche, accessoires à droite */
+@media (min-width:860px){
+  #jdw-photo .ph-card{max-width:990px}
+  .ph-cols{grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:24px;align-items:start}
+  #jdw-photo.acc-only .ph-card{max-width:680px}
+  #jdw-photo.acc-only .ph-cols{grid-template-columns:minmax(0,1fr)}
+  .acc-top{margin:0;padding:0 0 10px}
+  #jdw-ph-out{width:144px;height:180px}
+  .pv-bubble{width:72px;height:72px}
+  .acc-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .acc-acts{flex-direction:row;max-width:none}
+  .acc-acts .btn{font-size:13px;padding:9px 12px}
+  .acc-tabs{flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none;padding-right:0}
+  .acc-tab{position:relative}
+  .acc-dot{position:absolute;top:7px;right:9px}          /* le point ne fait pas grandir l'onglet : les 5 onglets restent sur une ligne */
+  .acc-item{font-size:12px}
+}
+/* téléphone couché (peu de hauteur) : l'aperçu ne reste plus collé en haut, la grille garde toute la place */
+@media (max-height:520px){.acc-top{position:static}.acc-top::after{display:none}}
+@media (prefers-reduced-motion:reduce){.acc-rand.roll span{animation:none}}

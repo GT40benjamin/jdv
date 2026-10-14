@@ -32,6 +32,8 @@ têtes des copains (selfies détourés) dans les jeux. Site : https://gt40benjam
   `~/jdv-tools/old-photos/`).
 - `shell2.js` / `shell2.css` / `shell2-body.html` : la bibliothèque (accueil 2 colonnes, salles, classement en onglets, profil + selfie,
   détourage MediaPipe chargé depuis jsDelivr avec repli ovale, joueurs en ligne, fin de partie « Tu as battu… », bouton Inviter, paysage).
+- `accessoires.js` / `accessoires.css` : les accessoires de la tête (window.JDW_ACC, inclus par build2.py juste avant shell2.js) : catalogue,
+  dessins en code, mise en page (la tête rapetisse quand un chapeau, une tenue ou des ailes ont besoin de place), onglets et miniatures de l'éditeur.
 - `supabase.sql` : schéma Supabase complet (se termine par `accounts.sql`, `public.sql`, `invite.sql` puis `map-est.sql`). Projet : wplictorvvtkfikpfdnl.
 - `accueil.html`, `accueil-media.js`, `telecharger-plain.html`, `telecharger.js` : pages publiques.
 - `test/*.html` : harnais de test par jeu (Playwright).
@@ -144,6 +146,14 @@ Connecteur Supabase (MCP) disponible dans les sessions Claude : apply_migration 
 - Nouveaux jeux : badge NOUVEAU tant que le joueur n'y a pas joué + notification « Nouveau jeu disponible » (NEW_GAMES dans shell2.js) ;
   la cloche ne montre que les nouveautés (historique sur demande).
 - Photo : accessoires (lunettes posées sur les yeux via MediaPipe Face Detection, sinon estimation ; chapeaux ; visage ; effets derrière).
+  Depuis octobre 2026 : 131 accessoires dessinés en code dans `accessoires.js`, 5 onglets (Chapeaux 42, Lunettes 21, Visage 23, Tenue 14 sous
+  le menton, Derrière 31 : contours / auras qui suivent la forme de la tête, ailes, arc-en-ciel… jamais de fond plein), miniatures avec la tête
+  du joueur (dessinées par petits paquets), 🎲 Au hasard (tenues assorties : THEMES, CLASH), Tout enlever, aperçu « bulle ». Ajouter un
+  accessoire : `add(onglet, id, nom, { draw, behind, bg, fg, at, up, top, down, bot, sMax })` (repères hatAt / eyeAt / faceAt / neck, unité =
+  largeur de la tête ou écart des yeux) ; ne jamais renommer un id (gardé dans profile.photoAcc). Image enregistrée : 160×200 webp, 7 à 20 k
+  caractères avec accessoires (limite serveur 400 000). Banc d'essai et tests (têtes DESSINÉES, faux MediaPipe, RPC simulées) :
+  `~/jdv-tools/duotest/accessoires/tests/` (`SRC=~/jdv/source node serve.js` sur 8820, banc.html + `node shoot.js <onglet>` = planches,
+  t-ui.js / t-save.js / t-modes.js sur un build privé fait par ../build.sh). Le fichier du dépôt est la référence (aucun assemblage).
 - Code de salle manquant sur un appareil : message clair + code redemandé ; les refus du serveur sont remontés dans les erreurs.
 - Annonce en direct d'une publication : après `git push` et la mise en ligne de GitHub Pages (site.json à jour), lancer
   `node ~/jdv-tools/annonce.js` → tous les appareils connectés vérifient tout de suite site.json et telecharger/version.json :
