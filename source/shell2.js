@@ -8,7 +8,7 @@ const ORDER = ['ilo', 'magic', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carr
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  magic: { kind: 'new', at: '2026-10-14 15:00' },
+  magic: { kind: 'new', at: '2026-10-14 22:20' },
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
   glouton: { kind: 'maj', at: '2026-10-13 00:55' },
   empilo: { kind: 'maj', at: '2026-10-14 12:10' },
@@ -20,7 +20,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['magic']);
+const LABO = new Set([]);   // Magic Force est sorti pour tous en 1.12 (porte labo vide, gardée pour un prochain jeu en essai)
 const LABO_ON = (() => {
   let on = []; try { on = JSON.parse(localStorage.getItem('jdw.labo') || '[]') || []; } catch (e) { on = []; }
   try {

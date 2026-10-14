@@ -7,7 +7,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), { execFile
 const { chromium } = require('C:/Users/Benjamin/jdv-tools/node_modules/playwright-core');
 const CHROME = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const REPO = path.resolve(__dirname, '..'), OUT = path.join(REPO, 'accueil');
-const SOLO = ['ilo', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux'];   // Bataille de Canards : retirée du mode Classique (« Canards : la guerre » reste en duel)
+const SOLO = ['ilo', 'magic', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux'];   // Bataille de Canards : retirée du mode Classique (« Canards : la guerre » reste en duel)
 const DUO = ['trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
 // Vignettes 4:3 (comme les tuiles de la borne) : 320×240 logiques, rendues ×1.75 → 560×420.
