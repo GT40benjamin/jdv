@@ -23,6 +23,10 @@ têtes des copains (selfies détourés) dans les jeux. Site : https://gt40benjam
 - `games/*.js` : un module par jeu, contrat dans `CONTRACT.md` (api.gameOver, api.audio, api.heads() → {name,img,sad}, api.player, api.celebrate).
   empilo (blocs), glouton (labyrinthe), mouches (shooter), carreaux (casse-briques), rouleaux (façon Lemmings), canards (artillerie façon Worms,
   retiré du mode Classique : build2.py ne l'inclut pas).
+  Casse-Carreaux (1.10) = « Le tour du monde des carreaux » : 6 pays × 3 niveaux (le 3e = boss à 3 phases), voyage en avion entre les pays,
+  Tour II ensuite ; tout dessiné en code (pas de paquet d'images). carreaux.js est ASSEMBLÉ depuis `~/jdv-tools/duotest/carreaux-v2/parts/`
+  (`bash assemble.sh`, fiche REPRISE.md) : modifier les parts, pas carreaux.js. Exposé pour une carte : worlds, worldOf, drawWorldIcon,
+  drawWorldStamp, drawBossIcon.
 - `pleingaz-src.html` + `pg-hook.js` : Plein Gaz. Ses personnages par défaut sont NEUTRES et dessinés (`pg-neutral/*.svg`, injectés par build2.py) ;
   les membres connectés voient les têtes de la salle (api.heads) et leur propre tête en pilote. Plus de photos.enc.json (sauvegarde hors dépôt :
   `~/jdv-tools/old-photos/`).
@@ -54,7 +58,7 @@ modules npm de `~/jdv-tools/duotest/magic/node_modules`). Sortie pour tous : ret
 **Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Plein Gaz, Empilo, Chasse aux mouches ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte
 sans boss, nodeSize, bgDpr, lazy). Fin de partie : si le jeu expose `worlds` / `worldOf`, l'écran montre le monde atteint. Tests : test-map.js,
-test-map-est.js. Prochaines cartes : Glouton, Rouleaux, puis Casse-Carreaux après sa refonte. (Chasse aux mouches : le dessin de sa carte est dans ses parties, p8-loop.js, assemblées par assemble.sh.)
+test-map-est.js. Prochaines cartes : Glouton, Rouleaux, puis Casse-Carreaux (refonte publiée en 1.10). (Chasse aux mouches : le dessin de sa carte est dans ses parties, p8-loop.js, assemblées par assemble.sh.)
 
 ## Appli Android (`android-apktool/`)
 WebView plein écran sur la borne (`https://gt40benjamin.github.io/jdv/jouer/`, Java dans `java/MainActivity.java`). Construite sans SDK :

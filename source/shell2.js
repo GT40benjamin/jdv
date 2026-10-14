@@ -13,7 +13,8 @@ const TILE_NEWS = {
   glouton: { kind: 'maj', at: '2026-10-13 00:55' },
   empilo: { kind: 'maj', at: '2026-10-14 12:10' },
   mouches: { kind: 'maj', at: '2026-10-14 12:43' },
-  rouleaux: { kind: 'maj', at: '2026-10-14 13:32' }
+  rouleaux: { kind: 'maj', at: '2026-10-14 13:32' },
+  carreaux: { kind: 'maj', at: '2026-10-14 17:45' }
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));

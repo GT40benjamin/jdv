@@ -1,6 +1,3 @@
-Nouvelle icône de la borne (site et appli) : une vraie borne d'arcade, plus de « WC »
-Menus simplifiés : paramètres en onglets (Moi, Salle, Compte, Son), salles en onglets (Mes salles, Rejoindre, Créer), l'aide derrière le « ? »
-Plus de mot de passe du site : la borne est ouverte à tous, ce sont les comptes qui protègent les salles
-Les copains de passage jouent en invité (jeux solo, duels sur le téléphone ou contre l'IA), sans score enregistré
-Rejoindre une salle : son nom (et son code) ; la liste ne montre plus que tes salles
-Un enfant sans compte s'ajoute au compte de l'appareil en un geste (un compte = plusieurs joueurs)
+Casse-Carreaux tout neuf : « Le tour du monde des carreaux », 6 pays (Portugal, Maroc, Italie, Japon, Mexique, Palais de cristal), 18 niveaux et un boss dans chaque pays
+Entre deux pays : le tampon du passeport, puis ton avion survole le globe ; après le Palais de cristal, le Tour II (plus dur)
+Les carreaux chantent dans la musique de chaque pays, les têtes des copains se cachent dans les carreaux et dans les boss
