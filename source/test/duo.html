@@ -156,7 +156,7 @@ document.write('<script src="../duos/' + GID + '.js"><\/script>');
       if (duo.over) return { scores: scores.slice(), over: true, winner: duo.winner };
       scores[p]++; duo.points.push([p, why || '', scores.slice()]);
       document.getElementById('pill0').textContent = scores[0]; document.getElementById('pill1').textContent = scores[1];
-      const over = scores[p] >= D.target;
+      const over = scores[p] >= D.target && scores[p] - scores[1 - p] >= (D.winBy || 1);   // winBy : écart minimum (ex. 2 au ping-pong)
       say((why ? why + ' ' : '') + 'Point pour ' + P[p].name + ' !', { ms: 1200, color: P[p].color, small: true });
       if (over) { duo.over = true; duo.winner = p; setTimeout(() => showResults(p), 1500); }
       if (NETROLE === 'host') toParent({ __hud: { k: 'point', p, why: why || '', scores: scores.slice(), over } });

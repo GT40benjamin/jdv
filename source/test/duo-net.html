@@ -21,6 +21,8 @@ iframe{border:0;display:block;background:#0b141c;box-shadow:0 0 0 1px #22394a}
 // puis frame.evaluate(() => window.__duo). Ici : window.__net = { sent, lost, bytes, lat, jit, loss }.
 const Q = new URLSearchParams(location.search);
 const LAT = +(Q.get('lat') || 60), JIT = +(Q.get('jit') || 20), LOSS = +(Q.get('loss') || 0) / 100;
+// pics sur les messages FIABLES (un paquet perdu puis renvoyé : celui-ci et tous ceux qui le suivent arrivent en retard) : &spike=700&spikeP=10
+const SPIKE = +(Q.get('spike') || 0), SPIKEP = +(Q.get('spikeP') || 0) / 100;
 const HW = +(Q.get('hw') || 390), HH = +(Q.get('hh') || 780), GW = +(Q.get('gw') || 390), GH = +(Q.get('gh') || 780);
 const EPOCH = Date.now();
 const pass = ['g', 'heads', 'guest', 'noassets', 'fast'].filter(k => Q.has(k)).map(k => k + (Q.get(k) ? '=' + encodeURIComponent(Q.get(k)) : '')).join('&');
@@ -28,7 +30,7 @@ const H = document.getElementById('h'), G = document.getElementById('g');
 Object.assign(H.style, { width: HW + 'px', height: HH + 'px' }); Object.assign(G.style, { width: GW + 'px', height: GH + 'px' });
 H.src = 'duo.html?' + pass + '&net=host&epoch=' + EPOCH + '&rtt=' + 2 * LAT;
 G.src = 'duo.html?' + pass + '&net=guest&epoch=' + EPOCH + '&rtt=' + 2 * LAT;
-const net = window.__net = { sent: 0, lost: 0, bytes: 0, lat: LAT, jit: JIT, loss: LOSS };
+const net = window.__net = { sent: 0, lost: 0, bytes: 0, lat: LAT, jit: JIT, loss: LOSS, spikes: 0 };
 const lastRel = { h: 0, g: 0 };
 addEventListener('message', e => {
   const d = e.data || {}, fromHost = e.source === H.contentWindow, to = fromHost ? G : H, key = fromHost ? 'h' : 'g';
@@ -37,7 +39,7 @@ addEventListener('message', e => {
     net.sent++; try { net.bytes += JSON.stringify(d.msg).length; } catch (x) {}
     if (!d.reliable && Math.random() < LOSS) { net.lost++; return; }
     let at = Date.now() + Math.max(0, LAT + (Math.random() - 0.5) * JIT);
-    if (d.reliable) { at = Math.max(at, lastRel[key] + 1); lastRel[key] = at; }
+    if (d.reliable) { at = Math.max(at, lastRel[key] + 1); if (SPIKE && Math.random() < SPIKEP) { at += SPIKE; net.spikes++; } lastRel[key] = at; }
     setTimeout(() => to.contentWindow.postMessage({ __netin: 1, msg: d.msg }, '*'), at - Date.now());
   } else if (d.__hud || d.__ctl) {
     // ce que la bibliothèque recopie (scores, bannières, pause) : fiable, même délai

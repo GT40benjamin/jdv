@@ -76,7 +76,7 @@ script = "let PG_ACTIVE = false, PG_API = null, PG_HEADS = [], PG_PILOT_IMG = nu
 SKIP = [x for x in os.environ.get('SKIP_GAMES', '').split(',') if x]   # ex. SKIP_GAMES=ilo : jeu pas encore prêt
 GAMES = [g for g in ['ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'magic'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
 # jeux de duel (deux joueurs face à face) : source/duos/<id>.js, contrat DUO-CONTRACT.md
-DUOS = [d for d in ['trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'] if os.path.exists(J + 'duos/' + d + '.js') and d not in SKIP]
+DUOS = [d for d in ['pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'] if os.path.exists(J + 'duos/' + d + '.js') and d not in SKIP]
 def notes_list():
     # nouveautés de la version (une par ligne), affichées après une mise à jour
     f = J + 'nouveautes.txt'
@@ -122,12 +122,12 @@ def full_doc(p):
             '<meta property="og:type" content="website">\n<meta property="og:locale" content="fr_FR">\n'
             '<meta property="og:site_name" content="Borne d\'arcade entre amis">\n'
             '<meta property="og:title" content="Viens jouer avec nous sur la Borne d\'arcade !">\n'
-            '<meta property="og:description" content="Tes copains t\'invitent : 15 jeux gratuits, classements, chat et duels entre amis. Touche le lien pour nous rejoindre.">\n'
+            '<meta property="og:description" content="Tes copains t\'invitent : 17 jeux gratuits, classements, chat et duels entre amis. Touche le lien pour nous rejoindre.">\n'
             '<meta property="og:image" content="https://gt40benjamin.github.io/jdv/accueil/partage.jpg">\n'
             '<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n'
             '<meta property="og:image:alt" content="Borne d\'arcade entre amis : les vignettes des jeux">\n'
             '<meta name="twitter:card" content="summary_large_image">\n'
-            '<meta name="description" content="Tes copains t\'invitent : 15 jeux gratuits, classements, chat et duels entre amis. Touche le lien pour nous rejoindre.">\n'
+            '<meta name="description" content="Tes copains t\'invitent : 17 jeux gratuits, classements, chat et duels entre amis. Touche le lien pour nous rejoindre.">\n'
             '<link rel="manifest" href="' + ROOT + 'manifest.webmanifest">\n<link rel="icon" href="' + ROOT + 'favicon.ico" sizes="16x16 32x32 48x48">\n<link rel="apple-touch-icon" href="' + ROOT + 'icon-180.png">\n' + head + rest[:j] + '\n</head>\n<body>\n' + rest[j:] + '\n</body>\n</html>\n')
 
 art = page()

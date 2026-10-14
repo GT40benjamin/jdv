@@ -14,7 +14,8 @@ const TILE_NEWS = {
   empilo: { kind: 'maj', at: '2026-10-14 12:10' },
   mouches: { kind: 'maj', at: '2026-10-14 12:43' },
   rouleaux: { kind: 'maj', at: '2026-10-14 13:32' },
-  carreaux: { kind: 'maj', at: '2026-10-14 17:45' }
+  carreaux: { kind: 'maj', at: '2026-10-14 17:45' },
+  pingpong: { kind: 'new', at: '2026-10-15 00:20' }   // ← mettre la date et l'heure de la publication
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
@@ -44,7 +45,7 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!L
 })();
 const gameById = id => GAMES.find(g => g.id === id);
 // jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
-const DUO_ORDER = ['trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
+const DUO_ORDER = ['pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
 const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(Boolean);
 const duoById = id => DUOS.find(d => d.id === id);
 const store = {
@@ -3689,7 +3690,7 @@ const NET = { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: 
   pend: [], remote: false, helloT: 0, waitT: 0, guestInfo: null, stream: null, dest: null, vSender: null, aSender: null, start: null, ids: new Map(),
   data: false, g: null, handlers: [], queue: [], off: 0, rttv: 0, pings: [], pingT: 0 };
 // musique de chaque duel : morceaux des jeux solo qui vont bien
-const DUO_MUSIC = { trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
+const DUO_MUSIC = { pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
   souris: ['glouton', 'calm'], spatial: ['ilo', 'intense'], mots: ['accueil', 'calm'], guerre: ['canards', 'calm'] };
 const GUEST = 'INVITÉ';
 const AI_NAME = 'IA';
@@ -3721,7 +3722,9 @@ function defaultSeats() {
 }
 if (!Array.isArray(seats) || seats.length !== 2 || !seats[0]) seats = defaultSeats();
 // invité : seulement « invité » (deux fois) ou l'IA en haut, jamais les joueurs de l'appareil ou de la salle (ni tête, ni pseudo)
-const seatName = i => (NET.seats ? NET.seats[i] : isGuest() ? (i === 1 && seats[1] === AI_NAME ? AI_NAME : GUEST) : seats[i]) || GUEST;
+// duel marqué local: false (pas à deux sur le même écran) : sur ce téléphone, l'adversaire du haut est toujours l'IA (duoAiOnly)
+let duoAiOnly = false;
+const seatName = i => (NET.seats ? NET.seats[i] : i === 1 && duoAiOnly ? AI_NAME : isGuest() ? (i === 1 && seats[1] === AI_NAME ? AI_NAME : GUEST) : seats[i]) || GUEST;
 // appareil tactile ? (téléphone, tablette, appli Android, PC à écran tactile) : sinon pas de duel « sur ce téléphone » (à deux sur le même écran)
 // (maxTouchPoints seul ne suffit pas : certains navigateurs d'ordinateur en annoncent sans écran tactile ; on le croit si la souris n'est pas le pointeur principal)
 const TOUCH = (() => { try { return /BorneArcade/.test(navigator.userAgent) || matchMedia('(pointer: coarse)').matches || matchMedia('(any-pointer: coarse)').matches || ((navigator.maxTouchPoints || 0) > 0 && !matchMedia('(pointer: fine)').matches); } catch (e) { return true; } })();
@@ -3827,7 +3830,8 @@ function buildDuoLibrary() {
     b.addEventListener('click', () => {
       markGameSeen(d.id);   // clic sur la tuile : l'étiquette « Nouveau » / « Mis à jour » s'en va (même si le duel demande d'abord un compte)
       if (DUEL_WHERE === 'online') { if (guestBlocks()) { guestAsk('Duel en ligne'); return; } if (netOff()) { netNeed('Le duel en ligne'); return; } if (netBlocks(d)) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } netCreate(d); return; }
-      if (aiBlocks(d)) { ensureAiPlayer(); toastCheer('Je ne sais pas encore jouer à ce jeu !', AI_NAME, true); return; }
+      duoAiOnly = d.local === false; if (duoAiOnly) ensureAiPlayer();   // pas à deux sur le même écran : contre l'IA
+      if (aiBlocks(d)) { duoAiOnly = false; ensureAiPlayer(); toastCheer('Je ne sais pas encore jouer à ce jeu !', AI_NAME, true); return; }
       openDuo(d);
     });
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', d.accent || COLORS.amber);
@@ -3848,8 +3852,9 @@ const netBlocks = d => DUEL_WHERE === 'online' && !d.net;
 function refreshDuoTiles() {
   for (const t of duoTiles) {
     const w = pairWins(t.g.id), noNet = netBlocks(t.g), gb = guestBlocks(), nr = DUEL_WHERE === 'online' && netOff(), off = noNet || gb || nr || aiBlocks(t.g);
-    t.tag.textContent = noNet ? 'Bientôt en ligne' : gb ? 'En ligne avec un compte' : nr ? 'Il faut du réseau' : off ? 'Bientôt contre l\'IA' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
-    t.tag.classList.toggle('tally', !off && !!(w[0] + w[1]) && !sameSeats());
+    const aiOnly = DUEL_WHERE !== 'online' && t.g.local === false && seatName(1) !== AI_NAME;   // sur ce téléphone : contre l'IA seulement
+    t.tag.textContent = noNet ? 'Bientôt en ligne' : gb ? 'En ligne avec un compte' : nr ? 'Il faut du réseau' : off ? 'Bientôt contre l\'IA' : aiOnly ? '🤖 Contre l\'IA (' + AI_LEVELS[aiLevel][0] + ') ou en ligne' : w[0] + w[1] && !sameSeats() ? seatName(0) + ' ' + w[0] + ' – ' + w[1] + ' ' + seatName(1) : (t.g.tagline || '');
+    t.tag.classList.toggle('tally', !off && !aiOnly && !!(w[0] + w[1]) && !sameSeats());
     t.el.classList.toggle('no-ai', off); t.el.setAttribute('aria-disabled', String(off));
   }
 }
@@ -3874,11 +3879,13 @@ function duoSay(text, o) {
   }
   if (NET.role === 'host') netCtl({ h: 'say', text: String(text || ''), o: { ms: o.ms, p: o.p, color: o.color, small: o.small } });
 }
+// le joueur p a-t-il gagné ? (target points, et winBy points d'écart si le duel le demande) ; balle de match : il gagne s'il marque le suivant
+const duoWon = (d, s, p) => s[p] >= ((d && d.target) || 5) && s[p] - s[1 - p] >= ((d && d.winBy) || 1);
+const duoMatchPt = (d, s, p) => !duoWon(d, s, p) && duoWon(d, p === 0 ? [s[0] + 1, s[1]] : [s[0], s[1] + 1], p);
 function duoPills(scored) {
-  const t = DUO.d ? DUO.d.target || 5 : 5;
   for (const i of [0, 1]) {
     const pl = $('jdw-duo-pill' + i); pl.querySelector('b').textContent = DUO.scores[i];
-    pl.classList.toggle('mp', !DUO.over && DUO.scores[i] === t - 1);
+    pl.classList.toggle('mp', !DUO.over && duoMatchPt(DUO.d, DUO.scores, i));
     if (scored === i) { pl.classList.remove('bump'); void pl.offsetWidth; pl.classList.add('bump'); }
   }
   if (NET.role === 'host') netCtl({ h: 'pills', s: DUO.scores, p: scored });
@@ -3895,12 +3902,12 @@ function duoApi(d, seq) {
       if (!mine() || (p !== 0 && p !== 1) || NET.role === 'guest') return { scores: DUO.scores.slice(), over: DUO.over, winner: DUO.winner };
       if (DUO.over) return { scores: DUO.scores.slice(), over: true, winner: DUO.winner };
       DUO.scores[p]++;
-      const over = DUO.scores[p] >= (d.target || 5);
+      const over = duoWon(d, DUO.scores, p);
       if (over) { DUO.over = true; DUO.winner = p; }
       duoPills(p);
       duoSay((why ? why + ' ' : '') + (over ? P[p].name + ' gagne le match !' : 'Point pour ' + P[p].name + ' !'), { ms: 1300, color: P[p].color, small: true });
       if (!sting('point', 0.55, false)) Audio.tone(over ? 784 : 660, 0.12, 'square', 0.05, over ? 1175 : 880);
-      if (!over && DUO.scores[p] === (d.target || 5) - 1 && !DUO.mp) {   // balle de match : la musique s'emballe
+      if (!over && duoMatchPt(d, DUO.scores, p) && !DUO.mp) {   // balle de match : la musique s'emballe
         DUO.mp = true; setTimeout(() => { if (mine()) { sting('match', 0.6); if (duoMusicId(d)) setMusic(duoMusicId(d), 'intense'); } }, 700);
       }
       if (over) setTimeout(() => { if (mine()) duoResults(); }, 1500);
@@ -4032,7 +4039,7 @@ function duoLeave() { if (NET.role) netEnd(true); else closeDuo(); }
 function closeDuo() {
   if (NET.role) { netEnd(true); return; }
   unmountDuo();
-  DUO.d = null; DUO.waitRot = false; DUO.paused = false;
+  DUO.d = null; DUO.waitRot = false; DUO.paused = false; duoAiOnly = false;
   $('jdw-duo').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-rotate').hidden = true;
   $('jdw-lib').hidden = false;
   setWhere('menu'); refreshDuoTiles(); musicBaseLevel(1); MUS.override = false; setMusic('accueil');
@@ -4051,7 +4058,7 @@ function duoPause() {
   const sc = document.createElement('span'); sc.className = 'dp-score';
   const s0 = document.createElement('b'), s1 = document.createElement('b'); s0.textContent = DUO.scores[0]; s0.style.color = DUO_COLORS[0]; s1.textContent = DUO.scores[1]; s1.style.color = DUO_COLORS[1];
   sc.append(s0, ' – ', s1);
-  const g = document.createElement('small'); g.className = 'dp-game'; g.textContent = DUO.d.title + ' · en ' + (DUO.d.target || 5) + ' points';
+  const g = document.createElement('small'); g.className = 'dp-game'; g.textContent = DUO.d.title + ' · en ' + (DUO.d.target || 5) + ' points' + ((DUO.d.winBy || 1) > 1 ? ' (' + DUO.d.winBy + ' d\'écart)' : '');
   sub.append(side(0), sc, side(1), g);
   $('jdw-duo-pause').style.setProperty('--acc', DUO.d.accent || COLORS.amber);
   $('jdw-duo-pause').hidden = false;
@@ -4791,7 +4798,7 @@ function netReset() {
   clearInterval(NET.helloT); clearTimeout(NET.waitT); clearInterval(NET.pingT);
   Object.assign(NET, { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: null, peer: '', peerCid: '', seats: null, turn: -1, pend: [], remote: false, guestInfo: null, stream: null, vSender: null, aSender: null, start: null,
     data: false, g: null, handlers: [], queue: [], off: 0, rttv: 0, pings: [] });
-  NET.blocked.clear(); NET.ids.clear();
+  NET.blocked.clear(); NET.ids.clear(); duoAiOnly = false;
   $('jdw-duo').classList.remove('net-guest', 'net-host', 'net-video', 'net-flip', 'net-single');
   $('jdw-net-stage').hidden = true; const v = $('jdw-net-video'); try { v.pause(); } catch (e) {} v.srcObject = null;
 }
@@ -4995,6 +5002,7 @@ function netGuard(e) {
   if (!(NET.role === 'host' || (NET.role === 'guest' && NET.data)) || !e.isTrusted || !DUO.root || !DUO.d) return;
   // tour par tour : en mode données, le jeu gère lui-même qui a la main (on peut toujours bouger sa caméra) ; en mode vidéo, la bibliothèque bloque
   if (DUO.d.layout === 'landscape') { if (!NET.data && NET.role === 'host' && NET.turn === 1) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); } return; }
+  if (DUO.d.local === false) return;   // (ex. ping-pong) chacun a tout l'écran (sa vue depuis sa raquette) : le jeu gère lui-même ses doigts
   if (e.type === 'pointerdown') { const r = DUO.root.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) NET.blocked.add(e.pointerId); }
   if (NET.blocked.has(e.pointerId)) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); if (e.type === 'pointerup' || e.type === 'pointercancel') NET.blocked.delete(e.pointerId); }
 }
@@ -5044,7 +5052,7 @@ function netCtlGuest(m) {
     DUO.scores = Array.isArray(m.s) ? m.s.slice(0, 2) : DUO.scores; DUO.over = false; duoPills(m.p);
     if (NET.data && (m.p === 0 || m.p === 1)) {   // mode données : les sons sont joués ici (pas de son envoyé par l'hôte)
       sting('point', 0.55, false);
-      if (DUO.scores[m.p] === (DUO.d.target || 5) - 1 && !DUO.mp) { DUO.mp = true; setTimeout(() => { sting('match', 0.6); if (duoMusicId(DUO.d)) setMusic(duoMusicId(DUO.d), 'intense'); }, 700); }
+      if (duoMatchPt(DUO.d, DUO.scores, m.p) && !DUO.mp) { DUO.mp = true; setTimeout(() => { sting('match', 0.6); if (duoMusicId(DUO.d)) setMusic(duoMusicId(DUO.d), 'intense'); }, 700); }
     }
     return;
   }

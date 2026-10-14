@@ -8,7 +8,7 @@ const { chromium } = require('C:/Users/Benjamin/jdv-tools/node_modules/playwrigh
 const CHROME = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const REPO = path.resolve(__dirname, '..'), OUT = path.join(REPO, 'accueil');
 const SOLO = ['ilo', 'magic', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux'];   // Bataille de Canards : retirée du mode Classique (« Canards : la guerre » reste en duel)
-const DUO = ['trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
+const DUO = ['pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
 // Vignettes 4:3 (comme les tuiles de la borne) : 320×240 logiques, rendues ×1.75 → 560×420.
 const TILE = { w: 320, h: 240, dpr: 1.75, dur: 5, fade: 0.7, bps: 330000 };
@@ -48,6 +48,7 @@ const HERO = { w: 480, h: 270, dpr: 2, dur: 6, fade: 0.8, bps: 700000 };
   async function record(kind, id, spec, name) {
     const res = await page.evaluate(async ({ kind, id, spec }) => {
       const g = (kind === 'duo' ? window.JDW_DUOS : window.JDW_GAMES)[id];
+      if (g.warm) g.warm(spec.w, spec.h);   // vignette qui se prépare en plusieurs fois (ex. ping-pong) : tout de suite, avant d'enregistrer
       if (window.JDW_ASSETS && window.JDW_ASSETS.cache && window.JDW_ASSETS.cache.ilo) throw new Error('cache ilo présent');
       const W = Math.round(spec.w * spec.dpr), H = Math.round(spec.h * spec.dpr);
       const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
@@ -102,7 +103,7 @@ const HERO = { w: 480, h: 270, dpr: 2, dur: 6, fade: 0.8, bps: 700000 };
     const img = id => 'data:image/webp;base64,' + fs.readFileSync(path.join(OUT, id + '.webp')).toString('base64');
     const share = await browser.newPage({ viewport: { width: 1200, height: 630 } });
     await share.route(/^https?:/, r => /fonts\.(googleapis|gstatic)\.com/.test(r.request().url()) ? r.continue() : r.abort());
-    const cells = ['empilo', 'palet', 'glouton', 'spatial', 'mouches', 'boum'].map(id => `<div class=c style="background-image:url(${img(id)})"></div>`).join('');
+    const cells = ['empilo', 'magic', 'pingpong', 'palet', 'glouton', 'spatial'].map(id => `<div class=c style="background-image:url(${img(id)})"></div>`).join('');
     await share.setContent(`<!doctype html><html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@600;700&display=block">
 <style>*{margin:0;box-sizing:border-box}body{width:1200px;height:630px;overflow:hidden;background:#0b141c;font-family:'Chakra Petch',sans-serif;position:relative}
 .hero{position:absolute;inset:0;background:url(${img('hero')}) center/cover;filter:saturate(1.2)}
@@ -115,7 +116,7 @@ h1 b{font-weight:400;color:#ffd34d;display:block}
 p{margin-top:26px;font-size:30px;font-weight:600;color:#cfe6ef;line-height:1.3}
 .pill{display:inline-block;margin-top:30px;padding:10px 22px;border-radius:99px;background:#ffa630;color:#0b141c;font:400 24px Bungee,sans-serif;box-shadow:0 0 30px #ffa63088}
 </style></head><body><div class=hero></div><div class=grid>${cells}</div><div class=shade></div>
-<div class=t><h1>Borne d'arcade<b>entre amis</b></h1><p>15 jeux gratuits, en solo ou en duel,<br>sur ton téléphone ou ton PC.</p><span class=pill>Jouer</span></div></body></html>`);
+<div class=t><h1>Borne d'arcade<b>entre amis</b></h1><p>${SOLO.length + DUO.length} jeux gratuits, en solo ou en duel,<br>sur ton téléphone ou ton PC.</p><span class=pill>Jouer</span></div></body></html>`);
     await share.evaluate(() => document.fonts.ready);
     await share.waitForTimeout(400);
     await share.screenshot({ path: path.join(OUT, 'partage.jpg'), type: 'jpeg', quality: 84 });

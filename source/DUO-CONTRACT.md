@@ -185,3 +185,21 @@ Déclare `ai: true` dans le module (à côté de `net: true`) quand ton IA est p
 Test : harnais `test/duo.html?g=<id>&heads&ai=<niveau>` (P1 joué par ton IA, P0 par toi ou par un petit robot de test) : vérifie que
 chaque niveau se comporte comme décrit (mesure le taux de victoire de l'IA contre un même robot de test à chaque niveau : il doit monter
 nettement de facile à extrême), aucune erreur, captures regardées.
+
+## Ajout : duel « contre l'IA ou en ligne » seulement (`local: false`), écart pour gagner (`winBy`)
+Deux champs facultatifs de l'enregistrement (exemple : `duos/pingpong.js`) :
+- `local: false` : le jeu ne se joue PAS à deux sur le même téléphone (chacun doit voir SA vue, ex. une caméra 3D derrière sa
+  raquette). Sur l'onglet « Sur ce téléphone », l'adversaire est alors toujours l'IA : la tuile reste jouable et dit
+  « 🤖 Contre l'IA (niveau) ou en ligne » quand un copain est assis en haut ; la toucher lance le match contre l'IA au niveau choisi
+  (jdw.ailevel), sans changer les places enregistrées (`duoAiOnly` dans shell2.js). Le module doit donc aussi déclarer `ai: true`
+  (et `net: true` pour l'onglet « En ligne »). Sans `api.ai` ni `api.net` (harnais sans `&ai`), le jeu joue quand même contre son IA.
+  En ligne, chacun a tout son écran : la bibliothèque ne bloque PAS les doigts de la moitié haute (netGuard sort tout de suite pour
+  `local: false`), le jeu gère lui-même ses gestes partout.
+- `winBy: 2` : il faut `target` points ET `winBy` points d'écart pour gagner le match (tennis de table : 11 points, à 10-10 on
+  continue). La bibliothèque (api.point, pastille « balle de match », musique qui s'emballe, carte de pause « en 11 points (2 d'écart) »)
+  et le harnais `test/duo.html` en tiennent compte. Sans ce champ : 1 (le premier à `target` gagne, comme avant).
+Un duel peut aussi dessiner en WebGL (sa propre petite 3D, sans librairie ni fichier) : il crée son contexte dans `mount`, le libère
+dans `destroy` (`WEBGL_lose_context`) et garde une `preview()` 2D (elle peut copier une image 3D rendue une seule fois, puis libérer le
+contexte), avec un repli si WebGL manque. Jamais de construction 3D DANS preview() (elle est appelée à chaque image de la page Duel) :
+décor 2D tout de suite, image 3D préparée au calme (requestIdleCallback), une seule fois par page à une taille de référence fixe, puis
+mise à l'échelle ; facultatif `warm(w, h)` dans l'enregistrement pour tout préparer d'un coup (utilisé par accueil-media.js).

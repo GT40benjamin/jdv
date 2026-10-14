@@ -15,7 +15,8 @@ const LOOPS = {
   'dsouris-1': 'Platform/Sneaky LOOP.wav', 'dsouris-2': 'Puzzles/Childrens Game Loop.wav', 'dsouris-x1': 'Platform/Downhill Chase LOOP.wav',
   'dspatial-1': 'Space/Long Range Combat LOOP.wav', 'dspatial-2': 'Space/Planet Surface (combat) - Main Loop.wav', 'dspatial-x1': 'Space/Hangar Escape LOOP.wav',
   'dguerre-1': 'Locations/Remote Island - Main Loop.wav', 'dguerre-2': 'Locations/Western OUTSIDE LOOP.wav', 'dguerre-x1': 'Combat/Desperate Battle LOOP.wav',
-  'dscores-1': 'Short Cues/Scores/Scores.wav', 'dscores-2': 'Titles/Casual/Playtime LOOP.wav'
+  'dscores-1': 'Short Cues/Scores/Scores.wav', 'dscores-2': 'Titles/Casual/Playtime LOOP.wav',
+  'dpingpong-1': 'Titles/Casual/Funky Bass.wav', 'dpingpong-2': 'Titles/Casual/Casual Title GUITAR LOOP.wav', 'dpingpong-x1': 'Titles/Casual/Chase MENU LOOP.wav'
 };
 const STINGS = {
   'sting-win': 'Short Cues/Winning/Fanfare Win.wav', 'sting-win2': 'Short Cues/Winning/Casual Win 1.wav', 'sting-podium': 'Short Cues/Winning/Triumphant Victory.wav',
