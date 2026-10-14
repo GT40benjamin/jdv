@@ -1408,6 +1408,42 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .gmap[data-theme=rouleaux] .gs-txt small{color:#174a66;font-weight:700}
 .gmap[data-theme=rouleaux] .gmap-cap{opacity:1}
 .gmap[data-theme=rouleaux] .gmap-cap b,.gmap[data-theme=rouleaux] .gmap-cap small{color:#fff;text-shadow:0 2px 0 rgba(4,6,20,.95),0 0 12px rgba(4,6,20,.95),0 0 26px rgba(4,6,20,.8)}
+/* Casse-Carreaux : le tour du monde des carreaux (vrais décors des pays), une enseigne par pays (médaillon, carreaux, boss),
+   un carreau par niveau, le boss du pays dans un médaillon de mosaïque */
+.gmap[data-theme=carreaux]{background:#0a1a38}
+.gmap[data-theme=carreaux] .gmap-ttl h2{font-size:clamp(20px,6.4vw,44px);background:linear-gradient(180deg,#ffffff 14%,#bfe6ff 46%,#5aa9ff 70%,#3b82ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(8,16,44,.9)) drop-shadow(0 0 14px rgba(31,201,168,.55))}
+.gmap[data-theme=carreaux] .gp-groove{stroke:rgba(10,16,40,.35);stroke-width:14}
+.gmap[data-theme=carreaux] .gp-seg.far{stroke:rgba(255,255,255,.7)!important;stroke-dasharray:.5 11;stroke-width:4}
+.gmap[data-theme=carreaux] .gn-num{left:50%;bottom:2px;transform:translateX(-50%);min-width:22px;padding:4px 6px 3px;border-radius:8px;background:rgba(10,14,34,.92);
+  border:1.5px solid var(--nc);font:400 12px/1 var(--display);color:#fff;text-align:center;box-shadow:0 2px 0 rgba(0,0,0,.35),0 0 10px color-mix(in srgb,var(--nc) 60%,transparent)}
+.gmap[data-theme=carreaux] .gn-lab{border-radius:14px;background:linear-gradient(180deg,rgba(12,16,40,.87),rgba(8,10,28,.83));border:1.5px solid color-mix(in srgb,var(--nc) 60%,transparent);
+  box-shadow:0 8px 20px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.1)}
+.gmap[data-theme=carreaux] .gn-lab small{color:var(--nc)}
+.gmap[data-theme=carreaux] .gn-lab span{color:#ffe9a8}
+.gmap[data-theme=carreaux] .gn-lab span.boss{color:#ff9db0}
+.gmap[data-theme=carreaux] .gt-plate{padding:30px 22px 13px;border-radius:22px;gap:5px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tc) 26%,rgba(10,14,36,.9)),rgba(10,14,36,.9) 75%);
+  border:2px solid color-mix(in srgb,var(--tc) 75%,transparent);box-shadow:0 0 0 4px rgba(10,14,36,.35),0 0 34px color-mix(in srgb,var(--tc) 35%,transparent),0 14px 30px rgba(0,0,0,.4)}
+.gmap[data-theme=carreaux] .gt-emo{position:absolute;left:50%;top:-30px;transform:translateX(-50%);width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-style:normal;
+  background:#0a0e24;box-shadow:0 0 0 3px rgba(10,14,36,.6),0 0 18px color-mix(in srgb,var(--tc) 60%,transparent),0 4px 10px rgba(0,0,0,.4)}
+.gmap[data-theme=carreaux] .gt-emo canvas{display:block}
+.gmap[data-theme=carreaux] .gt-plate small{color:var(--tc);font-size:10.5px;letter-spacing:.22em}
+.gmap[data-theme=carreaux] .gt-plate b{font-size:clamp(18px,6.6vw,28px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.45),0 0 18px color-mix(in srgb,var(--tc) 70%,transparent)}
+.gmap[data-theme=carreaux] .gt-plate span{color:#f2f4ff;max-width:300px}
+.gmap[data-theme=carreaux] .gmap-tier.far{opacity:1}
+.gmap[data-theme=carreaux] .gmap-tier.far .gt-plate,.gmap[data-theme=carreaux] .gmap-tier.far .gt-major{filter:saturate(.6) brightness(.78)}
+.gmap[data-theme=carreaux] .gt-major{top:92px;gap:5px;padding:9px 24px 11px;border-radius:20px;background:linear-gradient(180deg,rgba(14,40,90,.84),rgba(8,20,52,.84));border:1.5px solid rgba(255,255,255,.5);
+  box-shadow:0 0 0 4px rgba(255,255,255,.12),0 10px 26px rgba(10,20,60,.35)}
+.gmap[data-theme=carreaux] .gt-major b{font:400 34px/1 var(--display);background:linear-gradient(180deg,#ffffff 10%,#9fe8ff 50%,#3b82ff);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.5))}
+.gmap[data-theme=carreaux] .gt-major small{font:600 12.5px/1.2 var(--body);color:#e8f4ff}
+.gmap[data-theme=carreaux] .gs-pad{left:-58px;width:116px;top:-12px;height:24px;border-radius:12px;border:2px solid #ffffff;
+  background:repeating-linear-gradient(90deg,#3b82ff 0 14px,#f3f6fb 14px 28px);box-shadow:0 0 20px rgba(59,130,255,.6),0 4px 0 rgba(0,0,0,.18)}
+.gmap[data-theme=carreaux] .gs-art{position:absolute;left:-36px;top:-60px;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.35))}
+.gmap[data-theme=carreaux] .gs-txt b,.gmap[data-theme=carreaux] .gs-txt small{color:#fff;text-shadow:0 2px 0 rgba(10,26,56,.9),0 0 10px rgba(10,26,56,.9)}
+.gmap[data-theme=carreaux] .gmap-cap{opacity:1}
+.gmap[data-theme=carreaux] .gmap-cap b,.gmap[data-theme=carreaux] .gmap-cap small{color:#fff;text-shadow:0 2px 0 rgba(4,6,20,.95),0 0 12px rgba(4,6,20,.95),0 0 26px rgba(4,6,20,.8)}
 
 /* ---------- Comptes (e-mail + mot de passe) ---------- */
 .input-plain{text-transform:none;font-size:16px;font-weight:600}

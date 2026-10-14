@@ -4993,6 +4993,7 @@
     if (doc.hidden) { paused = true; pauseIcon(true); }
     try { render(); } catch (e) { /* rien */ }
     raf = requestAnimationFrame(frame);
+    cartePlaying++;      // (la carte d'avancement ne prépare rien pendant une partie)
 
     return {
       currentScore: () => Math.max(0, Math.floor(S.score)),   // score en cours (bouton Quitter de la bibliothèque)
@@ -5033,6 +5034,7 @@
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        cartePlaying = Math.max(0, cartePlaying - 1);
         cancelAnimationFrame(raf); raf = 0;
         if (ro) { try { ro.disconnect(); } catch (e) { /* rien */ } }
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
@@ -5137,6 +5139,254 @@
   }
 
   // ===========================================================================
+  // CARTE D'AVANCEMENT (bibliothèque, shell2.js : MAP_DEFS.carreaux, thème « carreaux ») — le tour du monde des carreaux, de bas
+  // en haut : Lisbonne au petit matin, Marrakech l'après-midi, Rome au coucher du soleil, Kyoto au crépuscule, Puebla la nuit de
+  // fête, le Palais de cristal sous les aurores, puis le Tour II. Chaque pays est peint avec son VRAI décor (paintScene, à la taille
+  // de sa bande) ; entre deux pays, l'avion du voyageur traverse les nuages, à côté du tampon du passeport du pays fini ; à chaque
+  // nouveau tour, le globe et la route du voyage. Un niveau = un carreau du pays (celui du niveau) ; un boss = son vrai dessin dans
+  // un médaillon en mosaïque. Rien de tout ça ne sert pendant une partie.
+  // L (mise en page de la bibliothèque) : nodes [{ lv, x, y, info: { w, tour, stage, tier }, boss? }], tiers [{ t, y, yLo, yHi }], start, H.
+  // ===========================================================================
+  // la transition vers le pays du palier i : la mer de nuages, juste au-dessus de l'enseigne du pays (posée sur le ciel du pays d'avant)
+  const CARTE_UP = 128;
+  function carteSeam(L, i) { return i ? L.tiers[i].y - CARTE_UP : L.H; }
+  function carteBands(L) {
+    const out = [];
+    for (let i = 0; i < L.tiers.length; i++) {
+      const t = L.tiers[i], tt = Math.max(0, t.t | 0);
+      out.push({ i, t, w: tt % NW, tour: Math.floor(tt / NW), bot: carteSeam(L, i), top: i + 1 < L.tiers.length ? carteSeam(L, i + 1) : 0, last: i + 1 >= L.tiers.length });
+    }
+    return out;
+  }
+  // où passe le chemin (courbes de la bibliothèque : M a C (a.x, mi) (b.x, mi) b) à la hauteur y → x
+  function cartePathX(L, y) {
+    const pts = [L.start];
+    for (const n of L.nodes) { pts.push(n); if (n.boss) pts.push(n.boss); }
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (y > a.y || y < b.y) continue;
+      const my = (a.y + b.y) / 2;
+      let lo = 0, hi = 1;
+      for (let k = 0; k < 22; k++) { const t = (lo + hi) / 2, u = 1 - t, yy = a.y * u * u * u + 3 * my * u * u * t + 3 * my * u * t * t + b.y * t * t * t; if (yy > y) lo = t; else hi = t; }
+      const t = (lo + hi) / 2, u = 1 - t;
+      return a.x * u * u * u + 3 * a.x * u * u * t + 3 * b.x * u * t * t + b.x * t * t * t;
+    }
+    return L.W / 2;
+  }
+  // les textes d'un niveau sur la carte : nom, ligne
+  function carteLevel(level) {
+    const n = Math.max(1, Math.floor(Number(level)) || 1), wo = worldOf(n), D = wo.world, base = LEVELS[(n - 1) % TOUR_LEN];
+    if (wo.boss) return { name: base.name, line: '☠ ' + (wo.tour ? D.boss.title + ', encore plus coriace' : D.boss.line) };
+    if (!wo.tour) return { name: base.name, line: base.tip ? '✦ ' + base.tip : '' };
+    return { name: base.name, line: '✦ ' + (wo.tour % 2 ? 'En miroir, carreaux plus solides' : 'Carreaux plus solides : ça descend !') };
+  }
+  // fond (sous les décors) : la couleur de chaque pays, pour les bords et le temps que les décors se peignent
+  function carteStopsFor(L) {
+    const st = [];
+    for (const b of carteBands(L)) { const C = CARREAUX_WORLDS[b.w].colors; st.push([b.bot - 2, mix(C.ground, C.dark, 0.35)], [Math.max(b.top + 2, (b.top + b.bot) / 2), mix(C.sky, C.dark, 0.25)]); }
+    st.push([L.H, '#f3e7cf'], [0, '#04060f']);
+    return st;
+  }
+  // le vrai décor d'un pays à la taille de sa bande (ciel, ville, sol), gardé
+  const carteScn = new Map();
+  function carteScene(wi, w, h, k) {
+    const key = wi + '|' + Math.round(w) + 'x' + Math.round(h) + '@' + k.toFixed(2);
+    let cv = carteScn.get(key);
+    if (cv) return cv;
+    if (carteScn.size > 14) carteScn.delete(carteScn.keys().next().value);
+    const s = Math.min(w / W, h / H), F = { x: (w - W * s) / 2, y: (h - H * s) / 2, w: W * s, h: H * s };
+    const sc = paintScene(CARREAUX_WORLDS[wi].id, w, h, F, k);
+    cv = sc.back;
+    const g = cv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(sc.front, 0, 0);
+    carteScn.set(key, cv);
+    return cv;
+  }
+  // entre deux pays : la mer de nuages que l'avion traverse (au-dessus de l'enseigne du nouveau pays), le tampon du passeport du pays
+  // fini (sous l'enseigne, sur le ciel du pays fini) ; avion et tampon de part et d'autre de la route
+  function carteFlight(x, L, MW, b, prev, R, noPlane) {
+    const y = b.bot, px = cartePathX(L, y), C = CARREAUX_WORLDS[b.w].colors;
+    x.save();
+    // la lumière du pays suivant qui descend sur les nuages
+    x.fillStyle = lin(x, 0, y - 90, 0, y + 70, [[0, rgba(C.sky, 0)], [0.5, rgba(mix(C.sky, '#ffffff', 0.55), 0.55)], [1, rgba('#ffffff', 0)]]);
+    x.fillRect(0, y - 90, MW, 160);
+    const n = Math.ceil(MW / 64) + 3;
+    for (let row = 0; row < 3; row++) for (let k = 0; k < n; k++) {
+      const cw = 120 + R() * 70 - row * 16, X = k * 64 - 60 + R() * 30 + (row % 2) * 32, Y = y - 34 + row * 24 + R() * 10;
+      const col = row === 2 ? mix('#ffffff', C.sky, 0.18) : row ? '#f4f8ff' : '#ffffff';
+      cloudBlob(x, X, Y, cw, col, row === 2 ? 0.9 : 0.97);
+    }
+    x.fillStyle = 'rgba(255,255,255,0.35)'; for (let i = 0; i < MW / 20; i++) { circ(x, R() * MW, y - 50 + R() * 100, 1 + R() * 2); x.fill(); }
+    // l'avion, dans les nuages, du côté où la route ne passe pas
+    if (!noPlane) {
+      const right = px < MW / 2, ax = right ? Math.min(MW - 52, Math.max(px + 92, MW * 0.66)) : Math.max(52, Math.min(px - 92, MW * 0.34));
+      x.save(); x.translate(ax, b.t.y - 112); x.scale(right ? 1 : -1, 1); x.rotate(-0.24); paintPlane(x, 0.78, 0.37, null); x.restore();      // (entre l'étiquette du niveau et l'enseigne)
+    }
+    // le tampon du pays qu'on vient de finir, sous l'enseigne (à moitié caché par elle, comme sur une carte postale)
+    const sy = b.t.y + 72, qx = cartePathX(L, sy), sl = qx > MW / 2, sx = sl ? Math.max(40, Math.min(qx - 105, MW * 0.5 - 115)) : Math.min(MW - 40, Math.max(qx + 105, MW * 0.5 + 115));
+    x.save(); x.translate(sx, sy); x.rotate(sl ? -0.22 : 0.2); paintStamp(x, prev.w, 31, 2.4); x.restore();
+    x.restore();
+  }
+  // nouveau tour : le globe du voyage, la route de l'avion entre les six villes, et les nuages
+  function carteGlobe(x, L, MW, b, R) {
+    carteFlight(x, L, MW, b, { w: NW - 1 }, R, true);
+    // le globe se lève derrière le grand bandeau « Tour II » (posé 92 px sous l'enseigne)
+    const gx = MW / 2, Rg = Math.min(80, MW * 0.21), gy = b.t.y + 92 + Rg * 0.5;
+    x.save(); x.fillStyle = rad(x, gx, gy, Rg * 0.8, gx, gy, Rg * 1.9, [[0, 'rgba(120,200,255,0.35)'], [1, 'rgba(120,200,255,0)']]); circ(x, gx, gy, Rg * 1.9); x.fill(); x.restore();
+    x.save(); x.translate(gx, gy);
+    paintGlobe(x, Rg, 10, 30, 0.5);
+    x.strokeStyle = 'rgba(255,211,77,0.9)'; x.lineWidth = 2; x.setLineDash([4, 4]);
+    for (let i = 0; i + 1 < NW; i++) {
+      const a = CARREAUX_WORLDS[i].geo, c = CARREAUX_WORLDS[i + 1].geo;
+      x.beginPath(); let on = false;
+      for (let k = 0; k <= 16; k++) {
+        const p = greatCircle(a, c, k / 16), q = orth(p.lon, p.lat, 10, 30);
+        if (!q.vis) { on = false; continue; }
+        if (on) x.lineTo(q.x * Rg, q.y * Rg); else { x.moveTo(q.x * Rg, q.y * Rg); on = true; }
+      }
+      x.stroke();
+    }
+    x.setLineDash([]);
+    for (const Wd of CARREAUX_WORLDS) { const q = orth(Wd.geo.lon, Wd.geo.lat, 10, 30); if (!q.vis) continue; x.fillStyle = '#ff4fa8'; circ(x, q.x * Rg, q.y * Rg, 3); x.fill(); x.strokeStyle = '#ffffff'; x.lineWidth = 1; x.stroke(); }
+    x.restore();
+  }
+  function cartePaintChunk(x, L, MW, y0, h) {
+    const B = carteBands(L), k = Math.max(1, Math.min(1.6, Math.abs(x.getTransform().a) || 1));
+    x.save(); x.translate(0, -y0);
+    for (const b of B) {
+      if (b.top > y0 + h || b.bot < y0) continue;
+      try { x.drawImage(carteScene(b.w, MW, b.bot - b.top, k), 0, b.top, MW, b.bot - b.top); } catch (e) { /* */ }
+    }
+    for (const b of B) {
+      if (!b.i || b.bot - 140 > y0 + h || b.bot + 380 < y0) continue;
+      try { if (b.w === 0) carteGlobe(x, L, MW, b, mulberry32(b.t.t * 977 + 13)); else carteFlight(x, L, MW, b, B[b.i - 1], mulberry32(b.t.t * 977 + 13)); } catch (e) { /* */ }
+    }
+    // tout en haut : la suite se perd dans la nuit
+    const lb = B.length ? B[B.length - 1] : null, fadeTo = lb ? Math.min(lb.bot - 80, L.capY != null ? L.capY + 130 : 300) : 300;
+    if (y0 < fadeTo) { x.fillStyle = lin(x, 0, 0, 0, fadeTo, [[0, 'rgba(4,6,15,0.94)'], [1, 'rgba(4,6,15,0)']]); x.fillRect(0, y0, MW, Math.min(h, fadeTo - y0)); }
+    x.restore();
+  }
+
+  // ---- un niveau : LE carreau du niveau (celui qu'on y casse le plus), posé de biais, vernis brillant ----
+  function carteTileOf(idx) {
+    const L0 = LEVELS[idx], wo = worldOf(idx + 1), wid = wo.world.id;
+    if (wo.boss) return { wid, kind: 'h', v: 0 };
+    if (L0.fresco) return { wid, fresco: [4, 1] };
+    const cnt = {};
+    for (const row of L0.map) for (const ch of row) if (ch !== '.' && ch !== '#' && ch !== '$' && ch !== '*') cnt[ch] = (cnt[ch] || 0) + 1;
+    const keys = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || (a < b ? -1 : 1));
+    if (L0.mosaic) return { wid, tess: (keys.length ? keys : ['w', 't', 'o', 'y']).slice(0, 4).map((c) => c.toLowerCase()).filter((c) => TESS[c]) };
+    const ch = keys.find((c) => /[0-5]/.test(c)) || keys[0] || '0';
+    if (/[0-5]/.test(ch)) return { wid, kind: 'n', v: +ch };
+    if (/[a-f]/.test(ch)) return { wid, kind: 's', v: (ch.charCodeAt(0) - 97) % 2 };
+    return { wid, kind: 'n', v: 0 };
+  }
+  const carteMed = new Map();
+  function carteMedImg(key, P, dpr, paint) {
+    let cv = carteMed.get(key);
+    if (cv) return cv;
+    if (carteMed.size > 120) carteMed.delete(carteMed.keys().next().value);
+    cv = mkCanvas(P * dpr, P * dpr);
+    const g = cv.getContext('2d'); g.scale(dpr, dpr);
+    try { paint(g); } catch (e) { /* */ }
+    carteMed.set(key, cv);
+    return cv;
+  }
+  const carteNodeKey = (lv, size, P, dpr) => 'n' + ((lv - 1) % TOUR_LEN) + '|' + size + '|' + P + '|' + dpr.toFixed(2);
+  function carteNode(x, info, size, P) {
+    const dpr = x.canvas.width / P, lv = Math.max(1, (info && info.lv) | 0);
+    x.drawImage(carteMedImg(carteNodeKey(lv, size, P, dpr), P, dpr, (g) => carteNodePaint(g, lv, size, P)), 0, 0, P, P);
+  }
+  function carteNodePaint(x, lv, size, P) {
+    const idx = (lv - 1) % TOUR_LEN, wo = worldOf(lv), C = wo.world.colors, T = carteTileOf(idx);
+    const cx = P / 2, cy = P / 2, s = size * 0.78;
+    x.fillStyle = rad(x, cx, cy, s * 0.3, cx, cy, size * 0.62 + 8, [[0, rgba(C.accent, 0.6)], [1, rgba(C.accent, 0)]]);
+    circ(x, cx, cy, size * 0.62 + 8); x.fill();
+    x.save();
+    x.translate(cx, cy); x.rotate(((idx * 37) % 9 - 4) * 0.025);
+    // ombre portée, liseré à la couleur du pays, puis le carreau
+    x.save(); x.shadowColor = 'rgba(0,0,0,0.45)'; x.shadowBlur = 6; x.shadowOffsetY = 3;
+    x.fillStyle = C.accent; rr(x, -s / 2 - 3, -s / 2 - 3, s + 6, s + 6, s * 0.16); x.fill(); x.restore();
+    x.fillStyle = '#ffffff'; rr(x, -s / 2 - 1.2, -s / 2 - 1.2, s + 2.4, s + 2.4, s * 0.12); x.fill();
+    x.save(); x.translate(-s / 2, -s / 2);
+    rr(x, 0, 0, s, s, s * 0.1); x.clip();
+    if (T.fresco) {      // la fresque : tout le tableau du mont Fuji, en miniature, sur un seul carreau
+      x.scale(s / 32, s / 32); paintFujiMural(x, 32, 32); glazeFx(x, 32, 32 * 0.06, 0.9, false);
+    } else if (T.tess) {
+      x.scale(s / 32, s / 32);
+      for (let i = 0; i < 4; i++) { x.save(); x.translate((i % 2) * 16, (i >> 1) * 16); paintTessera(x, 'n', T.tess[i % T.tess.length] || 'w', 16, idx * 4 + i); x.restore(); }
+    } else { x.scale(s / 32, s / 32); paintTileOf(x, T.wid, T.kind, T.v, 32, idx); }
+    x.restore();
+    // reflet du vernis
+    x.fillStyle = lin(x, -s / 2, -s / 2, s / 2, s / 2, [[0, 'rgba(255,255,255,0.35)'], [0.45, 'rgba(255,255,255,0)'], [1, 'rgba(0,0,0,0.12)']]);
+    rr(x, -s / 2, -s / 2, s, s, s * 0.1); x.fill();
+    x.restore();
+  }
+
+  // ---- le boss : son vrai dessin, dans un médaillon cerclé de mosaïque (couronne d'or pour le dernier du tour) ----
+  const carteBossKey = (bi, size, P, dpr) => 'b' + ((Math.max(1, bi.lv | 0) - 1) % TOUR_LEN) + (bi.final ? 'F' : '') + '|' + size + '|' + P + '|' + dpr.toFixed(2);
+  function carteBoss(x, bi, size, P) {
+    const dpr = x.canvas.width / P;
+    x.drawImage(carteMedImg(carteBossKey(bi, size, P, dpr), P, dpr, (g) => carteBossPaint(g, bi, size, P)), 0, 0, P, P);
+  }
+  function carteBossPaint(x, bi, size, P) {
+    const wo = worldOf(Math.max(1, bi.lv | 0)), C = wo.world.colors, cx = P / 2, cy = P / 2 + 2, r = size / 2;
+    x.fillStyle = rad(x, cx, cy, 0, cx, cy, r + 17, [[0, bi.final ? 'rgba(255,211,77,0.6)' : rgba(C.accent, 0.55)], [1, rgba(C.accent, 0)]]);
+    circ(x, cx, cy, r + 17); x.fill();
+    // la couronne de mosaïque : petites tesselles aux couleurs du pays
+    const n = 30;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU, col = [C.accent, C.accent2, '#ffffff'][i % 3];
+      x.save(); x.translate(cx + Math.cos(a) * (r + 4.5), cy + Math.sin(a) * (r + 4.5)); x.rotate(a);
+      x.fillStyle = col; rr(x, -2.6, -3.3, 5.2, 6.6, 1.2); x.fill(); x.strokeStyle = 'rgba(0,0,0,0.35)'; x.lineWidth = 0.7; x.stroke();
+      x.restore();
+    }
+    x.fillStyle = rad(x, cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r, [[0, mix(C.sky, '#ffffff', 0.25)], [0.6, mix(C.sky, C.dark, 0.45)], [1, C.dark]]);
+    circ(x, cx, cy, r); x.fill();
+    x.save(); circ(x, cx, cy, r - 1.5); x.clip();
+    drawBossIcon(x, wo.n, cx, cy + r * 0.08, r * 0.92, 0.6);
+    x.restore();
+    x.strokeStyle = bi.final ? '#ffd34d' : C.accent; x.lineWidth = 2.4; circ(x, cx, cy, r - 0.5); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,0.3)'; x.lineWidth = 1; circ(x, cx, cy, r - 4); x.stroke();
+  }
+
+  // ---- le départ : l'avion du voyageur, prêt à décoller ----
+  function carteStart(x, P) {
+    x.save(); x.translate(P * 0.5, P * 0.58);
+    x.fillStyle = 'rgba(0,0,0,0.18)'; ell(x, 0, P * 0.2, P * 0.36, P * 0.05, 0); x.fill();
+    paintPlane(x, P / 92, 0.3, null);
+    x.restore();
+  }
+
+  // ---- au calme sur l'accueil : décors des pays et médaillons se préparent (rien pendant une partie) ----
+  let cartePlaying = 0;
+  function carteWarm(L, k, dpr, sizes) {
+    if (!window.requestIdleCallback || !L) return;
+    const idle = (f) => requestIdleCallback((dl) => { if (cartePlaying) setTimeout(() => idle(f), 3000); else if (dl.timeRemaining() < 4 && !dl.didTimeout) idle(f); else f(); }, { timeout: 2500 });
+    const kk = Math.max(1, Math.min(1.6, k || 1)), jobs = [], seen = new Set();
+    for (const b of carteBands(L)) { const key = b.w + '|' + Math.round(b.bot - b.top); if (!seen.has(key)) { seen.add(key); jobs.push(() => carteRaster(carteScene(b.w, L.W, b.bot - b.top, kk))); } }
+    for (let w = 0; w < NW; w++) jobs.push(() => carteRaster(stampSprite(w, 31 * 2.4)));      // les tampons du passeport
+    const ns = (sizes && sizes.node) || 56, bs = (sizes && sizes.boss) || 66;
+    for (const nd of L.nodes) {
+      const lv = nd.lv, P = ns + 24, key = carteNodeKey(lv, ns, P, dpr);
+      if (!seen.has(key)) { seen.add(key); jobs.push(() => carteRaster(carteMedImg(key, P, dpr, (g) => carteNodePaint(g, lv, ns, P)))); }
+      if (nd.boss) { const bi = nd.boss.bi || { lv }, P2 = bs + 34, key2 = carteBossKey(bi, bs, P2, dpr); if (!seen.has(key2)) { seen.add(key2); jobs.push(() => carteRaster(carteMedImg(key2, P2, dpr, (g) => carteBossPaint(g, bi, bs, P2)))); } }
+    }
+    const step = () => { const j = jobs.shift(); if (!j) return; try { j(); } catch (e) { /* */ } idle(step); };
+    idle(step);
+  }
+  function carteRaster(cv) { try { const g = (carteRaster.x = carteRaster.x || mkCanvas(1, 1).getContext('2d')); g.clearRect(0, 0, 1, 1); g.drawImage(cv, 0, 0, 1, 1); } catch (e) { /* */ } }
+  const mapArt = {
+    warm: carteWarm,
+    level: carteLevel,
+    stops: carteStopsFor,
+    paint: cartePaintChunk,
+    node: carteNode,
+    boss: carteBoss,
+    start: carteStart
+  };
+
+  // ===========================================================================
   // ENREGISTREMENT (+ le tableau des mondes, lisible par la bibliothèque pour une carte d'avancement)
   // ===========================================================================
   // médaillon d'un pays (n = 1..6) centré en (x, y), rayon r ; t = temps (petite animation, facultatif)
@@ -5176,6 +5426,7 @@
     drawIcon: drawWorldIcon,          // même signature que JDW_GAMES.mouches.worlds.drawIcon
     drawWorldStamp,                   // tampon du passeport : (ctx, n, x, y, r)
     drawBossIcon,                     // le boss du pays : (ctx, n, x, y, r, t)
+    mapArt,                           // la carte d'avancement de la bibliothèque, dessinée par le jeu (p8b-carte.js)
     preview,
     mount
   };

@@ -57,13 +57,14 @@ qu'après `…/jouer/?labo=magic` (retenu sur l'appareil, `?labo=aucun` pour cac
 `assets/magic.monde1.bin` + moteur `assets/magic.moteur.bin` (le point dans le nom : pas téléchargés à l'installation du service worker,
 gardés après la 1re partie), musiques `assets/music/magic-*.bin`. Refaire les données : `node source/pack-magic.js` (Blender 5, Pillow, Chrome,
 modules npm de `~/jdv-tools/duotest/magic/node_modules`). Sortie pour tous : retirer 'magic' de LABO et dater TILE_NEWS.magic. Test : test-labo.js.
-**Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
+**Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux, Casse-Carreaux : tous les jeux solo ont la leur ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte
 sans boss, nodeSize, bgDpr, lazy, startArt = héros dessiné au départ, ex. le canard de Glouton, chunk / near = morceaux du décor plus petits,
 moins à peindre à l'ouverture, ex. les Rouleaux). Fin de partie : si le jeu expose `worlds` / `worldOf`,
 l'écran montre le monde atteint (facultatifs : levelsPerWorld, worldWord, drawWorldIcon ; Glouton : une pièce par niveau, « La douche · Tour II »,
-au-delà de 3 tours le numéro de chaque tour sous la piste). Tests : test-map.js (GLOUTON=1 / ROULEAUX=1 exigent leur bouton),
-test-map-est.js. Prochaine carte : Casse-Carreaux (refonte publiée en 1.10). (Chasse aux mouches : le dessin de sa carte est dans ses parties, p8-loop.js, assemblées par assemble.sh.)
+au-delà de 3 tours le numéro de chaque tour sous la piste). Tests : test-map.js (GLOUTON=1 / ROULEAUX=1 / CARREAUX=1 exigent leur bouton),
+test-map-est.js. (Chasse aux mouches : le dessin de sa carte est dans ses parties, p8-loop.js, assemblées par assemble.sh ; Casse-Carreaux : dans sa part
+`~/jdv-tools/duotest/carreaux-v2/parts/p8b-carte.js`, même principe.)
 
 ## Appli Android (`android-apktool/`)
 WebView plein écran sur la borne (`https://gt40benjamin.github.io/jdv/jouer/`, Java dans `java/MainActivity.java`). Construite sans SDK :

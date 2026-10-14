@@ -5983,6 +5983,43 @@ const MAP_DEFS = {
     warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize }); },
     start: { title: 'Départ', sub: 'Le premier rouleau sort du distributeur' },
     cap: { title: 'Le voyage continue…', sub: 'Un nouveau tour tous les 15 niveaux : moins d’outils, plus de rouleaux' }
+  },
+  // Casse-Carreaux (games/carreaux.js, assemblé depuis ses parts) : le tour du monde des carreaux, 6 pays de 3 niveaux (le 3e = le boss du
+  // pays), puis le Tour II. Chaque pays est peint avec son vrai décor ; entre deux pays, l'avion traverse les nuages près du tampon du
+  // passeport ; à chaque tour, le globe du voyage. Décor, carreaux des niveaux, boss et avion du départ : le jeu (mapArt, p8b-carte.js).
+  carreaux: {
+    theme: 'carreaux', word: 'Niveau', tierGap: 210, majorGap: 300, tierAt: 0.47, step: 150, nodeSize: 56, bossSize: 66, bgDpr: 1.6, lazy: true,
+    count: max => Math.min(180, Math.max(18, Math.ceil((max + 2) / 18) * 18)),
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.carreaux; return G && Array.isArray(G.worlds) && G.worldOf && G.mapArt ? G : null; },
+    wo(lv) { const G = this.game(); return G ? G.worldOf(lv) : { w: Math.floor((lv - 1) / 3) % 6, tour: Math.floor((lv - 1) / 18), stage: (lv - 1) % 3, boss: (lv - 1) % 3 === 2, world: null }; },
+    level(lv) {
+      const G = this.game(), wo = this.wo(lv), D = wo.world, m = G ? G.mapArt.level(lv) : null;
+      return { lv, tier: wo.tour * 6 + wo.w, w: wo.w, tour: wo.tour, stage: wo.stage, boss: !!wo.boss,
+        kicker: 'Niveau ' + lv + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : '') + (D ? ' · ' + D.place : ''), name: m ? m.name : D ? D.stages[wo.stage] : 'Niveau ' + lv,
+        lines: m && m.line ? [m.line] : [], acc: D ? D.colors.accent : '#1fc9a8' };
+    },
+    short(lv) { const wo = this.wo(lv); return 'Niveau ' + lv + (wo.world ? ' · ' + wo.world.name : '') + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''); },
+    boss(lv) {
+      const wo = this.wo(lv); if (!wo.boss || !wo.world) return null;
+      const D = wo.world, nm = D.name.replace(/^L[ae] |^L[’']/, m => m.toLowerCase());
+      return { lv, bk: D.boss.id, name: D.boss.name + (wo.tour ? ' ' + mapRoman(wo.tour) : ''), final: wo.w === 5,
+        kicker: (wo.tour ? 'Tour ' + mapRoman(wo.tour) + ' · ' : '') + (/^le /.test(nm) ? 'Fin du ' + nm.slice(3) : 'Fin de ' + nm) };
+    },
+    tier(t) {
+      const G = this.game(), w = t % 6, tour = Math.floor(t / 6), D = G ? G.worlds[w] : null;
+      return { kicker: (tour ? 'Tour ' + mapRoman(tour) + ' · ' : '') + 'Monde ' + (w + 1) + (D ? ' · ' + D.place : ''), title: D ? D.name : 'Monde ' + (w + 1),
+        icon: G && G.drawWorldIcon ? (x, r) => G.drawWorldIcon(x, w + 1, 0, 0, r) : null, emoji: D ? D.emoji : '',
+        sub: D ? D.tiles + ' · Boss : ' + D.boss.name.replace(/^L([ae]) /, 'l$1 ') : '', acc: D ? D.colors.accent : '#1fc9a8', acc2: D ? D.colors.accent2 : '#ffcf3a', w, tour,
+        major: w === 0 && tour > 0, majorTitle: 'Tour ' + mapRoman(tour), majorSub: 'Le tour du monde recommence, plus coriace !' };
+    },
+    stops(L) { const G = this.game(); return G ? G.mapArt.stops(L) : [[L.H, '#f3e7cf'], [0, '#04060f']]; },
+    paint(x, L, W, y0, h) { const G = this.game(); if (G) G.mapArt.paint(x, L, W, y0, h); },
+    node(x, info, size, P) { const G = this.game(); if (G) G.mapArt.node(x, info, size, P); },
+    bossArt(x, bi, size, P) { const G = this.game(); if (G) G.mapArt.boss(x, bi, size, P); },
+    startArt(x, P) { const G = this.game(); if (G && G.mapArt.start) G.mapArt.start(x, P); },
+    warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
+    start: { title: 'Départ', sub: 'Lisbonne, au petit matin : en route !' },
+    cap: { title: 'Le tour du monde continue…', sub: 'Un nouveau tour tous les 18 niveaux, plus coriace' }
   }
 };
 
