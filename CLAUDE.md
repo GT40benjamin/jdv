@@ -170,6 +170,15 @@ Connecteur Supabase (MCP) disponible dans les sessions Claude : apply_migration 
 - Nouveautés d'une version : `source/nouveautes.txt` (une ligne par nouveauté) → affichées dans la cloche après la mise à jour
   automatique, avec le message « ✨ Mise à jour X installée ! ». À réécrire avant chaque publication importante.
 
+## Plein écran sur téléphone (1.11.5, octobre 2026)
+Section « Plein écran » de shell2.js (fsEnter / fsLeave, juste après le menu son) : dans un onglet de navigateur sur appareil tactile (pas
+dans l'appli, pas en PWA installée, pas sur PC sans écran tactile), une partie / un duel / un défi en ligne lancé d'un toucher passe en plein
+écran (requestFullscreen dans le geste) ; jeux en paysage : screen.orientation.lock('landscape') une fois le plein écran actif, relâché au
+retour. On reste en plein écran entre deux « Rejouer » / « Revanche », on en sort au retour à la bibliothèque ; si le joueur en sort lui-même,
+rien n'est forcé. Bouton dans la barre du haut à côté du son (l'enlever le coupe pour la séance). Compétition : le GO part d'un minuteur, donc
+seulement le bouton. iPhone/iPad (pas d'API) : astuce « Partager puis Sur l'écran d'accueil » une seule fois (jdw.fstip). Test : test-fullscreen.js
+(pubtest + pubserve 8767, tbuild + serve.js 8765, fake-rt 8766 ; ports via PUB= / TEST= / RT=, ONLY= pour une partie).
+
 ## Hors ligne (service worker + bandeau, octobre 2026)
 - **`source/sw.js` → `jouer/sw.js`** (build2.py `write_sw`, à côté de la borne publiée ; publier.sh le copie). Cache `jdw-core-<BUILD_ID>` (page de
   ce build prise avec `?v=<build>`, icônes, manifeste) remplacé à chaque build (skipWaiting + clients.claim, anciens `jdw-core-*` supprimés) ;

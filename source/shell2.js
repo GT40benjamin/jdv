@@ -3921,6 +3921,7 @@ function duoApi(d, seq) {
 function openDuo(d) {
   if (!d) return;
   Audio.ensure();
+  fsEnter(d.layout === 'landscape');   // plein écran (téléphone dans le navigateur ; en ligne : déjà fait au défi)
   DUO.d = d; DUO.shared = false;
   $('jdw-lib').hidden = true; $('jdw-duo').hidden = false;
   $('jdw-duo').classList.toggle('land', d.layout === 'landscape');
@@ -3948,6 +3949,7 @@ function mountDuo() {
   if (NET.role && NET.data) { const q = NET.queue.splice(0); for (const m of q) netDeliver(m); }   // messages arrivés pendant le montage
   else if (NET.role === 'host') setTimeout(netAttach, 60);   // mode vidéo : l'image du nouveau plateau part chez l'adversaire
   setWhere('duel-' + d.id);
+  if (d.layout === 'landscape') { fsLand(); fsTip(); }   // invité en ligne : verrou à l'horizontale ; iPhone : astuce (une fois)
 }
 function unmountDuo() {
   DUO.seq++;   // les rappels de l'ancienne partie deviennent sans effet
@@ -4034,6 +4036,7 @@ function closeDuo() {
   $('jdw-duo').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-rotate').hidden = true;
   $('jdw-lib').hidden = false;
   setWhere('menu'); refreshDuoTiles(); musicBaseLevel(1); MUS.override = false; setMusic('accueil');
+  fsLeave();
   if (siteNew) setTimeout(maybeReload, 800);
 }
 function duoPause() {
@@ -4800,6 +4803,7 @@ function netEnd(notify, msg) {
   if (!$('jdw-net').hidden) closeSheet('jdw-net');
   if (!$('jdw-duo').hidden) { unmountDuo(); DUO.d = null; DUO.waitRot = false; DUO.paused = false; $('jdw-duo').hidden = true; $('jdw-duo-res').hidden = true; $('jdw-duo-pause').hidden = true; $('jdw-duo-rotate').hidden = true; $('jdw-lib').hidden = false; setWhere('menu'); refreshDuoTiles(); }
   musicBaseLevel(1); MUS.override = false; setMusic('accueil');
+  fsLeave();
   if (msg) toastCheer(msg, profile.name, true);
   else if (wasGuest && notify) {}
 }
@@ -4812,6 +4816,7 @@ function netCreate(d) {
   if (!ONLINE || !window.RTCPeerConnection) { toastCheer('Le duel en ligne demande une connexion internet.', profile.name, true); return; }
   if (!room) { openRooms(); return; }
   netReset(); Audio.ensure();
+  fsEnter(false);   // le défi est lancé d'un toucher : plein écran dès maintenant (la partie démarrera sans toucher)
   NET.code = Math.random().toString(36).slice(2, 8); NET.role = 'host'; NET.d = d; NET.topic = 'jdw-duel-' + NET.code;
   rtJoin(NET.topic);
   $('jdw-net-game').textContent = d.title + ' · duel en ligne';
@@ -4870,6 +4875,7 @@ function netJoin(code, g, from) {
   if (!profile.name) { startWelcome(); return; }
   if (!window.RTCPeerConnection) { toastCheer('Ce téléphone ne permet pas le duel en ligne.', profile.name, true); return; }
   netReset(); Audio.ensure();
+  fsEnter(false);   // « Accepter » est un toucher : plein écran dès maintenant (la partie démarrera sans toucher)
   NET.code = code; NET.role = 'guest'; NET.topic = 'jdw-duel-' + code; NET.d = g ? duoById(g) : null;
   rtJoin(NET.topic);
   $('jdw-net-game').textContent = (NET.d ? NET.d.title + ' · ' : '') + 'duel en ligne';
@@ -5167,6 +5173,7 @@ function mountGame(g) {
   musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
   try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }
   setWhere(g.id);
+  if (LANDSCAPE.has(g.id)) fsTip();   // iPhone dans Safari : astuce « Sur l'écran d'accueil » (une seule fois)
 }
 function unmountGame() {
   if (!current) return;
@@ -5191,9 +5198,9 @@ function openGame(g) {
   $('jdw-play').style.setProperty('--acc', g.accent);
   $('jdw-gtitle').textContent = g.title;
   $('jdw-end').hidden = true;
+  fsEnter(LANDSCAPE.has(g.id));      // téléphone dans le navigateur : plein écran (dans le toucher même), à l'horizontale pour les jeux en paysage
   if (LANDSCAPE.has(g.id) && portraitMQ.matches) {
     waitRotate = g; $('jdw-rotate').hidden = false;
-    try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) {}
     return;
   }
   mountGame(g);
@@ -5213,6 +5220,7 @@ function backToLibrary() {
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
   $('jdw-play').classList.remove('cmp'); $('jdw-cmp-side').hidden = true; cmpClosePick();
   setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic('accueil');
+  fsLeave();
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
@@ -5261,6 +5269,89 @@ document.addEventListener('pointerdown', e => { const m = $('jdw-soundmenu'); if
 $('jdw-sm-music').addEventListener('change', () => { setMusicOn($('jdw-sm-music').checked); syncMute(); });
 $('jdw-sm-sfx').addEventListener('change', () => { muted = !$('jdw-sm-sfx').checked; store.set('jdw.muted', muted); syncMute(); if (!muted) Audio.tone(660, 0.08, 'square', 0.05); });
 $('jdw-sm-cris').addEventListener('change', () => { criOn = $('jdw-sm-cris').checked; store.set('jdw.cris', criOn); if (!criOn && criAudio) { try { criAudio.pause(); } catch (e) {} } });
+
+/* ================= Plein écran pendant la partie (téléphone, dans le navigateur) ================= */
+// Dans un onglet du navigateur, la barre d'adresse mange l'écran (surtout en paysage). Une partie lancée d'un toucher passe en plein écran,
+// dans le geste même : openGame, openDuo, duel en ligne (netCreate chez l'hôte, netJoin chez l'invité), compétition seulement si le départ
+// est un toucher (le GO, lancé par la minuterie, ne peut pas). Les jeux en paysage verrouillent ensuite l'écran à l'horizontale
+// (screen.orientation.lock ne marche qu'en plein écran ou dans la borne installée). Jamais dans l'appli Android (déjà en plein écran), dans
+// la borne installée (PWA), sur ordinateur (TOUCH) ni sur iPhone / iPad (pas d'API pour une page : astuce « Sur l'écran d'accueil », une
+// seule fois, au premier jeu en paysage). Retour à la bibliothèque : on sort du plein écran et on relâche le verrou (jamais entre deux
+// « Rejouer » / « Revanche »). Le joueur qui sort lui-même (geste retour) n'est jamais contrarié : la partie continue ; le bouton de la
+// barre du haut (#jdw-fs) le remet, et s'il l'enlève avec ce bouton, les parties suivantes de la séance restent sans plein écran.
+const FS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && (navigator.maxTouchPoints || 0) > 1);
+const FS_PWA = (() => { try { return navigator.standalone === true || matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches; } catch (e) { return false; } })();   // lu au chargement (en plein écran, display-mode change)
+const FS = { seq: 0, off: false, land: false, locked: false, leaveT: 0, rzT: 0, tipped: false,
+  can: (() => { try { const d = document.documentElement; return TOUCH && !/BorneArcade/.test(navigator.userAgent) && !FS_PWA && !FS_IOS && !!(d.requestFullscreen || d.webkitRequestFullscreen) && document.fullscreenEnabled !== false && document.webkitFullscreenEnabled !== false; } catch (e) { return false; } })() };
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+function fsOrient(on) {   // à l'horizontale (jeu en paysage) ou libre ; un refus (pas en plein écran) ne fait rien
+  FS.land = !!on;
+  try {
+    const o = screen.orientation;
+    if (on) { if (TOUCH && o && o.lock) o.lock('landscape').then(() => { FS.locked = true; if (!FS.land) fsOrient(false); }, () => {}); }
+    else if (FS.locked) { FS.locked = false; if (o && o.unlock) o.unlock(); }
+  } catch (e) {}
+}
+const fsLand = () => { if (fsEl() || !FS.can) fsOrient(true); };   // jeu en paysage qui démarre sans toucher (duel en ligne chez l'invité)
+function fsEnter(land) {
+  clearTimeout(FS.leaveT); FS.leaveT = 0;
+  if (!FS.can || fsEl()) { fsOrient(land); return; }   // déjà en plein écran (partie suivante) ; appli, borne installée : le verrou seul
+  if (FS.off || (navigator.userActivation && !navigator.userActivation.isActive)) return;   // enlevé avec le bouton ; pas un toucher (GO)
+  const d = document.documentElement, seq = ++FS.seq;
+  const then = () => { if (land && seq === FS.seq && fsEl()) fsOrient(true); };
+  try { const p = d.requestFullscreen ? d.requestFullscreen({ navigationUI: 'hide' }) : d.webkitRequestFullscreen(); if (p && p.then) p.then(then, () => {}); else setTimeout(then, 400); } catch (e) {}
+}
+function fsExit() { try { const p = document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen ? document.webkitExitFullscreen() : null; if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+function fsLeave() {   // retour à la bibliothèque (vérifié juste après : une autre partie a pu reprendre aussitôt, ex. « Revanche » depuis le chat)
+  clearTimeout(FS.leaveT);
+  FS.leaveT = setTimeout(() => {
+    FS.leaveT = 0;
+    if (!$('jdw-play').hidden || !$('jdw-duo').hidden || NET.role) return;
+    FS.seq++; fsOrient(false);
+    if (fsEl() === document.documentElement) fsExit();
+  }, 0);
+}
+const FS_ICON = { in: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>',
+  out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>' };
+function fsBtnSync() {
+  const b = $('jdw-fs'); if (!b) return;
+  const on = !!fsEl(), k = on ? 'out' : 'in', t = on ? 'Quitter le plein écran' : 'Plein écran';
+  if (b.dataset.k !== k) { b.dataset.k = k; b.innerHTML = FS_ICON[k]; }
+  b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', t); b.title = t;
+}
+function fsSync() {
+  if (!fsEl()) FS.locked = false;            // en sortant du plein écran, le navigateur relâche le verrou tout seul
+  fsBtnSync();
+  clearTimeout(FS.rzT); FS.rzT = setTimeout(() => dispatchEvent(new Event('resize')), 150);   // les jeux se remesurent (certains n'écoutent que « resize »)
+}
+document.addEventListener('fullscreenchange', fsSync);
+document.addEventListener('webkitfullscreenchange', fsSync);
+if (FS.can) {   // petit bouton à côté du son, seulement là où le plein écran est possible
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'jdw-fs'; b.className = 'btn btn-ghost btn-sm';
+  $('jdw-mute').before(b); b.parentNode.classList.add('has-fs'); fsBtnSync();
+  b.addEventListener('click', () => {
+    if (fsEl()) { FS.off = true; FS.seq++; fsOrient(false); fsExit(); return; }
+    FS.off = false; fsEnter(!!((current && LANDSCAPE.has(current.game.id)) || (waitRotate && LANDSCAPE.has(waitRotate.id))));
+  });
+}
+// iPhone / iPad dans Safari (pas la borne installée) : une astuce, une seule fois sur l'appareil (jdw.fstip), au premier jeu en paysage
+const FS_TIP = FS_IOS && !FS_PWA && /Safari\//.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\/|DuckDuckGo|BorneArcade/.test(navigator.userAgent);
+function fsTip() {
+  if (!FS_TIP || FS.tipped) return;
+  FS.tipped = true;
+  if (store.get('jdw.fstip', false)) return;
+  store.set('jdw.fstip', true);
+  const el = document.createElement('div'); el.id = 'jdw-fstip'; el.className = 'fs-tip'; el.setAttribute('role', 'status');
+  el.innerHTML = '<span class="ft-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 14.5V3.5M8 7.5l4-4 4 4"/><path d="M8.5 10H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1.5"/></svg></span>' +
+    '<span class="ft-tx"><b>Astuce&nbsp;:</b> pour jouer sans la barre de Safari, touche <b>Partager</b> puis <span class="ft-nw">«&nbsp;Sur l’écran d’accueil&nbsp;»</span></span>' +
+    '<button class="ft-x" type="button" aria-label="Fermer l’astuce">✕</button>';
+  document.body.appendChild(el);
+  let t = 0;
+  const close = () => { clearTimeout(t); el.classList.remove('on'); setTimeout(() => el.remove(), 400); };
+  el.addEventListener('click', close);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
+  t = setTimeout(close, 9000);
+}
 
 /* ================= 1re place affichée pendant toute la partie ================= */
 const REC = { leader: '', score: -1, passed: '', flashUntil: 0 };
