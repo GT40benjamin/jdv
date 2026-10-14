@@ -2101,8 +2101,8 @@ function versionText() {
   const app = navigator.userAgent.match(/BorneArcade\/(\d+)/);
   if (!app) return site;
   const appV = appVName();
-  // même numéro pour l'appli et le site ; si l'appli est plus ancienne, on le signale
-  return site + (appV === window.JDW_VERSION ? ' · appli à jour' : ' · appli ' + appV + (window.JDW_VERSION ? ' (mise à jour ' + window.JDW_VERSION + ' disponible)' : ''));
+  // l'appli Android a son propre numéro (telecharger/version.json) : elle ne change que quand l'appli elle-même change
+  return site + ' · appli ' + appV + (UPD.app && UPD.app !== appV ? ' (appli ' + UPD.app + ' disponible)' : ' à jour');
 }
 $('jdw-open-settings').addEventListener('click', openSettings);
 $('jdw-me').addEventListener('click', openProfiles);

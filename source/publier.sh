@@ -6,7 +6,10 @@
 #   telecharger/           page de téléchargement publique + borne-arcade.apk (fichier direct) ; version.json est à mettre à jour à la main
 #   site.json              numéro de version : les appareils rechargent la borne quand il change
 #   ./publier.sh                 avec l'APK déjà construit ($APK, par défaut ~/jdv-tools/borne-arcade.apk)
-#   BUMP=minor ./publier.sh      nouvelle version (1.6 → 1.7) ; BUMP=major : 1.7 → 2.0
+#   numéro de version (affiché dans ⚙, la cloche et « Mise à jour … installée ») : chaque publication est une PETITE mise à jour
+#   (1.8 → 1.8.1 → 1.8.2…) ; BUMP=minor ./publier.sh pour un nouveau jeu, la refonte d'un jeu ou une grosse fonctionnalité
+#   (1.8.2 → 1.9) ; BUMP=major : 1.9 → 2.0 ; BUMP=none : même numéro. Le calcul part toujours du numéro du dernier commit
+#   (relancer publier.sh ne fait pas monter le numéro deux fois).
 # Clé Supabase publique : variable SUPABASE_KEY, ou ~/jdv-tools/supabase-key.txt (jamais dans le dépôt).
 # AVANT la première publication 1.7 : appliquer source/public.sql sur Supabase (sinon le serveur réclame encore le mot de passe).
 set -e
@@ -16,11 +19,14 @@ SUPABASE_KEY=${SUPABASE_KEY:-$(cat "$HOME/jdv-tools/supabase-key.txt" 2>/dev/nul
 : "${SUPABASE_KEY:?définis SUPABASE_KEY=sb_publishable_…}"
 APK=${APK:-$HOME/jdv-tools/borne-arcade.apk}
 export BUILD_ID=${BUILD_ID:-$(date +%Y%m%d%H%M%S)}   # numéro de version : les appareils rechargent le site quand il change
-# numéro de version commun au site et à l'appli (affiché dans ⚙ et sur la page de téléchargement) : il ne change que sur demande,
-# BUMP=minor (1.6 → 1.7) ou BUMP=major (1.7 → 2.0) ; les petites corrections gardent le même numéro.
-V=$(cat version.txt 2>/dev/null || echo 1.0); MAJ=${V%%.*}; MIN=${V#*.}
-if [ "$BUMP" = "major" ]; then MAJ=$((MAJ + 1)); MIN=0; elif [ "$BUMP" = "minor" ]; then MIN=$((MIN + 1)); fi
-export SITE_VERSION="$MAJ.$MIN"; echo "$SITE_VERSION" > version.txt
+# numéro de version du site : MAJ.MIN.PATCH (le .0 ne s'affiche pas). L'appli Android garde SON numéro (telecharger/version.json) :
+# elle n'est à refaire que si l'appli elle-même change, pas à chaque version du site.
+V=$(git show HEAD:source/version.txt 2>/dev/null | tr -d '
+ ' ); [ -n "$V" ] || V=$(tr -d '
+ ' < version.txt 2>/dev/null); [ -n "$V" ] || V=1.0
+IFS=. read -r MAJ MIN PAT <<< "$V"; MIN=${MIN:-0}; PAT=${PAT:-0}
+case "$BUMP" in major) MAJ=$((MAJ + 1)); MIN=0; PAT=0 ;; minor) MIN=$((MIN + 1)); PAT=0 ;; none) ;; *) PAT=$((PAT + 1)) ;; esac
+export SITE_VERSION="$MAJ.$MIN"; [ "$PAT" -gt 0 ] && SITE_VERSION="$SITE_VERSION.$PAT"; echo "$SITE_VERSION" > version.txt
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 PY=$(command -v python3 >/dev/null && python3 -c 1 2>/dev/null && echo python3 || echo python)
 # la borne : dans jouer/ (elle lit ../assets, ../site.json, ../telecharger/version.json)
@@ -36,5 +42,4 @@ printf '{"build":"%s","version":"%s"}\n' "$BUILD_ID" "$SITE_VERSION" > ../site.j
 # garde-fous : rien de secret ni de protégé en clair dans ce qui part
 node verifier-publication.js
 echo "Version $SITE_VERSION"
-grep -q "\"versionName\": \"$SITE_VERSION\"" ../telecharger/version.json || echo "ATTENTION : telecharger/version.json n'annonce pas l'appli $SITE_VERSION (reconstruire l'APK : android-apktool/build-apk.sh <code> $SITE_VERSION)"
 echo "OK : index.html, jouer/index.html et telecharger/ reconstruits. Vérifie, puis commit + push."

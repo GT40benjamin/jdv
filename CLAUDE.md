@@ -37,7 +37,9 @@ Tout se fait avec `source/publier.sh` (Linux ou Git Bash sous Windows), sans mot
 - clé Supabase publique : `SUPABASE_KEY` ou `~/jdv-tools/supabase-key.txt` (hors dépôt) ;
 - APK : `APK` ou `~/jdv-tools/borne-arcade.apk` (hors dépôt ; depuis la 1.7 il ne contient plus aucun secret : publié en fichier direct).
 Le script reconstruit `index.html`, `jouer/index.html`, `telecharger/` et `site.json`, lance `verifier-publication.js`, puis commit + push
-sur main à faire à la main : GitHub Pages republie en ~1 min. `BUMP=minor ./publier.sh` pour une nouvelle version (1.6 → 1.7).
+sur main à faire à la main : GitHub Pages republie en ~1 min. **Numéros de version (règle de l'utilisateur)** : chaque publication est une
+petite mise à jour 1.8 → 1.8.1 → 1.8.2 (par défaut) ; nouveau jeu, refonte d'un jeu ou grosse fonctionnalité : `BUMP=minor` (1.8.2 → 1.9) ;
+`BUMP=major` : 2.0 ; `BUMP=none` : même numéro. Le numéro part de `source/version.txt` du dernier commit. L'appli Android garde le sien.
 Visuels de l'accueil : `node source/accueil-media.js` (ONLY=ilo,palet pour quelques-uns). Assets : `node pack-ilo.js` / `node pack-music.js` / `node pack-rouleaux.js` (rendus Blender d'objets de Magic_1_Interior pour les Rouleaux)
 (clé d'emballage source/asset-key.txt) ; `reemballer.js` a servi une fois à passer de l'ancien mot de passe à cette clé.
 Tests du site publié sans rien publier : `bash ~/jdv-tools/pubtest.sh` + `node ~/jdv-tools/pubserve.js` (8767) + `node ~/jdv-tools/test-public.js`.
