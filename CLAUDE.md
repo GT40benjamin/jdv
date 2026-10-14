@@ -44,6 +44,11 @@ Tests du site publié sans rien publier : `bash ~/jdv-tools/pubtest.sh` + `node 
 **À chaque nouveau jeu / duel ou refonte publiée** : l'ajouter dans `TILE_NEWS` en tête de shell2.js (`{ kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' }`)
 → étiquette « Nouveau » / « Mis à jour » sur la tuile jusqu'au clic (par joueur de l'appareil, 30 jours au plus) et sur le bouton Classique / Duel
 tant qu'il contient une nouveauté pas vue ; un appareil tout neuf ne voit que les nouveautés suivantes (jdw.tilebase). Test : test-badges.js.
+**Magic Force** (source/games/magic.js, jeu 3D three.js r180) : EN ESSAI derrière la porte « labo » (LABO dans shell2.js) : la tuile n'apparaît
+qu'après `…/jouer/?labo=magic` (retenu sur l'appareil, `?labo=aucun` pour cacher ; dans l'appli : 7 touches sur le titre). Données emballées
+`assets/magic.monde1.bin` + moteur `assets/magic.moteur.bin` (le point dans le nom : pas téléchargés à l'installation du service worker,
+gardés après la 1re partie), musiques `assets/music/magic-*.bin`. Refaire les données : `node source/pack-magic.js` (Blender 5, Pillow, Chrome,
+modules npm de `~/jdv-tools/duotest/magic/node_modules`). Sortie pour tous : retirer 'magic' de LABO et dater TILE_NEWS.magic. Test : test-labo.js.
 **Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Plein Gaz, Empilo). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte
 sans boss, nodeSize, bgDpr, lazy). Fin de partie : si le jeu expose `worlds` / `worldOf`, l'écran montre le monde atteint. Tests : test-map.js,

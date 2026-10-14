@@ -3,11 +3,12 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['ilo', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['ilo', 'magic', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
+  magic: { kind: 'new', at: '2026-10-14 15:00' },
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
   glouton: { kind: 'maj', at: '2026-10-13 00:55' },
   empilo: { kind: 'maj', at: '2026-10-14 12:10' },
@@ -16,7 +17,30 @@ const TILE_NEWS = {
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
-const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(Boolean);
+// Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
+// ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
+const LABO = new Set(['magic']);
+const LABO_ON = (() => {
+  let on = []; try { on = JSON.parse(localStorage.getItem('jdw.labo') || '[]') || []; } catch (e) { on = []; }
+  try {
+    const q = new URLSearchParams(location.search).get('labo');
+    if (q) { on = q === 'aucun' ? [] : [...new Set(on.concat(q.split(',').filter(x => /^[a-z0-9_-]{2,20}$/.test(x))))]; localStorage.setItem('jdw.labo', JSON.stringify(on)); }
+  } catch (e) {}
+  return new Set(on);
+})();
+const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!LABO.has(g.id) || LABO_ON.has(g.id)));
+(() => {
+  const t = document.querySelector('.lib-title'); if (!t) return;
+  let n = 0, t0 = 0;
+  t.addEventListener('click', () => {
+    const now = Date.now(); if (now - t0 > 4000) n = 0; t0 = now;
+    if (++n < 7) return; n = 0;
+    const on = new Set(LABO_ON), has = on.has('magic'); if (has) on.delete('magic'); else on.add('magic');
+    try { localStorage.setItem('jdw.labo', JSON.stringify([...on])); } catch (e) {}
+    try { toastCheer(has ? 'Labo : Magic Force caché' : 'Labo : Magic Force activé !', null, true); } catch (e) {}
+    setTimeout(() => location.reload(), 1300);
+  });
+})();
 const gameById = id => GAMES.find(g => g.id === id);
 // jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
 const DUO_ORDER = ['trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
@@ -516,7 +540,7 @@ function musicVariants(id, mode) {
   return list.length ? list : [id];
 }
 // niveau à partir duquel la musique devient énergique, par jeu
-const INTENSE_AT = { ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
+const INTENSE_AT = { magic: 2, ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
 // morceaux emballés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée de la clé d'emballage
 // intégrée au site (window.JDW_ASSET_KEY, source/asset-key.txt) : pas un secret, les fichiers ne sont simplement jamais lisibles directement
 const MUSIC_ENC = new Set(window.JDW_MUSIC_ENC || []);
@@ -4241,7 +4265,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && !$(
 // Rien de plus sur le serveur : la présence de la salle dit qui participe (rôle, état, score) et des signaux « cmp »
 // portent le GO, les scores en direct, les sorties et les réactions. L'hôte (le premier inscrit encore là) donne le GO
 // dès que 2 joueurs sont prêts ; chacun joue sur son téléphone, au même niveau difficile et avec la même graine.
-const COMPET_START = { ilo: 4, pleingaz: 4, empilo: 5, glouton: 4, mouches: 4, carreaux: 7, rouleaux: 7 };
+const COMPET_START = { magic: 2, ilo: 4, pleingaz: 4, empilo: 5, glouton: 4, mouches: 4, carreaux: 7, rouleaux: 7 };
 const COMPET_GO_MS = 10000;
 const REACTIONS = ['😂', '🔥', '💩', '😱', '👏', '😈'];
 const CMP = { id: null, g: null, role: null, st: null, t: 0, seed: 0, score: 0, goAt: 0, goFor: '', goSent: 0, goN: 0,
@@ -5511,7 +5535,7 @@ function buildWho(record) {
 $('jdw-who-ok').addEventListener('click', () => { const n = cleanName($('jdw-who-name').value); if (n) commitScore(n); else $('jdw-who-name').focus(); });
 $('jdw-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-who-ok').click(); } });
 // fin de partie : jusqu'où je suis allé dans les niveaux, comparé à mon meilleur niveau (gardé sur l'appareil, par joueur et par jeu)
-const LV_WORD = { ilo: 'Secteur', mouches: 'Vague' };
+const LV_WORD = { magic: 'Salle', ilo: 'Secteur', mouches: 'Vague' };
 function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
   let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
