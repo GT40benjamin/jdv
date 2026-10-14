@@ -2679,9 +2679,15 @@
     function slowmo(d, k) { slowT = Math.max(slowT, d); slowK = k || 0.3; }
     function addFace(h, x, y, hgt, life) { const img = sadImg(h); if (img) faces.push({ img, x, y, h: hgt, life, max: life }); if (faces.length > 6) faces.shift(); }
     function addScore(p) { score += Math.max(0, Math.round(p)); }
+    // mouche touchée : elle saute en l'air et sort de l'écran par le côté le plus proche (elle ne retombe jamais vers la bombe)
+    function ejectVel(x, kick) {
+      const dir = x < W / 2 ? -1 : 1;
+      return { vx: dir * (330 + Math.random() * 130) + (kick || 0), vy: -170 - Math.random() * 90, va: dir * (9 + Math.random() * 6) };
+    }
     function addCorpse(f, kick) {
       if (corpses.length >= CMAX) corpses.shift();
-      corpses.push({ x: f.x, y: f.y, vx: (f.vx || 0) * 0.2 + (Math.random() - 0.5) * 70 + (kick || 0), vy: -90 - Math.random() * 70, ang: f.ang || 0, va: (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 6), type: f.type, t: 0, flip: 0, head: f.head || null, bounced: false });
+      const v = ejectVel(f.x, kick);
+      corpses.push({ x: f.x, y: f.y, vx: v.vx, vy: v.vy, ang: f.ang || 0, va: v.va, type: f.type, t: 0, flip: 0, head: f.head || null, bounced: false });
     }
 
     // ---------------------------------------------------------------- boucliers (masques grignotés)
@@ -3447,7 +3453,7 @@
       doShake(4);
       SFX.power();
       maybeDropCap(bee.x, bee.y + 10, 1);
-      corpses.length < CMAX && corpses.push({ x: bee.x, y: bee.y, vx: bee.dir * 40, vy: -120, ang: 0, va: bee.dir * 8, type: 'bee', t: 0, flip: 0, head: null, bounced: false });
+      if (corpses.length < CMAX) { const v = ejectVel(bee.x); corpses.push({ x: bee.x, y: bee.y, vx: v.vx, vy: v.vy, ang: 0, va: v.va, type: 'bee', t: 0, flip: 0, head: null, bounced: false }); }
       bee = null;
     }
 
@@ -3944,13 +3950,13 @@
       for (let i = corpses.length - 1; i >= 0; i--) {
         const c = corpses[i];
         c.t += dt;
-        c.vy += 620 * dt;
+        c.vy += 430 * dt;
         c.x += c.vx * dt;
         c.y += c.vy * dt;
         c.ang += c.va * dt;
-        if (!c.bounced && c.y > PY - 6) { c.bounced = true; c.y = PY - 6; c.vy = -c.vy * 0.32; c.vx *= 0.5; c.va *= 0.4; c.rest = 0; }
-        else if (c.bounced && c.y > PY - 6) { c.y = PY - 6; c.vy = 0; c.vx *= 0.9; c.va *= 0.8; c.rest = (c.rest || 0) + dt; }
-        if ((c.rest || 0) > 0.9 || c.y > H + 60) corpses.splice(i, 1);
+        // sortie par le côté ; filet de sécurité : elle s'efface avant d'arriver à la hauteur de la bombe
+        if (c.y > PY - 90) c.rest = (c.rest || 0) + dt * 4;
+        if (c.x < -60 || c.x > W + 60 || c.y < -80 || (c.rest || 0) > 0.9) corpses.splice(i, 1);
       }
       for (let i = pops.length - 1; i >= 0; i--) { const p = pops[i]; p.life -= rdt; p.y -= p.vy * rdt; if (p.life <= 0) pops.splice(i, 1); }
       for (let i = rings.length - 1; i >= 0; i--) { rings[i].life -= dt; if (rings[i].life <= 0) rings.splice(i, 1); }
