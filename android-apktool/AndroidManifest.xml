@@ -9,7 +9,7 @@
         <intent><action android:name="android.media.action.IMAGE_CAPTURE"/></intent>
         <intent><action android:name="android.provider.MediaStore.RECORD_SOUND"/></intent>
     </queries>
-    <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
+    <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Borne" android:hardwareAccelerated="true" android:usesCleartextTraffic="false" android:allowBackup="true">
         <activity android:name="fr.bornearcade.app.MainActivity" android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode|density"

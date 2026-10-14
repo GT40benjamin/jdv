@@ -12,7 +12,7 @@ if (!pw && process.platform === 'win32') {
 const files = execSync('git ls-files -co --exclude-standard', { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
   .filter(f => fs.existsSync(path.join(ROOT, f)));
 const bad = [];
-const IMG_OK = [/^icon-\d+\.png$/, /^android(-apktool)?\/.*ic_launcher\.png$/, /^android\/icon-512\.png$/, /^accueil\/[a-z0-9_-]+\.(webp|jpg|jpeg|png|webm|svg)$/];
+const IMG_OK = [/^icon-(maskable-)?\d+\.png$/, /^android(-apktool)?\/.*ic_launcher(_round|_foreground|_background|_monochrome)?\.png$/, /^android\/icon-512\.png$/, /^accueil\/[a-z0-9_-]+\.(webp|jpg|jpeg|png|webm|svg)$/];
 const TEXT = /\.(html?|js|mjs|json|md|txt|sql|sh|css|java|xml|yml|webmanifest|svg|py|gradle|properties|hex)$/i;
 for (const f of files) {
   const full = path.join(ROOT, f), buf = fs.readFileSync(full);

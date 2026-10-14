@@ -116,7 +116,7 @@ def full_doc(p):
     return ('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">\n'
             '<meta name="theme-color" content="#0b141c">\n<meta name="robots" content="noindex">\n'
-            '<link rel="manifest" href="' + ROOT + 'manifest.webmanifest">\n<link rel="icon" href="' + ROOT + 'icon-192.png">\n' + head + rest[:j] + '\n</head>\n<body>\n' + rest[j:] + '\n</body>\n</html>\n')
+            '<link rel="manifest" href="' + ROOT + 'manifest.webmanifest">\n<link rel="icon" href="' + ROOT + 'favicon.ico" sizes="16x16 32x32 48x48">\n<link rel="apple-touch-icon" href="' + ROOT + 'icon-180.png">\n' + head + rest[:j] + '\n</head>\n<body>\n' + rest[j:] + '\n</body>\n</html>\n')
 
 art = page()
 open(sys.argv[1], 'w').write(art)
