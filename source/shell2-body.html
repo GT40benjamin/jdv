@@ -413,6 +413,65 @@
   </div>
 </div>
 
+<!-- Inviter des copains : le lien de la salle (…/jouer/?salle=<jeton>, source/invite.sql) -->
+<div class="sheet" id="jdw-invshare" hidden>
+  <div class="card inv-card" role="dialog" aria-modal="true" aria-labelledby="jdw-invshare-h">
+    <div class="card-body">
+      <div class="inv-top"><p class="eyebrow">Inviter des copains</p><button class="btn btn-ghost btn-sm" id="jdw-invshare-close" type="button">Fermer</button></div>
+      <div class="inv-ticket" id="jdw-invshare-ticket">
+        <span class="it-tag">Invitation</span>
+        <span class="rt-name it-name" id="jdw-invshare-h"></span>
+        <span class="rt-under"></span>
+        <span class="it-mem" id="jdw-invshare-mem"></span>
+      </div>
+      <p class="small inv-txt">Envoie ce lien à tes copains : en le touchant, ils entrent directement dans la salle, sans nom ni code à taper (il leur faut juste un compte, gratuit).</p>
+      <button class="inv-link" id="jdw-invshare-link" type="button" aria-label="Copier le lien d'invitation">
+        <span class="il-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 13.5a4.5 4.5 0 0 0 6.4.4l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10.5a4.5 4.5 0 0 0-6.4-.4l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></span>
+        <span class="il-url" id="jdw-invshare-url">Création du lien…</span>
+        <span class="il-copy" id="jdw-invshare-copy">Copier</span>
+      </button>
+      <button class="btn btn-play inv-go" id="jdw-invshare-go" type="button" disabled>📨 Partager le lien</button>
+      <div class="inv-apps" id="jdw-invshare-apps" hidden>
+        <a class="btn btn-ghost btn-sm inv-app" id="jdw-invshare-wa" href="#" target="_blank" rel="noopener"><span class="ia-dot wa" aria-hidden="true"></span>WhatsApp</a>
+        <a class="btn btn-ghost btn-sm inv-app" id="jdw-invshare-sms" href="#"><span class="ia-dot sms" aria-hidden="true"></span>SMS</a>
+      </div>
+      <p class="small inv-status" id="jdw-invshare-status" role="status"></p>
+      <div class="inv-renew" id="jdw-invshare-renew">
+        <span>Lien envoyé à la mauvaise personne ?</span>
+        <button class="link-btn" id="jdw-invshare-cancel" type="button">Annuler ce lien</button>
+      </div>
+      <div class="inv-renew-ask" id="jdw-invshare-ask" hidden>
+        <p class="small">Ce lien ne marchera plus pour personne (ceux qui sont déjà entrés restent dans la salle). Un nouveau lien le remplace.</p>
+        <div class="row"><button class="btn btn-danger btn-sm" id="jdw-invshare-renew-ok" type="button">Refaire le lien</button><button class="btn btn-ghost btn-sm" id="jdw-invshare-renew-no" type="button">Garder</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lien d'invitation ouvert (?salle=…) : rejoindre (compte connecté), créer son compte (invité), lien périmé -->
+<div class="sheet sheet-top" id="jdw-inv" data-kind="ask" hidden>
+  <div class="card inv-card inv-in" role="dialog" aria-modal="true" aria-labelledby="jdw-inv-h" aria-describedby="jdw-inv-s">
+    <div class="card-body">
+      <div class="inv-ticket" id="jdw-inv-ticket">
+        <span class="it-tag" id="jdw-inv-tag">Invitation</span>
+        <span class="it-orb" id="jdw-inv-orb" aria-hidden="true">🎮</span>
+        <span class="rt-name it-name" id="jdw-inv-room"></span>
+        <span class="rt-under"></span>
+        <span class="it-mem" id="jdw-inv-mem"></span>
+        <span class="it-stamp" aria-hidden="true">Lien périmé</span>
+      </div>
+      <h2 class="wel-h inv-h" id="jdw-inv-h"></h2>
+      <p class="small inv-s" id="jdw-inv-s"></p>
+      <p class="small inv-status" id="jdw-inv-status" role="status"></p>
+      <div class="inv-btns">
+        <button class="btn btn-play" id="jdw-inv-ok" type="button">Rejoindre</button>
+        <button class="btn btn-ghost" id="jdw-inv-alt" type="button" hidden>J’ai déjà un compte</button>
+        <button class="link-btn" id="jdw-inv-no" type="button">Pas maintenant</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Salles : Mes salles | Rejoindre | Créer -->
 <div class="sheet" id="jdw-rooms" hidden>
   <div class="card board-card rooms-card" role="dialog" aria-modal="true" aria-labelledby="jdw-rooms-h">

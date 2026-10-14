@@ -11,7 +11,10 @@ têtes des copains (selfies détourés) dans les jeux. Site : https://gt40benjam
 - `telecharger/` : page publique + `borne-arcade.apk` en fichier direct + `version.json` (lu par l'appli pour annoncer les mises à jour).
 - `assets/ilo.bin`, `assets/music/*.bin` : images et musiques de l'Asset Store, EMBALLÉES (AES-GCM) avec la clé intégrée au site
   (`source/asset-key.txt`, pas un secret : jamais de fichier lisible directement). Les .mp3 (ElevenLabs) sont en clair.
-- `manifest.webmanifest` (start_url `jouer/`), `icon-*.png`.
+- `manifest.webmanifest` (start_url `jouer/`), icônes : `icon-192/512.png` (tuile, « any »), `icon-maskable-192/512.png`, `icon-180.png`
+  (apple-touch-icon), `favicon.ico` (16 px en pixel art, 32, 48), `logo.svg` (logo de l'en-tête de l'accueil et du téléchargement).
+  Toutes dessinées en code par `node source/icone.js` (borne d'arcade sur fond de nuit ; `--apercu <dossier>` pour essayer sans toucher au dépôt),
+  y compris les mipmaps Android (+ icône adaptative et monochrome).
 - `jouer/sw.js` : service worker de la borne (portée `jouer/`), écrit par build2.py depuis `source/sw.js` (voir « Hors ligne »).
 - Jamais dans le dépôt : l'ancien mot de passe (variable `ARCADE_CODE`, sert encore à `get_errors` / `erreurs.js`), les photos des copains,
   les assets de l'Asset Store en clair. `source/verifier-publication.js` (lancé par publier.sh) le vérifie sur tous les fichiers publiés.
@@ -25,7 +28,7 @@ têtes des copains (selfies détourés) dans les jeux. Site : https://gt40benjam
   `~/jdv-tools/old-photos/`).
 - `shell2.js` / `shell2.css` / `shell2-body.html` : la bibliothèque (accueil 2 colonnes, salles, classement en onglets, profil + selfie,
   détourage MediaPipe chargé depuis jsDelivr avec repli ovale, joueurs en ligne, fin de partie « Tu as battu… », bouton Inviter, paysage).
-- `supabase.sql` : schéma Supabase complet (se termine par `accounts.sql` puis `public.sql`). Projet : wplictorvvtkfikpfdnl.
+- `supabase.sql` : schéma Supabase complet (se termine par `accounts.sql`, `public.sql`, `invite.sql` puis `map-est.sql`). Projet : wplictorvvtkfikpfdnl.
 - `accueil.html`, `accueil-media.js`, `telecharger-plain.html`, `telecharger.js` : pages publiques.
 - `test/*.html` : harnais de test par jeu (Playwright).
 
@@ -44,12 +47,21 @@ WebView plein écran sur la borne (`https://gt40benjamin.github.io/jdv/jouer/`, 
 `./build-apk.sh <versionCode> <versionName> sortie.apk` (javac + stubs, dx 30.0.2, apktool 2.9.3, uber-apk-signer 1.3.0 ; outils dans `TOOLS`,
 par défaut `~/jdv-tools/apk`). Clé de signature : `android/app/borne.keystore`. Depuis la 1.7 (versionCode 8) : plus de BorneApp.code().
 Les appareils en 1.6 chargent la racine → l'accueil les renvoie vers jouer/ → la cloche annonce « Nouvelle appli 1.7 » (telecharger/version.json).
+1.7 versionCode 9 (octobre 2026) : nouvelle icône (mipmap-anydpi-v26 : icône adaptative fond + borne + monochrome ; roundIcon = ic_launcher_round),
+APK de 0,55 Mo ; sauvegarde de la versionCode 8 : `~/jdv-tools/borne-arcade-1.7-v8.apk`. checkAppVersion (shell2.js) compare le versionCode
+(bandeau « Version 1.7 disponible » pour les 8) ; la cloche, elle, retient le versionName déjà vu (jdw.updseen.app).
 Publier : copier l'APK dans `~/jdv-tools/borne-arcade.apk`, mettre `versionCode`/`versionName`/`size` dans `telecharger/version.json`, lancer publier.sh.
 
 ## Serveur (Supabase)
 `supabase.sql` = schéma complet (contient la ligne de l'ancien mot de passe, gardé seulement pour get_errors / login_email : remplacer CHANGE-MOI).
 Le script peut être relancé : il garde les données et remet les fonctions à jour. `public.sql` (aussi à la fin de supabase.sql) = règles
 du site public : à relancer si members.sql, room-look.sql, progress.sql, accounts.sql ou turn.sql sont relancés seuls.
+`invite.sql` = liens d'invitation (room_invites : un jeton secret par salle ; make_invite pour un membre, p_renew = nouveau lien ;
+invite_info public ; join_by_invite compte requis ; 30 essais / 10 min par compte, 60 en tout sans compte). `map-est.sql` =
+progress.estimated (positions venues de progress-seed.sql, écrites « estimé » sur la carte) + get_progress avec r_estimated.
+ATTENTION : public.sql relancé SEUL après map-est.sql s'arrête sur get_progress (« cannot change return type ») : relancer supabase.sql en
+entier, ou « drop function public.get_progress(text, bigint, text); » puis public.sql puis map-est.sql. Appliqués le 14 octobre 2026.
+Connecteur Supabase (MCP) disponible dans les sessions Claude : apply_migration / execute_sql (lecture) ; suppressions : à faire dans le site.
 
 ## Site public (version 1.7)
 - **Plus de mot de passe du site** : `CODE()` renvoie '' ; les RPC gardent `p_code` (ignoré par `public.sql`). Ce qui protège : le jeton du
@@ -67,6 +79,11 @@ du site public : à relancer si members.sql, room-look.sql, progress.sql, accoun
   direct, duel en ligne, compétition, regarder, carte, pseudo, tête ni cri (api.heads() = [], api.player sans photo), rpc() refuse tout sauf
   GUEST_RPC sans appel réseau. Bandeau `#jdw-guestbar` (Créer un compte / J'ai déjà un compte), fenêtre `#jdw-guestask`. La salle reste
   retenue (jdw.room) et revient avec le compte (guestSync). Un profil « sans compte » sur un appareil connecté : « Ajouter LOUIS au compte ».
+- **Inviter par un lien** (invite.sql) : `…/jouer/?salle=<jeton>`, même lien pour tous les membres, « Annuler ce lien » en fait un
+  nouveau. Partage : navigator.share, sinon copie (+ WhatsApp / SMS). Lien ouvert : compte → « Rejoindre … ? » ; invité → la salle est
+  rejointe toute seule une fois le compte créé (jdw.invite, 30 jours) ; lien annulé → « Lien périmé ». Aperçu du lien (WhatsApp, Messenger) :
+  balises og: dans le <head> de jouer/ (full_doc de build2.py, image accueil/partage.jpg, jamais le nom d'une salle).
+  Tests : test-invite.js et test-map-est.js (`bash ~/jdv-tools/inv-build.sh`, voir l'en-tête des tests pour les serveurs).
 - **Ordinateur sans écran tactile** (TOUCH : pointer coarse, any-pointer coarse, appli, ou maxTouchPoints sans souris) : page Duel seulement
   « En ligne » (`#jdw-duel-pc` : « Sur ordinateur : défie un copain en ligne » ; invité : « Créer un compte »).
 - Tests : test-public.js (accueil, invité, PC, compte, salle par nom + code, direct privé, enfant rattaché, refus « membre requis », connexion

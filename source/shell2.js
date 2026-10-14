@@ -15,6 +15,9 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
 };
+// lien d'invitation …/jouer/?salle=<jeton> : lu tout de suite au chargement, avant tout changement d'adresse (section « Inviter par un lien »)
+const INV_URL = (() => { try { const s = new URLSearchParams(location.search); return s.has('salle') ? String(s.get('salle') || '') : null; } catch (e) { return null; } })();
+const INV_RX = /^[A-Za-z0-9_-]{16,64}$/;
 let seenGames = store.get('jdw.seengames', {}) || {};
 const gameSeen = (id) => (seenGames[cleanName(profile.name)] || []).includes(id);
 const isNewGame = (id) => NEW_GAMES.has(id) && !!profile.name && !gameSeen(id);
@@ -138,7 +141,7 @@ function isGuest() {      // = acctState(profile) !== 'on', sans dépendre de l'
   return !(profile && profile.name && se && se.rt);
 }
 // seules fonctions du serveur permises à un invité (toutes les autres sont refusées ici, sans appel réseau)
-const GUEST_RPC = new Set(['check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name']);
+const GUEST_RPC = new Set(['check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info']);
 // le joueur au nom duquel une fonction agit (son jeton est envoyé s'il est connecté sur cet appareil)
 function rpcActor(fn, args) {
   if (!args) return '';
@@ -632,7 +635,7 @@ async function loadWorld() {
 }
 function onRoomError(e) {
   // salle retenue sur l'appareil, mais aucun joueur de ce compte n'en est membre : on la choisit à nouveau
-  if (e && e.member && room && !isGuest()) { const t = roomTopic(); room = null; store.set('jdw.room', null); if (t) rtLeave(t); refreshAll(); setTimeout(openRooms, 300); return; }
+  if (e && e.member && room && !isGuest()) { const t = roomTopic(); room = null; store.set('jdw.room', null); if (t) rtLeave(t); refreshAll(); setTimeout(() => { if (!room && !invPending() && !INV.busy) openRooms(); }, 300); return; }   // un lien d'invitation en cours choisit la salle
   if (!e || !e.denied || !room || roomDenied) return;
   roomDenied = true; refreshAll();
   if (room.priv) setTimeout(() => {
@@ -649,6 +652,7 @@ async function loadScores() {
     if (unsent.length) setTimeout(flushUnsent, 500);
   } catch (e) { serverOk = false; onRoomError(e); }
   refreshAll();
+  try { if (MAP.open) mapUpdate(); } catch (e) {}       // carte ouverte : les scores sous les têtes, en direct
   loadNotifs();
 }
 async function saveScore(game, score, forName) {
@@ -1317,7 +1321,8 @@ function onPoke(topic, event, p) {
   if (p.t === 'version') { checkSiteVersion(); return; }
   if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
   if (!room || topic !== 'jdw-room-' + room.id) return;
-  const run = { chat: () => loadChat(), scores: () => { loadScores(); if (!$('jdw-board').hidden) loadWorld(); }, players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions(), progress: () => progOnPoke() }[p.t];   // heartbeat : compteurs des tuiles + liste des joueurs
+  const run = { chat: () => loadChat(), scores: () => { loadScores(); if (!$('jdw-board').hidden) loadWorld(); }, players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions(), progress: () => progOnPoke(),
+    invite: () => { if (!$('jdw-invshare').hidden && INV.link && !INV.oldTxt) invMake(false); } }[p.t];   // heartbeat : compteurs des tuiles + liste des joueurs ; invite : lien de la salle renouvelé par un autre membre
   if (!run) return;
   clearTimeout(pokeTimers[p.t]); pokeTimers[p.t] = setTimeout(run, p.t === 'chat' ? 60 : 250);   // regroupe les rafales
 }
@@ -1548,7 +1553,7 @@ async function joinHere() {
 }
 // après un changement de joueur : s'il n'est pas dans la salle, on lui demande (jamais d'ajout automatique)
 async function maybeAskJoin() {
-  if (!ONLINE || !room || !profile.name) return;
+  if (!ONLINE || !room || !profile.name || invPending()) return;      // un lien d'invitation attend : c'est lui qui choisit la salle
   const pid = profile.pid, rid = room.id;
   if (membersFor !== rid) await loadPlayers();
   if (profile.pid !== pid || !room || room.id !== rid || membersFor !== rid || !knownNotMember(profile.name)) return;
@@ -1821,7 +1826,8 @@ addEventListener('keydown', e => {
   if (!$('jdw-acct').hidden) { if (!AS.locked) closeSheet('jdw-acct'); return; }
   if (!$('jdw-duo').hidden) { duoBack(); return; }
   if (!$('jdw-seatpick').hidden) { closeSheet('jdw-seatpick'); return; }
-  for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members']) if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else closeSheet(id); break; }
+  if (!$('jdw-inv').hidden) { invDismiss(); return; }
+  for (const id of ['jdw-invshare', 'jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members']) if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else closeSheet(id); break; }
 });
 
 /* ================= Classement ================= */
@@ -2542,7 +2548,10 @@ $('jdw-wel-cancel').addEventListener('click', () => {
   profile = adding; adding = null; store.set('jdw.profile', profile);
   closeSheet('jdw-welcome'); refreshAll();
 });
-function afterOnboarding() { if (ONLINE && !room && profile.name) setTimeout(openRooms, 250); }
+function afterOnboarding() {
+  if (ONLINE && invPending()) { setTimeout(invRun, 250); return; }   // arrivé par un lien d'invitation : on entre dans sa salle
+  if (ONLINE && !room && profile.name) setTimeout(openRooms, 250);
+}
 $('jdw-wel-ok').addEventListener('click', welcomeOk);
 $('jdw-wel-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); welcomeOk(); } });
 $('jdw-wel-lpass').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); welcomeOk(); } });
@@ -3691,7 +3700,8 @@ async function chooseRoom(r) {
     if (knownNotMember(profile.name) && await askJoin(profile.name)) await joinHere();   // sa salle, mais pas (plus) membre : on la rejoint
     return;
   }
-  if (r.r_private && !roomCodes[r.r_id]) { askCode(r); return; }
+  // « mes salles » : un pseudo du compte en fait déjà partie (entré par un lien d'invitation, famille…) → le code n'est pas demandé ;
+  // s'il le faut quand même, doJoin le demande
   await doJoin(r, roomCodes[r.r_id] || '');
 }
 function askCode(r, msg) {
@@ -3703,6 +3713,7 @@ async function doJoin(r, code) {
   roomsStatus('Entrée dans la salle…');
   try {
     const ok = await rpc('join_room', { p_code: CODE(), p_room: r.r_id, p_room_code: code, p_name: profile.name });
+    if (!ok && !code) { askCode(r, r.r_private ? 'Cette salle a un code : demande-le au chef de la salle.' : ''); return; }
     if (!ok) { delete roomCodes[r.r_id]; store.set('jdw.roomcodes', roomCodes); askCode(r, 'Ce code ne marche pas. Demande-le au chef de la salle.'); return; }
     if (code) { roomCodes[r.r_id] = code; store.set('jdw.roomcodes', roomCodes); }
     enterRoom({ id: r.r_id, name: r.r_name, priv: !!r.r_private, owner: r.r_owner || null });
@@ -5547,22 +5558,262 @@ function renderEndBoard(g, me) {
   for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me)); }
 }
 
-/* ================= Inviter (tous les membres peuvent inviter) ================= */
-$('jdw-invite').addEventListener('click', async () => {
+/* ================= Inviter par un lien (source/invite.sql) ================= */
+// Un membre partage le lien de sa salle : …/jouer/?salle=<jeton>. Le jeton est un secret fabriqué par le serveur (make_invite), un par salle,
+// le même pour tous les membres ; « Annuler ce lien » en fabrique un nouveau et les anciens liens ne marchent plus. Pour celui qui le reçoit,
+// le lien remplace le nom + le code de la salle. Partage : navigator.share (Messenger, WhatsApp, SMS…), sinon copie (+ WhatsApp / SMS sur
+// téléphone, dans l'appli Android qui n'a pas navigator.share). Serveur sans invite.sql (404) : l'ancienne invitation (nom + code de la salle).
+// Lien ouvert (INV_URL, lu au chargement puis retiré de l'adresse ; gardé dans jdw.invite jusqu'au bout, 30 jours au plus) :
+//   compte connecté → « Rejoindre Les kiki du gard ? » (invite_info, public) → join_by_invite → on y est ;
+//   invité → l'invitation attend (fenêtre + bandeau « Crée ton compte ») ; la salle est rejointe toute seule dès que le compte est là
+//   (afterOnboarding, guestSync) ; lien annulé ou faux → « Lien périmé » ; pas de réseau → elle attend le retour du réseau.
+const INV = { busy: false, link: '', oldTxt: '', rid: null, shown: '', kind: '', v: null, copyT: 0, off: false, bad: false };
+function invPending() {
+  const v = store.get('jdw.invite', null);
+  if (!v || typeof v !== 'object' || !INV_RX.test(String(v.t || '')) || !(Date.now() - (+v.at || 0) < 30 * 86400e3)) return null;
+  return v;
+}
+function invForget() { try { localStorage.removeItem('jdw.invite'); } catch (e) {} INV.shown = ''; try { guestBar(); } catch (e) {} }
+if (INV_URL !== null) {
+  try { const s = new URLSearchParams(location.search); s.delete('salle'); const qs = s.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } catch (e) {}
+  const t = INV_URL.trim(), old = invPending(), same = !!old && old.t === t;
+  if (ONLINE && INV_RX.test(t)) { store.set('jdw.invite', { t, at: Date.now(), name: same ? old.name || '' : '', n: same ? old.n || 0 : 0, auto: same && !!old.auto }); INV.fresh = true; }
+  else if (ONLINE) INV.bad = true;                           // lien coupé ou recopié de travers : on le dira
+}
+const invChime = () => { Audio.ensure(); Audio.tone(523, 0.12, 'triangle', 0.05, 784); setTimeout(() => Audio.tone(784, 0.16, 'triangle', 0.045, 1046), 110); setTimeout(() => Audio.tone(1046, 0.22, 'sine', 0.04), 230); };
+// ---- l'invité : la fenêtre du lien ouvert (data-kind : ask | guest | noname | bad | old) ----
+function invShow(kind, v) {
+  const box = $('jdw-inv'), name = (v && v.name) || '', n = (v && +v.n) || 0, guest = kind === 'guest';
+  INV.kind = kind; INV.v = v || null;
+  box.dataset.kind = guest && !name ? 'noname' : kind;
+  box.querySelector('.inv-card').style.setProperty('--h', name && kind !== 'bad' ? roomHue(name) : kind === 'bad' ? 350 : 196);
+  $('jdw-inv-room').textContent = kind === 'bad' || kind === 'old' ? '' : name;
+  $('jdw-inv-orb').textContent = kind === 'bad' || kind === 'old' ? '🎟️' : '🎮';
+  $('jdw-inv-tag').textContent = 'Invitation';
+  const mem = $('jdw-inv-mem'); mem.textContent = '';
+  if (name && n && (kind === 'ask' || guest)) { mem.innerHTML = ICON_USERS; mem.append(n + (n > 1 ? ' membres' : ' membre')); }
+  const h = $('jdw-inv-h'); h.textContent = '';
+  const em = t => { const e = document.createElement('em'); e.textContent = t; return e; };
+  const me = cleanName(profile.name);
+  let s = '', ok = '', alt = '', no = '';
+  if (kind === 'ask') {
+    h.append('Rejoindre ', em(name), ' ?');
+    s = 'Tu y entres avec ton joueur ' + me + ' : classement, chat, duels et compétitions avec les copains de la salle.';
+    ok = 'Rejoindre la salle'; no = 'Pas maintenant';
+  } else if (guest) {
+    guestBar();
+    if (name) h.append('Tes copains t’invitent dans ', em(name), ' !'); else h.append('Tes copains t’invitent dans leur salle !');
+    s = 'Crée ton compte (gratuit) ou connecte-toi : tu entreras directement dans la salle, sans nom ni code à taper.';
+    ok = $('jdw-guest-new').textContent; alt = $('jdw-guest-login').textContent; no = 'Plus tard';
+  } else if (kind === 'bad') {
+    h.append('Ce lien ne marche plus');
+    s = 'Il a été annulé par la salle, ou il est incomplet. Demande un nouveau lien à tes copains.';
+    ok = 'OK'; alt = isGuest() ? '' : 'Chercher la salle par son nom';
+  } else {   // old : serveur pas encore à jour (invite.sql)
+    h.append('Les liens d’invitation arrivent bientôt');
+    s = 'Le serveur de la borne n’est pas encore prêt pour ce lien : demande aux copains le nom de leur salle (et son code s’il y en a un).';
+    ok = 'OK'; alt = isGuest() ? '' : 'Rejoindre avec le nom';
+  }
+  $('jdw-inv-s').textContent = s;
+  const st = $('jdw-inv-status'); st.textContent = ''; st.className = 'small inv-status';
+  const bOk = $('jdw-inv-ok'), bAlt = $('jdw-inv-alt'), bNo = $('jdw-inv-no');
+  bOk.textContent = ok; bOk.disabled = false; bAlt.textContent = alt; bAlt.hidden = !alt; bNo.textContent = no; bNo.hidden = !no;
+  if (!box.hidden) { const tk = $('jdw-inv-ticket'); tk.style.animation = 'none'; void tk.offsetWidth; tk.style.animation = ''; }   // le ticket retombe
+  openSheet('jdw-inv', TOUCH ? null : 'jdw-inv-ok');      // téléphone : pas d'anneau de focus sur une fenêtre ouverte toute seule
+  if (kind === 'ask' || guest) invChime(); else { Audio.ensure(); Audio.tone(330, 0.16, 'sawtooth', 0.03, 196); }
+}
+function invStatus(t, cls) { const st = $('jdw-inv-status'); st.textContent = t || ''; st.className = 'small inv-status' + (cls ? ' ' + cls : ''); }
+$('jdw-inv-ok').addEventListener('click', () => {
+  const k = INV.kind, v = INV.v;
+  if (k === 'ask' && v) { invJoin(v); return; }
+  closeSheet('jdw-inv');
+  if (k === 'guest') $('jdw-guest-new').click();           // même chemin que le bandeau : créer un compte (ou se connecter, ajouter au compte…)
+  else if (!isGuest() && !room) openRooms();
+});
+$('jdw-inv-alt').addEventListener('click', () => {
+  const k = INV.kind; closeSheet('jdw-inv');
+  if (k === 'guest') { $('jdw-guest-login').click(); return; }
+  Promise.resolve(openRooms()).then(() => showRoomsTab('join', true));
+});
+$('jdw-inv-no').addEventListener('click', () => {
+  const k = INV.kind; closeSheet('jdw-inv');
+  if (k === 'ask') { invForget(); if (!room) openRooms(); }   // compte connecté qui ne veut pas : l'invitation est oubliée
+});
+$('jdw-inv').addEventListener('click', e => { if (e.target === $('jdw-inv')) invDismiss(); });
+// fermée sans répondre (fond, Échap, retour Android) : l'invitation reste gardée, redemandée au prochain lancement
+function invDismiss() { if (INV.kind === 'ask' && INV.v) INV.dismissed = INV.v.t; closeSheet('jdw-inv'); }
+// ---- le lien ouvert : que faire ? (au démarrage, après la création du compte, au retour du réseau) ----
+async function invInfo(v, me) {   // { info } (null : lien faux ou annulé) | { err }
+  try { return { info: ((await rpc('invite_info', { p_code: CODE(), p_token: v.t, p_name: me || null }, { quiet: true, quiet404: true })) || [])[0] || null }; }
+  catch (e) { return { err: e }; }
+}
+async function invRun() {
+  if (!ONLINE || (!INV.bad && !invPending())) return;
+  if (INV.busy) { clearTimeout(INV.waitT); INV.waitT = setTimeout(invRun, 800); return; }   // déjà en route (ex. : compte qui arrive pendant la lecture du lien)
+  // en pleine partie (ou une autre fenêtre importante ouverte) : on attend d'être revenu au calme
+  if (['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-welcome', 'jdw-acct', 'jdw-photo', 'jdw-cri'].some(id => $(id) && !$(id).hidden)) { clearTimeout(INV.waitT); INV.waitT = setTimeout(invRun, 3000); return; }
+  if (INV.bad) { INV.bad = false; invShow('bad'); return; }
+  const v = invPending();
+  if (netOff()) { if (!INV.off) { INV.off = true; netPill('📡 Invitation gardée : elle s’ouvrira avec le réseau', 'need'); } return; }
+  INV.off = false; INV.busy = true;
+  try { if (isGuest()) await invForGuest(v); else if (profile.name) await invForMember(v); }
+  finally { INV.busy = false; }
+}
+async function invForGuest(v) {
+  if (INV.shown === v.t) return;                       // déjà montrée : le bandeau « Invitation » reste là
+  if (!INV.fresh) { v.auto = true; store.set('jdw.invite', v); INV.shown = v.t; guestBar(); return; }   // gardée d'une visite précédente : seulement le bandeau
+  const r = await invInfo(v, null);
+  if (r.err && r.err.offline) return;
+  if (r.err && r.err.status === 404) { invForget(); invShow('old', v); return; }
+  if (!r.err && !r.info) { invForget(); invShow('bad'); return; }
+  if (r.info) { v.name = String(r.info.r_name || ''); v.n = +r.info.r_members || 0; }   // trop d'essais : sans le nom de la salle
+  v.auto = true; store.set('jdw.invite', v);          // le compte créé (ou retrouvé), la salle est rejointe toute seule
+  INV.shown = v.t; guestBar();
+  if (isGuest()) invShow('guest', v);
+}
+async function invForMember(v) {
+  if (v.auto) { await invJoin(v); return; }           // invitation gardée pendant la création du compte : on entre directement
+  if (INV.dismissed === v.t) return;
+  const r = await invInfo(v, cleanName(profile.name));
+  if (r.err && r.err.offline) return;
+  if (r.err && r.err.status === 404) { invForget(); invShow('old', v); return; }
+  if (r.err) { toastCheer(/trop d essais/.test(String(r.err.message)) ? 'Trop d’essais : réessaie dans quelques minutes.' : 'Le lien d’invitation n’a pas pu être lu.', profile.name, true); return; }
+  if (!r.info) { invForget(); invShow('bad'); return; }
+  v.name = String(r.info.r_name || ''); v.n = +r.info.r_members || 0; store.set('jdw.invite', v);
+  if (r.info.r_member) { await invJoin(v); return; }  // déjà dans cette salle : on y va, sans question
+  invShow('ask', v);
+}
+async function invJoin(v) {
+  const me = cleanName(profile.name); if (!me || !ONLINE) return false;
+  const sheet = !$('jdw-inv').hidden;
+  if (sheet) { invStatus('Entrée dans la salle…'); $('jdw-inv-ok').disabled = true; }
+  let r = null;
+  try { r = ((await rpc('join_by_invite', { p_code: CODE(), p_token: v.t, p_name: me }, { quiet404: true })) || [])[0] || null; }
+  catch (e) {
+    if (e.status === 404) { invForget(); invShow('old', v); return false; }
+    if (e.offline && !sheet) return false;             // pas de réseau : l'invitation attend
+    const m = e.offline ? 'Pas de réseau : réessaie dans un instant.' : /trop d essais/.test(String(e.message)) ? 'Trop d’essais : attends quelques minutes, puis réessaie.'
+      : e.acct ? 'Connecte-toi à ton compte, puis réessaie.' : 'Impossible d’entrer dans la salle pour l’instant : réessaie.';
+    if (!sheet) { v.auto = false; store.set('jdw.invite', v); invShow('ask', v); }
+    invStatus(m, 'err'); $('jdw-inv-ok').disabled = false;
+    return false;
+  }
+  if (!r || r.r_id == null) { invForget(); invShow('bad'); return false; }
+  invForget();
+  if (!$('jdw-inv').hidden) closeSheet('jdw-inv');
+  for (const id of ['jdw-rooms', 'jdw-guestask']) if (!$(id).hidden) closeSheet(id);
+  if (selfLeave === me) selfLeave = '';
+  const rid = +r.r_id, same = !!room && room.id === rid;
+  if (same) { const p = players.get(me); if (p) p.member = true; memberNames.add(me); loadPlayers(); poke('players'); rtTrack(); }
+  else enterRoom({ id: rid, name: String(r.r_name || ''), priv: !!r.r_private, owner: r.r_owner || null });
+  toastCheer('Bienvenue dans « ' + String(r.r_name || '') + ' » !', me, true);
+  invChime();
+  return true;
+}
+// ---- un membre invite : le lien de sa salle ----
+function invShareStatus(t, cls) { const st = $('jdw-invshare-status'); st.textContent = t || ''; st.className = 'small inv-status' + (cls ? ' ' + cls : ''); }
+function invShareMembers() {
+  const box = $('jdw-invshare-mem'); box.textContent = '';
+  const me = cleanName(profile.name), names = [...memberNames].filter(n => n && n !== 'IA');
+  if (!names.length) return;
+  const ph = n => !!(players.get(n) || {}).photo;
+  names.sort((a, b) => (b === me) - (a === me) || ph(b) - ph(a) || a.localeCompare(b));
+  const hs = document.createElement('span'); hs.className = 'it-heads';
+  for (const n of names.slice(0, 5)) hs.appendChild(chatHead(n, { passive: true }));
+  const t = document.createElement('span'); t.textContent = names.length + (names.length > 1 ? ' membres' : ' membre');
+  box.append(hs, t);
+}
+function invShareLink(url, fresh) {
+  const lk = $('jdw-invshare-link'), u = $('jdw-invshare-url');
+  lk.classList.remove('done'); lk.disabled = !url; lk.classList.toggle('wait', !url); $('jdw-invshare-copy').textContent = 'Copier';
+  u.textContent = '';
+  if (!url) { u.textContent = 'Création du lien…'; return; }
+  const m = String(url).replace(/^https?:\/\//, '').match(/^(.*?)(\?salle=.*)?$/);
+  const a = document.createElement('small'); a.textContent = m[1]; const b = document.createElement('b'); b.textContent = m[2] || '';
+  u.append(a, b); u.title = url;
+  if (fresh) { lk.classList.remove('fresh'); void lk.offsetWidth; lk.classList.add('fresh'); }
+  const msg = invText() + (INV.oldTxt ? '' : ' ' + url);
+  $('jdw-invshare-wa').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  $('jdw-invshare-sms').href = 'sms:?&body=' + encodeURIComponent(msg);
+}
+const invText = () => INV.oldTxt || ('Viens jouer avec nous dans « ' + (room ? room.name : '') + ' » sur la Borne d’arcade entre amis 🎮 Touche le lien pour entrer dans la salle :');
+function invShareOpen() {
+  if (!ONLINE) return;
   if (!room) { openRooms(); return; }
-  const site = new URL(ROOT || './', location.href).href;          // la page d'accueil publique
-  const code = roomCodes[room.id];
-  const txt = 'Viens jouer avec moi sur la Borne d\'arcade entre amis 🎮\n' + site +
-    '\nCrée ton compte (gratuit), puis « Rejoindre une salle » :\nSalle : ' + room.name + (code ? '\nCode de la salle : ' + code : '');
-  try { if (navigator.share) { await navigator.share({ title: 'Borne d\'arcade', text: txt }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  if (isGuest()) { guestAsk('Les salles'); return; }
+  $('jdw-invshare').querySelector('.inv-card').style.setProperty('--h', roomHue(room.name));
+  $('jdw-invshare-h').textContent = room.name;
+  invShareMembers();
+  INV.link = ''; INV.oldTxt = ''; INV.rid = room.id;
+  invShareLink('');
+  $('jdw-invshare-ask').hidden = true; $('jdw-invshare-renew').hidden = false;
+  invShareStatus('');
+  const share = !!navigator.share;
+  $('jdw-invshare-go').textContent = share ? '📨 Partager le lien' : '📋 Copier le lien';
+  $('jdw-invshare-go').disabled = true;
+  $('jdw-invshare-apps').hidden = share || !TOUCH;      // appli Android (pas de partage du système) : WhatsApp et SMS en un toucher
+  openSheet('jdw-invshare', 'jdw-invshare-go');
+  invMake(false);
+  if (membersFor !== room.id) loadPlayers().then(() => { if (!$('jdw-invshare').hidden) invShareMembers(); });
+}
+async function invMake(renew) {
+  if (!room) return;
+  const rid = room.id, me = cleanName(profile.name), prev = INV.link;
+  INV.link = ''; invShareLink(''); $('jdw-invshare-go').disabled = true;
+  try {
+    const t = await rpc('make_invite', Object.assign({ p_code: CODE() }, RP(), { p_name: me, p_renew: !!renew }), { quiet404: true });
+    if (!room || room.id !== rid || $('jdw-invshare').hidden) return;
+    if (!INV_RX.test(String(t || ''))) throw new Error('make_invite : jeton inattendu');
+    INV.link = SITE_URL() + '?salle=' + t;
+    const changed = !renew && !!prev && prev !== INV.link;          // renouvelé par un autre membre pendant que la fenêtre était ouverte
+    invShareLink(INV.link, renew || changed); $('jdw-invshare-go').disabled = false;
+    if (changed) invShareStatus('Un copain a refait le lien : voici le nouveau.', 'ok');
+    if (renew) { invShareStatus('Nouveau lien prêt : l’ancien ne marche plus.', 'ok'); Audio.ensure(); Audio.tone(660, 0.08, 'triangle', 0.04, 990); poke('invite'); }   // les autres membres qui ont la fenêtre ouverte reçoivent le nouveau lien
+  } catch (e) {
+    if (!room || room.id !== rid || $('jdw-invshare').hidden) return;
+    if (e.status === 404) { invShareOld(); return; }
+    $('jdw-invshare-link').classList.remove('wait'); $('jdw-invshare-url').textContent = 'Lien indisponible';
+    invShareStatus(e.offline ? 'Pas de réseau : réessaie dans un instant.' : /membre requis/.test(String(e.message)) ? 'Rejoins d’abord la salle pour inviter des copains.'
+      : /trop d essais/.test(String(e.message)) ? 'Trop d’essais : attends quelques minutes.' : 'Impossible de créer le lien pour l’instant : réessaie.', 'err');
+  }
+}
+// serveur pas encore à jour (pas de make_invite) : l'ancienne invitation, avec le nom (et le code) de la salle
+function invShareOld() {
+  const site = new URL(ROOT || './', location.href).href, code = roomCodes[room.id];
+  INV.oldTxt = 'Viens jouer avec moi sur la Borne d’arcade entre amis 🎮\n' + site + '\nCrée ton compte (gratuit), puis « Rejoindre une salle » :\nSalle : ' + room.name + (code ? '\nCode de la salle : ' + code : '');
+  INV.link = site; invShareLink(site); $('jdw-invshare-go').disabled = false; $('jdw-invshare-renew').hidden = true;
+  invShareStatus('Les liens d’invitation arrivent bientôt : en attendant, on envoie le nom' + (code ? ' et le code' : '') + ' de la salle.', '');
+}
+async function invShare() {
+  if (!INV.link) return;
+  if (navigator.share) {
+    try { await navigator.share(INV.oldTxt ? { title: 'Borne d’arcade', text: INV.oldTxt } : { title: 'Borne d’arcade · ' + room.name, text: invText(), url: INV.link }); invShareStatus('Invitation envoyée ✓', 'ok'); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  invCopy();
+}
+async function invCopy() {
+  if (!INV.link) return;
+  const txt = INV.oldTxt || INV.link;
   let ok = false;
   try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {
-    try { const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) { ok = false; }
+    try { const ta = document.createElement('textarea'); ta.value = txt; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) { ok = false; }
   }
-  toastCheer(ok ? 'Invitation copiée ! Colle-la dans Messenger ou WhatsApp.' : 'Copie impossible : le code est dans ⚙.', profile.name, true);
-  if (!ok) alertBox(txt);
-});
-function alertBox(txt) { $('jdw-rooms-status').textContent = txt; openRooms(); }
+  if (!ok) { invShareStatus('Copie impossible : recopie ce lien → ' + txt, 'err'); return; }
+  const lk = $('jdw-invshare-link'); lk.classList.add('done'); $('jdw-invshare-copy').textContent = 'Copié ✓';
+  clearTimeout(INV.copyT); INV.copyT = setTimeout(() => { lk.classList.remove('done'); $('jdw-invshare-copy').textContent = 'Copier'; }, 2600);
+  invShareStatus('Lien copié : colle-le dans Messenger, WhatsApp, un SMS…', 'ok');
+  Audio.ensure(); Audio.tone(880, 0.06, 'triangle', 0.035, 1175);
+}
+$('jdw-invite').addEventListener('click', invShareOpen);
+$('jdw-invshare-go').addEventListener('click', invShare);
+$('jdw-invshare-link').addEventListener('click', invCopy);
+$('jdw-invshare-close').addEventListener('click', () => closeSheet('jdw-invshare'));
+$('jdw-invshare').addEventListener('click', e => { if (e.target === $('jdw-invshare')) closeSheet('jdw-invshare'); });
+$('jdw-invshare-cancel').addEventListener('click', () => { $('jdw-invshare-renew').hidden = true; $('jdw-invshare-ask').hidden = false; invShareStatus(''); });
+$('jdw-invshare-renew-no').addEventListener('click', () => { $('jdw-invshare-ask').hidden = true; $('jdw-invshare-renew').hidden = false; });
+$('jdw-invshare-renew-ok').addEventListener('click', () => { $('jdw-invshare-ask').hidden = true; $('jdw-invshare-renew').hidden = false; invMake(true); });
+for (const a of [$('jdw-invshare-wa'), $('jdw-invshare-sms')]) a.addEventListener('click', e => { if (!INV.link) e.preventDefault(); });
 
 /* ================= Carte d'avancement ================= */
 // Bouton « carte » sous les tuiles des jeux qui en ont une (MAP_DEFS : une description par jeu, facile à étendre) →
@@ -5719,7 +5970,8 @@ async function progLoad() {
       const rows = await rpc('get_progress', Object.assign({ p_code: CODE() }, RP()), { quiet404: true }) || [];
       if (!room || room.id !== rid) return;
       PROG.room = rid; PROG.at = Date.now();
-      PROG.rows = rows.map(r => ({ name: cleanName(r.r_name), game: String(r.r_game || ''), level: Math.floor(+r.r_level || 0) })).filter(r => r.name && r.level > 0);
+      // est : position estimée d'après un ancien score (source/map-est.sql, r_estimated ; serveur plus ancien : jamais)
+      PROG.rows = rows.map(r => ({ name: cleanName(r.r_name), game: String(r.r_game || ''), level: Math.floor(+r.r_level || 0), est: r.r_estimated === true })).filter(r => r.name && r.level > 0);
       store.set('jdw.progcache', { room: rid, rows: PROG.rows.slice(0, 400), at: Date.now() });
       progBoot();
     } catch (e) { if (e.status === 404) PROG.missing = true; }
@@ -5732,10 +5984,11 @@ function progBoot() {
   const me = cleanName(profile.name); if (!me || !room || knownNotMember(me) || membersFor !== room.id) return;
   const boot = store.get('jdw.progboot', {}) || {};
   for (const gid of Object.keys(MAP_DEFS)) {
-    const k = room.id + '|' + me + '|' + gid; if (boot[k]) continue;
-    boot[k] = 1;
-    const loc = lvBest(me, gid), srv = (PROG.rows.find(r => r.name === me && r.game === gid) || {}).level || 0;
-    if (loc > srv) progPush(me, gid, loc);
+    const k = room.id + '|' + me + '|' + gid, loc = lvBest(me, gid), row = PROG.rows.find(r => r.name === me && r.game === gid), srv = row ? row.level : 0;
+    if (!boot[k]) { boot[k] = 1; if (loc > srv) { progPush(me, gid, loc); continue; } }
+    // position « estimée » (ancien score) alors que cet appareil a vu ce joueur l'atteindre en jouant : confirmée une fois au serveur
+    const ke = k + '|e' + srv;
+    if (row && row.est && loc >= srv && !boot[ke]) { boot[ke] = 1; progPush(me, gid, loc); }
   }
   store.set('jdw.progboot', boot);
 }
@@ -5754,6 +6007,32 @@ function mapPeople(gid) {
     out.set(me, mine);
   }
   return out;
+}
+// têtes posées sur une position « estimée » (progress.estimated : niveau tiré d'un ancien score, pas d'une partie suivie par la carte)
+function mapEst(gid, people) {
+  const out = new Set(), me = cleanName(profile.name);
+  if (!(ONLINE && room && !PROG.missing && PROG.room === room.id)) return out;
+  for (const r of PROG.rows) {
+    if (r.game !== gid || !r.est || people.get(r.name) !== r.level) continue;
+    if (r.name === me && Math.max(lvBest(me, gid), PROG.mine[room.id + '|' + me + '|' + gid] || 0) >= r.level) continue;   // cet appareil l'a vu l'atteindre
+    out.add(r.name);
+  }
+  return out;
+}
+// meilleur score de chacun dans ce jeu et cette salle (les scores de la salle, déjà chargés pour le classement ; + mes scores pas encore partis)
+function mapScores(gid) {
+  const out = new Map(), add = (n, s) => { n = cleanName(n); s = Math.floor(+s || 0); if (n && s > 0 && s > (out.get(n) || 0)) out.set(n, s); };
+  if (ONLINE && room) {
+    for (const r of remote[gid] || []) add(r.name, r.score);
+    for (const u of unsent) if (u.room === room.id && u.game === gid) add(u.name, u.score);
+  } else for (const r of local[gid] || []) add(r.name, r.score);
+  return out;
+}
+// score court (sous les têtes, dans le résumé) : 9 450 · 152 300 · 4,12 M ; Plein Gaz : 14 060 m
+function scoreShort(v, g) {
+  v = Math.floor(+v || 0);
+  if (v >= 1e6 && !(g && g.scoreLabel === 'm')) return (v / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: v >= 1e7 ? 1 : 2 }) + ' M';
+  return fmt(v) + unit(g);
 }
 
 /* ---------- carte plein écran ---------- */
@@ -6387,8 +6666,8 @@ function mapUpdate(animate) {
     svg.appendChild(s);
     if (state === 'mine') { const f = document.createElementNS(SVGNS, 'path'); f.setAttribute('d', mapSegPath(a, b)); f.setAttribute('class', 'gp-flow'); svg.appendChild(f); }
   }
-  // têtes : regroupées par niveau, moi au centre et en grand
-  const layer = MAP.headLayer, seen = new Set();
+  // têtes : regroupées par niveau, moi au centre et en grand ; sous chaque tête, son meilleur score dans la salle (+ « estimé »)
+  const layer = MAP.headLayer, seen = new Set(), G = gameById(MAP.gid), scores = mapScores(MAP.gid), ests = mapEst(MAP.gid, people);
   const top = max > 0 ? [...people].filter(([, v]) => v === max).map(([n]) => n) : [];
   for (const [lv, names0] of here) {
     const names = names0.slice().sort((a, b) => (b === me) - (a === me) || a.localeCompare(b));
@@ -6413,7 +6692,17 @@ function mapUpdate(animate) {
       h.classList.toggle('lead', top.length === 1 && top[0] === nm && people.size > 1);
       h.classList.toggle('start', lv < 1);
       h.style.left = (pos.x + dx) + 'px'; h.style.top = (pos.y - (lv >= 1 ? 34 : 30) + dy) + 'px';
-      h.title = (nm === me ? 'Toi' : nm) + ' · ' + (lv >= 1 ? def.short(lv) : 'pas encore parti');
+      const sc = scores.get(nm) || 0, est = ests.has(nm);
+      h.classList.toggle('est', est);
+      let tab = h.querySelector('.gh-sc'); if (!tab) tab = mapEl('span', 'gh-sc', h);
+      const key = sc + '|' + est;
+      if (tab.dataset.k !== key) {
+        tab.dataset.k = key; tab.textContent = '';
+        if (sc) mapEl('span', 'gh-pts', tab).textContent = scoreShort(sc, G);
+        if (est) mapEl('span', 'gh-est', tab).textContent = 'estimé';
+      }
+      h.title = (nm === me ? 'Toi' : nm) + ' · ' + (lv >= 1 ? def.short(lv) : 'pas encore parti') + (sc ? ' · record ' + fmt(sc) + unit(G) : '')
+        + (est ? ' · position estimée d’après un ancien score' : '');
       seen.add(nm);
     }
     const kx = 'more' + lv;
@@ -6431,12 +6720,21 @@ function mapUpdate(animate) {
   const av = mapEl('span', 'avatar', sum); avatarInto(av, me);
   const tx = mapEl('span', 'gm-sumtx', sum), mi = mine ? def.level(mine) : null;
   if (mi) sum.style.setProperty('--nc', mi.acc);
-  mapEl('small', 'gm-k', tx).textContent = mi ? 'Toi · ' + mi.kicker : 'Toi';
+  mapEl('small', 'gm-k', tx).textContent = mi ? 'Toi · ' + mi.kicker + (ests.has(me) ? ' · estimé' : '') : 'Toi';
   mapEl('b', '', tx).textContent = mi ? mi.name : 'Pas encore parti';
-  const others = [...people].filter(([n]) => n !== me).sort((a, b) => b[1] - a[1]);
-  mapEl('small', '', tx).textContent = others.length && others[0][1] > 0
-    ? (others[0][1] > mine ? 'Devant toi : ' + others[0][0] + ' · ' + def.word + ' ' + others[0][1] : mine >= others[0][1] && mine > 0 ? (others[0][1] === mine ? 'À égalité en tête avec ' + others[0][0] : 'Tu mènes la salle !') : '')
+  // celui qui est devant (au niveau, puis au score) ; à égalité de niveau, le meilleur score d'abord
+  const others = [...people].filter(([n]) => n !== me).sort((a, b) => b[1] - a[1] || (scores.get(b[0]) || 0) - (scores.get(a[0]) || 0));
+  const ahead = others.length && others[0][1] > 0 ? others[0] : null, aName = ahead ? dispName(ahead[0]) : '';
+  mapEl('small', '', tx).textContent = ahead
+    ? (ahead[1] > mine ? 'Devant toi : ' + aName + ' · ' + def.word + ' ' + ahead[1] : mine >= ahead[1] && mine > 0 ? (ahead[1] === mine ? 'À égalité en tête avec ' + aName : 'Tu mènes la salle !') : '')
     : mine ? 'Ton meilleur ' + def.word.toLowerCase() : 'Lance une partie pour poser ta tête sur la carte';
+  // les scores : le sien (s'il est devant ou à égalité) et le mien
+  const myS = scores.get(me) || 0, aS = ahead && ahead[1] >= mine ? scores.get(ahead[0]) || 0 : 0;
+  const parts = [];
+  if (aS) parts.push(aName + ' ' + scoreShort(aS, G));
+  if (myS) parts.push((aS ? 'toi ' : 'Ton record : ') + scoreShort(myS, G));
+  if (parts.length) mapEl('small', 'gm-sc', tx).textContent = parts.join(' · ');
+  sum.title = (ahead && aS ? aName + ' : ' + fmt(aS) + unit(G) + ' · ' : '') + (myS ? 'toi : ' + fmt(myS) + unit(G) : '');
 }
 $('jdw-map-close').addEventListener('click', closeMap);
 $('jdw-map-play').addEventListener('click', () => { const g = gameById(MAP.gid); closeMap(); if (g) setTimeout(() => openGame(g), 120); });
@@ -6459,6 +6757,8 @@ window.JDW_BACK = () => {
   if (chat.open) { closeChat(); return true; }
   if (!$('jdw-cri').hidden) { closeCri(); return true; }
   if (!$('jdw-acct').hidden) { if (!AS.locked) closeSheet('jdw-acct'); return true; }
+  if (!$('jdw-inv').hidden) { invDismiss(); return true; }
+  if (!$('jdw-invshare').hidden) { closeSheet('jdw-invshare'); return true; }
   for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members', 'jdw-welcome']) {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
@@ -6507,6 +6807,7 @@ function guestSync() {
   refreshAll(); refreshChatBtn(); refreshBell();
   if (MODE === 'duel') renderSeats(); else if (MODE === 'compet') renderCompet();
   setDuelWhere(DUEL_WHERE);
+  if (!g && invPending()) setTimeout(invRun, 300);       // le compte est là : la salle du lien d'invitation est rejointe toute seule
 }
 // joueur « sans compte » de l'appareil (enfant) et compte connecté sur l'appareil : on peut l'y rattacher (un compte = plusieurs joueurs)
 function guestKidUid() {
@@ -6519,11 +6820,12 @@ function guestBar() {
   const st = ONLINE && ACCT.ready ? acctState(profile) : 'off';
   const show = isGuest() && st !== 'pending';          // e-mail à confirmer : c'est la bannière du compte qui parle
   bar.hidden = !show; if (!show) return;
-  const kid = guestKidUid(), N = cleanName(profile.name);
-  bar.dataset.kind = kid ? 'kid' : st === 'need' ? 'need' : 'new';
-  $('jdw-guestbar-t').textContent = kid ? N + ' n’a pas encore de compte' : st === 'need' ? N + ' a un compte' : 'Tu joues en invité';
+  const kid = guestKidUid(), N = cleanName(profile.name), iv = !kid && st !== 'need' ? invPending() : null;   // iv : un lien d'invitation attend le compte
+  bar.dataset.kind = kid ? 'kid' : st === 'need' ? 'need' : iv ? 'invite' : 'new';
+  $('jdw-guestbar-t').textContent = kid ? N + ' n’a pas encore de compte' : st === 'need' ? N + ' a un compte' : iv ? (iv.name ? 'Invitation : « ' + iv.name + ' »' : 'Tu es invité dans une salle') : 'Tu joues en invité';
   $('jdw-guestbar-s').textContent = kid ? 'Ajoute-le au compte de ' + acctLabel(kid) + ' : ses scores seront enregistrés et il rejoindra la salle.'
     : st === 'need' ? 'Connecte-toi pour enregistrer tes scores et retrouver tes copains.'
+    : iv ? 'Crée ton compte (gratuit) : tu entreras directement dans la salle de tes copains.'
     : 'Crée ton compte pour enregistrer tes scores et rejoindre tes copains.';
   $('jdw-guest-new').textContent = kid ? 'Ajouter ' + N + ' au compte' : st === 'need' ? '🔑 Me connecter' : 'Créer un compte';
   $('jdw-guest-login').textContent = kid || st === 'need' ? 'Changer de joueur' : 'J’ai déjà un compte';
@@ -6627,6 +6929,7 @@ function netChanged(back) {
     lastRefresh = 0; refreshEverything(true); loadPlayers(); acctTick();
     if (!$('jdw-board').hidden) loadWorld();
     setTimeout(swWarm, 10000);
+    if (invPending()) setTimeout(invRun, 1200);          // lien d'invitation ouvert sans réseau : c'est le moment
   }
 }
 $('jdw-netbar-retry').addEventListener('click', () => {
@@ -6658,7 +6961,7 @@ function swWarm() {
 if (SW_OK) setTimeout(swWarm, 25000);
 
 /* ================= Démarrage ================= */
-['jdw-guestask', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
+['jdw-guestask', 'jdw-inv', 'jdw-invshare', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
 $('jdw-lib').hidden = false;
 if (isGuest()) room = null;      // la salle reste retenue sur l'appareil (jdw.room) : elle revient avec le compte
@@ -6669,8 +6972,9 @@ if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').
 for (const a of document.querySelectorAll('[data-root-href]')) a.setAttribute('href', ROOT + a.dataset.rootHref);   // borne publiée dans jouer/
 guestSync();                    // invité : pas de salle, bandeau « Crée ton compte »
 if (netOff()) { document.body.classList.add('net-off'); netBar(); }   // ouverte sans réseau (service worker) : bandeau tout de suite
-if (ONLINE && !isGuest() && !room && !netOff()) openRooms();
+if (ONLINE && !isGuest() && !room && !netOff() && !invPending() && !INV.bad) openRooms();
 acctBar(); acctStart();         // comptes : bannière « Protège ton compte », lien reçu par e-mail, jetons rafraîchis
+if (ONLINE && (invPending() || INV.bad)) setTimeout(invRun, 900);   // lien d'invitation (?salle=…) ouvert, ou gardé d'une visite précédente
 loadPlayers(); loadScores(); heartbeat(); loadChat(); setTimeout(progLoad, 1500);
 setTimeout(pushRoomLook, 2500);    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)
 if (ONLINE && !isGuest()) { RT.topics.add('jdw-all'); if (room) RT.topics.add('jdw-room-' + room.id); rtConnect(); }   // joints à l'ouverture (jeton prêt)
