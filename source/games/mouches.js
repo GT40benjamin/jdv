@@ -2314,6 +2314,7 @@
   // MOUNT
   // ===========================================================================
   function mount(root, api) {
+    mapPlaying++;      // (la carte d'avancement ne prépare rien pendant une partie)
     api = api || {};
     const AU = api.audio || {};
     const FD = (api.fonts && api.fonts.display) || "'Bungee', Impact, sans-serif";
@@ -5618,6 +5619,7 @@
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        mapPlaying = Math.max(0, mapPlaying - 1);
         cancelAnimationFrame(raf);
         raf = 0;
         if (ro) { try { ro.disconnect(); } catch (e) { /* rien */ } }
@@ -5764,6 +5766,193 @@
   }
 
   // ===========================================================================
+  // CARTE D'AVANCEMENT (bibliothèque, shell2.js : MAP_DEFS.mouches, thème « mouches ») — une journée d'été en Provence,
+  // de bas en haut : la maison et ses pièces le matin (salle de bain, cuisine), puis dehors (la terrasse à midi, la lavande
+  // l'après-midi, la piscine au coucher du soleil, la nuit étoilée et ses lampions) ; le jour 2 repart au petit matin.
+  // Chaque monde est peint avec son VRAI décor (paintScene, à la taille de sa bande sur la carte) ; une vague = un médaillon
+  // du monde et l'insecte qu'on y rencontre ; un boss = l'étape « BOSS » avec son vrai dessin.
+  // L (mise en page de la bibliothèque) : nodes [{ lv, x, y, info: { w, cycle, stage, tier }, boss? }], tiers [{ t, y, yLo, yHi }], start, H.
+  // ===========================================================================
+  // la transition vers le monde du palier i : un peu au-dessus du boss du monde d'avant (le bandeau du monde est posé juste dessus)
+  function mapSeam(L, i) { if (!i) return L.H; const t = L.tiers[i], gap = t.yLo - t.yHi; return t.yLo - Math.min(96, gap * 0.32); }
+  function mapBands(L) {
+    const out = [];
+    for (let i = 0; i < L.tiers.length; i++) {
+      const t = L.tiers[i], w = t.t % NW, ns = L.nodes.filter((n) => n.info.tier === t.t);
+      out.push({ i, t, w, cycle: Math.floor(t.t / NW) + 1, ns, bot: mapSeam(L, i), top: i + 1 < L.tiers.length ? mapSeam(L, i + 1) : 0, last: i + 1 >= L.tiers.length });
+    }
+    return out;
+  }
+  // fond (sous les décors) : la couleur du monde, pour les bords et le temps que les décors se peignent
+  function mapStopsFor(L) {
+    const st = [];
+    for (const b of mapBands(L)) { const Wd = WORLDS[b.w]; st.push([b.bot - 2, Wd.bg1], [Math.max(b.top + 2, (b.top + b.bot) / 2), Wd.bg0]); }
+    st.push([L.H, WORLDS[0].bg1], [0, '#050a1c']);
+    return st;
+  }
+  // le décor d'un monde à la taille de sa bande (le même que dans le jeu : ciel, paysage, murs, fenêtre, étagère), gardé
+  const mapScn = new Map();
+  function mapScene(wi, w, h, k) {
+    const key = wi + '|' + Math.round(w) + 'x' + Math.round(h) + '@' + k.toFixed(2);
+    let cv = mapScn.get(key);
+    if (cv) return cv;
+    if (mapScn.size > 14) mapScn.delete(mapScn.keys().next().value);
+    const s = Math.min(w / W, h / H), F = { x: (w - W * s) / 2, y: (h - H * s) / 2, w: W * s, h: H * s, s };
+    const out = paintScene(wi, w, h, F, k, []);
+    cv = out.sky;
+    const g = cv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(out.fg, 0, 0);
+    g.setTransform(k, 0, 0, k, 0, 0);
+    for (const b of out.beams || []) {      // les rayons du matin, posés une fois pour toutes
+      g.fillStyle = rgba(b.col, b.a);
+      g.beginPath(); g.moveTo(b.pts[0], b.pts[1]); for (let i = 2; i < 8; i += 2) g.lineTo(b.pts[i], b.pts[i + 1]); g.closePath(); g.fill();
+    }
+    cv._w = w; cv._h = h;
+    mapScn.set(key, cv);
+    return cv;
+  }
+  // entre deux mondes : le « plancher » du monde du dessus (poutre, rebord de terre cuite, terre et herbe, margelle, planches,
+  // carrelage du matin), avec son ombre sur le ciel du monde d'en dessous ; au jour suivant, l'aube derrière
+  function mapSlab(x, MW, to, m, R, dawn) {
+    if (dawn) {
+      x.fillStyle = lin(x, 0, m - 6, 0, m + 150, [0, 'rgba(255,200,140,0.85)', 0.35, 'rgba(255,150,120,0.45)', 1, 'rgba(120,90,160,0)']);
+      x.fillRect(0, m - 6, MW, 156);
+      sunDisc(x, MW * 0.5, m + 26, 30, '#fff1c8', '#ffb070', 210, 0.9);
+    }
+    x.fillStyle = lin(x, 0, m + 14, 0, m + 40, [0, 'rgba(10,12,30,0.4)', 1, 'rgba(10,12,30,0)']);
+    x.fillRect(0, m + 14, MW, 26);
+    const top = m - 6, hh = 20;
+    if (to === 1 || to === 0) {      // poutre de bois (cuisine) ; au matin du jour suivant, le carrelage de la salle de bain
+      const c0 = to === 1 ? '#a8723c' : '#2f6fb3', c1 = to === 1 ? '#6b4320' : '#1d4f8f';
+      x.fillStyle = lin(x, 0, top, 0, top + hh, [0, c0, 1, c1]); x.fillRect(0, top, MW, hh);
+      x.fillStyle = 'rgba(255,255,255,0.22)'; x.fillRect(0, top, MW, 2);
+      if (to === 1) { x.fillStyle = 'rgba(40,20,6,0.35)'; for (let X = 30 + R() * 40; X < MW; X += 70 + R() * 60) { x.fillRect(X, top + 3, 1.5, hh - 6); circ(x, X + 10, top + hh / 2, 1.6); x.fill(); } }
+      else { x.fillStyle = 'rgba(255,255,255,0.25)'; for (let X = 0; X < MW; X += 22) x.fillRect(X + 1, top + 3, 20, 1.5); x.fillStyle = '#f6f1e4'; x.fillRect(0, top, MW, 3); }
+    } else if (to === 2) {      // rebord de la terrasse : pierre claire et terre cuite
+      x.fillStyle = lin(x, 0, top, 0, top + hh, [0, '#d98a5a', 1, '#9a4f2a']); x.fillRect(0, top, MW, hh);
+      x.fillStyle = 'rgba(80,30,10,0.35)'; for (let X = R() * 30; X < MW; X += 30) x.fillRect(X, top + 6, 1.4, hh - 6);
+      x.fillStyle = lin(x, 0, top - 2, 0, top + 6, [0, '#fbf3e2', 1, '#d8c8a8']); x.fillRect(0, top - 2, MW, 8);
+    } else if (to === 3) {      // la terre du champ, herbes et brins de lavande
+      x.fillStyle = lin(x, 0, top, 0, top + hh, [0, '#8a6a3a', 1, '#5a4024']); x.fillRect(0, top, MW, hh);
+      x.fillStyle = 'rgba(40,24,10,0.35)'; for (let i = 0; i < MW / 9; i++) { circ(x, R() * MW, top + 6 + R() * (hh - 8), 1 + R() * 1.6); x.fill(); }
+      x.strokeStyle = '#5f8a3a'; x.lineWidth = 1.6; x.lineCap = 'round';
+      x.beginPath(); for (let i = 0; i < MW / 6; i++) { const X = R() * MW; x.moveTo(X, top + 2); x.lineTo(X + (R() - 0.5) * 6, top - 5 - R() * 6); } x.stroke();
+      x.fillStyle = '#9b7be8'; for (let i = 0; i < MW / 14; i++) { const X = R() * MW; ell(x, X, top - 8 - R() * 5, 1.6, 2.6); x.fill(); }
+    } else if (to === 4) {      // margelle blanche de la piscine et sa frise de mosaïque
+      x.fillStyle = lin(x, 0, top, 0, top + hh, [0, '#f7f3ea', 1, '#cfc6b6']); x.fillRect(0, top, MW, hh);
+      for (let X = 0, i = 0; X < MW; X += 10, i++) { x.fillStyle = i % 2 ? '#2fb9d8' : '#1f7fb8'; x.fillRect(X, top + hh - 7, 10, 5); }
+      x.fillStyle = 'rgba(255,255,255,0.7)'; x.fillRect(0, top, MW, 2);
+    } else if (to === 5) {      // planches de la terrasse du soir
+      x.fillStyle = lin(x, 0, top, 0, top + hh, [0, '#4a3524', 1, '#24180f']); x.fillRect(0, top, MW, hh);
+      x.fillStyle = 'rgba(0,0,0,0.35)'; for (let X = R() * 40; X < MW; X += 46 + R() * 20) x.fillRect(X, top, 1.5, hh);
+      x.fillStyle = 'rgba(255,220,160,0.18)'; x.fillRect(0, top, MW, 2);
+    }
+  }
+  function mapPaintChunk(x, L, MW, y0, h) {
+    const B = mapBands(L), k = Math.max(1, Math.min(1.6, Math.abs(x.getTransform().a) || 1));
+    x.save(); x.translate(0, -y0);
+    for (const b of B) {
+      if (b.top > y0 + h || b.bot < y0) continue;
+      try { x.drawImage(mapScene(b.w, MW, b.bot - b.top, k), 0, b.top, MW, b.bot - b.top); } catch (e) { /* */ }
+    }
+    for (const b of B) {
+      if (!b.i || b.bot - 60 > y0 + h || b.bot + 170 < y0) continue;
+      try { mapSlab(x, MW, b.w, b.bot, mulberry32(b.t.t * 977 + 13), b.w === 0); } catch (e) { /* */ }
+    }
+    x.restore();
+  }
+  // ---- une vague : le médaillon du monde et l'insecte de la vague ----
+  function mapWaveInsect(info) {
+    const Wd = WORLDS[info.w], st = info.stage - 1;
+    if (info.cycle === 1) return (Wd.intro[st] && Wd.intro[st][0]) || Wd.intro[0][0] || 'gnat';
+    const all = WORLDS.slice(0, info.w + 1).flatMap((x) => x.intro.flat());
+    return all[(info.lv * 7) % all.length] || 'gnat';
+  }
+  // une vague : l'insecte qu'on y rencontre, en grand, sur le ciel de son monde (la vague du boss : le médaillon du monde)
+  const mapMed = new Map();
+  function mapMedImg(key, P, dpr, paint) {
+    let cv = mapMed.get(key);
+    if (cv) return cv;
+    if (mapMed.size > 160) mapMed.delete(mapMed.keys().next().value);
+    cv = mkCanvas(P * dpr, P * dpr);
+    const g = cv.getContext('2d'); g.scale(dpr, dpr);
+    try { paint(g); } catch (e) { /* */ }
+    mapMed.set(key, cv);
+    return cv;
+  }
+  function mapNode(x, info, size, P) {
+    const dpr = x.canvas.width / P, key = 'n' + info.w + (info.boss ? 'B' : mapWaveInsect(info)) + '|' + size + '|' + P + '|' + dpr.toFixed(2);
+    x.drawImage(mapMedImg(key, P, dpr, (g) => mapNodePaint(g, info, size, P)), 0, 0, P, P);
+  }
+  function mapNodePaint(x, info, size, P) {
+    const Wd = WORLDS[info.w], cx = P / 2, cy = P / 2, r = size / 2;
+    x.fillStyle = rad(x, cx, cy, r * 0.7, cx, cy, r + 11, [0, rgba(Wd.acc, 0.5), 1, rgba(Wd.acc, 0)]);
+    circ(x, cx, cy, r + 11); x.fill();
+    if (info.boss) { x.save(); x.translate(cx, cy); paintWorldIcon(x, Wd.id, r); x.restore(); return; }
+    x.fillStyle = rad(x, cx - r * 0.3, cy - r * 0.4, r * 0.1, cx, cy, r, [0, mix(Wd.bg1, '#ffffff', 0.45), 0.7, Wd.bg1, 1, Wd.bg0]);
+    circ(x, cx, cy, r); x.fill();
+    x.save(); circ(x, cx, cy, r - 1); x.clip();
+    const ty = mapWaveInsect(info), sc = (r * 2.15) / SPR;
+    x.translate(cx, cy - r * 0.1); x.scale(sc, sc); paintInsect(x, ty, 1.1, false);
+    x.restore();
+    x.lineWidth = r * 0.12; x.strokeStyle = Wd.acc; circ(x, cx, cy, r); x.stroke();
+    x.lineWidth = 1; x.strokeStyle = 'rgba(255,255,255,0.55)'; circ(x, cx, cy, r - r * 0.12); x.stroke();
+  }
+  // ---- un boss : son vrai dessin dans un médaillon menaçant (couronne d'or pour le dernier de la journée) ----
+  function mapBoss(x, bi, size, P) {
+    const dpr = x.canvas.width / P, key = 'b' + bi.bk + (bi.final ? 'F' : '') + '|' + size + '|' + P + '|' + dpr.toFixed(2);
+    x.drawImage(mapMedImg(key, P, dpr, (g) => mapBossPaint(g, bi, size, P)), 0, 0, P, P);
+  }
+  function mapBossPaint(x, bi, size, P) {
+    const B = BOSSES[bi.bk] || BOSSES.reine, cx = P / 2, cy = P / 2 + (bi.final ? 3 : 0), r = size / 2;
+    x.fillStyle = rad(x, cx, cy, 0, cx, cy, r + 17, [0, bi.final ? 'rgba(255,178,46,0.55)' : 'rgba(255,36,72,0.5)', 1, 'rgba(255,36,72,0)']);
+    circ(x, cx, cy, r + 17); x.fill();
+    const n = 24;
+    for (let i = 0; i < n; i++) { x.fillStyle = i % 2 ? '#14090c' : (bi.final ? '#ffd34d' : '#ff3b55'); x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, r + 5, (i / n) * TAU, ((i + 1) / n) * TAU); x.closePath(); x.fill(); }
+    x.fillStyle = rad(x, cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r, [0, mix(B.cols[0], '#ffffff', 0.25), 0.55, mix(B.cols[0], '#000000', 0.55), 1, '#0a0410']);
+    circ(x, cx, cy, r); x.fill();
+    x.save(); circ(x, cx, cy, r - 1.5); x.clip();
+    x.translate(cx, cy + r * 0.06); const sc = (r * 2.05) / B.sz; x.scale(sc, sc);
+    try { paintBoss(x, bi.bk, 0.8, false); } catch (e) { /* */ }
+    x.restore();
+    x.strokeStyle = bi.final ? '#ffd34d' : '#ff3b55'; x.lineWidth = 2.4; circ(x, cx, cy, r - 0.5); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,0.2)'; x.lineWidth = 1; circ(x, cx, cy, r - 4.5); x.stroke();
+    if (bi.final) crown(x, cx, cy - r + 2, r * 0.62);
+  }
+  // les textes de la carte (une vague, un boss, un monde)
+  function mapWave(lv) {
+    const m = waveMeta(lv), Wd = m.W;
+    if (m.kind === 'boss') return { name: 'Le boss !', line: '☠ ' + BOSSES[Wd.boss].title + ' arrive' };
+    if (m.cyc === 0) { const t = Wd.intro[m.st] || []; if (t.length) return { name: t.map((k, i) => (i ? TYPES[k].name.replace(/^L/, 'l') : TYPES[k].name)).join(' et '), line: m.st === 0 ? '✦ ' + Wd.news : '' }; }
+    return { name: m.kind === 'swarm' ? 'L’essaim' : m.kind === 'feast' ? 'Le festin' : 'En formation', line: '' };
+  }
+  let mapPlaying = 0;
+  function mapWarm(L, k, dpr, sizes) {
+    if (!window.requestIdleCallback || !L) return;
+    const idle = (f) => requestIdleCallback((dl) => { if (mapPlaying) setTimeout(() => idle(f), 3000); else if (dl.timeRemaining() < 4 && !dl.didTimeout) idle(f); else f(); }, { timeout: 2500 });
+    const kk = Math.max(1, Math.min(1.6, k || 1)), jobs = [], seen = new Set();
+    for (const b of mapBands(L)) { const key = b.w + '|' + Math.round(b.bot - b.top); if (!seen.has(key)) { seen.add(key); jobs.push(() => rasterNow(mapScene(b.w, L.W, b.bot - b.top, kk))); } }
+    const ns = (sizes && sizes.node) || 56, bs = (sizes && sizes.boss) || 64;
+    for (const nd of L.nodes) {
+      const info = nd.info, P = ns + 24, key = 'n' + info.w + (info.boss ? 'B' : mapWaveInsect(info)) + '|' + ns + '|' + P + '|' + dpr.toFixed(2);
+      if (!seen.has(key)) { seen.add(key); jobs.push(() => rasterNow(mapMedImg(key, P, dpr, (g) => mapNodePaint(g, info, ns, P)))); }
+      if (nd.boss) { const bi = nd.boss.bi, P2 = bs + 34, key2 = 'b' + bi.bk + (bi.final ? 'F' : '') + '|' + bs + '|' + P2 + '|' + dpr.toFixed(2); if (!seen.has(key2)) { seen.add(key2); jobs.push(() => rasterNow(mapMedImg(key2, P2, dpr, (g) => mapBossPaint(g, bi, bs, P2)))); } }
+    }
+    const step = () => { const j = jobs.shift(); if (!j) return; try { j(); } catch (e) { /* */ } idle(step); };
+    idle(step);
+  }
+  function rasterNow(cv) { try { const g = (rasterNow.x = rasterNow.x || mkCanvas(1, 1).getContext('2d')); g.clearRect(0, 0, 1, 1); g.drawImage(cv, 0, 0, 1, 1); } catch (e) { /* */ } }
+  const mapArt = {
+    warm: mapWarm,
+    wave: mapWave,
+    stops: mapStopsFor,
+    paint: mapPaintChunk,
+    node: mapNode,
+    boss: mapBoss
+  };
+
+  // ===========================================================================
   // ENREGISTREMENT (+ le tableau des mondes, lisible par la bibliothèque pour une carte d'avancement)
   // ===========================================================================
   const WORLD_INFO = {
@@ -5795,6 +5984,7 @@
     accent: '#ff5fae',
     scoreLabel: 'points',
     worlds: WORLD_INFO,
+    mapArt,                              // la carte d'avancement de la bibliothèque, dessinée par le jeu
     preview,
     mount
   };

@@ -1694,6 +1694,7 @@ function buildLibrary() {
       mb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="tm-fold" d="M3 6.5 8.5 4l7 2.5L21 4v13.5L15.5 20l-7-2.5L3 20z"/><path class="tm-route" d="M6 16.5c2.5-.5 2.2-4 5-4.2s3.4-2.6 4.6-5.3"/><path class="tm-flag" d="M15.6 7V2.6l3.2 1.3-3.2 1.3"/></svg><span class="tm-t">Carte</span>';
       mb.addEventListener('click', e => { e.stopPropagation(); openMap(g.id, mb); });
       wrap.appendChild(mb); wrap.classList.add('has-map');
+      mapWarmSoon(g.id);
     }
     grid.appendChild(wrap);
     tiles.push({ g, el: b, champ: ch, watch: wb, canvas: b.querySelector('canvas'), on: b.querySelector('.tile-online'), visible: true });
@@ -5536,6 +5537,23 @@ $('jdw-who-ok').addEventListener('click', () => { const n = cleanName($('jdw-who
 $('jdw-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-who-ok').click(); } });
 // fin de partie : jusqu'où je suis allé dans les niveaux, comparé à mon meilleur niveau (gardé sur l'appareil, par joueur et par jeu)
 const LV_WORD = { magic: 'Salle', ilo: 'Secteur', mouches: 'Vague' };
+// jeux à mondes : Empilo (g.worlds[] + g.worldOf) ou Chasse aux mouches (g.worlds.list + g.worlds.at) → une seule façon de les lire
+function lvWorlds(g) {
+  try {
+    if (Array.isArray(g.worlds) && typeof g.worldOf === 'function') return { per: g.levelsPerWorld || 3, count: g.worlds.length,
+      at: i => { const o = g.worldOf(i); return { n: o.n, stage: o.stage, name: o.world.name, emoji: o.world.emoji, acc: o.world.colors.accent, cyc: o.tour ? 'Tour ' + mapRoman(o.tour) : '', boss: false }; } };
+    const W = g.worlds;
+    if (W && Array.isArray(W.list) && typeof W.at === 'function') return { per: W.perWorld || 3, count: W.list.length, icon: typeof W.drawIcon === 'function' ? (x, n, r) => W.drawIcon(x, n, 0, 0, r) : null,
+      at: i => { const a = W.at(i), d = W.list[a.world - 1]; return { n: a.world, stage: a.stage - 1, name: d.name, emoji: '', acc: d.colors.acc, cyc: a.cycle > 1 ? (W.cycleWord || 'Jour') + ' ' + a.cycle : '', boss: !!a.boss }; } };
+  } catch (e) {}
+  return null;
+}
+function lvIcon(WS, n, px) {      // médaillon d'un monde (dessiné par le jeu), en petit
+  const c = document.createElement('canvas'), d = Math.min(3, window.devicePixelRatio || 1), x = c.getContext('2d');
+  c.width = c.height = Math.round(px * d); c.style.width = c.style.height = px + 'px'; x.scale(d, d); x.translate(px / 2, px / 2);
+  try { WS.icon(x, n, px / 2 - 1); } catch (e) {}
+  return c;
+}
 function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
   let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
@@ -5544,15 +5562,16 @@ function showLevelProgress(g, me) {
   const best = current.lvBase != null && cleanName(profile.name) === me ? current.lvBase : lvBest(me, g.id);
   const had = lvBest(me, g.id);
   if (lv > had && me) { lvSetBest(me, g.id, lv); progPush(me, g.id, lv); }   // dernier niveau pas encore vu par progTick
-  // jeu à mondes (Empilo : g.worlds + g.worldOf) : le monde atteint à côté du niveau, la piste se colore monde par monde
-  let wo = null; try { if (Array.isArray(g.worlds) && typeof g.worldOf === 'function') wo = g.worldOf(lv); } catch (e) { wo = null; }
-  const per = wo ? (g.levelsPerWorld || 3) * g.worlds.length : 5;
+  // jeu à mondes (Empilo, Chasse aux mouches) : le monde atteint à côté du niveau, la piste se colore monde par monde
+  const WS = lvWorlds(g); let wo = null; try { if (WS) wo = WS.at(lv); } catch (e) { wo = null; }
+  const per = wo ? WS.per * WS.count : 5;
   const word = LV_WORD[g.id] || 'Niveau', top = Math.max(lv, best), n = wo ? Math.max(per, Math.ceil((top + 1) / per) * per) : Math.max(10, Math.ceil((top + 2) / 5) * 5);
   const h = document.createElement('p'); h.className = 'lv-h';
   const b = document.createElement('b'); b.textContent = word + ' ' + lv; h.append(b);
   if (wo) {
-    const c = document.createElement('span'); c.className = 'lv-w'; c.style.setProperty('--wc', wo.world.colors.accent);
-    c.textContent = wo.world.emoji + ' Monde ' + wo.n + ' · ' + wo.world.name + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : '');
+    const c = document.createElement('span'); c.className = 'lv-w'; c.style.setProperty('--wc', wo.acc);
+    if (WS.icon) c.append(lvIcon(WS, wo.n, 16), ' ');
+    c.append((wo.emoji ? wo.emoji + ' ' : '') + 'Monde ' + wo.n + ' · ' + wo.name + (wo.cyc ? ' · ' + wo.cyc : ''));
     h.append(c);
   }
   const recTxt = lv > best ? (best ? 'nouveau record ! (avant : ' + best + ')' : 'premier record !') : lv === best ? 'ton record égalé !' : 'ton record : ' + best + ' (encore ' + (best - lv) + ')';
@@ -5561,16 +5580,17 @@ function showLevelProgress(g, me) {
   for (let i = 1; i <= n; i++) {
     const d = document.createElement('i'); if (i <= lv) d.className = 'on'; if (i === lv) d.classList.add('now');
     if (i === best && best !== lv) { d.classList.add('best'); d.title = 'ton record'; }
-    if (wo) { const wi = g.worldOf(i); d.style.setProperty('--acc', wi.world.colors.accent); if (wi.stage === 0 && i > 1) d.classList.add('wstart'); }
+    if (wo) { const wi = WS.at(i); d.style.setProperty('--acc', wi.acc); if (wi.stage === 0 && i > 1) d.classList.add('wstart'); if (wi.boss) d.classList.add('boss'); }
     d.style.setProperty('--d', (i * 0.05).toFixed(2) + 's'); track.appendChild(d);
   }
   box.append(h, track);
-  if (wo) {      // sous la piste : l'emoji de chaque monde, celui atteint en grand
-    const row = document.createElement('div'); row.className = 'lv-worlds'; row.style.setProperty('--n', n / (g.levelsPerWorld || 3));
-    for (let i = 1; i <= n; i += g.levelsPerWorld || 3) {
-      const wi = g.worldOf(i), e = document.createElement('i');
-      e.textContent = wi.world.emoji; e.title = wi.world.name + (wi.tour ? ' · Tour ' + mapRoman(wi.tour) : '');
-      if (wi.w === wo.w && wi.tour === wo.tour) e.className = 'now'; else if (i <= lv) e.className = 'on';
+  if (wo) {      // sous la piste : l'emoji (ou le médaillon) de chaque monde, celui atteint en grand
+    const row = document.createElement('div'); row.className = 'lv-worlds'; row.style.setProperty('--n', n / WS.per);
+    for (let i = 1; i <= n; i += WS.per) {
+      const wi = WS.at(i), e = document.createElement('i'), now = wi.n === wo.n && wi.cyc === wo.cyc;
+      if (WS.icon) e.append(lvIcon(WS, wi.n, now ? 24 : 18)); else e.textContent = wi.emoji;
+      e.title = wi.name + (wi.cyc ? ' · ' + wi.cyc : '');
+      if (now) e.className = 'now'; else if (i <= lv) e.className = 'on';
       e.style.setProperty('--d', (i * 0.05 + 0.15).toFixed(2) + 's'); row.appendChild(e);
     }
     box.append(row);
@@ -5963,7 +5983,9 @@ const PG_NEWS = { 3: 'Jets de flammes', 4: 'Couloir électrique', 5: 'Scies circ
 // start / cap = textes du départ et du haut ; boss(n) = le boss qui ferme le niveau n { bk (dessin), name, kicker, final (boss de fin de
 // cycle : couronne) } → étape « BOSS » sur le chemin. Sans boss() : un niveau tous les `step` px. Un jeu peut dessiner lui-même sa carte :
 // stops(L) (dégradé du fond), paint(x, L, W, y0, h) (décor d'un morceau de 1000 px), node(x, info, size, P) (pastille d'un niveau) ;
-// bgDpr = résolution plafonnée du décor (doux : pas besoin de 2,5) ; lazy = les morceaux loin de l'écran se peignent juste après l'ouverture.
+// bgDpr = résolution plafonnée du décor (doux : pas besoin de 2,5) ; lazy = les morceaux loin de l'écran se peignent juste après l'ouverture ;
+// boss(n) peut rendre null (pas de boss à ce niveau) ; bossArt(x, bi, size, P) = médaillon du boss dessiné par le jeu ; T.icon(x, r) = icône du palier ;
+// warm(L, bgDpr, dpr, tailles) = le jeu prépare ses dessins d'avance, au calme sur l'accueil (même mise en page qu'à l'ouverture).
 const MAP_DEFS = {
   ilo: {
     theme: 'space', word: 'Secteur', tierGap: 170, tierAt: 0.58,
@@ -6031,6 +6053,42 @@ const MAP_DEFS = {
     node(x, info, size, P) { const G = this.game(); if (G && G.mapArt) G.mapArt.node(x, info, size, P); },
     start: { title: 'Départ', sub: 'La prairie, au petit matin' },
     cap: { title: 'Le voyage continue…', sub: 'Un nouveau tour tous les 15 niveaux, toujours plus vite' }
+  },
+  // Chasse aux mouches (games/mouches.js) : une journée d'été en Provence, 6 mondes de 3 vagues (la 3e = le boss du monde), du matin
+  // à la nuit, puis le jour 2, plus coriace. Décor de chaque monde, médaillons des vagues et des boss : le jeu (JDW_GAMES.mouches.mapArt).
+  mouches: {
+    theme: 'mouches', word: 'Vague', tierGap: 150, majorGap: 250, tierAt: 0.55, step: 150, nodeSize: 56, bossSize: 64, bgDpr: 1.6, lazy: true,
+    count: max => Math.min(180, Math.max(18, Math.ceil((max + 2) / 18) * 18)),
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.mouches; return G && G.worlds && Array.isArray(G.worlds.list) && G.worlds.at ? G : null; },
+    at(lv) { const G = this.game(); return G ? G.worlds.at(lv) : { world: Math.floor((lv - 1) / 3) % 6 + 1, cycle: Math.floor((lv - 1) / 18) + 1, stage: (lv - 1) % 3 + 1, boss: (lv - 1) % 3 === 2 }; },
+    level(lv) {
+      const G = this.game(), a = this.at(lv), d = G && G.worlds.list[a.world - 1], wv = G && G.mapArt ? G.mapArt.wave(lv) : null;
+      return { lv, tier: (a.cycle - 1) * 6 + a.world - 1, w: a.world - 1, cycle: a.cycle, stage: a.stage, boss: !!a.boss,
+        kicker: 'Vague ' + lv + (a.cycle > 1 ? ' · Jour ' + a.cycle : '') + (d ? ' · ' + d.hour : ''),
+        name: wv ? wv.name : d ? d.name : 'Vague ' + lv, lines: wv && wv.line ? [wv.line] : [], acc: d ? d.colors.acc : '#ff5fae' };
+    },
+    short(lv) { const G = this.game(), a = this.at(lv), d = G && G.worlds.list[a.world - 1]; return 'Vague ' + lv + (d ? ' · ' + d.name : '') + (a.cycle > 1 ? ' · Jour ' + a.cycle : ''); },
+    boss(lv) {
+      const G = this.game(), a = this.at(lv); if (!G || !a.boss) return null;
+      const d = G.worlds.list[a.world - 1], nm = d.name.replace(/^L[ae] |^L[’']/, m => m.toLowerCase());
+      return { lv, bk: d.boss.key, name: d.boss.title + (a.cycle > 1 ? ' ' + mapRoman(a.cycle - 1) : ''), final: a.world === G.worlds.list.length,
+        kicker: (a.cycle > 1 ? 'Jour ' + a.cycle + ' · ' : '') + (/^le /.test(nm) ? 'Fin du ' + nm.slice(3) : 'Fin de ' + nm) };
+    },
+    tier(t) {
+      const G = this.game(), N = G ? G.worlds.list.length : 6, w = t % N, cyc = Math.floor(t / N) + 1, d = G ? G.worlds.list[w] : null;
+      return { kicker: (cyc > 1 ? 'Jour ' + cyc + ' · ' : '') + 'Monde ' + (w + 1) + (d ? ' · ' + d.hour : ''), title: d ? d.name : 'Monde ' + (w + 1),
+        icon: G && G.worlds.drawIcon ? (x, r) => G.worlds.drawIcon(x, w + 1, 0, 0, r) : null,
+        sub: d ? d.news + ' Boss : ' + d.boss.title.replace(/^./, c => c.toLowerCase()) + '.' : '',
+        acc: d ? d.colors.acc : '#ff5fae', acc2: d ? d.colors.acc2 : '#ffd34d', w, cyc,
+        major: w === 0 && cyc > 1, majorTitle: 'Jour ' + cyc, majorSub: 'Les insectes reviennent, plus coriaces !' };
+    },
+    stops(L) { const G = this.game(); return G && G.mapArt ? G.mapArt.stops(L) : null; },
+    paint(x, L, W, y0, h) { const G = this.game(); if (G && G.mapArt) G.mapArt.paint(x, L, W, y0, h); },
+    node(x, info, size, P) { const G = this.game(); if (G && G.mapArt) G.mapArt.node(x, info, size, P); },
+    bossArt(x, bi, size, P) { const G = this.game(); if (G && G.mapArt) G.mapArt.boss(x, bi, size, P); },
+    warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
+    start: { title: 'Départ', sub: '8 h : la maison s’éveille' },
+    cap: { title: 'La chasse continue…', sub: 'Un nouveau jour toutes les 18 vagues, plus coriace' }
   }
 };
 
@@ -6203,11 +6261,11 @@ function mapLayout(def, n, W, VH) {
   // chaque niveau = sa pastille puis, plus haut sur le chemin, l'étape « BOSS » qui le ferme (assez loin pour les têtes posées sur la pastille)
   const toBoss = Math.round(S * 0.5 + 94), fromBoss = Math.round(S * 0.5 + 58);
   const hasBoss = typeof def.boss === 'function', step = def.step || fromBoss + toBoss;   // sans boss : un niveau tous les « step » px
-  let d = 150, prevTier = null;       // distance depuis le bas ; le départ est à 150 px du bas
+  let d = 150, prevTier = null, prevBoss = hasBoss && !def.step;       // distance depuis le bas ; le départ est à 150 px du bas
   const start = { d, k: 0 };
   for (let lv = 1; lv <= n; lv++) {
     const info = def.level(lv);
-    const base = lv === 1 ? S : hasBoss ? fromBoss : step;
+    const base = lv === 1 ? S : prevBoss ? fromBoss : step;
     let gap = base;
     if (info.tier !== prevTier) {
       const T = def.tier(info.tier);
@@ -6218,9 +6276,11 @@ function mapLayout(def, n, W, VH) {
     d += gap;
     const nd = { lv, info, d, k: lv };
     nodes.push(nd);
-    if (!hasBoss) continue;
+    const bi = hasBoss ? def.boss(lv) : null;
+    prevBoss = !!bi;
+    if (!bi) continue;
     d += toBoss;
-    nd.boss = { lv, info, bi: Object.assign({ acc: info.acc }, def.boss(lv)), d, k: lv + 0.5, isBoss: true };
+    nd.boss = { lv, info, bi: Object.assign({ acc: info.acc }, bi), d, k: lv + 0.5, isBoss: true };
     bosses.push(nd.boss);
   }
   const H = d + S * 0.5 + 250;
@@ -6366,10 +6426,34 @@ function paintFactory(x, L, W, y0, h) {
     for (const px of [0, W - pw]) { x.fillStyle = Z.steel; x.fillRect(px, top, pw, hh); x.fillStyle = Z.steel2; x.fillRect(px + (px ? 2 : pw - 4), top, 2, hh); }
   }
 }
+// résolution du décor d'une carte (plafonnée : au plus 14 millions de pixels)
+function mapBgDpr(def, L, z) {
+  let dpr = Math.min(def.bgDpr || 2.5, (window.devicePixelRatio || 1) * (z || 1));
+  if (L.W * L.H * dpr * dpr > 14e6) dpr = Math.max(1, Math.sqrt(14e6 / (L.W * L.H)));
+  return dpr;
+}
+// taille de la carte pour un écran W0 × VH0 : grand écran (PC) → tout est agrandi (zoom z), les dessins restent nets
+function mapSize(W0, VH0) {
+  const z = W0 >= 700 ? Math.max(1, Math.min(1.45, W0 / 600, VH0 / 680)) : 1;
+  return { z, W: Math.max(280, Math.floor(W0 / z)), VH: Math.max(400, VH0 / z) };
+}
+// au calme sur l'accueil, une carte qui sait se préparer (def.warm) peint d'avance ses décors : l'ouverture n'a plus qu'à les poser
+const MAP_WARM = {};
+function mapWarmSoon(gid) {
+  const def = MAP_DEFS[gid]; if (!def || !def.warm || MAP_WARM[gid]) return;
+  MAP_WARM[gid] = setTimeout(() => {
+    try {
+      if (MAP.open) return;
+      const M = mapSize(window.innerWidth, window.innerHeight); let max = 0;
+      for (const v of mapPeople(gid).values()) max = Math.max(max, v);
+      const L = mapLayout(def, def.count(max), M.W, M.VH);
+      def.warm(L, mapBgDpr(def, L, M.z), Math.min(3, (window.devicePixelRatio || 1) * M.z));
+    } catch (e) {}
+  }, 5000);
+}
 function mapPaint(world, L, def, focusY) {
   const stops = mapStops(L, def), W = L.W;
-  let dpr = Math.min(def.bgDpr || 2.5, (window.devicePixelRatio || 1) * (MAP.z || 1));
-  if (W * L.H * dpr * dpr > 14e6) dpr = Math.max(1, Math.sqrt(14e6 / (W * L.H)));
+  const dpr = mapBgDpr(def, L, MAP.z);
   const CH = 1000, later = [];
   for (let y0 = 0; y0 < L.H; y0 += CH) {
     // (chaque morceau déborde de 2 px sur le suivant : pas de fine ligne entre deux morceaux quand la carte est agrandie sur PC)
@@ -6628,6 +6712,7 @@ function mapBossCanvas(def, bi, size) {
   const c = document.createElement('canvas'), dpr = Math.min(3, (window.devicePixelRatio || 1) * (MAP.z || 1)), P = size + 34;
   c.width = c.height = Math.round(P * dpr); c.style.width = c.style.height = P + 'px';
   const x = c.getContext('2d'); x.scale(dpr, dpr);
+  if (def.bossArt) { try { def.bossArt(x, bi, size, P); } catch (e) {} return c; }
   const cx = P / 2, cy = P / 2 + (bi.final ? 3 : 0), r = size / 2, gold = bi.final;
   const rim = gold ? '#ffd34d' : '#ff3b55', rim2 = gold ? '#a85a00' : '#7a0018';
   mapGlow(x, cx, cy, r + 17, gold ? '#ffb22e' : '#ff2448', 0.55);
@@ -6677,8 +6762,7 @@ function mapBuild(animate) {
   const def = MAP.def, scroll = $('jdw-map-scroll'), world = $('jdw-map-world');
   // grand écran (PC) : toute la carte est agrandie (zoom), les dessins restent nets
   const W0 = scroll.clientWidth, VH0 = scroll.clientHeight, keepY = (scroll.scrollTop + VH0 / 2) / (MAP.z || 1);
-  const z = W0 >= 700 ? Math.max(1, Math.min(1.45, W0 / 600, VH0 / 680)) : 1;
-  const W = Math.max(280, Math.floor(W0 / z)), VH = Math.max(400, VH0 / z);
+  const { z, W, VH } = mapSize(W0, VH0);
   MAP.z = z; world.style.zoom = z === 1 ? '' : z.toFixed(3); world.style.width = W + 'px';
   const people = mapPeople(MAP.gid), me = cleanName(profile.name);
   let max = 0; for (const v of people.values()) max = Math.max(max, v);
@@ -6698,7 +6782,15 @@ function mapBuild(animate) {
     b.style.top = t.y + 'px'; b.style.setProperty('--tc', t.T.acc); if (t.T.acc2) b.style.setProperty('--tc2', t.T.acc2);
     if (t.T.major && def.majorGap) { const m = mapEl('div', 'gt-major', b); mapEl('b', '', m).textContent = t.T.majorTitle; mapEl('small', '', m).textContent = t.T.majorSub; }
     const p = mapEl('div', 'gt-plate', b);
-    if (t.T.emoji) mapEl('i', 'gt-emo', p).textContent = t.T.emoji;
+    if (t.T.icon || t.T.emoji) {      // l'emoji du monde, ou son médaillon dessiné par le jeu
+      const e = mapEl('i', 'gt-emo', p);
+      if (t.T.icon) {
+        const dz = Math.min(3, (window.devicePixelRatio || 1) * (MAP.z || 1)), cv = document.createElement('canvas'), cx = cv.getContext('2d');
+        cv.width = cv.height = Math.round(48 * dz); cv.style.width = cv.style.height = '48px'; cx.scale(dz, dz); cx.translate(24, 24);
+        try { t.T.icon(cx, 21); } catch (er) {}
+        e.appendChild(cv); e.classList.add('drawn');
+      } else e.textContent = t.T.emoji;
+    }
     mapEl('small', '', p).textContent = t.T.kicker;
     mapEl('b', '', p).textContent = t.T.title;
     if (t.T.sub) mapEl('span', '', p).textContent = t.T.sub;
@@ -6735,7 +6827,7 @@ function mapBuild(animate) {
     const bi = bs.bi;
     const el = mapEl('div', 'gmap-boss' + (bi.final ? ' final' : ''), world); el.style.left = bs.x + 'px'; el.style.top = bs.y + 'px';
     el.style.setProperty('--nc', nd.info.acc); el.setAttribute('role', 'img');
-    const em = mapEl('div', 'gb-em', el); em.appendChild(mapBossCanvas(def, bi, def.theme === 'space' ? (bi.final ? 70 : 64) : 62));
+    const em = mapEl('div', 'gb-em', el); em.appendChild(mapBossCanvas(def, bi, def.bossSize || (def.theme === 'space' ? (bi.final ? 70 : 64) : 62)));
     const badge = mapEl('span', 'gb-badge', em); badge.innerHTML = bi.final ? CROWN : SKULL; mapEl('b', '', badge).textContent = bi.final ? 'Boss final' : 'Boss';
     mapEl('i', 'gb-ok', em).textContent = '✓';
     let side = Math.abs(bs.x - W / 2) < L.A * 0.3 ? (nd.lv % 2 ? 'l' : 'r') : bs.x < W / 2 ? 'r' : 'l';
@@ -6782,7 +6874,7 @@ function mapUpdate(animate) {
     if (animate) el.style.setProperty('--d', (0.15 + Math.min(i, 26) * 0.035).toFixed(3) + 's');
   });
   // étapes « BOSS » : vaincu par moi / ma prochaine / vaincu par d'autres / pas encore atteint
-  const nextB = Math.max(1, mine);
+  const nextB = (L.bosses.find(b => b.lv >= Math.max(1, mine)) || { lv: -1 }).lv;
   for (const nd of L.nodes) {
     const bs = nd.boss, el = bs && bs.el, lv = nd.lv; if (!el) continue;
     const beaten = mine > lv, next = !beaten && lv === nextB, by = [...people].filter(([, v]) => v > lv).map(([n]) => n).filter(n => n !== me);

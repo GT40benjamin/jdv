@@ -875,6 +875,9 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
   background:color-mix(in srgb,var(--wc) 24%,rgba(8,12,24,.6));border:1px solid color-mix(in srgb,var(--wc) 70%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--wc) 35%,transparent)}
 .lv-rec{white-space:nowrap}
 .lv-track.worlds i.wstart{margin-left:5px}
+.lv-track.worlds i.boss{border-bottom:3px solid #ff3b55}
+.lv-w canvas{display:inline-block;vertical-align:-3px}
+.lv-worlds i canvas{display:block;margin:0 auto}
 .lv-worlds{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px;margin-top:6px;text-align:center}
 .lv-worlds i{font-style:normal;font-size:14px;line-height:1.2;opacity:0;filter:grayscale(1);animation:lvWIn .35s ease-out var(--d) forwards}
 .lv-worlds i.on{filter:none;--o:.75}
@@ -1313,6 +1316,38 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .gmap[data-theme=empilo] .gs-txt small{color:#24521f;font-weight:700}
 .gmap[data-theme=empilo] .gmap-cap{opacity:1}
 .gmap[data-theme=empilo] .gmap-cap b,.gmap[data-theme=empilo] .gmap-cap small{color:#fff;text-shadow:0 2px 0 rgba(26,6,48,.95),0 0 12px rgba(26,6,48,.95),0 0 26px rgba(26,6,48,.8)}
+/* Chasse aux mouches : la journée en Provence (vrais décors du jeu), un bandeau par monde (médaillon, heure, boss), un médaillon par vague */
+.gmap[data-theme=mouches]{background:#16243c}
+.gmap[data-theme=mouches] .gmap-ttl h2{font-size:clamp(17px,4.9vw,42px);background:linear-gradient(180deg,#ffffff 12%,#ffe28a 48%,#ff9ad0 72%,#ff5fae 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(40,8,30,.85)) drop-shadow(0 0 14px rgba(255,95,174,.5))}
+.gmap[data-theme=mouches] .gp-groove{stroke:rgba(20,14,40,.35);stroke-width:14}
+.gmap[data-theme=mouches] .gp-seg.far{stroke:rgba(255,255,255,.6)!important;stroke-dasharray:.5 11;stroke-width:4}
+.gmap[data-theme=mouches] .gn-num{left:50%;bottom:4px;transform:translateX(-50%);min-width:22px;padding:4px 6px 3px;border-radius:8px;background:rgba(14,8,30,.9);
+  border:1.5px solid var(--nc);font:400 12px/1 var(--display);color:#fff;text-align:center;box-shadow:0 2px 0 rgba(0,0,0,.35),0 0 10px color-mix(in srgb,var(--nc) 60%,transparent)}
+.gmap[data-theme=mouches] .gn-lab{border-radius:14px;background:linear-gradient(180deg,rgba(18,12,38,.86),rgba(10,8,26,.82));border:1.5px solid color-mix(in srgb,var(--nc) 60%,transparent);
+  box-shadow:0 8px 20px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.1)}
+.gmap[data-theme=mouches] .gn-lab small{color:var(--nc)}
+.gmap[data-theme=mouches] .gn-lab span{color:#ffe9a8}
+.gmap[data-theme=mouches] .gn-lab span.boss{color:#ff9db0}
+.gmap[data-theme=mouches] .gt-plate{padding:30px 22px 13px;border-radius:22px;gap:5px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tc) 26%,rgba(14,10,34,.9)),rgba(14,10,34,.9) 75%);
+  border:2px solid color-mix(in srgb,var(--tc) 75%,transparent);box-shadow:0 0 0 4px rgba(14,10,34,.35),0 0 34px color-mix(in srgb,var(--tc) 35%,transparent),0 14px 30px rgba(0,0,0,.4)}
+.gmap[data-theme=mouches] .gt-emo{position:absolute;left:50%;top:-30px;transform:translateX(-50%);width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-style:normal;
+  background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--tc) 40%,#16122e),#0c0a22 72%);box-shadow:0 0 18px color-mix(in srgb,var(--tc) 60%,transparent),0 4px 10px rgba(0,0,0,.4)}
+.gmap[data-theme=mouches] .gt-emo canvas{display:block}
+.gmap[data-theme=mouches] .gt-plate small{color:var(--tc);font-size:10.5px;letter-spacing:.22em}
+.gmap[data-theme=mouches] .gt-plate b{font-size:28px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.45),0 0 18px color-mix(in srgb,var(--tc) 70%,transparent)}
+.gmap[data-theme=mouches] .gt-plate span{color:#f2f4ff;max-width:300px}
+.gmap[data-theme=mouches] .gt-major{top:92px;gap:5px;padding:9px 24px 11px;border-radius:20px;background:linear-gradient(180deg,rgba(60,22,70,.82),rgba(30,10,40,.82));border:1.5px solid rgba(255,255,255,.45);
+  box-shadow:0 0 0 4px rgba(255,255,255,.12),0 10px 26px rgba(40,10,60,.3)}
+.gmap[data-theme=mouches] .gt-major b{font:400 34px/1 var(--display);background:linear-gradient(180deg,#fff7c8 10%,#ffd34d 50%,#ff8a5a);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.5))}
+.gmap[data-theme=mouches] .gt-major small{font:600 12.5px/1.2 var(--body);color:#ffe8f4}
+.gmap[data-theme=mouches] .gs-pad{left:-54px;width:108px;top:-14px;height:28px;border-radius:50%;border:2px solid #ffffff;
+  background:radial-gradient(ellipse at 50% 40%,#ffffff,#e6d8ff 50%,#b98cff);box-shadow:0 0 22px rgba(185,140,255,.8),0 4px 0 rgba(0,0,0,.15)}
+.gmap[data-theme=mouches] .gs-txt b,.gmap[data-theme=mouches] .gs-txt small{color:#fff;text-shadow:0 2px 0 rgba(16,20,50,.9),0 0 10px rgba(16,20,50,.9)}
+.gmap[data-theme=mouches] .gmap-cap{opacity:1}
+.gmap[data-theme=mouches] .gmap-cap b,.gmap[data-theme=mouches] .gmap-cap small{color:#fff;text-shadow:0 2px 0 rgba(6,10,30,.95),0 0 12px rgba(6,10,30,.95)}
 
 /* ---------- Comptes (e-mail + mot de passe) ---------- */
 .input-plain{text-transform:none;font-size:16px;font-weight:600}

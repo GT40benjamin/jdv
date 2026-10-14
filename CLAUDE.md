@@ -51,10 +51,10 @@ qu'après `…/jouer/?labo=magic` (retenu sur l'appareil, `?labo=aucun` pour cac
 `assets/magic.monde1.bin` + moteur `assets/magic.moteur.bin` (le point dans le nom : pas téléchargés à l'installation du service worker,
 gardés après la 1re partie), musiques `assets/music/magic-*.bin`. Refaire les données : `node source/pack-magic.js` (Blender 5, Pillow, Chrome,
 modules npm de `~/jdv-tools/duotest/magic/node_modules`). Sortie pour tous : retirer 'magic' de LABO et dater TILE_NEWS.magic. Test : test-labo.js.
-**Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Plein Gaz, Empilo). Un jeu peut fournir son propre dessin :
+**Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Plein Gaz, Empilo, Chasse aux mouches ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte
 sans boss, nodeSize, bgDpr, lazy). Fin de partie : si le jeu expose `worlds` / `worldOf`, l'écran montre le monde atteint. Tests : test-map.js,
-test-map-est.js. Prochaines cartes : Chasse aux mouches, Glouton, Rouleaux, puis Casse-Carreaux après sa refonte.
+test-map-est.js. Prochaines cartes : Glouton, Rouleaux, puis Casse-Carreaux après sa refonte. (Chasse aux mouches : le dessin de sa carte est dans ses parties, p8-loop.js, assemblées par assemble.sh.)
 
 ## Appli Android (`android-apktool/`)
 WebView plein écran sur la borne (`https://gt40benjamin.github.io/jdv/jouer/`, Java dans `java/MainActivity.java`). Construite sans SDK :
