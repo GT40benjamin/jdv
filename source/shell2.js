@@ -15,7 +15,8 @@ const TILE_NEWS = {
   mouches: { kind: 'maj', at: '2026-10-14 12:43' },
   rouleaux: { kind: 'maj', at: '2026-10-14 13:32' },
   carreaux: { kind: 'maj', at: '2026-10-14 17:45' },
-  pingpong: { kind: 'new', at: '2026-10-15 00:20' }   // ← mettre la date et l'heure de la publication
+  pingpong: { kind: 'new', at: '2026-10-15 00:20' },
+  'coop-boum': { kind: 'new', at: '2026-10-15 06:00' }   // mode Coop : Boum 2 contre 2 (1.14)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
@@ -4221,10 +4222,10 @@ function coopObserve(list) {
 function buildCoopLibrary() {
   const grid = $('jdw-coop-grid'); if (!grid || coopTiles.length) return;
   for (const e of coopList()) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'tile duo-tile coop-tile'; b.style.setProperty('--acc', e.accent);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tile coop-tile';   // pas « duo-tile » : les sélecteurs des duels (tests compris) ne voient pas les tuiles coop b.style.setProperty('--acc', e.accent);
     b.setAttribute('aria-label', 'Coop : ' + e.title);
-    b.innerHTML = '<div class="tile-img"><canvas aria-hidden="true"></canvas><span class="duo-emoji" aria-hidden="true"></span></div><div class="tile-meta"><div class="tile-name"></div><div class="duo-tag"></div></div>';
-    b.querySelector('.tile-name').textContent = e.title; b.querySelector('.duo-emoji').textContent = e.emoji;
+    b.innerHTML = '<div class="tile-img"><canvas aria-hidden="true"></canvas><span class="coop-emoji" aria-hidden="true"></span></div><div class="tile-meta"><div class="tile-name"></div><div class="coop-tag"></div></div>';
+    b.querySelector('.tile-name').textContent = e.title; b.querySelector('.coop-emoji').textContent = e.emoji;
     b.addEventListener('click', () => coopTileClick(e.id, b));
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', e.accent);
     const ch = document.createElement('button'); ch.type = 'button'; ch.className = 'tile-champ coop-champ'; ch.hidden = true;
@@ -4232,7 +4233,7 @@ function buildCoopLibrary() {
     const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'tile-watch'; wb.hidden = true; wb.textContent = '👁 Voir';
     wb.addEventListener('click', x => { x.stopPropagation(); const ps = coopTilePlayers(e.id); if (ps.length === 1) watchStart(ps[0].name, ps[0].game); else openMembers(); });
     wrap.append(b, ch, wb); grid.appendChild(wrap);
-    coopTiles.push({ id: e.id, g: { id: 'coop-' + e.id, preview: coopPv(e) }, el: b, wrap, champ: ch, watch: wb, canvas: b.querySelector('canvas'), tag: b.querySelector('.duo-tag'), visible: !('IntersectionObserver' in window) });
+    coopTiles.push({ id: e.id, g: { id: 'coop-' + e.id, preview: coopPv(e) }, el: b, wrap, champ: ch, watch: wb, canvas: b.querySelector('canvas'), tag: b.querySelector('.coop-tag'), visible: !('IntersectionObserver' in window) });
   }
   coopObserve(coopTiles);
 }

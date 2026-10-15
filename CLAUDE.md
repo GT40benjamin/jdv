@@ -274,8 +274,9 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Coop** 
 - Présence de la salle : seuls les MEMBRES (room_members) comptent (presList filtre) — un appareil branché sur le canal sans avoir
   rejoint n'apparaît ni dans « en ligne », ni dans les défis.
 - **Coop** (à la place de l'ancienne Compétition, retirée en entier en 1.13.4 ; ses tests sont archivés dans `~/jdv-tools/archive-compet/`) :
+  1er jeu Coop publié en 1.14 : **Boum 2 contre 2** (duos/boum.js ASSEMBLÉ depuis `~/jdv-tools/duotest/boum-coop/parts`, `node assemble.js`, fiche REPRISE.md ; le duel 1 contre 1 reste identique : det.js / battery) ;
   jouer ENSEMBLE contre le jeu, avec un robot (Facile → Extrême) ou un copain en ligne. Plan : `~/jdv-tools/duotest/coop/COOP-PLAN.md` ;
-  contrat des jeux `source/COOP-CONTRACT.md` (DUO-CONTRACT.md y renvoie) ; serveur `~/jdv-tools/duotest/coop/coop.sql` (PAS encore appliqué :
+  contrat des jeux `source/COOP-CONTRACT.md` (DUO-CONTRACT.md y renvoie) ; serveur `source/coop.sql` (APPLIQUÉ le 15 oct. 2026 par le connecteur, aussi à la fin de supabase.sql :
   add_coop_score, get_coop_scores, get_world_coop_scores, get_coop_notifs, get_messages2 ; test-coop-sql.mjs). Cadre (M2, section « Coop »
   de shell2.js) : un jeu de `COOP_ORDER` (boum, ilo, magic) qui déclare `coop` a sa tuile (onglets « 🤖 Avec l'IA » / « 🌐 Avec un copain »,
   équipe, champions à deux têtes), le lanceur `#jdw-coopgo` (difficulté retenue par jeu et par sorte `jdw.coopdiff`, ×mult, record de la

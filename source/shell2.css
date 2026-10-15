@@ -661,6 +661,16 @@ button.ct-p{cursor:pointer} button.ct-p:hover{background:var(--card-hi)}
 .ct-dot{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:2px dashed color-mix(in srgb,var(--leaf) 70%,transparent);
   font:400 22px var(--display);color:var(--leaf);background:color-mix(in srgb,var(--leaf) 8%,transparent)}
 .coop-tile .tile-name{color:var(--ink)}
+/* tuiles coop : même allure que les tuiles de duel (classes à part : les sélecteurs .duo-tile restent aux duels) */
+.coop-tile .tile-img{position:relative}
+.coop-emoji{display:none}
+.coop-tile .tile-name{white-space:normal;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.1}
+.coop-tag{font-size:12px;line-height:1.3;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.coop-tag.tally{color:var(--gold);font-weight:600}
+.coop-tile.no-ai .tile-img{filter:grayscale(.85) brightness(.7)}
+.coop-tile.no-ai .tile-name{opacity:.6}
+.coop-tile.no-ai .coop-tag{color:var(--muted);font-style:italic}
+.coop-tile.nudge{animation:nudge .35s}
 /* deux têtes qui se chevauchent (champions, classement, cloche) */
 .coop-heads{position:relative;display:inline-flex;align-items:center;flex:0 0 auto}
 .coop-heads .chead{width:30px;height:30px;box-shadow:0 0 0 2px var(--night)}
