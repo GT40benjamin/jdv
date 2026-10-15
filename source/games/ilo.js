@@ -106,6 +106,11 @@
     P: { col: '#38e1ff', name: 'PUISSANCE' }, M: { col: '#ff9a1f', name: 'MISSILES' }, O: { col: '#b37bff', name: 'DRONE' },
     S: { col: '#46f08a', name: 'BOUCLIER' }, B: { col: '#ff4d6d', name: 'BOMBE' }, A: { col: '#ffd34d', name: 'AIMANT' }
   };
+  // boss : les coups portés remplissent la jauge HYPER (pleine tous les HYB des points de vie du boss, hors HYPER en cours)
+  const HYB = 0.35;
+  // Croiseur Vela : points faibles qui encaissent plus (tourelles ; cœur une fois ouvert), chaque nouvelle phase lâche une capsule ;
+  // en échange, plus de blindage (tourelles, cœur) : avec l'HYPER et les capsules le combat dure ~1 min au lieu de 2 à 5, sans fin à 1 de puissance
+  const VELA_WEAK_T = 1.15, VELA_WEAK_C = 1.3, VELA_HP_T = 2.2, VELA_HP_C = 1.3;
   // couleurs des balles ennemies : [teinte, cœur clair]
   const BCOL = { p: ['#ff3d9a', '#ffd3ea'], o: ['#ff8a1f', '#ffe3c0'], v: ['#a45cff', '#eadcff'], g: ['#2ff07a', '#d6ffe4'], r: ['#ff3b3b', '#ffd8d8'], y: ['#ffd21f', '#fff7c8'] };
   const BKEYS = ['p', 'o', 'v', 'g', 'r', 'y'];
@@ -915,6 +920,8 @@
       shield() { noise(0.3, 0.16, 2200); tone(330, 0.26, 'square', 0.05, 110); },
       bomb() { noise(1.4, 0.25, 3000); tone(55, 1.1, 'sawtooth', 0.065, 25); after(0.1, () => tone(880, 0.5, 'sine', 0.035, 110)); },
       hyper() { tone(180, 0.6, 'sawtooth', 0.045, 1400); after(0.12, () => tone(660, 0.5, 'triangle', 0.05, 1320)); noise(0.6, 0.1, 4000); },
+      hyReady() { tone(659, 0.09, 'triangle', 0.045); after(0.08, () => tone(988, 0.09, 'triangle', 0.045)); after(0.16, () => tone(1319, 0.28, 'triangle', 0.05, 1760)); },
+      weak() { if (canPlay('weak', 0.08)) tone(760 + Math.random() * 80, 0.03, 'triangle', 0.012, 1100); },
       warn() { tone(620, 0.22, 'square', 0.035, 600); after(0.26, () => tone(460, 0.22, 'square', 0.035, 460)); },
       charge() { if (canPlay('charge', 0.25)) tone(260, 0.55, 'sawtooth', 0.02, 900); },
       laser() { if (canPlay('laser', 0.18)) { noise(0.5, 0.07, 3500); tone(150, 0.45, 'sawtooth', 0.025, 120); } },
@@ -982,7 +989,7 @@
       'display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;';
     hyperIn.innerHTML = '<span style="font-size:15px">⚡</span><span>HYPER</span>';
     hyperBtn.appendChild(hyperIn);
-    let bombShown = -1, hyperShown = -1, hyperReadyShown = null;
+    let bombShown = -1, hyperShown = -1, hyperReadyShown = null, hyperGlowShown = false;
 
     // ------------------------------------------------------------- images d'ILO (api.assets) — repli dessiné
     let IMGP = null, IMGN = null, loading = true;
@@ -1312,6 +1319,19 @@
     function addHyper(v) {
       if (P.hyperT > 0) return;
       P.hyper = Math.min(1, P.hyper + v * 0.275);
+    }
+    // pendant un boss, chaque dégât porté recharge l'HYPER : la jauge s'illumine (hyGlow), puis « HYPER PRÊT ! » (hyCue)
+    let hyGlow = 0, hyCue = -1, hyFull = false;
+    function bossHyper(d) {
+      if (P.hyperT > 0 || P.hyper >= 1 || !B || !(B.maxHp > 0) || d <= 0) return;
+      const v = d / (B.maxHp * HYB);
+      P.hyper = Math.min(1, P.hyper + v);
+      hyGlow = Math.min(1, hyGlow + 0.06 + v * 8);
+    }
+    function hyperReadyCue() {                   // la jauge vient d'être pleine : titre bref qui file vers la jauge, anneau, carillon
+      hyCue = 0; hyGlow = 1;
+      ring(P.x, P.y, 12, 64, 0.5, '#ff7ad8', 2.5);
+      SFX.hyReady();
     }
 
     // ------------------------------------------------------------- éclats et capsules
@@ -2477,7 +2497,7 @@
     const BINIT = {}, BUPD = {}, BDRAW = {};
     const hpB = () => 1.15 * (1 + 0.42 * L + 1.4 * cycle) * (1 + (rank() - 1) * 0.5);
     let forceFace = null;                        // (tests) forcer un boss avec / sans tête de copain
-    function mkPart(x, y, r, mode, hp) { return { uid: uidSeq++, x, y, r, mode, hp: hp || 0, max: hp || 0, alive: true, flash: 0, hide: false, aim: Math.PI / 2, st: 0, a: 0, k: 0, depth: 0, ox: 0, oy: 0, dash: false, vx: 0, vy: 0 }; }
+    function mkPart(x, y, r, mode, hp) { return { uid: uidSeq++, x, y, r, mode, hp: hp || 0, max: hp || 0, alive: true, flash: 0, hide: false, aim: Math.PI / 2, st: 0, a: 0, k: 0, depth: 0, ox: 0, oy: 0, dash: false, vx: 0, vy: 0, weak: 0, wk: 0, wkT: 0 }; }
     function music(name) {
       try { if (typeof api.music === 'function') { if (name) api.music(name); else api.music(); } } catch (e) { /* rien */ }
     }
@@ -2511,7 +2531,7 @@
       d = Math.min(d, B.hp);
       B.hp -= d; B.flash = 0.06;
       score += Math.round(d * 6) * mult;
-      if (p) p.flash = 0.06;
+      if (p) { p.flash = 0.06; bossHyper(d); }   // un coup au but (pas la bombe) recharge l'HYPER
       if (B.hp <= 0.001) { B.hp = 0; bossDefeated(); return; }
       if (!B.custom) {
         const ph = Math.min(B.nph - 1, Math.floor((1 - B.hp / B.maxHp) * B.nph));
@@ -2521,6 +2541,10 @@
     function hitBossPart(p, dmg, x, y) {
       if (!B || B.dying) return;
       if (p.mode === 'armor') dmg *= 0.25;
+      else if (p.weak) {                          // point faible : plus de dégâts, repère qui s'allume
+        dmg *= p.weak; p.wk = 1;
+        if (p.wkT <= 0) { p.wkT = 0.11; sparks(x, y, 2, GL.y, 130, 0.28, 6); SFX.weak(); }
+      }
       if (p.mode === 'sub') {
         const d = Math.min(dmg, p.hp);
         p.hp -= d; p.flash = 0.06;
@@ -2533,7 +2557,10 @@
     function partDestroyed(p) {
       explode(p.x, p.y, p.r > 30 ? 4 : 3, 'o');
       SFX.big();
+      const r0 = rng;                             // graine : éclats tirés de la pièce (la jauge HYPER en dépend aussi)
+      if (SEED !== null) rng = mulberry32((lvlSeed ^ Math.imul(p.uid + 7, 0x9E3779B1)) >>> 0);
       shards(p.x, p.y, 10);
+      rng = r0;
       addPts(1500, p.x, p.y - 14, true);
       bumpChain(4);
       freezeT = Math.max(freezeT, 0.05);
@@ -2560,7 +2587,7 @@
       if (!b) return;
       b.t += dt;
       if (b.flash > 0) b.flash -= dt;
-      for (let i = 0; i < b.parts.length; i++) if (b.parts[i].flash > 0) b.parts[i].flash -= dt;
+      for (let i = 0; i < b.parts.length; i++) { const p = b.parts[i]; if (p.flash > 0) p.flash -= dt; if (p.wk > 0) p.wk = Math.max(0, p.wk - dt * 5); if (p.wkT > 0) p.wkT -= dt; }
       if (b.dying) {
         b.dT += dt; b.boomT -= dt;
         if (b.boomT <= 0 && b.dT < 1.7) {
@@ -2748,26 +2775,27 @@
     // ------------------------------------------------------------- 2. CROISEUR VELA
     BINIT.vela = (b) => {
       b.ty = 150; b.custom = true;
-      const off = [[-100, -5], [-52, 18], [52, 18], [100, -5]];
+      const off = [[-100, -5], [-52, 18], [52, 18], [100, -5]], hT = 95 * VELA_HP_T * hpB(), hC = 640 * VELA_HP_C * hpB();
       b.tur = [];
-      for (let i = 0; i < 4; i++) { const p = mkPart(0, 0, 14, 'sub', 95 * hpB()); p.ox = off[i][0]; p.oy = off[i][1]; p.st = 1 + i * 0.6; b.tur.push(p); b.parts.push(p); }
-      b.core = mkPart(0, 0, 22, 'block', 0); b.core.ox = 0; b.core.oy = 12;
+      for (let i = 0; i < 4; i++) { const p = mkPart(0, 0, 14, 'sub', hT); p.ox = off[i][0]; p.oy = off[i][1]; p.st = 1 + i * 0.6; p.weak = VELA_WEAK_T; b.tur.push(p); b.parts.push(p); }
+      b.core = mkPart(0, 0, 22, 'block', 0); b.core.ox = 0; b.core.oy = 12; b.core.weak = VELA_WEAK_C;   // (le cœur ne compte qu'une fois ouvert)
       b.parts.push(b.core);
       b.hull = mkPart(0, 0, 40, 'block', 0); b.hull.ox = 0; b.hull.oy = -18; b.parts.push(b.hull);
       for (const [ox, oy, r] of [[-78, -14, 26], [78, -14, 26], [-124, -10, 18], [124, -10, 18]]) { const w = mkPart(0, 0, r, 'block', 0); w.ox = ox; w.oy = oy; b.parts.push(w); }
-      b.hp = 4 * 95 * hpB() + 640 * hpB();
+      b.hp = 4 * hT + hC;
       b.left = 4;
-      b.onPart = (bb) => {
+      b.onPart = (bb, p) => {
         bb.left--;
         if (bb.left === 2) { bb.phase = 1; onBossPhase(); }
         if (bb.left === 0) { bb.phase = 2; bb.core.mode = 'core'; onBossPhase(); banner('LE CŒUR EST À NU !', 'Vise le centre', '#ffb347', 1.8, 9); }
+        if (bb.left === 2 || bb.left === 0) velaDrop(bb, p.x, p.y + 8);
       };
-      b.coreMax = 640 * hpB();
+      b.coreMax = hC;
     };
     BUPD.vela = (b, dt, act) => {
       if (b.ready) { b.x = LW / 2 + Math.sin((b.t - b.enterT) * 0.35) * 26; b.y = b.ty + Math.sin(b.t * 0.7) * 6; }
       for (let i = 0; i < b.parts.length; i++) { const p = b.parts[i]; p.x = b.x + p.ox; p.y = b.y + p.oy; }
-      if (b.left === 0 && b.phase === 2 && b.hp < b.coreMax * 0.5) { b.phase = 3; onBossPhase(); }
+      if (b.left === 0 && b.phase === 2 && b.hp < b.coreMax * 0.5) { b.phase = 3; onBossPhase(); velaDrop(b, b.core.x, b.core.y + 26); }
       b.open = b.left === 0 ? Math.min(1, b.open + dt * 1.2) : 0;
       for (let i = 0; i < 4; i++) {
         const p = b.tur[i];
@@ -2808,6 +2836,32 @@
         }
       }
     };
+    function bossDrop(x, y, k) {                 // capsule lâchée par un boss : à aller chercher entre deux salves (trajet sans hasard)
+      const r0 = rng, n = cpN;
+      rng = null; capsule(x, y, k); rng = r0;
+      if (cpN > n) { const c = CP[cpN - 1]; c.vx = x < LW / 2 ? 16 : -16; c.vy = -70; }
+      ring(x, y, 6, 46, 0.45, CAPS[k].col, 2.4);
+      sparks(x, y, 8, GL.w, 120, 0.4, 6);
+    }
+    function velaDrop(b, x, y) {                 // nouvelle phase : PUISSANCE si le tir faiblit, sinon MISSILES ; sans bulle : une BULLE (une fois par combat)
+      let k = P.power < 6 ? 'P' : 'M';
+      if (P.shield < 1 && !b.gaveS) { k = 'S'; b.gaveS = true; }
+      bossDrop(x, y, k);
+    }
+    function weakMark(p, r, t) {                 // point faible : quatre coins ambrés qui tournent, blancs et serrés quand on touche
+      const k = p.wk, rr = r + 5 - 2.5 * k, L = 4.5, ang = t * 0.9 + p.uid;
+      ctx.globalCompositeOperation = 'lighter';
+      if (k > 0.02) glowAt(GL.y, p.x, p.y, r * 2.6 + 10 * k, 0.55 * k);
+      ctx.globalAlpha = Math.min(1, 0.6 + 0.2 * Math.sin(t * 4 + p.uid) + 0.4 * k);
+      ctx.strokeStyle = k > 0.35 ? '#ffffff' : '#ffd34d'; ctx.lineWidth = 1.5 + k;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const c = ang + i * Math.PI / 2, cx = p.x + Math.cos(c) * rr, cy = p.y + Math.sin(c) * rr, t1 = c + Math.PI * 0.75, t2 = c - Math.PI * 0.75;
+        ctx.moveTo(cx + Math.cos(t1) * L, cy + Math.sin(t1) * L); ctx.lineTo(cx, cy); ctx.lineTo(cx + Math.cos(t2) * L, cy + Math.sin(t2) * L);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
     BDRAW.vela = (b) => {
       const s = SPR.vela;
       ctx.drawImage(s.cv, b.x - s.w / 2, b.y - s.h / 2 - 4, s.w, s.h);
@@ -2838,7 +2892,9 @@
         if (!p.alive) { ctx.fillStyle = '#120a06'; circ(ctx, p.x, p.y, 10); ctx.fill(); ctx.fillStyle = 'rgba(255,120,30,0.5)'; circ(ctx, p.x, p.y, 4 + Math.sin(b.t * 9 + i) * 1.5); ctx.fill(); continue; }
         dsprR(SPR.turretV, p.x, p.y, p.aim - Math.PI / 2, 1);
         if (p.flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.8; ctx.drawImage(GL.w, p.x - 14, p.y - 14, 28, 28); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
+        if (b.ready) weakMark(p, 14, b.t);
       }
+      if (b.ready && o > 0.6) weakMark(b.core, 21, b.t);
       if (b.flash > 0 && hitBlink()) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.15; ctx.drawImage(GL.w, b.x - 120, b.y - 60, 240, 120); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
     };
 
@@ -4111,9 +4167,18 @@
         const full = P.hyper >= 1 && P.hyperT <= 0;
         ctx.fillStyle = full ? (((rt * 8) | 0) % 2 ? '#ffffff' : '#ff3fb4') : P.hyperT > 0 ? '#ff7ad8' : '#c050ff';
         ctx.fillRect(gx, gy, gw * hv, 4);
+        if (hyGlow > 0.02 && !full && P.hyperT <= 0) {   // coups au boss : la jauge s'illumine (halo, liseré, reflet qui court, étincelle au bout)
+          const fw = gw * hv, ex = gx + fw;
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 0.45 * hyGlow; ctx.fillStyle = '#ff9be8'; ctx.fillRect(gx, gy - 1, fw, 6);
+          ctx.globalAlpha = 0.85 * hyGlow; ctx.fillStyle = '#ffffff'; ctx.fillRect(gx, gy, fw, 1.2);
+          if (fw > 12) ctx.drawImage(GL.w, gx + (rt * 240) % fw - 9, gy - 4, 18, 12);
+          glowAt(GL.m, ex, gy + 2, 16 + 20 * hyGlow, 0.95 * hyGlow); glowAt(GL.w, ex, gy + 2, 6 + 8 * hyGlow, 0.9 * hyGlow);
+          ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        }
         if (full) { ctx.globalCompositeOperation = 'lighter'; glowAt(GL.m, gx + gw, gy + 2, 26, 0.9); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
       }
-      txt(P.hyper >= 1 && P.hyperT <= 0 ? 'HYPER PRÊT !' : 'HYPER', gx + gw + 6, gy + 5, 8, P.hyper >= 1 ? '#ff7ad8' : '#7f8fa0', 'left', false, 0);
+      txt(P.hyper >= 1 && P.hyperT <= 0 ? 'HYPER PRÊT !' : 'HYPER', gx + gw + 6, gy + 5, 8, P.hyper >= 1 ? '#ff7ad8' : hyGlow > 0.1 ? '#f0b8ff' : '#7f8fa0', 'left', false, 0);
       // barre du boss / mini-boss
       if (B && !B.dying) {
         const k = B.ready ? B.hp / B.maxHp : clamp(B.t / B.enterT, 0, 1);
@@ -4216,6 +4281,19 @@
       }
       ctx.globalAlpha = 1;
     }
+    function drawHyCue() {                       // « HYPER PRÊT ! » : grand titre bref qui file se ranger dans la jauge
+      if (hyCue < 0) return;
+      const t = hyCue, D = 1.2, hr = hudRight(), lx = hr - 34, ly = 54;
+      const y0 = BAN.t < BAN.dur && BAN.kind === 1 ? 170 : 126;   // sous le bandeau d'un événement s'il y en a un
+      const k = t < 0.6 ? 0 : ease((t - 0.6) / (D - 0.6));
+      const s = (t < 0.14 ? 1.6 - 0.6 * (t / 0.14) : 1) * lerp(1, 0.3, k), a = (t < 0.07 ? t / 0.07 : 1) * (1 - 0.85 * k);
+      ctx.save(); ctx.translate(lerp(LW / 2, lx, k), lerp(y0, ly, k)); ctx.scale(s, s);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55 * a; ctx.drawImage(GL.m, -150, -44, 300, 72); ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = a; txt('HYPER PRÊT !', 0, 0, 30, '#ff7ad8', 'center', false, 6);
+      if (t < 0.25) { ctx.globalAlpha = a * (1 - t / 0.25); txt('HYPER PRÊT !', 0, 0, 30, '#ffffff', 'center', false, 0); }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
     function drawOverlays() {
       S0();
       if (P.hyperT > 0 || hyperTint > 0.01) {
@@ -4230,6 +4308,7 @@
         for (let i = 0; i < 4; i++) ctx.fillRect(0, Math.random() * LH, LW, 1 + Math.random() * 5);
       }
       drawBanner();
+      drawHyCue();
       const cx = LW / 2;
       if (state === 'load') {
         ctx.fillStyle = 'rgba(1,3,8,0.55)'; ctx.fillRect(0, 0, LW, LH);
@@ -4353,6 +4432,9 @@
       if (flashA > 0) flashA = Math.max(0, flashA - dt * 2.6);
       if (glitch > 0) glitch -= dt;
       if (hyperTint > 0 && P.hyperT <= 0) hyperTint = Math.max(0, hyperTint - dt * 1.4);
+      if (hyGlow > 0) hyGlow = Math.max(0, hyGlow - dt * 1.6);
+      if (hyCue >= 0) { hyCue += dt; if (hyCue > 1.2) hyCue = -1; }
+      { const f = P.hyper >= 1 && P.hyperT <= 0; if (f && !hyFull && state === 'play' && P.alive) hyperReadyCue(); hyFull = f; }
       stT += dt;
       if (state === 'load') {
         if (!loading || stT > 3) { state = 'ready'; stT = 0; SFX.ready(); }
@@ -4421,11 +4503,12 @@
       }
       const hv = Math.round((P.hyperT > 0 ? P.hyperT / 6 : P.hyper) * 40) / 40;
       if (hv !== hyperShown) { hyperShown = hv; hyperBtn.style.background = 'conic-gradient(#ff3fb4 ' + Math.round(hv * 100) + '%, rgba(255,255,255,0.16) 0)'; }
-      const ready = P.hyper >= 1 && P.hyperT <= 0 && P.alive;
-      if (ready !== hyperReadyShown) {
-        hyperReadyShown = ready;
+      const ready = P.hyper >= 1 && P.hyperT <= 0 && P.alive, glow = !ready && hyGlow > 0.2 && P.alive;   // halo pendant qu'on charge sur un boss
+      if (ready !== hyperReadyShown || glow !== hyperGlowShown) {
+        hyperReadyShown = ready; hyperGlowShown = glow;
         hyperBtn.style.animation = ready ? 'gwPulse 0.9s ease-in-out infinite' : 'none';
-        hyperBtn.style.opacity = ready ? '1' : '0.72';
+        hyperBtn.style.boxShadow = glow ? '0 0 0 2px rgba(255,122,216,.5),0 0 16px rgba(255,63,180,.6)' : '';
+        hyperBtn.style.opacity = ready || glow ? '1' : '0.72';
       }
     }
 
