@@ -5792,7 +5792,7 @@ void main(){ if (vK >= 0.999) discard;
     // ===========================================================================
     const CLV = COOP ? Math.max(0, ['facile', 'moyen', 'difficile', 'extreme'].indexOf(CO.level)) : 1;
     const CT = {
-      hp: [0.8, 1, 1.2, 1.45], aggro: [0.85, 1, 1.12, 1.25], sp: [0.92, 1, 1.05, 1.1], extra: [0, 1, 1, 2], boss: [1.3, 1.6, 1.8, 2.1], down: [15, 12, 10, 8],
+      hp: [0.8, 1, 1.2, 1.45], aggro: [0.85, 1, 1.12, 1.25], sp: [0.92, 1, 1.05, 1.1], extra: [0, 1, 1, 2], boss: [1.3, 1.6, 1.8, 2.1], down: [25, 20, 16, 12],
       react: [0.6, 0.4, 0.25, 0.15], dodge: [0.35, 0.6, 0.85, 0.97], took: [0.5, 0.75, 1, 1], share: [0.35, 0.4, 0.45, 0.5], come: [1.0, 0.6, 0.4, 0.2], fire: [0.55, 0.75, 0.9, 1]
     };
     const MULT = [1, 1.3, 1.6, 2];
@@ -5918,19 +5918,21 @@ void main(){ if (vK >= 0.999) discard;
     function teamUpdate(h, dt) {
       if (h.st === 'down') {
         const t = NETG ? null : HEROES.find((o) => o !== h && o.st === 'up' && Math.hypot(o.x - h.x, o.z - h.z) < 1.8);
+        // invité : c'est l'hôte qui compte la relève ; tant que le copain est tout près, le temps à terre ne file pas
+        const near = NETG && HEROES.some((o) => o !== h && o.st === 'up' && Math.hypot(o.x - h.x, o.z - h.z) < 2.2);
         if (t && G.phase === 'play') { h.revK = Math.min(1, h.revK + dt / 2.0); if (FXR() < dt * 20) fx({ x: h.x + frnd(-0.6, 0.6), y: 0.2, z: h.z + frnd(-0.6, 0.6), vy: frnd(1, 2.4), life: 0.6, s0: 0.2, s1: 0, c0: 0x9fffc8, k: 2.6, cell: 'star4' }); }
-        else { h.revK = Math.max(0, h.revK - dt * 0.5); if (G.phase === 'play') h.downT -= dt; }
+        else { h.revK = Math.max(0, h.revK - dt * 0.5); if (G.phase === 'play' && !near) h.downT -= dt; }
         if (h.ring) { h.ring.x = h.x; h.ring.z = h.z; h.ring.a = 0.45 + 0.4 * clamp(h.downT / CT.down[CLV], 0, 1); }
         if (h.gauge) { h.gauge.x = h.x; h.gauge.z = h.z; h.gauge.s = 0.4 + h.revK * 3.4; h.gauge.a = h.revK > 0 ? 0.7 : 0; }
         if (h.revK >= 1) heroRevive(h, t);
         else if (h.downT <= 0) heroGhost(h);
       } else if (h.st === 'ghost') {
-        // il flotte derrière son copain ; il revient seul après 25 s dans la salle du boss
+        // il flotte derrière son copain ; il revient seul après 25 s (dans toutes les salles, plus seulement celle du boss)
         h.ghostT += dt;
         const t = standing()[0];
         if (t) { const gx = t.x - Math.sin(t.face) * 1.6, gz = t.z - Math.cos(t.face) * 1.6; h.x = damp(h.x, gx, 2.5, dt); h.z = damp(h.z, gz, 2.5, dt); h.face = t.face; }
         if (h.c) { h.c.root.position.set(h.x, 0.35 + Math.sin(G.t * 2.4) * 0.12, h.z); }
-        if (BOSS.m && !BOSS.m.dead && BOSS.st !== 'sleep' && h.ghostT > 25 && t) { h.x = t.x - 1.2; h.z = t.z + 0.8; heroRevive(h, null); }
+        if (G.phase === 'play' && h.ghostT > 25 && t) { h.x = t.x - 1.2; h.z = t.z + 0.8; heroRevive(h, null); }
       }
     }
     // ------------------------------------------------------------- les deux héros à chaque image
