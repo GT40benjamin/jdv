@@ -203,3 +203,8 @@ dans `destroy` (`WEBGL_lose_context`) et garde une `preview()` 2D (elle peut cop
 contexte), avec un repli si WebGL manque. Jamais de construction 3D DANS preview() (elle est appelée à chaque image de la page Duel) :
 décor 2D tout de suite, image 3D préparée au calme (requestIdleCallback), une seule fois par page à une taille de référence fixe, puis
 mise à l'échelle ; facultatif `warm(w, h)` dans l'enregistrement pour tout préparer d'un coup (utilisé par accueil-media.js).
+
+## Ajout : le duel qui se joue aussi en COOP
+Un duel peut AUSSI se jouer à deux contre le jeu (mode Coop de la borne) : il déclare `coop: { … }` dans son enregistrement et
+`mount` teste `api.coop` EN TOUT PREMIER (`if (api.coop) return mountCoop(root, api);`). Tout est dans `COOP-CONTRACT.md` ; le chemin
+du duel ne change pas d'un octet de comportement (même PRNG, mêmes décisions de l'IA).

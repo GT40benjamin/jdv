@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Test coop</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap">
+<style>
+html,body{margin:0;height:100%;background:#0b141c;overflow:hidden;font-family:'Chakra Petch',system-ui,sans-serif;color:#e9f0f3}
+/* imitation de la scène SOLO de la bibliothèque en coop : barre du haut (✕, « 🤝 titre », ligne 👑) puis l'aire du jeu */
+.top{position:absolute;left:0;right:0;top:0;height:52px;display:flex;align-items:center;gap:10px;padding:0 10px;background:#111d27;border-bottom:1px solid #22394a;z-index:5}
+.top button{width:40px;height:36px;border-radius:10px;border:1px solid #3a5568;background:#16242f;color:#e9f0f3;font:700 15px system-ui;cursor:pointer}
+.ttl{display:grid;min-width:0}
+.ttl b{font:400 15px 'Bungee',Impact,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ttl span{font:600 11.5px 'Chakra Petch',system-ui;color:#c4f2cf}
+#root{position:absolute;left:0;right:0;top:52px;bottom:0}
+.card{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:rgba(8,14,20,.82)}
+.card > div{min-width:260px;max-width:90%;padding:20px;border-radius:16px;background:#111d27;border:1px solid #4cc36a;text-align:center;display:grid;gap:10px}
+.card h2{margin:0;font:400 26px 'Bungee',Impact,sans-serif}
+.card p{margin:0;color:#8aa0ae}
+.card button{min-height:42px;border-radius:12px;border:0;background:#4cc36a;color:#0b141c;font:400 14px 'Bungee',Impact,sans-serif;cursor:pointer}
+.card button.ghost{background:#22394a;color:#e9f0f3}
+.heads{display:flex;justify-content:center;gap:12px}
+.heads canvas{width:56px;height:70px;border-radius:50%;box-shadow:0 0 0 3px var(--c)}
+</style>
+</head><body>
+<div class="top"><button id="quit" type="button" aria-label="Quitter">✕</button><div class="ttl"><b id="ttl">🤝 …</b><span id="line">👑 Pas encore de record d'équipe : à vous !</span></div></div>
+<div id="root"></div>
+<script>
+// Harnais d'un jeu COOP (COOP-CONTRACT.md), comme la bibliothèque le monterait :
+//   ?g=<id> (cherché dans JDW_GAMES puis JDW_DUOS ; &src=<fichier.js> pour un module hors du dépôt, ex. le faux jeu des tests)
+//   &level=facile|moyen|difficile|extreme (défaut moyen) &heads (fausses têtes) &guest (joueur sans tête) &noassets &fast &seed=<n>
+//   en ligne (page coop-net.html) : &net=host|guest &epoch=<ms> &rtt=<ms> — messages par la page parente (faux réseau)
+// window.__coop = { inst, api, over, score, level, destroyed, paused, pauses, stats, celebrates, errors, guestOver, cover, csc }
+const Q = new URLSearchParams(location.search), GID = Q.get('g') || 'boum';
+if (Q.has('fast')) {
+  let fakeNow = 0;
+  window.requestAnimationFrame = (cb) => setTimeout(() => { fakeNow += 50; cb(fakeNow); }, 2);
+  window.cancelAnimationFrame = (id) => clearTimeout(id);
+}
+window.__coop = { inst: null, api: null, over: false, score: 0, level: 0, destroyed: false, paused: false, pauses: 0, stats: null, celebrates: [], errors: [], guestOver: 0, cover: null, csc: null };
+addEventListener('error', e => window.__coop.errors.push(String(e.message)));
+addEventListener('unhandledrejection', e => window.__coop.errors.push('rejet : ' + (e.reason && e.reason.message || e.reason)));
+if (Q.get('src')) document.write('<script src="' + Q.get('src').replace(/"/g, '') + '"><\/script>');
+else document.write('<script src="../games/' + GID + '.js"><\/script><script src="../duos/' + GID + '.js"><\/script>');
+</script>
+<script>
+(() => {
+  const C = window.__coop, M = (window.JDW_GAMES || {})[GID] || (window.JDW_DUOS || {})[GID];
+  if (!M) { C.errors.push('jeu introuvable : ' + GID); return; }
+  if (!M.coop) { C.errors.push('le jeu ' + GID + " n'a pas de champ coop"); return; }
+  const co = M.coop, LV = ['facile', 'moyen', 'difficile', 'extreme'], K = { facile: 0.25, moyen: 0.5, difficile: 0.75, extreme: 1 };
+  const level = LV.includes(Q.get('level')) ? Q.get('level') : 'moyen';
+  const NETROLE = Q.get('net'), EPOCH = +(Q.get('epoch') || Date.now()), RTT = +(Q.get('rtt') || 120);
+  const cols = Array.isArray(co.colors) && co.colors.length >= 2 ? co.colors : ['#ffa630', '#5ef0ff'];
+  document.getElementById('ttl').textContent = '🤝 ' + (co.short || M.title);
+  function fakeHead(skin, hair, mood, sad) {
+    const c = document.createElement('canvas'); c.width = 160; c.height = 200; const g = c.getContext('2d');
+    g.fillStyle = skin; g.beginPath(); g.ellipse(80, 108, 62, 80, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = hair; g.beginPath(); g.ellipse(80, 50, 66, 40, 0, Math.PI, 0); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(56, 100, 13, 0, 7); g.arc(104, 100, 13, 0, 7); g.fill();
+    g.fillStyle = '#222'; g.beginPath(); g.arc(58, 102, 6, 0, 7); g.arc(102, 102, 6, 0, 7); g.fill();
+    g.strokeStyle = '#7a2a2a'; g.lineWidth = 6; g.beginPath();
+    if (sad) g.arc(80, 160, 22, 1.15 * Math.PI, 1.85 * Math.PI); else g.arc(80, 140, mood, 0.15 * Math.PI, 0.85 * Math.PI);
+    g.stroke();
+    if (sad) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(70,120,210,.38)'; g.fillRect(0, 0, 160, 200); g.globalCompositeOperation = 'source-over'; }
+    return c;
+  }
+  const heads = Q.has('heads') ? [['PATOU', '#f2c39b', '#5a3a1a', 22], ['JUJU', '#c98b5e', '#1a1a1a', 26], ['MOMO', '#ffd9c0', '#d9902a', 18], ['LEO', '#e8b48a', '#8a2a1a', 24]]
+    .map(([name, s, h, m]) => ({ name, img: fakeHead(s, h, m), sad: fakeHead(s, h, m, true) })) : [];
+  const robot = { img: fakeHead('#9fb2bf', '#5d7484', 20), sad: fakeHead('#9fb2bf', '#5d7484', 20, true) };
+  const human = i => Q.has('guest') || !heads[i] ? { name: i ? 'COPAIN' : 'INVITÉ', img: null, sad: null } : { name: heads[i].name, img: heads[i].img, sad: heads[i].sad };
+  const me = NETROLE === 'guest' ? 1 : 0;
+  const P = NETROLE ? [human(0), human(1)] : [human(0), { name: 'ROBOT', img: robot.img, sad: robot.sad, ai: true }];
+  const players = P.map((p, i) => ({ name: p.name, img: p.img, sad: p.sad, color: cols[i], ai: !!p.ai, local: NETROLE ? i === me : true }));
+  let AC = null;
+  const audio = {
+    tone(f, dur, type = 'square', vol = 0.08, f2) {
+      try {
+        AC = AC || new AudioContext(); const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+        o.type = type; o.frequency.setValueAtTime(Math.max(20, f), t); if (f2) o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+        g.gain.setValueAtTime(vol * 0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + 0.03);
+      } catch (e) {}
+    },
+    noise() {}
+  };
+  const DIR = '../../../jdv-tools/ilo-assets';
+  const loadImg = u => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
+  let assetsP = null;
+  const assets = (n) => {
+    if (Q.has('noassets') || (n || GID) !== 'ilo') return Promise.reject(new Error('pas d\'images'));
+    if (!assetsP) assetsP = Promise.all([
+      Promise.all(Array.from({ length: 32 }, (_, i) => loadImg(DIR + '/planets/' + String(i + 1).padStart(2, '0') + '.webp'))),
+      Promise.all(Array.from({ length: 4 }, (_, i) => loadImg(DIR + '/nebulas/' + String(i + 1).padStart(2, '0') + '.webp')))
+    ]).then(([planets, nebulas]) => ({ planets, nebulas }));
+    return assetsP;
+  };
+  const toParent = m => { try { parent.postMessage(m, '*'); } catch (e) {} };
+  const netFns = [];
+  const net = NETROLE ? {
+    role: NETROLE, me,
+    send(msg, o) { C.netSent = (C.netSent || 0) + 1; toParent({ __net: 1, msg, reliable: !!(o && o.reliable) }); },
+    onMessage(fn) { if (typeof fn === 'function') netFns.push(fn); },
+    now: () => Date.now() - EPOCH,
+    rtt: () => RTT
+  } : null;
+  const guestSide = NETROLE === 'guest';
+  const line = document.getElementById('line');
+  const card = (title, sub, btns) => {
+    const old = document.querySelector('.card'); if (old) old.remove();
+    const c = document.createElement('div'); c.className = 'card'; const d = document.createElement('div'); c.appendChild(d);
+    const hs = document.createElement('div'); hs.className = 'heads';
+    players.forEach(p => { const cv = document.createElement('canvas'); cv.width = 160; cv.height = 200; cv.style.setProperty('--c', p.color); if (p.img) cv.getContext('2d').drawImage(p.img, 0, 0); hs.appendChild(cv); });
+    const h = document.createElement('h2'); h.textContent = title; const p = document.createElement('p'); p.textContent = sub;
+    d.append(hs, h, p);
+    for (const [t, fn, cls] of btns) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; if (cls) b.className = cls; b.addEventListener('click', fn); d.appendChild(b); }
+    document.body.appendChild(c); return c;
+  };
+  function score() { if (guestSide) return C.csc ? C.csc.s : 0; try { return Math.max(0, Math.floor(+C.inst.currentScore() || 0)); } catch (e) { return 0; } }
+  function lvl() { if (guestSide) return C.csc ? C.csc.lv : 0; try { return Math.floor(+C.inst.currentLevel() || 0); } catch (e) { return 0; } }
+  function pause(from) {
+    if (C.over || C.paused || !C.inst) return;
+    C.paused = true; C.pauses++;
+    try { C.inst.pause(); } catch (e) { C.errors.push('pause : ' + e.message); }
+    card('PAUSE', score() + " points d'équipe", [['Reprendre', () => resume('me')], ['Quitter', () => quit(), 'ghost']]);
+    if (NETROLE && from !== 'net') toParent({ __co: { h: guestSide ? 'cpausereq' : 'cpause' } });
+  }
+  function resume(from) {
+    if (!C.paused) return;
+    C.paused = false; const c = document.querySelector('.card'); if (c) c.remove();
+    try { C.inst.resume(); } catch (e) { C.errors.push('resume : ' + e.message); }
+    if (NETROLE && from !== 'net') toParent({ __co: { h: guestSide ? 'cresumereq' : 'cresume' } });
+  }
+  function finish(s, st, stats, why) {
+    if (C.over) return;
+    C.over = true; C.score = s; C.level = st; C.stats = stats; C.why = why;
+    card('PARTIE TERMINÉE', s + " points d'équipe" + (st ? ' · niveau ' + st : '') + (stats && stats.length ? ' · ' + stats.map(x => (x.icon || '') + ' ' + x.n + ' ' + x.label).join(' · ') : ''), [['Rejouer', () => location.reload()]]);
+  }
+  function hostOver(s, why) {
+    let st = 0, stats = null;
+    try { st = Math.floor(+C.inst.currentLevel() || 0); } catch (e) {}
+    try { stats = C.inst.coopStats ? C.inst.coopStats() : null; } catch (e) { C.errors.push('coopStats : ' + e.message); }
+    if (NETROLE === 'host') toParent({ __co: { h: 'cover', s, st, stats, why } });
+    finish(s, st, stats, why);
+  }
+  function quit() {
+    if (C.over) return;
+    if (guestSide) { toParent({ __co: { h: 'cquit' } }); return; }
+    const s = score();
+    try { C.inst.destroy(); C.destroyed = true; } catch (e) { C.errors.push('destroy : ' + e.message); }
+    hostOver(s, 'quit');
+  }
+  const coop = {
+    mode: NETROLE ? 'net' : 'ai', level, k: K[level], players, me, robot,
+    run: 'r' + Math.random().toString(36).slice(2, 13).padEnd(11, '0'),
+    pause: () => pause('game'),
+    abort: msg => { C.aborted = String(msg || ''); finish(0, 0, null, 'abort'); toParent({ __co: { h: 'cabort', msg: C.aborted } }); }
+  };
+  if (NETROLE) coop.net = net; else coop.ai = { p: 1, level, k: K[level] };
+  const api = {
+    audio, assets, hasMusic: true,
+    fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+    colors: { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae', amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a' },
+    music() {}, isMuted: () => false, vibrate() {},
+    heads: () => heads.filter(h => h.name !== players[0].name && h.name !== players[1].name),
+    player: { name: players[me].name, img: players[me].img },
+    seed: Q.has('seed') ? (+Q.get('seed') >>> 0) : (Math.random() * 0x7fffffff) | 0,
+    celebrate(text, name) { if (guestSide) { C.guestCelebrates = (C.guestCelebrates || 0) + 1; return; } C.celebrates.push(String(text)); if (NETROLE === 'host') toParent({ __co: { h: 'ccel', text, name } }); },
+    gameOver(s) {
+      if (guestSide) { C.guestOver++; return; }   // la bibliothèque ignore celui de l'invité (elle recopie la fin de l'hôte)
+      if (C.over) { C.errors.push('gameOver appelé deux fois'); return; }
+      hostOver(Math.max(0, Math.floor(+s || 0)), 'over');
+    },
+    coop
+  };
+  C.api = api;
+  // ce que la bibliothèque recopie (score, pause, fin) et les messages du jeu
+  addEventListener('message', e => {
+    const d = e.data || {};
+    if (d.__netin) { for (const f of netFns) try { f(d.msg); } catch (x) { C.errors.push('onMessage : ' + x.message); } return; }
+    if (!d.__co) return;
+    const m = d.__co;
+    if (m.h === 'csc' && guestSide) C.csc = { s: m.s, lv: m.lv };
+    else if (m.h === 'cpause' || m.h === 'cpausereq') { pause('net'); if (m.h === 'cpausereq') toParent({ __co: { h: 'cpause' } }); }
+    else if (m.h === 'cresume' || m.h === 'cresumereq') { resume('net'); if (m.h === 'cresumereq') toParent({ __co: { h: 'cresume' } }); }
+    else if (m.h === 'cover' && guestSide) { C.cover = m; if (m.why !== 'over') { try { C.inst.destroy(); C.destroyed = true; } catch (x) {} } finish(m.s, m.st, m.stats, m.why); }
+    else if (m.h === 'cquit' && !guestSide) quit();
+    else if (m.h === 'ccel' && guestSide) C.celebrates.push(String(m.text));
+    else if (m.h === 'cabort') { C.aborted = m.msg; finish(0, 0, null, 'abort'); }
+  });
+  try { C.inst = M.mount(document.getElementById('root'), api) || {}; } catch (e) { C.errors.push('mount : ' + e.message); }
+  for (const k of ['destroy', 'currentScore', 'currentLevel', 'pause', 'resume']) if (C.inst && typeof C.inst[k] !== 'function') C.errors.push('mount() ne renvoie pas ' + k + '()');
+  setInterval(() => {
+    if (C.over) return;
+    C.score = score(); C.level = lvl();
+    line.textContent = (guestSide ? '👑 (invité) ' : '👑 ') + C.score + ' · niveau ' + C.level;
+    if (NETROLE === 'host') toParent({ __co: { h: 'csc', s: C.score, lv: C.level } });
+  }, 1000);
+  document.getElementById('quit').addEventListener('click', quit);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause('hidden'); });
+})();
+</script>
+</body></html>

@@ -267,12 +267,24 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Coop** 
   « Bientôt en ligne » (plus de vidéo : décision de l'utilisateur, le mode données est parfait en vrai). Tests : test-ai-real.js (GAME, LEVEL, WAIT), test-noai.js.
 - Présence de la salle : seuls les MEMBRES (room_members) comptent (presList filtre) — un appareil branché sur le canal sans avoir
   rejoint n'apparaît ni dans « en ligne », ni dans les défis.
-- **Coop** (à la place de l'ancienne Compétition, retirée en entier : code, page, présence `cmp`, signaux, tests archivés dans
-  `~/jdv-tools/archive-compet/`) : jouer ENSEMBLE contre le jeu, avec un robot (Facile → Extrême) ou un copain en ligne. Plan :
-  `~/jdv-tools/duotest/coop/COOP-PLAN.md` (contrat des jeux COOP-CONTRACT.md, serveur coop.sql). Pour l'instant la page Coop est une
-  page d'attente « bientôt » (section « Coop » de shell2.js, renderCoop : Boum 2 contre 2, Galaxy Wars à deux, Magic Force à deux en
-  vignettes animées ; aucune requête au serveur ; bouton du mode avec l'étiquette « bientôt »). La borne n'envoie plus api.mode /
-  api.startLevel / api.seed aux jeux solo (CONTRACT.md Ajout 6 révisé : outils des harnais `?start=N&seed=S`).
+- **Coop** (à la place de l'ancienne Compétition, retirée en entier en 1.13.4 ; ses tests sont archivés dans `~/jdv-tools/archive-compet/`) :
+  jouer ENSEMBLE contre le jeu, avec un robot (Facile → Extrême) ou un copain en ligne. Plan : `~/jdv-tools/duotest/coop/COOP-PLAN.md` ;
+  contrat des jeux `source/COOP-CONTRACT.md` (DUO-CONTRACT.md y renvoie) ; serveur `~/jdv-tools/duotest/coop/coop.sql` (PAS encore appliqué :
+  add_coop_score, get_coop_scores, get_world_coop_scores, get_coop_notifs, get_messages2 ; test-coop-sql.mjs). Cadre (M2, section « Coop »
+  de shell2.js) : un jeu de `COOP_ORDER` (boum, ilo, magic) qui déclare `coop` a sa tuile (onglets « 🤖 Avec l'IA » / « 🌐 Avec un copain »,
+  équipe, champions à deux têtes), le lanceur `#jdw-coopgo` (difficulté retenue par jeu et par sorte `jdw.coopdiff`, ×mult, record de la
+  salle), le montage `coopMount` (api solo + `api.coop` : mode, level, k, players, me, ai OU net, robot, run, pause, abort ; `api.seed`),
+  la ligne 👑 d'équipe, la pause commune `#jdw-coop-pause`, la fin `#jdw-coopend` (deux têtes, équipe battue, « Rejouer ensemble »,
+  partage), l'envoi `add_coop_score` (saving++, file à part `jdw.unsentcoop` ; jamais add_score ni save_progress), les classements à deux
+  (onglets `coop:<id>`, puces `#jdw-coopkind`), la carte « record à deux » du chat (get_messages2, repli get_messages sur 404) et la cloche
+  (get_coop_notifs ; 404 → « classements à deux bientôt », plus de requête coop pour la séance). En ligne : la tuyauterie du duel en ligne
+  (`NET.kind = 'coop'`, invitation `coopinv` ou lien `?coop=<code>`, messages ctl me / cver / cstart / csc / ccel / cpause / cresume /
+  cpausereq / cresumereq / cquit / cover / cready / cshared / cabort ; l'hôte décide ; même version obligatoire ; copain parti → fin des
+  deux, « Rejouer avec un robot ») ; les chemins du duel ne changent pas (branches `NET.kind === 'coop'` en tête). TANT QU'AUCUN JEU NE
+  DÉCLARE `coop` (production actuelle) : page d'attente « bientôt » et AUCUNE requête coop. Harnais : `source/test/coop.html?g=<id>&heads&level=…`
+  (`&src=<module.js>`), `coop-net.html` (faux réseau). Tests : `~/jdv-tools/test-coop.js` (faux jeu `~/jdv-tools/coop-fake.js` injecté : liste vide,
+  robot, plein écran, hors ligne, deux appareils, invité, versions différentes) et `test-coop-board.js` (classements, cloche, chat, serveur 404,
+  invité), chacun avec son faux serveur. TILE_NEWS d'un jeu à deux : `coop-<id>`.
 - **Regarder un copain en direct** : bouton 👁 dans la liste des joueurs → vidéo WebRTC pair-à-pair du canvas
   du jeu (captureStream, 3 spectateurs max, STUN Google, pas de TURN : certains réseaux 4G peuvent bloquer). Signaux « rtc » dans le direct.
   Le spectateur envoie des réactions / phrases (« Tu vas perdre ! ») qui s'affichent en pleine partie chez le joueur (signal « rx »).

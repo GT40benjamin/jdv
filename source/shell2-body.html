@@ -81,6 +81,25 @@
       <section class="grid duo-grid" id="jdw-duo-grid" aria-label="Jeux de duel"></section>
     </section>
     <section class="mode-page" id="jdw-page-coop" aria-label="Mode Coop">
+      <div class="coop-full" id="jdw-coop-full" hidden>
+        <div class="duel-switch coop-switch" id="jdw-coop-switch" role="tablist" aria-label="Avec qui jouer">
+          <button type="button" role="tab" data-where="ia" aria-selected="true"><i>🤖</i><span>Avec l'IA</span></button>
+          <button type="button" role="tab" data-where="ami" aria-selected="false"><i>🌐</i><span>Avec un copain</span></button>
+        </div>
+        <div class="coop-team" id="jdw-coop-team">
+          <button class="ct-p ct-me" id="jdw-coop-me" type="button" aria-label="Qui joue ?"><span class="ct-head"></span><span class="ct-tx"><b class="ct-name"></b><small></small></span></button>
+          <span class="ct-plus" aria-hidden="true">+</span>
+          <div class="ct-p ct-mate" id="jdw-coop-mate"><span class="ct-head"></span><span class="ct-tx"><b class="ct-name"></b><small></small></span></div>
+        </div>
+        <p class="eyebrow grid-h">Choisis le jeu</p>
+        <section class="grid duo-grid coop-grid" id="jdw-coop-grid" aria-label="Jeux à deux"></section>
+        <p class="eyebrow">Comment ça marche</p>
+        <ol class="soon-steps">
+          <li><b>Ton coéquipier</b> : un robot (de Facile à Extrême) ou un copain en ligne, chacun sur son téléphone.</li>
+          <li><b>Une vie pour l'équipe</b> : si l'un tombe, l'autre le relève. Vous perdez ensemble.</li>
+          <li><b>Vos scores comptent</b> : deux classements par jeu, avec un copain et avec l'IA.</li>
+        </ol>
+      </div>
       <div class="coop-soon" id="jdw-coop-soon">
         <h2 class="coop-soon-h"><span>Bientôt&nbsp;:</span> jouez <em>ENSEMBLE</em> contre le jeu&nbsp;!</h2>
         <div class="coop-soon-list" role="list" aria-label="Les premiers jeux à deux">
@@ -161,6 +180,39 @@
         </div>
       </div>
     </div>
+    <div class="coop-pause" id="jdw-coop-pause" hidden>
+      <div class="card coop-pause-card" role="dialog" aria-modal="true" aria-labelledby="jdw-coop-pause-h">
+        <div class="card-body">
+          <div class="coop-pheads" id="jdw-coop-pause-heads"></div>
+          <h2 id="jdw-coop-pause-h">Pause</h2>
+          <p class="coop-pause-score" id="jdw-coop-pause-score"></p>
+          <p class="small" id="jdw-coop-pause-sub"></p>
+          <div class="coop-pause-btns">
+            <button class="btn btn-play" id="jdw-coop-resume" type="button">Reprendre</button>
+            <button class="btn btn-ghost" id="jdw-coop-quit" type="button">Quitter</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sheet coopend" id="jdw-coopend" hidden>
+      <div class="card coopend-card" id="jdw-coopend-card">
+        <div class="card-body">
+          <p class="eyebrow" id="jdw-coopend-game">Partie terminée</p>
+          <div class="coopend-team" id="jdw-coopend-team"></div>
+          <div class="bigscore"><b id="jdw-coopend-score">0</b><span id="jdw-coopend-unit">points d'équipe</span></div>
+          <p class="coopend-stats" id="jdw-coopend-stats" hidden></p>
+          <div class="beat coop-beat" id="jdw-coopend-beat" hidden><span class="coop-bheads" id="jdw-coopend-beat-heads"></span><p id="jdw-coopend-beat-txt"></p></div>
+          <p class="small coopend-gone" id="jdw-coopend-gone" hidden></p>
+          <p class="small" id="jdw-coopend-status"></p>
+          <ol class="board coop-board" id="jdw-coopend-board"></ol>
+          <div class="row">
+            <button class="btn btn-play" id="jdw-coopend-again" type="button">Rejouer ensemble</button>
+            <button class="btn btn-ghost" id="jdw-coopend-lib" type="button">Changer de jeu</button>
+          </div>
+          <button class="btn btn-ghost btn-sm end-chat" id="jdw-coopend-share" type="button" hidden>📣 Partager notre score</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -174,6 +226,10 @@
         <button type="button" data-scope="world" aria-pressed="false">🌍 Monde</button>
       </div>
       <div class="tabs" id="jdw-tabs" role="tablist" aria-label="Jeux"></div>
+      <div class="coop-kind" id="jdw-coopkind" role="group" aria-label="Avec qui" hidden>
+        <button type="button" data-kind="ami" aria-pressed="true">🤝 Avec un copain</button>
+        <button type="button" data-kind="ia" aria-pressed="false">🤖 Avec l'IA</button>
+      </div>
       <ol class="board" id="jdw-board-list"></ol>
     </div>
   </div>
@@ -302,6 +358,25 @@
     <form class="watch-own" id="jdw-watch-own" autocomplete="off"><input id="jdw-watch-in" type="text" maxlength="40" placeholder="Ton message…" enterkeyhint="send" aria-label="Ton message (40 lettres au plus)"><button type="submit" id="jdw-watch-send">Envoyer</button></form>
     </div>
     <div class="watch-row"><div class="watch-rx" id="jdw-watch-rx" aria-label="Déstabilise-le"></div><button type="button" class="watch-more" id="jdw-watch-more" aria-expanded="false" aria-label="Messages">💬</button></div>
+  </div>
+</div>
+
+<!-- Coop : le lanceur (difficulté, record de la salle, « C'est parti ! » / « Inviter un copain ») -->
+<div class="sheet" id="jdw-coopgo" hidden>
+  <div class="card coopgo-card" role="dialog" aria-modal="true" aria-labelledby="jdw-coopgo-h">
+    <div class="card-body">
+      <p class="eyebrow coopgo-kind" id="jdw-coopgo-kind"></p>
+      <h2 class="coopgo-h" id="jdw-coopgo-h"></h2>
+      <div class="coopgo-pv"><canvas id="jdw-coopgo-cv" aria-hidden="true"></canvas><div class="coopgo-team" id="jdw-coopgo-team"></div></div>
+      <p class="small coopgo-tag" id="jdw-coopgo-tag"></p>
+      <p class="eyebrow">Difficulté</p>
+      <div class="coop-lv" id="jdw-coopgo-lv" role="radiogroup" aria-label="Difficulté"></div>
+      <p class="small coopgo-hint" id="jdw-coopgo-hint" hidden></p>
+      <p class="eyebrow" id="jdw-coopgo-toph"></p>
+      <ol class="board coop-board" id="jdw-coopgo-top"></ol>
+      <p class="small coopgo-note" id="jdw-coopgo-note" hidden></p>
+      <div class="row coopgo-btns"><button class="btn btn-play" id="jdw-coopgo-go" type="button">C'est parti !</button><button class="btn btn-ghost" id="jdw-coopgo-back" type="button">Retour</button></div>
+    </div>
   </div>
 </div>
 

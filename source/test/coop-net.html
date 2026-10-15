@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test coop en ligne (deux appareils)</title>
+<style>
+html,body{margin:0;background:#05090d;color:#8aa0ae;font:12px system-ui,sans-serif}
+.row{display:flex;gap:14px;padding:10px;align-items:flex-start}
+.col{display:grid;gap:4px}
+iframe{border:0;display:block;background:#0b141c;box-shadow:0 0 0 1px #22394a}
+#st{padding:0 10px 8px}
+</style></head><body>
+<div class="row">
+  <div class="col"><span>HÔTE (joueur 0)</span><iframe id="h"></iframe></div>
+  <div class="col"><span>INVITÉ (joueur 1, à l'endroit)</span><iframe id="g"></iframe></div>
+</div>
+<div id="st"></div>
+<script>
+// Deux appareils COOP reliés par un faux réseau (comme duo-net.html) :
+//   ?g=<id>&src=<module.js>&level=…&heads&seed=<n>&lat=80&jit=30&loss=3&hw=390&hh=780&gw=390&gh=780
+// Messages du jeu (api.coop.net.send) : « rapides » retardés (lat ± jit/2), perdus (loss %) et dans le désordre ; fiables : toujours, dans l'ordre.
+// Messages de la bibliothèque simulée (__co : csc, cover, pause, quit…) : fiables. Même graine des deux côtés (tirée ici si absente).
+// Scripts de test : page.frames() → frame dont l'URL contient net=host / net=guest, puis frame.evaluate(() => window.__coop) ;
+// ici : window.__net = { sent, lost, bytes, co }.
+const Q = new URLSearchParams(location.search);
+const LAT = +(Q.get('lat') || 60), JIT = +(Q.get('jit') || 20), LOSS = +(Q.get('loss') || 0) / 100;
+const HW = +(Q.get('hw') || 390), HH = +(Q.get('hh') || 780), GW = +(Q.get('gw') || 390), GH = +(Q.get('gh') || 780);
+const EPOCH = Date.now(), SEED = Q.has('seed') ? Q.get('seed') : String((Math.random() * 0x7fffffff) | 0);
+const pass = ['g', 'src', 'level', 'heads', 'guest', 'noassets', 'fast'].filter(k => Q.has(k)).map(k => k + (Q.get(k) ? '=' + encodeURIComponent(Q.get(k)) : '')).join('&');
+const H = document.getElementById('h'), G = document.getElementById('g');
+Object.assign(H.style, { width: HW + 'px', height: HH + 'px' }); Object.assign(G.style, { width: GW + 'px', height: GH + 'px' });
+H.src = 'coop.html?' + pass + '&seed=' + SEED + '&net=host&epoch=' + EPOCH + '&rtt=' + 2 * LAT;
+G.src = 'coop.html?' + pass + '&seed=' + SEED + '&net=guest&epoch=' + EPOCH + '&rtt=' + 2 * LAT;
+const net = window.__net = { sent: 0, lost: 0, bytes: 0, co: 0, lat: LAT, jit: JIT, loss: LOSS };
+Object.defineProperty(net, 'host', { get: () => H.contentWindow && H.contentWindow.__coop }); Object.defineProperty(net, 'guest', { get: () => G.contentWindow && G.contentWindow.__coop });
+const lastRel = { h: 0, g: 0 };
+addEventListener('message', e => {
+  const d = e.data || {}, fromHost = e.source === H.contentWindow, to = fromHost ? G : H, key = fromHost ? 'h' : 'g';
+  if (!to.contentWindow) return;
+  if (d.__net) {
+    net.sent++; try { net.bytes += JSON.stringify(d.msg).length; } catch (x) {}
+    if (!d.reliable && Math.random() < LOSS) { net.lost++; return; }
+    let at = Date.now() + Math.max(0, LAT + (Math.random() - 0.5) * JIT);
+    if (d.reliable) { at = Math.max(at, lastRel[key] + 1); lastRel[key] = at; }
+    setTimeout(() => to.contentWindow.postMessage({ __netin: 1, msg: d.msg }, '*'), at - Date.now());
+  } else if (d.__co) {
+    net.co++;
+    const at = Math.max(Date.now() + LAT, lastRel[key] + 1); lastRel[key] = at;
+    setTimeout(() => to.contentWindow.postMessage(d, '*'), at - Date.now());
+  }
+});
+setInterval(() => { document.getElementById('st').textContent = 'faux réseau : ' + LAT + ' ms ± ' + JIT / 2 + ', pertes ' + Math.round(LOSS * 100) + ' % · messages ' + net.sent + ' (' + net.lost + ' perdus) · ' + Math.round(net.bytes / 1024) + ' Ko · bibliothèque ' + net.co; }, 500);
+</script>
+</body></html>
