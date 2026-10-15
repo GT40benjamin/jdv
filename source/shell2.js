@@ -16,7 +16,8 @@ const TILE_NEWS = {
   rouleaux: { kind: 'maj', at: '2026-10-14 13:32' },
   carreaux: { kind: 'maj', at: '2026-10-14 17:45' },
   pingpong: { kind: 'new', at: '2026-10-15 00:20' },
-  'coop-boum': { kind: 'new', at: '2026-10-15 06:00' }   // mode Coop : Boum 2 contre 2 (1.14)
+  'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
+  'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' }   // mode Coop : Galaxy Wars à deux (1.15)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));

@@ -274,6 +274,7 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Coop** 
 - Présence de la salle : seuls les MEMBRES (room_members) comptent (presList filtre) — un appareil branché sur le canal sans avoir
   rejoint n'apparaît ni dans « en ligne », ni dans les défis.
 - **Coop** (à la place de l'ancienne Compétition, retirée en entier en 1.13.4 ; ses tests sont archivés dans `~/jdv-tools/archive-compet/`) :
+  Galaxy Wars à deux en 1.15 (games/ilo.js ASSEMBLÉ depuis `~/jdv-tools/duotest/ilo-coop/parts`, `node assemble.js`, fiche REPRISE.md ; solo identique) ;
   1er jeu Coop publié en 1.14 : **Boum 2 contre 2** (duos/boum.js ASSEMBLÉ depuis `~/jdv-tools/duotest/boum-coop/parts`, `node assemble.js`, fiche REPRISE.md ; le duel 1 contre 1 reste identique : det.js / battery) ;
   jouer ENSEMBLE contre le jeu, avec un robot (Facile → Extrême) ou un copain en ligne. Plan : `~/jdv-tools/duotest/coop/COOP-PLAN.md` ;
   contrat des jeux `source/COOP-CONTRACT.md` (DUO-CONTRACT.md y renvoie) ; serveur `source/coop.sql` (APPLIQUÉ le 15 oct. 2026 par le connecteur, aussi à la fin de supabase.sql :
