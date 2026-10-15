@@ -1,3 +1,1 @@
-🧙 Magic Force à deux dans le mode Coop : joue avec le robot ou un copain en ligne, et relevez-vous quand l'un de vous tombe !
-❄️ Magic Force grandit : 6 salles par monde, des mini-boss, une salle secrète et un 3e monde, les Grottes de glace, avec Givre l'hydre !
-🗺️ La carte de Magic Force montre tout le donjon, salle par salle
+🔧 Jouer à deux en ligne marche aussi sur iPhone (la connexion restait bloquée)

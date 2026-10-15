@@ -5090,6 +5090,7 @@ function coopCtlHost(m) {
 function coopCtlGuest(m) {
   if (m.h === 'cver') { netEnd(false, 'Vos bornes n\'ont pas la même version : mettez-les à jour.'); checkSiteVersion(); return; }
   if (m.h === 'cstart') { coopGuestStart(m); return; }
+  if (m.h === 'cabort' && !NET.start) { netEnd(false, String(m.msg || 'La partie ne peut pas démarrer.').slice(0, 120)); return; }
   if (!current || !current.coop) { if (m.h === 'quit') coopLinkGone('quit'); else if (m.h === 'cready') { COOP.ready[0] = true; if (!$('jdw-coopend').hidden) coopStatus(dispName(COOP.mate) + ' est prêt à rejouer !'); } return; }
   if (m.h === 'csc') { COOP.lastCsc = { s: Math.max(0, Math.floor(+m.s || 0)), lv: Math.floor(+m.lv || 0) }; return; }
   if (m.h === 'ccel') { toastCheer(String(m.text || '').slice(0, 140), m.name || null); return; }
@@ -5458,7 +5459,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && WAT
 const NET_LINK = () => location.origin + location.pathname + (NET.kind === 'coop' ? '?coop=' : '?duel=') + NET.code;
 function rtBroadcastTo(topic, data) { return rtSend(topic, 'broadcast', { type: 'broadcast', event: 'poke', payload: Object.assign({ from: clientId }, data) }); }
 function netSig(data) { if (NET.topic) rtBroadcastTo(NET.topic, Object.assign({ t: 'net', code: NET.code }, data)); }
-function netCtl(m) { if (NET.ctl && NET.ctl.readyState === 'open') try { NET.ctl.send(JSON.stringify(m)); } catch (e) {} }
+function netCtl(m) { if (NET.ctl && NET.ctl.readyState === 'open') try { NET.ctl.send(JSON.stringify(m)); } catch (e) { if (!NET.ctlErr) { NET.ctlErr = true; reportError('Liaison : message « ' + m.h + ' » refusé (' + e.message + ')', '', { quiet: true }); } } }
 // ce que le jeu voit en ligne (DUO-CONTRACT.md, « Ajout : le jeu EN LIGNE »)
 function netApi(seq) {
   const mine = () => DUO.seq === seq;
@@ -5481,11 +5482,23 @@ function netDeliver(m) {
   if (!NET.handlers.length) { NET.queue.push(m); if (NET.queue.length > 300) NET.queue.shift(); return; }
   for (const f of NET.handlers) try { f(m); } catch (e) { reportError('Duel en ligne (message) : ' + e.message, e.stack, { quiet: true }); }
 }
-function netMyPhoto() { const ph = activePhoto(profile); return ph && ph.length < 200000 ? ph : ''; }
+// ma tête pour l'autre appareil : un message de canal de données ne dépasse pas la taille que l'autre accepte (iPhone / Safari :
+// 64 Ko ; au-delà, send() échoue et la partie ne démarre jamais) → au-delà de 60 000 caractères, une version réduite (160 px)
+const NET_PH = { src: '', small: '' };
+function netPrepPhoto() {
+  const ph = activePhoto(profile);
+  if (!ph || ph.length < 60000 || NET_PH.src === ph) return;
+  NET_PH.src = ph; NET_PH.small = '';
+  const im = new Image();
+  im.onload = () => { try { const k = Math.min(1, 160 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k)); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); const d = c.toDataURL('image/png'); if (NET_PH.src === ph && d.length < 60000) NET_PH.small = d; } catch (e) {} };
+  im.src = ph;
+}
+function netMyPhoto() { const ph = activePhoto(profile); if (!ph) return ''; if (ph.length < 60000) return ph; netPrepPhoto(); return NET_PH.src === ph ? NET_PH.small : ''; }
 // les doigts rejoués ont des numéros >= 1000 : pas de capture de pointeur pour eux
 for (const k of ['setPointerCapture', 'releasePointerCapture']) { const f = Element.prototype[k]; if (f) Element.prototype[k] = function (id) { if (id >= 1000) return; return f.call(this, id); }; }
 { const f = Element.prototype.hasPointerCapture; if (f) Element.prototype.hasPointerCapture = function (id) { return id >= 1000 ? true : f.call(this, id); }; }
 function netReset() {
+  netPrepPhoto();
   if (NET.pc) try { NET.pc.close(); } catch (e) {}
   if (NET.stream) try { NET.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
   if (NET.topic) rtLeave(NET.topic);
@@ -5725,6 +5738,8 @@ async function netGuestOffer(p) {
     await pc.setLocalDescription(await pc.createAnswer());
     netSig({ k: 'answer', to: NET.peerCid, sdp: pc.localDescription.sdp });
     $('jdw-net-h').textContent = 'Connexion avec ' + NET.peer + '…';
+    // coop : la partie doit démarrer en 30 s (sinon on le dit, au lieu d'attendre pour toujours)
+    if (NET.kind === 'coop') { clearTimeout(NET.waitT); NET.waitT = setTimeout(() => { if (NET.pc === pc && NET.kind === 'coop' && !NET.start) { iceReport('Coop en ligne avec ' + (NET.peer || '?'), pc, 'pas de départ'); netEnd(true, 'La partie avec ' + (NET.peer || 'ton copain') + " n'a pas pu démarrer (réseau)."); } }, 30000); }
   } catch (e) { netEnd(true, 'Impossible de rejoindre le duel.'); reportError('Rejoindre un duel : ' + e.message, e.stack, { quiet: true }); }
 }
 function netGuestHello() {
