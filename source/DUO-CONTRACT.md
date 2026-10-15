@@ -208,3 +208,16 @@ mise à l'échelle ; facultatif `warm(w, h)` dans l'enregistrement pour tout pr�
 Un duel peut AUSSI se jouer à deux contre le jeu (mode Coop de la borne) : il déclare `coop: { … }` dans son enregistrement et
 `mount` teste `api.coop` EN TOUT PREMIER (`if (api.coop) return mountCoop(root, api);`). Tout est dans `COOP-CONTRACT.md` ; le chemin
 du duel ne change pas d'un octet de comportement (même PRNG, mêmes décisions de l'IA).
+
+## Ajout : duel 3D avec moteur et paquets (ex. `kombat`, Mandale Kombat)
+Un duel peut charger, pendant `mount()` seulement, un moteur 3D (`assets/<prefixe>.moteur.bin` : JavaScript gzippé, licences libres,
+injecté par `<script>` depuis un Blob) et des paquets chiffrés `assets/<prefixe>.*.bin` (clé `window.JDW_ASSET_KEY`, racine du site
+`window.JDW_ROOT`), avec un écran de chargement et un repli propre si ça échoue (« Ton téléphone n'arrive pas à charger ce jeu 3D »,
+bouton Réessayer ; jamais d'`api.gameOver` ni de plantage). Une seule variable globale en plus de l'enregistrement : `window.JDW_<NOM>`
+(jamais `JDW_THREE`, réservé à Magic Force). Mémoire de l'appareil autorisée sous les clés `jdw.<id>.*` (réglage de qualité, préférences
+de commandes) et une base IndexedDB propre au moteur (`jdw-mk` pour Mandale Kombat) pour le cache de SA propre tête 3D ; rien d'un autre
+joueur n'est gardé. Le jeu peut charger MediaPipe Face Landmarker (bibliothèque sur jsDelivr comme le détourage de la borne, modèle sur
+storage.googleapis.com) une seule fois, pour la tête du joueur de l'appareil, tant que la bibliothèque ne fournit pas `api.face3d`.
+`destroy()` libère le contexte WebGL ; les données décodées peuvent rester en mémoire pour la Revanche.
+Porte « labo » : un duel listé dans `LABO` (shell2.js) n'apparaît que sur les appareils ouverts avec `…/jouer/?labo=<id>` (comme les
+jeux solo en essai). Harnais : `source/test/duo.html` donne `JDW_ROOT` et `JDW_ASSET_KEY` comme la borne (le servir en http, pas en file://).

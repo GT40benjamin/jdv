@@ -61,6 +61,12 @@ gardés après la 1re partie), musiques `assets/music/magic-*.bin`. Depuis la 1.
 décor KayKit Dungeon Remastered, 6 monstres Quaternius Ultimate Monsters (tous CC0, sources dans D:\Games\Assets_MagicForce\), boss
 Heroic Fantasy Creatures. Atelier : `~/jdv-tools/duotest/magic` (parties src/parts assemblées, outils, tests ; fiche REPRISE.md). Refaire les données : `node source/pack-magic.js` (Blender 5, Pillow, Chrome,
 modules npm de `~/jdv-tools/duotest/magic/node_modules`). Pas encore de carte d'avancement (le jeu expose ce qu'il faut). Test : test-labo.js (à adapter : Magic Force est visible sans ?labo).
+**Mandale Kombat** (source/duos/kombat.js, duel 3D three.js, id `kombat`) : EN ESSAI derrière la porte « labo » des DUELS depuis la 1.13.7
+(`LABO` filtre aussi DUOS ; `…/jouer/?labo=kombat`). Atelier `~/jdv-tools/duotest/mandale/` (parts, outils Blender, tests, fiche REPRISE.md,
+spec design/SPEC.md). Paquets `assets/mandale.moteur.bin`, `mandale.commun.bin`, `mandale.f09.bin` (Ninjacques), `mandale.f11.bin`
+(Monsieur Plancha) ; musiques `assets/music/dkombat-*.bin`. Combattants = PBR Fighters (Unity Asset Store, toujours emballés) ; tête du
+joueur = masque 3D fabriqué depuis son selfie (MediaPipe Face Landmarker, cache IndexedDB `jdw-mk`). Contrat : DUO-CONTRACT.md « Ajout : duel 3D ».
+Animations Mixamo à télécharger par l'utilisateur : liste dans l'atelier (MIXAMO-A-TELECHARGER.md).
 **Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Magic Force, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux, Casse-Carreaux : tous les jeux solo ont la leur ;
 Magic Force 1.12.2 : dessinée entièrement par la bibliothèque, MAP_DEFS.magic, à partir de worlds / worldOf / levelsPerWorld / drawWorldIcon du jeu ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte

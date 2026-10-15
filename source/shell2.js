@@ -21,7 +21,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set([]);   // Magic Force est sorti pour tous en 1.12 (porte labo vide, gardée pour un prochain jeu en essai)
+const LABO = new Set(['kombat']);   // Mandale Kombat (duel) en essai : …/jouer/?labo=kombat (Magic Force est sorti pour tous en 1.12)
 const LABO_ON = (() => {
   let on = []; try { on = JSON.parse(localStorage.getItem('jdw.labo') || '[]') || []; } catch (e) { on = []; }
   try {
@@ -37,16 +37,16 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!L
   t.addEventListener('click', () => {
     const now = Date.now(); if (now - t0 > 4000) n = 0; t0 = now;
     if (++n < 7) return; n = 0;
-    const on = new Set(LABO_ON), has = on.has('magic'); if (has) on.delete('magic'); else on.add('magic');
+    const ids = [...LABO], on = new Set(LABO_ON), has = ids.some(id => on.has(id)); for (const id of ids) { if (has) on.delete(id); else on.add(id); }
     try { localStorage.setItem('jdw.labo', JSON.stringify([...on])); } catch (e) {}
-    try { toastCheer(has ? 'Labo : Magic Force caché' : 'Labo : Magic Force activé !', null, true); } catch (e) {}
+    try { toastCheer(has ? 'Labo : jeux en essai cachés' : 'Labo : jeux en essai activés !', null, true); } catch (e) {}
     setTimeout(() => location.reload(), 1300);
   });
 })();
 const gameById = id => GAMES.find(g => g.id === id);
 // jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
-const DUO_ORDER = ['pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
-const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(Boolean);
+const DUO_ORDER = ['kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
+const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(d => d && (!LABO.has(d.id) || LABO_ON.has(d.id)));   // duels en essai : porte labo aussi
 const duoById = id => DUOS.find(d => d.id === id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },

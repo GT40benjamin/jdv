@@ -51,6 +51,9 @@ if (Q.has('fast')) {
 window.__duo = { inst: null, api: null, points: [], says: [], over: false, winner: null, destroyed: false, rootEmpty: null, errors: [], sounds: 0, paused: false };
 addEventListener('error', e => window.__duo.errors.push(String(e.message)));
 addEventListener('unhandledrejection', e => window.__duo.errors.push('rejet : ' + (e.reason && e.reason.message || e.reason)));
+// duels à paquets (ex. kombat) : racine du site et clé d'emballage comme dans la borne (la clé n'est pas un secret)
+window.JDW_ROOT = '../../';
+try { const x = new XMLHttpRequest(); x.open('GET', '../asset-key.txt', false); x.send(); if (x.status === 200) window.JDW_ASSET_KEY = x.responseText.trim(); } catch (e) {}
 document.write('<script src="../duos/' + GID + '.js"><\/script>');
 </script>
 <script>
