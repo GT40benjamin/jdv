@@ -561,7 +561,7 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
   padding:5px 2px 4px;border:0;border-radius:18px;background:none;color:var(--muted);font:600 12px/1.1 var(--body);letter-spacing:.01em;
   cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .2s}
 .modebar button[data-mode="duel"]{--mc:var(--alarm)}
-.modebar button[data-mode="compet"]{--mc:var(--gold)}
+.modebar button[data-mode="coop"]{--mc:var(--leaf)}
 .mb-ic{display:grid;place-items:center;width:52px;height:32px;border-radius:16px;font-size:21px;line-height:1;
   transition:background .25s,transform .25s,box-shadow .25s}
 .mb-t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -575,7 +575,6 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .mb-soon.new{background:var(--alarm);color:#fff}
 /* « Mis à jour » (TILE_NEWS) : même place que « Nouveau », en vert */
 .mb-soon.maj,.tile-new.maj{background:var(--leaf);color:var(--night)}
-.mb-soon.live{background:var(--alarm);color:#fff;animation:livePulse 1.6s ease-in-out infinite}
 @keyframes livePulse{50%{opacity:.55}}
 @media (max-width:360px){.modebar button{font-size:11px}.mb-ic{width:46px}}
 /* le copain qui parle passe au-dessus de la barre des modes */
@@ -587,7 +586,7 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 #jdw-lib:not([data-mode="classique"]) #jdw-note{display:none!important}
 #jdw-lib:not([data-mode="classique"]) #jdw-grid{display:none!important}
 #jdw-lib:not([data-mode="classique"]) .mode-hero{display:flex}
-#jdw-lib[data-mode="duel"] #jdw-page-duel,#jdw-lib[data-mode="compet"] #jdw-page-compet{display:grid}
+#jdw-lib[data-mode="duel"] #jdw-page-duel,#jdw-lib[data-mode="coop"] #jdw-page-coop{display:grid}
 .lib-wrap.page-in > *{animation:pageIn .32s cubic-bezier(.2,.8,.2,1) both}
 @keyframes pageIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.lib-wrap.page-in > *{animation:none}}
@@ -595,7 +594,7 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
   background:radial-gradient(130% 150% at 0% 0%,color-mix(in srgb,var(--mc) 30%,transparent),transparent 62%),linear-gradient(135deg,var(--card-hi),var(--card));
   border:1px solid color-mix(in srgb,var(--mc) 45%,var(--line))}
 #jdw-lib[data-mode="duel"] .mode-hero{--mc:var(--alarm)}
-#jdw-lib[data-mode="compet"] .mode-hero{--mc:var(--gold)}
+#jdw-lib[data-mode="coop"] .mode-hero{--mc:var(--leaf)}
 .mh-ic{flex:0 0 auto;display:grid;place-items:center;width:64px;height:64px;border-radius:20px;font-size:36px;
   background:color-mix(in srgb,var(--mc) 22%,var(--night));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--mc) 60%,transparent)}
 .mh-tx{min-width:0;display:grid;gap:5px}
@@ -613,9 +612,38 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .soon-steps li::before{content:counter(st);position:absolute;left:0;top:-2px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;
   background:var(--steel);color:var(--ink);font:400 13px var(--display)}
 #jdw-page-duel .soon-steps li::before{background:color-mix(in srgb,var(--alarm) 35%,var(--steel))}
-#jdw-page-compet .soon-steps li::before{background:color-mix(in srgb,var(--gold) 35%,var(--steel))}
+#jdw-page-coop .soon-steps li::before{background:color-mix(in srgb,var(--leaf) 35%,var(--steel))}
 .soon-foot{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
 .soon-tag{display:inline-block;vertical-align:1px;margin-right:6px;padding:3px 9px 2px;border-radius:9px;background:var(--amber);color:var(--night);font:400 11px var(--display)}
+/* ---------- page Coop : page d'attente « bientôt » (tant qu'aucun jeu n'a de champ coop) ---------- */
+.coop-soon{display:grid;gap:12px}
+.coop-soon-h{margin:4px 2px 0;font:400 clamp(17px,4.8vw,22px)/1.2 var(--display);color:var(--ink)}
+.coop-soon-h span{color:var(--leaf)}
+.coop-soon-h em{font-style:normal;color:var(--leaf);text-shadow:0 0 16px color-mix(in srgb,var(--leaf) 55%,transparent)}
+.coop-soon-list{display:grid;gap:10px}
+.coop-card{--acc:var(--leaf);position:relative;display:grid;grid-template-columns:minmax(112px,38%) minmax(0,1fr);align-items:center;gap:14px;
+  padding:8px 14px 8px 8px;border-radius:18px;background:linear-gradient(135deg,var(--card-hi),var(--card));
+  border:1px solid color-mix(in srgb,var(--acc) 38%,var(--line));box-shadow:0 10px 24px rgba(0,0,0,.28)}
+.coop-card[data-g=boum]{--acc:#ff4d5e}.coop-card[data-g=ilo]{--acc:#38e1ff}.coop-card[data-g=magic]{--acc:#9b7bff}
+.cc-img{position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;
+  background:radial-gradient(120% 120% at 30% 20%,color-mix(in srgb,var(--acc) 35%,transparent),transparent 60%),var(--night)}
+.cc-img canvas{display:block;width:100%;height:100%}
+.cc-img::after{content:"";position:absolute;inset:auto 0 0 0;height:3px;background:var(--acc)}
+.cc-ic{position:absolute;left:6px;top:6px;display:none;place-items:center;width:30px;height:30px;border-radius:50%;font-size:16px;line-height:1;
+  background:rgba(8,14,20,.75);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--acc) 70%,transparent)}
+.coop-card.no-pv canvas{display:none}
+.coop-card.no-pv .cc-ic{display:grid;inset:0;margin:auto;width:56px;height:56px;font-size:30px}   /* jeu absent du build : son emoji */
+.cc-tx{display:grid;gap:5px;min-width:0}
+.cc-tx b{font:400 clamp(15px,4.4vw,19px)/1.15 var(--display);color:var(--ink)}
+.cc-tx small{font-size:13px;line-height:1.4;color:var(--muted)}
+.coop-soon-foot{margin:2px 0 0;padding:12px 14px;border-radius:14px;font-size:13.5px;line-height:1.45;color:var(--ink);
+  background:color-mix(in srgb,var(--leaf) 10%,var(--card));border:1px solid color-mix(in srgb,var(--leaf) 32%,var(--line))}
+@media (min-width:700px){
+  .coop-soon-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .coop-card{grid-template-columns:minmax(0,1fr);align-items:start;align-content:start;gap:10px;padding:8px 8px 14px}
+  .cc-img{aspect-ratio:16/10}
+  .cc-tx{padding:0 6px}
+}
 /* ---------- page Duel ---------- */
 .duel-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
 .duel-switch button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border:0;border-radius:12px;background:none;color:var(--muted);
@@ -717,56 +745,7 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 #jdw-duo.land .duo-res{grid-template-rows:1fr}
 #jdw-duo.land #jdw-duo-r1{display:none}
 #jdw-duo .rotate{z-index:12}
-/* ---------- Compétition ---------- */
-.cmp-none,.cmp-idle,.cmp-card{display:grid;gap:14px}
-.cmp-none[hidden],.cmp-idle[hidden],.cmp-card[hidden]{display:none}
-.cmp-none{justify-items:start;padding:16px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
-.cmp-none p{margin:0;color:var(--muted)}
-.cmp-games{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:10px}
-.cmp-game{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 14px;border-radius:16px;cursor:pointer;text-align:left;
-  background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 18%,var(--card)),var(--card) 60%);border:1px solid color-mix(in srgb,var(--acc) 45%,var(--line));
-  box-shadow:inset 4px 0 0 var(--acc)}
-.cmp-game:hover{border-color:var(--acc)}
-.cg-img{flex:0 0 auto;width:92px;height:52px;border-radius:10px;background:var(--night);box-shadow:0 0 0 1px color-mix(in srgb,var(--acc) 40%,transparent)}
-.cg-t{flex:1 1 auto;display:grid;min-width:0}
-.cg-t b{font:400 16px/1.15 var(--display)}
-.cg-t small{font-size:12px;color:var(--muted)}
-.cg-go{flex:0 0 auto;padding:8px 12px;border-radius:10px;background:var(--acc);color:var(--night);font:400 13px var(--display)}
-.cmp-card{--acc:var(--gold);padding:14px;border-radius:20px;background:var(--card);border:1px solid color-mix(in srgb,var(--acc) 50%,var(--line));
-  box-shadow:0 0 30px color-mix(in srgb,var(--acc) 14%,transparent)}
-.cmp-top{display:flex;align-items:center;gap:10px}
-.cmp-title{flex:1 1 auto;display:grid;min-width:0}
-.cmp-title small{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
-.cmp-title b{font:400 clamp(22px,6.4vw,30px)/1.05 var(--display);color:var(--acc)}
-.cmp-count{flex:0 0 auto;padding:6px 10px;border-radius:12px;background:var(--night);font:600 13px var(--body);color:var(--ink)}
-.cmp-demo{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:var(--night);border:1px solid var(--line)}
-.cmp-demo canvas{position:absolute;inset:0;width:100%;height:100%}
-.cmp-demo-tag{position:absolute;left:8px;top:8px;padding:2px 8px;border-radius:8px;background:rgba(8,14,20,.7);font:400 10px var(--display);color:var(--muted);letter-spacing:.08em}
-.cmp-go{position:absolute;inset:0;display:grid;place-items:center;background:rgba(8,14,20,.35);font:400 clamp(64px,22vw,120px)/1 var(--display);color:var(--gold);
-  text-shadow:0 6px 0 rgba(0,0,0,.5),0 0 40px rgba(255,211,77,.6)}
-.cmp-go.tick{animation:goTick .9s ease-out}
-@keyframes goTick{0%{transform:scale(1.6);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.9);opacity:.85}}
-.cmp-hint{margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
-.cmp-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.cmp-row{display:flex;align-items:center;gap:12px;padding:6px 12px 6px 6px;border-radius:14px;background:var(--night);border:1px solid var(--line)}
-.cmp-row.me{border-color:var(--amber)}
-.cmp-row.out .cmp-tx b{color:var(--muted)}
-.cmp-head{flex:0 0 auto;padding:0;border:0;background:none;border-radius:50%;cursor:pointer}
-.cmp-head .chead{width:46px;height:46px}
-.cmp-tx{flex:1 1 auto;display:grid;min-width:0}
-.cmp-tx b{font:400 15px var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cmp-tx small{font-size:12px;font-weight:600}
-.st-p{color:var(--leaf)}.st-o{color:var(--muted)}.st-w{color:var(--volt)}.st-l{color:var(--amber)}
-.cmp-sc{flex:0 0 auto;font:400 18px var(--display);color:var(--gold)}
-.cmp-btns{display:flex;flex-wrap:wrap;gap:8px}
-.cmp-btns .btn{flex:1 1 140px}
-/* réactions */
-.cmp-pick{position:fixed;z-index:2147483100;display:flex;align-items:center;gap:2px;padding:5px;border-radius:24px;background:var(--panel);border:1px solid var(--steel2);
-  box-shadow:0 12px 30px rgba(0,0,0,.5)}
-.cmp-pick[hidden]{display:none}
-.cmp-pick button{width:40px;height:40px;border:0;border-radius:50%;background:none;font-size:24px;cursor:pointer;padding:0}
-.cmp-pick button:hover,.cmp-pick button:focus-visible{background:var(--steel)}
-.pk-to{padding:0 8px 0 4px;font:600 12px var(--body);color:var(--muted);white-space:nowrap}
+/* réactions du « Regarder » (rxShow) */
 .rx-fly{position:fixed;z-index:2147483050;font-size:30px;line-height:1;pointer-events:none;transform:translate(-50%,-50%);animation:rxFly 1.4s ease-out forwards}
 @keyframes rxFly{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}15%{opacity:1;transform:translate(-50%,-80%) scale(1.25)}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),-260%) scale(1)}}
 .rx-me{position:absolute;left:50%;top:calc(64px + env(safe-area-inset-top,0px));z-index:22;display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:30px;width:max-content;max-width:calc(100% - 24px);
@@ -775,42 +754,8 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .rx-me-e{font-size:30px;line-height:1}
 .rx-me b{font:400 14px var(--display)}
 @keyframes rxMe{0%{opacity:0;transform:translate(-50%,-12px) scale(.8)}12%{opacity:1;transform:translate(-50%,0) scale(1.05)}20%{transform:translate(-50%,0) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-8px)}}
-/* colonne des concurrents pendant la partie */
-#jdw-play.cmp{--cmpw:62px}
-#jdw-play.cmp #jdw-host{right:var(--cmpw)}
-.cmp-side{position:absolute;right:0;top:calc(var(--tbh,52px) + env(safe-area-inset-top,0px));bottom:0;width:var(--cmpw,62px);z-index:19;display:flex;flex-direction:column;align-items:center;gap:6px;
-  padding:8px 0 calc(env(safe-area-inset-bottom,0px) + 8px);overflow-y:auto;background:linear-gradient(90deg,rgba(11,20,28,.92),rgba(17,29,39,.98));border-left:1px solid var(--line)}
-.cmp-side[hidden]{display:none}
-.cs-item{position:relative;display:grid;justify-items:center;gap:1px;width:54px;padding:3px 0 4px;border:0;border-radius:12px;background:none;cursor:pointer;color:var(--ink)}
-.cs-item .chead{width:42px;height:42px}
-.cs-item.me{background:rgba(255,166,48,.14);box-shadow:inset 0 0 0 1.5px var(--amber)}
-.cs-item.out{opacity:.55}
-.cs-rk{position:absolute;left:2px;top:0;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:var(--steel2);font:400 10px/16px var(--display);text-align:center}
-.cs-item:first-of-type .cs-rk{background:var(--gold);color:var(--night)}
-.cs-sc{font:400 11px var(--display);color:var(--gold);max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cs-watch{font:600 12px var(--body);color:var(--volt)}
-.cs-practice{writing-mode:vertical-rl;transform:rotate(180deg);font:400 10px var(--display);color:var(--muted);letter-spacing:.1em;padding:4px 0}
-.recline.cmp{background:rgba(255,211,77,.16);color:var(--gold)}
-/* podium */
-.podium-card{text-align:center;max-width:480px}
-.podium-h{margin:0;font:400 clamp(24px,7vw,32px)/1.05 var(--display);color:var(--gold)}
-.podium{display:flex;justify-content:center;align-items:flex-end;gap:10px;padding-top:30px}
-.pod{display:grid;justify-items:center;gap:3px;width:31%;max-width:130px}
-.pod .chead{position:relative;width:64px;height:64px;overflow:visible}
-.pod1 .chead{width:84px;height:84px;box-shadow:0 0 0 3px var(--gold),0 0 26px rgba(255,211,77,.5)}
-.pod .champ-crown{position:absolute;top:-30px;left:50%;transform:translateX(-50%) rotate(-10deg);font-size:30px}
-.pod b{font:400 14px var(--display);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pod-s{font:600 13px var(--body);color:var(--gold)}
-.pod-blk{width:100%;display:grid;place-items:center;border-radius:10px 10px 0 0;font:400 26px var(--display);color:var(--night)}
-.pod1 .pod-blk{height:96px;background:linear-gradient(var(--gold),#c9961a)}
-.pod2 .pod-blk{height:70px;background:linear-gradient(#e2e8ec,#9aa8b2)}
-.pod3 .pod-blk{height:52px;background:linear-gradient(#e8a368,#a4602a)}
-.pod.me b{color:var(--amber)}
-.podium-rest{text-align:left}
-.podium-btns{justify-content:center}
 /* ---------- regarder un copain en direct ---------- */
 .watch-btn{color:var(--volt)!important;border-color:var(--volt)!important;cursor:pointer}
-.cmp-watch{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:1px solid var(--volt);background:rgba(94,240,255,.1);font-size:18px;cursor:pointer;padding:0}
 #jdw-watch{position:fixed;inset:0;z-index:40;background:#000;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr)}
 #jdw-watch .watch-top{grid-row:1}#jdw-watch .watch-msg{grid-row:2;grid-column:1;align-self:center;justify-self:center;z-index:2}#jdw-watch .watch-bar{grid-row:3}
 #jdw-watch[hidden]{display:none}
@@ -929,6 +874,8 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 /* ---------- duel en ligne ---------- */
 .net-how .net-ic{flex:0 0 auto;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--night);font-size:28px}
 .net-card{text-align:center;max-width:420px}
+/* bouton « Défier » d'une rangée du duel en ligne (netRenderList) */
+.cg-go{flex:0 0 auto;padding:8px 12px;border-radius:10px;background:var(--acc);color:var(--night);font:400 13px var(--display)}
 .net-card::before{content:"";display:block;height:4px;background:linear-gradient(90deg,#ffa630,var(--acc,#ff4d5e),#5ef0ff)}
 .net-h{margin:0;font:400 clamp(24px,7vw,30px)/1.05 var(--display)}
 .net-share{display:grid;gap:8px}
@@ -1813,11 +1760,8 @@ body.jdw-guest #jdw-scope{display:none}
 .net-pill[data-kind=ok]{color:#c9f5d4;border-color:rgba(76,195,106,.6)}
 /* fonctions qui demandent le réseau : grisées (un toucher dit « Il faut du réseau ») */
 body.net-off #jdw-chat-btn,body.net-off #jdw-roombar,body.net-off #jdw-invite,body.net-off #jdw-online,
-body.net-off #jdw-modes [data-mode=compet],body.net-off #jdw-duel-switch [data-where=online]{opacity:.42;filter:grayscale(.85)}
-body.net-off #jdw-modes [data-mode=compet] .mb-soon{display:none}
+body.net-off #jdw-duel-switch [data-where=online]{opacity:.42;filter:grayscale(.85)}
 body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · réseau";font-size:.85em;opacity:.8}
-body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";display:block;font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
-#jdw-cmp-none.net-need p{color:#ffd9a6}
 #jdw-board.net-off #jdw-scope [data-scope=world]{opacity:.5}
 
 /* ---------- Inviter par un lien : le « ticket » de la salle (partage par un membre ; lien ouvert par l'invité) ---------- */

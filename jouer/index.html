@@ -658,7 +658,7 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
   padding:5px 2px 4px;border:0;border-radius:18px;background:none;color:var(--muted);font:600 12px/1.1 var(--body);letter-spacing:.01em;
   cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .2s}
 .modebar button[data-mode="duel"]{--mc:var(--alarm)}
-.modebar button[data-mode="compet"]{--mc:var(--gold)}
+.modebar button[data-mode="coop"]{--mc:var(--leaf)}
 .mb-ic{display:grid;place-items:center;width:52px;height:32px;border-radius:16px;font-size:21px;line-height:1;
   transition:background .25s,transform .25s,box-shadow .25s}
 .mb-t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -672,7 +672,6 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .mb-soon.new{background:var(--alarm);color:#fff}
 /* « Mis à jour » (TILE_NEWS) : même place que « Nouveau », en vert */
 .mb-soon.maj,.tile-new.maj{background:var(--leaf);color:var(--night)}
-.mb-soon.live{background:var(--alarm);color:#fff;animation:livePulse 1.6s ease-in-out infinite}
 @keyframes livePulse{50%{opacity:.55}}
 @media (max-width:360px){.modebar button{font-size:11px}.mb-ic{width:46px}}
 /* le copain qui parle passe au-dessus de la barre des modes */
@@ -684,7 +683,7 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 #jdw-lib:not([data-mode="classique"]) #jdw-note{display:none!important}
 #jdw-lib:not([data-mode="classique"]) #jdw-grid{display:none!important}
 #jdw-lib:not([data-mode="classique"]) .mode-hero{display:flex}
-#jdw-lib[data-mode="duel"] #jdw-page-duel,#jdw-lib[data-mode="compet"] #jdw-page-compet{display:grid}
+#jdw-lib[data-mode="duel"] #jdw-page-duel,#jdw-lib[data-mode="coop"] #jdw-page-coop{display:grid}
 .lib-wrap.page-in > *{animation:pageIn .32s cubic-bezier(.2,.8,.2,1) both}
 @keyframes pageIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.lib-wrap.page-in > *{animation:none}}
@@ -692,7 +691,7 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
   background:radial-gradient(130% 150% at 0% 0%,color-mix(in srgb,var(--mc) 30%,transparent),transparent 62%),linear-gradient(135deg,var(--card-hi),var(--card));
   border:1px solid color-mix(in srgb,var(--mc) 45%,var(--line))}
 #jdw-lib[data-mode="duel"] .mode-hero{--mc:var(--alarm)}
-#jdw-lib[data-mode="compet"] .mode-hero{--mc:var(--gold)}
+#jdw-lib[data-mode="coop"] .mode-hero{--mc:var(--leaf)}
 .mh-ic{flex:0 0 auto;display:grid;place-items:center;width:64px;height:64px;border-radius:20px;font-size:36px;
   background:color-mix(in srgb,var(--mc) 22%,var(--night));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--mc) 60%,transparent)}
 .mh-tx{min-width:0;display:grid;gap:5px}
@@ -710,9 +709,38 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .soon-steps li::before{content:counter(st);position:absolute;left:0;top:-2px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;
   background:var(--steel);color:var(--ink);font:400 13px var(--display)}
 #jdw-page-duel .soon-steps li::before{background:color-mix(in srgb,var(--alarm) 35%,var(--steel))}
-#jdw-page-compet .soon-steps li::before{background:color-mix(in srgb,var(--gold) 35%,var(--steel))}
+#jdw-page-coop .soon-steps li::before{background:color-mix(in srgb,var(--leaf) 35%,var(--steel))}
 .soon-foot{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
 .soon-tag{display:inline-block;vertical-align:1px;margin-right:6px;padding:3px 9px 2px;border-radius:9px;background:var(--amber);color:var(--night);font:400 11px var(--display)}
+/* ---------- page Coop : page d'attente « bientôt » (tant qu'aucun jeu n'a de champ coop) ---------- */
+.coop-soon{display:grid;gap:12px}
+.coop-soon-h{margin:4px 2px 0;font:400 clamp(17px,4.8vw,22px)/1.2 var(--display);color:var(--ink)}
+.coop-soon-h span{color:var(--leaf)}
+.coop-soon-h em{font-style:normal;color:var(--leaf);text-shadow:0 0 16px color-mix(in srgb,var(--leaf) 55%,transparent)}
+.coop-soon-list{display:grid;gap:10px}
+.coop-card{--acc:var(--leaf);position:relative;display:grid;grid-template-columns:minmax(112px,38%) minmax(0,1fr);align-items:center;gap:14px;
+  padding:8px 14px 8px 8px;border-radius:18px;background:linear-gradient(135deg,var(--card-hi),var(--card));
+  border:1px solid color-mix(in srgb,var(--acc) 38%,var(--line));box-shadow:0 10px 24px rgba(0,0,0,.28)}
+.coop-card[data-g=boum]{--acc:#ff4d5e}.coop-card[data-g=ilo]{--acc:#38e1ff}.coop-card[data-g=magic]{--acc:#9b7bff}
+.cc-img{position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;
+  background:radial-gradient(120% 120% at 30% 20%,color-mix(in srgb,var(--acc) 35%,transparent),transparent 60%),var(--night)}
+.cc-img canvas{display:block;width:100%;height:100%}
+.cc-img::after{content:"";position:absolute;inset:auto 0 0 0;height:3px;background:var(--acc)}
+.cc-ic{position:absolute;left:6px;top:6px;display:none;place-items:center;width:30px;height:30px;border-radius:50%;font-size:16px;line-height:1;
+  background:rgba(8,14,20,.75);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--acc) 70%,transparent)}
+.coop-card.no-pv canvas{display:none}
+.coop-card.no-pv .cc-ic{display:grid;inset:0;margin:auto;width:56px;height:56px;font-size:30px}   /* jeu absent du build : son emoji */
+.cc-tx{display:grid;gap:5px;min-width:0}
+.cc-tx b{font:400 clamp(15px,4.4vw,19px)/1.15 var(--display);color:var(--ink)}
+.cc-tx small{font-size:13px;line-height:1.4;color:var(--muted)}
+.coop-soon-foot{margin:2px 0 0;padding:12px 14px;border-radius:14px;font-size:13.5px;line-height:1.45;color:var(--ink);
+  background:color-mix(in srgb,var(--leaf) 10%,var(--card));border:1px solid color-mix(in srgb,var(--leaf) 32%,var(--line))}
+@media (min-width:700px){
+  .coop-soon-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .coop-card{grid-template-columns:minmax(0,1fr);align-items:start;align-content:start;gap:10px;padding:8px 8px 14px}
+  .cc-img{aspect-ratio:16/10}
+  .cc-tx{padding:0 6px}
+}
 /* ---------- page Duel ---------- */
 .duel-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
 .duel-switch button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border:0;border-radius:12px;background:none;color:var(--muted);
@@ -814,56 +842,7 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 #jdw-duo.land .duo-res{grid-template-rows:1fr}
 #jdw-duo.land #jdw-duo-r1{display:none}
 #jdw-duo .rotate{z-index:12}
-/* ---------- Compétition ---------- */
-.cmp-none,.cmp-idle,.cmp-card{display:grid;gap:14px}
-.cmp-none[hidden],.cmp-idle[hidden],.cmp-card[hidden]{display:none}
-.cmp-none{justify-items:start;padding:16px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
-.cmp-none p{margin:0;color:var(--muted)}
-.cmp-games{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:10px}
-.cmp-game{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 14px;border-radius:16px;cursor:pointer;text-align:left;
-  background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 18%,var(--card)),var(--card) 60%);border:1px solid color-mix(in srgb,var(--acc) 45%,var(--line));
-  box-shadow:inset 4px 0 0 var(--acc)}
-.cmp-game:hover{border-color:var(--acc)}
-.cg-img{flex:0 0 auto;width:92px;height:52px;border-radius:10px;background:var(--night);box-shadow:0 0 0 1px color-mix(in srgb,var(--acc) 40%,transparent)}
-.cg-t{flex:1 1 auto;display:grid;min-width:0}
-.cg-t b{font:400 16px/1.15 var(--display)}
-.cg-t small{font-size:12px;color:var(--muted)}
-.cg-go{flex:0 0 auto;padding:8px 12px;border-radius:10px;background:var(--acc);color:var(--night);font:400 13px var(--display)}
-.cmp-card{--acc:var(--gold);padding:14px;border-radius:20px;background:var(--card);border:1px solid color-mix(in srgb,var(--acc) 50%,var(--line));
-  box-shadow:0 0 30px color-mix(in srgb,var(--acc) 14%,transparent)}
-.cmp-top{display:flex;align-items:center;gap:10px}
-.cmp-title{flex:1 1 auto;display:grid;min-width:0}
-.cmp-title small{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
-.cmp-title b{font:400 clamp(22px,6.4vw,30px)/1.05 var(--display);color:var(--acc)}
-.cmp-count{flex:0 0 auto;padding:6px 10px;border-radius:12px;background:var(--night);font:600 13px var(--body);color:var(--ink)}
-.cmp-demo{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:var(--night);border:1px solid var(--line)}
-.cmp-demo canvas{position:absolute;inset:0;width:100%;height:100%}
-.cmp-demo-tag{position:absolute;left:8px;top:8px;padding:2px 8px;border-radius:8px;background:rgba(8,14,20,.7);font:400 10px var(--display);color:var(--muted);letter-spacing:.08em}
-.cmp-go{position:absolute;inset:0;display:grid;place-items:center;background:rgba(8,14,20,.35);font:400 clamp(64px,22vw,120px)/1 var(--display);color:var(--gold);
-  text-shadow:0 6px 0 rgba(0,0,0,.5),0 0 40px rgba(255,211,77,.6)}
-.cmp-go.tick{animation:goTick .9s ease-out}
-@keyframes goTick{0%{transform:scale(1.6);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.9);opacity:.85}}
-.cmp-hint{margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
-.cmp-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.cmp-row{display:flex;align-items:center;gap:12px;padding:6px 12px 6px 6px;border-radius:14px;background:var(--night);border:1px solid var(--line)}
-.cmp-row.me{border-color:var(--amber)}
-.cmp-row.out .cmp-tx b{color:var(--muted)}
-.cmp-head{flex:0 0 auto;padding:0;border:0;background:none;border-radius:50%;cursor:pointer}
-.cmp-head .chead{width:46px;height:46px}
-.cmp-tx{flex:1 1 auto;display:grid;min-width:0}
-.cmp-tx b{font:400 15px var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cmp-tx small{font-size:12px;font-weight:600}
-.st-p{color:var(--leaf)}.st-o{color:var(--muted)}.st-w{color:var(--volt)}.st-l{color:var(--amber)}
-.cmp-sc{flex:0 0 auto;font:400 18px var(--display);color:var(--gold)}
-.cmp-btns{display:flex;flex-wrap:wrap;gap:8px}
-.cmp-btns .btn{flex:1 1 140px}
-/* réactions */
-.cmp-pick{position:fixed;z-index:2147483100;display:flex;align-items:center;gap:2px;padding:5px;border-radius:24px;background:var(--panel);border:1px solid var(--steel2);
-  box-shadow:0 12px 30px rgba(0,0,0,.5)}
-.cmp-pick[hidden]{display:none}
-.cmp-pick button{width:40px;height:40px;border:0;border-radius:50%;background:none;font-size:24px;cursor:pointer;padding:0}
-.cmp-pick button:hover,.cmp-pick button:focus-visible{background:var(--steel)}
-.pk-to{padding:0 8px 0 4px;font:600 12px var(--body);color:var(--muted);white-space:nowrap}
+/* réactions du « Regarder » (rxShow) */
 .rx-fly{position:fixed;z-index:2147483050;font-size:30px;line-height:1;pointer-events:none;transform:translate(-50%,-50%);animation:rxFly 1.4s ease-out forwards}
 @keyframes rxFly{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}15%{opacity:1;transform:translate(-50%,-80%) scale(1.25)}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),-260%) scale(1)}}
 .rx-me{position:absolute;left:50%;top:calc(64px + env(safe-area-inset-top,0px));z-index:22;display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:30px;width:max-content;max-width:calc(100% - 24px);
@@ -872,42 +851,8 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 .rx-me-e{font-size:30px;line-height:1}
 .rx-me b{font:400 14px var(--display)}
 @keyframes rxMe{0%{opacity:0;transform:translate(-50%,-12px) scale(.8)}12%{opacity:1;transform:translate(-50%,0) scale(1.05)}20%{transform:translate(-50%,0) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-8px)}}
-/* colonne des concurrents pendant la partie */
-#jdw-play.cmp{--cmpw:62px}
-#jdw-play.cmp #jdw-host{right:var(--cmpw)}
-.cmp-side{position:absolute;right:0;top:calc(var(--tbh,52px) + env(safe-area-inset-top,0px));bottom:0;width:var(--cmpw,62px);z-index:19;display:flex;flex-direction:column;align-items:center;gap:6px;
-  padding:8px 0 calc(env(safe-area-inset-bottom,0px) + 8px);overflow-y:auto;background:linear-gradient(90deg,rgba(11,20,28,.92),rgba(17,29,39,.98));border-left:1px solid var(--line)}
-.cmp-side[hidden]{display:none}
-.cs-item{position:relative;display:grid;justify-items:center;gap:1px;width:54px;padding:3px 0 4px;border:0;border-radius:12px;background:none;cursor:pointer;color:var(--ink)}
-.cs-item .chead{width:42px;height:42px}
-.cs-item.me{background:rgba(255,166,48,.14);box-shadow:inset 0 0 0 1.5px var(--amber)}
-.cs-item.out{opacity:.55}
-.cs-rk{position:absolute;left:2px;top:0;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:var(--steel2);font:400 10px/16px var(--display);text-align:center}
-.cs-item:first-of-type .cs-rk{background:var(--gold);color:var(--night)}
-.cs-sc{font:400 11px var(--display);color:var(--gold);max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cs-watch{font:600 12px var(--body);color:var(--volt)}
-.cs-practice{writing-mode:vertical-rl;transform:rotate(180deg);font:400 10px var(--display);color:var(--muted);letter-spacing:.1em;padding:4px 0}
-.recline.cmp{background:rgba(255,211,77,.16);color:var(--gold)}
-/* podium */
-.podium-card{text-align:center;max-width:480px}
-.podium-h{margin:0;font:400 clamp(24px,7vw,32px)/1.05 var(--display);color:var(--gold)}
-.podium{display:flex;justify-content:center;align-items:flex-end;gap:10px;padding-top:30px}
-.pod{display:grid;justify-items:center;gap:3px;width:31%;max-width:130px}
-.pod .chead{position:relative;width:64px;height:64px;overflow:visible}
-.pod1 .chead{width:84px;height:84px;box-shadow:0 0 0 3px var(--gold),0 0 26px rgba(255,211,77,.5)}
-.pod .champ-crown{position:absolute;top:-30px;left:50%;transform:translateX(-50%) rotate(-10deg);font-size:30px}
-.pod b{font:400 14px var(--display);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pod-s{font:600 13px var(--body);color:var(--gold)}
-.pod-blk{width:100%;display:grid;place-items:center;border-radius:10px 10px 0 0;font:400 26px var(--display);color:var(--night)}
-.pod1 .pod-blk{height:96px;background:linear-gradient(var(--gold),#c9961a)}
-.pod2 .pod-blk{height:70px;background:linear-gradient(#e2e8ec,#9aa8b2)}
-.pod3 .pod-blk{height:52px;background:linear-gradient(#e8a368,#a4602a)}
-.pod.me b{color:var(--amber)}
-.podium-rest{text-align:left}
-.podium-btns{justify-content:center}
 /* ---------- regarder un copain en direct ---------- */
 .watch-btn{color:var(--volt)!important;border-color:var(--volt)!important;cursor:pointer}
-.cmp-watch{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:1px solid var(--volt);background:rgba(94,240,255,.1);font-size:18px;cursor:pointer;padding:0}
 #jdw-watch{position:fixed;inset:0;z-index:40;background:#000;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr)}
 #jdw-watch .watch-top{grid-row:1}#jdw-watch .watch-msg{grid-row:2;grid-column:1;align-self:center;justify-self:center;z-index:2}#jdw-watch .watch-bar{grid-row:3}
 #jdw-watch[hidden]{display:none}
@@ -1026,6 +971,8 @@ body:has(#jdw-lib:not([hidden])) .cheer{bottom:calc(env(safe-area-inset-bottom,0
 /* ---------- duel en ligne ---------- */
 .net-how .net-ic{flex:0 0 auto;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--night);font-size:28px}
 .net-card{text-align:center;max-width:420px}
+/* bouton « Défier » d'une rangée du duel en ligne (netRenderList) */
+.cg-go{flex:0 0 auto;padding:8px 12px;border-radius:10px;background:var(--acc);color:var(--night);font:400 13px var(--display)}
 .net-card::before{content:"";display:block;height:4px;background:linear-gradient(90deg,#ffa630,var(--acc,#ff4d5e),#5ef0ff)}
 .net-h{margin:0;font:400 clamp(24px,7vw,30px)/1.05 var(--display)}
 .net-share{display:grid;gap:8px}
@@ -1910,11 +1857,8 @@ body.jdw-guest #jdw-scope{display:none}
 .net-pill[data-kind=ok]{color:#c9f5d4;border-color:rgba(76,195,106,.6)}
 /* fonctions qui demandent le réseau : grisées (un toucher dit « Il faut du réseau ») */
 body.net-off #jdw-chat-btn,body.net-off #jdw-roombar,body.net-off #jdw-invite,body.net-off #jdw-online,
-body.net-off #jdw-modes [data-mode=compet],body.net-off #jdw-duel-switch [data-where=online]{opacity:.42;filter:grayscale(.85)}
-body.net-off #jdw-modes [data-mode=compet] .mb-soon{display:none}
+body.net-off #jdw-duel-switch [data-where=online]{opacity:.42;filter:grayscale(.85)}
 body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · réseau";font-size:.85em;opacity:.8}
-body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";display:block;font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
-#jdw-cmp-none.net-need p{color:#ffd9a6}
 #jdw-board.net-off #jdw-scope [data-scope=world]{opacity:.5}
 
 /* ---------- Inviter par un lien : le « ticket » de la salle (partage par un membre ; lien ouvert par l'invité) ---------- */
@@ -2228,36 +2172,24 @@ body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";displa
       <p class="eyebrow grid-h">Choisis le duel</p>
       <section class="grid duo-grid" id="jdw-duo-grid" aria-label="Jeux de duel"></section>
     </section>
-    <section class="mode-page" id="jdw-page-compet" aria-label="Mode Compétition">
-      <div class="cmp-none" id="jdw-cmp-none" hidden>
-        <p>La compétition se joue en direct avec les copains de ta salle.</p>
-        <button class="btn btn-play" id="jdw-cmp-room" type="button">Choisir une salle</button>
-      </div>
-      <div class="cmp-idle" id="jdw-cmp-idle" hidden>
-        <p class="eyebrow">Lance une compétition</p>
-        <div class="cmp-games" id="jdw-cmp-games"></div>
-        <p class="eyebrow">Comment ça marche</p>
-        <ol class="soon-steps">
-          <li><b>Tu lances la compétition</b> sur un jeu : toute la salle est prévenue.</li>
-          <li><b>GO dès que 2 joueurs sont prêts</b>, avec une démo rapide pendant le compte à rebours.</li>
-          <li><b>Mode difficile, une seule vie</b>, la même partie pour tous : le meilleur score gagne.</li>
-          <li><b>Les têtes et les scores défilent en direct sur le côté</b>, et on s'envoie des réactions.</li>
-          <li><b>On entre quand on veut</b>, pour jouer ou pour regarder.</li>
-        </ol>
-      </div>
-      <div class="cmp-card" id="jdw-cmp-card" hidden>
-        <div class="cmp-top">
-          <div class="cmp-title"><small id="jdw-cmp-phase"></small><b id="jdw-cmp-game"></b></div>
-          <span class="cmp-count" id="jdw-cmp-count"></span>
+    <section class="mode-page" id="jdw-page-coop" aria-label="Mode Coop">
+      <div class="coop-soon" id="jdw-coop-soon">
+        <h2 class="coop-soon-h"><span>Bientôt&nbsp;:</span> jouez <em>ENSEMBLE</em> contre le jeu&nbsp;!</h2>
+        <div class="coop-soon-list" role="list" aria-label="Les premiers jeux à deux">
+          <div class="coop-card" role="listitem" data-g="boum" data-duo="1">
+            <div class="cc-img"><canvas aria-hidden="true"></canvas><span class="cc-ic" aria-hidden="true">💣</span></div>
+            <div class="cc-tx"><b>Boum 2&nbsp;contre&nbsp;2</b><small>Toi et ton coéquipier contre deux robots.</small></div>
+          </div>
+          <div class="coop-card" role="listitem" data-g="ilo">
+            <div class="cc-img"><canvas aria-hidden="true"></canvas><span class="cc-ic" aria-hidden="true">🚀</span></div>
+            <div class="cc-tx"><b>Galaxy Wars à&nbsp;deux</b><small>Deux vaisseaux contre les vagues et les boss.</small></div>
+          </div>
+          <div class="coop-card" role="listitem" data-g="magic">
+            <div class="cc-img"><canvas aria-hidden="true"></canvas><span class="cc-ic" aria-hidden="true">🧙</span></div>
+            <div class="cc-tx"><b>Magic Force à&nbsp;deux</b><small>Deux mages dans le donjon.</small></div>
+          </div>
         </div>
-        <div class="cmp-demo" id="jdw-cmp-demo">
-          <canvas id="jdw-cmp-canvas" aria-hidden="true"></canvas>
-          <div class="cmp-go" id="jdw-cmp-go" hidden></div>
-          <span class="cmp-demo-tag">Démo</span>
-        </div>
-        <p class="cmp-hint" id="jdw-cmp-hint"></p>
-        <ol class="cmp-list" id="jdw-cmp-list"></ol>
-        <div class="cmp-btns" id="jdw-cmp-btns"></div>
+        <p class="coop-soon-foot">Avec un robot (de Facile à Extrême) ou un copain en ligne. Vos scores d'équipe iront au classement.</p>
       </div>
     </section>
     <section class="grid" id="jdw-grid" aria-label="Jeux"></section>
@@ -2266,7 +2198,7 @@ body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";displa
   <nav class="modebar" id="jdw-modes" aria-label="Modes de jeu">
     <button type="button" data-mode="classique"><span class="mb-ic">🕹️</span><span class="mb-t">Classique</span><span class="mb-soon new" id="jdw-cls-badge" hidden>nouveau</span></button>
     <button type="button" data-mode="duel"><span class="mb-ic">⚔️</span><span class="mb-t">Duel</span><span class="mb-soon new" id="jdw-duo-badge" hidden>nouveau</span></button>
-    <button type="button" data-mode="compet"><span class="mb-ic">🏆</span><span class="mb-t">Compétition</span><span class="mb-soon live" id="jdw-cmp-badge" hidden>en direct</span></button>
+    <button type="button" data-mode="coop"><span class="mb-ic">🤝</span><span class="mb-t">Coop</span><span class="mb-soon" id="jdw-coop-badge">bientôt</span></button>
   </nav>
 </main>
 
@@ -2281,7 +2213,6 @@ body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";displa
       <label class="switch-row"><span>📣 Cris</span><input type="checkbox" id="jdw-sm-cris"></label>
     </div>
   </div>
-  <aside class="cmp-side" id="jdw-cmp-side" aria-label="Concurrents en direct" hidden></aside>
   <div id="jdw-host">
     <section id="jdw-pg" hidden>
 <div id="stage">
@@ -2537,20 +2468,6 @@ body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";displa
   </div>
 </div>
 
-<!-- Compétition : réactions et podium -->
-<div class="cmp-pick" id="jdw-cmp-pick" role="menu" aria-label="Envoyer une réaction" hidden></div>
-<div class="sheet" id="jdw-podium" hidden>
-  <div class="card podium-card" role="dialog" aria-modal="true" aria-labelledby="jdw-podium-h">
-    <div class="card-body">
-      <p class="eyebrow" id="jdw-podium-game"></p>
-      <h2 class="podium-h" id="jdw-podium-h">Podium</h2>
-      <div class="podium" id="jdw-podium-steps"></div>
-      <ol class="board podium-rest" id="jdw-podium-rest"></ol>
-      <div class="row podium-btns"><button class="btn btn-play" id="jdw-podium-again" type="button">Revanche !</button><button class="btn btn-ghost" id="jdw-podium-close" type="button">Fermer</button></div>
-    </div>
-  </div>
-</div>
-
 <!-- Duel en ligne : défi lancé / connexion -->
 <div class="sheet" id="jdw-net" hidden>
   <div class="card net-card" role="dialog" aria-modal="true" aria-labelledby="jdw-net-h">
@@ -2623,7 +2540,7 @@ body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";displa
       <p class="small" id="jdw-guestask-s"></p>
       <ul class="ga-list">
         <li><b>🏆</b><span>Tes scores enregistrés, au classement de ta salle et au mondial</span></li>
-        <li><b>👥</b><span>Tes copains : salles, chat, duels en ligne, compétitions</span></li>
+        <li><b>👥</b><span>Tes copains : salles, chat, duels et coop en ligne</span></li>
         <li><b>😎</b><span>Ton pseudo, ta tête et ton cri dans tous les jeux</span></li>
       </ul>
       <button class="btn btn-play" id="jdw-guestask-new" type="button">Créer un compte</button>
@@ -4094,9 +4011,9 @@ function drawZapper(z) {
 }
 
 const PILOT = new Image();
-PILOT.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTUgMTUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjE1MCI+DQo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOWE0N2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmM5YTAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4NCjxwYXRoIGQ9Ik00NCAxMThoMzB2MzJINDR6IiBmaWxsPSIjZDg4ZjY4Ii8+DQo8cGF0aCBkPSJNMjIgNzhjMC04IDEwLTE0IDI0LTE0aDQwYzEyIDAgMTggOCAyMCAxOGwyIDEwIDYgOC02IDQgMiA2LTQgMiAyIDhjMCAxMC0xMiAxOC0yNiAxOEg1OGMtMjAgMC0zNi0xNC0zNi0zNHoiIGZpbGw9InVybCgjcykiLz4NCjxwYXRoIGQ9Ik05MiAxMjBxNiAxIDktMyIgc3Ryb2tlPSIjYTU1MjNhIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPHBhdGggZD0iTTQgODJDNCAzNCAzMCA2IDYyIDZzNTIgMjYgNTIgNzJ6IiBmaWxsPSIjZmY2YjNkIi8+DQo8cGF0aCBkPSJNNTQgNi40aDE0VjgwSDU0eiIgZmlsbD0iI2U5ZjBmMyIvPg0KPHBhdGggZD0iTTI2IDI2cTEyLTEyIDMwLTE0IiBzdHJva2U9IiNmZmYiIHN0cm9rZS1vcGFjaXR5PSIuNSIgc3Ryb2tlLXdpZHRoPSI3IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjxwYXRoIGQ9Ik0wIDc4aDExNXY4SDB6IiBmaWxsPSIjYzQ0ODJhIi8+DQo8cGF0aCBkPSJNMzAgODhoNzZ2MTJIMzB6IiBmaWxsPSIjMjIzOTRhIi8+DQo8ZWxsaXBzZSBjeD0iOTQiIGN5PSI5NCIgcng9IjE2IiByeT0iMTEiIGZpbGw9IiMyMjM5NGEiLz48ZWxsaXBzZSBjeD0iOTYiIGN5PSI5NCIgcng9IjExIiByeT0iNyIgZmlsbD0iIzdmZTNmZiIvPg0KPHBhdGggZD0iTTkwIDkwbDgtMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjYzQ0ODJhIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjkiIGZpbGw9IiMzYTU1NjgiLz4NCjxwYXRoIGQ9Ik0zNCAxMDhxMjAgMjYgNTAgMjIiIHN0cm9rZT0iIzE2MzEzZCIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9Ijg0IiBjeT0iMTMwIiByPSI0LjUiIGZpbGw9IiMxNjMxM2QiLz4NCjwvc3ZnPg0K';
+PILOT.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTUgMTUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjE1MCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U5YTQ3YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmYzlhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cGF0aCBkPSJNNDQgMTE4aDMwdjMySDQ0eiIgZmlsbD0iI2Q4OGY2OCIvPgo8cGF0aCBkPSJNMjIgNzhjMC04IDEwLTE0IDI0LTE0aDQwYzEyIDAgMTggOCAyMCAxOGwyIDEwIDYgOC02IDQgMiA2LTQgMiAyIDhjMCAxMC0xMiAxOC0yNiAxOEg1OGMtMjAgMC0zNi0xNC0zNi0zNHoiIGZpbGw9InVybCgjcykiLz4KPHBhdGggZD0iTTkyIDEyMHE2IDEgOS0zIiBzdHJva2U9IiNhNTUyM2EiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik00IDgyQzQgMzQgMzAgNiA2MiA2czUyIDI2IDUyIDcyeiIgZmlsbD0iI2ZmNmIzZCIvPgo8cGF0aCBkPSJNNTQgNi40aDE0VjgwSDU0eiIgZmlsbD0iI2U5ZjBmMyIvPgo8cGF0aCBkPSJNMjYgMjZxMTItMTIgMzAtMTQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9Ii41IiBzdHJva2Utd2lkdGg9IjciIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMCA3OGgxMTV2OEgweiIgZmlsbD0iI2M0NDgyYSIvPgo8cGF0aCBkPSJNMzAgODhoNzZ2MTJIMzB6IiBmaWxsPSIjMjIzOTRhIi8+CjxlbGxpcHNlIGN4PSI5NCIgY3k9Ijk0IiByeD0iMTYiIHJ5PSIxMSIgZmlsbD0iIzIyMzk0YSIvPjxlbGxpcHNlIGN4PSI5NiIgY3k9Ijk0IiByeD0iMTEiIHJ5PSI3IiBmaWxsPSIjN2ZlM2ZmIi8+CjxwYXRoIGQ9Ik05MCA5MGw4LTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjYzQ0ODJhIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjkiIGZpbGw9IiMzYTU1NjgiLz4KPHBhdGggZD0iTTM0IDEwOHEyMCAyNiA1MCAyMiIgc3Ryb2tlPSIjMTYzMTNkIiBzdHJva2Utd2lkdGg9IjMuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iODQiIGN5PSIxMzAiIHI9IjQuNSIgZmlsbD0iIzE2MzEzZCIvPgo8L3N2Zz4K';
 const HEAD = new Image();
-HEAD.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NiAxNjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIxNjAiPg0KPHBhdGggZD0iTTMwIDEyNGgyNnYzNkgzMHoiIGZpbGw9IiNkODhmNjgiLz4NCjxlbGxpcHNlIGN4PSI0MyIgY3k9Ijc4IiByeD0iMzgiIHJ5PSI1MiIgZmlsbD0iI2ZmYzlhMCIvPg0KPHBhdGggZD0iTTUgNzBDMiAzMCAyMCAxNiA0MyAxNnM0MiAxNCAzOCA1NGMtNC0xNC0xMC0yMi0xOC0yNi02IDgtMjAgMTAtMzIgNi04IDQtMTYgMTItMjYgMjB6IiBmaWxsPSIjNWEzYTJhIi8+DQo8cGF0aCBkPSJNMjggMThsNi0xNCA4IDEyIDEwLTE0IDQgMTZ6IiBmaWxsPSIjNWEzYTJhIi8+DQo8ZWxsaXBzZSBjeD0iMjkiIGN5PSI3OCIgcng9IjgiIHJ5PSIxMCIgZmlsbD0iI2ZmZiIvPjxlbGxpcHNlIGN4PSI1NyIgY3k9Ijc4IiByeD0iOCIgcnk9IjEwIiBmaWxsPSIjZmZmIi8+DQo8Y2lyY2xlIGN4PSIzMSIgY3k9IjgwIiByPSI1IiBmaWxsPSIjMTYzMTNkIi8+PGNpcmNsZSBjeD0iNTkiIGN5PSI4MCIgcj0iNSIgZmlsbD0iIzE2MzEzZCIvPg0KPGNpcmNsZSBjeD0iMzIuNSIgY3k9Ijc4IiByPSIxLjgiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI2MC41IiBjeT0iNzgiIHI9IjEuOCIgZmlsbD0iI2ZmZiIvPg0KPHBhdGggZD0iTTIwIDY0cTgtNiAxNi0yTTUwIDYycTgtNCAxNiAyIiBzdHJva2U9IiM1YTNhMmEiIHN0cm9rZS13aWR0aD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQo8ZWxsaXBzZSBjeD0iMjAiIGN5PSI5OCIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmY4YThhIiBmaWxsLW9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSI2NiIgY3k9Ijk4IiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmZjhhOGEiIGZpbGwtb3BhY2l0eT0iLjU1Ii8+DQo8cGF0aCBkPSJNMjcgMTA0cTE2IDE4IDMyIDB6IiBmaWxsPSIjOGEyYTJhIi8+PHBhdGggZD0iTTMxIDEwNWgyNGwtMiA0SDMzeiIgZmlsbD0iI2ZmZiIvPg0KPHBhdGggZD0iTTQzIDg0cS01IDEwIDAgMTIiIHN0cm9rZT0iI2Q4OGY2OCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjwvc3ZnPg0K';
+HEAD.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NiAxNjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIxNjAiPgo8cGF0aCBkPSJNMzAgMTI0aDI2djM2SDMweiIgZmlsbD0iI2Q4OGY2OCIvPgo8ZWxsaXBzZSBjeD0iNDMiIGN5PSI3OCIgcng9IjM4IiByeT0iNTIiIGZpbGw9IiNmZmM5YTAiLz4KPHBhdGggZD0iTTUgNzBDMiAzMCAyMCAxNiA0MyAxNnM0MiAxNCAzOCA1NGMtNC0xNC0xMC0yMi0xOC0yNi02IDgtMjAgMTAtMzIgNi04IDQtMTYgMTItMjYgMjB6IiBmaWxsPSIjNWEzYTJhIi8+CjxwYXRoIGQ9Ik0yOCAxOGw2LTE0IDggMTIgMTAtMTQgNCAxNnoiIGZpbGw9IiM1YTNhMmEiLz4KPGVsbGlwc2UgY3g9IjI5IiBjeT0iNzgiIHJ4PSI4IiByeT0iMTAiIGZpbGw9IiNmZmYiLz48ZWxsaXBzZSBjeD0iNTciIGN5PSI3OCIgcng9IjgiIHJ5PSIxMCIgZmlsbD0iI2ZmZiIvPgo8Y2lyY2xlIGN4PSIzMSIgY3k9IjgwIiByPSI1IiBmaWxsPSIjMTYzMTNkIi8+PGNpcmNsZSBjeD0iNTkiIGN5PSI4MCIgcj0iNSIgZmlsbD0iIzE2MzEzZCIvPgo8Y2lyY2xlIGN4PSIzMi41IiBjeT0iNzgiIHI9IjEuOCIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjYwLjUiIGN5PSI3OCIgcj0iMS44IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik0yMCA2NHE4LTYgMTYtMk01MCA2MnE4LTQgMTYgMiIgc3Ryb2tlPSIjNWEzYTJhIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8ZWxsaXBzZSBjeD0iMjAiIGN5PSI5OCIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmY4YThhIiBmaWxsLW9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSI2NiIgY3k9Ijk4IiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmZjhhOGEiIGZpbGwtb3BhY2l0eT0iLjU1Ii8+CjxwYXRoIGQ9Ik0yNyAxMDRxMTYgMTggMzIgMHoiIGZpbGw9IiM4YTJhMmEiLz48cGF0aCBkPSJNMzEgMTA1aDI0bC0yIDRIMzN6IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik00MyA4NHEtNSAxMCAwIDEyIiBzdHJva2U9IiNkODhmNjgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
 function drawTag(g) {
   ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(Math.sin(g.t * 2.2) * 0.2);
   const pulse = 1 + Math.sin(time * 6 + g.seed) * 0.06;
@@ -4174,7 +4091,7 @@ function drawTrail() {
 /* ---------- « Let's go » au départ de chaque niveau ---------- */
 const INTRO_LEN = 2.3;
 const FACE = new Image();
-FACE.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgMjgwIiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjI4MCI+DQo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOWE0N2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmM5YTAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4NCjxwYXRoIGQ9Ik01MCAyMjBoNTZ2NjBINTB6IiBmaWxsPSIjZDg4ZjY4Ii8+DQo8cGF0aCBkPSJNMjQgMTIwYzAtNTYgMzAtOTYgODItOTYgNDAgMCA2MCAzMCA2MCA3MGwtMiAzMCAxMCAyMi0xMCA2IDQgMTItNiA0IDQgMTRjMCAyOC0yNiA1Mi02MiA1Mi00NiAwLTgwLTQwLTgwLTkweiIgZmlsbD0idXJsKCNzKSIvPg0KPHBhdGggZD0iTTE4IDEyOEM4IDYwIDQwIDE0IDEwMCAxNGM0NCAwIDcwIDI2IDcwIDY2LTE0LTIyLTQwLTMwLTY2LTI2LTE0IDItMjQgMTQtMzAgMzAtMTAtMTAtMjYtOC0zNCA0LTQgMTQtNiAyOC02IDQweiIgZmlsbD0iIzNiMmEyMiIvPg0KPGVsbGlwc2UgY3g9IjUwIiBjeT0iMTUwIiByeD0iMTYiIHJ5PSIyMiIgZmlsbD0iI2U5YTQ3YyIvPjxwYXRoIGQ9Ik00NiAxNDBxOCA4IDIgMjAiIHN0cm9rZT0iI2MwN2E1OCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+DQo8cGF0aCBkPSJNNjAgMTE2aDExMnYxMEg2MHoiIGZpbGw9IiMxNjMxM2QiLz4NCjxwYXRoIGQ9Ik0xMTIgMTEyaDU4YzQgMCA2IDQgNSA4bC00IDIyYy0xIDYtNiAxMC0xMiAxMGgtMzBjLTggMC0xNC02LTE2LTE0eiIgZmlsbD0iIzBiMTQxYyIvPg0KPHBhdGggZD0iTTEyMCAxMThsNDAgMCIgc3Ryb2tlPSIjNWVmMGZmIiBzdHJva2Utb3BhY2l0eT0iLjciIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQo8cGF0aCBkPSJNMTI2IDIxMnEyMiA2IDM0LTgiIHN0cm9rZT0iIzhhM2EyYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjxwYXRoIGQ9Ik0xMjAgMTAwcTIwLTggNDAtMiIgc3Ryb2tlPSIjM2IyYTIyIiBzdHJva2Utd2lkdGg9IjciIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPC9zdmc+DQo=';
+FACE.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgMjgwIiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjI4MCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U5YTQ3YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmYzlhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cGF0aCBkPSJNNTAgMjIwaDU2djYwSDUweiIgZmlsbD0iI2Q4OGY2OCIvPgo8cGF0aCBkPSJNMjQgMTIwYzAtNTYgMzAtOTYgODItOTYgNDAgMCA2MCAzMCA2MCA3MGwtMiAzMCAxMCAyMi0xMCA2IDQgMTItNiA0IDQgMTRjMCAyOC0yNiA1Mi02MiA1Mi00NiAwLTgwLTQwLTgwLTkweiIgZmlsbD0idXJsKCNzKSIvPgo8cGF0aCBkPSJNMTggMTI4QzggNjAgNDAgMTQgMTAwIDE0YzQ0IDAgNzAgMjYgNzAgNjYtMTQtMjItNDAtMzAtNjYtMjYtMTQgMi0yNCAxNC0zMCAzMC0xMC0xMC0yNi04LTM0IDQtNCAxNC02IDI4LTYgNDB6IiBmaWxsPSIjM2IyYTIyIi8+CjxlbGxpcHNlIGN4PSI1MCIgY3k9IjE1MCIgcng9IjE2IiByeT0iMjIiIGZpbGw9IiNlOWE0N2MiLz48cGF0aCBkPSJNNDYgMTQwcTggOCAyIDIwIiBzdHJva2U9IiNjMDdhNTgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPgo8cGF0aCBkPSJNNjAgMTE2aDExMnYxMEg2MHoiIGZpbGw9IiMxNjMxM2QiLz4KPHBhdGggZD0iTTExMiAxMTJoNThjNCAwIDYgNCA1IDhsLTQgMjJjLTEgNi02IDEwLTEyIDEwaC0zMGMtOCAwLTE0LTYtMTYtMTR6IiBmaWxsPSIjMGIxNDFjIi8+CjxwYXRoIGQ9Ik0xMjAgMTE4bDQwIDAiIHN0cm9rZT0iIzVlZjBmZiIgc3Ryb2tlLW9wYWNpdHk9Ii43IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTI2IDIxMnEyMiA2IDM0LTgiIHN0cm9rZT0iIzhhM2EyYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTEyMCAxMDBxMjAtOCA0MC0yIiBzdHJva2U9IiMzYjJhMjIiIHN0cm9rZS13aWR0aD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
 let introT = 0, introSub = '', introSub2 = '';
 function letsGo(sub) {
   PG_INTRO_IMG = pgPickHead();
@@ -75426,7 +75343,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261015032354"; window.JDW_VERSION = "1.13.3"; window.JDW_NOTES = ["\ud83e\uddd9 Magic Force : en paysage la cam\u00e9ra recule (on voit toute la salle), la barre du boss est tout en haut, les ar\u00e8nes des boss sont d\u00e9gag\u00e9es et on ne reste plus coinc\u00e9 dans le d\u00e9cor", "\u2764\ufe0f Magic Force : des tonneaux \u00e0 casser donnent des c\u0153urs, m\u00eame pendant les boss ; Braise vole pour de vrai ; plus fluide sur t\u00e9l\u00e9phone", "\ud83d\uddb1\ufe0f Magic Force sur ordinateur : le clic droit lance le sort choisi, m\u00eame en gardant le clic gauche"];</script>
+<script>window.JDW_BUILD = "20261015040754"; window.JDW_VERSION = "1.13.4"; window.JDW_NOTES = ["\ud83e\udd1d La Comp\u00e9tition laisse sa place au mode Coop, qui arrive tr\u00e8s bient\u00f4t : jouer \u00e0 deux CONTRE le jeu, avec un robot ou un copain en ligne !"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -77831,7 +77748,7 @@ const RP = () => ({ p_room: room ? room.id : null, p_room_code: room ? (roomCode
 // ready = le serveur connaît les comptes (sinon : tout comme avant, jamais de jeton envoyé).
 const ACCT = { ready: !!store.get('jdw.acctok', false), probed: false, busy: {}, gateT: 0, netFail: false, s: store.get('jdw.accts', {}) || {} };
 // Invité : le joueur actuel n'a pas de compte connecté sur l'appareil (visiteur, profil « sans compte »…). Il joue aux jeux solo et
-// aux duels sur l'appareil (ou contre l'IA), sans score enregistré, sans salle, chat, direct, duel en ligne, compétition ni « regarder »,
+// aux duels sur l'appareil (ou contre l'IA), sans score enregistré, sans salle, chat, direct, duel en ligne, coop en ligne ni « regarder »,
 // sans pseudo, tête ni cri (les jeux montrent des personnages neutres). Mode local (pas de serveur : tests) : jamais invité.
 function isGuest() {      // = acctState(profile) !== 'on', sans dépendre de l'ordre de chargement
   if (!ONLINE) return false;
@@ -78977,7 +78894,7 @@ function presReset() { PRES.state = {}; PRES.ok = false; }
 function rtBroadcast(data) { const t = roomTopic(); return t ? rtSend(t, 'broadcast', { type: 'broadcast', event: 'poke', payload: Object.assign({ from: clientId }, data) }) : false; }
 function rtTrack() {
   const t = roomTopic(); if (!t || !profile.name || document.hidden || !RT.ws || RT.ws.readyState !== 1) return;
-  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId, ver: myVersionTag(), cmp: cmpMeta() } });
+  rtSend(t, 'presence', { type: 'presence', event: 'track', payload: { name: cleanName(profile.name), game: where, cid: clientId, ver: myVersionTag() } });
 }
 function rtUntrack() { const t = roomTopic(); if (t) rtSend(t, 'presence', { type: 'presence', event: 'untrack' }); }
 function presApply(d) {
@@ -79000,7 +78917,7 @@ function presList() {
     const m = metas[metas.length - 1]; if (!m || !m.name) continue;
     const name = cleanName(m.name);
     if (playersAt && !roomMember(name)) continue;   // un appareil branché sur la salle sans en être membre n'apparaît nulle part
-    out.push({ name, game: m.game || 'menu', ver: m.ver || '', cmp: m.cmp || null, cid: m.cid || '' });
+    out.push({ name, game: m.game || 'menu', ver: m.ver || '', cid: m.cid || '' });
   }
   return out;
 }
@@ -79022,7 +78939,6 @@ function presChanged() {
   serverOk = true;
   refreshOnline(); if (chat.open) refreshChatOnline();
   if (!$('jdw-members').hidden) renderMembers();
-  cmpOnPresence();
 }
 async function rtConnect() {
   if (!ONLINE || !window.WebSocket || (RT.ws && RT.ws.readyState <= 1) || RT.opening || isGuest() || netOff()) return;
@@ -79064,7 +78980,6 @@ function poke(kind, topic) {
 const pokeTimers = {};
 function onPoke(topic, event, p) {
   if (p.from === clientId) return;
-  if (p.t === 'cmp') { if (room && topic === 'jdw-room-' + room.id) cmpOnSignal(p); return; }
   if (p.t === 'rtc') { if (room && topic === 'jdw-room-' + room.id) rtcOnSignal(p); return; }
   if (p.t === 'net') { if (NET.topic && topic === NET.topic) netOnSignal(p); return; }
   if (p.t === 'netinv') { if (room && topic === 'jdw-room-' + room.id) netOnInvite(p); return; }
@@ -79123,7 +79038,7 @@ async function checkAppVersion() {
 }
 let saving = 0;
 function calmMoment() {
-  if (!$('jdw-play').hidden || !$('jdw-duo').hidden || chat.open || saving > 0 || CMP.id || MAP.open) return false;
+  if (!$('jdw-play').hidden || !$('jdw-duo').hidden || chat.open || saving > 0 || MAP.open) return false;
   for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) return false;
   const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA)$/.test(a.tagName));
 }
@@ -79456,7 +79371,7 @@ function previewLoop(ts) {
   if ($('jdw-lib').hidden || ts - prevT < 32) return;
   prevT = ts;
   const dpr = Math.min(window.devicePixelRatio || 1, 2), t = ts / 1000;
-  for (const tl of tiles.concat(duoTiles, cmpTiles)) {
+  for (const tl of tiles.concat(duoTiles, coopSoonTiles)) {
     if (!tl.visible) continue;
     const c = tl.canvas, w = c.clientWidth, h = c.clientHeight;
     if (!w || !h) continue;
@@ -80466,7 +80381,7 @@ function acctGate() {
   if (st !== 'none' && st !== 'need') { if (AS.locked && !$('jdw-acct').hidden) { AS.locked = false; closeSheet('jdw-acct'); } return; }
   if (!$('jdw-acct').hidden || !$('jdw-welcome').hidden) return;
   if (!ACCT.probed || ACCT.netFail || netDown) return;      // pas de réseau : on ne bloque personne, on redemandera
-  const busy = ['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-profiles', 'jdw-photo', 'jdw-cri', 'jdw-settings', 'jdw-podium'].some(id => $(id) && !$(id).hidden);
+  const busy = ['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-profiles', 'jdw-photo', 'jdw-cri', 'jdw-settings'].some(id => $(id) && !$(id).hidden);
   if (busy) { ACCT.gateT = setTimeout(acctGate, 3000); return; }
   openAcct(st === 'need' ? 'connect' : 'protect', { locked: true });
 }
@@ -81332,12 +81247,12 @@ $('jdw-new-ok').addEventListener('click', async () => {
   $('jdw-new-ok').disabled = false;
 });
 
-/* ================= Onglets : Classique / Local / Duel / Compétition ================= */
+/* ================= Onglets : Classique / Duel / Coop ================= */
 // le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
 const MODES = {
   classique: null,
   duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain ou l\'IA.' },
-  compet: { ic: '🏆', t: 'Compétition', sub: 'Toute la salle sur le même jeu, en mode difficile : têtes et scores en direct, et que le meilleur gagne !' },
+  coop: { ic: '🤝', t: 'Coop', sub: 'Jouez ensemble contre le jeu, avec un robot ou un copain en ligne : vos scores d\'équipe comptent !' },
 };
 let MODE = 'classique';
 try { const m = sessionStorage.getItem('jdw.mode'); if (m && m in MODES) MODE = m; } catch (e) {}
@@ -81350,7 +81265,7 @@ function setMode(m, user) {
   const md = MODES[m];
   if (md) { $('jdw-mh-ic').textContent = md.ic; $('jdw-mh-title').textContent = md.t; $('jdw-mh-sub').textContent = md.sub; }
   if (m === 'duel') renderSeats();
-  if (m === 'compet') renderCompet();
+  if (m === 'coop') renderCoop();
   if (user && changed) {
     const w = document.querySelector('.lib-wrap'); w.classList.remove('page-in'); void w.offsetWidth; w.classList.add('page-in');
     $('jdw-lib').scrollTo({ top: 0 });
@@ -81764,264 +81679,34 @@ $('jdw-duo-rotate-back').addEventListener('click', closeDuo);
 addEventListener('resize', () => { if (DUO.waitRot && innerWidth > innerHeight) mountDuo(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && !$('jdw-duo').hidden && DUO.inst && !DUO.over) duoPause(); });
 
-/* ================= Compétition : toute la salle sur le même jeu, en mode difficile ================= */
-// Rien de plus sur le serveur : la présence de la salle dit qui participe (rôle, état, score) et des signaux « cmp »
-// portent le GO, les scores en direct, les sorties et les réactions. L'hôte (le premier inscrit encore là) donne le GO
-// dès que 2 joueurs sont prêts ; chacun joue sur son téléphone, au même niveau difficile et avec la même graine.
-const COMPET_START = { magic: 2, ilo: 4, pleingaz: 4, empilo: 5, glouton: 4, mouches: 4, carreaux: 7, rouleaux: 7 };
-const COMPET_GO_MS = 10000;
+/* ================= Coop : jouer ENSEMBLE contre le jeu (avec un robot ou un copain en ligne) ================= */
+// Le mode Coop remplace l'ancienne Compétition (plan : ~/jdv-tools/duotest/coop/COOP-PLAN.md ; contrat des jeux : COOP-CONTRACT.md).
+// Tant qu'aucun jeu n'a de champ `coop`, la page Coop est une page d'attente (#jdw-coop-soon) : les trois premiers jeux à deux en
+// vignettes animées (aperçus des jeux, comme les tuiles), AUCUNE requête au serveur ; la même hors ligne, en invité et sur ordinateur.
+const coopSoonTiles = [];   // vignettes de la page d'attente (previewLoop)
+let coopSoonBuilt = false;
+function renderCoop() {
+  if (MODE !== 'coop' || coopSoonBuilt) return;
+  coopSoonBuilt = true;
+  for (const card of document.querySelectorAll('#jdw-coop-soon [data-g]')) {
+    const id = card.dataset.g, g = card.dataset.duo ? DUOS.find(d => d.id === id) : gameById(id);
+    if (g && g.accent) card.style.setProperty('--acc', g.accent);
+    if (!g || typeof g.preview !== 'function') { card.classList.add('no-pv'); continue; }   // jeu absent de ce build : l'emoji suffit
+    coopSoonTiles.push({ g, el: card, canvas: card.querySelector('canvas'), visible: !('IntersectionObserver' in window) });
+  }
+  if ('IntersectionObserver' in window && coopSoonTiles.length) {
+    const io = new IntersectionObserver(es => es.forEach(e => { const t = coopSoonTiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
+    coopSoonTiles.forEach(t => io.observe(t.el));
+  }
+}
+
+/* ================= Regarder un copain jouer en direct (vidéo de téléphone à téléphone, WebRTC) ================= */
+// Le direct de la salle sert seulement à présenter les deux appareils (signaux « rtc ») ; l'image va ensuite directement
+// du téléphone du joueur à celui du spectateur. Rien n'est filmé tant que personne ne regarde ; 3 spectateurs au plus.
+// Réactions du « Regarder » : le spectateur en envoie (watchSend) ; le joueur les voit en pleine partie (signal « rx » → rxShow).
+// Les éléments [data-rx="<nom>"] (têtes d'un joueur à l'écran) font aussi s'envoler l'emoji (aucun pour l'instant).
 const REACTIONS = ['😂', '🔥', '💩', '😱', '👏', '😈'];
-const CMP = { id: null, g: null, role: null, st: null, t: 0, seed: 0, score: 0, goAt: 0, goFor: '', goSent: 0, goN: 0,
-  playing: false, practice: false, roster: new Map(), rid: null, seen: new Set(), ended: '', lastSc: 0, lastTrack: 0, rxLast: 0, pickFor: '' };
-const cmpGame = id => gameById(id);
-function cmpMeta() { return CMP.id ? { id: CMP.id, g: CMP.g, r: CMP.role, st: CMP.st, s: CMP.score, t: CMP.t, seed: CMP.seed } : null; }
-function cmpReset() {
-  Object.assign(CMP, { id: null, g: null, role: null, st: null, t: 0, seed: 0, score: 0, goAt: 0, goFor: '', goSent: 0, goN: 0, playing: false, practice: false, ended: '' });
-}
-// compétitions annoncées dans la salle (normalement une seule : la plus ancienne gagne)
-function cmpAll() {
-  const by = new Map();
-  for (const x of presList()) {
-    const c = x.cmp; if (!c || !c.id || !cmpGame(c.g)) continue;
-    const e = by.get(c.id) || { id: c.id, g: c.g, t: Infinity, members: new Map() };
-    e.t = Math.min(e.t, +c.t || 0); e.members.set(x.name, { name: x.name, r: c.r, st: c.st, s: +c.s || 0, t: +c.t || 0, seed: +c.seed || 0 });
-    by.set(c.id, e);
-  }
-  return [...by.values()].sort((a, b) => a.t - b.t);
-}
-const cmpFinished = c => { const ps = [...c.members.values()].filter(m => m.r === 'p'); return ps.length > 0 && ps.every(m => m.st === 'out'); };
-function cmpView() {   // la compétition affichée : la mienne, sinon celle en cours dans la salle, sinon la dernière terminée
-  const all = cmpAll();
-  if (CMP.id) return all.find(c => c.id === CMP.id) || { id: CMP.id, g: CMP.g, t: CMP.t, members: new Map() };
-  return all.find(c => !cmpFinished(c)) || all[all.length - 1] || null;
-}
-// liste des concurrents de la compétition affichée, gardée même si quelqu'un s'en va (son dernier score compte)
-function cmpSync() {
-  const v = cmpView();
-  if (!v) { CMP.rid = null; CMP.roster = new Map(); return null; }
-  if (CMP.rid !== v.id) { CMP.rid = v.id; CMP.roster = new Map(); }
-  for (const m of v.members.values()) {
-    const o = CMP.roster.get(m.name) || {};
-    CMP.roster.set(m.name, Object.assign({}, o, m, { s: Math.max(m.s, o.s || 0), gone: false }));
-  }
-  for (const [n, o] of CMP.roster) if (!v.members.has(n) && !o.gone) { o.gone = true; if (o.st === 'play') o.st = 'out'; if (o.st !== 'out') CMP.roster.delete(n); }
-  if (CMP.id) {   // moi, sans attendre l'écho de la présence
-    const me = cleanName(profile.name), o = CMP.roster.get(me) || {};
-    CMP.roster.set(me, Object.assign({}, o, { name: me, r: CMP.role, st: CMP.st, s: Math.max(CMP.score, CMP.st === 'out' ? 0 : o.s || 0), t: CMP.t, gone: false }));
-    if (CMP.st === 'out') CMP.roster.get(me).s = CMP.score;
-  }
-  return v;
-}
-const cmpPlayers = () => [...CMP.roster.values()].filter(m => m.r === 'p');
-function cmpHost() {
-  const ps = cmpPlayers().filter(m => !m.gone).sort((a, b) => a.t - b.t || a.name.localeCompare(b.name));
-  return ps.length ? ps[0].name : '';
-}
-function cmpPhase() {
-  const ps = cmpPlayers();
-  if (ps.some(m => m.st === 'play')) return 'play';
-  if (ps.some(m => m.st === 'out') && !ps.some(m => m.st === 'lobby' && !m.gone)) return 'end';
-  if (CMP.goAt && CMP.goFor === CMP.rid) return 'countdown';
-  return 'lobby';
-}
-function cmpRanking() {
-  return cmpPlayers().filter(m => m.st === 'play' || m.st === 'out').sort((a, b) => b.s - a.s || a.name.localeCompare(b.name));
-}
-// ---------- actions ----------
-function cmpCreate(g) {
-  if (!room) { openRooms(); return; }
-  const v = cmpView(); if (v && !CMP.id && !cmpFinished(v)) { cmpJoin('p'); return; }
-  Audio.ensure();
-  cmpReset(); CMP.id = 'c' + Date.now().toString(36) + shellRand().toString(36).slice(2, 6);
-  CMP.g = g.id; CMP.role = 'p'; CMP.st = 'lobby'; CMP.t = Date.now(); preloadStings(['go', 'podium']);
-  rtTrack(); rtBroadcast({ t: 'cmp', k: 'open', id: CMP.id, g: g.id, n: cleanName(profile.name) });
-  cmpSync(); renderCompet();
-}
-function cmpJoin(role) {
-  const v = cmpView(); if (!v) return;
-  Audio.ensure();
-  const was = CMP.id === v.id ? CMP.t : 0;
-  CMP.id = v.id; CMP.g = v.g; CMP.role = role; CMP.st = role === 'p' ? 'lobby' : 'watch'; CMP.t = was || Date.now(); preloadStings(['go', 'podium']);
-  CMP.seed = [...v.members.values()].map(m => m.seed).find(Boolean) || CMP.seed;   // arrivée en cours de partie : même graine que les autres
-  if (role === 'p') CMP.score = 0;
-  rtTrack(); cmpSync();
-  if (role === 'p' && cmpPhase() === 'play') { cmpStartGame(); return; }   // on rejoint une partie en cours : départ immédiat
-  renderCompet();
-}
-function cmpLeave() {
-  if (CMP.playing) return;
-  cmpReset(); rtTrack(); cmpSync(); renderCompet();
-}
-function cmpStartGame() {
-  const g = cmpGame(CMP.g); if (!g) return;
-  if (current) { CMP.practice = false; unmountGame(); }
-  CMP.practice = false; CMP.playing = true; CMP.st = 'play'; CMP.score = 0; CMP.lastSc = 0; CMP.goAt = 0;
-  rtTrack(); rtBroadcast({ t: 'cmp', k: 'sc', id: CMP.id, n: cleanName(profile.name), s: 0 });
-  cmpOpenGame(g);
-}
-function cmpOpenGame(g) {
-  $('jdw-play').classList.add('cmp'); $('jdw-cmp-side').hidden = false; renderCmpSide();
-  openGame(g);
-  setTimeout(() => dispatchEvent(new Event('resize')), 80);   // Plein Gaz se mesure au redimensionnement
-}
-function cmpPractice() {
-  const g = cmpGame(CMP.g); if (!g || CMP.playing) return;
-  CMP.practice = true; cmpOpenGame(g);
-  toastCheer('Entraînement : ça ne compte pas. Dès qu\'un copain est prêt : GO !', profile.name, true);
-}
-function cmpPracticeOver() {
-  CMP.practice = false; backToLibrary(); setMode('compet');
-}
-function cmpOut(score) {
-  CMP.playing = false; CMP.st = 'out'; CMP.score = Math.max(0, Math.floor(+score || 0));
-  rtTrack(); rtBroadcast({ t: 'cmp', k: 'out', id: CMP.id, n: cleanName(profile.name), s: CMP.score });
-  backToLibrary(); setMode('compet');
-  cmpSync();
-  renderCompet(); cmpCheckEnd();
-  if ($('jdw-podium').hidden) {   // les autres jouent encore : où j'en suis
-    const rk = cmpRanking().findIndex(m => m.name === cleanName(profile.name)) + 1;
-    toastCheer('Terminé : ' + fmt(CMP.score) + ' points' + (rk ? ', ' + (rk === 1 ? '1er' : rk + 'e') + ' pour l\'instant' : '') + ' !', profile.name, true);
-  }
-}
-// ---------- signaux en direct ----------
-function cmpOnSignal(p) {
-  if (p.k === 'open') { cmpOnPresence(); return; }
-  if (p.id !== CMP.rid && p.id !== CMP.id) return;
-  if (p.k === 'go') {
-    CMP.goAt = Date.now() + Math.max(0, Math.min(15000, +p.in || 0)); CMP.goFor = p.id; CMP.seed = +p.seed || CMP.seed;
-    if (CMP.id === p.id) rtTrack();
-    renderCompet(); return;
-  }
-  const n = cleanName(p.n); if (!n) return;
-  const o = CMP.roster.get(n) || { name: n, r: 'p', t: Date.now() };
-  if (p.k === 'sc') { o.s = Math.max(0, +p.s || 0); if (o.st !== 'out') o.st = 'play'; CMP.roster.set(n, o); }
-  else if (p.k === 'out') { o.s = Math.max(0, +p.s || 0); o.st = 'out'; CMP.roster.set(n, o); cmpCheckEnd(); }
-  else if (p.k === 're') { cmpShowReact(n, cleanName(p.to), String(p.e || '').slice(0, 4)); return; }
-  renderCompetSoon();
-}
-let cmpRenderT = 0;
-function renderCompetSoon() { if (cmpRenderT) return; cmpRenderT = setTimeout(() => { cmpRenderT = 0; renderCompet(); renderCmpSide(); }, 120); }
-function cmpOnPresence() {
-  const before = CMP.rid;
-  const v = cmpSync();
-  // une nouvelle compétition dans la salle : on prévient (sauf si c'est moi qui l'ai lancée)
-  for (const c of cmpAll()) if (!CMP.seen.has(c.id)) {
-    CMP.seen.add(c.id);
-    const first = [...c.members.values()].sort((a, b) => a.t - b.t)[0];
-    const g = cmpGame(c.g);
-    if (first && g && c.id !== CMP.id && first.name !== cleanName(profile.name) && PRES.ok && Date.now() - c.t < 120000)
-      toastCheer('🏆 ' + first.name + ' lance une compétition : ' + g.title + ' ! Viens jouer (onglet Compétition).', first.name, true);
-  }
-  $('jdw-cmp-badge').hidden = !cmpAll().some(c => !cmpFinished(c));
-  if (CMP.id && !v) { /* ma compétition n'est plus annoncée (coupure) : on garde l'état local */ }
-  if (v && before !== v.id) renderCompet();
-  renderCompetSoon();
-  cmpCheckEnd();
-}
-// ---------- l'hôte donne le GO ; tout le monde démarre à l'heure ----------
-function cmpTick() {
-  if (!CMP.rid) return;
-  const ph = cmpPhase(), me = cleanName(profile.name);
-  const ready = cmpPlayers().filter(m => m.st === 'lobby' && !m.gone);
-  if (CMP.id && cmpHost() === me && ph === 'lobby' && ready.length >= 2 && !CMP.goAt) {
-    CMP.seed = (Date.now() ^ (shellRand() * 0x7fffffff)) & 0x7fffffff;
-    CMP.goAt = Date.now() + COMPET_GO_MS; CMP.goFor = CMP.rid; CMP.goN = ready.length; CMP.goSent = Date.now();
-    rtBroadcast({ t: 'cmp', k: 'go', id: CMP.rid, in: COMPET_GO_MS, seed: CMP.seed }); rtTrack();
-  } else if (CMP.id && cmpHost() === me && CMP.goAt && (ready.length !== CMP.goN || Date.now() - CMP.goSent > 3000) && CMP.goAt - Date.now() > 800) {
-    // quelqu'un vient d'arriver pendant le compte à rebours : on lui redonne l'heure du GO
-    CMP.goN = ready.length; CMP.goSent = Date.now();
-    rtBroadcast({ t: 'cmp', k: 'go', id: CMP.rid, in: CMP.goAt - Date.now(), seed: CMP.seed });
-  }
-  if (CMP.goAt && Date.now() >= CMP.goAt) {
-    CMP.goAt = 0;
-    if (CMP.id && CMP.role === 'p' && CMP.st === 'lobby' && cmpPlayers().filter(m => m.st === 'lobby' || m.st === 'play').length >= 2) {
-      // occupé ailleurs (autre partie, duel, vidéo) : on ne coupe rien, on passe spectateur (on peut rejoindre ensuite)
-      if ((current && !CMP.practice) || !$('jdw-duo').hidden || WATCH.sid || document.hidden) {
-        CMP.role = 'w'; CMP.st = 'watch'; rtTrack();
-        const g = cmpGame(CMP.g); toastCheer('La compétition ' + (g ? g.title + ' ' : '') + 'a commencé : rejoins-la quand tu veux (onglet Compétition).', me, true);
-        renderCompet(); return;
-      }
-      toastCheer('GO ! Que le meilleur gagne !', me, true); sting('go', 0.9); cmpStartGame(); return;
-    }
-  }
-  // scores en direct pendant ma partie
-  if (CMP.playing && current && current.inst && current.inst.currentScore) {
-    let sc = 0; try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
-    if (sc !== CMP.score) { CMP.score = sc; rtBroadcast({ t: 'cmp', k: 'sc', id: CMP.id, n: me, s: sc }); }
-    if (Date.now() - CMP.lastTrack > 5000) { CMP.lastTrack = Date.now(); rtTrack(); }
-  }
-  if (!$('jdw-lib').hidden && MODE === 'compet') renderCompetTimer();
-  if (CMP.playing || CMP.practice) renderCmpSide();
-}
-setInterval(cmpTick, 500);
-function cmpCheckEnd() {
-  if (!CMP.rid || CMP.ended === CMP.rid || cmpPhase() !== 'end') return;
-  const rank = cmpRanking(); if (!rank.length) return;
-  if (CMP.id !== CMP.rid) return;   // le podium s'affiche chez les participants (joueurs et spectateurs)
-  CMP.ended = CMP.rid;
-  cmpPodium(rank);
-}
-function cmpPodium(rank) {
-  const g = cmpGame(CMP.g), me = cleanName(profile.name);
-  $('jdw-podium-game').textContent = (g ? g.title : '') + ' · compétition';
-  const solo = rank.length < 2;
-  $('jdw-podium-h').textContent = solo ? 'Tout seul…' : '🏆 ' + dispName(rank[0].name) + ' gagne !';
-  const st = $('jdw-podium-steps'); st.textContent = '';
-  const order = [1, 0, 2];
-  for (const i of order) {
-    const r = rank[i]; if (!r) continue;
-    const col = document.createElement('div'); col.className = 'pod pod' + (i + 1) + (r.name === me ? ' me' : '');
-    const hd = chatHead(r.name, { passive: true, sad: i > 0 });
-    if (i === 0) { const cr = document.createElement('span'); cr.className = 'champ-crown'; cr.textContent = '👑'; hd.appendChild(cr); }
-    const nm = document.createElement('b'); nm.textContent = dispName(r.name);
-    const sc = document.createElement('span'); sc.className = 'pod-s'; sc.textContent = fmt(r.s);
-    const blk = document.createElement('div'); blk.className = 'pod-blk'; blk.textContent = String(i + 1);
-    col.append(hd, nm, sc, blk); st.appendChild(col);
-  }
-  const ol = $('jdw-podium-rest'); ol.textContent = '';
-  rank.slice(3).forEach((r, k) => { const sp = document.createElement('span'); sp.className = 's'; sp.textContent = (k + 4) + 'e · ' + fmt(r.s); ol.appendChild(rowEl(r.name, sp, r.name === me)); });
-  if (solo) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Personne d\'autre n\'a joué : cette compétition ne compte pas.'; ol.appendChild(li); }
-  openSheet('jdw-podium', 'jdw-podium-again');
-  if (!solo) {
-    if (!sting('podium', 0.9)) { Audio.tone(523, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(659, 0.12, 'square', 0.06), 130); setTimeout(() => Audio.tone(784, 0.3, 'square', 0.06), 260); }
-    setTimeout(() => playCri(rank[0].name), 2200);
-    // l'hôte annonce le podium dans le chat de la salle (un seul message)
-    if (cmpHost() === me || (rank[0].name === me && !CMP.roster.has(cmpHost()))) {
-      const body = '🏆 Compétition ' + (g ? g.title : '') + ' : ' + rank.slice(0, 5).map((r, k) => (k + 1) + '. ' + r.name + ' ' + fmt(r.s)).join(' · ');
-      rpc('post_message', Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_body: body })).then(() => poke('chat')).catch(() => {});
-    }
-  }
-}
-function cmpClosePodium() { closeSheet('jdw-podium'); cmpReset(); rtTrack(); cmpSync(); renderCompet(); }
-$('jdw-podium-close').addEventListener('click', cmpClosePodium);
-$('jdw-podium-again').addEventListener('click', () => { const g = cmpGame(CMP.g); cmpClosePodium(); if (g) cmpCreate(g); });
-// ---------- réactions ----------
-function cmpOpenPick(name, anchor) {
-  const pk = $('jdw-cmp-pick'); pk.textContent = ''; CMP.pickFor = name;
-  for (const e of REACTIONS) {
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = e; b.setAttribute('role', 'menuitem'); b.setAttribute('aria-label', 'Envoyer ' + e + ' à ' + name);
-    b.addEventListener('click', ev => { ev.stopPropagation(); cmpReact(name, e); cmpClosePick(); });
-    pk.appendChild(b);
-  }
-  const lab = document.createElement('span'); lab.className = 'pk-to'; lab.textContent = '→ ' + dispName(name); pk.appendChild(lab);
-  pk.hidden = false;
-  const r = anchor.getBoundingClientRect(), w = pk.offsetWidth, hh = pk.offsetHeight;
-  let x = r.left + r.width / 2 - w / 2, y = r.top - hh - 8;
-  if (y < 8) y = r.bottom + 8;
-  x = Math.max(8, Math.min(innerWidth - w - 8, x));
-  pk.style.left = x + 'px'; pk.style.top = y + 'px';
-}
-function cmpClosePick() { $('jdw-cmp-pick').hidden = true; CMP.pickFor = ''; }
-document.addEventListener('pointerdown', e => { if (!$('jdw-cmp-pick').hidden && !$('jdw-cmp-pick').contains(e.target) && !(e.target.closest && e.target.closest('[data-rx]'))) cmpClosePick(); }, true);
-function cmpReact(to, e) {
-  if (Date.now() - CMP.rxLast < 1200) return;
-  CMP.rxLast = Date.now();
-  const me = cleanName(profile.name);
-  rtBroadcast({ t: 'cmp', k: 're', id: CMP.rid, n: me, to, e });
-  cmpShowReact(me, to, e);
-}
 const rxIn = {};
-function cmpShowReact(from, to, e) { rxShow(from, to, e); }
 function rxShow(from, to, e) {
   const k = from, now = Date.now(); rxIn[k] = (rxIn[k] || []).filter(t => now - t < 1000); if (rxIn[k].length >= 3) return; rxIn[k].push(now);
   for (const el of document.querySelectorAll('[data-rx="' + CSS.escape(to) + '"]')) {
@@ -82042,163 +81727,6 @@ function rxShow(from, to, e) {
     Audio.tone(880, 0.06, 'sine', 0.05, 1320);
   }
 }
-// ---------- affichage : page Compétition ----------
-function cmpRowStatus(m) {
-  if (m.r === 'w') return { t: '👁 regarde', c: 'w' };
-  if (m.st === 'play') return { t: '● en jeu', c: 'p' };
-  if (m.st === 'out') return { t: m.gone ? 'parti' : 'terminé', c: 'o' };
-  return { t: 'prêt', c: 'l' };
-}
-function renderCompet() {
-  if (MODE !== 'compet') return;
-  const off = netOff() && !CMP.id && !isGuest(), v = off ? null : cmpSync(), noRoom = !ONLINE || !room || off, gst = isGuest();
-  $('jdw-cmp-none').hidden = !noRoom;
-  $('jdw-cmp-none').classList.toggle('net-need', off);
-  $('jdw-cmp-none').querySelector('p').textContent = gst ? 'La compétition se joue en direct avec les copains de ta salle : crée ton compte pour y participer.'
-    : off ? 'Il faut du réseau : la compétition se joue en direct avec les copains de ta salle. En attendant, les jeux solo et les duels sur ce téléphone marchent hors ligne.'
-    : 'La compétition se joue en direct avec les copains de ta salle.';
-  $('jdw-cmp-room').textContent = gst ? 'Créer mon compte' : off ? '↻ Réessayer' : 'Choisir une salle';
-  const ph = v ? cmpPhase() : 'lobby', ended = !!v && CMP.id !== v.id && cmpFinished(v);
-  $('jdw-cmp-idle').hidden = noRoom || (!!v && !ended);
-  $('jdw-cmp-card').hidden = noRoom || !v;
-  if (noRoom) return;
-  if (!v || ended) renderCmpGames();
-  if (!v) return;
-  const g = cmpGame(v.g), me = cleanName(profile.name);
-  $('jdw-cmp-card').style.setProperty('--acc', g ? g.accent : COLORS.amber);
-  $('jdw-cmp-game').textContent = g ? g.title : v.g;
-  $('jdw-cmp-hint').textContent = g ? (g.tagline || '') + ' Départ au niveau ' + (COMPET_START[g.id] || 1) + ', une seule vie.' : '';
-  const ps = cmpPlayers(), watchers = [...CMP.roster.values()].filter(m => m.r === 'w' && !m.gone);
-  $('jdw-cmp-count').textContent = ps.filter(m => !m.gone).length + ' 🎮' + (watchers.length ? ' · ' + watchers.length + ' 👁' : '');
-  // concurrents, triés par score
-  const ol = $('jdw-cmp-list'); ol.textContent = '';
-  const rows = [...CMP.roster.values()].filter(m => !(m.gone && m.st !== 'out')).sort((a, b) => (b.r === 'p') - (a.r === 'p') || b.s - a.s || a.t - b.t);
-  rows.forEach(m => {
-    const li = document.createElement('li'); li.className = 'cmp-row' + (m.name === me ? ' me' : '') + (m.st === 'out' ? ' out' : '');
-    const hb = document.createElement('button'); hb.type = 'button'; hb.className = 'cmp-head'; hb.dataset.rx = m.name; hb.setAttribute('aria-label', 'Réagir à ' + m.name);
-    hb.appendChild(chatHead(m.name, { passive: true, sad: m.st === 'out' && ph === 'end' && rows[0] !== m }));
-    hb.addEventListener('click', () => { if (m.name !== me) cmpOpenPick(m.name, hb); });
-    const tx = document.createElement('span'); tx.className = 'cmp-tx';
-    const nb = document.createElement('b'); nb.textContent = dispName(m.name); const stt = cmpRowStatus(m); const sm = document.createElement('small'); sm.className = 'st-' + stt.c; sm.textContent = stt.t;
-    tx.append(nb, sm);
-    const sc = document.createElement('span'); sc.className = 'cmp-sc'; sc.textContent = m.r === 'p' && (m.st === 'play' || m.st === 'out') ? fmt(m.s) : '';
-    li.append(hb, tx, sc);
-    if (m.st === 'play' && m.name !== me && presCid(m.name, v.g)) { const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'cmp-watch'; wb.textContent = '👁'; wb.setAttribute('aria-label', 'Regarder ' + m.name + ' jouer'); wb.addEventListener('click', () => watchStart(m.name, v.g)); li.appendChild(wb); }
-    ol.appendChild(li);
-  });
-  // boutons selon mon état
-  const bt = $('jdw-cmp-btns'); bt.textContent = '';
-  const mk = (t, cls, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = t; b.addEventListener('click', fn); bt.appendChild(b); return b; };
-  if (CMP.id !== v.id && ended) {
-    mk('🏆 Nouvelle compétition', 'btn btn-play', () => { if (g) cmpCreate(g); });
-  } else if (CMP.id !== v.id) {
-    mk(ph === 'play' ? '🎮 Rejoindre la partie' : '🎮 Je joue', 'btn btn-play', () => cmpJoin('p'));
-    mk('👁 Je regarde', 'btn btn-ghost', () => cmpJoin('w'));
-  } else if (CMP.role === 'w') {
-    if (ph !== 'end') mk('🎮 Je joue aussi', 'btn btn-play', () => cmpJoin('p'));
-    mk('Quitter', 'btn btn-ghost', cmpLeave);
-  } else if (CMP.st === 'lobby') {
-    if (ph === 'lobby') mk('S\'entraîner en attendant', 'btn btn-ghost', cmpPractice);
-    mk('Quitter', 'btn btn-ghost', cmpLeave);
-  } else if (CMP.st === 'out') {
-    mk('Quitter', 'btn btn-ghost', cmpLeave);
-  }
-  renderCompetTimer();
-  cmpDemoRun();
-}
-function renderCompetTimer() {
-  if (MODE !== 'compet' || $('jdw-cmp-card').hidden) return;
-  const ph = cmpPhase(), go = $('jdw-cmp-go'), ps = cmpPlayers().filter(m => !m.gone);
-  let txt;
-  if (ph === 'countdown') {
-    const left = Math.max(0, Math.ceil((CMP.goAt - Date.now()) / 1000));
-    txt = 'GO dans ' + left + ' s !'; go.hidden = false; if (go.textContent !== String(left)) { go.textContent = String(left); go.classList.remove('tick'); void go.offsetWidth; go.classList.add('tick'); }
-  } else {
-    go.hidden = true;
-    txt = ph === 'play' ? 'En cours · ' + ps.filter(m => m.st === 'play').length + ' en piste'
-      : ph === 'end' ? 'Terminé'
-      : ps.filter(m => m.st === 'lobby').length < 2 ? 'En attente d\'un 2e joueur : dès qu\'il arrive, GO !' : 'Prêts…';
-  }
-  if ($('jdw-cmp-phase').textContent !== txt) $('jdw-cmp-phase').textContent = txt;
-}
-// démo rapide : la vignette animée du jeu en grand
-let cmpDemoOn = false;
-function cmpDemoRun() { if (!cmpDemoOn) { cmpDemoOn = true; requestAnimationFrame(cmpDemoFrame); } }
-function cmpDemoFrame(ts) {
-  const card = $('jdw-cmp-card');
-  if (MODE !== 'compet' || card.hidden || $('jdw-lib').hidden || document.hidden) { cmpDemoOn = false; return; }
-  requestAnimationFrame(cmpDemoFrame);
-  const v = cmpView(), g = v && cmpGame(v.g); if (!g) return;
-  const c = $('jdw-cmp-canvas'), w = c.clientWidth, h = c.clientHeight; if (!w || !h) return;
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
-  const ctx = c.getContext('2d'); ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  try { g.preview(ctx, w, h, ts / 1000); } catch (e) { ctx.fillStyle = COLORS.night; ctx.fillRect(0, 0, w, h); }
-  ctx.restore();
-}
-function renderCmpGames() {
-  const wrap = $('jdw-cmp-games'); if (wrap.childElementCount) return;
-  for (const g of GAMES) {
-    if (!(g.id in COMPET_START)) continue;
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'cmp-game'; b.style.setProperty('--acc', g.accent || COLORS.amber);
-    const t = document.createElement('span'); t.className = 'cg-t';
-    const nb = document.createElement('b'); nb.textContent = g.title; const sm = document.createElement('small'); sm.textContent = 'Départ au niveau ' + COMPET_START[g.id];
-    t.append(nb, sm);
-    const go = document.createElement('span'); go.className = 'cg-go'; go.textContent = 'Lancer';
-    const cv = document.createElement('canvas'); cv.className = 'cg-img'; cv.setAttribute('aria-hidden', 'true');
-    b.append(cv, t, go); b.addEventListener('click', () => cmpCreate(g)); wrap.appendChild(b);
-    cmpTiles.push({ g, el: b, canvas: cv, visible: false });
-  }
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(es => es.forEach(e => { const t = cmpTiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
-    cmpTiles.forEach(t => io.observe(t.el));
-  } else cmpTiles.forEach(t => { t.visible = true; });
-}
-const cmpTiles = [];   // vignettes animées des jeux à lancer en compétition
-$('jdw-cmp-room').addEventListener('click', () => { if (isGuest()) guestAsk('Compétition'); else if (netOff()) { netProbeSoon(0); netNeed('La compétition'); } else openRooms(); });
-// ---------- pendant la partie : la colonne des concurrents ----------
-function renderCmpSide() {
-  const side = $('jdw-cmp-side'); if (side.hidden) return;
-  const me = cleanName(profile.name);
-  const rows = cmpPlayers().filter(m => m.st === 'play' || m.st === 'out' || m.name === me).sort((a, b) => b.s - a.s || a.name.localeCompare(b.name));
-  if (CMP.practice) { const mine = rows.find(m => m.name === me); if (mine) mine.s = 0; }
-  const key = rows.map(m => m.name + ':' + m.s + ':' + m.st).join('|') + (CMP.practice ? 'P' : '');
-  if (side.dataset.k === key) return; side.dataset.k = key; side.textContent = '';
-  if (CMP.practice) { const p = document.createElement('div'); p.className = 'cs-practice'; p.textContent = 'Entraînement'; side.appendChild(p); }
-  rows.forEach((m, k) => {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'cs-item' + (m.name === me ? ' me' : '') + (m.st === 'out' ? ' out' : '');
-    b.dataset.rx = m.name; b.setAttribute('aria-label', (k + 1) + 'e ' + m.name + ' ' + fmt(m.s) + (m.name === me ? '' : ', réagir'));
-    const rk = document.createElement('span'); rk.className = 'cs-rk'; rk.textContent = String(k + 1);
-    const sc = document.createElement('span'); sc.className = 'cs-sc'; sc.textContent = m.s >= 100000 ? Math.round(m.s / 1000) + 'k' : fmt(m.s);
-    b.append(chatHead(m.name, { passive: true, sad: m.st === 'out' }), rk, sc);
-    b.addEventListener('click', () => { if (m.name !== me) cmpOpenPick(m.name, b); });
-    side.appendChild(b);
-  });
-  const w = [...CMP.roster.values()].filter(m => m.r === 'w' && !m.gone).length;
-  if (w) { const e = document.createElement('div'); e.className = 'cs-watch'; e.textContent = '👁 ' + w; side.appendChild(e); }
-}
-function cmpLine(el) {
-  const me = cleanName(profile.name);
-  let cur = 0; try { if (current && !current.over && current.inst && current.inst.currentScore) cur = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
-  // mon score en direct (les autres : dernier score reçu)
-  const rank = cmpPlayers().filter(m => m.st === 'play' || m.st === 'out').map(m => m.name === me ? Object.assign({}, m, { s: Math.max(m.s, cur) }) : m).sort((a, b) => b.s - a.s);
-  let txt;
-  if (CMP.practice) txt = CMP.goAt && CMP.goFor === CMP.rid ? '⏱ GO dans ' + Math.max(0, Math.ceil((CMP.goAt - Date.now()) / 1000)) + ' s !' : '🏋️ Entraînement · en attente d\'un 2e joueur';
-  else {
-    const pos = rank.findIndex(m => m.name === me) + 1, lead = rank[0];
-    txt = '🏆 ' + (pos ? (pos === 1 ? '1er' : pos + 'e') + ' sur ' + rank.length : 'Compétition') + (lead && lead.name !== me ? ' · ' + dispName(lead.name) + ' ' + fmt(lead.s) : '') + ' · toi ' + fmt(cur);
-  }
-  txt = watchersTxt() + txt;
-  el.hidden = false;
-  if (!MUS.override && MUS.wantMode !== 'intense' && current && !current.over) setMusic(current.game.id, 'intense');   // départ à un niveau difficile
-  const cls = 'recline cmp' + (CMP.practice ? '' : ' me');
-  if (el.className !== cls) el.className = cls;
-  if (el.textContent !== txt) el.textContent = txt;
-}
-
-/* ================= Regarder un copain jouer en direct (vidéo de téléphone à téléphone, WebRTC) ================= */
-// Le direct de la salle sert seulement à présenter les deux appareils (signaux « rtc ») ; l'image va ensuite directement
-// du téléphone du joueur à celui du spectateur. Rien n'est filmé tant que personne ne regarde ; 3 spectateurs au plus.
 const RTC_STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
 const RTC_CFG = { iceServers: RTC_STUN };   // complété en place par le relais TURN dès qu'il est connu
 // Relais TURN (Cloudflare) : quand la liaison directe entre deux téléphones est impossible (4G, box stricte), tout passe par lui.
@@ -82843,15 +82371,12 @@ function mountGame(g) {
     isMuted: () => muted,
     heads: () => headsShown(),
     player: playerObj(),
-    mode: CMP.playing || CMP.practice ? 'compet' : 'normal',
-    startLevel: CMP.playing || CMP.practice ? COMPET_START[g.id] || 1 : 1,
-    seed: CMP.playing ? CMP.seed : undefined,
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
       const sc = Math.max(0, Math.floor(+score || 0));
-      setTimeout(() => { if (current && current.seq === seq) { if (CMP.playing) cmpOut(sc); else if (CMP.practice) cmpPracticeOver(); else showEnd(sc); } }, 900);
+      setTimeout(() => { if (current && current.seq === seq) showEnd(sc); }, 900);
     }
   };
   current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id) };
@@ -82904,20 +82429,12 @@ function backToLibrary() {
   waitRotate = null; $('jdw-rotate').hidden = true;
   unmountGame();
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
-  $('jdw-play').classList.remove('cmp'); $('jdw-cmp-side').hidden = true; cmpClosePick();
   setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic('accueil');
   fsLeave();
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
 function quitGame() {
-  if (CMP.playing || CMP.practice) {   // compétition : quitter = sortir avec le score atteint
-    let sc = 0;
-    try { if (current && !current.over && current.inst && current.inst.currentScore) sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
-    if (current) current.over = true;
-    if (CMP.playing) cmpOut(sc); else cmpPracticeOver();
-    return;
-  }
   if (current && !current.over && current.inst && current.inst.currentScore) {
     let sc = 0;
     try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) { sc = 0; }
@@ -82958,8 +82475,8 @@ $('jdw-sm-cris').addEventListener('change', () => { criOn = $('jdw-sm-cris').che
 
 /* ================= Plein écran pendant la partie (téléphone, dans le navigateur) ================= */
 // Dans un onglet du navigateur, la barre d'adresse mange l'écran (surtout en paysage). Une partie lancée d'un toucher passe en plein écran,
-// dans le geste même : openGame, openDuo, duel en ligne (netCreate chez l'hôte, netJoin chez l'invité), compétition seulement si le départ
-// est un toucher (le GO, lancé par la minuterie, ne peut pas). Les jeux en paysage verrouillent ensuite l'écran à l'horizontale
+// dans le geste même : openGame, openDuo, duel en ligne (netCreate chez l'hôte, netJoin chez l'invité). Les jeux en paysage verrouillent
+// ensuite l'écran à l'horizontale
 // (screen.orientation.lock ne marche qu'en plein écran ou dans la borne installée). Jamais dans l'appli Android (déjà en plein écran), dans
 // la borne installée (PWA), sur ordinateur (TOUCH) ni sur iPhone / iPad (pas d'API pour une page : astuce « Sur l'écran d'accueil », une
 // seule fois, au premier jeu en paysage). Retour à la bibliothèque : on sort du plein écran et on relâche le verrou (jamais entre deux
@@ -83044,7 +82561,6 @@ const REC = { leader: '', score: -1, passed: '', flashUntil: 0 };
 function recReset() { REC.leader = ''; REC.score = -1; REC.passed = ''; REC.flashUntil = 0; }
 function recLine() {
   const el = $('jdw-recline');
-  if ((CMP.playing || CMP.practice) && current && !$('jdw-play').hidden) { cmpLine(el); return; }
   if (!current || $('jdw-play').hidden || !$('jdw-end').hidden || isGuest()) { el.hidden = true; return; }   // invité : pas de classement
   const g = current.game, me = cleanName(profile.name), lead = top(g.id)[0], u = unit(g);
   let cur = 0;
@@ -83150,7 +82666,7 @@ function lvIcon(WS, n, px) {      // médaillon d'un monde (dessiné par le jeu)
 function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
   let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
-  if (!(lv >= 1) || current.mode === 'compet' || isGuest()) return;
+  if (!(lv >= 1) || isGuest()) return;
   // record d'avant la partie (pendant la partie, progTick garde déjà chaque nouveau niveau sur l'appareil)
   const best = current.lvBase != null && cleanName(profile.name) === me ? current.lvBase : lvBest(me, g.id);
   const had = lvBest(me, g.id);
@@ -83313,7 +82829,7 @@ function invShow(kind, v) {
   let s = '', ok = '', alt = '', no = '';
   if (kind === 'ask') {
     h.append('Rejoindre ', em(name), ' ?');
-    s = 'Tu y entres avec ton joueur ' + me + ' : classement, chat, duels et compétitions avec les copains de la salle.';
+    s = 'Tu y entres avec ton joueur ' + me + ' : classement, chat, duels et parties à deux avec les copains de la salle.';
     ok = 'Rejoindre la salle'; no = 'Pas maintenant';
   } else if (guest) {
     guestBar();
@@ -84561,7 +84077,7 @@ function lvBest(name, gid) { const all = store.get('jdw.bestlv', {}) || {}; retu
 function lvSetBest(name, gid, lv) { const all = store.get('jdw.bestlv', {}) || {}; const k = lvKey(name, gid); if (lv > (+all[k] || 0)) { all[k] = lv; store.set('jdw.bestlv', all); } }
 // en pleine partie : un nouveau record de niveau est gardé sur l'appareil et part en ligne (seulement quand il monte)
 function progTick() {
-  if (!current || !current.inst || current.over || !current.inst.currentLevel || CMP.playing || CMP.practice || $('jdw-play').hidden) return;
+  if (!current || !current.inst || current.over || !current.inst.currentLevel || $('jdw-play').hidden) return;
   let lv = 0; try { lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) { return; }
   const me = cleanName(profile.name), gid = current.game.id;
   if (!me || !(lv >= 1) || lv > 9999 || lv <= lvBest(me, gid)) return;
@@ -85455,8 +84971,6 @@ window.JDW_BACK = () => {
   if (!$('jdw-net').hidden) { netEnd(true); return true; }
   if (!$('jdw-watch').hidden) { watchStop(); return true; }
   if (MAP.open) { closeMap(); return true; }
-  if (!$('jdw-cmp-pick').hidden) { cmpClosePick(); return true; }
-  if (!$('jdw-podium').hidden) { cmpClosePodium(); return true; }
   if (!$('jdw-duo').hidden) { duoBack(); return true; }
   if (!$('jdw-seatpick').hidden) { closeSheet('jdw-seatpick'); return true; }
   if (chat.open) { closeChat(); return true; }
@@ -85486,7 +85000,7 @@ setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou 
 
 /* ================= Invité (site public, sans compte) ================= */
 // Un visiteur joue tout de suite : jeux solo, duels sur l'appareil ou contre l'IA. Le reste (scores, salles, chat, duel en ligne,
-// compétition, regarder, pseudo, tête, cri) demande un compte : bandeau « Crée ton compte », fenêtre jdw-guestask.
+// coop en ligne, regarder, pseudo, tête, cri) demande un compte : bandeau « Crée ton compte », fenêtre jdw-guestask.
 let guestWas = null;
 function guestSync() {
   const g = isGuest();
@@ -85510,7 +85024,7 @@ function guestSync() {
   }
   if (first) return;
   refreshAll(); refreshChatBtn(); refreshBell();
-  if (MODE === 'duel') renderSeats(); else if (MODE === 'compet') renderCompet();
+  if (MODE === 'duel') renderSeats(); else if (MODE === 'coop') renderCoop();
   setDuelWhere(DUEL_WHERE);
   if (!g && invPending()) setTimeout(invRun, 300);       // le compte est là : la salle du lien d'invitation est rejointe toute seule
 }
@@ -85566,7 +85080,6 @@ $('jdw-guest-login').addEventListener('click', () => { const kind = $('jdw-guest
 const GUEST_WHY = {
   'Les salles': 'Une salle, c’est ta bande : classement commun, chat, têtes et cris des copains.',
   'Duel en ligne': 'Défie un copain sur son téléphone, chacun chez soi.',
-  'Compétition': 'Toute la salle sur le même jeu, en direct : que le meilleur gagne !',
   'Ton joueur': 'Ton pseudo, ta tête détourée et ton cri, dans tous les jeux.',
   'Le classement': 'Tes records enregistrés, le classement de ta salle et le classement mondial.'
 };
@@ -85584,7 +85097,7 @@ $('jdw-end-guest-login').addEventListener('click', () => { backToLibrary(); gues
 
 /* ================= Hors ligne : bandeau, pastille, fonctions grisées, service worker ================= */
 // État : NETS / netOff() / netFail() / netOk() (en haut, à côté de rpc). Sans réseau : jeux solo, duels sur le téléphone, contre l'IA et
-// musique (gardée par jouer/sw.js) ; salles, chat, duel en ligne, compétition, regarder, classement en ligne : « Il faut du réseau ».
+// musique (gardée par jouer/sw.js) ; salles, chat, duel en ligne, coop en ligne, regarder, classement en ligne : « Il faut du réseau ».
 // Les scores et records de niveau attendent (jdw.unsent, jdw.progq) et partent au retour (refreshEverything → flushUnsent, progFlush).
 let netBarT = 0;
 function netBar(back) {
@@ -85624,7 +85137,7 @@ function netChanged(back) {
   document.body.classList.toggle('net-off', netOff());
   netBar(back);
   try { refreshAll(); refreshChatBtn(); } catch (e) {}
-  try { if (MODE === 'compet') renderCompet(); if (duoTiles.length) refreshDuoTiles(); } catch (e) {}
+  try { if (MODE === 'coop') renderCoop(); if (duoTiles.length) refreshDuoTiles(); } catch (e) {}
   if (!back) {
     rtClose();                                         // le direct reviendra avec le réseau (refreshEverything → rtConnect)
     try { if (chat.open) closeChat(); for (const id of ['jdw-rooms', 'jdw-members']) if ($(id) && !$(id).hidden) closeSheet(id); } catch (e) {}
@@ -85646,7 +85159,6 @@ for (const id of ['jdw-chat-btn', 'jdw-roombar', 'jdw-invite']) {
   const el = $(id); if (!el) continue;
   el.addEventListener('click', e => { if (!netOff()) return; e.stopImmediatePropagation(); e.preventDefault(); netNeed(id === 'jdw-chat-btn' ? 'Le chat' : 'Les salles'); }, true);
 }
-for (const b of document.querySelectorAll('#jdw-modes [data-mode=compet]')) b.addEventListener('click', () => { if (netOff() && !isGuest()) netNeed('La compétition'); });
 // Service worker (jouer/sw.js) : la borne s'ouvre sans réseau (page, images, jingles, polices, musiques gardées à l'usage).
 // Seulement pour la borne publiée (jouer/, SITE_ROOT=../) ; jamais pour les appels du serveur (Supabase).
 const SW_OK = 'serviceWorker' in navigator && !!ROOT && BUILD !== 'dev' && /^https?:$/.test(location.protocol);
@@ -85666,7 +85178,7 @@ function swWarm() {
 if (SW_OK) setTimeout(swWarm, 25000);
 
 /* ================= Démarrage ================= */
-['jdw-guestask', 'jdw-inv', 'jdw-invshare', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-podium', 'jdw-cmp-pick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
+['jdw-guestask', 'jdw-inv', 'jdw-invshare', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
 $('jdw-lib').hidden = false;
 if (isGuest()) room = null;      // la salle reste retenue sur l'appareil (jdw.room) : elle revient avec le compte
@@ -85686,7 +85198,7 @@ if (ONLINE && !isGuest()) { RT.topics.add('jdw-all'); if (room) RT.topics.add('j
 setTimeout(checkSiteVersion, 4000);
 // les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)
 setTimeout(() => { for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
-window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api, cmp: () => CMP };   // diagnostic (tests)
+window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api };   // diagnostic (tests)
 })();
 
 </script>

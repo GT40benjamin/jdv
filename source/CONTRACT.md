@@ -122,14 +122,14 @@ beau avec des visuels dessinés au canvas). `preview()` n'a pas d'api : il peut 
 `mount()` renvoie aussi `currentLevel()` : le numéro du niveau / de la vague / de la manche en cours (entier ≥ 1). La bibliothèque passe
 alors des morceaux calmes aux morceaux énergiques quand le jeu devient difficile (seuil réglé par jeu dans shell2.js, INTENSE_AT).
 
-## Ajout 6 : mode compétition (départ à un niveau difficile)
-La bibliothèque a un mode « Compétition » : toute la salle joue en même temps au même jeu, en mode difficile.
-- `api.startLevel` (entier ≥ 1, absent = 1) : le jeu démarre DIRECTEMENT à ce niveau / cette vague / ce secteur, comme si les
-  précédents avaient été réussis (difficulté, vitesse, ennemis, décor de ce niveau), mais SANS leurs points : le score part de 0.
-  Une seule vie comme toujours. Les niveaux suivants s'enchaînent normalement ensuite.
-- `api.mode` : `'compet'` en compétition (sinon absent ou `'normal'`) → affiche un petit badge « COMPÉTITION » dans le HUD.
-- `api.seed` (entier, facultatif) : si présent, le hasard qui décide du contenu des niveaux (dispositions, vagues, ordre des pièces…)
-  est tiré d'un PRNG initialisé avec cette graine, pour que tous les concurrents aient la même partie (les particules et effets
-  peuvent rester sur Math.random). Si c'est trop intrusif pour un jeu, ignore-le proprement.
+## Ajout 6 (révisé) : départ à un niveau et graine
+- `api.startLevel` (entier ≥ 1, absent = 1) : outil de test (harnais `?start=N` ; la borne ne l'envoie plus). Le jeu démarre
+  DIRECTEMENT à ce niveau / cette vague / ce secteur, comme si les précédents avaient été réussis (difficulté, vitesse, ennemis, décor
+  de ce niveau), mais SANS leurs points : le score part de 0. Une seule vie comme toujours. Les niveaux suivants s'enchaînent ensuite.
+- `api.seed` (entier, facultatif) : graine du contenu (donnée par la borne en COOP et par les harnais `?seed=S`). Le hasard qui
+  décide du contenu des niveaux (dispositions, vagues, ordre des pièces…) est tiré d'un PRNG initialisé avec cette graine : à graine
+  égale, même partie (les particules et effets peuvent rester sur Math.random). Si c'est trop intrusif pour un jeu, ignore-le proprement.
 - `currentLevel()` renvoie le vrai niveau (ex. 8 si on a démarré au 8).
 - Sans ces paramètres, le jeu doit se comporter EXACTEMENT comme avant.
+- L'ancien `api.mode = 'compet'` (mode Compétition, retiré de la borne) n'existe plus : aucun jeu ne doit l'attendre.
+Jouer à deux, ensemble contre le jeu (mode Coop) : `COOP-CONTRACT.md`.

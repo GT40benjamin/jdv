@@ -80,36 +80,24 @@
       <p class="eyebrow grid-h">Choisis le duel</p>
       <section class="grid duo-grid" id="jdw-duo-grid" aria-label="Jeux de duel"></section>
     </section>
-    <section class="mode-page" id="jdw-page-compet" aria-label="Mode Compétition">
-      <div class="cmp-none" id="jdw-cmp-none" hidden>
-        <p>La compétition se joue en direct avec les copains de ta salle.</p>
-        <button class="btn btn-play" id="jdw-cmp-room" type="button">Choisir une salle</button>
-      </div>
-      <div class="cmp-idle" id="jdw-cmp-idle" hidden>
-        <p class="eyebrow">Lance une compétition</p>
-        <div class="cmp-games" id="jdw-cmp-games"></div>
-        <p class="eyebrow">Comment ça marche</p>
-        <ol class="soon-steps">
-          <li><b>Tu lances la compétition</b> sur un jeu : toute la salle est prévenue.</li>
-          <li><b>GO dès que 2 joueurs sont prêts</b>, avec une démo rapide pendant le compte à rebours.</li>
-          <li><b>Mode difficile, une seule vie</b>, la même partie pour tous : le meilleur score gagne.</li>
-          <li><b>Les têtes et les scores défilent en direct sur le côté</b>, et on s'envoie des réactions.</li>
-          <li><b>On entre quand on veut</b>, pour jouer ou pour regarder.</li>
-        </ol>
-      </div>
-      <div class="cmp-card" id="jdw-cmp-card" hidden>
-        <div class="cmp-top">
-          <div class="cmp-title"><small id="jdw-cmp-phase"></small><b id="jdw-cmp-game"></b></div>
-          <span class="cmp-count" id="jdw-cmp-count"></span>
+    <section class="mode-page" id="jdw-page-coop" aria-label="Mode Coop">
+      <div class="coop-soon" id="jdw-coop-soon">
+        <h2 class="coop-soon-h"><span>Bientôt&nbsp;:</span> jouez <em>ENSEMBLE</em> contre le jeu&nbsp;!</h2>
+        <div class="coop-soon-list" role="list" aria-label="Les premiers jeux à deux">
+          <div class="coop-card" role="listitem" data-g="boum" data-duo="1">
+            <div class="cc-img"><canvas aria-hidden="true"></canvas><span class="cc-ic" aria-hidden="true">💣</span></div>
+            <div class="cc-tx"><b>Boum 2&nbsp;contre&nbsp;2</b><small>Toi et ton coéquipier contre deux robots.</small></div>
+          </div>
+          <div class="coop-card" role="listitem" data-g="ilo">
+            <div class="cc-img"><canvas aria-hidden="true"></canvas><span class="cc-ic" aria-hidden="true">🚀</span></div>
+            <div class="cc-tx"><b>Galaxy Wars à&nbsp;deux</b><small>Deux vaisseaux contre les vagues et les boss.</small></div>
+          </div>
+          <div class="coop-card" role="listitem" data-g="magic">
+            <div class="cc-img"><canvas aria-hidden="true"></canvas><span class="cc-ic" aria-hidden="true">🧙</span></div>
+            <div class="cc-tx"><b>Magic Force à&nbsp;deux</b><small>Deux mages dans le donjon.</small></div>
+          </div>
         </div>
-        <div class="cmp-demo" id="jdw-cmp-demo">
-          <canvas id="jdw-cmp-canvas" aria-hidden="true"></canvas>
-          <div class="cmp-go" id="jdw-cmp-go" hidden></div>
-          <span class="cmp-demo-tag">Démo</span>
-        </div>
-        <p class="cmp-hint" id="jdw-cmp-hint"></p>
-        <ol class="cmp-list" id="jdw-cmp-list"></ol>
-        <div class="cmp-btns" id="jdw-cmp-btns"></div>
+        <p class="coop-soon-foot">Avec un robot (de Facile à Extrême) ou un copain en ligne. Vos scores d'équipe iront au classement.</p>
       </div>
     </section>
     <section class="grid" id="jdw-grid" aria-label="Jeux"></section>
@@ -118,7 +106,7 @@
   <nav class="modebar" id="jdw-modes" aria-label="Modes de jeu">
     <button type="button" data-mode="classique"><span class="mb-ic">🕹️</span><span class="mb-t">Classique</span><span class="mb-soon new" id="jdw-cls-badge" hidden>nouveau</span></button>
     <button type="button" data-mode="duel"><span class="mb-ic">⚔️</span><span class="mb-t">Duel</span><span class="mb-soon new" id="jdw-duo-badge" hidden>nouveau</span></button>
-    <button type="button" data-mode="compet"><span class="mb-ic">🏆</span><span class="mb-t">Compétition</span><span class="mb-soon live" id="jdw-cmp-badge" hidden>en direct</span></button>
+    <button type="button" data-mode="coop"><span class="mb-ic">🤝</span><span class="mb-t">Coop</span><span class="mb-soon" id="jdw-coop-badge">bientôt</span></button>
   </nav>
 </main>
 
@@ -133,7 +121,6 @@
       <label class="switch-row"><span>📣 Cris</span><input type="checkbox" id="jdw-sm-cris"></label>
     </div>
   </div>
-  <aside class="cmp-side" id="jdw-cmp-side" aria-label="Concurrents en direct" hidden></aside>
   <div id="jdw-host">
     PG_MARKUP
     <div class="rotate" id="jdw-rotate" hidden>
@@ -318,20 +305,6 @@
   </div>
 </div>
 
-<!-- Compétition : réactions et podium -->
-<div class="cmp-pick" id="jdw-cmp-pick" role="menu" aria-label="Envoyer une réaction" hidden></div>
-<div class="sheet" id="jdw-podium" hidden>
-  <div class="card podium-card" role="dialog" aria-modal="true" aria-labelledby="jdw-podium-h">
-    <div class="card-body">
-      <p class="eyebrow" id="jdw-podium-game"></p>
-      <h2 class="podium-h" id="jdw-podium-h">Podium</h2>
-      <div class="podium" id="jdw-podium-steps"></div>
-      <ol class="board podium-rest" id="jdw-podium-rest"></ol>
-      <div class="row podium-btns"><button class="btn btn-play" id="jdw-podium-again" type="button">Revanche !</button><button class="btn btn-ghost" id="jdw-podium-close" type="button">Fermer</button></div>
-    </div>
-  </div>
-</div>
-
 <!-- Duel en ligne : défi lancé / connexion -->
 <div class="sheet" id="jdw-net" hidden>
   <div class="card net-card" role="dialog" aria-modal="true" aria-labelledby="jdw-net-h">
@@ -404,7 +377,7 @@
       <p class="small" id="jdw-guestask-s"></p>
       <ul class="ga-list">
         <li><b>🏆</b><span>Tes scores enregistrés, au classement de ta salle et au mondial</span></li>
-        <li><b>👥</b><span>Tes copains : salles, chat, duels en ligne, compétitions</span></li>
+        <li><b>👥</b><span>Tes copains : salles, chat, duels et coop en ligne</span></li>
         <li><b>😎</b><span>Ton pseudo, ta tête et ton cri dans tous les jeux</span></li>
       </ul>
       <button class="btn btn-play" id="jdw-guestask-new" type="button">Créer un compte</button>

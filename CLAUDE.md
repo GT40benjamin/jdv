@@ -105,7 +105,7 @@ Connecteur Supabase (MCP) disponible dans les sessions Claude : apply_migration 
   Settings > désactiver « Allow public access » après la transition.
 - **Invité** (isGuest() : pas de compte connecté pour le joueur actuel, profils « sans compte » compris) : jeux solo, duels sur l'appareil ou
   contre l'IA (places TOI / COPAIN / IA), aucun score enregistré (saveScore, fin de partie « Garde tes records ! »), pas de salle, chat,
-  direct, duel en ligne, compétition, regarder, carte, pseudo, tête ni cri (api.heads() = [], api.player sans photo), rpc() refuse tout sauf
+  direct, duel en ligne, coop en ligne, regarder, carte, pseudo, tête ni cri (api.heads() = [], api.player sans photo), rpc() refuse tout sauf
   GUEST_RPC sans appel réseau. Bandeau `#jdw-guestbar` (Créer un compte / J'ai déjà un compte), fenêtre `#jdw-guestask`. La salle reste
   retenue (jdw.room) et revient avec le compte (guestSync). Un profil « sans compte » sur un appareil connecté : « Ajouter LOUIS au compte ».
 - **Inviter par un lien** (invite.sql) : `…/jouer/?salle=<jeton>`, même lien pour tous les membres, « Annuler ce lien » en fait un
@@ -181,8 +181,8 @@ Section « Plein écran » de shell2.js (fsEnter / fsLeave, juste après le menu
 dans l'appli, pas en PWA installée, pas sur PC sans écran tactile), une partie / un duel / un défi en ligne lancé d'un toucher passe en plein
 écran (requestFullscreen dans le geste) ; jeux en paysage : screen.orientation.lock('landscape') une fois le plein écran actif, relâché au
 retour. On reste en plein écran entre deux « Rejouer » / « Revanche », on en sort au retour à la bibliothèque ; si le joueur en sort lui-même,
-rien n'est forcé. Bouton dans la barre du haut à côté du son (l'enlever le coupe pour la séance). Compétition : le GO part d'un minuteur, donc
-seulement le bouton. iPhone/iPad (pas d'API) : astuce « Partager puis Sur l'écran d'accueil » une seule fois (jdw.fstip). Test : test-fullscreen.js
+rien n'est forcé. Bouton dans la barre du haut à côté du son (l'enlever le coupe pour la séance).
+iPhone/iPad (pas d'API) : astuce « Partager puis Sur l'écran d'accueil » une seule fois (jdw.fstip). Test : test-fullscreen.js
 (pubtest + pubserve 8767, tbuild + serve.js 8765, fake-rt 8766 ; ports via PUB= / TEST= / RT=, ONLY= pour une partie).
 
 ## Hors ligne (service worker + bandeau, octobre 2026)
@@ -201,7 +201,7 @@ seulement le bouton. iPhone/iPad (pas d'API) : astuce « Partager puis Sur l'éc
   fonction grisée). Dans la WebView Android navigator.onLine reste souvent à « en ligne » : c'est l'échec des appels qui compte.
 - **Section « Hors ligne »** de shell2.js : bandeau `#jdw-netbar` (« Pas de connexion : tu joues hors ligne, tes scores partiront au retour du
   réseau » ; « Connexion retrouvée ✓ » 3,5 s), pastille `#jdw-netpill` (en partie, ou « X : il faut du réseau »), `body.net-off` grise chat,
-  salle, joueurs, Compétition (page « Il faut du réseau » + Réessayer), duel en ligne (tuiles « Il faut du réseau »), regarder ; classement :
+  salle, joueurs, duel en ligne (tuiles « Il faut du réseau »), regarder (la page Coop « bientôt » reste visible) ; classement :
   records de l'appareil (mondial : « Il faut du réseau ») ; carte : dernière carte connue (`jdw.progcache`) sinon « il faut du réseau ».
   Jouables : jeux solo, duels sur le téléphone, contre l'IA, musique (morceaux gardés, sinon ceux de l'accueil). Au retour :
   refreshEverything (flushUnsent, progFlush, rtConnect, jeton). Files : `jdw.unsent` (un seul envoi par salle/joueur/jeu, le meilleur ;
@@ -213,7 +213,7 @@ seulement le bouton. iPhone/iPad (pas d'API) : astuce « Partager puis Sur l'éc
 - Test : `node ~/jdv-tools/test-offline.js` (après pubtest.sh ; sert lui-même le site sur 8769 et l'arrête pour « hors ligne » ; fake-rt 8766).
 
 ## Modes de jeu (version 1.6)
-Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compétition** (une page par mode, `#jdw-lib[data-mode]`, setMode()).
+Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Coop** (une page par mode, `#jdw-lib[data-mode]`, setMode()).
 - **Duel** (`source/duos/<id>.js`, contrat `source/DUO-CONTRACT.md`, harnais `source/test/duo.html?g=<id>&heads`) : deux joueurs EN MÊME
   TEMPS sur le même téléphone posé à plat (P0 en bas, P1 en haut tourné de 180°, multi-touch). 9 jeux : pingpong, trouve, palet, briques, boum,
   souris, spatial, mots, guerre (paysage, au tour par tour). La bibliothèque gère les places (« Qui joue ? » : profils, membres de la
@@ -266,17 +266,18 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Compét
   l'IA ») et un toucher fait dire au robot qu'il ne sait pas encore y jouer. Même règle en ligne : sans `net: true`, tuile grisée
   « Bientôt en ligne » (plus de vidéo : décision de l'utilisateur, le mode données est parfait en vrai). Tests : test-ai-real.js (GAME, LEVEL, WAIT), test-noai.js.
 - Présence de la salle : seuls les MEMBRES (room_members) comptent (presList filtre) — un appareil branché sur le canal sans avoir
-  rejoint n'apparaît ni dans « en ligne », ni dans les défis, ni en compétition.
-- **Compétition** : toute la salle sur un jeu solo (sauf canards) en mode difficile (CONTRACT.md Ajout 6 : api.startLevel / api.mode /
-  api.seed ; niveaux de départ COMPET_START dans shell2.js). Aucune table : la présence de la salle porte `cmp: {id, g, r, st, s, t, seed}`
-  et des signaux « cmp » (open, go, sc, out, re) passent dans le direct. L'hôte (premier inscrit encore là) donne le GO (10 s, démo =
-  preview du jeu) dès 2 joueurs prêts ; colonne des têtes + scores en direct pendant la partie, réactions (emoji), podium, message dans
-  le chat posté par l'hôte. Un inscrit occupé ailleurs au GO passe spectateur.
-- **Regarder un copain en direct** : bouton 👁 dans la liste des joueurs (et dans la compétition) → vidéo WebRTC pair-à-pair du canvas
+  rejoint n'apparaît ni dans « en ligne », ni dans les défis.
+- **Coop** (à la place de l'ancienne Compétition, retirée en entier : code, page, présence `cmp`, signaux, tests archivés dans
+  `~/jdv-tools/archive-compet/`) : jouer ENSEMBLE contre le jeu, avec un robot (Facile → Extrême) ou un copain en ligne. Plan :
+  `~/jdv-tools/duotest/coop/COOP-PLAN.md` (contrat des jeux COOP-CONTRACT.md, serveur coop.sql). Pour l'instant la page Coop est une
+  page d'attente « bientôt » (section « Coop » de shell2.js, renderCoop : Boum 2 contre 2, Galaxy Wars à deux, Magic Force à deux en
+  vignettes animées ; aucune requête au serveur ; bouton du mode avec l'étiquette « bientôt »). La borne n'envoie plus api.mode /
+  api.startLevel / api.seed aux jeux solo (CONTRACT.md Ajout 6 révisé : outils des harnais `?start=N&seed=S`).
+- **Regarder un copain en direct** : bouton 👁 dans la liste des joueurs → vidéo WebRTC pair-à-pair du canvas
   du jeu (captureStream, 3 spectateurs max, STUN Google, pas de TURN : certains réseaux 4G peuvent bloquer). Signaux « rtc » dans le direct.
   Le spectateur envoie des réactions / phrases (« Tu vas perdre ! ») qui s'affichent en pleine partie chez le joueur (signal « rx »).
 - Tests à plusieurs appareils sans toucher au vrai serveur : `node ~/jdv-tools/fake-rt.js` (faux direct sur ws://localhost:8766) puis
-  `test-compet.js`, `test-watch.js` (les pages de test redirigent le WebSocket) ; `test-duel.js` (faux duels) ; `~/jdv-tools/tbuild.sh`
+  `test-watch.js`, `test-watch-tile.js` (les pages de test redirigent le WebSocket) ; `test-duel.js` (faux duels) ; `~/jdv-tools/tbuild.sh`
   construit le site de test (SKIP_GAMES=… pour exclure des jeux).
 
 ## Musiques de la collection (Asset Store)
