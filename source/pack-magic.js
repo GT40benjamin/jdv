@@ -1,5 +1,5 @@
 // Prépare les données de « Magic Force » (games/magic.js) : modèles, textures, effets, sons → paquets EMBALLÉS de la borne.
-//   node pack-magic.js [--tout] [--etapes=kaykit,effets,golem,dragon,forge,quaternius,sons,moteur,emballage] [--out <dossier>]
+//   node pack-magic.js [--tout] [--etapes=kaykit,effets,golem,dragon,forge,glace,hydre,quaternius,sons,moteur,emballage] [--out <dossier>]
 // Sorties (dossier assets/ à côté de source/, ou --out) :
 //   magic.monde1.bin  : la Crypte oubliée (décor KayKit, mage, squelettes, animations, spectre/orc/sorcier gluant Quaternius,
 //                       golem « Gardien de pierre », planche d'effets, sons) — chargé à l'ouverture du jeu ;
@@ -50,6 +50,7 @@ function blender(args) {
 // créatures Heroic Fantasy Creatures : squelette + clips (même pose de repos recalée dans Blender, blender/creature_glb.py)
 const HFC = ILO + '/HeroicFantasyCreaturesFullPackVol1/';
 const GOL = HFC + 'Demonic Creatures Pack/Golem/FBX Files/Skinned Golem/', DRA = HFC + 'Fantasy Lizards Pack/Mountain Dragon/';
+const HYD = HFC + 'Fantasy Lizards Pack/Hydra/';
 const CREATURES = {
   golem: { sk: GOL + 'SK_Golem.FBX', tris: 6000, dir: GOL, pre: 'Golem@', out: P('golem.glb'), pack: P('golem.pack.glb'), af: '20',
     clips: { idle: 'Idle', walk: 'Walk', roar: 'Roar', atk1: 'Attack1', atk2: 'Attack2', atk3: 'Attack3', atk4: 'Attack4', atk5: 'Attack5', hit: 'GetHitHeavy', hitl: 'GetHitLight', death: 'Death' } },
@@ -57,7 +58,10 @@ const CREATURES = {
     clips: { idle: 'IdleBreathe', look: 'IdleLookAround', walk: 'Walk', run: 'Run', clawL: 'ClawsAttackLeft', clawR: 'ClawsAttackRight', combo: 'ClawsAttack2HitComboForward',
       bite: 'JumpBite', spit: 'SpitFireBall', breath: 'SpreadFire', hit: 'GetHitFront', death: 'Death', takeoff: 'TakeOffToGlide', glide: 'Glide', land: 'GlideToLanding',
       hover: 'FlyStationary', hoverSpit: 'FlyStationarySpitFireBall', hoverBreath: 'FlyStationarySpreadFire', hoverLand: 'FlyStationaryToLanding',
-      fly: 'FlyNormal', hoverHit: 'FlyStationaryGetHit', glideHit: 'GlideGetHit' } }
+      fly: 'FlyNormal', hoverHit: 'FlyStationaryGetHit', glideHit: 'GlideGetHit' } },
+  hydra: { sk: HYD + 'FBX Files/SK_Hydra.FBX', tris: 9000, dir: HYD + 'FBX Files/', pre: 'Hydra@', out: P('w3src', 'hydra.glb'), pack: P('w3', 'hydra.glb'), af: '20',
+    clips: { idle: 'IdleBreathe', look: 'IdleLookAround', walk: 'Walk', run: 'Run', bite: 'Bite3HitCombo', bite6: 'Bite6HitCombo', spit: '3toxicSpitCombo',
+      breath: 'RoarSpreadToxicBreath', hit: 'GetHitFront1', death: 'Death', turnL: 'Turn45Left', turnR: 'Turn45Right' } }
 };
 function creature(name) {
   const c = CREATURES[name];
@@ -91,6 +95,10 @@ function creature(name) {
   if (doStep('dragon')) { creature('dragon'); py(T('w2', 'dragon_tex.py'), DRA + 'Textures', P('w2')); }
   // 5) le décor des Forges : l'atlas KayKit du donjon recoloré en basalte
   if (doStep('forge')) py(T('w2', 'forge_tex.py'), KK + '/KayKit-Dungeon-Remastered-1.0/addons/kaykit_dungeon_remastered/Assets/texture/dungeon_texture.png', P('w2', 'kkt_forge.webp'));
+  // 5b) les Grottes de glace : atlas givré + Givre, l'hydre des glaces (HFC) et ses textures
+  if (doStep('glace') || doStep('hydre')) fs.mkdirSync(P('w3'), { recursive: true });
+  if (doStep('glace')) py(T('w3', 'ice_tex.py'), KK + '/KayKit-Dungeon-Remastered-1.0/addons/kaykit_dungeon_remastered/Assets/texture/dungeon_texture.png', P('w3', 'kkt_ice.webp'));
+  if (doStep('hydre')) { creature('hydra'); py(T('w3', 'hydra_tex.py'), HYD + 'Textures', P('w3')); }
   // 6) monstres Quaternius (le démon volant est réexporté de son .blend : son glTF n'a qu'une animation)
   if (doStep('quaternius')) {
     const g = P('qsrc', 'Flying_Demon', 'Flying_Demon.gltf');

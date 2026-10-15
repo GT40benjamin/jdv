@@ -1500,7 +1500,8 @@ body.net-off #jdw-coop-switch [data-where=ami] span::after{content:" · réseau"
 .gmap[data-theme=carreaux] .gmap-cap{opacity:1}
 .gmap[data-theme=carreaux] .gmap-cap b,.gmap[data-theme=carreaux] .gmap-cap small{color:#fff;text-shadow:0 2px 0 rgba(4,6,20,.95),0 0 12px rgba(4,6,20,.95),0 0 26px rgba(4,6,20,.8)}
 /* Magic Force : le donjon du mage (salles vues de dessus, torches, portes, arche entre les mondes, portail du Tour II) ; enseignes de
-   pierre, médaillons des salles, le Gardien de pierre et Braise, le mage au départ — tout est dessiné par la bibliothèque (MAP_DEFS.magic) */
+   pierre, médaillons des salles et des mini-boss, le Gardien de pierre, Braise et Givre, le mage au départ — tout est dessiné par la
+   bibliothèque (MAP_DEFS.magic). Étiquette étroite (salle près du milieu) : titre un peu plus petit, coupé en syllabes s'il le faut */
 .gmap[data-theme=magic]{background:#07050d}
 .gmap[data-theme=magic] .gmap-ttl h2{font-size:clamp(22px,7vw,44px);background:linear-gradient(180deg,#ffffff 12%,#e2d4ff 40%,#a98bff 66%,#ffb04a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 3px 0 rgba(10,6,24,.92)) drop-shadow(0 0 14px rgba(155,123,255,.6))}
@@ -1513,6 +1514,10 @@ body.net-off #jdw-coop-switch [data-where=ami] span::after{content:" · réseau"
 .gmap[data-theme=magic] .gn-lab small{color:var(--nc)}
 .gmap[data-theme=magic] .gn-lab span{color:#ffe1a8}
 .gmap[data-theme=magic] .gn-lab span.boss{color:#ff9db0}
+.gmap[data-theme=magic] .gn-lab{container-type:inline-size}
+.gmap[data-theme=magic] .gn-lab b{-webkit-hyphens:auto;hyphens:auto}
+@container (max-width:136px){.gmap[data-theme=magic] .gn-lab b{font-size:13.5px}}
+@container (max-width:118px){.gmap[data-theme=magic] .gn-lab b{font-size:12.5px}}
 .gmap[data-theme=magic] .gt-plate{padding:30px 22px 13px;border-radius:18px;gap:5px;
   background:linear-gradient(180deg,color-mix(in srgb,var(--tc) 22%,#2a2432),#17121f 78%);
   border:2px solid color-mix(in srgb,var(--tc) 72%,transparent);box-shadow:0 0 0 4px rgba(12,8,20,.45),inset 0 0 0 2px rgba(255,255,255,.05),0 0 30px color-mix(in srgb,var(--tc) 32%,transparent),0 14px 30px rgba(0,0,0,.5)}

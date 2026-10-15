@@ -8,7 +8,7 @@ const ORDER = ['ilo', 'magic', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carr
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  magic: { kind: 'new', at: '2026-10-14 22:20' },
+  magic: { kind: 'maj', at: '2026-10-15 11:00' },   // monde plus grand + Grottes de glace (1.16)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
   glouton: { kind: 'maj', at: '2026-10-13 00:55' },
   empilo: { kind: 'maj', at: '2026-10-14 12:10' },
@@ -17,7 +17,8 @@ const TILE_NEWS = {
   carreaux: { kind: 'maj', at: '2026-10-14 17:45' },
   pingpong: { kind: 'new', at: '2026-10-15 00:20' },
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
-  'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' }   // mode Coop : Galaxy Wars à deux (1.15)
+  'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
+  'coop-magic': { kind: 'new', at: '2026-10-15 11:00' }   // mode Coop : Magic Force à deux (1.16)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
@@ -6810,25 +6811,26 @@ const MAP_DEFS = {
     start: { title: 'Départ', sub: 'Lisbonne, au petit matin : en route !' },
     cap: { title: 'Le tour du monde continue…', sub: 'Un nouveau tour tous les 18 niveaux, plus coriace' }
   },
-  // Magic Force (games/magic.js, jeu 3D) : le donjon du mage, salle par salle (3 salles par monde, la 3e = l'antre du boss), puis le Tour II
-  // par le portail. Le jeu ne fournit que worlds / worldOf / drawWorldIcon : la carte est dessinée ICI (fonctions mf… plus bas) : chaque
-  // salle vue de dessus (dalles, murs, torches, décor de la salle), une porte entre deux salles, une grande arche entre deux mondes, le
-  // portail vert au Tour II ; médaillons des salles, du Gardien de pierre et de Braise, le mage au départ.
+  // Magic Force (games/magic.js, jeu 3D) : le donjon du mage, 6 salles par monde (4 salles de combat, le MINI-BOSS dans la 5e, le BOSS dans
+  // la 6e), 3 mondes (la Crypte oubliée, les Forges ardentes, les Grottes de glace), puis le Tour II par le portail. Le jeu ne fournit que
+  // worlds / worldOf / drawWorldIcon : la carte est dessinée ICI (fonctions mf… plus bas) : chaque salle vue de dessus (dalles, murs,
+  // torches, décor de la salle), une porte entre deux salles, une grande arche entre deux mondes, le portail vert au Tour II ; médaillons
+  // des salles et des mini-boss, le Gardien de pierre, Braise et Givre l'hydre, le mage au départ.
   magic: {
     theme: 'magic', word: 'Salle', tierGap: 200, majorGap: 330, tierAt: 0.5, step: 176, nodeSize: 58, bossSize: 70, bgDpr: 1.6, lazy: true,
     game() { const G = window.JDW_GAMES && window.JDW_GAMES.magic; return G && Array.isArray(G.worlds) && G.worlds.length && typeof G.worldOf === 'function' ? G : null; },
-    nw() { const G = this.game(); return G ? G.worlds.length : 2; },
-    per() { const G = this.game(); return (G && G.levelsPerWorld) || 3; },
-    count(max) { const t = this.nw() * this.per(); return Math.min(120, Math.max(2 * t, Math.ceil((max + 2) / t) * t)); },
+    nw() { const G = this.game(); return G ? G.worlds.length : 3; },
+    per() { const G = this.game(); return (G && G.levelsPerWorld) || 6; },
+    count(max) { const t = this.nw() * this.per(); return Math.min(144, Math.max(t, Math.ceil((max + 2) / t) * t)); },
     wo(lv) {
       const G = this.game();
       if (G) { try { const o = G.worldOf(lv); if (o && o.world) return o; } catch (e) {} }
       const per = this.per(), nw = this.nw(), i = Math.max(0, lv - 1), wi = Math.floor(i / per);
-      return { w: wi % nw, n: wi % nw + 1, tour: Math.floor(wi / nw), stage: i % per, boss: i % per === per - 1, world: null };
+      return { w: wi % nw, n: wi % nw + 1, tour: Math.floor(wi / nw), stage: i % per, boss: i % per === per - 1, mini: per > 3 && i % per === per - 2, world: null };
     },
     level(lv) {
       const wo = this.wo(lv), D = wo.world;
-      return { lv, tier: wo.tour * this.nw() + wo.w, w: wo.w, tour: wo.tour, stage: wo.stage, boss: !!wo.boss, wid: D ? D.id : '',
+      return { lv, tier: wo.tour * this.nw() + wo.w, w: wo.w, tour: wo.tour, stage: wo.stage, boss: !!wo.boss, mini: !!wo.mini, wid: D ? D.id : '',
         kicker: 'Salle ' + lv + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''), name: D && D.rooms && D.rooms[wo.stage] ? D.rooms[wo.stage] : 'Salle ' + lv,
         lines: [mfLine(wo)].filter(Boolean), acc: D ? D.colors.accent : '#9b7bff' };
     },
@@ -6859,32 +6861,38 @@ const MAP_DEFS = {
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Magic Force : la carte du donjon, dessinée par la bibliothèque (MAP_DEFS.magic ; le jeu 3D n'a pas de dessin 2D à prêter). Vue de
-// dessus, comme la caméra du jeu : dalles hexagonales, murs de pierre, torches ; chaque salle a son décor (la Salle des gardes, les
-// Catacombes, l'Antre du Gardien, le Pont de lave, la Grande Forge, le Nid du dragon) ; une porte (herse levée, chevrons dorés) entre
-// deux salles, une arche à braseros entre deux mondes, le portail vert au début de chaque tour. Médaillons et mage : en code aussi.
-// Un monde que la carte ne connaît pas encore (les mondes 3 à 6 du jeu) prend ses couleurs dans JDW_GAMES.magic.worlds.
+// dessus, comme la caméra du jeu : dalles hexagonales, murs de pierre, torches ; chaque salle a son décor (6 salles par monde : 4 salles
+// de combat, la salle du MINI-BOSS, la salle du BOSS) dans la Crypte oubliée, les Forges ardentes et les Grottes de glace (torches
+// bleues, cristaux, givre) ; une porte (herse levée, chevrons dorés) entre deux salles, une arche à braseros entre deux mondes, le
+// portail vert au début de chaque tour. Médaillons des salles et des mini-boss (anneau rouge à pointes), boss et mage : en code aussi.
+// Un monde que la carte ne connaît pas encore prend ses couleurs dans JDW_GAMES.magic.worlds.
 // ---------------------------------------------------------------------------------------------------------------------------------
 const MF_T = Math.PI * 2;
 const MF_LINES = {
-  crypte: ['Les squelettes sortent de terre !', 'Les morts se relèvent des tombeaux', 'Le Gardien de pierre se réveille'],
-  forge: ['La lave coule dans les forges !', 'Démons et diablotins de feu', 'Braise crache le feu du volcan']
+  crypte: ['Les squelettes sortent de terre !', 'Les morts se relèvent des tombeaux', 'Chut… des squelettes dorment ici', 'Des grimoires partout', '', 'Le Gardien de pierre se réveille'],
+  forge: ['La lave coule dans les forges !', 'Démons et diablotins de feu', 'Le métal en fusion coule à flots', 'Épées, haches et boucliers', '', 'Braise crache le feu du volcan'],
+  glace: ['Il fait très, très froid…', 'Gare aux stalactites !', 'Des cristaux qui brillent', 'Le lac gelé craque sous tes pieds', '', 'Givre a trois têtes glacées']
 };
-const MF_BOSS_SHORT = { golem: 'Le Gardien', dragon: 'Braise' };
+const MF_BOSS_SHORT = { golem: 'Le Gardien', dragon: 'Braise', hydre: 'Givre' };
 const mfArt = (s) => String(s).replace(/^L(es|e|a) /, 'l$1 ').replace(/^L’|^L'/, 'l’');
 const mfDe = (s) => { s = String(s); return /^Les /.test(s) ? 'des ' + s.slice(4) : /^Le /.test(s) ? 'du ' + s.slice(3) : /^La /.test(s) ? 'de la ' + s.slice(3) : /^L[’']/.test(s) ? 'de l’' + s.slice(2) : 'de ' + s; };
 function mfLine(wo) {
   const D = wo.world; if (!D) return '';
+  if (wo.mini && D.mini) return '⚔ Mini-boss : ' + mfArt(D.mini.name);
   if (wo.tour) return wo.boss ? '☠ ' + ((D.boss && MF_BOSS_SHORT[D.boss.key]) || D.boss.name) + ' revient, plus fort' : wo.stage === 0 ? '✦ Plus de monstres, points ×1,5' : '';
-  const L = MF_LINES[D.id], t = L ? L[wo.stage] : wo.boss ? D.boss.name + ' t’attend' : wo.stage === 0 ? D.news : '';
+  const L = MF_LINES[D.id], t = L && L[wo.stage] ? L[wo.stage] : wo.boss ? D.boss.name + ' t’attend' : wo.stage === 0 ? D.news : '';
   return t ? (wo.boss ? '☠ ' : '✦ ') + t : '';
 }
 const mfHash = (a, b) => { let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 // les couleurs d'un monde : la crypte et les forges sont réglées à la main, les mondes à venir prennent les couleurs du jeu
+const MF_FIRE = ['#fff6c8', '#ffcf4a', '#ff7a1f', 'rgba(255,90,20,0)'];
 const MF_STYLE = {
   crypte: { floor: ['#ab9a83', '#9f8f79', '#b6a58d', '#958673'], grout: '#2b2530', wall: '#96909e', wall2: '#6a6474', wallDk: '#26222e', face: '#433d4d',
-    void0: '#06040c', void1: '#1d1534', light: '#ffae52', dark: 'rgba(14,8,30,0.46)', kind: 'stone' },
+    void0: '#06040c', void1: '#1d1534', light: '#ffae52', dark: 'rgba(14,8,30,0.46)', kind: 'stone', flame: MF_FIRE },
   forge: { floor: ['#6c4335', '#603b2f', '#774b3b', '#56342a'], grout: '#150705', wall: '#7c4d3d', wall2: '#55322a', wallDk: '#1c0906', face: '#3a1c14',
-    void0: '#0b0302', void1: '#2e0c05', light: '#ff8a3d', dark: 'rgba(34,8,2,0.40)', kind: 'lava' }
+    void0: '#0b0302', void1: '#2e0c05', light: '#ff8a3d', dark: 'rgba(34,8,2,0.40)', kind: 'lava', flame: MF_FIRE },
+  glace: { floor: ['#9fbccd', '#93b1c3', '#acc8d8', '#89a7b9'], grout: '#1a2b3c', wall: '#b4d0e2', wall2: '#7896ae', wallDk: '#162536', face: '#34506a',
+    void0: '#02070c', void1: '#0b2232', light: '#8fd8ff', dark: 'rgba(6,22,40,0.42)', kind: 'ice', flame: ['#ffffff', '#c8f4ff', '#4fb8ff', 'rgba(40,140,255,0)'] }
 };
 function mfStyle(wid, def) {
   if (MF_STYLE[wid]) return MF_STYLE[wid];
@@ -7000,26 +7008,27 @@ function mfWallH(x, Y, x0, x1, y, th, gaps) {
 }
 // ---- la lumière : torche murale, brasero, lueurs ----
 function mfGlow(x, cx, cy, r, col, a) { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, rgbaHex(col, a)); g.addColorStop(0.45, rgbaHex(col, a * 0.38)); g.addColorStop(1, rgbaHex(col, 0)); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); }
-function mfFlame(x, cx, cy, s) {
-  const g = x.createRadialGradient(cx, cy + s * 0.2, 0, cx, cy, s * 1.1); g.addColorStop(0, '#fff6c8'); g.addColorStop(0.35, '#ffcf4a'); g.addColorStop(0.75, '#ff7a1f'); g.addColorStop(1, 'rgba(255,90,20,0)');
+function mfFlame(x, cx, cy, s, pal) {
+  const P = pal || MF_FIRE, g = x.createRadialGradient(cx, cy + s * 0.2, 0, cx, cy, s * 1.1); g.addColorStop(0, P[0]); g.addColorStop(0.35, P[1]); g.addColorStop(0.75, P[2]); g.addColorStop(1, P[3]);
   x.fillStyle = g; x.beginPath(); x.moveTo(cx, cy - s * 1.25); x.bezierCurveTo(cx + s * 0.75, cy - s * 0.35, cx + s * 0.62, cy + s * 0.55, cx, cy + s * 0.6);
   x.bezierCurveTo(cx - s * 0.62, cy + s * 0.55, cx - s * 0.75, cy - s * 0.35, cx, cy - s * 1.25); x.fill();
 }
 function mfTorch(x, Y, cx, cy, side, lit) {
-  // une torche murale : le support (avec le mur), puis la flamme et sa lumière chaude (après l'ombre de la salle)
+  // une torche murale : le support (avec le mur), puis la flamme et sa lumière (orange, ou bleue dans les grottes de glace)
   const fx = cx + side * 12;
   if (!lit) { x.fillStyle = '#2a2026'; x.fillRect(Math.min(cx, fx), cy - 2, 12, 4); x.fillStyle = '#4a3a30'; x.beginPath(); x.ellipse(fx, cy, 4.4, 3.4, 0, 0, MF_T); x.fill(); return; }
-  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, fx + side * 8, cy, 135, Y.light, 0.5); mfGlow(x, fx, cy - 4, 22, '#fff0c0', 0.55); x.restore();
-  mfFlame(x, fx, cy - 4, 7.5);
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, fx + side * 8, cy, 135, Y.light, 0.5); mfGlow(x, fx, cy - 4, 22, Y.kind === 'ice' ? '#e8fbff' : '#fff0c0', 0.55); x.restore();
+  mfFlame(x, fx, cy - 4, 7.5, Y.flame);
 }
 function mfBrazier(x, Y, cx, cy, s) {
+  const ice = Y.kind === 'ice', C = ice ? ['#ffffff', '#8fe0ff', '#2a6fb0'] : ['#fff3b0', '#ffb03a', '#c2400f'];
   x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, s * 9, Y.light, 0.4); x.restore();
   x.fillStyle = 'rgba(0,0,0,0.35)'; x.beginPath(); x.ellipse(cx + s * 0.4, cy + s * 0.6, s * 1.5, s * 1.2, 0, 0, MF_T); x.fill();
   x.fillStyle = '#3a3036'; x.beginPath(); x.arc(cx, cy, s * 1.3, 0, MF_T); x.fill();
-  x.strokeStyle = '#7a6a60'; x.lineWidth = s * 0.22; x.beginPath(); x.arc(cx, cy, s * 1.2, 0, MF_T); x.stroke();
-  const g = x.createRadialGradient(cx, cy, 0, cx, cy, s); g.addColorStop(0, '#fff3b0'); g.addColorStop(0.5, '#ffb03a'); g.addColorStop(1, '#c2400f');
+  x.strokeStyle = ice ? '#9ab4c8' : '#7a6a60'; x.lineWidth = s * 0.22; x.beginPath(); x.arc(cx, cy, s * 1.2, 0, MF_T); x.stroke();
+  const g = x.createRadialGradient(cx, cy, 0, cx, cy, s); g.addColorStop(0, C[0]); g.addColorStop(0.5, C[1]); g.addColorStop(1, C[2]);
   x.fillStyle = g; x.beginPath(); x.arc(cx, cy, s, 0, MF_T); x.fill();
-  mfFlame(x, cx, cy - s * 0.4, s * 0.9);
+  mfFlame(x, cx, cy - s * 0.4, s * 0.9, Y.flame);
 }
 // ---- décor ----
 function mfBarrel(x, cx, cy, r) {
@@ -7086,7 +7095,7 @@ function mfCandles(x, Y, cx, cy) {
   x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, 46, Y.light, 0.3); x.restore();
   for (const [dx, dy, h] of [[-5, 2, 9], [3, -2, 12], [7, 4, 7]]) {
     x.fillStyle = '#efe6d2'; x.fillRect(cx + dx - 2, cy + dy - h, 4, h);
-    mfFlame(x, cx + dx, cy + dy - h - 2.5, 2.4);
+    mfFlame(x, cx + dx, cy + dy - h - 2.5, 2.4, Y.flame);
   }
 }
 // cercle de runes au sol (l'Antre du Gardien en bleu, le Nid du dragon en rouge, le portail en vert)
@@ -7162,90 +7171,291 @@ function mfDust(x, x0, x1, top, bot, n, R) {
   for (let i = 0; i < n; i++) { const px = x0 + R() * (x1 - x0), py = top + R() * (bot - top); x.fillStyle = 'rgba(255,236,200,' + (0.12 + R() * 0.25).toFixed(2) + ')'; x.beginPath(); x.arc(px, py, 0.8 + R() * 1.4, 0, MF_T); x.fill(); }
   x.restore();
 }
+// ---- décor des nouvelles salles : le Dortoir, la Bibliothèque, la Salle d'armes, les Fonderies, l'Armurerie, la Salle du Seigneur, et les
+// Grottes de glace (la rivière gelée, les stalactites, les cristaux, le lac gelé, la tanière du yéti, le cœur de glace) ----
+function mfBed(x, cx, cy, w, h, rot) {      // un lit de pierre (le dortoir des squelettes) : paillasse, couverture, un crâne sur l'oreiller
+  x.save(); x.translate(cx, cy); x.rotate(rot || 0);
+  x.fillStyle = 'rgba(0,0,0,0.38)'; x.fillRect(-w / 2 + 4, -h / 2 + 5, w, h);
+  x.fillStyle = '#6e6874'; mapRect(x, -w / 2, -h / 2, w, h, 3); x.fill();
+  x.fillStyle = '#c9b48a'; mapRect(x, -w / 2 + 3, -h / 2 + 3, w - 6, h - 6, 2); x.fill();
+  x.fillStyle = '#7a2a2a'; mapRect(x, -w / 2 + 3, -h / 2 + h * 0.42, w - 6, h * 0.55, 2); x.fill();
+  x.strokeStyle = 'rgba(40,10,10,0.45)'; x.lineWidth = 1; x.beginPath(); x.moveTo(-w / 2 + 3, -h / 2 + h * 0.5); x.lineTo(w / 2 - 3, -h / 2 + h * 0.5); x.stroke();
+  mfSkull(x, 0, -h / 2 + h * 0.2, Math.min(w, h) * 0.32, null);
+  x.restore();
+}
+function mfShelf(x, cx, cy, len, thick, vertical, R) {      // une étagère pleine de livres le long d'un mur
+  x.save(); x.translate(cx, cy); if (vertical) x.rotate(Math.PI / 2);
+  x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(-len / 2 + 3, -thick / 2 + 4, len, thick);
+  x.fillStyle = '#4a2c18'; x.fillRect(-len / 2, -thick / 2, len, thick);
+  const cols = ['#b83a3a', '#2f6fb3', '#3f8f4f', '#c99a2e', '#6a4aa8', '#d8d0c0'];
+  for (let px = -len / 2 + 2; px < len / 2 - 3;) { const bw = 3 + Math.floor(R() * 3); x.fillStyle = cols[Math.floor(R() * cols.length)]; x.fillRect(px, -thick / 2 + 2, bw, thick - 4); x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(px, -thick / 2 + 2, bw, 1.5); px += bw + 0.8; }
+  x.restore();
+}
+function mfBook(x, cx, cy, s, rot, Y) {      // un grimoire ouvert, ses runes qui brillent
+  x.save(); x.translate(cx, cy); x.rotate(rot || 0);
+  x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(-s + 2, -s * 0.62 + 3, s * 2, s * 1.3);
+  x.fillStyle = '#5a2a1a'; mapRect(x, -s - 1.5, -s * 0.66, s * 2 + 3, s * 1.32, 2); x.fill();
+  x.fillStyle = '#efe4c8'; mapRect(x, -s, -s * 0.6, s * 0.97, s * 1.2, 1.5); x.fill(); mapRect(x, s * 0.03, -s * 0.6, s * 0.97, s * 1.2, 1.5); x.fill();
+  x.strokeStyle = 'rgba(80,60,40,0.55)'; x.lineWidth = 0.8; x.beginPath(); for (let k = 0; k < 4; k++) { const ly = -s * 0.38 + k * s * 0.24; x.moveTo(-s * 0.85, ly); x.lineTo(-s * 0.15, ly); x.moveTo(s * 0.18, ly); x.lineTo(s * 0.85, ly); } x.stroke();
+  x.restore();
+}
+function mfRack(x, cx, cy, len, rot) {      // un râtelier : épées, lances et haches posées contre le mur (rot : PI/2 mur de gauche, -PI/2 mur de droite)
+  x.save(); x.translate(cx, cy); x.rotate(rot || 0);
+  x.fillStyle = 'rgba(0,0,0,0.38)'; x.fillRect(-len / 2 + 3, 2, len, 8);
+  x.fillStyle = '#5a3a20'; x.fillRect(-len / 2, -2, len, 5);
+  for (let k = 0, px = -len / 2 + 7; px < len / 2 - 4; k++, px += 11) {
+    if (k % 3 === 2) { x.fillStyle = '#6a4a2a'; x.fillRect(px - 1, -16, 2.2, 24); x.fillStyle = '#b8c0cc'; x.beginPath(); x.moveTo(px, -22); x.lineTo(px + 3.5, -14); x.lineTo(px - 3.5, -14); x.closePath(); x.fill(); }
+    else if (k % 3 === 1) { x.fillStyle = '#6a4a2a'; x.fillRect(px - 1, -12, 2.2, 22); x.fillStyle = '#9aa4b2'; x.beginPath(); x.moveTo(px + 1, -14); x.quadraticCurveTo(px + 9, -11, px + 1, -5); x.closePath(); x.fill(); }
+    else { x.fillStyle = '#d8dee8'; x.fillRect(px - 1.4, -18, 2.8, 20); x.fillStyle = '#c99a2e'; x.fillRect(px - 4, 1, 8, 2); x.fillStyle = '#4a2c18'; x.fillRect(px - 1, 3, 2, 5); }
+  }
+  x.restore();
+}
+function mfShieldW(x, cx, cy, r, col, emblem) {      // un bouclier rond (bord de fer, umbo, emblème)
+  x.fillStyle = 'rgba(0,0,0,0.35)'; x.beginPath(); x.arc(cx + 2, cy + 3, r, 0, MF_T); x.fill();
+  const g = x.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r); g.addColorStop(0, mixHex(col, '#ffffff', 0.25)); g.addColorStop(1, mixHex(col, '#000000', 0.35));
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, MF_T); x.fill();
+  x.strokeStyle = '#8a929e'; x.lineWidth = r * 0.16; x.beginPath(); x.arc(cx, cy, r * 0.92, 0, MF_T); x.stroke();
+  if (emblem) { x.strokeStyle = emblem; x.lineWidth = r * 0.14; x.beginPath(); x.moveTo(cx, cy - r * 0.6); x.lineTo(cx, cy + r * 0.6); x.moveTo(cx - r * 0.6, cy); x.lineTo(cx + r * 0.6, cy); x.stroke(); }
+  x.fillStyle = '#c8ccd4'; x.beginPath(); x.arc(cx, cy, r * 0.22, 0, MF_T); x.fill();
+}
+function mfCrucible(x, cx, cy, r) {      // un creuset plein de métal en fusion, qui coule dans un moule (dans la couche qui brille)
+  x.fillStyle = 'rgba(0,0,0,0.4)'; x.beginPath(); x.ellipse(cx + 4, cy + 5, r * 1.2, r, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#2c2a30'; x.beginPath(); x.arc(cx, cy, r * 1.15, 0, MF_T); x.fill();
+  x.strokeStyle = '#5a5866'; x.lineWidth = r * 0.18; x.beginPath(); x.arc(cx, cy, r * 1.05, 0, MF_T); x.stroke();
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, r * 3.2, '#ff8a2a', 0.5); x.restore();
+  const g = x.createRadialGradient(cx - r * 0.2, cy - r * 0.2, 0, cx, cy, r * 0.85); g.addColorStop(0, '#fff6c0'); g.addColorStop(0.45, '#ffb03a'); g.addColorStop(1, '#c2400f');
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r * 0.85, 0, MF_T); x.fill();
+  // la coulée vers le moule
+  const mx = cx + r * 2.4, my = cy + r * 0.6;
+  x.strokeStyle = '#ffb03a'; x.lineWidth = r * 0.28; x.lineCap = 'round'; x.beginPath(); x.moveTo(cx + r * 0.8, cy + r * 0.1); x.quadraticCurveTo(cx + r * 1.7, cy + r * 0.1, mx - r * 0.5, my); x.stroke();
+  x.fillStyle = '#3a3036'; mapRect(x, mx - r * 0.6, my - r * 0.4, r * 1.6, r * 0.9, 2); x.fill();
+  x.fillStyle = '#ffcf6a'; mapRect(x, mx - r * 0.45, my - r * 0.26, r * 1.3, r * 0.6, 1.5); x.fill();
+}
+function mfIngots(x, cx, cy, s) {
+  for (const [dx, dy] of [[-s, 0], [0, 0], [s, 0], [-s / 2, -s * 0.55], [s / 2, -s * 0.55]]) {
+    x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(cx + dx - s * 0.45 + 2, cy + dy - s * 0.22 + 2, s * 0.9, s * 0.44);
+    x.fillStyle = '#d89a2a'; mapRect(x, cx + dx - s * 0.45, cy + dy - s * 0.22, s * 0.9, s * 0.44, 1.5); x.fill();
+    x.fillStyle = 'rgba(255,240,180,0.6)'; x.fillRect(cx + dx - s * 0.38, cy + dy - s * 0.18, s * 0.76, s * 0.1);
+  }
+}
+function mfIceBand(x, x0, x1, y, th, R) {      // la rivière gelée : glace bleue, fissures blanches, plaques de glace
+  const wav = (X, k) => y + k * th / 2 + Math.sin(X * 0.03 + k * 1.3) * 4 + Math.sin(X * 0.012 - k) * 3;
+  x.save();
+  x.beginPath(); x.moveTo(x0, wav(x0, -1)); for (let X = x0; X <= x1 + 8; X += 8) x.lineTo(X, wav(X, -1)); for (let X = x1 + 8; X >= x0 - 8; X -= 8) x.lineTo(X, wav(X, 1)); x.closePath();
+  const g = x.createLinearGradient(0, y - th / 2, 0, y + th / 2); g.addColorStop(0, '#d8f4ff'); g.addColorStop(0.35, '#7fc8ea'); g.addColorStop(0.7, '#3e8ab8'); g.addColorStop(1, '#bfe8fa');
+  x.fillStyle = g; x.fill();
+  x.save(); x.clip();
+  x.strokeStyle = 'rgba(255,255,255,0.75)'; x.lineWidth = 1.2;
+  for (let i = 0; i < (x1 - x0) / 34; i++) { let px = x0 + R() * (x1 - x0), py = y + (R() - 0.5) * th * 0.7; x.beginPath(); x.moveTo(px, py); for (let k = 0; k < 4; k++) { px += (R() - 0.3) * 16; py += (R() - 0.5) * 10; x.lineTo(px, py); } x.stroke(); }
+  x.fillStyle = 'rgba(255,255,255,0.35)'; for (let i = 0; i < (x1 - x0) / 60; i++) { x.beginPath(); x.ellipse(x0 + R() * (x1 - x0), y + (R() - 0.5) * th * 0.5, 10 + R() * 16, 4 + R() * 5, R() - 0.5, 0, MF_T); x.fill(); }
+  x.restore();
+  x.strokeStyle = '#f2fcff'; x.lineWidth = 3; for (const k of [-1, 1]) { x.beginPath(); for (let X = x0; X <= x1 + 8; X += 8) x[X === x0 ? 'moveTo' : 'lineTo'](X, wav(X, k)); x.stroke(); }
+  x.restore();
+}
+function mfIceSpikes(x, cx, cy, s) {      // un bouquet de stalagmites de glace vu de dessus
+  x.fillStyle = 'rgba(0,10,30,0.35)'; x.beginPath(); x.ellipse(cx + s * 0.25, cy + s * 0.3, s * 0.95, s * 0.8, 0, 0, MF_T); x.fill();
+  for (let k = 0; k < 5; k++) {
+    const a = k * MF_T / 5 + 0.3, d = k ? s * 0.42 : 0, px = cx + Math.cos(a) * d, py = cy + Math.sin(a) * d, r = k ? s * 0.42 : s * 0.55;
+    x.beginPath(); for (let i = 0; i < 6; i++) { const b = i * Math.PI / 3 + a; x[i ? 'lineTo' : 'moveTo'](px + Math.cos(b) * r, py + Math.sin(b) * r); } x.closePath();
+    const g = x.createLinearGradient(px - r, py - r, px + r, py + r); g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#a8e4ff'); g.addColorStop(1, '#4a90c0');
+    x.fillStyle = g; x.fill();
+    x.strokeStyle = 'rgba(255,255,255,0.7)'; x.lineWidth = 0.8; x.beginPath(); for (let i = 0; i < 6; i += 2) { const b = i * Math.PI / 3 + a; x.moveTo(px, py); x.lineTo(px + Math.cos(b) * r, py + Math.sin(b) * r); } x.stroke();
+  }
+}
+function mfCrystals(x, cx, cy, s, col) {      // des cristaux qui brillent (dans la couche lumineuse)
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, s * 3, col, 0.4); x.restore();
+  for (const [a, l, w] of [[-2.2, 1.25, 0.32], [-1.6, 1.6, 0.4], [-0.95, 1.15, 0.3], [-0.4, 0.85, 0.26], [-2.8, 0.8, 0.24]]) {
+    x.save(); x.translate(cx, cy); x.rotate(a + Math.PI / 2);
+    const L = s * l, W = s * w;
+    x.beginPath(); x.moveTo(0, 0); x.lineTo(-W, -L * 0.25); x.lineTo(-W * 0.8, -L * 0.85); x.lineTo(0, -L); x.lineTo(W * 0.8, -L * 0.85); x.lineTo(W, -L * 0.25); x.closePath();
+    const g = x.createLinearGradient(-W, 0, W, 0); g.addColorStop(0, mixHex(col, '#ffffff', 0.7)); g.addColorStop(0.5, col); g.addColorStop(1, mixHex(col, '#000000', 0.35));
+    x.fillStyle = g; x.fill(); x.strokeStyle = 'rgba(255,255,255,0.8)'; x.lineWidth = 0.9; x.beginPath(); x.moveTo(0, -L * 0.1); x.lineTo(0, -L * 0.92); x.stroke();
+    x.restore();
+  }
+}
+function mfFrozenLake(x, cx, cy, rx, ry, R) {      // le lac gelé : la glace, ses fissures, la neige sur le bord
+  x.fillStyle = 'rgba(255,255,255,0.75)'; x.beginPath(); x.ellipse(cx, cy, rx + 9, ry + 7, 0, 0, MF_T); x.fill();
+  const g = x.createRadialGradient(cx - rx * 0.3, cy - ry * 0.3, 0, cx, cy, Math.max(rx, ry)); g.addColorStop(0, '#d8f4ff'); g.addColorStop(0.55, '#6fb8de'); g.addColorStop(1, '#2a6a9a');
+  x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, MF_T); x.fill();
+  x.save(); x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, MF_T); x.clip();
+  x.strokeStyle = 'rgba(255,255,255,0.8)'; x.lineWidth = 1.3;
+  for (let i = 0; i < 7; i++) { let px = cx + (R() - 0.5) * rx, py = cy + (R() - 0.5) * ry, a = R() * MF_T; x.beginPath(); x.moveTo(px, py); for (let k = 0; k < 5; k++) { a += (R() - 0.5) * 1.2; px += Math.cos(a) * 14; py += Math.sin(a) * 9; x.lineTo(px, py); } x.stroke(); }
+  x.fillStyle = 'rgba(10,40,70,0.35)'; x.beginPath(); x.ellipse(cx + rx * 0.3, cy + ry * 0.25, 9, 3.5, 0.4, 0, MF_T); x.fill();      // l'ombre d'un poisson sous la glace
+  x.restore();
+}
+function mfSnow(x, cx, cy, r) {
+  x.fillStyle = 'rgba(30,60,100,0.25)'; x.beginPath(); x.ellipse(cx + r * 0.3, cy + r * 0.35, r * 1.1, r * 0.8, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#f4fbff'; x.beginPath(); x.arc(cx, cy, r * 0.7, 0, MF_T); x.arc(cx + r * 0.55, cy + r * 0.15, r * 0.5, 0, MF_T); x.arc(cx - r * 0.5, cy + r * 0.2, r * 0.45, 0, MF_T); x.fill();
+  x.fillStyle = 'rgba(160,210,240,0.5)'; x.beginPath(); x.ellipse(cx + r * 0.2, cy + r * 0.38, r * 0.6, r * 0.18, 0, 0, MF_T); x.fill();
+}
+function mfFur(x, cx, cy, w, h, rot) {      // une peau de bête blanche étalée par terre (la tanière du yéti) : le corps, quatre pattes, la tête
+  x.save(); x.translate(cx, cy); x.rotate(rot || 0);
+  const hw = w / 2, hh = h / 2, parts = [[0, 0, hw * 0.78, hh * 0.72, 0], [hw * 0.9, 0, hw * 0.24, hh * 0.36, 0]];
+  for (const [px, py] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) parts.push([px * hw * 0.52, py * hh * 0.8, hw * 0.14, hh * 0.34, px * py * 0.6]);
+  x.fillStyle = 'rgba(10,30,50,0.28)'; x.beginPath(); x.ellipse(4, 5, hw * 1.02, hh * 0.98, 0, 0, MF_T); x.fill();
+  for (const [col, d] of [['#93a9bc', 1.6], ['#eef4f9', 0]]) { x.fillStyle = col; for (const [px, py, rx, ry, an] of parts) { x.beginPath(); x.ellipse(px, py, rx + d, ry + d, an, 0, MF_T); x.fill(); } }
+  x.fillStyle = 'rgba(160,190,212,0.45)'; x.beginPath(); x.ellipse(-hw * 0.05, 0, hw * 0.42, hh * 0.3, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#d4e0ea'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(hw * 0.98, sg * hh * 0.3, hh * 0.12, 0, MF_T); x.fill(); }
+  x.fillStyle = '#3a4a5a'; x.beginPath(); x.ellipse(hw * 1.1, 0, hw * 0.035, hh * 0.08, 0, 0, MF_T); x.fill();
+  x.restore();
+}
+function mfArmor(x, cx, cy, s) {      // une armure sur son socle, vue de dessus : les épaulières, le casque à visière, le panache rouge
+  x.fillStyle = 'rgba(0,0,0,0.35)'; x.beginPath(); x.ellipse(cx + 3, cy + 4, s * 1.3, s * 1.1, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#3a3440'; x.beginPath(); x.arc(cx, cy, s * 1.15, 0, MF_T); x.fill();
+  x.strokeStyle = '#5a5464'; x.lineWidth = 1.5; x.stroke();
+  const g = x.createLinearGradient(cx - s, cy - s, cx + s, cy + s); g.addColorStop(0, '#e8eef6'); g.addColorStop(0.5, '#9aa4b4'); g.addColorStop(1, '#4a5260');
+  x.fillStyle = g; x.strokeStyle = '#1c2028'; x.lineWidth = 1;
+  x.beginPath(); x.ellipse(cx, cy + s * 0.12, s * 1.05, s * 0.52, 0, 0, MF_T); x.fill(); x.stroke();
+  x.beginPath(); x.arc(cx, cy - s * 0.04, s * 0.5, 0, MF_T); x.fill(); x.stroke();
+  x.lineWidth = 1.4; x.beginPath(); x.moveTo(cx - s * 0.3, cy + s * 0.08); x.lineTo(cx + s * 0.3, cy + s * 0.08); x.stroke();
+  x.strokeStyle = '#c0242c'; x.lineWidth = s * 0.22; x.lineCap = 'round'; x.beginPath(); x.moveTo(cx, cy - s * 0.4); x.quadraticCurveTo(cx + s * 0.12, cy - s * 0.9, cx - s * 0.22, cy - s * 1.2); x.stroke();
+}
+function mfFrost(x, x0, x1, top, bot, n, R) {      // des flocons qui scintillent
+  x.save(); x.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) { const px = x0 + R() * (x1 - x0), py = top + R() * (bot - top), r = 0.8 + R() * 1.6; x.fillStyle = 'rgba(230,248,255,' + (0.25 + R() * 0.45).toFixed(2) + ')'; x.beginPath(); x.arc(px, py, r, 0, MF_T); x.fill(); if (R() < 0.15) { x.fillRect(px - 3, py - 0.4, 6, 0.8); x.fillRect(px - 0.4, py - 3, 0.8, 6); } }
+  x.restore();
+}
 // ---- une salle ----
 function mfRoom(x, L, MW, b, def) {
   const Y = mfStyle(b.wid, def), G = mfGeo(MW), R = mapRng(b.k * 977 + 31), top = b.top, bot = b.bot, i0 = G.x0 + G.wt, i1 = G.x1 - G.wt;
   const pathAt = (y) => mfPathX(L, y), away = (y) => (pathAt(y) < MW / 2 ? 1 : -1);      // le côté où le chemin ne passe pas
-  const lit = [];      // ce qui brille (lave, runes, flammes) : dessiné après l'ombre de la salle
+  const free = (px, py, d) => Math.abs(px - pathAt(py)) > d;
+  const lit = [];      // ce qui brille (lave, runes, flammes, cristaux) : dessiné après l'ombre de la salle
+  const H = bot - top, at = (f) => top + H * f, side = (py, d) => { const sd = away(py); return MW / 2 + sd * Math.min(MW * 0.27, d || 150); };
   if (G.wide) {      // le vide autour du donjon
     const g = x.createLinearGradient(0, top, 0, bot); g.addColorStop(0, Y.void1); g.addColorStop(1, Y.void0);
-    x.fillStyle = g; x.fillRect(0, top, G.x0, bot - top); x.fillRect(G.x1, top, MW - G.x1, bot - top);
-    for (const [a, z] of [[G.x0, G.x0 - 44], [G.x1, G.x1 + 44]]) { const sg = x.createLinearGradient(a, 0, z, 0); sg.addColorStop(0, 'rgba(0,0,0,0.6)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = sg; x.fillRect(Math.min(a, z), top, 44, bot - top); }
+    x.fillStyle = g; x.fillRect(0, top, G.x0, H); x.fillRect(G.x1, top, MW - G.x1, H);
+    for (const [a, z] of [[G.x0, G.x0 - 44], [G.x1, G.x1 + 44]]) { const sg = x.createLinearGradient(a, 0, z, 0); sg.addColorStop(0, 'rgba(0,0,0,0.6)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = sg; x.fillRect(Math.min(a, z), top, 44, H); }
     x.save(); x.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < (bot - top) * MW / 9000; i++) { const px = R() < 0.5 ? R() * G.x0 : G.x1 + R() * (MW - G.x1), py = top + R() * (bot - top); x.fillStyle = Y.kind === 'lava' ? 'rgba(255,120,40,' + (0.2 + R() * 0.5).toFixed(2) + ')' : 'rgba(210,200,255,' + (0.15 + R() * 0.5).toFixed(2) + ')'; x.fillRect(px, py, 1.3, 1.3); }
+    for (let i = 0; i < H * MW / 9000; i++) { const px = R() < 0.5 ? R() * G.x0 : G.x1 + R() * (MW - G.x1), py = top + R() * H; x.fillStyle = Y.kind === 'lava' ? 'rgba(255,120,40,' + (0.2 + R() * 0.5).toFixed(2) + ')' : Y.kind === 'ice' ? 'rgba(190,235,255,' + (0.2 + R() * 0.5).toFixed(2) + ')' : 'rgba(210,200,255,' + (0.15 + R() * 0.5).toFixed(2) + ')'; x.fillRect(px, py, 1.3, 1.3); }
     x.restore();
   }
   mfFloor(x, Y, i0, i1, top, bot);
   const id = b.wid + ':' + b.stage, cy = (top + bot) / 2, nd = b.nd, bossY = nd.boss ? nd.boss.y : null;
+  const lsd = Math.abs(nd.x - MW / 2) < (L.A || 100) * 0.3 ? (nd.lv % 2 ? 1 : -1) : nd.x < MW / 2 ? 1 : -1;      // l'étiquette : à droite (1) ou à gauche (-1)
+  const lw = Math.max(110, Math.min(250, lsd > 0 ? MW - 10 - (nd.x + 40) : nd.x - 50)), lx0 = lsd > 0 ? nd.x + 40 : nd.x - 40 - lw;
+  const hid = (px, py, r) => px + r > lx0 - 6 && px - r < lx0 + lw + 6 && py + r > nd.y - 46 && py - r < nd.y + 46;
+  const spots = (cands, d, r, n) => cands.filter(([px, py]) => px - r > i0 + 4 && px + r < i1 - 4 && free(px, py, d) && !hid(px, py, r)).slice(0, n);
   try {
     if (id === 'crypte:0') {      // la Salle des gardes : le plancher rouge, la grande table, les tonneaux, les bannières
-      const ty = top + (bot - top) * 0.62, sd = away(ty), tx = MW / 2 + sd * Math.min(MW * 0.27, 150), pw = Math.min(170, (i1 - i0) * 0.46), ph = Math.min(120, (bot - top) * 0.36);
+      const ty = at(0.62), tx = side(ty), pw = Math.min(170, (i1 - i0) * 0.46), ph = Math.min(120, H * 0.36);
       x.fillStyle = '#5a2a1c'; x.fillRect(tx - pw / 2 - 3, ty - ph / 2 - 3, pw + 6, ph + 6);
       for (let k = 0; k < ph / 11; k++) { x.fillStyle = mixHex('#a4482e', '#7e3420', mfHash(k, b.k)); x.fillRect(tx - pw / 2, ty - ph / 2 + k * 11 + 0.6, pw, 10); }
       x.strokeStyle = 'rgba(30,8,4,0.4)'; x.lineWidth = 1; x.beginPath(); for (let k = 0; k < ph / 11; k++) { const off = (k * 37) % 60; for (let px = tx - pw / 2 + off; px < tx + pw / 2; px += 60) { x.moveTo(px, ty - ph / 2 + k * 11); x.lineTo(px, ty - ph / 2 + k * 11 + 11); } } x.stroke();
       mfTable(x, tx, ty, Math.min(110, MW * 0.28), 34);
-      for (const [dx, dy, r] of [[0.0, 0.2, 12], [0.06, 0.3, 9], [-0.04, 0.88, 11]]) { const by = top + (bot - top) * dy, s2 = away(by); mfBarrel(x, (s2 > 0 ? i1 - 24 : i0 + 24) - s2 * dx * MW, by, r); }
-      mfBanner(x, i0, top + (bot - top) * 0.3, -1, '#c0302c'); mfBanner(x, i1, top + (bot - top) * 0.55, 1, '#c0302c');
+      for (const [dx, dy, r] of [[0.0, 0.2, 12], [0.06, 0.3, 9], [-0.04, 0.88, 11]]) { const by = at(dy), s2 = away(by); mfBarrel(x, (s2 > 0 ? i1 - 24 : i0 + 24) - s2 * dx * MW, by, r); }
+      mfBanner(x, i0, at(0.3), -1, '#c0302c'); mfBanner(x, i1, at(0.55), 1, '#c0302c');
     } else if (id === 'crypte:1') {      // les Catacombes : les tombeaux, les os, les toiles d'araignée, les bougies
-      for (let j = 0; j < 4; j++) {
-        const ty = top + (bot - top) * (0.2 + j * 0.2), sd = j & 1 ? 1 : -1, px = pathAt(ty);
-        const tx = sd > 0 ? Math.max(px + 52, i1 - 46) : Math.min(px - 52, i0 + 46);
-        if (tx > i0 + 18 && tx < i1 - 18) mfTomb(x, tx, ty, 30, 46, (R() - 0.5) * 0.3);
-      }
-      for (let j = 0; j < 6; j++) { const py = top + R() * (bot - top), px = i0 + 20 + R() * (i1 - i0 - 40); if (Math.abs(px - pathAt(py)) > 40) mfBone(x, px, py, 9 + R() * 6, R() * 3); }
-      mfSkull(x, i1 - 30, top + (bot - top) * 0.82, 11, null); mfSkull(x, i0 + 34, top + (bot - top) * 0.12, 9, null);
+      for (let j = 0; j < 4; j++) { const ty = at(0.2 + j * 0.2), sd = j & 1 ? 1 : -1, px = pathAt(ty), tx = sd > 0 ? Math.max(px + 52, i1 - 46) : Math.min(px - 52, i0 + 46); if (tx > i0 + 18 && tx < i1 - 18) mfTomb(x, tx, ty, 30, 46, (R() - 0.5) * 0.3); }
+      for (let j = 0; j < 6; j++) { const py = top + R() * H, px = i0 + 20 + R() * (i1 - i0 - 40); if (free(px, py, 40)) mfBone(x, px, py, 9 + R() * 6, R() * 3); }
+      mfSkull(x, i1 - 30, at(0.82), 11, null); mfSkull(x, i0 + 34, at(0.12), 9, null);
       mfCobweb(x, i0, top + 4, 46, 1, 1); mfCobweb(x, i1, bot - 4, 40, -1, -1);
-      lit.push(() => { mfCandles(x, Y, i0 + 22, top + (bot - top) * 0.55); mfCandles(x, Y, i1 - 24, top + (bot - top) * 0.3); });
-    } else if (id === 'crypte:2') {      // l'Antre du Gardien : le cercle de runes bleu sous le boss, les piliers
-      for (const [fx, fy] of [[0.12, 0.28], [0.88, 0.28], [0.12, 0.8], [0.88, 0.8]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = top + (bot - top) * fy; if (Math.abs(px - pathAt(py)) > 46) mfPillar(x, Y, px, py, 15); }
+      lit.push(() => { mfCandles(x, Y, i0 + 22, at(0.55)); mfCandles(x, Y, i1 - 24, at(0.3)); });
+    } else if (id === 'crypte:2') {      // le Dortoir : des lits de pierre le long des murs, un squelette dans chacun
+      for (const sd of [-1, 1]) for (let j = 0; j < 3; j++) { const py = at(0.2 + j * 0.3), px = sd < 0 ? i0 + 24 : i1 - 24; if (free(px, py, 50)) mfBed(x, px, py, 30, 50, 0); }
+      for (let j = 0; j < 3; j++) { const py = top + R() * H, px = i0 + 60 + R() * (i1 - i0 - 120); if (free(px, py, 40)) mfBone(x, px, py, 9 + R() * 5, R() * 3); }
+      mfCobweb(x, i1, top + 4, 40, -1, 1);
+      lit.push(() => mfCandles(x, Y, side(at(0.5), 120), at(0.5)));
+    } else if (id === 'crypte:3') {      // la Bibliothèque : les étagères de livres, un pupitre et son grimoire, des livres par terre
+      for (const sd of [-1, 1]) mfShelf(x, sd < 0 ? i0 + 12 : i1 - 12, cy, H - 22, 22, true, R);
+      const len = Math.min(130, (i1 - i0) * 0.26);
+      for (const sd of [-1, 1]) for (const fy of [0.26, 0.76]) { const py = at(fy), px = sd < 0 ? i0 + 22 + len / 2 : i1 - 22 - len / 2; if (Math.abs(px - pathAt(py)) > len / 2 + 30) mfShelf(x, px, py, len, 18, false, R); }
+      const tb = spots([[MW / 2 - away(cy) * 120, at(0.5)], [MW / 2 + away(cy) * 170, at(0.5)], [i0 + 120, at(0.5)], [i1 - 120, at(0.5)]], 80, 50, 1)[0];
+      if (tb) mfTable(x, tb[0], tb[1], 76, 32);
+      for (let j = 0; j < 7; j++) { const py = top + 16 + R() * (H - 32), px = i0 + 40 + R() * (i1 - i0 - 80); if (free(px, py, 36)) mfBook(x, px, py, 6, R() * 3, Y); }
+      lit.push(() => { if (!tb) return; x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, tb[0], tb[1] - 4, 50, '#b48cff', 0.5); x.restore(); mfBook(x, tb[0] - 8, tb[1] - 2, 10, 0.1, Y); mfCandles(x, Y, tb[0] + 26, tb[1] - 6); });
+    } else if (id === 'crypte:4') {      // la Salle d'armes (le Chevalier des os) : les râteliers, les boucliers, la bannière
+      for (const sd of [-1, 1]) mfRack(x, sd < 0 ? i0 + 10 : i1 - 10, cy, H * 0.46, sd < 0 ? Math.PI / 2 : -Math.PI / 2);
+      for (const sd of [-1, 1]) mfShieldW(x, sd < 0 ? i0 + 20 : i1 - 20, at(sd < 0 ? 0.16 : 0.84), 11, sd < 0 ? '#9a2a2a' : '#3a5a9a', '#e8d6a0');
+      for (const p of spots([[i0 + 72, at(0.3)], [i1 - 72, at(0.7)], [i0 + 72, at(0.72)], [i1 - 72, at(0.28)], [MW / 2 + 160, at(0.5)], [MW / 2 - 160, at(0.5)]], 44, 24, 2)) mfArmor(x, p[0], p[1], 12);
+      mfBanner(x, i0, at(0.6), -1, '#3a3a5a'); mfBanner(x, i1, at(0.4), 1, '#3a3a5a');
+      lit.push(() => { const p = spots([[MW / 2 + away(cy) * 150, at(0.22)], [MW / 2 - away(cy) * 150, at(0.8)], [i0 + 40, at(0.86)]], 40, 20, 1)[0]; if (p) mfCandles(x, Y, p[0], p[1]); });
+    } else if (id === 'crypte:5') {      // l'Antre du Gardien : le cercle de runes bleu sous le boss, les piliers
+      for (const [fx, fy] of [[0.12, 0.28], [0.88, 0.28], [0.12, 0.8], [0.88, 0.8]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 46)) mfPillar(x, Y, px, py, 15); }
       lit.push(() => { if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(84, MW * 0.21), '#6fd8ff', 1); mfCandles(x, Y, MW / 2 + away(cy) * Math.min(MW * 0.3, 160), cy + 30); });
     } else if (id === 'forge:0') {      // le Pont de lave : la rivière de lave (entre la porte et la salle) et son pont de pierre
       const room = Math.max(40, nd.y - top), ly = nd.y - room * 0.55, th = Math.min(40, room * 0.42), px = pathAt(ly);
       lit.push(() => { mfLavaBand(x, i0, i1, ly, th, R); mfBridge(x, px, ly, th + 26, 44); mfEmbers(x, i0, i1, top, bot, 40, R); });
     } else if (id === 'forge:1') {      // la Grande Forge : les enclumes, les rigoles de lave le long des murs, les braises
-      for (const fy of [0.3, 0.72]) { const py = top + (bot - top) * fy, sd = away(py); mfAnvil(x, MW / 2 + sd * Math.min(MW * 0.27, 150), py, 15); }
+      for (const fy of [0.3, 0.72]) { const py = at(fy); mfAnvil(x, side(py), py, 15); }
       lit.push(() => {
         for (const sd of [-1, 1]) {
           const lx = sd < 0 ? i0 + 12 : i1 - 12;
-          x.save(); x.globalCompositeOperation = 'lighter'; const gg = x.createLinearGradient(lx - sd * 46, 0, lx, 0); gg.addColorStop(0, 'rgba(255,100,30,0)'); gg.addColorStop(1, 'rgba(255,120,40,0.5)'); x.fillStyle = gg; x.fillRect(Math.min(lx, lx - sd * 46), top, 46, bot - top); x.restore();
-          x.fillStyle = '#1c0906'; x.fillRect(lx - 7, top, 14, bot - top);
-          const g2 = x.createLinearGradient(lx - 5, 0, lx + 5, 0); g2.addColorStop(0, '#c2300c'); g2.addColorStop(0.5, '#ffe08a'); g2.addColorStop(1, '#c2300c'); x.fillStyle = g2; x.fillRect(lx - 5, top, 10, bot - top);
+          x.save(); x.globalCompositeOperation = 'lighter'; const gg = x.createLinearGradient(lx - sd * 46, 0, lx, 0); gg.addColorStop(0, 'rgba(255,100,30,0)'); gg.addColorStop(1, 'rgba(255,120,40,0.5)'); x.fillStyle = gg; x.fillRect(Math.min(lx, lx - sd * 46), top, 46, H); x.restore();
+          x.fillStyle = '#1c0906'; x.fillRect(lx - 7, top, 14, H);
+          const g2 = x.createLinearGradient(lx - 5, 0, lx + 5, 0); g2.addColorStop(0, '#c2300c'); g2.addColorStop(0.5, '#ffe08a'); g2.addColorStop(1, '#c2300c'); x.fillStyle = g2; x.fillRect(lx - 5, top, 10, H);
         }
-        for (const fy of [0.3, 0.72]) { const py = top + (bot - top) * fy, sd = away(py), ax = MW / 2 + sd * Math.min(MW * 0.27, 150); x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, ax - 3, py - 5, 34, '#ff8a2a', 0.5); x.restore(); x.fillStyle = '#ffcf6a'; mapRect(x, ax - 7, py - 7, 9, 2.6, 1); x.fill(); }
+        for (const fy of [0.3, 0.72]) { const py = at(fy), ax = side(py); x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, ax - 3, py - 5, 34, '#ff8a2a', 0.5); x.restore(); x.fillStyle = '#ffcf6a'; mapRect(x, ax - 7, py - 7, 9, 2.6, 1); x.fill(); }
         mfEmbers(x, i0, i1, top, bot, 50, R);
       });
-    } else if (id === 'forge:2') {      // le Nid du dragon : le cercle de runes rouge, les mares de lave, les os
-      for (let j = 0; j < 5; j++) { const py = top + R() * (bot - top), px = i0 + 20 + R() * (i1 - i0 - 40); if (Math.abs(px - pathAt(py)) > 46) mfBone(x, px, py, 10 + R() * 6, R() * 3); }
+    } else if (id === 'forge:2') {      // les Fonderies : les creusets, le métal qui coule dans les moules, les lingots
+      const p1 = at(0.32), p2 = at(0.74), x1 = side(p1, 140), x2 = side(p2, 140);
+      mfIngots(x, x1 + 10, p1 + 36, 9); mfIngots(x, x2 + 10, p2 - 30, 8);
+      lit.push(() => { mfCrucible(x, x1 - 20, p1, 13); mfCrucible(x, x2 - 20, p2, 13); mfEmbers(x, i0, i1, top, bot, 40, R); });
+    } else if (id === 'forge:3') {      // l'Armurerie : râteliers d'armes, boucliers aux murs, une enclume
+      for (const sd of [-1, 1]) mfRack(x, sd < 0 ? i0 + 10 : i1 - 10, cy, H - 40, sd < 0 ? Math.PI / 2 : -Math.PI / 2);
+      for (let j = 0; j < 3; j++) { const py = at(0.2 + j * 0.3), px = side(py, 120); if (free(px, py, 40)) mfShieldW(x, px, py, 12, ['#7a1a10', '#3a3a44', '#8a5a1a'][j], '#ffb04a'); }
+      lit.push(() => mfEmbers(x, i0, i1, top, bot, 24, R));
+    } else if (id === 'forge:4') {      // la Salle du Seigneur (le Seigneur des braises) : le tapis rouge, les braseros, la lave sous les grilles
+      const cx0 = pathAt(cy);
+      x.fillStyle = '#5a0c0c'; x.fillRect(cx0 - 26, top, 52, H); x.fillStyle = '#8a1a14'; x.fillRect(cx0 - 22, top, 44, H); x.fillStyle = '#c99a2e'; x.fillRect(cx0 - 22, top, 3, H); x.fillRect(cx0 + 19, top, 3, H);
+      lit.push(() => { for (const [fx, fy] of [[0.18, 0.25], [0.82, 0.25], [0.18, 0.78], [0.82, 0.78]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 50)) mfBrazier(x, Y, px, py, 8); } mfEmbers(x, i0, i1, top, bot, 40, R); });
+    } else if (id === 'forge:5') {      // le Nid du dragon : le cercle de runes rouge, les mares de lave, les os
+      for (let j = 0; j < 5; j++) { const py = top + R() * H, px = i0 + 20 + R() * (i1 - i0 - 40); if (free(px, py, 46)) mfBone(x, px, py, 10 + R() * 6, R() * 3); }
       lit.push(() => {
         if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(86, MW * 0.21), '#ff5a2a', 1);
-        mfLavaPool(x, i0 + 40, top + (bot - top) * 0.22, 34, 22, R); mfLavaPool(x, i1 - 44, top + (bot - top) * 0.78, 38, 24, R);
+        mfLavaPool(x, i0 + 40, at(0.22), 34, 22, R); mfLavaPool(x, i1 - 44, at(0.78), 38, 24, R);
         mfEmbers(x, i0, i1, top, bot, 40, R);
       });
+    } else if (id === 'glace:0') {      // la Rivière gelée : la rivière de glace qui traverse la salle, la neige sur les bords
+      const room = Math.max(40, nd.y - top), ly = nd.y - room * 0.55, th = Math.min(42, room * 0.45);
+      mfIceBand(x, i0, i1, ly, th, R);
+      for (let j = 0; j < 4; j++) { const py = top + R() * H, px = j & 1 ? i0 + 26 + R() * 30 : i1 - 26 - R() * 30; if (free(px, py, 40) && Math.abs(py - ly) > th) mfSnow(x, px, py, 10 + R() * 6); }
+    } else if (id === 'glace:1') {      // les Stalactites : des bouquets de glace partout, des glaçons le long des murs
+      for (let j = 0; j < 8; j++) { const py = at(0.1 + j * 0.115), px = j & 1 ? i0 + 30 + R() * (G.wide ? 150 : 50) : i1 - 30 - R() * (G.wide ? 150 : 50); if (free(px, py, 50)) mfIceSpikes(x, px, py, 14 + R() * 7); }
+      x.fillStyle = 'rgba(225,246,255,0.85)'; for (let j = 0; j < 14; j++) { const py = top + 10 + R() * (H - 20), px = i0 + 20 + R() * (i1 - i0 - 40), a = R() * MF_T, l = 4 + R() * 6; if (!free(px, py, 30)) continue; x.beginPath(); x.moveTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.lineTo(px + Math.cos(a + 2.4) * l * 0.4, py + Math.sin(a + 2.4) * l * 0.4); x.lineTo(px + Math.cos(a - 2.4) * l * 0.4, py + Math.sin(a - 2.4) * l * 0.4); x.closePath(); x.fill(); }
+      x.fillStyle = '#e8f8ff'; for (const sd of [-1, 1]) for (let y = top + 8; y < bot; y += 15 + R() * 10) { const wx = sd < 0 ? i0 : i1, l = 6 + R() * 10; x.beginPath(); x.moveTo(wx, y - 4); x.lineTo(wx - sd * l, y); x.lineTo(wx, y + 4); x.closePath(); x.fill(); }
+    } else if (id === 'glace:2') {      // la Salle des cristaux : de grands cristaux qui brillent
+      lit.push(() => { for (const [fx, fy, s2] of [[0.16, 0.25, 15], [0.84, 0.3, 13], [0.2, 0.78, 12], [0.8, 0.8, 16]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 50)) mfCrystals(x, px, py, s2, fx < 0.5 ? '#8fe9ff' : '#c8a8ff'); } });
+    } else if (id === 'glace:3') {      // le Lac gelé : un grand lac de glace au milieu de la salle
+      mfFrozenLake(x, (i0 + i1) / 2, cy, Math.min((i1 - i0) * 0.43, 330), Math.min(H * 0.34, 64), R);
+      for (let j = 0; j < 3; j++) { const py = top + R() * H, px = j & 1 ? i0 + 24 : i1 - 24; if (free(px, py, 40)) mfSnow(x, px, py, 9 + R() * 5); }
+    } else if (id === 'glace:4') {      // la Tanière du Yéti (le Yéti géant) : peaux de bête, os, tas de neige, grosses traces de pas
+      for (const p of spots([[i0 + 70, at(0.28)], [i1 - 70, at(0.74)], [i0 + 70, at(0.74)], [i1 - 70, at(0.28)], [MW / 2 + 170, at(0.5)], [MW / 2 - 170, at(0.5)]], 56, 30, 2)) mfFur(x, p[0], p[1], 70, 44, (R() - 0.5) * 0.7);
+      for (let j = 0; j < 5; j++) { const py = top + R() * H, px = i0 + 20 + R() * (i1 - i0 - 40); if (free(px, py, 40)) mfBone(x, px, py, 10 + R() * 6, R() * 3); }
+      x.fillStyle = 'rgba(40,70,100,0.3)'; for (let j = 0; j < 6; j++) { const py = bot - 20 - j * (H - 30) / 6, px = pathAt(py) + (j & 1 ? 22 : -22); x.beginPath(); x.ellipse(px, py, 6, 9, 0, 0, MF_T); x.fill(); for (let t = -1; t <= 1; t++) { x.beginPath(); x.arc(px + t * 4, py - 11, 2.2, 0, MF_T); x.fill(); } }
+      for (const sd of [-1, 1]) mfSnow(x, sd < 0 ? i0 + 22 : i1 - 22, at(sd < 0 ? 0.15 : 0.85), 13);
+    } else if (id === 'glace:5') {      // le Cœur de glace : le cercle de runes de glace sous Givre, les piliers de glace, les cristaux
+      for (const [fx, fy] of [[0.12, 0.28], [0.88, 0.28], [0.12, 0.8], [0.88, 0.8]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 46)) mfPillar(x, Y, px, py, 15); }
+      lit.push(() => { if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(86, MW * 0.21), '#9fe8ff', 1); const py = at(0.55), px = side(py, 160); if (free(px, py, 50)) mfCrystals(x, px, py, 12, '#8fe9ff'); });
     } else {      // un monde que la carte ne connaît pas encore : tonneaux et bougies
-      mfBarrel(x, i0 + 26, top + (bot - top) * 0.3, 11); mfBarrel(x, i1 - 26, top + (bot - top) * 0.7, 11);
-      lit.push(() => mfCandles(x, Y, i1 - 30, top + (bot - top) * 0.25));
+      mfBarrel(x, i0 + 26, at(0.3), 11); mfBarrel(x, i1 - 26, at(0.7), 11);
+      lit.push(() => mfCandles(x, Y, i1 - 30, at(0.25)));
     }
   } catch (e) { /* un décor raté ne casse rien */ }
-  if (G.wide) {
+  if (G.wide) {      // sur un grand écran, de quoi meubler les côtés (tonneaux, piliers ; enclumes et lave dans les forges ; neige dans les grottes)
     for (const sd of [-1, 1]) for (let j = 0; j < 2; j++) {
-      const py = top + (bot - top) * (0.28 + j * 0.44 + (R() - 0.5) * 0.1), px = sd < 0 ? i0 + 40 + R() * 60 : i1 - 40 - R() * 60;
-      if (Math.abs(px - pathAt(py)) < 120) continue;
+      const py = top + H * (0.28 + j * 0.44 + (R() - 0.5) * 0.1), px = sd < 0 ? i0 + 40 + R() * 60 : i1 - 40 - R() * 60;
+      if (!free(px, py, 120)) continue;
       if (Y.kind === 'lava') { if (R() < 0.5) lit.push(() => mfLavaPool(x, px, py, 26, 16, R)); else mfAnvil(x, px, py, 13); }
+      else if (Y.kind === 'ice') { if (R() < 0.5) mfSnow(x, px, py, 12); else mfIceSpikes(x, px, py, 12); }
       else if (R() < 0.45) { mfBarrel(x, px, py, 11); mfBarrel(x, px + sd * -18, py + 14, 9); }
       else mfPillar(x, Y, px, py, 14);
     }
   }
   // l'ombre de la salle (plus sombre le long des murs), les murs, puis tout ce qui brille
-  x.fillStyle = Y.dark; x.fillRect(i0, top, i1 - i0, bot - top);
-  for (const [a, z] of [[i0, i0 + 80], [i1, i1 - 80]]) { const g = x.createLinearGradient(a, 0, z, 0); g.addColorStop(0, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(Math.min(a, z), top, 80, bot - top); }
+  x.fillStyle = Y.dark; x.fillRect(i0, top, i1 - i0, H);
+  for (const [a, z] of [[i0, i0 + 80], [i1, i1 - 80]]) { const g = x.createLinearGradient(a, 0, z, 0); g.addColorStop(0, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(Math.min(a, z), top, 80, H); }
   mfWallV(x, Y, G.x0, top, bot, G.wt, -1); mfWallV(x, Y, G.x1 - G.wt, top, bot, G.wt, 1);
+  if (Y.kind === 'ice') { x.fillStyle = 'rgba(235,250,255,0.55)'; x.fillRect(G.x0, top, G.wt, 2); for (const wx of [G.x0 + 2, G.x1 - G.wt + 2]) for (let y = top + 6; y < bot; y += 24) x.fillRect(wx, y, G.wt - 4, 2.5); }      // le givre sur les murs
   const torches = [];
   for (let y = bot - 80, j = 0; y > top + 50; y -= 190, j++) { const sd = (b.k + j) & 1 ? 1 : -1; torches.push([sd < 0 ? G.x0 + G.wt : G.x1 - G.wt, y, sd < 0 ? 1 : -1]); }
   for (const t of torches) mfTorch(x, Y, t[0], t[1], t[2], false);
   x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, nd.x, nd.y, G.wide ? 220 : 160, Y.light, 0.13); x.restore();
   for (const f of lit) { try { f(); } catch (e) { /* */ } }
   for (const t of torches) mfTorch(x, Y, t[0], t[1], t[2], true);
-  if (Y.kind !== 'lava') mfDust(x, i0, i1, top, bot, (bot - top) / 22, R);
+  if (Y.kind === 'ice') mfFrost(x, i0, i1, top, bot, H / 9, R);
+  else if (Y.kind !== 'lava') mfDust(x, i0, i1, top, bot, H / 22, R);
 }
 // ---- entre deux salles : la porte (herse levée, lumière dorée, chevrons vers la salle suivante) ----
 function mfDoor(x, L, MW, b, def) {
@@ -7356,20 +7566,24 @@ function mfNode(x, info, size, P, def) {
   const dpr = x.canvas.width / P, key = 'n' + (info.wid || '?') + info.stage + '|' + size + '|' + P + '|' + dpr.toFixed(2);
   x.drawImage(mfMedImg(key, P, dpr, (g) => mfNodePaint(g, info, size, P, def)), 0, 0, P, P);
 }
-function mfDisc(x, cx, cy, r, Y, acc) {      // le disque de pierre : anneau gris, rivets, fond sombre teinté du monde
-  mapGlow(x, cx, cy, r + 11, acc, 0.5);
-  const rim = x.createLinearGradient(0, cy - r, 0, cy + r); rim.addColorStop(0, mixHex(Y.wall, '#ffffff', 0.25)); rim.addColorStop(1, Y.wall2);
+function mfDisc(x, cx, cy, r, Y, acc, mini) {      // le disque de pierre : anneau gris (rouge et cloutée pour un mini-boss), rivets, fond sombre teinté du monde
+  mapGlow(x, cx, cy, r + 11, mini ? '#ff4a5a' : acc, mini ? 0.6 : 0.5);
+  if (mini) {      // les pointes de la couronne du mini-boss
+    x.fillStyle = '#7a1420';
+    for (let k = 0; k < 12; k++) { const a = k * MF_T / 12 - Math.PI / 2; x.beginPath(); x.moveTo(cx + Math.cos(a - 0.16) * (r - 1), cy + Math.sin(a - 0.16) * (r - 1)); x.lineTo(cx + Math.cos(a) * (r + 6), cy + Math.sin(a) * (r + 6)); x.lineTo(cx + Math.cos(a + 0.16) * (r - 1), cy + Math.sin(a + 0.16) * (r - 1)); x.closePath(); x.fill(); }
+  }
+  const rim = x.createLinearGradient(0, cy - r, 0, cy + r); rim.addColorStop(0, mini ? '#e05a64' : mixHex(Y.wall, '#ffffff', 0.25)); rim.addColorStop(1, mini ? '#6a1018' : Y.wall2);
   x.fillStyle = rim; x.beginPath(); x.arc(cx, cy, r, 0, MF_T); x.fill();
-  x.strokeStyle = Y.wallDk; x.lineWidth = 1.4; x.stroke();
-  for (let k = 0; k < 8; k++) { const a = Math.PI / 8 + k * Math.PI / 4, rx = cx + Math.cos(a) * (r - 3.2), ry = cy + Math.sin(a) * (r - 3.2); x.fillStyle = Y.wallDk; x.beginPath(); x.arc(rx, ry, 1.7, 0, MF_T); x.fill(); x.fillStyle = 'rgba(255,255,255,0.45)'; x.beginPath(); x.arc(rx - 0.5, ry - 0.5, 0.7, 0, MF_T); x.fill(); }
+  x.strokeStyle = mini ? '#2a0408' : Y.wallDk; x.lineWidth = 1.4; x.stroke();
+  for (let k = 0; k < 8; k++) { const a = Math.PI / 8 + k * Math.PI / 4, rx = cx + Math.cos(a) * (r - 3.2), ry = cy + Math.sin(a) * (r - 3.2); x.fillStyle = mini ? '#2a0408' : Y.wallDk; x.beginPath(); x.arc(rx, ry, 1.7, 0, MF_T); x.fill(); x.fillStyle = 'rgba(255,255,255,0.45)'; x.beginPath(); x.arc(rx - 0.5, ry - 0.5, 0.7, 0, MF_T); x.fill(); }
   const ri = r * 0.78, bg = x.createRadialGradient(cx, cy - ri * 0.3, ri * 0.1, cx, cy, ri);
-  bg.addColorStop(0, mixHex(Y.void1, acc, 0.28)); bg.addColorStop(1, Y.void0);
+  bg.addColorStop(0, mixHex(Y.void1, mini ? '#ff4a5a' : acc, 0.28)); bg.addColorStop(1, Y.void0);
   x.fillStyle = bg; x.beginPath(); x.arc(cx, cy, ri, 0, MF_T); x.fill();
   return ri;
 }
 function mfNodePaint(x, info, size, P, def) {
-  const Y = mfStyle(info.wid, def), cx = P / 2, cy = P / 2, r = size / 2, acc = info.acc || Y.light;
-  const ri = mfDisc(x, cx, cy, r, Y, acc), s = ri;
+  const Y = mfStyle(info.wid, def), cx = P / 2, cy = P / 2, r = size / 2, acc = info.acc || Y.light, mini = !!info.mini;
+  const ri = mfDisc(x, cx, cy, r, Y, acc, mini), s = ri;
   x.save(); x.beginPath(); x.arc(cx, cy, ri, 0, MF_T); x.clip(); x.translate(cx, cy);
   const id = info.wid + ':' + info.stage;
   if (id === 'crypte:0') {      // deux épées croisées et un crâne : la Salle des gardes
@@ -7388,14 +7602,29 @@ function mfNodePaint(x, info, size, P, def) {
     x.fillStyle = g; x.beginPath(); x.moveTo(-s * 0.42, s * 0.48); x.lineTo(-s * 0.42, -s * 0.3); x.arc(0, -s * 0.3, s * 0.42, Math.PI, 0); x.lineTo(s * 0.42, s * 0.48); x.closePath(); x.fill();
     x.strokeStyle = '#3a3440'; x.lineWidth = 1; x.stroke();
     x.fillStyle = 'rgba(40,34,48,0.8)'; x.fillRect(-s * 0.06, -s * 0.48, s * 0.12, s * 0.5); x.fillRect(-s * 0.2, -s * 0.34, s * 0.4, s * 0.1);
-    x.fillStyle = '#e9e0cc';      // la main de squelette
-    x.save(); x.translate(-s * 0.48, s * 0.46);
-    x.fillRect(-s * 0.05, -s * 0.22, s * 0.1, s * 0.24);
+    x.fillStyle = '#e9e0cc';
+    x.save(); x.translate(-s * 0.48, s * 0.46); x.fillRect(-s * 0.05, -s * 0.22, s * 0.1, s * 0.24);
     for (let k = 0; k < 4; k++) { x.save(); x.translate(-s * 0.08 + k * s * 0.055, -s * 0.24); x.rotate(-0.35 + k * 0.22); x.fillRect(-s * 0.018, -s * 0.16, s * 0.036, s * 0.16); x.restore(); }
     x.restore();
     x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, s * 0.56, s * 0.1, s * 0.5, '#ffb04a', 0.6); x.restore();
     x.fillStyle = '#efe6d2'; x.fillRect(s * 0.5, s * 0.12, s * 0.12, s * 0.32); mfFlame(x, s * 0.56, s * 0.06, s * 0.09);
-  } else if (id === 'crypte:2') {      // le cercle de runes bleu : l'Antre du Gardien
+  } else if (id === 'crypte:2') {      // le squelette qui dort dans son lit : le Dortoir
+    x.fillStyle = '#5e5864'; mapRect(x, -s * 0.85, -s * 0.2, s * 1.7, s * 0.95, s * 0.1); x.fill();
+    x.fillStyle = '#c9b48a'; mapRect(x, -s * 0.78, -s * 0.14, s * 1.56, s * 0.82, s * 0.08); x.fill();
+    x.fillStyle = '#7a2a2a'; mapRect(x, -s * 0.2, -s * 0.16, s * 0.98, s * 0.86, s * 0.08); x.fill();
+    x.strokeStyle = 'rgba(40,10,10,0.5)'; x.lineWidth = 1; x.beginPath(); for (let k = 1; k < 4; k++) { x.moveTo(-s * 0.2 + k * s * 0.24, -s * 0.14); x.lineTo(-s * 0.2 + k * s * 0.24, s * 0.68); } x.stroke();
+    mfSkull(x, -s * 0.48, s * 0.2, s * 0.62, null);
+    x.fillStyle = '#d8e4ff'; x.font = '700 ' + (s * 0.36).toFixed(1) + 'px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('z', -s * 0.05, -s * 0.42); x.font = '700 ' + (s * 0.28).toFixed(1) + 'px sans-serif'; x.fillText('z', s * 0.22, -s * 0.62);
+  } else if (id === 'crypte:3') {      // le grimoire ouvert et ses runes violettes : la Bibliothèque
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, -s * 0.05, s * 0.9, '#b48cff', 0.55); x.restore();
+    x.save(); x.rotate(-0.12); mfBook(x, 0, s * 0.12, s * 0.6, 0, Y); x.restore();
+    x.save(); x.globalCompositeOperation = 'lighter'; x.strokeStyle = '#d8c0ff'; x.lineWidth = 1.4; x.lineCap = 'round';
+    for (let k = 0; k < 3; k++) { const px = -s * 0.36 + k * s * 0.36, py = -s * 0.45 - (k & 1) * s * 0.14; x.beginPath(); x.moveTo(px - s * 0.08, py); x.lineTo(px + s * 0.08, py - s * 0.08); x.moveTo(px, py - s * 0.1); x.lineTo(px, py + s * 0.08); x.stroke(); }
+    x.restore();
+  } else if (id === 'crypte:4') {      // le Chevalier des os (mini-boss)
+    mfKnight(x, s);
+  } else if (id === 'crypte:5') {      // le cercle de runes bleu : l'Antre du Gardien
     mfRunes(x, 0, 0, s * 0.82, '#6fd8ff', 1);
     x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, 0, s * 0.5, '#bff2ff', 0.7); x.restore();
   } else if (id === 'forge:0') {      // le pont de pierre au-dessus de la lave
@@ -7408,13 +7637,13 @@ function mfNodePaint(x, info, size, P, def) {
     x.strokeStyle = 'rgba(40,28,22,0.6)'; x.beginPath(); for (let X = -s; X < s; X += s * 0.28) { x.moveTo(X, -s * 0.16); x.lineTo(X, -s * 0.03); } x.stroke();
   } else if (id === 'forge:1') {      // l'enclume, le marteau et les étincelles : la Grande Forge
     x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, s * 0.55, s * 1.1, '#ff6a20', 0.55); x.restore();
-    const an = (k) => { x.beginPath(); x.moveTo(-s * 0.8, -s * 0.02); x.lineTo(s * 0.42, -s * 0.02); x.quadraticCurveTo(s * 0.86, 0, s * 0.9, s * 0.16); x.lineTo(s * 0.42, s * 0.2);
+    const an = () => { x.beginPath(); x.moveTo(-s * 0.8, -s * 0.02); x.lineTo(s * 0.42, -s * 0.02); x.quadraticCurveTo(s * 0.86, 0, s * 0.9, s * 0.16); x.lineTo(s * 0.42, s * 0.2);
       x.lineTo(s * 0.32, s * 0.42); x.lineTo(s * 0.46, s * 0.6); x.lineTo(-s * 0.46, s * 0.6); x.lineTo(-s * 0.32, s * 0.42); x.lineTo(-s * 0.42, s * 0.2); x.lineTo(-s * 0.8, s * 0.14); x.closePath(); };
     const ag = x.createLinearGradient(0, -s * 0.05, 0, s * 0.6); ag.addColorStop(0, '#9a98a6'); ag.addColorStop(0.3, '#55535e'); ag.addColorStop(1, '#2a2830');
     an(); x.fillStyle = ag; x.fill(); x.strokeStyle = '#141218'; x.lineWidth = 1.1; x.stroke();
-    x.fillStyle = 'rgba(255,170,90,0.55)'; x.fillRect(-s * 0.76, -s * 0.02, s * 1.2, s * 0.05);      // le reflet du feu sur l'enclume
+    x.fillStyle = 'rgba(255,170,90,0.55)'; x.fillRect(-s * 0.76, -s * 0.02, s * 1.2, s * 0.05);
     x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, -s * 0.1, -s * 0.1, s * 0.42, '#ffb03a', 0.9); x.restore();
-    x.fillStyle = '#ffe9a0'; mapRect(x, -s * 0.32, -s * 0.11, s * 0.42, s * 0.1, s * 0.03); x.fill();      // le métal chauffé à blanc
+    x.fillStyle = '#ffe9a0'; mapRect(x, -s * 0.32, -s * 0.11, s * 0.42, s * 0.1, s * 0.03); x.fill();
     x.save(); x.translate(s * 0.34, -s * 0.46); x.rotate(-0.75);
     x.fillStyle = '#8a5a32'; x.fillRect(-s * 0.045, -s * 0.02, s * 0.09, s * 0.62);
     const hg = x.createLinearGradient(0, -s * 0.18, 0, 0); hg.addColorStop(0, '#c8c6d2'); hg.addColorStop(1, '#5a5866'); x.fillStyle = hg; mapRect(x, -s * 0.24, -s * 0.18, s * 0.48, s * 0.18, s * 0.03); x.fill();
@@ -7423,7 +7652,35 @@ function mfNodePaint(x, info, size, P, def) {
     x.save(); x.globalCompositeOperation = 'lighter';
     for (let k = 0; k < 9; k++) { const a = -Math.PI * (0.15 + 0.7 * mfHash(k, 3)), d = s * (0.18 + 0.4 * mfHash(k, 5)); x.fillStyle = k & 1 ? '#ffd36a' : '#ff8a2a'; x.beginPath(); x.arc(-s * 0.12 + Math.cos(a) * d, -s * 0.05 + Math.sin(a) * d, s * 0.035, 0, MF_T); x.fill(); }
     x.restore();
-  } else if (id === 'forge:2') {      // l'œuf du dragon dans les braises : le Nid du dragon
+  } else if (id === 'forge:2') {      // le creuset penché qui verse le métal en fusion dans le moule : les Fonderies
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, s * 0.1, s * 0.5, s * 0.95, '#ff8a2a', 0.7); x.restore();
+    x.fillStyle = '#26242c'; mapRect(x, -s * 0.62, s * 0.3, s * 1.24, s * 0.42, s * 0.06); x.fill(); x.strokeStyle = '#0c0a10'; x.lineWidth = 1; x.stroke();
+    const mg = x.createLinearGradient(0, s * 0.36, 0, s * 0.62); mg.addColorStop(0, '#fff3b0'); mg.addColorStop(0.5, '#ffb03a'); mg.addColorStop(1, '#d8541a');
+    x.fillStyle = mg; mapRect(x, -s * 0.52, s * 0.37, s * 1.04, s * 0.26, s * 0.04); x.fill();
+    x.lineCap = 'round'; x.strokeStyle = '#ffb03a'; x.lineWidth = s * 0.14; x.beginPath(); x.moveTo(s * 0.14, -s * 0.4); x.quadraticCurveTo(s * 0.24, -s * 0.1, s * 0.12, s * 0.38); x.stroke();
+    x.strokeStyle = '#fff6c8'; x.lineWidth = s * 0.05; x.stroke();
+    x.save(); x.translate(-s * 0.28, -s * 0.36); x.rotate(0.6);
+    x.fillStyle = '#4a4652'; x.beginPath(); x.moveTo(-s * 0.32, -s * 0.28); x.lineTo(s * 0.32, -s * 0.28); x.lineTo(s * 0.24, s * 0.3); x.quadraticCurveTo(0, s * 0.38, -s * 0.24, s * 0.3); x.closePath(); x.fill();
+    x.strokeStyle = '#141218'; x.lineWidth = 1.2; x.stroke();
+    x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(-s * 0.26, -s * 0.2, s * 0.08, s * 0.42);
+    const cg = x.createRadialGradient(0, -s * 0.28, 0, 0, -s * 0.28, s * 0.34); cg.addColorStop(0, '#fff6c8'); cg.addColorStop(0.6, '#ffb03a'); cg.addColorStop(1, '#d8541a');
+    x.fillStyle = cg; x.beginPath(); x.ellipse(0, -s * 0.28, s * 0.32, s * 0.09, 0, 0, MF_T); x.fill();
+    x.restore();
+    x.save(); x.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 7; k++) { const a = -Math.PI * (0.1 + 0.8 * mfHash(k, 7)), d = s * (0.22 + 0.35 * mfHash(k, 9)); x.fillStyle = k & 1 ? '#ffd36a' : '#ff8a2a'; x.beginPath(); x.arc(s * 0.12 + Math.cos(a) * d, s * 0.34 + Math.sin(a) * d * 0.6, s * 0.035, 0, MF_T); x.fill(); }
+    x.restore();
+  } else if (id === 'forge:3') {      // le bouclier et les deux haches croisées : l'Armurerie
+    for (const sg of [-1, 1]) {
+      x.save(); x.rotate(sg * 0.68);
+      x.fillStyle = '#7a4a26'; x.fillRect(-s * 0.05, -s * 0.85, s * 0.1, s * 1.6);
+      x.fillStyle = '#b8c0cc'; x.beginPath(); x.moveTo(s * 0.05, -s * 0.78); x.quadraticCurveTo(s * 0.5, -s * 0.66, s * 0.42, -s * 0.32); x.lineTo(s * 0.05, -s * 0.42); x.closePath(); x.fill();
+      x.strokeStyle = '#3a3440'; x.lineWidth = 0.9; x.stroke();
+      x.restore();
+    }
+    mfShieldW(x, 0, s * 0.08, s * 0.5, '#7a1a10', '#ffb04a');
+  } else if (id === 'forge:4') {      // le Seigneur des braises (mini-boss)
+    mfLord(x, s);
+  } else if (id === 'forge:5') {      // l'œuf du dragon dans les braises : le Nid du dragon
     x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, s * 0.4, s, '#ff6a20', 0.6); x.restore();
     for (let k = 0; k < 7; k++) { const a = Math.PI * (0.05 + k / 7.5); mfFlame(x, Math.cos(a) * s * 0.55, s * 0.5 - Math.sin(a) * s * 0.1, s * 0.16); }
     const eg = x.createRadialGradient(-s * 0.15, -s * 0.25, s * 0.05, 0, 0, s * 0.6); eg.addColorStop(0, '#ffb07a'); eg.addColorStop(0.55, '#d8452a'); eg.addColorStop(1, '#6a1408');
@@ -7432,22 +7689,48 @@ function mfNodePaint(x, info, size, P, def) {
     for (let rr = -2; rr <= 2; rr++) for (let cc = -1; cc <= 1; cc++) { x.beginPath(); x.arc(cc * s * 0.18 + (rr & 1) * s * 0.09, rr * s * 0.17, s * 0.09, 0.2, Math.PI - 0.2); x.stroke(); }
     x.fillStyle = 'rgba(255,240,220,0.35)'; x.beginPath(); x.ellipse(-s * 0.14, -s * 0.24, s * 0.08, s * 0.14, -0.3, 0, MF_T); x.fill();
     x.fillStyle = '#2a1410'; for (let k = 0; k < 5; k++) { x.beginPath(); x.ellipse(-s * 0.5 + k * s * 0.25, s * 0.56, s * 0.16, s * 0.08, 0, 0, MF_T); x.fill(); }
+  } else if (id === 'glace:0') {      // la rivière gelée : plaques de glace sur l'eau sombre
+    const wg = x.createLinearGradient(0, -s, 0, s); wg.addColorStop(0, '#0e3a5a'); wg.addColorStop(1, '#062236'); x.fillStyle = wg; x.fillRect(-s, -s, s * 2, s * 2);
+    for (const [px, py, rx, ry, a] of [[-0.35, -0.3, 0.42, 0.24, 0.2], [0.35, -0.05, 0.38, 0.22, -0.3], [-0.2, 0.42, 0.5, 0.2, 0.1], [0.55, 0.55, 0.25, 0.14, 0.5]]) {
+      x.fillStyle = '#e8f8ff'; x.beginPath(); x.ellipse(px * s, py * s, rx * s, ry * s, a, 0, MF_T); x.fill();
+      x.fillStyle = '#a8dcf4'; x.beginPath(); x.ellipse(px * s + s * 0.03, py * s + s * 0.04, rx * s * 0.8, ry * s * 0.6, a, 0, MF_T); x.fill();
+    }
+    x.strokeStyle = 'rgba(160,220,255,0.6)'; x.lineWidth = 1; x.beginPath(); x.moveTo(-s, s * 0.12); x.quadraticCurveTo(-s * 0.4, 0, 0, s * 0.15); x.quadraticCurveTo(s * 0.4, s * 0.3, s, s * 0.18); x.stroke();
+  } else if (id === 'glace:1') {      // les stalactites qui pendent
+    const g = x.createLinearGradient(0, -s, 0, s); g.addColorStop(0, '#1a3a54'); g.addColorStop(1, '#0a1a2a'); x.fillStyle = g; x.fillRect(-s, -s, s * 2, s * 2);
+    x.fillStyle = '#cfe9f6'; x.fillRect(-s, -s, s * 2, s * 0.3);
+    for (const [px, l, w] of [[-0.62, 0.9, 0.16], [-0.32, 1.35, 0.2], [0.0, 1.05, 0.17], [0.3, 1.5, 0.22], [0.6, 0.85, 0.15]]) {
+      const gg = x.createLinearGradient(px * s - w * s, 0, px * s + w * s, 0); gg.addColorStop(0, '#ffffff'); gg.addColorStop(0.5, '#a8e4ff'); gg.addColorStop(1, '#5a9cc8');
+      x.fillStyle = gg; x.beginPath(); x.moveTo(px * s - w * s, -s * 0.72); x.lineTo(px * s + w * s, -s * 0.72); x.lineTo(px * s, -s * 0.72 + l * s); x.closePath(); x.fill();
+    }
+    x.fillStyle = 'rgba(200,240,255,0.9)'; x.beginPath(); x.arc(s * 0.3, s * 0.88, s * 0.05, 0, MF_T); x.fill();
+  } else if (id === 'glace:2') {      // les cristaux qui brillent
+    x.save(); x.translate(0, s * 0.52); mfCrystals(x, 0, 0, s * 0.8, '#8fe9ff'); x.restore();
+    x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = '#e8fbff';
+    for (const [px, py, q] of [[-0.62, -0.42, 0.06], [0.58, -0.55, 0.05], [0.66, 0.1, 0.04], [-0.5, 0.3, 0.035]]) { x.beginPath(); x.moveTo(px * s, (py - q * 2) * s); x.lineTo((px + q * 0.5) * s, py * s); x.lineTo(px * s, (py + q * 2) * s); x.lineTo((px - q * 0.5) * s, py * s); x.closePath(); x.fill(); x.beginPath(); x.moveTo((px - q * 2) * s, py * s); x.lineTo(px * s, (py - q * 0.5) * s); x.lineTo((px + q * 2) * s, py * s); x.lineTo(px * s, (py + q * 0.5) * s); x.closePath(); x.fill(); }
+    x.restore();
+  } else if (id === 'glace:3') {      // le lac gelé et ses fissures
+    mfFrozenLake(x, 0, s * 0.05, s * 0.85, s * 0.62, mapRng(17));
+  } else if (id === 'glace:4') {      // le Yéti géant (mini-boss)
+    mfYeti(x, s);
+  } else if (id === 'glace:5') {      // le cœur de glace qui bat
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, 0, s, '#8fe9ff', 0.7); x.restore();
+    mfIceHeart(x, 0, s * 0.05, s * 0.62);
   } else {      // un monde à venir : son emblème, dessiné par le jeu
     const G = def && def.game(); if (G && G.drawWorldIcon) G.drawWorldIcon(x, (info.w | 0) + 1, 0, 0, s * 0.9);
   }
   x.restore();
-  x.strokeStyle = rgbaHex(acc, 0.85); x.lineWidth = 1.6; x.beginPath(); x.arc(cx, cy, ri, 0, MF_T); x.stroke();
+  x.strokeStyle = rgbaHex(mini ? '#ff6a7a' : acc, 0.85); x.lineWidth = 1.6; x.beginPath(); x.arc(cx, cy, ri, 0, MF_T); x.stroke();
 }
-// ---- les boss : le Gardien de pierre (golem aux veines bleues), Braise le dragon ----
+// ---- les boss : le Gardien de pierre (golem aux veines bleues), Braise le dragon, Givre l’hydre des glaces (trois têtes) ----
 function mfBoss(x, bi, size, P, def) {
   const dpr = x.canvas.width / P, key = 'b' + (bi.bk || '?') + (bi.final ? 'F' : '') + '|' + size + '|' + P + '|' + dpr.toFixed(2);
   x.drawImage(mfMedImg(key, P, dpr, (g) => mfBossPaint(g, bi, size, P, def)), 0, 0, P, P);
 }
 function mfBossPaint(x, bi, size, P, def) {
-  const golem = bi.bk === 'golem', dragon = bi.bk === 'dragon', col = golem ? '#6fd8ff' : dragon ? '#ff6a2a' : (bi.acc || '#9b7bff'), Y = mfStyle(bi.wid, def);
+  const golem = bi.bk === 'golem', dragon = bi.bk === 'dragon', hydre = bi.bk === 'hydre', col = golem ? '#6fd8ff' : dragon ? '#ff6a2a' : hydre ? '#8fe9ff' : (bi.acc || '#9b7bff'), Y = mfStyle(bi.wid, def);
   const cx = P / 2, cy = P / 2 + 2, r = size / 2, gold = bi.final;
   mapGlow(x, cx, cy, r + 17, gold ? '#ffb22e' : col, 0.6);
-  // l'anneau de pierre gravé de runes
   x.fillStyle = gold ? '#a87a1c' : '#2c2834'; x.beginPath(); x.arc(cx, cy, r + 7, 0, MF_T); x.fill();
   const rim = x.createLinearGradient(0, cy - r - 6, 0, cy + r + 6); rim.addColorStop(0, gold ? '#ffe9a0' : '#8e8896'); rim.addColorStop(1, gold ? '#b8860b' : '#4a4452');
   x.fillStyle = rim; x.beginPath(); x.arc(cx, cy, r + 5.5, 0, MF_T); x.fill();
@@ -7455,10 +7738,10 @@ function mfBossPaint(x, bi, size, P, def) {
   for (let k = 0; k < 12; k++) { const a = k * MF_T / 12, rx = cx + Math.cos(a) * (r + 2.6), ry = cy + Math.sin(a) * (r + 2.6); x.save(); x.translate(rx, ry); x.rotate(a + Math.PI / 2); x.beginPath(); x.moveTo(-1.6, -1.6); x.lineTo(1.6, 1.6); if (k & 1) { x.moveTo(1.6, -1.6); x.lineTo(0, 0); } x.stroke(); x.restore(); }
   x.restore();
   const bg = x.createRadialGradient(cx, cy - r * 0.3, r * 0.1, cx, cy, r);
-  bg.addColorStop(0, golem ? '#1f3a5a' : dragon ? '#5a1608' : mixHex(Y.void1, col, 0.3)); bg.addColorStop(1, golem ? '#060c18' : dragon ? '#140402' : Y.void0);
+  bg.addColorStop(0, golem ? '#1f3a5a' : dragon ? '#5a1608' : hydre ? '#1c4a6a' : mixHex(Y.void1, col, 0.3)); bg.addColorStop(1, golem ? '#060c18' : dragon ? '#140402' : hydre ? '#030c16' : Y.void0);
   x.fillStyle = bg; x.beginPath(); x.arc(cx, cy, r, 0, MF_T); x.fill();
   x.save(); x.beginPath(); x.arc(cx, cy, r - 1, 0, MF_T); x.clip(); x.translate(cx, cy);
-  if (golem) mfGolem(x, r); else if (dragon) mfDragon(x, r);
+  if (golem) mfGolem(x, r); else if (dragon) mfDragon(x, r); else if (hydre) mfHydra(x, r);
   else { const G = def && def.game(); if (G && G.drawWorldIcon) G.drawWorldIcon(x, 1, 0, 0, r * 0.8); }
   x.restore();
   x.strokeStyle = gold ? '#ffd34d' : col; x.lineWidth = 2.2; x.beginPath(); x.arc(cx, cy, r - 0.5, 0, MF_T); x.stroke();
@@ -7521,6 +7804,116 @@ function mfDragon(x, r) {
   // la fumée qui sort de la narine
   x.fillStyle = 'rgba(80,60,60,0.35)'; for (let k = 0; k < 3; k++) { x.beginPath(); x.arc(-r * 0.86 - k * r * 0.08, -r * 0.14 - k * r * 0.14, r * (0.06 + k * 0.03), 0, MF_T); x.fill(); }
   x.restore();
+}
+// ---- les mini-boss (dans le médaillon de leur salle) et Givre, l'hydre des glaces ----
+function mfKnight(x, s) {      // le Chevalier des os : un crâne sous un heaume, le panache rouge, les épaulières d'acier
+  const ag = x.createLinearGradient(0, s * 0.45, 0, s); ag.addColorStop(0, '#dfe5ee'); ag.addColorStop(0.5, '#8a94a4'); ag.addColorStop(1, '#4a5260');
+  x.fillStyle = ag; x.beginPath(); x.moveTo(-s, s); x.quadraticCurveTo(-s * 0.95, s * 0.5, -s * 0.42, s * 0.52); x.quadraticCurveTo(0, s * 0.68, s * 0.42, s * 0.52); x.quadraticCurveTo(s * 0.95, s * 0.5, s, s); x.closePath(); x.fill();
+  x.strokeStyle = '#1c2028'; x.lineWidth = 1.2; x.stroke();
+  x.strokeStyle = 'rgba(28,32,40,0.6)'; x.lineWidth = 1; for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * s * 0.42, s * 0.56); x.quadraticCurveTo(sg * s * 0.72, s * 0.62, sg * s * 0.86, s * 0.9); x.stroke(); }
+  x.fillStyle = '#ffcf4a'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(sg * s * 0.62, s * 0.66, s * 0.045, 0, MF_T); x.fill(); }
+  x.fillStyle = '#c0242c'; x.beginPath(); x.moveTo(-s * 0.05, -s * 0.62); x.bezierCurveTo(s * 0.2, -s * 1.0, s * 0.62, -s * 0.9, s * 0.72, -s * 0.5); x.bezierCurveTo(s * 0.45, -s * 0.66, s * 0.2, -s * 0.6, s * 0.08, -s * 0.48); x.closePath(); x.fill();
+  mfSkull(x, 0, s * 0.12, s * 0.9, '#ff6a3a');
+  const hg = x.createLinearGradient(-s * 0.55, -s * 0.6, s * 0.55, 0); hg.addColorStop(0, '#d8dee8'); hg.addColorStop(0.5, '#8a94a4'); hg.addColorStop(1, '#4a5260');
+  x.fillStyle = hg; x.beginPath(); x.moveTo(-s * 0.56, s * 0.0); x.lineTo(-s * 0.56, -s * 0.28); x.quadraticCurveTo(-s * 0.55, -s * 0.7, 0, -s * 0.72); x.quadraticCurveTo(s * 0.55, -s * 0.7, s * 0.56, -s * 0.28); x.lineTo(s * 0.56, s * 0.0);
+  x.lineTo(s * 0.4, s * 0.0); x.lineTo(s * 0.4, -s * 0.12); x.lineTo(-s * 0.4, -s * 0.12); x.lineTo(-s * 0.4, s * 0.0); x.closePath(); x.fill();
+  x.strokeStyle = '#1c2028'; x.lineWidth = 1.2; x.stroke();
+  x.fillStyle = '#2a3040'; x.fillRect(-s * 0.04, -s * 0.7, s * 0.08, s * 0.58);
+  x.fillStyle = 'rgba(255,255,255,0.35)'; x.beginPath(); x.ellipse(-s * 0.26, -s * 0.5, s * 0.14, s * 0.06, -0.5, 0, MF_T); x.fill();
+}
+function mfLord(x, s) {      // le Seigneur des braises : un démon rouge, cornes recourbées, yeux jaunes, couronne de flammes
+  x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, -s * 0.55, s * 0.8, '#ff8a2a', 0.8); x.restore();
+  for (let k = -2; k <= 2; k++) mfFlame(x, k * s * 0.2, -s * 0.62 - (2 - Math.abs(k)) * s * 0.06, s * 0.17);
+  const hg = x.createLinearGradient(0, -s * 0.6, 0, -s * 0.1); hg.addColorStop(0, '#f2e2c4'); hg.addColorStop(1, '#8a6a4a'); x.fillStyle = hg;
+  for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * s * 0.3, -s * 0.3); x.quadraticCurveTo(sg * s * 0.95, -s * 0.5, sg * s * 0.78, -s * 0.95); x.quadraticCurveTo(sg * s * 0.7, -s * 0.55, sg * s * 0.42, -s * 0.18); x.closePath(); x.fill(); }
+  const fg = x.createRadialGradient(-s * 0.15, -s * 0.25, s * 0.05, 0, 0, s * 0.62); fg.addColorStop(0, '#ff6a4a'); fg.addColorStop(0.6, '#b8261a'); fg.addColorStop(1, '#5a0a08');
+  x.fillStyle = fg; x.beginPath(); x.moveTo(-s * 0.42, -s * 0.3); x.quadraticCurveTo(0, -s * 0.52, s * 0.42, -s * 0.3); x.quadraticCurveTo(s * 0.55, s * 0.15, s * 0.22, s * 0.52); x.quadraticCurveTo(0, s * 0.66, -s * 0.22, s * 0.52); x.quadraticCurveTo(-s * 0.55, s * 0.15, -s * 0.42, -s * 0.3); x.closePath(); x.fill();
+  x.strokeStyle = '#2a0404'; x.lineWidth = 1.2; x.stroke();
+  x.fillStyle = '#3a0606'; for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * s * 0.36, -s * 0.12); x.lineTo(sg * s * 0.06, -s * 0.02); x.lineTo(sg * s * 0.08, s * 0.06); x.lineTo(sg * s * 0.34, -s * 0.02); x.closePath(); x.fill(); }
+  x.save(); x.globalCompositeOperation = 'lighter'; for (const sg of [-1, 1]) mapGlow(x, sg * s * 0.2, s * 0.08, s * 0.2, '#ffd23a', 0.9); x.restore();
+  x.fillStyle = '#ffe680'; for (const sg of [-1, 1]) { x.beginPath(); x.ellipse(sg * s * 0.2, s * 0.08, s * 0.09, s * 0.05, sg * 0.3, 0, MF_T); x.fill(); }
+  x.fillStyle = '#2a0404'; x.beginPath(); x.moveTo(-s * 0.2, s * 0.3); x.quadraticCurveTo(0, s * 0.42, s * 0.2, s * 0.3); x.quadraticCurveTo(0, s * 0.36, -s * 0.2, s * 0.3); x.fill();
+  x.fillStyle = '#fff4e0'; for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * s * 0.14, s * 0.31); x.lineTo(sg * s * 0.08, s * 0.32); x.lineTo(sg * s * 0.11, s * 0.42); x.closePath(); x.fill(); }
+}
+function mfYeti(x, s) {      // le Yéti géant : une grosse tête de fourrure blanche, le visage bleu, les crocs
+  x.fillStyle = '#f2f6fa'; x.beginPath();
+  for (let k = 0; k < 30; k++) { const a = k * MF_T / 30, rr = s * (k & 1 ? 0.78 : 0.9); x[k ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr * 0.95 + s * 0.05); }
+  x.closePath(); x.fill();
+  x.fillStyle = 'rgba(150,180,205,0.5)'; x.beginPath(); x.ellipse(0, s * 0.42, s * 0.62, s * 0.34, 0, 0, MF_T); x.fill();
+  const fg = x.createLinearGradient(0, -s * 0.3, 0, s * 0.45); fg.addColorStop(0, '#7ab6e0'); fg.addColorStop(1, '#3a78b0');
+  x.fillStyle = fg; x.beginPath(); x.moveTo(-s * 0.42, -s * 0.18); x.quadraticCurveTo(0, -s * 0.42, s * 0.42, -s * 0.18); x.quadraticCurveTo(s * 0.5, s * 0.28, 0, s * 0.46); x.quadraticCurveTo(-s * 0.5, s * 0.28, -s * 0.42, -s * 0.18); x.closePath(); x.fill();
+  x.fillStyle = '#f2f6fa'; x.beginPath(); for (let k = 0; k < 9; k++) { const px = -s * 0.44 + k * s * 0.11; x.lineTo(px, -s * 0.2 + (k & 1 ? s * 0.1 : 0)); } x.lineTo(s * 0.44, -s * 0.34); x.lineTo(-s * 0.44, -s * 0.34); x.closePath(); x.fill();
+  x.fillStyle = '#0a1a2a'; for (const sg of [-1, 1]) { x.beginPath(); x.ellipse(sg * s * 0.17, -s * 0.03, s * 0.07, s * 0.06, 0, 0, MF_T); x.fill(); }
+  x.fillStyle = '#e0f6ff'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(sg * s * 0.15, -s * 0.05, s * 0.02, 0, MF_T); x.fill(); }
+  x.fillStyle = '#1a2a3a'; x.beginPath(); x.ellipse(0, s * 0.27, s * 0.24, s * 0.12, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#ffffff'; for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * s * 0.18, s * 0.2); x.lineTo(sg * s * 0.1, s * 0.2); x.lineTo(sg * s * 0.14, s * 0.34); x.closePath(); x.fill(); }
+  x.fillStyle = '#d8e8f4'; x.beginPath(); x.moveTo(-s * 0.08, s * 0.36); x.lineTo(s * 0.08, s * 0.36); x.lineTo(0, s * 0.27); x.closePath(); x.fill();
+}
+function mfHydra(x, r) {      // Givre, l'hydre des glaces : un corps de glace, trois longs cous, trois têtes de dragon (cornes de glace, yeux bleus qui brillent, crocs)
+  x.save();
+  x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, -r * 0.2, r, '#8fe9ff', 0.3); x.globalCompositeOperation = 'source-over';
+  const skin = (y0, y1) => { const g = x.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, '#d6f4ff'); g.addColorStop(0.45, '#6cb8e2'); g.addColorStop(1, '#2a5c8c'); return g; };
+  const OUT = '#0c2640';
+  // le corps (en bas) et ses écailles
+  x.fillStyle = skin(r * 0.45, r * 1.1); x.beginPath(); x.ellipse(0, r * 0.95, r * 0.78, r * 0.5, 0, 0, MF_T); x.fill(); x.strokeStyle = OUT; x.lineWidth = r * 0.04; x.stroke();
+  x.strokeStyle = 'rgba(12,38,64,0.45)'; x.lineWidth = r * 0.025;
+  for (let k = -3; k <= 3; k++) { x.beginPath(); x.arc(k * r * 0.18, r * 0.72 + Math.abs(k) * r * 0.03, r * 0.1, 0.1, Math.PI - 0.1); x.stroke(); }
+  // les cous : contour sombre, peau, ventre clair
+  x.lineCap = 'round';
+  for (const [ax, ay, cx2, cy2, ex, ey] of [[-r * 0.2, r * 0.7, -r * 0.62, r * 0.45, -r * 0.42, 0], [r * 0.2, r * 0.7, r * 0.62, r * 0.45, r * 0.42, 0], [0, r * 0.62, r * 0.12, r * 0.15, 0, -r * 0.3]]) {
+    x.beginPath(); x.moveTo(ax, ay); x.quadraticCurveTo(cx2, cy2, ex, ey);
+    x.strokeStyle = OUT; x.lineWidth = r * 0.27; x.stroke();
+    x.strokeStyle = '#4f9ccc'; x.lineWidth = r * 0.2; x.stroke();
+    x.strokeStyle = 'rgba(220,246,255,0.75)'; x.lineWidth = r * 0.07; x.stroke();
+  }
+  // une tête de profil (dir : -1 regarde à gauche, 1 à droite), le museau relevé, la gueule ouverte
+  const side = (hx, hy, dir) => {
+    const u = r * 0.44;
+    x.save(); x.translate(hx, hy); x.scale(dir, 1); x.rotate(-0.35);
+    x.fillStyle = '#eafcff'; x.strokeStyle = OUT; x.lineWidth = r * 0.025; x.lineJoin = 'round';
+    for (const [bx, by, tx, ty] of [[-0.15, -0.3, -0.75, -0.75], [-0.3, -0.12, -0.9, -0.3]]) { x.beginPath(); x.moveTo(bx * u, by * u - 0.08 * u); x.lineTo(tx * u, ty * u); x.lineTo(bx * u + 0.12 * u, by * u + 0.06 * u); x.closePath(); x.fill(); x.stroke(); }
+    x.fillStyle = '#2f6a9a'; x.beginPath(); x.moveTo(-0.1 * u, 0.12 * u); x.lineTo(0.8 * u, 0.42 * u); x.lineTo(0.74 * u, 0.52 * u); x.quadraticCurveTo(0.2 * u, 0.46 * u, -0.15 * u, 0.3 * u); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = '#081a2c'; x.beginPath(); x.moveTo(0.05 * u, 0.1 * u); x.lineTo(0.95 * u, 0.12 * u); x.lineTo(0.8 * u, 0.42 * u); x.closePath(); x.fill();
+    x.fillStyle = '#ffffff';
+    for (const fx of [0.4, 0.68]) { x.beginPath(); x.moveTo(fx * u, 0.12 * u); x.lineTo((fx + 0.09) * u, 0.12 * u); x.lineTo((fx + 0.035) * u, 0.29 * u); x.closePath(); x.fill(); }
+    x.beginPath(); x.moveTo(0.5 * u, 0.37 * u); x.lineTo(0.6 * u, 0.39 * u); x.lineTo(0.55 * u, 0.23 * u); x.closePath(); x.fill();
+    x.fillStyle = skin(-0.45 * u, 0.2 * u); x.beginPath();
+    x.moveTo(-0.38 * u, 0.12 * u); x.quadraticCurveTo(-0.45 * u, -0.35 * u, -0.05 * u, -0.42 * u); x.quadraticCurveTo(0.3 * u, -0.45 * u, 0.5 * u, -0.22 * u);
+    x.lineTo(0.98 * u, -0.06 * u); x.quadraticCurveTo(1.06 * u, 0.04 * u, 0.95 * u, 0.12 * u); x.lineTo(0.05 * u, 0.12 * u); x.quadraticCurveTo(-0.2 * u, 0.2 * u, -0.38 * u, 0.12 * u); x.closePath(); x.fill(); x.stroke();
+    x.globalCompositeOperation = 'lighter'; mapGlow(x, 0.22 * u, -0.17 * u, 0.32 * u, '#8ff4ff', 0.9); x.globalCompositeOperation = 'source-over';
+    x.fillStyle = '#eaffff'; x.beginPath(); x.ellipse(0.22 * u, -0.17 * u, 0.13 * u, 0.08 * u, -0.25, 0, MF_T); x.fill();
+    x.fillStyle = '#0a2236'; x.beginPath(); x.ellipse(0.24 * u, -0.17 * u, 0.03 * u, 0.07 * u, 0, 0, MF_T); x.fill();
+    x.strokeStyle = OUT; x.lineWidth = r * 0.04; x.beginPath(); x.moveTo(0.04 * u, -0.31 * u); x.lineTo(0.42 * u, -0.25 * u); x.stroke();
+    x.fillStyle = '#0a2236'; x.beginPath(); x.ellipse(0.88 * u, -0.04 * u, 0.045 * u, 0.028 * u, 0, 0, MF_T); x.fill();
+    x.restore();
+  };
+  // la tête du milieu, de face : grandes cornes, yeux fendus, crocs
+  const front = (hx, hy) => {
+    const u = r * 0.5;
+    x.save(); x.translate(hx, hy); x.lineJoin = 'round';
+    x.fillStyle = '#eafcff'; x.strokeStyle = OUT; x.lineWidth = r * 0.025;
+    for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * 0.22 * u, -0.38 * u); x.quadraticCurveTo(sg * 0.5 * u, -0.62 * u, sg * 0.62 * u, -0.85 * u); x.quadraticCurveTo(sg * 0.52 * u, -0.55 * u, sg * 0.42 * u, -0.3 * u); x.closePath(); x.fill(); x.stroke(); }
+    x.fillStyle = skin(-0.45 * u, 0.6 * u); x.beginPath();
+    x.moveTo(-0.42 * u, -0.3 * u); x.quadraticCurveTo(0, -0.52 * u, 0.42 * u, -0.3 * u); x.quadraticCurveTo(0.56 * u, 0, 0.3 * u, 0.3 * u);
+    x.lineTo(0.2 * u, 0.62 * u); x.quadraticCurveTo(0, 0.72 * u, -0.2 * u, 0.62 * u); x.lineTo(-0.3 * u, 0.3 * u); x.quadraticCurveTo(-0.56 * u, 0, -0.42 * u, -0.3 * u); x.closePath(); x.fill(); x.stroke();
+    x.globalCompositeOperation = 'lighter'; for (const sg of [-1, 1]) mapGlow(x, sg * 0.22 * u, -0.08 * u, 0.3 * u, '#8ff4ff', 0.9); x.globalCompositeOperation = 'source-over';
+    for (const sg of [-1, 1]) { x.fillStyle = '#eaffff'; x.beginPath(); x.ellipse(sg * 0.22 * u, -0.08 * u, 0.13 * u, 0.07 * u, sg * 0.35, 0, MF_T); x.fill(); x.fillStyle = '#0a2236'; x.beginPath(); x.ellipse(sg * 0.22 * u, -0.08 * u, 0.03 * u, 0.06 * u, 0, 0, MF_T); x.fill(); }
+    x.strokeStyle = OUT; x.lineWidth = r * 0.04; for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * 0.07 * u, -0.17 * u); x.lineTo(sg * 0.38 * u, -0.25 * u); x.stroke(); }
+    x.fillStyle = '#0a2236'; for (const sg of [-1, 1]) { x.beginPath(); x.ellipse(sg * 0.08 * u, 0.48 * u, 0.04 * u, 0.028 * u, 0, 0, MF_T); x.fill(); }
+    x.fillStyle = '#ffffff'; for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * 0.09 * u, 0.6 * u); x.lineTo(sg * 0.2 * u, 0.58 * u); x.lineTo(sg * 0.14 * u, 0.82 * u); x.closePath(); x.fill(); }
+    x.restore();
+  };
+  side(-r * 0.4, -r * 0.05, -1); side(r * 0.4, -r * 0.05, 1);
+  front(0, -r * 0.42);
+  x.globalCompositeOperation = 'lighter'; x.fillStyle = 'rgba(230,250,255,0.85)';
+  for (const [px, py, q] of [[-0.78, -0.55, 0.035], [0.8, -0.5, 0.03], [-0.3, -0.86, 0.025], [0.66, 0.28, 0.025], [-0.72, 0.3, 0.02]]) { x.beginPath(); x.arc(px * r, py * r, q * r, 0, MF_T); x.fill(); }
+  x.restore();
+}
+function mfIceHeart(x, cx, cy, s) {      // un cœur de glace taillé, qui brille
+  x.beginPath(); x.moveTo(cx, cy + s * 0.9); x.bezierCurveTo(cx - s * 1.2, cy + s * 0.1, cx - s * 0.75, cy - s * 0.85, cx, cy - s * 0.35); x.bezierCurveTo(cx + s * 0.75, cy - s * 0.85, cx + s * 1.2, cy + s * 0.1, cx, cy + s * 0.9); x.closePath();
+  const g = x.createLinearGradient(cx - s, cy - s, cx + s, cy + s); g.addColorStop(0, '#ffffff'); g.addColorStop(0.45, '#8fe0ff'); g.addColorStop(1, '#2a7ab8');
+  x.fillStyle = g; x.fill(); x.strokeStyle = 'rgba(255,255,255,0.9)'; x.lineWidth = 1.2; x.stroke();
+  x.strokeStyle = 'rgba(255,255,255,0.55)'; x.lineWidth = 1; x.beginPath(); x.moveTo(cx, cy - s * 0.35); x.lineTo(cx - s * 0.3, cy + s * 0.15); x.lineTo(cx, cy + s * 0.9); x.moveTo(cx - s * 0.3, cy + s * 0.15); x.lineTo(cx - s * 0.75, cy - s * 0.2); x.moveTo(cx, cy - s * 0.35); x.lineTo(cx + s * 0.35, cy + s * 0.1); x.lineTo(cx, cy + s * 0.9); x.stroke();
 }
 // ---- le départ : le mage (grand chapeau violet à bande orange, cape rouge, bâton à boule verte) ----
 function mfMage(x, P) {

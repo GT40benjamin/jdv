@@ -56,11 +56,14 @@ tant qu'il contient une nouveauté pas vue ; un appareil tout neuf ne voit que l
 vide maintenant) reste pour un prochain jeu en essai : la tuile d'un jeu de LABO n'apparaît qu'après `…/jouer/?labo=<id>` (retenu sur l'appareil,
 `?labo=aucun` pour cacher ; dans l'appli : 7 touches sur le titre). Données emballées
 `assets/magic.monde1.bin` (Crypte oubliée, boss le Gardien de pierre) + `assets/magic.monde2.bin` (Forges ardentes, boss Braise le dragon ;
-téléchargé pendant le monde 1) + moteur `assets/magic.moteur.bin` (le point dans le nom : pas téléchargés à l'installation du service worker,
+téléchargé pendant le monde 1) + `assets/magic.monde3.bin` (Grottes de glace, boss Givre l'hydre des glaces ; depuis la 1.16 : 6 salles par monde,
+mini-boss en salle 5, boss en salle 6, une salle secrète par monde ; « Magic Force à deux » en Coop) + moteur `assets/magic.moteur.bin` (le point dans le nom : pas téléchargés à l'installation du service worker,
 gardés après la 1re partie), musiques `assets/music/magic-*.bin`. Depuis la 1.11.4 : héros = mage KayKit Adventurers, squelettes KayKit,
 décor KayKit Dungeon Remastered, 6 monstres Quaternius Ultimate Monsters (tous CC0, sources dans D:\Games\Assets_MagicForce\), boss
 Heroic Fantasy Creatures. Atelier : `~/jdv-tools/duotest/magic` (parties src/parts assemblées, outils, tests ; fiche REPRISE.md). Refaire les données : `node source/pack-magic.js` (Blender 5, Pillow, Chrome,
-modules npm de `~/jdv-tools/duotest/magic/node_modules`). Pas encore de carte d'avancement (le jeu expose ce qu'il faut). Test : test-labo.js (à adapter : Magic Force est visible sans ?labo).
+modules npm de `~/jdv-tools/duotest/magic/node_modules`). Carte d'avancement : MAP_DEFS.magic (voir plus bas). Tests : la tuile Coop s'appelle aussi « Magic Force à deux » → sélecteur
+`.tile:not(.coop-tile):has-text("Magic Force")` pour la tuile solo. Décidé avec l'utilisateur (15 oct.) : 6 mondes TOUS DIFFÉRENTS (jamais deux fois
+le même monstre ni le même boss), grande victoire après le monde 6, plus de Tour II (étape C, voir REPRISE.md de l'atelier).
 **Mandale Kombat** (source/duos/kombat.js, duel 3D three.js, id `kombat`) : EN ESSAI derrière la porte « labo » des DUELS depuis la 1.13.7
 (`LABO` filtre aussi DUOS ; `…/jouer/?labo=kombat`). Atelier `~/jdv-tools/duotest/mandale/` (parts, outils Blender, tests, fiche REPRISE.md,
 spec design/SPEC.md). Paquets `assets/mandale.moteur.bin`, `mandale.commun.bin`, `mandale.f09.bin` (Ninjacques), `mandale.f11.bin`
@@ -274,6 +277,7 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Coop** 
 - Présence de la salle : seuls les MEMBRES (room_members) comptent (presList filtre) — un appareil branché sur le canal sans avoir
   rejoint n'apparaît ni dans « en ligne », ni dans les défis.
 - **Coop** (à la place de l'ancienne Compétition, retirée en entier en 1.13.4 ; ses tests sont archivés dans `~/jdv-tools/archive-compet/`) :
+  Magic Force à deux en 1.16 (games/magic.js venu de l'atelier `~/jdv-tools/duotest/magic`, dossier borne/, fiche REPRISE.md section « Magic Force à deux » ; solo identique) ;
   Galaxy Wars à deux en 1.15 (games/ilo.js ASSEMBLÉ depuis `~/jdv-tools/duotest/ilo-coop/parts`, `node assemble.js`, fiche REPRISE.md ; solo identique) ;
   1er jeu Coop publié en 1.14 : **Boum 2 contre 2** (duos/boum.js ASSEMBLÉ depuis `~/jdv-tools/duotest/boum-coop/parts`, `node assemble.js`, fiche REPRISE.md ; le duel 1 contre 1 reste identique : det.js / battery) ;
   jouer ENSEMBLE contre le jeu, avec un robot (Facile → Extrême) ou un copain en ligne. Plan : `~/jdv-tools/duotest/coop/COOP-PLAN.md` ;
