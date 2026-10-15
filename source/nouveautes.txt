@@ -1,2 +1,2 @@
-🏓 Nouveau duel : Ping-pong en 3D, contre l’IA ou en ligne avec un copain !
-🗺️ Magic Force a sa carte d'avancement : le donjon salle par salle, de la Crypte oubliée au Nid du dragon
+⌨️ Chat : le champ « Écris à la bande » reste toujours au-dessus du clavier, avec les derniers messages en vue
+📱 Jeux en paysage sur téléphone : la barre du haut devient un petit rail à gauche (✕, plein écran, son), le jeu prend toute la hauteur

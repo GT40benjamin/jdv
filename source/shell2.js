@@ -1084,7 +1084,7 @@ function openChat() {
   if (netOff()) { netNeed('Le chat'); return; }
   chat.open = true; lastFocus = document.activeElement;
   $('jdw-chat-room').textContent = room.name;
-  $('jdw-chat').hidden = false; document.body.classList.add('chat-open'); fitChat();
+  $('jdw-chat').hidden = false; document.body.classList.add('chat-open'); chatStick = true; kbFit();
   renderBand(); renderChat(false); markChatSeen(); refreshChatBtn(); refreshChatOnline(); loadReactions();
   loadChat();
   if (matchMedia('(pointer: fine)').matches) setTimeout(() => $('jdw-chat-input').focus({ preventScroll: true }), 60);
@@ -1093,7 +1093,6 @@ function closeChat() {
   if (!chat.open) return;
   closePicker();
   chat.open = false; $('jdw-chat').hidden = true; document.body.classList.remove('chat-open');
-  const cw = $('jdw-chat'); cw.style.top = ''; cw.style.height = ''; cw.style.bottom = '';
   if (siteNew) setTimeout(maybeReload, 300);
   refreshChatBtn();
   if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
@@ -1136,17 +1135,70 @@ $('jdw-end-chat').addEventListener('click', async () => {
 });
 setInterval(() => { if (!document.hidden && chat.open) loadChat(); }, 3000);
 setInterval(() => { if (!document.hidden && !chat.open) loadChat(); }, 12000);
-// fenêtre de chat collée au-dessus du clavier (zone réellement visible de l'écran)
-function fitChat() {
-  const vv = window.visualViewport, w = $('jdw-chat');
-  if (!vv || w.hidden) return;
-  const stick = chatAtBottom();
-  w.style.top = Math.max(0, vv.offsetTop) + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto';
-  w.classList.toggle('compact', vv.height < 520);              // clavier ouvert : on cache la bande des têtes
-  if (stick) { const l = $('jdw-chat-log'); l.scrollTop = l.scrollHeight; }
+/* ================= Clavier à l'écran : le champ où l'on écrit reste visible ================= */
+// Chrome rapetisse la page quand le clavier s'ouvre (interactive-widget=resizes-content, build2.py). Ailleurs (Safari sur iPhone, plein
+// écran, borne installée, appli, anciens navigateurs) le clavier passe PAR-DESSUS la page : la zone vraiment visible (visualViewport) donne
+// --kbt (haut caché) et --kb (bas caché, le clavier) ; le chat, les fenêtres (.sheet) et « regarder » se tiennent dans cette zone
+// (shell2.css « Clavier »). Le chat garde ses derniers messages en vue (s'il était en bas) et se resserre quand il reste peu de place ;
+// le champ touché est ramené à l'écran. Rien ne change sans clavier (ordinateur, zoom au doigt).
+const KB = { top: -1, kb: -1, pad: -1, nav: 0, t: 0, coarse: (() => { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })() };   // coarse : téléphone, tablette
+let chatStick = true;   // le chat était-il en bas (derniers messages visibles) ?
+// bord à bord (Android 15 : Chrome dessine sous la barre des gestes, safe-area-inset-bottom > 0 clavier fermé) : quand Chrome rapetisse
+// lui-même la page pour le clavier, on garde la hauteur de cette barre sous le champ (--kbpad), au cas où il se tromperait de cette hauteur
+const kbNavProbe = document.createElement('div'); kbNavProbe.id = 'jdw-kbnav';
+kbNavProbe.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none';
+document.body.appendChild(kbNavProbe); KB.nav = Math.min(48, kbNavProbe.offsetHeight || 0);
+function kbTyping() {
+  const a = document.activeElement;
+  return !!(a && (a.tagName === 'TEXTAREA' || a.isContentEditable || (a.tagName === 'INPUT' && !/^(checkbox|radio|range|button|submit|reset|file|color|image|hidden)$/i.test(a.type || ''))));
 }
-if (window.visualViewport) { visualViewport.addEventListener('resize', fitChat); visualViewport.addEventListener('scroll', fitChat); }
-$('jdw-chat-input').addEventListener('focus', () => setTimeout(fitChat, 60));
+function kbFit() {
+  const vv = window.visualViewport, root = document.documentElement, typing = kbTyping();
+  let top = 0, kb = 0;
+  if (vv && typing && Math.abs((vv.scale || 1) - 1) < 0.05) {
+    const lh = root.clientHeight || innerHeight;   // la page (layout viewport) ; si le navigateur l'a déjà rapetissée, rien à faire
+    top = Math.max(0, Math.round(vv.offsetTop));
+    kb = Math.max(0, Math.round(lh - vv.offsetTop - vv.height));
+    if (top + kb < 24) top = kb = 0;               // barre d'adresse, arrondis : rien
+  }
+  if (!typing) KB.nav = Math.min(48, kbNavProbe.offsetHeight || 0);   // clavier fermé : hauteur de la barre des gestes (0 sans bord à bord)
+  const h = vv ? vv.height : innerHeight, open = kb > 0 || (KB.coarse && typing && h < (screen.height || 1e4) * 0.75);   // clavier ouvert
+  const pad = open && !kb ? KB.nav : 0;            // Chrome a rapetissé la page lui-même : marge de la barre des gestes sous le champ
+  if (top !== KB.top || kb !== KB.kb || pad !== KB.pad) {
+    KB.top = top; KB.kb = kb; KB.pad = pad;
+    root.style.setProperty('--kbt', top + 'px'); root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--kbpad', pad + 'px');
+  }
+  const w = $('jdw-chat');
+  if (!w.hidden) {
+    w.classList.toggle('compact', h < 520 || open); // plus de bande des têtes
+    w.classList.toggle('tiny', h < 330);           // téléphone à l'horizontale + clavier : l'essentiel (titre, messages, champ)
+  }
+  clearTimeout(KB.t);
+  KB.t = setTimeout(() => {                        // le champ touché, ramené dans la zone visible
+    const a = document.activeElement; if (!kbTyping() || a === $('jdw-chat-input')) return;
+    const r = a.getBoundingClientRect(), y0 = vv ? vv.offsetTop : 0, y1 = y0 + (vv ? vv.height : innerHeight);
+    if (r.top < y0 + 4 || r.bottom > y1 - 4) try { a.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) {}
+  }, 90);
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', kbFit); visualViewport.addEventListener('scroll', kbFit); }
+addEventListener('resize', kbFit);
+document.addEventListener('focusin', () => { kbFit(); if (kbTyping()) { setTimeout(kbFit, 350); setTimeout(kbFit, 800); } });   // le clavier met un moment à monter
+document.addEventListener('focusout', () => setTimeout(() => {
+  kbFit();
+  if (!kbTyping() && (scrollX || scrollY)) scrollTo(0, 0);   // Safari (iPhone) laisse parfois la page décalée après le clavier
+}, 120));
+// derniers messages : le chat reste collé en bas quand sa taille change (clavier qui s'ouvre ou se ferme, téléphone tourné), sauf si on
+// lisait plus haut. Un défilement qui vient d'un changement de taille (pas du joueur) ne compte pas : l'intention est gardée jusqu'au ResizeObserver.
+const chatBox = { w: -1, h: -1 };
+$('jdw-chat-log').addEventListener('scroll', () => {
+  const l = $('jdw-chat-log');
+  if (l.clientWidth === chatBox.w && l.clientHeight === chatBox.h) chatStick = chatAtBottom();
+}, { passive: true });
+if (window.ResizeObserver) new ResizeObserver(() => {
+  const l = $('jdw-chat-log');
+  if (chat.open && chatStick) l.scrollTop = l.scrollHeight;
+  chatBox.w = l.clientWidth; chatBox.h = l.clientHeight;
+}).observe($('jdw-chat-log'));
 
 /* ================= Réactions (comme WhatsApp) ================= */
 const REACTS = ['👍', '❤️', '😂', '😮', '😢', '😡', '💩', '🔥'];

@@ -2043,6 +2043,35 @@ body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";displa
 .ft-nw{white-space:nowrap}
 @media (orientation:landscape) and (max-height:500px){.fs-tip{top:calc(env(safe-area-inset-top,0px) + 46px)}#jdw-fs svg{width:1.2em;height:1.2em;margin:-.1em 0}}
 
+/* ---------- Clavier à l'écran (shell2.js « Clavier ») : chat, fenêtres et « regarder » dans la zone visible (--kbt / --kb valent 0 sans clavier) ---------- */
+.chat-wrap,.sheet{top:var(--kbt,0px);bottom:var(--kb,0px)}
+#jdw-watch{top:var(--kbt,0px);bottom:calc(var(--kb,0px) + var(--kbpad,0px))}
+.chat-log{min-height:0;overflow-anchor:none}   /* le chat gère lui-même le « collé en bas » (l'ancrage du navigateur le décollait) */
+/* --kbpad : bord à bord (barre des gestes) quand Chrome rapetisse lui-même la page pour le clavier */
+.chat-form{padding-bottom:calc(10px + var(--kbpad,0px))}
+/* très peu de place (téléphone à l'horizontale + clavier) : titre, messages et champ seulement */
+.chat-wrap.tiny .chat-band,.chat-wrap.tiny .chat-quick{display:none}
+.chat-wrap.tiny .chat-head{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
+.chat-wrap.tiny .chat-title h2{font-size:17px}
+.chat-wrap.tiny .chat-form{padding-top:4px;padding-bottom:calc(6px + var(--kbpad,0px))}
+.chat-wrap.tiny .chat-new{bottom:64px}
+
+/* ---------- Téléphone à l'horizontale, en partie : un rail fin à gauche (✕, plein écran, son), sans titre ni record ;
+   le jeu garde toute la hauteur et rien ne passe sur ses coins (portrait, tablette et ordinateur : barre du haut inchangée) ---------- */
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-play{--tbh:0px;--rail:calc(46px + env(safe-area-inset-left,0px))}
+  #jdw-play .topbar{right:auto;bottom:0;width:var(--rail);height:auto;box-sizing:border-box;padding:max(8px,env(safe-area-inset-top,0px)) 0 8px env(safe-area-inset-left,0px);
+    display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--panel);border-bottom:0;border-right:1px solid var(--line)}
+  #jdw-play .gt-wrap{display:none}
+  #jdw-play #jdw-host{left:var(--rail)}
+  #jdw-play .topbar #jdw-back,#jdw-play .topbar #jdw-fs,#jdw-play .topbar #jdw-mute,#jdw-play .topbar.has-fs #jdw-mute{box-sizing:border-box;width:36px;height:36px;min-width:0;
+    margin:0;padding:0;border-radius:50%;display:grid;place-items:center;font-size:15px;line-height:1;background:rgba(255,255,255,.04)}
+  #jdw-play .topbar #jdw-fs svg{width:17px;height:17px;margin:0}
+  #jdw-back .tb-word{display:none}
+  #jdw-play .soundmenu{top:calc(max(8px,env(safe-area-inset-top,0px)) + 44px);left:calc(var(--rail) + 8px);right:auto}   /* en face du bouton du son */
+  #jdw-play .topbar.has-fs .soundmenu{top:calc(max(8px,env(safe-area-inset-top,0px)) + 88px)}
+}
+
 /* ---------- éditeur de tête : aperçu, onglets d'accessoires, grille de miniatures (accessoires.js) ---------- */
 #jdw-photo .ph-card{overflow:clip}                      /* « clip » (pas « hidden ») : l'aperçu reste collé en haut pendant qu'on fait défiler */
 .ph-cols{display:grid;gap:14px;min-width:0}
@@ -2243,7 +2272,7 @@ body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";displa
 
 <div id="jdw-play" hidden>
   <div class="topbar">
-    <button class="btn btn-ghost btn-sm" id="jdw-back" type="button" aria-label="Quitter la partie">✕ Quitter</button>
+    <button class="btn btn-ghost btn-sm" id="jdw-back" type="button" aria-label="Quitter la partie">✕<span class="tb-word"> Quitter</span></button>
     <div class="gt-wrap"><h1 id="jdw-gtitle">Jeu</h1><span class="recline" id="jdw-recline" hidden></span></div>
     <button class="btn btn-ghost btn-sm" id="jdw-mute" type="button" aria-label="Réglages du son" aria-haspopup="true" aria-expanded="false">🔊</button>
     <div class="soundmenu" id="jdw-soundmenu" role="menu" hidden>
@@ -4065,9 +4094,9 @@ function drawZapper(z) {
 }
 
 const PILOT = new Image();
-PILOT.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTUgMTUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjE1MCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U5YTQ3YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmYzlhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cGF0aCBkPSJNNDQgMTE4aDMwdjMySDQ0eiIgZmlsbD0iI2Q4OGY2OCIvPgo8cGF0aCBkPSJNMjIgNzhjMC04IDEwLTE0IDI0LTE0aDQwYzEyIDAgMTggOCAyMCAxOGwyIDEwIDYgOC02IDQgMiA2LTQgMiAyIDhjMCAxMC0xMiAxOC0yNiAxOEg1OGMtMjAgMC0zNi0xNC0zNi0zNHoiIGZpbGw9InVybCgjcykiLz4KPHBhdGggZD0iTTkyIDEyMHE2IDEgOS0zIiBzdHJva2U9IiNhNTUyM2EiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik00IDgyQzQgMzQgMzAgNiA2MiA2czUyIDI2IDUyIDcyeiIgZmlsbD0iI2ZmNmIzZCIvPgo8cGF0aCBkPSJNNTQgNi40aDE0VjgwSDU0eiIgZmlsbD0iI2U5ZjBmMyIvPgo8cGF0aCBkPSJNMjYgMjZxMTItMTIgMzAtMTQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9Ii41IiBzdHJva2Utd2lkdGg9IjciIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMCA3OGgxMTV2OEgweiIgZmlsbD0iI2M0NDgyYSIvPgo8cGF0aCBkPSJNMzAgODhoNzZ2MTJIMzB6IiBmaWxsPSIjMjIzOTRhIi8+CjxlbGxpcHNlIGN4PSI5NCIgY3k9Ijk0IiByeD0iMTYiIHJ5PSIxMSIgZmlsbD0iIzIyMzk0YSIvPjxlbGxpcHNlIGN4PSI5NiIgY3k9Ijk0IiByeD0iMTEiIHJ5PSI3IiBmaWxsPSIjN2ZlM2ZmIi8+CjxwYXRoIGQ9Ik05MCA5MGw4LTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjYzQ0ODJhIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjkiIGZpbGw9IiMzYTU1NjgiLz4KPHBhdGggZD0iTTM0IDEwOHEyMCAyNiA1MCAyMiIgc3Ryb2tlPSIjMTYzMTNkIiBzdHJva2Utd2lkdGg9IjMuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iODQiIGN5PSIxMzAiIHI9IjQuNSIgZmlsbD0iIzE2MzEzZCIvPgo8L3N2Zz4K';
+PILOT.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTUgMTUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjE1MCI+DQo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOWE0N2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmM5YTAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4NCjxwYXRoIGQ9Ik00NCAxMThoMzB2MzJINDR6IiBmaWxsPSIjZDg4ZjY4Ii8+DQo8cGF0aCBkPSJNMjIgNzhjMC04IDEwLTE0IDI0LTE0aDQwYzEyIDAgMTggOCAyMCAxOGwyIDEwIDYgOC02IDQgMiA2LTQgMiAyIDhjMCAxMC0xMiAxOC0yNiAxOEg1OGMtMjAgMC0zNi0xNC0zNi0zNHoiIGZpbGw9InVybCgjcykiLz4NCjxwYXRoIGQ9Ik05MiAxMjBxNiAxIDktMyIgc3Ryb2tlPSIjYTU1MjNhIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPHBhdGggZD0iTTQgODJDNCAzNCAzMCA2IDYyIDZzNTIgMjYgNTIgNzJ6IiBmaWxsPSIjZmY2YjNkIi8+DQo8cGF0aCBkPSJNNTQgNi40aDE0VjgwSDU0eiIgZmlsbD0iI2U5ZjBmMyIvPg0KPHBhdGggZD0iTTI2IDI2cTEyLTEyIDMwLTE0IiBzdHJva2U9IiNmZmYiIHN0cm9rZS1vcGFjaXR5PSIuNSIgc3Ryb2tlLXdpZHRoPSI3IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjxwYXRoIGQ9Ik0wIDc4aDExNXY4SDB6IiBmaWxsPSIjYzQ0ODJhIi8+DQo8cGF0aCBkPSJNMzAgODhoNzZ2MTJIMzB6IiBmaWxsPSIjMjIzOTRhIi8+DQo8ZWxsaXBzZSBjeD0iOTQiIGN5PSI5NCIgcng9IjE2IiByeT0iMTEiIGZpbGw9IiMyMjM5NGEiLz48ZWxsaXBzZSBjeD0iOTYiIGN5PSI5NCIgcng9IjExIiByeT0iNyIgZmlsbD0iIzdmZTNmZiIvPg0KPHBhdGggZD0iTTkwIDkwbDgtMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjYzQ0ODJhIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjkiIGZpbGw9IiMzYTU1NjgiLz4NCjxwYXRoIGQ9Ik0zNCAxMDhxMjAgMjYgNTAgMjIiIHN0cm9rZT0iIzE2MzEzZCIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9Ijg0IiBjeT0iMTMwIiByPSI0LjUiIGZpbGw9IiMxNjMxM2QiLz4NCjwvc3ZnPg0K';
 const HEAD = new Image();
-HEAD.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NiAxNjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIxNjAiPgo8cGF0aCBkPSJNMzAgMTI0aDI2djM2SDMweiIgZmlsbD0iI2Q4OGY2OCIvPgo8ZWxsaXBzZSBjeD0iNDMiIGN5PSI3OCIgcng9IjM4IiByeT0iNTIiIGZpbGw9IiNmZmM5YTAiLz4KPHBhdGggZD0iTTUgNzBDMiAzMCAyMCAxNiA0MyAxNnM0MiAxNCAzOCA1NGMtNC0xNC0xMC0yMi0xOC0yNi02IDgtMjAgMTAtMzIgNi04IDQtMTYgMTItMjYgMjB6IiBmaWxsPSIjNWEzYTJhIi8+CjxwYXRoIGQ9Ik0yOCAxOGw2LTE0IDggMTIgMTAtMTQgNCAxNnoiIGZpbGw9IiM1YTNhMmEiLz4KPGVsbGlwc2UgY3g9IjI5IiBjeT0iNzgiIHJ4PSI4IiByeT0iMTAiIGZpbGw9IiNmZmYiLz48ZWxsaXBzZSBjeD0iNTciIGN5PSI3OCIgcng9IjgiIHJ5PSIxMCIgZmlsbD0iI2ZmZiIvPgo8Y2lyY2xlIGN4PSIzMSIgY3k9IjgwIiByPSI1IiBmaWxsPSIjMTYzMTNkIi8+PGNpcmNsZSBjeD0iNTkiIGN5PSI4MCIgcj0iNSIgZmlsbD0iIzE2MzEzZCIvPgo8Y2lyY2xlIGN4PSIzMi41IiBjeT0iNzgiIHI9IjEuOCIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjYwLjUiIGN5PSI3OCIgcj0iMS44IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik0yMCA2NHE4LTYgMTYtMk01MCA2MnE4LTQgMTYgMiIgc3Ryb2tlPSIjNWEzYTJhIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8ZWxsaXBzZSBjeD0iMjAiIGN5PSI5OCIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmY4YThhIiBmaWxsLW9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSI2NiIgY3k9Ijk4IiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmZjhhOGEiIGZpbGwtb3BhY2l0eT0iLjU1Ii8+CjxwYXRoIGQ9Ik0yNyAxMDRxMTYgMTggMzIgMHoiIGZpbGw9IiM4YTJhMmEiLz48cGF0aCBkPSJNMzEgMTA1aDI0bC0yIDRIMzN6IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik00MyA4NHEtNSAxMCAwIDEyIiBzdHJva2U9IiNkODhmNjgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
+HEAD.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NiAxNjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIxNjAiPg0KPHBhdGggZD0iTTMwIDEyNGgyNnYzNkgzMHoiIGZpbGw9IiNkODhmNjgiLz4NCjxlbGxpcHNlIGN4PSI0MyIgY3k9Ijc4IiByeD0iMzgiIHJ5PSI1MiIgZmlsbD0iI2ZmYzlhMCIvPg0KPHBhdGggZD0iTTUgNzBDMiAzMCAyMCAxNiA0MyAxNnM0MiAxNCAzOCA1NGMtNC0xNC0xMC0yMi0xOC0yNi02IDgtMjAgMTAtMzIgNi04IDQtMTYgMTItMjYgMjB6IiBmaWxsPSIjNWEzYTJhIi8+DQo8cGF0aCBkPSJNMjggMThsNi0xNCA4IDEyIDEwLTE0IDQgMTZ6IiBmaWxsPSIjNWEzYTJhIi8+DQo8ZWxsaXBzZSBjeD0iMjkiIGN5PSI3OCIgcng9IjgiIHJ5PSIxMCIgZmlsbD0iI2ZmZiIvPjxlbGxpcHNlIGN4PSI1NyIgY3k9Ijc4IiByeD0iOCIgcnk9IjEwIiBmaWxsPSIjZmZmIi8+DQo8Y2lyY2xlIGN4PSIzMSIgY3k9IjgwIiByPSI1IiBmaWxsPSIjMTYzMTNkIi8+PGNpcmNsZSBjeD0iNTkiIGN5PSI4MCIgcj0iNSIgZmlsbD0iIzE2MzEzZCIvPg0KPGNpcmNsZSBjeD0iMzIuNSIgY3k9Ijc4IiByPSIxLjgiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI2MC41IiBjeT0iNzgiIHI9IjEuOCIgZmlsbD0iI2ZmZiIvPg0KPHBhdGggZD0iTTIwIDY0cTgtNiAxNi0yTTUwIDYycTgtNCAxNiAyIiBzdHJva2U9IiM1YTNhMmEiIHN0cm9rZS13aWR0aD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQo8ZWxsaXBzZSBjeD0iMjAiIGN5PSI5OCIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmY4YThhIiBmaWxsLW9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSI2NiIgY3k9Ijk4IiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmZjhhOGEiIGZpbGwtb3BhY2l0eT0iLjU1Ii8+DQo8cGF0aCBkPSJNMjcgMTA0cTE2IDE4IDMyIDB6IiBmaWxsPSIjOGEyYTJhIi8+PHBhdGggZD0iTTMxIDEwNWgyNGwtMiA0SDMzeiIgZmlsbD0iI2ZmZiIvPg0KPHBhdGggZD0iTTQzIDg0cS01IDEwIDAgMTIiIHN0cm9rZT0iI2Q4OGY2OCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjwvc3ZnPg0K';
 function drawTag(g) {
   ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(Math.sin(g.t * 2.2) * 0.2);
   const pulse = 1 + Math.sin(time * 6 + g.seed) * 0.06;
@@ -4145,7 +4174,7 @@ function drawTrail() {
 /* ---------- « Let's go » au départ de chaque niveau ---------- */
 const INTRO_LEN = 2.3;
 const FACE = new Image();
-FACE.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgMjgwIiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjI4MCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U5YTQ3YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmYzlhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cGF0aCBkPSJNNTAgMjIwaDU2djYwSDUweiIgZmlsbD0iI2Q4OGY2OCIvPgo8cGF0aCBkPSJNMjQgMTIwYzAtNTYgMzAtOTYgODItOTYgNDAgMCA2MCAzMCA2MCA3MGwtMiAzMCAxMCAyMi0xMCA2IDQgMTItNiA0IDQgMTRjMCAyOC0yNiA1Mi02MiA1Mi00NiAwLTgwLTQwLTgwLTkweiIgZmlsbD0idXJsKCNzKSIvPgo8cGF0aCBkPSJNMTggMTI4QzggNjAgNDAgMTQgMTAwIDE0YzQ0IDAgNzAgMjYgNzAgNjYtMTQtMjItNDAtMzAtNjYtMjYtMTQgMi0yNCAxNC0zMCAzMC0xMC0xMC0yNi04LTM0IDQtNCAxNC02IDI4LTYgNDB6IiBmaWxsPSIjM2IyYTIyIi8+CjxlbGxpcHNlIGN4PSI1MCIgY3k9IjE1MCIgcng9IjE2IiByeT0iMjIiIGZpbGw9IiNlOWE0N2MiLz48cGF0aCBkPSJNNDYgMTQwcTggOCAyIDIwIiBzdHJva2U9IiNjMDdhNTgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPgo8cGF0aCBkPSJNNjAgMTE2aDExMnYxMEg2MHoiIGZpbGw9IiMxNjMxM2QiLz4KPHBhdGggZD0iTTExMiAxMTJoNThjNCAwIDYgNCA1IDhsLTQgMjJjLTEgNi02IDEwLTEyIDEwaC0zMGMtOCAwLTE0LTYtMTYtMTR6IiBmaWxsPSIjMGIxNDFjIi8+CjxwYXRoIGQ9Ik0xMjAgMTE4bDQwIDAiIHN0cm9rZT0iIzVlZjBmZiIgc3Ryb2tlLW9wYWNpdHk9Ii43IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTI2IDIxMnEyMiA2IDM0LTgiIHN0cm9rZT0iIzhhM2EyYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTEyMCAxMDBxMjAtOCA0MC0yIiBzdHJva2U9IiMzYjJhMjIiIHN0cm9rZS13aWR0aD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
+FACE.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgMjgwIiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjI4MCI+DQo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOWE0N2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmM5YTAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4NCjxwYXRoIGQ9Ik01MCAyMjBoNTZ2NjBINTB6IiBmaWxsPSIjZDg4ZjY4Ii8+DQo8cGF0aCBkPSJNMjQgMTIwYzAtNTYgMzAtOTYgODItOTYgNDAgMCA2MCAzMCA2MCA3MGwtMiAzMCAxMCAyMi0xMCA2IDQgMTItNiA0IDQgMTRjMCAyOC0yNiA1Mi02MiA1Mi00NiAwLTgwLTQwLTgwLTkweiIgZmlsbD0idXJsKCNzKSIvPg0KPHBhdGggZD0iTTE4IDEyOEM4IDYwIDQwIDE0IDEwMCAxNGM0NCAwIDcwIDI2IDcwIDY2LTE0LTIyLTQwLTMwLTY2LTI2LTE0IDItMjQgMTQtMzAgMzAtMTAtMTAtMjYtOC0zNCA0LTQgMTQtNiAyOC02IDQweiIgZmlsbD0iIzNiMmEyMiIvPg0KPGVsbGlwc2UgY3g9IjUwIiBjeT0iMTUwIiByeD0iMTYiIHJ5PSIyMiIgZmlsbD0iI2U5YTQ3YyIvPjxwYXRoIGQ9Ik00NiAxNDBxOCA4IDIgMjAiIHN0cm9rZT0iI2MwN2E1OCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+DQo8cGF0aCBkPSJNNjAgMTE2aDExMnYxMEg2MHoiIGZpbGw9IiMxNjMxM2QiLz4NCjxwYXRoIGQ9Ik0xMTIgMTEyaDU4YzQgMCA2IDQgNSA4bC00IDIyYy0xIDYtNiAxMC0xMiAxMGgtMzBjLTggMC0xNC02LTE2LTE0eiIgZmlsbD0iIzBiMTQxYyIvPg0KPHBhdGggZD0iTTEyMCAxMThsNDAgMCIgc3Ryb2tlPSIjNWVmMGZmIiBzdHJva2Utb3BhY2l0eT0iLjciIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQo8cGF0aCBkPSJNMTI2IDIxMnEyMiA2IDM0LTgiIHN0cm9rZT0iIzhhM2EyYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjxwYXRoIGQ9Ik0xMjAgMTAwcTIwLTggNDAtMiIgc3Ryb2tlPSIjM2IyYTIyIiBzdHJva2Utd2lkdGg9IjciIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPC9zdmc+DQo=';
 let introT = 0, introSub = '', introSub2 = '';
 function letsGo(sub) {
   PG_INTRO_IMG = pgPickHead();
@@ -75087,7 +75116,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261015001412"; window.JDW_VERSION = "1.13"; window.JDW_NOTES = ["\ud83c\udfd3 Nouveau duel : Ping-pong en 3D, contre l\u2019IA ou en ligne avec un copain !", "\ud83d\uddfa\ufe0f Magic Force a sa carte d'avancement : le donjon salle par salle, de la Crypte oubli\u00e9e au Nid du dragon"];</script>
+<script>window.JDW_BUILD = "20261015003452"; window.JDW_VERSION = "1.13.1"; window.JDW_NOTES = ["\u2328\ufe0f Chat : le champ \u00ab \u00c9cris \u00e0 la bande \u00bb reste toujours au-dessus du clavier, avec les derniers messages en vue", "\ud83d\udcf1 Jeux en paysage sur t\u00e9l\u00e9phone : la barre du haut devient un petit rail \u00e0 gauche (\u2715, plein \u00e9cran, son), le jeu prend toute la hauteur"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -78371,7 +78400,7 @@ function openChat() {
   if (netOff()) { netNeed('Le chat'); return; }
   chat.open = true; lastFocus = document.activeElement;
   $('jdw-chat-room').textContent = room.name;
-  $('jdw-chat').hidden = false; document.body.classList.add('chat-open'); fitChat();
+  $('jdw-chat').hidden = false; document.body.classList.add('chat-open'); chatStick = true; kbFit();
   renderBand(); renderChat(false); markChatSeen(); refreshChatBtn(); refreshChatOnline(); loadReactions();
   loadChat();
   if (matchMedia('(pointer: fine)').matches) setTimeout(() => $('jdw-chat-input').focus({ preventScroll: true }), 60);
@@ -78380,7 +78409,6 @@ function closeChat() {
   if (!chat.open) return;
   closePicker();
   chat.open = false; $('jdw-chat').hidden = true; document.body.classList.remove('chat-open');
-  const cw = $('jdw-chat'); cw.style.top = ''; cw.style.height = ''; cw.style.bottom = '';
   if (siteNew) setTimeout(maybeReload, 300);
   refreshChatBtn();
   if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
@@ -78423,17 +78451,70 @@ $('jdw-end-chat').addEventListener('click', async () => {
 });
 setInterval(() => { if (!document.hidden && chat.open) loadChat(); }, 3000);
 setInterval(() => { if (!document.hidden && !chat.open) loadChat(); }, 12000);
-// fenêtre de chat collée au-dessus du clavier (zone réellement visible de l'écran)
-function fitChat() {
-  const vv = window.visualViewport, w = $('jdw-chat');
-  if (!vv || w.hidden) return;
-  const stick = chatAtBottom();
-  w.style.top = Math.max(0, vv.offsetTop) + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto';
-  w.classList.toggle('compact', vv.height < 520);              // clavier ouvert : on cache la bande des têtes
-  if (stick) { const l = $('jdw-chat-log'); l.scrollTop = l.scrollHeight; }
+/* ================= Clavier à l'écran : le champ où l'on écrit reste visible ================= */
+// Chrome rapetisse la page quand le clavier s'ouvre (interactive-widget=resizes-content, build2.py). Ailleurs (Safari sur iPhone, plein
+// écran, borne installée, appli, anciens navigateurs) le clavier passe PAR-DESSUS la page : la zone vraiment visible (visualViewport) donne
+// --kbt (haut caché) et --kb (bas caché, le clavier) ; le chat, les fenêtres (.sheet) et « regarder » se tiennent dans cette zone
+// (shell2.css « Clavier »). Le chat garde ses derniers messages en vue (s'il était en bas) et se resserre quand il reste peu de place ;
+// le champ touché est ramené à l'écran. Rien ne change sans clavier (ordinateur, zoom au doigt).
+const KB = { top: -1, kb: -1, pad: -1, nav: 0, t: 0, coarse: (() => { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })() };   // coarse : téléphone, tablette
+let chatStick = true;   // le chat était-il en bas (derniers messages visibles) ?
+// bord à bord (Android 15 : Chrome dessine sous la barre des gestes, safe-area-inset-bottom > 0 clavier fermé) : quand Chrome rapetisse
+// lui-même la page pour le clavier, on garde la hauteur de cette barre sous le champ (--kbpad), au cas où il se tromperait de cette hauteur
+const kbNavProbe = document.createElement('div'); kbNavProbe.id = 'jdw-kbnav';
+kbNavProbe.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none';
+document.body.appendChild(kbNavProbe); KB.nav = Math.min(48, kbNavProbe.offsetHeight || 0);
+function kbTyping() {
+  const a = document.activeElement;
+  return !!(a && (a.tagName === 'TEXTAREA' || a.isContentEditable || (a.tagName === 'INPUT' && !/^(checkbox|radio|range|button|submit|reset|file|color|image|hidden)$/i.test(a.type || ''))));
 }
-if (window.visualViewport) { visualViewport.addEventListener('resize', fitChat); visualViewport.addEventListener('scroll', fitChat); }
-$('jdw-chat-input').addEventListener('focus', () => setTimeout(fitChat, 60));
+function kbFit() {
+  const vv = window.visualViewport, root = document.documentElement, typing = kbTyping();
+  let top = 0, kb = 0;
+  if (vv && typing && Math.abs((vv.scale || 1) - 1) < 0.05) {
+    const lh = root.clientHeight || innerHeight;   // la page (layout viewport) ; si le navigateur l'a déjà rapetissée, rien à faire
+    top = Math.max(0, Math.round(vv.offsetTop));
+    kb = Math.max(0, Math.round(lh - vv.offsetTop - vv.height));
+    if (top + kb < 24) top = kb = 0;               // barre d'adresse, arrondis : rien
+  }
+  if (!typing) KB.nav = Math.min(48, kbNavProbe.offsetHeight || 0);   // clavier fermé : hauteur de la barre des gestes (0 sans bord à bord)
+  const h = vv ? vv.height : innerHeight, open = kb > 0 || (KB.coarse && typing && h < (screen.height || 1e4) * 0.75);   // clavier ouvert
+  const pad = open && !kb ? KB.nav : 0;            // Chrome a rapetissé la page lui-même : marge de la barre des gestes sous le champ
+  if (top !== KB.top || kb !== KB.kb || pad !== KB.pad) {
+    KB.top = top; KB.kb = kb; KB.pad = pad;
+    root.style.setProperty('--kbt', top + 'px'); root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--kbpad', pad + 'px');
+  }
+  const w = $('jdw-chat');
+  if (!w.hidden) {
+    w.classList.toggle('compact', h < 520 || open); // plus de bande des têtes
+    w.classList.toggle('tiny', h < 330);           // téléphone à l'horizontale + clavier : l'essentiel (titre, messages, champ)
+  }
+  clearTimeout(KB.t);
+  KB.t = setTimeout(() => {                        // le champ touché, ramené dans la zone visible
+    const a = document.activeElement; if (!kbTyping() || a === $('jdw-chat-input')) return;
+    const r = a.getBoundingClientRect(), y0 = vv ? vv.offsetTop : 0, y1 = y0 + (vv ? vv.height : innerHeight);
+    if (r.top < y0 + 4 || r.bottom > y1 - 4) try { a.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) {}
+  }, 90);
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', kbFit); visualViewport.addEventListener('scroll', kbFit); }
+addEventListener('resize', kbFit);
+document.addEventListener('focusin', () => { kbFit(); if (kbTyping()) { setTimeout(kbFit, 350); setTimeout(kbFit, 800); } });   // le clavier met un moment à monter
+document.addEventListener('focusout', () => setTimeout(() => {
+  kbFit();
+  if (!kbTyping() && (scrollX || scrollY)) scrollTo(0, 0);   // Safari (iPhone) laisse parfois la page décalée après le clavier
+}, 120));
+// derniers messages : le chat reste collé en bas quand sa taille change (clavier qui s'ouvre ou se ferme, téléphone tourné), sauf si on
+// lisait plus haut. Un défilement qui vient d'un changement de taille (pas du joueur) ne compte pas : l'intention est gardée jusqu'au ResizeObserver.
+const chatBox = { w: -1, h: -1 };
+$('jdw-chat-log').addEventListener('scroll', () => {
+  const l = $('jdw-chat-log');
+  if (l.clientWidth === chatBox.w && l.clientHeight === chatBox.h) chatStick = chatAtBottom();
+}, { passive: true });
+if (window.ResizeObserver) new ResizeObserver(() => {
+  const l = $('jdw-chat-log');
+  if (chat.open && chatStick) l.scrollTop = l.scrollHeight;
+  chatBox.w = l.clientWidth; chatBox.h = l.clientHeight;
+}).observe($('jdw-chat-log'));
 
 /* ================= Réactions (comme WhatsApp) ================= */
 const REACTS = ['👍', '❤️', '😂', '😮', '😢', '😡', '💩', '🔥'];

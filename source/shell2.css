@@ -1945,3 +1945,32 @@ body.net-off #jdw-modes [data-mode=compet] .mb-t::after{content:"réseau";displa
 .ft-x{width:30px;height:30px;padding:0;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--ink);font-size:13px;line-height:1;cursor:pointer}
 .ft-nw{white-space:nowrap}
 @media (orientation:landscape) and (max-height:500px){.fs-tip{top:calc(env(safe-area-inset-top,0px) + 46px)}#jdw-fs svg{width:1.2em;height:1.2em;margin:-.1em 0}}
+
+/* ---------- Clavier à l'écran (shell2.js « Clavier ») : chat, fenêtres et « regarder » dans la zone visible (--kbt / --kb valent 0 sans clavier) ---------- */
+.chat-wrap,.sheet{top:var(--kbt,0px);bottom:var(--kb,0px)}
+#jdw-watch{top:var(--kbt,0px);bottom:calc(var(--kb,0px) + var(--kbpad,0px))}
+.chat-log{min-height:0;overflow-anchor:none}   /* le chat gère lui-même le « collé en bas » (l'ancrage du navigateur le décollait) */
+/* --kbpad : bord à bord (barre des gestes) quand Chrome rapetisse lui-même la page pour le clavier */
+.chat-form{padding-bottom:calc(10px + var(--kbpad,0px))}
+/* très peu de place (téléphone à l'horizontale + clavier) : titre, messages et champ seulement */
+.chat-wrap.tiny .chat-band,.chat-wrap.tiny .chat-quick{display:none}
+.chat-wrap.tiny .chat-head{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
+.chat-wrap.tiny .chat-title h2{font-size:17px}
+.chat-wrap.tiny .chat-form{padding-top:4px;padding-bottom:calc(6px + var(--kbpad,0px))}
+.chat-wrap.tiny .chat-new{bottom:64px}
+
+/* ---------- Téléphone à l'horizontale, en partie : un rail fin à gauche (✕, plein écran, son), sans titre ni record ;
+   le jeu garde toute la hauteur et rien ne passe sur ses coins (portrait, tablette et ordinateur : barre du haut inchangée) ---------- */
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-play{--tbh:0px;--rail:calc(46px + env(safe-area-inset-left,0px))}
+  #jdw-play .topbar{right:auto;bottom:0;width:var(--rail);height:auto;box-sizing:border-box;padding:max(8px,env(safe-area-inset-top,0px)) 0 8px env(safe-area-inset-left,0px);
+    display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--panel);border-bottom:0;border-right:1px solid var(--line)}
+  #jdw-play .gt-wrap{display:none}
+  #jdw-play #jdw-host{left:var(--rail)}
+  #jdw-play .topbar #jdw-back,#jdw-play .topbar #jdw-fs,#jdw-play .topbar #jdw-mute,#jdw-play .topbar.has-fs #jdw-mute{box-sizing:border-box;width:36px;height:36px;min-width:0;
+    margin:0;padding:0;border-radius:50%;display:grid;place-items:center;font-size:15px;line-height:1;background:rgba(255,255,255,.04)}
+  #jdw-play .topbar #jdw-fs svg{width:17px;height:17px;margin:0}
+  #jdw-back .tb-word{display:none}
+  #jdw-play .soundmenu{top:calc(max(8px,env(safe-area-inset-top,0px)) + 44px);left:calc(var(--rail) + 8px);right:auto}   /* en face du bouton du son */
+  #jdw-play .topbar.has-fs .soundmenu{top:calc(max(8px,env(safe-area-inset-top,0px)) + 88px)}
+}
