@@ -4818,7 +4818,7 @@ function pgPreview(c, w, h, t) {
   c.restore();
 }
 /* têtes des copains : pilote casqué, intro « Let's go », têtes volantes */
-const pgRandom = Math.random;   // hasard des effets, même pendant la génération d'un parcours à graine (compétition, plus bas)
+const pgRandom = Math.random;   // hasard des effets, même pendant la génération d'un parcours à graine (api.seed, plus bas)
 function pgPickHead() { return PG_HEADS.length ? PG_HEADS[Math.floor(pgRandom() * PG_HEADS.length)].img : null; }
 function pgHelmetize(img) {
   const W = 154, H = 200, c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -4906,10 +4906,10 @@ function pgDrawBossSad() {
   label('+' + PG_BOSS_BONUS + ' m', s.x, y + 66, 15, COL.gold);
   ctx.globalAlpha = 1;
 }
-/* mode compétition (CONTRACT.md Ajout 6) :
+/* départ à un niveau et graine (CONTRACT.md Ajout 6 : outils de test, graine de la coop) :
    - api.startLevel : départ direct au niveau n, comme si les précédents étaient réussis (zone, difficulté, obstacles
      débloqués, nouveautés déjà vues), mais score à 0 ;
-   - api.seed : même parcours pour tous — pendant la génération du parcours (obstacles, événement, étoile, lasers),
+   - api.seed : même parcours à graine égale — pendant la génération du parcours (obstacles, événement, étoile, lasers),
      Math.random est remplacé par un PRNG à graine (mulberry32), re-graîné au début de chaque niveau, avec un sous-tirage
      par appel (un écart chez un joueur ne décale pas la suite du parcours) ; les effets (particules, têtes, boss…)
      restent sur Math.random. Sans ces paramètres, rien ne change. */
@@ -4941,16 +4941,6 @@ function pgStartAt(n) {
   planEvent();
   introSub2 = 'Zone : ' + zoneName(n);
 }
-// petit badge « COMPÉTITION » dans le HUD (style des badges du jeu), sous le compteur de mètres
-function pgCompetBadge(on) {
-  let b = $('pgCompet');
-  if (!b && on) {
-    b = document.createElement('span'); b.id = 'pgCompet'; b.className = 'badge'; b.textContent = 'COMPÉTITION';
-    b.style.cssText = 'grid-column:1/span 3;font-size:10px;padding:2px 6px';
-    $('hud').appendChild(b);
-  }
-  if (b) b.hidden = !on;
-}
 window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.pleingaz = {
   id: 'pleingaz', title: 'Plein Gaz', accent: '#ffa630', scoreLabel: 'm', external: 'jdw-pg',
@@ -4962,13 +4952,12 @@ window.JDW_GAMES.pleingaz = {
     PG_HEADS = (api.heads && api.heads()) || [];
     PG_PILOT_IMG = api.player && api.player.img ? pgHelmetize(api.player.img) : null;
     muted = api.isMuted();
-    // compétition : niveau de départ (1 à 99), graine du parcours, badge
+    // niveau de départ (1 à 99) et graine du parcours (outils de test ?start= / ?seed=, graine de la coop)
     const n = Math.max(1, Math.min(99, Math.floor(+api.startLevel) || 1)), sd = Number(api.seed);
     pgSeed = api.seed != null && api.seed !== '' && Number.isFinite(sd) ? sd | 0 : null; pgRng = null;
     resize(); last = performance.now(); acc = 0;
     start();
     if (n > 1) pgStartAt(n);
-    pgCompetBadge(api.mode === 'compet');
     if (master) master.gain.value = muted ? 0 : 0.5;
     return {
       currentScore() { return state === 'play' || state === 'paused' ? score() : 0; },   // bouton Quitter
@@ -5014,7 +5003,7 @@ window.JDW_GAMES.pleingaz = {
   const ease = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k));
   const hsl = (h, s, l, a) => 'hsla(' + Math.round(((h % 360) + 360) % 360) + ',' + s + '%,' + l + '%,' + (a == null ? 1 : a) + ')';
   function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
-  // générateur à graine (mode compétition : api.seed) — mulberry32 standard
+  // générateur à graine (api.seed) — mulberry32 standard
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function hexA(hex, a) {
     const n = parseInt(hex.slice(1), 16);
@@ -6139,13 +6128,12 @@ window.JDW_GAMES.pleingaz = {
     const TRAIL = new Float32Array(2 * 16);      // traînée lumineuse (bouts d'ailes)
     let trailN = 0, trailT = 0;
 
-    // ------------------------------------------------------------- mode compétition (CONTRACT.md Ajout 6)
-    // api.startLevel : départ direct au niveau cycle * 8 + secteur (borné à 80 = cycle X secteur 8) ; api.mode 'compet' : badge.
+    // ------------------------------------------------------------- départ à un niveau et graine (CONTRACT.md Ajout 6)
+    // api.startLevel (outil de test) : départ direct au niveau cycle * 8 + secteur (borné à 80 = cycle X secteur 8).
     // api.seed : le hasard du jeu (vagues, groupes, événements, ennemis, mini-boss, boss, capsules, éclats) vient de mulberry32,
-    // re-grainé par secteur, vague, groupe, salve, ennemi et boss → même partie pour tous, quoi que fassent les joueurs.
+    // re-grainé par secteur, vague, groupe, salve, ennemi et boss → même partie à graine égale, quoi que fassent les joueurs.
     // Les effets (particules, explosions, étoiles, décor, sons, tremblements) et le choix des têtes restent sur Math.random.
     // Sans graine, rng et luck restent null : exactement les mêmes appels à Math.random qu'avant.
-    const COMPET = api.mode === 'compet';
     const START = Math.min(80, Math.max(1, Math.floor(Number(api.startLevel)) || 1));
     const SEED = typeof api.seed === 'number' && Number.isFinite(api.seed) ? api.seed >>> 0 : null;
     let lvlSeed = 0, rng = null, luck = null;      // rng : tirage du contenu en cours ; luck : capsules du secteur
@@ -9047,15 +9035,6 @@ window.JDW_GAMES.pleingaz = {
       for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + Math.PI / 6; if (i) ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); else ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
       ctx.closePath();
     }
-    function compBadge(x, y) {                   // pastille « COMPÉTITION » centrée sur y ; renvoie sa largeur
-      setFont(9, false);
-      const w = ctx.measureText('COMPÉTITION').width + 10;
-      rrect(ctx, x, y - 6.5, w, 13, 6.5);
-      ctx.fillStyle = 'rgba(30,18,2,0.66)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(255,166,48,0.8)'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.textAlign = 'left'; ctx.fillStyle = '#ffd34d'; ctx.fillText('COMPÉTITION', x + 5, y + 3.3);
-      return w;
-    }
     function drawHUD() {
       S0();
       if (!hudGrad || hudGradLH !== LH) { hudGradLH = LH; hudGrad = ctx.createLinearGradient(0, 0, 0, 60); hudGrad.addColorStop(0, 'rgba(1,4,10,0.86)'); hudGrad.addColorStop(0.7, 'rgba(1,4,10,0.5)'); hudGrad.addColorStop(1, 'rgba(1,4,10,0)'); }
@@ -9081,12 +9060,7 @@ window.JDW_GAMES.pleingaz = {
         const ph = dir.phase === 'boss' || dir.phase === 'warn' || dir.phase === 'bossdead' ? 'BOSS' : dir.phase === 'mini' || dir.phase === 'mwarn' ? 'MINI-BOSS' : dir.wave > 0 ? 'VAGUE ' + dir.wave + '/' + dir.nW : '';
         lineStr = cyc + 'SECTEUR ' + (secI + 1) + (ph ? ' · ' + ph : '');
       }
-      if (!COMPET) txt(lineStr, 10 + jx, 43, 10, '#a9c2d4', 'left', true, 0);
-      else {                                         // mode compétition : badge devant le secteur (ligne tassée si elle atteint les bombes)
-        const lx = 10 + jx + compBadge(10 + jx, 39.5) + 6;
-        setFont(10, true); ctx.textAlign = 'left'; ctx.fillStyle = '#a9c2d4';
-        ctx.fillText(lineStr, lx, 43, Math.max(40, hudRight() - 34 - lx));
-      }
+      txt(lineStr, 10 + jx, 43, 10, '#a9c2d4', 'left', true, 0);
       // bulle de protection (une seule : sans elle, un coup = mort)
       const hr = hudRight();
       {
@@ -9564,7 +9538,7 @@ window.JDW_GAMES.pleingaz = {
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => resize()); ro.observe(root); }
     else on(window, 'resize', resize);
     resize();
-    if (START > 1) {                             // compétition : on démarre au niveau START, comme si les précédents étaient réussis
+    if (START > 1) {                             // ?start= : on démarre au niveau START, comme si les précédents étaient réussis
       secI = (START - 1) % SECTORS.length; cycle = Math.floor((START - 1) / SECTORS.length);
       sectorsDone = bossCount = START - 1;         // (sans leurs points ni leurs félicitations)
       P.shield = 1; P.power = 2;                   // butin du dernier boss battu : capsules S et P
@@ -9894,7 +9868,7 @@ window.JDW_GAMES.pleingaz = {
   function hash(i) { const s = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); }
   function easeOutBack(k) { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); }
   function easeOutCubic(k) { return 1 - Math.pow(1 - k, 3); }
-  // PRNG à graine (mode compétition : le même contenu pour tous les concurrents)
+  // PRNG à graine (api.seed : le même contenu à graine égale)
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   // ---------- Petits dessins réutilisés (fleur, feuille, étoile) ----------
@@ -11407,10 +11381,9 @@ window.JDW_GAMES.pleingaz = {
       amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a'
     }, api.colors || {});
 
-    // ---------- Mode compétition (CONTRACT.md, Ajout 6) ----------
+    // ---------- Départ à un niveau et graine (CONTRACT.md, Ajout 6 : outils de test, graine de la coop) ----------
     const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
     const lvl0 = num(api.startLevel) >= 1 ? Math.min(99, num(api.startLevel)) : 1;
-    const COMPET = api.mode === 'compet';
     // hasard du contenu : Math.random sans api.seed ; avec une graine, un flux mulberry32 par sorte de contenu
     // (flux décalés de 2^28 tirages). Les effets (particules, sons, textes, têtes) restent sur Math.random.
     const SEED = Number.isFinite(num(api.seed)) ? num(api.seed) | 0 : null;
@@ -11820,7 +11793,7 @@ window.JDW_GAMES.pleingaz = {
     // ---------- Tutoriel (premier lancement, mémorisé sur l'appareil) ----------
     const tutoSeen = pref(TUTO_KEY, '0') === '1';
     let tuto = null;
-    if (!COMPET && !tutoSeen) { state = 'tuto'; tuto = { step: 0, t: 0 }; }
+    if (!tutoSeen) { state = 'tuto'; tuto = { step: 0, t: 0 }; }
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -14286,18 +14259,6 @@ window.JDW_GAMES.pleingaz = {
         }
       }
     }
-    function drawCompetBadge() {
-      if (!COMPET) return;
-      const fs = Math.round(clamp(c * 0.36, 8, 11));
-      ctx.font = fs + 'px ' + FD;
-      const tx = 'COMPÉTITION', bw = Math.round(ctx.measureText(tx).width + fs * 1.4), bh = Math.round(fs * 1.7);
-      const bx = Math.round(gx + gridW / 2 - bw / 2), by = Math.round(gy - bh / 2 - 3);
-      ctx.fillStyle = 'rgba(14,6,26,0.92)';
-      rr(ctx, bx, by, bw, bh, bh / 2); ctx.fill();
-      ctx.strokeStyle = rgba(GOLD, 0.8); ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = GOLD; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(tx, bx + bw / 2, by + bh / 2 + 1);
-    }
 
     // ---------- Tutoriel animé (3 étapes) ----------
     function tutoCard() {
@@ -14445,7 +14406,6 @@ window.JDW_GAMES.pleingaz = {
       drawBoard();
       drawFrame();
       drawBadge();
-      drawCompetBadge();
       drawFx();
       ctx.restore();
       // panneaux (immobiles) ; en portrait, un voile sous la bande du haut garde le score lisible sur un ciel clair
@@ -16175,10 +16135,9 @@ window.JDW_GAMES.pleingaz = {
     const AU = api.audio || {};
     const FD = (api.fonts && api.fonts.display) || "'Bungee', Impact, sans-serif";
     const FB = (api.fonts && api.fonts.body) || "'Chakra Petch', system-ui, sans-serif";
-    // mode compétition (CONTRACT.md Ajout 6) : niveau de départ, badge, graine
+    // départ à un niveau et graine (CONTRACT.md Ajout 6 : outils de test, graine de la coop)
     const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
     const startLevel = num(api.startLevel) >= 1 ? Math.min(99, num(api.startLevel)) : 1;
-    const COMPET = api.mode === 'compet';
     const SEED = Number.isFinite(num(api.seed)) ? (num(api.seed) >>> 0) : null;
     const baseSeed = SEED !== null ? SEED : ((Math.random() * 4294967296) >>> 0);
     const doc = document;
@@ -16607,7 +16566,7 @@ window.JDW_GAMES.pleingaz = {
       pu = null; puNext = 9 + rand() * 6; puN = 0; palmesT = 0; iceT = 0; magnetT = 0;
       bomb = null; bombDone = !F.bomb; bombAt = 0.3 + rand() * 0.3; bombT = 0;
       darkPhase = 0; darkAmt = 0; elroy = 0;
-      // nouveau microbe présenté dans le bandeau (seulement si on l'a vu arriver, pas au départ d'une compétition)
+      // nouveau microbe présenté dans le bandeau (seulement si on l'a vu arriver, pas au départ à un niveau avancé)
       let fresh = null;
       if (level > startLevel || level === 1) for (const k of kinds) if (prevKinds.indexOf(k) < 0 && level <= 7) { fresh = k; break; }
       if (F.boss) fresh = 'boss';
@@ -18023,22 +17982,6 @@ window.JDW_GAMES.pleingaz = {
       } else {
         drawDuck(ctx, right - ds / 2, cy + 2, ds, { dir: 2, flip: -1, t: 0, flap: 0.3 });
       }
-      if (COMPET) {
-        ctx.font = '600 10px ' + FB;
-        const bx = Math.round(10 + ctx.measureText('SCORE').width + 6);
-        const txt = 'COMPÉTITION';
-        ctx.font = '8px ' + FD;
-        const tw = ctx.measureText(txt).width;
-        const bw = tw + 10, bh = 12, by = 5;
-        ctx.fillStyle = 'rgba(5,10,16,0.8)';
-        ctx.strokeStyle = 'rgba(255,166,48,0.85)';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); rrect(ctx, bx + 0.5, by + 0.5, bw, bh, bh / 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = ACCENT;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(txt, bx + 5.5, by + bh / 2 + 1.2);
-      }
     }
 
     function drawPause() {
@@ -18055,9 +17998,9 @@ window.JDW_GAMES.pleingaz = {
     }
 
 
-    // ---------- Tutoriel animé (3 étapes, premier lancement, jamais en compétition) ----------
+    // ---------- Tutoriel animé (3 étapes, premier lancement) ----------
     let tuto = null;
-    if (!COMPET && pref(TUTO_KEY, '0') !== '1') { state = 'tuto'; tuto = { step: 0, t: 0 }; }
+    if (pref(TUTO_KEY, '0') !== '1') { state = 'tuto'; tuto = { step: 0, t: 0 }; }
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -18823,7 +18766,7 @@ window.JDW_GAMES.pleingaz = {
   // La bombe de lavande défend la maison de vacances contre les insectes, du matin à la nuit :
   // 6 MONDES de 3 vagues (2 vagues, puis le boss du monde), puis le jour suivant, plus coriace.
   // Tir automatique, une seule vie, combo jusqu'à x5, tapette géante (jauge), bulles de bonus.
-  // L'aire de jeu logique est FIXE (400 x 760) : même partie sur tous les écrans (compétition) ;
+  // L'aire de jeu logique est FIXE (400 x 760) : même partie sur tous les écrans (graine, coop) ;
   // le décor du monde remplit tout l'écran autour (téléphone en hauteur comme ordinateur).
   // ===========================================================================
   const W = 400, H = 760;
@@ -21136,10 +21079,9 @@ window.JDW_GAMES.pleingaz = {
     const AU = api.audio || {};
     const FD = (api.fonts && api.fonts.display) || "'Bungee', Impact, sans-serif";
     const FB = (api.fonts && api.fonts.body) || "'Chakra Petch', system-ui, sans-serif";
-    // ---- mode compétition (CONTRACT.md Ajout 6) : vague de départ, badge, graine
+    // ---- vague de départ et graine (CONTRACT.md Ajout 6 : outils de test, graine de la coop)
     const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
     const START = num(api.startLevel) >= 1 ? Math.min(99, num(api.startLevel)) : 1;
-    const COMPET = api.mode === 'compet';
     const SEED = Number.isFinite(num(api.seed)) ? (num(api.seed) >>> 0) : null;
     // le hasard du CONTENU (formations, plongeons, gouttes, bonus, boss, têtes) vient de flux mulberry32
     // re-grainés à chaque vague : avec api.seed, la vague N est la même pour tous. Effets : Math.random.
@@ -23526,20 +23468,6 @@ window.JDW_GAMES.pleingaz = {
       ctx.fillStyle = '#ffffff';
       ctx.fillText(fmt(dispScore), 0, 0);
       ctx.restore();
-      if (COMPET) {
-        ctx.font = '700 9px ' + FB;
-        const bw = ctx.measureText('COMPÉTITION').width + 12, bx = sx;
-        ctx.fillStyle = 'rgba(60,34,6,0.92)';
-        rrect(ctx, bx, 49, bw, 14, 7);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,166,48,0.9)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = '#ffd34d';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('COMPÉTITION', bx + 6, 56.5);
-      }
       // centre : monde, vague, avancée dans le monde
       const cW = Math.min(172, wd - scoreW - (wide ? 40 : 120));
       const cx = clamp(x0 + wd / 2 + (wide ? 0 : -6), sx + scoreW + 6 + cW / 2, x1 - (wide ? 60 : 104) - cW / 2);
@@ -23595,7 +23523,7 @@ window.JDW_GAMES.pleingaz = {
     }
     // sous le HUD : barre de vie du boss, ou ligne d'info (essaim, festin, mistral)
     function drawSubHud() {
-      const x0 = wide ? FX : 0, x1 = wide ? FX + FW : cw, cx = (x0 + x1) / 2, y = COMPET ? 70 : 62;
+      const x0 = wide ? FX : 0, x1 = wide ? FX + FW : cw, cx = (x0 + x1) / 2, y = 62;
       if (boss && state !== 'over' && state !== 'dying' && state !== 'bossdeath') {
         const B = BOSSES[boss.kind], w = Math.min(x1 - x0 - 24, 340), bx = cx - w / 2;
         const k = clamp(boss.hp / boss.max, 0, 1), a = state === 'intro' ? clamp((stateT - 0.6) * 3, 0, 1) : 1;
@@ -23937,9 +23865,9 @@ window.JDW_GAMES.pleingaz = {
       if (paused) drawPause();
     }
 
-    // ---------------------------------------------------------------- tutoriel animé (3 étapes, premier lancement, jamais en compétition)
+    // ---------------------------------------------------------------- tutoriel animé (3 étapes, premier lancement)
     let tuto = null;
-    if (!COMPET && pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
+    if (pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -24393,7 +24321,7 @@ window.JDW_GAMES.pleingaz = {
     }
 
     // ---------------------------------------------------------------- départ
-    // départ direct à une vague avancée (compétition) : les insectes des vagues sautées sont déjà connus
+    // départ direct à une vague avancée (?start=) : les insectes des vagues sautées sont déjà connus
     for (let w = 1; w < START; w++) { const m = waveMeta(w); if (m.cyc === 0 && m.kind !== 'boss') for (const ty of m.W.intro[m.st] || []) introduced.add(ty); }
     layout();
     started = true;
@@ -24822,7 +24750,7 @@ window.JDW_GAMES.pleingaz = {
   // (piloté par le joueur) survole le globe jusqu'au pays suivant. Après le Palais de cristal : le Tour II,
   // plus coriace, puis le Tour III…
   // Une seule vie (la bille tombe = fin). Têtes des copains : carreaux-portraits et boss (api.heads).
-  // Contrat : source/CONTRACT.md (gameOver une fois, currentScore, currentLevel, startLevel, seed, mode).
+  // Contrat : source/CONTRACT.md (gameOver une fois, currentScore, currentLevel, startLevel, seed).
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
@@ -24911,7 +24839,7 @@ window.JDW_GAMES.pleingaz = {
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = (arr) => arr[(Math.random() * arr.length) | 0];
   function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
-  // PRNG à graine (compétition : même tirage pour tous)
+  // PRNG à graine (api.seed : même tirage à graine égale)
   function mulberry32(a) {
     return function () {
       a |= 0; a = a + 0x6D2B79F5 | 0;
@@ -27055,10 +26983,9 @@ window.JDW_GAMES.pleingaz = {
     const AU = api.audio || {};
     const FD = (api.fonts && api.fonts.display) || FD0;
     const FB = (api.fonts && api.fonts.body) || FB0;
-    // ---- compétition (CONTRACT.md Ajout 6) : niveau de départ, badge, graine
+    // ---- niveau de départ et graine (CONTRACT.md Ajout 6 : outils de test, graine de la coop)
     const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
     const START = num(api.startLevel) >= 1 ? Math.min(999, num(api.startLevel)) : 1;
-    const COMPET = api.mode === 'compet';
     const SEED = Number.isFinite(num(api.seed)) ? (num(api.seed) >>> 0) : null;
     // le hasard du CONTENU (bonus, boss, têtes, lancers) vient de flux re-grainés à chaque niveau :
     // avec api.seed, le niveau N est le même pour tous. Effets visuels : Math.random.
@@ -27176,8 +27103,15 @@ window.JDW_GAMES.pleingaz = {
     root.appendChild(pauseBtn);
 
     // ---------------------------------------------------------------- mise en page : aire de jeu fixe, décor plein écran
+    // Le jeu (unités logiques W × H : carreaux, bille, vitesses) ne change jamais ; seule sa place à l'écran change.
+    // - Téléphone en hauteur : sous la raquette, une bande du décor (le pavé, la promenade du pays) où le pouce glisse
+    //   sans cacher la raquette ni la bille : 13 % de la hauteur au moins (l'aire de jeu rapetisse un peu s'il le faut),
+    //   jusqu'à 18 % quand l'écran est assez haut.
+    // - Ordinateur et paysage (« wide ») : l'aire de jeu flotte au-dessus de la promenade (petite marge en haut, 10 % de
+    //   promenade sous la raquette), entre les deux panneaux, qui s'alignent sur elle.
     let cw = 300, ch = 500, dpr = 1, quality = 1, U = 1, FX = 0, FY = 0, res = 1, wide = false, touchUI = true, lowFx = false;
     let fieldPx = { x: 0, y: 0, w: W, h: H };
+    const PB = PY + PH;                   // bas de la raquette (unités)
     function layout() {
       if (destroyed) return;
       const r = root.getBoundingClientRect();
@@ -27186,11 +27120,17 @@ window.JDW_GAMES.pleingaz = {
       dpr = Math.max(0.75, Math.min(2, window.devicePixelRatio || 1) * quality);
       canvas.width = Math.round(cw * dpr);
       canvas.height = Math.round(ch * dpr);
-      U = Math.min(cw / W, ch / H);
+      U = Math.min(cw / W, ch * 0.87 / PB);
       FX = (cw - W * U) / 2;
-      FY = (ch - H * U) / 2;
-      fieldPx = { x: FX, y: FY, w: W * U, h: H * U };
+      FY = Math.max(0, ch - PB * U - ch * 0.18);
       wide = FX >= 150 && ch >= 300;
+      if (wide) {
+        const mt = Math.max(8, Math.round(ch * 0.025));
+        U = Math.min(cw / W, (ch - mt - ch * 0.1) / PB);
+        FX = (cw - W * U) / 2;
+        FY = mt;
+      }
+      fieldPx = { x: FX, y: FY, w: W * U, h: H * U };
       let fine = false;
       try { fine = !!(window.matchMedia && window.matchMedia('(pointer: fine)').matches); } catch (e) { fine = false; }
       touchUI = !fine;
@@ -27320,7 +27260,7 @@ window.JDW_GAMES.pleingaz = {
     const keys = { left: false, right: false };
     let paused = false, drag = null, mouseMode = false, god = false, renderErr = null, started = false;
     let tuto = null;
-    if (!COMPET && pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
+    if (pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
 
     // ---------------------------------------------------------------- difficulté (tout dépend du niveau)
     function lvlK() { return S.level - 1; }
@@ -28176,8 +28116,8 @@ window.JDW_GAMES.pleingaz = {
       later(1.2, bossMusicOff);
       S.zoom = 1; S.zoomX = B.x; S.zoomY = B.y;
       pop(B.x, B.y + 80, '+' + fmt(v), '#ffd34d', 20, 2.2, -20);
-      // la phrase triste reste SOUS la barre de vie du boss (y 52-66, 64-78 en compétition) même quand le boss est tout en haut
-      if (B.head) later(0.7, () => { addFace(B.head, B.x, B.y - 10, 90, 2.4); pop(clamp(B.x, 120, W - 120), Math.max(B.y - 80, (COMPET ? 64 : 52) + 44), pick(['Snif… ' + B.name + ' pleure !', 'Pauvre ' + B.name + ' !', B.name + ' a perdu !']), '#ff9fd0', 15, 2.2, -14); SFX.sad(); });
+      // la phrase triste reste SOUS la barre de vie du boss (y 52-66) même quand le boss est tout en haut
+      if (B.head) later(0.7, () => { addFace(B.head, B.x, B.y - 10, 90, 2.4); pop(clamp(B.x, 120, W - 120), Math.max(B.y - 80, 52 + 44), pick(['Snif… ' + B.name + ' pleure !', 'Pauvre ' + B.name + ' !', B.name + ' a perdu !']), '#ff9fd0', 15, 2.2, -14); SFX.sad(); });
       for (const b of S.balls) { b.stuck = false; }
       S.eff.net = Math.max(S.eff.net, 8);
     }
@@ -28208,7 +28148,7 @@ window.JDW_GAMES.pleingaz = {
       SFX.tink();
     }
     function bossShoot(kind, x, y, vx, vy, extra) { S.shots.push(Object.assign({ kind, x, y, vx, vy, r: 8, rot: 0, vr: rand(-3, 3), g: 160, t: 0 }, extra || {})); SFX.shot(); }
-    // les visées des boss suivent le hasard « à graine » (compétition : mêmes attaques pour tous)
+    // les visées des boss suivent le hasard « à graine » (api.seed : mêmes attaques à graine égale)
     function br(a, b) { return crnd('boss', a, b); }
     function aimX(spread) { return clamp(S.paddle.x + br(-spread, spread), 30, W - 30); }
     function updateShots(dt) {
@@ -28642,6 +28582,11 @@ window.JDW_GAMES.pleingaz = {
         ctx.fillStyle = rgba(C.accent2, 0.85);
         for (let y = HUD_H + 16; y < H; y += 34) { ctx.beginPath(); ctx.moveTo(x0 + WALL / 2, y - 5); ctx.lineTo(x0 + WALL - 2, y); ctx.lineTo(x0 + WALL / 2, y + 5); ctx.lineTo(x0 + 2, y); ctx.closePath(); ctx.fill(); }
         ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x0 + (x0 ? 1 : WALL - 2), HUD_H, 1, H - HUD_H);
+        // pied du mur : un socle posé sur la promenade (la bande du pouce est dessous, hors de l'aire de jeu)
+        const bx = x0 - 3, bw = WALL + 6, by = H - 7;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ell(ctx, x0 + WALL / 2, H + 4, WALL + 5, 3.2, 0); ctx.fill();
+        rr(ctx, bx, by, bw, 10, 2.5); ctx.fillStyle = lin(ctx, 0, by, 0, by + 10, [[0, shade(C.accent, -0.05)], [1, shade(C.accent, -0.62)]]); ctx.fill();
+        ctx.fillStyle = rgba(C.accent2, 0.95); ctx.fillRect(bx + 1, by, bw - 2, 1.6);
       }
       // plafond : frise
       ctx.fillStyle = lin(ctx, 0, HUD_H - 6, 0, HUD_H + 2, [[0, shade(C.accent, -0.5)], [1, shade(C.accent, -0.2)]]);
@@ -29056,7 +29001,7 @@ window.JDW_GAMES.pleingaz = {
 
     // ---------- bandeau du haut (dans l'aire de jeu) ----------
     function drawHUD() {
-      if (FY > 0.5) { S0(); ctx.fillStyle = 'rgba(6,8,22,0.86)'; ctx.fillRect(FX, 0, W * U, FY + 1); }
+      if (FY > 0.5 && !wide) { S0(); ctx.fillStyle = 'rgba(6,8,22,0.86)'; ctx.fillRect(FX, 0, W * U, FY + 1); }
       SF(true);
       const Wd = CARREAUX_WORLDS[S.wi], acc = Wd.colors.accent;
       ctx.fillStyle = lin(ctx, 0, 0, 0, HUD_H, [[0, 'rgba(6,8,22,0.82)'], [1, 'rgba(6,8,22,0.55)']]); ctx.fillRect(0, 0, W, HUD_H - 4);
@@ -29085,11 +29030,10 @@ window.JDW_GAMES.pleingaz = {
         bigText('×' + String(m).replace('.', ','), x, y - 2, 10, m > 1 ? '#ffd34d' : '#ffffff', 28);
         smallText(String(S.combo), x, y + 9, 7, 'rgba(255,255,255,0.8)', 'center', 700);
       }
-      if (COMPET) { pill(6, 47, 84, 14, '#ff4d5e'); smallText('COMPÉTITION', 48, 54, 7.5, '#ffb0b8', 'center', 700); }
       // barre de vie du boss
       const B = S.boss;
       if (B && (B.state !== 'enter' || B.st > 0.8) && !B.exploded) {
-        const y = COMPET ? 64 : 52, x0 = 22, w = W - 44, k = clamp(B.hp / B.max, 0, 1);
+        const y = 52, x0 = 22, w = W - 44, k = clamp(B.hp / B.max, 0, 1);
         rr(ctx, x0, y, w, 14, 7); ctx.fillStyle = 'rgba(8,10,28,0.8)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = rgba(Wd.colors.accent2, 0.9); ctx.stroke();
         if (k > 0) { rr(ctx, x0 + 2, y + 2, (w - 4) * k, 10, 5); ctx.fillStyle = lin(ctx, x0, 0, x0 + w, 0, [[0, '#ff4d6d'], [0.5, Wd.colors.accent2], [1, '#ffd34d']]); ctx.fill(); }
         ctx.fillStyle = 'rgba(255,255,255,0.7)'; for (const f of [1 / 3, 2 / 3]) ctx.fillRect(x0 + w * f - 1, y + 2, 2, 10);
@@ -29112,20 +29056,22 @@ window.JDW_GAMES.pleingaz = {
     // ---------- panneaux sur les côtés (ordinateur) ----------
     function drawSidePanels() {
       if (!wide) return;
-      // tout le panneau est dessiné à l'échelle k (paysage sur téléphone : plus petit, mais complet)
-      const k = clamp(Math.min(ch / 540, (FX - 20) / 268), 0.5, 1);
+      // tout le panneau est dessiné à l'échelle k (paysage sur téléphone : plus petit, mais complet ; grand écran : plus
+      // grand) : les deux panneaux ont la hauteur de l'aire de jeu, les trois colonnes sont alignées sur la promenade
+      const k = clamp(Math.min(H * U / 470, (FX - 20) / 268), 0.5, clamp(ch / 650, 1.5, 2));
       ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
       const vFX = FX / k, vch = ch / k, vFW = W * U / k, vFY = FY / k;
       const Wd = CARREAUX_WORLDS[S.wi], acc = Wd.colors.accent;
-      const pw = Math.min(250, vFX - 34), lx = vFX - pw - 18, rx = vFX + vFW + 18, top = Math.max(12, vFY + 10);
-      // gauche : le voyage
-      const lh = Math.min(vch - top - 14, 470);
+      const pw = Math.min(250, vFX - 34), lx = vFX - pw - 18, rx = vFX + vFW + 18, top = vFY;
+      // gauche : le voyage (sur un panneau plus haut, les pays s'espacent un peu et restent au milieu)
+      const lh = Math.min(vch - top - 8, Math.max(470, H * U / k));
       panel(lx, top, pw, lh, acc, 0.94);
       bigText('CASSE-CARREAUX', lx + pw / 2, top + 26, 17, '#ffffff', pw - 24);
       smallText('Le tour du monde des carreaux' + (S.tour ? ' · Tour ' + roman(S.tour) : ''), lx + pw / 2, top + 46, 11, rgba(acc, 0.95), 'center', 600, 1, pw - 20);
-      const rowH = Math.min(62, (lh - 70) / NW);
+      const rowH = Math.min(62, (lh - 70) / NW), pitch = rowH + clamp((lh - 70 - NW * rowH) / NW, 0, 22);
+      const y0 = top + 62 + Math.max(0, (lh - 72 - NW * pitch) / 2);
       for (let i = 0; i < NW; i++) {
-        const D = CARREAUX_WORLDS[i], y = top + 62 + i * rowH, cur = i === S.wi, done = i < S.wi;
+        const D = CARREAUX_WORLDS[i], y = y0 + i * pitch, cur = i === S.wi, done = i < S.wi;
         if (cur) { rr(ctx, lx + 8, y, pw - 16, rowH - 6, 10); ctx.fillStyle = rgba(D.colors.accent, 0.18); ctx.fill(); ctx.strokeStyle = rgba(D.colors.accent, 0.9); ctx.lineWidth = 1.5; ctx.stroke(); }
         ctx.save(); ctx.translate(lx + 30, y + (rowH - 6) / 2); ctx.globalAlpha = done || cur ? 1 : 0.5; paintWorldIcon(ctx, i, Math.min(17, rowH * 0.32), S.clock); ctx.restore();
         smallText(D.name.toUpperCase(), lx + 54, y + rowH * 0.3, 11, cur ? '#ffffff' : done ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)', 'left', 700, 1, pw - 70);
@@ -29134,7 +29080,7 @@ window.JDW_GAMES.pleingaz = {
         if (cur) for (let k = 0; k < 3; k++) { ctx.fillStyle = k < S.stage ? '#ffd34d' : k === S.stage ? '#ffffff' : 'rgba(255,255,255,0.25)'; circ(ctx, lx + pw - 40 + k * 10, y + rowH * 0.62, 3); ctx.fill(); }
       }
       // droite : score, niveau, bonus, commandes
-      const rh = Math.min(vch - top - 14, 470);
+      const rh = lh;
       panel(rx, top, pw, rh, acc, 0.94);
       smallText('SCORE', rx + 18, top + 22, 11, acc, 'left', 700);
       ctx.save(); ctx.textAlign = 'left'; bigText(fmt(S.shown), rx + pw / 2, top + 48, 26, '#ffffff', pw - 30); ctx.restore();
@@ -29220,8 +29166,17 @@ window.JDW_GAMES.pleingaz = {
     }
     function drawLaunchHint() {
       if (S.state !== 'play' || !S.balls.some((b) => b.stuck) || S.launchHint <= 0) return;
+      const a = 0.55 + 0.35 * Math.sin(S.clock * 5), band = ch - FY - PB * U;
+      if (touchUI && !wide && band >= 44) {
+        // téléphone : la consigne est dans la bande du pouce, sous la raquette (c'est là qu'on glisse)
+        S0();
+        const cx = FX + W * U / 2, cy = FY + PB * U + band * 0.48, tw = Math.min(W * U - 24, 300), th = 30;
+        rr(ctx, cx - tw / 2, cy - th / 2, tw, th, th / 2); ctx.fillStyle = 'rgba(6,8,22,' + (0.42 + a * 0.2) + ')'; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,' + a * 0.5 + ')'; ctx.lineWidth = 1.2; ctx.stroke();
+        smallText('‹  Glisse ici · lâche pour lancer  ›', cx, cy + 0.5, 12, 'rgba(255,255,255,' + Math.min(1, a + 0.15) + ')', 'center', 700, 1, tw - 16);
+        return;
+      }
       SF(true);
-      const a = 0.55 + 0.35 * Math.sin(S.clock * 5);
       smallText(touchUI ? 'Glisse pour viser · lâche pour lancer' : 'Clic ou ESPACE pour lancer', W / 2, PY - 92, 11, 'rgba(255,255,255,' + a + ')', 'center', 700);
     }
     function drawCallouts() {
@@ -29439,7 +29394,7 @@ window.JDW_GAMES.pleingaz = {
       smallText(CARREAUX_WORLDS[S.wi].name + ' · niveau ' + S.level + ' · ' + fmt(S.score) + ' points', W / 2, 360, 11, '#ffd34d', 'center', 700, a, W - 40);
     }
 
-    // ===================================================================== TUTORIEL (3 étapes, une seule fois, jamais en compétition)
+    // ===================================================================== TUTORIEL (3 étapes, une seule fois)
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -29462,28 +29417,34 @@ window.JDW_GAMES.pleingaz = {
       const sx = k.x + 16, sy = k.y + 56, sw = k.w - 32, sh = Math.min(200, k.h - 190);
       ctx.save(); rr(ctx, sx, sy, sw, sh, 12); ctx.clip();
       ctx.fillStyle = lin(ctx, 0, sy, 0, sy + sh, [[0, '#2a5fae'], [1, '#8fd3ff']]); ctx.fillRect(sx, sy, sw, sh);
-      const s = sw / 300, ox = sx, oy = sy;
+      const s = sw / 300, ox = sx, oy = sy, mb = sh / s;
+      // la promenade sous la raquette (calçada) : c'est là que se pose le pouce
+      const pvY = oy + (mb - 30) * s;
+      ctx.fillStyle = '#efe8da'; ctx.fillRect(sx, pvY, sw, sy + sh - pvY);
+      ctx.strokeStyle = '#3a3a44'; ctx.lineWidth = 2 * s;
+      for (let r = 0; r < 2; r++) { ctx.beginPath(); for (let x = 0; x <= 300; x += 6) { const y = pvY + (9 + r * 12) * s + Math.sin(x * 0.07 + r * 1.3) * 2.2 * s; if (x) ctx.lineTo(ox + x * s, y); else ctx.moveTo(ox, y); } ctx.stroke(); }
+      ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(sx, pvY, sw, 2 * s);
       const tileAtT = (c, r, v) => { ctx.save(); ctx.translate(ox + (20 + c * 26) * s, oy + (16 + r * 26) * s); ctx.scale(24 * s / 32, 24 * s / 32); paintAzulejo(ctx, 'n', v, 32); ctx.restore(); };
       const padX = st === 0 ? 150 + Math.sin(tt * 1.6) * 90 : st === 1 ? 150 + Math.sin(tt * 2.2) * 40 : 150 + Math.sin(tt * 1.2) * 25;
       if (st >= 1) for (let c = 0; c < 10; c++) for (let r = 0; r < 2; r++) { const gone = st === 1 && ((c === 3 && r === 1 && (tt % 2.4) > 0.9) || (c === 6 && r === 1 && (tt % 2.4) > 1.9)); if (!gone) tileAtT(c, r, (c + r) % 2 ? 0 : 3); }
-      // la raquette
-      ctx.save(); ctx.translate(ox + padX * s, oy + (sh / s - 26) * s);
+      // la raquette, au-dessus de la promenade
+      ctx.save(); ctx.translate(ox + padX * s, oy + (mb - 46) * s);
       rr(ctx, -34 * s, 0, 68 * s, 11 * s, 5.5 * s); ctx.fillStyle = lin(ctx, 0, 0, 0, 11 * s, [[0, '#ffffff'], [1, '#c9d6ea']]); ctx.fill(); ctx.strokeStyle = 'rgba(10,10,30,0.6)'; ctx.lineWidth = 1.2; ctx.stroke();
       ctx.restore();
       if (st === 0) {
-        // le doigt (ou la souris) qui glisse
-        const fx = ox + (150 + Math.sin(tt * 1.6) * 90 + 10) * s, fy = oy + (sh / s - 60) * s;
-        if (touchUI) { ctx.fillStyle = 'rgba(255,255,255,0.3)'; circ(ctx, fx, fy, 22 * s); ctx.fill(); ctx.fillStyle = '#ffffff'; circ(ctx, fx, fy, 12 * s); ctx.fill(); ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.stroke(); }
-        else { ctx.save(); ctx.translate(fx, fy); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.lineTo(6, 16); ctx.lineTo(11, 26); ctx.lineTo(15, 24); ctx.lineTo(10, 14); ctx.lineTo(18, 14); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(ox + 50 * s, fy + 34 * s); ctx.lineTo(ox + 250 * s, fy + 34 * s); ctx.stroke(); ctx.setLineDash([]);
+        // le doigt (ou la souris) qui glisse sur la promenade, sous la raquette
+        const fx = ox + (150 + Math.sin(tt * 1.6) * 90 + 10) * s, fy = oy + (mb - 15) * s;
+        ctx.strokeStyle = 'rgba(40,40,60,0.45)'; ctx.lineWidth = 2; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(ox + 50 * s, fy); ctx.lineTo(ox + 250 * s, fy); ctx.stroke(); ctx.setLineDash([]);
+        if (touchUI) { ctx.fillStyle = 'rgba(255,255,255,0.45)'; circ(ctx, fx, fy, 15 * s); ctx.fill(); ctx.fillStyle = '#ffffff'; circ(ctx, fx, fy, 9 * s); ctx.fill(); ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.stroke(); }
+        else { ctx.save(); ctx.translate(fx, fy - 8 * s); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.lineTo(6, 16); ctx.lineTo(11, 26); ctx.lineTo(15, 24); ctx.lineTo(10, 14); ctx.lineTo(18, 14); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
       } else if (st === 1) {
         // la bille rebondit et casse des carreaux
-        const ph = (tt % 1.2) / 1.2, bx = ox + (padX + (ph < 0.5 ? -1 : 1) * 30 * Math.sin(ph * Math.PI)) * s, by = oy + (sh / s - 34 - Math.sin(ph * Math.PI) * (sh / s - 90)) * s;
+        const ph = (tt % 1.2) / 1.2, bx = ox + (padX + (ph < 0.5 ? -1 : 1) * 30 * Math.sin(ph * Math.PI)) * s, by = oy + (mb - 54 - Math.sin(ph * Math.PI) * (mb - 110)) * s;
         ctx.fillStyle = rad(ctx, bx - 2, by - 2, 0, bx, by, 7 * s, [[0, '#ffffff'], [1, '#9fc4ff']]); circ(ctx, bx, by, 6 * s); ctx.fill();
         if (ph > 0.42 && ph < 0.58) sparks0(bx, by - 10 * s, s);
       } else {
         // une capsule tombe, le boss attend en haut
-        const cy2 = oy + (20 + ((tt * 70) % (sh / s - 40))) * s;
+        const cy2 = oy + (20 + ((tt * 70) % (mb - 80))) * s;
         ctx.save(); ctx.translate(ox + 150 * s, cy2); paintCapsule(ctx, 'multi', 13 * s); ctx.restore();
         ctx.save(); ctx.translate(ox + 240 * s, oy + 50 * s); ctx.scale(0.32 * s, 0.32 * s); paintCoq(ctx, { t: tt, ph: 0, dir: -1, walking: true }); ctx.restore();
         for (let i = 0; i < NW; i++) { ctx.save(); ctx.translate(ox + (30 + i * 22) * s, oy + 30 * s); paintWorldIcon(ctx, i, 9 * s, tt); ctx.restore(); }
@@ -29491,7 +29452,7 @@ window.JDW_GAMES.pleingaz = {
       ctx.restore();
       const titles = [touchUI ? 'GLISSE POUR BOUGER' : 'BOUGE LA SOURIS', 'CASSE LES CARREAUX', 'FAIS LE TOUR DU MONDE'];
       const texts = [
-        touchUI ? ['Glisse le doigt n\'importe où sur l\'écran :', 'la raquette suit. Lâche pour lancer la bille.'] : ['La raquette suit la souris (ou les flèches ← →).', 'Clic ou ESPACE pour lancer la bille.'],
+        touchUI ? ['Pose le pouce sous la raquette et glisse :', 'elle suit ton doigt. Lâche pour lancer la bille.'] : ['La raquette suit la souris (ou les flèches ← →).', 'Clic ou ESPACE pour lancer la bille.'],
         ['Renvoie la bille sur les carreaux.', 'Une seule vie : ne la laisse pas tomber !'],
         ['Attrape les bonus, bats le boss de chaque pays', 'et collectionne les tampons du passeport !']
       ];
@@ -30345,7 +30306,7 @@ window.JDW_GAMES.pleingaz = {
   }
   function fmt(n) { return String(Math.max(0, Math.floor(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
   function mmss(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-  // PRNG à graine (mode compétition : même tirage pour tous les concurrents)
+  // PRNG à graine (api.seed : même tirage à graine égale)
   function mulberry32(a) {
     return function () {
       a |= 0; a = a + 0x6D2B79F5 | 0;
@@ -33148,9 +33109,8 @@ window.JDW_GAMES.pleingaz = {
       night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae',
       amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a'
     }, api.colors || {});
-    // mode compétition (CONTRACT.md Ajout 6) : niveau de départ, badge, graine du tirage des copains
+    // départ à un niveau et graine du tirage des copains (CONTRACT.md Ajout 6 : outils de test, graine de la coop)
     const START = (() => { const n = Math.floor(+api.startLevel); return n >= 1 ? Math.min(n, 999) : 1; })();
-    const COMPET = api.mode === 'compet';
     const SEED = api.seed != null && api.seed !== '' && isFinite(api.seed) ? Math.floor(+api.seed) : null;
     const doc = document;
     let destroyed = false, raf = 0;
@@ -33476,7 +33436,6 @@ window.JDW_GAMES.pleingaz = {
     let W = 300, H = 300, dpr = 1, S = 1, playX = 0, playY = 0, playW = LW, playH = LH, hudH = 46, sideMode = false, fine = false, portrait = false;
     let camMode = false, camX = 0, manualT = -99, scrollBar = null;
     const btns = [];
-    let badgeBelow = false;
     function layout() {
       if (destroyed) return;
       const r = root.getBoundingClientRect();
@@ -33563,7 +33522,6 @@ window.JDW_GAMES.pleingaz = {
           btns.push({ id, x: rx0 + c * (bw + gap), y: by0 + row * (bhB + gap), w: bw, h: bhB, press: 0 });
         });
       }
-      badgeBelow = COMPET && playY - hudH - (scrollBar ? 32 : 0) >= 28;
       if (wd) { buildTerrain(lazy); if (!lazy) buildBackdrop(); }
     }
     // caméra (portrait) : suit les rouleaux, sauf si le joueur vient de la déplacer
@@ -34733,26 +34691,6 @@ window.JDW_GAMES.pleingaz = {
       ctx.font = '700 ' + sub + 'px ' + FB; ctx.fillStyle = Wd.colors.accent;
       if (!narrow) ctx.fillText(Wd.name.toUpperCase() + (cycle > 0 ? '  ·  TOUR ' + (cycle + 1) : ''), cx, y0);
       else if (cycle > 0) ctx.fillText('TOUR ' + (cycle + 1), cx, y0);
-      if (COMPET) drawBadge();
-    }
-    function drawBadge() {
-      ctx.save();
-      ctx.font = '12px ' + FD; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      const bh = 18, bw = Math.ceil(ctx.measureText('COMPÉTITION').width) + 28;
-      const cx = badgeBelow ? playX + playW / 2 : W / 2, cy = badgeBelow ? hudH + 4 + bh / 2 : hudH + bh / 2 + 3;
-      const bx = Math.round(cx - bw / 2) + 0.5, by = Math.round(cy - bh / 2) + 0.5;
-      rr(ctx, bx, by, bw, bh, bh / 2);
-      ctx.fillStyle = 'rgba(6,12,18,0.78)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(255,211,77,0.7)'; ctx.lineWidth = 1; ctx.stroke();
-      const ix = bx + 11, iy = by + bh / 2;
-      ctx.fillStyle = COL.gold; ctx.strokeStyle = COL.gold;
-      ctx.beginPath(); ctx.moveTo(ix - 3.2, iy - 4); ctx.lineTo(ix + 3.2, iy - 4);
-      ctx.quadraticCurveTo(ix + 3.2, iy + 0.8, ix, iy + 1); ctx.quadraticCurveTo(ix - 3.2, iy + 0.8, ix - 3.2, iy - 4); ctx.fill();
-      ctx.beginPath(); ctx.arc(ix - 3.2, iy - 2.4, 1.5, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
-      ctx.beginPath(); ctx.arc(ix + 3.2, iy - 2.4, 1.5, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
-      ctx.fillRect(ix - 0.6, iy + 1, 1.2, 1.8); ctx.fillRect(ix - 2.4, iy + 2.6, 4.8, 1.4);
-      ctx.fillText('COMPÉTITION', bx + 19, iy + 1);
-      ctx.restore();
     }
 
     // ---------- Boutons des outils ----------
@@ -35220,7 +35158,7 @@ window.JDW_GAMES.pleingaz = {
       ctx.restore();
     }
 
-    // ---------- Tutoriel animé (3 étapes, premier lancement, jamais en compétition) ----------
+    // ---------- Tutoriel animé (3 étapes, premier lancement) ----------
     let tuto = null;
     function tutoNext(skip) {
       if (!tuto) return;
@@ -35603,8 +35541,8 @@ window.JDW_GAMES.pleingaz = {
     }
 
     // ---------- Départ ----------
-    loadLevel(START - 1);   // compétition : directement au niveau demandé (les précédents comptent comme réussis, sans leurs points)
-    if (!COMPET && pref(TUTO_KEY, '0') !== '1') { tuto = { step: 0, t: 0 }; state = 'tuto'; }
+    loadLevel(START - 1);   // ?start= : directement au niveau demandé (les précédents comptent comme réussis, sans leurs points)
+    if (pref(TUTO_KEY, '0') !== '1') { tuto = { step: 0, t: 0 }; state = 'tuto'; }
     else { state = 'arrive'; stateT = 0; SFX.arrive(); }
     if (doc.hidden) paused = true;
     raf = requestAnimationFrame(frame);
@@ -75116,7 +75054,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261015003452"; window.JDW_VERSION = "1.13.1"; window.JDW_NOTES = ["\u2328\ufe0f Chat : le champ \u00ab \u00c9cris \u00e0 la bande \u00bb reste toujours au-dessus du clavier, avec les derniers messages en vue", "\ud83d\udcf1 Jeux en paysage sur t\u00e9l\u00e9phone : la barre du haut devient un petit rail \u00e0 gauche (\u2715, plein \u00e9cran, son), le jeu prend toute la hauteur"];</script>
+<script>window.JDW_BUILD = "20261015031314"; window.JDW_VERSION = "1.13.2"; window.JDW_NOTES = ["\ud83e\uddf1 Casse-Carreaux : la raquette remonte, ton pouce glisse sur la promenade sans cacher la bille ; sur ordinateur, le jeu tient dans l'\u00e9cran entre ses deux panneaux"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>

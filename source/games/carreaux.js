@@ -11,7 +11,7 @@
   // (piloté par le joueur) survole le globe jusqu'au pays suivant. Après le Palais de cristal : le Tour II,
   // plus coriace, puis le Tour III…
   // Une seule vie (la bille tombe = fin). Têtes des copains : carreaux-portraits et boss (api.heads).
-  // Contrat : source/CONTRACT.md (gameOver une fois, currentScore, currentLevel, startLevel, seed, mode).
+  // Contrat : source/CONTRACT.md (gameOver une fois, currentScore, currentLevel, startLevel, seed).
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = (arr) => arr[(Math.random() * arr.length) | 0];
   function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
-  // PRNG à graine (compétition : même tirage pour tous)
+  // PRNG à graine (api.seed : même tirage à graine égale)
   function mulberry32(a) {
     return function () {
       a |= 0; a = a + 0x6D2B79F5 | 0;
@@ -2244,10 +2244,9 @@
     const AU = api.audio || {};
     const FD = (api.fonts && api.fonts.display) || FD0;
     const FB = (api.fonts && api.fonts.body) || FB0;
-    // ---- compétition (CONTRACT.md Ajout 6) : niveau de départ, badge, graine
+    // ---- niveau de départ et graine (CONTRACT.md Ajout 6 : outils de test, graine de la coop)
     const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
     const START = num(api.startLevel) >= 1 ? Math.min(999, num(api.startLevel)) : 1;
-    const COMPET = api.mode === 'compet';
     const SEED = Number.isFinite(num(api.seed)) ? (num(api.seed) >>> 0) : null;
     // le hasard du CONTENU (bonus, boss, têtes, lancers) vient de flux re-grainés à chaque niveau :
     // avec api.seed, le niveau N est le même pour tous. Effets visuels : Math.random.
@@ -2365,8 +2364,15 @@
     root.appendChild(pauseBtn);
 
     // ---------------------------------------------------------------- mise en page : aire de jeu fixe, décor plein écran
+    // Le jeu (unités logiques W × H : carreaux, bille, vitesses) ne change jamais ; seule sa place à l'écran change.
+    // - Téléphone en hauteur : sous la raquette, une bande du décor (le pavé, la promenade du pays) où le pouce glisse
+    //   sans cacher la raquette ni la bille : 13 % de la hauteur au moins (l'aire de jeu rapetisse un peu s'il le faut),
+    //   jusqu'à 18 % quand l'écran est assez haut.
+    // - Ordinateur et paysage (« wide ») : l'aire de jeu flotte au-dessus de la promenade (petite marge en haut, 10 % de
+    //   promenade sous la raquette), entre les deux panneaux, qui s'alignent sur elle.
     let cw = 300, ch = 500, dpr = 1, quality = 1, U = 1, FX = 0, FY = 0, res = 1, wide = false, touchUI = true, lowFx = false;
     let fieldPx = { x: 0, y: 0, w: W, h: H };
+    const PB = PY + PH;                   // bas de la raquette (unités)
     function layout() {
       if (destroyed) return;
       const r = root.getBoundingClientRect();
@@ -2375,11 +2381,17 @@
       dpr = Math.max(0.75, Math.min(2, window.devicePixelRatio || 1) * quality);
       canvas.width = Math.round(cw * dpr);
       canvas.height = Math.round(ch * dpr);
-      U = Math.min(cw / W, ch / H);
+      U = Math.min(cw / W, ch * 0.87 / PB);
       FX = (cw - W * U) / 2;
-      FY = (ch - H * U) / 2;
-      fieldPx = { x: FX, y: FY, w: W * U, h: H * U };
+      FY = Math.max(0, ch - PB * U - ch * 0.18);
       wide = FX >= 150 && ch >= 300;
+      if (wide) {
+        const mt = Math.max(8, Math.round(ch * 0.025));
+        U = Math.min(cw / W, (ch - mt - ch * 0.1) / PB);
+        FX = (cw - W * U) / 2;
+        FY = mt;
+      }
+      fieldPx = { x: FX, y: FY, w: W * U, h: H * U };
       let fine = false;
       try { fine = !!(window.matchMedia && window.matchMedia('(pointer: fine)').matches); } catch (e) { fine = false; }
       touchUI = !fine;
@@ -2509,7 +2521,7 @@
     const keys = { left: false, right: false };
     let paused = false, drag = null, mouseMode = false, god = false, renderErr = null, started = false;
     let tuto = null;
-    if (!COMPET && pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
+    if (pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
 
     // ---------------------------------------------------------------- difficulté (tout dépend du niveau)
     function lvlK() { return S.level - 1; }
@@ -3365,8 +3377,8 @@
       later(1.2, bossMusicOff);
       S.zoom = 1; S.zoomX = B.x; S.zoomY = B.y;
       pop(B.x, B.y + 80, '+' + fmt(v), '#ffd34d', 20, 2.2, -20);
-      // la phrase triste reste SOUS la barre de vie du boss (y 52-66, 64-78 en compétition) même quand le boss est tout en haut
-      if (B.head) later(0.7, () => { addFace(B.head, B.x, B.y - 10, 90, 2.4); pop(clamp(B.x, 120, W - 120), Math.max(B.y - 80, (COMPET ? 64 : 52) + 44), pick(['Snif… ' + B.name + ' pleure !', 'Pauvre ' + B.name + ' !', B.name + ' a perdu !']), '#ff9fd0', 15, 2.2, -14); SFX.sad(); });
+      // la phrase triste reste SOUS la barre de vie du boss (y 52-66) même quand le boss est tout en haut
+      if (B.head) later(0.7, () => { addFace(B.head, B.x, B.y - 10, 90, 2.4); pop(clamp(B.x, 120, W - 120), Math.max(B.y - 80, 52 + 44), pick(['Snif… ' + B.name + ' pleure !', 'Pauvre ' + B.name + ' !', B.name + ' a perdu !']), '#ff9fd0', 15, 2.2, -14); SFX.sad(); });
       for (const b of S.balls) { b.stuck = false; }
       S.eff.net = Math.max(S.eff.net, 8);
     }
@@ -3397,7 +3409,7 @@
       SFX.tink();
     }
     function bossShoot(kind, x, y, vx, vy, extra) { S.shots.push(Object.assign({ kind, x, y, vx, vy, r: 8, rot: 0, vr: rand(-3, 3), g: 160, t: 0 }, extra || {})); SFX.shot(); }
-    // les visées des boss suivent le hasard « à graine » (compétition : mêmes attaques pour tous)
+    // les visées des boss suivent le hasard « à graine » (api.seed : mêmes attaques à graine égale)
     function br(a, b) { return crnd('boss', a, b); }
     function aimX(spread) { return clamp(S.paddle.x + br(-spread, spread), 30, W - 30); }
     function updateShots(dt) {
@@ -3831,6 +3843,11 @@
         ctx.fillStyle = rgba(C.accent2, 0.85);
         for (let y = HUD_H + 16; y < H; y += 34) { ctx.beginPath(); ctx.moveTo(x0 + WALL / 2, y - 5); ctx.lineTo(x0 + WALL - 2, y); ctx.lineTo(x0 + WALL / 2, y + 5); ctx.lineTo(x0 + 2, y); ctx.closePath(); ctx.fill(); }
         ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x0 + (x0 ? 1 : WALL - 2), HUD_H, 1, H - HUD_H);
+        // pied du mur : un socle posé sur la promenade (la bande du pouce est dessous, hors de l'aire de jeu)
+        const bx = x0 - 3, bw = WALL + 6, by = H - 7;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ell(ctx, x0 + WALL / 2, H + 4, WALL + 5, 3.2, 0); ctx.fill();
+        rr(ctx, bx, by, bw, 10, 2.5); ctx.fillStyle = lin(ctx, 0, by, 0, by + 10, [[0, shade(C.accent, -0.05)], [1, shade(C.accent, -0.62)]]); ctx.fill();
+        ctx.fillStyle = rgba(C.accent2, 0.95); ctx.fillRect(bx + 1, by, bw - 2, 1.6);
       }
       // plafond : frise
       ctx.fillStyle = lin(ctx, 0, HUD_H - 6, 0, HUD_H + 2, [[0, shade(C.accent, -0.5)], [1, shade(C.accent, -0.2)]]);
@@ -4245,7 +4262,7 @@
 
     // ---------- bandeau du haut (dans l'aire de jeu) ----------
     function drawHUD() {
-      if (FY > 0.5) { S0(); ctx.fillStyle = 'rgba(6,8,22,0.86)'; ctx.fillRect(FX, 0, W * U, FY + 1); }
+      if (FY > 0.5 && !wide) { S0(); ctx.fillStyle = 'rgba(6,8,22,0.86)'; ctx.fillRect(FX, 0, W * U, FY + 1); }
       SF(true);
       const Wd = CARREAUX_WORLDS[S.wi], acc = Wd.colors.accent;
       ctx.fillStyle = lin(ctx, 0, 0, 0, HUD_H, [[0, 'rgba(6,8,22,0.82)'], [1, 'rgba(6,8,22,0.55)']]); ctx.fillRect(0, 0, W, HUD_H - 4);
@@ -4274,11 +4291,10 @@
         bigText('×' + String(m).replace('.', ','), x, y - 2, 10, m > 1 ? '#ffd34d' : '#ffffff', 28);
         smallText(String(S.combo), x, y + 9, 7, 'rgba(255,255,255,0.8)', 'center', 700);
       }
-      if (COMPET) { pill(6, 47, 84, 14, '#ff4d5e'); smallText('COMPÉTITION', 48, 54, 7.5, '#ffb0b8', 'center', 700); }
       // barre de vie du boss
       const B = S.boss;
       if (B && (B.state !== 'enter' || B.st > 0.8) && !B.exploded) {
-        const y = COMPET ? 64 : 52, x0 = 22, w = W - 44, k = clamp(B.hp / B.max, 0, 1);
+        const y = 52, x0 = 22, w = W - 44, k = clamp(B.hp / B.max, 0, 1);
         rr(ctx, x0, y, w, 14, 7); ctx.fillStyle = 'rgba(8,10,28,0.8)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = rgba(Wd.colors.accent2, 0.9); ctx.stroke();
         if (k > 0) { rr(ctx, x0 + 2, y + 2, (w - 4) * k, 10, 5); ctx.fillStyle = lin(ctx, x0, 0, x0 + w, 0, [[0, '#ff4d6d'], [0.5, Wd.colors.accent2], [1, '#ffd34d']]); ctx.fill(); }
         ctx.fillStyle = 'rgba(255,255,255,0.7)'; for (const f of [1 / 3, 2 / 3]) ctx.fillRect(x0 + w * f - 1, y + 2, 2, 10);
@@ -4301,20 +4317,22 @@
     // ---------- panneaux sur les côtés (ordinateur) ----------
     function drawSidePanels() {
       if (!wide) return;
-      // tout le panneau est dessiné à l'échelle k (paysage sur téléphone : plus petit, mais complet)
-      const k = clamp(Math.min(ch / 540, (FX - 20) / 268), 0.5, 1);
+      // tout le panneau est dessiné à l'échelle k (paysage sur téléphone : plus petit, mais complet ; grand écran : plus
+      // grand) : les deux panneaux ont la hauteur de l'aire de jeu, les trois colonnes sont alignées sur la promenade
+      const k = clamp(Math.min(H * U / 470, (FX - 20) / 268), 0.5, clamp(ch / 650, 1.5, 2));
       ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
       const vFX = FX / k, vch = ch / k, vFW = W * U / k, vFY = FY / k;
       const Wd = CARREAUX_WORLDS[S.wi], acc = Wd.colors.accent;
-      const pw = Math.min(250, vFX - 34), lx = vFX - pw - 18, rx = vFX + vFW + 18, top = Math.max(12, vFY + 10);
-      // gauche : le voyage
-      const lh = Math.min(vch - top - 14, 470);
+      const pw = Math.min(250, vFX - 34), lx = vFX - pw - 18, rx = vFX + vFW + 18, top = vFY;
+      // gauche : le voyage (sur un panneau plus haut, les pays s'espacent un peu et restent au milieu)
+      const lh = Math.min(vch - top - 8, Math.max(470, H * U / k));
       panel(lx, top, pw, lh, acc, 0.94);
       bigText('CASSE-CARREAUX', lx + pw / 2, top + 26, 17, '#ffffff', pw - 24);
       smallText('Le tour du monde des carreaux' + (S.tour ? ' · Tour ' + roman(S.tour) : ''), lx + pw / 2, top + 46, 11, rgba(acc, 0.95), 'center', 600, 1, pw - 20);
-      const rowH = Math.min(62, (lh - 70) / NW);
+      const rowH = Math.min(62, (lh - 70) / NW), pitch = rowH + clamp((lh - 70 - NW * rowH) / NW, 0, 22);
+      const y0 = top + 62 + Math.max(0, (lh - 72 - NW * pitch) / 2);
       for (let i = 0; i < NW; i++) {
-        const D = CARREAUX_WORLDS[i], y = top + 62 + i * rowH, cur = i === S.wi, done = i < S.wi;
+        const D = CARREAUX_WORLDS[i], y = y0 + i * pitch, cur = i === S.wi, done = i < S.wi;
         if (cur) { rr(ctx, lx + 8, y, pw - 16, rowH - 6, 10); ctx.fillStyle = rgba(D.colors.accent, 0.18); ctx.fill(); ctx.strokeStyle = rgba(D.colors.accent, 0.9); ctx.lineWidth = 1.5; ctx.stroke(); }
         ctx.save(); ctx.translate(lx + 30, y + (rowH - 6) / 2); ctx.globalAlpha = done || cur ? 1 : 0.5; paintWorldIcon(ctx, i, Math.min(17, rowH * 0.32), S.clock); ctx.restore();
         smallText(D.name.toUpperCase(), lx + 54, y + rowH * 0.3, 11, cur ? '#ffffff' : done ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)', 'left', 700, 1, pw - 70);
@@ -4323,7 +4341,7 @@
         if (cur) for (let k = 0; k < 3; k++) { ctx.fillStyle = k < S.stage ? '#ffd34d' : k === S.stage ? '#ffffff' : 'rgba(255,255,255,0.25)'; circ(ctx, lx + pw - 40 + k * 10, y + rowH * 0.62, 3); ctx.fill(); }
       }
       // droite : score, niveau, bonus, commandes
-      const rh = Math.min(vch - top - 14, 470);
+      const rh = lh;
       panel(rx, top, pw, rh, acc, 0.94);
       smallText('SCORE', rx + 18, top + 22, 11, acc, 'left', 700);
       ctx.save(); ctx.textAlign = 'left'; bigText(fmt(S.shown), rx + pw / 2, top + 48, 26, '#ffffff', pw - 30); ctx.restore();
@@ -4409,8 +4427,17 @@
     }
     function drawLaunchHint() {
       if (S.state !== 'play' || !S.balls.some((b) => b.stuck) || S.launchHint <= 0) return;
+      const a = 0.55 + 0.35 * Math.sin(S.clock * 5), band = ch - FY - PB * U;
+      if (touchUI && !wide && band >= 44) {
+        // téléphone : la consigne est dans la bande du pouce, sous la raquette (c'est là qu'on glisse)
+        S0();
+        const cx = FX + W * U / 2, cy = FY + PB * U + band * 0.48, tw = Math.min(W * U - 24, 300), th = 30;
+        rr(ctx, cx - tw / 2, cy - th / 2, tw, th, th / 2); ctx.fillStyle = 'rgba(6,8,22,' + (0.42 + a * 0.2) + ')'; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,' + a * 0.5 + ')'; ctx.lineWidth = 1.2; ctx.stroke();
+        smallText('‹  Glisse ici · lâche pour lancer  ›', cx, cy + 0.5, 12, 'rgba(255,255,255,' + Math.min(1, a + 0.15) + ')', 'center', 700, 1, tw - 16);
+        return;
+      }
       SF(true);
-      const a = 0.55 + 0.35 * Math.sin(S.clock * 5);
       smallText(touchUI ? 'Glisse pour viser · lâche pour lancer' : 'Clic ou ESPACE pour lancer', W / 2, PY - 92, 11, 'rgba(255,255,255,' + a + ')', 'center', 700);
     }
     function drawCallouts() {
@@ -4628,7 +4655,7 @@
       smallText(CARREAUX_WORLDS[S.wi].name + ' · niveau ' + S.level + ' · ' + fmt(S.score) + ' points', W / 2, 360, 11, '#ffd34d', 'center', 700, a, W - 40);
     }
 
-    // ===================================================================== TUTORIEL (3 étapes, une seule fois, jamais en compétition)
+    // ===================================================================== TUTORIEL (3 étapes, une seule fois)
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -4651,28 +4678,34 @@
       const sx = k.x + 16, sy = k.y + 56, sw = k.w - 32, sh = Math.min(200, k.h - 190);
       ctx.save(); rr(ctx, sx, sy, sw, sh, 12); ctx.clip();
       ctx.fillStyle = lin(ctx, 0, sy, 0, sy + sh, [[0, '#2a5fae'], [1, '#8fd3ff']]); ctx.fillRect(sx, sy, sw, sh);
-      const s = sw / 300, ox = sx, oy = sy;
+      const s = sw / 300, ox = sx, oy = sy, mb = sh / s;
+      // la promenade sous la raquette (calçada) : c'est là que se pose le pouce
+      const pvY = oy + (mb - 30) * s;
+      ctx.fillStyle = '#efe8da'; ctx.fillRect(sx, pvY, sw, sy + sh - pvY);
+      ctx.strokeStyle = '#3a3a44'; ctx.lineWidth = 2 * s;
+      for (let r = 0; r < 2; r++) { ctx.beginPath(); for (let x = 0; x <= 300; x += 6) { const y = pvY + (9 + r * 12) * s + Math.sin(x * 0.07 + r * 1.3) * 2.2 * s; if (x) ctx.lineTo(ox + x * s, y); else ctx.moveTo(ox, y); } ctx.stroke(); }
+      ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(sx, pvY, sw, 2 * s);
       const tileAtT = (c, r, v) => { ctx.save(); ctx.translate(ox + (20 + c * 26) * s, oy + (16 + r * 26) * s); ctx.scale(24 * s / 32, 24 * s / 32); paintAzulejo(ctx, 'n', v, 32); ctx.restore(); };
       const padX = st === 0 ? 150 + Math.sin(tt * 1.6) * 90 : st === 1 ? 150 + Math.sin(tt * 2.2) * 40 : 150 + Math.sin(tt * 1.2) * 25;
       if (st >= 1) for (let c = 0; c < 10; c++) for (let r = 0; r < 2; r++) { const gone = st === 1 && ((c === 3 && r === 1 && (tt % 2.4) > 0.9) || (c === 6 && r === 1 && (tt % 2.4) > 1.9)); if (!gone) tileAtT(c, r, (c + r) % 2 ? 0 : 3); }
-      // la raquette
-      ctx.save(); ctx.translate(ox + padX * s, oy + (sh / s - 26) * s);
+      // la raquette, au-dessus de la promenade
+      ctx.save(); ctx.translate(ox + padX * s, oy + (mb - 46) * s);
       rr(ctx, -34 * s, 0, 68 * s, 11 * s, 5.5 * s); ctx.fillStyle = lin(ctx, 0, 0, 0, 11 * s, [[0, '#ffffff'], [1, '#c9d6ea']]); ctx.fill(); ctx.strokeStyle = 'rgba(10,10,30,0.6)'; ctx.lineWidth = 1.2; ctx.stroke();
       ctx.restore();
       if (st === 0) {
-        // le doigt (ou la souris) qui glisse
-        const fx = ox + (150 + Math.sin(tt * 1.6) * 90 + 10) * s, fy = oy + (sh / s - 60) * s;
-        if (touchUI) { ctx.fillStyle = 'rgba(255,255,255,0.3)'; circ(ctx, fx, fy, 22 * s); ctx.fill(); ctx.fillStyle = '#ffffff'; circ(ctx, fx, fy, 12 * s); ctx.fill(); ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.stroke(); }
-        else { ctx.save(); ctx.translate(fx, fy); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.lineTo(6, 16); ctx.lineTo(11, 26); ctx.lineTo(15, 24); ctx.lineTo(10, 14); ctx.lineTo(18, 14); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(ox + 50 * s, fy + 34 * s); ctx.lineTo(ox + 250 * s, fy + 34 * s); ctx.stroke(); ctx.setLineDash([]);
+        // le doigt (ou la souris) qui glisse sur la promenade, sous la raquette
+        const fx = ox + (150 + Math.sin(tt * 1.6) * 90 + 10) * s, fy = oy + (mb - 15) * s;
+        ctx.strokeStyle = 'rgba(40,40,60,0.45)'; ctx.lineWidth = 2; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(ox + 50 * s, fy); ctx.lineTo(ox + 250 * s, fy); ctx.stroke(); ctx.setLineDash([]);
+        if (touchUI) { ctx.fillStyle = 'rgba(255,255,255,0.45)'; circ(ctx, fx, fy, 15 * s); ctx.fill(); ctx.fillStyle = '#ffffff'; circ(ctx, fx, fy, 9 * s); ctx.fill(); ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.stroke(); }
+        else { ctx.save(); ctx.translate(fx, fy - 8 * s); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.lineTo(6, 16); ctx.lineTo(11, 26); ctx.lineTo(15, 24); ctx.lineTo(10, 14); ctx.lineTo(18, 14); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
       } else if (st === 1) {
         // la bille rebondit et casse des carreaux
-        const ph = (tt % 1.2) / 1.2, bx = ox + (padX + (ph < 0.5 ? -1 : 1) * 30 * Math.sin(ph * Math.PI)) * s, by = oy + (sh / s - 34 - Math.sin(ph * Math.PI) * (sh / s - 90)) * s;
+        const ph = (tt % 1.2) / 1.2, bx = ox + (padX + (ph < 0.5 ? -1 : 1) * 30 * Math.sin(ph * Math.PI)) * s, by = oy + (mb - 54 - Math.sin(ph * Math.PI) * (mb - 110)) * s;
         ctx.fillStyle = rad(ctx, bx - 2, by - 2, 0, bx, by, 7 * s, [[0, '#ffffff'], [1, '#9fc4ff']]); circ(ctx, bx, by, 6 * s); ctx.fill();
         if (ph > 0.42 && ph < 0.58) sparks0(bx, by - 10 * s, s);
       } else {
         // une capsule tombe, le boss attend en haut
-        const cy2 = oy + (20 + ((tt * 70) % (sh / s - 40))) * s;
+        const cy2 = oy + (20 + ((tt * 70) % (mb - 80))) * s;
         ctx.save(); ctx.translate(ox + 150 * s, cy2); paintCapsule(ctx, 'multi', 13 * s); ctx.restore();
         ctx.save(); ctx.translate(ox + 240 * s, oy + 50 * s); ctx.scale(0.32 * s, 0.32 * s); paintCoq(ctx, { t: tt, ph: 0, dir: -1, walking: true }); ctx.restore();
         for (let i = 0; i < NW; i++) { ctx.save(); ctx.translate(ox + (30 + i * 22) * s, oy + 30 * s); paintWorldIcon(ctx, i, 9 * s, tt); ctx.restore(); }
@@ -4680,7 +4713,7 @@
       ctx.restore();
       const titles = [touchUI ? 'GLISSE POUR BOUGER' : 'BOUGE LA SOURIS', 'CASSE LES CARREAUX', 'FAIS LE TOUR DU MONDE'];
       const texts = [
-        touchUI ? ['Glisse le doigt n\'importe où sur l\'écran :', 'la raquette suit. Lâche pour lancer la bille.'] : ['La raquette suit la souris (ou les flèches ← →).', 'Clic ou ESPACE pour lancer la bille.'],
+        touchUI ? ['Pose le pouce sous la raquette et glisse :', 'elle suit ton doigt. Lâche pour lancer la bille.'] : ['La raquette suit la souris (ou les flèches ← →).', 'Clic ou ESPACE pour lancer la bille.'],
         ['Renvoie la bille sur les carreaux.', 'Une seule vie : ne la laisse pas tomber !'],
         ['Attrape les bonus, bats le boss de chaque pays', 'et collectionne les tampons du passeport !']
       ];

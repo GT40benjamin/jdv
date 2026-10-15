@@ -6,7 +6,7 @@
   // La bombe de lavande défend la maison de vacances contre les insectes, du matin à la nuit :
   // 6 MONDES de 3 vagues (2 vagues, puis le boss du monde), puis le jour suivant, plus coriace.
   // Tir automatique, une seule vie, combo jusqu'à x5, tapette géante (jauge), bulles de bonus.
-  // L'aire de jeu logique est FIXE (400 x 760) : même partie sur tous les écrans (compétition) ;
+  // L'aire de jeu logique est FIXE (400 x 760) : même partie sur tous les écrans (graine, coop) ;
   // le décor du monde remplit tout l'écran autour (téléphone en hauteur comme ordinateur).
   // ===========================================================================
   const W = 400, H = 760;
@@ -2319,10 +2319,9 @@
     const AU = api.audio || {};
     const FD = (api.fonts && api.fonts.display) || "'Bungee', Impact, sans-serif";
     const FB = (api.fonts && api.fonts.body) || "'Chakra Petch', system-ui, sans-serif";
-    // ---- mode compétition (CONTRACT.md Ajout 6) : vague de départ, badge, graine
+    // ---- vague de départ et graine (CONTRACT.md Ajout 6 : outils de test, graine de la coop)
     const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
     const START = num(api.startLevel) >= 1 ? Math.min(99, num(api.startLevel)) : 1;
-    const COMPET = api.mode === 'compet';
     const SEED = Number.isFinite(num(api.seed)) ? (num(api.seed) >>> 0) : null;
     // le hasard du CONTENU (formations, plongeons, gouttes, bonus, boss, têtes) vient de flux mulberry32
     // re-grainés à chaque vague : avec api.seed, la vague N est la même pour tous. Effets : Math.random.
@@ -4709,20 +4708,6 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillText(fmt(dispScore), 0, 0);
       ctx.restore();
-      if (COMPET) {
-        ctx.font = '700 9px ' + FB;
-        const bw = ctx.measureText('COMPÉTITION').width + 12, bx = sx;
-        ctx.fillStyle = 'rgba(60,34,6,0.92)';
-        rrect(ctx, bx, 49, bw, 14, 7);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,166,48,0.9)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = '#ffd34d';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('COMPÉTITION', bx + 6, 56.5);
-      }
       // centre : monde, vague, avancée dans le monde
       const cW = Math.min(172, wd - scoreW - (wide ? 40 : 120));
       const cx = clamp(x0 + wd / 2 + (wide ? 0 : -6), sx + scoreW + 6 + cW / 2, x1 - (wide ? 60 : 104) - cW / 2);
@@ -4778,7 +4763,7 @@
     }
     // sous le HUD : barre de vie du boss, ou ligne d'info (essaim, festin, mistral)
     function drawSubHud() {
-      const x0 = wide ? FX : 0, x1 = wide ? FX + FW : cw, cx = (x0 + x1) / 2, y = COMPET ? 70 : 62;
+      const x0 = wide ? FX : 0, x1 = wide ? FX + FW : cw, cx = (x0 + x1) / 2, y = 62;
       if (boss && state !== 'over' && state !== 'dying' && state !== 'bossdeath') {
         const B = BOSSES[boss.kind], w = Math.min(x1 - x0 - 24, 340), bx = cx - w / 2;
         const k = clamp(boss.hp / boss.max, 0, 1), a = state === 'intro' ? clamp((stateT - 0.6) * 3, 0, 1) : 1;
@@ -5120,9 +5105,9 @@
       if (paused) drawPause();
     }
 
-    // ---------------------------------------------------------------- tutoriel animé (3 étapes, premier lancement, jamais en compétition)
+    // ---------------------------------------------------------------- tutoriel animé (3 étapes, premier lancement)
     let tuto = null;
-    if (!COMPET && pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
+    if (pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -5576,7 +5561,7 @@
     }
 
     // ---------------------------------------------------------------- départ
-    // départ direct à une vague avancée (compétition) : les insectes des vagues sautées sont déjà connus
+    // départ direct à une vague avancée (?start=) : les insectes des vagues sautées sont déjà connus
     for (let w = 1; w < START; w++) { const m = waveMeta(w); if (m.cyc === 0 && m.kind !== 'boss') for (const ty of m.W.intro[m.st] || []) introduced.add(ty); }
     layout();
     started = true;

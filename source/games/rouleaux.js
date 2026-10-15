@@ -98,7 +98,7 @@
   }
   function fmt(n) { return String(Math.max(0, Math.floor(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
   function mmss(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-  // PRNG à graine (mode compétition : même tirage pour tous les concurrents)
+  // PRNG à graine (api.seed : même tirage à graine égale)
   function mulberry32(a) {
     return function () {
       a |= 0; a = a + 0x6D2B79F5 | 0;
@@ -2901,9 +2901,8 @@
       night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae',
       amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a'
     }, api.colors || {});
-    // mode compétition (CONTRACT.md Ajout 6) : niveau de départ, badge, graine du tirage des copains
+    // départ à un niveau et graine du tirage des copains (CONTRACT.md Ajout 6 : outils de test, graine de la coop)
     const START = (() => { const n = Math.floor(+api.startLevel); return n >= 1 ? Math.min(n, 999) : 1; })();
-    const COMPET = api.mode === 'compet';
     const SEED = api.seed != null && api.seed !== '' && isFinite(api.seed) ? Math.floor(+api.seed) : null;
     const doc = document;
     let destroyed = false, raf = 0;
@@ -3229,7 +3228,6 @@
     let W = 300, H = 300, dpr = 1, S = 1, playX = 0, playY = 0, playW = LW, playH = LH, hudH = 46, sideMode = false, fine = false, portrait = false;
     let camMode = false, camX = 0, manualT = -99, scrollBar = null;
     const btns = [];
-    let badgeBelow = false;
     function layout() {
       if (destroyed) return;
       const r = root.getBoundingClientRect();
@@ -3316,7 +3314,6 @@
           btns.push({ id, x: rx0 + c * (bw + gap), y: by0 + row * (bhB + gap), w: bw, h: bhB, press: 0 });
         });
       }
-      badgeBelow = COMPET && playY - hudH - (scrollBar ? 32 : 0) >= 28;
       if (wd) { buildTerrain(lazy); if (!lazy) buildBackdrop(); }
     }
     // caméra (portrait) : suit les rouleaux, sauf si le joueur vient de la déplacer
@@ -4486,26 +4483,6 @@
       ctx.font = '700 ' + sub + 'px ' + FB; ctx.fillStyle = Wd.colors.accent;
       if (!narrow) ctx.fillText(Wd.name.toUpperCase() + (cycle > 0 ? '  ·  TOUR ' + (cycle + 1) : ''), cx, y0);
       else if (cycle > 0) ctx.fillText('TOUR ' + (cycle + 1), cx, y0);
-      if (COMPET) drawBadge();
-    }
-    function drawBadge() {
-      ctx.save();
-      ctx.font = '12px ' + FD; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      const bh = 18, bw = Math.ceil(ctx.measureText('COMPÉTITION').width) + 28;
-      const cx = badgeBelow ? playX + playW / 2 : W / 2, cy = badgeBelow ? hudH + 4 + bh / 2 : hudH + bh / 2 + 3;
-      const bx = Math.round(cx - bw / 2) + 0.5, by = Math.round(cy - bh / 2) + 0.5;
-      rr(ctx, bx, by, bw, bh, bh / 2);
-      ctx.fillStyle = 'rgba(6,12,18,0.78)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(255,211,77,0.7)'; ctx.lineWidth = 1; ctx.stroke();
-      const ix = bx + 11, iy = by + bh / 2;
-      ctx.fillStyle = COL.gold; ctx.strokeStyle = COL.gold;
-      ctx.beginPath(); ctx.moveTo(ix - 3.2, iy - 4); ctx.lineTo(ix + 3.2, iy - 4);
-      ctx.quadraticCurveTo(ix + 3.2, iy + 0.8, ix, iy + 1); ctx.quadraticCurveTo(ix - 3.2, iy + 0.8, ix - 3.2, iy - 4); ctx.fill();
-      ctx.beginPath(); ctx.arc(ix - 3.2, iy - 2.4, 1.5, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
-      ctx.beginPath(); ctx.arc(ix + 3.2, iy - 2.4, 1.5, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
-      ctx.fillRect(ix - 0.6, iy + 1, 1.2, 1.8); ctx.fillRect(ix - 2.4, iy + 2.6, 4.8, 1.4);
-      ctx.fillText('COMPÉTITION', bx + 19, iy + 1);
-      ctx.restore();
     }
 
     // ---------- Boutons des outils ----------
@@ -4973,7 +4950,7 @@
       ctx.restore();
     }
 
-    // ---------- Tutoriel animé (3 étapes, premier lancement, jamais en compétition) ----------
+    // ---------- Tutoriel animé (3 étapes, premier lancement) ----------
     let tuto = null;
     function tutoNext(skip) {
       if (!tuto) return;
@@ -5356,8 +5333,8 @@
     }
 
     // ---------- Départ ----------
-    loadLevel(START - 1);   // compétition : directement au niveau demandé (les précédents comptent comme réussis, sans leurs points)
-    if (!COMPET && pref(TUTO_KEY, '0') !== '1') { tuto = { step: 0, t: 0 }; state = 'tuto'; }
+    loadLevel(START - 1);   // ?start= : directement au niveau demandé (les précédents comptent comme réussis, sans leurs points)
+    if (pref(TUTO_KEY, '0') !== '1') { tuto = { step: 0, t: 0 }; state = 'tuto'; }
     else { state = 'arrive'; stateT = 0; SFX.arrive(); }
     if (doc.hidden) paused = true;
     raf = requestAnimationFrame(frame);

@@ -1,2 +1,1 @@
-⌨️ Chat : le champ « Écris à la bande » reste toujours au-dessus du clavier, avec les derniers messages en vue
-📱 Jeux en paysage sur téléphone : la barre du haut devient un petit rail à gauche (✕, plein écran, son), le jeu prend toute la hauteur
+🧱 Casse-Carreaux : la raquette remonte, ton pouce glisse sur la promenade sans cacher la bille ; sur ordinateur, le jeu tient dans l'écran entre ses deux panneaux

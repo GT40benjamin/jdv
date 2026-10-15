@@ -24,7 +24,7 @@
   const ease = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k));
   const hsl = (h, s, l, a) => 'hsla(' + Math.round(((h % 360) + 360) % 360) + ',' + s + '%,' + l + '%,' + (a == null ? 1 : a) + ')';
   function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
-  // générateur à graine (mode compétition : api.seed) — mulberry32 standard
+  // générateur à graine (api.seed) — mulberry32 standard
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function hexA(hex, a) {
     const n = parseInt(hex.slice(1), 16);
@@ -1149,13 +1149,12 @@
     const TRAIL = new Float32Array(2 * 16);      // traînée lumineuse (bouts d'ailes)
     let trailN = 0, trailT = 0;
 
-    // ------------------------------------------------------------- mode compétition (CONTRACT.md Ajout 6)
-    // api.startLevel : départ direct au niveau cycle * 8 + secteur (borné à 80 = cycle X secteur 8) ; api.mode 'compet' : badge.
+    // ------------------------------------------------------------- départ à un niveau et graine (CONTRACT.md Ajout 6)
+    // api.startLevel (outil de test) : départ direct au niveau cycle * 8 + secteur (borné à 80 = cycle X secteur 8).
     // api.seed : le hasard du jeu (vagues, groupes, événements, ennemis, mini-boss, boss, capsules, éclats) vient de mulberry32,
-    // re-grainé par secteur, vague, groupe, salve, ennemi et boss → même partie pour tous, quoi que fassent les joueurs.
+    // re-grainé par secteur, vague, groupe, salve, ennemi et boss → même partie à graine égale, quoi que fassent les joueurs.
     // Les effets (particules, explosions, étoiles, décor, sons, tremblements) et le choix des têtes restent sur Math.random.
     // Sans graine, rng et luck restent null : exactement les mêmes appels à Math.random qu'avant.
-    const COMPET = api.mode === 'compet';
     const START = Math.min(80, Math.max(1, Math.floor(Number(api.startLevel)) || 1));
     const SEED = typeof api.seed === 'number' && Number.isFinite(api.seed) ? api.seed >>> 0 : null;
     let lvlSeed = 0, rng = null, luck = null;      // rng : tirage du contenu en cours ; luck : capsules du secteur
@@ -4057,15 +4056,6 @@
       for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + Math.PI / 6; if (i) ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); else ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
       ctx.closePath();
     }
-    function compBadge(x, y) {                   // pastille « COMPÉTITION » centrée sur y ; renvoie sa largeur
-      setFont(9, false);
-      const w = ctx.measureText('COMPÉTITION').width + 10;
-      rrect(ctx, x, y - 6.5, w, 13, 6.5);
-      ctx.fillStyle = 'rgba(30,18,2,0.66)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(255,166,48,0.8)'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.textAlign = 'left'; ctx.fillStyle = '#ffd34d'; ctx.fillText('COMPÉTITION', x + 5, y + 3.3);
-      return w;
-    }
     function drawHUD() {
       S0();
       if (!hudGrad || hudGradLH !== LH) { hudGradLH = LH; hudGrad = ctx.createLinearGradient(0, 0, 0, 60); hudGrad.addColorStop(0, 'rgba(1,4,10,0.86)'); hudGrad.addColorStop(0.7, 'rgba(1,4,10,0.5)'); hudGrad.addColorStop(1, 'rgba(1,4,10,0)'); }
@@ -4091,12 +4081,7 @@
         const ph = dir.phase === 'boss' || dir.phase === 'warn' || dir.phase === 'bossdead' ? 'BOSS' : dir.phase === 'mini' || dir.phase === 'mwarn' ? 'MINI-BOSS' : dir.wave > 0 ? 'VAGUE ' + dir.wave + '/' + dir.nW : '';
         lineStr = cyc + 'SECTEUR ' + (secI + 1) + (ph ? ' · ' + ph : '');
       }
-      if (!COMPET) txt(lineStr, 10 + jx, 43, 10, '#a9c2d4', 'left', true, 0);
-      else {                                         // mode compétition : badge devant le secteur (ligne tassée si elle atteint les bombes)
-        const lx = 10 + jx + compBadge(10 + jx, 39.5) + 6;
-        setFont(10, true); ctx.textAlign = 'left'; ctx.fillStyle = '#a9c2d4';
-        ctx.fillText(lineStr, lx, 43, Math.max(40, hudRight() - 34 - lx));
-      }
+      txt(lineStr, 10 + jx, 43, 10, '#a9c2d4', 'left', true, 0);
       // bulle de protection (une seule : sans elle, un coup = mort)
       const hr = hudRight();
       {
@@ -4574,7 +4559,7 @@
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => resize()); ro.observe(root); }
     else on(window, 'resize', resize);
     resize();
-    if (START > 1) {                             // compétition : on démarre au niveau START, comme si les précédents étaient réussis
+    if (START > 1) {                             // ?start= : on démarre au niveau START, comme si les précédents étaient réussis
       secI = (START - 1) % SECTORS.length; cycle = Math.floor((START - 1) / SECTORS.length);
       sectorsDone = bossCount = START - 1;         // (sans leurs points ni leurs félicitations)
       P.shield = 1; P.power = 2;                   // butin du dernier boss battu : capsules S et P

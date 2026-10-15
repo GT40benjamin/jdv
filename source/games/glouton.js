@@ -1158,10 +1158,9 @@
     const AU = api.audio || {};
     const FD = (api.fonts && api.fonts.display) || "'Bungee', Impact, sans-serif";
     const FB = (api.fonts && api.fonts.body) || "'Chakra Petch', system-ui, sans-serif";
-    // mode compétition (CONTRACT.md Ajout 6) : niveau de départ, badge, graine
+    // départ à un niveau et graine (CONTRACT.md Ajout 6 : outils de test, graine de la coop)
     const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
     const startLevel = num(api.startLevel) >= 1 ? Math.min(99, num(api.startLevel)) : 1;
-    const COMPET = api.mode === 'compet';
     const SEED = Number.isFinite(num(api.seed)) ? (num(api.seed) >>> 0) : null;
     const baseSeed = SEED !== null ? SEED : ((Math.random() * 4294967296) >>> 0);
     const doc = document;
@@ -1590,7 +1589,7 @@
       pu = null; puNext = 9 + rand() * 6; puN = 0; palmesT = 0; iceT = 0; magnetT = 0;
       bomb = null; bombDone = !F.bomb; bombAt = 0.3 + rand() * 0.3; bombT = 0;
       darkPhase = 0; darkAmt = 0; elroy = 0;
-      // nouveau microbe présenté dans le bandeau (seulement si on l'a vu arriver, pas au départ d'une compétition)
+      // nouveau microbe présenté dans le bandeau (seulement si on l'a vu arriver, pas au départ à un niveau avancé)
       let fresh = null;
       if (level > startLevel || level === 1) for (const k of kinds) if (prevKinds.indexOf(k) < 0 && level <= 7) { fresh = k; break; }
       if (F.boss) fresh = 'boss';
@@ -3006,22 +3005,6 @@
       } else {
         drawDuck(ctx, right - ds / 2, cy + 2, ds, { dir: 2, flip: -1, t: 0, flap: 0.3 });
       }
-      if (COMPET) {
-        ctx.font = '600 10px ' + FB;
-        const bx = Math.round(10 + ctx.measureText('SCORE').width + 6);
-        const txt = 'COMPÉTITION';
-        ctx.font = '8px ' + FD;
-        const tw = ctx.measureText(txt).width;
-        const bw = tw + 10, bh = 12, by = 5;
-        ctx.fillStyle = 'rgba(5,10,16,0.8)';
-        ctx.strokeStyle = 'rgba(255,166,48,0.85)';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); rrect(ctx, bx + 0.5, by + 0.5, bw, bh, bh / 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = ACCENT;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(txt, bx + 5.5, by + bh / 2 + 1.2);
-      }
     }
 
     function drawPause() {
@@ -3038,9 +3021,9 @@
     }
 
 
-    // ---------- Tutoriel animé (3 étapes, premier lancement, jamais en compétition) ----------
+    // ---------- Tutoriel animé (3 étapes, premier lancement) ----------
     let tuto = null;
-    if (!COMPET && pref(TUTO_KEY, '0') !== '1') { state = 'tuto'; tuto = { step: 0, t: 0 }; }
+    if (pref(TUTO_KEY, '0') !== '1') { state = 'tuto'; tuto = { step: 0, t: 0 }; }
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();

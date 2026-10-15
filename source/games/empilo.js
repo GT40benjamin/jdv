@@ -225,7 +225,7 @@
   function hash(i) { const s = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); }
   function easeOutBack(k) { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); }
   function easeOutCubic(k) { return 1 - Math.pow(1 - k, 3); }
-  // PRNG à graine (mode compétition : le même contenu pour tous les concurrents)
+  // PRNG à graine (api.seed : le même contenu à graine égale)
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   // ---------- Petits dessins réutilisés (fleur, feuille, étoile) ----------
@@ -1738,10 +1738,9 @@
       amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a'
     }, api.colors || {});
 
-    // ---------- Mode compétition (CONTRACT.md, Ajout 6) ----------
+    // ---------- Départ à un niveau et graine (CONTRACT.md, Ajout 6 : outils de test, graine de la coop) ----------
     const num = (v) => (v == null || v === '' ? NaN : Math.floor(Number(v)));
     const lvl0 = num(api.startLevel) >= 1 ? Math.min(99, num(api.startLevel)) : 1;
-    const COMPET = api.mode === 'compet';
     // hasard du contenu : Math.random sans api.seed ; avec une graine, un flux mulberry32 par sorte de contenu
     // (flux décalés de 2^28 tirages). Les effets (particules, sons, textes, têtes) restent sur Math.random.
     const SEED = Number.isFinite(num(api.seed)) ? num(api.seed) | 0 : null;
@@ -2151,7 +2150,7 @@
     // ---------- Tutoriel (premier lancement, mémorisé sur l'appareil) ----------
     const tutoSeen = pref(TUTO_KEY, '0') === '1';
     let tuto = null;
-    if (!COMPET && !tutoSeen) { state = 'tuto'; tuto = { step: 0, t: 0 }; }
+    if (!tutoSeen) { state = 'tuto'; tuto = { step: 0, t: 0 }; }
     function tutoNext(skip) {
       if (!tuto) return;
       SFX.tick();
@@ -4617,18 +4616,6 @@
         }
       }
     }
-    function drawCompetBadge() {
-      if (!COMPET) return;
-      const fs = Math.round(clamp(c * 0.36, 8, 11));
-      ctx.font = fs + 'px ' + FD;
-      const tx = 'COMPÉTITION', bw = Math.round(ctx.measureText(tx).width + fs * 1.4), bh = Math.round(fs * 1.7);
-      const bx = Math.round(gx + gridW / 2 - bw / 2), by = Math.round(gy - bh / 2 - 3);
-      ctx.fillStyle = 'rgba(14,6,26,0.92)';
-      rr(ctx, bx, by, bw, bh, bh / 2); ctx.fill();
-      ctx.strokeStyle = rgba(GOLD, 0.8); ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = GOLD; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(tx, bx + bw / 2, by + bh / 2 + 1);
-    }
 
     // ---------- Tutoriel animé (3 étapes) ----------
     function tutoCard() {
@@ -4776,7 +4763,6 @@
       drawBoard();
       drawFrame();
       drawBadge();
-      drawCompetBadge();
       drawFx();
       ctx.restore();
       // panneaux (immobiles) ; en portrait, un voile sous la bande du haut garde le score lisible sur un ciel clair

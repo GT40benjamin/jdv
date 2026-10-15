@@ -59,10 +59,9 @@ const api = {
   fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
   colors: {}
 };
-// mode compétition (CONTRACT.md Ajout 6) : ?start=N&compet&seed=S ; sans ces paramètres, rien ne change
+// départ à un niveau et graine (outils de test, CONTRACT.md Ajout 6) : ?start=N&seed=S ; sans ces paramètres, rien ne change
 const qs = new URLSearchParams(location.search);
 if (qs.has('start')) api.startLevel = Number(qs.get('start'));
-if (qs.has('compet')) api.mode = 'compet';
 if (qs.has('seed')) api.seed = Number(qs.get('seed'));
 window.__inst = window.JDW_GAMES.mouches.mount(document.getElementById('root'), api);
 </script>
