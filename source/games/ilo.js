@@ -2112,7 +2112,7 @@
       return {
         k, hz: L4(10, 12, 20, 30), lag: L4(0.14, 0.13, 0.1, 0.05), nh: t < 0.15 ? 2 : t < 0.5 ? 3 : 4, far: t > 0.9, marg: L4(2, 4, 5, 7),
         spd: L4(210, 230, 255, 255), miss: L4(0.04, 0.04, 0.01, 0), distEvery: L4(7, 12, 1e9, 1e9), distDur: L4(0, 0, 0, 0),
-        bomb: L4(1600, 1000, 750, 650), save: L4(0, 0, 0.5, 1), w: L4(0.035, 0.05, 0.07, 0.09), prefY: L4(110, 120, 130, 150), tw: L4(0.3, 0.7, 1, 1), hyMode: t < 0.4 ? 0 : t < 0.9 ? 1 : 2
+        bomb: L4(1600, 1000, 750, 650), save: L4(0, 0, 0.5, 1), w: L4(0.035, 0.05, 0.07, 0.09), prefY: L4(110, 120, 130, 150), tw: L4(0.8, 0.9, 1, 1), wob: L4(34, 20, 8, 0), hyMode: t < 0.4 ? 0 : t < 0.9 ? 1 : 2
       };
     })();
     const aiRng = CO ? mulberry32(((SEED === null ? (Math.random() * 4294967296) >>> 0 : SEED) ^ 0x5EED1A) >>> 0) : null;   // tirages du robot (jamais ceux du contenu)
@@ -2193,7 +2193,9 @@
       s.saving = rescue;
       if (rescue) s.helpT = 0.3;
       const share = s.kills > 30 && s.kills > 1.5 * (H.kills + 10);   // il laisse le joueur briller
-      const prefY = LH - AIL.prefY - (share ? 30 : 0);
+      const prefY = LH - AIL.prefY - (share ? 30 : 0) + Math.sin(T * 0.7 + 1.3) * 12;
+      // cible : l'ennemi choisi (Facile / Moyen : visée qui oscille, il rate plus) ; rien à viser : il patrouille sur son flanc
+      const aimX = tx !== null ? tx + Math.sin(T * 1.7 + 0.4) * AIL.wob : flankX + Math.sin(T * 0.9) * 46;
       const nh = AIL.nh;
       let best = 0, bestC = 1e9, stay = 0;
       for (let d = 0; d < 9; d++) {
@@ -2239,8 +2241,8 @@
           c += AIL.w * 10 * Math.sqrt(dx * dx + dy * dy);
         } else {
           c += Math.abs(py - prefY) * 0.035;
-          c += Math.abs(px - flankX) * 0.02;
-          if (tx !== null && !share) c += Math.abs(px - tx) * (B ? 0.06 : 0.03) * AIL.tw;
+          c += Math.abs(px - flankX) * 0.006;
+          c += Math.abs(px - aimX) * (B ? 0.06 : 0.045) * (share ? 0.5 : AIL.tw);
         }
         if (H.alive) { const dx = px - H.x, dy = py - H.y; if (dx * dx + dy * dy < 40 * 40) c += 60; }   // ne se met jamais sur l'humain
         for (let i = 0; i < cpN; i++) {
