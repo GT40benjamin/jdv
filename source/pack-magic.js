@@ -56,7 +56,8 @@ const CREATURES = {
   dragon: { sk: DRA + 'FBX Files/SK_MountainDragon.FBX', tris: 9000, dir: DRA + 'FBX Files/', pre: 'MountainDragon@', out: P('w2src', 'dragon.glb'), pack: P('w2', 'dragon.glb'), af: '20',
     clips: { idle: 'IdleBreathe', look: 'IdleLookAround', walk: 'Walk', run: 'Run', clawL: 'ClawsAttackLeft', clawR: 'ClawsAttackRight', combo: 'ClawsAttack2HitComboForward',
       bite: 'JumpBite', spit: 'SpitFireBall', breath: 'SpreadFire', hit: 'GetHitFront', death: 'Death', takeoff: 'TakeOffToGlide', glide: 'Glide', land: 'GlideToLanding',
-      hover: 'FlyStationary', hoverSpit: 'FlyStationarySpitFireBall', hoverBreath: 'FlyStationarySpreadFire', hoverLand: 'FlyStationaryToLanding' } }
+      hover: 'FlyStationary', hoverSpit: 'FlyStationarySpitFireBall', hoverBreath: 'FlyStationarySpreadFire', hoverLand: 'FlyStationaryToLanding',
+      fly: 'FlyNormal', hoverHit: 'FlyStationaryGetHit', glideHit: 'GlideGetHit' } }
 };
 function creature(name) {
   const c = CREATURES[name];

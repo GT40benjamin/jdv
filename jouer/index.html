@@ -36417,7 +36417,7 @@ window.JDW_GAMES.pleingaz = {
 .mf-ui{position:absolute;inset:0;pointer-events:none;color:#f4eefc}
 .mf-ui *{box-sizing:border-box}
 .mf-top{position:absolute;left:0;right:0;top:0;height:70px;padding:8px 62px 0 10px;display:flex;align-items:flex-start;gap:10px;background:linear-gradient(180deg,rgba(6,3,12,.66),rgba(6,3,12,0));transition:opacity .4s}
-.mf.cine .mf-top,.mf.cine .mf-ctl,.mf.cine .mf-pause,.mf.cine .mf-combo,.mf.cine .mf-help{opacity:0!important;pointer-events:none!important}
+.mf.cine .mf-top,.mf.cine .mf-ctl,.mf.cine .mf-pause,.mf.cine .mf-help{opacity:0!important;pointer-events:none!important}
 .mf-life{display:flex;flex-direction:column;gap:4px;padding:6px 9px 7px;border-radius:14px;background:linear-gradient(180deg,rgba(28,18,46,.78),rgba(14,8,26,.72));box-shadow:inset 0 0 0 1px rgba(255,214,140,.2),0 4px 14px rgba(0,0,0,.35)}
 .mf-hearts,.mf-gems{display:flex;gap:2px}
 .mf-hearts svg{width:22px;height:22px;fill:#ff4d6d;filter:drop-shadow(0 1px 0 #6b0a24) drop-shadow(0 0 5px rgba(255,77,109,.55));transition:transform .25s,opacity .25s}
@@ -36433,9 +36433,7 @@ window.JDW_GAMES.pleingaz = {
 .mf-gems svg.off .hl{stroke:none}
 .mf-gems svg.pop{transform:scale(1.45)}
 .mf-mid{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;padding-top:2px}
-.mf-room{font:400 13px ${FD};letter-spacing:.06em;color:#ffe2a6;text-shadow:0 2px 0 rgba(60,20,0,.6),0 0 10px rgba(255,180,80,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
-@media (max-width:430px){.mf-hearts svg{width:19px;height:19px}.mf-gems svg{width:15px;height:15px}.mf-life{padding:5px 7px 6px}.mf-room{font-size:11px;letter-spacing:0;white-space:normal;line-height:1.1;max-height:2.3em}.mf-top{gap:7px}}
-.mf-room small{display:block;text-align:center;font:600 11px/1.2 ${FB};letter-spacing:.01em;color:#d6c8ee;text-shadow:0 1px 3px rgba(0,0,0,.8);margin-top:2px;white-space:normal;overflow:hidden;max-height:2.5em}
+@media (max-width:430px){.mf-hearts svg{width:19px;height:19px}.mf-gems svg{width:15px;height:15px}.mf-life{padding:5px 7px 6px}.mf-top{gap:7px}}
 .mf-score{font:400 22px ${FD};line-height:1;padding-top:5px;color:#fff;background:linear-gradient(180deg,#fff8d8,#ffc24a 70%,#ff9a2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 0 rgba(90,40,0,.55));text-align:right;min-width:64px}
 .mf-score.bump{animation:mfBump .3s}
 .mf-score.bump2{animation:mfBump2 .5s cubic-bezier(.2,.9,.3,1.3)}
@@ -36450,10 +36448,11 @@ window.JDW_GAMES.pleingaz = {
 @keyframes mfExitP{50%{transform:scale(1.28)}}
 @keyframes mfBump{40%{transform:scale(1.18)}}
 .mf-pause{position:absolute;top:8px;right:8px;width:46px;height:46px;border-radius:13px;border:1.5px solid rgba(255,214,140,.45);background:rgba(16,8,30,.7);color:#f4eefc;display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;padding:0;transition:opacity .4s}
-.mf-boss{position:absolute;left:50%;top:62px;transform:translate(-50%,-14px);width:min(460px,78%);opacity:0;transition:opacity .5s,transform .5s cubic-bezier(.2,1.4,.4,1);text-align:center}
+.mf-boss{position:absolute;left:50%;top:calc(62px + env(safe-area-inset-top,0px));transform:translate(-50%,-14px);width:min(460px,78%);opacity:0;transition:opacity .5s,transform .5s cubic-bezier(.2,1.4,.4,1);text-align:center;pointer-events:none}
+@media (orientation:landscape){.mf-boss{top:calc(12px + env(safe-area-inset-top,0px));width:min(460px,50%)}}
 .mf-boss.on{opacity:1;transform:translate(-50%,0)}
-.mf-boss b{display:block;font:400 13px ${FD};letter-spacing:.08em;color:#ffd9a0;text-shadow:0 2px 0 rgba(60,10,0,.7),0 0 12px rgba(255,120,60,.6);margin-bottom:4px}
-.mf-bbar{position:relative;height:15px;border-radius:9px;background:rgba(20,8,20,.85);box-shadow:0 0 0 1.5px rgba(255,200,140,.55),0 0 22px rgba(255,90,60,.4),inset 0 2px 4px rgba(0,0,0,.6);overflow:hidden}
+.mf-boss b{position:absolute;left:0;right:0;top:0;z-index:2;height:19px;line-height:20px;font:400 10px ${FD};letter-spacing:.1em;color:#fff4e4;text-shadow:0 1px 0 rgba(60,10,0,.9),0 0 6px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px}
+.mf-bbar{position:relative;height:19px;border-radius:10px;background:rgba(20,8,20,.85);box-shadow:0 0 0 1.5px rgba(255,200,140,.55),0 0 22px rgba(255,90,60,.4),inset 0 2px 4px rgba(0,0,0,.6);overflow:hidden}
 .mf-bbar i{position:absolute;left:0;top:0;bottom:0;border-radius:9px;transition:width .12s}
 .mf-bbar i.lag{background:rgba(255,240,200,.8);transition:width .7s .25s}
 .mf-bbar i.hp{background:linear-gradient(180deg,#ffb07a,#ff3d5e 55%,#b3123e);box-shadow:inset 0 2px 0 rgba(255,255,255,.35)}
@@ -36468,12 +36467,6 @@ window.JDW_GAMES.pleingaz = {
 .mf-banner.show{animation:mfBan var(--d,2.2s) cubic-bezier(.2,.9,.25,1) forwards}
 @keyframes mfBan{0%{opacity:0;transform:translateY(-50%) scale(1.6)}12%{opacity:1;transform:translateY(-50%) scale(.96)}18%{transform:translateY(-50%) scale(1)}82%{opacity:1;transform:translateY(-50%) scale(1)}100%{opacity:0;transform:translateY(-50%) scale(.92)}}
 @keyframes mfPop{0%{transform:scale(.4) rotate(-15deg)}70%{transform:scale(1.1) rotate(4deg)}100%{transform:scale(1)}}
-.mf-combo{position:absolute;right:12px;top:42%;text-align:right;opacity:0;transition:opacity .35s;pointer-events:none}
-.mf-combo.on{opacity:1}
-.mf-combo b{display:block;font:400 34px ${FD};line-height:1;color:#fff;background:linear-gradient(180deg,#fffbe8 10%,#ffd36a 55%,#ff7a2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 rgba(70,20,0,.65)) drop-shadow(0 0 14px rgba(255,150,40,.55))}
-.mf-combo span{font:400 11px ${FD};letter-spacing:.12em;color:#ffe2a6;text-shadow:0 2px 0 rgba(0,0,0,.6)}
-.mf-combo i{display:block;height:4px;margin-top:4px;border-radius:2px;background:linear-gradient(90deg,#ff7a2e,#ffd36a);transform-origin:right center}
-.mf-combo.bump b{animation:mfBump .25s}
 .mf-pops{position:absolute;inset:0;overflow:hidden}
 .mf-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 .mf-hurtv{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(255,0,40,0) 45%,rgba(255,20,50,.55) 100%)}
@@ -36511,7 +36504,7 @@ window.JDW_GAMES.pleingaz = {
 .mf-overlay span{margin-top:10px;font:600 16px ${FB};color:#e6dcff}
 .mf-help{position:absolute;right:12px;bottom:12px;max-width:310px;padding:10px 13px;border-radius:12px;background:rgba(16,8,30,.8);box-shadow:inset 0 0 0 1px rgba(255,214,140,.2);font:600 12.5px/1.6 ${FB};color:#e8defa;opacity:0;transition:opacity .6s}
 .mf-help.on{opacity:1}
-@media (max-height:520px){.mf-banner{top:46%}}
+@media (max-height:520px){.mf-banner{top:40%}.mf-banner b{font-size:clamp(20px,8.5vh,40px)}}
 .mf-help{display:none!important}
 .mf-bar{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) scale(var(--bs,1));transform-origin:50% 100%;display:none;align-items:flex-end;gap:12px;padding:10px 16px 8px;border-radius:22px;
  background:linear-gradient(180deg,rgba(28,18,46,.72),rgba(12,6,24,.82));box-shadow:inset 0 0 0 1px rgba(255,214,140,.22),0 8px 26px rgba(0,0,0,.45);transition:opacity .4s}
@@ -36616,11 +36609,10 @@ window.JDW_GAMES.pleingaz = {
     ui.innerHTML =
       '<div class="mf-hurtv"></div><div class="mf-lowv"></div>' +
       '<div class="mf-top"><div class="mf-life"><div class="mf-hearts"></div><div class="mf-gems"></div></div>' +
-      '<div class="mf-mid"><div class="mf-room"></div></div><div class="mf-score">0</div></div>' +
+      '<div class="mf-mid"></div><div class="mf-score">0</div></div>' +
       '<div class="mf-boss"><b></b><div class="mf-bbar"><i class="lag"></i><i class="hp"></i></div></div>' +
       '<div class="mf-flash"></div><div class="mf-pops"></div><div class="mf-banner"><b></b><span></span></div>' +
-      '<div class="mf-combo"><b></b><span>COMBO</span><i></i></div>' +
-      '<div class="mf-ctl"><div class="mf-joy"><div class="mf-knob"></div></div></div>' +
+            '<div class="mf-ctl"><div class="mf-joy"><div class="mf-knob"></div></div></div>' +
       '<div class="mf-help"></div><div class="mf-cine"><i></i><i></i></div>' +
       '<div class="mf-win"><div class="mf-wcard"><h2></h2><h3></h3><div class="mf-stars">' + ICON.star + ICON.star + ICON.star + '</div><div class="mf-wrows"></div><div class="mf-wnext"></div></div></div>' +
       '<div class="mf-fade"></div>' +
@@ -36629,11 +36621,10 @@ window.JDW_GAMES.pleingaz = {
     root.appendChild(style); root.appendChild(el); el.appendChild(canvas); el.appendChild(ui);
     const $ = (s) => ui.querySelector(s);
     const H = {
-      hearts: $('.mf-hearts'), gems: $('.mf-gems'), room: $('.mf-room'), score: $('.mf-score'), boss: $('.mf-boss'), bossName: $('.mf-boss b'),
+      hearts: $('.mf-hearts'), gems: $('.mf-gems'), score: $('.mf-score'), boss: $('.mf-boss'), bossName: $('.mf-boss b'),
       bossHp: $('.mf-bbar .hp'), bossLag: $('.mf-bbar .lag'), bbar: $('.mf-bbar'), banner: $('.mf-banner'), bannerB: $('.mf-banner b'), bannerS: $('.mf-banner span'),
       flash: $('.mf-flash'), pops: $('.mf-pops'), ctl: $('.mf-ctl'), joy: $('.mf-joy'), knob: $('.mf-knob'), help: $('.mf-help'), paused: $('.mf-paused'),
-      load: $('.mf-load'), loadCv: $('.mf-load canvas'), loadP: $('.mf-load p'), loadBar: $('.mf-lbar i'),
-      combo: $('.mf-combo'), comboN: $('.mf-combo b'), comboBar: $('.mf-combo i'), hurtv: $('.mf-hurtv'), lowv: $('.mf-lowv'),
+      load: $('.mf-load'), loadCv: $('.mf-load canvas'), loadP: $('.mf-load p'), loadBar: $('.mf-lbar i'), hurtv: $('.mf-hurtv'), lowv: $('.mf-lowv'),
       win: $('.mf-win'), winT: $('.mf-wcard h2'), winS: $('.mf-wcard h3'), winStars: [...ui.querySelectorAll('.mf-stars svg')], winRows: $('.mf-wrows'), winNext: $('.mf-wnext'),
       fade: $('.mf-fade')
     };
@@ -36743,7 +36734,6 @@ window.JDW_GAMES.pleingaz = {
       shownScore = sh; H.score.textContent = fmt(sh);
       H.score.classList.remove('bump'); void H.score.offsetWidth; H.score.classList.add('bump');
     }
-    function hudRoom(title, sub) { H.room.textContent = title; if (sub) { const s = document.createElement('small'); s.textContent = sub; H.room.appendChild(s); } }
     let bannerTimer = 0;
     function banner(title, sub, cls, dur) {
       dur = dur || 2.2;
@@ -36788,12 +36778,19 @@ window.JDW_GAMES.pleingaz = {
       if (G.phase === 'win') winSkip();
     });
     on(window, 'keyup', (e) => { keys[e.code] = false; if (e.code === 'KeyJ' || e.code === 'Enter' || e.code === 'NumpadEnter') IN.kAtk = false; });
-    on(window, 'blur', () => { for (const k in keys) keys[k] = false; IN.atk = false; IN.kAtk = false; });
+    on(window, 'blur', () => { for (const k in keys) keys[k] = false; IN.atk = false; IN.kAtk = false; mBtns = 0; });
     // souris : visée + clic maintenu = éclairs ; clic droit = nova de feu
     on(canvas, 'contextmenu', (e) => e.preventDefault());
     on(el, 'contextmenu', (e) => e.preventDefault());
+    let mBtns = 0;                        // boutons de la souris enfoncés (1 gauche, 2 droit, 4 milieu)
+    function mouseButtons(b) {
+      b = b | 0; const was = mBtns; if (b === was) return; mBtns = b;
+      if ((b & 1) && !(was & 1)) IN.atk = true;
+      if (!(b & 1) && (was & 1)) IN.atk = false;
+      if (((b & 2) && !(was & 2)) || ((b & 4) && !(was & 4))) { if (G.phase === 'play' && !paused) castSelected(); }
+    }
     on(el, 'pointermove', (e) => {
-      if (e.pointerType === 'mouse') { IN.mouseX = e.clientX; IN.mouseY = e.clientY; IN.mouseAim = true; }
+      if (e.pointerType === 'mouse') { IN.mouseX = e.clientX; IN.mouseY = e.clientY; IN.mouseAim = true; if (e.buttons !== mBtns && !paused && G.phase !== 'win') mouseButtons(e.buttons); }
       if (e.pointerId === IN.joyId) joyMove(e);
     });
     on(el, 'pointerdown', (e) => {
@@ -36802,7 +36799,7 @@ window.JDW_GAMES.pleingaz = {
       if (G.phase === 'win') { winSkip(); e.preventDefault(); return; }
       if (e.pointerType === 'mouse') {
         setTouch(false); barMode('kb'); IN.mouseX = e.clientX; IN.mouseY = e.clientY; IN.mouseAim = true;
-        if (e.button === 0) IN.atk = true; else if (e.button === 2 || e.button === 1) castSelected();     // clic droit : le sort choisi
+        mouseButtons(e.buttons || (e.button === 2 ? 2 : e.button === 1 ? 4 : 1));      // gauche maintenu : éclairs ; droit : le sort choisi
         e.preventDefault(); return;
       }
       setTouch(true);
@@ -36823,11 +36820,12 @@ window.JDW_GAMES.pleingaz = {
       H.knob.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)';
     }
     function joyEnd(e) {
-      if (e.pointerType === 'mouse') { if (e.button === 0) IN.atk = false; return; }
+      if (e.pointerType === 'mouse') { mouseButtons(e.buttons); return; }
       if (e.pointerId === IN.joyId) { IN.joyId = -1; IN.joyDX = 0; IN.joyDY = 0; H.joy.classList.remove('on'); H.knob.style.transform = ''; }
     }
     on(el, 'pointerup', joyEnd); on(el, 'pointercancel', joyEnd);
-    on(window, 'mouseup', (e) => { if (e.button === 0) IN.atk = false; });
+    on(window, 'pointerup', (e) => { if (e.pointerType === 'mouse') mouseButtons(e.buttons); });         // relâché hors du jeu
+    on(window, 'mouseup', (e) => { mouseButtons(e.buttons); });
     for (const b of Object.values(BTN)) {
       on(b.el, 'pointerdown', (e) => {
         e.preventDefault(); e.stopPropagation(); audioWake(); setTouch(true);
@@ -37016,16 +37014,18 @@ window.JDW_GAMES.pleingaz = {
     const LIB = {};                               // pièces du décor : nom → { geo, box, parts? }
     const TPL = {};                               // personnages : gabarits préparés
     const UNI = { time: { value: 0 }, player: { value: null }, aspect: { value: 1 }, cutR: { value: 0.16 }, hero: { value: null }, dark: { value: new Float32Array([9, 26, 0.3]) },
-      floorAO: { value: null }, floorRect: { value: null }, lavaK: { value: 0 } };
+      floorAO: { value: null }, floorRect: { value: null }, lavaK: { value: 0 },
+      lm: { value: null }, lmR: { value: null }, sunV: { value: null }, sunC: { value: null }, lmSh: { value: 1 } };
 
     // ------------------------------------------------------------- qualité : niveau de départ selon l'appareil, puis réglage tout seul
     // maxDpr : pixels par point au plus (un téléphone en a 2,6 à 3 : on n'en dessine jamais autant) ; la résolution « DYN » (0,6 à 1)
     // s'ajuste toute seule pendant la partie ; si ça ne suffit pas, on descend d'un niveau (lueur allégée puis coupée, ombres, lumières).
     const TIERS = [
-      { name: 'économe', maxDpr: 1, shadow: 0, shadowSize: 0, parts: 160, lights: 2, aa: false, bloom: 0, dust: 8, lavaOct: 2 },
-      { name: 'léger', maxDpr: 1.25, shadow: 0, shadowSize: 0, parts: 260, lights: 3, aa: false, bloom: 1, dust: 14, lavaOct: 3 },
-      { name: 'beau', maxDpr: 1.5, shadow: 1, shadowSize: 1024, parts: 420, lights: 4, aa: false, bloom: 2, dust: 22, lavaOct: 4 },
-      { name: 'superbe', maxDpr: 2, shadow: 2, shadowSize: 2048, parts: 800, lights: 6, aa: true, bloom: 2, dust: 40, lavaOct: 4 }
+      // (la lumière des torches et les ombres du décor sont « cuites » : les lampes en temps réel ne servent plus qu'aux sorts et au mage)
+      { name: 'économe', maxDpr: 1, shadow: 0, shadowSize: 0, parts: 160, lights: 1, aa: false, bloom: 0, dust: 8, lavaOct: 2 },
+      { name: 'léger', maxDpr: 1.25, shadow: 0, shadowSize: 0, parts: 260, lights: 2, aa: false, bloom: 1, dust: 14, lavaOct: 3 },
+      { name: 'beau', maxDpr: 1.5, shadow: 0, shadowSize: 0, parts: 420, lights: 2, aa: false, bloom: 1, dust: 22, lavaOct: 4 },
+      { name: 'superbe', maxDpr: 2, shadow: 2, shadowSize: 2048, parts: 800, lights: 4, aa: true, bloom: 2, dust: 40, lavaOct: 4 }
     ];
     // mémoire de l'appareil (réglage trouvé la dernière fois) : { gpu, tier, dyn }
     const AQ_KEY = 'jdw.magic.qualite';
@@ -37075,6 +37075,8 @@ window.JDW_GAMES.pleingaz = {
       camera = new T.PerspectiveCamera(30, 1, 1, 260);
       UNI.player.value = new T.Vector3(0, 0, 999); UNI.hero.value = new T.Vector3(0, 0, 0);
       UNI.floorRect.value = new T.Vector4(0, 0, 1, 1);
+      UNI.lmR.value = new T.Vector4(0, 0, 1, 1); UNI.sunV.value = new T.Vector3(0, 1, 0); UNI.sunC.value = new T.Color(0, 0, 0);
+      { const d = new T.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1, T.RGBAFormat); d.needsUpdate = true; UNI.lm.value = keep(d); }
       on(canvas, 'webglcontextlost', (e) => { e.preventDefault(); if (!destroyed) contextLost = true; });
     }
 
@@ -37144,6 +37146,7 @@ window.JDW_GAMES.pleingaz = {
       mat.onBeforeCompile = (sh) => {
         sh.uniforms.uMfP = UNI.player; sh.uniforms.uMfA = UNI.aspect; sh.uniforms.uMfR = UNI.cutR; sh.uniforms.uMfH = UNI.hero; sh.uniforms.uMfDark = UNI.dark;
         sh.uniforms.uMfFloor = UNI.floorAO; sh.uniforms.uMfFR = UNI.floorRect; sh.uniforms.uMfLava = UNI.lavaK;
+        if (o.lm || o.lmc) { sh.uniforms.uLM = UNI.lm; sh.uniforms.uLMR = UNI.lmR; sh.uniforms.uSunV = UNI.sunV; sh.uniforms.uSunC = UNI.sunC; sh.uniforms.uLMsh = UNI.lmSh; sh.uniforms.uMfT = UNI.time; }
         if (mat.userData.rim) { sh.uniforms.uRim = mat.userData.rim; sh.uniforms.uRimK = mat.userData.rimK; sh.uniforms.uFlash = mat.userData.flash; sh.uniforms.uTint = mat.userData.tint; }
         if (mat.userData.dis) { sh.uniforms.uDis = mat.userData.dis; sh.uniforms.uDisCol = mat.userData.disCol; sh.uniforms.uDisH = mat.userData.disH; }
         sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vMfW;\nvarying vec4 vMfC;')
@@ -37151,6 +37154,7 @@ window.JDW_GAMES.pleingaz = {
         let head = '#include <common>\nvarying vec3 vMfW;\nvarying vec4 vMfC;\nuniform vec3 uMfP; uniform float uMfA; uniform float uMfR; uniform vec3 uMfH; uniform vec3 uMfDark;\nuniform sampler2D uMfFloor; uniform vec4 uMfFR; uniform float uMfLava;\n';
         if (mat.userData.rim) head += 'uniform vec3 uRim; uniform float uRimK; uniform float uFlash; uniform vec4 uTint;\n';
         if (mat.userData.dis) head += 'uniform float uDis; uniform vec3 uDisCol; uniform float uDisH;\n';
+        if (o.lm || o.lmc) head += 'uniform sampler2D uLM; uniform vec4 uLMR; uniform vec3 uSunV; uniform vec3 uSunC; uniform float uLMsh; uniform float uMfT;\n';
         let diff = '';
         if (o.ao) diff += 'diffuseColor.rgb *= mix(0.42, 1.0, smoothstep(0.0, 1.6, vMfW.y));\n';
         if (o.floor) diff += '{ vec2 fu = (vMfW.xz - uMfFR.xy) * uMfFR.zw; float ao = texture2D(uMfFloor, fu).r; diffuseColor.rgb *= mix(0.32, 1.0, ao); }\n';
@@ -37162,6 +37166,12 @@ window.JDW_GAMES.pleingaz = {
         if (o.dis) cut += 'float mfDisE = 0.0;\nif (uDis > 0.001) { float dn = fract(sin(dot(floor(vMfW * 8.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453);\n' +
           '  float dh = dn * 0.5 + clamp(vMfW.y / uDisH, 0.0, 1.0) * 0.5; if (dh < uDis) discard; mfDisE = smoothstep(uDis + 0.09, uDis, dh); }\n';
         let out = '';
+        // lumière cuite (torches, bougies, lave, lune) + ombre cuite du soleil (on retire sa part là où l'ombre tombe)
+        if (o.lm || o.lmc) out += '{ vec4 lm = texture2D(uLM, (vMfW.xz - uLMR.xy) * uLMR.zw); vec3 lc = lm.rgb * lm.rgb * 4.0;\n' +
+          '  float fl = 1.0 + 0.06 * sin(uMfT * 9.1 + vMfW.x * 1.7 + vMfW.z * 1.3) + 0.045 * sin(uMfT * 21.7 + vMfW.z * 2.3 - vMfW.x);\n' +
+          '  outgoingLight += diffuseColor.rgb * lc * (fl * exp(-max(vMfW.y - 2.7, 0.0) * 0.6));\n' +
+          (o.lmc ? '  float sv = mix(1.0, lm.a, uLMsh * 0.75);\n' : '  float sv = mix(1.0, lm.a, uLMsh * smoothstep(1.3, 0.25, vMfW.y));\n') +
+          '  outgoingLight -= diffuseColor.rgb * uSunC * max(dot(normal, uSunV), 0.0) * (1.0 - sv); }\n';
         if (o.dark) out += '{ float dk = smoothstep(uMfDark.x, uMfDark.y, length(vMfW.xz - uMfH.xz)); outgoingLight *= mix(1.0, uMfDark.z, dk); }\n';
         if (o.lava) out += '{ float lk = smoothstep(-0.25, -1.55, vMfW.y) * uMfLava; outgoingLight += vec3(2.2, 0.62, 0.1) * lk * lk; }\n';
         if (o.dis) out += 'outgoingLight += uDisCol * mfDisE * 3.0;\n';
@@ -37212,13 +37222,15 @@ void main(){ vec4 t = texture2D(map, vUv); float a = t.a * vCol.a; if (a < 0.003
     let FXA = null, FXN = null;     // additif, normal
     const s2l = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
     function hexRgb(h, k) { k = k == null ? 1 : k; return [s2l(((h >> 16) & 255) / 255) * k, s2l(((h >> 8) & 255) / 255) * k, s2l((h & 255) / 255) * k]; }
+    const RGBC = new Map();       // (couleur, intensité) → [r, g, b] partagé (les particules ne le modifient pas)
+    function hexRgbC(h, k) { k = k == null ? 1 : k; let m = RGBC.get(h); if (!m) { m = new Map(); RGBC.set(h, m); } let v = m.get(k); if (!v) { v = hexRgb(h, k); m.set(k, v); } return v; }
     // p : { x,y,z, vx,vy,vz, life, s0, s1, c0:0xRRGGBB, c1, k (intensité, >1 = brille), a0, a1, cell:'nom', rot, vr, g (gravité), drag, mode (0/1/2),
     //       dx,dy,dz (direction pour le mode 2), len0, len1 (longueur, mode 2), add (additif), fade (début du fondu), fin (fondu d'entrée), floor (rebond) }
     function fx(p) {
       if (!FXA || parts.length >= Q.parts) return null;
       p.t = 0; p.vx = p.vx || 0; p.vy = p.vy || 0; p.vz = p.vz || 0; p.rot = p.rot || 0; p.vr = p.vr || 0;
       p.s1 = p.s1 == null ? p.s0 : p.s1; p.c1 = p.c1 == null ? p.c0 : p.c1; p.a0 = p.a0 == null ? 1 : p.a0; p.a1 = p.a1 == null ? 0 : p.a1;
-      p.add = p.add !== false; p._c0 = hexRgb(p.c0, p.k); p._c1 = hexRgb(p.c1, p.k1 == null ? p.k : p.k1); p._u = FXC[p.cell] || FXC.glow;
+      p.add = p.add !== false; p._c0 = hexRgbC(p.c0, p.k); p._c1 = hexRgbC(p.c1, p.k1 == null ? p.k : p.k1); p._u = FXC[p.cell] || FXC.glow;
       parts.push(p); return p;
     }
     function fxPut(S, x, y, z, s, rot, mode, asp, u, r, g, b, a, dx, dy, dz) {
@@ -37321,6 +37333,7 @@ void main(){ vec4 t = texture2D(map, vUv); float a = t.a * vCol.a; if (a < 0.003
     function setTier(t) {
       t = clamp(t, 0, TIERS.length - 1); if (!Q || t === Q.tier) return;
       const N = TIERS[t], up = t > Q.tier;
+      (PERF.tierLog = PERF.tierLog || []).push([Math.round(G.t), Q.tier, t]);
       Q.tier = t; Q.name = N.name; Q.maxDpr = N.maxDpr; Q.parts = N.parts; Q.dust = N.dust; Q.lavaOct = N.lavaOct;
       // lumières ponctuelles
       while (plights.length > N.lights) { const L = plights.pop(); scene.remove(L); L.dispose && L.dispose(); }
@@ -37447,12 +37460,12 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
       crypte: {
         grid: [
           '                ',
-          '  eeee          ',
+          ' eeeeee         ',
           ' eeeeee  cccccc ',
           ' eeeeeeddcccccc ',
           ' eeeeee  cccccc ',
           ' eeeeee  cccccc ',
-          '  eeee      b   ',
+          ' eeeeee     b   ',
           '            b   ',
           '          aaaaa ',
           '          aaaaa ',
@@ -37475,36 +37488,41 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
         wallDeco: { a: 'tbtwtbtst', b: 'tt', c: 'tgtxtgtwtx', d: 'tt', e: 'tbtctbtgtbtc', s: 't' },
         props: {
           a: [
-            ['table_long_decorated_A', 4.2, 5.2, 90, { solid: 1 }], ['chair', 2.6, 6.5, 180], ['chair', 5.8, 6.5, 180], ['stool', 4.2, 3.6, 0],
-            ['table_long_decorated_A', 15.8, 11, 90, { solid: 1 }], ['chair', 14.2, 12.4, 180], ['stool', 17.2, 9.5, 0],
-            ['barrel_large', 1.6, 1.8, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 3.0, 1.3, 30, { solid: 1, brk: 'barrel' }], ['barrel_small', 1.4, 3.4, 0, { solid: 1, brk: 'barrel' }],
-            ['crates_stacked', 18.0, 14.0, 20, { solid: 1 }], ['box_small', 16.4, 14.8, 10, { solid: 1, brk: 'crate' }], ['box_small', 18.8, 11.8, -15, { solid: 1, brk: 'crate' }],
-            ['barrel_small_stack', 18.6, 1.8, 0, { solid: 1 }], ['keg', 1.8, 13.8, 90, { solid: 1 }],
-            ['rubble_half', 12.6, 14.6, 180, { s: 0.45 }], ['candle_triple', 8.0, 1.3, 0], ['candle_triple', 12.0, 1.3, 0]
+            // salle des gardes : le centre est libre ; tables, tonneaux et caisses le long des murs
+            ['table_long_decorated_A', 1.6, 8.6, 0, { solid: 1 }], ['stool', 3.1, 7.4, 0], ['stool', 3.1, 9.9, 0],
+            ['table_long_decorated_A', 6.4, 1.6, 90, { solid: 1 }], ['stool', 5.2, 3.0, 0], ['stool', 7.6, 3.0, 0],
+            ['barrel_large', 1.55, 1.55, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 1.15, 3.2, 30, { solid: 1, brk: 'barrel' }], ['barrel_small', 3.2, 1.1, 0, { solid: 1, brk: 'barrel' }],
+            ['crates_stacked', 18.4, 14.4, 0, { solid: 1 }], ['box_small', 16.7, 15.0, 10, { solid: 1, brk: 'crate' }], ['box_small', 19.0, 12.6, -15, { solid: 1, brk: 'crate' }],
+            ['barrel_small_stack', 18.5, 1.05, 0, { solid: 1 }], ['keg', 1.55, 14.5, 0, { solid: 1 }],
+            ['rubble_half', 12.6, 15.2, 180, { s: 0.4 }], ['candle_triple', 8.0, 0.9, 0], ['candle_triple', 12.0, 0.9, 0]
           ],
           c: [
-            ['pillar_decorated', 6, 5, 0, { solid: 1 }], ['pillar_decorated', 12, 5, 0, { solid: 1 }], ['pillar_decorated', 18, 5, 0, { solid: 1 }],
-            ['pillar_decorated', 6, 11, 0, { solid: 1 }], ['pillar_decorated', 12, 11, 0, { solid: 1 }], ['pillar_decorated', 18, 11, 0, { solid: 1 }],
-            ['candle_melted', 7.1, 5.9, 0], ['candle_lit', 4.9, 4.2, 0], ['candle_melted', 13.1, 4.1, 0], ['candle_lit', 17.0, 6.0, 0], ['candle_melted', 19.0, 10.0, 0], ['candle_lit', 5.0, 12.0, 0],
-            ['candle_melted', 11.0, 12.0, 0], ['candle_lit', 13.0, 10.1, 0], ['candle_triple', 21.6, 1.4, 0], ['candle_triple', 2.4, 1.4, 0],
-            ['table_medium_broken', 9, 1.7, 10], ['floor_tile_small_decorated', 15, 1.4, 0], ['table_medium_broken', 22.2, 13.4, 80],
-            ['rubble_half', 21.5, 9.5, -90, { s: 0.5 }], ['barrel_small', 22.6, 4.4, 0, { solid: 1, brk: 'barrel' }], ['box_small', 21.4, 5.0, 25, { solid: 1, brk: 'crate' }],
-            ['bottle_A_green', 9.6, 2.9, 0], ['coin_stack_small', 13.8, 2.6, 0]
+            // les catacombes : les piliers sont plaqués aux murs du fond, les pièges à pics restent au sol (annoncés en rouge)
+            ['pillar_decorated', 4, 1.25, 0, { solid: 1 }], ['pillar_decorated', 12, 1.25, 0, { solid: 1 }], ['pillar_decorated', 20, 1.25, 0, { solid: 1 }],
+            ['pillar_decorated', 1.3, 12, 90, { solid: 1 }],
+            ['candle_melted', 5.6, 2.2, 0], ['candle_lit', 2.6, 2.4, 0], ['candle_melted', 13.6, 2.3, 0], ['candle_lit', 18.4, 2.2, 0], ['candle_lit', 21.6, 2.4, 0], ['candle_melted', 2.3, 13.7, 0],
+            ['candle_triple', 23.2, 1.0, 0], ['candle_triple', 8.0, 0.9, 0],
+            ['table_medium_broken', 23.0, 13.8, 80], ['floor_tile_small_decorated', 16, 1.3, 0],
+            ['rubble_half', 22.6, 9.5, -90, { s: 0.45 }], ['barrel_small', 23.0, 4.4, 0, { solid: 1, brk: 'barrel' }], ['box_small', 22.9, 5.8, 25, { solid: 1, brk: 'crate' }],
+            ['bottle_A_green', 8.6, 1.4, 0]
           ],
           e: [
-            ['pillar_decorated', 4.5, 6.5, 0, { solid: 1 }], ['pillar_decorated', 19.5, 6.5, 0, { solid: 1 }], ['pillar_decorated', 4.5, 17.5, 0, { solid: 1 }], ['pillar_decorated', 19.5, 17.5, 0, { solid: 1 }],
-            ['rubble_large', 6, 2.3, 0, { s: 0.55, solid: 1 }], ['rubble_half', 20.5, 21.6, 180, { s: 0.5 }], ['rubble_half', 2.2, 15, 90, { s: 0.45 }],
-            ['candle_triple', 9.2, 4.8, 0], ['candle_triple', 14.8, 4.8, 0], ['column', 2.6, 11, 0, { solid: 1 }], ['column', 21.4, 13, 0, { solid: 1 }],
-            ['coin_stack_large', 20.8, 3.4, 0, { solid: 1 }], ['coin_stack_small', 19.6, 2.6, 0], ['coin_stack_small', 3.4, 20.6, 0]
+            // l'antre du Gardien : un carré libre, un pilier dans chaque coin (plaqué aux deux murs)
+            ['pillar_decorated', 1.6, 1.25, 0, { solid: 1, corner: 1 }], ['pillar_decorated', 22.45, 1.25, 0, { solid: 1, corner: 1 }],
+            ['pillar_decorated', 1.6, 22.6, 0, { solid: 1, corner: 1 }], ['pillar_decorated', 22.45, 22.6, 0, { solid: 1, corner: 1 }],
+            ['rubble_half', 7, 1.3, 0, { s: 0.4 }], ['rubble_half', 17.5, 22.9, 180, { s: 0.4 }],
+            ['candle_triple', 9.2, 0.9, 0], ['candle_triple', 14.8, 0.9, 0],
+            ['barrel_small', 6.2, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 17.8, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 1.1, 16.4, 0, { solid: 1, brk: 'barrel' }]
           ],
           s: [['stairs', 2, 4, 0, { y: -5.08, z: 0 }]]
         },
         // lieux importants (mètres, repère de la salle)
         spots: {
-          a: { spawns: [[4, 10], [10, 6], [16, 5], [8, 12], [13, 10], [3, 6], [17, 8], [11, 3]], chest: [15.5, 3.2], entry: [10, 14] },
-          c: { spawns: [[3, 3], [9, 8], [15, 8], [21, 8], [3, 12], [9, 14], [15, 13], [21, 3]], chest: [2.2, 13.2], entry: [14, 13.5],
+          a: { spawns: [[5, 11], [10, 6], [16, 5], [8, 12], [13, 10], [5, 5], [17, 8], [11, 3.5]], chest: [15.5, 3.4], entry: [10, 14] },
+          c: { spawns: [[4, 4], [9, 8], [15, 8], [20, 8], [4, 9], [9, 14], [17, 13], [20, 4]], chest: [3.6, 14.0], entry: [14, 13.5],
             graves: [[9, 3.4, 90], [15, 3.4, 90], [3.5, 8, 0], [9, 13.2, -90], [15, 13.2, -90], [21, 8, 180]], spikes: [[1, 1], [3, 2]] },
-          e: { spawns: [[5, 12], [19, 12], [12, 5], [12, 19], [7, 7], [17, 17], [7, 17], [17, 7]], boss: [12, 12], portal: [12, 3.2], entry: [21, 10], chest: [12, 14] },
+          e: { spawns: [[5, 12], [19, 12], [12, 5], [12, 19], [7, 7], [17, 17], [7, 17], [17, 7]], boss: [12, 12], portal: [12, 3.2], entry: [21, 10], chest: [12, 14],
+            barrels: [[6.2, 1.1], [17.8, 1.1], [1.1, 16.4], [1.1, 7.5], [8, 22.9], [16, 22.9], [22.9, 17.5]] },
           s: { start: [2, 2.5] }
         },
         look: { hemi: [0xc4bce6, 0x4a3424, 1.15], sun: [0xffe6cc, 1.45], fill: [0x8090ff, 0.45], fog: 0x07050c, dark: [12, 34, 0.45], grade: { shadow: [0.95, 0.96, 1.06], hi: [1.05, 1.0, 0.94], sat: 1.1, bloom: 0.8, vig: 0.48, thr: 0.95, expo: 1.0 },
@@ -37515,11 +37533,11 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
     MAPS.forge = {
       grid: [
         '                ',
-        '       LeeeeeeL ',
         '       eeeeeeee ',
         '       eeeeeeee ',
         '       eeeeeeee ',
-        '       LeeeeeeL ',
+        '       eeeeeeee ',
+        '       eeeeeeee ',
         '          d     ',
         '          d     ',
         '  ccccccccc     ',
@@ -37545,20 +37563,21 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
       floorSpecial: { e: [['floor_tile_extralarge_grates', 3, 1, 2]] },
       wallDeco: { a: 'tdtbtdt', c: 'tdtbtktdtbt', e: 'tbtdtbtdt', s: 't' },
       props: {
-        a: [['barrel_large', 1.6, 1.8, 0, { solid: 1, brk: 'barrel' }], ['box_small', 3.0, 1.4, 20, { solid: 1, brk: 'crate' }], ['keg', 26.2, 1.8, 90, { solid: 1 }],
-          ['crates_stacked', 25.8, 9.8, 15, { solid: 1 }], ['barrel_small', 23.8, 10.6, 0, { solid: 1, brk: 'barrel' }], ['column', 9.5, 2.2, 0, { solid: 1 }], ['column', 18, 10, 0, { solid: 1 }],
-          ['rubble_half', 6.5, 10.6, 180, { s: 0.45 }], ['sword_shield', 10, 0.75, 0, { y: 2.2 }]],
-        c: [['table_long', 6, 3.2, 90, { solid: 1 }], ['table_long', 30, 12.6, 90, { solid: 1 }], ['box_stacked', 33.6, 13.4, 0, { solid: 1, s: 0.8 }], ['barrel_large', 1.8, 14.2, 0, { solid: 1, brk: 'barrel' }],
-          ['barrel_small', 3.2, 14.8, 0, { solid: 1, brk: 'barrel' }], ['keg', 22, 1.8, 90, { solid: 1 }], ['column', 14, 8, 0, { solid: 1 }], ['column', 22, 8, 0, { solid: 1 }],
-          ['box_small', 30.6, 14.8, 30, { solid: 1, brk: 'crate' }], ['box_small', 35.0, 9.6, -10, { solid: 1, brk: 'crate' }], ['coin_stack_small', 7.2, 3.0, 0], ['sword_shield_gold', 18, 0.75, 0, { y: 2.2 }]],
-        e: [['pillar_decorated', 6, 6, 0, { solid: 1 }], ['pillar_decorated', 26, 6, 0, { solid: 1 }], ['pillar_decorated', 6, 14, 0, { solid: 1 }], ['pillar_decorated', 26, 14, 0, { solid: 1 }],
-          ['coin_stack_large', 2.6, 9.5, 0, { solid: 1 }], ['coin_stack_large', 29.4, 10.5, 0, { solid: 1 }], ['coin_stack_small', 3.8, 11.2, 0], ['coin_stack_small', 28.2, 8.8, 0],
-          ['rubble_half', 20, 18.6, 180, { s: 0.5 }]]
+        a: [['barrel_large', 1.55, 1.55, 0, { solid: 1, brk: 'barrel' }], ['box_small', 3.2, 1.1, 20, { solid: 1, brk: 'crate' }], ['keg', 26.5, 1.45, 90, { solid: 1 }],
+          ['crates_stacked', 26.45, 10.4, 0, { solid: 1 }], ['barrel_small', 24.6, 10.95, 0, { solid: 1, brk: 'barrel' }],
+          ['rubble_half', 5.5, 11.1, 180, { s: 0.4 }], ['sword_shield', 10, 0.75, 0, { y: 2.2 }]],
+        c: [['table_long', 6, 1.55, 90, { solid: 1 }], ['table_long', 29, 14.45, 90, { solid: 1 }], ['box_stacked', 34.1, 14.05, 0, { solid: 1, s: 0.8 }], ['barrel_large', 1.55, 14.45, 0, { solid: 1, brk: 'barrel' }],
+          ['barrel_small', 3.3, 15.0, 0, { solid: 1, brk: 'barrel' }], ['keg', 22, 1.45, 90, { solid: 1 }],
+          ['box_small', 25.6, 15.0, 30, { solid: 1, brk: 'crate' }], ['box_small', 35.0, 9.6, -10, { solid: 1, brk: 'crate' }], ['sword_shield_gold', 18, 0.75, 0, { y: 2.2 }]],
+        e: [['pillar_decorated', 1.6, 1.25, 0, { solid: 1, corner: 1 }], ['pillar_decorated', 30.45, 1.25, 0, { solid: 1, corner: 1 }], ['pillar_decorated', 1.6, 18.6, 0, { solid: 1, corner: 1 }], ['pillar_decorated', 30.45, 18.6, 0, { solid: 1, corner: 1 }],
+          ['rubble_half', 20, 19.0, 180, { s: 0.4 }], ['rubble_half', 6, 1.3, 0, { s: 0.4 }],
+          ['barrel_small', 9, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 23, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 1.1, 10, 0, { solid: 1, brk: 'barrel' }]]
       },
       spots: {
-        a: { spawns: [[5, 6], [12, 4], [20, 6], [25, 4], [9, 9], [16, 9], [22, 9], [3, 3]], chest: [24.5, 3.2], entry: [12.5, 10] },
-        c: { spawns: [[4, 8], [10, 12], [17, 12], [26, 12], [31, 6], [26, 4], [12, 2.6], [4, 13]], chest: [33.8, 7], entry: [9.5, 13.8] },
-        e: { spawns: [[8, 10], [24, 10], [16, 4], [16, 16], [10, 5], [22, 5], [10, 15], [22, 15]], boss: [16, 9], portal: [16, 3.4], entry: [14, 17.5] },
+        a: { spawns: [[5, 6], [14.5, 3.5], [20, 6], [24, 4], [9, 10], [16, 9], [22, 9], [4, 4]], chest: [24.5, 3.4], entry: [12.5, 10] },
+        c: { spawns: [[4, 8], [10, 12], [17, 12], [26, 12], [31, 6], [30, 3], [14, 3], [5, 12]], chest: [33.6, 7], entry: [9.5, 13.8] },
+        e: { spawns: [[8, 10], [24, 10], [16, 4], [16, 16], [10, 5], [22, 5], [10, 15], [22, 15]], boss: [16, 9], portal: [16, 3.4], entry: [14, 17.5],
+          barrels: [[9, 1.1], [23, 1.1], [1.1, 10], [30.9, 10], [6, 18.9], [24, 18.9], [30.9, 5]] },
         s: { start: [2, 2.6] }
       },
       lava: true,
@@ -37619,7 +37638,7 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
       const s = o.s || 1, sx = s * (o.sx || 1), sy = s * (o.sy || 1), sz = s * (o.sz || 1), ry = o.ry || 0, y = o.y || 0;
       const p = { n, m: pieceMatrix(x, y, z, ry, sx, sy, sz), mat: o.mat || 'world', zone: o.zone || curZone, shadow: o.shadow !== false };
       if (!o.dyn) PL.push(p);
-      const fp = footprint(L, x, z, ry, sx, sz, o.pad);
+      const fp = footprint(L, x, z, ry, sx, sz, o.pad == null ? (o.solid ? -0.14 : 0.05) : o.pad);
       if (o.solid) SOLIDS.push(fp);
       p.fp = fp; p.top = y + L.box.max.y * sy;
       return p;
@@ -37664,7 +37683,7 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
       }
       // murs : chaque arête entre une case de sol et le vide (ou une autre zone)
       const vert = new Map();           // sommets touchés : 'i,j' → { hi, n }
-      const touch = (i, j, hi) => { const k = i + ',' + j, v = vert.get(k) || { i, j, hi: false, n: 0 }; v.hi = v.hi || hi; v.n++; vert.set(k, v); };
+      const touch = (i, j, hi, lava) => { const k = i + ',' + j, v = vert.get(k) || { i, j, hi: false, n: 0, solid: false }; v.hi = v.hi || hi; v.n++; if (!lava) v.solid = true; vert.set(k, v); };
       const deco = {}; for (const k of Object.keys(def.wallDeco || {})) deco[k] = { s: def.wallDeco[k], i: 0 };
       const edges = [];
       for (const Z of ZONES) for (const [i, j] of Z.cells) {
@@ -37697,14 +37716,22 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
             put('wall_doorway', e.cx, e.cz, { ry: e.ry });
             touch(e.va[0], e.va[1], true); touch(e.vb[0], e.vb[1], true);
             const vertical = e.side === 'w' || e.side === 'e';
-            SOLIDS.push(vertical ? [e.cx - 0.55, e.cz - 2.05, e.cx + 0.55, e.cz - 1.0] : [e.cx - 2.05, e.cz - 0.55, e.cx - 1.0, e.cz + 0.55]);
-            SOLIDS.push(vertical ? [e.cx - 0.55, e.cz + 1.0, e.cx + 0.55, e.cz + 2.05] : [e.cx + 1.0, e.cz - 0.55, e.cx + 2.05, e.cz + 0.55]);
+            pushWall(vertical ? [e.cx - 0.55, e.cz - 2.05, e.cx + 0.55, e.cz - 1.0] : [e.cx - 2.05, e.cz - 0.55, e.cx - 1.0, e.cz + 0.55]);
+            pushWall(vertical ? [e.cx - 0.55, e.cz + 1.0, e.cx + 0.55, e.cz + 2.05] : [e.cx + 1.0, e.cz - 0.55, e.cx + 2.05, e.cz + 0.55]);
             D.wood = true; D.w = 2.0;
           } else {
             touch(e.va[0], e.va[1], false); touch(e.vb[0], e.vb[1], false);
             D.w = 3.2;
           }
           DOORS.push(D);
+          continue;
+        }
+        if (e.lava && !e.back) {
+          // rebord du puits de lave (dans une salle) : bas et fin, pour voir la lave et ne pas gêner
+          put('wall', e.cx, e.cz, { ry: e.ry, sy: 0.12, sz: 0.45 });
+          touch(e.va[0], e.va[1], false, true); touch(e.vb[0], e.vb[1], false, true);
+          const vertical = e.side === 'w' || e.side === 'e';
+          pushWall(vertical ? [e.cx - 0.25, e.cz - 2.05, e.cx + 0.25, e.cz + 2.05] : [e.cx - 2.05, e.cz - 0.25, e.cx + 2.05, e.cz + 0.25]);
           continue;
         }
         if (e.back) {
@@ -37719,33 +37746,50 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
           if (c === 'w' || c === 'g') windowRay(e.cx, e.cz, nx, nz, e.Z);
           touch(e.va[0], e.va[1], true); touch(e.vb[0], e.vb[1], true);
           const vertical = e.side === 'w' || e.side === 'e';
-          SOLIDS.push(vertical ? [e.cx - 0.55, e.cz - 2.05, e.cx + 0.55, e.cz + 2.05] : [e.cx - 2.05, e.cz - 0.55, e.cx + 2.05, e.cz + 0.55]);
+          pushWall(vertical ? [e.cx - 0.55, e.cz - 2.05, e.cx + 0.55, e.cz + 2.05] : [e.cx - 2.05, e.cz - 0.55, e.cx + 2.05, e.cz + 0.55]);
         } else {
           put('wall', e.cx, e.cz, { ry: e.ry, sy: 0.3 });
           touch(e.va[0], e.va[1], false); touch(e.vb[0], e.vb[1], false);
           const vertical = e.side === 'w' || e.side === 'e';
-          SOLIDS.push(vertical ? [e.cx - 0.5, e.cz - 2.05, e.cx + 0.5, e.cz + 2.05] : [e.cx - 2.05, e.cz - 0.5, e.cx + 2.05, e.cz + 0.5]);
+          pushWall(vertical ? [e.cx - 0.5, e.cz - 2.05, e.cx + 0.5, e.cz + 2.05] : [e.cx - 2.05, e.cz - 0.5, e.cx + 2.05, e.cz + 0.5]);
         }
       }
+      if (def.lava) for (const e of edges) if (!e.door && !e.lava) { const nx = e.side === 'w' ? -1 : e.side === 'e' ? 1 : 0, nz = e.side === 'n' ? -1 : e.side === 's' ? 1 : 0; bakeAdd(e.cx + nx * 1.2, e.cz + nz * 1.2, 0xff5a18, 1.7, 5, 1.0); }
       // piliers aux sommets (hauts si un mur haut y touche)
       for (const v of vert.values()) {
         const x = v.i * CELL, z = v.j * CELL;
+        if (!v.solid) continue;                     // coin d'un puits de lave : pas de pilier
         curZone = zoneNear(x, z);
         put('pillar', x, z, { sy: v.hi ? 1 : 0.34, s: 1 });
-        SOLIDS.push([x - 0.8, z - 0.8, x + 0.8, z + 0.8]);
+        pushWall([x - 0.6, z - 0.6, x + 0.6, z + 0.6]);
       }
       // objets de chaque salle
       for (const Z of ZONES) {
         curZone = Z;
         for (const pr of (def.props && def.props[Z.id]) || []) {
           const [n, lx, lz, ry, o] = pr, op = Object.assign({ ry }, o || {});
-          const x = Z.x0 + lx, z = Z.z0 + lz;
+          let x = Z.x0 + lx, z = Z.z0 + lz;
+          if (op.solid && LIB[n]) [x, z] = snapToWall(n, x, z, op);
           if (op.brk) { addBreakable(n, x, z, op); continue; }
           put(n, x, z, op);
           if (/^candle/.test(n)) candle(n, x, z, Z);
         }
       }
       buildStatic(); foundations(); floorAO();
+    }
+    function pushWall(r) { r.wall = true; SOLIDS.push(r); }
+    // un objet plein (non cassable) à moins d'1,6 m d'un mur est collé contre ce mur : plus de fente étroite où le mage se coince
+    function snapToWall(n, x, z, op) {
+      if (op.brk) return [x, z];
+      const s = op.s || 1, fp = footprint(LIB[n], x, z, op.ry || 0, s * (op.sx || 1), s * (op.sz || 1), -0.14);
+      let dx = 0, dz = 0;
+      for (const w of SOLIDS) {
+        if (!w.wall) continue;
+        const ovZ = Math.min(fp[3], w[3]) - Math.max(fp[1], w[1]), ovX = Math.min(fp[2], w[2]) - Math.max(fp[0], w[0]);
+        if (ovZ > 0.3) { const gR = w[0] - fp[2], gL = fp[0] - w[2]; if (gR > 0.02 && gR < 1.6 && (!dx || gR < Math.abs(dx))) dx = gR - 0.02; if (gL > 0.02 && gL < 1.6 && (!dx || gL < Math.abs(dx))) dx = -(gL - 0.02); }
+        if (ovX > 0.3) { const gB = w[1] - fp[3], gT = fp[1] - w[3]; if (gB > 0.02 && gB < 1.6 && (!dz || gB < Math.abs(dz))) dz = gB - 0.02; if (gT > 0.02 && gT < 1.6 && (!dz || gT < Math.abs(dz))) dz = -(gT - 0.02); }
+      }
+      return [x + dx, z + dz];
     }
     function zoneNear(x, z) { let best = ZONES[0], bd = 1e9; for (const Z of ZONES) for (const [i, j] of Z.cells) { const d = Math.hypot(i * CELL + 2 - x, j * CELL + 2 - z); if (d < bd) { bd = d; best = Z; } } return best; }
     // sol d'une case selon le style de la zone
@@ -37776,9 +37820,10 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
       const fl = addStatic({ x: fx0, y: fy + 0.05, z: fz0, s: 0.42, cell: 'flame', col: 0xffc060, k: 2.6, flick: 14, a: 1 });
       const fl2 = addStatic({ x: fx0, y: fy - 0.02, z: fz0, s: 0.26, cell: 'flame', col: 0xfff0b0, k: 3, flick: 19, a: 0.9 });
       const gl1 = addStatic({ x: fx0, y: fy, z: fz0, s: 1.9, cell: 'glow', col: 0xff8a30, k: 1.1, flick: 9, a: 0.55 });
-      const pool = addStatic({ x: x + Math.sin(a) * 1.6, y: 0.06, z: z + Math.cos(a) * 1.6, s: 6.5, cell: 'glow', col: 0xff9a40, k: 0.6, flick: 7, a: 0.32, mode: 1 });
-      const L = addLight(fx0 + Math.sin(a) * 0.4, fy + 0.2, fz0 + Math.cos(a) * 0.4, MAPDEF.look.torch, 16, 12, 1, 'torch');
-      TORCHES.push({ x: fx0, y: fy, z: fz0, fl, fl2, gl1, pool, L, emb: FXR() * 2 });
+      // (la tache de lumière au sol vient maintenant de la lumière cuite : plus de grand halo transparent par torche)
+      const pool = null;
+      bakeAdd(fx0 + Math.sin(a) * 0.45, fz0 + Math.cos(a) * 0.45, MAPDEF.look.torch, 5.4, 10, 2.9);
+      TORCHES.push({ x: fx0, y: fy, z: fz0, fl, fl2, gl1, pool, emb: FXR() * 2 });
     }
     function candle(n, x, z) {
       const L = LIB[n]; if (!L) return;
@@ -37788,12 +37833,14 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
         addStatic({ x: x + ox, y: h + 0.1, z: z + oz, s: 0.2, cell: 'flame', col: 0xffd080, k: 2.4, flick: 15, a: 0.95 });
         addStatic({ x: x + ox, y: h + 0.1, z: z + oz, s: 0.9, cell: 'glow', col: 0xff9a40, k: 0.9, flick: 11, a: 0.4 });
       }
-      addStatic({ x, y: 0.06, z, s: 3.2, cell: 'glow', col: 0xff9a40, k: 0.5, flick: 8, a: 0.25, mode: 1 });
-      if (n === 'candle_triple') addLight(x, 1.4, z, 0xffa850, 6, 7, 1, 'candle');
+      bakeAdd(x, z, 0xffa850, n === 'candle_triple' ? 2.0 : 0.9, n === 'candle_triple' ? 6 : 4, 1.2);
     }
     // rayons de lune par les fenêtres (quadrilatères additifs, dégradés)
     const RAYS = [];
-    function windowRay(x, z, nx, nz, Z) { RAYS.push({ x: x + nx * 0.4, y: 3.0, z: z + nz * 0.4, dx: nx + (nz ? 0.35 : 0), dz: nz + (nx ? 0.35 : 0), w: 1.5, len: 7.5, col: 0xa8c0ff, a: 0.26 }); }
+    function windowRay(x, z, nx, nz, Z) {
+      const r = { x: x + nx * 0.4, y: 3.0, z: z + nz * 0.4, dx: nx + (nz ? 0.35 : 0), dz: nz + (nx ? 0.35 : 0), w: 1.5, len: 7.5, col: 0xa8c0ff, a: 0.26 }; RAYS.push(r);
+      const l = Math.hypot(r.dx, r.dz); for (const t of [2.4, 4.0]) bakeAdd(r.x + r.dx / l * t, r.z + r.dz / l * t, 0x9db8ff, 0.75, 3.2, 1.0);   // la lune posée au sol
+    }
     function buildRays() {
       if (!RAYS.length) return;
       const c = document.createElement('canvas'); c.width = 128; c.height = 128;
@@ -37912,10 +37959,17 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
       m.castShadow = Q.shadow > 0; m.receiveShadow = Q.shadow > 0; wadd(m); return m;
     }
     function addBreakable(n, x, z, o) {
-      const m = dynMesh(n, x, 0, z, o.ry, o.s); if (!m) return;
+      const m = dynMesh(n, x, 0, z, o.ry, o.s); if (!m) return null;
       const L = LIB[n], fp = footprint(L, x, z, o.ry || 0, o.s || 1, o.s || 1, 0.05);
       const solid = fp.slice(); SOLIDS.push(solid);
-      BREAK.push({ n, kind: o.brk, x, z, r: Math.max(fp[2] - fp[0], fp[3] - fp[1]) * 0.5, mesh: m, solid, hp: o.brk === 'crate' ? 2 : 1, alive: true, zone: curZone, hit: 0 });
+      const b = { n, kind: o.brk, x, z, r: Math.max(fp[2] - fp[0], fp[3] - fp[1]) * 0.5, mesh: m, solid, hp: o.brk === 'crate' ? 2 : 1, alive: true, zone: curZone, hit: 0, top: L.box.max.y * (o.s || 1) };
+      // tonneau = un cœur dedans : petit cœur qui flotte au-dessus + lueur rouge au sol (on apprend vite à les casser)
+      if (o.brk === 'barrel') {
+        b.icon = addStatic({ x, y: b.top + 0.5, z, s: 0.46, cell: 'heart', col: 0xff4d6d, k: 2.2, a: 0.9, pulse: 4 });
+        b.glow = addStatic({ x, y: 0.09, z, s: 2.0, cell: 'glow', col: 0xff3d5e, k: 1.2, mode: 1, a: 0.35, pulse: 3 });
+      }
+      BREAK.push(b);
+      return b;
     }
     function addChest(Z, gold, x, z, ry) {
       const n = gold ? 'chest_gold' : 'chest', L = LIB[n]; if (!L) return null;
@@ -37962,6 +38016,7 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
         if (vertical) markRect(GR.walk, D.x - 0.4, D.z - 2, D.x + 0.4, D.z + 2, 0); else markRect(GR.walk, D.x - 2, D.z - 0.4, D.x + 2, D.z + 0.4, 0);
       }
       for (const b of BREAK) if (!b.alive) markRect(GR.walk, b.solid[0], b.solid[1], b.solid[2], b.solid[3], 1);
+      for (const b of BREAK) if (b.alive && !b.falling) markRect(GR.walk, b.solid[0], b.solid[1], b.solid[2], b.solid[3], 0);
       const W = GR.w, wk = GR.walk;
       for (let j = 0; j < GR.h; j++) for (let i = 0; i < W; i++) {
         const k = j * W + i;
@@ -37973,6 +38028,23 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
     function walkable(i, j) { return i >= 0 && j >= 0 && i < GR.w && j < GR.h && GR.walk[j * GR.w + i] === 1; }
     function navOk(i, j) { return i >= 0 && j >= 0 && i < GR.w && j < GR.h && GR.nav[j * GR.w + i] === 1; }
     function free(x, z) { const c = cellOf(x, z); return walkable(c[0], c[1]); }
+    const DOORRECT = [0, 0, 0, 0];
+    function pushOut(e, s0, s1, s2, s3) {
+      const r = e.r;
+      if (e.x + r <= s0 || e.x - r >= s2 || e.z + r <= s1 || e.z - r >= s3) return;
+      const px = clamp(e.x, s0, s2), pz = clamp(e.z, s1, s3), dx = e.x - px, dz = e.z - pz, d2 = dx * dx + dz * dz;
+      if (d2 >= r * r) return;
+      if (d2 > 1e-9) { const d = Math.sqrt(d2), k = (r - d) / d; e.x += dx * k; e.z += dz * k; }
+      else { const l = e.x - s0, rr = s2 - e.x, t = e.z - s1, b = s3 - e.z, m = Math.min(l, rr, t, b); if (m === l) e.x = s0 - r; else if (m === rr) e.x = s2 + r; else if (m === t) e.z = s1 - r; else e.z = s3 + r; }
+    }
+    function collideHero(e) {
+      for (let pass = 0; pass < 2; pass++) {
+        for (const s of SOLIDS) if (!s.off && !s.falling) pushOut(e, s[0], s[1], s[2], s[3]);
+        for (const D of DOORS) if (D.closed) { const v = D.side === 'w' || D.side === 'e'; if (v) pushOut(e, D.x - 0.4, D.z - 2, D.x + 0.4, D.z + 2); else pushOut(e, D.x - 2, D.z - 0.4, D.x + 2, D.z + 0.4); }
+      }
+      // filet de sécurité : hors de toute zone (ne devrait pas arriver) → la grille le ramène
+      const c = cellOf(e.x, e.z); if (!walkable(c[0], c[1]) && !zoneAt(e.x, e.z)) collide(e);
+    }
     function collide(e) {
       const cs = GR.cs, r = e.r;
       const i0 = Math.floor((e.x - r - GR.x0) / cs), i1 = Math.floor((e.x + r - GR.x0) / cs);
@@ -38009,7 +38081,7 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
       if (c[0] === GR.tx && c[1] === GR.tz) return;
       GR.tx = c[0]; GR.tz = c[1];
       const W = GR.w, D = GR.dist, q = GR.q, N = GR.nav; D.fill(32000);
-      if (!walkable(c[0], c[1])) return;
+      if (!walkable(c[0], c[1])) { let f = null; for (let r = 1; r <= 2 && !f; r++) for (let j = c[1] - r; j <= c[1] + r && !f; j++) for (let i = c[0] - r; i <= c[0] + r && !f; i++) if (walkable(i, j)) f = [i, j]; if (!f) return; c[0] = f[0]; c[1] = f[1]; }
       let h = 0, t = 0; const s = c[1] * W + c[0]; D[s] = 0; q[t++] = s;
       for (const [di, dj] of NB) { const ii = c[0] + di, jj = c[1] + dj; if (navOk(ii, jj)) { D[jj * W + ii] = 1; q[t++] = jj * W + ii; } }
       while (h < t) {
@@ -38077,6 +38149,99 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
           addStatic({ drift: true, bx: ci * CELL + frnd(0.3, 3.7), by: frnd(0.5, 3.8), bz: cj * CELL + frnd(0.3, 3.7), x: 0, y: 0, z: 0, rx: frnd(0.3, 1.2), ry2: frnd(0.2, 0.8), fx: frnd(0.1, 0.35), s: frnd(0.05, 0.1), cell: 'dot', col: FXR() < 0.7 ? look.dustCol[0] : look.dustCol[1], k: 1.6, a: frnd(0.5, 0.9), pulse: frnd(1, 3), world: 1 });
         }
       }
+    }
+
+    // ===========================================================================
+    // LUMIÈRE CUITE : les torches, les bougies, la lune des fenêtres, la lave et les ombres du soleil sont calculées UNE fois par
+    // monde dans une image vue du dessus (4 pixels par mètre). Le décor, les monstres, le mage et les boss y lisent leur lumière.
+    // → plus de lampes en temps réel pour le décor (elles restent pour les sorts et le mage), plus de carte d'ombres : beaucoup plus
+    // léger pour la carte graphique, et TOUTES les torches éclairent (avant : seulement les 4 plus proches), murs compris.
+    // Rouge-vert-bleu = lumière ajoutée (racine carrée, ×4) ; alpha = part de soleil reçue au sol (ombres des murs, piliers, objets).
+    // ===========================================================================
+    const BAKE = { src: [], tex: null };
+    function bakeAdd(x, z, col, i, r, h) { BAKE.src.push({ x, z, c: new T.Color(col), i, r, h: h == null ? 2.6 : h }); }
+    function hull2(P) {                 // enveloppe convexe (chaîne monotone)
+      P.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+      const lo = [], up = [];
+      for (const p of P) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+      for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+      up.pop(); lo.pop(); return lo.concat(up);
+    }
+    function bakeWorld() {
+      const t0 = performance.now();
+      const ppm = 4, w = Math.ceil(MAP.W * ppm), h = Math.ceil(MAP.H * ppm), N = w * h;
+      const Lr = new Float32Array(N), Lg = new Float32Array(N), Lb = new Float32Array(N), V = new Float32Array(N).fill(1);
+      const F = new Uint8Array(N), O = new Uint8Array(N);
+      const rect = (s, arr, v) => {
+        const x0 = Math.max(0, Math.floor(s[0] * ppm)), x1 = Math.min(w - 1, Math.ceil(s[2] * ppm) - 1), y0 = Math.max(0, Math.floor(s[1] * ppm)), y1 = Math.min(h - 1, Math.ceil(s[3] * ppm) - 1);
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) arr[y * w + x] = v;
+      };
+      for (const Z of ZONES) for (const [i, j] of Z.cells) rect([i * CELL - 0.6, j * CELL - 0.6, (i + 1) * CELL + 0.6, (j + 1) * CELL + 0.6], F, 1);
+      for (const s of SOLIDS) if (s.wall) rect(s, O, 1);
+      // les grands piliers arrêtent aussi la lumière des torches
+      for (const p of PL) if (p.top > 2.5 && p.fp && /pillar/.test(p.n)) rect(p.fp, O, 1);
+      // lumière des sources (torches, bougies, lave, lune), arrêtée par les murs (on va du point vers la source, pas à pas)
+      const blocked = (sx, sz, tx, tz) => {
+        const dx = tx - sx, dz = tz - sz, n = Math.ceil(Math.hypot(dx, dz) * 2);
+        for (let k = 1; k < n - 3; k++) { const x = (sx + dx * k / n) | 0, z = (sz + dz * k / n) | 0; if (x >= 0 && z >= 0 && x < w && z < h && O[z * w + x]) return true; }
+        return false;
+      };
+      for (const S of BAKE.src) {
+        const sx = S.x * ppm, sz = S.z * ppm, R = S.r * ppm, ir = S.c.r * S.i, ig = S.c.g * S.i, ib = S.c.b * S.i;
+        const x0 = Math.max(0, Math.floor(sx - R)), x1 = Math.min(w - 1, Math.ceil(sx + R)), y0 = Math.max(0, Math.floor(sz - R)), y1 = Math.min(h - 1, Math.ceil(sz + R));
+        const r2 = S.r * S.r, hh = S.h * S.h;
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+          const k = y * w + x; if (!F[k]) continue;
+          const dx = (x + 0.5) / ppm - S.x, dz = (y + 0.5) / ppm - S.z, d2 = dx * dx + dz * dz; if (d2 > r2) continue;
+          const d3 = Math.sqrt(d2 + hh), q = d3 / S.r, win = 1 - q * q * q * q; if (win <= 0) continue;
+          const f = win * win / Math.pow(Math.max(d3, 0.75), 1.6) * (0.45 + 0.55 * S.h / d3);
+          if (f < 0.004 || blocked(sx, sz, x + 0.5, y + 0.5)) continue;
+          Lr[k] += ir * f; Lg[k] += ig * f; Lb[k] += ib * f;
+        }
+      }
+      // ombres du soleil : chaque objet posé projette son « volume » au sol, dans la direction opposée au soleil
+      const sd = new T.Vector3().subVectors(sun.position, sun.target.position).normalize();
+      const kx = -sd.x / Math.max(0.2, sd.y), kz = -sd.z / Math.max(0.2, sd.y);
+      for (const p of PL) {
+        if (p.mat === 'floor' || !p.fp || p.top < 0.35 || p.m.elements[13] > 0.5) continue;
+        const ht = Math.min(p.top, 6), f = p.fp, ox = kx * ht, oz = kz * ht;
+        const H = hull2([[f[0], f[1]], [f[2], f[1]], [f[2], f[3]], [f[0], f[3]], [f[0] + ox, f[1] + oz], [f[2] + ox, f[1] + oz], [f[2] + ox, f[3] + oz], [f[0] + ox, f[3] + oz]]);
+        let bx0 = 1e9, bx1 = -1e9, bz0 = 1e9, bz1 = -1e9; for (const q of H) { bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]); bz0 = Math.min(bz0, q[1]); bz1 = Math.max(bz1, q[1]); }
+        const X0 = Math.max(0, Math.floor(bx0 * ppm)), X1 = Math.min(w - 1, Math.ceil(bx1 * ppm)), Y0 = Math.max(0, Math.floor(bz0 * ppm)), Y1 = Math.min(h - 1, Math.ceil(bz1 * ppm));
+        const shade = p.top > 2.5 ? 0 : 0.35;      // les petits objets font une ombre plus légère
+        for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
+          const k = y * w + x; if (!F[k]) continue;
+          const px = (x + 0.5) / ppm, pz = (y + 0.5) / ppm;
+          if (px > f[0] + 0.1 && px < f[2] - 0.1 && pz > f[1] + 0.1 && pz < f[3] - 0.1) continue;     // pas sur soi-même (la face éclairée reste éclairée)
+          let inside = true;
+          for (let i = 0; i < H.length; i++) { const a = H[i], b = H[(i + 1) % H.length]; if ((b[0] - a[0]) * (pz - a[1]) - (b[1] - a[1]) * (px - a[0]) < 0) { inside = false; break; } }
+          if (inside && V[k] > shade) V[k] = shade;
+        }
+      }
+      // flou : ombres douces, lumière sans escaliers
+      const blur = (A, r) => {
+        const tmp = new Float32Array(N), o = new Float32Array(N);
+        for (let y = 0; y < h; y++) { let acc = 0; for (let x = -r; x <= r; x++) acc += A[y * w + clamp(x, 0, w - 1)]; for (let x = 0; x < w; x++) { tmp[y * w + x] = acc / (2 * r + 1); acc += A[y * w + clamp(x + r + 1, 0, w - 1)] - A[y * w + clamp(x - r, 0, w - 1)]; } }
+        for (let x = 0; x < w; x++) { let acc = 0; for (let y = -r; y <= r; y++) acc += tmp[clamp(y, 0, h - 1) * w + x]; for (let y = 0; y < h; y++) { o[y * w + x] = acc / (2 * r + 1); acc += tmp[clamp(y + r + 1, 0, h - 1) * w + x] - tmp[clamp(y - r, 0, h - 1) * w + x]; } }
+        return o;
+      };
+      const Vb = blur(blur(V, 2), 1), Rb = blur(Lr, 1), Gb = blur(Lg, 1), Bb = blur(Lb, 1);
+      const u8 = new Uint8Array(N * 4), enc = (v) => Math.round(Math.sqrt(clamp(v / 4, 0, 1)) * 255);
+      for (let k = 0; k < N; k++) { u8[k * 4] = enc(Rb[k]); u8[k * 4 + 1] = enc(Gb[k]); u8[k * 4 + 2] = enc(Bb[k]); u8[k * 4 + 3] = Math.round(clamp(Vb[k], 0, 1) * 255); }
+      if (BAKE.tex) BAKE.tex.dispose();
+      const t = new T.DataTexture(u8, w, h, T.RGBAFormat); t.magFilter = T.LinearFilter; t.minFilter = T.LinearFilter; t.generateMipmaps = false; t.colorSpace = T.NoColorSpace; t.flipY = false; t.needsUpdate = true;
+      BAKE.tex = t; UNI.lm.value = t; UNI.lmR.value.set(0, 0, 1 / (w / ppm), 1 / (h / ppm));
+      UNI.lmSh.value = Q.shadow >= 2 ? 0 : 1;
+      BAKE.ms = Math.round(performance.now() - t0); BAKE.n = BAKE.src.length;
+    }
+    // le soleil vu de la caméra (pour retirer sa part là où l'ombre cuite tombe) : chaque image
+    const bakeV = { d: null };
+    function bakeFrame() {
+      if (!bakeV.d) bakeV.d = new T.Vector3();
+      bakeV.d.subVectors(sun.position, sun.target.position).normalize().transformDirection(camera.matrixWorldInverse);
+      UNI.sunV.value.copy(bakeV.d);
+      UNI.sunC.value.copy(sun.color).multiplyScalar(sun.intensity / Math.PI);
     }
 
     // ===========================================================================
@@ -38202,7 +38367,7 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
     }
     function charMats(tp) {
       const o = tp.opt;
-      const body = keep(patchMat(lam({ map: o.tex, emissive: o.emis || 0x000000, side: o.q ? T.DoubleSide : T.FrontSide }), { rim: true, flash: true, dark: true, dis: !!o.q, disCol: o.disCol, disH: tp.h, rimCol: o.rimCol || 0xffc890, rimK: o.rimK == null ? 0.4 : o.rimK }));
+      const body = keep(patchMat(lam({ map: o.tex, emissive: o.emis || 0x000000, side: o.q ? T.DoubleSide : T.FrontSide }), { rim: true, flash: true, dark: true, lmc: true, dis: !!o.q, disCol: o.disCol, disH: tp.h, rimCol: o.rimCol || 0xffc890, rimK: o.rimK == null ? 0.4 : o.rimK }));
       const glow = MAT['glow_' + (o.glowCol || 0xffa020)] || (MAT['glow_' + (o.glowCol || 0xffa020)] = keep(new T.MeshBasicMaterial({ color: new T.Color(o.glowCol || 0xffa020).multiplyScalar(o.glowK || 3.2) })));
       return [body, glow];
     }
@@ -38644,7 +38809,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       if (len > 0.1 && hero.roll <= 0) hero.face = Math.atan2(wx, wz);
       if (hero.kbx || hero.kbz) { hero.x += hero.kbx * dt; hero.z += hero.kbz * dt; const k = Math.exp(-9 * dt); hero.kbx *= k; hero.kbz *= k; if (Math.abs(hero.kbx) + Math.abs(hero.kbz) < 0.05) { hero.kbx = 0; hero.kbz = 0; } }
       hero.x += hero.vx * dt; hero.z += hero.vz * dt;
-      collide(hero);
+      collideHero(hero);
       if (hero.mv > 0.5 && hero.roll <= 0) { hero.step += dt * hero.mv * 3.4; if (hero.step > 1) { hero.step = 0; dust(hero.x, hero.z, 1, 0.45); sfx('step', 0.07, frnd(0.9, 1.15), 0.12); } }
       if (!canAct) { IN.fireQ = IN.iceQ = IN.stormQ = IN.rollQ = false; return; }
       if (IN.rollQ) { IN.rollQ = false; if (hero.rollCd <= 0 && hero.roll <= 0) doRoll(wx, wz, len); }
@@ -38893,7 +39058,6 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       const pts = Math.round(m.K.pts * G.ptsMul * mult);
       addScore(pts);
       pop(m.x, m.c.tp.h + 0.8, m.z, '+' + pts, G.combo >= 5 ? 'big' : '', 1.1);
-      hudCombo(true);
       if (G.combo === 5 || G.combo === 10 || G.combo === 15 || G.combo === 20 || G.combo % 25 === 0) comboCall(G.combo);
       // les os volent ! (les monstres Quaternius, eux, se défont en braises)
       const power = kind === 'fire' ? 9 : kind === 'storm' ? 7 : kind === 'ice' ? 6 : 5.5;
@@ -38908,16 +39072,9 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       // butin : parfois un cœur quand on en a besoin
       if (G.hearts < MAXH && FXR() < (G.hearts <= 2 ? 0.16 : 0.05)) dropHeart(m.x, m.z);
     }
-    let comboShown = 0;
-    function hudCombo(bump) {
-      if (G.combo >= 3 && G.comboT > 0) {
-        if (comboShown !== G.combo) { comboShown = G.combo; H.comboN.textContent = '×' + G.combo; if (bump) { H.combo.classList.remove('bump'); void H.combo.offsetWidth; H.combo.classList.add('bump'); } }
-        H.combo.classList.add('on'); H.comboBar.style.transform = 'scaleX(' + clamp(G.comboT / 3.2, 0, 1).toFixed(3) + ')';
-      } else if (H.combo.classList.contains('on')) H.combo.classList.remove('on');
-    }
     function comboCall(n) {
-      const b = n * 25 * G.ptsMul; addScore(b);
-      pop(hero.x, 3.0, hero.z, 'COMBO ×' + n + ' +' + fmt(b), 'big', 1.4);
+      const b = n * 25 * G.ptsMul;
+      scoreBurst(hero.x, 2.4, hero.z, b, { n: 4, pop: false }); pop(hero.x, 3.0, hero.z, 'COMBO ×' + n, '', 1.1);
       sfx('combo', 0.5, 1 + Math.min(n, 20) * 0.01, 0.3);
     }
 
@@ -38954,15 +39111,29 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       if (!b.alive) return;
       b.hp -= dmg; b.hit = 0.12;
       if (b.hp > 0) { sfx('wood', 0.25, frnd(1.1, 1.3), 0.05, b.x); return; }
-      b.alive = false; b.mesh.visible = false;
+      b.alive = false; b.mesh.visible = false; if (b.solid) b.solid.off = true;
       sfx('woodbreak', 0.5, frnd(0.9, 1.1), 0.04, b.x);
       for (let i = 0; i < 14; i++) { const a = FXR() * TAU, v = frnd(2, 6); fx({ x: b.x, y: frnd(0.3, 1.2), z: b.z, vx: Math.cos(a) * v, vy: frnd(2, 6), vz: Math.sin(a) * v, g: 16, drag: 0.8, floor: true, life: frnd(0.8, 1.4), s0: frnd(0.25, 0.45), s1: 0.2, c0: 0x9a6038, k: 1, cell: 'debris', add: false, rot: FXR() * 6, vr: frnd(-10, 10), a0: 1, fade: 0.7 }); }
       dust(b.x, b.z, 6, 1.2, 0xc8a882);
-      scoreBurst(b.x, 0.9, b.z, (b.kind === 'crate' ? 60 : 40) * G.ptsMul, { n: 3, small: true });
-      if (G.hearts < MAXH && FXR() < 0.12) dropHeart(b.x, b.z);
+      if (b.icon) { delStatic(b.icon); delStatic(b.glow); b.icon = b.glow = null; }
+      if (b.kind === 'barrel') {
+        // un cœur jaillit du tonneau (il rebondit, flotte, brille) : +1 vie
+        dropHeart(b.x, b.z); burst(b.x, 1.0, b.z, 0xff6d8a, 12, 4.5, 0.6, 0.28, 'heart', 2.2); flash(b.x, 1.0, b.z, 0xff8aa0, 2.6, 0.3, 2);
+      } else scoreBurst(b.x, 0.9, b.z, 60 * G.ptsMul, { n: 3, small: true });
       gridRefresh();
     }
-    function breakUpdate(dt) { for (const b of BREAK) if (b.alive && b.hit > 0) { b.hit -= dt; const k = Math.max(0, b.hit) / 0.12; b.mesh.scale.set(1 + k * 0.12, 1 - k * 0.1, 1 + k * 0.12); } }
+    function breakUpdate(dt) {
+      const tt = UNI.time.value;
+      for (const b of BREAK) {
+        if (!b.alive) continue;
+        if (b.icon) b.icon.y = b.top + 0.5 + Math.sin(tt * 2.4 + b.x) * 0.1;
+        if (b.falling) {          // tonneau neuf qui tombe du plafond (salles du boss)
+          b.fallT += dt; const k = Math.min(1, b.fallT / 0.55);
+          b.mesh.position.y = 5 * (1 - k * k); if (b.icon) b.icon.y = b.mesh.position.y + b.top + 0.5;
+          if (k >= 1) { b.falling = false; b.mesh.position.y = 0; b.hit = 0.12; dust(b.x, b.z, 8, 1.3, 0xc8a882); sfx('slam', 0.3, 1.5, 0.05, b.x); shake(0.06); gridRefresh(); }
+        }
+      }
+      for (const b of BREAK) if (b.alive && b.hit > 0) { b.hit -= dt; const k = Math.max(0, b.hit) / 0.12; b.mesh.scale.set(1 + k * 0.12, 1 - k * 0.1, 1 + k * 0.12); } }
     // coffres : apparaissent (salle terminée), s'ouvrent quand on s'approche : rayon doré, une gerbe d'étoiles = des points,
     // et souvent un cœur ou une recharge de bouclier quand on en a besoin
     function chestsUpdate(dt) {
@@ -39048,7 +39219,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       hero.dead = true; hero.deadT = 0; G.phase = 'dead'; G.slow = 0.3; G.slowT = 1.4;
       heroFull('Death_A', { once: true, fade: 0.1 });
       sfx('bossdie', 0.4, 1.5); tone(330, 0.5, 'triangle', 0.05, 110);
-      banner('OH NON…', fpick(['Le mage a besoin d’une sieste.', 'Les squelettes dansent de joie…', 'Le donjon a gagné… cette fois.']), 'red', 2.6);
+      banner('OH NON…', '', 'red', 2.2);
       smokePuff(hero.x, 0.5, hero.z, 0xb8a8d8, 8, 1.1);
       // les squelettes se moquent
       for (const m of MON) if (!m.dead && !m.K.boss && !m.sleeping) after(frnd(0.2, 0.8), () => { if (!m.dead) { m.st = 'cheer'; play(m.c, m.K.q ? m.K.cheer : fpick(['Cheer', 'Taunt']), { fade: 0.2 }); } });
@@ -39497,7 +39668,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       const tp = TPL.golem; if (!tp) return null;
       const root = new T.Group(), inner = T.skeletonClone(tp.scene), K = KIND.golem;
       const sc = K.h / tp.h; inner.scale.setScalar(sc); inner.position.y = -tp.minY * sc; root.add(inner);
-      const mat = keep(patchMat(lam({ map: TEX.golem_rock, emissiveMap: TEX.golem_glow, emissive: new T.Color(0x3fc8ff), emissiveIntensity: 0, color: 0xd8d0c8 }), { rim: true, flash: true, rimCol: 0xffd0a0, rimK: 0.18 }));
+      const mat = keep(patchMat(lam({ map: TEX.golem_rock, emissiveMap: TEX.golem_glow, emissive: new T.Color(0x3fc8ff), emissiveIntensity: 0, color: 0xd8d0c8 }), { rim: true, flash: true, lmc: true, rimCol: 0xffd0a0, rimK: 0.18 }));
       inner.traverse((o) => { if (o.isMesh) { o.material = mat; o.castShadow = Q.shadow > 0; o.frustumCulled = false; } });
       root.position.set(x, 0, z); scene.add(root);
       const mixer = new T.AnimationMixer(inner), acts = {};
@@ -39557,7 +39728,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         [0.9, () => { m.c.root.visible = true; m.sh.a = 0.6; gPlay('roar', { once: true, speed: 0.75 }); fx({ x: m.x, y: 0.07, z: m.z, life: 3, s0: 6, s1: 7, c0: 0x100806, k: 1, cell: 'crack', mode: 1, add: false, a0: 0.95, a1: 0, fade: 0.7 }); }],
         [2.4, () => { sfx('roar', 1.0, 0.85); shake(0.7); hitStop(0.08); flash(m.x, 3.5, m.z, 0x9ff0ff, 9, 0.4, 2.2); ringFx(m.x, m.z, 0x9ff0ff, 1, 12, 0.8, 'ring', 1, 2); }],
         [2.6, () => {
-          banner(W.boss.title, W.boss.line, 'red', 3.2); H.bossName.textContent = W.boss.name + (G.tour ? ' ' + roman(G.tour) : ''); H.boss.classList.add('on'); hudBoss();
+          banner(W.boss.title, '', 'red', 2.4); H.bossName.textContent = W.boss.name + (G.tour ? ' ' + roman(G.tour) : ''); H.boss.classList.add('on'); hudBoss();
         }],
         [4.4, () => { cineEnd(); el.classList.remove('cine'); G.phase = 'play'; BOSS.st = 'walk'; BOSS.t = 0; m.sleeping = false; gPlay('walk'); }]
       ];
@@ -39630,7 +39801,6 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         gPlay('roar', { once: true, speed: rage, fade: 0.15 }); A.dur = 2.2;
         A.ev.push([0.4, () => {
           sfx('roar', 0.9, 0.95); shake(0.55); hitStop(0.06);
-          banner(BOSS.phase === 3 ? 'IL EST FURIEUX !' : 'IL APPELLE À L’AIDE !', BOSS.phase === 3 ? 'Les pierres tombent du plafond…' : 'Les squelettes sortent de terre !', 'red', 2.2);
           const Z = BOSS.zone, sp = Z.spots.spawns || [], n = BOSS.phase === 3 ? 4 : 3;
           for (let i = 0; i < n; i++) { const p = sp[(i * 2 + BOSS.phase) % sp.length]; after(0.3 + i * 0.35, () => spawnMonster(BOSS.phase === 3 && i % 2 ? (TPL.q_ghost ? 'ghost' : 'rogue') : 'minion', Z.x0 + p[0], Z.z0 + p[1], { zone: Z })); }
         }]);
@@ -39744,7 +39914,7 @@ void main(){ vec2 p = vW * 0.16;
         const x = i * CELL + 2, z = j * CELL + 2;
         LAVA.holes.push({ x, z });
         addStatic({ x, y: -0.4, z, s: 5.5, cell: 'glow', col: 0xff6a20, k: 1.4, a: 0.6, pulse: 1.3 });
-        const L = addLight(x, 0.6, z, 0xff6a20, 14, 9, 0.6, 'lava'); L.prio = 40;
+        bakeAdd(x, z, 0xff6a20, 4.6, 9, 0.9);
       }
       // braises qui montent du vide autour du donjon
       for (let j = -1; j <= MAP.NJ; j++) for (let i = -1; i <= MAP.NI; i++) if (MAP.at(i, j) === ' ' && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => { const c = MAP.at(i + a, j + b); return c !== ' ' && c !== 'L'; })) LAVA.holes.push({ x: i * CELL + 2, z: j * CELL + 2, edge: true });
@@ -39772,14 +39942,16 @@ void main(){ vec2 p = vW * 0.16;
     function makeDragon(x, z) {
       const tp = TPL.dragon; if (!tp) return null;
       const root = new T.Group(), inner = T.skeletonClone(tp.scene), K = KIND.dragon;
-      const sc = K.h / tp.h; inner.scale.setScalar(sc); inner.position.y = -tp.minY * sc; root.add(inner);
-      const mat = keep(patchMat(lam({ map: TEX.dragon_base, emissiveMap: TEX.dragon_glow, emissive: new T.Color(1.0, 0.42, 0.08), emissiveIntensity: 1.2, color: 0xffe0d0 }), { rim: true, flash: true, rimCol: 0xffb070, rimK: 0.55 }));
+      const sc = K.h / tp.h, tilt = new T.Group(); tilt.position.y = 3.2; tilt.rotation.order = 'YXZ';
+      inner.scale.setScalar(sc); inner.position.y = -tp.minY * sc - 3.2; tilt.add(inner); root.add(tilt);
+      const mat = keep(patchMat(lam({ map: TEX.dragon_base, emissiveMap: TEX.dragon_glow, emissive: new T.Color(1.0, 0.42, 0.08), emissiveIntensity: 1.2, color: 0xffe0d0 }), { rim: true, flash: true, lmc: true, rimCol: 0xffb070, rimK: 0.55 }));
       let head = null;
       inner.traverse((o) => { if (o.isMesh) { o.material = mat; o.castShadow = Q.shadow > 0; o.frustumCulled = false; } if (/Head$/.test(o.name)) head = o; });
       root.position.set(x, 0, z); scene.add(root);
       const mixer = new T.AnimationMixer(inner), acts = {};
       for (const [k, clip] of Object.entries(tp.anims)) acts[k] = mixer.clipAction(clip);
-      const c = { tp: { h: K.h }, root, rig: inner, mixer, acts, mats: [mat], mesh: null, byName: {}, cur: null, head };
+      const wt = {}; inner.traverse((o) => { if (/WingR_FingerB_3$/.test(o.name)) wt.r = o; if (/WingL_FingerB_3$/.test(o.name)) wt.l = o; });
+      const c = { tp: { h: K.h }, root, tilt, rig: inner, mixer, acts, mats: [mat], mesh: null, byName: {}, cur: null, head, wt };
       const m = { kind: 'dragon', K, c, x, z, r: K.r, vx: 0, vz: 0, face: 0, hp: Math.round(K.hp * (1 + 0.55 * G.tour)), hpMax: 0, st: 'boss', t: 0, cd: 2, flash: 0, frozen: 0, slowed: 0, burn: 0, stun: 0, kbx: 0, kbz: 0, dead: false, sleeping: true, y: 0 };
       m.hpMax = m.hp;
       m.sh = addStatic({ x, y: 0.07, z, s: 7, cell: 'blob', col: 0x000000, a: 0, mode: 1, add: false });
@@ -39835,7 +40007,7 @@ void main(){ vec2 p = vW * 0.16;
         [3.0, () => { m.y = 0; shake(0.85); hitStop(0.08); sfx('bigslam', 0.9, 0.8); dust(m.x, m.z, 18, 3); ringFx(m.x, m.z, 0xffc890, 1, 14, 0.8, 'ring', 1, 2); for (let i = 0; i < 30; i++) { const a = FXR() * TAU, v = frnd(4, 10); fx({ x: m.x, y: 0.3, z: m.z, vx: Math.cos(a) * v, vy: frnd(1, 4), vz: Math.sin(a) * v, g: 12, floor: true, life: frnd(0.7, 1.2), s0: 0.35, s1: 0.2, c0: 0x8a6a5a, k: 1, cell: 'rocks', add: false, rot: FXR() * 6, a0: 1, fade: 0.6 }); } BOSS.rune.a = 0.32; BOSS.rune2.a = 0.22; }],
         [3.5, () => { dPlay('breath', { once: true, speed: 1.0, fade: 0.2 }); BOSS.roarFire = 1.6; sfx('dragonroar', 1.0, 0.9); sfx('breath', 0.6, 0.8); shake(0.6); }],
         [4.0, () => {
-          banner(W.boss.title, W.boss.line, 'red', 3.2); H.bossName.textContent = W.boss.name + (G.tour ? ' ' + roman(G.tour) : ''); H.boss.classList.add('on'); hudBoss();
+          banner(W.boss.title, '', 'red', 2.4); H.bossName.textContent = W.boss.name + (G.tour ? ' ' + roman(G.tour) : ''); H.boss.classList.add('on'); hudBoss();
         }],
         [5.6, () => { cineEnd(); el.classList.remove('cine'); G.phase = 'play'; BOSS.st = 'walk'; BOSS.t = 0; m.sleeping = false; dPlay('walk'); }]
       ];
@@ -39846,8 +40018,12 @@ void main(){ vec2 p = vW * 0.16;
       BOSS.glow = damp(BOSS.glow, BOSS.st === 'dead' ? 3 : 0.9 + BOSS.phase * 0.35 + (BOSS.fireK || 0) * 1.2, 3, dt);
       c.mats[0].emissiveIntensity = BOSS.glow * (0.85 + 0.15 * Math.sin(UNI.time.value * 3));
       c.mixer.update(dt * (m.slowed > 0 ? 0.65 : 1) * (BOSS.anim || 1));
-      if (m.sh) { m.sh.x = m.x; m.sh.z = m.z; m.sh.a = BOSS.st === 'sleep' ? 0 : clamp(0.65 - m.y * 0.04, 0.15, 0.65); m.sh.s = 7 + m.y * 0.3; }
+      // ombre au sol : plus grande et plus douce quand il monte, toujours lisible (on voit où il est)
+      if (m.sh) { m.sh.x = m.x; m.sh.z = m.z; m.sh.a = BOSS.st === 'sleep' ? 0 : clamp(0.8 - m.y * 0.04, 0.48, 0.8); m.sh.s = 7 + m.y * 0.5; }
       c.root.position.set(m.x, m.y, m.z); c.root.rotation.y = m.face;
+      m.roll = damp(m.roll || 0, m.rollT || 0, 3.5, dt); m.pitch = damp(m.pitch || 0, m.pitchT || 0, 3, dt);
+      c.tilt.rotation.z = m.roll; c.tilt.rotation.x = -m.pitch;
+      if (m.y > 0.6 && BOSS.st !== 'dead') dragonTrails(m, dt);
       // flammes du rugissement d'entrée (vers le haut)
       if (BOSS.roarFire > 0) { BOSS.roarFire -= dt; breathParticles(m, dt, -0.7); }
       if (BOSS.st === 'arrive') {
@@ -39874,7 +40050,10 @@ void main(){ vec2 p = vW * 0.16;
           }
           BOSS.last = atk; dragonAtk(m, atk, rage);
         }
-      } else if (BOSS.st === 'atk' || BOSS.st === 'air') {
+      } else if (BOSS.st === 'air') {
+        const A = BOSS.atk; A.t += dt; dragonFlightUpdate(m, A, dt);
+        while (A.ev.length && A.t >= A.ev[0][0]) A.ev.shift()[1]();
+      } else if (BOSS.st === 'atk') {
         const A = BOSS.atk; A.t += dt * (A.noRage ? 1 : rage);
         if (A.turn) m.face = turnTo(m.face, Math.atan2(dx, dz), dt * A.turn);
         if (A.move) A.move(dt);
@@ -39883,7 +40062,7 @@ void main(){ vec2 p = vW * 0.16;
         if (A.t >= A.dur) { coneMesh.visible = false; BOSS.fireK = 0; if (A.next) { const n = A.next; A.next = null; n(); } else { BOSS.st = 'walk'; BOSS.t = 0; BOSS.cd = rnd(0.8, 1.5) / rage; dPlay('walk'); } }
       }
       // bornes de l'arène
-      m.x = clamp(m.x, Z.x0 + 2.4, Z.x1 - 2.4); m.z = clamp(m.z, Z.z0 + 2.4, Z.z1 - 2.4);
+      if (BOSS.st !== 'air') { m.x = clamp(m.x, Z.x0 + 2.4, Z.x1 - 2.4); m.z = clamp(m.z, Z.z0 + 2.4, Z.z1 - 2.4); }
     }
     function dragonAtk(m, kind, rage) {
       const A = { kind, t: 0, ev: [], dur: 1.5, turn: 0 };
@@ -39904,36 +40083,168 @@ void main(){ vec2 p = vW * 0.16;
         A.ev.push([0.6, () => { A.turn = 0.55; }]);
         A.ev.push([0.95, () => { A.breath = { dur: 1.7, t: 0, tick: 0 }; sfx('breath', 0.9, 1); sfx('flame', 0.7, 0.9); }]);
       } else if (kind === 'takeoff') {
-        // il s'envole : flammes depuis le ciel, boules de feu, squelettes de feu ; puis il se repose
-        A.noRage = true; A.dur = 1.9; dPlay('takeoff', { once: true, fade: 0.2 }); sfx('wings', 0.9, 0.8); sfx('dragonroar', 0.8, 1.0);
-        banner('IL S’ENVOLE !', 'Gare au feu qui tombe du ciel…', 'red', 2.2);
-        A.move = (dt2) => { m.y = Math.min(6.5, m.y + dt2 * 4.2); };
-        A.next = () => dragonAir(m);
+        // il s'envole (voir dragonFlight) ; ses petits arrivent pendant ce temps
+        dragonFlight(m);
         const Z = BOSS.zone, sp = Z.spots.spawns || [];
-        for (let i = 0; i < 3; i++) after(0.6 + i * 0.4, () => { const p = sp[(i * 3 + 1) % sp.length]; spawnMonster(TPL.q_imp ? (i === 1 ? 'imp' : 'drake') : i === 1 ? 'archer' : 'minion', Z.x0 + p[0], Z.z0 + p[1], { zone: Z }); });
+        for (let i = 0; i < 3; i++) after(1.2 + i * 0.5, () => { const p = sp[(i * 3 + 1) % sp.length]; spawnMonster(TPL.q_imp ? (i === 1 ? 'imp' : 'drake') : i === 1 ? 'archer' : 'minion', Z.x0 + p[0], Z.z0 + p[1], { zone: Z }); });
+        return;
       } else if (kind === 'enrage') {
         A.dur = 2.2; dPlay('look', { once: true, speed: 1.6, fade: 0.2 }); BOSS.roarFire = 1.4; sfx('dragonroar', 1, 1.1); shake(0.6); hitStop(0.06);
-        banner('IL ENRAGE !', 'La lave jaillit du sol…', 'red', 2.2);
+
       }
     }
-    // phase aérienne : le dragon plane au-dessus de l'arène, souffle des lignes de feu et crache des boules de feu
-    function dragonAir(m) {
-      const Z = BOSS.zone, A = { kind: 'air', t: 0, ev: [], dur: 10.5, turn: 1.2, noRage: true };
-      BOSS.atk = A; BOSS.st = 'air'; dPlay('hover', { fade: 0.3 });
-      const cx = (Z.x0 + Z.x1) / 2, cz = Z.z0 + 4.5;
-      A.move = (dt2) => { m.x = damp(m.x, cx + Math.sin(A.t * 0.5) * 7, 1.2, dt2); m.z = damp(m.z, cz, 1.0, dt2); m.y = 6.5 + Math.sin(A.t * 2.2) * 0.3; if (Math.floor(A.t * 1.6) !== A.wb) { A.wb = Math.floor(A.t * 1.6); sfx('wings', 0.35, frnd(0.9, 1.1), 0.3); } };
-      for (const t of [1.2, 5.6]) {
-        A.ev.push([t, () => { dPlay('hoverSpit', { once: true, fade: 0.15 }); after(0.4, () => { for (let i = 0; i < 3; i++) { const a = FXR() * TAU, rr = i ? frnd(2.5, 5) : 0; spitFireball(m, hero.x + Math.cos(a) * rr, hero.z + Math.sin(a) * rr, i * 0.16); } }); }]);
-        A.ev.push([t + 1.1, () => dPlay('hover', { fade: 0.2 })]);
+    // ===========================================================================
+    // LE VOL DE BRAISE
+    // Il s'accroupit, bondit (poussière, vent au sol), monte en battant des ailes, puis tourne au-dessus de l'arène sur une boucle
+    // ovale : il s'incline dans les virages comme un avion, se cabre en montée (battements forts), plane en descente (ailes
+    // ouvertes). Il plonge en ligne droite pour arroser le sol de feu (couloir annoncé en rouge), s'arrête en vol sur place pour
+    // cracher des boules de feu, puis redescend en planant et se pose dans un choc (onde, poussière, fissures).
+    // Son ombre au sol grandit avec l'altitude ; des braises tombent du bout de ses ailes.
+    // ===========================================================================
+    function dragonFlight(m) {
+      const Z = BOSS.zone, A = { kind: 'flight', t: 0, ev: [], dur: 999, turn: 0, noRage: true, ph: 'lift', pt: 0 };
+      BOSS.atk = A; BOSS.st = 'air';
+      const cx = (Z.x0 + Z.x1) / 2, cz = (Z.z0 + Z.z1) / 2 - 1, ra = (Z.x1 - Z.x0) / 2 - 6.5, rb = (Z.z1 - Z.z0) / 2 - 5.2;
+      A.cx = cx; A.cz = cz; A.ra = ra; A.rb = rb;
+      A.loop = (th) => [cx + Math.cos(th) * ra, cz + Math.sin(th) * rb, 5.0 + Math.sin(th * 2 + 0.6) * 0.9];
+      A.th = Math.atan2((m.z - cz) / rb, (m.x - cx) / ra); A.dir = FXR() < 0.5 ? 1 : -1;
+      A.p0 = [m.x, m.y, m.z]; A.V = 9.5; A.plan = ['loop', 'strafe', 'loop', 'hover', 'loop', BOSS.phase >= 3 ? 'strafe' : 'hover', 'loop', 'land']; A.step = 0;
+      A.vel = [0, 0, 0]; A.prev = [m.x, m.y, m.z]; A.flapK = 0; A.lastFlap = 0;
+      dPlay('takeoff', { once: true, fade: 0.25 }); sfx('dragonroar', 0.8, 1.0); sfx('dragongrowl', 0.5, 1.2);
+      m.pitchT = 0.15;
+      after(0.42, () => {
+        sfx('wings', 1.0, 0.75); shake(0.35); hitStop(0.04);
+        dust(m.x, m.z, 18, 3.2); ringFx(m.x, m.z, 0xffd0a0, 1, 11, 0.6, 'ring', 0.8, 1.4);
+        for (let i = 0; i < 24; i++) { const a = i / 24 * TAU, v = frnd(6, 10); fx({ x: m.x + Math.cos(a) * 2, y: 0.25, z: m.z + Math.sin(a) * 2, vx: Math.cos(a) * v, vy: frnd(0.2, 0.9), vz: Math.sin(a) * v, drag: 2.4, life: frnd(0.7, 1.1), s0: frnd(0.7, 1.2), s1: frnd(1.6, 2.4), c0: 0x9a8070, k: 1, cell: 'puff', add: false, a0: 0.55, a1: 0, rot: FXR() * 6 }); }
+      });
+    }
+    // nouvelle portion du plan de vol
+    function flightNext(m, A) {
+      A.step++; A.ph = A.plan[Math.min(A.step, A.plan.length - 1)]; A.pt = 0;
+      if (A.ph === 'loop') { A.loopDur = rnd(2.4, 3.4); A.th = Math.atan2((m.z - A.cz) / A.rb, (m.x - A.cx) / A.ra); }
+      if (A.ph === 'strafe') {
+        // couloir de feu : en ligne droite au-dessus du mage, le sol est annoncé en rouge juste avant le passage
+        const Z = BOSS.zone, tx = clamp(hero.x + hero.vx * 0.6, Z.x0 + 3, Z.x1 - 3), tz = clamp(hero.z + hero.vz * 0.6, Z.z0 + 3, Z.z1 - 3);
+        let dx = tx - m.x, dz = tz - m.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+        A.sd = [dx, dz]; A.s0 = [m.x, m.z]; A.sl = l + 9; A.sV = 11; A.sv0 = [A.vel[0] - dx * 11, A.vel[2] - dz * 11];
+        let n = 0;
+        for (let s = Math.max(3, l - 7); s < A.sl - 1; s += 2.3) {
+          const x = m.x + dx * s, z = m.z + dz * s; if (x < Z.x0 + 1.4 || x > Z.x1 - 1.4 || z < Z.z0 + 1.4 || z > Z.z1 - 1.4) continue;
+          danger({ kind: 'circle', x, z, r: 1.45, delay: s / A.sV + 0.15, dmg: 1, onHit: (d2) => flameBurst(d2.x, d2.z, 1.3) }); n++;
+        }
+        sfx('dragongrowl', 0.7, 1.0); dPlay('glide', { fade: 0.35 }); A.breathOn = false;
       }
-      A.ev.push([3.0, () => { dPlay('hoverBreath', { once: true, fade: 0.15 }); fireLine(m); }]);
-      A.ev.push([7.8, () => { dPlay('hoverBreath', { once: true, fade: 0.15 }); fireLine(m); }]);
-      A.next = () => {   // retour au sol
-        const L = { kind: 'land', t: 0, ev: [], dur: 2.2, turn: 0, noRage: true };
-        BOSS.atk = L; BOSS.st = 'atk'; dPlay('hoverLand', { once: true, fade: 0.2 });
-        L.move = (dt2) => { m.y = Math.max(0, m.y - dt2 * 3.6); };
-        L.ev.push([1.8, () => { m.y = 0; shake(0.7); sfx('bigslam', 0.8, 0.9); dust(m.x, m.z, 14, 2.6); quakeAt(m.x, m.z, 2.5, 9); }]);
-      };
+      if (A.ph === 'hover') { A.hv = 0; dPlay('hover', { fade: 0.4 }); A.ev.length = 0; A.ht = 0; A.spits = 0; }
+      if (A.ph === 'land') {
+        const Z = BOSS.zone, hx = BOSS.home[0], hz = BOSS.home[1];
+        A.l0 = [m.x, m.y, m.z]; A.l1 = [clamp(hx, Z.x0 + 4, Z.x1 - 4), 0, clamp(hz, Z.z0 + 4, Z.z1 - 4)];
+        const dx = A.l1[0] - A.l0[0], dz = A.l1[2] - A.l0[2];
+        A.lc = [A.l0[0] + dx * 0.35 + A.vel[0] * 0.4, A.l0[1] + 1.0, A.l0[2] + dz * 0.35 + A.vel[2] * 0.4];      // courbe : on garde l'élan
+        dPlay('glide', { fade: 0.4 }); A.landPlayed = false;
+      }
+    }
+    function dragonFlightUpdate(m, A, dt) {
+      A.pt += dt;
+      const Z = BOSS.zone;
+      let tx = m.x, ty = m.y, tz = m.z;
+      if (A.ph === 'lift') {
+        // accroupi, bond, puis on rejoint la boucle en montant
+        const k = clamp((A.pt - 0.38) / 1.5, 0, 1), e = k * k * (3 - 2 * k), lp = A.loop(A.th);
+        tx = lerp(A.p0[0], lp[0], e); tz = lerp(A.p0[2], lp[1], e); ty = lerp(0, lp[2], 1 - Math.pow(1 - k, 2.2));
+        m.pitchT = A.pt < 0.4 ? 0.12 : 0.32 * (1 - k);
+        if (A.pt > 1.75) { dPlay('fly', { fade: 0.3 }); A.ph = 'loop'; A.loopDur = 2.2; A.pt = 0; }
+      } else if (A.ph === 'loop' || A.ph === 'hover-out') {
+        // boucle ovale à vitesse constante
+        const step = 0.02, p1 = A.loop(A.th), p2 = A.loop(A.th + step * A.dir), seg = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) || 0.01;
+        A.th += A.dir * step * (A.V * dt / seg);
+        const p = A.loop(A.th); tx = damp(m.x, p[0], 6, dt); tz = damp(m.z, p[1], 6, dt); ty = damp(m.y, p[2], 2.5, dt);
+        if (A.ph === 'loop' && A.pt > A.loopDur) flightNext(m, A);
+      } else if (A.ph === 'strafe') {
+        // il s'aligne, plonge, crache en ligne droite, puis remonte
+        const d = A.pt * A.sV, bl = A.pt * Math.exp(-A.pt / 0.35);          // on garde l'élan au début (pas de cassure)
+        tx = A.s0[0] + A.sd[0] * d + A.sv0[0] * bl; tz = A.s0[1] + A.sd[1] * d + A.sv0[1] * bl;
+        const k = d / A.sl; ty = 5 - Math.sin(clamp(k, 0, 1) * Math.PI) * 2.0;
+        if (!A.breathOn && d > Math.max(2, A.sl - 16)) { A.breathOn = true; sfx('breath', 0.8, 1.05); sfx('flame', 0.6, 0.9); }
+        if (A.breathOn && k < 0.92) strafeFire(m, dt, A);
+        if (k >= 1 || tx < Z.x0 + 1 || tx > Z.x1 - 1 || tz < Z.z0 + 1 || tz > Z.z1 - 1) { dPlay('fly', { fade: 0.35 }); flightNext(m, A); }
+      } else if (A.ph === 'hover') {
+        // il freine, s'arrête en vol face au mage, crache, puis repart
+        A.hv = Math.min(1, A.hv + dt * 0.9);
+        const back = A.loop(A.th); tx = damp(m.x, back[0], 1.2, dt); tz = damp(m.z, back[1], 1.2, dt);
+        const act = m.c.acts.hover, ph = act && act.isRunning() ? act.time / act.getClip().duration : A.pt;
+        ty = damp(m.y, 4.8, 2, dt) + Math.sin(ph * TAU + 0.6) * 0.06;                 // il monte un peu à chaque battement
+        m.face = turnTo(m.face, Math.atan2(hero.x - m.x, hero.z - m.z), dt * 2.2);
+        A.ht += dt;
+        if (A.ht > 0.9 && A.spits < 2 && A.ht > 0.9 + A.spits * 1.5) {
+          A.spits++; dPlay('hoverSpit', { once: true, fade: 0.15 });
+          after(0.38, () => { if (BOSS.atk !== A) return; const n = BOSS.phase >= 3 ? 4 : 3; for (let i = 0; i < n; i++) { const a = FXR() * TAU, rr = i ? frnd(2.5, 5) : 0; spitFireball(m, hero.x + hero.vx * 0.5 + Math.cos(a) * rr, hero.z + hero.vz * 0.5 + Math.sin(a) * rr, i * 0.16); } });
+          after(0.9, () => { if (BOSS.atk === A && A.ph === 'hover') dPlay('hover', { fade: 0.2 }); });
+        }
+        if (A.ht > 4.3) { dPlay('fly', { fade: 0.4 }); A.ph = 'hover-out'; A.pt = 0; after(1.2, () => { if (BOSS.atk === A && A.ph === 'hover-out') { A.ph = 'loop'; A.loopDur = 0.6; A.pt = 0; } }); }
+      } else if (A.ph === 'land') {
+        // descente en planant sur une courbe, puis l'atterrissage
+        const k = clamp(A.pt / 2.4, 0, 1), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2, u = 1 - e;
+        tx = u * u * A.l0[0] + 2 * u * e * A.lc[0] + e * e * A.l1[0]; tz = u * u * A.l0[2] + 2 * u * e * A.lc[2] + e * e * A.l1[2];
+        ty = Math.max(0, u * u * A.l0[1] + 2 * u * e * A.lc[1] + e * e * A.l1[1]);
+        if (!A.landPlayed && A.pt > 0.75) { A.landPlayed = true; dPlay('land', { once: true, fade: 0.3 }); sfx('wings', 0.9, 0.7); }
+        if (k >= 1) {
+          m.y = 0; ty = 0; m.pitchT = 0; m.rollT = 0;
+          shake(0.8); hitStop(0.07); sfx('bigslam', 0.85, 0.85); dust(m.x, m.z, 18, 3); quakeAt(m.x, m.z, 2.6, 9);
+          ringFx(m.x, m.z, 0xffd0a0, 1, 14, 0.7, 'ring', 1, 2); ringFx(m.x, m.z, 0xff8a30, 1, 9, 0.5, 'firering', 0.9, 1.8);
+          fx({ x: m.x, y: 0.08, z: m.z, life: 3.2, s0: 7, s1: 8, c0: 0x100604, k: 1, cell: 'crack', mode: 1, add: false, a0: 0.9, a1: 0, fade: 0.65, rot: FXR() * 6 });
+          for (let i = 0; i < 20; i++) { const a = FXR() * TAU, v = frnd(4, 9); fx({ x: m.x, y: 0.3, z: m.z, vx: Math.cos(a) * v, vy: frnd(1, 4), vz: Math.sin(a) * v, g: 12, floor: true, life: frnd(0.7, 1.2), s0: 0.32, s1: 0.18, c0: 0x8a6a5a, k: 1, cell: 'rocks', add: false, rot: FXR() * 6, a0: 1, fade: 0.6 }); }
+          BOSS.st = 'walk'; BOSS.t = 0; BOSS.cd = rnd(1.0, 1.6); BOSS.atk = null; dPlay('idle', { fade: 0.4 });
+          m.x = tx; m.z = tz; return;
+        }
+      }
+      // vitesse, cap, roulis (virages) et tangage (montée / descente) tirés de la trajectoire
+      const vx = (tx - m.x) / Math.max(dt, 1e-3), vy = (ty - m.y) / Math.max(dt, 1e-3), vz = (tz - m.z) / Math.max(dt, 1e-3);
+      const ax = (vx - A.vel[0]) / Math.max(dt, 1e-3), az = (vz - A.vel[2]) / Math.max(dt, 1e-3);
+      A.vel[0] = damp(A.vel[0], vx, 10, dt); A.vel[1] = damp(A.vel[1], vy, 10, dt); A.vel[2] = damp(A.vel[2], vz, 10, dt);
+      m.x = tx; m.y = ty; m.z = tz;
+      const hs = Math.hypot(A.vel[0], A.vel[2]);
+      if (A.ph !== 'hover' && hs > 1.5) m.face = turnTo(m.face, Math.atan2(A.vel[0], A.vel[2]), dt * 3.2);
+      if (A.ph !== 'lift' && A.ph !== 'land' || A.pt > 0.2) {
+        const lat = hs > 0.5 ? (A.vel[0] * az - A.vel[2] * ax) / hs : 0;
+        m.rollT = A.ph === 'hover' ? Math.sin(A.pt * 1.3) * 0.06 : clamp(Math.atan(lat / 9.8) * 0.9, -0.55, 0.55);
+        if (A.ph !== 'lift') m.pitchT = A.ph === 'hover' ? 0.05 : clamp(Math.atan2(A.vel[1], Math.max(4, hs)) * 0.9, -0.35, 0.3);
+      }
+      // ailes : battements quand il monte ou freine, vol plané quand il descend (avec une marge pour ne pas hésiter)
+      if (A.ph === 'loop' || A.ph === 'hover-out') {
+        const climb = A.vel[1];
+        if (m.c.cur === m.c.acts.fly && climb < -0.9) dPlay('glide', { fade: 0.55 });
+        else if (m.c.cur === m.c.acts.glide && climb > -0.25) dPlay('fly', { fade: 0.45 });
+        if (m.c.cur === m.c.acts.fly) m.c.cur.timeScale = clamp(0.85 + Math.max(0, climb) * 0.14, 0.85, 1.3);
+      }
+      // battement = souffle d'air (son), vent sous le dragon quand il est bas
+      const act = m.c.cur, cyc = act && (act === m.c.acts.fly || act === m.c.acts.hover) ? Math.floor(act.time / act.getClip().duration * 1 + 0.3) : -1;
+      if (cyc !== -1 && cyc !== A.lastFlap) { A.lastFlap = cyc; sfx('wings', clamp(0.75 - m.y * 0.04, 0.35, 0.7), frnd(0.85, 1.0), 0.15, m.x); if (m.y < 7.5) rotorWash(m); }
+    }
+    // vent des ailes au sol : poussière qui file vers l'extérieur sous le dragon
+    function rotorWash(m) {
+      const n = Q.parts > 300 ? 8 : 5, rr = 1.5 + m.y * 0.25;
+      for (let i = 0; i < n; i++) { const a = FXR() * TAU, v = frnd(3, 6); fx({ x: m.x + Math.cos(a) * rr, y: 0.2, z: m.z + Math.sin(a) * rr, vx: Math.cos(a) * v, vy: frnd(0.1, 0.5), vz: Math.sin(a) * v, drag: 2.6, life: frnd(0.5, 0.8), s0: 0.6, s1: 1.4, c0: 0x8a7060, k: 1, cell: 'puff', add: false, a0: clamp(0.5 - m.y * 0.04, 0.15, 0.45), a1: 0, rot: FXR() * 6 }); }
+    }
+    // braises qui tombent du bout des ailes, fumée légère
+    const wtV = { v: null };
+    function dragonTrails(m, dt) {
+      const c = m.c; if (!c.wt || !c.wt.r) return;
+      if (!wtV.v) wtV.v = new T.Vector3();
+      if (FXR() < dt * (Q.parts > 300 ? 16 : 9)) for (const b of [c.wt.r, c.wt.l]) {
+        b.updateWorldMatrix(true, false); wtV.v.setFromMatrixPosition(b.matrixWorld);
+        fx({ x: wtV.v.x, y: wtV.v.y, z: wtV.v.z, vx: frnd(-0.3, 0.3), vy: frnd(-1.2, -0.4), vz: frnd(-0.3, 0.3), drag: 0.6, life: frnd(0.7, 1.2), s0: frnd(0.12, 0.2), s1: 0.03, c0: 0xffa040, k: 3, cell: 'ember' });
+      }
+    }
+    // feu craché en plongée : flammes de la gueule vers le sol devant lui
+    function strafeFire(m, dt, A) {
+      const p = mouthPos(), n = Q.parts > 300 ? 3 : 2;
+      for (let i = 0; i < n; i++) {
+        const sp = frnd(9, 13), dx = A.sd[0] * sp * 0.7 + frnd(-1, 1), dz = A.sd[1] * sp * 0.7 + frnd(-1, 1);
+        fx({ x: p.x, y: p.y, z: p.z, vx: dx, vy: -sp * 0.75, vz: dz, drag: 1.2, g: -1, life: frnd(0.45, 0.7), s0: 0.6, s1: frnd(2.0, 2.8), c0: 0xffb040, c1: 0xc01800, k: 1.5, k1: 0.9, a0: 0.75, a1: 0, cell: FXR() < 0.5 ? 'fire' : 'fire2', rot: FXR() * 6, vr: frnd(-3, 3), floor: true });
+      }
+      BOSS.fireK = 1;
+      if (!A.L) { A.L = addLight(m.x, 1.2, m.z, 0xff7a20, 30, 11, 0.6, 'breath'); A.L.prio = 900; after(1.6, () => { if (A.L) { delLight(A.L); A.L = null; } }); }
+      A.L.x = m.x + A.sd[0] * 4; A.L.z = m.z + A.sd[1] * 4;
     }
     // ligne de feu balayée depuis le ciel (bande annoncée en rouge, puis flammes)
     function fireLine(m) {
@@ -40018,6 +40329,7 @@ void main(){ vec2 p = vW * 0.16;
     }
     function dragonDie(m) {
       BOSS.st = 'dead'; G.phase = 'won'; G.slow = 0.3; G.slowT = 2.0; coneMesh.visible = false;
+      m.rollT = 0; m.pitchT = 0;
       for (const o of MON) if (o !== m && !o.dead) { o.hp = 0; killMonster(o, m.x, m.z, 'storm'); }
       for (const f of FOES) { if (f.L) delLight(f.L); if (f.mesh) scene.remove(f.mesh); } FOES.length = 0; DANGER.length = 0;
       sfx('dragonroar', 1, 0.7); shake(0.9); hitStop(0.12);
@@ -40064,9 +40376,11 @@ void main(){ vec2 p = vW * 0.16;
         CAM.x = damp(CAM.x, tx, CAM.focus ? 2.4 : 5, rdt); CAM.z = damp(CAM.z, tz, CAM.focus ? 2.4 : 5, rdt);
         CAM.zoom = damp(CAM.zoom, CAM.zoomT, 2.2, rdt);
       }
-      const tv = Math.tan(vfov * Math.PI / 360), th = tv * camera.aspect;
-      const W = port ? 11.2 : 16, D = port ? 12 : (VH < 560 ? 12.5 : 15.5);
-      const d = Math.max(W / (2 * th), D * Math.sin(CAM.pitch) / (2 * tv)) * CAM.zoom;
+      const tv = Math.tan(vfov * Math.PI / 360);
+      // cadrage tiré de la forme de l'écran : le petit côté couvre toujours SPAN mètres (portrait inchangé ; paysage = plus de salle,
+      // même taille de mage et de monstres qu'en portrait ; marche de 16:9 à 21:9 et sur ordinateur)
+      const SPAN = 11.2, Hh = SPAN * VH / Math.max(1, Math.min(VW, VH));
+      const d = Hh / (2 * tv) * CAM.zoom;
       CAM.d = d;
       const cy = Math.sin(CAM.pitch), ch = Math.cos(CAM.pitch);
       let px = CAM.x + Math.sin(CAM.yaw) * ch * d, py = cy * d, pz = CAM.z + Math.cos(CAM.yaw) * ch * d;
@@ -40078,8 +40392,8 @@ void main(){ vec2 p = vW * 0.16;
         G.trauma = Math.max(0, G.trauma - rdt * 1.5);
       }
       camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz);
-      camera.near = Math.max(1, d * 0.45); camera.far = d + 60;
-      camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+      camera.near = Math.max(1, d * 0.45); camera.far = d + 38;          // au-delà, le brouillard cache tout : inutile de le dessiner
+      camera.updateProjectionMatrix(); camera.updateMatrixWorld(); bakeFrame();
       scene.fog.near = d * 0.95; scene.fog.far = d + 34;
       // le mage vu de la caméra (découpe des objets devant lui)
       if (!camTmp.v) camTmp.v = new T.Vector3();
@@ -40213,11 +40527,9 @@ void main(){ if (vK >= 0.999) discard;
       R.state = 'fight'; R.wave = -1; R.nextAt = G.t + 0.6; R.t0 = G.t;
       level = worldBase() + R.room + 1;
       const W = PLAYABLE[G.wi];
-      hudRoom('SALLE ' + level + (G.tour ? ' · TOUR ' + roman(G.tour) : ''), W.rooms[R.room]);
       guideStop();
       for (const D of roomDoors(R)) { setDoor(D, true); D.lockOn = true; }
       if (R.boss) { bossIntro(); return; }
-      banner('SALLE ' + level, W.rooms[R.room], '', 2.0);
       for (const S of SPIKES) if (R.has(S.x, S.z)) S.on = true;
     }
     function spawnWave(R, w) {
@@ -40239,12 +40551,12 @@ void main(){ if (vK >= 0.999) discard;
     function clearRoom(R) {
       R.state = 'clear';
       for (const S of SPIKES) if (R.has(S.x, S.z)) S.on = false;
-      const bonus = Math.round(500 * (R.room + 1) * G.ptsMul); addScore(bonus);
+      const bonus = Math.round(500 * (R.room + 1) * G.ptsMul);
       let exitD = null;
       for (const D of roomDoors(R)) { if (isExit(D, R)) { const d0 = exitD; after(0.35, () => unlockExit(D)); if (!d0) exitD = D; } else D.lockOn = false; }
       sfx('clear', 0.7);
-      banner('SALLE TERMINÉE !', 'La porte s’ouvre : suis la flèche ➜', 'blue', 2.8);
-      pop(hero.x, 3.2, hero.z, '+' + fmt(bonus), 'big', 1.5);
+      banner('SALLE TERMINÉE !', '', 'blue', 1.8);
+      after(0.5, () => scoreBurst(hero.x, 2.2, hero.z, bonus, { n: 8, pop: false }));      // le bonus file au compteur, sans texte
       if (exitD) {
         const next = ROOMS.find((r) => r.room === R.room + 1), e = next && (next.spots.entry || [4, 4]);
         const D = exitD;
@@ -40256,6 +40568,24 @@ void main(){ if (vK >= 0.999) discard;
         const C = R.chest; C.st = 'appear'; C.t = 0; C.g.position.y = 3; flash(C.x, 1.5, C.z, 0xffe08a, 4, 0.5, 2); sfx('treasure', 0.4, 1.2, 0.2);
         C.beam = addStatic({ x: C.x, y: 0.08, z: C.z, s: 3.6, cell: 'rays', col: 0xffd36a, k: 1.6, mode: 1, a: 0.7, vr: 0.5, pulse: 2 });
       });
+    }
+    // pendant un combat de boss : un nouveau tonneau à cœur tombe au bord de l'arène toutes les ~27 s (2 au plus à la fois)
+    function barrelsUpdate(dt) {
+      const m = BOSS.m; if (!m || m.dead || G.phase !== 'play' || BOSS.st === 'sleep' || BOSS.st === 'dead') return;
+      const R = BOSS.zone; if (!R || !R.spots.barrels) return;
+      R.barT = (R.barT || 0) + dt; if (R.barT < 27) return;
+      const alive = BREAK.filter((b) => b.alive && b.kind === 'barrel' && b.zone === R).length;
+      if (alive >= 2) { R.barT = 20; return; }
+      const cand = R.spots.barrels.map(([lx, lz]) => [R.x0 + lx, R.z0 + lz])
+        .filter(([x, z]) => Math.hypot(x - hero.x, z - hero.z) > 2.5 && Math.hypot(x - m.x, z - m.z) > m.r + 1.5 && !BREAK.some((b) => b.alive && Math.hypot(b.x - x, b.z - z) < 1.2));
+      if (!cand.length) { R.barT = 22; return; }
+      R.barT = 0;
+      const [x, z] = cand[Math.floor(FXR() * cand.length)];
+      curZone = R; const b = addBreakable('barrel_small', x, z, { brk: 'barrel', solid: 1 }); if (!b) return;
+      b.falling = true; b.fallT = 0; b.solid.falling = true; b.mesh.position.y = 5;
+      markRect(GR.base, b.solid[0], b.solid[1], b.solid[2], b.solid[3], 0);
+      after(0.56, () => { b.solid.falling = false; });
+      fx({ x, y: 0.08, z, life: 0.55, s0: 0.3, s1: 1.6, c0: 0x000000, k: 1, cell: 'blob', mode: 1, add: false, a0: 0.2, a1: 0.6 });
     }
     function roomsUpdate() {
       if (G.phase !== 'play') return;
@@ -40344,6 +40674,7 @@ void main(){ if (vK >= 0.999) discard;
         disposeWorld();
         enterWorld(lv);
         hero.c.root.visible = true; G.hearts = Math.min(MAXH, G.hearts + 2); G.shield = MAXS;
+        camUpdate(0.016, 0.016); warmBoss();
         H.fade.classList.remove('on');
         startIntro();
       };
@@ -40392,7 +40723,7 @@ void main(){ if (vK >= 0.999) discard;
       for (let i = statics.length - 1; i >= 0; i--) if (!keepSt.has(statics[i])) statics.splice(i, 1);
       for (let i = lightSrc.length - 1; i >= 0; i--) if (lightSrc[i] !== hero.light) lightSrc.splice(i, 1);
       ZONES.length = 0; ROOMS.length = 0; DOORS.length = 0; BREAK.length = 0; CHESTS.length = 0; SPIKES.length = 0; TORCHES.length = 0; RAYS.length = 0; PL.length = 0; SOLIDS.length = 0;
-      guideStop(); GUIDE.st.length = 0;
+      guideStop(); GUIDE.st.length = 0; BAKE.src.length = 0;
       PORTAL = null; H.boss.classList.remove('on'); if (coneMesh) coneMesh.visible = false; LAVA.mesh = null; LAVA.holes.length = 0;
     }
     function enterWorld(lv) {
@@ -40420,6 +40751,7 @@ void main(){ if (vK >= 0.999) discard;
           cam.updateProjectionMatrix(); renderer.shadowMap.needsUpdate = true;
         } else { cam.left = -20; cam.right = 20; cam.top = 20; cam.bottom = -20; cam.near = 4; cam.far = 80; cam.updateProjectionMatrix(); }
       }
+      bakeWorld();
       // départ : au début du monde, ou devant la salle demandée (compétition)
       const si = (lv - 1) % PER_WORLD;
       resetRooms(si);
@@ -40430,17 +40762,22 @@ void main(){ if (vK >= 0.999) discard;
       CAM.x = hero.x; CAM.z = hero.z; CAM.zoom = 1.45; CAM.zoomT = 1;
       level = worldBase() + si + 1;
       G.worldT0 = G.t; G.worldKills = 0; G.worldHurt = 0; G.chests = 0; G.comboBest = 0;
-      hudRoom(si === 0 ? W.name.toUpperCase() : 'SALLE ' + level, W.rooms[si]);
       try { if (typeof api.music === 'function') api.music(); } catch (e) { /* rien */ }
       // le monde suivant se télécharge pendant qu'on joue
       const next = PLAYABLE[wo.w + 1];
       if (next && next.pack && !PK[next.pack]) setTimeout(() => { if (!destroyed) ensurePack(next.pack).catch(() => {}); }, 6000);
     }
+    // matériaux du boss (caché jusqu'à son entrée) préparés tout de suite : pas d'à-coup quand il apparaît
+    function warmBoss() {
+      const m = BOSS.m; if (!m || !renderer || !camera) return;
+      const was = m.c.root.visible; m.c.root.visible = true;
+      try { renderer.compile(scene, camera); } catch (e) { /* rien */ }
+      m.c.root.visible = was;
+    }
     function startIntro() {
       G.phase = 'intro';
-      const W = PLAYABLE[G.wi];
-      after(0.2, () => { banner(W.name.toUpperCase(), 'Monde ' + (G.wi + 1) + (G.tour ? ' · Tour ' + roman(G.tour) : ''), '', 2.0); sfx('page', 0.5); tone(660, 0.12, 'triangle', 0.04); });
-      after(1.9, () => { banner('GO !', '', 'blue', 0.9); tone(990, 0.25, 'triangle', 0.05); tone(1320, 0.3, 'triangle', 0.035); G.phase = 'play'; });
+      after(0.2, () => { sfx('page', 0.5); tone(660, 0.12, 'triangle', 0.04); });
+      after(1.9, () => { tone(990, 0.25, 'triangle', 0.05); tone(1320, 0.3, 'triangle', 0.035); G.phase = 'play'; });
     }
     function torchesUpdate(dt) {
       for (const t of TORCHES) {
@@ -40451,16 +40788,17 @@ void main(){ if (vK >= 0.999) discard;
     function worldUpdate(dt) {
       monstersUpdate(dt); shotsUpdate(dt); foesUpdate(dt); dangerUpdate(dt); novaUpdate(dt); arcsUpdate(dt);
       heartsUpdate(dt); chestsUpdate(dt); breakUpdate(dt); spikesUpdate(dt); shieldUpdate(dt);
-      doorsUpdate(dt); torchesUpdate(dt); roomsUpdate(dt); portalUpdate(dt); lavaUpdate(dt); coneUpdate();
+      doorsUpdate(dt); torchesUpdate(dt); roomsUpdate(dt); barrelsUpdate(dt); portalUpdate(dt); lavaUpdate(dt); coneUpdate();
       if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) G.combo = 0; }
-      hudCombo(false);
     }
     // cadrage pendant le combat de boss : le boss ET le mage dans l'image
     function bossFrame(port) {
       const m = BOSS.m; if (!m || m.dead || BOSS.st === 'sleep' || BOSS.st === 'rise' || G.phase !== 'play') return null;
       const bd = Math.hypot(m.x - hero.x, m.z - hero.z);
       const big = BOSS.kind === 'dragon' ? 0.25 : 0;
-      return [m.x, m.z, port ? 0.4 : 0.45, clamp(0.95 + big + bd * 0.035, 1.0, (port ? 1.32 : 1.38) + big)];
+      const ay = (m.y || 0) * 0.55, ax = m.x - ay * 0.707, az = m.z - ay * 0.707, air = (m.y || 0) > 1 ? 0.2 : 0;
+      if (port) return [ax, az, 0.4, clamp(0.95 + big + air + bd * 0.035, 1.0, 1.32 + big + air)];
+      return [ax, az, 0.5, clamp(1.0 + big * 0.6 + air + bd * 0.03, 1.0, 1.28 + big * 0.6 + air)];
     }
 
     // ===========================================================================
@@ -40493,7 +40831,7 @@ void main(){ if (vK >= 0.999) discard;
       return { R, nx, nz };
     }
     function doorLockBuild(D) {
-      if (!MAT.iron) MAT.iron = keep(patchMat(lam({ color: 0x5a5466 }), { rim: true, dark: true, rimCol: 0xff6a50, rimK: 0.4 }));
+      if (!MAT.iron) MAT.iron = keep(patchMat(lam({ color: 0x5a5466 }), { rim: true, dark: true, lm: true, rimCol: 0xff6a50, rimK: 0.4 }));
       const vertical = D.side === 'w' || D.side === 'e', iw = D.wood ? 2.2 : 3.3, ih = D.wood ? 2.75 : 2.5;
       const { nx, nz } = doorInward(D); D.nx = nx; D.nz = nz;
       const off = D.wood ? 0.42 : 0.05;
@@ -40675,7 +41013,7 @@ void main(){ if (vK >= 0.999) discard;
       const elapsed = now - last;
       nextT = Math.max(nextT + 1000 / 60, now - 4);
       const rdt = Math.min(0.05, last ? elapsed / 1000 : 0.016); last = now;
-      perfTrack(elapsed);
+      perfTrack(elapsed); probeFrame(elapsed);
       if (G.slowT > 0) { G.slowT -= rdt; if (G.slowT <= 0) G.slow = 1; }
       let sdt = rdt * G.slow;
       if (G.stop > 0) { G.stop -= rdt; sdt = 0; }       // arrêt sur image (gros coup)
@@ -40684,6 +41022,34 @@ void main(){ if (vK >= 0.999) discard;
         renderer.info.reset(); renderFrame(); const t2 = performance.now();
         PERF.ju = (PERF.ju || 0) * 0.95 + (t1 - t0) * 0.05; PERF.jr = (PERF.jr || 0) * 0.95 + (t2 - t1) * 0.05;
       } catch (e) { if (!G.errShown) { G.errShown = true; try { console.error(e); } catch (x) { /* rien */ } } }
+    }
+    // ------------------------------------------------------------- sonde de vitesse : une fenêtre de 60 s de jeu mesurée UNE fois par appareil
+    // (et à chaque partie avec ?perf=1), puis UN petit résumé purement technique (temps d'image, niveau, pixels, carte graphique)
+    // envoyé par le canal d'erreurs de la borne (message « perf magic: »). Aucune donnée personnelle dans le résumé.
+    const MF_BUILD = '2026-10-14c';
+    const PROBE = { on: false, ft: [], t: 0, sent: false, tier0: -1 };
+    try { PROBE.on = /[?&]perf=1/.test(location.search) || localStorage.getItem('jdw.magic.sonde') !== MF_BUILD; } catch (e) { PROBE.on = false; }
+    function probeFrame(ms) {
+      if (!PROBE.on || PROBE.sent || G.phase !== 'play' || paused || ms > 1000 || (typeof document !== 'undefined' && document.hidden)) return;
+      if (PROBE.tier0 < 0) PROBE.tier0 = Q.tier;
+      PROBE.ft.push(ms); PROBE.t += ms;
+      if (PROBE.t >= 60000) probeSend();
+    }
+    function probeSend() {
+      PROBE.sent = true;
+      const ft = PROBE.ft, s = ft.slice().sort((a, b) => a - b), n = s.length; if (!n || !renderer) return;
+      const avg = ft.reduce((a, b) => a + b, 0) / n, q = (k) => +s[Math.min(n - 1, Math.floor(n * k))].toFixed(1);
+      const long50 = ft.filter((x) => x > 50).length, long100 = ft.filter((x) => x > 100).length;
+      const bs = renderer.getDrawingBufferSize(new T.Vector2()), dpr = +(window.devicePixelRatio || 1).toFixed(2);
+      const msg = 'perf magic: moy ' + avg.toFixed(1) + ' ms, p95 ' + q(0.95) + ', p99 ' + q(0.99) + ', >50ms ' + long50 + '/' + n + ', niveau ' + Q.tier + ' ' + Q.name +
+        ', dyn ' + DYN.toFixed(2) + ', dpr ' + dpr + ', ' + bs.x + 'x' + bs.y + ' px, ' + String(Q.gpu || '?').slice(0, 70);
+      const detail = JSON.stringify({ v: MF_BUILD, n, avg: +avg.toFixed(2), med: q(0.5), p95: q(0.95), p99: q(0.99), long50, long100, tier0: PROBE.tier0, tier: Q.tier, tiers: PERF.tierLog || [],
+        dyn: +DYN.toFixed(2), dpr, canvas: [bs.x, bs.y], css: [VW, VH], bloom: PP.on ? (PP.lite ? 'léger' : 'plein') : 'non', gpu: Q.gpu || '', mobile: Q.mobile,
+        cores: navigator.hardwareConcurrency || 0, mem: navigator.deviceMemory || 0, monde: G.wi + 1, salle: level, jsMs: +(PERF.ju || 0).toFixed(2), rendu: +(PERF.jr || 0).toFixed(2) });
+      try { localStorage.setItem('jdw.magic.sonde', MF_BUILD); } catch (e) { /* rien */ }
+      // la bibliothèque relève les « rejets non traités » (reportError → log_error, sans fenêtre d'alerte) : on lui passe le résumé
+      try { const err = new Error(msg); err.stack = detail; const ev = new Event('unhandledrejection'); ev.reason = err; ev.promise = Promise.resolve(); window.dispatchEvent(ev); } catch (e) { /* rien */ }
+      PROBE.ft = [];
     }
     // réglage automatique, mesuré pendant le jeu : d'abord la résolution (DYN, de 1 à 0,6), puis le niveau (lueur, ombres, lumières,
     // particules) ; s'il est à l'aise longtemps, on remonte. Le réglage trouvé est gardé sur l'appareil (localStorage).
@@ -40695,7 +41061,7 @@ void main(){ if (vK >= 0.999) discard;
       if ((PERF.n < 24 && PERF.acc < 1000) || PERF.n < 4) return;
       const avg = PERF.acc / PERF.n; PERF.acc = 0; PERF.n = 0; PERF.fps = 1000 / avg; PERF.hist.push(Math.round(PERF.fps));
       if (PERF.hist.length > 40) PERF.hist.shift();
-      if (Q.forced && !/[?&]adapt/.test(location.search)) return;          // essais : niveau imposé
+      if ((Q.forced && !/[?&]adapt/.test(location.search)) || (typeof window !== 'undefined' && window.JDW_MAGIC_NOADAPT)) return;          // essais : niveau imposé
       const now = performance.now();
       if (now < (PERF.holdT || 0)) return;                                 // un changement vient d'avoir lieu : on attend son effet
       if (avg > 21) {                                                      // moins de ~48 images/s
@@ -40767,9 +41133,9 @@ void main(){ if (vK >= 0.999) discard;
       ]);
       TEX.fx.flipY = false;
       fxCells(packJSON('fxmap'));
-      MAT.world = keep(patchMat(lam({ map: TEX.kkt_dungeon }), { ao: true, cut: true, dark: true }));
-      MAT.floor = keep(patchMat(lam({ map: TEX.kkt_dungeon }), { floor: true, dark: true }));
-      MAT.base = keep(patchMat(lam({ map: TEX.kkt_dungeon, color: 0x8a8296 }), { ao: true, lava: true }));
+      MAT.world = keep(patchMat(lam({ map: TEX.kkt_dungeon }), { ao: true, cut: true, dark: true, lm: true }));
+      MAT.floor = keep(patchMat(lam({ map: TEX.kkt_dungeon }), { floor: true, dark: true, lm: true }));
+      MAT.base = keep(patchMat(lam({ map: TEX.kkt_dungeon, color: 0x8a8296 }), { ao: true, lava: true, lm: true }));
       buildLib(await parseGLB('kk_dungeon'));
       buildWeapons(await parseGLB('kk_weapons'));
       loadClips(await parseGLB('kk_anims'));
@@ -40815,6 +41181,7 @@ void main(){ if (vK >= 0.999) discard;
         const warm = Object.keys(KIND).filter((k) => !KIND[k].boss).map((k) => makeMonster(k, hero.x + 1, hero.z + 1)).filter(Boolean);
         camUpdate(0.016, 0.016);
         try { renderer.compile(scene, camera); renderFrame(); } catch (e) { /* rien */ }
+        warmBoss();
         for (const m of warm) removeMonster(m, MON.indexOf(m));
         setLoad(1, 'C’est parti !');
         H.load.classList.add('out');
@@ -40867,7 +41234,12 @@ void main(){ if (vK >= 0.999) discard;
       currentScore: () => Math.max(0, Math.floor(score)),
       currentLevel: () => Math.max(1, level),
       _dbg: typeof window !== 'undefined' && window.JDW_MAGIC_DBG ? { IN, keys, CD, setTouch, routeDir, PP, TEX, MAT, LIB, TPL, CLIPS, G, hero, MON, ROOMS, ZONES, DOORS, CHESTS, BREAK, Q: () => Q, PERF, CAM, T: () => T, renderer: () => renderer,
-        setPaused, statics, parts, info: () => renderer && renderer.info, lightSrc, plights, DANGER, SHOTS, FOES, BOSS, SPIKES, GR, free, SOLIDS, gridRefresh, portal: () => PORTAL, winSkip, hurtMonster, spawnMonster, play, KIND, QDEAD, DYNQ: () => DYN, setTier, barMode, selectSpell: (i) => selectSpell(i), sel: () => SPELLS[selSpell], rotTipShow, BAR,
+        setPaused, statics, parts, info: () => renderer && renderer.info, lightSrc, plights, DANGER, SHOTS, FOES, BOSS, SPIKES, GR, free, SOLIDS, gridRefresh, portal: () => PORTAL, winSkip, hurtMonster, spawnMonster, play, KIND, QDEAD, DYNQ: () => DYN, setTier, probe: () => PROBE, probeSend, hitBreakable,
+        // essais de vitesse : couper / remettre une à une les dépenses de rendu
+        cfg: (o) => { if (o.dyn) { DYN = o.dyn; resize(); } if (o.bloom === false) PP.on = false; if (o.bloom === true && PP.ok) PP.on = true;
+          if (o.shadow === false) { renderer.shadowMap.enabled = false; sun.castShadow = false; }
+          if (o.lights != null) { while (plights.length > o.lights) { const L = plights.pop(); scene.remove(L); } }
+          if (o.parts != null) Q.parts = o.parts; return { dpr: renderer.getPixelRatio(), pp: PP.on, sh: renderer.shadowMap.enabled, l: plights.length }; }, barMode, selectSpell: (i) => selectSpell(i), sel: () => SPELLS[selSpell], rotTipShow, BAR,
         calm: () => { for (const m of MON) if (!m.dead && !m.K.boss && m.st !== 'spawn') { m.st = 'cheer'; m.vx = m.vz = 0; play(m.c, m.K.idle, { fade: 0.2 }); } },
         killHero: () => { G.shield = 0; hero.inv = 0; hero.roll = 0; G.phase = 'play'; hurtHero(9, hero.x + 1, hero.z); },
         checkPaths: () => { const was = DOORS.map((D) => D.closed); for (const D of DOORS) D.closed = false; gridRefresh(); const bad = []; const S = ZONES.find((z) => z.kind === 'start');
@@ -75054,7 +75426,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261015031314"; window.JDW_VERSION = "1.13.2"; window.JDW_NOTES = ["\ud83e\uddf1 Casse-Carreaux : la raquette remonte, ton pouce glisse sur la promenade sans cacher la bille ; sur ordinateur, le jeu tient dans l'\u00e9cran entre ses deux panneaux"];</script>
+<script>window.JDW_BUILD = "20261015032354"; window.JDW_VERSION = "1.13.3"; window.JDW_NOTES = ["\ud83e\uddd9 Magic Force : en paysage la cam\u00e9ra recule (on voit toute la salle), la barre du boss est tout en haut, les ar\u00e8nes des boss sont d\u00e9gag\u00e9es et on ne reste plus coinc\u00e9 dans le d\u00e9cor", "\u2764\ufe0f Magic Force : des tonneaux \u00e0 casser donnent des c\u0153urs, m\u00eame pendant les boss ; Braise vole pour de vrai ; plus fluide sur t\u00e9l\u00e9phone", "\ud83d\uddb1\ufe0f Magic Force sur ordinateur : le clic droit lance le sort choisi, m\u00eame en gardant le clic gauche"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>

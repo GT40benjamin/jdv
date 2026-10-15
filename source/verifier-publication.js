@@ -30,6 +30,24 @@ for (const f of files) {
     if (/__IMG_(PILOT|HEAD|FACE)__/.test(t) && !/pleingaz-src\.html$/.test(f) && !/build2\.py$/.test(f)) bad.push(f + ' : emplacement de photo de Plein Gaz non remplacé');
   }
 }
+// Vieux appareils (borne d'avant la 1.7, restée ouverte dans un onglet ou ressortie du cache du navigateur) : ils se mettent à jour
+// TOUT SEULS en lisant site.json à la racine puis en rechargeant « ./?v=<build> », que l'accueil (index.html) renvoie vers jouer/.
+// Ce chemin ne doit jamais casser (vérifié le 15 oct. 2026 : ~/jdv-tools/duotest/stuck-clients/sim-stuck.js).
+try {
+  const sj = JSON.parse(fs.readFileSync(path.join(ROOT, 'site.json'), 'utf8'));
+  if (!/^\d{14}$/.test(String(sj.build || ''))) bad.push('site.json : numéro de build manquant (les vieux appareils ne se mettraient plus à jour)');
+} catch (e) { bad.push('site.json absent ou illisible à la racine (les vieux appareils ne se mettraient plus à jour)'); }
+try {
+  // le premier script de l'accueil, joué avec une fausse adresse « ./?v=20261013005153 » (rechargement d'une vieille borne) : il doit aller dans jouer/
+  const home = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), m = home.match(/<script>([\s\S]*?)<\/script>/);
+  let to = null;
+  const win = { location: { search: '?v=20261013005153', hash: '', replace: u => { to = u; } }, navigator: { userAgent: 'Mozilla/5.0 (iPhone)', standalone: false },
+    document: { documentElement: { style: {} } }, matchMedia: () => ({ matches: false }) };
+  win.window = win;
+  if (m) try { require('vm').runInNewContext(m[1], win, { timeout: 1000 }); } catch (e) {}
+  if (to !== 'jouer/?v=20261013005153') bad.push('index.html : l\'accueil ne renvoie plus « ?v=… » vers jouer/ (les vieilles bornes resteraient bloquées sur l\'accueil)');
+} catch (e) { bad.push('index.html absent à la racine'); }
+if (!fs.existsSync(path.join(ROOT, 'jouer', 'index.html'))) bad.push('jouer/index.html absent (la borne)');
 if (!pw) console.log('(mot de passe de l\'ancien site introuvable : vérification du mot de passe sautée)');
 if (bad.length) { console.error('PUBLICATION REFUSÉE :\n  ' + bad.join('\n  ')); process.exit(1); }
 console.log('Vérification : ' + files.length + ' fichiers, rien de secret ni de protégé en clair.');

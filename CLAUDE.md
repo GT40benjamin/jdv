@@ -168,6 +168,10 @@ Connecteur Supabase (MCP) disponible dans les sessions Claude : apply_migration 
   `node ~/jdv-tools/annonce.js` → tous les appareils connectés vérifient tout de suite site.json et telecharger/version.json :
   notification « Mise à jour disponible » / « Nouvelle appli à télécharger » dans la cloche, message en pleine partie,
   rechargement automatique au calme (adresse ?v=<build> qui contourne le cache, une seule tentative automatique par version).
+  Depuis le 15 oct. 2026 : annonce.js passe par la fonction serveur `announce_version(p_code)` (source/annonce.sql, mot de passe d'admin
+  comme get_errors) qui envoie le signal dans le canal PRIVÉ jdw-all (les bornes 1.7+ l'écoutent en privé), puis en public pour les
+  vieilles pages d'avant la 1.7. Les vieilles pages se mettent aussi à jour seules (site.json à la racine relu toutes les 60 s, l'accueil
+  renvoie `?v=` vers jouer/) : verifier-publication.js refuse une publication qui casserait ce chemin.
 - Un jeu peut demander un morceau précis : api.music('iloboss') (musique de boss de Galaxy Wars), api.music() pour revenir.
 - Nouveautés d'une version : `source/nouveautes.txt` (une ligne par nouveauté) → affichées dans la cloche après la mise à jour
   automatique, avec le message « ✨ Mise à jour X installée ! ». À réécrire avant chaque publication importante.
