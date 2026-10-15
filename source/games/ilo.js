@@ -1696,6 +1696,7 @@
     function pickCap(k, s) {
       const col = CAPS[k].col;
       let msg = '';
+      if (CO) s.caps = (s.caps || 0) + 1;
       if (k === 'P') { s.pT = 0; if (s.power < 6) { s.power++; msg = s.power === 6 ? 'PUISSANCE MAX !' : 'PUISSANCE ' + s.power; } else { addPts(2000, 0, 0, false); msg = 'PUISSANCE MAX +' + fmt(2000 * mult); } }
       else if (k === 'M') { s.miss = Math.min(3, s.miss + 1); s.missLeft = ARMS_T; s.missT = 0.1; msg = 'MISSILES ' + s.miss + ' (20 s)'; }
       else if (k === 'O') { const n0 = s.opts; s.opts = Math.min(4, s.opts + 2); for (let i = n0; i < s.opts; i++) { s.OPT[i].x = s.x; s.OPT[i].y = s.y; } s.optLeft = ARMS_T; msg = 'DRONES ×' + s.opts + ' (20 s)'; }
@@ -1912,7 +1913,12 @@
       if (!b.alive) return a;
       return a.power < b.power || (a.power === b.power && a.shield < b.shield) ? a : b.power < a.power || b.shield < a.shield ? b : SHIPS[lastProm ^ 1];
     }
-    function canTake(s, c) { const o = SHIPS[c.pm]; return s.alive && (!s.ai || c.pm === s.i || !o || !o.alive || o.ai); }
+    function canTake(s, c) {                     // le robot laisse les capsules de l'humain… sauf s'il n'en a pas besoin, si elles vont sortir, ou après 5 s
+      if (!s.alive) return false;
+      if (!s.ai || c.pm === s.i) return true;
+      const o = SHIPS[c.pm];
+      return !o || !o.alive || o.ai || needOf(o, c.k) <= 0 || c.y > LH - 90 || c.t > 5;
+    }
     // ---- touché : avec la bulle (comme le solo), sans bulle (épave), épave sauvée / ratée, équipage détruit
     function podTime() { return CT.pod[LVI] + (cycle === 0 && secI === 0 ? 3 : 0); }
     function coopBubble(s) {
@@ -2038,27 +2044,42 @@
       for (let i = 0; i < n; i++) g.push(W(crnd(1.5, Math.max(2, end)), pickGroup(), 0));
       g.sort((a, b) => a.at - b.at);
     }
+    function shardShip(sh, end) {                 // l'aimant d'abord, puis le plus proche à 64 px ; s'il file déjà (bombe, fin de secteur) : vers son pilote
+      let near = null, nd = 1e12, mag = null, md = 1e12;
+      for (let k = 0; k < SHIPS.length; k++) {
+        const q = SHIPS[k];
+        if (!q.alive) continue;
+        const dx = q.x - sh.x, dy = q.y - sh.y, d = dx * dx + dy * dy;
+        if (d < nd) { nd = d; near = q; }
+        if (q.magT > 0 && d < md) { md = d; mag = q; }
+      }
+      if (mag) return mag;
+      if (near && nd < 64 * 64) return near;
+      if (sh.mag || end) { let o = SHIPS[sh.o & 1]; if (!o.alive) o = other(o); return o.alive ? o : null; }
+      return null;
+    }
     function updShardsCoop(dt) {                  // éclats : chacun vole vers le pilote qui a abattu (l'autre s'il ne vole plus) ; capsules promises
       const end = dir.phase === 'clear' || dir.phase === 'bossdead' || dir.phase === 'jump';
       if (shardRunT > 0) { shardRunT -= dt; if (shardRunT <= 0) shardRun = 0; }
       for (let i = shN - 1; i >= 0; i--) {
         const s = SH[i];
         s.t += dt;
-        let tp = SHIPS[s.o & 1];
-        if (!tp.alive) tp = other(tp);
-        const dx = tp.x - s.x, dy = tp.y - s.y, d2 = dx * dx + dy * dy;
-        if (tp.alive && s.t > 0.22 && (s.mag || end || tp.magT > 0 || d2 < 64 * 64)) {
-          s.mag = true;
-          const d = Math.sqrt(d2) + 0.01, sp = 380 + s.t * 260;
+        const tp = shardShip(s, end);
+        if (tp && s.t > 0.22) {
+          s.mag = true; s.o = tp.i;
+          const dx = tp.x - s.x, dy = tp.y - s.y, d = Math.sqrt(dx * dx + dy * dy) + 0.01, sp = 380 + s.t * 260;
           s.vx = (dx / d) * sp; s.vy = (dy / d) * sp;
         } else {
           s.vx *= 1 - Math.min(1, 2 * dt);
           s.vy += (scrollV * 0.8 - s.vy) * Math.min(1, dt * 1.4);
         }
+        const sx = s.x, sy = s.y;
         s.x += s.vx * dt; s.y += s.vy * dt;
-        if (tp.alive && d2 < 20 * 20) {
-          score += pts(10 * mult); addHyper(0.0022, tp); if (chainT > 0) chainT = Math.max(chainT, 1.1);
-          if (tp === P) { shardRun++; shardRunT = 0.5; SFX.shard(shardRun); }
+        let got = null;                            // ramassé par n'importe quel vaisseau qui vole, à 20 px (comme le solo : avant le pas)
+        for (let k = 0; k < SHIPS.length && !got; k++) { const q = SHIPS[k]; if (q.alive) { const dx = q.x - sx, dy = q.y - sy; if (dx * dx + dy * dy < 20 * 20) got = q; } }
+        if (got) {
+          score += pts(10 * mult); addHyper(0.0022, got); if (chainT > 0) chainT = Math.max(chainT, 1.1);
+          if (got === P) { shardRun++; shardRunT = 0.5; SFX.shard(shardRun); }
           swapOut(SH, i, shN); shN--;
         } else if (s.y > LH + 20 || s.t > 10) { swapOut(SH, i, shN); shN--; }
       }
@@ -2076,7 +2097,7 @@
         }
         c.x += (c.vx + Math.sin(c.t * 2.3) * 14) * dt; c.y += c.vy * dt;
         if (tp && bd < 26 * 26 && state === 'play') {
-          if (tp.ai && SHIPS[c.pm] && c.pm !== tp.i && SHIPS[c.pm].alive && !SHIPS[c.pm].ai) stolen++;   // (doit rester à 0)
+          if (tp.ai && SHIPS[c.pm] && c.pm !== tp.i && SHIPS[c.pm].alive && !SHIPS[c.pm].ai && needOf(SHIPS[c.pm], c.k) > 0 && c.y <= LH - 90 && c.t <= 5) stolen++;   // (doit rester à 0)
           if (NETH) netEvt(['c', c.id, tp.i]);
           pickCap(c.k, tp); swapOut(CP, i, cpN); cpN--;
         } else if (c.y > LH + 30) { if (NETH) netEvt(['c', c.id, -1]); swapOut(CP, i, cpN); cpN--; }
@@ -2247,8 +2268,12 @@
         if (H.alive) { const dx = px - H.x, dy = py - H.y; if (dx * dx + dy * dy < 40 * 40) c += 60; }   // ne se met jamais sur l'humain
         for (let i = 0; i < cpN; i++) {
           const q = CP[i], dx = q.x - px, dy = q.y - py, dd = Math.sqrt(dx * dx + dy * dy);
-          if (canTake(s, q)) c -= 25 / (1 + dd / 40);
-          else if (dd < 30) c += 300;              // jamais les capsules de l'humain
+          if (canTake(s, q)) { if (dd < 260) c -= 70 / (1 + dd / 45); }
+          else if (dd < 30) c += 300;              // jamais les capsules dont l'humain a besoin
+        }
+        for (let i = 0; i < shN; i++) {            // et il balaie les éclats proches (les points bleus)
+          const q = SH[i], dx = q.x - px, dy = q.y - py, d2 = dx * dx + dy * dy;
+          if (d2 < 90 * 90) c -= 1.2 / (1 + Math.sqrt(d2) / 30);
         }
         for (let i = 0; i < GATES.length; i++) {
           const g = GATES[i];
@@ -6054,14 +6079,14 @@
       for (let i = shN - 1; i >= 0; i--) {
         const s = SH[i];
         s.t += dt;
-        let tp = SHIPS[s.o & 1];
-        if (!tp.alive) tp = other(tp);
-        const dx = tp.x - s.x, dy = tp.y - s.y, d2 = dx * dx + dy * dy;
-        if (tp.alive && s.t > 0.22 && (s.mag || d2 < 64 * 64 || dir.phase === 'clear' || dir.phase === 'bossdead' || dir.phase === 'jump')) {
-          s.mag = true; const d = Math.sqrt(d2) + 0.01, sp = 380 + s.t * 260; s.vx = (dx / d) * sp; s.vy = (dy / d) * sp;
-        } else { s.vx *= 1 - Math.min(1, 2 * dt); s.vy += (scrollV * 0.8 - s.vy) * Math.min(1, dt * 1.4); }
+        const tp = shardShip(s, dir.phase === 'clear' || dir.phase === 'bossdead' || dir.phase === 'jump');
+        if (tp && s.t > 0.22) { s.mag = true; s.o = tp.i; const dx = tp.x - s.x, dy = tp.y - s.y, d = Math.sqrt(dx * dx + dy * dy) + 0.01, sp = 380 + s.t * 260; s.vx = (dx / d) * sp; s.vy = (dy / d) * sp; }
+        else { s.vx *= 1 - Math.min(1, 2 * dt); s.vy += (scrollV * 0.8 - s.vy) * Math.min(1, dt * 1.4); }
+        const sx = s.x, sy = s.y;
         s.x += s.vx * dt; s.y += s.vy * dt;
-        if (tp.alive && d2 < 20 * 20) { if (tp === P) { shardRun++; shardRunT = 0.5; SFX.shard(shardRun); } swapOut(SH, i, shN); shN--; }
+        let got = null;
+        for (let k = 0; k < SHIPS.length && !got; k++) { const q = SHIPS[k]; if (q.alive) { const dx = q.x - sx, dy = q.y - sy; if (dx * dx + dy * dy < 20 * 20) got = q; } }
+        if (got) { if (got === P) { shardRun++; shardRunT = 0.5; SFX.shard(shardRun); } swapOut(SH, i, shN); shN--; }
         else if (s.y > LH + 20 || s.t > 10) { swapOut(SH, i, shN); shN--; }
       }
       if (shardRunT > 0) { shardRunT -= dt; if (shardRunT <= 0) shardRun = 0; }
@@ -6202,10 +6227,11 @@
       move: (x, y) => { P.x = clamp(x, 14, LW - 14); P.y = clamp(y, 66, LH - 26); },
       // (coop) l'équipage, les mesures du robot, et de quoi forcer une épave
       crew: () => CO ? SHIPS.map((s) => ({ i: s.i, st: s.st, x: Math.round(s.x), y: Math.round(s.y), sh: s.shield, pw: s.power, b: s.bombs, hy: Math.round(s.hyper * 100) / 100, hyT: Math.round(s.hyperT * 10) / 10,
-        kills: s.kills, rescues: s.rescues, hits: s.hits, podT: Math.round(s.podT * 10) / 10, rk: Math.round(s.rk * 100) / 100, ai: !!s.ai, inv: Math.round(s.inv * 10) / 10 })) : null,
+        kills: s.kills, rescues: s.rescues, hits: s.hits, caps: s.caps || 0, podT: Math.round(s.podT * 10) / 10, rk: Math.round(s.rk * 100) / 100, ai: !!s.ai, inv: Math.round(s.inv * 10) / 10 })) : null,
       coop: () => CO ? { lvl: LVI, kc: teamK(), stolen, rescues: teamRescues, ai: Object.assign({}, AI), stats: coopStats(), caps: cpN, mult: PTK } : null,
       wreck: (i) => { const s = SHIPS[i | 0]; if (s && s.alive && state === 'play') { s.shield = 0; s.inv = 0; s.auto = 0; hurtShip(s, true); } },
       net: () => NETC ? netStats() : null,
+      shardsNear: (r) => { const out = []; for (let k = 0; k < SHIPS.length; k++) { const q = SHIPS[k]; let n = 0, old = 0; for (let i = 0; i < shN; i++) { const s = SH[i], dx = s.x - q.x, dy = s.y - q.y; if (q.alive && dx * dx + dy * dy < (r || 64) * (r || 64)) { n++; if (s.t > 1.5) old++; } } out.push([n, old]); } return out; },
       armAll: (p, m, o) => { for (let i = 0; i < SHIPS.length; i++) { const s = SHIPS[i]; s.power = clamp(p | 0, 1, 6); s.miss = clamp(m | 0, 0, 3); s.opts = clamp(o | 0, 0, 4); s.pT = 0; s.missLeft = ARMS_T; s.optLeft = ARMS_T; for (let k = 0; k < 4; k++) { s.OPT[k].x = s.x; s.OPT[k].y = s.y; } } },
       hyperAll: () => { for (let i = 0; i < SHIPS.length; i++) { SHIPS[i].hyper = 1; useHyper(SHIPS[i]); } },
       godShip: (i, on) => { const s = SHIPS[i | 0]; if (s) s.god = !!on; },
