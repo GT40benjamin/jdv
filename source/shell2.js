@@ -18,13 +18,14 @@ const TILE_NEWS = {
   pingpong: { kind: 'new', at: '2026-10-15 00:20' },
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
-  'coop-magic': { kind: 'new', at: '2026-10-15 11:00' }   // mode Coop : Magic Force à deux (1.16)
+  'coop-magic': { kind: 'new', at: '2026-10-15 11:00' },   // mode Coop : Magic Force à deux (1.16)
+  kombat: { kind: 'new', at: '2026-10-16 09:00' }   // Mandale Kombat sorti pour tous (1.17)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['kombat']);   // Mandale Kombat (duel) en essai : …/jouer/?labo=kombat (Magic Force est sorti pour tous en 1.12)
+const LABO = new Set([]);   // vide : Mandale Kombat est sorti pour tous en 1.17 (Magic Force en 1.12) ; mettre ici l'id d'un prochain jeu en essai
 const LABO_ON = (() => {
   let on = []; try { on = JSON.parse(localStorage.getItem('jdw.labo') || '[]') || []; } catch (e) { on = []; }
   try {

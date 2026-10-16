@@ -64,7 +64,7 @@ Heroic Fantasy Creatures. Atelier : `~/jdv-tools/duotest/magic` (parties src/par
 modules npm de `~/jdv-tools/duotest/magic/node_modules`). Carte d'avancement : MAP_DEFS.magic (voir plus bas). Tests : la tuile Coop s'appelle aussi « Magic Force à deux » → sélecteur
 `.tile:not(.coop-tile):has-text("Magic Force")` pour la tuile solo. Décidé avec l'utilisateur (15 oct.) : 6 mondes TOUS DIFFÉRENTS (jamais deux fois
 le même monstre ni le même boss), grande victoire après le monde 6, plus de Tour II (étape C, voir REPRISE.md de l'atelier).
-**Mandale Kombat** (source/duos/kombat.js, duel 3D three.js, id `kombat`) : EN ESSAI derrière la porte « labo » des DUELS depuis la 1.13.7
+**Mandale Kombat** (source/duos/kombat.js, duel 3D three.js, id `kombat`) : SORTI POUR TOUS en 1.17 (16 oct. 2026 ; LABO vide) — avant : en essai derrière la porte « labo » des DUELS depuis la 1.13.7
 (`LABO` filtre aussi DUOS ; `…/jouer/?labo=kombat`). Atelier `~/jdv-tools/duotest/mandale/` (parts, outils Blender, tests, fiche REPRISE.md,
 spec design/SPEC.md). Paquets `assets/mandale.moteur.bin`, `mandale.commun.bin`, `mandale.f09.bin` (Ninjacques), `mandale.f11.bin`
 (Monsieur Plancha) ; musiques `assets/music/dkombat-*.bin`. Combattants = PBR Fighters (Unity Asset Store, toujours emballés) ; tête du
