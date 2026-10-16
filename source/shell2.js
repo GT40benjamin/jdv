@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['ilo', 'magic', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['ilo', 'magic', 'magicv1', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
@@ -25,7 +25,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set([]);   // vide : Mandale Kombat est sorti pour tous en 1.17 (Magic Force en 1.12) ; mettre ici l'id d'un prochain jeu en essai
+const LABO = new Set(['magicv1', 'pegase']);   // en essai : Pégase (nouveau jeu) et magicv1 (Magic Force 1.12 d'origine, pour comparer) ; Mandale Kombat sorti en 1.17, Magic Force en 1.12
 const LABO_ON = (() => {
   let on = []; try { on = JSON.parse(localStorage.getItem('jdw.labo') || '[]') || []; } catch (e) { on = []; }
   try {
@@ -542,7 +542,10 @@ function duckMusic(level, ms) {
 function unduckMusic() { duckUntil = 0; clearTimeout(duckTimer); musicApplyLevel(0.8); }
 // variantes d'un morceau : « empilo » → empilo-1, empilo-2, empilo-3 (départ au hasard, puis à la suite)
 // calmes au début, énergiques aux niveaux difficiles ; à l'accueil, un mélange des deux
+// jeux sans musique à eux : ils prennent celle d'un autre écran (Pégase : la musique calme de l'accueil)
+const MUSIC_AS = { pegase: 'accueil' };
 function musicVariants(id, mode) {
+  id = MUSIC_AS[id] || id;
   const v = (window.JDW_MUSIC || {})[id]; if (!v) return [id];
   const c = v.c || [], x = v.x || [];
   const list = id === 'accueil' ? [...c, ...x] : mode === 'intense' ? (x.length ? x : c) : (c.length ? c : x);
@@ -633,6 +636,7 @@ function musicLoop(id, b, when, fadeIn, seq, list, idx) {
   }, Math.max(0, (end - XFADE - A.currentTime - 0.4) * 1000));
 }
 async function setMusic(id, mode) {
+  if (id === 'magicv1') id = 'magic';   // (essai labo) Magic Force 1.12 garde la musique de Magic Force
   mode = mode || 'calm';
   MUS.want = id || ''; MUS.wantMode = mode;
   if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }

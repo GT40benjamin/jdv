@@ -70,6 +70,21 @@ spec design/SPEC.md). Paquets `assets/mandale.moteur.bin`, `mandale.commun.bin`,
 (Monsieur Plancha) ; musiques `assets/music/dkombat-*.bin`. Combattants = PBR Fighters (Unity Asset Store, toujours emballés) ; tête du
 joueur = masque 3D fabriqué depuis son selfie (MediaPipe Face Landmarker, cache IndexedDB `jdw-mk`). Contrat : DUO-CONTRACT.md « Ajout : duel 3D ».
 Animations Mixamo à télécharger par l'utilisateur : liste dans l'atelier (MIXAMO-A-TELECHARGER.md).
+**Pégase** (source/games/pegase.js, id `pegase`, balade en vraie 3D, three.js r180) : EN ESSAI derrière la porte « labo » depuis le 16 oct. 2026
+(`LABO = new Set(['pegase'])` : tuile visible seulement après `…/jouer/?labo=pegase`, ou 7 touches sur le titre dans l'appli). Le village au bord
+du lac à l'heure dorée (Dreamscape Village + cerfs Eastlands, Polyart), Pégase (PROTOFACTOR) qui s'envole quand on approche, une héroïne BoZo
+(garde-robe de l'atelier avatar ; mouvements KayKit CC0 recopiés os par os), papillons « AI butterfly », particules, jour ⇄ nuit, vue 3e / 1re
+personne (V) : tout est de l'Asset Store, donc JAMAIS en clair. Paquets : `assets/pegase.moteur.bin` (three.js complet, MIT, gzippé, global
+`window.JDW_PG3` : ne touche pas au moteur de Magic Force), `pegase.monde.bin` (~5,2 Mo : la première image arrive avec lui), `pegase.vie.bin`
+(Pégase, cerfs, mouvements), `pegase.perso.bin` (héroïne), `pegase.pres.bin` (détails proches, chargé en jouant), `pegase.garde.bin` (autres
+tenues, à la demande) ; un seul sel pour tous (clé dérivée une fois). Pas de défaite : le score = les découvertes (Pégase, cerfs, moulin, lac,
+nuit) ; « Quitter » les enregistre. Musique : celle de l'accueil (`MUSIC_AS` dans shell2.js). Qualité réglée toute seule et gardée PAR VERSION
+(`jdw.pegase.qualite` = { v: PG_BUILD, gpu, tier, dyn, hz } : une nouvelle version repart de zéro), netteté jusqu'à 2,25 px/point + FXAA sur les
+téléphones costauds (Mali-G7x, Adreno 6xx+, Apple), 120 i/s si l'appareil suit ; sonde de vitesse « perf pegase: » (60 s de jeu, une fois par
+appareil et par version, `?perf=1` pour forcer) lisible avec `node ~/jdv-tools/erreurs.js`. Atelier `~/jdv-tools/pegase/borne` : pegase.js est
+ASSEMBLÉ (`node tools/assemble.js` : src/*.js regroupés par esbuild + wrap/) — modifier l'atelier, pas le fichier ; paquets `node tools/pack.js`
+(données `~/jdv-tools/pegase/web2/data`, garde-robe `~/jdv-tools/pegase/avatar/web/data`), moteur `node tools/moteur.js` ; harnais et tests dans
+`borne/test/` (harnais.html, labo.js, mesure.js, sonde.js). PG_BUILD (en tête de wrap/head.js) change à chaque livraison.
 **Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Magic Force, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux, Casse-Carreaux : tous les jeux solo ont la leur ;
 Magic Force 1.12.2 : dessinée entièrement par la bibliothèque, MAP_DEFS.magic, à partir de worlds / worldOf / levelsPerWorld / drawWorldIcon du jeu ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte
@@ -309,3 +324,8 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Coop** 
 pas besoin de ffmpeg) → EMBALLÉ (clé source/asset-key.txt) → `assets/music/<id>.bin` (même sel pour tous : `source/music-salt.hex`). `d<duel>-<n>` / `d<duel>-x<n>`
 (énergique, à la balle de match), `dscores-<n>` (écran des résultats), `sting-<nom>` (jingles : win, podium, point, go, match…).
 build2.py liste les .bin dans window.JDW_MUSIC_ENC et injecte window.JDW_ASSET_KEY ; shell2.js les déballe (decryptBin) ; sting(name) joue un jingle.
+
+**Magic Force 1.12 (id `magicv1`, porte labo, 1.18.5)** : copie TELLE QUELLE de la Magic Force 1.12.1 (commit da5803c, 14 oct.) — `source/games/magicv1.js`
+(seuls id/titre « Magic Force 1.12 », paquets `assets/magicv1.*.bin` = ceux de da5803c, clés de stockage jdw.magicv1.*), musique de Magic Force
+(alias dans setMusic). BUT : comparer sur le vrai téléphone de l'utilisateur la fluidité/beauté d'origine avec la version actuelle (il trouvait la 1.12
+« super belle et super fluide »). À RETIRER une fois la comparaison faite (ORDER, LABO, GAMES de build2.py, fichiers magicv1.*).
