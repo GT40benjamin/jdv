@@ -999,7 +999,7 @@
     function aqSave(now) {
       if (!Q || Q.forced) return;
       const t = performance.now(); if (!now && t - aqSaveT < 2500) return; aqSaveT = t;
-      try { localStorage.setItem(AQ_KEY, JSON.stringify({ gpu: Q.gpu, tier: Q.tier, dyn: +DYN.toFixed(2) })); } catch (e) { /* rien */ }
+      try { localStorage.setItem(AQ_KEY, JSON.stringify({ gpu: Q.gpu, tier: Q.tier, dyn: +DYN.toFixed(2), hz: PERF.hzKeep || 0, hzv: MF_BUILD })); } catch (e) { /* rien */ }
     }
     function detectTier(g) {
       let gpu = '';
@@ -1008,17 +1008,20 @@
       const mobile = TOUCH0 || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '');
       const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 4;
       let t = mobile ? 2 : 3;
-      if (mobile && (cores <= 4 || mem <= 2 || /Mali-(4|T)|Adreno \(TM\) [345]\d\d|PowerVR|SGX|Mali-G(31|51|52|57)\b/i.test(gpu))) t = 1;
+      // (Safari annonce 4 cœurs pour TOUT iPhone ou iPad à moins de 8 cœurs, pour ne pas être pisté : pas un signe de petit appareil)
+      if (mobile && ((cores <= 4 && !/Apple/i.test(gpu)) || mem <= 2 || /Mali-(4|T)|Adreno \(TM\) [345]\d\d|PowerVR|SGX|Mali-G(31|51|52|57)\b/i.test(gpu))) t = 1;
+      // téléphones au processeur graphique costaud : plus de pixels (2,25 par point au lieu de 1,5) + anticrénelage, au niveau « beau »
+      const strong = mobile && t === 2 && /Mali-G(7\d|[6-9]\d\d)\b|Immortalis|Adreno \(TM\) [6-8]\d\d|Apple GPU|Apple M\d/i.test(gpu);
       if (/SwiftShader|llvmpipe|Software|Microsoft Basic/i.test(gpu)) t = Math.min(t, 1);
       const force = typeof window !== 'undefined' && window.JDW_MAGIC_Q;      // essais (tests) seulement
       const max = t;
-      if (force != null && TIERS[force]) return { t: force, max: force, gpu, mobile, forced: true };
+      if (force != null && TIERS[force]) return { t: force, max: force, gpu, mobile, strong, forced: true };
       // la dernière fois sur cet appareil, il avait fallu descendre ? on repart de là (sans dépasser ce que l'appareil peut)
       const st = aqLoad();
-      if (st && st.gpu === gpu) { t = Math.min(max, Math.max(0, st.tier | 0)); DYN = clamp(+st.dyn || 1, 0.6, 1); }
-      return { t, max, gpu, mobile };
+      if (st && st.gpu === gpu) { t = Math.min(max, Math.max(0, st.tier | 0)); DYN = clamp(+st.dyn || 1, 0.6, 1); if (st.hz) { PERF.hzMem = st.hz; PERF.hzMemV = st.hzv; if (st.hzv === MF_BUILD) PERF.hzKeep = st.hz; } }
+      return { t, max, gpu, mobile, strong };
     }
-    const PERF = { acc: 0, n: 0, slowS: 0, fastS: 0, lastAdj: 0, fps: 60, hist: [] };
+    const PERF = { acc: 0, n: 0, slowS: 0, fastS: 0, lastAdj: 0, fps: 60, hist: [], hz: 60, refHz: 60, rawN: 0, hzSlow: 0, hzT: 0 };
     let contextLost = false;
 
     function initRenderer() {
@@ -1026,7 +1029,7 @@
       if (!probe) throw new Error('WebGL 2 indisponible');
       const det = detectTier(probe);
       try { const lx = probe.getExtension('WEBGL_lose_context'); if (lx) lx.loseContext(); } catch (e) { /* rien */ }
-      Q = Object.assign({ tier: det.t, maxTier: det.max, gpu: det.gpu, mobile: det.mobile, forced: !!det.forced }, TIERS[det.t]);
+      Q = Object.assign({ tier: det.t, maxTier: det.max, gpu: det.gpu, mobile: det.mobile, strong: !!det.strong, forced: !!det.forced }, TIERS[det.t]);
       renderer = new T.WebGLRenderer({ canvas, antialias: Q.aa, alpha: false, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
       gl = renderer.getContext(); renderer.info.autoReset = false;
       renderer.outputColorSpace = T.SRGBColorSpace;
@@ -1117,6 +1120,13 @@
         sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vMfW;\nvarying vec4 vMfC;')
           .replace('#include <project_vertex>', '#include <project_vertex>\nvMfC = gl_Position;\n#ifdef USE_INSTANCING\nvMfW = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;\n#else\nvMfW = (modelMatrix * vec4(transformed, 1.0)).xyz;\n#endif');
         let head = '#include <common>\nvarying vec3 vMfW;\nvarying vec4 vMfC;\nuniform vec3 uMfP; uniform vec3 uMfP2; uniform float uMfA; uniform float uMfR; uniform vec3 uMfH; uniform vec3 uMfDark;\nuniform sampler2D uMfFloor; uniform vec4 uMfFR; uniform float uMfLava;\n';
+        // trame de Bayer 4×4 sur les pixels de l'écran (fine, suit la résolution ; l'anticrénelage la lisse en transparence)
+        if (o.cut) head += 'float mfB2(vec2 a){ a = mod(floor(a), 2.0); return fract(a.x * 0.5 + a.y * 0.75); }\nfloat mfB4(vec2 a){ return mfB2(0.5 * a) * 0.25 + mfB2(a); }\n';
+        // bruit lisse en 3D (dissolution des monstres : des braises qui rongent, plus des cubes)
+        if (o.dis) head += 'float mfH3(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }\n' +
+          'float mfN3(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);\n' +
+          ' return mix(mix(mix(mfH3(i), mfH3(i + vec3(1.0, 0.0, 0.0)), f.x), mix(mfH3(i + vec3(0.0, 1.0, 0.0)), mfH3(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),\n' +
+          '  mix(mix(mfH3(i + vec3(0.0, 0.0, 1.0)), mfH3(i + vec3(1.0, 0.0, 1.0)), f.x), mix(mfH3(i + vec3(0.0, 1.0, 1.0)), mfH3(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z); }\n';
         if (mat.userData.rim) head += 'uniform vec3 uRim; uniform float uRimK; uniform float uFlash; uniform vec4 uTint;\n';
         if (mat.userData.dis) head += 'uniform float uDis; uniform vec3 uDisCol; uniform float uDisH;\n';
         if (o.lm || o.lmc) head += 'uniform sampler2D uLM; uniform vec4 uLMR; uniform vec3 uSunV; uniform vec3 uSunC; uniform float uLMsh; uniform float uMfT;\n';
@@ -1127,9 +1137,9 @@
         let cut = '';
         if (o.cut) cut = '{ vec2 nd = vMfC.xy / vMfC.w; vec2 dd = (nd - uMfP.xy) * vec2(uMfA, 1.0); float rr = length(dd); float pz = uMfP.z;\n' +
           '  if (uMfP2.z < 900.0) { float r2 = length((nd - uMfP2.xy) * vec2(uMfA, 1.0)); if (r2 < rr) { rr = r2; pz = uMfP2.z; } }\n' +
-          '  if (vMfC.w < pz - 0.6 && rr < uMfR && vMfW.y > 0.35) { float k = smoothstep(uMfR, uMfR * 0.45, rr);\n' +
-          '    float bay = fract(sin(dot(floor(vMfW * 9.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453); if (bay < k * 0.92) discard; } }\n';
-        if (o.dis) cut += 'float mfDisE = 0.0;\nif (uDis > 0.001) { float dn = fract(sin(dot(floor(vMfW * 8.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453);\n' +
+          '  if (vMfC.w < pz - 0.6 && rr < uMfR && vMfW.y > 0.35) { float k = smoothstep(uMfR, uMfR * 0.5, rr);\n' +
+          '    if (mfB4(gl_FragCoord.xy) + 0.03 < k) discard; } }\n';
+        if (o.dis) cut += 'float mfDisE = 0.0;\nif (uDis > 0.001) { float dn = mfN3(vMfW * 5.0) * 0.7 + mfN3(vMfW * 11.0) * 0.3;\n' +
           '  float dh = dn * 0.5 + clamp(vMfW.y / uDisH, 0.0, 1.0) * 0.5; if (dh < uDis) discard; mfDisE = smoothstep(uDis + 0.09, uDis, dh); }\n';
         let out = '';
         // lumière cuite (torches, bougies, lave, lune) + ombre cuite du soleil (on retire sa part là où l'ombre tombe)
@@ -1359,13 +1369,27 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb * 0.2270270;
  c += texture2D(tex, vUv + dir * 1.3846154).rgb * 0.3162162; c += texture2D(tex, vUv - dir * 1.3846154).rgb * 0.3162162;
  c += texture2D(tex, vUv + dir * 3.2307692).rgb * 0.0702703; c += texture2D(tex, vUv - dir * 3.2307692).rgb * 0.0702703;
  gl_FragColor = vec4(c, 1.0); }`, { tex: { value: null }, dir: { value: new T.Vector2() } });
-        PP.m.comp = sm(`uniform sampler2D tex; uniform sampler2D b1; uniform sampler2D b2; uniform float str; uniform float expo; uniform float vig; uniform float flash; uniform vec3 shadowTint; uniform vec3 hiTint; uniform float sat; varying vec2 vUv;
+        PP.m.comp = sm(`uniform sampler2D tex; uniform sampler2D b1; uniform sampler2D b2; uniform float str; uniform float expo; uniform float vig; uniform float flash; uniform vec3 shadowTint; uniform vec3 hiTint; uniform float sat; uniform vec2 px; uniform float fx; varying vec2 vUv;
+// anticrénelage FXAA (version « console », 5 à 9 lectures, sur la luminance compressée de l'image HDR) : bords lissés, sans flou
+float mfL(vec3 c){ c = c / (1.0 + c); return dot(c, vec3(0.299, 0.587, 0.114)); }
+vec3 mfFxaa(vec2 uv){
+ vec3 m = texture2D(tex, uv).rgb;
+ float lNW = mfL(texture2D(tex, uv + vec2(-1.0, -1.0) * px).rgb), lNE = mfL(texture2D(tex, uv + vec2(1.0, -1.0) * px).rgb);
+ float lSW = mfL(texture2D(tex, uv + vec2(-1.0, 1.0) * px).rgb), lSE = mfL(texture2D(tex, uv + vec2(1.0, 1.0) * px).rgb), lM = mfL(m);
+ float lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE))), lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
+ if (lMax - lMin < max(0.03, lMax * 0.12)) return m;
+ vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
+ float rd = max((lNW + lNE + lSW + lSE) * 0.03125, 0.0078125);
+ dir = clamp(dir / (min(abs(dir.x), abs(dir.y)) + rd), -8.0, 8.0) * px;
+ vec3 a = 0.5 * (texture2D(tex, uv + dir * (1.0 / 3.0 - 0.5)).rgb + texture2D(tex, uv + dir * (2.0 / 3.0 - 0.5)).rgb);
+ vec3 b = a * 0.5 + 0.25 * (texture2D(tex, uv - dir * 0.5).rgb + texture2D(tex, uv + dir * 0.5).rgb);
+ float lB = mfL(b); return (lB < lMin || lB > lMax) ? a : b; }
 vec3 rrt(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
 vec3 aces(vec3 color){ const mat3 IM = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
  const mat3 OM = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
  color /= 0.6; color = IM * color; color = rrt(color); color = OM * color; return clamp(color, 0.0, 1.0); }
 vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c)); }
-void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb * 0.6 + texture2D(b2, vUv).rgb * 0.9;
+void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb * 0.6 + texture2D(b2, vUv).rgb * 0.9;
  c += bl * str; c *= expo;
  vec2 d = vUv - 0.5; float v = 1.0 - smoothstep(0.32, 0.95, length(d * vec2(1.0, 1.1))) * vig;
  c *= v; c = mix(c, vec3(1.0), flash);
@@ -1375,7 +1399,7 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
  c = toSRGB(c);
  float l2 = dot(c, vec3(0.299, 0.587, 0.114)); c = mix(vec3(l2), c, sat);
  gl_FragColor = vec4(c, 1.0); }`, { tex: { value: null }, b1: { value: null }, b2: { value: null }, str: { value: 0.85 }, expo: { value: 1.0 }, vig: { value: 0.5 }, flash: { value: 0 },
-          shadowTint: { value: new T.Vector3(0.92, 0.95, 1.1) }, hiTint: { value: new T.Vector3(1.06, 1.0, 0.92) }, sat: { value: 1.1 } });
+          shadowTint: { value: new T.Vector3(0.92, 0.95, 1.1) }, hiTint: { value: new T.Vector3(1.06, 1.0, 0.92) }, sat: { value: 1.1 }, px: { value: new T.Vector2(1, 1) }, fx: { value: 0 } });
         PP.ok = true; PP.on = true; PP.lite = Q.bloom === 1;
       } catch (e) { PP.ok = false; PP.on = false; }
     }
@@ -1411,6 +1435,8 @@ void main(){ vec3 c = texture2D(tex, vUv).rgb; vec3 bl = texture2D(b1, vUv).rgb 
       m.blur.uniforms.tex.value = b[2].texture; m.blur.uniforms.dir.value.set(0, 2 / b[2].height); ppPass(m.blur, b[3]);
       m.comp.uniforms.tex.value = PP.rt.texture; m.comp.uniforms.b1.value = b[0].texture; m.comp.uniforms.b2.value = b[3].texture;
       m.comp.uniforms.expo.value = renderer.toneMappingExposure; m.comp.uniforms.flash.value = Math.min(0.85, G.flash * 0.8);
+      // FXAA au niveau « beau » (le niveau « superbe » a déjà son MSAA ; les petits niveaux n'en ont pas : ils sont là pour aller vite)
+      m.comp.uniforms.fx.value = Q.tier === 2 && !PP.rt.samples ? 1 : 0; m.comp.uniforms.px.value.set(1 / PP.w, 1 / PP.h);
       ppPass(m.comp, null);
     }
 
@@ -6527,10 +6553,19 @@ void main(){ if (vK >= 0.999) discard;
     function frame(now) {
       raf = requestAnimationFrame(frame);
       if (destroyed || paused || contextLost) return;
-      // pas plus de 60 images par seconde, mais au rythme juste sur TOUS les écrans (90 Hz : 2 images sur 3, pas 45 i/s)
-      if (last && now < nextT - 2.5) return;
+      // fréquence de l'écran (60, 90, 120 Hz…) : la médiane des intervalles entre deux rappels
+      if (PERF.rawLast) { const d = now - PERF.rawLast; if (d > 3 && d < 40) { const R = PERF.raw || (PERF.raw = []); R.push(d); if (R.length > 90) R.shift(); if (R.length >= 45 && !(PERF.rawN++ % 30)) { const s = R.slice().sort((a, b) => a - b); PERF.refHz = Math.round(1000 / s[s.length >> 1]); PERF.refOk = true; } } }
+      PERF.rawLast = now;
+      // 60 images par seconde (120 sur un écran rapide si l'appareil tient la cadence), au rythme juste sur TOUS les écrans.
+      // Rapport entier écran / cible (120/60, 60/60, 144/72) : une image toutes les Ni, comptées depuis la DERNIÈRE image affichée
+      // (un écran à 120,3 ou 59,8 Hz ne fait plus d'à-coup de 25 ms toutes les 1 à 2 s) ; sinon (90 Hz à 60 i/s) : 2 images sur 3
+      if (last) {
+        const N = PERF.refOk ? PERF.refHz / PERF.hz : 0, Ni = Math.round(N);
+        if (Ni >= 1 && Math.abs(N - Ni) < 0.12) { if (now - last < Math.max((Ni - 0.5) * 1000 / PERF.refHz, 1000 / PERF.hz - 4)) return; }
+        else if (now < nextT - 2.5) return;
+      }
       const elapsed = now - last;
-      nextT = Math.max(nextT + 1000 / 60, now - 4);
+      nextT = Math.max(nextT + 1000 / PERF.hz, now - 4);
       const rdt = Math.min(0.05, last ? elapsed / 1000 : 0.016); last = now;
       perfTrack(elapsed); probeFrame(elapsed);
       if (G.slowT > 0) { G.slowT -= rdt; if (G.slowT <= 0) G.slow = 1; }
@@ -6545,13 +6580,14 @@ void main(){ if (vK >= 0.999) discard;
     // ------------------------------------------------------------- sonde de vitesse : une fenêtre de 60 s de jeu mesurée UNE fois par appareil
     // (et à chaque partie avec ?perf=1), puis UN petit résumé purement technique (temps d'image, niveau, pixels, carte graphique)
     // envoyé par le canal d'erreurs de la borne (message « perf magic: »). Aucune donnée personnelle dans le résumé.
-    const MF_BUILD = '2026-10-16c';   // (1.18.3) relance la sonde de vitesse sur chaque appareil
+    const MF_BUILD = '2026-10-17a';   // (17 oct.) netteté, découpe fine des murs, 120 i/s : relance la sonde de vitesse sur chaque appareil
     const PROBE = { on: false, ft: [], t: 0, sent: false, tier0: -1 };
     try { PROBE.on = /[?&]perf=1/.test(location.search) || localStorage.getItem('jdw.magic.sonde') !== MF_BUILD; } catch (e) { PROBE.on = false; }
     function probeFrame(ms) {
       if (!PROBE.on || PROBE.sent || G.phase !== 'play' || paused || ms > 1000 || (typeof document !== 'undefined' && document.hidden)) return;
       if (PROBE.tier0 < 0) PROBE.tier0 = Q.tier;
       PROBE.ft.push(ms); PROBE.t += ms;
+      { const V = 1000 / PERF.refHz; if (ms > Math.ceil(PERF.refHz / PERF.hz - 0.05) * V + V / 2) PROBE.miss = (PROBE.miss || 0) + 1; }
       if (PROBE.t >= 60000) probeSend();
     }
     function probeSend() {
@@ -6560,11 +6596,14 @@ void main(){ if (vK >= 0.999) discard;
       const avg = ft.reduce((a, b) => a + b, 0) / n, q = (k) => +s[Math.min(n - 1, Math.floor(n * k))].toFixed(1);
       const long50 = ft.filter((x) => x > 50).length, long100 = ft.filter((x) => x > 100).length;
       const bs = renderer.getDrawingBufferSize(new T.Vector2()), dpr = +(window.devicePixelRatio || 1).toFixed(2);
-      const msg = 'perf magic: moy ' + avg.toFixed(1) + ' ms, p95 ' + q(0.95) + ', p99 ' + q(0.99) + ', >50ms ' + long50 + '/' + n + ', niveau ' + Q.tier + ' ' + Q.name +
+      // images « ratées » (une période d'écran de retard) : la régularité vue par l'œil
+      const ratees = PROBE.miss || 0; PROBE.miss = 0;
+      const msg = 'perf magic: moy ' + avg.toFixed(1) + ' ms (' + PERF.hz + ' i/s visées, écran ' + PERF.refHz + ' Hz, ratées ' + ratees + '/' + n + '), p95 ' + q(0.95) + ', p99 ' + q(0.99) + ', >50ms ' + long50 + '/' + n + ', niveau ' + Q.tier + ' ' + Q.name +
         ', dyn ' + DYN.toFixed(2) + ', dpr ' + dpr + ', ' + bs.x + 'x' + bs.y + ' px, ' + String(Q.gpu || '?').slice(0, 70);
       const detail = JSON.stringify({ v: MF_BUILD, n, avg: +avg.toFixed(2), med: q(0.5), p95: q(0.95), p99: q(0.99), long50, long100, tier0: PROBE.tier0, tier: Q.tier, tiers: PERF.tierLog || [],
         dyn: +DYN.toFixed(2), dpr, canvas: [bs.x, bs.y], css: [VW, VH], bloom: PP.on ? (PP.lite ? 'léger' : 'plein') : 'non', gpu: Q.gpu || '', mobile: Q.mobile,
-        cores: navigator.hardwareConcurrency || 0, mem: navigator.deviceMemory || 0, monde: G.wi + 1, salle: level, jsMs: +(PERF.ju || 0).toFixed(2), rendu: +(PERF.jr || 0).toFixed(2) });
+        cores: navigator.hardwareConcurrency || 0, mem: navigator.deviceMemory || 0, monde: G.wi + 1, salle: level, jsMs: +(PERF.ju || 0).toFixed(2), rendu: +(PERF.jr || 0).toFixed(2),
+        hz: PERF.hz, ecranHz: PERF.refHz, essai120: !!PERF.hzTried, fxaa: !!(PP.on && Q.tier === 2), dprMax: +(Q.maxDpr * (Q.strong && Q.tier === 2 ? 1.5 : 1)).toFixed(2), costaud: !!Q.strong, ratees });
       try { localStorage.setItem('jdw.magic.sonde', MF_BUILD); } catch (e) { /* rien */ }
       // la bibliothèque relève les « rejets non traités » (reportError → log_error, sans fenêtre d'alerte) : on lui passe le résumé
       try { const err = new Error(msg); err.stack = detail; const ev = new Event('unhandledrejection'); ev.reason = err; ev.promise = Promise.resolve(); window.dispatchEvent(ev); } catch (e) { /* rien */ }
@@ -6577,17 +6616,37 @@ void main(){ if (vK >= 0.999) discard;
       if (ms > 50) PERF.hitch = (PERF.hitch || 0) + 1;
       // une image très lente compte pour 120 ms au plus (un à-coup isolé ne fait pas tout baisser, un appareil lent si)
       PERF.acc += Math.min(ms, 120); PERF.n++;
-      if ((PERF.n < 24 && PERF.acc < 1000) || PERF.n < 4) return;
-      const avg = PERF.acc / PERF.n; PERF.acc = 0; PERF.n = 0; PERF.fps = 1000 / avg; PERF.hist.push(Math.round(PERF.fps));
+      // image « ratée » : arrivée une période d'écran plus tard que prévu (60 Hz : 33 ms ; 120 Hz à 60 i/s : 25 ms)
+      { const V = 1000 / PERF.refHz; if (ms > Math.ceil(PERF.refHz / PERF.hz - 0.05) * V + V / 2) PERF.miss = (PERF.miss || 0) + 1; }
+      const need = 24 * PERF.hz / 60;
+      if ((PERF.n < need && PERF.acc < 1000) || PERF.n < 4) return;
+      const avg = PERF.acc / PERF.n, miss = PERF.miss || 0; PERF.acc = 0; PERF.n = 0; PERF.miss = 0; PERF.fps = 1000 / avg; PERF.hist.push(Math.round(PERF.fps));
       if (PERF.hist.length > 40) PERF.hist.shift();
       if ((Q.forced && !/[?&]adapt/.test(location.search)) || (typeof window !== 'undefined' && window.JDW_MAGIC_NOADAPT)) return;          // essais : niveau imposé
       const now = performance.now();
       if (now < (PERF.holdT || 0)) return;                                 // un changement vient d'avoir lieu : on attend son effet
+      // écran rapide (90-120 Hz) : on monte à sa fréquence s'il est à l'aise à 60 avec toute sa netteté ; on redescend à 60 (sans
+      // toucher à la netteté) dès que la cadence ne suit plus ; le résultat est gardé sur l'appareil pour la prochaine partie
+      if (PERF.hz > 60) {
+        if (avg > 1000 / PERF.hz * 1.2) { if (++PERF.hzSlow >= 2) {
+          // l'essai vient de commencer : l'appareil ne tient pas 120 (on le retient) ; sinon c'est un gros combat : 60 pour l'instant,
+          // un nouvel essai plus tard au calme
+          if (!PERF.hzKeep || now - PERF.hzT < 8000) { PERF.hzKeep = 60; aqSave(true); } else { PERF.hzTried = false; PERF.hzRetryT = now + 20000; }
+          PERF.hz = 60; PERF.hzSlow = 0; PERF.fastS = 0; PERF.holdT = now + 1500; } }
+        else { PERF.hzSlow = 0; if (!PERF.hzKeep && now - PERF.hzT > 6000) { PERF.hzKeep = PERF.hz; aqSave(true); } }
+        return;
+      }
+      const hzOk = PERF.refHz >= 88 && PERF.refHz <= 170 && !PERF.hzTried && now > (PERF.hzRetryT || 0) && Q.tier >= 2 && DYN >= 0.999 && G.phase === 'play' && !(PERF.hzMem === 60 && PERF.hzMemV === MF_BUILD) && PERF.hzKeep !== 60;
+      if (hzOk && avg < 17.8 && (PERF.fastS || 0) >= 4) { PERF.hzTried = true; PERF.hz = PERF.refHz > 132 ? Math.round(PERF.refHz / 2) : Math.min(120, PERF.refHz); /* 144 Hz : 72 i/s, une image sur deux */ PERF.hzT = now; PERF.hzSlow = 0; PERF.holdT = now + 1200; return; }
+      // netteté renforcée (téléphone costaud, niveau « beau ») : la régularité d'abord. Plus de 2 images ratées sur 24 (à-coups visibles
+      // même si la moyenne passe) : un peu moins de pixels, sans descendre sous l'ancienne netteté (1,5 pixel par point)
+      const boost = Q.strong && Q.tier === 2;
+      if (boost && avg <= 21 && miss >= 3 && DYN > 0.7) { PERF.fastS = 0; DYN = Math.max(0.67, DYN - 0.05); resize(); PERF.holdT = now + 900; aqSave(); return; }
       if (avg > 21) {                                                      // moins de ~48 images/s
         PERF.fastS = 0;
         if (DYN > 0.601) { DYN = Math.max(0.6, DYN - (avg > 32 ? 0.15 : 0.08)); resize(); PERF.holdT = now + 900; aqSave(); }
         else if (Q.tier > 0 && ++PERF.slowS >= 2) { PERF.slowS = 0; setTier(Q.tier - 1); DYN = 0.85; resize(); PERF.holdT = now + 2500; aqSave(true); }
-      } else if (avg < 17.8) {                                             // à l'aise (60 i/s)
+      } else if (avg < 17.8 && (!boost || miss <= 1)) {                   // à l'aise (60 i/s), et régulier
         PERF.slowS = 0; PERF.fastS = (PERF.fastS || 0) + 1;
         if (DYN < 0.999 && PERF.fastS >= 3) { DYN = Math.min(1, DYN + 0.05); PERF.fastS = 0; resize(); PERF.holdT = now + 900; aqSave(); }
         else if (DYN >= 0.999 && PERF.fastS >= 30 && Q.tier < Q.maxTier) { PERF.fastS = 0; setTier(Q.tier + 1); DYN = 0.8; resize(); PERF.holdT = now + 2500; aqSave(true); }
@@ -6598,8 +6657,9 @@ void main(){ if (vK >= 0.999) discard;
       VW = Math.max(1, root.clientWidth || el.clientWidth || 390); VH = Math.max(1, root.clientHeight || el.clientHeight || 700);
       layoutButtons(); orientCheck(); winFit();
       if (!renderer) return;
-      let dpr = Math.min(window.devicePixelRatio || 1, Q.maxDpr) * DYN;
-      const maxPix = Q.mobile ? 1.6e6 : 3.2e6;
+      // plafond de netteté : 2,25 pixels par point au niveau « beau » sur un téléphone costaud (sinon celui du niveau)
+      let dpr = Math.min(window.devicePixelRatio || 1, Q.maxDpr * (Q.strong && Q.tier === 2 ? 1.5 : 1)) * DYN;
+      const maxPix = Q.mobile ? (Q.strong ? 1.9e6 : 1.6e6) : 3.2e6;
       if (VW * VH * dpr * dpr > maxPix) dpr = Math.sqrt(maxPix / (VW * VH));
       renderer.setPixelRatio(Math.max(0.4, dpr));
       renderer.setSize(VW, VH, false);
