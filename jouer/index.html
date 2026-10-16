@@ -38290,12 +38290,26 @@ window.JDW_GAMES.pleingaz = {
 .mf-load button{margin-top:16px;font:400 16px ${FD};color:#1a0e2a;background:#ffc75a;border:0;border-radius:12px;padding:11px 22px;box-shadow:0 5px 0 #a8661c;cursor:pointer;pointer-events:auto}
 .mf-fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .6s}
 .mf-fade.on{opacity:1}
-.mf-win{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 45%,rgba(40,20,70,.55),rgba(4,2,10,.82));opacity:0;visibility:hidden;transition:opacity .5s;pointer-events:none}
+.mf-win{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 45%,rgba(40,20,70,.55),rgba(4,2,10,.82));opacity:0;visibility:hidden;transition:opacity .5s;pointer-events:none}
 .mf-win.on{opacity:1;visibility:visible;pointer-events:auto}
-.mf-wcard{position:relative;width:min(380px,90%);padding:20px 20px 18px;border-radius:22px;background:linear-gradient(180deg,#2c1c4a,#160e28);box-shadow:0 0 0 2px rgba(255,199,90,.6),0 0 0 6px rgba(40,20,0,.5),0 20px 60px rgba(0,0,0,.6),0 0 80px rgba(255,170,60,.25);text-align:center;transform:scale(.8);transition:transform .6s cubic-bezier(.2,1.5,.4,1)}
-.mf-win.on .mf-wcard{transform:scale(1)}
+.mf-win.on~.mf-pause{opacity:0;pointer-events:none}
+.mf-win.on~.mf-overlay{z-index:2}
+.mf-wcard{position:relative;flex:none;width:min(380px,90%);padding:20px 20px 18px;border-radius:22px;background:linear-gradient(180deg,#2c1c4a,#160e28);box-shadow:0 0 0 2px rgba(255,199,90,.6),0 0 0 6px rgba(40,20,0,.5),0 20px 60px rgba(0,0,0,.6),0 0 80px rgba(255,170,60,.25);text-align:center;transform:scale(calc(.8 * var(--fit,1)));transition:transform .6s cubic-bezier(.2,1.5,.4,1)}
+.mf-win.on .mf-wcard{transform:scale(var(--fit,1))}
+.mf-win.scroll{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mf-wcard.wide{width:min(700px,92%);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);column-gap:26px;align-items:center;padding:16px 26px 14px}
+.mf-wcard.wide .mf-whead{grid-column:1;grid-row:1}
+.mf-wcard.wide .mf-wrows{grid-column:2;grid-row:1;max-width:none;padding-left:24px;border-left:1px solid rgba(255,214,140,.16)}
+.mf-wcard.wide .mf-wnext{grid-column:1/-1;margin-top:10px}
+.mf-wcard.wide h3{margin:6px 0 4px}
+.mf-wcard.wide .mf-stars{margin:8px 0 0}
+.mf-wcard.wide .mf-stars svg{width:48px;height:48px}
+.mf-wcard.wide .mf-wrow{padding:5px 2px}
+.mf-wcard.wide .mf-wrow.tot{padding-top:8px}
 .mf-wcard h2{margin:0;font:400 clamp(26px,8vw,38px) ${FD};letter-spacing:.03em;background:linear-gradient(180deg,#fffbe8 10%,#ffd36a 55%,#ff8f3a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 rgba(70,20,0,.6))}
-.mf-wcard h3{margin:4px 0 10px;font:600 14px ${FB};color:#d6c8ee}
+.mf-wcard h3{margin:4px 0 10px;font:600 14px/1.35 ${FB};color:#d6c8ee}
+.mf-wcard h3 span{display:block}
+.mf-wcard h3 span:first-child{font:400 11.5px ${FD};letter-spacing:.08em;color:#ffcf7a;opacity:.9;margin-bottom:2px}
 .mf-stars{display:flex;justify-content:center;gap:6px;margin:6px 0 12px}
 .mf-stars svg{width:44px;height:44px;fill:#3a2a50;transform:scale(.3);opacity:0;transition:transform .5s cubic-bezier(.2,1.8,.4,1),opacity .3s}
 .mf-stars svg.on{fill:#ffd34d;filter:drop-shadow(0 0 10px rgba(255,200,60,.8));transform:scale(1);opacity:1}
@@ -38354,7 +38368,7 @@ window.JDW_GAMES.pleingaz = {
       '<div class="mf-flash"></div><div class="mf-pops"></div><div class="mf-banner"><b></b><span></span></div>' +
             '<div class="mf-ctl"><div class="mf-joy"><div class="mf-knob"></div></div></div>' +
       '<div class="mf-help"></div><div class="mf-cine"><i></i><i></i></div>' +
-      '<div class="mf-win"><div class="mf-wcard"><h2></h2><h3></h3><div class="mf-stars">' + ICON.star + ICON.star + ICON.star + '</div><div class="mf-wrows"></div><div class="mf-wnext"></div></div></div>' +
+      '<div class="mf-win"><div class="mf-wcard"><div class="mf-whead"><h2></h2><h3></h3><div class="mf-stars">' + ICON.star + ICON.star + ICON.star + '</div></div><div class="mf-wrows"></div><div class="mf-wnext"></div></div></div>' +
       '<div class="mf-fade"></div>' +
       '<div class="mf-overlay mf-paused"><b>PAUSE</b><span>Touche pour reprendre</span></div>' +
       '<div class="mf-load"><canvas width="600" height="340"></canvas><h1>MAGIC FORCE</h1><p>Les torches s’allument…</p><div class="mf-lbar"><i></i></div></div>';
@@ -40878,9 +40892,9 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       const K = m.K;
       m.st = 'charge'; m.t = 0; m.chGo = false; m.chEnd = 0; m.vx = 0; m.vz = 0;
       m.chDir = Math.atan2(hero.x - m.x, hero.z - m.z); m.face = m.chDir;
-      play(m.c, K.idle, { fade: 0.1, speed: 2.6 });
+      play(m.c, K.chargeWind || K.idle, { fade: 0.1, speed: K.chargeWind ? 1 : 2.6 });
       m.chLine = danger({ kind: 'line', x: m.x, z: m.z, dx: Math.sin(m.chDir), dz: Math.cos(m.chDir), len: 10, life: 0.75 });
-      qVoice(m, 'atk');
+      if (K.q) qVoice(m, 'atk'); else { sfx('growl', 0.4, 0.8, 0.2, m.x); sfx('rattle', 0.35, 0.8, 0.05, m.x); }
     }
     function qCharge(m, dt) {
       const K = m.K, c = m.c;
@@ -41187,13 +41201,16 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       if (m.K.boss && (hero.dead || G.phase === 'dead')) return false;      // le mage est tombé : le boss ne peut plus mourir (pas de victoire posthume)
       const sx = src ? src.x : hero.x, sz = src ? src.z : hero.z;
       // le guerrier pare de face avec son bouclier (éclairs seulement)
-      if (m.K.shield && kind === 'bolt' && m.frozen <= 0 && m.stun <= 0 && m.st !== 'leap') {
+      if (m.K.shield && kind === 'bolt' && m.frozen <= 0 && m.stun <= 0 && m.st !== 'leap' && m.st !== 'taunt') {
         const a = Math.atan2(sx - m.x, sz - m.z);
         if (Math.abs(angDiff(m.face, a)) < 1.0) {
-          dmg = Math.max(1, Math.round(dmg * 0.2));
-          sparks(m.x + Math.sin(m.face) * 0.6, 1.1, m.z + Math.cos(m.face) * 0.6, 0xffe7a0, 6, 6);
-          sfx('clang', 0.3, frnd(0.9, 1.15), 0.08, m.x);
-          if (m.st === 'chase' || m.st === 'block') { m.st = 'block'; m.t = 0; play(m.c, 'Block_Hit', { once: true, fade: 0.05, restart: true }); }
+          // en garde (ou en pleine charge, bouclier devant) : presque rien passe ; sinon le Chevalier en prend la moitié (K.guard)
+          const guard = m.st === 'block' || m.st === 'charge' || !m.K.guard;
+          dmg = Math.max(1, Math.round(dmg * (guard ? 0.2 : m.K.guard)));
+          sparks(m.x + Math.sin(m.face) * 0.6, 1.1, m.z + Math.cos(m.face) * 0.6, 0xffe7a0, guard ? 6 : 3, 6);
+          sfx('clang', guard ? 0.3 : 0.18, frnd(0.9, 1.15), 0.08, m.x);
+          if (m.st === 'block') play(m.c, 'Block_Hit', { once: true, fade: 0.05, restart: true });
+          else if (m.st === 'chase' && m.blockCd <= 0 && FXR() < (m.K.blockHit == null ? 1 : m.K.blockHit)) { shieldUp(m); play(m.c, 'Block_Hit', { once: true, fade: 0.05, restart: true }); }
         }
       }
       if (m.frozen > 0) dmg = Math.round(dmg * 1.5);
@@ -41632,8 +41649,14 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         dust(m.x, m.z, 5, 1.0);
       });
     }
+    // lever le bouclier (guerrier, Chevalier des os) : une parade courte, jamais sans fin
+    function shieldUp(m) {
+      const K = m.K; m.st = 'block'; m.t = 0; m.vx = m.vz = 0;
+      m.blockDur = K.blockDur ? rnd(K.blockDur[0], K.blockDur[1]) : rnd(0.6, 0.9);
+      play(m.c, K.block, { fade: 0.1 });
+    }
     function monsterUpdate(m, dt) {
-      m.t += dt; m.voiceT -= dt; m.cd -= dt; m.leapCd = (m.leapCd || 0) - dt;
+      m.t += dt; m.voiceT -= dt; m.cd -= dt; m.leapCd = (m.leapCd || 0) - dt; m.blockCd = (m.blockCd || 0) - dt;
       const c = m.c, K = m.K;
       if (m.flash > 0) m.flash = Math.max(0, m.flash - dt * 6);
       const frozen = m.frozen > 0 && !m.dead, stun = m.stun > 0 && !m.dead && !frozen;
@@ -41657,7 +41680,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       c.root.rotation.y = m.face;
       const u = c.mats[0].userData;
       if (u.flash) {
-        u.flash.value = m.flash * (K.boss ? 0.16 : K.mini ? 0.45 : 1.4);
+        u.flash.value = m.flash * (K.boss ? 0.16 : K.mini ? 0.3 : 1.4);
         if (frozen) u.tint.value.set(0.55, 0.92, 1.5, 0.8);
         else if (m.burn > 0) u.tint.value.set(1.5, 0.7, 0.4, 0.45 + Math.sin(UNI.time.value * 20) * 0.1);
         else if (stun) u.tint.value.set(1.2, 1.1, 1.6, 0.4);
@@ -41677,9 +41700,13 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
           if (m.t > 0.4) { m.st = 'chase'; m.t = 0; }
           return;
         case 'cheer': return;
+        case 'taunt':
+          m.face = turnTo(m.face, Math.atan2(dx, dz), dt * 3);
+          if (m.t > 1.5) { m.st = 'chase'; m.t = 0; m.cd = rnd(0.3, 0.6); }
+          return;
         case 'block':
           m.face = turnTo(m.face, Math.atan2(dx, dz), dt * 4);
-          if (m.t > 0.5) { m.st = 'chase'; m.t = 0; }
+          if (m.t > (m.blockDur || 0.5)) { m.st = 'chase'; m.t = 0; m.blockCd = K.blockCd ? rnd(K.blockCd[0], K.blockCd[1]) : rnd(1.4, 2.4); }
           return;
         case 'windup': {
           if (!m.struck) m.face = turnTo(m.face, Math.atan2(dx, dz), dt * (m.kind === 'rogue' ? 8 : 4));
@@ -41690,10 +41717,14 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
             fx({ x: ax, y: 1.1, z: az, life: 0.18, s0: 1.6, s1: 2.2, c0: K.slash || 0xfff0e0, k: 1.6, cell: 'slash', rot: -m.face + (m.kind === 'rogue' ? 0.5 : 2.2), a0: 0.85, a1: 0 });
             sfx('swing', 0.3, frnd(0.9, 1.15), 0.05, m.x);
             const hd = Math.hypot(hero.x - ax, hero.z - az);
-            if (hero.remote) netEv({ e: 'st', x: r10(ax), z: r10(az), r: r10(m.atkR), mx: r10(m.x), mz: r10(m.z), f: r100(m.face), dm: K.dmg });
-            else if (hd < m.atkR + hero.r && Math.abs(angDiff(m.face, Math.atan2(dx, dz))) < 1.2) hurtHero(K.dmg, m.x, m.z);
+            if (hero.remote) netEv({ e: 'st', x: r10(ax), z: r10(az), r: r10(m.atkR), mx: r10(m.x), mz: r10(m.z), f: r100(m.face), dm: K.meleeDmg || K.dmg });
+            else if (hd < m.atkR + hero.r && Math.abs(angDiff(m.face, Math.atan2(dx, dz))) < 1.2) hurtHero(K.meleeDmg || K.dmg, m.x, m.z);
           }
-          if (m.t > m.strikeT + 0.45) { m.st = 'chase'; m.t = 0; m.cd = rnd(K.cool[0], K.cool[1]) / G.aggro; m.lunge = 0; }
+          if (m.t > m.strikeT + 0.45) {
+            m.st = 'chase'; m.t = 0; m.cd = rnd(K.cool[0], K.cool[1]) / G.aggro; m.lunge = 0;
+            if (K.combo && !m.comboed && FXR() < K.combo) { m.cd = 0.08; m.comboed = true; }
+            else { m.comboed = false; if (K.taunt && FXR() < K.taunt) { m.st = 'taunt'; m.t = 0; play(c, 'Taunt', { once: true, fade: 0.15 }); sfx('rattle', 0.4, 0.75, 0.05, m.x); } }
+          }
           return;
         }
         case 'leap': {
@@ -41818,7 +41849,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         m.face = turnTo(m.face, K.ranged && d < 12 ? Math.atan2(dx, dz) : Math.atan2(m.vx, m.vz), dt * 9);
       } else { play(c, K.idle, { fade: 0.25 }); m.animSp = 1; m.face = turnTo(m.face, Math.atan2(dx, dz), dt * 7); }
       // le guerrier lève son bouclier quand le mage lui tire dessus de face
-      if (K.shield && hero.castK > 0.5 && d < 10 && Math.abs(angDiff(m.face, Math.atan2(dx, dz))) < 0.6 && FXR() < dt * 2) { m.st = 'block'; m.t = 0; play(c, K.block, { fade: 0.1 }); }
+      if (K.shield && m.blockCd <= 0 && hero.castK > 0.5 && d < 10 && Math.abs(angDiff(m.face, Math.atan2(dx, dz))) < 0.6 && FXR() < dt * (K.blockRate || 2)) shieldUp(m);
     }
     function monstersUpdate(dt) {
       for (let i = 0; i < MON.length; i++) {
@@ -42832,8 +42863,13 @@ void main(){
     // saut de feu, charge) ; Glace : le Yéti géant (charge, saut qui gèle le sol).
     // ===========================================================================
     const MINI = { m: null };
-    KIND.knight = Object.assign({}, KIND.warrior, { name: 'Le Chevalier des os', mini: true, scale: 1.6, hp: 560, r: 0.95, reach: 2.7, pts: 3000, dmg: 2, sp: 2.5,
-      run: 'Running_C', runSp: 4.0, cool: [0.9, 1.4], lunge: 5, heavy: true, adds: ['minion', 'archer', 'minion'] });
+    // le Chevalier ne reste plus planté derrière son bouclier : il pare de temps en temps (≈ 1 s, puis 3 à 5 s sans parer, et de
+    // face il ne prend alors que la moitié des éclairs), fonce bouclier en avant (trait rouge annoncé ; dans un mur il est sonné),
+    // bondit, enchaîne deux coups de près, puis souvent nargue le mage (bouclier baissé : c'est le moment de le frapper)
+    KIND.knight = Object.assign({}, KIND.warrior, { name: 'Le Chevalier des os', mini: true, scale: 1.6, hp: 700, r: 0.95, reach: 2.7, pts: 3000, dmg: 2, meleeDmg: 1, sp: 2.7,
+      run: 'Running_C', runSp: 4.4, cool: [1.1, 1.6], lunge: 4.5, heavy: true, adds: ['minion', 'archer', 'minion'],
+      atk: ['1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Diagonal', '1H_Melee_Attack_Stab'], combo: 0.35, taunt: 0.4,
+      hit: ['Hit_A'], charge: true, chargeWind: 'Blocking', blockDur: [0.8, 1.2], blockCd: [3.2, 4.8], blockRate: 1.1, blockHit: 0.3, guard: 0.45 });
     if (KIND.demon) KIND.lord = Object.assign({}, KIND.demon, { name: 'Le Seigneur des braises', mini: true, scale: 1.5, hp: 620, r: 1.0, reach: 3.0, pts: 3000, dmg: 2,
       charge: true, cool: [1.0, 1.5], alt: 'knight', adds: ['imp', 'minion', 'drake'] });
     if (KIND.yeti) KIND.yetiKing = Object.assign({}, KIND.yeti, { name: 'Le Yéti géant', mini: true, scale: 1.5, hp: 680, r: 1.15, reach: 3.0, pts: 3000, dmg: 2,
@@ -43200,7 +43236,7 @@ void main(){ if (vK >= 0.999) discard;
       const total = Math.round((2000 + timeB + noHit + comboB) * G.ptsMul);
       const stars = 1 + (G.worldHurt <= 3 ? 1 : 0) + (secs < 300 || G.comboBest >= 12 ? 1 : 0);
       winRes = { total, applied: false };
-      H.winT.textContent = 'VICTOIRE !'; H.winS.textContent = W.name + (G.tour ? ' · Tour ' + roman(G.tour) : '') + ' — ' + W.boss.name + ' est vaincu !';
+      H.winT.textContent = 'VICTOIRE !'; H.winS.innerHTML = '<span></span><span></span>'; H.winS.firstChild.textContent = W.name + (G.tour ? ' · Tour ' + roman(G.tour) : ''); H.winS.lastChild.textContent = W.boss.name + ' est vaincu !';
       const rows = [['Monstres vaincus', G.worldKills], ['Coffres ouverts', G.chests], ['Plus long combo', '×' + G.comboBest], ['Temps', Math.floor(secs / 60) + ' min ' + String(secs % 60).padStart(2, '0')],
         [G.worldHurt === 0 ? 'Sans une égratignure !' : 'Coups reçus', G.worldHurt === 0 ? '+' + fmt(noHit) : G.worldHurt], ['Bonus du monde', '+' + fmt(total)]];
       H.winRows.textContent = '';
@@ -43208,9 +43244,22 @@ void main(){ if (vK >= 0.999) discard;
       H.winStars.forEach((s, i) => { s.classList.remove('on', 'dim'); setTimeout(() => { s.classList.add(i < stars ? 'on' : 'dim'); if (i < stars) sfx('star', 0.45, 1 + i * 0.12); }, 500 + i * 300); });
       H.winNext.textContent = TOUCH ? 'Touche l’écran pour continuer' : 'Clic ou Entrée pour continuer';
       setTimeout(() => H.winNext.classList.add('on'), 700 + rows.length * 260 + 400);
-      H.win.classList.add('on');
+      H.win.classList.add('on'); winFit();
       // feux d'artifice dorés autour du mage
       for (let i = 0; i < 6; i++) after(0.4 + i * 0.35, () => { const a = FXR() * TAU, px = hero.x + Math.cos(a) * 3, pz = hero.z + Math.sin(a) * 3; burst(px, frnd(3, 5), pz, fpick([0xffd36a, 0x9fe8ff, 0xff8ad8]), 18, 7, 0.9, 0.3, 'star4', 2.6); sfx('pop', 0.3, frnd(0.9, 1.2), 0.05); });
+    }
+    // la carte tient TOUJOURS dans l'écran : deux colonnes sur un téléphone en paysage, puis réduite à la hauteur dispo
+    // (barre du navigateur comprise) ; défilement seulement en tout dernier recours
+    function winFit() {
+      const c = H.win.firstChild; if (!c || !H.win.classList.contains('on')) return;
+      c.classList.toggle('wide', VW > VH * 1.15 && VH < 620);
+      const m = Math.max(8, Math.min(22, VH * 0.035)), h = c.offsetHeight, w = c.offsetWidth;
+      let k = Math.min(1, (VH - 2 * m) / h, (VW - 2 * m) / w);
+      const scroll = k < 0.62; if (scroll) k = 0.62;
+      H.win.classList.toggle('scroll', scroll);
+      c.style.setProperty('--fit', k.toFixed(3));
+      c.style.margin = scroll ? m + 'px auto ' + (m + h * (k - 1)) + 'px' : '';
+      c.style.transformOrigin = scroll ? '50% 0' : '';
     }
     function winSkip() {
       if (G.phase !== 'win' || !H.winNext.classList.contains('on')) return;
@@ -44339,7 +44388,7 @@ void main(){ if (vK >= 0.999) discard;
     function resize() {
       if (destroyed) return;
       VW = Math.max(1, root.clientWidth || el.clientWidth || 390); VH = Math.max(1, root.clientHeight || el.clientHeight || 700);
-      layoutButtons(); orientCheck();
+      layoutButtons(); orientCheck(); winFit();
       if (!renderer) return;
       let dpr = Math.min(window.devicePixelRatio || 1, Q.maxDpr) * DYN;
       const maxPix = Q.mobile ? 1.6e6 : 3.2e6;
@@ -80808,7 +80857,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261016093019"; window.JDW_VERSION = "1.17"; window.JDW_NOTES = ["\ud83e\udd4a MANDALE KOMBAT est sorti pour tous ! Un vrai jeu de combat 3D dans la page Duel : choisis ton combattant, mets ta t\u00eate dedans et colle une mandale \u00e0 l'ordi !"];</script>
+<script>window.JDW_BUILD = "20261016184021"; window.JDW_VERSION = "1.17.1"; window.JDW_NOTES = ["\ud83e\uddd9 Magic Force : l'\u00e9cran de victoire tient en entier sur t\u00e9l\u00e9phone, et le Chevalier des os ne se cache plus derri\u00e8re son bouclier : il charge !"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
