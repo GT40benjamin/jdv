@@ -6545,7 +6545,7 @@ void main(){ if (vK >= 0.999) discard;
     // ------------------------------------------------------------- sonde de vitesse : une fenêtre de 60 s de jeu mesurée UNE fois par appareil
     // (et à chaque partie avec ?perf=1), puis UN petit résumé purement technique (temps d'image, niveau, pixels, carte graphique)
     // envoyé par le canal d'erreurs de la borne (message « perf magic: »). Aucune donnée personnelle dans le résumé.
-    const MF_BUILD = '2026-10-15a';
+    const MF_BUILD = '2026-10-16c';   // (1.18.3) relance la sonde de vitesse sur chaque appareil
     const PROBE = { on: false, ft: [], t: 0, sent: false, tier0: -1 };
     try { PROBE.on = /[?&]perf=1/.test(location.search) || localStorage.getItem('jdw.magic.sonde') !== MF_BUILD; } catch (e) { PROBE.on = false; }
     function probeFrame(ms) {
