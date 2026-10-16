@@ -12,7 +12,7 @@
   // Fichier ASSEMBLÉ depuis l'atelier ~/jdv-tools/pegase/borne (src/*.js + wrap/, `node tools/assemble.js`) : modifier l'atelier.
   // ===========================================================================
 
-  const PG_BUILD = '2026-10-16a';   // version du jeu : clés de réglage et sonde de vitesse en dépendent
+  const PG_BUILD = '2026-10-17a';   // version du jeu : clés de réglage et sonde en dépendent (17 oct. : chemin « direct » sur téléphone)
   const TAU = Math.PI * 2;
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const ROOT = () => (typeof window !== 'undefined' && window.JDW_ROOT) || '';
@@ -136,7 +136,7 @@
   // CHARGEMENT : moteur (three.js gzippé, MIT) + paquets emballés. Gardés en mémoire d'une partie à l'autre (Rejouer ne retélécharge
   // rien) ; le service worker de la borne les garde aussi sur l'appareil (le point dans le nom : seulement après la 1re partie).
   // ---------------------------------------------------------------------------
-  const STORE = { three: null, packs: {}, files: new Map(), keys: {} };
+  const STORE = { three: null, packs: {}, files: new Map(), keys: {}, busyN: 0, busyUntil: 0 };
   const PACK_GUESS = { monde: 5370000, vie: 1120000, perso: 880000, garde: 1740000, pres: 5680000 };
   async function fetchBytes(url, onProg, guess) {
     const r = await fetch(url);
@@ -191,14 +191,17 @@
     if (STORE.packs[name]) return STORE.packs[name];
     const p = (async () => {
       const buf = await fetchBytes(ROOT() + 'assets/pegase.' + name + '.bin', (k) => { for (const f of PROG.get(name) || []) { try { f(k); } catch (e) { /* rien */ } } }, PACK_GUESS[name]);
-      const key = await packKey(buf.slice(0, 16));
-      const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
-      const hl = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0, true);
-      const head = JSON.parse(new TextDecoder().decode(plain.subarray(4, 4 + hl))), base = 4 + hl;
-      for (const k of Object.keys(head.e)) {
-        const e = head.e[k], raw = plain.subarray(base + e.o, base + e.o + e.l);
-        STORE.files.set(k, e.z ? await gunzip(raw) : raw.slice());
-      }
+      STORE.busyN++;   // déballage : le jeu ne juge pas sa vitesse pendant ce temps (à-coups qui ne disent rien de l'appareil)
+      try {
+        const key = await packKey(buf.slice(0, 16));
+        const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
+        const hl = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0, true);
+        const head = JSON.parse(new TextDecoder().decode(plain.subarray(4, 4 + hl))), base = 4 + hl;
+        for (const k of Object.keys(head.e)) {
+          const e = head.e[k], raw = plain.subarray(base + e.o, base + e.o + e.l);
+          STORE.files.set(k, e.z ? await gunzip(raw) : raw.slice());
+        }
+      } finally { STORE.busyN--; STORE.busyUntil = performance.now() + 1500; }
       PROG.delete(name);
       return true;
     })();
@@ -255,21 +258,29 @@
     var P = import_pg_env.env.params;
     var PHONE = import_pg_env.env.mobile;
     var $ = (id) => import_pg_env.env.el(id);
-    var TIERS = [
+    var DIRECT = P.get("pgpath") ? P.get("pgpath") === "direct" : PHONE;
+    var PC_TIERS = [
       { name: "léger", dpr: 0.6, shadow: 1024, grass: 0, grassR: 0, low: true, msaa: 0, bloom: false, rays: false, lod: 0.5, cull: 0.45, hlod: 70, near: 10, tcull: 230, far: 16, mist: 0, part: 0.15, birds: 4, bfly: 6, leaves: 40 },
       { name: "économe", dpr: 1, shadow: 2048, grass: 0.35, grassR: 28, low: true, msaa: 0, bloom: true, rays: false, lod: 0.6, cull: 0.6, hlod: 95, near: 5, tcull: 330, far: 16, mist: 0, part: 0.35, birds: 6, bfly: 10, leaves: 80 },
       { name: "beau", dpr: 1.5, shadow: 2048, grass: 0.6, grassR: 42, low: false, msaa: 0, bloom: true, rays: true, lod: 0.8, cull: 0.8, hlod: 130, near: 2.5, tcull: 520, far: 8, mist: 2, part: 0.6, birds: 10, bfly: 16, leaves: 160 },
       { name: "très beau", dpr: 2, shadow: 4096, grass: 1, grassR: 80, low: false, msaa: 4, bloom: true, rays: true, lod: 1.35, cull: 2, hlod: 220, near: 2.5, tcull: 900, far: 8, mist: 4, part: 1, birds: 16, bfly: 28, leaves: 320 }
     ];
-    var Q = Object.assign({ tier: 2, maxTier: 3, gpu: "", mobile: PHONE, strong: false, forced: false }, TIERS[2]);
-    var renderer = new THREE.WebGLRenderer({ canvas: import_pg_env.env.canvas, antialias: false, alpha: false, stencil: false, powerPreference: "high-performance" });
+    var PHONE_TIERS = [
+      { name: "tél. sobre", dpr: 1.75, shadow: 1024, grass: 0, grassR: 0, low: true, terLow: true, msaa: 0, bloom: false, rays: false, lod: 0.42, cull: 0.42, hlod: 60, near: 10, tcull: 190, far: 16, mist: 0, part: 0.15, birds: 4, bfly: 6, leaves: 24 },
+      { name: "tél. doux", dpr: 2, shadow: 2048, grass: 0.24, grassR: 20, low: false, terLow: false, msaa: 0, bloom: false, rays: false, lod: 0.52, cull: 0.55, hlod: 80, near: 5, tcull: 270, far: 16, mist: 0, part: 0.3, birds: 6, bfly: 10, leaves: 60 },
+      { name: "tél. beau", dpr: 2.25, shadow: 2048, grass: 0.42, grassR: 28, low: false, terLow: false, msaa: 0, bloom: false, rays: false, lod: 0.64, cull: 0.68, hlod: 105, near: 5, tcull: 360, far: 8, mist: 1, part: 0.45, birds: 8, bfly: 14, leaves: 100 }
+    ];
+    var TIERS = DIRECT ? PHONE_TIERS : PC_TIERS;
+    var Q = Object.assign({ tier: DIRECT ? 1 : 2, maxTier: TIERS.length - 1, gpu: "", mobile: PHONE, strong: false, forced: false, direct: DIRECT }, TIERS[DIRECT ? 1 : 2]);
+    var renderer = new THREE.WebGLRenderer({ canvas: import_pg_env.env.canvas, antialias: DIRECT, alpha: false, stencil: false, powerPreference: "high-performance" });
     {
       const z = import_pg_env.env.size();
       renderer.setPixelRatio(1);
       renderer.setSize(z.w, z.h, false);
     }
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    var SHT = { pcf: THREE.PCFShadowMap, basic: THREE.BasicShadowMap, vsm: THREE.VSMShadowMap };
+    renderer.shadowMap.type = DIRECT ? SHT[P.get("pgshadow")] || THREE.VSMShadowMap : THREE.PCFShadowMap;
     renderer.shadowMap.autoUpdate = false;
     renderer.info.autoReset = false;
     renderer.setClearColor(724244, 1);
@@ -295,7 +306,11 @@
       uCloudSh: { value: new THREE.Color() },
       uMoonDir: { value: new THREE.Vector3(0, 1, 0) },
       uMist: { value: 0 },
-      tNoise: { value: null }
+      tNoise: { value: null },
+      // étalonnage dans les matériaux (chemin direct) : saturation, teinte des ombres / des lumières
+      uGSat: { value: 1.1 },
+      uGWarm: { value: new THREE.Vector3(1.05, 1, 0.92) },
+      uGCool: { value: new THREE.Vector3(0.96, 0.98, 1.04) }
     };
     function makeNoise() {
       const N = 256, d = new Uint8Array(N * N * 4);
@@ -350,6 +365,8 @@
       `
     uniform vec3 uSunDir; uniform vec3 uSunCol; uniform vec3 uZen; uniform vec3 uHor; uniform vec3 uHor2; uniform vec3 uGround;
     uniform float uFogDen; uniform float uFogH; uniform float uTime; uniform float uNight; uniform float uDawn; uniform float uWind; uniform vec3 uGlow; uniform sampler2D tNoise; uniform sampler2D tNoiseN;
+    uniform float uGSat; uniform vec3 uGWarm; uniform vec3 uGCool;
+    vec3 pgGrade(vec3 c){ float l = dot(c, vec3(.299, .587, .114)); c = mix(vec3(l), c, uGSat); return c * mix(uGCool, uGWarm, smoothstep(0.2, 0.8, l)); }
     float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
     float fbmT(vec2 p){ return texture2D(tNoise, p * 0.125).r; }
     float fbmT2(vec2 p){ return texture2D(tNoise, p * 0.125).g; }
@@ -373,6 +390,23 @@
       return mix(col, fc, f);
     }`
     );
+    var GRADE_FN = "uniform float uGSat; uniform vec3 uGWarm; uniform vec3 uGCool; vec3 pgGrade(vec3 c){ float l = dot(c, vec3(.299, .587, .114)); c = mix(vec3(l), c, uGSat); return c * mix(uGCool, uGWarm, smoothstep(0.2, 0.8, l)); }";
+    var GRADE_APPLY = `
+    #if defined( TONE_MAPPING )
+     gl_FragColor.rgb = pgGrade(gl_FragColor.rgb);
+    #endif
+    `;
+    function finish(sh, fog = "gl_FragColor.rgb = applyFog(gl_FragColor.rgb, vWPos);", grade = true) {
+      sh.fragmentShader = sh.fragmentShader.replace("#include <fog_fragment>", "").replace("#include <tonemapping_fragment>", fog + `
+    #include <tonemapping_fragment>` + (grade ? GRADE_APPLY : ""));
+    }
+    var FINISH = `
+    #include <tonemapping_fragment>` + GRADE_APPLY + `#include <colorspace_fragment>
+    `;
+    var FINISH_RAW = `
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+    `;
     function hAt(x, z) {
       const H = W.h;
       if (!H) return 0;
@@ -642,7 +676,8 @@
             { float fl = vLay.w; float lum = dot(gTex, vec3(.3,.5,.2));
               float e = fl > 0.9 ? 1.0 : (fl > 0.4 ? smoothstep(0.35, 0.8, lum) : 0.0);
               totalEmissiveRadiance += uNight * e * (0.4 + 0.8 * lum) * vec3(1.0, 0.48, 0.17) * 0.9 * (0.88 + 0.12 * sin(uTime * 3. + vWPos.x));   // lumière chaude tamisée (les carreaux restent visibles)
-              if (fl > 0.9) diffuseColor.rgb *= mix(0.3, 0.12, uNight); }`).replace("#include <fog_fragment>", "gl_FragColor.rgb = applyFog(gl_FragColor.rgb, vWPos);");
+              if (fl > 0.9) diffuseColor.rgb *= mix(0.3, 0.12, uNight); }`);
+        finish(sh);
         patchLights(sh, 0.35);
       };
       MATS.push(m);
@@ -650,7 +685,7 @@
     }
     function foliageMaterial(texF, { grass = false } = {}) {
       const m = new THREE.MeshLambertMaterial({ color: 16777215, side: THREE.DoubleSide, alphaTest: 0.5 });
-      if (Q.msaa) m.alphaToCoverage = true;
+      if (Q.msaa || DIRECT) m.alphaToCoverage = true;
       lowDefine(m);
       m.onBeforeCompile = (sh) => {
         Object.assign(sh.uniforms, U, { tF: { value: texF }, uFade: { value: new THREE.Vector2(9999, 9999) } });
@@ -674,7 +709,8 @@
               float tr = pow(max(dot(-V, uSunDir), 0.), 4.0) * (0.35 + 0.65 * ao);
               reflectedLight.directDiffuse += diffuseColor.rgb * uSunCol * tr * ${grass ? "0.5" : "0.9"} * (1. - uNight * 0.8);
               ${grass ? "reflectedLight.indirectDiffuse *= mix(0.55, 1.0, vLay.w); reflectedLight.directDiffuse *= mix(0.7, 1.0, vLay.w);" : "if (vMode < 0.3 || vMode > 0.7) reflectedLight.indirectDiffuse *= mix(0.65, 1.1, vLay.w);"} }
-            #endif`).replace("#include <fog_fragment>", "gl_FragColor.rgb = applyFog(gl_FragColor.rgb, vWPos);");
+            #endif`);
+        finish(sh);
         patchLights(sh, grass ? 0.8 : 0.6);
       };
       MATS.push(m);
@@ -689,12 +725,17 @@
       };
       return m;
     }
+    function lowFor(m, low) {
+      const k = m.userData && m.userData.low;
+      return k === "ter" ? Q.terLow != null ? Q.terLow : low : k === "eau" ? DIRECT || low : low;
+    }
     function setLow(low) {
       for (const m of MATS) {
         m.defines = m.defines || {};
-        if (low) m.defines.LOW = 1;
+        const want = lowFor(m, low), had = !!m.defines.LOW;
+        if (want) m.defines.LOW = 1;
         else delete m.defines.LOW;
-        m.needsUpdate = true;
+        if (want !== had) m.needsUpdate = true;
       }
     }
 
@@ -886,7 +927,8 @@
           sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON + "\nuniform sampler2D tL0, tL2; varying vec3 vWPos; varying vec3 vWN;").replace("#include <map_fragment>", `{ vec3 n = normalize(vWN);
               vec3 c2 = texture2D(tL2, vWPos.xz / 90.).rgb;
               vec3 c0 = texture2D(tL0, vWPos.xz / 30.).rgb * mix(0.85, 1.15, fbmT(vWPos.xz * 0.004));
-              diffuseColor.rgb *= mix(c0, c2 * vec3(0.95, 0.93, 0.9), smoothstep(0.25, 0.5, 1.0 - n.y)); }`).replace("#include <fog_fragment>", "gl_FragColor.rgb = applyFog(gl_FragColor.rgb, vWPos);");
+              diffuseColor.rgb *= mix(c0, c2 * vec3(0.95, 0.93, 0.9), smoothstep(0.25, 0.5, 1.0 - n.y)); }`);
+          finish(sh);
           patchLights(sh, 0.3);
         };
       }
@@ -974,7 +1016,8 @@
       }
       const mat = new THREE.MeshLambertMaterial({ color: 16777215 });
       MATS.push(mat);
-      mat.defines = Q.low ? { LOW: 1 } : {};
+      mat.userData.low = "ter";
+      mat.defines = lowFor(mat, Q.low) ? { LOW: 1 } : {};
       const near = S.near;
       mat.onBeforeCompile = (sh) => {
         Object.assign(sh.uniforms, U, {
@@ -1007,7 +1050,12 @@
             float mv = fbmT(wuv * 0.012), mv2 = fbmT2(wuv * 0.05);
             #ifdef LOW
               vec3 c0 = texture2D(tL0, wuv / uTile.x).rgb; vec3 c1 = texture2D(tL1, wuv / uTile.y).rgb; vec3 c2 = texture2D(tL2, wuv / uTile.z).rgb;
-              if (inN > 0.5) { diffuseColor.rgb *= texture2D(tBase, nuv).rgb; gAO = texture2D(tAO, nuv).r; gN = n; }
+              if (inN > 0.5) {
+                // carte de couleur pré-calculée + le grain des vraies textures près de la caméra (sinon le sol est flou à 2 px/point)
+                vec3 bc = texture2D(tBase, nuv).rgb; vec3 dc = c0 * sp.r + c1 * sp.g + c2 * sp.b;
+                float k = 1.0 - smoothstep(18., 70., distance(vWPos, cameraPosition));
+                float r = clamp(dot(dc, vec3(.3, .59, .11)) / max(dot(bc, vec3(.3, .59, .11)), 0.04), 0.65, 1.45);
+                diffuseColor.rgb *= bc * mix(1.0, r, k * 0.85); gAO = texture2D(tAO, nuv).r; gN = n; }
               else {
             #else
               vec3 c0 = mix(texture2D(tL0, wuv / uTile.x).rgb, texture2D(tL0, wuv / (uTile.x * 3.7) + 0.31).rgb, 0.45);
@@ -1042,7 +1090,8 @@
             #endif
           }`).replace("#include <normal_fragment_begin>", `#include <normal_fragment_begin>
      normal = normalize((viewMatrix * vec4(gN, 0.)).xyz);`).replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
-            reflectedLight.indirectDiffuse *= mix(0.45, 1.0, gAO); reflectedLight.directDiffuse *= mix(0.6, 1.0, gAO);`).replace("#include <fog_fragment>", "gl_FragColor.rgb = applyFog(gl_FragColor.rgb, vWPos);");
+            reflectedLight.indirectDiffuse *= mix(0.45, 1.0, gAO); reflectedLight.directDiffuse *= mix(0.6, 1.0, gAO);`);
+        finish(sh);
         patchLights(sh, 0.2);
       };
       W.terrainMat = mat;
@@ -1170,13 +1219,13 @@
       if (!force && W.grassAt && W.grassAt.distanceTo(ref) < 4) return;
       W.grassAt = ref.clone();
       const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), ax = new THREE.Vector3(0, 1, 0);
-      for (const G of W.grass) {
+      for (const G2 of W.grass) {
         let k = 0;
-        const D = G.D, cs = G.cs;
+        const D = G2.D, cs = G2.cs;
         if (R2 > 0) {
           const x0 = Math.floor((ref.x - R2) / cs), x1 = Math.floor((ref.x + R2) / cs), z0 = Math.floor((ref.z - R2) / cs), z1 = Math.floor((ref.z + R2) / cs);
-          for (let gx = x0; gx <= x1 && k < G.max; gx++) for (let gz = z0; gz <= z1 && k < G.max; gz++) {
-            const a = G.grid.get(gx + "," + gz);
+          for (let gx = x0; gx <= x1 && k < G2.max; gx++) for (let gz = z0; gz <= z1 && k < G2.max; gz++) {
+            const a = G2.grid.get(gx + "," + gz);
             if (!a) continue;
             for (const i of a) {
               const dx = D[i * 5] - ref.x, dz = D[i * 5 + 2] - ref.z;
@@ -1186,13 +1235,13 @@
               const sc = D[i * 5 + 4];
               s.set(sc, sc, sc);
               m4.compose(p, q, s);
-              G.im.setMatrixAt(k++, m4);
-              if (k >= G.max) break;
+              G2.im.setMatrixAt(k++, m4);
+              if (k >= G2.max) break;
             }
           }
         }
-        G.im.count = k;
-        G.im.instanceMatrix.needsUpdate = true;
+        G2.im.count = k;
+        G2.im.instanceMatrix.needsUpdate = true;
       }
       const sh = W.matG.userData.sh;
       if (sh) sh.uniforms.uFade.value.set(R2 * 0.7, R2);
@@ -1202,7 +1251,7 @@
       const mat = new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
-        defines: Q.low ? { LOW: 1 } : {},
+        defines: Q.low || DIRECT ? { LOW: 1 } : {},
         uniforms: Object.assign({}, U, {
           tH: { value: ht },
           uHR: { value: new THREE.Vector4(H.x0, H.z0, H.x0 + (H.w - 1), H.z0 + (H.h - 1)) },
@@ -1254,11 +1303,9 @@
             float sd = max(dot(R, uSunDir), 0.);
             float sp = pow(sd, 350.) * 14.0 + pow(sd, 40.) * 0.5;
             // paillettes : petits éclats qui scintillent sur le chemin du soleil (ou de la lune)
-            #ifndef LOW
-            vec2 sc = floor(vWPos.xz * 3.0);
-            float tw = hash12(sc + floor(t * 6.0 + hash12(sc) * 6.0));
-            sp += smoothstep(0.985, 1.0, tw) * pow(sd, 12.0) * 22.0 * (1.0 - smoothstep(60., 260., length(vWPos - cameraPosition)) * 0.6);
-            #endif
+            { vec2 sc = floor(vWPos.xz * 3.0);   // (aussi en « léger » : ça ne coûte presque rien)
+              float tw = hash12(sc + floor(t * 6.0 + hash12(sc) * 6.0));
+              sp += smoothstep(0.985, 1.0, tw) * pow(sd, 12.0) * 22.0 * (1.0 - smoothstep(60., 260., length(vWPos - cameraPosition)) * 0.6); }
             vec3 col = mix(body, refl, fres * 0.85) + uSunCol * sp * (1. - uNight * 0.55);
             float fn = texture2D(tNoise, uxz * 0.11 + vec2(t * 0.03, -t * 0.02)).b;
             float foam = (1.0 - smoothstep(0.0, 0.55, depth)) * smoothstep(0.35, 0.75, fn + 0.25 * sin(depth * 9. - t * 1.6));
@@ -1266,10 +1313,11 @@
             col = mix(col, (uSunCol * 0.6 + uZen) * 0.9, foam * 0.75);
             float a = uRiver > 0.5 ? 0.88 : clamp(smoothstep(0.0, 1.4, depth) * 0.82 + fres * 0.25 + foam * 0.6, 0., 0.97);
             col = applyFog(col, vWPos);
-            gl_FragColor = vec4(col, a);
+            gl_FragColor = vec4(col, a);${FINISH}
           }`
         )
       });
+      mat.userData.low = "eau";
       MATS.push(mat);
       if (V.water.lake) {
         const lake = new THREE.Mesh(new THREE.PlaneGeometry(10, 10, 1, 1).rotateX(-Math.PI / 2), mat);
@@ -1288,6 +1336,7 @@
         g.computeBoundingSphere();
         const rm = mat.clone();
         rm.uniforms = Object.assign({}, mat.uniforms, { uRiver: { value: 1 } });
+        rm.userData.low = "eau";
         MATS.push(rm);
         const river = new THREE.Mesh(g, rm);
         river.renderOrder = 2;
@@ -1332,7 +1381,7 @@
               float tw = 0.7 + 0.3 * sin(uTime * 3.0 + st * 100.0);
               c += uNight * smoothstep(0.9965, 1.0, st) * (1.0 - cl) * vec3(0.9, 0.95, 1.2) * 1.4 * tw * smoothstep(0.05, 0.3, d.y); }
             }
-            gl_FragColor = vec4(c, 1.0);
+            gl_FragColor = vec4(c, 1.0);${FINISH}
           }`
         )
       });
@@ -1355,6 +1404,7 @@
     var post;
     var GRADE = { sat: 1.12, warm: new THREE.Vector3(1.05, 1, 0.92), cool: new THREE.Vector3(0.96, 0.98, 1.04), vign: 0.45, exp: 1.1, bloom: 0.45, th: 1.1, rays: 0 };
     function buildPost() {
+      if (DIRECT) return;
       const z = import_pg_env3.env.size(), pr = renderer.getPixelRatio(), w = Math.max(1, Math.round(z.w * pr)), h = Math.max(1, Math.round(z.h * pr));
       if (rt) {
         rt.dispose();
@@ -1473,8 +1523,11 @@
       }
     }
     function render() {
-      if (!Q.bloom) {
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      if (DIRECT || !Q.bloom) {
+        U.uGSat.value = GRADE.sat;
+        U.uGWarm.value.copy(GRADE.warm);
+        U.uGCool.value.copy(GRADE.cool);
+        if (renderer.toneMapping !== THREE.ACESFilmicToneMapping) renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = GRADE.exp;
         renderer.setRenderTarget(null);
         renderer.render(scene, camera);
@@ -1482,7 +1535,7 @@
         PERF.tris = renderer.info.render.triangles;
         return;
       }
-      renderer.toneMapping = THREE.NoToneMapping;
+      if (renderer.toneMapping !== THREE.NoToneMapping) renderer.toneMapping = THREE.NoToneMapping;
       renderer.setRenderTarget(rt);
       renderer.render(scene, camera);
       PERF.calls = renderer.info.render.calls;
@@ -1605,7 +1658,7 @@
             gl_PointSize = min(10., (mix(0.9, 1.9, seed.w) + uNight * 1.2) * 16. * uPx / -mv.z);
           }`,
         fragmentShader: `varying float vA; varying float vN; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d) * 2.; float a = exp(-r * r * 4.5) * vA;
-          vec3 c = mix(vec3(1.0, 0.8, 0.45), vec3(0.55, 1.0, 0.7), vN); gl_FragColor = vec4(c * a * 1.7, 1.0); }`
+          vec3 c = mix(vec3(1.0, 0.8, 0.45), vec3(0.55, 1.0, 0.7), vN); gl_FragColor = vec4(c * a * 1.7, 1.0);${FINISH_RAW} }`
       });
       FX.motes = add(new THREE.Points(g, m), 6);
       FX.motesN = N;
@@ -1664,7 +1717,7 @@
             if (leaf < 0.5) discard;
             float vein = 1.0 - 0.25 * smoothstep(0.06, 0.0, abs(q.y)) ;
             vec3 c = vCol * vein * (uSunCol * vLit * 0.9 + uZen * 0.55 + vec3(0.06));
-            gl_FragColor = vec4(applyFog(c, vWPos), 1.0);
+            gl_FragColor = vec4(applyFog(c, vWPos), 1.0);${FINISH}
           }`
       });
       FX.leaves = add(new THREE.Mesh(geo, m), 4);
@@ -1737,7 +1790,7 @@
         fragmentShader: `${COMMON}
           uniform sampler2D tB; varying vec2 vUv; varying vec3 vWPos; varying float vLit;
           void main(){ vec4 c = texture2D(tB, vUv); if (c.a < 0.4) discard; vec3 col = pow(c.rgb, vec3(2.2)) * (uSunCol * 1.05 * vLit + uZen * 0.9) * 1.2;   // ailes lumineuses (lumière qui traverse)
-            gl_FragColor = vec4(applyFog(col, vWPos), 1.); }`
+            gl_FragColor = vec4(applyFog(col, vWPos), 1.);${FINISH} }`
       });
       FX.bfly = add(new THREE.Mesh(geo, m), 4);
       FX.bAnc = anc;
@@ -1839,7 +1892,7 @@
           varying float vW; varying vec3 vWPos; varying float vLit;
           void main(){ vec3 c = vW > 1.5 ? vec3(0.12, 0.12, 0.14) : vec3(0.92, 0.93, 0.95);
             c = pow(c, vec3(2.2)) * (uSunCol * 0.8 * vLit + uZen * 0.7);
-            gl_FragColor = vec4(applyFog(c, vWPos), 1.); }`
+            gl_FragColor = vec4(applyFog(c, vWPos), 1.);${FINISH} }`
       });
       FX.birds = add(new THREE.Mesh(geo, m), 3);
     }
@@ -1853,7 +1906,7 @@
         blending: THREE.AdditiveBlending,
         uniforms: { uTime: U.uTime, uNight: U.uNight, uPx: { value: PX() } },
         vertexShader: `uniform float uPx; uniform float uTime; uniform float uNight; varying float vA; void main(){ vec4 mv = modelViewMatrix * vec4(position + vec3(0., 0.15, 0.), 1.); gl_Position = projectionMatrix * mv; float f = 0.85 + 0.15 * sin(uTime * 4. + position.x * 3.); vA = f * uNight; gl_PointSize = min(110., 900. * uPx / -mv.z) * f; }`,
-        fragmentShader: `varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d) * 2.; float a = exp(-r * r * 6.) * 0.45 + exp(-r * r * 40.) * 0.7; gl_FragColor = vec4(vec3(1.0, 0.6, 0.25) * a * vA, 1.0); }`
+        fragmentShader: `varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d) * 2.; float a = exp(-r * r * 6.) * 0.45 + exp(-r * r * 40.) * 0.7; gl_FragColor = vec4(vec3(1.0, 0.6, 0.25) * a * vA, 1.0);${FINISH_RAW} }`
       });
       FX.halo = add(new THREE.Points(g, m), 5);
       const N = 700, fp = new Float32Array(N * 3);
@@ -1873,7 +1926,7 @@
         vertexShader: `uniform float uPx; uniform float uTime; uniform float uNight; uniform float uCount; varying float vA; void main(){ if (float(gl_VertexID) >= uCount) { gl_Position = vec4(2.,2.,2.,1.); return; } vec3 p = position; float k = position.x * 1.7 + position.z;
           p += vec3(sin(uTime * .5 + k) * 1.5, sin(uTime * .7 + k * 1.3) * .6, cos(uTime * .4 + k) * 1.5);
           vec4 mv = modelViewMatrix * vec4(p, 1.); gl_Position = projectionMatrix * mv; vA = pow(max(sin(uTime * 1.3 + k * 5.), 0.), 3.) * uNight; gl_PointSize = min(50., 260. * uPx / -mv.z); }`,
-        fragmentShader: `varying float vA; void main(){ float r = length(gl_PointCoord - .5) * 2.; float a = exp(-r * r * 6.) * vA; gl_FragColor = vec4(vec3(0.75, 1.0, 0.45) * a * 2.5, 1.0); }`
+        fragmentShader: `varying float vA; void main(){ float r = length(gl_PointCoord - .5) * 2.; float a = exp(-r * r * 6.) * vA; gl_FragColor = vec4(vec3(0.75, 1.0, 0.45) * a * 2.5, 1.0);${FINISH_RAW} }`
       });
       FX.ff = add(new THREE.Points(fg, fm), 6);
       FX.ffN = N;
@@ -1897,7 +1950,7 @@
         fragmentShader: `uniform float uNight; varying float vA; varying float vS; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d) * 2.;
           float a = exp(-r * r * 6.) + 0.5 * max(0., 1. - abs(d.x) * 16.) * max(0., 1. - abs(d.y) * 2.4) + 0.5 * max(0., 1. - abs(d.y) * 16.) * max(0., 1. - abs(d.x) * 2.4);
           vec3 c = mix(mix(vec3(1.0, 0.85, 0.5), vec3(1.0, 0.95, 0.85), vS), vec3(0.7, 0.85, 1.0), uNight);
-          gl_FragColor = vec4(c * a * vA * 1.6, 1.0); }`
+          gl_FragColor = vec4(c * a * vA * 1.6, 1.0);${FINISH_RAW} }`
       });
       FX.trail = add(new THREE.Points(g, m), 7);
       FX.trailI = 0;
@@ -1935,7 +1988,7 @@
             vec2 e = abs(vWPos.xz - vec2(-277.6, 640.)) / vec2(260., 210.); a *= 1. - smoothstep(0.6, 1.0, max(e.x, e.y));   // bords fondus
             vec3 V = normalize(vWPos - cameraPosition);
             vec3 c = skyCol(normalize(vec3(V.x, 0.05, V.z))) * 1.05 + uSunCol * 0.15 * pow(max(dot(V, uSunDir), 0.), 4.);
-            gl_FragColor = vec4(c, a * 0.32);
+            gl_FragColor = vec4(c, a * 0.32);${FINISH}
           }`
       });
       m.uniforms.uMist = U.uMist;
@@ -3150,7 +3203,8 @@
           vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
         sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON + "\nvarying vec3 vWPos;").replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
             { vec3 Vv = normalize(vViewPosition); float f = pow(1.0 - abs(dot(normal, Vv)), 3.0);
-              reflectedLight.indirectDiffuse += diffuseColor.rgb * (uSunCol * 0.9 + vec3(${col2})) * f * ${k}; }`).replace("#include <fog_fragment>", "gl_FragColor.rgb = applyFog(gl_FragColor.rgb, vWPos);");
+              reflectedLight.indirectDiffuse += diffuseColor.rgb * (uSunCol * 0.9 + vec3(${col2})) * f * ${k}; }`);
+        finish(sh);
         patchLights(sh, 0.3);
       };
       return m;
@@ -3261,7 +3315,7 @@
             vec4 mv = modelViewMatrix * q; gl_Position = projectionMatrix * mv; vA = pow(max(sin(uTime * 2.3 + k * 4.0), 0.), 4.) * (1.0 - mod(uTime * 0.25 + k, 1.0));
             gl_PointSize = min(40., 70. * uPx / -mv.z); }`,
           fragmentShader: `uniform float uNight; varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d) * 2.; float a = exp(-r * r * 7.) + 0.6 * max(0., 1. - abs(d.x) * 14.) * max(0., 1. - abs(d.y) * 2.2) + 0.6 * max(0., 1. - abs(d.y) * 14.) * max(0., 1. - abs(d.x) * 2.2);
-            vec3 c = mix(vec3(1.0, 0.85, 0.55), vec3(0.7, 0.85, 1.0), uNight) * (0.6 + 1.6 * uNight); gl_FragColor = vec4(c * a * vA, 1.0); }`
+            vec3 c = mix(vec3(1.0, 0.85, 0.55), vec3(0.7, 0.85, 1.0), uNight) * (0.6 + 1.6 * uNight); gl_FragColor = vec4(c * a * vA, 1.0);${FINISH_RAW} }`
         });
         const pts = new THREE.Points(g, m);
         pts.frustumCulled = false;
@@ -3292,6 +3346,17 @@
     async function loadHeroine(look) {
       const WR = await new Wardrobe(renderer, "perso/", io).init();
       const av = new Avatar(WR, { atlas: PHONE ? 1024 : 2048, shadow: false, normals: false });
+      {
+        const ob = av.mat.onBeforeCompile;
+        av.mat.onBeforeCompile = (sh, r) => {
+          ob.call(av.mat, sh, r);
+          Object.assign(sh.uniforms, { uGSat: U.uGSat, uGWarm: U.uGWarm, uGCool: U.uGCool });
+          sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+    ${GRADE_FN}`).replace("#include <tonemapping_fragment>", "#include <tonemapping_fragment>" + GRADE_APPLY);
+        };
+        av.mat.customProgramCacheKey = () => "pg-heroine";
+        av.mat.needsUpdate = true;
+      }
       const L = LOOKS[look] || LOOKS.exploratrice;
       await av.set(L.d);
       scene.add(av.group);
@@ -3792,6 +3857,46 @@
       camera.lookAt(_f);
     }
 
+    // src/glow.js
+    var G = null;
+    var _p2 = new THREE.Vector3();
+    var _w = new THREE.Color(1, 0.94, 0.82);
+    function buildGlow() {
+      const m = new THREE.ShaderMaterial({
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: { uSun: { value: new THREE.Vector2() }, uAsp: { value: 1 }, uK: { value: 0 }, uCol: { value: new THREE.Color() }, uCol2: { value: new THREE.Color() } },
+        vertexShader: `uniform vec2 uSun; uniform float uAsp; varying vec2 vQ;
+          void main(){ vQ = position.xy; gl_Position = vec4(uSun + position.xy * vec2(1.0 / uAsp, 1.0) * 0.95, 0.0, 1.0); }`,
+        fragmentShader: `uniform float uK; uniform vec3 uCol; uniform vec3 uCol2; varying vec2 vQ;
+          void main(){ float d2 = dot(vQ, vQ); if (d2 > 1.0) discard;
+            float a = exp(-d2 * 6.0) * 0.5 + exp(-d2 * 30.0) * 0.55 + exp(-d2 * 160.0) * 0.6;
+            float ray = 0.5 + 0.5 * cos(atan(vQ.y, vQ.x) * 7.0); a += ray * exp(-d2 * 14.0) * 0.12;   // légers rayons autour du soleil
+            gl_FragColor = vec4(mix(uCol2, uCol, exp(-d2 * 12.0)) * a * uK, 1.0);${FINISH_RAW} }`
+      });
+      G = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), m);
+      G.frustumCulled = false;
+      G.renderOrder = 20;
+      G.visible = false;
+      scene.add(G);
+    }
+    function updateGlow(aspect) {
+      if (!G) return;
+      const u = G.material.uniforms;
+      _p2.copy(U.uSunDir.value).multiplyScalar(3e3).add(camera.position).project(camera);
+      const inFront = _p2.z < 1 && _p2.z > -1, edge = Math.max(0, 1 - Math.max(Math.abs(_p2.x), Math.abs(_p2.y)) / 1.5);
+      const k = Math.max(GRADE.rays, 0.22) * 0.85 * (1 - U.uNight.value) * edge * Math.min(1, Math.max(0, U.uSunDir.value.y * 6 + 0.2));
+      G.visible = inFront && k > 0.01;
+      if (!G.visible) return;
+      u.uSun.value.set(_p2.x, _p2.y);
+      u.uAsp.value = aspect;
+      u.uK.value = k;
+      u.uCol.value.copy(U.uGlow.value).lerp(_w, 0.4);
+      u.uCol2.value.copy(U.uGlow.value).multiplyScalar(0.5).lerp(U.uSunCol.value, 0.35);
+    }
+
     // src/main.js
     var BUILD = import_pg_env5.env.build;
     var T0 = performance.now();
@@ -3931,6 +4036,10 @@
       Object.assign(GRADE, { exp: M.g.exp, sat: M.g.sat, vign: M.g.vign, bloom: M.g.bloom, th: M.g.th, rays: M.g.rays });
       GRADE.warm.set(...M.g.warm);
       GRADE.cool.set(...M.g.cool);
+      if (DIRECT) {
+        import_pg_env5.env.vignette(M.g.vign);
+        GRADE.exp = M.g.exp * (1.08 + 0.32 * M.night);
+      }
       const C = new THREE.Vector3(-300, 50, 420);
       sun.position.copy(C).addScaledVector(d, 600);
       sun.target.position.copy(C);
@@ -3973,7 +4082,7 @@
       const n = trans.seq.length - 1, x = Math.min(n, trans.t / trans.secs * n), i = Math.min(n - 1, Math.floor(x)), f = x - i;
       const s = (v) => v * v * (3 - 2 * v);
       applyMood(blendMood(MOODS[trans.seq[i]], MOODS[trans.seq[i + 1]], s(f)), false);
-      if (++trans.k % (Q.tier >= 2 ? 4 : 15) === 0) renderer.shadowMap.needsUpdate = true;
+      if (++trans.k % (DIRECT ? 20 : Q.tier >= 2 ? 4 : 15) === 0) renderer.shadowMap.needsUpdate = true;
       if ((envT += dt) > 1.2) {
         envT = 0;
         makeEnv();
@@ -4042,35 +4151,44 @@
       }
       if (window.JDW_PG_FAKEGPU) gpu = String(window.JDW_PG_FAKEGPU);
       const mobile = PHONE, cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 4;
-      let t = mobile ? 2 : 3;
-      if (mobile && (cores <= 4 || mem <= 2 || /Mali-(4|T)|Adreno \(TM\) [345]\d\d|PowerVR|SGX|Mali-G(31|51|52|57)\b/i.test(gpu))) t = 1;
-      if (/SwiftShader|llvmpipe|Software|Microsoft Basic/i.test(gpu)) t = 0;
-      const strong = mobile && t === 2 && /Mali-G(7\d|[6-9]\d\d)\b|Immortalis|Adreno \(TM\) [6-8]\d\d|Apple GPU|Apple M\d/i.test(gpu);
+      const weak = mobile && (cores <= 4 || mem <= 2 || /Mali-(4|T)|Adreno \(TM\) [345]\d\d|PowerVR|SGX|Mali-G(31|51|52|57)\b|SwiftShader|llvmpipe|Software/i.test(gpu));
+      const strong = mobile && !weak && /Mali-G(7\d|[6-9]\d\d)\b|Immortalis|Adreno \(TM\) [6-8]\d\d|Apple GPU|Apple M\d/i.test(gpu);
+      let t;
+      if (DIRECT) t = strong ? 2 : weak ? 0 : 1;
+      else {
+        t = mobile ? 2 : 3;
+        if (weak) t = 1;
+        if (/SwiftShader|llvmpipe|Software|Microsoft Basic/i.test(gpu)) t = 0;
+      }
       const max = t;
       const f = P.get("pgq");
       if (f != null && TIERS[+f]) return { t: +f, max: +f, gpu, mobile, strong, forced: true };
       const st = import_pg_env5.env.store.get(AQ_KEY);
-      if (st && st.v === BUILD && st.gpu === gpu && typeof st.tier === "number") {
-        t = Math.min(max, Math.max(0, st.tier | 0));
-        DYN = Math.min(1, Math.max(0.6, +st.dyn || 1));
+      if (st && st.v === BUILD && st.path === (DIRECT ? "direct" : "post") && st.gpu === gpu && typeof st.tier === "number") {
+        if (DIRECT && strong) t = Math.max(1, Math.min(max, st.tier | 0));
+        else {
+          t = Math.min(max, Math.max(0, st.tier | 0));
+          DYN = Math.min(1, Math.max(DYN_MIN, +st.dyn || 1));
+        }
         if (st.hz) PERF.hzKeep = st.hz;
       }
       return { t, max, gpu, mobile, strong };
     }
+    var DYN_MIN = DIRECT ? 0.75 : 0.6;
     var aqT = 0;
     function aqSave(now) {
       if (Q.forced) return;
       const t = performance.now();
       if (!now && t - aqT < 2500) return;
       aqT = t;
-      import_pg_env5.env.store.set(AQ_KEY, { v: BUILD, gpu: Q.gpu, tier: Q.tier, dyn: +DYN.toFixed(2), hz: PERF.hzKeep || 0 });
+      import_pg_env5.env.store.set(AQ_KEY, { v: BUILD, path: DIRECT ? "direct" : "post", gpu: Q.gpu, tier: Q.tier, dyn: +DYN.toFixed(2), hz: PERF.hzKeep || 0 });
     }
     function applySize() {
       if (destroyed) return;
       const z = import_pg_env5.env.size();
       import_pg_env5.env.updateRect();
-      let dpr = Math.min(window.devicePixelRatio || 1, Q.dpr * (Q.strong && Q.tier === 2 ? 1.5 : 1)) * DYN;
-      const maxPix = Q.mobile ? Q.strong ? 19e5 : 16e5 : 42e5;
+      let dpr = DIRECT ? Math.min(window.devicePixelRatio || 1, Q.dpr) * DYN : Math.min(window.devicePixelRatio || 1, Q.dpr * (Q.strong && Q.tier === 2 ? 1.5 : 1)) * DYN;
+      const maxPix = DIRECT ? Q.strong ? 24e5 : 2e6 : Q.mobile ? Q.strong ? 19e5 : 16e5 : 42e5;
       if (z.w * z.h * dpr * dpr > maxPix) dpr = Math.sqrt(maxPix / (z.w * z.h));
       renderer.setPixelRatio(dpr);
       renderer.setSize(z.w, z.h, false);
@@ -4086,9 +4204,9 @@
     function setTier(n) {
       const T2 = TIERS[n];
       const low0 = Q.low, sh0 = Q.shadow;
-      Object.assign(Q, T2, { tier: n, fxaa: n === 2 });
-      if (low0 !== Q.low) setLow(Q.low);
-      renderer.shadowMap.type = Q.tier === 0 ? THREE.BasicShadowMap : Q.tier === 1 ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+      Object.assign(Q, T2, { tier: n, fxaa: !DIRECT && n === 2, terLow: T2.terLow != null ? T2.terLow : T2.low });
+      setLow(Q.low);
+      if (!DIRECT) renderer.shadowMap.type = Q.tier === 0 ? THREE.BasicShadowMap : Q.tier === 1 ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
       if (sh0 !== Q.shadow && sun.shadow.map) {
         sun.shadow.map.dispose();
         sun.shadow.map = null;
@@ -4100,22 +4218,37 @@
       applySize();
       updateLods(true);
       updateGrass(true);
-      (PERF.tierLog = PERF.tierLog || []).push(n);
     }
     Object.assign(PERF, { settleT: 1e12, acc: 0, n: 0, slowS: 0, fastS: 0, holdT: 0, hz: 60, refHz: 60, refOk: false, raw: [], rawN: 0, rawLast: 0, hzSlow: 0, hzT: 0, hitch: 0, miss: 0 });
+    function dynFloor() {
+      if (!DIRECT) return DYN_MIN;
+      const base = Math.min(window.devicePixelRatio || 1, Q.dpr);
+      return Math.min(1, Math.max(DYN_MIN, (Q.strong ? 1.5 : 1.25) / base));
+    }
+    function tierLog(a, avg, miss) {
+      (PERF.tierLog = PERF.tierLog || []).push({ t: Math.round((performance.now() - (PERF.playT || T0)) / 1e3), a, ms: +avg.toFixed(1), rate: Math.round(miss * 100) });
+      if (PERF.tierLog.length > 30) PERF.tierLog.shift();
+    }
     function perfTrack(ms) {
-      if (!ms || ms > 1500 || phase !== "play" || W.stage < 2 || performance.now() < PERF.settleT) return;
+      const now = performance.now();
+      if (!ms || ms > 1500 || phase !== "play" || W.stage < 2 || now < PERF.settleT || import_pg_env5.env.busy()) {
+        PERF.acc = 0;
+        PERF.n = 0;
+        PERF.mw = 0;
+        return;
+      }
       if (ms > 50) PERF.hitch++;
+      const tgt = 1e3 / PERF.hz;
       PERF.acc += Math.min(ms, 120);
       PERF.n++;
-      const need = 24 * PERF.hz / 60;
-      if (PERF.n < need && PERF.acc < 1e3 || PERF.n < 4) return;
-      const avg = PERF.acc / PERF.n;
+      if (ms > tgt * 1.5) PERF.mw = (PERF.mw || 0) + 1;
+      if ((PERF.acc < 1e3 || PERF.n < 20) && !(PERF.acc >= 2e3 && PERF.n >= 3)) return;
+      const avg = PERF.acc / PERF.n, miss = (PERF.mw || 0) / PERF.n;
       PERF.acc = 0;
       PERF.n = 0;
+      PERF.mw = 0;
       PERF.fps = 1e3 / avg;
       if (Q.forced && !P.has("pgadapt")) return;
-      const now = performance.now();
       if (now < PERF.holdT) return;
       if (PERF.hz > 60) {
         if (avg > 1e3 / PERF.hz * 1.2) {
@@ -4128,6 +4261,7 @@
             PERF.hzSlow = 0;
             PERF.fastS = 0;
             PERF.holdT = now + 1500;
+            tierLog("60 Hz", avg, miss);
           }
         } else {
           PERF.hzSlow = 0;
@@ -4138,10 +4272,102 @@
         }
         return;
       }
+      if (DIRECT) {
+        const slow = miss > 0.18 || avg > 20.5, fast = miss < 0.03 && avg < 17.6;
+        if (slow) {
+          PERF.fastS = 0;
+          if (++PERF.slowS < 2) return;
+          PERF.slowS = 0;
+          if (PERF.upT && now - PERF.upT < 1e4 && PERF.upFrom != null) {
+            const to = PERF.upFrom;
+            PERF.upT = 0;
+            PERF.upFrom = null;
+            PERF.upWait = Math.min(24e4, (PERF.upWait || 3e4) * 2);
+            PERF.nextUpT = now + PERF.upWait;
+            setTier(to);
+            PERF.holdT = now + 2500;
+            aqSave(true);
+            tierLog("retour " + Q.name, avg, miss);
+            return;
+          }
+          const fl = dynFloor();
+          if (avg > 30 && Q.tier > 0) {
+            setTier(Q.tier - 1);
+            DYN = 1;
+            applySize();
+            PERF.holdT = now + 2500;
+            aqSave(true);
+            tierLog("↓↓ " + Q.name, avg, miss);
+            return;
+          }
+          if (DYN > 0.901 && DYN > fl + 1e-3) {
+            DYN = Math.max(fl, 0.9, DYN - 0.05);
+            applySize();
+            PERF.holdT = now + 1200;
+            aqSave();
+            tierLog("dyn " + DYN.toFixed(2), avg, miss);
+          } else if (Q.tier > 0) {
+            setTier(Q.tier - 1);
+            DYN = 1;
+            applySize();
+            PERF.holdT = now + 2500;
+            aqSave(true);
+            tierLog("↓ " + Q.name, avg, miss);
+          } else if (DYN > fl + 1e-3) {
+            DYN = Math.max(fl, DYN - 0.05);
+            applySize();
+            PERF.holdT = now + 1200;
+            aqSave();
+            tierLog("dyn " + DYN.toFixed(2), avg, miss);
+          } else if (avg > 40 && DYN > 0.451) {
+            DYN = Math.max(0.45, DYN - 0.12);
+            applySize();
+            PERF.holdT = now + 1200;
+            aqSave();
+            tierLog("secours dyn " + DYN.toFixed(2), avg, miss);
+          }
+          return;
+        }
+        if (fast) {
+          PERF.slowS = 0;
+          PERF.fastS++;
+          if (DYN < 0.999 && PERF.fastS >= 3) {
+            DYN = Math.min(1, DYN + 0.05);
+            PERF.fastS = 0;
+            applySize();
+            PERF.holdT = now + 1e3;
+            aqSave();
+            tierLog("dyn " + DYN.toFixed(2), avg, miss);
+          } else if (DYN >= 0.999 && PERF.fastS >= 8 && Q.tier < Q.maxTier && now >= (PERF.nextUpT || 0)) {
+            PERF.fastS = 0;
+            PERF.upFrom = Q.tier;
+            PERF.upT = now;
+            setTier(Q.tier + 1);
+            PERF.holdT = now + 2500;
+            aqSave(true);
+            tierLog("↑ " + Q.name, avg, miss);
+          } else if (DYN >= 0.999 && PERF.fastS >= 10 && PERF.refOk && PERF.refHz >= 88 && PERF.refHz <= 180 && Q.tier >= Q.maxTier && PERF.hzKeep !== 60 && !PERF.hzTried) {
+            PERF.hzTried = true;
+            PERF.hz = Math.min(120, PERF.refHz);
+            PERF.hzT = now;
+            PERF.hzSlow = 0;
+            PERF.holdT = now + 1200;
+            tierLog(PERF.hz + " Hz", avg, miss);
+          }
+          if (PERF.upT && now - PERF.upT > 1e4) {
+            PERF.upT = 0;
+            PERF.upFrom = null;
+          }
+          return;
+        }
+        PERF.slowS = 0;
+        PERF.fastS = 0;
+        return;
+      }
       if (avg > 21) {
         PERF.fastS = 0;
-        if (DYN > 0.601) {
-          DYN = Math.max(0.6, DYN - (avg > 32 ? 0.15 : 0.08));
+        if (DYN > DYN_MIN + 1e-3) {
+          DYN = Math.max(DYN_MIN, DYN - (avg > 32 ? 0.15 : 0.08));
           applySize();
           PERF.holdT = now + 900;
           aqSave();
@@ -4165,8 +4391,10 @@
         } else if (DYN >= 0.999 && PERF.fastS >= 30 && Q.tier < Q.maxTier) {
           PERF.fastS = 0;
           setTier(Q.tier + 1);
-          DYN = 0.8;
-          applySize();
+          if (!DIRECT) {
+            DYN = 0.8;
+            applySize();
+          }
           PERF.holdT = now + 2500;
           aqSave(true);
         } else if (DYN >= 0.999 && PERF.fastS >= 6 && PERF.refOk && PERF.refHz >= 88 && PERF.refHz <= 180 && Q.tier >= 2 && PERF.hzKeep !== 60 && !PERF.hzTried && phase === "play") {
@@ -4181,24 +4409,120 @@
         PERF.fastS = 0;
       }
     }
-    var PROBE = { on: P.get("perf") === "1" || import_pg_env5.env.store.get("jdw.pegase.sonde") !== BUILD, ft: [], t: 0, sent: false, tier0: -1, dur: (+P.get("pgsonde") || 60) * 1e3 };
+    if (P.get("perf") === "1") import_pg_env5.env.store.set("jdw.pegase.perf", 1);
+    else if (P.get("perf") === "0") import_pg_env5.env.store.set("jdw.pegase.perf", 0);
+    var PFORCE = P.get("perf") === "1" || import_pg_env5.env.store.get("jdw.pegase.perf") === 1;
+    var PROBE = { on: PFORCE || import_pg_env5.env.store.get("jdw.pegase.sonde") !== BUILD, ft: [], t: 0, sent: false, quick: !PFORCE, tier0: -1, dur: (+P.get("pgsonde") || 60) * 1e3, n: 0 };
     function probeFrame(ms) {
       if (!PROBE.on || PROBE.sent || phase !== "play" || W.stage < 2 || performance.now() < PERF.settleT || paused || ms > 1e3 || document.hidden) return;
       if (PROBE.tier0 < 0) PROBE.tier0 = Q.tier;
       PROBE.ft.push(ms);
       PROBE.t += ms;
-      if (PROBE.t >= PROBE.dur) probeSend();
+      if (ms > 1500 / PERF.hz) PROBE.miss = (PROBE.miss || 0) + 1;
+      if (!PROBE.layers && PROBE.t > 4e3) PROBE.layers = measureLayers();
+      if (!PROBE.quick && PROBE.t >= Math.min(2e4, PROBE.dur)) {
+        PROBE.quick = true;
+        if (PROBE.t < PROBE.dur) probeSend("20 s");
+      }
+      if (PROBE.t >= PROBE.dur) {
+        PROBE.sent = true;
+        probeSend(Math.round(PROBE.dur / 1e3) + " s");
+      }
     }
-    function probeSend() {
-      PROBE.sent = true;
+    var GT = { ext: null, q: [], cur: null, ms: [], k: 0 };
+    try {
+      GT.ext = renderer.getContext().getExtension("EXT_disjoint_timer_query_webgl2");
+    } catch (e) {
+      GT.ext = null;
+    }
+    function gtBegin() {
+      if (!GT.ext || GT.cur || GT.q.length > 3 || GT.k++ % 3) return;
+      const gl = renderer.getContext();
+      try {
+        GT.cur = gl.createQuery();
+        gl.beginQuery(GT.ext.TIME_ELAPSED_EXT, GT.cur);
+      } catch (e) {
+        GT.cur = null;
+        GT.ext = null;
+      }
+    }
+    function gtEnd() {
+      if (!GT.cur) return;
+      const gl = renderer.getContext();
+      try {
+        gl.endQuery(GT.ext.TIME_ELAPSED_EXT);
+        GT.q.push(GT.cur);
+      } catch (e) {
+      }
+      GT.cur = null;
+    }
+    function gtPoll() {
+      if (!GT.ext) return;
+      const gl = renderer.getContext();
+      while (GT.q.length) {
+        const q = GT.q[0];
+        if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break;
+        const bad = gl.getParameter(GT.ext.GPU_DISJOINT_EXT), ns = gl.getQueryParameter(q, gl.QUERY_RESULT);
+        gl.deleteQuery(q);
+        GT.q.shift();
+        if (!bad) {
+          GT.ms.push(ns / 1e6);
+          if (GT.ms.length > 400) GT.ms.shift();
+        }
+      }
+    }
+    function measureLayers() {
+      try {
+        const bs = renderer.getDrawingBufferSize(new THREE.Vector2()), w = 160, h = Math.max(1, Math.round(160 * bs.y / bs.x));
+        const rt2 = new THREE.WebGLRenderTarget(w, h, { depthBuffer: true });
+        const m = new THREE.MeshBasicMaterial({ blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false, depthWrite: true, transparent: false });
+        m.color.setRGB(1 / 255, 1 / 255, 1 / 255, THREE.LinearSRGBColorSpace);
+        const prev = renderer.getRenderTarget(), auto = renderer.autoClear;
+        scene.overrideMaterial = m;
+        renderer.setRenderTarget(rt2);
+        renderer.setClearColor(0, 1);
+        renderer.clear(true, true, false);
+        renderer.render(scene, camera);
+        scene.overrideMaterial = null;
+        renderer.setRenderTarget(prev);
+        renderer.autoClear = auto;
+        renderer.setClearColor(724244, 1);
+        const px = new Uint8Array(w * h * 4);
+        renderer.readRenderTargetPixels(rt2, 0, 0, w, h, px);
+        let sum = 0, mx = 0;
+        for (let i = 0; i < w * h; i++) {
+          sum += px[i * 4];
+          if (px[i * 4] > mx) mx = px[i * 4];
+        }
+        rt2.dispose();
+        m.dispose();
+        return { moy: +(sum / (w * h)).toFixed(2), max: mx };
+      } catch (e) {
+        scene.overrideMaterial = null;
+        return { erreur: String(e && e.message || e).slice(0, 60) };
+      }
+    }
+    function probeSend(win) {
       const ft = PROBE.ft, s = ft.slice().sort((a, b) => a - b), n = s.length;
-      if (!n) return;
+      if (n < 30) return;
       const avg = ft.reduce((a, b) => a + b, 0) / n, q = (k) => +s[Math.min(n - 1, Math.floor(n * k))].toFixed(1);
       const long50 = ft.filter((x) => x > 50).length, long100 = ft.filter((x) => x > 100).length;
-      const bs = renderer.getDrawingBufferSize(new THREE.Vector2()), dpr = +(window.devicePixelRatio || 1).toFixed(2), z = import_pg_env5.env.size();
-      const msg = "perf pegase: moy " + avg.toFixed(1) + " ms, p95 " + q(0.95) + ", p99 " + q(0.99) + ", >50ms " + long50 + "/" + n + ", niveau " + Q.tier + " " + Q.name + ", dyn " + DYN.toFixed(2) + ", dpr " + dpr + ", " + bs.x + "x" + bs.y + " px, " + PERF.hz + "/" + PERF.refHz + " Hz, " + String(Q.gpu || "?").slice(0, 70);
+      const missed = PROBE.miss || 0;
+      const bs = renderer.getDrawingBufferSize(new THREE.Vector2()), dpr = +(window.devicePixelRatio || 1).toFixed(2), z = import_pg_env5.env.size(), pr = +renderer.getPixelRatio().toFixed(2);
+      const gl = renderer.getContext();
+      let samples = 0;
+      try {
+        samples = gl.getParameter(gl.SAMPLES) | 0;
+      } catch (e) {
+      }
+      const gs = GT.ms.slice().sort((a, b) => a - b), gpuMs = gs.length ? +(gs.reduce((a, b) => a + b, 0) / gs.length).toFixed(2) : null;
+      const lay = PROBE.layers || measureLayers();
+      PROBE.layers = lay;
+      const frag = lay && lay.moy ? +(lay.moy * bs.x * bs.y / 1e6).toFixed(2) : null;
+      const msg = "perf pegase: " + win + ", moy " + avg.toFixed(1) + " ms, p95 " + q(0.95) + ", ratées " + (missed / n * 100).toFixed(1) + "%, " + (DIRECT ? "direct MSAA" + samples : "post" + (Q.msaa ? " MSAA" + Q.msaa : "") + (Q.fxaa ? " FXAA" : "")) + ", " + Q.name + ", " + pr + " px/pt (dyn " + DYN.toFixed(2) + "), " + bs.x + "x" + bs.y + " px, " + (gpuMs != null ? "gpu " + gpuMs + " ms, " : "") + (lay && lay.moy ? "couches " + lay.moy + ", " : "") + PERF.calls + " appels, " + Math.round(PERF.tris / 1e3) + "k tri, " + PERF.hz + "/" + PERF.refHz + " Hz, " + String(Q.gpu || "?").slice(0, 60);
       const detail = JSON.stringify({
         v: BUILD,
+        fenetre: win,
         n,
         avg: +avg.toFixed(2),
         med: q(0.5),
@@ -4206,34 +4530,48 @@
         p99: q(0.99),
         long50,
         long100,
+        ratees: missed,
         tier0: PROBE.tier0,
         tier: Q.tier,
+        niveau: Q.name,
         tiers: PERF.tierLog || [],
+        chemin: DIRECT ? "direct" : "post",
+        msaa: DIRECT ? samples : Q.msaa,
+        fxaa: !!Q.fxaa,
+        ombres: DIRECT ? "VSM" : "PCF",
         dyn: +DYN.toFixed(2),
         dpr,
-        pr: +renderer.getPixelRatio().toFixed(2),
+        pr,
         canvas: [bs.x, bs.y],
         css: [z.w, z.h],
         hz: PERF.hz,
         refHz: PERF.refHz,
         strong: Q.strong,
-        fxaa: !!Q.fxaa,
-        msaa: Q.msaa,
+        gpuMs,
+        gpuP95: gs.length ? +gs[Math.floor(gs.length * 0.95)].toFixed(2) : null,
+        gpuN: gs.length,
+        minuterie: !!GT.ext,
+        couches: lay,
+        mfrag: frag,
+        calls: PERF.calls,
+        tris: PERF.tris,
+        jsMs: +PERF.js.toFixed(2),
+        herbe: Q.grass,
+        herbeR: Q.grassR,
+        lod: Q.lod,
         gpu: Q.gpu || "",
         mobile: Q.mobile,
         cores: navigator.hardwareConcurrency || 0,
         mem: navigator.deviceMemory || 0,
         mo: +(BYTES / 1048576).toFixed(1),
         stage: W.stage,
-        jsMs: +PERF.js.toFixed(2),
-        calls: PERF.calls,
-        tris: PERF.tris,
         nuit: +U.uNight.value.toFixed(2),
-        vue: PL.fp ? "1re" : "3e"
+        vue: PL.fp ? "1re" : "3e",
+        ua: (navigator.userAgent || "").slice(0, 120)
       });
-      import_pg_env5.env.store.set("jdw.pegase.sonde", BUILD);
+      if (!PFORCE) import_pg_env5.env.store.set("jdw.pegase.sonde", BUILD);
       import_pg_env5.env.report(msg, detail);
-      PROBE.ft = [];
+      PROBE.n++;
     }
     var DISC = [
       { id: "pegase", name: "Pégase s'envole", pts: 500 },
@@ -4310,9 +4648,11 @@
       try {
         const i = LOOK_ORDER.indexOf(W.actors.look), nx = LOOK_ORDER[(i + 1) % LOOK_ORDER.length];
         if (!import_pg_env5.env.file("perso/m/hb.short.glb")) toast("Les tenues arrivent…", 1600);
+        import_pg_env5.env.busy(4e3);
         if (await setLook(nx)) {
           import_pg_env5.env.store.set("jdw.pegase.tenue", nx);
         }
+        import_pg_env5.env.busy(1500);
       } catch (e) {
         toast("Tenue indisponible pour l'instant", 2e3);
       }
@@ -4356,6 +4696,25 @@
         e.stopPropagation();
         setPause(!paused);
       });
+      const fc = $("found");
+      if (fc) {
+        let n = 0, t0 = 0;
+        fc.style.pointerEvents = "auto";
+        import_pg_env5.env.on(fc, "click", (e) => {
+          e.stopPropagation();
+          const t = performance.now();
+          if (t - t0 > 3e3) n = 0;
+          t0 = t;
+          if (++n < 5) return;
+          n = 0;
+          const on = import_pg_env5.env.store.get("jdw.pegase.perf") !== 1;
+          import_pg_env5.env.store.set("jdw.pegase.perf", on ? 1 : 0);
+          toast(on ? "Mesure de vitesse : à chaque partie (20 s, 60 s, ou en quittant)" : "Mesure de vitesse : arrêtée", 3200);
+          if (on) {
+            PROBE.on = true;
+          }
+        });
+      }
       const po = $("paused");
       if (po) import_pg_env5.env.on(po, "pointerdown", (e) => {
         e.stopPropagation();
@@ -4447,8 +4806,12 @@
         if (frame % 20 === 0) updateLamps();
         if (W.stage >= 2) updateFX(t);
         checkDiscoveries(dt);
+        if (DIRECT) updateGlow(camera.aspect);
+        gtPoll();
         renderer.info.reset();
+        gtBegin();
         render();
+        gtEnd();
         PERF.js = PERF.js * 0.95 + (performance.now() - j0) * 0.05;
       } catch (e) {
         if (!PERF.err) {
@@ -4467,12 +4830,13 @@
       const det = detectTier();
       Object.assign(Q, TIERS[det.t], { tier: det.t, maxTier: det.max, gpu: det.gpu, mobile: det.mobile, strong: !!det.strong, forced: !!det.forced, fxaa: det.t === 2 });
       setTier(Q.tier);
-      (PERF.tierLog = []).push(Q.tier);
+      PERF.tierLog = [{ t: 0, a: "départ " + Q.name + (DYN < 1 ? " dyn " + DYN.toFixed(2) : "") }];
       bindUI();
       import_pg_env5.env.progress(0.02, "Le village se réveille…");
       await import_pg_env5.env.need("monde", (k) => import_pg_env5.env.progress(0.05 + k * 0.6, "Le village se réveille…"));
       if (destroyed) return;
       buildSky();
+      if (DIRECT) buildGlow();
       await loadWorld((s) => import_pg_env5.env.progress(0.68, s));
       await loadGround((s) => import_pg_env5.env.progress(0.74, s));
       import_pg_env5.env.progress(0.8, "Les collines et les toits…");
@@ -4512,6 +4876,7 @@
       PEG.onTakeoff = () => discover("pegase");
       phase = "play";
       import_pg_env5.env.playing();
+      PERF.playT = performance.now();
       TIMES.jouer = +((performance.now() - T0) / 1e3).toFixed(2);
       import_pg_env5.env.timeout(() => {
         if (!found.has("pegase")) toast(PHONE ? "Approche-toi de Pégase… (joystick à gauche, glisse à droite pour regarder)" : "Approche-toi de Pégase… (ZQSD ou flèches, souris pour regarder)", 4200);
@@ -4531,7 +4896,7 @@
       updateGrass(true);
       TIMES.complet = +((performance.now() - T0) / 1e3).toFixed(2);
       TIMES.moComplet = +(BYTES / 1048576).toFixed(2);
-      PERF.settleT = performance.now() + 2500;
+      PERF.settleT = performance.now() + 5e3;
       import_pg_env5.env.timeout(() => {
         import_pg_env5.env.need("garde").catch(() => {
         });
@@ -4548,8 +4913,18 @@
     }
     function destroy() {
       if (destroyed) return;
+      try {
+        if (PROBE.on && !PROBE.sent && PROBE.n === 0 && PROBE.t >= 12e3) probeSend("partiel " + Math.round(PROBE.t / 1e3) + " s");
+      } catch (e) {
+      }
       destroyed = true;
       cancelAnimationFrame(raf);
+      try {
+        const gl = renderer.getContext();
+        for (const q of GT.q) gl.deleteQuery(q);
+        GT.q.length = 0;
+      } catch (e) {
+      }
       try {
         releaseInput();
       } catch (e) {
@@ -4608,7 +4983,36 @@
       toggleNight,
       nextLook,
       discover,
-      state: () => ({ phase, paused, stage: W.stage, tier: Q.tier, name: Q.name, dyn: DYN, dpr: renderer.getPixelRatio(), hz: PERF.hz, refHz: PERF.refHz, score, found: [...found], mood: moodName, mo: +(BYTES / 1048576).toFixed(2), times: TIMES })
+      state: () => ({
+        phase,
+        paused,
+        stage: W.stage,
+        tier: Q.tier,
+        name: Q.name,
+        dyn: DYN,
+        dpr: renderer.getPixelRatio(),
+        hz: PERF.hz,
+        refHz: PERF.refHz,
+        score,
+        found: [...found],
+        mood: moodName,
+        mo: +(BYTES / 1048576).toFixed(2),
+        times: TIMES,
+        path: DIRECT ? "direct" : "post",
+        samples: (() => {
+          try {
+            const g = renderer.getContext();
+            return g.getParameter(g.SAMPLES);
+          } catch (e) {
+            return -1;
+          }
+        })(),
+        gpuMs: GT.ms.length ? +(GT.ms.reduce((a, b) => a + b, 0) / GT.ms.length).toFixed(2) : null,
+        minuterie: !!GT.ext,
+        layers: PROBE.layers || null,
+        probes: PROBE.n
+      }),
+      measureLayers
     };
 
     return module.exports;
@@ -4620,6 +5024,7 @@
   const CSS = (FD, FB) => `
 .pg{position:absolute;inset:0;overflow:hidden;background:#0b0d14;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;font-family:${FB}}
 .pg canvas.pg-gl{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.pg-vig{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1.2s;background:radial-gradient(ellipse 75% 70% at 50% 46%,rgba(8,4,18,0) 52%,rgba(8,4,18,.42) 82%,rgba(8,4,18,.78) 100%)}
 .pg-ui{position:absolute;inset:0;pointer-events:none;color:#fff8ec}
 .pg-ui *{box-sizing:border-box}
 .pg-ui button{pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:${FB}}
@@ -4675,7 +5080,7 @@
     const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '') || params.has('pgphone') || (touch && Math.min(screen.width || 9999, screen.height || 9999) < 900);
     const box = document.createElement('div'); box.className = 'pg';
     const st = document.createElement('style'); st.textContent = CSS(FD, FB); box.appendChild(st);
-    box.insertAdjacentHTML('beforeend', '<canvas class="pg-gl" data-pg="gl" tabindex="-1"></canvas><div class="pg-ui">' +
+    box.insertAdjacentHTML('beforeend', '<canvas class="pg-gl" data-pg="gl" tabindex="-1"></canvas><div class="pg-vig" data-pg="vig"></div><div class="pg-ui">' +
       '<div class="pg-found" data-pg="found">✨ 0 / 5</div>' +
       '<button class="pg-pause" data-pg="pause" aria-label="Pause">' + ICO.pause + '</button>' +
       '<div class="pg-btns"><button class="pg-b" data-pg="bvue" aria-label="Changer de vue"><i>👁️</i><span>1re pers.</span></button>' +
@@ -4702,6 +5107,7 @@
       onKill(fn) { kills.push(fn); },
       file: (n) => STORE.files.get(n),
       need: (name, onProg) => needPack(name, onProg),
+      busy: (ms) => { if (ms) STORE.busyUntil = Math.max(STORE.busyUntil, performance.now() + ms); return STORE.busyN > 0 || performance.now() < STORE.busyUntil; },
       dead: () => dead,
       store: {
         get(k) { try { const v = localStorage.getItem(k); return v === null ? null : JSON.parse(v); } catch (e) { return null; } },
@@ -4715,6 +5121,7 @@
         box.classList.add('playing'); env.orient();
         if (!touch && ids.help) { ids.help.textContent = 'ZQSD ou flèches : marcher · Maj : courir · souris : regarder · V : vue · N : nuit · T : tenue · P : pause'; ids.help.classList.add('on'); env.timeout(() => ids.help.classList.remove('on'), 9000); }
       },
+      vignette(v) { if (ids.vig) ids.vig.style.opacity = String(clamp(v * 1.15, 0, 0.95)); },
       orient() {
         const z = env.size(), port = z.h > z.w * 1.05;
         if (port && touch && !rotShown && box.classList.contains('playing')) { rotShown = true; ids.rot.classList.add('on'); env.timeout(() => ids.rot.classList.remove('on'), 6500); }

@@ -79,9 +79,14 @@ personne (V) : tout est de l'Asset Store, donc JAMAIS en clair. Paquets : `asset
 (Pégase, cerfs, mouvements), `pegase.perso.bin` (héroïne), `pegase.pres.bin` (détails proches, chargé en jouant), `pegase.garde.bin` (autres
 tenues, à la demande) ; un seul sel pour tous (clé dérivée une fois). Pas de défaite : le score = les découvertes (Pégase, cerfs, moulin, lac,
 nuit) ; « Quitter » les enregistre. Musique : celle de l'accueil (`MUSIC_AS` dans shell2.js). Qualité réglée toute seule et gardée PAR VERSION
-(`jdw.pegase.qualite` = { v: PG_BUILD, gpu, tier, dyn, hz } : une nouvelle version repart de zéro), netteté jusqu'à 2,25 px/point + FXAA sur les
-téléphones costauds (Mali-G7x, Adreno 6xx+, Apple), 120 i/s si l'appareil suit ; sonde de vitesse « perf pegase: » (60 s de jeu, une fois par
-appareil et par version, `?perf=1` pour forcer) lisible avec `node ~/jdv-tools/erreurs.js`. Atelier `~/jdv-tools/pegase/borne` : pegase.js est
+(`jdw.pegase.qualite` = { v: PG_BUILD, path, gpu, tier, dyn, hz } : une nouvelle version repart de zéro). DEUX CHEMINS DE RENDU (17 oct.) :
+ordinateur = « post » (image HDR, puis lueur, rayons, étalonnage, FXAA en passes plein écran) ; téléphone = « direct » (rendu à l'écran avec
+MSAA ×4, tons + étalonnage dans les matériaux, vignettage en CSS, lueur du soleil en sprite, ombre VSM statique : les passes plein écran en
+flottant coûtent trop cher aux GPU « en tuiles » des téléphones, cf. Mandale Kombat), niveaux « tél. beau / doux / sobre » à 2,25 / 2 / 1,75 px/point,
+plancher 1,5 px/pt sur GPU costaud (Mali-G7x, Adreno 6xx+, Apple : départ toujours au moins « tél. doux »), réglage par petits pas (jamais pendant
+un déballage de paquet ni dans les 5 s après le chargement), 120 i/s si l'appareil suit ; `?pgpath=post|direct` pour essayer l'autre chemin.
+Sonde de vitesse « perf pegase: » (une fois par appareil et par version ; `?perf=1` ou 5 touches sur « ✨ 0 / 5 » : à chaque partie, résumé à 20 s,
+à 60 s, ou partiel en quittant ; px/pt réels, MSAA, temps GPU si dispo, couches de pixels, journal des niveaux) lisible avec `node ~/jdv-tools/erreurs.js`. Atelier `~/jdv-tools/pegase/borne` : pegase.js est
 ASSEMBLÉ (`node tools/assemble.js` : src/*.js regroupés par esbuild + wrap/) — modifier l'atelier, pas le fichier ; paquets `node tools/pack.js`
 (données `~/jdv-tools/pegase/web2/data`, garde-robe `~/jdv-tools/pegase/avatar/web/data`), moteur `node tools/moteur.js` ; harnais et tests dans
 `borne/test/` (harnais.html, labo.js, mesure.js, sonde.js). PG_BUILD (en tête de wrap/head.js) change à chaque livraison.
