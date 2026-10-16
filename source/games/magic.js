@@ -993,7 +993,7 @@
       { name: 'superbe', maxDpr: 2, shadow: 2, shadowSize: 2048, parts: 800, lights: 4, aa: true, bloom: 2, dust: 40, lavaOct: 4 }
     ];
     // mémoire de l'appareil (réglage trouvé la dernière fois) : { gpu, tier, dyn }
-    const AQ_KEY = 'jdw.magic.qualite';
+    const AQ_KEY = 'jdw.magic.qualite2';   // (1.18.2) nouveau nom : oublie les réglages abaissés par la 1.18
     function aqLoad() { try { const o = JSON.parse(localStorage.getItem(AQ_KEY) || 'null'); return o && typeof o.tier === 'number' ? o : null; } catch (e) { return null; } }
     let aqSaveT = 0;
     function aqSave(now) {
