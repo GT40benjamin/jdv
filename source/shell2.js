@@ -35,6 +35,8 @@ const LABO_ON = (() => {
   return new Set(on);
 })();
 const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!LABO.has(g.id) || LABO_ON.has(g.id)));
+// mode essai (labo) actif sur cet appareil : le titre le dit (« Borne d'arcade test » au lieu de « entre amis »)
+(() => { const p = document.querySelector('.lib-title .plaque'); if (p && [...LABO].some(id => LABO_ON.has(id))) { p.textContent = 'test'; p.classList.add('plaque-test'); } })();
 (() => {
   const t = document.querySelector('.lib-title'); if (!t) return;
   let n = 0, t0 = 0;
@@ -9113,4 +9115,37 @@ setTimeout(checkSiteVersion, 4000);
 // les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)
 setTimeout(() => { for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
 window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api, coop: () => COOP };   // diagnostic (tests)
+})();
+
+// ---------- Compteur d'images par seconde (essai) : réglage « 📈 Images/s (essai) » du menu du son, retenu sur l'appareil (jdw.fps).
+// Un jeu peut publier ses propres chiffres dans window.JDW_FPS = { fps, ms, px, niveau, t } (images DESSINÉES par le jeu, résolution, niveau) ;
+// sinon on montre la cadence de l'écran vue par la page (requestAnimationFrame) et la pire image. Rien ne tourne quand c'est éteint.
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const box = document.createElement('div'); box.id = 'jdw-fps'; box.hidden = true; document.body.appendChild(box);
+  const cb = $('jdw-sm-fps'); let on = false; try { on = localStorage.getItem('jdw.fps') === '1'; } catch (e) {}
+  if (cb) { cb.checked = on; cb.addEventListener('change', () => { on = cb.checked; try { localStorage.setItem('jdw.fps', on ? '1' : '0'); } catch (e) {} tick0(); }); }
+  let raf = 0, n = 0, t0 = 0, last = 0, worst = 0;
+  const inGame = () => !$('jdw-play').hidden || !$('jdw-duo').hidden;
+  function draw(now) {
+    raf = 0; if (!on || !inGame() || document.hidden) { box.hidden = true; return; }
+    if (last) { const d = now - last; if (d > worst) worst = d; } last = now; n++;
+    if (!t0) t0 = now;
+    if (now - t0 >= 500) {
+      const g = window.JDW_FPS, fresh = g && g.t && performance.now() - g.t < 2000;
+      const fps = fresh ? g.fps : n * 1000 / (now - t0);
+      box.textContent = fresh
+        ? Math.round(g.fps) + ' i/s · ' + (+g.ms).toFixed(1) + ' ms' + (g.px ? ' · ' + (+g.px).toFixed(2) + ' px' : '') + (g.niveau ? ' · ' + g.niveau : '')
+        : 'écran ' + Math.round(fps) + ' i/s · pire ' + Math.round(worst) + ' ms';
+      box.classList.toggle('slow', fps < 50 && fps >= 30); box.classList.toggle('bad', fps < 30);
+      box.hidden = false; n = 0; t0 = now; worst = 0;
+    }
+    raf = requestAnimationFrame(draw);
+  }
+  function tick0() { if (on && !raf) { last = 0; t0 = 0; n = 0; worst = 0; raf = requestAnimationFrame(draw); } if (!on) box.hidden = true; }
+  // relancé quand une partie s'ouvre (le menu du son est dans la barre de jeu) et quand la page revient au premier plan
+  new MutationObserver(tick0).observe($('jdw-play'), { attributes: true, attributeFilter: ['hidden'] });
+  if ($('jdw-duo')) new MutationObserver(tick0).observe($('jdw-duo'), { attributes: true, attributeFilter: ['hidden'] });
+  document.addEventListener('visibilitychange', tick0);
+  tick0();
 })();

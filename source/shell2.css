@@ -2031,3 +2031,7 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
   #jdw-play .soundmenu{top:calc(max(8px,env(safe-area-inset-top,0px)) + 44px);left:calc(var(--rail) + 8px);right:auto}   /* en face du bouton du son */
   #jdw-play .topbar.has-fs .soundmenu{top:calc(max(8px,env(safe-area-inset-top,0px)) + 88px)}
 }
+
+/* compteur d'images par seconde (réglage « Images/s (essai) » du menu du son) : petit, discret, ne gêne pas le jeu */
+#jdw-fps{position:fixed;z-index:60;left:50%;top:max(4px,env(safe-area-inset-top,0px));transform:translateX(-50%);padding:3px 9px;border-radius:9px;font:600 11px/1.3 ui-monospace,Menlo,Consolas,monospace;color:#d8ffe6;background:rgba(5,10,14,.62);pointer-events:none;white-space:nowrap}
+#jdw-fps.slow{color:#ffd28a}#jdw-fps.bad{color:#ff9a9a}

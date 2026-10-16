@@ -1,1 +1,2 @@
-🔧 Petites améliorations et corrections
+✨ Magic Force : nouveau rendu pour téléphone (net, bords lisses, plus fluide) ; les iPhone en mode économie restent beaux
+📈 Nouveau réglage d'essai : afficher les images par seconde pendant les jeux (menu du son 🔊)
