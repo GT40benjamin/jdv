@@ -1,15 +1,10 @@
 // Prépare les données de « Magic Force » (games/magic.js) : modèles, textures, effets, sons → paquets EMBALLÉS de la borne.
-//   node pack-magic.js [--tout] [--etapes=kaykit,effets,golem,dragon,forge,glace,hydre,jardin,chene,tour,oeil,trone,seigneur,quaternius,sons,moteur,emballage] [--out <dossier>]
+//   node pack-magic.js [--tout] [--etapes=kaykit,effets,golem,dragon,forge,glace,hydre,quaternius,sons,moteur,emballage] [--out <dossier>]
 // Sorties (dossier assets/ à côté de source/, ou --out) :
 //   magic.monde1.bin  : la Crypte oubliée (décor KayKit, mage, squelettes, animations, spectre/orc/sorcier gluant Quaternius,
 //                       golem « Gardien de pierre », planche d'effets, sons) — chargé à l'ouverture du jeu ;
-//   magic.monde2.bin  : les Forges ardentes (texture basalte, dragon « Braise », démon bleu, diablotin, dragonnet, masque de feu,
-//                       sons du feu) — chargé en arrière-plan pendant le monde 1 ;
-//   magic.monde3.bin  : les Grottes de glace (atlas givré, Givre l'hydre, yéti, requin, piranha, calmar) ;
-//   magic.monde4.bin  : le Jardin maudit (atlas moussu, le Vieux Chêne = Oak Tree Ent, champignons, bogue, crapaud, bourdon,
-//                       le Roi Champignon) ; magic.monde5.bin : la Tour du sorcier (pierre de lune, le Grand Œil = Evil Watcher,
-//                       ninja, lutin, tourbillon, petite ombre) ; magic.monde6.bin : la Salle du trône (marbre rouge, le Seigneur des
-//                       ombres = Demon Lord, dino, garde royal, gargouille, prince doré) — chacun chargé pendant le monde d'avant ;
+//   magic.monde2.bin  : les Forges ardentes (texture basalte, dragon « Braise », démon bleu, diablotin, dragonnet, sons du feu)
+//                       — chargé en arrière-plan pendant le monde 1 ;
 //   magic.moteur.bin  : three.js (MIT) réduit à ce que le jeu utilise, gzippé (lisible : ce n'est pas un fichier de l'Asset Store).
 // Format des paquets : sel(16) + iv(12) + AES-GCM( [taille de l'en-tête sur 4 octets][en-tête JSON][données] ), clé PBKDF2-SHA256
 // 200 000 tours (source/asset-key.txt) ; en-tête { v: 1, e: { nom: { o, l, t: 'glb'|'webp'|'png'|'aac'|'json', z: 1 si gzippé } } }.
@@ -56,7 +51,6 @@ function blender(args) {
 const HFC = ILO + '/HeroicFantasyCreaturesFullPackVol1/';
 const GOL = HFC + 'Demonic Creatures Pack/Golem/FBX Files/Skinned Golem/', DRA = HFC + 'Fantasy Lizards Pack/Mountain Dragon/';
 const HYD = HFC + 'Fantasy Lizards Pack/Hydra/';
-const ENT = HFC + 'Demonic Creatures Pack/Oak Tree Ent/', EYE = HFC + 'Demonic Creatures Pack/Evil Watcher/', DLD = HFC + 'Demonic Creatures Pack/Demon Lord/';
 const CREATURES = {
   golem: { sk: GOL + 'SK_Golem.FBX', tris: 6000, dir: GOL, pre: 'Golem@', out: P('golem.glb'), pack: P('golem.pack.glb'), af: '20',
     clips: { idle: 'Idle', walk: 'Walk', roar: 'Roar', atk1: 'Attack1', atk2: 'Attack2', atk3: 'Attack3', atk4: 'Attack4', atk5: 'Attack5', hit: 'GetHitHeavy', hitl: 'GetHitLight', death: 'Death' } },
@@ -67,24 +61,14 @@ const CREATURES = {
       fly: 'FlyNormal', hoverHit: 'FlyStationaryGetHit', glideHit: 'GlideGetHit' } },
   hydra: { sk: HYD + 'FBX Files/SK_Hydra.FBX', tris: 9000, dir: HYD + 'FBX Files/', pre: 'Hydra@', out: P('w3src', 'hydra.glb'), pack: P('w3', 'hydra.glb'), af: '20',
     clips: { idle: 'IdleBreathe', look: 'IdleLookAround', walk: 'Walk', run: 'Run', bite: 'Bite3HitCombo', bite6: 'Bite6HitCombo', spit: '3toxicSpitCombo',
-      breath: 'RoarSpreadToxicBreath', hit: 'GetHitFront1', death: 'Death', turnL: 'Turn45Left', turnR: 'Turn45Right' } },
-  // monde 4 : le Vieux Chêne (Oak Tree Ent) ; monde 5 : le Grand Œil (Evil Watcher) ; monde 6 : le Seigneur des ombres (Demon Lord)
-  ent: { sk: ENT + 'FBX Files/SK_OakTreeEnt.FBX', tris: 8000, dir: ENT + 'FBX Files/', pre: 'OakTreeEnt@', out: P('w4src', 'ent.glb'), pack: P('w4', 'ent.glb'), af: '20',
-    clips: { idle: 'IdleBreathe', walk: 'Walk', combo: 'Attack3HitCombo', claws: 'ClawsAttack2HitCombo', clawL: 'ClawsAttackL', clawR: 'ClawsAttackR', stomp: 'StompAttack',
-      pick: 'PickUpRock', throw: 'ThrowRock', holdIdle: 'IdleBreatheHoldRock', hide: 'Hide1', unhide: 'Hide2', hit: 'GetHit1', death: 'Death' } },
-  watcher: { sk: EYE + 'FBX Files/SK_EvilWatcher.fbx', tris: 7000, dir: EYE + 'FBX Files/', pre: 'EvilWatcher@', ext: '.fbx', out: P('w5src', 'watcher.glb'), pack: P('w5', 'watcher.glb'), af: '20',
-    clips: { idle: 'Idle', look: 'IdleLookAround', combo2: '2HitCombo', combo3: '3HitCombo', cast: 'CastSpell', clawL: 'LeftClawsAttack', clawR: 'RightClawsAttack', sting: 'StingerAttack',
-      roar: 'Roar', sleep: 'Sleep', wake: 'WakesUp', hit: 'GetHitFront', death: 'Death' } },
-  demonlord: { sk: DLD + 'FBX Files/SK_DemonLord.FBX', tris: 9000, dir: DLD + 'FBX Files/', pre: 'DemonLord@', out: P('w6src', 'demonlord.glb'), pack: P('w6', 'demonlord.glb'), af: '20',
-    clips: { idle: 'Idle', walk: 'Walk', fly: 'Fly', flyHit: 'FlyGetHit', roar: 'Roar', summon: 'SummonSword&Whip', sw1: 'SwordAttack1', sw2: 'SwordAttack2', combo2: '2HitCombo',
-      combo3: '3HitCombo', whip: 'WhipAttack', hit: 'GetHit1', death: 'Death' } }
+      breath: 'RoarSpreadToxicBreath', hit: 'GetHitFront1', death: 'Death', turnL: 'Turn45Left', turnR: 'Turn45Right' } }
 };
 function creature(name) {
   const c = CREATURES[name];
   fs.mkdirSync(path.dirname(c.out), { recursive: true }); fs.mkdirSync(path.dirname(c.pack), { recursive: true });
   if (TOUT || !fs.existsSync(c.out)) {
     const cfg = { sk: c.sk, out: c.out, tris: c.tris, keep: null, clips: {} };
-    for (const [k, clip] of Object.entries(c.clips)) cfg.clips[k] = c.dir + c.pre + clip + (c.ext || '.FBX');
+    for (const [k, clip] of Object.entries(c.clips)) cfg.clips[k] = c.dir + c.pre + clip + '.FBX';
     const j = c.out.replace(/\.glb$/, '.json'); fs.writeFileSync(j, JSON.stringify(cfg));
     blender(['--python', path.join(A, 'blender', 'creature_glb.py'), '--', j]);
   }
@@ -115,15 +99,6 @@ function creature(name) {
   if (doStep('glace') || doStep('hydre')) fs.mkdirSync(P('w3'), { recursive: true });
   if (doStep('glace')) py(T('w3', 'ice_tex.py'), KK + '/KayKit-Dungeon-Remastered-1.0/addons/kaykit_dungeon_remastered/Assets/texture/dungeon_texture.png', P('w3', 'kkt_ice.webp'));
   if (doStep('hydre')) { creature('hydra'); py(T('w3', 'hydra_tex.py'), HYD + 'Textures', P('w3')); }
-  // 5c) mondes 4 à 6 : atlas du décor recoloré (mousse du Jardin maudit, pierre de lune de la Tour, marbre rouge et or du Trône)
-  //     + leur boss HFC (le Vieux Chêne, le Grand Œil, le Seigneur des ombres) et ses textures recolorées
-  const KKTEX = KK + '/KayKit-Dungeon-Remastered-1.0/addons/kaykit_dungeon_remastered/Assets/texture/dungeon_texture.png';
-  for (const [w, deco, atlas, boss, bossDir] of [['w4', 'jardin', 'kkt_garden', 'ent', ENT], ['w5', 'tour', 'kkt_tower', 'watcher', EYE], ['w6', 'trone', 'kkt_throne', 'demonlord', DLD]]) {
-    const step = { ent: 'chene', watcher: 'oeil', demonlord: 'seigneur' }[boss];
-    if (doStep(deco) || doStep(step)) fs.mkdirSync(P(w), { recursive: true });
-    if (doStep(deco)) { py(T('worlds_tex.py'), KKTEX, P(w, atlas + '.webp'), deco); py(T('worlds_tex.py'), KKTEX, P(w, atlas + '_sol.webp'), deco + '_sol'); }
-    if (doStep(step)) { creature(boss); py(T('boss_tex.py'), bossDir + 'Textures', P(w), boss); }
-  }
   // 6) monstres Quaternius (le démon volant est réexporté de son .blend : son glTF n'a qu'une animation)
   if (doStep('quaternius')) {
     const g = P('qsrc', 'Flying_Demon', 'Flying_Demon.gltf');
@@ -134,7 +109,7 @@ function creature(name) {
   if (doStep('sons')) { node(T('kk', 'sons.js')); node(T('kk', 'sons.js'), '--monde2'); }
   // 8) moteur 3D
   if (doStep('moteur')) node(T('moteur.js'), GAME, path.join(OUT, 'magic.moteur.bin'));
-  // 9) emballage des six mondes
+  // 9) emballage des deux mondes
   if (doStep('emballage')) node(T('devpack.js'), '--out', OUT, '--sans-moteur');
   console.log('fini en', ((Date.now() - t0) / 1000).toFixed(0), 's');
 })().catch((e) => { console.error(e.message || e); process.exit(1); });
