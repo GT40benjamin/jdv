@@ -1,13 +1,13 @@
 {
-  "version": "0.1 (essai 1)",
-  "size": 507499337,
-  "sha256": "e1d171003201df8af6a226965e22ff17a46a88b0267a3320c08830de0206b7ee",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v1/Pegase-PC-2026-10-17.zip",
+  "version": "0.2 (essai 2 · monde Eastlands)",
+  "size": 698960418,
+  "sha256": "4a055d580e434db7e23390a9ec6e2ce8b48260e8ea645065cc485ce8b60a81ac",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v2/Pegase-PC-2026-10-17-eastlands.zip",
   "notes": [
-    "Premier essai de Pégase sur PC (Windows 10/11, 64 bits)",
-    "Balade dans le monde de Pégase avec ton personnage",
-    "Appareil photo (touche A) : zoom, mise au point, pellicule",
-    "Clavier + souris : ZQSD ou WASD, souris = caméra, Échap = menus",
-    "C’est une version d’essai : dis-nous ce qui ne va pas"
+    "Nouveau monde : Eastlands, avec son village dans les arbres",
+    "Le lac, l’arbre sacré et le pont rouge à découvrir",
+    "Vue à la 1re personne : touche V (1re / 3e personne)",
+    "Nouvelle course (Maj, Maj deux fois = sprint) et commandes clavier-souris revues",
+    "Qualité Ultra réglée toute seule selon ta carte graphique"
   ]
 }
