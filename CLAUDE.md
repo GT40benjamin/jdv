@@ -108,6 +108,14 @@ vignettes 3D en pied rendues une à une dans le moteur de la page (`STG.thumb`, 
 sans avatar = tête de la borne sur une silhouette ; toucher = le copain en grand (gestes, « Appeler » / « Visiter sa maison » bientôt).
 Avatar sur le serveur (membres) : `pg_get_doc` à l'ouverture (le serveur gagne s'il est plus récent), `pg_put_doc` avec base_rev à
 l'enregistrement (copie locale gardée, `jdw.pegase.garde.<PSEUDO>.srv` = { rev, dirty }) ; porte-monnaie de lucioles (`pg_me`, onglet Moi).
+**Hub 2.1 (17 oct.)** : dans chaque rangée du créateur, ce qu'on possède d'abord, puis verrouillé par rareté, secrets à la fin ; ouverts au
+départ : Sally, Mary, Javi, John (2 filles, 2 garçons) ; onglet **Barbe** à part (6 barbes / moustaches BoZo, couleur = cheveux) ; curseur
+**Longueur** des cheveux = échelle 0,7 à 1,4 des os de MÈCHES des coiffures « derrière » (`Avatar.setHairLength`, `look.hl` ; les coiffures BoZo
+n'ont pas de forme « longueur » : sans mèches, rien ne change) ; panneau du créateur ≈ la moitié de l'écran (3 vignettes par rangée) ;
+bouton **🎤** (micro) : la bouche de l'avatar suit la voix, analyse SUR L'APPAREIL (Web Audio : volume + 3 bandes du spectre → Jaw_Open,
+Mouth_Oh, Mouth_Pucker, Mouth_Wide, Mouth_Press, Brows_Raised du pack ; `STG.setTalk`, `Avatar.talk`), rien n'est enregistré ni envoyé ;
+carte **Ma maison** (onglet Moi) : petit plan vu de dessus si `pg_get_doc` maison existe (format du jeu `{v, lot, p:[[id,x,z,l,r,y]…]}`), sinon
+« Ta maison t'attend : obtiens le permis de construire » ; étapes d'installation : nom du zip tiré de la fiche, dossier Pegase, Pegase.exe.
 Images plus vives : étalonnage dans `tools/images.py` (grade) + petit étalonnage après le tonemapping dans les matériaux (`gradeOnce`, main.js).
 Atelier : `~/jdv-tools/pegase/borne/hub` (src/ = avatar 3D : avatar.js copie de l'atelier avatar + gestes, stage.js, main.js ; wrap/head.js +
 wrap/tail.js = la page ; `node tools/assemble.js` → out/pegase.js à copier dans source/games/ ; paquets `node tools/pack.js` ; images

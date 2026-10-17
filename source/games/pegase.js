@@ -925,6 +925,7 @@
         if (this.nrt) W.composer.compose(this.nrt, layers, this.o.atlas, true);
         this.group.scale.setScalar(d.h || 1);
         this.applyMorphs();
+        this.setHairLength(d.hl);
         this.exprTarget = EXPR[d.ex] || EXPR.sourire;
         return true;
       }
@@ -1098,6 +1099,17 @@
         for (const [k, v] of Object.entries(base)) if (dict[k] != null) inf[dict[k]] = v;
         for (const [k, v] of Object.entries(ex)) if (dict[k] != null) inf[dict[k]] = Math.max(-1, Math.min(1.4, (inf[dict[k]] || 0) + v));
       }
+      // longueur des cheveux (hub) : les coiffures BoZo sont des pièces fixes, sans forme « longueur » ; leurs MÈCHES ont des os (chaîne sous
+      // HairBack…) : on agrandit / rapetisse le 1er os de chaque mèche des coiffures « derrière » (hb), 0,7 à 1,4. Sans mèches : rien ne change.
+      hairStrands() {
+        const ex = this.extraBones || [];
+        return ex.filter((b) => /^hb/.test(b.name) && ex.includes(b.parent) && !ex.includes(b.parent.parent));
+      }
+      setHairLength(v) {
+        const s = Math.max(0.7, Math.min(1.4, +v || 1));
+        this.hairLen = s;
+        for (const b of this.hairStrands()) b.scale.setScalar(s);
+      }
       setExpression(name, hold = 0) {
         this.exprTarget = EXPR[name] || {};
         this.exprHold = hold;
@@ -1145,6 +1157,11 @@
         const ex = Object.assign({}, this.exprCur);
         ex.Eyes_UpperClosed = Math.min(1, (ex.Eyes_UpperClosed || 0) + bl * (1 - (ex.Eyes_UpperOpen || 0) * 0.3));
         ex.Eyes_UpperOpen = (ex.Eyes_UpperOpen || 0) * (1 - bl);
+        if (this.talk && this.talk.w > 0) {
+          const w = this.talk.w, v = this.talk.v || {};
+          for (const k2 of ["Mouth_Happy", "Mouth_Wide", "Mouth_Oh", "Jaw_Open", "Mouth_Pucker", "Mouth_Press", "Mouth_Grimace"]) ex[k2] = (ex[k2] || 0) * (1 - 0.75 * w);
+          for (const [k2, x] of Object.entries(v)) ex[k2] = Math.min(1.2, (ex[k2] || 0) + x * w);
+        }
         if (this.meshes.face && this.morphBase) this._setInfl(this.meshes.face, this.morphBase, ex);
         this.anim.update(dt, cam);
       }
@@ -1292,7 +1309,8 @@
         l.x += (gx - l.x) * (1 - Math.exp(-dt * 3));
         l.y += (gy - l.y) * (1 - Math.exp(-dt * 3));
         this.setR("neck_01", qe(-l.y * 0.35, l.x * 0.35, 0));
-        this.setR("head", qe(-l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08, l.x * 0.5, Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2)));
+        const tk = A.talk && A.talk.w > 0 ? A.talk : null, nod = tk ? tk.nod || 0 : 0, tilt = tk ? tk.tilt || 0 : 0;
+        this.setR("head", qe(-l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod, l.x * 0.5 + tilt * 0.5, Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2)));
         for (const e of ["eyeRoot_l", "eyeRoot_r"]) if (A.bones.has(e)) this.setR(e, qe(-l.y * 0.25, l.x * 0.4, 0));
         this.setR("clavicle_l", qe(0, 0, br * 0.012 + hop * 0.05));
         this.setR("clavicle_r", qe(0, 0, -br * 0.012 - hop * 0.05));
@@ -1823,7 +1841,7 @@
       canvas.addEventListener("pointermove", onMove);
       canvas.addEventListener("pointerup", onUp);
       canvas.addEventListener("pointercancel", onUp);
-      let active = false, raf = 0, last = 0, tt = 0;
+      let active = false, raf = 0, last = 0, tt = 0, talkFn = null;
       const _h = new T3.Vector3();
       function frame(now) {
         raf = 0;
@@ -1858,6 +1876,20 @@
         }
         lookT -= dt;
         if (lookT <= 0) A.lookAt = false;
+        if (talkFn) {
+          let t = null;
+          try {
+            t = talkFn(dt, tt);
+          } catch (e) {
+            t = null;
+          }
+          A.talk = t;
+          if (t && t.w > 0.05) {
+            A.lookAt = true;
+            A.lookTarget.set(Math.sin(tt * 0.7) * 0.05, 0.03);
+            lookT = 0.4;
+          }
+        }
         motes.uniforms.uT.value = tt;
         ST.wind.value = tt;
         sparks.update(dt);
@@ -2029,6 +2061,10 @@
         setFocus(f) {
           view.focus = f;
           layout();
+        },
+        setTalk(fn) {
+          talkFn = typeof fn === "function" ? fn : null;
+          if (!talkFn) A.talk = null;
         },
         face() {
           view.target = 0;
@@ -2357,9 +2393,9 @@
 .pgh.editing .pgh-hero .pgh-bottom{opacity:0;transform:translateY(16px);pointer-events:none}
 .pgh.editing .pgh-scroll{overflow:hidden}
 .pgh.editing .pgh-name,.pgh.editing .pgh-hint{opacity:0!important}
-.pgh-ed{position:absolute;left:0;right:0;bottom:0;z-index:15;height:min(50%,460px);display:flex;flex-direction:column;border-radius:24px 24px 0 0;background:linear-gradient(180deg,rgba(36,24,66,.94),rgba(20,13,38,.97));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -12px 34px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,214,140,.32);transform:translateY(105%);transition:transform .42s cubic-bezier(.2,.85,.25,1),visibility 0s .42s;visibility:hidden}
+.pgh-ed{position:absolute;left:0;right:0;bottom:0;z-index:15;height:54%;display:flex;flex-direction:column;border-radius:24px 24px 0 0;background:linear-gradient(180deg,rgba(36,24,66,.94),rgba(20,13,38,.97));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -12px 34px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,214,140,.32);transform:translateY(105%);transition:transform .42s cubic-bezier(.2,.85,.25,1),visibility 0s .42s;visibility:hidden}
 .pgh-ed.on{transform:none;visibility:visible;transition:transform .42s cubic-bezier(.2,.85,.25,1)}
-.pgh.wide .pgh-ed{left:auto;top:0;width:min(46%,460px);height:auto;border-radius:24px 0 0 24px;transform:translateX(105%)}
+.pgh.wide .pgh-ed{left:auto;top:0;width:min(56%,620px);height:auto;border-radius:24px 0 0 24px;transform:translateX(105%)}
 .pgh.wide .pgh-ed.on{transform:none}
 .pgh-edtop{display:flex;align-items:center;gap:8px;padding:12px 12px 4px 16px}
 .pgh-edtop .t{flex:1;min-width:0}
@@ -2374,7 +2410,8 @@
 .pgh-edcat svg{width:18px;height:18px;flex:none}
 .pgh-edcat.on{color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e);box-shadow:0 4px 14px rgba(255,160,70,.3)}
 .pgh-edgrid{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 12px 10px}
-.pgh-edg{display:none;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px}
+.pgh-edg{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pgh.wide .pgh-edg{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
 .pgh-edg.on{display:grid;animation:pghPane .28s ease}
 .pgh-edg h5{grid-column:1 / -1;margin:8px 2px -2px;display:flex;align-items:center;gap:6px;font:700 11px ${FB};letter-spacing:.12em;text-transform:uppercase;color:#d9c2ff}
 .pgh-edg h5 svg{width:14px;height:14px}
@@ -2387,7 +2424,7 @@
 .pgh-ch .th .ico{width:42%;height:42%;display:grid;place-items:center;color:#ffe2ad}
 .pgh-ch .th .ico svg{width:100%;height:100%}
 .pgh-ch .th img ~ .dot,.pgh-ch .th img ~ .ico{display:none}
-.pgh-ch > span{max-width:100%;padding:0 6px;font:700 11.5px/1.2 ${FB};text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-ch > span{max-width:100%;padding:0 6px;font:700 12.5px/1.2 ${FB};text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pgh-ch.on{background:rgba(255,206,120,.16);box-shadow:inset 0 0 0 2px #ffcf73,0 0 16px rgba(255,190,110,.3)}
 .pgh-ch.on::after{content:'';position:absolute;right:6px;top:6px;width:20px;height:20px;border-radius:50%;background:#ffcf73 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233a1a05' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center/14px no-repeat}
 .pgh-ch.lk .th img,.pgh-ch.lk .th .ico{filter:grayscale(.8) blur(1px) brightness(.85);opacity:.6}
@@ -2417,7 +2454,7 @@
 .pgh.short .pgh-edcat{min-height:34px}
 .pgh.short .pgh-dbtns{padding-top:6px;padding-bottom:8px}
 .pgh.short .pgh-dbtns .pgh-cta{min-height:40px}
-.pgh.short .pgh-edg{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px}
+.pgh.short .pgh-edg{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
 .pgh-dfall{display:none}
 /* garde-robe (onglet Moi) */
 .pgh-wr{margin-top:14px}
@@ -2458,7 +2495,10 @@
 .pgh-ch.sw .lock{width:22px;height:22px;margin:-11px 0 0 -11px}
 .pgh-ch.sw .lock svg{width:12px;height:12px}
 .pgh-ch.sw .rb{display:none}
-.pgh-edg .pgh-ch.sw{max-width:64px;justify-self:center;width:100%}
+.pgh-edg .pgh-ch.sw{max-width:70px;justify-self:center;width:100%}
+.pgh-sws{grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:8px}
+.pgh-sl.off input{opacity:.35}
+.pgh-sl em{grid-column:1 / -1;font:600 11.5px ${FB};font-style:normal;color:rgba(255,240,220,.6)}
 .pgh-sl{grid-column:1 / -1;display:grid;grid-template-columns:70px auto 1fr auto;gap:8px;align-items:center;font:600 11.5px ${FB};color:var(--soft)}
 .pgh-sl label{font:700 12.5px ${FB};color:#fff3dc}
 .pgh-sl input{width:100%;accent-color:#ffc35e}
@@ -2487,6 +2527,27 @@
 .pgh-wallet b{font:700 18px ${FB};color:#f4ffd0;text-shadow:0 0 10px rgba(220,255,140,.45)}
 .pgh-wallet small{font:600 11.5px ${FB};color:rgba(240,255,210,.7)}
 @media (prefers-reduced-motion:reduce){.pgh-lu.big .pgh-luf,.pgh-ch .ico.q,.pgh-ch.r-legend .rb{animation:none}}
+/* micro : la bouche de l'avatar suit la voix */
+.pgh-emo.mic{position:relative;overflow:hidden}
+.pgh-emo.mic::before{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(var(--lv,0) * 100%);background:linear-gradient(0deg,rgba(124,240,160,.55),rgba(124,240,160,.15));transition:height .06s linear;pointer-events:none}
+.pgh-emo.mic.on{box-shadow:inset 0 0 0 2px #7cf0a0,0 0 18px rgba(124,240,160,.55)}
+.pgh-emo.mic.on::after{content:'';position:absolute;right:6px;top:6px;width:8px;height:8px;border-radius:50%;background:#ff5a6a;box-shadow:0 0 8px #ff5a6a;animation:pghPing 1.4s infinite}
+.pgh-emo.mic span{position:relative;z-index:1}
+.pgh-micm .pgh-mcard .ic{font-size:44px;line-height:1;margin:6px 0 2px}
+/* ma maison */
+.pgh-house{margin-top:14px;display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center;position:relative;overflow:hidden}
+.pgh-house::before{content:'';position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,190,110,.22),rgba(0,0,0,0) 70%)}
+.pgh-house .hs{position:relative;width:132px;height:110px;border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#ffe9c4,#f3cf98);box-shadow:inset 0 0 0 1px rgba(120,70,30,.35),0 8px 18px rgba(0,0,0,.3)}
+.pgh-house canvas{position:absolute;inset:0;width:100%;height:100%;display:none}
+.pgh-house.has canvas{display:block}
+.pgh-house .hph{position:absolute;inset:0;display:grid;place-items:center}
+.pgh-house.has .hph{display:none}
+.pgh-house .hph svg{width:92px;height:92px}
+.pgh-house h3{margin:0;font:700 16px ${FB};color:#fff3dc;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pgh-house p{margin:4px 0 0;font:600 13px/1.45 ${FB};color:var(--soft)}
+.pgh-house .pgh-cta{margin-top:10px;flex:0 0 auto;min-height:44px;padding:6px 14px;font-size:14px}
+.pgh-house .pgh-cta .pgh-chip{margin-left:4px}
+@media (max-width:420px){.pgh-house{grid-template-columns:110px 1fr}.pgh-house .hs{width:110px;height:96px}}
 .pgh-ctas2 .pgh-cta,.pgh-ctas .pgh-cta{white-space:nowrap}
 .pgh.wide.short .pgh-bottom{left:auto;right:max(10px,env(safe-area-inset-right,0px));top:50%;bottom:auto;width:auto;transform:translateY(-50%);padding:0}
 .pgh.wide.short .pgh-emotes{flex-direction:column}
@@ -2575,9 +2636,9 @@
   }
   function buildPage(FD, FB, who) {
     const steps = [
-      ['dl', 'Télécharge', 'Le fichier <q>Pegase-PC.zip</q> arrive dans ton dossier <q>Téléchargements</q>.'],
+      ['dl', 'Télécharge', 'Le fichier <q data-h="zipn">Pegase-PC.zip</q> arrive dans ton dossier <q>Téléchargements</q>.'],
       ['zip', 'Extrais-le', 'Clic droit sur le fichier, puis <q>Extraire tout…</q> et <q>Extraire</q>.'],
-      ['play', 'Lance Pégase.exe', 'Dans le dossier <q>Pégase</q>, double-clique sur <q>Pégase.exe</q>. Bon voyage !']
+      ['play', 'Lance Pegase.exe', 'Dans le dossier <q>Pegase</q>, double-clique sur <q>Pegase.exe</q>. Bon voyage !']
     ];
     return `<style>${PGH_CSS(FD, FB)}</style>` + LU_DEFS + nbsp(`
 <div class="pgh-scroll" data-h="scroll">
@@ -2596,7 +2657,7 @@
       <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
     </div>
     <div class="pgh-bottom">
-      <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}</div>
+      <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button></div>
       <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-av">${PGH_SVG.edit}<span data-h="avlab">Modifier</span></button><button class="pgh-cta glass" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button></div>
       <div class="pgh-small">Gratuit · PC Windows · Android bientôt</div>
     </div>
@@ -2622,6 +2683,14 @@
         <h3>Ma garde-robe</h3>
         <p>Tout le pack de vêtements est là : quelques pièces sont déjà à toi, les autres se débloquent dans le jeu avec des lucioles, des missions… ou en secret. Touche une pièce pour l'essayer !</p>
         <div class="pgh-wrrow" data-h="wrrow"></div>
+      </div>
+      <div class="pgh-card pgh-house" data-h="house">
+        <div class="hs"><canvas data-h="hcv"></canvas><div class="hph"><svg viewBox="0 0 96 96"><defs><linearGradient id="pghHw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff4dc"/><stop offset="1" stop-color="#f1d6a8"/></linearGradient></defs>
+          <ellipse cx="48" cy="84" rx="38" ry="6" fill="rgba(120,80,40,.25)"/><path d="M18 46L48 20l30 26v36H18z" fill="url(#pghHw)" stroke="#a0623a" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 48L48 16l36 32" fill="none" stroke="#c0482f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="41" y="58" width="14" height="24" rx="3" fill="#8a4a2a"/><rect x="25" y="52" width="11" height="10" rx="2" fill="#9fd0ff" stroke="#a0623a" stroke-width="1.6"/><rect x="60" y="52" width="11" height="10" rx="2" fill="#9fd0ff" stroke="#a0623a" stroke-width="1.6"/>
+          <path d="M64 14v-3h7v10" fill="none" stroke="#a0623a" stroke-width="2.6"/><g transform="translate(62 62)"><rect width="26" height="20" rx="3" fill="#fff8e6" stroke="#c99a52" stroke-width="1.6" transform="rotate(-8)"/><path d="M5 6h13M5 11h9" stroke="#c99a52" stroke-width="1.8" transform="rotate(-8)"/><circle cx="20" cy="14" r="3.4" fill="#e0533f" transform="rotate(-8)"/></g></svg></div></div>
+        <div><h3>Ma maison <span class="pgh-chip">Bientôt</span></h3><p data-h="htxt">Ta maison t'attend : obtiens le permis de construire dans le jeu, puis construis-la pièce par pièce.</p>
+          <button class="pgh-cta glass" data-h="hgo">🏡 Modifier ma maison</button></div>
       </div>
     </section>
   </div>
@@ -2651,7 +2720,7 @@
             <ol><li>Clique sur <b>Informations complémentaires</b></li><li>puis sur <b>Exécuter quand même</b></li></ol></div>
           <div class="pgh-win" data-h="win" aria-hidden="true">
             <div class="s1"><div class="t">Windows a protégé votre ordinateur</div>Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue…<br><span class="l">Informations complémentaires<span class="ring"></span><span class="badge">1</span></span><div class="k"><span>Ne pas exécuter</span></div></div>
-            <div class="s2"><div class="t">Windows a protégé votre ordinateur</div>Application : Pégase.exe<br>Éditeur : Éditeur inconnu<div class="k"><span style="position:relative">Exécuter quand même<span class="ring"></span><span class="badge">2</span></span><span>Ne pas exécuter</span></div></div>
+            <div class="s2"><div class="t">Windows a protégé votre ordinateur</div>Application : Pegase.exe<br>Éditeur : Éditeur inconnu<div class="k"><span style="position:relative">Exécuter quand même<span class="ring"></span><span class="badge">2</span></span><span>Ne pas exécuter</span></div></div>
           </div>
         </div>
       </div>
@@ -2693,6 +2762,11 @@
   <div class="pgh-mscope" data-h="pscope"></div>
   <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="pno">Annuler</button><button class="pgh-cta gold" data-h="pok">${PGH_SVG.check}<span>Utiliser cette photo</span></button></div>
 </div></div>
+<div class="pgh-modal pgh-micm" data-h="micm" role="dialog" aria-label="Le micro"><div class="pgh-mcard">
+  <div class="ic">🎤</div><h3>Fais parler ton avatar</h3>
+  <p>Parle, et la bouche de ton avatar bouge avec ta voix. Le son est analysé <b>ici, sur ton appareil</b> : rien n'est enregistré, rien n'est envoyé. Touche encore 🎤 pour couper le micro.</p>
+  <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="micno">Pas maintenant</button><button class="pgh-cta gold" data-h="micok"><span>Autoriser le micro</span></button></div>
+</div></div>
 <div class="pgh-toast" data-h="toast"></div>`);
   }
 
@@ -2721,8 +2795,8 @@
   // ce qu'on possède. Possédé = FREE + ce que portait déjà l'avatar enregistré (rien n'est repris) + plus tard le serveur (pg_profile.owned).
   // ---------------------------------------------------------------------------
   const CHARS_N = ['Sally', 'Chloé', 'Mary', 'Zulle', 'Javi', 'John', 'Galvon'];
-  const FREE_LOOKS = [0, 4, 5];                                              // Sally, Javi, John : ouverts dès le départ
-  const LOOK_LOCK = { 1: ['rare', 450], 2: ['rare', 450], 3: ['legend', 900] };
+  const FREE_LOOKS = [0, 2, 4, 5];                                           // Sally, Mary, Javi, John (2 filles, 2 garçons) : ouverts dès le départ
+  const LOOK_LOCK = { 1: ['rare', 450], 3: ['legend', 900] };
   // récompenses (cadeaux) et secrets (jamais dire comment)
   const REWARD = { 'hat.beanie': 'Récompense : ta première photo de Pégase', 'top.hoodie': 'Récompense : 7 jours de suite dans Pégase',
     'hb.punk': 'Récompense : 3 missions du jour réussies', 'feet.work_boots': 'Récompense : 10 animaux photographiés', cam: 'Offert par le maire à ton arrivée dans le jeu',
@@ -2736,12 +2810,13 @@
   const TIER2 = { basique: 'commun', joli: 'rare', rare: 'legend' };
   const EDCATS = [
     { k: 'perso', n: 'Personnages', ic: 'body', fr: 'corps' }, { k: 'corps', n: 'Corps', ic: 'me', fr: 'corps' }, { k: 'visage', n: 'Visage', ic: 'face', fr: 'visage' },
-    { k: 'cheveux', n: 'Coiffures', ic: 'hair', fr: 'tete' }, { k: 'haut', n: 'Hauts', ic: 'shirt', fr: 'buste' }, { k: 'bas', n: 'Bas', ic: 'pants', fr: 'jambes' },
+    { k: 'cheveux', n: 'Coiffures', ic: 'hair', fr: 'tete' }, { k: 'barbe', n: 'Barbe', ic: 'beard', fr: 'visage' }, { k: 'haut', n: 'Hauts', ic: 'shirt', fr: 'buste' }, { k: 'bas', n: 'Bas', ic: 'pants', fr: 'jambes' },
     { k: 'tenue', n: 'Robes', ic: 'dress', fr: 'corps' }, { k: 'pieds', n: 'Chaussures', ic: 'shoe', fr: 'pieds' }, { k: 'chapeau', n: 'Chapeaux', ic: 'tophat', fr: 'tete' },
     { k: 'acc', n: 'Accessoires', ic: 'glasses', fr: 'buste' }];
   const SLOT_OF_CAT = { haut: ['top'], bas: ['bot'], tenue: ['ovr'], pieds: ['feet'], chapeau: ['hat', 'hacc'], acc: ['glass', 'glov'] };
   Object.assign(PGH_SVG, {
     face: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/><circle cx="15" cy="10.5" r="1" fill="currentColor"/><path d="M8.5 15c2 1.8 5 1.8 7 0"/></svg>',
+    beard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9v3c0 5 3.2 9 7 9s7-4 7-9V9"/><path d="M8.5 14.5c1.2-1 2.2-1 3.5 0 1.3-1 2.3-1 3.5 0"/><path d="M5 9c2 1.5 4 2 7 2s5-.5 7-2"/></svg>',
     pants: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 3h12l1 18h-5l-2-11-2 11H5z"/></svg>',
     dress: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M9 3l-1 5 2 2-5 11h14l-5-11 2-2-1-5"/><path d="M9 3c1 1.3 5 1.3 6 0"/></svg>',
     shoe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 17V8h5c0 3 2 4 5 5l6 1c1.5.3 2 1.4 2 3H3z"/><path d="M3 20h18"/></svg>',
@@ -2934,7 +3009,7 @@
       const w = $.hero.offsetWidth, h = $.hero.offsetHeight;
       if (editing) {
         if (wide) { const L = $.ed.offsetLeft; return { x: 8, y: short ? 6 : 16, w: Math.max(160, L - 16), h: Math.min(h, box.clientHeight) - (short ? 12 : 32) }; }
-        const top = $.ed.offsetTop; return { x: 0, y: 8, w, h: Math.max(160, top - 14) };
+        const top = $.ed.offsetTop; return { x: 0, y: 4, w, h: Math.max(160, top - 30) };
       }
       const r = $.hero.getBoundingClientRect();
       if (wide) { const top = short ? 8 : 30, bot = short ? h - 8 : $.emotes.getBoundingClientRect().top - r.top - 8; const x0 = w * 0.48, x1 = short ? $.emotes.getBoundingClientRect().left - r.left - 4 : w * 0.98; return { x: x0, y: top, w: x1 - x0, h: Math.max(160, bot - top) }; }
@@ -3071,7 +3146,103 @@
       const b = box.querySelector(`.pgh-emotes .pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
       tone(k === 'jump' ? 660 : k === 'laugh' ? 880 : 740, k === 'jump' ? 990 : 1180);
     }
-    on($.emotes, 'click', (e) => { const b = e.target.closest('.pgh-emo'); if (!b || !STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k); });
+    on($.emotes, 'click', (e) => { const b = e.target.closest('.pgh-emo'); if (!b || b === $.mic || !STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k); });
+
+    // ---------- MICRO : la bouche de l'avatar suit ta voix. Analyse du son SUR L'APPAREIL (Web Audio), rien n'est enregistré ni envoyé.
+    // Formes du pack : Jaw_Open (A), Mouth_Oh (O), Mouth_Pucker (OU), Mouth_Wide (I / É), Mouth_Press (M / B / P), Brows_Raised.
+    // Visèmes estimés avec 3 bandes du spectre (≈ 1er et 2e formants, sifflantes) + le volume ; attaque / relâche lissées.
+    const MIC = { on: false, busy: false };
+    const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    function micUi() { $.mic.classList.toggle('on', MIC.on); $.mic.title = MIC.on ? 'Couper le micro' : 'Parler (micro)'; if (!MIC.on) $.mic.style.setProperty('--lv', 0); }
+    function micStop() {
+      MIC.on = false; if (STG) STG.setTalk(null);
+      try { if (MIC.stream) MIC.stream.getTracks().forEach((t) => t.stop()); } catch (e) { /* rien */ }
+      try { if (MIC.ctx) MIC.ctx.close(); } catch (e) { /* rien */ }
+      MIC.stream = MIC.ctx = MIC.an = null; micUi();
+    }
+    async function micStart() {
+      if (MIC.busy || MIC.on) return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('🎤 Ce navigateur ne donne pas accès au micro'); return; }
+      if (!STG || !STG.ready()) { toast('Ton avatar arrive…'); return; }
+      MIC.busy = true;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext; MIC.ctx = new AC();          // créé dans le toucher (iPhone)
+        MIC.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+        if (dead) { micStop(); return; }
+        if (MIC.ctx.state === 'suspended') await MIC.ctx.resume();
+        const src = MIC.ctx.createMediaStreamSource(MIC.stream), an = MIC.ctx.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = 0.3; src.connect(an);
+        Object.assign(MIC, { an, src, td: new Float32Array(an.fftSize), fd: new Float32Array(an.frequencyBinCount), floor: 0.004, env: 0, slow: 0, w: 0, quiet: 9, press: 0, brow: 0, lvUi: -1,
+          s: { Jaw_Open: 0, Mouth_Oh: 0, Mouth_Pucker: 0, Mouth_Wide: 0, Mouth_Press: 0, Brows_Raised: 0 }, on: true });
+        STG.setTalk(micTalk); micUi(); store.set('jdw.pegase.micok', '1'); tone(660, 990);
+        if (STG) STG.face();
+      } catch (e) { micStop(); toast(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? '🎤 Micro refusé : autorise-le dans les réglages du navigateur' : '🎤 Micro indisponible'); }
+      finally { MIC.busy = false; }
+    }
+    function micTalk(dt) {
+      const an = MIC.an; if (!an || !MIC.on) return null;
+      an.getFloatTimeDomainData(MIC.td); let q = 0; for (let i = 0; i < MIC.td.length; i++) q += MIC.td[i] * MIC.td[i];
+      const rms = Math.sqrt(q / MIC.td.length);
+      MIC.floor = rms < MIC.floor ? MIC.floor * 0.85 + rms * 0.15 : MIC.floor * 0.9995 + rms * 0.0005;   // bruit de fond qui s'adapte
+      const L = Math.min(1, Math.sqrt(Math.max(0, rms - MIC.floor * 1.6) / 0.06));
+      const att = 1 - Math.exp(-dt / 0.03), rel = 1 - Math.exp(-dt / 0.1);
+      const prev = MIC.env; MIC.env += (L - MIC.env) * (L > MIC.env ? att : rel);
+      MIC.slow += (MIC.env - MIC.slow) * (1 - Math.exp(-dt / 0.45));
+      // spectre : énergies de 3 bandes
+      an.getFloatFrequencyData(MIC.fd); const hz = MIC.ctx.sampleRate / an.fftSize;
+      const band = (a, b) => { let e = 0; for (let k = Math.floor(a / hz), n = Math.min(MIC.fd.length - 1, Math.ceil(b / hz)); k <= n; k++) e += Math.pow(10, MIC.fd[k] / 10); return e; };
+      const e1 = band(250, 900), e2 = band(900, 2500), e3 = band(2500, 7000), eLo = band(90, 250);
+      const r2 = e2 / (e1 + e2 + 1e-12), r3 = e3 / (e1 + e2 + e3 + 1e-12), low = eLo / (eLo + e1 + 1e-12);
+      const wide = sm(0.4, 0.66, r2), round = sm(0.28, 0.1, r2) * (1 - wide), u = round * sm(0.35, 0.65, low), o = round - u * 0.6, sib = sm(0.35, 0.6, r3);
+      const open = Math.max(0, 1 - wide * 0.7 - round * 0.6 - sib * 0.5);
+      const E = MIC.env;
+      // fermeture (M / B / P) : le son tombe d'un coup après une syllabe
+      if (prev > 0.2 && L < 0.04 && MIC.press < 0.1) MIC.press = 0.8; MIC.press = Math.max(0, MIC.press - dt / 0.16);
+      // sourcils sur les syllabes fortes
+      if (L - MIC.slow > 0.5 && MIC.brow < 0.3) MIC.brow = Math.min(1, MIC.brow + 0.7); MIC.brow = Math.max(0, MIC.brow - dt / 0.6);
+      const T = { Jaw_Open: E * (0.22 + 0.78 * open) * 0.95 + E * wide * 0.12 + E * sib * 0.08, Mouth_Oh: E * o * 0.8, Mouth_Pucker: E * u * 0.8, Mouth_Wide: E * (wide * 0.85 + sib * 0.35),
+        Mouth_Press: MIC.press * (1 - E) * 0.9, Brows_Raised: MIC.brow * 0.45 };
+      const ka = 1 - Math.exp(-dt / 0.04), kr = 1 - Math.exp(-dt / 0.08);
+      for (const k in T) { const c = MIC.s[k]; MIC.s[k] = c + (T[k] - c) * (T[k] > c ? ka : kr); }
+      // poids de la parole : monte vite, retombe doucement après ~0,5 s de silence
+      MIC.quiet = E > 0.06 ? 0 : MIC.quiet + dt;
+      MIC.w += ((MIC.quiet < 0.5 ? 1 : 0) - MIC.w) * (1 - Math.exp(-dt / (MIC.quiet < 0.5 ? 0.08 : 0.35)));
+      const lv = Math.round(Math.min(1, L * 1.2) * 20) / 20; if (lv !== MIC.lvUi) { MIC.lvUi = lv; $.mic.style.setProperty('--lv', lv); }
+      return { w: MIC.w, v: MIC.s, nod: (MIC.env - MIC.slow) * 0.11, tilt: Math.sin(performance.now() / 1300) * 0.04 * MIC.w };
+    }
+    on($.mic, 'click', (e) => { e.stopPropagation(); if (MIC.on) { micStop(); tone(520, 360); return; } if (store.get('jdw.pegase.micok')) micStart(); else $.micm.classList.add('on'); });
+    on($.micm, 'click', (e) => { const h = e.target.closest('[data-h]'); if (e.target === $.micm || (h && h.dataset.h === 'micno')) { $.micm.classList.remove('on'); return; } if (h && h.dataset.h === 'micok') { $.micm.classList.remove('on'); micStart(); } });
+    on(document, 'visibilitychange', () => { if (document.hidden && MIC.on) micStop(); });
+
+    // ---------- MA MAISON (pg_docs « maison » : {v, lot:[w,d], p:[[id,x,z,l,r,y]…]}, format du jeu) : petit plan vu de dessus ----------
+    async function loadHouse() {
+      if (!memberMode()) return;
+      let rows; try { rows = await PG.rpc('pg_get_doc', { p_kind: 'maison' }); } catch (e) { return; }
+      if (dead) return;
+      const rr = Array.isArray(rows) ? rows[0] : rows, d = rr && rr.r_rev > 0 && rr.r_data && typeof rr.r_data === 'object' ? rr.r_data : null;
+      const P = d && Array.isArray(d.p) ? d.p.filter((x) => Array.isArray(x) && typeof x[0] === 'string' && Number.isFinite(+x[1]) && Number.isFinite(+x[2])).slice(0, 4000) : [];
+      if (!P.length) return;
+      drawHouse(P);
+      const lv = new Set(P.map((x) => +x[3] || 0)).size;
+      $.htxt.textContent = 'Ta maison : ' + P.length + ' pièce' + (P.length > 1 ? 's' : '') + (lv > 1 ? ' sur ' + lv + ' étages' : '') + '. Bientôt, tu pourras la modifier d\'ici et la faire visiter.';
+    }
+    function drawHouse(P) {
+      const c = $.hcv, W = 264, H = 220; c.width = W; c.height = H; const x = c.getContext('2d');
+      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#fff2d6'); g.addColorStop(1, '#f2d39f'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+      x.strokeStyle = 'rgba(150,100,50,.15)'; x.lineWidth = 1; for (let i = 0; i <= W; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, H); x.stroke(); } for (let j = 0; j <= H; j += 16) { x.beginPath(); x.moveTo(0, j); x.lineTo(W, j); x.stroke(); }
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const p of P) { x0 = Math.min(x0, +p[1]); x1 = Math.max(x1, +p[1]); z0 = Math.min(z0, +p[2]); z1 = Math.max(z1, +p[2]); }
+      const sp = Math.max(x1 - x0, z1 - z0, 1), k = Math.min((W - 40) / Math.max(1, x1 - x0 || sp), (H - 40) / Math.max(1, z1 - z0 || sp)), ox = (W - (x1 - x0) * k) / 2, oz = (H - (z1 - z0) * k) / 2;
+      const col = (id) => /mur|wall/i.test(id) ? '#b9805a' : /porte|door/i.test(id) ? '#7a3f22' : /fen|window/i.test(id) ? '#7fbfe8' : /sol|floor|plancher/i.test(id) ? '#e8c48c' : /toit|roof/i.test(id) ? '#c0482f' : /esc|stair/i.test(id) ? '#9a6a46' : '#6aa36a';
+      const sz = Math.max(4, Math.min(14, k * sp / 14));
+      const lvls = [...new Set(P.map((p) => +p[3] || 0))].sort((a, b) => a - b);
+      for (const lv of lvls) {
+        x.globalAlpha = lv === lvls[0] ? 1 : 0.55;
+        for (const p of P) if ((+p[3] || 0) === lv) { const px = ox + (+p[1] - x0) * k, pz = oz + (+p[2] - z0) * k; x.fillStyle = col(p[0]); x.beginPath(); x.roundRect ? x.roundRect(px - sz / 2, pz - sz / 2, sz, sz, 2) : x.rect(px - sz / 2, pz - sz / 2, sz, sz); x.fill(); }
+      }
+      x.globalAlpha = 1; x.strokeStyle = 'rgba(120,70,30,.55)'; x.lineWidth = 2; x.strokeRect(ox - sz, oz - sz, (x1 - x0) * k + sz * 2, (z1 - z0) * k + sz * 2);
+      $.house.classList.add('has');
+    }
+    on($.hgo, 'click', () => { toast('🏡 Bientôt : modifie ta maison d\'ici, puis fais-la visiter aux copains'); tone(660, 880); });
 
     // ---------- l'avatar sur le serveur (pg_docs « garde », version base_rev) ; copie locale gardée (invités, hors ligne) ----------
     const SRVK = KEY + '.srv';
@@ -3117,7 +3288,7 @@
     // ---------- le CRÉATEUR, sur place (panneau du bas ; à droite en paysage) ----------
     let cat = store.get('jdw.pegase.edcat') || 'perso', hist = [], tryKey = '', colorSlot = '', colorCh = 0;
     if (!EDCATS.some((c) => c.k === cat)) cat = 'perso';
-    const FR_CAT = { perso: 'corps', corps: 'corps', visage: 'visage', cheveux: 'tete', haut: 'buste', bas: 'jambes', tenue: 'corps', pieds: 'pieds', chapeau: 'tete', acc: 'buste' };
+    const FR_CAT = { perso: 'corps', corps: 'corps', visage: 'visage', cheveux: 'tete', barbe: 'visage', haut: 'buste', bas: 'jambes', tenue: 'corps', pieds: 'pieds', chapeau: 'tete', acc: 'buste' };
     function tile(o) {   // o : { k (clé), act, v, name, th (html vignette), ico (chemin d'icône), on, sw (pastille de couleur) }
       const L = o.free ? null : lockOf(o.k), sec = L && L.r === 'secret';
       const cls = 'pgh-ch' + (o.on ? ' on' : '') + (L ? ' lk r-' + L.r : '') + (o.sw ? ' sw' : '') + (tryKey && tryKey === o.k ? ' try' : '');
@@ -3127,47 +3298,54 @@
         `<span class="th">${th}${L ? `<span class="lock">${sec ? '✦' : PGH_SVG.lock}</span>` : ''}${L ? `<i class="rb">${RAR[L.r]}</i>` : ''}</span>` +
         (o.sw ? '' : `<span>${esc(sec ? '???' : o.name)}</span>`) + (L && !o.sw ? `<span class="price">${price}</span>` : '') + '</button>';
     }
+    const RANK = { commun: 1, rare: 2, cadeau: 2.5, legend: 3, secret: 9 };
+    const rankOf = (o) => { if (o.free || !o.k) return 0; const L = lockOf(o.k); return L ? RANK[L.r] || 5 : 0; };
+    const list = (arr) => { const h = arr.map((o, i) => [o, rankOf(o), i]).sort((x, y) => x[1] - y[1] || x[2] - y[2]).map(([o]) => tile(o)).join(''); return arr.length && arr[0].sw ? '<div class="pgh-sws">' + h + '</div>' : h; };
     const sec = (t, n) => `<h5>${esc(t)}${n != null ? ` <em>· ${n}</em>` : ''}</h5>`;
     const none = (act, on) => `<button class="pgh-ch none${on ? ' on' : ''}" data-a="${act}" data-v="" data-key="" aria-label="Rien"><span class="th"><span class="ico">${PGH_SVG.none}</span></span><span>Rien</span></button>`;
     function itemTiles(c, slot, act, withNone = true) {
-      const cur = D.it[slot] && D.it[slot][0], list = CAT.items.filter((i) => i.cat === c);
-      return (withNone ? none(act || 'it:' + slot, !cur) : '') + list.map((it) => tile({ k: it.id, act: act || 'it:' + slot, v: it.id, name: it.name, ico: it.icon, on: cur === it.id })).join('');
+      const cur = D.it[slot] && D.it[slot][0], items = CAT.items.filter((i) => i.cat === c);
+      return (withNone ? none(act || 'it:' + slot, !cur) : '') + list(items.map((it) => ({ k: it.id, act: act || 'it:' + slot, v: it.id, name: it.name, ico: it.icon, on: cur === it.id })));
     }
     const countOf = (c) => CAT.items.filter((i) => i.cat === c).length;
     function catCount(k) {
       if (!CAT) return '';
-      return { perso: 7, corps: 2 + CAT.skin.length, visage: 6 + CAT.eyes.length + 2 + 4 + 6 + 1 + countOf('beard'), cheveux: countOf('hb') + countOf('hf') + CAT.hairUI.length,
+      return { perso: 7, corps: 2 + CAT.skin.length, visage: 6 + CAT.eyes.length + 2 + 4 + 6 + 1, barbe: countOf('beard'), cheveux: countOf('hb') + countOf('hf') + CAT.hairUI.length,
         haut: countOf('top'), bas: countOf('bot'), tenue: countOf('ovr'), pieds: countOf('feet') + 6, chapeau: countOf('hat') + countOf('hacc'), acc: countOf('glass') + countOf('glov') + 1 }[k];
     }
     function gridHTML(k) {
       const d = D; let h = '';
       if (k === 'perso') {
-        h += sec('Personnages', 7) + CHARS_N.map((n, i) => tile({ k: 'look:' + i, act: 'look', v: i, name: n, th: `<img class="full" alt="" data-t="${i}"${STORE.thumbs.has('o' + i) ? ` src="${STORE.thumbs.get('o' + i)}"` : ''}>`, on: preset === i })).join('');
+        h += sec('Personnages', 7) + list(CHARS_N.map((n, i) => ({ k: 'look:' + i, act: 'look', v: i, name: n, th: `<img class="full" alt="" data-t="${i}"${STORE.thumbs.has('o' + i) ? ` src="${STORE.thumbs.get('o' + i)}"` : ''}>`, on: preset === i })));
       } else if (k === 'corps') {
         h += sec('Silhouette') + `<button class="pgh-ch${d.g === 'f' ? ' on' : ''}" data-a="g" data-v="f" data-key=""><span class="th"><span class="ico">${PGH_SVG.fem}</span></span><span>Fille</span></button><button class="pgh-ch${d.g === 'm' ? ' on' : ''}" data-a="g" data-v="m" data-key=""><span class="th"><span class="ico">${PGH_SVG.masc}</span></span><span>Garçon</span></button>`;
         h += `<div class="pgh-sl"><label>Carrure</label><span>fine</span><input type="range" min="0" max="100" value="${Math.round((d.bd[2] || 0) * 100)}" data-a="w"><span>ronde</span></div>`;
         h += `<div class="pgh-sl"><label>Taille</label><span>petite</span><input type="range" min="90" max="108" value="${Math.round((d.h || 1) * 100)}" data-a="h"><span>grande</span></div>`;
-        h += sec('Peau', CAT.skin.length) + CAT.skin.map((s, i) => tile({ k: 'sk:' + i, act: 'sk', v: i, name: s[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${s[1]},${s[1]} 45%,rgba(0,0,0,.35))"></span>`, on: d.sk === i })).join('');
+        h += sec('Peau', CAT.skin.length) + list(CAT.skin.map((s, i) => ({ k: 'sk:' + i, act: 'sk', v: i, name: s[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${s[1]},${s[1]} 45%,rgba(0,0,0,.35))"></span>`, on: d.sk === i })));
       } else if (k === 'visage') {
-        h += sec('Forme du visage', 6) + FACE_N.map((n, i) => tile({ k: 'fc:' + i, act: 'fc', v: i, name: n, th: `<span class="ico face">${faceSVG(i)}</span>`, on: d.fc === i })).join('');
-        h += sec('Yeux', CAT.eyes.length) + CAT.eyes.map((e, i) => tile({ k: 'ey:' + i, act: 'ey', v: i, name: e[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 50% 58%,${e[2]} 0,${e[1]} 60%,#120c14 63%)"></span>`, on: d.ey === i })).join('');
-        h += sec('Pupilles', 2) + ['basic', 'sharp'].map((p) => tile({ k: 'pu:' + p, act: 'pu', v: p, name: CAT.layers['pupil.' + p].name, ico: CAT.layers['pupil.' + p].icon, on: d.pu === p })).join('');
+        h += sec('Forme du visage', 6) + list(FACE_N.map((n, i) => ({ k: 'fc:' + i, act: 'fc', v: i, name: n, th: `<span class="ico face">${faceSVG(i)}</span>`, on: d.fc === i })));
+        h += sec('Yeux', CAT.eyes.length) + list(CAT.eyes.map((e, i) => ({ k: 'ey:' + i, act: 'ey', v: i, name: e[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 50% 58%,${e[2]} 0,${e[1]} 60%,#120c14 63%)"></span>`, on: d.ey === i })));
+        h += sec('Pupilles', 2) + list(['basic', 'sharp'].map((p) => ({ k: 'pu:' + p, act: 'pu', v: p, name: CAT.layers['pupil.' + p].name, ico: CAT.layers['pupil.' + p].icon, on: d.pu === p })));
         h += sec('Sourcils et cils', 4) + CAT.items.filter((i) => i.cat === 'brow').map((i) => tile({ k: i.id, act: 'br', v: i.id, name: i.name, th: `<span class="ico face">${browSVG(i.id.includes('thick'))}</span>`, on: d.br === i.id })).join('') +
           CAT.items.filter((i) => i.cat === 'lash').map((i) => tile({ k: i.id, act: 'la', v: i.id, name: i.name, th: `<span class="ico face">${lashSVG(i.id.includes('long'))}</span>`, on: d.la === i.id })).join('');
         const fxs = ['freckles.light', 'freckles.full', 'blush', 'lips', 'liner', 'age'];
-        h += sec('Petits détails', 7) + fxs.map((f) => tile({ k: 'fx:' + f, act: 'fx', v: f, name: CAT.layers[f].name, ico: CAT.layers[f].icon, on: (d.fx || []).includes(f) })).join('') +
-          tile({ k: 'elf', act: 'elf', v: 1, name: 'Oreilles d\'elfe', th: `<span class="ico">${PGH_SVG.ear}</span>`, on: !!d.elf });
-        h += sec('Barbe', countOf('beard')) + itemTiles('beard', 'beard');
+        h += sec('Petits détails', 7) + list(fxs.map((f) => ({ k: 'fx:' + f, act: 'fx', v: f, name: CAT.layers[f].name, ico: CAT.layers[f].icon, on: (d.fx || []).includes(f) })).concat([
+          { k: 'elf', act: 'elf', v: 1, name: 'Oreilles d\'elfe', th: `<span class="ico">${PGH_SVG.ear}</span>`, on: !!d.elf }]));
+      } else if (k === 'barbe') {
+        h += sec('Barbes et moustaches', countOf('beard')) + itemTiles('beard', 'beard');
+        h += sec('Couleur (celle des cheveux)', CAT.hairUI.length) + list(CAT.hairUI.map((i) => ({ k: 'hc:' + i, act: 'hc', v: i, name: CAT.palette[i][0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.4))"></span>`, on: d.hc === i })));
       } else if (k === 'cheveux') {
         h += sec('Coiffure (derrière)', countOf('hb')) + itemTiles('hb', 'hb') + sec('Frange (devant)', countOf('hf')) + itemTiles('hf', 'hf');
-        h += sec('Couleur des cheveux', CAT.hairUI.length) + CAT.hairUI.map((i) => tile({ k: 'hc:' + i, act: 'hc', v: i, name: CAT.palette[i][0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.4))"></span>`, on: d.hc === i })).join('');
+        const strands = !!(STG && STG.A && STG.A.hairStrands && STG.A.hairStrands().length);
+        h += `<div class="pgh-sl${strands ? '' : ' off'}"><label>Longueur</label><span>courts</span><input type="range" min="70" max="140" value="${Math.round((d.hl || 1) * 100)}" data-a="hl"${strands ? '' : ' disabled'}><span>longs</span>${strands ? '' : '<em>Cette coiffure n\'a pas de mèches à allonger : choisis-en une plus longue.</em>'}</div>`;
+        h += sec('Couleur des cheveux', CAT.hairUI.length) + list(CAT.hairUI.map((i) => ({ k: 'hc:' + i, act: 'hc', v: i, name: CAT.palette[i][0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.4))"></span>`, on: d.hc === i })));
       } else if (k === 'haut') h += sec('Hauts', countOf('top')) + itemTiles('top', 'top');
       else if (k === 'bas') h += sec('Bas', countOf('bot')) + itemTiles('bot', 'bot');
       else if (k === 'tenue') h += sec('Robes et salopette', countOf('ovr')) + itemTiles('ovr', 'ovr');
       else if (k === 'pieds') {
         h += sec('Chaussures', countOf('feet')) + itemTiles('feet', 'feet');
         const so = ['socks.ankle', 'socks.basic', 'socks.knee', 'socks.thigh', 'socks.stirrup', 'socks.tights'];
-        h += sec('Chaussettes', 6) + none('so', !(d.so && d.so[0])) + so.map((s) => tile({ k: 'so:' + s, act: 'so', v: s, name: CAT.layers[s].name, ico: CAT.layers[s].icon, on: !!(d.so && d.so[0] === s) })).join('');
+        h += sec('Chaussettes', 6) + none('so', !(d.so && d.so[0])) + list(so.map((s) => ({ k: 'so:' + s, act: 'so', v: s, name: CAT.layers[s].name, ico: CAT.layers[s].icon, on: !!(d.so && d.so[0] === s) })));
       } else if (k === 'chapeau') h += sec('Chapeaux', countOf('hat')) + itemTiles('hat', 'hat') + sec('Cornes et antennes', countOf('hacc')) + itemTiles('hacc', 'hacc');
       else if (k === 'acc') {
         h += sec('Lunettes', countOf('glass')) + itemTiles('glass', 'glass') + sec('Gants', countOf('glov')) + itemTiles('glov', 'glov');
@@ -3217,7 +3395,7 @@
     let lookT = 0;
     function apply(spark) {
       renderEd();
-      if (STG) { const k = ++lookT; STG.setLook(D).then(() => { if (!dead && STG && spark && k === lookT) STG.gesture('spark'); }); }
+      if (STG) { const k = ++lookT; STG.setLook(D).then(() => { if (dead || !STG || k !== lookT) return; if (spark) STG.gesture('spark'); if (cat === 'cheveux') { const sl = $.dgrid.querySelector('[data-a="hl"]'), on = STG.A.hairStrands().length > 0; if (sl && sl.disabled === on) renderEd(); } }); }
     }
     function change(fn, k, spark = true) {
       hist.push({ d: lookCopy(D), p: preset, t: tryKey }); if (hist.length > 60) hist.shift();
@@ -3313,7 +3491,8 @@
     }
     on($.ed, 'input', (e) => { const a = e.target.dataset.a, v = +e.target.value; if (!STG || !STG.A.desc) return;
       if (a === 'w') { D.bd[2] = v / 100; STG.A.desc.bd[2] = v / 100; STG.A.applyMorphs(); }
-      if (a === 'h') { D.h = v / 100; STG.A.desc.h = D.h; STG.A.group.scale.setScalar(D.h); } });
+      if (a === 'h') { D.h = v / 100; STG.A.desc.h = D.h; STG.A.group.scale.setScalar(D.h); }
+      if (a === 'hl') { D.hl = v / 100; STG.A.desc.hl = D.hl; STG.A.setHairLength(D.hl); } });
     on($.ed, 'change', (e) => { if (e.target.dataset.a) { hist.push({ d: lookCopy(D), p: preset, t: tryKey }); apply(false); } });
     // « au hasard » : seulement parmi ce qu'on possède
     function randomLook() {
@@ -3491,6 +3670,8 @@
           (m.notes.length ? `<span class="pgh-meta" style="margin-top:6px;color:#ffe2ad">Nouveautés :</span><ul class="pgh-notes">${m.notes.map((n) => '<li>' + esc(n) + '</li>').join('')}</ul>` : '') +
           (m.sha256 ? `<span class="pgh-meta" style="opacity:.6;font-size:11px;word-break:break-all">Empreinte SHA-256 : ${m.sha256}</span>` : '');
         const a = z.querySelector('a'); on(a, 'click', () => { toast('⬇ Le téléchargement commence…'); tone(660, 990); });
+        let fn = ''; try { fn = decodeURIComponent(new URL(m.url).pathname.split('/').pop() || ''); } catch (e) { fn = ''; }
+        if (/^[\w.()\- ]{3,80}\.zip$/i.test(fn) && $.zipn) $.zipn.textContent = fn;
       } else {
         z.innerHTML = `<span class="pgh-soon" data-h="soon"><i></i>Bientôt disponible</span><span class="pgh-meta">${m.state === 'offline' ? 'Pas de réseau pour l\'instant : réessaie quand tu seras connecté.' : 'On fabrique la version PC en ce moment. Reviens très vite : le bouton apparaîtra ici.'}</span>`;
       }
@@ -3511,14 +3692,14 @@
     // l'onglet « Créateur » n'a ses numéros qu'avec le catalogue
     box.querySelectorAll('.pgh-edcat').forEach((b) => { if (!b.querySelector('em')) b.insertAdjacentHTML('beforeend', '<em></em>'); });
     catReady.then(() => { if (dead) return; if (!D && !STG) { /* repli : le créateur attend la 3D */ } renderShowcase(); renderMe(); }).catch(() => {});
-    relayout(); setTab(tab, false); activeSync(); renderMe(); renderFriends(); loadWallet();
+    relayout(); setTab(tab, false); activeSync(); renderMe(); renderFriends(); loadWallet(); later(loadHouse, 900);
     // la 3D arrive APRÈS l'affichage (pas d'à-coup à l'ouverture)
     later(() => { (window.requestIdleCallback || ((f) => setTimeout(f, 1)))(() => { if (!dead) start3D(); }, { timeout: 600 }); }, 380);
     later(() => loadAvatars(true), 1500);
     return {
       destroy() {
         if (dead) return; dead = true;
-        flySet(false);
+        flySet(false); micStop();
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();
