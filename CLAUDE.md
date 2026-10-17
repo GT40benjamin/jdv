@@ -71,7 +71,11 @@ spec design/SPEC.md). Paquets `assets/mandale.moteur.bin`, `mandale.commun.bin`,
 joueur = masque 3D fabriqué depuis son selfie (MediaPipe Face Landmarker, cache IndexedDB `jdw-mk`). Contrat : DUO-CONTRACT.md « Ajout : duel 3D ».
 Animations Mixamo à télécharger par l'utilisateur : liste dans l'atelier (MIXAMO-A-TELECHARGER.md).
 **Pégase** (source/games/pegase.js, id `pegase`, balade en vraie 3D, three.js r180) : EN ESSAI derrière la porte « labo » depuis le 16 oct. 2026
-(`LABO = new Set(['pegase'])` : tuile visible seulement après `…/jouer/?labo=pegase`, ou 7 touches sur le titre dans l'appli). Le village au bord
+(`LABO = new Set(['pegase'])` : tuile visible seulement après `…/jouer/?labo=pegase`, ou 7 touches sur le titre dans l'appli). DEPUIS LA 1.19.1 (17 oct.), la tuile ouvre la version
+UNITY 6 de Pégase (le même jeu que l'appli native) : `mountUnity()` (wrap/tail.js) remplit le jeu d'une iframe plein cadre sur
+https://gt40benjamin.github.io/pegase-web/ (dépôt à part GT40benjamin/pegase-web, page d'essai, données découpées, ~320 Mo au 1er
+chargement puis en cache), publiée par `~/jdv-tools/pegase/web-site/pack-web.js` + `publier-web.js` ; `?pgweb=three` = l'ancienne version
+three.js décrite ci-dessous (gelée). Le village au bord
 du lac à l'heure dorée (Dreamscape Village + cerfs Eastlands, Polyart), Pégase (PROTOFACTOR) qui s'envole quand on approche, une héroïne BoZo
 (garde-robe de l'atelier avatar ; mouvements KayKit CC0 recopiés os par os), papillons « AI butterfly », particules, jour ⇄ nuit, vue 3e / 1re
 personne (V) : tout est de l'Asset Store, donc JAMAIS en clair. Paquets : `assets/pegase.moteur.bin` (three.js complet, MIT, gzippé, global

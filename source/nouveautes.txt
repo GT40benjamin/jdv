@@ -1,1 +1,1 @@
-📲 Nouvelle appli Android 1.8 : elle saura installer et ouvrir toute seule les prochains jeux en appli (comme Pégase)
+🔧 Petites améliorations et corrections

@@ -12,7 +12,7 @@
   // Fichier ASSEMBLÉ depuis l'atelier ~/jdv-tools/pegase/borne (src/*.js + wrap/, `node tools/assemble.js`) : modifier l'atelier.
   // ===========================================================================
 
-  const PG_BUILD = '2026-10-17a';   // version du jeu : clés de réglage et sonde en dépendent (17 oct. : chemin « direct » sur téléphone)
+  const PG_BUILD = '2026-10-17u';   // version du jeu : clés de réglage et sonde en dépendent (17 oct. : chemin « direct » sur téléphone)
   const TAU = Math.PI * 2;
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const ROOT = () => (typeof window !== 'undefined' && window.JDW_ROOT) || '';
@@ -266,7 +266,7 @@
       { name: "très beau", dpr: 2, shadow: 4096, grass: 1, grassR: 80, low: false, msaa: 4, bloom: true, rays: true, lod: 1.35, cull: 2, hlod: 220, near: 2.5, tcull: 900, far: 8, mist: 4, part: 1, birds: 16, bfly: 28, leaves: 320 }
     ];
     var PHONE_TIERS = [
-      { name: "tél. sobre", dpr: 1.75, shadow: 1024, grass: 0, grassR: 0, low: true, terLow: true, msaa: 0, bloom: false, rays: false, lod: 0.42, cull: 0.42, hlod: 60, near: 10, tcull: 190, far: 16, mist: 0, part: 0.15, birds: 4, bfly: 6, leaves: 24 },
+      { name: "tél. sobre", dpr: 1.75, shadow: 1024, grass: 0.12, grassR: 14, low: true, terLow: true, msaa: 0, bloom: false, rays: false, lod: 0.42, cull: 0.42, hlod: 60, near: 10, tcull: 190, far: 16, mist: 0, part: 0.15, birds: 4, bfly: 6, leaves: 24 },
       { name: "tél. doux", dpr: 2, shadow: 2048, grass: 0.24, grassR: 20, low: false, terLow: false, msaa: 0, bloom: false, rays: false, lod: 0.52, cull: 0.55, hlod: 80, near: 5, tcull: 270, far: 16, mist: 0, part: 0.3, birds: 6, bfly: 10, leaves: 60 },
       { name: "tél. beau", dpr: 2.25, shadow: 2048, grass: 0.42, grassR: 28, low: false, terLow: false, msaa: 0, bloom: false, rays: false, lod: 0.64, cull: 0.68, hlod: 105, near: 5, tcull: 360, far: 8, mist: 1, part: 0.45, birds: 8, bfly: 14, leaves: 100 }
     ];
@@ -618,6 +618,9 @@
       #ifdef USE_INSTANCING
         ip = instanceMatrix[3].xyz;
       #endif
+      #if !defined( USE_BATCHING ) && !defined( USE_INSTANCING )
+        ip = modelMatrix[3].xyz;   // copie « fondu » d'une instance (même balancement que dans le lot)
+      #endif
       float w = lay.z * uWind;
       float ph = uTime * 1.6 + dot(ip.xz, vec2(0.11, 0.07));
       float g = 0.6 + 0.4 * sin(uTime * 0.37 + ip.x * 0.013);
@@ -644,13 +647,40 @@
           if (A == 3) tc = vec4(1.0);
           else if (A == 1) tc = textureGrad(tB, vec3(vUv2, float(L)), dx, dy); else tc = textureGrad(tS, vec3(vUv2, float(L)), dx, dy);`}
         vec3 tcol = vTint;
-        ${foliage ? `#ifdef USE_COLOR
+        ${foliage ? `#if defined( USE_COLOR ) || defined( PG_FADE )
           tcol *= mix(vec3(1.0), vColor, max(vLum, step(0.3, vMode) * step(vMode, 0.7)));
         #endif` : ""}
         diffuseColor *= vec4(tc.rgb * tcol, tc.a);
         ${foliage ? "if (vMode > 0.3 && vMode < 0.7) diffuseColor.rgb += gTrunk;" : ""}
         gTex = tc.rgb; }`
     );
+    var FADE_HEAD = (
+      /* glsl */
+      `
+    uniform float uFK; uniform float uFD;
+    float pgBayer4(vec2 p){ int i = int(mod(p.x, 4.0)) + int(mod(p.y, 4.0)) * 4;
+      const float B[16] = float[16](0., 8., 2., 10., 12., 4., 14., 6., 3., 11., 1., 9., 15., 7., 13., 5.); return (B[i] + 0.5) / 16.0; }`
+    );
+    var FADE_TEST = (
+      /* glsl */
+      `
+      { float b = pgBayer4(floor(gl_FragCoord.xy)); if (uFD > 0.0 ? b >= uFK : b < uFK) discard; }`
+    );
+    function fadeSetup(m) {
+      m.defines = Object.assign(m.defines || {}, { PG_FADE: 1 });
+      m.polygonOffset = true;
+      m.polygonOffsetFactor = -2;
+      m.polygonOffsetUnits = -8;
+      m.userData.fu = { uFK: { value: 0 }, uFD: { value: 1 }, uFC: { value: new THREE.Color(1, 1, 1) } };
+    }
+    function fadePatch(sh, m) {
+      if (!m.userData.fu) return;
+      Object.assign(sh.uniforms, m.userData.fu);
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+    ${FADE_HEAD}
+    uniform vec3 uFC;
+    #define vColor uFC`).replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>" + FADE_TEST);
+    }
     function patchLights(sh, wrap) {
       const ch = THREE.ShaderChunk.lights_lambert_pars_fragment.replace(
         "float dotNL = saturate( dot( geometryNormal, directLight.direction ) );",
@@ -664,8 +694,10 @@
       else delete m.defines.LOW;
     }
     var MATS = [];
-    function staticMaterial(texS, texB) {
+    function staticMaterial(texS, texB, { fade = false } = {}) {
       const m = new THREE.MeshLambertMaterial({ color: 16777215 });
+      m.userData.low = "aucun";
+      if (fade) fadeSetup(m);
       m.onBeforeCompile = (sh) => {
         Object.assign(sh.uniforms, U, { tS: { value: texS }, tB: { value: texB } });
         sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + VCOMMON).replace("#include <begin_vertex>", `#include <begin_vertex>
@@ -679,14 +711,16 @@
               if (fl > 0.9) diffuseColor.rgb *= mix(0.3, 0.12, uNight); }`);
         finish(sh);
         patchLights(sh, 0.35);
+        fadePatch(sh, m);
       };
       MATS.push(m);
       return m;
     }
-    function foliageMaterial(texF, { grass = false } = {}) {
+    function foliageMaterial(texF, { grass = false, fade = false } = {}) {
       const m = new THREE.MeshLambertMaterial({ color: 16777215, side: THREE.DoubleSide, alphaTest: 0.5 });
       if (Q.msaa || DIRECT) m.alphaToCoverage = true;
       lowDefine(m);
+      if (fade) fadeSetup(m);
       m.onBeforeCompile = (sh) => {
         Object.assign(sh.uniforms, U, { tF: { value: texF }, uFade: { value: new THREE.Vector2(9999, 9999) } });
         m.userData.sh = sh;
@@ -712,6 +746,7 @@
             #endif`);
         finish(sh);
         patchLights(sh, grass ? 0.8 : 0.6);
+        fadePatch(sh, m);
       };
       MATS.push(m);
       return m;
@@ -727,7 +762,7 @@
     }
     function lowFor(m, low) {
       const k = m.userData && m.userData.low;
-      return k === "ter" ? Q.terLow != null ? Q.terLow : low : k === "eau" ? DIRECT || low : low;
+      return k === "aucun" ? false : k === "ter" ? Q.terLow != null ? Q.terLow : low : k === "eau" ? DIRECT || low : low;
     }
     function setLow(low) {
       for (const m of MATS) {
@@ -903,6 +938,8 @@
           o.cur = want;
         }
       }
+    }
+    function stepLods() {
     }
     function allNear() {
       for (const ch of W.chunks) {
@@ -1168,6 +1205,7 @@
       mF.userData.dbg = "t";
       scene.add(mF);
     }
+    var GMAX = Math.max(...TIERS.map((t) => t.grass), 0.12);
     async function loadGrass() {
       const S = W.M.sol, buf = W.solBuf;
       const geos = W.grassGeos;
@@ -1181,19 +1219,20 @@
         for (let i = 0; i < di.length; i++) {
           idx += di[i];
           const cx = idx % 1024, cz = Math.floor(idx / 1024);
-          let n = cnt[i] * Q.grass;
+          let n = cnt[i] * GMAX;
           const whole = Math.floor(n), frac = n - whole;
           const r0 = Math.sin(idx * 12.9898) * 43758.5453 % 1;
           n = whole + (Math.abs(r0) < frac ? 1 : 0);
           for (let k = 0; k < n; k++) {
             const h1 = Math.abs(Math.sin((idx * 31 + k * 17) * 0.7531) * 43758.5453) % 1, h2 = Math.abs(Math.sin((idx * 47 + k * 29) * 0.3417) * 24631.27) % 1, h3 = Math.abs(Math.sin((idx * 13 + k * 7) * 1.913) * 9312.1) % 1;
+            const h4 = Math.abs(Math.sin((idx * 71 + k * 13) * 0.2113) * 15731.73) % 1;
             const ux = -1024 + cx * 2 + h1 * 2, uz = -1024 + cz * 2 + h2 * 2, x = -ux;
-            pts.push(x, hAt(x, uz), uz, h3 * 6.283, gs.w[0] + h1 * (gs.w[1] - gs.w[0]));
+            pts.push(x, hAt(x, uz), uz, h3 * 6.283, gs.w[0] + h1 * (gs.w[1] - gs.w[0]), h4);
           }
         }
-        const D = new Float32Array(pts), N = D.length / 5, grid = /* @__PURE__ */ new Map(), cs = 16;
+        const D = new Float32Array(pts), N = D.length / 6, grid = /* @__PURE__ */ new Map(), cs = 16;
         for (let i = 0; i < N; i++) {
-          const k = Math.floor(D[i * 5] / cs) + "," + Math.floor(D[i * 5 + 2] / cs);
+          const k = Math.floor(D[i * 6] / cs) + "," + Math.floor(D[i * 6 + 2] / cs);
           let a = grid.get(k);
           if (!a) grid.set(k, a = []);
           a.push(i);
@@ -1211,28 +1250,55 @@
         W.grass.push({ im, D, grid, cs, max });
       }
       W.grassAt = null;
+      W.gDens = Q.grass / GMAX;
+      W.gR = Q.grassR;
+      W.gBuilt = [-1, -1];
     }
+    function stepGrass(dt) {
+      if (!W.grass.length) return;
+      const td = Q.grass / GMAX, tr = Q.grassR;
+      W.gDens += Math.sign(td - W.gDens) * Math.min(Math.abs(td - W.gDens), dt * 0.18);
+      W.gR += Math.sign(tr - W.gR) * Math.min(Math.abs(tr - W.gR), dt * 4);
+      if (Math.abs(W.gDens - W.gBuilt[0]) > 0.02 || Math.abs(W.gR - W.gBuilt[1]) > 1) updateGrass(true);
+    }
+    var NEAR_MIN = 0.3;
+    var NEAR_R = 10;
+    var NEAR_RMIN = 16;
+    var GMARG = 5;
+    var GRAMP = 0.1;
     function updateGrass(force) {
       if (!W.grass.length) return;
-      const c = camera.position, R2 = W.focus ? Math.min(Q.grassR, 30) : Q.grassR;
-      const ref = W.focus ? new THREE.Vector3(W.focus.x, c.y, W.focus.z) : c;
-      if (!force && W.grassAt && W.grassAt.distanceTo(ref) < 4) return;
+      const c = camera.position, R0 = W.focus ? Math.min(W.gR, 30) : W.gR, R2 = Math.max(R0, W.playerPos ? NEAR_RMIN : 0);
+      const fw = new THREE.Vector3();
+      camera.getWorldDirection(fw);
+      fw.y = 0;
+      if (fw.lengthSq() > 1e-6) fw.normalize();
+      const ref = W.focus ? new THREE.Vector3(W.focus.x, c.y, W.focus.z) : c.clone().addScaledVector(fw, R2 * 0.3);
+      if (!force && W.grassAt && W.grassAt.distanceTo(ref) < 3) return;
       W.grassAt = ref.clone();
+      W.gBuilt = [W.gDens, W.gR];
+      const P2 = W.playerPos, dens = W.gDens;
       const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), ax = new THREE.Vector3(0, 1, 0);
       for (const G2 of W.grass) {
         let k = 0;
-        const D = G2.D, cs = G2.cs;
+        const D = G2.D, cs = G2.cs, RR = R2 * 1.3 + GMARG, RM2 = (R0 + GMARG) * (R0 + GMARG);
         if (R2 > 0) {
-          const x0 = Math.floor((ref.x - R2) / cs), x1 = Math.floor((ref.x + R2) / cs), z0 = Math.floor((ref.z - R2) / cs), z1 = Math.floor((ref.z + R2) / cs);
+          const x0 = Math.floor((ref.x - RR) / cs), x1 = Math.floor((ref.x + RR) / cs), z0 = Math.floor((ref.z - RR) / cs), z1 = Math.floor((ref.z + RR) / cs);
           for (let gx = x0; gx <= x1 && k < G2.max; gx++) for (let gz = z0; gz <= z1 && k < G2.max; gz++) {
             const a = G2.grid.get(gx + "," + gz);
             if (!a) continue;
             for (const i of a) {
-              const dx = D[i * 5] - ref.x, dz = D[i * 5 + 2] - ref.z;
-              if (dx * dx + dz * dz > R2 * R2) continue;
-              p.set(D[i * 5], D[i * 5 + 1], D[i * 5 + 2]);
-              q.setFromAxisAngle(ax, D[i * 5 + 3]);
-              const sc = D[i * 5 + 4];
+              const o = i * 6, x = D[o], z = D[o + 2], dx = x - c.x, dz = z - c.z, dc2 = dx * dx + dz * dz;
+              let thr = dc2 <= RM2 && R0 > 0 ? dens : 0;
+              if (P2) {
+                const px = x - P2.x, pz = z - P2.z, dp = Math.sqrt(px * px + pz * pz);
+                if (dp < NEAR_RMIN) thr = Math.max(thr, NEAR_MIN * (1 - Math.max(0, dp - NEAR_R) / (NEAR_RMIN - NEAR_R)));
+              }
+              const f = (thr - D[o + 5]) / GRAMP;
+              if (f <= 0) continue;
+              p.set(x, D[o + 1], z);
+              q.setFromAxisAngle(ax, D[o + 3]);
+              const sc = D[o + 4] * Math.min(1, f);
               s.set(sc, sc, sc);
               m4.compose(p, q, s);
               G2.im.setMatrixAt(k++, m4);
@@ -1244,7 +1310,7 @@
         G2.im.instanceMatrix.needsUpdate = true;
       }
       const sh = W.matG.userData.sh;
-      if (sh) sh.uniforms.uFade.value.set(R2 * 0.7, R2);
+      if (sh) sh.uniforms.uFade.value.set(R2 * 0.72, R2);
     }
     function buildWater() {
       const V = W.M, H = W.h, ht = W.heightTex;
@@ -4799,6 +4865,9 @@
             A3.bm.setMatrixAt(A3.id, m);
           }
         }
+        W.playerPos = PL.on ? PL.pos : null;
+        stepGrass(dt);
+        stepLods();
         if (frame % 4 === 0) {
           updateLods(false);
           updateGrass(false);
@@ -5158,6 +5227,23 @@
   // ---------------------------------------------------------------------------
   // ENREGISTREMENT
   // ---------------------------------------------------------------------------
+  const PG_UNITY_URL = 'https://gt40benjamin.github.io/pegase-web/';
+  function mountUnity(root, api) {
+    root.textContent = '';
+    if (getComputedStyle(root).position === 'static') root.style.position = 'relative';   // la bibliothèque met .game-root en absolute + inset:0 : ne pas l'écraser (sinon hauteur 0)
+    const f = document.createElement('iframe');
+    f.src = PG_UNITY_URL;
+    f.title = 'Pégase';
+    f.allow = 'fullscreen; autoplay; gamepad; screen-wake-lock';
+    f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000';
+    root.appendChild(f);
+    return {
+      destroy() { try { f.src = 'about:blank'; } catch (e) { /* rien */ } root.textContent = ''; },
+      currentScore() { return 0; },
+      currentLevel() { return 1; }
+    };
+  }
+
   window.JDW_GAMES = window.JDW_GAMES || {};
   window.JDW_GAMES.pegase = {
     id: 'pegase',
@@ -5167,6 +5253,9 @@
     scoreLabel: 'points',
     preview,
     mount(root, api) {
+      // 17 oct. 2026 : la tuile (porte « labo ») ouvre la version UNITY de Pégase — le même jeu que l'appli Android —, publiée à part
+      // sur https://gt40benjamin.github.io/pegase-web/ (dépôt pegase-web, TEST). « ?pgweb=three » = l'ancienne version three.js, gelée.
+      if (!/[?&]pgweb=three\b/.test(location.search)) return mountUnity(root, api);
       const env = makeEnv(root, api);
       let inst = null, gone = false;
       (async () => {
