@@ -70,30 +70,33 @@ spec design/SPEC.md). Paquets `assets/mandale.moteur.bin`, `mandale.commun.bin`,
 (Monsieur Plancha) ; musiques `assets/music/dkombat-*.bin`. Combattants = PBR Fighters (Unity Asset Store, toujours emballés) ; tête du
 joueur = masque 3D fabriqué depuis son selfie (MediaPipe Face Landmarker, cache IndexedDB `jdw-mk`). Contrat : DUO-CONTRACT.md « Ajout : duel 3D ».
 Animations Mixamo à télécharger par l'utilisateur : liste dans l'atelier (MIXAMO-A-TELECHARGER.md).
-**Pégase** (source/games/pegase.js, id `pegase`, balade en vraie 3D, three.js r180) : EN ESSAI derrière la porte « labo » depuis le 16 oct. 2026
-(`LABO = new Set(['pegase'])` : tuile visible seulement après `…/jouer/?labo=pegase`, ou 7 touches sur le titre dans l'appli). DEPUIS LA 1.19.1 (17 oct.), la tuile ouvre la version
-UNITY 6 de Pégase (le même jeu que l'appli native) : `mountUnity()` (wrap/tail.js) remplit le jeu d'une iframe plein cadre sur
-https://gt40benjamin.github.io/pegase-web/ (dépôt à part GT40benjamin/pegase-web, page d'essai, données découpées, ~320 Mo au 1er
-chargement puis en cache), publiée par `~/jdv-tools/pegase/web-site/pack-web.js` + `publier-web.js` ; `?pgweb=three` = l'ancienne version
-three.js décrite ci-dessous (gelée). Le village au bord
-du lac à l'heure dorée (Dreamscape Village + cerfs Eastlands, Polyart), Pégase (PROTOFACTOR) qui s'envole quand on approche, une héroïne BoZo
-(garde-robe de l'atelier avatar ; mouvements KayKit CC0 recopiés os par os), papillons « AI butterfly », particules, jour ⇄ nuit, vue 3e / 1re
-personne (V) : tout est de l'Asset Store, donc JAMAIS en clair. Paquets : `assets/pegase.moteur.bin` (three.js complet, MIT, gzippé, global
-`window.JDW_PG3` : ne touche pas au moteur de Magic Force), `pegase.monde.bin` (~5,2 Mo : la première image arrive avec lui), `pegase.vie.bin`
-(Pégase, cerfs, mouvements), `pegase.perso.bin` (héroïne), `pegase.pres.bin` (détails proches, chargé en jouant), `pegase.garde.bin` (autres
-tenues, à la demande) ; un seul sel pour tous (clé dérivée une fois). Pas de défaite : le score = les découvertes (Pégase, cerfs, moulin, lac,
-nuit) ; « Quitter » les enregistre. Musique : celle de l'accueil (`MUSIC_AS` dans shell2.js). Qualité réglée toute seule et gardée PAR VERSION
-(`jdw.pegase.qualite` = { v: PG_BUILD, path, gpu, tier, dyn, hz } : une nouvelle version repart de zéro). DEUX CHEMINS DE RENDU (17 oct.) :
-ordinateur = « post » (image HDR, puis lueur, rayons, étalonnage, FXAA en passes plein écran) ; téléphone = « direct » (rendu à l'écran avec
-MSAA ×4, tons + étalonnage dans les matériaux, vignettage en CSS, lueur du soleil en sprite, ombre VSM statique : les passes plein écran en
-flottant coûtent trop cher aux GPU « en tuiles » des téléphones, cf. Mandale Kombat), niveaux « tél. beau / doux / sobre » à 2,25 / 2 / 1,75 px/point,
-plancher 1,5 px/pt sur GPU costaud (Mali-G7x, Adreno 6xx+, Apple : départ toujours au moins « tél. doux »), réglage par petits pas (jamais pendant
-un déballage de paquet ni dans les 5 s après le chargement), 120 i/s si l'appareil suit ; `?pgpath=post|direct` pour essayer l'autre chemin.
-Sonde de vitesse « perf pegase: » (une fois par appareil et par version ; `?perf=1` ou 5 touches sur « ✨ 0 / 5 » : à chaque partie, résumé à 20 s,
-à 60 s, ou partiel en quittant ; px/pt réels, MSAA, temps GPU si dispo, couches de pixels, journal des niveaux) lisible avec `node ~/jdv-tools/erreurs.js`. Atelier `~/jdv-tools/pegase/borne` : pegase.js est
-ASSEMBLÉ (`node tools/assemble.js` : src/*.js regroupés par esbuild + wrap/) — modifier l'atelier, pas le fichier ; paquets `node tools/pack.js`
-(données `~/jdv-tools/pegase/web2/data`, garde-robe `~/jdv-tools/pegase/avatar/web/data`), moteur `node tools/moteur.js` ; harnais et tests dans
-`borne/test/` (harnais.html, labo.js, mesure.js, sonde.js). PG_BUILD (en tête de wrap/head.js) change à chaque livraison.
+**Pégase** (source/games/pegase.js, id `pegase`) : le JEU est l'appli Pégase (Unity 6, `D:\Games\PegaseUnity6`, à installer : PC Windows d'abord,
+Android ensuite via la borne 1.8, iPhone plus tard) ; dans la borne, la tuile ouvre le **HUB de Pégase** (DEPUIS LA 1.19.2, 17 oct. 2026), toujours EN ESSAI
+derrière la porte « labo » (`LABO = new Set([..., 'pegase'])` : tuile visible seulement après `…/jouer/?labo=pegase`, ou 7 touches sur le titre dans
+l'appli). Plus de jeu web : l'iframe Unity (pegase-web, 1.19.1) et l'ancienne balade three.js (1.18.5 → 1.19.1, `?pgweb=three`) sont RETIRÉES, avec
+leurs paquets (monde / vie / pres / ancienne garde). Le hub = une page qui défile (préfixe CSS `pgh-`, plan : `~/jdv-tools/pegase/HUB-PLAN.md`) :
+(1) haut de page : vraie photo du jeu (`accueil/pegase-hub-lac.webp`) + Pégase 2D qui passe dans le ciel (preview / horse du module) + l'AVATAR 3D
+du joueur sur un rondin à l'heure dorée (three.js de `assets/pegase.moteur.bin`, chargé APRÈS l'affichage, repli 2D sans WebGL), glisser = tourner,
+toucher = un geste (coucou, saut, regard, rire, tour sur soi ; boutons 👋 🎉 😄 💫), étiquette du pseudo au-dessus de la tête ; (2) galerie
+« Le monde de Pégase » (photos du JEU, `accueil/pegase-hub-*.webp` — jamais de fichier de l'Asset Store en clair) ; (3) « Mon avatar » : le
+**Dressing** plein cadre, mêmes choix que le Dressing du jeu (`PegaseWardrobe.cs` : 7 personnages Sally, Chloé, Mary, Zulle, Javi, John, Galvon ×
+7 coiffures × 7 vêtements × 6 accessoires → UN numéro de tenue `o = B + 7·((H−B) mod 7) + 49·((V−B) mod 7) + 343·A`), gardé sur l'appareil par
+joueur (`jdw.pegase.garde.<PSEUDO|INVITE>` = `{"v":1,"tenue":o,"desc":"…"}`, le format de `garde-robe.json` du jeu) ; « synchronisé avec le jeu
+bientôt » (PAS de serveur : attend le « ok serveur » de l'utilisateur) ; bouton « Utiliser comme photo de profil » : portrait détouré 160 × 200
+de l'avatar (fond transparent) enregistré par le MÊME chemin que la photo des réglages (`api.profilePhoto`, CONTRACT.md Ajout 7 : save_player ou,
+« Seulement dans <salle> », save_room_look ; refusé aux invités) ; (4) « Installer Pégase » : fiche `telecharger/pegase-pc.json` = { version, size,
+sha256, url, notes } (absente / 404 = « Bientôt disponible » ; ne pas la créer à la main, c'est la publication du build PC qui la pose), 3 étapes
+(télécharger le zip → extraire → Pégase.exe) + l'écran bleu SmartScreen expliqué, Android / iPhone « À venir » ; (5) « Bientôt dans le hub » (missions,
+copains, classement, album et musée, téléphone du personnage, appels vidéo). `noScore: true` : pas de ligne de record en haut, Quitter = retour.
+Paquets EMBALLÉS (personnages BoZo) : `assets/pegase.perso.bin` (catalogue, corps, tête, accessoires, pièces partagées) + `pegase.garde.<perso>.bin`
+(7, à la demande) ; Sally d'entrée ≈ 1 Mo avec le moteur. Correspondance jeu ⇄ web : personnage = corps / peau / visage / yeux (+ barbe) du
+personnage du pack (`looks` du catalogue), coiffure = hb + hf + couleurs, vêtements = haut / bas / robe / chaussures, accessoire 0 = ceux du
+personnage, 1 = aucun, 2-5 = chapeau de paille, lunettes rondes, petites cornes, antennes (couleurs du personnage qui le porte, comme le jeu).
+Atelier : `~/jdv-tools/pegase/borne/hub` (src/ = avatar 3D : avatar.js copie de l'atelier avatar + gestes, stage.js, main.js ; wrap/head.js +
+wrap/tail.js = la page ; `node tools/assemble.js` → out/pegase.js à copier dans source/games/ ; paquets `node tools/pack.js` ; images
+`python tools/images.py` ; harnais `test/harness.html` (serveur : `PORT=8833 node ~/jdv-tools/pegase/tools/serve.js ~/jdv-tools/pegase/borne/hub`),
+captures `node test/shots.js`). Test de la borne : `~/jdv-tools/test-pegase-labo.tmp.js`. L'ancien atelier three.js (borne/src, wrap/) est gardé, non publié.
+Musique : celle de l'accueil (`MUSIC_AS` dans shell2.js).
 **Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Magic Force, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux, Casse-Carreaux : tous les jeux solo ont la leur ;
 Magic Force 1.12.2 : dessinée entièrement par la bibliothèque, MAP_DEFS.magic, à partir de worlds / worldOf / levelsPerWorld / drawWorldIcon du jeu ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte
@@ -129,7 +132,7 @@ Page (section « Applis natives » de shell2.js, feuille `#jdw-natif`) : `NATIVE
 1.8+, la tuile Pégase ouvre l'appli native si elle est installée et à jour (`pegase://open?from=borne&v=…`), sinon la feuille : installer
 (tout de suite en Wi-Fi, question d'abord en données mobiles), mettre à jour (« Mettre à jour » / « Jouer »), ancienne version signée
 autrement (désinstaller puis installer), erreurs (place, blocage Samsung, réseau…) ; étiquette « 📲 Appli » / « Mise à jour » sur la tuile.
-Navigateurs, iPhone, appli < 1.8, téléphone sans arm64, fiche absente (404) : version web inchangée ; `?natif=web` force la version web.
+Navigateurs, iPhone, appli < 1.8, téléphone sans arm64, fiche absente (404) : la tuile ouvre le hub de Pégase (page de la borne) ; `?natif=web` force le hub.
 Fiche `telecharger/pegase.json` = { pkg, versionCode, versionName, size, sha256, url, cert, minSdk, abi } écrite par
 `~/jdv-tools/pegase/android-bridge/publier-pegase.sh` ; l'APK (trop gros pour Pages) = release GitHub `pegase-v<versionCode>` du dépôt
 (fichier d'abord, fiche ensuite ; retirer la fiche = retour à la version web). Clé de Pégase hors dépôt : `~/jdv-tools/keys/` (réglages Unity :

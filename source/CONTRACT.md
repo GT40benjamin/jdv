@@ -133,3 +133,9 @@ alors des morceaux calmes aux morceaux énergiques quand le jeu devient difficil
 - Sans ces paramètres, le jeu doit se comporter EXACTEMENT comme avant.
 - L'ancien `api.mode = 'compet'` (mode Compétition, retiré de la borne) n'existe plus : aucun jeu ne doit l'attendre.
 Jouer à deux, ensemble contre le jeu (mode Coop) : `COOP-CONTRACT.md`.
+
+## Ajout 7 : photo de profil fabriquée par un jeu (api.profilePhoto)
+`api.profilePhoto.info()` → `{ guest, room }` (guest = invité ou pas de pseudo : rien à enregistrer ; room = nom de la salle actuelle, '' sinon).
+`await api.profilePhoto.set(dataUrl, 'all' | 'room')` → `{ ok, sent }` ou `{ ok: false, why: 'guest' | 'image' }` : image `data:image/webp|png;base64`
+(tête détourée sur fond transparent, 160 × 200 comme les selfies, ≤ 120 000 caractères), enregistrée par le MÊME chemin que la photo des
+réglages (profil principal : save_player ; « Seulement dans la salle » : save_room_look). Utilisé par le hub de Pégase (portrait de l'avatar 3D).

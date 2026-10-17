@@ -468,6 +468,26 @@ async function pushProfile() {
   return ok;
 }
 
+// Tête fabriquée par un jeu (Pégase : portrait de l'avatar 3D, détouré, 160 × 200) : même chemin que la photo des réglages (« ✓ » de
+// #jdw-ph-ok) : profil principal (save_player) ou seulement la salle actuelle (save_room_look). Jamais pour un invité. Renvoie
+// { ok, sent } (sent = false : gardée sur l'appareil, renvoyée plus tard) ou { ok: false, why: 'guest' | 'image' }.
+function gamePhotoInfo() { return { guest: isGuest() || !profile.name, room: ONLINE && room && profile.name && !isGuest() ? String(room.name || '') : '' }; }
+async function gameSetPhoto(data, scope) {
+  if (isGuest() || !profile.name) return { ok: false, why: 'guest' };
+  if (typeof data !== 'string' || !/^data:image\/(webp|png);base64,[A-Za-z0-9+/=]+$/.test(data) || data.length > 120000) return { ok: false, why: 'image' };
+  const rid = scope === 'room' && ONLINE && room ? room.id : null;
+  if (rid != null) {
+    const L = lookTouch(rid); L.photo = data; L.photoBase = null; L.photoAcc = null; saveProfile();
+    players.delete(cleanName(profile.name)); syncOwnPlayer(); refreshAll();
+    const sent = await pushRoomLook() && !roomLookMissing;
+    return { ok: true, sent };
+  }
+  profile.photo = data; profile.photoBase = null; profile.photoAcc = null; profile.consent = true; profile.askedFor = cleanName(profile.name); saveProfile();
+  players.delete(cleanName(profile.name)); syncOwnPlayer(); refreshAll();
+  const sent = await pushProfile();
+  return { ok: true, sent };
+}
+
 /* ================= Erreurs : remontées au serveur + sauvetage du score ================= */
 const BUILD = window.JDW_BUILD || 'dev';
 const errSeen = new Set(); let errCount = 0;
@@ -6186,6 +6206,7 @@ function mountGame(g) {
     heads: () => headsShown(),
     player: playerObj(),
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
+    profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
@@ -6379,7 +6400,7 @@ function recReset() { REC.leader = ''; REC.score = -1; REC.passed = ''; REC.flas
 function recLine() {
   const el = $('jdw-recline');
   if (current && current.coop && !$('jdw-play').hidden) { coopRecLine(el); return; }
-  if (!current || $('jdw-play').hidden || !$('jdw-end').hidden || isGuest()) { el.hidden = true; return; }   // invité : pas de classement
+  if (!current || $('jdw-play').hidden || !$('jdw-end').hidden || isGuest() || current.game.noScore) { el.hidden = true; return; }   // invité : pas de classement ; noScore : page sans score (hub de Pégase)
   const g = current.game, me = cleanName(profile.name), lead = top(g.id)[0], u = unit(g);
   let cur = 0;
   try { if (!current.over && current.inst && current.inst.currentScore) cur = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
