@@ -1730,7 +1730,7 @@
       }
       const view = { yaw: 0.3, vyaw: 0, target: null, focus: null, w: 1, h: 1, spin: 0 };
       const FR = { y: 0.9, h: 2.5 }, FRT = { y: 0.9, h: 2.5 };
-      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 } };
+      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 }, parle: { y: 1.47, h: 1 } };
       function setFrame(k) {
         const f = FRAMES[k] || FRAMES.corps;
         FRT.y = f.y;
@@ -1804,6 +1804,7 @@
         lastX = e.clientX;
         downT = performance.now();
         view.target = null;
+        view.homeT = 0;
       };
       const onMove = (e) => {
         const r = canvas.getBoundingClientRect(), f = view.focus || { x: 0, y: 0, w: r.width, h: r.height };
@@ -1864,7 +1865,12 @@
           } else {
             view.yaw += view.vyaw * dt;
             view.vyaw *= Math.exp(-dt * 3.5);
-            if (Math.abs(view.vyaw) < 0.01) view.yaw += 0.3 * Math.sin(tt * 0.12) * 0.15 * dt;
+            if (view.home) {
+              if (Math.abs(view.vyaw) < 0.08) {
+                view.homeT = (view.homeT || 0) + dt;
+                if (view.homeT > 0.9 && Math.abs(view.yaw - Math.round(view.yaw / (Math.PI * 2)) * Math.PI * 2) > 0.02) view.target = 0;
+              }
+            } else if (Math.abs(view.vyaw) < 0.01) view.yaw += 0.3 * Math.sin(tt * 0.12) * 0.15 * dt;
           }
         }
         turn.rotation.y = view.yaw;
@@ -1884,9 +1890,9 @@
             t = null;
           }
           A.talk = t;
-          if (t && t.w > 0.05) {
+          if (t && !ptr.size) {
             A.lookAt = true;
-            A.lookTarget.set(Math.sin(tt * 0.7) * 0.05, 0.03);
+            A.lookTarget.set(Math.sin(tt * 0.7) * 0.05 + Math.sin(tt * 0.23) * 0.03, 0.03 + Math.sin(tt * 0.31) * 0.02);
             lookT = 0.4;
           }
         }
@@ -2065,6 +2071,11 @@
         setTalk(fn) {
           talkFn = typeof fn === "function" ? fn : null;
           if (!talkFn) A.talk = null;
+        },
+        setHome(on) {
+          view.home = !!on;
+          view.homeT = 0;
+          if (on) view.target = 0;
         },
         face() {
           view.target = 0;
@@ -3088,7 +3099,8 @@
         meShot();
         later(() => { if (STG && !editing && !friendOn) STG.gesture('wave'); }, 900);
         window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, info: SG.info(), ready: SG.ready(),
-          friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D) }) };
+          friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D),
+          voice: MIC.on ? { label: MIC.label, f0: Math.round(MIC.f0), f0m: Math.round(MIC.f0m), flat: +MIC.flat.toFixed(2), emo: Object.fromEntries(Object.entries(MIC.emo).map(([k, v]) => [k, +v.toFixed(2)])) } : null }) };
         thumbPump();
         gardePull();
       } catch (e) {
@@ -3155,7 +3167,7 @@
     const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
     function micUi() { $.mic.classList.toggle('on', MIC.on); $.mic.title = MIC.on ? 'Couper le micro' : 'Parler (micro)'; if (!MIC.on) $.mic.style.setProperty('--lv', 0); }
     function micStop() {
-      MIC.on = false; if (STG) STG.setTalk(null);
+      const was = MIC.on; MIC.on = false; if (STG) { STG.setTalk(null); if (was) { STG.setHome(false); STG.setFrame(editing ? (FR_CAT[cat] || 'corps') : 'corps'); } }
       try { if (MIC.stream) MIC.stream.getTracks().forEach((t) => t.stop()); } catch (e) { /* rien */ }
       try { if (MIC.ctx) MIC.ctx.close(); } catch (e) { /* rien */ }
       MIC.stream = MIC.ctx = MIC.an = null; micUi();
@@ -3167,14 +3179,15 @@
       MIC.busy = true;
       try {
         const AC = window.AudioContext || window.webkitAudioContext; MIC.ctx = new AC();          // créé dans le toucher (iPhone)
-        MIC.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+        MIC.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false } });
         if (dead) { micStop(); return; }
         if (MIC.ctx.state === 'suspended') await MIC.ctx.resume();
-        const src = MIC.ctx.createMediaStreamSource(MIC.stream), an = MIC.ctx.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = 0.3; src.connect(an);
+        const src = MIC.ctx.createMediaStreamSource(MIC.stream), an = MIC.ctx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = 0.3; src.connect(an);
         Object.assign(MIC, { an, src, td: new Float32Array(an.fftSize), fd: new Float32Array(an.frequencyBinCount), floor: 0.004, env: 0, slow: 0, w: 0, quiet: 9, press: 0, brow: 0, lvUi: -1,
-          s: { Jaw_Open: 0, Mouth_Oh: 0, Mouth_Pucker: 0, Mouth_Wide: 0, Mouth_Press: 0, Brows_Raised: 0 }, on: true });
-        STG.setTalk(micTalk); micUi(); store.set('jdw.pegase.micok', '1'); tone(660, 990);
-        if (STG) STG.face();
+          s: { Jaw_Open: 0, Mouth_Oh: 0, Mouth_Pucker: 0, Mouth_Wide: 0, Mouth_Press: 0, Brows_Raised: 0 }, on: true,
+          fr: 0, f0: 0, f0m: 0, flat: 0, hist: [], emo: { rire: 0, surprise: 0, calme: 0, chuchote: 0, colere: 0 }, typ: 0, typN: 0, angOn: false, angT: 0, talkT: 0, laughOn: false, laughT: 0, sur: 0, onsetT: -9, onsetF0: 0, label: 'silence', bob: 0 });
+        if (window.JDW_PG_TEST) window.__pgMIC = MIC; STG.setTalk(micTalk); micUi(); hintOff(); store.set('jdw.pegase.micok', '1'); tone(660, 990);
+        if (STG) { STG.setFrame('parle'); STG.setHome(true); }
       } catch (e) { micStop(); toast(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? '🎤 Micro refusé : autorise-le dans les réglages du navigateur' : '🎤 Micro indisponible'); }
       finally { MIC.busy = false; }
     }
@@ -3183,7 +3196,10 @@
       an.getFloatTimeDomainData(MIC.td); let q = 0; for (let i = 0; i < MIC.td.length; i++) q += MIC.td[i] * MIC.td[i];
       const rms = Math.sqrt(q / MIC.td.length);
       MIC.floor = rms < MIC.floor ? MIC.floor * 0.85 + rms * 0.15 : MIC.floor * 0.9995 + rms * 0.0005;   // bruit de fond qui s'adapte
-      const L = Math.min(1, Math.sqrt(Math.max(0, rms - MIC.floor * 1.6) / 0.06));
+      MIC.pkr = Math.max(rms, (MIC.pkr || 0.03) * Math.exp(-dt / 2.5), 0.012);                        // crête récente (gain automatique)
+      const L = Math.pow(Math.min(1, Math.max(0, rms - MIC.floor * 1.6) / Math.max(0.008, MIC.pkr * 0.8 - MIC.floor * 1.6)), 0.7);
+      const now = performance.now() / 1000;
+      if ((MIC.fr = MIC.fr + 1) % 2 === 0) { let f = L > 0.08 ? pitchOf(MIC.td, MIC.ctx.sampleRate) : 0; const pv = MIC.f0 || MIC.f0p || 0; if (f && pv) { const q = f / pv; if (q > 1.75 && q < 2.3) f /= 2; else if (q > 0.43 && q < 0.57) f *= 2; } if (f) MIC.f0p = f; MIC.f0 = f; }   // une image sur deux ; sauts d'octave corrigés   // une image sur deux (téléphone)
       const att = 1 - Math.exp(-dt / 0.03), rel = 1 - Math.exp(-dt / 0.1);
       const prev = MIC.env; MIC.env += (L - MIC.env) * (L > MIC.env ? att : rel);
       MIC.slow += (MIC.env - MIC.slow) * (1 - Math.exp(-dt / 0.45));
@@ -3192,6 +3208,10 @@
       const band = (a, b) => { let e = 0; for (let k = Math.floor(a / hz), n = Math.min(MIC.fd.length - 1, Math.ceil(b / hz)); k <= n; k++) e += Math.pow(10, MIC.fd[k] / 10); return e; };
       const e1 = band(250, 900), e2 = band(900, 2500), e3 = band(2500, 7000), eLo = band(90, 250);
       const r2 = e2 / (e1 + e2 + 1e-12), r3 = e3 / (e1 + e2 + e3 + 1e-12), low = eLo / (eLo + e1 + 1e-12);
+      // planéité du spectre 300–6000 Hz (souffle, rire, chuchotement : proche de 1 ; voyelle chantée : proche de 0)
+      { let sl = 0, sa = 0, n = 0; for (let k = Math.floor(300 / hz), e = Math.min(MIC.fd.length - 1, Math.ceil(6000 / hz)); k <= e; k++) { const p = Math.pow(10, MIC.fd[k] / 10) + 1e-14; sl += Math.log(p); sa += p; n++; }
+        const fl = n ? Math.exp(sl / n) / (sa / n) : 0; MIC.flat += (fl - MIC.flat) * 0.25; }
+      const emo = emotions(now, dt, L, r2, r3, rms);
       const wide = sm(0.4, 0.66, r2), round = sm(0.28, 0.1, r2) * (1 - wide), u = round * sm(0.35, 0.65, low), o = round - u * 0.6, sib = sm(0.35, 0.6, r3);
       const open = Math.max(0, 1 - wide * 0.7 - round * 0.6 - sib * 0.5);
       const E = MIC.env;
@@ -3199,15 +3219,88 @@
       if (prev > 0.2 && L < 0.04 && MIC.press < 0.1) MIC.press = 0.8; MIC.press = Math.max(0, MIC.press - dt / 0.16);
       // sourcils sur les syllabes fortes
       if (L - MIC.slow > 0.5 && MIC.brow < 0.3) MIC.brow = Math.min(1, MIC.brow + 0.7); MIC.brow = Math.max(0, MIC.brow - dt / 0.6);
-      const T = { Jaw_Open: E * (0.22 + 0.78 * open) * 0.95 + E * wide * 0.12 + E * sib * 0.08, Mouth_Oh: E * o * 0.8, Mouth_Pucker: E * u * 0.8, Mouth_Wide: E * (wide * 0.85 + sib * 0.35),
-        Mouth_Press: MIC.press * (1 - E) * 0.9, Brows_Raised: MIC.brow * 0.45 };
+      const wh = 1 - 0.6 * emo.chuchote, er = emo.rire, es = emo.surprise, ec = emo.calme * (1 - emo.colere), ea = emo.colere;
+      const T = { Jaw_Open: (E * (0.22 + 0.78 * open) * 0.95 + E * wide * 0.12 + E * sib * 0.08) * wh + er * 0.12 + es * 0.28, Mouth_Oh: E * o * 0.8 * wh + es * 0.7, Mouth_Pucker: E * u * 0.8 + emo.chuchote * 0.15,
+        Mouth_Wide: E * (wide * 0.85 + sib * 0.35) * wh + er * 0.5 + ec * 0.25, Mouth_Press: MIC.press * (1 - E) * 0.9 + emo.chuchote * 0.25, Brows_Raised: Math.max(MIC.brow * 0.45, es, er * 0.35),
+        Mouth_Happy: (er * 1 + ec * 0.42) * (1 - ea), Eyes_LowerClosed: er * 0.7 + ec * 0.1 + ea * 0.5, Eyes_UpperClosed: er * 0.28 + ea * 0.12, Eyes_UpperOpen: es * (1 - ea), Eyes_LowerOpen: es * 0.6,
+        Brow_Angry: ea * 1, Brows_Lowered: ea * 1, Mouth_Sad: ea * 0.35 };
+      T.Mouth_Press += ea * 0.3 * (1 - E); T.Brows_Raised *= 1 - ea; T.Mouth_Wide += ea * E * 0.2;
+      for (const k in T) if (MIC.s[k] == null) MIC.s[k] = 0;
       const ka = 1 - Math.exp(-dt / 0.04), kr = 1 - Math.exp(-dt / 0.08);
       for (const k in T) { const c = MIC.s[k]; MIC.s[k] = c + (T[k] - c) * (T[k] > c ? ka : kr); }
       // poids de la parole : monte vite, retombe doucement après ~0,5 s de silence
       MIC.quiet = E > 0.06 ? 0 : MIC.quiet + dt;
       MIC.w += ((MIC.quiet < 0.5 ? 1 : 0) - MIC.w) * (1 - Math.exp(-dt / (MIC.quiet < 0.5 ? 0.08 : 0.35)));
       const lv = Math.round(Math.min(1, L * 1.2) * 20) / 20; if (lv !== MIC.lvUi) { MIC.lvUi = lv; $.mic.style.setProperty('--lv', lv); }
-      return { w: MIC.w, v: MIC.s, nod: (MIC.env - MIC.slow) * 0.11, tilt: Math.sin(performance.now() / 1300) * 0.04 * MIC.w };
+      MIC.bob += dt * 7; const lw = Math.max(MIC.w, er, es, ec * 0.8);
+      return { w: Math.max(lw, ea), v: MIC.s, nod: (MIC.env - MIC.slow) * (0.11 + ea * 0.12) + er * 0.06 * Math.max(0, MIC.env - MIC.slow + 0.2) * Math.sin(MIC.bob) - es * 0.08 + ea * 0.05,
+        tilt: Math.sin(performance.now() / 1300) * 0.04 * lw + er * 0.05 + ea * 0.06 * Math.sin(MIC.bob * 1.7) * Math.max(0, MIC.env - MIC.slow) * 3 };
+    }
+    // hauteur de la voix : autocorrélation normalisée (1 échantillon sur 2), 75–480 Hz ; 0 = pas de voix nette (souffle, bruit)
+    function pitchOf(td, sr) {
+      const N = td.length >> 1, x = MIC.px || (MIC.px = new Float32Array(N)); let m = 0;
+      for (let i = 0; i < N; i++) { x[i] = td[i * 2]; m += x[i]; } m /= N; let r0 = 0; for (let i = 0; i < N; i++) { x[i] -= m; r0 += x[i] * x[i]; }
+      if (r0 < 1e-7) return 0;
+      const s2 = sr / 2, l0 = Math.floor(s2 / 480), l1 = Math.min(N - 64, Math.ceil(s2 / 75)); let best = 0, bl = 0;
+      for (let l = l0; l <= l1; l++) { let r = 0, e2 = 0; for (let i = 0; i < N - l; i++) { r += x[i] * x[i + l]; e2 += x[i + l] * x[i + l]; } const c = r / Math.sqrt(r0 * e2 + 1e-12); if (c > best) { best = c; bl = l; } }
+      if (best <= 0.62 || bl <= l0) return 0;
+      const hl = Math.round(bl / 2); if (hl >= l0) { let r = 0, e2 = 0; for (let i = 0; i < N - hl; i++) { r += x[i] * x[i + hl]; e2 += x[i + hl] * x[i + hl]; } if (r / Math.sqrt(r0 * e2 + 1e-12) > best * 0.97) bl = hl; }
+      return s2 / bl;
+    }
+    // EXPRESSIONS devinées dans la voix (rien d'enregistré) : rire = rafales RÉGULIÈRES de 3,5 à 9 par seconde avec des creux nets ;
+    // surprise = attaque forte après un silence + voix qui MONTE (« oh ! », « quoi ?! ») ; chuchotement = du son sans hauteur, soufflé ;
+    // parole douce = voix posée et pas forte. Poids lissés + hystérésis (pas de clignotement).
+    function emotions(now, dt, L, r2, r3, rms) {
+      const H = MIC.hist; H.push([now, MIC.env, MIC.f0, MIC.flat, L, r2, r3]); while (H.length && now - H[0][0] > 1.8) H.shift();
+      if (MIC.f0 > 0 && MIC.sur < 0.2) { MIC.f0m = MIC.f0m ? MIC.f0m + (MIC.f0 - MIC.f0m) * 0.02 : MIC.f0; MIC.f0n = (MIC.f0n || 0) + 1; }
+      // rafales (rire)
+      const pk = [], pki = []; let mn = 1;
+      for (let i = 1; i < H.length; i++) { const e = H[i][4]; mn = Math.min(mn, e); if (e > 0.5 && mn < 0.25 && (!pk.length || H[i][0] - pk[pk.length - 1] > 0.09)) { pk.push(H[i][0]); pki.push(i); mn = e; } }
+      let laugh = 0;
+      const rec = pk.filter((t) => now - t < 1.6), ri = pki.slice(pk.length - rec.length);
+      // au milieu de chaque rafale : hauteur et voyelle
+      const mid = ri.map((i) => H[Math.min(H.length - 1, i + 3)]), hf0 = mid.map((h) => h[2]).filter((v) => v > 0), vr = mid.map((h) => h[5]);
+      const hm = hf0.slice().sort((p, q) => p - q)[hf0.length >> 1] || 0, hf = hf0.map((v) => { while (v < hm / 1.45) v *= 2; while (v > hm * 1.45) v /= 2; return v; });   // octaves repliées
+      const spread = (a) => { if (a.length < 3) return 9; const m = a.reduce((p, q) => p + q, 0) / a.length; return Math.sqrt(a.reduce((p, q) => p + (q - m) * (q - m), 0) / a.length) / (Math.abs(m) + 1e-6); };
+      const same = hf.length >= Math.max(3, rec.length - 2) && spread(hf) < 0.16 && spread(vr) < 0.6;
+      if (rec.length >= 4 && same) {
+        const d = []; for (let i = 1; i < rec.length; i++) d.push(rec[i] - rec[i - 1]);
+        const m = d.reduce((a, b) => a + b, 0) / d.length, sd = Math.sqrt(d.reduce((a, b) => a + (b - m) * (b - m), 0) / d.length), cv = sd / m, rate = 1 / m;
+        laugh = sm(3.2, 4, rate) * (1 - sm(8.5, 10, rate)) * (1 - sm(0.18, 0.3, cv)) * Math.min(1, (rec.length - 2.5) / 2) * (0.75 + 0.5 * sm(0.08, 0.3, MIC.flat));
+      }
+      if (laugh > 0.5) { MIC.laughOn = true; MIC.laughT = now; } else if (MIC.laughOn && laugh < 0.25 && now - MIC.laughT > 0.7) MIC.laughOn = false;
+      // surprise : attaque après un silence, puis la voix monte (ou très haute / très forte)
+      const before = H.filter((h) => now - h[0] > 0.1 && now - h[0] < 0.7), quiet = before.length > 6 && before.every((h) => h[4] < 0.12);
+      if (quiet && L > 0.6) MIC.onsetT = now;
+      const ended = H.length > 8 && H.slice(-7).every((h) => h[4] < 0.15);
+      if (now - MIC.onsetT > 1.15) MIC.onsetT = -9;                                    // trop long : c'est une phrase, pas un « oh ! »
+      else if (ended && now - MIC.onsetT > 0.3) {
+        const med = (a) => { const b = a.filter((v) => v > 0).sort((p, q) => p - q); return b.length >= 3 ? b[b.length >> 1] : 0; };
+        const vs = H.filter((h) => h[0] >= MIC.onsetT - 0.06 && h[2] > 0).map((h) => h[2]), f1 = med(vs.slice(0, 7)), f2 = med(vs.slice(-7));
+        const rise = f1 && f2 ? f2 / f1 : 1, high = f2 && MIC.f0m && MIC.f0n > 40 ? f2 / MIC.f0m : 1;
+        if (!MIC.laughOn && (rise > 1.18 || high > 1.4)) MIC.sur = 1;
+        MIC.onsetT = -9;
+      }
+      MIC.sur = Math.max(0, MIC.sur - dt / 1.6);
+      const voicedNow = MIC.f0 > 0 && L > 0.3, act5 = H.filter((h) => now - h[0] < 0.6 && h[4] > 0.3), vfr = act5.length > 5 ? act5.filter((h) => h[2] > 0).length / act5.length : 0;
+      let ang = -1;
+      if (L > 0.3 && vfr > 0.3) {
+        const ratio = MIC.typ ? rms / MIC.typ : 1, hfr = H.slice(-20).filter((h) => h[4] > 0.3).reduce((a, h, i, A) => a + h[6] / A.length, 0);
+        ang = sm(1.7, 2.8, ratio) * (0.55 + 0.45 * sm(0.06, 0.2, hfr)) * (MIC.typN > 30 ? 1 : 0);
+        if (ang < 0.3 && !MIC.laughOn && voicedNow) { MIC.typ = MIC.typ ? MIC.typ + (rms - MIC.typ) * (MIC.typN < 60 ? 0.05 : 0.006) : rms; MIC.typN++; }   // ta voix habituelle (apprise en parlant)
+      }
+      if (ang >= 0) MIC.angS = (MIC.angS || 0) + (ang - (MIC.angS || 0)) * (1 - Math.exp(-dt / 0.25)); else MIC.angS = (MIC.angS || 0) * Math.exp(-dt / 1.2);   // entre deux cris : retombe lentement
+      if (MIC.angS > 0.5) { MIC.angOn = true; MIC.angT = now; } else if (MIC.angOn && now - MIC.angT > 1.4) MIC.angOn = false;
+      MIC.talkT = MIC.w > 0.5 ? MIC.talkT + dt : 0;
+      // chuchotement : du son, pas de hauteur, soufflé ; parole douce : voix posée, pas forte
+      const act = H.filter((h) => h[4] > 0.3), un = act.length > 20 ? act.filter((h) => !h[2] && h[3] > 0.02).length / act.length : 0;
+      const voiced = act.length > 10 ? act.filter((h) => h[2] > 0).length / act.length : 0, avg = act.length ? act.reduce((a, h) => a + h[1], 0) / act.length : 0;
+      const T = { rire: MIC.laughOn ? 1 : 0, surprise: Math.min(1, MIC.sur * 1.6), chuchote: !MIC.laughOn && un > 0.8 ? 1 : 0, colere: MIC.angOn && !MIC.laughOn ? 1 : 0 };
+      T.calme = !T.rire && !T.chuchote && !T.colere && MIC.sur < 0.1 && voiced > 0.45 && MIC.talkT > 1.2 ? 1 : 0;      // parler posément : petit sourire
+      for (const k in T) { const c = MIC.emo[k], up = T[k] > c; MIC.emo[k] = c + (T[k] - c) * (1 - Math.exp(-dt / (up ? (k === 'surprise' ? 0.07 : k === 'colere' ? 0.15 : 0.18) : (k === 'rire' ? 0.5 : k === 'colere' ? 0.9 : 0.35)))); }
+      const best = Object.entries(MIC.emo).sort((a, b) => b[1] - a[1])[0];
+      MIC.label = best[1] > 0.45 ? best[0] : MIC.w > 0.5 ? 'parle' : 'silence';
+      return MIC.emo;
     }
     on($.mic, 'click', (e) => { e.stopPropagation(); if (MIC.on) { micStop(); tone(520, 360); return; } if (store.get('jdw.pegase.micok')) micStart(); else $.micm.classList.add('on'); });
     on($.micm, 'click', (e) => { const h = e.target.closest('[data-h]'); if (e.target === $.micm || (h && h.dataset.h === 'micno')) { $.micm.classList.remove('on'); return; } if (h && h.dataset.h === 'micok') { $.micm.classList.remove('on'); micStart(); } });

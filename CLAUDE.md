@@ -116,6 +116,13 @@ bouton **🎤** (micro) : la bouche de l'avatar suit la voix, analyse SUR L'APPA
 Mouth_Oh, Mouth_Pucker, Mouth_Wide, Mouth_Press, Brows_Raised du pack ; `STG.setTalk`, `Avatar.talk`), rien n'est enregistré ni envoyé ;
 carte **Ma maison** (onglet Moi) : petit plan vu de dessus si `pg_get_doc` maison existe (format du jeu `{v, lot, p:[[id,x,z,l,r,y]…]}`), sinon
 « Ta maison t'attend : obtiens le permis de construire » ; étapes d'installation : nom du zip tiré de la fiche, dossier Pegase, Pegase.exe.
+**Hub 2.2 (17 oct.)** : micro ouvert = GROS PLAN tête-épaules (`setFrame('parle')`), l'avatar revient face à toi après un glissé
+(`setHome`) et te regarde ; EXPRESSIONS devinées dans la voix, sur l'appareil (Web Audio : hauteur par autocorrélation, planéité du spectre,
+rafales du niveau, niveau absolu par rapport à ta voix habituelle ; poids lissés + hystérésis) : rire (rafales régulières 3,5–9/s, même
+hauteur), surprise (attaque après un silence + voix qui monte, jugée à la fin d'un « oh ! » court), colère (ton seulement : bien plus fort que
+d'habitude, voix tendue ; AUCUNE reconnaissance de mots : elle enverrait le son à un serveur), chuchotement (son sans hauteur), parole posée
+(petit sourire). Essais : `node test/expressions.js` (voix SYNTHÉTIQUES `test/voix/*.wav`, fabrique.py / colere.py + voix Windows),
+`node test/mic.js`. Le micro est ouvert sans gain automatique du navigateur (gain maison) pour garder la vraie force de la voix.
 Images plus vives : étalonnage dans `tools/images.py` (grade) + petit étalonnage après le tonemapping dans les matériaux (`gradeOnce`, main.js).
 Atelier : `~/jdv-tools/pegase/borne/hub` (src/ = avatar 3D : avatar.js copie de l'atelier avatar + gestes, stage.js, main.js ; wrap/head.js +
 wrap/tail.js = la page ; `node tools/assemble.js` → out/pegase.js à copier dans source/games/ ; paquets `node tools/pack.js` ; images
