@@ -84,7 +84,7 @@ toucher = un geste (coucou, saut, regard, rire, tour sur soi ; boutons 👋 🎉
 joueur (`jdw.pegase.garde.<PSEUDO|INVITE>` = `{"v":1,"tenue":o,"desc":"…"}`, le format de `garde-robe.json` du jeu) ; (hub 2 : aussi sur le serveur, voir plus bas) ; bouton « Utiliser comme photo de profil » : portrait détouré 160 × 200
 de l'avatar (fond transparent) enregistré par le MÊME chemin que la photo des réglages (`api.profilePhoto`, CONTRACT.md Ajout 7 : save_player ou,
 « Seulement dans <salle> », save_room_look ; refusé aux invités) ; (4) « Installer Pégase » : fiche `telecharger/pegase-pc.json` = { version, size,
-sha256, url, notes } (absente / 404 = « Bientôt disponible » ; ne pas la créer à la main, c'est la publication du build PC qui la pose), 3 étapes
+sha256, url, notes } (absente / 404 = « Bientôt disponible » ; ne pas la créer à la main, c'est la publication du build PC qui la pose : le zip du player Unity va en pré-version GitHub avec `node ~/jdv-tools/pegase/android-bridge/release-pc.js <zip> pegase-pc-v<n> <nom.zip> "<titre>" --go` (jamais « latest », jamais remplacer un fichier publié : nouveau build = nouveau tag), puis la fiche pointe sur son lien ; 1.19.4 : essai 1, tag pegase-pc-v1), 3 étapes
 (télécharger le zip → extraire → Pégase.exe) + l'écran bleu SmartScreen expliqué, Android / iPhone « À venir » ; (5) « Bientôt dans le hub » (missions,
 copains, classement, album et musée, téléphone du personnage, appels vidéo). `noScore: true` : pas de ligne de record en haut, Quitter = retour.
 Paquets EMBALLÉS (personnages BoZo) : `assets/pegase.perso.bin` (catalogue, corps, tête, accessoires, pièces partagées) + `pegase.garde.<perso>.bin`
