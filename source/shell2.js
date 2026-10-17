@@ -5866,6 +5866,304 @@ function netGuestPauseCard() {
   }, 1200);
 })();
 
+/* ================= Applis natives (appli Android 1.8+) : Pégase en vraie appli ================= */
+// Dans l'appli Android 1.8 et suivantes (window.JDWAndroid : android-apktool/java/Natif.java), la tuile d'un jeu de NATIVE_APPS ouvre
+// l'appli native quand elle est installée et à jour. Sinon la feuille #jdw-natif la télécharge (DownloadManager d'Android : continue si on
+// quitte la borne), vérifie son empreinte SHA-256, puis Android demande « Installer ? » une seule fois ; les mises à jour suivantes passent
+// sans question sur Android 12+ (c'est la borne qui l'a installée). Fiche publiée à côté de la page de téléchargement :
+// telecharger/<id>.json = { pkg, versionCode, versionName, size, sha256, url, cert, minSdk, abi, open }. Pas de fiche (404), navigateur,
+// iPhone, appli < 1.8, téléphone incompatible : la version web du jeu, inchangée. Essais : ?natif=web force la version web sur l'appareil,
+// ?natif=auto revient au fonctionnement normal. Plus tard : un jeton de session court dans l'adresse pegase://open (compte de la borne).
+const NATIVE_APPS = { pegase: 'telecharger/pegase.json' };
+const NAT = { b: null, g: null, info: null, inst: null, kind: '', ui: '', ev: null, open: false, raf: 0, spd: [], busy: false, go: '', later: '',
+  confirmAt: 0, keepT: 0, readyToast: '', party: '' };
+NAT.b = (() => { try { const b = window.JDWAndroid; return b && typeof b.api === 'function' && b.api() >= 1 ? b : null; } catch (e) { return null; } })();
+(() => { try { const q = new URLSearchParams(location.search).get('natif'); if (q === 'web' || q === 'auto') store.set('jdw.natif.mode', q); } catch (e) {} })();
+const natJ = s => { try { return typeof s === 'string' && s ? JSON.parse(s) : null; } catch (e) { return null; } };
+const natMo = n => { n = +n || 0; return n >= 1e9 ? (n / 1e9).toFixed(1).replace('.', ',') + ' Go' : Math.max(1, Math.round(n / 1e6)) + ' Mo'; };
+const natSha = i => String((i && i.sha256) || '').toLowerCase();
+const NAT_FLOW = /^(download|verify|ready|prepare|install|confirm)$/;
+function nativeFor(g) { return !!(NAT.b && g && NATIVE_APPS[g.id] && store.get('jdw.natif.mode', 'auto') !== 'web'); }
+function nativeOk(i) {
+  return !!(i && typeof i === 'object' && /^[a-zA-Z]\w*(\.[a-zA-Z]\w*)+$/.test(i.pkg || '') && +i.versionCode > 0 && /^[0-9a-f]{64}$/i.test(i.sha256 || '')
+    && +i.size > 0 && /^https?:\/\//.test(i.url || ''));
+}
+// la fiche telecharger/<id>.json, gardée sur l'appareil (sans réseau, on sait quand même ouvrir l'appli installée) ; 404 = fiche retirée
+async function nativeInfo(id) {
+  const key = 'jdw.natif.' + id; let info = null, gone = false;
+  try {
+    const base = new URL(ROOT + NATIVE_APPS[id], location.href);
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null, to = ctl ? setTimeout(() => ctl.abort(), 6000) : 0;
+    const r = await fetch(base.href + '?t=' + Date.now(), { cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+    clearTimeout(to);
+    if (r.status === 404) gone = true;
+    else if (r.ok) { info = await r.json(); if (info && info.url) info.url = new URL(info.url, base).href; }
+  } catch (e) {}
+  if (gone) { store.set(key, null); return null; }
+  if (nativeOk(info)) { store.set(key, info); return info; }
+  info = store.get(key, null);
+  return nativeOk(info) ? info : null;
+}
+function nativeDevice() { try { return natJ(NAT.b.device()) || {}; } catch (e) { return {}; } }
+function nativeFits(info) {
+  const d = nativeDevice();
+  if (+d.sdk && +d.sdk < (+info.minSdk || 24)) return false;
+  return !(info.abi && Array.isArray(d.abis) && d.abis.length && !d.abis.includes(info.abi));
+}
+function nativeInstalled(info) { try { return natJ(NAT.b.appInstalled(info.pkg)); } catch (e) { return null; } }
+function nativeJob() { try { return natJ(NAT.b.installState()) || { state: 'idle' }; } catch (e) { return { state: 'idle' }; } }
+const nativeCertOff = (inst, info) => !!(inst && info.cert && inst.cert && String(inst.cert).toLowerCase() !== String(info.cert).toLowerCase());
+
+// toucher la tuile : ouvrir l'appli, ou la feuille (installer / mettre à jour / reprendre), ou la version web
+async function nativeOpen(g) {
+  if (NAT.busy) return;
+  NAT.busy = true;
+  const tl = tiles.find(t => t.g === g); if (tl) tl.el.classList.add('tile-busy');
+  let info = null;
+  try { info = await nativeInfo(g.id); } catch (e) {}
+  NAT.busy = false; if (tl) tl.el.classList.remove('tile-busy');
+  if (!info || !nativeFits(info)) { openGame(g, true); return; }   // pas (encore) d'appli pour ce téléphone : la version de la borne
+  NAT.g = g; NAT.info = info;
+  const inst = nativeInstalled(info), job = nativeJob();
+  nativeChips();
+  if (job.pkg === info.pkg && job.sha === natSha(info) && NAT_FLOW.test(job.state)) { nativeSheet(inst ? 'update' : 'install', inst, job); return; }   // déjà en route : on reprend
+  if (nativeCertOff(inst, info)) { nativeSheet('replace', inst); return; }
+  if (inst && +inst.versionCode >= +info.versionCode) { nativeLaunch(); return; }
+  nativeSheet(inst ? 'update' : 'install', inst);
+}
+function nativeLaunch() {
+  const i = NAT.info; let ok = false;
+  try { ok = !!(i && NAT.b.openApp(i.pkg, (i.open || 'pegase://open') + '?from=borne&v=' + encodeURIComponent(window.JDW_VERSION || ''))); } catch (e) {}
+  if (!ok) { nativeSheet('broken', NAT.inst); return false; }
+  if (NAT.open) nativeClose(true);
+  return true;
+}
+function nativeSheet(kind, inst, job) {
+  const g = NAT.g, i = NAT.info, card = $('jdw-natif').querySelector('.natif-card');
+  NAT.kind = kind; NAT.inst = inst || null; NAT.spd = []; NAT.confirmAt = 0;
+  card.style.setProperty('--acc', g.accent || COLORS.amber);
+  $('jdw-natif-mk-t').textContent = g.title;
+  if (!NAT.open) { NAT.open = true; openSheet('jdw-natif'); nativeHero(); }
+  NAT.keepT = 0; nativeKeep();
+  if (job) { nativeRender(job); nativeGo(); return; }
+  if (kind === 'replace' || kind === 'broken') { nativeRender({ state: kind }); return; }
+  const d = nativeDevice(), need = +i.size * 2 + 150e6;
+  if (+d.free > 0 && +d.free < need) { nativeRender({ state: 'error', err: 'space', need, free: +d.free }); return; }
+  if (kind === 'update') { nativeRender({ state: 'update', metered: !!d.metered }); return; }
+  if (d.metered) { nativeRender({ state: 'data' }); return; }
+  nativeGo();   // en Wi-Fi : ça part tout de suite
+}
+// la feuille ouverte est retenue 30 min : si Android relance la borne (ex. après le réglage « sources inconnues »), elle revient toute seule
+function nativeKeep() { const t = Date.now(); if (NAT.g && t - NAT.keepT > 10000) { NAT.keepT = t; store.set('jdw.natif.open', { id: NAT.g.id, t }); } }
+function nativeGo() {
+  const i = NAT.info; if (!i) return;
+  let r = 'ok';
+  try { r = NAT.b.downloadAndInstall(i.url, i.sha256, +i.size, i.pkg, i.title || NAT.g.title); } catch (e) { r = 'bridge'; }
+  if (r !== 'ok') { nativeRender({ state: 'error', err: 'fiche', msg: String(r) }); return; }
+  if (!NAT_FLOW.test(NAT.ui)) nativeRender({ state: 'download', done: 0, total: +i.size, dl: 1 });
+}
+function nativeClose(silent) {
+  if (!NAT.open) return;
+  NAT.open = false; cancelAnimationFrame(NAT.raf); closeSheet('jdw-natif'); store.set('jdw.natif.open', null);
+  if (/^(download|verify|ready|prepare)$/.test(NAT.ui)) {
+    try { NAT.b.background(); } catch (e) {}   // le téléchargement continue, mais Android ne posera pas sa question sans la feuille
+    if (!silent && NAT.g) toastCheer(NAT.g.title + ' continue de se télécharger en fond', null, true);
+  }
+  NAT.ui = '';
+}
+// vitesse et temps restant (sur les 5 dernières secondes)
+function nativeSpeed(done, tot) {
+  const t = performance.now(), s = NAT.spd;
+  if (s.length && done < s[s.length - 1][1]) s.length = 0;
+  s.push([t, done]); while (s.length > 2 && t - s[0][0] > 5000) s.shift();
+  if (s.length < 2 || t - s[0][0] < 1500) return '';
+  const v = (done - s[0][1]) / ((t - s[0][0]) / 1000); if (!(v > 2000)) return '';
+  const left = (tot - done) / v, mo = v / 1e6;
+  return ' · ' + (mo >= 10 ? Math.round(mo) : mo.toFixed(1).replace('.', ',')) + ' Mo/s · ' + (left < 60 ? 'encore ' + Math.max(1, Math.round(left)) + ' s' : 'encore ~' + Math.round(left / 60) + ' min');
+}
+function nativeErr(ev) {
+  const T = NAT.g.title, R = (h, sub, go, goTxt, web) => ({ h, sub, go: go || 'retry', goTxt: goTxt || 'Réessayer', web: web !== false });
+  switch (ev.err) {
+    case 'net': return R('Le téléchargement s\'est arrêté', 'La connexion a lâché en route. On recommence ?');
+    case 'missing': return R(T + ' n\'est pas encore en ligne', 'Le fichier de l\'appli n\'est pas (encore) publié. Réessaie un peu plus tard.');
+    case 'space': return R('Pas assez de place', T + ' a besoin de ' + natMo(ev.need) + ' libres sur le téléphone (il en reste ' + natMo(ev.free) + '). Fais un peu de place (vidéos, photos…) puis réessaie.', 'dl');
+    case 'storage': return R('Pas assez de place', 'Android n\'a pas pu enregistrer ' + T + ' : fais un peu de place sur le téléphone, puis réessaie.');
+    case 'sha': case 'invalid': return R('Fichier abîmé', 'Le fichier reçu n\'est pas le bon (téléchargement abîmé) : on le reprend depuis le début.');
+    case 'blocked': return R('Installation bloquée', 'Le téléphone bloque les applis venues d\'ailleurs que le Play Store. Sur Samsung : Paramètres › Sécurité et confidentialité › Blocage automatique, à couper le temps d\'installer.');
+    case 'conflict': return R('Une autre version est installée', 'Une version de ' + T + ' faite autrement est déjà sur le téléphone : désinstalle-la, puis la vraie s\'installe.', 'rm', 'Désinstaller l\'ancienne');
+    case 'incompatible': return R('Pas pour ce téléphone', 'Android dit que cette version de ' + T + ' ne marche pas sur ce téléphone. La version de la borne, elle, marche !', 'web', 'Jouer à la version de la borne', false);
+    case 'dm': return R('Téléchargements désactivés', 'Le « Gestionnaire de téléchargement » d\'Android est désactivé : réactive-le dans Paramètres › Applications, puis réessaie.');
+    case 'fiche': return R('Petit souci de notre côté', 'La fiche de l\'appli ' + T + ' n\'est pas bonne. En attendant, joue à la version de la borne.', 'web', 'Jouer à la version de la borne', false);
+    default: return R('L\'installation n\'a pas abouti', 'Android n\'a pas installé ' + T + '. On réessaie ?');
+  }
+}
+const NAT_STEP = { download: 0, verify: 1, ready: 2, prepare: 2, install: 2, confirm: 2, done: 3 };
+function nativeRender(ev) {
+  const g = NAT.g, i = NAT.info; if (!g || !i || !NAT.open) return;
+  const st = ev.state, upd = NAT.kind === 'update', T = g.title, vn = i.versionName ? ' ' + i.versionName : '';
+  const card = $('jdw-natif').querySelector('.natif-card');
+  NAT.ui = st; NAT.ev = ev; nativeKeep();
+  let h = '', sub = '', msg = '', bad = false, pct = -1, meta = '', indet = false, paused = false;
+  let go = '', goTxt = '', later = 'close', laterTxt = 'Plus tard', perm = false, ask = false, web = false, stop = false;
+  switch (st) {
+    case 'data': h = T + ' en vraie appli'; sub = 'Tu es sur les données mobiles et l\'appli pèse ' + natMo(i.size) + ' : le Wi-Fi, c\'est mieux.';
+      go = 'dl'; goTxt = 'Télécharger quand même'; later = 'wifi'; laterTxt = 'J\'attendrai le Wi-Fi'; web = true; break;
+    case 'update': h = T + vn + ' est arrivé !'; sub = 'Mise à jour de ' + natMo(i.size) + (ev.metered ? ' (tu es sur les données mobiles)' : '') + ', puis ' + T + ' s\'ouvre comme d\'habitude.';
+      go = 'dl'; goTxt = 'Mettre à jour'; later = 'old'; laterTxt = 'Jouer'; break;
+    case 'replace': h = 'Une ancienne version est là'; sub = 'Ce téléphone a une version d\'essai de ' + T + ' qu\'Android refuse de remplacer. Désinstalle-la (ses réglages d\'essai partiront) : la vraie s\'installe juste après.';
+      go = 'rm'; goTxt = 'Désinstaller l\'ancienne'; break;
+    case 'broken': h = T + ' ne s\'ouvre pas'; sub = 'L\'appli est sur le téléphone mais Android ne la lance pas. On la réinstalle ?'; go = 'dl'; goTxt = 'Réinstaller'; web = true; break;
+    case 'download': {
+      h = upd ? 'Mise à jour de ' + T + '…' : T + ' s\'installe…';
+      sub = upd ? 'Version' + vn + ' · ' + natMo(i.size) : 'Une seule fois : ensuite, ' + T + ' s\'ouvre directement depuis sa tuile.';
+      const tot = +ev.total || +i.size, done = Math.min(+ev.done || 0, tot);
+      pct = tot ? done / tot : 0;
+      if (+ev.dl === 4) { paused = true; meta = +ev.reason === 3 ? 'En attente du Wi-Fi…' : +ev.reason === 2 ? 'En attente du réseau…' : 'Nouvel essai dans un instant…'; }
+      else if (+ev.dl === 1 && !done) meta = 'Ça démarre…';
+      else meta = natMo(done) + ' / ' + natMo(tot) + nativeSpeed(done, tot);
+      perm = ev.perm === false; stop = true; laterTxt = 'Fermer'; break;
+    }
+    case 'verify': h = upd ? 'Mise à jour de ' + T + '…' : T + ' s\'installe…'; sub = 'On vérifie que le fichier est intact…';
+      pct = +ev.total ? +ev.done / +ev.total : 1; meta = 'Vérification'; perm = ev.perm === false; laterTxt = 'Fermer'; break;
+    case 'ready': h = 'Plus qu\'une étape !'; pct = 1; meta = 'Téléchargé ✓';
+      if (ev.perm === false) { perm = true; sub = 'Android doit d\'abord autoriser la borne à installer des applis (une seule fois).'; }
+      else { sub = T + ' est téléchargé et vérifié.'; go = 'retry'; goTxt = upd ? 'Mettre à jour' : 'Installer'; }
+      break;
+    case 'prepare': h = 'Installation…'; sub = 'On prépare l\'installation…'; pct = +ev.total ? +ev.done / +ev.total : 0; meta = 'Préparation'; laterTxt = 'Fermer'; break;
+    case 'install': h = 'Installation…'; sub = 'Android installe ' + T + '…'; indet = true; meta = upd ? 'Mise à jour en cours' : 'Installation en cours'; laterTxt = 'Fermer'; break;
+    case 'confirm': h = 'À toi de toucher !'; ask = true; laterTxt = 'Fermer'; if (!NAT.confirmAt) NAT.confirmAt = Date.now(); break;
+    case 'done': h = upd ? T + ' est à jour !' : T + ' est installé !'; sub = 'Désormais, sa tuile ouvre directement l\'appli.'; go = 'play'; goTxt = 'Jouer à ' + T; laterTxt = 'Fermer'; break;
+    case 'cancel': h = 'Installation annulée'; sub = 'Pas de souci : ' + T + ' est déjà téléchargé, il ne reste qu\'à l\'installer.'; go = 'retry'; goTxt = upd ? 'Mettre à jour' : 'Installer'; web = !upd; break;
+    case 'error': { const e = nativeErr(ev); h = e.h; sub = e.sub; go = e.go; goTxt = e.goTxt; web = e.web && !upd; bad = true; break; }
+    default: return;
+  }
+  if (upd && NAT.inst && /^(error|cancel)$/.test(st)) { later = 'old'; laterTxt = 'Jouer'; }   // mise à jour ratée : on joue avec la version installée
+  card.dataset.step = st;
+  $('jdw-natif-eyebrow').textContent = (upd ? 'Mise à jour · ' : 'Appli Android · ') + natMo(i.size);
+  $('jdw-natif-h').textContent = h;
+  $('jdw-natif-sub').textContent = sub; $('jdw-natif-sub').hidden = !sub; $('jdw-natif-sub').classList.toggle('bad', bad);
+  const prog = $('jdw-natif-prog');
+  prog.hidden = !(pct >= 0 || indet); prog.classList.toggle('indet', indet); prog.classList.toggle('paused', paused);
+  if (pct >= 0) { const p = Math.max(0, Math.min(1, pct)); $('jdw-natif-fill').style.setProperty('--p', (p * 100).toFixed(1) + '%'); $('jdw-natif-pct').textContent = Math.floor(p * 100) + ' %'; }
+  else $('jdw-natif-pct').textContent = '';
+  $('jdw-natif-info').textContent = meta;
+  const at = NAT_STEP[st], steps = $('jdw-natif-steps');
+  steps.hidden = at === undefined;
+  steps.querySelectorAll('li').forEach((li, n) => { li.classList.toggle('ok', n < at); li.classList.toggle('on', n === at); });
+  $('jdw-natif-perm').hidden = !perm;
+  $('jdw-natif-perm-t').textContent = st === 'download' || st === 'verify' ? 'Pendant ce temps : autorise la borne' : 'Une seule fois : autorise la borne';
+  $('jdw-natif-ask').hidden = !ask;
+  if (ask) {
+    const w = upd ? 'Mettre à jour' : 'Installer';
+    $('jdw-natif-asktxt').textContent = ''; $('jdw-natif-asktxt').append('Android te demande : touche ', Object.assign(document.createElement('b'), { textContent: '« ' + w + ' »' }), '.');
+    $('jdw-natif-mk-q').textContent = upd ? 'Voulez-vous installer une mise à jour de cette application ?' : 'Voulez-vous installer cette application ?';
+    $('jdw-natif-mk-b').textContent = w;
+    const late = Date.now() - NAT.confirmAt > 8000; $('jdw-natif-again').hidden = !late;
+    if (!late) { clearTimeout(NAT.againT); NAT.againT = setTimeout(() => { if (NAT.open && NAT.ui === 'confirm') $('jdw-natif-again').hidden = false; }, 8200 - (Date.now() - NAT.confirmAt)); }
+  } else NAT.confirmAt = 0;
+  const m = $('jdw-natif-msg'); m.hidden = !msg; m.textContent = msg;
+  NAT.go = go; NAT.later = later;
+  const gb = $('jdw-natif-go'); gb.hidden = !go; gb.textContent = goTxt;
+  $('jdw-natif-later').textContent = laterTxt;
+  $('jdw-natif-web').hidden = !web; $('jdw-natif-stop').hidden = !stop;
+  card.querySelector('.natif-foot').classList.toggle('empty', !web && !stop);
+  if (st === 'done' && NAT.party !== natSha(i)) { NAT.party = natSha(i); nativeConfetti(); try { sting('win', 0.7); } catch (e) {} }
+}
+function nativeConfetti() {
+  const box = $('jdw-natif').querySelector('.natif-confetti'), C = ['#ffd34d', '#ffb46a', '#ff6fa8', '#5ef0ff', '#4cc36a', '#fff3c4'];
+  box.textContent = '';
+  for (let n = 0; n < 28; n++) {
+    const e = document.createElement('i');
+    e.style.cssText = '--x:' + (3 + shellRand() * 94).toFixed(1) + '%;--c:' + C[n % C.length] + ';--dx:' + Math.round(shellRand() * 90 - 45) + 'px;--r:' + Math.round(shellRand() * 720 - 360) + 'deg;--w:' + (shellRand() * 0.45).toFixed(2) + 's';
+    box.appendChild(e);
+  }
+}
+// le décor du jeu (son aperçu de tuile) en grand en haut de la feuille
+function nativeHero() {
+  const c = $('jdw-natif-cv'), g = NAT.g; let last = 0;
+  cancelAnimationFrame(NAT.raf);
+  const step = ts => {
+    if (!NAT.open) return;
+    NAT.raf = requestAnimationFrame(step);
+    if (ts - last < 32 || document.hidden) return;
+    last = ts;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const ctx = c.getContext('2d'); ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    try { g.preview(ctx, w, h, ts / 1000); } catch (e) { ctx.fillStyle = '#1d1838'; ctx.fillRect(0, 0, w, h); }
+    ctx.restore();
+  };
+  NAT.raf = requestAnimationFrame(step);
+}
+// la tuile dit « 📲 Appli » quand l'appli est installée, « Mise à jour » quand une nouvelle version attend
+function nativeChips() {
+  if (!NAT.b) return;
+  for (const t of tiles) {
+    if (!NATIVE_APPS[t.g.id]) continue;
+    const info = store.get('jdw.natif.' + t.g.id, null), inst = nativeOk(info) && store.get('jdw.natif.mode', 'auto') !== 'web' ? nativeInstalled(info) : null;
+    let c = t.el.querySelector('.tile-natif');
+    if (!inst) { if (c) c.hidden = true; continue; }
+    if (!c) { c = document.createElement('span'); c.className = 'tile-natif'; (t.el.querySelector('.tile-img') || t.el).appendChild(c); }
+    const maj = +inst.versionCode < +info.versionCode;
+    c.hidden = false; c.classList.toggle('maj', maj); c.textContent = maj ? 'Mise à jour' : '📲 Appli';
+  }
+}
+// nouvelles de l'appli Android (Natif.java) : progression, écran d'Android, fin, erreurs, retour dans la borne (resumed)
+window.JDWAndroidEvent = ev => {
+  try {
+    if (!ev || typeof ev !== 'object') return;
+    if (ev.resumed) nativeChips();
+    const i = NAT.info;
+    if (!i) return;
+    if (NAT.open && NAT.ui === 'replace') { if (ev.resumed && !nativeInstalled(i)) { NAT.kind = 'install'; nativeGo(); } return; }   // ancienne version partie : la vraie arrive
+    if ((ev.pkg && ev.pkg !== i.pkg) || (ev.sha && ev.sha !== natSha(i))) return;
+    if (ev.state === 'openfail') { if (NAT.g) nativeSheet('broken', NAT.inst); return; }
+    if (ev.state === 'settingsfail') { if (NAT.open) { const m = $('jdw-natif-msg'); m.hidden = false; m.textContent = 'Ouvre toi-même Paramètres › Applications › Borne d\'arcade › Installer des applis inconnues.'; } return; }
+    if (ev.state === 'done') nativeChips();
+    if (!NAT.open) {
+      if (ev.state === 'ready' && !ev.auto && NAT.readyToast !== natSha(i) && NAT.g) { NAT.readyToast = natSha(i); toastCheer(NAT.g.title + ' est prêt : touche sa tuile !', null, true); }
+      return;
+    }
+    if (ev.state === 'idle') { if (NAT_FLOW.test(NAT.ui)) nativeClose(true); return; }                                 // tout a été annulé
+    if (/^(data|update|broken)$/.test(NAT.ui) && (ev.resumed || !NAT_FLOW.test(ev.state))) return;                       // une question est posée
+    nativeRender(ev);
+  } catch (e) { reportError('Appli native : ' + e.message, e.stack, { quiet: true }); }
+};
+$('jdw-natif-go').addEventListener('click', () => {
+  const a = NAT.go, i = NAT.info; if (!i) return;
+  try { Audio.ensure(); } catch (e) {}
+  if (a === 'dl') nativeGo();
+  else if (a === 'retry') { const j = nativeJob(); if (j.state === 'idle' || j.sha !== natSha(i)) nativeGo(); else { try { NAT.b.retryInstall(); } catch (e) {} } }
+  else if (a === 'play') nativeLaunch();
+  else if (a === 'rm') { try { NAT.b.uninstall(i.pkg); } catch (e) {} }
+  else if (a === 'web') { const g = NAT.g; nativeClose(true); if (g) openGame(g, true); }
+});
+$('jdw-natif-later').addEventListener('click', () => {
+  if (NAT.later === 'old') { nativeLaunch(); nativeClose(true); return; }   // mise à jour plus tard : l'appli installée s'ouvre
+  if (NAT.later === 'wifi') { nativeClose(true); if (NAT.g) toastCheer('D\'accord : touche ' + NAT.g.title + ' en Wi-Fi', null, true); return; }
+  nativeClose();
+});
+$('jdw-natif-perm-go').addEventListener('click', () => { try { NAT.b.openInstallSettings(); } catch (e) {} });
+$('jdw-natif-again').addEventListener('click', () => { NAT.confirmAt = Date.now(); $('jdw-natif-again').hidden = true; try { NAT.b.retryInstall(); } catch (e) {} });
+$('jdw-natif-web').addEventListener('click', () => { const g = NAT.g; nativeClose(true); if (g) openGame(g, true); });
+$('jdw-natif-stop').addEventListener('click', () => { try { NAT.b.cancelInstall(); } catch (e) {} nativeClose(true); });
+$('jdw-natif').addEventListener('click', e => { if (e.target === $('jdw-natif')) nativeClose(); });
+// au démarrage de la borne (appli 1.8+) : étiquettes des tuiles, fiche relue en douce, feuille rouverte si une installation était en route
+// (le localStorage de la WebView peut perdre ses dernières écritures si Android tue la borne : l'état gardé par l'appli fait foi —
+// auto = la feuille était ouverte, t = dernier changement)
+function nativeBoot() {
+  if (!NAT.b) return;
+  nativeChips();
+  for (const id of Object.keys(NATIVE_APPS)) if (gameById(id)) nativeInfo(id).then(nativeChips).catch(() => {});
+  const o = store.get('jdw.natif.open', null), j = nativeJob();
+  const id = (o && o.id) || Object.keys(NATIVE_APPS).find(k => { const i = store.get('jdw.natif.' + k, null); return i && i.pkg === j.pkg; }) || Object.keys(NATIVE_APPS).find(k => gameById(k));
+  const g = id && gameById(id), now = Date.now();
+  const wanted = (o && now - (+o.t || 0) < 30 * 60e3) || (j.auto && now - (+j.t || 0) < 6 * 3600e3);
+  if (g && wanted && NAT_FLOW.test(j.state)) setTimeout(() => { if (!NAT.open) nativeOpen(g); }, 700);
+  else if (o) store.set('jdw.natif.open', null);
+}
+
 /* ================= Lancer un jeu ================= */
 let current = null, mountSeq = 0;
 function mountGame(g) {
@@ -5914,7 +6212,8 @@ function unmountGame() {
 const LANDSCAPE = new Set(['pleingaz', 'canards', 'rouleaux']);
 const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 900px)');
 let waitRotate = null;
-function openGame(g) {
+function openGame(g, web) {
+  if (!web && nativeFor(g)) { nativeOpen(g); return; }   // appli Android 1.8+ : Pégase en vraie appli (section « Applis natives »)
   if (!isGuest()) {                    // invité : il joue tout de suite (score non enregistré)
     if (!profile.name) { startWelcome(); return; }
     if (ONLINE && !room) { openRooms(); return; }
@@ -8879,6 +9178,7 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 /* ================= Appli Android : retour + mise à jour ================= */
 window.JDW_BACK = () => {
   if (popCloseAll()) return true;
+  if (NAT.open) { nativeClose(); return true; }
   if (!$('jdw-coopgo').hidden) { coopGoClose(); return true; }
   if (!$('jdw-coop-pause').hidden) { coopResume('me'); return true; }
   if (!$('jdw-coopend').hidden) { flushCoopPending(); coopToLib(); return true; }
@@ -9101,6 +9401,7 @@ if (isGuest()) room = null;      // la salle reste retenue sur l'appareil (jdw.r
 syncOwnPlayer();
 buildLibrary(); buildDuoLibrary(); buildCoopLibrary(); buildTabs(); syncMute(); refreshAll(); setMode(MODE);
 requestAnimationFrame(previewLoop);
+nativeBoot();                   // appli Android 1.8+ : Pégase en vraie appli (étiquette de la tuile, installation en route)
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }
 for (const a of document.querySelectorAll('[data-root-href]')) a.setAttribute('href', ROOT + a.dataset.rootHref);   // borne publiée dans jouer/
 guestSync();                    // invité : pas de salle, bandeau « Crée ton compte »

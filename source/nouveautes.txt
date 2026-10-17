@@ -1,2 +1,1 @@
-✨ Magic Force : nouveau rendu pour téléphone (net, bords lisses, plus fluide) ; les iPhone en mode économie restent beaux
-📈 Nouveau réglage d'essai : afficher les images par seconde pendant les jeux (menu du son 🔊)
+📲 Nouvelle appli Android 1.8 : elle saura installer et ouvrir toute seule les prochains jeux en appli (comme Pégase)

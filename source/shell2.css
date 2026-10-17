@@ -2035,3 +2035,108 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 /* compteur d'images par seconde (réglage « Images/s (essai) » du menu du son) : petit, discret, ne gêne pas le jeu */
 #jdw-fps{position:fixed;z-index:60;left:50%;top:max(4px,env(safe-area-inset-top,0px));transform:translateX(-50%);padding:3px 9px;border-radius:9px;font:600 11px/1.3 ui-monospace,Menlo,Consolas,monospace;color:#d8ffe6;background:rgba(5,10,14,.62);pointer-events:none;white-space:nowrap}
 #jdw-fps.slow{color:#ffd28a}#jdw-fps.bad{color:#ff9a9a}
+
+/* ---------- Appli native (appli Android 1.8+) : Pégase s'installe depuis sa tuile (#jdw-natif, section « Applis natives » de shell2.js) ---------- */
+.natif-card{--acc:#ffb46a;position:relative;max-width:440px;
+  background:radial-gradient(130% 60% at 50% 0%,color-mix(in srgb,var(--acc) 14%,transparent),transparent 62%),var(--panel);
+  border-color:color-mix(in srgb,var(--acc) 35%,var(--steel2));box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03) inset}
+.natif-hero{position:relative;aspect-ratio:16/8.4;overflow:hidden;background:#1d1838}
+.natif-hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.natif-hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,8,24,.18) 0%,transparent 30%,transparent 52%,color-mix(in srgb,var(--panel) 92%,transparent) 94%,var(--panel) 100%)}
+.natif-sparks{position:absolute;inset:0;z-index:1;pointer-events:none}
+.natif-sparks i{position:absolute;bottom:4%;left:var(--x);width:var(--s,4px);height:var(--s,4px);border-radius:50%;opacity:0;
+  background:#fff3c4;box-shadow:0 0 8px 2px rgba(255,205,120,.75);animation:natifSpark var(--d,4.6s) linear var(--w,0s) infinite}
+.natif-sparks i:nth-child(1){--x:8%;--d:4.8s;--w:-.4s}.natif-sparks i:nth-child(2){--x:19%;--s:3px;--d:5.6s;--w:-2.1s}
+.natif-sparks i:nth-child(3){--x:31%;--d:4.2s;--w:-3.3s}.natif-sparks i:nth-child(4){--x:44%;--s:5px;--d:6.2s;--w:-1.2s}
+.natif-sparks i:nth-child(5){--x:56%;--s:3px;--d:4.9s;--w:-4s}.natif-sparks i:nth-child(6){--x:66%;--d:5.3s;--w:-.9s}
+.natif-sparks i:nth-child(7){--x:75%;--s:5px;--d:4.4s;--w:-2.7s}.natif-sparks i:nth-child(8){--x:84%;--s:3px;--d:6s;--w:-3.8s}
+.natif-sparks i:nth-child(9){--x:92%;--d:5s;--w:-1.7s}.natif-sparks i:nth-child(10){--x:38%;--s:3px;--d:5.8s;--w:-5s}
+@keyframes natifSpark{0%{opacity:0;transform:translate(0,0) scale(.5)}12%{opacity:1}55%{transform:translate(9px,-60px) scale(1)}
+  100%{opacity:0;transform:translate(-6px,-140px) scale(.7)}}
+.natif-ok{position:absolute;left:50%;top:44%;z-index:3;width:86px;height:86px;margin:-43px 0 0 -43px;opacity:0;transform:scale(.3);pointer-events:none;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.5))}
+.natif-ok svg{width:100%;height:100%;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.natif-ok circle{fill:rgba(10,30,20,.78);stroke:var(--leaf);stroke-width:3}
+.natif-ok path{stroke:#fff;stroke-width:4.6;stroke-dasharray:40;stroke-dashoffset:40}
+.natif-card[data-step=done] .natif-ok{opacity:1;transform:none;transition:opacity .25s,transform .55s cubic-bezier(.2,1.7,.4,1)}
+.natif-card[data-step=done] .natif-ok path{animation:natifTick .5s .3s ease-out forwards}
+@keyframes natifTick{to{stroke-dashoffset:0}}
+.natif-confetti{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.natif-confetti i{position:absolute;top:-10px;left:var(--x);width:7px;height:11px;border-radius:2px;background:var(--c);opacity:0}
+.natif-card[data-step=done] .natif-confetti i{animation:natifConf 1.9s var(--w) cubic-bezier(.25,.7,.4,1) forwards}
+@keyframes natifConf{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),190px) rotate(var(--r))}}
+.natif-card .card-body{position:relative;z-index:2;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:-30px;padding-top:0}
+.natif-card .card-body > *{min-width:0}
+.natif-eyebrow{color:var(--acc);text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.natif-h{margin:-6px 0 0;font:400 clamp(23px,6.8vw,31px)/1.06 var(--display);color:#ffe2bd;
+  background:linear-gradient(180deg,#fff7e3 10%,var(--acc) 72%,#f08a5d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(0,0,0,.38))}
+.natif-sub{color:#b8c7d1;font-size:14px}
+.natif-prog{display:grid;gap:7px}
+.natif-bar{position:relative;height:14px;border-radius:999px;overflow:hidden;background:#0a1219;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.05)}
+.natif-bar i{position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);min-width:14px;border-radius:inherit;overflow:hidden;
+  background:linear-gradient(90deg,#ff7e5f,var(--acc) 55%,#ffe39a);box-shadow:0 0 16px color-mix(in srgb,var(--acc) 70%,transparent);transition:width .5s ease}
+.natif-bar i::before{content:"";position:absolute;inset:0 -40px 0 0;
+  background:repeating-linear-gradient(115deg,rgba(255,255,255,.26) 0 9px,transparent 9px 20px);animation:natifStripes .9s linear infinite}
+.natif-bar i::after{content:"";position:absolute;right:1px;top:1px;bottom:1px;width:12px;border-radius:50%;background:radial-gradient(circle,#fff 0 30%,rgba(255,240,200,0) 72%)}
+@keyframes natifStripes{to{transform:translateX(21.8px)}}
+.natif-prog.indet .natif-bar i{width:34%!important;transition:none;animation:natifSweep 1.35s ease-in-out infinite}
+@keyframes natifSweep{0%{transform:translateX(-105%)}100%{transform:translateX(300%)}}
+.natif-prog.paused .natif-bar i{filter:saturate(.35) brightness(.8)}
+.natif-meta{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted);min-width:0}
+.natif-meta b{font:400 19px/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+.natif-meta span{text-align:right;min-width:0;font-variant-numeric:tabular-nums}
+.natif-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:2px 0 0;padding:0;list-style:none}
+.natif-steps li{position:relative;display:grid;justify-items:center;gap:6px;min-width:0;text-align:center;font-size:11.5px;font-weight:600;color:var(--muted);transition:color .3s}
+.natif-steps li span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.natif-steps b{position:relative;z-index:1;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;font-size:12px;
+  background:var(--steel);color:var(--ink);box-shadow:0 0 0 4px var(--panel);transition:background .3s}
+.natif-steps li + li::before{content:"";position:absolute;z-index:0;top:12px;right:50%;width:100%;height:2px;border-radius:2px;background:var(--line)}
+.natif-steps li.ok + li::before{background:linear-gradient(90deg,var(--leaf),color-mix(in srgb,var(--leaf) 55%,var(--acc)))}
+.natif-steps li.on{color:var(--ink)}
+.natif-steps li.on b{background:var(--acc);color:var(--night);box-shadow:0 0 0 4px var(--panel),0 0 16px color-mix(in srgb,var(--acc) 75%,transparent);animation:newPulse 1.2s ease-in-out infinite}
+.natif-steps li.ok{color:#cdeed6}
+.natif-steps li.ok b{background:var(--leaf);color:transparent}
+.natif-steps li.ok b::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:var(--night);font-size:13px;font-weight:800}
+.natif-box{display:grid;gap:9px;padding:12px;border-radius:14px;background:linear-gradient(135deg,var(--card-hi),var(--card));border:1px solid var(--line)}
+.natif-perm{grid-template-columns:auto minmax(0,1fr);align-items:center;border-color:color-mix(in srgb,var(--gold) 55%,var(--line));animation:natifGlow 2.2s ease-in-out infinite}
+.natif-perm .btn{grid-column:1 / -1}
+.natif-perm b{display:block;font-size:14.5px;color:#ffe9b0}
+.natif-perm small{display:block;margin-top:3px;font-size:12.5px;line-height:1.4;color:var(--muted)}
+.natif-ic{font-size:28px;line-height:1}
+@keyframes natifGlow{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 16%,transparent)}}
+.natif-ask{justify-items:center;text-align:center}
+.natif-mock{width:min(240px,100%);display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:center;padding:12px 14px 11px;border-radius:18px;
+  text-align:left;background:#eef0f7;color:#1c2130;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-shadow:0 10px 28px rgba(0,0,0,.4);
+  transform:rotate(-1.2deg);animation:natifFloat 3s ease-in-out infinite}
+.mk-ic{grid-row:span 2;width:32px;height:32px;border-radius:9px;background:radial-gradient(circle at 35% 30%,#fff3c4,var(--acc) 45%,#7d5cff 100%)}
+.mk-t{font-weight:700;font-size:14px}
+.mk-q{font-size:12px;line-height:1.3;color:#4a5164}
+.mk-b{grid-column:1 / -1;display:flex;justify-content:flex-end;align-items:center;gap:18px;margin-top:8px;font-size:13px;font-weight:600}
+.mk-b em{font-style:normal;color:#5d6577}
+.mk-b strong{position:relative;color:#2a5bd7}
+.mk-b strong::after{content:"";position:absolute;inset:-7px -11px;border-radius:999px;border:2px solid #2a5bd7;animation:natifRing 1.3s ease-out infinite}
+@keyframes natifRing{0%{opacity:.95;transform:scale(.8)}100%{opacity:0;transform:scale(1.4)}}
+@keyframes natifFloat{50%{transform:rotate(-1.2deg) translateY(-3px)}}
+.natif-asktxt{margin:0;font-size:14px;line-height:1.4;color:var(--ink)}
+.natif-asktxt b{color:#ffe2bd}
+.natif-pp{display:flex;gap:8px;align-items:flex-start;margin:2px 0 0;padding-top:9px;border-top:1px solid var(--line);text-align:left;font-size:12.5px;line-height:1.4;color:var(--muted)}
+.natif-pp b{color:#d6e6ee;font-weight:600}
+.natif-msg{color:#ffd6b0;font-size:13.5px}
+.natif-msg.bad{color:#ffb3ba}
+.natif-btns{flex-direction:column;gap:8px}
+.natif-btns .btn{flex:0 0 auto;width:100%;min-height:50px}
+.natif-btns .btn-ghost{min-height:44px}
+.natif-foot{display:flex;justify-content:center;flex-wrap:wrap;gap:4px 18px;margin-top:-4px}
+.natif-foot.empty{display:none}
+.natif-link{appearance:none;background:none;border:0;padding:6px 2px;cursor:pointer;font:600 13px var(--body);color:var(--muted);
+  text-decoration:underline;text-decoration-color:rgba(138,160,174,.45);text-underline-offset:3px}
+.natif-link:hover{color:var(--ink)}
+/* la tuile du jeu : appli installée (📲 Appli) ou mise à jour à installer */
+.tile-natif{position:absolute;left:8px;bottom:10px;z-index:2;padding:4px 8px;border-radius:9px;font:600 11px/1 var(--body);letter-spacing:.02em;
+  color:#ffeccd;background:rgba(10,10,26,.62);border:1px solid rgba(255,214,150,.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.tile-natif.maj{color:var(--night);background:var(--leaf);border-color:transparent;font:400 11px/1 var(--display);animation:newPulse 1.6s ease-in-out infinite}
+.tile.tile-busy .tile-img::before{content:"";position:absolute;left:50%;top:50%;z-index:3;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:raySpin .8s linear infinite}

@@ -109,6 +109,28 @@ Les appareils en 1.6 chargent la racine → l'accueil les renvoie vers jouer/ �
 APK de 0,55 Mo ; sauvegarde de la versionCode 8 : `~/jdv-tools/borne-arcade-1.7-v8.apk`. checkAppVersion (shell2.js) compare le versionCode
 (bandeau « Version 1.7 disponible » pour les 8) ; la cloche, elle, retient le versionName déjà vu (jdw.updseen.app).
 Publier : copier l'APK dans `~/jdv-tools/borne-arcade.apk`, mettre `versionCode`/`versionName`/`size` dans `telecharger/version.json`, lancer publier.sh.
+**1.8 (versionCode 10) : Pégase en appli native, installée depuis la borne.** `java/Natif.java` = pont `window.JDWAndroid` (api, device,
+appInstalled, openApp, canInstall, openInstallSettings, downloadAndInstall, retryInstall, installState, background, cancelInstall, uninstall ;
+nouvelles vers la page : `window.JDWAndroidEvent({ state, … })`, états download → verify → ready → prepare → install → confirm → done | cancel |
+error). Téléchargement par le DownloadManager d'Android (continue hors de la borne), empreinte SHA-256 vérifiée, installation par
+PackageInstaller : Android demande « Installer ? » la 1re fois (+ Google Play Protect peut proposer une analyse), mises à jour SANS question
+sur Android 12+ (la borne est l'installateur de référence). Seulement les paquets fr.bornearcade.* / com.jdv.*, depuis le site ou
+`https://github.com/GT40benjamin/jdv/releases/download/…`. Manifeste : ACCESS_NETWORK_STATE (navigator.onLine devient fiable dans la WebView),
+REQUEST_INSTALL_PACKAGES, REQUEST_DELETE_PACKAGES, UPDATE_PACKAGES_WITHOUT_USER_ACTION, `<queries>` (fr.bornearcade.pegase, com.jdv.pegasetest,
+schéma pegase), récepteur `Natif$Statut`. Android TUE la borne quand on retire l'autorisation « applis inconnues » (et parfois quand on la
+donne) : l'état est gardé par l'appli (SharedPreferences « natif »), la page rouvre la feuille toute seule (nativeBoot). build-apk.sh compile
+tous les `java/*.java` ; `ANDROID_JAR=<sdk>/platforms/android-34/android.jar` compile contre le vrai SDK ; les stubs sont vérifiés identiques
+au SDK par `~/jdv-tools/pegase/android-bridge/test/verif-stubs.sh` (un stub faux = plantage sur le téléphone).
+Page (section « Applis natives » de shell2.js, feuille `#jdw-natif`) : `NATIVE_APPS = { pegase: 'telecharger/pegase.json' }`. Dans l'appli
+1.8+, la tuile Pégase ouvre l'appli native si elle est installée et à jour (`pegase://open?from=borne&v=…`), sinon la feuille : installer
+(tout de suite en Wi-Fi, question d'abord en données mobiles), mettre à jour (« Mettre à jour » / « Jouer »), ancienne version signée
+autrement (désinstaller puis installer), erreurs (place, blocage Samsung, réseau…) ; étiquette « 📲 Appli » / « Mise à jour » sur la tuile.
+Navigateurs, iPhone, appli < 1.8, téléphone sans arm64, fiche absente (404) : version web inchangée ; `?natif=web` force la version web.
+Fiche `telecharger/pegase.json` = { pkg, versionCode, versionName, size, sha256, url, cert, minSdk, abi } écrite par
+`~/jdv-tools/pegase/android-bridge/publier-pegase.sh` ; l'APK (trop gros pour Pages) = release GitHub `pegase-v<versionCode>` du dépôt
+(fichier d'abord, fiche ensuite ; retirer la fiche = retour à la version web). Clé de Pégase hors dépôt : `~/jdv-tools/keys/` (réglages Unity :
+UNITY-PEGASE.md). Atelier, essais (test-natif.js : faux pont dans Chrome ; e2e.js : émulateur Android 15, vrai pont, vrais écrans d'Android) et
+marche à suivre (PUBLIER.md) : `~/jdv-tools/pegase/android-bridge/`.
 
 ## Serveur (Supabase)
 `supabase.sql` = schéma complet (contient la ligne de l'ancien mot de passe, gardé seulement pour get_errors / login_email : remplacer CHANGE-MOI).

@@ -462,6 +462,44 @@
   </div>
 </div>
 
+<!-- Appli native (appli Android 1.8+) : Pégase se télécharge, s'installe, se met à jour et s'ouvre depuis sa tuile (section « Applis natives » de shell2.js) -->
+<div class="sheet" id="jdw-natif" hidden>
+  <div class="card natif-card" role="dialog" aria-modal="true" aria-labelledby="jdw-natif-h" data-step="">
+    <div class="natif-hero">
+      <canvas id="jdw-natif-cv" aria-hidden="true"></canvas>
+      <div class="natif-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="natif-ok" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="23"/><path d="M15 27.5l7.5 7.5L38 19"/></svg></div>
+      <div class="natif-confetti" aria-hidden="true"></div>
+    </div>
+    <div class="card-body">
+      <p class="eyebrow natif-eyebrow" id="jdw-natif-eyebrow"></p>
+      <h2 class="natif-h" id="jdw-natif-h"></h2>
+      <p class="small natif-sub" id="jdw-natif-sub"></p>
+      <div class="natif-prog" id="jdw-natif-prog" hidden>
+        <div class="natif-bar"><i id="jdw-natif-fill"></i></div>
+        <div class="natif-meta"><b id="jdw-natif-pct"></b><span id="jdw-natif-info"></span></div>
+      </div>
+      <ol class="natif-steps" id="jdw-natif-steps" hidden>
+        <li data-k="dl"><b>1</b><span>Téléchargement</span></li><li data-k="ck"><b>2</b><span>Vérification</span></li><li data-k="in"><b>3</b><span>Installation</span></li>
+      </ol>
+      <div class="natif-box natif-perm" id="jdw-natif-perm" hidden>
+        <span class="natif-ic" aria-hidden="true">🔓</span>
+        <div><b id="jdw-natif-perm-t">Une seule fois : autorise la borne</b><small>Android ouvre un réglage : active l’interrupteur « Autoriser… », puis reviens ici avec la flèche retour.</small></div>
+        <button class="btn btn-play btn-sm" id="jdw-natif-perm-go" type="button">Ouvrir le réglage</button>
+      </div>
+      <div class="natif-box natif-ask" id="jdw-natif-ask" hidden>
+        <div class="natif-mock" aria-hidden="true"><i class="mk-ic"></i><span class="mk-t" id="jdw-natif-mk-t">Pégase</span><span class="mk-q" id="jdw-natif-mk-q">Voulez-vous installer cette application ?</span><span class="mk-b"><em>Annuler</em><strong id="jdw-natif-mk-b">Installer</strong></span></div>
+        <p class="natif-asktxt" id="jdw-natif-asktxt"></p>
+        <p class="natif-pp"><span aria-hidden="true">🛡️</span><span>Si <b>Google Play Protect</b> s’affiche ensuite : touche « Analyser l’application » (c’est bien notre appli), ou « Plus de détails » puis « Installer sans analyser ».</span></p>
+        <button class="natif-link" id="jdw-natif-again" type="button" hidden>Je ne vois pas la fenêtre d'Android : la rouvrir</button>
+      </div>
+      <p class="small natif-msg" id="jdw-natif-msg" hidden></p>
+      <div class="row natif-btns"><button class="btn btn-play" id="jdw-natif-go" type="button"></button><button class="btn btn-ghost" id="jdw-natif-later" type="button"></button></div>
+      <div class="natif-foot"><button class="natif-link" id="jdw-natif-web" type="button" hidden>Jouer à la version de la borne</button><button class="natif-link" id="jdw-natif-stop" type="button" hidden>Annuler le téléchargement</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- Inviter des copains : le lien de la salle (…/jouer/?salle=<jeton>, source/invite.sql) -->
 <div class="sheet" id="jdw-invshare" hidden>
   <div class="card inv-card" role="dialog" aria-modal="true" aria-labelledby="jdw-invshare-h">

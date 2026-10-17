@@ -1,0 +1,1 @@
+package android.net; public final class NetworkCapabilities implements android.os.Parcelable { public boolean hasTransport(int t) { return false; } public boolean hasCapability(int c) { return false; } }

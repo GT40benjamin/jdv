@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
     WebView web;
     ValueCallback<Uri[]> fileCb;
     Uri cameraUri;
+    Natif natif;   // 1.8 : applis natives (Pégase) téléchargées, installées et ouvertes depuis la borne (Natif.java)
 
     @Override
     protected void onCreate(Bundle saved) {
@@ -109,6 +110,8 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setUserAgentString(s.getUserAgentString() + " BorneArcade/" + VERSION + " BorneArcadeV/" + VNAME);
         web.addJavascriptInterface(new Bridge(), "BorneApp");
+        natif = new Natif(this, web);
+        web.addJavascriptInterface(natif.bridge(), "JDWAndroid");
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, String url) {
@@ -249,9 +252,11 @@ public class MainActivity extends Activity {
             // retour dans l'appli : le site rafraîchit tout (scores, chat, joueurs, nouvelle version)
             try { web.evaluateJavascript("window.JDW_RESUME && JDW_RESUME()", null); } catch (Throwable ignore) { }
         }
+        if (natif != null) { try { natif.onResume(); } catch (Throwable ignore) { } }   // téléchargement / installation de Pégase en cours
         immersive();
     }
-    @Override protected void onPause() { super.onPause(); if (web != null) web.onPause(); }
+    @Override protected void onPause() { super.onPause(); if (natif != null) natif.onPause(); if (web != null) web.onPause(); }
+    @Override protected void onDestroy() { if (natif != null && Natif.live == natif) Natif.live = null; super.onDestroy(); }
 
     @Override
     public void onBackPressed() {

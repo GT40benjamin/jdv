@@ -9,4 +9,5 @@ public class Activity extends android.content.Context {
   public void requestPermissions(String[] p, int r) {}
   public void onRequestPermissionsResult(int r, String[] p, int[] g) {}
   public void runOnUiThread(Runnable r) {}
+  protected void onNewIntent(android.content.Intent i) {} protected void onDestroy() {}
 }
