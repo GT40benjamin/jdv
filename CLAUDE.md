@@ -81,8 +81,7 @@ toucher = un geste (coucou, saut, regard, rire, tour sur soi ; boutons 👋 🎉
 « Le monde de Pégase » (photos du JEU, `accueil/pegase-hub-*.webp` — jamais de fichier de l'Asset Store en clair) ; (3) « Mon avatar » : le
 **Dressing** plein cadre, mêmes choix que le Dressing du jeu (`PegaseWardrobe.cs` : 7 personnages Sally, Chloé, Mary, Zulle, Javi, John, Galvon ×
 7 coiffures × 7 vêtements × 6 accessoires → UN numéro de tenue `o = B + 7·((H−B) mod 7) + 49·((V−B) mod 7) + 343·A`), gardé sur l'appareil par
-joueur (`jdw.pegase.garde.<PSEUDO|INVITE>` = `{"v":1,"tenue":o,"desc":"…"}`, le format de `garde-robe.json` du jeu) ; « synchronisé avec le jeu
-bientôt » (PAS de serveur : attend le « ok serveur » de l'utilisateur) ; bouton « Utiliser comme photo de profil » : portrait détouré 160 × 200
+joueur (`jdw.pegase.garde.<PSEUDO|INVITE>` = `{"v":1,"tenue":o,"desc":"…"}`, le format de `garde-robe.json` du jeu) ; (hub 2 : aussi sur le serveur, voir plus bas) ; bouton « Utiliser comme photo de profil » : portrait détouré 160 × 200
 de l'avatar (fond transparent) enregistré par le MÊME chemin que la photo des réglages (`api.profilePhoto`, CONTRACT.md Ajout 7 : save_player ou,
 « Seulement dans <salle> », save_room_look ; refusé aux invités) ; (4) « Installer Pégase » : fiche `telecharger/pegase-pc.json` = { version, size,
 sha256, url, notes } (absente / 404 = « Bientôt disponible » ; ne pas la créer à la main, c'est la publication du build PC qui la pose), 3 étapes
@@ -92,10 +91,28 @@ Paquets EMBALLÉS (personnages BoZo) : `assets/pegase.perso.bin` (catalogue, cor
 (7, à la demande) ; Sally d'entrée ≈ 1 Mo avec le moteur. Correspondance jeu ⇄ web : personnage = corps / peau / visage / yeux (+ barbe) du
 personnage du pack (`looks` du catalogue), coiffure = hb + hf + couleurs, vêtements = haut / bas / robe / chaussures, accessoire 0 = ceux du
 personnage, 1 = aucun, 2-5 = chapeau de paille, lunettes rondes, petites cornes, antennes (couleurs du personnage qui le porte, comme le jeu).
+**Hub 2 (17 oct. soir, version patch)** : onglets collés sous le haut de page **Moi / Amis / Infos** (dernier onglet retenu : `jdw.pegase.tab`) ;
+CRÉATEUR SUR PLACE (plus de Dressing plein cadre) : « Modifier » ouvre un panneau en bas (à droite en paysage), l'avatar reste sur sa scène et la
+caméra zoome selon la catégorie (`setFrame` : corps / buste / tete / visage / jambes / pieds) ; 10 catégories avec leur nombre (Personnages, Corps,
+Visage, Coiffures, Hauts, Bas, Robes, Chaussures, Chapeaux, Accessoires) = TOUTE la garde-robe du catalogue BoZo (101 pièces + calques + couleurs),
+TRÈS PEU ouvert au départ (Sally, Javi, John et leurs pièces, peaux et couleurs naturelles), le reste visible avec cadenas, rareté Commun /
+Rare / Légendaire (tier du catalogue), prix en **lucioles** (monnaie du jeu ; symbole « LU » à deux barres : `LU()` dans wrap/tail.js, fichier
+`~/jdv-tools/pegase/art/luciole-symbole.svg`), récompenses (`REWARD`) et **secrets** (`SECRET` : jamais dire comment, « Se débloque d'une manière…
+mystérieuse »). On ESSAIE une pièce verrouillée ; « Enregistrer » ne garde que ce qu'on possède (FREE + ce que portait l'avatar enregistré +
+plus tard `pg_profile.owned`). Format enregistré = `{"v":1,"tenue":o,"desc":"…","look":{apparence complète avatar.js}}` (tenue = personnage de
+départ pour le jeu). Pièces chargées à la demande : un paquet emballé PAR pièce `assets/pegase.pc.<id>.bin` (+ `pc.ly.<calque>`, `pc.head.<k>`)
+et les vignettes par catégorie `assets/pegase.ic.<cat>.bin` ; `PG_PACKMAP` (fichier → paquet, écrit par tools/pack.js dans out/packmap.json,
+injecté par assemble.js) ; `SKIP_OLD=1 node tools/pack.js` ne réécrit pas les paquets déjà publiés. Onglet **Amis** : copains de la salle
+(`api.pegase`, CONTRACT.md Ajout 8 ; RPC `pg_room_avatars` de `~/jdv-tools/pegase/server/pegase.sql` : garde réduite à v / tenue / desc / look),
+vignettes 3D en pied rendues une à une dans le moteur de la page (`STG.thumb`, aucun 2e contexte WebGL), point vert = présence de la borne,
+sans avatar = tête de la borne sur une silhouette ; toucher = le copain en grand (gestes, « Appeler » / « Visiter sa maison » bientôt).
+Avatar sur le serveur (membres) : `pg_get_doc` à l'ouverture (le serveur gagne s'il est plus récent), `pg_put_doc` avec base_rev à
+l'enregistrement (copie locale gardée, `jdw.pegase.garde.<PSEUDO>.srv` = { rev, dirty }) ; porte-monnaie de lucioles (`pg_me`, onglet Moi).
+Images plus vives : étalonnage dans `tools/images.py` (grade) + petit étalonnage après le tonemapping dans les matériaux (`gradeOnce`, main.js).
 Atelier : `~/jdv-tools/pegase/borne/hub` (src/ = avatar 3D : avatar.js copie de l'atelier avatar + gestes, stage.js, main.js ; wrap/head.js +
 wrap/tail.js = la page ; `node tools/assemble.js` → out/pegase.js à copier dans source/games/ ; paquets `node tools/pack.js` ; images
 `python tools/images.py` ; harnais `test/harness.html` (serveur : `PORT=8833 node ~/jdv-tools/pegase/tools/serve.js ~/jdv-tools/pegase/borne/hub`),
-captures `node test/shots.js`). Test de la borne : `~/jdv-tools/test-pegase-labo.tmp.js`. L'ancien atelier three.js (borne/src, wrap/) est gardé, non publié.
+captures `node test/shots2.js` (hub 2) ou `test/shots.js`). Test de la borne : `~/jdv-tools/test-pegase-labo.tmp.js`. L'ancien atelier three.js (borne/src, wrap/) est gardé, non publié.
 Musique : celle de l'accueil (`MUSIC_AS` dans shell2.js).
 **Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Magic Force, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux, Casse-Carreaux : tous les jeux solo ont la leur ;
 Magic Force 1.12.2 : dessinée entièrement par la bibliothèque, MAP_DEFS.magic, à partir de worlds / worldOf / levelsPerWorld / drawWorldIcon du jeu ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :

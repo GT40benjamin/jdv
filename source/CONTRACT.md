@@ -139,3 +139,11 @@ Jouer à deux, ensemble contre le jeu (mode Coop) : `COOP-CONTRACT.md`.
 `await api.profilePhoto.set(dataUrl, 'all' | 'room')` → `{ ok, sent }` ou `{ ok: false, why: 'guest' | 'image' }` : image `data:image/webp|png;base64`
 (tête détourée sur fond transparent, 160 × 200 comme les selfies, ≤ 120 000 caractères), enregistrée par le MÊME chemin que la photo des
 réglages (profil principal : save_player ; « Seulement dans la salle » : save_room_look). Utilisé par le hub de Pégase (portrait de l'avatar 3D).
+
+## Ajout 8 : le hub de Pégase et ses copains (api.pegase, seulement pour le module `pegase`)
+`api.pegase.info()` → `{ guest, online, name, display, room: { id, name } | null, device }` (name = pseudo principal, display = pseudo de salle).
+`api.pegase.members()` → membres de la salle actuelle `[{ name, display, me, online, seen, photo }]` (online = même règle que la liste des joueurs,
+présence en direct ; photo = tête déjà filtrée par le serveur : membres seulement, consentement). Vide pour un invité ou sans salle.
+`await api.pegase.rpc(fn, args)` : SEULEMENT `pg_me`, `pg_get_doc`, `pg_put_doc`, `pg_room_avatars` (pegase.sql), toujours au nom du joueur
+actuel (`p_name` ajouté par la borne, `p_room` = salle actuelle pour pg_room_avatars) ; refusé aux invités (erreur `guest`), hors ligne = erreur `offline`.
+`api.pegase.account()` : invité → quitte le hub et ouvre « Crée ton compte ».

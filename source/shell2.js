@@ -488,6 +488,33 @@ async function gameSetPhoto(data, scope) {
   return { ok: true, sent };
 }
 
+// Hub de Pégase (CONTRACT.md, Ajout 8 : api.pegase) : les copains de la salle (membres, en ligne, têtes déjà filtrées par le serveur),
+// et quelques fonctions Pégase du serveur (pegase.sql), toujours au nom du joueur actuel (p_name) dans la salle actuelle (p_room).
+const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars']);
+function pegaseApi() {
+  const guest = () => isGuest() || !profile.name;
+  return {
+    info: () => { const g = guest(); return { guest: g, online: !!ONLINE && !netOff(), name: g ? '' : cleanName(profile.name), display: g ? '' : dispName(profile.name),
+      room: !g && ONLINE && room ? { id: room.id, name: String(room.name || '') } : null, device: 'borne-' + String(clientId).slice(1, 9) }; },
+    // membres de la salle actuelle (moi compris, me = true) ; online = même règle que la liste des joueurs ; photo = tête (data:/URL) ou null
+    members: () => {
+      if (guest() || !ONLINE || !room) return [];
+      const me = cleanName(profile.name);
+      const on = p => p.name === me || !!p.live || !!p.dbGame || (!PRES.ok && !!p.game);
+      return [...players.values()].filter(p => p.name !== 'IA' && (p.member || p.name === me)).map(p => ({ name: p.name, display: dispName(p.name), me: p.name === me,
+        online: on(p), seen: p.seen || 0, photo: p.photo || null }));
+    },
+    rpc: async (fn, args) => {
+      if (!PG_RPC.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
+      if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
+      const a = Object.assign({}, args || {}, { p_code: CODE(), p_name: profile.name });
+      if (fn === 'pg_room_avatars') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
+      return rpc(fn, a, { quiet: true });
+    },
+    account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); }   // invité : créer un compte (quitte le hub)
+  };
+}
+
 /* ================= Erreurs : remontées au serveur + sauvetage du score ================= */
 const BUILD = window.JDW_BUILD || 'dev';
 const errSeen = new Set(); let errCount = 0;
@@ -6207,6 +6234,7 @@ function mountGame(g) {
     player: playerObj(),
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
+    pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
@@ -9318,7 +9346,8 @@ const GUEST_WHY = {
   'Duel en ligne': 'Défie un copain sur son téléphone, chacun chez soi.',
   'Coop en ligne': 'Joue avec un copain, chacun sur son téléphone : vos scores d\'équipe vont au classement.',
   'Ton joueur': 'Ton pseudo, ta tête détourée et ton cri, dans tous les jeux.',
-  'Le classement': 'Tes records enregistrés, le classement de ta salle et le classement mondial.'
+  'Le classement': 'Tes records enregistrés, le classement de ta salle et le classement mondial.',
+  'Les copains de Pégase': 'Vois les avatars de tes copains, qui est là en ce moment, et garde ton avatar sur ton compte.'
 };
 function guestAsk(what) {
   $('jdw-guestask-h').textContent = what || 'Avec un compte';

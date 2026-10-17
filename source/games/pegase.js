@@ -13,7 +13,9 @@
   // Fichier ASSEMBLÉ depuis l'atelier ~/jdv-tools/pegase/borne/hub (src/*.js + wrap/, `node tools/assemble.js`) : modifier l'atelier.
   // ===========================================================================
 
-  const PG_BUILD = '2026-10-17-hub1';   // version du hub
+  const PG_BUILD = '2026-10-17-hub2';   // version du hub
+  // fichier du créateur → paquet emballé qui le contient (assets/pegase.<paquet>.bin) ; rempli par tools/assemble.js depuis out/packmap.json
+  const PG_PACKMAP = {"perso/m/bot.striped_pants.glb":"pc.bot.striped_pants","perso/t/bot.striped_pants.d.webp":"pc.bot.striped_pants","perso/m/bot.yoga_pants.glb":"pc.bot.yoga_pants","perso/t/bot.yoga_pants.d.webp":"pc.bot.yoga_pants","perso/m/bot.baggy_pants_ankles.glb":"pc.bot.baggy_pants_ankles","perso/t/bot.baggy_pants_ankles.d.webp":"pc.bot.baggy_pants_short","perso/m/bot.baggy_pants_long.glb":"pc.bot.baggy_pants_long","perso/m/bot.baggy_pants_short.glb":"pc.bot.baggy_pants_short","perso/m/bot.big_shorts.glb":"pc.bot.big_shorts","perso/t/bot.big_shorts.d.webp":"pc.bot.big_shorts","perso/m/bot.cargo_pants.glb":"pc.bot.cargo_pants","perso/t/bot.cargo_pants.d.webp":"pc.bot.cargo_pants","perso/m/bot.cargo_pants_short.glb":"pc.bot.cargo_pants_short","perso/t/bot.cargo_pants_short.d.webp":"pc.bot.cargo_pants_short","perso/m/bot.dress_pants.glb":"pc.bot.dress_pants","perso/t/bot.dress_pants.d.webp":"pc.bot.dress_pants","perso/m/bot.jean_skirt.glb":"pc.bot.jean_skirt","perso/t/bot.jean_skirt.d.webp":"pc.bot.jean_skirt","perso/m/bot.jeans.glb":"pc.bot.jeans","perso/t/bot.jeans.d.webp":"pc.bot.jeans","perso/m/bot.loose_jeans.glb":"pc.bot.loose_jeans","perso/t/bot.loose_jeans.d.webp":"pc.bot.loose_jeans","perso/m/bot.pleated_skirt.glb":"pc.bot.pleated_skirt","perso/t/bot.pleated_skirt.d.webp":"pc.bot.pleated_skirt","perso/m/bot.short_shorts.glb":"pc.bot.short_shorts","perso/t/bot.short_shorts.d.webp":"pc.bot.short_shorts","perso/m/bot.shorts.glb":"pc.bot.shorts","perso/t/bot.shorts.d.webp":"pc.bot.shorts","perso/m/bot.skirt.glb":"pc.bot.skirt","perso/t/bot.skirt.d.webp":"pc.bot.skirt","perso/m/feet.sports_shoes.glb":"pc.feet.sports_shoes","perso/t/feet.sports_shoes.d.webp":"pc.feet.sports_shoes","perso/t/feet.sports_shoes.id.webp":"pc.feet.sports_shoes","perso/m/feet.big_boots.glb":"pc.feet.big_boots","perso/t/feet.big_boots.d.webp":"pc.feet.big_boots","perso/m/feet.comfy_shoes.glb":"pc.feet.comfy_shoes","perso/t/feet.comfy_shoes.d.webp":"pc.feet.comfy_shoes","perso/m/feet.cool_shoes.glb":"pc.feet.cool_shoes","perso/t/feet.cool_shoes.d.webp":"pc.feet.cool_shoes","perso/t/feet.cool_shoes.id.webp":"pc.feet.cool_shoes","perso/m/feet.office_shoes.glb":"pc.feet.office_shoes","perso/t/feet.office_shoes.d.webp":"pc.feet.office_shoes","perso/m/feet.school_shoes.glb":"pc.feet.school_shoes","perso/t/feet.school_shoes.d.webp":"pc.feet.school_shoes","perso/m/feet.short_boots.glb":"pc.feet.short_boots","perso/t/feet.short_boots.d.webp":"pc.feet.short_boots","perso/m/feet.shower_sandal.glb":"pc.feet.shower_sandal","perso/t/feet.shower_sandal.d.webp":"pc.feet.shower_sandal","perso/m/feet.slip_ons.glb":"pc.feet.slip_ons","perso/t/feet.slip_ons.d.webp":"pc.feet.slip_ons","perso/m/feet.street_shoes.glb":"pc.feet.street_shoes","perso/t/feet.street_shoes.d.webp":"pc.feet.street_shoes","perso/t/feet.street_shoes.id.webp":"pc.feet.street_shoes","perso/m/feet.work_boots.glb":"pc.feet.work_boots","perso/t/feet.work_boots.d.webp":"pc.feet.work_boots","perso/t/feet.work_boots.id.webp":"pc.feet.work_boots","perso/m/feet.high_lace_shoe.glb":"pc.feet.high_lace_shoe","perso/t/feet.high_lace_shoe.d.webp":"pc.feet.high_lace_shoe","perso/t/feet.high_lace_shoe.id.webp":"pc.feet.high_lace_shoe","perso/m/glov.fingerless.glb":"pc.glov.fingerless","perso/t/glov.fingerless.d.webp":"pc.glov.fingerless","perso/m/glov.work_gloves.glb":"pc.glov.work_gloves","perso/t/glov.work_gloves.d.webp":"pc.glov.work_gloves","perso/m/glov.arm_warmers.glb":"pc.glov.arm_warmers","perso/t/glov.arm_warmers.d.webp":"pc.glov.arm_warmers","perso/m/hb.dread_back.glb":"pc.hb.dread_back","perso/t/hb.dread_back.d.webp":"pc.hb.dread_back","perso/m/hb.flare.glb":"pc.hb.flare","perso/t/hb.flare.d.webp":"pc.hb.flare","perso/m/hb.long_dreads.glb":"pc.hb.long_dreads","perso/t/hb.long_dreads.d.webp":"pc.hb.long_dreads","perso/m/hb.long_streight.glb":"pc.hb.long_streight","perso/t/hb.long_streight.d.webp":"pc.hb.long_streight","perso/m/hb.pony_tail_long.glb":"pc.hb.pony_tail_long","perso/t/hb.pony_tail_long.d.webp":"pc.hb.twin_tail_short","perso/m/hb.pony_tail_short.glb":"pc.hb.pony_tail_short","perso/m/hb.punk.glb":"pc.hb.punk","perso/t/hb.punk.d.webp":"pc.hb.punk","perso/m/hb.scrappy.glb":"pc.hb.scrappy","perso/t/hb.scrappy.d.webp":"pc.hb.scrappy","perso/m/hb.short.glb":"pc.hb.short","perso/t/hb.short.d.webp":"pc.hb.short","perso/m/hb.short_bob.glb":"pc.hb.short_bob","perso/t/hb.short_bob.d.webp":"pc.hb.short_bob","perso/m/hb.twin_tail_long.glb":"pc.hb.twin_tail_long","perso/m/hb.twin_tail_short.glb":"pc.hb.twin_tail_short","perso/m/hb.wild.glb":"pc.hb.wild","perso/t/hb.wild.d.webp":"pc.hb.wild","perso/m/hb.wild_tail.glb":"pc.hb.wild_tail","perso/t/hb.wild_tail.d.webp":"pc.hb.wild_tail","perso/m/hf.fohawk.glb":"pc.hf.fohawk","perso/t/hf.fohawk.d.webp":"pc.hf.fohawk","perso/m/hf.hanging_dreads.glb":"pc.hf.hanging_dreads","perso/t/hf.hanging_dreads.d.webp":"pc.hf.hanging_dreads","perso/m/hf.hime.glb":"pc.hf.hime","perso/t/hf.hime.d.webp":"pc.hf.hime","perso/m/hf.long_sweeps.glb":"pc.hf.long_sweeps","perso/t/hf.long_sweeps.d.webp":"pc.hf.long_sweeps","perso/m/hf.messy.glb":"pc.hf.messy","perso/t/hf.messy.d.webp":"pc.hf.messy","perso/m/hf.quickly_hair.glb":"pc.hf.quickly_hair","perso/t/hf.quickly_hair.d.webp":"pc.hf.quickly_hair","perso/m/hf.sweapt_back.glb":"pc.hf.sweapt_back","perso/t/hf.sweapt_back.d.webp":"pc.hf.sweapt_back","perso/m/hf.sweapt_dreads.glb":"pc.hf.sweapt_dreads","perso/t/hf.sweapt_dreads.d.webp":"pc.hf.sweapt_dreads","perso/m/hf.wolf_cut.glb":"pc.hf.wolf_cut","perso/t/hf.wolf_cut.d.webp":"pc.hf.wolf_cut","perso/m/hat.ballcap.glb":"pc.hat.ballcap","perso/t/hat.ballcap.d.webp":"pc.hat.ballcap","perso/m/hat.beanie.glb":"pc.hat.beanie","perso/t/hat.beanie.d.webp":"pc.hat.beanie","perso/m/hat.bucket.glb":"pc.hat.bucket","perso/t/hat.bucket.d.webp":"pc.hat.bucket","perso/m/hat.fedora.glb":"pc.hat.fedora","perso/t/hat.fedora.d.webp":"pc.hat.fedora","perso/m/beard.lower_bushy_beard.glb":"pc.beard.lower_bushy_beard","perso/t/beard.lower_bushy_beard.d.webp":"pc.beard.lower_bushy_beard","perso/m/beard.lower_chin_goatee.glb":"pc.beard.lower_chin_goatee","perso/t/beard.lower_chin_goatee.d.webp":"pc.beard.lower_mustashe_chin","perso/m/beard.lower_full_beard.glb":"pc.beard.lower_full_beard","perso/t/beard.lower_full_beard.d.webp":"pc.beard.lower_full_beard","perso/m/beard.lower_goatee.glb":"pc.beard.lower_goatee","perso/t/beard.lower_goatee.d.webp":"pc.beard.lower_goatee","perso/m/beard.lower_mustashe.glb":"pc.beard.lower_mustashe","perso/m/beard.lower_mustashe_chin.glb":"pc.beard.lower_mustashe_chin","perso/m/ovr.overall.glb":"pc.ovr.overall","perso/t/ovr.overall.d.webp":"pc.ovr.overall","perso/t/ovr.overall.id.webp":"pc.ovr.overall","perso/m/ovr.smart_dress.glb":"pc.ovr.smart_dress","perso/t/ovr.smart_dress.d.webp":"pc.ovr.smart_dress","perso/m/ovr.sundress.glb":"pc.ovr.sundress","perso/t/ovr.sundress.d.webp":"pc.ovr.sundress","perso/m/top.casual_jacket.glb":"pc.top.casual_jacket","perso/t/top.casual_jacket.d.webp":"pc.top.casual_jacket","perso/m/top.dress_shirt.glb":"pc.top.dress_shirt","perso/t/top.dress_shirt.d.webp":"pc.top.dress_shirt","perso/m/top.hoodie.glb":"pc.top.hoodie","perso/t/top.hoodie.d.webp":"pc.top.hoodie","perso/m/top.open_jacket.glb":"pc.top.open_jacket","perso/t/top.open_jacket.d.webp":"pc.top.open_jacket","perso/m/top.seifuku.glb":"pc.top.seifuku","perso/t/top.seifuku.d.webp":"pc.top.seifuku_short","perso/t/top.seifuku.id.webp":"pc.top.seifuku_short","perso/m/top.seifuku_short.glb":"pc.top.seifuku_short","perso/m/top.shirt.glb":"pc.top.shirt","perso/t/top.shirt.d.webp":"pc.top.shirt","perso/m/top.suit_jacket.glb":"pc.top.suit_jacket","perso/t/top.suit_jacket.d.webp":"pc.top.suit_jacket","perso/m/top.suspenders.glb":"pc.top.suspenders","perso/t/top.suspenders.d.webp":"pc.top.suspenders","perso/m/top.sweater.glb":"pc.top.sweater","perso/t/top.sweater.d.webp":"pc.top.sweater","perso/m/top.tank_top.glb":"pc.top.tank_top","perso/t/top.tank_top.d.webp":"pc.top.tank_top","perso/m/top.turtle_neck.glb":"pc.top.turtle_neck","perso/t/top.turtle_neck.d.webp":"pc.top.turtle_neck","perso/m/top.button_up.glb":"pc.top.button_up","perso/t/top.button_up.d.webp":"pc.top.button_up_short","perso/m/top.button_up_short.glb":"pc.top.button_up_short","perso/m/top.henley.glb":"pc.top.henley","perso/t/top.henley.d.webp":"pc.top.henley","perso/m/top.open_shoulder.glb":"pc.top.open_shoulder","perso/t/top.open_shoulder.d.webp":"pc.top.open_shoulder_strapsless","perso/m/top.open_shoulder_crop.glb":"pc.top.open_shoulder_crop","perso/m/top.open_shoulder_straps.glb":"pc.top.open_shoulder_straps","perso/m/top.open_shoulder_strapsless.glb":"pc.top.open_shoulder_strapsless","perso/m/glass.round_shaded.glb":"pc.glass.round_shaded","perso/m/glass.shaded_glasses.glb":"pc.glass.shaded_glasses","perso/m/glass.simple_glasses.glb":"pc.glass.simple_glasses","perso/t/pupil_sharp.d.webp":"pc.ly.pupil.sharp","perso/t/shine_double.d.webp":"pc.ly.shine.double","perso/t/freckles_light.d.webp":"pc.ly.freckles.light","perso/t/freckles_full.d.webp":"pc.ly.freckles.full","perso/t/blush.d.webp":"pc.ly.blush","perso/t/lips.d.webp":"pc.ly.lips","perso/t/liner.d.webp":"pc.ly.liner","perso/t/age.d.webp":"pc.ly.age","perso/t/socks_ankle.d.webp":"pc.ly.socks.ankle","perso/t/socks_basic.d.webp":"pc.ly.socks.basic","perso/t/socks_knee.d.webp":"pc.ly.socks.knee","perso/t/socks_thigh.d.webp":"pc.ly.socks.thigh","perso/t/socks_stirrup.d.webp":"pc.ly.socks.stirrup","perso/t/socks_tights.d.webp":"pc.ly.socks.tights","perso/t/head_stern.d.webp":"pc.head.stern","perso/t/head_stern.id.webp":"pc.head.stern","perso/i/bot.striped_pants.webp":"ic.bot","perso/i/bot.yoga_pants.webp":"ic.bot","perso/i/bot.baggy_pants_ankles.webp":"ic.bot","perso/i/bot.baggy_pants_long.webp":"ic.bot","perso/i/bot.baggy_pants_short.webp":"ic.bot","perso/i/bot.big_shorts.webp":"ic.bot","perso/i/bot.cargo_pants.webp":"ic.bot","perso/i/bot.cargo_pants_short.webp":"ic.bot","perso/i/bot.dress_pants.webp":"ic.bot","perso/i/bot.jean_skirt.webp":"ic.bot","perso/i/bot.jeans.webp":"ic.bot","perso/i/bot.loose_jeans.webp":"ic.bot","perso/i/bot.pleated_skirt.webp":"ic.bot","perso/i/bot.short_shorts.webp":"ic.bot","perso/i/bot.shorts.webp":"ic.bot","perso/i/bot.skirt.webp":"ic.bot","perso/i/feet.sports_shoes.webp":"ic.feet","perso/i/feet.big_boots.webp":"ic.feet","perso/i/feet.comfy_shoes.webp":"ic.feet","perso/i/feet.cool_shoes.webp":"ic.feet","perso/i/feet.office_shoes.webp":"ic.feet","perso/i/feet.sandals.webp":"ic.feet","perso/i/feet.school_shoes.webp":"ic.feet","perso/i/feet.short_boots.webp":"ic.feet","perso/i/feet.shower_sandal.webp":"ic.feet","perso/i/feet.slip_ons.webp":"ic.feet","perso/i/feet.street_shoes.webp":"ic.feet","perso/i/feet.work_boots.webp":"ic.feet","perso/i/feet.high_lace_shoe.webp":"ic.feet","perso/i/glov.fingerless.webp":"ic.glov","perso/i/glov.work_gloves.webp":"ic.glov","perso/i/glov.arm_warmers.webp":"ic.glov","perso/i/hb.buzzed.webp":"ic.hb","perso/i/hb.dread_back.webp":"ic.hb","perso/i/hb.flare.webp":"ic.hb","perso/i/hb.long_dreads.webp":"ic.hb","perso/i/hb.long_streight.webp":"ic.hb","perso/i/hb.pony_tail_long.webp":"ic.hb","perso/i/hb.pony_tail_short.webp":"ic.hb","perso/i/hb.punk.webp":"ic.hb","perso/i/hb.scrappy.webp":"ic.hb","perso/i/hb.short.webp":"ic.hb","perso/i/hb.short_bob.webp":"ic.hb","perso/i/hb.twin_tail_long.webp":"ic.hb","perso/i/hb.twin_tail_short.webp":"ic.hb","perso/i/hb.wild.webp":"ic.hb","perso/i/hb.wild_tail.webp":"ic.hb","perso/i/hf.bang_side_flicks.webp":"ic.hf","perso/i/hf.fohawk.webp":"ic.hf","perso/i/hf.hanging_dreads.webp":"ic.hf","perso/i/hf.hime.webp":"ic.hf","perso/i/hf.long_sweeps.webp":"ic.hf","perso/i/hf.messy.webp":"ic.hf","perso/i/hf.quickly_hair.webp":"ic.hf","perso/i/hf.sweapt_back.webp":"ic.hf","perso/i/hf.sweapt_dreads.webp":"ic.hf","perso/i/hf.wolf_cut.webp":"ic.hf","perso/i/hat.ballcap.webp":"ic.hat","perso/i/hat.beanie.webp":"ic.hat","perso/i/hat.bucket.webp":"ic.hat","perso/i/hat.fedora.webp":"ic.hat","perso/i/hat.sun_hat.webp":"ic.hat","perso/i/hacc.alien_attena.webp":"ic.hacc","perso/i/hacc.horns.webp":"ic.hacc","perso/i/beard.lower_bushy_beard.webp":"ic.beard","perso/i/beard.lower_chin_goatee.webp":"ic.beard","perso/i/beard.lower_full_beard.webp":"ic.beard","perso/i/beard.lower_goatee.webp":"ic.beard","perso/i/beard.lower_mustashe.webp":"ic.beard","perso/i/beard.lower_mustashe_chin.webp":"ic.beard","perso/i/ovr.overall.webp":"ic.ovr","perso/i/ovr.smart_dress.webp":"ic.ovr","perso/i/ovr.sundress.webp":"ic.ovr","perso/i/top.casual_jacket.webp":"ic.top","perso/i/top.dress_shirt.webp":"ic.top","perso/i/top.hoodie.webp":"ic.top","perso/i/top.open_jacket.webp":"ic.top","perso/i/top.seifuku.webp":"ic.top","perso/i/top.seifuku_short.webp":"ic.top","perso/i/top.shirt.webp":"ic.top","perso/i/top.suit_jacket.webp":"ic.top","perso/i/top.suspenders.webp":"ic.top","perso/i/top.sweater.webp":"ic.top","perso/i/top.tank_top.webp":"ic.top","perso/i/top.turtle_neck.webp":"ic.top","perso/i/top.button_up.webp":"ic.top","perso/i/top.button_up_short.webp":"ic.top","perso/i/top.henley.webp":"ic.top","perso/i/top.open_shoulder.webp":"ic.top","perso/i/top.open_shoulder_crop.webp":"ic.top","perso/i/top.open_shoulder_straps.webp":"ic.top","perso/i/top.open_shoulder_strapsless.webp":"ic.top","perso/i/glass.round_glasses.webp":"ic.glass","perso/i/glass.round_shaded.webp":"ic.glass","perso/i/glass.shaded_glasses.webp":"ic.glass","perso/i/glass.simple_glasses.webp":"ic.glass","perso/i/brow.stylized_basic_brows.webp":"ic.brow","perso/i/brow.stylized_thick_brows.webp":"ic.brow","perso/i/lash.stylized_long_lashes.webp":"ic.lash","perso/i/lash.stylized_short_lashes.webp":"ic.lash","perso/i/pupil.basic.webp":"ic.calques","perso/i/pupil.sharp.webp":"ic.calques","perso/i/freckles.light.webp":"ic.calques","perso/i/freckles.full.webp":"ic.calques","perso/i/blush.webp":"ic.calques","perso/i/lips.webp":"ic.calques","perso/i/liner.webp":"ic.calques","perso/i/age.webp":"ic.calques","perso/i/socks.ankle.webp":"ic.calques","perso/i/socks.basic.webp":"ic.calques","perso/i/socks.knee.webp":"ic.calques","perso/i/socks.thigh.webp":"ic.calques","perso/i/socks.stirrup.webp":"ic.calques","perso/i/socks.tights.webp":"ic.calques"};
   const TAU = Math.PI * 2;
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const ROOT = () => (typeof window !== 'undefined' && window.JDW_ROOT) || '';
@@ -137,7 +139,7 @@
   // CHARGEMENT : moteur (three.js gzippé, MIT) + paquets emballés. Gardés en mémoire tant que la page de la borne vit (rouvrir le hub
   // ne retélécharge rien) ; le service worker de la borne les garde aussi sur l'appareil (le point dans le nom : après la 1re ouverture).
   // ---------------------------------------------------------------------------
-  const STORE = { three: null, packs: {}, files: new Map(), keys: {}, busyN: 0, busyUntil: 0 };
+  const STORE = { three: null, packs: {}, files: new Map(), keys: {}, busyN: 0, busyUntil: 0, thumbs: new Map(), icons: new Map(), roomAv: {} };
   const PACK_GUESS = { perso: 640000, 'garde.sally': 140000, 'garde.chloe': 236000, 'garde.mary': 252000, 'garde.zulle': 141000, 'garde.javi': 252000, 'garde.john': 255000, 'garde.galvon': 312000 };
   async function fetchBytes(url, onProg, guess) {
     const r = await fetch(url);
@@ -185,6 +187,18 @@
       return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     })();
     return STORE.keys[id];
+  }
+  // un fichier des paquets ; s'il manque, son paquet (PG_PACKMAP) est chargé d'abord
+  async function fileOf(name) {
+    if (STORE.files.has(name)) return STORE.files.get(name);
+    const p = PG_PACKMAP[name]; if (!p) return null;
+    await needPack(p); return STORE.files.get(name) || null;
+  }
+  // vignette d'une pièce (icône du catalogue) en adresse blob:, gardée tant que la borne vit
+  async function iconUrl(path) {
+    const k = 'perso/' + path; if (STORE.icons.has(k)) return STORE.icons.get(k);
+    const b = await fileOf(k); if (!b) return '';
+    const u = URL.createObjectURL(new Blob([b], { type: 'image/webp' })); STORE.icons.set(k, u); return u;
   }
   const PROG = new Map();
   function needPack(name, onProg) {
@@ -1581,7 +1595,7 @@
       const b = mod(l.body), h = mod(l.hair - b), v = mod(l.clothes - b), a = Math.max(0, Math.min(ACC.length - 1, l.acc | 0));
       return b + N * h + 49 * v + 343 * a;
     }
-    function descOf(W, o) {
+    function descOf(W, o, plus) {
       const l = decode(o), L = (i) => W.cat.looks[CHARS[i]];
       const B = L(l.body), H = L(l.hair), V = L(l.clothes), it = {};
       const d = {
@@ -1614,22 +1628,56 @@
         const who = CHARS.map((c) => W.cat.looks[c]).find((x) => x.it[slot] && x.it[slot][0] === id);
         it[slot] = who ? who.it[slot].slice() : [id];
       }
-      return { d: normalizeDesc(W, d), looks: [.../* @__PURE__ */ new Set([l.body, l.hair, l.clothes])].map((i) => CHARS[i]) };
+      if (plus && plus.it) {
+        for (const [slot, v] of Object.entries(plus.it)) {
+          const a = v.slice();
+          if (slot === "hb" || slot === "hf") {
+            if (a.length < 2) a.push(d.hc, d.hc2);
+          }
+          it[slot] = a;
+          if (slot === "ovr") {
+            delete it.top;
+            delete it.bot;
+          }
+          if (slot === "top" || slot === "bot") {
+            if (it.ovr) {
+              delete it.ovr;
+            }
+          }
+          if (slot === "hat") delete it.hacc;
+        }
+        if ((plus.it.top || plus.it.bot) && !(it.top && it.bot)) {
+          const V2 = W.cat.looks.John;
+          if (!it.top) it.top = V2.it.top.slice();
+          if (!it.bot) it.bot = V2.it.bot.slice();
+        }
+      }
+      return { d: normalizeDesc(W, d), looks: [.../* @__PURE__ */ new Set([l.body, l.hair, l.clothes])].map((i) => "garde." + CHARS[i].toLowerCase()).concat(plus && plus.pack ? [plus.pack] : []) };
+    }
+    var GRADE = "\n#if defined( TONE_MAPPING )\n{ vec3 c = clamp( gl_FragColor.rgb, 0.0, 1.0 ); float l = dot( c, vec3( 0.2126, 0.7152, 0.0722 ) );\n  c = mix( vec3( l ), c, 1.2 ); c = clamp( c, 0.0, 1.0 ); c += 0.16 * ( c - 0.22 ) * ( 1.0 - c ) * c * 4.0;\n  c *= vec3( 1.035, 1.0, 0.95 ); gl_FragColor.rgb = clamp( c, 0.0, 1.0 ); }\n#endif\n";
+    function gradeOnce() {
+      const S = T3.ShaderChunk;
+      if (!S || typeof S.tonemapping_fragment !== "string" || S.tonemapping_fragment.indexOf("PG_GRADE") >= 0) return;
+      try {
+        S.tonemapping_fragment = S.tonemapping_fragment + "\n// PG_GRADE" + GRADE;
+      } catch (e) {
+      }
     }
     async function create(canvas, opts = {}) {
       const PHONE = !!import_pg_env.env.mobile;
+      gradeOnce();
       const R = new T3.WebGLRenderer({ canvas, antialias: true, alpha: true, premultipliedAlpha: true, powerPreference: "high-performance", preserveDrawingBuffer: !!opts.keep });
       R.setClearColor(0, 0);
       R.outputColorSpace = T3.SRGBColorSpace;
       R.toneMapping = T3.NeutralToneMapping;
-      R.toneMappingExposure = 1.06;
+      R.toneMappingExposure = 1.12;
       R.shadowMap.enabled = true;
       R.shadowMap.type = T3.PCFSoftShadowMap;
       const cam = new T3.PerspectiveCamera(28, 1, 0.05, 60);
       const ST = makeStage(R, { phone: PHONE });
       const { scene, turn, motes, sparks } = ST;
       const io = { async bytes(name) {
-        const b = import_pg_env.env.file(name);
+        const b = import_pg_env.env.file(name) || (import_pg_env.env.fileAsync ? await import_pg_env.env.fileAsync(name) : null);
         if (!b) throw new Error("pièce absente : " + name);
         return b;
       } };
@@ -1637,18 +1685,24 @@
       const W = await new Wardrobe(R, "perso/", io).init();
       const A = new Avatar(W, { atlas: PHONE ? 1024 : 2048, normals: false, shadow: true });
       turn.add(A.group);
-      let cur = -1, want = -1, setting = null, ready = false, dead = false;
-      async function setLook(o) {
-        want = o | 0;
+      const lookOf = (x) => typeof x === "number" ? descOf(W, x) : { d: normalizeDesc(W, x), looks: [] };
+      let cur = -1, curK = "", want = null, wantK = "", setting = null, ready = false, dead = false;
+      const keyOf = (x) => typeof x === "number" ? "o" + x : JSON.stringify(x);
+      async function setLook(x) {
+        if (typeof x === "number") x = x | 0;
+        want = x;
+        wantK = keyOf(x);
         if (setting) return setting;
         setting = (async () => {
-          while (want !== cur && !dead) {
-            const o2 = want, { d, looks } = descOf(W, o2);
-            await Promise.all(looks.map((n) => import_pg_env.env.need("garde." + n.toLowerCase())));
+          while (wantK !== curK && !dead) {
+            const x2 = want, k2 = wantK, { d, looks } = lookOf(x2);
+            await Promise.all(looks.map((n) => import_pg_env.env.need(n)));
             if (dead) return;
-            if (o2 !== want) continue;
+            if (k2 !== wantK) continue;
             await A.set(d);
-            cur = o2;
+            if (dead) return;
+            cur = typeof x2 === "number" ? x2 : -2;
+            curK = k2;
             ready = true;
           }
         })().finally(() => {
@@ -1657,7 +1711,13 @@
         return setting;
       }
       const view = { yaw: 0.3, vyaw: 0, target: null, focus: null, w: 1, h: 1, spin: 0 };
-      const FR = { y: 0.9, h: 2.5 };
+      const FR = { y: 0.9, h: 2.5 }, FRT = { y: 0.9, h: 2.5 };
+      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 } };
+      function setFrame(k) {
+        const f = FRAMES[k] || FRAMES.corps;
+        FRT.y = f.y;
+        FRT.h = f.h;
+      }
       function layout() {
         const r = canvas.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
         const dpr = Math.min(window.devicePixelRatio || 1, PHONE ? 2 : 2);
@@ -1790,6 +1850,12 @@
           }
         }
         turn.rotation.y = view.yaw;
+        if (Math.abs(FR.y - FRT.y) > 1e-3 || Math.abs(FR.h - FRT.h) > 1e-3) {
+          const k = 1 - Math.exp(-dt * 5);
+          FR.y += (FRT.y - FR.y) * k;
+          FR.h += (FRT.h - FR.h) * k;
+          layout();
+        }
         lookT -= dt;
         if (lookT <= 0) A.lookAt = false;
         motes.uniforms.uT.value = tt;
@@ -1883,6 +1949,70 @@
         if (!d.startsWith("data:image/webp")) d = c.toDataURL("image/png");
         return d;
       }
+      let B = null, thumbQ = Promise.resolve();
+      const tcam = new T3.PerspectiveCamera(20, 0.7, 0.05, 30);
+      function thumb(o, size) {
+        const job = thumbQ.then(() => thumbNow(typeof o === "number" ? o | 0 : o, size || {}));
+        thumbQ = job.catch(() => {
+        });
+        return job;
+      }
+      async function thumbNow(o, { w = 150, h = 214, px = 2 }) {
+        if (dead) return "";
+        if (!B) B = new Avatar(W, { atlas: PHONE ? 512 : 1024, normals: false, shadow: false });
+        const { d, looks } = lookOf(o);
+        await Promise.all(looks.map((n) => import_pg_env.env.need(n)));
+        if (dead) return "";
+        await B.set(d);
+        if (dead) return "";
+        B.setExpression("sourire");
+        B.lookAt = true;
+        B.lookTarget.set(0.05, 0.03);
+        B.blink = 0;
+        B.blinkT = 3;
+        B.group.rotation.y = 0.32;
+        B.group.position.set(0, 0, 0);
+        for (let i = 0; i < 24; i++) B.update(1 / 30, tcam);
+        const hat = !!(B.desc && B.desc.it && B.desc.it.hat), top = hat ? 2.02 : 1.92, bot = -0.04, cy = (top + bot) / 2, hh = top - bot;
+        tcam.aspect = w / h;
+        tcam.fov = 20;
+        const dist = (hh / 2 + 0.05) / Math.tan(T3.MathUtils.degToRad(tcam.fov) / 2);
+        tcam.position.set(0, cy + dist * 0.035, dist);
+        tcam.lookAt(0, cy, 0);
+        tcam.updateProjectionMatrix();
+        const hide = [A.group, ST.podium, ST.halo, ST.blob, motes.userData.pts, sparks.pts];
+        const vis = hide.map((x) => x.visible);
+        hide.forEach((x) => {
+          x.visible = false;
+        });
+        scene.add(B.group);
+        const pr = R.getPixelRatio(), sz = R.getSize(new T3.Vector2()), sh = R.shadowMap.enabled;
+        const PW = Math.round(w * px), PH = Math.round(h * px);
+        R.setPixelRatio(1);
+        R.setSize(PW, PH, false);
+        R.shadowMap.enabled = false;
+        R.render(scene, tcam);
+        const c = document.createElement("canvas");
+        c.width = PW;
+        c.height = PH;
+        c.getContext("2d").drawImage(R.domElement, 0, 0, PW, PH, 0, 0, PW, PH);
+        scene.remove(B.group);
+        R.shadowMap.enabled = sh;
+        hide.forEach((x, i) => {
+          x.visible = vis[i];
+        });
+        R.setPixelRatio(pr);
+        R.setSize(sz.x, sz.y, false);
+        layout();
+        R.render(scene, cam);
+        let u = "";
+        try {
+          u = c.toDataURL("image/webp", 0.9);
+        } catch (e) {
+        }
+        if (!u.startsWith("data:image/webp")) u = c.toDataURL("image/png");
+        return u;
+      }
       return {
         W,
         A,
@@ -1894,6 +2024,8 @@
         layout,
         setActive,
         portrait,
+        thumb,
+        setFrame,
         setFocus(f) {
           view.focus = f;
           layout();
@@ -1906,7 +2038,10 @@
           A.react();
         },
         ready: () => ready,
-        info: () => ({ calls: R.info.render.calls, tris: R.info.render.triangles, dpr: R.getPixelRatio(), w: view.w, h: view.h, tenue: cur, bytes: W.bytes }),
+        info: () => ({ calls: R.info.render.calls, tris: R.info.render.triangles, dpr: R.getPixelRatio(), w: view.w, h: view.h, tenue: cur, look: curK, bytes: W.bytes }),
+        descOf: (o) => descOf(W, o | 0).d,
+        normalize: (d) => normalizeDesc(W, d),
+        desc: () => A.desc,
         dispose() {
           dead = true;
           setActive(false);
@@ -1916,6 +2051,10 @@
           canvas.removeEventListener("pointercancel", onUp);
           try {
             A.dispose();
+          } catch (e) {
+          }
+          try {
+            if (B) B.dispose();
           } catch (e) {
           }
           scene.traverse((o) => {
@@ -1982,7 +2121,6 @@
     dice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1.4" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
   };
-  const ACC_ICO = ['star', 'none', 'hat', 'glasses', 'horns', 'antenna'];
 
   const PGH_CSS = (FD, FB) => `
 .pgh{position:absolute;inset:0;overflow:hidden;background:#100c22;color:#fff4e2;font-family:${FB};-webkit-tap-highlight-color:transparent;
@@ -1996,11 +2134,11 @@
 .pgh-bg.on{opacity:1}
 @keyframes pghKen{from{transform:scale(1.04) translateX(0)}to{transform:scale(1.1) translateX(-1.5%)}}
 .pgh-veil{position:absolute;inset:0;z-index:-1;pointer-events:none;background:
-  radial-gradient(ellipse 60% 45% at var(--sunX,62%) 62%,rgba(255,206,140,.30),rgba(255,206,140,0) 70%),
-  linear-gradient(180deg,rgba(22,14,46,.62) 0%,rgba(22,14,46,.18) 30%,rgba(22,14,46,0) 52%,rgba(16,12,34,.38) 76%,rgba(16,12,34,.92) 94%,var(--night) 100%)}
-.pgh.wide .pgh-veil{background:radial-gradient(ellipse 40% 55% at 72% 62%,rgba(255,206,140,.30),rgba(255,206,140,0) 70%),
-  linear-gradient(90deg,rgba(16,10,36,.82) 0%,rgba(16,10,36,.55) 32%,rgba(16,10,36,0) 58%),
-  linear-gradient(180deg,rgba(22,14,46,.35) 0%,rgba(22,14,46,0) 30%,rgba(16,12,34,0) 70%,rgba(16,12,34,.7) 92%,var(--night) 100%)}
+  radial-gradient(ellipse 62% 42% at var(--sunX,62%) 60%,rgba(255,222,150,.34),rgba(255,206,140,0) 70%),
+  linear-gradient(180deg,rgba(44,20,70,.46) 0%,rgba(44,20,70,.12) 24%,rgba(44,20,70,0) 40%,rgba(20,12,36,0) 72%,rgba(20,12,36,.5) 88%,var(--night) 100%)}
+.pgh.wide .pgh-veil{background:radial-gradient(ellipse 40% 55% at 72% 60%,rgba(255,222,150,.32),rgba(255,206,140,0) 70%),
+  linear-gradient(90deg,rgba(30,14,52,.66) 0%,rgba(30,14,52,.36) 30%,rgba(30,14,52,0) 54%),
+  linear-gradient(180deg,rgba(44,20,70,.26) 0%,rgba(44,20,70,0) 24%,rgba(20,12,36,0) 76%,rgba(20,12,36,.55) 93%,var(--night) 100%)}
 .pgh-fly{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .pgh-gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;z-index:1;outline:none;opacity:0;transition:opacity .8s ease}
 .pgh-gl.on{opacity:1}
@@ -2143,46 +2281,212 @@
 .pgh-fut p{position:relative;margin:5px 0 0;font:600 12.5px/1.45 ${FB};color:var(--soft)}
 .pgh-fut .pgh-chip{position:absolute;right:10px;top:12px;background:rgba(255,214,140,.16);color:#ffe2ad;box-shadow:inset 0 0 0 1px rgba(255,214,140,.35)}
 .pgh-foot{max-width:1080px;margin:0 auto;padding:26px 16px calc(30px + env(safe-area-inset-bottom,0px));text-align:center;font:600 12px/1.5 ${FB};color:rgba(255,240,220,.5)}
-/* ---------- le Dressing (plein cadre) ---------- */
-.pgh-dress{position:absolute;inset:0;z-index:20;display:none;background:linear-gradient(180deg,#241a4a 0%,#5a3d78 34%,#b0688a 62%,#ffb487 86%,#ffcf8a 100%);overflow:hidden}
-.pgh-dress.on{display:block;animation:pghIn .35s ease}
-@keyframes pghIn{from{opacity:0}to{opacity:1}}
-.pgh-dress::before{content:'';position:absolute;left:var(--dsx,50%);top:66%;width:120vmax;height:120vmax;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,220,150,.55),rgba(255,200,140,0) 32%);pointer-events:none}
-.pgh-dstage{position:absolute;left:0;right:0;top:0;height:52%}
-.pgh-dfall{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:20px}
-.pgh-dfall.on{display:grid}
-.pgh-dfall b{display:block;font:400 26px ${FD};color:#fff3dc;text-shadow:0 3px 0 rgba(90,44,110,.8)}
-.pgh-dfall span{display:block;margin-top:8px;font:600 14px/1.4 ${FB};color:#fff1dd}
-.pgh-dpanel{position:absolute;left:0;right:0;bottom:0;top:52%;display:flex;flex-direction:column;border-radius:24px 24px 0 0;background:linear-gradient(180deg,rgba(32,20,58,.94),rgba(20,13,38,.97));box-shadow:0 -10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,214,140,.3)}
-.pgh-dhead{display:flex;align-items:center;gap:10px;padding:12px 14px 6px}
-.pgh-dhead b{font:400 18px ${FD};letter-spacing:.03em;color:#ffe9c2}
-.pgh-dhead span{flex:1;min-width:0;font:600 12px ${FB};color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pgh-dclose{width:36px;height:36px;border-radius:50%;border:0;color:#fff4e2;background:rgba(255,255,255,.08);font-size:18px;line-height:1;flex:none}
-.pgh-drows{flex:1;min-height:0;overflow-y:auto;padding:2px 0 6px;overscroll-behavior:contain}
-.pgh-drow h4{margin:8px 14px 6px;font:700 11.5px ${FB};letter-spacing:.12em;text-transform:uppercase;color:#ffcf8a}
-.pgh-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 14px 6px;scrollbar-width:none}
-.pgh-chips::-webkit-scrollbar{display:none}
-.pgh-ch{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:6px 14px 6px 8px;border-radius:999px;border:0;font:700 13.5px ${FB};color:#fff4e2;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,214,140,.2);transition:background .15s,transform .12s}
-.pgh-ch:active{transform:scale(.96)}
-.pgh-ch.on{color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e);box-shadow:0 4px 14px rgba(255,160,70,.35)}
-.pgh-ch .dot{width:26px;height:26px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
-.pgh-ch .ico{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.12)}
-.pgh-ch .ico svg{width:17px;height:17px}
-.pgh-ch.on .ico{background:rgba(120,60,10,.15)}
-.pgh-dbtns{display:flex;gap:8px;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,214,140,.14)}
+/* ---------- onglets (collés en haut en défilant) ---------- */
+.pgh-tabs{position:sticky;top:0;z-index:8;display:flex;justify-content:center;gap:4px;padding:8px 12px 0;background:linear-gradient(180deg,rgba(16,12,34,.96),rgba(16,12,34,.9));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,214,140,.16),0 10px 24px rgba(0,0,0,.25)}
+.pgh-tab{position:relative;flex:1 1 0;max-width:200px;min-height:46px;border:0;background:none;padding:6px 8px 10px;display:flex;align-items:center;justify-content:center;gap:7px;font:700 14.5px ${FB};letter-spacing:.02em;color:rgba(255,240,220,.62);transition:color .2s}
+.pgh-tab svg{width:19px;height:19px;flex:none}
+.pgh-tab.on{color:#ffe2a6}
+.pgh-tab .bdg{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:none;align-items:center;justify-content:center;font:700 11.5px ${FB};color:#0f2a18;background:#7cf0a0}
+.pgh-tab .bdg.on{display:inline-flex}
+.pgh-tabs .ind{position:absolute;bottom:0;left:0;width:0;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,#ffd27a,#ff9ec4);box-shadow:0 0 12px rgba(255,190,110,.7);transition:left .32s cubic-bezier(.3,.8,.3,1),width .32s cubic-bezier(.3,.8,.3,1)}
+.pgh-pane{display:none;min-height:60vh}
+.pgh-pane.on{display:block;animation:pghPane .35s ease}
+@keyframes pghPane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* ---------- copains ---------- */
+.pgh-frhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pgh-frcount{font:700 12.5px ${FB};color:#9ff0b8}
+.pgh-frrow{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:16px 16px 10px;margin:0 -16px;scrollbar-width:none;overscroll-behavior-x:contain}
+.pgh-frrow::-webkit-scrollbar{display:none}
+@media (min-width:760px){.pgh-frrow{flex-wrap:wrap;overflow:visible;margin:0;padding:18px 0 8px}}
+.pgh-fc{flex:0 0 132px;scroll-snap-align:start;border:0;padding:0;background:none;color:inherit;text-align:center;transition:transform .15s}
+.pgh-fc:active{transform:scale(.96)}
+.pgh-fc .st{position:relative;display:block;height:186px;border-radius:20px;overflow:hidden;background:radial-gradient(ellipse 90% 55% at 50% 92%,rgba(255,196,120,.55),rgba(255,196,120,0) 70%),radial-gradient(ellipse 70% 50% at 50% 20%,rgba(255,170,200,.22),rgba(0,0,0,0) 70%),linear-gradient(180deg,#4a3178,#2a1c4c 70%,#22173e);box-shadow:inset 0 0 0 1px rgba(255,214,140,.22),0 10px 22px rgba(0,0,0,.3)}
+.pgh-fc.on .st{box-shadow:inset 0 0 0 1.5px rgba(124,240,160,.6),0 10px 22px rgba(0,0,0,.3),0 0 18px rgba(124,240,160,.18)}
+.pgh-fc .st::after{content:'';position:absolute;left:18%;right:18%;bottom:10px;height:16px;border-radius:50%;background:radial-gradient(ellipse at 50% 40%,#ffd7a0,#c98b52 60%,#6a4026);box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:0}
+.pgh-fc .av{position:absolute;left:50%;bottom:15px;height:166px;transform:translateX(-50%);z-index:1;opacity:0;transition:opacity .45s}
+.pgh-fc .av.on{opacity:1}
+.pgh-fc .wait{position:absolute;left:50%;bottom:20px;width:46px;height:132px;margin-left:-23px;border-radius:24px 24px 14px 14px;z-index:1;background:linear-gradient(180deg,var(--hair,#3d3d3d) 0 14%,var(--skin,#a96c4c) 14% 26%,var(--cloth,#ccc) 26% 70%,rgba(255,255,255,.18) 70%);opacity:.5;filter:blur(1.5px);animation:pghPulse 1.6s ease-in-out infinite}
+.pgh-fc .av.on + .wait{display:none}
+.pgh-fc .sil{position:absolute;left:50%;bottom:22px;width:64px;height:96px;margin-left:-32px;border-radius:30px 30px 12px 12px;background:linear-gradient(180deg,rgba(210,190,255,.32),rgba(150,120,210,.2));z-index:1}
+.pgh-fc .hd{position:absolute;left:50%;bottom:98px;width:66px;height:82px;margin-left:-33px;z-index:2;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}
+.pgh-fc .ini{position:absolute;left:50%;bottom:112px;width:56px;height:56px;margin-left:-28px;border-radius:50%;display:grid;place-items:center;z-index:2;font:400 24px ${FD};color:#fff3dc;background:hsl(var(--h,280) 45% 38%);box-shadow:0 4px 10px rgba(0,0,0,.35)}
+.pgh-fc .none{position:absolute;left:10px;right:10px;bottom:30px;z-index:3;padding:3px 6px;border-radius:10px;font:700 10px/1.25 ${FB};color:#fff1dd;background:rgba(30,18,52,.72)}
+.pgh-dclose{width:38px;height:38px;border-radius:50%;border:0;color:#fff4e2;background:rgba(255,255,255,.1);font-size:18px;line-height:1;flex:none}
+.pgh-fc .dot{position:absolute;right:10px;top:10px;width:12px;height:12px;border-radius:50%;z-index:4;background:#7cf0a0;box-shadow:0 0 0 2.5px #2a1c4c,0 0 12px rgba(124,240,160,.9);display:none}
+.pgh-fc.on .dot{display:block}
+.pgh-fc.no .dot{top:10px;right:10px}
+.pgh-fc b{display:block;margin-top:8px;font:700 14px ${FB};color:#fff3dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-fc small{display:block;margin-top:1px;font:600 11.5px ${FB};color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-fc.on small{color:#9ff0b8}
+.pgh-frmsg{margin-top:16px;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.pgh-frmsg .em{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;font-size:28px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,214,140,.25)}
+.pgh-frmsg h3{margin:0;font:700 16px ${FB};color:#fff3dc}
+.pgh-frmsg p{margin:4px 0 0;font:600 13px/1.45 ${FB};color:var(--soft)}
+.pgh-frmsg .pgh-cta{grid-column:1 / -1;justify-self:start;flex:0 0 auto;padding:8px 18px;min-height:46px}
+/* ---------- le copain en grand ---------- */
+.pgh-fv{position:absolute;inset:0;z-index:20;display:none;overflow:hidden;background:linear-gradient(180deg,#2a1d55 0%,#5d3f86 30%,#c1729a 60%,#ffb487 84%,#ffd796 100%)}
+.pgh-fv.on{display:block;animation:pghIn .3s ease}
+.pgh-fv::before{content:'';position:absolute;left:50%;top:50%;width:120vmax;height:120vmax;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,226,160,.6),rgba(255,200,140,0) 30%);pointer-events:none}
+.pgh-fv.wide::before{left:26%;top:62%}
+.pgh-fvstage{position:absolute;left:0;right:0;top:0;height:60%}
+.pgh-fv.wide .pgh-fvstage{right:auto;width:52%;height:100%}
+.pgh-fvnone{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:16px}
+.pgh-fvnone.on{display:grid}
+.pgh-fvnone .ped{position:relative;width:150px;height:230px;margin:0 auto}
+.pgh-fvnone .ped::after{content:'';position:absolute;left:8%;right:8%;bottom:0;height:24px;border-radius:50%;background:radial-gradient(ellipse at 50% 40%,#ffd7a0,#c98b52 60%,#6a4026);box-shadow:0 6px 16px rgba(0,0,0,.35)}
+.pgh-fvnone .sil{position:absolute;left:50%;bottom:14px;width:96px;height:132px;margin-left:-48px;border-radius:44px 44px 16px 16px;background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,.14))}
+.pgh-fvnone .hd{position:absolute;left:50%;bottom:122px;width:96px;height:120px;margin-left:-48px;object-fit:contain;filter:drop-shadow(0 6px 12px rgba(40,10,40,.35))}
+.pgh-fvnone .ini{position:absolute;left:50%;bottom:140px;width:80px;height:80px;margin-left:-40px;border-radius:50%;display:grid;place-items:center;font:400 34px ${FD};color:#fff3dc;background:hsl(var(--h,280) 45% 38%)}
+.pgh-fvnone p{margin:14px 0 0;font:700 15px/1.4 ${FB};color:#fff6ea;text-shadow:0 2px 8px rgba(60,20,60,.6)}
+.pgh-fvpanel{position:absolute;left:0;right:0;bottom:0;top:60%;display:flex;flex-direction:column;gap:12px;padding:16px 16px calc(14px + env(safe-area-inset-bottom,0px));border-radius:24px 24px 0 0;background:linear-gradient(180deg,rgba(34,22,62,.95),rgba(20,13,38,.98));box-shadow:0 -10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,214,140,.3);overflow-y:auto}
+.pgh-fv.wide .pgh-fvpanel{left:52%;top:0;border-radius:0;justify-content:center;padding:24px 28px;box-shadow:-10px 0 30px rgba(0,0,0,.3),inset 1px 0 0 rgba(255,214,140,.3)}
+.pgh-fvhead{display:flex;align-items:center;gap:10px}
+.pgh-fvhead b{flex:1;min-width:0;font:400 24px ${FD};letter-spacing:.03em;color:#ffe9c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-fvst{display:inline-flex;align-items:center;gap:6px;font:700 12.5px ${FB};color:var(--soft)}
+.pgh-fvst i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3)}
+.pgh-fvst.on{color:#9ff0b8}.pgh-fvst.on i{background:#7cf0a0;box-shadow:0 0 10px #7cf0a0}
+.pgh-fvdesc{margin:-4px 0 0;font:600 13px/1.4 ${FB};color:var(--soft)}
+.pgh-fvemo{display:flex;gap:9px}
+.pgh-fvemo .pgh-emo{width:46px;height:46px;font-size:20px}
+.pgh-fvbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pgh-fvbtns .pgh-cta{min-height:52px;font-size:14px;flex-direction:column;gap:2px;line-height:1.1}
+.pgh-fvbtns .pgh-cta small{font:700 10px ${FB};letter-spacing:.08em;text-transform:uppercase;color:#ffcf8a}
+/* ---------- modifier l'avatar SUR PLACE (panneau du bas ; côté droit en paysage) ---------- */
+.pgh-hero .pgh-copy,.pgh-hero .pgh-bottom{transition:opacity .35s,transform .35s}
+.pgh.editing .pgh-hero .pgh-copy{opacity:0;transform:translateY(-16px);pointer-events:none}
+.pgh.editing .pgh-hero .pgh-bottom{opacity:0;transform:translateY(16px);pointer-events:none}
+.pgh.editing .pgh-scroll{overflow:hidden}
+.pgh.editing .pgh-name,.pgh.editing .pgh-hint{opacity:0!important}
+.pgh-ed{position:absolute;left:0;right:0;bottom:0;z-index:15;height:min(50%,460px);display:flex;flex-direction:column;border-radius:24px 24px 0 0;background:linear-gradient(180deg,rgba(36,24,66,.94),rgba(20,13,38,.97));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -12px 34px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,214,140,.32);transform:translateY(105%);transition:transform .42s cubic-bezier(.2,.85,.25,1),visibility 0s .42s;visibility:hidden}
+.pgh-ed.on{transform:none;visibility:visible;transition:transform .42s cubic-bezier(.2,.85,.25,1)}
+.pgh.wide .pgh-ed{left:auto;top:0;width:min(46%,460px);height:auto;border-radius:24px 0 0 24px;transform:translateX(105%)}
+.pgh.wide .pgh-ed.on{transform:none}
+.pgh-edtop{display:flex;align-items:center;gap:8px;padding:12px 12px 4px 16px}
+.pgh-edtop .t{flex:1;min-width:0}
+.pgh-edtop b{display:block;font:400 18px ${FD};letter-spacing:.03em;color:#ffe9c2}
+.pgh-edtop span{display:block;font:600 11.5px ${FB};color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-edtop button{width:38px;height:38px;border-radius:50%;border:0;color:#fff4e2;background:rgba(255,255,255,.08);font-size:18px;line-height:1;flex:none;display:grid;place-items:center;padding:0}
+.pgh-edtop button svg{width:20px;height:20px}
+.pgh-edtop button[disabled]{opacity:.3}
+.pgh-edcats{display:flex;gap:6px;padding:6px 12px 8px;overflow-x:auto;scrollbar-width:none}
+.pgh-edcats::-webkit-scrollbar{display:none}
+.pgh-edcat{flex:1 0 auto;min-height:40px;border:0;border-radius:14px;padding:4px 10px;display:flex;align-items:center;justify-content:center;gap:6px;font:700 13px ${FB};color:rgba(255,240,220,.75);background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,214,140,.16);transition:background .2s,color .2s}
+.pgh-edcat svg{width:18px;height:18px;flex:none}
+.pgh-edcat.on{color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e);box-shadow:0 4px 14px rgba(255,160,70,.3)}
+.pgh-edgrid{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 12px 10px}
+.pgh-edg{display:none;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px}
+.pgh-edg.on{display:grid;animation:pghPane .28s ease}
+.pgh-edg h5{grid-column:1 / -1;margin:8px 2px -2px;display:flex;align-items:center;gap:6px;font:700 11px ${FB};letter-spacing:.12em;text-transform:uppercase;color:#d9c2ff}
+.pgh-edg h5 svg{width:14px;height:14px}
+.pgh-ch{position:relative;border:0;padding:0 0 7px;border-radius:16px;color:#fff4e2;background:rgba(255,255,255,.055);box-shadow:inset 0 0 0 1px rgba(255,214,140,.16);display:flex;flex-direction:column;align-items:center;gap:2px;transition:transform .12s,box-shadow .2s,background .2s;overflow:hidden;min-width:0}
+.pgh-ch:active{transform:scale(.95)}
+.pgh-ch .th{position:relative;width:100%;aspect-ratio:1;display:grid;place-items:center;background:radial-gradient(circle at 50% 62%,rgba(255,214,150,.22),rgba(255,214,150,0) 66%)}
+.pgh-ch .th img{width:90%;height:90%;object-fit:contain;display:block}
+.pgh-ch .th img.full{height:100%;width:100%;object-fit:cover;object-position:50% 8%}
+.pgh-ch .th .dot{width:44%;height:44%;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
+.pgh-ch .th .ico{width:42%;height:42%;display:grid;place-items:center;color:#ffe2ad}
+.pgh-ch .th .ico svg{width:100%;height:100%}
+.pgh-ch .th img ~ .dot,.pgh-ch .th img ~ .ico{display:none}
+.pgh-ch > span{max-width:100%;padding:0 6px;font:700 11.5px/1.2 ${FB};text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-ch.on{background:rgba(255,206,120,.16);box-shadow:inset 0 0 0 2px #ffcf73,0 0 16px rgba(255,190,110,.3)}
+.pgh-ch.on::after{content:'';position:absolute;right:6px;top:6px;width:20px;height:20px;border-radius:50%;background:#ffcf73 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233a1a05' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center/14px no-repeat}
+.pgh-ch.lk .th img,.pgh-ch.lk .th .ico{filter:grayscale(.8) blur(1px) brightness(.85);opacity:.6}
+.pgh-ch.lk .lock{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;display:grid;place-items:center;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffbf5a);box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.pgh-ch.lk .lock svg{width:16px;height:16px}
+.pgh-ch .price{font:700 10.5px ${FB};color:#ffcf8a;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+.pgh-ch.lk.rare{box-shadow:inset 0 0 0 1px rgba(200,160,255,.45)}
+.pgh-ch.lk.rare .price{color:#d9c2ff}
+.pgh-ch.lk.try{box-shadow:inset 0 0 0 2px #d9c2ff,0 0 16px rgba(200,160,255,.4);background:rgba(160,120,240,.16)}
+.pgh-ch.lk.try .th img{filter:none;opacity:1}
+.pgh-lock{display:none;margin:0 12px 8px;padding:10px 12px;border-radius:18px;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(150,110,230,.34),rgba(80,50,140,.34));box-shadow:inset 0 0 0 1px rgba(210,180,255,.42)}
+.pgh-lock.on{display:flex;animation:pghPane .3s ease}
+.pgh-lock .ic{width:42px;height:42px;border-radius:14px;flex:none;display:grid;place-items:center;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffbf5a)}
+.pgh-lock .ic svg{width:22px;height:22px}
+.pgh-lock .t{flex:1;min-width:0}
+.pgh-lock b{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font:700 14.5px ${FB};color:#fff3dc}
+.pgh-lock p{margin:2px 0 0;font:600 12.5px/1.35 ${FB};color:#e8dcff}
+.pgh-lock button{flex:none;border:0;border-radius:12px;min-height:38px;padding:4px 12px;font:700 12.5px ${FB};color:#fff4e2;background:rgba(255,255,255,.12)}
+.pgh-tier{display:inline-block;padding:2px 8px;border-radius:999px;font:700 10px ${FB};letter-spacing:.08em;text-transform:uppercase;color:#2a1450;background:#d9c2ff}
+.pgh-tier.joli{background:#ffd98e;color:#3a1a05}
+.pgh-tier.cadeau{background:#9ff0b8;color:#0f2a18}
+.pgh-dbtns{display:flex;gap:8px;padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,214,140,.14)}
 .pgh-dbtns .pgh-cta{min-height:48px;font-size:14.5px}
 .pgh-dbtns .rnd{flex:0 0 auto;width:52px;padding:0}
 .pgh-dbtns .rnd svg{width:24px;height:24px}
-.pgh-dnote{margin:0;padding:0 14px 10px;font:600 11.5px ${FB};color:rgba(255,240,220,.6);text-align:center}
-.pgh-dress.wide .pgh-dstage{right:auto;width:50%;height:100%}
-.pgh-dress.wide .pgh-dpanel{left:50%;top:0;border-radius:0;box-shadow:-10px 0 30px rgba(0,0,0,.3),inset 1px 0 0 rgba(255,214,140,.3)}
-.pgh-dress.wide .pgh-chips{flex-wrap:wrap;overflow:visible}
-.pgh-dress.short .pgh-drow h4{margin-top:5px;margin-bottom:4px}
-.pgh-dress.short .pgh-ch{min-height:36px;padding:4px 11px 4px 6px;font-size:12.5px}
-.pgh-dress.short .pgh-ch .dot,.pgh-dress.short .pgh-ch .ico{width:22px;height:22px}
-.pgh-dress.short .pgh-dbtns{padding-top:6px;padding-bottom:8px}
-.pgh-dress.short .pgh-dbtns .pgh-cta{min-height:40px}
-.pgh-dress.short .pgh-dnote{display:none}
+.pgh.short .pgh-edtop{padding-top:6px}
+.pgh.short .pgh-edcat{min-height:34px}
+.pgh.short .pgh-dbtns{padding-top:6px;padding-bottom:8px}
+.pgh.short .pgh-dbtns .pgh-cta{min-height:40px}
+.pgh.short .pgh-edg{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px}
+.pgh-dfall{display:none}
+/* garde-robe (onglet Moi) */
+.pgh-wr{margin-top:14px}
+.pgh-wr h3{margin:0;font:700 16px ${FB};color:#fff3dc}
+.pgh-wr p{margin:4px 0 0;font:600 13px/1.45 ${FB};color:var(--soft)}
+.pgh-wrrow{display:flex;gap:10px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:none}
+.pgh-wrrow::-webkit-scrollbar{display:none}
+.pgh-wrrow .pgh-ch{flex:0 0 92px}
+/* créateur complet : raretés, pastilles, curseurs, couleurs, lucioles */
+.pgh-edcat em{font-style:normal;font:700 10.5px ${FB};padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.1);color:inherit;opacity:.85}
+.pgh-edcat.on em{background:rgba(90,40,0,.15)}
+.pgh-edcat em:empty{display:none}
+.pgh-edg h5 em{font-style:normal;color:rgba(255,240,220,.55);letter-spacing:.04em}
+.pgh-ch .ico.face{width:78%;height:78%}
+.pgh-ch .ico.q{width:62%;height:62%;filter:drop-shadow(0 0 8px rgba(190,150,255,.7));animation:pghTwk 2.6s ease-in-out infinite}
+.pgh-ch.none .ico{width:34%;height:34%;color:rgba(255,240,220,.55)}
+.pgh-ch .rb{position:absolute;left:5px;top:5px;padding:1px 6px;border-radius:999px;font:700 8.5px/1.5 ${FB};font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:#1c1430;background:#cfd8e6}
+.pgh-ch.r-rare .rb{background:#c9a6ff;color:#22104a}
+.pgh-ch.r-legend .rb{background:linear-gradient(90deg,#ffe08a,#ffb35a,#ffe08a);background-size:200% 100%;color:#3a1a05;animation:pghShine 3s linear infinite}
+.pgh-ch.r-secret .rb{background:linear-gradient(90deg,#7a5ac8,#c79cff);color:#fff}
+.pgh-ch.r-cadeau .rb{background:#9ff0b8;color:#0f2a18}
+@keyframes pghShine{to{background-position:-200% 0}}
+.pgh-ch.r-legend{box-shadow:inset 0 0 0 1px rgba(255,200,110,.5)}
+.pgh-ch.r-rare{box-shadow:inset 0 0 0 1px rgba(200,160,255,.38)}
+.pgh-ch.r-secret{background:radial-gradient(circle at 50% 40%,rgba(160,120,255,.22),rgba(255,255,255,.04) 70%);box-shadow:inset 0 0 0 1px rgba(200,160,255,.45)}
+.pgh-ch.r-secret .lock{background:linear-gradient(180deg,#e9d8ff,#9a78e6);color:#2a1450;font:700 15px ${FB}}
+.pgh-ch.lk.try{box-shadow:inset 0 0 0 2px #d9c2ff,0 0 16px rgba(200,160,255,.4);background:rgba(160,120,240,.16)}
+.pgh-ch.lk.try .th img,.pgh-ch.lk.try .th .ico,.pgh-ch.lk.try .th .dot{filter:none;opacity:1}
+.pgh-ch.lk.on::after{display:none}
+.pgh-ch .rb{max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pgh-ch.lk .th .dot{filter:grayscale(.6) brightness(.8);opacity:.7}
+.pgh-ch.lk .price .pgh-lu{width:12px;height:12px}
+.pgh-ch.sw{padding:0;border-radius:50%;aspect-ratio:1;background:none;box-shadow:none;overflow:visible}
+.pgh-ch.sw .th{background:none;border-radius:50%}
+.pgh-ch.sw .th .dot{width:76%;height:76%}
+.pgh-ch.sw.on .th .dot{box-shadow:0 0 0 3px #ffcf73,0 0 14px rgba(255,190,110,.5)}
+.pgh-ch.sw.on::after{display:none}
+.pgh-ch.sw .lock{width:22px;height:22px;margin:-11px 0 0 -11px}
+.pgh-ch.sw .lock svg{width:12px;height:12px}
+.pgh-ch.sw .rb{display:none}
+.pgh-edg .pgh-ch.sw{max-width:64px;justify-self:center;width:100%}
+.pgh-sl{grid-column:1 / -1;display:grid;grid-template-columns:70px auto 1fr auto;gap:8px;align-items:center;font:600 11.5px ${FB};color:var(--soft)}
+.pgh-sl label{font:700 12.5px ${FB};color:#fff3dc}
+.pgh-sl input{width:100%;accent-color:#ffc35e}
+.pgh-cols{margin-top:12px;padding:10px 0 2px;border-top:1px solid rgba(255,214,140,.14)}
+.pgh-cols .chs{display:flex;gap:6px;flex-wrap:wrap}
+.pgh-cc{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:3px 10px 3px 5px;border-radius:999px;border:0;font:700 12px ${FB};color:#fff4e2;background:rgba(255,255,255,.07)}
+.pgh-cc i{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.5)}
+.pgh-cc.on{background:rgba(255,206,120,.2);box-shadow:inset 0 0 0 1.5px #ffcf73}
+.pgh-cols .sws{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:7px;margin-top:9px}
+.pgh-sw{width:30px;height:30px;border-radius:50%;border:0;padding:0;justify-self:center}
+.pgh-sw.on{box-shadow:0 0 0 2.5px #1c1232,0 0 0 4.5px #ffcf73}
+.pgh-lock[data-r="secret"]{background:linear-gradient(135deg,rgba(120,80,220,.45),rgba(40,20,90,.55));box-shadow:inset 0 0 0 1px rgba(210,180,255,.55)}
+.pgh-lock[data-r="legend"]{background:linear-gradient(135deg,rgba(255,180,80,.32),rgba(120,60,140,.38));box-shadow:inset 0 0 0 1px rgba(255,210,130,.55)}
+.pgh-lock p .pgh-lu{width:14px;height:14px}
+.pgh-tier.commun{background:#cfd8e6;color:#1c1430}
+.pgh-tier.rare{background:#c9a6ff;color:#22104a}
+.pgh-tier.legend{background:linear-gradient(90deg,#ffe08a,#ffb35a);color:#3a1a05}
+.pgh-tier.secret{background:linear-gradient(90deg,#7a5ac8,#c79cff);color:#fff}
+.pgh-cta.lk{background:linear-gradient(180deg,#e9d8ff,#b89af0);color:#22104a}
+.pgh-lu{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.18em;filter:drop-shadow(0 0 2px rgba(220,255,120,.5))}
+.pgh-lu.big{width:30px;height:30px;vertical-align:middle;filter:drop-shadow(0 0 6px rgba(225,255,130,.65)) drop-shadow(0 0 14px rgba(255,210,90,.35))}
+.pgh-lu.big .pgh-luf{transform-box:fill-box;transform-origin:center;animation:pghTwk 2.4s ease-in-out infinite}
+@keyframes pghTwk{0%,100%{opacity:.6;transform:scale(.82)}50%{opacity:1;transform:scale(1.18)}}
+.pgh-wallet{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:4px 14px 4px 8px;border-radius:999px;background:linear-gradient(180deg,rgba(60,70,24,.5),rgba(34,24,56,.66));box-shadow:inset 0 0 0 1px rgba(225,255,140,.35),0 0 20px rgba(200,255,120,.12)}
+.pgh-wallet[hidden]{display:none}
+.pgh-wallet b{font:700 18px ${FB};color:#f4ffd0;text-shadow:0 0 10px rgba(220,255,140,.45)}
+.pgh-wallet small{font:600 11.5px ${FB};color:rgba(240,255,210,.7)}
+@media (prefers-reduced-motion:reduce){.pgh-lu.big .pgh-luf,.pgh-ch .ico.q,.pgh-ch.r-legend .rb{animation:none}}
 .pgh-ctas2 .pgh-cta,.pgh-ctas .pgh-cta{white-space:nowrap}
 .pgh.wide.short .pgh-bottom{left:auto;right:max(10px,env(safe-area-inset-right,0px));top:50%;bottom:auto;width:auto;transform:translateY(-50%);padding:0}
 .pgh.wide.short .pgh-emotes{flex-direction:column}
@@ -2220,26 +2524,48 @@
   // la page
   // ---------------------------------------------------------------------------
   // espaces insécables de la typographie française (avant ! ? : ; », après «) — hors des balises
-  const nbsp = (h) => h.replace(/(>[^<]*)/g, (m) => m.replace(/ ([!?:;»])/g, ' $1').replace(/« /g, '« '));
+  const nbsp = (h) => h.replace(/(>[^<]*)/g, (m) => m.replace(/ ([!?:;»])/g, ' $1').replace(/« /g, '« '));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   const IMG = (n) => ROOT() + 'accueil/pegase-hub-' + n + '.webp';
+  // légendes NEUTRES (le monde du jeu change bientôt de carte : rien sur « le lac » ni « le village du lac »)
   const GALLERY = [
     ['pegase', 'Pégase, le cheval ailé', 'Ultra rare : sauras-tu le photographier ?'],
-    ['village', 'Le village du lac', 'Ta maison sera ici, parmi les voisins'],
-    ['bouleaux', 'Les bouleaux au bord de l\'eau', 'À l\'heure dorée, tout brille'],
+    ['village', 'Un village à toi', 'Ta maison, parmi celles des copains'],
+    ['bouleaux', 'L\'heure dorée', 'Le moment où tout se met à briller'],
     ['potager', 'Ton potager', 'Sème, arrose, récolte… et vends au marché'],
     ['macro', 'L\'appareil photo', 'Zoom, flou, et même le mode macro'],
     ['maison', 'Ta maison', 'Construis-la et décore-la comme tu veux']
   ];
   const FUTURE = [
     ['🗓️', 'Missions du jour', 'Chaque matin, de petites missions : photographier le chat, récolter des radis… et des écus à gagner.', 'rgba(255,200,110,.28)'],
-    ['👫', 'Copains', 'Vois qui se promène dans Pégase, où, et va visiter leur maison.', 'rgba(255,150,190,.26)'],
+    ['🏡', 'Chez les copains', 'Vois où se promènent tes copains dans Pégase et va visiter leur maison.', 'rgba(255,150,190,.26)'],
     ['🏆', 'Classement', 'La plus belle collection, les plus belles photos, les plus longues séries de jours.', 'rgba(255,220,120,.28)'],
     ['🖼️', 'Album et musée', 'Tes photos du jeu arrivent ici ; le musée de la salle garde les plus belles. Un ❤️ pour voter.', 'rgba(170,150,255,.26)'],
     ['📱', 'Le téléphone de ton personnage', 'Dans le jeu, ton avatar sort son téléphone : missions, messages, carte… comme ici.', 'rgba(120,200,255,.24)'],
     ['🎥', 'Appels vidéo', 'Appelle un copain depuis le téléphone du jeu et vois-le en vrai sur l\'écran.', 'rgba(140,240,190,.22)']
   ];
   const EMOTES = [['wave', '👋', 'Coucou'], ['jump', '🎉', 'Saute'], ['laugh', '😄', 'Rigole'], ['twirl', '💫', 'Tourne']];
+  Object.assign(PGH_SVG, {
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor" stroke="none"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>',
+    undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
+    me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.2-6.5 8-6.5s7 2 8 6.5"/></svg>',
+    friends: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-4 3.4-5.8 6.5-5.8s5.7 1.8 6.5 5.8"/><circle cx="17" cy="9" r="2.8"/><path d="M17 14.6c2.4.1 4 1.6 4.6 4.6"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.2" fill="currentColor" stroke="none"/></svg>',
+    body: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.6"/><path d="M8 22l1-8-3-5h12l-3 5 1 8M9 14h6"/></svg>',
+    hair: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20c-1-6 0-15 7-15s8 9 7 15"/><path d="M8.5 10c2.5 0 5-1.5 6-3.5.8 1.6 2 2.8 3 3.2"/><path d="M8.5 10v4a3.5 3.5 0 0 0 7 0v-3"/></svg>',
+    shirt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M8 3.5L3 6.5l2.2 4L7 9.6V21h10V9.6l1.8.9L21 6.5l-5-3c-.6 1.6-2.1 2.5-4 2.5s-3.4-.9-4-2.5z"/></svg>',
+    tophat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 17.5c4 2 14 2 18 0"/><path d="M6.5 17V8.5c0-2 11-2 11 0V17"/><path d="M6.5 13.5c3.5 1.2 7.5 1.2 11 0"/></svg>'
+  });
+  const ACC_ICO = ['star', 'none', 'hat', 'glasses', 'horns', 'antenna'];
+  // la monnaie du jeu : les LUCIOLES (symbole « LU » à deux barres, comme €) ; même dessin que ~/jdv-tools/pegase/art/luciole-symbole.svg
+  const LU_DEFS = '<svg width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true"><defs><linearGradient id="pghLuG" x1="0" y1="0" x2="1" y2="1">' +
+    '<stop offset="0" stop-color="#fff2a8"/><stop offset=".55" stop-color="#ffd35a"/><stop offset="1" stop-color="#b9ec6a"/></linearGradient></defs></svg>';
+  const LU = (c) => '<svg class="pgh-lu' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" aria-label="lucioles" role="img">' +
+    '<path d="M7.4 2.6v11.2a4.7 4.7 0 0 0 9.4 0V5.6" fill="none" stroke="url(#pghLuG)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M12.1 20.4h8.6" fill="none" stroke="url(#pghLuG)" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<path d="M3.2 8h7.6M3.2 11.6h7.6" fill="none" stroke="url(#pghLuG)" stroke-width="1.9" stroke-linecap="round"/>' +
+    '<circle class="pgh-luf" cx="20.2" cy="3.6" r="1.7" fill="#eaff9a"/></svg>';
   function chipDot(kind, i) {
     const c = GR.chars[i];
     if (kind === 'body') return `<span class="dot" style="background:linear-gradient(180deg,${c.hair} 0 38%,${c.skin} 38%)"></span>`;
@@ -2253,9 +2579,7 @@
       ['zip', 'Extrais-le', 'Clic droit sur le fichier, puis <q>Extraire tout…</q> et <q>Extraire</q>.'],
       ['play', 'Lance Pégase.exe', 'Dans le dossier <q>Pégase</q>, double-clique sur <q>Pégase.exe</q>. Bon voyage !']
     ];
-    const row = (kind, title, names) => `<div class="pgh-drow"><h4>${title}</h4><div class="pgh-chips" data-k="${kind}">${names.map((n, i) =>
-      `<button class="pgh-ch" data-k="${kind}" data-i="${i}">${chipDot(kind, i)}<span>${esc(n)}</span></button>`).join('')}</div></div>`;
-    return `<style>${PGH_CSS(FD, FB)}</style>` + nbsp(`
+    return `<style>${PGH_CSS(FD, FB)}</style>` + LU_DEFS + nbsp(`
 <div class="pgh-scroll" data-h="scroll">
   <section class="pgh-hero" data-h="hero">
     <img class="pgh-bg" data-h="bg" alt="" src="${IMG('lac')}" fetchpriority="high" decoding="async">
@@ -2268,67 +2592,98 @@
     <div class="pgh-copy">
       <span class="pgh-eye"><i></i>Nouveau monde · en essai</span>
       <h1 class="pgh-title">Pégase</h1>
-      <p class="pgh-pitch">Ta petite vie au village du lac, à l'heure dorée… et quelque part dans le ciel, <b>Pégase</b>, le cheval ailé.</p>
-      <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button><button class="pgh-cta glass" data-h="go-av2">✨ <span data-h="avlab2">Créer mon avatar</span></button></div>
+      <p class="pgh-pitch">Ta petite vie dans un monde magique… et quelque part dans le ciel, <b>Pégase</b>, le cheval ailé.</p>
+      <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
     </div>
     <div class="pgh-bottom">
       <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}</div>
-      <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button><button class="pgh-cta glass" data-h="go-av">✨ <span data-h="avlab">Mon avatar</span></button></div>
+      <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-av">${PGH_SVG.edit}<span data-h="avlab">Modifier</span></button><button class="pgh-cta glass" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button></div>
       <div class="pgh-small">Gratuit · PC Windows · Android bientôt</div>
     </div>
   </section>
-  <section class="pgh-sec">
-    <h2 class="pgh-h2">Le monde de Pégase</h2>
-    <p class="pgh-sub">De vraies images du jeu : un village au bord d'un lac, des animaux à photographier, ta maison, ton potager… et un cheval ailé que presque personne n'a vu.</p>
-    <div class="pgh-gal">${GALLERY.map(([n, t, s]) => `<figure class="pgh-pol"><div class="ph"><img loading="lazy" decoding="async" alt="${esc(t)}" src="${IMG(n)}"></div><figcaption>${esc(t)}<small>${esc(s)}</small></figcaption></figure>`).join('')}</div>
-  </section>
-  <section class="pgh-sec" data-h="secav">
-    <h2 class="pgh-h2">Mon avatar</h2>
-    <p class="pgh-sub">Le même que dans le jeu : choisis ton personnage, ta coiffure, tes vêtements et un accessoire, comme au Dressing de ta maison.</p>
-    <div class="pgh-card pgh-me">
-      <div class="pgh-me-ico" data-h="meico"><i></i><b></b><img alt="" data-h="meimg"></div>
-      <div><h3 data-h="metitle">Ton avatar</h3><p data-h="mesub">Pas encore choisi : voici l'exploratrice du village.</p><div class="pgh-tags" data-h="metags"></div></div>
-      <div class="pgh-me-actions"><button class="pgh-cta gold" data-h="go-av3">✨ <span data-h="avlab3">Créer mon avatar</span></button>
-        <button class="pgh-cta glass" data-h="go-photo" hidden>🖼️ <span>Utiliser comme photo de profil</span></button>
-        <span class="pgh-sync">🔄 <span><b>Synchronisé avec le jeu bientôt.</b> Pour l'instant, ton avatar est gardé sur cet appareil.</span></span></div>
-    </div>
-  </section>
-  <section class="pgh-sec" data-h="secdl">
-    <h2 class="pgh-h2">Installer Pégase</h2>
-    <p class="pgh-sub">Pégase est un vrai jeu à installer, gratuit. Il marche sur ordinateur maintenant, et bientôt sur les téléphones.</p>
-    <div class="pgh-card pgh-dlcard">
-      <div class="pgh-plat"><div class="ic">${PGH_SVG.pc}</div><div><h3>Pour PC (Windows)</h3><p>Windows 10 ou 11 · une souris ou une manette</p></div></div>
-      <div class="pgh-dlzone" data-h="dlzone"><span class="pgh-meta">On cherche la dernière version…</span></div>
-      <ol class="pgh-steps">${steps.map(([ic, h, p], i) => `<li class="pgh-step"><span class="n">${i + 1}</span><span class="ico">${PGH_SVG[ic]}</span><div><h4>${h}</h4><p>${p}</p></div></li>`).join('')}</ol>
-      <div class="pgh-ss">
-        <div><h4>${PGH_SVG.shield}Un écran bleu « Windows a protégé votre ordinateur » ?</h4>
-          <p>C'est normal : Pégase est tout neuf, Windows ne le connaît pas encore. Ce n'est pas un virus, c'est notre jeu.</p>
-          <ol><li>Clique sur <b>Informations complémentaires</b></li><li>puis sur <b>Exécuter quand même</b></li></ol></div>
-        <div class="pgh-win" data-h="win" aria-hidden="true">
-          <div class="s1"><div class="t">Windows a protégé votre ordinateur</div>Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue…<br><span class="l">Informations complémentaires<span class="ring"></span><span class="badge">1</span></span><div class="k"><span>Ne pas exécuter</span></div></div>
-          <div class="s2"><div class="t">Windows a protégé votre ordinateur</div>Application : Pégase.exe<br>Éditeur : Éditeur inconnu<div class="k"><span style="position:relative">Exécuter quand même<span class="ring"></span><span class="badge">2</span></span><span>Ne pas exécuter</span></div></div>
+  <nav class="pgh-tabs" data-h="tabs" role="tablist" aria-label="Pégase">
+    <button class="pgh-tab" role="tab" data-tab="moi">${PGH_SVG.me}<span>Moi</span></button>
+    <button class="pgh-tab" role="tab" data-tab="amis">${PGH_SVG.friends}<span>Amis</span><span class="bdg" data-h="frbdg"></span></button>
+    <button class="pgh-tab" role="tab" data-tab="infos">${PGH_SVG.info}<span>Infos</span></button>
+    <i class="ind" data-h="tabind"></i>
+  </nav>
+  <div class="pgh-pane" data-pane="moi">
+    <section class="pgh-sec" data-h="secav">
+      <div class="pgh-frhead"><h2 class="pgh-h2">Mon avatar</h2><span class="pgh-wallet" data-h="wallet" hidden title="Tes lucioles (la monnaie de Pégase)">${LU('big')}<b data-h="walletn">300</b><small>lucioles</small></span></div>
+      <p class="pgh-sub">Ton personnage dans Pégase : visage, coiffure, vêtements, accessoires… Crée-le comme tu veux, il te suit dans le jeu.</p>
+      <div class="pgh-card pgh-me">
+        <div class="pgh-me-ico" data-h="meico"><i></i><b></b><img alt="" data-h="meimg"></div>
+        <div><h3 data-h="metitle">Ton avatar</h3><p data-h="mesub">Pas encore choisi : voici l'exploratrice du village.</p><div class="pgh-tags" data-h="metags"></div></div>
+        <div class="pgh-me-actions"><button class="pgh-cta gold" data-h="go-av3">${PGH_SVG.edit}<span data-h="avlab3">Créer mon avatar</span></button>
+          <button class="pgh-cta glass" data-h="go-photo" hidden>🖼️ <span>Utiliser comme photo de profil</span></button>
+          <span class="pgh-sync" data-h="sync">🔄 <span data-h="synct"></span></span></div>
+      </div>
+      <div class="pgh-card pgh-wr">
+        <h3>Ma garde-robe</h3>
+        <p>Tout le pack de vêtements est là : quelques pièces sont déjà à toi, les autres se débloquent dans le jeu avec des lucioles, des missions… ou en secret. Touche une pièce pour l'essayer !</p>
+        <div class="pgh-wrrow" data-h="wrrow"></div>
+      </div>
+    </section>
+  </div>
+  <div class="pgh-pane" data-pane="amis">
+    <section class="pgh-sec" data-h="secfr">
+      <div class="pgh-frhead"><h2 class="pgh-h2">Les copains de la salle</h2><span class="pgh-frcount" data-h="frcount"></span></div>
+      <p class="pgh-sub" data-h="frsub">Leurs avatars, et qui est là en ce moment.</p>
+      <div data-h="frbox"></div>
+    </section>
+  </div>
+  <div class="pgh-pane" data-pane="infos">
+    <section class="pgh-sec">
+      <h2 class="pgh-h2">Le monde de Pégase</h2>
+      <p class="pgh-sub">Des images du jeu, en pleine création : le monde s'agrandit et s'embellit encore. Des animaux à photographier, ta maison, ton potager… et un cheval ailé que presque personne n'a vu.</p>
+      <div class="pgh-gal">${GALLERY.map(([n, t, s]) => `<figure class="pgh-pol"><div class="ph"><img loading="lazy" decoding="async" alt="${esc(t)}" src="${IMG(n)}"></div><figcaption>${esc(t)}<small>${esc(s)}</small></figcaption></figure>`).join('')}</div>
+    </section>
+    <section class="pgh-sec" data-h="secdl">
+      <h2 class="pgh-h2">Installer Pégase</h2>
+      <p class="pgh-sub">Pégase est un vrai jeu à installer, gratuit. Il marche sur ordinateur maintenant, et bientôt sur les téléphones.</p>
+      <div class="pgh-card pgh-dlcard">
+        <div class="pgh-plat"><div class="ic">${PGH_SVG.pc}</div><div><h3>Pour PC (Windows)</h3><p>Windows 10 ou 11 · une souris ou une manette</p></div></div>
+        <div class="pgh-dlzone" data-h="dlzone"><span class="pgh-meta">On cherche la dernière version…</span></div>
+        <ol class="pgh-steps">${steps.map(([ic, h, p], i) => `<li class="pgh-step"><span class="n">${i + 1}</span><span class="ico">${PGH_SVG[ic]}</span><div><h4>${h}</h4><p>${p}</p></div></li>`).join('')}</ol>
+        <div class="pgh-ss">
+          <div><h4>${PGH_SVG.shield}Un écran bleu « Windows a protégé votre ordinateur » ?</h4>
+            <p>C'est normal : Pégase est tout neuf, Windows ne le connaît pas encore. Ce n'est pas un virus, c'est notre jeu.</p>
+            <ol><li>Clique sur <b>Informations complémentaires</b></li><li>puis sur <b>Exécuter quand même</b></li></ol></div>
+          <div class="pgh-win" data-h="win" aria-hidden="true">
+            <div class="s1"><div class="t">Windows a protégé votre ordinateur</div>Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue…<br><span class="l">Informations complémentaires<span class="ring"></span><span class="badge">1</span></span><div class="k"><span>Ne pas exécuter</span></div></div>
+            <div class="s2"><div class="t">Windows a protégé votre ordinateur</div>Application : Pégase.exe<br>Éditeur : Éditeur inconnu<div class="k"><span style="position:relative">Exécuter quand même<span class="ring"></span><span class="badge">2</span></span><span>Ne pas exécuter</span></div></div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="pgh-others">
-      <div class="pgh-other"><div class="ic">${PGH_SVG.android}</div><h4>Android <span class="pgh-chip">À venir</span></h4><p>La borne l'installera toute seule, d'un toucher, sur ton téléphone.</p></div>
-      <div class="pgh-other"><div class="ic">${PGH_SVG.phone}</div><h4>iPhone et iPad <span class="pgh-chip">À venir</span></h4><p>Un peu plus tard. En attendant, prépare ton avatar ici !</p></div>
-    </div>
-  </section>
-  <section class="pgh-sec">
-    <h2 class="pgh-h2">Bientôt dans le hub</h2>
-    <p class="pgh-sub">Cette page deviendra la place du village : tout ce qui se passe dans Pégase, depuis ton téléphone.</p>
-    <div class="pgh-soongrid">${FUTURE.map(([e, t, p, g]) => `<div class="pgh-fut" style="--g:${g}"><span class="pgh-chip">Bientôt</span><div class="em">${e}</div><h4>${esc(t)}</h4><p>${esc(p)}</p></div>`).join('')}</div>
-  </section>
-  <div class="pgh-foot">Pégase est en essai : merci de tester ! ✦ Les images de cette page viennent du jeu.</div>
+      <div class="pgh-others">
+        <div class="pgh-other"><div class="ic">${PGH_SVG.android}</div><h4>Android <span class="pgh-chip">À venir</span></h4><p>La borne l'installera toute seule, d'un toucher, sur ton téléphone.</p></div>
+        <div class="pgh-other"><div class="ic">${PGH_SVG.phone}</div><h4>iPhone et iPad <span class="pgh-chip">À venir</span></h4><p>Un peu plus tard. En attendant, prépare ton avatar ici !</p></div>
+      </div>
+    </section>
+    <section class="pgh-sec">
+      <h2 class="pgh-h2">Bientôt dans le hub</h2>
+      <p class="pgh-sub">Cette page deviendra la place du village : tout ce qui se passe dans Pégase, depuis ton téléphone.</p>
+      <div class="pgh-soongrid">${FUTURE.map(([e, t, p, g]) => `<div class="pgh-fut" style="--g:${g}"><span class="pgh-chip">Bientôt</span><div class="em">${e}</div><h4>${esc(t)}</h4><p>${esc(p)}</p></div>`).join('')}</div>
+    </section>
+    <div class="pgh-foot">Pégase est en essai : merci de tester ! ✦ Les images de cette page viennent du jeu.</div>
+  </div>
 </div>
-<div class="pgh-dress" data-h="dress" role="dialog" aria-label="Mon avatar">
-  <div class="pgh-dstage" data-h="dstage"><div class="pgh-dfall" data-h="dfall"><div><b data-h="dfallt">Mon avatar</b><span data-h="dfalls"></span></div></div></div>
-  <div class="pgh-dpanel">
-    <div class="pgh-dhead"><b>Mon avatar</b><span data-h="ddesc"></span><button class="pgh-dclose" data-h="dx" aria-label="Fermer">✕</button></div>
-    <div class="pgh-drows">${row('body', 'Personnage', GR.chars.map((c) => c.n))}${row('hair', 'Coiffure', GR.hair)}${row('clothes', 'Vêtements', GR.clothes)}${row('acc', 'Accessoire', GR.acc)}</div>
-    <div class="pgh-dbtns"><button class="pgh-cta glass rnd" data-h="drnd" aria-label="Au hasard" title="Au hasard">${PGH_SVG.dice}</button><button class="pgh-cta glass" data-h="dno">Annuler</button><button class="pgh-cta gold" data-h="dok">${PGH_SVG.check}<span>C'est moi !</span></button></div>
-    <p class="pgh-dnote">Gardé sur cet appareil · synchronisé avec le jeu bientôt</p>
+<div class="pgh-ed" data-h="ed" role="dialog" aria-label="Modifier mon avatar">
+  <div class="pgh-edtop"><div class="t"><b>Mon avatar</b><span data-h="ddesc"></span></div>
+    <button data-h="dundo" aria-label="Revenir en arrière" title="Revenir en arrière" disabled>${PGH_SVG.undo}</button><button data-h="dx" aria-label="Fermer sans enregistrer" title="Fermer">✕</button></div>
+  <div class="pgh-edcats" role="tablist">${EDCATS.map((c) => `<button class="pgh-edcat" data-cat="${c.k}" role="tab">${PGH_SVG[c.ic] || ''}<span>${c.n}</span><em></em></button>`).join('')}</div>
+  <div class="pgh-edgrid" data-h="dgrid"></div>
+  <div class="pgh-lock" data-h="lock"><span class="ic" data-h="lockic">${PGH_SVG.lock}</span><div class="t"><b><span data-h="lockn"></span><span class="pgh-tier" data-h="lockt"></span></b><p data-h="lockp"></p></div><button data-h="lockx">Enlever</button></div>
+  <div class="pgh-dbtns"><button class="pgh-cta glass rnd" data-h="drnd" aria-label="Au hasard" title="Au hasard">${PGH_SVG.dice}</button><button class="pgh-cta glass" data-h="dno">Annuler</button><button class="pgh-cta gold" data-h="dok">${PGH_SVG.check}<span>Enregistrer</span></button></div>
+</div>
+<div class="pgh-fv" data-h="fv" role="dialog" aria-label="Un copain">
+  <div class="pgh-fvstage" data-h="fvstage"><div class="pgh-fvnone" data-h="fvnone"><div><div class="ped"><span class="sil"></span><span data-h="fvhead"></span></div><p data-h="fvnonet"></p></div></div></div>
+  <div class="pgh-fvpanel">
+    <div class="pgh-fvhead"><b data-h="fvname"></b><button class="pgh-dclose" data-h="fvx" aria-label="Fermer">✕</button></div>
+    <span class="pgh-fvst" data-h="fvst"><i></i><span data-h="fvstt"></span></span>
+    <p class="pgh-fvdesc" data-h="fvdesc"></p>
+    <div class="pgh-fvemo" data-h="fvemo">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
+    <div class="pgh-fvbtns"><button class="pgh-cta glass" data-h="fvcall"><span>📞 Appeler</span><small>bientôt</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
   </div>
 </div>
 <div class="pgh-modal" data-h="pmodal" role="dialog" aria-label="Ma photo de profil"><div class="pgh-mcard">
@@ -2360,6 +2715,55 @@
   }
   const fmtSize = (n) => n >= 1e9 ? (n / 1e9).toFixed(1).replace('.', ',') + ' Go' : Math.max(1, Math.round(n / 1e6)) + ' Mo';
 
+  // ---------------------------------------------------------------------------
+  // LE CRÉATEUR : toute la garde-robe du pack (catalogue de pegase.perso.bin), TRÈS PEU de choses ouvertes au départ, le reste VISIBLE
+  // avec un cadenas (prix en lucioles, récompense de mission, ou « Secret »). On peut ESSAYER une pièce verrouillée ; on n'enregistre que
+  // ce qu'on possède. Possédé = FREE + ce que portait déjà l'avatar enregistré (rien n'est repris) + plus tard le serveur (pg_profile.owned).
+  // ---------------------------------------------------------------------------
+  const CHARS_N = ['Sally', 'Chloé', 'Mary', 'Zulle', 'Javi', 'John', 'Galvon'];
+  const FREE_LOOKS = [0, 4, 5];                                              // Sally, Javi, John : ouverts dès le départ
+  const LOOK_LOCK = { 1: ['rare', 450], 2: ['rare', 450], 3: ['legend', 900] };
+  // récompenses (cadeaux) et secrets (jamais dire comment)
+  const REWARD = { 'hat.beanie': 'Récompense : ta première photo de Pégase', 'top.hoodie': 'Récompense : 7 jours de suite dans Pégase',
+    'hb.punk': 'Récompense : 3 missions du jour réussies', 'feet.work_boots': 'Récompense : 10 animaux photographiés', cam: 'Offert par le maire à ton arrivée dans le jeu',
+    'fx:blush': 'Récompense : inviter un copain dans Pégase' };
+  const SECRET = new Set(['look:6', 'hacc.alien_attena', 'sk:11', 'elf', 'ey:8']);
+  const SKIN_LOCK = { 9: ['rare', 300], 10: ['rare', 300] };                // peaux de fantaisie (les peaux naturelles sont toutes ouvertes)
+  const EYE_FREE = new Set([0, 1, 2, 3, 4, 5]);
+  const HAIRC_FREE = new Set([44, 45, 19, 46, 47, 48, 8, 49, 50, 51, 52, 5]);  // couleurs de cheveux naturelles
+  const FACE_LOCK = { 3: ['commun', 120], 4: ['commun', 120], 5: ['rare', 250] };
+  const RAR = { commun: 'Commun', rare: 'Rare', legend: 'Légendaire', secret: 'Secret', cadeau: 'Cadeau' };
+  const TIER2 = { basique: 'commun', joli: 'rare', rare: 'legend' };
+  const EDCATS = [
+    { k: 'perso', n: 'Personnages', ic: 'body', fr: 'corps' }, { k: 'corps', n: 'Corps', ic: 'me', fr: 'corps' }, { k: 'visage', n: 'Visage', ic: 'face', fr: 'visage' },
+    { k: 'cheveux', n: 'Coiffures', ic: 'hair', fr: 'tete' }, { k: 'haut', n: 'Hauts', ic: 'shirt', fr: 'buste' }, { k: 'bas', n: 'Bas', ic: 'pants', fr: 'jambes' },
+    { k: 'tenue', n: 'Robes', ic: 'dress', fr: 'corps' }, { k: 'pieds', n: 'Chaussures', ic: 'shoe', fr: 'pieds' }, { k: 'chapeau', n: 'Chapeaux', ic: 'tophat', fr: 'tete' },
+    { k: 'acc', n: 'Accessoires', ic: 'glasses', fr: 'buste' }];
+  const SLOT_OF_CAT = { haut: ['top'], bas: ['bot'], tenue: ['ovr'], pieds: ['feet'], chapeau: ['hat', 'hacc'], acc: ['glass', 'glov'] };
+  Object.assign(PGH_SVG, {
+    face: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/><circle cx="15" cy="10.5" r="1" fill="currentColor"/><path d="M8.5 15c2 1.8 5 1.8 7 0"/></svg>',
+    pants: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 3h12l1 18h-5l-2-11-2 11H5z"/></svg>',
+    dress: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M9 3l-1 5 2 2-5 11h14l-5-11 2-2-1-5"/><path d="M9 3c1 1.3 5 1.3 6 0"/></svg>',
+    shoe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 17V8h5c0 3 2 4 5 5l6 1c1.5.3 2 1.4 2 3H3z"/><path d="M3 20h18"/></svg>',
+    fem: '<svg viewBox="0 0 40 56" fill="currentColor"><circle cx="20" cy="9" r="7"/><path d="M12 19h16l6 19h-6l-1 16h-5V40h-4v14h-5l-1-16H6z"/></svg>',
+    masc: '<svg viewBox="0 0 40 56" fill="currentColor"><circle cx="20" cy="9" r="7"/><path d="M9 19h22v18h-4v17h-5V39h-4v15h-5V37H9z"/></svg>',
+    ear: '<svg viewBox="0 0 48 48" fill="none" stroke="#fff4de" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 40c6 0 6-6 10-10s8-6 8-14C34 9 29 5 23 5S12 9 12 16"/><path d="M34 12 44 3"/></svg>',
+    cam: '<svg viewBox="0 0 64 64"><rect x="8" y="24" width="48" height="30" rx="7" fill="#6b4226"/><rect x="8" y="22" width="48" height="8" rx="3" fill="#d6b04c"/><rect x="14" y="16" width="12" height="8" rx="2" fill="#d6b04c"/><circle cx="34" cy="39" r="11" fill="#d6b04c"/><circle cx="34" cy="39" r="8" fill="#1a1d2e"/><circle cx="31" cy="36" r="2.5" fill="#cfe3ff"/></svg>',
+    q: '<svg viewBox="0 0 48 48"><defs><radialGradient id="pghQ" cx=".5" cy=".45" r=".6"><stop offset="0" stop-color="#e9d8ff"/><stop offset="1" stop-color="#7a5ac8"/></radialGradient></defs><circle cx="24" cy="24" r="18" fill="url(#pghQ)" opacity=".85"/><path d="M18.5 18.5a5.6 5.6 0 1 1 7.6 5.2c-1.4.6-2.1 1.5-2.1 3v1.3" fill="none" stroke="#2a1450" stroke-width="3.4" stroke-linecap="round"/><circle cx="24" cy="33.6" r="2.1" fill="#2a1450"/><path d="M38 8l1.2 3 3 1.2-3 1.2L38 16.4l-1.2-3-3-1.2 3-1.2z" fill="#fff6c8"/></svg>'
+  });
+  const FACE_N = ['Doux', 'Rieur', 'Rêveur', 'Malin', 'Costaud', 'Sage'];
+  function faceSVG(i) {
+    const jaw = ['M32 9C19 9 13 19 13 31c0 13 8 23 19 23s19-10 19-23C51 19 45 9 32 9z', 'M32 9C18 9 12 19 12 31c0 14 9 24 20 24s20-10 20-24C52 19 46 9 32 9z',
+      'M32 9C19 9 13 19 13 31c0 13 9 22 19 22s19-9 19-22C51 19 45 9 32 9z', 'M32 9C20 9 14 18 14 30c0 12 9 25 18 25s18-13 18-25C50 18 44 9 32 9z',
+      'M32 9C18 9 12 18 12 30c0 9 3 16 7 20 4 4 8 5 13 5s9-1 13-5c4-4 7-11 7-20C52 18 46 9 32 9z', 'M32 9C19 9 13 19 13 31c0 13 8 23 19 23s19-10 19-23C51 19 45 9 32 9z'][i];
+    const eyes = [['M20 31q3.5-3 7 0', 'M37 31q3.5-3 7 0'], ['M20 32q3.5-5 7 0', 'M37 32q3.5-5 7 0'], ['M20 30q3.5 3 7 0', 'M37 30q3.5 3 7 0'], ['M20 32l7-2.5', 'M37 29.5l7 2.5'], ['M20 31h7', 'M37 31h7'], ['M20 30q3.5 2 7 0', 'M37 30q3.5 2 7 0']][i];
+    const mouth = ['M27 43q5 3.5 10 0', 'M25 42q7 7 14 0', 'M28 43q4 2 8 0', 'M27 44q6 2 11-2', 'M27 44h10', 'M28 44q4-1 8 0'][i];
+    return `<svg viewBox="0 0 64 64"><path d="${jaw}" fill="#f2c7a3" stroke="#c48a66" stroke-width="1.4"/><circle cx="20" cy="38" r="3.2" fill="#f19a8e" opacity=".45"/><circle cx="44" cy="38" r="3.2" fill="#f19a8e" opacity=".45"/>
+      <path d="${eyes[0]}M${eyes[1].slice(1)}" stroke="#3a2416" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="${mouth}" stroke="#8a3a2a" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
+  }
+  const browSVG = (thick) => `<svg viewBox="0 0 64 64"><path d="M10 30q12-10 22-4M34 26q10-6 22 4" stroke="#4a2c18" stroke-width="${thick ? 7 : 3.5}" fill="none" stroke-linecap="round"/></svg>`;
+  const lashSVG = (long) => `<svg viewBox="0 0 64 64"><path d="M12 36q20-14 40 0" stroke="#2a1a14" stroke-width="3" fill="none"/>${[16, 22, 28, 34, 40, 46].map((x) => `<path d="M${x} ${x < 32 ? 33 - (x - 12) * 0.35 : 33 - (52 - x) * 0.35}l${(x - 32) / 6} -${long ? 12 : 6}" stroke="#2a1a14" stroke-width="2.2" stroke-linecap="round"/>`).join('')}<circle cx="32" cy="42" r="7" fill="#5a3a24"/></svg>`;
+
   function mountHub(root, api) {
     const FD = (api && api.fonts && api.fonts.display) || "'Bungee', Impact, sans-serif", FB = (api && api.fonts && api.fonts.body) || "'Chakra Petch', system-ui, sans-serif";
     const mm = (q) => typeof matchMedia === 'function' && matchMedia(q).matches;
@@ -2368,36 +2772,149 @@
     const pl = (api && api.player) || {}, guest = !pl.name || pl.name === 'INVITÉ';
     const who = guest ? 'TOI' : String(pl.name).slice(0, 14);
     const KEY = 'jdw.pegase.garde.' + (guest ? 'INVITE' : String(pl.name).toUpperCase().replace(/[^A-Z0-9À-ÖØ-Þ_ -]/g, '').slice(0, 16));
+    const PG = api && api.pegase && typeof api.pegase.info === 'function' ? api.pegase : null;
+    const pgInfo = () => { try { return (PG && PG.info()) || {}; } catch (e) { return {}; } };
     if (getComputedStyle(root).position === 'static') root.style.position = 'relative';
     root.textContent = '';
     const box = document.createElement('div'); box.className = 'pgh';
     box.innerHTML = buildPage(FD, FB, who);
     root.appendChild(box);
     const $ = {}; box.querySelectorAll('[data-h]').forEach((n) => { $[n.dataset.h] = n; });
-    const listeners = [], timers = new Set(); let dead = false;
+    const listeners = [], timers = new Set(), ivals = new Set(); let dead = false;
     const on = (t, ty, fn, o) => { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); };
     const later = (fn, ms) => { const id = setTimeout(() => { timers.delete(id); if (!dead) fn(); }, ms); timers.add(id); return id; };
+    const every = (fn, ms) => { const id = setInterval(() => { if (!dead) fn(); }, ms); ivals.add(id); return id; };
     const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* rien */ } } };
     const report = (msg, detail) => { try { const err = new Error(msg); err.stack = detail || msg; const ev = new Event('unhandledrejection'); ev.reason = err; ev.promise = Promise.resolve(); window.dispatchEvent(ev); } catch (e) { /* rien */ } };
     const tone = (a, b) => { try { api && api.audio && api.audio.tone(a, 0.12, 'sine', 0.045, b); } catch (e) { /* rien */ } };
     let toastT = 0;
-    const toast = (s) => { $.toast.textContent = s; $.toast.classList.add('on'); clearTimeout(toastT); toastT = later(() => $.toast.classList.remove('on'), 2600); };
+    const toast = (s) => { $.toast.textContent = s; $.toast.classList.add('on'); clearTimeout(toastT); toastT = later(() => $.toast.classList.remove('on'), 2800); };
+    const memberMode = () => { const i = pgInfo(); return !!PG && !i.guest && !!i.name; };
 
-    // ---------- la tenue gardée (format garde-robe.json du jeu) ----------
-    const loadSaved = () => { const s = store.get(KEY); if (!s) return -1; try { const j = JSON.parse(s); const o = j && Number.isInteger(j.tenue) ? j.tenue : -1; return o >= 0 && o <= 2057 ? o : -1; } catch (e) { return -1; } };
-    let saved = loadSaved(), shown = saved >= 0 ? saved : 0, draft = shown;
-    function renderMe() {
-      const o = saved >= 0 ? saved : 0, l = tDecode(o), c = GR.chars;
-      $.meico.style.setProperty('--skin', c[l.body].skin); $.meico.style.setProperty('--hairc', c[l.hair].hair); $.meico.style.setProperty('--cloth', c[l.clothes].c1);
-      $.metitle.textContent = saved >= 0 ? (guest ? 'Ton avatar' : 'L\'avatar de ' + who) : 'Ton avatar';
-      $.mesub.textContent = saved >= 0 ? 'Tenue n° ' + o + ' · prête pour le jeu.' : 'Pas encore choisi : voici Sally, l\'exploratrice du village.';
-      $.metags.innerHTML = [[c[l.body].n, c[l.body].skin], [GR.hair[l.hair], c[l.hair].hair], [GR.clothes[l.clothes], c[l.clothes].c1], [GR.acc[l.acc], '#ffd36a']]
-        .map(([t, col]) => `<span class="pgh-tag" style="--c:${col}"><i></i>${esc(t)}</span>`).join('');
-      const lab = saved >= 0 ? 'Changer mon avatar' : 'Créer mon avatar';
-      for (const k of ['avlab2', 'avlab3']) if ($[k]) $[k].textContent = lab;
-      $.avlab.textContent = saved >= 0 ? 'Mon avatar' : 'Mon avatar';
+    // ---------- le catalogue (dans pegase.perso.bin) ----------
+    let CAT = null, ITEMS = null;
+    const catReady = needPack('perso').then(() => { const b = STORE.files.get('perso/catalog.json'); CAT = JSON.parse(new TextDecoder().decode(b)); ITEMS = new Map(CAT.items.map((i) => [i.id, i])); return CAT; });
+    catReady.catch(() => {});
+    const palHex = (i) => (CAT && CAT.palette[i] ? CAT.palette[i][1] : '#888');
+
+    // ---------- l'avatar enregistré ----------
+    // format (garde-robe.json du jeu + l'apparence complète du créateur) : { v: 1, tenue: o, desc: "…", look: { … } }
+    const readSaved = () => { const s = store.get(KEY); if (!s) return null; try { const j = JSON.parse(s); if (!j || !Number.isInteger(j.tenue) || j.tenue < 0 || j.tenue > 2057) return null; return { tenue: j.tenue, look: j.look && typeof j.look === 'object' ? j.look : null, desc: String(j.desc || '') }; } catch (e) { return null; } };
+    let SV = readSaved();                      // ce qui est enregistré (null : rien encore)
+    let D = null, S = null;                    // D = apparence affichée / en cours ; S = apparence enregistrée (objet)
+    let preset = SV ? SV.tenue % 7 : 0;        // personnage de départ (tenue du jeu = ce numéro)
+    const GRAND = new Set();                   // ce que portait déjà l'avatar enregistré : à lui pour toujours
+    const OWNED = new Set();                   // débloqué par le serveur (plus tard : pg_profile.owned)
+    const lookCopy = (d) => JSON.parse(JSON.stringify(d));
+    function keysOf(d) {
+      const k = [];
+      if (!d) return k;
+      for (const [slot, v] of Object.entries(d.it || {})) if (v && v[0]) k.push(slot === 'cam' ? 'cam' : v[0]);
+      k.push('sk:' + d.sk, 'ey:' + d.ey, 'fc:' + d.fc, 'pu:' + d.pu, 'hc:' + d.hc, 'hc:' + (d.hc2 == null ? d.hc : d.hc2));
+      for (const f of d.fx || []) k.push('fx:' + f);
+      if (d.elf) k.push('elf'); if (d.so && d.so[0]) k.push('so:' + d.so[0]);
+      return k;
     }
-    renderMe();
+    let FREE = null;
+    function freeSet() {
+      if (FREE || !CAT) return FREE || new Set();
+      FREE = new Set(['brow.stylized_basic_brows', 'brow.stylized_thick_brows', 'lash.stylized_long_lashes', 'lash.stylized_short_lashes', 'teeth.stylized_basic_teeth', 'pu:basic', 'fc:0', 'fc:1', 'fc:2']);
+      for (const i of FREE_LOOKS) { const L = CAT.looks[['Sally', 'Chloe', 'Mary', 'Zulle', 'Javi', 'John', 'Galvon'][i]]; for (const v of Object.values(L.it)) if (v && v[0]) FREE.add(v[0]); FREE.add('look:' + i); }
+      for (let i = 0; i < 9; i++) FREE.add('sk:' + i);
+      for (const i of EYE_FREE) FREE.add('ey:' + i);
+      for (const i of HAIRC_FREE) FREE.add('hc:' + i);
+      return FREE;
+    }
+    const owned = (k) => freeSet().has(k) || GRAND.has(k) || OWNED.has(k);
+    // rareté / prix / façon de l'obtenir d'une clé verrouillée
+    function lockOf(k) {
+      if (owned(k)) return null;
+      if (SECRET.has(k)) return { r: 'secret' };
+      if (REWARD[k]) return { r: 'cadeau', how: REWARD[k] };
+      if (k.startsWith('look:')) { const [r, p] = LOOK_LOCK[+k.slice(5)] || ['rare', 450]; return { r, p }; }
+      if (k.startsWith('sk:')) { const [r, p] = SKIN_LOCK[+k.slice(3)] || ['rare', 300]; return { r, p }; }
+      if (k.startsWith('ey:')) return { r: 'rare', p: 200 };
+      if (k.startsWith('hc:')) return { r: 'rare', p: 120 };
+      if (k.startsWith('fc:')) { const [r, p] = FACE_LOCK[+k.slice(3)] || ['commun', 120]; return { r, p }; }
+      if (k.startsWith('pu:')) return { r: 'commun', p: 80 };
+      if (k === 'elf') return { r: 'legend', p: 400 };
+      if (k.startsWith('fx:') || k.startsWith('so:')) { const l = CAT && CAT.layers[k.slice(3)]; return { r: TIER2[(l && l.tier) || 'basique'] || 'commun', p: Math.max(40, (l && l.price) || 0) }; }
+      if (k === 'cam') return { r: 'cadeau', how: REWARD.cam };
+      const it = ITEMS && ITEMS.get(k); if (!it) return { r: 'commun', p: 60 };
+      return { r: TIER2[it.tier] || 'commun', p: Math.max(40, it.price || 0) };
+    }
+    const lockedIn = (d) => keysOf(d).filter((k) => !owned(k)).concat(owned('look:' + preset) ? [] : ['look:' + preset]);
+    function keyName(k) {
+      if (k.startsWith('look:')) return CHARS_N[+k.slice(5)];
+      if (k.startsWith('sk:')) return 'Peau ' + ((CAT && CAT.skin[+k.slice(3)]) || ['?'])[0];
+      if (k.startsWith('ey:')) return 'Yeux ' + ((CAT && CAT.eyes[+k.slice(3)]) || ['?'])[0];
+      if (k.startsWith('hc:')) return 'Cheveux ' + ((CAT && CAT.palette[+k.slice(3)]) || ['?'])[0];
+      if (k.startsWith('fc:')) return 'Visage ' + FACE_N[+k.slice(3)];
+      if (k.startsWith('pu:')) return 'Pupilles de chat';
+      if (k === 'elf') return 'Oreilles d\'elfe';
+      if (k === 'cam') return 'Appareil photo d\'explorateur';
+      if (k.startsWith('fx:') || k.startsWith('so:')) { const l = CAT && CAT.layers[k.slice(3)]; return (l && l.name) || k; }
+      const it = ITEMS && ITEMS.get(k); return it ? it.name : k;
+    }
+    // ce qui est verrouillé revient à l'enregistré (ou disparaît)
+    function stripLocked(d, base) {
+      d = lookCopy(d); base = base || {};
+      for (const [slot, v] of Object.entries(d.it || {})) { const k = slot === 'cam' ? 'cam' : v && v[0]; if (k && !owned(k)) { if (base.it && base.it[slot] && owned(slot === 'cam' ? 'cam' : base.it[slot][0])) d.it[slot] = base.it[slot].slice(); else delete d.it[slot]; } }
+      for (const [f, dv] of [['sk', 4], ['ey', 0], ['fc', 0], ['pu', 'basic']]) if (!owned(f + ':' + d[f])) d[f] = base[f] != null && owned(f + ':' + base[f]) ? base[f] : dv;
+      if (!owned('hc:' + d.hc)) d.hc = base.hc != null && owned('hc:' + base.hc) ? base.hc : 48;
+      if (d.hc2 != null && !owned('hc:' + d.hc2)) d.hc2 = d.hc;
+      d.fx = (d.fx || []).filter((f) => owned('fx:' + f));
+      if (d.elf && !owned('elf')) d.elf = 0;
+      if (d.so && d.so[0] && !owned('so:' + d.so[0])) d.so = null;
+      // une robe verrouillée retirée : on remet le haut et le bas (ou la robe) enregistrés
+      const bi = base.it || {};
+      if (!d.it.ovr) {
+        if (!d.it.top && !d.it.bot && bi.ovr && owned(bi.ovr[0])) d.it.ovr = bi.ovr.slice();
+        else { if (!d.it.top && bi.top && owned(bi.top[0])) d.it.top = bi.top.slice(); if (!d.it.bot && bi.bot && owned(bi.bot[0])) d.it.bot = bi.bot.slice(); }
+      }
+      return d;
+    }
+    function describe(d) {
+      if (!d || !ITEMS) return '';
+      const n = (s) => { const v = d.it && d.it[s]; const it = v && ITEMS.get(v[0]); return it ? it.name : ''; };
+      return [CHARS_N[preset], n('hb') || n('hf'), n('ovr') || [n('top'), n('bot')].filter(Boolean).join(' et '), n('hat') || n('hacc') || n('glass')].filter(Boolean).join(' · ');
+    }
+    const canon = (d) => ({ v: 1, tenue: preset, desc: describe(d).replace(/"/g, '\''), look: d });
+
+    // ---------- lucioles (porte-monnaie, onglet Moi) ----------
+    let wallet = null;
+    function renderWallet() { const i = pgInfo(); $.wallet.hidden = !(memberMode() && i.online !== false) || wallet == null; if (wallet != null) $.walletn.textContent = Number(wallet).toLocaleString('fr-FR'); }
+    async function loadWallet() {
+      if (!memberMode()) { renderWallet(); return; }
+      try { const r = await PG.rpc('pg_me', {}); if (dead) return; const j = Array.isArray(r) ? r[0] : r; if (j && Number.isFinite(+j.ecus)) wallet = +j.ecus;
+        if (j && Array.isArray(j.owned)) for (const x of j.owned) if (typeof x === 'string') OWNED.add(x); } catch (e) { /* hors ligne : rien */ }
+      renderWallet();
+    }
+
+    // ---------- carte « Mon avatar » ----------
+    function renderMe() {
+      const has = !!SV;
+      $.metitle.textContent = has ? (guest ? 'Ton avatar' : 'L\'avatar de ' + who) : 'Ton avatar';
+      $.mesub.textContent = has ? (SV.desc || describe(S) || 'Prêt pour le jeu.') : 'Pas encore choisi : voici Sally, l\'exploratrice.';
+      const d = S || D, tags = [];
+      if (d && CAT) {
+        const it = (s) => { const v = d.it && d.it[s]; return v && ITEMS.get(v[0]); };
+        tags.push([CHARS_N[preset], (CAT.skin[d.sk] || CAT.skin[3])[1]]);
+        const h = it('hb') || it('hf'); if (h) tags.push([h.name, palHex(d.hc)]);
+        const c = it('ovr') || it('top'); if (c) tags.push([c.name, palHex((d.it.ovr || d.it.top)[1])]);
+        const a = it('hat') || it('glass') || it('hacc'); if (a) tags.push([a.name, '#ffd36a']);
+      }
+      $.metags.innerHTML = tags.map(([t, c]) => `<span class="pgh-tag" style="--c:${c}"><i></i>${esc(t)}</span>`).join('');
+      const lab = has ? 'Modifier mon avatar' : 'Créer mon avatar';
+      for (const k of ['avlab2', 'avlab3']) if ($[k]) $[k].textContent = lab;
+      renderSync();
+    }
+    let srvState = 'local';
+    function renderSync() {
+      const m = memberMode();
+      $.synct.innerHTML = !m ? '<b>Gardé sur cet appareil.</b> Crée un compte pour le retrouver partout.' : srvState === 'ok' ? '<b>Gardé sur ton compte</b> : tu le retrouves sur tous tes appareils (et bientôt dans le jeu).'
+        : srvState === 'wait' ? '<b>Gardé sur cet appareil</b> : envoyé sur ton compte dès le retour du réseau.' : '<b>Ton compte</b> : on vérifie…';
+    }
 
     // ---------- mise en page (portrait / paysage / ordinateur) ----------
     let wide = false, short = false, W0 = 0, H0 = 0;
@@ -2405,42 +2922,40 @@
       const w = root.clientWidth || box.clientWidth || 390, h = root.clientHeight || box.clientHeight || 700;
       W0 = w; H0 = h;
       wide = w >= 600 && w > h * 1.05; short = h < 520;
-      box.classList.toggle('wide', wide); box.classList.toggle('short', short && wide);
-      $.dress.classList.toggle('wide', wide); $.dress.classList.toggle('short', short);
+      box.classList.toggle('wide', wide); box.classList.toggle('short', short);
+      $.fv.classList.toggle('wide', wide);
       const heroH = wide ? Math.max(340, Math.min(h, 820)) : Math.max(560, Math.min(Math.round(h * 0.94), 900));
       $.hero.style.setProperty('--heroH', heroH + 'px');
       box.style.setProperty('--sunX', wide ? '72%' : '50%');
-      flySize(); placeStage();
+      flySize(); placeStage(); tabInd();
     }
-    // où se tient l'avatar dans le haut de page (rectangle du canevas, en points)
+    // où se tient l'avatar (rectangle du canevas, en points)
     function heroFocus() {
-      const r = $.hero.getBoundingClientRect(), w = r.width, h = r.height;
+      const w = $.hero.offsetWidth, h = $.hero.offsetHeight;
+      if (editing) {
+        if (wide) { const L = $.ed.offsetLeft; return { x: 8, y: short ? 6 : 16, w: Math.max(160, L - 16), h: Math.min(h, box.clientHeight) - (short ? 12 : 32) }; }
+        const top = $.ed.offsetTop; return { x: 0, y: 8, w, h: Math.max(160, top - 14) };
+      }
+      const r = $.hero.getBoundingClientRect();
       if (wide) { const top = short ? 8 : 30, bot = short ? h - 8 : $.emotes.getBoundingClientRect().top - r.top - 8; const x0 = w * 0.48, x1 = short ? $.emotes.getBoundingClientRect().left - r.left - 4 : w * 0.98; return { x: x0, y: top, w: x1 - x0, h: Math.max(160, bot - top) }; }
       const cp = box.querySelector('.pgh-copy').getBoundingClientRect(), top = cp.bottom - r.top + 30, bot = $.emotes.getBoundingClientRect().top - r.top - 6;
       return { x: 0, y: top, w, h: Math.max(180, bot - top) };
     }
-    function dressFocus() {
-      const r = $.dstage.getBoundingClientRect();
-      return { x: r.width * 0.06, y: wide ? (short ? 8 : 24) : 10, w: r.width * 0.88, h: r.height - (wide ? (short ? 14 : 44) : 14) };
-    }
-    let STG = null, dressing = false;
+    function fvFocus() { const r = $.fvstage.getBoundingClientRect(); return { x: r.width * 0.05, y: wide ? 24 : 12, w: r.width * 0.9, h: r.height - (wide ? 48 : 18) }; }
+    let STG = null, editing = false, friendOn = null;
     function placeStage() {
-      const f = dressing ? dressFocus() : heroFocus();
+      const f = friendOn ? fvFocus() : heroFocus();
       if (STG) STG.setFocus(f);
-      const cx = f.x + f.w / 2, cy = f.y + f.h * 0.52;
-      $.wait.style.left = cx + 'px'; $.wait.style.top = cy + 'px';
+      $.wait.style.left = (f.x + f.w / 2) + 'px'; $.wait.style.top = (f.y + f.h * 0.52) + 'px';
     }
 
-    // ---------- Pégase qui passe dans le ciel (2D, la vignette du jeu) ----------
+    // ---------- Pégase qui passe dans le ciel (2D) ----------
     const fx = $.fly.getContext('2d');
     let flyW = 0, flyH = 0;
-    function flySize() {
-      const r = $.hero.getBoundingClientRect(), dpr = Math.min(1.5, window.devicePixelRatio || 1);
-      flyW = r.width; flyH = r.height; $.fly.width = Math.round(r.width * dpr); $.fly.height = Math.round(r.height * dpr); fx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
+    function flySize() { const dpr = Math.min(1.5, window.devicePixelRatio || 1); flyW = $.hero.offsetWidth; flyH = $.hero.offsetHeight; $.fly.width = Math.round(flyW * dpr); $.fly.height = Math.round(flyH * dpr); fx.setTransform(dpr, 0, 0, dpr, 0, 0); }
     function flyDraw(t) {
       const w = flyW, h = flyH; fx.clearRect(0, 0, w, h);
-      const P = 14, k = (t % P) / P; if (k > 0.62) return;            // un passage toutes les 14 s
+      const P = 14, k = (t % P) / P; if (k > 0.62) return;
       const q = k / 0.62, u = Math.min(h, w * 0.62), s = Math.max(0.55, Math.min(1.1, u / 520));
       const y0 = wide ? h * 0.2 : h * 0.33, px = w * (1.12 - q * 1.3), py = y0 - Math.sin(q * Math.PI) * h * 0.08 + Math.sin(t * 2.2) * 4;
       for (let i = 1; i < 30; i++) { const kk = q - i * 0.0055; if (kk < 0) break; const tx = w * (1.12 - kk * 1.3) + 12 * s, ty = y0 - Math.sin(kk * Math.PI) * h * 0.08 + Math.sin((t - i * 0.05) * 2.2) * 4 + 3 + i * 0.25;
@@ -2449,32 +2964,30 @@
     }
     let flyRaf = 0, flyOn = false; const flyT0 = performance.now() - 4000;
     const flyLoop = () => { flyRaf = 0; if (!flyOn || dead) return; flyDraw((performance.now() - flyT0) / 1000); flyRaf = requestAnimationFrame(flyLoop); };
-    const flySet = (v) => { v = !!v && !dead; if (v === flyOn) return; flyOn = v; if (v && !flyRaf) flyRaf = requestAnimationFrame(flyLoop); if (!v) { if (flyRaf) cancelAnimationFrame(flyRaf); flyRaf = 0; } };
+    const flySet = (v) => { v = !!v && !dead; if (v === flyOn) return; flyOn = v; if (v && !flyRaf) flyRaf = requestAnimationFrame(flyLoop); if (!v) { if (flyRaf) cancelAnimationFrame(flyRaf); flyRaf = 0; fx.clearRect(0, 0, flyW, flyH); } };
 
-    // ---------- l'avatar 3D (chargé après l'affichage de la page) ----------
+    // ---------- l'avatar 3D ----------
     let heroVis = true, stgFail = false, hintDone = !!store.get('jdw.pegase.hubhint'), lastNX = -1, lastNY = -1;
-    const env = { mobile, touch, need: (n, p) => needPack(n, p), file: (n) => STORE.files.get(n), report, build: PG_BUILD };
+    const env = { mobile, touch, need: (n, p) => needPack(n, p), file: (n) => STORE.files.get(n), fileAsync: (n) => fileOf(n), report, build: PG_BUILD };
     function activeSync() {
       const vis = !document.hidden;
-      if (STG) STG.setActive(vis && (dressing || heroVis));
-      flySet(vis && heroVis && !dressing && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+      if (STG) STG.setActive(vis && (editing || !!friendOn || heroVis));
+      flySet(vis && heroVis && !editing && !friendOn && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
     }
     function onHead(x, y) {
-      if (dressing) return;
+      if (editing || friendOn) return;
       if (Math.abs(x - lastNX) < 0.4 && Math.abs(y - lastNY) < 0.4) return; lastNX = x; lastNY = y;
-      const fy = (STG && STG.view.focus) ? STG.view.focus.y + 26 : 26; y = Math.max(fy, y);   // l'étiquette ne monte jamais sur le texte
+      const fy = (STG && STG.view.focus) ? STG.view.focus.y + 26 : 26; y = Math.max(fy, y);
       $.name.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%)`;
       $.hint.style.transform = `translate(${(x + 46).toFixed(1)}px,${(y + 34).toFixed(1)}px)`;
     }
     function hintOff() { if (!hintDone) { hintDone = true; store.set('jdw.pegase.hubhint', '1'); } $.hint.classList.remove('on'); }
-    function noGL() {
-      try { const c = document.createElement('canvas'); return !(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return true; }
-    }
+    function noGL() { try { const c = document.createElement('canvas'); return !(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return true; } }
     function fallback(why) {
       stgFail = true; $.wait.classList.remove('on'); $.gl.style.display = 'none';
       $.emotes.style.display = 'none'; $.name.classList.remove('on');
-      $.dfall.classList.add('on');
       if (why) report('Pégase hub : 3D impossible : ' + why);
+      renderFriends();
     }
     async function start3D() {
       if (dead) return;
@@ -2486,34 +2999,47 @@
         await loadThree((k) => { prog.m = k; upd(); });
         if (dead) return;
         needPack('perso', (k) => { prog.p = k; upd(); }).catch(() => {});
-        const lk = GR.chars[tDecode(shown).body].n.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-        needPack('garde.' + lk, (k) => { prog.g = k; upd(); }).catch(() => {});
+        needPack('garde.' + ['sally', 'chloe', 'mary', 'zulle', 'javi', 'john', 'galvon'][preset], (k) => { prog.g = k; upd(); }).catch(() => {});
         const mod = PG_FACTORY((n) => (n === 'three' ? window.JDW_PG3 : { env }));
-        const S = await mod.create($.gl, { onFrame: onHead, onGesture: gestured, keep: !!window.JDW_PG_TEST });
-        if (dead) { S.dispose(); return; }
-        STG = S; placeStage(); activeSync();
-        await S.setLook(shown);
+        const SG = await mod.create($.gl, { onFrame: onHead, onGesture: gestured, keep: !!window.JDW_PG_TEST });
+        if (dead) { SG.dispose(); return; }
+        STG = SG; placeStage(); activeSync();
+        await catReady;
+        initLooks();
+        await SG.setLook(D);
         if (dead) return;
-        $.wait.classList.remove('on'); $.gl.classList.add('on'); $.name.classList.add('on');
-        if (!hintDone) later(() => { if (!dead && !dressing) $.hint.classList.add('on'); later(() => $.hint.classList.remove('on'), 7000); }, 1200);
+        $.wait.classList.remove('on'); $.gl.classList.add('on'); if (!editing && !friendOn) $.name.classList.add('on');
+        if (!hintDone) later(() => { if (!dead && !editing) $.hint.classList.add('on'); later(() => $.hint.classList.remove('on'), 7000); }, 1200);
         meShot();
-        later(() => { if (STG && !dressing) STG.gesture('wave'); }, 900);
-        window.JDW_PG_HUB = { stage: S, state: () => ({ saved, shown, draft, dressing, wide, short, info: S.info(), ready: S.ready() }) };
+        later(() => { if (STG && !editing && !friendOn) STG.gesture('wave'); }, 900);
+        window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, info: SG.info(), ready: SG.ready(),
+          friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D) }) };
+        thumbPump();
+        gardePull();
       } catch (e) {
         if (dead) return;
         fallback((e && e.message) || String(e));
       }
     }
-    // le portrait de l'avatar (carte « Mon avatar », photo de profil)
+    // D et S au départ : l'apparence enregistrée (ancien format : numéro de tenue seul) ou Sally
+    function initLooks() {
+      if (D) return;
+      const base = SV ? (SV.look ? STG.normalize(SV.look) : STG.descOf(SV.tenue)) : STG.descOf(0);
+      D = base; S = SV ? lookCopy(base) : null;
+      if (S) for (const k of keysOf(S)) GRAND.add(k);
+      renderMe();
+    }
+    // portrait (carte « Mon avatar », photo de profil)
     let lastShot = '';
     function meShot() { if (!STG || !STG.ready() || stgFail) return ''; try { lastShot = STG.portrait(); } catch (e) { lastShot = ''; } if (lastShot) { $.meimg.src = lastShot; $.meico.classList.add('img'); } updPhotoBtn(); return lastShot; }
     const PP = api && api.profilePhoto && typeof api.profilePhoto.set === 'function' ? api.profilePhoto : null;
     function updPhotoBtn() { if (!PP) return; $['go-photo'].hidden = false; $['go-photo'].disabled = !STG || !STG.ready() || stgFail; }
     let pScope = 'all';
-    function openPhoto() {
+    async function openPhoto() {
       if (!PP) return;
       const inf = (PP.info && PP.info()) || {};
-      const shot = (STG && STG.ready()) ? (STG.setLook(shown), meShot()) : '';
+      if (STG && STG.ready()) await STG.setLook(S || D);
+      const shot = (STG && STG.ready()) ? meShot() : '';
       if (!shot) { toast('Ton avatar n’est pas encore prêt'); return; }
       $.pimg.src = shot; $.pimg2.src = shot;
       if (inf.guest) {
@@ -2522,7 +3048,7 @@
       } else {
         $.pok.hidden = false; pScope = 'all';
         $.ptext.textContent = 'Ton avatar devient ta tête dans la borne : les copains le verront dans les jeux, le classement et le chat.';
-        $.pscope.innerHTML = inf.room ? `<button data-sc="all" class="on">Partout</button><button data-sc="room">Seulement dans « ${esc(inf.room)} »</button>`.replace(/« /g, '« ').replace(/ »/g, ' »') : '';
+        $.pscope.innerHTML = inf.room ? `<button data-sc="all" class="on">Partout</button><button data-sc="room">Seulement dans « ${esc(inf.room)} »</button>`.replace(/« /g, '« ').replace(/ »/g, ' »') : '';
       }
       $.pmodal.classList.add('on'); tone(523, 784);
     }
@@ -2539,61 +3065,420 @@
         else toast(r && r.why === 'guest' ? 'Il faut un compte pour avoir une photo de profil' : 'La photo n’a pas pu être enregistrée');
       }
     });
-    if ($['go-photo']) on($['go-photo'], 'click', openPhoto);
+    on($['go-photo'], 'click', openPhoto);
     function gestured(k) {
       hintOff();
-      const b = box.querySelector(`.pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
+      const b = box.querySelector(`.pgh-emotes .pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
       tone(k === 'jump' ? 660 : k === 'laugh' ? 880 : 740, k === 'jump' ? 990 : 1180);
     }
     on($.emotes, 'click', (e) => { const b = e.target.closest('.pgh-emo'); if (!b || !STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k); });
 
-    // ---------- le Dressing ----------
-    function renderChips() {
-      const l = tDecode(draft);
-      box.querySelectorAll('.pgh-ch').forEach((b) => { const v = +b.dataset.i, k = b.dataset.k; b.classList.toggle('on', l[k] === v); b.setAttribute('aria-pressed', String(l[k] === v)); });
-      $.ddesc.textContent = tDescribe(draft);
-      $.dfallt.textContent = GR.chars[l.body].n; $.dfalls.textContent = tDescribe(draft);
+    // ---------- l'avatar sur le serveur (pg_docs « garde », version base_rev) ; copie locale gardée (invités, hors ligne) ----------
+    const SRVK = KEY + '.srv';
+    let srv = (() => { try { const j = JSON.parse(store.get(SRVK) || 'null'); return j && typeof j === 'object' ? { rev: j.rev | 0, dirty: !!j.dirty, t: +j.t || 0 } : { rev: 0, dirty: false, t: 0 }; } catch (e) { return { rev: 0, dirty: false, t: 0 }; } })();
+    const saveSrv = () => store.set(SRVK, JSON.stringify(srv));
+    let pushing = false;
+    function saveLocal() { store.set(KEY, JSON.stringify(canon(S))); SV = readSaved(); }
+    async function gardePush() {
+      if (!memberMode() || !S) return 'local';
+      if (pushing) return 'busy'; pushing = true;
+      try {
+        const dev = pgInfo().device || 'borne';
+        const put = (b) => PG.rpc('pg_put_doc', { p_kind: 'garde', p_data: canon(S), p_base_rev: b, p_device: dev });
+        let rows = await put(srv.rev), r = Array.isArray(rows) ? rows[0] : rows;
+        if (r && !r.r_ok && r.r_why === 'version') { rows = await put(r.r_rev | 0); r = Array.isArray(rows) ? rows[0] : rows; }   // le choix qu'on vient de faire est le plus récent
+        if (r && r.r_ok) { srv = { rev: r.r_rev | 0, dirty: false, t: 0 }; saveSrv(); srvState = 'ok'; renderSync(); return 'ok'; }
+        srvState = 'wait'; renderSync(); return 'busy';
+      } catch (e) { srvState = 'wait'; renderSync(); return e && e.offline ? 'offline' : 'fail'; }
+      finally { pushing = false; }
     }
-    function openDress() {
-      if (dressing) return;
-      dressing = true; draft = shown; renderChips(); hintOff();
-      $.dress.classList.add('on'); $.name.classList.remove('on');
-      if (!stgFail) $.dstage.appendChild($.gl);
-      requestAnimationFrame(() => { if (dead) return; placeStage(); if (STG) STG.face(); activeSync();
-        // les puces choisies bien en vue
-        box.querySelectorAll('.pgh-ch.on').forEach((b) => { const p = b.parentElement; if (p.scrollWidth > p.clientWidth) p.scrollLeft = Math.max(0, b.offsetLeft - p.clientWidth / 2 + b.offsetWidth / 2); });
-      });
+    // à l'ouverture : le serveur gagne s'il est plus récent ; une modif locale pas encore envoyée part maintenant
+    async function gardePull() {
+      if (!memberMode()) { renderSync(); return; }
+      let rows; try { rows = await PG.rpc('pg_get_doc', { p_kind: 'garde' }); } catch (e) { if (!dead) { srvState = 'wait'; renderSync(); } return; }
+      if (dead) return;
+      const r = Array.isArray(rows) ? rows[0] : rows; if (!r) return;
+      const sr = r.r_rev | 0, data = r.r_data && typeof r.r_data === 'object' ? r.r_data : null;
+      const so = data && Number.isInteger(data.tenue) && data.tenue >= 0 && data.tenue <= 2057 ? data.tenue : -1;
+      if (srv.dirty && S) {
+        if (sr === srv.rev || srv.t > (Date.parse(r.r_at) || 0)) { srv.rev = sr; await gardePush(); return; }
+      }
+      if (sr > 0 && so >= 0 && (sr !== srv.rev || !SV)) {
+        srv = { rev: sr, dirty: false, t: 0 }; saveSrv(); srvState = 'ok';
+        const L = data.look && typeof data.look === 'object' ? STG.normalize(data.look) : STG.descOf(so);
+        preset = so % 7; S = L; for (const k of keysOf(S)) GRAND.add(k);
+        saveLocal();
+        if (!editing && !friendOn) { D = lookCopy(S); STG.setLook(D).then(() => { if (!dead) meShot(); }); }
+        renderMe(); toast('✓ Ton avatar retrouvé depuis ton compte');
+      } else if (sr === 0 && S) { srv.dirty = true; await gardePush(); }
+      else { srv.rev = sr; saveSrv(); srvState = 'ok'; renderSync(); }
+    }
+
+    // ---------- le CRÉATEUR, sur place (panneau du bas ; à droite en paysage) ----------
+    let cat = store.get('jdw.pegase.edcat') || 'perso', hist = [], tryKey = '', colorSlot = '', colorCh = 0;
+    if (!EDCATS.some((c) => c.k === cat)) cat = 'perso';
+    const FR_CAT = { perso: 'corps', corps: 'corps', visage: 'visage', cheveux: 'tete', haut: 'buste', bas: 'jambes', tenue: 'corps', pieds: 'pieds', chapeau: 'tete', acc: 'buste' };
+    function tile(o) {   // o : { k (clé), act, v, name, th (html vignette), ico (chemin d'icône), on, sw (pastille de couleur) }
+      const L = o.free ? null : lockOf(o.k), sec = L && L.r === 'secret';
+      const cls = 'pgh-ch' + (o.on ? ' on' : '') + (L ? ' lk r-' + L.r : '') + (o.sw ? ' sw' : '') + (tryKey && tryKey === o.k ? ' try' : '');
+      const th = sec ? `<span class="ico q">${PGH_SVG.q}</span>` : o.ico ? `<img alt="" data-src="${esc(o.ico)}"${STORE.icons.has('perso/' + o.ico) ? ` src="${STORE.icons.get('perso/' + o.ico)}"` : ''}>${o.th || ''}` : (o.th || '');
+      const price = L ? (sec ? 'Secret' : L.p ? `${L.p} ${LU()}` : '🎁 Cadeau') : '';
+      return `<button class="${cls}" data-a="${o.act}" data-v="${esc(o.v)}" data-key="${esc(o.k)}"${L ? ` data-lock="${L.r}"` : ''} aria-label="${esc(sec ? 'Secret' : o.name)}${L ? ' (verrouillé)' : ''}">` +
+        `<span class="th">${th}${L ? `<span class="lock">${sec ? '✦' : PGH_SVG.lock}</span>` : ''}${L ? `<i class="rb">${RAR[L.r]}</i>` : ''}</span>` +
+        (o.sw ? '' : `<span>${esc(sec ? '???' : o.name)}</span>`) + (L && !o.sw ? `<span class="price">${price}</span>` : '') + '</button>';
+    }
+    const sec = (t, n) => `<h5>${esc(t)}${n != null ? ` <em>· ${n}</em>` : ''}</h5>`;
+    const none = (act, on) => `<button class="pgh-ch none${on ? ' on' : ''}" data-a="${act}" data-v="" data-key="" aria-label="Rien"><span class="th"><span class="ico">${PGH_SVG.none}</span></span><span>Rien</span></button>`;
+    function itemTiles(c, slot, act, withNone = true) {
+      const cur = D.it[slot] && D.it[slot][0], list = CAT.items.filter((i) => i.cat === c);
+      return (withNone ? none(act || 'it:' + slot, !cur) : '') + list.map((it) => tile({ k: it.id, act: act || 'it:' + slot, v: it.id, name: it.name, ico: it.icon, on: cur === it.id })).join('');
+    }
+    const countOf = (c) => CAT.items.filter((i) => i.cat === c).length;
+    function catCount(k) {
+      if (!CAT) return '';
+      return { perso: 7, corps: 2 + CAT.skin.length, visage: 6 + CAT.eyes.length + 2 + 4 + 6 + 1 + countOf('beard'), cheveux: countOf('hb') + countOf('hf') + CAT.hairUI.length,
+        haut: countOf('top'), bas: countOf('bot'), tenue: countOf('ovr'), pieds: countOf('feet') + 6, chapeau: countOf('hat') + countOf('hacc'), acc: countOf('glass') + countOf('glov') + 1 }[k];
+    }
+    function gridHTML(k) {
+      const d = D; let h = '';
+      if (k === 'perso') {
+        h += sec('Personnages', 7) + CHARS_N.map((n, i) => tile({ k: 'look:' + i, act: 'look', v: i, name: n, th: `<img class="full" alt="" data-t="${i}"${STORE.thumbs.has('o' + i) ? ` src="${STORE.thumbs.get('o' + i)}"` : ''}>`, on: preset === i })).join('');
+      } else if (k === 'corps') {
+        h += sec('Silhouette') + `<button class="pgh-ch${d.g === 'f' ? ' on' : ''}" data-a="g" data-v="f" data-key=""><span class="th"><span class="ico">${PGH_SVG.fem}</span></span><span>Fille</span></button><button class="pgh-ch${d.g === 'm' ? ' on' : ''}" data-a="g" data-v="m" data-key=""><span class="th"><span class="ico">${PGH_SVG.masc}</span></span><span>Garçon</span></button>`;
+        h += `<div class="pgh-sl"><label>Carrure</label><span>fine</span><input type="range" min="0" max="100" value="${Math.round((d.bd[2] || 0) * 100)}" data-a="w"><span>ronde</span></div>`;
+        h += `<div class="pgh-sl"><label>Taille</label><span>petite</span><input type="range" min="90" max="108" value="${Math.round((d.h || 1) * 100)}" data-a="h"><span>grande</span></div>`;
+        h += sec('Peau', CAT.skin.length) + CAT.skin.map((s, i) => tile({ k: 'sk:' + i, act: 'sk', v: i, name: s[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${s[1]},${s[1]} 45%,rgba(0,0,0,.35))"></span>`, on: d.sk === i })).join('');
+      } else if (k === 'visage') {
+        h += sec('Forme du visage', 6) + FACE_N.map((n, i) => tile({ k: 'fc:' + i, act: 'fc', v: i, name: n, th: `<span class="ico face">${faceSVG(i)}</span>`, on: d.fc === i })).join('');
+        h += sec('Yeux', CAT.eyes.length) + CAT.eyes.map((e, i) => tile({ k: 'ey:' + i, act: 'ey', v: i, name: e[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 50% 58%,${e[2]} 0,${e[1]} 60%,#120c14 63%)"></span>`, on: d.ey === i })).join('');
+        h += sec('Pupilles', 2) + ['basic', 'sharp'].map((p) => tile({ k: 'pu:' + p, act: 'pu', v: p, name: CAT.layers['pupil.' + p].name, ico: CAT.layers['pupil.' + p].icon, on: d.pu === p })).join('');
+        h += sec('Sourcils et cils', 4) + CAT.items.filter((i) => i.cat === 'brow').map((i) => tile({ k: i.id, act: 'br', v: i.id, name: i.name, th: `<span class="ico face">${browSVG(i.id.includes('thick'))}</span>`, on: d.br === i.id })).join('') +
+          CAT.items.filter((i) => i.cat === 'lash').map((i) => tile({ k: i.id, act: 'la', v: i.id, name: i.name, th: `<span class="ico face">${lashSVG(i.id.includes('long'))}</span>`, on: d.la === i.id })).join('');
+        const fxs = ['freckles.light', 'freckles.full', 'blush', 'lips', 'liner', 'age'];
+        h += sec('Petits détails', 7) + fxs.map((f) => tile({ k: 'fx:' + f, act: 'fx', v: f, name: CAT.layers[f].name, ico: CAT.layers[f].icon, on: (d.fx || []).includes(f) })).join('') +
+          tile({ k: 'elf', act: 'elf', v: 1, name: 'Oreilles d\'elfe', th: `<span class="ico">${PGH_SVG.ear}</span>`, on: !!d.elf });
+        h += sec('Barbe', countOf('beard')) + itemTiles('beard', 'beard');
+      } else if (k === 'cheveux') {
+        h += sec('Coiffure (derrière)', countOf('hb')) + itemTiles('hb', 'hb') + sec('Frange (devant)', countOf('hf')) + itemTiles('hf', 'hf');
+        h += sec('Couleur des cheveux', CAT.hairUI.length) + CAT.hairUI.map((i) => tile({ k: 'hc:' + i, act: 'hc', v: i, name: CAT.palette[i][0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.4))"></span>`, on: d.hc === i })).join('');
+      } else if (k === 'haut') h += sec('Hauts', countOf('top')) + itemTiles('top', 'top');
+      else if (k === 'bas') h += sec('Bas', countOf('bot')) + itemTiles('bot', 'bot');
+      else if (k === 'tenue') h += sec('Robes et salopette', countOf('ovr')) + itemTiles('ovr', 'ovr');
+      else if (k === 'pieds') {
+        h += sec('Chaussures', countOf('feet')) + itemTiles('feet', 'feet');
+        const so = ['socks.ankle', 'socks.basic', 'socks.knee', 'socks.thigh', 'socks.stirrup', 'socks.tights'];
+        h += sec('Chaussettes', 6) + none('so', !(d.so && d.so[0])) + so.map((s) => tile({ k: 'so:' + s, act: 'so', v: s, name: CAT.layers[s].name, ico: CAT.layers[s].icon, on: !!(d.so && d.so[0] === s) })).join('');
+      } else if (k === 'chapeau') h += sec('Chapeaux', countOf('hat')) + itemTiles('hat', 'hat') + sec('Cornes et antennes', countOf('hacc')) + itemTiles('hacc', 'hacc');
+      else if (k === 'acc') {
+        h += sec('Lunettes', countOf('glass')) + itemTiles('glass', 'glass') + sec('Gants', countOf('glov')) + itemTiles('glov', 'glov');
+        h += sec('Appareil photo') + none('cam', !d.it.cam) + tile({ k: 'cam', act: 'cam', v: 1, name: 'Appareil d\'explorateur', th: `<span class="ico">${PGH_SVG.cam}</span>`, on: !!d.it.cam });
+      }
+      return h;
+    }
+    // couleurs de la pièce choisie (tissus : toutes ouvertes)
+    function colorsHTML() {
+      const slots = SLOT_OF_CAT[cat]; if (!slots || !CAT) return '';
+      const slot = slots.find((s) => D.it[s]) || ''; if (!slot) return '';
+      const v = D.it[slot], it = ITEMS.get(v[0]); if (!it || !it.ch || !it.ch.length) return '';
+      colorSlot = slot; colorCh = Math.min(colorCh, it.ch.length - 1);
+      return `<div class="pgh-cols"><div class="chs">${it.ch.map((c, i) => `<button class="pgh-cc${i === colorCh ? ' on' : ''}" data-a="ch" data-v="${i}"><i style="background:${palHex(v[i + 1] == null ? c.c : v[i + 1])}"></i>${esc(c.n || 'Couleur')}</button>`).join('')}</div>` +
+        `<div class="sws">${CAT.fabricUI.map((p) => `<button class="pgh-sw${(v[colorCh + 1] == null ? it.ch[colorCh].c : v[colorCh + 1]) === p ? ' on' : ''}" data-a="col" data-v="${p}" style="background:radial-gradient(circle at 35% 30%,${palHex(p)},${palHex(p)} 50%,rgba(0,0,0,.35))" title="${esc(CAT.palette[p][0])}"></button>`).join('')}</div></div>`;
+    }
+    function renderEd() {
+      if (!CAT || !D) return;
+      box.querySelectorAll('.pgh-edcat').forEach((b) => { const c = b.dataset.cat; b.classList.toggle('on', c === cat); const n = b.querySelector('em'); if (n) n.textContent = catCount(c); });
+      const g = $.dgrid, st = g.dataset.cat === cat ? g.scrollTop : 0;
+      g.innerHTML = `<div class="pgh-edg on" data-g="${cat}">${gridHTML(cat)}</div>` + colorsHTML();
+      g.dataset.cat = cat; g.scrollTop = st;
+      fillIcons(g); fillThumbs(g);
+      const lk = lockedIn(D);
+      $.ddesc.textContent = lk.length ? '🔒 Essai : ' + lk.map(keyName).join(', ') : describe(D);
+      $.dundo.disabled = !hist.length;
+      $.dok.classList.toggle('lk', !!lk.length);
+      renderLockCard();
+    }
+    function renderLockCard() {
+      const k = tryKey && lockedIn(D).includes(tryKey) ? tryKey : '';
+      if (!k) { $.lock.classList.remove('on'); return; }
+      const L = lockOf(k), sec2 = L.r === 'secret';
+      $.lock.classList.add('on'); $.lock.dataset.r = L.r; $.lockic.innerHTML = PGH_SVG.lock; $.lockx.textContent = 'Enlever';
+      $.lockn.textContent = sec2 ? 'Objet secret' : keyName(k);
+      $.lockt.textContent = RAR[L.r]; $.lockt.className = 'pgh-tier ' + L.r;
+      $.lockp.innerHTML = sec2 ? 'Se débloque d\'une manière… mystérieuse.' : L.p ? `${L.p} ${LU()} lucioles · bientôt dans la boutique du jeu` : esc(L.how);
+    }
+    async function fillIcons(el) {
+      for (const im of el.querySelectorAll('img[data-src]:not([src])')) {
+        iconUrl(im.dataset.src).then((u) => { if (u && !dead) im.src = u; }).catch(() => {});
+      }
+    }
+    function fillThumbs(el) {
+      for (const im of el.querySelectorAll('img[data-t]:not([src])')) { const i = +im.dataset.t; if (!STG || stgFail) continue; wantThumb('o' + i, i, 'p'); }
+    }
+    let lookT = 0;
+    function apply(spark) {
+      renderEd();
+      if (STG) { const k = ++lookT; STG.setLook(D).then(() => { if (!dead && STG && spark && k === lookT) STG.gesture('spark'); }); }
+    }
+    function change(fn, k, spark = true) {
+      hist.push({ d: lookCopy(D), p: preset, t: tryKey }); if (hist.length > 60) hist.shift();
+      fn(D); D = STG ? STG.normalize(D) : D;
+      tryKey = k && !owned(k) ? k : (tryKey && lockedIn(D).includes(tryKey) ? tryKey : '');
+      tone(620, 930); apply(spark);
+    }
+    function setItem(slot, id) {
+      change((d) => {
+        if (!id) { delete d.it[slot]; return; }
+        const it = ITEMS.get(id), old = d.it[slot];
+        d.it[slot] = [id, ...it.ch.map((c, i) => (old && old[0] !== id && old[i + 1] != null && !it.hair ? old[i + 1] : c.c))];
+        if (slot === 'ovr') { delete d.it.top; delete d.it.bot; }
+        if ((slot === 'top' || slot === 'bot') && d.it.ovr) { delete d.it.ovr; if (!d.it.top && slot === 'bot') d.it.top = ['top.shirt']; if (!d.it.bot && slot === 'top') d.it.bot = ['bot.shorts']; }
+      }, id);
+    }
+    function selectCat(k) {
+      cat = k; store.set('jdw.pegase.edcat', k); colorCh = 0;
+      if (STG) { const f = FR_CAT[k] || 'corps'; STG.setFrame(wide && !short ? ({ tete: 'buste', visage: 'buste', buste: 'corps', jambes: 'corps', pieds: 'corps' }[f] || f) : f); }   // grand écran : moins près
+      renderEd();
+      const b = box.querySelector(`.pgh-edcat[data-cat="${k}"]`); if (b) try { b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (e) { /* rien */ }
+    }
+    async function openEdit(k, thenKey) {
+      if (stgFail) { toast('Ton appareil ne peut pas afficher l’avatar en 3D'); return; }
+      if (friendOn) closeFriend();
+      if (!STG || !CAT || !D) { toast('Ton avatar arrive…'); return; }
+      if (editing) { if (k) selectCat(k); return; }
+      editing = true; hist = []; tryKey = ''; hintOff();
+      try { $.scroll.scrollTo({ top: 0, behavior: 'instant' }); } catch (e) { $.scroll.scrollTop = 0; }
+      $.scroll.scrollTop = 0;
+      box.classList.add('editing'); $.ed.classList.add('on'); $.name.classList.remove('on');
+      selectCat(k || cat);
+      STG.face(); activeSync();
+      requestAnimationFrame(() => { if (!dead) placeStage(); });
+      later(placeStage, 460);
+      tone(523, 784);
+      if (thenKey) later(() => tapKey(thenKey), 120);
+    }
+    function closeEdit() {
+      if (!editing) return;
+      editing = false; tryKey = '';
+      box.classList.remove('editing'); $.ed.classList.remove('on');
+      if (STG) { STG.setFrame('corps'); if (STG.ready()) $.name.classList.add('on'); }
+      lastNX = -1; requestAnimationFrame(() => { if (!dead) { placeStage(); activeSync(); } });
+      later(placeStage, 460);
+    }
+    function cancelEdit() { D = S ? lookCopy(S) : (STG ? STG.descOf(0) : D); if (SV) preset = SV.tenue % 7; closeEdit(); if (STG) STG.setLook(D); }
+    function saveEdit() {
+      const lk = lockedIn(D);
+      if (lk.length) {
+        D = stripLocked(D, S || {}); if (STG) D = STG.normalize(D); tryKey = '';
+        toast('🔒 ' + lk.slice(0, 2).map(keyName).join(', ') + (lk.length > 2 ? '…' : '') + ' : pas encore à toi. Le reste est enregistré !');
+      }
+      if (!owned('look:' + preset)) preset = SV && owned('look:' + (SV.tenue % 7)) ? SV.tenue % 7 : 0;
+      S = lookCopy(D); for (const k of keysOf(S)) GRAND.add(k);
+      saveLocal(); renderMe();
+      if (STG) STG.setLook(D).then(() => { if (!dead) meShot(); });
+      closeEdit(); tone(784, 1318);
+      if (!lk.length) toast(memberMode() ? '✓ Avatar enregistré' : '✓ Avatar enregistré sur cet appareil');
+      if (STG) later(() => STG && STG.gesture('jump'), 450);
+      if (memberMode()) { srv.dirty = true; srv.t = Date.now(); saveSrv(); srvState = 'wait'; gardePush().then((r) => { if (!dead && r === 'ok' && !lk.length) toast('✓ Avatar enregistré sur ton compte'); }); }
+    }
+    // un toucher sur une case (créateur ou garde-robe de l'onglet Moi)
+    function tapKey(k) { const b = $.dgrid.querySelector(`[data-key="${CSS.escape ? CSS.escape(k) : k}"]`); if (b) b.click(); }
+    on($.ed, 'click', (e) => {
+      const c = e.target.closest('.pgh-edcat'); if (c) { selectCat(c.dataset.cat); tone(560, 700); return; }
+      const h = e.target.closest('[data-h]');
+      if (h && h.dataset.h === 'dx') { cancelEdit(); return; }
+      if (h && h.dataset.h === 'dno') { cancelEdit(); return; }
+      if (h && h.dataset.h === 'dok') { saveEdit(); return; }
+      if (h && h.dataset.h === 'dundo') { const u = hist.pop(); if (u) { D = u.d; preset = u.p; tryKey = u.t; apply(false); } return; }
+      if (h && h.dataset.h === 'lockx') { const u = hist.pop(); if (u) { D = u.d; preset = u.p; tryKey = ''; apply(false); } return; }
+      if (h && h.dataset.h === 'drnd') { randomLook(); return; }
+      const b = e.target.closest('[data-a]'); if (!b || b.tagName === 'INPUT') return;
+      const a = b.dataset.a, v = b.dataset.v, k = b.dataset.key;
+      if (b.dataset.lock === 'secret') { hist.push({ d: lookCopy(D), p: preset, t: tryKey }); tryKey = k; renderEd(); $.lock.classList.add('on'); renderSecret(k); tone(880, 1320); return; }
+      if (a === 'look') { const i = +v; change((d) => { const n = STG.descOf(i); for (const x of Object.keys(d)) delete d[x]; Object.assign(d, n); preset = i; }, 'look:' + i); if (STG) STG.gesture('jump'); return; }
+      if (a.startsWith('it:')) { setItem(a.slice(3), v); return; }
+      if (a === 'g') { change((d) => { d.g = v; d.bd[0] = v === 'm' ? 1 : 0; d.bd[1] = v === 'f' ? 0.55 : 0; }, ''); return; }
+      if (a === 'sk' || a === 'ey' || a === 'fc') { change((d) => { d[a] = +v; }, k, false); return; }
+      if (a === 'pu' || a === 'br' || a === 'la') { change((d) => { d[a] = v; }, k, false); return; }
+      if (a === 'hc') { change((d) => { d.hc = +v; d.hc2 = +v; }, k, false); return; }
+      if (a === 'fx') { change((d) => { d.fx = d.fx || []; const i = d.fx.indexOf(v); if (i >= 0) d.fx.splice(i, 1); else { if (v.startsWith('freckles')) d.fx = d.fx.filter((x) => !x.startsWith('freckles')); d.fx.push(v); } }, k); return; }
+      if (a === 'elf') { change((d) => { d.elf = d.elf ? 0 : 1; }, k); return; }
+      if (a === 'so') { change((d) => { d.so = v ? [v, (d.so && d.so[1]) || 0] : null; }, k); return; }
+      if (a === 'cam') { change((d) => { if (v) d.it.cam = d.it.cam || ['cam', 9, 40, 53]; else delete d.it.cam; }, v ? 'cam' : ''); return; }
+      if (a === 'ch') { colorCh = +v; renderEd(); return; }
+      if (a === 'col' && colorSlot && D.it[colorSlot]) { const s2 = colorSlot, c2 = colorCh; change((d) => { if (d.it[s2]) d.it[s2][c2 + 1] = +v; }, '', false); }
+    });
+    function renderSecret() {
+      $.lock.dataset.r = 'secret'; $.lockic.textContent = '✦'; $.lockx.textContent = 'OK'; $.lockn.textContent = 'Objet secret'; $.lockt.textContent = RAR.secret; $.lockt.className = 'pgh-tier secret';
+      $.lockp.textContent = 'Se débloque d\'une manière… mystérieuse.';
+    }
+    on($.ed, 'input', (e) => { const a = e.target.dataset.a, v = +e.target.value; if (!STG || !STG.A.desc) return;
+      if (a === 'w') { D.bd[2] = v / 100; STG.A.desc.bd[2] = v / 100; STG.A.applyMorphs(); }
+      if (a === 'h') { D.h = v / 100; STG.A.desc.h = D.h; STG.A.group.scale.setScalar(D.h); } });
+    on($.ed, 'change', (e) => { if (e.target.dataset.a) { hist.push({ d: lookCopy(D), p: preset, t: tryKey }); apply(false); } });
+    // « au hasard » : seulement parmi ce qu'on possède
+    function randomLook() {
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      const ownIt = (c) => CAT.items.filter((i) => i.cat === c && owned(i.id)).map((i) => i.id);
+      change((d) => {
+        const hb = ownIt('hb'), hf = ownIt('hf'), tp = ownIt('top'), bt = ownIt('bot'), ov = ownIt('ovr'), ft = ownIt('feet'), ht = ownIt('hat');
+        if (hb.length) d.it.hb = [pick(hb)]; if (hf.length) d.it.hf = [pick(hf)];
+        if (ov.length && Math.random() < 0.3) { d.it.ovr = [pick(ov)]; delete d.it.top; delete d.it.bot; } else { delete d.it.ovr; if (tp.length) d.it.top = [pick(tp)]; if (bt.length) d.it.bot = [pick(bt)]; }
+        if (ft.length) d.it.feet = [pick(ft)];
+        if (ht.length && Math.random() < 0.4) d.it.hat = [pick(ht)]; else delete d.it.hat;
+        const hcs = CAT.hairUI.filter((i) => owned('hc:' + i)); d.hc = d.hc2 = pick(hcs);
+        d.sk = Math.floor(Math.random() * 9); d.ey = pick([...EYE_FREE]);
+      }, '');
+      if (STG) STG.gesture('jump');
+    }
+    for (const k of ['go-av', 'go-av2', 'go-av3']) on($[k], 'click', () => openEdit());
+    on($.wrrow, 'click', (e) => { const b = e.target.closest('[data-key]'); if (!b) return; const k = b.dataset.key, c = b.dataset.cat; openEdit(c, k); });
+    on(window, 'keydown', (e) => { if (e.key === 'Escape') { if (editing) cancelEdit(); else if (friendOn) closeFriend(); } });
+    // vitrine « à débloquer » de l'onglet Moi : une sélection de belles pièces verrouillées (+ un secret)
+    const SHOWCASE = [['ovr.smart_dress', 'tenue'], ['hat.fedora', 'chapeau'], ['hb.twin_tail_long', 'cheveux'], ['look:3', 'perso'], ['top.seifuku', 'haut'], ['feet.high_lace_shoe', 'pieds'], ['glass.round_shaded', 'acc'], ['hacc.alien_attena', 'chapeau'], ['hb.wild_tail', 'cheveux'], ['top.hoodie', 'haut'], ['elf', 'visage']];
+    function renderShowcase() {
+      if (!CAT) return;
+      $.wrrow.innerHTML = SHOWCASE.filter(([k]) => !owned(k)).map(([k, c]) => {
+        const it = ITEMS.get(k);
+        return tile({ k, act: 'show', v: k, name: keyName(k), ico: it && it.icon, th: k.startsWith('look:') ? `<img class="full" alt="" data-t="${k.slice(5)}"${STORE.thumbs.has('o' + k.slice(5)) ? ` src="${STORE.thumbs.get('o' + k.slice(5))}"` : ''}>` : k === 'elf' ? `<span class="ico">${PGH_SVG.ear}</span>` : '' }).replace('<button ', `<button data-cat="${c}" `);
+      }).join('');
+      fillIcons($.wrrow); fillThumbs($.wrrow);
+    }
+
+    // ---------- vignettes (copains, personnages) : rendues une à la fois, au calme, dans le moteur de la page ----------
+    const TQ = [], TQK = new Set(); let tBusy = false;
+    function wantThumb(key, look, kind) { if (STORE.thumbs.has(key) || TQK.has(key)) return; TQK.add(key); TQ.push({ key, look, kind }); thumbPump(); }
+    function thumbPump() {
+      if (tBusy || !TQ.length || !STG || stgFail || dead) return;
+      tBusy = true;
+      const job = TQ.shift();
+      const go = () => STG.thumb(job.look).then((u) => { if (u) { STORE.thumbs.set(job.key, u); placeThumb(job.key, u); } }).catch(() => {}).finally(() => { TQK.delete(job.key); tBusy = false; if (!dead) later(thumbPump, 160); });
+      (window.requestIdleCallback || ((f) => setTimeout(f, 30)))(() => { if (dead) { tBusy = false; return; } go(); }, { timeout: 500 });
+    }
+    function placeThumb(key, u) {
+      if (key[0] === 'o') box.querySelectorAll(`img[data-t="${key.slice(1)}"]`).forEach((im) => { im.src = u; });
+      box.querySelectorAll(`img[data-tk="${CSS.escape ? CSS.escape(key) : key}"]`).forEach((im) => { im.src = u; im.classList.add('on'); });
+    }
+
+    // ---------- onglets ----------
+    let tab = store.get('jdw.pegase.tab') || 'moi'; if (!['moi', 'amis', 'infos'].includes(tab)) tab = 'moi';
+    function tabInd() { const b = box.querySelector(`.pgh-tab[data-tab="${tab}"]`); if (!b) return; $.tabind.style.left = (b.offsetLeft + 14) + 'px'; $.tabind.style.width = Math.max(20, b.offsetWidth - 28) + 'px'; }
+    function setTab(t, scroll) {
+      tab = t; store.set('jdw.pegase.tab', t);
+      box.querySelectorAll('.pgh-tab').forEach((b) => { b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', String(b.dataset.tab === t)); });
+      box.querySelectorAll('.pgh-pane').forEach((p) => p.classList.toggle('on', p.dataset.pane === t));
+      tabInd();
+      const top = $.hero.offsetHeight;
+      if (scroll && $.scroll.scrollTop > top) $.scroll.scrollTop = top;
+      if (t === 'amis') { renderFriends(); loadAvatars(); }
+      if (t === 'moi') renderShowcase();
+    }
+    on($.tabs, 'click', (e) => { const b = e.target.closest('.pgh-tab'); if (b) { setTab(b.dataset.tab, true); tone(560, 760); } });
+    const toDl = () => { setTab('infos', false); requestAnimationFrame(() => { const s = $.scroll, t = $.secdl.offsetTop - $.tabs.offsetHeight - 6; try { s.scrollTo({ top: t, behavior: 'smooth' }); } catch (e) { s.scrollTop = t; } }); };
+    for (const k of ['go-dl', 'go-dl1']) on($[k], 'click', toDl);
+
+    // ---------- LES COPAINS DE LA SALLE ----------
+    const FR = { list: [], av: new Map(), sig: '', at: 0, err: '' };
+    const hue = (n) => { let h = 0; for (const c of String(n)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+    function members() { try { return (PG && PG.members && PG.members()) || []; } catch (e) { return []; } }
+    async function loadAvatars(force) {
+      const i = pgInfo(); if (!memberMode() || !i.room) return;
+      if (!force && Date.now() - FR.at < 60000) return;
+      FR.at = Date.now();
+      const rid = i.room.id, cache = STORE.roomAv[rid];
+      if (cache) for (const [n, a] of cache) FR.av.set(n, a);
+      try {
+        const rows = await PG.rpc('pg_room_avatars', {}); if (dead) return;
+        FR.av.clear(); FR.err = '';
+        for (const r of rows || []) {
+          const g = r.r_garde && typeof r.r_garde === 'object' && Number.isInteger(r.r_garde.tenue) ? r.r_garde : null;
+          FR.av.set(String(r.r_name), { tenue: g ? g.tenue : -1, look: g && g.look && typeof g.look === 'object' ? g.look : null, desc: g ? String(g.desc || '') : '', rev: r.r_rev | 0, alias: r.r_alias || '' });
+        }
+        STORE.roomAv[rid] = [...FR.av];
+      } catch (e) { FR.err = e && e.offline ? 'offline' : 'err'; }
+      FR.sig = ''; renderFriends();
+    }
+    const avKey = (n, a) => 'f:' + n + ':' + a.rev + ':' + a.tenue;
+    function friendCard(m) {
+      const a = FR.av.get(m.name), has = a && a.tenue >= 0;
+      const st = m.online ? 'en ligne' : seen(m.seen);
+      let inner;
+      if (has) {
+        const k = avKey(m.name, a), u = STORE.thumbs.get(k);
+        const c = GR.chars[a.tenue % 7];
+        inner = `<img class="av${u ? ' on' : ''}" alt="" data-tk="${esc(k)}"${u ? ` src="${u}"` : ''}><span class="wait" style="--skin:${c.skin};--hair:${c.hair};--cloth:${c.c1}"></span>`;
+      } else inner = `<span class="none">Pas encore d'avatar</span><span class="sil"></span>${m.photo ? `<img class="hd" alt="" src="${esc(m.photo)}">` : `<span class="ini" style="--h:${hue(m.name)}">${esc(m.display[0] || '?')}</span>`}`;
+      return `<button class="pgh-fc${m.online ? ' on' : ''}${has ? '' : ' no'}" data-n="${esc(m.name)}" aria-label="${esc(m.display)}"><span class="st">${inner}<span class="dot"></span></span><b>${esc(m.display)}</b><small>${esc(st)}</small></button>`;
+    }
+    function seen(t) { if (!t) return 'hors ligne'; const s = (Date.now() - t) / 1000; if (s < 3600) return 'vu il y a ' + Math.max(1, Math.round(s / 60)) + ' min'; if (s < 86400) return 'vu il y a ' + Math.round(s / 3600) + ' h'; const d = Math.round(s / 86400); return d === 1 ? 'vu hier' : 'vu il y a ' + d + ' j'; }
+    let frIO = null;
+    function renderFriends() {
+      const i = pgInfo();
+      let html = '', list = [];
+      if (!PG) html = '';
+      else if (i.guest || !i.name) html = `<div class="pgh-card pgh-frmsg"><span class="em">👫</span><div><h3>Retrouve tes copains</h3><p>Avec un compte (gratuit), tu vois les avatars de tes copains de salle, qui est là en ce moment, et ton avatar te suit partout.</p></div><button class="pgh-cta gold" data-h2="acct">Créer mon compte</button></div>`;
+      else if (!i.room) html = `<div class="pgh-card pgh-frmsg"><span class="em">🏠</span><div><h3>Rejoins une salle</h3><p>Tes copains apparaissent ici quand tu es dans une salle de la borne.</p></div></div>`;
+      else {
+        list = members().filter((m) => !m.me);
+        list.sort((a, b) => (b.online - a.online) || ((FR.av.get(b.name) || { tenue: -1 }).tenue >= 0) - ((FR.av.get(a.name) || { tenue: -1 }).tenue >= 0) || a.display.localeCompare(b.display));
+        if (!list.length) html = `<div class="pgh-card pgh-frmsg"><span class="em">✉️</span><div><h3>Personne d'autre pour l'instant</h3><p>Invite tes copains dans « ${esc(i.room.name)} » (bouton Inviter de la borne) : leurs avatars arriveront ici.</p></div></div>`;
+        else html = `<div class="pgh-frrow" data-h2="frrow">${list.map(friendCard).join('')}</div>` + (FR.err === 'offline' ? '<p class="pgh-sub">Pas de réseau : les avatars reviendront avec la connexion.</p>' : '');
+      }
+      const sig = html.length + '|' + list.map((m) => m.name + (m.online ? 1 : 0) + ((FR.av.get(m.name) || {}).rev || 0) + (m.photo ? m.photo.length : 0) + (STORE.thumbs.has(avKey(m.name, FR.av.get(m.name) || { rev: 0, tenue: -1 })) ? 'T' : '')).join(',');
+      const onN = list.filter((m) => m.online).length;
+      $.frbdg.textContent = onN; $.frbdg.classList.toggle('on', onN > 0);
+      $.frcount.textContent = list.length ? (onN ? onN + ' en ligne · ' : '') + list.length + ' copain' + (list.length > 1 ? 's' : '') : '';
+      FR.list = list;
+      if (sig === FR.sig) return; FR.sig = sig;
+      const row0 = $.frbox.querySelector('.pgh-frrow'), sl = row0 ? row0.scrollLeft : 0;
+      $.frbox.innerHTML = html;
+      const row = $.frbox.querySelector('.pgh-frrow'); if (row) row.scrollLeft = sl;
+      if (frIO) frIO.disconnect();
+      if (row && typeof IntersectionObserver === 'function') {
+        frIO = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) queueFriend(e.target.dataset.n); }, { root: null, rootMargin: '0px 160px 0px 160px', threshold: 0.01 });
+        row.querySelectorAll('.pgh-fc').forEach((c) => frIO.observe(c));
+      } else if (row) list.slice(0, 6).forEach((m) => queueFriend(m.name));
+    }
+    function queueFriend(n) {
+      const a = FR.av.get(n); if (!a || a.tenue < 0 || !STG || stgFail || tab !== 'amis') return;
+      wantThumb(avKey(n, a), a.look || a.tenue, 'f');
+    }
+    on($.frbox, 'click', (e) => {
+      if (e.target.closest('[data-h2="acct"]')) { try { PG && PG.account && PG.account(); } catch (x) { /* rien */ } return; }
+      const c = e.target.closest('.pgh-fc'); if (c) openFriend(c.dataset.n);
+    });
+    // le copain en grand : la scène 3D de la page passe dans la fenêtre, avec SON avatar ; gestes ; bientôt appeler / visiter
+    function openFriend(n) {
+      const m = FR.list.find((x) => x.name === n); if (!m) return;
+      const a = FR.av.get(n), has = !!(a && a.tenue >= 0) && !stgFail && !!STG;
+      friendOn = m; hintOff();
+      $.fvname.textContent = m.display; $.fvst.classList.toggle('on', !!m.online); $.fvstt.textContent = m.online ? 'en ligne en ce moment' : seen(m.seen);
+      $.fvdesc.textContent = has ? (a.desc || '') : '';
+      $.fvemo.style.display = has ? '' : 'none';
+      $.fvnone.classList.toggle('on', !has);
+      $.fvhead.innerHTML = m.photo ? `<img class="hd" alt="" src="${esc(m.photo)}">` : `<span class="ini" style="--h:${hue(m.name)}">${esc(m.display[0] || '?')}</span>`;
+      $.fvnonet.textContent = m.display + ' n\'a pas encore créé son avatar.';
+      $.fv.classList.add('on'); $.name.classList.remove('on');
+      if (has) { $.fvstage.appendChild($.gl); STG.setFrame('corps'); STG.setLook(a.look || a.tenue).then(() => { if (!dead && friendOn === m && STG) STG.gesture('wave'); }); STG.face(); }
+      requestAnimationFrame(() => { if (!dead) { placeStage(); activeSync(); } });
       tone(523, 784);
     }
-    function closeDress(keep) {
-      if (!dressing) return;
-      dressing = false; $.dress.classList.remove('on');
-      if (!keep) { draft = shown; if (STG) STG.setLook(shown); }
-      if (!stgFail) { $.hero.insertBefore($.gl, $.wait); if (STG && STG.ready()) $.name.classList.add('on'); }
+    function closeFriend() {
+      if (!friendOn) return;
+      friendOn = null; $.fv.classList.remove('on');
+      if (!stgFail && $.gl.parentNode !== $.hero) $.hero.insertBefore($.gl, $.wait);
+      if (STG && D) { STG.setLook(D); if (STG.ready() && !editing) $.name.classList.add('on'); }
       lastNX = -1; requestAnimationFrame(() => { if (!dead) { placeStage(); activeSync(); } });
     }
-    function pick(k, i) {
-      const l = tDecode(draft);
-      l[k] = i;   // comme le Dressing du jeu (PegaseDressing.cs) : chaque rangée change seulement sa partie
-      draft = tEncode(l); renderChips(); tone(620, 930);
-      if (STG) { STG.setLook(draft).then(() => { if (!dead && STG) STG.gesture('spark'); }); }
-    }
-    on($.dress, 'click', (e) => {
-      const b = e.target.closest('.pgh-ch'); if (b) { pick(b.dataset.k, +b.dataset.i); return; }
-      const h = e.target.closest('[data-h]'); if (!h) return;
-      if (h.dataset.h === 'dx' || h.dataset.h === 'dno') closeDress(false);
-      else if (h.dataset.h === 'drnd') { const r = (n) => Math.floor(Math.random() * n); draft = tEncode({ body: r(7), hair: r(7), clothes: r(7), acc: Math.random() < 0.5 ? 0 : r(6) }); renderChips(); tone(700, 1050); if (STG) STG.setLook(draft).then(() => { if (!dead && STG) STG.gesture('jump'); }); }
-      else if (h.dataset.h === 'dok') {
-        saved = shown = draft; store.set(KEY, tCanon(saved)); renderMe();
-        if (STG) STG.setLook(saved).then(() => { if (!dead) meShot(); });
-        closeDress(true); toast('✓ Avatar enregistré sur cet appareil'); tone(784, 1318);
-        if (STG) later(() => STG && STG.gesture('jump'), 450);
-      }
+    on($.fv, 'click', (e) => {
+      const h = e.target.closest('[data-h]');
+      if (h && h.dataset.h === 'fvx') { closeFriend(); return; }
+      if (h && h.dataset.h === 'fvcall') { toast('📞 Bientôt : appelle ' + (friendOn ? friendOn.display : 'un copain') + ' depuis le téléphone du jeu'); tone(660, 880); return; }
+      if (h && h.dataset.h === 'fvhouse') { toast('🏡 Bientôt : visite la maison de ' + (friendOn ? friendOn.display : 'ton copain') + ' dans Pégase'); tone(660, 880); return; }
+      const b = e.target.closest('.pgh-emo'); if (b && STG && STG.ready()) { STG.gesture(b.dataset.emo); tone(740, 1180); }
     });
-    for (const k of ['go-av', 'go-av2', 'go-av3']) if ($[k]) on($[k], 'click', openDress);
-    const toDl = () => { const s = $.scroll, t = $.secdl.getBoundingClientRect().top - s.getBoundingClientRect().top + s.scrollTop - 6; try { s.scrollTo({ top: t, behavior: 'smooth' }); } catch (e) { s.scrollTop = t; } };
-    for (const k of ['go-dl', 'go-dl1']) if ($[k]) on($[k], 'click', toDl);
-    on(window, 'keydown', (e) => { if (e.key === 'Escape' && dressing) closeDress(false); });
+    // présence : la borne la connaît déjà (direct) ; on relit la liste quand l'onglet Amis se voit
+    every(() => { if (!document.hidden && tab === 'amis' && !editing) renderFriends(); }, 5000);
+    every(() => { if (!document.hidden && tab === 'amis') loadAvatars(); }, 90000);
 
     // ---------- téléchargement ----------
     async function renderDl() {
@@ -2612,8 +3497,7 @@
       box.dataset.dl = m.state;
     }
     renderDl();
-    // l'écran bleu de Windows : étape 1 puis 2, en boucle
-    let winT = 0; const winStep = () => { $.win.classList.toggle('two'); winT = later(winStep, 2600); }; winT = later(winStep, 2600);
+    every(() => $.win.classList.toggle('two'), 2600);
 
     // ---------- observateurs ----------
     $.bg.complete && $.bg.naturalWidth ? $.bg.classList.add('on') : on($.bg, 'load', () => $.bg.classList.add('on'));
@@ -2623,16 +3507,22 @@
     if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(() => { if (!dead && (root.clientWidth !== W0 || root.clientHeight !== H0)) relayout(); }); ro.observe(root); }
     else on(window, 'resize', relayout);
     on(document, 'visibilitychange', activeSync);
-    relayout(); activeSync();
+    on(window, 'online', () => { if (srv.dirty) gardePush(); loadWallet(); });
+    // l'onglet « Créateur » n'a ses numéros qu'avec le catalogue
+    box.querySelectorAll('.pgh-edcat').forEach((b) => { if (!b.querySelector('em')) b.insertAdjacentHTML('beforeend', '<em></em>'); });
+    catReady.then(() => { if (dead) return; if (!D && !STG) { /* repli : le créateur attend la 3D */ } renderShowcase(); renderMe(); }).catch(() => {});
+    relayout(); setTab(tab, false); activeSync(); renderMe(); renderFriends(); loadWallet();
     // la 3D arrive APRÈS l'affichage (pas d'à-coup à l'ouverture)
     later(() => { (window.requestIdleCallback || ((f) => setTimeout(f, 1)))(() => { if (!dead) start3D(); }, { timeout: 600 }); }, 380);
+    later(() => loadAvatars(true), 1500);
     return {
       destroy() {
         if (dead) return; dead = true;
         flySet(false);
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
         for (const id of timers) clearTimeout(id); timers.clear();
-        if (io) io.disconnect(); if (ro) ro.disconnect();
+        for (const id of ivals) clearInterval(id); ivals.clear();
+        if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect();
         try { if (STG) STG.dispose(); } catch (e) { /* rien */ }
         STG = null; if (window.JDW_PG_HUB) try { delete window.JDW_PG_HUB; } catch (e) { window.JDW_PG_HUB = undefined; }
         root.textContent = '';
@@ -2649,7 +3539,7 @@
   window.JDW_GAMES.pegase = {
     id: 'pegase',
     title: 'Pégase',
-    tagline: 'Ton avatar, le village du lac à l\'heure dorée… et le jeu à installer',
+    tagline: 'Ton avatar, tes copains, un monde magique… et le jeu à installer',
     accent: '#ffb46a',
     scoreLabel: 'points',
     noScore: true,   // pas de ligne « 👑 record » en haut : c'est une page, pas un jeu
