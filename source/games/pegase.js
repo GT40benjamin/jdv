@@ -326,6 +326,8 @@
       fache: { Brow_Angry: 0.5, Brows_Lowered: 1, Mouth_Sad: 0.42, Eyes_LowerClosed: 0.09 },
       malicieux: { Eyes_LowerClosed: 0.19, Mouth_Wide: 0.9, Mouth_Oh: 0.43, Mouth_Happy: 0.59, Brows_Sad: 0.17, Brow_Angry: 0.71, Mouth_Press: 0.3 }
     };
+    var EXPR_OUI = { Mouth_Happy: 0.5, Mouth_Wide: 0.45, Brows_Raised: 0.3, Eyes_LowerClosed: 0.1 };
+    var EXPR_NON = { Brows_Lowered: 0.55, Brow_Angry: 0.14, Mouth_Sad: 0.3, Mouth_Press: 0.3 };
     var EXPR_KEYS = [
       "Brow_Angry",
       "Brows_Lowered",
@@ -1138,12 +1140,19 @@
       laugh() {
         this.laughT = 1.8;
       }
+      // « oui » : deux hochements de tête (le 2e plus petit) avec un petit sourire ; « non » : la tête fait non, sourcils un peu froncés
+      yes() {
+        this.yesT = 1.15;
+      }
+      no() {
+        this.noT = 1.3;
+      }
       busy() {
-        return this.waveT > 0 || this.jumpT > 0 || this.laughT > 0;
+        return this.waveT > 0 || this.jumpT > 0 || this.laughT > 0 || this.yesT > 0 || this.noT > 0;
       }
       update(dt, cam) {
         this.t += dt;
-        const tgt = this.laughT > 0 ? EXPR.content : this.exprFlash > 0 ? this.waveT > 0 ? EXPR.sourire : EXPR.content : this.exprTarget;
+        const tgt = this.laughT > 0 ? EXPR.content : this.yesT > 0 ? EXPR_OUI : this.noT > 0 ? EXPR_NON : this.exprFlash > 0 ? this.waveT > 0 ? EXPR.sourire : EXPR.content : this.exprTarget;
         if (this.exprFlash > 0) this.exprFlash -= dt;
         const k = 1 - Math.exp(-dt * 10);
         for (const key of EXPR_KEYS) {
@@ -1312,6 +1321,17 @@
           lg = Math.min(1, e / 0.2, A.laughT / 0.4);
         }
         const shake = lg * Math.sin(t * 26) * 0.5 + lg * 0.5;
+        let yes = 0, no = 0;
+        if (A.yesT > 0) {
+          A.yesT = Math.max(0, A.yesT - dt);
+          const p = 1 - A.yesT / 1.15, env2 = Math.min(1, p / 0.06, A.yesT / 0.12);
+          yes = env2 * (p < 0.5 ? 0.17 : 0.12) * (1 - Math.cos(p * Math.PI * 4)) / 2;
+        }
+        if (A.noT > 0) {
+          A.noT = Math.max(0, A.noT - dt);
+          const p = 1 - A.noT / 1.3, env2 = Math.min(1, p / 0.08, A.noT / 0.2);
+          no = env2 * 0.3 * (1 - 0.45 * p) * Math.sin(p * Math.PI * 2 * 2.3);
+        }
         const qe = (x, y, z) => new T.Quaternion().setFromEuler(new T.Euler(x, y, z, "YXZ"));
         const pr = sw * 0.022, py = Math.sin(t * 0.31 + s) * 0.05;
         this.setR("pelvis", qe(0, py, pr));
@@ -1333,9 +1353,9 @@
         const gx = A.lookAt ? lt.x : wanderX, gy = A.lookAt ? lt.y : wanderY;
         l.x += (gx - l.x) * (1 - Math.exp(-dt * 3));
         l.y += (gy - l.y) * (1 - Math.exp(-dt * 3));
-        this.setR("neck_01", qe(-l.y * 0.35, l.x * 0.35, 0));
+        this.setR("neck_01", qe(-l.y * 0.35 + yes * 0.35, l.x * 0.35 + no * 0.3, 0));
         const tk = A.talk && A.talk.w > 0 ? A.talk : null, nod = tk ? tk.nod || 0 : 0, tilt = tk ? tk.tilt || 0 : 0;
-        this.setR("head", qe(-l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod, l.x * 0.5 + tilt * 0.5, Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2)));
+        this.setR("head", qe(-l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod + yes, l.x * 0.5 + tilt * 0.5 + no, Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2)));
         for (const e of ["eyeRoot_l", "eyeRoot_r"]) if (A.bones.has(e)) this.setR(e, qe(-l.y * 0.25, l.x * 0.4, 0));
         if (tk && tk.asym) {
           const as = tk.asym * Math.min(1, tk.w);
@@ -2433,6 +2453,13 @@
           }, 1100);
         } else if (kind === "laugh") {
           A.laugh();
+        } else if (kind === "oui" || kind === "non") {
+          view.target = 0;
+          A.lookAt = true;
+          A.lookTarget.set(0, 0.04);
+          lookT = 2;
+          if (kind === "oui") A.yes();
+          else A.no();
         } else if (kind === "twirl") {
           view.spin = 1;
           view.target = null;
@@ -2867,6 +2894,13 @@
 .pgh-emo:active{transform:scale(.9)}
 .pgh-emo.hit{box-shadow:inset 0 0 0 2px #ffe08a,0 0 22px rgba(255,200,110,.75)}
 .pgh-emo small{display:none}
+.pgh-emowrap{position:relative;display:grid}
+.pgh-emo.more span{font-size:24px;letter-spacing:.02em;transform:translateY(-3px)}
+.pgh-emo.more.on{box-shadow:inset 0 0 0 2px #ffe08a,0 0 18px rgba(255,200,110,.55)}
+.pgh-emofan{position:absolute;left:50%;bottom:calc(100% + 10px);display:flex;flex-direction:column;gap:9px;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,10px) scale(.85);transform-origin:50% 100%;transition:opacity .18s, transform .22s cubic-bezier(.2,1.4,.4,1), visibility 0s .22s}
+.pgh-emofan.on{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0) scale(1);transition-delay:0s}
+.pgh.wide.short .pgh-emofan{left:calc(100% + 10px);bottom:auto;top:50%;flex-direction:row;transform:translate(-8px,-50%) scale(.85);transform-origin:0 50%}
+.pgh.wide.short .pgh-emofan.on{transform:translate(0,-50%) scale(1)}
 .pgh-ctas{display:flex;gap:10px;width:100%;max-width:440px}
 .pgh-cta{flex:1 1 0;min-height:52px;border-radius:16px;border:0;padding:8px 12px;font:700 15px ${FB};letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .pgh-cta svg{width:20px;height:20px;flex:none}
@@ -2959,6 +2993,15 @@
 @keyframes pghRing{0%,100%{opacity:.55}50%{opacity:1}}
 .pgh-win .s2{display:none}.pgh-win.two .s1{display:none}.pgh-win.two .s2{display:block}
 .pgh-others{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pgh-others.one{grid-template-columns:1fr}
+.pgh-andcard{margin-bottom:14px}
+.pgh-andcard .pgh-plat .ic{background:linear-gradient(180deg,#c9f7a8,#6fd36a);box-shadow:0 6px 16px rgba(90,200,90,.3)}
+.pgh-andbtns{display:flex;gap:10px;width:100%;max-width:440px;flex-wrap:wrap}
+.pgh-andbtns .pgh-cta{min-height:56px;font-size:16px}
+.pgh-andnote{font:600 12.5px/1.45 ${FB};color:#ffe9c8}
+.pgh-andnote b{color:#fff4de}
+.pgh-andbar{width:100%;max-width:440px;height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.pgh-andbar i{display:block;height:100%;width:var(--p,0%);background:linear-gradient(90deg,#ffd36a,#ff9f4a);border-radius:inherit;transition:width .3s}
 .pgh-other{padding:14px;border-radius:18px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px rgba(255,214,140,.14)}
 .pgh-other .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#ffe2ad;background:rgba(255,214,140,.1)}
 .pgh-other .ic svg{width:24px;height:24px}
@@ -3247,14 +3290,14 @@
   const nbsp = (h) => h.replace(/(>[^<]*)/g, (m) => m.replace(/ ([!?:;»])/g, ' $1').replace(/« /g, '« '));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   const IMG = (n) => ROOT() + 'accueil/pegase-hub-' + n + '.webp';
-  // légendes NEUTRES (le monde du jeu change bientôt de carte : rien sur « le lac » ni « le village du lac »)
+  // 18 oct. : images du monde EASTLANDS (captures du jeu, tools/images.py : interface recadrée, petit étalonnage)
   const GALLERY = [
-    ['pegase', 'Pégase, le cheval ailé', 'Ultra rare : sauras-tu le photographier ?'],
-    ['village', 'Un village à toi', 'Ta maison, parmi celles des copains'],
-    ['bouleaux', 'L\'heure dorée', 'Le moment où tout se met à briller'],
-    ['potager', 'Ton potager', 'Sème, arrose, récolte… et vends au marché'],
-    ['macro', 'L\'appareil photo', 'Zoom, flou, et même le mode macro'],
-    ['maison', 'Ta maison', 'Construis-la et décore-la comme tu veux']
+    ['arbre', 'L\'arbre sacré', 'Au bord du lac, sous ses feuilles rouges'],
+    ['village', 'Le village dans les arbres', 'Ta maison t\'attend parmi celles des habitants'],
+    ['pont', 'Le pont rouge', 'Et de l\'autre côté, le pré de Pégase…'],
+    ['nuit', 'La nuit aux lanternes', 'Fenêtres allumées et lucioles sur la place'],
+    ['chat', 'Le chat des toits', 'Timide : approche-toi doucement… ou zoome !'],
+    ['auguste', 'Papi Auguste', 'Le maire t\'accueille et te confie tes premières missions']
   ];
   const FUTURE = [
     ['🗓️', 'Missions du jour', 'Chaque matin, de petites missions : photographier le chat, récolter des radis… et des écus à gagner.', 'rgba(255,200,110,.28)'],
@@ -3264,7 +3307,9 @@
     ['📱', 'Le téléphone de ton personnage', 'Dans le jeu, ton avatar sort son téléphone : missions, messages, carte… comme ici.', 'rgba(120,200,255,.24)'],
     ['🎥', 'Appels vidéo', 'Appelle un copain depuis le téléphone du jeu et vois-le en vrai sur l\'écran.', 'rgba(140,240,190,.22)']
   ];
-  const EMOTES = [['wave', '👋', 'Coucou'], ['jump', '🎉', 'Saute'], ['laugh', '😄', 'Rigole'], ['twirl', '💫', 'Tourne']];
+  const EMOTES = [['oui', '👍', 'Oui'], ['non', '👎', 'Non'], ['wave', '👋', 'Coucou']];
+  const EMOTES_MORE = [['jump', '🎉', 'Saute'], ['laugh', '😄', 'Rigole'], ['twirl', '💫', 'Tourne']];   // dans l'éventail « … » (la rangée reste à 6 boutons)
+  const EMOTES_ALL = EMOTES.concat(EMOTES_MORE);
   Object.assign(PGH_SVG, {
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
     lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor" stroke="none"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>',
@@ -3316,9 +3361,9 @@
       <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
     </div>
     <div class="pgh-bottom">
-      <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button><button class="pgh-emo say" data-h="say" aria-label="Écouter ton avatar dire bonjour" title="Écouter ton avatar parler"><span>💬</span></button></div>
+      <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<div class="pgh-emowrap"><button class="pgh-emo more" data-h="emomore" aria-label="Autres gestes" title="Autres gestes" aria-expanded="false"><span>⋯</span></button><div class="pgh-emofan" data-h="emofan">${EMOTES_MORE.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}</div></div><button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button><button class="pgh-emo say" data-h="say" aria-label="Écouter ton avatar dire bonjour" title="Écouter ton avatar parler"><span>💬</span></button></div>
       <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-av">${PGH_SVG.edit}<span data-h="avlab">Modifier</span></button><button class="pgh-cta glass" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button></div>
-      <div class="pgh-small">Gratuit · PC Windows · Android bientôt</div>
+      <div class="pgh-small" data-h="small">Gratuit · PC Windows · Android bientôt</div>
     </div>
   </section>
   <nav class="pgh-tabs" data-h="tabs" role="tablist" aria-label="Pégase">
@@ -3368,7 +3413,11 @@
     </section>
     <section class="pgh-sec" data-h="secdl">
       <h2 class="pgh-h2">Installer Pégase</h2>
-      <p class="pgh-sub">Pégase est un vrai jeu à installer, gratuit. Il marche sur ordinateur maintenant, et bientôt sur les téléphones.</p>
+      <p class="pgh-sub" data-h="dlsub">Pégase est un vrai jeu à installer, gratuit. Il marche sur ordinateur maintenant, et bientôt sur les téléphones.</p>
+      <div class="pgh-card pgh-andcard" data-h="andcard" hidden>
+        <div class="pgh-plat"><div class="ic">${PGH_SVG.android}</div><div><h3>Sur ce téléphone (Android)</h3><p data-h="andmeta">L'appli de la borne l'installe pour toi</p></div></div>
+        <div class="pgh-dlzone" data-h="andzone"></div>
+      </div>
       <div class="pgh-card pgh-dlcard">
         <div class="pgh-plat"><div class="ic">${PGH_SVG.pc}</div><div><h3>Pour PC (Windows)</h3><p>Windows 10 ou 11 · une souris ou une manette</p></div></div>
         <div class="pgh-dlzone" data-h="dlzone"><span class="pgh-meta">On cherche la dernière version…</span></div>
@@ -3383,8 +3432,8 @@
           </div>
         </div>
       </div>
-      <div class="pgh-others">
-        <div class="pgh-other"><div class="ic">${PGH_SVG.android}</div><h4>Android <span class="pgh-chip">À venir</span></h4><p>La borne l'installera toute seule, d'un toucher, sur ton téléphone.</p></div>
+      <div class="pgh-others" data-h="others">
+        <div class="pgh-other" data-h="andsmall"><div class="ic">${PGH_SVG.android}</div><h4>Android <span class="pgh-chip" data-h="andchip">À venir</span></h4><p data-h="andp">La borne l'installera toute seule, d'un toucher, sur ton téléphone.</p></div>
         <div class="pgh-other"><div class="ic">${PGH_SVG.phone}</div><h4>iPhone et iPad <span class="pgh-chip">À venir</span></h4><p>Un peu plus tard. En attendant, prépare ton avatar ici !</p></div>
       </div>
     </section>
@@ -3410,7 +3459,7 @@
     <div class="pgh-fvhead"><b data-h="fvname"></b><button class="pgh-dclose" data-h="fvx" aria-label="Fermer">✕</button></div>
     <span class="pgh-fvst" data-h="fvst"><i></i><span data-h="fvstt"></span></span>
     <p class="pgh-fvdesc" data-h="fvdesc"></p>
-    <div class="pgh-fvemo" data-h="fvemo">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
+    <div class="pgh-fvemo" data-h="fvemo">${EMOTES_ALL.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
     <div class="pgh-fvbtns"><button class="pgh-cta glass" data-h="fvcall"><span>📞 Appeler</span><small>bientôt</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
   </div>
 </div>
@@ -3804,9 +3853,16 @@
     function gestured(k) {
       hintOff();
       const b = box.querySelector(`.pgh-emotes .pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
-      tone(k === 'jump' ? 660 : k === 'laugh' ? 880 : 740, k === 'jump' ? 990 : 1180);
+      tone(k === 'jump' ? 660 : k === 'laugh' ? 880 : k === 'non' ? 520 : 740, k === 'jump' ? 990 : k === 'non' ? 400 : 1180);
     }
-    on($.emotes, 'click', (e) => { const b = e.target.closest('.pgh-emo'); if (!b || b === $.mic || b === $.say || !STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k); });
+    const fan = (o) => { $.emofan.classList.toggle('on', o); $.emomore.classList.toggle('on', o); $.emomore.setAttribute('aria-expanded', String(o)); };
+    on($.emotes, 'click', (e) => {
+      const b = e.target.closest('.pgh-emo'); if (!b || b === $.mic || b === $.say) return;
+      if (b === $.emomore) { fan(!$.emofan.classList.contains('on')); tone(600, 820); return; }
+      if (b.closest('.pgh-emofan')) later(() => fan(false), 250);
+      if (!STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k);
+    });
+    on(document, 'pointerdown', (e) => { if ($.emofan.classList.contains('on') && !e.target.closest('.pgh-emowrap')) fan(false); }, true);
 
     // ---------- MICRO : la bouche de l'avatar suit ta voix. Analyse du son SUR L'APPAREIL (Web Audio), rien n'est enregistré ni envoyé.
     // Bouche (hub 2.3, src/levres.js) : VISÈMES du français devinés dans le son — formants F1/F2/F3 par prédiction linéaire (A, É/È, I, O,
@@ -4006,6 +4062,16 @@
       later(() => { if (SAY.lip === lip && !lip.started) { lip.started = true; lip.wi = 0; lip.wt = 0; later(() => { if (SAY.lip === lip) sayStop(); }, 6000); } }, 2500);
     }
     on($.say, 'click', (e) => { e.stopPropagation(); if (SAY.on) { sayStop(); return; } sayStart(); });
+    // pas de voix sur cet appareil (WebView d'Android : pas de speechSynthesis ; ou aucune voix) : 💬 caché (🎤 reste), noté une fois dans le journal
+    (function sayCheck() {
+      const hide = (why) => { $.say.hidden = true; $.say.style.display = 'none'; try { if (!store.get('jdw.pegase.saylog')) { store.set('jdw.pegase.saylog', '1'); report('Pégase hub : bouton 💬 caché (' + why + ')'); } } catch (e) { /* rien */ } };
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { hide('pas de speechSynthesis'); return; }
+      let n = 0; try { n = speechSynthesis.getVoices().length; } catch (e) { n = 0; }
+      if (n) return;
+      const ok = () => { try { return speechSynthesis.getVoices().length > 0; } catch (e) { return false; } };
+      try { speechSynthesis.addEventListener('voiceschanged', () => { if (ok()) { $.say.hidden = false; $.say.style.display = ''; } }); } catch (e) { /* rien */ }
+      later(() => { if (!ok()) hide('aucune voix'); }, 3000);
+    })();
     on($.mic, 'click', (e) => { e.stopPropagation(); if (MIC.on) { micStop(); tone(520, 360); return; } if (store.get('jdw.pegase.micok')) micStart(); else $.micm.classList.add('on'); });
     on($.micm, 'click', (e) => { const h = e.target.closest('[data-h]'); if (e.target === $.micm || (h && h.dataset.h === 'micno')) { $.micm.classList.remove('on'); return; } if (h && h.dataset.h === 'micok') { $.micm.classList.remove('on'); micStart(); } });
     on(document, 'visibilitychange', () => { if (document.hidden && MIC.on) micStop(); if (document.hidden) sayStop(); });
@@ -4350,7 +4416,7 @@
     }
     on($.tabs, 'click', (e) => { const b = e.target.closest('.pgh-tab'); if (b) { setTab(b.dataset.tab, true); tone(560, 760); } });
     const toDl = () => { setTab('infos', false); requestAnimationFrame(() => { const s = $.scroll, t = $.secdl.offsetTop - $.tabs.offsetHeight - 6; try { s.scrollTo({ top: t, behavior: 'smooth' }); } catch (e) { s.scrollTop = t; } }); };
-    for (const k of ['go-dl', 'go-dl1']) on($[k], 'click', toDl);
+    for (const k of ['go-dl', 'go-dl1']) on($[k], 'click', () => { if (AND.state === 'play') andOpen(); else toDl(); });
 
     // ---------- LES COPAINS DE LA SALLE ----------
     const FR = { list: [], av: new Map(), sig: '', at: 0, err: '' };
@@ -4477,6 +4543,58 @@
     renderDl();
     every(() => $.win.classList.toggle('two'), 2600);
 
+    // ---------- ANDROID (appli de la borne 1.8+ : window.JDWAndroid ; fiche telecharger/pegase.json) ----------
+    // api.natif (CONTRACT.md Ajout 9) : status() → { state: install | update | play | busy | replace | unfit | oldapp | browser | ios | desktop
+    // | none | off, versionName, size, installed, page } ; open() = la feuille de la borne (Installer / Mettre à jour / Jouer : pegase://open,
+    // question Wi-Fi / données mobiles, progression) ; onChange(fn) = l'état a pu changer (feuille fermée, Android a fini…).
+    const NT = api && api.natif && typeof api.natif.status === 'function' ? api.natif : null;
+    let AND = { state: 'none' }, andOff = null;
+    const andBtn = (txt, cls) => `<button class="pgh-cta ${cls || 'gold'}" data-a="open">${PGH_SVG.android}<span>${esc(txt)}</span></button>`;
+    async function renderAndroid(fresh) {
+      const ua = navigator.userAgent || '';
+      let st = { state: 'none', plat: /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/i.test(ua) ? 'android' : 'desktop' };
+      if (NT) { try { st = (await NT.status(fresh)) || st; } catch (e) { /* rien */ } }
+      if (dead) return;
+      AND = st;
+      const vn = st.versionName ? 'version ' + esc(st.versionName) : '', size = st.size ? fmtSize(st.size) : '';
+      const meta = [vn ? 'Version ' + esc(st.versionName) : '', size, 'Android 8 ou plus'].filter(Boolean).join(' · ');
+      let card = '', chip = 'À venir', p = 'La borne l\'installera toute seule, d\'un toucher, sur ton téléphone.', cardMeta = 'L\'appli de la borne l\'installe pour toi';
+      switch (st.state) {
+        case 'install': card = `<div class="pgh-andbtns">${andBtn('Installer Pégase')}</div><span class="pgh-meta">${meta}</span><span class="pgh-andnote">Une seule fois : la borne télécharge Pégase, vérifie le fichier, puis Android te demande <b>« Installer »</b>. Ensuite, <b>« Jouer »</b> l'ouvre d'un toucher.${size ? ' En Wi-Fi c\'est mieux (' + size + ').' : ''}</span>`; break;
+        case 'update': card = `<div class="pgh-andbtns">${andBtn('Mettre à jour' + (vn ? ' (' + vn + ')' : ''))}</div><span class="pgh-meta">${st.installed ? 'Installée : version ' + esc(st.installed) + ' · ' : ''}${meta}</span><span class="pgh-andnote">La mise à jour se fait toute seule, sans question d'Android.</span>`; break;
+        case 'play': card = `<div class="pgh-andbtns">${andBtn('Jouer à Pégase')}</div><span class="pgh-meta">Installée${st.installed ? ' · version ' + esc(st.installed) : ''} ✓</span>`; cardMeta = 'Pégase est installé sur ce téléphone'; break;
+        case 'busy': { const pc = st.total ? Math.max(0, Math.min(100, Math.floor(st.done / st.total * 100))) : 0;
+          card = `<div class="pgh-andbtns">${andBtn(st.step === 'download' ? 'Voir le téléchargement (' + pc + ' %)' : 'Voir l\'installation')}</div><div class="pgh-andbar" style="--p:${st.step === 'download' ? pc : 100}%"><i></i></div><span class="pgh-meta">${meta}</span>`; break; }
+        case 'replace': card = `<div class="pgh-andbtns">${andBtn('Installer la vraie version')}</div><span class="pgh-andnote">Une version d'essai de Pégase est déjà sur ce téléphone : la borne t'aide à la remplacer.</span>`; break;
+        case 'unfit': chip = 'Pas ce téléphone'; p = 'Pégase demande un téléphone Android 64 bits (Android 8 ou plus).'; break;
+        case 'oldapp': card = `<span class="pgh-andnote">Ton appli <b>« Borne d'arcade »</b> est ancienne : installe la nouvelle (1.8), puis reviens ici pour installer Pégase d'un toucher.</span><div class="pgh-andbtns"><a class="pgh-cta gold" href="${esc(st.page || '../telecharger/')}" rel="noopener">${PGH_SVG.dl}<span>Mettre à jour l'appli de la borne</span></a></div>`; cardMeta = 'Il faut l\'appli de la borne 1.8'; break;
+        case 'browser': card = `<span class="pgh-andnote"><b>Installe l'appli « Borne d'arcade » pour jouer</b> : c'est elle qui installe Pégase sur ton téléphone, d'un toucher (tuile Pégase → Android → Installer).</span><div class="pgh-andbtns"><a class="pgh-cta gold" href="${esc(st.page || '../telecharger/')}" rel="noopener">${PGH_SVG.dl}<span>Installer l'appli « Borne d'arcade »</span></a></div><span class="pgh-meta">${meta}</span>`; cardMeta = 'Avec l\'appli de la borne'; break;
+        case 'desktop': chip = 'Disponible'; p = 'Sur ton téléphone Android : ouvre l\'appli « Borne d\'arcade », touche Pégase, puis « Installer ».'; break;
+        default: break;   // none / off / ios : « À venir »
+      }
+      $.andcard.hidden = !card; if (card) { $.andzone.innerHTML = card; $.andmeta.textContent = cardMeta; }
+      $.andsmall.hidden = !!card; $.others.classList.toggle('one', !!card);
+      $.andchip.textContent = chip; $.andp.textContent = p;
+      const live = !/^(none|off)$/.test(st.state);
+      $.small.textContent = live ? 'Gratuit · PC Windows · Android' : 'Gratuit · PC Windows · Android bientôt';
+      $.dlsub.textContent = live ? 'Pégase est un vrai jeu à installer, gratuit : sur ordinateur (Windows) et sur les téléphones Android. iPhone un peu plus tard.' : 'Pégase est un vrai jeu à installer, gratuit. Il marche sur ordinateur maintenant, et bientôt sur les téléphones.';
+      // en haut de page : « Jouer » si Pégase est déjà sur ce téléphone, « Installer » s'il peut l'être
+      const lab = st.state === 'play' ? 'Jouer' : /^(install|update|busy|replace)$/.test(st.state) ? (st.state === 'update' ? 'Mettre à jour' : 'Installer') : '';
+      for (const [k, def] of [['go-dl', 'Télécharger le jeu'], ['go-dl1', 'Télécharger']]) { const sp = $[k] && $[k].querySelector('span'); if (sp) sp.textContent = lab ? (k === 'go-dl' && lab === 'Jouer' ? 'Jouer à Pégase' : lab) : def; }
+      box.dataset.android = st.state;
+    }
+    async function andOpen() {
+      if (!NT) return;
+      tone(660, 990);
+      let ok = false; try { ok = await NT.open(); } catch (e) { ok = false; }
+      if (!ok && !dead) toast('Pégase n\'est pas (encore) disponible pour ce téléphone');
+      later(() => renderAndroid(false), 400);
+    }
+    on($.andzone, 'click', (e) => { if (e.target.closest('[data-a="open"]')) andOpen(); });
+    if (NT && typeof NT.onChange === 'function') andOff = NT.onChange(() => { if (!dead) renderAndroid(false); });
+    on(document, 'visibilitychange', () => { if (!document.hidden && !dead) renderAndroid(false); });
+    renderAndroid(true);
+
     // ---------- observateurs ----------
     $.bg.complete && $.bg.naturalWidth ? $.bg.classList.add('on') : on($.bg, 'load', () => $.bg.classList.add('on'));
     on($.bg, 'error', () => { $.bg.style.display = 'none'; });
@@ -4501,6 +4619,7 @@
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();
         if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect();
+        if (andOff) { try { andOff(); } catch (e) { /* rien */ } andOff = null; }
         try { if (STG) STG.dispose(); } catch (e) { /* rien */ }
         STG = null; if (window.JDW_PG_HUB) try { delete window.JDW_PG_HUB; } catch (e) { window.JDW_PG_HUB = undefined; }
         root.textContent = '';

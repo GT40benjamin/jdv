@@ -84,7 +84,7 @@ toucher = un geste (coucou, saut, regard, rire, tour sur soi ; boutons 👋 🎉
 joueur (`jdw.pegase.garde.<PSEUDO|INVITE>` = `{"v":1,"tenue":o,"desc":"…"}`, le format de `garde-robe.json` du jeu) ; (hub 2 : aussi sur le serveur, voir plus bas) ; bouton « Utiliser comme photo de profil » : portrait détouré 160 × 200
 de l'avatar (fond transparent) enregistré par le MÊME chemin que la photo des réglages (`api.profilePhoto`, CONTRACT.md Ajout 7 : save_player ou,
 « Seulement dans <salle> », save_room_look ; refusé aux invités) ; (4) « Installer Pégase » : fiche `telecharger/pegase-pc.json` = { version, size,
-sha256, url, notes } (absente / 404 = « Bientôt disponible » ; ne pas la créer à la main, c'est la publication du build PC qui la pose : le zip du player Unity va en pré-version GitHub avec `node ~/jdv-tools/pegase/android-bridge/release-pc.js <zip> pegase-pc-v<n> <nom.zip> "<titre>" --go` (jamais « latest », jamais remplacer un fichier publié : nouveau build = nouveau tag), puis la fiche pointe sur son lien ; 1.19.4 : essai 1, tag pegase-pc-v1 ; 1.19.7 : essai 2 monde Eastlands, tag pegase-pc-v2, zip Pegase-PC-2026-10-17-eastlands.zip, notes de la release via PC_NOTES=<fichier.md> (ex. ~/jdv-tools/pegase/pc-releases/pegase-pc-v2-notes.md) ; garder les anciennes releases), 3 étapes
+sha256, url, notes } (absente / 404 = « Bientôt disponible » ; ne pas la créer à la main, c'est la publication du build PC qui la pose : le zip du player Unity va en pré-version GitHub avec `node ~/jdv-tools/pegase/android-bridge/release-pc.js <zip> pegase-pc-v<n> <nom.zip> "<titre>" --go` (jamais « latest », jamais remplacer un fichier publié : nouveau build = nouveau tag), puis la fiche pointe sur son lien ; 1.19.4 : essai 1, tag pegase-pc-v1 ; 1.19.7 : essai 2 monde Eastlands, tag pegase-pc-v2, zip Pegase-PC-2026-10-17-eastlands.zip, notes de la release via PC_NOTES=<fichier.md> (ex. ~/jdv-tools/pegase/pc-releases/pegase-pc-v2-notes.md) ; 1.19.9 : essai 3 « village vivant », tag pegase-pc-v3, zip Pegase-PC-2026-10-17-vivant.zip (804 Mo, notes pegase-pc-v3-notes.md) ; garder les anciennes releases), 3 étapes
 (télécharger le zip → extraire → Pégase.exe) + l'écran bleu SmartScreen expliqué, Android / iPhone « À venir » ; (5) « Bientôt dans le hub » (missions,
 copains, classement, album et musée, téléphone du personnage, appels vidéo). `noScore: true` : pas de ligne de record en haut, Quitter = retour.
 Paquets EMBALLÉS (personnages BoZo) : `assets/pegase.perso.bin` (catalogue, corps, tête, accessoires, pièces partagées) + `pegase.garde.<perso>.bin`
@@ -138,6 +138,21 @@ préférence, phrases fixes) parle, la bouche suit le TEXTE (`frenchVisemes`, r�
 phonèmes = vérité ; ancienne méthode contre nouvelle ; voix ×0,85 / ×1,15 ; `SEANCE=1` = micro resté ouvert ; résultats test/levres/resultats.txt),
 `node test/levres/capture.js <id>` (même son, horloge virtuelle, AVANT 1.19.6 / NOUVEAU → captures/<id>.gif + <id>.html lecteur AVEC le son),
 `node test/levres/parler.js` ; phrases : `test/levres/tts.ps1` (positions SAPI comptées à 16 kHz alors que le WAV est à 22,05 kHz : ×16000/22050).
+**Hub 2.4 (1.19.9, 17-18 oct.)** : carte **Android** de l'onglet Infos = vraie installation (api.natif, CONTRACT.md Ajout 9) : dans l'appli de la
+borne 1.8+ avec `telecharger/pegase.json` → carte « Sur ce téléphone (Android) » : Installer Pégase / Mettre à jour / Jouer à Pégase / Voir le
+téléchargement / Installer la vraie version, qui ouvre la feuille `#jdw-natif` de la borne PAR-DESSUS le hub (Wi-Fi ou question données mobiles,
+progression, autorisation, « Installer » d'Android) ; le bouton du haut du hub devient « Installer » / « Jouer » ; la TUILE Pégase ouvre toujours
+le hub (`NATIVE_HUB` dans shell2.js ; plus de lancement direct depuis la tuile). Chrome d'Android : « Installe l'appli « Borne d'arcade » pour
+jouer » + lien telecharger/ ; appli < 1.8 : « mets à jour l'appli de la borne » ; ordinateur : petite carte « Disponible » ; iPhone : « À venir ».
+Gestes : **👍 Oui** (deux hochements, petit sourire) et **👎 Non** (la tête fait non, petite moue) devant, 👋, puis **⋯** = éventail 🎉 😄 💫
+(`Avatar.yes()/no()`, `EXPR_OUI/EXPR_NON` dans src/avatar.js) ; en parlant au micro, les petits hochements restent. **💬 caché** quand il n'y a
+pas de voix (WebView d'Android : pas de speechSynthesis ; noté une fois dans le journal « Pégase hub : bouton 💬 caché »). Galerie et haut de page :
+images du monde **Eastlands** (tools/images.py : beau_1 village et lac en fond, arbre sacré, village dans les arbres, pont rouge, nuit aux lanternes,
+chat, Papi Auguste ; interface recadrée, petit étalonnage, 60-80 Ko, chargées à la demande).
+TODO (prochaine appli de la borne, PAS encore fait) : (1) pont `JDWAndroid.speak(text)` avec le TextToSpeech d'Android +
+`UtteranceProgressListener.onRangeStart` (API 26+) pour envoyer les limites de mots → bouche exacte mot à mot dans l'appli (💬 revient) ;
+(2) `SpeechRecognizer` d'Android avec `EXTRA_PREFER_OFFLINE` (français sur l'appareil) via le pont pour reconnaître « oui » / « non » (et des mots)
+sans envoyer le son → l'avatar hoche / fait non tout seul.
 Atelier : `~/jdv-tools/pegase/borne/hub` (src/ = avatar 3D : avatar.js copie de l'atelier avatar + gestes, stage.js, main.js ; wrap/head.js +
 wrap/tail.js = la page ; `node tools/assemble.js` → out/pegase.js à copier dans source/games/ ; paquets `node tools/pack.js` ; images
 `python tools/images.py` ; harnais `test/harness.html` (serveur : `PORT=8833 node ~/jdv-tools/pegase/tools/serve.js ~/jdv-tools/pegase/borne/hub`),
@@ -175,14 +190,19 @@ donne) : l'état est gardé par l'appli (SharedPreferences « natif »), la page
 tous les `java/*.java` ; `ANDROID_JAR=<sdk>/platforms/android-34/android.jar` compile contre le vrai SDK ; les stubs sont vérifiés identiques
 au SDK par `~/jdv-tools/pegase/android-bridge/test/verif-stubs.sh` (un stub faux = plantage sur le téléphone).
 Page (section « Applis natives » de shell2.js, feuille `#jdw-natif`) : `NATIVE_APPS = { pegase: 'telecharger/pegase.json' }`. Dans l'appli
-1.8+, la tuile Pégase ouvre l'appli native si elle est installée et à jour (`pegase://open?from=borne&v=…`), sinon la feuille : installer
+1.8+, la tuile d'un jeu natif ouvre l'appli native si elle est installée et à jour (`pegase://open?from=borne&v=…`), sinon la feuille (DEPUIS LA
+1.19.9, Pégase passe par son HUB : `NATIVE_HUB`, la tuile ouvre le hub et sa carte Android ouvre la même feuille, api.natif) : installer
 (tout de suite en Wi-Fi, question d'abord en données mobiles), mettre à jour (« Mettre à jour » / « Jouer »), ancienne version signée
 autrement (désinstaller puis installer), erreurs (place, blocage Samsung, réseau…) ; étiquette « 📲 Appli » / « Mise à jour » sur la tuile.
 Navigateurs, iPhone, appli < 1.8, téléphone sans arm64, fiche absente (404) : la tuile ouvre le hub de Pégase (page de la borne) ; `?natif=web` force le hub.
 Fiche `telecharger/pegase.json` = { pkg, versionCode, versionName, size, sha256, url, cert, minSdk, abi } écrite par
 `~/jdv-tools/pegase/android-bridge/publier-pegase.sh` ; l'APK (trop gros pour Pages) = release GitHub `pegase-v<versionCode>` du dépôt
 (fichier d'abord, fiche ensuite ; retirer la fiche = retour à la version web). Clé de Pégase hors dépôt : `~/jdv-tools/keys/` (réglages Unity :
-UNITY-PEGASE.md). Atelier, essais (test-natif.js : faux pont dans Chrome ; e2e.js : émulateur Android 15, vrai pont, vrais écrans d'Android) et
+UNITY-PEGASE.md). **1er APK publié (1.19.9, 17 oct. 2026)** : pré-version GitHub `pegase-v1` « Pégase 0.3 (appli Android) », `pegase-0.3.apk`,
+fr.bornearcade.pegase versionCode 1 / versionName 0.3, 489 033 079 octets, sha256 5ce1093f…c7bd, certificat ec1274e5…3b99, minSdk 26, arm64-v8a ;
+construit par `Unity.exe -batchmode -quit -projectPath D:\Games\PegaseUnity6 -buildTarget Android -executeMethod PegaseRelease.Android`
+(`Assets/Editor/PegaseRelease.cs`, PEGASE_VN / PEGASE_VC ; versionCode +1 à CHAQUE APK publié) → `Builds/Pegase-<VN>-<VC>.apk`.
+`publier-pegase.sh <apk> C:/Users/Benjamin/jdv` (chemin Windows : node ne lit pas /c/…) ; `release-github.js … --go` crée une PRÉ-VERSION. Atelier, essais (test-natif.js : faux pont dans Chrome ; e2e.js : émulateur Android 15, vrai pont, vrais écrans d'Android) et
 marche à suivre (PUBLIER.md) : `~/jdv-tools/pegase/android-bridge/`.
 
 ## Serveur (Supabase)

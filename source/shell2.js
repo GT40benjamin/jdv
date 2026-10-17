@@ -5922,8 +5922,11 @@ function netGuestPauseCard() {
 // iPhone, appli < 1.8, téléphone incompatible : la version web du jeu, inchangée. Essais : ?natif=web force la version web sur l'appareil,
 // ?natif=auto revient au fonctionnement normal. Plus tard : un jeton de session court dans l'adresse pegase://open (compte de la borne).
 const NATIVE_APPS = { pegase: 'telecharger/pegase.json' };
+// jeux qui ont leur HUB dans la borne (Pégase, 1.19.9) : la tuile ouvre toujours le hub ; c'est sa carte « Android » qui installe /
+// met à jour / ouvre l'appli (api.natif, CONTRACT.md Ajout 9), avec la même feuille #jdw-natif
+const NATIVE_HUB = new Set(['pegase']);
 const NAT = { b: null, g: null, info: null, inst: null, kind: '', ui: '', ev: null, open: false, raf: 0, spd: [], busy: false, go: '', later: '',
-  confirmAt: 0, keepT: 0, readyToast: '', party: '' };
+  confirmAt: 0, keepT: 0, readyToast: '', party: '', hub: false, subs: new Set() };
 NAT.b = (() => { try { const b = window.JDWAndroid; return b && typeof b.api === 'function' && b.api() >= 1 ? b : null; } catch (e) { return null; } })();
 (() => { try { const q = new URLSearchParams(location.search).get('natif'); if (q === 'web' || q === 'auto') store.set('jdw.natif.mode', q); } catch (e) {} })();
 const natJ = s => { try { return typeof s === 'string' && s ? JSON.parse(s) : null; } catch (e) { return null; } };
@@ -5962,21 +5965,51 @@ function nativeJob() { try { return natJ(NAT.b.installState()) || { state: 'idle
 const nativeCertOff = (inst, info) => !!(inst && info.cert && inst.cert && String(inst.cert).toLowerCase() !== String(info.cert).toLowerCase());
 
 // toucher la tuile : ouvrir l'appli, ou la feuille (installer / mettre à jour / reprendre), ou la version web
-async function nativeOpen(g) {
-  if (NAT.busy) return;
+// hub = true : appelé par la carte « Android » du hub du jeu (api.natif.open) : pas de repli vers la page du jeu (on y est déjà)
+async function nativeOpen(g, hub) {
+  if (NAT.busy || !NAT.b) return false;
   NAT.busy = true;
   const tl = tiles.find(t => t.g === g); if (tl) tl.el.classList.add('tile-busy');
   let info = null;
   try { info = await nativeInfo(g.id); } catch (e) {}
   NAT.busy = false; if (tl) tl.el.classList.remove('tile-busy');
-  if (!info || !nativeFits(info)) { openGame(g, true); return; }   // pas (encore) d'appli pour ce téléphone : la version de la borne
-  NAT.g = g; NAT.info = info;
+  if (!info || !nativeFits(info)) { if (!hub) openGame(g, true); return false; }   // pas (encore) d'appli pour ce téléphone : la version de la borne
+  NAT.g = g; NAT.info = info; NAT.hub = !!hub;
   const inst = nativeInstalled(info), job = nativeJob();
   nativeChips();
-  if (job.pkg === info.pkg && job.sha === natSha(info) && NAT_FLOW.test(job.state)) { nativeSheet(inst ? 'update' : 'install', inst, job); return; }   // déjà en route : on reprend
-  if (nativeCertOff(inst, info)) { nativeSheet('replace', inst); return; }
-  if (inst && +inst.versionCode >= +info.versionCode) { nativeLaunch(); return; }
+  if (job.pkg === info.pkg && job.sha === natSha(info) && NAT_FLOW.test(job.state)) { nativeSheet(inst ? 'update' : 'install', inst, job); return true; }   // déjà en route : on reprend
+  if (nativeCertOff(inst, info)) { nativeSheet('replace', inst); return true; }
+  if (inst && +inst.versionCode >= +info.versionCode) { nativeLaunch(); return true; }
   nativeSheet(inst ? 'update' : 'install', inst);
+  return true;
+}
+// api.natif (CONTRACT.md Ajout 9) : où en est l'appli native de ce jeu sur cet appareil, pour la carte « Android » du hub
+const natPlat = () => { const u = navigator.userAgent || ''; return NAT.b || /Android/i.test(u) ? 'android' : /iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && (navigator.maxTouchPoints || 0) > 1) ? 'ios' : 'desktop'; };
+async function nativeStatus(g, fresh) {
+  const m = (navigator.userAgent || '').match(/BorneArcade\/(\d+)/), plat = natPlat();
+  const o = { state: 'none', plat, app: m ? +m[1] : 0, bridge: !!NAT.b, versionName: '', size: 0, minSdk: 0, installed: '', page: new URL(ROOT + 'telecharger/', location.href).href };
+  let info = store.get('jdw.natif.' + g.id, null);
+  if (fresh || !nativeOk(info)) { try { info = await nativeInfo(g.id); } catch (e) { info = null; } }
+  if (!nativeOk(info)) return o;
+  Object.assign(o, { versionName: String(info.versionName || ''), size: +info.size || 0, minSdk: +info.minSdk || 0 });
+  if (plat !== 'android') { o.state = plat; return o; }
+  if (!NAT.b) { o.state = o.app ? 'oldapp' : 'browser'; return o; }
+  if (store.get('jdw.natif.mode', 'auto') === 'web') { o.state = 'off'; return o; }
+  if (!nativeFits(info)) { o.state = 'unfit'; return o; }
+  const inst = nativeInstalled(info), job = nativeJob();
+  if (inst) o.installed = String(inst.versionName || '');
+  o.state = job.pkg === info.pkg && job.sha === natSha(info) && NAT_FLOW.test(job.state) ? 'busy'
+    : nativeCertOff(inst, info) ? 'replace' : inst && +inst.versionCode >= +info.versionCode ? 'play' : inst ? 'update' : 'install';
+  if (o.state === 'busy') { o.done = +job.done || 0; o.total = +job.total || +info.size || 0; o.step = job.state; }
+  return o;
+}
+function natNotify() { for (const f of NAT.subs) { try { f(); } catch (e) {} } }
+function nativeApi(g) {
+  return {
+    status: (fresh) => nativeStatus(g, !!fresh),
+    open: () => nativeOpen(g, true),
+    onChange: (fn) => { if (typeof fn !== 'function') return () => {}; NAT.subs.add(fn); return () => NAT.subs.delete(fn); }
+  };
 }
 function nativeLaunch() {
   const i = NAT.info; let ok = false;
@@ -6012,6 +6045,7 @@ function nativeGo() {
 function nativeClose(silent) {
   if (!NAT.open) return;
   NAT.open = false; cancelAnimationFrame(NAT.raf); closeSheet('jdw-natif'); store.set('jdw.natif.open', null);
+  setTimeout(natNotify, 0);
   if (/^(download|verify|ready|prepare)$/.test(NAT.ui)) {
     try { NAT.b.background(); } catch (e) {}   // le téléchargement continue, mais Android ne posera pas sa question sans la feuille
     if (!silent && NAT.g) toastCheer(NAT.g.title + ' continue de se télécharger en fond', null, true);
@@ -6062,7 +6096,7 @@ function nativeRender(ev) {
     case 'broken': h = T + ' ne s\'ouvre pas'; sub = 'L\'appli est sur le téléphone mais Android ne la lance pas. On la réinstalle ?'; go = 'dl'; goTxt = 'Réinstaller'; web = true; break;
     case 'download': {
       h = upd ? 'Mise à jour de ' + T + '…' : T + ' s\'installe…';
-      sub = upd ? 'Version' + vn + ' · ' + natMo(i.size) : 'Une seule fois : ensuite, ' + T + ' s\'ouvre directement depuis sa tuile.';
+      sub = upd ? 'Version' + vn + ' · ' + natMo(i.size) : 'Une seule fois : ensuite, ' + T + (NATIVE_HUB.has(g.id) ? ' s\'ouvre d\'un toucher sur « Jouer ».' : ' s\'ouvre directement depuis sa tuile.');
       const tot = +ev.total || +i.size, done = Math.min(+ev.done || 0, tot);
       pct = tot ? done / tot : 0;
       if (+ev.dl === 4) { paused = true; meta = +ev.reason === 3 ? 'En attente du Wi-Fi…' : +ev.reason === 2 ? 'En attente du réseau…' : 'Nouvel essai dans un instant…'; }
@@ -6079,12 +6113,13 @@ function nativeRender(ev) {
     case 'prepare': h = 'Installation…'; sub = 'On prépare l\'installation…'; pct = +ev.total ? +ev.done / +ev.total : 0; meta = 'Préparation'; laterTxt = 'Fermer'; break;
     case 'install': h = 'Installation…'; sub = 'Android installe ' + T + '…'; indet = true; meta = upd ? 'Mise à jour en cours' : 'Installation en cours'; laterTxt = 'Fermer'; break;
     case 'confirm': h = 'À toi de toucher !'; ask = true; laterTxt = 'Fermer'; if (!NAT.confirmAt) NAT.confirmAt = Date.now(); break;
-    case 'done': h = upd ? T + ' est à jour !' : T + ' est installé !'; sub = 'Désormais, sa tuile ouvre directement l\'appli.'; go = 'play'; goTxt = 'Jouer à ' + T; laterTxt = 'Fermer'; break;
+    case 'done': h = upd ? T + ' est à jour !' : T + ' est installé !'; sub = NATIVE_HUB.has(g.id) ? 'Désormais, « Jouer » ouvre directement l\'appli (ici, ou son icône sur le téléphone).' : 'Désormais, sa tuile ouvre directement l\'appli.'; go = 'play'; goTxt = 'Jouer à ' + T; laterTxt = 'Fermer'; break;
     case 'cancel': h = 'Installation annulée'; sub = 'Pas de souci : ' + T + ' est déjà téléchargé, il ne reste qu\'à l\'installer.'; go = 'retry'; goTxt = upd ? 'Mettre à jour' : 'Installer'; web = !upd; break;
     case 'error': { const e = nativeErr(ev); h = e.h; sub = e.sub; go = e.go; goTxt = e.goTxt; web = e.web && !upd; bad = true; break; }
     default: return;
   }
   if (upd && NAT.inst && /^(error|cancel)$/.test(st)) { later = 'old'; laterTxt = 'Jouer'; }   // mise à jour ratée : on joue avec la version installée
+  if (NAT.hub) { web = false; if (go === 'web') go = ''; }   // feuille ouverte depuis le hub du jeu : on y est déjà
   card.dataset.step = st;
   $('jdw-natif-eyebrow').textContent = (upd ? 'Mise à jour · ' : 'Appli Android · ') + natMo(i.size);
   $('jdw-natif-h').textContent = h;
@@ -6161,6 +6196,7 @@ window.JDWAndroidEvent = ev => {
   try {
     if (!ev || typeof ev !== 'object') return;
     if (ev.resumed) nativeChips();
+    if (ev.resumed || /^(done|idle|cancel|error|ready)$/.test(ev.state || '')) setTimeout(natNotify, 0);   // la carte du hub se remet à jour
     const i = NAT.info;
     if (!i) return;
     if (NAT.open && NAT.ui === 'replace') { if (ev.resumed && !nativeInstalled(i)) { NAT.kind = 'install'; nativeGo(); } return; }   // ancienne version partie : la vraie arrive
@@ -6235,6 +6271,7 @@ function mountGame(g) {
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
     pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
+    natif: NATIVE_APPS[g.id] ? nativeApi(g) : undefined,                                    // appli native (Android 1.8+) : carte « Android » du hub (Ajout 9)
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
@@ -6262,7 +6299,7 @@ const LANDSCAPE = new Set(['pleingaz', 'canards', 'rouleaux']);
 const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 900px)');
 let waitRotate = null;
 function openGame(g, web) {
-  if (!web && nativeFor(g)) { nativeOpen(g); return; }   // appli Android 1.8+ : Pégase en vraie appli (section « Applis natives »)
+  if (!web && nativeFor(g) && !NATIVE_HUB.has(g.id)) { nativeOpen(g); return; }   // appli Android 1.8+ : jeu en vraie appli (section « Applis natives ») ; Pégase : par son hub
   if (!isGuest()) {                    // invité : il joue tout de suite (score non enregistré)
     if (!profile.name) { startWelcome(); return; }
     if (ONLINE && !room) { openRooms(); return; }

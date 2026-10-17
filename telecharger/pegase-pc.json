@@ -1,13 +1,13 @@
 {
-  "version": "0.2 (essai 2 · monde Eastlands)",
-  "size": 698960418,
-  "sha256": "4a055d580e434db7e23390a9ec6e2ce8b48260e8ea645065cc485ce8b60a81ac",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v2/Pegase-PC-2026-10-17-eastlands.zip",
+  "version": "0.3 (essai 3 · le village s'anime)",
+  "size": 804232485,
+  "sha256": "a133f26ea05c6b9602f87160e412a3771e170cdfa2e28e7aa85aa666cd611025",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v3/Pegase-PC-2026-10-17-vivant.zip",
   "notes": [
-    "Nouveau monde : Eastlands, avec son village dans les arbres",
-    "Le lac, l’arbre sacré et le pont rouge à découvrir",
-    "Vue à la 1re personne : touche V (1re / 3e personne)",
-    "Nouvelle course (Maj, Maj deux fois = sprint) et commandes clavier-souris revues",
-    "Qualité Ultra réglée toute seule selon ta carte graphique"
+    "Les habitants : Papi Auguste le maire, Rosalie, Basile, Mlle Iris, Gaspard… à qui parler (touche E)",
+    "Les missions du début, avec de vraies voix",
+    "Le chat des toits, timide : à photographier de loin",
+    "Les lucioles, la monnaie du jeu, et des parcelles à vendre sur la carte (touche M)",
+    "La nuit : clair de lune, fenêtres allumées, lanternes et lucioles"
   ]
 }

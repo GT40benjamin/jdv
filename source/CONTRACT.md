@@ -147,3 +147,13 @@ présence en direct ; photo = tête déjà filtrée par le serveur : membres seu
 `await api.pegase.rpc(fn, args)` : SEULEMENT `pg_me`, `pg_get_doc`, `pg_put_doc`, `pg_room_avatars` (pegase.sql), toujours au nom du joueur
 actuel (`p_name` ajouté par la borne, `p_room` = salle actuelle pour pg_room_avatars) ; refusé aux invités (erreur `guest`), hors ligne = erreur `offline`.
 `api.pegase.account()` : invité → quitte le hub et ouvre « Crée ton compte ».
+
+## Ajout 9 : l'appli native d'un jeu (api.natif, jeux de NATIVE_APPS dans shell2.js : aujourd'hui `pegase`)
+Pour un jeu qui a son HUB dans la borne (`NATIVE_HUB`) : la tuile ouvre toujours le hub, et c'est le hub qui propose l'appli native.
+`await api.natif.status(fresh)` → `{ state, plat, app, bridge, versionName, size, minSdk, installed, page }` ; `fresh` = relire la fiche
+`telecharger/<id>.json` (sinon la copie de l'appareil). `state` : `install` | `update` | `play` (installée et à jour) | `busy` (téléchargement /
+installation en route : `done`, `total`, `step`) | `replace` (version signée autrement) | `unfit` (pas arm64 / Android trop vieux) | `off`
+(`?natif=web`) — dans l'appli 1.8+ ; `oldapp` (appli de la borne sans pont, < 1.8) ; `browser` (navigateur d'Android) ; `ios` ; `desktop` ;
+`none` (pas de fiche). `page` = adresse de telecharger/. `await api.natif.open()` = la feuille `#jdw-natif` de la borne (Installer / Mettre à
+jour / Jouer = `pegase://open`, question Wi-Fi / données mobiles, progression) ; `false` si rien à proposer. `api.natif.onChange(fn)` → fonction
+pour se désabonner : appelée quand l'état a pu changer (feuille fermée, nouvelles d'Android, retour dans la borne).

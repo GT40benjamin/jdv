@@ -50140,6 +50140,8 @@ void main(){ if (vK >= 0.999) discard;
       fache: { Brow_Angry: 0.5, Brows_Lowered: 1, Mouth_Sad: 0.42, Eyes_LowerClosed: 0.09 },
       malicieux: { Eyes_LowerClosed: 0.19, Mouth_Wide: 0.9, Mouth_Oh: 0.43, Mouth_Happy: 0.59, Brows_Sad: 0.17, Brow_Angry: 0.71, Mouth_Press: 0.3 }
     };
+    var EXPR_OUI = { Mouth_Happy: 0.5, Mouth_Wide: 0.45, Brows_Raised: 0.3, Eyes_LowerClosed: 0.1 };
+    var EXPR_NON = { Brows_Lowered: 0.55, Brow_Angry: 0.14, Mouth_Sad: 0.3, Mouth_Press: 0.3 };
     var EXPR_KEYS = [
       "Brow_Angry",
       "Brows_Lowered",
@@ -50952,12 +50954,19 @@ void main(){ if (vK >= 0.999) discard;
       laugh() {
         this.laughT = 1.8;
       }
+      // « oui » : deux hochements de tête (le 2e plus petit) avec un petit sourire ; « non » : la tête fait non, sourcils un peu froncés
+      yes() {
+        this.yesT = 1.15;
+      }
+      no() {
+        this.noT = 1.3;
+      }
       busy() {
-        return this.waveT > 0 || this.jumpT > 0 || this.laughT > 0;
+        return this.waveT > 0 || this.jumpT > 0 || this.laughT > 0 || this.yesT > 0 || this.noT > 0;
       }
       update(dt, cam) {
         this.t += dt;
-        const tgt = this.laughT > 0 ? EXPR.content : this.exprFlash > 0 ? this.waveT > 0 ? EXPR.sourire : EXPR.content : this.exprTarget;
+        const tgt = this.laughT > 0 ? EXPR.content : this.yesT > 0 ? EXPR_OUI : this.noT > 0 ? EXPR_NON : this.exprFlash > 0 ? this.waveT > 0 ? EXPR.sourire : EXPR.content : this.exprTarget;
         if (this.exprFlash > 0) this.exprFlash -= dt;
         const k = 1 - Math.exp(-dt * 10);
         for (const key of EXPR_KEYS) {
@@ -51126,6 +51135,17 @@ void main(){ if (vK >= 0.999) discard;
           lg = Math.min(1, e / 0.2, A.laughT / 0.4);
         }
         const shake = lg * Math.sin(t * 26) * 0.5 + lg * 0.5;
+        let yes = 0, no = 0;
+        if (A.yesT > 0) {
+          A.yesT = Math.max(0, A.yesT - dt);
+          const p = 1 - A.yesT / 1.15, env2 = Math.min(1, p / 0.06, A.yesT / 0.12);
+          yes = env2 * (p < 0.5 ? 0.17 : 0.12) * (1 - Math.cos(p * Math.PI * 4)) / 2;
+        }
+        if (A.noT > 0) {
+          A.noT = Math.max(0, A.noT - dt);
+          const p = 1 - A.noT / 1.3, env2 = Math.min(1, p / 0.08, A.noT / 0.2);
+          no = env2 * 0.3 * (1 - 0.45 * p) * Math.sin(p * Math.PI * 2 * 2.3);
+        }
         const qe = (x, y, z) => new T.Quaternion().setFromEuler(new T.Euler(x, y, z, "YXZ"));
         const pr = sw * 0.022, py = Math.sin(t * 0.31 + s) * 0.05;
         this.setR("pelvis", qe(0, py, pr));
@@ -51147,9 +51167,9 @@ void main(){ if (vK >= 0.999) discard;
         const gx = A.lookAt ? lt.x : wanderX, gy = A.lookAt ? lt.y : wanderY;
         l.x += (gx - l.x) * (1 - Math.exp(-dt * 3));
         l.y += (gy - l.y) * (1 - Math.exp(-dt * 3));
-        this.setR("neck_01", qe(-l.y * 0.35, l.x * 0.35, 0));
+        this.setR("neck_01", qe(-l.y * 0.35 + yes * 0.35, l.x * 0.35 + no * 0.3, 0));
         const tk = A.talk && A.talk.w > 0 ? A.talk : null, nod = tk ? tk.nod || 0 : 0, tilt = tk ? tk.tilt || 0 : 0;
-        this.setR("head", qe(-l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod, l.x * 0.5 + tilt * 0.5, Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2)));
+        this.setR("head", qe(-l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod + yes, l.x * 0.5 + tilt * 0.5 + no, Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2)));
         for (const e of ["eyeRoot_l", "eyeRoot_r"]) if (A.bones.has(e)) this.setR(e, qe(-l.y * 0.25, l.x * 0.4, 0));
         if (tk && tk.asym) {
           const as = tk.asym * Math.min(1, tk.w);
@@ -52247,6 +52267,13 @@ void main(){ if (vK >= 0.999) discard;
           }, 1100);
         } else if (kind === "laugh") {
           A.laugh();
+        } else if (kind === "oui" || kind === "non") {
+          view.target = 0;
+          A.lookAt = true;
+          A.lookTarget.set(0, 0.04);
+          lookT = 2;
+          if (kind === "oui") A.yes();
+          else A.no();
         } else if (kind === "twirl") {
           view.spin = 1;
           view.target = null;
@@ -52681,6 +52708,13 @@ void main(){ if (vK >= 0.999) discard;
 .pgh-emo:active{transform:scale(.9)}
 .pgh-emo.hit{box-shadow:inset 0 0 0 2px #ffe08a,0 0 22px rgba(255,200,110,.75)}
 .pgh-emo small{display:none}
+.pgh-emowrap{position:relative;display:grid}
+.pgh-emo.more span{font-size:24px;letter-spacing:.02em;transform:translateY(-3px)}
+.pgh-emo.more.on{box-shadow:inset 0 0 0 2px #ffe08a,0 0 18px rgba(255,200,110,.55)}
+.pgh-emofan{position:absolute;left:50%;bottom:calc(100% + 10px);display:flex;flex-direction:column;gap:9px;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,10px) scale(.85);transform-origin:50% 100%;transition:opacity .18s, transform .22s cubic-bezier(.2,1.4,.4,1), visibility 0s .22s}
+.pgh-emofan.on{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0) scale(1);transition-delay:0s}
+.pgh.wide.short .pgh-emofan{left:calc(100% + 10px);bottom:auto;top:50%;flex-direction:row;transform:translate(-8px,-50%) scale(.85);transform-origin:0 50%}
+.pgh.wide.short .pgh-emofan.on{transform:translate(0,-50%) scale(1)}
 .pgh-ctas{display:flex;gap:10px;width:100%;max-width:440px}
 .pgh-cta{flex:1 1 0;min-height:52px;border-radius:16px;border:0;padding:8px 12px;font:700 15px ${FB};letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .pgh-cta svg{width:20px;height:20px;flex:none}
@@ -52773,6 +52807,15 @@ void main(){ if (vK >= 0.999) discard;
 @keyframes pghRing{0%,100%{opacity:.55}50%{opacity:1}}
 .pgh-win .s2{display:none}.pgh-win.two .s1{display:none}.pgh-win.two .s2{display:block}
 .pgh-others{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pgh-others.one{grid-template-columns:1fr}
+.pgh-andcard{margin-bottom:14px}
+.pgh-andcard .pgh-plat .ic{background:linear-gradient(180deg,#c9f7a8,#6fd36a);box-shadow:0 6px 16px rgba(90,200,90,.3)}
+.pgh-andbtns{display:flex;gap:10px;width:100%;max-width:440px;flex-wrap:wrap}
+.pgh-andbtns .pgh-cta{min-height:56px;font-size:16px}
+.pgh-andnote{font:600 12.5px/1.45 ${FB};color:#ffe9c8}
+.pgh-andnote b{color:#fff4de}
+.pgh-andbar{width:100%;max-width:440px;height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.pgh-andbar i{display:block;height:100%;width:var(--p,0%);background:linear-gradient(90deg,#ffd36a,#ff9f4a);border-radius:inherit;transition:width .3s}
 .pgh-other{padding:14px;border-radius:18px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px rgba(255,214,140,.14)}
 .pgh-other .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#ffe2ad;background:rgba(255,214,140,.1)}
 .pgh-other .ic svg{width:24px;height:24px}
@@ -53061,14 +53104,14 @@ void main(){ if (vK >= 0.999) discard;
   const nbsp = (h) => h.replace(/(>[^<]*)/g, (m) => m.replace(/ ([!?:;»])/g, ' $1').replace(/« /g, '« '));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   const IMG = (n) => ROOT() + 'accueil/pegase-hub-' + n + '.webp';
-  // légendes NEUTRES (le monde du jeu change bientôt de carte : rien sur « le lac » ni « le village du lac »)
+  // 18 oct. : images du monde EASTLANDS (captures du jeu, tools/images.py : interface recadrée, petit étalonnage)
   const GALLERY = [
-    ['pegase', 'Pégase, le cheval ailé', 'Ultra rare : sauras-tu le photographier ?'],
-    ['village', 'Un village à toi', 'Ta maison, parmi celles des copains'],
-    ['bouleaux', 'L\'heure dorée', 'Le moment où tout se met à briller'],
-    ['potager', 'Ton potager', 'Sème, arrose, récolte… et vends au marché'],
-    ['macro', 'L\'appareil photo', 'Zoom, flou, et même le mode macro'],
-    ['maison', 'Ta maison', 'Construis-la et décore-la comme tu veux']
+    ['arbre', 'L\'arbre sacré', 'Au bord du lac, sous ses feuilles rouges'],
+    ['village', 'Le village dans les arbres', 'Ta maison t\'attend parmi celles des habitants'],
+    ['pont', 'Le pont rouge', 'Et de l\'autre côté, le pré de Pégase…'],
+    ['nuit', 'La nuit aux lanternes', 'Fenêtres allumées et lucioles sur la place'],
+    ['chat', 'Le chat des toits', 'Timide : approche-toi doucement… ou zoome !'],
+    ['auguste', 'Papi Auguste', 'Le maire t\'accueille et te confie tes premières missions']
   ];
   const FUTURE = [
     ['🗓️', 'Missions du jour', 'Chaque matin, de petites missions : photographier le chat, récolter des radis… et des écus à gagner.', 'rgba(255,200,110,.28)'],
@@ -53078,7 +53121,9 @@ void main(){ if (vK >= 0.999) discard;
     ['📱', 'Le téléphone de ton personnage', 'Dans le jeu, ton avatar sort son téléphone : missions, messages, carte… comme ici.', 'rgba(120,200,255,.24)'],
     ['🎥', 'Appels vidéo', 'Appelle un copain depuis le téléphone du jeu et vois-le en vrai sur l\'écran.', 'rgba(140,240,190,.22)']
   ];
-  const EMOTES = [['wave', '👋', 'Coucou'], ['jump', '🎉', 'Saute'], ['laugh', '😄', 'Rigole'], ['twirl', '💫', 'Tourne']];
+  const EMOTES = [['oui', '👍', 'Oui'], ['non', '👎', 'Non'], ['wave', '👋', 'Coucou']];
+  const EMOTES_MORE = [['jump', '🎉', 'Saute'], ['laugh', '😄', 'Rigole'], ['twirl', '💫', 'Tourne']];   // dans l'éventail « … » (la rangée reste à 6 boutons)
+  const EMOTES_ALL = EMOTES.concat(EMOTES_MORE);
   Object.assign(PGH_SVG, {
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
     lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor" stroke="none"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>',
@@ -53130,9 +53175,9 @@ void main(){ if (vK >= 0.999) discard;
       <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
     </div>
     <div class="pgh-bottom">
-      <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button><button class="pgh-emo say" data-h="say" aria-label="Écouter ton avatar dire bonjour" title="Écouter ton avatar parler"><span>💬</span></button></div>
+      <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<div class="pgh-emowrap"><button class="pgh-emo more" data-h="emomore" aria-label="Autres gestes" title="Autres gestes" aria-expanded="false"><span>⋯</span></button><div class="pgh-emofan" data-h="emofan">${EMOTES_MORE.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}</div></div><button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button><button class="pgh-emo say" data-h="say" aria-label="Écouter ton avatar dire bonjour" title="Écouter ton avatar parler"><span>💬</span></button></div>
       <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-av">${PGH_SVG.edit}<span data-h="avlab">Modifier</span></button><button class="pgh-cta glass" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button></div>
-      <div class="pgh-small">Gratuit · PC Windows · Android bientôt</div>
+      <div class="pgh-small" data-h="small">Gratuit · PC Windows · Android bientôt</div>
     </div>
   </section>
   <nav class="pgh-tabs" data-h="tabs" role="tablist" aria-label="Pégase">
@@ -53182,7 +53227,11 @@ void main(){ if (vK >= 0.999) discard;
     </section>
     <section class="pgh-sec" data-h="secdl">
       <h2 class="pgh-h2">Installer Pégase</h2>
-      <p class="pgh-sub">Pégase est un vrai jeu à installer, gratuit. Il marche sur ordinateur maintenant, et bientôt sur les téléphones.</p>
+      <p class="pgh-sub" data-h="dlsub">Pégase est un vrai jeu à installer, gratuit. Il marche sur ordinateur maintenant, et bientôt sur les téléphones.</p>
+      <div class="pgh-card pgh-andcard" data-h="andcard" hidden>
+        <div class="pgh-plat"><div class="ic">${PGH_SVG.android}</div><div><h3>Sur ce téléphone (Android)</h3><p data-h="andmeta">L'appli de la borne l'installe pour toi</p></div></div>
+        <div class="pgh-dlzone" data-h="andzone"></div>
+      </div>
       <div class="pgh-card pgh-dlcard">
         <div class="pgh-plat"><div class="ic">${PGH_SVG.pc}</div><div><h3>Pour PC (Windows)</h3><p>Windows 10 ou 11 · une souris ou une manette</p></div></div>
         <div class="pgh-dlzone" data-h="dlzone"><span class="pgh-meta">On cherche la dernière version…</span></div>
@@ -53197,8 +53246,8 @@ void main(){ if (vK >= 0.999) discard;
           </div>
         </div>
       </div>
-      <div class="pgh-others">
-        <div class="pgh-other"><div class="ic">${PGH_SVG.android}</div><h4>Android <span class="pgh-chip">À venir</span></h4><p>La borne l'installera toute seule, d'un toucher, sur ton téléphone.</p></div>
+      <div class="pgh-others" data-h="others">
+        <div class="pgh-other" data-h="andsmall"><div class="ic">${PGH_SVG.android}</div><h4>Android <span class="pgh-chip" data-h="andchip">À venir</span></h4><p data-h="andp">La borne l'installera toute seule, d'un toucher, sur ton téléphone.</p></div>
         <div class="pgh-other"><div class="ic">${PGH_SVG.phone}</div><h4>iPhone et iPad <span class="pgh-chip">À venir</span></h4><p>Un peu plus tard. En attendant, prépare ton avatar ici !</p></div>
       </div>
     </section>
@@ -53224,7 +53273,7 @@ void main(){ if (vK >= 0.999) discard;
     <div class="pgh-fvhead"><b data-h="fvname"></b><button class="pgh-dclose" data-h="fvx" aria-label="Fermer">✕</button></div>
     <span class="pgh-fvst" data-h="fvst"><i></i><span data-h="fvstt"></span></span>
     <p class="pgh-fvdesc" data-h="fvdesc"></p>
-    <div class="pgh-fvemo" data-h="fvemo">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
+    <div class="pgh-fvemo" data-h="fvemo">${EMOTES_ALL.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
     <div class="pgh-fvbtns"><button class="pgh-cta glass" data-h="fvcall"><span>📞 Appeler</span><small>bientôt</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
   </div>
 </div>
@@ -53618,9 +53667,16 @@ void main(){ if (vK >= 0.999) discard;
     function gestured(k) {
       hintOff();
       const b = box.querySelector(`.pgh-emotes .pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
-      tone(k === 'jump' ? 660 : k === 'laugh' ? 880 : 740, k === 'jump' ? 990 : 1180);
+      tone(k === 'jump' ? 660 : k === 'laugh' ? 880 : k === 'non' ? 520 : 740, k === 'jump' ? 990 : k === 'non' ? 400 : 1180);
     }
-    on($.emotes, 'click', (e) => { const b = e.target.closest('.pgh-emo'); if (!b || b === $.mic || b === $.say || !STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k); });
+    const fan = (o) => { $.emofan.classList.toggle('on', o); $.emomore.classList.toggle('on', o); $.emomore.setAttribute('aria-expanded', String(o)); };
+    on($.emotes, 'click', (e) => {
+      const b = e.target.closest('.pgh-emo'); if (!b || b === $.mic || b === $.say) return;
+      if (b === $.emomore) { fan(!$.emofan.classList.contains('on')); tone(600, 820); return; }
+      if (b.closest('.pgh-emofan')) later(() => fan(false), 250);
+      if (!STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k);
+    });
+    on(document, 'pointerdown', (e) => { if ($.emofan.classList.contains('on') && !e.target.closest('.pgh-emowrap')) fan(false); }, true);
 
     // ---------- MICRO : la bouche de l'avatar suit ta voix. Analyse du son SUR L'APPAREIL (Web Audio), rien n'est enregistré ni envoyé.
     // Bouche (hub 2.3, src/levres.js) : VISÈMES du français devinés dans le son — formants F1/F2/F3 par prédiction linéaire (A, É/È, I, O,
@@ -53820,6 +53876,16 @@ void main(){ if (vK >= 0.999) discard;
       later(() => { if (SAY.lip === lip && !lip.started) { lip.started = true; lip.wi = 0; lip.wt = 0; later(() => { if (SAY.lip === lip) sayStop(); }, 6000); } }, 2500);
     }
     on($.say, 'click', (e) => { e.stopPropagation(); if (SAY.on) { sayStop(); return; } sayStart(); });
+    // pas de voix sur cet appareil (WebView d'Android : pas de speechSynthesis ; ou aucune voix) : 💬 caché (🎤 reste), noté une fois dans le journal
+    (function sayCheck() {
+      const hide = (why) => { $.say.hidden = true; $.say.style.display = 'none'; try { if (!store.get('jdw.pegase.saylog')) { store.set('jdw.pegase.saylog', '1'); report('Pégase hub : bouton 💬 caché (' + why + ')'); } } catch (e) { /* rien */ } };
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { hide('pas de speechSynthesis'); return; }
+      let n = 0; try { n = speechSynthesis.getVoices().length; } catch (e) { n = 0; }
+      if (n) return;
+      const ok = () => { try { return speechSynthesis.getVoices().length > 0; } catch (e) { return false; } };
+      try { speechSynthesis.addEventListener('voiceschanged', () => { if (ok()) { $.say.hidden = false; $.say.style.display = ''; } }); } catch (e) { /* rien */ }
+      later(() => { if (!ok()) hide('aucune voix'); }, 3000);
+    })();
     on($.mic, 'click', (e) => { e.stopPropagation(); if (MIC.on) { micStop(); tone(520, 360); return; } if (store.get('jdw.pegase.micok')) micStart(); else $.micm.classList.add('on'); });
     on($.micm, 'click', (e) => { const h = e.target.closest('[data-h]'); if (e.target === $.micm || (h && h.dataset.h === 'micno')) { $.micm.classList.remove('on'); return; } if (h && h.dataset.h === 'micok') { $.micm.classList.remove('on'); micStart(); } });
     on(document, 'visibilitychange', () => { if (document.hidden && MIC.on) micStop(); if (document.hidden) sayStop(); });
@@ -54164,7 +54230,7 @@ void main(){ if (vK >= 0.999) discard;
     }
     on($.tabs, 'click', (e) => { const b = e.target.closest('.pgh-tab'); if (b) { setTab(b.dataset.tab, true); tone(560, 760); } });
     const toDl = () => { setTab('infos', false); requestAnimationFrame(() => { const s = $.scroll, t = $.secdl.offsetTop - $.tabs.offsetHeight - 6; try { s.scrollTo({ top: t, behavior: 'smooth' }); } catch (e) { s.scrollTop = t; } }); };
-    for (const k of ['go-dl', 'go-dl1']) on($[k], 'click', toDl);
+    for (const k of ['go-dl', 'go-dl1']) on($[k], 'click', () => { if (AND.state === 'play') andOpen(); else toDl(); });
 
     // ---------- LES COPAINS DE LA SALLE ----------
     const FR = { list: [], av: new Map(), sig: '', at: 0, err: '' };
@@ -54291,6 +54357,58 @@ void main(){ if (vK >= 0.999) discard;
     renderDl();
     every(() => $.win.classList.toggle('two'), 2600);
 
+    // ---------- ANDROID (appli de la borne 1.8+ : window.JDWAndroid ; fiche telecharger/pegase.json) ----------
+    // api.natif (CONTRACT.md Ajout 9) : status() → { state: install | update | play | busy | replace | unfit | oldapp | browser | ios | desktop
+    // | none | off, versionName, size, installed, page } ; open() = la feuille de la borne (Installer / Mettre à jour / Jouer : pegase://open,
+    // question Wi-Fi / données mobiles, progression) ; onChange(fn) = l'état a pu changer (feuille fermée, Android a fini…).
+    const NT = api && api.natif && typeof api.natif.status === 'function' ? api.natif : null;
+    let AND = { state: 'none' }, andOff = null;
+    const andBtn = (txt, cls) => `<button class="pgh-cta ${cls || 'gold'}" data-a="open">${PGH_SVG.android}<span>${esc(txt)}</span></button>`;
+    async function renderAndroid(fresh) {
+      const ua = navigator.userAgent || '';
+      let st = { state: 'none', plat: /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/i.test(ua) ? 'android' : 'desktop' };
+      if (NT) { try { st = (await NT.status(fresh)) || st; } catch (e) { /* rien */ } }
+      if (dead) return;
+      AND = st;
+      const vn = st.versionName ? 'version ' + esc(st.versionName) : '', size = st.size ? fmtSize(st.size) : '';
+      const meta = [vn ? 'Version ' + esc(st.versionName) : '', size, 'Android 8 ou plus'].filter(Boolean).join(' · ');
+      let card = '', chip = 'À venir', p = 'La borne l\'installera toute seule, d\'un toucher, sur ton téléphone.', cardMeta = 'L\'appli de la borne l\'installe pour toi';
+      switch (st.state) {
+        case 'install': card = `<div class="pgh-andbtns">${andBtn('Installer Pégase')}</div><span class="pgh-meta">${meta}</span><span class="pgh-andnote">Une seule fois : la borne télécharge Pégase, vérifie le fichier, puis Android te demande <b>« Installer »</b>. Ensuite, <b>« Jouer »</b> l'ouvre d'un toucher.${size ? ' En Wi-Fi c\'est mieux (' + size + ').' : ''}</span>`; break;
+        case 'update': card = `<div class="pgh-andbtns">${andBtn('Mettre à jour' + (vn ? ' (' + vn + ')' : ''))}</div><span class="pgh-meta">${st.installed ? 'Installée : version ' + esc(st.installed) + ' · ' : ''}${meta}</span><span class="pgh-andnote">La mise à jour se fait toute seule, sans question d'Android.</span>`; break;
+        case 'play': card = `<div class="pgh-andbtns">${andBtn('Jouer à Pégase')}</div><span class="pgh-meta">Installée${st.installed ? ' · version ' + esc(st.installed) : ''} ✓</span>`; cardMeta = 'Pégase est installé sur ce téléphone'; break;
+        case 'busy': { const pc = st.total ? Math.max(0, Math.min(100, Math.floor(st.done / st.total * 100))) : 0;
+          card = `<div class="pgh-andbtns">${andBtn(st.step === 'download' ? 'Voir le téléchargement (' + pc + ' %)' : 'Voir l\'installation')}</div><div class="pgh-andbar" style="--p:${st.step === 'download' ? pc : 100}%"><i></i></div><span class="pgh-meta">${meta}</span>`; break; }
+        case 'replace': card = `<div class="pgh-andbtns">${andBtn('Installer la vraie version')}</div><span class="pgh-andnote">Une version d'essai de Pégase est déjà sur ce téléphone : la borne t'aide à la remplacer.</span>`; break;
+        case 'unfit': chip = 'Pas ce téléphone'; p = 'Pégase demande un téléphone Android 64 bits (Android 8 ou plus).'; break;
+        case 'oldapp': card = `<span class="pgh-andnote">Ton appli <b>« Borne d'arcade »</b> est ancienne : installe la nouvelle (1.8), puis reviens ici pour installer Pégase d'un toucher.</span><div class="pgh-andbtns"><a class="pgh-cta gold" href="${esc(st.page || '../telecharger/')}" rel="noopener">${PGH_SVG.dl}<span>Mettre à jour l'appli de la borne</span></a></div>`; cardMeta = 'Il faut l\'appli de la borne 1.8'; break;
+        case 'browser': card = `<span class="pgh-andnote"><b>Installe l'appli « Borne d'arcade » pour jouer</b> : c'est elle qui installe Pégase sur ton téléphone, d'un toucher (tuile Pégase → Android → Installer).</span><div class="pgh-andbtns"><a class="pgh-cta gold" href="${esc(st.page || '../telecharger/')}" rel="noopener">${PGH_SVG.dl}<span>Installer l'appli « Borne d'arcade »</span></a></div><span class="pgh-meta">${meta}</span>`; cardMeta = 'Avec l\'appli de la borne'; break;
+        case 'desktop': chip = 'Disponible'; p = 'Sur ton téléphone Android : ouvre l\'appli « Borne d\'arcade », touche Pégase, puis « Installer ».'; break;
+        default: break;   // none / off / ios : « À venir »
+      }
+      $.andcard.hidden = !card; if (card) { $.andzone.innerHTML = card; $.andmeta.textContent = cardMeta; }
+      $.andsmall.hidden = !!card; $.others.classList.toggle('one', !!card);
+      $.andchip.textContent = chip; $.andp.textContent = p;
+      const live = !/^(none|off)$/.test(st.state);
+      $.small.textContent = live ? 'Gratuit · PC Windows · Android' : 'Gratuit · PC Windows · Android bientôt';
+      $.dlsub.textContent = live ? 'Pégase est un vrai jeu à installer, gratuit : sur ordinateur (Windows) et sur les téléphones Android. iPhone un peu plus tard.' : 'Pégase est un vrai jeu à installer, gratuit. Il marche sur ordinateur maintenant, et bientôt sur les téléphones.';
+      // en haut de page : « Jouer » si Pégase est déjà sur ce téléphone, « Installer » s'il peut l'être
+      const lab = st.state === 'play' ? 'Jouer' : /^(install|update|busy|replace)$/.test(st.state) ? (st.state === 'update' ? 'Mettre à jour' : 'Installer') : '';
+      for (const [k, def] of [['go-dl', 'Télécharger le jeu'], ['go-dl1', 'Télécharger']]) { const sp = $[k] && $[k].querySelector('span'); if (sp) sp.textContent = lab ? (k === 'go-dl' && lab === 'Jouer' ? 'Jouer à Pégase' : lab) : def; }
+      box.dataset.android = st.state;
+    }
+    async function andOpen() {
+      if (!NT) return;
+      tone(660, 990);
+      let ok = false; try { ok = await NT.open(); } catch (e) { ok = false; }
+      if (!ok && !dead) toast('Pégase n\'est pas (encore) disponible pour ce téléphone');
+      later(() => renderAndroid(false), 400);
+    }
+    on($.andzone, 'click', (e) => { if (e.target.closest('[data-a="open"]')) andOpen(); });
+    if (NT && typeof NT.onChange === 'function') andOff = NT.onChange(() => { if (!dead) renderAndroid(false); });
+    on(document, 'visibilitychange', () => { if (!document.hidden && !dead) renderAndroid(false); });
+    renderAndroid(true);
+
     // ---------- observateurs ----------
     $.bg.complete && $.bg.naturalWidth ? $.bg.classList.add('on') : on($.bg, 'load', () => $.bg.classList.add('on'));
     on($.bg, 'error', () => { $.bg.style.display = 'none'; });
@@ -54315,6 +54433,7 @@ void main(){ if (vK >= 0.999) discard;
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();
         if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect();
+        if (andOff) { try { andOff(); } catch (e) { /* rien */ } andOff = null; }
         try { if (STG) STG.dispose(); } catch (e) { /* rien */ }
         STG = null; if (window.JDW_PG_HUB) try { delete window.JDW_PG_HUB; } catch (e) { window.JDW_PG_HUB = undefined; }
         root.textContent = '';
@@ -90562,7 +90681,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261017214346"; window.JDW_VERSION = "1.19.8"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
+<script>window.JDW_BUILD = "20261017225238"; window.JDW_VERSION = "1.19.9"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -98684,8 +98803,11 @@ function netGuestPauseCard() {
 // iPhone, appli < 1.8, téléphone incompatible : la version web du jeu, inchangée. Essais : ?natif=web force la version web sur l'appareil,
 // ?natif=auto revient au fonctionnement normal. Plus tard : un jeton de session court dans l'adresse pegase://open (compte de la borne).
 const NATIVE_APPS = { pegase: 'telecharger/pegase.json' };
+// jeux qui ont leur HUB dans la borne (Pégase, 1.19.9) : la tuile ouvre toujours le hub ; c'est sa carte « Android » qui installe /
+// met à jour / ouvre l'appli (api.natif, CONTRACT.md Ajout 9), avec la même feuille #jdw-natif
+const NATIVE_HUB = new Set(['pegase']);
 const NAT = { b: null, g: null, info: null, inst: null, kind: '', ui: '', ev: null, open: false, raf: 0, spd: [], busy: false, go: '', later: '',
-  confirmAt: 0, keepT: 0, readyToast: '', party: '' };
+  confirmAt: 0, keepT: 0, readyToast: '', party: '', hub: false, subs: new Set() };
 NAT.b = (() => { try { const b = window.JDWAndroid; return b && typeof b.api === 'function' && b.api() >= 1 ? b : null; } catch (e) { return null; } })();
 (() => { try { const q = new URLSearchParams(location.search).get('natif'); if (q === 'web' || q === 'auto') store.set('jdw.natif.mode', q); } catch (e) {} })();
 const natJ = s => { try { return typeof s === 'string' && s ? JSON.parse(s) : null; } catch (e) { return null; } };
@@ -98724,21 +98846,51 @@ function nativeJob() { try { return natJ(NAT.b.installState()) || { state: 'idle
 const nativeCertOff = (inst, info) => !!(inst && info.cert && inst.cert && String(inst.cert).toLowerCase() !== String(info.cert).toLowerCase());
 
 // toucher la tuile : ouvrir l'appli, ou la feuille (installer / mettre à jour / reprendre), ou la version web
-async function nativeOpen(g) {
-  if (NAT.busy) return;
+// hub = true : appelé par la carte « Android » du hub du jeu (api.natif.open) : pas de repli vers la page du jeu (on y est déjà)
+async function nativeOpen(g, hub) {
+  if (NAT.busy || !NAT.b) return false;
   NAT.busy = true;
   const tl = tiles.find(t => t.g === g); if (tl) tl.el.classList.add('tile-busy');
   let info = null;
   try { info = await nativeInfo(g.id); } catch (e) {}
   NAT.busy = false; if (tl) tl.el.classList.remove('tile-busy');
-  if (!info || !nativeFits(info)) { openGame(g, true); return; }   // pas (encore) d'appli pour ce téléphone : la version de la borne
-  NAT.g = g; NAT.info = info;
+  if (!info || !nativeFits(info)) { if (!hub) openGame(g, true); return false; }   // pas (encore) d'appli pour ce téléphone : la version de la borne
+  NAT.g = g; NAT.info = info; NAT.hub = !!hub;
   const inst = nativeInstalled(info), job = nativeJob();
   nativeChips();
-  if (job.pkg === info.pkg && job.sha === natSha(info) && NAT_FLOW.test(job.state)) { nativeSheet(inst ? 'update' : 'install', inst, job); return; }   // déjà en route : on reprend
-  if (nativeCertOff(inst, info)) { nativeSheet('replace', inst); return; }
-  if (inst && +inst.versionCode >= +info.versionCode) { nativeLaunch(); return; }
+  if (job.pkg === info.pkg && job.sha === natSha(info) && NAT_FLOW.test(job.state)) { nativeSheet(inst ? 'update' : 'install', inst, job); return true; }   // déjà en route : on reprend
+  if (nativeCertOff(inst, info)) { nativeSheet('replace', inst); return true; }
+  if (inst && +inst.versionCode >= +info.versionCode) { nativeLaunch(); return true; }
   nativeSheet(inst ? 'update' : 'install', inst);
+  return true;
+}
+// api.natif (CONTRACT.md Ajout 9) : où en est l'appli native de ce jeu sur cet appareil, pour la carte « Android » du hub
+const natPlat = () => { const u = navigator.userAgent || ''; return NAT.b || /Android/i.test(u) ? 'android' : /iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && (navigator.maxTouchPoints || 0) > 1) ? 'ios' : 'desktop'; };
+async function nativeStatus(g, fresh) {
+  const m = (navigator.userAgent || '').match(/BorneArcade\/(\d+)/), plat = natPlat();
+  const o = { state: 'none', plat, app: m ? +m[1] : 0, bridge: !!NAT.b, versionName: '', size: 0, minSdk: 0, installed: '', page: new URL(ROOT + 'telecharger/', location.href).href };
+  let info = store.get('jdw.natif.' + g.id, null);
+  if (fresh || !nativeOk(info)) { try { info = await nativeInfo(g.id); } catch (e) { info = null; } }
+  if (!nativeOk(info)) return o;
+  Object.assign(o, { versionName: String(info.versionName || ''), size: +info.size || 0, minSdk: +info.minSdk || 0 });
+  if (plat !== 'android') { o.state = plat; return o; }
+  if (!NAT.b) { o.state = o.app ? 'oldapp' : 'browser'; return o; }
+  if (store.get('jdw.natif.mode', 'auto') === 'web') { o.state = 'off'; return o; }
+  if (!nativeFits(info)) { o.state = 'unfit'; return o; }
+  const inst = nativeInstalled(info), job = nativeJob();
+  if (inst) o.installed = String(inst.versionName || '');
+  o.state = job.pkg === info.pkg && job.sha === natSha(info) && NAT_FLOW.test(job.state) ? 'busy'
+    : nativeCertOff(inst, info) ? 'replace' : inst && +inst.versionCode >= +info.versionCode ? 'play' : inst ? 'update' : 'install';
+  if (o.state === 'busy') { o.done = +job.done || 0; o.total = +job.total || +info.size || 0; o.step = job.state; }
+  return o;
+}
+function natNotify() { for (const f of NAT.subs) { try { f(); } catch (e) {} } }
+function nativeApi(g) {
+  return {
+    status: (fresh) => nativeStatus(g, !!fresh),
+    open: () => nativeOpen(g, true),
+    onChange: (fn) => { if (typeof fn !== 'function') return () => {}; NAT.subs.add(fn); return () => NAT.subs.delete(fn); }
+  };
 }
 function nativeLaunch() {
   const i = NAT.info; let ok = false;
@@ -98774,6 +98926,7 @@ function nativeGo() {
 function nativeClose(silent) {
   if (!NAT.open) return;
   NAT.open = false; cancelAnimationFrame(NAT.raf); closeSheet('jdw-natif'); store.set('jdw.natif.open', null);
+  setTimeout(natNotify, 0);
   if (/^(download|verify|ready|prepare)$/.test(NAT.ui)) {
     try { NAT.b.background(); } catch (e) {}   // le téléchargement continue, mais Android ne posera pas sa question sans la feuille
     if (!silent && NAT.g) toastCheer(NAT.g.title + ' continue de se télécharger en fond', null, true);
@@ -98824,7 +98977,7 @@ function nativeRender(ev) {
     case 'broken': h = T + ' ne s\'ouvre pas'; sub = 'L\'appli est sur le téléphone mais Android ne la lance pas. On la réinstalle ?'; go = 'dl'; goTxt = 'Réinstaller'; web = true; break;
     case 'download': {
       h = upd ? 'Mise à jour de ' + T + '…' : T + ' s\'installe…';
-      sub = upd ? 'Version' + vn + ' · ' + natMo(i.size) : 'Une seule fois : ensuite, ' + T + ' s\'ouvre directement depuis sa tuile.';
+      sub = upd ? 'Version' + vn + ' · ' + natMo(i.size) : 'Une seule fois : ensuite, ' + T + (NATIVE_HUB.has(g.id) ? ' s\'ouvre d\'un toucher sur « Jouer ».' : ' s\'ouvre directement depuis sa tuile.');
       const tot = +ev.total || +i.size, done = Math.min(+ev.done || 0, tot);
       pct = tot ? done / tot : 0;
       if (+ev.dl === 4) { paused = true; meta = +ev.reason === 3 ? 'En attente du Wi-Fi…' : +ev.reason === 2 ? 'En attente du réseau…' : 'Nouvel essai dans un instant…'; }
@@ -98841,12 +98994,13 @@ function nativeRender(ev) {
     case 'prepare': h = 'Installation…'; sub = 'On prépare l\'installation…'; pct = +ev.total ? +ev.done / +ev.total : 0; meta = 'Préparation'; laterTxt = 'Fermer'; break;
     case 'install': h = 'Installation…'; sub = 'Android installe ' + T + '…'; indet = true; meta = upd ? 'Mise à jour en cours' : 'Installation en cours'; laterTxt = 'Fermer'; break;
     case 'confirm': h = 'À toi de toucher !'; ask = true; laterTxt = 'Fermer'; if (!NAT.confirmAt) NAT.confirmAt = Date.now(); break;
-    case 'done': h = upd ? T + ' est à jour !' : T + ' est installé !'; sub = 'Désormais, sa tuile ouvre directement l\'appli.'; go = 'play'; goTxt = 'Jouer à ' + T; laterTxt = 'Fermer'; break;
+    case 'done': h = upd ? T + ' est à jour !' : T + ' est installé !'; sub = NATIVE_HUB.has(g.id) ? 'Désormais, « Jouer » ouvre directement l\'appli (ici, ou son icône sur le téléphone).' : 'Désormais, sa tuile ouvre directement l\'appli.'; go = 'play'; goTxt = 'Jouer à ' + T; laterTxt = 'Fermer'; break;
     case 'cancel': h = 'Installation annulée'; sub = 'Pas de souci : ' + T + ' est déjà téléchargé, il ne reste qu\'à l\'installer.'; go = 'retry'; goTxt = upd ? 'Mettre à jour' : 'Installer'; web = !upd; break;
     case 'error': { const e = nativeErr(ev); h = e.h; sub = e.sub; go = e.go; goTxt = e.goTxt; web = e.web && !upd; bad = true; break; }
     default: return;
   }
   if (upd && NAT.inst && /^(error|cancel)$/.test(st)) { later = 'old'; laterTxt = 'Jouer'; }   // mise à jour ratée : on joue avec la version installée
+  if (NAT.hub) { web = false; if (go === 'web') go = ''; }   // feuille ouverte depuis le hub du jeu : on y est déjà
   card.dataset.step = st;
   $('jdw-natif-eyebrow').textContent = (upd ? 'Mise à jour · ' : 'Appli Android · ') + natMo(i.size);
   $('jdw-natif-h').textContent = h;
@@ -98923,6 +99077,7 @@ window.JDWAndroidEvent = ev => {
   try {
     if (!ev || typeof ev !== 'object') return;
     if (ev.resumed) nativeChips();
+    if (ev.resumed || /^(done|idle|cancel|error|ready)$/.test(ev.state || '')) setTimeout(natNotify, 0);   // la carte du hub se remet à jour
     const i = NAT.info;
     if (!i) return;
     if (NAT.open && NAT.ui === 'replace') { if (ev.resumed && !nativeInstalled(i)) { NAT.kind = 'install'; nativeGo(); } return; }   // ancienne version partie : la vraie arrive
@@ -98997,6 +99152,7 @@ function mountGame(g) {
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
     pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
+    natif: NATIVE_APPS[g.id] ? nativeApi(g) : undefined,                                    // appli native (Android 1.8+) : carte « Android » du hub (Ajout 9)
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
@@ -99024,7 +99180,7 @@ const LANDSCAPE = new Set(['pleingaz', 'canards', 'rouleaux']);
 const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 900px)');
 let waitRotate = null;
 function openGame(g, web) {
-  if (!web && nativeFor(g)) { nativeOpen(g); return; }   // appli Android 1.8+ : Pégase en vraie appli (section « Applis natives »)
+  if (!web && nativeFor(g) && !NATIVE_HUB.has(g.id)) { nativeOpen(g); return; }   // appli Android 1.8+ : jeu en vraie appli (section « Applis natives ») ; Pégase : par son hub
   if (!isGuest()) {                    // invité : il joue tout de suite (score non enregistré)
     if (!profile.name) { startWelcome(); return; }
     if (ONLINE && !room) { openRooms(); return; }
