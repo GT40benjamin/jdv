@@ -262,9 +262,14 @@
     var main_exports = {};
     __export(main_exports, {
       CHARS: () => CHARS,
+      MOUTH_KEYS: () => MOUTH_KEYS,
+      VIS: () => VIS,
       create: () => create,
+      createLipSync: () => createLipSync,
+      createMouth: () => createMouth,
       decode: () => decode,
-      encode: () => encode
+      encode: () => encode,
+      frenchVisemes: () => frenchVisemes
     });
     module.exports = __toCommonJS(main_exports);
     var T3 = __toESM(require("three"));
@@ -440,11 +445,11 @@
         this.loader = new T.GLTFLoader();
         this.loader.setMeshoptDecoder(T.MeshoptDecoder);
         const [body, head] = await Promise.all([this._loadGltf("body", this.cat.base.body.glb), this._loadGltf("head", this.cat.base.head.glb)]);
-        let sm;
+        let sm2;
         body.scene.traverse((o) => {
-          if (o.isSkinnedMesh) sm = o;
+          if (o.isSkinnedMesh) sm2 = o;
         });
-        let top = sm.skeleton.bones[0];
+        let top = sm2.skeleton.bones[0];
         while (top.parent && top.parent.isBone) top = top.parent;
         this.tplArm = top.parent;
         this.tplArm.updateMatrixWorld(true);
@@ -488,15 +493,15 @@
       }
       // géométrie d'une pièce ramenée dans l'espace « de liaison » du squelette maître
       _partData(id, gltf) {
-        let sm;
+        let sm2;
         gltf.scene.traverse((o) => {
-          if (o.isSkinnedMesh) sm = o;
+          if (o.isSkinnedMesh) sm2 = o;
         });
         gltf.scene.updateMatrixWorld(true);
-        const g = sm.geometry, sk = sm.skeleton, names = sk.bones.map((b) => b.name);
+        const g = sm2.geometry, sk = sm2.skeleton, names = sk.bones.map((b) => b.name);
         let j0 = names.findIndex((n2) => this.masterIBM.has(n2) && n2 !== "root");
         if (j0 < 0) j0 = 0;
-        const K = this.masterIBM.get(names[j0]).clone().invert().multiply(sk.boneInverses[j0]).multiply(sm.bindMatrix);
+        const K = this.masterIBM.get(names[j0]).clone().invert().multiply(sk.boneInverses[j0]).multiply(sm2.bindMatrix);
         const Kinv = K.clone().invert(), Kn = new T.Matrix3().getNormalMatrix(K), Kl = new T.Matrix3().setFromMatrix4(K);
         const n = g.attributes.position.count, P = g.attributes.position, N2 = g.attributes.normal, UV = g.attributes.uv;
         const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), uv = new Float32Array(n * 2);
@@ -523,10 +528,10 @@
         const extra = [];
         sk.bones.forEach((b, i) => {
           if (this.masterIBM.has(b.name)) return;
-          extra.push({ name: b.name, parent: b.parent && b.parent.isBone ? b.parent.name : null, local: b.matrix.clone(), ibm: sk.boneInverses[i].clone().multiply(sm.bindMatrix).multiply(Kinv) });
+          extra.push({ name: b.name, parent: b.parent && b.parent.isBone ? b.parent.name : null, local: b.matrix.clone(), ibm: sk.boneInverses[i].clone().multiply(sm2.bindMatrix).multiply(Kinv) });
         });
         const morph = {};
-        const dict = sm.morphTargetDictionary || {};
+        const dict = sm2.morphTargetDictionary || {};
         const MA = g.morphAttributes.position || [];
         for (const [name, k] of Object.entries(dict)) {
           const A = MA[k], d = new Float32Array(n * 3);
@@ -906,6 +911,8 @@
           ...EXPR_KEYS
         ];
         const gB = this._merge(bodyParts, BODY_MORPHS), gF = this._merge(faceParts, faceMorphs);
+        gB.setAttribute("cav", new T.BufferAttribute(new Float32Array(gB.attributes.position.count), 1));
+        gF.setAttribute("cav", mouthCavity(gF));
         for (const [k, g] of [["body", gB], ["face", gF]]) {
           let m = this.meshes[k];
           if (m) {
@@ -1159,7 +1166,7 @@
         ex.Eyes_UpperOpen = (ex.Eyes_UpperOpen || 0) * (1 - bl);
         if (this.talk && this.talk.w > 0) {
           const w = this.talk.w, v = this.talk.v || {};
-          for (const k2 of ["Mouth_Happy", "Mouth_Wide", "Mouth_Oh", "Jaw_Open", "Mouth_Pucker", "Mouth_Press", "Mouth_Grimace"]) ex[k2] = (ex[k2] || 0) * (1 - 0.75 * w);
+          for (const k2 of ["Mouth_Happy", "Mouth_Wide", "Mouth_Oh", "Jaw_Open", "Mouth_Pucker", "Mouth_Press", "Mouth_Grimace", "Mouth_Sad"]) ex[k2] = (ex[k2] || 0) * (1 - 0.92 * w);
           for (const [k2, x] of Object.entries(v)) ex[k2] = Math.min(1.2, (ex[k2] || 0) + x * w);
         }
         if (this.meshes.face && this.morphBase) this._setInfl(this.meshes.face, this.morphBase, ex);
@@ -1181,6 +1188,19 @@
       const shade = fantasy ? tone.clone().multiplyScalar(0.32).offsetHSL(0.06, 0.1, 0) : new T.Color().setRGB(tone.r * 0.42, tone.g * 0.012, tone.b * 0.01);
       return { tone, shade };
     }
+    function mouthCavity(g) {
+      const P = g.attributes.position, N2 = g.attributes.normal, n = P.count, a = new Float32Array(n);
+      const sm2 = (e0, e1, x) => {
+        const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+        return t * t * (3 - 2 * t);
+      };
+      for (let i = 0; i < n; i++) {
+        const x = Math.abs(P.getX(i)), y = P.getY(i), z = P.getZ(i), ny = N2.getY(i), nz = N2.getZ(i);
+        if (x > 0.03 || y < 1.525 || y > 1.605 || z < 0.03 || z > 0.122) continue;
+        a[i] = sm2(0.118, 0.096, z) * (1 - sm2(0.02, 0.029, x)) * sm2(1.528, 1.542, y) * (1 - sm2(1.592, 1.603, y)) * (1 - sm2(0.25, 0.6, nz)) * (1 - sm2(-0.3, -0.6, ny) * (1 - sm2(1.548, 1.556, y)));
+      }
+      return new T.BufferAttribute(a, 1);
+    }
     var STAGE = { rim: new T.Color(1, 0.78, 0.5), rimPow: 3, rimStr: 0.35 };
     function makeSkinMaterial(map, nmap) {
       const m = new T.MeshStandardMaterial({ map, roughness: 0.78, metalness: 0, normalMap: nmap || null, envMapIntensity: 0.38 });
@@ -1189,8 +1209,12 @@
         sh.uniforms.uRim = { value: STAGE.rim };
         sh.uniforms.uRimPow = { value: STAGE.rimPow };
         sh.uniforms.uRimStr = { value: STAGE.rimStr };
+        sh.vertexShader = sh.vertexShader.replace("#include <common>", `#include <common>
+          attribute float cav; varying float vCav;`).replace("#include <begin_vertex>", `#include <begin_vertex>
+          vCav = cav;`);
         sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
-          uniform vec3 uRim; uniform float uRimPow; uniform float uRimStr;`).replace("#include <metalnessmap_fragment>", `#include <metalnessmap_fragment>
+          uniform vec3 uRim; uniform float uRimPow; uniform float uRimStr; varying float vCav;`).replace("#include <map_fragment>", `#include <map_fragment>
+          diffuseColor.rgb *= mix(vec3(1.0), vec3(0.5, 0.26, 0.27), vCav);`).replace("#include <metalnessmap_fragment>", `#include <metalnessmap_fragment>
           { vec2 a = vMapUv; // zones de l'atlas : cheveux, yeux, verres, chaussures, appareil
             if (a.x > 0.49 && a.y < 0.26) roughnessFactor = 0.5;                       // cheveux
             if (a.x > 0.49 && a.x < 0.63 && a.y > 0.36 && a.y < 0.5) roughnessFactor = 0.42;  // yeux (le reflet est peint)
@@ -1199,7 +1223,8 @@
             if (a.x > 0.5 && a.x < 0.75 && a.y > 0.5 && a.y < 0.75) { roughnessFactor = 0.42; if (a.x > 0.625 && a.y > 0.5 && a.y < 0.62) metalnessFactor = 0.75; if (a.x > 0.625 && a.y > 0.625) roughnessFactor = 0.06; }
           }`).replace("#include <opaque_fragment>", `
           { float f = pow(1.0 - clamp(dot(normalize(vViewPosition) * -1.0, normal), 0.0, 1.0), uRimPow);
-            outgoingLight += uRim * f * uRimStr * (0.35 + 0.65 * diffuseColor.rgb); }
+            outgoingLight += uRim * f * uRimStr * (0.35 + 0.65 * diffuseColor.rgb) * (1.0 - vCav);
+            outgoingLight *= 1.0 - 0.5 * vCav; }
           #include <opaque_fragment>`);
       };
       return m;
@@ -1312,6 +1337,11 @@
         const tk = A.talk && A.talk.w > 0 ? A.talk : null, nod = tk ? tk.nod || 0 : 0, tilt = tk ? tk.tilt || 0 : 0;
         this.setR("head", qe(-l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod, l.x * 0.5 + tilt * 0.5, Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2)));
         for (const e of ["eyeRoot_l", "eyeRoot_r"]) if (A.bones.has(e)) this.setR(e, qe(-l.y * 0.25, l.x * 0.4, 0));
+        if (tk && tk.asym) {
+          const as = tk.asym * Math.min(1, tk.w);
+          this.setR("jaw", qe(0, as * 0.03, as * 0.04));
+          this.setR("mouth", qe(0, 0, as * 0.05));
+        }
         this.setR("clavicle_l", qe(0, 0, br * 0.012 + hop * 0.05));
         this.setR("clavicle_r", qe(0, 0, -br * 0.012 - hop * 0.05));
         const acc = (names) => {
@@ -1404,8 +1434,8 @@
       const key = new T2.DirectionalLight(16766624, 3);
       key.position.set(-2.2, 4.2, 3.2);
       key.castShadow = true;
-      const sm = PHONE ? 1024 : 2048;
-      key.shadow.mapSize.set(sm, sm);
+      const sm2 = PHONE ? 1024 : 2048;
+      key.shadow.mapSize.set(sm2, sm2);
       key.shadow.camera.left = -1.2;
       key.shadow.camera.right = 1.2;
       key.shadow.camera.top = 2.2;
@@ -1596,6 +1626,623 @@
         };
       })();
       return { scene, turn, podium, motes, sparks, wind, key, halo, blob };
+    }
+
+    // src/levres.js
+    var VIS = ["sil", "M", "F", "S", "CH", "A", "E", "I", "O", "OU", "EU", "T"];
+    var NV = VIS.length;
+    var VI = Object.fromEntries(VIS.map((v, i) => [v, i]));
+    var sm = (a, b, x) => {
+      const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    };
+    var KREF = [2700, 1580, 0.9];
+    var bark = (f) => 26.81 * f / (1960 + f) - 0.53;
+    var PROTO = [
+      [720, 1450, 2550, { A: 1 }],
+      [610, 980, null, { A: 0.6, O: 0.4 }],
+      // a ; an (nasale)
+      [360, 2150, 2700, { E: 1 }],
+      [480, 1830, 2550, { E: 0.85, A: 0.15 }],
+      // é ; è
+      [305, 2300, 3100, { I: 1 }],
+      // i
+      [305, 1930, 2320, { OU: 0.85, I: 0.15 }],
+      // u (lèvres arrondies, langue en avant)
+      [330, 800, null, { OU: 1 }],
+      [375, 860, null, { O: 1 }],
+      [480, 1060, null, { O: 0.8, A: 0.2 }],
+      [355, 1130, 2950, { O: 0.7, OU: 0.3 }],
+      // ou ; o ; ò ; on
+      [365, 1520, 2380, { EU: 1 }],
+      [520, 1450, null, { EU: 0.7, E: 0.3 }]
+      // eu / e muet ; œ
+    ].map(([f1, f2, f3, c]) => ({ b1: bark(f1), b2: bark(f2), b32: f3 ? bark(f3) - bark(f2) : null, c: Object.entries(c).map(([k, x]) => [VI[k], x]) }));
+    function biquad(type, f, sr, q = 0.7071) {
+      const w = 2 * Math.PI * f / sr, c = Math.cos(w), s = Math.sin(w), al = s / (2 * q), a0 = 1 + al;
+      const b = type === "hp" ? [(1 + c) / 2, -(1 + c), (1 + c) / 2] : [(1 - c) / 2, 1 - c, (1 - c) / 2];
+      return { b0: b[0] / a0, b1: b[1] / a0, b2: b[2] / a0, a1: -2 * c / a0, a2: (1 - al) / a0 };
+    }
+    function runEnergy(F, x, i0, i1) {
+      let x1 = 0, x2 = 0, y1 = 0, y2 = 0, e = 0;
+      const pre = Math.max(0, i0 - 96);
+      for (let i = pre; i < i1; i++) {
+        const v = x[i], y = F.b0 * v + F.b1 * x1 + F.b2 * x2 - F.a1 * y1 - F.a2 * y2;
+        x2 = x1;
+        x1 = v;
+        y2 = y1;
+        y1 = y;
+        if (i >= i0) e += y * y;
+      }
+      return e;
+    }
+    function createLipSync(sr, opt = {}) {
+      const D = Math.max(1, Math.round(sr / 11500)), fs = sr / D;
+      const P = fs > 13e3 ? 14 : 12;
+      const NW = Math.round(0.03 * sr), ND = Math.floor(NW / D);
+      const NE = Math.round(0.02 * sr);
+      const taps = 8 * D + 1, h = new Float32Array(taps);
+      {
+        const fc = 0.45 / D;
+        let s = 0;
+        for (let i = 0; i < taps; i++) {
+          const n = i - (taps - 1) / 2;
+          h[i] = (n === 0 ? 2 * fc : Math.sin(2 * Math.PI * fc * n) / (Math.PI * n)) * (0.54 - 0.46 * Math.cos(2 * Math.PI * i / (taps - 1)));
+          s += h[i];
+        }
+        for (let i = 0; i < taps; i++) h[i] /= s;
+      }
+      const ham = new Float32Array(ND);
+      for (let i = 0; i < ND; i++) ham[i] = 0.54 - 0.46 * Math.cos(2 * Math.PI * i / (ND - 1));
+      const lagw = new Float32Array(P + 1);
+      for (let k = 0; k <= P; k++) lagw[k] = Math.exp(-0.5 * Math.pow(2 * Math.PI * 50 * k / fs, 2));
+      const HP1 = biquad("hp", 1e3, sr), HP25 = biquad("hp", 2500, sr), HP55 = biquad("hp", Math.min(5500, sr * 0.4), sr), LP4 = biquad("lp", 400, sr), HP4 = biquad("hp", 400, sr);
+      const xd = new Float32Array(ND), r = new Float64Array(P + 1), a = new Float64Array(P + 1), tmp = new Float64Array(P + 1);
+      const re = new Float64Array(P), im = new Float64Array(P);
+      let rootsOk = false;
+      const st = { floor: 3e-3, pk: 0.03, f0m: 0, f0n: 0, k: 1.12, speechT: 9, lab: 0, hist: [], t: 0 };
+      const feat = { hm: 0, L: 0, rms: 0, hf: 0, hf2: 0, low: 0, pg: 0, zcr: 0, F1: 0, F2: 0, F3: 0, B1: 0, B2: 0, voiced: 0, k: 1 };
+      function lpc() {
+        for (let k = 0; k <= P; k++) {
+          let s = 0;
+          for (let i = k; i < ND; i++) s += xd[i] * xd[i - k];
+          r[k] = s * lagw[k];
+        }
+        if (r[0] < 1e-12) return 0;
+        r[0] *= 1.0001;
+        a.fill(0);
+        a[0] = 1;
+        let err = r[0];
+        for (let i = 1; i <= P; i++) {
+          let acc = r[i];
+          for (let j = 1; j < i; j++) acc += a[j] * r[i - j];
+          const kk = -acc / err;
+          tmp.set(a);
+          for (let j = 1; j < i; j++) a[j] = tmp[j] + kk * tmp[i - j];
+          a[i] = kk;
+          err *= 1 - kk * kk;
+          if (err <= 0) return 0;
+        }
+        return 10 * Math.log10(r[0] / err);
+      }
+      function roots() {
+        if (!rootsOk) for (let i = 0; i < P; i++) {
+          const ang = (i + 0.5) / P * 2 * Math.PI + 0.1, rr = 0.9;
+          re[i] = rr * Math.cos(ang);
+          im[i] = rr * Math.sin(ang);
+        }
+        for (let it = 0; it < (rootsOk ? 24 : 70); it++) {
+          let mv = 0;
+          for (let i = 0; i < P; i++) {
+            let pr = 1, pi = 0;
+            const zr = re[i], zi = im[i];
+            for (let k = 1; k <= P; k++) {
+              const nr = pr * zr - pi * zi + a[k], ni = pr * zi + pi * zr;
+              pr = nr;
+              pi = ni;
+            }
+            let qr = 1, qi = 0;
+            for (let j = 0; j < P; j++) {
+              if (j === i) continue;
+              const dr = zr - re[j], di = zi - im[j], nr = qr * dr - qi * di, ni = qr * di + qi * dr;
+              qr = nr;
+              qi = ni;
+            }
+            const den = qr * qr + qi * qi;
+            if (den < 1e-30) continue;
+            const cr = (pr * qr + pi * qi) / den, ci = (pi * qr - pr * qi) / den;
+            re[i] = zr - cr;
+            im[i] = zi - ci;
+            mv = Math.max(mv, Math.abs(cr) + Math.abs(ci));
+          }
+          if (mv < 1e-7) break;
+        }
+        rootsOk = true;
+        for (let i = 0; i < P; i++) if (!isFinite(re[i]) || !isFinite(im[i]) || Math.hypot(re[i], im[i]) > 1.5) {
+          rootsOk = false;
+          break;
+        }
+        const out = [];
+        if (!rootsOk) return out;
+        for (let i = 0; i < P; i++) {
+          if (im[i] <= 0) continue;
+          const m = Math.hypot(re[i], im[i]), f = Math.atan2(im[i], re[i]) * fs / (2 * Math.PI), bw = -Math.log(m) * fs / Math.PI;
+          if (f > 150 && f < fs / 2 - 250 && bw > 0 && bw < 700) out.push([f, bw]);
+        }
+        return out.sort((p2, q) => p2[0] - q[0]);
+      }
+      function analyze(td, dt, f0) {
+        const n = td.length, i1 = n, i0 = Math.max(0, n - NW), e0 = Math.max(0, n - NE);
+        let q = 0, zc = 0;
+        for (let i = e0; i < n; i++) {
+          q += td[i] * td[i];
+          if (i > e0 && td[i] >= 0 !== td[i - 1] >= 0) zc++;
+        }
+        const rms = Math.sqrt(q / (n - e0));
+        st.floor = rms < st.floor ? st.floor * 0.8 + rms * 0.2 : st.floor * (1 - dt * 0.03) + rms * dt * 0.03;
+        st.pk = Math.max(rms, st.pk * Math.exp(-dt / 3), 0.01);
+        const L = Math.pow(Math.min(1, Math.max(0, rms - st.floor * 1.5) / Math.max(6e-3, st.pk * 0.7 - st.floor * 1.5)), 0.6);
+        const eT = q + 1e-12, eM = runEnergy(HP1, td, e0, n), eH = runEnergy(HP25, td, e0, n) + 1e-14, eH2 = runEnergy(HP55, td, e0, n), eL = runEnergy(LP4, td, e0, n), eA = runEnergy(HP4, td, e0, n) + 1e-13;
+        feat.rms = rms;
+        feat.L = L;
+        feat.hf = eH / eA;
+        feat.hf2 = eH2 / eH;
+        feat.low = eL / eT;
+        feat.hm = eM / eT;
+        feat.zcr = zc / ((n - e0) / sr);
+        feat.pg = 0;
+        feat.F1 = feat.F2 = feat.F3 = 0;
+        if (L > 0.04) {
+          const base = i1 - ND * D;
+          let prev = 0;
+          for (let k = 0; k < ND; k++) {
+            const c = base + k * D;
+            let s = 0;
+            for (let t = 0; t < taps; t++) {
+              const j = c - t + (taps >> 1);
+              s += h[t] * (j >= 0 && j < n ? td[j] : 0);
+            }
+            const y = s - 0.94 * prev;
+            prev = s;
+            xd[k] = y * ham[k];
+          }
+          feat.pg = lpc();
+          if (feat.pg > 0) {
+            const R = roots();
+            const F1c = R.find((x) => x[0] > 200 && x[0] < 1300 && x[1] < 650);
+            if (F1c) {
+              const F2c = R.find((x) => x[0] > Math.max(600, F1c[0] + 180) && x[0] < 3500 && x[1] < 700);
+              const F3c = F2c && R.find((x) => x[0] > F2c[0] + 250 && x[0] < 4800);
+              feat.F1 = F1c[0];
+              feat.B1 = F1c[1];
+              feat.F2 = F2c ? F2c[0] : 0;
+              feat.B2 = F2c ? F2c[1] : 0;
+              feat.F3 = F3c ? F3c[0] : 0;
+            }
+          }
+        }
+        feat.voiced = f0 > 0 ? 1 : 0;
+        if (f0 > 60 && f0 < 500 && L > 0.2) {
+          st.f0m = st.f0n ? st.f0m + (f0 - st.f0m) * (st.f0n < 30 ? 0.1 : 0.01) : f0;
+          st.f0n++;
+        }
+        const kF0 = st.f0n > 5 ? Math.max(1, Math.min(1.32, 1 + 17e-4 * (st.f0m - 120))) : 1.1;
+        if (f0 > 0 && L > 0.35 && feat.F3 > 0 && feat.F2 > 0 && feat.hf < 0.12) {
+          const a2 = 1 / Math.min(150, (st.fn = (st.fn || 0) + 1) + 10);
+          st.l3 = st.l3 == null ? Math.log(feat.F3) : st.l3 + (Math.log(feat.F3) - st.l3) * a2;
+          st.l2 = st.l2 == null ? Math.log(feat.F2) : st.l2 + (Math.log(feat.F2) - st.l2) * a2;
+        }
+        const kF = st.fn ? Math.exp(0.65 * (st.l3 - Math.log(KREF[0])) + 0.35 * (st.l2 - Math.log(KREF[1]))) : kF0, cf = Math.min(1, (st.fn || 0) / 40);
+        st.k = opt.k || Math.max(0.85, Math.min(1.45, Math.exp(Math.log(kF0) * (1 - KREF[2] * cf) + Math.log(kF) * KREF[2] * cf)));
+        feat.k = st.k;
+        classify(dt);
+        return feat;
+      }
+      const p = new Float32Array(NV), vw = new Float32Array(NV);
+      function classify(dt) {
+        const f = feat, L = f.L;
+        p.fill(0);
+        const speech = sm(0.03, 0.1, L);
+        if (speech > 0.5) {
+          if (st.speechT > 0) st.hist.length = 0;
+          st.speechT = 0;
+          const F2n = f.F2 && f.F1 ? f.F2 / f.k : 0;
+          st.hist.push([st.t, F2n]);
+          while (st.hist.length && st.t - st.hist[0][0] > 0.12) st.hist.shift();
+        } else {
+          if (st.speechT === 0) {
+            const H = st.hist.filter((x) => x[1] > 0), last = H.slice(-2), ref = H.filter((x) => x[0] < (last.length ? last[0][0] : 0) - 0.02);
+            const fl = last.length ? last.reduce((a2, x) => a2 + x[1], 0) / last.length : 0, fr = ref.length ? Math.max(...ref.map((x) => x[1])) : 0;
+            st.lab = fl && fr ? sm(0.94, 0.87, fl / fr) : 0.5;
+          }
+          st.speechT += dt;
+        }
+        st.t += dt;
+        const fric = sm(0.14, 0.32, f.hf) * speech;
+        const hi = Math.max(sm(0.3, 0.42, f.hf2), sm(0.68, 0.8, f.hf) * sm(0.22, 0.3, f.hf2));
+        const pS = fric * hi;
+        const pCH = fric * (1 - hi) * sm(0.3, 0.45, f.hf) * sm(0.26, 0.36, L) * sm(4.5, 6, f.pg);
+        const pF = fric * (1 - hi) - pCH;
+        const F1 = f.F1 / f.k, F2 = f.F2 / f.k, F3 = f.F3 / f.k;
+        const vox = speech * (1 - fric) * (F1 > 0 ? 1 : 0);
+        let pM = 0, pT = speech * (1 - fric) - vox;
+        if (vox > 0) {
+          const mur = Math.max(sm(300, 265, F1), sm(332, 298, F1) * sm(240, 340, f.B2)) * sm(140, 230, f.B2) * (f.voiced ? 1 : 0.5);
+          const lab = mur * sm(1500, 1300, F2 || 1e3);
+          pM += vox * lab;
+          pT += vox * (mur - lab);
+          const vv = vox * (1 - mur) * sm(0.18, 0.42, L);
+          pT += vox * (1 - mur) - vv;
+          if (vv > 0 && F2 > 0) {
+            const b1 = bark(F1), b2 = bark(F2), b32 = F3 > 0 ? bark(F3) - b2 : -1;
+            vw.fill(0);
+            let s2 = 0;
+            for (const q of PROTO) {
+              let d = Math.pow((b1 - q.b1) / 0.55, 2) + Math.pow((b2 - q.b2) / 0.8, 2);
+              if (b32 >= 0 && q.b32 != null) d += Math.pow((b32 - q.b32) / 0.7, 2);
+              const w = Math.exp(-0.5 * d) + 1e-6;
+              s2 += w;
+              for (const [c, x] of q.c) vw[c] += w * x;
+            }
+            for (let i = 0; i < NV; i++) p[i] += vv * vw[i] / s2;
+          } else pT += vv;
+          f.open = sm(300, 760, F1) * sm(0.15, 0.6, L);
+        } else f.open = 0;
+        const gap = (1 - speech) * (1 - sm(0.09, 0.16, st.speechT)) * (st.speechT > 0 || speech < 0.5 ? 1 : 0);
+        pM += gap * st.lab;
+        pT += gap * (1 - st.lab);
+        p[VI.sil] += 1 - speech - gap;
+        p[VI.M] += pM;
+        p[VI.S] += pS;
+        p[VI.CH] += pCH;
+        p[VI.F] += Math.max(0, pF);
+        p[VI.T] += Math.max(0, pT);
+        let s = 0;
+        for (let i = 0; i < NV; i++) s += p[i];
+        if (s > 0) for (let i = 0; i < NV; i++) p[i] /= s;
+        else p[VI.sil] = 1;
+        f.p = p;
+        f.gap = gap;
+      }
+      return { analyze, feat, st, fs, P, D };
+    }
+    var MOUTH_KEYS = ["Jaw_Open", "Mouth_Oh", "Mouth_Pucker", "Mouth_Wide", "Mouth_Press", "Mouth_Grimace", "Mouth_Sad", "Mouth_Happy"];
+    var POSE = {
+      sil: [0, {}],
+      M: [0, { Mouth_Press: 0.75 }],
+      F: [0.05, { Mouth_Oh: 0.5, Mouth_Press: 0.3, Mouth_Sad: 0.12 }],
+      S: [0.03, { Mouth_Grimace: 0.48, Mouth_Wide: 0.22 }],
+      CH: [0.07, { Mouth_Grimace: 0.32, Mouth_Pucker: 0.55, Mouth_Oh: 0.15 }],
+      A: [0.62, { Mouth_Oh: 0.25, Mouth_Wide: 0.12 }],
+      E: [0.3, { Mouth_Oh: 0.35, Mouth_Wide: 0.35 }],
+      I: [0.1, { Mouth_Grimace: 0.16, Mouth_Wide: 0.55, Mouth_Oh: 0.12 }],
+      O: [0.36, { Mouth_Pucker: 0.55, Mouth_Oh: 0.05 }],
+      OU: [0.1, { Mouth_Pucker: 0.92 }],
+      EU: [0.23, { Mouth_Pucker: 0.48, Mouth_Oh: 0.3 }],
+      T: [0.15, { Mouth_Oh: 0.32 }]
+    };
+    var VOWEL = /* @__PURE__ */ new Set(["A", "E", "I", "O", "OU", "EU"]);
+    function createMouth(o = {}) {
+      let seed = (o.seed || Math.random() * 1e6) | 0;
+      const rnd2 = () => {
+        seed = seed * 1664525 + 1013904223 >>> 0;
+        return seed / 4294967296;
+      };
+      const ps = new Float32Array(NV);
+      ps[0] = 1;
+      const out = Object.fromEntries(MOUTH_KEYS.map((k) => [k, 0]));
+      const S = { cur: 0, dwell: 1, lastV: VI.E, lastVw: 0, lv: 0, t: 0, idle: 0, twT: 2 + rnd2() * 3, tw: 0, twK: 0, asym: 0, asymT: 0, as: (rnd2() - 0.5) * 0.6 };
+      const tgt = {};
+      function step(dt, f) {
+        S.t += dt;
+        const kp = 1 - Math.exp(-dt / 0.025);
+        for (let i = 0; i < NV; i++) ps[i] += (f.p[i] - ps[i]) * kp;
+        let bi = 0;
+        for (let i = 1; i < NV; i++) if (ps[i] > ps[bi]) bi = i;
+        S.dwell += dt;
+        const fast = bi === VI.M || bi === VI.sil || S.cur === VI.sil;
+        if (bi !== S.cur && ps[bi] > ps[S.cur] + (fast ? 0.04 : 0.1) && (fast || S.dwell > 0.045)) {
+          S.cur = bi;
+          S.dwell = 0;
+        }
+        const cur = VIS[S.cur];
+        if (VOWEL.has(cur)) {
+          S.lastV = S.cur;
+          S.lastVw = 1;
+        } else S.lastVw = Math.max(0, S.lastVw - dt / 0.25);
+        for (const k of MOUTH_KEYS) tgt[k] = 0;
+        let jaw = 0, sw = 0;
+        const add = (v, w) => {
+          const P = POSE[v];
+          jaw += P[0] * w;
+          for (const k in P[1]) tgt[k] += P[1][k] * w;
+          sw += w;
+        };
+        add(cur, 0.65);
+        for (let i = 0; i < NV; i++) if (ps[i] > 0.05) add(VIS[i], 0.35 * ps[i]);
+        if (!VOWEL.has(cur) && cur !== "M" && cur !== "sil" && S.lastVw > 0) {
+          const P = POSE[VIS[S.lastV]], c = (cur === "T" ? 0.5 : 0.3) * S.lastVw;
+          for (const k in P[1]) if (k !== "Mouth_Press") tgt[k] += P[1][k] * c;
+          jaw += P[0] * c * 0.4;
+          sw += c;
+        }
+        jaw /= sw;
+        for (const k in tgt) tgt[k] /= sw;
+        S.lv += ((f.L || 0) - S.lv) * (1 - Math.exp(-dt / 0.06));
+        if (VOWEL.has(cur)) jaw = jaw * 0.55 + (0.06 + 0.62 * (f.open || 0)) * 0.45;
+        jaw *= 0.6 + 0.7 * Math.min(1, S.lv);
+        tgt.Jaw_Open = jaw;
+        const quiet = cur === "sil" ? 1 : 0;
+        S.idle += ((quiet ? 1 : 0) - S.idle) * (1 - Math.exp(-dt / 0.4));
+        S.twT -= dt * S.idle;
+        if (S.twT <= 0) {
+          S.tw = 1;
+          S.twK = rnd2() < 0.5 ? 0 : 1;
+          S.twT = 2.5 + rnd2() * 5;
+        }
+        S.tw = Math.max(0, S.tw - dt / 0.9);
+        const tw = Math.sin(Math.min(1, S.tw) * Math.PI) * S.idle;
+        tgt.Jaw_Open += S.idle * (0.025 + 0.015 * Math.sin(S.t * 1.7));
+        if (S.twK === 0) tgt.Mouth_Press += tw * 0.35;
+        else {
+          tgt.Mouth_Pucker += tw * 0.18;
+          tgt.Mouth_Oh += tw * 0.12;
+        }
+        tgt.Mouth_Happy += 0.06 * S.idle;
+        for (const k of MOUTH_KEYS) {
+          const c = out[k], up = tgt[k] > c;
+          const tau = k === "Jaw_Open" ? up ? 0.035 : 0.08 : k === "Mouth_Press" ? up ? 0.02 : 0.05 : up ? 0.035 : 0.07;
+          out[k] = c + (tgt[k] - c) * (1 - Math.exp(-dt / tau));
+        }
+        S.asymT -= dt;
+        if (S.asymT <= 0) {
+          S.as = (rnd2() - 0.5) * 0.8;
+          S.asymT = 1.5 + rnd2() * 3;
+        }
+        S.asym += (S.as - S.asym) * (1 - Math.exp(-dt / 0.8));
+        return out;
+      }
+      return { step, out, get shown() {
+        return VIS[S.cur];
+      }, get asym() {
+        return S.asym;
+      }, ps };
+    }
+    function frenchVisemes(text) {
+      const out = [], re = /[A-Za-zÀ-ÿœŒæÆ'’-]+/g;
+      let m;
+      while (m = re.exec(text)) {
+        let w = m[0].toLowerCase().replace(/[’']/g, "'"), v = [];
+        const parts = w.split(/['-]/).filter(Boolean);
+        for (const p of parts) v.push(...wordVis(p));
+        if (v.length) out.push({ w: m[0], i: m.index, v });
+      }
+      return out;
+    }
+    var MOTS = {
+      est: "E",
+      et: "E",
+      es: "E",
+      les: "T E",
+      des: "T E",
+      mes: "M E",
+      tes: "T E",
+      ses: "S E",
+      ces: "S E",
+      c: "S",
+      j: "CH",
+      l: "T",
+      d: "T",
+      m: "M",
+      n: "T",
+      s: "S",
+      qu: "T",
+      t: "T",
+      je: "CH EU",
+      le: "T EU",
+      de: "T EU",
+      te: "T EU",
+      me: "M EU",
+      ne: "T EU",
+      se: "S EU",
+      ce: "S EU",
+      que: "T EU",
+      oui: "OU I",
+      non: "T O",
+      eh: "E",
+      oh: "O",
+      ah: "A",
+      y: "I",
+      a: "A",
+      à: "A",
+      au: "O",
+      aux: "O",
+      tu: "T OU",
+      vous: "F OU",
+      nous: "T OU"
+    };
+    function wordVis(w) {
+      if (MOTS[w]) return MOTS[w].split(" ").map((c) => [c, VOWEL.has(c) ? 1 : 0.7]);
+      const V = [], vow = (x) => /[aeiouyéèêëàâîïôûùœ]/.test(x || "");
+      const push = (c, d) => V.push([c, d]);
+      let s = w;
+      if (s.length > 2) s = s.replace(/s$/, "");
+      let mute = false;
+      if (s.length > 2 && /e$/.test(s)) {
+        s = s.slice(0, -1);
+        mute = true;
+      }
+      if (/(er|ez)$/.test(s) && s.length > 2) s = s.slice(0, -2) + "é";
+      if (/et$/.test(s) && s.length > 2) s = s.slice(0, -2) + "è";
+      if (!mute && s.length > 1 && /[^aeiouyéèêrcfl]$/.test(s)) s = s.replace(/(t|d|x|z|p|s|g)$/, "");
+      let i = 0;
+      const at = (k) => s.substr(i, k), nx = (k) => s[i + k];
+      while (i < s.length) {
+        const c = s[i];
+        if (at(3) === "eau") {
+          push("O", 1);
+          i += 3;
+          continue;
+        }
+        if (at(2) === "au") {
+          push("O", 1);
+          i += 2;
+          continue;
+        }
+        if (at(2) === "ou" || at(2) === "où") {
+          push("OU", 1);
+          i += 2;
+          continue;
+        }
+        if (at(2) === "oi") {
+          push("OU", 0.5);
+          push("A", 1);
+          i += 2;
+          continue;
+        }
+        if (at(2) === "ai" || at(2) === "ei") {
+          if (/^[mn][^aeiouyéèê]?/.test(s.slice(i + 2)) && !vow(nx(3))) {
+            push("E", 1);
+            i += 3;
+            continue;
+          }
+          push("E", 1);
+          i += 2;
+          continue;
+        }
+        if (at(2) === "eu" || at(2) === "œu") {
+          push("EU", 1);
+          i += 2;
+          continue;
+        }
+        if (/^(an|am|en|em)/.test(at(2)) && !vow(nx(2)) && nx(2) !== "n" && nx(2) !== "m") {
+          push("A", 1);
+          push("O", 0.3);
+          i += 2;
+          continue;
+        }
+        if (/^(on|om)/.test(at(2)) && !vow(nx(2)) && nx(2) !== "n" && nx(2) !== "m") {
+          push("O", 1);
+          i += 2;
+          continue;
+        }
+        if (/^(in|im|un|um|yn)/.test(at(2)) && !vow(nx(2)) && nx(2) !== "n" && nx(2) !== "m") {
+          push("E", 1);
+          i += 2;
+          continue;
+        }
+        if (at(3) === "ill" && i > 0) {
+          push("I", 0.6);
+          i += 3;
+          continue;
+        }
+        if (at(3) === "ien") {
+          push("I", 0.5);
+          push("E", 1);
+          i += 3;
+          continue;
+        }
+        if (at(2) === "ch") {
+          push("CH", 0.8);
+          i += 2;
+          continue;
+        }
+        if (at(2) === "ph") {
+          push("F", 0.7);
+          i += 2;
+          continue;
+        }
+        if (at(2) === "gn") {
+          push("T", 0.6);
+          i += 2;
+          continue;
+        }
+        if (at(2) === "qu" || at(2) === "gu") {
+          push("T", 0.6);
+          i += 2;
+          continue;
+        }
+        if (at(2) === "ss") {
+          push("S", 0.8);
+          i += 2;
+          continue;
+        }
+        if (c === nx(1) && /[bcdfgklmnprtz]/.test(c)) {
+          i++;
+          continue;
+        }
+        switch (c) {
+          case "a":
+          case "à":
+          case "â":
+            push("A", 1);
+            break;
+          case "e":
+            push(!vow(nx(1)) && nx(1) && (!vow(nx(2)) || i + 2 >= s.length) && i > 0 ? "E" : "EU", 0.8);
+            break;
+          // e + 2 consonnes ou consonne finale : è
+          case "é":
+          case "è":
+          case "ê":
+          case "ë":
+            push("E", 1);
+            break;
+          case "i":
+          case "î":
+          case "ï":
+          case "y":
+            push("I", vow(nx(1)) ? 0.5 : 1);
+            break;
+          case "o":
+          case "ô":
+            push("O", 1);
+            break;
+          case "u":
+          case "û":
+          case "ù":
+            push("OU", vow(nx(1)) ? 0.5 : 1);
+            break;
+          case "œ":
+            push("EU", 1);
+            break;
+          case "b":
+          case "p":
+          case "m":
+            push("M", 0.7);
+            break;
+          case "f":
+          case "v":
+            push("F", 0.7);
+            break;
+          case "w":
+            push("OU", 0.5);
+            break;
+          case "s":
+          case "z":
+          case "ç":
+            push("S", 0.8);
+            break;
+          case "x":
+            push("T", 0.4);
+            push("S", 0.7);
+            break;
+          case "c":
+            push(/[eiyéèê]/.test(nx(1) || "") ? "S" : "T", 0.6);
+            break;
+          case "g":
+            push(/[eiyéèê]/.test(nx(1) || "") ? "CH" : "T", 0.6);
+            break;
+          case "j":
+            push("CH", 0.8);
+            break;
+          case "h":
+            break;
+          default:
+            if (/[a-zà-ÿ]/.test(c)) push("T", 0.55);
+        }
+        i++;
+      }
+      return V;
     }
 
     // src/main.js
@@ -2544,6 +3191,7 @@
 .pgh-emo.mic.on{box-shadow:inset 0 0 0 2px #7cf0a0,0 0 18px rgba(124,240,160,.55)}
 .pgh-emo.mic.on::after{content:'';position:absolute;right:6px;top:6px;width:8px;height:8px;border-radius:50%;background:#ff5a6a;box-shadow:0 0 8px #ff5a6a;animation:pghPing 1.4s infinite}
 .pgh-emo.mic span{position:relative;z-index:1}
+.pgh-emo.say.on{box-shadow:inset 0 0 0 2px #ffd36a,0 0 18px rgba(255,211,106,.55)}
 .pgh-micm .pgh-mcard .ic{font-size:44px;line-height:1;margin:6px 0 2px}
 /* ma maison */
 .pgh-house{margin-top:14px;display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center;position:relative;overflow:hidden}
@@ -2668,7 +3316,7 @@
       <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
     </div>
     <div class="pgh-bottom">
-      <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button></div>
+      <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button><button class="pgh-emo say" data-h="say" aria-label="Écouter ton avatar dire bonjour" title="Écouter ton avatar parler"><span>💬</span></button></div>
       <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-av">${PGH_SVG.edit}<span data-h="avlab">Modifier</span></button><button class="pgh-cta glass" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button></div>
       <div class="pgh-small">Gratuit · PC Windows · Android bientôt</div>
     </div>
@@ -3028,7 +3676,7 @@
       return { x: 0, y: top, w, h: Math.max(180, bot - top) };
     }
     function fvFocus() { const r = $.fvstage.getBoundingClientRect(); return { x: r.width * 0.05, y: wide ? 24 : 12, w: r.width * 0.9, h: r.height - (wide ? 48 : 18) }; }
-    let STG = null, editing = false, friendOn = null;
+    let STG = null, PGM = null, editing = false, friendOn = null;
     function placeStage() {
       const f = friendOn ? fvFocus() : heroFocus();
       if (STG) STG.setFocus(f);
@@ -3086,7 +3734,7 @@
         if (dead) return;
         needPack('perso', (k) => { prog.p = k; upd(); }).catch(() => {});
         needPack('garde.' + ['sally', 'chloe', 'mary', 'zulle', 'javi', 'john', 'galvon'][preset], (k) => { prog.g = k; upd(); }).catch(() => {});
-        const mod = PG_FACTORY((n) => (n === 'three' ? window.JDW_PG3 : { env }));
+        const mod = PG_FACTORY((n) => (n === 'three' ? window.JDW_PG3 : { env })); PGM = mod;
         const SG = await mod.create($.gl, { onFrame: onHead, onGesture: gestured, keep: !!window.JDW_PG_TEST });
         if (dead) { SG.dispose(); return; }
         STG = SG; placeStage(); activeSync();
@@ -3100,7 +3748,7 @@
         later(() => { if (STG && !editing && !friendOn) STG.gesture('wave'); }, 900);
         window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, info: SG.info(), ready: SG.ready(),
           friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D),
-          voice: MIC.on ? { label: MIC.label, f0: Math.round(MIC.f0), f0m: Math.round(MIC.f0m), flat: +MIC.flat.toFixed(2), emo: Object.fromEntries(Object.entries(MIC.emo).map(([k, v]) => [k, +v.toFixed(2)])) } : null }) };
+          voice: MIC.on ? { label: MIC.label, f0: Math.round(MIC.f0), f0m: Math.round(MIC.f0m), flat: +MIC.flat.toFixed(2), vis: MIC.mouth ? MIC.mouth.shown : null, emo: Object.fromEntries(Object.entries(MIC.emo).map(([k, v]) => [k, +v.toFixed(2)])) } : null }) };
         thumbPump();
         gardePull();
       } catch (e) {
@@ -3158,11 +3806,12 @@
       const b = box.querySelector(`.pgh-emotes .pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
       tone(k === 'jump' ? 660 : k === 'laugh' ? 880 : 740, k === 'jump' ? 990 : 1180);
     }
-    on($.emotes, 'click', (e) => { const b = e.target.closest('.pgh-emo'); if (!b || b === $.mic || !STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k); });
+    on($.emotes, 'click', (e) => { const b = e.target.closest('.pgh-emo'); if (!b || b === $.mic || b === $.say || !STG || !STG.ready()) return; const k = STG.gesture(b.dataset.emo); gestured(k); });
 
     // ---------- MICRO : la bouche de l'avatar suit ta voix. Analyse du son SUR L'APPAREIL (Web Audio), rien n'est enregistré ni envoyé.
-    // Formes du pack : Jaw_Open (A), Mouth_Oh (O), Mouth_Pucker (OU), Mouth_Wide (I / É), Mouth_Press (M / B / P), Brows_Raised.
-    // Visèmes estimés avec 3 bandes du spectre (≈ 1er et 2e formants, sifflantes) + le volume ; attaque / relâche lissées.
+    // Bouche (hub 2.3, src/levres.js) : VISÈMES du français devinés dans le son — formants F1/F2/F3 par prédiction linéaire (A, É/È, I, O,
+    // OU/U, EU), friction (S/Z, CH/J, F/V), fermetures (M/B/P : F2 qui tombe avant le silence) — puis formes BoZo, mâchoire et lèvres à part,
+    // coarticulation, attaque 40 ms / relâche 80 ms, petite asymétrie, micro-mouvements au repos. Les expressions s'ajoutent par-dessus.
     const MIC = { on: false, busy: false };
     const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
     function micUi() { $.mic.classList.toggle('on', MIC.on); $.mic.title = MIC.on ? 'Couper le micro' : 'Parler (micro)'; if (!MIC.on) $.mic.style.setProperty('--lv', 0); }
@@ -3184,9 +3833,10 @@
         if (MIC.ctx.state === 'suspended') await MIC.ctx.resume();
         const src = MIC.ctx.createMediaStreamSource(MIC.stream), an = MIC.ctx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = 0.3; src.connect(an);
         Object.assign(MIC, { an, src, td: new Float32Array(an.fftSize), fd: new Float32Array(an.frequencyBinCount), floor: 0.004, env: 0, slow: 0, w: 0, quiet: 9, press: 0, brow: 0, lvUi: -1,
-          s: { Jaw_Open: 0, Mouth_Oh: 0, Mouth_Pucker: 0, Mouth_Wide: 0, Mouth_Press: 0, Brows_Raised: 0 }, on: true,
+          s: {}, on: true,
           fr: 0, f0: 0, f0m: 0, flat: 0, hist: [], emo: { rire: 0, surprise: 0, calme: 0, chuchote: 0, colere: 0 }, typ: 0, typN: 0, angOn: false, angT: 0, talkT: 0, laughOn: false, laughT: 0, sur: 0, onsetT: -9, onsetF0: 0, label: 'silence', bob: 0 });
-        if (window.JDW_PG_TEST) window.__pgMIC = MIC; STG.setTalk(micTalk); micUi(); hintOff(); store.set('jdw.pegase.micok', '1'); tone(660, 990);
+        MIC.lip = PGM.createLipSync(MIC.ctx.sampleRate); MIC.mouth = PGM.createMouth(); MIC.x = {};
+        if (window.JDW_PG_TEST) window.__pgMIC = MIC; sayStop(); STG.setTalk(micTalk); micUi(); hintOff(); store.set('jdw.pegase.micok', '1'); tone(660, 990);
         if (STG) { STG.setFrame('parle'); STG.setHome(true); }
       } catch (e) { micStop(); toast(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? '🎤 Micro refusé : autorise-le dans les réglages du navigateur' : '🎤 Micro indisponible'); }
       finally { MIC.busy = false; }
@@ -3201,39 +3851,38 @@
       const now = performance.now() / 1000;
       if ((MIC.fr = MIC.fr + 1) % 2 === 0) { let f = L > 0.08 ? pitchOf(MIC.td, MIC.ctx.sampleRate) : 0; const pv = MIC.f0 || MIC.f0p || 0; if (f && pv) { const q = f / pv; if (q > 1.75 && q < 2.3) f /= 2; else if (q > 0.43 && q < 0.57) f *= 2; } if (f) MIC.f0p = f; MIC.f0 = f; }   // une image sur deux ; sauts d'octave corrigés   // une image sur deux (téléphone)
       const att = 1 - Math.exp(-dt / 0.03), rel = 1 - Math.exp(-dt / 0.1);
-      const prev = MIC.env; MIC.env += (L - MIC.env) * (L > MIC.env ? att : rel);
+      MIC.env += (L - MIC.env) * (L > MIC.env ? att : rel);
       MIC.slow += (MIC.env - MIC.slow) * (1 - Math.exp(-dt / 0.45));
       // spectre : énergies de 3 bandes
       an.getFloatFrequencyData(MIC.fd); const hz = MIC.ctx.sampleRate / an.fftSize;
       const band = (a, b) => { let e = 0; for (let k = Math.floor(a / hz), n = Math.min(MIC.fd.length - 1, Math.ceil(b / hz)); k <= n; k++) e += Math.pow(10, MIC.fd[k] / 10); return e; };
-      const e1 = band(250, 900), e2 = band(900, 2500), e3 = band(2500, 7000), eLo = band(90, 250);
-      const r2 = e2 / (e1 + e2 + 1e-12), r3 = e3 / (e1 + e2 + e3 + 1e-12), low = eLo / (eLo + e1 + 1e-12);
+      const e1 = band(250, 900), e2 = band(900, 2500), e3 = band(2500, 7000);
+      const r2 = e2 / (e1 + e2 + 1e-12), r3 = e3 / (e1 + e2 + e3 + 1e-12);
       // planéité du spectre 300–6000 Hz (souffle, rire, chuchotement : proche de 1 ; voyelle chantée : proche de 0)
       { let sl = 0, sa = 0, n = 0; for (let k = Math.floor(300 / hz), e = Math.min(MIC.fd.length - 1, Math.ceil(6000 / hz)); k <= e; k++) { const p = Math.pow(10, MIC.fd[k] / 10) + 1e-14; sl += Math.log(p); sa += p; n++; }
         const fl = n ? Math.exp(sl / n) / (sa / n) : 0; MIC.flat += (fl - MIC.flat) * 0.25; }
       const emo = emotions(now, dt, L, r2, r3, rms);
-      const wide = sm(0.4, 0.66, r2), round = sm(0.28, 0.1, r2) * (1 - wide), u = round * sm(0.35, 0.65, low), o = round - u * 0.6, sib = sm(0.35, 0.6, r3);
-      const open = Math.max(0, 1 - wide * 0.7 - round * 0.6 - sib * 0.5);
+      // VISÈMES : analyse des 30 dernières ms (formants, friction, fermetures) → forme de la bouche (déjà lissée, avec coarticulation)
+      const ft = MIC.lip.analyze(MIC.td, dt, MIC.f0), mo = MIC.mouth.step(dt, ft);
       const E = MIC.env;
-      // fermeture (M / B / P) : le son tombe d'un coup après une syllabe
-      if (prev > 0.2 && L < 0.04 && MIC.press < 0.1) MIC.press = 0.8; MIC.press = Math.max(0, MIC.press - dt / 0.16);
       // sourcils sur les syllabes fortes
       if (L - MIC.slow > 0.5 && MIC.brow < 0.3) MIC.brow = Math.min(1, MIC.brow + 0.7); MIC.brow = Math.max(0, MIC.brow - dt / 0.6);
-      const wh = 1 - 0.6 * emo.chuchote, er = emo.rire, es = emo.surprise, ec = emo.calme * (1 - emo.colere), ea = emo.colere;
-      const T = { Jaw_Open: (E * (0.22 + 0.78 * open) * 0.95 + E * wide * 0.12 + E * sib * 0.08) * wh + er * 0.12 + es * 0.28, Mouth_Oh: E * o * 0.8 * wh + es * 0.7, Mouth_Pucker: E * u * 0.8 + emo.chuchote * 0.15,
-        Mouth_Wide: E * (wide * 0.85 + sib * 0.35) * wh + er * 0.5 + ec * 0.25, Mouth_Press: MIC.press * (1 - E) * 0.9 + emo.chuchote * 0.25, Brows_Raised: Math.max(MIC.brow * 0.45, es, er * 0.35),
-        Mouth_Happy: (er * 1 + ec * 0.42) * (1 - ea), Eyes_LowerClosed: er * 0.7 + ec * 0.1 + ea * 0.5, Eyes_UpperClosed: er * 0.28 + ea * 0.12, Eyes_UpperOpen: es * (1 - ea), Eyes_LowerOpen: es * 0.6,
-        Brow_Angry: ea * 1, Brows_Lowered: ea * 1, Mouth_Sad: ea * 0.35 };
-      T.Mouth_Press += ea * 0.3 * (1 - E); T.Brows_Raised *= 1 - ea; T.Mouth_Wide += ea * E * 0.2;
-      for (const k in T) if (MIC.s[k] == null) MIC.s[k] = 0;
+      const wh = 1 - 0.5 * emo.chuchote, er = emo.rire, es = emo.surprise, ec = emo.calme * (1 - emo.colere), ea = emo.colere;
+      // EXPRESSIONS (lissées) par-dessus la bouche ; pendant un rire / une surprise, c'est l'expression qui mène la bouche
+      const X = { Jaw_Open: er * 0.12 + es * 0.28, Mouth_Oh: es * 0.6, Mouth_Pucker: emo.chuchote * 0.12, Mouth_Wide: er * 0.5 + ec * 0.2 * (1 - Math.min(1, E * 1.5)) + ea * E * 0.2,
+        Mouth_Press: emo.chuchote * 0.2 + ea * 0.3 * (1 - E), Brows_Raised: Math.max(MIC.brow * 0.45, es, er * 0.35) * (1 - ea),
+        Mouth_Happy: (er * 1 + ec * 0.42 * (1 - 0.6 * Math.min(1, E * 1.5))) * (1 - ea), Eyes_LowerClosed: er * 0.7 + ec * 0.1 + ea * 0.5, Eyes_UpperClosed: er * 0.28 + ea * 0.12, Eyes_UpperOpen: es * (1 - ea), Eyes_LowerOpen: es * 0.6,
+        Brow_Angry: ea * 1, Brows_Lowered: ea * 1, Mouth_Sad: ea * 0.35, Mouth_Grimace: 0 };
       const ka = 1 - Math.exp(-dt / 0.04), kr = 1 - Math.exp(-dt / 0.08);
-      for (const k in T) { const c = MIC.s[k]; MIC.s[k] = c + (T[k] - c) * (T[k] > c ? ka : kr); }
-      // poids de la parole : monte vite, retombe doucement après ~0,5 s de silence
+      for (const k in X) { const c = MIC.x[k] || 0; MIC.x[k] = c + (X[k] - c) * (X[k] > c ? ka : kr); }
+      const lead = 1 - 0.45 * Math.max(er, es);
+      for (const k in X) MIC.s[k] = MIC.x[k] + (mo[k] || 0) * lead * (k === 'Jaw_Open' || k === 'Mouth_Wide' ? wh : 1);
+      // poids de la parole : monte vite, retombe doucement après ~0,5 s de silence (sans tomber à 0 : les lèvres bougent un peu au repos)
       MIC.quiet = E > 0.06 ? 0 : MIC.quiet + dt;
-      MIC.w += ((MIC.quiet < 0.5 ? 1 : 0) - MIC.w) * (1 - Math.exp(-dt / (MIC.quiet < 0.5 ? 0.08 : 0.35)));
+      MIC.w += ((MIC.quiet < 0.5 ? 1 : 0.3) - MIC.w) * (1 - Math.exp(-dt / (MIC.quiet < 0.5 ? 0.08 : 0.35)));
       const lv = Math.round(Math.min(1, L * 1.2) * 20) / 20; if (lv !== MIC.lvUi) { MIC.lvUi = lv; $.mic.style.setProperty('--lv', lv); }
       MIC.bob += dt * 7; const lw = Math.max(MIC.w, er, es, ec * 0.8);
-      return { w: Math.max(lw, ea), v: MIC.s, nod: (MIC.env - MIC.slow) * (0.11 + ea * 0.12) + er * 0.06 * Math.max(0, MIC.env - MIC.slow + 0.2) * Math.sin(MIC.bob) - es * 0.08 + ea * 0.05,
+      return { w: Math.max(lw, ea), v: MIC.s, asym: MIC.mouth.asym, nod: (MIC.env - MIC.slow) * (0.11 + ea * 0.12) + er * 0.06 * Math.max(0, MIC.env - MIC.slow + 0.2) * Math.sin(MIC.bob) - es * 0.08 + ea * 0.05,
         tilt: Math.sin(performance.now() / 1300) * 0.04 * lw + er * 0.05 + ea * 0.06 * Math.sin(MIC.bob * 1.7) * Math.max(0, MIC.env - MIC.slow) * 3 };
     }
     // hauteur de la voix : autocorrélation normalisée (1 échantillon sur 2), 75–480 Hz ; 0 = pas de voix nette (souffle, bruit)
@@ -3302,9 +3951,64 @@
       MIC.label = best[1] > 0.45 ? best[0] : MIC.w > 0.5 ? 'parle' : 'silence';
       return MIC.emo;
     }
+    // ---------- PARLER (démo) : la voix du navigateur dit une phrase ; la bouche suit le TEXTE (règles du français → visèmes), recalée MOT À MOT
+    // sur les évènements « boundary » de la voix (sinon au rythme moyen). Phrases fixes : rien de personnel n'est donné à la voix.
+    const SAY = { on: false, n: -1 };
+    const PHRASES = ['Salut ! Moi, c’est ton avatar. Tu viens jouer avec moi ?', 'Bonjour ! On fait une partie sur la borne, ce soir ?', 'Coucou ! Regarde, je parle avec ma bouche, maintenant.'];
+    const OPEN = { A: 0.8, E: 0.45, I: 0.15, O: 0.45, OU: 0.1, EU: 0.35 };
+    function sayVoice() {
+      let vs = []; try { vs = speechSynthesis.getVoices().filter((v) => /^fr/i.test(v.lang)); } catch (e) { /* rien */ }
+      return vs.find((v) => v.localService && /fr.FR/i.test(v.lang)) || vs.find((v) => v.localService) || vs.find((v) => /fr.FR/i.test(v.lang)) || vs[0] || null;
+    }
+    function sayStop() {
+      if (!SAY.on) return; SAY.on = false; SAY.lip = null; SAY.u = null;
+      try { speechSynthesis.cancel(); } catch (e) { /* rien */ }
+      $.say.classList.remove('on');
+      if (STG && !MIC.on) { STG.setTalk(null); STG.setHome(false); STG.setFrame(editing ? (FR_CAT[cat] || 'corps') : 'corps'); }
+    }
+    function sayStart() {
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { toast('🗣️ Ce navigateur ne sait pas parler'); return; }
+      if (!STG || !STG.ready() || !PGM) { toast('Ton avatar arrive…'); return; }
+      if (MIC.on) micStop();
+      const text = PHRASES[(SAY.n = (SAY.n + 1) % PHRASES.length)], words = PGM.frenchVisemes(text), VIS = PGM.VIS;
+      const lip = { words, wi: -1, wt: 0, unit: 0.072, started: false, ended: false, bnd: 0, lastB: 0, t: 0, p: new Float32Array(VIS.length), mouth: PGM.createMouth() };
+      const u = new SpeechSynthesisUtterance(text); u.lang = 'fr-FR'; const v = sayVoice(); if (v) u.voice = v; u.rate = 1; u.pitch = 1.05;
+      u.onstart = () => { if (SAY.lip !== lip) return; lip.started = true; lip.wi = 0; lip.wt = 0; lip.t = 0; };
+      u.onboundary = (e) => {
+        if (SAY.lip !== lip || (e.name && e.name !== 'word')) return;
+        const k = words.findIndex((w) => w.i + w.w.length > e.charIndex); if (k < 0) return;
+        // vitesse réelle de la voix : durée du mot d'avant / sa longueur prévue
+        if (lip.bnd && k === lip.wi + 1) { const units = words[lip.wi].v.reduce((a, x) => a + x[1], 0), spent = lip.t - lip.lastB; if (spent > 0.05 && units > 0) lip.unit += (Math.max(0.04, Math.min(0.14, spent / (units + 0.6))) - lip.unit) * 0.5; }
+        lip.wi = k; lip.wt = 0; lip.bnd++; lip.lastB = lip.t; lip.started = true;
+      };
+      u.onend = u.onerror = () => { if (SAY.lip === lip) { lip.ended = true; later(() => { if (SAY.lip === lip) sayStop(); }, 350); } };
+      SAY.on = true; SAY.lip = lip; SAY.u = u; $.say.classList.add('on'); hintOff(); if (window.JDW_PG_TEST) window.__pgSAY = SAY;   // SAY.u : sinon Chrome peut oublier la phrase et ne jamais dire « fin »
+      STG.setFrame('parle'); STG.setHome(true);
+      STG.setTalk((dt) => {
+        if (!SAY.on || SAY.lip !== lip) return null;
+        lip.t += dt; let cur = 'sil';
+        // fin sans évènement « end » (certains navigateurs) : la voix ne parle plus depuis 0,4 s
+        let speaking = true; try { speaking = speechSynthesis.speaking; } catch (e) { /* rien */ }
+        lip.quiet = lip.started && !speaking && lip.t > 1 ? (lip.quiet || 0) + dt : 0; if (lip.quiet > 0.4 && !lip.ended) { lip.ended = true; later(() => { if (SAY.lip === lip) sayStop(); }, 300); }
+        if (lip.started && !lip.ended && lip.wi >= 0 && lip.wi < words.length) {
+          lip.wt += dt; const W = words[lip.wi]; let a = 0; const x = lip.wt / lip.unit;
+          for (const [c, d] of W.v) { if (x < a + d) { cur = c; break; } a += d; }
+          if (cur === 'sil' && !lip.bnd && x > a + 0.6 && lip.wi < words.length - 1) { lip.wi++; lip.wt = 0; }   // pas d'évènements de mots : au rythme moyen
+          if (cur === 'sil' && x < a + 0.6) cur = 'T';
+        }
+        lip.p.fill(0); lip.p[VIS.indexOf(cur)] = 1;
+        const mo = lip.mouth.step(dt, { p: lip.p, L: cur === 'sil' ? 0 : 0.85, open: OPEN[cur] || 0 });
+        const talking = cur !== 'sil' ? 1 : 0;
+        return { w: 1, v: Object.assign({}, mo, { Brows_Raised: 0.18 * talking + 0.1 }), asym: lip.mouth.asym, nod: Math.sin(lip.t * 5.3) * 0.025 * talking, tilt: Math.sin(lip.t * 0.9) * 0.05 };
+      });
+      try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { sayStop(); toast('🗣️ La voix du navigateur ne répond pas'); return; }
+      // voix muette (aucun début au bout de 2,5 s) : on mime quand même la phrase au rythme moyen
+      later(() => { if (SAY.lip === lip && !lip.started) { lip.started = true; lip.wi = 0; lip.wt = 0; later(() => { if (SAY.lip === lip) sayStop(); }, 6000); } }, 2500);
+    }
+    on($.say, 'click', (e) => { e.stopPropagation(); if (SAY.on) { sayStop(); return; } sayStart(); });
     on($.mic, 'click', (e) => { e.stopPropagation(); if (MIC.on) { micStop(); tone(520, 360); return; } if (store.get('jdw.pegase.micok')) micStart(); else $.micm.classList.add('on'); });
     on($.micm, 'click', (e) => { const h = e.target.closest('[data-h]'); if (e.target === $.micm || (h && h.dataset.h === 'micno')) { $.micm.classList.remove('on'); return; } if (h && h.dataset.h === 'micok') { $.micm.classList.remove('on'); micStart(); } });
-    on(document, 'visibilitychange', () => { if (document.hidden && MIC.on) micStop(); });
+    on(document, 'visibilitychange', () => { if (document.hidden && MIC.on) micStop(); if (document.hidden) sayStop(); });
 
     // ---------- MA MAISON (pg_docs « maison » : {v, lot:[w,d], p:[[id,x,z,l,r,y]…]}, format du jeu) : petit plan vu de dessus ----------
     async function loadHouse() {
@@ -3792,7 +4496,7 @@
     return {
       destroy() {
         if (dead) return; dead = true;
-        flySet(false); micStop();
+        flySet(false); micStop(); sayStop();
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();

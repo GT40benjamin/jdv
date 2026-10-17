@@ -112,7 +112,7 @@ l'enregistrement (copie locale gardée, `jdw.pegase.garde.<PSEUDO>.srv` = { rev,
 départ : Sally, Mary, Javi, John (2 filles, 2 garçons) ; onglet **Barbe** à part (6 barbes / moustaches BoZo, couleur = cheveux) ; curseur
 **Longueur** des cheveux = échelle 0,7 à 1,4 des os de MÈCHES des coiffures « derrière » (`Avatar.setHairLength`, `look.hl` ; les coiffures BoZo
 n'ont pas de forme « longueur » : sans mèches, rien ne change) ; panneau du créateur ≈ la moitié de l'écran (3 vignettes par rangée) ;
-bouton **🎤** (micro) : la bouche de l'avatar suit la voix, analyse SUR L'APPAREIL (Web Audio : volume + 3 bandes du spectre → Jaw_Open,
+bouton **🎤** (micro) : la bouche de l'avatar suit la voix, analyse SUR L'APPAREIL (Web Audio ; 2.1 : volume + 3 bandes du spectre, remplacé en 2.3 par les visèmes → Jaw_Open,
 Mouth_Oh, Mouth_Pucker, Mouth_Wide, Mouth_Press, Brows_Raised du pack ; `STG.setTalk`, `Avatar.talk`), rien n'est enregistré ni envoyé ;
 carte **Ma maison** (onglet Moi) : petit plan vu de dessus si `pg_get_doc` maison existe (format du jeu `{v, lot, p:[[id,x,z,l,r,y]…]}`), sinon
 « Ta maison t'attend : obtiens le permis de construire » ; étapes d'installation : nom du zip tiré de la fiche, dossier Pegase, Pegase.exe.
@@ -124,6 +124,20 @@ d'habitude, voix tendue ; AUCUNE reconnaissance de mots : elle enverrait le son 
 (petit sourire). Essais : `node test/expressions.js` (voix SYNTHÉTIQUES `test/voix/*.wav`, fabrique.py / colere.py + voix Windows),
 `node test/mic.js`. Le micro est ouvert sans gain automatique du navigateur (gain maison) pour garder la vraie force de la voix.
 Images plus vives : étalonnage dans `tools/images.py` (grade) + petit étalonnage après le tonemapping dans les matériaux (`gradeOnce`, main.js).
+**Hub 2.3 (17 oct., patch)** : BOUCHE refaite, tout SUR L'APPAREIL (`src/levres.js` de l'atelier, sans dépendance) : VISÈMES du français devinés
+dans le son — formants F1/F2/F3 par prédiction linéaire (LPC ordre 12 sur 30 ms ramenés à ~12 kHz, racines par Durand-Kerner), voix ramenée à
+une voix d'homme (hauteur, puis moyennes de F3 / F2), voyelles A, É/È, I, O, OU/U, EU (prototypes du français en Bark), friction S/Z, CH/J,
+F/V (énergie > 2,5 kHz et > 5,5 kHz), fermetures M/B/P (murmure nasal : F1 très bas + F2 flou ; silence au milieu d'un mot précédé d'un F2 qui
+DESCEND = lèvres jointes, sinon t/d/k/g) ; puis `createMouth` : formes BoZo (Jaw_Open, Mouth_Oh / Pucker / Wide / Press / Grimace / Sad /
+Happy), mâchoire et lèvres à part, visème montré avec hystérésis, coarticulation (les consonnes gardent l'arrondi de la voyelle d'avant),
+attaque 35-40 ms / relâche 80 ms (fermetures 20 / 50 ms), petite asymétrie (os jaw / mouth), micro-mouvements au repos ; expressions (rire,
+surprise, colère, chuchotement, calme) par-dessus ; sourire de base effacé à 92 % en parlant ; INTÉRIEUR de la bouche assombri (attribut
+`cav` des sommets derrière les lèvres + shader, façon occlusion). Bouton **🗣️** (démo) : la voix du navigateur (voix française LOCALE de
+préférence, phrases fixes) parle, la bouche suit le TEXTE (`frenchVisemes`, règles du français) recalé MOT À MOT sur les évènements
+`boundary` (sinon au rythme moyen). Essais (atelier) : `node test/levres/eval.js` (10 phrases voix Windows Hortense + chronologie SAPI des
+phonèmes = vérité ; ancienne méthode contre nouvelle ; voix ×0,85 / ×1,15 ; `SEANCE=1` = micro resté ouvert ; résultats test/levres/resultats.txt),
+`node test/levres/capture.js <id>` (même son, horloge virtuelle, AVANT 1.19.6 / NOUVEAU → captures/<id>.gif + <id>.html lecteur AVEC le son),
+`node test/levres/parler.js` ; phrases : `test/levres/tts.ps1` (positions SAPI comptées à 16 kHz alors que le WAV est à 22,05 kHz : ×16000/22050).
 Atelier : `~/jdv-tools/pegase/borne/hub` (src/ = avatar 3D : avatar.js copie de l'atelier avatar + gestes, stage.js, main.js ; wrap/head.js +
 wrap/tail.js = la page ; `node tools/assemble.js` → out/pegase.js à copier dans source/games/ ; paquets `node tools/pack.js` ; images
 `python tools/images.py` ; harnais `test/harness.html` (serveur : `PORT=8833 node ~/jdv-tools/pegase/tools/serve.js ~/jdv-tools/pegase/borne/hub`),
