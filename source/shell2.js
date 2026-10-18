@@ -495,8 +495,9 @@ async function gameSetPhoto(data, scope) {
 // et quelques fonctions Pégase du serveur (pegase.sql), toujours au nom du joueur actuel (p_name) dans la salle actuelle (p_room).
 // Phase 2b (1.19.12) : pg_unlock_buy (acheter une pièce verrouillée, prix du serveur) et les catalogues pg_unlock_catalog / pg_mission_catalog
 // (compte connecté, SANS p_name : seulement p_code). Pas de pg_claim ici : les missions se récupèrent dans le jeu.
-// 1.19.15 : pg_link_make (carte « Connecter le jeu Pégase » de l'onglet Moi) : billet à usage unique de 60 s pour le compte de la borne,
-// échangé par le jeu (Edge Function pegase-redeem) ; aucun argument du hub n'est transmis (p_code + p_name de la borne seulement).
+// 1.19.15 : pg_link_make (carte « Connecter le jeu Pégase » de l'onglet Moi) : code à usage unique pour le compte de la borne, échangé par
+// le jeu (Edge Function pegase-redeem) ; p_code + p_name de la borne. 1.19.18 : CODE COURT par défaut (8 caractères « K7Q2-9MXA », 120 s,
+// à taper) ; seul argument du hub transmis : p_long = true (billet LONG de 64 hexadécimaux, 60 s, pour les passages appli → appli).
 const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make']);
 const PG_RPC_CAT = new Set(['pg_unlock_catalog', 'pg_mission_catalog']);
 function pegaseApi() {
@@ -516,7 +517,7 @@ function pegaseApi() {
       if (!PG_RPC.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
       if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
-      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? {} : Object.assign({}, args || {});
+      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : Object.assign({}, args || {});
       Object.assign(a, { p_code: CODE(), p_name: profile.name });
       if (fn === 'pg_room_avatars') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
       return rpc(fn, a, { quiet: true });

@@ -3394,7 +3394,7 @@
 @keyframes pghFly{0%{transform:translate(0,0) scale(.3);opacity:0}10%{opacity:1}70%{opacity:.9}100%{transform:translate(var(--x),var(--y)) scale(.8);opacity:0}}
 .pgh-ch.got{animation:pghPop .7s cubic-bezier(.3,1.6,.5,1)}
 @media (prefers-reduced-motion:reduce){.pgh-burst i,.pgh-mj,.pgh-ch.got,.pgh-buym[data-st="done"] .pgh-bth{animation:none}}
-/* « Connecter le jeu Pégase » (18 oct.) : code à usage unique de pg_link_make, 60 s */
+/* « Connecter le jeu Pégase » (18 oct.) : CODE COURT à usage unique de pg_link_make (8 caractères « K7Q2-9MXA », 120 s) */
 .pgh-sec.pgh-lksec{padding-top:24px}
 .pgh-lk{position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 120% at 100% 0%,rgba(255,196,110,.16),rgba(255,196,110,0) 60%),var(--card);box-shadow:inset 0 0 0 1px rgba(255,214,140,.38),0 14px 34px rgba(0,0,0,.22)}
 .pgh-lkhd{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
@@ -3417,17 +3417,23 @@
 .pgh-lkring b{position:absolute;inset:0;display:grid;place-items:center;font:700 15px ${FB};color:#fff3dc;font-variant-numeric:tabular-nums}
 .pgh-lktop .t{font:700 14px/1.3 ${FB};color:#ffe2ad}
 .pgh-lktop .t small{display:block;font:600 12px ${FB};color:var(--soft)}
-.pgh-lkcode{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;user-select:all;-webkit-user-select:all}
-.pgh-lkcode span{display:block;text-align:center;padding:9px 0 8px;border-radius:11px;font:600 clamp(17px,5.2vw,23px)/1 ${FB};letter-spacing:.1em;text-indent:.1em;color:#fff6e4;background:linear-gradient(180deg,rgba(255,236,200,.12),rgba(255,236,200,.05));box-shadow:inset 0 0 0 1px rgba(255,214,140,.28);font-variant-numeric:tabular-nums}
-.pgh-lkcode span:nth-child(8n+5),.pgh-lkcode span:nth-child(8n+6),.pgh-lkcode span:nth-child(8n+7),.pgh-lkcode span:nth-child(8n+8){background:linear-gradient(180deg,rgba(190,160,255,.14),rgba(190,160,255,.05))}
+.pgh-lkcode{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto repeat(4,minmax(0,1fr));align-items:center;gap:clamp(4px,1.4vw,8px);max-width:440px;margin:0 auto;user-select:all;-webkit-user-select:all}
+.pgh-lkcode span{display:grid;place-items:center;aspect-ratio:.8;border-radius:clamp(10px,3vw,14px);font:700 clamp(25px,8.2vw,40px)/1 ${FB};color:#fff8ea;text-shadow:0 2px 10px rgba(255,190,90,.35);background:linear-gradient(180deg,rgba(255,236,200,.17),rgba(255,236,200,.05));box-shadow:inset 0 0 0 1px rgba(255,214,140,.34),inset 0 -3px 0 rgba(0,0,0,.18),0 6px 14px rgba(0,0,0,.18);font-variant-numeric:tabular-nums}
+.pgh-lkcode span:nth-child(n+6){background:linear-gradient(180deg,rgba(200,172,255,.2),rgba(190,160,255,.06));box-shadow:inset 0 0 0 1px rgba(205,180,255,.36),inset 0 -3px 0 rgba(0,0,0,.18),0 6px 14px rgba(0,0,0,.18)}
+.pgh-lkcode i{font:700 clamp(20px,6vw,30px)/1 ${FB};font-style:normal;color:rgba(255,214,140,.75);padding:0 1px}
+.pgh-lkbox.on .pgh-lkcode span{animation:pghLkIn .45s cubic-bezier(.3,1.5,.5,1) both}
+.pgh-lkbox.on .pgh-lkcode span:nth-child(2){animation-delay:.03s}.pgh-lkbox.on .pgh-lkcode span:nth-child(3){animation-delay:.06s}.pgh-lkbox.on .pgh-lkcode span:nth-child(4){animation-delay:.09s}
+.pgh-lkbox.on .pgh-lkcode span:nth-child(6){animation-delay:.14s}.pgh-lkbox.on .pgh-lkcode span:nth-child(7){animation-delay:.17s}.pgh-lkbox.on .pgh-lkcode span:nth-child(8){animation-delay:.2s}.pgh-lkbox.on .pgh-lkcode span:nth-child(9){animation-delay:.23s}
+@keyframes pghLkIn{0%{transform:translateY(6px) scale(.86);opacity:0}100%{transform:none;opacity:1}}
+.pgh-lknote{margin:10px 2px 0;text-align:center;font:600 12px ${FB};color:var(--soft)}
 .pgh-lkbox.off .pgh-lkcode{opacity:.28;filter:grayscale(1)}
 .pgh-lkhow{margin:12px 2px 0;font:600 13px/1.5 ${FB};color:#ffe9c8}
 .pgh-lkhow b{color:#fff4de;white-space:nowrap}
 .pgh-lkhow i{font-style:normal;color:#ffc35e}
 .pgh-lkmsg{margin:12px 2px 0;font:600 13px/1.45 ${FB};color:#ffd0b0}
 .pgh-lk .pgh-cta[disabled]{opacity:.55;pointer-events:none}
-@media (min-width:700px){.pgh-lkcode span{font-size:24px;padding:11px 0 10px}.pgh-lkbtns .pgh-cta{flex:0 1 auto}}
-@media (prefers-reduced-motion:reduce){.pgh-bg{animation:none}.pgh-hint{animation:none}.pgh-lkring .fg{transition:none}}
+@media (min-width:700px){.pgh-lkbtns .pgh-cta{flex:0 1 auto}}
+@media (prefers-reduced-motion:reduce){.pgh-bg{animation:none}.pgh-hint{animation:none}.pgh-lkring .fg{transition:none}.pgh-lkbox.on .pgh-lkcode span{animation:none}}
 `;
 
   // ---------------------------------------------------------------------------
@@ -5079,11 +5085,14 @@
     on($.andzone, 'click', (e) => { if (e.target.closest('[data-a="open"]')) andOpen(); });
 
     // ---------- CONNECTER LE JEU (onglet Moi, 18 oct.) ----------
-    // pg_link_make (pegase.sql) : billet à usage unique, 60 s, seul son SHA-256 est gardé par le serveur ; le jeu l'échange contre une session
-    // (Edge Function pegase-redeem). Le code n'est jamais enregistré (ni localStorage, ni journal) et disparaît de l'écran à la fin des 60 s.
+    // pg_link_make (pegase.sql) : CODE COURT à usage unique (8 caractères Crockford, affiché « K7Q2-9MXA », 120 s, gardé en HMAC poivré par le
+    // serveur) que l'on TAPE dans le jeu ; le jeu l'échange contre une session (Edge Function pegase-redeem). Le code n'est jamais enregistré
+    // (ni localStorage, ni journal) et disparaît de l'écran à la fin des 120 s. Le billet LONG (64 hexadécimaux, 60 s : p_long = true) ne
+    // sert qu'aux passages appli → appli (copié en silence ou dans l'extra Android), jamais affiché.
     // « Ouvrir Pégase connecté » (appli de la borne avec Pégase installé) : api.natif.openLinked si la borne sait passer le billet à l'appli
     // (appli 1.9+ : extra Android, jamais dans l'adresse) ; sinon le code est copié en silence et Pégase s'ouvre (pegase://open).
-    const LK = { st: 'idle', code: '', until: 0, ttl: 60, msg: '', tick: 0, busy: false };
+    const LK = { st: 'idle', code: '', until: 0, ttl: 120, msg: '', tick: 0, busy: false };
+    const SHORT = /^[0-9A-HJKMNP-TV-Z]{8}$/, lkPretty = (c) => c.slice(0, 4) + '-' + c.slice(4);
     const lkLeft = () => Math.max(0, Math.ceil((LK.until - performance.now()) / 1000));
     const lkInstalled = () => !!NT && /^(play|update)$/.test(AND.state);
     function lkClear() { LK.code = ''; LK.until = 0; if (LK.tick) { clearTimeout(LK.tick); timers.delete(LK.tick); LK.tick = 0; } }
@@ -5099,15 +5108,16 @@
           `<div class="pgh-lkbtns"><button class="pgh-cta gold" data-lk="acct"><span>Créer mon compte</span></button></div>`;
       } else if (LK.st === 'code' || LK.st === 'off') {
         const on = LK.st === 'code' && LK.code, n = lkLeft(), C = 2 * Math.PI * 22;
-        const groups = on ? LK.code.match(/.{4}/g) : Array(16).fill('····');
+        const ch = on ? LK.code.split('') : Array(8).fill('·'), cell = (x) => '<span>' + esc(x) + '</span>';
         h = head('Ton code est prêt : il ne sert qu\'une fois.') +
-          `<div class="pgh-lkbox${on ? '' : ' off'}"><div class="pgh-lktop"><div class="pgh-lkring${n <= 10 ? ' low' : ''}"><svg viewBox="0 0 50 50"><circle class="bg" cx="25" cy="25" r="22"/><circle class="fg" data-lk="fg" cx="25" cy="25" r="22" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${(C * (1 - n / LK.ttl)).toFixed(2)}"/></svg><b data-lk="n">${on ? n : 0}</b></div>` +
+          `<div class="pgh-lkbox${on ? ' on' : ' off'}"><div class="pgh-lktop"><div class="pgh-lkring${n <= 10 ? ' low' : ''}"><svg viewBox="0 0 50 50"><circle class="bg" cx="25" cy="25" r="22"/><circle class="fg" data-lk="fg" cx="25" cy="25" r="22" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${(C * (1 - n / LK.ttl)).toFixed(2)}"/></svg><b data-lk="n">${on ? n : 0}</b></div>` +
           `<div class="t" data-lk="t">${on ? 'Valable encore <span data-lk="s">' + n + '</span> s<small>Un seul usage, seulement pour ton compte</small>' : 'Ce code a expiré<small>Demande un nouveau code, c\'est instantané</small>'}</div></div>` +
-          `<div class="pgh-lkcode" role="text" aria-label="${on ? esc(groups.join(' ')) : 'code expiré'}">${groups.map((g) => '<span>' + esc(g) + '</span>').join('')}</div></div>` +
+          `<div class="pgh-lkcode" role="text" aria-label="${on ? esc(ch.join(' ')) : 'code expiré'}">${ch.slice(0, 4).map(cell).join('')}<i aria-hidden="true">–</i>${ch.slice(4).map(cell).join('')}</div>` +
+          (on ? '<p class="pgh-lknote">Majuscules, minuscules, tiret ou pas : peu importe</p>' : '') + `</div>` +
           `<p class="pgh-lkhow">Dans le jeu&nbsp;: <b>Ton compte</b> <i>›</i> <b>Connexion rapide</b> <i>›</i> tape&nbsp;ce&nbsp;code</p>` +
           `<div class="pgh-lkbtns">${on ? `<button class="pgh-cta glass" data-lk="copy">${PGH_SVG.copy}<span>Copier</span></button>` : ''}<button class="pgh-cta ${on ? 'glass' : 'gold'}" data-lk="new">${PGH_SVG.redo}<span>Nouveau code</span></button>${openBtn}</div>`;
       } else {
-        h = head('Un code à usage unique, valable 60 secondes : tu retrouves ton compte dans le jeu, sans mot de passe.') +
+        h = head('Un code de 8 caractères, valable 2 minutes et à usage unique : tu le tapes dans le jeu et tu retrouves ton compte, sans mot de passe.') +
           (LK.msg ? `<p class="pgh-lkmsg">${esc(LK.msg)}</p>` : '') +
           `<div class="pgh-lkbtns"><button class="pgh-cta ${lkInstalled() ? 'glass' : 'gold'}" data-lk="make"${LK.busy ? ' disabled' : ''}>${PGH_SVG.link}<span>${LK.busy ? 'Un instant…' : 'Obtenir mon code'}</span></button>${openBtn}</div>`;
       }
@@ -5139,29 +5149,33 @@
       let r = null, err = null;
       try { r = await PG.rpc('pg_link_make', {}); } catch (e) { err = e; }
       LK.busy = false; if (dead) return false;
-      const row = Array.isArray(r) ? r[0] : r, c = row && typeof row.r_code === 'string' ? row.r_code.trim().toLowerCase() : '';
-      if (err || !/^[0-9a-f]{64}$/.test(c)) {
+      const row = Array.isArray(r) ? r[0] : r, c = row && typeof row.r_code === 'string' ? row.r_code.replace(/[^0-9A-Za-z]/g, '').toUpperCase() : '';
+      if (err || !SHORT.test(c)) {
         lkClear(); LK.st = 'idle'; LK.msg = lkWhy(err || 'réponse');
         if (!err) report('Pégase hub : pg_link_make, réponse inattendue');
         renderLink(); return false;
       }
-      // durée : celle du serveur si l'horloge de l'appareil est cohérente, sinon 60 s (moins 1 s pour le trajet)
-      let ttl = 59; const exp = row.r_exp ? Date.parse(row.r_exp) : NaN;
-      if (isFinite(exp)) { const d = (exp - Date.now()) / 1000; if (d >= 5 && d <= 60) ttl = Math.floor(d); }
-      lkClear(); LK.code = c; LK.ttl = 60; LK.until = performance.now() + ttl * 1000; LK.st = 'code';
+      // durée : celle du serveur si l'horloge de l'appareil est cohérente, sinon 120 s (moins 1 s pour le trajet)
+      let ttl = 119; const exp = row.r_exp ? Date.parse(row.r_exp) : NaN;
+      if (isFinite(exp)) { const d = (exp - Date.now()) / 1000; if (d >= 5 && d <= 120) ttl = Math.floor(d); }
+      lkClear(); LK.code = c; LK.ttl = 120; LK.until = performance.now() + ttl * 1000; LK.st = 'code';
       renderLink(); lkTick(); tone(660, 990);
       return true;
     }
-    async function lkCopy(silent) {
-      if (!LK.code) return false;
+    async function lkClip(text) {
       let ok = false;
-      try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(LK.code); ok = true; } } catch (e) { ok = false; }
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); ok = true; } } catch (e) { ok = false; }
       if (!ok) {
         try {
-          const ta = document.createElement('textarea'); ta.value = LK.code; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+          const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
           box.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove();
         } catch (e) { ok = false; }
       }
+      return ok;
+    }
+    async function lkCopy(silent) {
+      if (!LK.code) return false;
+      const ok = await lkClip(lkPretty(LK.code));
       if (!silent) toast(ok ? '📋 Code copié : colle-le dans Pégase' : 'Copie impossible ici : tape le code dans le jeu');
       return ok;
     }
@@ -5175,9 +5189,11 @@
         if (r && r.ok) { later(() => renderAndroid(false), 400); return; }
         if (r && r.why === 'make') { LK.msg = lkWhy(r.err); renderLink(); return; }
       }
-      if (LK.st !== 'code' || lkLeft() < 8) await lkMake();
+      let r = null; try { r = await PG.rpc('pg_link_make', { p_long: true }); } catch (e) { r = null; }   // billet LONG, appli → appli
       if (dead) return;
-      if (LK.code) await lkCopy(true);
+      const row = Array.isArray(r) ? r[0] : r, c = row && typeof row.r_code === 'string' ? row.r_code.trim().toLowerCase() : '';
+      if (/^[0-9a-f]{64}$/.test(c)) await lkClip(c);
+      if (dead) return;
       let ok = false; try { ok = await NT.open(); } catch (e) { ok = false; }
       if (!ok && !dead) toast('Pégase n\'est pas (encore) disponible pour ce téléphone');
       later(() => renderAndroid(false), 400);
