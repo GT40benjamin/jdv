@@ -149,6 +149,8 @@ actuel (`p_name` ajouté par la borne, `p_room` = salle actuelle pour pg_room_av
 Depuis la 1.19.12 (phase 2b du serveur) : aussi `pg_unlock_buy` (`{ p_unlock, p_op }` seulement, `p_name` ajouté par la borne ; réponse
 `r_ok, r_why, r_ecus, r_unlock, r_price`) et les catalogues `pg_unlock_catalog` / `pg_mission_catalog` (envoyés avec `p_code` SEUL, compte
 connecté). Pas de `pg_claim` : les récompenses de missions se reçoivent dans le jeu.
+Depuis la 1.19.15 : aussi `pg_link_make` (aucun argument du hub transmis : `p_code` + `p_name` de la borne) → `[{ r_code, r_exp }]` = billet
+de connexion du JEU (64 hexa, usage unique, 60 s ; le hub ne l'enregistre nulle part et l'efface de l'écran à la fin).
 `api.pegase.account()` : invité → quitte le hub et ouvre « Crée ton compte ».
 
 ## Ajout 9 : l'appli native d'un jeu (api.natif, jeux de NATIVE_APPS dans shell2.js : aujourd'hui `pegase`)

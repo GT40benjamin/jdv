@@ -2840,7 +2840,11 @@
     horns: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 19c-2-5-1-11 2-15 0 4 1 7 4 9-2 1-4 3-6 6zM19 19c2-5 1-11-2-15 0 4-1 7-4 9 2 1 4 3 6 6z"/></svg>',
     antenna: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 20c0-6-2-10-4-13M16 20c0-6 2-10 4-13"/><circle cx="4" cy="5.5" r="2.4" fill="currentColor"/><circle cx="20" cy="5.5" r="2.4" fill="currentColor"/></svg>',
     dice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1.4" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>',
-    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    link: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"><path d="M27 37a10 10 0 0 0 14 1l9-9a10 10 0 0 0-14-14l-4 4"/><path d="M37 27a10 10 0 0 0-14-1l-9 9a10 10 0 0 0 14 14l4-4"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="8.5" y="8.5" width="12" height="12" rx="2.6"/><path d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/></svg>',
+    redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4v4.5H15"/></svg>',
+    open: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></svg>'
   };
 
   const PGH_CSS = (FD, FB) => `
@@ -2861,7 +2865,7 @@
   linear-gradient(90deg,rgba(30,14,52,.66) 0%,rgba(30,14,52,.36) 30%,rgba(30,14,52,0) 54%),
   linear-gradient(180deg,rgba(44,20,70,.26) 0%,rgba(44,20,70,0) 24%,rgba(20,12,36,0) 76%,rgba(20,12,36,.55) 93%,var(--night) 100%)}
 .pgh-fly{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
-.pgh-gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;z-index:1;outline:none;opacity:0;transition:opacity .8s ease}
+.pgh-gl{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:pan-y;z-index:1;outline:none;opacity:0;transition:opacity .8s ease}
 .pgh-gl.on{opacity:1}
 .pgh-name{position:absolute;left:0;top:0;z-index:3;pointer-events:none;transform:translate(-50%,-100%);padding:5px 12px 6px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .5s;
   font:700 13px ${FB};letter-spacing:.06em;color:#3a1d0a;background:linear-gradient(180deg,#fff3cf,#ffd37e);box-shadow:0 4px 14px rgba(40,16,0,.35),inset 0 0 0 1px rgba(255,255,255,.6)}
@@ -2880,7 +2884,7 @@
 @keyframes pghPulse{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1.03)}}
 .pgh-copy{position:absolute;z-index:4;left:0;right:0;top:0;padding:calc(16px + env(safe-area-inset-top,0px) * 0) 18px 0;pointer-events:none;text-align:center}
 .pgh-copy > *{pointer-events:auto}
-.pgh-eye{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font:700 11px ${FB};letter-spacing:.14em;text-transform:uppercase;color:#ffe2ad;background:rgba(30,16,50,.45);box-shadow:inset 0 0 0 1px rgba(255,214,140,.35);backdrop-filter:blur(4px)}
+.pgh-eye{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font:700 11px ${FB};letter-spacing:.14em;text-transform:uppercase;color:#ffe2ad;background:rgba(30,16,50,.62);box-shadow:inset 0 0 0 1px rgba(255,214,140,.35)}
 .pgh-eye i{width:6px;height:6px;border-radius:50%;background:#ffd36a;box-shadow:0 0 10px #ffd36a}
 .pgh-title{margin:8px 0 0;font:400 clamp(46px,14vw,64px)/1 ${FD};letter-spacing:.03em;color:#fff3dc;
   background:linear-gradient(180deg,#fffaf0 15%,#ffe2a6 55%,#ffb46a 95%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
@@ -2890,7 +2894,7 @@
 .pgh-bottom > *{pointer-events:auto}
 .pgh-emotes{display:flex;gap:9px;justify-content:center}
 .pgh-emo{width:50px;height:50px;border-radius:50%;border:0;display:grid;place-items:center;font-size:22px;line-height:1;color:#fff;padding:0;
-  background:radial-gradient(circle at 50% 35%,rgba(110,70,140,.78),rgba(34,20,56,.78));box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.5),0 6px 16px rgba(0,0,0,.35);backdrop-filter:blur(3px);transition:transform .12s, box-shadow .2s}
+  background:radial-gradient(circle at 50% 35%,rgba(110,70,140,.86),rgba(34,20,56,.86));box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.5),0 6px 16px rgba(0,0,0,.35);transition:transform .12s, box-shadow .2s}
 .pgh-emo:active{transform:scale(.9)}
 .pgh-emo.hit{box-shadow:inset 0 0 0 2px #ffe08a,0 0 22px rgba(255,200,110,.75)}
 .pgh-emo small{display:none}
@@ -2905,7 +2909,7 @@
 .pgh-cta{flex:1 1 0;min-height:52px;border-radius:16px;border:0;padding:8px 12px;font:700 15px ${FB};letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .pgh-cta svg{width:20px;height:20px;flex:none}
 .pgh-cta.gold{color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e 55%,#ff9f4a);box-shadow:0 8px 22px rgba(255,150,60,.38),inset 0 1px 0 rgba(255,255,255,.75),inset 0 -2px 0 rgba(160,70,10,.35)}
-.pgh-cta.glass{color:#fff4e2;background:rgba(40,24,66,.62);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.55),0 8px 20px rgba(0,0,0,.3);backdrop-filter:blur(6px)}
+.pgh-cta.glass{color:#fff4e2;background:rgba(40,24,66,.74);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.55),0 8px 20px rgba(0,0,0,.3)}
 .pgh-cta:active{transform:translateY(1px) scale(.99)}
 .pgh-small{font:600 12px ${FB};color:rgba(255,240,220,.78);text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .pgh-scrolltip{position:absolute;z-index:4;left:50%;bottom:6px;transform:translateX(-50%);width:22px;height:22px;opacity:.6;pointer-events:none;animation:pghBob 2s ease-in-out infinite;color:#ffe2ad}
@@ -3019,7 +3023,7 @@
 .pgh-fut .pgh-chip{position:absolute;right:10px;top:12px;background:rgba(255,214,140,.16);color:#ffe2ad;box-shadow:inset 0 0 0 1px rgba(255,214,140,.35)}
 .pgh-foot{max-width:1080px;margin:0 auto;padding:26px 16px calc(30px + env(safe-area-inset-bottom,0px));text-align:center;font:600 12px/1.5 ${FB};color:rgba(255,240,220,.5)}
 /* ---------- onglets (collés en haut en défilant) ---------- */
-.pgh-tabs{position:sticky;top:0;z-index:8;display:flex;justify-content:center;gap:4px;padding:8px 12px 0;background:linear-gradient(180deg,rgba(16,12,34,.96),rgba(16,12,34,.9));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,214,140,.16),0 10px 24px rgba(0,0,0,.25)}
+.pgh-tabs{position:sticky;top:0;z-index:8;display:flex;justify-content:center;gap:4px;padding:8px 12px 0;background:linear-gradient(180deg,rgba(16,12,34,.96),rgba(16,12,34,.9));box-shadow:0 1px 0 rgba(255,214,140,.16),0 10px 24px rgba(0,0,0,.25)}
 .pgh-tab{position:relative;flex:1 1 0;max-width:200px;min-height:46px;border:0;background:none;padding:6px 8px 10px;display:flex;align-items:center;justify-content:center;gap:7px;font:700 14.5px ${FB};letter-spacing:.02em;color:rgba(255,240,220,.62);transition:color .2s}
 .pgh-tab svg{width:19px;height:19px;flex:none}
 .pgh-tab.on{color:#ffe2a6}
@@ -3094,7 +3098,7 @@
 .pgh.editing .pgh-hero .pgh-bottom{opacity:0;transform:translateY(16px);pointer-events:none}
 .pgh.editing .pgh-scroll{overflow:hidden}
 .pgh.editing .pgh-name,.pgh.editing .pgh-hint{opacity:0!important}
-.pgh-ed{position:absolute;left:0;right:0;bottom:0;z-index:15;height:54%;display:flex;flex-direction:column;border-radius:24px 24px 0 0;background:linear-gradient(180deg,rgba(36,24,66,.94),rgba(20,13,38,.97));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -12px 34px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,214,140,.32);transform:translateY(105%);transition:transform .42s cubic-bezier(.2,.85,.25,1),visibility 0s .42s;visibility:hidden}
+.pgh-ed{position:absolute;left:0;right:0;bottom:0;z-index:15;height:54%;display:flex;flex-direction:column;border-radius:24px 24px 0 0;background:linear-gradient(180deg,rgba(36,24,66,.94),rgba(20,13,38,.97));box-shadow:0 -12px 34px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,214,140,.32);transform:translateY(105%);transition:transform .42s cubic-bezier(.2,.85,.25,1),visibility 0s .42s;visibility:hidden}
 .pgh-ed.on{transform:none;visibility:visible;transition:transform .42s cubic-bezier(.2,.85,.25,1)}
 .pgh.wide .pgh-ed{left:auto;top:0;width:min(56%,620px);height:auto;border-radius:24px 0 0 24px;transform:translateX(105%)}
 .pgh.wide .pgh-ed.on{transform:none}
@@ -3382,7 +3386,40 @@
 @keyframes pghFly{0%{transform:translate(0,0) scale(.3);opacity:0}10%{opacity:1}70%{opacity:.9}100%{transform:translate(var(--x),var(--y)) scale(.8);opacity:0}}
 .pgh-ch.got{animation:pghPop .7s cubic-bezier(.3,1.6,.5,1)}
 @media (prefers-reduced-motion:reduce){.pgh-burst i,.pgh-mj,.pgh-ch.got,.pgh-buym[data-st="done"] .pgh-bth{animation:none}}
-@media (prefers-reduced-motion:reduce){.pgh-bg{animation:none}.pgh-hint{animation:none}}
+/* « Connecter le jeu Pégase » (18 oct.) : code à usage unique de pg_link_make, 60 s */
+.pgh-sec.pgh-lksec{padding-top:24px}
+.pgh-lk{position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 120% at 100% 0%,rgba(255,196,110,.16),rgba(255,196,110,0) 60%),var(--card);box-shadow:inset 0 0 0 1px rgba(255,214,140,.38),0 14px 34px rgba(0,0,0,.22)}
+.pgh-lkhd{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.pgh-lkic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e 55%,#ff9f4a);box-shadow:0 6px 16px rgba(255,150,60,.35),inset 0 1px 0 rgba(255,255,255,.7)}
+.pgh-lkic svg{width:30px;height:30px}
+.pgh-lkhd h3{margin:0;font:700 17px ${FB};color:#fff3dc}
+.pgh-lkhd p{margin:4px 0 0;font:600 13px/1.45 ${FB};color:var(--soft)}
+.pgh-lkbtns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.pgh-lkbtns .pgh-cta{flex:1 1 auto;min-height:48px;padding:8px 16px}
+.pgh-lkbtns .pgh-cta svg{width:20px;height:20px;flex:none}
+.pgh-lk .pgh-cta.glass{backdrop-filter:none;background:rgba(40,24,66,.8)}
+.pgh-lkbox{margin-top:14px;border-radius:18px;padding:14px 12px 12px;background:rgba(12,8,26,.5);box-shadow:inset 0 0 0 1px rgba(255,214,140,.22)}
+.pgh-lktop{display:flex;align-items:center;gap:12px;margin:0 2px 10px}
+.pgh-lkring{position:relative;width:50px;height:50px;flex:none}
+.pgh-lkring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.pgh-lkring circle{fill:none;stroke-width:5}
+.pgh-lkring .bg{stroke:rgba(255,255,255,.1)}
+.pgh-lkring .fg{stroke:#ffc35e;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .4s}
+.pgh-lkring.low .fg{stroke:#ff8a5a}
+.pgh-lkring b{position:absolute;inset:0;display:grid;place-items:center;font:700 15px ${FB};color:#fff3dc;font-variant-numeric:tabular-nums}
+.pgh-lktop .t{font:700 14px/1.3 ${FB};color:#ffe2ad}
+.pgh-lktop .t small{display:block;font:600 12px ${FB};color:var(--soft)}
+.pgh-lkcode{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;user-select:all;-webkit-user-select:all}
+.pgh-lkcode span{display:block;text-align:center;padding:9px 0 8px;border-radius:11px;font:600 clamp(17px,5.2vw,23px)/1 ${FB};letter-spacing:.1em;text-indent:.1em;color:#fff6e4;background:linear-gradient(180deg,rgba(255,236,200,.12),rgba(255,236,200,.05));box-shadow:inset 0 0 0 1px rgba(255,214,140,.28);font-variant-numeric:tabular-nums}
+.pgh-lkcode span:nth-child(8n+5),.pgh-lkcode span:nth-child(8n+6),.pgh-lkcode span:nth-child(8n+7),.pgh-lkcode span:nth-child(8n+8){background:linear-gradient(180deg,rgba(190,160,255,.14),rgba(190,160,255,.05))}
+.pgh-lkbox.off .pgh-lkcode{opacity:.28;filter:grayscale(1)}
+.pgh-lkhow{margin:12px 2px 0;font:600 13px/1.5 ${FB};color:#ffe9c8}
+.pgh-lkhow b{color:#fff4de;white-space:nowrap}
+.pgh-lkhow i{font-style:normal;color:#ffc35e}
+.pgh-lkmsg{margin:12px 2px 0;font:600 13px/1.45 ${FB};color:#ffd0b0}
+.pgh-lk .pgh-cta[disabled]{opacity:.55;pointer-events:none}
+@media (min-width:700px){.pgh-lkcode span{font-size:24px;padding:11px 0 10px}.pgh-lkbtns .pgh-cta{flex:0 1 auto}}
+@media (prefers-reduced-motion:reduce){.pgh-bg{animation:none}.pgh-hint{animation:none}.pgh-lkring .fg{transition:none}}
 `;
 
   // ---------------------------------------------------------------------------
@@ -3475,6 +3512,9 @@
     <i class="ind" data-h="tabind"></i>
   </nav>
   <div class="pgh-pane" data-pane="moi">
+    <section class="pgh-sec pgh-lksec" data-h="seclk">
+      <div class="pgh-card pgh-lk" data-h="lk" aria-live="polite"></div>
+    </section>
     <section class="pgh-sec pgh-today" data-h="sectd" hidden>
       <div class="pgh-frhead"><h2 class="pgh-h2">Aujourd'hui</h2><span class="pgh-tdn" data-h="tdn"></span></div>
       <p class="pgh-sub" data-h="tdsub">Tes 3 missions du jour dans Pégase et la suite de ton histoire.</p>
@@ -3733,7 +3773,7 @@
     const box = document.createElement('div'); box.className = 'pgh';
     box.innerHTML = buildPage(FD, FB, who);
     root.appendChild(box);
-    const $ = {}; box.querySelectorAll('[data-h]').forEach((n) => { $[n.dataset.h] = n; });
+    const $ = {}; box.querySelectorAll('[data-h]').forEach((n) => { $[n.dataset.h] = n; }); $.copy = box.querySelector('.pgh-copy');
     const listeners = [], timers = new Set(), ivals = new Set(); let dead = false;
     const on = (t, ty, fn, o) => { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); };
     const later = (fn, ms) => { const id = setTimeout(() => { timers.delete(id); if (!dead) fn(); }, ms); timers.add(id); return id; };
@@ -4109,14 +4149,49 @@
       }
       const r = $.hero.getBoundingClientRect();
       if (wide) { const top = short ? 8 : 30, bot = short ? h - 8 : $.emotes.getBoundingClientRect().top - r.top - 8; const x0 = w * 0.48, x1 = short ? $.emotes.getBoundingClientRect().left - r.left - 4 : w * 0.98; return { x: x0, y: top, w: x1 - x0, h: Math.max(160, bot - top) }; }
-      const cp = box.querySelector('.pgh-copy').getBoundingClientRect(), top = cp.bottom - r.top + 30, bot = $.emotes.getBoundingClientRect().top - r.top - 6;
+      // sous la phrase du haut, en laissant la place de l'étiquette du nom (mesurée), jusqu'aux gestes : l'avatar s'adapte à l'espace libre
+      const cp = $.copy.getBoundingClientRect(), nh = ($.name.offsetHeight || 28) + 6;
+      const top = cp.bottom - r.top + Math.max(30, nh + 8), bot = $.emotes.getBoundingClientRect().top - r.top - 6;
       return { x: 0, y: top, w, h: Math.max(180, bot - top) };
+    }
+    // ce qu'on a mesuré pour cadrer : relu chaque seconde (polices arrivées en retard, barre d'Android, texte qui passe sur 3 lignes…)
+    let LAY = { copyB: 0, emoT: 0, heroH: 0, heroW: 0 };
+    function layMeasure() {
+      const r = $.hero.getBoundingClientRect();
+      return { copyB: wide ? -1e4 : Math.round($.copy.getBoundingClientRect().bottom - r.top), emoT: Math.round($.emotes.getBoundingClientRect().top - r.top), heroH: Math.round(r.height), heroW: Math.round(r.width) };
+    }
+    function layCheck() {
+      if (dead || editing || friendOn || !heroVis || document.hidden || box.classList.contains('editing')) return;
+      const m = layMeasure();
+      if (Math.abs(m.copyB - LAY.copyB) > 1.5 || Math.abs(m.emoT - LAY.emoT) > 1.5 || Math.abs(m.heroH - LAY.heroH) > 1.5 || Math.abs(m.heroW - LAY.heroW) > 1.5) relayout();
+      else if (STG && STG.view && $.gl.parentNode === $.hero) { const g = $.gl.getBoundingClientRect(); if (Math.abs(g.width - STG.view.w) > 1.5 || Math.abs(g.height - STG.view.h) > 1.5) placeStage(); }
     }
     function fvFocus() { const r = $.fvstage.getBoundingClientRect(); return { x: r.width * 0.05, y: wide ? 24 : 12, w: r.width * 0.9, h: r.height - (wide ? 48 : 18) }; }
     let STG = null, PGM = null, editing = false, friendOn = null;
+    // la toile 3D ne couvre que la BANDE où se tient l'avatar (+ marges pour le saut, les étincelles et l'étiquette) : beaucoup moins de
+    // pixels à dessiner et à composer sur les téléphones ; plein cadre pendant le créateur et chez un copain
+    let GLB = { x: 0, y: 0, w: 0, h: 0, full: true };
+    function glBand(f) {
+      const hw = $.hero.offsetWidth, hh = $.hero.offsetHeight;
+      if (friendOn || editing || $.gl.parentNode !== $.hero) return { x: 0, y: 0, w: hw, h: hh, full: true };
+      const padT = Math.round(Math.max(70, f.h * 0.22)), padB = Math.round(Math.max(24, f.h * 0.07)), padX = wide ? Math.round(Math.max(40, f.w * 0.12)) : 0;
+      const x = Math.max(0, Math.floor(f.x - padX)), y = Math.max(0, Math.floor(f.y - padT));
+      return { x, y, w: Math.min(hw, Math.ceil(f.x + f.w + padX)) - x, h: Math.min(hh, Math.ceil(f.y + f.h + padB)) - y, full: false };
+    }
     function placeStage() {
       const f = friendOn ? fvFocus() : heroFocus();
-      if (STG) STG.setFocus(f);
+      if (!friendOn) {
+        LAY = layMeasure();
+        const B = glBand(f), st = $.gl.style;
+        if (B.full) { if (!GLB.full) { st.left = st.top = '0px'; st.width = st.height = '100%'; } }
+        else { st.left = B.x + 'px'; st.top = B.y + 'px'; st.width = B.w + 'px'; st.height = B.h + 'px'; }
+        if (B.x !== GLB.x || B.y !== GLB.y || B.full !== GLB.full) lastNX = -1;   // l'étiquette du nom suit la bande
+        GLB = B;
+        if (STG) STG.setFocus(B.full ? f : { x: f.x - B.x, y: f.y - B.y, w: f.w, h: f.h });
+      } else {
+        if (!GLB.full) { const st = $.gl.style; st.left = st.top = '0px'; st.width = st.height = '100%'; GLB = { x: 0, y: 0, w: 0, h: 0, full: true }; }
+        if (STG) STG.setFocus(f);
+      }
       $.wait.style.left = (f.x + f.w / 2) + 'px'; $.wait.style.top = (f.y + f.h * 0.52) + 'px';
     }
 
@@ -4124,9 +4199,12 @@
     const fx = $.fly.getContext('2d');
     let flyW = 0, flyH = 0;
     function flySize() { const dpr = Math.min(1.5, window.devicePixelRatio || 1); flyW = $.hero.offsetWidth; flyH = $.hero.offsetHeight; $.fly.width = Math.round(flyW * dpr); $.fly.height = Math.round(flyH * dpr); fx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    let flyBlank = false;
     function flyDraw(t) {
-      const w = flyW, h = flyH; fx.clearRect(0, 0, w, h);
-      const P = 14, k = (t % P) / P; if (k > 0.62) return;
+      const w = flyW, h = flyH;
+      const P = 14, k = (t % P) / P;
+      if (k > 0.62) { if (!flyBlank) { fx.clearRect(0, 0, w, h); flyBlank = true; } return; }   // ciel vide : rien à redessiner (ni à envoyer à l'écran)
+      fx.clearRect(0, 0, w, h); flyBlank = false;
       const q = k / 0.62, u = Math.min(h, w * 0.62), s = Math.max(0.55, Math.min(1.1, u / 520));
       const y0 = wide ? h * 0.2 : h * 0.33, px = w * (1.12 - q * 1.3), py = y0 - Math.sin(q * Math.PI) * h * 0.08 + Math.sin(t * 2.2) * 4;
       for (let i = 1; i < 30; i++) { const kk = q - i * 0.0055; if (kk < 0) break; const tx = w * (1.12 - kk * 1.3) + 12 * s, ty = y0 - Math.sin(kk * Math.PI) * h * 0.08 + Math.sin((t - i * 0.05) * 2.2) * 4 + 3 + i * 0.25;
@@ -4148,7 +4226,10 @@
     function onHead(x, y) {
       if (editing || friendOn) return;
       if (Math.abs(x - lastNX) < 0.4 && Math.abs(y - lastNY) < 0.4) return; lastNX = x; lastNY = y;
-      const fy = (STG && STG.view.focus) ? STG.view.focus.y + 26 : 26; y = Math.max(fy, y);
+      x += GLB.full ? 0 : GLB.x; y += GLB.full ? 0 : GLB.y;   // toile → haut de page
+      const fy = (STG && STG.view.focus) ? STG.view.focus.y + (GLB.full ? 0 : GLB.y) + 26 : 26;
+      // jamais sur le titre ni la phrase du haut : le bas de l'étiquette reste sous la phrase + sa propre hauteur (mesurée, relue chaque seconde)
+      y = Math.max(fy, y, wide ? -1e4 : LAY.copyB + ($.name.offsetHeight || 28) + 10);
       $.name.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%)`;
       $.hint.style.transform = `translate(${(x + 46).toFixed(1)}px,${(y + 34).toFixed(1)}px)`;
     }
@@ -4807,7 +4888,7 @@
       const top = $.hero.offsetHeight;
       if (scroll && $.scroll.scrollTop > top) $.scroll.scrollTop = top;
       if (t === 'amis') { renderFriends(); loadAvatars(); }
-      if (t === 'moi') renderShowcase();
+      if (t === 'moi') { renderShowcase(); renderLink(); }
     }
     on($.tabs, 'click', (e) => { const b = e.target.closest('.pgh-tab'); if (b) { setTab(b.dataset.tab, true); tone(560, 760); } });
     const toDl = () => { setTab('infos', false); requestAnimationFrame(() => { const s = $.scroll, t = $.secdl.offsetTop - $.tabs.offsetHeight - 6; try { s.scrollTo({ top: t, behavior: 'smooth' }); } catch (e) { s.scrollTop = t; } }); };
@@ -4895,7 +4976,7 @@
       $.fvhead.innerHTML = m.photo ? `<img class="hd" alt="" src="${esc(m.photo)}">` : `<span class="ini" style="--h:${hue(m.name)}">${esc(m.display[0] || '?')}</span>`;
       $.fvnonet.textContent = m.display + ' n\'a pas encore créé son avatar.';
       $.fv.classList.add('on'); $.name.classList.remove('on');
-      if (has) { $.fvstage.appendChild($.gl); STG.setFrame('corps'); STG.setLook(a.look || a.tenue).then(() => { if (!dead && friendOn === m && STG) STG.gesture('wave'); }); STG.face(); }
+      if (has) { { const st = $.gl.style; st.left = st.top = '0px'; st.width = st.height = '100%'; GLB = { x: 0, y: 0, w: 0, h: 0, full: true }; } $.fvstage.appendChild($.gl); STG.setFrame('corps'); STG.setLook(a.look || a.tenue).then(() => { if (!dead && friendOn === m && STG) STG.gesture('wave'); }); STG.face(); }
       requestAnimationFrame(() => { if (!dead) { placeStage(); activeSync(); } });
       tone(523, 784);
     }
@@ -4978,6 +5059,7 @@
       const lab = st.state === 'play' ? 'Jouer' : /^(install|update|busy|replace)$/.test(st.state) ? (st.state === 'update' ? 'Mettre à jour' : 'Installer') : '';
       for (const [k, def] of [['go-dl', 'Télécharger le jeu'], ['go-dl1', 'Télécharger']]) { const sp = $[k] && $[k].querySelector('span'); if (sp) sp.textContent = lab ? (k === 'go-dl' && lab === 'Jouer' ? 'Jouer à Pégase' : lab) : def; }
       box.dataset.android = st.state;
+      renderLink();
     }
     async function andOpen() {
       if (!NT) return;
@@ -4987,6 +5069,119 @@
       later(() => renderAndroid(false), 400);
     }
     on($.andzone, 'click', (e) => { if (e.target.closest('[data-a="open"]')) andOpen(); });
+
+    // ---------- CONNECTER LE JEU (onglet Moi, 18 oct.) ----------
+    // pg_link_make (pegase.sql) : billet à usage unique, 60 s, seul son SHA-256 est gardé par le serveur ; le jeu l'échange contre une session
+    // (Edge Function pegase-redeem). Le code n'est jamais enregistré (ni localStorage, ni journal) et disparaît de l'écran à la fin des 60 s.
+    // « Ouvrir Pégase connecté » (appli de la borne avec Pégase installé) : api.natif.openLinked si la borne sait passer le billet à l'appli
+    // (appli 1.9+ : extra Android, jamais dans l'adresse) ; sinon le code est copié en silence et Pégase s'ouvre (pegase://open).
+    const LK = { st: 'idle', code: '', until: 0, ttl: 60, msg: '', tick: 0, busy: false };
+    const lkLeft = () => Math.max(0, Math.ceil((LK.until - performance.now()) / 1000));
+    const lkInstalled = () => !!NT && /^(play|update)$/.test(AND.state);
+    function lkClear() { LK.code = ''; LK.until = 0; if (LK.tick) { clearTimeout(LK.tick); timers.delete(LK.tick); LK.tick = 0; } }
+    function renderLink() {
+      if (!$.lk) return;
+      if (!PG) { $.seclk.hidden = true; return; }
+      $.seclk.hidden = false;
+      const head = (p) => `<div class="pgh-lkhd"><span class="pgh-lkic">${PGH_SVG.link}</span><div><h3>Connecter le jeu Pégase</h3><p>${p.replace(/ ([!?:;»])/g, ' $1')}</p></div></div>`;
+      const openBtn = lkInstalled() ? `<button class="pgh-cta gold" data-lk="open">${PGH_SVG.open}<span>Ouvrir Pégase connecté</span></button>` : '';
+      let h;
+      if (!memberMode()) {
+        h = head('Avec un compte (gratuit), le jeu retrouve ton avatar, tes lucioles et tes missions sur tous tes appareils.') +
+          `<div class="pgh-lkbtns"><button class="pgh-cta gold" data-lk="acct"><span>Créer mon compte</span></button></div>`;
+      } else if (LK.st === 'code' || LK.st === 'off') {
+        const on = LK.st === 'code' && LK.code, n = lkLeft(), C = 2 * Math.PI * 22;
+        const groups = on ? LK.code.match(/.{4}/g) : Array(16).fill('····');
+        h = head('Ton code est prêt : il ne sert qu\'une fois.') +
+          `<div class="pgh-lkbox${on ? '' : ' off'}"><div class="pgh-lktop"><div class="pgh-lkring${n <= 10 ? ' low' : ''}"><svg viewBox="0 0 50 50"><circle class="bg" cx="25" cy="25" r="22"/><circle class="fg" data-lk="fg" cx="25" cy="25" r="22" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${(C * (1 - n / LK.ttl)).toFixed(2)}"/></svg><b data-lk="n">${on ? n : 0}</b></div>` +
+          `<div class="t" data-lk="t">${on ? 'Valable encore <span data-lk="s">' + n + '</span> s<small>Un seul usage, seulement pour ton compte</small>' : 'Ce code a expiré<small>Demande un nouveau code, c\'est instantané</small>'}</div></div>` +
+          `<div class="pgh-lkcode" role="text" aria-label="${on ? esc(groups.join(' ')) : 'code expiré'}">${groups.map((g) => '<span>' + esc(g) + '</span>').join('')}</div></div>` +
+          `<p class="pgh-lkhow">Dans le jeu&nbsp;: <b>Ton compte</b> <i>›</i> <b>Connexion rapide</b> <i>›</i> tape&nbsp;ce&nbsp;code</p>` +
+          `<div class="pgh-lkbtns">${on ? `<button class="pgh-cta glass" data-lk="copy">${PGH_SVG.copy}<span>Copier</span></button>` : ''}<button class="pgh-cta ${on ? 'glass' : 'gold'}" data-lk="new">${PGH_SVG.redo}<span>Nouveau code</span></button>${openBtn}</div>`;
+      } else {
+        h = head('Un code à usage unique, valable 60 secondes : tu retrouves ton compte dans le jeu, sans mot de passe.') +
+          (LK.msg ? `<p class="pgh-lkmsg">${esc(LK.msg)}</p>` : '') +
+          `<div class="pgh-lkbtns"><button class="pgh-cta ${lkInstalled() ? 'glass' : 'gold'}" data-lk="make"${LK.busy ? ' disabled' : ''}>${PGH_SVG.link}<span>${LK.busy ? 'Un instant…' : 'Obtenir mon code'}</span></button>${openBtn}</div>`;
+      }
+      if ($.lk.innerHTML !== h) $.lk.innerHTML = h;
+      box.dataset.link = memberMode() ? LK.st : 'guest';
+    }
+    function lkTick() {
+      LK.tick = 0;
+      if (dead || LK.st !== 'code') return;
+      const n = lkLeft();
+      if (n <= 0) { lkClear(); LK.st = 'off'; renderLink(); return; }
+      const C = 2 * Math.PI * 22, fg = $.lk.querySelector('[data-lk="fg"]'), nb = $.lk.querySelector('[data-lk="n"]'), s = $.lk.querySelector('[data-lk="s"]');
+      if (fg) fg.setAttribute('stroke-dashoffset', (C * (1 - (n - 1) / LK.ttl)).toFixed(2));   // l'anneau glisse vers la seconde suivante (transition 1 s)
+      if (nb) nb.textContent = n; if (s) s.textContent = n;
+      const rg = $.lk.querySelector('.pgh-lkring'); if (rg) rg.classList.toggle('low', n <= 10);
+      LK.tick = later(lkTick, ((LK.until - performance.now()) % 1000 + 1000) % 1000 + 5);
+    }
+    function lkWhy(e) {
+      const m = String((e && e.message) || e || '');
+      if (e && e.guest) return 'Il faut un compte pour connecter le jeu.';
+      if (/trop d essais/.test(m)) return 'Tu as demandé beaucoup de codes : attends quelques minutes, puis réessaie.';
+      if (/compte requis|connexion requise|JWT|401|403/i.test(m)) return 'Ta connexion à ton compte a expiré : reconnecte-toi sur la borne, puis réessaie.';
+      if (!navigator.onLine || /fetch|network|réseau|failed|timeout|abort/i.test(m)) return 'Pas de réseau pour l\'instant : réessaie quand tu seras connecté.';
+      return 'Le code n\'a pas pu être créé. Réessaie dans un instant.';
+    }
+    async function lkMake() {
+      if (LK.busy || !memberMode()) return false;
+      LK.busy = true; LK.msg = ''; if (LK.st !== 'code' && LK.st !== 'off') renderLink();
+      let r = null, err = null;
+      try { r = await PG.rpc('pg_link_make', {}); } catch (e) { err = e; }
+      LK.busy = false; if (dead) return false;
+      const row = Array.isArray(r) ? r[0] : r, c = row && typeof row.r_code === 'string' ? row.r_code.trim().toLowerCase() : '';
+      if (err || !/^[0-9a-f]{64}$/.test(c)) {
+        lkClear(); LK.st = 'idle'; LK.msg = lkWhy(err || 'réponse');
+        if (!err) report('Pégase hub : pg_link_make, réponse inattendue');
+        renderLink(); return false;
+      }
+      // durée : celle du serveur si l'horloge de l'appareil est cohérente, sinon 60 s (moins 1 s pour le trajet)
+      let ttl = 59; const exp = row.r_exp ? Date.parse(row.r_exp) : NaN;
+      if (isFinite(exp)) { const d = (exp - Date.now()) / 1000; if (d >= 5 && d <= 60) ttl = Math.floor(d); }
+      lkClear(); LK.code = c; LK.ttl = 60; LK.until = performance.now() + ttl * 1000; LK.st = 'code';
+      renderLink(); lkTick(); tone(660, 990);
+      return true;
+    }
+    async function lkCopy(silent) {
+      if (!LK.code) return false;
+      let ok = false;
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(LK.code); ok = true; } } catch (e) { ok = false; }
+      if (!ok) {
+        try {
+          const ta = document.createElement('textarea'); ta.value = LK.code; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+          box.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove();
+        } catch (e) { ok = false; }
+      }
+      if (!silent) toast(ok ? '📋 Code copié : colle-le dans Pégase' : 'Copie impossible ici : tape le code dans le jeu');
+      return ok;
+    }
+    async function lkOpen() {
+      if (!NT) return;
+      tone(660, 990);
+      // appli de la borne qui sait passer le billet à Pégase (extra Android) : rien à copier ni à taper
+      if (typeof NT.openLinked === 'function') {
+        let r = null; try { r = await NT.openLinked(); } catch (e) { r = null; }
+        if (dead) return;
+        if (r && r.ok) { later(() => renderAndroid(false), 400); return; }
+        if (r && r.why === 'make') { LK.msg = lkWhy(r.err); renderLink(); return; }
+      }
+      if (LK.st !== 'code' || lkLeft() < 8) await lkMake();
+      if (dead) return;
+      if (LK.code) await lkCopy(true);
+      let ok = false; try { ok = await NT.open(); } catch (e) { ok = false; }
+      if (!ok && !dead) toast('Pégase n\'est pas (encore) disponible pour ce téléphone');
+      later(() => renderAndroid(false), 400);
+    }
+    on($.lk, 'click', (e) => {
+      const b = e.target.closest('[data-lk]'); if (!b) return;
+      const k = b.dataset.lk;
+      if (k === 'acct') { try { PG && PG.account && PG.account(); } catch (x) { /* rien */ } }
+      else if (k === 'make' || k === 'new') lkMake();
+      else if (k === 'copy') lkCopy(false);
+      else if (k === 'open') lkOpen();
+    });
     if (NT && typeof NT.onChange === 'function') andOff = NT.onChange(() => { if (!dead) renderAndroid(false); });
     on(document, 'visibilitychange', () => { if (!document.hidden && !dead) renderAndroid(false); });
     renderAndroid(true);
@@ -4996,14 +5191,19 @@
     on($.bg, 'error', () => { $.bg.style.display = 'none'; });
     let io = null, ro = null;
     if (typeof IntersectionObserver === 'function') { io = new IntersectionObserver((es) => { for (const e of es) heroVis = e.isIntersecting; activeSync(); }, { root: $.scroll, threshold: 0.02 }); io.observe($.hero); }
-    if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(() => { if (!dead && (root.clientWidth !== W0 || root.clientHeight !== H0)) relayout(); }); ro.observe(root); }
-    else on(window, 'resize', relayout);
+    if (typeof ResizeObserver === 'function') {
+      ro = new ResizeObserver(() => { if (dead) return; if (root.clientWidth !== W0 || root.clientHeight !== H0) relayout(); else layCheck(); });
+      ro.observe(root); ro.observe($.copy); ro.observe($.emotes);
+    } else on(window, 'resize', relayout);
+    // polices arrivées après l'ouverture : le titre et la phrase changent de taille → recadrer
+    try { if (document.fonts) { document.fonts.ready.then(() => { if (!dead) relayout(); }); on(document.fonts, 'loadingdone', () => { if (!dead) relayout(); }); } } catch (e) { /* rien */ }
+    every(layCheck, 1000);
     on(document, 'visibilitychange', activeSync);
     on(window, 'online', () => { if (srv.dirty) gardePush(); loadWallet(); loadCatalogs(); });
     // l'onglet « Créateur » n'a ses numéros qu'avec le catalogue
     box.querySelectorAll('.pgh-edcat').forEach((b) => { if (!b.querySelector('em')) b.insertAdjacentHTML('beforeend', '<em></em>'); });
     catReady.then(() => { if (dead) return; if (!D && !STG) { /* repli : le créateur attend la 3D */ } renderShowcase(); renderMe(); }).catch(() => {});
-    relayout(); setTab(tab, false); activeSync(); renderMe(); renderFriends(); renderToday(); loadWallet(); loadCatalogs(); later(loadHouse, 900);
+    relayout(); setTab(tab, false); activeSync(); renderMe(); renderFriends(); renderToday(); renderLink(); loadWallet(); loadCatalogs(); later(loadHouse, 900);
     // la 3D arrive APRÈS l'affichage (pas d'à-coup à l'ouverture)
     later(() => { (window.requestIdleCallback || ((f) => setTimeout(f, 1)))(() => { if (!dead) start3D(); }, { timeout: 600 }); }, 380);
     later(() => loadAvatars(true), 1500);
