@@ -1,0 +1,3 @@
+# fichiers de assets/ publiés tels quels (jamais de conversion des fins de ligne : le service worker et Pages servent les octets exacts)
+assets/*.bin -text
+assets/*.tgz -text

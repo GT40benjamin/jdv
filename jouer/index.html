@@ -45262,11 +45262,16 @@ void main(){ if (vK >= 0.999) discard;
     var main_exports = {};
     __export(main_exports, {
       CHARS: () => CHARS,
+      FIN_MS: () => FIN_MS,
       MOUTH_KEYS: () => MOUTH_KEYS,
       VIS: () => VIS,
+      WORD_CAT: () => WORD_CAT,
+      catsOf: () => catsOf,
       create: () => create,
       createLipSync: () => createLipSync,
       createMouth: () => createMouth,
+      createTrigger: () => createTrigger,
+      createWords: () => createWords,
       decode: () => decode,
       encode: () => encode,
       frenchVisemes: () => frenchVisemes
@@ -47266,6 +47271,440 @@ void main(){ if (vK >= 0.999) discard;
       return V;
     }
 
+    // src/mots.js
+    var WORD_CAT = { oui: "oui", ouais: "oui", non: "non", nan: "non", salut: "salut", coucou: "salut" };
+    var FIN_MS = 120;
+    function catsOf(text) {
+      const out = [];
+      for (const w of String(text || "").toLowerCase().split(/\s+/)) {
+        const c = WORD_CAT[w];
+        if (c) out.push(c);
+      }
+      return out;
+    }
+    function createTrigger(o = {}) {
+      const cool = o.cool == null ? 1500 : o.cool, done = /* @__PURE__ */ new Set(), last = {};
+      return {
+        // kind : 'p' (partiel) | 'r' (résultat final : la phrase est finie) ; rend la catégorie à jouer maintenant, ou ''
+        feed(kind, text, now) {
+          const toks = String(text || "").toLowerCase().split(/\s+/).filter(Boolean);
+          let fire = "";
+          for (let i = 0; i < toks.length; i++) {
+            const c = WORD_CAT[toks[i]];
+            if (!c) continue;
+            if (kind !== "r" && !(i < toks.length - 1 && toks.slice(i + 1).some((w) => w !== "[unk]"))) continue;
+            const key = i + ":" + c;
+            if (done.has(key)) continue;
+            done.add(key);
+            if (!fire && !(last[c] != null && now - last[c] < cool)) {
+              fire = c;
+              last[c] = now;
+            }
+          }
+          if (kind === "r") done.clear();
+          return fire;
+        },
+        reset() {
+          done.clear();
+        }
+      };
+    }
+    var TAP = `class JdwMots extends AudioWorkletProcessor {
+      constructor(o) { super(); const p = (o && o.processorOptions) || {}; this.ch = p.ch || 640; this.step = sampleRate / 16000; this.ph = 0; this.prev = 0;
+        const f = Math.min(7000, sampleRate * 0.45), w = 2 * Math.PI * f / sampleRate, c = Math.cos(w), s = Math.sin(w) / (2 * 0.7071), a0 = 1 + s;
+        this.b0 = (1 - c) / 2 / a0; this.b1 = (1 - c) / a0; this.b2 = this.b0; this.a1 = -2 * c / a0; this.a2 = (1 - s) / a0;
+        this.z = [0, 0, 0, 0, 0, 0, 0, 0]; this.buf = new Float32Array(this.ch); this.n = 0; this.on = true; this.port.onmessage = (e) => { if (e.data === 'stop') this.on = false; }; }
+      lp(x, k) { const z = this.z, y = this.b0 * x + this.b1 * z[k] + this.b2 * z[k + 1] - this.a1 * z[k + 2] - this.a2 * z[k + 3]; z[k + 1] = z[k]; z[k] = x; z[k + 3] = z[k + 2]; z[k + 2] = y; return y; }
+      process(inputs) {
+        if (!this.on) return false; const x = inputs[0] && inputs[0][0]; if (!x) return true;
+        for (let i = 0; i < x.length; i++) {
+          const v = this.lp(this.lp(x[i], 0), 4);
+          this.ph += 1; while (this.ph >= this.step) { this.ph -= this.step; const f = 1 - this.ph; this.buf[this.n++] = this.prev + (v - this.prev) * Math.min(1, Math.max(0, f));
+            if (this.n === this.ch) { this.port.postMessage(this.buf, [this.buf.buffer]); this.buf = new Float32Array(this.ch); this.n = 0; } }
+          this.prev = v;
+        }
+        return true;
+      }
+    }
+    registerProcessor('jdw-mots', JdwMots);`;
+    async function makeTap(ctx, source, ch, onChunk) {
+      const sink = ctx.createGain();
+      sink.gain.value = 0;
+      sink.connect(ctx.destination);
+      if (ctx.audioWorklet && typeof AudioWorkletNode !== "undefined") {
+        try {
+          if (!ctx.__jdwMots) {
+            const u = URL.createObjectURL(new Blob([TAP], { type: "text/javascript" }));
+            try {
+              await ctx.audioWorklet.addModule(u);
+            } finally {
+              URL.revokeObjectURL(u);
+            }
+            ctx.__jdwMots = true;
+          }
+          const node = new AudioWorkletNode(ctx, "jdw-mots", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], processorOptions: { ch } });
+          node.port.onmessage = (e) => onChunk(e.data);
+          source.connect(node);
+          node.connect(sink);
+          return { kind: "worklet", stop() {
+            try {
+              node.port.postMessage("stop");
+            } catch (e) {
+            }
+            try {
+              source.disconnect(node);
+            } catch (e) {
+            }
+            try {
+              node.disconnect();
+              sink.disconnect();
+            } catch (e) {
+            }
+          } };
+        } catch (e) {
+        }
+      }
+      if (typeof ctx.createScriptProcessor !== "function") throw new Error("pas de prise de son");
+      const sp = ctx.createScriptProcessor(2048, 1, 1), step = ctx.sampleRate / 16e3;
+      let ph = 0, prev = 0, buf = new Float32Array(ch), n = 0;
+      const z = [0, 0, 0, 0, 0, 0, 0, 0];
+      const f = Math.min(7e3, ctx.sampleRate * 0.45), w = 2 * Math.PI * f / ctx.sampleRate, c = Math.cos(w), s = Math.sin(w) / (2 * 0.7071), a0 = 1 + s;
+      const b0 = (1 - c) / 2 / a0, b1 = (1 - c) / a0, b2 = b0, a1 = -2 * c / a0, a2 = (1 - s) / a0;
+      const lp = (x, k) => {
+        const y = b0 * x + b1 * z[k] + b2 * z[k + 1] - a1 * z[k + 2] - a2 * z[k + 3];
+        z[k + 1] = z[k];
+        z[k] = x;
+        z[k + 3] = z[k + 2];
+        z[k + 2] = y;
+        return y;
+      };
+      sp.onaudioprocess = (e) => {
+        const x = e.inputBuffer.getChannelData(0);
+        for (let i = 0; i < x.length; i++) {
+          const v = lp(lp(x[i], 0), 4);
+          ph += 1;
+          while (ph >= step) {
+            ph -= step;
+            buf[n++] = prev + (v - prev) * Math.min(1, Math.max(0, 1 - ph));
+            if (n === ch) {
+              onChunk(buf);
+              buf = new Float32Array(ch);
+              n = 0;
+            }
+          }
+          prev = v;
+        }
+      };
+      source.connect(sp);
+      sp.connect(sink);
+      return { kind: "script", stop() {
+        sp.onaudioprocess = null;
+        try {
+          source.disconnect(sp);
+        } catch (e) {
+        }
+        try {
+          sp.disconnect();
+          sink.disconnect();
+        } catch (e) {
+        }
+      } };
+    }
+    var VOSK = null;
+    function loadVosk(url) {
+      if (window.Vosk && window.Vosk.createModel) return Promise.resolve(window.Vosk);
+      if (VOSK) return VOSK;
+      VOSK = (async () => {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error("vosk " + r.status);
+        const src = await r.text();
+        const u = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+        await new Promise((res, rej) => {
+          const s = document.createElement("script");
+          s.src = u;
+          s.onload = res;
+          s.onerror = () => rej(new Error("vosk : script"));
+          document.head.appendChild(s);
+        });
+        URL.revokeObjectURL(u);
+        if (!window.Vosk || !window.Vosk.createModel) throw new Error("vosk : absent");
+        return window.Vosk;
+      })();
+      VOSK.catch(() => {
+        VOSK = null;
+      });
+      return VOSK;
+    }
+    function createWords(o) {
+      const ch = o.ch || 640, finMs = o.finMs || FIN_MS, onWord = o.onWord || (() => {
+      }), onState = o.onState || (() => {
+      }), diag = o.diag || (() => {
+      });
+      const S = {
+        st: "off",
+        model: null,
+        rec: null,
+        tap: null,
+        gen: 0,
+        Q: [],
+        sent: 0,
+        drop: 0,
+        lagMax: 0,
+        lagSum: 0,
+        lagN: 0,
+        loud: -1,
+        floor: 3e-3,
+        voice: false,
+        sil: 0,
+        pos: 0,
+        heard: {},
+        flush: 0,
+        slow: 0,
+        slowOn: false,
+        t0: 0,
+        secs: 0,
+        loadMs: 0,
+        why: "",
+        dead: false
+      };
+      const trig = createTrigger({ cool: o.cool });
+      const set = (st, info) => {
+        S.st = st;
+        try {
+          onState(st, info || {});
+        } catch (e) {
+        }
+      };
+      async function ensure() {
+        if (S.rec) return true;
+        if (S.loading) return S.loading;
+        S.loading = (async () => {
+          const t0 = performance.now();
+          set("load", { first: !o.cached });
+          if (typeof WebAssembly !== "object" || typeof Worker === "undefined") throw new Error("pas de WebAssembly");
+          const V = await loadVosk(o.voskUrl);
+          const t1 = performance.now();
+          const model = new V.Model(o.modelUrl, -1);
+          await new Promise((res, rej) => {
+            const tm = setTimeout(() => rej(new Error("trop long")), o.timeout || 12e4);
+            model.on("load", (m) => {
+              clearTimeout(tm);
+              if (m && m.result) res();
+              else rej(new Error("chargement"));
+            });
+            model.on("error", (m) => {
+              clearTimeout(tm);
+              rej(new Error(String(m && m.error || "erreur").slice(0, 80)));
+            });
+            try {
+              model.worker.addEventListener("error", (e) => {
+                try {
+                  e.preventDefault();
+                } catch (x) {
+                }
+                clearTimeout(tm);
+                rej(new Error("worker : " + String(e && e.message || "").slice(0, 60)));
+              });
+            } catch (e) {
+            }
+          }).catch((e) => {
+            try {
+              model.worker.terminate();
+            } catch (x) {
+            }
+            throw e;
+          });
+          if (S.dead) {
+            try {
+              model.terminate();
+            } catch (e) {
+            }
+            return false;
+          }
+          model.on("error", (m) => {
+            diag("err-model", "mots : erreur du moteur", { e: String(m && m.error || "").slice(0, 120) });
+          });
+          const rec = new model.KaldiRecognizer(16e3);
+          rec.on("partialresult", (m) => got("p", m && m.result && m.result.partial));
+          rec.on("result", (m) => got("r", m && m.result && m.result.text));
+          S.Q.push({ t: performance.now(), end: 0, g: -1, k: "c" });
+          try {
+            rec.acceptWaveformFloat(new Float32Array(1600), 16e3);
+          } catch (e) {
+            S.Q.pop();
+          }
+          if (o.warm !== false) {
+            let sd = 7;
+            const x = new Float32Array(24e3);
+            for (let i = 0; i < x.length; i++) {
+              sd = sd * 1103515245 + 12345 & 2147483647;
+              x[i] = (sd / 2147483647 - 0.5) * 0.25 * (0.55 + 0.45 * Math.sin(i / 16e3 * 2 * Math.PI * 4));
+            }
+            S.Q.push({ t: performance.now(), end: 0, g: -1, k: "c" });
+            try {
+              rec.acceptWaveformFloat(x, 16e3);
+            } catch (e) {
+              S.Q.pop();
+            }
+          }
+          S.Q.push({ t: performance.now(), end: 0, g: -1, k: "f" });
+          try {
+            rec.retrieveFinalResult();
+          } catch (e) {
+            S.Q.pop();
+          }
+          S.model = model;
+          S.rec = rec;
+          S.loadMs = Math.round(performance.now() - t0);
+          diag("ready", "mots prêts (" + (o.cached ? "depuis l’appareil" : "téléchargés") + ", " + S.loadMs + " ms)", { vosk: Math.round(t1 - t0), modele: Math.round(performance.now() - t1), cache: !!o.cached });
+          set("ready", { ms: S.loadMs });
+          return true;
+        })().catch((e) => {
+          S.why = String(e && e.message || e).slice(0, 120);
+          diag("fail", "mots impossibles (" + S.why + ")");
+          set("fail", { why: S.why });
+          return false;
+        }).finally(() => {
+          S.loading = null;
+        });
+        return S.loading;
+      }
+      function got(kind, text) {
+        const at = S.Q.shift(), now = performance.now();
+        if (at) {
+          const lag = now - at.t;
+          S.lagSum += lag;
+          S.lagN++;
+          if (lag > S.lagMax) S.lagMax = lag;
+        }
+        if (!at || at.g !== S.gen) return;
+        const c = trig.feed(kind, text, now);
+        if (!c) return;
+        const calc = Math.round(now - at.t), fin = S.loud >= 0 ? Math.round(Math.max(0, (at.end - S.loud) / 16) + calc) : null;
+        S.heard[c] = (S.heard[c] || 0) + 1;
+        try {
+          onWord(c, { fin, calc, final: kind === "r" });
+        } catch (e) {
+        }
+      }
+      function send(f32) {
+        S.Q.push({ t: performance.now(), end: S.pos, g: S.gen, k: "c" });
+        S.sent++;
+        try {
+          S.rec.acceptWaveformFloat(f32, 16e3);
+        } catch (e) {
+          S.Q.pop();
+          S.sent--;
+        }
+      }
+      function chunk(f32) {
+        if (!S.rec || S.dead || !S.tap) return;
+        let q = 0;
+        for (let i = 0; i < f32.length; i++) q += f32[i] * f32[i];
+        const rms = Math.sqrt(q / f32.length);
+        S.floor = rms < S.floor ? S.floor * 0.8 + rms * 0.2 : S.floor * 0.998 + rms * 2e-3;
+        S.pos += f32.length;
+        const inflight = S.Q.length;
+        if (inflight > 18 || S.slowOn && inflight > 3) {
+          S.drop++;
+          if (!S.slowOn) {
+            S.slowOn = true;
+            S.slow++;
+            if (performance.now() - S.t0 > 3e3) diag("slow", "mots : l’appareil est en retard (" + inflight + " morceaux en attente)", { calcMax: Math.round(S.lagMax) });
+          }
+          return;
+        }
+        S.slowOn = false;
+        const loud = rms > Math.max(6e-3, S.floor * 4);
+        if (loud) {
+          S.loud = S.pos;
+          S.voice = true;
+          S.sil = 0;
+        }
+        send(f32);
+        if (!loud && S.voice) {
+          S.sil += f32.length / 16;
+          if (S.sil >= finMs) {
+            S.voice = false;
+            S.flush++;
+            S.Q.push({ t: performance.now(), end: S.pos, g: S.gen, k: "f" });
+            try {
+              S.rec.retrieveFinalResult();
+            } catch (e) {
+              S.Q.pop();
+            }
+          }
+        }
+      }
+      return {
+        async start(ctx, source) {
+          S.dead = false;
+          if (S.tap) return true;
+          const ok = await ensure();
+          if (!ok || S.dead) return false;
+          if (S.tap) return true;
+          try {
+            S.gen++;
+            trig.reset();
+            S.loud = -1;
+            S.voice = false;
+            S.sil = 0;
+            S.t0 = performance.now();
+            S.tap = await makeTap(ctx, source, ch, chunk);
+            diag("tap:" + S.tap.kind, "mots : prise du son " + (S.tap.kind === "worklet" ? "AudioWorklet" : "ScriptProcessor") + " (" + ctx.sampleRate + " Hz)");
+            return true;
+          } catch (e) {
+            S.tap = null;
+            diag("fail-tap", "mots : prise du son impossible (" + String(e && e.message || e).slice(0, 80) + ")");
+            return false;
+          }
+        },
+        stop() {
+          if (S.tap) {
+            try {
+              S.tap.stop();
+            } catch (e) {
+            }
+            S.tap = null;
+            S.secs += (performance.now() - S.t0) / 1e3;
+          }
+          if (S.rec) {
+            S.Q.push({ t: performance.now(), end: S.pos, g: -1, k: "f" });
+            try {
+              S.rec.retrieveFinalResult();
+            } catch (e) {
+              S.Q.pop();
+            }
+          }
+          S.gen++;
+        },
+        dispose() {
+          this.stop();
+          S.dead = true;
+          if (S.model) {
+            try {
+              S.model.terminate();
+            } catch (e) {
+            }
+          }
+          S.model = S.rec = null;
+          set("off");
+        },
+        state: () => S.st,
+        stats: () => ({
+          morceaux: S.sent,
+          finsDemandees: S.flush,
+          sautes: S.drop,
+          retards: S.slow,
+          calcMoyen: S.lagN ? Math.round(S.lagSum / S.lagN) : null,
+          calcMax: Math.round(S.lagMax),
+          compris: Object.assign({}, S.heard),
+          secondes: Math.round(S.secs),
+          chargement: S.loadMs
+        })
+      };
+    }
+
     // src/main.js
     var CHARS = ["Sally", "Chloe", "Mary", "Zulle", "Javi", "John", "Galvon"];
     var N = 7;
@@ -48246,6 +48685,8 @@ void main(){ if (vK >= 0.999) discard;
 .pgh-emo.mic.on{box-shadow:inset 0 0 0 2px #7cf0a0,0 0 18px rgba(124,240,160,.55)}
 .pgh-emo.mic.on::after{content:'';position:absolute;right:6px;top:6px;width:8px;height:8px;border-radius:50%;background:#ff5a6a;box-shadow:0 0 8px #ff5a6a;animation:pghPing 1.4s infinite}
 .pgh-emo.mic span{position:relative;z-index:1}
+.pgh-emo.mic.mload span{animation:pghMots 1.1s ease-in-out infinite}
+@keyframes pghMots{50%{opacity:.4;transform:scale(.9)}}
 .pgh-emo.say.on{box-shadow:inset 0 0 0 2px #ffd36a,0 0 18px rgba(255,211,106,.55)}
 .pgh-micm .pgh-mcard .ic{font-size:44px;line-height:1;margin:6px 0 2px}
 /* ma maison */
@@ -48679,7 +49120,7 @@ void main(){ if (vK >= 0.999) discard;
 <div class="pgh-modal pgh-micm" data-h="micm" role="dialog" aria-label="Le micro"><div class="pgh-mcard">
   <div class="ic">🎤</div><h3>Fais parler ton avatar</h3>
   <p>Parle, et la bouche de ton avatar bouge avec ta voix. Le son est analysé <b>ici, sur ton appareil</b> : rien n'est enregistré, rien n'est envoyé. Touche encore 🎤 pour couper le micro.</p>
-  <p data-h="micwords" hidden>Et dis-lui « salut », « oui » ou « non » : il te répond (les mots sont reconnus par ton téléphone).</p>
+  <p data-h="micwords" hidden>Et dis-lui « oui », « non » ou « salut » : il te répond d’un geste, tout de suite. Les mots sont reconnus <b>ici</b>, sans rien envoyer (la 1<sup>re</sup> fois : 45 Mo à télécharger, en Wi‑Fi).</p>
   <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="micno">Pas maintenant</button><button class="pgh-cta gold" data-h="micok"><span>Autoriser le micro</span></button></div>
 </div></div>
 <div class="pgh-modal pgh-earm" data-h="earm" role="dialog" aria-label="Parle à ton avatar"><div class="pgh-mcard">
@@ -49410,7 +49851,7 @@ void main(){ if (vK >= 0.999) discard;
     const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
     function micUi() { $.mic.classList.toggle('on', MIC.on); $.mic.title = MIC.on ? 'Couper le micro' : 'Parler (micro)'; if (!MIC.on) $.mic.style.setProperty('--lv', 0); }
     function micStop() {
-      const was = MIC.on; MIC.on = false; if (STG) { STG.setTalk(null); if (was) { STG.setHome(false); STG.setFrame(editing ? (FR_CAT[cat] || 'corps') : 'corps'); } }
+      const was = MIC.on; MIC.on = false; wordsStop(); if (STG) { STG.setTalk(null); if (was) { STG.setHome(false); STG.setFrame(editing ? (FR_CAT[cat] || 'corps') : 'corps'); } }
       try { if (MIC.stream) MIC.stream.getTracks().forEach((t) => t.stop()); } catch (e) { /* rien */ }
       try { if (MIC.ctx) MIC.ctx.close(); } catch (e) { /* rien */ }
       MIC.stream = MIC.ctx = MIC.an = null; micUi();
@@ -49438,6 +49879,7 @@ void main(){ if (vK >= 0.999) discard;
         MIC.lip = PGM.createLipSync(MIC.ctx.sampleRate); MIC.mouth = PGM.createMouth(); MIC.x = {};
         if (window.JDW_PG_TEST) window.__pgMIC = MIC; sayStop(); STG.setTalk(micTalk); micUi(); hintOff(); store.set('jdw.pegase.micok', '1'); tone(660, 990);
         if (STG) { STG.setFrame('parle'); STG.setHome(true); }
+        wordsStart();   // « oui / non / salut » sur le même flux (chargé la 1re fois, rien ne casse sans)
       } catch (e) {
         micStop(); toast(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? '🎤 Micro refusé : autorise-le dans les réglages du navigateur' : '🎤 Micro indisponible');
         if (EAR.via) earDiag('mic:gum', 'micro 🎤 de la page impossible (' + (e && e.name || '?') + (earWas ? ', juste après l\'écoute' : '') + ')');
@@ -49558,6 +50000,60 @@ void main(){ if (vK >= 0.999) discard;
       MIC.label = best[1] > 0.45 ? best[0] : MIC.w > 0.5 ? 'parle' : 'silence';
       return MIC.emo;
     }
+    // ---------- MOTS (hub 2.8, borne 1.20.4) : pendant le micro 🎤, « oui / ouais » → il hoche la tête, « non / nan » → il fait non,
+    // « salut / coucou » → il lève la main, TOUT DE SUITE (~0,15 s après la fin du mot), pendant que sa bouche continue d'imiter la tienne
+    // (aucune voix de synthèse). src/mots.js : Vosk (WebAssembly) + modèle français sur l'appareil, MÊME flux que la bouche (pas de 2e micro).
+    // Chargé au 1er micro (assets/mots.vosk.bin ~6 Mo + assets/mots-fr-<v>.tgz, gardés par le navigateur) ; données mobiles : pas de
+    // téléchargement (« ça arrive en Wi-Fi »). Journal discret (catégorie + latence, jamais de son ni de texte).
+    const MOTS_V = 1, MOTS_KEY = 'jdw.pegase.mots';
+    const WD = { w: null, st: 'off', rep: new Set(), repN: 0, said: false, metSaid: false, frT: 0, n: 0 }; if (window.JDW_PG_TEST) window.__pgWD = WD;
+    const wordsOk = () => !!PGM && typeof PGM.createWords === 'function' && typeof WebAssembly === 'object' && typeof Worker !== 'undefined' && !(window.JDW_PG_TEST && window.JDW_PG_NOMOTS);
+    const metered = () => { try { const c = navigator.connection; return !!c && (!!c.saveData || c.type === 'cellular'); } catch (e) { return false; } };
+    const absUrl = (p) => new URL(ROOT() + p, location.href).href;
+    function wordsDiag(key, msg, extra) {   // une fois par sorte et par séance, 12 au plus (+ bilans) ; JAMAIS de texte entendu
+      if (WD.rep.has(key) || (WD.repN >= 12 && !/^bilan/.test(key))) return; WD.rep.add(key); WD.repN++;
+      const d = Object.assign({ app: UAAPP || 'web', android: UAAND, v: MOTS_V, sr: MIC.ctx ? MIC.ctx.sampleRate : 0 }, extra || {});
+      try { report('Pégase hub : ' + msg, JSON.stringify(d)); } catch (e) { /* rien */ }
+      if (window.JDW_PG_TEST) (window.__pgWDLOG = window.__pgWDLOG || []).push(['Pégase hub : ' + msg, d]);
+    }
+    function wordsState(st) {
+      WD.st = st; $.mic.classList.toggle('mload', st === 'load' && MIC.on);
+      if (st === 'ready' && MIC.on && !WD.said && !store.get(MOTS_KEY + '.dit')) { WD.said = true; store.set(MOTS_KEY + '.dit', '1'); toast('🎤 Dis « oui », « non » ou « salut » : je te réponds d’un geste !', 3200); }
+    }
+    async function wordsStart() {
+      if (!wordsOk() || !MIC.on || !MIC.ctx || !MIC.src) return;
+      const have = store.get(MOTS_KEY), cached = have === String(MOTS_V);
+      if (!cached && metered()) {
+        if (!WD.metSaid) { WD.metSaid = true; toast('🎤 Les gestes à la voix (oui, non, salut) arriveront en Wi‑Fi', 3200); }
+        wordsDiag('metered', 'mots : pas téléchargés (données mobiles)'); return;
+      }
+      if (!WD.w) {
+        // ancienne version du modèle gardée par le navigateur : place libérée avant la nouvelle
+        if (have && !cached) { try { indexedDB.deleteDatabase('/vosk'); } catch (e) { /* rien */ } }
+        WD.w = PGM.createWords({ voskUrl: absUrl('assets/mots.vosk.bin'), modelUrl: absUrl('assets/mots-fr-' + MOTS_V + '.tgz'), cached, onWord: wordHeard, onState: wordsState, diag: wordsDiag });
+      }
+      const ctx = MIC.ctx, src = MIC.src, ok = await WD.w.start(ctx, src);
+      if (ok) store.set(MOTS_KEY, String(MOTS_V));
+      if (!MIC.on || MIC.ctx !== ctx) { if (WD.w) WD.w.stop(); }   // micro coupé pendant le chargement
+      $.mic.classList.remove('mload');
+    }
+    function wordsStop() {
+      if (!WD.w) return; WD.w.stop(); $.mic.classList.remove('mload');
+      const st = WD.w.stats(); if (st.morceaux > 25) wordsDiag('bilan' + (WD.rep.has('bilan') ? '-' + (++WD.n) : ''), 'bilan des mots', { st });
+    }
+    function wordHeard(cat, info) {
+      if (dead || !MIC.on || !STG || !STG.ready() || editing || friendOn) return;
+      wordsDiag('heard:' + cat, 'mots : entendu « ' + cat + ' » (' + (info.fin == null ? '?' : info.fin) + ' ms après le mot)', { fin: info.fin, calc: info.calc, final: info.final });
+      if (window.JDW_PG_TEST) (window.__pgWORDS = window.__pgWORDS || []).push([cat, info.fin, info.calc, performance.now()]);
+      const k = cat === 'salut' ? 'wave' : cat;
+      STG.gesture(k); hintOff();
+      const b = box.querySelector(`.pgh-emotes .pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
+      if (k === 'wave') {   // micro ouvert = gros plan sur la tête : on recule un peu le temps du coucou (le bras se voit), puis on revient
+        STG.setFrame('geste'); clearTimeout(WD.frT); WD.frT = later(() => { if (MIC.on && STG && !editing && !friendOn) STG.setFrame('parle'); }, 2500);
+      }
+      toast(cat === 'oui' ? '👍 oui' : cat === 'non' ? '👎 non' : '👋 salut', 900);
+    }
+
     // ---------- PARLER (démo) : la voix du navigateur dit une phrase ; la bouche suit le TEXTE (règles du français → visèmes), recalée MOT À MOT
     // sur les évènements « boundary » de la voix (sinon au rythme moyen). Phrases fixes : rien de personnel n'est donné à la voix.
     const SAY = { on: false, n: -1 };
@@ -49694,7 +50190,8 @@ void main(){ if (vK >= 0.999) discard;
     if (PG_EAR) try { EAR.via = NV && typeof NV.listen === 'function' ? (NV.canListen() ? 'natif' : '') : SRW ? 'web' : ''; } catch (e) { EAR.via = ''; }
     { const s = store.get(EAR_KEY); EAR.want = !!EAR.via && (s === '1' || (s == null && EAR.via === 'natif' && !!store.get('jdw.pegase.micok'))); }
     EAR.conflict = !!store.get(EAR_CONF) && store.get(EAR_CONF) === (UAAPP || 'web');
-    if ($.micwords) $.micwords.hidden = EAR.via !== 'natif';
+    const wordsOk0 = () => typeof WebAssembly === 'object' && typeof Worker !== 'undefined' && !!(window.AudioContext || window.webkitAudioContext) && !(window.JDW_PG_TEST && window.JDW_PG_NOMOTS);
+    if ($.micwords) $.micwords.hidden = !(PG_EAR ? EAR.via === 'natif' : wordsOk0());
     if (EAR.via === 'web' && $.earwho) $.earwho.textContent = 'Les mots sont reconnus par ton navigateur (Chrome peut passer par Google pour ça), rien n\'est enregistré. Touche l\'oreille pour qu\'il arrête d\'écouter.';
     const earSt = () => { const s = EAR.st; return { phrases: s.sessions, pretes: s.ready, voix: s.begin, partiels: s.partial, resultats: s.result, erreurs: s.err, compris: s.heard,
       sansReponse: s.noans, occupe: s.busy, dodos: s.sleeps, avecMicro: s.micSessions, secondes: Math.round(s.ms / 1000), conflit: EAR.conflict, microOk: EAR.micOk }; };
@@ -50594,7 +51091,7 @@ void main(){ if (vK >= 0.999) discard;
     return {
       destroy() {
         if (dead) return; dead = true;
-        flySet(false); micStop(); sayStop();
+        flySet(false); micStop(); sayStop(); if (WD.w) { try { WD.w.dispose(); } catch (e) { /* rien */ } WD.w = null; }
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();
@@ -86849,7 +87346,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261018182018"; window.JDW_VERSION = "1.20.3"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
+<script>window.JDW_BUILD = "20261018200212"; window.JDW_VERSION = "1.20.4"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
