@@ -74,7 +74,7 @@ script = "let PG_ACTIVE = false, PG_API = null, PG_HEADS = [], PG_PILOT_IMG = nu
 
 # ---------- assemblage ----------
 SKIP = [x for x in os.environ.get('SKIP_GAMES', '').split(',') if x]   # ex. SKIP_GAMES=ilo : jeu pas encore prêt
-GAMES = [g for g in ['ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'magic', 'magicv1', 'pegase'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
+GAMES = [g for g in ['ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'magic', 'pegase'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
 # jeux de duel (deux joueurs face à face) : source/duos/<id>.js, contrat DUO-CONTRACT.md
 DUOS = [d for d in ['kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'] if os.path.exists(J + 'duos/' + d + '.js') and d not in SKIP]
 def notes_list():

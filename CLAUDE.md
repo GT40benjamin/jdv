@@ -463,7 +463,4 @@ pas besoin de ffmpeg) → EMBALLÉ (clé source/asset-key.txt) → `assets/music
 (énergique, à la balle de match), `dscores-<n>` (écran des résultats), `sting-<nom>` (jingles : win, podium, point, go, match…).
 build2.py liste les .bin dans window.JDW_MUSIC_ENC et injecte window.JDW_ASSET_KEY ; shell2.js les déballe (decryptBin) ; sting(name) joue un jingle.
 
-**Magic Force 1.12 (id `magicv1`, porte labo, 1.18.5)** : copie TELLE QUELLE de la Magic Force 1.12.1 (commit da5803c, 14 oct.) — `source/games/magicv1.js`
-(seuls id/titre « Magic Force 1.12 », paquets `assets/magicv1.*.bin` = ceux de da5803c, clés de stockage jdw.magicv1.*), musique de Magic Force
-(alias dans setMusic). BUT : comparer sur le vrai téléphone de l'utilisateur la fluidité/beauté d'origine avec la version actuelle (il trouvait la 1.12
-« super belle et super fluide »). À RETIRER une fois la comparaison faite (ORDER, LABO, GAMES de build2.py, fichiers magicv1.*).
+magicv1 retiré le 18 oct.

@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['ilo', 'magic', 'magicv1', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
@@ -25,7 +25,10 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['magicv1', 'pegase']);   // en essai : Pégase (nouveau jeu) et magicv1 (Magic Force 1.12 d'origine, pour comparer) ; Mandale Kombat sorti en 1.17, Magic Force en 1.12
+const LABO = new Set(['pegase']);   // en essai : Pégase (nouveau jeu) ; Mandale Kombat sorti en 1.17, Magic Force en 1.12 (magicv1, la copie 1.12 pour comparer, retirée le 18 oct.)
+// ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
+try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
+  const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
 const LABO_ON = (() => {
   let on = []; try { on = JSON.parse(localStorage.getItem('jdw.labo') || '[]') || []; } catch (e) { on = []; }
   try {
@@ -690,7 +693,6 @@ function musicLoop(id, b, when, fadeIn, seq, list, idx) {
   }, Math.max(0, (end - XFADE - A.currentTime - 0.4) * 1000));
 }
 async function setMusic(id, mode) {
-  if (id === 'magicv1') id = 'magic';   // (essai labo) Magic Force 1.12 garde la musique de Magic Force
   mode = mode || 'calm';
   MUS.want = id || ''; MUS.wantMode = mode;
   if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
