@@ -720,6 +720,51 @@
     function inTemplate() { return { atk: false, kAtk: false, padAtk: false, fireQ: false, iceQ: false, stormQ: false, rollQ: false, mouseAim: false, mouseX: 0, mouseY: 0,
       joyId: -1, joyX: 0, joyY: 0, joyDX: 0, joyDY: 0, padX: 0, padY: 0, padAX: 0, padAY: 0, padOn: false, padPrev: [] }; }
     let IN = inTemplate();
+    // (1.19.16) surveillance « mage bloqué » : voir stuckWatch (diagnostic envoyé une fois au journal des erreurs de la borne)
+    const STUCK = { zoneT: 0, takeovers: 0, frames: 0, updates: 0, errN: 0, err: '', sent: false, t0: 0, x: 0, z: 0, gt: 0, fr: 0, up: 0, ph: '', phT: 0, lostT: 0, iv: 0, n: 0, sf: 0, su: 0, sg: 0 };
+    // message au journal des erreurs de la borne (log_error), sans fenêtre « Oups » : la bibliothèque relève les « rejets non traités »
+    const MF_REP = new Set();
+    function mfReport(msg, detail) {
+      msg = String(msg).slice(0, 240); if (MF_REP.has(msg) || MF_REP.size >= 8) return; MF_REP.add(msg);
+      try { const err = new Error(msg); err.stack = String(detail || '').slice(0, 3000); const ev = new Event('unhandledrejection'); ev.reason = err; ev.promise = Promise.resolve(); window.dispatchEvent(ev); } catch (e) { /* rien */ }
+    }
+    // l'état utile pour comprendre un mage qui ne bouge plus (aucune donnée personnelle)
+    function mfState() {
+      let o = {};
+      try {
+        const r = el.getBoundingClientRect();
+        o = { v: MF_BUILD, phase: G.phase, gt: +(+G.t || 0).toFixed(2), slow: G.slow, stop: +(+G.stop || 0).toFixed(2), paused, started, over, lost: contextLost,
+          hidden: typeof document !== 'undefined' && document.hidden, frames: STUCK.frames, updates: STUCK.updates, errN: STUCK.errN, err: STUCK.err,
+          joy: IN.joyId, jdx: +(+IN.joyDX || 0).toFixed(2), jdy: +(+IN.joyDY || 0).toFixed(2), take: STUCK.takeovers, touch: TOUCH, pad: !!IN.padOn, keys: Object.keys(keys).filter((k) => keys[k]).join(' '),
+          hero: hero ? { x: +(+hero.x).toFixed(2), z: +(+hero.z).toFixed(2), vx: +(+hero.vx || 0).toFixed(2), vz: +(+hero.vz || 0).toFixed(2), dead: !!hero.dead, roll: +(+hero.roll || 0).toFixed(2), st: hero.st || '' } : null,
+          salle: level, monde: (G.wi | 0) + 1, coop: COOP, hz: PERF.hz, ecranHz: PERF.refHz, fps: Math.round(PERF.fps || 0), tier: Q ? Q.tier : -1, direct: Q ? !!Q.direct : false,
+          css: [Math.round(r.width), Math.round(r.height)], dpr: window.devicePixelRatio || 1,
+          cible: (() => { try { const t = document.elementFromPoint(r.left + r.width * 0.25, r.top + r.height * 0.7); return t ? String(t.id || t.className || t.tagName).slice(0, 40) : '-'; } catch (e) { return '?'; } })() };
+      } catch (e) { o.err2 = String(e && e.message); }
+      return JSON.stringify(o);
+    }
+    // toutes les secondes, HORS des images (une boucle arrêtée se voit aussi) : le joueur touche la zone du joystick (ou une flèche, la
+    // manette) depuis 4 s et le mage n'a pas bougé de 0,5 m → UN message « mage bloqué » au journal, avec la raison devinée et l'état
+    function stuckWatch() {
+      if (destroyed || STUCK.sent || !started || over || !hero || (typeof document !== 'undefined' && document.hidden)) { STUCK.t0 = 0; return; }
+      const now = performance.now();
+      if (G.phase !== STUCK.ph) { STUCK.ph = G.phase; STUCK.phT = now; }
+      const kb = !!(keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD || keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight);
+      const want = (now - STUCK.zoneT < 1500 && (IN.joyId >= 0 || now - STUCK.zoneT < 400)) || kb || Math.hypot(IN.joyDX || 0, IN.joyDY || 0) > 0.4 || (IN.padOn && (IN.padX || IN.padY));
+      const busy = paused || hero.dead || hero.st === 'down' || hero.st === 'ghost' || /^(win|won|dead|travel|cine|auto|load)$/.test(G.phase) || (G.phase === 'intro' && now - STUCK.phT < 6000);
+      const fr = STUCK.frames - STUCK.fr, up = STUCK.updates - STUCK.up, gt = G.t - STUCK.gt, mv = Math.hypot(hero.x - STUCK.x, hero.z - STUCK.z);
+      STUCK.fr = STUCK.frames; STUCK.up = STUCK.updates; STUCK.gt = G.t; STUCK.x = hero.x; STUCK.z = hero.z;
+      // secondes d'affilée où l'on demande à bouger sans que le mage bouge (chaque seconde : images, mises à jour, temps du jeu)
+      if (!want || busy || !STUCK.t0 || mv > 0.3) { STUCK.t0 = want && !busy ? now : 0; STUCK.n = 0; STUCK.sf = STUCK.su = STUCK.sg = 0; return; }
+      STUCK.n++; STUCK.sf += fr; STUCK.su += up; STUCK.sg += gt;
+      if (STUCK.n < 4) return;
+      const why = contextLost ? 'affichage perdu' : STUCK.sf < 2 ? 'boucle arrêtée' : STUCK.su < STUCK.sf / 2 ? 'erreur à chaque image' : !(STUCK.sg > 0.05 * STUCK.n + 0.1) ? 'temps du jeu figé'
+        : G.phase !== 'play' ? 'phase ' + G.phase + ' depuis ' + Math.round((now - STUCK.phT) / 1000) + ' s' : IN.joyId < 0 && !kb ? 'joystick pas pris' : Math.hypot(hero.vx || 0, hero.vz || 0) > 1 ? 'coincé (collision)' : 'entrée sans effet';
+      if (/^(coincé|entrée|joystick)/.test(why) && STUCK.n < 10) return;     // contre un mur un moment : normal ; 10 s, c'est louche
+      STUCK.sent = true;
+      mfReport('Magic Force : mage bloqué (' + why + ')', mfState() + '\nimages ' + STUCK.sf + ', mises à jour ' + STUCK.su + ', temps du jeu +' + (+STUCK.sg || 0).toFixed(2) + ' s en ' + STUCK.n + ' s');
+    }
+    STUCK.iv = setInterval(() => { try { stuckWatch(); } catch (e) { /* rien */ } }, 1000);
     let TOUCH = TOUCH0;
     function setTouch(t) { if (t === TOUCH) return; TOUCH = t; el.classList.toggle('touch', t); layoutButtons(); }
     const visible = () => root.offsetParent !== null || el.offsetParent !== null;
@@ -741,7 +786,7 @@
       if (G.phase === 'win') winSkip();
     });
     on(window, 'keyup', (e) => { keys[e.code] = false; if (e.code === 'KeyJ' || e.code === 'Enter' || e.code === 'NumpadEnter') IN.kAtk = false; });
-    on(window, 'blur', () => { for (const k in keys) keys[k] = false; IN.atk = false; IN.kAtk = false; mBtns = 0; });
+    on(window, 'blur', () => { for (const k in keys) keys[k] = false; IN.atk = false; IN.kAtk = false; mBtns = 0; joyReset(); });
     // souris : visée + clic maintenu = éclairs ; clic droit = nova de feu
     on(canvas, 'contextmenu', (e) => e.preventDefault());
     on(el, 'contextmenu', (e) => e.preventDefault());
@@ -768,7 +813,11 @@
       setTouch(true);
       // tactile : la moitié gauche de l'écran = joystick (là où le pouce se pose)
       const r = el.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-      if (IN.joyId < 0 && x < r.width * 0.55 && y > r.height * 0.2) {
+      // (1.19.16) un NOUVEAU doigt posé dans la zone du joystick le reprend toujours : un doigt « perdu » (pas de pointerup : geste du
+      // système, appli passée en fond, iPhone…) ne bloque plus le mage pour le reste de la partie (avant : IN.joyId restait pris)
+      if (x < r.width * 0.55 && y > r.height * 0.2) STUCK.zoneT = performance.now();
+      if (IN.joyId !== e.pointerId && x < r.width * 0.55 && y > r.height * 0.2) {
+        if (IN.joyId >= 0) STUCK.takeovers++;
         IN.joyId = e.pointerId; IN.joyX = x; IN.joyY = y; IN.joyDX = 0; IN.joyDY = 0;
         H.joy.style.left = x + 'px'; H.joy.style.top = y + 'px'; H.joy.classList.add('on'); H.knob.style.transform = '';
         try { el.setPointerCapture(e.pointerId); } catch (x2) { /* rien */ }
@@ -787,6 +836,13 @@
       if (e.pointerId === IN.joyId) { IN.joyId = -1; IN.joyDX = 0; IN.joyDY = 0; H.joy.classList.remove('on'); H.knob.style.transform = ''; }
     }
     on(el, 'pointerup', joyEnd); on(el, 'pointercancel', joyEnd);
+    // le doigt du joystick relâché n'importe où (même sur un bouton qui arrête l'évènement) ; plus aucun doigt sur l'écran : plus de joystick
+    function joyReset() { if (IN.joyId < 0 && !IN.joyDX && !IN.joyDY) return; IN.joyId = -1; IN.joyDX = 0; IN.joyDY = 0; if (H.joy) H.joy.classList.remove('on'); if (H.knob) H.knob.style.transform = ''; }
+    const joyEndAny = (e) => { if (e.pointerType !== 'mouse' && e.pointerId === IN.joyId) joyReset(); };
+    on(window, 'pointerup', joyEndAny, true); on(window, 'pointercancel', joyEndAny, true);
+    const touchesGone = (e) => { if (e.touches && e.touches.length === 0) { joyReset(); IN.atk = false; for (const b of Object.values(BTN)) b.el.classList.remove('down'); } };
+    on(window, 'touchend', touchesGone, { passive: true, capture: true }); on(window, 'touchcancel', touchesGone, { passive: true, capture: true });
+    on(window, 'pagehide', () => joyReset());
     on(window, 'pointerup', (e) => { if (e.pointerType === 'mouse') mouseButtons(e.buttons); });         // relâché hors du jeu
     on(window, 'mouseup', (e) => { mouseButtons(e.buttons); });
     for (const b of Object.values(BTN)) {
@@ -1056,7 +1112,11 @@
       UNI.floorRect.value = new T.Vector4(0, 0, 1, 1);
       UNI.lmR.value = new T.Vector4(0, 0, 1, 1); UNI.sunV.value = new T.Vector3(0, 1, 0); UNI.sunC.value = new T.Color(0, 0, 0);
       { const d = new T.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1, T.RGBAFormat); d.needsUpdate = true; UNI.lm.value = keep(d); }
-      on(canvas, 'webglcontextlost', (e) => { e.preventDefault(); if (!destroyed) contextLost = true; });
+      on(canvas, 'webglcontextlost', (e) => { e.preventDefault(); if (destroyed) return; contextLost = true; STUCK.lostT = performance.now();
+        mfReport('Magic Force : affichage WebGL perdu', mfState()); });
+      // (1.19.16) le navigateur rend l'affichage (iPhone : retour dans l'onglet, mémoire libérée) : three.js renvoie tout, le jeu repart
+      on(canvas, 'webglcontextrestored', () => { if (destroyed) return; contextLost = false; STUCK.lostT = 0; last = 0; joyReset();
+        try { renderer.shadowMap.needsUpdate = true; resize(); } catch (x) { /* rien */ } mfReport('Magic Force : affichage WebGL rendu', mfState()); });
     }
 
     // ------------------------------------------------------------- textures, modèles
@@ -5575,7 +5635,7 @@ void main(){ if (vK >= 0.999) discard;
           H.load.classList.remove('out'); loadFrac = 0; setLoad(0.05, 'Le portail s’ouvre sur « ' + W.name + ' »…');
           if (!loadRaf) loadRaf = requestAnimationFrame(loadAnim);
           ensurePack(W.pack, (f) => setLoad(0.05 + f * 0.9)).then(() => { if (destroyed) return; setLoad(1); H.load.classList.add('out'); go(nextW, nextTour); })
-            .catch(() => { H.loadP.textContent = 'Le portail est bloqué (connexion ?)… le donjon recommence !'; setTimeout(() => { H.load.classList.add('out'); go(0, G.tour + 1); }, 1800); });
+            .catch((e) => { mfReport('Magic Force : portail bloqué (' + String((e && e.message) || e).slice(0, 120) + ')', mfState()); H.loadP.textContent = 'Le portail est bloqué (connexion ?)… le donjon recommence !'; setTimeout(() => { H.load.classList.add('out'); go(0, G.tour + 1); }, 1800); });
         } else go(nextW, nextTour);
       }, 700);
     }
@@ -6597,16 +6657,20 @@ void main(){ if (vK >= 0.999) discard;
       PERF.dly = performance.now() - now;                                 // rappel parti en retard ? (fil principal occupé)
       const elapsed = now - last;
       nextT = Math.max(nextT + 1000 / PERF.hz, now - 4);
-      const rdt = Math.min(0.05, last ? elapsed / 1000 : 0.016); last = now;
+      const rdt = Math.min(0.05, last ? elapsed / 1000 : 0.016); last = now; STUCK.frames++;
       perfTrack(elapsed); probeFrame(elapsed);
       if (G.slowT > 0) { G.slowT -= rdt; if (G.slowT <= 0) G.slow = 1; }
       let sdt = rdt * G.slow;
       if (G.stop > 0) { G.stop -= rdt; sdt = 0; }       // arrêt sur image (gros coup)
       try {
-        const t0 = performance.now(); update(sdt, rdt); const t1 = performance.now();
+        const t0 = performance.now(); update(sdt, rdt); STUCK.updates++; const t1 = performance.now();
         renderer.info.reset(); renderFrame(); const t2 = performance.now();
         PERF.ju = (PERF.ju || 0) * 0.95 + (t1 - t0) * 0.05; PERF.jr = (PERF.jr || 0) * 0.95 + (t2 - t1) * 0.05; PERF.cpu = t1 - t0;
-      } catch (e) { if (!G.errShown) { G.errShown = true; try { console.error(e); } catch (x) { /* rien */ } } }
+      } catch (e) {
+        STUCK.errN++; STUCK.err = String((e && e.message) || e).slice(0, 160);
+        // (1.19.16) avant, l'erreur restait dans la console : une erreur à CHAQUE image figeait le jeu sans rien dans le journal
+        if (!G.errShown) { G.errShown = true; try { console.error(e); } catch (x) { /* rien */ } mfReport('Magic Force (image) : ' + STUCK.err, (e && e.stack) || ''); }
+      }
     }
     // ------------------------------------------------------------- sonde de vitesse : une fenêtre de 60 s de jeu mesurée UNE fois par appareil
     // (et à chaque partie avec ?perf=1), puis UN petit résumé purement technique (temps d'image, niveau, pixels, carte graphique)
@@ -6758,11 +6822,11 @@ void main(){ if (vK >= 0.999) discard;
       paused = p;
       H.paused.classList.toggle('on', p && !COOP);
       pauseBtn.innerHTML = p ? ICON.play : ICON.pause; pauseBtn.setAttribute('aria-label', p ? 'Reprendre' : 'Pause');
-      for (const k in keys) keys[k] = false; IN.atk = false; IN.kAtk = false;
+      for (const k in keys) keys[k] = false; IN.atk = false; IN.kAtk = false; joyReset();
       if (p) { if (SND.ctx) SND.ctx.suspend().catch(() => {}); }
       else { last = 0; if (SND.ctx) SND.ctx.resume().catch(() => {}); }
     }
-    on(document, 'visibilitychange', () => { if (!COOP && document.hidden && started && !over) setPaused(true); });
+    on(document, 'visibilitychange', () => { if (document.hidden) joyReset(); if (!COOP && document.hidden && started && !over) setPaused(true); });
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => resize()); ro.observe(root); }
     else on(window, 'resize', resize);
     // textes qui s'envolent
@@ -6863,6 +6927,7 @@ void main(){ if (vK >= 0.999) discard;
         if (destroyed) return;
         if (COOP) { try { CO.abort('Le donjon n’a pas pu se charger'); } catch (x) { /* rien */ } return; }
         H.loadP.textContent = 'Oups ! Le donjon n’a pas pu s’ouvrir. Vérifie ta connexion.';
+        mfReport('Magic Force : chargement raté (' + String((e && e.message) || e).slice(0, 120) + ')', ((e && e.stack) || '') + '\n' + mfState());
         try { console.error(e); } catch (x) { /* rien */ }
         const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Réessayer';
         b.addEventListener('click', () => { if (renderer) return; boot(); });
@@ -6882,7 +6947,7 @@ void main(){ if (vK >= 0.999) discard;
       try { if (Q && started) aqSave(true); } catch (e) { /* rien */ }
       try { if (PHONE && screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { /* rien */ }
       cancelAnimationFrame(raf); cancelAnimationFrame(loadRaf);
-      clearTimeout(bannerTimer);
+      clearTimeout(bannerTimer); clearInterval(STUCK.iv);
       if (ro) ro.disconnect();
       for (const [t, ty, fn, o] of listeners) t.removeEventListener(ty, fn, o);
       listeners.length = 0;
