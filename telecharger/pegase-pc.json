@@ -1,13 +1,13 @@
 {
-  "version": "0.3 (essai 3 · le village s'anime)",
-  "size": 804232485,
-  "sha256": "a133f26ea05c6b9602f87160e412a3771e170cdfa2e28e7aa85aa666cd611025",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v3/Pegase-PC-2026-10-17-vivant.zip",
+  "version": "0.4 (essai 4)",
+  "size": 815564677,
+  "sha256": "5249cd320a42ffd152105b30f2e1d616c17883f25ae42fe686d1a80cbc15a3c2",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v4/Pegase-PC-2026-10-18-peche.zip",
   "notes": [
-    "Les habitants : Papi Auguste le maire, Rosalie, Basile, Mlle Iris, Gaspard… à qui parler (touche E)",
-    "Les missions du début, avec de vraies voix",
-    "Le chat des toits, timide : à photographier de loin",
-    "Les lucioles, la monnaie du jeu, et des parcelles à vendre sur la carte (touche M)",
-    "La nuit : clair de lune, fenêtres allumées, lanternes et lucioles"
+    "La pêche avec Gaspard : 17 poissons à attraper, dont un secret",
+    "Les insectes au filet : papillons, libellules, coléoptères",
+    "Le musée de Mlle Iris : aquarium, insectarium et galerie photo",
+    "L'arrivée sur l'île en petit avion avec la pilote Lou",
+    "Parcelles illuminées, toit posé tout seul, et plein de corrections (zoom ×12, licorne dans les montagnes, maire dans sa mairie)"
   ]
 }
