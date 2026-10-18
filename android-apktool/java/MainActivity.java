@@ -178,6 +178,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+        if (req == Voix.REQ_LISTEN) { if (natif != null) natif.voix.onPermission(res != null && res.length > 0 && res[0] == 0); return; }   // 1.9 : « oui / non » à voix haute
         if (req != REQ_MIC || micReq == null) return;
         try {
             if (res != null && res.length > 0 && res[0] == 0) micReq.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
@@ -256,7 +257,7 @@ public class MainActivity extends Activity {
         immersive();
     }
     @Override protected void onPause() { super.onPause(); if (natif != null) natif.onPause(); if (web != null) web.onPause(); }
-    @Override protected void onDestroy() { if (natif != null && Natif.live == natif) Natif.live = null; super.onDestroy(); }
+    @Override protected void onDestroy() { if (natif != null) { try { natif.onDestroy(); } catch (Throwable ignore) { } if (Natif.live == natif) Natif.live = null; } super.onDestroy(); }
 
     @Override
     public void onBackPressed() {

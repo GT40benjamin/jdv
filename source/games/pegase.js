@@ -3433,6 +3433,7 @@
 .pgh-lkmsg{margin:12px 2px 0;font:600 13px/1.45 ${FB};color:#ffd0b0}
 .pgh-lk .pgh-cta[disabled]{opacity:.55;pointer-events:none}
 @media (min-width:700px){.pgh-lkbtns .pgh-cta{flex:0 1 auto}}
+.pgh-emo.say.ear{box-shadow:inset 0 0 0 2px #7cf0a0,0 0 18px rgba(124,240,160,.6)}
 @media (prefers-reduced-motion:reduce){.pgh-bg{animation:none}.pgh-hint{animation:none}.pgh-lkring .fg{transition:none}.pgh-lkbox.on .pgh-lkcode span{animation:none}}
 `;
 
@@ -4499,19 +4500,39 @@
       let vs = []; try { vs = speechSynthesis.getVoices().filter((v) => /^fr/i.test(v.lang)); } catch (e) { /* rien */ }
       return vs.find((v) => v.localService && /fr.FR/i.test(v.lang)) || vs.find((v) => v.localService) || vs.find((v) => /fr.FR/i.test(v.lang)) || vs[0] || null;
     }
+    // appli de la borne 1.9 : la voix du TÉLÉPHONE (api.natif.voice, Voix.java) quand la WebView n'a pas speechSynthesis
+    const NV = api && api.natif && api.natif.voice && typeof api.natif.voice.speak === 'function' ? api.natif.voice : null;   // (NT est défini plus bas)
+    let nvOff = null; const NVL = { on: false, t: 0 };
+    const nvUse = () => !!NV && (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined' || !sayVoice()) && NV.canSpeak();
+    if (NV) nvOff = NV.onEvent((ev) => { if (dead) return; if (ev.state === 'tts' && SAY.nv) SAY.nv(ev); else if (ev.state === 'stt') nvHeard(ev); });
+    function nvListen() {   // « oui » / « non » à voix haute → l'avatar hoche la tête ou fait non (reconnaissance d'Android, sur le téléphone de préférence)
+      if (!NV || !NV.canListen() || NVL.on || MIC.on || editing || friendOn) return;
+      if (NV.listen() !== 'ok') return;
+      NVL.on = true; NVL.t = performance.now(); $.say.classList.add('ear');
+      later(() => { if (NVL.on && performance.now() - NVL.t > 7900) { NVL.on = false; $.say.classList.remove('ear'); try { NV.stopListen(); } catch (e) { /* rien */ } } }, 8000);
+    }
+    function nvHeard(ev) {
+      if (ev.ev === 'result' || ev.ev === 'error') { NVL.on = false; $.say.classList.remove('ear'); }
+      if (ev.ev !== 'result' || !STG || !STG.ready()) return;
+      if (ev.answer === 'oui') { STG.gesture('oui'); toast('👍 J\'ai entendu « oui » !'); }
+      else if (ev.answer === 'non') { STG.gesture('non'); toast('👎 J\'ai entendu « non »'); }
+    }
     function sayStop() {
-      if (!SAY.on) return; SAY.on = false; SAY.lip = null; SAY.u = null;
+      if (!SAY.on) return; SAY.on = false; SAY.lip = null; SAY.u = null; SAY.nv = null;
+      if (SAY.nvId) { SAY.nvId = ''; try { NV.stopSpeak(); } catch (e) { /* rien */ } }
       try { speechSynthesis.cancel(); } catch (e) { /* rien */ }
       $.say.classList.remove('on');
       if (STG && !MIC.on) { STG.setTalk(null); STG.setHome(false); STG.setFrame(editing ? (FR_CAT[cat] || 'corps') : 'corps'); }
     }
     function sayStart() {
-      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { toast('🗣️ Ce navigateur ne sait pas parler'); return; }
+      const native = nvUse();
+      if (!native && (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined')) { toast('🗣️ Ce navigateur ne sait pas parler'); return; }
       if (!STG || !STG.ready() || !PGM) { toast('Ton avatar arrive…'); return; }
       if (MIC.on) micStop();
       const text = PHRASES[(SAY.n = (SAY.n + 1) % PHRASES.length)], words = PGM.frenchVisemes(text), VIS = PGM.VIS;
       const lip = { words, wi: -1, wt: 0, unit: 0.072, started: false, ended: false, bnd: 0, lastB: 0, t: 0, p: new Float32Array(VIS.length), mouth: PGM.createMouth() };
-      const u = new SpeechSynthesisUtterance(text); u.lang = 'fr-FR'; const v = sayVoice(); if (v) u.voice = v; u.rate = 1; u.pitch = 1.05;
+      const u = native ? {} : new SpeechSynthesisUtterance(text);
+      if (!native) { u.lang = 'fr-FR'; const v = sayVoice(); if (v) u.voice = v; u.rate = 1; u.pitch = 1.05; }
       u.onstart = () => { if (SAY.lip !== lip) return; lip.started = true; lip.wi = 0; lip.wt = 0; lip.t = 0; };
       u.onboundary = (e) => {
         if (SAY.lip !== lip || (e.name && e.name !== 'word')) return;
@@ -4520,14 +4541,16 @@
         if (lip.bnd && k === lip.wi + 1) { const units = words[lip.wi].v.reduce((a, x) => a + x[1], 0), spent = lip.t - lip.lastB; if (spent > 0.05 && units > 0) lip.unit += (Math.max(0.04, Math.min(0.14, spent / (units + 0.6))) - lip.unit) * 0.5; }
         lip.wi = k; lip.wt = 0; lip.bnd++; lip.lastB = lip.t; lip.started = true;
       };
-      u.onend = u.onerror = () => { if (SAY.lip === lip) { lip.ended = true; later(() => { if (SAY.lip === lip) sayStop(); }, 350); } };
+      u.onend = u.onerror = () => { if (SAY.lip === lip) { lip.ended = true; later(() => { if (SAY.lip === lip) { sayStop(); if (native && /\?\s*$/.test(text)) nvListen(); } }, 350); } };
+      // voix du téléphone : mêmes évènements, venus du pont (start, word = position du mot dans le texte, done / stop / error)
+      if (native) SAY.nv = (ev) => { if (ev.id && ev.id !== SAY.nvId) return; if (ev.ev === 'start') u.onstart(); else if (ev.ev === 'word') u.onboundary({ name: 'word', charIndex: +ev.start || 0 }); else if (/^(done|stop|error)$/.test(ev.ev)) u.onend(); };
       SAY.on = true; SAY.lip = lip; SAY.u = u; $.say.classList.add('on'); hintOff(); if (window.JDW_PG_TEST) window.__pgSAY = SAY;   // SAY.u : sinon Chrome peut oublier la phrase et ne jamais dire « fin »
       STG.setFrame('parle'); STG.setHome(true);
       STG.setTalk((dt) => {
         if (!SAY.on || SAY.lip !== lip) return null;
         lip.t += dt; let cur = 'sil';
         // fin sans évènement « end » (certains navigateurs) : la voix ne parle plus depuis 0,4 s
-        let speaking = true; try { speaking = speechSynthesis.speaking; } catch (e) { /* rien */ }
+        let speaking = true; try { speaking = native ? !lip.ended : speechSynthesis.speaking; } catch (e) { /* rien */ }
         lip.quiet = lip.started && !speaking && lip.t > 1 ? (lip.quiet || 0) + dt : 0; if (lip.quiet > 0.4 && !lip.ended) { lip.ended = true; later(() => { if (SAY.lip === lip) sayStop(); }, 300); }
         if (lip.started && !lip.ended && lip.wi >= 0 && lip.wi < words.length) {
           lip.wt += dt; const W = words[lip.wi]; let a = 0; const x = lip.wt / lip.unit;
@@ -4540,7 +4563,8 @@
         const talking = cur !== 'sil' ? 1 : 0;
         return { w: 1, v: Object.assign({}, mo, { Brows_Raised: 0.18 * talking + 0.1 }), asym: lip.mouth.asym, nod: Math.sin(lip.t * 5.3) * 0.025 * talking, tilt: Math.sin(lip.t * 0.9) * 0.05 };
       });
-      try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { sayStop(); toast('🗣️ La voix du navigateur ne répond pas'); return; }
+      if (native) { SAY.nvId = NV.speak(text); if (!SAY.nvId) { sayStop(); toast('🗣️ Pas de voix française sur ce téléphone'); return; } }
+      else try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { sayStop(); toast('🗣️ La voix du navigateur ne répond pas'); return; }
       // voix muette (aucun début au bout de 2,5 s) : on mime quand même la phrase au rythme moyen
       later(() => { if (SAY.lip === lip && !lip.started) { lip.started = true; lip.wi = 0; lip.wt = 0; later(() => { if (SAY.lip === lip) sayStop(); }, 6000); } }, 2500);
     }
@@ -4548,6 +4572,7 @@
     // pas de voix sur cet appareil (WebView d'Android : pas de speechSynthesis ; ou aucune voix) : 💬 caché (🎤 reste), noté une fois dans le journal
     (function sayCheck() {
       const hide = (why) => { $.say.hidden = true; $.say.style.display = 'none'; try { if (!store.get('jdw.pegase.saylog')) { store.set('jdw.pegase.saylog', '1'); report('Pégase hub : bouton 💬 caché (' + why + ')'); } } catch (e) { /* rien */ } };
+      if (NV && NV.canSpeak()) return;   // appli 1.9 : la voix du téléphone
       if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { hide('pas de speechSynthesis'); return; }
       let n = 0; try { n = speechSynthesis.getVoices().length; } catch (e) { n = 0; }
       if (n) return;
@@ -5078,6 +5103,12 @@
     async function andOpen() {
       if (!NT) return;
       tone(660, 990);
+      // appli de la borne 1.9 (pont api 2) + compte : Pégase s'ouvre DÉJÀ CONNECTÉ (billet dans l'extra Android) ; sinon comme avant
+      if (AND.state === 'play' && memberMode() && typeof NT.openLinked === 'function') {
+        let r = null; try { r = await NT.openLinked(); } catch (e) { r = null; }
+        if (dead) return;
+        if (r && r.ok) { later(() => renderAndroid(false), 400); return; }
+      }
       let ok = false; try { ok = await NT.open(); } catch (e) { ok = false; }
       if (!ok && !dead) toast('Pégase n\'est pas (encore) disponible pour ce téléphone');
       later(() => renderAndroid(false), 400);
@@ -5102,6 +5133,7 @@
       $.seclk.hidden = false;
       const head = (p) => `<div class="pgh-lkhd"><span class="pgh-lkic">${PGH_SVG.link}</span><div><h3>Connecter le jeu Pégase</h3><p>${p.replace(/ ([!?:;»])/g, ' $1')}</p></div></div>`;
       const openBtn = lkInstalled() ? `<button class="pgh-cta gold" data-lk="open">${PGH_SVG.open}<span>Ouvrir Pégase connecté</span></button>` : '';
+      const direct = lkInstalled() && typeof NT.linkable === 'function' && NT.linkable();   // appli 1.9 : connexion d'un toucher, sans code
       let h;
       if (!memberMode()) {
         h = head('Avec un compte (gratuit), le jeu retrouve ton avatar, tes lucioles et tes missions sur tous tes appareils.') +
@@ -5117,7 +5149,7 @@
           `<p class="pgh-lkhow">Dans le jeu&nbsp;: <b>Ton compte</b> <i>›</i> <b>Connexion rapide</b> <i>›</i> tape&nbsp;ce&nbsp;code</p>` +
           `<div class="pgh-lkbtns">${on ? `<button class="pgh-cta glass" data-lk="copy">${PGH_SVG.copy}<span>Copier</span></button>` : ''}<button class="pgh-cta ${on ? 'glass' : 'gold'}" data-lk="new">${PGH_SVG.redo}<span>Nouveau code</span></button>${openBtn}</div>`;
       } else {
-        h = head('Un code de 8 caractères, valable 2 minutes et à usage unique : tu le tapes dans le jeu et tu retrouves ton compte, sans mot de passe.') +
+        h = head(direct ? 'D\'un toucher, Pégase s\'ouvre déjà connecté à ton compte. Pour un autre appareil (PC…), prends un code à usage unique.' : 'Un code de 8 caractères, valable 2 minutes et à usage unique : tu le tapes dans le jeu et tu retrouves ton compte, sans mot de passe.') +
           (LK.msg ? `<p class="pgh-lkmsg">${esc(LK.msg)}</p>` : '') +
           `<div class="pgh-lkbtns"><button class="pgh-cta ${lkInstalled() ? 'glass' : 'gold'}" data-lk="make"${LK.busy ? ' disabled' : ''}>${PGH_SVG.link}<span>${LK.busy ? 'Un instant…' : 'Obtenir mon code'}</span></button>${openBtn}</div>`;
       }
@@ -5240,6 +5272,7 @@
         for (const id of ivals) clearInterval(id); ivals.clear();
         if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect();
         if (andOff) { try { andOff(); } catch (e) { /* rien */ } andOff = null; }
+        if (nvOff) { try { nvOff(); } catch (e) { /* rien */ } nvOff = null; } if (NVL.on) { try { NV.stopListen(); } catch (e) { /* rien */ } }
         try { if (STG) STG.dispose(); } catch (e) { /* rien */ }
         STG = null; if (window.JDW_PG_HUB) try { delete window.JDW_PG_HUB; } catch (e) { window.JDW_PG_HUB = undefined; }
         root.textContent = '';

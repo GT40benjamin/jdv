@@ -6014,10 +6014,47 @@ async function nativeStatus(g, fresh) {
   return o;
 }
 function natNotify() { for (const f of NAT.subs) { try { f(); } catch (e) {} } }
+// appli de la borne 1.9 (pont api 2) : ouvrir l'appli native CONNECTÉE au compte de la borne. Billet pg_link_make (usage unique, 60 s,
+// seul son SHA-256 est gardé par le serveur) passé à l'appli dans l'EXTRA Android « fr.bornearcade.link » (openAppWith), JAMAIS dans
+// l'adresse pegase:// ; l'appli l'échange contre sa propre session (Edge Function pegase-redeem). Rend { ok } ou { ok: false, why } :
+// old (pont < 2 : le hub montre le code à taper), guest, install (pas installée / pas à jour : la feuille habituelle), make (billet refusé,
+// err), open (Android n'a pas pu l'ouvrir).
+const natApi = () => { try { return NAT.b ? +NAT.b.api() || 0 : 0; } catch (e) { return 0; } };
+async function nativeOpenLinked(g) {
+  if (natApi() < 2 || typeof NAT.b.openAppWith !== 'function' || store.get('jdw.natif.mode', 'auto') === 'web') return { ok: false, why: 'old' };
+  if (isGuest() || !profile.name) return { ok: false, why: 'guest' };
+  let info = null; try { info = await nativeInfo(g.id); } catch (e) {}
+  const inst = info ? nativeInstalled(info) : null;
+  if (!info || !inst || +inst.versionCode < +info.versionCode || nativeCertOff(inst, info)) return { ok: false, why: 'install' };
+  let r = null;
+  // billet LONG (64 hexa, 60 s) : depuis la 1.19.18 le défaut du serveur est le code court à taper
+  try { r = await rpc('pg_link_make', { p_code: CODE(), p_name: profile.name, p_long: true }, { quiet: true }); } catch (e) { return { ok: false, why: 'make', err: e }; }
+  const row = Array.isArray(r) ? r[0] : r, c = row && typeof row.r_code === 'string' ? row.r_code.trim().toLowerCase() : '';
+  if (!/^[0-9a-f]{64}$/.test(c)) return { ok: false, why: 'make', err: new Error('réponse') };
+  let ok = false;
+  try { ok = !!NAT.b.openAppWith(info.pkg, (info.open || 'pegase://open') + '?from=borne&v=' + encodeURIComponent(window.JDW_VERSION || ''), c); } catch (e) {}
+  return ok ? { ok: true } : { ok: false, why: 'open' };
+}
+// voix de l'avatar par le téléphone (appli 1.9, Voix.java) : speak(texte) → numéro de phrase ('' = pas de voix française) ; évènements
+// { state: 'tts', ev: init | start | word (start, end = positions dans le texte) | done | stop | error } ; listen() → 'ok' | 'busy' | 'none' ;
+// évènements { state: 'stt', ev: ready (mode ondevice | offline-pref) | begin | end | partial | result (words, answer oui | non | '') | error (err) }
+const NATV = { subs: new Set() };
+function nativeVoice() {
+  if (natApi() < 2 || typeof NAT.b.speak !== 'function') return undefined;
+  const b = NAT.b, call = (f, ...a) => { try { return b[f](...a); } catch (e) { return null; } };
+  return {
+    canSpeak: () => !!call('canSpeak'), speak: (t) => String(call('speak', String(t || '').slice(0, 600)) || ''), stopSpeak: () => { call('stopSpeak'); },
+    canListen: () => !!call('canListen'), listen: () => String(call('listen') || 'none'), stopListen: () => { call('stopListen'); },
+    onEvent: (fn) => { if (typeof fn !== 'function') return () => {}; NATV.subs.add(fn); return () => NATV.subs.delete(fn); }
+  };
+}
 function nativeApi(g) {
   return {
     status: (fresh) => nativeStatus(g, !!fresh),
     open: () => nativeOpen(g, true),
+    openLinked: () => nativeOpenLinked(g),
+    linkable: () => natApi() >= 2 && store.get('jdw.natif.mode', 'auto') !== 'web',   // la borne sait ouvrir l'appli déjà connectée
+    voice: nativeVoice(),
     onChange: (fn) => { if (typeof fn !== 'function') return () => {}; NAT.subs.add(fn); return () => NAT.subs.delete(fn); }
   };
 }
@@ -6205,6 +6242,7 @@ function nativeChips() {
 window.JDWAndroidEvent = ev => {
   try {
     if (!ev || typeof ev !== 'object') return;
+    if (ev.state === 'tts' || ev.state === 'stt') { for (const f of NATV.subs) { try { f(ev); } catch (e) {} } return; }   // voix (1.9) : jamais vers la feuille d'installation
     if (ev.resumed) nativeChips();
     if (ev.resumed || /^(done|idle|cancel|error|ready)$/.test(ev.state || '')) setTimeout(natNotify, 0);   // la carte du hub se remet à jour
     const i = NAT.info;

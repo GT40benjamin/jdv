@@ -48433,6 +48433,7 @@ void main(){ if (vK >= 0.999) discard;
 .pgh-lkmsg{margin:12px 2px 0;font:600 13px/1.45 ${FB};color:#ffd0b0}
 .pgh-lk .pgh-cta[disabled]{opacity:.55;pointer-events:none}
 @media (min-width:700px){.pgh-lkbtns .pgh-cta{flex:0 1 auto}}
+.pgh-emo.say.ear{box-shadow:inset 0 0 0 2px #7cf0a0,0 0 18px rgba(124,240,160,.6)}
 @media (prefers-reduced-motion:reduce){.pgh-bg{animation:none}.pgh-hint{animation:none}.pgh-lkring .fg{transition:none}.pgh-lkbox.on .pgh-lkcode span{animation:none}}
 `;
 
@@ -49499,19 +49500,39 @@ void main(){ if (vK >= 0.999) discard;
       let vs = []; try { vs = speechSynthesis.getVoices().filter((v) => /^fr/i.test(v.lang)); } catch (e) { /* rien */ }
       return vs.find((v) => v.localService && /fr.FR/i.test(v.lang)) || vs.find((v) => v.localService) || vs.find((v) => /fr.FR/i.test(v.lang)) || vs[0] || null;
     }
+    // appli de la borne 1.9 : la voix du TÉLÉPHONE (api.natif.voice, Voix.java) quand la WebView n'a pas speechSynthesis
+    const NV = api && api.natif && api.natif.voice && typeof api.natif.voice.speak === 'function' ? api.natif.voice : null;   // (NT est défini plus bas)
+    let nvOff = null; const NVL = { on: false, t: 0 };
+    const nvUse = () => !!NV && (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined' || !sayVoice()) && NV.canSpeak();
+    if (NV) nvOff = NV.onEvent((ev) => { if (dead) return; if (ev.state === 'tts' && SAY.nv) SAY.nv(ev); else if (ev.state === 'stt') nvHeard(ev); });
+    function nvListen() {   // « oui » / « non » à voix haute → l'avatar hoche la tête ou fait non (reconnaissance d'Android, sur le téléphone de préférence)
+      if (!NV || !NV.canListen() || NVL.on || MIC.on || editing || friendOn) return;
+      if (NV.listen() !== 'ok') return;
+      NVL.on = true; NVL.t = performance.now(); $.say.classList.add('ear');
+      later(() => { if (NVL.on && performance.now() - NVL.t > 7900) { NVL.on = false; $.say.classList.remove('ear'); try { NV.stopListen(); } catch (e) { /* rien */ } } }, 8000);
+    }
+    function nvHeard(ev) {
+      if (ev.ev === 'result' || ev.ev === 'error') { NVL.on = false; $.say.classList.remove('ear'); }
+      if (ev.ev !== 'result' || !STG || !STG.ready()) return;
+      if (ev.answer === 'oui') { STG.gesture('oui'); toast('👍 J\'ai entendu « oui » !'); }
+      else if (ev.answer === 'non') { STG.gesture('non'); toast('👎 J\'ai entendu « non »'); }
+    }
     function sayStop() {
-      if (!SAY.on) return; SAY.on = false; SAY.lip = null; SAY.u = null;
+      if (!SAY.on) return; SAY.on = false; SAY.lip = null; SAY.u = null; SAY.nv = null;
+      if (SAY.nvId) { SAY.nvId = ''; try { NV.stopSpeak(); } catch (e) { /* rien */ } }
       try { speechSynthesis.cancel(); } catch (e) { /* rien */ }
       $.say.classList.remove('on');
       if (STG && !MIC.on) { STG.setTalk(null); STG.setHome(false); STG.setFrame(editing ? (FR_CAT[cat] || 'corps') : 'corps'); }
     }
     function sayStart() {
-      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { toast('🗣️ Ce navigateur ne sait pas parler'); return; }
+      const native = nvUse();
+      if (!native && (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined')) { toast('🗣️ Ce navigateur ne sait pas parler'); return; }
       if (!STG || !STG.ready() || !PGM) { toast('Ton avatar arrive…'); return; }
       if (MIC.on) micStop();
       const text = PHRASES[(SAY.n = (SAY.n + 1) % PHRASES.length)], words = PGM.frenchVisemes(text), VIS = PGM.VIS;
       const lip = { words, wi: -1, wt: 0, unit: 0.072, started: false, ended: false, bnd: 0, lastB: 0, t: 0, p: new Float32Array(VIS.length), mouth: PGM.createMouth() };
-      const u = new SpeechSynthesisUtterance(text); u.lang = 'fr-FR'; const v = sayVoice(); if (v) u.voice = v; u.rate = 1; u.pitch = 1.05;
+      const u = native ? {} : new SpeechSynthesisUtterance(text);
+      if (!native) { u.lang = 'fr-FR'; const v = sayVoice(); if (v) u.voice = v; u.rate = 1; u.pitch = 1.05; }
       u.onstart = () => { if (SAY.lip !== lip) return; lip.started = true; lip.wi = 0; lip.wt = 0; lip.t = 0; };
       u.onboundary = (e) => {
         if (SAY.lip !== lip || (e.name && e.name !== 'word')) return;
@@ -49520,14 +49541,16 @@ void main(){ if (vK >= 0.999) discard;
         if (lip.bnd && k === lip.wi + 1) { const units = words[lip.wi].v.reduce((a, x) => a + x[1], 0), spent = lip.t - lip.lastB; if (spent > 0.05 && units > 0) lip.unit += (Math.max(0.04, Math.min(0.14, spent / (units + 0.6))) - lip.unit) * 0.5; }
         lip.wi = k; lip.wt = 0; lip.bnd++; lip.lastB = lip.t; lip.started = true;
       };
-      u.onend = u.onerror = () => { if (SAY.lip === lip) { lip.ended = true; later(() => { if (SAY.lip === lip) sayStop(); }, 350); } };
+      u.onend = u.onerror = () => { if (SAY.lip === lip) { lip.ended = true; later(() => { if (SAY.lip === lip) { sayStop(); if (native && /\?\s*$/.test(text)) nvListen(); } }, 350); } };
+      // voix du téléphone : mêmes évènements, venus du pont (start, word = position du mot dans le texte, done / stop / error)
+      if (native) SAY.nv = (ev) => { if (ev.id && ev.id !== SAY.nvId) return; if (ev.ev === 'start') u.onstart(); else if (ev.ev === 'word') u.onboundary({ name: 'word', charIndex: +ev.start || 0 }); else if (/^(done|stop|error)$/.test(ev.ev)) u.onend(); };
       SAY.on = true; SAY.lip = lip; SAY.u = u; $.say.classList.add('on'); hintOff(); if (window.JDW_PG_TEST) window.__pgSAY = SAY;   // SAY.u : sinon Chrome peut oublier la phrase et ne jamais dire « fin »
       STG.setFrame('parle'); STG.setHome(true);
       STG.setTalk((dt) => {
         if (!SAY.on || SAY.lip !== lip) return null;
         lip.t += dt; let cur = 'sil';
         // fin sans évènement « end » (certains navigateurs) : la voix ne parle plus depuis 0,4 s
-        let speaking = true; try { speaking = speechSynthesis.speaking; } catch (e) { /* rien */ }
+        let speaking = true; try { speaking = native ? !lip.ended : speechSynthesis.speaking; } catch (e) { /* rien */ }
         lip.quiet = lip.started && !speaking && lip.t > 1 ? (lip.quiet || 0) + dt : 0; if (lip.quiet > 0.4 && !lip.ended) { lip.ended = true; later(() => { if (SAY.lip === lip) sayStop(); }, 300); }
         if (lip.started && !lip.ended && lip.wi >= 0 && lip.wi < words.length) {
           lip.wt += dt; const W = words[lip.wi]; let a = 0; const x = lip.wt / lip.unit;
@@ -49540,7 +49563,8 @@ void main(){ if (vK >= 0.999) discard;
         const talking = cur !== 'sil' ? 1 : 0;
         return { w: 1, v: Object.assign({}, mo, { Brows_Raised: 0.18 * talking + 0.1 }), asym: lip.mouth.asym, nod: Math.sin(lip.t * 5.3) * 0.025 * talking, tilt: Math.sin(lip.t * 0.9) * 0.05 };
       });
-      try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { sayStop(); toast('🗣️ La voix du navigateur ne répond pas'); return; }
+      if (native) { SAY.nvId = NV.speak(text); if (!SAY.nvId) { sayStop(); toast('🗣️ Pas de voix française sur ce téléphone'); return; } }
+      else try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { sayStop(); toast('🗣️ La voix du navigateur ne répond pas'); return; }
       // voix muette (aucun début au bout de 2,5 s) : on mime quand même la phrase au rythme moyen
       later(() => { if (SAY.lip === lip && !lip.started) { lip.started = true; lip.wi = 0; lip.wt = 0; later(() => { if (SAY.lip === lip) sayStop(); }, 6000); } }, 2500);
     }
@@ -49548,6 +49572,7 @@ void main(){ if (vK >= 0.999) discard;
     // pas de voix sur cet appareil (WebView d'Android : pas de speechSynthesis ; ou aucune voix) : 💬 caché (🎤 reste), noté une fois dans le journal
     (function sayCheck() {
       const hide = (why) => { $.say.hidden = true; $.say.style.display = 'none'; try { if (!store.get('jdw.pegase.saylog')) { store.set('jdw.pegase.saylog', '1'); report('Pégase hub : bouton 💬 caché (' + why + ')'); } } catch (e) { /* rien */ } };
+      if (NV && NV.canSpeak()) return;   // appli 1.9 : la voix du téléphone
       if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { hide('pas de speechSynthesis'); return; }
       let n = 0; try { n = speechSynthesis.getVoices().length; } catch (e) { n = 0; }
       if (n) return;
@@ -50078,6 +50103,12 @@ void main(){ if (vK >= 0.999) discard;
     async function andOpen() {
       if (!NT) return;
       tone(660, 990);
+      // appli de la borne 1.9 (pont api 2) + compte : Pégase s'ouvre DÉJÀ CONNECTÉ (billet dans l'extra Android) ; sinon comme avant
+      if (AND.state === 'play' && memberMode() && typeof NT.openLinked === 'function') {
+        let r = null; try { r = await NT.openLinked(); } catch (e) { r = null; }
+        if (dead) return;
+        if (r && r.ok) { later(() => renderAndroid(false), 400); return; }
+      }
       let ok = false; try { ok = await NT.open(); } catch (e) { ok = false; }
       if (!ok && !dead) toast('Pégase n\'est pas (encore) disponible pour ce téléphone');
       later(() => renderAndroid(false), 400);
@@ -50102,6 +50133,7 @@ void main(){ if (vK >= 0.999) discard;
       $.seclk.hidden = false;
       const head = (p) => `<div class="pgh-lkhd"><span class="pgh-lkic">${PGH_SVG.link}</span><div><h3>Connecter le jeu Pégase</h3><p>${p.replace(/ ([!?:;»])/g, ' $1')}</p></div></div>`;
       const openBtn = lkInstalled() ? `<button class="pgh-cta gold" data-lk="open">${PGH_SVG.open}<span>Ouvrir Pégase connecté</span></button>` : '';
+      const direct = lkInstalled() && typeof NT.linkable === 'function' && NT.linkable();   // appli 1.9 : connexion d'un toucher, sans code
       let h;
       if (!memberMode()) {
         h = head('Avec un compte (gratuit), le jeu retrouve ton avatar, tes lucioles et tes missions sur tous tes appareils.') +
@@ -50117,7 +50149,7 @@ void main(){ if (vK >= 0.999) discard;
           `<p class="pgh-lkhow">Dans le jeu&nbsp;: <b>Ton compte</b> <i>›</i> <b>Connexion rapide</b> <i>›</i> tape&nbsp;ce&nbsp;code</p>` +
           `<div class="pgh-lkbtns">${on ? `<button class="pgh-cta glass" data-lk="copy">${PGH_SVG.copy}<span>Copier</span></button>` : ''}<button class="pgh-cta ${on ? 'glass' : 'gold'}" data-lk="new">${PGH_SVG.redo}<span>Nouveau code</span></button>${openBtn}</div>`;
       } else {
-        h = head('Un code de 8 caractères, valable 2 minutes et à usage unique : tu le tapes dans le jeu et tu retrouves ton compte, sans mot de passe.') +
+        h = head(direct ? 'D\'un toucher, Pégase s\'ouvre déjà connecté à ton compte. Pour un autre appareil (PC…), prends un code à usage unique.' : 'Un code de 8 caractères, valable 2 minutes et à usage unique : tu le tapes dans le jeu et tu retrouves ton compte, sans mot de passe.') +
           (LK.msg ? `<p class="pgh-lkmsg">${esc(LK.msg)}</p>` : '') +
           `<div class="pgh-lkbtns"><button class="pgh-cta ${lkInstalled() ? 'glass' : 'gold'}" data-lk="make"${LK.busy ? ' disabled' : ''}>${PGH_SVG.link}<span>${LK.busy ? 'Un instant…' : 'Obtenir mon code'}</span></button>${openBtn}</div>`;
       }
@@ -50240,6 +50272,7 @@ void main(){ if (vK >= 0.999) discard;
         for (const id of ivals) clearInterval(id); ivals.clear();
         if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect();
         if (andOff) { try { andOff(); } catch (e) { /* rien */ } andOff = null; }
+        if (nvOff) { try { nvOff(); } catch (e) { /* rien */ } nvOff = null; } if (NVL.on) { try { NV.stopListen(); } catch (e) { /* rien */ } }
         try { if (STG) STG.dispose(); } catch (e) { /* rien */ }
         STG = null; if (window.JDW_PG_HUB) try { delete window.JDW_PG_HUB; } catch (e) { window.JDW_PG_HUB = undefined; }
         root.textContent = '';
@@ -86487,7 +86520,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261018112122"; window.JDW_VERSION = "1.19.18"; window.JDW_NOTES = ["\ud83e\uddd9 Magic Force : le mage ne reste plus bloqu\u00e9 quand le joystick \u00ab perd \u00bb ton doigt (iPhone), et le jeu repart si l'\u00e9cran du t\u00e9l\u00e9phone coupe l'affichage 3D"];</script>
+<script>window.JDW_BUILD = "20261018114607"; window.JDW_VERSION = "1.20"; window.JDW_NOTES = ["\ud83d\udcf2 Appli 1.9 : P\u00e9gase s'ouvre d\u00e9j\u00e0 connect\u00e9, la voix de ton avatar et le oui/non reconnus sur le t\u00e9l\u00e9phone"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -94701,10 +94734,47 @@ async function nativeStatus(g, fresh) {
   return o;
 }
 function natNotify() { for (const f of NAT.subs) { try { f(); } catch (e) {} } }
+// appli de la borne 1.9 (pont api 2) : ouvrir l'appli native CONNECTÉE au compte de la borne. Billet pg_link_make (usage unique, 60 s,
+// seul son SHA-256 est gardé par le serveur) passé à l'appli dans l'EXTRA Android « fr.bornearcade.link » (openAppWith), JAMAIS dans
+// l'adresse pegase:// ; l'appli l'échange contre sa propre session (Edge Function pegase-redeem). Rend { ok } ou { ok: false, why } :
+// old (pont < 2 : le hub montre le code à taper), guest, install (pas installée / pas à jour : la feuille habituelle), make (billet refusé,
+// err), open (Android n'a pas pu l'ouvrir).
+const natApi = () => { try { return NAT.b ? +NAT.b.api() || 0 : 0; } catch (e) { return 0; } };
+async function nativeOpenLinked(g) {
+  if (natApi() < 2 || typeof NAT.b.openAppWith !== 'function' || store.get('jdw.natif.mode', 'auto') === 'web') return { ok: false, why: 'old' };
+  if (isGuest() || !profile.name) return { ok: false, why: 'guest' };
+  let info = null; try { info = await nativeInfo(g.id); } catch (e) {}
+  const inst = info ? nativeInstalled(info) : null;
+  if (!info || !inst || +inst.versionCode < +info.versionCode || nativeCertOff(inst, info)) return { ok: false, why: 'install' };
+  let r = null;
+  // billet LONG (64 hexa, 60 s) : depuis la 1.19.18 le défaut du serveur est le code court à taper
+  try { r = await rpc('pg_link_make', { p_code: CODE(), p_name: profile.name, p_long: true }, { quiet: true }); } catch (e) { return { ok: false, why: 'make', err: e }; }
+  const row = Array.isArray(r) ? r[0] : r, c = row && typeof row.r_code === 'string' ? row.r_code.trim().toLowerCase() : '';
+  if (!/^[0-9a-f]{64}$/.test(c)) return { ok: false, why: 'make', err: new Error('réponse') };
+  let ok = false;
+  try { ok = !!NAT.b.openAppWith(info.pkg, (info.open || 'pegase://open') + '?from=borne&v=' + encodeURIComponent(window.JDW_VERSION || ''), c); } catch (e) {}
+  return ok ? { ok: true } : { ok: false, why: 'open' };
+}
+// voix de l'avatar par le téléphone (appli 1.9, Voix.java) : speak(texte) → numéro de phrase ('' = pas de voix française) ; évènements
+// { state: 'tts', ev: init | start | word (start, end = positions dans le texte) | done | stop | error } ; listen() → 'ok' | 'busy' | 'none' ;
+// évènements { state: 'stt', ev: ready (mode ondevice | offline-pref) | begin | end | partial | result (words, answer oui | non | '') | error (err) }
+const NATV = { subs: new Set() };
+function nativeVoice() {
+  if (natApi() < 2 || typeof NAT.b.speak !== 'function') return undefined;
+  const b = NAT.b, call = (f, ...a) => { try { return b[f](...a); } catch (e) { return null; } };
+  return {
+    canSpeak: () => !!call('canSpeak'), speak: (t) => String(call('speak', String(t || '').slice(0, 600)) || ''), stopSpeak: () => { call('stopSpeak'); },
+    canListen: () => !!call('canListen'), listen: () => String(call('listen') || 'none'), stopListen: () => { call('stopListen'); },
+    onEvent: (fn) => { if (typeof fn !== 'function') return () => {}; NATV.subs.add(fn); return () => NATV.subs.delete(fn); }
+  };
+}
 function nativeApi(g) {
   return {
     status: (fresh) => nativeStatus(g, !!fresh),
     open: () => nativeOpen(g, true),
+    openLinked: () => nativeOpenLinked(g),
+    linkable: () => natApi() >= 2 && store.get('jdw.natif.mode', 'auto') !== 'web',   // la borne sait ouvrir l'appli déjà connectée
+    voice: nativeVoice(),
     onChange: (fn) => { if (typeof fn !== 'function') return () => {}; NAT.subs.add(fn); return () => NAT.subs.delete(fn); }
   };
 }
@@ -94892,6 +94962,7 @@ function nativeChips() {
 window.JDWAndroidEvent = ev => {
   try {
     if (!ev || typeof ev !== 'object') return;
+    if (ev.state === 'tts' || ev.state === 'stt') { for (const f of NATV.subs) { try { f(ev); } catch (e) {} } return; }   // voix (1.9) : jamais vers la feuille d'installation
     if (ev.resumed) nativeChips();
     if (ev.resumed || /^(done|idle|cancel|error|ready)$/.test(ev.state || '')) setTimeout(natNotify, 0);   // la carte du hub se remet à jour
     const i = NAT.info;

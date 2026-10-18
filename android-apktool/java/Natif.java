@@ -31,6 +31,9 @@ import java.util.Locale;
  * Applis natives ouvertes depuis la borne (Pégase…), appli 1.8 et suivantes.
  * Page : window.JDWAndroid (api, device, appInstalled, openApp, canInstall, openInstallSettings, downloadAndInstall, retryInstall,
  * installState, background, cancelInstall, uninstall) ; nouvelles vers la page : window.JDWAndroidEvent({ state, … }).
+ * api 2 (appli 1.9) : openAppWith(pkg, uri, billet) = ouvrir l'appli connectée au compte de la borne (billet pg_link_make à usage unique,
+ * 60 s, passé dans l'EXTRA Android « fr.bornearcade.link », JAMAIS dans l'adresse) ; voix de l'avatar (Voix.java) : speak / stopSpeak /
+ * canSpeak (TextToSpeech, mots annoncés : {state:'tts'}) et listen / stopListen / canListen (SpeechRecognizer fr-FR, {state:'stt'}).
  * Chemin : DownloadManager (continue si on quitte la borne ou si Android la ferme) → empreinte SHA-256 vérifiée → PackageInstaller
  * (Android demande « Installer ? » la 1re fois ; Android 12+ : la mise à jour d'une appli installée par la borne passe sans question).
  * États : download → verify → ready → prepare → install → confirm (écran d'Android) → done | cancel | error (err = code).
@@ -53,12 +56,13 @@ public final class Natif {
     boolean resumed, polling;
     volatile boolean working;     // vérification ou copie vers l'installateur en cours (fil à part)
 
-    Natif(MainActivity a, WebView w) { act = a; web = w; sp = a.getSharedPreferences("natif", 0); live = this; }
+    final Voix voix;
+    Natif(MainActivity a, WebView w) { act = a; web = w; sp = a.getSharedPreferences("natif", 0); live = this; voix = new Voix(a, this); }
     Bridge bridge() { return new Bridge(); }
 
     /** Ce que voit la page (window.JDWAndroid). Appelé sur le fil « JavaBridge » de la WebView. */
     public final class Bridge {
-        @JavascriptInterface public int api() { return 1; }
+        @JavascriptInterface public int api() { return 2; }
         @JavascriptInterface public String device() { return deviceJson(); }
         @JavascriptInterface public String appInstalled(String pkg) { return installedJson(pkg); }
         @JavascriptInterface public boolean openApp(String pkg, String uri) { return open(pkg, uri); }
@@ -70,11 +74,19 @@ public final class Natif {
         @JavascriptInterface public void background() { sp.edit().putBoolean("auto", false).apply(); }
         @JavascriptInterface public void cancelInstall() { ui.post(new Runnable() { public void run() { cancel(true); } }); }
         @JavascriptInterface public boolean uninstall(String pkg) { return Natif.this.uninstall(pkg); }
+        // api 2 (1.9)
+        @JavascriptInterface public boolean openAppWith(String pkg, String uri, String ticket) { return Natif.this.openWith(pkg, uri, ticket); }
+        @JavascriptInterface public String speak(String text) { return voix.speak(text); }
+        @JavascriptInterface public void stopSpeak() { voix.stopSpeak(); }
+        @JavascriptInterface public boolean canSpeak() { return voix.ttsState != -1; }
+        @JavascriptInterface public String listen() { return voix.listen(); }
+        @JavascriptInterface public void stopListen() { voix.stopListen(); }
+        @JavascriptInterface public boolean canListen() { return voix.canListen(); }
     }
 
     // ---------- l'appareil ----------
     String deviceJson() {
-        StringBuilder b = new StringBuilder("{\"api\":1,\"sdk\":").append(Build.VERSION.SDK_INT).append(",\"app\":").append(MainActivity.VERSION);
+        StringBuilder b = new StringBuilder("{\"api\":2,\"sdk\":").append(Build.VERSION.SDK_INT).append(",\"app\":").append(MainActivity.VERSION);
         b.append(",\"abis\":[");
         String[] a = Build.SUPPORTED_ABIS;
         if (a != null) for (int i = 0; i < a.length; i++) b.append(i > 0 ? "," : "").append(q(a[i]));
@@ -122,14 +134,19 @@ public final class Natif {
     }
 
     // ---------- ouvrir (adresse « pegase://… » passée à l'appli, pour la suite : jeton de session) ----------
-    boolean open(String pkg, String uri) {
+    boolean open(String pkg, String uri) { return openWith(pkg, uri, null); }
+    /** api 2 : avec un billet de connexion (64 hexa, usage unique, 60 s) dans l'extra « fr.bornearcade.link » ; jamais dans l'adresse. */
+    boolean openWith(String pkg, String uri, String ticket) {
         if (!okPkg(pkg)) return false;
+        if (ticket != null && !ticket.matches("[0-9a-f]{64}")) return false;
+        if (ticket != null && uri != null && uri.indexOf(ticket.substring(0, 16)) >= 0) return false;   // le billet ne voyage jamais dans l'adresse
         final Intent i;
         try { i = act.getPackageManager().getLaunchIntentForPackage(pkg); } catch (Throwable e) { return false; }
         if (i == null) return false;
         if (uri != null && uri.matches("[a-z][a-z0-9]{1,20}://\\S{0,1500}") && !uri.matches("(https?|file|content|intent|javascript)://.*")) i.setData(Uri.parse(uri));
         i.addFlags(0x10000000);   // FLAG_ACTIVITY_NEW_TASK
         i.putExtra("fr.bornearcade.from", "borne");
+        if (ticket != null) i.putExtra("fr.bornearcade.link", ticket);
         ui.post(new Runnable() { public void run() {
             try { act.startActivity(i); } catch (Throwable e) { emit("{\"state\":\"openfail\",\"msg\":" + q(String.valueOf(e)) + "}"); }
         } });
@@ -418,7 +435,8 @@ public final class Natif {
         else if (!committed && !working && sp.getBoolean("auto", false) && ("verify".equals(st) || "prepare".equals(st) || "install".equals(st) || "confirm".equals(st))) { resume(); return; }
         emit(stateJson().replace("{\"state\":", "{\"resumed\":true,\"state\":"));
     }
-    void onPause() { resumed = false; }
+    void onPause() { resumed = false; voix.pause(); }
+    void onDestroy() { voix.destroy(); }
 
     /** Réponse de l'installateur d'Android (déclaré dans le manifeste : arrive même si la borne a été fermée entre-temps). */
     public static final class Statut extends BroadcastReceiver {
