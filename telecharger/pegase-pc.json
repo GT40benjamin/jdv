@@ -1,13 +1,13 @@
 {
-  "version": "0.4 (essai 4)",
-  "size": 815564677,
-  "sha256": "5249cd320a42ffd152105b30f2e1d616c17883f25ae42fe686d1a80cbc15a3c2",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v4/Pegase-PC-2026-10-18-peche.zip",
+  "version": "0.5 (essai 5)",
+  "size": 834452680,
+  "sha256": "b789e2f02478f34fcf794f2a32cb85a0a019ee9a143271c51af27bbf1c3bd3f5",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v5/Pegase-PC-2026-10-18-compte.zip",
   "notes": [
-    "La pêche avec Gaspard : 17 poissons à attraper, dont un secret",
-    "Les insectes au filet : papillons, libellules, coléoptères",
-    "Le musée de Mlle Iris : aquarium, insectarium et galerie photo",
-    "L'arrivée sur l'île en petit avion avec la pilote Lou",
-    "Parcelles illuminées, toit posé tout seul, et plein de corrections (zoom ×12, licorne dans les montagnes, maire dans sa mairie)"
+    "Connexion avec ton compte de la borne (pseudo ou e-mail, « Rester connecté »)",
+    "Ton avatar du hub dans le jeu : l'apparence et la tenue du Dressing",
+    "Synchro de ta maison, de ton potager et de tes lucioles avec ton compte",
+    "Les copains de la salle avec leur vrai avatar",
+    "Jeu hors ligne : tout est envoyé au serveur au retour du réseau"
   ]
 }
