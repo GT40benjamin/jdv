@@ -6043,6 +6043,7 @@ function nativeVoice() {
   if (natApi() < 2 || typeof NAT.b.speak !== 'function') return undefined;
   const b = NAT.b, call = (f, ...a) => { try { return b[f](...a); } catch (e) { return null; } };
   return {
+    api: natApi(),   // niveau du pont (2 = appli 1.9) : le hub le note dans son journal d'écoute
     canSpeak: () => !!call('canSpeak'), speak: (t) => String(call('speak', String(t || '').slice(0, 600)) || ''), stopSpeak: () => { call('stopSpeak'); },
     canListen: () => !!call('canListen'), listen: () => String(call('listen') || 'none'), stopListen: () => { call('stopListen'); },
     onEvent: (fn) => { if (typeof fn !== 'function') return () => {}; NATV.subs.add(fn); return () => NATV.subs.delete(fn); }

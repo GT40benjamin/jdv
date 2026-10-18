@@ -166,6 +166,6 @@ jour / Jouer = `pegase://open`, question Wi-Fi / données mobiles, progression) 
 pour se désabonner : appelée quand l'état a pu changer (feuille fermée, nouvelles d'Android, retour dans la borne).
 Appli de la borne 1.9 (pont `JDWAndroid` api 2, publiée avec la borne 1.20) : `api.natif.linkable()` → la borne sait ouvrir l'appli déjà connectée ; `await api.natif.openLinked()`
 → `{ ok }` ou `{ ok: false, why: old | guest | install | make (err) | open }` : billet LONG `pg_link_make` (`p_long: true`, 64 hexa) passé à l'appli dans l'extra Android
-`fr.bornearcade.link` (jamais dans l'adresse) ; `api.natif.voice` (undefined avant la 1.9) = `{ canSpeak, speak(texte) → numéro, stopSpeak,
+`fr.bornearcade.link` (jamais dans l'adresse) ; `api.natif.voice` (undefined avant la 1.9) = `{ api (niveau du pont, 1.20.1), canSpeak, speak(texte) → numéro, stopSpeak,
 canListen, listen() → 'ok' | 'busy' | 'none', stopListen, onEvent(fn) }` ; évènements `{ state: 'tts', ev: init | start | word (start, end) |
 done | stop | error }` et `{ state: 'stt', ev: ready (mode ondevice | offline-pref) | begin | end | partial | result (words, answer oui | non | '') | error (err) }`.
