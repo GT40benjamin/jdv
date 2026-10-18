@@ -146,6 +146,9 @@ réglages (profil principal : save_player ; « Seulement dans la salle » : save
 présence en direct ; photo = tête déjà filtrée par le serveur : membres seulement, consentement). Vide pour un invité ou sans salle.
 `await api.pegase.rpc(fn, args)` : SEULEMENT `pg_me`, `pg_get_doc`, `pg_put_doc`, `pg_room_avatars` (pegase.sql), toujours au nom du joueur
 actuel (`p_name` ajouté par la borne, `p_room` = salle actuelle pour pg_room_avatars) ; refusé aux invités (erreur `guest`), hors ligne = erreur `offline`.
+Depuis la 1.19.12 (phase 2b du serveur) : aussi `pg_unlock_buy` (`{ p_unlock, p_op }` seulement, `p_name` ajouté par la borne ; réponse
+`r_ok, r_why, r_ecus, r_unlock, r_price`) et les catalogues `pg_unlock_catalog` / `pg_mission_catalog` (envoyés avec `p_code` SEUL, compte
+connecté). Pas de `pg_claim` : les récompenses de missions se reçoivent dans le jeu.
 `api.pegase.account()` : invité → quitte le hub et ouvre « Crée ton compte ».
 
 ## Ajout 9 : l'appli native d'un jeu (api.natif, jeux de NATIVE_APPS dans shell2.js : aujourd'hui `pegase`)

@@ -53094,6 +53094,108 @@ void main(){ if (vK >= 0.999) discard;
 .pgh-toast{position:absolute;left:50%;top:14px;z-index:40;transform:translate(-50%,-10px);max-width:88%;padding:10px 16px;border-radius:16px;text-align:center;font:700 14px ${FB};color:#3a1a05;
   background:linear-gradient(180deg,#fff1c8,#ffd27e);box-shadow:0 10px 26px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .35s,transform .35s}
 .pgh-toast.on{opacity:1;transform:translate(-50%,0)}
+/* aujourd'hui : missions du jour (tirage partagé avec le jeu) + histoire, en lecture seule */
+.pgh-today[hidden]{display:none}
+.pgh-tdn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font:700 12.5px ${FB};color:#ffe9c2;background:rgba(255,214,140,.12);box-shadow:inset 0 0 0 1px rgba(255,214,140,.3)}
+.pgh-tdn:empty{display:none}
+.pgh-tdn.all{color:#0f2a18;background:linear-gradient(180deg,#c9ffda,#7cf0a0);box-shadow:0 0 16px rgba(124,240,160,.4)}
+.pgh-mjs{display:grid;gap:10px;margin-top:14px}
+.pgh.wide .pgh-mjs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pgh-mj{--g1:rgba(255,190,110,.36);--g2:#ffb46a;--g3:#ffd59a;position:relative;display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border-radius:20px;overflow:hidden;background:linear-gradient(120deg,var(--g1),rgba(34,22,60,.78) 58%,rgba(26,17,48,.86));box-shadow:inset 0 0 0 1px rgba(255,214,140,.2),0 10px 26px rgba(0,0,0,.24);animation:pghPane .4s ease both}
+.pgh-mj:nth-child(2){animation-delay:.06s}.pgh-mj:nth-child(3){animation-delay:.12s}
+.pgh-mj .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:26px;line-height:1;background:radial-gradient(circle at 38% 28%,rgba(255,255,255,.55),var(--g2) 72%);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.38),0 6px 14px rgba(0,0,0,.28)}
+.pgh-mj small{display:block;font:700 10.5px ${FB};letter-spacing:.12em;text-transform:uppercase;color:var(--g3)}
+.pgh-mj b{display:block;margin-top:2px;font:700 14.5px/1.3 ${FB};color:#fff3dc}
+.pgh-mj .rw{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;font:700 14px ${FB};color:#f4ffd0;background:rgba(20,30,10,.42);box-shadow:inset 0 0 0 1px rgba(225,255,140,.35),0 0 14px rgba(200,255,120,.12);white-space:nowrap}
+.pgh-mj .rw .pgh-lu{width:17px;height:17px}
+.pgh-mj.done{background:linear-gradient(120deg,rgba(124,240,160,.26),rgba(30,40,46,.8) 60%,rgba(26,17,48,.86))}
+.pgh-mj.done .rw{color:#0f2a18;background:linear-gradient(180deg,#c9ffda,#7cf0a0);box-shadow:0 0 14px rgba(124,240,160,.35)}
+.pgh-mj.done b{color:rgba(255,243,220,.72)}
+.pgh-mj.done .ic{filter:saturate(.75)}
+.pgh-mj.s-jour_photo{--g1:rgba(255,190,110,.38);--g2:#ffb46a;--g3:#ffd59a}
+.pgh-mj.s-jour_ferme{--g1:rgba(130,220,120,.32);--g2:#7fd36a;--g3:#bff0a8}
+.pgh-mj.s-jour_marche{--g1:rgba(255,150,120,.34);--g2:#ff8f6a;--g3:#ffc2a8}
+.pgh-mj.s-jour_maison{--g1:rgba(255,200,150,.32);--g2:#e9a36a;--g3:#ffd8b0}
+.pgh-mj.s-jour_social{--g1:rgba(255,150,200,.34);--g2:#ff8fc4;--g3:#ffc4e0}
+.pgh-mj.s-jour_balade{--g1:rgba(150,210,255,.3);--g2:#7cc0f0;--g3:#bfe2ff}
+.pgh-mj.s-jour_peche{--g1:rgba(110,190,255,.34);--g2:#5aa8f0;--g3:#a8d4ff}
+.pgh-mj.s-jour_nature{--g1:rgba(200,160,255,.32);--g2:#b48af0;--g3:#dcc4ff}
+.pgh-mj.s-jour_musee{--g1:rgba(230,200,140,.32);--g2:#d6b46a;--g3:#f2deb0}
+.pgh-mj.sk{animation:none}
+.pgh-mj.sk .ic{background:rgba(255,255,255,.08);box-shadow:none}
+.pgh-mj.sk i{display:block;height:12px;border-radius:6px;margin:5px 0;background:rgba(255,255,255,.08);animation:pghSk 1.2s ease-in-out infinite}
+.pgh-mj.sk i + i{width:70%}
+@keyframes pghSk{50%{opacity:.4}}
+.pgh-tdmsg{margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.pgh-tdmsg .em{font-size:34px;line-height:1}
+.pgh-tdmsg h3{margin:0;font:700 16px ${FB};color:#fff3dc}
+.pgh-tdmsg p{margin:4px 0 0;font:600 13px/1.45 ${FB};color:var(--soft)}
+.pgh-tdmsg .pgh-cta{grid-column:1 / -1;justify-self:start;flex:0 0 auto;padding:8px 18px;min-height:46px}
+.pgh-story{margin-top:12px;display:grid;grid-template-columns:60px minmax(0,1fr);gap:8px 14px;align-items:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 60% 90% at 100% 0%,rgba(255,170,120,.18),rgba(255,170,120,0) 60%),var(--card)}
+.pgh-story .bk{width:60px;height:60px;border-radius:18px;display:grid;place-items:center;font-size:30px;background:linear-gradient(160deg,#ffe7b0,#d98a4a);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4),0 8px 18px rgba(0,0,0,.3)}
+.pgh-story small{display:block;font:700 10.5px ${FB};letter-spacing:.12em;text-transform:uppercase;color:#ffcf8a}
+.pgh-story h3{margin:2px 0 0;font:700 16px/1.25 ${FB};color:#fff3dc}
+.pgh-story p{margin:3px 0 0;font:600 13px/1.4 ${FB};color:var(--soft)}
+.pgh-story .bar{grid-column:1 / -1;height:8px;margin-top:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.pgh-story .bar i{display:block;height:100%;width:var(--p);min-width:8px;border-radius:inherit;background:linear-gradient(90deg,#ffd27a,#ff9ec4);box-shadow:0 0 10px rgba(255,190,110,.6)}
+.pgh-story .rw{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:600 12.5px ${FB};color:var(--soft)}
+.pgh-story .rw span{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font:700 12px ${FB};color:#ffeccc;background:rgba(255,214,140,.12);box-shadow:inset 0 0 0 1px rgba(255,214,140,.25)}
+.pgh-story .rw span.lu{color:#f4ffd0;background:rgba(20,30,10,.4);box-shadow:inset 0 0 0 1px rgba(225,255,140,.3)}
+.pgh-story .rw .pgh-lu{width:15px;height:15px}
+.pgh-story .st{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font:700 10px ${FB};letter-spacing:.06em;text-transform:uppercase;vertical-align:2px;color:#2a1450;background:#d9c2ff}
+.pgh-story .st.go{color:#0f2a18;background:#9ff0b8}
+.pgh-story ul{grid-column:1 / -1;margin:2px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.pgh-story li{display:flex;align-items:center;gap:8px;font:600 13px ${FB};color:#fff3dc}
+.pgh-story li em{margin-left:auto;display:inline-flex;align-items:center;gap:3px;font-style:normal;font:700 12px ${FB};color:#ffcf8a}
+.pgh-story li.ok em{color:#7cf0a0}
+.pgh-story li .pgh-lu{width:13px;height:13px}
+.pgh-tdnote{margin:12px 2px 0;font:600 12px/1.45 ${FB};color:rgba(255,240,220,.6)}
+.pgh-tdnote.ok{color:#b9ffd0;font-size:13.5px}
+/* acheter une pièce avec des lucioles */
+.pgh-lock button.buy{display:inline-flex;align-items:center;gap:5px;padding:4px 12px 4px 9px;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e 55%,#ff9f4a);box-shadow:0 6px 16px rgba(255,150,60,.35),inset 0 1px 0 rgba(255,255,255,.7)}
+.pgh-lock button.buy[hidden]{display:none}
+.pgh-lock button.buy .pgh-lu,.pgh-buym .pgh-cta.gold .pgh-lu{width:17px;height:17px;filter:none}
+.pgh-lock button.buy .pgh-lu path,.pgh-buym .pgh-cta.gold .pgh-lu path{stroke:#5a3008}
+.pgh-lock button.buy .pgh-lu circle,.pgh-buym .pgh-cta.gold .pgh-lu circle{fill:#7a4a10}
+.pgh-edw{display:inline-flex;align-items:center;gap:5px;padding:4px 11px 4px 7px;border-radius:999px;flex:none;background:linear-gradient(180deg,rgba(60,70,24,.5),rgba(34,24,56,.66));box-shadow:inset 0 0 0 1px rgba(225,255,140,.32);font:700 14px ${FB};color:#f4ffd0}
+.pgh-edw[hidden]{display:none}
+.pgh-edw b{font:700 14px ${FB};letter-spacing:0;color:#f4ffd0;display:inline}
+.pgh-edw .pgh-lu{width:18px;height:18px}
+.pgh-buym .pgh-mcard{position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(255,200,120,.2),rgba(255,200,120,0) 70%),linear-gradient(180deg,#2a1c4c,#1a1232)}
+.pgh-bth{position:relative;width:116px;height:116px;margin:4px auto 10px;border-radius:30px;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 62%,rgba(255,214,150,.38),rgba(255,214,150,0) 70%),linear-gradient(180deg,#3d2c6a,#22183e);box-shadow:inset 0 0 0 1px rgba(255,214,140,.32),0 12px 28px rgba(0,0,0,.4)}
+.pgh-bth img{width:88%;height:88%;object-fit:contain;display:block}
+.pgh-bth img.full{width:100%;height:100%;object-fit:cover;object-position:50% 8%}
+.pgh-bth .ico{width:52%;height:52%;display:grid;place-items:center;color:#ffe2ad}
+.pgh-bth .ico svg{width:100%;height:100%}
+.pgh-bth .ico.face{width:80%;height:80%}
+.pgh-bth .dot{width:54%;height:54%;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
+.pgh-bth img ~ .dot,.pgh-bth img ~ .ico{display:none}
+.pgh-buym .pgh-tier{margin-top:6px}
+.pgh-bprice{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font:400 32px/1 ${FD};letter-spacing:.02em;color:#f4ffd0;text-shadow:0 0 16px rgba(220,255,140,.45)}
+.pgh-bprice .pgh-lu{width:32px;height:32px;filter:drop-shadow(0 0 6px rgba(225,255,130,.65))}
+.pgh-bbal{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:14px 0 0;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,214,140,.16)}
+.pgh-bbal:empty{display:none}
+.pgh-bbal div{font:600 11.5px ${FB};color:var(--soft)}
+.pgh-bbal div b{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:2px;font:700 19px ${FB};color:#fff3dc}
+.pgh-bbal div b .pgh-lu{width:17px;height:17px}
+.pgh-bbal .ar{font:700 20px ${FB};color:#ffcf8a}
+.pgh-bbal .af b{color:#f4ffd0}
+.pgh-bbal.poor .af b{color:#ffb4a0}
+.pgh-buym p b{color:#fff3dc}
+.pgh-buym p.ok{color:#c9ffda;font-size:15px}
+.pgh-buym[data-st="busy"] [data-h="bok"]{opacity:.75;pointer-events:none}
+.pgh-buym[data-st="busy"] [data-h="bok"]::after{content:'';width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(58,26,5,.35);border-top-color:#3a1a05;animation:pghSpin .8s linear infinite}
+@keyframes pghSpin{to{transform:rotate(360deg)}}
+.pgh-buym[data-st="done"] .pgh-bth{animation:pghPop .7s cubic-bezier(.3,1.6,.5,1);box-shadow:0 0 0 3px #ffd36a,0 0 44px rgba(255,210,110,.75),inset 0 0 0 1px rgba(255,214,140,.32)}
+.pgh-buym[data-st="done"] .pgh-bprice,.pgh-buym[data-st="done"] [data-h="bno"],.pgh-buym[data-st="poor"] [data-h="bno"],.pgh-buym[data-st="offline"] [data-h="bno"],.pgh-buym[data-st="refused"] [data-h="bno"]{display:none}
+.pgh-buym[data-st="done"] h3{animation:pghPane .4s ease}
+@keyframes pghPop{0%{transform:scale(.7)}55%{transform:scale(1.14)}100%{transform:scale(1)}}
+.pgh-burst{position:absolute;left:50%;top:76px;width:0;height:0;pointer-events:none;z-index:2}
+.pgh-burst i{position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle,#fdffe0,#e4ff7a 38%,rgba(200,255,90,0) 70%);box-shadow:0 0 16px 2px rgba(230,255,138,.75);opacity:0;animation:pghFly 1.9s cubic-bezier(.15,.75,.3,1) forwards;animation-delay:var(--d)}
+.pgh-burst i.s{width:10px;height:10px;left:-5px;top:-5px;background:radial-gradient(circle,#fff,#ffd36a 50%,rgba(255,200,90,0) 74%);box-shadow:0 0 10px #ffd36a}
+@keyframes pghFly{0%{transform:translate(0,0) scale(.3);opacity:0}10%{opacity:1}70%{opacity:.9}100%{transform:translate(var(--x),var(--y)) scale(.8);opacity:0}}
+.pgh-ch.got{animation:pghPop .7s cubic-bezier(.3,1.6,.5,1)}
+@media (prefers-reduced-motion:reduce){.pgh-burst i,.pgh-mj,.pgh-ch.got,.pgh-buym[data-st="done"] .pgh-bth{animation:none}}
 @media (prefers-reduced-motion:reduce){.pgh-bg{animation:none}.pgh-hint{animation:none}}
 `;
 
@@ -53114,7 +53216,7 @@ void main(){ if (vK >= 0.999) discard;
     ['auguste', 'Papi Auguste', 'Le maire t\'accueille et te confie tes premières missions']
   ];
   const FUTURE = [
-    ['🗓️', 'Missions du jour', 'Chaque matin, de petites missions : photographier le chat, récolter des radis… et des écus à gagner.', 'rgba(255,200,110,.28)'],
+    ['🗓️', 'Missions de la salle', 'Une grande mission pour toute la salle chaque semaine : réussissez-la ensemble et le village s\'embellit.', 'rgba(255,200,110,.28)'],
     ['🏡', 'Chez les copains', 'Vois où se promènent tes copains dans Pégase et va visiter leur maison.', 'rgba(255,150,190,.26)'],
     ['🏆', 'Classement', 'La plus belle collection, les plus belles photos, les plus longues séries de jours.', 'rgba(255,220,120,.28)'],
     ['🖼️', 'Album et musée', 'Tes photos du jeu arrivent ici ; le musée de la salle garde les plus belles. Un ❤️ pour voter.', 'rgba(170,150,255,.26)'],
@@ -53187,6 +53289,11 @@ void main(){ if (vK >= 0.999) discard;
     <i class="ind" data-h="tabind"></i>
   </nav>
   <div class="pgh-pane" data-pane="moi">
+    <section class="pgh-sec pgh-today" data-h="sectd" hidden>
+      <div class="pgh-frhead"><h2 class="pgh-h2">Aujourd'hui</h2><span class="pgh-tdn" data-h="tdn"></span></div>
+      <p class="pgh-sub" data-h="tdsub">Tes 3 missions du jour dans Pégase et la suite de ton histoire.</p>
+      <div data-h="tdbox"></div>
+    </section>
     <section class="pgh-sec" data-h="secav">
       <div class="pgh-frhead"><h2 class="pgh-h2">Mon avatar</h2><span class="pgh-wallet" data-h="wallet" hidden title="Tes lucioles (la monnaie de Pégase)">${LU('big')}<b data-h="walletn">300</b><small>lucioles</small></span></div>
       <p class="pgh-sub">Ton personnage dans Pégase : visage, coiffure, vêtements, accessoires… Crée-le comme tu veux, il te suit dans le jeu.</p>
@@ -53261,10 +53368,11 @@ void main(){ if (vK >= 0.999) discard;
 </div>
 <div class="pgh-ed" data-h="ed" role="dialog" aria-label="Modifier mon avatar">
   <div class="pgh-edtop"><div class="t"><b>Mon avatar</b><span data-h="ddesc"></span></div>
+    <div class="pgh-edw" data-h="edw" hidden title="Tes lucioles">${LU()}<b data-h="edwn"></b></div>
     <button data-h="dundo" aria-label="Revenir en arrière" title="Revenir en arrière" disabled>${PGH_SVG.undo}</button><button data-h="dx" aria-label="Fermer sans enregistrer" title="Fermer">✕</button></div>
   <div class="pgh-edcats" role="tablist">${EDCATS.map((c) => `<button class="pgh-edcat" data-cat="${c.k}" role="tab">${PGH_SVG[c.ic] || ''}<span>${c.n}</span><em></em></button>`).join('')}</div>
   <div class="pgh-edgrid" data-h="dgrid"></div>
-  <div class="pgh-lock" data-h="lock"><span class="ic" data-h="lockic">${PGH_SVG.lock}</span><div class="t"><b><span data-h="lockn"></span><span class="pgh-tier" data-h="lockt"></span></b><p data-h="lockp"></p></div><button data-h="lockx">Enlever</button></div>
+  <div class="pgh-lock" data-h="lock"><span class="ic" data-h="lockic">${PGH_SVG.lock}</span><div class="t"><b><span data-h="lockn"></span><span class="pgh-tier" data-h="lockt"></span></b><p data-h="lockp"></p></div><button class="buy" data-h="lockbuy" hidden>${LU()}<span data-h="lockbuyt">Acheter</span></button><button data-h="lockx">Enlever</button></div>
   <div class="pgh-dbtns"><button class="pgh-cta glass rnd" data-h="drnd" aria-label="Au hasard" title="Au hasard">${PGH_SVG.dice}</button><button class="pgh-cta glass" data-h="dno">Annuler</button><button class="pgh-cta gold" data-h="dok">${PGH_SVG.check}<span>Enregistrer</span></button></div>
 </div>
 <div class="pgh-fv" data-h="fv" role="dialog" aria-label="Un copain">
@@ -53283,6 +53391,16 @@ void main(){ if (vK >= 0.999) discard;
   <p data-h="ptext"></p>
   <div class="pgh-mscope" data-h="pscope"></div>
   <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="pno">Annuler</button><button class="pgh-cta gold" data-h="pok">${PGH_SVG.check}<span>Utiliser cette photo</span></button></div>
+</div></div>
+<div class="pgh-modal pgh-buym" data-h="bmodal" role="dialog" aria-label="Acheter avec des lucioles"><div class="pgh-mcard">
+  <div class="pgh-burst" data-h="bburst"></div>
+  <div class="pgh-bth" data-h="bth"></div>
+  <h3 data-h="bname"></h3>
+  <span class="pgh-tier" data-h="btier"></span>
+  <div class="pgh-bprice" data-h="bprice"></div>
+  <div class="pgh-bbal" data-h="bbal"></div>
+  <p data-h="bmsg"></p>
+  <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="bno">Pas maintenant</button><button class="pgh-cta gold" data-h="bok"></button></div>
 </div></div>
 <div class="pgh-modal pgh-micm" data-h="micm" role="dialog" aria-label="Le micro"><div class="pgh-mcard">
   <div class="ic">🎤</div><h3>Fais parler ton avatar</h3>
@@ -53361,6 +53479,59 @@ void main(){ if (vK >= 0.999) discard;
   const browSVG = (thick) => `<svg viewBox="0 0 64 64"><path d="M10 30q12-10 22-4M34 26q10-6 22 4" stroke="#4a2c18" stroke-width="${thick ? 7 : 3.5}" fill="none" stroke-linecap="round"/></svg>`;
   const lashSVG = (long) => `<svg viewBox="0 0 64 64"><path d="M12 36q20-14 40 0" stroke="#2a1a14" stroke-width="3" fill="none"/>${[16, 22, 28, 34, 40, 46].map((x) => `<path d="M${x} ${x < 32 ? 33 - (x - 12) * 0.35 : 33 - (52 - x) * 0.35}l${(x - 32) / 6} -${long ? 12 : 6}" stroke="#2a1a14" stroke-width="2.2" stroke-linecap="round"/>`).join('')}<circle cx="32" cy="42" r="7" fill="#5a3a24"/></svg>`;
 
+  // ---------------------------------------------------------------------------
+  // MISSIONS DU JOUR (lecture seule) : modèles ~/jdv-tools/pegase/server/missions-jour.json (injectés par tools/assemble.js) et TIRAGE
+  // partagé avec le jeu (référence : server/missions-jour-tirage.js ; règle dans CLAUDE.md « Missions du jour : le tirage »).
+  //   graine = FNV-1a 32 bits des octets UTF-8 de « jour|PSEUDO » (pg_me.day, pg_me.name) ; suite = LCG s = s·1664525 + 1013904223 (mod 2^32),
+  //   valeur = s >>> 8 ; 1) mélange (Fisher-Yates) des sortes actives, 2) mélange des modèles de chaque sorte, 3) un tirage par paramètre
+  //   de chaque modèle (ordre du fichier) ; liste = sortes reçues aujourd'hui, puis les premières faisables (needs ⊆ missions faites), 3 au plus.
+  // ---------------------------------------------------------------------------
+  const MJOUR = {"v":1,"note":"Missions du jour de Pégase : modèles (MISSIONS.md §3) et tirage PARTAGÉ par le jeu et le hub de la borne. Règle complète : jdv/CLAUDE.md « Missions du jour : le tirage ». Ne pas réordonner (l'ordre fait partie du tirage) : ajouter à la fin, ou mettre actif:false.","sortes":[{"id":"jour_photo","nom":"Photo","ico":"📷","actif":true,"min":25,"max":70,"tpl":[{"k":"1","n":1,"t":"Photographie le chat {0}","p":[[["toit","sur un toit"],["dort","endormi"],["oiseau","avec un oiseau"]]],"lu":60,"needs":["m1"]},{"k":"2","n":2,"t":"Photographie {0} à {1}","p":[[["cerf","un cerf"],["renard","un renard"],["lapin","un lapin"],["ecureuil","un écureuil"]],[["aube","l'aube"],["doree","l'heure dorée"]]],"lu":40,"needs":["m1"]},{"k":"4","n":4,"t":"Photographie {0} papillons en gros plan","p":[[["2","2"],["3","3"]]],"lu":50,"needs":["m1"]},{"k":"5","n":5,"t":"Photographie un oiseau en vol","p":[],"lu":50,"needs":["m1"]},{"k":"6","n":6,"t":"Photographie deux espèces différentes sur la même photo","p":[],"lu":50,"needs":["m1"]},{"k":"8","n":8,"t":"Photographie le moulin {0}","p":[[["coucher","au coucher du soleil"],["nuit","sous les étoiles"]]],"lu":30,"needs":["m1"]},{"k":"11","n":11,"t":"Photographie une espèce que tu n'as jamais eue","p":[],"lu":70,"needs":["m1"]},{"k":"34","n":34,"t":"Photographie {0} lampyres la nuit","p":[[["3","3"],["5","5"]]],"lu":50,"needs":["m1"]}]},{"id":"jour_ferme","nom":"Potager","ico":"🌱","actif":true,"min":25,"max":70,"tpl":[{"k":"14r","n":14,"t":"Récolte {0} radis","p":[[["5","5"],["8","8"]]],"lu":40,"needs":["m4"]},{"k":"14t","n":14,"t":"Récolte {0} tomates","p":[[["3","3"],["5","5"]]],"lu":40,"needs":["m6"]},{"k":"15","n":15,"t":"Arrose ton potager {0} fois aujourd'hui","p":[[["2","2"],["3","3"]]],"lu":25,"needs":["m4"]},{"k":"16","n":16,"t":"Plante {0} sortes de graines","p":[[["2","2"]]],"lu":35,"needs":["m6"]},{"k":"18","n":18,"t":"Laboure {0} cases de terre neuves","p":[[["4","4"],["6","6"]]],"lu":30,"needs":["m4"]}]},{"id":"jour_marche","nom":"Marché","ico":"🧺","actif":true,"min":30,"max":80,"tpl":[{"k":"19","n":19,"t":"Mets {0} légumes en vente au marché","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m7"]},{"k":"22","n":22,"t":"Mets un tableau en vente","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_maison","nom":"Maison","ico":"🏡","actif":true,"min":25,"max":30,"tpl":[{"k":"25","n":25,"t":"Pose un nouveau meuble chez toi","p":[],"lu":30,"needs":["m3"]},{"k":"26","n":26,"t":"Change de tenue au dressing","p":[],"lu":25,"needs":["m3"]},{"k":"27","n":27,"t":"Accroche un tableau dans ta maison","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_social","nom":"Copains","ico":"💌","actif":false,"min":25,"max":50,"tpl":[{"k":"28","n":28,"t":"Rends visite à la maison d'un copain","p":[],"lu":40,"needs":["m3"]},{"k":"29","n":29,"t":"Offre un cadeau à un copain","p":[],"lu":50,"needs":["m3"]}]},{"id":"jour_balade","nom":"Balade","ico":"🥾","actif":true,"min":20,"max":50,"tpl":[{"k":"33","n":33,"t":"Assieds-toi sur un banc {0} au coucher du soleil","p":[[["lac","au bord du lac"],["place","sur la place"]]],"lu":30,"needs":["m1"]},{"k":"36","n":36,"t":"Fais le tour du lac à pied","p":[],"lu":30,"needs":["m1"]},{"k":"37","n":37,"t":"Va dire bonjour à {0}","p":[[["rosalie","Rosalie"],["basile","Basile"],["iris","Mlle Iris"],["auguste","Papi Auguste"]]],"lu":20,"needs":["m1"]},{"k":"38","n":38,"t":"Apporte 2 tomates à {0}","p":[[["auguste","Papi Auguste"],["rosalie","Rosalie"]]],"lu":50,"needs":["m6"]},{"k":"39","n":39,"t":"Marche {0} dans le monde","p":[[["1km","1 km"],["2km","2 km"]]],"lu":25,"needs":["m1"]},{"k":"40","n":40,"t":"Joue avec le chat : suis-le {0} sans le perdre","p":[[["20","20 secondes"],["30","30 secondes"]]],"lu":40,"needs":["m1"]}]},{"id":"jour_peche","nom":"Pêche","ico":"🎣","actif":true,"min":30,"max":60,"tpl":[{"k":"46","n":46,"t":"Pêche 3 poissons {0}","p":[[["lac","au lac"],["riviere","en rivière"],["mer","en mer"]]],"lu":40,"needs":["m9b"]},{"k":"47","n":47,"t":"Pêche un poisson {0}","p":[[["nuit","de nuit"],["aube","à l'aube"]]],"lu":50,"needs":["m9b"]},{"k":"48","n":48,"t":"Pêche un poisson de plus de {0} cm","p":[[["30","30"],["40","40"]]],"lu":60,"needs":["m9b"]},{"k":"49","n":49,"t":"Creuse {0} vers, puis pêche avec","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m9b"]}]},{"id":"jour_nature","nom":"Pelle et filet","ico":"🦋","actif":true,"min":35,"max":50,"tpl":[{"k":"50","n":50,"t":"Trouve {0} trésors enfouis à la pelle","p":[[["2","2"]]],"lu":50,"needs":["m9"]},{"k":"51","n":51,"t":"Attrape {0} insectes différents au filet","p":[[["3","3"]]],"lu":40,"needs":["m5"]},{"k":"52","n":52,"t":"Attrape un insecte {0}","p":[[["eau","sur l'eau"],["tronc","sur un tronc"],["fleurs","dans les fleurs"]]],"lu":35,"needs":["m5"]}]},{"id":"jour_musee","nom":"Musée","ico":"🏛️","actif":true,"min":25,"max":70,"tpl":[{"k":"53","n":53,"t":"Donne une nouvelle espèce au musée de Mlle Iris","p":[],"lu":60,"needs":["m5b"]}]}]};
+  function mjDraw(mj, day, name, done, today) {
+    if (!mj || !Array.isArray(mj.sortes)) return [];
+    const by = new TextEncoder().encode(String(day) + '|' + String(name));
+    let s = 2166136261;
+    for (const b of by) { s ^= b; s = Math.imul(s, 16777619) >>> 0; }
+    const next = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s >>> 8; };
+    const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = next() % (i + 1); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+    const S = mj.sortes.filter((x) => x.actif);
+    const order = shuffle(S.slice());
+    const tord = new Map(); for (const x of S) tord.set(x.id, shuffle(x.tpl.slice()));
+    const pix = new Map(); for (const x of S) for (const t of x.tpl) pix.set(x.id + '/' + t.k, t.p.map((P) => next() % P.length));
+    const D = new Set(done || []), T = new Set(today || []);
+    const avail = (t) => (t.needs || []).every((m) => D.has(m));
+    const pickT = (x) => tord.get(x.id).find(avail) || null;
+    const out = [];
+    for (const x of order) if (out.length < 3 && T.has(x.id)) out.push(x);
+    for (const x of order) if (out.length < 3 && !T.has(x.id) && pickT(x)) out.push(x);
+    out.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    return out.map((x) => {
+      const t = pickT(x) || tord.get(x.id)[0], ix = pix.get(x.id + '/' + t.k), p = t.p.map((P, i) => P[ix[i]]);
+      return { sorte: x.id, nom: x.nom, ico: x.ico, min: x.min, max: x.max, tpl: t.n, k: t.k, p: p.map((v) => v[0]),
+        text: t.t.replace(/\{(\d)\}/g, (m, i) => (p[+i] ? p[+i][1] : '')), lu: Math.max(x.min, Math.min(x.max, t.lu)), done: T.has(x.id) };
+    });
+  }
+  // jour Pégase (change à 5 h, heure de Paris) quand pg_me ne le donne pas
+  function pgDayLocal() {
+    try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(Date.now() - 5 * 3600e3)); }
+    catch (e) { const d = new Date(Date.now() - 5 * 3600e3); return d.toISOString().slice(0, 10); }
+  }
+  // l'histoire d'arrivée (histoire.json du jeu) ; titres de secours si pg_mission_catalog ne répond pas
+  const STORY = ['m1', 'm2', 'm3', 'm4', 'm5', 'm5b', 'm6', 'm7', 'm8', 'm9', 'm9b', 'm9c', 'm9d', 'm10', 'm11'];
+  const QUESTS = ['g1', 'b1', 'i1'];
+  const STORY_FB = { m1: ['Le chat des toits', 'auguste', 150], m2: ['Où poser ses valises ?', 'auguste', 50], m3: ['Quatre murs et un toit', 'auguste', 80],
+    m4: ['Les graines du maire', 'auguste', 40], m5: ['La réserve de Mlle Iris', 'auguste', 0], m5b: ['Un papillon pour le musée', 'iris', 60],
+    m6: ['Première récolte', 'auguste', 60], m7: ['Mon premier étal', 'auguste', 60], m8: ['L\'échoppe de Rosalie', 'rosalie', 30],
+    m9: ['Le vieux Gaspard', 'auguste', 0], m9b: ['Trois vers de terre', 'gaspard', 50], m9c: ['Ta première prise', 'gaspard', 40],
+    m9d: ['L\'aquarium de Mlle Iris', 'iris', 60], m10: ['Un tableau pour la mairie', 'auguste', 120], m11: ['Le bruit de la cascade', 'auguste', 100],
+    g1: ['Le bon appât', 'gaspard', 60], b1: ['Le marché aux poissons', 'basile', 60], i1: ['Les ailes de la réserve', 'iris', 80] };
+  const GIVER = { auguste: ['Papi Auguste', '🎩'], iris: ['Mlle Iris', '🦋'], gaspard: ['le vieux Gaspard', '🎣'], basile: ['Basile', '🧺'], rosalie: ['Rosalie', '🌻'] };
+  const SEED_N = { radis: 'radis', tomate: 'tomate', carotte: 'carotte' };
+  // achats : réponses « normales » du serveur (r_why de pg_unlock_buy)
+  const RMAP = { commun: 'commun', rare: 'rare', legend: 'legend', cadeau: 'cadeau', secret: 'secret' };
+  const rid = (n) => { const a = new Uint8Array(n), c = 'abcdefghijklmnopqrstuvwxyz0123456789'; try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < n; i++) a[i] = Math.random() * 256; } return Array.from(a, (x) => c[x % 36]).join(''); };
+  const fmtN = (n) => Number(n).toLocaleString('fr-FR');
+
   function mountHub(root, api) {
     const FD = (api && api.fonts && api.fonts.display) || "'Bungee', Impact, sans-serif", FB = (api && api.fonts && api.fonts.body) || "'Chakra Petch', system-ui, sans-serif";
     const mm = (q) => typeof matchMedia === 'function' && matchMedia(q).matches;
@@ -53426,6 +53597,13 @@ void main(){ if (vK >= 0.999) discard;
     // rareté / prix / façon de l'obtenir d'une clé verrouillée
     function lockOf(k) {
       if (owned(k)) return null;
+      const u = UCAT.get(k);
+      if (u) {
+        if (u.r_rarity === 'secret' || (SECRET.has(k) && u.r_price == null)) return { r: 'secret' };
+        if (u.r_starter) return null;                                   // lot de départ : à tout le monde
+        if (u.r_price != null && +u.r_price > 0) return { r: RMAP[u.r_rarity] || 'commun', p: +u.r_price, needs: u.r_needs || '' };
+        return { r: 'cadeau', how: u.r_how || REWARD[k] || 'Se gagne dans le jeu' };
+      }
       if (SECRET.has(k)) return { r: 'secret' };
       if (REWARD[k]) return { r: 'cadeau', how: REWARD[k] };
       if (k.startsWith('look:')) { const [r, p] = LOOK_LOCK[+k.slice(5)] || ['rare', 450]; return { r, p }; }
@@ -53478,15 +53656,225 @@ void main(){ if (vK >= 0.999) discard;
     }
     const canon = (d) => ({ v: 1, tenue: preset, desc: describe(d).replace(/"/g, '\''), look: d });
 
-    // ---------- lucioles (porte-monnaie, onglet Moi) ----------
-    let wallet = null;
-    function renderWallet() { const i = pgInfo(); $.wallet.hidden = !(memberMode() && i.online !== false) || wallet == null; if (wallet != null) $.walletn.textContent = Number(wallet).toLocaleString('fr-FR'); }
-    async function loadWallet() {
-      if (!memberMode()) { renderWallet(); return; }
-      try { const r = await PG.rpc('pg_me', {}); if (dead) return; const j = Array.isArray(r) ? r[0] : r; if (j && Number.isFinite(+j.ecus)) wallet = +j.ecus;
-        if (j && Array.isArray(j.owned)) for (const x of j.owned) if (typeof x === 'string') OWNED.add(x); } catch (e) { /* hors ligne : rien */ }
-      renderWallet();
+    // ---------- lucioles (porte-monnaie : onglet Moi et créateur), ce qu'on possède, catalogues du serveur ----------
+    // pg_me (phase 2b) : ecus, owned (= anciens objets + déblocages), unlocks, missions { done, started, today, week, jour_left, keys }, day, name
+    let wallet = null, ME = null, meErr = '';
+    const UCAT = new Map();                    // pg_unlock_catalog : r_id → { r_kind, r_label, r_rarity, r_price, r_starter, r_needs, r_how }
+    let MCAT = new Map();                      // pg_mission_catalog : r_id → { r_label, r_giver, r_lucioles, r_min, r_max, r_items… }
+    function renderWallet() {
+      const i = pgInfo(), show = memberMode() && i.online !== false && wallet != null;
+      $.wallet.hidden = !show; $.edw.hidden = !show;
+      if (wallet != null) { $.walletn.textContent = fmtN(wallet); $.edwn.textContent = fmtN(wallet); }
     }
+    // le solde qui monte / descend en douceur (après un achat)
+    function walletTo(v) {
+      const a = wallet == null ? v : wallet, t0 = performance.now(); wallet = v; renderWallet();
+      if (a === v) return;
+      const f = (t) => { if (dead) return; const k = Math.min(1, (t - t0) / 700), x = Math.round(a + (v - a) * (1 - Math.pow(1 - k, 3))); $.walletn.textContent = fmtN(x); $.edwn.textContent = fmtN(x); if (k < 1) requestAnimationFrame(f); };
+      requestAnimationFrame(f);
+    }
+    async function loadWallet() {
+      if (!memberMode()) { renderWallet(); renderToday(); return; }
+      try {
+        const r = await PG.rpc('pg_me', {}); if (dead) return;
+        const j = Array.isArray(r) ? r[0] : r;
+        if (j && typeof j === 'object') {
+          ME = j; meErr = '';
+          if (Number.isFinite(+j.ecus) && !(BUY && BUY.st === 'busy')) wallet = +j.ecus;
+          for (const f of ['owned', 'unlocks']) if (Array.isArray(j[f])) for (const x of j[f]) if (typeof x === 'string') OWNED.add(x);
+        }
+      } catch (e) { if (dead) return; meErr = e && (e.offline || e.guest) ? 'offline' : 'fail'; }
+      renderWallet(); ownedChanged(); renderToday();
+    }
+    async function loadCatalogs() {
+      if (!memberMode()) return;
+      const C = STORE.pgcat || (STORE.pgcat = { at: 0, u: null, m: null });
+      if (!C.u || Date.now() - C.at > 600000) {
+        try {
+          const [u, m] = await Promise.all([PG.rpc('pg_unlock_catalog', {}), PG.rpc('pg_mission_catalog', {})]);
+          if (Array.isArray(u) && u.length) C.u = u; if (Array.isArray(m) && m.length) C.m = m; C.at = Date.now();
+        } catch (e) { /* hors ligne, vieille borne : les prix et titres du hub */ }
+      }
+      if (dead) return;
+      UCAT.clear(); for (const r of C.u || []) if (r && typeof r.r_id === 'string') UCAT.set(r.r_id, r);
+      MCAT = new Map((C.m || []).filter((r) => r && typeof r.r_id === 'string').map((r) => [r.r_id, r]));
+      ownedChanged(); renderToday();
+    }
+    function ownedChanged() { if (editing) renderEd(); if (tab === 'moi') renderShowcase(); }
+    const meMissions = () => (ME && ME.missions && typeof ME.missions === 'object' ? ME.missions : null);
+    const arr = (a) => (Array.isArray(a) ? a.filter((x) => typeof x === 'string') : []);
+    const doneSet = () => new Set(arr((meMissions() || {}).done));
+
+    // ---------- AUJOURD'HUI : missions du jour + histoire (lecture seule : on les fait et on les récupère dans le jeu) ----------
+    let TODAY = null;                          // dernier tirage affiché (pour les essais)
+    const mTitle = (id) => { const c = MCAT.get(id); return (c && c.r_label) || (STORY_FB[id] || [id.toUpperCase()])[0]; };
+    const mGiver = (id) => { const c = MCAT.get(id); return GIVER[(c && c.r_giver) || (STORY_FB[id] || [])[1]] || null; };
+    function unlockName(id) {
+      const u = UCAT.get(id); if (u && u.r_label) return u.r_label;
+      if (/^obj:/.test(id)) { const n = id.slice(4).replace(/_/g, ' '); return n[0].toUpperCase() + n.slice(1); }
+      return keyName(id);
+    }
+    function rewardHTML(id) {
+      const c = MCAT.get(id), fb = STORY_FB[id] || [];
+      const lu = c ? (c.r_lucioles | 0) : (fb[2] | 0), out = [];
+      if (lu > 0) out.push(`<span class="lu">+${fmtN(lu)} ${LU()}</span>`);
+      for (const x of (c && Array.isArray(c.r_items) ? c.r_items : [])) {
+        if (x && x.unlock) out.push(`<span>🎁 ${esc(unlockName(x.unlock))}</span>`);
+        else if (x && x.item) { const g = /^graine:(.+)$/.exec(x.item); out.push(`<span>🌱 ${esc(g ? (x.qty || 1) + ' graines de ' + (SEED_N[g[1]] || g[1]) : x.item)}</span>`); }
+      }
+      return out.join('');
+    }
+    function storyHTML(done, started) {
+      const i = STORY.findIndex((m) => !done.has(m)), n = STORY.length;
+      if (i < 0) {
+        const q = QUESTS.map((m) => { const ok = done.has(m), g = mGiver(m), c = MCAT.get(m), lu = c ? c.r_lucioles | 0 : (STORY_FB[m] || [])[2] | 0;
+          return `<li class="${ok ? 'ok' : ''}">${g ? g[1] : '✦'} « ${esc(mTitle(m))} »${g ? ' · ' + esc(g[0]) : ''}<em>${ok ? '✓ faite' : '+' + fmtN(lu) + ' ' + LU()}</em></li>`; }).join('');
+        return `<div class="pgh-card pgh-story" data-h2="story" data-cur="fin"><span class="bk">🏆</span><div><small>Ton histoire · ${n} / ${n}</small><h3>L'histoire d'arrivée est finie !</h3><p>Bravo : tu fais partie du village. Les habitants ont encore des quêtes pour toi :</p></div><div class="bar" style="--p:100%"><i></i></div><ul>${q}</ul></div>`;
+      }
+      const id = STORY[i], g = mGiver(id), st = started.has(id);
+      const sub = i === 0 ? 'Ta toute première mission' + (g ? ', avec ' + g[0] : '') + '. Le maire t\'attend au village.' : (g ? 'Avec ' + g[0] + ' · ' : '') + (st ? 'tu l\'as commencée' : 'à faire dans le jeu');
+      return `<div class="pgh-card pgh-story" data-h2="story" data-cur="${id}"><span class="bk">${g ? g[1] : '📜'}</span><div><small>Ton histoire · mission ${i + 1} sur ${n}</small><h3>« ${esc(mTitle(id))} »<span class="st${st ? ' go' : ''}">${st ? 'en cours' : 'à faire'}</span></h3><p>${esc(sub)}</p></div>` +
+        `<div class="bar" style="--p:${Math.round(i / n * 100)}%"><i></i></div>${rewardHTML(id) ? `<div class="rw">Récompense : ${rewardHTML(id)}</div>` : ''}</div>`;
+    }
+    function renderToday() {
+      if (!$.sectd) return;
+      if (!PG) { $.sectd.hidden = true; return; }
+      let h = '', count = '', all = false;
+      if (!memberMode()) {
+        h = `<div class="pgh-card pgh-tdmsg"><span class="em">🗓️</span><div><h3>Tes missions du jour</h3><p>Avec un compte (gratuit), retrouve ici chaque jour 3 petites missions à faire dans Pégase, les lucioles à gagner et la suite de ton histoire.</p></div><button class="pgh-cta gold" data-h2="tdacct">Créer mon compte</button></div>`;
+        TODAY = null;
+      } else if (!ME) {
+        h = meErr ? `<div class="pgh-card pgh-tdmsg"><span class="em">📡</span><div><h3>Pas de réseau</h3><p>Tes missions du jour reviendront avec la connexion.</p></div></div>`
+          : '<div class="pgh-mjs">' + [0, 1, 2].map(() => '<div class="pgh-mj sk"><span class="ic"></span><div><i></i><i></i></div><span></span></div>').join('') + '</div>';
+      } else if (!meMissions() || !MJOUR) { $.sectd.hidden = true; return; }
+      else {
+        const M = meMissions(), done = new Set(arr(M.done)), started = new Set(arr(M.started)), today = arr(M.today);
+        const list = mjDraw(MJOUR, ME.day || pgDayLocal(), ME.name || pgInfo().name || '', [...done], today);
+        for (const m of list) { const c = MCAT.get(m.sorte); if (c && c.r_min != null && c.r_max != null) m.lu = Math.max(c.r_min, Math.min(c.r_max, m.lu)); }
+        TODAY = list;
+        const nd = list.filter((m) => m.done).length;
+        if (!list.length) h += `<div class="pgh-card pgh-tdmsg"><span class="em">🌅</span><div><h3>Bientôt tes missions du jour</h3><p>Elles s'ouvrent après ta première mission, « ${esc(mTitle('m1'))} ». Papi Auguste t'attend au village !</p></div></div>`;
+        else {
+          h += '<div class="pgh-mjs">' + list.map((m) => `<div class="pgh-mj s-${esc(m.sorte)}${m.done ? ' done' : ''}" data-m="${esc(m.sorte)}" data-k="${esc(m.k)}"><span class="ic">${m.ico || '✦'}</span><div><small>${esc(m.nom || '')}</small><b>${esc(m.text)}</b></div>` +
+            `<span class="rw">${m.done ? '✓ Reçue' : '+' + fmtN(m.lu) + ' ' + LU()}</span></div>`).join('') + '</div>';
+          count = nd + ' / ' + list.length + ' faite' + (nd > 1 ? 's' : ''); all = nd >= list.length;
+          if (all) h += '<p class="pgh-tdnote ok">🎉 Bravo, tout est fait pour aujourd\'hui ! De nouvelles missions arrivent demain à 5 h.</p>';
+        }
+        h += storyHTML(done, started);
+        h += '<p class="pgh-tdnote">Les missions se font dans le jeu : tes lucioles arrivent quand tu les récupères dans le téléphone de ton personnage.</p>';
+      }
+      $.sectd.hidden = false;
+      if ($.tdbox.innerHTML !== h) $.tdbox.innerHTML = h;
+      $.tdn.textContent = count; $.tdn.classList.toggle('all', all);
+    }
+    on($.sectd, 'click', (e) => { if (e.target.closest('[data-h2="tdacct"]')) { try { PG && PG.account && PG.account(); } catch (x) { /* rien */ } } });
+
+    // ---------- ACHETER une pièce verrouillée (pg_unlock_buy : prix du serveur, jamais de solde négatif ; même p_op = même réponse) ----------
+    let BUY = null;                            // { k, L, st }
+    const BUYK = KEY + '.achat';               // achat parti sans réponse (réseau coupé) : on renvoie le MÊME numéro, rien n'est payé deux fois
+    const canBuy = (L) => !!(L && L.p && L.r !== 'secret' && (!L.needs || doneSet().has(L.needs)));
+    function openBuy(k) {
+      const L = lockOf(k); if (!canBuy(L)) return;
+      BUY = { k, L, st: '' };
+      const src = box.querySelector(`.pgh-ed [data-key="${CSS.escape ? CSS.escape(k) : k}"] .th`) || box.querySelector(`[data-key="${CSS.escape ? CSS.escape(k) : k}"] .th`);
+      $.bth.innerHTML = src ? src.innerHTML : ''; $.bth.querySelectorAll('.lock,.rb').forEach((x) => x.remove());
+      $.bname.textContent = keyName(k); $.btier.textContent = RAR[L.r] || ''; $.btier.className = 'pgh-tier ' + L.r;
+      $.bprice.innerHTML = LU() + '<span>' + fmtN(L.p) + '</span>';
+      $.bburst.innerHTML = '';
+      const i = pgInfo();
+      buyState(!memberMode() ? 'guest' : i.online === false ? 'offline' : wallet != null && wallet < L.p ? 'poor' : 'ask');
+      $.bmodal.classList.add('on'); tone(660, 990);
+    }
+    function buyState(st, msg) {
+      const B = BUY; if (!B) return;
+      B.st = st; $.bmodal.dataset.st = st;
+      const p = B.L.p, w = wallet, m = memberMode() && w != null && /^(ask|poor|busy|retry)$/.test(st);
+      $.bbal.className = 'pgh-bbal' + (m && w < p ? ' poor' : '');
+      $.bbal.innerHTML = m ? `<div>Tes lucioles<b>${LU()}${fmtN(w)}</b></div><span class="ar">→</span><div class="af">${w < p ? 'Il te manque' : 'Après l\'achat'}<b>${LU()}${fmtN(w < p ? p - w : w - p)}</b></div>` : '';
+      const ok = $.bok; ok.disabled = false; $.bno.textContent = 'Pas maintenant';
+      $.bmsg.className = '';
+      if (st === 'ask' || st === 'busy' || st === 'retry') {
+        $.bmsg.innerHTML = msg || 'Il sera à toi pour toujours : dans le hub et dans le jeu.';
+        ok.innerHTML = st === 'retry' ? '<span>Réessayer</span>' : `<span>Acheter</span>${LU()}<span>${fmtN(p)}</span>`;
+      } else if (st === 'poor') {
+        $.bmsg.innerHTML = `Pas assez de lucioles pour l'instant : il t'en manque <b>${fmtN(Math.max(1, p - (w || 0)))}</b>. Gagne-les dans Pégase avec les missions du jour, le marché et le musée… puis reviens !`;
+        ok.innerHTML = '<span>D\'accord</span>';
+      } else if (st === 'guest') {
+        $.bmsg.innerHTML = 'Tu peux l\'essayer autant que tu veux ! Pour l\'acheter avec tes lucioles, il faut un compte (gratuit).';
+        ok.innerHTML = '<span>Créer mon compte</span>';
+      } else if (st === 'offline') {
+        $.bmsg.innerHTML = 'Pas de réseau : l\'achat se fait en ligne. Réessaie quand tu seras connecté.';
+        ok.innerHTML = '<span>D\'accord</span>';
+      } else if (st === 'refused') {
+        $.bmsg.innerHTML = msg || 'L\'achat n\'a pas marché.';
+        ok.innerHTML = '<span>D\'accord</span>';
+      } else if (st === 'done') {
+        $.bname.textContent = '✨ ' + keyName(B.k) + ' est à toi !';
+        $.bmsg.className = 'ok'; $.bmsg.innerHTML = msg || 'Enregistre ton avatar pour le garder sur toi.';
+        ok.innerHTML = '<span>Super !</span>';
+      }
+    }
+    function closeBuy() {
+      if (!BUY || BUY.st === 'busy') return;
+      const B = BUY; BUY = null; $.bmodal.classList.remove('on'); $.bburst.innerHTML = '';
+      if (B.st === 'done') {
+        if (editing) { renderEd(); const t = $.dgrid.querySelector(`[data-key="${CSS.escape ? CSS.escape(B.k) : B.k}"]`); if (t) t.classList.add('got'); }
+        if (STG) STG.gesture('jump');
+      }
+    }
+    function burst() {
+      let h = '';
+      for (let i = 0; i < 36; i++) {   // deux vagues de lucioles qui s'envolent de la pièce
+        const w = i >= 22, a = (i / (w ? 14 : 22)) * Math.PI * 2 + Math.random() * 0.35, r = (w ? 120 : 80) + Math.random() * 80;
+        h += `<i class="${i % 3 === 2 ? 's' : ''}" style="--x:${Math.round(Math.cos(a) * r)}px;--y:${Math.round(Math.sin(a) * r * 0.85 + 20)}px;--d:${((w ? 0.45 : 0) + Math.random() * 0.15).toFixed(2)}s"></i>`;
+      }
+      $.bburst.innerHTML = h;
+    }
+    async function doBuy() {
+      const B = BUY; if (!B || !/^(ask|retry)$/.test(B.st)) return;
+      let pend = null; try { pend = JSON.parse(store.get(BUYK) || 'null'); } catch (e) { pend = null; }
+      const op = pend && pend.k === B.k && /^ub-[a-z0-9]{12}$/.test(pend.op || '') && Date.now() - (+pend.t || 0) < 864e5 ? pend.op : 'ub-' + rid(12);
+      store.set(BUYK, JSON.stringify({ k: B.k, op, t: Date.now() }));
+      buyState('busy'); tone(620, 930);
+      let r = null;
+      try { const rows = await PG.rpc('pg_unlock_buy', { p_unlock: B.k, p_op: op }); r = Array.isArray(rows) ? rows[0] : rows; }
+      catch (e) {
+        if (dead || BUY !== B) return;
+        const t = String((e && e.message) || '');
+        if (e && (e.offline || /trop d essais/.test(t))) { buyState('retry', e.offline ? 'Pas de réseau : ton achat n\'est pas parti. Réessaie dans un instant (tu ne paieras qu\'une fois).' : 'Trop d\'essais d\'un coup : réessaie dans quelques minutes.'); return; }
+        store.set(BUYK, ''); buyState('refused', 'L\'achat n\'a pas marché. Réessaie un peu plus tard.'); return;
+      }
+      if (dead) return;
+      try { localStorage.removeItem(BUYK); } catch (e) { /* rien */ }
+      if (!r || typeof r !== 'object') { if (BUY === B) buyState('refused', 'Le serveur n\'a pas répondu : réessaie un peu plus tard.'); return; }
+      if (Number.isFinite(+r.r_ecus)) walletTo(+r.r_ecus);
+      if (r.r_ok || r.r_why === 'deja a toi') {
+        OWNED.add(B.k);
+        if (BUY === B) { buyState('done', r.r_ok ? null : 'Tu l\'avais déjà : il est à toi !'); burst(); }
+        tone(784, 1318); later(() => tone(1046, 1568), 160);
+        if (BUY !== B) toast('✨ ' + keyName(B.k) + ' est à toi !');
+        if (editing) renderEd(); renderShowcase();
+        later(() => { if (BUY === B) closeBuy(); }, 3400);
+      } else if (BUY === B) {
+        if (r.r_why === 'pas assez d ecus') buyState('poor');
+        else if (r.r_why === 'mission requise') buyState('refused', 'Celui-ci se débloque après une mission de l\'histoire : continue dans le jeu, puis reviens l\'acheter !');
+        else buyState('refused', 'Celui-ci ne s\'achète pas : il se gagne dans le jeu (mission, cadeau… ou secret).');
+        tone(440, 330);
+      }
+      loadWallet();
+    }
+    on($.bmodal, 'click', (e) => {
+      const h = e.target.closest('[data-h]');
+      if (h && h.dataset.h === 'bno') { closeBuy(); return; }
+      if (h && h.dataset.h === 'bok') {
+        const st = BUY && BUY.st;
+        if (st === 'ask' || st === 'retry') doBuy();
+        else if (st === 'guest') { closeBuy(); try { PG && PG.account && PG.account(); } catch (x) { /* rien */ } }
+        else closeBuy();
+        return;
+      }
+      if (e.target === $.bmodal) closeBuy();
+    });
 
     // ---------- carte « Mon avatar » ----------
     function renderMe() {
@@ -53610,7 +53998,7 @@ void main(){ if (vK >= 0.999) discard;
         meShot();
         later(() => { if (STG && !editing && !friendOn) STG.gesture('wave'); }, 900);
         window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, info: SG.info(), ready: SG.ready(),
-          friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D),
+          friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D), owned: [...OWNED], today: TODAY, buy: BUY && { k: BUY.k, st: BUY.st, p: BUY.L.p }, ucat: UCAT.size, mcat: MCAT.size,
           voice: MIC.on ? { label: MIC.label, f0: Math.round(MIC.f0), f0m: Math.round(MIC.f0m), flat: +MIC.flat.toFixed(2), vis: MIC.mouth ? MIC.mouth.shown : null, emo: Object.fromEntries(Object.entries(MIC.emo).map(([k, v]) => [k, +v.toFixed(2)])) } : null }) };
         thumbPump();
         gardePull();
@@ -54059,7 +54447,12 @@ void main(){ if (vK >= 0.999) discard;
       $.lock.classList.add('on'); $.lock.dataset.r = L.r; $.lockic.innerHTML = PGH_SVG.lock; $.lockx.textContent = 'Enlever';
       $.lockn.textContent = sec2 ? 'Objet secret' : keyName(k);
       $.lockt.textContent = RAR[L.r]; $.lockt.className = 'pgh-tier ' + L.r;
-      $.lockp.innerHTML = sec2 ? 'Se débloque d\'une manière… mystérieuse.' : L.p ? `${L.p} ${LU()} lucioles · bientôt dans la boutique du jeu` : esc(L.how);
+      const buy = canBuy(L), needT = L.p && L.needs && !buy ? mTitle(L.needs) : '';
+      $.lockp.innerHTML = sec2 ? 'Se débloque d\'une manière… mystérieuse.' : !L.p ? esc(L.how)
+        : needT ? `${fmtN(L.p)} ${LU()} lucioles, après la mission « ${esc(needT)} »`
+        : memberMode() ? `${fmtN(L.p)} ${LU()} lucioles` + (wallet != null ? ` · tu en as ${fmtN(wallet)}` : '')
+        : `${fmtN(L.p)} ${LU()} lucioles · essaie-le, achète-le avec un compte`;
+      $.lockbuy.hidden = !buy;
     }
     async function fillIcons(el) {
       for (const im of el.querySelectorAll('img[data-src]:not([src])')) {
@@ -54146,8 +54539,10 @@ void main(){ if (vK >= 0.999) discard;
       if (h && h.dataset.h === 'dundo') { const u = hist.pop(); if (u) { D = u.d; preset = u.p; tryKey = u.t; apply(false); } return; }
       if (h && h.dataset.h === 'lockx') { const u = hist.pop(); if (u) { D = u.d; preset = u.p; tryKey = ''; apply(false); } return; }
       if (h && h.dataset.h === 'drnd') { randomLook(); return; }
+      if (e.target.closest('[data-h="lockbuy"]')) { if (tryKey) openBuy(tryKey); return; }
       const b = e.target.closest('[data-a]'); if (!b || b.tagName === 'INPUT') return;
       const a = b.dataset.a, v = b.dataset.v, k = b.dataset.key;
+      if (k && k === tryKey && b.dataset.lock && b.dataset.lock !== 'secret' && canBuy(lockOf(k)) && lockedIn(D).includes(k)) { openBuy(k); return; }
       if (b.dataset.lock === 'secret') { hist.push({ d: lookCopy(D), p: preset, t: tryKey }); tryKey = k; renderEd(); $.lock.classList.add('on'); renderSecret(k); tone(880, 1320); return; }
       if (a === 'look') { const i = +v; change((d) => { const n = STG.descOf(i); for (const x of Object.keys(d)) delete d[x]; Object.assign(d, n); preset = i; }, 'look:' + i); if (STG) STG.gesture('jump'); return; }
       if (a.startsWith('it:')) { setItem(a.slice(3), v); return; }
@@ -54164,7 +54559,7 @@ void main(){ if (vK >= 0.999) discard;
     });
     function renderSecret() {
       $.lock.dataset.r = 'secret'; $.lockic.textContent = '✦'; $.lockx.textContent = 'OK'; $.lockn.textContent = 'Objet secret'; $.lockt.textContent = RAR.secret; $.lockt.className = 'pgh-tier secret';
-      $.lockp.textContent = 'Se débloque d\'une manière… mystérieuse.';
+      $.lockp.textContent = 'Se débloque d\'une manière… mystérieuse.'; $.lockbuy.hidden = true;
     }
     on($.ed, 'input', (e) => { const a = e.target.dataset.a, v = +e.target.value; if (!STG || !STG.A.desc) return;
       if (a === 'w') { D.bd[2] = v / 100; STG.A.desc.bd[2] = v / 100; STG.A.applyMorphs(); }
@@ -54188,7 +54583,7 @@ void main(){ if (vK >= 0.999) discard;
     }
     for (const k of ['go-av', 'go-av2', 'go-av3']) on($[k], 'click', () => openEdit());
     on($.wrrow, 'click', (e) => { const b = e.target.closest('[data-key]'); if (!b) return; const k = b.dataset.key, c = b.dataset.cat; openEdit(c, k); });
-    on(window, 'keydown', (e) => { if (e.key === 'Escape') { if (editing) cancelEdit(); else if (friendOn) closeFriend(); } });
+    on(window, 'keydown', (e) => { if (e.key === 'Escape') { if (BUY) closeBuy(); else if (editing) cancelEdit(); else if (friendOn) closeFriend(); } });
     // vitrine « à débloquer » de l'onglet Moi : une sélection de belles pièces verrouillées (+ un secret)
     const SHOWCASE = [['ovr.smart_dress', 'tenue'], ['hat.fedora', 'chapeau'], ['hb.twin_tail_long', 'cheveux'], ['look:3', 'perso'], ['top.seifuku', 'haut'], ['feet.high_lace_shoe', 'pieds'], ['glass.round_shaded', 'acc'], ['hacc.alien_attena', 'chapeau'], ['hb.wild_tail', 'cheveux'], ['top.hoodie', 'haut'], ['elf', 'visage']];
     function renderShowcase() {
@@ -54335,6 +54730,7 @@ void main(){ if (vK >= 0.999) discard;
     // présence : la borne la connaît déjà (direct) ; on relit la liste quand l'onglet Amis se voit
     every(() => { if (!document.hidden && tab === 'amis' && !editing) renderFriends(); }, 5000);
     every(() => { if (!document.hidden && tab === 'amis') loadAvatars(); }, 90000);
+    every(() => { if (!document.hidden && tab === 'moi' && !BUY) loadWallet(); }, 120000);
 
     // ---------- téléchargement ----------
     async function renderDl() {
@@ -54417,11 +54813,11 @@ void main(){ if (vK >= 0.999) discard;
     if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(() => { if (!dead && (root.clientWidth !== W0 || root.clientHeight !== H0)) relayout(); }); ro.observe(root); }
     else on(window, 'resize', relayout);
     on(document, 'visibilitychange', activeSync);
-    on(window, 'online', () => { if (srv.dirty) gardePush(); loadWallet(); });
+    on(window, 'online', () => { if (srv.dirty) gardePush(); loadWallet(); loadCatalogs(); });
     // l'onglet « Créateur » n'a ses numéros qu'avec le catalogue
     box.querySelectorAll('.pgh-edcat').forEach((b) => { if (!b.querySelector('em')) b.insertAdjacentHTML('beforeend', '<em></em>'); });
     catReady.then(() => { if (dead) return; if (!D && !STG) { /* repli : le créateur attend la 3D */ } renderShowcase(); renderMe(); }).catch(() => {});
-    relayout(); setTab(tab, false); activeSync(); renderMe(); renderFriends(); loadWallet(); later(loadHouse, 900);
+    relayout(); setTab(tab, false); activeSync(); renderMe(); renderFriends(); renderToday(); loadWallet(); loadCatalogs(); later(loadHouse, 900);
     // la 3D arrive APRÈS l'affichage (pas d'à-coup à l'ouverture)
     later(() => { (window.requestIdleCallback || ((f) => setTimeout(f, 1)))(() => { if (!dead) start3D(); }, { timeout: 600 }); }, 380);
     later(() => loadAvatars(true), 1500);
@@ -90681,7 +91077,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261018062603"; window.JDW_VERSION = "1.19.11"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
+<script>window.JDW_BUILD = "20261018072702"; window.JDW_VERSION = "1.19.12"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -93371,7 +93767,10 @@ async function gameSetPhoto(data, scope) {
 
 // Hub de Pégase (CONTRACT.md, Ajout 8 : api.pegase) : les copains de la salle (membres, en ligne, têtes déjà filtrées par le serveur),
 // et quelques fonctions Pégase du serveur (pegase.sql), toujours au nom du joueur actuel (p_name) dans la salle actuelle (p_room).
-const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars']);
+// Phase 2b (1.19.12) : pg_unlock_buy (acheter une pièce verrouillée, prix du serveur) et les catalogues pg_unlock_catalog / pg_mission_catalog
+// (compte connecté, SANS p_name : seulement p_code). Pas de pg_claim ici : les missions se récupèrent dans le jeu.
+const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog']);
+const PG_RPC_CAT = new Set(['pg_unlock_catalog', 'pg_mission_catalog']);
 function pegaseApi() {
   const guest = () => isGuest() || !profile.name;
   return {
@@ -93388,7 +93787,9 @@ function pegaseApi() {
     rpc: async (fn, args) => {
       if (!PG_RPC.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
-      const a = Object.assign({}, args || {}, { p_code: CODE(), p_name: profile.name });
+      if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
+      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : Object.assign({}, args || {});
+      Object.assign(a, { p_code: CODE(), p_name: profile.name });
       if (fn === 'pg_room_avatars') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
       return rpc(fn, a, { quiet: true });
     },

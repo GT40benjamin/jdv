@@ -490,7 +490,10 @@ async function gameSetPhoto(data, scope) {
 
 // Hub de Pégase (CONTRACT.md, Ajout 8 : api.pegase) : les copains de la salle (membres, en ligne, têtes déjà filtrées par le serveur),
 // et quelques fonctions Pégase du serveur (pegase.sql), toujours au nom du joueur actuel (p_name) dans la salle actuelle (p_room).
-const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars']);
+// Phase 2b (1.19.12) : pg_unlock_buy (acheter une pièce verrouillée, prix du serveur) et les catalogues pg_unlock_catalog / pg_mission_catalog
+// (compte connecté, SANS p_name : seulement p_code). Pas de pg_claim ici : les missions se récupèrent dans le jeu.
+const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog']);
+const PG_RPC_CAT = new Set(['pg_unlock_catalog', 'pg_mission_catalog']);
 function pegaseApi() {
   const guest = () => isGuest() || !profile.name;
   return {
@@ -507,7 +510,9 @@ function pegaseApi() {
     rpc: async (fn, args) => {
       if (!PG_RPC.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
-      const a = Object.assign({}, args || {}, { p_code: CODE(), p_name: profile.name });
+      if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
+      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : Object.assign({}, args || {});
+      Object.assign(a, { p_code: CODE(), p_name: profile.name });
       if (fn === 'pg_room_avatars') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
       return rpc(fn, a, { quiet: true });
     },

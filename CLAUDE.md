@@ -153,6 +153,35 @@ TODO (prochaine appli de la borne, PAS encore fait) : (1) pont `JDWAndroid.speak
 `UtteranceProgressListener.onRangeStart` (API 26+) pour envoyer les limites de mots → bouche exacte mot à mot dans l'appli (💬 revient) ;
 (2) `SpeechRecognizer` d'Android avec `EXTRA_PREFER_OFFLINE` (français sur l'appareil) via le pont pour reconnaître « oui » / « non » (et des mots)
 sans envoyer le son → l'avatar hoche / fait non tout seul.
+**Hub 2.5 (1.19.12, 18 oct., phase 2b du serveur : `~/jdv-tools/pegase/server/INTEGRATION-phase2b.md`)** : `api.pegase.rpc` accepte aussi
+`pg_unlock_buy` (`{p_unlock, p_op}` + p_name de la borne) et les catalogues `pg_unlock_catalog` / `pg_mission_catalog` (envoyés avec `p_code`
+SEUL ; cache 10 min dans `STORE.pgcat`). **Achats** : le créateur prend prix / rareté / `needs` / `how` du catalogue du serveur (`UCAT`, sinon
+les constantes `lockOf` d'avant) ; possédé = lot de départ + `pg_me.owned` / `unlocks` (+ ce que portait l'avatar enregistré). Pièce verrouillée
+essayée → carte « 600 LU lucioles · tu en as 700 » + bouton **Acheter** (ou 2e toucher sur la pièce) → feuille `.pgh-buym` (vignette, rareté,
+prix avec le symbole luciole, « Tes lucioles → Après l'achat », ou « Il te manque ») → `pg_unlock_buy` avec `p_op = ub-` + 12 [a-z0-9], gardé
+dans `jdw.pegase.garde.<PSEUDO>.achat` tant que la réponse n'est pas arrivée (Réessayer = MÊME numéro, rien payé deux fois) → petite fête (gerbe
+de lucioles, « … est à toi ! », solde qui descend, pg_me relu). `pas assez d ecus` → message gentil (aussi sans appel si le solde connu suffit
+pas), `pas a vendre` / `mission requise` → explication ; secrets : « mystérieuse », jamais de bouton ; cadeaux : leur `how` ; invité : il
+essaie, Acheter → « il faut un compte » + Créer mon compte. Porte-monnaie aussi en haut du créateur. **Aujourd'hui** (haut de l'onglet Moi,
+lecture seule) : les 3 missions du jour (sorte, texte, +LU ou « ✓ Reçue » d'après `pg_me.missions.today`, compteur « 1 / 3 faite »), puis
+« Ton histoire » = 1re mission de M1…M11 pas encore dans `missions.done` (titre / donneur / récompense de `pg_mission_catalog`, « en cours »
+si dans `started`) ; histoire finie → quêtes G1 / B1 / I1. Invité : « Tes missions du jour » + Créer mon compte. Pas de pg_claim dans le hub.
+**Missions du jour : le tirage** (le serveur ne tire pas encore : le JEU et le HUB doivent tirer LA MÊME CHOSE) — modèles dans
+`~/jdv-tools/pegase/server/missions-jour.json` (sortes dans l'ordre, `actif`, `min`/`max`, modèles `{k, n (n° MISSIONS.md §3), t (texte avec
+{0} {1}), p (listes de [id, texte]), lu, needs}` ; injecté dans le hub par tools/assemble.js à la place de `/*PG_MJOUR*/null` ; ne jamais
+réordonner : ajouter à la fin ou `actif:false`) ; référence exécutable `server/missions-jour-tirage.js` (vecteurs de test : `node
+missions-jour-tirage.js`). Règle : graine `s` = FNV-1a 32 bits (2166136261, ×16777619) des octets UTF-8 de `jour + "|" + PSEUDO` (jour =
+`pg_me.day` « AAAA-MM-JJ », jour Pégase qui change à 5 h heure de Paris ; PSEUDO = `pg_me.name`, principal, majuscules) ; `next()` :
+`s = s·1664525 + 1013904223 (mod 2^32)`, rend `s >>> 8` ; (1) Fisher-Yates des sortes ACTIVES (ordre du fichier ; `for i = n-1..1 : j = next() %
+(i+1)`, échange) ; (2) pour chaque sorte active (ordre du fichier) Fisher-Yates de ses modèles ; (3) pour chaque sorte puis chaque modèle (ordre
+du fichier), pour chaque paramètre : `next() % longueur` ; un modèle est faisable si tous ses `needs` sont dans `missions.done` ; liste = d'abord
+les sortes de `missions.today` (ordre mélangé), puis les premières sortes pas reçues qui ont un modèle faisable, 3 au plus, affichées dans
+l'ordre mélangé ; modèle d'une sorte = le premier faisable de son ordre mélangé ; LU = `lu` borné par min/max (du catalogue si présent).
+Avant la fin de M1 : aucune (« Bientôt tes missions du jour »). Preuve à envoyer par le jeu avec `pg_claim(<sorte>)` : `{"tpl": n, "k": k,
+"p": [ids], "lu": lu}`. Vecteurs : 2026-10-18 / PATOU / done M1-M3 → jour_balade #33 [place], jour_photo #4 [3], jour_maison #26 ;
+2026-10-19 / PATOU / histoire finie → jour_marche #19 [5], jour_nature #51 [3], jour_peche #46 [mer]. Sorte `jour_social` : `actif:false`
+(appels / visites pas encore dans le jeu). Essais : `test-pegase-labo.tmp.js` sections 7-8 (achats, réseau coupé, refus, secret, cadeau,
+tirage = référence, tout fait, invité ; captures `shots/pegase-hub3-*.png`).
 Atelier : `~/jdv-tools/pegase/borne/hub` (src/ = avatar 3D : avatar.js copie de l'atelier avatar + gestes, stage.js, main.js ; wrap/head.js +
 wrap/tail.js = la page ; `node tools/assemble.js` → out/pegase.js à copier dans source/games/ ; paquets `node tools/pack.js` ; images
 `python tools/images.py` ; harnais `test/harness.html` (serveur : `PORT=8833 node ~/jdv-tools/pegase/tools/serve.js ~/jdv-tools/pegase/borne/hub`),
