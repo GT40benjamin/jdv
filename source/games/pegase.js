@@ -4561,6 +4561,10 @@
     // ---------- PARLER (démo) : la voix du navigateur dit une phrase ; la bouche suit le TEXTE (règles du français → visèmes), recalée MOT À MOT
     // sur les évènements « boundary » de la voix (sinon au rythme moyen). Phrases fixes : rien de personnel n'est donné à la voix.
     const SAY = { on: false, n: -1 };
+    // 1.20.3 (demande de l'utilisateur : « je ne veux pas que l'avatar parle », « l'oreille, c'est long ») : PAS de voix de l'avatar (💬 caché,
+    // aucune réponse dite) et PAS d'écoute en boucle (pas d'oreille). Le code reste, coupé ; les essais peuvent le rallumer :
+    // window.JDW_PG_SAY = 1 (💬 + réponses dites), window.JDW_PG_EAR = 1 (écoute en boucle), seulement avec window.JDW_PG_TEST.
+    const PG_SAY = !!(window.JDW_PG_TEST && window.JDW_PG_SAY), PG_EAR = !!(window.JDW_PG_TEST && window.JDW_PG_EAR);
     const PHRASES = ['Salut ! Moi, c’est ton avatar. Tu viens jouer avec moi ?', 'Bonjour ! On fait une partie sur la borne, ce soir ?', 'Coucou ! Regarde, je parle avec ma bouche, maintenant.'];
     const OPEN = { A: 0.8, E: 0.45, I: 0.15, O: 0.45, OU: 0.1, EU: 0.35 };
     function sayVoice() {
@@ -4654,6 +4658,8 @@
     on($.say, 'click', (e) => { e.stopPropagation(); if (SAY.on) { sayStop(); return; } sayStart(); });
     // pas de voix sur cet appareil (WebView d'Android : pas de speechSynthesis ; ou aucune voix) : 💬 caché (🎤 reste), noté une fois dans le journal
     (function sayCheck() {
+      // 1.20.3 : l'avatar ne parle plus (demande de l'utilisateur) → 💬 toujours caché ; le code reste (essais : window.JDW_PG_SAY = 1)
+      if (!PG_SAY) { $.say.hidden = true; $.say.style.display = 'none'; return; }
       const hide = (why) => { $.say.hidden = true; $.say.style.display = 'none'; try { if (!store.get('jdw.pegase.saylog')) { store.set('jdw.pegase.saylog', '1'); report('Pégase hub : bouton 💬 caché (' + why + ')'); } } catch (e) { /* rien */ } };
       if (NV && NV.canSpeak()) return;   // appli 1.9 : la voix du téléphone
       if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { hide('pas de speechSynthesis'); return; }
@@ -4685,7 +4691,7 @@
     const EAR = { via: '', want: false, running: false, sleeping: false, cur: null, gen: 0, kickT: 0, lastAct: 0, holdUntil: 0, cool: {}, busyN: 0, errRun: 0,
       perm: false, fatal: '', mode: '', micBad: 0, micOk: false, conflict: false, local: false, R: null, lastHi: -1e9, rep: new Set(), repN: 0, bilanAt: -1, labT: 0,
       st: { sessions: 0, ready: 0, begin: 0, partial: 0, result: 0, err: {}, heard: {}, noans: 0, busy: 0, sleeps: 0, micSessions: 0, ms: 0 } };
-    try { EAR.via = NV && typeof NV.listen === 'function' ? (NV.canListen() ? 'natif' : '') : SRW ? 'web' : ''; } catch (e) { EAR.via = ''; }
+    if (PG_EAR) try { EAR.via = NV && typeof NV.listen === 'function' ? (NV.canListen() ? 'natif' : '') : SRW ? 'web' : ''; } catch (e) { EAR.via = ''; }
     { const s = store.get(EAR_KEY); EAR.want = !!EAR.via && (s === '1' || (s == null && EAR.via === 'natif' && !!store.get('jdw.pegase.micok'))); }
     EAR.conflict = !!store.get(EAR_CONF) && store.get(EAR_CONF) === (UAAPP || 'web');
     if ($.micwords) $.micwords.hidden = EAR.via !== 'natif';
@@ -4700,7 +4706,7 @@
       if (window.JDW_PG_TEST) (window.__pgEARLOG = window.__pgEARLOG || []).push(['Pégase hub : ' + msg, d]);
     }
     function earBilan() { if (!EAR.st.sessions || EAR.bilanAt === EAR.st.sessions) return; EAR.bilanAt = EAR.st.sessions; earDiag('bilan' + (EAR.rep.has('bilan') ? '-' + EAR.st.sessions : ''), 'bilan de l\'écoute' + (EAR.rep.has('bilan') ? ' (suite)' : ''), { st: earSt() }); }
-    if (!EAR.via && NV && typeof NV.listen === 'function') earDiag('none', 'écoute impossible : pas de reconnaissance vocale sur ce téléphone (canListen)');
+    if (PG_EAR && !EAR.via && NV && typeof NV.listen === 'function') earDiag('none', 'écoute impossible : pas de reconnaissance vocale sur ce téléphone (canListen)');
     // ce qu'on a dit → une sorte (le texte n'est gardé nulle part)
     const earNorm = (s) => ' ' + String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
     const EAR_BYE = / (au revoir|a plus tard|a plus|a tout a l heure|a toute|a bientot|a demain|bye bye|bye|ciao|tchao|bonne nuit) /, EAR_HI = / (salut|coucou|bonjour|bonsoir|hello|hey) /;
@@ -4732,7 +4738,7 @@
       toast('👋 J\'ai entendu « ' + (EAR_SAYW[w] || w) + ' »');
       STG.gesture('wave'); hintOff();
       const b = box.querySelector('.pgh-emotes .pgh-emo[data-emo="wave"]'); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
-      later(() => { if (!dead) sayStart(r, { reply: true }); }, 200);
+      if (PG_SAY) later(() => { if (!dead) sayStart(r, { reply: true }); }, 200);   // 1.20.3 : plus de réponse dite (l'avatar ne parle pas)
       return true;
     }
     // faut-il écouter maintenant ?
