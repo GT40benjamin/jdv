@@ -326,8 +326,8 @@
       fache: { Brow_Angry: 0.5, Brows_Lowered: 1, Mouth_Sad: 0.42, Eyes_LowerClosed: 0.09 },
       malicieux: { Eyes_LowerClosed: 0.19, Mouth_Wide: 0.9, Mouth_Oh: 0.43, Mouth_Happy: 0.59, Brows_Sad: 0.17, Brow_Angry: 0.71, Mouth_Press: 0.3 }
     };
-    var EXPR_OUI = { Mouth_Happy: 0.5, Mouth_Wide: 0.45, Brows_Raised: 0.3, Eyes_LowerClosed: 0.1 };
-    var EXPR_NON = { Brows_Lowered: 0.55, Brow_Angry: 0.14, Mouth_Sad: 0.3, Mouth_Press: 0.3 };
+    var EXPR_OUI = { Mouth_Happy: 0.75, Mouth_Wide: 0.55, Brows_Raised: 0.45, Eyes_LowerClosed: 0.18 };
+    var EXPR_NON = { Brows_Lowered: 0.7, Brow_Angry: 0.18, Mouth_Sad: 0.45, Mouth_Press: 0.4 };
     var EXPR_KEYS = [
       "Brow_Angry",
       "Brows_Lowered",
@@ -1142,10 +1142,10 @@
       }
       // « oui » : deux hochements de tête (le 2e plus petit) avec un petit sourire ; « non » : la tête fait non, sourcils un peu froncés
       yes() {
-        this.yesT = 1.15;
+        this.yesT = 1.4;
       }
       no() {
-        this.noT = 1.3;
+        this.noT = 1.6;
       }
       busy() {
         return this.waveT > 0 || this.jumpT > 0 || this.laughT > 0 || this.yesT > 0 || this.noT > 0;
@@ -1324,13 +1324,14 @@
         let yes = 0, no = 0;
         if (A.yesT > 0) {
           A.yesT = Math.max(0, A.yesT - dt);
-          const p = 1 - A.yesT / 1.15, env2 = Math.min(1, p / 0.06, A.yesT / 0.12);
-          yes = env2 * (p < 0.5 ? 0.17 : 0.12) * (1 - Math.cos(p * Math.PI * 4)) / 2;
+          const p = 1 - A.yesT / 1.4, env2 = Math.min(1, p / 0.05, A.yesT / 0.14);
+          const c = Math.min(1, p / 0.86);
+          yes = env2 * (c < 0.5 ? 0.34 : 0.24) * (1 - Math.cos(c * Math.PI * 4)) / 2;
         }
         if (A.noT > 0) {
           A.noT = Math.max(0, A.noT - dt);
-          const p = 1 - A.noT / 1.3, env2 = Math.min(1, p / 0.08, A.noT / 0.2);
-          no = env2 * 0.3 * (1 - 0.45 * p) * Math.sin(p * Math.PI * 2 * 2.3);
+          const p = 1 - A.noT / 1.6, env2 = Math.min(1, p / 0.07, A.noT / 0.22);
+          no = env2 * 0.5 * (1 - 0.5 * p) * Math.sin(p * Math.PI * 2 * 2.6);
         }
         const qe = (x, y, z) => new T.Quaternion().setFromEuler(new T.Euler(x, y, z, "YXZ"));
         const pr = sw * 0.022, py = Math.sin(t * 0.31 + s) * 0.05;
@@ -1347,7 +1348,7 @@
         this.setR("calf_r", qe(-0.04 - Math.max(0, -sw) * 0.05 - kb * 2, 0, 0));
         this.setR("spine_02", qe(br * 0.012, -py * 0.3, -pr * 0.5));
         this.setR("spine_03", qe(br * 0.016 - hop * 0.05 + crouch * 0.12 - air * 0.06 - shake * 0.05, -py * 0.3 - w * 0.08, -pr * 0.4 + w * 0.05));
-        this.setR("spine_04", qe(br * 0.012, 0, 0));
+        this.setR("spine_04", qe(br * 0.012 + yes * 0.18, no * 0.12, 0));
         const lt = A.lookTarget, l = A.look;
         const wanderX = Math.sin(t * 0.37 + s) * 0.22 + Math.sin(t * 0.13 + s * 3) * 0.12, wanderY = Math.sin(t * 0.29 + s * 2) * 0.06;
         const gx = A.lookAt ? lt.x : wanderX, gy = A.lookAt ? lt.y : wanderY;
@@ -2397,7 +2398,7 @@
       }
       const view = { yaw: 0.3, vyaw: 0, target: null, focus: null, w: 1, h: 1, spin: 0 };
       const FR = { y: 0.9, h: 2.5 }, FRT = { y: 0.9, h: 2.5 };
-      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 }, parle: { y: 1.47, h: 1 } };
+      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 }, parle: { y: 1.47, h: 1 }, geste: { y: 1.36, h: 1.8 } };
       function setFrame(k) {
         const f = FRAMES[k] || FRAMES.corps;
         FRT.y = f.y;
@@ -2425,7 +2426,7 @@
         sparks.m.uniforms.uPx.value = motes.uniforms.uPx.value;
       }
       const GEST = ["wave", "jump", "face", "laugh", "twirl"];
-      let gi = 0;
+      let gi = 0, gestT = 0;
       function gesture(kind) {
         if (!ready) return "";
         if (!kind) {
@@ -2457,9 +2458,16 @@
           view.target = 0;
           A.lookAt = true;
           A.lookTarget.set(0, 0.04);
-          lookT = 2;
+          lookT = 2.2;
           if (kind === "oui") A.yes();
           else A.no();
+          if (Math.abs(FRT.y - FRAMES.corps.y) < 0.01 && Math.abs(FRT.h - FRAMES.corps.h) < 0.01) {
+            setFrame("geste");
+            clearTimeout(gestT);
+            gestT = setTimeout(() => {
+              if (!dead && FRT.h === FRAMES.geste.h && FRT.y === FRAMES.geste.y) setFrame("corps");
+            }, kind === "oui" ? 1750 : 1950);
+          }
         } else if (kind === "twirl") {
           view.spin = 1;
           view.target = null;

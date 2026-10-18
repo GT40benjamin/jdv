@@ -45261,8 +45261,8 @@ void main(){ if (vK >= 0.999) discard;
       fache: { Brow_Angry: 0.5, Brows_Lowered: 1, Mouth_Sad: 0.42, Eyes_LowerClosed: 0.09 },
       malicieux: { Eyes_LowerClosed: 0.19, Mouth_Wide: 0.9, Mouth_Oh: 0.43, Mouth_Happy: 0.59, Brows_Sad: 0.17, Brow_Angry: 0.71, Mouth_Press: 0.3 }
     };
-    var EXPR_OUI = { Mouth_Happy: 0.5, Mouth_Wide: 0.45, Brows_Raised: 0.3, Eyes_LowerClosed: 0.1 };
-    var EXPR_NON = { Brows_Lowered: 0.55, Brow_Angry: 0.14, Mouth_Sad: 0.3, Mouth_Press: 0.3 };
+    var EXPR_OUI = { Mouth_Happy: 0.75, Mouth_Wide: 0.55, Brows_Raised: 0.45, Eyes_LowerClosed: 0.18 };
+    var EXPR_NON = { Brows_Lowered: 0.7, Brow_Angry: 0.18, Mouth_Sad: 0.45, Mouth_Press: 0.4 };
     var EXPR_KEYS = [
       "Brow_Angry",
       "Brows_Lowered",
@@ -46077,10 +46077,10 @@ void main(){ if (vK >= 0.999) discard;
       }
       // « oui » : deux hochements de tête (le 2e plus petit) avec un petit sourire ; « non » : la tête fait non, sourcils un peu froncés
       yes() {
-        this.yesT = 1.15;
+        this.yesT = 1.4;
       }
       no() {
-        this.noT = 1.3;
+        this.noT = 1.6;
       }
       busy() {
         return this.waveT > 0 || this.jumpT > 0 || this.laughT > 0 || this.yesT > 0 || this.noT > 0;
@@ -46259,13 +46259,14 @@ void main(){ if (vK >= 0.999) discard;
         let yes = 0, no = 0;
         if (A.yesT > 0) {
           A.yesT = Math.max(0, A.yesT - dt);
-          const p = 1 - A.yesT / 1.15, env2 = Math.min(1, p / 0.06, A.yesT / 0.12);
-          yes = env2 * (p < 0.5 ? 0.17 : 0.12) * (1 - Math.cos(p * Math.PI * 4)) / 2;
+          const p = 1 - A.yesT / 1.4, env2 = Math.min(1, p / 0.05, A.yesT / 0.14);
+          const c = Math.min(1, p / 0.86);
+          yes = env2 * (c < 0.5 ? 0.34 : 0.24) * (1 - Math.cos(c * Math.PI * 4)) / 2;
         }
         if (A.noT > 0) {
           A.noT = Math.max(0, A.noT - dt);
-          const p = 1 - A.noT / 1.3, env2 = Math.min(1, p / 0.08, A.noT / 0.2);
-          no = env2 * 0.3 * (1 - 0.45 * p) * Math.sin(p * Math.PI * 2 * 2.3);
+          const p = 1 - A.noT / 1.6, env2 = Math.min(1, p / 0.07, A.noT / 0.22);
+          no = env2 * 0.5 * (1 - 0.5 * p) * Math.sin(p * Math.PI * 2 * 2.6);
         }
         const qe = (x, y, z) => new T.Quaternion().setFromEuler(new T.Euler(x, y, z, "YXZ"));
         const pr = sw * 0.022, py = Math.sin(t * 0.31 + s) * 0.05;
@@ -46282,7 +46283,7 @@ void main(){ if (vK >= 0.999) discard;
         this.setR("calf_r", qe(-0.04 - Math.max(0, -sw) * 0.05 - kb * 2, 0, 0));
         this.setR("spine_02", qe(br * 0.012, -py * 0.3, -pr * 0.5));
         this.setR("spine_03", qe(br * 0.016 - hop * 0.05 + crouch * 0.12 - air * 0.06 - shake * 0.05, -py * 0.3 - w * 0.08, -pr * 0.4 + w * 0.05));
-        this.setR("spine_04", qe(br * 0.012, 0, 0));
+        this.setR("spine_04", qe(br * 0.012 + yes * 0.18, no * 0.12, 0));
         const lt = A.lookTarget, l = A.look;
         const wanderX = Math.sin(t * 0.37 + s) * 0.22 + Math.sin(t * 0.13 + s * 3) * 0.12, wanderY = Math.sin(t * 0.29 + s * 2) * 0.06;
         const gx = A.lookAt ? lt.x : wanderX, gy = A.lookAt ? lt.y : wanderY;
@@ -47332,7 +47333,7 @@ void main(){ if (vK >= 0.999) discard;
       }
       const view = { yaw: 0.3, vyaw: 0, target: null, focus: null, w: 1, h: 1, spin: 0 };
       const FR = { y: 0.9, h: 2.5 }, FRT = { y: 0.9, h: 2.5 };
-      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 }, parle: { y: 1.47, h: 1 } };
+      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 }, parle: { y: 1.47, h: 1 }, geste: { y: 1.36, h: 1.8 } };
       function setFrame(k) {
         const f = FRAMES[k] || FRAMES.corps;
         FRT.y = f.y;
@@ -47360,7 +47361,7 @@ void main(){ if (vK >= 0.999) discard;
         sparks.m.uniforms.uPx.value = motes.uniforms.uPx.value;
       }
       const GEST = ["wave", "jump", "face", "laugh", "twirl"];
-      let gi = 0;
+      let gi = 0, gestT = 0;
       function gesture(kind) {
         if (!ready) return "";
         if (!kind) {
@@ -47392,9 +47393,16 @@ void main(){ if (vK >= 0.999) discard;
           view.target = 0;
           A.lookAt = true;
           A.lookTarget.set(0, 0.04);
-          lookT = 2;
+          lookT = 2.2;
           if (kind === "oui") A.yes();
           else A.no();
+          if (Math.abs(FRT.y - FRAMES.corps.y) < 0.01 && Math.abs(FRT.h - FRAMES.corps.h) < 0.01) {
+            setFrame("geste");
+            clearTimeout(gestT);
+            gestT = setTimeout(() => {
+              if (!dead && FRT.h === FRAMES.geste.h && FRT.y === FRAMES.geste.y) setFrame("corps");
+            }, kind === "oui" ? 1750 : 1950);
+          }
         } else if (kind === "twirl") {
           view.spin = 1;
           view.target = null;
@@ -86398,7 +86406,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261018102207"; window.JDW_VERSION = "1.19.15"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
+<script>window.JDW_BUILD = "20261018104520"; window.JDW_VERSION = "1.19.16"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
