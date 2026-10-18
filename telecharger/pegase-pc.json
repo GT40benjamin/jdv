@@ -1,13 +1,14 @@
 {
-  "version": "0.6 (essai 6)",
-  "size": 834497110,
-  "sha256": "360530c0be720adbec87f69e28e076158a7f708c36a1ffebab7bacd79ca065cf",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v6/Pegase-PC-2026-10-18-missions.zip",
+  "version": "0.7 (essai 7)",
+  "size": 848559340,
+  "sha256": "311fedd995a914e4fcb579ad530d71fa391196f797790643562e2ebeea9e92c0",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v7/Pegase-PC-2026-10-18-telephone.zip",
   "notes": [
-    "Récompenses des missions et du musée via ton compte (une seule fois, même hors ligne)",
-    "Dressing avec cadenas : les pièces verrouillées s'achètent avec tes lucioles",
-    "Objets secrets à découvrir",
-    "Missions du jour identiques à celles du hub",
-    "Cadeaux de missions : permis, appareil photo d'explorateur, filet, pelle, canne"
+    "Le téléphone de ton avatar (touche T) : Photo, Album, Missions, Contacts, Carte, Messages, Réglages",
+    "Le maire t'appelle quand tu as choisi ta parcelle",
+    "Connexion rapide avec le code de la borne",
+    "Écran de chargement au lieu du long écran gris",
+    "Construction assistée : maisons prêtes, 1re maison offerte avec le permis, panneau à l'entrée de ta parcelle",
+    "Détails et herbe plus loin, ping corrigé, allure de garçon pour les avatars hommes"
   ]
 }
