@@ -9528,6 +9528,18 @@ function swWarm() {
   try { ctl.postMessage({ t: 'warm', list }); localStorage.setItem('jdw.swwarm', BUILD); } catch (e) {}
 }
 if (SW_OK) setTimeout(swWarm, 25000);
+// au calme (bibliothèque affichée, en ligne, page visible) : un jeu peut préparer en arrière-plan ce qui rendra sa 1re ouverture immédiate
+// (JDW_GAMES.<id>.warm, une fois par ouverture de la borne ; ex. Pégase installe d'avance la reconnaissance des mots du micro, 42 Mo,
+// seulement en Wi-Fi, s'il y a de la place et de la mémoire). Réessayé au retour du réseau.
+let gameWarmDone = false;
+function gameWarm() {
+  if (gameWarmDone || netOff() || document.hidden) return;
+  if (!onLibrary()) { setTimeout(gameWarm, 20000); return; }                     // en partie : plus tard
+  gameWarmDone = true;
+  for (const g of GAMES) if (g && typeof g.warm === 'function') { try { Promise.resolve(g.warm({ root: ROOT })).catch(() => {}); } catch (e) {} }
+}
+setTimeout(gameWarm, 30000);
+window.addEventListener('online', () => setTimeout(gameWarm, 15000));
 
 /* ================= Démarrage ================= */
 ['jdw-guestask', 'jdw-inv', 'jdw-invshare', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-coopgo', 'jdw-coop-pause', 'jdw-coopend', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });

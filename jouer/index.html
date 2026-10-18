@@ -45333,6 +45333,7 @@ void main(){ if (vK >= 0.999) discard;
     };
     var EXPR_OUI = { Mouth_Happy: 0.75, Mouth_Wide: 0.55, Brows_Raised: 0.45, Eyes_LowerClosed: 0.18 };
     var EXPR_NON = { Brows_Lowered: 0.7, Brow_Angry: 0.18, Mouth_Sad: 0.45, Mouth_Press: 0.4 };
+    var EXPR_RIRE = { Eyes_LowerClosed: 0.9, Eyes_UpperClosed: 0.42, Mouth_Happy: 1, Mouth_Wide: 0.8, Jaw_Open: 0.3, Mouth_Oh: 0.12, Brows_Raised: 0.42, Brows_Sad: 0.3 };
     var EXPR_KEYS = [
       "Brow_Angry",
       "Brows_Lowered",
@@ -46142,8 +46143,47 @@ void main(){ if (vK >= 0.999) discard;
         this.jumpT = 1e-4;
         this.exprFlash = 1.2;
       }
-      laugh() {
-        this.laughT = 1.8;
+      // rire (1.20.5) : laugh(durée, force) part (ou se prolonge) ; laughHold(force) le fait DURER tant qu'on l'appelle (rire entendu au micro) ;
+      // laughW = poids lissé (entrée 0,25 s, sortie 0,5 s), laughB = rebond de chaque « ha » (~4,6 par seconde), laughK = force (main sur le ventre
+      // au-dessus de 0,5)
+      laugh(dur = 2.2, k = 1) {
+        if (!(this.laughT > 0)) {
+          this.laughE = 0;
+          this.laughPh = 0;
+          this.laughK = 0;
+        }
+        this.laughT = Math.max(this.laughT || 0, dur);
+        this.laughK = Math.max(k, this.laughK || 0);
+      }
+      laughHold(k = 1) {
+        if (!(this.laughT > 0)) this.laugh(1.2, k);
+        else {
+          this.laughT = Math.max(this.laughT, 0.75);
+          this.laughK = Math.max(this.laughK || 0, k);
+        }
+      }
+      // anticipation (1.20.5) : un mot-clé PAS ENCORE sûr (partielle) → le geste s'esquisse (prep 'oui' | 'non' | 'salut', poids qui retombe tout seul
+      // en ~0,3 s s'il n'est pas confirmé) ; écoute : la voix commence → petite inclinaison attentive de la tête (rare : pas un tic)
+      prep(kind) {
+        if (kind) {
+          this.prepK = kind;
+          this.prepT = 0.28;
+        } else this.prepT = 0;
+      }
+      // fin d'une phrase COURTE (un mot ?) : petit « hm ? » attentif (sourcils qui montent, tête qui se relève à peine) le temps que le mot soit
+      // reconnu : le geste qui suit part de là ; rare (2,5 s entre deux) pour ne jamais devenir un tic
+      ack() {
+        const now = this.t || 0;
+        if (now - (this.ackAt == null ? -99 : this.ackAt) < 2.5) return;
+        this.ackAt = now;
+        this.ackT = 0.55;
+      }
+      listen() {
+        const now = this.t || 0;
+        if (now - (this.listenAt == null ? -99 : this.listenAt) < 4) return;
+        this.listenAt = now;
+        this.listenT = 0.9;
+        this.listenS = Math.random() < 0.5 ? -1 : 1;
       }
       // « oui » : deux hochements de tête (le 2e plus petit) avec un petit sourire ; « non » : la tête fait non, sourcils un peu froncés
       yes() {
@@ -46157,7 +46197,21 @@ void main(){ if (vK >= 0.999) discard;
       }
       update(dt, cam) {
         this.t += dt;
-        const tgt = this.laughT > 0 ? EXPR.content : this.yesT > 0 ? EXPR_OUI : this.noT > 0 ? EXPR_NON : this.exprFlash > 0 ? this.waveT > 0 ? EXPR.sourire : EXPR.content : this.exprTarget;
+        if (this.laughT > 0) {
+          this.laughT = Math.max(0, this.laughT - dt);
+          this.laughE = (this.laughE || 0) + dt;
+          this.laughPh = (this.laughPh || 0) + dt * 2 * Math.PI * (4.6 - Math.min(1.2, this.laughE * 0.35));
+        }
+        const lgT = this.laughT > 0 ? Math.min(1, this.laughE / 0.25, this.laughT / 0.5) : 0, lgs = lgT * lgT * (3 - 2 * lgT);
+        this.laughW = lgs;
+        this.laughB = lgs > 0 ? Math.pow(Math.max(0, Math.sin(this.laughPh)), 1.5) : 0;
+        const pk = this.prepT > 0 ? 1 : 0;
+        this.prepT = Math.max(0, (this.prepT || 0) - dt);
+        this.prepW = (this.prepW || 0) + (pk - (this.prepW || 0)) * (1 - Math.exp(-dt / (pk ? 0.07 : 0.12)));
+        this.listenT = Math.max(0, (this.listenT || 0) - dt);
+        this.ackT = Math.max(0, (this.ackT || 0) - dt);
+        this.ackW = this.ackT > 0 ? Math.sin(Math.min(1, (0.55 - this.ackT) / 0.55) * Math.PI) : 0;
+        const tgt = this.laughT > 0 ? EXPR_RIRE : this.yesT > 0 ? EXPR_OUI : this.noT > 0 ? EXPR_NON : this.exprFlash > 0 ? this.waveT > 0 ? EXPR.sourire : EXPR.content : this.exprTarget;
         if (this.exprFlash > 0) this.exprFlash -= dt;
         const k = 1 - Math.exp(-dt * 10);
         for (const key of EXPR_KEYS) {
@@ -46176,12 +46230,29 @@ void main(){ if (vK >= 0.999) discard;
         }
         const bl = this.blink > 0 ? Math.sin(this.blink * Math.PI) : 0;
         const ex = Object.assign({}, this.exprCur);
+        if (this.laughW > 0) {
+          ex.Jaw_Open = (ex.Jaw_Open || 0) + this.laughW * 0.32 * this.laughB;
+          ex.Eyes_LowerClosed = Math.min(1, (ex.Eyes_LowerClosed || 0) + this.laughW * 0.08 * this.laughB);
+        }
+        if (this.ackW > 0) {
+          ex.Brows_Raised = Math.min(1, (ex.Brows_Raised || 0) + 0.32 * this.ackW);
+          ex.Eyes_UpperOpen = Math.min(1, (ex.Eyes_UpperOpen || 0) + 0.15 * this.ackW);
+        }
         ex.Eyes_UpperClosed = Math.min(1, (ex.Eyes_UpperClosed || 0) + bl * (1 - (ex.Eyes_UpperOpen || 0) * 0.3));
         ex.Eyes_UpperOpen = (ex.Eyes_UpperOpen || 0) * (1 - bl);
         if (this.talk && this.talk.w > 0) {
-          const w = this.talk.w, v = this.talk.v || {};
+          const lw = this.laughW || 0, w = this.talk.w * (1 - 0.75 * lw), v = this.talk.v || {};
           for (const k2 of ["Mouth_Happy", "Mouth_Wide", "Mouth_Oh", "Jaw_Open", "Mouth_Pucker", "Mouth_Press", "Mouth_Grimace", "Mouth_Sad"]) ex[k2] = (ex[k2] || 0) * (1 - 0.92 * w);
-          for (const [k2, x] of Object.entries(v)) ex[k2] = Math.min(1.2, (ex[k2] || 0) + x * w);
+          for (const [k2, x] of Object.entries(v)) ex[k2] = Math.min(1.2, (ex[k2] || 0) + x * w * (k2 === "Jaw_Open" ? 1 + lw : 1));
+        }
+        if (this.laughW > 0) {
+          const lw = this.laughW;
+          ex.Mouth_Happy = Math.max(ex.Mouth_Happy || 0, 0.95 * lw);
+          ex.Mouth_Wide = Math.max(ex.Mouth_Wide || 0, 0.75 * lw);
+          ex.Mouth_Oh = (ex.Mouth_Oh || 0) * (1 - 0.7 * lw);
+          ex.Mouth_Pucker = (ex.Mouth_Pucker || 0) * (1 - lw);
+          ex.Mouth_Sad = (ex.Mouth_Sad || 0) * (1 - lw);
+          ex.Jaw_Open = Math.min(ex.Jaw_Open || 0, 0.55 + 0.1 * this.laughB);
         }
         if (this.meshes.face && this.morphBase) this._setInfl(this.meshes.face, this.morphBase, ex);
         this.anim.update(dt, cam);
@@ -46319,13 +46390,9 @@ void main(){ if (vK >= 0.999) discard;
           w = Math.min(1, e / 0.35, A.waveT / 0.45);
           w = w * w * (3 - 2 * w);
         }
-        let lg = 0;
-        if (A.laughT > 0) {
-          A.laughT = Math.max(0, A.laughT - dt);
-          const e = 1.8 - A.laughT;
-          lg = Math.min(1, e / 0.2, A.laughT / 0.4);
-        }
-        const shake = lg * Math.sin(t * 26) * 0.5 + lg * 0.5;
+        const lg = A.laughW || 0, lb = A.laughB || 0, lk = lg * Math.min(1, Math.max(0, ((A.laughK || 0) - 0.4) / 0.3));
+        const back = lg * (0.2 + 0.07 * Math.min(1, (A.laughE || 0) / 0.6)), shake = 0;
+        const pw = A.prepW || 0, pK = A.prepK || "", lsn = A.listenT > 0 ? Math.sin(Math.min(1, (0.9 - A.listenT) / 0.9) * Math.PI) : 0;
         let yes = 0, no = 0;
         if (A.yesT > 0) {
           A.yesT = Math.max(0, A.yesT - dt);
@@ -46352,24 +46419,30 @@ void main(){ if (vK >= 0.999) discard;
         this.setR("calf_l", qe(-0.04 - Math.max(0, sw) * 0.05 - kb * 2, 0, 0));
         this.setR("calf_r", qe(-0.04 - Math.max(0, -sw) * 0.05 - kb * 2, 0, 0));
         this.setR("spine_02", qe(br * 0.012, -py * 0.3, -pr * 0.5));
-        this.setR("spine_03", qe(br * 0.016 - hop * 0.05 + crouch * 0.12 - air * 0.06 - shake * 0.05, -py * 0.3 - w * 0.08, -pr * 0.4 + w * 0.05));
-        this.setR("spine_04", qe(br * 0.012 + yes * 0.18, no * 0.12, 0));
+        this.setR("spine_03", qe(br * 0.016 - hop * 0.05 + crouch * 0.12 - air * 0.06 - shake * 0.05 - back * 0.22 + lg * lb * 0.05, -py * 0.3 - w * 0.08, -pr * 0.4 + w * 0.05));
+        this.setR("spine_04", qe(br * 0.012 + yes * 0.18 - back * 0.3 + lg * lb * 0.035, no * 0.12, 0));
         const lt = A.lookTarget, l = A.look;
         const wanderX = Math.sin(t * 0.37 + s) * 0.22 + Math.sin(t * 0.13 + s * 3) * 0.12, wanderY = Math.sin(t * 0.29 + s * 2) * 0.06;
         const gx = A.lookAt ? lt.x : wanderX, gy = A.lookAt ? lt.y : wanderY;
         l.x += (gx - l.x) * (1 - Math.exp(-dt * 3));
         l.y += (gy - l.y) * (1 - Math.exp(-dt * 3));
-        this.setR("neck_01", qe(-l.y * 0.35 + yes * 0.35, l.x * 0.35 + no * 0.3, 0));
+        const pyes = pK === "oui" ? pw * 0.07 : 0, pno = pK === "non" ? pw * 0.06 : 0;
+        this.setR("neck_01", qe(-l.y * 0.35 + yes * 0.35 - back * 0.35 + pyes * 0.4, l.x * 0.35 + no * 0.3 + pno * 0.3, lsn * 0.03 * (A.listenS || 1)));
         const tk = A.talk && A.talk.w > 0 ? A.talk : null, nod = tk ? tk.nod || 0 : 0, tilt = tk ? tk.tilt || 0 : 0;
-        this.setR("head", qe(-l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod + yes, l.x * 0.5 + tilt * 0.5 + no, Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2)));
+        this.setR("head", qe(
+          -l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod + yes - back * 0.6 + lg * lb * 0.06 + pyes - lsn * 0.03 - (A.ackW || 0) * 0.05,
+          l.x * 0.5 + tilt * 0.5 + no + pno,
+          Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2) + lg * 0.07 + lsn * 0.07 * (A.listenS || 1)
+        ));
         for (const e of ["eyeRoot_l", "eyeRoot_r"]) if (A.bones.has(e)) this.setR(e, qe(-l.y * 0.25, l.x * 0.4, 0));
         if (tk && tk.asym) {
           const as = tk.asym * Math.min(1, tk.w);
           this.setR("jaw", qe(0, as * 0.03, as * 0.04));
           this.setR("mouth", qe(0, 0, as * 0.05));
         }
-        this.setR("clavicle_l", qe(0, 0, br * 0.012 + hop * 0.05));
-        this.setR("clavicle_r", qe(0, 0, -br * 0.012 - hop * 0.05));
+        const sh = lg * (0.04 + 0.075 * lb), pw8 = pK === "salut" ? pw * 0.06 : 0;
+        this.setR("clavicle_l", qe(0, 0, br * 0.012 + hop * 0.05 + sh));
+        this.setR("clavicle_r", qe(0, 0, -br * 0.012 - hop * 0.05 - sh - pw8));
         const acc = (names) => {
           const q = new T.Quaternion();
           for (const n of names) {
@@ -46382,14 +46455,15 @@ void main(){ if (vK >= 0.999) discard;
           const parents = ["pelvis", "spine_02", "spine_03", "spine_04", "clavicle_" + side];
           const pa = acc(parents);
           const spread = (fem ? 0.13 : 0.2) + hop * 0.35 + br * 6e-3 + air * 0.55 + crouch * 0.1;
-          const wv = side === "r" ? w : 0;
-          const up = new T.Vector3(sx * spread, -1 + air * 0.5, 0.04 + Math.sin(t * 0.8 + s + sx) * 0.01 + crouch * 0.25).normalize().lerp(new T.Vector3(sx * 0.82, 0.42, 0.3).normalize(), wv).normalize();
+          const wv = side === "r" ? Math.max(w, pK === "salut" ? pw * 0.18 : 0) : 0;
+          const bv = side === "l" ? lk : 0;
+          const up = new T.Vector3(sx * spread, -1 + air * 0.5, 0.04 + Math.sin(t * 0.8 + s + sx) * 0.01 + crouch * 0.25).normalize().lerp(new T.Vector3(sx * 0.82, 0.42, 0.3).normalize(), wv).lerp(new T.Vector3(sx * 0.3, -0.85, 0.42 + lb * 0.04).normalize(), bv).normalize();
           const qU = this.aim("upperarm_" + side, null, up, pa);
           const pa2 = pa.clone().multiply(qU);
-          const fo = new T.Vector3(sx * (spread * 0.6), -1, 0.32 + br * 0.01 + hop * 0.2).normalize().lerp(new T.Vector3(sx * 0.12 + Math.sin(t * 10) * 0.45, 1, 0.22).normalize(), wv).normalize();
+          const fo = new T.Vector3(sx * (spread * 0.6), -1, 0.32 + br * 0.01 + hop * 0.2).normalize().lerp(new T.Vector3(sx * 0.12 + Math.sin(t * 10) * 0.45, 1, 0.22).normalize(), wv).lerp(new T.Vector3(-sx * 0.8, -0.05, 0.55).normalize(), bv).normalize();
           const qL = this.aim("lowerarm_" + side, null, fo, pa2);
           const pa3 = pa2.clone().multiply(qL);
-          const hd = new T.Vector3(sx * 0.05, -1, 0.18).normalize().lerp(new T.Vector3(sx * 0.1 + Math.sin(t * 10 - 0.6) * 0.5, 1, 0.3).normalize(), wv).normalize();
+          const hd = new T.Vector3(sx * 0.05, -1, 0.18).normalize().lerp(new T.Vector3(sx * 0.1 + Math.sin(t * 10 - 0.6) * 0.5, 1, 0.3).normalize(), wv).lerp(new T.Vector3(-sx * 0.95, -0.2, 0.15).normalize(), bv).normalize();
           this.aim("hand_" + side, null, hd, pa3);
         }
         for (const f of this.fingers) {
@@ -46401,7 +46475,7 @@ void main(){ if (vK >= 0.999) discard;
         for (const b of A.extraBones) this.setR(b.name, qe(Math.sin(t * 1.3 + b.name.length) * 0.03 - hop * 0.06, 0, Math.sin(t * 0.9 + b.name.length * 0.7) * 0.03));
         this.apply();
         if (pel) pel.position.y = rl.p.y + hop * 0;
-        A.group.position.y = (A.baseY || 0) + hop * 0.05 + air * 0.24 - crouch * 0.05;
+        A.group.position.y = (A.baseY || 0) + hop * 0.05 + air * 0.24 - crouch * 0.05 + lg * lb * 6e-3;
       }
     };
 
@@ -47272,27 +47346,88 @@ void main(){ if (vK >= 0.999) discard;
     }
 
     // src/mots.js
-    var WORD_CAT = { oui: "oui", ouais: "oui", non: "non", nan: "non", salut: "salut", coucou: "salut" };
+    var WORD_CAT = {
+      oui: "oui",
+      ouais: "oui",
+      non: "non",
+      nan: "non",
+      salut: "salut",
+      coucou: "salut",
+      haha: "rire",
+      hahaha: "rire",
+      hahahaha: "rire",
+      hihi: "rire",
+      hihihi: "rire",
+      hihihihi: "rire",
+      hehe: "rire",
+      "héhé": "rire",
+      "héhéhé": "rire",
+      mdr: "rire",
+      lol: "rire",
+      iii: "rire"
+    };
+    var LAUGH_SYL = { ha: 1, hi: 1, "hé": 1, he: 1, ah: 1 };
     var FIN_MS = 120;
+    var PEND_MS = 80;
+    var PRIME_MS = 280;
+    var PRE_MS = 240;
+    var CONF = [
+      "--min-active=200",
+      "--max-active=3000",
+      "--beam=10.0",
+      "--lattice-beam=2.0",
+      "--acoustic-scale=1.0",
+      "--frame-subsampling-factor=3",
+      "--frames-per-chunk=9",
+      "--endpoint.silence-phones=1:2:3:4:5:6:7:8:9:10",
+      "--endpoint.rule2.min-trailing-silence=0.5",
+      "--endpoint.rule3.min-trailing-silence=1.0",
+      "--endpoint.rule4.min-trailing-silence=2.0"
+    ].join("\n") + "\n";
+    var toks = (text) => String(text || "").toLowerCase().split(/\s+/).filter(Boolean);
     function catsOf(text) {
-      const out = [];
-      for (const w of String(text || "").toLowerCase().split(/\s+/)) {
-        const c = WORD_CAT[w];
+      const out = [], t = toks(text);
+      for (let i = 0; i < t.length; i++) {
+        const c = WORD_CAT[t[i]];
         if (c) out.push(c);
+        else if (LAUGH_SYL[t[i]] && LAUGH_SYL[t[i + 1]]) {
+          out.push("rire");
+          while (LAUGH_SYL[t[i + 1]]) i++;
+        }
+      }
+      return out;
+    }
+    function keysOf(t) {
+      const out = [];
+      for (let i = 0; i < t.length; i++) {
+        const c = WORD_CAT[t[i]];
+        if (c) out.push([i, c]);
+        else if (LAUGH_SYL[t[i]] && LAUGH_SYL[t[i + 1]]) {
+          while (LAUGH_SYL[t[i + 1]]) i++;
+          out.push([i, "rire"]);
+        }
       }
       return out;
     }
     function createTrigger(o = {}) {
-      const cool = o.cool == null ? 1500 : o.cool, done = /* @__PURE__ */ new Set(), last = {};
-      return {
-        // kind : 'p' (partiel) | 'r' (résultat final : la phrase est finie) ; rend la catégorie à jouer maintenant, ou ''
-        feed(kind, text, now) {
-          const toks = String(text || "").toLowerCase().split(/\s+/).filter(Boolean);
+      const cool = o.cool == null ? 1500 : o.cool, pend = o.pend == null ? PEND_MS : o.pend, done = /* @__PURE__ */ new Set(), last = {};
+      const T4 = {
+        hint: "",
+        // kind : 'p' (partiel) | 'r' (résultat final : la phrase est finie) ; info.quiet = ms de silence après la voix à la fin du son décodé
+        // rend la catégorie à jouer maintenant, ou ''
+        feed(kind, text, now, info) {
+          const t = toks(text), quiet = info && info.quiet != null ? info.quiet : -1;
           let fire = "";
-          for (let i = 0; i < toks.length; i++) {
-            const c = WORD_CAT[toks[i]];
-            if (!c) continue;
-            if (kind !== "r" && !(i < toks.length - 1 && toks.slice(i + 1).some((w) => w !== "[unk]"))) continue;
+          T4.hint = "";
+          for (const [i, c] of keysOf(t)) {
+            if (kind !== "r") {
+              const followed = i < t.length - 1 && t.slice(i + 1).some((w) => w !== "[unk]");
+              if (!followed && !(pend > 0 && quiet >= pend)) {
+                const key2 = i + ":" + c;
+                if (!done.has(key2)) T4.hint = c;
+                continue;
+              }
+            }
             const key = i + ":" + c;
             if (done.has(key)) continue;
             done.add(key);
@@ -47301,13 +47436,18 @@ void main(){ if (vK >= 0.999) discard;
               last[c] = now;
             }
           }
-          if (kind === "r") done.clear();
+          if (kind === "r") {
+            done.clear();
+            T4.hint = "";
+          }
           return fire;
         },
         reset() {
           done.clear();
+          T4.hint = "";
         }
       };
+      return T4;
     }
     var TAP = `class JdwMots extends AudioWorkletProcessor {
       constructor(o) { super(); const p = (o && o.processorOptions) || {}; this.ch = p.ch || 640; this.step = sampleRate / 16000; this.ph = 0; this.prev = 0;
@@ -47436,15 +47576,22 @@ void main(){ if (vK >= 0.999) discard;
       return VOSK;
     }
     function createWords(o) {
-      const ch = o.ch || 640, finMs = o.finMs || FIN_MS, onWord = o.onWord || (() => {
+      const ch = o.ch || 640, chMs = ch / 16, finMs = o.finMs || FIN_MS, preN = Math.max(0, Math.round((o.preMs == null ? PRE_MS : o.preMs) / chMs)), maxQ = o.maxQ || Math.round(480 / chMs);
+      const primeN = Math.max(0, Math.round((o.primeMs == null ? PRIME_MS : o.primeMs) / chMs));
+      const gate = o.gate !== false, onWord = o.onWord || (() => {
       }), onState = o.onState || (() => {
       }), diag = o.diag || (() => {
+      }), onProgress = o.onProgress || (() => {
+      });
+      const onVoice = o.onVoice || (() => {
+      }), onHint = o.onHint || (() => {
       });
       const S = {
         st: "off",
         model: null,
         rec: null,
         tap: null,
+        feedOn: false,
         gen: 0,
         Q: [],
         sent: 0,
@@ -47460,14 +47607,31 @@ void main(){ if (vK >= 0.999) discard;
         heard: {},
         flush: 0,
         slow: 0,
-        slowOn: false,
+        skip: false,
         t0: 0,
         secs: 0,
         loadMs: 0,
         why: "",
-        dead: false
+        dead: false,
+        open: false,
+        ring: [],
+        gated: 0,
+        opens: 0,
+        pfire: 0,
+        rfire: 0,
+        finSum: 0,
+        finN: 0,
+        finMax: 0,
+        hint: "",
+        ph: {},
+        mcSum: 0,
+        mcN: 0,
+        mcMax: 0,
+        mfSum: 0,
+        mfN: 0,
+        mfMax: 0
       };
-      const trig = createTrigger({ cool: o.cool });
+      const trig = createTrigger({ cool: o.cool, pend: o.pendMs == null ? PEND_MS : o.pendMs });
       const set = (st, info) => {
         S.st = st;
         try {
@@ -47482,11 +47646,35 @@ void main(){ if (vK >= 0.999) discard;
           const t0 = performance.now();
           set("load", { first: !o.cached });
           if (typeof WebAssembly !== "object" || typeof Worker === "undefined") throw new Error("pas de WebAssembly");
+          if (o.wait) {
+            try {
+              await o.wait;
+            } catch (e) {
+            }
+          }
+          const tw = performance.now();
           const V = await loadVosk(o.voskUrl);
           const t1 = performance.now();
+          try {
+            onProgress("vosk", 0.05, {});
+          } catch (e) {
+          }
           const model = new V.Model(o.modelUrl, -1);
+          try {
+            model.worker.postMessage(Object.assign({ action: "jdw", conf: o.conf == null ? CONF : o.conf }, o.slow ? { slow: o.slow } : {}));
+          } catch (e) {
+          }
+          model.on("jdwprogress", (m) => {
+            const ms = Math.round(performance.now() - t1);
+            if (m.phase !== "dl") S.ph[m.phase] = ms;
+            else S.dl = true;
+            try {
+              onProgress(m.phase, m.phase === "dl" && m.of ? m.n / m.of : null, { ms, n: m.n, of: m.of });
+            } catch (e) {
+            }
+          });
           await new Promise((res, rej) => {
-            const tm = setTimeout(() => rej(new Error("trop long")), o.timeout || 12e4);
+            const tm = setTimeout(() => rej(new Error("trop long")), o.timeout || 18e4);
             model.on("load", (m) => {
               clearTimeout(tm);
               if (m && m.result) res();
@@ -47525,8 +47713,8 @@ void main(){ if (vK >= 0.999) discard;
             diag("err-model", "mots : erreur du moteur", { e: String(m && m.error || "").slice(0, 120) });
           });
           const rec = new model.KaldiRecognizer(16e3);
-          rec.on("partialresult", (m) => got("p", m && m.result && m.result.partial));
-          rec.on("result", (m) => got("r", m && m.result && m.result.text));
+          rec.on("partialresult", (m) => got("p", m && m.result && m.result.partial, m && m.ms, m && m.msA));
+          rec.on("result", (m) => got("r", m && m.result && m.result.text, m && m.ms, m && m.msA));
           S.Q.push({ t: performance.now(), end: 0, g: -1, k: "c" });
           try {
             rec.acceptWaveformFloat(new Float32Array(1600), 16e3);
@@ -47535,7 +47723,7 @@ void main(){ if (vK >= 0.999) discard;
           }
           if (o.warm !== false) {
             let sd = 7;
-            const x = new Float32Array(24e3);
+            const x = new Float32Array(12800);
             for (let i = 0; i < x.length; i++) {
               sd = sd * 1103515245 + 12345 & 2147483647;
               x[i] = (sd / 2147483647 - 0.5) * 0.25 * (0.55 + 0.45 * Math.sin(i / 16e3 * 2 * Math.PI * 4));
@@ -47547,16 +47735,28 @@ void main(){ if (vK >= 0.999) discard;
               S.Q.pop();
             }
           }
-          S.Q.push({ t: performance.now(), end: 0, g: -1, k: "f" });
+          S.Q.push({ t: performance.now(), end: 0, g: -1, k: "f", warm: true });
           try {
             rec.retrieveFinalResult();
           } catch (e) {
             S.Q.pop();
           }
+          const tw0 = performance.now();
+          await new Promise((res) => {
+            S.warmRes = res;
+            setTimeout(res, 15e3);
+          });
+          S.warmRes = null;
+          S.warmMs = Math.round(performance.now() - tw0);
           S.model = model;
           S.rec = rec;
           S.loadMs = Math.round(performance.now() - t0);
-          diag("ready", "mots prêts (" + (o.cached ? "depuis l’appareil" : "téléchargés") + ", " + S.loadMs + " ms)", { vosk: Math.round(t1 - t0), modele: Math.round(performance.now() - t1), cache: !!o.cached });
+          const ph = Object.assign({}, S.ph);
+          diag(
+            "ready",
+            "mots prêts (" + (S.dl ? "téléchargés" : "depuis l’appareil") + ", " + S.loadMs + " ms)",
+            { attente: Math.round(tw - t0), vosk: Math.round(t1 - tw), modele: Math.round(performance.now() - t1), miseEnRoute: S.warmMs, etapes: ph, cache: !!o.cached }
+          );
           set("ready", { ms: S.loadMs });
           return true;
         })().catch((e) => {
@@ -47569,26 +47769,54 @@ void main(){ if (vK >= 0.999) discard;
         });
         return S.loading;
       }
-      function got(kind, text) {
+      function got(kind, text, ms, msA) {
         const at = S.Q.shift(), now = performance.now();
-        if (at) {
+        if (o.trace && at) o.trace.push([Math.round(now), kind, Math.round(now - at.t), at.k, at.g, S.Q.length, ms == null ? null : Math.round(ms * 10) / 10, msA == null ? null : Math.round(msA * 10) / 10]);
+        if (at && at.g >= 0) {
           const lag = now - at.t;
           S.lagSum += lag;
           S.lagN++;
           if (lag > S.lagMax) S.lagMax = lag;
+          if (at.k === "f" && at.g >= 0) {
+            S.finSum += lag;
+            S.finN++;
+            if (lag > S.finMax) S.finMax = lag;
+          }
+          if (ms != null && at.g >= 0) {
+            if (at.k === "f") {
+              S.mfSum += ms;
+              S.mfN++;
+              S.mfMax = Math.max(S.mfMax, ms);
+            } else {
+              S.mcSum += ms;
+              S.mcN++;
+              S.mcMax = Math.max(S.mcMax, ms);
+            }
+          }
         }
+        if (at && at.warm && S.warmRes) S.warmRes();
         if (!at || at.g !== S.gen) return;
-        const c = trig.feed(kind, text, now);
+        const quiet = at.loud >= 0 ? Math.max(0, (at.end - at.loud) / 16) : -1;
+        const c = trig.feed(kind, text, now, { quiet });
+        if (trig.hint !== S.hint) {
+          S.hint = trig.hint;
+          try {
+            onHint(S.hint);
+          } catch (e) {
+          }
+        }
         if (!c) return;
-        const calc = Math.round(now - at.t), fin = S.loud >= 0 ? Math.round(Math.max(0, (at.end - S.loud) / 16) + calc) : null;
+        if (kind === "p") S.pfire++;
+        else S.rfire++;
+        const calc = Math.round(now - at.t), fin = at.loud >= 0 ? Math.round(quiet + calc) : null;
         S.heard[c] = (S.heard[c] || 0) + 1;
         try {
-          onWord(c, { fin, calc, final: kind === "r" });
+          onWord(c, { fin, calc, final: kind === "r", quiet: Math.round(quiet) });
         } catch (e) {
         }
       }
       function send(f32) {
-        S.Q.push({ t: performance.now(), end: S.pos, g: S.gen, k: "c" });
+        S.Q.push({ t: performance.now(), end: S.pos, loud: S.loud, g: S.gen, k: "c" });
         S.sent++;
         try {
           S.rec.acceptWaveformFloat(f32, 16e3);
@@ -47597,46 +47825,99 @@ void main(){ if (vK >= 0.999) discard;
           S.sent--;
         }
       }
+      function flush() {
+        S.flush++;
+        S.Q.push({ t: performance.now(), end: S.pos, loud: S.loud, g: S.gen, k: "f" });
+        try {
+          S.rec.retrieveFinalResult();
+        } catch (e) {
+          S.Q.pop();
+        }
+      }
       function chunk(f32) {
-        if (!S.rec || S.dead || !S.tap) return;
+        if (!S.rec || S.dead || !(S.tap || S.feedOn)) return;
         let q = 0;
         for (let i = 0; i < f32.length; i++) q += f32[i] * f32[i];
         const rms = Math.sqrt(q / f32.length);
         S.floor = rms < S.floor ? S.floor * 0.8 + rms * 0.2 : S.floor * 0.998 + rms * 2e-3;
         S.pos += f32.length;
-        const inflight = S.Q.length;
-        if (inflight > 18 || S.slowOn && inflight > 3) {
-          S.drop++;
-          if (!S.slowOn) {
-            S.slowOn = true;
-            S.slow++;
-            if (performance.now() - S.t0 > 3e3) diag("slow", "mots : l’appareil est en retard (" + inflight + " morceaux en attente)", { calcMax: Math.round(S.lagMax) });
-          }
-          return;
-        }
-        S.slowOn = false;
         const loud = rms > Math.max(6e-3, S.floor * 4);
         if (loud) {
           S.loud = S.pos;
-          S.voice = true;
           S.sil = 0;
-        }
-        send(f32);
-        if (!loud && S.voice) {
-          S.sil += f32.length / 16;
-          if (S.sil >= finMs) {
-            S.voice = false;
-            S.flush++;
-            S.Q.push({ t: performance.now(), end: S.pos, g: S.gen, k: "f" });
+          if (!S.voice) {
+            S.voice = true;
+            S.vstart = S.pos - f32.length;
             try {
-              S.rec.retrieveFinalResult();
+              onVoice(true);
             } catch (e) {
-              S.Q.pop();
             }
           }
+        } else if (S.voice) S.sil += f32.length / 16;
+        if (gate && S.open && S.prime > 0) {
+          if (!loud && !S.voice) {
+            S.prime--;
+            send(f32);
+            if (!S.prime) S.open = false;
+            return;
+          }
+          S.prime = 0;
+          S.opens++;
         }
+        if (gate && !S.open) {
+          if (!loud) {
+            S.ring.push(f32);
+            if (S.ring.length > preN) S.ring.shift();
+            S.gated++;
+            return;
+          }
+          S.open = true;
+          S.opens++;
+          S.skip = false;
+          S.prime = 0;
+          for (const r of S.ring) send(r);
+          S.ring.length = 0;
+        }
+        const inflight = S.Q.length;
+        if (!S.skip && inflight > maxQ) {
+          S.skip = true;
+          S.slow++;
+          flush();
+          if (performance.now() - S.t0 > 3e3) diag("slow", "mots : l’appareil est en retard (" + inflight + " morceaux en attente)", { calcMax: Math.round(S.lagMax) });
+        }
+        if (S.skip) S.drop++;
+        else send(f32);
+        if (S.voice && !loud && S.sil >= finMs) {
+          S.voice = false;
+          try {
+            onVoice(false, (S.pos - S.vstart) / 16);
+          } catch (e) {
+          }
+          if (!S.skip) flush();
+          if (gate) {
+            if (primeN > 0 && !S.skip) S.prime = primeN;
+            else S.open = false;
+          }
+          S.skip = false;
+        } else if (!gate && S.skip && !S.voice) S.skip = false;
+      }
+      function begin() {
+        S.gen++;
+        trig.reset();
+        S.loud = -1;
+        S.voice = false;
+        S.sil = 0;
+        S.ring.length = 0;
+        S.skip = false;
+        S.t0 = performance.now();
+        S.open = gate && primeN > 0;
+        S.prime = S.open ? primeN : 0;
       }
       return {
+        preload() {
+          S.dead = false;
+          return ensure();
+        },
         async start(ctx, source) {
           S.dead = false;
           if (S.tap) return true;
@@ -47644,12 +47925,7 @@ void main(){ if (vK >= 0.999) discard;
           if (!ok || S.dead) return false;
           if (S.tap) return true;
           try {
-            S.gen++;
-            trig.reset();
-            S.loud = -1;
-            S.voice = false;
-            S.sil = 0;
-            S.t0 = performance.now();
+            begin();
             S.tap = await makeTap(ctx, source, ch, chunk);
             diag("tap:" + S.tap.kind, "mots : prise du son " + (S.tap.kind === "worklet" ? "AudioWorklet" : "ScriptProcessor") + " (" + ctx.sampleRate + " Hz)");
             return true;
@@ -47658,6 +47934,18 @@ void main(){ if (vK >= 0.999) discard;
             diag("fail-tap", "mots : prise du son impossible (" + String(e && e.message || e).slice(0, 80) + ")");
             return false;
           }
+        },
+        // essais : son 16 kHz fourni à la main (même chemin que la prise du micro)
+        async feedStart() {
+          S.dead = false;
+          const ok = await ensure();
+          if (!ok) return false;
+          begin();
+          S.feedOn = true;
+          return true;
+        },
+        feed(f32) {
+          chunk(f32);
         },
         stop() {
           if (S.tap) {
@@ -47668,15 +47956,27 @@ void main(){ if (vK >= 0.999) discard;
             S.tap = null;
             S.secs += (performance.now() - S.t0) / 1e3;
           }
-          if (S.rec) {
-            S.Q.push({ t: performance.now(), end: S.pos, g: -1, k: "f" });
+          if (S.feedOn) {
+            S.feedOn = false;
+            S.secs += (performance.now() - S.t0) / 1e3;
+          }
+          if (S.rec && S.open) {
+            S.Q.push({ t: performance.now(), end: S.pos, loud: -1, g: -1, k: "f" });
             try {
               S.rec.retrieveFinalResult();
             } catch (e) {
               S.Q.pop();
             }
           }
+          S.open = false;
           S.gen++;
+          if (S.hint) {
+            S.hint = "";
+            try {
+              onHint("");
+            } catch (e) {
+            }
+          }
         },
         dispose() {
           this.stop();
@@ -47693,11 +47993,22 @@ void main(){ if (vK >= 0.999) discard;
         state: () => S.st,
         stats: () => ({
           morceaux: S.sent,
+          silencesNonEnvoyes: S.gated,
+          phrases: S.opens,
           finsDemandees: S.flush,
           sautes: S.drop,
           retards: S.slow,
           calcMoyen: S.lagN ? Math.round(S.lagSum / S.lagN) : null,
           calcMax: Math.round(S.lagMax),
+          finMoyen: S.finN ? Math.round(S.finSum / S.finN) : null,
+          finMax: Math.round(S.finMax),
+          // calcul DANS le moteur (sans l'attente) : par morceau et par résultat final
+          moteurMorceau: S.mcN ? +(S.mcSum / S.mcN).toFixed(1) : null,
+          moteurMorceauMax: Math.round(S.mcMax),
+          moteurFinal: S.mfN ? Math.round(S.mfSum / S.mfN) : null,
+          moteurFinalMax: Math.round(S.mfMax),
+          surPartielle: S.pfire,
+          surFinal: S.rfire,
           compris: Object.assign({}, S.heard),
           secondes: Math.round(S.secs),
           chargement: S.loadMs
@@ -48689,6 +49000,14 @@ void main(){ if (vK >= 0.999) discard;
 @keyframes pghMots{50%{opacity:.4;transform:scale(.9)}}
 .pgh-emo.say.on{box-shadow:inset 0 0 0 2px #ffd36a,0 0 18px rgba(255,211,106,.55)}
 .pgh-micm .pgh-mcard .ic{font-size:44px;line-height:1;margin:6px 0 2px}
+/* mots (1.20.5) : « Je prépare l'écoute… 40 % » au-dessus des gestes pendant le 1er chargement */
+.pgh-mprog{display:grid;gap:5px;justify-items:center;min-width:200px;padding:7px 14px 8px;border-radius:14px;font:700 12.5px ${FB};color:#e8fff0;
+  background:rgba(22,40,34,.82);box-shadow:inset 0 0 0 1px rgba(124,240,160,.45),0 6px 16px rgba(0,0,0,.3);transition:opacity .3s;pointer-events:none}
+.pgh-mprog[hidden]{display:none}
+.pgh-mprog b{display:block;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.14);overflow:hidden}
+.pgh-mprog u{display:block;height:100%;width:0;border-radius:2px;background:linear-gradient(90deg,#7cf0a0,#c8ffd9);transition:width .25s linear}
+.pgh-mprog.ok{background:rgba(22,60,40,.86)}
+.pgh-mprog.ok b{display:none}
 /* ma maison */
 .pgh-house{margin-top:14px;display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center;position:relative;overflow:hidden}
 .pgh-house::before{content:'';position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,190,110,.22),rgba(0,0,0,0) 70%)}
@@ -48730,7 +49049,7 @@ void main(){ if (vK >= 0.999) discard;
 .pgh.short .pgh-mcard h3{grid-column:2}
 .pgh.short .pgh-mprev{grid-column:1;grid-row:1 / span 4;margin:0}
 .pgh.short .pgh-mcard p,.pgh.short .pgh-mscope,.pgh.short .pgh-mbtns{grid-column:2;margin-top:4px;justify-content:flex-start}
-.pgh-toast{position:absolute;left:50%;top:14px;z-index:40;transform:translate(-50%,-10px);max-width:88%;padding:10px 16px;border-radius:16px;text-align:center;font:700 14px ${FB};color:#3a1a05;
+.pgh-toast{position:absolute;left:50%;top:var(--tt,14px);z-index:40;transform:translate(-50%,-10px);max-width:88%;padding:10px 16px;border-radius:16px;text-align:center;font:700 14px ${FB};color:#3a1a05;
   background:linear-gradient(180deg,#fff1c8,#ffd27e);box-shadow:0 10px 26px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .35s,transform .35s}
 .pgh-toast.on{opacity:1;transform:translate(-50%,0)}
 /* aujourd'hui : missions du jour (tirage partagé avec le jeu) + histoire, en lecture seule */
@@ -48920,14 +49239,14 @@ void main(){ if (vK >= 0.999) discard;
   // 18 oct. : images du monde EASTLANDS (captures du jeu, tools/images.py : interface recadrée, petit étalonnage)
   const GALLERY = [
     ['arbre', 'L\'arbre sacré', 'Au bord du lac, sous ses feuilles rouges'],
-    ['village', 'Le village dans les arbres', 'Ta maison t\'attend parmi celles des habitants'],
+    ['village', 'Ailebrune', 'Le village au bord du lac : ta maison t\'attend parmi celles des habitants'],
     ['pont', 'Le pont rouge', 'Et de l\'autre côté, le pré de Pégase…'],
     ['nuit', 'La nuit aux lanternes', 'Fenêtres allumées et lucioles sur la place'],
     ['chat', 'Le chat des toits', 'Timide : approche-toi doucement… ou zoome !'],
     ['auguste', 'Papi Auguste', 'Le maire t\'accueille et te confie tes premières missions']
   ];
   const FUTURE = [
-    ['🗓️', 'Missions de la salle', 'Une grande mission pour toute la salle chaque semaine : réussissez-la ensemble et le village s\'embellit.', 'rgba(255,200,110,.28)'],
+    ['🗓️', 'Missions de la salle', 'Une grande mission pour toute la salle chaque semaine : réussissez-la ensemble et Ailebrune s\'embellit.', 'rgba(255,200,110,.28)'],
     ['🏡', 'Chez les copains', 'Vois où se promènent tes copains dans Pégase et va visiter leur maison.', 'rgba(255,150,190,.26)'],
     ['🏆', 'Classement', 'La plus belle collection, les plus belles photos, les plus longues séries de jours.', 'rgba(255,220,120,.28)'],
     ['🖼️', 'Album et musée', 'Tes photos du jeu arrivent ici ; le musée de la salle garde les plus belles. Un ❤️ pour voter.', 'rgba(170,150,255,.26)'],
@@ -48989,6 +49308,7 @@ void main(){ if (vK >= 0.999) discard;
       <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
     </div>
     <div class="pgh-bottom">
+      <div class="pgh-mprog" data-h="mprog" hidden aria-live="polite"><span data-h="mprogt"></span><b><u data-h="mprogb"></u></b></div>
       <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<div class="pgh-emowrap"><button class="pgh-emo more" data-h="emomore" aria-label="Autres gestes" title="Autres gestes" aria-expanded="false"><span>⋯</span></button><div class="pgh-emofan" data-h="emofan">${EMOTES_MORE.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}</div></div><button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button><button class="pgh-emo say" data-h="say" aria-label="Écouter ton avatar dire bonjour" title="Écouter ton avatar parler"><span>💬</span></button></div>
       <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-av">${PGH_SVG.edit}<span data-h="avlab">Modifier</span></button><button class="pgh-cta glass" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button></div>
       <div class="pgh-small" data-h="small">Gratuit · PC Windows · Android bientôt</div>
@@ -49014,7 +49334,7 @@ void main(){ if (vK >= 0.999) discard;
       <p class="pgh-sub">Ton personnage dans Pégase : visage, coiffure, vêtements, accessoires… Crée-le comme tu veux, il te suit dans le jeu.</p>
       <div class="pgh-card pgh-me">
         <div class="pgh-me-ico" data-h="meico"><i></i><b></b><img alt="" data-h="meimg"></div>
-        <div><h3 data-h="metitle">Ton avatar</h3><p data-h="mesub">Pas encore choisi : voici l'exploratrice du village.</p><div class="pgh-tags" data-h="metags"></div></div>
+        <div><h3 data-h="metitle">Ton avatar</h3><p data-h="mesub">Pas encore choisi : voici l'exploratrice d'Ailebrune.</p><div class="pgh-tags" data-h="metags"></div></div>
         <div class="pgh-me-actions"><button class="pgh-cta gold" data-h="go-av3">${PGH_SVG.edit}<span data-h="avlab3">Créer mon avatar</span></button>
           <button class="pgh-cta glass" data-h="go-photo" hidden>🖼️ <span>Utiliser comme photo de profil</span></button>
           <span class="pgh-sync" data-h="sync">🔄 <span data-h="synct"></span></span></div>
@@ -49075,7 +49395,7 @@ void main(){ if (vK >= 0.999) discard;
     </section>
     <section class="pgh-sec">
       <h2 class="pgh-h2">Bientôt dans le hub</h2>
-      <p class="pgh-sub">Cette page deviendra la place du village : tout ce qui se passe dans Pégase, depuis ton téléphone.</p>
+      <p class="pgh-sub">Cette page deviendra la place d'Ailebrune : tout ce qui se passe dans Pégase, depuis ton téléphone.</p>
       <div class="pgh-soongrid">${FUTURE.map(([e, t, p, g]) => `<div class="pgh-fut" style="--g:${g}"><span class="pgh-chip">Bientôt</span><div class="em">${e}</div><h4>${esc(t)}</h4><p>${esc(p)}</p></div>`).join('')}</div>
     </section>
     <div class="pgh-foot">Pégase est en essai : merci de tester ! ✦ Les images de cette page viennent du jeu.</div>
@@ -49120,7 +49440,7 @@ void main(){ if (vK >= 0.999) discard;
 <div class="pgh-modal pgh-micm" data-h="micm" role="dialog" aria-label="Le micro"><div class="pgh-mcard">
   <div class="ic">🎤</div><h3>Fais parler ton avatar</h3>
   <p>Parle, et la bouche de ton avatar bouge avec ta voix. Le son est analysé <b>ici, sur ton appareil</b> : rien n'est enregistré, rien n'est envoyé. Touche encore 🎤 pour couper le micro.</p>
-  <p data-h="micwords" hidden>Et dis-lui « oui », « non » ou « salut » : il te répond d’un geste, tout de suite. Les mots sont reconnus <b>ici</b>, sans rien envoyer (la 1<sup>re</sup> fois : 45 Mo à télécharger, en Wi‑Fi).</p>
+  <p data-h="micwords" hidden>Et dis-lui « oui », « non » ou « salut » (ou ris !) : il te répond d’un geste, tout de suite. Les mots sont reconnus <b>ici</b>, sans rien envoyer (la borne les prépare d’avance en Wi‑Fi).</p>
   <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="micno">Pas maintenant</button><button class="pgh-cta gold" data-h="micok"><span>Autoriser le micro</span></button></div>
 </div></div>
 <div class="pgh-modal pgh-earm" data-h="earm" role="dialog" aria-label="Parle à ton avatar"><div class="pgh-mcard">
@@ -49208,7 +49528,7 @@ void main(){ if (vK >= 0.999) discard;
   //   valeur = s >>> 8 ; 1) mélange (Fisher-Yates) des sortes actives, 2) mélange des modèles de chaque sorte, 3) un tirage par paramètre
   //   de chaque modèle (ordre du fichier) ; liste = sortes reçues aujourd'hui, puis les premières faisables (needs ⊆ missions faites), 3 au plus.
   // ---------------------------------------------------------------------------
-  const MJOUR = {"v":1,"note":"Missions du jour de Pégase : modèles (MISSIONS.md §3) et tirage PARTAGÉ par le jeu et le hub de la borne. Règle complète : jdv/CLAUDE.md « Missions du jour : le tirage ». Ne pas réordonner (l'ordre fait partie du tirage) : ajouter à la fin, ou mettre actif:false.","sortes":[{"id":"jour_photo","nom":"Photo","ico":"📷","actif":true,"min":25,"max":70,"tpl":[{"k":"1","n":1,"t":"Photographie le chat {0}","p":[[["toit","sur un toit"],["dort","endormi"],["oiseau","avec un oiseau"]]],"lu":60,"needs":["m1"]},{"k":"2","n":2,"t":"Photographie {0} à {1}","p":[[["cerf","un cerf"],["renard","un renard"],["lapin","un lapin"],["ecureuil","un écureuil"]],[["aube","l'aube"],["doree","l'heure dorée"]]],"lu":40,"needs":["m1"]},{"k":"4","n":4,"t":"Photographie {0} papillons en gros plan","p":[[["2","2"],["3","3"]]],"lu":50,"needs":["m1"]},{"k":"5","n":5,"t":"Photographie un oiseau en vol","p":[],"lu":50,"needs":["m1"]},{"k":"6","n":6,"t":"Photographie deux espèces différentes sur la même photo","p":[],"lu":50,"needs":["m1"]},{"k":"8","n":8,"t":"Photographie le moulin {0}","p":[[["coucher","au coucher du soleil"],["nuit","sous les étoiles"]]],"lu":30,"needs":["m1"]},{"k":"11","n":11,"t":"Photographie une espèce que tu n'as jamais eue","p":[],"lu":70,"needs":["m1"]},{"k":"34","n":34,"t":"Photographie {0} lampyres la nuit","p":[[["3","3"],["5","5"]]],"lu":50,"needs":["m1"]}]},{"id":"jour_ferme","nom":"Potager","ico":"🌱","actif":true,"min":25,"max":70,"tpl":[{"k":"14r","n":14,"t":"Récolte {0} radis","p":[[["5","5"],["8","8"]]],"lu":40,"needs":["m4"]},{"k":"14t","n":14,"t":"Récolte {0} tomates","p":[[["3","3"],["5","5"]]],"lu":40,"needs":["m6"]},{"k":"15","n":15,"t":"Arrose ton potager {0} fois aujourd'hui","p":[[["2","2"],["3","3"]]],"lu":25,"needs":["m4"]},{"k":"16","n":16,"t":"Plante {0} sortes de graines","p":[[["2","2"]]],"lu":35,"needs":["m6"]},{"k":"18","n":18,"t":"Laboure {0} cases de terre neuves","p":[[["4","4"],["6","6"]]],"lu":30,"needs":["m4"]}]},{"id":"jour_marche","nom":"Marché","ico":"🧺","actif":true,"min":30,"max":80,"tpl":[{"k":"19","n":19,"t":"Mets {0} légumes en vente au marché","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m7"]},{"k":"22","n":22,"t":"Mets un tableau en vente","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_maison","nom":"Maison","ico":"🏡","actif":true,"min":25,"max":30,"tpl":[{"k":"25","n":25,"t":"Pose un nouveau meuble chez toi","p":[],"lu":30,"needs":["m3"]},{"k":"26","n":26,"t":"Change de tenue au dressing","p":[],"lu":25,"needs":["m3"]},{"k":"27","n":27,"t":"Accroche un tableau dans ta maison","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_social","nom":"Copains","ico":"💌","actif":false,"min":25,"max":50,"tpl":[{"k":"28","n":28,"t":"Rends visite à la maison d'un copain","p":[],"lu":40,"needs":["m3"]},{"k":"29","n":29,"t":"Offre un cadeau à un copain","p":[],"lu":50,"needs":["m3"]}]},{"id":"jour_balade","nom":"Balade","ico":"🥾","actif":true,"min":20,"max":50,"tpl":[{"k":"33","n":33,"t":"Assieds-toi sur un banc {0} au coucher du soleil","p":[[["lac","au bord du lac"],["place","sur la place"]]],"lu":30,"needs":["m1"]},{"k":"36","n":36,"t":"Fais le tour du lac à pied","p":[],"lu":30,"needs":["m1"]},{"k":"37","n":37,"t":"Va dire bonjour à {0}","p":[[["rosalie","Rosalie"],["basile","Basile"],["iris","Mlle Iris"],["auguste","Papi Auguste"]]],"lu":20,"needs":["m1"]},{"k":"38","n":38,"t":"Apporte 2 tomates à {0}","p":[[["auguste","Papi Auguste"],["rosalie","Rosalie"]]],"lu":50,"needs":["m6"]},{"k":"39","n":39,"t":"Marche {0} dans le monde","p":[[["1km","1 km"],["2km","2 km"]]],"lu":25,"needs":["m1"]},{"k":"40","n":40,"t":"Joue avec le chat : suis-le {0} sans le perdre","p":[[["20","20 secondes"],["30","30 secondes"]]],"lu":40,"needs":["m1"]}]},{"id":"jour_peche","nom":"Pêche","ico":"🎣","actif":true,"min":30,"max":60,"tpl":[{"k":"46","n":46,"t":"Pêche 3 poissons {0}","p":[[["lac","au lac"],["riviere","en rivière"],["mer","en mer"]]],"lu":40,"needs":["m9b"]},{"k":"47","n":47,"t":"Pêche un poisson {0}","p":[[["nuit","de nuit"],["aube","à l'aube"]]],"lu":50,"needs":["m9b"]},{"k":"48","n":48,"t":"Pêche un poisson de plus de {0} cm","p":[[["30","30"],["40","40"]]],"lu":60,"needs":["m9b"]},{"k":"49","n":49,"t":"Creuse {0} vers, puis pêche avec","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m9b"]}]},{"id":"jour_nature","nom":"Pelle et filet","ico":"🦋","actif":true,"min":35,"max":50,"tpl":[{"k":"50","n":50,"t":"Trouve {0} trésors enfouis à la pelle","p":[[["2","2"]]],"lu":50,"needs":["m9"]},{"k":"51","n":51,"t":"Attrape {0} insectes différents au filet","p":[[["3","3"]]],"lu":40,"needs":["m5"]},{"k":"52","n":52,"t":"Attrape un insecte {0}","p":[[["eau","sur l'eau"],["tronc","sur un tronc"],["fleurs","dans les fleurs"]]],"lu":35,"needs":["m5"]}]},{"id":"jour_musee","nom":"Musée","ico":"🏛️","actif":true,"min":25,"max":70,"tpl":[{"k":"53","n":53,"t":"Donne une nouvelle espèce au musée de Mlle Iris","p":[],"lu":60,"needs":["m5b"]}]}]};
+  const MJOUR = {"v":1,"note":"Missions du jour de Pégase : modèles (MISSIONS.md §3) et tirage PARTAGÉ par le jeu et le hub de la borne. Règle complète : jdv/CLAUDE.md « Missions du jour : le tirage ». Ne pas réordonner (l'ordre fait partie du tirage) : ajouter à la fin, ou mettre actif:false.","sortes":[{"id":"jour_photo","nom":"Photo","ico":"📷","actif":true,"min":25,"max":70,"tpl":[{"k":"1","n":1,"t":"Photographie le chat {0}","p":[[["toit","sur un toit"],["dort","endormi"],["oiseau","avec un oiseau"]]],"lu":60,"needs":["m1"]},{"k":"2","n":2,"t":"Photographie {0} à {1}","p":[[["cerf","un cerf"],["renard","un renard"],["lapin","un lapin"],["ecureuil","un écureuil"]],[["aube","l'aube"],["doree","l'heure dorée"]]],"lu":40,"needs":["m1"]},{"k":"4","n":4,"t":"Photographie {0} papillons en gros plan","p":[[["2","2"],["3","3"]]],"lu":50,"needs":["m1"]},{"k":"5","n":5,"t":"Photographie un oiseau en vol","p":[],"lu":50,"needs":["m1"]},{"k":"6","n":6,"t":"Photographie deux espèces différentes sur la même photo","p":[],"lu":50,"needs":["m1"]},{"k":"8","n":8,"t":"Photographie le moulin {0}","p":[[["coucher","au coucher du soleil"],["nuit","sous les étoiles"]]],"lu":30,"needs":["m1"]},{"k":"11","n":11,"t":"Photographie une espèce que tu n'as jamais eue","p":[],"lu":70,"needs":["m1"]},{"k":"34","n":34,"t":"Photographie {0} lampyres la nuit","p":[[["3","3"],["5","5"]]],"lu":50,"needs":["m1"]},{"k":"4f","n":4,"t":"Photographie un papillon posé sur {0}","p":[[["colza","un colza"],["iris","un iris"],["coquelicot","un coquelicot"],["lys","un lys de la paix"]]],"lu":55,"needs":["m5"]}]},{"id":"jour_ferme","nom":"Potager","ico":"🌱","actif":true,"min":25,"max":70,"tpl":[{"k":"14r","n":14,"t":"Récolte {0} radis","p":[[["5","5"],["8","8"]]],"lu":40,"needs":["m4"]},{"k":"14t","n":14,"t":"Récolte {0} tomates","p":[[["3","3"],["5","5"]]],"lu":40,"needs":["m6"]},{"k":"15","n":15,"t":"Arrose ton potager {0} fois aujourd'hui","p":[[["2","2"],["3","3"]]],"lu":25,"needs":["m4"]},{"k":"16","n":16,"t":"Plante {0} sortes de graines","p":[[["2","2"]]],"lu":35,"needs":["m6"]},{"k":"18","n":18,"t":"Laboure {0} cases de terre neuves","p":[[["4","4"],["6","6"]]],"lu":30,"needs":["m4"]}]},{"id":"jour_marche","nom":"Marché","ico":"🧺","actif":true,"min":30,"max":80,"tpl":[{"k":"19","n":19,"t":"Mets {0} légumes en vente au marché","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m7"]},{"k":"22","n":22,"t":"Mets un tableau en vente","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_maison","nom":"Maison","ico":"🏡","actif":true,"min":25,"max":30,"tpl":[{"k":"25","n":25,"t":"Pose un nouveau meuble chez toi","p":[],"lu":30,"needs":["m3"]},{"k":"26","n":26,"t":"Change de tenue au dressing","p":[],"lu":25,"needs":["m3"]},{"k":"27","n":27,"t":"Accroche un tableau dans ta maison","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_social","nom":"Copains","ico":"💌","actif":false,"min":25,"max":50,"tpl":[{"k":"28","n":28,"t":"Rends visite à la maison d'un copain","p":[],"lu":40,"needs":["m3"]},{"k":"29","n":29,"t":"Offre un cadeau à un copain","p":[],"lu":50,"needs":["m3"]}]},{"id":"jour_balade","nom":"Balade","ico":"🥾","actif":true,"min":20,"max":50,"tpl":[{"k":"33","n":33,"t":"Assieds-toi sur un banc {0} au coucher du soleil","p":[[["lac","au bord du lac"],["place","sur la place"]]],"lu":30,"needs":["m1"]},{"k":"36","n":36,"t":"Fais le tour du lac à pied","p":[],"lu":30,"needs":["m1"]},{"k":"37","n":37,"t":"Va dire bonjour à {0}","p":[[["rosalie","Rosalie"],["basile","Basile"],["iris","Mlle Iris"],["auguste","Papi Auguste"]]],"lu":20,"needs":["m1"]},{"k":"38","n":38,"t":"Apporte 2 tomates à {0}","p":[[["auguste","Papi Auguste"],["rosalie","Rosalie"]]],"lu":50,"needs":["m6"]},{"k":"39","n":39,"t":"Marche {0} dans le monde","p":[[["1km","1 km"],["2km","2 km"]]],"lu":25,"needs":["m1"]},{"k":"40","n":40,"t":"Joue avec le chat : suis-le {0} sans le perdre","p":[[["20","20 secondes"],["30","30 secondes"]]],"lu":40,"needs":["m1"]}]},{"id":"jour_peche","nom":"Pêche","ico":"🎣","actif":true,"min":30,"max":60,"tpl":[{"k":"46","n":46,"t":"Pêche 3 poissons {0}","p":[[["lac","au lac"],["riviere","en rivière"],["mer","en mer"]]],"lu":40,"needs":["m9b"]},{"k":"47","n":47,"t":"Pêche un poisson {0}","p":[[["nuit","de nuit"],["aube","à l'aube"]]],"lu":50,"needs":["m9b"]},{"k":"48","n":48,"t":"Pêche un poisson de plus de {0} cm","p":[[["30","30"],["40","40"]]],"lu":60,"needs":["m9b"]},{"k":"49","n":49,"t":"Creuse {0} vers, puis pêche avec","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m9b"]}]},{"id":"jour_nature","nom":"Pelle et filet","ico":"🦋","actif":true,"min":35,"max":50,"tpl":[{"k":"50","n":50,"t":"Trouve {0} trésors enfouis à la pelle","p":[[["2","2"]]],"lu":50,"needs":["m9"]},{"k":"51","n":51,"t":"Attrape {0} insectes différents au filet","p":[[["3","3"]]],"lu":40,"needs":["m5"]},{"k":"52","n":52,"t":"Attrape un insecte {0}","p":[[["eau","sur l'eau"],["tronc","sur un tronc"],["fleurs","dans les fleurs"]]],"lu":35,"needs":["m5"]}]},{"id":"jour_musee","nom":"Musée","ico":"🏛️","actif":true,"min":25,"max":70,"tpl":[{"k":"53","n":53,"t":"Donne une nouvelle espèce au musée de Mlle Iris","p":[],"lu":60,"needs":["m5b"]}]}]};
   function mjDraw(mj, day, name, done, today) {
     if (!mj || !Array.isArray(mj.sortes)) return [];
     const by = new TextEncoder().encode(String(day) + '|' + String(name));
@@ -49278,7 +49598,24 @@ void main(){ if (vK >= 0.999) discard;
     const report = (msg, detail) => { try { const err = new Error(msg); err.stack = detail || msg; const ev = new Event('unhandledrejection'); ev.reason = err; ev.promise = Promise.resolve(); window.dispatchEvent(ev); } catch (e) { /* rien */ } };
     const tone = (a, b) => { try { api && api.audio && api.audio.tone(a, 0.12, 'sine', 0.045, b); } catch (e) { /* rien */ } };
     let toastT = 0;
-    const toast = (s, ms) => { $.toast.textContent = String(s).replace(/« /g, '« ').replace(/ ([»!?:;])/g, ' $1'); $.toast.classList.add('on'); clearTimeout(toastT); toastT = later(() => $.toast.classList.remove('on'), ms || 2800); };
+    const toast = (s, ms) => { $.toast.textContent = String(s).replace(/« /g, '« ').replace(/ ([»!?:;])/g, ' $1'); toastPlace(); $.toast.classList.add('on'); later(toastPlace, 60); later(toastPlace, 320); clearTimeout(toastT); toastT = later(() => $.toast.classList.remove('on'), ms || 2800); };
+    // place du toast (1.20.5) : le 1er espace LIBRE en partant du haut (entre ce qui est affiché dans sa colonne : étiquette, titre, phrase, nom
+    // de l'avatar, progression, gestes, boutons) ; rien de libre : en haut comme avant
+    function toastPlace() {
+      try {
+        const R = ($.toast.offsetParent || box).getBoundingClientRect(), h = $.toast.offsetHeight || 40, w = Math.min($.toast.offsetWidth || 240, R.width * 0.88), x0 = R.width / 2 - w / 2 - 6, x1 = R.width / 2 + w / 2 + 6;
+        const els = [...box.querySelectorAll('.pgh-copy > *, .pgh-name.on, .pgh-mprog:not([hidden]), .pgh-emotes, .pgh-ctas, .pgh-ear:not([hidden])')];
+        const bars = [];
+        for (const el of els) { const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue; const op = +getComputedStyle(el).opacity; if (op < 0.1 || getComputedStyle(el.closest('.pgh-copy,.pgh-bottom') || el).opacity < 0.1) continue;
+          const a = r.top - R.top, b = r.bottom - R.top, l = r.left - R.left, rr = r.right - R.left; if (b < 0 || a > R.height || rr < x0 || l > x1) continue; bars.push([a - 8, b + 8]); }
+        bars.sort((u, v) => u[0] - v[0]);
+        let y = 14, top = 14;
+        for (const [a, b] of bars) { if (a - y >= h) break; y = Math.max(y, b); }
+        top = y + h <= R.height - 10 ? y : 14;
+        $.toast.style.setProperty('--tt', Math.round(top) + 'px');
+        if (window.JDW_PG_TEST) window.__pgTOAST = { R: [R.top, R.height], h, w, bars, top };
+      } catch (e) { $.toast.style.setProperty('--tt', '14px'); }
+    }
     const memberMode = () => { const i = pgInfo(); return !!PG && !i.guest && !!i.name; };
 
     // ---------- le catalogue (dans pegase.perso.bin) ----------
@@ -49451,10 +49788,10 @@ void main(){ if (vK >= 0.999) discard;
       if (i < 0) {
         const q = QUESTS.map((m) => { const ok = done.has(m), g = mGiver(m), c = MCAT.get(m), lu = c ? c.r_lucioles | 0 : (STORY_FB[m] || [])[2] | 0;
           return `<li class="${ok ? 'ok' : ''}">${g ? g[1] : '✦'} « ${esc(mTitle(m))} »${g ? ' · ' + esc(g[0]) : ''}<em>${ok ? '✓ faite' : '+' + fmtN(lu) + ' ' + LU()}</em></li>`; }).join('');
-        return `<div class="pgh-card pgh-story" data-h2="story" data-cur="fin"><span class="bk">🏆</span><div><small>Ton histoire · ${n} / ${n}</small><h3>L'histoire d'arrivée est finie !</h3><p>Bravo : tu fais partie du village. Les habitants ont encore des quêtes pour toi :</p></div><div class="bar" style="--p:100%"><i></i></div><ul>${q}</ul></div>`;
+        return `<div class="pgh-card pgh-story" data-h2="story" data-cur="fin"><span class="bk">🏆</span><div><small>Ton histoire · ${n} / ${n}</small><h3>L'histoire d'arrivée est finie !</h3><p>Bravo : tu fais partie d'Ailebrune. Les habitants ont encore des quêtes pour toi :</p></div><div class="bar" style="--p:100%"><i></i></div><ul>${q}</ul></div>`;
       }
       const id = STORY[i], g = mGiver(id), st = started.has(id);
-      const sub = i === 0 ? 'Ta toute première mission' + (g ? ', avec ' + g[0] : '') + '. Le maire t\'attend au village.' : (g ? 'Avec ' + g[0] + ' · ' : '') + (st ? 'tu l\'as commencée' : 'à faire dans le jeu');
+      const sub = i === 0 ? 'Ta toute première mission' + (g ? ', avec ' + g[0] : '') + '. Le maire t\'attend à Ailebrune.' : (g ? 'Avec ' + g[0] + ' · ' : '') + (st ? 'tu l\'as commencée' : 'à faire dans le jeu');
       return `<div class="pgh-card pgh-story" data-h2="story" data-cur="${id}"><span class="bk">${g ? g[1] : '📜'}</span><div><small>Ton histoire · mission ${i + 1} sur ${n}</small><h3>« ${esc(mTitle(id))} »<span class="st${st ? ' go' : ''}">${st ? 'en cours' : 'à faire'}</span></h3><p>${esc(sub)}</p></div>` +
         `<div class="bar" style="--p:${Math.round(i / n * 100)}%"><i></i></div>${rewardHTML(id) ? `<div class="rw">Récompense : ${rewardHTML(id)}</div>` : ''}</div>`;
     }
@@ -49475,7 +49812,7 @@ void main(){ if (vK >= 0.999) discard;
         for (const m of list) { const c = MCAT.get(m.sorte); if (c && c.r_min != null && c.r_max != null) m.lu = Math.max(c.r_min, Math.min(c.r_max, m.lu)); }
         TODAY = list;
         const nd = list.filter((m) => m.done).length;
-        if (!list.length) h += `<div class="pgh-card pgh-tdmsg"><span class="em">🌅</span><div><h3>Bientôt tes missions du jour</h3><p>Elles s'ouvrent après ta première mission, « ${esc(mTitle('m1'))} ». Papi Auguste t'attend au village !</p></div></div>`;
+        if (!list.length) h += `<div class="pgh-card pgh-tdmsg"><span class="em">🌅</span><div><h3>Bientôt tes missions du jour</h3><p>Elles s'ouvrent après ta première mission, « ${esc(mTitle('m1'))} ». Papi Auguste t'attend à Ailebrune !</p></div></div>`;
         else {
           h += '<div class="pgh-mjs">' + list.map((m) => `<div class="pgh-mj s-${esc(m.sorte)}${m.done ? ' done' : ''}" data-m="${esc(m.sorte)}" data-k="${esc(m.k)}"><span class="ic">${m.ico || '✦'}</span><div><small>${esc(m.nom || '')}</small><b>${esc(m.text)}</b></div>` +
             `<span class="rw">${m.done ? '✓ Reçue' : '+' + fmtN(m.lu) + ' ' + LU()}</span></div>`).join('') + '</div>';
@@ -49774,6 +50111,7 @@ void main(){ if (vK >= 0.999) discard;
         if (!hintDone) later(() => { if (!dead && !editing) $.hint.classList.add('on'); later(() => $.hint.classList.remove('on'), 7000); }, 1200);
         meShot();
         later(() => { if (STG && !editing && !friendOn) STG.gesture('wave'); }, 900);
+        later(wordsPreload, 2500);   // mots (oui / non / salut / rire) préparés en arrière-plan
         window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, info: SG.info(), ready: SG.ready(),
           friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D), owned: [...OWNED], today: TODAY, buy: BUY && { k: BUY.k, st: BUY.st, p: BUY.L.p }, ucat: UCAT.size, mcat: MCAT.size,
           voice: MIC.on ? { label: MIC.label, f0: Math.round(MIC.f0), f0m: Math.round(MIC.f0m), flat: +MIC.flat.toFixed(2), vis: MIC.mouth ? MIC.mouth.shown : null, emo: Object.fromEntries(Object.entries(MIC.emo).map(([k, v]) => [k, +v.toFixed(2)])) } : null }) };
@@ -49908,6 +50246,8 @@ void main(){ if (vK >= 0.999) discard;
       { let sl = 0, sa = 0, n = 0; for (let k = Math.floor(300 / hz), e = Math.min(MIC.fd.length - 1, Math.ceil(6000 / hz)); k <= e; k++) { const p = Math.pow(10, MIC.fd[k] / 10) + 1e-14; sl += Math.log(p); sa += p; n++; }
         const fl = n ? Math.exp(sl / n) / (sa / n) : 0; MIC.flat += (fl - MIC.flat) * 0.25; }
       const emo = emotions(now, dt, L, r2, r3, rms);
+      laughTick(dt);
+      if (WD.hint && STG && STG.A && STG.A.prep) STG.A.prep(WD.hint);   // mot-clé entendu mais pas encore sûr : le geste s'esquisse
       // VISÈMES : analyse des 30 dernières ms (formants, friction, fermetures) → forme de la bouche (déjà lissée, avec coarticulation)
       const ft = MIC.lip.analyze(MIC.td, dt, MIC.f0), mo = MIC.mouth.step(dt, ft);
       const E = MIC.env;
@@ -49960,12 +50300,18 @@ void main(){ if (vK >= 0.999) discard;
       const mid = ri.map((i) => H[Math.min(H.length - 1, i + 3)]), hf0 = mid.map((h) => h[2]).filter((v) => v > 0), vr = mid.map((h) => h[5]);
       const hm = hf0.slice().sort((p, q) => p - q)[hf0.length >> 1] || 0, hf = hf0.map((v) => { while (v < hm / 1.45) v *= 2; while (v > hm * 1.45) v /= 2; return v; });   // octaves repliées
       const spread = (a) => { if (a.length < 3) return 9; const m = a.reduce((p, q) => p + q, 0) / a.length; return Math.sqrt(a.reduce((p, q) => p + (q - m) * (q - m), 0) / a.length) / (Math.abs(m) + 1e-6); };
-      const same = hf.length >= Math.max(3, rec.length - 2) && spread(hf) < 0.16 && spread(vr) < 0.6;
-      if (rec.length >= 4 && same) {
+      // 1.20.5 : « même hauteur » assouplie (un rire DESCEND : 150 → 115 Hz), rire SOUFFLÉ accepté (rafales presque sans hauteur, son plat),
+      // rythme moins régulier (un rire ralentit) ; la parole reste dehors : ses syllabes changent de voyelle et de hauteur, sans creux nets
+      const flats = mid.map((h) => h[3]), fm = flats.length ? flats.reduce((a, b) => a + b, 0) / flats.length : 0;
+      const voicedSame = hf.length >= Math.max(3, rec.length - 2) && spread(hf) < 0.18 && spread(vr) < 0.6;
+      const breathy = rec.length >= 4 && hf.length <= Math.floor(rec.length / 2) && fm > 0.1 && spread(vr) < 0.6 && (MIC.emo.chuchote || 0) < 0.4;   // pas pendant un chuchotement
+      if (rec.length >= 4 && (voicedSame || breathy)) {
         const d = []; for (let i = 1; i < rec.length; i++) d.push(rec[i] - rec[i - 1]);
         const m = d.reduce((a, b) => a + b, 0) / d.length, sd = Math.sqrt(d.reduce((a, b) => a + (b - m) * (b - m), 0) / d.length), cv = sd / m, rate = 1 / m;
-        laugh = sm(3.2, 4, rate) * (1 - sm(8.5, 10, rate)) * (1 - sm(0.18, 0.3, cv)) * Math.min(1, (rec.length - 2.5) / 2) * (0.75 + 0.5 * sm(0.08, 0.3, MIC.flat));
+        laugh = sm(3.4, 4.0, rate) * (1 - sm(9.5, 11, rate)) * (1 - sm(0.22, 0.34, cv)) * Math.min(1, (rec.length - 2.5) / 2) * (0.75 + 0.5 * sm(0.08, 0.3, MIC.flat));
+        if (window.JDW_PG_TEST && laugh > 0.5 && !MIC.laughOn) (window.__pgLAUGHWHY = window.__pgLAUGHWHY || []).push({ v: voicedSame, b: breathy, n: rec.length, rate: +rate.toFixed(2), cv: +cv.toFixed(2), shf: +spread(hf).toFixed(3), svr: +spread(vr).toFixed(2), fm: +fm.toFixed(3), nhf: hf.length });
       }
+      if (MIC.angOn || (MIC.angS || 0) > 0.3) laugh *= 0.3;   // voix en colère (forte, tendue) : ce n'est pas un rire
       if (laugh > 0.5) { MIC.laughOn = true; MIC.laughT = now; } else if (MIC.laughOn && laugh < 0.25 && now - MIC.laughT > 0.7) MIC.laughOn = false;
       // surprise : attaque après un silence, puis la voix monte (ou très haute / très forte)
       const before = H.filter((h) => now - h[0] > 0.1 && now - h[0] < 0.7), quiet = before.length > 6 && before.every((h) => h[4] < 0.12);
@@ -50005,11 +50351,11 @@ void main(){ if (vK >= 0.999) discard;
     // (aucune voix de synthèse). src/mots.js : Vosk (WebAssembly) + modèle français sur l'appareil, MÊME flux que la bouche (pas de 2e micro).
     // Chargé au 1er micro (assets/mots.vosk.bin ~6 Mo + assets/mots-fr-<v>.tgz, gardés par le navigateur) ; données mobiles : pas de
     // téléchargement (« ça arrive en Wi-Fi »). Journal discret (catégorie + latence, jamais de son ni de texte).
-    const MOTS_V = 1, MOTS_KEY = 'jdw.pegase.mots';
-    const WD = { w: null, st: 'off', rep: new Set(), repN: 0, said: false, metSaid: false, frT: 0, n: 0 }; if (window.JDW_PG_TEST) window.__pgWD = WD;
+    const WD = { w: null, st: 'off', rep: new Set(), repN: 0, said: false, metSaid: false, frT: 0, n: 0, hint: '', pg: 0, pgT: 0, pgShown: 0, pgOn: false, pre: false, laughD: 0, laughAt: -9, lfT: 0 };
+    if (window.JDW_PG_TEST) window.__pgWD = WD;
     const wordsOk = () => !!PGM && typeof PGM.createWords === 'function' && typeof WebAssembly === 'object' && typeof Worker !== 'undefined' && !(window.JDW_PG_TEST && window.JDW_PG_NOMOTS);
     const metered = () => { try { const c = navigator.connection; return !!c && (!!c.saveData || c.type === 'cellular'); } catch (e) { return false; } };
-    const absUrl = (p) => new URL(ROOT() + p, location.href).href;
+    const absUrl = motsAbs;
     function wordsDiag(key, msg, extra) {   // une fois par sorte et par séance, 12 au plus (+ bilans) ; JAMAIS de texte entendu
       if (WD.rep.has(key) || (WD.repN >= 12 && !/^bilan/.test(key))) return; WD.rep.add(key); WD.repN++;
       const d = Object.assign({ app: UAAPP || 'web', android: UAAND, v: MOTS_V, sr: MIC.ctx ? MIC.ctx.sampleRate : 0 }, extra || {});
@@ -50018,33 +50364,87 @@ void main(){ if (vK >= 0.999) discard;
     }
     function wordsState(st) {
       WD.st = st; $.mic.classList.toggle('mload', st === 'load' && MIC.on);
-      if (st === 'ready' && MIC.on && !WD.said && !store.get(MOTS_KEY + '.dit')) { WD.said = true; store.set(MOTS_KEY + '.dit', '1'); toast('🎤 Dis « oui », « non » ou « salut » : je te réponds d’un geste !', 3200); }
+      if (st === 'load') progSet(MOTS.inst ? null : 4);
+      if (st === 'ready') { progSet(100); if (MIC.on && !WD.said && !store.get(MOTS_KEY + '.dit')) { WD.said = true; store.set(MOTS_KEY + '.dit', '1'); later(() => toast('🎤 Dis « oui », « non » ou « salut » : je te réponds d’un geste !', 3200), WD.pgOn ? 1300 : 0); } }
+      if (st === 'fail') progSet(-1);
+    }
+    // PROGRESSION du 1er chargement (seulement micro ouvert) : « Je prépare l'écoute… 40 % » (téléchargement : octets ; ensuite : étapes du
+    // moteur, avec une petite avance régulière entre deux étapes), puis « ✓ Je t'écoute ! » 1,2 s
+    const PG_STEP = { vosk: 8, sync: 22, fetch: 26, save: 84, model: 90 };
+    function progSet(v) {
+      if (v === -1) { WD.pg = 0; WD.pgOn = false; $.mprog.hidden = true; $.mprog.classList.remove('ok'); return; }
+      if (v != null) WD.pg = Math.max(WD.pg, v);
+      if (!MIC.on) { if (!WD.pgOn) return; }
+      if (WD.pg >= 100) { if (WD.pgOn) { $.mprogt.textContent = '✓ Je t’écoute !'; $.mprog.classList.add('ok'); clearTimeout(WD.pgT); WD.pgT = later(() => { $.mprog.hidden = true; $.mprog.classList.remove('ok'); WD.pgOn = false; }, 1200); } return; }
+      if (!WD.pgOn && MIC.on && WD.st === 'load') { WD.pgOn = true; WD.pgShown = WD.pg; $.mprog.hidden = false; $.mprog.classList.remove('ok'); clearTimeout(WD.pgT); progTick(); }
+    }
+    function progTick() {
+      if (!WD.pgOn || WD.pg >= 100) return;
+      if (!MIC.on) { $.mprog.hidden = true; WD.pgOn = false; return; }
+      const nx = [8, 22, 26, 84, 90, 99].find((x) => x > WD.pg + 0.5) || 99;
+      WD.pg = Math.min(nx - 1, WD.pg + (nx - WD.pg) * 0.035);                       // avance douce vers l'étape suivante
+      WD.pgShown += (WD.pg - WD.pgShown) * 0.35;
+      const n = Math.max(1, Math.min(99, Math.round(WD.pgShown)));
+      $.mprogt.textContent = 'Je prépare l’écoute… ' + n + ' %'; $.mprogb.style.width = n + '%';
+      later(progTick, 120);
+    }
+    function onProg(phase, frac) {
+      if (phase === 'dl' && frac != null) progSet(26 + 58 * frac);
+      else if (PG_STEP[phase] != null) progSet(PG_STEP[phase]);
+    }
+    // le moteur des mots du hub (créé une fois ; le modèle reste chargé tant que le hub est ouvert)
+    async function wordsMake() {
+      if (WD.w) return true;
+      const U = motsUrls(), have = store.get(MOTS_KEY);
+      let cached = have === String(MOTS_V); if (!cached) cached = await motsHas(U.model);
+      if (dead || WD.w) return !!WD.w;
+      if (!cached && !MOTS.inst && metered()) {
+        if (MIC.on && !WD.metSaid) { WD.metSaid = true; toast('🎤 Les gestes à la voix (oui, non, salut) arriveront en Wi‑Fi', 3200); }
+        wordsDiag('metered', 'mots : pas téléchargés (données mobiles)'); return false;
+      }
+      // ancienne version du modèle gardée par le navigateur : place libérée avant la nouvelle (jamais pendant une installation)
+      if (have && have !== String(MOTS_V) && !cached && !MOTS.inst) { try { indexedDB.deleteDatabase('/vosk'); } catch (e) { /* rien */ } }
+      WD.w = PGM.createWords({ voskUrl: U.vosk, modelUrl: U.model, cached, wait: MOTS.inst, slow: (window.JDW_PG_TEST && +window.JDW_PG_SLOW) || 0, onWord: wordHeard, onState: wordsState, diag: wordsDiag, onProgress: onProg,
+        onHint: (c) => { WD.hint = c === 'rire' ? '' : c; }, onVoice: (v, ms) => { if (!MIC.on || !STG || !STG.A || !STG.A.listen || editing || friendOn) return; if (v) STG.A.listen(); else if (ms < 1300) STG.A.ack(); } });
+      if (MOTS.inst) { const off = motsListen((ph, f) => onProg(ph, f)); MOTS.inst.then(off, off); }
+      return true;
     }
     async function wordsStart() {
       if (!wordsOk() || !MIC.on || !MIC.ctx || !MIC.src) return;
-      const have = store.get(MOTS_KEY), cached = have === String(MOTS_V);
-      if (!cached && metered()) {
-        if (!WD.metSaid) { WD.metSaid = true; toast('🎤 Les gestes à la voix (oui, non, salut) arriveront en Wi‑Fi', 3200); }
-        wordsDiag('metered', 'mots : pas téléchargés (données mobiles)'); return;
-      }
-      if (!WD.w) {
-        // ancienne version du modèle gardée par le navigateur : place libérée avant la nouvelle
-        if (have && !cached) { try { indexedDB.deleteDatabase('/vosk'); } catch (e) { /* rien */ } }
-        WD.w = PGM.createWords({ voskUrl: absUrl('assets/mots.vosk.bin'), modelUrl: absUrl('assets/mots-fr-' + MOTS_V + '.tgz'), cached, onWord: wordHeard, onState: wordsState, diag: wordsDiag });
-      }
+      if (!(await wordsMake())) return;
+      if (!MIC.on || dead) return;
+      if (WD.st === 'load') progSet(null);
       const ctx = MIC.ctx, src = MIC.src, ok = await WD.w.start(ctx, src);
       if (ok) store.set(MOTS_KEY, String(MOTS_V));
       if (!MIC.on || MIC.ctx !== ctx) { if (WD.w) WD.w.stop(); }   // micro coupé pendant le chargement
       $.mic.classList.remove('mload');
     }
+    // à l'ouverture du hub : moteur préparé EN AVANCE (déjà installé : ~1-3 s en arrière-plan, le 1er 🎤 est immédiat) si l'appareil a de la
+    // mémoire (≥ 4 Go annoncés) ; pas installé + Wi-Fi : installation d'abord (même chose que la borne au calme)
+    function wordsPreload() {
+      if (WD.pre || dead || !wordsOk() || document.hidden || (window.JDW_PG_TEST && window.JDW_PG_NOPRELOAD)) return; WD.pre = true;
+      const mem = navigator.deviceMemory;
+      if (!(mem >= 4) && !(window.JDW_PG_TEST && window.JDW_PG_PRELOAD)) { wordsDiag('pre-mem', 'mots : pas préparés d’avance (mémoire ' + (mem || '?') + ' Go)'); return; }
+      (async () => {
+        const U = motsUrls(); let has = store.get(MOTS_KEY) === String(MOTS_V) && await motsHas(U.model);
+        if (!has && !metered()) { const r = await motsWarm({ from: 'hub' }); has = !!(r && (r.ok || r.deja)); }
+        if (!has || dead || WD.w) return;
+        if (!(await wordsMake()) || dead) return;
+        const t0 = performance.now(), ok = await WD.w.preload();
+        if (ok) wordsDiag('pre', 'mots : préparés d’avance à l’ouverture du hub (' + Math.round(performance.now() - t0) + ' ms)');
+      })().catch(() => {});
+    }
     function wordsStop() {
       if (!WD.w) return; WD.w.stop(); $.mic.classList.remove('mload');
+      WD.hint = ''; progSet(-1);
       const st = WD.w.stats(); if (st.morceaux > 25) wordsDiag('bilan' + (WD.rep.has('bilan') ? '-' + (++WD.n) : ''), 'bilan des mots', { st });
     }
     function wordHeard(cat, info) {
       if (dead || !MIC.on || !STG || !STG.ready() || editing || friendOn) return;
       wordsDiag('heard:' + cat, 'mots : entendu « ' + cat + ' » (' + (info.fin == null ? '?' : info.fin) + ' ms après le mot)', { fin: info.fin, calc: info.calc, final: info.final });
       if (window.JDW_PG_TEST) (window.__pgWORDS = window.__pgWORDS || []).push([cat, info.fin, info.calc, performance.now()]);
+      if (cat === 'rire') { laughGo('mot', 1); return; }
+      WD.hint = '';
       const k = cat === 'salut' ? 'wave' : cat;
       STG.gesture(k); hintOff();
       const b = box.querySelector(`.pgh-emotes .pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
@@ -50052,6 +50452,29 @@ void main(){ if (vK >= 0.999) discard;
         STG.setFrame('geste'); clearTimeout(WD.frT); WD.frT = later(() => { if (MIC.on && STG && !editing && !friendOn) STG.setFrame('parle'); }, 2500);
       }
       toast(cat === 'oui' ? '👍 oui' : cat === 'non' ? '👎 non' : '👋 salut', 900);
+    }
+
+    // RIRE (1.20.5) : rire entendu au micro (au TON : MIC.laughOn, ou aux MOTS : « haha », « hihi », « mdr ») → l'avatar RIT : yeux plissés,
+    // bouche ouverte souriante, tête qui bascule en arrière, épaules qui sautillent, main sur le ventre si ça dure ; plan « geste » le temps du
+    // rire (le haut du corps se voit), puis retour au gros plan. Jamais de voix.
+    function laughGo(src, k) {
+      if (dead || !MIC.on || !STG || !STG.ready() || editing || friendOn || !STG.A) return;
+      const A = STG.A, fresh = !(A.laughT > 0);
+      if (fresh) {
+        STG.gesture('laugh'); A.laughK = k; WD.laughAt = performance.now();
+        const b = box.querySelector('.pgh-emotes .pgh-emo[data-emo="laugh"]'); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
+        wordsDiag('rire:' + src, 'rire : l’avatar rit (' + (src === 'mot' ? 'mot' : 'ton de la voix') + ')');
+        if (window.JDW_PG_TEST) (window.__pgLAUGH = window.__pgLAUGH || []).push([src, performance.now()]);
+      } else A.laughHold(k);
+      STG.setFrame('geste'); clearTimeout(WD.lfT); WD.lfT = later(laughEnd, 400);
+    }
+    function laughEnd() {
+      if (dead || !STG || !STG.A) return;
+      if (STG.A.laughT > 0 || (MIC.on && MIC.laughOn)) { WD.lfT = later(laughEnd, 300); return; }
+      WD.lfT = later(() => { if (MIC.on && STG && !editing && !friendOn && !(STG.A.laughT > 0)) STG.setFrame('parle'); }, 700);
+    }
+    function laughTick(dt) {
+      if (MIC.laughOn) { WD.laughD += dt; laughGo('ton', Math.min(1, 0.45 + WD.laughD * 0.6)); } else WD.laughD = 0;
     }
 
     // ---------- PARLER (démo) : la voix du navigateur dit une phrase ; la bouche suit le TEXTE (règles du français → visèmes), recalée MOT À MOT
@@ -51109,6 +51532,98 @@ void main(){ if (vK >= 0.999) discard;
   }
 
   // ---------------------------------------------------------------------------
+  // MOTS (1.20.5) : le moteur des mots (Vosk, assets/mots.vosk.bin) et le modèle français (assets/mots-fr-<v>.tgz, 42 Mo) INSTALLÉS D'AVANCE,
+  // pour que le 1er 🎤 n'attende pas 19 s : la borne appelle JDW_GAMES.pegase.warm() au calme (bibliothèque, en ligne, Wi-Fi, une fois), le hub
+  // aussi à son ouverture. Installer = télécharger + extraire + ranger dans IndexedDB (« /vosk », la base de vosk-browser) dans un worker NU,
+  // SANS charger Kaldi (pas de 250 Mo en mémoire), puis le worker est arrêté. Ensuite le hub charge le modèle depuis l'appareil (~1-3 s).
+  // Jamais sur les données mobiles ni en économie de données ; mémoire annoncée < 3 Go, place libre < 300 Mo ou pas d'IndexedDB : rien
+  // (le 1er 🎤 télécharge comme avant). Échec : réessai après 6 h. Journal discret (une fois par séance) ; jamais de son ni de texte.
+  const MOTS_V = 1, MOTS_KEY = 'jdw.pegase.mots';
+  const MOTS = { inst: null, ls: new Set(), said: new Set() };
+  const motsAbs = (p) => new URL(ROOT() + p, location.href).href;
+  const motsUrls = () => ({ vosk: motsAbs('assets/mots.vosk.bin'), model: motsAbs('assets/mots-fr-' + MOTS_V + '.tgz') });
+  const mStore = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* rien */ } } };
+  const motsMetered = () => { try { const c = navigator.connection; return !!c && (!!c.saveData || c.type === 'cellular' || /(^|-)2g$/.test(c.effectiveType || '')); } catch (e) { return false; } };
+  function motsReport(key, msg, extra) {
+    if (MOTS.said.has(key)) return; MOTS.said.add(key);
+    const d = Object.assign({ app: (navigator.userAgent.match(/BorneArcadeV\/([0-9.]+)/) || [])[1] || 'web', v: MOTS_V, mem: navigator.deviceMemory || 0 }, extra || {});
+    try { const err = new Error('Pégase hub : ' + msg); err.stack = JSON.stringify(d); const ev = new Event('unhandledrejection'); ev.reason = err; ev.promise = Promise.resolve(); window.dispatchEvent(ev); } catch (e) { /* rien */ }
+    if (window.JDW_PG_TEST) (window.__pgMOTSLOG = window.__pgMOTSLOG || []).push(['Pégase hub : ' + msg, d]);
+  }
+  const motsListen = (fn) => { MOTS.ls.add(fn); return () => MOTS.ls.delete(fn); };
+  // le modèle est-il DANS l'appareil ? (clé « extracted.ok » de la base IndexedDB de vosk-browser ; base absente : pas créée par la question)
+  function motsHas(modelUrl) {
+    return new Promise((res) => {
+      try {
+        if (!window.indexedDB) return res(false);
+        const key = '/vosk/' + modelUrl.replace(/[\W]/g, '_') + '/extracted.ok';
+        const rq = indexedDB.open('/vosk'); let up = false;
+        rq.onupgradeneeded = () => { up = true; try { rq.transaction.abort(); } catch (e) { /* rien */ } };
+        rq.onerror = () => res(false);
+        rq.onsuccess = () => { const db = rq.result; if (up) { db.close(); return res(false); }
+          try { const tx = db.transaction('FILE_DATA', 'readonly'), g = tx.objectStore('FILE_DATA').getKey(key); g.onsuccess = () => { db.close(); res(g.result != null); }; g.onerror = () => { db.close(); res(false); }; } catch (e) { db.close(); res(false); } };
+      } catch (e) { res(false); }
+    });
+  }
+  async function motsVosk(url) {
+    if (window.Vosk && window.Vosk.Model) return window.Vosk;
+    const r = await fetch(url); if (!r.ok) throw new Error('vosk ' + r.status);
+    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
+    try { await new Promise((ok, ko) => { const sc = document.createElement('script'); sc.src = u; sc.onload = ok; sc.onerror = () => ko(new Error('vosk : script')); document.head.appendChild(sc); }); } finally { URL.revokeObjectURL(u); }
+    if (!window.Vosk || !window.Vosk.Model) throw new Error('vosk : absent');
+    return window.Vosk;
+  }
+  // installation (une à la fois) ; rend { ok, ms, why }
+  function motsInstall(from) {
+    if (MOTS.inst) return MOTS.inst;
+    MOTS.inst = (async () => {
+      const t0 = performance.now(), U = motsUrls();
+      const V = await motsVosk(U.vosk);
+      if (typeof V.jdwWorker !== 'function') throw new Error('moteur ancien');
+      const w = V.jdwWorker();
+      try {
+        await new Promise((ok, ko) => {
+          const tm = setTimeout(() => ko(new Error('trop long')), 6 * 60000);
+          w.onmessage = (e) => { const m = e.data || {};
+            if (m.event === 'jdwprogress') { for (const f of MOTS.ls) { try { f(m.phase, m.phase === 'dl' && m.of ? m.n / m.of : null); } catch (x) { /* rien */ } } }
+            else if (m.event === 'jdwinstalled') { clearTimeout(tm); if (m.ok) ok(); else ko(new Error(m.error || 'échec')); } };
+          w.onerror = (e) => { try { e.preventDefault(); } catch (x) { /* rien */ } clearTimeout(tm); ko(new Error('worker')); };
+          w.postMessage({ action: 'set', key: 'logLevel', value: -1 });
+          w.postMessage({ action: 'jdw', install: U.model });
+        });
+      } finally { try { w.terminate(); } catch (e) { /* rien */ } }
+      mStore.set(MOTS_KEY, String(MOTS_V)); mStore.set(MOTS_KEY + '.essai', '');
+      const ms = Math.round(performance.now() - t0);
+      motsReport('inst', 'mots : installés d’avance (' + (from || '?') + ', ' + ms + ' ms)', { ms });
+      return { ok: true, ms };
+    })().catch((e) => {
+      const why = String(e && e.message || e).slice(0, 100); mStore.set(MOTS_KEY + '.essai', String(Date.now()));
+      motsReport('inst-ko', 'mots : installation impossible (' + why + ')', { from });
+      return { ok: false, why };
+    }).finally(() => { setTimeout(() => { MOTS.inst = null; }, 0); });
+    return MOTS.inst;
+  }
+  // au calme : installer si besoin (rend { deja } | { ok, ms } | { non: raison })
+  async function motsWarm(o = {}) {
+    try {
+      if (MOTS.inst) return MOTS.inst;
+      if (typeof WebAssembly !== 'object' || typeof Worker === 'undefined' || !window.indexedDB) return { non: 'navigateur' };
+      if (window.JDW_PG_TEST && window.JDW_PG_NOMOTS) return { non: 'essai' };
+      const U = motsUrls();
+      if (mStore.get(MOTS_KEY) === String(MOTS_V) && await motsHas(U.model)) return { deja: true };
+      if (await motsHas(U.model)) { mStore.set(MOTS_KEY, String(MOTS_V)); return { deja: true }; }
+      if (motsMetered()) return { non: 'données mobiles' };
+      if (navigator.deviceMemory && navigator.deviceMemory < 3) return { non: 'mémoire' };
+      const last = +(mStore.get(MOTS_KEY + '.essai') || 0); if (last && Date.now() - last < 6 * 3600e3 && !(window.JDW_PG_TEST && o.force)) return { non: 'réessai plus tard' };
+      try { if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); if (e && e.quota && e.quota - (e.usage || 0) < 300 * 1048576) { motsReport('inst-place', 'mots : pas installés (place libre ' + Math.round((e.quota - (e.usage || 0)) / 1048576) + ' Mo)'); return { non: 'place' }; } } } catch (e) { /* rien */ }
+      try { if (navigator.storage && navigator.storage.persist && navigator.storage.persisted && !(await navigator.storage.persisted())) navigator.storage.persist().catch(() => {}); } catch (e) { /* rien */ }
+      // ancienne version gardée : place libérée avant la nouvelle
+      const have = mStore.get(MOTS_KEY); if (have && have !== String(MOTS_V)) { try { indexedDB.deleteDatabase('/vosk'); } catch (e) { /* rien */ } }
+      return await motsInstall(o.from || 'borne');
+    } catch (e) { return { non: String(e && e.message || e).slice(0, 60) }; }
+  }
+
+  // ---------------------------------------------------------------------------
   // ENREGISTREMENT
   // ---------------------------------------------------------------------------
   window.JDW_GAMES = window.JDW_GAMES || {};
@@ -51120,6 +51635,8 @@ void main(){ if (vK >= 0.999) discard;
     scoreLabel: 'points',
     noScore: true,   // pas de ligne « 👑 record » en haut : c'est une page, pas un jeu
     preview,
+    // appelé par la borne au calme (bibliothèque, en ligne) : prépare les mots du micro de Pégase en arrière-plan (voir MOTS)
+    warm(o) { return motsWarm(Object.assign({ from: 'borne' }, o || {})); },
     mount(root, api) { return mountHub(root, api); }
   };
 })();
@@ -87346,7 +87863,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261018200212"; window.JDW_VERSION = "1.20.4"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
+<script>window.JDW_BUILD = "20261018223940"; window.JDW_VERSION = "1.20.5"; window.JDW_NOTES = ["\ud83d\udd27 Petites am\u00e9liorations et corrections"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -99074,6 +99591,18 @@ function swWarm() {
   try { ctl.postMessage({ t: 'warm', list }); localStorage.setItem('jdw.swwarm', BUILD); } catch (e) {}
 }
 if (SW_OK) setTimeout(swWarm, 25000);
+// au calme (bibliothèque affichée, en ligne, page visible) : un jeu peut préparer en arrière-plan ce qui rendra sa 1re ouverture immédiate
+// (JDW_GAMES.<id>.warm, une fois par ouverture de la borne ; ex. Pégase installe d'avance la reconnaissance des mots du micro, 42 Mo,
+// seulement en Wi-Fi, s'il y a de la place et de la mémoire). Réessayé au retour du réseau.
+let gameWarmDone = false;
+function gameWarm() {
+  if (gameWarmDone || netOff() || document.hidden) return;
+  if (!onLibrary()) { setTimeout(gameWarm, 20000); return; }                     // en partie : plus tard
+  gameWarmDone = true;
+  for (const g of GAMES) if (g && typeof g.warm === 'function') { try { Promise.resolve(g.warm({ root: ROOT })).catch(() => {}); } catch (e) {} }
+}
+setTimeout(gameWarm, 30000);
+window.addEventListener('online', () => setTimeout(gameWarm, 15000));
 
 /* ================= Démarrage ================= */
 ['jdw-guestask', 'jdw-inv', 'jdw-invshare', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-coopgo', 'jdw-coop-pause', 'jdw-coopend', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
