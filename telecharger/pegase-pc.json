@@ -1,13 +1,13 @@
 {
-  "version": "0.5 (essai 5)",
-  "size": 834452680,
-  "sha256": "b789e2f02478f34fcf794f2a32cb85a0a019ee9a143271c51af27bbf1c3bd3f5",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v5/Pegase-PC-2026-10-18-compte.zip",
+  "version": "0.6 (essai 6)",
+  "size": 834497110,
+  "sha256": "360530c0be720adbec87f69e28e076158a7f708c36a1ffebab7bacd79ca065cf",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v6/Pegase-PC-2026-10-18-missions.zip",
   "notes": [
-    "Connexion avec ton compte de la borne (pseudo ou e-mail, « Rester connecté »)",
-    "Ton avatar du hub dans le jeu : l'apparence et la tenue du Dressing",
-    "Synchro de ta maison, de ton potager et de tes lucioles avec ton compte",
-    "Les copains de la salle avec leur vrai avatar",
-    "Jeu hors ligne : tout est envoyé au serveur au retour du réseau"
+    "Récompenses des missions et du musée via ton compte (une seule fois, même hors ligne)",
+    "Dressing avec cadenas : les pièces verrouillées s'achètent avec tes lucioles",
+    "Objets secrets à découvrir",
+    "Missions du jour identiques à celles du hub",
+    "Cadeaux de missions : permis, appareil photo d'explorateur, filet, pelle, canne"
   ]
 }
