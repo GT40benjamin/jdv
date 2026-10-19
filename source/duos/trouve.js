@@ -1521,7 +1521,7 @@
             after(0.35, () => { confetti(p, L.W / 2, L.by + L.bh * 0.3, 70, ['#ffd34d', PC[p], '#ffffff', ACCENT], 620); ring(p, L.W / 2, L.by + L.bh * 0.3, 10, 260, 0.9, PC[p], 5); FX[p].shake = Math.max(FX[p].shake, 6); });
           }
           SFX.win(); if (S.matchOver) SFX.victory();
-          vibrate(S.matchOver ? 120 : 70);
+          vibrate(S.matchOver ? 120 : 70); rumble('win', p);
           break;
         }
         case 'timeout':
@@ -1688,6 +1688,7 @@
         ctx.strokeStyle = PC[p]; ctx.lineWidth = 3; ctx.setLineDash([7, 5]); ctx.lineDashOffset = -ct * 30;
         circ(ctx, q[0], q[1], r); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
       }
+      drawPadCursor(p);                             // viseur de la manette
       ctx.restore();
       // la cible, au-dessus de tout (manche finie)
       if ((won || draw) && outK < 1) drawEndTarget(p, winBoard, outK);
@@ -2070,8 +2071,9 @@
       const a = clamp(k / 0.12, 0, 1) * (1 - out), col = MODE_COL[S.R.mode] || ACCENT;
       const cx = L.bx + L.bw / 2, cy = L.by + L.bh * 0.5, maxW = L.bw * 0.9;
       const big = fitLines(bannerBig(p), maxW, Math.min(28, L.bh * 0.11), (s) => s + 'px ' + FD, 13);
-      const hint = banner.hint ? fitLines(banner.hint, maxW, clamp(L.bw * 0.042, 13, 17), (s) => '600 ' + s + 'px ' + FB, 11) : null;
-      const bigH = big.px * 1.15 * big.lines.length, hintH = hint ? hint.px * 1.3 * hint.lines.length + 8 : 0;
+      const padH = banner.hint === EXPLAIN && padShow(p);    // à la manette : l'explication avec les vrais boutons
+      const hint = banner.hint ? fitLines(padH ? PAD_EXPLAIN : banner.hint, maxW, clamp(L.bw * 0.042, 13, 17), (s) => '600 ' + s + 'px ' + FB, 11) : null;
+      const bigH = big.px * 1.15 * big.lines.length, hintH = hint ? hint.px * 1.3 * hint.lines.length + 8 + (padH ? hint.px * 1.7 : 0) : 0;
       const bh = 24 + 16 + bigH + hintH + 14;
       const y0 = cy - bh / 2, sl = easeOut(k * 3.2), slide = (1 - easeOut(k * 4)) * 34;
       reset();
@@ -2093,8 +2095,23 @@
         ctx.globalAlpha = a * clamp((k - 0.3) / 0.25, 0, 1);
         y += 6 - big.px * 0.15 + hint.px * 0.5;
         for (const ln of hint.lines) { text(ln, cx, y, hint.px, '#ffe9a8', { body: true, stroke: 3 }); y += hint.px * 1.3; }
+        if (padH) padLine([{ g: 'ls' }, 'VISE', { g: 'a' }, 'TOUCHE !'], cx, y + hint.px * 0.25, hint.px, '#ffffff', p);
       }
       ctx.globalAlpha = 1;
+    }
+    const PAD_EXPLAIN = 'Vise l’objet du médaillon sur TON plateau, avant l’autre !';
+    // ligne de texte avec des pastilles de boutons : parts = ['TEXTE', { g: 'a' }, …], centrée en (x, y)
+    function padLine(parts, x, y, px, col, p) {
+      const r = px * 0.78, gap = px * 0.4;
+      const ws = parts.map((q) => (typeof q === 'string' ? textWidth(q, px, false) : r * 2));
+      let tw = gap * (parts.length - 1);
+      for (const w of ws) tw += w;
+      let cx = x - tw / 2;
+      parts.forEach((q, i) => {
+        if (typeof q === 'string') text(q, cx, y, px, col, { stroke: 3, align: 'left' });
+        else { try { PAD.drawGlyph(ctx, q.g, cx + r, y, r, p); } catch (e) { /* rien */ } }
+        cx += ws[i] + gap;
+      });
     }
     // compte à rebours de l'intro, au centre du plateau
     function drawCountdown(p) {
@@ -2244,6 +2261,7 @@
       if (!L) return;
       if (NET) { netFrame(dt); return; }
       if (!S.R) beginRound(false);
+      padStep(dt, resumeT <= 0);                     // manette : viseur et appuis (lus aussi pendant le décompte, pour les oublier)
       if (resumeT > 0) {
         resumeT -= dt;
         const n = Math.ceil(Math.max(0, resumeT) / 0.5);
@@ -3020,6 +3038,7 @@
 
     // ------------------------------------------------------------- en ligne : boucle
     function netFrame(dt) {
+      padStep(dt, resumeT <= 0 && !NS.waitRes);
       if (NS.waitRes) {                             // invité : reprise demandée, on attend l'heure commune de l'hôte
         if (performance.now() - NS.waitT > 3000) { NS.waitRes = false; NS.resAt = nowC() + 900; }
         else { resumeT = 1.5; render(); return; }
@@ -3284,7 +3303,7 @@
         // les coordonnées d'écran, inversées (largeur − x, hauteur − y), donnent le point du canvas ; et sa vue,
         // dessinée elle aussi tournée de 180°, inverse de nouveau : la vue du joueur est donc le repère de l'écran.
         if (NS.waitRes) return;
-        usedKeys[ME] = false;
+        usedKeys[ME] = false; PCUR[ME].used = false;
         netTapAt(x, y);
         return;
       }
@@ -3292,7 +3311,7 @@
       if (AI && p === AIP) return;                   // la moitié de l'IA ne se touche pas
       owners.set(e.pointerId, p);
       const lx = p === 0 ? x : L.W - x, ly = p === 0 ? y - L.HH : L.HH - y;
-      usedKeys[p] = false;
+      usedKeys[p] = false; PCUR[p].used = false;
       pushTap(p, lx, ly);
     }
     function onPointerUp(e) { owners.delete(e.pointerId); }
@@ -3320,6 +3339,100 @@
         if (sc < bs) { bs = sc; best = i; }
       }
       if (best >= 0) cursor[p] = best;
+    }
+    // ------------------------------------------------------------- manette (api.pad, CONTRACT.md « Ajout 10 »)
+    // Un viseur à la couleur du joueur, sur SON plateau : stick gauche analogique (lent au centre pour viser, très rapide à
+    // fond, avec une accélération si on garde le stick à fond) ou croix ; il s'aimante doucement sur l'objet le plus proche
+    // quand on ralentit (et suit un objet qui bouge). A (ou B) = toucher l'objet sous le viseur, exactement comme un doigt
+    // (mêmes règles : mauvais objet = gelé). Repère du plateau (unités LW) : à l'endroit pour P0, tourné pour P1, d'où le
+    // signe ; le joueur du haut assis en face (ou l'invité en ligne) a déjà son stick retourné par la bibliothèque.
+    const PAD = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    const PCUR = [0, 1].map(() => ({ used: false, x: LW / 2, y: 300, vx: 0, vy: 0, boost: 0, R: null, hov: -1, press: 0, trail: [] }));
+    const PAD_V = 1150, PAD_BOOST = 0.75;          // vitesse du viseur stick à fond (unités du plateau / s), bonus d'accélération
+    function padMine(p) { return !!PAD && p !== AIP && (!NET || p === ME); }
+    function padShow(p) { try { return padMine(p) && PAD.active() && PAD.any(p); } catch (e) { return false; } }
+    function rumble(kind, p) { try { if (padMine(p) && PAD.rumble) PAD.rumble(kind, p); } catch (e) { /* rien */ } }
+    function padNearest(R, x, y) {                 // objet visible le plus proche du viseur : [indice, dx, dy, distance]
+      let best = -1, bx = 0, by = 0, bd = Infinity;
+      for (let i = 0; i < R.N; i++) {
+        if (S.clock < R.objs[i].ap + 0.08) continue;
+        let dx = R.X[i] - x;
+        if (R.conveyor) dx -= Math.round(dx / LW) * LW;
+        const dy = R.Y[i] - y, d = Math.hypot(dx, dy);
+        if (d < bd) { bd = d; best = i; bx = dx; by = dy; }
+      }
+      return [best, bx, by, bd];
+    }
+    function padHitR(R, i) { return Math.max(R.size * R.objs[i].sc * 0.6, 26 / boardK()); }
+    function padStep(dt, live) {
+      for (let p = 0; p < 2; p++) {
+        if (!padMine(p)) continue;
+        const C = PCUR[p];
+        let g = null, hit = false;
+        try { g = PAD.get(p); hit = PAD.pressed('a', p); hit = PAD.pressed('b', p) || hit; } catch (e) { g = null; }
+        C.press = Math.max(0, C.press - dt * 4);
+        const R = S.R;
+        if (!g || !g.on || !R || !L) continue;
+        if (C.R !== R) { C.R = R; C.x = LW / 2; C.y = R.LH / 2; C.vx = C.vy = 0; C.boost = 0; C.trail.length = 0; C.hov = -1; }
+        const sg = p === 0 ? 1 : -1, mx = (g.mx || 0) * sg, my = (g.my || 0) * sg, mag = Math.min(1, Math.hypot(mx, my));
+        if (mag > 0.05 || hit) { C.used = true; usedKeys[p] = false; }
+        if (!live || S.phase !== 'play' || (NET && NS.waitRes)) { C.vx = C.vy = 0; continue; }
+        // vitesse : courbe douce (précision) + accélération si le stick reste à fond
+        C.boost = mag > 0.92 ? Math.min(1, C.boost + dt / 0.35) : Math.max(0, C.boost - dt * 5);
+        let sp = PAD_V * (0.22 * mag + 0.78 * mag * mag) * (1 + PAD_BOOST * C.boost);
+        const nb = padNearest(R, C.x, C.y), hr = nb[0] >= 0 ? padHitR(R, nb[0]) : 0;
+        if (nb[0] >= 0 && nb[3] < hr && mag < 0.9) sp *= 0.62;          // le viseur « colle » un peu sur un objet
+        const tvx = mag > 0 ? mx / mag * sp : 0, tvy = mag > 0 ? my / mag * sp : 0, kk = Math.min(1, dt * 20);
+        C.vx += (tvx - C.vx) * kk; C.vy += (tvy - C.vy) * kk;
+        C.x += C.vx * dt; C.y += C.vy * dt;
+        // aimantation légère : stick lâché ou presque, le viseur glisse au centre de l'objet proche (et le suit s'il bouge)
+        if (nb[0] >= 0 && nb[3] < hr * 1.7 && mag < 0.55) {
+          const pull = Math.min(1, dt * 9) * (1 - mag / 0.55);
+          C.x += nb[1] * pull; C.y += nb[2] * pull;
+        }
+        C.x = R.conveyor ? C.x - Math.floor(C.x / LW) * LW : clamp(C.x, 0, LW); C.y = clamp(C.y, 0, R.LH);
+        const nh = padNearest(R, C.x, C.y);
+        C.hov = nh[0] >= 0 && nh[3] < padHitR(R, nh[0]) ? nh[0] : -1;
+        C.trail.push([C.x, C.y]); if (C.trail.length > 7) C.trail.shift();
+        if (hit) {                                  // A : on touche sous le viseur, comme un doigt
+          C.press = 1;
+          if (NET) netLocalTap(hitTest(S.R, S.clock, C.x, C.y, 30 / boardK()), C.x, C.y);
+          else inputs[p].push({ x: C.x, y: C.y, r: 30 / boardK(), seq: ++seq });
+        }
+      }
+    }
+    // le viseur de la manette : crochets néon à la couleur du joueur, qui se resserrent et blanchissent sur un objet
+    function drawPadCursor(p) {
+      const C = PCUR[p], R = S.R;
+      if (!padMine(p) || !C.used || !R || C.R !== R || S.phase !== 'play' || !padShow(p)) return;
+      const k = boardK(), off = boardOff(), x = off[0] + C.x * k, y = off[1] + C.y * k;
+      const frozen = S.freeze[p] > 0, hov = C.hov >= 0 && !frozen, col = frozen ? '#ff4d5e' : PC[p], core = hov ? '#ffffff' : col;
+      const r = clamp(R.size * k * (hov ? 0.5 : 0.44), 14, 60) * (1 - 0.28 * Math.sin(Math.min(1, C.press) * Math.PI));
+      reset();
+      ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+      let prev = null;
+      for (let j = 0; j < C.trail.length; j++) {
+        const q = [off[0] + C.trail[j][0] * k, off[1] + C.trail[j][1] * k], f = (j + 1) / C.trail.length;
+        if (prev && Math.hypot(q[0] - prev[0], q[1] - prev[1]) < L.bw * 0.4) { ctx.strokeStyle = rgba(col, 0.35 * f); ctx.lineWidth = 1.5 + r * 0.28 * f; ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
+        prev = q;
+      }
+      glowAt(glow(core), x, y, r * (hov ? 3 : 2.4), hov ? 0.5 : 0.3);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      const rot = ct * (hov ? 2.6 : 0.9);
+      const brackets = () => { ctx.beginPath(); for (let j = 0; j < 4; j++) { const a0 = j * Math.PI / 2 - 0.42; ctx.moveTo(Math.cos(a0) * r, Math.sin(a0) * r); ctx.arc(0, 0, r, a0, a0 + 0.84); } };
+      ctx.save(); at(x + (frozen ? Math.sin(ct * 60) * 3 : 0), y, rot);
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 5.5; ctx.strokeStyle = 'rgba(4,8,14,0.45)'; brackets(); ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 9; ctx.strokeStyle = rgba(col, 0.28); brackets(); ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineWidth = 3.4; ctx.strokeStyle = core; brackets(); ctx.stroke();
+      ctx.lineWidth = 1.1; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; brackets(); ctx.stroke();
+      if (hov) { ctx.setLineDash([3.5, 4.5]); ctx.lineWidth = 1.7; ctx.strokeStyle = rgba(col, 0.9); ctx.beginPath(); ctx.arc(0, 0, r * 0.66, -rot * 2, -rot * 2 + 4.6); ctx.stroke(); ctx.setLineDash([]); }
+      circ(ctx, 0, 0, 3.8); ctx.fillStyle = 'rgba(4,8,14,0.6)'; ctx.fill();
+      circ(ctx, 0, 0, 2.4); ctx.fillStyle = core; ctx.fill();
+      ctx.restore(); reset(); ctx.globalAlpha = 1;
+      // sur un objet, aux premières manches : la pastille du bouton à presser
+      if (hov && S.round <= 2) { try { PAD.drawGlyph(ctx, 'a', x + r * 0.86, y + r * 0.86, clamp(r * 0.3, 8, 12), p); } catch (e) { /* rien */ } }
     }
     function onKeyDown(e) {
       if (destroyed || !visible() || isTyping(e)) return;
@@ -3385,6 +3498,7 @@
     function resume() {
       if (destroyed || !paused) return;
       paused = false; last = -1;
+      padStep(0, false);                            // (le A qui a fermé la carte de pause ne touche rien)
       if (NET) netResume();                         // en ligne : reprise à une heure commune fixée par l'hôte
       else { resumeT = S.R && S.phase !== 'idle' ? 1.5 : 0; resumeStep = 0; }
       if (!raf) raf = requestAnimationFrame(frame);
@@ -3452,7 +3566,10 @@
         if (!NET) beginRound(false); else if (!GUEST) { NS.started = true; netStartRound(false); }
         forced = null;
       },
-      clock(sec) { if (!NET && S.phase === 'play') { S.clock = sec; S.mt = sec; S.tickNext = Math.max(ROUND_TIME - 5, Math.ceil(sec)); } }
+      clock(sec) { if (!NET && S.phase === 'play') { S.clock = sec; S.mt = sec; S.tickNext = Math.max(ROUND_TIME - 5, Math.ceil(sec)); } },
+      // viseurs de la manette et objets (unités du plateau), pour les tests de la manette
+      pad() { const R = S.R; return { phase: S.phase, round: S.round, clock: S.clock, freeze: S.freeze.slice(), winner: S.winner, target: R ? R.target : -1, conv: R ? !!R.conveyor : false, LH: R ? R.LH : 0,
+        cur: PCUR.map((c) => ({ x: c.x, y: c.y, hov: c.hov, used: c.used, cur: c.R === R })), objs: R ? R.objs.map((o, i) => [R.X[i], R.Y[i], S.clock >= o.ap + 0.1 ? 1 : 0, Math.max(R.size * o.sc * 0.6, 26 / boardK())]) : [] }; }
     };
 
     return { destroy, pause, resume, _debug };
@@ -3469,6 +3586,8 @@
     layout: 'split',
     net: true,                    // sait jouer en ligne (api.net) : chacun sur son appareil, même manche, arbitrage à l'heure
     ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
+    // manette (CONTRACT.md « Ajout 10 ») : schéma des commandes montré par la borne (carte de pause, début de partie)
+    pad: { help: [['ls/dpad', 'Viser (stick : doux au centre, rapide à fond)'], ['a/b', 'Toucher l’objet visé'], ['ls', 'Stick lâché : le viseur s’aimante sur l’objet']], intro: false },
     preview,
     mount
   };

@@ -221,3 +221,15 @@ storage.googleapis.com) une seule fois, pour la tête du joueur de l'appareil, t
 `destroy()` libère le contexte WebGL ; les données décodées peuvent rester en mémoire pour la Revanche.
 Porte « labo » : un duel listé dans `LABO` (shell2.js) n'apparaît que sur les appareils ouverts avec `…/jouer/?labo=<id>` (comme les
 jeux solo en essai). Harnais : `source/test/duo.html` donne `JDW_ROOT` et `JDW_ASSET_KEY` comme la borne (le servir en http, pas en file://).
+
+## Ajout : la manette dans les duels (api.pad, CONTRACT.md « Ajout 10 »)
+`api.pad.get(p)` / `pressed(btn, p)` / `on(fn)` pour CHAQUE joueur `p` (0 en bas, 1 en haut). 2 manettes = 2 joueurs (la 1re en bas) ; une
+seule manette + l'écran tactile : la manette joue le côté choisi sur la page Duel (en bas par défaut), l'autre joueur au doigt — le jeu
+garde donc TOUJOURS les doigts des deux côtés en plus de la manette. Contre l'IA ou en ligne : toutes les manettes pilotent MON joueur
+(`api.ai.p` est l'IA, `api.net.me` est moi). Le joueur du haut assis EN FACE (téléphone à plat, invité en ligne dont l'écran est tourné) :
+ses sticks et sa croix arrivent DÉJÀ RETOURNÉS dans le repère du jeu (x vers la droite de l'écran, y vers le bas) : le jeu applique
+`lx, ly` tels quels à l'objet du joueur 1, sans rien inverser lui-même. Attention : c'est le repère de l'ÉCRAN du jeu (celui de
+`step` pour un duel dessiné à l'endroit). Un jeu qui dessine la vue d'un joueur tournée (grille de Mots mêlés du joueur du haut, boîte de
+l'invité du ping-pong remise droite) doit remettre les sticks dans le repère de cette vue, comme il le fait pour les doigts. Sur ordinateur (pas de tactile) avec des manettes, les duels se
+jouent aussi sur le même écran. Start = pause de la borne (carte de pause du duel, avec les commandes `pad.help` du jeu). Les vibrations
+`api.vibrate(ms)` vibrent aussi les manettes (`api.vibrate(ms, p)` : seulement celle du joueur p) ; `api.pad.rumble(sorte, p)` pour un joueur précis. Déclare `pad: { help }` comme les jeux solo.

@@ -3,6 +3,7 @@
 <title>Test empilo</title>
 <style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
 </head><body><div id="root"></div>
+<script src="../manette.js"></script>
 <script src="../games/empilo.js"></script>
 <script>
 window.__events = [];
@@ -42,5 +43,6 @@ const api = {
 const Q = new URLSearchParams(location.search);
 if (Q.get('start')) api.startLevel = Number(Q.get('start'));
 if (Q.get('seed')) api.seed = Number(Q.get('seed'));
+if (window.JDW_PAD && !api.pad) api.pad = JDW_PAD.gameApi();   // manettes (CONTRACT.md Ajout 10)
 window.__inst = window.JDW_GAMES.empilo.mount(document.getElementById('root'), api);
 </script></body></html>

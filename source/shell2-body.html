@@ -70,6 +70,7 @@
           <button type="button" role="radio" data-lv="difficile">Difficile</button>
           <button type="button" role="radio" data-lv="extreme">Extrême</button>
         </div>
+        <div class="pad-seats" id="jdw-padseats" hidden></div>
       </div>
       <div class="duel-online" id="jdw-duel-online" hidden></div>
       <div class="duel-pc" id="jdw-duel-pc" hidden>
@@ -122,7 +123,7 @@
     <section class="grid" id="jdw-grid" aria-label="Jeux"></section>
     <p class="lib-note" id="jdw-note"></p>
   </div>
-  <nav class="modebar" id="jdw-modes" aria-label="Modes de jeu">
+  <nav class="modebar" id="jdw-modes" aria-label="Modes de jeu" data-pad-skip>
     <button type="button" data-mode="classique"><span class="mb-ic">🕹️</span><span class="mb-t">Classique</span><span class="mb-soon new" id="jdw-cls-badge" hidden>nouveau</span></button>
     <button type="button" data-mode="duel"><span class="mb-ic">⚔️</span><span class="mb-t">Duel</span><span class="mb-soon new" id="jdw-duo-badge" hidden>nouveau</span></button>
     <button type="button" data-mode="coop"><span class="mb-ic">🤝</span><span class="mb-t">Coop</span><span class="mb-soon" id="jdw-coop-badge">bientôt</span></button>
@@ -181,6 +182,20 @@
         </div>
       </div>
     </div>
+    <div class="pad-pause" id="jdw-padpause" hidden>
+      <div class="card pad-pause-card" role="dialog" aria-modal="true" aria-labelledby="jdw-padpause-h">
+        <div class="card-body">
+          <p class="eyebrow" id="jdw-padpause-game"></p>
+          <h2 id="jdw-padpause-h">Pause</h2>
+          <div class="pad-helpbox" id="jdw-padpause-help" hidden></div>
+          <div class="pad-pause-btns">
+            <button class="btn btn-play" id="jdw-padpause-resume" type="button">Reprendre</button>
+            <button class="btn btn-ghost" id="jdw-padpause-quit" type="button">Quitter la partie</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pad-intro" id="jdw-padintro" aria-live="polite" hidden><div class="pad-helpbox" id="jdw-padintro-help"></div></div>
     <div class="coop-pause" id="jdw-coop-pause" hidden>
       <div class="card coop-pause-card" role="dialog" aria-modal="true" aria-labelledby="jdw-coop-pause-h">
         <div class="card-body">
@@ -188,6 +203,7 @@
           <h2 id="jdw-coop-pause-h">Pause</h2>
           <p class="coop-pause-score" id="jdw-coop-pause-score"></p>
           <p class="small" id="jdw-coop-pause-sub"></p>
+          <div class="pad-helpbox" id="jdw-coop-pause-help" hidden></div>
           <div class="coop-pause-btns">
             <button class="btn btn-play" id="jdw-coop-resume" type="button">Reprendre</button>
             <button class="btn btn-ghost" id="jdw-coop-quit" type="button">Quitter</button>
@@ -323,6 +339,7 @@
       <div class="card-body">
         <h2 id="jdw-duo-pause-h">Pause</h2>
         <p class="small" id="jdw-duo-pause-sub"></p>
+        <div class="pad-helpbox" id="jdw-duo-pause-help" hidden></div>
         <div class="duo-pause-btns">
           <button class="btn btn-play" id="jdw-duo-resume" type="button">Reprendre</button>
           <button class="btn btn-ghost" id="jdw-duo-restart" type="button">Recommencer</button>
@@ -651,6 +668,7 @@
           <label class="switch-row"><span><i aria-hidden="true">🎵</i>Musique</span><input type="checkbox" id="jdw-set-music"></label>
           <label class="switch-row"><span><i aria-hidden="true">💥</i>Bruitages</span><input type="checkbox" id="jdw-set-sfx"></label>
           <label class="switch-row"><span><i aria-hidden="true">📣</i>Cris des copains</span><input type="checkbox" id="jdw-set-cris"></label>
+          <label class="switch-row" id="jdw-set-padvib-row" hidden><span><i aria-hidden="true">🎮</i>Vibrations de la manette</span><input type="checkbox" id="jdw-set-padvib" checked></label>
         </div>
         <p class="small set-version" id="jdw-set-version" data-in="snd"></p>
       </div>

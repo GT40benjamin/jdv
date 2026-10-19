@@ -3,6 +3,7 @@
 <title>Test rouleaux</title>
 <style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
 </head><body><div id="root"></div>
+<script src="../manette.js"></script>
 <script src="../games/rouleaux.js"></script>
 <script>
 function fakeHead(skin, hair, name){
@@ -51,5 +52,6 @@ const api = {
 const QS = new URLSearchParams(location.search);
 if (QS.has('start')) api.startLevel = Number(QS.get('start'));
 if (QS.has('seed')) api.seed = Number(QS.get('seed'));
+if (window.JDW_PAD && !api.pad) api.pad = JDW_PAD.gameApi();   // manettes (CONTRACT.md Ajout 10)
 window.__inst = window.JDW_GAMES.rouleaux.mount(document.getElementById('root'), api);
 </script></body></html>

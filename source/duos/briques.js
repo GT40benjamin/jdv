@@ -21,6 +21,7 @@
   const MIN_VY = 0.36;                     // anti-boucle : jamais trop à l'horizontale
   const SUDDEN = 40;                       // mort subite (s d'échange)
   const KEY_SPEED = 480, TOUCH_GAIN = 1.3;
+  const PAD_SPEED = 720;                   // manette : vitesse de la raquette, stick à fond (unités/s)
   const DEG = Math.PI / 180;
   const FD0 = "'Bungee', Impact, sans-serif";
   const FB0 = "'Chakra Petch', system-ui, sans-serif";
@@ -385,6 +386,7 @@
         if (inp.dx) x += inp.dx;
         if (inp.target != null) { const mx = 1700 * dt; x += clamp(inp.target - x, -mx, mx); }
         if (inp.dir) x += inp.dir * KEY_SPEED * dt;
+        if (inp.pad) x += inp.pad * PAD_SPEED * dt;      // manette : vitesse proportionnelle au stick
       }
       inp.dx = 0;
       x = clamp(x, pl.w / 2, W - pl.w / 2);
@@ -1450,6 +1452,7 @@
           if (canPlay('pad' + p, 0.03)) tone(f, 0.075, 'triangle', 0.06, f * 1.5);
           if (e.fire) { flashAt(e.x, e.y, 30, 0.25, GLF); noise(0.12, 0.06, 1400); }
           if (V.explainOn[p]) V.explainOn[p] = false;
+          if (e.sp > 380) rumble('tick', p);                  // grosse frappe : petit choc dans la manette de ce joueur
           break;
         }
         case 'wall': {
@@ -1477,7 +1480,7 @@
           if (canPlay('cap', 0.06)) tone(880, 0.06, 'sine', 0.03, 1320);
           break;
         }
-        case 'power': onPower(e); if (A && e.p === AIP) { A.stats.caps = (A.stats.caps || 0) + 1; A.stats['cap_' + e.type] = (A.stats['cap_' + e.type] || 0) + 1; } break;
+        case 'power': onPower(e); rumble('tick', e.p); if (A && e.p === AIP) { A.stats.caps = (A.stats.caps || 0) + 1; A.stats['cap_' + e.type] = (A.stats['cap_' + e.type] || 0) + 1; } break;
         case 'shield': {
           const p = e.p;
           ring(e.x, e.y, 6, 70, 0.5, '#9fe8ff', 4);
@@ -1486,7 +1489,7 @@
           V.shake = Math.max(V.shake, 5);
           addFloat(p, clamp(e.x, 60, W - 60), p === 0 ? PY[0] - 30 : PY[1] + 30, 'SAUVÉ !', '#9fe8ff', 17, 1.1);
           tone(1250, 0.22, 'sine', 0.06, 480); noise(0.18, 0.1, 3000);
-          vibrate(35);
+          vibrate(35); rumble('hit', p);
           break;
         }
         case 'stick': {
@@ -1568,6 +1571,7 @@
     function onGoal(e) {
       const s = e.p, c = 1 - s, gx = e.x, gy = c === 0 ? H : 0;
       let res = null;
+      rumble('big', c);                                       // celui qui encaisse le but le sent
       if (GUEST) res = e.ov ? { over: true } : null;        // l'invité ne décide de rien : l'hôte a déjà compté le point
       else {
         // pourquoi ? (petit mot pour la bannière de la bibliothèque)
@@ -2300,10 +2304,13 @@
       ctx.fillStyle = 'rgba(2,6,14,0.78)'; rr(ctx, W / 2 - bw / 2, y - bh / 2, bw, bh, 12); ctx.fill();
       ctx.strokeStyle = rgba(PC[p], 0.85); ctx.lineWidth = 1.4; ctx.stroke();
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const pad = padShow(p);
       const l1 = NET ? (coarse ? (p === ME ? 'GLISSE TON DOIGT SUR L’ÉCRAN' : 'GLISSE TON DOIGT') : 'FLÈCHES ← → OU SOURIS')
         : coarse ? 'GLISSE TON DOIGT DE CE CÔTÉ' : p === 0 ? 'FLÈCHES ← → OU SOURIS' : 'TOUCHES Q / D OU SOURIS';
-      strokeText(ctx, l1, W / 2, y - 8, 11.5, PC[p], FD, 0);
+      if (pad) padLine([{ g: 'ls' }, 'BOUGE', { g: 'a' }, 'LÂCHE LA BALLE'], W / 2, y - 8, 11.5, PC[p], FD, p);
+      else strokeText(ctx, l1, W / 2, y - 8, 11.5, PC[p], FD, 0);
       strokeText(ctx, 'Envoie la balle derrière la raquette d’en face !', W / 2, y + 9, 11.5, '#ffffff', FB, 0, true);
+      if (pad) { ctx.globalAlpha = 1; return; }
       // petite main qui glisse
       const hx = W / 2 + Math.sin(V.rt * 3) * 26;
       ctx.globalAlpha = a * 0.9;
@@ -2558,9 +2565,44 @@
     function clearInputs() {
       ptrs.clear(); V.touches.clear();
       for (const k of keys) { k.l = false; k.r = false; }
-      for (const inp of inputs) { inp.dx = 0; inp.target = null; inp.dir = 0; inp.release = false; }
+      for (const inp of inputs) { inp.dx = 0; inp.target = null; inp.dir = 0; inp.release = false; inp.pad = 0; }
     }
     function onBlur() { if (!destroyed) clearInputs(); }
+    // --- manette (api.pad, CONTRACT.md « Ajout 10 ») : lue une fois par image, comme les doigts : stick ou croix = raquette
+    // (vitesse proportionnelle, douce au centre, rapide à fond), A ou B = lâcher la balle collée. Joueur du haut assis en face :
+    // la bibliothèque retourne déjà son stick. Contre l'IA / en ligne : seul MON joueur a une manette.
+    const PAD = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    function padCurve(v) { const a = Math.min(1, Math.abs(v)); return Math.sign(v) * (0.28 * a + 0.72 * a * a); }
+    function padRead(live) {
+      if (!PAD) return;
+      for (let p = 0; p < 2; p++) {
+        if (p === AIP || (NET && p !== ME)) continue;
+        let g = null, hit = false;
+        try { g = PAD.get(p); hit = PAD.pressed('a', p); hit = PAD.pressed('b', p) || hit; } catch (e) { g = null; }
+        const inp = inputs[p];
+        inp.pad = live && g && g.on ? padCurve(g.mx) : 0;
+        if (live && hit) inp.release = true;
+      }
+    }
+    // la manette pilote ce joueur en ce moment : ses aides montrent les boutons
+    function padShow(p) { try { return !!PAD && PAD.active() && PAD.any(p); } catch (e) { return false; } }
+    function rumble(kind, p) { try { if (PAD && PAD.rumble && p !== AIP) PAD.rumble(kind, p); } catch (e) { /* rien */ } }
+    // ligne de texte avec des pastilles de boutons : parts = ['TEXTE', { g: 'a' }, …], centrée en (x, y), repère courant
+    function padLine(parts, x, y, px, col, font, p) {
+      const r = px * 0.82, gap = px * 0.32;
+      ctx.font = px + 'px ' + font;
+      const ws = parts.map(q => (typeof q === 'string' ? ctx.measureText(q).width : r * 2));
+      let tw = gap * (parts.length - 1);
+      for (const w of ws) tw += w;
+      let cx = x - tw / 2;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      parts.forEach((q, i) => {
+        if (typeof q === 'string') strokeText(ctx, q, cx, y, px, col, font, 0);
+        else { try { PAD.drawGlyph(ctx, q.g, cx + r, y, r, p); } catch (e) { /* rien */ } }
+        cx += ws[i] + gap;
+      });
+      ctx.textAlign = 'center';
+    }
     // position du doigt dans le canvas (px CSS) ; chez l'invité l'écran est tourné de 180° : on la retourne
     function pxy(e, rect) {
       let x = e.clientX - rect.left, y = e.clientY - rect.top;
@@ -2957,6 +2999,7 @@
         if (inp.dx) x += inp.dx;
         if (inp.target != null) { const mx = 1700 * dt; x += clamp(inp.target - x, -mx, mx); }
         if (inp.dir) x += inp.dir * KEY_SPEED * dt;
+        if (inp.pad) x += inp.pad * PAD_SPEED * dt;
       }
       inp.dx = 0;
       x = clamp(x, pl.w / 2, W - pl.w / 2);
@@ -3604,6 +3647,7 @@
       if (paused) { if ((pausedFrames++ % 20) === 0) render(); return; }
       V.rt += dt;
       if (NET) netClock(ts);
+      padRead(V.resumeT <= 0);
       if (GUEST) {
         // l'invité ne simule rien : il affiche l'état de l'hôte, lissé, et prédit sa propre raquette
         if (V.resumeT > 0) resumeTick(dt);
@@ -3662,6 +3706,7 @@
       paused = false;
       last = -1; acc = 0;
       clearInputs();
+      padRead(false);                                         // (le A qui a fermé la carte de pause ne lâche pas la balle)
       if (N) { N.snapAcc = 0; N.gPrev = null; }
       if (S.phase === 'play' || S.phase === 'intro') { V.resumeT = 1.5; V.resumeN = 0; }
     }
@@ -3724,6 +3769,8 @@
     layout: 'shared',
     net: true,                    // jeu en ligne : l'hôte simule, l'invité affiche en douceur et prédit sa raquette
     ai: true,                     // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
+    // manette (CONTRACT.md « Ajout 10 ») : schéma des commandes montré par la borne (carte de pause, début de partie)
+    pad: { help: [['ls/dpad', 'Bouger la raquette (stick : vitesse dosée)'], ['a/b', 'Lâcher la balle collée'], ['ls', 'Frapper en bougeant : balle à effet']], intro: false },
     preview,
     mount
   };

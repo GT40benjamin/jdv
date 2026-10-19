@@ -168,14 +168,64 @@ function pgStartAt(n) {
   planEvent();
   introSub2 = 'Zone : ' + zoneName(n);
 }
+/* manette (CONTRACT.md Ajout 10) : api.pad arrive par mount(root, api) → PG_API.pad. Maintenir A (ou RT, ou ▲ / stick vers le haut)
+   = le jet monte, relâcher = il redescend : branché sur setHold, comme le doigt et Espace. Start reste à la borne (sa carte Pause
+   appelle pause() / resume() renvoyés par mount). Vibrations : bouclier ou vie perdus, boss abattu. */
+const PG_PADB = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'up', 'down', 'left', 'right', 'ls', 'rs'];
+let pgPadHeld = false, pgPadBorne = false, pgPadBlock = false, pgPadHintOn = null;
+function pgPad() { return PG_ACTIVE && PG_API && PG_API.pad ? PG_API.pad : null; }
+function pgPadActive() { const p = pgPad(); try { return !!(p && p.active()); } catch (e) { return false; } }
+function pgPadDrain() { const p = pgPad(); if (p) for (const b of PG_PADB) p.pressed(b); }
+function pgRumble(k) { const p = pgPad(); try { if (p) p.rumble(k); } catch (e) {} }
+function pgPadFrame() {
+  const p = pgPad(); if (!p) return;
+  const g = p.get(), h = g.held;   // get() d'abord : il libère le A tenu au lancement
+  const a = p.pressed('a'); pgPadDrain();
+  const want = !!(h.a || h.rt || h.up || g.ly < -0.5);
+  if (pgPadBlock) { if (want) return; pgPadBlock = false; }                // le A de « Reprendre » : attendre qu'il soit relâché
+  if (state === 'paused') {
+    pgPadHeld = false;
+    const on = pgPadActive();
+    if (on !== pgPadHintOn) {     // « Touche n'importe où pour reprendre » → « (A) pour reprendre » à la manette
+      pgPadHintOn = on; const el = $('paused') && $('paused').querySelector('.hint');
+      if (el) { el.textContent = ''; if (on) el.append(p.chip('a'), ' pour reprendre.'); else el.textContent = 'Touche n\'importe où pour reprendre.'; }
+    }
+    if (a && !pgPadBorne) { pgPadBlock = true; resume(); }
+    return;
+  }
+  const fly = state === 'play' && want;
+  if (fly !== pgPadHeld) { pgPadHeld = fly; if (fly) setHold(true); else if (thrustPointer === null) setHold(false); }
+}
+// « Let's go » des premiers niveaux, à la manette : (A) MAINTIENS POUR VOLER
+function pgPadHint(x, y) {
+  const p = pgPad(); if (!p || level > 2 || !pgPadActive()) return;
+  ctx.font = '600 12px ' + getComputedStyle(document.body).fontFamily;
+  const txt = 'MAINTIENS POUR VOLER', tw = ctx.measureText(txt).width, r = 10, x0 = x - (tw + 2 * r + 8) / 2;
+  ctx.fillStyle = 'rgba(11,20,28,.78)'; rr(x0 - 8, y - 15, tw + 2 * r + 24, 30, 15); ctx.fill();
+  p.drawGlyph(ctx, 'a', x0 + r, y, r);
+  ctx.fillStyle = COL.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x0 + 2 * r + 8, y + 1);
+  ctx.textAlign = 'center';
+}
+const pgHit0 = hit;
+hit = function (kind, obj) {
+  const sh = P.shield, lv = P.lives, al = P.alive;
+  const r = pgHit0.apply(this, arguments);
+  if (al && P.alive && (sh !== P.shield || lv !== P.lives)) pgRumble('hit');
+  return r;
+};
+const pgBossDie0 = bossDie;
+bossDie = function () { pgRumble('big'); return pgBossDie0.apply(this, arguments); };
 window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.pleingaz = {
   id: 'pleingaz', title: 'Plein Gaz', accent: '#ffa630', scoreLabel: 'm', external: 'jdw-pg',
   tagline: "Pilote ton jet dans l'usine, esquive les obstacles et bats un boss à chaque niveau.",
+  // manette (CONTRACT.md Ajout 10) : commandes montrées par la borne (carte Pause, début de partie)
+  pad: { help: [['a/rt', 'Maintenir : le jet monte'], ['a', 'Relâcher : il redescend'], ['ls/up', 'Monter aussi']] },
   preview: pgPreview,
   setMuted(m) { muted = m; if (master) master.gain.value = m ? 0 : 0.5; },
   mount(root, api) {
     PG_API = api; PG_ACTIVE = true;
+    pgPadHeld = pgPadBorne = false; pgPadBlock = true; pgPadHintOn = null;   // le A qui a lancé la partie ne fait pas décoller
     PG_HEADS = (api.heads && api.heads()) || [];
     PG_PILOT_IMG = api.player && api.player.img ? pgHelmetize(api.player.img) : null;
     muted = api.isMuted();
@@ -189,8 +239,11 @@ window.JDW_GAMES.pleingaz = {
     return {
       currentScore() { return state === 'play' || state === 'paused' ? score() : 0; },   // bouton Quitter
       currentLevel() { return level; },                                                  // musique plus énergique aux niveaux difficiles
+      // carte Pause de la borne (Start de la manette) : notre pause, sans relancer une partie finie
+      pause() { if (state === 'play') { pgPadBorne = true; pause(); } },
+      resume() { pgPadBorne = false; pgPadBlock = true; pgPadDrain(); if (state === 'paused') resume(); },
       destroy() {
-        PG_ACTIVE = false; PG_API = null; pgSeed = pgRng = null;
+        PG_ACTIVE = false; PG_API = null; pgSeed = pgRng = null; pgPadHeld = false;
         holding = false; thrustPointer = null; setThrustSound(false);
         state = 'menu'; introT = 0;
         ['hud', 'paused', 'over', 'banner', 'menu'].forEach(id => { const el = $(id); if (el) el.hidden = true; });

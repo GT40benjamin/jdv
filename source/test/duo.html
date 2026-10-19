@@ -39,6 +39,7 @@ body.land .res > div:first-child{display:none}
   <span class="pill p0" id="pill0">0</span><span class="pill p1" id="pill1">0</span>
   <button class="menu" id="menu" type="button" aria-label="Pause">II</button>
 </div>
+<script src="../manette.js"></script>
 <script>
 // paramètres : ?g=<id> &heads (fausses têtes) &guest (joueur 1 sans tête) &noassets (sans images ILO) &fast (temps accéléré)
 // jeu en ligne (page duo-net.html) : &net=host|guest &epoch=<ms> &rtt=<ms> — les messages passent par la page parente (faux réseau)
@@ -194,6 +195,11 @@ document.write('<script src="../duos/' + GID + '.js"><\/script>');
       document.getElementById('menu').textContent = duo.paused ? '▶' : 'II';
     }
   });
+  // manettes (CONTRACT.md « Ajout 10 ») : 1re manette = joueur du bas, 2e = joueur du haut ; &pad1 = une seule manette, en haut ;
+  // contre l'IA / en ligne : toutes pour mon joueur ; &padinv (ou invité en ligne) = joueur du haut assis en face (sticks retournés)
+  if (window.JDW_PAD) api.pad = JDW_PAD.gameApi({ players: 2,
+    slots: p => { const L = JDW_PAD.pads(); if (AI || NETROLE) return p === (NETROLE === 'guest' ? 1 : 0) ? L : []; if (L.length === 1) return p === (Q.has('pad1') ? 1 : 0) ? L : []; return L[p] ? [L[p]] : []; },
+    invert: p => p === 1 && D.layout !== 'landscape' && (Q.has('padinv') || NETROLE === 'guest') });
   duo.api = api;
   try { duo.inst = D.mount(document.getElementById('root'), api) || {}; } catch (e) { duo.errors.push('mount : ' + e.message); }
   document.getElementById('menu').addEventListener('click', () => {

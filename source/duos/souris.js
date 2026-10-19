@@ -3029,10 +3029,19 @@
         : ['Glisse ton doigt pour courir. Les petits trous sont réservés à la souris !',
           'Fonce en ligne droite : tout près d’elle, tu bondis !',
           S.M.doors.length ? 'Attention, les portes s’ouvrent et se ferment !' : 'Coupe-lui la route aux carrefours !'];
-      const info = AIP && p === AIP.p ? AI_TIP[aiLevel()] : tips[Math.min(2, S.round - 1)];
+      let info = AIP && p === AIP.p ? AI_TIP[aiLevel()] : tips[Math.min(2, S.round - 1)];
       const ip = Math.round(Math.min(14, ch * 0.075));
-      const lines = wrap(info, tw, ip, true).slice(0, 3);
-      for (let i = 0; i < lines.length; i++) txt(lines[i], tx, y0 + 46 + t1 + t2 * 1.1 + ip * 1.3 * (i + 1), ip, '#a9c2d4', 'left', true, 0);
+      let ly = y0 + 46 + t1 + t2 * 1.1, nl = 3;
+      if (!(AIP && p === AIP.p) && padShow(p)) {          // à la manette : stick / croix au lieu du doigt
+        info = info.replace(/^Glisse ton doigt pour courir\. ?/, '');
+        ly += ip * 1.3; nl = 2;
+        const r = ip * 0.82, gy = ly - ip * 0.36;
+        try { PAD.drawGlyph(ctx, 'ls', tx + r, gy, r, p); PAD.drawGlyph(ctx, 'dpad', tx + r * 3.9, gy, r, p); } catch (e) { /* rien */ }
+        txt('/', tx + r * 2.45, ly, ip, '#a9c2d4', 'center', true, 0);
+        txt(S.round === 1 ? 'pour courir' : 'courir', tx + r * 5.2, ly, ip, '#ffffff', 'left', true, 0);
+      }
+      const lines = wrap(info, tw, ip, true).slice(0, nl);
+      for (let i = 0; i < lines.length; i++) txt(lines[i], tx, ly + ip * 1.3 * (i + 1), ip, '#a9c2d4', 'left', true, 0);
       ctx.restore();
       ctx.globalAlpha = 1;
     }
@@ -3128,7 +3137,7 @@
           bannerRoles('SUPER-SOURIS !', ACCENT, 'FUIS, TU AS PEUR !', '#9fdcff');
           break;
         case 'superend': SFX.superEnd(); if (c.st === 'play') bannerRoles('FIN DU POUVOIR !', '#ffffff', 'À TOI DE JOUER !', '#ffffff'); break;
-        case 'pounce': SFX.pounce(); dust(c.x - DX[c.face] * 0.4, c.y - DY[c.face] * 0.4, 6, 1.6); VC.sq = 1; break;
+        case 'pounce': SFX.pounce(); dust(c.x - DX[c.face] * 0.4, c.y - DY[c.face] * 0.4, 6, 1.6); VC.sq = 1; rumble('tick', S.mouseP); break;
         case 'miss': SFX.miss(); dust(c.x, c.y, 8, 1.8); shake = Math.max(shake, 0.15); bannerRoles('OUF !', '#7dff9a', 'RATÉ !', '#ff8fa3'); break;
         case 'bonk':
           SFX.bonk(); vibrate(60); shake = Math.max(shake, 0.6); flash = 0.25; flashCol = '#ffffff';
@@ -3152,11 +3161,31 @@
         default: break;
       }
     }
+    // manette (api.pad, CONTRACT.md « Ajout 10 ») : stick gauche ou croix = la direction voulue, comme le joystick sous le doigt
+    // (la direction principale + la secondaire pour tourner au prochain carrefour) ; lâché, le personnage garde sa dernière
+    // direction (comme quand le doigt se lève). Joueur du haut assis en face : la bibliothèque retourne déjà son stick.
+    const PAD = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    const PADD = [{ dir: -1, dir2: -1 }, { dir: -1, dir2: -1 }];
+    function padDir(p) {
+      if (!PAD || (AIP && p === AIP.p) || (NET && p !== ME)) return null;
+      let g = null;
+      try { g = PAD.get(p); } catch (e) { g = null; }
+      if (!g || !g.on) return null;
+      const mx = g.mx || 0, my = g.my || 0, ax = Math.abs(mx), ay = Math.abs(my);
+      if (Math.hypot(mx, my) < 0.4) return null;
+      const o = PADD[p];
+      if (ax >= ay) { o.dir = mx > 0 ? 0 : 2; o.dir2 = ay > ax * 0.42 ? (my > 0 ? 1 : 3) : -1; }
+      else { o.dir = my > 0 ? 1 : 3; o.dir2 = ax > ay * 0.42 ? (mx > 0 ? 0 : 2) : -1; }
+      return o;
+    }
+    function padShow(p) { try { return !!PAD && PAD.active() && PAD.any(p); } catch (e) { return false; } }
+    function rumble(kind, p) { try { if (PAD && PAD.rumble && !(AIP && p === AIP.p)) PAD.rumble(kind, p); } catch (e) { /* rien */ } }
     function computeInputs() {
       for (let p = 0; p < 2; p++) {
-        const I = INP[p], j = joy[p], e = entOf(p), kh = keys[p];
+        const I = INP[p], j = joy[p], e = entOf(p), kh = keys[p], g = padDir(p);
         I.want = -1; I.want2 = -1;
         if (j && j.dir >= 0) { I.want = j.dir; I.want2 = j.dir2; queued[p] = j.dir; }
+        else if (g) { I.want = g.dir; I.want2 = g.dir2; queued[p] = g.dir; }
         else if (kh.length) { I.want = kh[kh.length - 1]; I.want2 = kh.length > 1 ? kh[kh.length - 2] : -1; queued[p] = I.want; }
         else if (queued[p] >= 0) {
           if (e && e.dir === queued[p]) queued[p] = -1;
@@ -4052,6 +4081,8 @@
     layout: 'shared',
     net: true,                  // sait jouer EN LIGNE (chacun sur son téléphone, voir « jeu EN LIGNE » dans mount)
     ai: true,                   // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
+    // manette (CONTRACT.md « Ajout 10 ») : schéma des commandes montré par la borne (carte de pause, début de partie)
+    pad: { help: [['ls/dpad', 'Courir (chat ou souris)'], ['ls', 'En diagonale : tourne au prochain carrefour'], ['ls', 'Lâché : continue tout droit']], intro: false },
     preview,
     mount
   };

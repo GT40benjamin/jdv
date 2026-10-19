@@ -1881,7 +1881,7 @@ void main(){
       G.tension = mp;
       if (mp) { const beat = (k) => { if (E.phase === 'serve' && G.tension && !G.over && k < 6) { tone(62, 0.12, 'sine', 0.09, 48); after(0.16, () => tone(58, 0.1, 'sine', 0.06, 46)); after(0.85, () => beat(k + 1)); } }; after(0.6, () => beat(0)); }
       if (mp && G.mpSaid !== G.n) { G.mpSaid = G.n; board('BALLE DE MATCH', '#ff5fae', 2.2); V.wave = [0.8, V.time, 1, 0]; }
-      if (srv === ME) prompt('À toi de servir !', G.hitsMe < 3 ? 'Glisse vers le haut ou le bas · touche = service simple' : '');
+      if (srv === ME) prompt('À toi de servir !', G.hitsMe < 3 ? (padOn() ? gn('y') + ' lifté · ' + gn('x') + ' coupé · ' + gn('a') + ' service simple' : 'Glisse vers le haut ou le bas · touche = service simple') : '', padOn());
       else prompt('', '');
     }
     // heure de ma frappe (en ligne) : si mon affichage a gardé du retard (une balle reçue en retard), la frappe part « maintenant »
@@ -2113,6 +2113,7 @@ void main(){
       sndBudget = 0;
       V.time += dt; V.rdt = dt;
       runLater();
+      padTick();
       let sdt = dt;
       if (V.hitStop > 0) { V.hitStop -= dt; sdt = 0; }
       if (resumeT > 0) {
@@ -2242,7 +2243,7 @@ void main(){
       // les premiers échanges du premier match : on dit QUAND glisser
       if (tuto && !tuto.block && !BOT && E.phase === 'rally' && CAM.mode === 'play') {
         const on = !!(w && tau >= w.t0 - 0.28 && tau <= w.t1);
-        if (on !== !!tuto.hint) { tuto.hint = on; prompt(on ? 'Glisse maintenant !' : '', on ? 'quand l\'anneau se resserre sur la balle' : ''); }
+        if (on !== !!tuto.hint) { tuto.hint = on; prompt(on ? (padOn() ? 'Frappe maintenant !' : 'Glisse maintenant !') : '', on ? (padOn() ? gn('a') + ', ' + gn('y') + ' ou ' + gn('x') + ' quand l\'anneau se resserre' : 'quand l\'anneau se resserre sur la balle') : '', padOn()); }
       }
       // raquettes
       for (const p of [0, 1]) padVisual(p, tau, dt);
@@ -2423,18 +2424,31 @@ void main(){
       card.appendChild(el('p', null, 'Ta raquette va toute seule vers la balle. Toi, tu frappes au bon moment, quand l\'anneau se resserre !'));
       const ul = el('ul');
       const li = (cls, html) => { const l = el('li'); const g = el('div', 'pp-g ' + cls); g.appendChild(el('i')); const t = el('span'); t.innerHTML = html; l.append(g, t); ul.appendChild(l); };
-      li('tp', '<b>Touche</b> l\'écran : renvoi simple et sûr');
-      li('up', '<b>Glisse vers le haut</b> : coup lifté, rapide (plus vite = plus fort)');
-      li('dn', '<b>Glisse vers le bas</b> : coupé, lent et qui reste bas');
-      li('cv', '<b>Penche ou courbe</b> ton geste : vise à gauche / à droite, effet de côté');
-      li('sm', '<b>Balle haute</b> + glisse très vite vers le haut : <b>SMASH !</b>');
+      // à la manette : les boutons, dessinés avec les glyphes de SA manette (Xbox A B X Y, PlayStation ✕ ○ □ △)
+      const lg = (btns, html) => { const l = el('li'); const g = el('div', 'pp-g'); g.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:1px'; for (const b of btns) g.appendChild(glyCv(b, btns.length > 1 ? 21 : 32)); const t = el('span'); t.innerHTML = html; l.append(g, t); ul.appendChild(l); };
+      const pad = padOn();
+      if (pad) {
+        lg(['a'], '<b>Renvoi simple</b> et sûr (sert aussi)');
+        lg(['y'], '<b>Lifté</b> : rapide · tiens ' + gn('rt') + ' pour frapper plus fort');
+        lg(['x'], '<b>Coupé</b> : lent et qui reste bas');
+        lg(['b'], '<b>Balle haute</b> : frappe à fond, <b>SMASH !</b>');
+        lg(['ls'], '<b>Vise</b> à gauche / à droite · ' + gn('lb') + ' / ' + gn('rb') + ' tenus : effet de côté');
+        lg(['rs'], '<b>Lance le stick</b> comme tu glisses le doigt (haut lifté, bas coupé)');
+      } else {
+        li('tp', '<b>Touche</b> l\'écran : renvoi simple et sûr');
+        li('up', '<b>Glisse vers le haut</b> : coup lifté, rapide (plus vite = plus fort)');
+        li('dn', '<b>Glisse vers le bas</b> : coupé, lent et qui reste bas');
+        li('cv', '<b>Penche ou courbe</b> ton geste : vise à gauche / à droite, effet de côté');
+        li('sm', '<b>Balle haute</b> + glisse très vite vers le haut : <b>SMASH !</b>');
+      }
       card.appendChild(ul);
       const bt = el('button', null, 'C\'est parti !'); bt.type = 'button';
+      if (pad) { const gc = glyCv('a', 24); gc.style.cssText += ';vertical-align:-6px;margin:-4px 8px -4px -6px'; bt.insertBefore(gc, bt.firstChild); }
       const go = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } tutoClose(); };
       bt.addEventListener('click', go); bt.addEventListener('pointerdown', (e) => e.stopPropagation());
       card.appendChild(bt);
       hud.appendChild(card);
-      tuto = { card, block: true, n: 0 };
+      tuto = { card, block: true, n: 0, pad };
     }
     function tutoClose() {
       if (!tuto || !tuto.block) return;
@@ -2478,6 +2492,7 @@ void main(){
     function onDown(e) {
       if (destroyed || (e.button != null && e.button > 0)) return;
       DOWNS.push(Math.round(e.clientY)); if (DOWNS.length > 30) DOWNS.shift();
+      if (e.isTrusted !== false) PADF.used = false;   // le doigt reprend la main : aides au doigt
       if (tuto && tuto.block) return;
       if (SWP.id !== -1) return;
       if (e.cancelable) e.preventDefault();
@@ -2514,6 +2529,58 @@ void main(){
       else if (k === 'ArrowUp' || k === 'z' || k === 'w') { stroke({ kind: 'top', aim, power: e.shiftKey ? 0.88 : 0.46, curve: 0 }); e.preventDefault(); }
       else if (k === 'ArrowDown' || k === 's') { stroke({ kind: 'back', aim, power: e.shiftKey ? 0.8 : 0.45, curve: 0 }); e.preventDefault(); }
     }
+    // ---------------------------------------------------------------------------------------------------
+    // MANETTE (CONTRACT.md « Ajout 10 », DUO-CONTRACT.md « la manette dans les duels ») : mes coups passent par stroke(), comme le doigt
+    // et le clavier (donc aussi en ligne). Stick gauche = viser à gauche / à droite ; A = renvoi simple (et service simple), Y = lifté,
+    // X = coupé, B = frappe à fond (SMASH sur une balle haute), RT = plus fort, LB / RB tenus = effet à gauche / à droite ; stick droit
+    // LANCÉ d'un coup = un glissé du doigt (haut lifté, bas coupé, de côté, plus vif = plus fort). Contre l'IA / en ligne, la borne donne
+    // toutes les manettes à MON joueur. L'invité : la borne retourne ses sticks (écran tourné) mais la boîte du jeu est remise droite
+    // (FLIP) : on les remet dans son repère.
+    // ---------------------------------------------------------------------------------------------------
+    const PADX = api.pad && typeof api.pad.get === 'function' && typeof api.pad.pressed === 'function' ? api.pad : null;
+    const PADSG = FLIP ? -1 : 1;
+    const PADF = { used: null, rs: false, rsT: 0 };
+    function padOn() { return !!PADX && PADX.any(ME) && (PADF.used === null ? PADX.active() : PADF.used); }
+    function padCurve(g) { return g.held.rb && !g.held.lb ? 0.8 : g.held.lb && !g.held.rb ? -0.8 : 0; }
+    function padStroke(kind, power, g) {
+      const lx = PADSG * g.lx, aim = Math.abs(lx) < 0.12 ? 0 : clamp(lx, -1, 1);
+      stroke({ kind, aim, power: clamp(power + 0.42 * g.rt, 0, 1), curve: padCurve(g), lead: 0 });
+    }
+    function padTick() {
+      if (!PADX) return;
+      const pa = PADX.pressed('a', ME), py = PADX.pressed('y', ME), px = PADX.pressed('x', ME), pb = PADX.pressed('b', ME);
+      const g = PADX.get(ME);
+      if (tuto && tuto.block && !!padOn() !== !!tuto.pad) { try { tuto.card.remove(); } catch (e) { /* rien */ } tutoShow(); }   // manette prise (ou posée) pendant le mode d'emploi
+      if (!g.on) return;
+      if (pa || py || px || pb || Math.hypot(g.rx, g.ry) > 0.5 || Math.hypot(g.lx, g.ly) > 0.5) PADF.used = true;
+      if (tuto && tuto.block) { if (pa) tutoClose(); return; }
+      if (pa) padStroke('tap', 0.5, g);
+      else if (py) padStroke('top', 0.48, g);
+      else if (px) padStroke('back', 0.45, g);
+      else if (pb) padStroke('top', 0.95, g);
+      // stick droit lancé = glissé : du repos (< 0,25) à fond (> 0,85) ; plus c'est vif, plus c'est fort
+      const rx = PADSG * g.rx, ry = PADSG * g.ry, m = Math.hypot(rx, ry), t = performance.now();
+      if (!PADF.rs) {
+        if (m < 0.25) PADF.rsT = 0;
+        else if (!PADF.rsT) PADF.rsT = t;
+        if (m > 0.85) {
+          PADF.rs = true;
+          const up = -ry, kind = Math.abs(up) >= 0.45 * Math.abs(rx) ? (up > 0 ? 'top' : 'back') : 'side';
+          const aim = kind === 'side' ? clamp(Math.sign(rx) * 0.6, -1, 1) : clamp(Math.atan2(rx, Math.abs(up) + 1e-6) / 0.62, -1, 1);
+          const power = clamp(1 - ((t - (PADF.rsT || t)) - 40) / 260, 0.25, 1);
+          stroke({ kind, aim, power: clamp(power + 0.3 * g.rt, 0, 1), curve: padCurve(g), lead: 0 });
+        }
+      } else if (m < 0.3) { PADF.rs = false; PADF.rsT = 0; }
+    }
+    function padDrain() { if (PADX) for (const b of ['a', 'b', 'x', 'y']) PADX.pressed(b, ME); }
+    // glyphe de la manette dans une petite toile (mode d'emploi)
+    function glyCv(btn, size) {
+      const c = document.createElement('canvas'), d = Math.min(2, window.devicePixelRatio || 1);
+      c.width = c.height = Math.round(size * d); c.style.cssText = 'position:static;display:inline-block;flex:none;width:' + size + 'px;height:' + size + 'px';
+      const x = c.getContext('2d'); x.scale(d, d); PADX.drawGlyph(x, btn, size / 2, size / 2, size * 0.42, ME);
+      return c;
+    }
+    const gn = (b) => (PADX ? PADX.glyph(b, ME) : b.toUpperCase());
 
     // ===================================================================================================
     // EN LIGNE : messages (tous fiables). Chacun envoie SES frappes ; le receveur dit s'il a raté ; l'hôte compte.
@@ -2686,7 +2753,7 @@ void main(){
     }
     function resume() {
       if (destroyed || !paused) return;
-      paused = false; last = -1;
+      paused = false; last = -1; padDrain();
       if (!G.over && G.started) resumeT = 1.8;
     }
     function destroy() {
@@ -3060,6 +3127,8 @@ void main(){
     title: 'Ping-pong',
     emoji: '🏓',
     tagline: 'Tennis de table en 3D : glisse pour frapper, lifte, coupe et smashe !',
+    // manette (CONTRACT.md « Ajout 10 ») : schéma montré par la borne (carte de pause, début de partie)
+    pad: { help: [['ls', 'Viser à gauche / à droite'], ['a', 'Renvoi simple, sûr'], ['y', 'Lifté (RT : plus fort)'], ['x', 'Coupé : lent, reste bas'], ['b', 'SMASH sur balle haute'], ['lb/rb', 'Effet à gauche / à droite'], ['rs', 'Lancer le stick = glisser']], intro: false },   // (le jeu montre déjà ses commandes avec les glyphes au début)
     accent: '#4f8cff',
     target: TARGET,
     winBy: WIN_BY,             // 11 points, mais 2 points d'écart (10-10 : on continue)

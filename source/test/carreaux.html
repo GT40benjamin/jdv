@@ -5,6 +5,7 @@
 <style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
 </head><body>
 <div id="root"></div>
+<script src="../manette.js"></script>
 <script src="../games/carreaux.js"></script>
 <script>
   // ?heads=0 → aucune tête ; sinon 3 fausses têtes avec leur version triste `sad` (fond transparent, ratio 0,8)
@@ -48,6 +49,7 @@
   if (qs.has('start')) api.startLevel = Number(qs.get('start'));
   if (qs.has('seed')) api.seed = Number(qs.get('seed'));
   window.__api = api;
+  if (window.JDW_PAD && !api.pad) api.pad = JDW_PAD.gameApi();   // manettes (CONTRACT.md Ajout 10)
   window.__game = window.JDW_GAMES.carreaux.mount(document.getElementById('root'), api);
 </script>
 </body></html>

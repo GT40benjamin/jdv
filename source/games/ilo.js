@@ -1503,6 +1503,29 @@
     const keys = { l: false, r: false, u: false, d: false };
     let dragDX = 0, dragDY = 0, mouseTX = -1, mouseTY = -1, shardRun = 0, shardRunT = 0;
     const KSPD = 255;
+    // ---- manette (api.pad, CONTRACT.md Ajout 10) : stick gauche analogique (vitesse proportionnelle, dans toutes les directions),
+    // croix à pleine vitesse, LT pour doser (vol précis), A / RT = HYPER, B / LB = bombe ; le tir reste automatique.
+    // En coop, api.pad.get(api.coop.me) pilote MON vaisseau (ME) ; l'invité en ligne prédit son vaisseau comme au doigt.
+    const GP = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    const GP_SPEED = 330;
+    let padS = null;
+    function padHit(b) { try { return !!GP.pressed(b, ME); } catch (e) { return false; } }
+    function padFlush() { if (GP) for (const b of ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt']) padHit(b); }
+    function padActive() { try { return !!(GP && GP.active()); } catch (e) { return false; } }
+    function padRumble(k) { try { if (GP) GP.rumble(k, ME); } catch (e) { /* rien */ } }
+    function padTick() {
+      padS = null;
+      if (!GP) return;
+      let g = null;
+      try { g = GP.get(ME); } catch (e) { g = null; }
+      if (!g || !g.on) return;
+      padS = g;
+      const hy = padHit('a') + padHit('rt'), bo = padHit('b') + padHit('lb');
+      padFlush();
+      if (state !== 'play') return;
+      if (hy) useHyper(P);
+      if (bo) useBomb(P);
+    }
     // salves selon la puissance : [décalage x, angle (degrés), sorte] — sorte : 0 tir, 1 lourd, 2 laser latéral, 3 plasma
     const VOL = [
       [[-4.5, 0, 0], [4.5, 0, 0]],
@@ -1573,6 +1596,13 @@
       } else {
         const kx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), ky = (keys.d ? 1 : 0) - (keys.u ? 1 : 0);
         if (kx || ky) { const n = kx && ky ? 0.7071 : 1; s.x += kx * n * KSPD * dt; s.y += ky * n * KSPD * dt; mouseTX = -1; }
+        else if (padS && s === P) {               // manette : la croix va à fond, le stick est proportionnel ; LT ralentit (vol précis)
+          const h = padS.held, mx = padS.mx, my = padS.my, m = Math.sqrt(mx * mx + my * my);
+          if (m > 0.01) {
+            const k = (h.left || h.right || h.up || h.down ? 1 : Math.pow(Math.min(1, m), 1.2)) / m * GP_SPEED * (1 - 0.6 * (padS.lt || 0));
+            s.x += mx * k * dt; s.y += my * k * dt; mouseTX = -1;
+          }
+        }
         if (dragDX || dragDY) { s.x += dragDX; s.y += dragDY; dragDX = dragDY = 0; }
         else if (mouseTX >= 0 && !kx && !ky) {
           const dx = mouseTX - s.x, dy = mouseTY - s.y, d = Math.sqrt(dx * dx + dy * dy), m = 640 * dt;
@@ -1640,7 +1670,7 @@
       freezeT = 0.08; shake = Math.max(shake, 10); flashA = 0.32; flashCol = '#ff3b5c';
       ring(s.x, s.y, 10, 110, 0.45, '#ff8fb0', 3);
       sparks(s.x, s.y, 18, GL.c, 220, 0.5, 8);
-      SFX.shield();
+      SFX.shield(); padRumble('hit');
       ftext(s.x, s.y - 36, 'BULLE PERDUE !', '#ff4d6d', 14, 1.3, -18, 0);
     }
     function killShip(s) {
@@ -1675,7 +1705,7 @@
       sparks(s.x, s.y, 40, GL.m, 400, 0.8, 10);
       part(s.x, s.y, 0, 0, 0.5, 60, 420, GL.m, true, 0);
       flashA = 0.6; flashCol = '#ffc4e4'; shake = Math.max(shake, 14); freezeT = 0.05;
-      SFX.bomb();
+      SFX.bomb(); if (s === P) padRumble('hit');
       ftext(LW / 2, LH * 0.45, 'BOMBE !', '#ff7ab8', 26, 0.9, -10, 0);
       netMute -= mu; if (mu) flashOwn = true;
     }
@@ -1933,7 +1963,7 @@
     function bubbleFx(s) {                       // (aussi rejoué chez l'invité)
       ring(s.x, s.y, 10, 110, 0.45, '#ff8fb0', 3);
       sparks(s.x, s.y, 18, s.i ? GL.o : GL.c, 220, 0.5, 8);
-      if (s === P) { freezeT = 0.08; shake = Math.max(shake, 10); flashA = 0.32; flashCol = '#ff3b5c'; flashOwn = true; }
+      if (s === P) { freezeT = 0.08; shake = Math.max(shake, 10); flashA = 0.32; flashCol = '#ff3b5c'; flashOwn = true; padRumble('hit'); }
       SFX.shield();
       ftext(s.x, s.y - 36, 'BULLE PERDUE !', '#ff4d6d', 14, 1.3, -18, 0);
     }
@@ -1953,7 +1983,7 @@
       ring(s.x, s.y, 8, 120, 0.6, s.col, 3);
       SFX.boom(); SFX.sad();
       const first = teamRescues === 0;              // la petite ligne d'explication : seulement tant que l'équipe n'a jamais sauvé personne
-      if (s === P) { freezeT = Math.max(freezeT, 0.1); shake = Math.max(shake, 14); flashA = 0.5; flashCol = '#ff3b5c'; flashOwn = true; banner('ÉPAVE !', first ? (other(s).ai ? 'Ton robot vient te chercher' : other(s).name + ' vient te chercher') : '', s.col, 2, 9); }
+      if (s === P) { padRumble('big'); freezeT = Math.max(freezeT, 0.1); shake = Math.max(shake, 14); flashA = 0.5; flashCol = '#ff3b5c'; flashOwn = true; banner('ÉPAVE !', first ? (other(s).ai ? 'Ton robot vient te chercher' : other(s).name + ' vient te chercher') : '', s.col, 2, 9); }
       else banner('SAUVE ' + s.name + ' !', first ? 'Reste sur son épave' : '', s.col, 2.2, 9);
     }
     function updCrew(dt) {
@@ -2117,6 +2147,7 @@
     function coopResume() {
       if (destroyed || !paused) return;
       paused = false; resumeT = state === 'play' ? 1.5 : 0;
+      padFlush();
       pauseBtn.innerHTML = ICON_PAUSE; pauseBtn.setAttribute('aria-label', 'Pause');
       last = 0; prevReal = 0;
       if (NETC) netResync();
@@ -3268,7 +3299,7 @@
           if (b.head && !(b.A && b.A.sadShown)) addFace(b.head, b.x, b.y + 20, SNIF(headName(b.head)), 96);
           if (b.head2 && !(b.Z && b.Z.sadShown)) addFace(b.head2, b.x + 60, b.y + 40, SNIF(headName(b.head2)), 80);
           if (hole && hole.boss) hole = null;
-          banner('BOSS VAINCU !', b.name, '#ffd34d', 2.6, 10);
+          banner('BOSS VAINCU !', b.name, '#ffd34d', 2.6, 10); padRumble('win');
           B = null;
           dir.phase = 'bossdead'; dir.t = 0;
         }
@@ -4153,6 +4184,37 @@
       if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = 'rgba(2,4,10,0.85)'; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
       ctx.fillStyle = col; ctx.fillText(s, x, y);
     }
+    // aides à la manette : pastille(s) du bouton (Xbox A B X Y LB RT…, PlayStation ✕ ○ □ △ L1 R2…) puis le texte (ligne de base de txt)
+    function padKeysW(keys, r) {
+      let w = 0;
+      for (const part of String(keys).split(/([/+])/)) {
+        if (!part) continue;
+        if (part === '/' || part === '+') { w += r * 1.1; continue; }
+        if (/^(a|b|x|y|ls|rs|dpad)$/.test(part)) { w += r * 2 + r * 0.25; continue; }
+        ctx.font = '700 ' + Math.round(r * 0.9) + 'px system-ui,sans-serif'; fontKey = '';
+        let lab = part; try { lab = GP.glyph(part, ME); } catch (e) { /* rien */ }
+        w += Math.max(r * 2, ctx.measureText(lab).width + r * 0.9) + r * 0.25;
+      }
+      return w;
+    }
+    function padKeys(keys, x, yc, r) {         // yc = centre vertical des pastilles
+      for (const part of String(keys).split(/([/+])/)) {
+        if (!part) continue;
+        if (part === '/' || part === '+') { txt(part, x + r * 0.55, yc + r * 0.4, Math.round(r * 1.1), 'rgba(255,255,255,0.7)', 'center', true, 0); x += r * 1.1; continue; }
+        const w = padKeysW(part, r);
+        try { GP.drawGlyph(ctx, part, x + (w - r * 0.25) / 2, yc, r, ME); } catch (e) { /* rien */ }
+        x += w;
+      }
+      fontKey = '';
+    }
+    function padRow(keys, text, x, y, px, col, stroke) {     // aligné à gauche à partir de x
+      const r = px * 0.8, kw = keys ? padKeysW(keys, r) + px * 0.35 : 0;
+      if (keys) padKeys(keys, x, y - px * 0.36, r);
+      txt(text, x + kw, y, px, col, 'left', true, stroke || 0);
+      return kw;
+    }
+    function padRowW(keys, text, px) { const kw = keys ? padKeysW(keys, px * 0.8) + px * 0.35 : 0; setFont(px, true); return kw + ctx.measureText(text).width; }
+    function padLine(keys, text, cx, y, px, col, stroke) { padRow(keys, text, cx - padRowW(keys, text, px) / 2, y, px, col, stroke); }
 
     // ------------------------------------------------------------- décor : étoiles, nébuleuse, planètes
     let SX = null, SY = null, SL = null, SP = null, starN = 0, bx0 = 0, bx1 = LW, by0 = 0, by1 = 620;
@@ -5101,7 +5163,14 @@
         ctx.save(); ctx.translate(cx, LH * 0.55); ctx.scale(sc, sc);
         txt(s, 0, 0, s === 'GO !' ? 48 : 40, s === 'GO !' ? '#46f08a' : '#ffffff', 'center', false, 7);
         ctx.restore();
-        if (stT < 0.75 && !CO) txt('Glisse le doigt, la souris ou utilise les flèches', cx, LH * 0.55 + 32, 11, '#cfe6f5', 'center', true, 3);
+        if (stT < 0.75 && !CO) {
+          if (padActive()) {                      // manette : piloter · bombe · HYPER, en une ligne
+            const it = [['ls', 'piloter'], ['b', 'bombe'], ['a', 'HYPER']], gap = 14;
+            let tw = -gap; for (const q of it) tw += padRowW(q[0], q[1], 11) + gap;
+            let x = cx - tw / 2;
+            for (const q of it) { padRow(q[0], q[1], x, LH * 0.55 + 34, 11, '#cfe6f5', 3); x += padRowW(q[0], q[1], 11) + gap; }
+          } else txt('Glisse le doigt, la souris ou utilise les flèches', cx, LH * 0.55 + 32, 11, '#cfe6f5', 'center', true, 3);
+        }
       }
       if (CO && (state === 'dying' || state === 'over')) drawOverCoop(cx);
       else if (state === 'dying' || state === 'over') {
@@ -5119,6 +5188,13 @@
       if (paused && !CO) {
         ctx.fillStyle = 'rgba(2,5,10,0.74)'; ctx.fillRect(0, 0, LW, LH);
         txt('PAUSE', cx, LH * 0.38, 40, '#38e1ff', 'center', false, 6);
+        if (padActive()) {
+          padLine('start', 'pour reprendre', cx, LH * 0.38 + 32, 14, '#ffffff', 3);
+          const rows = [['ls/dpad', 'piloter'], ['lt', 'vol précis (doux)'], ['b/lb', 'bombe'], ['a/rt', 'HYPER (jauge pleine)'], ['', 'le tir est automatique']];
+          let w = 0; for (const q of rows) w = Math.max(w, padRowW(q[0], q[1], 12));
+          for (let i = 0; i < rows.length; i++) padRow(rows[i][0], rows[i][1], cx - w / 2, LH * 0.38 + 76 + i * 23, 12, '#a9c2d4', 0);
+          return;
+        }
         txt('Touche pour reprendre', cx, LH * 0.38 + 30, 14, '#ffffff', 'center', true, 3);
         const lines = ['Doigt / souris : glisse pour piloter', 'Flèches, ZQSD ou WASD : piloter', 'Espace ou B : bombe', 'Maj ou H : HYPER (jauge pleine)', 'P ou Échap : pause'];
         for (let i = 0; i < lines.length; i++) txt(lines[i], cx, LH * 0.38 + 70 + i * 19, 11.5, '#a9c2d4', 'center', true, 0);
@@ -5161,10 +5237,19 @@
         if (r[4] >= 0) { ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(rx + 78, y + 5, r[2] * 17 - 4, 3); ctx.fillStyle = r[3]; ctx.fillRect(rx + 78, y + 5, (r[2] * 17 - 4) * r[4], 3); }
       }
       const hy = 72 + 5 * 30 + 4;
-      ctx.font = '600 13px ' + FB; ctx.fillStyle = '#ffb3e6'; ctx.fillText(P.hyperT > 0 ? 'HYPER EN COURS !' : P.hyper >= 1 ? 'HYPER PRÊT (Maj)' : 'Jauge HYPER', rx, hy);
+      const padOn = padActive();
+      ctx.font = '600 13px ' + FB; ctx.fillStyle = '#ffb3e6'; ctx.fillText(P.hyperT > 0 ? 'HYPER EN COURS !' : P.hyper >= 1 ? (padOn ? 'HYPER PRÊT' : 'HYPER PRÊT (Maj)') : 'Jauge HYPER', rx, hy);
+      if (padOn && P.hyperT <= 0 && P.hyper >= 1) { try { GP.drawGlyph(ctx, 'a', rx + ctx.measureText('HYPER PRÊT').width + 14, hy - 4.5, 8.5, ME); } catch (e) { /* rien */ } }
       if (P.shield <= 0) { ctx.font = '600 12px ' + FB; ctx.fillStyle = '#ff8fa3'; ctx.fillText(CO ? 'Sans bulle : un coup = épave' : 'Sans bulle : un coup = détruit', rx, hy + 36); }
       ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(rx, hy + 8, Math.min(pw, 190), 6);
       ctx.fillStyle = '#ff3fb4'; ctx.fillRect(rx, hy + 8, Math.min(pw, 190) * (P.hyperT > 0 ? P.hyperT / 6 : P.hyper), 6);
+      if (padOn) {
+        const rows = [['ls/dpad', 'piloter'], ['lt', 'vol précis (doux)'], ['b/lb', 'bombe'], ['a/rt', 'HYPER'], ['start', 'pause']];
+        fontKey = '';
+        for (let i = 0; i < rows.length && (!CO || ch >= 520); i++) padRow(rows[i][0], rows[i][1], rx, Math.max(hy + 60, ch - 210) + i * 22, 12, '#9fb4c4', 0);
+        fontKey = '';
+        return;
+      }
       const help = ['Flèches / ZQSD / WASD : piloter', 'Souris : suivre ou glisser', 'Espace ou B : bombe', 'Maj ou H : HYPER', 'P ou Échap : pause'];
       ctx.font = '600 12px ' + FB; ctx.fillStyle = '#7f95a6';
       for (let i = 0; i < help.length && (!CO || ch >= 520); i++) ctx.fillText(help[i], rx, Math.max(hy + 60, ch - 200) + i * 19);
@@ -5387,10 +5472,27 @@
       }
       updateButtons();
     }
+    let padShown = '';
+    const bombPad = document.createElement('canvas'), hyperPad = document.createElement('canvas');
+    for (const c of [bombPad, hyperPad]) c.style.cssText = 'position:absolute;right:-7px;top:-7px;width:24px;height:24px;pointer-events:none;display:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7));';
+    hyperBtn.appendChild(hyperPad);
+    function padBadges() {                       // la pastille de la manette sur BOMBE (B / ○) et HYPER (A / ✕), seulement à la manette
+      const on = padActive(), key = on ? (GP.kind(ME) || 'xbox') : '';
+      if (key === padShown) return;
+      padShown = key;
+      for (const [c, b] of [[bombPad, 'b'], [hyperPad, 'a']]) {
+        c.style.display = on ? 'block' : 'none';
+        if (!on) continue;
+        c.width = c.height = 48; const g = c.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 24, 24);
+        try { GP.drawGlyph(g, b, 12, 12, 10.5, ME); } catch (e) { /* rien */ }
+      }
+    }
     function updateButtons() {
+      if (GP) padBadges();
       if (P.bombs !== bombShown) {
         bombShown = P.bombs;
         bombBtn.innerHTML = ICON_BOMB + '<span>×' + P.bombs + '</span>';
+        bombBtn.appendChild(bombPad);
         bombBtn.style.opacity = P.bombs > 0 ? '1' : '0.45';
       }
       const hv = Math.round((P.hyperT > 0 ? P.hyperT / 6 : P.hyper) * 40) / 40;
@@ -5414,7 +5516,8 @@
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
       if (paused) { if ((pausedFrames++ % 12) === 0) render(); return; }
-      if (CO && resumeT > 0) { resumeT -= dt; render(); return; }   // « 3, 2, 1 » après la pause commune
+      if (CO && resumeT > 0) { resumeT -= dt; padFlush(); render(); return; }   // « 3, 2, 1 » après la pause commune
+      padTick();
       if (onFrame) { try { onFrame(dt); } catch (e) { /* rien */ } }
       const t0 = performance.now();
       update(dt);
@@ -5441,6 +5544,7 @@
       paused = p;
       keys.l = keys.r = keys.u = keys.d = false;
       drag = null; dragDX = dragDY = 0; mouseTX = -1;
+      padFlush();
       pauseBtn.innerHTML = paused ? ICON_PLAY : ICON_PAUSE;
       pauseBtn.setAttribute('aria-label', paused ? 'Reprendre' : 'Pause');
       last = 0; prevReal = 0; pausedFrames = 0;
@@ -6023,7 +6127,7 @@
       ring(s.x, s.y, 10, Math.max(LW, LH) * 1.1, 0.8, '#ffb3d0', 6); ring(s.x, s.y, 6, LW * 0.7, 0.55, '#ffffff', 3);
       sparks(s.x, s.y, 40, GL.m, 400, 0.8, 10); part(s.x, s.y, 0, 0, 0.5, 60, 420, GL.m, true, 0);
       flashA = 0.6; flashCol = '#ffc4e4'; shake = Math.max(shake, 14);
-      SFX.bomb();
+      SFX.bomb(); padRumble('hit');
       ftext(LW / 2, LH * 0.45, 'BOMBE !', '#ff7ab8', 26, 0.9, -10, 0);
     }
     function guestHyper(s) {
@@ -6256,6 +6360,10 @@
       }
     };
     if (CO) { inst.pause = coopPause; inst.resume = coopResume; inst.coopStats = coopStats; }
+    else {                                       // carte Pause de la borne (bouton Start de la manette)
+      inst.pause = () => { if (!destroyed && !paused && state !== 'over') setPaused(true); };
+      inst.resume = () => { if (!destroyed && paused) setPaused(false); };
+    }
     return inst;
   }
 
@@ -6268,6 +6376,11 @@
     scoreLabel: 'points',
     preview,
     mount,
+    // commandes à la manette (CONTRACT.md Ajout 10) : carte Pause de la borne et début des 3 premières parties ; coopHelp à deux
+    pad: {
+      help: [['ls/dpad', 'Piloter (le tir est automatique)'], ['lt', 'Vol précis : doser la vitesse'], ['a/rt', 'HYPER (jauge pleine)'], ['b/lb', 'Bombe']],
+      coopHelp: [['ls/dpad', 'Piloter · sur son épave = le sauver'], ['lt', 'Vol précis : doser la vitesse'], ['a/rt', 'HYPER (à deux : HYPER DUO)'], ['b/lb', 'Bombe']]
+    },
     // mode Coop (COOP-CONTRACT.md) : « Galaxy Wars à deux », avec le robot ailier ou un copain en ligne
     coop: {
       ai: true, online: true, title: 'Galaxy Wars à deux', short: 'Galaxy Wars', emoji: '🚀',

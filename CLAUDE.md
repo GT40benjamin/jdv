@@ -470,6 +470,22 @@ Barre en bas de l'accueil : **Classique** (la page normale), **Duel**, **Coop** 
   `test-watch.js`, `test-watch-tile.js` (les pages de test redirigent le WebSocket) ; `test-duel.js` (faux duels) ; `~/jdv-tools/tbuild.sh`
   construit le site de test (SKIP_GAMES=… pour exclure des jeux).
 
+## Manette (Xbox, PlayStation, manettes génériques ; octobre 2026)
+`source/manette.js` (+ `manette.css`, inclus par build2.py avant shell2.js) = `window.JDW_PAD` : API Gamepad du navigateur (PC, Chrome
+d'Android, WebView de l'appli), sorte de manette (Xbox / PlayStation / Nintendo / autre) et glyphes (A B X Y ou ✕ ○ □ △, puces DOM et
+`drawGlyph` pour les canvas), `gameApi()` = `api.pad` des jeux (CONTRACT.md « Ajout 10 », DUO-CONTRACT.md « la manette dans les duels »),
+navigation de TOUTE la borne (focus doré `.jdw-padfocus` : croix / stick gauche, A valider, B retour (même chemin que le retour
+d'Android : `jdwBack`, doublon B + retour d'Android évité), LB / RB et gâchettes = onglets puis modes Classique / Duel / Coop, stick droit
+= défiler, Y sur une tuile = sa carte d'avancement, X = « 👁 Voir »), vibrations (⚙ Son : « Vibrations de la manette », `jdw.padvib`).
+Section « Manette » de shell2.js (juste après l'audio) : `padCapturing` (la manette est au jeu quand rien n'est par-dessus), carte Pause
+des jeux solo `#jdw-padpause` (Start : commandes `g.pad.help`, Reprendre, Quitter ; appelle `pause()` / `resume()` du jeu, puis
+`api.pad.flush()`), carte « Commandes » au début des 3 premières parties à la manette `#jdw-padintro` (`pad.intro: false | 'ready'`),
+places des manettes en Duel `#jdw-padseats` (2 manettes = 2 joueurs, 1 manette + doigt : côté choisi `jdw.padside`, `jdw.padswap`),
+duel sur le même écran sur PC dès qu'une manette est branchée (`duelLocalOK`). Le hub de Pégase est navigué comme une page (`PAD_DOM`).
+Mandale Kombat : le moteur emballé lit encore lui-même la manette ; patch du moteur prêt (atelier, voir ~/jdv-tools/duotest/manette/kombat/).
+Essais sans vraie manette : `~/jdv-tools/duotest/manette/tests/` (vpad.js = manette virtuelle Playwright ; test-nav.js, test-jeux.js,
+hub.js, et a/ b/ c/ d/ e/ par groupe de jeux).
+
 ## Musiques de la collection (Asset Store)
 `source/pack-music.js` : WAV de « Ultimate Game Music Collection » (projet Unity ILO) → volume égalisé → AAC (encodeur WebCodecs de Chrome,
 pas besoin de ffmpeg) → EMBALLÉ (clé source/asset-key.txt) → `assets/music/<id>.bin` (même sel pour tous : `source/music-salt.hex`). `d<duel>-<n>` / `d<duel>-x<n>`

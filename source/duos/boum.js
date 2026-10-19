@@ -3224,6 +3224,7 @@
             ring(e.x, e.y, 0.2, 1.3, 0.4, I.col, 0.12);
             sparks(e.x, e.y, 12, F.it[e.it], 3.5, 0.6, 0.22);
             pop(I.label, e.x, e.y, e.p, I.col, 1, 1.3);
+            rumble('tick', e.p);                   // bonus ramassé : petit tic dans SA manette
             break;
           }
           case 'push': SFX.push(); ring(e.x, e.y, 0.3, 0.8, 0.22, '#ff9ae4', 0.08); break;
@@ -3824,12 +3825,16 @@
         act = true;
         bx = p ? W - st.bx : st.bx; by = p ? H - st.by : st.by; kx = p ? W - st.kx : st.kx; ky = p ? H - st.ky : st.ky;
       } else {
-        const kv = NETAPI ? kbNet() : kbVec(p);
-        if (kv[0] || kv[1]) { const l = Math.hypot(kv[0], kv[1]); kx = bx + (p ? -1 : 1) * kv[0] / l * ctl.R * 0.6; ky = by + (p ? -1 : 1) * kv[1] / l * ctl.R * 0.6; }
+        const gv = padVec(p), kv = gv || (NETAPI ? kbNet() : kbVec(p));
+        if (kv[0] || kv[1]) { const l = gv ? 1 : Math.hypot(kv[0], kv[1]); kx = bx + (p ? -1 : 1) * kv[0] / l * ctl.R * 0.6; ky = by + (p ? -1 : 1) * kv[1] / l * ctl.R * 0.6; }
       }
       drawInfo(p);
       drawBombBtn(p);
       drawStick(p, bx, by, kx, ky, act);
+      if (padShow(p)) {                            // à la manette : les boutons sur les commandes de l'écran
+        const gr = clamp(ctl.RB * 0.27, 9, 15), sr = clamp(ctl.R * 0.27, 9, 15);
+        try { PAD.drawGlyph(ctx, 'a', ctl.bx + ctl.RB * 0.74, ctl.by - ctl.RB * 0.74, gr, p); PAD.drawGlyph(ctx, 'ls', bx - ctl.R * 0.74, by - ctl.R * 0.74, sr, p); } catch (e) { /* rien */ }
+      }
       ctx.restore();
     }
     // en ligne : petite rangée de pouvoirs (comme dans drawInfo)
@@ -4174,16 +4179,40 @@
     }
     function onKeyUp(e) { keys.delete(String(e.key || '').toLowerCase()); }
     function onBlur() { keys.clear(); }
+    // ----------------------------------------------------------------- manette (api.pad, CONTRACT.md « Ajout 10 »)
+    // Stick gauche ou croix = marcher (le jeu aligne tout seul sur la grille, comme avec le joystick sous le doigt), A (ou B) =
+    // poser une bombe. Lue à chaque image, au même endroit que les doigts. Joueur du haut assis en face (ou invité en ligne) :
+    // la bibliothèque retourne déjà son stick dans le repère du jeu. Contre l'IA / en ligne : seul MON joueur a une manette.
+    const PAD = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    function padMine(p) { return !!PAD && !(AIP && p === AIP.p) && (!NETAPI || p === ME); }
+    function padVec(p) {                           // direction de la manette du joueur p (repère du jeu), ou null
+      if (!padMine(p)) return null;
+      let g = null;
+      try { g = PAD.get(p); } catch (e) { g = null; }
+      if (!g || !g.on || Math.hypot(g.mx || 0, g.my || 0) < 0.3) return null;
+      return [g.mx, g.my];
+    }
+    function padPoll(live) {                       // appuis : A ou B = bombe (lus même pendant le décompte, pour les oublier)
+      for (let p = 0; p < 2; p++) {
+        if (!padMine(p)) continue;
+        let hit = false;
+        try { hit = PAD.pressed('a', p); hit = PAD.pressed('b', p) || hit; } catch (e) { hit = false; }
+        if (hit && live) pressBomb(p);
+      }
+    }
+    function padShow(p) { try { return padMine(p) && PAD.active() && PAD.any(p); } catch (e) { return false; } }
+    function rumble(kind, p) { try { if (padMine(p) && PAD.rumble) PAD.rumble(kind, p); } catch (e) { /* rien */ } }
     function setInputs() {
       if (NETAPI) {
-        const st = sticks[ME], inp = inputs[ME];
-        if (st.id != null) { inp.mx = st.vx; inp.my = st.vy; } else { const v = kbNet(); inp.mx = v[0]; inp.my = v[1]; }
+        const st = sticks[ME], inp = inputs[ME], g = padVec(ME);
+        if (st.id != null) { inp.mx = st.vx; inp.my = st.vy; } else if (g) { inp.mx = g[0]; inp.my = g[1]; } else { const v = kbNet(); inp.mx = v[0]; inp.my = v[1]; }
         return;
       }
       for (let p = 0; p < 2; p++) {
         if (AIP && p === AIP.p) continue;          // contre l'IA : ses entrées viennent de aiTick()
-        const st = sticks[p];
+        const st = sticks[p], g = padVec(p);
         if (st.id != null) { inputs[p].mx = st.vx; inputs[p].my = st.vy; }
+        else if (g) { inputs[p].mx = g[0]; inputs[p].my = g[1]; }
         else { const v = kbVec(p); inputs[p].mx = v[0]; inputs[p].my = v[1]; }
       }
     }
@@ -4889,6 +4918,7 @@
         if (phase === 'wait') { waitT += dt; if (HOST && waitT > 3) startRound(false); return; }
         if (GUEST) guestSync(nnow());
       }
+      padPoll(resumeT <= 0);
       if (resumeT > 0) {
         const b0 = Math.ceil(resumeT / 0.5);
         resumeT -= dt;
@@ -4998,6 +5028,7 @@
       if (destroyed || !paused) return;
       paused = false;
       last = 0;
+      padPoll(false);                              // (le A qui a fermé la carte de pause ne pose pas de bombe)
       if (phase !== 'over') { resumeT = 1.5; SFX.count(false); }
     }
 
@@ -5308,7 +5339,7 @@
           case 'crate': SFX.crate(); debris(e.x, e.y, 9, e.kind === 0 ? [0, 0, 5] : e.kind === 1 ? [1, 1, 2] : [3, 3, 4], 4.6, e.d); puffs(e.x, e.y, 2, 0.8, 1.0, 0.7, 1.6, 0.6); break;
           case 'item': SFX.item(); ring(e.x, e.y, 0.1, 0.8, 0.35, ITEMS[e.it].col, 0.08); sparks(e.x, e.y, 6, F.it[e.it], 2, 0.5, 0.18); break;
           case 'burn': puffs(e.x, e.y, 3, 0.7, 0.9, 0.5, 1.3, 0.7); break;
-          case 'pick': { SFX.pick(); const I = ITEMS[e.it]; ring(e.x, e.y, 0.2, 1.3, 0.4, I.col, 0.12); sparks(e.x, e.y, 12, F.it[e.it], 3.5, 0.6, 0.22); if (e.p < 2) pop(I.label, e.x, e.y, I.col, 0.9, 1.2); break; }
+          case 'pick': { SFX.pick(); const I = ITEMS[e.it]; ring(e.x, e.y, 0.2, 1.3, 0.4, I.col, 0.12); sparks(e.x, e.y, 12, F.it[e.it], 3.5, 0.6, 0.22); if (e.p === ME) rumble('tick'); if (e.p < 2) pop(I.label, e.x, e.y, I.col, 0.9, 1.2); break; }
           case 'push': SFX.push(); ring(e.x, e.y, 0.3, 0.8, 0.22, '#ff9ae4', 0.08); break;
           case 'shield': SFX.shield(); ring(e.x, e.y - 0.2, 0.5, 1.6, 0.45, '#bfe6ff', 0.14); sparks(e.x, e.y - 0.2, 14, F.blue, 3.5, 0.6, 0.24); break;
           case 'bulle':
@@ -5585,9 +5616,12 @@
       const st = stick;
       let bx = ctl.sx, by = ctl.sy, kx = bx, ky = by, act = false;
       if (st.id != null) { act = true; bx = st.bx; by = st.by; kx = st.kx; ky = st.ky; }
-      else { const kv = kbVec(); if (kv[0] || kv[1]) { const l = Math.hypot(kv[0], kv[1]); kx = bx + kv[0] / l * ctl.R * 0.6; ky = by + kv[1] / l * ctl.R * 0.6; } }
+      else { const gv = padVec(), kv = gv || kbVec(); if (kv[0] || kv[1]) { const l = gv ? 1 : Math.hypot(kv[0], kv[1]); kx = bx + kv[0] / l * ctl.R * 0.6; ky = by + kv[1] / l * ctl.R * 0.6; } }
       drawBombBtn();
       drawStick(bx, by, kx, ky, act);
+      if (padShow()) {                              // à la manette : les boutons sur les commandes de l'écran
+        try { PAD.drawGlyph(ctx, 'a', ctl.bx + ctl.RB * 0.74, ctl.by - ctl.RB * 0.74, clamp(ctl.RB * 0.27, 9, 15), PME); PAD.drawGlyph(ctx, 'ls', bx - ctl.R * 0.74, by - ctl.R * 0.74, clamp(ctl.R * 0.27, 9, 15), PME); } catch (e) { /* rien */ }
+      }
     }
     function drawOverlays() {
       if (phase === 'wait') {                       // en attendant le copain : trois points qui battent (pas de texte)
@@ -5674,7 +5708,24 @@
       if (k === ' ' || k === 'spacebar' || k === 'enter' || k === 'e') { e.preventDefault(); if (!e.repeat) pressBomb(); return; }
       if (KEYMAP[k] != null) { e.preventDefault(); keys.add(k); }
     }
-    function setMyInput() { const inp = inputs[ME]; if (stick.id != null) { inp.mx = stick.vx; inp.my = stick.vy; } else { const v = kbVec(); inp.mx = v[0]; inp.my = v[1]; } }
+    // manette (api.pad, CONTRACT.md « Ajout 10 ») : api.pad.get(api.coop.me) pilote MON joueur — stick / croix = marcher, A ou B = bombe
+    const PAD = api.pad && typeof api.pad.get === 'function' ? api.pad : null, PME = CO.me === 0 || CO.me === 1 ? CO.me : ME;
+    function padVec() {
+      if (!PAD) return null;
+      let g = null;
+      try { g = PAD.get(PME); } catch (e) { g = null; }
+      if (!g || !g.on || Math.hypot(g.mx || 0, g.my || 0) < 0.3) return null;
+      return [g.mx, g.my];
+    }
+    function padPoll(live) {
+      if (!PAD) return;
+      let hit = false;
+      try { hit = PAD.pressed('a', PME); hit = PAD.pressed('b', PME) || hit; } catch (e) { hit = false; }
+      if (hit && live) pressBomb();
+    }
+    function padShow() { try { return !!PAD && PAD.active() && PAD.any(PME); } catch (e) { return false; } }
+    function rumble(kind) { try { if (PAD && PAD.rumble) PAD.rumble(kind, PME); } catch (e) { /* rien */ } }
+    function setMyInput() { const inp = inputs[ME], g = padVec(); if (stick.id != null) { inp.mx = stick.vx; inp.my = stick.vy; } else if (g) { inp.mx = g[0]; inp.my = g[1]; } else { const v = kbVec(); inp.mx = v[0]; inp.my = v[1]; } }
 
     // ----------------------------------------------------------------- manches et partie
     function seedOf(n) { return ((api.seed >>> 0) ^ Math.imul(n + 1, 0x9e3779b1)) >>> 0; }
@@ -6017,6 +6068,7 @@
         }
         if (GUEST) guestSync(nnow());
       }
+      padPoll(resumeT <= 0);
       if (resumeT > 0) {
         const b0 = Math.ceil(resumeT / 0.5);
         resumeT -= dt;
@@ -6094,7 +6146,7 @@
       prevReal = rn;
     }
     function pause() { if (destroyed || paused) return; paused = true; keys.clear(); try { render(); } catch (e) { /* rien */ } }
-    function resume() { if (destroyed || !paused) return; paused = false; last = 0; if (phase === 'play' || phase === 'intro') { resumeT = 1.5; SFX.count(false); } }
+    function resume() { if (destroyed || !paused) return; paused = false; last = 0; padPoll(false); if (phase === 'play' || phase === 'intro') { resumeT = 1.5; SFX.count(false); } }
 
     on(canvas, 'pointerdown', onDown, { passive: false });
     on(canvas, 'pointermove', onMove);
@@ -6177,6 +6229,9 @@
     layout: 'shared',
     net: true,                                     // sait jouer en ligne (api.net) : chacun sur son téléphone
     ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
+    // manette (CONTRACT.md « Ajout 10 ») : schéma des commandes montré par la borne (carte de pause, début de partie)
+    pad: { help: [['ls/dpad', 'Marcher (le jeu suit la grille)'], ['a/b', 'Poser une bombe'], ['ls', 'Fonce sur une bombe : la pousse (bonus)']],
+      coopHelp: [['ls/dpad', 'Marcher (le jeu suit la grille)'], ['a/b', 'Poser une bombe'], ['ls', 'Touche la bulle de ton copain : sauvé !'], ['ls', 'Fonce sur une bombe : la pousse (bonus)']], intro: false },
     // mode Coop (COOP-CONTRACT.md) : « Boum 2 contre 2 », toi et ton coéquipier (robot ou copain en ligne) contre BIP et BOP ;
     // mount() teste api.coop en tout premier (mountCoop) ; points × mult selon le niveau choisi au lancement
     coop: {

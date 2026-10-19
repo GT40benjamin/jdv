@@ -24,6 +24,7 @@ html,body{margin:0;height:100%;background:#0b141c;overflow:hidden;font-family:'C
 </head><body>
 <div class="top"><button id="quit" type="button" aria-label="Quitter">✕</button><div class="ttl"><b id="ttl">🤝 …</b><span id="line">👑 Pas encore de record d'équipe : à vous !</span></div></div>
 <div id="root"></div>
+<script src="../manette.js"></script>
 <script>
 // Harnais d'un jeu COOP (COOP-CONTRACT.md), comme la bibliothèque le monterait :
 //   ?g=<id> (cherché dans JDW_GAMES puis JDW_DUOS ; &src=<fichier.js> pour un module hors du dépôt, ex. le faux jeu des tests)
@@ -171,6 +172,7 @@ else document.write('<script src="../games/' + GID + '.js"><\/script><script src
     },
     coop
   };
+  if (window.JDW_PAD) api.pad = JDW_PAD.gameApi({ slots: p => p === me ? JDW_PAD.pads() : [] });   // manettes : toutes pour mon joueur (Ajout 10)
   C.api = api;
   // ce que la bibliothèque recopie (score, pause, fin) et les messages du jeu
   addEventListener('message', e => {

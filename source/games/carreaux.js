@@ -2520,6 +2520,64 @@
     for (const k of EFF_KEYS) S.eff[k] = 0;
     const keys = { left: false, right: false };
     let paused = false, drag = null, mouseMode = false, god = false, renderErr = null, started = false;
+    // ---- manette (api.pad, CONTRACT.md Ajout 10) : stick gauche analogique (vitesse proportionnelle), croix comme les flèches,
+    // LT pour doser (raquette plus lente, plus précise), A / RT = lancer la bille (et passer les écrans), B = passer le tutoriel
+    const GP = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    const GP_SPEED = 640;
+    let padS = null;
+    function padHit(b) { try { return !!GP.pressed(b); } catch (e) { return false; } }
+    function padFlush() { if (GP) for (const b of ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt']) padHit(b); }
+    function padActive() { try { return !!(GP && GP.active()); } catch (e) { return false; } }
+    function padRumble(k) { try { if (GP) GP.rumble(k); } catch (e) { /* rien */ } }
+    function padTick() {
+      padS = null;
+      if (!GP) return;
+      let g = null;
+      try { g = GP.get(); } catch (e) { g = null; }
+      if (!g || !g.on) return;
+      padS = g;
+      const a = padHit('a') + padHit('rt'), b = padHit('b');
+      padFlush();
+      if (tuto) { if (a) tutoNext(false); else if (b) tutoNext(true); return; }
+      if (a) primaryAction();
+    }
+    // une ligne d'aide à la manette : pastille(s) du bouton (Xbox A B X Y LB RT…, PlayStation ✕ ○ □ △ L1 R2…) puis le texte
+    function padKeysW(keys, r) {
+      let w = 0;
+      for (const part of String(keys).split(/([/+])/)) {
+        if (!part) continue;
+        if (part === '/' || part === '+') { w += r * 1.1; continue; }
+        if (/^(a|b|x|y|ls|rs|dpad)$/.test(part)) { w += r * 2 + r * 0.25; continue; }
+        ctx.font = '700 ' + Math.round(r * 0.9) + 'px system-ui,sans-serif';
+        let lab = part; try { lab = GP.glyph(part); } catch (e) { /* rien */ }
+        w += Math.max(r * 2, ctx.measureText(lab).width + r * 0.9) + r * 0.25;
+      }
+      return w;
+    }
+    function padKeys(keys, x, y, r) {
+      const x0 = x;
+      for (const part of String(keys).split(/([/+])/)) {
+        if (!part) continue;
+        if (part === '/' || part === '+') { smallText(part, x + r * 0.55, y, r * 1.1, 'rgba(255,255,255,0.7)', 'center', 700); x += r * 1.1; continue; }
+        const w = padKeysW(part, r);
+        try { GP.drawGlyph(ctx, part, x + (w - r * 0.25) / 2, y, r); } catch (e) { /* rien */ }
+        x += w;
+      }
+      return x - x0;
+    }
+    function padRow(keys, text, x, y, size, col, weight, alpha) {     // aligné à gauche à partir de x
+      const r = size * 0.8, kw = keys ? padKeysW(keys, r) + size * 0.35 : 0;
+      ctx.save(); if (alpha != null) ctx.globalAlpha = alpha;
+      if (keys) padKeys(keys, x, y, r);
+      ctx.restore();
+      smallText(text, x + kw, y, size, col || '#ffffff', 'left', weight || 700, alpha);
+      return kw;
+    }
+    function padLine(keys, text, cx, y, size, col, weight, alpha) {    // centré sur cx
+      const r = size * 0.8, kw = keys ? padKeysW(keys, r) + size * 0.35 : 0;
+      ctx.font = (weight || 700) + ' ' + size + 'px ' + FB;
+      padRow(keys, text, cx - (kw + ctx.measureText(text).width) / 2, y, size, col, weight, alpha);
+    }
     let tuto = null;
     if (pref(TUTO_KEY, '0') !== '1') tuto = { step: 0, t: 0 };
 
@@ -2776,7 +2834,12 @@
       p.stun = Math.max(0, p.stun - dt);
       const lim = WALL + p.w / 2, prev = p.x;
       const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+      const pd = !dir && padS ? (padS.held.right ? 1 : 0) - (padS.held.left ? 1 : 0) : 0, slow = padS ? 1 - 0.6 * (padS.lt || 0) : 1;
       if (dir) { p.kv = clamp((p.kv || 0) + dir * 2600 * dt, -560, 560); p.tx = p.x + p.kv * dt; mouseMode = false; }
+      else if (pd) { p.kv = clamp((p.kv || 0) + pd * 2600 * dt, -560, 560); p.tx = p.x + p.kv * slow * dt; mouseMode = false; }   // croix : comme les flèches
+      else if (padS && Math.abs(padS.lx) > 0.01) {        // stick : vitesse proportionnelle à l'inclinaison
+        p.kv = Math.sign(padS.lx) * Math.pow(Math.min(1, Math.abs(padS.lx)), 1.2) * GP_SPEED * slow; p.tx = p.x + p.kv * dt; mouseMode = false;
+      }
       else p.kv = 0;
       p.tx = clamp(p.tx, lim, W - lim);
       const k = mouseMode ? Math.min(1, dt * 30) : drag ? Math.min(1, dt * 38) : 1;
@@ -3194,7 +3257,7 @@
       S.score += base + fast;
       ballsPoof();
       S.caps = []; S.shots = []; S.beams = []; S.lasers = [];
-      SFX.clear();
+      SFX.clear(); padRumble('win');
       worldParty();
       celebrate(CHEERS[(S.level + ((Math.random() * 3) | 0)) % CHEERS.length]);
     }
@@ -3353,7 +3416,7 @@
       if (B.hp <= 0) { bossDefeated(); return; }
       if (ph > B.ph) {
         B.ph = ph; B.state = 'phase'; B.st = 0; B.atk = null; B.atkT = 1.6;
-        S.beams = []; SFX.phase(); slowmo(0.35, 0.35); doShake(6);
+        S.beams = []; SFX.phase(); slowmo(0.35, 0.35); doShake(6); padRumble('hit');
         callout('PHASE ' + (ph + 1), B.P.names[ph], CARREAUX_WORLDS[S.wi].colors.accent2, 1.6, 40);
         if (B.id === 'pinata' && ph === 2) { B.free = true; B.vx = (B.x < W / 2 ? 1 : -1) * 150; B.vy = -80; for (let i = 0; i < 12; i++) addP({ k: 'dot', x: B.x, y: B.y - 50, vx: rand(-60, 60), vy: rand(-80, 40), g: 300, s: 2, col: '#c9a26a', life: 0.8, max: 0.8 }); }
       }
@@ -3373,7 +3436,7 @@
       S.beams = []; S.shots = S.shots.filter((s) => s.reward);
       S.stats.bosses++;
       const v = gain(1200 + 150 * S.level, true);
-      SFX.bossDown(); slowmo(1.4, 0.25); doShake(10);
+      SFX.bossDown(); slowmo(1.4, 0.25); doShake(10); padRumble('big');
       later(1.2, bossMusicOff);
       S.zoom = 1; S.zoomX = B.x; S.zoomY = B.y;
       pop(B.x, B.y + 80, '+' + fmt(v), '#ffd34d', 20, 2.2, -20);
@@ -3450,7 +3513,7 @@
       p.stun = 0.6;
       const word = { egg: 'PLOUF, UN ŒUF !', tea: 'OUPS, DU THÉ !', sugar: 'SUCRÉ !', trident: 'AÏE, LE TRIDENT !', lightning: 'ZAP !', yarn: 'EMMÊLÉ !', paw: 'COUP DE PATTE !', petard: 'PAF !', icicle: 'GLACÉ !', light: 'ÉBLOUI !', sweep: 'ÉBLOUI !' }[kind] || 'OUPS !';
       pop(clamp(x, 60, W - 60), PY - 30, word, '#ff9fd0', 13, 1.1, -24);
-      SFX.stun(); doShake(3);
+      SFX.stun(); doShake(3); padRumble('hit');
       for (let i = 0; i < 8; i++) addP({ k: 'star', x: p.x + rand(-p.w / 2, p.w / 2), y: PY - 4, vx: rand(-50, 50), vy: rand(-90, -30), g: 120, s: rand(2, 3), col: '#ffd34d', life: 0.7, max: 0.7, rot: 0 });
     }
 
@@ -4369,6 +4432,11 @@
       if (!any) { smallText('Attrape les capsules qui tombent !', rx + 18, y, 10, 'rgba(255,255,255,0.6)', 'left', 600, 1, pw - 30); y += 20; }
       y = Math.max(y + 10, top + rh - 132);
       smallText('COMMANDES', rx + 18, y, 11, acc, 'left', 700);
+      if (padActive()) {
+        const rows = [['ls/dpad', 'bouger'], ['lt', 'doser'], ['a/rt', 'lancer la bille'], ['start', 'pause']];
+        rows.forEach((l, i) => padRow(l[0], l[1], rx + 18, y + 22 + i * 21, 10, '#ffffff', 700));
+        return;
+      }
       const lines = touchUI ? [['Glisse le doigt', 'bouger'], ['Lâche', 'lancer la bille'], ['Bouton ❚❚', 'pause']] : [['Souris ou ← →', 'bouger'], ['Clic ou ESPACE', 'lancer la bille'], ['P ou Échap', 'pause']];
       lines.forEach((l, i) => { smallText(l[0], rx + 18, y + 22 + i * 20, 10, '#ffffff', 'left', 700); smallText(l[1], rx + pw - 16, y + 22 + i * 20, 10, 'rgba(255,255,255,0.65)', 'right', 600); });
     }
@@ -4428,7 +4496,7 @@
     function drawLaunchHint() {
       if (S.state !== 'play' || !S.balls.some((b) => b.stuck) || S.launchHint <= 0) return;
       const a = 0.55 + 0.35 * Math.sin(S.clock * 5), band = ch - FY - PB * U;
-      if (touchUI && !wide && band >= 44) {
+      if (touchUI && !wide && band >= 44 && !padActive()) {
         // téléphone : la consigne est dans la bande du pouce, sous la raquette (c'est là qu'on glisse)
         S0();
         const cx = FX + W * U / 2, cy = FY + PB * U + band * 0.48, tw = Math.min(W * U - 24, 300), th = 30;
@@ -4438,7 +4506,13 @@
         return;
       }
       SF(true);
-      smallText(touchUI ? 'Glisse pour viser · lâche pour lancer' : 'Clic ou ESPACE pour lancer', W / 2, PY - 92, 11, 'rgba(255,255,255,' + a + ')', 'center', 700);
+      if (padActive()) {          // manette : une pastille sombre, lisible sur tous les décors
+        ctx.font = '700 12px ' + FB; const tw = ctx.measureText('pour lancer la bille').width + 40;
+        rr(ctx, W / 2 - tw / 2 - 8, PY - 92 - 15, tw + 16, 30, 15); ctx.fillStyle = 'rgba(6,8,22,' + (0.5 + a * 0.2) + ')'; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,' + a * 0.45 + ')'; ctx.lineWidth = 1.2; ctx.stroke();
+        padLine('a', 'pour lancer la bille', W / 2, PY - 92, 12, '#ffffff', 700, Math.min(1, a + 0.3));
+      }
+      else smallText(touchUI ? 'Glisse pour viser · lâche pour lancer' : 'Clic ou ESPACE pour lancer', W / 2, PY - 92, 11, 'rgba(255,255,255,' + a + ')', 'center', 700);
     }
     function drawCallouts() {
       if (S.state === 'dying' || S.state === 'over') return;   // rien par-dessus « PERDU ! »
@@ -4621,7 +4695,7 @@
         ctx.drawImage(nextScene.back, 0, 0, cw, ch); ctx.drawImage(nextScene.front, 0, 0, cw, ch);
         ctx.restore();
       }
-      if (t > 1.2 && t < TRIP_STAMP + TRIP_FLY) smallText(touchUI ? 'Touche pour passer' : 'Clic pour passer', cw / 2, ch - 14, 10, 'rgba(255,255,255,0.45)', 'center', 600);
+      if (t > 1.2 && t < TRIP_STAMP + TRIP_FLY) { if (padActive()) padLine('a', 'pour passer', cw / 2, ch - 16, 10, '#ffffff', 600, 0.6); else smallText(touchUI ? 'Touche pour passer' : 'Clic pour passer', cw / 2, ch - 14, 10, 'rgba(255,255,255,0.45)', 'center', 600); }
     }
 
     // ---------- pause, défaite ----------
@@ -4643,7 +4717,8 @@
       }
       smallText(Wd.name + ' · ' + (S.isBoss ? 'boss : ' + Wd.boss.name : 'niveau ' + S.level), cw / 2, y + 168, 12, '#ffffff', 'center', 700, 1, w - 30);
       smallText('Score : ' + fmt(S.score), cw / 2, y + 190, 12, '#ffd34d', 'center', 700);
-      bigText(touchUI ? 'TOUCHE POUR REPRENDRE' : 'CLIC OU P POUR REPRENDRE', cw / 2, y + 232, 14, acc, w - 30, 0.75 + 0.25 * Math.sin(S.clock * 4));
+      if (padActive()) padLine('start', 'POUR REPRENDRE', cw / 2, y + 232, 14, acc, 800, 0.75 + 0.25 * Math.sin(S.clock * 4));
+      else bigText(touchUI ? 'TOUCHE POUR REPRENDRE' : 'CLIC OU P POUR REPRENDRE', cw / 2, y + 232, 14, acc, w - 30, 0.75 + 0.25 * Math.sin(S.clock * 4));
     }
     function drawDying() {
       if (S.state !== 'dying' && S.state !== 'over') return;
@@ -4668,12 +4743,13 @@
     function drawTuto() {
       S0();
       ctx.fillStyle = 'rgba(4,6,18,0.72)'; ctx.fillRect(0, 0, cw, ch);
-      const k = tutoCard(), tt = tuto.t, st = tuto.step, Wd = CARREAUX_WORLDS[S.wi], acc = Wd.colors.accent;
+      const k = tutoCard(), tt = tuto.t, st = tuto.step, Wd = CARREAUX_WORLDS[S.wi], acc = Wd.colors.accent, padOn = padActive();
       panel(k.x, k.y, k.w, k.h, acc, 1, 18);
       smallText('COMMENT JOUER · ' + (st + 1) + '/3', k.x + 18, k.y + 28, 11, acc, 'left', 700);
       const sk = tutoSkipRect();
       rr(ctx, sk.x, sk.y, sk.w, sk.h, sk.h / 2); ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fill();
-      smallText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1, 11, '#ffffff', 'center', 700);
+      if (padOn) { GP.drawGlyph(ctx, 'b', sk.x + 17, sk.y + sk.h / 2, 10); smallText('PASSER', sk.x + sk.w / 2 + 9, sk.y + sk.h / 2 + 1, 11, '#ffffff', 'center', 700); }
+      else smallText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1, 11, '#ffffff', 'center', 700);
       // la scène animée
       const sx = k.x + 16, sy = k.y + 56, sw = k.w - 32, sh = Math.min(200, k.h - 190);
       ctx.save(); rr(ctx, sx, sy, sw, sh, 12); ctx.clip();
@@ -4696,7 +4772,13 @@
         // le doigt (ou la souris) qui glisse sur la promenade, sous la raquette
         const fx = ox + (150 + Math.sin(tt * 1.6) * 90 + 10) * s, fy = oy + (mb - 15) * s;
         ctx.strokeStyle = 'rgba(40,40,60,0.45)'; ctx.lineWidth = 2; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(ox + 50 * s, fy); ctx.lineTo(ox + 250 * s, fy); ctx.stroke(); ctx.setLineDash([]);
-        if (touchUI) { ctx.fillStyle = 'rgba(255,255,255,0.45)'; circ(ctx, fx, fy, 15 * s); ctx.fill(); ctx.fillStyle = '#ffffff'; circ(ctx, fx, fy, 9 * s); ctx.fill(); ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.stroke(); }
+        if (padOn) {          // le stick gauche qui penche avec la raquette, et la croix
+          const lean = Math.cos(tt * 1.6), gy = oy + 26 * s;
+          ctx.fillStyle = 'rgba(6,10,30,0.35)'; circ(ctx, ox + 120 * s, gy, 20 * s); ctx.fill();
+          GP.drawGlyph(ctx, 'ls', ox + (120 + lean * 9) * s, gy, 15 * s);
+          smallText('ou', ox + 150 * s, gy, 11 * s, '#ffffff', 'center', 700);
+          GP.drawGlyph(ctx, 'dpad', ox + 180 * s, gy, 13 * s);
+        } else if (touchUI) { ctx.fillStyle = 'rgba(255,255,255,0.45)'; circ(ctx, fx, fy, 15 * s); ctx.fill(); ctx.fillStyle = '#ffffff'; circ(ctx, fx, fy, 9 * s); ctx.fill(); ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.stroke(); }
         else { ctx.save(); ctx.translate(fx, fy - 8 * s); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.lineTo(6, 16); ctx.lineTo(11, 26); ctx.lineTo(15, 24); ctx.lineTo(10, 14); ctx.lineTo(18, 14); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
       } else if (st === 1) {
         // la bille rebondit et casse des carreaux
@@ -4711,20 +4793,26 @@
         for (let i = 0; i < NW; i++) { ctx.save(); ctx.translate(ox + (30 + i * 22) * s, oy + 30 * s); paintWorldIcon(ctx, i, 9 * s, tt); ctx.restore(); }
       }
       ctx.restore();
-      const titles = [touchUI ? 'GLISSE POUR BOUGER' : 'BOUGE LA SOURIS', 'CASSE LES CARREAUX', 'FAIS LE TOUR DU MONDE'];
+      const titles = [padOn ? 'LE STICK POUR BOUGER' : touchUI ? 'GLISSE POUR BOUGER' : 'BOUGE LA SOURIS', 'CASSE LES CARREAUX', 'FAIS LE TOUR DU MONDE'];
       const texts = [
-        touchUI ? ['Pose le pouce sous la raquette et glisse :', 'elle suit ton doigt. Lâche pour lancer la bille.'] : ['La raquette suit la souris (ou les flèches ← →).', 'Clic ou ESPACE pour lancer la bille.'],
+        padOn ? ['Stick gauche (ou croix) : la raquette glisse,', GP.glyph('lt') + ' pour doser. Lance la bille avec'] : touchUI ? ['Pose le pouce sous la raquette et glisse :', 'elle suit ton doigt. Lâche pour lancer la bille.'] : ['La raquette suit la souris (ou les flèches ← →).', 'Clic ou ESPACE pour lancer la bille.'],
         ['Renvoie la bille sur les carreaux.', 'Une seule vie : ne la laisse pas tomber !'],
         ['Attrape les bonus, bats le boss de chaque pays', 'et collectionne les tampons du passeport !']
       ];
       const ty = sy + sh + 34;
       bigText(titles[st], cw / 2, ty, 20, Wd.colors.accent2, k.w - 30);
       smallText(texts[st][0], cw / 2, ty + 28, 12, '#ffffff', 'center', 600, 1, k.w - 30);
-      smallText(texts[st][1], cw / 2, ty + 46, 12, '#ffffff', 'center', 600, 1, k.w - 30);
+      if (padOn && st === 0) {        // « … Lance la bille avec (A) »
+        ctx.font = '600 12px ' + FB; const tw = ctx.measureText(texts[0][1]).width;
+        smallText(texts[0][1], cw / 2 - 12, ty + 46, 12, '#ffffff', 'center', 600, 1, k.w - 50);
+        GP.drawGlyph(ctx, 'a', cw / 2 - 12 + Math.min(tw, k.w - 50) / 2 + 13, ty + 46, 9);
+      } else smallText(texts[st][1], cw / 2, ty + 46, 12, '#ffffff', 'center', 600, 1, k.w - 30);
       for (let i = 0; i < 3; i++) { ctx.fillStyle = i === st ? '#ffd34d' : 'rgba(255,255,255,0.3)'; circ(ctx, cw / 2 - 14 + i * 14, ty + 68, 4); ctx.fill(); }
       const b = tutoBtnRect();
       rr(ctx, b.x, b.y, b.w, b.h, b.h / 2); ctx.fillStyle = lin(ctx, 0, b.y, 0, b.y + b.h, [[0, shade(acc, 0.25)], [1, shade(acc, -0.15)]]); ctx.fill();
-      bigText(st < 2 ? 'SUIVANT ›' : 'C\'EST PARTI !', b.x + b.w / 2, b.y + b.h / 2 + 1, 15, '#ffffff', b.w - 20);
+      const bl = st < 2 ? 'SUIVANT ›' : 'C\'EST PARTI !';
+      bigText(bl, b.x + b.w / 2 + (padOn ? 12 : 0), b.y + b.h / 2 + 1, 15, '#ffffff', b.w - 20);
+      if (padOn) { ctx.font = '15px ' + FD; GP.drawGlyph(ctx, 'a', b.x + b.w / 2 + 12 - ctx.measureText(bl).width / 2 - 18, b.y + b.h / 2, 11); }
     }
     function sparks0(x, y, s) { ctx.fillStyle = '#ffd34d'; for (let i = 0; i < 6; i++) { const a = i * 1.05; ctx.fillRect(x + Math.cos(a) * 9 * s, y + Math.sin(a) * 9 * s, 2.4 * s, 2.4 * s); } }
 
@@ -4909,7 +4997,7 @@
 
     // ===================================================================== ENTRÉES
     function pause() { if (paused || S.state === 'over' || destroyed) return; paused = true; keys.left = keys.right = false; drag = null; pauseIcon(true); try { render(); } catch (e) { /* rien */ } }
-    function resume() { if (!paused) return; paused = false; last = performance.now(); pauseIcon(false); }
+    function resume() { if (!paused) return; paused = false; last = performance.now(); pauseIcon(false); padFlush(); }
     function visibleRoot() { return root.offsetParent !== null; }
     function isTyping(e) { const t = e.target; return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
     function fieldX(clientX) { const r = canvas.getBoundingClientRect(); return (clientX - r.left - FX) / U; }
@@ -5004,6 +5092,7 @@
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
       if (!paused) {
+        if (!frozen) padTick();
         if (!frozen) update(dt);
         try { render(); } catch (e) { if (!renderErr) { renderErr = e; try { console.error('carreaux : ' + (e && e.message)); } catch (e2) { /* rien */ } } }
       }
@@ -5031,6 +5120,8 @@
     return {
       currentScore: () => Math.max(0, Math.floor(S.score)),   // score en cours (bouton Quitter de la bibliothèque)
       currentLevel: () => S.level,                           // niveau en cours (musique plus énergique, carte d'avancement)
+      pause,                                                 // carte Pause de la borne (bouton Start de la manette)
+      resume,
       // accès de diagnostic (tests uniquement)
       _debug: {
         info: () => ({
@@ -5460,6 +5551,8 @@
     drawWorldStamp,                   // tampon du passeport : (ctx, n, x, y, r)
     drawBossIcon,                     // le boss du pays : (ctx, n, x, y, r, t)
     mapArt,                           // la carte d'avancement de la bibliothèque, dessinée par le jeu (p8b-carte.js)
+    // commandes à la manette (CONTRACT.md Ajout 10) : carte Pause de la borne et début des 3 premières parties
+    pad: { help: [['ls/dpad', 'Bouger la raquette'], ['lt', 'Doser : plus lent, plus précis'], ['a/rt', 'Lancer la bille · passer']] },
     preview,
     mount
   };

@@ -3454,7 +3454,7 @@
         case 'drop': SFX.clonk(); break;
         default: break;
       }
-      if (villain && (type === 'soggy' || type === 'frog' || type === 'shred' || type === 'squash' || type === 'zap')) villain.hit = 0.6;
+      if (villain && (type === 'soggy' || type === 'frog' || type === 'shred' || type === 'squash' || type === 'zap')) { villain.hit = 0.6; padRumble('hit'); }
     }
 
     // ---------- Grands textes (écran) ----------
@@ -3611,6 +3611,117 @@
       if (kl === 'f' || kl === 'x') { toggleFast(); const b = btns.find(q => q.id === 'speed'); if (b) b.press = 0.15; return; }
       if (kl === 'v' || kl === 'w') { pressFini(); }
     }
+    // ---- manette (CONTRACT.md Ajout 10) : un curseur piloté au stick gauche (vitesse proportionnelle, courbe douce pour viser),
+    // qui s'aimante doucement au rouleau le plus proche (et le suit) ; A = donner l'outil, LB / RB ou ▲ ▼ = outil précédent / suivant,
+    // ◀ ▶ = sauter au rouleau précédent / suivant, X = vitesse ×2, Y = FINI, stick droit = faire défiler (caméra, en portrait).
+    // A passe aussi les écrans « arrivée » / « chasse d'eau » ; dans le tutoriel : A = suivant, B = passer. Start reste à la borne.
+    const PAD = api.pad || null;
+    const PADB = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'up', 'down', 'left', 'right', 'ls', 'rs'];
+    let padBorne = false, padCur = null, padTarget = -1, padMoveT = -9;
+    function padActive() { try { return !!(PAD && PAD.active()); } catch (e) { return false; } }
+    function padDrain() { if (PAD) for (const b of PADB) PAD.pressed(b); }
+    function padRumble(k) { try { if (PAD) PAD.rumble(k); } catch (e) { /* */ } }
+    function padHasRole(r) { return counts[r] > 0 || (r === 'stop' && wd && wd.walkers.some(w => w.st === 'stop')); }
+    function padCycleRole(d) {
+      if (!roleList.length) return;
+      const n = roleList.length, i = Math.max(0, roleList.indexOf(selected));
+      for (let k = 1; k <= n; k++) {
+        const r = roleList[((i + d * k) % n + n) % n];
+        if (padHasRole(r)) { if (r !== selected) selectRole(r); const b = btns.find(q => q.id === r); if (b) b.press = 0.15; return; }
+      }
+      SFX.nope();
+    }
+    function padWalkerXY(w) { return { x: playX + w.x * S, y: playY + (w.y - 5) * S }; }
+    function padPickR() { return Math.max(portrait ? 30 : 24, 8 * S); }
+    // ◀ ▶ : le curseur saute au rouleau suivant à l'écran (de gauche à droite), en faisant le tour
+    function padJump(d) {
+      if (!wd || !padCur) return;
+      const L = wd.walkers.filter(w => ALIVE[w.st]).map(w => ({ w, p: padWalkerXY(w) })).sort((a, b) => a.p.x - b.p.x);
+      if (!L.length) { SFX.nope(); return; }
+      let k = L.findIndex(o => o.w.id === padTarget);
+      if (k < 0) k = d > 0 ? L.findIndex(o => o.p.x > padCur.x + 2) - 1 : L.findIndex(o => o.p.x >= padCur.x - 2);
+      if (k < -1) k = d > 0 ? L.length - 1 : 0;
+      const o = L[((k + d) % L.length + L.length) % L.length];
+      if (camMode && (o.p.x < 20 || o.p.x > W - 20)) { manualT = time; setCam(o.w.x - (W / S) / 2); o.p = padWalkerXY(o.w); }
+      padCur.x = o.p.x; padCur.y = o.p.y; padTarget = o.w.id;
+      tone(880, 0.03, 'sine', 0.025);
+    }
+    function padTick(dt) {
+      if (!PAD) return;
+      // get() d'abord, à chaque image : il libère le A tenu au lancement (sinon les appuis A suivants restent bloqués)
+      const g = PAD.get();
+      const pa = PAD.pressed('a'), pb = PAD.pressed('b'), px = PAD.pressed('x'), py = PAD.pressed('y');
+      const plb = PAD.pressed('lb'), prb = PAD.pressed('rb'), pu = PAD.pressed('up'), pd = PAD.pressed('down'), pl = PAD.pressed('left'), pr = PAD.pressed('right');
+      padDrain();
+      if (state === 'tuto') { if (pa) tutoNext(false); else if (pb) tutoNext(true); return; }
+      if (paused) { if (pa && !padBorne) resume(); return; }
+      if (state === 'over' || state === 'fail') return;
+      if (pa && state === 'arrive' && stateT > 0.6) { toIntro(); return; }
+      if (pa && state === 'flush' && stateT > 1.6) { nextLevel(); return; }
+      if (state !== 'play' && state !== 'intro') return;
+      if (plb || pu) padCycleRole(-1);
+      if (prb || pd) padCycleRole(1);
+      if (px) { toggleFast(); const b = btns.find(q => q.id === 'speed'); if (b) b.press = 0.15; }
+      if (py) { const b = btns.find(q => q.id === 'fini'); if (b) b.press = 0.15; pressFini(); }
+      if (state !== 'play' || !wd) return;
+      if (!padCur) padCur = { x: VX() + VW() / 2, y: playY + playH * 0.55 };
+      // stick gauche : vitesse proportionnelle, courbe douce (petite poussée = visée fine, à fond = traverse l'écran en ~1 s)
+      const m = Math.min(1, Math.hypot(g.lx, g.ly));
+      if (m > 0) {
+        const sp = Math.max(W, H) * (0.1 + 0.95 * m * m);
+        padCur.x += g.lx / m * sp * m * dt; padCur.y += g.ly / m * sp * m * dt;
+        padMoveT = time; if (m > 0.55) padTarget = -1;
+      }
+      if (pl) padJump(-1);
+      if (pr) padJump(1);
+      // caméra (portrait, niveau plus large que l'écran) : stick droit, ou le curseur poussé contre le bord
+      if (camMode) {
+        let cv = Math.abs(g.rx) > 0.15 ? g.rx : 0;
+        if (!cv && ((padCur.x < 26 && g.lx < -0.3) || (padCur.x > W - 26 && g.lx > 0.3))) cv = g.lx;
+        if (cv) { manualT = time; setCam(camX + cv * Math.max(W, 400) * 0.9 * dt / S); }
+      }
+      // aimant : le curseur glisse doucement vers le rouleau le plus proche (celui qui peut prendre l'outil d'abord), et le suit
+      const R = padPickR() * 2.1;
+      let best = null, bd = 1e9;
+      for (const w of wd.walkers) {
+        if (!ALIVE[w.st]) continue;
+        const p = padWalkerXY(w), d = Math.hypot(p.x - padCur.x, (p.y - padCur.y) * 0.85);
+        const sc = d * (selected && canAssign(w, selected) ? 1 : 1.5) * (w.id === padTarget ? 0.6 : 1);
+        if (sc < bd) { bd = sc; best = { w, p }; }
+      }
+      if (best && bd < R) {
+        const k = Math.min(1, dt * 9 * Math.max(0, 1 - m / 0.75));
+        padCur.x += (best.p.x - padCur.x) * k; padCur.y += (best.p.y - padCur.y) * k;
+        if (m < 0.75) padTarget = best.w.id;
+      } else if (m > 0) padTarget = -1;
+      padCur.x = clamp(padCur.x, Math.max(2, VX()), Math.min(W - 2, VX() + VW()));
+      padCur.y = clamp(padCur.y, playY, playY + playH);
+      if (padActive()) { hoverPos = { x: padCur.x, y: padCur.y }; hoverKind = 'pad'; hoverUntil = time + 0.4; }
+      if (pa) tryAssign({ x: padCur.x, y: padCur.y });
+    }
+    // le curseur de la manette : anneau de la couleur de l'outil, petite icône de l'outil, (A) quand le rouleau visé peut le prendre
+    function drawPadCursor() {
+      if (!padCur || state !== 'play' || paused || !padActive()) return;
+      const x = padCur.x, y = padCur.y, col = selected ? ROLE_COL[selected] : '#ffffff';
+      const ok = hover && hover._ok, r = (ok ? 15 : 13) + Math.sin(time * 7) * 1.2;
+      ctx.save();
+      ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(8,14,24,0.55)'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+      ctx.lineWidth = 2.6; ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = ok ? 12 : 4;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2 + (ok ? time * 2 : 0), c = Math.cos(a), s = Math.sin(a);
+        ctx.beginPath(); ctx.moveTo(x + c * (r + 3), y + s * (r + 3)); ctx.lineTo(x + c * (r + 8), y + s * (r + 8)); ctx.stroke();
+      }
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
+      if (selected) {
+        ctx.fillStyle = 'rgba(8,14,24,0.85)'; ctx.beginPath(); ctx.arc(x + r + 8, y + r + 6, 11, 0, TAU); ctx.fill();
+        ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+        drawIcon(ctx, selected, x + r + 8, y + r + 6, 15, time);
+      }
+      if (ok) PAD.drawGlyph(ctx, 'a', x - r - 9, y + r + 6, 9);
+      ctx.restore();
+    }
     on(canvas, 'pointerdown', onPDown);
     on(canvas, 'pointermove', onPMove);
     on(canvas, 'pointerleave', onPLeave);
@@ -3649,6 +3760,7 @@
         result.base = score;
         score += result.add;
         state = 'flush'; stateT = 0;
+        padRumble('win');
         celebrate(cheerHead ? cheerHead.name : null);
         // les rouleaux restants font la fête
         for (const w of wd.walkers) if (ALIVE[w.st]) w.party = true;
@@ -4487,6 +4599,18 @@
 
     // ---------- Boutons des outils ----------
     function drawBar() {
+      drawBarButtons();
+      if (!padActive() || state === 'tuto') return;
+      const R = btns.filter(b => ROLES.indexOf(b.id) >= 0);
+      if (R.length < 2) return;
+      const a = R[0], z = R[R.length - 1];
+      ctx.save();
+      // LB dans le coin du premier outil, RB dans le coin du dernier (en haut à gauche / en bas à gauche, hors des textes)
+      PAD.drawGlyph(ctx, 'lb', a.x + 13, a.y + 11, 8);
+      PAD.drawGlyph(ctx, 'rb', z.x + 13, z.y + z.h - 11, 8);
+      ctx.restore();
+    }
+    function drawBarButtons() {
       const Wd = ROULEAUX_WORLDS[wi];
       const done = wd && wd.saved >= req;
       for (const b of btns) {
@@ -4543,7 +4667,9 @@
           ctx.font = '700 ' + Math.max(9, fsL - 2) + 'px ' + FB; ctx.fillStyle = '#d6e2ea';
           ctx.fillText(wd.saved + '/' + req, 0, y + 8);
         }
-        if (fine) {
+        if (padActive()) {
+          if (!isRole) { ctx.globalAlpha = 1; PAD.drawGlyph(ctx, b.id === 'speed' ? 'x' : 'y', x + 11, y + 11, 9); }
+        } else if (fine) {
           const key = isRole ? String(roleList.indexOf(b.id) + 1) : b.id === 'speed' ? 'F' : 'V';
           ctx.globalAlpha = dis ? 0.3 : 0.75;
           ctx.font = '700 10px ' + FB; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.75)';
@@ -4579,14 +4705,14 @@
         if (guide.phase === 0) {
           const b = btns.find(q => q.id === 'bash');
           if (b) {
-            const lines = wrap('Ce mur bloque le chemin ! Choisis PERCE', size, Math.min(250, W * 0.6));
+            const lines = wrap('Ce mur bloque le chemin ! Choisis PERCE' + (padActive() ? ' (' + PAD.glyph('lb') + ' / ' + PAD.glyph('rb') + ')' : ''), size, Math.min(250, W * 0.6));
             if (sideMode) bubble(lines, b.x, b.y + b.h / 2, 'left', size); else bubble(lines, b.x + b.w / 2, b.y, 'above', size);
           }
           return;
         }
         if (guide.phase === 1) {
           const p = toScreen(lvInfo.mirror ? wd.W - 110 : 110, 66);
-          bubble(wrap('Touche un rouleau qui marche vers le mur', size, Math.min(240, W * 0.6)), p.x, p.y, 'above', size);
+          bubble(wrap(padActive() ? 'Vise un rouleau qui marche vers le mur, puis ' + PAD.glyph('a') : 'Touche un rouleau qui marche vers le mur', size, Math.min(240, W * 0.6)), p.x, p.y, 'above', size);
           return;
         }
         if (guide.phase === 2 && guide.t < 6) {
@@ -4849,7 +4975,7 @@
         drawWC(ctx, wi, 0, 0, time, { noArrow: true, swirl: 0.6, A });
         ctx.restore();
         smallText('Ton WC : ' + Wd.wc.name, cx + unit * 0.6, y + unit * 0.75, Math.round(unit * 0.56), '#ffffff', 'center', 700, W * 0.7);
-        if (t > 1.2) smallText(fine ? 'Clique pour commencer' : 'Touche pour commencer', cx + unit * 0.6, y + unit * 1.55, Math.round(unit * 0.46), 'rgba(255,255,255,' + (0.55 + 0.35 * Math.sin(time * 5)) + ')', 'center', 600);
+        if (t > 1.2) smallText(padActive() ? PAD.glyph('a') + ' pour commencer' : fine ? 'Clique pour commencer' : 'Touche pour commencer', cx + unit * 0.6, y + unit * 1.55, Math.round(unit * 0.46), 'rgba(255,255,255,' + (0.55 + 0.35 * Math.sin(time * 5)) + ')', 'center', 600);
         ctx.restore();
       }
       ctx.restore();
@@ -4914,7 +5040,7 @@
       ctx.globalAlpha = u;
       const total = result.add;
       bigText('+' + fmt(total * shown), VX() + VW() / 2, py + ph - fs * 1.35, fs * 1.6, COL.gold, pw - 20, u, 1, 0, true);
-      if (t > 2.4) smallText(fine ? 'clique pour continuer' : 'touche pour continuer', VX() + VW() / 2, Math.min(py + ph + fs * 0.85, H - fs * 0.6), Math.round(fs * 0.8), 'rgba(255,255,255,0.75)', 'center', 600);
+      if (t > 2.4) smallText(padActive() ? PAD.glyph('a') + ' pour continuer' : fine ? 'clique pour continuer' : 'touche pour continuer', VX() + VW() / 2, Math.min(py + ph + fs * 0.85, H - fs * 0.6), Math.round(fs * 0.8), 'rgba(255,255,255,0.75)', 'center', 600);
       ctx.restore();
     }
     function drawFail() {
@@ -4931,7 +5057,12 @@
     function drawPause() {
       veil(0.74);
       bigText('PAUSE', W / 2, H * 0.42, Math.round(Math.min(W * 0.15, 64)), ROULEAUX_WORLDS[wi].colors.accent, W * 0.9, 1, 1, 0, true);
-      smallText(fine ? 'Clique ou P pour reprendre' : 'Touche pour reprendre', W / 2, H * 0.42 + Math.min(W * 0.15, 64) * 0.95, Math.round(clamp(W * 0.04, 14, 20)), '#ffffff', 'center', 700);
+      const fsP = Math.round(clamp(W * 0.04, 14, 20)), yP = H * 0.42 + Math.min(W * 0.15, 64) * 0.95;
+      if (padActive()) {
+        ctx.font = '700 ' + fsP + 'px ' + FB; const tw = ctx.measureText('pour reprendre').width;
+        PAD.drawGlyph(ctx, 'a', W / 2 - tw / 2 - 6, yP, fsP * 0.7);
+        smallText('pour reprendre', W / 2 + fsP * 0.75, yP, fsP, '#ffffff', 'center', 700);
+      } else smallText(fine ? 'Clique ou P pour reprendre' : 'Touche pour reprendre', W / 2, yP, fsP, '#ffffff', 'center', 700);
     }
     // transition rapide entre deux niveaux d'un même monde : bulles qui couvrent l'écran
     function drawWipe() {
@@ -5000,7 +5131,9 @@
       const sk = tutoSkipRect();
       ctx.fillStyle = 'rgba(255,255,255,0.12)'; rr(ctx, sk.x, sk.y, sk.w, sk.h, 18); ctx.fill();
       ctx.fillStyle = '#ffffff'; ctx.font = '700 13px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1);
+      const padM = padActive();
+      if (padM) { PAD.drawGlyph(ctx, 'b', sk.x + 18, sk.y + sk.h / 2, 11); ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.fillText('PASSER', sk.x + sk.w / 2 + 11, sk.y + sk.h / 2 + 1); }
+      else ctx.fillText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1);
       ctx.textAlign = 'left'; ctx.font = '700 12px ' + FB; ctx.fillStyle = acc;
       ctx.fillText('COMMENT JOUER · ' + (st + 1) + '/3', k.x + 16, k.y + 26);
       const touch = !fine;
@@ -5030,14 +5163,19 @@
       if (st === 0) {
         // la barre d'outils : on touche PERCE, il s'allume
         const ids = ['stop', 'dig', 'bash'];
-        const bw = Math.min(86, (sw - 40) / 3), bh = Math.min(76, sceneH * 0.6);
+        const bw = Math.min(86, (sw - (padM ? 96 : 40)) / 3), bh = Math.min(76, sceneH * 0.6);
         const x0 = sx + (sw - (bw * 3 + 16)) / 2, y0 = sceneTop + (sceneH - bh) / 2;
         const cyc = tt % 2.4, on = cyc > 0.9;
         ids.forEach((id, i) => miniButton(x0 + i * (bw + 8), y0, bw, bh, id, on && id === 'bash', [2, 3, 5][i]));
         const fx = x0 + 2 * (bw + 8) + bw / 2, fy = y0 + bh / 2 + 6;
-        if (cyc > 0.3 && cyc < 1.4) drawFinger(fx + (1 - clamp((cyc - 0.3) / 0.5, 0, 1)) * 40, fy + (1 - clamp((cyc - 0.3) / 0.5, 0, 1)) * 40, cyc > 0.8 && cyc < 1.1 ? 1 : 0.3);
+        if (padM) {             // manette : LB / RB de part et d'autre des outils, celui qu'on presse s'allume
+          const gr = Math.min(15, bh * 0.22), lit = cyc > 0.8 && cyc < 1.1;
+          PAD.drawGlyph(ctx, 'lb', x0 - gr - 6, y0 + bh / 2, gr);
+          if (lit) { ctx.save(); ctx.globalAlpha = 0.45; ctx.fillStyle = COL.gold; ctx.beginPath(); ctx.arc(x0 + bw * 3 + 16 + gr + 6, y0 + bh / 2, gr + 6, 0, TAU); ctx.fill(); ctx.restore(); }
+          PAD.drawGlyph(ctx, 'rb', x0 + bw * 3 + 16 + gr + 6, y0 + bh / 2, gr);
+        } else if (cyc > 0.3 && cyc < 1.4) drawFinger(fx + (1 - clamp((cyc - 0.3) / 0.5, 0, 1)) * 40, fy + (1 - clamp((cyc - 0.3) / 0.5, 0, 1)) * 40, cyc > 0.8 && cyc < 1.1 ? 1 : 0.3);
         title = 'CHOISIS UN OUTIL';
-        l1 = touch ? 'Touche un bouton : PERCE, CREUSE, STOP…' : 'Clique un bouton (ou touche 1, 2, 3…)';
+        l1 = padM ? PAD.glyph('lb') + ' / ' + PAD.glyph('rb') + ' (ou ▲ ▼) : PERCE, CREUSE, STOP…' : touch ? 'Touche un bouton : PERCE, CREUSE, STOP…' : 'Clique un bouton (ou touche 1, 2, 3…)';
         l2 = 'Le nombre dit combien il en reste.';
       } else if (st === 1) {
         // un rouleau marche vers un mur ; on le touche ; il perce
@@ -5057,9 +5195,17 @@
         drawRoll(ctx, { x: rx, y: 30, dir: 1, pose: hit && cyc < 3.2 ? 'bash' : 'walk', ph: cyc * 20, time, id: 1, wi: 0 });
         ctx.restore();
         const fx = ox + (10 + Math.min(cyc, 1.2) * 30) * s, fy = oy + 24 * s;
-        if (cyc > 0.6 && cyc < 1.5) drawFinger(fx, fy, cyc > 1.0 && cyc < 1.3 ? 1 : 0.35);
-        title = touch ? 'TOUCHE UN ROULEAU' : 'CLIQUE UN ROULEAU';
-        l1 = 'Il prend l\'outil choisi :'; l2 = 'ici, il perce le mur !';
+        if (padM) {             // manette : le curseur glisse jusqu'au rouleau, s'y aimante, puis (A)
+          const u = clamp((cyc - 0.2) / 0.7, 0, 1), cx2 = fx + (1 - ease(u)) * sw * 0.3, cy2 = fy - (1 - ease(u)) * sceneH * 0.25;
+          if (cyc < 1.6) {
+            ctx.save(); ctx.lineWidth = 2.6; ctx.strokeStyle = ROLE_COL.bash; ctx.beginPath(); ctx.arc(cx2, cy2, 13, 0, TAU); ctx.stroke();
+            ctx.lineCap = 'round'; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a); ctx.beginPath(); ctx.moveTo(cx2 + c * 16, cy2 + sn * 16); ctx.lineTo(cx2 + c * 21, cy2 + sn * 21); ctx.stroke(); }
+            ctx.restore();
+            if (u >= 1) { if (cyc > 1.0 && cyc < 1.3) { ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = COL.gold; ctx.beginPath(); ctx.arc(cx2 - 24, cy2 + 16, 15, 0, TAU); ctx.fill(); ctx.restore(); } PAD.drawGlyph(ctx, 'a', cx2 - 24, cy2 + 16, 10); }
+          }
+        } else if (cyc > 0.6 && cyc < 1.5) drawFinger(fx, fy, cyc > 1.0 && cyc < 1.3 ? 1 : 0.35);
+        title = padM ? 'VISE UN ROULEAU' : touch ? 'TOUCHE UN ROULEAU' : 'CLIQUE UN ROULEAU';
+        l1 = padM ? 'Stick gauche : vise, le curseur s\'aimante.' : 'Il prend l\'outil choisi :'; l2 = padM ? PAD.glyph('a') + ' : il prend l\'outil (ici, il perce) !' : 'ici, il perce le mur !';
       } else {
         // ils entrent dans les WC : chasse d'eau, compteur
         const s = Math.min(sceneH / 40, sw / 90);
@@ -5094,7 +5240,11 @@
       bg.addColorStop(0, '#ffe58a'); bg.addColorStop(1, '#f0a800');
       ctx.fillStyle = bg; rr(ctx, bx, by, bw, bh, bh / 2); ctx.fill();
       ctx.fillStyle = '#2a1a00'; ctx.font = '15px ' + FD; ctx.textAlign = 'center';
-      ctx.fillText(st < 2 ? 'SUIVANT ›' : 'C\'EST PARTI !', tcx, by + bh / 2 + 1);
+      if (padM) {             // manette : (A) dans le bouton
+        const lab = st < 2 ? 'SUIVANT ›' : 'C\'EST PARTI !', tw = ctx.measureText(lab).width;
+        PAD.drawGlyph(ctx, 'a', tcx - tw / 2 - 6, by + bh / 2, 11);
+        ctx.fillStyle = '#2a1a00'; ctx.fillText(lab, tcx + 12, by + bh / 2 + 1);
+      } else ctx.fillText(st < 2 ? 'SUIVANT ›' : 'C\'EST PARTI !', tcx, by + bh / 2 + 1);
     }
 
     // ---------- Voyage d'un monde à l'autre : aspiré par la chasse, glissade dans le tuyau, plouf ----------
@@ -5296,6 +5446,7 @@
       if (state === 'wipe' && stateT >= 0.3 && stateT < 0.8) { ctx.fillStyle = ROULEAUX_WORLDS[wi].colors.accent; ctx.fillRect(0, 0, W, H); drawWipe(); drawHUD(); return; }
       drawScene(alpha);
       drawHoverLabel(alpha);
+      drawPadCursor();
       drawTap();
       if (state === 'intro') drawIntro();
       else if (state === 'flush') drawFlush();
@@ -5324,6 +5475,7 @@
       if (dt > 0.05) dt = 0.05;
       sndBudget = 8;
       if (frozen) dt = 0;
+      if (!frozen) { try { padTick(dt); } catch (e) { lastErr = String(e && e.stack || e); } }
       if (!paused && !frozen) {
         try { update(dt); } catch (e) { lastErr = String(e && e.stack || e); }
         for (let i = sfxQ.length - 1; i >= 0; i--) { sfxQ[i].t -= dt; if (sfxQ[i].t <= 0) { const f = sfxQ[i].fn; sfxQ.splice(i, 1); try { f(); } catch (e) { /* rien */ } } }
@@ -5343,12 +5495,16 @@
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
       currentLevel: () => levelN + 1,                       // niveau en cours (16 = Tour II, niveau 1)
+      // carte Pause de la borne (Start de la manette) ; Reprendre : les appuis faits sur la carte ne vont pas au jeu
+      pause() { pause(); padBorne = paused; },
+      resume() { padBorne = false; resume(); padDrain(); },
       // accès de diagnostic (harnais de test uniquement)
       _debug: {
         info: () => ({
           level: levelN, name: def.name, world: wi, cycle, tick: wd.tick, mirror: !!(lvInfo && lvInfo.mirror), state, stateT, score, req, timeLeft, paused, selected, fast,
           saved: wd.saved, lost: wd.lost, toSpawn: wd.toSpawn, total: wd.total, counts: Object.assign({}, counts), roles: roleList.slice(), tuto: tuto ? tuto.step : null,
           fx: parts.length, villain: villain ? villain.name : null, frame: frameHead ? frameHead.name : null, assets: !!A,
+          pad: padCur ? { x: padCur.x, y: padCur.y, target: padTarget, hover: hover ? hover.id : -1, ok: !!(hover && hover._ok) } : null,
           walkers: wd.walkers.map(w => ({ i: w.id, x: w.x, y: w.y, st: w.st, dir: w.dir, floater: w.floater, climber: w.climber, swimmer: w.swimmer, bricks: w.bricks, how: w.how, t: w.t })),
           layout: { W, H, S, playX, playY, playW, playH, sideMode, hudH, K: caches.K }
         }),
@@ -5847,6 +6003,8 @@
     scoreLabel: 'points',
     preview,
     mount,
+    // manette (CONTRACT.md Ajout 10) : commandes montrées par la borne (carte Pause, début de partie)
+    pad: { help: [['ls', 'Viser un rouleau (curseur aimanté)'], ['a', 'Donner l’outil'], ['lb/rb', 'Changer d’outil (aussi ▲ ▼)'], ['left/right', 'Rouleau précédent / suivant'], ['x', 'Vitesse ×2'], ['y', 'FINI (assez de sauvés)'], ['rs', 'Faire défiler (portrait)']] },
     worlds: ROULEAUX_WORLDS,          // le parcours (carte d'avancement de la bibliothèque)
     worldOf,                          // niveau → { w, n, tour, stage, world }
     levelsPerWorld: WPL,              // 3 niveaux par monde

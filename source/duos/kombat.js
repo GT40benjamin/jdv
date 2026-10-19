@@ -112,9 +112,80 @@ function preview(ctx, w, h, t) {
   }
 }
 
+/* ---------- manette (CONTRACT.md « Ajout 10 ») ----------
+   Le COMBAT lit déjà la manette dans le moteur (assets/mandale.moteur.bin, ui/input.js de l'atelier : stick / croix = bouger, ▲ sauter,
+   ▼ s'accroupir, X poing, A pied, Y spécial, RB / RT garde, B choppe, LB narguer). Les ÉCRANS du moteur (choix du combattant, « Oups »)
+   n'ont que des cibles tactiles : cet adaptateur les pilote avec api.pad (◀ ▶ = choisir, A = COMBATTRE, Y = ma tête / sa tête) et y pose
+   les glyphes de la manette (Xbox / PlayStation) tant que la manette est l'entrée du moment. Le moteur n'est pas modifié.
+   (Pour que le combat passe aussi par api.pad : patch de l'atelier dans ~/jdv-tools/duotest/manette/kombat/.) */
+function padAdapter(root, api, isPaused) {
+  const P = api && api.pad;
+  if (!P || typeof P.pressed !== 'function' || typeof P.get !== 'function') return { stop() {}, drain() {} };
+  let raf = 0, dead = false, lastX = 0, deco = '', n = 0;
+  const BT = ['a', 'b', 'y', 'left', 'right', 'lb', 'rb'];
+  const drain = () => { for (const b of BT) P.pressed(b, 0); };
+  // appui sur une cible du moteur (ses écrans écoutent pointerdown) ; le bouton « Réessayer » écoute click
+  const tap = (el) => {
+    if (!el) return;
+    const r = el.getBoundingClientRect(), o = { bubbles: true, cancelable: true, pointerId: 9071, pointerType: 'touch', isPrimary: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+    try { el.dispatchEvent(new PointerEvent('pointerdown', o)); el.dispatchEvent(new PointerEvent('pointerup', o)); } catch (e) { /* rien */ }
+  };
+  const glyph = (btn, size) => {
+    const c = document.createElement('canvas'), d = Math.min(2, window.devicePixelRatio || 1);
+    c.width = c.height = Math.round(size * d); c.style.cssText = 'position:static;display:block;width:' + size + 'px;height:' + size + 'px;flex:none;pointer-events:none';
+    const x = c.getContext('2d'); x.scale(d, d); P.drawGlyph(x, btn, size / 2, size / 2, size * 0.44, 0);
+    return c;
+  };
+  // glyphes sur l'écran de choix (posés une fois par sorte de manette, retirés quand le doigt reprend la main)
+  function decorate(sel, on) {
+    const key = on ? P.kind(0) + (sel.querySelector('.mk-chip') ? '+' : '') : '';
+    if (sel.dataset.padk === key) return;
+    sel.dataset.padk = key;
+    for (const el of sel.querySelectorAll('[data-mkpad]')) el.remove();
+    if (!on) return;
+    const go = sel.querySelector('.mk-go');
+    if (go) { const g = glyph('a', 26); g.dataset.mkpad = '1'; g.style.cssText += ';display:inline-block;vertical-align:-6px;margin:-4px 8px -4px -6px'; go.insertBefore(g, go.firstChild); }
+    const cards = sel.querySelector('.mk-cards');
+    if (cards) {
+      const t = document.createElement('div'); t.dataset.mkpad = '1';
+      t.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;padding:4px 12px 4px 6px;border-radius:999px;background:rgba(14,8,26,.78);box-shadow:0 0 0 1px rgba(255,255,255,.18);font:600 12px ' + ((api.fonts && api.fonts.body) || 'sans-serif') + ';color:#efe6ff;white-space:nowrap;pointer-events:none';
+      t.append(glyph('dpad', 22), document.createTextNode('ou'), glyph('ls', 22), document.createTextNode('choisis ton combattant'));
+      const r = cards.getBoundingClientRect(), rr = sel.getBoundingClientRect(), card = cards.querySelector('.mk-card');
+      const top = card ? card.getBoundingClientRect().top : r.top;
+      t.style.bottom = Math.max(8, rr.bottom - top + 10) + 'px';
+      sel.appendChild(t);
+    }
+    const chip = sel.querySelector('.mk-chip');
+    if (chip) { const g = glyph('y', 24); g.dataset.mkpad = '1'; g.style.alignSelf = 'center'; chip.insertBefore(g, chip.firstChild); }
+  }
+  function tick() {
+    raf = 0; if (dead) return;
+    raf = requestAnimationFrame(tick);
+    const pr = {}; for (const b of BT) pr[b] = P.pressed(b, 0);
+    if (isPaused()) return;
+    const g = P.get(0), sel = root.querySelector('.mk-sel');
+    if (sel) {
+      if ((n++ & 7) === 0 || pr.a) decorate(sel, g.on && P.active());
+      let d = (pr.right || pr.rb ? 1 : 0) - (pr.left || pr.lb ? 1 : 0);
+      const sx = g.lx > 0.6 ? 1 : g.lx < -0.6 ? -1 : 0;
+      if (sx !== lastX) { lastX = sx; if (sx) d = sx; }
+      const cards = sel.querySelectorAll('.mk-card');
+      if (d && cards.length === 2) tap(cards[d > 0 ? 1 : 0]);
+      if (pr.y) { const b = [...sel.querySelectorAll('.mk-chip button')].find((x) => !x.classList.contains('on')); tap(b); }
+      if (pr.a) tap(sel.querySelector('.mk-go'));
+    } else {
+      lastX = 0;
+      if (pr.a) { const b = root.querySelector('.mk-fb button') || [...root.querySelectorAll('button')].find((x) => x.textContent === 'Réessayer'); if (b) b.click(); }
+    }
+  }
+  raf = requestAnimationFrame(tick);
+  return { stop() { dead = true; if (raf) cancelAnimationFrame(raf); raf = 0; }, drain };
+}
+
 /* ---------- lancement : petit écran de chargement tout de suite, puis le moteur prend la main ---------- */
 function mount(root, api) {
   let inst = null, dead = false, paused = false;
+  const pad = padAdapter(root, api, () => paused || dead);
   const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
   root.innerHTML = '';
   const box = document.createElement('div');
@@ -129,7 +200,7 @@ function mount(root, api) {
     if (dead) return;
     box.innerHTML = '<div style="max-width:340px;text-align:center;padding:20px"><div style="font:400 22px ' + ((api.fonts && api.fonts.display) || 'Impact') + ';color:#ff9ad8;margin-bottom:8px">Oups !</div>' +
       '<div style="font:600 14px inherit;color:#d9c8f0;margin-bottom:14px">Ton appareil n\'arrive pas à charger ce jeu 3D.</div><button type="button" style="font:400 15px inherit;color:#1a0e2a;background:#ffc75a;border:0;border-radius:12px;padding:10px 20px;box-shadow:0 5px 0 #a8661c;cursor:pointer">Réessayer</button></div>';
-    box.querySelector('button').addEventListener('click', () => { if (!dead) { root.innerHTML = ''; const n = mount(root, api); proxy.destroy = n.destroy; proxy.pause = n.pause; proxy.resume = n.resume; } });
+    box.querySelector('button').addEventListener('click', () => { if (!dead) { pad.stop(); root.innerHTML = ''; const n = mount(root, api); proxy.destroy = n.destroy; proxy.pause = n.pause; proxy.resume = n.resume; } });
   };
   loadEngine((k) => { bar.style.width = Math.round(k * 100) + '%'; }, ac && ac.signal).then((MK) => {
     if (dead) return;
@@ -137,9 +208,9 @@ function mount(root, api) {
     if (paused && inst.pause) inst.pause();
   }).catch(() => fail());
   const proxy = {
-    destroy() { dead = true; if (ac) try { ac.abort(); } catch (e) { /* rien */ } if (inst) inst.destroy(); root.innerHTML = ''; },
+    destroy() { dead = true; pad.stop(); if (ac) try { ac.abort(); } catch (e) { /* rien */ } if (inst) inst.destroy(); root.innerHTML = ''; },
     pause() { paused = true; if (inst) inst.pause(); },
-    resume() { paused = false; if (inst) inst.resume(); },
+    resume() { paused = false; pad.drain(); if (inst) inst.resume(); },
     get _d() { return inst && inst._d; },   // essais (harnais)
   };
   return proxy;
@@ -157,6 +228,8 @@ window.JDW_DUOS.kombat = {
   local: false,
   ai: true,
   net: false,
+  // manette (CONTRACT.md « Ajout 10 ») : commandes du moteur (ui/input.js de l'atelier), montrées par la borne (début de partie, pause)
+  pad: { help: [['ls/dpad', 'Bouger · ▲ sauter · ▼ s’accroupir'], ['x', 'Poing'], ['a', 'Pied'], ['y', 'Spécial (+ direction) · MANDALE !'], ['rb/rt', 'Garde'], ['b', 'Choppe'], ['lb', 'Narguer (de loin)']] },
   preview,
   mount,
 };

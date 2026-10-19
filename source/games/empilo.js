@@ -1992,7 +1992,7 @@
         if (gy + gridH - vy >= vh) L.voyage = { x: lx, y: vy, w: pw, h: vh };
         const ky = L.voyage ? vy + vh + Math.round(gap * 0.6) : vy;
         const kh = gy + gridH - ky;
-        L.keys = kh >= 110 && !touchUI ? { x: lx, y: ky, w: pw, h: kh } : null;
+        L.keys = kh >= 110 && (!touchUI || padActive()) ? { x: lx, y: ky, w: pw, h: kh } : null;
         const big = Math.round(clamp(pw * 0.6, 56, 120)), sm = Math.round(big * 0.66);
         L.next = [{ x: rx, y: gy, w: pw, h: big }];
         let yy = gy + big + 4;
@@ -2207,6 +2207,7 @@
     }
     function chaseSab() {
       if (!sab || sab.phase !== 'on') return;
+      padRumble('hit');
       const bonus = 500 * level * mult;
       score += bonus;
       if (sab.idx < 0) {
@@ -2590,6 +2591,7 @@
       // --- sons
       if (spin) SFX.tspin();
       if (n > 0) SFX.clear(n, tier, combo);
+      if (n > 0 && tier >= 1) padRumble(tier >= 3 ? 'big' : 'hit');      // manette : double et plus
       if (n > 0 && combo >= 1) SFX.combo(combo);
       if (b2bOn) SFX.b2b();
       if (pc) { SFX.pc(); celebrate('Tout propre, incroyable !'); }
@@ -2806,6 +2808,7 @@
       if (sab && (sab.phase === 'on' || sab.phase === 'in')) { sab.phase = 'bye'; sab.t = 0; sabSay(sab.idx < 0 ? SAB_W[sab.w].bye : 'Bon voyage !'); }
       sabPending = -1;
       SFX.trip(trip.kind);
+      padRumble('win');
       later(1.85, () => SFX.arrive());
       shake(0.25, 3);
     }
@@ -2843,10 +2846,10 @@
     let dir = 0, dasT = 0, arrT = 0;
     let gest = null, gest2 = null;
     function canAct() { return state === 'play' && !paused && cur && !clearing && !trip; }
-    function clearHeld() { kbL = kbR = kbD = btL = btR = btD = false; dir = 0; dasT = 0; arrT = 0; gest = null; gest2 = null; }
+    function clearHeld() { kbL = kbR = kbD = btL = btR = btD = padL = padR = padD = false; dir = 0; dasT = 0; arrT = 0; gest = null; gest2 = null; }
     function pressDir(d) { dir = d; dasT = 0; arrT = 0; if (canAct()) tryMove(d); }
     function refreshDir() {
-      const l = kbL || btL, r = kbR || btR;
+      const l = kbL || btL || padL, r = kbR || btR || padR;
       if (dir < 0 && !l) { dir = r ? 1 : 0; dasT = 0; arrT = 0; }
       else if (dir > 0 && !r) { dir = l ? -1 : 0; dasT = 0; arrT = 0; }
       else if (!dir && (l || r)) dir = l ? -1 : 1;
@@ -2920,6 +2923,45 @@
     on(window, 'keydown', onKey);
     on(window, 'keyup', onKey);
     on(window, 'blur', () => { clearHeld(); });
+
+    // ---- manette (CONTRACT.md Ajout 10) : lue une fois par image, branchée sur les mêmes actions que le clavier ----
+    // croix / stick gauche = déplacer (même répétition que les flèches), ▼ = descendre, ▲ ou Y = chute,
+    // A = tourner (horaire), B = tourner à l'envers, LB / RB = réserve. Start reste à la borne (sa carte Pause).
+    const PAD = api.pad || null;
+    const PADB = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'up', 'down', 'left', 'right', 'ls', 'rs'];
+    let padL = false, padR = false, padD = false, padOn = false, padBorne = false;
+    function padActive() { try { return !!(PAD && PAD.active()); } catch (e) { return false; } }
+    function padDrain() { if (PAD) for (const b of PADB) PAD.pressed(b); }
+    function padRumble(k) { try { if (PAD) PAD.rumble(k); } catch (e) { /* */ } }
+    function padTick() {
+      if (!PAD) return;
+      const on = padActive();
+      if (on !== padOn) { padOn = on; layout(); }          // les commandes dessinées passent aux glyphes de la manette
+      // get() d'abord, à chaque image : il libère le A tenu au lancement (sinon les appuis A suivants restent bloqués)
+      const g = PAD.get();
+      if (paused || state === 'over') {
+        const a = PAD.pressed('a'); padDrain();
+        if (padL || padR || padD) { padL = padR = padD = false; refreshDir(); }
+        if (a && paused && !padBorne) togglePause();       // pause du jeu (bouton à l'écran) : A reprend
+        return;
+      }
+      const sx = Math.abs(g.lx) > (padL || padR ? 0.35 : 0.5) && Math.abs(g.lx) >= Math.abs(g.ly) * 0.75 ? Math.sign(g.lx) : 0;
+      const hx = g.held.left ? -1 : g.held.right ? 1 : sx;
+      const dn = !!g.held.down || (g.ly > (padD ? 0.45 : 0.6) && g.ly > Math.abs(g.lx) * 1.2);
+      const pa = PAD.pressed('a'), pb = PAD.pressed('b'), pu = PAD.pressed('up'), py = PAD.pressed('y');
+      const ph = PAD.pressed('lb'), pr = PAD.pressed('rb'), px = PAD.pressed('x');
+      padDrain();
+      if (state === 'tuto') { if (pa) tutoNext(false); else if (pb) tutoNext(true); return; }
+      if (trip) { if (pa || pu || py || (dn && !padD)) tripSkip(); padD = dn; return; }
+      if (state !== 'play' && state !== 'ready') return;
+      if ((hx < 0) !== padL) { padL = hx < 0; if (padL) pressDir(-1); else refreshDir(); }
+      if ((hx > 0) !== padR) { padR = hx > 0; if (padR) pressDir(1); else refreshDir(); }
+      if (dn !== padD) { padD = dn; if (dn) act('softstep'); }
+      if (pa) act('cw');
+      if (pb) act('ccw');
+      if (pu || py) act('hard');
+      if (ph || pr || px) act('hold');
+    }
 
     // ---- gestes tactiles (sur tout l'écran) ----
     // glisser horizontal = la pièce suit le doigt case par case ; toucher bref = tourner ;
@@ -3231,7 +3273,7 @@
           }
         }
         if (cur && !clearing && !trip) {
-          const soft = kbD || btD;
+          const soft = kbD || btD || padD;
           const g = gravity();
           const iv = soft ? Math.min(g, 0.03) : g;
           fallT += dt;
@@ -3837,9 +3879,16 @@
       ctx.fillText(label, x + w / 2, y + h / 2 + 1);
     }
     function controlsRows(touch) {
+      if (padActive()) return [[['ls', 'dpad'], 'Déplacer'], [['down'], 'Descendre'], [['up', 'y'], 'Chute'], [['a'], 'Tourner'], [['b'], 'Anti-horaire'], [['lb', 'rb'], 'Réserve'], [['start'], 'Pause']];
       return touch
         ? [['↔', 'Glisse : la pièce suit'], ['•', 'Touche : tourner'], ['↓', 'Glisse en bas : descendre'], ['⇊', 'Geste vif en bas : chute'], ['R', 'Bouton RÉSERVE / vif en haut']]
         : [[['←', '→'], 'Déplacer'], [['↓'], 'Descendre'], [['ESPACE'], 'Chute'], [['↑', 'X'], 'Tourner'], [['Z'], 'Anti-horaire'], [['C', 'MAJ'], 'Réserve'], [['P', 'ÉCHAP'], 'Pause']];
+    }
+    // largeur d'un glyphe de manette dessiné (pastille ronde, ou étiquette LB / Menu / ▲…)
+    function padGlyphW(b, r) {
+      if (/^(a|b|x|y|ls|rs|dpad)$/.test(b)) return r * 2;
+      ctx.save(); ctx.font = '700 ' + Math.round(r * 0.9) + 'px system-ui,sans-serif';
+      const w = Math.max(r * 2, ctx.measureText(PAD.glyph(b)).width + r * 0.9); ctx.restore(); return w;
     }
     function drawControls(x, y, w, h, touch, title) {
       const th = title ? glassPanel(x, y, w, h, title, false) : 0;
@@ -3849,10 +3898,14 @@
       if (rh < 15) return;
       const fs = Math.round(clamp(rh * 0.42, 8, 15));
       let yy = y + th + pad * 0.6;
+      const padM = padActive();
       for (const [k, txt] of rows) {
         const kh = rh * 0.74;
         let kx = x + pad;
-        if (touch) {
+        if (padM) {             // manette : glyphes Xbox / PlayStation
+          for (const b of k) { const gw = padGlyphW(b, kh / 2); PAD.drawGlyph(ctx, b, kx + gw / 2, yy + rh / 2, kh / 2); kx += gw + 4; }
+          kx += 4;
+        } else if (touch) {
           ctx.fillStyle = rgba(ACC, 0.22);
           ctx.beginPath(); ctx.arc(kx + kh / 2, yy + rh / 2, kh / 2, 0, TAU); ctx.fill();
           ctx.fillStyle = ACC; ctx.font = Math.round(kh * 0.6) + 'px ' + FD;
@@ -4634,14 +4687,15 @@
       ctx.fillStyle = 'rgba(8,4,20,0.72)';
       ctx.fillRect(0, 0, W, H);
       const k = tutoCard(), tt = tuto.t, st = tuto.step;
-      const touch = touchUI;
+      const touch = touchUI, padM = padActive();
       glassPanel(k.x, k.y, k.w, k.h, '', true);
       ctx.fillStyle = 'rgba(10,6,28,0.6)'; rr(ctx, k.x, k.y, k.w, k.h, 14); ctx.fill();
       // passer
       const sk = tutoSkipRect();
       ctx.fillStyle = 'rgba(255,255,255,0.12)'; rr(ctx, sk.x, sk.y, sk.w, sk.h, 18); ctx.fill();
       ctx.fillStyle = '#ffffff'; ctx.font = '700 13px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1);
+      if (padM) { PAD.drawGlyph(ctx, 'b', sk.x + 16, sk.y + sk.h / 2, 10); ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.fillText('PASSER', sk.x + sk.w / 2 + 10, sk.y + sk.h / 2 + 1); }
+      else ctx.fillText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1);
       ctx.textAlign = 'left'; ctx.font = '700 12px ' + FB; ctx.fillStyle = rgba(ACC, 1);
       ctx.fillText('COMMENT JOUER · ' + (st + 1) + '/3', k.x + 16, k.y + 26);
       // scène : mini-plateau
@@ -4659,10 +4713,25 @@
       };
       let title = '', l1 = '', l2 = '';
       const cyc = tt % 3;
+      // manette : les glyphes de la manette branchée (Xbox A B X Y / LB RB, PlayStation ✕ ○ □ △ / L1 R1)
+      const glyphs = (list, on) => {
+        const r = Math.max(12, Math.min(18, ms * 0.42)), gap = 10;
+        let tw = 0; for (const b of list) tw += padGlyphW(b, r) + gap; tw -= gap;
+        let gx0 = sx + sw / 2 - tw / 2;
+        ctx.fillStyle = 'rgba(4,3,12,0.78)'; rr(ctx, gx0 - 10, sy + sh - 2 * r - 14, tw + 20, 2 * r + 16, r + 8); ctx.fill();
+        list.forEach((b, i) => {
+          const gw = padGlyphW(b, r), cx = gx0 + gw / 2, cy = sy + sh - r - 6;
+          if (on === i) { ctx.fillStyle = rgba(ACC, 0.45); ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, TAU); ctx.fill(); }
+          PAD.drawGlyph(ctx, b, cx, cy, r); gx0 += gw + gap;
+        });
+      };
       if (st === 0) {
         const col = [2, 3, 4, 3][Math.floor(tt / 0.6) % 4];
         piece(col - 1, 0, 0);
-        if (touch) {
+        if (padM) {
+          glyphs(['dpad', 'ls'], Math.floor(tt / 1.2) % 2);
+          title = 'DÉPLACER'; l1 = 'Croix ou stick gauche : la pièce glisse.'; l2 = '▼ pour descendre plus vite.';
+        } else if (touch) {
           const fx = sx + sw / 2 + Math.sin(tt * Math.PI / 1.2) * ms * 1.6;
           drawFinger(fx, sy + sh * 0.8, 0.6);
           title = 'GLISSE ↔'; l1 = 'Glisse le doigt n’importe où :'; l2 = 'la pièce suit, case par case.';
@@ -4675,7 +4744,10 @@
       } else if (st === 1) {
         const rot = Math.floor(tt / 0.7) % 4;
         piece(2, 0, rot);
-        if (touch) {
+        if (padM) {
+          glyphs(['a', 'b'], (tt % 0.7) < 0.25 ? 0 : -1);
+          title = 'TOURNER'; l1 = PAD.glyph('a') + ' tourne, ' + PAD.glyph('b') + ' dans l’autre sens.'; l2 = 'Elle se cale contre les murs.';
+        } else if (touch) {
           const ph = (tt % 0.7) / 0.7;
           drawFinger(sx + sw * 0.75, sy + sh * 0.35, ph < 0.25 ? 1 - ph * 4 : 0);
           if (ph < 0.4) { ctx.strokeStyle = 'rgba(255,255,255,' + (1 - ph / 0.4) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx + sw * 0.75, sy + sh * 0.35, 18 + ph * 60, 0, TAU); ctx.stroke(); }
@@ -4686,7 +4758,10 @@
         }
       } else {
         piece(3, cyc < 0.9 ? Math.floor(cyc / 0.3) : 3, 2);
-        if (touch) {
+        if (padM) {
+          glyphs(['up', 'y', 'lb', 'rb'], cyc > 0.9 && cyc < 1.15 ? 1 : -1);
+          title = 'CHUTE ET RÉSERVE'; l1 = '▲ ou ' + PAD.glyph('y') + ' : chute immédiate.'; l2 = PAD.glyph('lb') + ' / ' + PAD.glyph('rb') + ' : réserve · ' + PAD.glyph('start') + ' : pause.';
+        } else if (touch) {
           const fy = cyc < 0.9 ? sy + ms * 0.5 + cyc * ms * 1.2 : cyc < 1.15 ? sy + ms * 1.6 + (cyc - 0.9) * ms * 12 : sy + sh;
           drawFinger(sx + sw * 0.2, fy, cyc > 0.9 && cyc < 1.15 ? 1 : 0.4);
           title = 'GLISSE ↓ / GESTE VIF'; l1 = 'Glisse vers le bas : descend.'; l2 = 'Geste vif : chute. RÉSERVE : le bouton.';
@@ -4712,7 +4787,11 @@
       bg.addColorStop(0, shade(ACC, 0.25)); bg.addColorStop(1, shade(ACC, -0.2));
       ctx.fillStyle = bg; rr(ctx, bx, by, bw, 40, 20); ctx.fill();
       ctx.fillStyle = '#12061f'; ctx.font = '15px ' + FD; ctx.textAlign = 'center';
-      ctx.fillText(st < 2 ? 'SUIVANT ›' : "C'EST PARTI !", W / 2, by + 21);
+      if (padM) {             // manette : (A) dans le bouton
+        const lab = st < 2 ? 'SUIVANT ›' : "C'EST PARTI !", tw = ctx.measureText(lab).width;
+        PAD.drawGlyph(ctx, 'a', W / 2 - tw / 2 - 16, by + 20, 11);
+        ctx.fillStyle = '#12061f'; ctx.fillText(lab, W / 2 + 10, by + 21);
+      } else ctx.fillText(st < 2 ? 'SUIVANT ›' : "C'EST PARTI !", W / 2, by + 21);
     }
 
     // carte du voyage dans l'écran de pause : chemin parcouru, monde en cours, sa particularité, le prochain monde
@@ -4775,7 +4854,7 @@
       drawNext();
       drawStats();
       drawVoyagePanel();
-      if (L.keys) drawControls(L.keys.x, L.keys.y, L.keys.w, L.keys.h, touchUI, 'COMMANDES');
+      if (L.keys) drawControls(L.keys.x, L.keys.y, L.keys.w, L.keys.h, touchUI, padActive() ? 'MANETTE' : 'COMMANDES');
       drawMascotPanel();
       if (portrait) {
         // fine ligne sous la bande du haut
@@ -4830,11 +4909,17 @@
           kw = Math.min(W - 32, 360); kx = W / 2 - kw / 2; ky = my + mh + 12; kh = Math.min(H - ky - reserve - 8, touchUI ? 236 : 320);
         }
         drawPauseMap(mx, my, mw, mh);
-        if (kh > 96) drawControls(kx, ky, kw, kh, touchUI, touchUI ? 'GESTES' : 'TOUCHES');
+        if (kh > 96) drawControls(kx, ky, kw, kh, touchUI, padActive() ? 'MANETTE' : touchUI ? 'GESTES' : 'TOUCHES');
         const ry = Math.max(my + mh, kh > 96 ? ky + kh : 0) + 22;
         ctx.font = '700 ' + Math.round(clamp(W * 0.04, 13, 18)) + 'px ' + FB;
         ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        if (!touchUI || ry < btnToggleRect().y - 8) ctx.fillText('Touche pour reprendre', W / 2, ry);
+        if (padActive()) {      // manette : « (A) pour reprendre »
+          const fs = Math.round(clamp(W * 0.04, 13, 18)), tw = ctx.measureText('pour reprendre').width, gr = fs * 0.72;
+          const x0 = W / 2 - (tw + gr * 2 + 8) / 2;
+          PAD.drawGlyph(ctx, 'a', x0 + gr, ry, gr);
+          ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.fillText('pour reprendre', x0 + gr * 2 + 8, ry);
+          ctx.textAlign = 'center';
+        } else if (!touchUI || ry < btnToggleRect().y - 8) ctx.fillText('Touche pour reprendre', W / 2, ry);
         if (touchUI) {
           const b = btnToggleRect();
           ctx.fillStyle = 'rgba(255,255,255,0.1)'; rr(ctx, b.x, b.y, b.w, b.h, 22); ctx.fill();
@@ -4855,6 +4940,7 @@
       if (dt > 0.05) dt = 0.05;
       rtime += dt; sndBudget = 8;
       const t0 = performance.now();
+      padTick();
       update(dt);
       render();
       prepTick(performance.now() - t0, dt);
@@ -4864,6 +4950,9 @@
     return {
       currentScore: () => Math.max(0, Math.floor(score)),
       currentLevel: () => level,
+      // carte Pause de la borne (Start de la manette) ; Reprendre : les appuis faits sur la carte ne vont pas au jeu
+      pause() { if (!paused) togglePause(); padBorne = paused; },
+      resume() { padBorne = false; if (paused) togglePause(); padDrain(); },
       // accès de diagnostic (harnais de test uniquement)
       _debug: {
         info: () => ({ score, lines, level, state, paused, tuto: tuto ? tuto.step : null,
@@ -5325,6 +5414,8 @@
     levelsPerWorld: WPL,
     worldOf,                        // niveau → { w, n, tour, stage, world }
     mapArt,                         // la carte d'avancement de la bibliothèque, dessinée par le jeu
+    // manette (CONTRACT.md Ajout 10) : commandes montrées par la borne (carte Pause, début de partie)
+    pad: { help: [['ls/dpad', 'Déplacer · ▼ descendre'], ['up/y', 'Chute'], ['a', 'Tourner'], ['b', 'Tourner à l’envers'], ['lb/rb', 'Réserve']], intro: false },   // intro: false = le tutoriel et le panneau MANETTE du jeu montrent déjà les commandes
     preview,
     mount
   };

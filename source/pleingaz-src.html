@@ -1407,6 +1407,7 @@ function drawIntro() {
     label('NIVEAU ' + level, hx + hw / 2 + 93, cy + 22, 22, COL.amber);
     if (introSub) { ctx.font = '600 12px ' + getComputedStyle(document.body).fontFamily; ctx.fillStyle = COL.ink; ctx.fillText(introSub.toUpperCase(), hx + hw / 2 + 93, cy + 44); }
     if (introSub2) { ctx.fillStyle = T.lamp; ctx.fillText(introSub2.toUpperCase(), hx + hw / 2 + 93, cy + 62); }
+    if (typeof pgPadHint === 'function') pgPadHint(hx + hw / 2 + 93, cy + 92);   // manette : « (A) maintiens pour voler »
     ctx.globalAlpha = 1;
   }
 }
@@ -1857,6 +1858,7 @@ function syncHud() {
 }
 function frame(t) {
   const dt = Math.min(0.1, (t - last) / 1000); last = t;
+  if (typeof pgPadFrame === 'function') pgPadFrame();   // manette de la borne (pg-hook.js)
   if (state !== 'paused') {
     acc += dt;
     while (acc >= STEP) { update(slowT > 0 ? STEP * 0.6 : STEP); acc -= STEP; }   // sablier : tout ralentit

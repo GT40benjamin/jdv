@@ -154,6 +154,171 @@ const Audio = {
 };
 const audioApi = { tone: (...a) => Audio.tone(...a), noise: (...a) => Audio.noise(...a) };
 
+/* ================= Manette (Xbox, PlayStation, manettes génériques : source/manette.js) =================
+   La navigation de toute la borne (focus doré, A valider, B retour, gâchettes = onglets, Start = pause), api.pad des jeux
+   (CONTRACT.md « Ajout 10 »), la carte pause des jeux solo, les commandes de chaque jeu (g.pad.help), les vibrations (⚙). */
+const PADJ = window.JDW_PAD || null;
+const PAD_DOM = new Set(['pegase']);       // « jeux » qui sont des pages (hub de Pégase) : la manette y navigue comme dans la borne
+const PADP = { open: false, g: null, by: '' };
+// à qui la manette ? un jeu tourne et rien n'est par-dessus → au jeu
+function padCapturing() {
+  if (!$('jdw-duo').hidden) return !!DUO.inst && !DUO.paused && !DUO.over && $('jdw-duo-res').hidden && $('jdw-duo-pause').hidden && !DUO.waitRot;
+  if ($('jdw-play').hidden || !current || !current.inst || current.over || PADP.open) return false;
+  if (current.coop) return !COOP.paused && !COOP.over && $('jdw-coop-pause').hidden && $('jdw-coopend').hidden;
+  if (PAD_DOM.has(current.game.id)) return false;
+  return $('jdw-end').hidden && $('jdw-rotate').hidden;
+}
+// les manettes de chaque joueur d'un duel : 2 manettes = 2 joueurs ; une seule : du côté choisi (jdw.padside, en bas par défaut) ;
+// contre l'IA ou en ligne : toutes les manettes pour MON joueur
+let padSide = store.get('jdw.padside', 0) === 1 ? 1 : 0, padSwap = !!store.get('jdw.padswap', false);
+function padDuoSlots(me) {
+  return p => {
+    const L = PADJ ? PADJ.pads() : [];
+    if (me !== undefined) return p === me ? L : [];
+    if (L.length === 1) return p === padSide ? L : [];
+    const a = padSwap ? [L[1], L[0]] : [L[0], L[1]];
+    return a[p] ? [a[p]] : [];
+  };
+}
+function padApi(opts) {
+  if (!PADJ) return undefined;
+  try { return PADJ.gameApi(opts); } catch (e) { return undefined; }
+}
+function padClose(a) { try { if (a && a.close) a.close(); } catch (e) {} }
+// ---------- carte pause des jeux solo (Start / Options) ----------
+function padHelpOf(g) { return (g && g.pad && Array.isArray(g.pad.help) && g.pad.help.length) ? g.pad.help : null; }
+function padHelpInto(box, g) {
+  if (!box) return;
+  box.textContent = '';
+  const h = padHelpOf(g); box.hidden = !h || !PADJ;
+  if (!h || !PADJ) return;
+  const t = document.createElement('p'); t.className = 'pad-help-h'; t.append('🎮 Commandes'); box.append(t);
+  // deux manettes de sortes différentes (duel Xbox contre PlayStation) : les deux jeux de glyphes, côte à côte
+  const kinds = [...new Set(PADJ.pads().map(P => P.kind))];
+  if (kinds.length < 2) { box.appendChild(PADJ.helpList(h, kinds[0] || PADJ.kind())); box.classList.remove('two'); return; }
+  box.classList.add('two');
+  const NM = { xbox: 'Xbox', ps: 'PlayStation', nin: 'Nintendo', gen: 'Manette' };
+  const row = document.createElement('div'); row.className = 'pad-help-two';
+  for (const k of kinds.slice(0, 2)) { const c = document.createElement('div'); const n = document.createElement('small'); n.textContent = NM[k] || k; c.append(n, PADJ.helpList(h, k)); row.appendChild(c); }
+  box.appendChild(row);
+}
+function padPauseOpen(by) {
+  if (!current || current.coop || PADP.open) return;
+  const inst = current.inst || {};
+  PADP.open = true; PADP.g = current.game; PADP.by = by || '';
+  try { if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {}
+  $('jdw-padpause').style.setProperty('--acc', current.game.accent || COLORS.amber);
+  $('jdw-padpause-game').textContent = current.game.title;
+  padHelpInto($('jdw-padpause-help'), current.game);
+  $('jdw-padpause').hidden = false; musicBaseLevel(0.4);
+  setTimeout(() => { if (PADP.open) $('jdw-padpause-resume').focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); }, 40);
+}
+function padPauseClose(resume) {
+  if (!PADP.open) return;
+  PADP.open = false; $('jdw-padpause').hidden = true; musicBaseLevel(0.8);
+  if (resume && current && current.inst) { const inst = current.inst; try { if (current.pad) current.pad.flush(); } catch (e) {} try { if (inst.resume) inst.resume(); else padKey('p'); } catch (e) {} }
+  if (PADJ) PADJ.blur(true);
+}
+// jeu sans pause()/resume() : on lui envoie la touche P (sa pause à lui)
+function padKey(k) {
+  for (const t of ['keydown', 'keyup']) { try { window.dispatchEvent(new KeyboardEvent(t, { key: k, code: k.length === 1 ? 'Key' + k.toUpperCase() : k, bubbles: true })); } catch (e) {} }
+}
+$('jdw-padpause-resume').addEventListener('click', () => padPauseClose(true));
+$('jdw-padpause-quit').addEventListener('click', () => { padPauseClose(false); quitGame(); });
+// ---------- commandes montrées au début d'une partie (3 premières fois par jeu, quand on joue à la manette) ----------
+let padIntroT = 0;
+function padIntro(g, where, ready) {
+  const el = $('jdw-padintro'); clearTimeout(padIntroT); el.hidden = true;
+  if (!PADJ || !PADJ.active() || !padHelpOf(g) || (g.pad && g.pad.intro === false)) return;   // pad.intro: false = le jeu montre lui-même ses commandes
+  if (g.pad && g.pad.intro === 'ready' && !ready) return;                                     // 'ready' : après api.pad.showHelp() (fin du chargement du jeu)
+  const k = 'jdw.padintro.' + g.id, n = +store.get(k, 0) || 0; if (n >= 3) return;
+  store.set(k, n + 1);
+  padHelpInto($('jdw-padintro-help'), g);
+  el.style.setProperty('--acc', g.accent || COLORS.amber);
+  (where || $('jdw-play')).appendChild(el);
+  el.hidden = false; el.classList.remove('out');
+  padIntroT = setTimeout(padIntroHide, 5200);
+}
+function padIntroHide() { const el = $('jdw-padintro'); if (el.hidden) return; el.classList.add('out'); clearTimeout(padIntroT); padIntroT = setTimeout(() => { el.hidden = true; el.classList.remove('out'); }, 320); }
+// ---------- manettes du duel : qui a quelle manette ----------
+function renderPadSeats() {
+  const box = $('jdw-padseats'); if (!box) return;
+  const n = PADJ ? PADJ.count() : 0, ai = seatName(1) === AI_NAME;
+  box.hidden = !n || DUEL_WHERE !== 'local';
+  if (box.hidden) return;
+  box.textContent = '';
+  const lab = document.createElement('span'); lab.className = 'ps-lab'; lab.textContent = n > 1 ? '🎮 ' + n + ' manettes' : '🎮 Manette'; box.appendChild(lab);
+  const mk = (txt, fn, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'ps-btn' + (on ? ' on' : ''); b.textContent = txt; b.addEventListener('click', fn); box.appendChild(b); return b; };
+  if (ai) { const s = document.createElement('span'); s.className = 'ps-note'; s.textContent = 'toutes pour ' + dispName(seatPlayer(0).name) + ' (en bas)'; box.appendChild(s); return; }
+  if (n === 1) {
+    mk('En bas · ' + dispName(seatPlayer(0).name), () => { padSide = 0; store.set('jdw.padside', 0); renderPadSeats(); }, padSide === 0);
+    mk('En haut · ' + dispName(seatPlayer(1).name), () => { padSide = 1; store.set('jdw.padside', 1); renderPadSeats(); }, padSide === 1);
+    const s = document.createElement('span'); s.className = 'ps-note'; s.textContent = TOUCH ? 'l\'autre joue au doigt' : 'branche une 2e manette pour jouer à deux'; box.appendChild(s);
+  } else {
+    const s = document.createElement('span'); s.className = 'ps-note'; s.textContent = padSwap ? 'manette 2 en bas, manette 1 en haut' : 'manette 1 en bas, manette 2 en haut'; box.appendChild(s);
+    mk('⇅ Échanger', () => { padSwap = !padSwap; store.set('jdw.padswap', padSwap); renderPadSeats(); }, false);
+  }
+}
+// sur ordinateur sans écran tactile : avec une manette (ou deux), les duels se jouent aussi sur le même écran
+function duelLocalOK() { return TOUCH || !!(PADJ && PADJ.count()); }
+// ---------- les crochets de la navigation ----------
+if (PADJ) {
+  PADJ.setup({
+    capturing: padCapturing,
+    base: () => !$('jdw-duo').hidden ? $('jdw-duo') : !$('jdw-play').hidden ? $('jdw-play') : $('jdw-lib'),
+    back: () => { padIntroHide(); jdwBack(); },
+    start: (kind, nav) => {
+      padIntroHide();
+      if (nav) {   // pas de jeu qui capte la manette : Start referme la pause
+        if (PADP.open) { padPauseClose(true); return true; }
+        if (!$('jdw-duo-pause').hidden) { duoResume(); return true; }
+        if (!$('jdw-coop-pause').hidden) { coopResume('me'); return true; }
+        return false;
+      }
+      if (!$('jdw-duo').hidden) { duoPause(); return true; }
+      if (current && current.coop) { coopPause('me'); return true; }
+      if (current) { padPauseOpen(kind); return true; }
+      return false;
+    },
+    modes: d => {
+      if ($('jdw-lib').hidden) return false;
+      const M = ['classique', 'duel', 'coop'], i = Math.max(0, M.indexOf(MODE));
+      setMode(M[(i + d + M.length) % M.length], true); return true;
+    },
+    defaultFocus: (layer, list) => {
+      const pick = (...ids) => { for (const id of ids) { const e = $(id); if (e && list.includes(e)) return e; } return null; };
+      if (!layer) {
+        if (!$('jdw-lib').hidden) { const grid = MODE === 'duel' ? $('jdw-duo-grid') : MODE === 'coop' ? $('jdw-coop-grid') : $('jdw-grid'); const t = list.find(e => grid && grid.contains(e) && e.classList.contains('tile')); if (t) return t; }
+        return null;
+      }
+      return pick('jdw-again', 'jdw-coopend-again', 'jdw-padpause-resume', 'jdw-duo-resume', 'jdw-coop-resume', 'jdw-coopgo-go', 'jdw-natif-go', 'jdw-rescue-ok') || list.find(e => e.matches('.dr-btns .btn-play')) || null;
+    },
+    onPads: () => {
+      try { setDuelWhere(DUEL_WHERE); } catch (e) {}
+      try { renderPadSeats(); } catch (e) {}
+      const r = $('jdw-set-padvib-row'); if (r) r.hidden = !PADJ.seen();
+    },
+    onMode: m => { if (m !== 'pad') padIntroHide(); },
+    // Y sur une tuile qui a une carte d'avancement : la carte ; X : « 👁 Voir » (un copain joue à ce jeu)
+    button: (k, f) => {
+      const w = f && f.closest && f.closest('.tile-wrap'); if (!w) return;
+      const btn = w.querySelector(k === 'y' ? '.tile-map' : '.tile-watch');
+      if (btn && btn.getClientRects().length && !btn.disabled) btn.click();
+    },
+    sound: k => { try { if (k === 'move') Audio.tone(1320, 0.025, 'sine', 0.012); else if (k === 'ok') Audio.tone(990, 0.04, 'sine', 0.02, 1320); else if (k === 'tab') Audio.tone(660, 0.05, 'sine', 0.02, 990); } catch (e) {} },
+    error: e => reportError('Manette : ' + e.message, e.stack, { quiet: true })
+  });
+  // un bouton de la manette pendant les commandes du début : elles s'en vont
+  PADJ.gameApi({ slots: () => PADJ.pads() }).on((b, p, down) => { if (down && !$('jdw-padintro').hidden && /^(a|b|x|y)$/.test(b)) padIntroHide(); });
+}
+// ⚙ : vibrations de la manette (oui / non), ligne visible dès qu'une manette a servi sur l'appareil
+(() => {
+  const r = $('jdw-set-padvib-row'), cb = $('jdw-set-padvib'); if (!r || !cb) return;
+  r.hidden = !(PADJ && PADJ.seen()); cb.checked = !PADJ || PADJ.vibOn();
+  cb.addEventListener('change', () => { if (PADJ) PADJ.setVib(cb.checked); });
+})();
+
+
 /* ================= Serveur (Supabase) ou mode local ================= */
 const CFG = window.JDW_CONFIG || null;
 const ONLINE = !!(CFG && CFG.url && CFG.key);
@@ -2020,6 +2185,7 @@ function tabsShow(listId, paneId, t, avail) {
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (popCloseAll(true)) { e.preventDefault(); return; }   // d'abord la bulle « ? » ou le petit menu, la feuille reste ouverte
+  if (PADP.open) { e.preventDefault(); e.stopImmediatePropagation(); padPauseClose(true); return; }   // carte pause de la manette (le jeu ne la reçoit pas)
   if (MAP.open) { closeMap(); return; }
   if (chat.open) { closeChat(); return; }
   if (!$('jdw-cri').hidden) { closeCri(); return; }
@@ -3890,6 +4056,7 @@ function renderSeats() {
   $('jdw-ai-level').hidden = !ai;
   for (const bt of document.querySelectorAll('#jdw-ai-level button')) bt.setAttribute('aria-checked', String(bt.dataset.lv === aiLevel));
   refreshDuoTiles();
+  try { renderPadSeats(); } catch (e) {}
 }
 for (const bt of document.querySelectorAll('#jdw-ai-level button')) bt.addEventListener('click', () => { aiLevel = bt.dataset.lv; store.set('jdw.ailevel', aiLevel); renderSeats(); });
 let pickSeat = 0;
@@ -3926,25 +4093,33 @@ $('jdw-seat-1').addEventListener('click', () => openSeatPick(1));
 $('jdw-seat-swap').addEventListener('click', () => { if (seats[1] === AI_NAME || seats[0] === AI_NAME) return; seats = [seats[1], seats[0]]; store.set('jdw.seats', seats); renderSeats(); });   // l'IA reste en haut
 $('jdw-seatpick-close').addEventListener('click', () => closeSheet('jdw-seatpick'));
 $('jdw-seatpick').addEventListener('click', e => { if (e.target === $('jdw-seatpick')) closeSheet('jdw-seatpick'); });
-let DUEL_WHERE = TOUCH ? 'local' : 'online';
+let DUEL_WHERE = TOUCH ? 'local' : 'online', duelPadAuto = !TOUCH;
 function setDuelWhere(w) {
-  if (!TOUCH) w = 'online';            // ordinateur : on ne joue pas à deux sur le même écran
+  const loc = duelLocalOK();
+  if (!TOUCH) {                         // ordinateur : à deux sur le même écran seulement avec une manette (manette.js)
+    if (loc && duelPadAuto && w === 'online') { w = 'local'; duelPadAuto = false; }
+    if (!loc) { if (w === 'local') duelPadAuto = true; w = 'online'; }
+  }
   DUEL_WHERE = w;
+  for (const b of document.querySelectorAll('#jdw-duel-switch button')) if (b.dataset.where === 'local') {
+    b.classList.toggle('off', !loc); if (loc) { b.removeAttribute('aria-disabled'); b.title = ''; } else { b.setAttribute('aria-disabled', 'true'); b.title = 'Sur ordinateur : défie un copain en ligne'; }
+  }
   const pc = $('jdw-duel-pc'); if (pc) {
-    pc.hidden = TOUCH && !(w === 'online' && isGuest());
-    $('jdw-duel-pc-t').textContent = !TOUCH ? 'Sur ordinateur : défie un copain en ligne' : 'Le duel en ligne demande un compte';
+    pc.hidden = loc && !(w === 'online' && isGuest());
+    $('jdw-duel-pc-t').textContent = !loc ? 'Sur ordinateur : défie un copain en ligne' : 'Le duel en ligne demande un compte';
     $('jdw-duel-pc-s').textContent = isGuest() ? 'Chacun sur son appareil : crée ton compte (gratuit) pour défier tes copains.' : 'Les duels à deux sur le même écran se jouent sur un téléphone ou une tablette, posés à plat.';
     $('jdw-duel-pc-go').hidden = !isGuest();
   }
-  $('jdw-page-duel').classList.toggle('no-touch', !TOUCH);
+  $('jdw-page-duel').classList.toggle('no-touch', !loc);
   $('jdw-page-duel').classList.toggle('guest-online', w === 'online' && isGuest());
   for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.setAttribute('aria-selected', String(b.dataset.where === w));
   $('jdw-duel-local').hidden = w !== 'local'; $('jdw-duel-online').hidden = w !== 'online';
   if (duoTiles.length) refreshDuoTiles();
+  try { renderPadSeats(); } catch (e) {}
 }
-for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.addEventListener('click', () => { if (!TOUCH && b.dataset.where === 'local') { toastCheer('Sur ordinateur, les duels se jouent en ligne : à deux sur le même écran, prends un téléphone ou une tablette.', profile.name, true); return; } setDuelWhere(b.dataset.where); });
+for (const b of document.querySelectorAll('#jdw-duel-switch button')) b.addEventListener('click', () => { if (!duelLocalOK() && b.dataset.where === 'local') { toastCheer('Sur ordinateur, les duels se jouent en ligne : à deux sur le même écran, branche une manette (ou deux) ou prends un téléphone.', profile.name, true); return; } if (b.dataset.where === 'local') duelPadAuto = false; setDuelWhere(b.dataset.where); });
 $('jdw-duel-pc-go').addEventListener('click', () => guestAsk('Duel en ligne'));
-for (const b of document.querySelectorAll('#jdw-duel-switch button')) if (!TOUCH && b.dataset.where === 'local') { b.setAttribute('aria-disabled', 'true'); b.classList.add('off'); b.title = 'Sur ordinateur : défie un copain en ligne'; }
+for (const b of document.querySelectorAll('#jdw-duel-switch button')) if (!duelLocalOK() && b.dataset.where === 'local') { b.setAttribute('aria-disabled', 'true'); b.classList.add('off'); b.title = 'Sur ordinateur : défie un copain en ligne'; }
 setTimeout(() => setDuelWhere(DUEL_WHERE), 0);
 // tuiles des duels (vignette animée + score de la paire)
 const duoTiles = [];
@@ -4040,7 +4215,7 @@ function duoApi(d, seq) {
       if (!over && duoMatchPt(d, DUO.scores, p) && !DUO.mp) {   // balle de match : la musique s'emballe
         DUO.mp = true; setTimeout(() => { if (mine()) { sting('match', 0.6); if (duoMusicId(d)) setMusic(duoMusicId(d), 'intense'); } }, 700);
       }
-      if (over) setTimeout(() => { if (mine()) duoResults(); }, 1500);
+      if (over) { setTimeout(() => { if (mine()) duoResults(); }, 1500); try { if (PADJ) PADJ.rumble('win'); } catch (e) {} }
       return { scores: DUO.scores.slice(), over, winner: over ? p : null };
     },
     round: () => DUO.scores[0] + DUO.scores[1] + 1,
@@ -4048,8 +4223,14 @@ function duoApi(d, seq) {
     say: (text, o) => { if (mine() && NET.role !== 'guest') duoSay(text, o); },
     turn: (p) => { if (mine()) NET.turn = p === 0 || p === 1 ? p : -1; },   // jeux au tour par tour : qui a la main (duel en ligne)
     hasMusic: !!duoMusicId(d),   // la bibliothèque joue une musique pour ce duel : le jeu ne joue pas la sienne
-    vibrate: (ms) => { try { if (navigator.vibrate) navigator.vibrate(Math.max(10, Math.min(400, +ms || 30))); } catch (e) {} },
+    // vibration du téléphone + des manettes ; p (0 / 1, facultatif) = seulement la manette de ce joueur
+    vibrate: (ms, p) => { try { if (navigator.vibrate) navigator.vibrate(Math.max(10, Math.min(400, +ms || 30))); } catch (e) {} try { const a = DUO.api; if (a && a.pad && DUO.seq === seq) a.pad.rumble(+ms > 120 ? 'big' : 'hit', p === 0 || p === 1 ? p : undefined); } catch (e) {} },
     online: !!(NET.role && NET.data),
+    // manettes (CONTRACT.md « Ajout 10 ») : 2 manettes = 2 joueurs ; contre l'IA ou en ligne, toutes pour mon joueur ; joueur assis en face
+    // (téléphone à plat, ou invité en ligne dont l'écran est tourné) : sticks et croix déjà retournés dans le repère du jeu
+    pad: padApi({ players: 2,
+      slots: NET.role && NET.data ? padDuoSlots(NET.role === 'host' ? 0 : 1) : (!NET.role && seatName(1) === AI_NAME) ? padDuoSlots(0) : padDuoSlots(),
+      invert: p => p === 1 && d.layout !== 'landscape' && (NET.role && NET.data ? NET.role === 'guest' : TOUCH) }),
     // l'IA pilote le joueur du haut (DUO-CONTRACT.md, « Ajout : jouer contre l'IA »)
     ai: !NET.role && seatName(1) === AI_NAME ? { p: 1, level: aiLevel, k: AI_LEVELS[aiLevel][1] } : undefined,
     net: NET.role && NET.data ? netApi(seq) : undefined
@@ -4087,9 +4268,11 @@ function mountDuo() {
   else if (NET.role === 'host') setTimeout(netAttach, 60);   // mode vidéo : l'image du nouveau plateau part chez l'adversaire
   setWhere('duel-' + d.id);
   if (d.layout === 'landscape') { fsLand(); fsTip(); }   // invité en ligne : verrou à l'horizontale ; iPhone : astuce (une fois)
+  padIntro(d, $('jdw-duo'));
 }
 function unmountDuo() {
   DUO.seq++;   // les rappels de l'ancienne partie deviennent sans effet
+  if (DUO.api) padClose(DUO.api.pad);
   if (DUO.inst) { try { if (DUO.inst.destroy) DUO.inst.destroy(); } catch (e) { reportError('Duel ' + (DUO.d && DUO.d.id) + ' (fin) : ' + e.message, e.stack, { quiet: true }); } }
   DUO.inst = null;
   if (DUO.root) { DUO.root.remove(); DUO.root = null; }
@@ -4191,11 +4374,13 @@ function duoPause() {
   const g = document.createElement('small'); g.className = 'dp-game'; g.textContent = DUO.d.title + ' · en ' + (DUO.d.target || 5) + ' points' + ((DUO.d.winBy || 1) > 1 ? ' (' + DUO.d.winBy + ' d\'écart)' : '');
   sub.append(side(0), sc, side(1), g);
   $('jdw-duo-pause').style.setProperty('--acc', DUO.d.accent || COLORS.amber);
+  padHelpInto($('jdw-duo-pause-help'), PADJ && PADJ.count() ? DUO.d : null);
   $('jdw-duo-pause').hidden = false;
   setTimeout(() => { const b = $('jdw-duo-resume'); if (b && !$('jdw-duo-pause').hidden) b.focus({ preventScroll: true }); }, 30);
 }
 function duoResume() {
   $('jdw-duo-pause').hidden = true;
+  try { if (DUO.api && DUO.api.pad) DUO.api.pad.flush(); } catch (e) {}   // le A sur « Reprendre » n'arrive pas au jeu
   if (NET.role === 'guest') { netCtl({ h: 'resumereq' }); return; }
   if (NET.role === 'host') netCtl({ h: 'resume' });
   if (!DUO.paused) return;
@@ -4615,13 +4800,16 @@ function coopMount() {
     }
   };
   api.coop = coopApi(seq);
-  current = { game: m, root, seq, over: false, inst: null, coop: e };
+  const coopHelpG = m.pad && m.pad.coopHelp ? { id: 'coop-' + e.id, accent: m.accent, pad: { help: m.pad.coopHelp, intro: m.pad.intro } } : m;
+  api.pad = padApi({ slots: p => p === COOP.me && PADJ ? PADJ.pads() : [], intro: () => { if (current && current.seq === seq) padIntro(coopHelpG, null, true); } });   // manettes : toutes pour mon joueur (Ajout 10)
+  current = { game: m, root, seq, over: false, inst: null, coop: e, pad: api.pad };
   recReset(); setTimeout(recLine, 50);
   musicBaseLevel(0.8); MUS.override = false; coopMusic();
   try { current.inst = m.mount(root, api) || {}; } catch (x) { current.inst = {}; reportError('Lancement de coop-' + e.id + ' : ' + x.message, x.stack); }
   if (COOP.mode === 'net' && NET.handlers.length && NET.queue.length) for (const q of NET.queue.splice(0)) netDeliver(q);
   setWhere('coop-' + e.id);
   if (e.c.landscape) { fsLand(); fsTip(); }
+  padIntro(coopHelpG);
 }
 function coopApi(seq) {
   const e = COOP.e, cols = Array.isArray(e.c.colors) && e.c.colors.length >= 2 ? e.c.colors : DUO_COLORS;
@@ -4693,6 +4881,7 @@ function coopPause(from) {
   COOP.players.forEach((p, i) => { const h = p.ai ? chatHead(AI_NAME, { passive: true }) : chatHead(COOP.team[i] || p.name, { passive: true }); h.style.setProperty('--pc', coopColor(i)); hd.appendChild(h); });
   $('jdw-coop-pause-score').textContent = fmt(COOP.score) + ' points d\'équipe' + (COOP.stage ? ' · niveau ' + COOP.stage : '');
   $('jdw-coop-pause-sub').textContent = COOP.mode === 'net' ? (from === 'net' ? dispName(COOP.mate) + ' a mis la pause.' : 'Ton copain est aussi en pause.') : '';
+  { const m = COOP.e && COOP.e.m; padHelpInto($('jdw-coop-pause-help'), PADJ && PADJ.count() && m ? (m.pad && m.pad.coopHelp ? { pad: { help: m.pad.coopHelp } } : m) : null); }
   $('jdw-coop-pause').hidden = false;
   if (COOP.mode === 'net' && from !== 'net') netCtl({ h: NET.role === 'host' ? 'cpause' : 'cpausereq' });
   musicBaseLevel(0.4);
@@ -4700,6 +4889,7 @@ function coopPause(from) {
 function coopResume(from) {
   if (!current || !current.coop || !COOP.paused) return;
   COOP.paused = false; $('jdw-coop-pause').hidden = true;
+  try { if (current.pad) current.pad.flush(); } catch (x) {}   // le A sur « Reprendre » n'arrive pas au jeu
   try { current.inst.resume && current.inst.resume(); } catch (x) {}
   if (COOP.mode === 'net' && from !== 'net') netCtl({ h: NET.role === 'host' ? 'cresume' : 'cresumereq' });
   musicBaseLevel(0.8); Audio.ensure();
@@ -6321,24 +6511,28 @@ function mountGame(g) {
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
     pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
     natif: NATIVE_APPS[g.id] ? nativeApi(g) : undefined,                                    // appli native (Android 1.8+) : carte « Android » du hub (Ajout 9)
+    pad: PAD_DOM.has(g.id) ? undefined : padApi({ intro: () => { if (current && current.seq === seq) padIntro(g, null, true); } }),   // manettes (Ajout 10) : toutes pour le joueur
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
+      try { if (api.pad) api.pad.rumble('over'); } catch (e) {}
       const sc = Math.max(0, Math.floor(+score || 0));
       setTimeout(() => { if (current && current.seq === seq) showEnd(sc); }, 900);
     }
   };
-  current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id) };
+  current = { game: g, root, seq, over: false, inst: null, lvBase: lvBest(profile.name, g.id), pad: api.pad };
   recReset(); setTimeout(recLine, 50);
   musicBaseLevel(0.8); MUS.override = false; setMusic(g.id);
   try { current.inst = g.mount(root, api) || {}; } catch (e) { current.inst = {}; reportError('Lancement de ' + g.id + ' : ' + e.message, e.stack); }
   setWhere(g.id);
   if (LANDSCAPE.has(g.id)) fsTip();   // iPhone dans Safari : astuce « Sur l'écran d'accueil » (une seule fois)
+  if (!PAD_DOM.has(g.id)) padIntro(g);
 }
 function unmountGame() {
   if (!current) return;
   castEndAll();
   const { game, root, inst } = current;
+  padClose(current.pad); padPauseClose(false); padIntroHide();
   try { inst && inst.destroy && inst.destroy(); } catch (e) {}
   if (game.external) root.hidden = true; else root.remove();
   current = null;
@@ -6386,6 +6580,7 @@ function backToLibrary() {
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
 function quitGame() {
+  padPauseClose(false);
   if (current && current.coop) { coopQuit(); return; }
   if (current && !current.over && current.inst && current.inst.currentScore) {
     let sc = 0;
@@ -9311,8 +9506,11 @@ $('jdw-map-me').addEventListener('click', () => {
 addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); MAP.rt = setTimeout(() => { if (MAP.open) mapBuild(false); }, 180); });
 
 /* ================= Appli Android : retour + mise à jour ================= */
-window.JDW_BACK = () => {
+// retour d'Android : un B de la manette vient peut-être de faire la même chose (manette.js) → une seule fois
+window.JDW_BACK = () => (PADJ && PADJ.nativeBack()) ? true : jdwBack();
+function jdwBack() {
   if (popCloseAll()) return true;
+  if (PADP.open) { padPauseClose(true); return true; }
   if (NAT.open) { nativeClose(); return true; }
   if (!$('jdw-coopgo').hidden) { coopGoClose(); return true; }
   if (!$('jdw-coop-pause').hidden) { coopResume('me'); return true; }
@@ -9334,7 +9532,7 @@ window.JDW_BACK = () => {
   if (!$('jdw-play').hidden) { quitGame(); return true; }
   if (MODE !== 'classique' && !$('jdw-lib').hidden) { setMode('classique', true); return true; }   // les autres modes sont des pages : retour à la page normale
   return false;
-};
+}
 checkAppVersion();
 setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou la première diffusion
 // juste après une mise à jour automatique : message + notification avec les nouveautés

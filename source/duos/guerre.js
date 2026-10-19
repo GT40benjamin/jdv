@@ -570,6 +570,9 @@
     // ---- contre l'IA (api.ai) : l'équipe AIP est jouée par le jeu ; sans api.ai (ou en ligne), AI = null et rien ne change
     const AI = !NET && api.ai && typeof api.ai === 'object' && (api.ai.p === 0 || api.ai.p === 1) ? api.ai : null;
     const AIP = AI ? AI.p : -1;
+    // ---- manette (api.pad, voir « manette » plus bas) ; padUse[équipe] = la manette est l'entrée du moment (null = pas encore su)
+    const PAD = api.pad && typeof api.pad.get === 'function' && typeof api.pad.pressed === 'function' ? api.pad : null;
+    const padUse = [null, null];
     const NS = { wait: GST, joinPending: false, helloT: 0, peer: false, hold: 0, inbox: [], kbuf: [], blockT: 0, log: [], base: 0, bpl: -1,
       stepEv: [], outE: [], kick: new Set(), sid: 0, sidN: 0, mine: 0, replay: false, settled: false, exact: false, rb: [], rclk: null, sq: 0, sT: 0,
       rWalk: false, rSunk: false, rLast: 0, rT: 99, hostT: 0, stepT: 0, track: null, hist: [],
@@ -1929,6 +1932,7 @@
       try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* rien */ }
       if (paused || resumeT > 0) return;
       const p = local(e), rec = { id: e.pointerId, mode: 'none', x: p.x, y: p.y, sx: p.x, sy: p.y, moved: 0, btn: null };
+      if (S.active) padUse[S.active.team] = false;
       ptrs.set(e.pointerId, rec);
       if (trayOpen) {
         const i = trayHit(p);
@@ -2034,6 +2038,90 @@
         inp.move = clamp(mv, -1, 1); inp.aimDir = k.u - k.d; inp.charge = !!k.f;
         if ((NET && (p !== ME || t !== ME)) || p === AIP) { inp.move = 0; inp.aimDir = 0; inp.charge = false; }
       }
+    }
+    // ---- manette (CONTRACT.md « Ajout 10 », DUO-CONTRACT.md « la manette dans les duels ») : celui dont c'est le tour joue, avec les
+    // mêmes entrées que le clavier et les doigts (inputs[équipe], donc aussi en ligne) : stick gauche / croix ◀ ▶ = marcher, ▲ ▼ = viser
+    // (analogique), RT = doser la puissance (puis A = tirer) ou A tenu = la puissance monte, lâcher = tirer (comme Espace), B = sauter,
+    // LB / RB = arme précédente / suivante, Y = tiroir des armes (croix pour choisir, A pour prendre), stick droit = regarder le terrain ;
+    // frappe aérienne : le stick déplace la cible. Paysage : rien n'est retourné. Une seule manette sur la table (pas d'IA) : on se la passe.
+    const PADB = ['a', 'b', 'x', 'y', 'lb', 'rb', 'up', 'down', 'left', 'right'];
+    const PS = { turn: '', dosed: false, charge: false, sdir: 0, sdy: 0, trayPad: false, trayT: 0 };
+    function padSlot(t) {
+      if (!PAD || t < 0 || t === AIP) return -1;
+      if (NET) return t === ME && PAD.any(ME) ? ME : -1;
+      if (PAD.any(t)) return t;
+      if (!AI && PAD.count() === 1 && PAD.any(1 - t)) return 1 - t;
+      return -1;
+    }
+    function padDrain() { if (PAD) for (let p = 0; p < 2; p++) for (const b of PADB) PAD.pressed(b, p); PS.charge = false; }
+    function padShow(t) { const q = padSlot(t); return q >= 0 && (padUse[t] === null ? PAD.active() : padUse[t]); }
+    function trayStep(t, d) {                     // arme suivante (d = ±1) ou rangée du dessus / dessous (d = ±4) qui a des munitions
+      const n = WEAPONS.length;
+      let i = S.weapon[t];
+      if (Math.abs(d) === 4) { const j = i + d; if (j >= 0 && j < n && S.ammo[t][WEAPONS[j].id] > 0) i = j; }
+      else for (let g = 0; g < n; g++) { i = (i + d + n) % n; if (S.ammo[t][WEAPONS[i].id] > 0) break; }
+      if (i !== S.weapon[t]) inputs[t].weapon = i;
+    }
+    function padTick(dt) {
+      if (!PAD) return;
+      const t = teamNow(), q = padSlot(t);
+      const pr = {};
+      for (let p = 0; p < 2; p++) for (const b of PADB) { const v = PAD.pressed(b, p); if (p === q) pr[b] = v; }   // (les autres manettes : appuis oubliés)
+      if (q < 0) { PS.charge = false; return; }
+      const g = PAD.get(q);
+      if (!g.on) { PS.charge = false; return; }
+      let used = false;
+      for (const b of PADB) if (pr[b]) used = true;
+      if (used || Math.hypot(g.lx, g.ly) > 0.3 || Math.hypot(g.rx, g.ry) > 0.3 || g.rt > 0.1) padUse[t] = true;
+      const tk = S.battle + ':' + S.turnNo + ':' + t;
+      if (PS.turn !== tk) { PS.turn = tk; PS.dosed = false; PS.charge = false; }
+      // stick droit : regarder le terrain (comme glisser le doigt sur la carte)
+      if (Math.hypot(g.rx, g.ry) > 0.12 && (S.phase === 'turn' || S.phase === 'turnstart' || (NET && S.phase !== 'intro')) && !paused) {
+        cam.x += g.rx * 560 * dt / cam.z; cam.y += g.ry * 560 * dt / cam.z; camManual = true; clampCam();
+      }
+      if (!canControl()) { PS.charge = false; if (PS.trayPad) { PS.trayPad = false; trayOpen = false; } return; }
+      const inp = inputs[t], w = curWeapon(), d = S.active;
+      // tiroir des armes
+      if (pr.y) { trayOpen = !trayOpen; PS.trayPad = trayOpen; PS.trayT = 0; SFX.weapon(S.weapon[t]); }
+      if (pr.lb || pr.rb) { trayStep(t, pr.rb ? 1 : -1); trayOpen = true; PS.trayPad = true; PS.trayT = rt + 1.4; }
+      if (trayOpen && PS.trayPad) {
+        let sx = 0, sy = 0;
+        const fx = (pr.right ? 1 : 0) - (pr.left ? 1 : 0), fy = (pr.down ? 1 : 0) - (pr.up ? 1 : 0);
+        const ax = Math.abs(g.lx) > 0.6 ? Math.sign(g.lx) : 0, ay = Math.abs(g.ly) > 0.6 ? Math.sign(g.ly) : 0;
+        if (fx || fy) { sx = fx; sy = fy; }
+        else { if (ax !== PS.sdir) { PS.sdir = ax; sx = ax; } if (ay !== PS.sdy) { PS.sdy = ay; sy = ay; } }
+        if (sx) trayStep(t, sx); else if (sy) trayStep(t, sy * 4);
+        if (sx || sy) PS.trayT = PS.trayT ? rt + 1.4 : 0;
+        if (pr.a || pr.b || (PS.trayT && rt > PS.trayT)) { trayOpen = false; PS.trayPad = false; }
+        return;
+      }
+      PS.sdir = 0; PS.sdy = 0;
+      if (!d) return;
+      // stick gauche / croix
+      if (w.aim === 'target') {
+        if (Math.abs(g.mx) > 0.12) {
+          const x0 = S.target[t] != null ? S.target[t] : d.x + d.facing * 160;
+          inp.target = clamp(x0 + g.mx * (0.3 + 0.7 * Math.abs(g.mx)) * 420 * dt, 30, WW - 30); camManual = false;
+        }
+      } else {
+        if (Math.abs(g.mx) > 0.35) inp.move = clamp(inp.move + Math.sign(g.mx), -1, 1);
+        if (Math.abs(g.my) > 0.12) inp.aimDir = clamp(inp.aimDir - g.my * (0.35 + 0.65 * Math.abs(g.my)), -1, 1);
+      }
+      // RT : puissance dosée (armes à puissance)
+      if (w.aim === 'power' && g.rt > 0.06) { inp.aim = { f: 0, a: null, p: Math.max(0.05, g.rt) }; PS.dosed = true; }
+      // A : tirer
+      if (w.aim === 'power') {
+        if (PS.dosed) { if (pr.a) inp.fire = true; }
+        else {
+          if (pr.a) PS.charge = true;
+          if (PS.charge) inp.charge = true;            // tenu : la puissance monte ; lâché : le tir part (comme Espace)
+          if (!g.held.a) PS.charge = false;
+        }
+      } else if (pr.a) {
+        if (w.aim === 'target' && S.target[t] == null) inp.target = clamp(d.x + d.facing * 160, 30, WW - 30);   // 1er A : la cible apparaît
+        else inp.fire = true;
+      }
+      if (pr.b) inp.jump = true;
     }
     on(canvas, 'pointerdown', onPDown);
     on(canvas, 'pointermove', onPMove);
@@ -2224,9 +2312,9 @@
         case 'jetwall': for (let k = 0; k < 8; k++) part(d.x, d.y, (Math.random() - 0.5) * 80 - d.dx * 40, -Math.random() * 60, 0.8, 3, 1, BUB, false, 1.5, -10); break;
         case 'plane': SFX.plane(); planePilot = friends.length ? pk(friends, 70) : null; break;
         case 'drop': SFX.drop(); break;
-        case 'weapon': SFX.weapon(d.i); trayOpen = false; break;
+        case 'weapon': SFX.weapon(d.i); if (!PS.trayPad) trayOpen = false; break;   // (manette : le tiroir reste ouvert pendant qu'on choisit)
         case 'deny': SFX.deny(); if (S.active) ftext(S.active.x, S.active.y, 'Plus de munitions !', COL.muted, 14, 1.1, -aboveHead(S.active)); break;
-        case 'needtarget': SFX.deny(); if (S.active) ftext(S.active.x, S.active.y, 'Touche la carte pour viser !', COL.gold, 14, 1.4, -aboveHead(S.active)); break;
+        case 'needtarget': SFX.deny(); if (S.active) ftext(S.active.x, S.active.y, padShow(S.active.team) ? 'Place la cible avec le stick !' : 'Touche la carte pour viser !', COL.gold, 14, 1.4, -aboveHead(S.active)); break;
         case 'charge': SFX.charge(); break;
         case 'miss': ftext(S.focus.x, S.focus.y, pk(T_MISS, 80), COL.muted, 16, 1.4, -40); break;
         case 'hop': if (Math.random() < 0.35) SFX.quack(d.d.team === 1); d.d.squash = 0.5; break;
@@ -2412,6 +2500,27 @@
       return sprite(key, w, h, () => txt(s, 0, 0, px2, col, 'center', body, stroke));
     }
     function drawSpr(v, x, y, k) { k = k || 1; ctx.drawImage(v.cv, x - v.w * k / 2, y - v.h * k / 2, v.w * k, v.h * k); }
+    // texte avec glyphes de manette (« {a} tire ») : glyphes Xbox / PlayStation de la manette q ; centré en x, y = milieu de la ligne
+    const GLY_ROUND = /^(a|b|x|y|ls|rs|dpad)$/;
+    function glyW(b, r, q) {
+      if (GLY_ROUND.test(b)) return 2 * r;
+      ctx.font = '700 ' + Math.round(r * 0.9) + 'px system-ui,sans-serif'; fontKey = '';
+      return Math.max(2 * r, ctx.measureText(PAD.glyph(b, q)).width + r * 0.9);
+    }
+    function richW(s, px2, body, q) {
+      const t = String(s).split(/\{(\w+)\}/), r = px2 * 0.68;
+      let w = 0;
+      for (let i = 0; i < t.length; i++) { if (i & 1) w += glyW(t[i], r, q) + px2 * 0.18; else if (t[i]) { setFont(Math.round(px2), body); w += ctx.measureText(t[i]).width; } }
+      return w;
+    }
+    function rich(s, x, y, px2, col, body, q) {
+      const t = String(s).split(/\{(\w+)\}/), r = px2 * 0.68;
+      let cx = x - richW(s, px2, body, q) / 2;
+      for (let i = 0; i < t.length; i++) {
+        if (i & 1) { const w = glyW(t[i], r, q); PAD.drawGlyph(ctx, t[i], cx + px2 * 0.09 + w / 2, y, r, q); fontKey = ''; cx += w + px2 * 0.18; }
+        else if (t[i]) { txt(t[i], cx, y, px2, col, 'left', body, 0); cx += ctx.measureText(t[i]).width; }
+      }
+    }
     function fitPx(s, px2, maxW, body) { setFont(Math.round(px2), body); const w = ctx.measureText(s).width; return w > maxW ? Math.max(8, Math.floor(px2 * maxW / w)) : px2; }
     function glowAt(g, x, y, size, a) { ctx.globalAlpha = a; ctx.drawImage(g, x - size / 2, y - size / 2, size, size); }
     function drawBackground() {
@@ -3108,16 +3217,25 @@
       else if (w.aim === 'target') s = S.target[t] == null ? 'Touche la carte pour placer la cible' : 'TIRER pour appeler l’avion !';
       else if (S.battle === 1 && S.turnsBy[t] <= 2 && !aimDrag) s = w.aim === 'melee' ? 'Colle-toi à un ennemi puis TIRER pour cogner !' : 'Glisse depuis ton canard pour viser, puis TIRER !';
       else if (w.aim === 'melee' && !aimDrag) s = 'Corps à corps : colle-toi à un ennemi !';
+      // à la manette (celui dont c'est le tour) : les mêmes conseils avec les glyphes
+      const q = !watch && !aiTurn && padShow(t) ? padSlot(t) : -1;
+      if (q >= 0) {
+        if (w.aim === 'target') s = S.target[t] == null ? '{a} fait apparaître la cible' : '{ls} déplace la cible · {a} appelle l’avion !';
+        else if (S.battle === 1 && S.turnsBy[t] <= 2) s = w.aim === 'melee' ? 'Colle-toi à un ennemi puis {a} pour cogner !' : w.aim === 'power' ? '{ls} marche et vise · {rt} puissance · {a} tire' : '{ls} marche et vise · {a} tire';
+        else if (w.aim === 'melee') s = 'Corps à corps : colle-toi à un ennemi, {a} !';
+        else s = null;
+      }
       if (!s) return;
-      const px2 = fitPx(s, 13 * UI, W - 60, true);
+      const px2 = q >= 0 ? Math.min(13 * UI, 13 * UI * (W - 60) / Math.max(1, richW(s, 13 * UI, true, q))) : fitPx(s, 13 * UI, W - 60, true);
       setFont(px2, true);
-      const tw = ctx.measureText(s).width + 26 * UI, h = 24 * UI;
+      const tw = (q >= 0 ? richW(s, px2, true, q) : ctx.measureText(s).width) + 26 * UI, h = 24 * UI;
       const y = Math.min(L.btn.left.y, L.wind.y > H / 2 ? L.wind.y : H) - (S.turnNo >= SUDDEN - 3 && L.wind.y > H / 2 ? 34 * UI + 24 : 30);
       ctx.globalAlpha = 0.75 + 0.25 * Math.sin(rt * 3);
-      cachedAt('hint|' + s + '|' + t, W / 2 - tw / 2, y - h / 2, tw, h, () => {
+      cachedAt('hint|' + s + '|' + t + '|' + (q >= 0 ? PAD.kind(q) : ''), W / 2 - tw / 2, y - h / 2, tw, h, () => {
         ctx.fillStyle = 'rgba(6,12,18,0.84)'; rr(ctx, W / 2 - tw / 2, y - h / 2, tw, h, h / 2); ctx.fill();
         ctx.strokeStyle = rgba(PL[t].color, 0.6); ctx.lineWidth = 1.3; ctx.stroke();
-        txt(s, W / 2, y + 0.5, px2, '#ffffff', 'center', true, 0);
+        if (q >= 0) rich(s, W / 2, y + 0.5, px2, '#ffffff', true, q);
+        else txt(s, W / 2, y + 0.5, px2, '#ffffff', 'center', true, 0);
       });
       ctx.globalAlpha = 1;
     }
@@ -3169,6 +3287,9 @@
         }
       });
       drawSpr(v, cx, cy, sc);
+      // à la manette : le bouton de la manette dans le coin (A tirer, B sauter, Y armes)
+      const gb = name === 'fire' ? 'a' : name === 'jump' ? 'b' : name === 'weapon' ? 'y' : '';
+      if (gb && enabled && padShow(t)) PAD.drawGlyph(ctx, gb, r.x + 4, r.y + 4, clamp(r.h * 0.17, 8, 12), padSlot(t));
       if (name === 'fire' && ready && canControl()) {
         ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.35 + 0.25 * Math.sin(rt * 5)); ctx.lineWidth = 4;
         rr(ctx, r.x - 3, r.y - 3, r.w + 6, r.h + 6, 18); ctx.stroke(); ctx.globalCompositeOperation = 'source-over';
@@ -3182,7 +3303,9 @@
       ctx.fillStyle = '#0a141c'; rr(ctx, T.x, T.y, T.w, T.h, 14); ctx.fill();
       glassPanel(T.x, T.y, T.w, T.h, 14, col, true);
       txt('ARMES', T.x + 10, T.y + 14, 12 * Math.min(UI, 1.2), col, 'left', false, 0);
-      txt('touche pour choisir', T.x + T.w - 10, T.y + 14.5, 10 * Math.min(UI, 1.2), COL.muted, 'right', true, 0);
+      const tq = !aiT && padShow(t) ? padSlot(t) : -1;
+      if (tq >= 0) { const s2 = '{lb} {rb} choisir · {a} prendre', p2 = 11.5 * Math.min(UI, 1.2); rich(s2, T.x + T.w - 10 - richW(s2, p2, true, tq) / 2, T.y + 14.5, p2, COL.muted, true, tq); }
+      else txt('touche pour choisir', T.x + T.w - 10, T.y + 14.5, 10 * Math.min(UI, 1.2), COL.muted, 'right', true, 0);
       for (let i = 0; i < WEAPONS.length; i++) {
         const w = WEAPONS[i], c = trayCell(i), am = S.ammo[t][w.id], ok = am > 0, sel = S.weapon[t] === i;
         ctx.globalAlpha = ok ? 1 : 0.38;
@@ -3468,6 +3591,7 @@
       if (NET) netPre(dt, resumeT <= 0);
       if (k > 0) {
         gatherInputs();
+        padTick(dt);
         acc += dt * k;
         let n = 0;
         while (acc >= STEP && n < 8) { simStep(); acc -= STEP; n++; }
@@ -4302,7 +4426,7 @@
     }
     return {
       pause() { if (destroyed || paused) return; paused = true; releaseAll(); pausedDrawn = 0; },
-      resume() { if (destroyed || !paused) return; paused = false; last = -1; resumeT = 1.5; SFX.tick(3); },
+      resume() { if (destroyed || !paused) return; paused = false; last = -1; resumeT = 1.5; SFX.tick(3); padDrain(); },
       destroy() {
         if (destroyed) return;
         destroyed = true;
@@ -4403,6 +4527,8 @@
     layout: 'landscape',
     net: true,                                     // jeu en ligne : chacun sur son appareil (voir « JEU EN LIGNE »)
     ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
+    // manette (CONTRACT.md « Ajout 10 ») : schéma montré par la borne (carte de pause, début de partie) ; celui dont c'est le tour joue
+    pad: { help: [['ls/dpad', 'Marcher ◀ ▶ · viser ▲ ▼'], ['rt', 'Doser la puissance'], ['a', 'Tirer (tenir = charger)'], ['b', 'Sauter'], ['lb/rb', 'Changer d’arme (Y : tiroir)'], ['rs', 'Regarder le terrain']] },
     preview,
     mount
   };

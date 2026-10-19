@@ -1980,6 +1980,7 @@
       if (COMBO_TXT[Math.min(frightCombo, 7)]) callout(COMBO_TXT[Math.min(frightCombo, 7)], 'x' + frightCombo + ' microbes gobés', frightCombo >= 4 ? '#ffd34d' : '#ff7fc0', 1.3, 1 + Math.min(0.4, (frightCombo - 2) * 0.12));
       if (g.boss) callout('BOSS GOBÉ !', '+' + fmt(pts), '#ffd34d', 1.8, 1.25);
       SFX.eat(frightCombo);
+      padRumble(g.boss ? 'big' : big ? 'hit' : 'tick');
     }
     function die() {
       state = 'dying'; stateT = 0;
@@ -2151,6 +2152,7 @@
       ring(player.x, player.y, theme.neon, 10, 0.9, 0.22);
       celebrate(CELEB[(level - 1 + ((Math.random() * 3) | 0)) % CELEB.length]);
       SFX.clear();
+      padRumble('win');
     }
     let clearInfo = null;
 
@@ -3013,6 +3015,21 @@
       const s = Math.round(Math.min(56, W / 7));
       const y0 = Math.max(hudH + s, H * 0.3);
       bigText('PAUSE', W / 2, y0, s, ACCENT, W - 30, 1, 1, 0, true);
+      if (padActive()) {      // manette : glyphes de la manette branchée
+        const r = 13, rows = [[['dpad', 'ls'], 'Diriger le canard'], [['ls'], 'Pousse avant le carrefour :'], [null, 'le virage est gardé en mémoire']];
+        rows.forEach(([bs, txt], i) => {
+          const yy = y0 + s * 0.9 + i * 30;
+          ctx.font = '600 15px ' + FB; const tw = ctx.measureText(txt).width, gw = bs ? bs.length * (2 * r + 6) : 0;
+          let x = W / 2 - (tw + gw) / 2;
+          if (bs) for (const b of bs) { PAD.drawGlyph(ctx, b, x + r, yy, r); x += 2 * r + 6; }
+          smallText(txt, x, yy, 15, '#e9f0f3', 'left', '600');
+        });
+        const ry = y0 + s * 0.9 + rows.length * 30 + 26;
+        ctx.font = '700 17px ' + FB; const tw = ctx.measureText('pour reprendre').width;
+        PAD.drawGlyph(ctx, 'a', W / 2 - tw / 2 - 8, ry, 13);
+        smallText('pour reprendre', W / 2 + 13, ry, 17, ACCENT);
+        return;
+      }
       const lines = touchUI
         ? ['Glisse le doigt pour tourner', 'Glisse avant le carrefour :', 'le virage est gardé en mémoire']
         : ['Flèches ou ZQSD : tourner', 'Tourne avant le carrefour :', 'le virage est gardé en mémoire', 'P ou Échap : pause'];
@@ -3077,11 +3094,23 @@
       ctx.fillStyle = 'rgba(255,255,255,0.12)';
       ctx.beginPath(); rrect(ctx, sk.x, sk.y, sk.w, sk.h, 19); ctx.fill();
       ctx.fillStyle = '#ffffff'; ctx.font = '700 13px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1);
+      const padM = padActive();
+      if (padM) { PAD.drawGlyph(ctx, 'b', sk.x + 18, sk.y + sk.h / 2, 11); ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.fillText('PASSER', sk.x + sk.w / 2 + 11, sk.y + sk.h / 2 + 1); }
+      else ctx.fillText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1);
       ctx.textAlign = 'left'; ctx.font = '700 12px ' + FB; ctx.fillStyle = theme.neon;
       ctx.fillText('COMMENT JOUER · ' + (st + 1) + '/3', k.x + 16, k.y + 27);
-      const touch = touchUI;
+      const touch = touchUI && !padM;
       const sceneTop = k.y + 56, sceneH = k.h * 0.44 - (touch ? 0 : 44);
+      // glyphes de la manette sous la scène (le premier allumé quand le geste a lieu)
+      const glyphRow = (list, y, lit) => {
+        const r = 15, gap = 12, tw = list.length * 2 * r + (list.length - 1) * gap;
+        ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath(); rrect(ctx, W / 2 - tw / 2 - 10, y - 2, tw + 20, 2 * r + 8, r + 4); ctx.fill();
+        list.forEach((b, i) => {
+          const cx = W / 2 - tw / 2 + r + i * (2 * r + gap), cy = y + r + 2;
+          if (lit && i === 0) { ctx.fillStyle = ACCENT; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(cx, cy, r + 5, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+          PAD.drawGlyph(ctx, b, cx, cy, r);
+        });
+      };
       let title = '', l1 = '', l2 = '';
       if (st === 0) {
         // carrefour en croix : le canard arrive, on glisse vers le haut, il tourne
@@ -3093,7 +3122,10 @@
         let dx, dy, dir;
         if (cyc < 1.0) { dx = cyc / 1.0 * 3; dy = 2; dir = 0; } else { dx = 3; dy = Math.max(-0.6, 2 - (cyc - 1.0) * 2.4); dir = 3; }
         drawDuck(ctx, x0 + (dx + 0.5) * s, y0 + (dy + 0.5) * s, s * 1.05, { dir, flip: 1, t: tt, chomp: Math.sin(tt * 16) * 0.5 + 0.5 });
-        if (touch) {
+        if (padM) {
+          glyphRow(['dpad', 'ls'], y0 + 5 * s + 8, cyc > 0.4 && cyc < 1.2);
+          title = 'CROIX OU STICK'; l1 = 'Le canard tourne dès que'; l2 = 'le couloir le permet.';
+        } else if (touch) {
           const ph = clamp((cyc - 0.35) / 0.4, 0, 1);
           if (cyc > 0.25 && cyc < 1.1) drawFinger(x0 + 5.5 * s, y0 + s * (3.8 - ph * 2.4), ph > 0 && ph < 1 ? 1 : 0.4);
           if (cyc > 0.35 && cyc < 1.2) { ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0 + 5.5 * s, y0 + 3.8 * s); ctx.lineTo(x0 + 5.5 * s, y0 + s * (3.8 - ph * 2.4)); ctx.stroke(); }
@@ -3123,7 +3155,10 @@
           ctx.strokeRect(x0 + 6 * s + 2, y0 + 1 * s + 2, s - 4, s - 4);
         }
         drawDuck(ctx, px, py, s * 1.05, { dir, flip: 1, t: tt, chomp: Math.sin(tt * 16) * 0.5 + 0.5 });
-        if (touch) {
+        if (padM) {
+          glyphRow(['dpad', 'ls'], y0 + 5 * s + 8, cyc > 0.3 && cyc < 0.9);
+          title = 'PRÉPARE TON VIRAGE'; l1 = 'Pousse ▼ avant le carrefour :'; l2 = 'la flèche garde le virage.';
+        } else if (touch) {
           const ph = clamp((cyc - 0.2) / 0.3, 0, 1);
           if (cyc > 0.1 && cyc < 0.9) drawFinger(x0 + 2 * s, y0 + s * (2.2 + ph * 2), ph > 0 && ph < 1 ? 1 : 0.4);
           title = 'PRÉPARE TON VIRAGE'; l1 = 'Glisse avant le carrefour :'; l2 = 'la flèche garde le virage.';
@@ -3172,7 +3207,11 @@
       bg.addColorStop(0, '#ffe58a'); bg.addColorStop(1, '#f0a800');
       ctx.fillStyle = bg; ctx.beginPath(); rrect(ctx, bx, by, bw, 42, 21); ctx.fill();
       ctx.fillStyle = '#2a1a00'; ctx.font = '15px ' + FD; ctx.textAlign = 'center';
-      ctx.fillText(st < 2 ? 'SUIVANT ›' : 'C\'EST PARTI !', W / 2, by + 22);
+      if (padM) {             // manette : (A) dans le bouton
+        const lab = st < 2 ? 'SUIVANT ›' : 'C\'EST PARTI !', tw = ctx.measureText(lab).width;
+        PAD.drawGlyph(ctx, 'a', W / 2 - tw / 2 - 6, by + 21, 11);
+        ctx.fillStyle = '#2a1a00'; ctx.fillText(lab, W / 2 + 12, by + 22);
+      } else ctx.fillText(st < 2 ? 'SUIVANT ›' : 'C\'EST PARTI !', W / 2, by + 22);
     }
 
     // ---------- Entrées ----------
@@ -3236,6 +3275,44 @@
       }
     }
     function onPUp(e) { if (swipe && e.pointerId === swipe.id) swipe = null; }
+    // ---- manette (CONTRACT.md Ajout 10) : croix ou stick gauche = diriger le canard, comme les flèches / le glissé.
+    // On tient la direction voulue : le virage part dès que le couloir le permet ; un petit coup avant le carrefour
+    // le garde en mémoire (la flèche, comme au clavier). En diagonale, c'est le virage (l'axe perpendiculaire) qui gagne.
+    // A : tutoriel suivant / reprendre la pause du jeu ; B : passer le tutoriel. Start reste à la borne.
+    const PAD = api.pad || null;
+    const PADB = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'up', 'down', 'left', 'right', 'ls', 'rs'];
+    let padBorne = false, padSD = -1;
+    function padActive() { try { return !!(PAD && PAD.active()); } catch (e) { return false; } }
+    function padDrain() { if (PAD) for (const b of PADB) PAD.pressed(b); }
+    function padRumble(k) { try { if (PAD) PAD.rumble(k); } catch (e) { /* */ } }
+    function padTick() {
+      if (!PAD) return;
+      // get() d'abord, à chaque image : il libère le A tenu au lancement (sinon les appuis A suivants restent bloqués)
+      const g = PAD.get(), h = g.held;
+      const pa = PAD.pressed('a'), pb = PAD.pressed('b');
+      padDrain();
+      if (state === 'tuto') { if (pa) tutoNext(false); else if (pb) tutoNext(true); return; }
+      if (paused) { if (pa && !padBorne) resume(); padSD = -1; return; }
+      if (state === 'over' || state === 'dying') { padSD = -1; return; }
+      // directions candidates (à l'écran : 0 droite, 1 bas, 2 gauche, 3 haut)
+      let cx = h.right ? 0 : h.left ? 2 : -1, cy = h.down ? 1 : h.up ? 3 : -1;
+      if (cx < 0 && cy < 0) {
+        const m = Math.hypot(g.lx, g.ly), th = padSD >= 0 ? 0.4 : 0.5;
+        if (m > th) {
+          const ax = Math.abs(g.lx), ay = Math.abs(g.ly);
+          if (ax > m * 0.38) cx = g.lx > 0 ? 0 : 2;          // ~ au-delà de 22° de l'axe : l'axe compte
+          if (ay > m * 0.38) cy = g.ly > 0 ? 1 : 3;
+        }
+      }
+      let sd = -1;
+      if (cx >= 0 && cy >= 0) {      // diagonale : le virage (axe perpendiculaire au déplacement) gagne ; à l'arrêt, le couloir ouvert
+        const my = mdir(cy);
+        if (player.stopped) { const X = Math.round(player.x), Y = Math.round(player.y); sd = walkable(X + DX[my], Y + DY[my]) ? cy : cx; }
+        else sd = (mdir(cx) % 2) === (player.dir % 2) ? cy : cx;
+      } else sd = cx >= 0 ? cx : cy;
+      if (sd >= 0) setDir(mdir(sd));
+      padSD = sd;
+    }
     on(window, 'keydown', onKey);
     on(root, 'pointerdown', onPDown);
     on(root, 'pointermove', onPMove);
@@ -3264,6 +3341,7 @@
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
       sndBudget = 8;
+      padTick();
       if (!paused) update(dt);
       for (let i = sfxQ.length - 1; i >= 0; i--) { sfxQ[i].t -= dt; if (sfxQ[i].t <= 0) { const f = sfxQ[i].fn; sfxQ.splice(i, 1); f(); } }
       try { render(); } catch (e) { /* ne jamais casser la boucle */ }
@@ -3278,6 +3356,9 @@
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
       currentLevel: () => level,                            // niveau en cours (musique plus énergique aux niveaux difficiles)
+      // carte Pause de la borne (Start de la manette) ; Reprendre : les appuis faits sur la carte ne vont pas au jeu
+      pause() { pause(); padBorne = paused; },
+      resume() { padBorne = false; resume(); padDrain(); },
       // accès de diagnostic (harnais de test uniquement)
       _debug: {
         info: () => ({ score, level, state, paused, tuto: tuto ? tuto.step : null, dotsLeft, dotsTotal, frightT, bombT, frightCombo,
@@ -3774,6 +3855,8 @@
     worldWord: '',                       // fin de partie : « La douche · Tour II » (pas de « Monde n »)
     drawWorldIcon,                       // médaillon néon d'une pièce (n = 1..6) centré en (x, y), rayon r
     mapArt,                              // la carte d'avancement de la bibliothèque, dessinée par le jeu
+    // manette (CONTRACT.md Ajout 10) : commandes montrées par la borne (carte Pause, début de partie)
+    pad: { help: [['dpad', 'Diriger le canard'], ['ls', 'Diriger, en souplesse'], ['ls/dpad', 'Avant un carrefour : virage gardé']] },
     preview,
     mount
   };

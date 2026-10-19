@@ -334,7 +334,7 @@
   // ===========================================================================
   // simulation pure : état + step(dt, entrées). Aucune lecture du DOM, aucun Date.now().
   // Entrées (en coordonnées de grille du joueur : x = colonne, y = rangée, flottants) :
-  //   { t: 'down'|'move'|'up'|'cancel', id, x, y, seq }   { t: 'key', a: 'u'|'d'|'l'|'r'|'x', seq }
+  //   { t: 'down'|'move'|'up'|'cancel', id, x, y, seq }   { t: 'key', a: 'u'|'d'|'l'|'r'|'x'|'c' (annuler), seq }
   // Sorties : S.fx (événements que l'affichage consomme : sons, annonces, point…)
   // ===========================================================================
   function createSim(o) {
@@ -458,6 +458,7 @@
       else S.fx.push({ k: 'drop', p });
     } else if (ev.t === 'key') {
       const kb = pl.kb;
+      if (ev.a === 'c') { if (pl.trace && pl.trace.kbd) { pl.trace = null; S.fx.push({ k: 'drop', p }); } return; }   // annuler (B de la manette)
       if (!kb.on) { kb.on = true; kb.r = (S.R / 2) | 0; kb.c = (S.C / 2) | 0; if (ev.a !== 'x') return; }
       if (ev.a === 'x') {
         if (!canTrace) return;
@@ -890,6 +891,9 @@
     function rttMs() { try { const v = +NET.rtt(); if (isFinite(v) && v >= 0) return Math.min(v, 3000); } catch (e) { /* rien */ } return 150; }
     let destroyed = false, paused = false, raf = 0, last = -1, rt = 0, resumeT = 0, points = 0;
     const listeners = [];
+    // manette (api.pad, voir « manette » plus bas) ; padUse[p] = la manette est l'entrée du moment de ce joueur (null = pas encore su)
+    const PAD = api.pad && typeof api.pad.get === 'function' && typeof api.pad.pressed === 'function' ? api.pad : null;
+    const padUse = [null, null];
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
 
     // ------------------------------------------------------------- sons (sobres)
@@ -1366,6 +1370,38 @@
       c.fillStyle = '#ffe9a6';
       c.fillText(lines[1], w / 2, h / 2 + px * 0.78, w - 20);
       explainCv = { cv, w, h };
+      explainPad[0] = explainPad[1] = null;
+    }
+    // la même carte à la manette, avec les glyphes de la manette du joueur p (Xbox A / PlayStation ✕…)
+    const explainPad = [null, null];
+    function padExplain(p) {
+      const kind = PAD.kind(p), ex = explainPad[p];
+      if (ex && ex.kind === kind) return ex;
+      const w = Math.min(Lo.G * 0.92, 360), px = clamp(Lo.G * 0.047, 12, 18);
+      const lines = [['{dpad} ou {ls} : va sur la 1re lettre', '#ffffff'], ['{a} tenu jusqu’à la dernière, lâche !', '#ffe9a6'], ['{b} annule le tracé', 'rgba(233,240,243,0.7)']];
+      const lh = px * 1.62, h = Math.ceil(lh * 3 + px * 1.5);
+      const cv = mkCanvas(w * dpr, h * dpr), c = cv.getContext('2d');
+      c.scale(dpr, dpr);
+      rrect(c, 1, 1, w - 2, h - 2, 14);
+      const g = c.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, 'rgba(14,26,36,0.95)'); g.addColorStop(1, 'rgba(6,11,16,0.95)');
+      c.fillStyle = g; c.fill();
+      c.lineWidth = 1.6; c.strokeStyle = COL.gold; c.stroke();
+      c.textBaseline = 'middle';
+      for (let i = 0; i < 3; i++) {
+        const fs = i === 2 ? px * 0.86 : px, r = fs * 0.68, y = h / 2 + (i - 1) * lh;
+        const parts = lines[i][0].split(/\{(\w+)\}/);
+        const font = '600 ' + fs.toFixed(1) + 'px ' + FB;
+        let tw = 0;
+        for (let j = 0; j < parts.length; j++) { if (j & 1) tw += 2 * r + fs * 0.2; else { c.font = font; tw += c.measureText(parts[j]).width; } }
+        let x = w / 2 - tw / 2;
+        for (let j = 0; j < parts.length; j++) {
+          if (j & 1) { PAD.drawGlyph(c, parts[j], x + fs * 0.1 + r, y, r, p); x += 2 * r + fs * 0.2; }
+          else if (parts[j]) { c.font = font; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = lines[i][1]; c.fillText(parts[j], x, y + fs * 0.04); x += c.measureText(parts[j]).width; }
+        }
+      }
+      explainPad[p] = { cv, w, h, kind };
+      return explainPad[p];
     }
     // fond fixe pré-rendu : dégradés, nébuleuse d'ILO si disponible, papier « mots mêlés », vignettage
     function letterTile() {
@@ -2112,6 +2148,7 @@
       const p = NET ? ME : e.clientY - rc.top > H / 2 ? 0 : 1;   // en ligne : tout l'écran est à moi
       if (p === AIP) return;                                       // contre l'IA : sa moitié n'écoute pas les doigts
       ptrs.set(e.pointerId, p);
+      padUse[p] = false;
       try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ }
       const g = toGrid(p, e.clientX, e.clientY);
       push(p, { t: 'down', id: e.pointerId, x: g.x, y: g.y });
@@ -2147,8 +2184,58 @@
       e.preventDefault();
       if (e.repeat && k[1] === 'x') return;
       if (k[0] === AIP) return;                                    // les touches du joueur remplacé par l'IA
+      padUse[NET ? ME : k[0]] = false;
       push(NET ? ME : k[0], { t: 'key', a: k[1] });
     }
+    // ------------------------------------------------------------- manette (CONTRACT.md « Ajout 10 », DUO-CONTRACT.md « la manette dans les duels »)
+    // Même chemin que le curseur du clavier (entrées { t: 'key' } dans la file du joueur, donc aussi en ligne) : croix ou stick gauche
+    // = curseur case par case (8 sens, répétition quand on tient), A enfoncé = 1re lettre, on va jusqu'à la dernière et on LÂCHE A
+    // (ou A, déplacement, A), B = annuler le tracé. Directions dans le repère de la VUE du joueur : la borne donne les sticks dans le
+    // repère de l'écran (joueur du haut assis en face : déjà retournés) ; la grille du joueur du haut (et de l'invité) est tournée de 180°.
+    const PADS = [{ dir: '', next: 0, hold: false, moved: false }, { dir: '', next: 0, hold: false, moved: false }];
+    function padShow(p) { return !!PAD && p !== AIP && PAD.any(p) && (padUse[p] === null ? PAD.active() : padUse[p]); }
+    function padTick() {
+      if (!PAD) return;
+      for (let p = 0; p < 2; p++) {
+        if (p === AIP || (NET && p !== ME)) continue;
+        const g = PAD.get(p), s = PADS[p];
+        if (!g.on) { s.hold = false; s.dir = ''; continue; }
+        const h = g.held, sg = p === 1 ? -1 : 1;
+        let dx = 0, dy = 0;
+        if (h.left || h.right || h.up || h.down) { dx = (h.right ? 1 : 0) - (h.left ? 1 : 0); dy = (h.down ? 1 : 0) - (h.up ? 1 : 0); }
+        else if (Math.hypot(g.lx, g.ly) > 0.5) {
+          const k = Math.round(Math.atan2(g.ly, g.lx) / (Math.PI / 4));
+          dx = Math.round(Math.cos(k * Math.PI / 4)); dy = Math.round(Math.sin(k * Math.PI / 4));
+        }
+        dx *= sg; dy *= sg;
+        const tr = sim.pl[p].trace;
+        // appuis sur la croix (fronts : un appui bref entre deux images compte quand même), puis répétition tant qu'on tient
+        const fu = PAD.pressed('up', p), fd = PAD.pressed('down', p), fl = PAD.pressed('left', p), fr = PAD.pressed('right', p);
+        const step = (x, y) => {
+          if (y) push(p, { t: 'key', a: y < 0 ? 'u' : 'd' });
+          if (x) push(p, { t: 'key', a: x < 0 ? 'l' : 'r' });
+          if (s.hold) s.moved = true;
+          padUse[p] = true;
+        };
+        const key = dx + ',' + dy;
+        if (fu || fd || fl || fr) {
+          step(sg * ((fr ? 1 : 0) - (fl ? 1 : 0)), sg * ((fd ? 1 : 0) - (fu ? 1 : 0)));
+          s.dir = dx || dy ? key : ''; s.next = rt + 0.26;
+        } else if (dx || dy) {
+          if (key !== s.dir) { s.dir = key; s.next = rt + 0.26; step(dx, dy); } else if (rt >= s.next) { s.next = rt + 0.085; step(dx, dy); }
+        } else s.dir = '';
+        if (PAD.pressed('a', p)) {
+          padUse[p] = true;
+          if (tr && tr.kbd) { push(p, { t: 'key', a: 'x' }); s.hold = false; }          // A, déplacement, A : on valide
+          else { push(p, { t: 'key', a: 'x' }); s.hold = true; s.moved = false; }      // 1re lettre
+        } else if (s.hold && !h.a) {                                                    // A lâché après un déplacement : on valide
+          s.hold = false;
+          if (s.moved && tr && tr.kbd) push(p, { t: 'key', a: 'x' });
+        }
+        if (PAD.pressed('b', p)) { padUse[p] = true; s.hold = false; if (tr && tr.kbd) push(p, { t: 'key', a: 'c' }); }
+      }
+    }
+    function padDrain() { if (PAD) for (let p = 0; p < 2; p++) { for (const b of ['a', 'b', 'up', 'down', 'left', 'right']) PAD.pressed(b, p); PADS[p].hold = false; } }
     on(canvas, 'pointerdown', onDown);
     on(canvas, 'pointermove', onMove);
     on(canvas, 'pointerup', onUp);
@@ -2648,11 +2735,12 @@
       // carte d'explication et démonstration du geste (1re manche)
       if (ph === 'intro' && sim.starts === 1) {
         if (sim.t > 1.2 && sim.t < 2.95) drawDemo(p, sim.t - 1.2);
-        if (explainCv && sim.t > 0.9 && sim.t < sim.introDur - 1.6) {
+        const ec = padShow(p) ? padExplain(p) : explainCv;
+        if (ec && sim.t > 0.9 && sim.t < sim.introDur - 1.6) {
           const a = Math.min(sat((sim.t - 0.9) / 0.25), sat((sim.introDur - 1.6 - sim.t) / 0.25));
           const k = 0.9 + 0.1 * easeOut((sim.t - 0.9) / 0.3);
           ctx.globalAlpha = a;
-          ctx.drawImage(explainCv.cv, cx0 - explainCv.w * k / 2, cy0 + Lo.G * 0.14 - explainCv.h * k / 2, explainCv.w * k, explainCv.h * k);
+          ctx.drawImage(ec.cv, cx0 - ec.w * k / 2, cy0 + Lo.G * 0.14 - ec.h * k / 2, ec.w * k, ec.h * k);
           ctx.globalAlpha = 1;
         }
       }
@@ -2735,6 +2823,11 @@
         ctx.strokeStyle = PC[p]; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.6 + 0.4 * Math.sin(rt * 8);
         rrect(ctx, x - 2, y - 2, TM.ts + 4, TM.ts + 4, TM.ts * 0.26); ctx.stroke();
         ctx.globalAlpha = 1;
+        // à la manette : petit A au coin du curseur tant que rien n'est tracé (« appuie ici »)
+        if (ph === 'play' && padShow(p) && !sim.pl[p].trace && sim.pl[p].freeze <= 0) {
+          const r = clamp(TM.ts * 0.2, 7, 12);
+          PAD.drawGlyph(ctx, 'a', x + TM.ts + 1, y + 1, r, p);
+        }
       }
       // gel : voile rouge sur la grille
       const fz = sim.pl[p].freeze;
@@ -3300,6 +3393,7 @@
         inputs[0].length = 0; inputs[1].length = 0;
       } else {
         if (AIN) aiTick(dt);
+        padTick();
         if (NET) netStep(dt); else step(sim, dt, inputs);
         inputs[0].length = 0; inputs[1].length = 0;
         drain();
@@ -3337,6 +3431,7 @@
       if (destroyed || !paused) return;
       paused = false;
       ptrs.clear();
+      padDrain();
       resumeT = sim.phase === 'over' ? 0 : 1.5;
       last = -1;
       SFX.rcount();
@@ -3381,7 +3476,7 @@
         return {
           phase: sim.phase, t: sim.t, round: sim.roundNo, starts: sim.starts, word: sim.word, R: sim.R, C: sim.C, grid: sim.g.join(''),
           cells: sim.cells.slice(), dirK: sim.dirK, timeLeft: sim.timeLeft, freeze: [sim.pl[0].freeze, sim.pl[1].freeze],
-          trace: [!!sim.pl[0].trace, !!sim.pl[1].trace], kb: [sim.pl[0].kb.on, sim.pl[1].kb.on], matchOver: sim.matchOver, paused, resumeT, nameIdx: sim.nameIdx,
+          trace: [!!sim.pl[0].trace, !!sim.pl[1].trace], kb: [sim.pl[0].kb.on, sim.pl[1].kb.on], kbp: sim.pl.map((q) => [q.kb.r, q.kb.c]), matchOver: sim.matchOver, paused, resumeT, nameIdx: sim.nameIdx,
           name: sim.nameIdx >= 0 ? NAMES[sim.nameIdx].key : '', theme: sim.theme >= 0 ? THEMES[sim.theme].name : '', winner: sim.winner,
           font: TM.font, cs: TM.cs, dpr, quality, particles: ptN, neb: !!NEB, fontsOK,
           perf: { upd: V.perf.upd, ren: V.perf.ren, au: V.perf.au, ar: V.perf.ar },
@@ -3430,6 +3525,8 @@
     layout: 'split',
     net: true,                 // sait jouer en ligne (api.net) : chacun sa grille en grand, l'hôte départage à l'heure commune
     ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
+    // manette (CONTRACT.md « Ajout 10 ») : schéma montré par la borne (carte de pause, début de partie)
+    pad: { help: [['dpad/ls', 'Curseur, case par case'], ['a', 'Tenir sur la 1re lettre, lâcher sur la dernière'], ['b', 'Annuler le tracé']], intro: false },   // (le jeu montre déjà ses commandes avec les glyphes au début)
     preview,
     mount
   };

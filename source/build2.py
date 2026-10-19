@@ -108,8 +108,10 @@ def page(config=None):
     return ('<title>Borne d\'arcade entre amis</title>\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
             '<link rel="stylesheet" href="' + FONT_CSS + '">\n'
-            '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n' + open(J + 'accessoires.css', encoding='utf-8').read() + '\n</style>\n' + body + '\n'
+            '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n' + open(J + 'accessoires.css', encoding='utf-8').read() + '\n' + open(J + 'manette.css', encoding='utf-8').read() + '\n</style>\n' + body + '\n'
             '<script>\n(() => {\n' + script + '\n})();\n</script>\n' + games + cfg +
+            # manette (API Gamepad) : glyphes, api.pad des jeux, navigation ; avant la bibliothèque, qui s'en sert
+            '<script>\n' + open(J + 'manette.js', encoding='utf-8').read() + '\n</script>\n'
             # accessoires de la tête (dessins, onglets, miniatures) : avant la bibliothèque, qui s'en sert
             '<script>\n' + open(J + 'accessoires.js', encoding='utf-8').read() + '\n</script>\n'
             '<script>\n' + open(J + 'shell2.js').read() + '\n</script>\n')

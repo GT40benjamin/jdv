@@ -169,3 +169,35 @@ Appli de la borne 1.9 (pont `JDWAndroid` api 2, publiée avec la borne 1.20) : `
 `fr.bornearcade.link` (jamais dans l'adresse) ; `api.natif.voice` (undefined avant la 1.9) = `{ api (niveau du pont, 1.20.1), canSpeak, speak(texte) → numéro, stopSpeak,
 canListen, listen() → 'ok' | 'busy' | 'none', stopListen, onEvent(fn) }` ; évènements `{ state: 'tts', ev: init | start | word (start, end) |
 done | stop | error }` et `{ state: 'stt', ev: ready (mode ondevice | offline-pref) | begin | end | partial | result (words, answer oui | non | '') | error (err) }`.
+
+## Ajout 10 : la manette (api.pad, source/manette.js)
+La borne se joue aussi à la manette (Xbox, PlayStation, Nintendo, manettes Bluetooth génériques ; API Gamepad du navigateur, PC,
+Chrome d'Android et appli Android). La bibliothèque lit les manettes à chaque image et donne `api.pad` au jeu (absent dans un vieux
+harnais : `if (api.pad)`). Le jeu ne lit JAMAIS `navigator.getGamepads()` lui-même et ne simule pas de touches : il lit `api.pad`.
+- `api.pad.get(p = 0)` → `{ on, kind, lx, ly, rx, ry, lt, rt, mx, my, held }` : `on` = une manette pilote ce joueur ; sticks déjà passés
+  par une zone morte ronde (−1..1, y vers le BAS comme l'écran) ; `lt` / `rt` gâchettes analogiques 0..1 ; `mx, my` = la croix si elle est
+  enfoncée, sinon le stick gauche (déplacement « naturel ») ; `held` = boutons tenus `{ a, b, x, y, lb, rb, lt, rt, ls, rs, up, down, left, right }`.
+  Jeu solo : `p` = 0 (toutes les manettes branchées pilotent le joueur). Objet neuf à chaque appel : l'appeler une fois par image.
+- `api.pad.pressed(btn, p = 0)` → vrai UNE fois par appui (front montant, rien n'est perdu entre deux images) ; à appeler dans la boucle du jeu.
+- `api.pad.on(fn)` → fonction de désabonnement ; `fn(btn, p, down)` à chaque appui / relâché (pour les jeux à évènements).
+- Ce qui était déjà enfoncé au montage (le A qui a lancé la partie) est ignoré jusqu'au relâché. Pareil à la sortie des pauses de la borne
+  (carte Pause, pause du duel ou de la coop) : la borne appelle `api.pad.flush()` (appuis en attente oubliés, boutons enfoncés ignorés jusqu'au relâché).
+- **Start / Options et Vue / Share sont à la borne** : jamais vus par le jeu. Start = pause de la borne : pour les jeux solo, la borne
+  ouvre sa carte « Pause » (commandes du jeu, Reprendre, Quitter) et appelle `pause()` / `resume()` renvoyés par `mount()` (À FOURNIR :
+  `mount()` renvoie aussi `pause()` et `resume()` ; sans eux, la borne envoie la touche P). B n'est PAS « retour » en jeu : c'est un bouton du jeu.
+- `api.pad.rumble(sorte, p)` : petite vibration ('tick', 'hit', 'big', 'win', 'over', 'start', ou `{ strong, weak, ms }`), si la
+  manette sait vibrer et si le joueur ne l'a pas coupée (⚙). La borne vibre déjà toute seule au game over : le jeu ajoute les chocs
+  (touché, explosion, boss battu, niveau réussi), sobrement (pas à chaque tir).
+- Glyphes : `api.pad.kind(p)` → 'xbox' | 'ps' | 'nin' | 'gen' ; `api.pad.glyph(btn, p)` → 'A' / '✕' / 'LB' / 'L1'… ; `api.pad.drawGlyph(ctx, btn, x, y, r, p)`
+  dessine la pastille du bouton dans un canvas (btn : a b x y lb rb lt rt ls rs dpad) ; `api.pad.active()` → la manette est l'entrée utilisée
+  en ce moment (dernier appui ; un toucher ou une touche du clavier la fait passer à faux) : les aides du jeu montrent alors les glyphes.
+- Enregistrement : `pad: { help: [[touches, 'texte'], …] }` = schéma des commandes, montré par la borne (carte Pause, début de partie à la
+  manette, 3 premières fois ; `pad.intro: false` si le jeu montre déjà lui-même ses commandes avec les glyphes au début de la partie ;
+  `pad.intro: 'ready'` si le jeu charge longtemps : la borne attend `api.pad.showHelp()`, appelé par le jeu quand il est prêt).
+  `api.pad.pressed()` renvoie le NOMBRE d'appuis depuis le dernier appel (0 = faux). `touches` : 'ls' (stick gauche), 'rs', 'dpad', 'a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'l3', 'r3' ;
+  'ls/dpad' = l'un ou l'autre, 'lt+rt' = les deux. Texte court en français (« Bouger », « Tirer », « Roulade »). Jeux à deux (coop) : `pad.coopHelp` si différent.
+- Prise en main NATURELLE propre au jeu (comme sur console) : stick analogique pour la précision (vitesse proportionnelle), croix pour les
+  déplacements case par case, A = action principale, B = action secondaire / annuler, X / Y = actions en plus, gâchettes pour ce qui
+  se dose. Le clavier, la souris et le toucher marchent toujours en même temps.
+- Harnais : `source/test/*.html` chargent `../manette.js` et donnent `api.pad`. Essais sans vraie manette :
+  `~/jdv-tools/duotest/manette/tests/vpad.js` (manette virtuelle Playwright : connect, press, stick, trig).

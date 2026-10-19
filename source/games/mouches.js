@@ -2492,7 +2492,7 @@
       swatLbl.style.left = wide ? Math.round(FX + FW + 34 + size / 2 - 43) + 'px' : 'auto';
       swatLbl.style.right = wide ? 'auto' : 'calc(' + (10 + size / 2 - 43) + 'px + env(safe-area-inset-right, 0px))';
       swatLbl.style.bottom = wide ? Math.round(ch * 0.2 - 18) + 'px' : 'calc(' + Math.round(Math.max(14, (H - PY) * U + 8) - 16) + 'px + env(safe-area-inset-bottom, 0px))';
-      swatLbl.textContent = touchUI ? '' : 'ESPACE';
+      swatLbl.textContent = touchUI || padActive() ? '' : 'ESPACE';
     }
 
     // ---------------------------------------------------------------- sprites (mis en cache à la bonne résolution)
@@ -2990,10 +2990,39 @@
     // ---------------------------------------------------------------- la bombe : déplacement + tir automatique
     const keys = { left: false, right: false };
     let dragDX = 0, mouseX = -1;
+    // ---- manette (api.pad, CONTRACT.md Ajout 10) : stick gauche analogique (vitesse proportionnelle), croix à pleine vitesse,
+    // LT pour doser (plus lent, plus précis), A / RT = tapette géante ; lue une fois par image, à côté du clavier et du doigt
+    const PAD = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    const PAD_SPEED = 380;
+    let padS = null;
+    function padHit(b) { try { return !!PAD.pressed(b); } catch (e) { return false; } }
+    function padFlush() { if (PAD) for (const b of ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt']) padHit(b); }
+    function padActive() { try { return !!(PAD && PAD.active()); } catch (e) { return false; } }
+    function padRumble(k) { try { if (PAD) PAD.rumble(k); } catch (e) { /* rien */ } }
+    function padTick() {
+      padS = null;
+      if (!PAD) return;
+      let g = null;
+      try { g = PAD.get(); } catch (e) { g = null; }
+      if (!g || !g.on) return;
+      if (state === 'tuto') {
+        if (padHit('a')) tutoNext(false); else if (padHit('b')) tutoNext(true);
+        padFlush();
+        return;
+      }
+      padS = g;
+      const sw = padHit('a') + padHit('rt') + padHit('x');
+      padFlush();
+      if (sw && state === 'play') trySwat();
+    }
     function updatePlayer(dt) {
       if (!player.alive) return;
       const ox = player.x;
       const mv = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+      if (!mv && padS && Math.abs(padS.mx) > 0.01) {      // manette : la croix va à fond, le stick est proportionnel ; LT ralentit
+        const h = padS.held, ax = padS.mx, v = h.left || h.right ? Math.sign(ax) : Math.sign(ax) * Math.pow(Math.min(1, Math.abs(ax)), 1.2);
+        player.x += v * PAD_SPEED * (1 - 0.6 * (padS.lt || 0)) * dt; mouseX = -1;
+      }
       if (mv) { player.x += mv * SPEED * dt; mouseX = -1; }
       else if (mouseX >= 0) { const d = mouseX - player.x, st = 1100 * dt; player.x += clamp(d, -st, st); }
       if (dragDX) { player.x += dragDX; dragDX = 0; }
@@ -3642,6 +3671,7 @@
       doShake(9);
       slowmo(1.2, 0.35);
       SFX.bossDown();
+      padRumble('win');
       for (const d of drops) burst(d.x, d.y, 2, ['#ffffff', '#ffd0e8'], 40, 0.3, 1.4, 0);
       drops = [];
       shots = [];
@@ -3892,6 +3922,7 @@
       ring(s.x, s.y, 10, 170, 0.45, '#ff8fca', 4);
       puffs(s.x, s.y, 12, ['#ffffff', '#ffd0e8', '#e9d4ff'], 160, 0.8, 10);
       SFX.clac();
+      padRumble('big');
     }
     function updateSwat(dt) {
       swat.t += dt;
@@ -4856,7 +4887,9 @@
       ctx.fillStyle = gauge >= 1 ? (Math.floor(rtime * 4) % 2 ? '#ff5fae' : '#ffd0e8') : '#ff5fae';
       rrect(ctx, tx, 52, Math.max(12, tw * gauge), 12, 6);
       ctx.fill();
-      smallText(gauge >= 1 ? 'PRÊTE ! Appuie sur ESPACE' : 'Se remplit en arrosant', tx, 78, 12, gauge >= 1 ? '#ffd34d' : '#b8c8d6', 'left', '600');
+      const padOn = padActive();
+      if (padOn && gauge >= 1) padRow('a', 'PRÊTE ! Appuie', tx, 78, 12, '#ffd34d', '600');
+      else smallText(gauge >= 1 ? 'PRÊTE ! Appuie sur ESPACE' : 'Se remplit en arrosant', tx, 78, 12, gauge >= 1 ? '#ffd34d' : '#b8c8d6', 'left', '600');
       smallText('BONUS', tx, 108, 13, '#5ef0ff', 'left', '700');
       if (pw.t > 0 && pw.kind) {
         const sp = SPRITES.cap[pw.kind];
@@ -4868,6 +4901,11 @@
         ctx.fillRect(tx + 34, 142, (tw - 34) * clamp(pw.t / pw.max, 0, 1), 4);
       } else smallText('Attrape les bulles de savon', tx, 131, 12, '#93a8b8', 'left', '600');
       smallText('COMBO x' + mult() + (bestChain ? '  ·  record ' + bestChain : ''), tx, 170, 13, '#ffd34d', 'left', '700');
+      if (padOn) {
+        const rows = [['ls/dpad', 'bouger'], ['', 'Le tir est automatique'], ['lt', 'doser la vitesse'], ['a/rt', 'tapette géante'], ['start', 'pause']];
+        for (let i = 0; i < rows.length; i++) padRow(rows[i][0], rows[i][1], tx, 208 + i * 26, 13, '#d6e2ec', '600');
+        return;
+      }
       const help = ['← → ou la souris : bouger', 'Le tir est automatique', 'ESPACE : tapette géante', 'P ou Échap : pause'];
       for (let i = 0; i < help.length; i++) smallText(help[i], tx, 208 + i * 24, 13, '#d6e2ec', 'left', '600');
     }
@@ -5045,11 +5083,51 @@
       ctx.fillRect(0, 0, cw, ch);
       ctx.globalAlpha = 1;
     }
+    // une ligne d'aide à la manette : pastille(s) du bouton (Xbox A B X Y LB RT…, PlayStation ✕ ○ □ △ L1 R2…) puis le texte
+    function padKeysW(keys, r) {
+      let w = 0;
+      for (const part of String(keys).split(/([/+])/)) {
+        if (!part) continue;
+        if (part === '/' || part === '+') { w += r * 1.1; continue; }
+        if (/^(a|b|x|y|ls|rs|dpad)$/.test(part)) { w += r * 2 + r * 0.25; continue; }
+        ctx.font = '700 ' + Math.round(r * 0.9) + 'px system-ui,sans-serif';
+        let lab = part; try { lab = PAD.glyph(part); } catch (e) { /* rien */ }
+        w += Math.max(r * 2, ctx.measureText(lab).width + r * 0.9) + r * 0.25;
+      }
+      return w;
+    }
+    function padKeys(keys, x, y, r) {        // dessine de gauche à droite à partir de x ; renvoie la largeur
+      const x0 = x;
+      for (const part of String(keys).split(/([/+])/)) {
+        if (!part) continue;
+        if (part === '/' || part === '+') { smallText(part, x + r * 0.55, y, r * 1.1, 'rgba(255,255,255,0.7)', 'center', '700'); x += r * 1.1; continue; }
+        const w = padKeysW(part, r);
+        try { PAD.drawGlyph(ctx, part, x + (w - r * 0.25) / 2, y, r); } catch (e) { /* rien */ }
+        x += w;
+      }
+      return x - x0;
+    }
+    function padRow(keys, text, x, y, size, col, weight) {     // aligné à gauche à partir de x
+      const r = size * 0.78, kw = keys ? padKeysW(keys, r) + size * 0.35 : 0;
+      if (keys) padKeys(keys, x, y, r);
+      smallText(text, x + kw, y, size, col || '#e9f0f3', 'left', weight || '600');
+    }
+    function padLine(keys, text, cx, y, size, col, weight) {    // centré sur cx
+      const r = size * 0.78, kw = keys ? padKeysW(keys, r) + size * 0.35 : 0;
+      ctx.font = (weight || '600') + ' ' + Math.round(size) + 'px ' + FB;
+      padRow(keys, text, cx - (kw + ctx.measureText(text).width) / 2, y, size, col, weight);
+    }
     function drawPause() {
       ctx.fillStyle = 'rgba(6,8,20,0.8)';
       ctx.fillRect(0, 0, cw, ch);
       const cx = cw / 2, y0 = Math.max(110, ch * 0.32);
       bigText('PAUSE', cx, y0, 56, '#b98cff', cw - 30, 1, 1, true);
+      if (padActive()) {
+        const rows = [['ls/dpad', 'Bouger la bombe'], ['', 'Le tir est automatique'], ['lt', 'Doser la vitesse'], ['a/rt', 'Tapette géante']];
+        rows.forEach((l, i) => padLine(l[0], l[1], cx, y0 + 54 + i * 30, 15, '#e9f0f3', '600'));
+        padLine('start', 'pour reprendre', cx, y0 + 70 + rows.length * 30, 17, '#ffd34d', '700');
+        return;
+      }
       const lines = touchUI
         ? ['Glisse le doigt pour bouger la bombe', 'Le tir est automatique', 'Jauge pleine : touche la tapette']
         : ['← → ou la souris : bouger', 'Le tir est automatique', 'ESPACE : tapette géante', 'P ou Échap : pause'];
@@ -5158,7 +5236,7 @@
     function drawTuto() {
       ctx.fillStyle = 'rgba(6,8,20,0.74)';
       ctx.fillRect(0, 0, cw, ch);
-      const k = tutoCard(), tt = tuto.t, st = tuto.step, acc = '#b98cff';
+      const k = tutoCard(), tt = tuto.t, st = tuto.step, acc = '#b98cff', padOn = padActive();
       ctx.fillStyle = 'rgba(12,12,30,0.96)';
       rrect(ctx, k.x, k.y, k.w, k.h, 20);
       ctx.fill();
@@ -5176,7 +5254,8 @@
       ctx.font = '700 13px ' + FB;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1);
+      if (padOn) { PAD.drawGlyph(ctx, 'b', sk.x + 17, sk.y + sk.h / 2, 10); ctx.font = '700 13px ' + FB; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffffff'; ctx.fillText('PASSER', sk.x + sk.w / 2 + 10, sk.y + sk.h / 2 + 1); }
+      else ctx.fillText('PASSER ✕', sk.x + sk.w / 2, sk.y + sk.h / 2 + 1);
       ctx.textAlign = 'left';
       ctx.font = '700 12px ' + FB;
       ctx.fillStyle = acc;
@@ -5206,7 +5285,14 @@
         }
         ctx.globalAlpha = 1;
         miniSprite(SPRITES.can, canX, baseY, sc);
-        if (touchUI) {
+        if (padOn) {
+          const gx = cx + Math.sin(cyc / 3.2 * TAU) * 12, gy = sy + shh * 0.42;
+          ctx.fillStyle = 'rgba(11,20,28,0.35)'; circ(ctx, cx, gy, 24); ctx.fill();
+          PAD.drawGlyph(ctx, 'ls', gx, gy, 18);
+          PAD.drawGlyph(ctx, 'dpad', cx + 62, gy, 14);
+          smallText('ou', cx + 36, gy, 12, '#ffffff', 'center', '700');
+          title = 'STICK ↔ POUR BOUGER'; l1 = 'Stick gauche ou croix : la bombe suit,'; l2 = 'et tire toute seule ! ' + PAD.glyph('lt') + ' pour doser.';
+        } else if (touchUI) {
           drawFinger(canX, baseY - shh * 0.42 + 26, 1);
           ctx.strokeStyle = 'rgba(255,255,255,0.55)';
           ctx.lineWidth = 3;
@@ -5250,7 +5336,7 @@
         circ(ctx, bx, by, 21);
         ctx.fill();
         ctx.save(); ctx.translate(bx, by); ctx.rotate(-0.6); ctx.fillStyle = '#b06cff'; rrect(ctx, -7, -14, 14, 15, 3); ctx.fill(); ctx.fillStyle = '#e2a35a'; ctx.fillRect(-1.5, 1, 3, 13); ctx.restore();
-        if (cyc > 1.1 && cyc < 1.55) { if (touchUI) drawFinger(bx, by, 1); else keycap(bx - 46, by - 16, 72, 32, 'ESPACE', true); }
+        if (cyc > 1.1 && cyc < 1.55) { if (padOn) PAD.drawGlyph(ctx, 'a', bx - 40, by, 15); else if (touchUI) drawFinger(bx, by, 1); else keycap(bx - 46, by - 16, 72, 32, 'ESPACE', true); }
         if (cyc > 1.25 && cyc < 2.6) {
           const t2 = cyc - 1.25, e = Math.min(1, t2 / 0.3), sw2 = SPRITES.swat, s2 = sc * 0.42 * lerp(1.7, 1, e * e);
           ctx.save();
@@ -5264,12 +5350,13 @@
           ctx.globalAlpha = 1;
           if (t2 > 0.3 && t2 < 1.2) bigText('CLAC !', cx, sy + shh * 0.42, 34, '#ff5fae', sw - 20, Math.min(1, (1.2 - t2) * 3), 1, true);
         }
-        title = 'TAPETTE GÉANTE'; l1 = touchUI ? 'Jauge pleine ? Touche le bouton :' : 'Jauge pleine ? Appuie sur ESPACE :'; l2 = 'CLAC ! Tout est écrasé !';
+        title = 'TAPETTE GÉANTE'; l1 = padOn ? '' : touchUI ? 'Jauge pleine ? Touche le bouton :' : 'Jauge pleine ? Appuie sur ESPACE :'; l2 = 'CLAC ! Tout est écrasé !';
       }
       ctx.restore();
       const ty = sy + shh + 30;
       bigText(title, cw / 2, ty, Math.min(26, k.w * 0.068), '#ffd34d', k.w - 24, 1, 1, true);
-      smallText(l1, cw / 2, ty + 34, clamp(k.w * 0.042, 13, 16), '#ffffff', 'center', '600');
+      if (padOn && st === 2) padLine('a/rt', 'quand la jauge est pleine :', cw / 2, ty + 34, clamp(k.w * 0.042, 13, 16), '#ffffff', '600');
+      else smallText(l1, cw / 2, ty + 34, clamp(k.w * 0.042, 13, 16), '#ffffff', 'center', '600');
       smallText(l2, cw / 2, ty + 56, clamp(k.w * 0.042, 13, 16), '#ffffff', 'center', '600');
       for (let i = 0; i < 3; i++) { ctx.fillStyle = i === st ? '#ffd34d' : 'rgba(255,255,255,0.3)'; circ(ctx, cw / 2 + (i - 1) * 16, k.y + k.h - 72, 5); ctx.fill(); }
       const bw = Math.min(k.w - 40, 240), bx = cw / 2 - bw / 2, by = k.y + k.h - 56;
@@ -5280,7 +5367,8 @@
       ctx.font = '15px ' + FD;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(st < 2 ? 'SUIVANT ›' : 'C’EST PARTI !', cw / 2, by + 22);
+      ctx.fillText(st < 2 ? 'SUIVANT ›' : 'C’EST PARTI !', cw / 2 + (padOn ? 12 : 0), by + 22);
+      if (padOn) { const tw2 = ctx.measureText(st < 2 ? 'SUIVANT ›' : 'C’EST PARTI !').width; PAD.drawGlyph(ctx, 'a', cw / 2 + 12 - tw2 / 2 - 18, by + 21, 11); }
     }
 
     // ---------------------------------------------------------------- mise à jour
@@ -5444,7 +5532,7 @@
 
     // ---------------------------------------------------------------- entrées
     function pause() { if (paused || state === 'over' || state === 'tuto' || destroyed) return; paused = true; keys.left = keys.right = false; drag = null; pauseIcon(true); render(); }
-    function resume() { if (!paused) return; paused = false; last = performance.now(); pauseIcon(false); }
+    function resume() { if (!paused) return; paused = false; last = performance.now(); pauseIcon(false); padFlush(); }
     function onKeyDown(e) {
       if (destroyed || root.offsetParent === null) return;
       const tg = e.target;
@@ -5525,8 +5613,25 @@
     else on(window, 'resize', () => { if (!destroyed) layout(); });
 
     // bouton de la tapette : jauge et visibilité (mis à jour seulement quand ça change)
-    let shownGauge = -1, shownVis = '', shownReady = null;
+    let shownGauge = -1, shownVis = '', shownReady = null, shownPad = '';
+    // pastille du bouton de la manette sur la tapette (A / ✕), seulement quand on joue à la manette
+    const swatPad = doc.createElement('canvas');
+    swatPad.style.cssText = 'position:absolute;right:-6px;top:-6px;width:26px;height:26px;pointer-events:none;display:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));';
+    swatBtn.appendChild(swatPad);
+    function syncPadBadge() {
+      const on = padActive(), key = on ? (PAD.kind() || 'xbox') : '';
+      if (key === shownPad) return;
+      shownPad = key;
+      swatPad.style.display = on ? 'block' : 'none';
+      swatLbl.textContent = on || touchUI ? '' : 'ESPACE';
+      if (!on) return;
+      const d = 2, c = swatPad.getContext('2d');
+      swatPad.width = swatPad.height = 26 * d;
+      c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, 26, 26);
+      try { PAD.drawGlyph(c, 'a', 13, 13, 11.5); } catch (e) { /* rien */ }
+    }
     function syncButtons() {
+      if (PAD) syncPadBadge();
       const vis = state === 'tuto' || state === 'over' || state === 'dying' ? 'none' : 'flex';
       if (vis !== shownVis) { shownVis = vis; swatBtn.style.display = vis; swatLbl.style.display = vis === 'flex' && !touchUI ? 'block' : 'none'; }
       const gv = Math.round(gauge * 50) / 50;
@@ -5545,6 +5650,7 @@
       if (!(dt > 0)) dt = 0;
       if (dt > 0.05) dt = 0.05;
       if (!paused) {
+        padTick();
         update(dt);
         for (let i = sfxQ.length - 1; i >= 0; i--) { sfxQ[i].t -= dt; if (sfxQ[i].t <= 0) { const f = sfxQ[i].fn; sfxQ.splice(i, 1); f(); } }
         try { render(); } catch (e) { if (!renderErr) { renderErr = e; try { console.error('mouches : ' + (e && e.message)); } catch (e2) { /* rien */ } } }
@@ -5576,6 +5682,8 @@
     return {
       currentScore: () => Math.max(0, Math.floor(score)),   // score en cours (bouton Quitter de la bibliothèque)
       currentLevel: () => wave,                             // vague en cours (musique plus énergique aux vagues difficiles)
+      pause,                                                // carte Pause de la borne (bouton Start de la manette)
+      resume,
       // accès de diagnostic (tests uniquement)
       _debug: {
         info: () => ({ state, wave, world: worldIdx, worldName: WORLDS[worldIdx].name, kind: meta.kind, cyc: meta.cyc, score, paused, tuto: tuto ? tuto.step : null,
@@ -5970,6 +6078,8 @@
     scoreLabel: 'points',
     worlds: WORLD_INFO,
     mapArt,                              // la carte d'avancement de la bibliothèque, dessinée par le jeu
+    // commandes à la manette (CONTRACT.md Ajout 10) : carte Pause de la borne et début des 3 premières parties
+    pad: { help: [['ls/dpad', 'Bouger (le tir est automatique)'], ['lt', 'Doser : plus lent, plus précis'], ['a/rt', 'Tapette géante (jauge pleine)']] },
     preview,
     mount
   };

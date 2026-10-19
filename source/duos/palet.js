@@ -17,6 +17,8 @@
   const TICK = 1 / 240;       // pas fixe de simulation (sous-pas : aucune traversée)
   const VMAX = 2600;          // vitesse max du poussoir
   const VKEY = 900;           // vitesse du poussoir au clavier
+  const VPAD = 1250;          // manette : vitesse du poussoir, stick à fond (proportionnelle au stick)
+  const VDASH = 2100, DASH_T = 0.11, DASH_CD = 0.32;   // manette : le « coup » (A) = un élan bref et puissant
   const E_WALL = 0.9, E_MALLET = 0.9, E_BUMP = 0.96, E_PUCK = 0.94;
   const STUCK_T = 3, STUCK_R = 34;
   const GOAL_PAUSE = 1.4;
@@ -634,7 +636,10 @@
     let tx = m.x, ty = m.y;
     if (q && q.at && q.has) { const a = q.at(f); tx = a.x; ty = a.y; }      // (hôte en ligne : chemin exact de l'invité)
     else if (to) { tx = fr.x + (to.x - fr.x) * f; ty = fr.y + (to.y - fr.y) * f; }
-    else if (q && (q.kx || q.ky)) { const L = Math.hypot(q.kx, q.ky); tx = m.x + q.kx / L * VKEY * h; ty = m.y + q.ky / L * VKEY * h; }
+    else {
+      if (q && (q.kx || q.ky)) { const L = Math.hypot(q.kx, q.ky); tx = m.x + q.kx / L * VKEY * h; ty = m.y + q.ky / L * VKEY * h; }
+      if (q && (q.gx || q.gy)) { tx += q.gx * h; ty += q.gy * h; }          // manette : vitesse (unités/s)
+    }
     let dx = tx - m.x, dy = ty - m.y;
     const d = Math.hypot(dx, dy), mx = VMAX * h;
     if (d > mx) { dx *= mx / d; dy *= mx / d; }
@@ -925,7 +930,8 @@
       spawn2() { tone(660, 0.1, 'square', 0.04); after(0.1, () => tone(880, 0.1, 'square', 0.04)); after(0.2, () => tone(1320, 0.22, 'triangle', 0.045)); },
       slow() { if (!canPlay('slow', 1.2)) return; tone(170, 0.8, 'sine', 0.06, 50); noise(0.7, 0.05, 420); },
       beat() { tone(64, 0.13, 'sine', 0.09); after(0.17, () => tone(56, 0.16, 'sine', 0.07)); },
-      tick(n) { tone(n === 0 ? 1047 : 660, n === 0 ? 0.22 : 0.1, 'triangle', 0.045); }
+      tick(n) { tone(n === 0 ? 1047 : 660, n === 0 ? 0.22 : 0.1, 'triangle', 0.045); },
+      dash() { if (!canPlay('dash', 0.08)) return; noise(0.09, 0.045, 2600); tone(300, 0.07, 'triangle', 0.025, 680); }
     };
 
     // ------------------------------------------------------------- DOM
@@ -942,7 +948,7 @@
 
     // ------------------------------------------------------------- état
     const S = newState();
-    const IN = [{ has: false, x: 0, y: 0, kx: 0, ky: 0 }, { has: false, x: 0, y: 0, kx: 0, ky: 0 }];
+    const IN = [{ has: false, x: 0, y: 0, kx: 0, ky: 0, gx: 0, gy: 0 }, { has: false, x: 0, y: 0, kx: 0, ky: 0, gx: 0, gy: 0 }];
     const V = {
       gt: 0, st: 0, rt: 0, shake: 0, flash: 0, flashCol: '#ffffff', wash: 0, washP: 0, washCol: '#ffffff',
       sad: [0, 0], joy: [0, 0], hit: [0, 0], hitPw: [0, 0], parts: [], rings: [], floats: [], faces: [], lights: [],
@@ -1377,7 +1383,7 @@
       else if (newLay) twist = LAYOUT_TXT[S.layout];
       else if (r >= 8 && r % 2 === 0) twist = 'Ça accélère encore !';
       prevLayout = S.layout; prevGoalW = S.goalW;
-      const I = { t: 0, title: 'MANCHE ' + r, subs: ['', ''], subCols: [COL.ink, COL.ink], tags: ['', ''], mp: mp[0] || mp[1] };
+      const I = { t: 0, title: 'MANCHE ' + r, subs: ['', ''], subCols: [COL.ink, COL.ink], tags: ['', ''], mp: mp[0] || mp[1], first: r === 1 };
       for (let p = 0; p < 2; p++) {
         if (r === 1) { I.subs[p] = 'Glisse ton poussoir et marque dans le but d’en face !'; I.tags[p] = 'LE PALET · PREMIER À ' + TARGET; }
         else if (twist) { I.subs[p] = twist; I.subCols[p] = COL.gold; }
@@ -1439,6 +1445,7 @@
       ring(e.x, e.y, 6, 18 + pw * 38, 0.26 + pw * 0.12, col, 1.5 + pw * 2.5);
       light(e.x, e.y, col, 50 + pw * 80, 0.25 + pw * 0.2);
       if (pw > 0.55) V.shake = Math.max(V.shake, 1.5 + pw * 5);
+      if (pw > 0.6) rumble('tick', e.p);                    // grosse frappe : petit choc dans la manette de ce joueur
       // (en ligne, pas d'arrêt sur image sur une frappe : la simulation garde le rythme que l'invité prédit)
       if (pw > 0.85) { if (!NET) V.freeze = Math.max(V.freeze, 0.045); ring(e.x, e.y, 8, 64, 0.32, '#ffffff', 1.6); glowP(e.x, e.y, '#ffffff', 30, 90, 0.18); }
     }
@@ -2065,6 +2072,13 @@
     }
     function drawSub(p, I, a) {
       if (!I.subs[p] || a <= 0) return;
+      if (I.first && padShow(p)) {                              // à la manette : les vrais boutons
+        ctx.globalAlpha = a;
+        padLine([{ g: 'ls' }, 'Pousse', { g: 'a' }, 'Frappe !'], CX, BAND_Y + 21, 15, I.subCols[p], 3.5, true, p);
+        txt('Marque dans le but d’en face !', CX, BAND_Y + 40, 15, I.subCols[p], 3.5, true);
+        ctx.globalAlpha = 1;
+        return;
+      }
       if (!I.lines) I.lines = [null, null];
       if (!I.lines[p]) I.lines[p] = wrap(I.subs[p], 15, RW - 60, true);
       const L = I.lines[p], y0 = BAND_Y + (L.length > 1 ? 21 : 27);
@@ -2349,7 +2363,67 @@
     }
     function onKeyUp(e) { const k = keyOf(e); if (KEYS[k] && keys[k]) { keys[k] = false; updKeys(); } }
     function onBlur() { for (const k in keys) keys[k] = false; updKeys(); }
-    function clearInputs() { ptrs.clear(); updIN(); onBlur(); }
+    function clearInputs() { ptrs.clear(); updIN(); onBlur(); for (const q of IN) { q.gx = q.gy = 0; } for (const d of DASH) { d.t = 0; } }
+    // ------------------------------------------------------------- manette (api.pad, CONTRACT.md « Ajout 10 »)
+    // Stick gauche (ou croix) = le poussoir avance à une vitesse proportionnelle au stick (douce au centre, très vive à fond) ;
+    // A (ou B, RB, RT) = le « coup » : un élan bref et puissant dans la direction du stick (stick lâché : vers le palet le plus
+    // proche de ma moitié). Lu une fois par image et rangé dans IN[p].gx / gy (unités/s), exactement là où passent les doigts :
+    // en ligne, l'invité prédit son poussoir avec (guestMallet) et envoie ses positions comme pour un doigt. Un doigt posé garde
+    // la priorité. Joueur du haut assis en face : la bibliothèque retourne déjà son stick (repère de la patinoire).
+    const PAD = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    const DASH = [{ t: 0, cd: 0, x: 0, y: 0 }, { t: 0, cd: 0, x: 0, y: 0 }];
+    function padCurve(m) { return m <= 0 ? 0 : 0.3 * m + 0.7 * m * m; }
+    function padRead(dt, live) {
+      if (!PAD) return;
+      for (let p = 0; p < 2; p++) {
+        if (p === AIP || (NET && p !== ME)) continue;
+        let g = null, hit = false;
+        try { g = PAD.get(p); for (const b of ['a', 'b', 'rb', 'rt']) hit = PAD.pressed(b, p) || hit; } catch (e) { g = null; }
+        const q = IN[p], D = DASH[p];
+        D.cd = Math.max(0, D.cd - dt);
+        if (!live || !g || !g.on) { q.gx = q.gy = 0; D.t = 0; continue; }
+        const mx = g.mx || 0, my = g.my || 0, mag = Math.min(1, Math.hypot(mx, my));
+        if (hit && D.cd <= 0) {                                 // le coup : direction du stick, sinon vers le palet
+          let ux = mx, uy = my;
+          if (mag < 0.3) {
+            const m = S.m[p];
+            let best = null, bd = 1e9;
+            for (const pk of S.pucks) {
+              if (pk.gone || pk.scored) continue;
+              const d = Math.hypot(pk.x - m.x, pk.y - m.y), mine = p === 0 ? pk.y > MID - PR : pk.y < MID + PR;
+              if (mine && d < bd) { bd = d; best = pk; }
+            }
+            if (best) { ux = best.x - m.x; uy = best.y - m.y; } else { ux = 0; uy = p === 0 ? -1 : 1; }
+          }
+          const L = Math.hypot(ux, uy) || 1;
+          D.x = ux / L; D.y = uy / L; D.t = DASH_T; D.cd = DASH_CD;
+          SFX.dash(); rumble('tick', p);
+          { const m = S.m[p]; sparksDir(m.x - D.x * MR * 0.8, m.y - D.y * MR * 0.8, 7, PL[p].color, 240, -D.x, -D.y, 1.1, 0.28); }
+        }
+        if (D.t > 0) { D.t -= dt; q.gx = D.x * VDASH; q.gy = D.y * VDASH; continue; }
+        const v = mag > 0 ? VPAD * padCurve(mag) / mag : 0;
+        q.gx = mx * v; q.gy = my * v;
+      }
+    }
+    function padShow(p) { try { return !!PAD && PAD.active() && PAD.any(p); } catch (e) { return false; } }
+    function rumble(kind, p) { try { if (PAD && PAD.rumble && p !== AIP) PAD.rumble(kind, p); } catch (e) { /* rien */ } }
+    // ligne de texte avec des pastilles de boutons : parts = ['texte', { g: 'a' }, …], centrée en (x, y)
+    function padLine(parts, x, y, px, col, stroke, body, p) {
+      const r = px * 0.72, gap = px * 0.34;
+      setFont(px, body);
+      const ws = parts.map((q) => (typeof q === 'string' ? ctx.measureText(q).width : r * 2));
+      let tw = gap * (parts.length - 1);
+      for (const w of ws) tw += w;
+      let cx = x - tw / 2;
+      const al = ctx.textAlign;
+      ctx.textAlign = 'left';
+      parts.forEach((q, i) => {
+        if (typeof q === 'string') txt(q, cx, y, px, col, stroke, body);
+        else { try { PAD.drawGlyph(ctx, q.g, cx + r, y, r, p); } catch (e) { /* rien */ } }
+        cx += ws[i] + gap;
+      });
+      ctx.textAlign = al;
+    }
 
     // ------------------------------------------------------------- jeu en ligne (api.net)
     // Même patinoire logique (RW x RH unités) sur tous les appareils ; tous les messages sont en unités du terrain.
@@ -2469,7 +2543,7 @@
       NH.W0 = fNow - dt; NH.W1 = fNow;
       const t = hostP1(fNow), q = IN[1];
       if (t) { q.has = true; q.x = t.x; q.y = t.y; q.at = hostAt; } else { q.has = false; q.at = null; }
-      q.kx = q.ky = 0;
+      q.kx = q.ky = 0; q.gx = q.gy = 0;
     }
     function hostSnap(force, at) {
       if (!force && fNow - NH.snapT < 0.0305) return;      // ~30 fois/s
@@ -2781,7 +2855,10 @@
       m.px = m.x; m.py = m.y;
       let tx = m.x, ty = m.y;
       if (q.has) { tx = q.x; ty = q.y; }
-      else if (q.kx || q.ky) { const L = Math.hypot(q.kx, q.ky); tx = m.x + q.kx / L * VKEY * dt; ty = m.y + q.ky / L * VKEY * dt; }
+      else {
+        if (q.kx || q.ky) { const L = Math.hypot(q.kx, q.ky); tx = m.x + q.kx / L * VKEY * dt; ty = m.y + q.ky / L * VKEY * dt; }
+        if (q.gx || q.gy) { tx += q.gx * dt; ty += q.gy * dt; }            // manette : même chemin que chez l'hôte
+      }
       let dx = tx - m.x, dy = ty - m.y;
       const d = Math.hypot(dx, dy), mx = VMAX * dt;
       if (d > mx) { dx *= mx / d; dy *= mx / d; }
@@ -3331,7 +3408,7 @@
       const mx0 = aiX(S.m[AIP].x), my0 = aiY(S.m[AIP].y), far = Math.hypot(F.x - mx0, F.y - my0);
       if (far > 70 && AI.mode !== 'strike') { F.x = mx0 + (F.x - mx0) * 70 / far; F.y = my0 + (F.y - my0) * 70 / far; }
       const q = IN[AIP];
-      q.has = true; q.x = aiX(F.x); q.y = aiY(F.y); q.kx = q.ky = 0;
+      q.has = true; q.x = aiX(F.x); q.y = aiY(F.y); q.kx = q.ky = 0; q.gx = q.gy = 0;
     }
 
     // ------------------------------------------------------------- pause / reprise
@@ -3346,6 +3423,7 @@
       if (destroyed || !paused) return;
       paused = false;
       last = -1;
+      padRead(0, false);                                     // (le A qui a fermé la carte de pause ne fait pas de coup)
       if (!V.over) V.resumeT = 1.8;
     }
 
@@ -3364,6 +3442,7 @@
       const t0 = performance.now();
       V.st += dt;
       runLater();
+      padRead(dt, V.resumeT <= 0);
       if (V.resumeT > 0) {
         const n0 = Math.ceil(V.resumeT / 0.6);
         V.resumeT -= dt;
@@ -3470,6 +3549,8 @@
     layout: 'shared',
     net: true,                 // jeu en ligne : l'hôte simule, l'invité prédit son poussoir et lisse le reste (api.net)
     ai: true,                  // contre l'IA (api.ai) : 4 niveaux, elle joue le joueur du haut avec un doigt virtuel
+    // manette (CONTRACT.md « Ajout 10 ») : schéma des commandes montré par la borne (carte de pause, début de partie)
+    pad: { help: [['ls/dpad', 'Pousser le poussoir (stick : vitesse dosée)'], ['a/b', 'Le coup : élan puissant, dans le sens du stick'], ['a', 'Stick lâché : le coup vise le palet']], intro: false },
     preview,
     mount
   };

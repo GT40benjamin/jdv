@@ -456,6 +456,7 @@
 .mf-bar{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) scale(var(--bs,1));transform-origin:50% 100%;display:none;align-items:flex-end;gap:12px;padding:10px 16px 8px;border-radius:22px;
  background:linear-gradient(180deg,rgba(28,18,46,.72),rgba(12,6,24,.82));box-shadow:inset 0 0 0 1px rgba(255,214,140,.22),0 8px 26px rgba(0,0,0,.45);transition:opacity .4s}
 .mf:not(.touch) .mf-bar{display:flex}
+.mf-load:not(.out)~.mf-bar{visibility:hidden}
 .mf.cine .mf-bar{opacity:0;pointer-events:none}
 .mf-slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;border:0;padding:0;background:none;cursor:pointer;color:#fff;font:inherit;pointer-events:auto}
 .mf-slot .ic{position:relative;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 36%,var(--c1),var(--c2));
@@ -465,6 +466,14 @@
 .mf-slot .cd{position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(6,2,14,.74) var(--p,0%),transparent 0);pointer-events:none}
 .mf-slot .cdn{position:absolute;font:400 16px ${FD};color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.6)}
 .mf-slot .k{min-width:22px;padding:1px 6px;border-radius:6px;background:#2b1d48;box-shadow:inset 0 -2px 0 rgba(0,0,0,.4);font:400 11px ${FD};color:#ffe2a6;white-space:nowrap}
+.mf-slot .k.g,.mf-selring em.g{min-width:0;padding:0;background:none;box-shadow:none;line-height:0}
+.mf-slot .k.g .pad-g{transform:scale(.86);margin:-2px 0}
+.mf-selring em.g{top:-12px}
+.mf-selring em.g .pad-g{transform:scale(.8);color:#1c1030;background:linear-gradient(180deg,#fff2c2,#ffc24a);box-shadow:0 2px 0 rgba(90,40,0,.6),0 0 12px rgba(255,200,90,.6)}
+.mf-lbrb{display:none;align-self:center;margin:0 -4px 22px;line-height:0;opacity:.92}
+.mf-lbrb .pad-g{transform:scale(.8)}
+.mf-bar.pad .mf-lbrb{display:block}
+.mf-wnext .pad-g,.mf-paused .pad-g,.mf-load button .pad-g{margin:0 6px 2px 0;transform:scale(.95)}
 .mf-slot:hover .ic{transform:translateY(-2px)}
 .mf-slot.down .ic{transform:scale(.9);box-shadow:0 0 0 2px rgba(255,255,255,.6),0 1px 0 rgba(0,0,0,.35),0 0 26px var(--gl)}
 .mf-slot.ready .ic{animation:mfReady .45s}
@@ -613,7 +622,7 @@
     };
     H.help.innerHTML = '<kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> ou flèches : marcher<br><b>Clic</b> maintenu ou <kbd>J</kbd> : éclairs<br>' +
       '<kbd>K</kbd> ou clic droit : nova de feu · <kbd>L</kbd> : éclats de glace<br><kbd>I</kbd> : chaîne d’éclairs · <kbd>Espace</kbd> : roulade · <kbd>P</kbd> : pause<br>' +
-      'Manette : stick gauche, <kbd>A</kbd> éclairs, <kbd>X</kbd> <kbd>Y</kbd> <kbd>RB</kbd> sorts, <kbd>B</kbd> roulade';
+      'Manette : stick gauche marcher, stick droit viser, <kbd>RT</kbd> éclairs, <kbd>LT</kbd> sort choisi (<kbd>LB</kbd> <kbd>RB</kbd>), <kbd>X</kbd> <kbd>Y</kbd> <kbd>B</kbd> sorts, <kbd>A</kbd> roulade';
 
     // ------------------------------------------------------------- chargement : écran d'attente (vignette animée)
     const lctx = H.loadCv.getContext('2d');
@@ -720,6 +729,15 @@
     function inTemplate() { return { atk: false, kAtk: false, padAtk: false, fireQ: false, iceQ: false, stormQ: false, rollQ: false, mouseAim: false, mouseX: 0, mouseY: 0,
       joyId: -1, joyX: 0, joyY: 0, joyDX: 0, joyDY: 0, padX: 0, padY: 0, padAX: 0, padAY: 0, padOn: false, padPrev: [] }; }
     let IN = inTemplate();
+    const IN0 = IN;                       // les entrées de MON mage (en coop, useHero fait pointer IN sur le héros en cours)
+    // manette de la borne (api.pad, CONTRACT.md « Ajout 10 ») : en coop, MA manette pilote MON mage (api.coop.me)
+    const PAD = api.pad && typeof api.pad.get === 'function' ? api.pad : null;
+    const PADME = COOP ? (CO.me | 0) : 0;
+    const PADB = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt'];
+    function padRumble(k) { try { if (PAD) PAD.rumble(k, PADME); } catch (e) { /* rien */ } }
+    const padActive = () => { try { return !!(PAD && PAD.active()); } catch (e) { return false; } };
+    // une pastille de bouton (A, ✕, LT, L2…) pour les textes du jeu
+    function padChip(btn) { try { return PAD.chip(btn, PADME); } catch (e) { return document.createTextNode(btn.toUpperCase()); } }
     // (1.19.16) surveillance « mage bloqué » : voir stuckWatch (diagnostic envoyé une fois au journal des erreurs de la borne)
     const STUCK = { zoneT: 0, takeovers: 0, frames: 0, updates: 0, errN: 0, err: '', sent: false, t0: 0, x: 0, z: 0, gt: 0, fr: 0, up: 0, ph: '', phT: 0, lostT: 0, iv: 0, n: 0, sf: 0, su: 0, sg: 0 };
     // message au journal des erreurs de la borne (log_error), sans fenêtre « Oups » : la bibliothèque relève les « rejets non traités »
@@ -861,31 +879,44 @@
     on(H.paused, 'pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (paused && !COOP) setPaused(false); });
     // coop : la pause est celle de la bibliothèque (les deux appareils) ; le jeu n'affiche pas sa carte PAUSE
     function coopPause() { try { if (typeof CO.pause === 'function') CO.pause(); } catch (e) { /* rien */ } }
-    // manette (API Gamepad, disposition standard) : lue à chaque image
+    // manette (api.pad de la borne), lue à chaque image dans la boucle, au même endroit que le clavier et les doigts (IN) :
+    // stick gauche (ou croix) = marcher, analogique ; stick droit = viser (le mage regarde et tire par là ; sinon visée automatique) ;
+    // RT maintenu = éclairs ; LT = le sort choisi ; LB / RB = choisir le sort ; X nova de feu, Y éclats de glace, B chaîne d'éclairs ;
+    // A = roulade. Start / Options : la pause de la borne (pause() / resume() plus bas).
     function padPoll() {
-      let gp = null;
-      try { const l = navigator.getGamepads ? navigator.getGamepads() : []; for (const g of l) if (g && g.connected && g.mapping === 'standard') { gp = g; break; } if (!gp) for (const g of l) if (g && g.connected) { gp = g; break; } } catch (e) { gp = null; }
-      if (!gp) { if (IN.padOn) { IN.padOn = false; IN.padX = IN.padY = 0; IN.padAtk = false; } return; }
-      const dz = (v) => (Math.abs(v) < 0.2 ? 0 : (v - Math.sign(v) * 0.2) / 0.8);
-      const ax = gp.axes || [], bt = gp.buttons || [];
-      const pr = (i) => !!(bt[i] && (bt[i].pressed || bt[i].value > 0.5));
-      IN.padX = dz(ax[0] || 0); IN.padY = dz(ax[1] || 0); IN.padAX = dz(ax[2] || 0); IN.padAY = dz(ax[3] || 0);
-      // croix directionnelle
-      if (pr(12)) IN.padY = -1; if (pr(13)) IN.padY = 1; if (pr(14)) IN.padX = -1; if (pr(15)) IN.padX = 1;
-      const now = bt.map((b, i) => pr(i)), was = IN.padPrev, edge = (i) => now[i] && !was[i];
-      if (now.some(Boolean) || IN.padX || IN.padY) { if (!IN.padOn) { IN.padOn = true; if (TOUCH) setTouch(false); } audioWake(); barMode('pad'); }
-      if (edge(9) || edge(8)) { if (started && !over) setPaused(!paused); }
-      if (paused) { if (edge(0)) setPaused(false); IN.padPrev = now; return; }
-      if (G.phase === 'win' && (edge(0) || edge(1))) winSkip();
-      IN.padAtk = now[0] || now[6];                    // A (ou LT) maintenu : éclairs
-      if (edge(1)) IN.rollQ = true;                    // B : roulade
-      if (edge(2)) IN.fireQ = true;                    // X : nova de feu
-      if (edge(3)) IN.iceQ = true;                     // Y : éclats de glace
-      if (edge(4)) selectSpell(selSpell - 1);          // LB / RB : choisir le sort
-      if (edge(5)) selectSpell(selSpell + 1);
-      if (edge(7)) castSelected();                     // RT : lancer le sort choisi
-      IN.padPrev = now;
+      if (!PAD) return;
+      const I = IN0, o = PAD.get(PADME), pr = {};
+      for (const b of PADB) pr[b] = PAD.pressed(b, PADME);          // appuis vidés à chaque image : rien ne s'accumule
+      if (!o.on) { if (I.padOn || I.padAtk) { I.padOn = false; I.padX = I.padY = I.padAX = I.padAY = 0; I.padAtk = false; } return; }
+      const h = o.held, any = !!(o.mx || o.my || o.rx || o.ry || o.lt > 0.1 || o.rt > 0.1 || PADB.some((b) => h[b]) || h.up || h.down || h.left || h.right);
+      // la manette pilote tant qu'elle sert (une touche, la souris ou un doigt reprennent la main : visée à la souris comme avant)
+      I.padOn = any || (I.padOn && padActive());
+      if (any) { if (TOUCH) setTouch(false); audioWake(); barMode('pad'); if (BAR.kind !== PAD.kind(PADME)) barLabels(); }
+      I.padX = o.mx; I.padY = o.my; I.padAX = o.rx; I.padAY = o.ry;
+      I.padAtk = !!h.rt;                               // RT maintenu : éclairs
+      if (G.phase === 'win') { if (pr.a || pr.b) winSkip(); return; }
+      if (pr.a) I.rollQ = true;                        // A : roulade
+      if (pr.x) I.fireQ = true;                        // X : nova de feu
+      if (pr.y) I.iceQ = true;                         // Y : éclats de glace
+      if (pr.b) I.stormQ = true;                       // B : chaîne d'éclairs
+      if (pr.lb) selectSpell(selSpell - 1);            // LB / RB : choisir le sort
+      if (pr.rb) selectSpell(selSpell + 1);
+      if (pr.lt) castSelected(I);                      // LT : lancer le sort choisi
     }
+    // angle (monde) visé au stick droit, ou null (stick au repos)
+    function padAimA(I) {
+      if (!I.padOn || Math.hypot(I.padAX, I.padAY) < 0.3) return null;
+      const cy = Math.cos(CAM.yaw), sy = Math.sin(CAM.yaw);
+      return Math.atan2(I.padAX * cy + I.padAY * sy, -I.padAX * sy + I.padAY * cy);
+    }
+    // écrans du jeu sans boucle (pause du jeu, chargement raté) : A sur le bouton évident
+    const padOff = PAD ? PAD.on((btn, p, down) => {
+      if (!down || p !== PADME || destroyed || btn !== 'a') return;
+      if (paused && !COOP && H.paused.classList.contains('on')) { setPaused(false); return; }
+      const rb = !started && H.load.querySelector('button'); if (rb) rb.click();
+    }) : null;
+    // la pause s'en va : les appuis faits pendant la pause (A sur « Reprendre ») ne deviennent pas une roulade
+    function padDrain() { if (PAD) { try { for (const b of PADB) PAD.pressed(b, PADME); } catch (e) { /* rien */ } } }
     // place des boutons : arc autour du gros bouton d'éclair, sous le pouce droit
     let VW = 390, VH = 700;
     let saProbe = null;
@@ -914,12 +945,12 @@
     // BARRE DE SORTS (ordinateur et borne à manette ; le téléphone garde ses gros boutons)
     // En bas au centre : éclairs, nova de feu, éclats de glace, chaîne d'éclairs, roulade — mêmes icônes, couleurs et anneaux de
     // recharge que sur le téléphone. Un sort spécial est « choisi » (cadre doré) : la MOLETTE le change, le CLIC DROIT le lance ;
-    // 1 · 2 · 3 lancent directement (et K · L · I comme avant). Manette : LB / RB changent, RT lance, X nova, Y glace, A éclairs, B roulade.
+    // 1 · 2 · 3 lancent directement (et K · L · I comme avant). Manette : LB / RB changent, LT lance, X nova, Y glace, B chaîne, RT éclairs, A roulade.
     // ===========================================================================
     const SPELLS = ['fire', 'ice', 'storm'];
     const SPELL_NAME = { fire: 'Nova de feu', ice: 'Éclats de glace', storm: 'Chaîne d’éclairs' };
-    let selSpell = 2;                                   // la chaîne d'éclairs (le seul sort sans touche directe à la manette)
-    const BAR = { el: null, slots: {}, mode: 'kb', ring: null, wheelT: 0 };
+    let selSpell = 2;                                   // la chaîne d'éclairs
+    const BAR = { el: null, slots: {}, mode: 'kb', ring: null, wheelT: 0, kind: '' };
     function barBuild() {
       const b = document.createElement('div'); b.className = 'mf-bar';
       const spec = [['atk', 'Éclairs', ICON.bolt, BTN.atk], ['fire', SPELL_NAME.fire, ICON.fire, BTN.fire], ['ice', SPELL_NAME.ice, ICON.ice, BTN.ice], ['storm', SPELL_NAME.storm, ICON.storm, BTN.storm], ['roll', 'Roulade', ICON.roll, BTN.roll]];
@@ -943,15 +974,24 @@
       // le cadre doré du sort choisi (glisse d'une case à l'autre) + les petites flèches « molette »
       const ring = document.createElement('div'); ring.className = 'mf-selring'; ring.innerHTML = '<b>‹</b><em></em><b>›</b>'; b.appendChild(ring);
       BAR.ring = ring; BAR.ringLbl = ring.querySelector('em'); BAR.el = b;
+      // manette : LB ‹ [sorts] › RB de part et d'autre des trois sorts à choisir
+      if (PAD) {
+        BAR.lb = document.createElement('span'); BAR.lb.className = 'mf-lbrb'; b.insertBefore(BAR.lb, BAR.slots.fire.el);
+        BAR.rb = document.createElement('span'); BAR.rb.className = 'mf-lbrb r'; b.insertBefore(BAR.rb, BAR.slots.roll.el);
+      }
       ui.appendChild(b);
       barLabels(); selectSpell(selSpell, false, true);
     }
     function barLabels() {
-      const pad = BAR.mode === 'pad', S = BAR.slots; if (!S.atk) return;
-      S.atk.k.textContent = pad ? 'A' : 'Clic G'; S.fire.k.textContent = pad ? 'X' : '1'; S.ice.k.textContent = pad ? 'Y' : '2';
-      S.storm.k.textContent = pad ? '—' : '3'; S.roll.k.textContent = pad ? 'B' : 'Espace';
-      BAR.ringLbl.textContent = pad ? 'RT' : 'Clic D';
+      const pad = BAR.mode === 'pad' && !!PAD, S = BAR.slots; if (!S.atk) return;
+      // manette : les vraies pastilles des boutons (Xbox A B X Y / LB RB LT RT, PlayStation ✕ ○ □ △ / L1 R1 L2 R2)
+      const set = (k, kb, btn) => { k.textContent = ''; k.classList.toggle('g', pad); if (pad) k.appendChild(padChip(btn)); else k.textContent = kb; };
+      set(S.atk.k, 'Clic G', 'rt'); set(S.fire.k, '1', 'x'); set(S.ice.k, '2', 'y'); set(S.storm.k, '3', 'b'); set(S.roll.k, 'Espace', 'a');
+      set(BAR.ringLbl, 'Clic D', 'lt');
+      if (BAR.lb) { BAR.lb.textContent = ''; BAR.rb.textContent = ''; if (pad) { BAR.lb.appendChild(padChip('lb')); BAR.rb.appendChild(padChip('rb')); } }
+      BAR.kind = pad ? PAD.kind(PADME) : '';
       BAR.el.classList.toggle('pad', pad);
+      selectSpell(selSpell, true, true);               // LB / RB montrés ou cachés : le cadre doré se recale
     }
     function barMode(m) { if (BAR.mode === m) return; BAR.mode = m; barLabels(); }
     function selectSpell(i, quiet, first) {
@@ -965,7 +1005,7 @@
         pop(hero.x, 2.9, hero.z, SPELL_NAME[SPELLS[i]], 'info', 0.8);
       }
     }
-    function castSelected() { IN[SPELLS[selSpell] + 'Q'] = true; }
+    function castSelected(I) { (I || IN)[SPELLS[selSpell] + 'Q'] = true; }
     function barUpdate() {
       if (!BAR.el || TOUCH) return;
       const set = (b, cd, max) => {
@@ -1020,6 +1060,7 @@
       wasPort = port;
     }
     barBuild();
+    if (padActive()) { barMode('pad'); if (TOUCH) setTouch(false); }      // partie lancée à la manette : sa barre de sorts tout de suite
 
     // ===========================================================================
     // MOTEUR 3D (three.js)
@@ -3003,8 +3044,12 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       hero.tipGlow.hidden = hero.tipCore.hidden = !c.root.visible;
       // ordinateur : petit cercle au sol sous la souris (les éclairs partent vers lui ; près d'un monstre, ils l'accrochent)
       if (!hero.ret) hero.ret = addStatic({ x: 0, y: 0.1, z: 0, s: 1.1, cell: 'ring', col: 0x9fe8ff, k: 1.6, mode: 1, a: 0.6, vr: 1.2, vis: 0 });
-      const showRet = !TOUCH && IN.mouseAim && !IN.padOn && mouseGround && G.phase === 'play' && !hero.dead;
-      if (showRet) { hero.ret.x = mouseGround.x; hero.ret.z = mouseGround.z; }
+      const padRet = hero.padA != null && G.phase === 'play' && !hero.dead;      // manette : le cercle part devant, au stick droit
+      const showRet = padRet || (!TOUCH && IN.mouseAim && !IN.padOn && mouseGround && G.phase === 'play' && !hero.dead);
+      if (padRet) { const t = aimTarget(14, hero.padA), tk = t && Math.abs(angDiff(hero.padA, Math.atan2(t.x - hero.x, t.z - hero.z))) < 0.5;
+        const rx = tk ? t.x : hero.x + Math.sin(hero.padA) * 5, rz = tk ? t.z : hero.z + Math.cos(hero.padA) * 5, sn = (hero.ret.vis || 0) < 0.05;
+        hero.ret.x = sn ? rx : damp(hero.ret.x, rx, 18, dt); hero.ret.z = sn ? rz : damp(hero.ret.z, rz, 18, dt); }
+      else if (showRet) { hero.ret.x = mouseGround.x; hero.ret.z = mouseGround.z; }
       hero.ret.vis = damp(hero.ret.vis || 0, showRet ? 1 : 0, 8, dt);
       // bouclier
       const sh = clamp(G.shield / MAXS, 0, 1), B = hero.bubble;
@@ -3289,6 +3334,8 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       }
       hero.mv = Math.hypot(hero.vx, hero.vz) / 6.2;
       if (len > 0.1 && hero.roll <= 0) hero.face = Math.atan2(wx, wz);
+      hero.padA = canAct ? padAimA(IN) : null;           // manette : le stick droit vise, le mage regarde par là (même en marchant)
+      if (hero.padA != null && hero.roll <= 0) hero.face = hero.padA;
       if (hero.kbx || hero.kbz) { hero.x += hero.kbx * dt; hero.z += hero.kbz * dt; const k = Math.exp(-9 * dt); hero.kbx *= k; hero.kbz *= k; if (Math.abs(hero.kbx) + Math.abs(hero.kbz) < 0.05) { hero.kbx = 0; hero.kbz = 0; } }
       hero.x += hero.vx * dt; hero.z += hero.vz * dt;
       collideHero(hero);
@@ -3339,7 +3386,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       if (NETX.force) return { a: NETX.force.a, t: NETX.force.t };
       // souris (ordinateur) ; stick droit (manette) ; sinon le monstre le plus proche devant
       if (!auto && !TOUCH && IN.mouseAim && mouseGround && !IN.padOn) { const a = Math.atan2(mouseGround.x - hero.x, mouseGround.z - hero.z); const t = aimTarget(range, a); return { a: t && Math.abs(angDiff(a, Math.atan2(t.x - hero.x, t.z - hero.z))) < 0.35 ? Math.atan2(t.x - hero.x, t.z - hero.z) : a, t: t && Math.abs(angDiff(a, Math.atan2(t.x - hero.x, t.z - hero.z))) < 0.35 ? t : null }; }
-      if (IN.padOn && (IN.padAX || IN.padAY)) { const cy = Math.cos(CAM.yaw), sy = Math.sin(CAM.yaw); const wx = IN.padAX * cy + IN.padAY * sy, wz = -IN.padAX * sy + IN.padAY * cy; const a = Math.atan2(wx, wz); const t = aimTarget(range, a); return { a: t && Math.abs(angDiff(a, Math.atan2(t.x - hero.x, t.z - hero.z))) < 0.5 ? Math.atan2(t.x - hero.x, t.z - hero.z) : a, t }; }
+      if (IN.padOn && (IN.padAX || IN.padAY)) { const cy = Math.cos(CAM.yaw), sy = Math.sin(CAM.yaw); const wx = IN.padAX * cy + IN.padAY * sy, wz = -IN.padAX * sy + IN.padAY * cy; const a = Math.atan2(wx, wz); const t = aimTarget(range, a), tk = t && Math.abs(angDiff(a, Math.atan2(t.x - hero.x, t.z - hero.z))) < 0.5; return { a: tk ? Math.atan2(t.x - hero.x, t.z - hero.z) : a, t: tk ? t : null }; }   // (manette) un monstre hors du cône visé n'attire plus l'éclair
       const t = aimTarget(range, hero.mv > 0.2 ? hero.face : hero.aim);
       if (t) return { a: Math.atan2(t.x - hero.x, t.z - hero.z), t };
       return { a: hero.face, t: null };
@@ -3675,6 +3722,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     }
     function openChest(C) {
       C.st = 'shake'; C.t = 0; G.chests++; G.chestsAll = (G.chestsAll || 0) + 1; if (C.by && C.by.stats) C.by.stats.chests++;
+      if (C.by === HUM) padRumble('tick');
       C.shared = COOP && HEROES.every((o) => o.st === 'up' && Math.hypot(o.x - C.x, o.z - C.z) < 3.5);
       sfx('chest', 0.7, 1.05); sfx('stone', 0.25, 1.8, 0.05);
       if (C.beam) { delStatic(C.beam); C.beam = null; }
@@ -3720,10 +3768,11 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         for (let i = 0; i < 14; i++) { const b = a + Math.PI + frnd(-1, 1); fx({ x: hero.x + Math.sin(b) * 1.1, y: frnd(0.5, 1.9), z: hero.z + Math.cos(b) * 1.1, vx: Math.sin(b) * frnd(2, 5), vz: Math.cos(b) * frnd(2, 5), vy: frnd(0, 3), life: 0.5, s0: 0.3, s1: 0.04, c0: 0xbff6ff, k: 2.6, cell: 'shard', rot: FXR() * 6, drag: 3 }); }
         flash(hero.x + Math.sin(a + Math.PI) * 1.0, 1.1, hero.z + Math.cos(a + Math.PI) * 1.0, 0x9fe8ff, 2.2, 0.2, 2);
         if (G.shield < 1) { pop(hero.x, 2.8, hero.z, 'Bouclier cassé !', 'crit', 1.2); sfx('shatter', 0.4, 1.3); }
+        if (me) padRumble('tick');
         return true;
       }
       G.hearts = Math.max(0, G.hearts - n); hero.inv = 1.0; hero.hurtBlink = true; hero.hitT = 0.3;
-      if (me) { G.hurt = 0.85; sfx('hurt', 0.7); tone(180, 0.22, 'square', 0.035, 90); shake(0.4); hitStop(0.07); } else sfx('hurt', 0.35, 1.25);
+      if (me) { G.hurt = 0.85; sfx('hurt', 0.7); tone(180, 0.22, 'square', 0.035, 90); shake(0.4); hitStop(0.07); padRumble('hit'); } else sfx('hurt', 0.35, 1.25);
       const fl = hero.c.mats[0].userData; if (fl.flash) fl.flash.value = 1.4;
       heroUpper(fpick(['Hit_A', 'Hit_B']), 0.35, 1.6);
       burst(hero.x, 1.2, hero.z, 0xff6d8a, 10, 4, 0.5, 0.3, 'heart', 2);
@@ -4408,7 +4457,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     function bossSpawn(Z) { const k = PLAYABLE[G.wi].boss.key; if (k === 'dragon' && TPL.dragon) dragonSpawn(Z); else if (k === 'hydre' && TPL.hydra) hydraSpawn(Z); else golemSpawn(Z); }
     function bossIntro() { if (NETH) netEv({ e: 'bi' }); if (BOSS.kind === 'dragon') dragonIntro(); else if (BOSS.kind === 'hydre') hydraIntro(); else golemIntro(); }
     function bossUpdate(m, dt) { if (BOSS.kind === 'dragon') dragonUpdate(m, dt); else if (BOSS.kind === 'hydre') hydraUpdate(m, dt); else golemUpdate(m, dt); }
-    function bossDie(m) { if (NETH) netEv({ e: 'bd' }); if (BOSS.kind === 'dragon') dragonDie(m); else if (BOSS.kind === 'hydre') hydraDie(m); else golemDie(m); }
+    function bossDie(m) { padRumble('big'); if (NETH) netEv({ e: 'bd' }); if (BOSS.kind === 'dragon') dragonDie(m); else if (BOSS.kind === 'hydre') hydraDie(m); else golemDie(m); }
     // préparation du paquet du monde 2 (dès qu'il est téléchargé)
     async function prepWorld2() {
       await Promise.all([loadTex('kkt_forge'), loadTex('dragon_base'), loadTex('dragon_glow', { data: true })]);
@@ -5232,6 +5281,7 @@ void main(){
       for (let i = 0; i < n; i++) { const s = sp[i % sp.length]; after(0.4 + i * 0.35, () => { if (!m.dead) spawnMonster(kinds[(i + m.adds) % kinds.length], R.x0 + s[0], R.z0 + s[1], { zone: R }); }); }
     }
     function miniDie(m) {
+      padRumble('hit');
       if (m !== MINI.m) return;
       MINI.m = null; H.boss.classList.remove('on');
       if (m.aura) { delStatic(m.aura); m.aura = null; }
@@ -5562,6 +5612,7 @@ void main(){ if (vK >= 0.999) discard;
       rows.forEach(([a, b], i) => { const r = document.createElement('div'); r.className = 'mf-wrow' + (i === rows.length - 1 ? ' tot' : ''); r.innerHTML = '<span></span><b></b>'; r.firstChild.textContent = a; r.lastChild.textContent = String(b); H.winRows.appendChild(r); setTimeout(() => r.classList.add('on'), 700 + i * 260); });
       H.winStars.forEach((s, i) => { s.classList.remove('on', 'dim'); setTimeout(() => { s.classList.add(i < stars ? 'on' : 'dim'); if (i < stars) sfx('star', 0.45, 1 + i * 0.12); }, 500 + i * 300); });
       H.winNext.textContent = TOUCH ? 'Touche l’écran pour continuer' : 'Clic ou Entrée pour continuer';
+      if (padActive() || IN0.padOn) { H.winNext.textContent = ''; H.winNext.append(padChip('a'), 'pour continuer'); }
       setTimeout(() => H.winNext.classList.add('on'), 700 + rows.length * 260 + 400);
       H.win.classList.add('on'); winFit();
       // feux d'artifice dorés autour du mage
@@ -6452,7 +6503,7 @@ void main(){ if (vK >= 0.999) discard;
       CHESTS.forEach((C, i) => {
         const c = k.ch[i]; if (!c) return;
         if (c === 'a' && C.st === 'hidden') { C.st = 'appear'; C.t = 0; C.g.position.y = 3; sfx('treasure', 0.4, 1.2, 0.2); }
-        else if (c === 'o' && (C.st === 'closed' || C.st === 'appear' || C.st === 'hidden')) { C.g.scale.setScalar(1); C.g.position.y = 0; C.st = 'shake'; C.t = 0; C.netOpen = true; sfx('chest', 0.7, 1.05); if (C.beam) { delStatic(C.beam); C.beam = null; } }
+        else if (c === 'o' && (C.st === 'closed' || C.st === 'appear' || C.st === 'hidden')) { C.g.scale.setScalar(1); C.g.position.y = 0; C.st = 'shake'; C.t = 0; C.netOpen = true; sfx('chest', 0.7, 1.05); if (Math.hypot(HUM.x - C.x, HUM.z - C.z) < 3) padRumble('tick'); if (C.beam) { delStatic(C.beam); C.beam = null; } }
       });
       BREAK.forEach((b, i) => { if (k.bk[i] === '0' && b.alive) { if (b.kind === 'wall') { b.hp = 1; wallHit(b, 9); } else { b.hp = 0; netBreakFx(b); } } });
       SPIKES.forEach((S, i) => { const c = k.sp[i]; if (!c || c === '-') return; S.on = true; const st = c === 'u' ? 'up' : c === 'w' ? 'warn' : 'down'; if (st !== S.st) { S.st = st; S.t = 0; if (st === 'up') { S.hit.clear(); sfx('spikes', 0.45, 1, 0.1, S.x); } } });
@@ -6541,7 +6592,7 @@ void main(){ if (vK >= 0.999) discard;
       if (e === 'gv') { if (ev.w === 's') { G.shield = MAXS; G.shieldHit = 0.6; sfx('shield', 0.6, 1.2); pop(HUM.x, 1.9, HUM.z, 'Bouclier rechargé !', 'big', 1.3); } else { G.hearts = Math.min(MAXH, G.hearts + 1); sfx('potion', 0.55); pop(HUM.x, 1.9, HUM.z, '+1 ❤', 'big', 1.1); } return; }
       if (e === 'pi') { const R = ROOMS[ev.r]; if (R) pullIn(R); return; }
       if (e === 'bi') { netBossIntro(); return; }
-      if (e === 'bd') { G.slow = 0.3; G.slowT = 2.0; H.boss.classList.remove('on'); if (BOSS.m) { BOSS.st = 'dead'; sfx('bossdie', 0.9); shake(0.8); flash(BOSS.m.x, 2.5, BOSS.m.z, 0xffe0a0, 16, 0.6, 2.4); after(2.3, () => { if (BOSS.m) { BOSS.m.c.root.visible = false; if (BOSS.m.sh) { delStatic(BOSS.m.sh); BOSS.m.sh = null; } } }); } G.phase = 'won'; return; }
+      if (e === 'bd') { padRumble('big'); G.slow = 0.3; G.slowT = 2.0; H.boss.classList.remove('on'); if (BOSS.m) { BOSS.st = 'dead'; sfx('bossdie', 0.9); shake(0.8); flash(BOSS.m.x, 2.5, BOSS.m.z, 0xffe0a0, 16, 0.6, 2.4); after(2.3, () => { if (BOSS.m) { BOSS.m.c.root.visible = false; if (BOSS.m.sh) { delStatic(BOSS.m.sh); BOSS.m.sh = null; } } }); } G.phase = 'won'; return; }
       if (e === 'ww') { worldWon(); return; }
       if (e === 'tr') { if (G.phase !== 'travel') travel(); return; }
       if (e === 'to') { TEAM.over = true; G.phase = 'dead'; G.slow = 0.3; G.slowT = 1.4; sfx('bossdie', 0.4, 1.5); banner('OH NON…', '', 'red', 2.2); return; }
@@ -6817,10 +6868,13 @@ void main(){ if (vK >= 0.999) discard;
       if (UNI.grRes) { const bs = renderer.getDrawingBufferSize(new T.Vector2()); UNI.grRes.value.set(1 / bs.x, 1 / bs.y); }
       ppSize();
     }
-    function setPaused(p) {
+    // quiet : pause demandée par la borne (Start → sa carte « Pause » par-dessus) : pas la carte PAUSE du jeu en plus
+    function setPaused(p, quiet) {
       if (p === paused || over || !started) return;
       paused = p;
-      H.paused.classList.toggle('on', p && !COOP);
+      if (p && !COOP && !quiet) { const s = H.paused.querySelector('span'); s.textContent = ''; if (padActive()) s.append(padChip('a'), 'pour reprendre'); else s.textContent = 'Touche pour reprendre'; }
+      H.paused.classList.toggle('on', p && !COOP && !quiet);
+      if (!p) padDrain();
       pauseBtn.innerHTML = p ? ICON.play : ICON.pause; pauseBtn.setAttribute('aria-label', p ? 'Reprendre' : 'Pause');
       for (const k in keys) keys[k] = false; IN.atk = false; IN.kAtk = false; joyReset();
       if (p) { if (SND.ctx) SND.ctx.suspend().catch(() => {}); }
@@ -6921,6 +6975,7 @@ void main(){ if (vK >= 0.999) discard;
         setTimeout(() => { if (H.load.parentNode) H.load.remove(); }, 700);
         started = true;
         startIntro();
+        try { if (api.pad && api.pad.showHelp) api.pad.showHelp(); } catch (e) { /* rien */ }   // commandes de la manette (pad.intro: 'ready')
         after(1.2, rotTipShow);
         last = 0; raf = requestAnimationFrame(frame);
       } catch (e) {
@@ -6930,6 +6985,7 @@ void main(){ if (vK >= 0.999) discard;
         mfReport('Magic Force : chargement raté (' + String((e && e.message) || e).slice(0, 120) + ')', ((e && e.stack) || '') + '\n' + mfState());
         try { console.error(e); } catch (x) { /* rien */ }
         const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Réessayer';
+        if (padActive()) b.prepend(padChip('a'));
         b.addEventListener('click', () => { if (renderer) return; boot(); });
         H.load.appendChild(b);
       }
@@ -6948,6 +7004,7 @@ void main(){ if (vK >= 0.999) discard;
       try { if (PHONE && screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { /* rien */ }
       cancelAnimationFrame(raf); cancelAnimationFrame(loadRaf);
       clearTimeout(bannerTimer); clearInterval(STUCK.iv);
+      try { if (padOff) padOff(); } catch (e) { /* rien */ }
       if (ro) ro.disconnect();
       for (const [t, ty, fn, o] of listeners) t.removeEventListener(ty, fn, o);
       listeners.length = 0;
@@ -6968,8 +7025,8 @@ void main(){ if (vK >= 0.999) discard;
       destroy,
       currentScore: () => Math.max(0, Math.floor(score)),
       currentLevel: () => Math.max(1, level),
-      pause: COOP ? () => setPaused(true) : undefined,
-      resume: COOP ? () => setPaused(false) : undefined,
+      pause: COOP ? () => setPaused(true) : () => setPaused(true, true),
+      resume: () => setPaused(false),
       coopStats: COOP ? coopStats : undefined,
       _dbg: typeof window !== 'undefined' && window.JDW_MAGIC_DBG ? { IN, keys, CD, setTouch, routeDir, PP, TEX, MAT, LIB, TPL, CLIPS, G, hero, MON, ROOMS, ZONES, DOORS, CHESTS, BREAK, Q: () => Q, PERF, CAM, T: () => T, renderer: () => renderer,
         setPaused, statics, parts, info: () => renderer && renderer.info, lightSrc, plights, DANGER, SHOTS, FOES, BOSS, SPIKES, GR, free, SOLIDS, SECRET, MINI, MAPS, map: () => MAP, wallHit, HEROES, TEAM, RB, heroesOf: () => HEROES, downHero: (i) => heroDown(HEROES[i]), travel: () => travel(), NETX, COOPI: () => ({ COOP, mode: CO.mode, lv: CLV, me: CO.me }), gridRefresh, portal: () => PORTAL, winSkip, hurtMonster, spawnMonster, play, KIND, QDEAD, DYNQ: () => DYN, setTier, probe: () => PROBE, probeSend, hitBreakable,
@@ -7048,6 +7105,9 @@ void main(){ if (vK >= 0.999) discard;
     drawWorldIcon,
     preview,
     mount,
+    // manette (CONTRACT.md « Ajout 10 ») : montré par la borne (carte Pause, début des 3 premières parties à la manette) ; le même à deux
+    pad: { help: [['ls', 'Marcher'], ['rs', 'Viser'], ['rt', 'Éclairs (maintenir)'], ['lt', 'Lancer le sort choisi'], ['lb/rb', 'Choisir le sort'],
+      ['x/y/b', 'Feu · Glace · Chaîne'], ['a', 'Roulade']], intro: 'ready' },
     // Magic Force à deux (COOP-CONTRACT.md) : deux mages (robe violette / robe rouge), avec le robot ou un copain en ligne
     coop: { ai: true, online: true, title: 'Magic Force à deux', short: 'Magic Force', emoji: '🧙',
       tagline: 'Deux mages, un donjon : relève ton copain et terrasse les boss !',

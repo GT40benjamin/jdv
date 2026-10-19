@@ -5,6 +5,7 @@
 <style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
 </head><body>
 <div id="root"></div>
+<script src="../manette.js"></script>
 <script>
 if (location.search.indexOf('fast') >= 0) {
   // accélère le temps pour tester la fin de partie
@@ -63,6 +64,7 @@ const api = {
 const qs = new URLSearchParams(location.search);
 if (qs.has('start')) api.startLevel = Number(qs.get('start'));
 if (qs.has('seed')) api.seed = Number(qs.get('seed'));
+if (window.JDW_PAD && !api.pad) api.pad = JDW_PAD.gameApi();   // manettes (CONTRACT.md Ajout 10)
 window.__inst = window.JDW_GAMES.mouches.mount(document.getElementById('root'), api);
 </script>
 </body></html>

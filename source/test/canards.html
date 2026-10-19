@@ -5,6 +5,7 @@
 <style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
 </head><body>
 <div id="root"></div>
+<script src="../manette.js"></script>
 <script>
 if (location.search.indexOf('fast') >= 0) {
   // accélère le temps pour tester la fin de partie
@@ -63,6 +64,7 @@ const api = {
   fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
   colors: { night:'#0b141c', panel:'#111d27', steel:'#22394a', steel2:'#3a5568', ink:'#e9f0f3', muted:'#8aa0ae', amber:'#ffa630', gold:'#ffd34d', alarm:'#ff4d5e', volt:'#5ef0ff', spray:'#ff5fae', leaf:'#4cc36a' }
 };
+if (window.JDW_PAD && !api.pad) api.pad = JDW_PAD.gameApi();   // manettes (CONTRACT.md Ajout 10)
 window.__game = window.JDW_GAMES.canards.mount(document.getElementById('root'), api);
 </script>
 </body></html>

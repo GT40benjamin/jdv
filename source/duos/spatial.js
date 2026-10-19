@@ -1166,6 +1166,9 @@
     const SOLO = !!(api.ai || api.net);
     const VIEWER = (api.net && api.net.flipped) ? 1 : 0, OPP = 1 - VIEWER, VROT = VIEWER === 1 ? Math.PI : 0;
     const SOLO_SKIP = { 'SUPER PRÊT !': 1, 'POINT !': 1, 'DÉGELÉ !': 1, 'GELÉ ! TU RALENTIS': 1, 'ADVERSAIRE GELÉ !': 1 };
+    // manette (api.pad, voir « manette » plus bas)
+    const PAD = api.pad && typeof api.pad.get === 'function' && typeof api.pad.pressed === 'function' ? api.pad : null;
+    const padUse = [null, null];                 // la manette est l'entrée du moment de ce joueur (aides avec glyphes ; null = pas encore su)
     const listeners = [];
     function on(t, ty, fn, o) { t.addEventListener(ty, fn, o); listeners.push([t, ty, fn, o]); }
     // (l'invité n'appelle jamais api.say : la bibliothèque recopie les messages de l'hôte)
@@ -1684,6 +1687,31 @@
       if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = 'rgba(2,3,10,0.88)'; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
       ctx.fillStyle = col; ctx.fillText(s, x, y);
     }
+    // texte avec glyphes de manette : « {ls} pilote · {a} SUPER » (glyphes Xbox / PlayStation de la manette du joueur p)
+    const GLY_ROUND = /^(a|b|x|y|ls|rs|dpad)$/;
+    function glyW(b, r, p) {
+      if (GLY_ROUND.test(b)) return 2 * r;
+      ctx.font = '700 ' + Math.round(r * 0.9) + 'px system-ui,sans-serif'; fontKey = '';
+      return Math.max(2 * r, ctx.measureText(PAD.glyph(b, p)).width + r * 0.9);
+    }
+    function richW(s, px, body, p) {
+      const t = String(s).split(/\{(\w+)\}/), r = px * 0.66;
+      let w = 0;
+      for (let i = 0; i < t.length; i++) {
+        if (i & 1) w += glyW(t[i], r, p) + px * 0.16;
+        else if (t[i]) { setFont(px, body); w += ctx.measureText(t[i]).width; }
+      }
+      return w;
+    }
+    function rich(s, x, y, px, col, body, stroke, p) {
+      if (!PAD || s.indexOf('{') < 0) { txt(s, x, y, px, col, 'center', body, stroke); return; }
+      const t = String(s).split(/\{(\w+)\}/), r = px * 0.66;
+      let cx = x - richW(s, px, body, p) / 2;
+      for (let i = 0; i < t.length; i++) {
+        if (i & 1) { const w = glyW(t[i], r, p); PAD.drawGlyph(ctx, t[i], cx + px * 0.08 + w / 2, y - px * 0.36, r, p); fontKey = ''; cx += w + px * 0.16; }
+        else if (t[i]) { txt(t[i], cx, y, px, col, 'left', body, stroke); cx += ctx.measureText(t[i]).width; }
+      }
+    }
     function drawObstacles() {
       for (const o of S.obs) {
         if (o.x < -60 || o.x > LW + 60) continue;
@@ -2098,7 +2126,8 @@
       txt(act ? 'FEU !' : 'SUPER', x, y + 12 * u, 9.5 * u, full || act ? '#ffffff' : hexA(col, 0.9), 'center', false, full ? 3 : 0);
       if (full && !act && p !== AIP) {
         ctx.globalAlpha = 0.65 + 0.35 * Math.sin(rt * 7);
-        txt('2e doigt ou ici !', x - (g.land ? 0 : r * 0.55), y - r - 9 * u, 11 * u, col, g.land ? 'center' : 'center', true, 3.5);
+        if (padShow(p)) rich('{a} SUPER !', x - (g.land ? 0 : r * 0.55), y - r - 9 * u, 11 * u, col, true, 3.5, p);
+        else txt('2e doigt ou ici !',x - (g.land ? 0 : r * 0.55), y - r - 9 * u, 11 * u, col, g.land ? 'center' : 'center', true, 3.5);
         ctx.globalAlpha = 1;
       }
     }
@@ -2245,6 +2274,7 @@
       drawSuperBtn(g, p, sh);
     }
     const INTRO_LINES = ['Glisse le doigt pour piloter,', 'ton vaisseau tire tout seul !', 'Jauge pleine : 2e doigt = SUPER'];
+    const INTRO_PAD = ['{ls} pilote, tir automatique !', '{x} tenu : pilotage fin', 'Jauge pleine : {a} = SUPER'];
     function roundHint() {
       const r = S.round;
       let sc = [0, 0];
@@ -2262,19 +2292,19 @@
       const a0 = introFull ? 1.75 : 0;
       const a = S.phase === 'intro' ? clamp((S.it - a0) / 0.35, 0, 1) : S.phase === 'play' && S.t < 1.2 ? Math.max(0, 1 - (S.t - 0.3) / 0.9) : 0;
       if (a <= 0.01) return;
-      const lines = p === AIP ? (introFull ? ['IA · niveau ' + AIN, 'Bonne chance, humain !'] : [hintStr]) : introFull ? INTRO_LINES : [hintStr];
+      const lines = p === AIP ? (introFull ? ['IA · niveau ' + AIN, 'Bonne chance, humain !'] : [hintStr]) : introFull ? (padShow(p) ? INTRO_PAD : INTRO_LINES) : [hintStr];
       hudFrame(p);
       fontKey = '';
       const u = U, fs = Math.round(13.5 * u), lh = 19 * u, col = PCOL[p];
       setFont(fs, true);
       let w = 0;
-      for (const l of lines) w = Math.max(w, ctx.measureText(l).width);
+      for (const l of lines) w = Math.max(w, l.indexOf('{') >= 0 && PAD ? richW(l, fs, true, p) : (setFont(fs, true), ctx.measureText(l).width));
       const bw = w + 30 * u, bh = lines.length * lh + 16 * u, cx = cw / 2, top = ch * 0.5 + ch * 0.085;
       ctx.globalAlpha = a;
       rrect(ctx, cx - bw / 2, top, bw, bh, 12 * u);
       ctx.fillStyle = 'rgba(6,6,18,0.8)'; ctx.fill();
       ctx.strokeStyle = hexA(col, 0.65); ctx.lineWidth = 1.4; ctx.stroke();
-      for (let i = 0; i < lines.length; i++) txt(lines[i], cx, top + 8 * u + lh * (i + 0.78), fs, i === lines.length - 1 && lines.length > 1 ? col : '#eef3ff', 'center', true, 0);
+      for (let i = 0; i < lines.length; i++) rich(lines[i], cx, top + 8 * u + lh * (i + 0.78), fs, i === lines.length - 1 && lines.length > 1 ? col : '#eef3ff', true, 0, p);
       ctx.globalAlpha = 1;
     }
     function drawOverlays() {
@@ -2556,6 +2586,7 @@
       for (const v of PTR.values()) if (v.p === p && v.role === 'drag') { hasDrag = true; break; }
       // le 1er doigt pilote (même posé sur le bouton) ; le bouton SUPER ou un 2e doigt déclenchent le méga-rayon
       PTR.set(e.pointerId, { p, role: hasDrag ? 'extra' : 'drag', x, y, mouse: e.pointerType === 'mouse' });
+      padUse[p] = false;
       if (hasDrag || inSuperBtn(p, x, y)) { IN[p].sup = true; btnPress[p] = 0.18; }
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
     }
@@ -2577,6 +2608,26 @@
       PTR.delete(e.pointerId);
       if (v.role === 'drag') for (const w of PTR.values()) if (w.p === v.p && w.role === 'extra') { w.role = 'drag'; break; }
     }
+    // ------------------------------------------------------------- manette (CONTRACT.md « Ajout 10 », DUO-CONTRACT.md) : chaque joueur p
+    // sa manette, en même temps que les doigts et le clavier (même chemin que le clavier : kx / ky, sup). Stick gauche / croix =
+    // pilotage analogique (vitesse proportionnelle), X / LB tenus = pilotage fin, A / RT = SUPER. Contre l'IA / en ligne, la borne
+    // donne toutes les manettes à MON vaisseau ; joueur du haut assis en face : sticks déjà retournés (rien à inverser ici).
+    const PADV = 1.7;                            // stick à fond : 1,7 × la vitesse du clavier (≈ 460 unités/s)
+    function padShow(p) { return !!PAD && p !== AIP && PAD.any(p) && (padUse[p] === null ? PAD.active() : padUse[p]); }
+    function padIn(p, ip) {
+      if (!PAD || p === AIP) return;
+      const g = PAD.get(p);
+      if (!g.on) return;
+      const a = PAD.pressed('a', p), r = PAD.pressed('rt', p);
+      const m = Math.hypot(g.mx, g.my);
+      if (a || r || m > 0.3 || g.held.x || g.held.lb) padUse[p] = true;
+      if ((a || r) && !paused) { ip.sup = true; btnPress[p] = 0.18; }
+      if (m > 0) {
+        const fine = g.held.x || g.held.lb ? 0.42 : 1, k = (0.5 + 0.5 * Math.min(1, m)) * PADV * fine;   // un peu plus doux au centre
+        ip.kx = clamp(ip.kx + g.mx * k, -PADV, PADV); ip.ky = clamp(ip.ky + g.my * k, -PADV, PADV);
+      }
+    }
+    function padDrain() { if (PAD) for (const p of [0, 1]) { PAD.pressed('a', p); PAD.pressed('rt', p); } }
     function onKey(e, down) {
       if (destroyed || root.offsetParent === null) return;
       const t = e.target;
@@ -3657,6 +3708,7 @@
       if (sh.las <= 0) sh.lasLen = 0;
       const kb = KEYS[ME], fl = FLIP ? -1 : 1;
       ip.kx = fl * ((kb.r ? 1 : 0) - (kb.l ? 1 : 0)); ip.ky = fl * ((kb.d ? 1 : 0) - (kb.u ? 1 : 0));
+      padIn(ME, ip);                               // manette : sticks déjà dans le repère du jeu (la borne les retourne pour l'invité)
       if (!GN.go && GN.latest && GN.latest.ph !== 'intro') GN.go = true;
       if (BOT[ME] && GN.go) botInput(ME);
       sh.lasOn = false;
@@ -3963,6 +4015,7 @@
         if (p === AIP) { aiInput(dt); continue; }  // le vaisseau de l'IA
         const kb = KEYS[p];
         IN[p].kx = (kb.r ? 1 : 0) - (kb.l ? 1 : 0); IN[p].ky = (kb.d ? 1 : 0) - (kb.u ? 1 : 0);
+        if (!NET || p === ME) padIn(p, IN[p]);
         if (BOT[p]) botInput(p);
         if (STEER[p] && S.ships[p].alive) { IN[p].mx = STEER[p][0] - S.ships[p].tx; IN[p].my = STEER[p][1] - S.ships[p].ty; }
       }
@@ -4136,6 +4189,7 @@
         if (destroyed || !paused) return;
         paused = false;
         clearInputs();
+        padDrain();                              // un appui de manette pendant la pause ne déclenche rien à la reprise
         last = 0; prevReal = 0;
         if (!matchOver && S && S.phase === 'play') {
           resumeT = 1.5;
@@ -4171,6 +4225,8 @@
     layout: 'shared',
     net: true,                                     // sait jouer en ligne (chacun sur son appareil, voir « JEU EN LIGNE »)
     ai: true,                  // sait jouer contre l'IA (api.ai) : la tuile n'est pas grisée quand l'IA joue en haut
+    // manette (CONTRACT.md « Ajout 10 ») : schéma montré par la borne (carte de pause, début de partie)
+    pad: { help: [['ls/dpad', 'Piloter (tir automatique)'], ['x/lb', 'Tenir : pilotage fin'], ['a/rt', 'SUPER (jauge pleine)']], intro: false },   // (le jeu montre déjà ses commandes avec les glyphes au début)
     preview,
     mount
   };
