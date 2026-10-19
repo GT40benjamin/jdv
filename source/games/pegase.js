@@ -263,18 +263,24 @@
     __export(main_exports, {
       CHARS: () => CHARS,
       FIN_MS: () => FIN_MS,
+      MAKEUP: () => MAKEUP,
+      MAKEUP_DRAWN: () => MAKEUP_DRAWN,
+      MAKEUP_ROWS: () => MAKEUP_ROWS,
       MOUTH_KEYS: () => MOUTH_KEYS,
       VIS: () => VIS,
       WORD_CAT: () => WORD_CAT,
       catsOf: () => catsOf,
       create: () => create,
+      createGrowl: () => createGrowl,
       createLipSync: () => createLipSync,
       createMouth: () => createMouth,
       createTrigger: () => createTrigger,
       createWords: () => createWords,
       decode: () => decode,
       encode: () => encode,
-      frenchVisemes: () => frenchVisemes
+      frenchVisemes: () => frenchVisemes,
+      makeupCanvas: () => makeupCanvas,
+      makeupCols: () => makeupCols
     });
     module.exports = __toCommonJS(main_exports);
     var T3 = __toESM(require("three"));
@@ -282,6 +288,341 @@
 
     // src/avatar.js
     var T = __toESM(require("three"));
+
+    // src/maquillage.js
+    var MAKEUP = {
+      "lips": { n: "Rouge à lèvres", g: "levres", bozo: true, d: [12], tint: [12, 15, 16, 17, 14, 13, 36, 37, 8, 31], r: "rare", p: 60 },
+      "mq.gloss": { n: "Gloss qui brille", g: "levres", d: [17], tint: [17, 15, 14, 16, 38, 40], r: "commun", p: 60 },
+      "mq.fard": { n: "Fard à paupières", g: "yeux", d: [38], tint: [38, 37, 17, 32, 34, 27, 40, 43, 9, 41], r: "commun", p: 60 },
+      "liner": { n: "Eye-liner", g: "yeux", bozo: true, d: [5], tint: [5, 9, 30, 37, 29, 40], r: "rare", p: 60 },
+      "mq.paillettes": { n: "Paillettes", g: "yeux", d: [40], tint: [40, 41, 17, 32, 38, 42], r: "rare", p: 120 },
+      "blush": { n: "Joues roses", g: "joues", bozo: true, d: [15], tint: [15, 17, 14, 23, 16] },
+      "freckles.light": { n: "Taches de rousseur", g: "joues", bozo: true, ex: "freckles", d: [47], tint: [47, 8, 9, 46] },
+      "freckles.full": { n: "Plein de taches", g: "joues", bozo: true, ex: "freckles", d: [47], tint: [47, 8, 9, 46] },
+      "mq.coeur": { n: "Cœur sur la joue", g: "peinture", d: [16], tint: [16, 12, 17, 37, 40, 32], r: "commun", p: 80 },
+      "mq.etoiles": { n: "Étoiles", g: "peinture", d: [40], tint: [40, 41, 32, 17, 38, 20], r: "commun", p: 80 },
+      "mq.arcenciel": { n: "Arc-en-ciel", g: "peinture", d: [12, 20, 31], tint: null, r: "rare", p: 120 },
+      "mq.chat": { n: "Petit chat", g: "peinture", ex: "grand", d: [5, 17], tint: [5, 9, 30, 37], r: "rare", p: 150 },
+      "mq.heros": { n: "Masque de héros", g: "peinture", ex: "grand", d: [12, 5], tint: [12, 30, 26, 37, 5, 18], r: "rare", p: 180 },
+      "mq.papillon": { n: "Papillon", g: "peinture", ex: "grand", d: [31, 36, 52], tint: [31, 17, 37, 34, 18, 26], r: "legend", p: 220 },
+      "mq.tigre": { n: "Tigre", g: "peinture", ex: "grand", d: [18, 5, 52], tint: [18, 20, 32, 17], r: "legend", p: 220 }
+    };
+    var MAKEUP_ROWS = [["levres", "Lèvres"], ["yeux", "Yeux"], ["joues", "Joues"], ["peinture", "Peintures de visage"]];
+    var makeupDrawn = (id) => !!DRAW[id];
+    function makeupCols(d, id) {
+      const m = MAKEUP[id], c = d && d.fxc && Array.isArray(d.fxc[id]) ? d.fxc[id] : null;
+      return m ? m.d.map((x, i) => c && Number.isInteger(c[i]) ? c[i] : x) : c || [];
+    }
+    var P = { eyeL: [182, 178], eyeR: [332, 178], eyeW: 48, eyeH: 22, lid: 150, brow: 128, lip: [257, 318], lipW: 46, nose: [258, 251], cheekL: [180, 252], cheekR: [334, 252], fore: [258, 78], chin: [258, 430] };
+    var seed = 1;
+    var rnd = () => {
+      seed = seed * 16807 % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+    function layers(size) {
+      return [0, 1, 2].map(() => {
+        const c = document.createElement("canvas");
+        c.width = c.height = size;
+        const x = c.getContext("2d");
+        x.scale(size / 512, size / 512);
+        x.fillStyle = "#fff";
+        x.strokeStyle = "#fff";
+        x.lineCap = "round";
+        x.lineJoin = "round";
+        return x;
+      });
+    }
+    function merge(L, size) {
+      const out = document.createElement("canvas");
+      out.width = out.height = size;
+      const o = out.getContext("2d"), img = o.createImageData(size, size), D = img.data;
+      const A = L.map((x) => x.getImageData(0, 0, size, size).data);
+      for (let i = 0; i < D.length; i += 4) {
+        const a0 = A[0][i + 3] / 255, a1 = A[1][i + 3] / 255, a2 = A[2][i + 3] / 255;
+        if (a0 + a1 + a2 <= 0) continue;
+        const w2 = a2, w1 = a1 * (1 - a2), w0 = a0 * (1 - a1) * (1 - a2), aa = 1 - (1 - a0) * (1 - a1) * (1 - a2), ws = w0 + w1 + w2 || 1;
+        D[i] = Math.round(255 * w0 / ws);
+        D[i + 1] = Math.round(255 * w1 / ws);
+        D[i + 2] = Math.round(255 * w2 / ws);
+        D[i + 3] = Math.round(255 * aa);
+      }
+      o.putImageData(img, 0, 0);
+      return out;
+    }
+    var both = (fn) => {
+      fn(P.eyeL, -1);
+      fn(P.eyeR, 1);
+    };
+    function soft(x, cx, cy, rx, ry, a, rot = 0, mid = 0.55) {
+      x.save();
+      x.translate(cx, cy);
+      x.rotate(rot);
+      x.scale(rx, ry);
+      const g = x.createRadialGradient(0, 0, 0, 0, 0, 1);
+      g.addColorStop(0, `rgba(255,255,255,${a})`);
+      g.addColorStop(mid, `rgba(255,255,255,${a * 0.75})`);
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      x.fillStyle = g;
+      x.beginPath();
+      x.arc(0, 0, 1, 0, Math.PI * 2);
+      x.fill();
+      x.restore();
+    }
+    function star(x, cx, cy, r, n = 5, k = 0.45, rot = -Math.PI / 2) {
+      x.beginPath();
+      for (let i = 0; i < n * 2; i++) {
+        const a = rot + i * Math.PI / n, rr = i % 2 ? r * k : r;
+        x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+      }
+      x.closePath();
+      x.fill();
+    }
+    function heart(x, cx, cy, s) {
+      x.beginPath();
+      x.moveTo(cx, cy + s * 0.9);
+      x.bezierCurveTo(cx - s * 1.5, cy - s * 0.1, cx - s * 0.75, cy - s * 1.15, cx, cy - s * 0.45);
+      x.bezierCurveTo(cx + s * 0.75, cy - s * 1.15, cx + s * 1.5, cy - s * 0.1, cx, cy + s * 0.9);
+      x.fill();
+    }
+    var holes = (xs, rx = 1.08, ry = 1.25) => {
+      for (const x of xs) {
+        x.save();
+        x.globalCompositeOperation = "destination-out";
+        x.globalAlpha = 1;
+        both(([cx, cy]) => {
+          x.beginPath();
+          x.ellipse(cx, cy, P.eyeW * rx, P.eyeH * ry, 0, 0, Math.PI * 2);
+          x.fill();
+        });
+        x.restore();
+      }
+    };
+    var DRAW = {
+      // gloss : couleur légère sur les lèvres + reflets clairs (couleur 2 = blanc)
+      "mq.gloss"([a, b]) {
+        const [cx, cy] = P.lip;
+        soft(a, cx, cy - 4, P.lipW * 1.05, 20, 0.75, 0, 0.7);
+        soft(a, cx, cy + 9, P.lipW * 0.9, 15, 0.6, 0, 0.7);
+        soft(b, cx + 8, cy + 12, 16, 4.5, 0.85);
+        soft(b, cx - 14, cy - 10, 9, 3, 0.6);
+      },
+      // fard : sur toute la paupière (du bord des cils au sourcil), plus fort près des cils, qui s'étire vers la tempe
+      "mq.fard"([a]) {
+        both(([cx], s) => {
+          soft(a, cx + s * 4, P.lid, P.eyeW * 1.18, 30, 1, s * 0.06, 0.75);
+          soft(a, cx + s * 40, P.lid + 4, 30, 20, 0.85, s * 0.4, 0.7);
+        });
+        holes([a], 0.95, 1);
+      },
+      // paillettes : étincelles sur les paupières et le haut des joues (pommettes)
+      "mq.paillettes"([a]) {
+        seed = 7;
+        both(([cx], s) => {
+          for (let i = 0; i < 70; i++) {
+            const lid = rnd() < 0.55, u = rnd(), x0 = cx + s * (lid ? -46 + u * 100 : -10 + u * 70), y0 = lid ? P.lid - 8 + rnd() * 22 : 200 + rnd() * 34;
+            a.globalAlpha = 0.6 + rnd() * 0.4;
+            a.beginPath();
+            a.arc(x0, y0, 1.2 + rnd() * 1.8, 0, Math.PI * 2);
+            a.fill();
+          }
+          a.globalAlpha = 1;
+          for (let i = 0; i < 6; i++) {
+            const lid = i < 3;
+            star(a, cx + s * (lid ? -24 + rnd() * 70 : 4 + rnd() * 50), lid ? P.lid - 4 + rnd() * 12 : 206 + rnd() * 24, 4.5 + rnd() * 3, 4, 0.28, rnd());
+          }
+        });
+        holes([a], 0.95, 1);
+      },
+      "mq.coeur"([a]) {
+        const [cx, cy] = P.cheekR;
+        a.globalAlpha = 0.97;
+        heart(a, cx + 6, cy + 6, 23);
+      },
+      "mq.etoiles"([a]) {
+        a.globalAlpha = 0.97;
+        const [ex, ey] = P.eyeR;
+        star(a, ex + 60, ey + 20, 17);
+        star(a, ex + 36, ey + 54, 11);
+        star(a, ex + 70, ey - 18, 10);
+      },
+      // arc-en-ciel sur la joue : 3 bandes (rouge, jaune, bleu par défaut)
+      "mq.arcenciel"(L) {
+        const [cx, cy] = P.cheekL;
+        [[0, 34], [1, 26], [2, 18]].forEach(([k, r]) => {
+          const x = L[k];
+          x.globalAlpha = 0.97;
+          x.lineWidth = 8.5;
+          x.beginPath();
+          x.arc(cx - 6, cy + 26, r, Math.PI * 1.06, Math.PI * 1.94);
+          x.stroke();
+        });
+      },
+      // petit chat : bout du nez (couleur 1) avec un cœur rose (couleur 2), moustaches et petite bouche de chat
+      "mq.chat"([a, b]) {
+        const [nx, ny] = P.nose;
+        a.globalAlpha = 0.97;
+        a.beginPath();
+        a.ellipse(nx, ny + 1, 17, 11, 0, 0, Math.PI * 2);
+        a.fill();
+        b.globalAlpha = 0.95;
+        heart(b, nx, ny, 7);
+        a.lineWidth = 3;
+        for (const s of [-1, 1]) for (const dy of [-10, 0, 10]) {
+          a.beginPath();
+          a.moveTo(nx + s * 40, ny + 26 + dy * 0.5);
+          a.quadraticCurveTo(nx + s * 72, ny + 20 + dy, nx + s * 104, ny + 16 + dy * 2.2);
+          a.stroke();
+        }
+        a.lineWidth = 3.5;
+        a.beginPath();
+        a.moveTo(nx, ny + 12);
+        a.lineTo(nx, ny + 40);
+        a.stroke();
+      },
+      // masque de héros (loup) d'une tempe à l'autre en passant sur le nez, trous des yeux, liseré (couleur 2)
+      "mq.heros"([a, b]) {
+        const path = (x) => {
+          const [lx, ly] = P.eyeL, [rx, ry] = P.eyeR, n = P.nose[0];
+          x.beginPath();
+          x.moveTo(n, ly - 30);
+          x.bezierCurveTo(n - 30, ly - 58, lx - 40, ly - 70, lx - 78, ly - 52);
+          x.bezierCurveTo(lx - 100, ly - 34, lx - 92, ly + 26, lx - 66, ly + 42);
+          x.bezierCurveTo(lx - 40, ly + 58, lx + 22, ly + 52, n - 22, ly + 30);
+          x.bezierCurveTo(n - 10, ly + 22, n - 6, ly + 18, n, ly + 18);
+          x.bezierCurveTo(n + 6, ry + 18, n + 10, ry + 22, n + 22, ry + 30);
+          x.bezierCurveTo(rx - 22, ry + 52, rx + 40, ry + 58, rx + 66, ry + 40);
+          x.bezierCurveTo(rx + 92, ry + 26, rx + 100, ry - 34, rx + 78, ry - 52);
+          x.bezierCurveTo(rx + 40, ry - 70, n + 30, ry - 58, n, ry - 30);
+          x.closePath();
+        };
+        a.globalAlpha = 1;
+        path(a);
+        a.fill();
+        b.globalAlpha = 1;
+        b.lineWidth = 5;
+        path(b);
+        b.stroke();
+        holes([a, b], 1.12, 1.45);
+        b.lineWidth = 4;
+        both(([cx, cy]) => {
+          b.beginPath();
+          b.ellipse(cx, cy, P.eyeW * 1.12 + 2, P.eyeH * 1.45 + 2, 0, 0, Math.PI * 2);
+          b.stroke();
+        });
+      },
+      // papillon : de chaque côté une grande aile (paupière → tempe → front) et une petite sur la joue, contour et nervures (couleur 2),
+      // points blancs (couleur 3), corps le long du nez avec deux antennes
+      "mq.papillon"([a, b, c]) {
+        const wings = (x, k) => both(([ex, ey], s) => {
+          x.beginPath();
+          x.ellipse(ex + s * 26, ey - 40, 66 + k, 46 + k, s * -0.42, 0, Math.PI * 2);
+          x.fill();
+          x.beginPath();
+          x.ellipse(ex + s * 28, ey + 46, 44 + k, 32 + k, s * 0.5, 0, Math.PI * 2);
+          x.fill();
+        });
+        a.globalAlpha = 0.95;
+        wings(a, 0);
+        b.globalAlpha = 1;
+        b.lineWidth = 5;
+        both(([ex, ey], s) => {
+          b.beginPath();
+          b.ellipse(ex + s * 26, ey - 40, 66, 46, s * -0.42, 0, Math.PI * 2);
+          b.stroke();
+          b.beginPath();
+          b.ellipse(ex + s * 28, ey + 46, 44, 32, s * 0.5, 0, Math.PI * 2);
+          b.stroke();
+          b.lineWidth = 3;
+          b.beginPath();
+          b.moveTo(P.nose[0] + s * 6, ey - 10);
+          b.quadraticCurveTo(ex + s * 20, ey - 60, ex + s * 78, ey - 66);
+          b.stroke();
+          b.beginPath();
+          b.moveTo(P.nose[0] + s * 6, ey + 14);
+          b.quadraticCurveTo(ex + s * 24, ey + 48, ex + s * 56, ey + 62);
+          b.stroke();
+          b.lineWidth = 5;
+        });
+        c.globalAlpha = 1;
+        both(([ex, ey], s) => {
+          for (const [dx, dy, r] of [[56, -62, 8], [76, -36, 6], [30, -74, 5], [44, 58, 6.5], [60, 38, 4.5]]) {
+            c.beginPath();
+            c.arc(ex + s * dx, ey + dy, r, 0, Math.PI * 2);
+            c.fill();
+          }
+        });
+        holes([a, b, c], 1.04, 1.2);
+        b.beginPath();
+        b.ellipse(P.nose[0], P.eyeL[1] - 2, 9, 48, 0, 0, Math.PI * 2);
+        b.fill();
+        b.lineWidth = 3.5;
+        for (const s of [-1, 1]) {
+          b.beginPath();
+          b.moveTo(P.nose[0], P.eyeL[1] - 44);
+          b.quadraticCurveTo(P.nose[0] + s * 10, P.eyeL[1] - 82, P.nose[0] + s * 26, P.eyeL[1] - 96);
+          b.stroke();
+          b.beginPath();
+          b.arc(P.nose[0] + s * 27, P.eyeL[1] - 97, 4.5, 0, Math.PI * 2);
+          b.fill();
+        }
+      },
+      // tigre : orange (couleur 1) sur le front, les tempes et les joues, blanc (couleur 3) au-dessus des yeux et autour de la bouche,
+      // rayures noires (couleur 2) et bout du nez noir
+      "mq.tigre"([a, b, c]) {
+        a.globalAlpha = 0.95;
+        soft(a, P.fore[0], P.fore[1] + 30, 160, 96, 1, 0, 0.7);
+        both(([ex, ey], s) => {
+          soft(a, ex + s * 20, ey + 92, 92, 110, 1, 0, 0.6);
+          soft(a, ex + s * 50, ey - 6, 62, 86, 1, 0, 0.7);
+        });
+        c.globalAlpha = 1;
+        const [lx, ly] = P.lip;
+        for (const s of [-1, 1]) soft(c, lx + s * 25, ly - 28, 36, 24, 1, 0, 0.85);
+        soft(c, lx, ly + 36, 46, 30, 1, 0, 0.8);
+        both(([ex], s) => soft(c, ex - s * 4, P.brow + 6, 46, 13, 0.95, s * 0.12, 0.8));
+        holes([a, c], 1, 1.15);
+        b.globalAlpha = 1;
+        const stripe = (x0, y0, x1, y1, w) => {
+          const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, nx = -(y1 - y0), ny = x1 - x0, l = Math.hypot(nx, ny) || 1;
+          b.beginPath();
+          b.moveTo(x0, y0);
+          b.quadraticCurveTo(mx + nx / l * w, my + ny / l * w, x1, y1);
+          b.quadraticCurveTo(mx - nx / l * w * 0.25, my - ny / l * w * 0.25, x0, y0);
+          b.fill();
+        };
+        stripe(P.fore[0], 34, P.fore[0] - 3, 108, 12);
+        stripe(P.fore[0] - 46, 44, P.fore[0] - 28, 100, 10);
+        stripe(P.fore[0] + 46, 44, P.fore[0] + 28, 100, 10);
+        for (const s of [-1, 1]) {
+          const e = P.nose[0] + s * 142;
+          for (const [y, l] of [[232, 56], [262, 64], [292, 50]]) stripe(e, y - 10, e - s * l, y + 4, 9);
+          stripe(e - s * 4, 186, e - s * 40, 196, 8);
+        }
+        b.beginPath();
+        b.ellipse(P.nose[0], P.nose[1], 16, 11, 0, 0, Math.PI * 2);
+        b.fill();
+        b.lineWidth = 4.5;
+        b.beginPath();
+        b.moveTo(P.nose[0], P.nose[1] + 8);
+        b.lineTo(P.nose[0], P.lip[1] - 16);
+        b.stroke();
+      }
+    };
+    var CACHE = /* @__PURE__ */ new Map();
+    function makeupCanvas(id, size = 512) {
+      const k = id + "@" + size;
+      if (CACHE.has(k)) return CACHE.get(k);
+      const fn = DRAW[id];
+      if (!fn) return null;
+      const L = layers(size);
+      fn(L);
+      const cv = merge(L, size);
+      CACHE.set(k, cv);
+      return cv;
+    }
+    var MAKEUP_DRAWN = Object.keys(DRAW);
+
+    // src/avatar.js
     var PIECES = ["neck", "chest", "back", "shoulders", "upperarms", "lowerarms", "wrists", "hands", "waist", "hips", "upperlegs", "lowerlegs", "ankles", "feet"];
     var COVER = {
       CoverNeck: "neck",
@@ -334,6 +675,9 @@
     var EXPR_OUI = { Mouth_Happy: 0.75, Mouth_Wide: 0.55, Brows_Raised: 0.45, Eyes_LowerClosed: 0.18 };
     var EXPR_NON = { Brows_Lowered: 0.7, Brow_Angry: 0.18, Mouth_Sad: 0.45, Mouth_Press: 0.4 };
     var EXPR_RIRE = { Eyes_LowerClosed: 0.9, Eyes_UpperClosed: 0.42, Mouth_Happy: 1, Mouth_Wide: 0.8, Jaw_Open: 0.3, Mouth_Oh: 0.12, Brows_Raised: 0.42, Brows_Sad: 0.3 };
+    var EXPR_GRR = { Brow_Angry: 1, Brows_Lowered: 1, Mouth_Grimace: 1.1, Mouth_Wide: 0.45, Jaw_Open: 0.16, Eyes_LowerClosed: 0.35, Mouth_Sad: 0.2 };
+    var EXPR_FACHE = { Brow_Angry: 0.8, Brows_Lowered: 1, Brows_Sad: 0.12, Mouth_Sad: 1, Mouth_Press: 0.65, Mouth_Oh: 0.12, Eyes_UpperClosed: 0.18 };
+    var EXPR_67 = { Mouth_Happy: 0.6, Mouth_Wide: 0.4, Brows_Raised: 0.5, Eyes_LowerClosed: 0.15 };
     var EXPR_KEYS = [
       "Brow_Angry",
       "Brows_Lowered",
@@ -352,6 +696,8 @@
       "Mouth_Pucker",
       "Jaw_Open"
     ];
+    var HAIR_PIVOT = { hb: 1.6, hf: 1.6 };
+    var HAIR_PUSH = 0.16;
     var BODY_MORPHS = ["BodyType", "Chest", "Weight", "NeckThickness", "Squareness", "Sharpness", "Stern", "Hat"];
     var SKIN_SHADE_NATURAL = 9;
     var CAM_RECT = [1024, 1024, 512, 512];
@@ -404,14 +750,14 @@
         this.scene.add(this.quad);
       }
       // layers : [{ t: {w,h,r,...}, mask: Texture, id: Texture|null, n: Texture|null, c: [Color x9], o: opacité }]
-      compose(rt, layers, size, normal = false, clear = 10119765) {
+      compose(rt, layers2, size, normal = false, clear = 10119765) {
         const r = this.r, prevTarget = r.getRenderTarget(), prevAuto = r.autoClear, prevClear = r.getClearColor(new T.Color()), prevA = r.getClearAlpha();
         r.setRenderTarget(rt);
         r.autoClear = false;
         r.setClearColor(normal ? 8421631 : clear, normal ? 1 : 0);
         r.clear(true, false, false);
         const S = 2048, u = this.uni;
-        for (const L of layers) {
+        for (const L of layers2) {
           if (!L.mask || normal && !L.n) continue;
           u.uMask.value = L.mask;
           u.uId.value = L.id || L.mask;
@@ -511,10 +857,10 @@
         if (j0 < 0) j0 = 0;
         const K = this.masterIBM.get(names[j0]).clone().invert().multiply(sk.boneInverses[j0]).multiply(sm2.bindMatrix);
         const Kinv = K.clone().invert(), Kn = new T.Matrix3().getNormalMatrix(K), Kl = new T.Matrix3().setFromMatrix4(K);
-        const n = g.attributes.position.count, P = g.attributes.position, N2 = g.attributes.normal, UV = g.attributes.uv;
+        const n = g.attributes.position.count, P2 = g.attributes.position, N2 = g.attributes.normal, UV = g.attributes.uv;
         const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), uv = new Float32Array(n * 2);
         for (let i = 0; i < n; i++) {
-          _v.fromBufferAttribute(P, i).applyMatrix4(K);
+          _v.fromBufferAttribute(P2, i).applyMatrix4(K);
           pos[i * 3] = _v.x;
           pos[i * 3 + 1] = _v.y;
           pos[i * 3 + 2] = _v.z;
@@ -545,7 +891,7 @@
           const A = MA[k], d = new Float32Array(n * 3);
           for (let i = 0; i < n; i++) {
             _v.fromBufferAttribute(A, i);
-            if (!g.morphTargetsRelative) _v.sub(new T.Vector3().fromBufferAttribute(P, i));
+            if (!g.morphTargetsRelative) _v.sub(new T.Vector3().fromBufferAttribute(P2, i));
             _v.applyMatrix3(Kl);
             d[i * 3] = _v.x;
             d[i * 3 + 1] = _v.y;
@@ -664,15 +1010,15 @@
       const mChest = new Float32Array(total * 3), mWeight = new Float32Array(total * 3), mBody = new Float32Array(total * 3);
       let o = 0;
       for (const p of parts) {
-        const P = p.geo.attributes.position, N2 = p.geo.attributes.normal, U = p.geo.attributes.uv;
-        for (let i = 0; i < P.count; i++, o++) {
-          pos.set([P.getX(i), P.getY(i), P.getZ(i)], o * 3);
+        const P2 = p.geo.attributes.position, N2 = p.geo.attributes.normal, U = p.geo.attributes.uv;
+        for (let i = 0; i < P2.count; i++, o++) {
+          pos.set([P2.getX(i), P2.getY(i), P2.getZ(i)], o * 3);
           nrm.set([N2.getX(i), N2.getY(i), N2.getZ(i)], o * 3);
           const u = U ? U.getX(i) : 0.5, v = U ? U.getY(i) : 0.5;
           const [r0, r1, r2, r3] = p.rect;
           uv[o * 2] = (ax + (r0 + (r2 - r0) * u) * aw) / S;
           uv[o * 2 + 1] = (ay + (r1 + (r3 - r1) * (1 - v)) * ah) / S;
-          const y = P.getY(i), z = P.getZ(i);
+          const y = P2.getY(i), z = P2.getZ(i);
           if (p.bone === "strap") {
             const k = T.MathUtils.clamp((y - (s5.y - 0.02)) / (nk.y - s5.y + 0.02), 0, 1);
             if (k <= 0) {
@@ -879,9 +1225,9 @@
           return null;
         })))).filter(Boolean);
         if (token !== this._tok) return false;
-        const layers = await this._layers(d);
+        const layers2 = await this._layers(d);
         if (token !== this._tok) return false;
-        const P = new Map(parts.map((p) => [p.id, p]));
+        const P2 = new Map(parts.map((p) => [p.id, p]));
         const hidden = /* @__PURE__ */ new Set();
         for (const id of ids) {
           const it = W.items.get(id);
@@ -891,11 +1237,11 @@
         const bodyParts = [{ p: W.parts.get("body"), hide: hidden }];
         const faceParts = [{ p: W.parts.get("head") }];
         for (const [slot, v] of Object.entries(d.it)) {
-          const p = P.get(v[0]);
+          const p = P2.get(v[0]);
           if (!p) continue;
-          (slot === "beard" ? faceParts : bodyParts).push({ p });
+          (slot === "beard" ? faceParts : bodyParts).push(slot === "hb" || slot === "hf" ? { p, hair: slot } : { p });
         }
-        for (const id of [d.br, d.la, "teeth.stylized_basic_teeth"]) if (P.get(id)) faceParts.push({ p: P.get(id) });
+        for (const id of [d.br, d.la, "teeth.stylized_basic_teeth"]) if (P2.get(id)) faceParts.push({ p: P2.get(id) });
         this._rebuildSkeleton([...bodyParts, ...faceParts].map((x) => x.p));
         const faceMorphs = [
           "BodyType",
@@ -936,8 +1282,8 @@
           }
           m.bind(this.skeleton, new T.Matrix4());
         }
-        W.composer.compose(this.rt, layers, this.o.atlas);
-        if (this.nrt) W.composer.compose(this.nrt, layers, this.o.atlas, true);
+        W.composer.compose(this.rt, layers2, this.o.atlas);
+        if (this.nrt) W.composer.compose(this.nrt, layers2, this.o.atlas, true);
         this.group.scale.setScalar(d.h || 1);
         this.applyMorphs();
         this.setHairLength(d.hl);
@@ -989,6 +1335,27 @@
         const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
         const used = morphNames.filter((m) => plans.some(({ p }) => p.morph[m]));
         const mo = used.map(() => new Float32Array(nv * 3));
+        const hairPlans = plans.filter((x) => list[plans.indexOf(x)].hair);
+        if (hairPlans.length) {
+          const H = new Float32Array(nv * 3), sm2 = (a, b, x) => {
+            const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+            return t * t * (3 - 2 * t);
+          };
+          for (const x of hairPlans) {
+            const y0 = list[plans.indexOf(x)].hair === "hf" ? HAIR_PIVOT.hf : HAIR_PIVOT.hb, P2 = x.p.pos;
+            for (let i = 0; i < x.p.n; i++) {
+              const px = P2[i * 3], py = P2[i * 3 + 1], pz = P2[i * 3 + 2];
+              if (py >= y0) continue;
+              const w = sm2(y0, y0 - 0.06, py), dy = (py - y0) * w, o = (x.v0 + i) * 3;
+              H[o + 1] = dy;
+              const below = sm2(1.5, 1.25, py), rr = Math.hypot(px, pz + 0.01) || 1;
+              H[o] = -dy * HAIR_PUSH * below * px / rr;
+              H[o + 2] = -dy * HAIR_PUSH * below * (pz + 0.01) / rr;
+            }
+          }
+          used.push("HairLen");
+          mo.push(H);
+        }
         let io = 0;
         for (const { p, index, v0 } of plans) {
           pos.set(p.pos, v0 * 3);
@@ -1035,15 +1402,22 @@
         const hair = W.color(d.hc), hair2 = W.color(d.hc2 == null ? d.hc : d.hc2);
         const jobs = [];
         jobs.push(() => add(C.base.body.tex, [skin.tone, skin.shade, skin.tone]));
-        jobs.push(() => add(C.layers["under.top"].tex, [col("#ece6da"), col("#d8d0c2"), col("#ffffff")]));
+        const ut = Array.isArray(d.ut) ? d.ut : null;
+        if (!ut || ut[0] !== "") jobs.push(() => add(C.layers["under.top"].tex, ut ? [W.color(ut[1] == null ? 1 : ut[1]), W.color(ut[2] == null ? ut[1] == null ? 1 : ut[1] : ut[2]), col("#ffffff")] : [col("#ece6da"), col("#d8d0c2"), col("#ffffff")]));
         jobs.push(() => add(C.layers["under.bottom"].tex, [col("#5d6b86"), col("#ece6da"), col("#ffffff")]));
         if (d.so && d.so[0] && C.layers[d.so[0]]) jobs.push(() => add(C.layers[d.so[0]].tex, [W.color(d.so[1] || 0), W.color(d.so[2] == null ? 4 : d.so[2]), W.color(0)]));
         const face = FACES[d.fc] || FACES[0];
         jobs.push(() => add(C.base.head.tex[face.tex] || C.base.head.tex.basic, [skin.tone, skin.shade, skin.tone, col("#ffffff"), col("#f1dfd8"), col("#9c3a32"), col("#ffffff"), col("#ffffff"), col("#ffffff")]));
         for (const f of d.fx || []) {
+          if (makeupDrawn(f)) {
+            const mc = makeupCols(d, f);
+            jobs.push(() => this._mqLayer(f, mc));
+            continue;
+          }
           const l = C.layers[f];
           if (!l) continue;
-          const cc = l.cols ? l.cols.map((i) => W.color(i)) : [skin.tone, skin.shade, skin.tone];
+          let cc = l.cols ? l.cols.map((i) => W.color(i)) : [skin.tone, skin.shade, skin.tone];
+          if (MAKEUP[f] && d.fxc && Array.isArray(d.fxc[f])) cc = makeupCols(d, f).map((i) => W.color(i));
           jobs.push(() => add(l.tex, f === "age" ? [skin.tone, skin.shade, skin.tone] : cc, f === "blush" ? 0.75 : 1));
         }
         const eye = C.eyes[d.ey] || C.eyes[0];
@@ -1077,6 +1451,24 @@
         }
         const res = await Promise.all(jobs.map((j) => j()));
         return res.flat().filter(Boolean);
+      }
+      // calque de maquillage dessiné en code (masque 512 de l'espace du visage, en haut à gauche de l'atlas) ; la texture est gardée par la page
+      async _mqLayer(id, cols) {
+        const W = this.W;
+        W._mq = W._mq || /* @__PURE__ */ new Map();
+        let t = W._mq.get(id);
+        if (!t) {
+          const cv = makeupCanvas(id, 512);
+          if (!cv) return null;
+          t = new T.CanvasTexture(cv);
+          t.flipY = false;
+          t.colorSpace = T.SRGBColorSpace;
+          t.generateMipmaps = true;
+          W._mq.set(id, t);
+        }
+        const c = cols.map((i) => W.color(i));
+        while (c.length < 3) c.push(c[c.length - 1] || W.color(0));
+        return { t: { w: 512, h: 512, r: [[0, 0, 512, 512, 0, 0]] }, mask: t, id: null, n: null, c };
       }
       async _camLayer(v) {
         const W = this.W;
@@ -1120,10 +1512,18 @@
         const ex = this.extraBones || [];
         return ex.filter((b) => /^hb/.test(b.name) && ex.includes(b.parent) && !ex.includes(b.parent.parent));
       }
+      // longueur (hub 2.10.1) : la forme HairLen (toutes les coiffures) ; les os de mèches ne sont plus agrandis (ils grossissaient aussi les mèches)
       setHairLength(v) {
-        const s = Math.max(0.7, Math.min(1.4, +v || 1));
+        const s = Math.max(0.7, Math.min(1.45, +v || 1));
         this.hairLen = s;
-        for (const b of this.hairStrands()) b.scale.setScalar(s);
+        for (const b of this.hairStrands()) b.scale.setScalar(1);
+        if (this.morphBase) {
+          this.morphBase.HairLen = s - 1;
+          this._setInfl(this.meshes.body, this.morphBase, {});
+        }
+      }
+      hasHair() {
+        return !!(this.desc && this.desc.it && (this.desc.it.hb || this.desc.it.hf));
       }
       setExpression(name, hold = 0) {
         this.exprTarget = EXPR[name] || {};
@@ -1192,8 +1592,27 @@
       no() {
         this.noT = 1.6;
       }
+      // hub 2.10 : GRR (grogne : dents, nez plissé, tête qui tremble, épaules rentrées ; grrHold le fait durer tant que tu grognes),
+      // PAS CONTENT (sourcils froncés, moue, poings sur les hanches, tête qui se détourne, petit soupir ; ~3,4 s puis retour doux),
+      // SIX-SEPT (le mème « 6 7 » : mains paumes vers le haut qui montent et descendent en alternance, comme une balance, la tête suit)
+      grr(dur = 1.6) {
+        if (!(this.grrT > 0)) this.grrE = 0;
+        this.grrT = Math.max(this.grrT || 0, dur);
+      }
+      grrHold() {
+        if (!(this.grrT > 0)) this.grr(1);
+        else this.grrT = Math.max(this.grrT, 0.55);
+      }
+      fache(dur = 3.4) {
+        if (!(this.facheT > 0)) this.facheE = 0;
+        this.facheT = Math.max(this.facheT || 0, dur);
+      }
+      sixSept(dur = 2.9) {
+        if (!(this.ssT > 0)) this.ssE = 0;
+        this.ssT = Math.max(this.ssT || 0, dur);
+      }
       busy() {
-        return this.waveT > 0 || this.jumpT > 0 || this.laughT > 0 || this.yesT > 0 || this.noT > 0;
+        return this.waveT > 0 || this.jumpT > 0 || this.laughT > 0 || this.yesT > 0 || this.noT > 0 || this.grrT > 0 || this.facheT > 0 || this.ssT > 0;
       }
       update(dt, cam) {
         this.t += dt;
@@ -1205,13 +1624,22 @@
         const lgT = this.laughT > 0 ? Math.min(1, this.laughE / 0.25, this.laughT / 0.5) : 0, lgs = lgT * lgT * (3 - 2 * lgT);
         this.laughW = lgs;
         this.laughB = lgs > 0 ? Math.pow(Math.max(0, Math.sin(this.laughPh)), 1.5) : 0;
+        for (const [k2, a, b] of [["grr", 0.12, 0.35], ["fache", 0.35, 0.7], ["ss", 0.3, 0.45]]) {
+          const T0 = this[k2 + "T"] || 0;
+          if (T0 > 0) {
+            this[k2 + "T"] = Math.max(0, T0 - dt);
+            this[k2 + "E"] = (this[k2 + "E"] || 0) + dt;
+          }
+          const x = T0 > 0 ? Math.min(1, this[k2 + "E"] / a, this[k2 + "T"] / b) : 0;
+          this[k2 + "W"] = x * x * (3 - 2 * x);
+        }
         const pk = this.prepT > 0 ? 1 : 0;
         this.prepT = Math.max(0, (this.prepT || 0) - dt);
         this.prepW = (this.prepW || 0) + (pk - (this.prepW || 0)) * (1 - Math.exp(-dt / (pk ? 0.07 : 0.12)));
         this.listenT = Math.max(0, (this.listenT || 0) - dt);
         this.ackT = Math.max(0, (this.ackT || 0) - dt);
         this.ackW = this.ackT > 0 ? Math.sin(Math.min(1, (0.55 - this.ackT) / 0.55) * Math.PI) : 0;
-        const tgt = this.laughT > 0 ? EXPR_RIRE : this.yesT > 0 ? EXPR_OUI : this.noT > 0 ? EXPR_NON : this.exprFlash > 0 ? this.waveT > 0 ? EXPR.sourire : EXPR.content : this.exprTarget;
+        const tgt = this.grrT > 0 ? EXPR_GRR : this.laughT > 0 ? EXPR_RIRE : this.facheT > 0 ? EXPR_FACHE : this.ssT > 0 ? EXPR_67 : this.yesT > 0 ? EXPR_OUI : this.noT > 0 ? EXPR_NON : this.exprFlash > 0 ? this.waveT > 0 ? EXPR.sourire : EXPR.content : this.exprTarget;
         if (this.exprFlash > 0) this.exprFlash -= dt;
         const k = 1 - Math.exp(-dt * 10);
         for (const key of EXPR_KEYS) {
@@ -1241,7 +1669,7 @@
         ex.Eyes_UpperClosed = Math.min(1, (ex.Eyes_UpperClosed || 0) + bl * (1 - (ex.Eyes_UpperOpen || 0) * 0.3));
         ex.Eyes_UpperOpen = (ex.Eyes_UpperOpen || 0) * (1 - bl);
         if (this.talk && this.talk.w > 0) {
-          const lw = this.laughW || 0, w = this.talk.w * (1 - 0.75 * lw), v = this.talk.v || {};
+          const lw = this.laughW || 0, w = this.talk.w * (1 - Math.max(0.75 * lw, 0.85 * (this.grrW || 0), 0.45 * (this.facheW || 0))), v = this.talk.v || {};
           for (const k2 of ["Mouth_Happy", "Mouth_Wide", "Mouth_Oh", "Jaw_Open", "Mouth_Pucker", "Mouth_Press", "Mouth_Grimace", "Mouth_Sad"]) ex[k2] = (ex[k2] || 0) * (1 - 0.92 * w);
           for (const [k2, x] of Object.entries(v)) ex[k2] = Math.min(1.2, (ex[k2] || 0) + x * w * (k2 === "Jaw_Open" ? 1 + lw : 1));
         }
@@ -1253,6 +1681,23 @@
           ex.Mouth_Pucker = (ex.Mouth_Pucker || 0) * (1 - lw);
           ex.Mouth_Sad = (ex.Mouth_Sad || 0) * (1 - lw);
           ex.Jaw_Open = Math.min(ex.Jaw_Open || 0, 0.55 + 0.1 * this.laughB);
+        }
+        const gw = this.grrW || 0, fw = this.facheW || 0;
+        if (gw > 0) {
+          ex.Mouth_Grimace = Math.max(ex.Mouth_Grimace || 0, 1.05 * gw);
+          ex.Mouth_Wide = Math.max(ex.Mouth_Wide || 0, 0.4 * gw);
+          for (const k2 of ["Mouth_Oh", "Mouth_Pucker", "Mouth_Happy", "Mouth_Press"]) ex[k2] = (ex[k2] || 0) * (1 - 0.85 * gw);
+          ex.Jaw_Open = Math.min(0.3, (ex.Jaw_Open || 0) * (1 - 0.5 * gw) + gw * (0.12 + 0.05 * (0.5 + 0.5 * Math.sin(this.t * 2 * Math.PI * 6.5))));
+          ex.NoseTiltUp = 0.9 * gw;
+          ex.NoseWidth = 0.6 * gw;
+          ex.Brow_Angry = Math.max(ex.Brow_Angry || 0, gw);
+          ex.Brows_Lowered = Math.max(ex.Brows_Lowered || 0, gw);
+        }
+        if (fw > 0) {
+          ex.Mouth_Sad = Math.max(ex.Mouth_Sad || 0, 0.85 * fw);
+          ex.Mouth_Happy = (ex.Mouth_Happy || 0) * (1 - fw);
+          ex.Brows_Lowered = Math.max(ex.Brows_Lowered || 0, 0.9 * fw);
+          ex.Brow_Angry = Math.max(ex.Brow_Angry || 0, 0.7 * fw);
         }
         if (this.meshes.face && this.morphBase) this._setInfl(this.meshes.face, this.morphBase, ex);
         this.anim.update(dt, cam);
@@ -1274,13 +1719,13 @@
       return { tone, shade };
     }
     function mouthCavity(g) {
-      const P = g.attributes.position, N2 = g.attributes.normal, n = P.count, a = new Float32Array(n);
+      const P2 = g.attributes.position, N2 = g.attributes.normal, n = P2.count, a = new Float32Array(n);
       const sm2 = (e0, e1, x) => {
         const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
         return t * t * (3 - 2 * t);
       };
       for (let i = 0; i < n; i++) {
-        const x = Math.abs(P.getX(i)), y = P.getY(i), z = P.getZ(i), ny = N2.getY(i), nz = N2.getZ(i);
+        const x = Math.abs(P2.getX(i)), y = P2.getY(i), z = P2.getZ(i), ny = N2.getY(i), nz = N2.getZ(i);
         if (x > 0.03 || y < 1.525 || y > 1.605 || z < 0.03 || z > 0.122) continue;
         a[i] = sm2(0.118, 0.096, z) * (1 - sm2(0.02, 0.029, x)) * sm2(1.528, 1.542, y) * (1 - sm2(1.592, 1.603, y)) * (1 - sm2(0.25, 0.6, nz)) * (1 - sm2(-0.3, -0.6, ny) * (1 - sm2(1.548, 1.556, y)));
       }
@@ -1320,18 +1765,20 @@
         this.t = Math.random() * 50;
         this.seed = Math.random() * 10;
         this.dirs = /* @__PURE__ */ new Map();
-        const P = (n) => A.restWP.get(n);
+        const P2 = (n) => A.restWP.get(n);
         for (const [a, b] of [["upperarm_l", "lowerarm_l"], ["lowerarm_l", "hand_l"], ["upperarm_r", "lowerarm_r"], ["lowerarm_r", "hand_r"], ["hand_l", "middle_01_l"], ["hand_r", "middle_01_r"]])
-          if (P(a) && P(b)) this.dirs.set(a, P(b).clone().sub(P(a)).normalize());
+          if (P2(a) && P2(b)) this.dirs.set(a, P2(b).clone().sub(P2(a)).normalize());
         this.fingers = [];
         for (const s of ["l", "r"]) for (const f of ["index", "middle", "ring", "pinky"]) for (const k of ["01", "02", "03"]) if (A.bones.has(`${f}_${k}_${s}`)) this.fingers.push({ n: `${f}_${k}_${s}`, s, k: +k, f });
         for (const s of ["l", "r"]) for (const k of ["01", "02", "03"]) if (A.bones.has(`thumb_${k}_${s}`)) this.fingers.push({ n: `thumb_${k}_${s}`, s, k: +k, f: "thumb" });
         this.side = {};
         for (const s of ["l", "r"]) {
-          const a = P(`pinky_01_${s}`), b = P(`index_01_${s}`);
+          const a = P2(`pinky_01_${s}`), b = P2(`index_01_${s}`);
           if (a && b) this.side[s] = b.clone().sub(a).normalize();
         }
         this.R = /* @__PURE__ */ new Map();
+        this.palm = Math.PI / 2;
+        this.wave = { up: [0.92, 0.1, 0.3], fx: 0.06, fz: 0.16, fa: 0.1, hw: 0.42, hz: 0.12, lag: 0.7, tw: 0.8, htw: 0, f: 2.2 };
       }
       // rotation « monde du modèle » d'un os = R × repos ; les enfants héritent
       setR(n, q) {
@@ -1356,11 +1803,12 @@
           b.quaternion.copy(rl.q).multiply(_q);
         }
       }
-      aim(n, child, target, accum) {
+      aim(n, child, target, accum, twist = 0) {
         const d0 = this.dirs.get(n);
         if (!d0) return new T.Quaternion();
         const tl = target.clone().applyQuaternion(accum.clone().invert());
-        const q = new T.Quaternion().setFromUnitVectors(d0, tl.normalize());
+        let q = new T.Quaternion().setFromUnitVectors(d0, tl.normalize());
+        if (twist) q = new T.Quaternion().setFromAxisAngle(tl, twist).multiply(q);
         this.setR(n, q);
         return q;
       }
@@ -1392,6 +1840,9 @@
         }
         const lg = A.laughW || 0, lb = A.laughB || 0, lk = lg * Math.min(1, Math.max(0, ((A.laughK || 0) - 0.4) / 0.3));
         const back = lg * (0.2 + 0.07 * Math.min(1, (A.laughE || 0) / 0.6)), shake = 0;
+        const gw = A.grrW || 0, fw = A.facheW || 0, ssw = A.ssW || 0, fe = A.facheE || 0;
+        const sigh = fw * (fe > 0.2 && fe < 1.3 ? Math.sin((fe - 0.2) / 1.1 * Math.PI) : 0), ssa = ssw * Math.sin((A.ssE || 0) * 2 * Math.PI * 2.1);
+        const gshake = gw * 0.035 * Math.sin(t * 2 * Math.PI * 7.5);
         const pw = A.prepW || 0, pK = A.prepK || "", lsn = A.listenT > 0 ? Math.sin(Math.min(1, (0.9 - A.listenT) / 0.9) * Math.PI) : 0;
         let yes = 0, no = 0;
         if (A.yesT > 0) {
@@ -1419,20 +1870,20 @@
         this.setR("calf_l", qe(-0.04 - Math.max(0, sw) * 0.05 - kb * 2, 0, 0));
         this.setR("calf_r", qe(-0.04 - Math.max(0, -sw) * 0.05 - kb * 2, 0, 0));
         this.setR("spine_02", qe(br * 0.012, -py * 0.3, -pr * 0.5));
-        this.setR("spine_03", qe(br * 0.016 - hop * 0.05 + crouch * 0.12 - air * 0.06 - shake * 0.05 - back * 0.22 + lg * lb * 0.05, -py * 0.3 - w * 0.08, -pr * 0.4 + w * 0.05));
-        this.setR("spine_04", qe(br * 0.012 + yes * 0.18 - back * 0.3 + lg * lb * 0.035, no * 0.12, 0));
+        this.setR("spine_03", qe(br * 0.016 - hop * 0.05 + crouch * 0.12 - air * 0.06 - shake * 0.05 - back * 0.22 + lg * lb * 0.05 + gw * 0.04 - sigh * 0.05, -py * 0.3 - w * 0.08 + fw * 0.06, -pr * 0.4 + w * 0.05 + ssa * 0.025));
+        this.setR("spine_04", qe(br * 0.012 + yes * 0.18 - back * 0.3 + lg * lb * 0.035 + gw * 0.05, no * 0.12 + fw * 0.05, 0));
         const lt = A.lookTarget, l = A.look;
         const wanderX = Math.sin(t * 0.37 + s) * 0.22 + Math.sin(t * 0.13 + s * 3) * 0.12, wanderY = Math.sin(t * 0.29 + s * 2) * 0.06;
         const gx = A.lookAt ? lt.x : wanderX, gy = A.lookAt ? lt.y : wanderY;
         l.x += (gx - l.x) * (1 - Math.exp(-dt * 3));
         l.y += (gy - l.y) * (1 - Math.exp(-dt * 3));
         const pyes = pK === "oui" ? pw * 0.07 : 0, pno = pK === "non" ? pw * 0.06 : 0;
-        this.setR("neck_01", qe(-l.y * 0.35 + yes * 0.35 - back * 0.35 + pyes * 0.4, l.x * 0.35 + no * 0.3 + pno * 0.3, lsn * 0.03 * (A.listenS || 1)));
+        this.setR("neck_01", qe(-l.y * 0.35 + yes * 0.35 - back * 0.35 + pyes * 0.4 + gw * 0.03 - fw * 0.04, l.x * 0.35 + no * 0.3 + pno * 0.3 + fw * 0.1, lsn * 0.03 * (A.listenS || 1) + ssa * 0.04));
         const tk = A.talk && A.talk.w > 0 ? A.talk : null, nod = tk ? tk.nod || 0 : 0, tilt = tk ? tk.tilt || 0 : 0;
         this.setR("head", qe(
-          -l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod + yes - back * 0.6 + lg * lb * 0.06 + pyes - lsn * 0.03 - (A.ackW || 0) * 0.05,
-          l.x * 0.5 + tilt * 0.5 + no + pno,
-          Math.sin(t * 0.21 + s) * 0.03 + w * 0.12 * Math.sin(t * 2.2) + lg * 0.07 + lsn * 0.07 * (A.listenS || 1)
+          -l.y * 0.55 + br * 0.01 + hop * 0.08 - shake * 0.16 - air * 0.08 + nod + yes - back * 0.6 + lg * lb * 0.06 + pyes - lsn * 0.03 - (A.ackW || 0) * 0.05 + gw * 0.015 - fw * 0.05 + sigh * 0.04,
+          l.x * 0.5 + tilt * 0.5 + no + pno + gshake + fw * 0.14,
+          Math.sin(t * 0.21 + s) * 0.03 + w * (0.08 + 0.03 * Math.sin(t * 2.2)) + lg * 0.07 + lsn * 0.07 * (A.listenS || 1) + ssa * 0.09 - fw * 0.04
         ));
         for (const e of ["eyeRoot_l", "eyeRoot_r"]) if (A.bones.has(e)) this.setR(e, qe(-l.y * 0.25, l.x * 0.4, 0));
         if (tk && tk.asym) {
@@ -1441,8 +1892,9 @@
           this.setR("mouth", qe(0, 0, as * 0.05));
         }
         const sh = lg * (0.04 + 0.075 * lb), pw8 = pK === "salut" ? pw * 0.06 : 0;
-        this.setR("clavicle_l", qe(0, 0, br * 0.012 + hop * 0.05 + sh));
-        this.setR("clavicle_r", qe(0, 0, -br * 0.012 - hop * 0.05 - sh - pw8));
+        const shu = gw * 0.06 + sigh * 0.09;
+        this.setR("clavicle_l", qe(0, 0, br * 0.012 + hop * 0.05 + sh + shu));
+        this.setR("clavicle_r", qe(0, 0, -br * 0.012 - hop * 0.05 - sh - pw8 - shu - w * 0.05));
         const acc = (names) => {
           const q = new T.Quaternion();
           for (const n of names) {
@@ -1457,19 +1909,21 @@
           const spread = (fem ? 0.13 : 0.2) + hop * 0.35 + br * 6e-3 + air * 0.55 + crouch * 0.1;
           const wv = side === "r" ? Math.max(w, pK === "salut" ? pw * 0.18 : 0) : 0;
           const bv = side === "l" ? lk : 0;
-          const up = new T.Vector3(sx * spread, -1 + air * 0.5, 0.04 + Math.sin(t * 0.8 + s + sx) * 0.01 + crouch * 0.25).normalize().lerp(new T.Vector3(sx * 0.82, 0.42, 0.3).normalize(), wv).lerp(new T.Vector3(sx * 0.3, -0.85, 0.42 + lb * 0.04).normalize(), bv).normalize();
+          const ab = ssa * sx;
+          const WV = this.wave, wph = t * 2 * Math.PI * WV.f;
+          const up = new T.Vector3(sx * spread, -1 + air * 0.5, 0.04 + Math.sin(t * 0.8 + s + sx) * 0.01 + crouch * 0.25).normalize().lerp(new T.Vector3(sx * WV.up[0], WV.up[1], WV.up[2]).normalize(), wv).lerp(new T.Vector3(sx * 0.3, -0.85, 0.42 + lb * 0.04).normalize(), bv).lerp(new T.Vector3(sx * 0.72, -0.66, -0.2).normalize(), fw).lerp(new T.Vector3(sx * 0.26, -0.9 + ab * 0.12, 0.3).normalize(), ssw).normalize();
           const qU = this.aim("upperarm_" + side, null, up, pa);
           const pa2 = pa.clone().multiply(qU);
-          const fo = new T.Vector3(sx * (spread * 0.6), -1, 0.32 + br * 0.01 + hop * 0.2).normalize().lerp(new T.Vector3(sx * 0.12 + Math.sin(t * 10) * 0.45, 1, 0.22).normalize(), wv).lerp(new T.Vector3(-sx * 0.8, -0.05, 0.55).normalize(), bv).normalize();
-          const qL = this.aim("lowerarm_" + side, null, fo, pa2);
+          const fo = new T.Vector3(sx * (spread * 0.6), -1, 0.32 + br * 0.01 + hop * 0.2).normalize().lerp(new T.Vector3(sx * WV.fx + Math.sin(wph) * WV.fa, 1, WV.fz).normalize(), wv).lerp(new T.Vector3(-sx * 0.8, -0.05, 0.55).normalize(), bv).lerp(new T.Vector3(-sx * 0.55, -0.62, 0.32).normalize(), fw).lerp(new T.Vector3(sx * 0.3, 0.05 + ab * 0.7, 1).normalize(), ssw).normalize();
+          const qL = this.aim("lowerarm_" + side, null, fo, pa2, ssw * this.palm * -sx + wv * WV.tw * -sx);
           const pa3 = pa2.clone().multiply(qL);
-          const hd = new T.Vector3(sx * 0.05, -1, 0.18).normalize().lerp(new T.Vector3(sx * 0.1 + Math.sin(t * 10 - 0.6) * 0.5, 1, 0.3).normalize(), wv).lerp(new T.Vector3(-sx * 0.95, -0.2, 0.15).normalize(), bv).normalize();
-          this.aim("hand_" + side, null, hd, pa3);
+          const hd = new T.Vector3(sx * 0.05, -1, 0.18).normalize().lerp(new T.Vector3(sx * WV.fx + Math.sin(wph - WV.lag) * WV.hw, 1, WV.hz).normalize(), wv).lerp(new T.Vector3(-sx * 0.95, -0.2, 0.15).normalize(), bv).lerp(new T.Vector3(-sx * 0.5, -0.75, 0.15).normalize(), fw).lerp(new T.Vector3(sx * 0.15, 0.08 + ab * 0.25, 1).normalize(), ssw).normalize();
+          this.aim("hand_" + side, null, hd, pa3, wv * WV.htw * -sx);
         }
         for (const f of this.fingers) {
           const ax = this.side[f.s];
           if (!ax) continue;
-          const curl = (f.f === "thumb" ? 0.15 : 0.22 + (f.f === "pinky" ? 0.12 : f.f === "ring" ? 0.08 : 0)) * (f.k === 1 ? 0.8 : 1);
+          const curl = (f.f === "thumb" ? 0.15 : 0.22 + (f.f === "pinky" ? 0.12 : f.f === "ring" ? 0.08 : 0)) * (f.k === 1 ? 0.8 : 1) * (1 - 0.6 * ssw) * (f.s === "r" ? 1 - 0.75 * w : 1) + fw * (f.f === "thumb" ? 0.35 : 1.15);
           this.setR(f.n, new T.Quaternion().setFromAxisAngle(ax, (f.s === "l" ? -1 : 1) * curl));
         }
         for (const b of A.extraBones) this.setR(b.name, qe(Math.sin(t * 1.3 + b.name.length) * 0.03 - hop * 0.06, 0, Math.sin(t * 0.9 + b.name.length * 0.7) * 0.03));
@@ -1491,8 +1945,8 @@
       t.anisotropy = 4;
       return t;
     }
-    function rnd(seed) {
-      let a = seed | 0;
+    function rnd2(seed2) {
+      let a = seed2 | 0;
       return () => {
         a = a + 1831565813 | 0;
         let t = Math.imul(a ^ a >>> 15, 1 | a);
@@ -1501,7 +1955,7 @@
       };
     }
     function makeStage(R, opts = {}) {
-      const PHONE = !!opts.phone, r = rnd(11);
+      const PHONE = !!opts.phone, r = rnd2(11);
       const scene = new T2.Scene();
       {
         const env2 = new T2.Scene();
@@ -1680,11 +2134,11 @@
         return mt;
       })();
       const sparks = (() => {
-        const N2 = 56, pos = new Float32Array(N2 * 3), vel = new Float32Array(N2 * 3), life = new Float32Array(N2), seed = new Float32Array(N2);
+        const N2 = 56, pos = new Float32Array(N2 * 3), vel = new Float32Array(N2 * 3), life = new Float32Array(N2), seed2 = new Float32Array(N2);
         const g = new T2.BufferGeometry();
         g.setAttribute("position", new T2.BufferAttribute(pos, 3));
         g.setAttribute("life", new T2.BufferAttribute(life, 1));
-        g.setAttribute("seed", new T2.BufferAttribute(seed, 1));
+        g.setAttribute("seed", new T2.BufferAttribute(seed2, 1));
         const mt = new T2.ShaderMaterial({
           transparent: true,
           depthWrite: false,
@@ -1706,7 +2160,7 @@
               pos.set([Math.cos(a) * rr, (0.2 + Math.random() * 1.6) * h, Math.sin(a) * rr], i * 3);
               vel.set([Math.cos(a) * 0.35, 0.4 + Math.random() * 0.6, Math.sin(a) * 0.35], i * 3);
               life[i] = 0.7 + Math.random() * 0.5;
-              seed[i] = Math.random();
+              seed2[i] = Math.random();
             }
             any = true;
             g.attributes.position.needsUpdate = g.attributes.life.needsUpdate = true;
@@ -1778,7 +2232,7 @@
     }
     function createLipSync(sr, opt = {}) {
       const D = Math.max(1, Math.round(sr / 11500)), fs = sr / D;
-      const P = fs > 13e3 ? 14 : 12;
+      const P2 = fs > 13e3 ? 14 : 12;
       const NW = Math.round(0.03 * sr), ND = Math.floor(NW / D);
       const NE = Math.round(0.02 * sr);
       const taps = 8 * D + 1, h = new Float32Array(taps);
@@ -1794,16 +2248,16 @@
       }
       const ham = new Float32Array(ND);
       for (let i = 0; i < ND; i++) ham[i] = 0.54 - 0.46 * Math.cos(2 * Math.PI * i / (ND - 1));
-      const lagw = new Float32Array(P + 1);
-      for (let k = 0; k <= P; k++) lagw[k] = Math.exp(-0.5 * Math.pow(2 * Math.PI * 50 * k / fs, 2));
+      const lagw = new Float32Array(P2 + 1);
+      for (let k = 0; k <= P2; k++) lagw[k] = Math.exp(-0.5 * Math.pow(2 * Math.PI * 50 * k / fs, 2));
       const HP1 = biquad("hp", 1e3, sr), HP25 = biquad("hp", 2500, sr), HP55 = biquad("hp", Math.min(5500, sr * 0.4), sr), LP4 = biquad("lp", 400, sr), HP4 = biquad("hp", 400, sr);
-      const xd = new Float32Array(ND), r = new Float64Array(P + 1), a = new Float64Array(P + 1), tmp = new Float64Array(P + 1);
-      const re = new Float64Array(P), im = new Float64Array(P);
+      const xd = new Float32Array(ND), r = new Float64Array(P2 + 1), a = new Float64Array(P2 + 1), tmp = new Float64Array(P2 + 1);
+      const re = new Float64Array(P2), im = new Float64Array(P2);
       let rootsOk = false;
       const st = { floor: 3e-3, pk: 0.03, f0m: 0, f0n: 0, k: 1.12, speechT: 9, lab: 0, hist: [], t: 0 };
       const feat = { hm: 0, L: 0, rms: 0, hf: 0, hf2: 0, low: 0, pg: 0, zcr: 0, F1: 0, F2: 0, F3: 0, B1: 0, B2: 0, voiced: 0, k: 1 };
       function lpc() {
-        for (let k = 0; k <= P; k++) {
+        for (let k = 0; k <= P2; k++) {
           let s = 0;
           for (let i = k; i < ND; i++) s += xd[i] * xd[i - k];
           r[k] = s * lagw[k];
@@ -1813,7 +2267,7 @@
         a.fill(0);
         a[0] = 1;
         let err = r[0];
-        for (let i = 1; i <= P; i++) {
+        for (let i = 1; i <= P2; i++) {
           let acc = r[i];
           for (let j = 1; j < i; j++) acc += a[j] * r[i - j];
           const kk = -acc / err;
@@ -1826,23 +2280,23 @@
         return 10 * Math.log10(r[0] / err);
       }
       function roots() {
-        if (!rootsOk) for (let i = 0; i < P; i++) {
-          const ang = (i + 0.5) / P * 2 * Math.PI + 0.1, rr = 0.9;
+        if (!rootsOk) for (let i = 0; i < P2; i++) {
+          const ang = (i + 0.5) / P2 * 2 * Math.PI + 0.1, rr = 0.9;
           re[i] = rr * Math.cos(ang);
           im[i] = rr * Math.sin(ang);
         }
         for (let it = 0; it < (rootsOk ? 24 : 70); it++) {
           let mv = 0;
-          for (let i = 0; i < P; i++) {
+          for (let i = 0; i < P2; i++) {
             let pr = 1, pi = 0;
             const zr = re[i], zi = im[i];
-            for (let k = 1; k <= P; k++) {
+            for (let k = 1; k <= P2; k++) {
               const nr = pr * zr - pi * zi + a[k], ni = pr * zi + pi * zr;
               pr = nr;
               pi = ni;
             }
             let qr = 1, qi = 0;
-            for (let j = 0; j < P; j++) {
+            for (let j = 0; j < P2; j++) {
               if (j === i) continue;
               const dr = zr - re[j], di = zi - im[j], nr = qr * dr - qi * di, ni = qr * di + qi * dr;
               qr = nr;
@@ -1858,13 +2312,13 @@
           if (mv < 1e-7) break;
         }
         rootsOk = true;
-        for (let i = 0; i < P; i++) if (!isFinite(re[i]) || !isFinite(im[i]) || Math.hypot(re[i], im[i]) > 1.5) {
+        for (let i = 0; i < P2; i++) if (!isFinite(re[i]) || !isFinite(im[i]) || Math.hypot(re[i], im[i]) > 1.5) {
           rootsOk = false;
           break;
         }
         const out = [];
         if (!rootsOk) return out;
-        for (let i = 0; i < P; i++) {
+        for (let i = 0; i < P2; i++) {
           if (im[i] <= 0) continue;
           const m = Math.hypot(re[i], im[i]), f = Math.atan2(im[i], re[i]) * fs / (2 * Math.PI), bw = -Math.log(m) * fs / Math.PI;
           if (f > 150 && f < fs / 2 - 250 && bw > 0 && bw < 700) out.push([f, bw]);
@@ -2004,7 +2458,7 @@
         f.p = p;
         f.gap = gap;
       }
-      return { analyze, feat, st, fs, P, D };
+      return { analyze, feat, st, fs, P: P2, D };
     }
     var MOUTH_KEYS = ["Jaw_Open", "Mouth_Oh", "Mouth_Pucker", "Mouth_Wide", "Mouth_Press", "Mouth_Grimace", "Mouth_Sad", "Mouth_Happy"];
     var POSE = {
@@ -2023,15 +2477,15 @@
     };
     var VOWEL = /* @__PURE__ */ new Set(["A", "E", "I", "O", "OU", "EU"]);
     function createMouth(o = {}) {
-      let seed = (o.seed || Math.random() * 1e6) | 0;
-      const rnd2 = () => {
-        seed = seed * 1664525 + 1013904223 >>> 0;
-        return seed / 4294967296;
+      let seed2 = (o.seed || Math.random() * 1e6) | 0;
+      const rnd3 = () => {
+        seed2 = seed2 * 1664525 + 1013904223 >>> 0;
+        return seed2 / 4294967296;
       };
       const ps = new Float32Array(NV);
       ps[0] = 1;
       const out = Object.fromEntries(MOUTH_KEYS.map((k) => [k, 0]));
-      const S = { cur: 0, dwell: 1, lastV: VI.E, lastVw: 0, lv: 0, t: 0, idle: 0, twT: 2 + rnd2() * 3, tw: 0, twK: 0, asym: 0, asymT: 0, as: (rnd2() - 0.5) * 0.6 };
+      const S = { cur: 0, dwell: 1, lastV: VI.E, lastVw: 0, lv: 0, t: 0, idle: 0, twT: 2 + rnd3() * 3, tw: 0, twK: 0, asym: 0, asymT: 0, as: (rnd3() - 0.5) * 0.6 };
       const tgt = {};
       function step(dt, f) {
         S.t += dt;
@@ -2053,17 +2507,17 @@
         for (const k of MOUTH_KEYS) tgt[k] = 0;
         let jaw = 0, sw = 0;
         const add = (v, w) => {
-          const P = POSE[v];
-          jaw += P[0] * w;
-          for (const k in P[1]) tgt[k] += P[1][k] * w;
+          const P2 = POSE[v];
+          jaw += P2[0] * w;
+          for (const k in P2[1]) tgt[k] += P2[1][k] * w;
           sw += w;
         };
         add(cur, 0.65);
         for (let i = 0; i < NV; i++) if (ps[i] > 0.05) add(VIS[i], 0.35 * ps[i]);
         if (!VOWEL.has(cur) && cur !== "M" && cur !== "sil" && S.lastVw > 0) {
-          const P = POSE[VIS[S.lastV]], c = (cur === "T" ? 0.5 : 0.3) * S.lastVw;
-          for (const k in P[1]) if (k !== "Mouth_Press") tgt[k] += P[1][k] * c;
-          jaw += P[0] * c * 0.4;
+          const P2 = POSE[VIS[S.lastV]], c = (cur === "T" ? 0.5 : 0.3) * S.lastVw;
+          for (const k in P2[1]) if (k !== "Mouth_Press") tgt[k] += P2[1][k] * c;
+          jaw += P2[0] * c * 0.4;
           sw += c;
         }
         jaw /= sw;
@@ -2077,8 +2531,8 @@
         S.twT -= dt * S.idle;
         if (S.twT <= 0) {
           S.tw = 1;
-          S.twK = rnd2() < 0.5 ? 0 : 1;
-          S.twT = 2.5 + rnd2() * 5;
+          S.twK = rnd3() < 0.5 ? 0 : 1;
+          S.twT = 2.5 + rnd3() * 5;
         }
         S.tw = Math.max(0, S.tw - dt / 0.9);
         const tw = Math.sin(Math.min(1, S.tw) * Math.PI) * S.idle;
@@ -2096,8 +2550,8 @@
         }
         S.asymT -= dt;
         if (S.asymT <= 0) {
-          S.as = (rnd2() - 0.5) * 0.8;
-          S.asymT = 1.5 + rnd2() * 3;
+          S.as = (rnd3() - 0.5) * 0.8;
+          S.asymT = 1.5 + rnd3() * 3;
         }
         S.asym += (S.as - S.asym) * (1 - Math.exp(-dt / 0.8));
         return out;
@@ -2367,6 +2821,46 @@
       iii: "rire"
     };
     var LAUGH_SYL = { ha: 1, hi: 1, "hé": 1, he: 1, ah: 1 };
+    for (const w of ["grr", "grrr", "grrrr", "grrrrr", "rrrr"]) WORD_CAT[w] = "grr";
+    var FACHE_W = {
+      "fâché": 1,
+      "fâchée": 1,
+      "fâchés": 1,
+      "fâchées": 1,
+      "énervé": 1,
+      "énervée": 1,
+      "énervés": 1,
+      "énervées": 1,
+      "énerve": 1,
+      "m'énerve": 1,
+      "m'énervent": 1,
+      "énervent": 1,
+      "colère": 1,
+      "marre": 1
+    };
+    var CONTENT_W = { content: 1, contente: 1, contents: 1, contentes: 1 };
+    var NUL_BEFORE = { "c'est": 1, est: 1, trop: 1, vraiment: 1, super: 1, "archi": 1, "c'était": 1 };
+    var NEG = { pas: 1, jamais: 1 };
+    var RAS = { ras: 1, s: 1, rat: 1, rase: 1 };
+    var negated = (t, i) => {
+      for (let k = Math.max(0, i - 3); k < i; k++) if (NEG[t[k]]) return true;
+      return false;
+    };
+    function facheAt(t, i) {
+      const w = t[i];
+      if (CONTENT_W[w]) return negated(t, i);
+      if (w === "nul" || w === "nulle") return !!NUL_BEFORE[t[i - 1]] && !negated(t, i);
+      if (w === "bol") return t[i - 1] === "le" && RAS[t[i - 2]] && !negated(t, i - 2);
+      if (w === "ras-le-bol") return !negated(t, i);
+      return !!FACHE_W[w] && !negated(t, i);
+    }
+    var SEPT_END = { "c'est": 1, sais: 1 };
+    var sixSeptAt = (t, i) => {
+      const w = t[i], p = t[i - 1];
+      if ((w === "sept" || w === "seven" || w === "7") && (p === "six" || p === "6")) return true;
+      if (w === "cévennes" && (p === "si" || p === "six")) return true;
+      return SEPT_END[w] && p === "six" && i === t.length - 1;
+    };
     var FIN_MS = 120;
     var PEND_MS = 80;
     var PRIME_MS = 280;
@@ -2387,14 +2881,7 @@
     var toks = (text) => String(text || "").toLowerCase().split(/\s+/).filter(Boolean);
     function catsOf(text) {
       const out = [], t = toks(text);
-      for (let i = 0; i < t.length; i++) {
-        const c = WORD_CAT[t[i]];
-        if (c) out.push(c);
-        else if (LAUGH_SYL[t[i]] && LAUGH_SYL[t[i + 1]]) {
-          out.push("rire");
-          while (LAUGH_SYL[t[i + 1]]) i++;
-        }
-      }
+      for (const [, c] of keysOf(t)) out.push(c);
       return out;
     }
     function keysOf(t) {
@@ -2405,21 +2892,25 @@
         else if (LAUGH_SYL[t[i]] && LAUGH_SYL[t[i + 1]]) {
           while (LAUGH_SYL[t[i + 1]]) i++;
           out.push([i, "rire"]);
-        }
+        } else if (sixSeptAt(t, i)) out.push([i, "sixsept"]);
+        else if (facheAt(t, i)) out.push([i, "fache"]);
       }
       return out;
     }
     function createTrigger(o = {}) {
       const cool = o.cool == null ? 1500 : o.cool, pend = o.pend == null ? PEND_MS : o.pend, done = /* @__PURE__ */ new Set(), last = {};
+      let prev = null;
       const T4 = {
         hint: "",
         // kind : 'p' (partiel) | 'r' (résultat final : la phrase est finie) ; info.quiet = ms de silence après la voix à la fin du son décodé
         // rend la catégorie à jouer maintenant, ou ''
         feed(kind, text, now, info) {
-          const t = toks(text), quiet = info && info.quiet != null ? info.quiet : -1;
+          const t0 = toks(text), quiet = info && info.quiet != null ? info.quiet : -1;
           let fire = "";
           T4.hint = "";
+          const glue = prev && now - prev.t < 1500 && prev.w === "six" && t0.length ? 1 : 0, t = glue ? [prev.w].concat(t0) : t0;
           for (const [i, c] of keysOf(t)) {
+            if (glue && c !== "sixsept") continue;
             if (kind !== "r") {
               const followed = i < t.length - 1 && t.slice(i + 1).some((w) => w !== "[unk]");
               if (!followed && !(pend > 0 && quiet >= pend)) {
@@ -2439,15 +2930,143 @@
           if (kind === "r") {
             done.clear();
             T4.hint = "";
+            prev = t0.length ? { w: t0[t0.length - 1], t: now } : prev;
           }
           return fire;
+        },
+        // une catégorie jouée AILLEURS (grognement entendu au son) : même pause avant de la rejouer ; rend true si elle peut jouer maintenant
+        take(c, now) {
+          if (last[c] != null && now - last[c] < cool) return false;
+          last[c] = now;
+          return true;
         },
         reset() {
           done.clear();
           T4.hint = "";
+          prev = null;
         }
       };
       return T4;
+    }
+    var GRR = { win: 160, mn: 0.35, slow: 0.35, fast: 0.27, per: 0.45, need: 3, rmin: 17, rmax: 72, clean: 0.8, rclean: 45 };
+    function createGrowl(opt = {}) {
+      const P2 = Object.assign({}, GRR, opt), W = P2.win, SR = 16e3;
+      const a1 = Math.exp(-2 * Math.PI * 1e3 / SR), a8 = Math.exp(-2 * Math.PI * 70 / SR);
+      const env2 = new Float32Array(W), sl = new Float32Array(W / 10), d = new Float32Array(W), px = new Float32Array(400);
+      let l1 = 0, l2 = 0, e1 = 0, e2 = 0, k = 0, n = 0, wp = 0, run = 0, off = 0, on = false, loudN = 0;
+      const lagMin = Math.max(5, Math.ceil(500 / P2.rmax)), lagMax = Math.ceil(500 / P2.rmin);
+      const G = {
+        last: null,
+        // derniers traits (essais)
+        // f32 : morceau 16 kHz ; loud : la porte de voix entend une voix dans ce morceau ; rend 'fire' (début du grognement), 'hold' (il dure) ou ''
+        feed(f32, loud) {
+          let np = 0;
+          for (let i = 0; i < f32.length; i++) {
+            l1 = a1 * l1 + (1 - a1) * f32[i];
+            l2 = a1 * l2 + (1 - a1) * l1;
+            const r = l2 < 0 ? -l2 : l2;
+            if ((i & 3) === 0 && np < px.length) px[np++] = l2;
+            e1 = a8 * e1 + (1 - a8) * r;
+            e2 = a8 * e2 + (1 - a8) * e1;
+            if (++k === 32) {
+              k = 0;
+              env2[wp] = e2;
+              wp = (wp + 1) % W;
+              if (n < W) n++;
+            }
+          }
+          loudN = loud ? loudN + 1 : 0;
+          let ok = false;
+          if (n === W && loudN * f32.length >= W * 32) {
+            let m = 0;
+            for (let i = 0; i < W; i++) m += env2[i];
+            m /= W;
+            if (m > 1e-6) {
+              let sm2 = 0, mn = 9;
+              for (let j = 0; j < W / 10; j++) {
+                let q = 0;
+                for (let u = 0; u < 10; u++) q += env2[(wp + j * 10 + u) % W];
+                sl[j] = q / 10;
+                sm2 += sl[j];
+              }
+              sm2 /= W / 10;
+              let sv = 0;
+              for (let j = 0; j < W / 10; j++) {
+                sv += (sl[j] - sm2) * (sl[j] - sm2);
+                if (sl[j] < mn) mn = sl[j];
+              }
+              const slow = Math.sqrt(sv / (W / 10)) / sm2;
+              mn /= sm2;
+              let r0 = 0;
+              for (let i = 0; i < W; i++) {
+                d[i] = env2[(wp + i) % W] - sl[Math.floor(i / 10)];
+                r0 += d[i] * d[i];
+              }
+              const fast = Math.sqrt(r0 / W) / m;
+              let per = 0, prev = -2, cur = -2, rate = 0;
+              for (let L = lagMin - 1; L <= lagMax + 1; L++) {
+                let r = 0;
+                for (let i = L; i < W; i++) r += d[i] * d[i - L];
+                r /= r0 + 1e-12;
+                if (L - 1 >= lagMin && L - 1 <= lagMax && cur > prev && cur >= r && cur > per) {
+                  per = cur;
+                  rate = 500 / (L - 1);
+                }
+                prev = cur;
+                cur = r;
+              }
+              let pr = 0, f0 = 0;
+              {
+                const N2 = np, lo = 10, hi = Math.min(57, N2 >> 1);
+                let e0 = 0;
+                for (let i = 0; i < N2; i++) e0 += px[i] * px[i];
+                for (let L = lo; L <= hi; L++) {
+                  let r = 0, e12 = 0;
+                  for (let i = L; i < N2; i++) {
+                    r += px[i] * px[i - L];
+                    e12 += px[i - L] * px[i - L];
+                  }
+                  const c = r / Math.sqrt((e0 + 1e-12) * (e12 + 1e-12));
+                  if (c > pr) {
+                    pr = c;
+                    f0 = 4e3 / L;
+                  }
+                }
+              }
+              const sus = mn > P2.mn && slow < P2.slow, clean = pr >= P2.clean;
+              const pitchy = pr >= 0.5 && f0 > 0 && rate > 0 && (Math.abs(rate - f0) < 0.25 * f0 || Math.abs(2 * rate - f0) < 0.2 * f0);
+              ok = sus && !pitchy && (clean ? per >= P2.per + 0.05 && rate <= Math.min(P2.rclean, 0.6 * f0) : fast >= P2.fast || per >= P2.per);
+              G.last = { mn, slow, fast, per, rate, pr, f0, sus, ok };
+            }
+          } else G.last = null;
+          if (ok) {
+            run++;
+            off = 0;
+          } else {
+            run = 0;
+            off++;
+          }
+          if (!on && run >= P2.need) {
+            on = true;
+            return "fire";
+          }
+          if (on) {
+            if (off >= 4) {
+              on = false;
+              return "";
+            }
+            return "hold";
+          }
+          return "";
+        },
+        reset() {
+          l1 = l2 = e1 = e2 = 0;
+          k = n = wp = run = off = loudN = 0;
+          on = false;
+          env2.fill(0);
+        }
+      };
+      return G;
     }
     var TAP = `class JdwMots extends AudioWorkletProcessor {
       constructor(o) { super(); const p = (o && o.processorOptions) || {}; this.ch = p.ch || 640; this.step = sampleRate / 16000; this.ph = 0; this.prev = 0;
@@ -2585,7 +3204,9 @@
       });
       const onVoice = o.onVoice || (() => {
       }), onHint = o.onHint || (() => {
+      }), onGrowl = o.onGrowl || (() => {
       });
+      const GR = o.growl === false ? null : createGrowl(o.growlOpt);
       const S = {
         st: "off",
         model: null,
@@ -2629,7 +3250,9 @@
         mcMax: 0,
         mfSum: 0,
         mfN: 0,
-        mfMax: 0
+        mfMax: 0,
+        grrSon: 0,
+        grrT: -9
       };
       const trig = createTrigger({ cool: o.cool, pend: o.pendMs == null ? PEND_MS : o.pendMs });
       const set = (st, info) => {
@@ -2797,7 +3420,8 @@
         if (at && at.warm && S.warmRes) S.warmRes();
         if (!at || at.g !== S.gen) return;
         const quiet = at.loud >= 0 ? Math.max(0, (at.end - at.loud) / 16) : -1;
-        const c = trig.feed(kind, text, now, { quiet });
+        let c = trig.feed(kind, text, now, { quiet });
+        if (c && c !== "grr" && now - S.grrT < 600) c = "";
         if (trig.hint !== S.hint) {
           S.hint = trig.hint;
           try {
@@ -2854,6 +3478,23 @@
             }
           }
         } else if (S.voice) S.sil += f32.length / 16;
+        if (GR) {
+          const g = GR.feed(f32, loud), now = performance.now();
+          if (g) S.grrT = now;
+          if (g === "fire" && trig.take("grr", now)) {
+            S.grrSon++;
+            S.heard.grr = (S.heard.grr || 0) + 1;
+            try {
+              onWord("grr", { fin: null, calc: 0, final: false, son: true });
+            } catch (e) {
+            }
+          } else if (g === "hold") {
+            try {
+              onGrowl();
+            } catch (e) {
+            }
+          }
+        }
         if (gate && S.open && S.prime > 0) {
           if (!loud && !S.voice) {
             S.prime--;
@@ -2904,6 +3545,7 @@
       function begin() {
         S.gen++;
         trig.reset();
+        if (GR) GR.reset();
         S.loud = -1;
         S.voice = false;
         S.sil = 0;
@@ -2990,6 +3632,8 @@
           S.model = S.rec = null;
           set("off");
         },
+        // le grognement au son entend en ce moment un son TENU et rugueux (le rire « au ton » s'efface devant lui : un « rrr » n'est pas un rire)
+        rough: () => !!(GR && (GR.last && GR.last.ok || performance.now() - S.grrT < 300)),
         state: () => S.st,
         stats: () => ({
           morceaux: S.sent,
@@ -3009,6 +3653,7 @@
           moteurFinalMax: Math.round(S.mfMax),
           surPartielle: S.pfire,
           surFinal: S.rfire,
+          grrAuSon: S.grrSon,
           compris: Object.assign({}, S.heard),
           secondes: Math.round(S.secs),
           chargement: S.loadMs
@@ -3218,6 +3863,14 @@
               if (!dead && FRT.h === FRAMES.geste.h && FRT.y === FRAMES.geste.y) setFrame("corps");
             }, kind === "oui" ? 1750 : 1950);
           }
+        } else if (kind === "grr" || kind === "fache" || kind === "sixsept") {
+          view.target = 0;
+          A.lookAt = true;
+          A.lookTarget.set(0, kind === "grr" ? 0.02 : 0.05);
+          lookT = kind === "fache" ? 3.6 : 2.6;
+          if (kind === "grr") A.grr();
+          else if (kind === "fache") A.fache();
+          else A.sixSept();
         } else if (kind === "twirl") {
           view.spin = 1;
           view.target = null;
@@ -3262,6 +3915,17 @@
           if (opts.onGesture) opts.onGesture(k);
         }
       };
+      function faceRect() {
+        if (!ready || !A) return null;
+        const hb = A.bones.get("head");
+        if (!hb) return null;
+        const r = canvas.getBoundingClientRect(), c = hb.getWorldPosition(new T3.Vector3()), pt = (dx, dy) => {
+          const v = new T3.Vector3(c.x + dx, c.y + dy, c.z).project(cam);
+          return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height };
+        };
+        const a = pt(-0.13, 0.26), b = pt(0.13, -0.08);
+        return { left: Math.min(a.x, b.x), right: Math.max(a.x, b.x), top: Math.min(a.y, b.y), bottom: Math.max(a.y, b.y) };
+      }
       function hitAvatar(e) {
         const r = canvas.getBoundingClientRect(), p = (x2, y2) => {
           const v = new T3.Vector3(x2, y2, 0).project(cam);
@@ -3496,6 +4160,7 @@
         portrait,
         thumb,
         setFrame,
+        faceRect,
         setFocus(f) {
           view.focus = f;
           layout();
@@ -3591,6 +4256,7 @@
     android: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><path d="M14 30a18 18 0 0 1 36 0v18a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z"/><path d="M20 14l-4-6M44 14l4-6"/><circle cx="25" cy="24" r="1.6" fill="currentColor"/><circle cx="39" cy="24" r="1.6" fill="currentColor"/></svg>',
     phone: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><rect x="17" y="6" width="30" height="52" rx="7"/><path d="M28 50h8"/></svg>',
     shield: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><path d="M32 6l20 7v15c0 14-9 24-20 30C21 52 12 42 12 28V13z"/><path d="M24 32l6 6 11-12"/></svg>',
+    bald: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11c0-4.4 2.7-7.5 6-7.5s6 3.1 6 7.5v2c0 4.6-2.7 8-6 8s-6-3.4-6-8z"/><path d="M6 12.5c-1.3 0-2 .9-2 2s.8 2 2 2M18 12.5c1.3 0 2 .9 2 2s-.8 2-2 2"/><path d="M9 7.5c.8-1 1.8-1.4 3-1.4" opacity=".6"/></svg>',
     none: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5l11 11"/></svg>',
     star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.6 6.2 6.7.6-5.1 4.4 1.6 6.6L12 16.8l-5.8 3.5 1.6-6.6-5.1-4.4 6.7-.6z"/></svg>',
     hat: '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="15.5" rx="10.5" ry="3.6" opacity=".55"/><path d="M7 15c0-5 2.2-8 5-8s5 3 5 8c-3 .9-7 .9-10 0z"/><path d="M7.4 13.2c3 .8 6.2.8 9.2 0" stroke="#7a3d1f" stroke-width="1.4" fill="none"/></svg>',
@@ -3973,6 +4639,9 @@
 .pgh-cols .sws{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:7px;margin-top:9px}
 .pgh-sw{width:30px;height:30px;border-radius:50%;border:0;padding:0;justify-self:center}
 .pgh-sw.on{box-shadow:0 0 0 2.5px #1c1232,0 0 0 4.5px #ffcf73}
+.pgh-edg .pgh-mqt{grid-column:1 / -1;margin-top:0;padding-top:6px;border-top:0}
+.pgh-edg .pgh-mqt .chs .pgh-cc{pointer-events:none}
+.pgh-edn{grid-column:1 / -1;margin:0 2px;font:600 12px/1.35 ${FB};color:var(--soft)}
 .pgh-lock[data-r="secret"]{background:linear-gradient(135deg,rgba(120,80,220,.45),rgba(40,20,90,.55));box-shadow:inset 0 0 0 1px rgba(210,180,255,.55)}
 .pgh-lock[data-r="legend"]{background:linear-gradient(135deg,rgba(255,180,80,.32),rgba(120,60,140,.38));box-shadow:inset 0 0 0 1px rgba(255,210,130,.55)}
 .pgh-lock p .pgh-lu{width:14px;height:14px}
@@ -4440,7 +5109,7 @@
 <div class="pgh-modal pgh-micm" data-h="micm" role="dialog" aria-label="Le micro"><div class="pgh-mcard">
   <div class="ic">🎤</div><h3>Fais parler ton avatar</h3>
   <p>Parle, et la bouche de ton avatar bouge avec ta voix. Le son est analysé <b>ici, sur ton appareil</b> : rien n'est enregistré, rien n'est envoyé. Touche encore 🎤 pour couper le micro.</p>
-  <p data-h="micwords" hidden>Et dis-lui « oui », « non » ou « salut » (ou ris !) : il te répond d’un geste, tout de suite. Les mots sont reconnus <b>ici</b>, sans rien envoyer (la borne les prépare d’avance en Wi‑Fi).</p>
+  <p data-h="micwords" hidden>Et dis-lui « oui », « non » ou « salut » (ou ris, grogne « grrr », dis « pas content » ou « six-sept » !) : il te répond d’un geste, tout de suite. Les mots sont reconnus <b>ici</b>, sans rien envoyer (la borne les prépare d’avance en Wi‑Fi).</p>
   <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="micno">Pas maintenant</button><button class="pgh-cta gold" data-h="micok"><span>Autoriser le micro</span></button></div>
 </div></div>
 <div class="pgh-modal pgh-earm" data-h="earm" role="dialog" aria-label="Parle à ton avatar"><div class="pgh-mcard">
@@ -4492,11 +5161,12 @@
   const TIER2 = { basique: 'commun', joli: 'rare', rare: 'legend' };
   const EDCATS = [
     { k: 'perso', n: 'Personnages', ic: 'body', fr: 'corps' }, { k: 'corps', n: 'Corps', ic: 'me', fr: 'corps' }, { k: 'visage', n: 'Visage', ic: 'face', fr: 'visage' },
-    { k: 'cheveux', n: 'Coiffures', ic: 'hair', fr: 'tete' }, { k: 'barbe', n: 'Barbe', ic: 'beard', fr: 'visage' }, { k: 'haut', n: 'Hauts', ic: 'shirt', fr: 'buste' }, { k: 'bas', n: 'Bas', ic: 'pants', fr: 'jambes' },
+    { k: 'cheveux', n: 'Coiffures', ic: 'hair', fr: 'tete' }, { k: 'barbe', n: 'Barbe', ic: 'beard', fr: 'visage' }, { k: 'maquillage', n: 'Maquillage', ic: 'makeup', fr: 'visage' }, { k: 'haut', n: 'Hauts', ic: 'shirt', fr: 'buste' }, { k: 'bas', n: 'Bas', ic: 'pants', fr: 'jambes' },
     { k: 'tenue', n: 'Robes', ic: 'dress', fr: 'corps' }, { k: 'pieds', n: 'Chaussures', ic: 'shoe', fr: 'pieds' }, { k: 'chapeau', n: 'Chapeaux', ic: 'tophat', fr: 'tete' },
     { k: 'acc', n: 'Accessoires', ic: 'glasses', fr: 'buste' }];
   const SLOT_OF_CAT = { haut: ['top'], bas: ['bot'], tenue: ['ovr'], pieds: ['feet'], chapeau: ['hat', 'hacc'], acc: ['glass', 'glov'] };
   Object.assign(PGH_SVG, {
+    makeup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6v-8H9z"/><path d="M9.5 13l1-6.5c.2-1.2 2.8-1.2 3 0l1 6.5"/><path d="M11 6.5 12 3l1 3.5"/><path d="M18.5 6.5l1.2-1.2M19.5 10h1.6M4.5 10H2.9M5.5 6.5 4.3 5.3"/></svg>',
     face: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/><circle cx="15" cy="10.5" r="1" fill="currentColor"/><path d="M8.5 15c2 1.8 5 1.8 7 0"/></svg>',
     beard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9v3c0 5 3.2 9 7 9s7-4 7-9V9"/><path d="M8.5 14.5c1.2-1 2.2-1 3.5 0 1.3-1 2.3-1 3.5 0"/><path d="M5 9c2 1.5 4 2 7 2s5-.5 7-2"/></svg>',
     pants: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 3h12l1 18h-5l-2-11-2 11H5z"/></svg>',
@@ -4608,6 +5278,9 @@
         const bars = [];
         for (const el of els) { const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue; const op = +getComputedStyle(el).opacity; if (op < 0.1 || getComputedStyle(el.closest('.pgh-copy,.pgh-bottom') || el).opacity < 0.1) continue;
           const a = r.top - R.top, b = r.bottom - R.top, l = r.left - R.left, rr = r.right - R.left; if (b < 0 || a > R.height || rr < x0 || l > x1) continue; bars.push([a - 8, b + 8]); }
+        // hub 2.10 : jamais sur le VISAGE de l'avatar (gros plan du micro 🎤 : la bulle « 👎 non » tombait au milieu de la figure)
+        const fr = STG && STG.ready && STG.ready() && STG.faceRect ? STG.faceRect() : null;
+        if (fr) { const a = fr.top - R.top, b = fr.bottom - R.top, l = fr.left - R.left, rr = fr.right - R.left; if (!(b < 0 || a > R.height || rr < x0 || l > x1)) bars.push([a - 6, b + 6]); }
         bars.sort((u, v) => u[0] - v[0]);
         let y = 14, top = 14;
         for (const [a, b] of bars) { if (a - y >= h) break; y = Math.max(y, b); }
@@ -4642,6 +5315,7 @@
       if (d.elf) k.push('elf'); if (d.so && d.so[0]) k.push('so:' + d.so[0]);
       return k;
     }
+    const MKP = () => (PGM && PGM.MAKEUP) || {};   // maquillage (hub 2.10, src/maquillage.js)
     let FREE = null;
     function freeSet() {
       if (FREE || !CAT) return FREE || new Set();
@@ -4672,6 +5346,7 @@
       if (k.startsWith('fc:')) { const [r, p] = FACE_LOCK[+k.slice(3)] || ['commun', 120]; return { r, p }; }
       if (k.startsWith('pu:')) return { r: 'commun', p: 80 };
       if (k === 'elf') return { r: 'legend', p: 400 };
+      if (k.startsWith('fx:') && MKP()[k.slice(3)] && MKP()[k.slice(3)].r) { const m = MKP()[k.slice(3)]; return { r: m.r, p: m.p }; }   // maquillage (hub 2.10)
       if (k.startsWith('fx:') || k.startsWith('so:')) { const l = CAT && CAT.layers[k.slice(3)]; return { r: TIER2[(l && l.tier) || 'basique'] || 'commun', p: Math.max(40, (l && l.price) || 0) }; }
       if (k === 'cam') return { r: 'cadeau', how: REWARD.cam };
       const it = ITEMS && ITEMS.get(k); if (!it) return { r: 'commun', p: 60 };
@@ -4687,6 +5362,7 @@
       if (k.startsWith('pu:')) return 'Pupilles de chat';
       if (k === 'elf') return 'Oreilles d\'elfe';
       if (k === 'cam') return 'Appareil photo d\'explorateur';
+      if (k.startsWith('fx:') && MKP()[k.slice(3)]) return MKP()[k.slice(3)].n;
       if (k.startsWith('fx:') || k.startsWith('so:')) { const l = CAT && CAT.layers[k.slice(3)]; return (l && l.name) || k; }
       const it = ITEMS && ITEMS.get(k); return it ? it.name : k;
     }
@@ -5098,7 +5774,7 @@
         if (dead) return;
         needPack('perso', (k) => { prog.p = k; upd(); }).catch(() => {});
         needPack('garde.' + ['sally', 'chloe', 'mary', 'zulle', 'javi', 'john', 'galvon'][preset], (k) => { prog.g = k; upd(); }).catch(() => {});
-        const mod = PG_FACTORY((n) => (n === 'three' ? window.JDW_PG3 : { env })); PGM = mod;
+        const mod = PG_FACTORY((n) => (n === 'three' ? window.JDW_PG3 : { env })); PGM = mod; if (window.JDW_PG_TEST) window.__pgPGM = mod; if (CAT) try { renderShowcase(); } catch (e) { /* rien */ }   // noms et vignettes du maquillage (hub 2.10)
         const SG = await mod.create($.gl, { onFrame: onHead, onGesture: gestured, keep: !!window.JDW_PG_TEST });
         if (dead) { SG.dispose(); return; }
         STG = SG; placeStage(); activeSync();
@@ -5405,7 +6081,7 @@
       // ancienne version du modèle gardée par le navigateur : place libérée avant la nouvelle (jamais pendant une installation)
       if (have && have !== String(MOTS_V) && !cached && !MOTS.inst) { try { indexedDB.deleteDatabase('/vosk'); } catch (e) { /* rien */ } }
       WD.w = PGM.createWords({ voskUrl: U.vosk, modelUrl: U.model, cached, wait: MOTS.inst, slow: (window.JDW_PG_TEST && +window.JDW_PG_SLOW) || 0, onWord: wordHeard, onState: wordsState, diag: wordsDiag, onProgress: onProg,
-        onHint: (c) => { WD.hint = c === 'rire' ? '' : c; }, onVoice: (v, ms) => { if (!MIC.on || !STG || !STG.A || !STG.A.listen || editing || friendOn) return; if (v) STG.A.listen(); else if (ms < 1300) STG.A.ack(); } });
+        onHint: (c) => { WD.hint = c === 'oui' || c === 'non' || c === 'salut' ? c : ''; }, onGrowl: growlHold, onVoice: (v, ms) => { if (!MIC.on || !STG || !STG.A || !STG.A.listen || editing || friendOn) return; if (v) STG.A.listen(); else if (ms < 1300) STG.A.ack(); } });
       if (MOTS.inst) { const off = motsListen((ph, f) => onProg(ph, f)); MOTS.inst.then(off, off); }
       return true;
     }
@@ -5441,17 +6117,27 @@
     }
     function wordHeard(cat, info) {
       if (dead || !MIC.on || !STG || !STG.ready() || editing || friendOn) return;
-      wordsDiag('heard:' + cat, 'mots : entendu « ' + cat + ' » (' + (info.fin == null ? '?' : info.fin) + ' ms après le mot)', { fin: info.fin, calc: info.calc, final: info.final });
+      if (info.son) wordsDiag('heard:grr-son', 'mots : grognement « grrr » entendu au son');
+      else wordsDiag('heard:' + cat, 'mots : entendu « ' + cat + ' » (' + (info.fin == null ? '?' : info.fin) + ' ms après le mot)', { fin: info.fin, calc: info.calc, final: info.final });
       if (window.JDW_PG_TEST) (window.__pgWORDS = window.__pgWORDS || []).push([cat, info.fin, info.calc, performance.now()]);
       if (cat === 'rire') { laughGo('mot', 1); return; }
       WD.hint = '';
       const k = cat === 'salut' ? 'wave' : cat;
-      STG.gesture(k); hintOff();
+      if (k === 'grr' && STG.A && STG.A.laughT > 0) STG.A.laughT = Math.min(STG.A.laughT, 0.3);   // il grogne : le rire s'arrête
+      if (!STG.gesture(k)) return;
+      hintOff();
+      if (window.JDW_PG_TEST) (window.__pgGEST = window.__pgGEST || []).push([k, performance.now(), info.son ? 'son' : 'mot']);
       const b = box.querySelector(`.pgh-emotes .pgh-emo[data-emo="${k}"]`); if (b) { b.classList.add('hit'); later(() => b.classList.remove('hit'), 600); }
-      if (k === 'wave') {   // micro ouvert = gros plan sur la tête : on recule un peu le temps du coucou (le bras se voit), puis on revient
-        STG.setFrame('geste'); clearTimeout(WD.frT); WD.frT = later(() => { if (MIC.on && STG && !editing && !friendOn) STG.setFrame('parle'); }, 2500);
-      }
-      toast(cat === 'oui' ? '👍 oui' : cat === 'non' ? '👎 non' : '👋 salut', 900);
+      // micro ouvert = gros plan sur la tête : on recule un peu le temps du coucou, de « pas content » (poings sur les hanches) et du six-sept
+      // (les mains), puis on revient ; « grr » reste en gros plan (les dents se voient)
+      const back = { wave: 2500, fache: 3700, sixsept: 3100 }[k];
+      if (back) { STG.setFrame('geste'); clearTimeout(WD.frT); WD.frT = later(() => { if (MIC.on && STG && !editing && !friendOn && !(STG.A && STG.A.busy && (STG.A.facheT > 0.4 || STG.A.ssT > 0.4))) STG.setFrame('parle'); }, back); }
+      // hub 2.10 : PLUS d'étiquette du mot (« 👍 oui »…) devant l'avatar — elle cachait le visage ; le geste seul suffit (journal d'essai : __pgGEST)
+    }
+    // grognement entendu au SON qui dure : l'avatar continue de grogner tant que tu grognes
+    function growlHold() {
+      if (dead || !MIC.on || !STG || !STG.ready() || editing || friendOn || !STG.A || !STG.A.grrHold) return;
+      if (STG.A.grrT > 0) STG.A.grrHold();
     }
 
     // RIRE (1.20.5) : rire entendu au micro (au TON : MIC.laughOn, ou aux MOTS : « haha », « hihi », « mdr ») → l'avatar RIT : yeux plissés,
@@ -5474,6 +6160,8 @@
       WD.lfT = later(() => { if (MIC.on && STG && !editing && !friendOn && !(STG.A.laughT > 0)) STG.setFrame('parle'); }, 700);
     }
     function laughTick(dt) {
+      if (MIC.laughOn && WD.w && WD.w.rough && WD.w.rough()) { WD.laughD = 0; return; }   // hub 2.10 : un « grrr » roulé n'est pas un rire
+      if (MIC.laughOn && STG && STG.A && STG.A.grrT > 0) { WD.laughD = 0; return; }
       if (MIC.laughOn) { WD.laughD += dt; laughGo('ton', Math.min(1, 0.45 + WD.laughD * 0.6)); } else WD.laughD = 0;
     }
 
@@ -5907,7 +6595,7 @@
     // ---------- le CRÉATEUR, sur place (panneau du bas ; à droite en paysage) ----------
     let cat = store.get('jdw.pegase.edcat') || 'perso', hist = [], tryKey = '', colorSlot = '', colorCh = 0;
     if (!EDCATS.some((c) => c.k === cat)) cat = 'perso';
-    const FR_CAT = { perso: 'corps', corps: 'corps', visage: 'visage', cheveux: 'tete', barbe: 'visage', haut: 'buste', bas: 'jambes', tenue: 'corps', pieds: 'pieds', chapeau: 'tete', acc: 'buste' };
+    const FR_CAT = { perso: 'corps', corps: 'corps', visage: 'visage', cheveux: 'tete', barbe: 'visage', maquillage: 'visage', haut: 'buste', bas: 'jambes', tenue: 'corps', pieds: 'pieds', chapeau: 'tete', acc: 'buste' };
     function tile(o) {   // o : { k (clé), act, v, name, th (html vignette), ico (chemin d'icône), on, sw (pastille de couleur) }
       const L = o.free ? null : lockOf(o.k), sec = L && L.r === 'secret';
       const cls = 'pgh-ch' + (o.on ? ' on' : '') + (L ? ' lk r-' + L.r : '') + (o.sw ? ' sw' : '') + (tryKey && tryKey === o.k ? ' try' : '');
@@ -5929,7 +6617,7 @@
     const countOf = (c) => CAT.items.filter((i) => i.cat === c).length;
     function catCount(k) {
       if (!CAT) return '';
-      return { perso: 7, corps: 2 + CAT.skin.length, visage: 6 + CAT.eyes.length + 2 + 4 + 6 + 1, barbe: countOf('beard'), cheveux: countOf('hb') + countOf('hf') + CAT.hairUI.length,
+      return { perso: 7, corps: 2 + CAT.skin.length, visage: 6 + CAT.eyes.length + 2 + 4 + 2, barbe: countOf('beard'), maquillage: Object.keys(MKP()).length, cheveux: countOf('hb') + countOf('hf') + CAT.hairUI.length,
         haut: countOf('top'), bas: countOf('bot'), tenue: countOf('ovr'), pieds: countOf('feet') + 6, chapeau: countOf('hat') + countOf('hacc'), acc: countOf('glass') + countOf('glov') + 1 }[k];
     }
     function gridHTML(k) {
@@ -5947,20 +6635,25 @@
         h += sec('Pupilles', 2) + list(['basic', 'sharp'].map((p) => ({ k: 'pu:' + p, act: 'pu', v: p, name: CAT.layers['pupil.' + p].name, ico: CAT.layers['pupil.' + p].icon, on: d.pu === p })));
         h += sec('Sourcils et cils', 4) + CAT.items.filter((i) => i.cat === 'brow').map((i) => tile({ k: i.id, act: 'br', v: i.id, name: i.name, th: `<span class="ico face">${browSVG(i.id.includes('thick'))}</span>`, on: d.br === i.id })).join('') +
           CAT.items.filter((i) => i.cat === 'lash').map((i) => tile({ k: i.id, act: 'la', v: i.id, name: i.name, th: `<span class="ico face">${lashSVG(i.id.includes('long'))}</span>`, on: d.la === i.id })).join('');
-        const fxs = ['freckles.light', 'freckles.full', 'blush', 'lips', 'liner', 'age'];
-        h += sec('Petits détails', 7) + list(fxs.map((f) => ({ k: 'fx:' + f, act: 'fx', v: f, name: CAT.layers[f].name, ico: CAT.layers[f].icon, on: (d.fx || []).includes(f) })).concat([
+        const fxs = ['age'];   // rouge à lèvres, eye-liner, joues roses, taches de rousseur : dans « Maquillage » (hub 2.10)
+        h += sec('Petits détails', 2) + list(fxs.map((f) => ({ k: 'fx:' + f, act: 'fx', v: f, name: CAT.layers[f].name, ico: CAT.layers[f].icon, on: (d.fx || []).includes(f) })).concat([
           { k: 'elf', act: 'elf', v: 1, name: 'Oreilles d\'elfe', th: `<span class="ico">${PGH_SVG.ear}</span>`, on: !!d.elf }]));
-      } else if (k === 'barbe') {
+      } else if (k === 'maquillage') h += makeupHTML(d);
+      else if (k === 'barbe') {
         h += sec('Barbes et moustaches', countOf('beard')) + itemTiles('beard', 'beard');
         h += sec('Couleur (celle des cheveux)', CAT.hairUI.length) + list(CAT.hairUI.map((i) => ({ k: 'hc:' + i, act: 'hc', v: i, name: CAT.palette[i][0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.4))"></span>`, on: d.hc === i })));
       } else if (k === 'cheveux') {
-        h += sec('Coiffure (derrière)', countOf('hb')) + itemTiles('hb', 'hb') + sec('Frange (devant)', countOf('hf')) + itemTiles('hf', 'hf');
-        const strands = !!(STG && STG.A && STG.A.hairStrands && STG.A.hairStrands().length);
-        h += `<div class="pgh-sl${strands ? '' : ' off'}"><label>Longueur</label><span>courts</span><input type="range" min="70" max="140" value="${Math.round((d.hl || 1) * 100)}" data-a="hl"${strands ? '' : ' disabled'}><span>longs</span>${strands ? '' : '<em>Cette coiffure n\'a pas de mèches à allonger : choisis-en une plus longue.</em>'}</div>`;
+        // CHAUVE (hub 2.10.1) : retire TOUTES les pièces de cheveux (coiffure ET frange : la frange est une pièce à part, elle restait accrochée
+        // quand on ne retirait que la coiffure) ; sourcils, cils et barbe restent. « Rien » de la frange ne retire que la frange.
+        const bald = !d.it.hb && !d.it.hf;
+        // LONGUEUR (hub 2.10.1) : pour TOUTES les coupes (forme HairLen de l'avatar), en haut de la rangée pour qu'on la voie ; chauve : rien à régler
+        h += `<div class="pgh-sl${bald ? ' off' : ''}"><label>Longueur</label><span>courts</span><input type="range" min="70" max="145" value="${Math.round((d.hl || 1) * 100)}" data-a="hl"${bald ? ' disabled' : ''}><span>longs</span>${bald ? '<em>Chauve : pas de cheveux à allonger.</em>' : ''}</div>`;
+        h += sec('Coiffure (derrière)', countOf('hb') + 1) + `<button class="pgh-ch none${bald ? ' on' : ''}" data-a="chauve" data-v="" data-key="" aria-label="Chauve"><span class="th"><span class="ico">${PGH_SVG.bald}</span></span><span>Chauve</span></button>` +
+          itemTiles('hb', 'hb', null, false) + sec('Frange (devant)', countOf('hf')) + itemTiles('hf', 'hf');
         h += sec('Couleur des cheveux', CAT.hairUI.length) + list(CAT.hairUI.map((i) => ({ k: 'hc:' + i, act: 'hc', v: i, name: CAT.palette[i][0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.4))"></span>`, on: d.hc === i })));
-      } else if (k === 'haut') h += sec('Hauts', countOf('top')) + itemTiles('top', 'top');
+      } else if (k === 'haut') h += sec('Hauts', countOf('top')) + itemTiles('top', 'top') + underHTML(d);
       else if (k === 'bas') h += sec('Bas', countOf('bot')) + itemTiles('bot', 'bot');
-      else if (k === 'tenue') h += sec('Robes et salopette', countOf('ovr')) + itemTiles('ovr', 'ovr');
+      else if (k === 'tenue') h += sec('Robes et salopette', countOf('ovr')) + itemTiles('ovr', 'ovr') + underHTML(d);
       else if (k === 'pieds') {
         h += sec('Chaussures', countOf('feet')) + itemTiles('feet', 'feet');
         const so = ['socks.ankle', 'socks.basic', 'socks.knee', 'socks.thigh', 'socks.stirrup', 'socks.tights'];
@@ -5971,6 +6664,55 @@
         h += sec('Appareil photo') + none('cam', !d.it.cam) + tile({ k: 'cam', act: 'cam', v: 1, name: 'Appareil d\'explorateur', th: `<span class="ico">${PGH_SVG.cam}</span>`, on: !!d.it.cam });
       }
       return h;
+    }
+    // MAQUILLAGE (hub 2.10) : 4 rangées (lèvres, yeux, joues, peintures de visage), chaque calque VERROUILLÉ au départ (prix du serveur,
+    // « Acheter » comme les autres pièces), on peut l'essayer ; teintes de chaque calque porté (ouvertes une fois le calque à toi).
+    // Peintures « grand visage » (papillon, tigre, chat, héros) : une seule à la fois. Format : d.fx (calques) + d.fxc (teintes), voir maquillage.js
+    const swatch = (i) => `radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.35))`;
+    function mqIcon(id) {
+      const m = MKP()[id], c = (m && m.d || [12]).map(palHex), on = (s) => `<svg viewBox="0 0 64 64">${s}</svg>`;
+      const face = '<path d="M32 8C19 8 12 18 12 31c0 14 9 25 20 25s20-11 20-25C52 18 45 8 32 8z" fill="#f2c7a3" stroke="#c48a66" stroke-width="1.4"/>';
+      const eyes = '<ellipse cx="23" cy="30" rx="4" ry="3" fill="#3a2416"/><ellipse cx="41" cy="30" rx="4" ry="3" fill="#3a2416"/>', mouth = '<path d="M26 44q6 3 12 0" stroke="#8a3a2a" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
+      const I = {
+        'lips': face + eyes + `<path d="M24 43q4-4 8-1 4-3 8 1-4 6-8 6t-8-6z" fill="${c[0]}"/>`,
+        'mq.gloss': face + eyes + `<path d="M24 43q4-4 8-1 4-3 8 1-4 6-8 6t-8-6z" fill="${c[0]}" opacity=".75"/><path d="M33 46h4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`,
+        'mq.fard': face + `<path d="M16 28q7-8 14 0M34 28q7-8 14 0" stroke="${c[0]}" stroke-width="6" fill="none" stroke-linecap="round"/>` + eyes + mouth,
+        'liner': face + eyes + `<path d="M17 28q6-4 12 0l3-2M35 28q6-4 12 0l3-2" stroke="${c[0]}" stroke-width="2.4" fill="none" stroke-linecap="round"/>` + mouth,
+        'mq.paillettes': face + eyes + mouth + [[18, 24], [27, 22], [44, 23], [38, 22], [17, 38], [46, 38], [21, 41], [43, 41]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="${c[0]}"/>`).join('') + `<path d="M48 18l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z" fill="${c[0]}"/>`,
+        'blush': face + eyes + mouth + `<ellipse cx="20" cy="39" rx="5" ry="3.4" fill="${c[0]}" opacity=".7"/><ellipse cx="44" cy="39" rx="5" ry="3.4" fill="${c[0]}" opacity=".7"/>`,
+        'freckles.light': face + eyes + mouth + [[18, 37], [22, 39], [20, 35], [42, 37], [46, 39], [44, 35]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.1" fill="${c[0]}"/>`).join(''),
+        'freckles.full': face + eyes + mouth + [[16, 36], [19, 39], [22, 36], [25, 40], [20, 33], [39, 40], [42, 36], [45, 39], [48, 36], [44, 33], [30, 36], [34, 36]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.1" fill="${c[0]}"/>`).join(''),
+        'mq.coeur': face + eyes + mouth + `<path d="M44 44c-6-4-7-8-4-9 2-.6 3 .8 4 2 1-1.2 2-2.6 4-2 3 1 2 5-4 9z" fill="${c[0]}"/>`,
+        'mq.etoiles': face + eyes + mouth + `<path d="M48 36l1.6 3.4 3.7.4-2.8 2.5.8 3.7-3.3-1.9-3.3 1.9.8-3.7-2.8-2.5 3.7-.4z" fill="${c[0]}"/><circle cx="45" cy="27" r="1.8" fill="${c[0]}"/>`,
+        'mq.arcenciel': face + eyes + mouth + `<path d="M12 44a8 8 0 0 1 16 0" stroke="${c[0]}" stroke-width="2.6" fill="none"/><path d="M15 44a5 5 0 0 1 10 0" stroke="${c[1]}" stroke-width="2.6" fill="none"/><path d="M18 44a2 2 0 0 1 4 0" stroke="${c[2]}" stroke-width="2.6" fill="none"/>`,
+        'mq.chat': face + eyes + `<ellipse cx="32" cy="38" rx="4" ry="2.6" fill="${c[0]}"/><path d="M32 40v5M13 40l12 1M13 45l12-2M51 40l-12 1M51 45l-12-2" stroke="${c[0]}" stroke-width="1.6" stroke-linecap="round"/>`,
+        'mq.heros': face + `<path d="M12 27q4-8 14-6 6 1 6 4 0-3 6-4 10-2 14 6-2 8-12 8-6 0-8-4-2 4-8 4-10 0-12-8z" fill="${c[0]}" stroke="${c[1]}" stroke-width="1.4"/>` + eyes + mouth,
+        'mq.papillon': face + `<ellipse cx="22" cy="25" rx="10" ry="7" fill="${c[0]}" stroke="${c[1]}" stroke-width="1.2" transform="rotate(-20 22 25)"/><ellipse cx="42" cy="25" rx="10" ry="7" fill="${c[0]}" stroke="${c[1]}" stroke-width="1.2" transform="rotate(20 42 25)"/><ellipse cx="23" cy="37" rx="6" ry="4.5" fill="${c[0]}" stroke="${c[1]}" stroke-width="1.2"/><ellipse cx="41" cy="37" rx="6" ry="4.5" fill="${c[0]}" stroke="${c[1]}" stroke-width="1.2"/><rect x="30.6" y="20" width="2.8" height="18" rx="1.4" fill="${c[1]}"/>` + eyes + mouth,
+        'mq.tigre': face.replace('#f2c7a3', c[0]) + `<ellipse cx="32" cy="45" rx="8" ry="5" fill="#fff"/><path d="M14 30l8 2M13 36l9 1M50 30l-8 2M51 36l-9 1M32 9v7M26 11l2 5M38 11l-2 5" stroke="${c[1]}" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="32" cy="39" rx="3.4" ry="2.4" fill="${c[1]}"/>` + eyes,
+      };
+      return `<span class="ico face">${on(I[id] || face + eyes + mouth)}</span>`;
+    }
+    function makeupHTML(d) {
+      const MK = MKP(), fx = d.fx || []; let h = '';
+      for (const [g, title] of (PGM && PGM.MAKEUP_ROWS) || []) {
+        const ids = Object.keys(MK).filter((id) => MK[id].g === g);
+        h += sec(title, ids.length) + list(ids.map((id) => ({ k: 'fx:' + id, act: 'fx', v: id, name: MK[id].n, th: mqIcon(id), on: fx.includes(id) })));
+        for (const id of ids) {
+          if (!fx.includes(id) || !MK[id].tint) continue;
+          const cur = PGM.makeupCols(d, id)[0];
+          h += `<div class="pgh-cols pgh-mqt"><div class="chs"><span class="pgh-cc on"><i style="background:${palHex(cur)}"></i>Teinte · ${esc(MK[id].n)}</span></div><div class="sws">` +
+            MK[id].tint.map((i) => `<button class="pgh-sw${i === cur ? ' on' : ''}" data-a="fxc" data-v="${esc(id)}|${i}" style="background:${swatch(i)}" title="${esc(CAT.palette[i][0])}" aria-label="${esc(CAT.palette[i][0])}"></button>`).join('') + '</div></div>';
+        }
+      }
+      return h;
+    }
+    // MAILLOT DE CORPS (hub 2.10) : le haut beige qu'on voit sous les robes d'été, les débardeurs, les hauts ouverts… est un calque à part
+    // (« under.top » du pack, peint sur le corps) : sa couleur se choisit ici (gratuit) ; d.ut = ['under.top', couleur 1, couleur 2]
+    function underHTML(d) {
+      const ut = Array.isArray(d.ut) && d.ut[0] ? d.ut : null, cur = ut ? ut[1] : -1;
+      return sec('Maillot de corps (dessous)') + `<p class="pgh-edn">Le haut qu’on voit sous une robe d’été, un débardeur ou une veste ouverte.</p><div class="pgh-cols pgh-mqt"><div class="sws">` +
+        `<button class="pgh-sw${cur < 0 ? ' on' : ''}" data-a="ut" data-v="" style="background:radial-gradient(circle at 35% 30%,#ece6da,#ece6da 50%,rgba(0,0,0,.35))" title="Beige (d’origine)" aria-label="Beige (d’origine)"></button>` +
+        CAT.fabricUI.map((i) => `<button class="pgh-sw${i === cur ? ' on' : ''}" data-a="ut" data-v="${i}" style="background:${swatch(i)}" title="${esc(CAT.palette[i][0])}" aria-label="${esc(CAT.palette[i][0])}"></button>`).join('') + '</div></div>';
     }
     // couleurs de la pièce choisie (tissus : toutes ouvertes)
     function colorsHTML() {
@@ -6019,7 +6761,7 @@
     let lookT = 0;
     function apply(spark) {
       renderEd();
-      if (STG) { const k = ++lookT; STG.setLook(D).then(() => { if (dead || !STG || k !== lookT) return; if (spark) STG.gesture('spark'); if (cat === 'cheveux') { const sl = $.dgrid.querySelector('[data-a="hl"]'), on = STG.A.hairStrands().length > 0; if (sl && sl.disabled === on) renderEd(); } }); }
+      if (STG) { const k = ++lookT; STG.setLook(D).then(() => { if (dead || !STG || k !== lookT) return; if (spark) STG.gesture('spark'); if (cat === 'cheveux') { const sl = $.dgrid.querySelector('[data-a="hl"]'), on = STG.A.hasHair(); if (sl && sl.disabled === on) renderEd(); } }); }
     }
     function change(fn, k, spark = true) {
       hist.push({ d: lookCopy(D), p: preset, t: tryKey }); if (hist.length > 60) hist.shift();
@@ -6033,6 +6775,7 @@
         const it = ITEMS.get(id), old = d.it[slot];
         d.it[slot] = [id, ...it.ch.map((c, i) => (old && old[0] !== id && old[i + 1] != null && !it.hair ? old[i + 1] : c.c))];
         if (slot === 'ovr') { delete d.it.top; delete d.it.bot; }
+        if (slot === 'hb' && id === 'hb.buzzed') delete d.it.hf;   // « Rasé » : pas de frange qui flotte devant (on peut en remettre une ensuite)
         if ((slot === 'top' || slot === 'bot') && d.it.ovr) { delete d.it.ovr; if (!d.it.top && slot === 'bot') d.it.top = ['top.shirt']; if (!d.it.bot && slot === 'top') d.it.bot = ['bot.shorts']; }
       }, id);
     }
@@ -6099,12 +6842,15 @@
       if (k && k === tryKey && b.dataset.lock && b.dataset.lock !== 'secret' && canBuy(lockOf(k)) && lockedIn(D).includes(k)) { openBuy(k); return; }
       if (b.dataset.lock === 'secret') { hist.push({ d: lookCopy(D), p: preset, t: tryKey }); tryKey = k; renderEd(); $.lock.classList.add('on'); renderSecret(k); tone(880, 1320); return; }
       if (a === 'look') { const i = +v; change((d) => { const n = STG.descOf(i); for (const x of Object.keys(d)) delete d[x]; Object.assign(d, n); preset = i; }, 'look:' + i); if (STG) STG.gesture('jump'); return; }
+      if (a === 'chauve') { change((d) => { delete d.it.hb; delete d.it.hf; delete d.hl; }, ''); return; }
       if (a.startsWith('it:')) { setItem(a.slice(3), v); return; }
       if (a === 'g') { change((d) => { d.g = v; d.bd[0] = v === 'm' ? 1 : 0; d.bd[1] = v === 'f' ? 0.55 : 0; }, ''); return; }
       if (a === 'sk' || a === 'ey' || a === 'fc') { change((d) => { d[a] = +v; }, k, false); return; }
       if (a === 'pu' || a === 'br' || a === 'la') { change((d) => { d[a] = v; }, k, false); return; }
       if (a === 'hc') { change((d) => { d.hc = +v; d.hc2 = +v; }, k, false); return; }
-      if (a === 'fx') { change((d) => { d.fx = d.fx || []; const i = d.fx.indexOf(v); if (i >= 0) d.fx.splice(i, 1); else { if (v.startsWith('freckles')) d.fx = d.fx.filter((x) => !x.startsWith('freckles')); d.fx.push(v); } }, k); return; }
+      if (a === 'fx') { change((d) => { d.fx = d.fx || []; const i = d.fx.indexOf(v); if (i >= 0) d.fx.splice(i, 1); else { const ex = MKP()[v] && MKP()[v].ex; if (v.startsWith('freckles')) d.fx = d.fx.filter((x) => !x.startsWith('freckles')); if (ex) d.fx = d.fx.filter((x) => !(MKP()[x] && MKP()[x].ex === ex)); d.fx.push(v); } }, k); return; }
+      if (a === 'fxc') { const [id, ci] = String(v).split('|'); change((d) => { d.fxc = d.fxc || {}; const c = PGM.makeupCols(d, id); c[0] = +ci; d.fxc[id] = c; }, '', false); return; }
+      if (a === 'ut') { change((d) => { if (v === '') delete d.ut; else d.ut = ['under.top', +v, +v]; }, '', false); return; }
       if (a === 'elf') { change((d) => { d.elf = d.elf ? 0 : 1; }, k); return; }
       if (a === 'so') { change((d) => { d.so = v ? [v, (d.so && d.so[1]) || 0] : null; }, k); return; }
       if (a === 'cam') { change((d) => { if (v) d.it.cam = d.it.cam || ['cam', 9, 40, 53]; else delete d.it.cam; }, v ? 'cam' : ''); return; }
@@ -6139,12 +6885,12 @@
     on($.wrrow, 'click', (e) => { const b = e.target.closest('[data-key]'); if (!b) return; const k = b.dataset.key, c = b.dataset.cat; openEdit(c, k); });
     on(window, 'keydown', (e) => { if (e.key === 'Escape') { if (BUY) closeBuy(); else if (editing) cancelEdit(); else if (friendOn) closeFriend(); } });
     // vitrine « à débloquer » de l'onglet Moi : une sélection de belles pièces verrouillées (+ un secret)
-    const SHOWCASE = [['ovr.smart_dress', 'tenue'], ['hat.fedora', 'chapeau'], ['hb.twin_tail_long', 'cheveux'], ['look:3', 'perso'], ['top.seifuku', 'haut'], ['feet.high_lace_shoe', 'pieds'], ['glass.round_shaded', 'acc'], ['hacc.alien_attena', 'chapeau'], ['hb.wild_tail', 'cheveux'], ['top.hoodie', 'haut'], ['elf', 'visage']];
+    const SHOWCASE = [['ovr.smart_dress', 'tenue'], ['fx:mq.papillon', 'maquillage'], ['hat.fedora', 'chapeau'], ['hb.twin_tail_long', 'cheveux'], ['look:3', 'perso'], ['top.seifuku', 'haut'], ['feet.high_lace_shoe', 'pieds'], ['glass.round_shaded', 'acc'], ['hacc.alien_attena', 'chapeau'], ['hb.wild_tail', 'cheveux'], ['top.hoodie', 'haut'], ['elf', 'visage']];
     function renderShowcase() {
       if (!CAT) return;
       $.wrrow.innerHTML = SHOWCASE.filter(([k]) => !owned(k)).map(([k, c]) => {
         const it = ITEMS.get(k);
-        return tile({ k, act: 'show', v: k, name: keyName(k), ico: it && it.icon, th: k.startsWith('look:') ? `<img class="full" alt="" data-t="${k.slice(5)}"${STORE.thumbs.has('o' + k.slice(5)) ? ` src="${STORE.thumbs.get('o' + k.slice(5))}"` : ''}>` : k === 'elf' ? `<span class="ico">${PGH_SVG.ear}</span>` : '' }).replace('<button ', `<button data-cat="${c}" `);
+        return tile({ k, act: 'show', v: k, name: keyName(k), ico: it && it.icon, th: k.startsWith('look:') ? `<img class="full" alt="" data-t="${k.slice(5)}"${STORE.thumbs.has('o' + k.slice(5)) ? ` src="${STORE.thumbs.get('o' + k.slice(5))}"` : ''}>` : k === 'elf' ? `<span class="ico">${PGH_SVG.ear}</span>` : k.startsWith('fx:') && MKP()[k.slice(3)] ? mqIcon(k.slice(3)) : '' }).replace('<button ', `<button data-cat="${c}" `);
       }).join('');
       fillIcons($.wrrow); fillThumbs($.wrrow);
     }
