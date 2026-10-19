@@ -1,14 +1,14 @@
 {
-  "version": "0.7 (essai 7)",
-  "size": 848559340,
-  "sha256": "311fedd995a914e4fcb579ad530d71fa391196f797790643562e2ebeea9e92c0",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v7/Pegase-PC-2026-10-18-telephone.zip",
+  "version": "0.7.1 (essai 8)",
+  "size": 1006717267,
+  "sha256": "9df82ef85b819b2122dcd026793091cf23c8261597698d28bcce76c5f8f21863",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v8/Pegase-PC-2026-10-19-ultra.zip",
   "notes": [
-    "Le téléphone de ton avatar (touche T) : Photo, Album, Missions, Contacts, Carte, Messages, Réglages",
-    "Le maire t'appelle quand tu as choisi ta parcelle",
-    "Connexion rapide avec le code de la borne",
-    "Écran de chargement au lieu du long écran gris",
-    "Construction assistée : maisons prêtes, 1re maison offerte avec le permis, panneau à l'entrée de ta parcelle",
-    "Détails et herbe plus loin, ping corrigé, allure de garçon pour les avatars hommes"
+    "Bien plus beau sur PC : sol plein de détails, ciel de nuit étoilé, rayons du soleil, objets visibles plus loin",
+    "Joue à la manette Xbox ou PlayStation",
+    "Avion avec de vraies vitres, Lou bien installée, plus de tache blanche",
+    "Village et intérieurs à la bonne taille, murets et barrières bien posés, maisons abandonnées retirées",
+    "Le chat grimpe sur les toits et ne recule plus ; les habitants te disent bonjour",
+    "Appareil photo qui suit le zoom, licorne qui boit, jolie biche, ombres des oiseaux"
   ]
 }
