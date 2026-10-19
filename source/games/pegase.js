@@ -4457,6 +4457,89 @@
 .pgh-pane{display:none;min-height:60vh}
 .pgh-pane.on{display:block;animation:pghPane .35s ease}
 @keyframes pghPane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* ---------- MESSAGES (SMS du téléphone de l'avatar, 19 oct.) ---------- */
+.pgh-tab .bdg.sms{color:#fff;background:linear-gradient(180deg,#ff7a8a,#e8455c);box-shadow:0 0 10px rgba(255,90,110,.55)}
+.pgh-smsn{font:700 12.5px ${FB};color:#ffb3c1}
+.pgh-smbox{margin-top:14px;padding:6px}
+.pgh-smc{width:100%;display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:0;border-radius:16px;background:none;color:inherit;text-align:left;transition:background .15s,transform .15s}
+.pgh-smc:hover{background:rgba(255,236,210,.05)}
+.pgh-smc:active{transform:scale(.985)}
+.pgh-smc + .pgh-smc{box-shadow:0 -1px 0 rgba(255,214,140,.1)}
+.pgh-smc.un{background:linear-gradient(90deg,rgba(255,158,196,.12),rgba(255,207,115,.05))}
+.pgh-smc .tx{min-width:0}
+.pgh-smc b{display:block;font:700 15.5px ${FB};color:#fff3dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-smc b em{font-style:normal;margin-left:6px;padding:1px 7px;border-radius:999px;font:700 10px ${FB};letter-spacing:.06em;text-transform:uppercase;vertical-align:2px;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e)}
+.pgh-smc .pv{display:block;margin-top:2px;font:600 13.5px/1.35 ${FB};color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-smc.un .pv{color:#fff3dc}
+.pgh-smc .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.pgh-smc .rt small{font:700 11.5px ${FB};color:var(--soft);white-space:nowrap}
+.pgh-smc.un .rt small{color:#ffb3c1}
+.pgh-smc .n{min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font:700 12px ${FB};color:#fff;background:linear-gradient(180deg,#ff7a8a,#e8455c);box-shadow:0 0 12px rgba(255,90,110,.5)}
+.pgh-sma{position:relative;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;overflow:hidden;flex:none;font:400 22px ${FD};color:#fff3dc;background:hsl(var(--h,280) 45% 38%);box-shadow:inset 0 0 0 2px rgba(255,214,140,.28),0 6px 14px rgba(0,0,0,.3)}
+.pgh-sma img{width:100%;height:100%;object-fit:cover;object-position:50% 18%}
+.pgh-sma.pnj{font-size:26px;background:radial-gradient(circle at 50% 35%,#ffe7a8,#ffb35e 60%,#c46a2a);box-shadow:inset 0 0 0 2px rgba(255,240,200,.7),0 6px 16px rgba(255,150,60,.35)}
+.pgh-sma.on::after{content:'';position:absolute;right:3px;bottom:3px;width:11px;height:11px;border-radius:50%;background:#7cf0a0;box-shadow:0 0 0 2.5px #2a1c4c}
+.pgh-smempty{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;padding:12px}
+.pgh-smempty .em{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;font-size:28px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,214,140,.25)}
+.pgh-smempty h3{margin:0;font:700 16px ${FB};color:#fff3dc}
+.pgh-smempty p{margin:4px 0 0;font:600 13px/1.45 ${FB};color:var(--soft)}
+.pgh-smempty .pgh-cta{grid-column:1 / -1;justify-self:start;flex:0 0 auto;padding:8px 18px;min-height:46px}
+.pgh-smnew{display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none;padding:12px 6px 6px;margin-top:4px;box-shadow:0 -1px 0 rgba(255,214,140,.1)}
+.pgh-smnew::-webkit-scrollbar{display:none}
+.pgh-smnew > span{flex:none;font:700 12px ${FB};color:var(--soft);letter-spacing:.02em}
+.pgh-smnew button{flex:none;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:4px 14px 4px 4px;border:0;border-radius:999px;font:700 13px ${FB};color:#fff3dc;background:rgba(40,24,66,.74);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.4)}
+.pgh-smnew button .pgh-sma{width:30px;height:30px;font-size:13px;box-shadow:none}
+.pgh-smwarn{margin:8px 12px 4px;font:600 12.5px/1.4 ${FB};color:#ffd2a0}
+/* la conversation (par-dessus la page ; panneau centré sur grand écran) */
+.pgh-th{position:absolute;inset:0;z-index:22;display:none;flex-direction:column;background:linear-gradient(180deg,#1c1640 0%,#271a4a 45%,#33204f 100%)}
+.pgh-th.on{display:flex;animation:pghIn .28s ease}
+.pgh-th::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(255,170,200,.14),rgba(0,0,0,0) 70%),radial-gradient(ellipse 70% 40% at 50% 100%,rgba(255,196,120,.12),rgba(0,0,0,0) 70%)}
+.pgh-thh{position:relative;z-index:1;display:flex;align-items:center;gap:12px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));background:rgba(16,12,34,.72);box-shadow:0 1px 0 rgba(255,214,140,.16),0 10px 24px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.pgh-thx{width:42px;height:42px;border-radius:50%;border:0;flex:none;color:#ffe2a6;background:rgba(255,255,255,.08);font:400 30px/1 ${FB};padding-bottom:4px}
+.pgh-thh .pgh-sma{width:44px;height:44px;font-size:19px}
+.pgh-thh .pgh-sma.pnj{font-size:22px}
+.pgh-thh .tx{min-width:0}
+.pgh-thh b{display:block;font:700 17px ${FB};color:#fff3dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-thh small{display:block;font:600 12.5px ${FB};color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-thh small.on{color:#9ff0b8}
+.pgh-thl{position:relative;z-index:1;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:14px 14px 10px;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin;scrollbar-color:rgba(255,214,140,.3) transparent}
+.pgh-thday{align-self:center;margin:12px 0 6px;padding:3px 12px;border-radius:999px;font:700 11.5px ${FB};letter-spacing:.04em;color:#ffe2ad;background:rgba(255,214,140,.1)}
+.pgh-thmore{align-self:center;margin:2px 0 8px;min-height:36px;padding:4px 16px;border:0;border-radius:999px;font:700 12.5px ${FB};color:#ffe2ad;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,214,140,.3)}
+.pgh-bub{max-width:min(78%,460px);padding:9px 13px 7px;border-radius:20px;font:600 15px/1.4 ${FB};white-space:pre-wrap;overflow-wrap:anywhere;position:relative;animation:pghBub .22s ease both}
+@keyframes pghBub{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+.pgh-bub small{display:block;margin-top:3px;font:700 10.5px ${FB};opacity:.7;text-align:right}
+.pgh-bub.th{align-self:flex-start;color:#fff3dc;background:rgba(255,236,210,.1);box-shadow:inset 0 0 0 1px rgba(255,214,140,.2);border-bottom-left-radius:6px}
+.pgh-bub.me{align-self:flex-end;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e 70%,#ffae55);box-shadow:0 6px 16px rgba(255,150,60,.25),inset 0 1px 0 rgba(255,255,255,.7);border-bottom-right-radius:6px}
+.pgh-bub.pnj{align-self:flex-start;color:#3b2410;background:linear-gradient(180deg,#fff6e4,#ffe6bf);box-shadow:0 6px 16px rgba(0,0,0,.25),inset 0 0 0 1px rgba(201,140,70,.5);border-bottom-left-radius:6px}
+.pgh-bub.pnj i{display:block;font:700 11px ${FB};font-style:normal;letter-spacing:.05em;text-transform:uppercase;color:#a0623a;margin-bottom:2px}
+.pgh-bub.pend{opacity:.72}
+.pgh-bub.fail{background:linear-gradient(180deg,#ffd0d0,#ff9e9e);color:#4a0f14;cursor:pointer}
+.pgh-thst{align-self:flex-end;margin:2px 4px 6px;font:700 11.5px ${FB};color:var(--soft)}
+.pgh-thst.lu{color:#9fd8ff}
+.pgh-thst.fail{color:#ff9e9e}
+.pgh-thf{position:relative;z-index:1;display:flex;align-items:flex-end;gap:10px;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:rgba(16,12,34,.78);box-shadow:0 -1px 0 rgba(255,214,140,.16)}
+.pgh-thf textarea{flex:1 1 auto;min-height:46px;max-height:140px;resize:none;border:0;border-radius:23px;padding:12px 16px;font:600 15.5px/1.35 ${FB};color:#fff3dc;background:rgba(255,236,210,.08);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.3);outline:none}
+.pgh-thf textarea:focus{box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.75),0 0 0 4px rgba(255,190,110,.12)}
+.pgh-thf textarea::placeholder{color:rgba(255,240,220,.45)}
+.pgh-thsend{width:46px;height:46px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e 55%,#ff9f4a);box-shadow:0 8px 20px rgba(255,150,60,.38),inset 0 1px 0 rgba(255,255,255,.75);transition:transform .15s,opacity .2s}
+.pgh-thsend:active{transform:scale(.92)}
+.pgh-thsend:disabled{opacity:.4;box-shadow:none}
+.pgh-thsend svg{width:22px;height:22px;margin-left:2px}
+.pgh-thc{position:absolute;right:72px;top:-20px;padding:1px 8px;border-radius:999px;font:700 11px ${FB};color:#ffe2ad;background:rgba(16,12,34,.85)}
+.pgh-thc:empty,.pgh-thf[hidden],.pgh-thro[hidden]{display:none}
+.pgh-thc.over{color:#ff9e9e}
+.pgh-thro{position:relative;z-index:1;padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));text-align:center;font:600 13px/1.45 ${FB};color:var(--soft);background:rgba(16,12,34,.78);box-shadow:0 -1px 0 rgba(255,214,140,.16)}
+.pgh-thempty{margin:auto;text-align:center;font:600 14px/1.5 ${FB};color:var(--soft);padding:20px}
+.pgh-thempty b{display:block;font-size:34px;margin-bottom:6px}
+@media (min-width:760px){
+  .pgh-th{background:rgba(10,8,24,.62);align-items:center;justify-content:center;padding:24px}
+  .pgh-th > *{width:min(640px,100%)}
+  .pgh-thh{border-radius:22px 22px 0 0;background:rgba(30,22,62,.96)}
+  .pgh-thl{flex:0 1 auto;height:min(62vh,640px);background:linear-gradient(180deg,#221a48,#2f1f50)}
+  .pgh-thf,.pgh-thro{border-radius:0 0 22px 22px;background:rgba(30,22,62,.96)}
+  .pgh-th::before{display:none}
+}
+@media (prefers-reduced-motion:reduce){.pgh-bub,.pgh-th.on{animation:none}}
 /* ---------- copains ---------- */
 .pgh-frhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .pgh-frcount{font:700 12.5px ${FB};color:#9ff0b8}
@@ -4985,7 +5068,7 @@
   </section>
   <nav class="pgh-tabs" data-h="tabs" role="tablist" aria-label="Pégase">
     <button class="pgh-tab" role="tab" data-tab="moi">${PGH_SVG.me}<span>Moi</span></button>
-    <button class="pgh-tab" role="tab" data-tab="amis">${PGH_SVG.friends}<span>Amis</span><span class="bdg" data-h="frbdg"></span></button>
+    <button class="pgh-tab" role="tab" data-tab="amis">${PGH_SVG.friends}<span>Amis</span><span class="bdg" data-h="frbdg"></span><span class="bdg sms" data-h="smsbdg" aria-label="messages non lus"></span></button>
     <button class="pgh-tab" role="tab" data-tab="infos">${PGH_SVG.info}<span>Infos</span></button>
     <i class="ind" data-h="tabind"></i>
   </nav>
@@ -5024,6 +5107,11 @@
     </section>
   </div>
   <div class="pgh-pane" data-pane="amis">
+    <section class="pgh-sec pgh-smsec" data-h="secsms" hidden>
+      <div class="pgh-frhead"><h2 class="pgh-h2">Messages</h2><span class="pgh-smsn" data-h="smsn"></span></div>
+      <p class="pgh-sub">Les SMS du téléphone de ton avatar : tes copains, et les habitants de Pégase.</p>
+      <div class="pgh-card pgh-smbox" data-h="smbox"></div>
+    </section>
     <section class="pgh-sec" data-h="secfr">
       <div class="pgh-frhead"><h2 class="pgh-h2">Les copains de la salle</h2><span class="pgh-frcount" data-h="frcount"></span></div>
       <p class="pgh-sub" data-h="frsub">Leurs avatars, et qui est là en ce moment.</p>
@@ -5086,7 +5174,7 @@
     <span class="pgh-fvst" data-h="fvst"><i></i><span data-h="fvstt"></span></span>
     <p class="pgh-fvdesc" data-h="fvdesc"></p>
     <div class="pgh-fvemo" data-h="fvemo">${EMOTES_ALL.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
-    <div class="pgh-fvbtns"><button class="pgh-cta glass" data-h="fvcall"><span>📞 Appeler</span><small>bientôt</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
+    <div class="pgh-fvbtns"><button class="pgh-cta gold" data-h="fvsms"><span>✉️ Écrire</span><small style="color:#7a3d10">un message</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
   </div>
 </div>
 <div class="pgh-modal" data-h="pmodal" role="dialog" aria-label="Ma photo de profil"><div class="pgh-mcard">
@@ -5118,6 +5206,12 @@
   <small data-h="earwho">Les mots sont reconnus par ton téléphone, sans rien enregistrer. Touche l'oreille pour qu'il arrête d'écouter.</small>
   <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="earno">Pas maintenant</button><button class="pgh-cta gold" data-h="earok"><span>C'est parti !</span></button></div>
 </div></div>
+<div class="pgh-th" data-h="th" role="dialog" aria-label="Conversation">
+  <header class="pgh-thh"><button class="pgh-thx" data-h="thx" aria-label="Retour aux messages">‹</button><span class="pgh-sma" data-h="thav"></span><div class="tx"><b data-h="thname"></b><small data-h="thsub"></small></div></header>
+  <div class="pgh-thl" data-h="thl" aria-live="polite"></div>
+  <form class="pgh-thf" data-h="thf"><textarea data-h="tht" rows="1" maxlength="600" placeholder="Écris ton message…" aria-label="Ton message"></textarea><span class="pgh-thc" data-h="thc"></span><button class="pgh-thsend" data-h="thsend" type="submit" aria-label="Envoyer" disabled><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.5-7.5a1 1 0 0 0 0-1.8L3.4 3.6a.9.9 0 0 0-1.3 1L4 11l9 1-9 1-1.9 6.4a.9.9 0 0 0 1.3 1z"/></svg></button></form>
+  <div class="pgh-thro" data-h="thro" hidden></div>
+</div>
 <div class="pgh-toast" data-h="toast"></div>`);
   }
 
@@ -5788,7 +5882,7 @@
         meShot();
         later(() => { if (STG && !editing && !friendOn) STG.gesture('wave'); }, 900);
         later(wordsPreload, 2500);   // mots (oui / non / salut / rire) préparés en arrière-plan
-        window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, info: SG.info(), ready: SG.ready(),
+        window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, sms: { st: SMS.st, unread: SMS.unread, th: SMS.th && SMS.th.w, live: !!SMS.off, pend: SMS.pend.length }, info: SG.info(), ready: SG.ready(),
           friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D), owned: [...OWNED], today: TODAY, buy: BUY && { k: BUY.k, st: BUY.st, p: BUY.L.p }, ucat: UCAT.size, mcat: MCAT.size,
           voice: MIC.on ? { label: MIC.label, f0: Math.round(MIC.f0), f0m: Math.round(MIC.f0m), flat: +MIC.flat.toFixed(2), vis: MIC.mouth ? MIC.mouth.shown : null, emo: Object.fromEntries(Object.entries(MIC.emo).map(([k, v]) => [k, +v.toFixed(2)])) } : null }) };
         thumbPump();
@@ -6920,7 +7014,7 @@
       tabInd();
       const top = $.hero.offsetHeight;
       if (scroll && $.scroll.scrollTop > top) $.scroll.scrollTop = top;
-      if (t === 'amis') { renderFriends(); loadAvatars(); }
+      if (t === 'amis') { renderFriends(); loadAvatars(); loadSms(); }
       if (t === 'moi') { renderShowcase(); renderLink(); }
     }
     on($.tabs, 'click', (e) => { const b = e.target.closest('.pgh-tab'); if (b) { setTab(b.dataset.tab, true); tone(560, 760); } });
@@ -7023,7 +7117,7 @@
     on($.fv, 'click', (e) => {
       const h = e.target.closest('[data-h]');
       if (h && h.dataset.h === 'fvx') { closeFriend(); return; }
-      if (h && h.dataset.h === 'fvcall') { toast('📞 Bientôt : appelle ' + (friendOn ? friendOn.display : 'un copain') + ' depuis le téléphone du jeu'); tone(660, 880); return; }
+      if (h && h.dataset.h === 'fvsms') { const n = friendOn && friendOn.name; if (n) { openThread('p:' + n); tone(560, 840); } return; }
       if (h && h.dataset.h === 'fvhouse') { toast('🏡 Bientôt : visite la maison de ' + (friendOn ? friendOn.display : 'ton copain') + ' dans Pégase'); tone(660, 880); return; }
       const b = e.target.closest('.pgh-emo'); if (b && STG && STG.ready()) { STG.gesture(b.dataset.emo); tone(740, 1180); }
     });
@@ -7031,6 +7125,223 @@
     every(() => { if (!document.hidden && tab === 'amis' && !editing) renderFriends(); }, 5000);
     every(() => { if (!document.hidden && tab === 'amis') loadAvatars(); }, 90000);
     every(() => { if (!document.hidden && tab === 'moi' && !BUY) loadWallet(); }, 120000);
+
+    // ---------- MESSAGES (19 oct.) : les SMS du téléphone de l'avatar, lus et écrits ici aussi (serveur : sms.sql) ----------
+    // pg_sms_list (conversations, non-lus) / pg_sms_thread (fil, pages de 30) / pg_sms_send (id fabriqué ici : un renvoi ne fait jamais de
+    // doublon) / pg_sms_read (lu → l'autre voit « Lu »). Direct : api.pegase.onSms (canal privé du pseudo, signal sans contenu) → relecture ;
+    // sans lui (ancienne borne) : relecture toutes les 15 s quand l'onglet Amis ou une conversation est à l'écran, 60 s sinon.
+    // Messages pas encore partis (réseau coupé) : gardés sur l'appareil (jdw.pegase.sms.<PSEUDO>) et renvoyés au retour du réseau.
+    // Borne sans les fonctions SMS (pegase.rpc « fonction refusée ») : la carte reste cachée.
+    const SMS = { st: 'idle', list: [], unread: 0, at: 0, busy: false, again: false, sig: '', th: null, off: null, pend: [], pendKey: '', lastPoke: 0 };
+    const PNJ_FACE = { maire: '👴', concours: '🏆', pegase: '✨' };
+    const smsPendKey = () => { const i = pgInfo(); return i.name ? 'jdw.pegase.sms.' + i.name : ''; };
+    function smsPendLoad() {
+      const k = smsPendKey(); if (k === SMS.pendKey) return; SMS.pendKey = k; SMS.pend = [];
+      if (!k) return; try { const a = JSON.parse(store.get(k) || '[]'); if (Array.isArray(a)) SMS.pend = a.filter((p) => p && typeof p.id === 'string' && typeof p.w === 'string' && typeof p.b === 'string').slice(-50); } catch (e) { /* rien */ }
+    }
+    const smsPendSave = () => { if (SMS.pendKey) store.set(SMS.pendKey, JSON.stringify(SMS.pend.filter((p) => p.st !== 'fail' || p.keep))); };
+    const smsId = () => { const b = new Uint8Array(16); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 16; i++) b[i] = Math.random() * 256 | 0; } return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(''); };
+    function smsWho(w, title) {
+      if (w.startsWith('pnj:')) return { name: title || w.slice(4), pnj: true, face: PNJ_FACE[w.slice(4)] || '💬' };
+      const n = w.slice(2), m = members().find((x) => x.name === n);
+      return { name: m ? m.display : n, pnj: false, photo: m && m.photo, online: !!(m && m.online), n };
+    }
+    const smsFace = (o) => o.pnj ? `<span class="pgh-sma pnj">${o.face}</span>` : `<span class="pgh-sma${o.online ? ' on' : ''}" style="--h:${hue(o.n)}">${o.photo ? `<img alt="" src="${esc(o.photo)}">` : esc((o.name[0] || '?').toUpperCase())}</span>`;
+    function smsWhen(t, long) {
+      const d = new Date(t); if (isNaN(d)) return '';
+      const now = new Date(), day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(), dd = Math.round((day(now) - day(d)) / 86400000);
+      const hm = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+      if (!long && Date.now() - d.getTime() < 60000) return 'à l\'instant';
+      if (dd === 0) return long ? 'Aujourd\'hui' : hm;
+      if (dd === 1) return 'Hier';
+      if (dd < 7) return ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'][d.getDay()].replace(/^./, (c) => long ? c.toUpperCase() : c) + (long ? ' ' + d.getDate() : '');
+      return d.getDate() + '/' + String(d.getMonth() + 1).padStart(2, '0');
+    }
+    const smsErr = (e) => { const m = String((e && e.message) || ''); return /pas copains/.test(m) ? 'Vous n\'êtes plus dans la même salle.' : /trop de messages|trop d essais/.test(m) ? 'Doucement : attends quelques secondes.'
+      : /trop long/.test(m) ? 'Message trop long (500 caractères au plus).' : /vide/.test(m) ? 'Message vide.' : /destinataire inconnu/.test(m) ? 'Ce joueur n\'existe plus.' : /pas de reponse/.test(m) ? 'On ne peut pas répondre ici.' : e && e.offline ? 'Pas de réseau.' : 'Pas envoyé.'; };
+    const smsFinal = (e) => /pas copains|trop long|vide|destinataire inconnu|pas de reponse|pas a soi|id deja pris|id invalide|compte requis|photo pas encore/.test(String((e && e.message) || ''));
+    async function loadSms(force) {
+      if (!memberMode()) { SMS.st = 'guest'; renderSms(); return; }
+      if (SMS.st === 'off') return;
+      if (SMS.busy) { SMS.again = true; return; }
+      if (!force && Date.now() - SMS.at < 4000) return;
+      SMS.busy = true; SMS.at = Date.now(); smsPendLoad();
+      try {
+        const rows = await PG.rpc('pg_sms_list', {}); if (dead) return;
+        SMS.list = (rows || []).map((r) => ({ w: String(r.r_with || ''), title: r.r_title || '', kind: r.r_kind || 'joueur', room: r.r_room || '', can: !!r.r_can, last: r.r_last_body || '', mine: !!r.r_last_mine,
+          photo: !!r.r_last_photo, at: r.r_last_at, state: r.r_last_state || '', unread: r.r_unread | 0 })).filter((c) => /^(p|pnj):/.test(c.w));
+        SMS.unread = SMS.list.reduce((s, c) => s + c.unread, 0); SMS.st = 'ok';
+      } catch (e) {
+        if (dead) return;
+        SMS.st = /fonction refus/.test(String(e && e.message)) ? 'off' : e && e.guest ? 'guest' : e && e.offline ? 'offline' : SMS.list.length ? 'ok' : 'err';
+      } finally { SMS.busy = false; }
+      renderSms();
+      if (SMS.th) { thSub(); if (!SMS.th.loading && Date.now() - (SMS.th.at || 0) > 1500) loadThread(false); }
+      smsFlush();
+      if (SMS.again) { SMS.again = false; later(() => loadSms(true), 50); }
+    }
+    function renderSms() {
+      $.secsms.hidden = SMS.st === 'off' || !PG;
+      $.smsbdg.textContent = SMS.unread > 9 ? '9+' : String(SMS.unread); $.smsbdg.classList.toggle('on', SMS.unread > 0);
+      $.smsn.textContent = SMS.unread ? SMS.unread + ' non lu' + (SMS.unread > 1 ? 's' : '') : '';
+      let html;
+      if (SMS.st === 'guest') html = `<div class="pgh-smempty"><span class="em">💬</span><div><h3>Crée un compte pour écrire à tes copains</h3><p>Les SMS du téléphone de ton avatar arrivent aussi ici : tes copains, le maire, les résultats des concours…</p></div><button class="pgh-cta gold" data-s="acct">Créer mon compte</button></div>`;
+      else if (SMS.st === 'idle' || (SMS.st === 'err' && !SMS.list.length) || (SMS.st === 'offline' && !SMS.list.length)) html = `<div class="pgh-smempty"><span class="em">💬</span><div><h3>${SMS.st === 'idle' ? 'Tes messages arrivent…' : 'Messages indisponibles'}</h3><p>${SMS.st === 'offline' ? 'Pas de réseau pour l\'instant : ils reviendront avec la connexion.' : SMS.st === 'err' ? 'Le serveur ne répond pas : on réessaie tout seul.' : 'Un instant.'}</p></div></div>`;
+      else {
+        const rows = SMS.list.map((c) => {
+          const o = smsWho(c.w, c.title), pv = (c.mine ? 'Toi : ' : '') + (c.last || (c.photo ? '📷 Photo' : ''));
+          return `<button class="pgh-smc${c.unread ? ' un' : ''}" data-w="${esc(c.w)}">${smsFace(o)}<span class="tx"><b>${esc(o.name)}${o.pnj ? `<em>${c.kind === 'concours' ? 'concours' : c.kind === 'systeme' ? 'Pégase' : 'habitant'}</em>` : ''}</b><span class="pv">${esc(pv)}</span></span><span class="rt"><small>${esc(smsWhen(c.at))}</small>${c.unread ? `<span class="n">${c.unread > 9 ? '9+' : c.unread}</span>` : ''}</span></button>`;
+        }).join('');
+        const have = new Set(SMS.list.map((c) => c.w)), ms = members().filter((m) => !m.me).sort((a, b) => (b.online - a.online) || a.display.localeCompare(b.display));
+        const fresh = ms.filter((m) => !have.has('p:' + m.name)).slice(0, 12);
+        const chips = fresh.length ? `<div class="pgh-smnew"><span>✏️ Écrire à</span>${fresh.map((m) => `<button data-w="p:${esc(m.name)}">${smsFace({ n: m.name, name: m.display, photo: m.photo, online: m.online })}${esc(m.display)}</button>`).join('')}</div>` : '';
+        html = (rows || `<div class="pgh-smempty"><span class="em">✉️</span><div><h3>Pas encore de message</h3><p>${ms.length ? 'Écris à un copain : il le lira dans le téléphone de son avatar, ou ici sur la borne.' : 'Quand un copain ou un habitant de Pégase t\'écrira, ça arrivera ici.'}</p></div></div>`) + chips
+          + (SMS.st === 'offline' ? '<p class="pgh-smwarn">Pas de réseau : les nouveaux messages arriveront avec la connexion.</p>' : '');
+      }
+      if (html === SMS.sig) return; SMS.sig = html;
+      $.smbox.innerHTML = html;
+    }
+    on($.smbox, 'click', (e) => {
+      if (e.target.closest('[data-s="acct"]')) { try { PG && PG.account && PG.account(); } catch (x) { /* rien */ } return; }
+      const b = e.target.closest('[data-w]'); if (b) { openThread(b.dataset.w); tone(560, 840); }
+    });
+    // ---------- la conversation ----------
+    function openThread(w) {
+      if (!memberMode() || !/^(p|pnj):/.test(w)) return;
+      if (friendOn) closeFriend();
+      smsPendLoad();
+      const c = SMS.list.find((x) => x.w === w);
+      SMS.th = { w, msgs: [], more: false, loading: false, first: true, err: '' };
+      const o = smsWho(w, c && c.title);
+      $.thav.outerHTML = smsFace(o).replace('class="pgh-sma', 'data-h="thav" class="pgh-sma'); $.thav = box.querySelector('[data-h="thav"]');
+      $.thname.textContent = o.name;
+      thSub();
+      $.tht.value = store.get('jdw.pegase.smsd.' + w) || ''; thInput();
+      $.thl.innerHTML = '<div class="pgh-thempty">…</div>';
+      $.th.classList.add('on'); box.scrollTop = 0;   // la page (overflow caché) a pu glisser (clavier, scrollIntoView) : le panneau couvre tout
+      if (!mobile) later(() => { try { $.tht.focus(); } catch (e) { /* rien */ } }, 120);
+      loadThread(false);
+    }
+    function thSub() {
+      const T = SMS.th; if (!T) return;
+      const c = SMS.list.find((x) => x.w === T.w), o = smsWho(T.w, c && c.title);
+      $.thsub.textContent = o.pnj ? (c && c.kind === 'concours' ? 'Les résultats des concours photo' : c && c.kind === 'systeme' ? 'Nouvelles de Pégase' : 'Habitant d\'Ailebrune') : o.online ? 'en ligne sur la borne' : (c && c.room ? 'Salle « ' + c.room + ' »' : 'Copain de Pégase');
+      $.thsub.classList.toggle('on', !o.pnj && o.online);
+      const can = !o.pnj && (c ? c.can : true);   // habitants : on leur répond dans le jeu (photos au maire…)
+      $.thf.hidden = !can; $.thro.hidden = can;
+      $.thro.textContent = o.pnj ? (c && c.kind === 'habitant' ? 'Réponds-lui dans le jeu, avec le téléphone de ton avatar.' : 'On ne peut pas répondre à ces messages.') : 'Vous n\'êtes plus dans la même salle : tu peux relire vos messages, mais plus lui écrire.';
+    }
+    function closeThread() {
+      if (!SMS.th) return;
+      store.set('jdw.pegase.smsd.' + SMS.th.w, $.tht.value.slice(0, 500));
+      SMS.th = null; $.th.classList.remove('on'); try { $.tht.blur(); } catch (e) { /* rien */ }
+      loadSms(true);
+    }
+    async function loadThread(older) {
+      const T = SMS.th; if (!T || T.loading) return;
+      T.loading = true;
+      const before = older && T.msgs.length ? T.msgs[0].sid : null; if (!older) T.at = Date.now();
+      try {
+        const rows = await PG.rpc('pg_sms_thread', { p_with: T.w, p_before: before, p_limit: 30 }); if (dead || SMS.th !== T) return;
+        const got = (rows || []).map((r) => ({ sid: r.r_sid, id: r.r_id, mine: !!r.r_mine, pnj: !!r.r_pnj, from: r.r_from, b: r.r_body || '', photo: !!r.r_photo, at: r.r_at, st: r.r_state || '' }));
+        const by = new Map(T.msgs.map((m) => [m.sid, m])); for (const m of got) by.set(m.sid, m);
+        T.msgs = [...by.values()].sort((a, b) => a.sid - b.sid);
+        if (older || T.first) T.more = got.length >= 30;
+        T.err = '';
+        // ce qui est arrivé du serveur n'est plus « en attente »
+        const ids = new Set(T.msgs.map((m) => m.id)); const n0 = SMS.pend.length; SMS.pend = SMS.pend.filter((p) => !ids.has(p.id)); if (SMS.pend.length !== n0) smsPendSave();
+      } catch (e) { if (SMS.th === T) T.err = e && e.offline ? 'Pas de réseau.' : 'Le serveur ne répond pas.'; }
+      finally { T.loading = false; }
+      if (SMS.th !== T) return;
+      renderThread(older ? 'keep' : T.first ? 'end' : 'auto');
+      T.first = false;
+      const last = T.msgs[T.msgs.length - 1], c = SMS.list.find((x) => x.w === T.w);
+      if (!older && last && !last.mine && (!c || c.unread || T.lastRead !== last.sid) && !document.hidden) {
+        T.lastRead = last.sid;
+        try { const left = await PG.rpc('pg_sms_read', { p_with: T.w }); if (!dead && typeof left === 'number') { SMS.unread = left; if (c) c.unread = 0; SMS.sig = ''; renderSms(); } } catch (e) { /* rien : réessayé à la prochaine lecture */ }
+      }
+    }
+    const ST_TXT = { envoye: 'Envoyé', distribue: 'Distribué', lu: 'Lu' };
+    function renderThread(scroll) {
+      const T = SMS.th; if (!T) return;
+      const L = $.thl, atEnd = L.scrollHeight - L.scrollTop - L.clientHeight < 60, h0 = L.scrollHeight, t0 = L.scrollTop;
+      const pend = SMS.pend.filter((p) => p.w === T.w);
+      let html = T.more ? '<button class="pgh-thmore" data-t="more">Messages plus anciens</button>' : '', day = '';
+      const all = T.msgs.concat(pend.map((p) => ({ pend: p, mine: true, b: p.b, at: p.at })));
+      const lastMine = (() => { for (let i = T.msgs.length - 1; i >= 0; i--) if (T.msgs[i].mine) return T.msgs[i].sid; return null; })();
+      for (const m of all) {
+        const d = smsWhen(m.at, true); if (d !== day) { day = d; html += `<div class="pgh-thday">${esc(d)}</div>`; }
+        const tm = (() => { const x = new Date(m.at); return isNaN(x) ? '' : x.getHours() + ':' + String(x.getMinutes()).padStart(2, '0'); })();
+        if (m.pend) {
+          const p = m.pend, fail = p.st === 'fail';
+          html += `<div class="pgh-bub me${fail ? ' fail' : ' pend'}" data-p="${esc(p.id)}">${esc(p.b)}<small>${fail ? '⚠ ' + esc(p.why || 'Pas envoyé') + ' · toucher pour réessayer' : p.st === 'wait' ? '⏳ ' + esc(p.why || 'En attente du réseau') : 'Envoi…'}</small></div>`;
+          continue;
+        }
+        const pnjName = m.pnj ? smsWho(T.w, (SMS.list.find((x) => x.w === T.w) || {}).title).name : '';
+        html += `<div class="pgh-bub ${m.mine ? 'me' : m.pnj ? 'pnj' : 'th'}">${m.pnj ? `<i>${esc(pnjName)}</i>` : ''}${esc(m.b || (m.photo ? '📷 Photo' : ''))}<small>${tm}</small></div>`;
+        if (m.mine && m.sid === lastMine && !pend.length && ST_TXT[m.st]) html += `<div class="pgh-thst${m.st === 'lu' ? ' lu' : ''}">${m.st === 'lu' ? '✓✓ ' : m.st === 'distribue' ? '✓✓ ' : '✓ '}${ST_TXT[m.st]}</div>`;
+      }
+      if (!all.length) { const o = smsWho(T.w); html += T.err ? `<div class="pgh-thempty"><b>📡</b>${esc(T.err)}</div>` : `<div class="pgh-thempty"><b>👋</b>${o.pnj ? 'Pas encore de message.' : 'Dis bonjour à ' + esc(o.name) + ' !'}</div>`; }
+      else if (T.err) html += `<div class="pgh-thst fail">${esc(T.err)}</div>`;
+      L.innerHTML = html;
+      if (scroll === 'keep') L.scrollTop = t0 + (L.scrollHeight - h0);
+      else if (scroll === 'end' || atEnd) L.scrollTop = L.scrollHeight;
+    }
+    on($.thl, 'click', (e) => {
+      if (e.target.closest('[data-t="more"]')) { loadThread(true); return; }
+      const b = e.target.closest('.pgh-bub.fail[data-p]'); if (!b) return;
+      const p = SMS.pend.find((x) => x.id === b.dataset.p); if (p) { p.st = 'send'; p.why = ''; smsPendSave(); renderThread('end'); smsSend(p); }
+    });
+    on($.th, 'click', (e) => { if (e.target.closest('[data-h="thx"]') || e.target === $.th) closeThread(); });
+    function thInput() {
+      const t = $.tht; t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px';
+      const n = [...t.value.trim()].length;
+      $.thc.textContent = n > 400 ? n + ' / 500' : ''; $.thc.classList.toggle('over', n > 500);
+      $.thsend.disabled = !n || n > 500;
+    }
+    on($.tht, 'input', thInput);
+    on($.tht, 'keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !mobile) { e.preventDefault(); thSendNow(); } else if (e.key === 'Escape') closeThread(); });
+    on($.thf, 'submit', (e) => { e.preventDefault(); thSendNow(); });
+    function thSendNow() {
+      const T = SMS.th; if (!T) return;
+      const b = $.tht.value.replace(/\r\n?/g, '\n').trim(); if (!b || [...b].length > 500) return;
+      const p = { id: smsId(), w: T.w, b, at: new Date().toISOString(), st: 'send', keep: true };
+      SMS.pend.push(p); smsPendSave();
+      $.tht.value = ''; store.set('jdw.pegase.smsd.' + T.w, ''); thInput();
+      renderThread('end'); tone(880, 1320);
+      smsSend(p);
+    }
+    async function smsSend(p) {
+      if (p.busy) return; p.busy = true;
+      try {
+        await PG.rpc('pg_sms_send', { p_to: p.w, p_body: p.b, p_id: p.id });
+        if (dead) return;
+        p.st = 'sent';
+      } catch (e) {
+        if (dead) return;
+        if (smsFinal(e)) { p.st = 'fail'; p.why = smsErr(e); p.keep = false; } else { p.st = 'wait'; p.why = smsErr(e); }
+      } finally { p.busy = false; }
+      smsPendSave();
+      if (SMS.th && SMS.th.w === p.w) { if (p.st === 'sent') loadThread(false); else renderThread('auto'); }
+      else if (p.st === 'sent') loadSms(true);
+    }
+    // renvoi de ce qui attend (au retour du réseau, ou en rouvrant le hub)
+    function smsFlush() { smsPendLoad(); for (const p of SMS.pend) if ((p.st === 'wait' || p.st === 'send') && !p.busy && SMS.st !== 'offline') smsSend(p); }
+    // direct : signal du serveur → relecture (regroupe les rafales)
+    let smsPokeT = 0;
+    // économe (le serveur limite les lectures à 300 / 10 min par pseudo, jeu + hub ensemble) : conversation ouverte → seulement son fil
+    // (+ lu) ; la liste au plus toutes les 10 s
+    function smsOnPoke() { if (SMS.th) { loadThread(false); if (Date.now() - SMS.at > 10000) loadSms(true); } else loadSms(true); }
+    if (PG && typeof PG.onSms === 'function') { try { SMS.off = PG.onSms(() => { SMS.lastPoke = Date.now(); clearTimeout(smsPokeT); smsPokeT = later(smsOnPoke, 250); }); } catch (e) { SMS.off = null; } }
+    every(() => {
+      if (document.hidden || dead) return;
+      const live = !!SMS.off, close = tab === 'amis' || !!SMS.th;
+      const per = live ? (close ? 45000 : 120000) : (close ? 15000 : 60000);
+      if (Date.now() - SMS.at >= per - 500) loadSms(true);
+      else if (SMS.pend.some((p) => p.st === 'wait' && !p.busy) && Date.now() - (SMS.flushAt || 0) > 9500) { SMS.flushAt = Date.now(); for (const p of SMS.pend) if (p.st === 'wait' && !p.busy) smsSend(p); }   // file d'attente : un essai toutes les 10 s
+    }, 5000);
+    on(window, 'online', () => { if (!dead) loadSms(true); });
+    on(document, 'visibilitychange', () => { if (!document.hidden && !dead) loadSms(true); });
 
     // ---------- téléchargement ----------
     async function renderDl() {
@@ -7257,6 +7568,7 @@
     // la 3D arrive APRÈS l'affichage (pas d'à-coup à l'ouverture)
     later(() => { (window.requestIdleCallback || ((f) => setTimeout(f, 1)))(() => { if (!dead) start3D(); }, { timeout: 600 }); }, 380);
     later(() => loadAvatars(true), 1500);
+    later(() => loadSms(true), 1100);
     return {
       destroy() {
         if (dead) return; dead = true;
@@ -7265,6 +7577,7 @@
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();
         if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect();
+        if (SMS.off) { try { SMS.off(); } catch (e) { /* rien */ } SMS.off = null; } if (SMS.th) store.set('jdw.pegase.smsd.' + SMS.th.w, $.tht.value.slice(0, 500));
         if (andOff) { try { andOff(); } catch (e) { /* rien */ } andOff = null; }
         if (nvOff) { try { nvOff(); } catch (e) { /* rien */ } nvOff = null; } if (NVL.on) { try { NV.stopListen(); } catch (e) { /* rien */ } }
         earBilan(); EAR.running = false; clearTimeout(EAR.kickT); earHalt();

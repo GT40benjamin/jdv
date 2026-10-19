@@ -663,7 +663,29 @@ async function gameSetPhoto(data, scope) {
 // 1.19.15 : pg_link_make (carte « Connecter le jeu Pégase » de l'onglet Moi) : code à usage unique pour le compte de la borne, échangé par
 // le jeu (Edge Function pegase-redeem) ; p_code + p_name de la borne. 1.19.18 : CODE COURT par défaut (8 caractères « K7Q2-9MXA », 120 s,
 // à taper) ; seul argument du hub transmis : p_long = true (billet LONG de 64 hexadécimaux, 60 s, pour les passages appli → appli).
-const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make']);
+// 1.21.x (SMS, sms.sql) : pg_sms_list / pg_sms_thread / pg_sms_send / pg_sms_read (carte « Messages » de l'onglet Amis) ; arguments filtrés
+// ici (adresse « p:PSEUDO » / « pnj:id », texte ≤ 500, id fabriqué par le hub) ; onSms(fn) = signal du canal PRIVÉ jdw-sms-<pseudo en hexa>
+// (le serveur y envoie { t: 'sms' } SANS contenu ; le hub relit par RPC) ; rend la fonction pour se désabonner.
+const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make',
+  'pg_sms_list', 'pg_sms_thread', 'pg_sms_send', 'pg_sms_read']);
+const pgStr = (v, n) => String(v == null ? '' : v).slice(0, n);
+function pgSmsArgs(fn, x) {
+  x = x || {};
+  if (fn === 'pg_sms_send') return { p_to: pgStr(x.p_to, 40), p_body: pgStr(x.p_body, 2000), p_id: pgStr(x.p_id, 64) };
+  if (fn === 'pg_sms_thread') return { p_with: pgStr(x.p_with, 40), p_before: Number.isSafeInteger(x.p_before) && x.p_before > 0 ? x.p_before : null, p_limit: Math.max(1, Math.min(100, x.p_limit | 0 || 30)) };
+  if (fn === 'pg_sms_read') return { p_with: pgStr(x.p_with, 40) };
+  return {};
+}
+const SMS_SUBS = new Set();
+const smsHex = n => Array.from(new TextEncoder().encode(n), b => b.toString(16).padStart(2, '0')).join('');
+let smsTopicOn = null;
+function smsTopicSync() {
+  const want = SMS_SUBS.size && !isGuest() && profile.name && ONLINE ? 'jdw-sms-' + smsHex(cleanName(profile.name)) : null;
+  if (want === smsTopicOn) return;
+  if (smsTopicOn) rtLeave(smsTopicOn);
+  smsTopicOn = want;
+  if (want) { RT.topics.add(want); if (RT.ws && RT.ws.readyState === 1) rtJoin(want); else rtConnect(); }
+}
 const PG_RPC_CAT = new Set(['pg_unlock_catalog', 'pg_mission_catalog']);
 function pegaseApi() {
   const guest = () => isGuest() || !profile.name;
@@ -682,12 +704,13 @@ function pegaseApi() {
       if (!PG_RPC.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
       if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
-      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : Object.assign({}, args || {});
+      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : fn.startsWith('pg_sms_') ? pgSmsArgs(fn, args) : Object.assign({}, args || {});
       Object.assign(a, { p_code: CODE(), p_name: profile.name });
       if (fn === 'pg_room_avatars') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
       return rpc(fn, a, { quiet: true });
     },
-    account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); }   // invité : créer un compte (quitte le hub)
+    account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); },   // invité : créer un compte (quitte le hub)
+    onSms: fn => { if (typeof fn !== 'function') return () => {}; SMS_SUBS.add(fn); smsTopicSync(); return () => { SMS_SUBS.delete(fn); smsTopicSync(); }; }
   };
 }
 
@@ -1678,6 +1701,7 @@ function poke(kind, topic) {
 const pokeTimers = {};
 function onPoke(topic, event, p) {
   if (p.from === clientId) return;
+  if (p.t === 'sms') { if (topic === smsTopicOn) for (const f of [...SMS_SUBS]) { try { f(); } catch (e) {} } return; }
   if (p.t === 'rtc') { if (room && topic === 'jdw-room-' + room.id) rtcOnSignal(p); return; }
   if (p.t === 'net') { if (NET.topic && topic === NET.topic) netOnSignal(p); return; }
   if (p.t === 'netinv') { if (room && topic === 'jdw-room-' + room.id) netOnInvite(p); return; }
@@ -9558,7 +9582,7 @@ function guestSync() {
   const first = guestWas === null; guestWas = g;
   if (g) {
     const t = roomTopic(); room = null; if (t) RT.topics.delete(t);       // la salle reste retenue sur l'appareil (jdw.room)
-    rtClose(); RT.topics.clear();
+    rtClose(); RT.topics.clear(); smsTopicOn = null;
     players.clear(); memberNames = new Set(); membersFor = null; remote = {}; remoteLoaded = false; counts = {}; total = 0;
     ensureAiPlayer();
     if (!first) { try { chatReset(); closeChat(); } catch (e) {} }

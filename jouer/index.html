@@ -4463,9 +4463,9 @@ function drawZapper(z) {
 }
 
 const PILOT = new Image();
-PILOT.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTUgMTUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjE1MCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U5YTQ3YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmYzlhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cGF0aCBkPSJNNDQgMTE4aDMwdjMySDQ0eiIgZmlsbD0iI2Q4OGY2OCIvPgo8cGF0aCBkPSJNMjIgNzhjMC04IDEwLTE0IDI0LTE0aDQwYzEyIDAgMTggOCAyMCAxOGwyIDEwIDYgOC02IDQgMiA2LTQgMiAyIDhjMCAxMC0xMiAxOC0yNiAxOEg1OGMtMjAgMC0zNi0xNC0zNi0zNHoiIGZpbGw9InVybCgjcykiLz4KPHBhdGggZD0iTTkyIDEyMHE2IDEgOS0zIiBzdHJva2U9IiNhNTUyM2EiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik00IDgyQzQgMzQgMzAgNiA2MiA2czUyIDI2IDUyIDcyeiIgZmlsbD0iI2ZmNmIzZCIvPgo8cGF0aCBkPSJNNTQgNi40aDE0VjgwSDU0eiIgZmlsbD0iI2U5ZjBmMyIvPgo8cGF0aCBkPSJNMjYgMjZxMTItMTIgMzAtMTQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9Ii41IiBzdHJva2Utd2lkdGg9IjciIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMCA3OGgxMTV2OEgweiIgZmlsbD0iI2M0NDgyYSIvPgo8cGF0aCBkPSJNMzAgODhoNzZ2MTJIMzB6IiBmaWxsPSIjMjIzOTRhIi8+CjxlbGxpcHNlIGN4PSI5NCIgY3k9Ijk0IiByeD0iMTYiIHJ5PSIxMSIgZmlsbD0iIzIyMzk0YSIvPjxlbGxpcHNlIGN4PSI5NiIgY3k9Ijk0IiByeD0iMTEiIHJ5PSI3IiBmaWxsPSIjN2ZlM2ZmIi8+CjxwYXRoIGQ9Ik05MCA5MGw4LTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjYzQ0ODJhIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjkiIGZpbGw9IiMzYTU1NjgiLz4KPHBhdGggZD0iTTM0IDEwOHEyMCAyNiA1MCAyMiIgc3Ryb2tlPSIjMTYzMTNkIiBzdHJva2Utd2lkdGg9IjMuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iODQiIGN5PSIxMzAiIHI9IjQuNSIgZmlsbD0iIzE2MzEzZCIvPgo8L3N2Zz4K';
+PILOT.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTUgMTUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjE1MCI+DQo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOWE0N2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmM5YTAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4NCjxwYXRoIGQ9Ik00NCAxMThoMzB2MzJINDR6IiBmaWxsPSIjZDg4ZjY4Ii8+DQo8cGF0aCBkPSJNMjIgNzhjMC04IDEwLTE0IDI0LTE0aDQwYzEyIDAgMTggOCAyMCAxOGwyIDEwIDYgOC02IDQgMiA2LTQgMiAyIDhjMCAxMC0xMiAxOC0yNiAxOEg1OGMtMjAgMC0zNi0xNC0zNi0zNHoiIGZpbGw9InVybCgjcykiLz4NCjxwYXRoIGQ9Ik05MiAxMjBxNiAxIDktMyIgc3Ryb2tlPSIjYTU1MjNhIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPHBhdGggZD0iTTQgODJDNCAzNCAzMCA2IDYyIDZzNTIgMjYgNTIgNzJ6IiBmaWxsPSIjZmY2YjNkIi8+DQo8cGF0aCBkPSJNNTQgNi40aDE0VjgwSDU0eiIgZmlsbD0iI2U5ZjBmMyIvPg0KPHBhdGggZD0iTTI2IDI2cTEyLTEyIDMwLTE0IiBzdHJva2U9IiNmZmYiIHN0cm9rZS1vcGFjaXR5PSIuNSIgc3Ryb2tlLXdpZHRoPSI3IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjxwYXRoIGQ9Ik0wIDc4aDExNXY4SDB6IiBmaWxsPSIjYzQ0ODJhIi8+DQo8cGF0aCBkPSJNMzAgODhoNzZ2MTJIMzB6IiBmaWxsPSIjMjIzOTRhIi8+DQo8ZWxsaXBzZSBjeD0iOTQiIGN5PSI5NCIgcng9IjE2IiByeT0iMTEiIGZpbGw9IiMyMjM5NGEiLz48ZWxsaXBzZSBjeD0iOTYiIGN5PSI5NCIgcng9IjExIiByeT0iNyIgZmlsbD0iIzdmZTNmZiIvPg0KPHBhdGggZD0iTTkwIDkwbDgtMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjYzQ0ODJhIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjkiIGZpbGw9IiMzYTU1NjgiLz4NCjxwYXRoIGQ9Ik0zNCAxMDhxMjAgMjYgNTAgMjIiIHN0cm9rZT0iIzE2MzEzZCIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9Ijg0IiBjeT0iMTMwIiByPSI0LjUiIGZpbGw9IiMxNjMxM2QiLz4NCjwvc3ZnPg0K';
 const HEAD = new Image();
-HEAD.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NiAxNjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIxNjAiPgo8cGF0aCBkPSJNMzAgMTI0aDI2djM2SDMweiIgZmlsbD0iI2Q4OGY2OCIvPgo8ZWxsaXBzZSBjeD0iNDMiIGN5PSI3OCIgcng9IjM4IiByeT0iNTIiIGZpbGw9IiNmZmM5YTAiLz4KPHBhdGggZD0iTTUgNzBDMiAzMCAyMCAxNiA0MyAxNnM0MiAxNCAzOCA1NGMtNC0xNC0xMC0yMi0xOC0yNi02IDgtMjAgMTAtMzIgNi04IDQtMTYgMTItMjYgMjB6IiBmaWxsPSIjNWEzYTJhIi8+CjxwYXRoIGQ9Ik0yOCAxOGw2LTE0IDggMTIgMTAtMTQgNCAxNnoiIGZpbGw9IiM1YTNhMmEiLz4KPGVsbGlwc2UgY3g9IjI5IiBjeT0iNzgiIHJ4PSI4IiByeT0iMTAiIGZpbGw9IiNmZmYiLz48ZWxsaXBzZSBjeD0iNTciIGN5PSI3OCIgcng9IjgiIHJ5PSIxMCIgZmlsbD0iI2ZmZiIvPgo8Y2lyY2xlIGN4PSIzMSIgY3k9IjgwIiByPSI1IiBmaWxsPSIjMTYzMTNkIi8+PGNpcmNsZSBjeD0iNTkiIGN5PSI4MCIgcj0iNSIgZmlsbD0iIzE2MzEzZCIvPgo8Y2lyY2xlIGN4PSIzMi41IiBjeT0iNzgiIHI9IjEuOCIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjYwLjUiIGN5PSI3OCIgcj0iMS44IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik0yMCA2NHE4LTYgMTYtMk01MCA2MnE4LTQgMTYgMiIgc3Ryb2tlPSIjNWEzYTJhIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8ZWxsaXBzZSBjeD0iMjAiIGN5PSI5OCIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmY4YThhIiBmaWxsLW9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSI2NiIgY3k9Ijk4IiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmZjhhOGEiIGZpbGwtb3BhY2l0eT0iLjU1Ii8+CjxwYXRoIGQ9Ik0yNyAxMDRxMTYgMTggMzIgMHoiIGZpbGw9IiM4YTJhMmEiLz48cGF0aCBkPSJNMzEgMTA1aDI0bC0yIDRIMzN6IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik00MyA4NHEtNSAxMCAwIDEyIiBzdHJva2U9IiNkODhmNjgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
+HEAD.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NiAxNjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIxNjAiPg0KPHBhdGggZD0iTTMwIDEyNGgyNnYzNkgzMHoiIGZpbGw9IiNkODhmNjgiLz4NCjxlbGxpcHNlIGN4PSI0MyIgY3k9Ijc4IiByeD0iMzgiIHJ5PSI1MiIgZmlsbD0iI2ZmYzlhMCIvPg0KPHBhdGggZD0iTTUgNzBDMiAzMCAyMCAxNiA0MyAxNnM0MiAxNCAzOCA1NGMtNC0xNC0xMC0yMi0xOC0yNi02IDgtMjAgMTAtMzIgNi04IDQtMTYgMTItMjYgMjB6IiBmaWxsPSIjNWEzYTJhIi8+DQo8cGF0aCBkPSJNMjggMThsNi0xNCA4IDEyIDEwLTE0IDQgMTZ6IiBmaWxsPSIjNWEzYTJhIi8+DQo8ZWxsaXBzZSBjeD0iMjkiIGN5PSI3OCIgcng9IjgiIHJ5PSIxMCIgZmlsbD0iI2ZmZiIvPjxlbGxpcHNlIGN4PSI1NyIgY3k9Ijc4IiByeD0iOCIgcnk9IjEwIiBmaWxsPSIjZmZmIi8+DQo8Y2lyY2xlIGN4PSIzMSIgY3k9IjgwIiByPSI1IiBmaWxsPSIjMTYzMTNkIi8+PGNpcmNsZSBjeD0iNTkiIGN5PSI4MCIgcj0iNSIgZmlsbD0iIzE2MzEzZCIvPg0KPGNpcmNsZSBjeD0iMzIuNSIgY3k9Ijc4IiByPSIxLjgiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI2MC41IiBjeT0iNzgiIHI9IjEuOCIgZmlsbD0iI2ZmZiIvPg0KPHBhdGggZD0iTTIwIDY0cTgtNiAxNi0yTTUwIDYycTgtNCAxNiAyIiBzdHJva2U9IiM1YTNhMmEiIHN0cm9rZS13aWR0aD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQo8ZWxsaXBzZSBjeD0iMjAiIGN5PSI5OCIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmY4YThhIiBmaWxsLW9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSI2NiIgY3k9Ijk4IiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmZjhhOGEiIGZpbGwtb3BhY2l0eT0iLjU1Ii8+DQo8cGF0aCBkPSJNMjcgMTA0cTE2IDE4IDMyIDB6IiBmaWxsPSIjOGEyYTJhIi8+PHBhdGggZD0iTTMxIDEwNWgyNGwtMiA0SDMzeiIgZmlsbD0iI2ZmZiIvPg0KPHBhdGggZD0iTTQzIDg0cS01IDEwIDAgMTIiIHN0cm9rZT0iI2Q4OGY2OCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjwvc3ZnPg0K';
 function drawTag(g) {
   ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(Math.sin(g.t * 2.2) * 0.2);
   const pulse = 1 + Math.sin(time * 6 + g.seed) * 0.06;
@@ -4543,7 +4543,7 @@ function drawTrail() {
 /* ---------- « Let's go » au départ de chaque niveau ---------- */
 const INTRO_LEN = 2.3;
 const FACE = new Image();
-FACE.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgMjgwIiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjI4MCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U5YTQ3YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmYzlhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cGF0aCBkPSJNNTAgMjIwaDU2djYwSDUweiIgZmlsbD0iI2Q4OGY2OCIvPgo8cGF0aCBkPSJNMjQgMTIwYzAtNTYgMzAtOTYgODItOTYgNDAgMCA2MCAzMCA2MCA3MGwtMiAzMCAxMCAyMi0xMCA2IDQgMTItNiA0IDQgMTRjMCAyOC0yNiA1Mi02MiA1Mi00NiAwLTgwLTQwLTgwLTkweiIgZmlsbD0idXJsKCNzKSIvPgo8cGF0aCBkPSJNMTggMTI4QzggNjAgNDAgMTQgMTAwIDE0YzQ0IDAgNzAgMjYgNzAgNjYtMTQtMjItNDAtMzAtNjYtMjYtMTQgMi0yNCAxNC0zMCAzMC0xMC0xMC0yNi04LTM0IDQtNCAxNC02IDI4LTYgNDB6IiBmaWxsPSIjM2IyYTIyIi8+CjxlbGxpcHNlIGN4PSI1MCIgY3k9IjE1MCIgcng9IjE2IiByeT0iMjIiIGZpbGw9IiNlOWE0N2MiLz48cGF0aCBkPSJNNDYgMTQwcTggOCAyIDIwIiBzdHJva2U9IiNjMDdhNTgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPgo8cGF0aCBkPSJNNjAgMTE2aDExMnYxMEg2MHoiIGZpbGw9IiMxNjMxM2QiLz4KPHBhdGggZD0iTTExMiAxMTJoNThjNCAwIDYgNCA1IDhsLTQgMjJjLTEgNi02IDEwLTEyIDEwaC0zMGMtOCAwLTE0LTYtMTYtMTR6IiBmaWxsPSIjMGIxNDFjIi8+CjxwYXRoIGQ9Ik0xMjAgMTE4bDQwIDAiIHN0cm9rZT0iIzVlZjBmZiIgc3Ryb2tlLW9wYWNpdHk9Ii43IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTI2IDIxMnEyMiA2IDM0LTgiIHN0cm9rZT0iIzhhM2EyYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTEyMCAxMDBxMjAtOCA0MC0yIiBzdHJva2U9IiMzYjJhMjIiIHN0cm9rZS13aWR0aD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
+FACE.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgMjgwIiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjI4MCI+DQo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOWE0N2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmM5YTAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4NCjxwYXRoIGQ9Ik01MCAyMjBoNTZ2NjBINTB6IiBmaWxsPSIjZDg4ZjY4Ii8+DQo8cGF0aCBkPSJNMjQgMTIwYzAtNTYgMzAtOTYgODItOTYgNDAgMCA2MCAzMCA2MCA3MGwtMiAzMCAxMCAyMi0xMCA2IDQgMTItNiA0IDQgMTRjMCAyOC0yNiA1Mi02MiA1Mi00NiAwLTgwLTQwLTgwLTkweiIgZmlsbD0idXJsKCNzKSIvPg0KPHBhdGggZD0iTTE4IDEyOEM4IDYwIDQwIDE0IDEwMCAxNGM0NCAwIDcwIDI2IDcwIDY2LTE0LTIyLTQwLTMwLTY2LTI2LTE0IDItMjQgMTQtMzAgMzAtMTAtMTAtMjYtOC0zNCA0LTQgMTQtNiAyOC02IDQweiIgZmlsbD0iIzNiMmEyMiIvPg0KPGVsbGlwc2UgY3g9IjUwIiBjeT0iMTUwIiByeD0iMTYiIHJ5PSIyMiIgZmlsbD0iI2U5YTQ3YyIvPjxwYXRoIGQ9Ik00NiAxNDBxOCA4IDIgMjAiIHN0cm9rZT0iI2MwN2E1OCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+DQo8cGF0aCBkPSJNNjAgMTE2aDExMnYxMEg2MHoiIGZpbGw9IiMxNjMxM2QiLz4NCjxwYXRoIGQ9Ik0xMTIgMTEyaDU4YzQgMCA2IDQgNSA4bC00IDIyYy0xIDYtNiAxMC0xMiAxMGgtMzBjLTggMC0xNC02LTE2LTE0eiIgZmlsbD0iIzBiMTQxYyIvPg0KPHBhdGggZD0iTTEyMCAxMThsNDAgMCIgc3Ryb2tlPSIjNWVmMGZmIiBzdHJva2Utb3BhY2l0eT0iLjciIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQo8cGF0aCBkPSJNMTI2IDIxMnEyMiA2IDM0LTgiIHN0cm9rZT0iIzhhM2EyYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjxwYXRoIGQ9Ik0xMjAgMTAwcTIwLTggNDAtMiIgc3Ryb2tlPSIjM2IyYTIyIiBzdHJva2Utd2lkdGg9IjciIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPC9zdmc+DQo=';
 let introT = 0, introSub = '', introSub2 = '';
 function letsGo(sub) {
   PG_INTRO_IMG = pgPickHead();
@@ -50336,6 +50336,89 @@ void main(){ if (vK >= 0.999) discard;
 .pgh-pane{display:none;min-height:60vh}
 .pgh-pane.on{display:block;animation:pghPane .35s ease}
 @keyframes pghPane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* ---------- MESSAGES (SMS du téléphone de l'avatar, 19 oct.) ---------- */
+.pgh-tab .bdg.sms{color:#fff;background:linear-gradient(180deg,#ff7a8a,#e8455c);box-shadow:0 0 10px rgba(255,90,110,.55)}
+.pgh-smsn{font:700 12.5px ${FB};color:#ffb3c1}
+.pgh-smbox{margin-top:14px;padding:6px}
+.pgh-smc{width:100%;display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:0;border-radius:16px;background:none;color:inherit;text-align:left;transition:background .15s,transform .15s}
+.pgh-smc:hover{background:rgba(255,236,210,.05)}
+.pgh-smc:active{transform:scale(.985)}
+.pgh-smc + .pgh-smc{box-shadow:0 -1px 0 rgba(255,214,140,.1)}
+.pgh-smc.un{background:linear-gradient(90deg,rgba(255,158,196,.12),rgba(255,207,115,.05))}
+.pgh-smc .tx{min-width:0}
+.pgh-smc b{display:block;font:700 15.5px ${FB};color:#fff3dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-smc b em{font-style:normal;margin-left:6px;padding:1px 7px;border-radius:999px;font:700 10px ${FB};letter-spacing:.06em;text-transform:uppercase;vertical-align:2px;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e)}
+.pgh-smc .pv{display:block;margin-top:2px;font:600 13.5px/1.35 ${FB};color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-smc.un .pv{color:#fff3dc}
+.pgh-smc .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.pgh-smc .rt small{font:700 11.5px ${FB};color:var(--soft);white-space:nowrap}
+.pgh-smc.un .rt small{color:#ffb3c1}
+.pgh-smc .n{min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font:700 12px ${FB};color:#fff;background:linear-gradient(180deg,#ff7a8a,#e8455c);box-shadow:0 0 12px rgba(255,90,110,.5)}
+.pgh-sma{position:relative;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;overflow:hidden;flex:none;font:400 22px ${FD};color:#fff3dc;background:hsl(var(--h,280) 45% 38%);box-shadow:inset 0 0 0 2px rgba(255,214,140,.28),0 6px 14px rgba(0,0,0,.3)}
+.pgh-sma img{width:100%;height:100%;object-fit:cover;object-position:50% 18%}
+.pgh-sma.pnj{font-size:26px;background:radial-gradient(circle at 50% 35%,#ffe7a8,#ffb35e 60%,#c46a2a);box-shadow:inset 0 0 0 2px rgba(255,240,200,.7),0 6px 16px rgba(255,150,60,.35)}
+.pgh-sma.on::after{content:'';position:absolute;right:3px;bottom:3px;width:11px;height:11px;border-radius:50%;background:#7cf0a0;box-shadow:0 0 0 2.5px #2a1c4c}
+.pgh-smempty{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;padding:12px}
+.pgh-smempty .em{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;font-size:28px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,214,140,.25)}
+.pgh-smempty h3{margin:0;font:700 16px ${FB};color:#fff3dc}
+.pgh-smempty p{margin:4px 0 0;font:600 13px/1.45 ${FB};color:var(--soft)}
+.pgh-smempty .pgh-cta{grid-column:1 / -1;justify-self:start;flex:0 0 auto;padding:8px 18px;min-height:46px}
+.pgh-smnew{display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none;padding:12px 6px 6px;margin-top:4px;box-shadow:0 -1px 0 rgba(255,214,140,.1)}
+.pgh-smnew::-webkit-scrollbar{display:none}
+.pgh-smnew > span{flex:none;font:700 12px ${FB};color:var(--soft);letter-spacing:.02em}
+.pgh-smnew button{flex:none;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:4px 14px 4px 4px;border:0;border-radius:999px;font:700 13px ${FB};color:#fff3dc;background:rgba(40,24,66,.74);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.4)}
+.pgh-smnew button .pgh-sma{width:30px;height:30px;font-size:13px;box-shadow:none}
+.pgh-smwarn{margin:8px 12px 4px;font:600 12.5px/1.4 ${FB};color:#ffd2a0}
+/* la conversation (par-dessus la page ; panneau centré sur grand écran) */
+.pgh-th{position:absolute;inset:0;z-index:22;display:none;flex-direction:column;background:linear-gradient(180deg,#1c1640 0%,#271a4a 45%,#33204f 100%)}
+.pgh-th.on{display:flex;animation:pghIn .28s ease}
+.pgh-th::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(255,170,200,.14),rgba(0,0,0,0) 70%),radial-gradient(ellipse 70% 40% at 50% 100%,rgba(255,196,120,.12),rgba(0,0,0,0) 70%)}
+.pgh-thh{position:relative;z-index:1;display:flex;align-items:center;gap:12px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));background:rgba(16,12,34,.72);box-shadow:0 1px 0 rgba(255,214,140,.16),0 10px 24px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.pgh-thx{width:42px;height:42px;border-radius:50%;border:0;flex:none;color:#ffe2a6;background:rgba(255,255,255,.08);font:400 30px/1 ${FB};padding-bottom:4px}
+.pgh-thh .pgh-sma{width:44px;height:44px;font-size:19px}
+.pgh-thh .pgh-sma.pnj{font-size:22px}
+.pgh-thh .tx{min-width:0}
+.pgh-thh b{display:block;font:700 17px ${FB};color:#fff3dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-thh small{display:block;font:600 12.5px ${FB};color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-thh small.on{color:#9ff0b8}
+.pgh-thl{position:relative;z-index:1;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:14px 14px 10px;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin;scrollbar-color:rgba(255,214,140,.3) transparent}
+.pgh-thday{align-self:center;margin:12px 0 6px;padding:3px 12px;border-radius:999px;font:700 11.5px ${FB};letter-spacing:.04em;color:#ffe2ad;background:rgba(255,214,140,.1)}
+.pgh-thmore{align-self:center;margin:2px 0 8px;min-height:36px;padding:4px 16px;border:0;border-radius:999px;font:700 12.5px ${FB};color:#ffe2ad;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,214,140,.3)}
+.pgh-bub{max-width:min(78%,460px);padding:9px 13px 7px;border-radius:20px;font:600 15px/1.4 ${FB};white-space:pre-wrap;overflow-wrap:anywhere;position:relative;animation:pghBub .22s ease both}
+@keyframes pghBub{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+.pgh-bub small{display:block;margin-top:3px;font:700 10.5px ${FB};opacity:.7;text-align:right}
+.pgh-bub.th{align-self:flex-start;color:#fff3dc;background:rgba(255,236,210,.1);box-shadow:inset 0 0 0 1px rgba(255,214,140,.2);border-bottom-left-radius:6px}
+.pgh-bub.me{align-self:flex-end;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e 70%,#ffae55);box-shadow:0 6px 16px rgba(255,150,60,.25),inset 0 1px 0 rgba(255,255,255,.7);border-bottom-right-radius:6px}
+.pgh-bub.pnj{align-self:flex-start;color:#3b2410;background:linear-gradient(180deg,#fff6e4,#ffe6bf);box-shadow:0 6px 16px rgba(0,0,0,.25),inset 0 0 0 1px rgba(201,140,70,.5);border-bottom-left-radius:6px}
+.pgh-bub.pnj i{display:block;font:700 11px ${FB};font-style:normal;letter-spacing:.05em;text-transform:uppercase;color:#a0623a;margin-bottom:2px}
+.pgh-bub.pend{opacity:.72}
+.pgh-bub.fail{background:linear-gradient(180deg,#ffd0d0,#ff9e9e);color:#4a0f14;cursor:pointer}
+.pgh-thst{align-self:flex-end;margin:2px 4px 6px;font:700 11.5px ${FB};color:var(--soft)}
+.pgh-thst.lu{color:#9fd8ff}
+.pgh-thst.fail{color:#ff9e9e}
+.pgh-thf{position:relative;z-index:1;display:flex;align-items:flex-end;gap:10px;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:rgba(16,12,34,.78);box-shadow:0 -1px 0 rgba(255,214,140,.16)}
+.pgh-thf textarea{flex:1 1 auto;min-height:46px;max-height:140px;resize:none;border:0;border-radius:23px;padding:12px 16px;font:600 15.5px/1.35 ${FB};color:#fff3dc;background:rgba(255,236,210,.08);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.3);outline:none}
+.pgh-thf textarea:focus{box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.75),0 0 0 4px rgba(255,190,110,.12)}
+.pgh-thf textarea::placeholder{color:rgba(255,240,220,.45)}
+.pgh-thsend{width:46px;height:46px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e 55%,#ff9f4a);box-shadow:0 8px 20px rgba(255,150,60,.38),inset 0 1px 0 rgba(255,255,255,.75);transition:transform .15s,opacity .2s}
+.pgh-thsend:active{transform:scale(.92)}
+.pgh-thsend:disabled{opacity:.4;box-shadow:none}
+.pgh-thsend svg{width:22px;height:22px;margin-left:2px}
+.pgh-thc{position:absolute;right:72px;top:-20px;padding:1px 8px;border-radius:999px;font:700 11px ${FB};color:#ffe2ad;background:rgba(16,12,34,.85)}
+.pgh-thc:empty,.pgh-thf[hidden],.pgh-thro[hidden]{display:none}
+.pgh-thc.over{color:#ff9e9e}
+.pgh-thro{position:relative;z-index:1;padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));text-align:center;font:600 13px/1.45 ${FB};color:var(--soft);background:rgba(16,12,34,.78);box-shadow:0 -1px 0 rgba(255,214,140,.16)}
+.pgh-thempty{margin:auto;text-align:center;font:600 14px/1.5 ${FB};color:var(--soft);padding:20px}
+.pgh-thempty b{display:block;font-size:34px;margin-bottom:6px}
+@media (min-width:760px){
+  .pgh-th{background:rgba(10,8,24,.62);align-items:center;justify-content:center;padding:24px}
+  .pgh-th > *{width:min(640px,100%)}
+  .pgh-thh{border-radius:22px 22px 0 0;background:rgba(30,22,62,.96)}
+  .pgh-thl{flex:0 1 auto;height:min(62vh,640px);background:linear-gradient(180deg,#221a48,#2f1f50)}
+  .pgh-thf,.pgh-thro{border-radius:0 0 22px 22px;background:rgba(30,22,62,.96)}
+  .pgh-th::before{display:none}
+}
+@media (prefers-reduced-motion:reduce){.pgh-bub,.pgh-th.on{animation:none}}
 /* ---------- copains ---------- */
 .pgh-frhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .pgh-frcount{font:700 12.5px ${FB};color:#9ff0b8}
@@ -50864,7 +50947,7 @@ void main(){ if (vK >= 0.999) discard;
   </section>
   <nav class="pgh-tabs" data-h="tabs" role="tablist" aria-label="Pégase">
     <button class="pgh-tab" role="tab" data-tab="moi">${PGH_SVG.me}<span>Moi</span></button>
-    <button class="pgh-tab" role="tab" data-tab="amis">${PGH_SVG.friends}<span>Amis</span><span class="bdg" data-h="frbdg"></span></button>
+    <button class="pgh-tab" role="tab" data-tab="amis">${PGH_SVG.friends}<span>Amis</span><span class="bdg" data-h="frbdg"></span><span class="bdg sms" data-h="smsbdg" aria-label="messages non lus"></span></button>
     <button class="pgh-tab" role="tab" data-tab="infos">${PGH_SVG.info}<span>Infos</span></button>
     <i class="ind" data-h="tabind"></i>
   </nav>
@@ -50903,6 +50986,11 @@ void main(){ if (vK >= 0.999) discard;
     </section>
   </div>
   <div class="pgh-pane" data-pane="amis">
+    <section class="pgh-sec pgh-smsec" data-h="secsms" hidden>
+      <div class="pgh-frhead"><h2 class="pgh-h2">Messages</h2><span class="pgh-smsn" data-h="smsn"></span></div>
+      <p class="pgh-sub">Les SMS du téléphone de ton avatar : tes copains, et les habitants de Pégase.</p>
+      <div class="pgh-card pgh-smbox" data-h="smbox"></div>
+    </section>
     <section class="pgh-sec" data-h="secfr">
       <div class="pgh-frhead"><h2 class="pgh-h2">Les copains de la salle</h2><span class="pgh-frcount" data-h="frcount"></span></div>
       <p class="pgh-sub" data-h="frsub">Leurs avatars, et qui est là en ce moment.</p>
@@ -50965,7 +51053,7 @@ void main(){ if (vK >= 0.999) discard;
     <span class="pgh-fvst" data-h="fvst"><i></i><span data-h="fvstt"></span></span>
     <p class="pgh-fvdesc" data-h="fvdesc"></p>
     <div class="pgh-fvemo" data-h="fvemo">${EMOTES_ALL.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
-    <div class="pgh-fvbtns"><button class="pgh-cta glass" data-h="fvcall"><span>📞 Appeler</span><small>bientôt</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
+    <div class="pgh-fvbtns"><button class="pgh-cta gold" data-h="fvsms"><span>✉️ Écrire</span><small style="color:#7a3d10">un message</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
   </div>
 </div>
 <div class="pgh-modal" data-h="pmodal" role="dialog" aria-label="Ma photo de profil"><div class="pgh-mcard">
@@ -50997,6 +51085,12 @@ void main(){ if (vK >= 0.999) discard;
   <small data-h="earwho">Les mots sont reconnus par ton téléphone, sans rien enregistrer. Touche l'oreille pour qu'il arrête d'écouter.</small>
   <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="earno">Pas maintenant</button><button class="pgh-cta gold" data-h="earok"><span>C'est parti !</span></button></div>
 </div></div>
+<div class="pgh-th" data-h="th" role="dialog" aria-label="Conversation">
+  <header class="pgh-thh"><button class="pgh-thx" data-h="thx" aria-label="Retour aux messages">‹</button><span class="pgh-sma" data-h="thav"></span><div class="tx"><b data-h="thname"></b><small data-h="thsub"></small></div></header>
+  <div class="pgh-thl" data-h="thl" aria-live="polite"></div>
+  <form class="pgh-thf" data-h="thf"><textarea data-h="tht" rows="1" maxlength="600" placeholder="Écris ton message…" aria-label="Ton message"></textarea><span class="pgh-thc" data-h="thc"></span><button class="pgh-thsend" data-h="thsend" type="submit" aria-label="Envoyer" disabled><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.5-7.5a1 1 0 0 0 0-1.8L3.4 3.6a.9.9 0 0 0-1.3 1L4 11l9 1-9 1-1.9 6.4a.9.9 0 0 0 1.3 1z"/></svg></button></form>
+  <div class="pgh-thro" data-h="thro" hidden></div>
+</div>
 <div class="pgh-toast" data-h="toast"></div>`);
   }
 
@@ -51667,7 +51761,7 @@ void main(){ if (vK >= 0.999) discard;
         meShot();
         later(() => { if (STG && !editing && !friendOn) STG.gesture('wave'); }, 900);
         later(wordsPreload, 2500);   // mots (oui / non / salut / rire) préparés en arrière-plan
-        window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, info: SG.info(), ready: SG.ready(),
+        window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, sms: { st: SMS.st, unread: SMS.unread, th: SMS.th && SMS.th.w, live: !!SMS.off, pend: SMS.pend.length }, info: SG.info(), ready: SG.ready(),
           friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D), owned: [...OWNED], today: TODAY, buy: BUY && { k: BUY.k, st: BUY.st, p: BUY.L.p }, ucat: UCAT.size, mcat: MCAT.size,
           voice: MIC.on ? { label: MIC.label, f0: Math.round(MIC.f0), f0m: Math.round(MIC.f0m), flat: +MIC.flat.toFixed(2), vis: MIC.mouth ? MIC.mouth.shown : null, emo: Object.fromEntries(Object.entries(MIC.emo).map(([k, v]) => [k, +v.toFixed(2)])) } : null }) };
         thumbPump();
@@ -52799,7 +52893,7 @@ void main(){ if (vK >= 0.999) discard;
       tabInd();
       const top = $.hero.offsetHeight;
       if (scroll && $.scroll.scrollTop > top) $.scroll.scrollTop = top;
-      if (t === 'amis') { renderFriends(); loadAvatars(); }
+      if (t === 'amis') { renderFriends(); loadAvatars(); loadSms(); }
       if (t === 'moi') { renderShowcase(); renderLink(); }
     }
     on($.tabs, 'click', (e) => { const b = e.target.closest('.pgh-tab'); if (b) { setTab(b.dataset.tab, true); tone(560, 760); } });
@@ -52902,7 +52996,7 @@ void main(){ if (vK >= 0.999) discard;
     on($.fv, 'click', (e) => {
       const h = e.target.closest('[data-h]');
       if (h && h.dataset.h === 'fvx') { closeFriend(); return; }
-      if (h && h.dataset.h === 'fvcall') { toast('📞 Bientôt : appelle ' + (friendOn ? friendOn.display : 'un copain') + ' depuis le téléphone du jeu'); tone(660, 880); return; }
+      if (h && h.dataset.h === 'fvsms') { const n = friendOn && friendOn.name; if (n) { openThread('p:' + n); tone(560, 840); } return; }
       if (h && h.dataset.h === 'fvhouse') { toast('🏡 Bientôt : visite la maison de ' + (friendOn ? friendOn.display : 'ton copain') + ' dans Pégase'); tone(660, 880); return; }
       const b = e.target.closest('.pgh-emo'); if (b && STG && STG.ready()) { STG.gesture(b.dataset.emo); tone(740, 1180); }
     });
@@ -52910,6 +53004,223 @@ void main(){ if (vK >= 0.999) discard;
     every(() => { if (!document.hidden && tab === 'amis' && !editing) renderFriends(); }, 5000);
     every(() => { if (!document.hidden && tab === 'amis') loadAvatars(); }, 90000);
     every(() => { if (!document.hidden && tab === 'moi' && !BUY) loadWallet(); }, 120000);
+
+    // ---------- MESSAGES (19 oct.) : les SMS du téléphone de l'avatar, lus et écrits ici aussi (serveur : sms.sql) ----------
+    // pg_sms_list (conversations, non-lus) / pg_sms_thread (fil, pages de 30) / pg_sms_send (id fabriqué ici : un renvoi ne fait jamais de
+    // doublon) / pg_sms_read (lu → l'autre voit « Lu »). Direct : api.pegase.onSms (canal privé du pseudo, signal sans contenu) → relecture ;
+    // sans lui (ancienne borne) : relecture toutes les 15 s quand l'onglet Amis ou une conversation est à l'écran, 60 s sinon.
+    // Messages pas encore partis (réseau coupé) : gardés sur l'appareil (jdw.pegase.sms.<PSEUDO>) et renvoyés au retour du réseau.
+    // Borne sans les fonctions SMS (pegase.rpc « fonction refusée ») : la carte reste cachée.
+    const SMS = { st: 'idle', list: [], unread: 0, at: 0, busy: false, again: false, sig: '', th: null, off: null, pend: [], pendKey: '', lastPoke: 0 };
+    const PNJ_FACE = { maire: '👴', concours: '🏆', pegase: '✨' };
+    const smsPendKey = () => { const i = pgInfo(); return i.name ? 'jdw.pegase.sms.' + i.name : ''; };
+    function smsPendLoad() {
+      const k = smsPendKey(); if (k === SMS.pendKey) return; SMS.pendKey = k; SMS.pend = [];
+      if (!k) return; try { const a = JSON.parse(store.get(k) || '[]'); if (Array.isArray(a)) SMS.pend = a.filter((p) => p && typeof p.id === 'string' && typeof p.w === 'string' && typeof p.b === 'string').slice(-50); } catch (e) { /* rien */ }
+    }
+    const smsPendSave = () => { if (SMS.pendKey) store.set(SMS.pendKey, JSON.stringify(SMS.pend.filter((p) => p.st !== 'fail' || p.keep))); };
+    const smsId = () => { const b = new Uint8Array(16); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 16; i++) b[i] = Math.random() * 256 | 0; } return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(''); };
+    function smsWho(w, title) {
+      if (w.startsWith('pnj:')) return { name: title || w.slice(4), pnj: true, face: PNJ_FACE[w.slice(4)] || '💬' };
+      const n = w.slice(2), m = members().find((x) => x.name === n);
+      return { name: m ? m.display : n, pnj: false, photo: m && m.photo, online: !!(m && m.online), n };
+    }
+    const smsFace = (o) => o.pnj ? `<span class="pgh-sma pnj">${o.face}</span>` : `<span class="pgh-sma${o.online ? ' on' : ''}" style="--h:${hue(o.n)}">${o.photo ? `<img alt="" src="${esc(o.photo)}">` : esc((o.name[0] || '?').toUpperCase())}</span>`;
+    function smsWhen(t, long) {
+      const d = new Date(t); if (isNaN(d)) return '';
+      const now = new Date(), day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(), dd = Math.round((day(now) - day(d)) / 86400000);
+      const hm = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+      if (!long && Date.now() - d.getTime() < 60000) return 'à l\'instant';
+      if (dd === 0) return long ? 'Aujourd\'hui' : hm;
+      if (dd === 1) return 'Hier';
+      if (dd < 7) return ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'][d.getDay()].replace(/^./, (c) => long ? c.toUpperCase() : c) + (long ? ' ' + d.getDate() : '');
+      return d.getDate() + '/' + String(d.getMonth() + 1).padStart(2, '0');
+    }
+    const smsErr = (e) => { const m = String((e && e.message) || ''); return /pas copains/.test(m) ? 'Vous n\'êtes plus dans la même salle.' : /trop de messages|trop d essais/.test(m) ? 'Doucement : attends quelques secondes.'
+      : /trop long/.test(m) ? 'Message trop long (500 caractères au plus).' : /vide/.test(m) ? 'Message vide.' : /destinataire inconnu/.test(m) ? 'Ce joueur n\'existe plus.' : /pas de reponse/.test(m) ? 'On ne peut pas répondre ici.' : e && e.offline ? 'Pas de réseau.' : 'Pas envoyé.'; };
+    const smsFinal = (e) => /pas copains|trop long|vide|destinataire inconnu|pas de reponse|pas a soi|id deja pris|id invalide|compte requis|photo pas encore/.test(String((e && e.message) || ''));
+    async function loadSms(force) {
+      if (!memberMode()) { SMS.st = 'guest'; renderSms(); return; }
+      if (SMS.st === 'off') return;
+      if (SMS.busy) { SMS.again = true; return; }
+      if (!force && Date.now() - SMS.at < 4000) return;
+      SMS.busy = true; SMS.at = Date.now(); smsPendLoad();
+      try {
+        const rows = await PG.rpc('pg_sms_list', {}); if (dead) return;
+        SMS.list = (rows || []).map((r) => ({ w: String(r.r_with || ''), title: r.r_title || '', kind: r.r_kind || 'joueur', room: r.r_room || '', can: !!r.r_can, last: r.r_last_body || '', mine: !!r.r_last_mine,
+          photo: !!r.r_last_photo, at: r.r_last_at, state: r.r_last_state || '', unread: r.r_unread | 0 })).filter((c) => /^(p|pnj):/.test(c.w));
+        SMS.unread = SMS.list.reduce((s, c) => s + c.unread, 0); SMS.st = 'ok';
+      } catch (e) {
+        if (dead) return;
+        SMS.st = /fonction refus/.test(String(e && e.message)) ? 'off' : e && e.guest ? 'guest' : e && e.offline ? 'offline' : SMS.list.length ? 'ok' : 'err';
+      } finally { SMS.busy = false; }
+      renderSms();
+      if (SMS.th) { thSub(); if (!SMS.th.loading && Date.now() - (SMS.th.at || 0) > 1500) loadThread(false); }
+      smsFlush();
+      if (SMS.again) { SMS.again = false; later(() => loadSms(true), 50); }
+    }
+    function renderSms() {
+      $.secsms.hidden = SMS.st === 'off' || !PG;
+      $.smsbdg.textContent = SMS.unread > 9 ? '9+' : String(SMS.unread); $.smsbdg.classList.toggle('on', SMS.unread > 0);
+      $.smsn.textContent = SMS.unread ? SMS.unread + ' non lu' + (SMS.unread > 1 ? 's' : '') : '';
+      let html;
+      if (SMS.st === 'guest') html = `<div class="pgh-smempty"><span class="em">💬</span><div><h3>Crée un compte pour écrire à tes copains</h3><p>Les SMS du téléphone de ton avatar arrivent aussi ici : tes copains, le maire, les résultats des concours…</p></div><button class="pgh-cta gold" data-s="acct">Créer mon compte</button></div>`;
+      else if (SMS.st === 'idle' || (SMS.st === 'err' && !SMS.list.length) || (SMS.st === 'offline' && !SMS.list.length)) html = `<div class="pgh-smempty"><span class="em">💬</span><div><h3>${SMS.st === 'idle' ? 'Tes messages arrivent…' : 'Messages indisponibles'}</h3><p>${SMS.st === 'offline' ? 'Pas de réseau pour l\'instant : ils reviendront avec la connexion.' : SMS.st === 'err' ? 'Le serveur ne répond pas : on réessaie tout seul.' : 'Un instant.'}</p></div></div>`;
+      else {
+        const rows = SMS.list.map((c) => {
+          const o = smsWho(c.w, c.title), pv = (c.mine ? 'Toi : ' : '') + (c.last || (c.photo ? '📷 Photo' : ''));
+          return `<button class="pgh-smc${c.unread ? ' un' : ''}" data-w="${esc(c.w)}">${smsFace(o)}<span class="tx"><b>${esc(o.name)}${o.pnj ? `<em>${c.kind === 'concours' ? 'concours' : c.kind === 'systeme' ? 'Pégase' : 'habitant'}</em>` : ''}</b><span class="pv">${esc(pv)}</span></span><span class="rt"><small>${esc(smsWhen(c.at))}</small>${c.unread ? `<span class="n">${c.unread > 9 ? '9+' : c.unread}</span>` : ''}</span></button>`;
+        }).join('');
+        const have = new Set(SMS.list.map((c) => c.w)), ms = members().filter((m) => !m.me).sort((a, b) => (b.online - a.online) || a.display.localeCompare(b.display));
+        const fresh = ms.filter((m) => !have.has('p:' + m.name)).slice(0, 12);
+        const chips = fresh.length ? `<div class="pgh-smnew"><span>✏️ Écrire à</span>${fresh.map((m) => `<button data-w="p:${esc(m.name)}">${smsFace({ n: m.name, name: m.display, photo: m.photo, online: m.online })}${esc(m.display)}</button>`).join('')}</div>` : '';
+        html = (rows || `<div class="pgh-smempty"><span class="em">✉️</span><div><h3>Pas encore de message</h3><p>${ms.length ? 'Écris à un copain : il le lira dans le téléphone de son avatar, ou ici sur la borne.' : 'Quand un copain ou un habitant de Pégase t\'écrira, ça arrivera ici.'}</p></div></div>`) + chips
+          + (SMS.st === 'offline' ? '<p class="pgh-smwarn">Pas de réseau : les nouveaux messages arriveront avec la connexion.</p>' : '');
+      }
+      if (html === SMS.sig) return; SMS.sig = html;
+      $.smbox.innerHTML = html;
+    }
+    on($.smbox, 'click', (e) => {
+      if (e.target.closest('[data-s="acct"]')) { try { PG && PG.account && PG.account(); } catch (x) { /* rien */ } return; }
+      const b = e.target.closest('[data-w]'); if (b) { openThread(b.dataset.w); tone(560, 840); }
+    });
+    // ---------- la conversation ----------
+    function openThread(w) {
+      if (!memberMode() || !/^(p|pnj):/.test(w)) return;
+      if (friendOn) closeFriend();
+      smsPendLoad();
+      const c = SMS.list.find((x) => x.w === w);
+      SMS.th = { w, msgs: [], more: false, loading: false, first: true, err: '' };
+      const o = smsWho(w, c && c.title);
+      $.thav.outerHTML = smsFace(o).replace('class="pgh-sma', 'data-h="thav" class="pgh-sma'); $.thav = box.querySelector('[data-h="thav"]');
+      $.thname.textContent = o.name;
+      thSub();
+      $.tht.value = store.get('jdw.pegase.smsd.' + w) || ''; thInput();
+      $.thl.innerHTML = '<div class="pgh-thempty">…</div>';
+      $.th.classList.add('on'); box.scrollTop = 0;   // la page (overflow caché) a pu glisser (clavier, scrollIntoView) : le panneau couvre tout
+      if (!mobile) later(() => { try { $.tht.focus(); } catch (e) { /* rien */ } }, 120);
+      loadThread(false);
+    }
+    function thSub() {
+      const T = SMS.th; if (!T) return;
+      const c = SMS.list.find((x) => x.w === T.w), o = smsWho(T.w, c && c.title);
+      $.thsub.textContent = o.pnj ? (c && c.kind === 'concours' ? 'Les résultats des concours photo' : c && c.kind === 'systeme' ? 'Nouvelles de Pégase' : 'Habitant d\'Ailebrune') : o.online ? 'en ligne sur la borne' : (c && c.room ? 'Salle « ' + c.room + ' »' : 'Copain de Pégase');
+      $.thsub.classList.toggle('on', !o.pnj && o.online);
+      const can = !o.pnj && (c ? c.can : true);   // habitants : on leur répond dans le jeu (photos au maire…)
+      $.thf.hidden = !can; $.thro.hidden = can;
+      $.thro.textContent = o.pnj ? (c && c.kind === 'habitant' ? 'Réponds-lui dans le jeu, avec le téléphone de ton avatar.' : 'On ne peut pas répondre à ces messages.') : 'Vous n\'êtes plus dans la même salle : tu peux relire vos messages, mais plus lui écrire.';
+    }
+    function closeThread() {
+      if (!SMS.th) return;
+      store.set('jdw.pegase.smsd.' + SMS.th.w, $.tht.value.slice(0, 500));
+      SMS.th = null; $.th.classList.remove('on'); try { $.tht.blur(); } catch (e) { /* rien */ }
+      loadSms(true);
+    }
+    async function loadThread(older) {
+      const T = SMS.th; if (!T || T.loading) return;
+      T.loading = true;
+      const before = older && T.msgs.length ? T.msgs[0].sid : null; if (!older) T.at = Date.now();
+      try {
+        const rows = await PG.rpc('pg_sms_thread', { p_with: T.w, p_before: before, p_limit: 30 }); if (dead || SMS.th !== T) return;
+        const got = (rows || []).map((r) => ({ sid: r.r_sid, id: r.r_id, mine: !!r.r_mine, pnj: !!r.r_pnj, from: r.r_from, b: r.r_body || '', photo: !!r.r_photo, at: r.r_at, st: r.r_state || '' }));
+        const by = new Map(T.msgs.map((m) => [m.sid, m])); for (const m of got) by.set(m.sid, m);
+        T.msgs = [...by.values()].sort((a, b) => a.sid - b.sid);
+        if (older || T.first) T.more = got.length >= 30;
+        T.err = '';
+        // ce qui est arrivé du serveur n'est plus « en attente »
+        const ids = new Set(T.msgs.map((m) => m.id)); const n0 = SMS.pend.length; SMS.pend = SMS.pend.filter((p) => !ids.has(p.id)); if (SMS.pend.length !== n0) smsPendSave();
+      } catch (e) { if (SMS.th === T) T.err = e && e.offline ? 'Pas de réseau.' : 'Le serveur ne répond pas.'; }
+      finally { T.loading = false; }
+      if (SMS.th !== T) return;
+      renderThread(older ? 'keep' : T.first ? 'end' : 'auto');
+      T.first = false;
+      const last = T.msgs[T.msgs.length - 1], c = SMS.list.find((x) => x.w === T.w);
+      if (!older && last && !last.mine && (!c || c.unread || T.lastRead !== last.sid) && !document.hidden) {
+        T.lastRead = last.sid;
+        try { const left = await PG.rpc('pg_sms_read', { p_with: T.w }); if (!dead && typeof left === 'number') { SMS.unread = left; if (c) c.unread = 0; SMS.sig = ''; renderSms(); } } catch (e) { /* rien : réessayé à la prochaine lecture */ }
+      }
+    }
+    const ST_TXT = { envoye: 'Envoyé', distribue: 'Distribué', lu: 'Lu' };
+    function renderThread(scroll) {
+      const T = SMS.th; if (!T) return;
+      const L = $.thl, atEnd = L.scrollHeight - L.scrollTop - L.clientHeight < 60, h0 = L.scrollHeight, t0 = L.scrollTop;
+      const pend = SMS.pend.filter((p) => p.w === T.w);
+      let html = T.more ? '<button class="pgh-thmore" data-t="more">Messages plus anciens</button>' : '', day = '';
+      const all = T.msgs.concat(pend.map((p) => ({ pend: p, mine: true, b: p.b, at: p.at })));
+      const lastMine = (() => { for (let i = T.msgs.length - 1; i >= 0; i--) if (T.msgs[i].mine) return T.msgs[i].sid; return null; })();
+      for (const m of all) {
+        const d = smsWhen(m.at, true); if (d !== day) { day = d; html += `<div class="pgh-thday">${esc(d)}</div>`; }
+        const tm = (() => { const x = new Date(m.at); return isNaN(x) ? '' : x.getHours() + ':' + String(x.getMinutes()).padStart(2, '0'); })();
+        if (m.pend) {
+          const p = m.pend, fail = p.st === 'fail';
+          html += `<div class="pgh-bub me${fail ? ' fail' : ' pend'}" data-p="${esc(p.id)}">${esc(p.b)}<small>${fail ? '⚠ ' + esc(p.why || 'Pas envoyé') + ' · toucher pour réessayer' : p.st === 'wait' ? '⏳ ' + esc(p.why || 'En attente du réseau') : 'Envoi…'}</small></div>`;
+          continue;
+        }
+        const pnjName = m.pnj ? smsWho(T.w, (SMS.list.find((x) => x.w === T.w) || {}).title).name : '';
+        html += `<div class="pgh-bub ${m.mine ? 'me' : m.pnj ? 'pnj' : 'th'}">${m.pnj ? `<i>${esc(pnjName)}</i>` : ''}${esc(m.b || (m.photo ? '📷 Photo' : ''))}<small>${tm}</small></div>`;
+        if (m.mine && m.sid === lastMine && !pend.length && ST_TXT[m.st]) html += `<div class="pgh-thst${m.st === 'lu' ? ' lu' : ''}">${m.st === 'lu' ? '✓✓ ' : m.st === 'distribue' ? '✓✓ ' : '✓ '}${ST_TXT[m.st]}</div>`;
+      }
+      if (!all.length) { const o = smsWho(T.w); html += T.err ? `<div class="pgh-thempty"><b>📡</b>${esc(T.err)}</div>` : `<div class="pgh-thempty"><b>👋</b>${o.pnj ? 'Pas encore de message.' : 'Dis bonjour à ' + esc(o.name) + ' !'}</div>`; }
+      else if (T.err) html += `<div class="pgh-thst fail">${esc(T.err)}</div>`;
+      L.innerHTML = html;
+      if (scroll === 'keep') L.scrollTop = t0 + (L.scrollHeight - h0);
+      else if (scroll === 'end' || atEnd) L.scrollTop = L.scrollHeight;
+    }
+    on($.thl, 'click', (e) => {
+      if (e.target.closest('[data-t="more"]')) { loadThread(true); return; }
+      const b = e.target.closest('.pgh-bub.fail[data-p]'); if (!b) return;
+      const p = SMS.pend.find((x) => x.id === b.dataset.p); if (p) { p.st = 'send'; p.why = ''; smsPendSave(); renderThread('end'); smsSend(p); }
+    });
+    on($.th, 'click', (e) => { if (e.target.closest('[data-h="thx"]') || e.target === $.th) closeThread(); });
+    function thInput() {
+      const t = $.tht; t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px';
+      const n = [...t.value.trim()].length;
+      $.thc.textContent = n > 400 ? n + ' / 500' : ''; $.thc.classList.toggle('over', n > 500);
+      $.thsend.disabled = !n || n > 500;
+    }
+    on($.tht, 'input', thInput);
+    on($.tht, 'keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !mobile) { e.preventDefault(); thSendNow(); } else if (e.key === 'Escape') closeThread(); });
+    on($.thf, 'submit', (e) => { e.preventDefault(); thSendNow(); });
+    function thSendNow() {
+      const T = SMS.th; if (!T) return;
+      const b = $.tht.value.replace(/\r\n?/g, '\n').trim(); if (!b || [...b].length > 500) return;
+      const p = { id: smsId(), w: T.w, b, at: new Date().toISOString(), st: 'send', keep: true };
+      SMS.pend.push(p); smsPendSave();
+      $.tht.value = ''; store.set('jdw.pegase.smsd.' + T.w, ''); thInput();
+      renderThread('end'); tone(880, 1320);
+      smsSend(p);
+    }
+    async function smsSend(p) {
+      if (p.busy) return; p.busy = true;
+      try {
+        await PG.rpc('pg_sms_send', { p_to: p.w, p_body: p.b, p_id: p.id });
+        if (dead) return;
+        p.st = 'sent';
+      } catch (e) {
+        if (dead) return;
+        if (smsFinal(e)) { p.st = 'fail'; p.why = smsErr(e); p.keep = false; } else { p.st = 'wait'; p.why = smsErr(e); }
+      } finally { p.busy = false; }
+      smsPendSave();
+      if (SMS.th && SMS.th.w === p.w) { if (p.st === 'sent') loadThread(false); else renderThread('auto'); }
+      else if (p.st === 'sent') loadSms(true);
+    }
+    // renvoi de ce qui attend (au retour du réseau, ou en rouvrant le hub)
+    function smsFlush() { smsPendLoad(); for (const p of SMS.pend) if ((p.st === 'wait' || p.st === 'send') && !p.busy && SMS.st !== 'offline') smsSend(p); }
+    // direct : signal du serveur → relecture (regroupe les rafales)
+    let smsPokeT = 0;
+    // économe (le serveur limite les lectures à 300 / 10 min par pseudo, jeu + hub ensemble) : conversation ouverte → seulement son fil
+    // (+ lu) ; la liste au plus toutes les 10 s
+    function smsOnPoke() { if (SMS.th) { loadThread(false); if (Date.now() - SMS.at > 10000) loadSms(true); } else loadSms(true); }
+    if (PG && typeof PG.onSms === 'function') { try { SMS.off = PG.onSms(() => { SMS.lastPoke = Date.now(); clearTimeout(smsPokeT); smsPokeT = later(smsOnPoke, 250); }); } catch (e) { SMS.off = null; } }
+    every(() => {
+      if (document.hidden || dead) return;
+      const live = !!SMS.off, close = tab === 'amis' || !!SMS.th;
+      const per = live ? (close ? 45000 : 120000) : (close ? 15000 : 60000);
+      if (Date.now() - SMS.at >= per - 500) loadSms(true);
+      else if (SMS.pend.some((p) => p.st === 'wait' && !p.busy) && Date.now() - (SMS.flushAt || 0) > 9500) { SMS.flushAt = Date.now(); for (const p of SMS.pend) if (p.st === 'wait' && !p.busy) smsSend(p); }   // file d'attente : un essai toutes les 10 s
+    }, 5000);
+    on(window, 'online', () => { if (!dead) loadSms(true); });
+    on(document, 'visibilitychange', () => { if (!document.hidden && !dead) loadSms(true); });
 
     // ---------- téléchargement ----------
     async function renderDl() {
@@ -53136,6 +53447,7 @@ void main(){ if (vK >= 0.999) discard;
     // la 3D arrive APRÈS l'affichage (pas d'à-coup à l'ouverture)
     later(() => { (window.requestIdleCallback || ((f) => setTimeout(f, 1)))(() => { if (!dead) start3D(); }, { timeout: 600 }); }, 380);
     later(() => loadAvatars(true), 1500);
+    later(() => loadSms(true), 1100);
     return {
       destroy() {
         if (dead) return; dead = true;
@@ -53144,6 +53456,7 @@ void main(){ if (vK >= 0.999) discard;
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();
         if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect();
+        if (SMS.off) { try { SMS.off(); } catch (e) { /* rien */ } SMS.off = null; } if (SMS.th) store.set('jdw.pegase.smsd.' + SMS.th.w, $.tht.value.slice(0, 500));
         if (andOff) { try { andOff(); } catch (e) { /* rien */ } andOff = null; }
         if (nvOff) { try { nvOff(); } catch (e) { /* rien */ } nvOff = null; } if (NVL.on) { try { NV.stopListen(); } catch (e) { /* rien */ } }
         earBilan(); EAR.running = false; clearTimeout(EAR.kickT); earHalt();
@@ -90242,7 +90555,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261019192436"; window.JDW_VERSION = "1.21"; window.JDW_NOTES = ["\ud83c\udfae Toute la borne et tous les jeux se jouent \u00e0 la manette (Xbox, PlayStation\u2026) : navigation avec le halo dor\u00e9, pause avec les commandes, duels \u00e0 2 manettes, vibrations"];</script>
+<script>window.JDW_BUILD = "20261019212935"; window.JDW_VERSION = "1.21.1"; window.JDW_NOTES = ["\u2709\ufe0f P\u00e9gase (labo) : messages entre copains dans le hub"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -93651,7 +93964,29 @@ async function gameSetPhoto(data, scope) {
 // 1.19.15 : pg_link_make (carte « Connecter le jeu Pégase » de l'onglet Moi) : code à usage unique pour le compte de la borne, échangé par
 // le jeu (Edge Function pegase-redeem) ; p_code + p_name de la borne. 1.19.18 : CODE COURT par défaut (8 caractères « K7Q2-9MXA », 120 s,
 // à taper) ; seul argument du hub transmis : p_long = true (billet LONG de 64 hexadécimaux, 60 s, pour les passages appli → appli).
-const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make']);
+// 1.21.x (SMS, sms.sql) : pg_sms_list / pg_sms_thread / pg_sms_send / pg_sms_read (carte « Messages » de l'onglet Amis) ; arguments filtrés
+// ici (adresse « p:PSEUDO » / « pnj:id », texte ≤ 500, id fabriqué par le hub) ; onSms(fn) = signal du canal PRIVÉ jdw-sms-<pseudo en hexa>
+// (le serveur y envoie { t: 'sms' } SANS contenu ; le hub relit par RPC) ; rend la fonction pour se désabonner.
+const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make',
+  'pg_sms_list', 'pg_sms_thread', 'pg_sms_send', 'pg_sms_read']);
+const pgStr = (v, n) => String(v == null ? '' : v).slice(0, n);
+function pgSmsArgs(fn, x) {
+  x = x || {};
+  if (fn === 'pg_sms_send') return { p_to: pgStr(x.p_to, 40), p_body: pgStr(x.p_body, 2000), p_id: pgStr(x.p_id, 64) };
+  if (fn === 'pg_sms_thread') return { p_with: pgStr(x.p_with, 40), p_before: Number.isSafeInteger(x.p_before) && x.p_before > 0 ? x.p_before : null, p_limit: Math.max(1, Math.min(100, x.p_limit | 0 || 30)) };
+  if (fn === 'pg_sms_read') return { p_with: pgStr(x.p_with, 40) };
+  return {};
+}
+const SMS_SUBS = new Set();
+const smsHex = n => Array.from(new TextEncoder().encode(n), b => b.toString(16).padStart(2, '0')).join('');
+let smsTopicOn = null;
+function smsTopicSync() {
+  const want = SMS_SUBS.size && !isGuest() && profile.name && ONLINE ? 'jdw-sms-' + smsHex(cleanName(profile.name)) : null;
+  if (want === smsTopicOn) return;
+  if (smsTopicOn) rtLeave(smsTopicOn);
+  smsTopicOn = want;
+  if (want) { RT.topics.add(want); if (RT.ws && RT.ws.readyState === 1) rtJoin(want); else rtConnect(); }
+}
 const PG_RPC_CAT = new Set(['pg_unlock_catalog', 'pg_mission_catalog']);
 function pegaseApi() {
   const guest = () => isGuest() || !profile.name;
@@ -93670,12 +94005,13 @@ function pegaseApi() {
       if (!PG_RPC.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
       if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
-      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : Object.assign({}, args || {});
+      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : fn.startsWith('pg_sms_') ? pgSmsArgs(fn, args) : Object.assign({}, args || {});
       Object.assign(a, { p_code: CODE(), p_name: profile.name });
       if (fn === 'pg_room_avatars') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
       return rpc(fn, a, { quiet: true });
     },
-    account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); }   // invité : créer un compte (quitte le hub)
+    account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); },   // invité : créer un compte (quitte le hub)
+    onSms: fn => { if (typeof fn !== 'function') return () => {}; SMS_SUBS.add(fn); smsTopicSync(); return () => { SMS_SUBS.delete(fn); smsTopicSync(); }; }
   };
 }
 
@@ -94666,6 +95002,7 @@ function poke(kind, topic) {
 const pokeTimers = {};
 function onPoke(topic, event, p) {
   if (p.from === clientId) return;
+  if (p.t === 'sms') { if (topic === smsTopicOn) for (const f of [...SMS_SUBS]) { try { f(); } catch (e) {} } return; }
   if (p.t === 'rtc') { if (room && topic === 'jdw-room-' + room.id) rtcOnSignal(p); return; }
   if (p.t === 'net') { if (NET.topic && topic === NET.topic) netOnSignal(p); return; }
   if (p.t === 'netinv') { if (room && topic === 'jdw-room-' + room.id) netOnInvite(p); return; }
@@ -102546,7 +102883,7 @@ function guestSync() {
   const first = guestWas === null; guestWas = g;
   if (g) {
     const t = roomTopic(); room = null; if (t) RT.topics.delete(t);       // la salle reste retenue sur l'appareil (jdw.room)
-    rtClose(); RT.topics.clear();
+    rtClose(); RT.topics.clear(); smsTopicOn = null;
     players.clear(); memberNames = new Set(); membersFor = null; remote = {}; remoteLoaded = false; counts = {}; total = 0;
     ensureAiPlayer();
     if (!first) { try { chatReset(); closeChat(); } catch (e) {} }
