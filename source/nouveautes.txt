@@ -1,1 +1,1 @@
-🌱 Pégase 0.8 : nouveau départ pour tout le monde (ton avatar est gardé)
+🛠️ Pégase 0.8.1 : corrections (oiseaux, murs transparents, affiches à poser où tu veux)

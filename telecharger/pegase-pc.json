@@ -1,13 +1,13 @@
 {
-  "version": "0.8 (essai 9)",
-  "build": 9,
-  "size": 1510991647,
-  "sha256": "ad3944b5a0a8ede856794f4e1c8226efb67540b3f9a0fbef7b1b608a2a783479",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v9/Pegase-PC-2026-10-20-nouveau-depart.zip",
-  "manifest": "6f2cbdf5a29d862c9065c05697027c277279cc6ea0cb392b09aef60d3fda1aa7",
+  "version": "0.8.1 (essai 10)",
+  "build": 10,
+  "size": 1511509949,
+  "sha256": "7c40689932f4f12615a41b38374eb6f36d14e982252f7f85baf86694647b7e88",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v10/Pegase-PC-2026-10-20-corrections.zip",
+  "manifest": "3223353fe8f6ab53ceebe00e031f5df72941e152f1d621b3f10f9543cb2ec259",
   "notes": [
-    "Nouveau départ pour tout le monde : ton avatar est gardé",
-    "Plus de 40 sortes d'oiseaux, des danses et de la musique",
-    "Une heure commune à tous, et la mise à jour automatique"
+    "Oiseaux corrigés : plus de pigeon géant, un oiseau par perchoir, vrais chants",
+    "Plus de murs transparents, surtout dans les maisons",
+    "Affiches : clic gauche (manette : gâchette droite) pour les coller où tu veux"
   ]
 }
