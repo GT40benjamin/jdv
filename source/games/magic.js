@@ -9,8 +9,8 @@
   // Les têtes des copains n'apparaissent QUE dans les annonces à l'écran (bulles avec portrait), jamais sur les personnages 3D.
   // Le moteur 3D (assets/magic.moteur.bin : three.js, MIT, gzippé) et les données (assets/magic.monde1.bin, EMBALLÉ avec la clé
   // intégrée au site : modèles, textures et sons, dont ceux de l'Asset Store) ne se chargent QUE quand on ouvre le jeu ;
-  // le 2e monde (assets/magic.monde2.bin) se télécharge pendant qu'on joue au 1er. La vignette (preview) est dessinée en 2D.
-  // currentLevel() = numéro de salle (monde 1 : salles 1 à 6, monde 2 : 7 à 12, monde 3 : 13 à 18, puis Tour II…). Mondes : JDW_GAMES.magic.worlds.
+  // chaque monde suivant (assets/magic.monde2.bin … monde6.bin) se télécharge pendant qu'on joue au précédent. La vignette (preview) est dessinée en 2D.
+  // currentLevel() = numéro de salle (monde 1 : salles 1 à 6, monde 2 : 7 à 12… monde 6 : 31 à 36). Mondes : JDW_GAMES.magic.worlds.
   // ===========================================================================
 
   const TAU = Math.PI * 2;
@@ -35,7 +35,8 @@
   // ---------------------------------------------------------------------------
   // LES MONDES (lus aussi par la bibliothèque : JDW_GAMES.magic.worlds, pour la fin de partie et une carte d'avancement)
   // 6 salles par monde : 4 salles de combat, la 5e = le mini-boss, la 6e = le boss (+ une salle secrète, hors compte).
-  // Seuls les mondes « ready » sont jouables : après le dernier prêt, le Tour II recommence au premier (plus coriace).
+  // Six mondes TOUS DIFFÉRENTS (jamais deux fois le même monstre ni le même boss) ; après le Seigneur des ombres (monde 6) :
+  // la grande victoire, la partie est finie (plus de Tour II).
   // ---------------------------------------------------------------------------
   const PER_WORLD = 6;
   const WORLDS = [
@@ -50,22 +51,31 @@
       rooms: ['Le Pont de lave', 'La Grande Forge', 'Les Fonderies', "L'Armurerie", 'La Salle du Seigneur', 'Le Nid du dragon'],
       mini: { key: 'lord', name: 'Le Seigneur des braises', title: 'LE SEIGNEUR DES BRAISES' },
       boss: { key: 'dragon', name: 'Braise, le dragon', title: 'BRAISE, LE DRAGON', line: 'Il garde le feu du volcan… et il a très, très chaud.' },
-      enemies: ['Squelette', 'Squelette guerrier', 'Squelette arbalétrier', 'Squelette sorcier'], news: 'La lave coule dans les forges !' },
+      enemies: ['Démon des forges', 'Diablotin', 'Dragonnet', 'Masque de feu'], news: 'La lave coule dans les forges !' },
     { id: 'glace', name: 'Les Grottes de glace', short: 'Glace', emoji: '❄️', ready: true, pack: 'monde3',
       acc: '#8fe9ff', acc2: '#ffffff', bg0: '#04101a', bg1: '#123a52',
       rooms: ['La Rivière gelée', 'Les Stalactites', 'La Salle des cristaux', 'Le Lac gelé', 'La Tanière du Yéti', 'Le Cœur de glace'],
       mini: { key: 'yetiKing', name: 'Le Yéti géant', title: 'LE YÉTI GÉANT' },
       boss: { key: 'hydre', name: "Givre, l'hydre des glaces", title: "GIVRE, L'HYDRE DES GLACES", line: 'Trois têtes, un souffle glacé… et pas une seule bonne humeur.' },
-      enemies: ['Squelette gelé', 'Yéti', 'Spectre', 'Squelette sorcier'], news: 'Il fait très, très froid…' },
-    { id: 'jardin', name: 'Le Jardin maudit', short: 'Jardin', emoji: '🌿', ready: false,
-      acc: '#9dff6a', acc2: '#ffd36a', bg0: '#06120b', bg1: '#173a26', rooms: ['Les Ronces', 'La Serre', 'Le Vieux Chêne'],
-      boss: { key: 'ent', name: 'Le Vieux Chêne', title: 'LE VIEUX CHÊNE', line: 'Ses racines ont tout envahi.' }, enemies: ['Squelette'], news: 'Les plantes se réveillent !' },
-    { id: 'tour', name: 'La Tour du sorcier', short: 'Tour', emoji: '🔮', ready: false,
-      acc: '#c58cff', acc2: '#7fe6ff', bg0: '#0a0618', bg1: '#2a1a57', rooms: ["L'Escalier", 'La Bibliothèque', 'Le Sommet'],
-      boss: { key: 'sorcier', name: 'Le Sorcier noir', title: 'LE SORCIER NOIR', line: 'Le maître des squelettes.' }, enemies: ['Squelette sorcier'], news: 'La tour s’illumine…' },
-    { id: 'trone', name: 'La Salle du trône', short: 'Trône', emoji: '👑', ready: false,
-      acc: '#ffd34d', acc2: '#ff6a5a', bg0: '#160606', bg1: '#4a1414', rooms: ['Le Grand Couloir', 'La Garde royale', 'Le Trône'],
-      boss: { key: 'roi', name: 'Le Roi squelette', title: 'LE ROI SQUELETTE', line: 'Le dernier combat.' }, enemies: ['Tous'], news: 'Le dernier combat !' }
+      enemies: ['Yéti', 'Requin des glaces', 'Piranha givré', 'Calmar des neiges'], news: 'Il fait très, très froid…' },
+    { id: 'jardin', name: 'Le Jardin maudit', short: 'Jardin', emoji: '🍄', ready: true, pack: 'monde4',
+      acc: '#9dff6a', acc2: '#ffd36a', bg0: '#06120b', bg1: '#173a26',
+      rooms: ['Le Sentier moussu', 'La Serre aux champignons', 'Le Bassin aux crapauds', 'La Ruche', 'Le Cercle des champignons', 'Le Bosquet du Vieux Chêne'],
+      mini: { key: 'mushKing', name: 'Le Roi Champignon', title: 'LE ROI CHAMPIGNON' },
+      boss: { key: 'ent', name: 'Le Vieux Chêne', title: 'LE VIEUX CHÊNE', line: 'Ses racines ont tout envahi… et il n’aime pas qu’on marche sur sa mousse.' },
+      enemies: ['Champignon sauteur', 'Bogue épineuse', 'Crapaud doré', 'Bourdon cuirassé'], news: 'Les champignons brillent dans le noir…' },
+    { id: 'tour', name: 'La Tour du sorcier', short: 'Tour', emoji: '🔮', ready: true, pack: 'monde5',
+      acc: '#c58cff', acc2: '#7fe6ff', bg0: '#0a0618', bg1: '#2a1a57',
+      rooms: ["L'Escalier des étoiles", 'La Salle des grimoires', 'La Lunette des étoiles', 'Le Laboratoire', 'Le Dojo des ombres', "Le Sommet de l'Œil"],
+      mini: { key: 'ninjaKing', name: 'Le Maître ninja', title: 'LE MAÎTRE NINJA' },
+      boss: { key: 'oeil', name: 'Le Grand Œil', title: 'LE GRAND ŒIL', line: 'Il voit tout, il sait tout… sauf viser.' },
+      enemies: ['Ninja de l’ombre', 'Lutin des étoiles', 'Tourbillon', 'Petite ombre'], news: 'La tour flotte parmi les étoiles !' },
+    { id: 'trone', name: 'La Salle du trône', short: 'Trône', emoji: '👑', ready: true, pack: 'monde6',
+      acc: '#ffd34d', acc2: '#ff6a5a', bg0: '#160606', bg1: '#4a1414',
+      rooms: ['Le Grand Couloir', 'La Salle des banquets', 'La Galerie des trésors', 'La Garde royale', 'La Salle du capitaine', 'Le Trône des ombres'],
+      mini: { key: 'birbKing', name: 'Le Capitaine de la garde', title: 'LE CAPITAINE DE LA GARDE' },
+      boss: { key: 'seigneur', name: 'Le Seigneur des ombres', title: 'LE SEIGNEUR DES OMBRES', line: 'Il a volé la magie du royaume… reprends-la !' },
+      enemies: ['Dino cuirassé', 'Garde royal', 'Gargouille couronnée', 'Prince doré'], news: 'Le dernier combat !' }
   ];
   const PLAYABLE = WORLDS.filter((w) => w.ready);
   // forme exposée à la bibliothèque (comme EMPILO_WORLDS) : couleurs, emoji, nom, salles, boss
@@ -73,11 +83,11 @@
     colors: { accent: w.acc, accent2: w.acc2, dark: w.bg0, light: w.bg1 }, rooms: w.rooms.slice(), enemies: w.enemies.slice(),
     boss: { key: w.boss.key, name: w.boss.name, title: w.boss.title, line: w.boss.line }, mini: w.mini ? { key: w.mini.key, name: w.mini.name, stage: PER_WORLD - 2 } : null });
   const PUB = PLAYABLE.map(pub);
-  // salle (1, 2, 3…) → monde (parmi les mondes jouables), tour, étape
+  // salle (1 à 36) → monde, étape (tour : toujours 0, gardé pour la bibliothèque ; au-delà de la salle 36 : le Trône)
+  const LAST_LEVEL = PLAYABLE.length * PER_WORLD;
   function worldOf(level) {
-    const i = Math.max(0, (Math.floor(Number(level)) || 1) - 1), wi = Math.floor(i / PER_WORLD), n = PLAYABLE.length;
-    const w = wi % n;
-    return { w, n: w + 1, tour: Math.floor(wi / n), stage: i % PER_WORLD, room: i % PER_WORLD + 1, boss: i % PER_WORLD === PER_WORLD - 1, mini: i % PER_WORLD === PER_WORLD - 2, world: PUB[w] };
+    const i = Math.min(LAST_LEVEL, Math.max(1, Math.floor(Number(level)) || 1)) - 1, w = Math.floor(i / PER_WORLD);
+    return { w, n: w + 1, tour: 0, stage: i % PER_WORLD, room: i % PER_WORLD + 1, boss: i % PER_WORLD === PER_WORLD - 1, mini: i % PER_WORLD === PER_WORLD - 2, last: i === LAST_LEVEL - 1, world: PUB[w] };
   }
 
   // ---------------------------------------------------------------------------
@@ -523,6 +533,13 @@
 .mf-wcard.wide .mf-stars svg{width:48px;height:48px}
 .mf-wcard.wide .mf-wrow{padding:5px 2px}
 .mf-wcard.wide .mf-wrow.tot{padding-top:8px}
+.mf-wcard.final{box-shadow:0 0 0 2.5px rgba(255,214,110,.9),0 0 0 7px rgba(60,30,0,.55),0 20px 60px rgba(0,0,0,.6),0 0 110px rgba(255,190,80,.45)}
+.mf-wcard.final{animation:mfGold 2.6s ease-in-out infinite}
+@keyframes mfGold{50%{box-shadow:0 0 0 2.5px rgba(255,230,150,1),0 0 0 7px rgba(60,30,0,.55),0 20px 60px rgba(0,0,0,.6),0 0 150px rgba(255,200,90,.7)}}
+.mf-worlds{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:4px 0 2px}
+.mf-worlds canvas{width:38px;height:38px;transform:scale(.3);opacity:0;transition:transform .45s cubic-bezier(.2,1.8,.4,1),opacity .3s;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.mf-worlds canvas.on{transform:scale(1);opacity:1}
+.mf-wcard.wide .mf-worlds canvas{width:36px;height:36px}
 .mf-wcard h2{margin:0;font:400 clamp(26px,8vw,38px) ${FD};letter-spacing:.03em;background:linear-gradient(180deg,#fffbe8 10%,#ffd36a 55%,#ff8f3a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 rgba(70,20,0,.6))}
 .mf-wcard h3{margin:4px 0 10px;font:600 14px/1.35 ${FB};color:#d6c8ee}
 .mf-wcard h3 span{display:block}
@@ -564,7 +581,7 @@
     const FXR = Math.random;                                         // hasard des effets
     const frnd = (a, b) => a + FXR() * (b - a);
     const fpick = (arr) => arr[Math.floor(FXR() * arr.length)];
-    const START = Math.min(60, Math.max(1, Math.floor(Number(api.startLevel)) || 1));
+    const START = Math.min(36, Math.max(1, Math.floor(Number(api.startLevel)) || 1));      // 6 mondes × 6 salles
     const TOUCH0 = (() => { try { return matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints || 0) > 0 && !matchMedia('(pointer: fine)').matches; } catch (e) { return false; } })();
 
     function celebrate(text, name) { try { if (typeof api.celebrate === 'function') api.celebrate(text, name); } catch (e) { /* rien */ } }
@@ -1069,7 +1086,7 @@
     const DISPOSE = new Set();
     // matériaux « maison » (particules, lave, mer, bouclier, barreaux…) : la même sortie que ceux de three.js — tons ACES + sRGB quand
     // on dessine directement à l'écran (chemin mobile) ; rien ne change quand on dessine dans l'image HDR (chemin PC)
-    const shOut = (m) => { m.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace(/\}\s*$/, '#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}'); }; };
+    const shOut = (m) => { m.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace(/\}\s*$/, '\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}'); }; };   // (20 oct.) saut de ligne : sans lui, un shader écrit sur une ligne (cônes de souffle de Braise et de Givre) ne compilait plus depuis la 1.18.7
     const keep = (x) => { if (x) { DISPOSE.add(x); if (x.isShaderMaterial && x.toneMapped !== false && !/tonemapping_fragment/.test(x.fragmentShader || '')) shOut(x); } return x; };
     let Q = null;                                 // réglages de qualité
     let DYN = 1;                                  // résolution dynamique (0,6 à 1) : réglée pendant le jeu
@@ -1080,6 +1097,11 @@
     const TPL = {};                               // personnages : gabarits préparés
     const UNI = { time: { value: 0 }, player: { value: null }, aspect: { value: 1 }, cutR: { value: 0.16 }, hero: { value: null }, dark: { value: new Float32Array([9, 26, 0.3]) },
       floorAO: { value: null }, floorRect: { value: null }, lavaK: { value: 0 },
+      // mousse du Jardin : la carte du sol porte aussi la mousse (vert) et sa teinte (bleu) ; x = force (0 ailleurs), couleurs linéaires
+      moss: { value: new Float32Array([0, 0]) }, mossA: { value: new Float32Array([0.05, 0.16, 0.035]) }, mossB: { value: new Float32Array([0.2, 0.34, 0.06]) },
+      // (v24) marbre du Trône : nuages (A, B), bordure sombre (C, D), K.x = 1 / clarté de la dalle d'origine (garde ses joints)
+      mbA: { value: new Float32Array([0.5, 0.45, 0.4]) }, mbB: { value: new Float32Array([0.4, 0.35, 0.32]) }, mbC: { value: new Float32Array([0.06, 0.02, 0.02]) },
+      mbD: { value: new Float32Array([0.03, 0.01, 0.01]) }, mbK: { value: new Float32Array([4, 0, 0, 0]) },
       lm: { value: null }, lmR: { value: null }, sunV: { value: null }, sunC: { value: null }, lmSh: { value: 1 } };
 
     // ------------------------------------------------------------- qualité : niveau de départ selon l'appareil, puis réglage tout seul
@@ -1225,7 +1247,8 @@
       if (o.dis) { mat.userData.dis = { value: 0 }; mat.userData.disCol = { value: new T.Color(o.disCol || 0xb070ff) }; mat.userData.disH = { value: o.disH || 2.4 }; }
       mat.onBeforeCompile = (sh) => {
         sh.uniforms.uMfP = UNI.player; sh.uniforms.uMfP2 = UNI.player2; sh.uniforms.uMfA = UNI.aspect; sh.uniforms.uMfR = UNI.cutR; sh.uniforms.uMfH = UNI.hero; sh.uniforms.uMfDark = UNI.dark;
-        sh.uniforms.uMfFloor = UNI.floorAO; sh.uniforms.uMfFR = UNI.floorRect; sh.uniforms.uMfLava = UNI.lavaK;
+        sh.uniforms.uMfFloor = UNI.floorAO; if (o.floor) { sh.uniforms.uMfMoss = UNI.moss; sh.uniforms.uMfMossA = UNI.mossA; sh.uniforms.uMfMossB = UNI.mossB; } sh.uniforms.uMfFR = UNI.floorRect; sh.uniforms.uMfLava = UNI.lavaK;
+        if (o.marble) { sh.uniforms.uMbA = UNI.mbA; sh.uniforms.uMbB = UNI.mbB; sh.uniforms.uMbC = UNI.mbC; sh.uniforms.uMbD = UNI.mbD; sh.uniforms.uMbK = UNI.mbK; }
         if (o.lm || o.lmc) { sh.uniforms.uLM = UNI.lm; sh.uniforms.uLMR = UNI.lmR; sh.uniforms.uSunV = UNI.sunV; sh.uniforms.uSunC = UNI.sunC; sh.uniforms.uLMsh = UNI.lmSh; sh.uniforms.uMfT = UNI.time; }
         if (mat.userData.rim) { sh.uniforms.uRim = mat.userData.rim; sh.uniforms.uRimK = mat.userData.rimK; sh.uniforms.uFlash = mat.userData.flash; sh.uniforms.uTint = mat.userData.tint; }
         if (mat.userData.dis) { sh.uniforms.uDis = mat.userData.dis; sh.uniforms.uDisCol = mat.userData.disCol; sh.uniforms.uDisH = mat.userData.disH; }
@@ -1233,6 +1256,8 @@
           .replace('#include <project_vertex>', '#include <project_vertex>\nvMfC = gl_Position;\n#ifdef USE_INSTANCING\nvMfW = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;\n#else\nvMfW = (modelMatrix * vec4(transformed, 1.0)).xyz;\n#endif');
         let head = '#include <common>\nvarying vec3 vMfW;\nvarying vec4 vMfC;\nuniform vec3 uMfP; uniform vec3 uMfP2; uniform float uMfA; uniform float uMfR; uniform vec3 uMfH; uniform vec3 uMfDark;\nuniform sampler2D uMfFloor; uniform vec4 uMfFR; uniform float uMfLava;\n';
         // trame de Bayer 4×4 sur les pixels de l'écran (fine, suit la résolution ; l'anticrénelage la lisse en transparence)
+        if (o.floor) head += 'uniform vec2 uMfMoss; uniform vec3 uMfMossA; uniform vec3 uMfMossB;\n';
+        if (o.marble) head += 'uniform vec3 uMbA; uniform vec3 uMbB; uniform vec3 uMbC; uniform vec3 uMbD; uniform vec4 uMbK;\n';
         if (o.cut) head += 'float mfB2(vec2 a){ a = mod(floor(a), 2.0); return fract(a.x * 0.5 + a.y * 0.75); }\nfloat mfB4(vec2 a){ return mfB2(0.5 * a) * 0.25 + mfB2(a); }\n';
         // bruit lisse en 3D (dissolution des monstres : des braises qui rongent, plus des cubes)
         if (o.dis) head += 'float mfH3(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }\n' +
@@ -1244,7 +1269,13 @@
         if (o.lm || o.lmc) head += 'uniform sampler2D uLM; uniform vec4 uLMR; uniform vec3 uSunV; uniform vec3 uSunC; uniform float uLMsh; uniform float uMfT;\n';
         let diff = '';
         if (o.ao) diff += 'diffuseColor.rgb *= mix(0.42, 1.0, smoothstep(0.0, 1.6, vMfW.y));\n';
-        if (o.floor) diff += '{ vec2 fu = (vMfW.xz - uMfFR.xy) * uMfFR.zw; float ao = texture2D(uMfFloor, fu).r; diffuseColor.rgb *= mix(0.32, 1.0, ao); }\n';
+        if (o.floor) diff += '{ vec2 fu = (vMfW.xz - uMfFR.xy) * uMfFR.zw; vec4 fa = texture2D(uMfFloor, fu); diffuseColor.rgb *= mix(0.32, 1.0, fa.r);\n' +
+          '  if (uMfMoss.x > 0.0) { vec3 mc = mix(uMfMossA, uMfMossB, fa.b) * mix(0.6, 1.05, fa.r); diffuseColor.rgb = mix(diffuseColor.rgb, mc, fa.g * uMfMoss.x); } }\n';
+        // (v24) le marbre du Trône (sol du monde 6 seulement : un programme à part) : la carte du sol porte les nuages (vert) et la
+        // bordure sombre (bleu, rampe : 0,5 pile sur le filet d'or) ; la clarté de la dalle d'origine garde ses joints
+        if (o.marble) diff += '{ vec2 fu = (vMfW.xz - uMfFR.xy) * uMfFR.zw; vec4 fa = texture2D(uMfFloor, fu);\n' +
+          '  float det = clamp(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)) * uMbK.x, 0.55, 1.2), bd = smoothstep(0.44, 0.56, fa.b);\n' +
+          '  diffuseColor.rgb = mix(mix(uMbA, uMbB, fa.g), mix(uMbC, uMbD, fa.g), bd) * det * mix(0.32, 1.0, fa.r); }\n';
         if (o.flash) diff += 'diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * uTint.rgb, uTint.a);\n';
         let cut = '';
         if (o.cut) cut = '{ vec2 nd = vMfC.xy / vMfC.w; vec2 dd = (nd - uMfP.xy) * vec2(uMfA, 1.0); float rr = length(dd); float pz = uMfP.z;\n' +
@@ -1875,6 +1906,7 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
           pushWall(vertical ? [e.cx - 0.5, e.cz - 2.05, e.cx + 0.5, e.cz + 2.05] : [e.cx - 2.05, e.cz - 0.5, e.cx + 2.05, e.cz + 0.5]);
         }
       }
+      if (def.sea) for (const e of edges) if (!e.door && !e.lava && !e.back) { const nx = e.side === 'w' ? -1 : e.side === 'e' ? 1 : 0, nz = e.side === 'n' ? -1 : e.side === 's' ? 1 : 0; bakeAdd(e.cx + nx * 1.2, e.cz + nz * 1.2, def.look.seaGlow || 0x6080ff, 0.7, 4.5, 1.0); }
       if (def.ice) for (const e of edges) if (!e.door && !e.lava && !e.back) { const nx = e.side === 'w' ? -1 : e.side === 'e' ? 1 : 0, nz = e.side === 'n' ? -1 : e.side === 's' ? 1 : 0; bakeAdd(e.cx + nx * 1.2, e.cz + nz * 1.2, 0x4ab0ff, 0.9, 4.5, 1.0); }
       if (def.lava) for (const e of edges) if (!e.door && !e.lava) { const nx = e.side === 'w' ? -1 : e.side === 'e' ? 1 : 0, nz = e.side === 'n' ? -1 : e.side === 's' ? 1 : 0; bakeAdd(e.cx + nx * 1.2, e.cz + nz * 1.2, 0xff5a18, 1.7, 5, 1.0); }
       // piliers aux sommets (hauts si un mur haut y touche)
@@ -1893,12 +1925,17 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
           let x = Z.x0 + lx, z = Z.z0 + lz;
           if (op.solid && LIB[n]) [x, z] = snapToWall(n, x, z, op);
           if (op.brk) { addBreakable(n, x, z, op); continue; }
-          if (n === '_crystal') { crystal(x, z, op.s || 1, op.ry || 0, op.solid); continue; }
+          if (n === '_crystal') { crystal(x, z, op.s || 1, op.ry || 0, op.solid); if (op.corner) cornerSolid(x, z, 0.62 * (op.s || 1)); continue; }
+          if (n[0] === '_') { flora(n, x, z, op); continue; }        // champignons, buissons, boules de cristal, trône, tapis (mondes 4 à 6)
           put(n, x, z, op);
           if (/^candle/.test(n)) candle(n, x, z, Z);
         }
       }
-      buildStatic(); buildCrystals(); foundations(); floorAO();
+      for (const Z of ZONES) if (Z.floor === 'carpet' && Z.kind === 'room') carpetFor(Z);
+      if (def.look && def.look.garden) gardenDecor(def);          // le Jardin : plates-bandes, fleurs, ronces, statues (p7f)
+      if (def.look && def.look.tower) towerDecor(def);            // (v24) la Tour : runes, grimoires et bougies qui flottent, cristaux (p7g)
+      if (def.look && def.look.throne) throneDecor(def);          // (v24) le Trône : veines du marbre, filets d'or, lustres, armures (p7g)
+      buildStatic(); buildCrystals(); buildFlora(); foundations(); floorAO();
     }
     function pushWall(r) { r.wall = true; SOLIDS.push(r); }
     // un objet plein (non cassable) à moins d'1,6 m d'un mur est collé contre ce mur : plus de fente étroite où le mage se coince
@@ -1933,6 +1970,21 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
         const k = r();
         if (st === 'forge2' && k < 0.3) small(() => (r() < 0.75 ? 'floor_tile_small' : 'floor_tile_small_broken_A'));
         else big(k < 0.45 ? 'floor_dirt_large_rocky' : k < 0.6 ? 'floor_dirt_large' : 'floor_tile_large');
+      } else if (st === 'moss' || st === 'moss2') {
+        // le Jardin : dalles moussues, terre devenue herbe, petites dalles envahies d'herbes folles
+        const k = r();
+        if (st === 'moss2' && k < 0.4) small(() => { const q = r(); return q < 0.45 ? 'floor_tile_small_weeds_A' : q < 0.75 ? 'floor_tile_small_weeds_B' : q < 0.9 ? 'floor_dirt_small_weeds' : 'floor_tile_small'; });
+        else big(k < 0.35 ? 'floor_dirt_large' : k < 0.5 ? 'floor_dirt_large_rocky' : k < 0.62 ? 'floor_tile_large_rocks' : 'floor_tile_large');
+      } else if (st === 'tower' || st === 'tower2') {
+        // la Tour : grandes dalles de pierre de lune, une rosace de petites dalles décorées au centre des salles
+        const ci = (Z.i0 + Z.i1) / 2, cj = (Z.j0 + Z.j1) / 2, mid = Math.abs(i - ci) <= 0.5 && Math.abs(j - cj) <= 0.5;
+        if (mid || (st === 'tower2' && r() < 0.25)) small(() => (r() < 0.85 ? 'floor_tile_small' : 'floor_tile_small_broken_B'));
+        else big('floor_tile_large');
+      } else if (st === 'throne' || st === 'carpet') {
+        // le Trône : marbre (grandes dalles), bordure de petites dalles le long des murs
+        const edge = i === Z.i0 || i === Z.i1 || j === Z.j0 || j === Z.j1;
+        if (edge && Z.kind === 'room' && r() < 0.5) small(() => 'floor_tile_small');
+        else big('floor_tile_large');
       } else if (st === 'ice' || st === 'ice2') {
         const k = r();
         if (st === 'ice2' && k < 0.35) small(() => (r() < 0.8 ? 'floor_tile_small' : 'floor_tile_small_broken_B'));
@@ -2022,7 +2074,7 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
         const merged = keep(T.mergeGeometries(geos, false)); for (const g of geos) g.dispose();
         if (!merged) continue;
         merged.computeBoundingSphere();
-        const mesh = new T.Mesh(merged, MAT[mat]);
+        const mesh = new T.Mesh(merged, mat === 'floor' && MAPDEF.look && MAPDEF.look.marble && MAT.floorM ? MAT.floorM : MAT[mat]);      // (v24) le marbre du Trône
         mesh.matrixAutoUpdate = false; mesh.updateMatrix();
         mesh.castShadow = Q.shadow > 0 && shadow && mat !== 'floor'; mesh.receiveShadow = Q.shadow > 0;
         wadd(mesh); Z.meshes.push(mesh);
@@ -2062,6 +2114,9 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
       const c = document.createElement('canvas'); c.width = w; c.height = h;
       const g = c.getContext('2d'), id = g.createImageData(w, h);
       for (let k = 0; k < w * h; k++) { const v = Math.round(clamp(Math.pow(B[k], 0.8), 0, 1) * 255); id.data[k * 4] = id.data[k * 4 + 1] = id.data[k * 4 + 2] = v; id.data[k * 4 + 3] = 255; }
+      if (MAPDEF.look && MAPDEF.look.floorFill) MAPDEF.look.floorFill(id.data, w, h, ppm, B);     // (v24) la Tour (nuages), le Trône (marbre) : p7g
+      else if (MAPDEF.look && MAPDEF.look.moss) mossFill(id.data, w, h, ppm, B);     // le Jardin : vert = mousse, bleu = teinte (p7f)
+      mossUniforms(); marbleUniforms();
       g.putImageData(id, 0, 0);
       if (UNI.floorAO.value) UNI.floorAO.value.dispose();
       const t = new T.CanvasTexture(c); t.colorSpace = T.NoColorSpace; t.flipY = false; t.needsUpdate = true;
@@ -2269,8 +2324,8 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
       for (let i = 0; i < 240; i++) { const a = r() * TAU, d = Math.pow(r(), 0.7) * 120; g.fillStyle = 'rgba(' + (200 + r() * 55 | 0) + ',' + (190 + r() * 60 | 0) + ',255,' + (0.1 + r() * 0.3).toFixed(2) + ')'; g.fillRect(128 + Math.cos(a) * d, 128 + Math.sin(a) * d, r() < 0.15 ? 2 : 1, r() < 0.15 ? 2 : 1); }
       const t = keep(new T.CanvasTexture(c)); t.colorSpace = T.SRGBColorSpace;
       const m = new T.Mesh(keep(new T.PlaneGeometry(MAP.W * 3, MAP.H * 3)), keep(new T.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, fog: false })));
-      m.rotation.x = -Math.PI / 2; m.position.set(MAP.W / 2, -10, MAP.H / 2); m.renderOrder = -1; if (!MAPDEF.lava && !MAPDEF.ice) wadd(m);
-      if (!MAPDEF.lava && !MAPDEF.ice) for (let i = 0; i < Q.dust * 1.5; i++) addStatic({ drift: true, bx: frnd(-6, MAP.W + 6), by: frnd(-8, -3), bz: frnd(-6, MAP.H + 6), x: 0, y: 0, z: 0, rx: frnd(0.5, 2), ry2: frnd(0.3, 1), fx: frnd(0.05, 0.2), s: frnd(0.12, 0.3), cell: 'dot', col: FXR() < 0.5 ? 0xb8a0ff : 0x7fe6ff, k: 1.2, a: frnd(0.35, 0.8), pulse: frnd(0.8, 2), world: 1 });
+      m.rotation.x = -Math.PI / 2; m.position.set(MAP.W / 2, -10, MAP.H / 2); m.renderOrder = -1; if (!MAPDEF.lava && !MAPDEF.ice && !MAPDEF.sea) wadd(m);
+      if (!MAPDEF.lava && !MAPDEF.ice && !MAPDEF.sea) for (let i = 0; i < Q.dust * 1.5; i++) addStatic({ drift: true, bx: frnd(-6, MAP.W + 6), by: frnd(-8, -3), bz: frnd(-6, MAP.H + 6), x: 0, y: 0, z: 0, rx: frnd(0.5, 2), ry2: frnd(0.3, 1), fx: frnd(0.05, 0.2), s: frnd(0.12, 0.3), cell: 'dot', col: FXR() < 0.5 ? 0xb8a0ff : 0x7fe6ff, k: 1.2, a: frnd(0.35, 0.8), pulse: frnd(0.8, 2), world: 1 });
       // poussière dorée qui flotte dans les salles
       for (const Z of ZONES) {
         if (Z.kind !== 'room') continue;
@@ -2340,7 +2395,10 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
       shelves: ['shelves', 2.0, 0.5, 0, { at: 0 }], swordW: ['sword_shield', 2.3, 0.3, 0, { at: 0.62, y: 2.2 }], swordG: ['sword_shield_gold', 2.3, 0.3, 0, { at: 0.62, y: 2.2 }],
       column: ['column', 0.8, 0.8, 0, { solid: 1 }], coinL: ['coin_stack_large', 1.5, 1.7, 0, { solid: 1 }], coinM: ['coin_stack_medium', 1.0, 1.0, 20, {}],
       rubble: ['rubble_half', 1.7, 1.3, 180, { s: 0.42 }], crystal: ['_crystal', 1.8, 1.6, 0, { solid: 1 }], crystalS: ['_crystal', 1.2, 1.1, 0, { solid: 1, s: 0.7 }],
-      barrier: ['barrier_column', 4.0, 0.7, 0, { solid: 1 }], candles: ['candle_triple', 0.6, 0.6, 0, { at: 0.95 }], tableT: ['table_long_tablecloth', 4.0, 2.0, 90, { solid: 1 }]
+      barrier: ['barrier_column', 4.0, 0.7, 0, { solid: 1 }], candles: ['candle_triple', 0.6, 0.6, 0, { at: 0.95 }], tableT: ['table_long_tablecloth', 4.0, 2.0, 90, { solid: 1 }],
+      // mondes 4 à 6 : champignons géants qui luisent, buissons, boules de cristal sur leur socle (dessinés par le jeu)
+      mush: ['_mushroom', 2.4, 2.4, 0, { solid: 1, s: 1.3 }], mushS: ['_mushroom', 1.6, 1.6, 0, { solid: 1, s: 0.8 }], bush: ['_bush', 2.2, 1.7, 0, { solid: 1 }],
+      bushS: ['_bush', 1.6, 1.3, 0, { solid: 1, s: 0.7 }], orb: ['_orb', 1.3, 1.3, 0, { solid: 1 }], chair: ['chair', 1.0, 1.0, 0, { solid: 1 }]
     };
     // coins : [pièce, distance au mur ouest/est, distance au mur nord/sud, rotation, options]
     const CL = {
@@ -2353,7 +2411,12 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
       pillar: [['pillar_decorated', 1.6, 1.25, 0, { solid: 1, corner: 1 }]],
       crystal: [['_crystal', 1.5, 1.5, 0, { solid: 1, s: 1.15 }], ['_crystal', 3.0, 1.0, 40, { solid: 1, s: 0.6 }]],
       crystalH: [['_crystal', 1.5, 1.5, 0, { solid: 1, s: 1.05 }], ['barrel_small', 1.1, 3.1, 0, { solid: 1, brk: 'barrel' }]],
-      coins: [['coin_stack_large', 1.3, 1.3, 0, { solid: 1 }], ['coin_stack_small', 2.7, 0.9, 30, {}]]
+      coins: [['coin_stack_large', 1.3, 1.3, 0, { solid: 1 }], ['coin_stack_small', 2.7, 0.9, 30, {}]],
+      mush: [['_mushroom', 1.6, 1.6, 0, { solid: 1, s: 1.45 }], ['_mushroom', 3.4, 1.1, 40, { solid: 1, s: 0.65 }]],
+      mushH: [['_mushroom', 1.5, 1.5, 0, { solid: 1, s: 1.0 }], ['barrel_small', 1.1, 3.1, 0, { solid: 1, brk: 'barrel' }]],
+      bush: [['_bush', 1.5, 1.4, 0, { solid: 1 }], ['box_small', 3.2, 1.0, 20, { solid: 1, brk: 'crate' }]],
+      orb: [['_orb', 1.4, 1.4, 0, { solid: 1 }], ['barrel_small', 1.1, 3.0, 0, { solid: 1, brk: 'barrel' }]],
+      column: [['column', 1.3, 1.3, 0, { solid: 1 }], ['coin_stack_small', 2.7, 0.9, 30, {}]]
     };
     // les thèmes : meubles des murs du fond (nord, ouest), des murs de devant (bas : rien de haut), coins, décor des murs, sol
     const THEMES = {
@@ -2368,7 +2431,25 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
       cristaux: { back: ['crystal', 'crystalS', null, 'crystal'], front: ['crystalS', null, 'crystalS'], corners: ['crystal', 'heart2', 'crystal', 'crystal'], deco: 'tbt-t-', floor: 'ice2' },
       lac: { back: ['trunkL', null, 'barrels', 'boxL'], front: ['barrels', null], corners: ['heart', 'crystal', 'trunks', 'crate'], deco: 't-tbt-', floor: 'ice' },
       yeti: { back: ['crystal', null, 'crystalS', null], front: [], corners: ['crystal', 'crystal', 'crystal', 'crystal'], deco: 'tbt-tbt-', floor: 'ice2', open: true },
-      tresor: { back: ['coinL', 'shelves', 'coinL'], front: ['coinM', null], corners: ['coins', 'heart', 'coins', 'coins'], deco: 'tbt', floor: 'arena' }
+      tresor: { back: ['coinL', 'shelves', 'coinL'], front: ['coinM', null], corners: ['coins', 'heart', 'coins', 'coins'], deco: 'tbt', floor: 'arena' },
+      // le Jardin maudit : mousse, champignons géants qui luisent, buissons, vieux tonneaux
+      sentier: { back: ['bush', 'mushS', null, 'bushS'], front: ['bushS', null, 'mushS'], corners: ['heart', 'mush', 'bush', 'mushH'], deco: 't-tkt-', floor: 'moss' },
+      serre: { back: ['mush', 'bushS', 'mush', null], front: ['mushS', null, 'bushS'], corners: ['mushH', 'mush', 'heart2', 'mush'], deco: 'tgt-tg', floor: 'moss2' },
+      bassin: { back: ['bushS', null, 'mushS', 'barrels'], front: ['bushS', null], corners: ['heart', 'bush', 'mush', 'crate'], deco: 't-t-tk', floor: 'moss' },
+      ruche: { back: ['boxes', 'bushS', 'kegD', 'mushS'], front: ['barrels', null, 'boxL'], corners: ['heart2', 'crate', 'mush', 'barrels'], deco: 'tktbt-', floor: 'moss' },
+      cercle: { back: ['mush', null, 'mushS', null], front: [], corners: ['mush', 'mush', 'mush', 'mush'], deco: 'tbt-tbt-', floor: 'moss2', open: true },
+      // la Tour du sorcier : étagères de grimoires, tables, bougies, boules de cristal
+      escalier: { back: ['shelves', 'candles', 'shelves', 'orb'], front: ['tableS', null, 'trunkM'], corners: ['heart', 'orb', 'trunks', 'crate'], deco: 'tsts-ts', floor: 'tower' },
+      grimoires: { back: ['shelves', 'shelves', 'tableMC', 'candles', 'shelves'], front: ['tableS', null, 'chair'], corners: ['orb', 'heart2', 'keg', 'trunks'], deco: 'tssts', floor: 'tower2' },
+      observ: { back: ['orb', null, 'tableMC', 'orb'], front: ['chair', null], corners: ['crystal', 'orb', 'heart', 'crystal'], deco: 'twtgtw', floor: 'tower' },
+      labo: { back: ['tableLB', 'shelves', 'tableLD', 'barrels'], front: ['boxL', null, 'trunkM'], corners: ['heart', 'orb', 'barrels', 'crate'], deco: 'tstbt', floor: 'tower2' },
+      dojo: { back: ['swordW', null, 'swordW', null], front: [], corners: ['crystal', 'crystal', 'crystal', 'crystal'], deco: 'tbt-tbt-', floor: 'tower', open: true },
+      // la Salle du trône : marbre rouge, bannières d'or, tables du banquet, colonnes, trésors
+      couloir: { back: ['swordG', 'column', 'swordG', 'column'], front: ['column', null], corners: ['heart', 'column', 'column', 'crate'], deco: 'tbtdtb', floor: 'throne' },
+      banquet: { back: ['tableLC', 'candles', 'tableLC', 'chair'], front: ['tableM', null, 'chair'], corners: ['heart2', 'keg', 'barrels', 'trunks'], deco: 'tbtbtw', floor: 'carpet' },
+      galerie: { back: ['coinL', 'swordG', 'coinL', 'trunkL2'], front: ['coinM', null, 'trunkM'], corners: ['coins', 'heart', 'coins', 'column'], deco: 'tdtbtd', floor: 'throne' },
+      garde: { back: ['swordW', 'barrels', 'swordG', 'boxL'], front: [null, 'trunkM', null], corners: ['heart', 'crate', 'barrels', 'column'], deco: 'tdtbtdtb', floor: 'throne' },
+      capitaine: { back: ['swordG', null, 'swordW', null], front: [], corners: ['pillar', 'pillar', 'pillar', 'pillar'], deco: 'tbtdtbt', floor: 'carpet', open: true }
     };
     // meuble une zone (props + lieux : apparitions, coffre, entrée, tonneaux du boss) ; garde ce qui existe déjà (salles faites main)
     function furnish(def, id, theme, prevZone, opt) {
@@ -2412,7 +2493,7 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
         corners.forEach(([cx, cz, sx, sz], ci) => {
           const cl = CL[(th.corners || [])[ci]]; if (!cl) return;
           for (const [n, u, v, ry, o] of cl) {
-            const x = cx + sx * u, z = cz + sz * v, s = (o && o.s) || 1, r = n === '_crystal' ? 0.9 * s : n === 'pillar_decorated' ? 1.2 : 0.75;
+            const x = cx + sx * u, z = cz + sz * v, s = (o && o.s) || 1, r = n === '_crystal' || n === '_mushroom' ? 0.9 * s : n === '_bush' ? 0.85 * s : n === 'pillar_decorated' ? 1.2 : 0.75;
             add([x - r, z - r, x + r, z + r], o && o.solid, [n, x, z, sz < 0 ? 180 - ry : ry, Object.assign({}, o)]);
           }
         });
@@ -2574,6 +2655,106 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
     MAPS.forge.spots.s = MAPS.forge.spots.s || { start: [2, 2.6] };
 
     // ===========================================================================
+    // MONDES 4 À 6 (étape C) — même principe : 6 salles, le mini-boss dans la 5e, le boss dans la 6e, une salle secrète
+    // ===========================================================================
+    // LE JARDIN MAUDIT : de la mousse partout, des champignons géants qui luisent, des buissons, un marais sous le donjon
+    // (nénuphars, lucioles), des torches aux flammes vertes. Le Vieux Chêne attend dans son bosquet.
+    MAPS.jardin = bigMap({ props: { e: [['_mushroom', 2.4, 2.4, 0, { solid: 1, s: 1.45, corner: 1 }], ['_mushroom', 29.6, 2.4, 0, { solid: 1, s: 1.3, corner: 1 }], ['_mushroom', 2.4, 29.6, 0, { solid: 1, s: 1.25, corner: 1 }], ['_mushroom', 29.6, 29.6, 0, { solid: 1, s: 1.45, corner: 1 }],
+      ['_bush', 9, 1.4, 0, { solid: 1 }], ['_bush', 23, 1.4, 0, { solid: 1, s: 0.8 }], ['_mushroom', 16, 1.7, 0, { solid: 1, s: 0.7 }], ['_bush', 30.6, 16, 90, { solid: 1, s: 0.8 }], ['_bush', 16, 30.6, 0, { solid: 1, s: 0.85 }],
+      ['barrel_small', 6, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 26, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 30.9, 8, 0, { solid: 1, brk: 'barrel' }]], s: [['stairs', 2, 4, 0, { y: -5.08, z: 0 }]] },
+      spots: { e: { boss: [16, 14] }, s: { start: [2, 2.6] } }, wallDeco: { e: 't-tkt-tbt-tk' } }, 20, 36, [
+      ['s', 4, 35], ['a', 1, 30, 7, 34], ['b', 8, 32, 10, 32], ['c', 11, 28, 17, 33], ['d', 14, 25, 14, 27], ['f', 11, 19, 18, 24],
+      ['g', 7, 21, 10, 21], ['k', 8, 19, 8, 20], ['x', 8, 15, 10, 18], ['h', 1, 18, 6, 24], ['i', 3, 14, 3, 17], ['m', 1, 8, 6, 13],
+      ['j', 7, 10, 9, 10], ['e', 10, 6, 17, 13]
+    ], [[13, 30], [16, 31], [3, 20], [4, 21]], {
+      s: { kind: 'start', floor: 'moss' },
+      a: { kind: 'room', room: 0, name: 'sentier' },
+      b: { kind: 'hall', floor: 'moss', low: true },
+      c: { kind: 'room', room: 1, name: 'serre' },
+      d: { kind: 'hall', floor: 'moss', low: true },
+      f: { kind: 'room', room: 2, name: 'bassin' },
+      g: { kind: 'hall', floor: 'moss' }, k: { kind: 'hall', floor: 'moss' },
+      x: { kind: 'secret', floor: 'arena', name: 'trésor' },
+      h: { kind: 'room', room: 3, name: 'ruche' },
+      i: { kind: 'hall', floor: 'moss', low: true },
+      m: { kind: 'room', room: 4, mini: 'mushKing', name: 'cercle' },
+      j: { kind: 'hall', floor: 'moss', low: true },
+      e: { kind: 'room', room: 5, floor: 'moss2', boss: true, name: 'bosquet' }
+    }, [['a', 'sentier'], ['c', 'serre'], ['f', 'bassin'], ['h', 'ruche'], ['m', 'cercle'], ['e', null], ['x', 'tresor']],
+    { hall: 'g', stub: 'k', room: 'x' });
+    Object.assign(MAPS.jardin, {
+      sea: 'swamp',
+      look: { hemi: [0xe2e8d4, 0x22301a, 1.05], sun: [0xfff0d0, 1.35], fill: [0x80d0a8, 0.35], fog: 0x030805, dark: [12, 34, 0.46], grade: { shadow: [0.94, 1.0, 0.98], hi: [1.05, 1.03, 0.93], sat: 1.0, bloom: 0.92, vig: 0.5, thr: 0.92, expo: 1.0 },
+        abyss: null, dustCol: [0xdfff80, 0xa0ffd0], torch: 0xe0ff90, flame: [0xb8ff70, 0xf2ffd8, 0x50d040], ember: 0xc8ff80, banner: 'green', tex: 'kkt_garden', floorTex: 'kkt_garden_sol', flyCol: 0x9cff60,
+        seaGlow: 0x3ab070, mush: [0x46e6c8, 0xb070ff, 0xffd060] }
+    });
+
+    // LA TOUR DU SORCIER : pierre de lune, grimoires, boules de cristal, cristaux violets ; la tour flotte parmi les étoiles
+    // (des fenêtres ouvertes sur le vide étoilé dans l'Observatoire). Le Grand Œil attend au sommet.
+    MAPS.tour = bigMap({ props: { e: [['_crystal', 2.2, 2.2, 0, { solid: 1, s: 1.25, corner: 1 }], ['_crystal', 37.8, 2.2, 30, { solid: 1, s: 1.2, corner: 1 }], ['_crystal', 2.2, 21.8, 60, { solid: 1, s: 1.0, corner: 1 }], ['_crystal', 37.8, 21.8, 10, { solid: 1, s: 1.05, corner: 1 }],
+      ['_orb', 10, 1.5, 0, { solid: 1 }], ['_orb', 30, 1.5, 0, { solid: 1 }], ['shelves', 16, 0.3, 0, {}], ['shelves', 24, 0.3, 0, {}],
+      ['barrel_small', 6, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 34, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 38.9, 12, 0, { solid: 1, brk: 'barrel' }]], s: [['stairs', 2, 4, 0, { y: -5.08, z: 0 }]] },
+      spots: { e: { boss: [20, 10] }, s: { start: [2, 2.6] } }, wallDeco: { e: 'tstwtstwts' } }, 24, 40, [
+      ['s', 10, 39], ['a', 7, 34, 13, 38], ['b', 10, 32, 10, 33], ['c', 6, 26, 14, 31], ['d', 15, 28, 17, 28], ['f', 18, 22, 23, 29],
+      ['g', 19, 18, 19, 21], ['k', 20, 19, 21, 19], ['x', 22, 17, 23, 20], ['h', 14, 12, 20, 17], ['i', 11, 14, 13, 14], ['m', 4, 10, 10, 16],
+      ['j', 7, 7, 7, 9], ['e', 2, 1, 11, 6]
+    ], [[20, 25], [21, 26], [8, 28], [12, 29]], {
+      s: { kind: 'start', floor: 'tower' },
+      a: { kind: 'room', room: 0, name: 'escalier' },
+      b: { kind: 'hall', floor: 'tower', low: true },
+      c: { kind: 'room', room: 1, name: 'grimoires' },
+      d: { kind: 'hall', floor: 'tower', low: true },
+      f: { kind: 'room', room: 2, name: 'observatoire' },
+      g: { kind: 'hall', floor: 'tower' }, k: { kind: 'hall', floor: 'tower' },
+      x: { kind: 'secret', floor: 'arena', name: 'trésor' },
+      h: { kind: 'room', room: 3, name: 'laboratoire' },
+      i: { kind: 'hall', floor: 'tower', low: true },
+      m: { kind: 'room', room: 4, mini: 'ninjaKing', name: 'dojo' },
+      j: { kind: 'hall', floor: 'tower', low: true },
+      e: { kind: 'room', room: 5, floor: 'tower2', boss: true, name: 'sommet' }
+    }, [['a', 'escalier'], ['c', 'grimoires'], ['f', 'observ'], ['h', 'labo'], ['m', 'dojo'], ['e', null], ['x', 'tresor']],
+    { hall: 'g', stub: 'k', room: 'x' });
+    Object.assign(MAPS.tour, {
+      sea: 'stars',
+      look: { hemi: [0xdcd8f0, 0x1a1238, 1.05], sun: [0xf0ecff, 1.3], fill: [0x9a8aff, 0.35], fog: 0x05030c, dark: [12, 34, 0.45], grade: { shadow: [0.96, 0.94, 1.08], hi: [1.02, 1.0, 1.06], sat: 1.1, bloom: 1.0, vig: 0.5, thr: 0.9, expo: 1.0 },
+        abyss: null, dustCol: [0xe8d8ff, 0x9fd8ff], torch: 0xd0b8ff, flame: [0xd0a8ff, 0xf8eeff, 0x8a50ff], ember: 0xd8b8ff, banner: 'blue', tex: 'kkt_tower', floorTex: 'kkt_tower_sol', flyCol: 0xb070ff,
+        seaGlow: 0x8a6aff, crystal: [0xe0c0ff, 0x8a3ae8, 0xb070ff] }
+    });
+
+    // LA SALLE DU TRÔNE : marbre rouge, or, bannières, le banquet, la galerie des trésors ; sous le château, une mer d'ombres
+    // où passent des éclairs violets. Le Seigneur des ombres attend sur son trône, au bout du tapis rouge.
+    MAPS.trone = bigMap({ props: { e: [['_throne', 22, 1.9, 0, { solid: 1 }], ['column', 6, 1.4, 0, { solid: 1 }], ['column', 14, 1.4, 0, { solid: 1 }], ['column', 30, 1.4, 0, { solid: 1 }], ['column', 38, 1.4, 0, { solid: 1 }],
+      ['_carpet', 22, 13.6, 0, { len: 19.5, w: 3.4 }], ['coin_stack_large', 44.5, 2.2, 0, { solid: 1 }], ['coin_stack_large', 2.6, 2.2, 0, { solid: 1 }],
+      ['barrel_small', 10, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 34, 1.1, 0, { solid: 1, brk: 'barrel' }], ['barrel_small', 46.9, 12, 0, { solid: 1, brk: 'barrel' }]], s: [['stairs', 2, 4, 0, { y: -5.08, z: 0 }]] },
+      spots: { e: { boss: [22, 10], portal: [36, 3.4] }, s: { start: [2, 2.6] } }, wallDeco: { e: 'tbtdtbtdtbtdtb' } }, 26, 40, [
+      ['s', 11, 39], ['a', 8, 33, 15, 38], ['b', 11, 31, 12, 32], ['c', 6, 24, 17, 30], ['d', 18, 27, 20, 27], ['f', 21, 21, 25, 28],
+      ['g', 21, 17, 21, 20], ['k', 22, 17, 23, 17], ['x', 24, 15, 25, 18], ['h', 14, 11, 21, 16], ['i', 11, 13, 13, 13], ['m', 4, 10, 10, 16],
+      ['j', 7, 7, 7, 9], ['e', 2, 1, 13, 6]
+    ], [[23, 23], [23, 26]], {
+      s: { kind: 'start', floor: 'throne' },
+      a: { kind: 'room', room: 0, name: 'couloir' },
+      b: { kind: 'hall', floor: 'throne', low: true },
+      c: { kind: 'room', room: 1, name: 'banquet' },
+      d: { kind: 'hall', floor: 'throne', low: true },
+      f: { kind: 'room', room: 2, name: 'galerie' },
+      g: { kind: 'hall', floor: 'throne' }, k: { kind: 'hall', floor: 'throne' },
+      x: { kind: 'secret', floor: 'arena', name: 'trésor' },
+      h: { kind: 'room', room: 3, name: 'garde' },
+      i: { kind: 'hall', floor: 'throne', low: true },
+      m: { kind: 'room', room: 4, mini: 'birbKing', name: 'capitaine' },
+      j: { kind: 'hall', floor: 'throne', low: true },
+      e: { kind: 'room', room: 5, floor: 'throne', boss: true, name: 'trône' }
+    }, [['a', 'couloir'], ['c', 'banquet'], ['f', 'galerie'], ['h', 'garde'], ['m', 'capitaine'], ['e', null], ['x', 'tresor']],
+    { hall: 'g', stub: 'k', room: 'x' });
+    Object.assign(MAPS.trone, {
+      sea: 'shadow',
+      look: { hemi: [0xffd8c8, 0x3a1010, 1.15], sun: [0xffe4c8, 1.4], fill: [0xff6040, 0.5], fog: 0x0a0306, dark: [12, 34, 0.46], grade: { shadow: [1.04, 0.94, 0.98], hi: [1.06, 1.0, 0.9], sat: 1.12, bloom: 0.95, vig: 0.52, thr: 0.92, expo: 1.0 },
+        abyss: null, dustCol: [0xffd070, 0xff8a50], torch: 0xffb040, banner: 'gold', tex: 'kkt_throne', floorTex: 'kkt_throne_sol', flyCol: 0xffc040, seaGlow: 0xc050ff }
+    });
+    BANNERS.green = ['banner_patternA_green', 'banner_shield_green', 'banner_patternC_green'];
+    BANNERS.gold = ['banner_patternA_yellow', 'banner_shield_red', 'banner_patternC_yellow', 'banner_triple_red'];
+
+    // ===========================================================================
     // LUMIÈRE CUITE : les torches, les bougies, la lune des fenêtres, la lave et les ombres du soleil sont calculées UNE fois par
     // monde dans une image vue du dessus (4 pixels par mètre). Le décor, les monstres, le mage et les boss y lisent leur lumière.
     // → plus de lampes en temps réel pour le décor (elles restent pour les sorts et le mage), plus de carte d'ombres : beaucoup plus
@@ -2726,7 +2907,7 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
     }
 
     // ------------------------------------------------------------- cristaux de glace (3e monde)
-    const CRYS = [];
+    const CRYS = [], CRYC = [0xa8ecff, 0x2a86d8, 0x5fd0ff];
     function crystal(x, z, s, ry, solid) {
       const rr = mulberry32(((Math.round(x * 13) * 73856093) ^ (Math.round(z * 17) * 19349663)) >>> 0);
       const n = 4 + Math.floor(rr() * 3), ax = new T.Vector3();
@@ -2738,9 +2919,10 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
         M.premultiply(new T.Matrix4().makeTranslation(x + Math.sin(a) * off, -0.08, z + Math.cos(a) * off));
         g.applyMatrix4(M); CRYS.push(g.toNonIndexed()); g.dispose();
       }
-      addStatic({ x, y: 0.09, z, s: 3.2 * s, cell: 'glow', col: 0x5fd0ff, k: 1.2, mode: 1, a: 0.35, pulse: 1.1 });
-      addStatic({ x, y: 1.4 * s, z, s: 2.4 * s, cell: 'glow', col: 0x7fe0ff, k: 1.1, a: 0.28, pulse: 0.8 });
-      bakeAdd(x, z, 0x5fd0ff, 1.5 * s, 5.5, 1.4);
+      const cc = (MAPDEF.look && MAPDEF.look.crystal) || CRYC;          // couleur des cristaux du monde (glace : bleu ; Tour : violet)
+      addStatic({ x, y: 0.09, z, s: 3.2 * s, cell: 'glow', col: cc[2], k: 1.2, mode: 1, a: 0.35, pulse: 1.1 });
+      addStatic({ x, y: 1.4 * s, z, s: 2.4 * s, cell: 'glow', col: cc[0], k: 1.1, a: 0.28, pulse: 0.8 });
+      bakeAdd(x, z, cc[2], 1.5 * s, 5.5, 1.4);
       if (solid) SOLIDS.push([x - 0.62 * s, z - 0.62 * s, x + 0.62 * s, z + 0.62 * s]);
     }
     function buildCrystals() {
@@ -2748,8 +2930,9 @@ void main(){ vec3 c = fx > 0.5 ? mfFxaa(vUv) : texture2D(tex, vUv).rgb; vec3 bl 
       const g = keep(T.mergeGeometries(CRYS, false)); for (const c of CRYS) c.dispose(); CRYS.length = 0;
       if (!g) return;
       g.computeVertexNormals(); g.computeBoundingSphere();
-      if (!MAT.crystal) MAT.crystal = keep(new T.MeshLambertMaterial({ color: 0xa8ecff, emissive: 0x2a86d8, emissiveIntensity: 0.85 }));
-      const m = new T.Mesh(g, MAT.crystal); m.matrixAutoUpdate = false; m.updateMatrix(); m.castShadow = Q.shadow > 0; wadd(m);
+      const cc = (MAPDEF.look && MAPDEF.look.crystal) || CRYC, mk = cc === CRYC ? 'crystal' : 'crystal' + cc[0];
+      if (!MAT[mk]) MAT[mk] = keep(new T.MeshLambertMaterial({ color: cc[0], emissive: cc[1], emissiveIntensity: 0.85 }));
+      const m = new T.Mesh(g, MAT[mk]); m.matrixAutoUpdate = false; m.updateMatrix(); m.castShadow = Q.shadow > 0; wadd(m);
     }
 
     // ===========================================================================
@@ -3112,7 +3295,18 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       q_demon: { scale: 0.95, rimCol: 0xffc890, rimK: 0.55, disCol: 0xff8a30 },
       q_imp: { scale: 0.85, rimCol: 0xffb070, rimK: 0.6, disCol: 0xff7020 },
       q_drake: { scale: 0.85, rimCol: 0xffd090, rimK: 0.55, disCol: 0xffa040 },
-      q_yeti: { scale: 1.0, rimCol: 0xbfefff, rimK: 0.7, disCol: 0x9fe6ff }
+      q_yeti: { scale: 1.0, rimCol: 0xbfefff, rimK: 0.7, disCol: 0x9fe6ff },
+      // étape C : chaque monde a ses propres monstres
+      q_tribal: { scale: 0.95, rimCol: 0xffb070, rimK: 0.55, disCol: 0xff7a30 },
+      q_fish: { scale: 0.95, rimCol: 0xbfefff, rimK: 0.65, disCol: 0x9fe6ff }, q_piranha: { scale: 0.62, rimCol: 0xbfefff, rimK: 0.7, disCol: 0x9fe6ff },
+      q_squid: { scale: 0.82, rimCol: 0xffc8f0, rimK: 0.65, disCol: 0xff9fd8 },
+      q_mushnub: { scale: 0.6, rimCol: 0xd8ffa0, rimK: 0.7, disCol: 0x9cff60 }, q_spiky: { scale: 0.7, rimCol: 0xd8ffa0, rimK: 0.65, disCol: 0x8cff50 },
+      q_frog: { scale: 0.88, rimCol: 0xfff0a0, rimK: 0.6, disCol: 0xffe060 }, q_bee: { scale: 0.74, rimCol: 0xfff0a0, rimK: 0.6, disCol: 0xffd040 },
+      q_mushking: { scale: 1.0, rimCol: 0xd8ffa0, rimK: 0.6, disCol: 0x9cff60 },
+      q_ninja: { scale: 0.9, rimCol: 0xc8b0ff, rimK: 0.7, disCol: 0xb890ff }, q_alien: { scale: 0.9, rimCol: 0xd8b8ff, rimK: 0.65, disCol: 0xc890ff },
+      q_hywirl: { scale: 0.78, rimCol: 0xe0b8ff, rimK: 0.7, disCol: 0xd090ff }, q_glub: { scale: 0.8, rimCol: 0xb8c8ff, rimK: 0.75, disCol: 0x9fb0ff },
+      q_dino: { scale: 0.98, rimCol: 0xffd090, rimK: 0.55, disCol: 0xffb060 }, q_birb: { scale: 0.95, rimCol: 0xffe0a0, rimK: 0.55, disCol: 0xffd060 },
+      q_gole: { scale: 0.8, rimCol: 0xffe0a0, rimK: 0.6, disCol: 0xffd060 }, q_alpa: { scale: 0.8, rimCol: 0xffe8a0, rimK: 0.6, disCol: 0xffe070 }
     };
     async function prepQ(key) {
       if (TPL[key] || !packEntry(key)) return TPL[key] || null;
@@ -3138,12 +3332,52 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     // monde 3 : le yéti (gros, lent, il charge ; il sort d'une gerbe de neige)
     KIND.yeti = { tpl: 'q_yeti', q: true, alt: 'orc', name: 'Yéti', hp: 120, sp: 2.3, r: 0.8, pts: 340, dmg: 2, reach: 2.4, cool: [1.3, 1.9], charge: true, heavy: true,
       idle: 'Idle', walk: 'Walk', run: 'Run', runSp: 3.4, atk: ['Punch'], strike: 0.5, slash: 0xcff6ff, hit: ['HitReact'], death: 'Death', cheer: 'Yes', qsp: 'snow', spawnDur: 1.15, snd: 'yeti' };
+    // ----- étape C : six mondes, six familles de monstres (jamais deux fois les mêmes) -----
+    const QBIG = { idle: 'Idle', walk: 'Walk', run: 'Run', hit: ['HitReact'], death: 'Death', cheer: 'Yes' };
+    const QBLOB = { idle: 'Idle', walk: 'Walk', run: 'Walk', atk: ['Bite_Front'], cast: 'Jump', hit: ['HitRecieve'], death: 'Death', cheer: 'Yes' };
+    // Forges : le masque de feu (il charge, tête baissée)
+    KIND.tribal = Object.assign({ tpl: 'q_tribal', q: true, alt: 'warrior', name: 'Masque de feu', hp: 85, sp: 2.7, r: 0.62, pts: 300, dmg: 2, reach: 2.2, cool: [1.2, 1.8], charge: true,
+      runSp: 3.8, atk: ['Weapon'], strike: 0.48, slash: 0xffa040, qsp: 'lava', spawnDur: 1.1, snd: 'orc', vp: 1.15 }, QBIG);
+    // Glace : le requin des glaces (il bondit, le sol gèle), les piranhas (petits, rapides), le calmar des neiges (boules de glace)
+    KIND.fish = Object.assign({ tpl: 'q_fish', q: true, alt: 'warrior', name: 'Requin des glaces', hp: 80, sp: 2.8, r: 0.62, pts: 300, dmg: 1, reach: 2.2, cool: [1.1, 1.7], lunge: 5,
+      leap: 'Jump', iceLeap: true, runSp: 4.0, atk: ['Punch'], strike: 0.45, slash: 0xcff6ff, qsp: 'snow', spawnDur: 1.1, snd: 'orc', vp: 0.85 }, QBIG);
+    KIND.piranha = Object.assign({ tpl: 'q_piranha', q: true, alt: 'minion', name: 'Piranha givré', hp: 18, sp: 4.0, r: 0.42, pts: 120, dmg: 1, reach: 1.6, cool: [0.8, 1.3], lunge: 6,
+      runSp: 4.4, strike: 0.36, slash: 0xcff6ff, qsp: 'snow', spawnDur: 0.9, snd: 'blob', vp: 1.2 }, QBLOB);
+    KIND.squid = Object.assign({ tpl: 'q_squid', q: true, alt: 'archer', name: 'Calmar des neiges', hp: 32, sp: 2.8, r: 0.5, pts: 230, dmg: 1, reach: 0, cool: [2.2, 3.0], ranged: 'orb',
+      orb: [0x4ab8ff, 0xeaffff, 0xbfefff], runSp: 3.6, cast: 'Punch', qsp: 'fly', spawnDur: 1.0, snd: 'fly' }, QFLY);
+    // Jardin maudit : champignons sauteurs, bogues épineuses (elles roulent sur toi), crapauds dorés (bonds), bourdons cuirassés
+    KIND.mushnub = Object.assign({ tpl: 'q_mushnub', q: true, alt: 'minion', name: 'Champignon sauteur', hp: 22, sp: 3.4, r: 0.45, pts: 120, dmg: 1, reach: 1.7, cool: [0.9, 1.4], lunge: 6,
+      runSp: 4.0, strike: 0.4, slash: 0xd8ffa0, qsp: 'rise', spCol: 0x8cff50, spawnDur: 0.9, snd: 'blob' }, QBLOB);
+    KIND.spiky = Object.assign({ tpl: 'q_spiky', q: true, alt: 'warrior', name: 'Bogue épineuse', hp: 70, sp: 2.4, r: 0.6, pts: 280, dmg: 2, reach: 1.9, cool: [1.3, 1.9], charge: true, heavy: true,
+      runSp: 3.0, strike: 0.45, slash: 0xb8ff70, qsp: 'rise', spCol: 0x8cff50, spawnDur: 1.0, snd: 'blob', vp: 0.7 }, QBLOB);
+    KIND.frog = Object.assign({ tpl: 'q_frog', q: true, alt: 'rogue', name: 'Crapaud doré', hp: 60, sp: 2.8, r: 0.6, pts: 260, dmg: 1, reach: 2.1, cool: [1.1, 1.6], lunge: 4,
+      leap: 'Jump', runSp: 3.8, atk: ['Punch'], strike: 0.42, slash: 0xfff0a0, qsp: 'rise', spCol: 0xffe060, spawnDur: 1.0, snd: 'orc', vp: 1.35 }, QBIG);
+    KIND.bee = Object.assign({ tpl: 'q_bee', q: true, alt: 'rogue', name: 'Bourdon cuirassé', hp: 30, sp: 3.4, r: 0.5, pts: 220, dmg: 1, reach: 2.1, cool: [1.0, 1.5], lunge: 9,
+      runSp: 5.0, atk: ['Headbutt'], strike: 0.4, slash: 0xffe060, qsp: 'fly', spawnDur: 1.0, snd: 'fly' }, QFLY);
+    // la Tour du sorcier : ninjas de l'ombre (rapides), lutins des étoiles (orbes magiques), tourbillons et petites ombres volantes
+    KIND.ninja = Object.assign({ tpl: 'q_ninja', q: true, alt: 'rogue', name: 'Ninja de l’ombre', hp: 40, sp: 4.2, r: 0.5, pts: 240, dmg: 1, reach: 1.9, cool: [0.8, 1.3], lunge: 8,
+      runSp: 5.4, atk: ['Weapon'], strike: 0.36, slash: 0xc8b0ff, qsp: 'smoke', spawnDur: 0.9, snd: 'orc', vp: 1.3 }, QBIG);
+    KIND.alien = Object.assign({ tpl: 'q_alien', q: true, alt: 'mage', name: 'Lutin des étoiles', hp: 36, sp: 2.4, r: 0.5, pts: 260, dmg: 1, reach: 0, cool: [2.0, 2.8], ranged: 'orb',
+      orb: [0x9a50ff, 0xf6e0ff, 0x8cff70], runSp: 3.0, cast: 'Wave', qsp: 'portal', spCol: 0xb070ff, spawnDur: 1.0, snd: 'blob', vp: 0.9 }, QBIG);
+    KIND.hywirl = Object.assign({ tpl: 'q_hywirl', q: true, alt: 'rogue', name: 'Tourbillon', hp: 34, sp: 3.4, r: 0.52, pts: 220, dmg: 1, reach: 2.1, cool: [1.0, 1.5], lunge: 9,
+      runSp: 4.8, atk: ['Headbutt'], strike: 0.4, slash: 0xe0b0ff, qsp: 'fly', spawnDur: 1.0, snd: 'fly' }, QFLY);
+    KIND.glub = Object.assign({ tpl: 'q_glub', q: true, alt: 'archer', name: 'Petite ombre', hp: 26, sp: 3.0, r: 0.45, pts: 210, dmg: 1, reach: 0, cool: [2.0, 2.8], ranged: 'orb',
+      orb: [0x5a60ff, 0xe0e4ff, 0x9fb0ff], runSp: 3.8, cast: 'Punch', qsp: 'fly', spawnDur: 1.0, snd: 'fly' }, QFLY);
+    // la Salle du trône : dinos cuirassés (charge), gardes royaux (bond), gargouilles couronnées, princes dorés (boules de feu)
+    KIND.dino = Object.assign({ tpl: 'q_dino', q: true, alt: 'warrior', name: 'Dino cuirassé', hp: 110, sp: 2.4, r: 0.72, pts: 330, dmg: 2, reach: 2.3, cool: [1.3, 1.9], charge: true, heavy: true,
+      runSp: 3.4, atk: ['Punch'], strike: 0.5, slash: 0xffd090, qsp: 'portal', spCol: 0xffc040, spawnDur: 1.1, snd: 'orc', vp: 0.8 }, QBIG);
+    KIND.birb = Object.assign({ tpl: 'q_birb', q: true, alt: 'warrior', name: 'Garde royal', hp: 80, sp: 2.8, r: 0.62, pts: 300, dmg: 1, reach: 2.2, cool: [1.1, 1.6], lunge: 4,
+      leap: 'Jump', runSp: 4.0, atk: ['Weapon'], strike: 0.46, slash: 0xffe0a0, qsp: 'portal', spCol: 0xffc040, spawnDur: 1.1, snd: 'orc', vp: 1.2 }, QBIG);
+    KIND.gole = Object.assign({ tpl: 'q_gole', q: true, alt: 'rogue', name: 'Gargouille couronnée', hp: 38, sp: 3.2, r: 0.55, pts: 240, dmg: 1, reach: 2.1, cool: [1.0, 1.5], lunge: 9,
+      runSp: 4.8, atk: ['Headbutt'], strike: 0.4, slash: 0xffd060, qsp: 'fly', spawnDur: 1.0, snd: 'fly' }, QFLY);
+    KIND.alpa = Object.assign({ tpl: 'q_alpa', q: true, alt: 'archer', name: 'Prince doré', hp: 32, sp: 3.0, r: 0.5, pts: 240, dmg: 1, reach: 0, cool: [2.2, 3.0], ranged: 'fire',
+      runSp: 4.0, cast: 'Punch', qsp: 'fly', spawnDur: 1.0, snd: 'fly' }, QFLY);
 
     // cris et bruits propres à chaque sorte (sons Imphenzia déjà dans le paquet)
     function qVoice(m, what) {
       const s = m.K.snd, x = m.x;
       if (s === 'ghost') { if (what === 'hit') sfx('orb', 0.22, frnd(0.55, 0.7), 0.08, x); else if (what === 'die') { sfx('summon', 0.4, 1.5, 0.1, x); sfx('orb', 0.3, 0.5, 0.1, x); } else if (what === 'spawn') sfx('spawn', 0.35, 0.7, 0.08, x); else sfx('whoosh', 0.3, 0.75, 0.08, x); }
-      else if (s === 'orc' || s === 'demon' || s === 'yeti') { const p = s === 'demon' ? 0.78 : s === 'yeti' ? 0.64 : 1; if (what === 'hit') sfx('orchurt', 0.32, frnd(0.9, 1.1) * p, 0.15, x); else if (what === 'die') { sfx('orcgrowl', 0.5, 0.75 * p, 0.1, x); sfx('slam', 0.35, 1.1, 0.1, x); } else sfx('orcgrowl', 0.45, frnd(0.95, 1.1) * p, 0.2, x); }
+      else if (s === 'orc' || s === 'demon' || s === 'yeti') { const p = (s === 'demon' ? 0.78 : s === 'yeti' ? 0.64 : 1) * (m.K.vp || 1); if (what === 'hit') sfx('orchurt', 0.32, frnd(0.9, 1.1) * p, 0.15, x); else if (what === 'die') { sfx('orcgrowl', 0.5, 0.75 * p, 0.1, x); sfx('slam', 0.35, 1.1, 0.1, x); } else sfx('orcgrowl', 0.45, frnd(0.95, 1.1) * p, 0.2, x); }
       else if (s === 'blob') { if (what === 'hit') sfx('squeal', 0.22, frnd(1.5, 1.8), 0.1, x); else if (what === 'die') { sfx('pop', 0.4, 1.6, 0.05, x); sfx('squeal', 0.3, 1.9, 0.1, x); } else sfx('squeal', 0.2, 1.6, 0.2, x); }
       else { const p = s === 'drake' ? 0.8 : 1.15; if (what === 'hit') sfx('squeal', 0.24, frnd(1.0, 1.2) * p, 0.1, x); else if (what === 'die') { sfx('squeal', 0.35, 0.9 * p, 0.1, x); sfx('fire', 0.3, 1.3, 0.1, x); } else sfx('wings', 0.35, frnd(1.1, 1.3), 0.15, x); }
     }
@@ -3159,7 +3393,8 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         for (let i = 0; i < 12; i++) { const a = FXR() * TAU, r = frnd(0.8, 1.8); fx({ x: x + Math.cos(a) * r, y: frnd(0.3, 2.2), z: z + Math.sin(a) * r, vx: -Math.cos(a) * r * 1.3, vy: frnd(0.2, 0.8), vz: -Math.sin(a) * r * 1.3, life: 0.75, s0: 0.28, s1: 0.04, c0: 0xc8a8ff, k: 2.6, cell: 'star4' }); }
       } else if (K.qsp === 'rise') {
         fx({ x, y: 0.07, z, life: m.spawnDur + 0.8, s0: 3.0, s1: 3.5, c0: 0x140c08, k: 1, cell: 'crack', mode: 1, add: false, a0: 0.9, a1: 0, fade: 0.65, rot: FXR() * 6 });
-        fx({ x, y: 0.06, z, life: m.spawnDur * 0.6, s0: 0.5, s1: 3.8, c0: 0xff8a30, k: 1.8, cell: 'glow', mode: 1, a0: 0.8, a1: 0 });
+        fx({ x, y: 0.06, z, life: m.spawnDur * 0.6, s0: 0.5, s1: 3.8, c0: K.spCol || 0xff8a30, k: 1.8, cell: 'glow', mode: 1, a0: 0.8, a1: 0 });
+        if (K.spCol) for (let i = 0; i < 10; i++) { const a = FXR() * TAU, v = frnd(1.2, 3.2); fx({ x, y: 0.3, z, vx: Math.cos(a) * v, vy: frnd(2.5, 5), vz: Math.sin(a) * v, g: 7, drag: 0.6, life: frnd(0.7, 1.2), s0: frnd(0.16, 0.28), s1: 0.04, c0: K.spCol, k: 2.6, cell: 'star4', rot: FXR() * 6 }); }
         for (let i = 0; i < 12; i++) { const a = FXR() * TAU, v = frnd(1.5, 4.5); fx({ x: x + Math.cos(a) * 0.5, y: 0.2, z: z + Math.sin(a) * 0.5, vx: Math.cos(a) * v, vy: frnd(3, 6.5), vz: Math.sin(a) * v, g: 16, floor: true, life: frnd(0.6, 1.0), s0: frnd(0.2, 0.36), s1: 0.12, c0: 0x8a7a66, k: 1, cell: 'rocks', add: false, rot: FXR() * 6, vr: frnd(-8, 8), a0: 1, fade: 0.6 }); }
         dust(x, z, 8, 1.5, 0x9a8a78); sfx('rise', 0.5, 0.85, 0.08, x); shake(0.1);
       } else if (K.qsp === 'snow') {
@@ -3172,12 +3407,20 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         fx({ x, y: 0.06, z, life: m.spawnDur * 0.8, s0: 0.6, s1: 4.2, c0: 0xff6a20, k: 2.2, cell: 'glow', mode: 1, a0: 0.9, a1: 0 });
         ringFx(x, z, 0xff7a20, 0.4, 3.0, 0.9, 'firering', 1, 2); flameBurst(x, z, 1.2);
         sfx('fire', 0.45, 0.75, 0.08, x); shake(0.1);
+      } else if (K.qsp === 'portal') {
+        // un cercle magique de la couleur du monde, une colonne de lumière : il apparaît en grandissant
+        const col = K.spCol || 0xb070ff;
+        fx({ x, y: 0.08, z, life: 1.3, s0: 0.6, s1: 3.4, c0: col, k: 1.9, cell: 'magic', mode: 1, a0: 1, a1: 0, ease: true, vr: 3 });
+        fx({ x, y: 0.07, z, life: 1.1, s0: 3.4, s1: 1.2, c0: col, k: 1.4, cell: 'ring', mode: 1, a0: 0.3, a1: 0.9 });
+        fx({ x, y: 1.4, z, life: 0.9, s0: 1.6, s1: 3.2, c0: col, k: 1.6, cell: 'rays', a0: 0.8, a1: 0, vr: 1.5 });
+        for (let i = 0; i < 12; i++) { const a = FXR() * TAU, r = frnd(0.3, 1.4); fx({ x: x + Math.cos(a) * r, y: frnd(0.1, 0.6), z: z + Math.sin(a) * r, vy: frnd(2, 4.5), life: frnd(0.6, 1.0), s0: 0.22, s1: 0.03, c0: col, k: 2.8, cell: 'star4', rot: FXR() * 6 }); }
+        sfx('spawn', 0.4, frnd(1.0, 1.2), 0.08, x); sfx('cast', 0.25, 1.3, 0.08, x);
       } else if (K.qsp === 'drop') {
         m.y = 8;
         fx({ x, y: 0.07, z, life: 0.55, s0: 0.3, s1: 1.9, c0: 0x000000, k: 1, cell: 'blob', mode: 1, add: false, a0: 0.15, a1: 0.65 });
       } else if (K.qsp === 'fly') {
         m.y = 7; sfx('wings', 0.35, frnd(0.9, 1.1), 0.1, x);
-        fx({ x, y: 0.07, z, life: 0.9, s0: 2.8, s1: 0.8, c0: 0xff7a30, k: 1.2, cell: 'ring', mode: 1, a0: 0.2, a1: 0.8 });
+        fx({ x, y: 0.07, z, life: 0.9, s0: 2.8, s1: 0.8, c0: K.spCol || (MAPDEF && MAPDEF.look && MAPDEF.look.flyCol) || 0xff7a30, k: 1.2, cell: 'ring', mode: 1, a0: 0.2, a1: 0.8 });
       }
       qVoice(m, 'spawn');
     }
@@ -3187,7 +3430,8 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       if (m.st === 'spawn') {
         const k = clamp(m.t / m.spawnDur, 0, 1);
         const S = K.scale || 1;
-        if (K.qsp === 'smoke') { c.root.scale.setScalar(Math.max(0.02, easeBack(clamp(k * 1.3, 0, 1))) * S); m.y = -0.5 * (1 - easeOut(k)); if (FXR() < 0.5) fx({ x: m.x + frnd(-0.6, 0.6), y: frnd(0.4, 2), z: m.z + frnd(-0.6, 0.6), vy: frnd(0.3, 0.9), life: 0.7, s0: 0.7, s1: 1.3, c0: 0x6a4aa8, k: 1.3, cell: 'smoke', a0: 0.4, a1: 0, rot: FXR() * 6 }); }
+        if (K.qsp === 'portal') { c.root.scale.setScalar(Math.max(0.02, easeBack(clamp(k * 1.25, 0, 1))) * S); m.y = 0; }
+        else if (K.qsp === 'smoke') { c.root.scale.setScalar(Math.max(0.02, easeBack(clamp(k * 1.3, 0, 1))) * S); m.y = -0.5 * (1 - easeOut(k)); if (FXR() < 0.5) fx({ x: m.x + frnd(-0.6, 0.6), y: frnd(0.4, 2), z: m.z + frnd(-0.6, 0.6), vy: frnd(0.3, 0.9), life: 0.7, s0: 0.7, s1: 1.3, c0: 0x6a4aa8, k: 1.3, cell: 'smoke', a0: 0.4, a1: 0, rot: FXR() * 6 }); }
         else if (K.qsp === 'rise' || K.qsp === 'lava' || K.qsp === 'snow') { const e = easeOut(clamp(k / 0.85, 0, 1)); m.y = -c.tp.h * S * 1.02 * (1 - e); if (K.qsp === 'lava' && FXR() < 0.7) fx({ x: m.x + frnd(-0.7, 0.7), y: 0.2, z: m.z + frnd(-0.7, 0.7), vy: frnd(2, 4), life: frnd(0.35, 0.6), s0: frnd(0.6, 1.0), s1: 0.15, c0: 0xffc060, c1: 0xff3010, k: 2.4, cell: 'fire', rot: FXR() * 6 }); }
         else if (K.qsp === 'drop') {
           const f = clamp(k / 0.45, 0, 1); m.y = 8 * (1 - f * f);
@@ -3314,6 +3558,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     function heroControl(dt) {
       hero.cast -= dt; hero.castK = damp(hero.castK, hero.cast > 0 ? 1 : 0, 16, dt);
       hero.inv -= dt; hero.hitT = Math.max(0, hero.hitT - dt);
+      if (hero.sticky > 0) { hero.sticky -= dt; if (FXR() < 0.35) fx({ x: hero.x + frnd(-0.4, 0.4), y: frnd(0.3, 1.5), z: hero.z + frnd(-0.4, 0.4), vy: frnd(-0.3, 0.2), life: 0.6, s0: 0.1, s1: 0.04, c0: 0xffe060, k: 2.4, cell: 'dot', a0: 1, a1: 0 }); }   // collé par le pollen
       hero.atkCd -= dt; hero.fireCd -= dt; hero.iceCd -= dt; hero.stormCd -= dt; hero.rollCd -= dt;
       if (hero.dead) { hero.deadT += dt; hero.mv = 0; hero.vx = hero.vz = 0; return; }
       const canAct = G.phase === 'play';
@@ -3322,7 +3567,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         const dx = hero.goal[0] - hero.x, dz = hero.goal[1] - hero.z, d = Math.hypot(dx, dz);
         if (d > 0.3) { wx = dx / d; wz = dz / d; len = Math.min(1, d); } else { wx = wz = len = 0; }
       }
-      const sp = 6.2 * (hero.castK > 0.5 ? 0.8 : 1);
+      const sp = 6.2 * (hero.castK > 0.5 ? 0.8 : 1) * (hero.sticky > 0 ? 0.55 : 1);
       if (hero.roll > 0) {
         hero.roll -= dt; const k = 1 - hero.roll / 0.42, v = 13.5 * (1 - k * 0.55);
         hero.vx = hero.rdx * v; hero.vz = hero.rdz * v;
@@ -3752,7 +3997,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     // LE MAGE EST TOUCHÉ : le bouclier d'abord, puis les cœurs ; une seule vie
     // ===========================================================================
     function hurtHero(n, sx, sz, what) {
-      if (hero.dead || G.phase === 'won' || G.phase === 'travel' || G.phase === 'win' || G.phase === 'auto') return false;
+      if (hero.dead || G.phase === 'won' || G.phase === 'travel' || G.phase === 'win' || G.phase === 'auto' || G.phase === 'finale') return false;
       if (hero.roll > 0) { if (what !== 'quiet' && !hero.dodgeTold) { pop(hero.x, 2.4, hero.z, 'Esquivé !', 'info', 0.9); } return false; }
       if (hero.inv > 0) return false;
       if (COOP && (hero.st !== 'up' || hero.remote)) return false;
@@ -3812,10 +4057,13 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
             d.fxDone = true;
             d.f1 = fx({ x: d.x, y: 0.07, z: d.z, life: d.delay + 0.06, s0: d.r * 0.2, s1: d.r * 2, c0: 0xff2a3a, k: 1.2, cell: 'softc', mode: 1, a0: 0.3, a1: 0.65 });
             d.f2 = fx({ x: d.x, y: 0.08, z: d.z, life: d.delay + 0.06, s0: d.r * 2.1, s1: d.r * 2.0, c0: 0xff5a6a, k: 1.6, cell: 'ring', mode: 1, a0: 0.75, a1: 1 });
+            if (d.warn) dangerWarn(d, true);
           }
+          if (d.warn && d.t < d.delay) dangerWarn(d, false, dt);
           if (d.t >= d.delay) {
             DANGER.splice(i, 1);
             if (d.onHit) d.onHit(d);
+            if (d.fk === 'root') rootBurst(d.x, d.z, d.r);
             eachHero(() => { if (Math.hypot(hero.x - d.x, hero.z - d.z) < d.r + hero.r * 0.5) hurtHero(d.dmg || 1, d.x, d.z); });
             if (d.hurtMon && !NETG) for (const m of MON) if (!m.dead && !m.K.boss && Math.hypot(m.x - d.x, m.z - d.z) < d.r) hurtMonster(m, d.hurtMon, d, 'fire');
           }
@@ -3828,6 +4076,8 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
           burnUpdate(d, dt); if (d.t >= d.life) DANGER.splice(i, 1);
         } else if (d.kind === 'frost') {
           frostUpdate(d, dt); if (d.t >= d.life) DANGER.splice(i, 1);
+        } else if (d.kind === 'pollen') {
+          pollenUpdate(d, dt); if (d.t >= d.life) DANGER.splice(i, 1);
         } else if (d.kind === 'line') {      // visée de l'arbalétrier : un trait rouge qui s'affine
           if (d.t >= d.life) DANGER.splice(i, 1);
           else if (FXR() < 0.9) { const k = d.t / d.life, L = d.len; fx({ x: d.x + d.dx * L / 2, y: 1.1, z: d.z + d.dz * L / 2, dx: d.dx, dy: 0, dz: d.dz, life: 0.04, s0: 0.12 * (1 - k * 0.6), len0: L, c0: 0xff3040, k: 1.6 + k * 2, cell: 'streak', mode: 2, a0: 0.25 + k * 0.6, a1: 0.25 + k * 0.6 }); }
@@ -3843,14 +4093,15 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
             const wa = Math.atan2(tg.x - f.x, tg.z - f.z), ca = Math.atan2(f.vx, f.vz), sp = Math.hypot(f.vx, f.vz);
             const na = ca + clamp(angDiff(ca, wa), -dt * 1.3, dt * 1.3); f.vx = Math.sin(na) * sp; f.vz = Math.cos(na) * sp;
             f.x += f.vx * dt; f.z += f.vz * dt;
-            fx({ x: f.x, y: 1.1, z: f.z, life: 0.05, s0: 0.95, c0: 0xa050ff, k: 2.2, cell: 'glow', a0: 0.9, a1: 0.6 });
-            fx({ x: f.x, y: 1.1, z: f.z, life: 0.05, s0: 0.35, c0: 0xf0d8ff, k: 3, cell: 'dot', a0: 1, a1: 1 });
-            if (FXR() < 0.5) fx({ x: f.x, y: 1.1, z: f.z, vx: frnd(-0.5, 0.5), vy: frnd(-0.3, 0.6), vz: frnd(-0.5, 0.5), life: 0.5, s0: 0.25, s1: 0, c0: 0xc890ff, k: 2, cell: 'star4', rot: FXR() * 6 });
+            const oc = f.col || OCOL;
+            fx({ x: f.x, y: 1.1, z: f.z, life: 0.05, s0: 0.95, c0: oc[0], k: 2.2, cell: 'glow', a0: 0.9, a1: 0.6 });
+            fx({ x: f.x, y: 1.1, z: f.z, life: 0.05, s0: 0.35, c0: oc[1], k: 3, cell: 'dot', a0: 1, a1: 1 });
+            if (FXR() < 0.5) fx({ x: f.x, y: 1.1, z: f.z, vx: frnd(-0.5, 0.5), vy: frnd(-0.3, 0.6), vz: frnd(-0.5, 0.5), life: 0.5, s0: 0.25, s1: 0, c0: oc[2], k: 2, cell: 'star4', rot: FXR() * 6 });
             if (f.L) { f.L.x = f.x; f.L.z = f.z; }
             eachHero(() => { if (!f.dead && Math.hypot(hero.x - f.x, hero.z - f.z) < hero.r + 0.35) { hurtHero(1, f.x - f.vx, f.z - f.vz); f.dead = true; } });
             if (!free(f.x, f.z) || f.t > 4.5) f.dead = true;
           }
-          if (f.dead) { burst(f.x, 1.1, f.z, 0xd0a0ff, 8, 4, 0.4, 0.3, 'star4', 2.2); flash(f.x, 1.1, f.z, 0xb070ff, 1.8, 0.2, 2); sfx('zap', 0.2, 1.6, 0.05, f.x); if (f.L) delLight(f.L); FOES.splice(i, 1); }
+          if (f.dead) { burst(f.x, 1.1, f.z, (f.col || OCOL)[2], 8, 4, 0.4, 0.3, 'star4', 2.2); flash(f.x, 1.1, f.z, (f.col || OCOL)[0], 1.8, 0.2, 2); sfx('zap', 0.2, 1.6, 0.05, f.x); if (f.L) delLight(f.L); FOES.splice(i, 1); }
         } else if (f.kind === 'arrow') {
           f.x += f.vx * dt; f.z += f.vz * dt;
           fx({ x: f.x, y: 1.15, z: f.z, dx: f.vx, dy: 0, dz: f.vz, life: 0.05, s0: 0.12, len0: 1.0, c0: 0xffd0a0, k: 2.2, cell: 'streak', mode: 2, a0: 1, a1: 0.8 });
@@ -3863,6 +4114,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         } else if (f.kind === 'fireball') { fireballUpdate(f, dt, i);
         } else if (f.kind === 'iceball') { iceballUpdate(f, dt, i);
         } else if (f.kind === 'icicle') { icicleUpdate(f, dt, i);
+        } else if (f.kind === 'log') { logUpdate(f, dt, i);
         } else if (f.kind === 'rock') {
           const k = clamp(f.t / f.dur, 0, 1);
           f.mesh.position.set(lerp(f.x0, f.x1, k), lerp(f.y0, 0.3, k) + Math.sin(k * Math.PI) * f.arc, lerp(f.z0, f.z1, k));
@@ -3878,10 +4130,11 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
         }
       }
     }
+    const OCOL = [0xa050ff, 0xf0d8ff, 0xc890ff];            // orbe violet (sorcier gluant, squelette sorcier) ; K.orb : autres couleurs
     function shootOrb(m) {
       const a = Math.atan2(hero.x - m.x, hero.z - m.z), sp = 6.2 * G.spMul;
-      const f = { kind: 'orb', x: m.x + Math.sin(a) * 0.8, z: m.z + Math.cos(a) * 0.8, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, t: 0, tgt: hero };
-      f.L = addLight(f.x, 1.4, f.z, 0xa060ff, 6, 5, 0.2, 'orb');
+      const f = { kind: 'orb', x: m.x + Math.sin(a) * 0.8, z: m.z + Math.cos(a) * 0.8, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, t: 0, tgt: hero, col: m.K.orb || null };
+      f.L = addLight(f.x, 1.4, f.z, f.col ? f.col[0] : 0xa060ff, 6, 5, 0.2, 'orb');
       FOES.push(f); sfx('orb', 0.35, frnd(0.9, 1.1), 0.1, m.x);
     }
     function shootArrow(m, a) {
@@ -4091,7 +4344,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
           if (m.t > m.strikeT + 0.45) {
             m.st = 'chase'; m.t = 0; m.cd = rnd(K.cool[0], K.cool[1]) / G.aggro; m.lunge = 0;
             if (K.combo && !m.comboed && FXR() < K.combo) { m.cd = 0.08; m.comboed = true; }
-            else { m.comboed = false; if (K.taunt && FXR() < K.taunt) { m.st = 'taunt'; m.t = 0; play(c, 'Taunt', { once: true, fade: 0.15 }); sfx('rattle', 0.4, 0.75, 0.05, m.x); } }
+            else { m.comboed = false; if (K.taunt && FXR() < K.taunt) { m.st = 'taunt'; m.t = 0; play(c, K.tauntAnim || 'Taunt', { once: true, fade: 0.15 }); sfx('rattle', 0.4, 0.75, 0.05, m.x); } }
           }
           return;
         }
@@ -4101,7 +4354,7 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
           if (!m.landed && m.t >= 0.8) {
             m.landed = true; m.x = m.lx1; m.z = m.lz1; m.y = 0; shake(0.22); sfx('slam', 0.45, 1.2, 0.1, m.x);
             dust(m.x, m.z, 8, 1.4); ringFx(m.x, m.z, 0xffd0a0, 0.4, 3.2, 0.4, 'ring', 0.8, 1.4);
-            if (K.iceLeap) miniLand(m);
+            if (K.iceLeap || K.sporeLeap) miniLand(m);
             if (K.fireLeap) { flameBurst(m.x, m.z, 1.5); ringFx(m.x, m.z, 0xff8a30, 0.5, 3.4, 0.45, 'firering', 0.9, 1.8); sfx('fire', 0.4, 0.9, 0.1, m.x); }
             for (let i = 0; i < 8; i++) { const a = FXR() * TAU, v = frnd(2, 5); fx({ x: m.x, y: 0.3, z: m.z, vx: Math.cos(a) * v, vy: frnd(2, 5), vz: Math.sin(a) * v, g: 16, floor: true, life: 0.7, s0: 0.25, s1: 0.15, c0: 0x8a7a66, k: 1, cell: 'rocks', add: false, rot: FXR() * 6, a0: 1, fade: 0.6 }); }
           }
@@ -4289,7 +4542,10 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
       const m = BOSS.m; if (!m) return;
       hudBoss(true);
       const k = m.hp / m.hpMax;
-      if (BOSS.kind === 'hydre') {
+      if (HFCB[BOSS.kind]) {           // mondes 4 à 6 : renforts à 66 %, colère à 33 %
+        if (BOSS.phase === 1 && k < 0.66) { BOSS.phase = 2; BOSS.pend = 'summon'; }
+        else if (BOSS.phase === 2 && k < 0.33) { BOSS.phase = 3; BOSS.pend = 'enrage'; BOSS.rainT = 2; }
+      } else if (BOSS.kind === 'hydre') {
         if (BOSS.phase === 1 && k < 0.66) { BOSS.phase = 2; BOSS.pend = 'roar2'; }
         else if (BOSS.phase === 2 && k < 0.33) { BOSS.phase = 3; BOSS.pend = 'enrage'; }
       } else if (BOSS.kind === 'dragon') {
@@ -4454,14 +4710,14 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     // ===========================================================================
     // MONDE 2 : LES FORGES ARDENTES — une mer de lave sous le donjon, et Braise, le dragon (Heroic Fantasy Creatures)
     // ===========================================================================
-    function bossSpawn(Z) { const k = PLAYABLE[G.wi].boss.key; if (k === 'dragon' && TPL.dragon) dragonSpawn(Z); else if (k === 'hydre' && TPL.hydra) hydraSpawn(Z); else golemSpawn(Z); }
-    function bossIntro() { if (NETH) netEv({ e: 'bi' }); if (BOSS.kind === 'dragon') dragonIntro(); else if (BOSS.kind === 'hydre') hydraIntro(); else golemIntro(); }
-    function bossUpdate(m, dt) { if (BOSS.kind === 'dragon') dragonUpdate(m, dt); else if (BOSS.kind === 'hydre') hydraUpdate(m, dt); else golemUpdate(m, dt); }
-    function bossDie(m) { padRumble('big'); if (NETH) netEv({ e: 'bd' }); if (BOSS.kind === 'dragon') dragonDie(m); else if (BOSS.kind === 'hydre') hydraDie(m); else golemDie(m); }
+    function bossSpawn(Z) { const k = PLAYABLE[G.wi].boss.key; if (k === 'dragon' && TPL.dragon) dragonSpawn(Z); else if (k === 'hydre' && TPL.hydra) hydraSpawn(Z); else if (HFCB[k] && TPL[HFCB[k].tpl]) hfcSpawn(Z, k); else golemSpawn(Z); }
+    function bossIntro() { if (NETH) netEv({ e: 'bi' }); if (BOSS.kind === 'dragon') dragonIntro(); else if (BOSS.kind === 'hydre') hydraIntro(); else if (HFCB[BOSS.kind]) hfcIntro(); else golemIntro(); }
+    function bossUpdate(m, dt) { if (BOSS.kind === 'dragon') dragonUpdate(m, dt); else if (BOSS.kind === 'hydre') hydraUpdate(m, dt); else if (HFCB[BOSS.kind]) hfcUpdate(m, dt); else golemUpdate(m, dt); }
+    function bossDie(m) { padRumble('big'); if (NETH) netEv({ e: 'bd' }); if (BOSS.kind === 'dragon') dragonDie(m); else if (BOSS.kind === 'hydre') hydraDie(m); else if (HFCB[BOSS.kind]) hfcDie(m); else golemDie(m); }
     // préparation du paquet du monde 2 (dès qu'il est téléchargé)
     async function prepWorld2() {
       await Promise.all([loadTex('kkt_forge'), loadTex('dragon_base'), loadTex('dragon_glow', { data: true })]);
-      for (const k of ['q_demon', 'q_imp', 'q_drake']) await prepQ(k);
+      for (const k of ['q_demon', 'q_imp', 'q_drake', 'q_tribal']) await prepQ(k);
       const g = await parseGLB('dragon');
       g.scene.updateMatrixWorld(true);
       const anims = {}; for (const a of g.animations) anims[a.name] = a;
@@ -4471,14 +4727,14 @@ void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); f = pow(f, 
     // apparence du monde : texture du décor (pierre grise / basalte), lueur de la lave sur les socles
     function setWorldLook(look) {
       const t = (look.tex && TEX[look.tex]) || TEX.kkt_dungeon;
-      for (const k of ['world', 'floor', 'base', 'coin']) if (MAT[k] && MAT[k].map !== t && k !== 'coin') { MAT[k].map = t; MAT[k].needsUpdate = true; }
+      for (const k of ['world', 'floor', 'floorM', 'base', 'coin']) { const tk = (k === 'floor' || k === 'floorM') && look.floorTex && TEX[look.floorTex] ? TEX[look.floorTex] : t; if (MAT[k] && MAT[k].map !== tk && k !== 'coin') { MAT[k].map = tk; MAT[k].needsUpdate = true; } }
       UNI.lavaK.value = MAPDEF.lava ? 1 : 0;
     }
     // ------------------------------------------------------------- la lave : un plan animé (bruit qui coule), des braises, des bulles
     const LAVA = { mesh: null, holes: [], embT: 0 };
     function buildLava() {
       LAVA.holes.length = 0; LAVA.mesh = null;
-      if (!MAPDEF.lava) { if (MAPDEF.ice) buildIceSea(); return; }
+      if (!MAPDEF.lava) { if (MAPDEF.ice) buildIceSea(); else if (MAPDEF.sea) buildSea(MAPDEF.sea); return; }
       const mat = keep(new T.ShaderMaterial({
         uniforms: { uT: UNI.time }, defines: { OCT: Q.lavaOct || 4 },
         vertexShader: 'varying vec2 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }',
@@ -4513,6 +4769,7 @@ void main(){ vec2 p = vW * 0.16;
     function lavaUpdate(dt) {
       if (!LAVA.mesh) return;
       if (MAPDEF.ice) { iceSeaUpdate(dt); return; }
+      if (MAPDEF.sea) { seaUpdate(dt); return; }
       LAVA.embT -= dt;
       if (LAVA.embT > 0) return;
       LAVA.embT = 0.05;
@@ -4951,7 +5208,7 @@ void main(){ vec2 p = vW * 0.16;
     KIND.hydre = { tpl: 'hydra', name: "Givre, l'hydre des glaces", boss: true, h: 4.2, r: 2.2, hp: 1900, sp: 1.6, pts: 7000, dmg: 1, hit: ['hit'] };
     async function prepWorld3() {
       await Promise.all([loadTex('kkt_ice'), loadTex('hydra_base'), loadTex('hydra_glow', { data: true })]);
-      await prepQ('q_yeti');
+      for (const k of ['q_yeti', 'q_fish', 'q_piranha', 'q_squid']) await prepQ(k);
       const g = await parseGLB('hydra');
       g.scene.updateMatrixWorld(true);
       const anims = {}; for (const a of g.animations) anims[a.name] = a;
@@ -5139,7 +5396,7 @@ void main(){
         // à 66 % : des renforts gelés ; à 33 % : une onde de givre (rouler pour l'éviter) et les stalactites commencent à tomber
         dPlay('breath', { once: true, speed: 1.2, fade: 0.2 }); A.dur = 2.2; BOSS.roarIce = 1.3; sfx('roar', 1, 0.8); shake(0.6); hitStop(0.06);
         const Z = BOSS.zone, sp = Z.spots.spawns || [];
-        if (kind === 'roar2') for (let i = 0; i < 3; i++) after(0.8 + i * 0.45, () => { const p = sp[(i * 3 + 1) % sp.length]; if (p) spawnMonster(i === 1 && TPL.q_yeti ? 'yeti' : i === 2 ? 'ghost' : 'minion', Z.x0 + p[0], Z.z0 + p[1], { zone: Z }); });
+        if (kind === 'roar2') for (let i = 0; i < 3; i++) after(0.8 + i * 0.45, () => { const p = sp[(i * 3 + 1) % sp.length]; if (p) spawnMonster(i === 1 && TPL.q_fish ? 'fish' : i === 2 && TPL.q_squid ? 'squid' : TPL.q_piranha ? 'piranha' : 'minion', Z.x0 + p[0], Z.z0 + p[1], { zone: Z }); });
         else A.ev.push([0.7, () => { DANGER.push({ kind: 'wave', x: m.x, z: m.z, r0: 2, r1: 16, t: 0, life: 1.4, dmg: 1 }); ringFx(m.x, m.z, 0x9fe6ff, 2, 16, 1.4, 'ring', 1, 2); sfx('icehit', 0.6, 0.6); }]);
       }
     }
@@ -5238,10 +5495,20 @@ void main(){
       run: 'Running_C', runSp: 4.4, cool: [1.1, 1.6], lunge: 4.5, heavy: true, adds: ['minion', 'archer', 'minion'],
       atk: ['1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Diagonal', '1H_Melee_Attack_Stab'], combo: 0.35, taunt: 0.4,
       hit: ['Hit_A'], charge: true, chargeWind: 'Blocking', blockDur: [0.8, 1.2], blockCd: [3.2, 4.8], blockRate: 1.1, blockHit: 0.3, guard: 0.45 });
+    // (ses renforts sont TOUJOURS des monstres de son monde : jamais deux fois le même monstre d'un monde à l'autre)
     if (KIND.demon) KIND.lord = Object.assign({}, KIND.demon, { name: 'Le Seigneur des braises', mini: true, scale: 1.5, hp: 620, r: 1.0, reach: 3.0, pts: 3000, dmg: 2,
-      charge: true, cool: [1.0, 1.5], alt: 'knight', adds: ['imp', 'minion', 'drake'] });
+      charge: true, cool: [1.0, 1.5], alt: 'knight', adds: ['imp', 'tribal', 'drake'] });
     if (KIND.yeti) KIND.yetiKing = Object.assign({}, KIND.yeti, { name: 'Le Yéti géant', mini: true, scale: 1.5, hp: 680, r: 1.15, reach: 3.0, pts: 3000, dmg: 2,
-      leap: 'Jump', iceLeap: true, cool: [1.0, 1.5], alt: 'knight', adds: ['ghost', 'minion', 'yeti'] });
+      leap: 'Jump', iceLeap: true, cool: [1.0, 1.5], alt: 'knight', adds: ['piranha', 'fish', 'squid'] });
+    // monde 4 : le Roi Champignon (il bondit et retombe dans un nuage de spores) ; monde 5 : le Maître ninja (il fonce, bondit,
+    // enchaîne) ; monde 6 : le Capitaine de la garde (bond, charge, deux coups)
+    KIND.mushKing = Object.assign({ tpl: 'q_mushking', q: true, alt: 'knight', name: 'Le Roi Champignon', mini: true, scale: 1.55, hp: 700, sp: 2.5, r: 1.05, reach: 2.9, pts: 3000, dmg: 2, meleeDmg: 1,
+      cool: [1.1, 1.6], lunge: 4, heavy: true, leap: 'Jump', sporeLeap: true, charge: true, runSp: 3.8, atk: ['Punch'], strike: 0.5, slash: 0xd8ffa0, combo: 0.35, taunt: 0.3, tauntAnim: 'Yes',
+      qsp: 'rise', spCol: 0x8cff50, spawnDur: 1.2, snd: 'orc', vp: 0.7, adds: ['mushnub', 'spiky', 'frog'] }, QBIG);
+    if (KIND.ninja) KIND.ninjaKing = Object.assign({}, KIND.ninja, { name: 'Le Maître ninja', mini: true, scale: 1.6, hp: 680, r: 0.95, reach: 2.8, pts: 3000, dmg: 2, meleeDmg: 1, sp: 3.4,
+      runSp: 5.2, cool: [1.0, 1.5], lunge: 6, heavy: true, leap: 'Jump', charge: true, combo: 0.5, taunt: 0.3, tauntAnim: 'Yes', alt: 'knight', vp: 0.85, adds: ['ninja', 'glub', 'alien'] });
+    if (KIND.birb) KIND.birbKing = Object.assign({}, KIND.birb, { name: 'Le Capitaine de la garde', mini: true, scale: 1.6, hp: 760, r: 1.0, reach: 2.9, pts: 3000, dmg: 2, meleeDmg: 1, sp: 2.8,
+      runSp: 4.2, cool: [1.0, 1.5], lunge: 5, heavy: true, leap: 'Jump', charge: true, combo: 0.45, taunt: 0.3, tauntAnim: 'Yes', alt: 'knight', vp: 0.8, adds: ['dino', 'birb', 'gole'] });
     function hudMini(hit) {
       const m = MINI.m; if (!m) return;
       const k = clamp(m.hp / m.hpMax, 0, 1);
@@ -5292,15 +5559,1788 @@ void main(){
       for (const o of MON) if (o !== m && !o.dead && !o.K.boss && !o.sleeping && o.zone === m.R) after(frnd(0.3, 0.9), () => { if (!o.dead) { o.hp = 0; killMonster(o, m.x, m.z, 'storm'); } });
     }
     function miniUpdate() { const m = MINI.m; if (m && m.aura) { m.aura.x = m.x; m.aura.z = m.z; } }
-    // le saut glacé du Yéti géant : un anneau de givre à l'atterrissage (s'ajoute au saut commun)
+    // le saut glacé du Yéti géant (et du requin des glaces, plus petit) : un anneau de givre à l'atterrissage (s'ajoute au saut
+    // commun) ; le Roi Champignon retombe dans un nuage de spores
     function miniLand(m) {
+      if (m.K.sporeLeap) {        // le Roi Champignon : un anneau de spores vertes qui pique (on roule ou on s'éloigne)
+        ringFx(m.x, m.z, 0x9cff60, 0.5, 4.0, 0.6, 'ring', 0.9, 2);
+        for (let i = 0; i < 16; i++) { const a = FXR() * TAU, v = frnd(2, 5); fx({ x: m.x, y: 0.4, z: m.z, vx: Math.cos(a) * v, vy: frnd(0.5, 2), vz: Math.sin(a) * v, drag: 1.2, life: frnd(0.9, 1.5), s0: frnd(0.5, 0.9), s1: frnd(1.4, 2.2), c0: 0xa8ff70, k: 1.3, cell: 'smoke', a0: 0.45, a1: 0, rot: FXR() * 6 }); }
+        sfx('pop', 0.5, 0.6, 0.05, m.x); sfx('whoosh', 0.4, 0.6, 0.05, m.x);
+        eachHero(() => { if (!hero.dead && Math.hypot(hero.x - m.x, hero.z - m.z) < 3.3 + hero.r) hurtHero(1, m.x, m.z); });
+        if (NETH) netEv({ e: 'st', x: r10(m.x), z: r10(m.z), r: 33, mx: r10(m.x), mz: r10(m.z), f: 0, dm: 1, full: 1 });
+        return;
+      }
       if (!m.K.iceLeap) return;
       ringFx(m.x, m.z, 0x9fe6ff, 0.5, 4.2, 0.55, 'ring', 0.9, 2);
       for (let i = 0; i < 14; i++) { const a = FXR() * TAU, v = frnd(3, 7); fx({ x: m.x, y: 0.3, z: m.z, vx: Math.cos(a) * v, vy: frnd(1, 4), vz: Math.sin(a) * v, g: 12, floor: true, life: frnd(0.5, 0.9), s0: frnd(0.25, 0.45), s1: 0.1, c0: 0xdff8ff, k: 2, cell: 'shard', rot: FXR() * 6, a0: 1, fade: 0.6 }); }
       sfx('icehit', 0.5, 0.7, 0.05, m.x);
+      if (!m.K.mini) return;                 // (le requin des glaces : l'effet seulement)
       eachHero(() => { if (!hero.dead && Math.hypot(hero.x - m.x, hero.z - m.z) < 3.4 + hero.r) hurtHero(1, m.x, m.z); });
       if (NETH) netEv({ e: 'st', x: r10(m.x), z: r10(m.z), r: 34, mx: r10(m.x), mz: r10(m.z), f: 0, dm: 1, full: 1 });
     }
+    // ===========================================================================
+    // MONDES 4 À 6 (étape C : six mondes tous différents)
+    //  - le décor dessiné par le jeu : champignons géants qui luisent, buissons, boules de cristal, le trône, le tapis rouge ;
+    //  - les mers sous le donjon : le marais (nénuphars, lucioles), le ciel étoilé, la mer d'ombres (éclairs violets) ;
+    //  - les trois boss (Heroic Fantasy Creatures, recolorés) sur un moteur commun : le Vieux Chêne (griffes, piétinement,
+    //    rochers, racines), le Grand Œil (il flotte : griffes, dard, orbes, rayon, il se téléporte), le Seigneur des ombres
+    //    (épée, fouet, boules de feu, il s'envole) ;
+    //  - la GRANDE VICTOIRE après le monde 6 (feu d'artifice, carte finale des six mondes) : la partie se termine.
+    // ===========================================================================
+    KIND.ent = { tpl: 'ent', name: 'Le Vieux Chêne', boss: true, h: 6.6, r: 2.0, hp: 2100, sp: 1.5, pts: 7500, dmg: 1, hit: ['hit'] };
+    KIND.oeil = { tpl: 'watcher', name: 'Le Grand Œil', boss: true, h: 6.0, r: 2.1, hp: 2200, sp: 2.6, pts: 8500, dmg: 1, hit: ['hit'] };
+    KIND.seigneur = { tpl: 'demonlord', name: 'Le Seigneur des ombres', boss: true, h: 6.4, r: 1.7, hp: 2700, sp: 2.0, pts: 10000, dmg: 1, hit: ['hit'] };
+    // réglages de chaque boss : matériaux (nom du matériau du modèle → textures), couleurs, os des yeux, distance de combat
+    const HFCB = {
+      ent: { kind: 'ent', tpl: 'ent', col: 0x9cff60, eyeCol: 0xffc040, rim: 0xd8ffa0, keep: 4.4, eyes: ['OAK_TREE_ENT_EYE_L', 'OAK_TREE_ENT_EYE_R'], eyeS: 0.75,
+        mats: { M_OakTreeEnt: { map: 'ent_base', glow: 'ent_glow', emis: 0xffa030, ei: 1.2 }, M_TreeEntMossLichensLeaves: { map: 'ent_leaf', alpha: true, at: 0.3 } } },
+      oeil: { kind: 'oeil', tpl: 'watcher', col: 0xb070ff, eyeCol: 0xffd060, rim: 0xe8c8ff, keep: 7.5, hover: 1.4,
+        eyes: ['EvilWatcher_EyeMiddleFront', 'EvilWatcher_EyeLeftA', 'EvilWatcher_EyeRightA', 'EvilWatcher_EyeLeftB', 'EvilWatcher_EyeLRightB'], eyeS: 0.8,
+        mats: { M_EvilWatcher: { map: 'watcher_base', glow: 'watcher_glow', emis: 0xffd060, ei: 1.0 } } },
+      seigneur: { kind: 'seigneur', tpl: 'demonlord', col: 0xff6a20, eyeCol: 0xff9a40, rim: 0xffa070, keep: 4.6, eyes: ['DEMON_LORD__Head'], eyeS: 0.9, hand: 'DEMON_LORD__R_Hand',
+        mats: { M_DemonLordBody: { map: 'dl_base', glow: 'dl_glow', emis: 0xff7a30, ei: 1.1 }, M_DemonLordWings: { map: 'dl_wing', alpha: true }, M_DemonLordSword: { map: 'dl_sword', ec: 0xff5a10, ei: 0.7 },
+          M_DemonLordWhip: { map: 'dl_whip', ec: 0xff4010, ei: 0.7 }, M_Flame: { flame: true }, 'M_Flame.001': { flame: true } } }
+    };
+    const HFCKEY = { ent: 'ent', watcher: 'oeil', demonlord: 'seigneur' };
+    async function prepHFC(name) {
+      if (TPL[name] || !packEntry(name)) return;
+      const g = await parseGLB(name);
+      g.scene.updateMatrixWorld(true);
+      const anims = {}; for (const a of g.animations) anims[a.name] = a;
+      const box = new T.Box3().setFromObject(g.scene);
+      TPL[name] = { scene: g.scene, anims, h: box.max.y - box.min.y || 1, minY: box.min.y };
+    }
+    async function prepWorld4() {
+      await Promise.all([loadTex('kkt_garden'), loadTex('kkt_garden_sol'), loadTex('ent_base'), loadTex('ent_leaf'), loadTex('ent_glow', { data: true })]);
+      for (const k of ['q_mushnub', 'q_spiky', 'q_frog', 'q_bee', 'q_mushking']) await prepQ(k);
+      await prepHFC('ent');
+    }
+    async function prepWorld5() {
+      await Promise.all([loadTex('kkt_tower'), loadTex('kkt_tower_sol'), loadTex('watcher_base'), loadTex('watcher_glow', { data: true })]);
+      for (const k of ['q_ninja', 'q_alien', 'q_hywirl', 'q_glub']) await prepQ(k);
+      await prepHFC('watcher');
+    }
+    async function prepWorld6() {
+      await Promise.all([loadTex('kkt_throne'), loadTex('kkt_throne_sol'), loadTex('dl_base'), loadTex('dl_glow', { data: true }), loadTex('dl_wing'), loadTex('dl_sword'), loadTex('dl_whip')]);
+      for (const k of ['q_dino', 'q_birb', 'q_gole', 'q_alpa']) await prepQ(k);
+      await prepHFC('demonlord');
+    }
+
+    // ------------------------------------------------------------- les mers sous le donjon
+    const SEAF = {
+      // le marais : eau sombre et verte, grands nénuphars (quelques fleurs roses), reflets
+      swamp: `void main(){
+ vec2 p = vW * 0.24 + vec2(uT * 0.012, uT * 0.007);
+ vec2 ip = floor(p), fp = fract(p); float d1 = 8.0; vec2 id = ip, rel = vec2(0.0);
+ for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) { vec2 g = vec2(float(i), float(j)); vec2 o = h2(ip + g); o = 0.5 + 0.3 * sin(uT * 0.1 + 6.2831 * o); vec2 r = g + o - fp; float d = length(r); if (d < d1) { d1 = d; id = ip + g; rel = r; } }
+ float hv = hash(id), rad = 0.24 + 0.16 * hash(id + 7.0);
+ float notch = step(0.0, -rel.x) * step(abs(rel.y), 0.05 + 0.4 * max(0.0, -rel.x));
+ float pad = smoothstep(rad + 0.02, rad - 0.03, d1) * step(0.42, hv) * (1.0 - notch);
+ float n = noise(vW * 0.4 + uT * 0.05), n2 = noise(vW * 1.4 - vec2(uT * 0.12, uT * 0.07));
+ vec3 water = vec3(0.008, 0.03, 0.022) + vec3(0.02, 0.07, 0.045) * n2 * n + vec3(0.08, 0.26, 0.14) * pow(n2, 6.0) * 0.5;
+ vec3 padc = mix(vec3(0.05, 0.19, 0.05), vec3(0.15, 0.4, 0.09), n) * (0.7 + 0.3 * smoothstep(0.0, rad, d1));
+ float fl = step(0.9, hash(id + 3.0)) * smoothstep(0.07, 0.03, length(rel - vec2(0.05, 0.04)));
+ vec3 c = mix(water, padc, pad); c = mix(c, vec3(1.2, 0.45, 0.85), fl * pad);
+ gl_FragColor = vec4(c, 1.0);`,
+      // le ciel étoilé : nébuleuses violettes et bleues, étoiles qui scintillent (la tour flotte dans la nuit)
+      stars: `void main(){
+ vec2 p = vW * 0.035;
+ float n = noise(p * 2.0 + uT * 0.01) * 0.6 + noise(p * 5.0 - uT * 0.015) * 0.3 + noise(p * 11.0) * 0.1;
+ vec3 c = mix(vec3(0.008, 0.006, 0.03), vec3(0.16, 0.06, 0.3), n * n) + vec3(0.02, 0.07, 0.18) * noise(p * 3.0 + 4.0) * n;
+ vec2 g = floor(vW * 0.8), f = fract(vW * 0.8) - 0.5; float r = hash(g);
+ float st = step(0.9, r) * smoothstep(0.12, 0.0, length(f - (h2(g) - 0.5) * 0.6)) * (0.55 + 0.45 * sin(uT * (1.5 + r * 3.0) + r * 40.0));
+ c += vec3(1.1, 1.0, 1.3) * st * (0.6 + 0.8 * r);
+ gl_FragColor = vec4(c, 1.0);`,
+      // la mer d'ombres : nuages pourpres qui tournent, veines violettes, éclairs
+      shadow: `void main(){
+ vec2 p = vW * 0.09;
+ vec2 q = vec2(noise(p + vec2(uT * 0.05, 0.0)), noise(p + vec2(5.2, 1.3) - vec2(0.0, uT * 0.04)));
+ float n = noise(p * 1.7 + q * 2.2 + vec2(uT * 0.02, -uT * 0.015));
+ vec3 c = mix(vec3(0.015, 0.0, 0.02), vec3(0.2, 0.03, 0.14), n * n);
+ c += vec3(0.55, 0.12, 0.8) * smoothstep(0.035, 0.0, abs(n - 0.52)) * 0.7;
+ c += vec3(0.6, 0.35, 1.0) * uF * (0.3 + n);
+ gl_FragColor = vec4(c, 1.0);`
+    };
+    function buildSea(kind) {
+      const mat = keep(new T.ShaderMaterial({
+        uniforms: { uT: UNI.time, uF: { value: 0 } },
+        vertexShader: 'varying vec2 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }',
+        fragmentShader: `uniform float uT; uniform float uF; varying vec2 vW;
+vec2 h2(vec2 p){ p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p) * 43758.5453); }
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+${SEAF[kind] || SEAF.stars}
+#include <tonemapping_fragment>
+#include <colorspace_fragment>
+}`, fog: false }));
+      const m = new T.Mesh(keep(new T.PlaneGeometry(MAP.W * 2.2, MAP.H * 2.2)), mat);
+      m.rotation.x = -Math.PI / 2; m.position.set(MAP.W / 2, -1.6, MAP.H / 2); m.renderOrder = 2; wadd(m); LAVA.mesh = m; LAVA.sea = kind; LAVA.flash = 0;
+      const gc = MAPDEF.look.seaGlow || 0x8a6aff;
+      for (let j = 0; j < MAP.NJ; j++) for (let i = 0; i < MAP.NI; i++) if (MAP.at(i, j) === 'L') {
+        const x = i * CELL + 2, z = j * CELL + 2;
+        LAVA.holes.push({ x, z });
+        addStatic({ x, y: -0.4, z, s: 5, cell: 'glow', col: gc, k: 1.1, a: 0.3, pulse: 0.9 });
+        bakeAdd(x, z, gc, 1.4, 7, 0.9);
+      }
+      for (let j = -1; j <= MAP.NJ; j++) for (let i = -1; i <= MAP.NI; i++) if (MAP.at(i, j) === ' ' && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => { const c = MAP.at(i + a, j + b); return c !== ' ' && c !== 'L'; })) LAVA.holes.push({ x: i * CELL + 2, z: j * CELL + 2, edge: true });
+    }
+    // lucioles du marais, étincelles d'étoiles, braises et éclairs de la mer d'ombres
+    function seaUpdate(dt) {
+      if (LAVA.sea === 'shadow') {
+        LAVA.flash = Math.max(0, (LAVA.flash || 0) - dt * 3);
+        LAVA.boltT = (LAVA.boltT == null ? 3 : LAVA.boltT) - dt;
+        if (LAVA.boltT <= 0) { LAVA.boltT = frnd(3.5, 7); LAVA.flash = 1; after(0.12, () => { LAVA.flash = 0.7; }); sfx('thunder', 0.12, frnd(0.6, 0.8), 0.2); }
+        if (LAVA.mesh) LAVA.mesh.material.uniforms.uF.value = LAVA.flash;
+      }
+      LAVA.embT -= dt; if (LAVA.embT > 0) return; LAVA.embT = LAVA.sea === 'swamp' ? 0.09 : 0.07;
+      const h = LAVA.holes[Math.floor(FXR() * LAVA.holes.length)]; if (!h) return;
+      if (Math.abs(h.x - CAM.x) + Math.abs(h.z - CAM.z) > 30) return;
+      const x = h.x + frnd(-1.8, 1.8), z = h.z + frnd(-1.8, 1.8);
+      if (LAVA.sea === 'swamp') {
+        if (FXR() < 0.65) fx({ x, y: frnd(0.2, 2.6), z, vx: frnd(-0.4, 0.4), vy: frnd(-0.15, 0.25), vz: frnd(-0.4, 0.4), life: frnd(2, 3.4), s0: frnd(0.07, 0.11), s1: 0.03, c0: fpick([0xdfff60, 0xa8ff70, 0xffe070]), k: 3, cell: 'dot', a0: 1, a1: 0 });
+        else fx({ x, y: -1.3, z, vx: frnd(-0.2, 0.2), vy: frnd(0.25, 0.55), vz: frnd(-0.2, 0.2), life: frnd(2, 3.2), s0: frnd(1.2, 2.0), s1: frnd(2.6, 3.6), c0: 0x7ab890, k: 1, cell: 'smoke', add: false, a0: 0.14, a1: 0, rot: FXR() * 6 });
+      } else if (LAVA.sea === 'stars') {
+        fx({ x, y: frnd(-1.5, 0.5), z, vx: frnd(-0.2, 0.2), vy: frnd(0.4, 1.1), vz: frnd(-0.2, 0.2), life: frnd(1.4, 2.4), s0: frnd(0.1, 0.18), s1: 0.02, c0: fpick([0xd8c0ff, 0x9fe0ff, 0xffffff]), k: 3, cell: 'star4', rot: FXR() * 6, a0: 1, a1: 0 });
+      } else {
+        fx({ x, y: -1.2, z, vx: frnd(-0.3, 0.3), vy: frnd(0.8, 1.8), vz: frnd(-0.3, 0.3), life: frnd(1.4, 2.4), s0: frnd(0.1, 0.16), s1: 0.03, c0: fpick([0xff8a40, 0xffc060, 0xc060ff]), k: 2.8, cell: 'ember', a0: 1, a1: 0 });
+      }
+    }
+
+    // ------------------------------------------------------------- le décor dessiné : champignons, buissons, boules de cristal, trône, tapis
+    const FLORA = { groups: {} };
+    function florPush(key, geo, col, vary) {
+      const g = geo.index ? geo.toNonIndexed() : geo; if (g !== geo) geo.dispose();
+      const n = g.getAttribute('position').count, c = new Float32Array(n * 3), cc = new T.Color(col);
+      for (let i = 0; i < n; i += 3) { const v = 1 + (vary ? (FXR() - 0.5) * vary : 0); for (let k = 0; k < 3 && i + k < n; k++) { c[(i + k) * 3] = cc.r * v; c[(i + k) * 3 + 1] = cc.g * v; c[(i + k) * 3 + 2] = cc.b * v; } }
+      g.setAttribute('color', new T.BufferAttribute(c, 3)); g.deleteAttribute('uv');
+      (FLORA.groups[key] = FLORA.groups[key] || []).push(g);
+    }
+    // un objet posé dans un coin de salle : sa boîte de collision va jusqu'aux deux murs (pas de recoin où le mage reste coincé)
+    function cornerSolid(x, z, r) {
+      const Z = curZone; if (!Z) return;
+      const wx = x - Z.x0 < Z.x1 - x ? Z.x0 : Z.x1, wz = z - Z.z0 < Z.z1 - z ? Z.z0 : Z.z1;
+      SOLIDS.push([Math.min(wx, x - r), Math.min(wz, z - r), Math.max(wx, x + r), Math.max(wz, z + r)]);
+    }
+    function flora(n, x, z, op) {
+      const s = op.s || 1, ry = (op.ry || 0) * Math.PI / 180;
+      const rr = mulberry32(((Math.round(x * 13) * 73856093) ^ (Math.round(z * 17) * 19349663)) >>> 0);
+      const at = (g, px, py, pz, rot) => { if (rot) g.rotateY(rot); g.translate(px, py, pz); return g; };
+      if (n === '_mushroom') {
+        const pal = (MAPDEF.look && MAPDEF.look.mush) || [0x46e6c8, 0xb070ff, 0xffd060];
+        const one = (ox, oz, k, col) => {
+          const h = (1.5 + rr() * 0.6) * k, rc = (0.9 + rr() * 0.25) * k, lean = (rr() - 0.5) * 0.25;
+          const st = new T.CylinderGeometry(0.2 * k, 0.32 * k, h, 9, 1); st.translate(0, h / 2, 0); st.rotateZ(lean);
+          florPush('stem', at(st, x + ox, 0, z + oz), 0xe8dcc0, 0.12);
+          const cap = new T.SphereGeometry(rc, 14, 7, 0, TAU, 0, Math.PI / 2); cap.scale(1, 0.62, 1); cap.translate(-Math.sin(lean) * h, h * 0.97, 0);
+          florPush('cap' + col, at(cap, x + ox, 0, z + oz), col, 0.1);
+          const gill = new T.CircleGeometry(rc * 0.96, 14); gill.rotateX(Math.PI / 2); gill.translate(-Math.sin(lean) * h, h * 0.97, 0);
+          florPush('stem', at(gill, x + ox, 0, z + oz), 0xb8a888, 0.05);
+          for (let i = 0; i < 5; i++) {
+            const th = 0.35 + rr() * 0.75, ph = rr() * TAU, sp = new T.SphereGeometry(0.11 * k * (0.7 + rr() * 0.6), 6, 4); sp.scale(1, 0.45, 1);
+            sp.translate(-Math.sin(lean) * h + Math.sin(th) * Math.cos(ph) * rc * 0.98, h * 0.97 + Math.cos(th) * rc * 0.62, Math.sin(th) * Math.sin(ph) * rc * 0.98);
+            florPush('spot', at(sp, x + ox, 0, z + oz), 0xfff6e8, 0);
+          }
+          addStatic({ x: x + ox, y: h * 0.9, z: z + oz, s: 2.6 * k, cell: 'glow', col, k: 1.1, a: 0.3, pulse: 0.7 });
+          return h;
+        };
+        const c0 = pal[Math.floor(rr() * pal.length)];
+        one(0, 0, s, c0);
+        if (s > 0.8) { const a = rr() * TAU; one(Math.cos(a) * 0.95 * s, Math.sin(a) * 0.95 * s, s * 0.45, pal[(pal.indexOf(c0) + 1) % pal.length]); }
+        addStatic({ x, y: 0.09, z, s: 3.6 * s, cell: 'glow', col: c0, k: 1.2, mode: 1, a: 0.32, pulse: 1.0 });
+        bakeAdd(x, z, c0, 1.4 * s, 5.5 * Math.max(0.7, s), 2.2);
+        if (op.solid) SOLIDS.push([x - 0.55 * s, z - 0.55 * s, x + 0.55 * s, z + 0.55 * s]);
+        if (op.corner) cornerSolid(x, z, 0.55 * s);
+      } else if (n === '_bush') {
+        const k = 4 + Math.floor(rr() * 3);
+        for (let i = 0; i < k; i++) {
+          const r = (0.45 + rr() * 0.4) * s, a = rr() * TAU, d = (i ? 0.35 + rr() * 0.45 : 0) * s;
+          const g = new T.IcosahedronGeometry(r, 1); g.scale(1, 0.85, 1);
+          florPush('bush', at(g, x + Math.cos(a) * d, r * 0.75, z + Math.sin(a) * d), fpick([0x2f7a34, 0x3d8f3a, 0x2a6a40, 0x4a9a3a]), 0.25);
+        }
+        for (let i = 0; i < 4; i++) { const a = rr() * TAU, d = (0.3 + rr() * 0.5) * s, g = new T.SphereGeometry(0.09 * s, 6, 4); florPush('spot', at(g, x + Math.cos(a) * d, (0.6 + rr() * 0.5) * s, z + Math.sin(a) * d), fpick([0xff7ad0, 0xffe070, 0xc890ff]), 0); }
+        if (op.solid) SOLIDS.push([x - 0.7 * s, z - 0.6 * s, x + 0.7 * s, z + 0.6 * s]);
+      } else if (n === '_orb') {
+        const cc = (MAPDEF.look && MAPDEF.look.crystal) || [0xc8f0ff, 0x2a86d8, 0x6fd0ff], oc = rr() < 0.5 ? cc[2] : 0x7fe6ff;
+        florPush('stone', at(new T.CylinderGeometry(0.55, 0.62, 0.18, 10), x, 0.09, z), 0x6a6488, 0.1);
+        florPush('stone', at(new T.CylinderGeometry(0.26, 0.4, 1.0, 10), x, 0.68, z), 0x7a74a0, 0.1);
+        florPush('stone', at(new T.CylinderGeometry(0.42, 0.3, 0.16, 10), x, 1.22, z), 0x8a84b0, 0.1);
+        florPush('orb' + oc, at(new T.SphereGeometry(0.42, 16, 10), x, 1.68, z), oc, 0);
+        addStatic({ x, y: 1.68, z, s: 2.4, cell: 'glow', col: oc, k: 1.4, a: 0.55, pulse: 1.4 });
+        addStatic({ x, y: 0.09, z, s: 3.2, cell: 'glow', col: oc, k: 1.1, mode: 1, a: 0.3, pulse: 1.1 });
+        bakeAdd(x, z, oc, 1.3, 5, 2.4);
+        if (op.solid) SOLIDS.push([x - 0.55, z - 0.55, x + 0.55, z + 0.55]);
+      } else if (n === '_throne') {
+        // le trône du Seigneur des ombres : marbre sombre, coussin rouge, couronne de pointes d'or
+        const B = (w, h, d, px, py, pz, key, col) => florPush(key, at(new T.BoxGeometry(w, h, d), px, py, pz, ry), col, 0.06);
+        const rx = (u, v) => [x + Math.cos(ry) * u + Math.sin(ry) * v, z - Math.sin(ry) * u + Math.cos(ry) * v];
+        const P = (u, y, v, w, h, d, key, col) => { const [px, pz] = rx(u, v); B(w, h, d, px, y, pz, key, col); };
+        P(0, 0.2, 0.2, 5.2, 0.4, 3.0, 'stone', 0x3a1a26); P(0, 0.5, 0.4, 4.0, 0.2, 2.4, 'gold', 0xffc040);
+        P(0, 1.05, 0.2, 2.4, 0.9, 1.9, 'stone', 0x4a1a2a); P(0, 1.56, 0.3, 2.1, 0.16, 1.6, 'red', 0xb01828);
+        P(0, 2.6, -0.65, 2.6, 3.2, 0.45, 'stone', 0x4a1a2a); P(0, 2.6, -0.4, 1.9, 2.6, 0.08, 'red', 0xa01422);
+        P(-1.3, 1.85, 0.2, 0.35, 0.5, 1.9, 'gold', 0xffc040); P(1.3, 1.85, 0.2, 0.35, 0.5, 1.9, 'gold', 0xffc040);
+        for (let i = -2; i <= 2; i++) { const [px, pz] = rx(i * 0.55, -0.65), g = new T.ConeGeometry(0.16, 0.7 + (2 - Math.abs(i)) * 0.35, 6); florPush('gold', at(g, px, 4.4 + (2 - Math.abs(i)) * 0.17, pz), 0xffc040, 0); }
+        const [gx, gz] = rx(0, -0.4);
+        addStatic({ x: gx, y: 3.2, z: gz, s: 5.2, cell: 'rays', col: 0xffc860, k: 1.4, a: 0.4, vr: 0.12 });
+        addStatic({ x: gx, y: 3.0, z: gz, s: 6, cell: 'glow', col: 0xff8a40, k: 1.2, a: 0.35, pulse: 0.6 });
+        bakeAdd(gx, gz + 1, 0xffb040, 1.6, 7, 3);
+        if (op.solid) { const [cx, cz] = rx(0, 0.1); SOLIDS.push([cx - 2.5, cz - 1.5, cx + 2.5, cz + 1.4]); }
+      } else if (n === '_carpet') carpet(x, z, op.len || 10, op.w || 3, ry);
+    }
+    // tapis rouge bordé d'or (le banquet, la salle du capitaine, l'allée du trône)
+    function carpet(x, z, len, w, ry) {
+      const at = (g, u, v) => { g.translate(u, 0, v); if (ry) g.rotateY(ry); g.translate(x, 0, z); return g; };
+      florPush('red', at(new T.BoxGeometry(w, 0.03, len), 0, 0), 0x9a1424, 0.04);
+      florPush('gold', at(new T.BoxGeometry(0.2, 0.04, len), -w / 2 + 0.1, 0), 0xffc040, 0);
+      florPush('gold', at(new T.BoxGeometry(0.2, 0.04, len), w / 2 - 0.1, 0), 0xffc040, 0);
+      for (const s of [-1, 1]) florPush('gold', at(new T.BoxGeometry(w, 0.04, 0.2), 0, s * (len / 2 - 0.1)), 0xffc040, 0);
+      for (let k = -1; k <= 1; k++) florPush('gold', at(new T.CylinderGeometry(0.34, 0.34, 0.04, 6), 0, k * len * 0.3), 0xffc040, 0);
+    }
+    function carpetFor(Z) {
+      const W = Z.x1 - Z.x0, Hh = Z.z1 - Z.z0, cx = (Z.x0 + Z.x1) / 2, cz = (Z.z0 + Z.z1) / 2;
+      if (W >= Hh) carpet(cx, cz, W - 6, 3.0, Math.PI / 2); else carpet(cx, cz, Hh - 6, 3.0, 0);
+    }
+    function buildFlora() {
+      const keys = Object.keys(FLORA.groups); if (!keys.length) return;
+      for (const k of keys) {
+        const list = FLORA.groups[k]; delete FLORA.groups[k];
+        const g = keep(T.mergeGeometries(list, false)); for (const x of list) x.dispose();
+        if (!g) continue;
+        g.computeVertexNormals(); g.computeBoundingSphere();
+        let mk = 'flora_' + k;
+        if (!MAT[mk]) {
+          if (k.startsWith('cap') || k.startsWith('orb')) { const col = Number(k.slice(3)); MAT[mk] = keep(new T.MeshLambertMaterial({ vertexColors: true, emissive: new T.Color(col).multiplyScalar(k.startsWith('orb') ? 0.9 : 0.42) })); }
+          else if (k === 'spot') MAT[mk] = keep(new T.MeshLambertMaterial({ vertexColors: true, emissive: 0x302820 }));
+          else if (k === 'gold') MAT[mk] = keep(new T.MeshLambertMaterial({ vertexColors: true, emissive: 0x3a2400 }));
+          else if (k === 'bush') MAT[mk] = keep(new T.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+          else MAT[mk] = keep(new T.MeshLambertMaterial({ vertexColors: true }));
+        }
+        const m = new T.Mesh(g, MAT[mk]); m.matrixAutoUpdate = false; m.updateMatrix(); m.castShadow = Q.shadow > 0 && k !== 'red'; m.receiveShadow = k === 'red'; wadd(m);
+      }
+    }
+
+    // ------------------------------------------------------------- les boss : le moteur commun
+    function hfcMats(cfg) {
+      // matériaux du boss (une fois par partie), rangés par nom du matériau du modèle
+      if (cfg.M) return cfg.M;
+      const M = {};
+      for (const [nm, o] of Object.entries(cfg.mats)) {
+        if (o.flame) { M[nm] = keep(new T.MeshBasicMaterial({ color: 0xff8a30, transparent: true, opacity: 0.85, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); continue; }
+        const p = { map: TEX[o.map] || null, color: 0xffffff };
+        if (o.alpha) { p.alphaTest = o.at || 0.45; p.side = T.DoubleSide; }
+        if (o.glow && TEX[o.glow]) { p.emissiveMap = TEX[o.glow]; p.emissive = new T.Color(o.emis || 0xffffff); p.emissiveIntensity = o.ei || 1; }
+        else if (o.ec) { p.emissive = new T.Color(o.ec); p.emissiveIntensity = o.ei || 0.6; }
+        M[nm] = keep(patchMat(lam(p), { rim: true, flash: true, lmc: true, rimCol: cfg.rim, rimK: 0.45 }));
+      }
+      return (cfg.M = M);
+    }
+    function makeHFC(key, x, z) {
+      const cfg = HFCB[key], K = KIND[key], tp = TPL[cfg.tpl]; if (!tp) return null;
+      const root = new T.Group(), inner = T.skeletonClone(tp.scene);
+      const sc = K.h / tp.h; inner.scale.setScalar(sc); inner.position.y = -tp.minY * sc; root.add(inner);
+      const M = hfcMats(cfg), mats = [], bones = {};
+      inner.traverse((o) => {
+        if (o.isMesh) {
+          const set = (m) => { const nm = M[m && m.name] || M[Object.keys(M)[0]]; if (mats.indexOf(nm) < 0) mats.push(nm); return nm; };
+          o.material = Array.isArray(o.material) ? o.material.map(set) : set(o.material);
+          o.castShadow = Q.shadow > 0; o.frustumCulled = false;
+        }
+        if (o.isBone) bones[o.name] = o;
+      });
+      mats.sort((a, b) => (b.userData.flash ? 1 : 0) - (a.userData.flash ? 1 : 0));        // le corps (qui clignote) en premier
+      root.position.set(x, 0, z); scene.add(root);
+      const mixer = new T.AnimationMixer(inner), acts = {};
+      for (const [k, clip] of Object.entries(tp.anims)) acts[k] = mixer.clipAction(clip);
+      const c = { tp: { h: K.h }, root, rig: inner, mixer, acts, mats, mesh: null, byName: {}, cur: null, bones };
+      const m = { kind: key, K, c, x, z, r: K.r, vx: 0, vz: 0, face: 0, hp: Math.round(K.hp * (COOP ? G.bossMul || 1 : 1)), hpMax: 0, st: 'boss', t: 0, cd: 2, flash: 0, frozen: 0, slowed: 0, burn: 0, stun: 0, kbx: 0, kbz: 0, dead: false, sleeping: true, y: 0 };
+      m.hpMax = m.hp;
+      m.sh = addStatic({ x, y: 0.07, z, s: K.r * 4, cell: 'blob', col: 0x000000, a: 0, mode: 1, add: false });
+      // yeux qui brillent (ils suivent leurs os)
+      c.eyes = (cfg.eyes || []).filter((n) => bones[n]).map((n) => ({ b: bones[n], st: addStatic({ x, y: -50, z, s: cfg.eyeS || 0.6, cell: 'glow', col: cfg.eyeCol, k: 2.2, a: 0, pulse: 2.5 }) }));
+      if (cfg.hand && bones[cfg.hand]) c.hand = bones[cfg.hand];
+      MON.push(m);
+      return m;
+    }
+    function hfcSpawn(Z, key) {
+      const cfg = HFCB[key], sp = Z.spots.boss || [(Z.x1 - Z.x0) / 2, (Z.z1 - Z.z0) / 2];
+      const m = makeHFC(key, Z.x0 + sp[0], Z.z0 + sp[1]); if (!m) return;
+      BOSS.m = m; BOSS.st = 'sleep'; BOSS.phase = 1; BOSS.cd = 2; BOSS.pend = null; BOSS.zone = Z; BOSS.kind = key; BOSS.glow = 0.4; BOSS.cfg = cfg;
+      BOSS.home = [m.x, m.z]; BOSS.rainT = 3; BOSS.flyN = 0; BOSS.blinkT = 0;
+      m.face = Math.atan2(Z.x0 + (Z.spots.entry || sp)[0] - m.x, Z.z0 + (Z.spots.entry || sp)[1] - m.z);
+      // le Vieux Chêne est déjà là (un arbre immobile au milieu du bosquet) ; le Grand Œil dort ; le Seigneur attend devant son trône
+      if (key === 'ent') { dPlay('hide', { once: true, fade: 0 }); const a = m.c.acts.hide; if (a) { a.time = a.getClip().duration; } m.c.root.visible = true; m.sh.a = 0.5; }
+      else if (key === 'oeil') { dPlay('sleep', { fade: 0 }); m.y = 0.3; m.c.root.visible = true; m.sh.a = 0.45; BOSS.aura = addStatic({ x: m.x, y: 1.6, z: m.z, s: 7, cell: 'glow', col: 0xb070ff, k: 1.3, a: 0.35, pulse: 1.4 }); }
+      else { dPlay('idle', { fade: 0 }); m.c.root.visible = true; m.sh.a = 0.6; }
+      BOSS.rune = addStatic({ x: m.x, y: 0.07, z: m.z, s: 11, cell: 'magic', col: cfg.col, k: 1.5, mode: 1, a: 0.18, vr: 0.1, pulse: 1.1 });
+      BOSS.rune2 = addStatic({ x: m.x, y: 0.06, z: m.z, s: 15, cell: 'rune', col: cfg.col, k: 1.3, mode: 1, a: 0.12, vr: -0.06 });
+    }
+    // entrée en scène : bandes de cinéma, la caméra file vers le boss ; il se réveille (le chêne ouvre les yeux, l'œil s'éveille,
+    // le Seigneur fait jaillir son épée et son fouet de flammes), rugit, son nom s'affiche
+    function hfcIntro() {
+      const m = BOSS.m; if (!m) return;
+      const W = PLAYABLE[G.wi], key = BOSS.kind, cfg = BOSS.cfg;
+      G.phase = 'cine'; el.classList.add('cine'); BOSS.st = 'rise'; BOSS.t = 0;
+      for (const k in keys) keys[k] = false; IN.atk = false;
+      cine(lerp(hero.x, m.x, 0.75), lerp(hero.z, m.z, 0.75), key === 'oeil' ? 1.05 : 0.95, 1.3);
+      try { if (typeof api.music === 'function') api.music('magicboss'); } catch (e) { /* rien */ }
+      sfx('quake', 0.5, 0.9); shake(0.2);
+      const roar = (t) => [t, () => { sfx('roar', 1.0, key === 'oeil' ? 1.25 : key === 'ent' ? 0.7 : 0.85); shake(0.7); hitStop(0.08); flash(m.x, 3, m.z, cfg.col, 9, 0.4, 2.2); ringFx(m.x, m.z, cfg.col, 1, 13, 0.8, 'ring', 1, 2); BOSS.rune.a = key === 'ent' ? 0.26 : 0.55; BOSS.rune2.a = key === 'ent' ? 0.16 : 0.4; }];
+      let tl;
+      if (key === 'ent') tl = [
+        [0.4, () => { BOSS.eyesOn = 1; sfx('wood', 0.6, 0.6); for (let i = 0; i < 20; i++) fx({ x: m.x + frnd(-2, 2), y: frnd(3, 6), z: m.z + frnd(-2, 2), vx: frnd(-1, 1), vy: frnd(-1, 0.5), vz: frnd(-1, 1), g: 2, life: frnd(1.5, 2.5), s0: 0.22, s1: 0.1, c0: fpick([0x8cff50, 0x5ad040, 0xffd060]), k: 1.6, cell: 'star4', rot: FXR() * 6, vr: frnd(-3, 3) }); }],
+        [1.0, () => { dPlay('unhide', { once: true, fade: 0.2, speed: 0.4 }); sfx('woodbreak', 0.5, 0.6); shake(0.3); }],
+        [2.0, () => { dPlay('stomp', { once: true, fade: 0.25 }); }], roar(2.6), [2.65, () => quakeAt(m.x, m.z, 2, 8)]];
+      else if (key === 'oeil') tl = [
+        [0.6, () => { dPlay('wake', { once: true, fade: 0.2, speed: 0.8 }); BOSS.eyesOn = 1; sfx('summon', 0.6, 0.7); }],
+        [1.8, () => { dPlay('roar', { once: true, fade: 0.25 }); BOSS.hoverT = 0; }], roar(2.4)];
+      else tl = [
+        [0.5, () => { dPlay('summon', { once: true, fade: 0.2 }); BOSS.eyesOn = 1; sfx('fire', 0.6, 0.7); }],
+        [1.1, () => { flameBurst(m.x + Math.sin(m.face) * 1.5, m.z + Math.cos(m.face) * 1.5, 1.4); sfx('fire', 0.7, 0.9); }],
+        [2.2, () => { dPlay('roar', { once: true, fade: 0.25 }); }], roar(2.6)];
+      tl.push([3.5, () => { banner(W.boss.title, '', 'red', 2.4); H.bossName.textContent = W.boss.name; H.boss.classList.add('on'); hudBoss(); }]);
+      tl.push([5.2, () => { cineEnd(); el.classList.remove('cine'); G.phase = 'play'; BOSS.st = 'walk'; BOSS.t = 0; m.sleeping = false; BOSS.cd = 1.2; dPlay(key === 'oeil' ? 'idle' : 'walk'); }]);
+      for (const [t, f] of tl) after(t, f);
+    }
+    const hv3 = { v: null };
+    function bonePos(b, out) { b.updateWorldMatrix(true, false); return out.setFromMatrixPosition(b.matrixWorld); }
+    function handPos() {
+      const m = BOSS.m; if (!hv3.v) hv3.v = new T.Vector3();
+      if (m.c.hand) return bonePos(m.c.hand, hv3.v);
+      return hv3.v.set(m.x + Math.sin(m.face) * 1.5, 3, m.z + Math.cos(m.face) * 1.5);
+    }
+    // ce qui se voit chaque image (aussi chez l'invité en ligne) : yeux, lueur, clignotement des matériaux
+    function hfcVisual(m, dt) {
+      const c = m.c, cfg = HFCB[m.kind]; if (!cfg) return;
+      BOSS.eyeK = damp(BOSS.eyeK || 0, BOSS.eyesOn ? 1 : 0, 3, dt);
+      if (c.eyes) for (const e of c.eyes) { bonePos(e.b, tmpV); e.st.x = tmpV.x; e.st.y = tmpV.y; e.st.z = tmpV.z; e.st.a = BOSS.eyeK * (0.7 + 0.3 * BOSS.phase / 3) * (c.root.visible ? 1 : 0); }
+      const g = (BOSS.st === 'dead' ? 2.4 : 0.55 + BOSS.phase * 0.25) * (0.85 + 0.15 * Math.sin(UNI.time.value * (2 + BOSS.phase)));
+      for (const mt of c.mats) { if (mt.emissiveIntensity != null && mt.emissiveMap) mt.emissiveIntensity = g; const u = mt.userData; if (u && u.flash) u.flash.value = m.flash * 0.16; }
+      if (m.kind === 'seigneur' && BOSS.eyesOn && FXR() < dt * 14 && c.root.visible) { const p = handPos(); fx({ x: p.x + frnd(-0.3, 0.3), y: p.y + frnd(-0.2, 0.6), z: p.z + frnd(-0.3, 0.3), vy: frnd(1, 2.4), life: frnd(0.3, 0.55), s0: frnd(0.4, 0.7), s1: 0.1, c0: 0xffc060, c1: 0xff3010, k: 2.4, cell: 'fire', rot: FXR() * 6 }); }
+      if (BOSS.aura) { BOSS.aura.x = m.x; BOSS.aura.z = m.z; BOSS.aura.y = (m.y || 0) + 1.8; BOSS.aura.a = c.root.visible && BOSS.st !== 'dead' ? 0.35 : 0; }
+      if (m.kind === 'oeil' && FXR() < dt * 6 && c.root.visible) fx({ x: m.x + frnd(-0.8, 0.8), y: (m.y || 0) + frnd(0.2, 1.4), z: m.z + frnd(-0.8, 0.8), vy: frnd(-0.6, -0.2), life: frnd(0.6, 1.0), s0: 0.14, s1: 0.02, c0: 0xd0a0ff, k: 2.6, cell: 'star4', rot: FXR() * 6 });
+    }
+    const tmpV = { x: 0, y: 0, z: 0, setFromMatrixPosition(mx) { const e = mx.elements; this.x = e[12]; this.y = e[13]; this.z = e[14]; return this; } };
+    function hfcUpdate(m, dt) {
+      const c = m.c, Z = BOSS.zone, key = m.kind, cfg = BOSS.cfg;
+      c.mixer.update(dt * (m.slowed > 0 ? 0.65 : 1) * (BOSS.anim || 1));
+      // le Grand Œil flotte (il monte et descend doucement) ; le Seigneur s'envole en phase 2
+      if (key === 'oeil' && BOSS.st !== 'sleep' && BOSS.st !== 'dead' && (BOSS.st !== 'rise' || BOSS.hoverT != null)) { BOSS.hoverT = (BOSS.hoverT || 0) + dt; m.y = damp(m.y, cfg.hover + Math.sin(BOSS.hoverT * 1.6) * 0.3, 2, dt); }
+      if (key === 'seigneur' && BOSS.fly) m.y = damp(m.y, BOSS.fly.y, 2.2, dt); else if (key === 'seigneur' && m.y > 0.01 && BOSS.st !== 'dead') m.y = damp(m.y, 0, 4, dt);
+      hfcVisual(m, dt);
+      if (key === 'ent') entTick(m, dt);       // le Vieux Chêne : pollen, s'enfoncer / ressortir, mi-vie (p7f)
+      if (m.sh && !(key === 'ent' && BOSS.atk && BOSS.atk.bur)) { m.sh.x = m.x; m.sh.z = m.z; m.sh.a = BOSS.st === 'dead' ? 0 : clamp(0.6 - (m.y || 0) * 0.08, 0.25, 0.6); m.sh.s = m.r * 4 * (1 + (m.y || 0) * 0.08); }
+      c.root.position.set(m.x, m.y || 0, m.z); c.root.rotation.y = m.face;
+      if (BOSS.st === 'sleep' || BOSS.st === 'rise' || BOSS.st === 'dead' || G.phase !== 'play' || hero.dead) { if (hero.dead && BOSS.st !== 'dead') dPlay('idle'); return; }
+      BOSS.t += dt;
+      const dx = hero.x - m.x, dz = hero.z - m.z, d = Math.hypot(dx, dz), rage = key === 'ent' ? entRage(m) : BOSS.phase === 3 ? 1.25 : BOSS.phase === 2 ? 1.1 : 1;
+      // pluie de phase 3 (glands du chêne, étoiles filantes de l'œil, météores d'ombre du Seigneur)
+      if (BOSS.phase === 3) { BOSS.rainT -= dt; if (BOSS.rainT <= 0) { BOSS.rainT = key === 'seigneur' ? 3.0 : 3.6; hfcRain(key); } }
+      if (BOSS.fly) { hfcFly(m, dt); return; }
+      if (BOSS.st === 'walk') {
+        m.face = turnTo(m.face, Math.atan2(dx, dz), dt * (key === 'oeil' ? 3 : 1.8) * rage);
+        let mvx = 0, mvz = 0;
+        if (key === 'oeil') {
+          // il tourne autour du mage à distance (orbite), recule s'il est trop près
+          const want = cfg.keep, side = (BOSS.side = BOSS.side || 1);
+          if (FXR() < dt * 0.25) BOSS.side = -side;
+          const rx = -dz / (d || 1) * side, rz = dx / (d || 1) * side, k = clamp((d - want) / 3, -1, 1);
+          mvx = dx / (d || 1) * k + rx * 0.7; mvz = dz / (d || 1) * k + rz * 0.7;
+        } else if (d > cfg.keep) { mvx = Math.sin(m.face); mvz = Math.cos(m.face); }
+        const ml = Math.hypot(mvx, mvz);
+        if (ml > 0.05) {
+          const sp = KIND[key].sp * rage * (m.slowed > 0 ? 0.5 : 1);
+          m.x += mvx / ml * sp * dt; m.z += mvz / ml * sp * dt;
+          if (key !== 'oeil') { dPlay('walk', { speed: rage }); BOSS.stepT = (BOSS.stepT || 0) + dt * rage; if (BOSS.stepT > 0.55) { BOSS.stepT = 0; shake(0.06); sfx('stomp', 0.35, key === 'ent' ? 0.6 : 0.8, 0.1); dust(m.x, m.z, 3, 1.2); } }
+        } else if (key !== 'oeil') dPlay('idle');
+        if (key === 'oeil' && !BOSS.atk) dPlay('idle');
+        BOSS.cd -= dt;
+        if (BOSS.cd <= 0 || BOSS.pend) {
+          let atk = BOSS.pend; BOSS.pend = null;
+          if (!atk) {
+            const o = hfcOpts(key, d); atk = pick(o); if (atk === BOSS.last && R() < 0.6) atk = pick(o);
+          }
+          BOSS.last = atk; hfcAtk(m, atk, rage);
+        }
+      } else if (BOSS.st === 'atk') {
+        const A = BOSS.atk; A.t += dt * rage;
+        if (A.turn) m.face = turnTo(m.face, Math.atan2(dx, dz), dt * A.turn);
+        if (A.move) { m.x += Math.sin(m.face) * A.move * dt; m.z += Math.cos(m.face) * A.move * dt; }
+        while (A.ev.length && A.t >= A.ev[0][0]) A.ev.shift()[1]();
+        if (A.t >= A.dur) { BOSS.st = 'walk'; BOSS.atk = null; BOSS.t = 0; BOSS.cd = rnd(0.8, 1.5) / rage; dPlay(key === 'oeil' ? 'idle' : 'walk'); }
+      }
+      m.x = clamp(m.x, Z.x0 + 3.2, Z.x1 - 3.2); m.z = clamp(m.z, Z.z0 + 3.2, Z.z1 - 3.2);
+    }
+    function hfcOpts(key, d) {
+      const P = BOSS.phase;
+      if (key === 'ent') return entOpts(d);
+      if (key === 'ent-ancien') return d < 5.8 ? ['swipe', 'swipe', 'combo', 'stomp'] : d < 10 ? (P >= 2 ? ['stomp', 'roots', 'rock', 'roots'] : ['stomp', 'rock', 'swipe']) : (P >= 2 ? ['rock', 'roots', 'roots'] : ['rock', 'rock']);
+      if (key === 'oeil') { const o = d < 4.6 ? ['claw', 'claw', 'sting'] : d < 11 ? ['orbs', 'beam', 'sting'] : ['orbs', 'beam']; if (P >= 2) o.push('blink'); return o; }
+      const o = d < 5.4 ? ['sword', 'sword', 'combo', 'whip'] : d < 11 ? ['whip', 'fire', 'combo'] : ['fire', 'fire', 'whip'];
+      if (P >= 2 && BOSS.t > 6 && (BOSS.flyN || 0) < P) o.push('fly');
+      return o;
+    }
+    // une attaque = une animation + des événements datés (cercles rouges annoncés, projectiles, ondes)
+    function hfcAtk(m, kind, rage) {
+      const A = { kind, t: 0, ev: [], dur: 1.4, turn: 0, move: 0 };
+      BOSS.atk = A; BOSS.st = 'atk';
+      if (m.kind === 'ent' && ENT_ATK[kind]) { ENT_ATK[kind](m, A, rage); A.ev.sort((a, b) => a[0] - b[0]); return; }      // bûches, pollen, racines (p7f)
+      const key = m.kind, cfg = BOSS.cfg, Z = BOSS.zone;
+      const at = (dd, side) => [m.x + Math.sin(m.face) * dd + Math.cos(m.face) * side, m.z + Math.cos(m.face) * dd - Math.sin(m.face) * side];
+      const hitFx = (d2, col) => { shake(0.28); sfx('slam', 0.5, key === 'ent' ? 0.9 : 1.15); dust(d2.x, d2.z, 6, 1.5); burst(d2.x, 0.6, d2.z, col, 8, 4, 0.5, 0.3, 'star4', 2); };
+      const circ = (t, dd, side, r, delay, col) => A.ev.push([t, () => { const [x, z] = at(dd, side); danger({ kind: 'circle', x: clamp(x, Z.x0 + 1, Z.x1 - 1), z: clamp(z, Z.z0 + 1, Z.z1 - 1), r, delay: delay / rage, dmg: 1, hurtMon: 30, onHit: (d2) => hitFx(d2, col || cfg.col) }); }]);
+      // une ligne de cercles vers le mage (racines, dard, rayon, fouet)
+      const line = (t, n, step, d0, r, delay, gap, onHit) => A.ev.push([t, () => {
+        const a = Math.atan2(hero.x - m.x, hero.z - m.z);
+        for (let i = 0; i < n; i++) { const dd = d0 + i * step, x = clamp(m.x + Math.sin(a) * dd, Z.x0 + 1, Z.x1 - 1), z = clamp(m.z + Math.cos(a) * dd, Z.z0 + 1, Z.z1 - 1); danger({ kind: 'circle', x, z, r, delay: (delay + i * gap) / rage, dmg: 1, hurtMon: 25, onHit }); }
+      }]);
+      if (key === 'ent') {
+        if (kind === 'swipe') { const L = R() < 0.5; dPlay(L ? 'clawL' : 'clawR', { once: true, speed: rage, fade: 0.15 }); A.dur = 1.35; A.turn = 2.4; circ(0.05, 3.4, L ? 0.8 : -0.8, 2.8, 0.6, 0x9cff60); }
+        else if (kind === 'combo') { dPlay('claws', { once: true, speed: rage, fade: 0.15 }); A.dur = 2.2; A.turn = 1.6; circ(0.05, 3.3, 1.2, 2.5, 0.6); circ(0.7, 3.6, -1.2, 2.5, 0.55); }
+        else if (kind === 'stomp') { dPlay('stomp', { once: true, speed: rage, fade: 0.15 }); A.dur = 1.55; A.ev.push([0.05, () => danger({ kind: 'circle', x: m.x, z: m.z, r: 4.2, delay: 0.75 / rage, dmg: 1, hurtMon: 40 })]); A.ev.push([0.8, () => quakeAt(m.x, m.z, 4.2, 10)]); }
+        else if (kind === 'rock') {
+          dPlay('pick', { once: true, speed: 1.2 * rage, fade: 0.15 }); A.dur = 3.0; A.turn = 2.2;
+          A.ev.push([0.9, () => { dust(m.x + Math.sin(m.face) * 2, m.z + Math.cos(m.face) * 2, 8, 1.6); sfx('rockhit', 0.5, 0.7); }]);
+          A.ev.push([1.8, () => dPlay('throw', { once: true, speed: 1.2 * rage, fade: 0.1 })]);
+          A.ev.push([2.25, () => {
+            const n = BOSS.phase >= 2 ? 3 : 1;
+            for (let i = 0; i < n; i++) { const a = FXR() * TAU, rr = i ? frnd(2, 4) : 0; const tx = clamp(hero.x + hero.vx * 0.45 + Math.cos(a) * rr, Z.x0 + 1.8, Z.x1 - 1.8), tz = clamp(hero.z + hero.vz * 0.45 + Math.sin(a) * rr, Z.z0 + 1.8, Z.z1 - 1.8); throwRock(m.x + Math.sin(m.face) * 1.2, m.z + Math.cos(m.face) * 1.2, tx, tz, i * 0.12); }
+          }]);
+        } else if (kind === 'roots') {
+          // des racines jaillissent du sol jusqu'au mage (une ligne de cercles qui avance)
+          dPlay('stomp', { once: true, speed: 0.9 * rage, fade: 0.15 }); A.dur = 2.0; A.turn = 1;
+          line(0.5, 6, 2.1, 2.6, 1.5, 0.7, 0.13, (d2) => { sfx('woodbreak', 0.35, frnd(0.8, 1.0), 0.05); dust(d2.x, d2.z, 5, 1.3, 0x6a5a3a); for (let i = 0; i < 6; i++) { const a = FXR() * TAU; fx({ x: d2.x, y: 0.3, z: d2.z, vx: Math.cos(a) * 2, vy: frnd(4, 7), vz: Math.sin(a) * 2, g: 16, floor: true, life: 0.8, s0: 0.3, s1: 0.2, c0: 0x6a4a2a, k: 1, cell: 'rocks', add: false, rot: FXR() * 6 }); } burst(d2.x, 0.5, d2.z, 0x8cff50, 6, 3, 0.6, 0.25, 'star4', 2); });
+          A.ev.push([0.6, () => quakeAt(m.x, m.z, 1.5, 4)]);
+        } else if (kind === 'summon' || kind === 'enrage') {
+          dPlay('combo', { once: true, speed: 1.1, fade: 0.2 }); A.dur = 2.4; sfx('roar', 1, 0.65); shake(0.6); hitStop(0.06);
+          if (kind === 'summon') hfcAdds(['mushnub', 'bee', 'spiky', 'mushnub'], 4);
+          else A.ev.push([0.8, () => { danger({ kind: 'wave', x: m.x, z: m.z, r0: 2, r1: 15, life: 1.3, dmg: 1 }); ringFx(m.x, m.z, 0x9cff60, 2, 15, 1.3, 'ring', 1, 2); sfx('quake', 0.6, 0.8); }]);
+        }
+      } else if (key === 'oeil') {
+        if (kind === 'claw') { const L = R() < 0.5; dPlay(L ? 'clawL' : 'clawR', { once: true, speed: rage, fade: 0.12 }); A.dur = 1.25; A.turn = 3; circ(0.05, 2.6, 0, 2.4, 0.55); }
+        else if (kind === 'sting') { dPlay('sting', { once: true, speed: rage, fade: 0.12 }); A.dur = 1.3; A.turn = 2.5; line(0.05, 3, 2.2, 2.6, 1.5, 0.6, 0.08, (d2) => hitFx(d2, 0xd0a0ff)); }
+        else if (kind === 'orbs') {
+          dPlay('cast', { once: true, speed: 1.15 * rage, fade: 0.15 }); A.dur = 2.4; A.turn = 2.5;
+          A.ev.push([0.9, () => { const n = BOSS.phase === 3 ? 5 : BOSS.phase === 2 ? 4 : 3, a0 = Math.atan2(hero.x - m.x, hero.z - m.z); for (let i = 0; i < n; i++) { const a = a0 + (i - (n - 1) / 2) * 0.32, sp = 6.4 * G.spMul; const f = { kind: 'orb', x: m.x + Math.sin(a) * 1.4, z: m.z + Math.cos(a) * 1.4, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, t: 0, tgt: hero, col: [0x9a50ff, 0xf6e0ff, 0xffd060] }; f.L = i === 0 ? addLight(f.x, 1.4, f.z, 0x9a50ff, 6, 5, 0.2, 'orb') : null; FOES.push(f); } sfx('orb', 0.6, 0.8); flash(m.x, (m.y || 0) + 1.5, m.z, 0xb070ff, 4, 0.3, 2); }]);
+        } else if (kind === 'beam') {
+          // le rayon de l'œil : une ligne de cercles qui file vers le mage, un éclair violet à chaque impact
+          dPlay('combo3', { once: true, speed: rage, fade: 0.15 }); A.dur = 2.3; A.turn = 1.2;
+          A.ev.push([0.1, () => { sfx('power', 0.5, 1.4); flash(m.x, (m.y || 0) + 1.5, m.z, 0xffd060, 3.5, 0.6, 2.2); }]);
+          line(0.3, 6, 2.3, 2.4, 1.4, 0.65, 0.1, (d2) => { const p = { x: m.x, y: (m.y || 0) + 1.6, z: m.z }, dx2 = d2.x - p.x, dz2 = d2.z - p.z, L = Math.hypot(dx2, dz2) || 1; fx({ x: (p.x + d2.x) / 2, y: (p.y + 0.2) / 2, z: (p.z + d2.z) / 2, dx: dx2 / L, dy: -p.y / L, dz: dz2 / L, life: 0.12, s0: 0.35, len0: L, c0: 0xffe080, k: 3, cell: 'streak', mode: 2, a0: 1, a1: 0 }); flash(d2.x, 0.4, d2.z, 0xffd060, 2.6, 0.25, 2.4); sfx('zap', 0.35, frnd(0.8, 1.0), 0.03); burst(d2.x, 0.4, d2.z, 0xffe080, 6, 4, 0.4, 0.25, 'spark', 2.4); });
+        } else if (kind === 'blink') {
+          // il disparaît dans un nuage violet et réapparaît ailleurs dans la salle
+          A.dur = 1.6; dPlay('look', { speed: 1.5, fade: 0.2 });
+          A.ev.push([0.2, () => { smokePuff(m.x, (m.y || 0) + 1, m.z, 0x7a4ab8, 10, 2); flash(m.x, 1.5, m.z, 0xb070ff, 6, 0.4, 2.2); sfx('summon', 0.5, 1.3); m.c.root.visible = false; BOSS.eyesOn = 0; }]);
+          A.ev.push([0.9, () => { const sp = Z.spots.spawns || [[(Z.x1 - Z.x0) / 2, (Z.z1 - Z.z0) / 2]]; let best = sp[0], bd = -1; for (const p of sp) { const dd = Math.hypot(Z.x0 + p[0] - hero.x, Z.z0 + p[1] - hero.z); if (dd > 6 && dd < 13 && FXR() < 0.7 && dd > bd) { bd = dd; best = p; } } m.x = Z.x0 + best[0]; m.z = Z.z0 + best[1]; m.face = Math.atan2(hero.x - m.x, hero.z - m.z); }]);
+          A.ev.push([1.05, () => { m.c.root.visible = true; BOSS.eyesOn = 1; smokePuff(m.x, (m.y || 0) + 1, m.z, 0x7a4ab8, 10, 2); ringFx(m.x, m.z, 0xb070ff, 0.5, 5, 0.5, 'magic', 0.9, 2); sfx('spawn', 0.5, 0.8); }]);
+        } else if (kind === 'summon' || kind === 'enrage') {
+          dPlay('roar', { once: true, speed: 1.2, fade: 0.2 }); A.dur = 2.6; sfx('roar', 1, 1.2); shake(0.5); hitStop(0.06);
+          if (kind === 'summon') hfcAdds(['alien', 'glub', 'ninja', 'hywirl'], 4);
+          else A.ev.push([0.8, () => { danger({ kind: 'wave', x: m.x, z: m.z, r0: 2, r1: 16, life: 1.3, dmg: 1 }); ringFx(m.x, m.z, 0xb070ff, 2, 16, 1.3, 'ring', 1, 2); sfx('power', 0.6, 0.8); }]);
+        }
+      } else {
+        if (kind === 'sword') { const two = R() < 0.5; dPlay(two ? 'sw2' : 'sw1', { once: true, speed: rage, fade: 0.12 }); A.dur = 1.4; A.turn = 2.4; for (const s of [-1.9, 0, 1.9]) circ(0.05, 3.4 - Math.abs(s) * 0.25, s, 1.9, 0.6, 0xff8a40); A.ev.push([0.6, () => sfx('swing', 0.6, 0.7)]); }
+        else if (kind === 'combo') { dPlay('combo3', { once: true, speed: rage, fade: 0.12 }); A.dur = 3.4; A.turn = 1.6; A.move = 1.6; circ(0.1, 3.4, 0.6, 2.2, 0.55); circ(1.0, 3.4, -0.6, 2.2, 0.55); circ(1.9, 3.6, 0, 2.6, 0.6); }
+        else if (kind === 'whip') { dPlay('whip', { once: true, speed: rage, fade: 0.12 }); A.dur = 1.75; A.turn = 1.8; line(0.1, 5, 2.0, 2.6, 1.35, 0.6, 0.05, (d2) => { flameBurst(d2.x, d2.z, 1.1); sfx('whoosh', 0.4, 1.4, 0.05); }); A.ev.push([0.65, () => sfx('crossbow', 0.6, 0.5)]); }
+        else if (kind === 'fire') {
+          dPlay('sw1', { once: true, speed: 0.8 * rage, fade: 0.15 }); A.dur = 1.9; A.turn = 2.6;
+          const n = BOSS.phase >= 2 ? 3 : 2;
+          for (let i = 0; i < n; i++) A.ev.push([0.55 + i * 0.22, () => { const a = FXR() * TAU, rr = i ? frnd(1.5, 3.5) : 0; hfcFireball(hero.x + hero.vx * 0.5 + Math.cos(a) * rr, hero.z + hero.vz * 0.5 + Math.sin(a) * rr); }]);
+        } else if (kind === 'fly') {
+          // il s'envole, tourne au-dessus de l'arène en lâchant des boules de feu, puis retombe dans une onde de choc
+          dPlay('fly', { speed: 1.0, fade: 0.25 }); A.dur = 99; BOSS.flyN = (BOSS.flyN || 0) + 1;
+          sfx('whoosh', 0.7, 0.6); dust(m.x, m.z, 12, 2.2); shake(0.3);
+          BOSS.fly = { t: 0, y: 4.2, n: 0, next: 1.0, tx: m.x, tz: m.z, retarget: 0 };
+        } else if (kind === 'summon' || kind === 'enrage') {
+          dPlay('roar', { once: true, speed: 1.1, fade: 0.2 }); A.dur = 2.6; sfx('roar', 1, 0.8); shake(0.6); hitStop(0.06);
+          if (kind === 'summon') { hfcAdds(['birb', 'gole', 'dino', 'alpa'], 4); A.ev.push([2.4, () => { BOSS.pend = 'fly'; }]); }
+          else A.ev.push([0.8, () => { danger({ kind: 'wave', x: m.x, z: m.z, r0: 2, r1: 17, life: 1.3, dmg: 1 }); ringFx(m.x, m.z, 0xc050ff, 2, 17, 1.3, 'ring', 1, 2); ringFx(m.x, m.z, 0xff6a20, 2, 14, 1.0, 'firering', 0.6, 1.6); sfx('quake', 0.7, 0.7); }]);
+        }
+      }
+    }
+    // le vol du Seigneur des ombres (phase 2 et plus)
+    function hfcFly(m, dt) {
+      const F = BOSS.fly, Z = BOSS.zone; F.t += dt;
+      F.retarget -= dt;
+      if (F.retarget <= 0) { F.retarget = 1.6; const a = FXR() * TAU, r = frnd(4, 8); F.tx = clamp(hero.x + Math.cos(a) * r, Z.x0 + 4, Z.x1 - 4); F.tz = clamp(hero.z + Math.sin(a) * r, Z.z0 + 4, Z.z1 - 4); }
+      const dx = F.tx - m.x, dz = F.tz - m.z, d = Math.hypot(dx, dz);
+      if (d > 0.3) { m.x += dx / d * Math.min(d, 6.5 * dt); m.z += dz / d * Math.min(d, 6.5 * dt); }
+      m.face = turnTo(m.face, Math.atan2(hero.x - m.x, hero.z - m.z), dt * 3);
+      if (FXR() < dt * 3) dust(m.x, m.z, 2, 1.8);
+      if (F.t > F.next && F.n < 5) { F.n++; F.next = F.t + 0.85; hfcFireball(hero.x + hero.vx * 0.6 + frnd(-1.5, 1.5), hero.z + hero.vz * 0.6 + frnd(-1.5, 1.5)); }
+      if (F.n >= 5 && F.t > F.next + 0.4 && !F.down) {
+        F.down = true; F.y = 0; dPlay('walk', { fade: 0.3 });
+        after(0.6, () => { if (!BOSS.m || BOSS.st === 'dead') return; shake(0.6); sfx('slam', 0.8, 0.7); sfx('quake', 0.6, 0.9); dust(m.x, m.z, 14, 2.4); danger({ kind: 'wave', x: m.x, z: m.z, r0: 1.5, r1: 11, life: 1.0, dmg: 1 }); ringFx(m.x, m.z, 0xff8a40, 1.5, 11, 1.0, 'firering', 0.8, 1.8); BOSS.fly = null; BOSS.st = 'walk'; BOSS.atk = null; BOSS.cd = 1.2; });
+      }
+    }
+    function hfcFireball(tx, tz) {
+      const Z = BOSS.zone; tx = clamp(tx, Z.x0 + 1.5, Z.x1 - 1.5); tz = clamp(tz, Z.z0 + 1.5, Z.z1 - 1.5);
+      danger({ kind: 'circle', x: tx, z: tz, r: 1.7, delay: 1.0 });
+      const p = handPos();
+      const f = { kind: 'fireball', x0: p.x, y0: p.y, z0: p.z, x1: tx, z1: tz, t: 0, dur: 1.0, arc: 2.6, r: 1.7, x: p.x, z: p.z, sm: 0.75 };
+      f.L = addLight(p.x, p.y, p.z, 0xff7a20, 12, 7, 0.3, 'fireball'); f.L.prio = 250;
+      FOES.push(f); sfx('fire', 0.5, frnd(0.85, 1.0), 0.05);
+    }
+    // pluie de la phase 3 : 3 cercles près du mage, ce qui tombe dépend du boss
+    function hfcRain(key) {
+      const Z = BOSS.zone;
+      for (let i = 0; i < 3; i++) {
+        const a = FXR() * TAU, rr = i ? frnd(1.5, 4) : 0, x = clamp(hero.x + hero.vx * 0.5 + Math.cos(a) * rr, Z.x0 + 1.5, Z.x1 - 1.5), z = clamp(hero.z + hero.vz * 0.5 + Math.sin(a) * rr, Z.z0 + 1.5, Z.z1 - 1.5);
+        if (key === 'ent') { if (i === 0) entRain(); continue; }      // des branches tombent (p7f)
+        else if (key === 'seigneur') after(i * 0.3, () => eruption(x, z, 0));
+        else after(i * 0.3, () => { danger({ kind: 'circle', x, z, r: 1.5, delay: 1.0, dmg: 1, onHit: (d2) => { flash(d2.x, 0.5, d2.z, 0xffe080, 3, 0.3, 2.4); burst(d2.x, 0.5, d2.z, 0xffe080, 10, 5, 0.5, 0.3, 'star4', 2.4); sfx('zap', 0.4, 1.3, 0.05); } });
+          for (let q = 0; q < 6; q++) after(0.55 + q * 0.06, () => fx({ x: x + frnd(-0.3, 0.3), y: 9 - q * 1.4, z: z + frnd(-0.3, 0.3), vy: -14, life: 0.2, s0: 0.5, s1: 0.2, c0: 0xffe8a0, k: 2.6, cell: 'star4', rot: FXR() * 6 })); });
+      }
+    }
+    // renforts du boss (toujours des monstres de son monde)
+    function hfcAdds(kinds, n) {
+      const Z = BOSS.zone, sp = Z.spots.spawns || [];
+      for (let i = 0; i < n; i++) after(0.6 + i * 0.4, () => { const p = sp[(i * 3 + BOSS.phase) % sp.length]; if (p && BOSS.m && !BOSS.m.dead) spawnMonster(kinds[i % kinds.length], Z.x0 + p[0], Z.z0 + p[1], { zone: Z }); });
+    }
+    // sa fin : ralenti, éclats de sa couleur, il s'effondre puis disparaît dans un grand flash
+    function hfcDie(m) {
+      const key = m.kind, cfg = BOSS.cfg || HFCB[key];
+      BOSS.st = 'dead'; BOSS.fly = null; G.phase = 'won'; G.slow = 0.3; G.slowT = 2.0;
+      for (const o of MON) if (o !== m && !o.dead) { o.hp = 0; killMonster(o, m.x, m.z, 'storm'); }
+      for (const f of FOES) { if (f.L) delLight(f.L); if (f.mesh) scene.remove(f.mesh); } FOES.length = 0; DANGER.length = 0;
+      sfx('roar', 0.9, key === 'oeil' ? 1.1 : 0.6); shake(0.9); hitStop(0.12);
+      H.boss.classList.remove('on');
+      m.c.root.visible = true; dPlay('death', { once: true, fade: 0.2 });
+      el.classList.add('cine'); cine(lerp(hero.x, m.x, 0.7), lerp(hero.z, m.z, 0.7), 1.0, 1.0);
+      const last = G.wi >= PLAYABLE.length - 1;
+      for (let i = 0; i < (last ? 14 : 10); i++) after(0.15 + i * 0.17, () => { const a = FXR() * TAU, px = m.x + Math.cos(a) * frnd(0.5, 2.5), pz = m.z + Math.sin(a) * frnd(0.5, 2.5), py = (m.y || 0) + frnd(1, 4); flash(px, py, pz, cfg.col, 3.6, 0.3, 2.4); burst(px, py, pz, cfg.eyeCol, 8, 6, 0.5, 0.35, 'spark', 2.4); sfx('zap', 0.4, frnd(0.6, 0.9), 0.02); });
+      after(2.3, () => {
+        sfx('bossdie', 0.9); shake(1); G.flash = 1; hitStop(0.1);
+        flash(m.x, 2.5, m.z, 0xfff4e0, 20, 0.7, 2.6); ringFx(m.x, m.z, cfg.col, 1, 18, 1.0, 'ring', 1, 2.4); ringFx(m.x, m.z, 0xffffff, 1, 11, 0.8, 'magic', 0.9, 2.2);
+        if (last) { ringFx(m.x, m.z, 0xffd060, 1, 24, 1.4, 'ring', 1, 2.6); for (let i = 0; i < 40; i++) fx({ x: m.x + frnd(-1, 1), y: frnd(0.5, 3), z: m.z + frnd(-1, 1), vx: frnd(-2, 2), vy: frnd(4, 12), vz: frnd(-2, 2), drag: 0.6, life: frnd(1.2, 2.2), s0: frnd(0.25, 0.5), s1: 0.05, c0: fpick([0xffe080, 0xffffff, 0xffb0e0]), k: 2.6, cell: 'star4', rot: FXR() * 6 }); }
+        for (let i = 0; i < 50; i++) { const a = FXR() * TAU, v = frnd(3, 12); fx({ x: m.x + frnd(-1.5, 1.5), y: frnd(0.5, 4.5), z: m.z + frnd(-1.5, 1.5), vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: frnd(2, 9), g: 12, drag: 0.5, floor: true, life: frnd(1, 2), s0: frnd(0.25, 0.5), s1: 0.1, c0: key === 'ent' ? fpick([0x8cff50, 0x6a4a2a, 0xffd060]) : cfg.col, k: key === 'ent' ? 1.4 : 2.2, cell: key === 'ent' ? 'star4' : 'spark', rot: FXR() * 6 }); }
+        smokePuff(m.x, 1.5, m.z, key === 'seigneur' ? 0x3a1a40 : key === 'oeil' ? 0x6a4aa8 : 0x5a7a40, 16, 3);
+        m.c.root.visible = false; BOSS.eyesOn = 0; if (m.c.eyes) for (const e of m.c.eyes) e.st.a = 0; if (m.sh) { delStatic(m.sh); m.sh = null; } BOSS.rune.a = 0.1; BOSS.rune2.a = 0.05;
+        scoreBurst(m.x, 3, m.z, 1000 * G.ptsMul, { n: 16, huge: true, delay: 0.25, pop: false });
+        const pts = Math.round(KIND[key].pts * G.ptsMul); addScore(pts); pop(m.x, 5, m.z, '+' + fmt(pts), 'big', 2);
+        if (last) banner('LA MAGIE EST DE RETOUR !', '', 'blue', 2.6);
+      });
+      after(3.3, () => { cineEnd(); el.classList.remove('cine'); worldWon(); });
+    }
+
+    // ------------------------------------------------------------- LA GRANDE VICTOIRE (après le monde 6)
+    const FIN = { kills: 0, chests: 0, secs: 0, hurt: 0, worlds: 0, combo: 0, on: false, card: false, res: null };
+    function finale() {
+      if (FIN.on) return; FIN.on = true;
+      G.phase = 'finale'; FIN.t0 = G.t;
+      if (COOP) for (const h of HEROES) if (h.c) { const p = hero; useHero(h); heroFull('Cheer', { once: false, fade: 0.2 }); useHero(p); }
+      heroFull('Cheer', { once: false, fade: 0.2 });
+      sfx('victory', 0.9); sfx('treasure', 0.7, 1.1); celebrate('Tu as sauvé le royaume !');
+      banner('LE ROYAUME EST SAUVÉ !', '', 'blue', 3.4);
+      try { if (typeof api.music === 'function') api.music(); } catch (e) { /* rien */ }
+      // pluie d'or, feu d'artifice au-dessus de la salle du trône, rayons de lumière sur le mage
+      const R0 = ROOMS[ROOMS.length - 1];
+      FIN.rays = addStatic({ x: hero.x, y: 0.08, z: hero.z, s: 9, cell: 'rays', col: 0xffd36a, k: 1.6, mode: 1, a: 0.7, vr: 0.4, pulse: 1.5 });
+      FIN.glow = addStatic({ x: hero.x, y: 2.2, z: hero.z, s: 7, cell: 'glow', col: 0xffe8a0, k: 1.3, a: 0.5, pulse: 2 });
+      for (let i = 0; i < 22; i++) after(0.3 + i * 0.27, () => {
+        const px = clamp(hero.x + frnd(-9, 9), R0.x0 + 2, R0.x1 - 2), pz = clamp(hero.z + frnd(-7, 4), R0.z0 + 2, R0.z1 - 2), py = frnd(3.5, 6), col = fpick([0xffd36a, 0x9fe8ff, 0xff8ad8, 0x9cff60, 0xc890ff]);
+        flash(px, py, pz, col, 5, 0.35, 2.2); burst(px, py, pz, col, 26, 8, 1.1, 0.32, 'star4', 2.6);
+        sfx(i % 3 ? 'pop' : 'star', 0.35, frnd(0.85, 1.25), 0.05);
+      });
+      for (let i = 0; i < 70; i++) after(frnd(0.2, 5.5), () => fx({ x: hero.x + frnd(-7, 7), y: frnd(7, 10), z: hero.z + frnd(-6, 6), vx: frnd(-0.5, 0.5), vy: frnd(-2.5, -1.4), vz: frnd(-0.5, 0.5), life: frnd(2.5, 4), s0: frnd(0.14, 0.24), s1: 0.1, c0: fpick([0xffd36a, 0xffffff, 0xff9fd8, 0x9fe8ff]), k: 2.4, cell: 'star4', rot: FXR() * 6, vr: frnd(-4, 4), a0: 1, a1: 0.3 }));
+      after(5.8, finalCard);
+    }
+    function finalCard() {
+      if (destroyed) return;
+      FIN.card = true; G.phase = 'win';
+      const bonus = Math.round(10000 * G.ptsMul);
+      FIN.res = { bonus, applied: false };
+      const card = H.win.firstChild; card.classList.add('final');
+      H.winT.textContent = 'VICTOIRE FINALE !';
+      H.winS.innerHTML = '<span></span><span></span>'; H.winS.firstChild.textContent = 'Le Seigneur des ombres est vaincu'; H.winS.lastChild.textContent = 'La magie revient dans tout le royaume !';
+      // les six médaillons des mondes, chacun avec sa coche d'or
+      let row = card.querySelector('.mf-worlds');
+      if (!row) { row = document.createElement('div'); row.className = 'mf-worlds'; H.winS.parentNode.insertBefore(row, H.winS.nextSibling); }
+      row.textContent = '';
+      PLAYABLE.forEach((w, i) => { const cv = document.createElement('canvas'); cv.width = cv.height = 72; const g = cv.getContext('2d'); drawWorldIcon(g, i + 1, 36, 36, 30); g.fillStyle = '#ffd34d'; g.strokeStyle = '#1a1028'; g.lineWidth = 3; g.beginPath(); g.arc(58, 58, 11, 0, TAU); g.fill(); g.stroke(); g.strokeStyle = '#1a1028'; g.lineWidth = 3.4; g.beginPath(); g.moveTo(52, 58); g.lineTo(57, 63); g.lineTo(64, 53); g.stroke(); cv.title = w.name; row.appendChild(cv); setTimeout(() => cv.classList.add('on'), 400 + i * 160); });
+      const mins = Math.floor(FIN.secs / 60);
+      const rows = [['Mondes traversés', FIN.worlds + ' / ' + PLAYABLE.length], ['Monstres vaincus', FIN.kills], ['Coffres ouverts', FIN.chests], ['Temps', mins + ' min ' + String(FIN.secs % 60).padStart(2, '0')],
+        ['Plus long combo', '×' + FIN.combo], ['Grande victoire', '+' + fmt(bonus)]];
+      H.winRows.textContent = '';
+      rows.forEach(([a, b], i) => { const r = document.createElement('div'); r.className = 'mf-wrow' + (i === rows.length - 1 ? ' tot' : ''); r.innerHTML = '<span></span><b></b>'; r.firstChild.textContent = a; r.lastChild.textContent = String(b); H.winRows.appendChild(r); setTimeout(() => r.classList.add('on'), 900 + i * 260); });
+      H.winStars.forEach((s, i) => { s.classList.remove('on', 'dim'); setTimeout(() => { s.classList.add('on'); sfx('star', 0.45, 1 + i * 0.12); }, 600 + i * 300); });
+      H.winNext.textContent = COOP && NETG ? 'Bravo à vous deux !' : TOUCH ? 'Touche l’écran pour terminer' : 'Clic ou Entrée pour terminer';
+      if (!(COOP && NETG) && (padActive() || IN0.padOn)) { H.winNext.textContent = ''; H.winNext.append(padChip('a'), 'pour terminer'); }      // (manette, comme la carte de victoire d'un monde)
+      setTimeout(() => H.winNext.classList.add('on'), 900 + rows.length * 260 + 500);
+      H.win.classList.add('on'); winFit();
+      if (FIN.res && !FIN.res.applied) { FIN.res.applied = true; addScore(bonus); }
+      // en coop, la partie se termine toute seule un peu plus tard (l'hôte décide)
+      if (COOP) after(14, finalEnd);
+    }
+    function finalEnd() {
+      if (over || destroyed) return;
+      H.win.classList.remove('on'); H.winNext.classList.remove('on');
+      if (NETG) return;
+      over = true; G.phase = 'dead';
+      try { api.gameOver(Math.max(0, Math.floor(score))); } catch (e) { /* rien */ }
+    }
+    // ===========================================================================
+    // LE JARDIN MAUDIT, en beau (20 oct.) — décor dessiné par le jeu, sans aucun nouveau fichier :
+    //  - mousse au sol (la carte du sol porte la mousse et sa teinte : une seule lecture de texture, comme avant) ;
+    //  - plates-bandes au pied des murs : herbes hautes qui ondulent, fleurs de toutes les couleurs, fleurs qui luisent ;
+    //  - petites fleurs dans la mousse (basses : les cercles rouges restent bien lisibles), du lierre sur les grands murs ;
+    //  - statues de pierre moussues (le crapaud doré, le roi champignon, figés dans une pose) ;
+    //  - le pollen qui flotte dans la lumière, des lucioles près des fleurs lumineuses.
+    // Tout est fusionné par matériau (quelques appels de dessin pour tout le monde) et la lumière est cuite.
+    // ===========================================================================
+    Object.assign(MAPS.jardin.look, { moss: { k: 0.9, a: 0x24501a, b: 0x7c9a30 }, pollen: true, garden: true });
+    const gHash = (i, j) => { let h = (Math.imul(i | 0, 374761393) + Math.imul(j | 0, 668265263)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+    function gNoise(x, z) { const i = Math.floor(x), j = Math.floor(z); let u = x - i, v = z - j; u = u * u * (3 - 2 * u); v = v * v * (3 - 2 * v); return lerp(lerp(gHash(i, j), gHash(i + 1, j), u), lerp(gHash(i, j + 1), gHash(i + 1, j + 1), u), v); }
+    const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+    function mossAt(x, z) { return sstep(0.26, 0.56, gNoise(x * 0.17, z * 0.17) * 0.58 + gNoise(x * 0.47 + 17.3, z * 0.47 + 3.1) * 0.3 + gNoise(x * 1.4 + 5.7, z * 1.4 + 11.9) * 0.12); }
+    function mossHue(x, z) { return gNoise(x * 0.33 + 41.2, z * 0.33 + 7.7); }
+    // la carte du sol (floorAO) : vert = mousse (plus près des murs), bleu = teinte ; appelée par floorAO()
+    function mossFill(data, w, h, ppm, B) {
+      for (let k = 0; k < w * h; k++) {
+        const px = k % w, py = (k - px) / w, x = (px + 0.5) / ppm, z = (py + 0.5) / ppm;
+        data[k * 4 + 1] = Math.round(clamp(mossAt(x, z) * 0.92 + (1 - B[k]) * 0.3, 0, 1) * 255);
+        data[k * 4 + 2] = Math.round(mossHue(x, z) * 255);
+      }
+    }
+    function mossUniforms() {
+      const MO = MAPDEF && MAPDEF.look && MAPDEF.look.moss;
+      UNI.moss.value[0] = MO ? MO.k : 0;
+      if (MO) { const a = new T.Color(MO.a), b = new T.Color(MO.b); UNI.mossA.value.set([a.r, a.g, a.b]); UNI.mossB.value.set([b.r, b.g, b.b]); }
+    }
+
+    // ------------------------------------------------------------- lots de géométrie (positions, couleurs, normales vers le haut)
+    const GB = {};
+    function gbOf(k) { return GB[k] || (GB[k] = { p: [], c: [], n: [] }); }
+    const UPN = [0, 1, 0];
+    function gTri(B, a, b, c, ca, cb, cc, nn) {
+      B.p.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]);
+      B.c.push(ca.r, ca.g, ca.b, cb.r, cb.g, cb.b, cc.r, cc.g, cc.b);
+      const n = nn || UPN; B.n.push(n[0], n[1], n[2], n[0], n[1], n[2], n[0], n[1], n[2]);
+    }
+    const gc = (hex, v) => { const c = new T.Color(hex); if (v) c.multiplyScalar(v); return c; };
+    // une touffe d'herbe : des brins fins qui partent du même pied, sombres en bas, clairs en haut
+    function grassTuft(x, z, h, rr, tall) {
+      const B = gbOf('grass'), n = tall ? 6 : 4, base = gc(0x1b3d12, 0.9 + rr() * 0.2), tipC = rr() < 0.25 ? 0xc8d860 : rr() < 0.5 ? 0x8fd04a : 0x6cbf3a;
+      for (let i = 0; i < n; i++) {
+        const a = rr() * TAU, w = 0.035 + rr() * 0.03, lean = 0.12 + rr() * 0.22, hh = h * (0.6 + rr() * 0.5);
+        const ox = Math.cos(a) * 0.07, oz = Math.sin(a) * 0.07, px = Math.cos(a + 1.57) * w, pz = Math.sin(a + 1.57) * w;
+        gTri(B, [x + ox - px, 0.02, z + oz - pz], [x + ox + px, 0.02, z + oz + pz], [x + ox + Math.cos(a) * lean * hh, hh, z + oz + Math.sin(a) * lean * hh], base, base, gc(tipC, 0.85 + rr() * 0.3));
+      }
+    }
+    // une fleur : tige, pétales en étoile (un peu penchés), cœur ; lum = fleur qui luit doucement
+    const FLOWER = [0xff7ac0, 0xffe05a, 0xfff4ec, 0xc89cff, 0x9fd8ff, 0xff9a5a, 0xff5a7a];
+    function flower(x, z, h, rr, col, size, lum) {
+      const st = gbOf('grass'), P = gbOf(lum ? 'glowpetal' : 'petal'), s = size || 1, c = gc(col, 0.9 + rr() * 0.2), mid = gc(rr() < 0.7 ? 0xffd040 : 0xfff6d8);
+      const g0 = gc(0x24561a), g1 = gc(0x4a8a2a), tx = x + (rr() - 0.5) * 0.08, tz = z + (rr() - 0.5) * 0.08;
+      gTri(st, [x - 0.018, 0.02, z], [x + 0.018, 0.02, z], [tx, h, tz], g0, g0, g1);
+      gTri(st, [x, 0.02, z - 0.018], [x, 0.02, z + 0.018], [tx, h, tz], g0, g0, g1);
+      const np = 5 + Math.floor(rr() * 2), r = (0.09 + rr() * 0.05) * s, tilt = 0.25 + rr() * 0.3, ta = rr() * TAU, a0 = rr() * TAU;
+      const nx = Math.sin(tilt) * Math.cos(ta), nz = Math.sin(tilt) * Math.sin(ta), ny = Math.cos(tilt), nn = [nx, ny, nz];
+      for (let i = 0; i < np; i++) {
+        const a = a0 + i * TAU / np, b = a + TAU / np * 0.5, e = a - TAU / np * 0.5;
+        const pt = (aa, rad) => { const ux = Math.cos(aa) * rad, uz = Math.sin(aa) * rad; return [tx + ux, h - (ux * nx + uz * nz) / Math.max(0.4, ny), tz + uz]; };
+        gTri(P, [tx, h + 0.005, tz], pt(e, r * 0.55), pt(a, r), c, c, c, nn); gTri(P, [tx, h + 0.005, tz], pt(a, r), pt(b, r * 0.55), c, c, c, nn);
+      }
+      const cr = r * 0.32;
+      for (let i = 0; i < 4; i++) { const a = i * TAU / 4; gTri(P, [tx, h + 0.012, tz], [tx + Math.cos(a) * cr, h + 0.01, tz + Math.sin(a) * cr], [tx + Math.cos(a + TAU / 4) * cr, h + 0.01, tz + Math.sin(a + TAU / 4) * cr], mid, mid, mid, nn); }
+    }
+    // une feuille large au ras du sol (trèfles, fougères basses)
+    function leaf(x, z, rr, s) {
+      const B = gbOf('grass'), a = rr() * TAU, L = (0.22 + rr() * 0.16) * s, W = L * 0.42, c0 = gc(0x24561a), c1 = gc(rr() < 0.5 ? 0x5aa83a : 0x3e8a3a);
+      const dx = Math.cos(a), dz = Math.sin(a), px = -dz * W, pz = dx * W, y = 0.03 + rr() * 0.04;
+      gTri(B, [x, 0.02, z], [x + dx * L * 0.5 + px, y + 0.03, z + dz * L * 0.5 + pz], [x + dx * L, y, z + dz * L], c0, c1, c1);
+      gTri(B, [x, 0.02, z], [x + dx * L, y, z + dz * L], [x + dx * L * 0.5 - px, y + 0.03, z + dz * L * 0.5 - pz], c0, c1, c1);
+    }
+    // lierre sur un grand mur : des tiges qui montent, couvertes de feuilles (plusieurs verts), quelques fleurs blanches et roses
+    function ivy(x0, z0, x1, z1, nx, nz, rr) {
+      const B = gbOf('leaf'), len = Math.hypot(x1 - x0, z1 - z0), ux = (x1 - x0) / len, uz = (z1 - z0) / len, n2 = [nx, 0.25, nz], off = 0.6;
+      const strands = 2 + Math.floor(rr() * 3);
+      for (let s = 0; s < strands; s++) {
+        let u = (0.1 + rr() * 0.8) * len, y = 0.05;
+        const top = 1.2 + rr() * 1.5;
+        while (y < top) {
+          u = clamp(u + (rr() - 0.5) * 0.3, 0.1, len - 0.1); y += 0.1 + rr() * 0.08;
+          for (let q = 0; q < 3; q++) {
+            const lu = u + (rr() - 0.5) * 0.5, ly = y + (rr() - 0.5) * 0.18, r = 0.09 + rr() * 0.07, a = rr() * TAU, ca = Math.cos(a) * r, sa = Math.sin(a) * r;
+            const cx = x0 + ux * lu + nx * (off + rr() * 0.05), cz = z0 + uz * lu + nz * (off + rr() * 0.05);
+            const col = gc(fpick([0x2f6a22, 0x3f8a2a, 0x2a5a24, 0x5a9a34]), 0.85 + rr() * 0.3), tipc = gc(0x8fc850);
+            const P1 = [cx + ux * ca, ly + sa, cz + uz * ca], P2 = [cx - ux * ca, ly - sa, cz - uz * ca], Q1 = [cx + ux * -sa * 0.55 + nx * 0.03, ly + ca * 0.55, cz + uz * -sa * 0.55 + nz * 0.03], Q2 = [cx - ux * -sa * 0.55 + nx * 0.03, ly - ca * 0.55, cz - uz * -sa * 0.55 + nz * 0.03];
+            gTri(B, P1, Q1, P2, tipc, col, col, n2); gTri(B, P1, P2, Q2, tipc, col, col, n2);
+          }
+          if (rr() < 0.12) { const F = gbOf('petal'), c = gc(rr() < 0.6 ? 0xfff4ec : 0xffa0d0), fx0 = x0 + ux * u + nx * (off + 0.06), fz0 = z0 + uz * u + nz * (off + 0.06), r = 0.07;
+            for (let q = 0; q < 5; q++) { const a = q * TAU / 5, b2 = a + TAU / 5; gTri(F, [fx0, y, fz0], [fx0 + ux * Math.cos(a) * r, y + Math.sin(a) * r, fz0 + uz * Math.cos(a) * r], [fx0 + ux * Math.cos(b2) * r, y + Math.sin(b2) * r, fz0 + uz * Math.cos(b2) * r], c, c, c, n2); } }
+        }
+      }
+    }
+    // une statue de pierre moussue : un monstre du jardin figé dans une pose (os du modèle appliqués une fois, à la main)
+    function statueGeo(tplKey, clip, t, height) {
+      const tp = TPL[tplKey]; if (!tp || !tp.geo || !tp.clips || !tp.clips[clip]) return null;
+      const rig = tp.rig.clone(true), mixer = new T.AnimationMixer(rig), act = mixer.clipAction(tp.clips[clip]); act.play(); mixer.update(t * tp.clips[clip].duration);
+      rig.updateMatrixWorld(true);
+      const bones = tp.bname.map((n) => rig.getObjectByName(n)), BM = bones.map((b, i) => (b ? new T.Matrix4().multiplyMatrices(b.matrixWorld, tp.boneInverses[i]).multiply(tp.bindM) : new T.Matrix4()));
+      const g = tp.geo, pos = g.getAttribute('position'), si = g.getAttribute('skinIndex'), sw = g.getAttribute('skinWeight'), ix = g.index.array;
+      const out = new Float32Array(ix.length * 3), v = new T.Vector3(), acc = new T.Vector3(), tmp = new T.Vector3();
+      let y0 = 1e9, y1 = -1e9;
+      const P = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i); acc.set(0, 0, 0);
+        for (let q = 0; q < 4; q++) { const w = sw.getComponent(i, q); if (w <= 0) continue; tmp.copy(v).applyMatrix4(BM[si.getComponent(i, q)]); acc.addScaledVector(tmp, w); }
+        P[i * 3] = acc.x; P[i * 3 + 1] = acc.y; P[i * 3 + 2] = acc.z; y0 = Math.min(y0, acc.y); y1 = Math.max(y1, acc.y);
+      }
+      mixer.stopAllAction();
+      const sc = height / Math.max(0.1, y1 - y0);
+      for (let k = 0; k < ix.length; k++) { const i = ix[k]; out[k * 3] = P[i * 3] * sc; out[k * 3 + 1] = (P[i * 3 + 1] - y0) * sc; out[k * 3 + 2] = P[i * 3 + 2] * sc; }
+      const o = new T.BufferGeometry(); o.setAttribute('position', new T.BufferAttribute(out, 3)); o.computeVertexNormals();
+      return o;
+    }
+    const JST = [];      // statues posées (essais, captures)
+    function statue(x, z, ry, kind, rr, solid) {
+      const S = gbOf('stone'), stone = (y, ny, k) => { const m = clamp((ny - 0.45) * 2.2, 0, 1) * (0.55 + 0.45 * gNoise(x * 3 + y * 5, z * 3)); return gc(0x8a8c80, 0.86 + k * 0.2).lerp(gc(0x4a7a2a), m); };
+      // socle : deux pierres taillées
+      const ped = new T.CylinderGeometry(0.72, 0.82, 0.55, 8).toNonIndexed(); ped.translate(0, 0.275, 0);
+      const top = new T.CylinderGeometry(0.62, 0.7, 0.14, 8).toNonIndexed(); top.translate(0, 0.62, 0);
+      const parts = [[ped, 0], [top, 0.05]];
+      const def = kind === 'king' ? ['q_mushking', 'Yes', 0.35, 1.9] : ['q_frog', 'Idle', 0.2, 1.25];
+      const sg = statueGeo(def[0], def[1], def[2], def[3]); if (sg) { sg.translate(0, 0.69, 0); parts.push([sg, 0.1]); }
+      for (const [g, k] of parts) {
+        g.rotateY(ry); g.translate(x, 0, z); if (!g.getAttribute('normal')) g.computeVertexNormals();
+        const p = g.getAttribute('position'), n = g.getAttribute('normal');
+        for (let i = 0; i < p.count; i += 3) {
+          const ny = (n.getY(i) + n.getY(i + 1) + n.getY(i + 2)) / 3, c = stone(p.getY(i), ny, k + rr() * 0.2);
+          S.p.push(p.getX(i), p.getY(i), p.getZ(i), p.getX(i + 1), p.getY(i + 1), p.getZ(i + 1), p.getX(i + 2), p.getY(i + 2), p.getZ(i + 2));
+          for (let q = 0; q < 3; q++) { S.c.push(c.r, c.g, c.b); S.n.push(n.getX(i + q), n.getY(i + q), n.getZ(i + q)); }
+        }
+        g.dispose();
+      }
+      SOLIDS.push(solid || [x - 0.8, z - 0.8, x + 0.8, z + 0.8]); JST.push([x, z]);
+    }
+    // la boîte d'un objet plein (meubles, murs, statues) touche-t-elle ce point ?
+    const inSolid = (x, z, m) => SOLIDS.some((s) => x > s[0] - m && x < s[2] + m && z > s[1] - m && z < s[3] + m);
+    const nearProp = (x, z, m) => SOLIDS.some((s) => !s.wall && x > s[0] - m && x < s[2] + m && z > s[1] - m && z < s[3] + m);     // (sans les murs)
+    function gardenDecor(def) {
+      for (const k of Object.keys(GB)) delete GB[k];
+      JST.length = 0;
+      const rr = mulberry32(20261020), ZS = ZONES.filter((Z) => Z.kind !== 'start');
+      const wallSide = (Z, i, j) => ({ n: MAP.at(i, j - 1) !== Z.id, s: MAP.at(i, j + 1) !== Z.id, w: MAP.at(i - 1, j) !== Z.id, e: MAP.at(i + 1, j) !== Z.id });
+      const nearDoor = (x, z, r) => DOORS.some((D) => Math.hypot(D.x - x, D.z - z) < r);
+      // les statues : une dans un coin libre des salles (pas les salles de boss : on garde l'arène dégagée)
+      for (const Z of ROOMS) {
+        if (Z.boss || Z.mini) continue;
+        // contre un grand mur du fond (nord, ouest) ou dans un coin libre, jamais devant une porte
+        const cs = [[Z.x0 + 2.2, Z.z0 + 2.2, 0.8], [Z.x1 - 2.2, Z.z0 + 2.2, -0.8]];
+        for (let x = Z.x0 + 4; x <= Z.x1 - 4; x += 2) cs.push([x, Z.z0 + 1.75, 0]);
+        for (let z = Z.z0 + 4; z <= Z.z1 - 4; z += 2) cs.push([Z.x0 + 1.75, z, 1.57]);
+        // (21 oct.) et loin des meubles (2,6 m du centre) : sinon, contre le mur, un recoin entre la statue et un tonneau (piège)
+        const c = cs.filter(([x, z]) => !inSolid(x, z, 1.0) && !nearProp(x, z, 2.6) && !nearDoor(x, z, 4.2) && Z.has(x, z) && Z.has(x, z - 1.75) && Z.has(x - 1.75, z));
+        if (c.length && rr() < 0.85) {
+          const [x, z, a] = c[Math.floor(rr() * c.length)];
+          // sa boîte va jusqu'aux murs qui la touchent (pas de fente où le mage se coince)
+          const box = [x - 0.8, z - 0.8, x + 0.8, z + 0.8]; if (z - Z.z0 < 2.5) box[1] = Z.z0; if (x - Z.x0 < 2.5) box[0] = Z.x0; if (Z.x1 - x < 2.5) box[2] = Z.x1;
+          statue(x, z, a + (rr() - 0.5) * 0.4, rr() < 0.45 ? 'king' : 'frog', rr, box); bakeAdd(x, z + 0.6, 0xfff0c0, 0.55, 3.5, 2.2);
+        }
+      }
+      // plates-bandes, mousse fleurie, ronces
+      for (const Z of ZS) for (const [i, j] of Z.cells) {
+        const ws = wallSide(Z, i, j), x0 = i * CELL, z0 = j * CELL, room = Z.kind === 'room' || Z.kind === 'secret';
+        for (let a = 0; a < 5; a++) for (let b = 0; b < 5; b++) {
+          const x = x0 + (a + 0.5) * CELL / 5 + (rr() - 0.5) * 0.6, z = z0 + (b + 0.5) * CELL / 5 + (rr() - 0.5) * 0.6;
+          const lx = x - x0, lz = z - z0;
+          const wd = Math.min(ws.w ? lx : 9, ws.e ? CELL - lx : 9, ws.n ? lz : 9, ws.s ? CELL - lz : 9);
+          if (inSolid(x, z, 0.12) || nearDoor(x, z, 2.3) || !Z.has(x, z)) continue;
+          const m = mossAt(x, z);
+          if (wd < 1.55) {       // au pied du mur : la plate-bande (herbes hautes, fleurs, fleurs qui luisent)
+            const n = room ? 3 : 2;
+            for (let q = 0; q < n; q++) {
+              const px = x + (rr() - 0.5) * 0.7, pz = z + (rr() - 0.5) * 0.7; if (inSolid(px, pz, 0.08)) continue;
+              const k = rr();
+              if (k < 0.42) grassTuft(px, pz, 0.38 + rr() * 0.3, rr, true);
+              else if (k < 0.8) flower(px, pz, 0.28 + rr() * 0.3, rr, FLOWER[Math.floor(rr() * FLOWER.length)], 1.15);
+              else if (k < 0.86 && room) { const col = fpick([0x9cffd8, 0xffe8a0, 0xd8b0ff]); flower(px, pz, 0.34 + rr() * 0.2, rr, col, 1.35, true); if (rr() < 0.25) bakeAdd(px, pz, col, 0.35, 2.6, 0.6); }
+              else leaf(px, pz, rr, 1.3);
+            }
+          } else if (m > 0.5) {  // dans la mousse : bas, clairsemé (les dangers au sol restent bien visibles)
+            const k = rr();
+            if (k < 0.16) flower(x, z, 0.07 + rr() * 0.06, rr, fpick([0xfff4ec, 0xffe05a, 0xff9ad0, 0xc8b0ff]), 0.7);
+            else if (k < 0.34) leaf(x, z, rr, 0.8);
+            else if (k < 0.42 && !room) grassTuft(x, z, 0.16 + rr() * 0.1, rr, false);
+          }
+        }
+        // du lierre sur les grands murs du fond (nord et ouest)
+        if (ws.n && MAP.at(i, j - 1) !== 'L' && rr() < (room ? 0.6 : 0.35) && !nearDoor(x0 + CELL / 2, z0, 2.6)) ivy(x0 + 0.3, z0, x0 + CELL - 0.3, z0, 0, 1, rr);
+        if (ws.w && MAP.at(i - 1, j) !== 'L' && rr() < (room ? 0.6 : 0.35) && !nearDoor(x0, z0 + CELL / 2, 2.6)) ivy(x0, z0 + 0.3, x0, z0 + CELL - 0.3, 1, 0, rr);
+      }
+      // l'arène du Vieux Chêne : un cercle de fleurs autour de sa place, des feuilles mortes
+      const E = ROOMS.find((Z) => Z.boss);
+      if (E) {
+        const sp = E.spots.boss || [(E.x1 - E.x0) / 2, (E.z1 - E.z0) / 2], cx = E.x0 + sp[0], cz = E.z0 + sp[1];
+        for (let q = 0; q < 70; q++) { const a = q / 70 * TAU + rr() * 0.05, r = 7.2 + rr() * 0.8, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r; if (E.has(x, z) && !inSolid(x, z, 0.1)) flower(x, z, 0.12 + rr() * 0.1, rr, q % 3 ? 0xffe05a : 0xff7ac0, 0.9); }
+        for (let q = 0; q < 50; q++) { const a = rr() * TAU, r = 2.5 + rr() * 5, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r; if (E.has(x, z)) leaf(x, z, rr, 0.9); }
+      }
+      gardenBuild();
+    }
+    // matériau des herbes : elles ondulent (le vent) ; lumière cuite et assombrissement au loin, comme le décor
+    function swayMat(base, o, amp) {
+      const mat = keep(patchMat(lam(base), Object.assign({ dark: true, lm: true }, o || {})));
+      const f = mat.onBeforeCompile;
+      mat.onBeforeCompile = (sh) => {
+        f(sh);
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uMfT;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\n{ float hy = max(position.y - 0.03, 0.0) * ' + (amp == null ? '1.0' : amp.toFixed(2)) + '; float ph = uMfT * 1.7 + position.x * 0.6 + position.z * 0.45;\n  transformed.x += sin(ph) * 0.16 * hy; transformed.z += cos(ph * 0.83 + 1.3) * 0.11 * hy; }');
+        sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nnormal = normalize(vNormal);');
+      };
+      const key = mat.customProgramCacheKey() + ',sway' + (amp == null ? '' : amp); mat.customProgramCacheKey = () => key;
+      return mat;
+    }
+    function gardenBuild() {
+      for (const [k, B] of Object.entries(GB)) {
+        if (!B.p.length) continue;
+        const g = keep(new T.BufferGeometry());
+        g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3)); g.setAttribute('color', new T.Float32BufferAttribute(B.c, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(B.n, 3));
+        g.computeBoundingSphere();
+        const mk = 'jardin_' + k;
+        if (!MAT[mk]) {
+          if (k === 'grass') MAT[mk] = swayMat({ vertexColors: true, side: T.DoubleSide });
+          else if (k === 'petal') MAT[mk] = swayMat({ vertexColors: true, side: T.DoubleSide, emissive: 0x201810 });
+          else if (k === 'glowpetal') MAT[mk] = swayMat({ vertexColors: true, side: T.DoubleSide, emissive: 0x9a8a60 });
+          else if (k === 'leaf') MAT[mk] = swayMat({ vertexColors: true, side: T.DoubleSide }, null, 0.25);
+          else MAT[mk] = keep(patchMat(lam({ vertexColors: true }), { ao: true, dark: true, lm: true }));
+        }
+        const m = new T.Mesh(g, MAT[mk]); m.matrixAutoUpdate = false; m.updateMatrix(); m.castShadow = Q.shadow > 0 && k === 'stone'; m.receiveShadow = false; wadd(m);
+        delete GB[k];
+      }
+    }
+    // pollen qui flotte dans la lumière, lucioles (chaque image, près de la caméra, très peu de particules)
+    const GARD = { t: 0 };
+    function gardenUpdate(dt) {
+      if (!MAPDEF || !MAPDEF.look || !MAPDEF.look.pollen) return;
+      GARD.t -= dt; if (GARD.t > 0) return; GARD.t = Q.tier >= 2 ? 0.07 : 0.14;
+      const x = CAM.x + frnd(-10, 10), z = CAM.z + frnd(-7, 6);
+      if (FXR() < 0.78) fx({ x, y: frnd(0.3, 2.6), z, vx: frnd(-0.25, 0.25), vy: frnd(-0.05, 0.12), vz: frnd(-0.18, 0.18), life: frnd(3, 5), s0: frnd(0.05, 0.09), s1: 0.03, c0: fpick([0xfff0a0, 0xffe070, 0xffffff]), k: 2.4, cell: 'dot', a0: 0.9, a1: 0, fin: 1.0 });
+      else fx({ x, y: frnd(0.4, 1.6), z, vx: frnd(-0.5, 0.5), vy: frnd(-0.2, 0.3), vz: frnd(-0.5, 0.5), life: frnd(1.6, 2.6), s0: frnd(0.12, 0.18), s1: 0.04, c0: fpick([0xd8ff70, 0xa8ff90]), k: 3, cell: 'glow', a0: 0.9, a1: 0, fin: 0.5 });
+    }
+
+    // ===========================================================================
+    // LE VIEUX CHÊNE (le boss du Jardin) : trois attaques bien lisibles, jamais sans avertissement
+    //  (1) BÛCHES : il arrache une bûche du sol et la lance en cloche ; là où elle va tomber, une ombre grandit sous un cercle
+    //      rouge ; elle éclate en échardes (à mi-vie : trois bûches, puis cinq) ;
+    //  (2) POLLEN : il secoue sa couronne ; un cône jaune s'allume au sol (0,85 s), puis il crache un nuage de pollen ; des
+    //      nuages restent 4 s par terre : dedans, on avance moins vite et ça pique (un cœur toutes les 1,5 s) ;
+    //  (3) RACINES : il s'enfonce dans le sol ; la terre se fend et tremble 0,8 s là où des racines vont jaillir (une ligne vers
+    //      le mage, puis une croix autour de lui ; deux lignes à la fin), puis il ressort ailleurs dans une onde.
+    // À mi-vie il s'énerve (plus rapide) ; à 66 % ses renforts du jardin, à 33 % l'onde et la pluie de branches.
+    // Tout passe par les briques réseau (cercles « dz », projectiles « fo », instantanés du boss) : même boss seul et à deux.
+    // ===========================================================================
+    const EC = { cone: null, logGeo: null, logMat: null, rootGeo: null, rootMesh: null, roots: [], m4: null, q: null, e: null, v: null, s: null };
+    // la bûche : écorce (trois bruns), bouts clairs avec leurs cernes, une branche avec trois feuilles
+    function entLogGeo() {
+      if (EC.logGeo) return EC.logGeo;
+      const B = { p: [], c: [], n: [] }, R = 0.3, L = 1.7, N = 10, rr = mulberry32(77);
+      for (let i = 0; i < N; i++) {
+        const a0 = i / N * TAU, a1 = (i + 1) / N * TAU, c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+        const r0 = R * (0.93 + rr() * 0.14), r1 = R * (0.93 + rr() * 0.14), col = gc(fpick([0x3a2414, 0x4a2e18, 0x2e1c10, 0x52341c]), 0.9 + rr() * 0.2);
+        const A0 = [-L / 2, c0 * r0, s0 * r0], A1 = [L / 2, c0 * r0, s0 * r0], B0 = [-L / 2, c1 * r1, s1 * r1], B1 = [L / 2, c1 * r1, s1 * r1];
+        gTri(B, A0, A1, B1, col, col, col, [0, c0, s0]); gTri(B, A0, B1, B0, col, col, col, [0, c1, s1]);
+        for (const sx of [-1, 1]) {
+          const cc = gc(0xb08a5a), rc = gc(0x6a4a2a), x = sx * L / 2, ri = (sx < 0 ? 0.55 : 0.6);
+          const P0 = [x, c0 * r0, s0 * r0], P1 = [x, c1 * r1, s1 * r1], M0 = [x, c0 * r0 * ri, s0 * r0 * ri], M1 = [x, c1 * r1 * ri, s1 * r1 * ri], O = [x, 0, 0], nn = [sx, 0, 0];
+          if (sx > 0) { gTri(B, O, M0, M1, cc, cc, cc, nn); gTri(B, M0, P0, P1, rc, rc, rc, nn); gTri(B, M0, P1, M1, rc, rc, rc, nn); }
+          else { gTri(B, O, M1, M0, cc, cc, cc, nn); gTri(B, M0, P1, P0, rc, rc, rc, nn); gTri(B, M0, M1, P1, rc, rc, rc, nn); }
+        }
+      }
+      const bc = gc(0x3a2414), lc = gc(0x2a6a1a), lc2 = gc(0x4a8a2a);
+      gTri(B, [0.1, R * 0.8, -0.07], [0.25, R * 0.8, 0.07], [0.32, R + 0.45, 0.05], bc, bc, bc, [0, 0.3, 1]);
+      for (let k = 0; k < 3; k++) { const a = k * 2.1, cx = 0.32 + Math.cos(a) * 0.12, cy = R + 0.45 + 0.05, cz = 0.05 + Math.sin(a) * 0.12; gTri(B, [0.32, R + 0.45, 0.05], [cx + 0.12, cy + 0.06, cz], [cx, cy + 0.14, cz + 0.1], lc, lc2, lc2, [0, 1, 0]); }
+      const g = keep(new T.BufferGeometry());
+      g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3)); g.setAttribute('color', new T.Float32BufferAttribute(B.c, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(B.n, 3));
+      g.computeBoundingSphere();
+      return (EC.logGeo = g);
+    }
+    function noFlip(mat, tag) {        // éclairé avec ses propres normales, des deux côtés (pas de face sombre vue « de dos »)
+      const f = mat.onBeforeCompile; mat.onBeforeCompile = (sh) => { if (f) f(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nnormal = normalize(vNormal);'); };
+      const k = (mat.customProgramCacheKey ? mat.customProgramCacheKey() : '') + ',nf' + (tag || ''); mat.customProgramCacheKey = () => k; return mat;
+    }
+    function entLogMat() { if (!EC.logMat) EC.logMat = keep(noFlip(patchMat(lam({ vertexColors: true, side: T.DoubleSide }), { rim: true, flash: true, rimCol: 0xffe0a0, rimK: 0.3 }), 'log')); return EC.logMat; }
+    function makeLog(x0, y0, z0, x1, z1, dur, r, big, arc) {
+      const mesh = new T.Mesh(entLogGeo(), entLogMat()); mesh.rotation.order = 'YZX'; mesh.rotation.y = Math.atan2(-(z1 - z0), x1 - x0); mesh.scale.setScalar(big ? 1.35 : 1.1);
+      mesh.castShadow = Q.shadow > 0; scene.add(mesh);
+      const sh = addStatic({ x: x1, y: 0.075, z: z1, s: 0.4, cell: 'blob', col: 0x000000, a: 0, mode: 1, add: false });
+      return { kind: 'log', mesh, sh, x0, y0, z0, x1, z1, t: 0, dur, arc: arc == null ? 4.4 : arc, r, big: !!big, spin: frnd(7, 10) * (FXR() < 0.5 ? -1 : 1), x: x0, z: z0 };
+    }
+    // il lance : un cercle rouge où ça tombe (il fait les dégâts à l'impact), la bûche vole et son ombre grandit dessous
+    function throwLog(x0, y0, z0, tx, tz, delay, big, arc) {
+      const Z = BOSS.zone; tx = clamp(tx, Z.x0 + 1.6, Z.x1 - 1.6); tz = clamp(tz, Z.z0 + 1.6, Z.z1 - 1.6);
+      const dur = 0.95, r = big ? 1.9 : 1.6;
+      danger({ kind: 'circle', x: tx, z: tz, r, delay: delay + dur, dmg: 1, hurtMon: 30, fk: 'log' });
+      after(delay, () => { if (BOSS.m) { FOES.push(makeLog(x0, y0, z0, tx, tz, dur, r, big, arc)); sfx('throw', 0.5, 0.7, 0.05); sfx('whoosh', 0.4, 0.6, 0.05); } });
+    }
+    function logUpdate(f, dt, i) {
+      const k = clamp(f.t / f.dur, 0, 1), x = lerp(f.x0, f.x1, k), z = lerp(f.z0, f.z1, k), y = lerp(f.y0, 0.35, k) + Math.sin(k * Math.PI) * f.arc;
+      f.x = x; f.z = z; f.mesh.position.set(x, y, z); f.mesh.rotation.z += f.spin * dt;
+      if (f.sh) { f.sh.s = lerp(0.5, f.r * 2.1, k * k); f.sh.a = 0.12 + 0.5 * k; }
+      if (FXR() < 0.5) fx({ x: x + frnd(-0.3, 0.3), y: y + frnd(-0.2, 0.2), z: z + frnd(-0.3, 0.3), vy: frnd(-0.5, 0.3), life: frnd(0.4, 0.7), s0: 0.12, s1: 0.04, c0: fpick([0x7ac040, 0xb08a50]), k: 1.4, cell: 'shard', add: false, rot: FXR() * 6, vr: frnd(-6, 6), g: 3 });
+      if (k < 1) return;
+      FOES.splice(i, 1); scene.remove(f.mesh); if (f.sh) { delStatic(f.sh); f.sh = null; }
+      sfx('woodbreak', 0.6, frnd(0.8, 1.0)); sfx('slam', 0.4, 0.9, 0.05); shake(f.big ? 0.35 : 0.25);
+      dust(f.x1, f.z1, 8, 1.7, 0x9a8a6a); ringFx(f.x1, f.z1, 0xe0c890, 0.5, f.r * 1.7, 0.35, 'ring', 0.8, 1.4);
+      // les échardes : des éclats de bois qui volent, des copeaux clairs
+      for (let q = 0; q < (f.big ? 18 : 12); q++) { const a = FXR() * TAU, v = frnd(3, 8); fx({ x: f.x1, y: 0.5, z: f.z1, vx: Math.cos(a) * v, vy: frnd(2, 6), vz: Math.sin(a) * v, g: 16, floor: true, life: frnd(0.6, 1.1), s0: frnd(0.22, 0.4), s1: 0.18, c0: fpick([0x6b4a2a, 0x8a6036, 0xd8b882]), k: 1, cell: 'shard', add: false, rot: FXR() * 6, vr: frnd(-12, 12) }); }
+      for (let q = 0; q < 8; q++) { const a = q / 8 * TAU + FXR() * 0.3, L = frnd(1.6, 2.6); fx({ x: f.x1 + Math.cos(a) * L * 0.5, y: 0.25, z: f.z1 + Math.sin(a) * L * 0.5, dx: Math.cos(a), dy: 0, dz: Math.sin(a), life: 0.22, s0: 0.12, len0: L, c0: 0xffe0b0, k: 1.8, cell: 'streak', mode: 2, a0: 0.9, a1: 0 }); }
+    }
+    // ------------------------------------------------------------- le pollen
+    function entCone() {
+      if (EC.cone && EC.cone.parent) return EC.cone;
+      const pos = [0, 0, 0], idx = [], N = 14, A = 0.44, L = 11;
+      for (let i = 0; i <= N; i++) { const a = -A + 2 * A * i / N; pos.push(Math.sin(a) * L, 0, Math.cos(a) * L); if (i) idx.push(0, i, i + 1); }
+      const g = keep(new T.BufferGeometry()); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+      // (21 oct.) doré et pointillé de grains de pollen qui filent vers le mage, bords soulignés ; couleur sans vert ni bleu (en
+      // additif sur l'herbe, l'ancien jaune pâle virait au blanc « lampe de poche »)
+      const cm = keep(new T.ShaderMaterial({ uniforms: { uA: { value: 0 }, uT: UNI.time }, vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'uniform float uA; uniform float uT; varying vec3 vP;\n' +
+          'float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\n' +
+          'void main(){\n' +
+          ' float d = length(vP.xz) / 11.0, an = atan(vP.x, vP.z) / 0.44;\n' +
+          ' float e = smoothstep(1.0, 0.88, d) * smoothstep(0.0, 0.06, d), side = smoothstep(1.0, 0.86, abs(an));\n' +
+          ' float rim = smoothstep(0.78, 0.93, abs(an)) * side + smoothstep(0.86, 0.97, d) * smoothstep(1.0, 0.97, d);\n' +
+          ' float s = 0.5 + 0.5 * sin(d * 24.0 - uT * 8.0);\n' +
+          ' vec2 g = vec2(an * 7.0, d * 26.0 - uT * 4.0), c = floor(g), f = fract(g) - 0.5;\n' +
+          ' float r = h1(c), sp = step(0.5, r) * smoothstep(0.24, 0.06, length(f - (vec2(h1(c + 3.1), h1(c + 7.7)) - 0.5) * 0.5));\n' +
+          ' vec3 col = mix(vec3(1.0, 0.46, 0.0), vec3(1.0, 0.74, 0.16), clamp(s * 0.35 + sp + rim * 0.6, 0.0, 1.0));\n' +
+          ' gl_FragColor = vec4(col, uA * e * side * (0.42 + 0.22 * s + 0.6 * sp + 0.5 * rim));\n' +
+          '}',
+        transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+      EC.cone = new T.Mesh(g, cm); EC.cone.renderOrder = 16; EC.cone.visible = false; wadd(EC.cone);
+      return EC.cone;
+    }
+    function crownPos(m) {      // la couronne de feuilles (d'où sort le pollen), un peu devant
+      const h = m.c.bones && (m.c.bones.OAK_TEE_ENT__Head || m.c.bones['OAK_TEE_ENT_ Head']);
+      if (h) { const v = bonePos(h, tmpV); return { x: v.x + Math.sin(m.face) * 0.8, y: Math.max(1.5, v.y - 0.2), z: v.z + Math.cos(m.face) * 0.8 }; }
+      return { x: m.x + Math.sin(m.face) * 1.6, y: (m.y || 0) + 4.4, z: m.z + Math.cos(m.face) * 1.6 };
+    }
+    function pollenParticles(m, k) {
+      const p = crownPos(m);
+      for (let q = 0; q < 2; q++) {
+        const a = m.face + frnd(-0.42, 0.42), v = frnd(5, 9.5);
+        // (21 oct.) un nuage DORÉ (plus soutenu : sur l'herbe claire il paraissait blanc) + des grains qui brillent
+        fx({ x: p.x, y: p.y, z: p.z, vx: Math.sin(a) * v, vy: frnd(-2.6, -0.8), vz: Math.cos(a) * v, drag: 0.7, life: frnd(1.0, 1.5), s0: frnd(0.5, 0.8), s1: frnd(2.0, 2.8), c0: fpick([0xffc828, 0xffd850, 0xf0b020]), k: 1.0, cell: 'smoke', add: false, a0: 0.62, a1: 0, rot: FXR() * 6, vr: frnd(-1, 1) });
+      }
+      if (FXR() < 0.55) { const a = m.face + frnd(-0.38, 0.38), v = frnd(5, 8.5); fx({ x: p.x, y: p.y, z: p.z, vx: Math.sin(a) * v, vy: frnd(-2.2, -0.6), vz: Math.cos(a) * v, drag: 0.8, life: frnd(0.7, 1.0), s0: frnd(0.8, 1.1), s1: frnd(1.8, 2.4), c0: 0xffb810, k: 1.1, cell: 'glow', a0: 0.42, a1: 0 }); }
+      for (let q = 0; q < 2; q++) { const a = m.face + frnd(-0.4, 0.4), v = frnd(6, 10); fx({ x: p.x, y: p.y, z: p.z, vx: Math.sin(a) * v, vy: frnd(-2, 0.4), vz: Math.cos(a) * v, drag: 0.6, life: frnd(0.8, 1.3), s0: frnd(0.14, 0.22), s1: 0.06, c0: fpick([0xffe070, 0xfff2a0]), k: 2.6, cell: 'dot', a0: 1, a1: 0 }); }
+    }
+    // (21 oct.) avant de cracher : sa couronne s'allume en or et des grains de pollen montent (on voit venir le souffle)
+    function crownCharge(m, k) {
+      const p = crownPos(m);
+      if (FXR() < 0.7) fx({ x: p.x + frnd(-0.9, 0.9), y: p.y + frnd(-0.6, 0.5), z: p.z + frnd(-0.9, 0.9), vx: frnd(-0.4, 0.4), vy: frnd(0.6, 1.6), vz: frnd(-0.4, 0.4), life: frnd(0.6, 1.0), s0: frnd(0.12, 0.2), s1: 0.05, c0: fpick([0xffe070, 0xfff2a0, 0xffc828]), k: 2.6, cell: 'dot', a0: 1, a1: 0 });
+      if (FXR() < 0.3) fx({ x: p.x, y: p.y, z: p.z, life: 0.25, s0: 0.7 + k * 0.7, s1: 0.8 + k * 0.8, c0: 0xffb010, k: 1.0, cell: 'glow', a0: 0.16 + 0.18 * k, a1: 0 });
+    }
+    // dans le cône (portée 11 m) : un cœur, puis toutes les 0,7 s ; collé (plus lent)
+    function pollenHit(m, dt, B) {
+      eachHero(() => {
+        const dx = hero.x - m.x, dz = hero.z - m.z, d = Math.hypot(dx, dz), da = Math.abs(angDiff(m.face, Math.atan2(dx, dz))), tk = 'tick' + (hero.i || 0);
+        B[tk] = (B[tk] == null ? 0.15 : B[tk]) - dt;
+        if (d < 11.5 && da < 0.45) { hero.sticky = Math.max(hero.sticky || 0, 0.6); if (B[tk] <= 0) { B[tk] = 99; hurtHero(1, m.x, m.z); } }      // un seul cœur par souffle
+      });
+    }
+    // un nuage de pollen posé au sol (danger « pollen ») : il colle et il pique
+    function pollenCloud(x, z, r, life) {
+      const Z = BOSS.zone; if (Z) { x = clamp(x, Z.x0 + 1, Z.x1 - 1); z = clamp(z, Z.z0 + 1, Z.z1 - 1); }
+      DANGER.push({ kind: 'pollen', x, z, r, t: 0, life: life || 4.5, tick: 0.5 });
+    }
+    function pollenUpdate(d, dt) {
+      if (!d.fxDone) { d.fxDone = true; fx({ x: d.x, y: 0.075, z: d.z, life: d.life, s0: d.r * 1.7, s1: d.r * 2.1, c0: 0xffa810, k: 1.1, cell: 'softc', mode: 1, a0: 0.5, a1: 0, fade: 0.6, ease: true }); fx({ x: d.x, y: 0.08, z: d.z, life: d.life, s0: d.r * 2.0, s1: d.r * 2.1, c0: 0xffc030, k: 1.7, cell: 'ring', mode: 1, a0: 0.9, a1: 0, fade: 0.7 }); }
+      if (FXR() < dt * 9 && d.t < d.life - 0.6) fx({ x: d.x + frnd(-d.r, d.r) * 0.7, y: frnd(0.2, 0.8), z: d.z + frnd(-d.r, d.r) * 0.7, vx: frnd(-0.3, 0.3), vy: frnd(0.15, 0.5), vz: frnd(-0.3, 0.3), life: frnd(1.2, 1.8), s0: frnd(0.8, 1.2), s1: frnd(1.6, 2.2), c0: fpick([0xffc828, 0xffd850, 0xf0b020]), k: 1.0, cell: 'smoke', add: false, a0: 0.5, a1: 0, rot: FXR() * 6, fin: 0.3 });
+      if (FXR() < dt * 6) fx({ x: d.x + frnd(-d.r, d.r) * 0.8, y: frnd(0.3, 1.6), z: d.z + frnd(-d.r, d.r) * 0.8, vy: frnd(0.1, 0.4), life: frnd(0.8, 1.4), s0: 0.1, s1: 0.04, c0: 0xfff6b0, k: 2.6, cell: 'dot', a0: 1, a1: 0 });
+      eachHero(() => {
+        const tk = 'tick' + (hero.i || 0); if (d[tk] == null) d[tk] = d.tick;
+        if (Math.hypot(hero.x - d.x, hero.z - d.z) < d.r) { hero.sticky = Math.max(hero.sticky || 0, 0.3); d[tk] -= dt; if (d[tk] <= 0) { d[tk] = 1.5; hurtHero(1, d.x, d.z); } }
+        else d[tk] = Math.min(d.tick, d[tk] + dt);
+      });
+    }
+    // ------------------------------------------------------------- les racines tueuses
+    function entRootGeo() {
+      if (EC.rootGeo) return EC.rootGeo;
+      // une racine courbe et pointue : 8 anneaux de 6 côtés, écorce brune, bout moussu
+      const B = { p: [], c: [], n: [] }, NR = 8, NS = 6, ring = [];
+      for (let r = 0; r <= NR; r++) {
+        const k = r / NR, y = -0.25 + k * 2.1, bx = Math.sin(k * 1.8) * 0.5 * k + Math.sin(k * 7) * 0.05, rad = 0.34 * Math.pow(1 - k, 0.8) + 0.015, col = gc(0x3a2414).lerp(gc(0x52341c), k).lerp(gc(0x3a6a1a), clamp((k - 0.6) * 2.4, 0, 1)).multiplyScalar(0.9 + 0.2 * Math.sin(r * 2.3));
+        const pts = []; for (let s = 0; s < NS; s++) { const a = s / NS * TAU; pts.push([bx + Math.cos(a) * rad, y, Math.sin(a) * rad, Math.cos(a), Math.sin(a)]); }
+        ring.push({ pts, col });
+      }
+      for (let r = 0; r < NR; r++) for (let s = 0; s < NS; s++) {
+        const a = ring[r].pts[s], b = ring[r].pts[(s + 1) % NS], c = ring[r + 1].pts[(s + 1) % NS], d = ring[r + 1].pts[s], ca = ring[r].col, cb = ring[r + 1].col;
+        gTri(B, a.slice(0, 3), b.slice(0, 3), c.slice(0, 3), ca, ca, cb, [a[3], 0.25, a[4]]); gTri(B, a.slice(0, 3), c.slice(0, 3), d.slice(0, 3), ca, cb, cb, [a[3], 0.25, a[4]]);
+      }
+      const g = keep(new T.BufferGeometry());
+      g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3)); g.setAttribute('color', new T.Float32BufferAttribute(B.c, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(B.n, 3));
+      g.computeBoundingSphere(); g.boundingSphere.radius = 3;
+      return (EC.rootGeo = g);
+    }
+    function rootMesh() {
+      if (EC.rootMesh && EC.rootMesh.parent) return EC.rootMesh;
+      const mat = keep(noFlip(patchMat(lam({ vertexColors: true, side: T.DoubleSide }), { rim: true, dark: true, lm: true, rimCol: 0xffd890, rimK: 0.3 }), 'root'));
+      const im = new T.InstancedMesh(entRootGeo(), mat, 64); im.count = 0; im.frustumCulled = false; im.castShadow = Q.shadow > 0; wadd(im);
+      EC.m4 = new T.Matrix4(); EC.q = new T.Quaternion(); EC.e = new T.Euler(); EC.v = new T.Vector3(); EC.s = new T.Vector3();
+      EC.roots.length = 0; return (EC.rootMesh = im);
+    }
+    // une gerbe de racines qui jaillit (visuel : les dégâts sont ceux du cercle annoncé)
+    function rootBurst(x, z, r) {
+      rootMesh();
+      const n = r > 1.4 ? 7 : 5;
+      for (let q = 0; q < n && EC.roots.length < 64; q++) {
+        const a = q / n * TAU + FXR() * 0.6, d = (q ? frnd(0.3, 0.85) : 0.1) * r;
+        EC.roots.push({ x: x + Math.cos(a) * d, z: z + Math.sin(a) * d, ry: -a + frnd(-0.4, 0.4), tilt: q ? frnd(0.2, 0.5) : frnd(0, 0.15), s: frnd(0.85, 1.3) * (q ? 1 : 1.25), t: -q * 0.03, life: frnd(1.0, 1.25) });
+      }
+      sfx('woodbreak', 0.5, frnd(0.85, 1.05), 0.04, x); sfx('rockhit', 0.35, 0.7, 0.05, x); shake(0.16);
+      dust(x, z, 6, 1.4, 0x6a5a3a);
+      for (let q = 0; q < 10; q++) { const a = FXR() * TAU, v = frnd(2, 5); fx({ x, y: 0.3, z, vx: Math.cos(a) * v, vy: frnd(4, 8), vz: Math.sin(a) * v, g: 18, floor: true, life: frnd(0.7, 1.0), s0: frnd(0.25, 0.4), s1: 0.2, c0: fpick([0x5a4028, 0x6a4a2a, 0x3a5a22]), k: 1, cell: 'rocks', add: false, rot: FXR() * 6, vr: frnd(-8, 8) }); }
+      burst(x, 0.5, z, 0x9cff60, 5, 3, 0.5, 0.22, 'star4', 1.8);
+    }
+    function rootsUpdate(dt) {
+      if (!EC.rootMesh || !EC.rootMesh.parent) return;
+      const im = EC.rootMesh, L = EC.roots; let n = 0;
+      for (let i = L.length - 1; i >= 0; i--) { const r = L[i]; r.t += dt; if (r.t >= r.life) { L[i] = L[L.length - 1]; L.pop(); } }
+      for (const r of L) {
+        if (r.t < 0) continue;
+        const up = r.t < 0.13 ? easeOut(r.t / 0.13) * 1.12 : r.t < 0.25 ? lerp(1.12, 1, (r.t - 0.13) / 0.12) : r.t > r.life - 0.45 ? Math.max(0, (r.life - r.t) / 0.45) : 1;
+        EC.e.set(r.tilt, r.ry, 0, 'YXZ'); EC.q.setFromEuler(EC.e); EC.v.set(r.x, -1.9 * r.s * (1 - up), r.z); EC.s.setScalar(r.s);
+        EC.m4.compose(EC.v, EC.q, EC.s); im.setMatrixAt(n++, EC.m4);
+      }
+      im.count = n; if (n) im.instanceMatrix.needsUpdate = true;
+    }
+    // l'avertissement « la terre se fend » : une fissure sombre qui s'ouvre, de la terre qui saute, ça gronde (danger.warn)
+    function dangerWarn(d, first, dt) {
+      if (d.warn !== 'crack') return;
+      if (first) {
+        fx({ x: d.x, y: 0.072, z: d.z, life: d.delay + 0.1, s0: d.r * 1.1, s1: d.r * 2.3, c0: 0x2a1808, k: 1, cell: 'crack', mode: 1, add: false, a0: 0.5, a1: 0.95, rot: FXR() * 6 });
+        sfx('quake', 0.25, frnd(1.3, 1.5), 0.15, d.x);
+        return;
+      }
+      if (FXR() < dt * 16) { const a = FXR() * TAU, rr = FXR() * d.r; fx({ x: d.x + Math.cos(a) * rr, y: 0.12, z: d.z + Math.sin(a) * rr, vx: frnd(-0.5, 0.5), vy: frnd(1.5, 3.2), vz: frnd(-0.5, 0.5), g: 14, floor: true, life: frnd(0.35, 0.55), s0: frnd(0.12, 0.22), s1: 0.1, c0: fpick([0x5a4028, 0x7a5a38]), k: 1, cell: 'rocks', add: false, rot: FXR() * 6 }); }
+      if (FXR() < dt * 5) dust(d.x, d.z, 1, 0.9, 0x7a6a4a);
+    }
+    // ------------------------------------------------------------- les trois attaques (appelées par hfcAtk)
+    function entHand(m) {
+      const h = m.c.bones && (m.c.bones.OAK_TEE_ENT__R_Hand || m.c.bones['OAK_TEE_ENT_ R Hand']);
+      if (h) { const v = bonePos(h, tmpV); return { x: v.x, y: Math.max(1.2, v.y), z: v.z }; }
+      return { x: m.x + Math.sin(m.face) * 1.6, y: 4.0, z: m.z + Math.cos(m.face) * 1.6 };
+    }
+    function entLogs(m, A, rage) {
+      dPlay('pick', { once: true, speed: 1.25 * rage, fade: 0.15 }); A.dur = 2.75; A.turn = 2.4;
+      const n = BOSS.phase === 3 ? 5 : m.hp < m.hpMax * 0.5 ? 3 : 1;
+      A.ev.push([0.75, () => { const p = { x: m.x + Math.sin(m.face) * 1.8, z: m.z + Math.cos(m.face) * 1.8 }; dust(p.x, p.z, 8, 1.6, 0x7a6a4a); sfx('woodbreak', 0.5, 0.6); sfx('rockhit', 0.4, 0.6);
+        for (let q = 0; q < 8; q++) { const a = FXR() * TAU, v = frnd(2, 4); fx({ x: p.x, y: 0.3, z: p.z, vx: Math.cos(a) * v, vy: frnd(3, 6), vz: Math.sin(a) * v, g: 16, floor: true, life: 0.8, s0: 0.3, s1: 0.2, c0: 0x5a4028, k: 1, cell: 'rocks', add: false, rot: FXR() * 6 }); } }]);
+      A.ev.push([1.6, () => { dPlay('throw', { once: true, speed: 1.25 * rage, fade: 0.1 }); A.turn = 0.6; }]);
+      A.ev.push([2.05, () => {
+        const h = entHand(m), lead = 0.5;
+        for (let i = 0; i < n; i++) {
+          const a = Math.atan2(hero.x - m.x, hero.z - m.z) + (i ? (i % 2 ? 1 : -1) * (0.32 + Math.floor((i - 1) / 2) * 0.3) : 0);
+          const d = Math.hypot(hero.x + hero.vx * lead - m.x, hero.z + hero.vz * lead - m.z) + (i ? frnd(-1.5, 1.5) : 0);
+          const tx = i ? m.x + Math.sin(a) * d : hero.x + hero.vx * lead, tz = i ? m.z + Math.cos(a) * d : hero.z + hero.vz * lead;
+          throwLog(h.x, h.y, h.z, tx, tz, i * 0.14, i === 0 && n > 1);
+        }
+      }]);
+    }
+    function entPollen(m, A, rage) {
+      dPlay('throw', { once: true, speed: 0.72 * rage, fade: 0.2 }); A.dur = 3.0; A.turn = 2.6;
+      const cone = entCone();
+      A.ev.push([0.02, () => { cone.visible = true; cone.material.uniforms.uA.value = 0.2; sfx('wood', 0.5, 0.55); sfx('summon', 0.35, 1.4); if (NETH) netEv({ e: 'cw', d: 85 }); }]);
+      A.ev.push([0.5, () => { A.turn = 0.35; }]);
+      A.ev.push([0.9 * rage, () => { A.breath = { t: 0, dur: 1.35 }; sfx('whoosh', 0.7, 0.5); sfx('breath', 0.6, 1.6); }]);
+    }
+    function entBurrow(m, A, rage) {
+      dPlay('hide', { once: true, speed: 0.45, fade: 0.2 }); A.dur = 99; A.turn = 0; BOSS.burT = 10;
+      const Z = BOSS.zone, P = BOSS.phase, gap = 0.82;          // l'avertissement reste de 0,8 s, même énervé
+      A.bur = { st: 'sink', t: 0 }; m.sleeping = true;
+      sfx('quake', 0.6, 0.8); sfx('woodbreak', 0.6, 0.55); shake(0.4);
+      const line = (t, n, step, d0, r) => A.ev.push([t, () => {
+        const a = Math.atan2(hero.x - m.x, hero.z - m.z);
+        for (let i = 0; i < n; i++) { const dd = d0 + i * step; danger({ kind: 'circle', x: clamp(m.x + Math.sin(a) * dd, Z.x0 + 1, Z.x1 - 1), z: clamp(m.z + Math.cos(a) * dd, Z.z0 + 1, Z.z1 - 1), r, delay: gap + i * 0.12, dmg: 1, hurtMon: 25, warn: 'crack', fk: 'root' }); }
+      }]);
+      const cross = (t) => A.ev.push([t, () => {
+        const hx = clamp(hero.x, Z.x0 + 1.5, Z.x1 - 1.5), hz = clamp(hero.z, Z.z0 + 1.5, Z.z1 - 1.5), a0 = FXR() * TAU;
+        danger({ kind: 'circle', x: hx, z: hz, r: 1.45, delay: gap, dmg: 1, hurtMon: 25, warn: 'crack', fk: 'root' });
+        for (let i = 0; i < 4; i++) { const a = a0 + i * TAU / 4; danger({ kind: 'circle', x: clamp(hx + Math.cos(a) * 3.3, Z.x0 + 1, Z.x1 - 1), z: clamp(hz + Math.sin(a) * 3.3, Z.z0 + 1, Z.z1 - 1), r: 1.25, delay: gap + 0.3, dmg: 1, hurtMon: 25, warn: 'crack', fk: 'root' }); }
+      }]);
+      line(1.2, 6, 1.9, 2.2, 1.3);
+      cross(2.6);
+      if (P >= 3) A.ev.push([3.6, () => { const a = Math.atan2(hero.x - m.x, hero.z - m.z); for (const s of [-0.45, 0.45]) for (let i = 0; i < 5; i++) { const dd = 2.5 + i * 2.0; danger({ kind: 'circle', x: clamp(m.x + Math.sin(a + s) * dd, Z.x0 + 1, Z.x1 - 1), z: clamp(m.z + Math.cos(a + s) * dd, Z.z0 + 1, Z.z1 - 1), r: 1.2, delay: gap + i * 0.12, dmg: 1, hurtMon: 25, warn: 'crack', fk: 'root' }); } }]);
+      // il ressort loin du mage : la terre se fend là (0,9 s), puis il jaillit dans une onde
+      const out = P >= 3 ? 4.8 : 3.9;
+      A.ev.push([out, () => {
+        const sp = (Z.spots.spawns || []).map((p) => [Z.x0 + p[0], Z.z0 + p[1]]).concat([[Z.x0 + (Z.x1 - Z.x0) / 2, Z.z0 + (Z.z1 - Z.z0) / 2]]);
+        let best = sp[0], bd = -1; for (const p of sp) { const dd = Math.hypot(p[0] - hero.x, p[1] - hero.z); if (dd > 6.5 && dd < 14 && FXR() < 0.8 && dd > bd) { bd = dd; best = p; } }
+        if (bd < 0) for (const p of sp) { const dd = Math.hypot(p[0] - hero.x, p[1] - hero.z); if (dd > bd) { bd = dd; best = p; } }
+        const x = clamp(best[0], Z.x0 + 3.4, Z.x1 - 3.4), z = clamp(best[1], Z.z0 + 3.4, Z.z1 - 3.4);
+        A.bur.to = [x, z];
+        danger({ kind: 'circle', x, z, r: 2.6, delay: 0.95, dmg: 1, hurtMon: 40, warn: 'crack' });
+      }]);
+      A.ev.push([out + 0.95, () => {
+        if (!A.bur.to) return; m.x = A.bur.to[0]; m.z = A.bur.to[1]; m.face = Math.atan2(hero.x - m.x, hero.z - m.z);
+        A.bur.st = 'rise'; A.bur.t = 0; dPlay('unhide', { once: true, speed: 0.5, fade: 0.1 });
+        sfx('woodbreak', 0.7, 0.5); sfx('quake', 0.7, 0.75); shake(0.55); hitStop(0.05);
+        rootBurst(m.x, m.z, 2.6); dust(m.x, m.z, 14, 2.4, 0x7a6a4a);
+        danger({ kind: 'wave', x: m.x, z: m.z, r0: 2.2, r1: 8.5, life: 0.75, dmg: 1 }); ringFx(m.x, m.z, 0x9cff60, 2.2, 8.5, 0.75, 'ring', 0.9, 2);
+      }]);
+      A.ev.push([out + 2.0, () => { A.bur = null; m.sleeping = false; BOSS.eyesOn = 1; A.dur = 0; dPlay('walk'); }]);
+    }
+    const ENT_ATK = { logs: entLogs, pollen: entPollen, burrow: entBurrow };
+    // chaque image (hôte ou seul) : le cône suit le chêne, le souffle de pollen, s'enfoncer / ressortir, mi-vie
+    function entTick(m, dt) {
+      const A = BOSS.atk;
+      if (EC.cone && EC.cone.visible) {
+        EC.cone.position.set(m.x + Math.sin(m.face) * 1.5, 0.09, m.z + Math.cos(m.face) * 1.5); EC.cone.rotation.y = m.face;
+        const u = EC.cone.material.uniforms.uA; if (!A || A.kind !== 'pollen') EC.cone.visible = false; else if (!A.breath) { u.value = Math.min(0.75, u.value + dt * 1.1); crownCharge(m, u.value / 0.75); } else u.value = 0.5;
+      }
+      if (A && A.breath) {
+        const B = A.breath; B.t += dt; pollenParticles(m, B.t / B.dur); pollenHit(m, dt, B);
+        if (B.t >= B.dur) { A.breath = null; if (EC.cone) EC.cone.visible = false; const n = m.hp < m.hpMax * 0.5 ? 3 : 2; for (let i = 0; i < n; i++) { const dd = 3.6 + i * 3.1, s = frnd(-0.3, 0.3); pollenCloud(m.x + Math.sin(m.face + s) * dd, m.z + Math.cos(m.face + s) * dd, 1.9 + i * 0.15, 4.0); } }
+      }
+      if (A && A.bur) {
+        const Bu = A.bur; Bu.t += dt; const H = KIND.ent.h * 1.12;
+        if (Bu.st === 'sink') { const k = clamp(Bu.t / 1.1, 0, 1); m.y = -H * k * k; BOSS.eyesOn = k < 0.5 ? 1 : 0; if (FXR() < dt * 30 && k < 1) { const a = FXR() * TAU; dust(m.x + Math.cos(a) * 1.6, m.z + Math.sin(a) * 1.6, 1, 1.4, 0x7a6a4a); fx({ x: m.x + Math.cos(a) * 1.2, y: 0.2, z: m.z + Math.sin(a) * 1.2, vx: Math.cos(a) * 3, vy: frnd(2, 5), vz: Math.sin(a) * 3, g: 16, floor: true, life: 0.7, s0: 0.3, s1: 0.2, c0: 0x5a4028, k: 1, cell: 'rocks', add: false, rot: FXR() * 6 }); } if (k < 1 && FXR() < dt * 8) shake(0.12); }
+        else if (Bu.st === 'rise') { const k = clamp(Bu.t / 0.75, 0, 1); m.y = -H * (1 - easeOut(k)); BOSS.eyesOn = k > 0.4 ? 1 : 0; }
+        if (m.sh) m.sh.a = Bu.st === 'rise' ? 0.5 * Bu.t : 0;
+      }
+      if (BOSS.burT > 0) BOSS.burT -= dt;
+      if (!BOSS.half && m.hp < m.hpMax * 0.5 && BOSS.st !== 'dead') {      // mi-vie : il s'énerve (plus rapide), ses yeux flambent
+        BOSS.half = true; sfx('roar', 0.9, 0.6); shake(0.4);
+        for (let i = 0; i < 30; i++) fx({ x: m.x + frnd(-2.5, 2.5), y: frnd(3, 6.5), z: m.z + frnd(-2.5, 2.5), vx: frnd(-1.5, 1.5), vy: frnd(-1, 1), vz: frnd(-1.5, 1.5), g: 2, life: frnd(1.5, 2.6), s0: 0.24, s1: 0.12, c0: fpick([0xffa040, 0xffd060, 0x8cff50]), k: 1.6, cell: 'shard', add: false, rot: FXR() * 6, vr: frnd(-4, 4) });
+      }
+    }
+    // la vitesse du chêne : un peu plus vif à 66 %, nettement à mi-vie, encore à 33 %
+    function entRage(m) { return BOSS.phase === 3 ? 1.32 : m.hp < m.hpMax * 0.5 ? 1.2 : BOSS.phase === 2 ? 1.07 : 1; }
+    function entOpts(d) {
+      const P = BOSS.phase, bur = P >= 2 && !(BOSS.burT > 0);
+      if (d < 5.6) return bur ? ['swipe', 'combo', 'stomp', 'pollen', 'burrow'] : ['swipe', 'swipe', 'combo', 'stomp', 'pollen'];
+      const o = d < 10 ? ['logs', 'pollen', 'stomp', 'logs'] : ['logs', 'logs', 'pollen'];
+      if (bur) o.push('burrow', 'burrow');
+      return o;
+    }
+    // la pluie de la fin (phase 3) : des branches tombent du ciel (ombre + cercle)
+    function entRain() {
+      const Z = BOSS.zone;
+      for (let i = 0; i < 3; i++) {
+        const a = FXR() * TAU, rr = i ? frnd(1.5, 4) : 0, x = clamp(hero.x + hero.vx * 0.5 + Math.cos(a) * rr, Z.x0 + 1.5, Z.x1 - 1.5), z = clamp(hero.z + hero.vz * 0.5 + Math.sin(a) * rr, Z.z0 + 1.5, Z.z1 - 1.5);
+        throwLog(x + frnd(-0.4, 0.4), 13, z + frnd(-0.4, 0.4), x, z, 0.25 + i * 0.3, false, 0);
+      }
+    }
+    const JARDIN = { mossAt, gardenDecor, statueGeo, JST, EC, makeLog, entLogs, entPollen, entBurrow, rootBurst, throwLog, pollenCloud };      // (essais : window.__magicDbg.JD())
+    // ===========================================================================
+    // LA TOUR DU SORCIER ET LA SALLE DU TRÔNE, en beau (chantier 24, v24) — décor dessiné par le jeu, aucun nouveau fichier, comme
+    // le Jardin (p7f) : tout est fusionné par matériau et par zone (quelques appels de dessin) et la lumière est cuite.
+    //  - TOUR : dalles nuancées (la carte du sol porte les nuages : une seule lecture de texture), runes qui luisent au sol (cercles
+    //    magiques, frises des couloirs, runes isolées), grimoires et bougies qui flottent, grappes de cristaux violets au pied des
+    //    murs, rayons de lune par les fenêtres, poussière d'étoiles près de la caméra ;
+    //  - TRÔNE : marbre veiné (nuages et bordure sombre dans la carte du sol, veines dessinées), filets et losanges d'or, lustres
+    //    allumés, armures, poussière d'or.
+    // Les dangers au sol (cercles rouges) restent lisibles : rien de rouge au sol, des runes bleu-violet, un sol pas plus clair
+    // qu'avant ; rien au milieu des arènes de boss.
+    // ===========================================================================
+    Object.assign(MAPS.tour.look, { tower: true, stardust: true, moss: { k: 0.62, a: 0x16123e, b: 0x4a5cb8 }, floorFill: towerFill });
+    Object.assign(MAPS.trone.look, { throne: true, golddust: true, floorFill: marbleFill,
+      marble: { ref: 0x9d856b, a: 0xb6a49a, b: 0x8c7872, c: 0x7a3236, d: 0x52222a } });
+    // la Tour : des fenêtres ouvertes sur la nuit étoilée (rayons de lune) dans l'escalier, les grimoires, le labo et le dojo
+    Object.assign(MAPS.tour.wallDeco, { a: 'tstswts', c: 'tswts', h: 'tstwt', m: 'tbtwtbtw' });
+
+    // ------------------------------------------------------------- lots de géométrie (par matériau ET par zone : hors de l'écran = pas dessiné)
+    const TB = {};
+    const TT = { t: 0, circles: [], chand: [], armor: [], carpets: [], n: {} };      // (essais, captures : window.__magicDbg.TT())
+    function tbOf(k, Z, fl, idx) {
+      const key = k + '|' + (Z ? Z.id : '*');
+      return TB[key] || (TB[key] = { k, p: [], c: [], n: [], f: fl ? [] : null, i: idx ? [] : null });
+    }
+    const TUP = [0, 1, 0];
+    // triangle posé au sol, toujours tourné vers le haut (face avant vue du dessus)
+    function upTri(B, a, b, c, ca, cb, cc) {
+      if ((b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]) < 0) { const t = b; b = c; c = t; const u = cb; cb = cc; cc = u; }
+      gTri(B, a, b, c, ca, cb, cc, TUP);
+    }
+    // un trait plat (bouts carrés) de a à b, largeur w, à la hauteur y
+    function tStroke(B, ax, az, bx, bz, w, y, col) {
+      const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz) || 1, ux = dx / L * w * 0.5, uz = dz / L * w * 0.5, px = -uz, pz = ux;
+      const A1 = [ax - ux + px, y, az - uz + pz], A2 = [ax - ux - px, y, az - uz - pz], B1 = [bx + ux + px, y, bz + uz + pz], B2 = [bx + ux - px, y, bz + uz - pz];
+      upTri(B, A1, B1, A2, col, col, col); upTri(B, A2, B1, B2, col, col, col);
+    }
+    // un anneau plat (rayon r, épaisseur w)
+    function tRing(B, cx, cz, r, w, y, col, n) {
+      n = n || Math.max(24, Math.round(r * 22));
+      const r0 = r - w / 2, r1 = r + w / 2;
+      for (let i = 0; i < n; i++) {
+        const a = i / n * TAU, b = (i + 1) / n * TAU, ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+        const P = [cx + ca * r0, y, cz + sa * r0], Q2 = [cx + ca * r1, y, cz + sa * r1], R2 = [cx + cb * r1, y, cz + sb * r1], S = [cx + cb * r0, y, cz + sb * r0];
+        upTri(B, P, Q2, R2, col, col, col); upTri(B, P, R2, S, col, col, col);
+      }
+    }
+    // un petit losange plat
+    function tDiamond(B, cx, cz, rx, rz, y, col, ang) {
+      const c = Math.cos(ang || 0), s = Math.sin(ang || 0), P = (u, v) => [cx + u * c - v * s, y, cz + u * s + v * c];
+      upTri(B, P(rx, 0), P(0, rz), P(-rx, 0), col, col, col); upTri(B, P(-rx, 0), P(0, -rz), P(rx, 0), col, col, col);
+    }
+    // une géométrie three.js posée par la matrice M ; couleur fixe ou fonction (x, y, z, ny) ; F = attribut « flotte » (4 nombres)
+    function tPush(B, g, M, col, F, flat) {
+      const ng = g.index ? g.toNonIndexed() : g; if (ng !== g) g.dispose();
+      if (M) ng.applyMatrix4(M);
+      if (flat || !ng.getAttribute('normal')) ng.computeVertexNormals();
+      const p = ng.getAttribute('position'), n = ng.getAttribute('normal'), fn = typeof col === 'function';
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+        B.p.push(x, y, z); B.n.push(n.getX(i), n.getY(i), n.getZ(i));
+        const c = fn ? col(x, y, z, n.getY(i)) : col; B.c.push(c.r, c.g, c.b);
+        if (B.f) B.f.push(F[0], F[1], F[2], F[3]);
+      }
+      ng.dispose();
+    }
+    // un tube (cylindre ouvert) de P à Q ; un cerceau horizontal fait de petits tubes
+    function tTube(B, px, py, pz, qx, qy, qz, r, col, F) {
+      const d = new T.Vector3(qx - px, qy - py, qz - pz), L = d.length() || 1e-3, q = new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize());
+      tPush(B, new T.CylinderGeometry(r, r, L, 5, 1, true), new T.Matrix4().compose(new T.Vector3((px + qx) / 2, (py + qy) / 2, (pz + qz) / 2), q, new T.Vector3(1, 1, 1)), col, F);
+    }
+    function tHoop(B, x, y, z, R, r, n, col) {
+      for (let i = 0; i < n; i++) { const a = i / n * TAU, b = (i + 1) / n * TAU; tTube(B, x + Math.cos(a) * R, y, z + Math.sin(a) * R, x + Math.cos(b) * R, y, z + Math.sin(b) * R, r, col); }
+    }
+    const tMat4 = (x, y, z, ry, rx, rz, s) => { const m = new T.Matrix4().makeRotationFromEuler(new T.Euler(rx || 0, ry || 0, rz || 0, 'YXZ')); if (s) m.scale(new T.Vector3(s, s, s)); return m.setPosition(x, y, z); };
+    const tMul = (A, B) => new T.Matrix4().multiplyMatrices(A, B);
+    const lin = (hex, k) => { const c = new T.Color(hex); if (k != null) c.multiplyScalar(k); return c; };
+    const nearDoorT = (x, z, r) => DOORS.some((D) => Math.hypot(D.x - x, D.z - z) < r);
+    const isPit = (x, z) => MAP.at(Math.floor(x / CELL), Math.floor(z / CELL)) === 'L';
+
+    // ------------------------------------------------------------- les runes (traits dans un carré [-0,5 ; 0,5], v vers le « haut » du signe)
+    const RUNES = [
+      [[0, -0.5, 0, 0.5], [0, 0.12, 0.32, 0.4], [0, -0.14, 0.32, 0.14]],
+      [[-0.24, -0.5, -0.24, 0.5], [-0.24, 0.5, 0.26, 0.22], [0.26, 0.22, 0.26, -0.5]],
+      [[-0.2, -0.5, -0.2, 0.5], [-0.2, 0.3, 0.22, 0], [0.22, 0, -0.2, -0.3]],
+      [[-0.22, -0.5, -0.22, 0.5], [-0.22, 0.5, 0.22, 0.25], [0.22, 0.25, -0.22, 0], [-0.22, 0, 0.24, -0.5]],
+      [[0.26, 0.42, -0.22, 0], [-0.22, 0, 0.26, -0.42]],
+      [[-0.3, -0.45, 0.3, 0.45], [-0.3, 0.45, 0.3, -0.45]],
+      [[-0.22, -0.5, -0.22, 0.5], [0.22, -0.5, 0.22, 0.5], [-0.22, 0.16, 0.22, -0.16]],
+      [[0, -0.5, 0, 0.5], [-0.22, 0.16, 0.22, -0.16]],
+      [[-0.05, 0.46, -0.3, 0.16], [-0.3, 0.16, -0.05, -0.12], [0.05, 0.12, 0.3, -0.16], [0.3, -0.16, 0.05, -0.46]],
+      [[0, -0.5, 0, 0.5], [0, 0.5, 0.24, 0.28], [0, -0.5, -0.24, -0.28]],
+      [[0, -0.5, 0, 0.5], [0, 0.08, -0.3, 0.44], [0, 0.08, 0.3, 0.44]],
+      [[-0.26, 0.46, 0.2, 0.16], [0.2, 0.16, -0.2, -0.16], [-0.2, -0.16, 0.26, -0.46]],
+      [[0, -0.5, 0, 0.5], [0, 0.5, -0.28, 0.2], [0, 0.5, 0.28, 0.2]],
+      [[-0.2, -0.5, -0.2, 0.5], [-0.2, 0.5, 0.2, 0.26], [0.2, 0.26, -0.2, 0.02], [-0.2, 0.02, 0.2, -0.24], [0.2, -0.24, -0.2, -0.5]],
+      [[-0.26, -0.5, -0.26, 0.5], [0.26, -0.5, 0.26, 0.5], [-0.26, 0.5, 0, 0.18], [0, 0.18, 0.26, 0.5]],
+      [[-0.1, -0.5, -0.1, 0.5], [-0.1, 0.5, 0.26, 0.2]],
+      [[0, 0.46, 0.3, 0], [0.3, 0, 0, -0.46], [0, -0.46, -0.3, 0], [-0.3, 0, 0, 0.46]],
+      [[-0.3, -0.46, -0.3, 0.46], [0.3, -0.46, 0.3, 0.46], [-0.3, 0.46, 0.3, -0.46], [-0.3, -0.46, 0.3, 0.46]],
+      [[0, 0.46, 0.26, 0.14], [0.26, 0.14, -0.26, -0.4], [0, 0.46, -0.26, 0.14], [-0.26, 0.14, 0.26, -0.4]],
+      [[-0.2, -0.5, -0.2, 0.5], [-0.2, 0.5, 0.2, 0.3], [-0.2, 0.1, 0.2, 0.3], [-0.2, 0.1, 0.2, -0.1], [-0.2, -0.3, 0.2, -0.1]]
+    ];
+    // un signe : centre (x, z), « haut » (ux, uz), taille s, épaisseur w
+    function tGlyph(B, x, z, ux, uz, s, k, w, y, col) {
+      const rx = uz, rz = -ux;
+      for (const [a, b, c, d] of RUNES[k % RUNES.length]) tStroke(B, x + (a * rx + b * ux) * s, z + (a * rz + b * uz) * s, x + (c * rx + d * ux) * s, z + (c * rz + d * uz) * s, w, y, col);
+    }
+    const RUNE_DARK = { r: 0.012, g: 0.007, b: 0.03 };          // liseré sombre sous les runes (gravées dans la pierre)
+    // un cercle magique : deux anneaux, une bande de runes, une étoile (5, 6 ou 8 branches), un petit cercle au centre ; liseré sombre dessous
+    function runeCircle(Z, cx, cz, R, rr, col, fig) {
+      const B = tbOf('rune', Z), ng = Math.max(10, Math.floor(TAU * R * 0.9 / 0.36)), ks = []; for (let i = 0; i < ng; i++) ks.push(Math.floor(rr() * RUNES.length));
+      for (const pass of [0, 1]) {
+        const y = pass ? 0.009 : 0.004, c = pass ? col : RUNE_DARK, ex = pass ? 0 : 0.045;
+        tRing(B, cx, cz, R, 0.07 + ex, y, c); tRing(B, cx, cz, R * 0.79, 0.04 + ex, y, c); tRing(B, cx, cz, R * 0.17, 0.035 + ex, y, c, 20);
+        const a0 = rr() * TAU, pts = [];
+        for (let i = 0; i < fig; i++) { const a = a0 + i / fig * TAU; pts.push([cx + Math.cos(a) * R * 0.77, cz + Math.sin(a) * R * 0.77]); }
+        const step = fig === 6 ? 2 : fig === 8 ? 3 : 2;
+        if (fig === 6) for (const o of [0, 1]) for (let i = 0; i < 3; i++) { const p = pts[(o + i * 2) % 6], q = pts[(o + i * 2 + 2) % 6]; tStroke(B, p[0], p[1], q[0], q[1], 0.035 + ex, y, c); }
+        else for (let i = 0; i < fig; i++) { const p = pts[i], q = pts[(i + step) % fig]; tStroke(B, p[0], p[1], q[0], q[1], 0.035 + ex, y, c); }
+        for (const p of pts) tDiamond(B, p[0], p[1], 0.07 + ex, 0.07 + ex, y + 0.001, c, Math.atan2(p[1] - cz, p[0] - cx));
+        for (let i = 0; i < ng; i++) {
+          const a = (i + 0.5) / ng * TAU, gx = cx + Math.cos(a) * R * 0.895, gz = cz + Math.sin(a) * R * 0.895;
+          tGlyph(B, gx, gz, Math.cos(a), Math.sin(a), R * 0.15, ks[i], 0.03 + ex * 0.7, y, c);
+        }
+      }
+      TT.circles.push([cx, cz, R]);
+    }
+
+    // ------------------------------------------------------------- grimoires et bougies qui flottent (attribut aFl : centre x, z, phase, mode)
+    // mode : |w| = amplitude de la montée-descente ; w > 0 : se balance un peu ; w < 0 : ne tourne pas (bougies : la flamme suit) ;
+    // |w| > 10 : tourne autour du centre (les livres qui font la ronde au-dessus d'un cercle magique)
+    const COVERS = [0x8a1c2a, 0x1c3a8a, 0x1e6a3a, 0x5a2a8a, 0x6a3a1c, 0x1a5a6a, 0x9a6a1a];
+    function floatBook(Z, x, y, z, ry, tilt, open, rr, F) {
+      const B = tbOf('float', Z, true), cov = lin(COVERS[Math.floor(rr() * COVERS.length)], 0.9 + rr() * 0.25), page = lin(0xf2e6c8, 0.92 + rr() * 0.1), gold = lin(0xe8b048);
+      const W = 0.3 + rr() * 0.08, D = 0.4 + rr() * 0.1, M0 = tMat4(x, y, z, ry, tilt, (rr() - 0.5) * 0.3, 1.45);
+      const box = (w, h, d, px, py, pz, col, rz) => tPush(B, new T.BoxGeometry(w, h, d), tMul(M0, tMat4(px, py, pz, 0, 0, rz || 0)), col, F);
+      if (!open) {
+        box(W, 0.022, D, 0, -0.045, 0, cov); box(W, 0.022, D, 0, 0.045, 0, cov); box(0.024, 0.11, D, -W / 2, 0, 0, cov);
+        box(W - 0.03, 0.068, D - 0.03, 0.01, 0, 0, page);
+        box(0.03, 0.115, 0.04, -W / 2, 0, D * 0.28, gold); box(0.03, 0.115, 0.04, -W / 2, 0, -D * 0.28, gold);
+      } else {
+        for (const sd of [-1, 1]) {
+          const a = sd * 0.22, cx = sd * W * 0.5 * Math.cos(a);
+          box(W, 0.02, D, cx, Math.abs(Math.sin(a)) * W * 0.5 - 0.02, 0, cov, a);
+          box(W - 0.03, 0.035, D - 0.03, cx, Math.abs(Math.sin(a)) * W * 0.5 + 0.008, 0, page, a);
+        }
+        // une page soulevée (deux triangles)
+        const P = new T.BufferGeometry(), h = 0.07;
+        P.setAttribute('position', new T.Float32BufferAttribute([0, h, -D * 0.45, W * 0.75, h + 0.12, -D * 0.42, 0, h, D * 0.45, W * 0.75, h + 0.12, -D * 0.42, W * 0.7, h + 0.1, D * 0.42, 0, h, D * 0.45,
+          0, h, D * 0.45, W * 0.75, h + 0.12, -D * 0.42, 0, h, -D * 0.45, 0, h, D * 0.45, W * 0.7, h + 0.1, D * 0.42, W * 0.75, h + 0.12, -D * 0.42], 3));
+        tPush(B, P, M0, page, F, true);
+      }
+    }
+    // bougie qui flotte : cire, coulure, mèche ; la flamme (effet permanent) monte et descend avec elle
+    function floatCandle(Z, x, y, z, h, rr, F, warm) {
+      const B = tbOf('float', Z, true), r = 0.05 + rr() * 0.025, wax = lin(rr() < 0.75 ? 0xf4ead2 : 0xe8d8ff, 0.95 + rr() * 0.1);
+      tPush(B, new T.CylinderGeometry(r, r * 1.04, h, 9, 1), tMat4(x, y + h / 2, z, rr() * TAU), wax, F);
+      tPush(B, new T.CylinderGeometry(r * 1.12, r * 1.12, 0.03, 9, 1), tMat4(x, y + h - 0.035, z, 0), lin(0xfff8e8), F);
+      tPush(B, new T.BoxGeometry(0.012, 0.05, 0.012), tMat4(x, y + h + 0.02, z, 0), lin(0x201410), F);
+      const amp = Math.abs(F[3]), ph = F[2] / 2, fc = warm ? [0xffc860, 0xfff2c8, 0xff9a40] : [0xd8b8ff, 0xfaf0ff, 0x9a60ff];
+      addStatic({ drift: true, bx: x, by: y + h + 0.1, bz: z, x, y, z, rx: 0, ry2: amp, fx: 0.6, ph, s: 0.19, cell: 'flame', col: fc[0], k: 2.4, flick: 15, a: 0.95 });
+      addStatic({ drift: true, bx: x, by: y + h + 0.08, bz: z, x, y, z, rx: 0, ry2: amp, fx: 0.6, ph, s: 0.62, cell: 'glow', col: fc[2], k: 0.9, flick: 11, a: 0.34 });
+    }
+    // un bouquet de bougies qui flottent (une lumière chaude cuite au sol)
+    function candleGroup(Z, x, z, rr, n, warm) {
+      for (let i = 0; i < n; i++) {
+        const a = rr() * TAU, d = i ? 0.25 + rr() * 0.45 : 0;
+        floatCandle(Z, x + Math.cos(a) * d, 2.15 + rr() * 0.75, z + Math.sin(a) * d, 0.16 + rr() * 0.22, rr, [x, z, rr() * TAU, -(0.07 + rr() * 0.06)], warm);
+      }
+      bakeAdd(x, z, warm ? 0xffb860 : 0xc8a0ff, 0.55 + n * 0.12, 4.2, 2.4);
+    }
+
+    // ------------------------------------------------------------- grappes de cristaux violets (prismes à six pans, pointe, dégradé qui luit)
+    const CRY_T = [0x2a0c52, 0x7a36d0, 0xeedcff];
+    function crystalCluster(Z, cx, cz, s, rr, ax, az) {
+      const B = tbOf('crys', Z), n = 3 + Math.floor(rr() * 4), c0 = lin(CRY_T[0]), c1 = lin(CRY_T[1]), c2 = lin(CRY_T[2]), up = new T.Vector3(0, 1, 0), v = new T.Vector3(), q = new T.Quaternion(), sc = new T.Vector3(1, 1, 1);
+      const top = 1.45 * s, col = (x, y) => { const t = clamp(y / top, 0, 1); return t < 0.55 ? c0.clone().lerp(c1, t / 0.55) : c1.clone().lerp(c2, (t - 0.55) / 0.45); };
+      for (let i = 0; i < n; i++) {
+        const big = i === 0, h = (big ? 0.95 + rr() * 0.45 : 0.35 + rr() * 0.55) * s, r = (big ? 0.15 : 0.07 + rr() * 0.07) * s;
+        const ang = rr() * TAU, off = big ? 0 : (0.12 + rr() * 0.2) * s, px = cx + Math.cos(ang) * off, pz = cz + Math.sin(ang) * off;
+        const lean = big ? 0.12 : 0.35 + rr() * 0.4;
+        q.setFromUnitVectors(up, v.set(Math.cos(ang) * lean + ax * 0.22, 1, Math.sin(ang) * lean + az * 0.22).normalize());
+        const M = new T.Matrix4().compose(v.set(px, -0.04, pz), q, sc), tw = new T.Matrix4().makeRotationY(rr() * TAU), Mt = tMul(M, tw);
+        const g1 = new T.CylinderGeometry(r * 0.86, r, h * 0.78, 6, 1); g1.translate(0, h * 0.39, 0);
+        const g2 = new T.ConeGeometry(r * 0.86, h * 0.24, 6, 1); g2.translate(0, h * 0.78 + h * 0.12, 0);
+        tPush(B, g1, Mt, col, null, true); tPush(B, g2, Mt, col, null, true);
+      }
+      // de petits éclats couchés autour
+      for (let i = 0; i < 3; i++) {
+        const a = rr() * TAU, d = (0.35 + rr() * 0.3) * s, g = new T.SphereGeometry(0.05 * s + rr() * 0.03, 4, 2); g.scale(1, 1.8, 1);
+        tPush(B, g, tMat4(cx + Math.cos(a) * d, 0.04, cz + Math.sin(a) * d, rr() * TAU, 1.2, rr()), col, null, true);
+      }
+    }
+
+    // ------------------------------------------------------------- la carte du sol de la Tour : vert = nuages de pierre de lune (plus sombres au pied des murs), bleu = teinte
+    function towerFill(data, w, h, ppm, B) {
+      for (let k = 0; k < w * h; k++) {
+        const px = k % w, py = (k - px) / w, x = (px + 0.5) / ppm, z = (py + 0.5) / ppm;
+        const n = gNoise(x * 0.12 + 3.3, z * 0.12 + 8.1) * 0.58 + gNoise(x * 0.33 + 11.1, z * 0.33 + 2.7) * 0.3 + gNoise(x * 1.1 + 4.4, z * 1.1 + 9.5) * 0.12;
+        data[k * 4 + 1] = Math.round(clamp(sstep(0.36, 0.72, n) * 0.62 + (1 - B[k]) * 0.42, 0, 1) * 255);
+        data[k * 4 + 2] = Math.round(clamp(gNoise(x * 0.21 + 30.5, z * 0.21 + 14.2) * 1.15 - 0.08, 0, 1) * 255);
+      }
+    }
+    // la carte du sol du Trône : vert = nuages du marbre, bleu = bordure de marbre sombre (rampe : 0,5 pile sur le filet d'or)
+    const BANDW = 2.1;
+    function zoneOfCell(i, j) { const ch = MAP.at(i, j); return ch === ' ' || ch === 'L' ? null : ch; }
+    // distance d'un point à la bordure de sa zone (cases voisines d'une autre zone, du vide — pas les puits)
+    function edgeDist(x, z, id) {
+      const i = Math.floor(x / CELL), j = Math.floor(z / CELL); let d = 9;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        if (!di && !dj) continue;
+        const ch = MAP.at(i + di, j + dj); if (ch === id || ch === 'L') continue;
+        const cx0 = (i + di) * CELL, cz0 = (j + dj) * CELL, ddx = Math.max(cx0 - x, 0, x - cx0 - CELL), ddz = Math.max(cz0 - z, 0, z - cz0 - CELL);
+        d = Math.min(d, Math.hypot(ddx, ddz));
+      }
+      return d;
+    }
+    function marbleCloud(x, z) { return clamp(gNoise(x * 0.16 + 40.1, z * 0.16 + 11.3) * 0.62 + gNoise(x * 0.42 + 7.7, z * 0.42 + 23.9) * 0.28 + gNoise(x * 1.3, z * 1.3 + 3.3) * 0.1, 0, 1); }
+    function marbleFill(data, w, h, ppm) {
+      const kinds = {}; for (const Z of ZONES) kinds[Z.id] = Z.kind;
+      for (let k = 0; k < w * h; k++) {
+        const px = k % w, py = (k - px) / w, x = (px + 0.5) / ppm, z = (py + 0.5) / ppm;
+        data[k * 4 + 1] = Math.round(sstep(0.25, 0.75, marbleCloud(x, z)) * 255);
+        const id = zoneOfCell(Math.floor(x / CELL), Math.floor(z / CELL)), kd = id && kinds[id];
+        const band = kd === 'room' || kd === 'secret' ? clamp(0.5 + (BANDW - edgeDist(x, z, id)) * 1.0, 0, 1) : 0;
+        data[k * 4 + 2] = Math.round(band * 255);
+      }
+    }
+    function marbleUniforms() {
+      const M = MAPDEF && MAPDEF.look && MAPDEF.look.marble; if (!M) return;
+      const set = (u, hex) => { const c = new T.Color(hex); u.value[0] = c.r; u.value[1] = c.g; u.value[2] = c.b; };
+      set(UNI.mbA, M.a); set(UNI.mbB, M.b); set(UNI.mbC, M.c); set(UNI.mbD, M.d);
+      const r = new T.Color(M.ref); UNI.mbK.value[0] = 1 / Math.max(0.05, r.r * 0.299 + r.g * 0.587 + r.b * 0.114);
+    }
+
+    // ------------------------------------------------------------- LA TOUR
+    function towerDecor(def) {
+      for (const k of Object.keys(TB)) delete TB[k];
+      TT.circles.length = 0;
+      const rr = mulberry32(20261022), ZS = ZONES.filter((Z) => Z.kind !== 'start');
+      const glowC = [lin(0x7a30ff, 2.1), lin(0x2aa8ff, 1.9), lin(0xa860ff, 2.0)];
+      // 1) un cercle magique par salle (pas les arènes : le Maître ninja et le Grand Œil), à l'écart du centre, sans meuble dessus
+      for (const Z of ROOMS.concat(ZONES.filter((z) => z.kind === 'secret'))) {
+        if (Z.boss || Z.mini) continue;
+        const R = Z.kind === 'secret' ? 1.35 : 1.75 + rr() * 0.4, cxr = (Z.x0 + Z.x1) / 2, czr = (Z.z0 + Z.z1) / 2, cand = [];
+        for (let z = Z.z0 + R + 1.6; z <= Z.z1 - R - 1.6; z += 0.5) for (let x = Z.x0 + R + 1.6; x <= Z.x1 - R - 1.6; x += 0.5) {
+          let ok = Z.has(x, z) && !nearDoorT(x, z, R + 2.6) && !inSolid(x, z, R + 0.35);
+          for (let q = 0; q < 12 && ok; q++) { const a = q / 12 * TAU, px = x + Math.cos(a) * (R + 0.4), pz = z + Math.sin(a) * (R + 0.4); if (!Z.has(px, pz) || isPit(px, pz) || inSolid(px, pz, 0.25)) ok = false; }
+          if (!ok) continue;
+          const dc = Math.hypot(x - cxr, z - czr); if (Z.kind !== 'secret' && dc < 3.2) continue;
+          cand.push([x, z, Math.abs(dc - 5.5) + (z - czr) * 0.08 + (x - cxr) * 0.04]);
+        }
+        if (!cand.length) continue;
+        cand.sort((a, b) => a[2] - b[2]);
+        const [cx, cz] = cand[Math.floor(rr() * Math.min(4, cand.length))], col = glowC[Math.floor(rr() * 2)];
+        runeCircle(Z, cx, cz, R, rr, col, [5, 6, 8][Math.floor(rr() * 3)]);
+        bakeAdd(cx, cz, col === glowC[1] ? 0x50b0ff : 0x8a50ff, 2.0, R + 3.2, 0.5);
+        addStatic({ x: cx, y: 0.03, z: cz, s: R * 2.5, cell: 'glow', col: col === glowC[1] ? 0x3a9cff : 0x8a48ff, k: 1.1, mode: 1, a: 0.3, pulse: 1.3 });
+        // des grimoires font la ronde au-dessus, des bougies flottent autour
+        const nb = Z.kind === 'secret' ? 3 : 5;
+        for (let i = 0; i < nb; i++) { const a = i / nb * TAU + rr() * 0.3, r = R * 0.62; floatBook(Z, cx + Math.cos(a) * r, 1.75 + rr() * 0.5, cz + Math.sin(a) * r, -a + 1.2, 0.35 + rr() * 0.3, rr() < 0.5, rr, [cx, cz, rr() * TAU, 10.12 + rr() * 0.08]); }
+        candleGroup(Z, cx + R * 0.7, cz - R * 0.7, rr, 2, true); candleGroup(Z, cx - R * 0.75, cz + R * 0.6, rr, 2, true);
+      }
+      // 2) des runes isolées dans les salles (gravées, plus discrètes), une frise de runes dans les couloirs
+      for (const Z of ZS) {
+        const room = Z.kind === 'room' || Z.kind === 'secret', B = tbOf('rune', Z);
+        if (room) {
+          const n = Math.round((Z.x1 - Z.x0) * (Z.z1 - Z.z0) / (Z.boss || Z.mini ? 46 : 30));
+          for (let q = 0, t = 0; q < n && t < n * 8; t++) {
+            const x = Z.x0 + 1.4 + rr() * (Z.x1 - Z.x0 - 2.8), z = Z.z0 + 1.4 + rr() * (Z.z1 - Z.z0 - 2.8);
+            if (!Z.has(x, z) || isPit(x, z) || inSolid(x, z, 0.5) || nearDoorT(x, z, 2.4) || TT.circles.some((c) => Math.hypot(c[0] - x, c[1] - z) < c[2] + 1.2)) continue;
+            // dans les arènes : seulement près des murs (le milieu reste libre)
+            if ((Z.boss || Z.mini) && Math.min(x - Z.x0, Z.x1 - x, z - Z.z0, Z.z1 - z) > 4.2) continue;
+            q++;
+            const s = 0.36 + rr() * 0.12, k = Math.floor(rr() * RUNES.length), a = rr() * TAU, col = glowC[Math.floor(rr() * 3)].clone().multiplyScalar(0.62), ring = rr() < 0.45;
+            for (const pass of [0, 1]) {
+              const y = pass ? 0.009 : 0.004, c = pass ? col : RUNE_DARK, ex = pass ? 0 : 0.04;
+              tGlyph(B, x, z, Math.cos(a), Math.sin(a), s, k, 0.035 + ex, y, c);
+              if (ring) tRing(B, x, z, s * 0.95, 0.03 + ex, y, c, 22);
+            }
+          }
+        } else {
+          // la frise : deux filets et une rangée de runes au milieu du couloir (dans le sens de la longueur)
+          const lx = Z.x1 - Z.x0 >= Z.z1 - Z.z0, L = lx ? Z.x1 - Z.x0 : Z.z1 - Z.z0, cxh = (Z.x0 + Z.x1) / 2, czh = (Z.z0 + Z.z1) / 2;
+          if (L < 6) continue;
+          const col = glowC[0].clone().multiplyScalar(0.7), m0 = 1.3, P = (u, v) => (lx ? [Z.x0 + u, czh + v] : [cxh + v, Z.z0 + u]);
+          for (const pass of [0, 1]) {
+            const y = pass ? 0.009 : 0.004, c = pass ? col : RUNE_DARK, ex = pass ? 0 : 0.04;
+            for (const v of [-0.42, 0.42]) { const a = P(m0, v), b = P(L - m0, v); tStroke(B, a[0], a[1], b[0], b[1], 0.03 + ex, y, c); }
+            const nG = Math.floor((L - 2 * m0) / 0.62);
+            for (let i = 0; i < nG; i++) { const p = P(m0 + (i + 0.5) * (L - 2 * m0) / nG, 0); tGlyph(B, p[0], p[1], lx ? 0 : 1, lx ? 1 : 0, 0.42, (i * 7 + 3) % RUNES.length, 0.03 + ex * 0.8, y, c); }
+          }
+        }
+      }
+      // 3) des grappes de cristaux au pied des murs (les grandes dans les coins), sans gêner (on ne marche pas dessus : collées au mur)
+      const wallSide = (Z, i, j) => ({ n: MAP.at(i, j - 1) !== Z.id, s: MAP.at(i, j + 1) !== Z.id, w: MAP.at(i - 1, j) !== Z.id, e: MAP.at(i + 1, j) !== Z.id });
+      for (const Z of ZS) for (const [i, j] of Z.cells) {
+        const ws = wallSide(Z, i, j), x0 = i * CELL, z0 = j * CELL, room = Z.kind === 'room' || Z.kind === 'secret';
+        const sides = [['n', 0, 1], ['s', 0, -1], ['w', 1, 0], ['e', -1, 0]];
+        for (const [sd, nx, nz] of sides) {
+          if (!ws[sd]) continue;
+          const nb = sd === 'n' ? MAP.at(i, j - 1) : sd === 's' ? MAP.at(i, j + 1) : sd === 'w' ? MAP.at(i - 1, j) : MAP.at(i + 1, j);
+          if (nb !== ' ' && nb !== 'L') continue;            // une porte vers une autre zone : rien
+          for (let u = 0.6; u < CELL - 0.4; u += 1.1) {
+            if (rr() > (room ? 0.3 : 0.14)) continue;
+            const wd = 0.82 + rr() * 0.12;
+            const x = sd === 'w' ? x0 + wd : sd === 'e' ? x0 + CELL - wd : x0 + u, z = sd === 'n' ? z0 + wd : sd === 's' ? z0 + CELL - wd : z0 + u;
+            if (inSolid(x, z, 0.12) || nearDoorT(x, z, 2.6) || !Z.has(x, z)) continue;
+            const s = 0.6 + rr() * 0.5; crystalCluster(Z, x, z, s, rr, nx, nz);
+            if (rr() < 0.4) bakeAdd(x + nx * 0.4, z + nz * 0.4, 0xb070ff, 0.32 + s * 0.3, 2.6, 0.7);
+          }
+        }
+        // un coin (deux murs pleins) : une grande grappe
+        for (const [a, b, sx, sz] of [['n', 'w', 1, 1], ['n', 'e', -1, 1], ['s', 'w', 1, -1], ['s', 'e', -1, -1]]) {
+          if (!ws[a] || !ws[b] || rr() > (room ? 0.5 : 0.25)) continue;
+          const x = sx > 0 ? x0 + 1.05 : x0 + CELL - 1.05, z = sz > 0 ? z0 + 1.05 : z0 + CELL - 1.05;
+          if (inSolid(x, z, 0.3) || nearDoorT(x, z, 2.8) || !Z.has(x, z)) continue;
+          const s = 1.15 + rr() * 0.4; crystalCluster(Z, x, z, s, rr, sx * 0.7, sz * 0.7); bakeAdd(x + sx * 0.5, z + sz * 0.5, 0xb070ff, 0.6 + s * 0.3, 3.2, 0.8);
+        }
+      }
+      // 4) des grimoires qui flottent devant les étagères, au-dessus des tables ; des bougies le long des murs du fond
+      for (const p of PL) {
+        const Z = p.zone; if (!Z || !p.fp) continue;
+        const fx0 = (p.fp[0] + p.fp[2]) / 2, fz0 = (p.fp[1] + p.fp[3]) / 2;
+        if (p.n === 'shelves' || p.n === 'wall_shelves') {
+          // vers l'intérieur de la salle : à l'opposé du mur le plus proche
+          const dW = fx0 - Z.x0, dE = Z.x1 - fx0, dN = fz0 - Z.z0, dS = Z.z1 - fz0, m = Math.min(dW, dE, dN, dS);
+          const nx = m === dW ? 1 : m === dE ? -1 : 0, nz = m === dN ? 1 : m === dS ? -1 : 0, off = p.n === 'wall_shelves' ? 1.25 : 1.05;
+          const n = 1 + Math.floor(rr() * 2.2);
+          for (let q = 0; q < n; q++) {
+            const t = (rr() - 0.5) * 1.4, x = fx0 + nx * off + nz * t, z = fz0 + nz * off + nx * t;
+            if (!Z.has(x, z)) continue;
+            floatBook(Z, x, 1.7 + rr() * 0.8, z, rr() * TAU, (rr() - 0.5) * 0.9, rr() < 0.35, rr, [x, z, rr() * TAU, 0.08 + rr() * 0.06]);
+          }
+        } else if (/^table_/.test(p.n) && rr() < 0.7) {
+          floatBook(Z, fx0, p.top + 0.55 + rr() * 0.3, fz0, rr() * TAU, (rr() - 0.5) * 0.4, true, rr, [fx0, fz0, rr() * TAU, 0.06 + rr() * 0.04]);
+        }
+      }
+      for (const Z of ROOMS) {
+        if (Z.boss || Z.mini) continue;
+        for (let q = 0, t = 0; q < 2 && t < 40; t++) {
+          const alongN = rr() < 0.6, x = alongN ? Z.x0 + 3 + rr() * (Z.x1 - Z.x0 - 6) : Z.x0 + 1.6, z = alongN ? Z.z0 + 1.6 : Z.z0 + 3 + rr() * (Z.z1 - Z.z0 - 6);
+          if (!Z.has(x, z) || nearDoorT(x, z, 2.5) || TORCHES.some((T0) => Math.hypot(T0.x - x, T0.z - z) < 1.6)) continue;
+          candleGroup(Z, x, z, rr, 3 + Math.floor(rr() * 2), true); q++;
+        }
+      }
+      // les arènes : des bougies hautes près des murs seulement
+      for (const Z of ROOMS) {
+        if (!Z.boss && !Z.mini) continue;
+        for (const [u, v] of [[0.22, 0], [0.78, 0], [0, 0.5]]) { const x = u ? Z.x0 + u * (Z.x1 - Z.x0) : Z.x0 + 1.6, z = v ? Z.z0 + v * (Z.z1 - Z.z0) : Z.z0 + 1.6; if (!nearDoorT(x, z, 3) && Z.has(x, z)) candleGroup(Z, x, z, rr, 4, true); }
+      }
+      ttBuild();
+    }
+
+    // ------------------------------------------------------------- LE TRÔNE
+    // une veine du marbre : une fissure qui file (direction du bloc, petits écarts), s'amincit aux bouts, quelques branches
+    function vein(Z, x, z, a0, L, w0, rr, kind, depth, seed) {
+      const B = tbOf('vein', Z, false, true), n = Math.max(3, Math.floor(L / 0.16)), y = 0.0035 + (depth * 0.0004), pts = [], br = [];
+      for (let k = 0; k <= n; k++) {
+        const t = k / n, ok = Z.has(x, z) && !isPit(x, z) && x > 0 && z > 0;
+        if (!ok) break;
+        const a = a0 + (gNoise(k * 0.056 + seed, 3.7 + seed) - 0.5) * 1.6 + (gNoise(k * 0.21 + seed, 9.1) - 0.5) * 0.6;
+        const w = w0 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.06 + t * 0.94)), 0.7) * (0.45 + 0.55 * gNoise(x * 1.7 + 5, z * 1.7 + seed));
+        const inBand = (Z.kind === 'room' || Z.kind === 'secret') && edgeDist(x, z, Z.id) < BANDW;
+        pts.push([x + (rr() - 0.5) * 0.025, z + (rr() - 0.5) * 0.025, a, w, inBand ? VEIN_C.gold : kind ? VEIN_C.dark : VEIN_C.light]);
+        x += Math.cos(a) * 0.16; z += Math.sin(a) * 0.16;
+        if (depth < 2 && rr() < 0.018 && t > 0.1 && t < 0.85) br.push([x, z, a + (rr() < 0.5 ? -1 : 1) * (0.35 + rr() * 0.45), L * (0.2 + rr() * 0.25), seed + rr() * 50]);
+      }
+      // la bande : deux sommets par point, deux triangles par pas (tournés vers le haut)
+      const base = B.p.length / 3, P = B.p;
+      for (const [px, pz, a, w, c] of pts) {
+        const ox = -Math.sin(a) * w * 0.5, oz = Math.cos(a) * w * 0.5;
+        P.push(px + ox, y, pz + oz, px - ox, y, pz - oz); B.n.push(0, 1, 0, 0, 1, 0); B.c.push(c.r, c.g, c.b, c.r, c.g, c.b);
+      }
+      const cr = (i, j, l) => (P[j * 3 + 2] - P[i * 3 + 2]) * (P[l * 3] - P[i * 3]) - (P[j * 3] - P[i * 3]) * (P[l * 3 + 2] - P[i * 3 + 2]);
+      for (let k = 0; k + 1 < pts.length; k++) {
+        const a = base + k * 2, b = a + 1, c = a + 2, d = a + 3;
+        if (cr(a, b, c) > 0) B.i.push(a, b, c); else B.i.push(a, c, b);
+        if (cr(b, d, c) > 0) B.i.push(b, d, c); else B.i.push(b, c, d);
+      }
+      for (const [bx, bz, ba, bl, bs] of br) vein(Z, bx, bz, ba, bl, w0 * 0.55, rr, kind, depth + 1, bs);
+    }
+    const VEIN_C = {};
+    // un filet d'or le long d'un segment (seulement là où le sol existe : pas au-dessus des puits)
+    function goldLine(Z, ax, az, bx, bz, w, y) {
+      const B = tbOf('gold', Z), L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / 0.5)), col = VEIN_C.inlay;
+      let s0 = null;
+      for (let k = 0; k <= n; k++) {
+        const t = k / n, x = lerp(ax, bx, t), z = lerp(az, bz, t), ok = Z.has(x, z) && !isPit(x, z) && edgeDist(x, z, Z.id) > 0.35;
+        if (ok && s0 == null) s0 = t;
+        if ((!ok || k === n) && s0 != null) { const t1 = ok ? t : (k - 1) / n; if (t1 > s0) tStroke(B, lerp(ax, bx, s0), lerp(az, bz, s0), lerp(ax, bx, t1), lerp(az, bz, t1), w, y, col); s0 = null; }
+      }
+    }
+    // un lustre : chaîne, tige, couronne d'or, bras, bougies allumées, pampilles de cristal ; une flaque de lumière chaude au sol
+    function chandelier(Z, x, z, y, s, rr) {
+      const G = tbOf('chgold', Z), W = tbOf('chwax', Z), K = tbOf('chcrys', Z), gold = lin(0xe8b040), gold2 = lin(0xb88020), wax = lin(0xf6ecd8), crys = lin(0xfff4ff);
+      const R = 0.85 * s, nC = 5;
+      tPush(G, new T.CylinderGeometry(0.025, 0.025, 6, 5, 1), tMat4(x, y + 3.6, z, 0), gold2);
+      tPush(G, new T.CylinderGeometry(0.06, 0.08, 0.9 * s, 8, 1), tMat4(x, y + 0.3 * s, z, 0), gold);
+      tPush(G, new T.SphereGeometry(0.15 * s, 10, 6), tMat4(x, y - 0.18 * s, z, 0), gold);
+      tPush(G, new T.ConeGeometry(0.08 * s, 0.22 * s, 8), tMat4(x, y - 0.38 * s, z, 0, Math.PI), gold);
+      tHoop(G, x, y, z, R, 0.035 * s, 15, gold); tHoop(G, x, y + 0.5 * s, z, R * 0.45, 0.025 * s, 9, gold);
+      for (let i = 0; i < nC; i++) {
+        const a = i / nC * TAU + 0.26, cx = x + Math.cos(a) * R, cz = z + Math.sin(a) * R;
+        // bras : de la tige à la couronne (un peu en arc)
+        tTube(G, x + Math.cos(a) * 0.08, y + 0.32 * s, z + Math.sin(a) * 0.08, cx, y + 0.04 * s, cz, 0.022 * s, gold2);
+        tPush(G, new T.CylinderGeometry(0.075 * s, 0.05 * s, 0.07 * s, 8, 1), tMat4(cx, y + 0.05 * s, cz, 0), gold);
+        const h = (0.2 + rr() * 0.06) * s;
+        tPush(W, new T.CylinderGeometry(0.042 * s, 0.045 * s, h, 8, 1), tMat4(cx, y + 0.09 * s + h / 2, cz, 0), wax);
+        addStatic({ x: cx, y: y + 0.12 * s + h + 0.05, z: cz, s: 0.24 * s, cell: 'flame', col: 0xffc860, k: 2.8, flick: 15, a: 0.95 });
+        // pampille entre deux bougies
+        const b = a + Math.PI / nC, g = new T.SphereGeometry(0.05 * s, 4, 2); g.scale(1, 1.7, 1);
+        tPush(K, g, tMat4(x + Math.cos(b) * R, y - 0.16 * s, z + Math.sin(b) * R, 0), crys, null, true);
+      }
+      bakeAdd(x, z, 0xffc070, 1.7 * s, 7.5, Math.min(3.4, y - 0.6));
+      TT.chand.push([x, z, y]);
+    }
+    // une armure sur son socle, tournée vers la salle (ry : vers où elle regarde), hallebarde à la main, bouclier au bras
+    function armor(Z, x, z, ry, rr) {
+      const S = tbOf('steel', Z), steel = lin(0xb4bcc8), dark = lin(0x5c6474), gold = lin(0xe0b050), red = lin(0xb81a28), base = lin(0x3a2a2c);
+      const M0 = tMat4(x, 0, z, ry), put2 = (g, px, py, pz, col, rx, rz, ryy) => tPush(S, g, tMul(M0, tMat4(px, py, pz, ryy || 0, rx || 0, rz || 0)), col);
+      put2(new T.BoxGeometry(0.95, 0.24, 0.95), 0, 0.12, 0, base); put2(new T.BoxGeometry(1.0, 0.04, 1.0), 0, 0.25, 0, gold);
+      for (const sx of [-1, 1]) {
+        put2(new T.CylinderGeometry(0.085, 0.1, 0.72, 8, 1), sx * 0.13, 0.63, 0, steel);
+        put2(new T.BoxGeometry(0.16, 0.08, 0.3), sx * 0.13, 0.31, 0.05, dark);
+        put2(new T.SphereGeometry(0.1, 8, 5), sx * 0.13, 0.66, 0.03, steel);
+        put2(new T.SphereGeometry(0.17, 10, 6, 0, TAU, 0, Math.PI / 2), sx * 0.36, 1.66, 0, steel, 0, -sx * 0.35);
+        put2(new T.CylinderGeometry(0.065, 0.075, 0.48, 7, 1), sx * 0.4, 1.37, 0.02, steel, 0, sx * 0.12);
+        put2(new T.BoxGeometry(0.12, 0.13, 0.13), sx * 0.43, 1.08, 0.04, dark);
+      }
+      put2(new T.CylinderGeometry(0.27, 0.34, 0.26, 10, 1), 0, 1.06, 0, steel);
+      put2(new T.CylinderGeometry(0.29, 0.29, 0.06, 10, 1), 0, 1.2, 0, gold);
+      const torso = new T.CylinderGeometry(0.32, 0.25, 0.5, 10, 1); torso.scale(1, 1, 0.72); put2(torso, 0, 1.47, 0, steel);
+      put2(new T.BoxGeometry(0.05, 0.42, 0.06), 0, 1.47, 0.2, gold);
+      put2(new T.CylinderGeometry(0.12, 0.14, 0.1, 8, 1), 0, 1.76, 0, dark);
+      put2(new T.SphereGeometry(0.18, 12, 8), 0, 1.97, 0, steel);
+      put2(new T.CylinderGeometry(0.18, 0.17, 0.16, 12, 1), 0, 1.9, 0, steel);
+      put2(new T.BoxGeometry(0.26, 0.035, 0.05), 0, 1.95, 0.165, dark);
+      put2(new T.BoxGeometry(0.04, 0.2, 0.04), 0, 1.92, 0.17, gold);
+      const plume = new T.ConeGeometry(0.06, 0.42, 6); plume.rotateX(-0.9); put2(plume, 0, 2.2, -0.12, red);
+      // la hallebarde (main droite) et le bouclier rouge à croix d'or (bras gauche)
+      put2(new T.CylinderGeometry(0.025, 0.025, 2.45, 6, 1), 0.47, 1.4, 0.12, lin(0x5a3a22));
+      put2(new T.ConeGeometry(0.05, 0.3, 6), 0.47, 2.77, 0.12, steel);
+      const blade = new T.BoxGeometry(0.03, 0.34, 0.3); put2(blade, 0.47, 2.42, 0.25, steel);
+      const sh = new T.CylinderGeometry(0.3, 0.3, 0.05, 6, 1); sh.scale(1, 1, 1.3); sh.rotateX(Math.PI / 2); put2(sh, -0.46, 1.32, 0.18, red);
+      put2(new T.BoxGeometry(0.06, 0.62, 0.02), -0.46, 1.32, 0.215, gold); put2(new T.BoxGeometry(0.42, 0.06, 0.02), -0.46, 1.4, 0.215, gold);
+      TT.armor.push([x, z]);
+    }
+    function throneDecor(def) {
+      for (const k of Object.keys(TB)) delete TB[k];
+      TT.chand.length = 0; TT.armor.length = 0;
+      Object.assign(VEIN_C, { light: lin(0xe6d6c2), dark: lin(0x6a5048), gold: lin(0xe8b85a, 1.1), inlay: lin(0xf0b848, 1.05) });
+      const rr = mulberry32(20261023), ZS = ZONES.filter((Z) => Z.kind !== 'start');
+      // 1) les veines du marbre (même direction dans tout le château : un seul bloc de marbre, scié)
+      for (const Z of ZS) {
+        const area = (Z.x1 - Z.x0) * (Z.z1 - Z.z0), n = Math.max(2, Math.round(area / 40));
+        for (let q = 0; q < n; q++) {
+          const x = Z.x0 - 2 + rr() * (Z.x1 - Z.x0 + 2), z = Z.z0 + rr() * (Z.z1 - Z.z0), dark = rr() < 0.25;
+          vein(Z, x, z, 0.55 + (rr() - 0.5) * 0.9, 6 + rr() * 10, dark ? 0.02 + rr() * 0.015 : 0.03 + rr() * 0.035, rr, dark ? 1 : 0, 0, rr() * 100);
+        }
+      }
+      // 2) les filets d'or : un cadre double au bord de la bordure sombre (salles), deux filets le long des couloirs ; losanges aux coins
+      for (const Z of ZS) {
+        const room = Z.kind === 'room' || Z.kind === 'secret', G = tbOf('gold', Z);
+        if (room) {
+          for (const [d, w] of [[BANDW, 0.12], [BANDW + 0.24, 0.045]]) {
+            const a = Z.x0 + d, b = Z.x1 - d, c = Z.z0 + d, e = Z.z1 - d;
+            goldLine(Z, a, c, b, c, w, 0.008); goldLine(Z, a, e, b, e, w, 0.008); goldLine(Z, a, c, a, e, w, 0.008); goldLine(Z, b, c, b, e, w, 0.008);
+          }
+          for (const [x, z] of [[Z.x0 + BANDW, Z.z0 + BANDW], [Z.x1 - BANDW, Z.z0 + BANDW], [Z.x0 + BANDW, Z.z1 - BANDW], [Z.x1 - BANDW, Z.z1 - BANDW]]) {
+            if (!Z.has(x, z) || isPit(x, z)) continue;
+            tDiamond(G, x, z, 0.36, 0.36, 0.0095, VEIN_C.inlay, Math.PI / 4); tDiamond(G, x, z, 0.16, 0.16, 0.0105, lin(0x8a1424), Math.PI / 4);
+          }
+          // des losanges d'or dans la bordure, entre les meubles
+          const steps = [];
+          for (let x = Z.x0 + 4; x <= Z.x1 - 4; x += 4) steps.push([x, Z.z0 + 1.35], [x, Z.z1 - 1.35]);
+          for (let z = Z.z0 + 4; z <= Z.z1 - 4; z += 4) steps.push([Z.x0 + 1.35, z], [Z.x1 - 1.35, z]);
+          for (const [x, z] of steps) if (Z.has(x, z) && !isPit(x, z) && !inSolid(x, z, 0.35) && !nearDoorT(x, z, 1.8) && edgeDist(x, z, Z.id) > 1.0) tDiamond(G, x, z, 0.24, 0.15, 0.0095, VEIN_C.inlay, Math.abs(x - Z.x0 - 1.35) < 0.01 || Math.abs(Z.x1 - 1.35 - x) < 0.01 ? Math.PI / 2 : 0);
+          // autour des puits (mer d'ombres) : un filet d'or à 0,9 m du parapet
+          for (let j = Z.j0; j <= Z.j1; j++) for (let i = Z.i0; i <= Z.i1; i++) {
+            if (MAP.at(i, j) !== 'L') continue;
+            const a = i * CELL - 0.9, b = (i + 1) * CELL + 0.9, c = j * CELL - 0.9, e = (j + 1) * CELL + 0.9;
+            goldLine(Z, a, c, b, c, 0.09, 0.0085); goldLine(Z, a, e, b, e, 0.09, 0.0085); goldLine(Z, a, c, a, e, 0.09, 0.0085); goldLine(Z, b, c, b, e, 0.09, 0.0085);
+          }
+        } else {
+          const lx = Z.x1 - Z.x0 >= Z.z1 - Z.z0;
+          for (const v of [1.05, -1.05]) {
+            if (lx) { const z = (Z.z0 + Z.z1) / 2 + v; goldLine(Z, Z.x0 + 0.2, z, Z.x1 - 0.2, z, 0.07, 0.008); }
+            else { const x = (Z.x0 + Z.x1) / 2 + v; goldLine(Z, x, Z.z0 + 0.2, x, Z.z1 - 0.2, 0.07, 0.008); }
+          }
+        }
+      }
+      // 2b) une rosace d'or incrustée au milieu des salles ordinaires (pas les arènes, pas sous un tapis) : filets fins, étoile à 8 branches
+      for (const Z of ROOMS) {
+        if (Z.boss || Z.mini || Z.floor === 'carpet') continue;
+        const cx = (Z.x0 + Z.x1) / 2, cz = (Z.z0 + Z.z1) / 2, G = tbOf('gold', Z), R = 2.7;
+        let ok = true; for (let q = 0; q < 16 && ok; q++) { const a = q / 16 * TAU; if (!Z.has(cx + Math.cos(a) * (R + 0.3), cz + Math.sin(a) * (R + 0.3)) || isPit(cx + Math.cos(a) * (R + 0.3), cz + Math.sin(a) * (R + 0.3)) || inSolid(cx + Math.cos(a) * R, cz + Math.sin(a) * R, 0.2)) ok = false; }
+        if (!ok) continue;
+        const c = VEIN_C.inlay, y = 0.0085;
+        tRing(G, cx, cz, R, 0.09, y, c); tRing(G, cx, cz, R - 0.2, 0.04, y, c); tRing(G, cx, cz, 0.55, 0.05, y, c, 24);
+        for (let i = 0; i < 16; i++) {
+          const a = i / 16 * TAU, L = i % 2 ? R * 0.55 : R - 0.25, a1 = a + (i % 2 ? 0.2 : 0.12), a2 = a - (i % 2 ? 0.2 : 0.12), r1 = i % 2 ? 0.75 : 0.9;
+          const P = [cx + Math.cos(a) * L, cz + Math.sin(a) * L], A = [cx + Math.cos(a1) * r1, cz + Math.sin(a1) * r1], Bq = [cx + Math.cos(a2) * r1, cz + Math.sin(a2) * r1];
+          tStroke(G, A[0], A[1], P[0], P[1], 0.045, y, c); tStroke(G, Bq[0], Bq[1], P[0], P[1], 0.045, y, c);
+        }
+        tDiamond(G, cx, cz, 0.3, 0.3, y + 0.001, lin(0x8a1424), Math.PI / 4);
+        for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + TAU / 16; tDiamond(G, cx + Math.cos(a) * (R - 0.1), cz + Math.sin(a) * (R - 0.1), 0.13, 0.13, y + 0.001, c, a); }
+      }
+      // 3) les lustres : le long du mur du fond (nord), aussi le long du mur ouest des salles hautes ; quatre dans la salle du trône
+      for (const Z of ROOMS.concat(ZONES.filter((z) => z.kind === 'secret'))) {
+        const W = Z.x1 - Z.x0, Hh = Z.z1 - Z.z0, spots = [];
+        if (Z.boss) { const tx = Z.x0 + 22; for (const dx of [-12, 12]) spots.push([tx + dx, Z.z0 + 3.1]); }
+        else if (Z.kind === 'secret') spots.push([(Z.x0 + Z.x1) / 2, Z.z0 + 4]);
+        else {
+          for (let q = 0; q < 2; q++) spots.push([Z.x0 + W * (q + 1) / 3, Z.z0 + 2.5]);
+        }
+        for (const [x, z] of spots) if (Z.has(x, z) && !nearDoorT(x, z, 2.5)) chandelier(Z, x, z, Z.boss ? 4.6 : 4.3, Z.boss ? 1.15 : 1, rr);
+      }
+      // 4) les armures : contre les murs du fond (nord, ouest), loin des portes, des meubles (pas de fente où le mage se coince) et des coffres
+      for (const Z of ROOMS) {
+        if (Z.boss) continue;
+        const cs = [];
+        for (let x = Z.x0 + 4; x <= Z.x1 - 4; x += 2) cs.push([x, Z.z0 + 1.32, 0]);
+        for (let z = Z.z0 + 4; z <= Z.z1 - 4; z += 2) cs.push([Z.x0 + 1.32, z, Math.PI / 2]);
+        const sp = Z.spots || {}, avoid = [sp.chest, sp.entry, sp.portal, sp.boss].filter(Boolean).map((p) => [Z.x0 + p[0], Z.z0 + p[1]]).concat((sp.barrels || []).map((p) => [Z.x0 + p[0], Z.z0 + p[1]]));
+        const ok = cs.filter(([x, z]) => Z.has(x, z) && !inSolid(x, z, 0.6) && !nearProp(x, z, 2.7) && !nearDoorT(x, z, 4.2) && !avoid.some((p) => Math.hypot(p[0] - x, p[1] - z) < 3.4) && !TT.armor.some((p) => Math.hypot(p[0] - x, p[1] - z) < 6));
+        const nA = Z.mini ? 2 : 1 + (rr() < 0.6 ? 1 : 0);
+        for (let q = 0; q < nA && ok.length; q++) {
+          const k = Math.floor(rr() * ok.length), [x, z, a] = ok[k]; ok.splice(k, 1);
+          if (TT.armor.some((p) => Math.hypot(p[0] - x, p[1] - z) < 6)) { q--; continue; }
+          armor(Z, x, z, a, rr);
+          // sa boîte va jusqu'au mur qui la touche (pas de fente)
+          const box = [x - 0.55, z - 0.55, x + 0.55, z + 0.55]; if (a === 0) box[1] = Z.z0; else box[0] = Z.x0;
+          SOLIDS.push(box);
+          bakeAdd(x + (a ? 1.2 : 0), z + (a ? 0 : 1.2), 0xffd8a0, 0.35, 2.6, 2.2);
+        }
+      }
+      ttBuild();
+    }
+
+    // ------------------------------------------------------------- matériaux et maillages
+    // runes : sans lumière (elles luisent), une vague de lumière qui les parcourt ; assombries au loin comme le décor
+    function runeMat() {
+      const mat = keep(patchMat(new T.MeshBasicMaterial({ vertexColors: true }), { dark: true }));
+      const f = mat.onBeforeCompile;
+      mat.onBeforeCompile = (sh) => {
+        f(sh); sh.uniforms.uRuT = UNI.time;
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uRuT;')
+          .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= 0.7 + 0.3 * sin(uRuT * 1.3 - (vMfW.x + vMfW.z) * 0.21);');
+      };
+      const key = mat.customProgramCacheKey() + ',rune'; mat.customProgramCacheKey = () => key;
+      return mat;
+    }
+    // cristaux : éclairés, et ils luisent de leur propre couleur
+    function glowLam(k, o, base) {
+      const mat = keep(patchMat(lam(Object.assign({ vertexColors: true }, base || {})), o));
+      const f = mat.onBeforeCompile;
+      mat.onBeforeCompile = (sh) => { f(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vColor.rgb * ' + k.toFixed(2) + ';'); };
+      const key = mat.customProgramCacheKey() + ',glow' + k; mat.customProgramCacheKey = () => key;
+      return mat;
+    }
+    // ce qui flotte : monte et descend (et se balance, ou fait la ronde) — le calcul est fait par la carte graphique
+    function floatMat() {
+      const mat = keep(patchMat(lam({ vertexColors: true }), { cut: true, dark: true, lm: true }));
+      const f = mat.onBeforeCompile;
+      mat.onBeforeCompile = (sh) => {
+        f(sh); sh.uniforms.uFlT = UNI.time;
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uFlT;\nattribute vec4 aFl;')
+          .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nfloat flM = abs(aFl.w), flAmp = flM > 10.0 ? flM - 10.0 : flM;\n' +
+            'float flA = flM > 10.0 ? uFlT * 0.22 + aFl.z : (aFl.w > 0.0 ? sin(uFlT * 0.45 + aFl.z * 1.7) * 0.4 : 0.0);\nfloat flC = cos(flA), flS = sin(flA);\n' +
+            'objectNormal.xz = mat2(flC, -flS, flS, flC) * objectNormal.xz;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\n{ vec2 dd = transformed.xz - aFl.xy; transformed.xz = aFl.xy + mat2(flC, -flS, flS, flC) * dd; transformed.y += sin(uFlT * 1.02 + aFl.z) * flAmp; }');
+      };
+      const key = mat.customProgramCacheKey() + ',float'; mat.customProgramCacheKey = () => key;
+      return mat;
+    }
+    function ttMat(k) {
+      const mk = 'tt_' + k; if (MAT[mk]) return MAT[mk];
+      let m;
+      if (k === 'rune') m = runeMat();
+      else if (k === 'crys') m = glowLam(0.62, { dark: true, lm: true });
+      else if (k === 'float') m = floatMat();
+      else if (k === 'vein') m = keep(patchMat(lam({ vertexColors: true }), { floor: true, dark: true, lm: true }));
+      else if (k === 'gold') m = keep(patchMat(lam({ vertexColors: true, emissive: 0x2c1a04 }), { floor: true, dark: true, lm: true }));
+      else if (k === 'chgold') m = keep(patchMat(lam({ vertexColors: true, emissive: 0x3a2408 }), { cut: true, dark: true, lm: true, rim: true, rimCol: 0xffe0a0, rimK: 0.35 }));
+      else if (k === 'chwax') m = glowLam(0.35, { cut: true, dark: true, lm: true });
+      else if (k === 'chcrys') m = glowLam(0.55, { cut: true, dark: true });
+      else if (k === 'steel') m = keep(patchMat(lam({ vertexColors: true }), { ao: true, cut: true, dark: true, lm: true, rim: true, rimCol: 0xfff0d8, rimK: 0.4 }));
+      else m = keep(patchMat(lam({ vertexColors: true }), { ao: true, dark: true, lm: true }));
+      return (MAT[mk] = m);
+    }
+    function ttBuild() {
+      for (const B of Object.values(TB)) {
+        if (!B.p.length) continue;
+        const g = keep(new T.BufferGeometry());
+        g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3)); g.setAttribute('color', new T.Float32BufferAttribute(B.c, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(B.n, 3));
+        if (B.f) g.setAttribute('aFl', new T.Float32BufferAttribute(B.f, 4));
+        if (B.i) g.setIndex(B.i);
+        g.computeBoundingSphere(); if (B.f) g.boundingSphere.radius += 1.5;
+        const m = new T.Mesh(g, ttMat(B.k)); m.matrixAutoUpdate = false; m.updateMatrix(); m.castShadow = Q.shadow > 0 && (B.k === 'steel' || B.k === 'crys'); m.receiveShadow = false; wadd(m);
+        TT.n[B.k] = (TT.n[B.k] || 0) + (B.i ? B.i.length / 3 : B.p.length / 9);
+      }
+      for (const k of Object.keys(TB)) delete TB[k];
+    }
+
+    // ------------------------------------------------------------- chaque image : poussière d'étoiles (Tour), poussière d'or (Trône), près de la caméra
+    function towerUpdate(dt) {
+      const L = MAPDEF && MAPDEF.look; if (!L || !(L.stardust || L.golddust)) return;
+      TT.t -= dt; if (TT.t > 0) return; TT.t = Q.tier >= 2 ? 0.075 : 0.15;
+      const x = CAM.x + frnd(-10, 10), z = CAM.z + frnd(-7, 6);
+      if (L.stardust) {
+        if (FXR() < 0.7) fx({ x, y: frnd(0.3, 3.2), z, vx: frnd(-0.2, 0.2), vy: frnd(-0.06, 0.1), vz: frnd(-0.2, 0.2), life: frnd(2.6, 4.2), s0: frnd(0.05, 0.08), s1: 0.03, c0: fpick([0xd8c4ff, 0xa8e4ff, 0xffffff]), k: 2.6, cell: 'dot', a0: 0.95, a1: 0, fin: 0.9 });
+        else fx({ x, y: frnd(0.5, 2.8), z, vx: frnd(-0.12, 0.12), vy: frnd(-0.04, 0.08), vz: frnd(-0.12, 0.12), life: frnd(1.4, 2.4), s0: frnd(0.16, 0.24), s1: 0.04, c0: fpick([0xe8d8ff, 0xb8e8ff, 0xfff0c8]), k: 2.8, cell: 'star4', rot: FXR() * 6, vr: frnd(-1.2, 1.2), a0: 1, a1: 0, fin: 0.5 });
+      } else {
+        if (FXR() < 0.72) fx({ x, y: frnd(0.4, 3.4), z, vx: frnd(-0.15, 0.15), vy: frnd(-0.2, -0.04), vz: frnd(-0.15, 0.15), life: frnd(2.8, 4.4), s0: frnd(0.05, 0.08), s1: 0.03, c0: fpick([0xffd060, 0xffe8a0, 0xffc040]), k: 2.6, cell: 'dot', a0: 0.9, a1: 0, fin: 0.9 });
+        else fx({ x, y: frnd(0.6, 3.0), z, vx: frnd(-0.1, 0.1), vy: frnd(-0.12, -0.02), vz: frnd(-0.1, 0.1), life: frnd(1.2, 2.2), s0: frnd(0.15, 0.22), s1: 0.04, c0: fpick([0xffe070, 0xfff0c0]), k: 2.8, cell: 'star4', rot: FXR() * 6, vr: frnd(-1.5, 1.5), a0: 1, a1: 0, fin: 0.4 });
+      }
+    }
+    const TOURTRONE = { TT, UNI, towerDecor, throneDecor, runeCircle, crystalCluster, chandelier, armor, edgeDist };      // (essais : window.__magicDbg.TT())
 
     // ===========================================================================
     // CAMÉRA (vue de 3/4 façon diorama, cadrage portrait / paysage, cinématiques, tremblements)
@@ -5455,17 +7495,40 @@ void main(){ if (vK >= 0.999) discard;
         [[['minion', 2], ['rogue', 2]], [['ghost', 3], ['archer', 1]], [['warrior', 1], ['minion', 3], ['ghost', 1], ['blob', 1]]],
         [[['mage', 1], ['minion', 3]], [['blob', 2], ['rogue', 2], ['ghost', 1]], [['orc', 1], ['archer', 2], ['mage', 1], ['minion', 2]]]
       ],
+      // les Forges : démons, diablotins, dragonnets, masques de feu (plus aucun squelette)
       forge: [
-        [[['minion', 3], ['imp', 2]], [['demon', 1], ['archer', 1], ['minion', 2], ['drake', 2]], [['rogue', 2], ['imp', 2], ['drake', 2], ['minion', 1]]],
-        [[['demon', 1], ['warrior', 1], ['minion', 3], ['imp', 1]], [['mage', 1], ['imp', 2], ['archer', 1], ['drake', 2]], [['demon', 2], ['rogue', 2], ['drake', 2], ['imp', 1]]],
-        [[['imp', 2], ['minion', 3]], [['demon', 1], ['drake', 2], ['archer', 1]], [['orc', 1], ['imp', 2], ['rogue', 2], ['drake', 1]]],
-        [[['warrior', 2], ['minion', 2]], [['demon', 1], ['archer', 2], ['imp', 1]], [['warrior', 1], ['demon', 1], ['drake', 2], ['mage', 1]]]
+        [[['drake', 2], ['imp', 1]], [['demon', 1], ['imp', 2], ['drake', 1]], [['tribal', 1], ['imp', 2], ['drake', 2]]],
+        [[['tribal', 1], ['drake', 3]], [['demon', 1], ['imp', 2], ['drake', 2]], [['demon', 1], ['tribal', 1], ['imp', 2], ['drake', 1]]],
+        [[['imp', 2], ['drake', 2]], [['tribal', 2], ['drake', 2]], [['demon', 2], ['imp', 2], ['drake', 1]]],
+        [[['demon', 1], ['drake', 3]], [['tribal', 1], ['imp', 3]], [['demon', 1], ['tribal', 1], ['imp', 2], ['drake', 2]]]
       ],
+      // les Grottes de glace : yétis, requins des glaces, piranhas givrés, calmars des neiges
       glace: [
-        [[['minion', 3], ['ghost', 1]], [['rogue', 2], ['archer', 1], ['ghost', 1]], [['yeti', 1], ['minion', 3], ['ghost', 1]]],
-        [[['ghost', 3], ['minion', 1]], [['warrior', 1], ['archer', 2], ['minion', 2]], [['yeti', 1], ['mage', 1], ['rogue', 2]]],
-        [[['blob', 2], ['minion', 3]], [['yeti', 1], ['ghost', 2], ['archer', 1]], [['mage', 1], ['warrior', 1], ['rogue', 2], ['ghost', 1]]],
-        [[['rogue', 2], ['ghost', 2]], [['yeti', 1], ['orc', 1], ['archer', 2]], [['yeti', 2], ['mage', 1], ['minion', 3]]]
+        [[['piranha', 4]], [['fish', 1], ['piranha', 3], ['squid', 1]], [['yeti', 1], ['piranha', 3], ['squid', 1]]],
+        [[['squid', 2], ['piranha', 3]], [['fish', 2], ['squid', 2]], [['yeti', 1], ['fish', 1], ['piranha', 3]]],
+        [[['piranha', 3], ['fish', 1]], [['yeti', 1], ['squid', 2], ['piranha', 2]], [['fish', 2], ['squid', 2], ['piranha', 2]]],
+        [[['fish', 1], ['squid', 2], ['piranha', 2]], [['yeti', 1], ['fish', 1], ['squid', 2]], [['yeti', 2], ['piranha', 4], ['squid', 1]]]
+      ],
+      // le Jardin maudit : champignons sauteurs, bogues épineuses, crapauds dorés, bourdons cuirassés
+      jardin: [
+        [[['mushnub', 4]], [['mushnub', 3], ['bee', 2]], [['spiky', 1], ['mushnub', 3], ['bee', 1]]],
+        [[['frog', 1], ['mushnub', 3]], [['bee', 3], ['mushnub', 2]], [['spiky', 1], ['frog', 1], ['bee', 2]]],
+        [[['frog', 2], ['bee', 1]], [['spiky', 1], ['mushnub', 4]], [['frog', 2], ['spiky', 1], ['bee', 2]]],
+        [[['bee', 2], ['mushnub', 3]], [['spiky', 2], ['frog', 1]], [['spiky', 1], ['frog', 2], ['bee', 2], ['mushnub', 2]]]
+      ],
+      // la Tour du sorcier : ninjas de l'ombre, lutins des étoiles, tourbillons, petites ombres
+      tour: [
+        [[['ninja', 2], ['glub', 1]], [['hywirl', 2], ['ninja', 2]], [['alien', 1], ['ninja', 2], ['hywirl', 1]]],
+        [[['glub', 2], ['hywirl', 2]], [['alien', 1], ['ninja', 3]], [['alien', 2], ['hywirl', 2], ['glub', 1]]],
+        [[['ninja', 3], ['glub', 1]], [['alien', 1], ['hywirl', 3]], [['ninja', 2], ['alien', 1], ['glub', 2]]],
+        [[['hywirl', 2], ['ninja', 2]], [['alien', 2], ['glub', 2]], [['ninja', 3], ['alien', 1], ['hywirl', 2], ['glub', 1]]]
+      ],
+      // la Salle du trône : dinos cuirassés, gardes royaux, gargouilles couronnées, princes dorés
+      trone: [
+        [[['gole', 2], ['birb', 1]], [['birb', 2], ['alpa', 1], ['gole', 1]], [['dino', 1], ['birb', 2], ['gole', 2]]],
+        [[['alpa', 2], ['gole', 2]], [['dino', 1], ['birb', 2], ['alpa', 1]], [['dino', 1], ['birb', 1], ['gole', 2], ['alpa', 1]]],
+        [[['birb', 2], ['gole', 2]], [['dino', 2], ['alpa', 1]], [['birb', 2], ['dino', 1], ['gole', 2], ['alpa', 1]]],
+        [[['gole', 3], ['alpa', 1]], [['dino', 1], ['birb', 2], ['gole', 2]], [['dino', 2], ['birb', 2], ['alpa', 2]]]
       ]
     };
     let pathOrder = new Map();
@@ -5605,7 +7668,8 @@ void main(){ if (vK >= 0.999) discard;
       const total = Math.round((2000 + timeB + noHit + comboB) * G.ptsMul);
       const stars = 1 + (G.worldHurt <= 3 ? 1 : 0) + (secs < 300 || G.comboBest >= 12 ? 1 : 0);
       winRes = { total, applied: false };
-      H.winT.textContent = 'VICTOIRE !'; H.winS.innerHTML = '<span></span><span></span>'; H.winS.firstChild.textContent = W.name + (G.tour ? ' · Tour ' + roman(G.tour) : ''); H.winS.lastChild.textContent = W.boss.name + ' est vaincu !';
+      H.winT.textContent = 'VICTOIRE !'; H.winS.innerHTML = '<span></span><span></span>'; H.winS.firstChild.textContent = W.name; H.winS.lastChild.textContent = W.boss.name + ' est vaincu !';
+      FIN.kills += G.worldKills; FIN.chests += G.chests; FIN.secs += secs; FIN.hurt += G.worldHurt; FIN.worlds++; FIN.combo = Math.max(FIN.combo, G.comboBest);
       const rows = [['Monstres vaincus', G.worldKills], ['Coffres ouverts', G.chests], ['Plus long combo', '×' + G.comboBest], ['Temps', Math.floor(secs / 60) + ' min ' + String(secs % 60).padStart(2, '0')],
         [G.worldHurt === 0 ? 'Sans une égratignure !' : 'Coups reçus', G.worldHurt === 0 ? '+' + fmt(noHit) : G.worldHurt], ['Bonus du monde', '+' + fmt(total)]];
       H.winRows.textContent = '';
@@ -5633,13 +7697,14 @@ void main(){ if (vK >= 0.999) discard;
     }
     function winSkip() {
       if (G.phase !== 'win' || !H.winNext.classList.contains('on')) return;
+      if (FIN.card) { finalEnd(); return; }
       H.win.classList.remove('on'); H.winNext.classList.remove('on');
       if (winRes && !winRes.applied) { winRes.applied = true; addScore(winRes.total); }
       G.phase = 'play';
       heroFull('Idle', { once: false, fade: 0.3 });
-      openPortal();
+      if (G.wi >= PLAYABLE.length - 1) finale(); else openPortal();
     }
-    // portail : un cercle de runes et un tourbillon de lumière verte ; on entre dedans → monde suivant (ou Tour II)
+    // portail : un cercle de runes et un tourbillon de lumière verte ; on entre dedans → monde suivant (après le 6e : la grande victoire)
     let PORTAL = null;
     function openPortal() {
       const R = ROOMS[ROOMS.length - 1], sp = R.spots.portal || [(R.x1 - R.x0) / 2, 3];
@@ -5667,10 +7732,10 @@ void main(){ if (vK >= 0.999) discard;
       for (let i = 0; i < 30; i++) fx({ x: hero.x + frnd(-0.6, 0.6), y: frnd(0, 2.4), z: hero.z + frnd(-0.6, 0.6), vy: frnd(3, 9), life: frnd(0.5, 1), s0: 0.3, s1: 0, c0: 0xc8ffd8, k: 3, cell: 'star4', rot: FXR() * 6 });
       hero.c.root.visible = false; if (COOP) for (const h of HEROES) if (h.c) h.c.root.visible = false;
       H.fade.classList.add('on');
-      const nextW = G.wi + 1 < PLAYABLE.length ? G.wi + 1 : 0, nextTour = nextW === 0 ? G.tour + 1 : G.tour;
+      const nextW = Math.min(PLAYABLE.length - 1, G.wi + 1), nextTour = 0;
       const go = (w, t) => {
         if (destroyed) return;
-        const lv = (t * PLAYABLE.length + w) * PER_WORLD + 1;
+        const lv = w * PER_WORLD + 1;
         disposeWorld();
         enterWorld(lv);
         hero.c.root.visible = true; if (COOP) teamRefresh(true); else { G.hearts = Math.min(MAXH, G.hearts + 2); G.shield = MAXS; }
@@ -5685,8 +7750,16 @@ void main(){ if (vK >= 0.999) discard;
           if (!H.load.parentNode) ui.appendChild(H.load);
           H.load.classList.remove('out'); loadFrac = 0; setLoad(0.05, 'Le portail s’ouvre sur « ' + W.name + ' »…');
           if (!loadRaf) loadRaf = requestAnimationFrame(loadAnim);
-          ensurePack(W.pack, (f) => setLoad(0.05 + f * 0.9)).then(() => { if (destroyed) return; setLoad(1); H.load.classList.add('out'); go(nextW, nextTour); })
-            .catch((e) => { mfReport('Magic Force : portail bloqué (' + String((e && e.message) || e).slice(0, 120) + ')', mfState()); H.loadP.textContent = 'Le portail est bloqué (connexion ?)… le donjon recommence !'; setTimeout(() => { H.load.classList.add('out'); go(0, G.tour + 1); }, 1800); });
+          // pas de connexion : on réessaie (le portail attend) ; au bout de 4 essais, la partie s'arrête avec son score
+          let tries = 0;
+          const tryPack = () => ensurePack(W.pack, (f) => setLoad(0.05 + f * 0.9)).then(() => { if (destroyed) return; setLoad(1); H.load.classList.add('out'); go(nextW, nextTour); })
+            .catch((e) => {
+              if (destroyed) return;
+              if (!tries) mfReport('Magic Force : portail bloqué (' + String((e && e.message) || e).slice(0, 120) + ')', mfState());
+              if (++tries >= 4) { H.loadP.textContent = 'Le portail est bloqué (connexion ?)… la partie s’arrête ici.'; if (!NETG) setTimeout(() => { if (!destroyed && !over) { over = true; try { api.gameOver(Math.max(0, Math.floor(score))); } catch (e) { /* rien */ } } }, 2200); return; }
+              H.loadP.textContent = 'Le portail est bloqué (connexion ?)… on réessaie !'; setTimeout(tryPack, 2500);
+            });
+          tryPack();
         } else go(nextW, nextTour);
       }, 700);
     }
@@ -5698,7 +7771,8 @@ void main(){ if (vK >= 0.999) discard;
       if (PK[name]) return Promise.resolve();
       if (!PACKP[name]) {
         const st = { prog: null };
-        const p = loadPack(name, (g, t) => { if (st.prog) st.prog(t ? g / t : 0); }).then(async (pk) => { PK[name] = pk; decodeSounds(pk); if (name === 'monde2') await prepWorld2(); else if (name === 'monde3') await prepWorld3(); });
+        const prep = { monde2: prepWorld2, monde3: prepWorld3, monde4: prepWorld4, monde5: prepWorld5, monde6: prepWorld6 }[name];
+        const p = loadPack(name, (g, t) => { if (st.prog) st.prog(t ? g / t : 0); }).then(async (pk) => { PK[name] = pk; decodeSounds(pk); if (prep) await prep(); });
         PACKP[name] = { p, st };
         p.catch(() => { delete PACKP[name]; });
       }
@@ -5710,7 +7784,8 @@ void main(){ if (vK >= 0.999) discard;
     // ENTRÉE DANS UN MONDE / SORTIE (tout est libéré entre deux mondes)
     // ===========================================================================
     function applyTour() {
-      G.hpMul = (1 + 0.55 * G.tour) * (1 + 0.2 * G.wi); G.spMul = 1 + 0.1 * G.tour + 0.05 * G.wi; G.ptsMul = 1 + 0.5 * G.tour + 0.25 * G.wi; G.aggro = 1.05 + 0.25 * G.tour + 0.15 * G.wi;
+      // six mondes : chacun un peu plus coriace que le précédent (monde 6 : PV ×1,8, cadence ×1,55, points ×2,25)
+      G.hpMul = 1 + 0.16 * G.wi; G.spMul = 1 + 0.04 * G.wi; G.ptsMul = 1 + 0.25 * G.wi; G.aggro = 1.05 + 0.1 * G.wi;
       if (COOP) { G.hpMul *= 1.3 * CT.hp[CLV]; G.aggro *= CT.aggro[CLV]; G.spMul *= CT.sp[CLV]; G.ptsMul *= MULT[CLV]; G.bossMul = CT.boss[CLV]; }
     }
     function disposeWorld() {
@@ -5728,7 +7803,7 @@ void main(){ if (vK >= 0.999) discard;
       ZONES.length = 0; ROOMS.length = 0; DOORS.length = 0; BREAK.length = 0; CHESTS.length = 0; SPIKES.length = 0; TORCHES.length = 0; RAYS.length = 0; PL.length = 0; SOLIDS.length = 0;
       guideStop(); GUIDE.st.length = 0; BAKE.src.length = 0;
       PORTAL = null; H.boss.classList.remove('on'); if (coneMesh) coneMesh.visible = false; LAVA.mesh = null; LAVA.holes.length = 0;
-      SECRET.wall = null; SECRET.chests.length = 0; CRYS.length = 0; MINI.m = null;
+      SECRET.wall = null; SECRET.chests.length = 0; CRYS.length = 0; MINI.m = null; EC.roots.length = 0; EC.rootMesh = null; EC.cone = null; for (const h of HEROES) h.sticky = 0; if (hero) hero.sticky = 0; LAVA.sea = null; BOSS.fly = null; BOSS.aura = null; BOSS.atk = null; BOSS.eyesOn = 0; FLORA.groups = {};
     }
     function enterWorld(lv) {
       const tEnter = performance.now();
@@ -5794,7 +7869,7 @@ void main(){ if (vK >= 0.999) discard;
     function worldUpdate(dt) {
       if (!NETG) monstersUpdate(dt); shotsUpdate(dt); foesUpdate(dt); dangerUpdate(dt); novaUpdate(dt); arcsUpdate(dt);
       heartsUpdate(dt); chestsUpdate(dt); breakUpdate(dt); spikesUpdate(dt); shieldUpdate(dt);
-      doorsUpdate(dt); torchesUpdate(dt); if (!NETG) { roomsUpdate(dt); barrelsUpdate(dt); } portalUpdate(dt); lavaUpdate(dt); coneUpdate(); secretUpdate(dt); miniUpdate();
+      doorsUpdate(dt); torchesUpdate(dt); if (!NETG) { roomsUpdate(dt); barrelsUpdate(dt); } portalUpdate(dt); lavaUpdate(dt); coneUpdate(); secretUpdate(dt); miniUpdate(); gardenUpdate(dt); towerUpdate(dt); rootsUpdate(dt);
       if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) G.combo = 0; }
     }
     // cadrage pendant le combat de boss : le boss ET le mage dans l'image
@@ -6229,9 +8304,10 @@ void main(){ if (vK >= 0.999) discard;
         let ex = 0, ez = 0, dang = false;
         for (const z of DANGER) {
           if (z.kind === 'circle' && z.t > Math.min(react, z.delay * 0.6) && Math.hypot(h.x - z.x, h.z - z.z) < z.r + 0.7) { ex += h.x - z.x; ez += h.z - z.z; dang = true; }
+          if (z.kind === 'pollen' && Math.hypot(h.x - z.x, h.z - z.z) < z.r + 0.8) { ex += h.x - z.x; ez += h.z - z.z; dang = true; }
           if (z.kind === 'wave') { const r = z.r0 + (z.r1 - z.r0) * Math.min(1, z.t / z.life), d = Math.hypot(h.x - z.x, h.z - z.z); if (d > r && d - r < 2.2) dang = true; }
         }
-        if (BOSS.cone && BOSS.cone.visible || (typeof coneMesh !== 'undefined' && coneMesh && coneMesh.visible && BOSS.m)) { const m = BOSS.m, da = Math.abs(angDiff(m.face, Math.atan2(h.x - m.x, h.z - m.z))); if (da < 0.5 && Math.hypot(h.x - m.x, h.z - m.z) < 14) { ex += Math.cos(m.face); ez += -Math.sin(m.face); dang = true; } }
+        if (BOSS.cone && BOSS.cone.visible || (EC.cone && EC.cone.visible && BOSS.m) || (typeof coneMesh !== 'undefined' && coneMesh && coneMesh.visible && BOSS.m)) { const m = BOSS.m, da = Math.abs(angDiff(m.face, Math.atan2(h.x - m.x, h.z - m.z))); if (da < 0.5 && Math.hypot(h.x - m.x, h.z - m.z) < 14) { ex += Math.cos(m.face); ez += -Math.sin(m.face); dang = true; } }
         if (dang && h.rollCd <= 0 && FXR() < CT.dodge[CLV]) RB.roll = true;
         RB.ex = ex; RB.ez = ez; RB.dang = dang;
         // 2) qui combattre : le monstre le plus proche de l'humain (il protège), visible
@@ -6557,13 +8633,17 @@ void main(){ if (vK >= 0.999) discard;
         const p = lerpBuf(NETX.bbuf);
         if (p) { B.x = p[0]; B.z = p[1]; B.y = p[2]; B.face = p[3]; }
         B.c.mixer.update(dt);
+        if (HFCB[BOSS.kind]) { if (B.c.root.visible) BOSS.eyesOn = 1; hfcVisual(B, dt); }
         B.c.root.position.set(B.x, B.y || 0, B.z); B.c.root.rotation.y = B.face;
-        if (B.sh) { B.sh.x = B.x; B.sh.z = B.z; }
+        if (B.sh) { B.sh.x = B.x; B.sh.z = B.z; if (BOSS.kind === 'ent') B.sh.a = (B.y || 0) < -1 ? 0 : 0.5; }
+        if (BOSS.kind === 'ent' && EC.cone && EC.cone.visible) { EC.cone.position.set(B.x + Math.sin(B.face) * 1.5, 0.09, B.z + Math.cos(B.face) * 1.5); EC.cone.rotation.y = B.face; NETX.cwT -= dt; const u = EC.cone.material.uniforms.uA; u.value = B.br ? 0.5 : Math.min(0.75, u.value + dt * 1.1); if (!B.br) crownCharge(B, u.value / 0.75); if (NETX.cwT <= 0 && !B.br) EC.cone.visible = false; }
         if (B.br && HUM.st === 'up') {
           const ox = BOSS.kind === 'hydre' ? B.hx : B.x, oz = BOSS.kind === 'hydre' ? B.hz : B.z, dx = HUM.x - ox, dz = HUM.z - oz, d = Math.hypot(dx, dz), da = Math.abs(angDiff(B.face, Math.atan2(dx, dz)));
           NETX.brT = (NETX.brT || 0) - dt;
-          if (NETX.brT <= 0 && d < (BOSS.kind === 'hydre' ? 12.5 : 14) && da < 0.43) { NETX.brT = 0.45; hurtHero(1, B.x, B.z); }
-          if (FXR() < 0.8) { if (BOSS.kind === 'hydre') frostParticles(B, 0); else breathParticles(B, dt); }
+          const ent = BOSS.kind === 'ent';
+          if (ent && d < 11.5 && da < 0.45) HUM.sticky = Math.max(HUM.sticky || 0, 0.6);
+          if (NETX.brT <= 0 && d < (BOSS.kind === 'hydre' ? 12.5 : ent ? 11.5 : 14) && da < (ent ? 0.45 : 0.43)) { NETX.brT = ent ? 0.7 : 0.45; hurtHero(1, B.x, B.z); }
+          if (ent) pollenParticles(B, 0.5); else if (FXR() < 0.8) { if (BOSS.kind === 'hydre') frostParticles(B, 0); else breathParticles(B, dt); }
         }
       }
     }
@@ -6580,7 +8660,9 @@ void main(){ if (vK >= 0.999) discard;
       if (e === 'ba') { if (BOSS.m) { if (BOSS.kind === 'golem') gPlay(ev.n, { once: !!ev.o, speed: ev.s || 1, fade: ev.f }); else dPlay(ev.n, { once: !!ev.o, speed: ev.s || 1, fade: ev.f }); } return; }
       if (e === 'hn') { const m = monById(ev.i); if (m) { m.flash = 1; pop(m.x, m.c.tp.h + 0.2, m.z, String(ev.d), ev.c ? 'crit' : '', 0.7); } return; }
       if (e === 'kl') { const m = monById(ev.i); if (m) netKillFx(m, ev); return; }
-      if (e === 'dz') { const o = { kind: ev.k, x: ev.x / 10, z: ev.z / 10, dmg: ev.dm || 1 }; if (ev.k === 'circle') { o.r = ev.r / 10; o.delay = ev.dl / 100; o.onHit = (d) => { dust(d.x, d.z, 5, 1.3); sfx('slam', 0.4, 1.2, 0.08, d.x); }; } else { o.r0 = ev.r0 / 10; o.r1 = ev.r1 / 10; o.life = ev.lf / 100; } danger(o); return; }
+      if (e === 'cw') { const c = entCone(); c.visible = true; c.material.uniforms.uA.value = 0.2; NETX.cwT = (ev.d || 85) / 100 + 1.6; sfx('wood', 0.5, 0.55); return; }
+      if (e === 'dz' && ev.k === 'pollen') { DANGER.push({ kind: 'pollen', x: ev.x / 10, z: ev.z / 10, r: ev.r / 10, t: 0, life: ev.lf / 100, tick: 0.5 }); return; }
+      if (e === 'dz') { const o = { kind: ev.k, x: ev.x / 10, z: ev.z / 10, dmg: ev.dm || 1 }; if (ev.k === 'circle') { o.r = ev.r / 10; o.delay = ev.dl / 100; if (ev.wn) o.warn = ev.wn; if (ev.fk) o.fk = ev.fk; o.onHit = (d) => { if (d.fk) return; dust(d.x, d.z, 5, 1.3); sfx('slam', 0.4, 1.2, 0.08, d.x); }; } else { o.r0 = ev.r0 / 10; o.r1 = ev.r1 / 10; o.life = ev.lf / 100; } danger(o); return; }
       if (e === 'fo') { netFoe(ev); return; }
       if (e === 'st') {                              // un coup au corps à corps vers MOI : je décide
         const h = HUM; if (h.st !== 'up') return;
@@ -6624,7 +8706,7 @@ void main(){ if (vK >= 0.999) discard;
     // projectiles de l'hôte, refaits ici (ils me touchent, moi)
     function netFoe(ev) {
       const k = ev.k;
-      if (k === 'orb') { const f = { kind: 'orb', x: ev.x / 10, z: ev.z / 10, vx: ev.vx / 10, vz: ev.vz / 10, t: 0, tgt: ev.tg === HUM.i ? HUM : HEROES[ev.tg] }; f.L = addLight(f.x, 1.4, f.z, 0xa060ff, 6, 5, 0.2, 'orb'); FOES.push(f); sfx('orb', 0.35, 1, 0.1, f.x); }
+      if (k === 'orb') { const f = { kind: 'orb', x: ev.x / 10, z: ev.z / 10, vx: ev.vx / 10, vz: ev.vz / 10, t: 0, tgt: ev.tg === HUM.i ? HUM : HEROES[ev.tg], col: ev.oc || null }; f.L = addLight(f.x, 1.4, f.z, f.col ? f.col[0] : 0xa060ff, 6, 5, 0.2, 'orb'); FOES.push(f); sfx('orb', 0.35, 1, 0.1, f.x); }
       else if (k === 'arrow') { FOES.push({ kind: 'arrow', x: ev.x / 10, z: ev.z / 10, vx: ev.vx / 10, vz: ev.vz / 10, t: 0 }); sfx('crossbow', 0.4, 1, 0.08, ev.x / 10); }
       else if (k === 'fireball' || k === 'iceball') {
         const f = { kind: k, x0: ev.x0 / 10, y0: ev.y0 / 10, z0: ev.z0 / 10, x1: ev.x1 / 10, z1: ev.z1 / 10, t: 0, dur: ev.du / 100, arc: ev.ar / 10, r: ev.r / 10, x: ev.x0 / 10, z: ev.z0 / 10, sm: ev.sm ? ev.sm / 100 : undefined };
@@ -6634,6 +8716,8 @@ void main(){ if (vK >= 0.999) discard;
         const L = LIB.rubble_half || LIB.rubble_large; if (!L) return;
         const mesh = new T.Mesh(L.geo, MAT.world); mesh.scale.setScalar(ev.s / 100); scene.add(mesh);
         FOES.push({ kind: 'rock', mesh, x0: ev.x0 / 10, y0: ev.y0 / 10, z0: ev.z0 / 10, x1: ev.x1 / 10, z1: ev.z1 / 10, t: 0, dur: ev.du / 100, arc: ev.ar / 10, r: ev.r / 10 });
+      } else if (k === 'log') {
+        FOES.push(makeLog(ev.x0 / 10, ev.y0 / 10, ev.z0 / 10, ev.x1 / 10, ev.z1 / 10, ev.du / 100, ev.r / 10, !!ev.b, ev.ar / 10));
       } else if (k === 'icicle') {
         if (!icicleGeo) { icicleGeo = keep(new T.ConeGeometry(0.4, 2.6, 6)); icicleGeo.rotateX(Math.PI); icicleGeo.translate(0, 1.3, 0); }
         if (!MAT.crystal) MAT.crystal = keep(new T.MeshLambertMaterial({ color: 0xa8ecff, emissive: 0x2a86d8, emissiveIntensity: 0.85 }));
@@ -6645,14 +8729,16 @@ void main(){ if (vK >= 0.999) discard;
     function netFoeOut(f) {
       if (!NETH) return;
       const k = f.kind;
-      if (k === 'orb' || k === 'arrow') netEv({ e: 'fo', k, x: r10(f.x), z: r10(f.z), vx: r10(f.vx), vz: r10(f.vz), tg: f.tgt && f.tgt.i != null ? f.tgt.i : 0 });
+      if (k === 'orb' || k === 'arrow') netEv({ e: 'fo', k, x: r10(f.x), z: r10(f.z), vx: r10(f.vx), vz: r10(f.vz), tg: f.tgt && f.tgt.i != null ? f.tgt.i : 0, oc: f.col || undefined });
       else if (k === 'fireball' || k === 'iceball') netEv({ e: 'fo', k, x0: r10(f.x0), y0: r10(f.y0), z0: r10(f.z0), x1: r10(f.x1), z1: r10(f.z1), du: r100(f.dur), ar: r10(f.arc), r: r10(f.r), sm: f.sm ? r100(f.sm) : 0 });
       else if (k === 'rock') netEv({ e: 'fo', k, x0: r10(f.x0), y0: r10(f.y0), z0: r10(f.z0), x1: r10(f.x1), z1: r10(f.z1), du: r100(f.dur), ar: r10(f.arc), r: r10(f.r), s: r100(f.mesh ? f.mesh.scale.x : 0.3) });
       else if (k === 'icicle') netEv({ e: 'fo', k, x: r10(f.x), z: r10(f.z), du: r100(f.dur), r: r10(f.r) });
+      else if (k === 'log') netEv({ e: 'fo', k, x0: r10(f.x0), y0: r10(f.y0), z0: r10(f.z0), x1: r10(f.x1), z1: r10(f.z1), du: r100(f.dur), ar: r10(f.arc), r: r10(f.r), b: f.big ? 1 : 0 });
     }
     function netDangerOut(o) {
       if (!NETH) return;
-      if (o.kind === 'circle') netEv({ e: 'dz', k: 'circle', x: r10(o.x), z: r10(o.z), r: r10(o.r), dl: r100(o.delay), dm: o.dmg || 1 });
+      if (o.kind === 'circle') netEv({ e: 'dz', k: 'circle', x: r10(o.x), z: r10(o.z), r: r10(o.r), dl: r100(o.delay), dm: o.dmg || 1, wn: o.warn || undefined, fk: o.fk || undefined });
+      else if (o.kind === 'pollen') netEv({ e: 'dz', k: 'pollen', x: r10(o.x), z: r10(o.z), r: r10(o.r), lf: r100(o.life) });
       else if (o.kind === 'wave') netEv({ e: 'dz', k: 'wave', x: r10(o.x), z: r10(o.z), r0: r10(o.r0), r1: r10(o.r1), lf: r100(o.life), dm: o.dmg || 1 });
     }
     if (NETH) {
@@ -6726,7 +8812,7 @@ void main(){ if (vK >= 0.999) discard;
     // ------------------------------------------------------------- sonde de vitesse : une fenêtre de 60 s de jeu mesurée UNE fois par appareil
     // (et à chaque partie avec ?perf=1), puis UN petit résumé purement technique (temps d'image, niveau, pixels, carte graphique)
     // envoyé par le canal d'erreurs de la borne (message « perf magic: »). Aucune donnée personnelle dans le résumé.
-    const MF_BUILD = '2026-10-17b';   // (17 oct., b) la fluidité d'abord : netteté qui monte seulement sans image ratée, écrans à 30 i/s
+    const MF_BUILD = '2026-10-20a';   // (20 oct.) 6 mondes tous différents + la fluidité d'abord (1.18.7), joystick (1.19.17), manette (1.21)
     const PROBE = { on: false, ft: [], t: 0, sent: false, tier0: -1 };
     try { PROBE.on = /[?&]perf=1/.test(location.search) || localStorage.getItem('jdw.magic.sonde') !== MF_BUILD; } catch (e) { PROBE.on = false; }
     function probeFrame(ms) {
@@ -6920,6 +9006,7 @@ void main(){ if (vK >= 0.999) discard;
       fxCells(packJSON('fxmap'));
       MAT.world = keep(patchMat(lam({ map: TEX.kkt_dungeon }), { ao: true, cut: true, dark: true, lm: true }));
       MAT.floor = keep(patchMat(lam({ map: TEX.kkt_dungeon }), { floor: true, dark: true, lm: true }));
+      MAT.floorM = keep(patchMat(lam({ map: TEX.kkt_dungeon }), { marble: true, dark: true, lm: true }));      // (v24) le marbre du Trône (compilé seulement au monde 6)
       MAT.base = keep(patchMat(lam({ map: TEX.kkt_dungeon, color: 0x8a8296 }), { ao: true, lava: true, lm: true }));
       buildLib(await parseGLB('kk_dungeon'));
       buildWeapons(await parseGLB('kk_weapons'));
@@ -7028,7 +9115,7 @@ void main(){ if (vK >= 0.999) discard;
       pause: COOP ? () => setPaused(true) : () => setPaused(true, true),
       resume: () => setPaused(false),
       coopStats: COOP ? coopStats : undefined,
-      _dbg: typeof window !== 'undefined' && window.JDW_MAGIC_DBG ? { IN, keys, CD, setTouch, routeDir, PP, TEX, MAT, LIB, TPL, CLIPS, G, hero, MON, ROOMS, ZONES, DOORS, CHESTS, BREAK, Q: () => Q, PERF, CAM, T: () => T, renderer: () => renderer,
+      _dbg: typeof window !== 'undefined' && window.JDW_MAGIC_DBG ? { IN, keys, CD, setTouch, routeDir, PP, TEX, MAT, LIB, TPL, CLIPS, G, hero, MON, ROOMS, ZONES, DOORS, CHESTS, BREAK, Q: () => Q, JD: () => JARDIN, TT: () => TOURTRONE, PERF, CAM, T: () => T, renderer: () => renderer,
         setPaused, statics, parts, info: () => renderer && renderer.info, lightSrc, plights, DANGER, SHOTS, FOES, BOSS, SPIKES, GR, free, SOLIDS, SECRET, MINI, MAPS, map: () => MAP, wallHit, HEROES, TEAM, RB, heroesOf: () => HEROES, downHero: (i) => heroDown(HEROES[i]), travel: () => travel(), NETX, COOPI: () => ({ COOP, mode: CO.mode, lv: CLV, me: CO.me }), gridRefresh, portal: () => PORTAL, winSkip, hurtMonster, spawnMonster, play, KIND, QDEAD, DYNQ: () => DYN, setTier, probe: () => PROBE, probeSend, hitBreakable,
         // essais de vitesse : couper / remettre une à une les dépenses de rendu
         cfg: (o) => { if (o.dyn) { DYN = o.dyn; resize(); } if (o.bloom === false) PP.on = false; if (o.bloom === true && PP.ok) PP.on = true;
@@ -7061,8 +9148,15 @@ void main(){ if (vK >= 0.999) discard;
       P(() => { ctx.moveTo(0, -r * 0.62); ctx.bezierCurveTo(r * 0.55, -r * 0.1, r * 0.5, r * 0.55, 0, r * 0.55); ctx.bezierCurveTo(-r * 0.5, r * 0.55, -r * 0.55, -r * 0.05, -r * 0.1, -r * 0.25); ctx.quadraticCurveTo(-r * 0.05, -r * 0.45, 0, -r * 0.62); });
       ctx.fillStyle = acc2; ctx.beginPath(); ctx.ellipse(0, r * 0.25, r * 0.16, r * 0.24, 0, 0, TAU); ctx.fill();
     } else if (id === 'glace') { ctx.strokeStyle = acc; ctx.lineWidth = r * 0.14; for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.6, Math.sin(a) * r * 0.6); ctx.lineTo(-Math.cos(a) * r * 0.6, -Math.sin(a) * r * 0.6); ctx.stroke(); } }
-    else if (id === 'jardin') { P(() => { ctx.moveTo(0, -r * 0.6); ctx.quadraticCurveTo(r * 0.6, -r * 0.2, 0, r * 0.6); ctx.quadraticCurveTo(-r * 0.6, -r * 0.2, 0, -r * 0.6); }); }
-    else if (id === 'tour') { P(() => { ctx.arc(0, 0, r * 0.45, 0, TAU); }); ctx.fillStyle = acc2; ctx.beginPath(); ctx.arc(-r * 0.12, -r * 0.12, r * 0.14, 0, TAU); ctx.fill(); }
+    else if (id === 'jardin') {      // champignon à pois
+      ctx.fillStyle = '#f2e6c8'; P(() => { ctx.moveTo(-r * 0.16, -r * 0.02); ctx.lineTo(-r * 0.2, r * 0.55); ctx.lineTo(r * 0.2, r * 0.55); ctx.lineTo(r * 0.16, -r * 0.02); ctx.closePath(); });
+      ctx.fillStyle = acc; P(() => { ctx.moveTo(-r * 0.62, r * 0.04); ctx.bezierCurveTo(-r * 0.62, -r * 0.7, r * 0.62, -r * 0.7, r * 0.62, r * 0.04); ctx.closePath(); });
+      ctx.fillStyle = acc2; ctx.beginPath(); ctx.arc(-r * 0.24, -r * 0.24, r * 0.1, 0, TAU); ctx.arc(r * 0.2, -r * 0.3, r * 0.08, 0, TAU); ctx.arc(r * 0.34, -r * 0.06, r * 0.07, 0, TAU); ctx.fill();
+    } else if (id === 'tour') {      // le grand œil
+      P(() => { ctx.moveTo(-r * 0.62, 0); ctx.quadraticCurveTo(0, -r * 0.62, r * 0.62, 0); ctx.quadraticCurveTo(0, r * 0.62, -r * 0.62, 0); ctx.closePath(); });
+      ctx.fillStyle = acc2; ctx.beginPath(); ctx.arc(0, 0, r * 0.24, 0, TAU); ctx.fill(); ctx.fillStyle = '#1a1028'; ctx.beginPath(); ctx.arc(0, 0, r * 0.11, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-r * 0.06, -r * 0.07, r * 0.04, 0, TAU); ctx.fill();
+    }
     else { P(() => { ctx.moveTo(-r * 0.55, r * 0.35); ctx.lineTo(-r * 0.55, -r * 0.3); ctx.lineTo(-r * 0.25, 0); ctx.lineTo(0, -r * 0.5); ctx.lineTo(r * 0.25, 0); ctx.lineTo(r * 0.55, -r * 0.3); ctx.lineTo(r * 0.55, r * 0.35); ctx.closePath(); }); }
   }
   // médaillon d'un monde (n = 1..6, parmi tous les mondes prévus) centré en (x, y), rayon r
@@ -7085,7 +9179,7 @@ void main(){ if (vK >= 0.999) discard;
     all: WORLDS.map(pub),
     perWorld: PER_WORLD,                  // salles par monde (la dernière = le boss)
     word: 'Salle',                        // unité de currentLevel()
-    cycleWord: 'Tour',                    // après le dernier monde prêt, le tour suivant recommence (plus coriace)
+    cycleWord: 'Tour',                    // (plus de Tour II depuis l'étape C : la partie se termine après le monde 6)
     at(level) {
       const o = worldOf(level);
       return { level: Math.max(1, Math.floor(Number(level)) || 1), world: o.n, tour: o.tour + 1, stage: o.room, boss: o.boss, name: o.world.name, room: o.world.rooms[o.stage], bossName: o.world.boss.name };
@@ -7096,7 +9190,7 @@ void main(){ if (vK >= 0.999) discard;
   window.JDW_GAMES['magic'] = {
     id: 'magic',
     title: 'Magic Force',
-    tagline: 'Un mage, quatre sorts, des squelettes qui sortent de terre et des boss géants : traverse le donjon !',
+    tagline: 'Un mage, quatre sorts, six mondes et six boss géants : libère le royaume !',
     accent: '#9b7bff',
     scoreLabel: 'points',
     worlds: WORLD_INFO,

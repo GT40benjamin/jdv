@@ -1511,8 +1511,8 @@ body.net-off #jdw-coop-switch [data-where=ami] span::after{content:" · réseau"
 .gmap[data-theme=carreaux] .gs-txt b,.gmap[data-theme=carreaux] .gs-txt small{color:#fff;text-shadow:0 2px 0 rgba(10,26,56,.9),0 0 10px rgba(10,26,56,.9)}
 .gmap[data-theme=carreaux] .gmap-cap{opacity:1}
 .gmap[data-theme=carreaux] .gmap-cap b,.gmap[data-theme=carreaux] .gmap-cap small{color:#fff;text-shadow:0 2px 0 rgba(4,6,20,.95),0 0 12px rgba(4,6,20,.95),0 0 26px rgba(4,6,20,.8)}
-/* Magic Force : le donjon du mage (salles vues de dessus, torches, portes, arche entre les mondes, portail du Tour II) ; enseignes de
-   pierre, médaillons des salles et des mini-boss, le Gardien de pierre, Braise et Givre, le mage au départ — tout est dessiné par la
+/* Magic Force : le donjon du mage (salles vues de dessus, torches, portes, arche entre les six mondes) ; enseignes de pierre,
+   médaillons des salles et des mini-boss, les six boss (le dernier couronné), le mage au départ — tout est dessiné par la
    bibliothèque (MAP_DEFS.magic). Étiquette étroite (salle près du milieu) : titre un peu plus petit, coupé en syllabes s'il le faut */
 .gmap[data-theme=magic]{background:#07050d}
 .gmap[data-theme=magic] .gmap-ttl h2{font-size:clamp(22px,7vw,44px);background:linear-gradient(180deg,#ffffff 12%,#e2d4ff 40%,#a98bff 66%,#ffb04a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;

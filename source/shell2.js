@@ -8,7 +8,7 @@ const ORDER = ['ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouch
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  magic: { kind: 'maj', at: '2026-10-15 11:00' },   // monde plus grand + Grottes de glace (1.16)
+  magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
   glouton: { kind: 'maj', at: '2026-10-13 00:55' },
   empilo: { kind: 'maj', at: '2026-10-14 12:10' },
@@ -18,7 +18,7 @@ const TILE_NEWS = {
   pingpong: { kind: 'new', at: '2026-10-15 00:20' },
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
-  'coop-magic': { kind: 'new', at: '2026-10-15 11:00' },   // mode Coop : Magic Force à deux (1.16)
+  'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
   pegase: { kind: 'new', at: '2026-10-20 13:35' }   // Pégase sorti pour tous (1.22) : la tuile ouvre son hub
 };
@@ -7555,21 +7555,22 @@ const MAP_DEFS = {
     cap: { title: 'Le tour du monde continue…', sub: 'Un nouveau tour tous les 18 niveaux, plus coriace' }
   },
   // Magic Force (games/magic.js, jeu 3D) : le donjon du mage, 6 salles par monde (4 salles de combat, le MINI-BOSS dans la 5e, le BOSS dans
-  // la 6e), 3 mondes (la Crypte oubliée, les Forges ardentes, les Grottes de glace), puis le Tour II par le portail. Le jeu ne fournit que
-  // worlds / worldOf / drawWorldIcon : la carte est dessinée ICI (fonctions mf… plus bas) : chaque salle vue de dessus (dalles, murs,
-  // torches, décor de la salle), une porte entre deux salles, une grande arche entre deux mondes, le portail vert au Tour II ; médaillons
-  // des salles et des mini-boss, le Gardien de pierre, Braise et Givre l'hydre, le mage au départ.
+  // la 6e), 6 mondes TOUS DIFFÉRENTS (la Crypte oubliée, les Forges ardentes, les Grottes de glace, le Jardin maudit, la Tour du sorcier, la
+  // Salle du trône) : 36 salles, puis la grande victoire (plus de Tour II). Le jeu ne fournit que worlds / worldOf / drawWorldIcon : la carte
+  // est dessinée ICI (fonctions mf… plus bas) : chaque salle vue de dessus (dalles, murs, torches, décor de la salle), une porte entre deux
+  // salles, une grande arche entre deux mondes ; médaillons des salles et des mini-boss, les six boss (le Gardien de pierre, Braise, Givre,
+  // le Vieux Chêne, le Grand Œil, le Seigneur des ombres — couronné : le dernier), le mage au départ.
   magic: {
     theme: 'magic', word: 'Salle', tierGap: 200, majorGap: 330, tierAt: 0.5, step: 176, nodeSize: 58, bossSize: 70, bgDpr: 1.6, lazy: true,
     game() { const G = window.JDW_GAMES && window.JDW_GAMES.magic; return G && Array.isArray(G.worlds) && G.worlds.length && typeof G.worldOf === 'function' ? G : null; },
-    nw() { const G = this.game(); return G ? G.worlds.length : 3; },
+    nw() { const G = this.game(); return G ? G.worlds.length : 6; },
     per() { const G = this.game(); return (G && G.levelsPerWorld) || 6; },
-    count(max) { const t = this.nw() * this.per(); return Math.min(144, Math.max(t, Math.ceil((max + 2) / t) * t)); },
+    count() { return this.nw() * this.per(); },      // 36 salles : la partie s'arrête après le 6e boss (plus de tour)
     wo(lv) {
       const G = this.game();
       if (G) { try { const o = G.worldOf(lv); if (o && o.world) return o; } catch (e) {} }
-      const per = this.per(), nw = this.nw(), i = Math.max(0, lv - 1), wi = Math.floor(i / per);
-      return { w: wi % nw, n: wi % nw + 1, tour: Math.floor(wi / nw), stage: i % per, boss: i % per === per - 1, mini: per > 3 && i % per === per - 2, world: null };
+      const per = this.per(), nw = this.nw(), i = Math.min(nw * per, Math.max(1, lv)) - 1, wi = Math.floor(i / per);
+      return { w: wi, n: wi + 1, tour: 0, stage: i % per, boss: i % per === per - 1, mini: per > 3 && i % per === per - 2, world: null };
     },
     level(lv) {
       const wo = this.wo(lv), D = wo.world;
@@ -7598,25 +7599,29 @@ const MAP_DEFS = {
     startArt(x, P) { mfMage(x, P); },
     warm(L, bgDpr, dpr) { mfWarm(L, bgDpr, dpr, this); },
     start: { title: 'Départ', sub: 'Le mage entre dans le donjon' },
-    get cap() { return { title: 'Le donjon continue…', sub: 'Un nouveau tour toutes les ' + this.nw() * this.per() + ' salles, plus coriace' }; }
+    get cap() { return { title: 'Le royaume est sauvé !', sub: 'Après le Seigneur des ombres : la grande victoire' }; }
   }
 };
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Magic Force : la carte du donjon, dessinée par la bibliothèque (MAP_DEFS.magic ; le jeu 3D n'a pas de dessin 2D à prêter). Vue de
 // dessus, comme la caméra du jeu : dalles hexagonales, murs de pierre, torches ; chaque salle a son décor (6 salles par monde : 4 salles
-// de combat, la salle du MINI-BOSS, la salle du BOSS) dans la Crypte oubliée, les Forges ardentes et les Grottes de glace (torches
-// bleues, cristaux, givre) ; une porte (herse levée, chevrons dorés) entre deux salles, une arche à braseros entre deux mondes, le
-// portail vert au début de chaque tour. Médaillons des salles et des mini-boss (anneau rouge à pointes), boss et mage : en code aussi.
+// de combat, la salle du MINI-BOSS, la salle du BOSS) dans la Crypte oubliée, les Forges ardentes, les Grottes de glace (torches
+// bleues, cristaux, givre), le Jardin maudit (mousse, champignons qui luisent, mare aux crapauds, ruches), la Tour du sorcier (grimoires,
+// boules de cristal, fenêtres sur les étoiles, laboratoire) et la Salle du trône (tapis rouge, banquet, trésors, le trône) ; une porte
+// (herse levée, chevrons dorés) entre deux salles, une arche à braseros entre deux mondes ; tout en haut, le royaume sauvé. Médaillons des salles et des mini-boss (anneau rouge à pointes), boss et mage : en code aussi.
 // Un monde que la carte ne connaît pas encore prend ses couleurs dans JDW_GAMES.magic.worlds.
 // ---------------------------------------------------------------------------------------------------------------------------------
 const MF_T = Math.PI * 2;
 const MF_LINES = {
   crypte: ['Les squelettes sortent de terre !', 'Les morts se relèvent des tombeaux', 'Chut… des squelettes dorment ici', 'Des grimoires partout', '', 'Le Gardien de pierre se réveille'],
   forge: ['La lave coule dans les forges !', 'Démons et diablotins de feu', 'Le métal en fusion coule à flots', 'Épées, haches et boucliers', '', 'Braise crache le feu du volcan'],
-  glace: ['Il fait très, très froid…', 'Gare aux stalactites !', 'Des cristaux qui brillent', 'Le lac gelé craque sous tes pieds', '', 'Givre a trois têtes glacées']
+  glace: ['Il fait très, très froid…', 'Gare aux stalactites !', 'Des cristaux qui brillent', 'Le lac gelé craque sous tes pieds', '', 'Givre a trois têtes glacées'],
+  jardin: ['Les champignons brillent dans le noir…', 'Des champignons géants partout', 'Les crapauds dorés bondissent', 'Bzzz… les bourdons cuirassés', '', 'Le Vieux Chêne se réveille'],
+  tour: ['La tour flotte parmi les étoiles !', 'Des milliers de grimoires', 'Une lunette pour voir les étoiles', 'Des potions qui bouillonnent', '', 'Le Grand Œil voit tout'],
+  trone: ['Le dernier combat !', 'Un banquet pour des géants', 'Des montagnes d’or', 'La garde du Seigneur', '', 'Le Seigneur des ombres sur son trône']
 };
-const MF_BOSS_SHORT = { golem: 'Le Gardien', dragon: 'Braise', hydre: 'Givre' };
+const MF_BOSS_SHORT = { golem: 'Le Gardien', dragon: 'Braise', hydre: 'Givre', ent: 'Le Vieux Chêne', oeil: 'Le Grand Œil', seigneur: 'Le Seigneur' };
 const mfArt = (s) => String(s).replace(/^L(es|e|a) /, 'l$1 ').replace(/^L’|^L'/, 'l’');
 const mfDe = (s) => { s = String(s); return /^Les /.test(s) ? 'des ' + s.slice(4) : /^Le /.test(s) ? 'du ' + s.slice(3) : /^La /.test(s) ? 'de la ' + s.slice(3) : /^L[’']/.test(s) ? 'de l’' + s.slice(2) : 'de ' + s; };
 function mfLine(wo) {
@@ -7635,7 +7640,13 @@ const MF_STYLE = {
   forge: { floor: ['#6c4335', '#603b2f', '#774b3b', '#56342a'], grout: '#150705', wall: '#7c4d3d', wall2: '#55322a', wallDk: '#1c0906', face: '#3a1c14',
     void0: '#0b0302', void1: '#2e0c05', light: '#ff8a3d', dark: 'rgba(34,8,2,0.40)', kind: 'lava', flame: MF_FIRE },
   glace: { floor: ['#9fbccd', '#93b1c3', '#acc8d8', '#89a7b9'], grout: '#1a2b3c', wall: '#b4d0e2', wall2: '#7896ae', wallDk: '#162536', face: '#34506a',
-    void0: '#02070c', void1: '#0b2232', light: '#8fd8ff', dark: 'rgba(6,22,40,0.42)', kind: 'ice', flame: ['#ffffff', '#c8f4ff', '#4fb8ff', 'rgba(40,140,255,0)'] }
+    void0: '#02070c', void1: '#0b2232', light: '#8fd8ff', dark: 'rgba(6,22,40,0.42)', kind: 'ice', flame: ['#ffffff', '#c8f4ff', '#4fb8ff', 'rgba(40,140,255,0)'] },
+  jardin: { floor: ['#8e9a7c', '#839070', '#99a687', '#788568'], grout: '#1e2a18', wall: '#7d8f6a', wall2: '#56664a', wallDk: '#18220f', face: '#33402a',
+    void0: '#020805', void1: '#0c2414', light: '#b8ff70', dark: 'rgba(6,20,8,0.42)', kind: 'swamp', flame: ['#f2ffd8', '#b8ff70', '#50d040', 'rgba(60,200,60,0)'] },
+  tour: { floor: ['#9a96b0', '#8e8aa6', '#a6a2bc', '#84809c'], grout: '#1c1830', wall: '#7e78b4', wall2: '#544e8a', wallDk: '#141030', face: '#322c5a',
+    void0: '#03020a', void1: '#160e34', light: '#c8a0ff', dark: 'rgba(14,8,40,0.42)', kind: 'stars', flame: ['#f8eeff', '#d0a8ff', '#8a50ff', 'rgba(140,80,255,0)'] },
+  trone: { floor: ['#cdb48e', '#c1a882', '#d8c09a', '#b49c78'], grout: '#3a1a14', wall: '#8e3a3a', wall2: '#5e2224', wallDk: '#200608', face: '#40121a',
+    void0: '#06010a', void1: '#22061e', light: '#ffc860', dark: 'rgba(30,6,10,0.40)', kind: 'shadow', flame: MF_FIRE }
 };
 function mfStyle(wid, def) {
   if (MF_STYLE[wid]) return MF_STYLE[wid];
@@ -8070,7 +8081,7 @@ function mfRoom(x, L, MW, b, def) {
     x.fillStyle = g; x.fillRect(0, top, G.x0, H); x.fillRect(G.x1, top, MW - G.x1, H);
     for (const [a, z] of [[G.x0, G.x0 - 44], [G.x1, G.x1 + 44]]) { const sg = x.createLinearGradient(a, 0, z, 0); sg.addColorStop(0, 'rgba(0,0,0,0.6)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = sg; x.fillRect(Math.min(a, z), top, 44, H); }
     x.save(); x.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < H * MW / 9000; i++) { const px = R() < 0.5 ? R() * G.x0 : G.x1 + R() * (MW - G.x1), py = top + R() * H; x.fillStyle = Y.kind === 'lava' ? 'rgba(255,120,40,' + (0.2 + R() * 0.5).toFixed(2) + ')' : Y.kind === 'ice' ? 'rgba(190,235,255,' + (0.2 + R() * 0.5).toFixed(2) + ')' : 'rgba(210,200,255,' + (0.15 + R() * 0.5).toFixed(2) + ')'; x.fillRect(px, py, 1.3, 1.3); }
+    for (let i = 0; i < H * MW / 9000; i++) { const px = R() < 0.5 ? R() * G.x0 : G.x1 + R() * (MW - G.x1), py = top + R() * H; x.fillStyle = Y.kind === 'lava' ? 'rgba(255,120,40,' + (0.2 + R() * 0.5).toFixed(2) + ')' : Y.kind === 'ice' ? 'rgba(190,235,255,' + (0.2 + R() * 0.5).toFixed(2) + ')' : Y.kind === 'swamp' ? 'rgba(210,255,120,' + (0.2 + R() * 0.6).toFixed(2) + ')' : Y.kind === 'stars' ? 'rgba(255,255,255,' + (0.25 + R() * 0.7).toFixed(2) + ')' : Y.kind === 'shadow' ? 'rgba(220,110,255,' + (0.2 + R() * 0.5).toFixed(2) + ')' : 'rgba(210,200,255,' + (0.15 + R() * 0.5).toFixed(2) + ')'; x.fillRect(px, py, 1.3, 1.3); }
     x.restore();
   }
   mfFloor(x, Y, i0, i1, top, bot);
@@ -8171,6 +8182,73 @@ function mfRoom(x, L, MW, b, def) {
     } else if (id === 'glace:5') {      // le Cœur de glace : le cercle de runes de glace sous Givre, les piliers de glace, les cristaux
       for (const [fx, fy] of [[0.12, 0.28], [0.88, 0.28], [0.12, 0.8], [0.88, 0.8]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 46)) mfPillar(x, Y, px, py, 15); }
       lit.push(() => { if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(86, MW * 0.21), '#9fe8ff', 1); const py = at(0.55), px = side(py, 160); if (free(px, py, 50)) mfCrystals(x, px, py, 12, '#8fe9ff'); });
+    } else if (id === 'jardin:0') {      // le Sentier moussu : buissons le long des murs, champignons qui luisent
+      for (const sd of [-1, 1]) for (let j = 0; j < 3; j++) { const py = at(0.18 + j * 0.32), px = sd < 0 ? i0 + 26 : i1 - 26; if (free(px, py, 40)) mfBush(x, px, py, 15, R); }
+      lit.push(() => { for (const p of spots([[i0 + 80, at(0.3)], [i1 - 80, at(0.66)], [MW / 2 + 150, at(0.84)], [MW / 2 - 150, at(0.16)]], 40, 16, 3)) mfMushroom(x, p[0], p[1], 12, ['#46e6c8', '#b070ff', '#ffd060'][Math.floor(R() * 3)]); });
+    } else if (id === 'jardin:1') {      // la Serre aux champignons : des champignons géants de toutes les couleurs
+      const cand = []; for (let j = 0; j < 8; j++) cand.push([j & 1 ? i0 + 40 + R() * 110 : i1 - 40 - R() * 110, at(0.1 + j * 0.11)]);
+      lit.push(() => { spots(cand, 46, 18, 6).forEach((p, k) => mfMushroom(x, p[0], p[1], 11 + (k % 3) * 4, ['#46e6c8', '#b070ff', '#ffd060', '#ff7ab8'][k % 4])); });
+      for (const sd of [-1, 1]) mfBush(x, sd < 0 ? i0 + 24 : i1 - 24, at(sd < 0 ? 0.86 : 0.14), 14, R);
+    } else if (id === 'jardin:2') {      // le Bassin aux crapauds : une mare et ses nénuphars, des buissons
+      const py = at(0.45), px = side(py, 170);
+      if (free(px, py, 90)) mfLilyPond(x, px, py, Math.min(110, (i1 - i0) * 0.26), Math.min(52, H * 0.22), R);
+      for (const sd of [-1, 1]) for (let j = 0; j < 2; j++) { const yy = at(0.2 + j * 0.6), xx = sd < 0 ? i0 + 26 : i1 - 26; if (free(xx, yy, 40)) mfBush(x, xx, yy, 14, R); }
+      lit.push(() => { const p = spots([[i1 - 70, at(0.8)], [i0 + 70, at(0.2)]], 40, 14, 1)[0]; if (p) mfMushroom(x, p[0], p[1], 10, '#46e6c8'); });
+    } else if (id === 'jardin:3') {      // la Ruche : deux grosses ruches dorées, des abeilles, des fleurs
+      for (const p of spots([[i0 + 60, at(0.28)], [i1 - 60, at(0.72)], [i0 + 60, at(0.72)], [i1 - 60, at(0.28)]], 50, 24, 2)) mfHive(x, p[0], p[1], 20);
+      for (let j = 0; j < 4; j++) { const py = top + R() * H, px = j & 1 ? i0 + 24 : i1 - 24; if (free(px, py, 40)) mfBush(x, px, py, 12, R); }
+    } else if (id === 'jardin:4') {      // le Cercle des champignons (le Roi Champignon) : un rond de champignons autour de la salle
+      lit.push(() => { const cx0 = (i0 + i1) / 2, rx = Math.min((i1 - i0) * 0.4, 260), ry = H * 0.36; for (let k = 0; k < 12; k++) { const a = k * MF_T / 12, px = cx0 + Math.cos(a) * rx, py = cy + Math.sin(a) * ry; if (free(px, py, 36)) mfMushroom(x, px, py, 9 + (k % 2) * 3, k % 3 ? '#46e6c8' : '#ffd060'); } });
+    } else if (id === 'jardin:5') {      // le Bosquet du Vieux Chêne : le cercle de runes vert sous le boss, de grands buissons, des champignons
+      for (const [fx, fy] of [[0.12, 0.25], [0.88, 0.25], [0.12, 0.8], [0.88, 0.8]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 46)) mfBush(x, px, py, 20, R); }
+      lit.push(() => { if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(86, MW * 0.21), '#8cff50', 1); for (const p of spots([[i0 + 60, at(0.5)], [i1 - 60, at(0.5)]], 40, 14, 2)) mfMushroom(x, p[0], p[1], 12, '#b070ff'); });
+    } else if (id === 'tour:0') {      // l'Escalier des étoiles : étagères, boules de cristal, une fenêtre ouverte sur les étoiles
+      for (const sd of [-1, 1]) mfShelf(x, sd < 0 ? i0 + 12 : i1 - 12, cy, H * 0.5, 20, true, R);
+      const w = spots([[MW / 2 + away(at(0.3)) * 150, at(0.3)], [MW / 2 - away(at(0.7)) * 150, at(0.7)]], 70, 40, 1)[0]; if (w) mfStarWindow(x, w[0], w[1], 70, 46, R);
+      lit.push(() => { for (const p of spots([[i0 + 50, at(0.18)], [i1 - 50, at(0.82)], [i1 - 50, at(0.2)]], 40, 14, 2)) mfOrb(x, p[0], p[1], 10, '#c890ff'); });
+    } else if (id === 'tour:1') {      // la Salle des grimoires : étagères pleines, un pupitre et son grimoire, des livres par terre
+      for (const sd of [-1, 1]) mfShelf(x, sd < 0 ? i0 + 12 : i1 - 12, cy, H - 22, 22, true, R);
+      const tb = spots([[MW / 2 - away(cy) * 120, at(0.5)], [MW / 2 + away(cy) * 170, at(0.5)], [i0 + 120, at(0.5)], [i1 - 120, at(0.5)]], 80, 50, 1)[0];
+      if (tb) mfTable(x, tb[0], tb[1], 76, 32);
+      for (let j = 0; j < 8; j++) { const py = top + 16 + R() * (H - 32), px = i0 + 40 + R() * (i1 - i0 - 80); if (free(px, py, 36)) mfBook(x, px, py, 6, R() * 3, Y); }
+      lit.push(() => { if (!tb) return; x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, tb[0], tb[1] - 4, 50, '#7fe6ff', 0.5); x.restore(); mfBook(x, tb[0] - 8, tb[1] - 2, 10, 0.1, Y); mfCandles(x, Y, tb[0] + 26, tb[1] - 6); });
+    } else if (id === 'tour:2') {      // l'Observatoire : la grande lunette, deux trous sur le ciel étoilé
+      for (const p of spots([[i0 + 90, at(0.3)], [i1 - 90, at(0.7)], [i0 + 90, at(0.72)]], 70, 46, 2)) mfStarWindow(x, p[0], p[1], 64, 44, R);
+      const tp = spots([[i1 - 80, at(0.3)], [i0 + 80, at(0.7)], [MW / 2 + 160, at(0.5)]], 60, 30, 1)[0]; if (tp) mfTelescope(x, tp[0], tp[1], 22, -0.6);
+      lit.push(() => { for (const p of spots([[i0 + 34, at(0.1)], [i1 - 34, at(0.9)]], 30, 12, 2)) mfOrb(x, p[0], p[1], 9, '#7fe6ff'); });
+    } else if (id === 'tour:3') {      // le Laboratoire : tables de fioles, le chaudron qui bouillonne, étagères
+      for (const sd of [-1, 1]) mfShelf(x, sd < 0 ? i0 + 12 : i1 - 12, at(sd < 0 ? 0.3 : 0.7), H * 0.4, 20, true, R);
+      lit.push(() => { for (const p of spots([[i0 + 90, at(0.25)], [i1 - 90, at(0.75)], [i0 + 90, at(0.75)]], 60, 40, 2)) mfPotions(x, p[0], p[1], 18, R); const c = spots([[MW / 2 + away(cy) * 170, cy], [MW / 2 - away(cy) * 170, cy]], 60, 24, 1)[0]; if (c) mfCauldron(x, c[0], c[1], 16); });
+    } else if (id === 'tour:4') {      // le Dojo des ombres (le Maître ninja) : les tapis de paille, les râteliers, les cristaux
+      const tw = Math.min(240, (i1 - i0) * 0.5), th = Math.min(120, H * 0.5); mfTatami(x, pathAt(cy), cy, tw, th);
+      for (const sd of [-1, 1]) mfRack(x, sd < 0 ? i0 + 10 : i1 - 10, cy, H * 0.46, sd < 0 ? Math.PI / 2 : -Math.PI / 2);
+      lit.push(() => { for (const [fx, fy] of [[0.15, 0.2], [0.85, 0.82]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 40)) mfCrystals(x, px, py, 12, '#c890ff'); } });
+    } else if (id === 'tour:5') {      // le Sommet de l'Œil : le cercle de runes violet, les cristaux, les boules de cristal
+      for (const [fx, fy] of [[0.12, 0.28], [0.88, 0.28], [0.12, 0.8], [0.88, 0.8]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 46)) mfPillar(x, Y, px, py, 15); }
+      lit.push(() => { if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(86, MW * 0.21), '#c890ff', 1); for (const p of spots([[i0 + 60, at(0.5)], [i1 - 60, at(0.55)]], 40, 14, 2)) mfCrystals(x, p[0], p[1], 12, '#c890ff'); });
+    } else if (id === 'trone:0') {      // le Grand Couloir : le tapis rouge, les colonnes, les bannières d'or
+      mfCarpet(x, pathAt(cy), top, bot, 46);
+      for (const [fx, fy] of [[0.14, 0.25], [0.86, 0.25], [0.14, 0.75], [0.86, 0.75]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 46)) mfPillar(x, Y, px, py, 14); }
+      mfBanner(x, i0, at(0.4), -1, '#e8b83a'); mfBanner(x, i1, at(0.6), 1, '#c0302c');
+    } else if (id === 'trone:1') {      // la Salle des banquets : les grandes tables, le tapis, les bougies
+      mfCarpet(x, pathAt(cy), top, bot, 40);
+      const fw = Math.min(150, (i1 - i0) * 0.32);
+      for (const p of spots([[i0 + 20 + fw / 2, at(0.3)], [i1 - 20 - fw / 2, at(0.7)], [i0 + 20 + fw / 2, at(0.72)], [i1 - 20 - fw / 2, at(0.28)]], fw / 2 + 30, 20, 3)) mfFeast(x, p[0], p[1], fw, 30, R);
+      lit.push(() => { const p = spots([[MW / 2 + away(cy) * 120, at(0.5)], [i0 + 40, at(0.5)]], 40, 12, 1)[0]; if (p) mfCandles(x, Y, p[0], p[1]); });
+    } else if (id === 'trone:2') {      // la Galerie des trésors : tas d'or, boucliers aux murs, un rubis
+      lit.push(() => { for (const p of spots([[i0 + 60, at(0.25)], [i1 - 60, at(0.7)], [i0 + 60, at(0.75)], [i1 - 60, at(0.25)], [MW / 2 + 160, at(0.5)]], 50, 22, 3)) mfCoins(x, p[0], p[1], 16, R); });
+      for (const sd of [-1, 1]) mfShieldW(x, sd < 0 ? i0 + 20 : i1 - 20, at(sd < 0 ? 0.5 : 0.45), 11, sd < 0 ? '#8a1424' : '#2a3a8a', '#e8b83a');
+    } else if (id === 'trone:3') {      // la Garde royale : armures, râteliers, bannières
+      for (const sd of [-1, 1]) mfRack(x, sd < 0 ? i0 + 10 : i1 - 10, cy, H * 0.5, sd < 0 ? Math.PI / 2 : -Math.PI / 2);
+      for (const p of spots([[i0 + 72, at(0.3)], [i1 - 72, at(0.7)], [i0 + 72, at(0.72)], [i1 - 72, at(0.28)]], 44, 24, 3)) mfArmor(x, p[0], p[1], 12);
+      mfBanner(x, i0, at(0.2), -1, '#e8b83a'); mfBanner(x, i1, at(0.8), 1, '#e8b83a');
+    } else if (id === 'trone:4') {      // la Salle du capitaine (le Capitaine de la garde) : le tapis, les braseros, les boucliers
+      mfCarpet(x, pathAt(cy), top, bot, 44);
+      for (const sd of [-1, 1]) mfShieldW(x, sd < 0 ? i0 + 20 : i1 - 20, at(sd < 0 ? 0.3 : 0.7), 11, '#2a4aa8', '#ffd34d');
+      lit.push(() => { for (const [fx, fy] of [[0.18, 0.25], [0.82, 0.25], [0.18, 0.78], [0.82, 0.78]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 50)) mfBrazier(x, Y, px, py, 8); } });
+    } else if (id === 'trone:5') {      // le Trône des ombres : le tapis jusqu'au trône, le cercle de runes violet, les braseros
+      const tx = pathAt(top + 50); mfCarpet(x, tx, top + 40, bot, 46);
+      lit.push(() => { mfThrone(x, tx, top + 44, 20); if (bossY != null) mfRunes(x, nd.boss.x, bossY, Math.min(86, MW * 0.21), '#c050ff', 1); for (const [fx, fy] of [[0.15, 0.3], [0.85, 0.3], [0.15, 0.8], [0.85, 0.8]]) { const px = G.x0 + (G.x1 - G.x0) * fx, py = at(fy); if (free(px, py, 50)) mfBrazier(x, Y, px, py, 8); } });
     } else {      // un monde que la carte ne connaît pas encore : tonneaux et bougies
       mfBarrel(x, i0 + 26, at(0.3), 11); mfBarrel(x, i1 - 26, at(0.7), 11);
       lit.push(() => mfCandles(x, Y, i1 - 30, at(0.25)));
@@ -8459,6 +8537,93 @@ function mfNodePaint(x, info, size, P, def) {
   } else if (id === 'glace:5') {      // le cœur de glace qui bat
     x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, 0, s, '#8fe9ff', 0.7); x.restore();
     mfIceHeart(x, 0, s * 0.05, s * 0.62);
+  } else if (id === 'jardin:0') {      // le sentier de pierres plates dans la mousse, un petit champignon
+    x.fillStyle = '#2e5a24'; x.fillRect(-s, -s, s * 2, s * 2);
+    x.fillStyle = 'rgba(120,200,80,0.35)'; for (let k = 0; k < 12; k++) { x.beginPath(); x.arc(-s + mfHash(k, 1) * s * 2, -s + mfHash(k, 2) * s * 2, s * 0.12, 0, MF_T); x.fill(); }
+    for (const [px, py, rx] of [[-0.1, 0.62, 0.26], [0.18, 0.18, 0.24], [-0.12, -0.26, 0.22], [0.14, -0.66, 0.2]]) { x.fillStyle = '#a8a294'; x.beginPath(); x.ellipse(px * s, py * s, rx * s, rx * s * 0.7, 0.3, 0, MF_T); x.fill(); x.fillStyle = 'rgba(255,255,255,0.25)'; x.beginPath(); x.ellipse(px * s - rx * s * 0.2, py * s - rx * s * 0.2, rx * s * 0.5, rx * s * 0.3, 0.3, 0, MF_T); x.fill(); }
+    mfMushroom(x, -s * 0.56, s * 0.1, s * 0.2, '#46e6c8'); mfMushroom(x, s * 0.58, s * 0.4, s * 0.16, '#ffd060');
+  } else if (id === 'jardin:1') {      // le champignon géant qui luit
+    x.fillStyle = '#1a3a1e'; x.fillRect(-s, -s, s * 2, s * 2);
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, -s * 0.2, s * 0.9, '#46e6c8', 0.6); x.restore();
+    x.fillStyle = '#efe2c4'; x.beginPath(); x.moveTo(-s * 0.16, -s * 0.05); x.lineTo(-s * 0.22, s * 0.75); x.lineTo(s * 0.22, s * 0.75); x.lineTo(s * 0.16, -s * 0.05); x.closePath(); x.fill();
+    const g = x.createLinearGradient(0, -s * 0.7, 0, 0); g.addColorStop(0, '#9ffff0'); g.addColorStop(1, '#1ea890');
+    x.fillStyle = g; x.beginPath(); x.moveTo(-s * 0.75, 0); x.bezierCurveTo(-s * 0.75, -s * 0.85, s * 0.75, -s * 0.85, s * 0.75, 0); x.closePath(); x.fill();
+    x.fillStyle = '#ffffff'; for (const [px, py, r] of [[-0.35, -0.25, 0.1], [0.1, -0.45, 0.09], [0.42, -0.18, 0.08]]) { x.beginPath(); x.arc(px * s, py * s, r * s, 0, MF_T); x.fill(); }
+  } else if (id === 'jardin:2') {      // le crapaud doré sur son nénuphar
+    x.fillStyle = '#123828'; x.fillRect(-s, -s, s * 2, s * 2);
+    x.fillStyle = '#4e9a34'; x.beginPath(); x.moveTo(0, s * 0.2); x.arc(0, s * 0.2, s * 0.75, 0.3, MF_T - 0.2); x.closePath(); x.fill();
+    x.fillStyle = '#f2c22a'; x.beginPath(); x.ellipse(0, s * 0.05, s * 0.5, s * 0.38, 0, 0, MF_T); x.fill(); x.strokeStyle = '#6a4a08'; x.lineWidth = 1; x.stroke();
+    for (const sg of [-1, 1]) { x.fillStyle = '#f2c22a'; x.beginPath(); x.arc(sg * s * 0.28, -s * 0.28, s * 0.16, 0, MF_T); x.fill(); x.stroke(); x.fillStyle = '#1a1028'; x.beginPath(); x.arc(sg * s * 0.28, -s * 0.28, s * 0.07, 0, MF_T); x.fill(); }
+    x.fillStyle = '#1a1028'; for (const [px, py] of [[-0.2, 0.1], [0.18, 0.2], [0.05, -0.05]]) { x.beginPath(); x.arc(px * s, py * s, s * 0.05, 0, MF_T); x.fill(); }
+    x.strokeStyle = '#6a4a08'; x.lineWidth = 1.4; x.beginPath(); x.arc(0, -s * 0.02, s * 0.22, 0.4, Math.PI - 0.4); x.stroke();
+  } else if (id === 'jardin:3') {      // la ruche et l'abeille
+    x.fillStyle = '#2a4a1e'; x.fillRect(-s, -s, s * 2, s * 2);
+    for (let k = 0; k < 5; k++) { x.fillStyle = k & 1 ? '#d8a02a' : '#f2c44a'; x.beginPath(); x.ellipse(0, s * 0.45 - k * s * 0.22, s * (0.62 - k * 0.09), s * 0.14, 0, 0, MF_T); x.fill(); }
+    x.fillStyle = '#3a2208'; x.beginPath(); x.arc(0, s * 0.38, s * 0.1, 0, MF_T); x.fill();
+    x.save(); x.translate(s * 0.48, -s * 0.48); x.fillStyle = '#ffd23a'; x.beginPath(); x.ellipse(0, 0, s * 0.2, s * 0.14, 0.4, 0, MF_T); x.fill(); x.fillStyle = '#1a1208'; x.fillRect(-s * 0.04, -s * 0.13, s * 0.08, s * 0.26); x.fillStyle = 'rgba(255,255,255,0.8)'; x.beginPath(); x.ellipse(-s * 0.04, -s * 0.18, s * 0.12, s * 0.06, -0.5, 0, MF_T); x.fill(); x.restore();
+  } else if (id === 'jardin:4') {      // le Roi Champignon (mini-boss)
+    mfMushKing(x, s);
+  } else if (id === 'jardin:5') {      // le cercle de runes vert sous le Vieux Chêne
+    mfRunes(x, 0, 0, s * 0.82, '#8cff50', 1);
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, 0, s * 0.5, '#d8ffb0', 0.7); x.restore();
+    for (let k = 0; k < 6; k++) { const a = k * MF_T / 6; x.fillStyle = '#5aa83a'; x.beginPath(); x.ellipse(Math.cos(a) * s * 0.3, Math.sin(a) * s * 0.3, s * 0.13, s * 0.07, a, 0, MF_T); x.fill(); }
+  } else if (id === 'tour:0') {      // l'escalier en colimaçon parmi les étoiles
+    x.fillStyle = '#0e0a28'; x.fillRect(-s, -s, s * 2, s * 2);
+    x.fillStyle = '#ffffff'; for (let k = 0; k < 14; k++) { x.beginPath(); x.arc(-s + mfHash(k, 4) * s * 2, -s + mfHash(k, 6) * s * 2, s * (0.02 + 0.03 * mfHash(k, 8)), 0, MF_T); x.fill(); }
+    for (let k = 0; k < 9; k++) { const a = k * 0.7 - 1, r0 = s * 0.18, r1 = s * 0.7; x.fillStyle = mixHex('#8a84c0', '#d8d4f0', k / 9); x.beginPath(); x.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); x.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); x.lineTo(Math.cos(a + 0.62) * r1, Math.sin(a + 0.62) * r1); x.lineTo(Math.cos(a + 0.62) * r0, Math.sin(a + 0.62) * r0); x.closePath(); x.fill(); }
+    x.fillStyle = '#4a4470'; x.beginPath(); x.arc(0, 0, s * 0.18, 0, MF_T); x.fill();
+  } else if (id === 'tour:1') {      // le grimoire ouvert aux runes bleues
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, -s * 0.05, s * 0.9, '#7fe6ff', 0.55); x.restore();
+    x.save(); x.rotate(-0.12); mfBook(x, 0, s * 0.12, s * 0.6, 0, Y); x.restore();
+    x.fillStyle = '#5a3a8a'; mapRect(x, -s * 0.7, s * 0.52, s * 1.4, s * 0.14, s * 0.03); x.fill(); x.fillStyle = '#2a5a8a'; mapRect(x, -s * 0.6, s * 0.66, s * 1.2, s * 0.14, s * 0.03); x.fill();
+  } else if (id === 'tour:2') {      // la lunette et la lune
+    x.fillStyle = '#0e0a28'; x.fillRect(-s, -s, s * 2, s * 2);
+    x.fillStyle = '#ffffff'; for (let k = 0; k < 10; k++) { x.beginPath(); x.arc(-s + mfHash(k, 3) * s * 2, -s + mfHash(k, 5) * s, s * 0.03, 0, MF_T); x.fill(); }
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, -s * 0.38, -s * 0.42, s * 0.5, '#fff2c0', 0.6); x.restore();
+    x.fillStyle = '#fff2c0'; x.beginPath(); x.arc(-s * 0.38, -s * 0.42, s * 0.26, 0, MF_T); x.fill(); x.fillStyle = '#0e0a28'; x.beginPath(); x.arc(-s * 0.26, -s * 0.5, s * 0.22, 0, MF_T); x.fill();
+    mfTelescope(x, s * 0.12, s * 0.38, s * 0.42, -0.65);
+  } else if (id === 'tour:3') {      // la fiole qui bouillonne
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, s * 0.2, s * 0.85, '#7aff5a', 0.6); x.restore();
+    x.fillStyle = 'rgba(220,240,255,0.35)'; x.beginPath(); x.moveTo(-s * 0.14, -s * 0.62); x.lineTo(-s * 0.14, -s * 0.2); x.lineTo(-s * 0.55, s * 0.55); x.quadraticCurveTo(0, s * 0.82, s * 0.55, s * 0.55); x.lineTo(s * 0.14, -s * 0.2); x.lineTo(s * 0.14, -s * 0.62); x.closePath(); x.fill();
+    x.strokeStyle = '#e8f4ff'; x.lineWidth = 1.4; x.stroke();
+    const g = x.createLinearGradient(0, 0, 0, s * 0.7); g.addColorStop(0, '#c8ff70'); g.addColorStop(1, '#2aa83a');
+    x.fillStyle = g; x.beginPath(); x.moveTo(-s * 0.4, s * 0.25); x.lineTo(-s * 0.55, s * 0.55); x.quadraticCurveTo(0, s * 0.8, s * 0.55, s * 0.55); x.lineTo(s * 0.4, s * 0.25); x.closePath(); x.fill();
+    x.fillStyle = '#e8ffd0'; for (const [px, py, r] of [[-0.1, 0.05, 0.07], [0.12, -0.2, 0.05], [0, -0.42, 0.04], [0.2, 0.4, 0.06]]) { x.beginPath(); x.arc(px * s, py * s, r * s, 0, MF_T); x.fill(); }
+    x.fillStyle = '#8a5a32'; x.fillRect(-s * 0.17, -s * 0.74, s * 0.34, s * 0.12);
+  } else if (id === 'tour:4') {      // le Maître ninja (mini-boss)
+    mfNinja(x, s);
+  } else if (id === 'tour:5') {      // l'œil d'or au milieu des runes
+    mfRunes(x, 0, 0, s * 0.82, '#c890ff', 1);
+    x.fillStyle = '#fff4c0'; x.beginPath(); x.moveTo(-s * 0.5, 0); x.quadraticCurveTo(0, -s * 0.42, s * 0.5, 0); x.quadraticCurveTo(0, s * 0.42, -s * 0.5, 0); x.closePath(); x.fill();
+    x.fillStyle = '#ffb020'; x.beginPath(); x.arc(0, 0, s * 0.19, 0, MF_T); x.fill(); x.fillStyle = '#1a0830'; x.beginPath(); x.ellipse(0, 0, s * 0.05, s * 0.15, 0, 0, MF_T); x.fill();
+  } else if (id === 'trone:0') {      // le tapis rouge entre deux colonnes, les bannières d'or
+    x.fillStyle = '#cdb48e'; x.fillRect(-s, -s, s * 2, s * 2);
+    x.fillStyle = '#8a1424'; x.fillRect(-s * 0.26, -s, s * 0.52, s * 2); x.fillStyle = '#e8b83a'; x.fillRect(-s * 0.26, -s, s * 0.05, s * 2); x.fillRect(s * 0.21, -s, s * 0.05, s * 2);
+    for (const sg of [-1, 1]) { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(sg * s * 0.62, -s * 0.2, s * 0.16, 0, MF_T); x.fill(); x.fillStyle = '#e8b83a'; x.fillRect(sg * s * 0.62 - s * 0.12, s * 0.15, s * 0.24, s * 0.5); x.beginPath(); x.moveTo(sg * s * 0.62 - s * 0.12, s * 0.65); x.lineTo(sg * s * 0.62, s * 0.52); x.lineTo(sg * s * 0.62 + s * 0.12, s * 0.65); x.closePath(); x.fillStyle = '#cdb48e'; x.fill(); }
+  } else if (id === 'trone:1') {      // le poulet rôti et la coupe d'or
+    x.fillStyle = '#f2ece0'; x.beginPath(); x.arc(0, s * 0.1, s * 0.62, 0, MF_T); x.fill(); x.strokeStyle = '#c8c0b0'; x.lineWidth = 1.5; x.stroke();
+    const g = x.createRadialGradient(-s * 0.1, -s * 0.05, s * 0.05, 0, s * 0.1, s * 0.45); g.addColorStop(0, '#f2a050'); g.addColorStop(1, '#a8501a');
+    x.fillStyle = g; x.beginPath(); x.ellipse(-s * 0.05, s * 0.12, s * 0.4, s * 0.3, -0.2, 0, MF_T); x.fill();
+    x.fillStyle = '#f2e6d0'; for (const sg of [-1, 1]) { x.save(); x.translate(s * 0.3, s * 0.12 + sg * s * 0.14); x.rotate(sg * 0.4); x.fillRect(0, -s * 0.04, s * 0.22, s * 0.08); x.beginPath(); x.arc(s * 0.22, 0, s * 0.06, 0, MF_T); x.fill(); x.restore(); }
+    x.fillStyle = '#e8b83a'; x.beginPath(); x.moveTo(s * 0.4, -s * 0.72); x.lineTo(s * 0.74, -s * 0.72); x.lineTo(s * 0.62, -s * 0.42); x.lineTo(s * 0.52, -s * 0.42); x.closePath(); x.fill(); x.fillStyle = '#8a1a2a'; x.beginPath(); x.ellipse(s * 0.57, -s * 0.7, s * 0.15, s * 0.04, 0, 0, MF_T); x.fill();
+  } else if (id === 'trone:2') {      // le tas d'or et le rubis
+    mfCoins(x, 0, s * 0.15, s * 0.7, mapRng(29));
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, -s * 0.3, s * 0.4, '#ff4a6a', 0.7); x.restore();
+    x.fillStyle = '#e8204a'; x.beginPath(); x.moveTo(0, -s * 0.62); x.lineTo(s * 0.26, -s * 0.36); x.lineTo(0, -s * 0.06); x.lineTo(-s * 0.26, -s * 0.36); x.closePath(); x.fill(); x.fillStyle = 'rgba(255,255,255,0.6)'; x.beginPath(); x.moveTo(0, -s * 0.58); x.lineTo(s * 0.12, -s * 0.38); x.lineTo(-s * 0.1, -s * 0.38); x.closePath(); x.fill();
+  } else if (id === 'trone:3') {      // les deux lances croisées et le bouclier à la couronne
+    for (const sg of [-1, 1]) { x.save(); x.rotate(sg * 0.7); x.fillStyle = '#7a4a26'; x.fillRect(-s * 0.035, -s * 0.85, s * 0.07, s * 1.6); x.fillStyle = '#d8dee8'; x.beginPath(); x.moveTo(0, -s * 0.98); x.lineTo(s * 0.1, -s * 0.72); x.lineTo(-s * 0.1, -s * 0.72); x.closePath(); x.fill(); x.restore(); }
+    mfShieldW(x, 0, s * 0.08, s * 0.48, '#8a1424', '#e8b83a');
+    x.fillStyle = '#ffd34d'; x.beginPath(); x.moveTo(-s * 0.2, s * 0.14); x.lineTo(-s * 0.2, -s * 0.06); x.lineTo(-s * 0.1, s * 0.04); x.lineTo(0, -s * 0.12); x.lineTo(s * 0.1, s * 0.04); x.lineTo(s * 0.2, -s * 0.06); x.lineTo(s * 0.2, s * 0.14); x.closePath(); x.fill();
+  } else if (id === 'trone:4') {      // le Capitaine de la garde (mini-boss)
+    mfCaptain(x, s);
+  } else if (id === 'trone:5') {      // le trône des ombres
+    x.fillStyle = '#1a0620'; x.fillRect(-s, -s, s * 2, s * 2);
+    x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, -s * 0.1, s * 0.9, '#c050ff', 0.6); x.restore();
+    x.fillStyle = '#4a1a2a'; mapRect(x, -s * 0.42, -s * 0.72, s * 0.84, s * 1.2, s * 0.06); x.fill();
+    x.fillStyle = '#e8b83a'; for (let k = -2; k <= 2; k++) { x.beginPath(); x.moveTo(k * s * 0.17 - s * 0.07, -s * 0.72); x.lineTo(k * s * 0.17, -s * (0.92 + (2 - Math.abs(k)) * 0.05)); x.lineTo(k * s * 0.17 + s * 0.07, -s * 0.72); x.closePath(); x.fill(); }
+    x.fillStyle = '#a81424'; mapRect(x, -s * 0.3, -s * 0.55, s * 0.6, s * 0.6, s * 0.05); x.fill();
+    x.fillStyle = '#4a1a2a'; mapRect(x, -s * 0.62, s * 0.05, s * 1.24, s * 0.5, s * 0.06); x.fill(); x.fillStyle = '#a81424'; mapRect(x, -s * 0.42, s * 0.1, s * 0.84, s * 0.32, s * 0.04); x.fill();
+    x.fillStyle = '#e8b83a'; x.fillRect(-s * 0.66, s * 0.48, s * 1.32, s * 0.08);
   } else {      // un monde à venir : son emblème, dessiné par le jeu
     const G = def && def.game(); if (G && G.drawWorldIcon) G.drawWorldIcon(x, (info.w | 0) + 1, 0, 0, s * 0.9);
   }
@@ -8471,7 +8636,7 @@ function mfBoss(x, bi, size, P, def) {
   x.drawImage(mfMedImg(key, P, dpr, (g) => mfBossPaint(g, bi, size, P, def)), 0, 0, P, P);
 }
 function mfBossPaint(x, bi, size, P, def) {
-  const golem = bi.bk === 'golem', dragon = bi.bk === 'dragon', hydre = bi.bk === 'hydre', col = golem ? '#6fd8ff' : dragon ? '#ff6a2a' : hydre ? '#8fe9ff' : (bi.acc || '#9b7bff'), Y = mfStyle(bi.wid, def);
+  const golem = bi.bk === 'golem', dragon = bi.bk === 'dragon', hydre = bi.bk === 'hydre', BC = { ent: '#8cff50', oeil: '#c890ff', seigneur: '#ff6a2a' }, col = golem ? '#6fd8ff' : dragon ? '#ff6a2a' : hydre ? '#8fe9ff' : BC[bi.bk] || (bi.acc || '#9b7bff'), Y = mfStyle(bi.wid, def);
   const cx = P / 2, cy = P / 2 + 2, r = size / 2, gold = bi.final;
   mapGlow(x, cx, cy, r + 17, gold ? '#ffb22e' : col, 0.6);
   x.fillStyle = gold ? '#a87a1c' : '#2c2834'; x.beginPath(); x.arc(cx, cy, r + 7, 0, MF_T); x.fill();
@@ -8485,6 +8650,7 @@ function mfBossPaint(x, bi, size, P, def) {
   x.fillStyle = bg; x.beginPath(); x.arc(cx, cy, r, 0, MF_T); x.fill();
   x.save(); x.beginPath(); x.arc(cx, cy, r - 1, 0, MF_T); x.clip(); x.translate(cx, cy);
   if (golem) mfGolem(x, r); else if (dragon) mfDragon(x, r); else if (hydre) mfHydra(x, r);
+  else if (bi.bk === 'ent') mfEnt(x, r); else if (bi.bk === 'oeil') mfEye(x, r); else if (bi.bk === 'seigneur') mfDemonLord(x, r);
   else { const G = def && def.game(); if (G && G.drawWorldIcon) G.drawWorldIcon(x, 1, 0, 0, r * 0.8); }
   x.restore();
   x.strokeStyle = gold ? '#ffd34d' : col; x.lineWidth = 2.2; x.beginPath(); x.arc(cx, cy, r - 0.5, 0, MF_T); x.stroke();
@@ -8657,6 +8823,190 @@ function mfIceHeart(x, cx, cy, s) {      // un cœur de glace taillé, qui brill
   const g = x.createLinearGradient(cx - s, cy - s, cx + s, cy + s); g.addColorStop(0, '#ffffff'); g.addColorStop(0.45, '#8fe0ff'); g.addColorStop(1, '#2a7ab8');
   x.fillStyle = g; x.fill(); x.strokeStyle = 'rgba(255,255,255,0.9)'; x.lineWidth = 1.2; x.stroke();
   x.strokeStyle = 'rgba(255,255,255,0.55)'; x.lineWidth = 1; x.beginPath(); x.moveTo(cx, cy - s * 0.35); x.lineTo(cx - s * 0.3, cy + s * 0.15); x.lineTo(cx, cy + s * 0.9); x.moveTo(cx - s * 0.3, cy + s * 0.15); x.lineTo(cx - s * 0.75, cy - s * 0.2); x.moveTo(cx, cy - s * 0.35); x.lineTo(cx + s * 0.35, cy + s * 0.1); x.lineTo(cx, cy + s * 0.9); x.stroke();
+}
+// ---- mondes 4 à 6 (étape C) : le Jardin maudit, la Tour du sorcier, la Salle du trône ----
+function mfMushroom(x, cx, cy, s, col) {      // un champignon géant vu de dessus : le chapeau qui luit, ses pois blancs
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, s * 2.6, col, 0.45); x.restore();
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.beginPath(); x.ellipse(cx + s * 0.2, cy + s * 0.3, s, s * 0.8, 0, 0, MF_T); x.fill();
+  const g = x.createRadialGradient(cx - s * 0.3, cy - s * 0.35, s * 0.1, cx, cy, s); g.addColorStop(0, mixHex(col, '#ffffff', 0.55)); g.addColorStop(0.6, col); g.addColorStop(1, mixHex(col, '#000000', 0.45));
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, s, 0, MF_T); x.fill(); x.strokeStyle = mixHex(col, '#000000', 0.6); x.lineWidth = 1; x.stroke();
+  x.fillStyle = 'rgba(255,250,235,0.92)';
+  for (const [a, d, r] of [[0.4, 0.5, 0.17], [2.2, 0.55, 0.14], [3.9, 0.45, 0.16], [5.3, 0.62, 0.11], [1.2, 0.15, 0.1]]) { x.beginPath(); x.arc(cx + Math.cos(a) * d * s, cy + Math.sin(a) * d * s, r * s, 0, MF_T); x.fill(); }
+}
+function mfBush(x, cx, cy, s, R) {      // un buisson rond (quelques boules de feuilles, des fleurs roses et jaunes)
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.beginPath(); x.ellipse(cx + s * 0.25, cy + s * 0.35, s * 1.1, s * 0.8, 0, 0, MF_T); x.fill();
+  for (let k = 0; k < 5; k++) {
+    const a = k * 1.3 + R() * 0.5, d = k ? s * 0.45 : 0, px = cx + Math.cos(a) * d, py = cy + Math.sin(a) * d, r = s * (k ? 0.55 : 0.7);
+    const g = x.createRadialGradient(px - r * 0.3, py - r * 0.35, r * 0.1, px, py, r); g.addColorStop(0, '#7ad060'); g.addColorStop(0.7, '#3a8a3a'); g.addColorStop(1, '#1e4a22');
+    x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, MF_T); x.fill();
+  }
+  for (let k = 0; k < 4; k++) { const a = R() * MF_T, d = R() * s * 0.7; x.fillStyle = k & 1 ? '#ff8ad8' : '#ffe070'; x.beginPath(); x.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, s * 0.1, 0, MF_T); x.fill(); }
+}
+function mfLilyPond(x, cx, cy, rx, ry, R) {      // une mare sombre, des nénuphars, une fleur rose
+  x.fillStyle = '#16301e'; x.beginPath(); x.ellipse(cx, cy, rx + 5, ry + 5, 0, 0, MF_T); x.fill();
+  const g = x.createRadialGradient(cx, cy - ry * 0.3, 2, cx, cy, Math.max(rx, ry)); g.addColorStop(0, '#2a6a52'); g.addColorStop(1, '#0a2418');
+  x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, MF_T); x.fill();
+  for (let k = 0; k < 6; k++) {
+    const a = R() * MF_T, d = R() * 0.7, px = cx + Math.cos(a) * rx * d, py = cy + Math.sin(a) * ry * d, r = 6 + R() * 7, n = R() * MF_T;
+    x.fillStyle = k & 1 ? '#5aa83a' : '#3e8a2e'; x.beginPath(); x.moveTo(px, py); x.arc(px, py, r, n + 0.35, n + MF_T - 0.05); x.closePath(); x.fill();
+    if (k === 2) { x.fillStyle = '#ff9ad8'; x.beginPath(); x.arc(px, py, 3.2, 0, MF_T); x.fill(); x.fillStyle = '#ffe680'; x.beginPath(); x.arc(px, py, 1.3, 0, MF_T); x.fill(); }
+  }
+}
+function mfHive(x, cx, cy, s) {      // une ruche dorée vue de dessus (des anneaux de paille) et ses abeilles
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.beginPath(); x.ellipse(cx + s * 0.2, cy + s * 0.3, s, s * 0.8, 0, 0, MF_T); x.fill();
+  for (let k = 4; k >= 0; k--) { x.fillStyle = k & 1 ? '#d8a02a' : '#f2c44a'; x.beginPath(); x.arc(cx, cy, s * (0.3 + k * 0.17), 0, MF_T); x.fill(); }
+  x.fillStyle = '#3a2208'; x.beginPath(); x.arc(cx, cy + s * 0.55, s * 0.16, 0, MF_T); x.fill();
+  for (let k = 0; k < 3; k++) { const a = k * 2.1 + 0.4, px = cx + Math.cos(a) * s * 1.3, py = cy + Math.sin(a) * s * 1.2; x.fillStyle = '#ffd23a'; x.beginPath(); x.ellipse(px, py, s * 0.16, s * 0.11, a, 0, MF_T); x.fill(); x.fillStyle = '#1a1208'; x.fillRect(px - s * 0.03, py - s * 0.1, s * 0.06, s * 0.2); x.fillStyle = 'rgba(255,255,255,0.7)'; x.beginPath(); x.ellipse(px, py - s * 0.14, s * 0.12, s * 0.06, 0, 0, MF_T); x.fill(); }
+}
+function mfOrb(x, cx, cy, s, col) {      // une boule de cristal sur son socle (elle brille)
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.beginPath(); x.ellipse(cx + s * 0.2, cy + s * 0.3, s * 1.05, s * 0.85, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#4a4470'; x.beginPath(); x.arc(cx, cy, s, 0, MF_T); x.fill(); x.fillStyle = '#6a64a0'; x.beginPath(); x.arc(cx, cy, s * 0.82, 0, MF_T); x.fill();
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, s * 3, col, 0.55); x.restore();
+  const g = x.createRadialGradient(cx - s * 0.2, cy - s * 0.25, 1, cx, cy, s * 0.62); g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, mixHex(col, '#ffffff', 0.4)); g.addColorStop(1, col);
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, s * 0.62, 0, MF_T); x.fill();
+}
+function mfStarWindow(x, cx, cy, w, h, R) {      // un trou ouvert sur le ciel étoilé (la Tour flotte dans la nuit)
+  x.fillStyle = '#0a0820'; x.fillRect(cx - w / 2 - 4, cy - h / 2 - 4, w + 8, h + 8);
+  const g = x.createLinearGradient(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2); g.addColorStop(0, '#1a0e3a'); g.addColorStop(0.5, '#2a1458'); g.addColorStop(1, '#0a1a3a');
+  x.fillStyle = g; x.fillRect(cx - w / 2, cy - h / 2, w, h);
+  x.save(); x.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < w * h / 160; k++) { const px = cx - w / 2 + R() * w, py = cy - h / 2 + R() * h, r = R() < 0.15 ? 1.5 : 0.8; x.fillStyle = 'rgba(255,255,255,' + (0.4 + R() * 0.6).toFixed(2) + ')'; x.beginPath(); x.arc(px, py, r, 0, MF_T); x.fill(); }
+  mfGlow(x, cx, cy, Math.max(w, h) * 0.7, '#8a6aff', 0.25);
+  x.restore();
+}
+function mfTelescope(x, cx, cy, s, rot) {      // la lunette de l'observatoire sur son trépied
+  x.save(); x.translate(cx, cy); x.rotate(rot);
+  x.strokeStyle = '#4a3220'; x.lineWidth = s * 0.14; x.lineCap = 'round'; x.beginPath(); for (const a of [0.6, 2.7, 4.6]) { x.moveTo(0, 0); x.lineTo(Math.cos(a) * s * 0.9, Math.sin(a) * s * 0.9); } x.stroke();
+  const g = x.createLinearGradient(0, -s * 0.2, 0, s * 0.2); g.addColorStop(0, '#f2d27a'); g.addColorStop(1, '#a8781e');
+  x.fillStyle = g; x.beginPath(); x.moveTo(-s * 1.2, -s * 0.16); x.lineTo(s * 1.1, -s * 0.26); x.lineTo(s * 1.1, s * 0.26); x.lineTo(-s * 1.2, s * 0.16); x.closePath(); x.fill();
+  x.strokeStyle = '#5a3a10'; x.lineWidth = 1; x.stroke();
+  x.fillStyle = '#9fe0ff'; x.beginPath(); x.ellipse(s * 1.1, 0, s * 0.08, s * 0.24, 0, 0, MF_T); x.fill();
+  x.restore();
+}
+function mfPotions(x, cx, cy, s, R) {      // une table d'alchimiste : fioles de couleurs (elles brillent un peu)
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(cx - s * 1.5 + 4, cy - s * 0.6 + 5, s * 3, s * 1.2);
+  x.fillStyle = '#5a3a2a'; mapRect(x, cx - s * 1.5, cy - s * 0.6, s * 3, s * 1.2, 3); x.fill(); x.strokeStyle = '#2a1a10'; x.lineWidth = 1; x.stroke();
+  for (let k = 0; k < 5; k++) { const px = cx - s * 1.15 + k * s * 0.58, py = cy + (k & 1 ? s * 0.18 : -s * 0.15), c = ['#9cff60', '#ff6ad8', '#6ad8ff', '#ffd060', '#b070ff'][k];
+    x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, px, py, s * 0.6, c, 0.4); x.restore();
+    x.fillStyle = c; x.beginPath(); x.arc(px, py, s * 0.2, 0, MF_T); x.fill(); x.fillStyle = 'rgba(255,255,255,0.7)'; x.beginPath(); x.arc(px - s * 0.06, py - s * 0.07, s * 0.06, 0, MF_T); x.fill(); }
+}
+function mfCauldron(x, cx, cy, s) {      // un chaudron qui bouillonne (vert)
+  x.fillStyle = 'rgba(0,0,0,0.35)'; x.beginPath(); x.ellipse(cx + s * 0.2, cy + s * 0.25, s * 1.1, s * 0.9, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#26242c'; x.beginPath(); x.arc(cx, cy, s, 0, MF_T); x.fill(); x.strokeStyle = '#4a4652'; x.lineWidth = s * 0.14; x.stroke();
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, s * 2.4, '#7aff5a', 0.5); x.restore();
+  const g = x.createRadialGradient(cx, cy, 1, cx, cy, s * 0.8); g.addColorStop(0, '#e6ffb0'); g.addColorStop(1, '#3ac83a');
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, s * 0.78, 0, MF_T); x.fill();
+  x.fillStyle = 'rgba(240,255,210,0.8)'; for (const [a, d, r] of [[0.5, 0.4, 0.14], [2.5, 0.3, 0.1], [4.2, 0.45, 0.12]]) { x.beginPath(); x.arc(cx + Math.cos(a) * d * s, cy + Math.sin(a) * d * s, r * s, 0, MF_T); x.fill(); }
+}
+function mfTatami(x, cx, cy, w, h) {      // les tapis de paille du dojo
+  for (let k = 0; k < 2; k++) {
+    const px = cx - w / 2 + k * w / 2 + 2, pw = w / 2 - 4;
+    x.fillStyle = '#c8b46a'; x.fillRect(px, cy - h / 2, pw, h); x.strokeStyle = '#3a4a2a'; x.lineWidth = 3; x.strokeRect(px + 1.5, cy - h / 2 + 1.5, pw - 3, h - 3);
+    x.strokeStyle = 'rgba(120,100,40,0.35)'; x.lineWidth = 1; x.beginPath(); for (let y = cy - h / 2 + 6; y < cy + h / 2; y += 5) { x.moveTo(px + 3, y); x.lineTo(px + pw - 3, y); } x.stroke();
+  }
+}
+function mfCarpet(x, cx, y0, y1, w) {      // le tapis rouge bordé d'or
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(cx - w / 2 + 3, y0, w, y1 - y0);
+  x.fillStyle = '#8a1424'; x.fillRect(cx - w / 2, y0, w, y1 - y0);
+  x.fillStyle = '#e8b83a'; x.fillRect(cx - w / 2, y0, 3, y1 - y0); x.fillRect(cx + w / 2 - 3, y0, 3, y1 - y0);
+  x.fillStyle = 'rgba(232,184,58,0.7)'; for (let y = y0 + 30; y < y1 - 10; y += 60) { x.beginPath(); x.moveTo(cx, y - 7); x.lineTo(cx + 6, y); x.lineTo(cx, y + 7); x.lineTo(cx - 6, y); x.closePath(); x.fill(); }
+}
+function mfFeast(x, cx, cy, w, h, R) {      // la table du banquet : nappe blanche, assiettes, poulets rôtis, coupes
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(cx - w / 2 + 4, cy - h / 2 + 5, w, h);
+  x.fillStyle = '#6a3a22'; mapRect(x, cx - w / 2, cy - h / 2, w, h, 3); x.fill();
+  x.fillStyle = '#f2ece0'; mapRect(x, cx - w / 2 + 4, cy - h / 2 + 3, w - 8, h - 6, 2); x.fill();
+  for (let k = 0; k < Math.floor(w / 30); k++) {
+    const px = cx - w / 2 + 16 + k * 30, py = cy + (k & 1 ? 4 : -4);
+    x.fillStyle = '#d8d4e0'; x.beginPath(); x.arc(px, py, 7, 0, MF_T); x.fill();
+    if (k % 3 === 1) { x.fillStyle = '#b8642a'; x.beginPath(); x.ellipse(px, py, 5.5, 4, 0.3, 0, MF_T); x.fill(); x.fillStyle = '#f2e6d0'; x.fillRect(px + 3, py - 1, 4, 2); }
+    else if (k % 3 === 2) { x.fillStyle = '#e8b83a'; x.beginPath(); x.arc(px, py, 3.2, 0, MF_T); x.fill(); x.fillStyle = '#8a1a2a'; x.beginPath(); x.arc(px, py, 2, 0, MF_T); x.fill(); }
+    else { x.fillStyle = R() < 0.5 ? '#ff6a4a' : '#9cdc4a'; x.beginPath(); x.arc(px - 1.5, py, 2.4, 0, MF_T); x.arc(px + 2, py + 1, 2.2, 0, MF_T); x.fill(); }
+  }
+}
+function mfCoins(x, cx, cy, s, R) {      // un tas de pièces d'or (et un rubis)
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, s * 2.2, '#ffc84a', 0.35); x.restore();
+  for (let k = 0; k < 14; k++) { const a = R() * MF_T, d = R() * s * 0.8, px = cx + Math.cos(a) * d, py = cy + Math.sin(a) * d * 0.8; x.fillStyle = k & 1 ? '#ffd860' : '#e8b030'; x.beginPath(); x.ellipse(px, py, s * 0.24, s * 0.18, 0, 0, MF_T); x.fill(); x.strokeStyle = '#8a5a10'; x.lineWidth = 0.8; x.stroke(); }
+  x.fillStyle = '#e8204a'; x.beginPath(); x.moveTo(cx, cy - s * 0.3); x.lineTo(cx + s * 0.2, cy - s * 0.08); x.lineTo(cx, cy + s * 0.12); x.lineTo(cx - s * 0.2, cy - s * 0.08); x.closePath(); x.fill();
+}
+function mfThrone(x, cx, cy, s) {      // le trône du Seigneur des ombres vu de dessus : marbre sombre, coussin rouge, pointes d'or
+  x.save(); x.globalCompositeOperation = 'lighter'; mfGlow(x, cx, cy, s * 3, '#b050ff', 0.45); x.restore();
+  x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(cx - s * 1.3 + 4, cy - s * 0.9 + 5, s * 2.6, s * 1.9);
+  x.fillStyle = '#2a1018'; mapRect(x, cx - s * 1.4, cy - s * 0.95, s * 2.8, s * 1.9, 4); x.fill();
+  x.fillStyle = '#4a1a2a'; mapRect(x, cx - s, cy - s * 0.5, s * 2, s * 1.2, 3); x.fill();
+  x.fillStyle = '#a81424'; mapRect(x, cx - s * 0.7, cy - s * 0.25, s * 1.4, s * 0.8, 3); x.fill();
+  x.fillStyle = '#e8b83a'; x.fillRect(cx - s * 1.1, cy - s * 0.9, s * 2.2, s * 0.32);
+  for (let k = -2; k <= 2; k++) { x.beginPath(); x.moveTo(cx + k * s * 0.42 - s * 0.14, cy - s * 0.9); x.lineTo(cx + k * s * 0.42, cy - s * (1.25 + (2 - Math.abs(k)) * 0.12)); x.lineTo(cx + k * s * 0.42 + s * 0.14, cy - s * 0.9); x.closePath(); x.fill(); }
+}
+// les emblèmes des mini-boss et des boss des mondes 4 à 6
+function mfMushKing(x, s) {      // le Roi Champignon : un chapeau rouge à pois, des yeux ronds, la couronne d'or
+  x.fillStyle = '#f2e6c8'; x.beginPath(); x.ellipse(0, s * 0.42, s * 0.42, s * 0.5, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#1a1028'; for (const sg of [-1, 1]) { x.beginPath(); x.ellipse(sg * s * 0.15, s * 0.36, s * 0.07, s * 0.1, 0, 0, MF_T); x.fill(); }
+  x.fillStyle = '#ffffff'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(sg * s * 0.13, s * 0.33, s * 0.025, 0, MF_T); x.fill(); }
+  const g = x.createRadialGradient(-s * 0.2, -s * 0.35, s * 0.1, 0, -s * 0.1, s * 0.85); g.addColorStop(0, '#ff8a7a'); g.addColorStop(0.6, '#d8302a'); g.addColorStop(1, '#7a1010');
+  x.fillStyle = g; x.beginPath(); x.moveTo(-s * 0.86, s * 0.12); x.bezierCurveTo(-s * 0.9, -s * 0.72, s * 0.9, -s * 0.72, s * 0.86, s * 0.12); x.quadraticCurveTo(0, s * 0.26, -s * 0.86, s * 0.12); x.fill();
+  x.strokeStyle = '#3a0808'; x.lineWidth = 1.1; x.stroke();
+  x.fillStyle = '#fff8ec'; for (const [px, py, r] of [[-0.45, -0.12, 0.13], [0.1, -0.38, 0.12], [0.5, -0.08, 0.11], [-0.12, -0.08, 0.08]]) { x.beginPath(); x.arc(px * s, py * s, r * s, 0, MF_T); x.fill(); }
+  x.fillStyle = '#ffd34d'; x.beginPath(); x.moveTo(-s * 0.3, -s * 0.5); x.lineTo(-s * 0.3, -s * 0.78); x.lineTo(-s * 0.15, -s * 0.62); x.lineTo(0, -s * 0.86); x.lineTo(s * 0.15, -s * 0.62); x.lineTo(s * 0.3, -s * 0.78); x.lineTo(s * 0.3, -s * 0.5); x.closePath(); x.fill();
+  x.strokeStyle = '#8a5a10'; x.lineWidth = 1; x.stroke();
+}
+function mfNinja(x, s) {      // le Maître ninja : la cagoule noire, les yeux, le bandeau rouge, deux sabres
+  for (const sg of [-1, 1]) { x.save(); x.rotate(sg * 0.8); x.fillStyle = '#c8ccd8'; x.fillRect(-s * 0.035, -s * 0.95, s * 0.07, s * 1.2); x.fillStyle = '#3a2a1a'; x.fillRect(-s * 0.05, s * 0.25, s * 0.1, s * 0.4); x.restore(); }
+  const g = x.createRadialGradient(-s * 0.15, -s * 0.2, s * 0.1, 0, 0, s * 0.7); g.addColorStop(0, '#4a4658'); g.addColorStop(1, '#141218');
+  x.fillStyle = g; x.beginPath(); x.arc(0, s * 0.05, s * 0.62, 0, MF_T); x.fill();
+  x.fillStyle = '#c8202a'; x.fillRect(-s * 0.62, -s * 0.28, s * 1.24, s * 0.14); x.beginPath(); x.moveTo(s * 0.5, -s * 0.24); x.lineTo(s * 0.92, -s * 0.46); x.lineTo(s * 0.86, -s * 0.18); x.closePath(); x.fill();
+  x.fillStyle = '#f2c9a0'; mapRect(x, -s * 0.42, -s * 0.06, s * 0.84, s * 0.24, s * 0.08); x.fill();
+  x.fillStyle = '#1a1028'; for (const sg of [-1, 1]) { x.beginPath(); x.ellipse(sg * s * 0.18, s * 0.06, s * 0.09, s * 0.06, 0, 0, MF_T); x.fill(); }
+  x.fillStyle = '#ffffff'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(sg * s * 0.16, s * 0.04, s * 0.025, 0, MF_T); x.fill(); }
+}
+function mfCaptain(x, s) {      // le Capitaine de la garde : tête d'oiseau-dragon bleu, bec jaune, chéchia rouge
+  const g = x.createRadialGradient(-s * 0.15, -s * 0.15, s * 0.1, 0, s * 0.05, s * 0.7); g.addColorStop(0, '#7ab0ff'); g.addColorStop(1, '#2a4aa8');
+  x.fillStyle = '#2a4aa8'; for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * s * 0.4, -s * 0.2); x.lineTo(sg * s * 0.82, -s * 0.62); x.lineTo(sg * s * 0.58, -s * 0.06); x.closePath(); x.fill(); }
+  x.fillStyle = g; x.beginPath(); x.arc(0, s * 0.08, s * 0.6, 0, MF_T); x.fill(); x.strokeStyle = '#121a40'; x.lineWidth = 1; x.stroke();
+  x.fillStyle = '#ffd34d'; x.beginPath(); x.moveTo(-s * 0.2, s * 0.26); x.quadraticCurveTo(0, s * 0.62, s * 0.2, s * 0.26); x.closePath(); x.fill();
+  x.fillStyle = '#ffffff'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(sg * s * 0.2, s * 0.02, s * 0.12, 0, MF_T); x.fill(); }
+  x.fillStyle = '#1a1028'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(sg * s * 0.18, s * 0.04, s * 0.06, 0, MF_T); x.fill(); }
+  x.fillStyle = '#c8202a'; x.beginPath(); x.moveTo(-s * 0.26, -s * 0.42); x.lineTo(-s * 0.2, -s * 0.8); x.lineTo(s * 0.2, -s * 0.8); x.lineTo(s * 0.26, -s * 0.42); x.closePath(); x.fill();
+  x.fillStyle = '#1a1028'; x.beginPath(); x.moveTo(0, -s * 0.8); x.quadraticCurveTo(s * 0.32, -s * 0.78, s * 0.3, -s * 0.5); x.lineWidth = 2; x.strokeStyle = '#1a1028'; x.stroke();
+  x.fillStyle = '#ffd34d'; x.beginPath(); x.arc(s * 0.3, -s * 0.48, s * 0.05, 0, MF_T); x.fill();
+}
+function mfEnt(x, r) {      // le Vieux Chêne : un visage d'écorce, la couronne de feuilles, des yeux d'ambre, de la mousse
+  for (let k = 0; k < 9; k++) { const a = Math.PI + k * Math.PI / 8, px = Math.cos(a) * r * 0.62, py = -r * 0.25 + Math.sin(a) * r * 0.5; x.fillStyle = k & 1 ? '#3e8a2e' : '#5aa83a'; x.beginPath(); x.arc(px, py, r * 0.32, 0, MF_T); x.fill(); }
+  const g = x.createLinearGradient(-r * 0.5, 0, r * 0.5, 0); g.addColorStop(0, '#4a2e18'); g.addColorStop(0.5, '#8a5a32'); g.addColorStop(1, '#3e2614');
+  x.fillStyle = g; x.beginPath(); x.moveTo(-r * 0.46, -r * 0.3); x.quadraticCurveTo(0, -r * 0.5, r * 0.46, -r * 0.3); x.lineTo(r * 0.52, r); x.lineTo(-r * 0.52, r); x.closePath(); x.fill();
+  x.strokeStyle = 'rgba(30,16,6,0.6)'; x.lineWidth = 1.2; x.beginPath(); for (const px of [-0.3, -0.1, 0.15, 0.34]) { x.moveTo(px * r, -r * 0.3); x.quadraticCurveTo(px * r + r * 0.06, r * 0.3, px * r - r * 0.04, r); } x.stroke();
+  x.fillStyle = '#2a1608'; for (const sg of [-1, 1]) { x.beginPath(); x.ellipse(sg * r * 0.2, -r * 0.05, r * 0.13, r * 0.09, sg * 0.25, 0, MF_T); x.fill(); }
+  x.save(); x.globalCompositeOperation = 'lighter'; for (const sg of [-1, 1]) mapGlow(x, sg * r * 0.2, -r * 0.05, r * 0.2, '#ffb030', 0.95); x.restore();
+  x.fillStyle = '#ffd060'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(sg * r * 0.2, -r * 0.05, r * 0.05, 0, MF_T); x.fill(); }
+  x.fillStyle = '#1a0c04'; x.beginPath(); x.ellipse(0, r * 0.3, r * 0.2, r * 0.1, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#6ac04a'; for (const [px, py, rr] of [[-0.42, 0.5, 0.12], [0.4, 0.22, 0.1], [-0.15, 0.7, 0.09], [0.3, 0.75, 0.11]]) { x.beginPath(); x.arc(px * r, py * r, rr * r, 0, MF_T); x.fill(); }
+}
+function mfEye(x, r) {      // le Grand Œil : un corps violet, un grand œil d'or au milieu, des petits yeux, les dents, la lanterne
+  x.strokeStyle = '#3a2060'; x.lineWidth = r * 0.06; x.beginPath(); x.moveTo(0, -r * 0.55); x.quadraticCurveTo(r * 0.2, -r * 0.95, r * 0.5, -r * 0.82); x.stroke();
+  x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, r * 0.52, -r * 0.8, r * 0.25, '#ffe080', 0.9); x.restore();
+  x.fillStyle = '#ffe9a0'; x.beginPath(); x.arc(r * 0.52, -r * 0.8, r * 0.08, 0, MF_T); x.fill();
+  const g = x.createRadialGradient(-r * 0.2, -r * 0.3, r * 0.1, 0, 0, r * 0.8); g.addColorStop(0, '#b080e8'); g.addColorStop(0.6, '#6a3aa8'); g.addColorStop(1, '#2a1048');
+  x.fillStyle = g; x.beginPath(); x.ellipse(0, r * 0.05, r * 0.78, r * 0.68, 0, 0, MF_T); x.fill(); x.strokeStyle = '#1a0830'; x.lineWidth = 1.2; x.stroke();
+  for (const [px, py, rr] of [[-0.5, -0.25, 0.1], [0.52, -0.2, 0.09], [-0.42, 0.22, 0.08], [0.46, 0.25, 0.085]]) { x.fillStyle = '#ffe680'; x.beginPath(); x.arc(px * r, py * r, rr * r, 0, MF_T); x.fill(); x.fillStyle = '#1a0830'; x.beginPath(); x.arc(px * r, py * r, rr * r * 0.45, 0, MF_T); x.fill(); }
+  x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, 0, -r * 0.08, r * 0.45, '#ffd040', 0.7); x.restore();
+  x.fillStyle = '#fff4c0'; x.beginPath(); x.arc(0, -r * 0.08, r * 0.26, 0, MF_T); x.fill();
+  x.fillStyle = '#ffb020'; x.beginPath(); x.arc(0, -r * 0.08, r * 0.17, 0, MF_T); x.fill();
+  x.fillStyle = '#1a0830'; x.beginPath(); x.ellipse(0, -r * 0.08, r * 0.05, r * 0.14, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#2a0a20'; x.beginPath(); x.ellipse(0, r * 0.42, r * 0.36, r * 0.12, 0, 0, MF_T); x.fill();
+  x.fillStyle = '#fff4e0'; for (let k = -3; k <= 3; k++) { x.beginPath(); x.moveTo(k * r * 0.09 - r * 0.035, r * 0.33); x.lineTo(k * r * 0.09 + r * 0.035, r * 0.33); x.lineTo(k * r * 0.09, r * 0.43); x.closePath(); x.fill(); }
+}
+function mfDemonLord(x, r) {      // le Seigneur des ombres : ailes sombres, cornes, yeux de braise, l'épée de feu
+  x.fillStyle = '#2a0c30'; for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * r * 0.2, r * 0.1); x.lineTo(sg * r * 0.95, -r * 0.7); x.lineTo(sg * r * 0.8, -r * 0.2); x.lineTo(sg * r * 0.98, -r * 0.1); x.lineTo(sg * r * 0.7, r * 0.15); x.lineTo(sg * r * 0.85, r * 0.4); x.lineTo(sg * r * 0.3, r * 0.5); x.closePath(); x.fill(); }
+  x.save(); x.rotate(0.55); const sg2 = x.createLinearGradient(0, -r, 0, r * 0.4); sg2.addColorStop(0, '#fff2a0'); sg2.addColorStop(0.5, '#ff8a2a'); sg2.addColorStop(1, '#a82a0a');
+  x.save(); x.globalCompositeOperation = 'lighter'; mapGlow(x, r * 0.05, -r * 0.4, r * 0.5, '#ff6a20', 0.6); x.restore();
+  x.fillStyle = sg2; x.beginPath(); x.moveTo(-r * 0.05, r * 0.4); x.lineTo(-r * 0.05, -r * 0.8); x.lineTo(r * 0.05, -r * 0.95); x.lineTo(r * 0.14, -r * 0.8); x.lineTo(r * 0.14, r * 0.4); x.closePath(); x.fill(); x.restore();
+  const hg = x.createLinearGradient(0, -r * 0.6, 0, -r * 0.1); hg.addColorStop(0, '#f2e2c4'); hg.addColorStop(1, '#7a5a3a'); x.fillStyle = hg;
+  for (const sg of [-1, 1]) { x.beginPath(); x.moveTo(sg * r * 0.24, -r * 0.32); x.quadraticCurveTo(sg * r * 0.7, -r * 0.42, sg * r * 0.56, -r * 0.88); x.quadraticCurveTo(sg * r * 0.5, -r * 0.5, sg * r * 0.12, -r * 0.42); x.closePath(); x.fill(); }
+  const fg = x.createRadialGradient(-r * 0.1, -r * 0.2, r * 0.05, 0, 0, r * 0.55); fg.addColorStop(0, '#8a3a7a'); fg.addColorStop(0.6, '#4a1442'); fg.addColorStop(1, '#1a0418');
+  x.fillStyle = fg; x.beginPath(); x.moveTo(-r * 0.36, -r * 0.34); x.quadraticCurveTo(0, -r * 0.52, r * 0.36, -r * 0.34); x.quadraticCurveTo(r * 0.44, r * 0.12, r * 0.16, r * 0.46); x.quadraticCurveTo(0, r * 0.56, -r * 0.16, r * 0.46); x.quadraticCurveTo(-r * 0.44, r * 0.12, -r * 0.36, -r * 0.34); x.fill();
+  x.strokeStyle = '#0a0008'; x.lineWidth = 1.2; x.stroke();
+  x.save(); x.globalCompositeOperation = 'lighter'; for (const sg of [-1, 1]) mapGlow(x, sg * r * 0.16, -r * 0.06, r * 0.18, '#ff7a20', 0.95); x.restore();
+  x.fillStyle = '#ffd060'; for (const sg of [-1, 1]) { x.beginPath(); x.ellipse(sg * r * 0.16, -r * 0.06, r * 0.08, r * 0.04, sg * 0.35, 0, MF_T); x.fill(); }
+  x.fillStyle = '#0a0008'; x.beginPath(); x.moveTo(-r * 0.16, r * 0.24); x.quadraticCurveTo(0, r * 0.34, r * 0.16, r * 0.24); x.quadraticCurveTo(0, r * 0.29, -r * 0.16, r * 0.24); x.fill();
 }
 // ---- le départ : le mage (grand chapeau violet à bande orange, cape rouge, bâton à boule verte) ----
 function mfMage(x, P) {
