@@ -1,1 +1,1 @@
-🛠️ Pégase 0.8.1 : corrections (oiseaux, murs transparents, affiches à poser où tu veux)
+🐎 Pégase est ouvert à tous : le jeu de photo de l'île, sur PC et Android (installe-le depuis sa tuile)

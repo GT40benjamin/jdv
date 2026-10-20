@@ -3,7 +3,7 @@
 
   // ===========================================================================
   // Pégase (id technique « pegase ») — LE HUB de Pégase dans la borne (pas le jeu : le jeu est l'appli Pégase, Unity, à installer).
-  // EN ESSAI derrière la porte « labo » de la bibliothèque (…/jouer/?labo=pegase, ou 7 touches sur le titre dans l'appli).
+  // POUR TOUS depuis la borne 1.22 (20 oct. 2026) ; avant : en essai derrière la porte « labo » de la bibliothèque.
   // Une belle page : l'AVATAR 3D du joueur sur un rondin à l'heure dorée (devant une vraie photo du jeu), un « Dressing » pour le
   // choisir (mêmes choix que le Dressing du jeu : PegaseWardrobe.cs, tenue = un numéro, gardée sur l'appareil au format garde-robe.json),
   // la page de téléchargement du jeu pour PC (fiche telecharger/pegase-pc.json ; absente = « Bientôt disponible »), Android / iPhone
@@ -5210,7 +5210,7 @@
     <div class="pgh-hint" data-h="hint">👆 Touche-moi !</div>
     <button class="pgh-ear" data-h="ear" type="button" hidden aria-label="Parle à ton avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="w w2" d="M3.2 7.4a6.6 6.6 0 0 0 0 9.2"/><path class="w w1" d="M5.9 9.9a3.1 3.1 0 0 0 0 4.2"/><path fill="currentColor" fill-opacity=".16" d="M9 10c0-3.6 2.6-6.2 5.8-6.2 3.3 0 5.9 2.6 5.9 6 0 2.5-1.2 3.7-2.4 4.8-1.1 1-1.4 2-1.7 3.3-.5 1.9-1.9 3.3-3.9 3.3-1.5 0-2.7-.8-3.2-2"/><path d="M12.3 10.4c0-1.6 1.1-2.9 2.6-2.9s2.7 1.2 2.7 2.8c0 1.3-.8 1.9-1.6 2.5-.6.5-.9 1.1-.9 1.8"/></svg><i class="z">z</i><span class="t" data-h="eart"></span></button>
     <div class="pgh-copy">
-      <span class="pgh-eye"><i></i>Nouveau monde · en essai</span>
+      <span class="pgh-eye"><i></i>Nouveau monde · PC et Android</span>
       <h1 class="pgh-title">Pégase</h1>
       <p class="pgh-pitch">Ta petite vie dans un monde magique… et quelque part dans le ciel, <b>Pégase</b>, le cheval ailé.</p>
       <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
@@ -5311,7 +5311,7 @@
       <p class="pgh-sub">Cette page deviendra la place d'Ailebrune : tout ce qui se passe dans Pégase, depuis ton téléphone.</p>
       <div class="pgh-soongrid">${FUTURE.map(([e, t, p, g]) => `<div class="pgh-fut" style="--g:${g}"><span class="pgh-chip">Bientôt</span><div class="em">${e}</div><h4>${esc(t)}</h4><p>${esc(p)}</p></div>`).join('')}</div>
     </section>
-    <div class="pgh-foot">Pégase est en essai : merci de tester ! ✦ Les images de cette page viennent du jeu.</div>
+    <div class="pgh-foot">Pégase grandit à chaque mise à jour ✦ Les images de cette page viennent du jeu.</div>
   </div>
 </div>
 <div class="pgh-ed" data-h="ed" role="dialog" aria-label="Modifier mon avatar">
@@ -5386,7 +5386,7 @@
     let url; try { url = new URL(j.url, base).href; } catch (e) { return { state: 'error' }; }
     if (!/^https?:/.test(url)) return { state: 'error' };
     const notes = Array.isArray(j.notes) ? j.notes.filter((x) => typeof x === 'string') : typeof j.notes === 'string' && j.notes ? j.notes.split('\n').filter(Boolean) : [];
-    return { state: 'ok', version: j.version != null ? String(j.version) : '', size: +j.size || 0, sha256: /^[0-9a-f]{64}$/i.test(j.sha256 || '') ? String(j.sha256).toLowerCase() : '', url, notes: notes.slice(0, 8) };
+    return { state: 'ok', version: j.version != null ? String(j.version).replace(/\s*\(essai[^)]*\)\s*$/i, '') : '', size: +j.size || 0, sha256: /^[0-9a-f]{64}$/i.test(j.sha256 || '') ? String(j.sha256).toLowerCase() : '', url, notes: notes.slice(0, 8) };
   }
   const fmtSize = (n) => n >= 1e9 ? (n / 1e9).toFixed(1).replace('.', ',') + ' Go' : Math.max(1, Math.round(n / 1e6)) + ' Mo';
 
@@ -7557,8 +7557,8 @@
         case 'unfit': chip = 'Pas ce téléphone'; p = 'Pégase demande un téléphone Android 64 bits (Android 8 ou plus).'; break;
         case 'oldapp': card = `<span class="pgh-andnote">Ton appli <b>« Borne d'arcade »</b> est ancienne : installe la nouvelle (1.8), puis reviens ici pour installer Pégase d'un toucher.</span><div class="pgh-andbtns"><a class="pgh-cta gold" href="${esc(st.page || '../telecharger/')}" rel="noopener">${PGH_SVG.dl}<span>Mettre à jour l'appli de la borne</span></a></div>`; cardMeta = 'Il faut l\'appli de la borne 1.8'; break;
         case 'browser': card = `<span class="pgh-andnote"><b>Installe l'appli « Borne d'arcade » pour jouer</b> : c'est elle qui installe Pégase sur ton téléphone, d'un toucher (tuile Pégase → Android → Installer).</span><div class="pgh-andbtns"><a class="pgh-cta gold" href="${esc(st.page || '../telecharger/')}" rel="noopener">${PGH_SVG.dl}<span>Installer l'appli « Borne d'arcade »</span></a></div><span class="pgh-meta">${meta}</span>`; cardMeta = 'Avec l\'appli de la borne'; break;
-        case 'desktop': chip = 'Disponible'; p = 'Sur ton téléphone Android : ouvre l\'appli « Borne d\'arcade », touche Pégase, puis « Installer ».'; break;
-        default: break;   // none / off / ios : « À venir »
+        case 'desktop': case 'ios': chip = 'Disponible'; p = 'Sur ton téléphone Android : ouvre l\'appli « Borne d\'arcade », touche Pégase, puis « Installer ».'; break;
+        default: break;   // none / off : « À venir » (iPhone : Android « Disponible » comme sur PC, la carte iPhone dit « À venir »)
       }
       $.andcard.hidden = !card; if (card) { $.andzone.innerHTML = card; $.andmeta.textContent = cardMeta; }
       $.andsmall.hidden = !!card; $.others.classList.toggle('one', !!card);

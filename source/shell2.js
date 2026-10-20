@@ -19,13 +19,14 @@ const TILE_NEWS = {
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'new', at: '2026-10-15 11:00' },   // mode Coop : Magic Force à deux (1.16)
-  kombat: { kind: 'new', at: '2026-10-16 09:00' }   // Mandale Kombat sorti pour tous (1.17)
+  kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
+  pegase: { kind: 'new', at: '2026-10-20 13:35' }   // Pégase sorti pour tous (1.22) : la tuile ouvre son hub
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['pegase']);   // en essai : Pégase (nouveau jeu) ; Mandale Kombat sorti en 1.17, Magic Force en 1.12 (magicv1, la copie 1.12 pour comparer, retirée le 18 oct.)
+const LABO = new Set([]);   // vide : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12 (magicv1, la copie 1.12 pour comparer, retirée le 18 oct.)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -46,6 +47,7 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!L
   t.addEventListener('click', () => {
     const now = Date.now(); if (now - t0 > 4000) n = 0; t0 = now;
     if (++n < 7) return; n = 0;
+    if (!LABO.size) return;   // aucun jeu en essai : pas de message « Labo » ni de rechargement
     const ids = [...LABO], on = new Set(LABO_ON), has = ids.some(id => on.has(id)); for (const id of ids) { if (has) on.delete(id); else on.add(id); }
     try { localStorage.setItem('jdw.labo', JSON.stringify([...on])); } catch (e) {}
     try { toastCheer(has ? 'Labo : jeux en essai cachés' : 'Labo : jeux en essai activés !', null, true); } catch (e) {}
@@ -2061,6 +2063,7 @@ function refreshOnline() {
     t.on.classList.toggle('live', live && n > 0);
     if (live) span.textContent = ps.length ? (ps.length === 1 && ps[0].name === cleanName(profile.name) ? 'Toi, sur un autre appareil' : tileName(ps[0].name) + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue') : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
     if (live && / joue$/.test(span.textContent)) { const v = document.createElement('em'); v.className = 'tile-verb'; v.textContent = ' joue'; span.textContent = span.textContent.slice(0, -5); span.appendChild(v); }   // « joue » s'efface sur téléphone à côté de 👁 + carte
+    else if (t.g.noScore) span.textContent = 'À installer · PC et Android';   // Pégase (hub, pas de score) : pas de « Pas encore de record »
     else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + dispName(b.name) : 'Pas encore de record'; }
     if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
   }
@@ -9754,11 +9757,18 @@ if (SW_OK) setTimeout(swWarm, 25000);
 // (JDW_GAMES.<id>.warm, une fois par ouverture de la borne ; ex. Pégase installe d'avance la reconnaissance des mots du micro, 42 Mo,
 // seulement en Wi-Fi, s'il y a de la place et de la mémoire). Réessayé au retour du réseau.
 let gameWarmDone = false;
+// 1.22 (Pégase pour tous) : Pégase (42 Mo de reconnaissance des mots) ne prépare d'avance que sur un appareil qui a déjà ouvert son hub
+// (une clé jdw.pegase.* : onglet, avatar, mots…) ; sinon c'est le hub qui s'en charge à sa 1re ouverture.
+function warmWanted(id) {
+  if (id !== 'pegase') return true;
+  try { for (let i = 0; i < localStorage.length; i++) if (/^jdw\.pegase\./.test(localStorage.key(i) || '')) return true; } catch (e) {}
+  return false;
+}
 function gameWarm() {
   if (gameWarmDone || netOff() || document.hidden) return;
   if (!onLibrary()) { setTimeout(gameWarm, 20000); return; }                     // en partie : plus tard
   gameWarmDone = true;
-  for (const g of GAMES) if (g && typeof g.warm === 'function') { try { Promise.resolve(g.warm({ root: ROOT })).catch(() => {}); } catch (e) {} }
+  for (const g of GAMES) if (g && typeof g.warm === 'function' && warmWanted(g.id)) { try { Promise.resolve(g.warm({ root: ROOT })).catch(() => {}); } catch (e) {} }
 }
 setTimeout(gameWarm, 30000);
 window.addEventListener('online', () => setTimeout(gameWarm, 15000));

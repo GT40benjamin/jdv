@@ -45882,7 +45882,7 @@ void main(){ if (vK >= 0.999) discard;
 
   // ===========================================================================
   // Pégase (id technique « pegase ») — LE HUB de Pégase dans la borne (pas le jeu : le jeu est l'appli Pégase, Unity, à installer).
-  // EN ESSAI derrière la porte « labo » de la bibliothèque (…/jouer/?labo=pegase, ou 7 touches sur le titre dans l'appli).
+  // POUR TOUS depuis la borne 1.22 (20 oct. 2026) ; avant : en essai derrière la porte « labo » de la bibliothèque.
   // Une belle page : l'AVATAR 3D du joueur sur un rondin à l'heure dorée (devant une vraie photo du jeu), un « Dressing » pour le
   // choisir (mêmes choix que le Dressing du jeu : PegaseWardrobe.cs, tenue = un numéro, gardée sur l'appareil au format garde-robe.json),
   // la page de téléchargement du jeu pour PC (fiche telecharger/pegase-pc.json ; absente = « Bientôt disponible »), Android / iPhone
@@ -51089,7 +51089,7 @@ void main(){ if (vK >= 0.999) discard;
     <div class="pgh-hint" data-h="hint">👆 Touche-moi !</div>
     <button class="pgh-ear" data-h="ear" type="button" hidden aria-label="Parle à ton avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="w w2" d="M3.2 7.4a6.6 6.6 0 0 0 0 9.2"/><path class="w w1" d="M5.9 9.9a3.1 3.1 0 0 0 0 4.2"/><path fill="currentColor" fill-opacity=".16" d="M9 10c0-3.6 2.6-6.2 5.8-6.2 3.3 0 5.9 2.6 5.9 6 0 2.5-1.2 3.7-2.4 4.8-1.1 1-1.4 2-1.7 3.3-.5 1.9-1.9 3.3-3.9 3.3-1.5 0-2.7-.8-3.2-2"/><path d="M12.3 10.4c0-1.6 1.1-2.9 2.6-2.9s2.7 1.2 2.7 2.8c0 1.3-.8 1.9-1.6 2.5-.6.5-.9 1.1-.9 1.8"/></svg><i class="z">z</i><span class="t" data-h="eart"></span></button>
     <div class="pgh-copy">
-      <span class="pgh-eye"><i></i>Nouveau monde · en essai</span>
+      <span class="pgh-eye"><i></i>Nouveau monde · PC et Android</span>
       <h1 class="pgh-title">Pégase</h1>
       <p class="pgh-pitch">Ta petite vie dans un monde magique… et quelque part dans le ciel, <b>Pégase</b>, le cheval ailé.</p>
       <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
@@ -51190,7 +51190,7 @@ void main(){ if (vK >= 0.999) discard;
       <p class="pgh-sub">Cette page deviendra la place d'Ailebrune : tout ce qui se passe dans Pégase, depuis ton téléphone.</p>
       <div class="pgh-soongrid">${FUTURE.map(([e, t, p, g]) => `<div class="pgh-fut" style="--g:${g}"><span class="pgh-chip">Bientôt</span><div class="em">${e}</div><h4>${esc(t)}</h4><p>${esc(p)}</p></div>`).join('')}</div>
     </section>
-    <div class="pgh-foot">Pégase est en essai : merci de tester ! ✦ Les images de cette page viennent du jeu.</div>
+    <div class="pgh-foot">Pégase grandit à chaque mise à jour ✦ Les images de cette page viennent du jeu.</div>
   </div>
 </div>
 <div class="pgh-ed" data-h="ed" role="dialog" aria-label="Modifier mon avatar">
@@ -51265,7 +51265,7 @@ void main(){ if (vK >= 0.999) discard;
     let url; try { url = new URL(j.url, base).href; } catch (e) { return { state: 'error' }; }
     if (!/^https?:/.test(url)) return { state: 'error' };
     const notes = Array.isArray(j.notes) ? j.notes.filter((x) => typeof x === 'string') : typeof j.notes === 'string' && j.notes ? j.notes.split('\n').filter(Boolean) : [];
-    return { state: 'ok', version: j.version != null ? String(j.version) : '', size: +j.size || 0, sha256: /^[0-9a-f]{64}$/i.test(j.sha256 || '') ? String(j.sha256).toLowerCase() : '', url, notes: notes.slice(0, 8) };
+    return { state: 'ok', version: j.version != null ? String(j.version).replace(/\s*\(essai[^)]*\)\s*$/i, '') : '', size: +j.size || 0, sha256: /^[0-9a-f]{64}$/i.test(j.sha256 || '') ? String(j.sha256).toLowerCase() : '', url, notes: notes.slice(0, 8) };
   }
   const fmtSize = (n) => n >= 1e9 ? (n / 1e9).toFixed(1).replace('.', ',') + ' Go' : Math.max(1, Math.round(n / 1e6)) + ' Mo';
 
@@ -53436,8 +53436,8 @@ void main(){ if (vK >= 0.999) discard;
         case 'unfit': chip = 'Pas ce téléphone'; p = 'Pégase demande un téléphone Android 64 bits (Android 8 ou plus).'; break;
         case 'oldapp': card = `<span class="pgh-andnote">Ton appli <b>« Borne d'arcade »</b> est ancienne : installe la nouvelle (1.8), puis reviens ici pour installer Pégase d'un toucher.</span><div class="pgh-andbtns"><a class="pgh-cta gold" href="${esc(st.page || '../telecharger/')}" rel="noopener">${PGH_SVG.dl}<span>Mettre à jour l'appli de la borne</span></a></div>`; cardMeta = 'Il faut l\'appli de la borne 1.8'; break;
         case 'browser': card = `<span class="pgh-andnote"><b>Installe l'appli « Borne d'arcade » pour jouer</b> : c'est elle qui installe Pégase sur ton téléphone, d'un toucher (tuile Pégase → Android → Installer).</span><div class="pgh-andbtns"><a class="pgh-cta gold" href="${esc(st.page || '../telecharger/')}" rel="noopener">${PGH_SVG.dl}<span>Installer l'appli « Borne d'arcade »</span></a></div><span class="pgh-meta">${meta}</span>`; cardMeta = 'Avec l\'appli de la borne'; break;
-        case 'desktop': chip = 'Disponible'; p = 'Sur ton téléphone Android : ouvre l\'appli « Borne d\'arcade », touche Pégase, puis « Installer ».'; break;
-        default: break;   // none / off / ios : « À venir »
+        case 'desktop': case 'ios': chip = 'Disponible'; p = 'Sur ton téléphone Android : ouvre l\'appli « Borne d\'arcade », touche Pégase, puis « Installer ».'; break;
+        default: break;   // none / off : « À venir » (iPhone : Android « Disponible » comme sur PC, la carte iPhone dit « À venir »)
       }
       $.andcard.hidden = !card; if (card) { $.andzone.innerHTML = card; $.andmeta.textContent = cardMeta; }
       $.andsmall.hidden = !!card; $.others.classList.toggle('one', !!card);
@@ -90722,7 +90722,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261020132222"; window.JDW_VERSION = "1.21.3"; window.JDW_NOTES = ["\ud83d\udee0\ufe0f P\u00e9gase 0.8.1 : corrections (oiseaux, murs transparents, affiches \u00e0 poser o\u00f9 tu veux)"];</script>
+<script>window.JDW_BUILD = "20261020135723"; window.JDW_VERSION = "1.22"; window.JDW_NOTES = ["\ud83d\udc0e P\u00e9gase est ouvert \u00e0 tous : le jeu de photo de l'\u00eele, sur PC et Android (installe-le depuis sa tuile)"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -93487,13 +93487,14 @@ const TILE_NEWS = {
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'new', at: '2026-10-15 11:00' },   // mode Coop : Magic Force à deux (1.16)
-  kombat: { kind: 'new', at: '2026-10-16 09:00' }   // Mandale Kombat sorti pour tous (1.17)
+  kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
+  pegase: { kind: 'new', at: '2026-10-20 13:35' }   // Pégase sorti pour tous (1.22) : la tuile ouvre son hub
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['pegase']);   // en essai : Pégase (nouveau jeu) ; Mandale Kombat sorti en 1.17, Magic Force en 1.12 (magicv1, la copie 1.12 pour comparer, retirée le 18 oct.)
+const LABO = new Set([]);   // vide : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12 (magicv1, la copie 1.12 pour comparer, retirée le 18 oct.)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -93514,6 +93515,7 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!L
   t.addEventListener('click', () => {
     const now = Date.now(); if (now - t0 > 4000) n = 0; t0 = now;
     if (++n < 7) return; n = 0;
+    if (!LABO.size) return;   // aucun jeu en essai : pas de message « Labo » ni de rechargement
     const ids = [...LABO], on = new Set(LABO_ON), has = ids.some(id => on.has(id)); for (const id of ids) { if (has) on.delete(id); else on.add(id); }
     try { localStorage.setItem('jdw.labo', JSON.stringify([...on])); } catch (e) {}
     try { toastCheer(has ? 'Labo : jeux en essai cachés' : 'Labo : jeux en essai activés !', null, true); } catch (e) {}
@@ -95529,6 +95531,7 @@ function refreshOnline() {
     t.on.classList.toggle('live', live && n > 0);
     if (live) span.textContent = ps.length ? (ps.length === 1 && ps[0].name === cleanName(profile.name) ? 'Toi, sur un autre appareil' : tileName(ps[0].name) + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue') : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
     if (live && / joue$/.test(span.textContent)) { const v = document.createElement('em'); v.className = 'tile-verb'; v.textContent = ' joue'; span.textContent = span.textContent.slice(0, -5); span.appendChild(v); }   // « joue » s'efface sur téléphone à côté de 👁 + carte
+    else if (t.g.noScore) span.textContent = 'À installer · PC et Android';   // Pégase (hub, pas de score) : pas de « Pas encore de record »
     else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + dispName(b.name) : 'Pas encore de record'; }
     if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
   }
@@ -103222,11 +103225,18 @@ if (SW_OK) setTimeout(swWarm, 25000);
 // (JDW_GAMES.<id>.warm, une fois par ouverture de la borne ; ex. Pégase installe d'avance la reconnaissance des mots du micro, 42 Mo,
 // seulement en Wi-Fi, s'il y a de la place et de la mémoire). Réessayé au retour du réseau.
 let gameWarmDone = false;
+// 1.22 (Pégase pour tous) : Pégase (42 Mo de reconnaissance des mots) ne prépare d'avance que sur un appareil qui a déjà ouvert son hub
+// (une clé jdw.pegase.* : onglet, avatar, mots…) ; sinon c'est le hub qui s'en charge à sa 1re ouverture.
+function warmWanted(id) {
+  if (id !== 'pegase') return true;
+  try { for (let i = 0; i < localStorage.length; i++) if (/^jdw\.pegase\./.test(localStorage.key(i) || '')) return true; } catch (e) {}
+  return false;
+}
 function gameWarm() {
   if (gameWarmDone || netOff() || document.hidden) return;
   if (!onLibrary()) { setTimeout(gameWarm, 20000); return; }                     // en partie : plus tard
   gameWarmDone = true;
-  for (const g of GAMES) if (g && typeof g.warm === 'function') { try { Promise.resolve(g.warm({ root: ROOT })).catch(() => {}); } catch (e) {} }
+  for (const g of GAMES) if (g && typeof g.warm === 'function' && warmWanted(g.id)) { try { Promise.resolve(g.warm({ root: ROOT })).catch(() => {}); } catch (e) {} }
 }
 setTimeout(gameWarm, 30000);
 window.addEventListener('online', () => setTimeout(gameWarm, 15000));
