@@ -261,14 +261,18 @@
     // src/main.js
     var main_exports = {};
     __export(main_exports, {
+      BRA_RECT: () => BRA_RECT,
       CHARS: () => CHARS,
       FIN_MS: () => FIN_MS,
       MAKEUP: () => MAKEUP,
       MAKEUP_DRAWN: () => MAKEUP_DRAWN,
       MAKEUP_ROWS: () => MAKEUP_ROWS,
       MOUTH_KEYS: () => MOUTH_KEYS,
+      UT_HEM: () => UT_HEM,
       VIS: () => VIS,
       WORD_CAT: () => WORD_CAT,
+      braCanvas: () => braCanvas,
+      braShown: () => braShown,
       catsOf: () => catsOf,
       create: () => create,
       createGrowl: () => createGrowl,
@@ -280,7 +284,12 @@
       encode: () => encode,
       frenchVisemes: () => frenchVisemes,
       makeupCanvas: () => makeupCanvas,
-      makeupCols: () => makeupCols
+      makeupCols: () => makeupCols,
+      torsoCovered: () => torsoCovered,
+      undershirtCols: () => undershirtCols,
+      undershirtLongCanvas: () => undershirtLongCanvas,
+      undershirtOff: () => undershirtOff,
+      undershirtShown: () => undershirtShown
     });
     module.exports = __toCommonJS(main_exports);
     var T3 = __toESM(require("three"));
@@ -621,6 +630,111 @@
       return cv;
     }
     var MAKEUP_DRAWN = Object.keys(DRAW);
+
+    // src/maillot.js
+    var UT_HEM = 828;
+    var UT_DEFAULT = ["#ece6da", "#d8d0c2", "#ffffff"];
+    function torsoCovered(d) {
+      const it = d && d.it || {};
+      return !!(it.top && it.top[0] || it.ovr && it.ovr[0] && it.ovr[0] !== "ovr.overall");
+    }
+    var undershirtOff = (d) => !!d && Array.isArray(d.ut) && d.ut[0] === "";
+    var undershirtShown = (d) => !undershirtOff(d) || !torsoCovered(d);
+    var braShown = (d) => !undershirtShown(d) && !!d && d.g !== "m";
+    function undershirtCols(d) {
+      const ut = d && Array.isArray(d.ut) ? d.ut : null;
+      if (!ut) return null;
+      if (ut[1] == null) return ut[0] === "" ? null : [1, 1];
+      return [ut[1], ut[2] == null ? ut[1] : ut[2]];
+    }
+    function undershirtLongCanvas(img, tex, doc = typeof document !== "undefined" ? document : null) {
+      const cv = doc.createElement("canvas");
+      cv.width = tex.w;
+      cv.height = tex.h;
+      const x = cv.getContext("2d", { willReadFrequently: true });
+      x.drawImage(img, 0, 0);
+      const [sx, sy, w, h, , dy] = tex.r[0];
+      const hem = Math.min(h - 2, UT_HEM - dy);
+      const id = x.getImageData(sx, sy, w, h), p = id.data;
+      for (let c = 0; c < w; c++) {
+        let yb = -1;
+        for (let y = h - 1; y >= 0; y--) if (p[(y * w + c) * 4 + 3] > 128) {
+          yb = y;
+          break;
+        }
+        if (yb < h * 0.7 || yb >= hem) continue;
+        let R = 0, G = 0, B = 0, n = 0;
+        for (let y = Math.max(0, yb - 44); y < yb - 24; y++) {
+          const o = (y * w + c) * 4;
+          if (p[o + 3] < 250) continue;
+          R += p[o];
+          G += p[o + 1];
+          B += p[o + 2];
+          n++;
+        }
+        if (!n) continue;
+        R /= n;
+        G /= n;
+        B /= n;
+        const y0 = Math.max(0, yb - 16);
+        for (let y = y0; y <= hem + 1 && y < h; y++) {
+          const o = (y * w + c) * 4, k = Math.min(1, (y - y0) / 8);
+          const sh = y >= hem - 3 ? 0.9 : 1;
+          p[o] = Math.round((p[o] * (1 - k) + R * k) * sh);
+          p[o + 1] = Math.round((p[o + 1] * (1 - k) + G * k) * sh);
+          p[o + 2] = Math.round((p[o + 2] * (1 - k) + B * k) * sh);
+          p[o + 3] = y < hem ? 255 : y === hem ? 170 : 70;
+        }
+      }
+      x.putImageData(id, sx, sy);
+      return cv;
+    }
+    var BRA_RECT = [0, 512, 448, 256];
+    var CUPS = [157, 235];
+    var CUP_R = 46;
+    var CUP_TOP = 34;
+    var BAND_TOP = 650;
+    var BAND_BOT = 686;
+    var BRA_W = 390;
+    function braTop(x) {
+      let y = BAND_TOP;
+      for (const cx of CUPS) {
+        const u = (x - cx) / CUP_R;
+        if (Math.abs(u) < 1) y = Math.min(y, BAND_TOP - 2 - CUP_TOP * Math.sqrt(1 - u * u));
+      }
+      return y;
+    }
+    function braCanvas(doc = typeof document !== "undefined" ? document : null) {
+      const [ax, ay, w, h] = BRA_RECT, cv = doc.createElement("canvas");
+      cv.width = w;
+      cv.height = h;
+      const x = cv.getContext("2d"), id = x.createImageData(w, h), p = id.data;
+      const cl = (v) => Math.max(0, Math.min(1, v));
+      for (let c = 0; c < w; c++) {
+        const X = ax + c + 0.5;
+        if (X > BRA_W + 1) continue;
+        const top = braTop(X), bot = BAND_BOT + 2 * Math.cos((X - 196) / 196 * Math.PI);
+        const side = cl(BRA_W + 1 - X) * cl(X + 1);
+        for (let r = 0; r < h; r++) {
+          const Y = ay + r + 0.5, cov = cl(Y - top + 0.5) * cl(bot - Y + 0.5) * side;
+          if (cov <= 0) continue;
+          let shade = 0.86;
+          for (const cx of CUPS) {
+            const dx = (X - cx) / CUP_R, dyy = (Y - (BAND_TOP - 16)) / 26;
+            const q = 1 - dx * dx - dyy * dyy;
+            if (q > 0) shade = Math.max(shade, 0.86 + 0.14 * q);
+          }
+          const trim = Y - top < 3.5 || bot - Y < 3.5 ? 1 : 0;
+          const o = (r * w + c) * 4;
+          p[o] = trim ? 0 : Math.round(255 * shade);
+          p[o + 1] = trim ? Math.round(255 * shade) : 0;
+          p[o + 2] = 0;
+          p[o + 3] = Math.round(255 * cov);
+        }
+      }
+      x.putImageData(id, 0, 0);
+      return cv;
+    }
 
     // src/avatar.js
     var PIECES = ["neck", "chest", "back", "shoulders", "upperarms", "lowerarms", "wrists", "hands", "waist", "hips", "upperlegs", "lowerlegs", "ankles", "feet"];
@@ -1402,9 +1516,10 @@
         const hair = W.color(d.hc), hair2 = W.color(d.hc2 == null ? d.hc : d.hc2);
         const jobs = [];
         jobs.push(() => add(C.base.body.tex, [skin.tone, skin.shade, skin.tone]));
-        const ut = Array.isArray(d.ut) ? d.ut : null;
-        if (!ut || ut[0] !== "") jobs.push(() => add(C.layers["under.top"].tex, ut ? [W.color(ut[1] == null ? 1 : ut[1]), W.color(ut[2] == null ? ut[1] == null ? 1 : ut[1] : ut[2]), col("#ffffff")] : [col("#ece6da"), col("#d8d0c2"), col("#ffffff")]));
+        const utc = undershirtCols(d), utCols = utc ? [W.color(utc[0]), W.color(utc[1]), col("#ffffff")] : UT_DEFAULT.map(col);
         jobs.push(() => add(C.layers["under.bottom"].tex, [col("#5d6b86"), col("#ece6da"), col("#ffffff")]));
+        if (undershirtShown(d)) jobs.push(() => this._utLayer(utCols));
+        else if (braShown(d)) jobs.push(() => this._braLayer(utCols));
         if (d.so && d.so[0] && C.layers[d.so[0]]) jobs.push(() => add(C.layers[d.so[0]].tex, [W.color(d.so[1] || 0), W.color(d.so[2] == null ? 4 : d.so[2]), W.color(0)]));
         const face = FACES[d.fc] || FACES[0];
         jobs.push(() => add(C.base.head.tex[face.tex] || C.base.head.tex.basic, [skin.tone, skin.shade, skin.tone, col("#ffffff"), col("#f1dfd8"), col("#9c3a32"), col("#ffffff"), col("#ffffff"), col("#ffffff")]));
@@ -1451,6 +1566,44 @@
         }
         const res = await Promise.all(jobs.map((j) => j()));
         return res.flat().filter(Boolean);
+      }
+      // maillot de corps ALLONGÉ (hub 2.12) : masque du pack prolongé en code (maillot.js), fait une fois par page ; repli : le masque du pack
+      async _utLayer(cols) {
+        const W = this.W, tex = W.cat.layers["under.top"].tex;
+        if (!W._utLong) W._utLong = (async () => {
+          const src = await W.tex(tex.d);
+          try {
+            const t = new T.CanvasTexture(undershirtLongCanvas(src.image, tex));
+            t.flipY = false;
+            t.colorSpace = T.SRGBColorSpace;
+            t.generateMipmaps = true;
+            t.minFilter = T.LinearMipmapLinearFilter;
+            return t;
+          } catch (e) {
+            console.warn("maillot allongé", e);
+            return src;
+          }
+        })();
+        try {
+          return { t: tex, mask: await W._utLong, id: null, n: null, c: cols };
+        } catch (e) {
+          console.warn("maillot", e);
+          return null;
+        }
+      }
+      // brassière (hub 2.12, dessinée en code : maillot.js) dans le rectangle BRA_RECT de l'atlas
+      async _braLayer(cols) {
+        const W = this.W;
+        if (!W._bra) {
+          const t = new T.CanvasTexture(braCanvas());
+          t.flipY = false;
+          t.colorSpace = T.SRGBColorSpace;
+          t.generateMipmaps = true;
+          t.minFilter = T.LinearMipmapLinearFilter;
+          W._bra = t;
+        }
+        const [ax, ay, w, h] = BRA_RECT;
+        return { t: { w, h, r: [[0, 0, w, h, ax, ay]] }, mask: W._bra, id: null, n: null, c: cols };
       }
       // calque de maquillage dessiné en code (masque 512 de l'espace du visage, en haut à gauche de l'atlas) ; la texture est gardée par la page
       async _mqLayer(id, cols) {
@@ -4725,6 +4878,9 @@
 .pgh-edg .pgh-mqt{grid-column:1 / -1;margin-top:0;padding-top:6px;border-top:0}
 .pgh-edg .pgh-mqt .chs .pgh-cc{pointer-events:none}
 .pgh-edn{grid-column:1 / -1;margin:0 2px;font:600 12px/1.35 ${FB};color:var(--soft)}
+.pgh-edg .pgh-mqt .chs.pgh-utc .pgh-cc{pointer-events:auto;cursor:pointer}
+.pgh-utc{margin-bottom:2px}
+.pgh-utc i.no{background:linear-gradient(135deg,transparent 44%,#ff8a7a 44%,#ff8a7a 56%,transparent 56%),rgba(255,255,255,.08)}
 .pgh-lock[data-r="secret"]{background:linear-gradient(135deg,rgba(120,80,220,.45),rgba(40,20,90,.55));box-shadow:inset 0 0 0 1px rgba(210,180,255,.55)}
 .pgh-lock[data-r="legend"]{background:linear-gradient(135deg,rgba(255,180,80,.32),rgba(120,60,140,.38));box-shadow:inset 0 0 0 1px rgba(255,210,130,.55)}
 .pgh-lock p .pgh-lu{width:14px;height:14px}
@@ -5292,7 +5448,7 @@
   //   valeur = s >>> 8 ; 1) mélange (Fisher-Yates) des sortes actives, 2) mélange des modèles de chaque sorte, 3) un tirage par paramètre
   //   de chaque modèle (ordre du fichier) ; liste = sortes reçues aujourd'hui, puis les premières faisables (needs ⊆ missions faites), 3 au plus.
   // ---------------------------------------------------------------------------
-  const MJOUR = {"v":1,"note":"Missions du jour de Pégase : modèles (MISSIONS.md §3) et tirage PARTAGÉ par le jeu et le hub de la borne. Règle complète : jdv/CLAUDE.md « Missions du jour : le tirage ». Ne pas réordonner (l'ordre fait partie du tirage) : ajouter à la fin, ou mettre actif:false.","sortes":[{"id":"jour_photo","nom":"Photo","ico":"📷","actif":true,"min":25,"max":70,"tpl":[{"k":"1","n":1,"t":"Photographie le chat {0}","p":[[["toit","sur un toit"],["dort","endormi"],["oiseau","avec un oiseau"]]],"lu":60,"needs":["m1"]},{"k":"2","n":2,"t":"Photographie {0} à {1}","p":[[["cerf","un cerf"],["renard","un renard"],["lapin","un lapin"],["ecureuil","un écureuil"]],[["aube","l'aube"],["doree","l'heure dorée"]]],"lu":40,"needs":["m1"]},{"k":"4","n":4,"t":"Photographie {0} papillons en gros plan","p":[[["2","2"],["3","3"]]],"lu":50,"needs":["m1"]},{"k":"5","n":5,"t":"Photographie un oiseau en vol","p":[],"lu":50,"needs":["m1"]},{"k":"6","n":6,"t":"Photographie deux espèces différentes sur la même photo","p":[],"lu":50,"needs":["m1"]},{"k":"8","n":8,"t":"Photographie le moulin {0}","p":[[["coucher","au coucher du soleil"],["nuit","sous les étoiles"]]],"lu":30,"needs":["m1"]},{"k":"11","n":11,"t":"Photographie une espèce que tu n'as jamais eue","p":[],"lu":70,"needs":["m1"]},{"k":"34","n":34,"t":"Photographie {0} lampyres la nuit","p":[[["3","3"],["5","5"]]],"lu":50,"needs":["m1"]},{"k":"4f","n":4,"t":"Photographie un papillon posé sur {0}","p":[[["colza","un colza"],["iris","un iris"],["coquelicot","un coquelicot"],["lys","un lys de la paix"]]],"lu":55,"needs":["m5"]}]},{"id":"jour_ferme","nom":"Potager","ico":"🌱","actif":true,"min":25,"max":70,"tpl":[{"k":"14r","n":14,"t":"Récolte {0} radis","p":[[["5","5"],["8","8"]]],"lu":40,"needs":["m4"]},{"k":"14t","n":14,"t":"Récolte {0} tomates","p":[[["3","3"],["5","5"]]],"lu":40,"needs":["m6"]},{"k":"15","n":15,"t":"Arrose ton potager {0} fois aujourd'hui","p":[[["2","2"],["3","3"]]],"lu":25,"needs":["m4"]},{"k":"16","n":16,"t":"Plante {0} sortes de graines","p":[[["2","2"]]],"lu":35,"needs":["m6"]},{"k":"18","n":18,"t":"Laboure {0} cases de terre neuves","p":[[["4","4"],["6","6"]]],"lu":30,"needs":["m4"]}]},{"id":"jour_marche","nom":"Marché","ico":"🧺","actif":true,"min":30,"max":80,"tpl":[{"k":"19","n":19,"t":"Mets {0} légumes en vente au marché","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m7"]},{"k":"22","n":22,"t":"Mets un tableau en vente","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_maison","nom":"Maison","ico":"🏡","actif":true,"min":25,"max":30,"tpl":[{"k":"25","n":25,"t":"Pose un nouveau meuble chez toi","p":[],"lu":30,"needs":["m3"]},{"k":"26","n":26,"t":"Change de tenue au dressing","p":[],"lu":25,"needs":["m3"]},{"k":"27","n":27,"t":"Accroche un tableau dans ta maison","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_social","nom":"Copains","ico":"💌","actif":false,"min":25,"max":50,"tpl":[{"k":"28","n":28,"t":"Rends visite à la maison d'un copain","p":[],"lu":40,"needs":["m3"]},{"k":"29","n":29,"t":"Offre un cadeau à un copain","p":[],"lu":50,"needs":["m3"]}]},{"id":"jour_balade","nom":"Balade","ico":"🥾","actif":true,"min":20,"max":50,"tpl":[{"k":"33","n":33,"t":"Assieds-toi sur un banc {0} au coucher du soleil","p":[[["lac","au bord du lac"],["place","sur la place"]]],"lu":30,"needs":["m1"]},{"k":"36","n":36,"t":"Fais le tour du lac à pied","p":[],"lu":30,"needs":["m1"]},{"k":"37","n":37,"t":"Va dire bonjour à {0}","p":[[["rosalie","Rosalie"],["basile","Basile"],["iris","Mlle Iris"],["auguste","Papi Auguste"]]],"lu":20,"needs":["m1"]},{"k":"38","n":38,"t":"Apporte 2 tomates à {0}","p":[[["auguste","Papi Auguste"],["rosalie","Rosalie"]]],"lu":50,"needs":["m6"]},{"k":"39","n":39,"t":"Marche {0} dans le monde","p":[[["1km","1 km"],["2km","2 km"]]],"lu":25,"needs":["m1"]},{"k":"40","n":40,"t":"Joue avec le chat : suis-le {0} sans le perdre","p":[[["20","20 secondes"],["30","30 secondes"]]],"lu":40,"needs":["m1"]}]},{"id":"jour_peche","nom":"Pêche","ico":"🎣","actif":true,"min":30,"max":60,"tpl":[{"k":"46","n":46,"t":"Pêche 3 poissons {0}","p":[[["lac","au lac"],["riviere","en rivière"],["mer","en mer"]]],"lu":40,"needs":["m9b"]},{"k":"47","n":47,"t":"Pêche un poisson {0}","p":[[["nuit","de nuit"],["aube","à l'aube"]]],"lu":50,"needs":["m9b"]},{"k":"48","n":48,"t":"Pêche un poisson de plus de {0} cm","p":[[["30","30"],["40","40"]]],"lu":60,"needs":["m9b"]},{"k":"49","n":49,"t":"Creuse {0} vers, puis pêche avec","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m9b"]}]},{"id":"jour_nature","nom":"Pelle et filet","ico":"🦋","actif":true,"min":35,"max":50,"tpl":[{"k":"50","n":50,"t":"Trouve {0} trésors enfouis à la pelle","p":[[["2","2"]]],"lu":50,"needs":["m9"]},{"k":"51","n":51,"t":"Attrape {0} insectes différents au filet","p":[[["3","3"]]],"lu":40,"needs":["m5"]},{"k":"52","n":52,"t":"Attrape un insecte {0}","p":[[["eau","sur l'eau"],["tronc","sur un tronc"],["fleurs","dans les fleurs"]]],"lu":35,"needs":["m5"]}]},{"id":"jour_musee","nom":"Musée","ico":"🏛️","actif":true,"min":25,"max":70,"tpl":[{"k":"53","n":53,"t":"Donne une nouvelle espèce au musée de Mlle Iris","p":[],"lu":60,"needs":["m5b"]}]}]};
+  const MJOUR = {"v":1,"note":"Missions du jour de Pégase : modèles (MISSIONS.md §3) et tirage PARTAGÉ par le jeu et le hub de la borne. Règle complète : jdv/CLAUDE.md « Missions du jour : le tirage ». Ne pas réordonner (l'ordre fait partie du tirage) : ajouter à la fin, ou mettre actif:false.","sortes":[{"id":"jour_photo","nom":"Photo","ico":"📷","actif":true,"min":25,"max":70,"tpl":[{"k":"1","n":1,"t":"Photographie le chat {0}","p":[[["toit","sur un toit"],["dort","endormi"],["oiseau","avec un oiseau"]]],"lu":60,"needs":["m1"]},{"k":"2","n":2,"t":"Photographie {0} à {1}","p":[[["cerf","un cerf"],["sanglier","un sanglier"],["lapin","un lapin"],["bouquetin","un bouquetin"]],[["aube","l'aube"],["doree","l'heure dorée"]]],"lu":40,"needs":["m1"]},{"k":"4","n":4,"t":"Photographie {0} papillons en gros plan","p":[[["2","2"],["3","3"]]],"lu":50,"needs":["m1"]},{"k":"5","n":5,"t":"Photographie un oiseau en vol","p":[],"lu":50,"needs":["m1"]},{"k":"6","n":6,"t":"Photographie deux espèces différentes sur la même photo","p":[],"lu":50,"needs":["m1"]},{"k":"8","n":8,"t":"Photographie le moulin {0}","p":[[["coucher","au coucher du soleil"],["nuit","sous les étoiles"]]],"lu":30,"needs":["m1"]},{"k":"11","n":11,"t":"Photographie une espèce que tu n'as jamais eue","p":[],"lu":70,"needs":["m1"]},{"k":"34","n":34,"t":"Photographie {0} lampyres la nuit","p":[[["3","3"],["5","5"]]],"lu":50,"needs":["m1"]},{"k":"4f","n":4,"t":"Photographie un papillon posé sur {0}","p":[[["colza","un colza"],["iris","un iris"],["coquelicot","un coquelicot"],["lys","un lys de la paix"]]],"lu":55,"needs":["m5"]}]},{"id":"jour_ferme","nom":"Potager","ico":"🌱","actif":true,"min":25,"max":70,"tpl":[{"k":"14r","n":14,"t":"Récolte {0} radis","p":[[["5","5"],["8","8"]]],"lu":40,"needs":["m4"]},{"k":"14t","n":14,"t":"Récolte {0} tomates","p":[[["3","3"],["5","5"]]],"lu":40,"needs":["m6"]},{"k":"15","n":15,"t":"Arrose ton potager {0} fois aujourd'hui","p":[[["2","2"],["3","3"]]],"lu":25,"needs":["m4"]},{"k":"16","n":16,"t":"Plante {0} sortes de graines","p":[[["2","2"]]],"lu":35,"needs":["m6"]},{"k":"18","n":18,"t":"Laboure {0} cases de terre neuves","p":[[["4","4"],["6","6"]]],"lu":30,"needs":["m4"]}]},{"id":"jour_marche","nom":"Marché","ico":"🧺","actif":true,"min":30,"max":80,"tpl":[{"k":"19","n":19,"t":"Mets {0} légumes en vente au marché","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m7"]},{"k":"22","n":22,"t":"Mets un tableau en vente","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_maison","nom":"Maison","ico":"🏡","actif":true,"min":25,"max":30,"tpl":[{"k":"25","n":25,"t":"Pose un nouveau meuble chez toi","p":[],"lu":30,"needs":["m3"]},{"k":"26","n":26,"t":"Change de tenue au dressing","p":[],"lu":25,"needs":["m3"]},{"k":"27","n":27,"t":"Accroche un tableau dans ta maison","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_social","nom":"Copains","ico":"💌","actif":false,"min":25,"max":50,"tpl":[{"k":"28","n":28,"t":"Rends visite à la maison d'un copain","p":[],"lu":40,"needs":["m3"]},{"k":"29","n":29,"t":"Offre un cadeau à un copain","p":[],"lu":50,"needs":["m3"]}]},{"id":"jour_balade","nom":"Balade","ico":"🥾","actif":true,"min":20,"max":50,"tpl":[{"k":"33","n":33,"t":"Assieds-toi sur un banc {0} au coucher du soleil","p":[[["lac","au bord du lac"],["place","sur la place"]]],"lu":30,"needs":["m1"]},{"k":"36","n":36,"t":"Fais le tour du lac à pied","p":[],"lu":30,"needs":["m1"]},{"k":"37","n":37,"t":"Va dire bonjour à {0}","p":[[["rosalie","Rosalie"],["basile","Basile"],["iris","Mlle Iris"],["auguste","Papi Auguste"]]],"lu":20,"needs":["m1"]},{"k":"38","n":38,"t":"Apporte 2 tomates à {0}","p":[[["auguste","Papi Auguste"],["rosalie","Rosalie"]]],"lu":50,"needs":["m6"]},{"k":"39","n":39,"t":"Marche {0} dans le monde","p":[[["1km","1 km"],["2km","2 km"]]],"lu":25,"needs":["m1"]},{"k":"40","n":40,"t":"Joue avec le chat : suis-le {0} sans le perdre","p":[[["20","20 secondes"],["30","30 secondes"]]],"lu":40,"needs":["m1"]}]},{"id":"jour_peche","nom":"Pêche","ico":"🎣","actif":true,"min":30,"max":60,"tpl":[{"k":"46","n":46,"t":"Pêche 3 poissons {0}","p":[[["lac","au lac"],["riviere","en rivière"],["mer","en mer"]]],"lu":40,"needs":["m9b"]},{"k":"47","n":47,"t":"Pêche un poisson {0}","p":[[["nuit","de nuit"],["aube","à l'aube"]]],"lu":50,"needs":["m9b"]},{"k":"48","n":48,"t":"Pêche un poisson de plus de {0} cm","p":[[["30","30"],["40","40"]]],"lu":60,"needs":["m9b"]},{"k":"49","n":49,"t":"Creuse {0} vers, puis pêche avec","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m9b"]}]},{"id":"jour_nature","nom":"Pelle et filet","ico":"🦋","actif":true,"min":35,"max":50,"tpl":[{"k":"50","n":50,"t":"Trouve {0} trésors enfouis à la pelle","p":[[["2","2"]]],"lu":50,"needs":["m9"]},{"k":"51","n":51,"t":"Attrape {0} insectes différents au filet","p":[[["3","3"]]],"lu":40,"needs":["m5"]},{"k":"52","n":52,"t":"Attrape un insecte {0}","p":[[["eau","sur l'eau"],["tronc","sur un tronc"],["fleurs","dans les fleurs"]]],"lu":35,"needs":["m5"]}]},{"id":"jour_musee","nom":"Musée","ico":"🏛️","actif":true,"min":25,"max":70,"tpl":[{"k":"53","n":53,"t":"Donne une nouvelle espèce au musée de Mlle Iris","p":[],"lu":60,"needs":["m5b"]}]}]};
   function mjDraw(mj, day, name, done, today) {
     if (!mj || !Array.isArray(mj.sortes)) return [];
     const by = new TextEncoder().encode(String(day) + '|' + String(name));
@@ -6802,9 +6958,18 @@
     }
     // MAILLOT DE CORPS (hub 2.10) : le haut beige qu'on voit sous les robes d'été, les débardeurs, les hauts ouverts… est un calque à part
     // (« under.top » du pack, peint sur le corps) : sa couleur se choisit ici (gratuit) ; d.ut = ['under.top', couleur 1, couleur 2]
+    // Hub 2.12 (src/maillot.js) : plus long (jusque sous la ceinture des bas) ; « Sans maillot » = d.ut = ['', couleur…] : la brassière reste
+    // (corps de fille) et, s'il n'y a ni haut ni robe (salopette comprise), le maillot revient tout seul : jamais en sous-vêtements seuls.
     function underHTML(d) {
-      const ut = Array.isArray(d.ut) && d.ut[0] ? d.ut : null, cur = ut ? ut[1] : -1;
-      return sec('Maillot de corps (dessous)') + `<p class="pgh-edn">Le haut qu’on voit sous une robe d’été, un débardeur ou une veste ouverte.</p><div class="pgh-cols pgh-mqt"><div class="sws">` +
+      const ut = Array.isArray(d.ut) ? d.ut : null, off = !!ut && ut[0] === '', cur = ut && ut[1] != null ? ut[1] : -1;
+      const covered = PGM && PGM.torsoCovered ? PGM.torsoCovered(d) : true, girl = d.g !== 'm';
+      const note = !off ? 'Le haut qu’on voit sous une robe d’été, un débardeur ou une veste ouverte. Il descend jusqu’à la ceinture.'
+        : !covered ? 'Sans haut ni robe, le maillot reste : on ne sort jamais en sous-vêtements. Mets un haut ou une robe pour l’enlever.'
+        : girl ? 'Sans maillot : seule la brassière reste dessous, pratique pour les robes et les hauts ouverts.' : 'Sans maillot dessous.';
+      const dot = cur < 0 ? '#ece6da' : palHex(cur);
+      return sec('Maillot de corps (dessous)') + `<p class="pgh-edn">${note}</p><div class="pgh-cols pgh-mqt"><div class="chs pgh-utc">` +
+        `<button class="pgh-cc${off ? '' : ' on'}" data-a="utoff" data-v="0"><i style="background:${dot}"></i>Avec maillot</button>` +
+        `<button class="pgh-cc${off ? ' on' : ''}" data-a="utoff" data-v="1"><i class="no"></i>Sans maillot</button></div><div class="sws">` +
         `<button class="pgh-sw${cur < 0 ? ' on' : ''}" data-a="ut" data-v="" style="background:radial-gradient(circle at 35% 30%,#ece6da,#ece6da 50%,rgba(0,0,0,.35))" title="Beige (d’origine)" aria-label="Beige (d’origine)"></button>` +
         CAT.fabricUI.map((i) => `<button class="pgh-sw${i === cur ? ' on' : ''}" data-a="ut" data-v="${i}" style="background:${swatch(i)}" title="${esc(CAT.palette[i][0])}" aria-label="${esc(CAT.palette[i][0])}"></button>`).join('') + '</div></div>';
     }
@@ -6944,7 +7109,9 @@
       if (a === 'hc') { change((d) => { d.hc = +v; d.hc2 = +v; }, k, false); return; }
       if (a === 'fx') { change((d) => { d.fx = d.fx || []; const i = d.fx.indexOf(v); if (i >= 0) d.fx.splice(i, 1); else { const ex = MKP()[v] && MKP()[v].ex; if (v.startsWith('freckles')) d.fx = d.fx.filter((x) => !x.startsWith('freckles')); if (ex) d.fx = d.fx.filter((x) => !(MKP()[x] && MKP()[x].ex === ex)); d.fx.push(v); } }, k); return; }
       if (a === 'fxc') { const [id, ci] = String(v).split('|'); change((d) => { d.fxc = d.fxc || {}; const c = PGM.makeupCols(d, id); c[0] = +ci; d.fxc[id] = c; }, '', false); return; }
-      if (a === 'ut') { change((d) => { if (v === '') delete d.ut; else d.ut = ['under.top', +v, +v]; }, '', false); return; }
+      // maillot de corps (hub 2.12) : couleur (gardée aussi « sans maillot », pour la brassière et pour quand il revient) ; avec / sans
+      if (a === 'ut') { change((d) => { const off = Array.isArray(d.ut) && d.ut[0] === ''; if (v === '') { if (off) d.ut = ['']; else delete d.ut; } else d.ut = [off ? '' : 'under.top', +v, +v]; }, '', false); return; }
+      if (a === 'utoff') { change((d) => { const c = Array.isArray(d.ut) && d.ut[1] != null ? [d.ut[1], d.ut[2] == null ? d.ut[1] : d.ut[2]] : null; if (v === '1') d.ut = c ? ['', ...c] : ['']; else if (c) d.ut = ['under.top', ...c]; else delete d.ut; }, '', false); return; }
       if (a === 'elf') { change((d) => { d.elf = d.elf ? 0 : 1; }, k); return; }
       if (a === 'so') { change((d) => { d.so = v ? [v, (d.so && d.so[1]) || 0] : null; }, k); return; }
       if (a === 'cam') { change((d) => { if (v) d.it.cam = d.it.cam || ['cam', 9, 40, 53]; else delete d.it.cam; }, v ? 'cam' : ''); return; }

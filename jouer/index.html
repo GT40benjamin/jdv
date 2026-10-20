@@ -4463,9 +4463,9 @@ function drawZapper(z) {
 }
 
 const PILOT = new Image();
-PILOT.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTUgMTUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjE1MCI+DQo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOWE0N2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmM5YTAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4NCjxwYXRoIGQ9Ik00NCAxMThoMzB2MzJINDR6IiBmaWxsPSIjZDg4ZjY4Ii8+DQo8cGF0aCBkPSJNMjIgNzhjMC04IDEwLTE0IDI0LTE0aDQwYzEyIDAgMTggOCAyMCAxOGwyIDEwIDYgOC02IDQgMiA2LTQgMiAyIDhjMCAxMC0xMiAxOC0yNiAxOEg1OGMtMjAgMC0zNi0xNC0zNi0zNHoiIGZpbGw9InVybCgjcykiLz4NCjxwYXRoIGQ9Ik05MiAxMjBxNiAxIDktMyIgc3Ryb2tlPSIjYTU1MjNhIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPHBhdGggZD0iTTQgODJDNCAzNCAzMCA2IDYyIDZzNTIgMjYgNTIgNzJ6IiBmaWxsPSIjZmY2YjNkIi8+DQo8cGF0aCBkPSJNNTQgNi40aDE0VjgwSDU0eiIgZmlsbD0iI2U5ZjBmMyIvPg0KPHBhdGggZD0iTTI2IDI2cTEyLTEyIDMwLTE0IiBzdHJva2U9IiNmZmYiIHN0cm9rZS1vcGFjaXR5PSIuNSIgc3Ryb2tlLXdpZHRoPSI3IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjxwYXRoIGQ9Ik0wIDc4aDExNXY4SDB6IiBmaWxsPSIjYzQ0ODJhIi8+DQo8cGF0aCBkPSJNMzAgODhoNzZ2MTJIMzB6IiBmaWxsPSIjMjIzOTRhIi8+DQo8ZWxsaXBzZSBjeD0iOTQiIGN5PSI5NCIgcng9IjE2IiByeT0iMTEiIGZpbGw9IiMyMjM5NGEiLz48ZWxsaXBzZSBjeD0iOTYiIGN5PSI5NCIgcng9IjExIiByeT0iNyIgZmlsbD0iIzdmZTNmZiIvPg0KPHBhdGggZD0iTTkwIDkwbDgtMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjYzQ0ODJhIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjkiIGZpbGw9IiMzYTU1NjgiLz4NCjxwYXRoIGQ9Ik0zNCAxMDhxMjAgMjYgNTAgMjIiIHN0cm9rZT0iIzE2MzEzZCIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9Ijg0IiBjeT0iMTMwIiByPSI0LjUiIGZpbGw9IiMxNjMxM2QiLz4NCjwvc3ZnPg0K';
+PILOT.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTUgMTUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjE1MCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U5YTQ3YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmYzlhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cGF0aCBkPSJNNDQgMTE4aDMwdjMySDQ0eiIgZmlsbD0iI2Q4OGY2OCIvPgo8cGF0aCBkPSJNMjIgNzhjMC04IDEwLTE0IDI0LTE0aDQwYzEyIDAgMTggOCAyMCAxOGwyIDEwIDYgOC02IDQgMiA2LTQgMiAyIDhjMCAxMC0xMiAxOC0yNiAxOEg1OGMtMjAgMC0zNi0xNC0zNi0zNHoiIGZpbGw9InVybCgjcykiLz4KPHBhdGggZD0iTTkyIDEyMHE2IDEgOS0zIiBzdHJva2U9IiNhNTUyM2EiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik00IDgyQzQgMzQgMzAgNiA2MiA2czUyIDI2IDUyIDcyeiIgZmlsbD0iI2ZmNmIzZCIvPgo8cGF0aCBkPSJNNTQgNi40aDE0VjgwSDU0eiIgZmlsbD0iI2U5ZjBmMyIvPgo8cGF0aCBkPSJNMjYgMjZxMTItMTIgMzAtMTQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9Ii41IiBzdHJva2Utd2lkdGg9IjciIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMCA3OGgxMTV2OEgweiIgZmlsbD0iI2M0NDgyYSIvPgo8cGF0aCBkPSJNMzAgODhoNzZ2MTJIMzB6IiBmaWxsPSIjMjIzOTRhIi8+CjxlbGxpcHNlIGN4PSI5NCIgY3k9Ijk0IiByeD0iMTYiIHJ5PSIxMSIgZmlsbD0iIzIyMzk0YSIvPjxlbGxpcHNlIGN4PSI5NiIgY3k9Ijk0IiByeD0iMTEiIHJ5PSI3IiBmaWxsPSIjN2ZlM2ZmIi8+CjxwYXRoIGQ9Ik05MCA5MGw4LTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjYzQ0ODJhIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMDAiIHI9IjkiIGZpbGw9IiMzYTU1NjgiLz4KPHBhdGggZD0iTTM0IDEwOHEyMCAyNiA1MCAyMiIgc3Ryb2tlPSIjMTYzMTNkIiBzdHJva2Utd2lkdGg9IjMuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iODQiIGN5PSIxMzAiIHI9IjQuNSIgZmlsbD0iIzE2MzEzZCIvPgo8L3N2Zz4K';
 const HEAD = new Image();
-HEAD.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NiAxNjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIxNjAiPg0KPHBhdGggZD0iTTMwIDEyNGgyNnYzNkgzMHoiIGZpbGw9IiNkODhmNjgiLz4NCjxlbGxpcHNlIGN4PSI0MyIgY3k9Ijc4IiByeD0iMzgiIHJ5PSI1MiIgZmlsbD0iI2ZmYzlhMCIvPg0KPHBhdGggZD0iTTUgNzBDMiAzMCAyMCAxNiA0MyAxNnM0MiAxNCAzOCA1NGMtNC0xNC0xMC0yMi0xOC0yNi02IDgtMjAgMTAtMzIgNi04IDQtMTYgMTItMjYgMjB6IiBmaWxsPSIjNWEzYTJhIi8+DQo8cGF0aCBkPSJNMjggMThsNi0xNCA4IDEyIDEwLTE0IDQgMTZ6IiBmaWxsPSIjNWEzYTJhIi8+DQo8ZWxsaXBzZSBjeD0iMjkiIGN5PSI3OCIgcng9IjgiIHJ5PSIxMCIgZmlsbD0iI2ZmZiIvPjxlbGxpcHNlIGN4PSI1NyIgY3k9Ijc4IiByeD0iOCIgcnk9IjEwIiBmaWxsPSIjZmZmIi8+DQo8Y2lyY2xlIGN4PSIzMSIgY3k9IjgwIiByPSI1IiBmaWxsPSIjMTYzMTNkIi8+PGNpcmNsZSBjeD0iNTkiIGN5PSI4MCIgcj0iNSIgZmlsbD0iIzE2MzEzZCIvPg0KPGNpcmNsZSBjeD0iMzIuNSIgY3k9Ijc4IiByPSIxLjgiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI2MC41IiBjeT0iNzgiIHI9IjEuOCIgZmlsbD0iI2ZmZiIvPg0KPHBhdGggZD0iTTIwIDY0cTgtNiAxNi0yTTUwIDYycTgtNCAxNiAyIiBzdHJva2U9IiM1YTNhMmEiIHN0cm9rZS13aWR0aD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQo8ZWxsaXBzZSBjeD0iMjAiIGN5PSI5OCIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmY4YThhIiBmaWxsLW9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSI2NiIgY3k9Ijk4IiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmZjhhOGEiIGZpbGwtb3BhY2l0eT0iLjU1Ii8+DQo8cGF0aCBkPSJNMjcgMTA0cTE2IDE4IDMyIDB6IiBmaWxsPSIjOGEyYTJhIi8+PHBhdGggZD0iTTMxIDEwNWgyNGwtMiA0SDMzeiIgZmlsbD0iI2ZmZiIvPg0KPHBhdGggZD0iTTQzIDg0cS01IDEwIDAgMTIiIHN0cm9rZT0iI2Q4OGY2OCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjwvc3ZnPg0K';
+HEAD.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NiAxNjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIxNjAiPgo8cGF0aCBkPSJNMzAgMTI0aDI2djM2SDMweiIgZmlsbD0iI2Q4OGY2OCIvPgo8ZWxsaXBzZSBjeD0iNDMiIGN5PSI3OCIgcng9IjM4IiByeT0iNTIiIGZpbGw9IiNmZmM5YTAiLz4KPHBhdGggZD0iTTUgNzBDMiAzMCAyMCAxNiA0MyAxNnM0MiAxNCAzOCA1NGMtNC0xNC0xMC0yMi0xOC0yNi02IDgtMjAgMTAtMzIgNi04IDQtMTYgMTItMjYgMjB6IiBmaWxsPSIjNWEzYTJhIi8+CjxwYXRoIGQ9Ik0yOCAxOGw2LTE0IDggMTIgMTAtMTQgNCAxNnoiIGZpbGw9IiM1YTNhMmEiLz4KPGVsbGlwc2UgY3g9IjI5IiBjeT0iNzgiIHJ4PSI4IiByeT0iMTAiIGZpbGw9IiNmZmYiLz48ZWxsaXBzZSBjeD0iNTciIGN5PSI3OCIgcng9IjgiIHJ5PSIxMCIgZmlsbD0iI2ZmZiIvPgo8Y2lyY2xlIGN4PSIzMSIgY3k9IjgwIiByPSI1IiBmaWxsPSIjMTYzMTNkIi8+PGNpcmNsZSBjeD0iNTkiIGN5PSI4MCIgcj0iNSIgZmlsbD0iIzE2MzEzZCIvPgo8Y2lyY2xlIGN4PSIzMi41IiBjeT0iNzgiIHI9IjEuOCIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjYwLjUiIGN5PSI3OCIgcj0iMS44IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik0yMCA2NHE4LTYgMTYtMk01MCA2MnE4LTQgMTYgMiIgc3Ryb2tlPSIjNWEzYTJhIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8ZWxsaXBzZSBjeD0iMjAiIGN5PSI5OCIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmY4YThhIiBmaWxsLW9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSI2NiIgY3k9Ijk4IiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmZjhhOGEiIGZpbGwtb3BhY2l0eT0iLjU1Ii8+CjxwYXRoIGQ9Ik0yNyAxMDRxMTYgMTggMzIgMHoiIGZpbGw9IiM4YTJhMmEiLz48cGF0aCBkPSJNMzEgMTA1aDI0bC0yIDRIMzN6IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik00MyA4NHEtNSAxMCAwIDEyIiBzdHJva2U9IiNkODhmNjgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
 function drawTag(g) {
   ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(Math.sin(g.t * 2.2) * 0.2);
   const pulse = 1 + Math.sin(time * 6 + g.seed) * 0.06;
@@ -4543,7 +4543,7 @@ function drawTrail() {
 /* ---------- « Let's go » au départ de chaque niveau ---------- */
 const INTRO_LEN = 2.3;
 const FACE = new Image();
-FACE.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgMjgwIiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjI4MCI+DQo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOWE0N2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmM5YTAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4NCjxwYXRoIGQ9Ik01MCAyMjBoNTZ2NjBINTB6IiBmaWxsPSIjZDg4ZjY4Ii8+DQo8cGF0aCBkPSJNMjQgMTIwYzAtNTYgMzAtOTYgODItOTYgNDAgMCA2MCAzMCA2MCA3MGwtMiAzMCAxMCAyMi0xMCA2IDQgMTItNiA0IDQgMTRjMCAyOC0yNiA1Mi02MiA1Mi00NiAwLTgwLTQwLTgwLTkweiIgZmlsbD0idXJsKCNzKSIvPg0KPHBhdGggZD0iTTE4IDEyOEM4IDYwIDQwIDE0IDEwMCAxNGM0NCAwIDcwIDI2IDcwIDY2LTE0LTIyLTQwLTMwLTY2LTI2LTE0IDItMjQgMTQtMzAgMzAtMTAtMTAtMjYtOC0zNCA0LTQgMTQtNiAyOC02IDQweiIgZmlsbD0iIzNiMmEyMiIvPg0KPGVsbGlwc2UgY3g9IjUwIiBjeT0iMTUwIiByeD0iMTYiIHJ5PSIyMiIgZmlsbD0iI2U5YTQ3YyIvPjxwYXRoIGQ9Ik00NiAxNDBxOCA4IDIgMjAiIHN0cm9rZT0iI2MwN2E1OCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+DQo8cGF0aCBkPSJNNjAgMTE2aDExMnYxMEg2MHoiIGZpbGw9IiMxNjMxM2QiLz4NCjxwYXRoIGQ9Ik0xMTIgMTEyaDU4YzQgMCA2IDQgNSA4bC00IDIyYy0xIDYtNiAxMC0xMiAxMGgtMzBjLTggMC0xNC02LTE2LTE0eiIgZmlsbD0iIzBiMTQxYyIvPg0KPHBhdGggZD0iTTEyMCAxMThsNDAgMCIgc3Ryb2tlPSIjNWVmMGZmIiBzdHJva2Utb3BhY2l0eT0iLjciIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQo8cGF0aCBkPSJNMTI2IDIxMnEyMiA2IDM0LTgiIHN0cm9rZT0iIzhhM2EyYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCjxwYXRoIGQ9Ik0xMjAgMTAwcTIwLTggNDAtMiIgc3Ryb2tlPSIjM2IyYTIyIiBzdHJva2Utd2lkdGg9IjciIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPC9zdmc+DQo=';
+FACE.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgMjgwIiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjI4MCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U5YTQ3YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmYzlhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cGF0aCBkPSJNNTAgMjIwaDU2djYwSDUweiIgZmlsbD0iI2Q4OGY2OCIvPgo8cGF0aCBkPSJNMjQgMTIwYzAtNTYgMzAtOTYgODItOTYgNDAgMCA2MCAzMCA2MCA3MGwtMiAzMCAxMCAyMi0xMCA2IDQgMTItNiA0IDQgMTRjMCAyOC0yNiA1Mi02MiA1Mi00NiAwLTgwLTQwLTgwLTkweiIgZmlsbD0idXJsKCNzKSIvPgo8cGF0aCBkPSJNMTggMTI4QzggNjAgNDAgMTQgMTAwIDE0YzQ0IDAgNzAgMjYgNzAgNjYtMTQtMjItNDAtMzAtNjYtMjYtMTQgMi0yNCAxNC0zMCAzMC0xMC0xMC0yNi04LTM0IDQtNCAxNC02IDI4LTYgNDB6IiBmaWxsPSIjM2IyYTIyIi8+CjxlbGxpcHNlIGN4PSI1MCIgY3k9IjE1MCIgcng9IjE2IiByeT0iMjIiIGZpbGw9IiNlOWE0N2MiLz48cGF0aCBkPSJNNDYgMTQwcTggOCAyIDIwIiBzdHJva2U9IiNjMDdhNTgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPgo8cGF0aCBkPSJNNjAgMTE2aDExMnYxMEg2MHoiIGZpbGw9IiMxNjMxM2QiLz4KPHBhdGggZD0iTTExMiAxMTJoNThjNCAwIDYgNCA1IDhsLTQgMjJjLTEgNi02IDEwLTEyIDEwaC0zMGMtOCAwLTE0LTYtMTYtMTR6IiBmaWxsPSIjMGIxNDFjIi8+CjxwYXRoIGQ9Ik0xMjAgMTE4bDQwIDAiIHN0cm9rZT0iIzVlZjBmZiIgc3Ryb2tlLW9wYWNpdHk9Ii43IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTI2IDIxMnEyMiA2IDM0LTgiIHN0cm9rZT0iIzhhM2EyYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTEyMCAxMDBxMjAtOCA0MC0yIiBzdHJva2U9IiMzYjJhMjIiIHN0cm9rZS13aWR0aD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
 let introT = 0, introSub = '', introSub2 = '';
 function letsGo(sub) {
   PG_INTRO_IMG = pgPickHead();
@@ -46140,14 +46140,18 @@ void main(){ if (vK >= 0.999) discard;
     // src/main.js
     var main_exports = {};
     __export(main_exports, {
+      BRA_RECT: () => BRA_RECT,
       CHARS: () => CHARS,
       FIN_MS: () => FIN_MS,
       MAKEUP: () => MAKEUP,
       MAKEUP_DRAWN: () => MAKEUP_DRAWN,
       MAKEUP_ROWS: () => MAKEUP_ROWS,
       MOUTH_KEYS: () => MOUTH_KEYS,
+      UT_HEM: () => UT_HEM,
       VIS: () => VIS,
       WORD_CAT: () => WORD_CAT,
+      braCanvas: () => braCanvas,
+      braShown: () => braShown,
       catsOf: () => catsOf,
       create: () => create,
       createGrowl: () => createGrowl,
@@ -46159,7 +46163,12 @@ void main(){ if (vK >= 0.999) discard;
       encode: () => encode,
       frenchVisemes: () => frenchVisemes,
       makeupCanvas: () => makeupCanvas,
-      makeupCols: () => makeupCols
+      makeupCols: () => makeupCols,
+      torsoCovered: () => torsoCovered,
+      undershirtCols: () => undershirtCols,
+      undershirtLongCanvas: () => undershirtLongCanvas,
+      undershirtOff: () => undershirtOff,
+      undershirtShown: () => undershirtShown
     });
     module.exports = __toCommonJS(main_exports);
     var T3 = __toESM(require("three"));
@@ -46500,6 +46509,111 @@ void main(){ if (vK >= 0.999) discard;
       return cv;
     }
     var MAKEUP_DRAWN = Object.keys(DRAW);
+
+    // src/maillot.js
+    var UT_HEM = 828;
+    var UT_DEFAULT = ["#ece6da", "#d8d0c2", "#ffffff"];
+    function torsoCovered(d) {
+      const it = d && d.it || {};
+      return !!(it.top && it.top[0] || it.ovr && it.ovr[0] && it.ovr[0] !== "ovr.overall");
+    }
+    var undershirtOff = (d) => !!d && Array.isArray(d.ut) && d.ut[0] === "";
+    var undershirtShown = (d) => !undershirtOff(d) || !torsoCovered(d);
+    var braShown = (d) => !undershirtShown(d) && !!d && d.g !== "m";
+    function undershirtCols(d) {
+      const ut = d && Array.isArray(d.ut) ? d.ut : null;
+      if (!ut) return null;
+      if (ut[1] == null) return ut[0] === "" ? null : [1, 1];
+      return [ut[1], ut[2] == null ? ut[1] : ut[2]];
+    }
+    function undershirtLongCanvas(img, tex, doc = typeof document !== "undefined" ? document : null) {
+      const cv = doc.createElement("canvas");
+      cv.width = tex.w;
+      cv.height = tex.h;
+      const x = cv.getContext("2d", { willReadFrequently: true });
+      x.drawImage(img, 0, 0);
+      const [sx, sy, w, h, , dy] = tex.r[0];
+      const hem = Math.min(h - 2, UT_HEM - dy);
+      const id = x.getImageData(sx, sy, w, h), p = id.data;
+      for (let c = 0; c < w; c++) {
+        let yb = -1;
+        for (let y = h - 1; y >= 0; y--) if (p[(y * w + c) * 4 + 3] > 128) {
+          yb = y;
+          break;
+        }
+        if (yb < h * 0.7 || yb >= hem) continue;
+        let R = 0, G = 0, B = 0, n = 0;
+        for (let y = Math.max(0, yb - 44); y < yb - 24; y++) {
+          const o = (y * w + c) * 4;
+          if (p[o + 3] < 250) continue;
+          R += p[o];
+          G += p[o + 1];
+          B += p[o + 2];
+          n++;
+        }
+        if (!n) continue;
+        R /= n;
+        G /= n;
+        B /= n;
+        const y0 = Math.max(0, yb - 16);
+        for (let y = y0; y <= hem + 1 && y < h; y++) {
+          const o = (y * w + c) * 4, k = Math.min(1, (y - y0) / 8);
+          const sh = y >= hem - 3 ? 0.9 : 1;
+          p[o] = Math.round((p[o] * (1 - k) + R * k) * sh);
+          p[o + 1] = Math.round((p[o + 1] * (1 - k) + G * k) * sh);
+          p[o + 2] = Math.round((p[o + 2] * (1 - k) + B * k) * sh);
+          p[o + 3] = y < hem ? 255 : y === hem ? 170 : 70;
+        }
+      }
+      x.putImageData(id, sx, sy);
+      return cv;
+    }
+    var BRA_RECT = [0, 512, 448, 256];
+    var CUPS = [157, 235];
+    var CUP_R = 46;
+    var CUP_TOP = 34;
+    var BAND_TOP = 650;
+    var BAND_BOT = 686;
+    var BRA_W = 390;
+    function braTop(x) {
+      let y = BAND_TOP;
+      for (const cx of CUPS) {
+        const u = (x - cx) / CUP_R;
+        if (Math.abs(u) < 1) y = Math.min(y, BAND_TOP - 2 - CUP_TOP * Math.sqrt(1 - u * u));
+      }
+      return y;
+    }
+    function braCanvas(doc = typeof document !== "undefined" ? document : null) {
+      const [ax, ay, w, h] = BRA_RECT, cv = doc.createElement("canvas");
+      cv.width = w;
+      cv.height = h;
+      const x = cv.getContext("2d"), id = x.createImageData(w, h), p = id.data;
+      const cl = (v) => Math.max(0, Math.min(1, v));
+      for (let c = 0; c < w; c++) {
+        const X = ax + c + 0.5;
+        if (X > BRA_W + 1) continue;
+        const top = braTop(X), bot = BAND_BOT + 2 * Math.cos((X - 196) / 196 * Math.PI);
+        const side = cl(BRA_W + 1 - X) * cl(X + 1);
+        for (let r = 0; r < h; r++) {
+          const Y = ay + r + 0.5, cov = cl(Y - top + 0.5) * cl(bot - Y + 0.5) * side;
+          if (cov <= 0) continue;
+          let shade = 0.86;
+          for (const cx of CUPS) {
+            const dx = (X - cx) / CUP_R, dyy = (Y - (BAND_TOP - 16)) / 26;
+            const q = 1 - dx * dx - dyy * dyy;
+            if (q > 0) shade = Math.max(shade, 0.86 + 0.14 * q);
+          }
+          const trim = Y - top < 3.5 || bot - Y < 3.5 ? 1 : 0;
+          const o = (r * w + c) * 4;
+          p[o] = trim ? 0 : Math.round(255 * shade);
+          p[o + 1] = trim ? Math.round(255 * shade) : 0;
+          p[o + 2] = 0;
+          p[o + 3] = Math.round(255 * cov);
+        }
+      }
+      x.putImageData(id, 0, 0);
+      return cv;
+    }
 
     // src/avatar.js
     var PIECES = ["neck", "chest", "back", "shoulders", "upperarms", "lowerarms", "wrists", "hands", "waist", "hips", "upperlegs", "lowerlegs", "ankles", "feet"];
@@ -47281,9 +47395,10 @@ void main(){ if (vK >= 0.999) discard;
         const hair = W.color(d.hc), hair2 = W.color(d.hc2 == null ? d.hc : d.hc2);
         const jobs = [];
         jobs.push(() => add(C.base.body.tex, [skin.tone, skin.shade, skin.tone]));
-        const ut = Array.isArray(d.ut) ? d.ut : null;
-        if (!ut || ut[0] !== "") jobs.push(() => add(C.layers["under.top"].tex, ut ? [W.color(ut[1] == null ? 1 : ut[1]), W.color(ut[2] == null ? ut[1] == null ? 1 : ut[1] : ut[2]), col("#ffffff")] : [col("#ece6da"), col("#d8d0c2"), col("#ffffff")]));
+        const utc = undershirtCols(d), utCols = utc ? [W.color(utc[0]), W.color(utc[1]), col("#ffffff")] : UT_DEFAULT.map(col);
         jobs.push(() => add(C.layers["under.bottom"].tex, [col("#5d6b86"), col("#ece6da"), col("#ffffff")]));
+        if (undershirtShown(d)) jobs.push(() => this._utLayer(utCols));
+        else if (braShown(d)) jobs.push(() => this._braLayer(utCols));
         if (d.so && d.so[0] && C.layers[d.so[0]]) jobs.push(() => add(C.layers[d.so[0]].tex, [W.color(d.so[1] || 0), W.color(d.so[2] == null ? 4 : d.so[2]), W.color(0)]));
         const face = FACES[d.fc] || FACES[0];
         jobs.push(() => add(C.base.head.tex[face.tex] || C.base.head.tex.basic, [skin.tone, skin.shade, skin.tone, col("#ffffff"), col("#f1dfd8"), col("#9c3a32"), col("#ffffff"), col("#ffffff"), col("#ffffff")]));
@@ -47330,6 +47445,44 @@ void main(){ if (vK >= 0.999) discard;
         }
         const res = await Promise.all(jobs.map((j) => j()));
         return res.flat().filter(Boolean);
+      }
+      // maillot de corps ALLONGÉ (hub 2.12) : masque du pack prolongé en code (maillot.js), fait une fois par page ; repli : le masque du pack
+      async _utLayer(cols) {
+        const W = this.W, tex = W.cat.layers["under.top"].tex;
+        if (!W._utLong) W._utLong = (async () => {
+          const src = await W.tex(tex.d);
+          try {
+            const t = new T.CanvasTexture(undershirtLongCanvas(src.image, tex));
+            t.flipY = false;
+            t.colorSpace = T.SRGBColorSpace;
+            t.generateMipmaps = true;
+            t.minFilter = T.LinearMipmapLinearFilter;
+            return t;
+          } catch (e) {
+            console.warn("maillot allongé", e);
+            return src;
+          }
+        })();
+        try {
+          return { t: tex, mask: await W._utLong, id: null, n: null, c: cols };
+        } catch (e) {
+          console.warn("maillot", e);
+          return null;
+        }
+      }
+      // brassière (hub 2.12, dessinée en code : maillot.js) dans le rectangle BRA_RECT de l'atlas
+      async _braLayer(cols) {
+        const W = this.W;
+        if (!W._bra) {
+          const t = new T.CanvasTexture(braCanvas());
+          t.flipY = false;
+          t.colorSpace = T.SRGBColorSpace;
+          t.generateMipmaps = true;
+          t.minFilter = T.LinearMipmapLinearFilter;
+          W._bra = t;
+        }
+        const [ax, ay, w, h] = BRA_RECT;
+        return { t: { w, h, r: [[0, 0, w, h, ax, ay]] }, mask: W._bra, id: null, n: null, c: cols };
       }
       // calque de maquillage dessiné en code (masque 512 de l'espace du visage, en haut à gauche de l'atlas) ; la texture est gardée par la page
       async _mqLayer(id, cols) {
@@ -50604,6 +50757,9 @@ void main(){ if (vK >= 0.999) discard;
 .pgh-edg .pgh-mqt{grid-column:1 / -1;margin-top:0;padding-top:6px;border-top:0}
 .pgh-edg .pgh-mqt .chs .pgh-cc{pointer-events:none}
 .pgh-edn{grid-column:1 / -1;margin:0 2px;font:600 12px/1.35 ${FB};color:var(--soft)}
+.pgh-edg .pgh-mqt .chs.pgh-utc .pgh-cc{pointer-events:auto;cursor:pointer}
+.pgh-utc{margin-bottom:2px}
+.pgh-utc i.no{background:linear-gradient(135deg,transparent 44%,#ff8a7a 44%,#ff8a7a 56%,transparent 56%),rgba(255,255,255,.08)}
 .pgh-lock[data-r="secret"]{background:linear-gradient(135deg,rgba(120,80,220,.45),rgba(40,20,90,.55));box-shadow:inset 0 0 0 1px rgba(210,180,255,.55)}
 .pgh-lock[data-r="legend"]{background:linear-gradient(135deg,rgba(255,180,80,.32),rgba(120,60,140,.38));box-shadow:inset 0 0 0 1px rgba(255,210,130,.55)}
 .pgh-lock p .pgh-lu{width:14px;height:14px}
@@ -51171,7 +51327,7 @@ void main(){ if (vK >= 0.999) discard;
   //   valeur = s >>> 8 ; 1) mélange (Fisher-Yates) des sortes actives, 2) mélange des modèles de chaque sorte, 3) un tirage par paramètre
   //   de chaque modèle (ordre du fichier) ; liste = sortes reçues aujourd'hui, puis les premières faisables (needs ⊆ missions faites), 3 au plus.
   // ---------------------------------------------------------------------------
-  const MJOUR = {"v":1,"note":"Missions du jour de Pégase : modèles (MISSIONS.md §3) et tirage PARTAGÉ par le jeu et le hub de la borne. Règle complète : jdv/CLAUDE.md « Missions du jour : le tirage ». Ne pas réordonner (l'ordre fait partie du tirage) : ajouter à la fin, ou mettre actif:false.","sortes":[{"id":"jour_photo","nom":"Photo","ico":"📷","actif":true,"min":25,"max":70,"tpl":[{"k":"1","n":1,"t":"Photographie le chat {0}","p":[[["toit","sur un toit"],["dort","endormi"],["oiseau","avec un oiseau"]]],"lu":60,"needs":["m1"]},{"k":"2","n":2,"t":"Photographie {0} à {1}","p":[[["cerf","un cerf"],["renard","un renard"],["lapin","un lapin"],["ecureuil","un écureuil"]],[["aube","l'aube"],["doree","l'heure dorée"]]],"lu":40,"needs":["m1"]},{"k":"4","n":4,"t":"Photographie {0} papillons en gros plan","p":[[["2","2"],["3","3"]]],"lu":50,"needs":["m1"]},{"k":"5","n":5,"t":"Photographie un oiseau en vol","p":[],"lu":50,"needs":["m1"]},{"k":"6","n":6,"t":"Photographie deux espèces différentes sur la même photo","p":[],"lu":50,"needs":["m1"]},{"k":"8","n":8,"t":"Photographie le moulin {0}","p":[[["coucher","au coucher du soleil"],["nuit","sous les étoiles"]]],"lu":30,"needs":["m1"]},{"k":"11","n":11,"t":"Photographie une espèce que tu n'as jamais eue","p":[],"lu":70,"needs":["m1"]},{"k":"34","n":34,"t":"Photographie {0} lampyres la nuit","p":[[["3","3"],["5","5"]]],"lu":50,"needs":["m1"]},{"k":"4f","n":4,"t":"Photographie un papillon posé sur {0}","p":[[["colza","un colza"],["iris","un iris"],["coquelicot","un coquelicot"],["lys","un lys de la paix"]]],"lu":55,"needs":["m5"]}]},{"id":"jour_ferme","nom":"Potager","ico":"🌱","actif":true,"min":25,"max":70,"tpl":[{"k":"14r","n":14,"t":"Récolte {0} radis","p":[[["5","5"],["8","8"]]],"lu":40,"needs":["m4"]},{"k":"14t","n":14,"t":"Récolte {0} tomates","p":[[["3","3"],["5","5"]]],"lu":40,"needs":["m6"]},{"k":"15","n":15,"t":"Arrose ton potager {0} fois aujourd'hui","p":[[["2","2"],["3","3"]]],"lu":25,"needs":["m4"]},{"k":"16","n":16,"t":"Plante {0} sortes de graines","p":[[["2","2"]]],"lu":35,"needs":["m6"]},{"k":"18","n":18,"t":"Laboure {0} cases de terre neuves","p":[[["4","4"],["6","6"]]],"lu":30,"needs":["m4"]}]},{"id":"jour_marche","nom":"Marché","ico":"🧺","actif":true,"min":30,"max":80,"tpl":[{"k":"19","n":19,"t":"Mets {0} légumes en vente au marché","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m7"]},{"k":"22","n":22,"t":"Mets un tableau en vente","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_maison","nom":"Maison","ico":"🏡","actif":true,"min":25,"max":30,"tpl":[{"k":"25","n":25,"t":"Pose un nouveau meuble chez toi","p":[],"lu":30,"needs":["m3"]},{"k":"26","n":26,"t":"Change de tenue au dressing","p":[],"lu":25,"needs":["m3"]},{"k":"27","n":27,"t":"Accroche un tableau dans ta maison","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_social","nom":"Copains","ico":"💌","actif":false,"min":25,"max":50,"tpl":[{"k":"28","n":28,"t":"Rends visite à la maison d'un copain","p":[],"lu":40,"needs":["m3"]},{"k":"29","n":29,"t":"Offre un cadeau à un copain","p":[],"lu":50,"needs":["m3"]}]},{"id":"jour_balade","nom":"Balade","ico":"🥾","actif":true,"min":20,"max":50,"tpl":[{"k":"33","n":33,"t":"Assieds-toi sur un banc {0} au coucher du soleil","p":[[["lac","au bord du lac"],["place","sur la place"]]],"lu":30,"needs":["m1"]},{"k":"36","n":36,"t":"Fais le tour du lac à pied","p":[],"lu":30,"needs":["m1"]},{"k":"37","n":37,"t":"Va dire bonjour à {0}","p":[[["rosalie","Rosalie"],["basile","Basile"],["iris","Mlle Iris"],["auguste","Papi Auguste"]]],"lu":20,"needs":["m1"]},{"k":"38","n":38,"t":"Apporte 2 tomates à {0}","p":[[["auguste","Papi Auguste"],["rosalie","Rosalie"]]],"lu":50,"needs":["m6"]},{"k":"39","n":39,"t":"Marche {0} dans le monde","p":[[["1km","1 km"],["2km","2 km"]]],"lu":25,"needs":["m1"]},{"k":"40","n":40,"t":"Joue avec le chat : suis-le {0} sans le perdre","p":[[["20","20 secondes"],["30","30 secondes"]]],"lu":40,"needs":["m1"]}]},{"id":"jour_peche","nom":"Pêche","ico":"🎣","actif":true,"min":30,"max":60,"tpl":[{"k":"46","n":46,"t":"Pêche 3 poissons {0}","p":[[["lac","au lac"],["riviere","en rivière"],["mer","en mer"]]],"lu":40,"needs":["m9b"]},{"k":"47","n":47,"t":"Pêche un poisson {0}","p":[[["nuit","de nuit"],["aube","à l'aube"]]],"lu":50,"needs":["m9b"]},{"k":"48","n":48,"t":"Pêche un poisson de plus de {0} cm","p":[[["30","30"],["40","40"]]],"lu":60,"needs":["m9b"]},{"k":"49","n":49,"t":"Creuse {0} vers, puis pêche avec","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m9b"]}]},{"id":"jour_nature","nom":"Pelle et filet","ico":"🦋","actif":true,"min":35,"max":50,"tpl":[{"k":"50","n":50,"t":"Trouve {0} trésors enfouis à la pelle","p":[[["2","2"]]],"lu":50,"needs":["m9"]},{"k":"51","n":51,"t":"Attrape {0} insectes différents au filet","p":[[["3","3"]]],"lu":40,"needs":["m5"]},{"k":"52","n":52,"t":"Attrape un insecte {0}","p":[[["eau","sur l'eau"],["tronc","sur un tronc"],["fleurs","dans les fleurs"]]],"lu":35,"needs":["m5"]}]},{"id":"jour_musee","nom":"Musée","ico":"🏛️","actif":true,"min":25,"max":70,"tpl":[{"k":"53","n":53,"t":"Donne une nouvelle espèce au musée de Mlle Iris","p":[],"lu":60,"needs":["m5b"]}]}]};
+  const MJOUR = {"v":1,"note":"Missions du jour de Pégase : modèles (MISSIONS.md §3) et tirage PARTAGÉ par le jeu et le hub de la borne. Règle complète : jdv/CLAUDE.md « Missions du jour : le tirage ». Ne pas réordonner (l'ordre fait partie du tirage) : ajouter à la fin, ou mettre actif:false.","sortes":[{"id":"jour_photo","nom":"Photo","ico":"📷","actif":true,"min":25,"max":70,"tpl":[{"k":"1","n":1,"t":"Photographie le chat {0}","p":[[["toit","sur un toit"],["dort","endormi"],["oiseau","avec un oiseau"]]],"lu":60,"needs":["m1"]},{"k":"2","n":2,"t":"Photographie {0} à {1}","p":[[["cerf","un cerf"],["sanglier","un sanglier"],["lapin","un lapin"],["bouquetin","un bouquetin"]],[["aube","l'aube"],["doree","l'heure dorée"]]],"lu":40,"needs":["m1"]},{"k":"4","n":4,"t":"Photographie {0} papillons en gros plan","p":[[["2","2"],["3","3"]]],"lu":50,"needs":["m1"]},{"k":"5","n":5,"t":"Photographie un oiseau en vol","p":[],"lu":50,"needs":["m1"]},{"k":"6","n":6,"t":"Photographie deux espèces différentes sur la même photo","p":[],"lu":50,"needs":["m1"]},{"k":"8","n":8,"t":"Photographie le moulin {0}","p":[[["coucher","au coucher du soleil"],["nuit","sous les étoiles"]]],"lu":30,"needs":["m1"]},{"k":"11","n":11,"t":"Photographie une espèce que tu n'as jamais eue","p":[],"lu":70,"needs":["m1"]},{"k":"34","n":34,"t":"Photographie {0} lampyres la nuit","p":[[["3","3"],["5","5"]]],"lu":50,"needs":["m1"]},{"k":"4f","n":4,"t":"Photographie un papillon posé sur {0}","p":[[["colza","un colza"],["iris","un iris"],["coquelicot","un coquelicot"],["lys","un lys de la paix"]]],"lu":55,"needs":["m5"]}]},{"id":"jour_ferme","nom":"Potager","ico":"🌱","actif":true,"min":25,"max":70,"tpl":[{"k":"14r","n":14,"t":"Récolte {0} radis","p":[[["5","5"],["8","8"]]],"lu":40,"needs":["m4"]},{"k":"14t","n":14,"t":"Récolte {0} tomates","p":[[["3","3"],["5","5"]]],"lu":40,"needs":["m6"]},{"k":"15","n":15,"t":"Arrose ton potager {0} fois aujourd'hui","p":[[["2","2"],["3","3"]]],"lu":25,"needs":["m4"]},{"k":"16","n":16,"t":"Plante {0} sortes de graines","p":[[["2","2"]]],"lu":35,"needs":["m6"]},{"k":"18","n":18,"t":"Laboure {0} cases de terre neuves","p":[[["4","4"],["6","6"]]],"lu":30,"needs":["m4"]}]},{"id":"jour_marche","nom":"Marché","ico":"🧺","actif":true,"min":30,"max":80,"tpl":[{"k":"19","n":19,"t":"Mets {0} légumes en vente au marché","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m7"]},{"k":"22","n":22,"t":"Mets un tableau en vente","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_maison","nom":"Maison","ico":"🏡","actif":true,"min":25,"max":30,"tpl":[{"k":"25","n":25,"t":"Pose un nouveau meuble chez toi","p":[],"lu":30,"needs":["m3"]},{"k":"26","n":26,"t":"Change de tenue au dressing","p":[],"lu":25,"needs":["m3"]},{"k":"27","n":27,"t":"Accroche un tableau dans ta maison","p":[],"lu":30,"needs":["m10"]}]},{"id":"jour_social","nom":"Copains","ico":"💌","actif":false,"min":25,"max":50,"tpl":[{"k":"28","n":28,"t":"Rends visite à la maison d'un copain","p":[],"lu":40,"needs":["m3"]},{"k":"29","n":29,"t":"Offre un cadeau à un copain","p":[],"lu":50,"needs":["m3"]}]},{"id":"jour_balade","nom":"Balade","ico":"🥾","actif":true,"min":20,"max":50,"tpl":[{"k":"33","n":33,"t":"Assieds-toi sur un banc {0} au coucher du soleil","p":[[["lac","au bord du lac"],["place","sur la place"]]],"lu":30,"needs":["m1"]},{"k":"36","n":36,"t":"Fais le tour du lac à pied","p":[],"lu":30,"needs":["m1"]},{"k":"37","n":37,"t":"Va dire bonjour à {0}","p":[[["rosalie","Rosalie"],["basile","Basile"],["iris","Mlle Iris"],["auguste","Papi Auguste"]]],"lu":20,"needs":["m1"]},{"k":"38","n":38,"t":"Apporte 2 tomates à {0}","p":[[["auguste","Papi Auguste"],["rosalie","Rosalie"]]],"lu":50,"needs":["m6"]},{"k":"39","n":39,"t":"Marche {0} dans le monde","p":[[["1km","1 km"],["2km","2 km"]]],"lu":25,"needs":["m1"]},{"k":"40","n":40,"t":"Joue avec le chat : suis-le {0} sans le perdre","p":[[["20","20 secondes"],["30","30 secondes"]]],"lu":40,"needs":["m1"]}]},{"id":"jour_peche","nom":"Pêche","ico":"🎣","actif":true,"min":30,"max":60,"tpl":[{"k":"46","n":46,"t":"Pêche 3 poissons {0}","p":[[["lac","au lac"],["riviere","en rivière"],["mer","en mer"]]],"lu":40,"needs":["m9b"]},{"k":"47","n":47,"t":"Pêche un poisson {0}","p":[[["nuit","de nuit"],["aube","à l'aube"]]],"lu":50,"needs":["m9b"]},{"k":"48","n":48,"t":"Pêche un poisson de plus de {0} cm","p":[[["30","30"],["40","40"]]],"lu":60,"needs":["m9b"]},{"k":"49","n":49,"t":"Creuse {0} vers, puis pêche avec","p":[[["3","3"],["5","5"]]],"lu":30,"needs":["m9b"]}]},{"id":"jour_nature","nom":"Pelle et filet","ico":"🦋","actif":true,"min":35,"max":50,"tpl":[{"k":"50","n":50,"t":"Trouve {0} trésors enfouis à la pelle","p":[[["2","2"]]],"lu":50,"needs":["m9"]},{"k":"51","n":51,"t":"Attrape {0} insectes différents au filet","p":[[["3","3"]]],"lu":40,"needs":["m5"]},{"k":"52","n":52,"t":"Attrape un insecte {0}","p":[[["eau","sur l'eau"],["tronc","sur un tronc"],["fleurs","dans les fleurs"]]],"lu":35,"needs":["m5"]}]},{"id":"jour_musee","nom":"Musée","ico":"🏛️","actif":true,"min":25,"max":70,"tpl":[{"k":"53","n":53,"t":"Donne une nouvelle espèce au musée de Mlle Iris","p":[],"lu":60,"needs":["m5b"]}]}]};
   function mjDraw(mj, day, name, done, today) {
     if (!mj || !Array.isArray(mj.sortes)) return [];
     const by = new TextEncoder().encode(String(day) + '|' + String(name));
@@ -52681,9 +52837,18 @@ void main(){ if (vK >= 0.999) discard;
     }
     // MAILLOT DE CORPS (hub 2.10) : le haut beige qu'on voit sous les robes d'été, les débardeurs, les hauts ouverts… est un calque à part
     // (« under.top » du pack, peint sur le corps) : sa couleur se choisit ici (gratuit) ; d.ut = ['under.top', couleur 1, couleur 2]
+    // Hub 2.12 (src/maillot.js) : plus long (jusque sous la ceinture des bas) ; « Sans maillot » = d.ut = ['', couleur…] : la brassière reste
+    // (corps de fille) et, s'il n'y a ni haut ni robe (salopette comprise), le maillot revient tout seul : jamais en sous-vêtements seuls.
     function underHTML(d) {
-      const ut = Array.isArray(d.ut) && d.ut[0] ? d.ut : null, cur = ut ? ut[1] : -1;
-      return sec('Maillot de corps (dessous)') + `<p class="pgh-edn">Le haut qu’on voit sous une robe d’été, un débardeur ou une veste ouverte.</p><div class="pgh-cols pgh-mqt"><div class="sws">` +
+      const ut = Array.isArray(d.ut) ? d.ut : null, off = !!ut && ut[0] === '', cur = ut && ut[1] != null ? ut[1] : -1;
+      const covered = PGM && PGM.torsoCovered ? PGM.torsoCovered(d) : true, girl = d.g !== 'm';
+      const note = !off ? 'Le haut qu’on voit sous une robe d’été, un débardeur ou une veste ouverte. Il descend jusqu’à la ceinture.'
+        : !covered ? 'Sans haut ni robe, le maillot reste : on ne sort jamais en sous-vêtements. Mets un haut ou une robe pour l’enlever.'
+        : girl ? 'Sans maillot : seule la brassière reste dessous, pratique pour les robes et les hauts ouverts.' : 'Sans maillot dessous.';
+      const dot = cur < 0 ? '#ece6da' : palHex(cur);
+      return sec('Maillot de corps (dessous)') + `<p class="pgh-edn">${note}</p><div class="pgh-cols pgh-mqt"><div class="chs pgh-utc">` +
+        `<button class="pgh-cc${off ? '' : ' on'}" data-a="utoff" data-v="0"><i style="background:${dot}"></i>Avec maillot</button>` +
+        `<button class="pgh-cc${off ? ' on' : ''}" data-a="utoff" data-v="1"><i class="no"></i>Sans maillot</button></div><div class="sws">` +
         `<button class="pgh-sw${cur < 0 ? ' on' : ''}" data-a="ut" data-v="" style="background:radial-gradient(circle at 35% 30%,#ece6da,#ece6da 50%,rgba(0,0,0,.35))" title="Beige (d’origine)" aria-label="Beige (d’origine)"></button>` +
         CAT.fabricUI.map((i) => `<button class="pgh-sw${i === cur ? ' on' : ''}" data-a="ut" data-v="${i}" style="background:${swatch(i)}" title="${esc(CAT.palette[i][0])}" aria-label="${esc(CAT.palette[i][0])}"></button>`).join('') + '</div></div>';
     }
@@ -52823,7 +52988,9 @@ void main(){ if (vK >= 0.999) discard;
       if (a === 'hc') { change((d) => { d.hc = +v; d.hc2 = +v; }, k, false); return; }
       if (a === 'fx') { change((d) => { d.fx = d.fx || []; const i = d.fx.indexOf(v); if (i >= 0) d.fx.splice(i, 1); else { const ex = MKP()[v] && MKP()[v].ex; if (v.startsWith('freckles')) d.fx = d.fx.filter((x) => !x.startsWith('freckles')); if (ex) d.fx = d.fx.filter((x) => !(MKP()[x] && MKP()[x].ex === ex)); d.fx.push(v); } }, k); return; }
       if (a === 'fxc') { const [id, ci] = String(v).split('|'); change((d) => { d.fxc = d.fxc || {}; const c = PGM.makeupCols(d, id); c[0] = +ci; d.fxc[id] = c; }, '', false); return; }
-      if (a === 'ut') { change((d) => { if (v === '') delete d.ut; else d.ut = ['under.top', +v, +v]; }, '', false); return; }
+      // maillot de corps (hub 2.12) : couleur (gardée aussi « sans maillot », pour la brassière et pour quand il revient) ; avec / sans
+      if (a === 'ut') { change((d) => { const off = Array.isArray(d.ut) && d.ut[0] === ''; if (v === '') { if (off) d.ut = ['']; else delete d.ut; } else d.ut = [off ? '' : 'under.top', +v, +v]; }, '', false); return; }
+      if (a === 'utoff') { change((d) => { const c = Array.isArray(d.ut) && d.ut[1] != null ? [d.ut[1], d.ut[2] == null ? d.ut[1] : d.ut[2]] : null; if (v === '1') d.ut = c ? ['', ...c] : ['']; else if (c) d.ut = ['under.top', ...c]; else delete d.ut; }, '', false); return; }
       if (a === 'elf') { change((d) => { d.elf = d.elf ? 0 : 1; }, k); return; }
       if (a === 'so') { change((d) => { d.so = v ? [v, (d.so && d.so[1]) || 0] : null; }, k); return; }
       if (a === 'cam') { change((d) => { if (v) d.it.cam = d.it.cam || ['cam', 9, 40, 53]; else delete d.it.cam; }, v ? 'cam' : ''); return; }
@@ -90555,7 +90722,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261019212935"; window.JDW_VERSION = "1.21.1"; window.JDW_NOTES = ["\u2709\ufe0f P\u00e9gase (labo) : messages entre copains dans le hub"];</script>
+<script>window.JDW_BUILD = "20261020084033"; window.JDW_VERSION = "1.21.2"; window.JDW_NOTES = ["\ud83c\udf31 P\u00e9gase 0.8 : nouveau d\u00e9part pour tout le monde (ton avatar est gard\u00e9)"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
