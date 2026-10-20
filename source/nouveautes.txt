@@ -1,1 +1,1 @@
-🐎 Pégase est ouvert à tous : le jeu de photo de l'île, sur PC et Android (installe-le depuis sa tuile)
+🐎 Pégase : créateur d'avatar refait (Devant / Derrière, couleur de chaque partie, mèche réglable), le clavier ne cache plus tes messages, nouvelle galerie de photos de l'île ; « Quitter la partie ? » : plus de sortie par erreur en pleine partie (ton copain ne se retrouve plus seul)

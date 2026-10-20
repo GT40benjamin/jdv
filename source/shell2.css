@@ -718,6 +718,18 @@ button.ct-p{cursor:pointer} button.ct-p:hover{background:var(--card-hi)}
 .coop-pause-card{position:relative;max-width:340px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px color-mix(in srgb,var(--leaf) 40%,transparent)}
 .coop-pause-card::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,var(--leaf),var(--acc,#5ef0ff))}
 .coop-pause-card h2{margin:4px 0 0;font:400 30px var(--display);letter-spacing:.06em}
+/* « Quitter la partie ? » (✕, retour d'Android, B de la manette pendant une partie) : Continuer en grand, Quitter plus petit, en rouge */
+.quitask{position:fixed;inset:0;z-index:45;display:grid;place-items:center;padding:16px;background:rgba(8,14,20,.78);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.quitask[hidden]{display:none}
+.quitask-card{position:relative;width:min(340px,100%);text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px color-mix(in srgb,var(--acc,#ffa630) 40%,transparent)}
+.quitask-card::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#ffd34d,var(--acc,#ffa630),#ffd34d)}
+.quitask-card h2{margin:2px 0 0;font:400 26px var(--display);letter-spacing:.04em}
+.quitask-card .small{margin:6px 0 0;color:var(--muted)}
+.quitask-card .small:empty{display:none}
+.quitask-btns{display:grid;justify-items:center;gap:12px;margin-top:16px}
+.quitask-btns .btn-play{width:100%;min-height:54px;font-size:19px}
+.quitask-btns .btn-danger{min-width:120px;min-height:38px}
+@media (orientation:landscape) and (max-height:500px){.quitask-card h2{font-size:22px}.quitask-btns{margin-top:12px;gap:10px}.quitask-btns .btn-play{min-height:48px}}
 .coop-pheads{display:flex;justify-content:center;gap:10px}
 .coop-pheads .chead{width:48px;height:48px;box-shadow:0 0 0 3px var(--pc,var(--leaf))}
 .coop-pause-score{margin:2px 0 0;font:400 16px var(--display);color:var(--gold)}

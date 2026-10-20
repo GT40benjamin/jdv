@@ -319,6 +319,7 @@ Connecteur Supabase (MCP) disponible dans les sessions Claude : apply_migration 
 - Liste des joueurs (bouton « X joueurs en ligne ») : en ligne / hors ligne (« vu il y a… »), tête, cri. get_presence = appel léger, get_players seulement si une tête ou un cri a changé.
 - Pendant une partie : ligne « 👑 1re place » sous le titre, mise à jour en direct ; « Tu passes devant X ! ». Bouton « ✕ Quitter » : le score en cours
   (mount() renvoie currentScore, voir CONTRACT.md Ajout 3) compte comme une fin de partie. Un record part en ligne tout de suite ; s'il échoue, il est renvoyé plus tard (jdw.unsent).
+- 1.23 (20 oct.) : pendant une PARTIE EN COURS (solo et Coop), ✕ Quitter, le retour d'Android (JDW_BACK) et B de la manette ouvrent la carte « Quitter la partie ? » (jeu en pause ; Coop : pause commune) — « Continuer » choisi d'avance, « Quitter » plus petit en rouge ; hors partie ✕ reste direct. Tests qui cliquent #jdw-back en pleine partie : cliquer ensuite « Quitter » (copies à jour : ~/jdv-tools/duotest/magic/quitconfirm/tests-maj, outil maj-tests.py ; test quit-test.js de l'atelier magic).
 - Création de joueur dans une seule fenêtre (pseudo + tête + cri) avec vérification du pseudo (check_name, « c'est toi ? »).
 - Réactions aux messages du chat (table reactions, react / get_reactions ; appui long, clic droit, double-clic = ❤️).
 - Erreurs des joueurs remontées au serveur (log_error ; lecture : `node ~/jdv-tools/erreurs.js`) + bandeau « Oups » qui sauve le score si un jeu plante.

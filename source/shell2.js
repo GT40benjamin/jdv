@@ -165,7 +165,7 @@ const PADP = { open: false, g: null, by: '' };
 // à qui la manette ? un jeu tourne et rien n'est par-dessus → au jeu
 function padCapturing() {
   if (!$('jdw-duo').hidden) return !!DUO.inst && !DUO.paused && !DUO.over && $('jdw-duo-res').hidden && $('jdw-duo-pause').hidden && !DUO.waitRot;
-  if ($('jdw-play').hidden || !current || !current.inst || current.over || PADP.open) return false;
+  if ($('jdw-play').hidden || !current || !current.inst || current.over || PADP.open || QA.open) return false;
   if (current.coop) return !COOP.paused && !COOP.over && $('jdw-coop-pause').hidden && $('jdw-coopend').hidden;
   if (PAD_DOM.has(current.game.id)) return false;
   return $('jdw-end').hidden && $('jdw-rotate').hidden;
@@ -268,10 +268,11 @@ if (PADJ) {
   PADJ.setup({
     capturing: padCapturing,
     base: () => !$('jdw-duo').hidden ? $('jdw-duo') : !$('jdw-play').hidden ? $('jdw-play') : $('jdw-lib'),
-    back: () => { padIntroHide(); jdwBack(); },
+    back: () => { padIntroHide(); jdwBack(); },   // (B pendant « Quitter la partie ? » : Continuer)
     start: (kind, nav) => {
       padIntroHide();
       if (nav) {   // pas de jeu qui capte la manette : Start referme la pause
+        if (QA.open) { quitAskClose(false); return true; }
         if (PADP.open) { padPauseClose(true); return true; }
         if (!$('jdw-duo-pause').hidden) { duoResume(); return true; }
         if (!$('jdw-coop-pause').hidden) { coopResume('me'); return true; }
@@ -293,7 +294,7 @@ if (PADJ) {
         if (!$('jdw-lib').hidden) { const grid = MODE === 'duel' ? $('jdw-duo-grid') : MODE === 'coop' ? $('jdw-coop-grid') : $('jdw-grid'); const t = list.find(e => grid && grid.contains(e) && e.classList.contains('tile')); if (t) return t; }
         return null;
       }
-      return pick('jdw-again', 'jdw-coopend-again', 'jdw-padpause-resume', 'jdw-duo-resume', 'jdw-coop-resume', 'jdw-coopgo-go', 'jdw-natif-go', 'jdw-rescue-ok') || list.find(e => e.matches('.dr-btns .btn-play')) || null;
+      return pick('jdw-quitask-stay', 'jdw-again', 'jdw-coopend-again', 'jdw-padpause-resume', 'jdw-duo-resume', 'jdw-coop-resume', 'jdw-coopgo-go', 'jdw-natif-go', 'jdw-rescue-ok') || list.find(e => e.matches('.dr-btns .btn-play')) || null;
     },
     onPads: () => {
       try { setDuelWhere(DUEL_WHERE); } catch (e) {}
@@ -4915,6 +4916,7 @@ function coopPause(from) {
 }
 function coopResume(from) {
   if (!current || !current.coop || !COOP.paused) return;
+  quitAskHide();   // le copain a repris pendant « Quitter la partie ? » : on continue tous les deux
   COOP.paused = false; $('jdw-coop-pause').hidden = true;
   try { if (current.pad) current.pad.flush(); } catch (x) {}   // le A sur « Reprendre » n'arrive pas au jeu
   try { current.inst.resume && current.inst.resume(); } catch (x) {}
@@ -5004,7 +5006,7 @@ let coopPending = null;   // fin affichée, score pas encore parti (rechargement
 function flushCoopPending() { if (coopPending && !coopPending.done) coopCommit(); }
 function showCoopEnd() {
   const e = COOP.e, sc = COOP.score;
-  castEndAll(sc); musicBaseLevel(0.5); $('jdw-coop-pause').hidden = true; COOP.paused = false;
+  castEndAll(sc); musicBaseLevel(0.5); $('jdw-coop-pause').hidden = true; COOP.paused = false; quitAskHide();
   const me = cleanName(profile.name), kind = COOP.kind;
   $('jdw-coopend-card').style.setProperty('--acc', e.accent);
   $('jdw-coopend-game').textContent = e.title + ' · partie terminée';
@@ -6559,7 +6561,7 @@ function unmountGame() {
   if (!current) return;
   castEndAll();
   const { game, root, inst } = current;
-  padClose(current.pad); padPauseClose(false); padIntroHide();
+  padClose(current.pad); padPauseClose(false); padIntroHide(); quitAskHide();
   try { inst && inst.destroy && inst.destroy(); } catch (e) {}
   if (game.external) root.hidden = true; else root.remove();
   current = null;
@@ -6624,7 +6626,69 @@ function quitGame() {
   }
   backToLibrary();
 }
-$('jdw-back').addEventListener('click', quitGame);
+/* ---------- « Quitter la partie ? » (#jdw-quitask) ----------
+   Un toucher par mégarde sur ✕ (en haut, là où pose le pouce, surtout en paysage où ✕ est dans le coin), le retour d'Android ou le B de
+   la manette hors du jeu ne font plus sortir d'une partie EN COURS : le jeu se met en pause et on demande « Quitter la partie ? »
+   (« Continuer » en grand et choisi d'avance : Entrée, Échap, A sur le halo doré, toucher à côté ; « Quitter » plus petit, en rouge).
+   Coop : la pause est commune (le copain voit « X a mis la pause ») et on prévient « Ton copain X restera seul ». Hors partie
+   (écran de fin, « tourne ton téléphone », hub de Pégase) : ✕ quitte tout de suite, comme avant. Les cartes Pause gardent leur Quitter. */
+const QA = { open: false, coop: false, was: false };
+function quitInGame() {
+  if ($('jdw-play').hidden || !current || waitRotate) return false;
+  if (current.coop) return !COOP.over && $('jdw-coopend').hidden;
+  if (current.over || !current.inst || PAD_DOM.has(current.game.id) || current.game.noScore) return false;
+  return $('jdw-end').hidden;
+}
+function quitAsk() {
+  if (QA.open) return;
+  if (!quitInGame()) { quitGame(); return; }
+  QA.open = true; QA.coop = !!current.coop;
+  padIntroHide(); $('jdw-soundmenu').hidden = true; $('jdw-mute').setAttribute('aria-expanded', 'false');
+  const sub = $('jdw-quitask-sub');
+  if (QA.coop) {
+    QA.was = !!COOP.paused;
+    if (!COOP.paused) coopPause('me');
+    $('jdw-coop-pause').hidden = true;
+    sub.textContent = COOP.mode === 'net' ? 'Ton copain ' + dispName(COOP.mate) + ' restera seul : la partie s\'arrêtera pour vous deux.' : 'La partie avec le robot s\'arrêtera.';
+  } else {
+    QA.was = false;
+    if (PADP.open) { PADP.open = false; $('jdw-padpause').hidden = true; }   // déjà en pause (Start) : on reste en pause
+    else { try { const inst = current.inst; if (inst.pause) inst.pause(); else padKey('p'); } catch (e) {} }
+    musicBaseLevel(0.4);
+    let sc = 0; try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
+    sub.textContent = sc > 0 ? 'Ta partie est en pause. Si tu quittes, ton score de ' + fmt(sc) + ' compte.' : 'Ta partie est en pause.';
+  }
+  try { if (current.pad) current.pad.flush(); } catch (e) {}
+  $('jdw-quitask').style.setProperty('--acc', (QA.coop ? COOP.e && COOP.e.accent : current.game.accent) || COLORS.amber);
+  $('jdw-quitask').hidden = false;
+  setTimeout(() => { if (!QA.open) return; $('jdw-quitask-stay').focus({ preventScroll: true }); if (PADJ) PADJ.autoFocus(); }, 40);
+}
+function quitAskHide() { if (!QA.open) return false; QA.open = false; $('jdw-quitask').hidden = true; if (PADJ) PADJ.blur(true); return true; }
+function quitAskClose(go) {
+  if (!quitAskHide()) return;
+  if (go) { quitGame(); return; }   // (coop : coopQuit, l'hôte ou l'invité prévient le copain)
+  if (!current) return;
+  if (QA.coop) { if (COOP.over) return; if (QA.was) $('jdw-coop-pause').hidden = !COOP.paused; else coopResume('me'); return; }
+  musicBaseLevel(0.8);
+  try { if (current.pad) current.pad.flush(); } catch (e) {}   // le A sur « Continuer » n'arrive pas au jeu
+  try { const inst = current.inst; if (inst && !current.over) { if (inst.resume) inst.resume(); else padKey('p'); } } catch (e) {}
+}
+$('jdw-back').addEventListener('click', e => { e.preventDefault(); quitAsk(); });
+$('jdw-quitask-stay').addEventListener('click', () => quitAskClose(false));
+$('jdw-quitask-quit').addEventListener('click', () => quitAskClose(true));
+$('jdw-quitask').addEventListener('click', e => { if (e.target === $('jdw-quitask')) quitAskClose(false); });   // toucher à côté = continuer
+// clavier : rien n'arrive au jeu pendant la question ; Entrée / Espace = le bouton choisi (Continuer d'avance), Échap = Continuer, flèches / Tab = changer
+for (const t of ['keydown', 'keyup']) addEventListener(t, e => {
+  if (!QA.open) return;
+  e.stopImmediatePropagation();
+  if (t === 'keyup') return;
+  const stay = $('jdw-quitask-stay'), go = $('jdw-quitask-quit'), onGo = document.activeElement === go;
+  if (e.key === 'Tab' || /^Arrow/.test(e.key)) { e.preventDefault(); (onGo ? stay : go).focus({ preventScroll: true }); return; }
+  e.preventDefault();
+  if (e.repeat) return;
+  if (e.key === 'Escape' || e.key === 'Backspace') quitAskClose(false);
+  else if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') quitAskClose(onGo);
+}, true);
 $('jdw-tolib').addEventListener('click', backToLibrary);
 $('jdw-again').addEventListener('click', () => { flushPending(); if (!current || current.coop) return; const g = current.game; unmountGame(); $('jdw-end').hidden = true; Audio.ensure(); mountGame(g); });
 function syncMute() {
@@ -6891,6 +6955,7 @@ function showLevelProgress(g, me) {
   box.hidden = false;
 }
 async function showEnd(score) {
+  quitAskHide();
   castEndAll(score);   // les spectateurs voient le score final
   flushPending(); musicBaseLevel(0.5);
   const g = current.game, me = cleanName(profile.name);
@@ -9536,6 +9601,7 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 // retour d'Android : un B de la manette vient peut-être de faire la même chose (manette.js) → une seule fois
 window.JDW_BACK = () => (PADJ && PADJ.nativeBack()) ? true : jdwBack();
 function jdwBack() {
+  if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
   if (popCloseAll()) return true;
   if (PADP.open) { padPauseClose(true); return true; }
   if (NAT.open) { nativeClose(); return true; }
@@ -9555,8 +9621,7 @@ function jdwBack() {
   for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members', 'jdw-welcome']) {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
-  if (!$('jdw-play').hidden && current && current.coop && !COOP.over) { coopPause('back'); return true; }
-  if (!$('jdw-play').hidden) { quitGame(); return true; }
+  if (!$('jdw-play').hidden) { quitAsk(); return true; }   // partie en cours (coop comprise) : pause + « Quitter la partie ? » ; sinon direct
   if (MODE !== 'classique' && !$('jdw-lib').hidden) { setMode('classique', true); return true; }   // les autres modes sont des pages : retour à la page normale
   return false;
 }

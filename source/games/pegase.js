@@ -1378,6 +1378,7 @@
           "BrowsThickness",
           ...EXPR_KEYS
         ];
+        this.hfStretch = false;
         const gB = this._merge(bodyParts, BODY_MORPHS), gF = this._merge(faceParts, faceMorphs);
         gB.setAttribute("cav", new T.BufferAttribute(new Float32Array(gB.attributes.position.count), 1));
         gF.setAttribute("cav", mouthCavity(gF));
@@ -1400,7 +1401,7 @@
         if (this.nrt) W.composer.compose(this.nrt, layers2, this.o.atlas, true);
         this.group.scale.setScalar(d.h || 1);
         this.applyMorphs();
-        this.setHairLength(d.hl);
+        this.setHairLength(d.hl, d.hlf);
         this.exprTarget = EXPR[d.ex] || EXPR.sourire;
         return true;
       }
@@ -1451,24 +1452,32 @@
         const mo = used.map(() => new Float32Array(nv * 3));
         const hairPlans = plans.filter((x) => list[plans.indexOf(x)].hair);
         if (hairPlans.length) {
-          const H = new Float32Array(nv * 3), sm2 = (a, b, x) => {
+          const H = new Float32Array(nv * 3), HF = new Float32Array(nv * 3), nMoved = { hb: 0, hf: 0 }, sm2 = (a, b, x) => {
             const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
             return t * t * (3 - 2 * t);
           };
           for (const x of hairPlans) {
-            const y0 = list[plans.indexOf(x)].hair === "hf" ? HAIR_PIVOT.hf : HAIR_PIVOT.hb, P2 = x.p.pos;
+            const kind = list[plans.indexOf(x)].hair, y0 = kind === "hf" ? HAIR_PIVOT.hf : HAIR_PIVOT.hb, P2 = x.p.pos, A = kind === "hf" ? HF : H;
             for (let i = 0; i < x.p.n; i++) {
               const px = P2[i * 3], py = P2[i * 3 + 1], pz = P2[i * 3 + 2];
               if (py >= y0) continue;
               const w = sm2(y0, y0 - 0.06, py), dy = (py - y0) * w, o = (x.v0 + i) * 3;
-              H[o + 1] = dy;
+              nMoved[kind]++;
+              A[o + 1] = dy;
               const below = sm2(1.5, 1.25, py), rr = Math.hypot(px, pz + 0.01) || 1;
-              H[o] = -dy * HAIR_PUSH * below * px / rr;
-              H[o + 2] = -dy * HAIR_PUSH * below * (pz + 0.01) / rr;
+              A[o] = -dy * HAIR_PUSH * below * px / rr;
+              A[o + 2] = -dy * HAIR_PUSH * below * (pz + 0.01) / rr;
             }
           }
-          used.push("HairLen");
-          mo.push(H);
+          if (nMoved.hb) {
+            used.push("HairLen");
+            mo.push(H);
+          }
+          if (nMoved.hf) {
+            used.push("HairLenF");
+            mo.push(HF);
+          }
+          this.hfStretch = nMoved.hf >= 20;
         }
         let io = 0;
         for (const { p, index, v0 } of plans) {
@@ -1557,9 +1566,10 @@
           if (!it) continue;
           let cols = it.ch.map((c, i) => W.color(v[i + 1] == null ? c.c : v[i + 1]));
           if (it.hair) {
-            cols[0] = hair;
-            if (cols.length > 1) cols[1] = hair2;
-            if (slot === "beard") cols = [hair, hair2, hair];
+            const own = slot === "hf" ? d.hcf : slot === "beard" ? d.hcb : null, h1 = own != null ? W.color(own) : hair, h2 = own != null ? h1 : hair2;
+            cols[0] = h1;
+            if (cols.length > 1) cols[1] = h2;
+            if (slot === "beard") cols = [h1, h2, h1];
           }
           while (cols.length < 9) cols.push(cols[cols.length - 1]);
           jobs.push(() => add(it.tex, cols));
@@ -1648,6 +1658,8 @@
         };
         Object.assign(base, face.s);
         base.EarsElf = d.elf ? 1 : 0;
+        base.HairLen = (this.hairLen || 1) - 1;
+        base.HairLenF = (this.hairLenF || this.hairLen || 1) - 1;
         this.morphBase = base;
         this._setInfl(this.meshes.body, base, {});
         this._setInfl(this.meshes.face, base, this.exprCur);
@@ -1666,14 +1678,20 @@
         return ex.filter((b) => /^hb/.test(b.name) && ex.includes(b.parent) && !ex.includes(b.parent.parent));
       }
       // longueur (hub 2.10.1) : la forme HairLen (toutes les coiffures) ; les os de mèches ne sont plus agrandis (ils grossissaient aussi les mèches)
-      setHairLength(v) {
-        const s = Math.max(0.7, Math.min(1.45, +v || 1));
+      // hub 2.13 : vf = la frange (devant) ; absente = suit la coiffure
+      setHairLength(v, vf) {
+        const cl = (x) => Math.max(0.7, Math.min(1.45, +x || 1)), s = cl(v), sf = vf == null ? s : cl(vf);
         this.hairLen = s;
+        this.hairLenF = sf;
         for (const b of this.hairStrands()) b.scale.setScalar(1);
         if (this.morphBase) {
           this.morphBase.HairLen = s - 1;
+          this.morphBase.HairLenF = sf - 1;
           this._setInfl(this.meshes.body, this.morphBase, {});
         }
+      }
+      hasFringe() {
+        return !!(this.desc && this.desc.it && this.desc.it.hf);
       }
       hasHair() {
         return !!(this.desc && this.desc.it && (this.desc.it.hb || this.desc.it.hf));
@@ -4644,7 +4662,7 @@
 .pgh-smnew button .pgh-sma{width:30px;height:30px;font-size:13px;box-shadow:none}
 .pgh-smwarn{margin:8px 12px 4px;font:600 12.5px/1.4 ${FB};color:#ffd2a0}
 /* la conversation (par-dessus la page ; panneau centré sur grand écran) */
-.pgh-th{position:absolute;inset:0;z-index:22;display:none;flex-direction:column;background:linear-gradient(180deg,#1c1640 0%,#271a4a 45%,#33204f 100%)}
+.pgh-th{position:absolute;inset:0;top:var(--pgkt,0px);bottom:var(--pgkb,0px);z-index:22;display:none;flex-direction:column;background:linear-gradient(180deg,#1c1640 0%,#271a4a 45%,#33204f 100%)}
 .pgh-th.on{display:flex;animation:pghIn .28s ease}
 .pgh-th::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(255,170,200,.14),rgba(0,0,0,0) 70%),radial-gradient(ellipse 70% 40% at 50% 100%,rgba(255,196,120,.12),rgba(0,0,0,0) 70%)}
 .pgh-thh{position:relative;z-index:1;display:flex;align-items:center;gap:12px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));background:rgba(16,12,34,.72);box-shadow:0 1px 0 rgba(255,214,140,.16),0 10px 24px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -4692,6 +4710,16 @@
   .pgh-thf,.pgh-thro{border-radius:0 0 22px 22px;background:rgba(30,22,62,.96)}
   .pgh-th::before{display:none}
 }
+/* clavier ouvert (classe kb, posée par thKb) : le panneau tient dans la zone VISIBLE (--pgkt / --pgkb), la barre colle au clavier ; kbs = très peu de place (téléphone couché) */
+.pgh-th.kb .pgh-thf{padding-bottom:10px}
+.pgh-th.kb .pgh-thh{padding-top:8px;padding-bottom:8px}
+.pgh-th.kb .pgh-thl{flex:1 1 auto;height:auto;min-height:0}
+.pgh-th.kbs .pgh-thh{padding:4px 12px}
+.pgh-th.kbs .pgh-thx{width:34px;height:34px;font-size:26px}
+.pgh-th.kbs .pgh-thh .pgh-sma{width:32px;height:32px;font-size:15px}
+.pgh-th.kbs .pgh-thh small{display:none}
+.pgh-th.kbs .pgh-thf{padding-top:6px;padding-bottom:6px}
+@media (min-width:760px){.pgh-th.kb{padding-top:6px;padding-bottom:6px}}
 @media (prefers-reduced-motion:reduce){.pgh-bub,.pgh-th.on{animation:none}}
 /* ---------- copains ---------- */
 .pgh-frhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -4879,6 +4907,71 @@
 .pgh-edg .pgh-mqt .chs .pgh-cc{pointer-events:none}
 .pgh-edn{grid-column:1 / -1;margin:0 2px;font:600 12px/1.35 ${FB};color:var(--soft)}
 .pgh-edg .pgh-mqt .chs.pgh-utc .pgh-cc{pointer-events:auto;cursor:pointer}
+/* hub 2.13 : sous-onglets de la catégorie, réglages de la partie en haut (curseur, pastilles), vignettes plus petites (4 par rangée), sélecteur de couleur */
+.pgh-edsub{display:flex;gap:6px;padding:0 12px 8px;overflow-x:auto;scrollbar-width:none}
+.pgh-edsub::-webkit-scrollbar{display:none}
+.pgh-edsub:empty{display:none}
+.pgh-edsub button{flex:1 0 auto;min-width:0;min-height:38px;border:0;border-radius:12px;padding:4px 12px;font:700 13px ${FB};white-space:nowrap;color:rgba(255,240,220,.78);background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px rgba(255,214,140,.2);transition:background .2s,color .2s,box-shadow .2s}
+.pgh-edsub button.on{color:#fff3dc;background:linear-gradient(180deg,rgba(255,206,120,.26),rgba(255,170,90,.12));box-shadow:inset 0 0 0 1.5px rgba(255,207,115,.75),inset 0 -3px 0 #ffc35e}
+.pgh-edset{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:2px 0 10px;margin:0 0 8px;border-bottom:1px solid rgba(255,214,140,.13)}
+.pgh-edset .pgh-sl{flex:1 1 100%;grid-template-columns:auto auto 1fr auto}
+.pgh-edset .pgh-sl label{min-width:62px}
+.pgh-edset .pgh-edn{flex:1 1 100%;margin:0}
+.pgh-edset .chs{display:flex;gap:6px;flex-wrap:wrap}
+.pgh-pst{display:inline-flex;align-items:center;gap:8px;min-height:46px;max-width:100%;padding:4px 10px 4px 5px;border:0;border-radius:999px;color:#fff4e2;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,214,140,.28);text-align:left;transition:box-shadow .2s,background .2s}
+.pgh-pst i{width:36px;height:36px;flex:none;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55),0 3px 10px rgba(0,0,0,.35)}
+.pgh-pst span{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.pgh-pst small{font:600 10.5px ${FB};color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-pst b{font:700 12.5px ${FB};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.pgh-pst svg{width:15px;height:15px;flex:none;opacity:.7}
+.pgh-pst.on{background:rgba(255,206,120,.18);box-shadow:inset 0 0 0 2px #ffcf73}
+.pgh-pst:active{transform:scale(.97)}
+.pgh-psts{flex:1 1 100%;min-width:0;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-right:18px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+.pgh-psts::-webkit-scrollbar{display:none}
+.pgh-psts .pgh-pst{flex:none}
+.pgh-edg{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.pgh.wide .pgh-edg{grid-template-columns:repeat(auto-fill,minmax(86px,1fr))}
+.pgh.short .pgh-edg{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
+.pgh-ch{min-height:64px;padding-bottom:5px;border-radius:14px}
+.pgh-ch .th img{width:84%;height:84%}
+.pgh-ch > span{font-size:10.5px;padding:0 4px;line-height:1.2;white-space:normal;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.pgh-ch .price{font-size:9.5px}
+.pgh-ch .rb{left:3px;top:3px;padding:0 4px;font-size:6.5px;letter-spacing:.06em}
+.pgh-ch.on::after{right:4px;top:4px;width:16px;height:16px;background-size:11px}
+.pgh-ch.lk .lock{width:24px;height:24px;margin:-12px 0 0 -12px}
+.pgh-ch.lk .lock svg{width:13px;height:13px}
+.pgh-ch .ico.face{width:74%;height:74%}
+.pgh-pop{position:absolute;inset:0;z-index:6;display:none;flex-direction:column;justify-content:flex-end;border-radius:inherit;background:rgba(10,6,24,.5)}
+.pgh-pop.on{display:flex;animation:pghPane .22s ease}
+.pgh-popc{max-height:82%;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px calc(14px + env(safe-area-inset-bottom,0px));border-radius:22px 22px 0 0;background:linear-gradient(180deg,#30225a,#1d1438);box-shadow:0 -12px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,214,140,.35)}
+.pgh.wide .pgh-popc{border-radius:22px 0 0 0}
+.pgh-poph{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pgh-poph b{flex:1;min-width:0;font:700 15px ${FB};color:#fff3dc}
+.pgh-poph .x{width:40px;height:40px;flex:none;border:0;border-radius:50%;color:#fff4e2;background:rgba(255,255,255,.1);font-size:17px;line-height:1}
+.pgh-popg .chs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pgh-popg .pgh-sws{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px}
+.pgh-swg{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:10px;justify-items:center}
+.pgh-swg .pgh-sw{width:42px;height:42px}
+.pgh-ed{height:58%}
+/* téléphone couché (short) : réglages sur une seule ligne, vignettes moins hautes, rien sous le pli */
+.pgh.short .pgh-edtop span{display:none}
+.pgh.short .pgh-edtop button{width:34px;height:34px}
+.pgh.short .pgh-edcats{padding-top:2px;padding-bottom:6px}
+.pgh.short .pgh-edsub{padding-bottom:6px}
+.pgh.short .pgh-edsub button{min-height:32px;font-size:12.5px}
+.pgh.short .pgh-edset{flex-wrap:nowrap;padding-bottom:6px;margin-bottom:6px}
+.pgh.short .pgh-edset .pgh-sl{flex:1 1 auto;min-width:0}
+.pgh.short .pgh-edset .pgh-sl em{display:none}
+.pgh.short .pgh-edset .pgh-edn{flex:1 1 auto;font-size:11.5px}
+.pgh.short .pgh-pst{min-height:38px;flex:none}
+.pgh.short .pgh-pst i{width:30px;height:30px}
+.pgh.short .pgh-pst small{display:none}
+.pgh.short .pgh-pst b{max-width:110px}
+.pgh.short .pgh-ch .th{aspect-ratio:1.3}
+.pgh.short .pgh-ch > span{-webkit-line-clamp:1}
+.pgh.short .pgh-edg > h5:first-child{display:none}
+.pgh.short .pgh-dbtns{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+.pgh.short .pgh-dbtns .pgh-cta{min-height:38px}
 .pgh-utc{margin-bottom:2px}
 .pgh-utc i.no{background:linear-gradient(135deg,transparent 44%,#ff8a7a 44%,#ff8a7a 56%,transparent 56%),rgba(255,255,255,.08)}
 .pgh-lock[data-r="secret"]{background:linear-gradient(135deg,rgba(120,80,220,.45),rgba(40,20,90,.55));box-shadow:inset 0 0 0 1px rgba(210,180,255,.55)}
@@ -5151,7 +5244,13 @@
     ['pont', 'Le pont rouge', 'Et de l\'autre côté, le pré de Pégase…'],
     ['nuit', 'La nuit aux lanternes', 'Fenêtres allumées et lucioles sur la place'],
     ['chat', 'Le chat des toits', 'Timide : approche-toi doucement… ou zoome !'],
-    ['auguste', 'Papi Auguste', 'Le maire t\'accueille et te confie tes premières missions']
+    ['auguste', 'Papi Auguste', 'Le maire t\'accueille et te confie tes premières missions'],
+    ['fleurs', 'Les champs de fleurs', 'À l’aube, des fleurs à perte de vue jusqu’à l’arbre sacré'],
+    ['biches', 'Les biches du matin', 'Elles viennent boire au bord du lac : avance sans bruit'],
+    ['oies', 'Le vol des oies', 'À l’heure dorée, un grand V traverse le ciel… certains jours seulement'],
+    ['cygnes', 'Les cygnes du lac', 'Au lever du soleil, ils glissent ensemble sur l’eau calme'],
+    ['hibou', 'Le grand-duc', 'La nuit, il veille dans le grand arbre près de la mairie'],
+    ['bouvreuil', 'Le bouvreuil', 'Un petit oiseau rare des haies, le matin : approche-toi tout doucement']
   ];
   const FUTURE = [
     ['🗓️', 'Missions de la salle', 'Une grande mission pour toute la salle chaque semaine : réussissez-la ensemble et Ailebrune s\'embellit.', 'rgba(255,200,110,.28)'],
@@ -5319,8 +5418,10 @@
     <div class="pgh-edw" data-h="edw" hidden title="Tes lucioles">${LU()}<b data-h="edwn"></b></div>
     <button data-h="dundo" aria-label="Revenir en arrière" title="Revenir en arrière" disabled>${PGH_SVG.undo}</button><button data-h="dx" aria-label="Fermer sans enregistrer" title="Fermer">✕</button></div>
   <div class="pgh-edcats" role="tablist">${EDCATS.map((c) => `<button class="pgh-edcat" data-cat="${c.k}" role="tab">${PGH_SVG[c.ic] || ''}<span>${c.n}</span><em></em></button>`).join('')}</div>
+  <div class="pgh-edsub" data-h="dsub" role="tablist"></div>
   <div class="pgh-edgrid" data-h="dgrid"></div>
   <div class="pgh-lock" data-h="lock"><span class="ic" data-h="lockic">${PGH_SVG.lock}</span><div class="t"><b><span data-h="lockn"></span><span class="pgh-tier" data-h="lockt"></span></b><p data-h="lockp"></p></div><button class="buy" data-h="lockbuy" hidden>${LU()}<span data-h="lockbuyt">Acheter</span></button><button data-h="lockx">Enlever</button></div>
+  <div class="pgh-pop" data-h="dpop"></div>
   <div class="pgh-dbtns"><button class="pgh-cta glass rnd" data-h="drnd" aria-label="Au hasard" title="Au hasard">${PGH_SVG.dice}</button><button class="pgh-cta glass" data-h="dno">Annuler</button><button class="pgh-cta gold" data-h="dok">${PGH_SVG.check}<span>Enregistrer</span></button></div>
 </div>
 <div class="pgh-fv" data-h="fv" role="dialog" aria-label="Un copain">
@@ -6038,7 +6139,7 @@
         meShot();
         later(() => { if (STG && !editing && !friendOn) STG.gesture('wave'); }, 900);
         later(wordsPreload, 2500);   // mots (oui / non / salut / rire) préparés en arrière-plan
-        window.JDW_PG_HUB = { stage: SG, state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, sms: { st: SMS.st, unread: SMS.unread, th: SMS.th && SMS.th.w, live: !!SMS.off, pend: SMS.pend.length }, info: SG.info(), ready: SG.ready(),
+        window.JDW_PG_HUB = { stage: SG, edShow: (k) => showKey(k), state: () => ({ saved: SV, look: D, preset, editing, friend: friendOn && friendOn.name, wide, short, tab, sms: { st: SMS.st, unread: SMS.unread, th: SMS.th && SMS.th.w, live: !!SMS.off, pend: SMS.pend.length }, info: SG.info(), ready: SG.ready(),
           friends: FR.list.length, thumbs: STORE.thumbs.size, srv: Object.assign({ state: srvState }, srv), wallet, locked: lockedIn(D), owned: [...OWNED], today: TODAY, buy: BUY && { k: BUY.k, st: BUY.st, p: BUY.L.p }, ucat: UCAT.size, mcat: MCAT.size,
           voice: MIC.on ? { label: MIC.label, f0: Math.round(MIC.f0), f0m: Math.round(MIC.f0m), flat: +MIC.flat.toFixed(2), vis: MIC.mouth ? MIC.mouth.shown : null, emo: Object.fromEntries(Object.entries(MIC.emo).map(([k, v]) => [k, +v.toFixed(2)])) } : null }) };
         thumbPump();
@@ -6843,7 +6944,7 @@
     }
 
     // ---------- le CRÉATEUR, sur place (panneau du bas ; à droite en paysage) ----------
-    let cat = store.get('jdw.pegase.edcat') || 'perso', hist = [], tryKey = '', colorSlot = '', colorCh = 0;
+    let cat = store.get('jdw.pegase.edcat') || 'perso', hist = [], tryKey = '';
     if (!EDCATS.some((c) => c.k === cat)) cat = 'perso';
     const FR_CAT = { perso: 'corps', corps: 'corps', visage: 'visage', cheveux: 'tete', barbe: 'visage', maquillage: 'visage', haut: 'buste', bas: 'jambes', tenue: 'corps', pieds: 'pieds', chapeau: 'tete', acc: 'buste' };
     function tile(o) {   // o : { k (clé), act, v, name, th (html vignette), ico (chemin d'icône), on, sw (pastille de couleur) }
@@ -6870,53 +6971,86 @@
       return { perso: 7, corps: 2 + CAT.skin.length, visage: 6 + CAT.eyes.length + 2 + 4 + 2, barbe: countOf('beard'), maquillage: Object.keys(MKP()).length, cheveux: countOf('hb') + countOf('hf') + CAT.hairUI.length,
         haut: countOf('top'), bas: countOf('bot'), tenue: countOf('ovr'), pieds: countOf('feet') + 6, chapeau: countOf('hat') + countOf('hacc'), acc: countOf('glass') + countOf('glov') + 1 }[k];
     }
-    function gridHTML(k) {
-      const d = D; let h = '';
-      if (k === 'perso') {
-        h += sec('Personnages', 7) + list(CHARS_N.map((n, i) => ({ k: 'look:' + i, act: 'look', v: i, name: n, th: `<img class="full" alt="" data-t="${i}"${STORE.thumbs.has('o' + i) ? ` src="${STORE.thumbs.get('o' + i)}"` : ''}>`, on: preset === i })));
-      } else if (k === 'corps') {
-        h += sec('Silhouette') + `<button class="pgh-ch${d.g === 'f' ? ' on' : ''}" data-a="g" data-v="f" data-key=""><span class="th"><span class="ico">${PGH_SVG.fem}</span></span><span>Fille</span></button><button class="pgh-ch${d.g === 'm' ? ' on' : ''}" data-a="g" data-v="m" data-key=""><span class="th"><span class="ico">${PGH_SVG.masc}</span></span><span>Garçon</span></button>`;
-        h += `<div class="pgh-sl"><label>Carrure</label><span>fine</span><input type="range" min="0" max="100" value="${Math.round((d.bd[2] || 0) * 100)}" data-a="w"><span>ronde</span></div>`;
-        h += `<div class="pgh-sl"><label>Taille</label><span>petite</span><input type="range" min="90" max="108" value="${Math.round((d.h || 1) * 100)}" data-a="h"><span>grande</span></div>`;
-        h += sec('Peau', CAT.skin.length) + list(CAT.skin.map((s, i) => ({ k: 'sk:' + i, act: 'sk', v: i, name: s[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${s[1]},${s[1]} 45%,rgba(0,0,0,.35))"></span>`, on: d.sk === i })));
-      } else if (k === 'visage') {
-        h += sec('Forme du visage', 6) + list(FACE_N.map((n, i) => ({ k: 'fc:' + i, act: 'fc', v: i, name: n, th: `<span class="ico face">${faceSVG(i)}</span>`, on: d.fc === i })));
-        h += sec('Yeux', CAT.eyes.length) + list(CAT.eyes.map((e, i) => ({ k: 'ey:' + i, act: 'ey', v: i, name: e[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 50% 58%,${e[2]} 0,${e[1]} 60%,#120c14 63%)"></span>`, on: d.ey === i })));
-        h += sec('Pupilles', 2) + list(['basic', 'sharp'].map((p) => ({ k: 'pu:' + p, act: 'pu', v: p, name: CAT.layers['pupil.' + p].name, ico: CAT.layers['pupil.' + p].icon, on: d.pu === p })));
-        h += sec('Sourcils et cils', 4) + CAT.items.filter((i) => i.cat === 'brow').map((i) => tile({ k: i.id, act: 'br', v: i.id, name: i.name, th: `<span class="ico face">${browSVG(i.id.includes('thick'))}</span>`, on: d.br === i.id })).join('') +
-          CAT.items.filter((i) => i.cat === 'lash').map((i) => tile({ k: i.id, act: 'la', v: i.id, name: i.name, th: `<span class="ico face">${lashSVG(i.id.includes('long'))}</span>`, on: d.la === i.id })).join('');
-        const fxs = ['age'];   // rouge à lèvres, eye-liner, joues roses, taches de rousseur : dans « Maquillage » (hub 2.10)
-        h += sec('Petits détails', 2) + list(fxs.map((f) => ({ k: 'fx:' + f, act: 'fx', v: f, name: CAT.layers[f].name, ico: CAT.layers[f].icon, on: (d.fx || []).includes(f) })).concat([
-          { k: 'elf', act: 'elf', v: 1, name: 'Oreilles d\'elfe', th: `<span class="ico">${PGH_SVG.ear}</span>`, on: !!d.elf }]));
-      } else if (k === 'maquillage') h += makeupHTML(d);
-      else if (k === 'barbe') {
-        h += sec('Barbes et moustaches', countOf('beard')) + itemTiles('beard', 'beard');
-        h += sec('Couleur (celle des cheveux)', CAT.hairUI.length) + list(CAT.hairUI.map((i) => ({ k: 'hc:' + i, act: 'hc', v: i, name: CAT.palette[i][0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.4))"></span>`, on: d.hc === i })));
-      } else if (k === 'cheveux') {
-        // CHAUVE (hub 2.10.1) : retire TOUTES les pièces de cheveux (coiffure ET frange : la frange est une pièce à part, elle restait accrochée
-        // quand on ne retirait que la coiffure) ; sourcils, cils et barbe restent. « Rien » de la frange ne retire que la frange.
-        const bald = !d.it.hb && !d.it.hf;
-        // LONGUEUR (hub 2.10.1) : pour TOUTES les coupes (forme HairLen de l'avatar), en haut de la rangée pour qu'on la voie ; chauve : rien à régler
-        h += `<div class="pgh-sl${bald ? ' off' : ''}"><label>Longueur</label><span>courts</span><input type="range" min="70" max="145" value="${Math.round((d.hl || 1) * 100)}" data-a="hl"${bald ? ' disabled' : ''}><span>longs</span>${bald ? '<em>Chauve : pas de cheveux à allonger.</em>' : ''}</div>`;
-        h += sec('Coiffure (derrière)', countOf('hb') + 1) + `<button class="pgh-ch none${bald ? ' on' : ''}" data-a="chauve" data-v="" data-key="" aria-label="Chauve"><span class="th"><span class="ico">${PGH_SVG.bald}</span></span><span>Chauve</span></button>` +
-          itemTiles('hb', 'hb', null, false) + sec('Frange (devant)', countOf('hf')) + itemTiles('hf', 'hf');
-        h += sec('Couleur des cheveux', CAT.hairUI.length) + list(CAT.hairUI.map((i) => ({ k: 'hc:' + i, act: 'hc', v: i, name: CAT.palette[i][0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.4))"></span>`, on: d.hc === i })));
-      } else if (k === 'haut') h += sec('Hauts', countOf('top')) + itemTiles('top', 'top') + underHTML(d);
-      else if (k === 'bas') h += sec('Bas', countOf('bot')) + itemTiles('bot', 'bot');
-      else if (k === 'tenue') h += sec('Robes et salopette', countOf('ovr')) + itemTiles('ovr', 'ovr') + underHTML(d);
-      else if (k === 'pieds') {
-        h += sec('Chaussures', countOf('feet')) + itemTiles('feet', 'feet');
-        const so = ['socks.ankle', 'socks.basic', 'socks.knee', 'socks.thigh', 'socks.stirrup', 'socks.tights'];
-        h += sec('Chaussettes', 6) + none('so', !(d.so && d.so[0])) + list(so.map((s) => ({ k: 'so:' + s, act: 'so', v: s, name: CAT.layers[s].name, ico: CAT.layers[s].icon, on: !!(d.so && d.so[0] === s) })));
-      } else if (k === 'chapeau') h += sec('Chapeaux', countOf('hat')) + itemTiles('hat', 'hat') + sec('Cornes et antennes', countOf('hacc')) + itemTiles('hacc', 'hacc');
-      else if (k === 'acc') {
-        h += sec('Lunettes', countOf('glass')) + itemTiles('glass', 'glass') + sec('Gants', countOf('glov')) + itemTiles('glov', 'glov');
-        h += sec('Appareil photo') + none('cam', !d.it.cam) + tile({ k: 'cam', act: 'cam', v: 1, name: 'Appareil d\'explorateur', th: `<span class="ico">${PGH_SVG.cam}</span>`, on: !!d.it.cam });
-      }
-      return h;
+    // ---------- PARTIES de chaque catégorie (hub 2.13, demande de l'utilisateur : « on ne pense pas à descendre pour voir le reste ») ----------
+    // Sous-onglets bien visibles (Coiffures : Derrière | Devant ; Hauts : Haut | Maillot de corps…), puis EN HAUT les réglages de la partie
+    // (curseur s'il y en a un, pastille de la couleur actuelle qui ouvre un sélecteur), puis la grille des pièces (elle seule défile).
+    // Sous-onglet retenu par catégorie : jdw.pegase.edsub. Couleurs À PART (champs ajoutés, absents = comme avant) : d.hcf (frange),
+    // d.hcb (barbe) ; longueur de la frange d.hlf (absente = suit d.hl). Le jeu Unity lit les mêmes champs (HubAvatar.cs).
+    let subOf = (() => { try { const o = JSON.parse(store.get('jdw.pegase.edsub') || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } })();
+    let pop = '';   // sélecteur de couleur ouvert (sa clé) ou ''
+    const colName = (i) => (CAT && CAT.palette[i] && CAT.palette[i][0]) || '';
+    const dotBg = (hex) => `radial-gradient(circle at 35% 30%,${hex},${hex} 50%,rgba(0,0,0,.35))`;
+    const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    const pst = (label, bg, key, name) => `<button class="pgh-pst${pop === key ? ' on' : ''}" data-pop="${esc(key)}" aria-haspopup="dialog" aria-label="${esc(label)} : ${esc(name)} (changer la couleur)"><i style="background:${bg}"></i><span><small>${esc(label)}</small><b>${esc(name)}</b></span>${CHEV}</button>`;
+    const slid = (label, lo, hi, min, max, val, act, off, note, aria) => `<div class="pgh-sl${off ? ' off' : ''}"><label>${esc(label)}</label><span>${lo}</span><input type="range" min="${min}" max="${max}" value="${val}" data-a="${act}"${off ? ' disabled' : ''} aria-label="${esc(aria || label)}"><span>${hi}</span>${note ? `<em>${esc(note)}</em>` : ''}</div>`;
+    const noteP = (t) => `<p class="pgh-edn">${esc(t)}</p>`;
+    // pastilles des couleurs de la pièce portée dans un emplacement (tissus : toutes ouvertes)
+    function itemPsts(slot) {
+      const v = D.it[slot], it = v && ITEMS.get(v[0]); if (!it || !it.ch || !it.ch.length || it.hair) return '';
+      const h = it.ch.map((c, i) => { const p = v[i + 1] == null ? c.c : v[i + 1]; return pst(c.n || 'Couleur', dotBg(palHex(p)), 'col:' + slot + ':' + i, colName(p)); }).join('');
+      return it.ch.length > 2 ? `<div class="pgh-psts">${h}</div>` : h;   // 3 couleurs ou plus : une seule ligne qui glisse (rien ne pousse la grille sous le pli)
     }
-    // MAQUILLAGE (hub 2.10) : 4 rangées (lèvres, yeux, joues, peintures de visage), chaque calque VERROUILLÉ au départ (prix du serveur,
-    // « Acheter » comme les autres pièces), on peut l'essayer ; teintes de chaque calque porté (ouvertes une fois le calque à toi).
+    const itemSet = (slot, what) => itemPsts(slot) || noteP(D.it[slot] ? 'Cette pièce garde ses couleurs.' : 'Choisis ' + what + ' : ses couleurs se règlent ici.');
+    const fringeOk = () => !STG || !STG.A || !STG.A.hasFringe || !STG.A.hasFringe() || STG.A.hfStretch !== false;   // l'avatar dit si la frange s'allonge
+    // cheveux : racines (hc) et pointes (hc2) peuvent différer (personnages du pack) → pastille en deux tons
+    const hairBg = () => D.hc2 != null && D.hc2 !== D.hc ? `linear-gradient(160deg,${palHex(D.hc)} 0 42%,${palHex(D.hc2)} 62%)` : dotBg(palHex(D.hc));
+    const hairCol = () => colName(D.hc) + (D.hc2 != null && D.hc2 !== D.hc ? ' et ' + colName(D.hc2) : '');
+    const hairName = (own) => own == null ? hairCol() + ' · comme derrière' : colName(own);
+    function partsOf(k) {
+      const d = D, P = (id, n, set, grid) => ({ id, n, set, grid });
+      if (k === 'perso') return [P('perso', 'Personnages', () => '', () => list(CHARS_N.map((n, i) => ({ k: 'look:' + i, act: 'look', v: i, name: n, th: `<img class="full" alt="" data-t="${i}"${STORE.thumbs.has('o' + i) ? ` src="${STORE.thumbs.get('o' + i)}"` : ''}>`, on: preset === i }))))];
+      if (k === 'corps') return [P('corps', 'Corps', () => slid('Carrure', 'fine', 'ronde', 0, 100, Math.round((d.bd[2] || 0) * 100), 'w') + slid('Taille', 'petite', 'grande', 90, 108, Math.round((d.h || 1) * 100), 'h')
+        + pst('Peau', `radial-gradient(circle at 35% 30%,${(CAT.skin[d.sk] || CAT.skin[3])[1]},${(CAT.skin[d.sk] || CAT.skin[3])[1]} 45%,rgba(0,0,0,.35))`, 'sk', (CAT.skin[d.sk] || [''])[0]),
+      () => `<button class="pgh-ch${d.g === 'f' ? ' on' : ''}" data-a="g" data-v="f" data-key=""><span class="th"><span class="ico">${PGH_SVG.fem}</span></span><span>Fille</span></button><button class="pgh-ch${d.g === 'm' ? ' on' : ''}" data-a="g" data-v="m" data-key=""><span class="th"><span class="ico">${PGH_SVG.masc}</span></span><span>Garçon</span></button>`)];
+      if (k === 'visage') {
+        const eye = CAT.eyes[d.ey] || CAT.eyes[0];
+        return [P('forme', 'Forme', () => '', () => list(FACE_N.map((n, i) => ({ k: 'fc:' + i, act: 'fc', v: i, name: n, th: `<span class="ico face">${faceSVG(i)}</span>`, on: d.fc === i })))),
+          P('yeux', 'Yeux', () => pst('Couleur des yeux', `radial-gradient(circle at 50% 58%,${eye[2]} 0,${eye[1]} 60%,#120c14 63%)`, 'ey', eye[0]),
+            () => sec('Pupilles', 2) + list(['basic', 'sharp'].map((p) => ({ k: 'pu:' + p, act: 'pu', v: p, name: CAT.layers['pupil.' + p].name, ico: CAT.layers['pupil.' + p].icon, on: d.pu === p })))),
+          P('sourcils', 'Sourcils', () => noteP('Sourcils et cils prennent la couleur des cheveux.'), () => sec('Sourcils') + CAT.items.filter((i) => i.cat === 'brow').map((i) => tile({ k: i.id, act: 'br', v: i.id, name: i.name, th: `<span class="ico face">${browSVG(i.id.includes('thick'))}</span>`, on: d.br === i.id })).join('')
+            + sec('Cils') + CAT.items.filter((i) => i.cat === 'lash').map((i) => tile({ k: i.id, act: 'la', v: i.id, name: i.name, th: `<span class="ico face">${lashSVG(i.id.includes('long'))}</span>`, on: d.la === i.id })).join('')),
+          P('details', 'Détails', () => '', () => list([{ k: 'fx:age', act: 'fx', v: 'age', name: CAT.layers.age.name, ico: CAT.layers.age.icon, on: (d.fx || []).includes('age') },
+            { k: 'elf', act: 'elf', v: 1, name: 'Oreilles d\'elfe', th: `<span class="ico">${PGH_SVG.ear}</span>`, on: !!d.elf }]))];
+      }
+      if (k === 'maquillage') {
+        const MK = MKP(), fx = d.fx || [];
+        return ((PGM && PGM.MAKEUP_ROWS) || []).map(([g, title]) => {
+          const ids = Object.keys(MK).filter((id) => MK[id].g === g);
+          return P('mq-' + g, title, () => ids.filter((id) => fx.includes(id) && MK[id].tint).map((id) => { const cur = PGM.makeupCols(d, id)[0]; return pst('Teinte · ' + MK[id].n, dotBg(palHex(cur)), 'fxc:' + id, colName(cur)); }).join('')
+            || noteP('Choisis un maquillage : sa teinte se règle ici.'),
+          () => list(ids.map((id) => ({ k: 'fx:' + id, act: 'fx', v: id, name: MK[id].n, th: mqIcon(id), on: fx.includes(id) }))));
+        });
+      }
+      if (k === 'barbe') return [P('barbe', 'Barbe', () => pst('Couleur de la barbe', d.hcb == null ? hairBg() : dotBg(palHex(d.hcb)), 'hcb', d.hcb == null ? hairCol() + ' · comme les cheveux' : colName(d.hcb)), () => itemTiles('beard', 'beard'))];
+      if (k === 'cheveux') {
+        // CHAUVE (hub 2.10.1) : retire TOUTES les pièces de cheveux (coiffure ET frange) ; « Rien » de la frange ne retire que la frange.
+        const bald = !d.it.hb && !d.it.hf;
+        return [P('hb', 'Derrière', () => slid('Longueur', 'courts', 'longs', 70, 145, Math.round((d.hl || 1) * 100), 'hl', !d.it.hb, !d.it.hb ? (bald ? 'Chauve : pas de cheveux à allonger.' : 'Pas de coiffure derrière.') : '', 'Longueur des cheveux (derrière)')
+            + pst('Couleur', hairBg(), 'hc', hairCol()),
+          () => `<button class="pgh-ch none${bald ? ' on' : ''}" data-a="chauve" data-v="" data-key="" aria-label="Chauve"><span class="th"><span class="ico">${PGH_SVG.bald}</span></span><span>Chauve</span></button>` + itemTiles('hb', 'hb', null, false)),
+        P('hf', 'Devant', () => { const can = !!d.it.hf && fringeOk(); return slid('Longueur', 'courte', 'longue', 70, 145, Math.round((d.hlf != null ? d.hlf : d.hl || 1) * 100), 'hlf', !can, !d.it.hf ? 'Pas de mèche devant.' : !can ? 'Cette mèche ne s’allonge pas.' : '', 'Longueur de la mèche (devant)')
+            + pst('Couleur', d.hcf == null ? hairBg() : dotBg(palHex(d.hcf)), 'hcf', hairName(d.hcf)); },
+          () => itemTiles('hf', 'hf'))];
+      }
+      // MAILLOT DE CORPS (hub 2.10 / 2.12) : sous-onglet des Hauts et des Robes
+      const utPart = () => P('ut', 'Maillot de corps', () => utSet(d), () => noteP(utNote(d)));
+      if (k === 'haut') return [P('top', 'Haut', () => itemSet('top', 'un haut'), () => itemTiles('top', 'top')), utPart()];
+      if (k === 'bas') return [P('bot', 'Bas', () => itemSet('bot', 'un bas'), () => itemTiles('bot', 'bot'))];
+      if (k === 'tenue') return [P('ovr', 'Robe', () => itemSet('ovr', 'une robe'), () => itemTiles('ovr', 'ovr')), utPart()];
+      if (k === 'pieds') {
+        const so = ['socks.ankle', 'socks.basic', 'socks.knee', 'socks.thigh', 'socks.stirrup', 'socks.tights'];
+        return [P('feet', 'Chaussures', () => itemSet('feet', 'des chaussures'), () => itemTiles('feet', 'feet')),
+          P('so', 'Chaussettes', () => d.so && d.so[0] ? pst('Couleur', dotBg(palHex(d.so[1] || 0)), 'so', colName(d.so[1] || 0)) : noteP('Choisis des chaussettes : leur couleur se règle ici.'),
+            () => none('so', !(d.so && d.so[0])) + list(so.map((s) => ({ k: 'so:' + s, act: 'so', v: s, name: CAT.layers[s].name, ico: CAT.layers[s].icon, on: !!(d.so && d.so[0] === s) }))))];
+      }
+      if (k === 'chapeau') return [P('hat', 'Chapeaux', () => itemSet('hat', 'un chapeau'), () => itemTiles('hat', 'hat')), P('hacc', 'Cornes et antennes', () => itemSet('hacc', 'des cornes ou des antennes'), () => itemTiles('hacc', 'hacc'))];
+      if (k === 'acc') return [P('glass', 'Lunettes', () => itemSet('glass', 'des lunettes'), () => itemTiles('glass', 'glass')), P('glov', 'Gants', () => itemSet('glov', 'des gants'), () => itemTiles('glov', 'glov')),
+        P('cam', 'Appareil photo', () => '', () => none('cam', !d.it.cam) + tile({ k: 'cam', act: 'cam', v: 1, name: 'Appareil d\'explorateur', th: `<span class="ico">${PGH_SVG.cam}</span>`, on: !!d.it.cam }))];
+      return [P('x', '', () => '', () => '')];
+    }
+    const subNow = (k, parts) => { const ps = parts || partsOf(k), s = subOf[k]; return ps.some((p) => p.id === s) ? s : ps[0].id; };
+    // MAQUILLAGE (hub 2.10) : 4 rangées (lèvres, yeux, joues, peintures de visage) = 4 sous-onglets ; chaque calque VERROUILLÉ au départ
+    // (prix du serveur, « Acheter » comme les autres pièces), on peut l'essayer ; teinte de chaque calque porté (pastille en haut).
     // Peintures « grand visage » (papillon, tigre, chat, héros) : une seule à la fois. Format : d.fx (calques) + d.fxc (teintes), voir maquillage.js
     const swatch = (i) => `radial-gradient(circle at 35% 30%,${palHex(i)},${palHex(i)} 50%,rgba(0,0,0,.35))`;
     function mqIcon(id) {
@@ -6942,58 +7076,88 @@
       };
       return `<span class="ico face">${on(I[id] || face + eyes + mouth)}</span>`;
     }
-    function makeupHTML(d) {
-      const MK = MKP(), fx = d.fx || []; let h = '';
-      for (const [g, title] of (PGM && PGM.MAKEUP_ROWS) || []) {
-        const ids = Object.keys(MK).filter((id) => MK[id].g === g);
-        h += sec(title, ids.length) + list(ids.map((id) => ({ k: 'fx:' + id, act: 'fx', v: id, name: MK[id].n, th: mqIcon(id), on: fx.includes(id) })));
-        for (const id of ids) {
-          if (!fx.includes(id) || !MK[id].tint) continue;
-          const cur = PGM.makeupCols(d, id)[0];
-          h += `<div class="pgh-cols pgh-mqt"><div class="chs"><span class="pgh-cc on"><i style="background:${palHex(cur)}"></i>Teinte · ${esc(MK[id].n)}</span></div><div class="sws">` +
-            MK[id].tint.map((i) => `<button class="pgh-sw${i === cur ? ' on' : ''}" data-a="fxc" data-v="${esc(id)}|${i}" style="background:${swatch(i)}" title="${esc(CAT.palette[i][0])}" aria-label="${esc(CAT.palette[i][0])}"></button>`).join('') + '</div></div>';
-        }
-      }
-      return h;
-    }
     // MAILLOT DE CORPS (hub 2.10) : le haut beige qu'on voit sous les robes d'été, les débardeurs, les hauts ouverts… est un calque à part
     // (« under.top » du pack, peint sur le corps) : sa couleur se choisit ici (gratuit) ; d.ut = ['under.top', couleur 1, couleur 2]
     // Hub 2.12 (src/maillot.js) : plus long (jusque sous la ceinture des bas) ; « Sans maillot » = d.ut = ['', couleur…] : la brassière reste
     // (corps de fille) et, s'il n'y a ni haut ni robe (salopette comprise), le maillot revient tout seul : jamais en sous-vêtements seuls.
-    function underHTML(d) {
-      const ut = Array.isArray(d.ut) ? d.ut : null, off = !!ut && ut[0] === '', cur = ut && ut[1] != null ? ut[1] : -1;
+    function utNote(d) {
+      const ut = Array.isArray(d.ut) ? d.ut : null, off = !!ut && ut[0] === '';
       const covered = PGM && PGM.torsoCovered ? PGM.torsoCovered(d) : true, girl = d.g !== 'm';
-      const note = !off ? 'Le haut qu’on voit sous une robe d’été, un débardeur ou une veste ouverte. Il descend jusqu’à la ceinture.'
+      return !off ? 'Le haut qu’on voit sous une robe d’été, un débardeur ou une veste ouverte. Il descend jusqu’à la ceinture.'
         : !covered ? 'Sans haut ni robe, le maillot reste : on ne sort jamais en sous-vêtements. Mets un haut ou une robe pour l’enlever.'
         : girl ? 'Sans maillot : seule la brassière reste dessous, pratique pour les robes et les hauts ouverts.' : 'Sans maillot dessous.';
-      const dot = cur < 0 ? '#ece6da' : palHex(cur);
-      return sec('Maillot de corps (dessous)') + `<p class="pgh-edn">${note}</p><div class="pgh-cols pgh-mqt"><div class="chs pgh-utc">` +
-        `<button class="pgh-cc${off ? '' : ' on'}" data-a="utoff" data-v="0"><i style="background:${dot}"></i>Avec maillot</button>` +
-        `<button class="pgh-cc${off ? ' on' : ''}" data-a="utoff" data-v="1"><i class="no"></i>Sans maillot</button></div><div class="sws">` +
-        `<button class="pgh-sw${cur < 0 ? ' on' : ''}" data-a="ut" data-v="" style="background:radial-gradient(circle at 35% 30%,#ece6da,#ece6da 50%,rgba(0,0,0,.35))" title="Beige (d’origine)" aria-label="Beige (d’origine)"></button>` +
-        CAT.fabricUI.map((i) => `<button class="pgh-sw${i === cur ? ' on' : ''}" data-a="ut" data-v="${i}" style="background:${swatch(i)}" title="${esc(CAT.palette[i][0])}" aria-label="${esc(CAT.palette[i][0])}"></button>`).join('') + '</div></div>';
     }
-    // couleurs de la pièce choisie (tissus : toutes ouvertes)
-    function colorsHTML() {
-      const slots = SLOT_OF_CAT[cat]; if (!slots || !CAT) return '';
-      const slot = slots.find((s) => D.it[s]) || ''; if (!slot) return '';
-      const v = D.it[slot], it = ITEMS.get(v[0]); if (!it || !it.ch || !it.ch.length) return '';
-      colorSlot = slot; colorCh = Math.min(colorCh, it.ch.length - 1);
-      return `<div class="pgh-cols"><div class="chs">${it.ch.map((c, i) => `<button class="pgh-cc${i === colorCh ? ' on' : ''}" data-a="ch" data-v="${i}"><i style="background:${palHex(v[i + 1] == null ? c.c : v[i + 1])}"></i>${esc(c.n || 'Couleur')}</button>`).join('')}</div>` +
-        `<div class="sws">${CAT.fabricUI.map((p) => `<button class="pgh-sw${(v[colorCh + 1] == null ? it.ch[colorCh].c : v[colorCh + 1]) === p ? ' on' : ''}" data-a="col" data-v="${p}" style="background:radial-gradient(circle at 35% 30%,${palHex(p)},${palHex(p)} 50%,rgba(0,0,0,.35))" title="${esc(CAT.palette[p][0])}"></button>`).join('')}</div></div>`;
+    function utSet(d) {
+      const ut = Array.isArray(d.ut) ? d.ut : null, off = !!ut && ut[0] === '', cur = ut && ut[1] != null ? ut[1] : -1;
+      const dot = cur < 0 ? '#ece6da' : palHex(cur);
+      return `<div class="chs pgh-utc">` +
+        `<button class="pgh-cc${off ? '' : ' on'}" data-a="utoff" data-v="0"><i style="background:${dot}"></i>Avec maillot</button>` +
+        `<button class="pgh-cc${off ? ' on' : ''}" data-a="utoff" data-v="1"><i class="no"></i>Sans maillot</button></div>` +
+        pst('Couleur', dotBg(dot), 'ut', cur < 0 ? 'Beige (d’origine)' : colName(cur));
+    }
+    // ---------- le SÉLECTEUR DE COULEUR (s'ouvre au toucher d'une pastille, se referme une fois la couleur choisie) ----------
+    function popHTML() {
+      if (!pop || !CAT || !D) return '';
+      const d = D, sw = (act, v, i, on) => `<button class="pgh-sw${on ? ' on' : ''}" data-a="${act}" data-v="${esc(String(v))}" style="background:${swatch(i)}" title="${esc(colName(i))}" aria-label="${esc(colName(i))}"></button>`;
+      const swl = (arr) => '<div class="pgh-sws">' + arr.map((o, i) => [o, rankOf(o), i]).sort((x, y) => x[1] - y[1] || x[2] - y[2]).map(([o]) => tile(o)).join('') + '</div>';
+      const hairT = (act, cur) => swl(CAT.hairUI.map((i) => ({ k: 'hc:' + i, act, v: i, name: colName(i), sw: 1, th: `<span class="dot" style="background:${dotBg(palHex(i))}"></span>`, on: cur === i })));
+      const same = (act, on, t) => `<div class="chs"><button class="pgh-cc${on ? ' on' : ''}" data-a="${act}" data-v=""><i style="background:${palHex(d.hc)}"></i>${t}</button></div>`;
+      let t = '', g = '';
+      if (pop === 'hc') { t = 'Couleur des cheveux (derrière)'; g = hairT('hc', d.hc); }
+      else if (pop === 'hcf') { t = 'Couleur de la mèche (devant)'; g = same('hcf', d.hcf == null, 'Comme derrière') + hairT('hcf', d.hcf); }
+      else if (pop === 'hcb') { t = 'Couleur de la barbe'; g = same('hcb', d.hcb == null, 'Comme les cheveux') + hairT('hcb', d.hcb); }
+      else if (pop === 'sk') { t = 'Couleur de peau'; g = swl(CAT.skin.map((s, i) => ({ k: 'sk:' + i, act: 'sk', v: i, name: s[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 35% 30%,${s[1]},${s[1]} 45%,rgba(0,0,0,.35))"></span>`, on: d.sk === i }))); }
+      else if (pop === 'ey') { t = 'Couleur des yeux'; g = swl(CAT.eyes.map((e, i) => ({ k: 'ey:' + i, act: 'ey', v: i, name: e[0], sw: 1, th: `<span class="dot" style="background:radial-gradient(circle at 50% 58%,${e[2]} 0,${e[1]} 60%,#120c14 63%)"></span>`, on: d.ey === i }))); }
+      else if (pop === 'ut') {
+        const ut = Array.isArray(d.ut) ? d.ut : null, cur = ut && ut[1] != null ? ut[1] : -1;
+        t = 'Couleur du maillot de corps';
+        g = '<div class="pgh-swg">' + `<button class="pgh-sw${cur < 0 ? ' on' : ''}" data-a="ut" data-v="" style="background:radial-gradient(circle at 35% 30%,#ece6da,#ece6da 50%,rgba(0,0,0,.35))" title="Beige (d’origine)" aria-label="Beige (d’origine)"></button>`
+          + CAT.fabricUI.map((i) => sw('ut', i, i, i === cur)).join('') + '</div>';
+      } else if (pop === 'so') { t = 'Couleur des chaussettes'; const cur = d.so ? d.so[1] || 0 : -1; g = '<div class="pgh-swg">' + CAT.fabricUI.map((i) => sw('soc', i, i, i === cur)).join('') + '</div>'; }
+      else if (pop.startsWith('fxc:')) {
+        const id = pop.slice(4), M = MKP()[id]; if (!M || !M.tint) return '';
+        const cur = PGM.makeupCols(d, id)[0]; t = 'Teinte · ' + M.n; g = '<div class="pgh-swg">' + M.tint.map((i) => sw('fxc', id + '|' + i, i, i === cur)).join('') + '</div>';
+      } else if (pop.startsWith('col:')) {
+        const [, slot, chs] = pop.split(':'), ch = +chs, v = d.it[slot], it = v && ITEMS.get(v[0]); if (!it || !it.ch[ch]) return '';
+        const cur = v[ch + 1] == null ? it.ch[ch].c : v[ch + 1];
+        t = (it.name ? it.name + ' · ' : '') + (it.ch[ch].n || 'Couleur'); g = '<div class="pgh-swg">' + CAT.fabricUI.map((p) => sw('col', slot + '|' + ch + '|' + p, p, p === cur)).join('') + '</div>';
+      } else return '';
+      return `<div class="pgh-popc" role="dialog" aria-label="${esc(t)}"><div class="pgh-poph"><b>${esc(t)}</b><button class="x" data-pop="" aria-label="Fermer">✕</button></div><div class="pgh-popg">${g}</div></div>`;
+    }
+    function renderPop() {
+      const h = popHTML(); if (!h) pop = '';
+      $.dpop.innerHTML = h; $.dpop.classList.toggle('on', !!h);
+      box.querySelectorAll('.pgh-pst').forEach((b) => b.classList.toggle('on', b.dataset.pop === pop));
+      if (h) { fillIcons($.dpop); const on = $.dpop.querySelector('.on'); if (on) try { on.scrollIntoView({ block: 'nearest' }); } catch (e) { /* rien */ } }
     }
     function renderEd() {
       if (!CAT || !D) return;
       box.querySelectorAll('.pgh-edcat').forEach((b) => { const c = b.dataset.cat; b.classList.toggle('on', c === cat); const n = b.querySelector('em'); if (n) n.textContent = catCount(c); });
-      const g = $.dgrid, st = g.dataset.cat === cat ? g.scrollTop : 0;
-      g.innerHTML = `<div class="pgh-edg on" data-g="${cat}">${gridHTML(cat)}</div>` + colorsHTML();
-      g.dataset.cat = cat; g.scrollTop = st;
+      const parts = partsOf(cat), sid = subNow(cat, parts), part = parts.find((p) => p.id === sid);
+      $.dsub.innerHTML = parts.length > 1 ? parts.map((p) => `<button class="${p.id === sid ? 'on' : ''}" data-sub="${p.id}" role="tab" aria-selected="${p.id === sid}">${esc(p.n)}</button>`).join('') : '';
+      const g = $.dgrid, key = cat + '/' + sid, st = g.dataset.cat === key ? g.scrollTop : 0;
+      const set = part.set();
+      g.innerHTML = (set ? `<div class="pgh-edset">${set}</div>` : '') + `<div class="pgh-edg on" data-g="${cat}" data-sub="${sid}">${part.grid()}</div>`;
+      g.dataset.cat = key; g.scrollTop = st;
       fillIcons(g); fillThumbs(g);
       const lk = lockedIn(D);
       $.ddesc.textContent = lk.length ? '🔒 Essai : ' + lk.map(keyName).join(', ') : describe(D);
       $.dundo.disabled = !hist.length;
       $.dok.classList.toggle('lk', !!lk.length);
-      renderLockCard();
+      renderLockCard(); renderPop();
+    }
+    // ouvre le sous-onglet (et la catégorie) qui montre la pièce k (vitrine de l'onglet Moi, essais)
+    function showKey(k) {
+      if (!CAT || !D || !k) return false;
+      const q = `data-key="${esc(k)}"`;
+      for (const c of [cat, ...EDCATS.map((x) => x.k).filter((x) => x !== cat)]) {
+        const parts = partsOf(c), p = parts.find((x) => x.grid().includes(q));
+        if (!p) continue;
+        if (c !== cat) selectCat(c);
+        if (subNow(c, parts) !== p.id) { subOf[c] = p.id; store.set('jdw.pegase.edsub', JSON.stringify(subOf)); renderEd(); }
+        return true;
+      }
+      return false;
     }
     function renderLockCard() {
       const k = tryKey && lockedIn(D).includes(tryKey) ? tryKey : '';
@@ -7020,7 +7184,7 @@
     let lookT = 0;
     function apply(spark) {
       renderEd();
-      if (STG) { const k = ++lookT; STG.setLook(D).then(() => { if (dead || !STG || k !== lookT) return; if (spark) STG.gesture('spark'); if (cat === 'cheveux') { const sl = $.dgrid.querySelector('[data-a="hl"]'), on = STG.A.hasHair(); if (sl && sl.disabled === on) renderEd(); } }); }
+      if (STG) { const k = ++lookT; STG.setLook(D).then(() => { if (dead || !STG || k !== lookT) return; if (spark) STG.gesture('spark'); if (cat === 'cheveux') { const sl = $.dgrid.querySelector('[data-a="hlf"]'), can = !!(D.it && D.it.hf) && fringeOk(); if (sl && sl.disabled === can) renderEd(); } }); }
     }
     function change(fn, k, spark = true) {
       hist.push({ d: lookCopy(D), p: preset, t: tryKey }); if (hist.length > 60) hist.shift();
@@ -7039,7 +7203,7 @@
       }, id);
     }
     function selectCat(k) {
-      cat = k; store.set('jdw.pegase.edcat', k); colorCh = 0;
+      cat = k; store.set('jdw.pegase.edcat', k); pop = '';
       if (STG) { const f = FR_CAT[k] || 'corps'; STG.setFrame(wide && !short ? ({ tete: 'buste', visage: 'buste', buste: 'corps', jambes: 'corps', pieds: 'corps' }[f] || f) : f); }   // grand écran : moins près
       renderEd();
       const b = box.querySelector(`.pgh-edcat[data-cat="${k}"]`); if (b) try { b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (e) { /* rien */ }
@@ -7085,7 +7249,7 @@
       if (memberMode()) { srv.dirty = true; srv.t = Date.now(); saveSrv(); srvState = 'wait'; gardePush().then((r) => { if (!dead && r === 'ok' && !lk.length) toast('✓ Avatar enregistré sur ton compte'); }); }
     }
     // un toucher sur une case (créateur ou garde-robe de l'onglet Moi)
-    function tapKey(k) { const b = $.dgrid.querySelector(`[data-key="${CSS.escape ? CSS.escape(k) : k}"]`); if (b) b.click(); }
+    function tapKey(k) { showKey(k); const b = $.dgrid.querySelector(`[data-key="${CSS.escape ? CSS.escape(k) : k}"]`); if (b) b.click(); }
     on($.ed, 'click', (e) => {
       const c = e.target.closest('.pgh-edcat'); if (c) { selectCat(c.dataset.cat); tone(560, 700); return; }
       const h = e.target.closest('[data-h]');
@@ -7096,17 +7260,24 @@
       if (h && h.dataset.h === 'lockx') { const u = hist.pop(); if (u) { D = u.d; preset = u.p; tryKey = ''; apply(false); } return; }
       if (h && h.dataset.h === 'drnd') { randomLook(); return; }
       if (e.target.closest('[data-h="lockbuy"]')) { if (tryKey) openBuy(tryKey); return; }
+      const sb = e.target.closest('[data-sub]');
+      if (sb && sb.tagName === 'BUTTON') { subOf[cat] = sb.dataset.sub; store.set('jdw.pegase.edsub', JSON.stringify(subOf)); pop = ''; renderEd(); $.dgrid.scrollTop = 0; tone(560, 760); return; }
+      const pb = e.target.closest('[data-pop]');
+      if (pb) { const pk = pb.dataset.pop; pop = pk && pk !== pop ? pk : ''; renderPop(); if (pop) tone(700, 940); return; }
+      if (e.target === $.dpop) { pop = ''; renderPop(); return; }
       const b = e.target.closest('[data-a]'); if (!b || b.tagName === 'INPUT') return;
+      if ($.dpop.contains(b)) pop = '';
       const a = b.dataset.a, v = b.dataset.v, k = b.dataset.key;
       if (k && k === tryKey && b.dataset.lock && b.dataset.lock !== 'secret' && canBuy(lockOf(k)) && lockedIn(D).includes(k)) { openBuy(k); return; }
       if (b.dataset.lock === 'secret') { hist.push({ d: lookCopy(D), p: preset, t: tryKey }); tryKey = k; renderEd(); $.lock.classList.add('on'); renderSecret(k); tone(880, 1320); return; }
       if (a === 'look') { const i = +v; change((d) => { const n = STG.descOf(i); for (const x of Object.keys(d)) delete d[x]; Object.assign(d, n); preset = i; }, 'look:' + i); if (STG) STG.gesture('jump'); return; }
-      if (a === 'chauve') { change((d) => { delete d.it.hb; delete d.it.hf; delete d.hl; }, ''); return; }
+      if (a === 'chauve') { change((d) => { delete d.it.hb; delete d.it.hf; delete d.hl; delete d.hlf; }, ''); return; }
       if (a.startsWith('it:')) { setItem(a.slice(3), v); return; }
       if (a === 'g') { change((d) => { d.g = v; d.bd[0] = v === 'm' ? 1 : 0; d.bd[1] = v === 'f' ? 0.55 : 0; }, ''); return; }
       if (a === 'sk' || a === 'ey' || a === 'fc') { change((d) => { d[a] = +v; }, k, false); return; }
       if (a === 'pu' || a === 'br' || a === 'la') { change((d) => { d[a] = v; }, k, false); return; }
       if (a === 'hc') { change((d) => { d.hc = +v; d.hc2 = +v; }, k, false); return; }
+      if (a === 'hcf' || a === 'hcb') { change((d) => { if (v === '') delete d[a]; else d[a] = +v; }, k, false); return; }
       if (a === 'fx') { change((d) => { d.fx = d.fx || []; const i = d.fx.indexOf(v); if (i >= 0) d.fx.splice(i, 1); else { const ex = MKP()[v] && MKP()[v].ex; if (v.startsWith('freckles')) d.fx = d.fx.filter((x) => !x.startsWith('freckles')); if (ex) d.fx = d.fx.filter((x) => !(MKP()[x] && MKP()[x].ex === ex)); d.fx.push(v); } }, k); return; }
       if (a === 'fxc') { const [id, ci] = String(v).split('|'); change((d) => { d.fxc = d.fxc || {}; const c = PGM.makeupCols(d, id); c[0] = +ci; d.fxc[id] = c; }, '', false); return; }
       // maillot de corps (hub 2.12) : couleur (gardée aussi « sans maillot », pour la brassière et pour quand il revient) ; avec / sans
@@ -7115,8 +7286,9 @@
       if (a === 'elf') { change((d) => { d.elf = d.elf ? 0 : 1; }, k); return; }
       if (a === 'so') { change((d) => { d.so = v ? [v, (d.so && d.so[1]) || 0] : null; }, k); return; }
       if (a === 'cam') { change((d) => { if (v) d.it.cam = d.it.cam || ['cam', 9, 40, 53]; else delete d.it.cam; }, v ? 'cam' : ''); return; }
-      if (a === 'ch') { colorCh = +v; renderEd(); return; }
-      if (a === 'col' && colorSlot && D.it[colorSlot]) { const s2 = colorSlot, c2 = colorCh; change((d) => { if (d.it[s2]) d.it[s2][c2 + 1] = +v; }, '', false); }
+      // couleur d'une pièce (sélecteur) : « emplacement|canal|couleur »
+      if (a === 'col') { const [s2, c2, p2] = String(v).split('|'); if (D.it[s2]) change((d) => { if (d.it[s2]) d.it[s2][+c2 + 1] = +p2; }, '', false); return; }
+      if (a === 'soc') { change((d) => { if (d.so && d.so[0]) d.so = [d.so[0], +v].concat(d.so.slice(2)); }, '', false); return; }
     });
     function renderSecret() {
       $.lock.dataset.r = 'secret'; $.lockic.textContent = '✦'; $.lockx.textContent = 'OK'; $.lockn.textContent = 'Objet secret'; $.lockt.textContent = RAR.secret; $.lockt.className = 'pgh-tier secret';
@@ -7125,7 +7297,8 @@
     on($.ed, 'input', (e) => { const a = e.target.dataset.a, v = +e.target.value; if (!STG || !STG.A.desc) return;
       if (a === 'w') { D.bd[2] = v / 100; STG.A.desc.bd[2] = v / 100; STG.A.applyMorphs(); }
       if (a === 'h') { D.h = v / 100; STG.A.desc.h = D.h; STG.A.group.scale.setScalar(D.h); }
-      if (a === 'hl') { D.hl = v / 100; STG.A.desc.hl = D.hl; STG.A.setHairLength(D.hl); } });
+      if (a === 'hl') { D.hl = v / 100; STG.A.desc.hl = D.hl; STG.A.setHairLength(D.hl, D.hlf); }
+      if (a === 'hlf') { D.hlf = v / 100; STG.A.desc.hlf = D.hlf; STG.A.setHairLength(D.hl, D.hlf); } });
     on($.ed, 'change', (e) => { if (e.target.dataset.a) { hist.push({ d: lookCopy(D), p: preset, t: tryKey }); apply(false); } });
     // « au hasard » : seulement parmi ce qu'on possède
     function randomLook() {
@@ -7137,7 +7310,7 @@
         if (ov.length && Math.random() < 0.3) { d.it.ovr = [pick(ov)]; delete d.it.top; delete d.it.bot; } else { delete d.it.ovr; if (tp.length) d.it.top = [pick(tp)]; if (bt.length) d.it.bot = [pick(bt)]; }
         if (ft.length) d.it.feet = [pick(ft)];
         if (ht.length && Math.random() < 0.4) d.it.hat = [pick(ht)]; else delete d.it.hat;
-        const hcs = CAT.hairUI.filter((i) => owned('hc:' + i)); d.hc = d.hc2 = pick(hcs);
+        const hcs = CAT.hairUI.filter((i) => owned('hc:' + i)); d.hc = d.hc2 = pick(hcs); delete d.hcf; delete d.hcb;
         d.sk = Math.floor(Math.random() * 9); d.ey = pick([...EYE_FREE]);
       }, '');
       if (STG) STG.gesture('jump');
@@ -7385,7 +7558,7 @@
       thSub();
       $.tht.value = store.get('jdw.pegase.smsd.' + w) || ''; thInput();
       $.thl.innerHTML = '<div class="pgh-thempty">…</div>';
-      $.th.classList.add('on'); box.scrollTop = 0;   // la page (overflow caché) a pu glisser (clavier, scrollIntoView) : le panneau couvre tout
+      $.th.classList.add('on'); box.scrollTop = 0; thStick = true; thKb();   // la page (overflow caché) a pu glisser (clavier, scrollIntoView) : le panneau couvre tout
       if (!mobile) later(() => { try { $.tht.focus(); } catch (e) { /* rien */ } }, 120);
       loadThread(false);
     }
@@ -7402,7 +7575,51 @@
       if (!SMS.th) return;
       store.set('jdw.pegase.smsd.' + SMS.th.w, $.tht.value.slice(0, 500));
       SMS.th = null; $.th.classList.remove('on'); try { $.tht.blur(); } catch (e) { /* rien */ }
+      thKb();
       loadSms(true);
+    }
+    // ---------- clavier à l'écran (plainte du S21 : le clavier passait PAR-DESSUS la barre de saisie, le dernier message était coupé) ----------
+    // La zone VRAIMENT visible (visualViewport, repli innerHeight) donne ce que le clavier cache en bas (--pgkb) et en haut (--pgkt) du
+    // hub : le panneau de la conversation s'y tient, la barre de saisie colle au-dessus du clavier. Marche aussi quand rien ne rapetisse la
+    // page (plein écran immersif de l'appli, Safari, plein écran de Chrome) ; quand la page rapetisse elle-même (appli : fitKeyboard,
+    // Chrome : resizes-content), le décalage vaut 0 et seule la hauteur change. Le fil reste collé en bas s'il y était (ResizeObserver).
+    const KBH = { t: -1, b: -1, cls: '' };
+    let thStick = true;
+    function thKb() {
+      if (dead) return;
+      const vv = window.visualViewport, open = !!SMS.th;
+      let t = 0, b = 0;
+      if (open) {
+        const r = box.getBoundingClientRect();
+        const ok = !vv || Math.abs((vv.scale || 1) - 1) < 0.05;   // zoom au doigt : on ne touche à rien
+        if (ok) {
+          const y0 = vv ? vv.offsetTop : 0, y1 = y0 + (vv ? vv.height : (window.innerHeight || r.bottom));
+          t = Math.max(0, Math.round(y0 - r.top)); b = Math.max(0, Math.round(r.bottom - y1));
+          if (t + b < 24) t = b = 0;                                // arrondis, barre d'adresse : rien
+          if (t + b > r.height - 160) { t = 0; b = Math.max(0, Math.round(r.height - 160)); }   // garde au moins l'en-tête et la barre
+        }
+        // le navigateur (ou la borne : « champ ramené à l'écran ») a pu faire glisser les boîtes (overflow caché) : tout reste à sa place
+        for (const el of [box, root, root.parentElement]) if (el && el.scrollTop) el.scrollTop = 0;
+      }
+      const vis = box.clientHeight - t - b, typing = open && document.activeElement === $.tht;
+      const cls = (t + b > 0 || (typing && vis < box.clientHeight * 0.8) ? 'kb' : '') + (open && vis < 300 ? ' kbs' : '');
+      if (t !== KBH.t || b !== KBH.b) { KBH.t = t; KBH.b = b; box.style.setProperty('--pgkt', t + 'px'); box.style.setProperty('--pgkb', b + 'px'); }
+      if (cls !== KBH.cls) { KBH.cls = cls; $.th.classList.toggle('kb', /kb/.test(cls)); $.th.classList.toggle('kbs', /kbs/.test(cls)); }
+      if (open && thStick) $.thl.scrollTop = $.thl.scrollHeight;
+    }
+    const thKbSoon = () => { thKb(); later(thKb, 120); later(thKb, 380); later(thKb, 800); };   // le clavier met un moment à monter
+    if (window.visualViewport) { on(window.visualViewport, 'resize', thKb); on(window.visualViewport, 'scroll', thKb); }
+    on(window, 'resize', thKb);
+    on($.tht, 'focus', () => { thKbSoon(); });
+    on($.tht, 'blur', () => { later(thKb, 120); later(thKb, 400); });
+    // le fil reste en bas s'il y était (clavier qui monte, champ qui grandit, téléphone tourné) ; un défilement dû à un changement de
+    // taille ne compte pas, seul celui du joueur
+    const thBox = { w: -1, h: -1 };
+    on($.thl, 'scroll', () => { const L = $.thl; if (L.clientWidth === thBox.w && L.clientHeight === thBox.h) thStick = L.scrollHeight - L.scrollTop - L.clientHeight < 40; }, { passive: true });
+    let thRO = null;
+    if (typeof ResizeObserver === 'function') {
+      thRO = new ResizeObserver(() => { const L = $.thl; if (SMS.th && thStick) L.scrollTop = L.scrollHeight; thBox.w = L.clientWidth; thBox.h = L.clientHeight; });
+      thRO.observe($.thl);
     }
     async function loadThread(older) {
       const T = SMS.th; if (!T || T.loading) return;
@@ -7743,7 +7960,7 @@
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();
-        if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect();
+        if (io) io.disconnect(); if (ro) ro.disconnect(); if (frIO) frIO.disconnect(); if (thRO) thRO.disconnect();
         if (SMS.off) { try { SMS.off(); } catch (e) { /* rien */ } SMS.off = null; } if (SMS.th) store.set('jdw.pegase.smsd.' + SMS.th.w, $.tht.value.slice(0, 500));
         if (andOff) { try { andOff(); } catch (e) { /* rien */ } andOff = null; }
         if (nvOff) { try { nvOff(); } catch (e) { /* rien */ } nvOff = null; } if (NVL.on) { try { NV.stopListen(); } catch (e) { /* rien */ } }
