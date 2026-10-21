@@ -5376,6 +5376,7 @@
 .pgg-new{position:sticky;top:62px;z-index:6;display:flex;justify-content:center;align-items:flex-start;height:0;overflow:visible}
 .pgg-new button{transform:translateY(4px);border:0;border-radius:999px;padding:9px 16px;font:700 13.5px ${FB};color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffb85e);box-shadow:0 8px 22px rgba(0,0,0,.4);animation:pggDrop .35s ease-out}
 @keyframes pggDrop{from{opacity:0;transform:translateY(-12px)}}
+@media (min-width:980px){.pgh.wide .pgg-new{justify-content:flex-end;padding-right:calc(max(0px,(100% - 1120px) / 2) + 76px)}}
 .pgg-act{margin:0 14px 14px;padding:12px 14px;border-radius:20px;background:linear-gradient(180deg,rgba(255,158,196,.14),rgba(255,158,196,.06));box-shadow:inset 0 0 0 1px rgba(255,158,196,.28)}
 .pgg-act h3{margin:0 0 8px;font:700 13px ${FB};letter-spacing:.06em;text-transform:uppercase;color:#ffc4dc}
 .pgg-actr{display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13.5px/1.35 ${FB};color:var(--ink)}
@@ -5936,12 +5937,14 @@
 `;
   }
   function PGH_CARTES_MOUNT(ctx) {
-    const { PG, esc } = ctx;
+    const { PG, esc, members } = ctx;
+    // le nom de SALLE de l'expéditeur, comme l'en-tête du fil (smsWho : members().display), sinon son pseudo (vu par hub-09, 21 oct.)
+    const nom = (p) => { try { const x = p && typeof members === 'function' ? members().find((y) => y.name === p) : null; return (x && x.display) || p; } catch (e) { return p; } };
     const can = !!(PG && typeof PG.photo === 'function');
     const est = (m) => !!(m && !m.pnj && m.ph && m.data && m.data.type === 'carte');
     function bulle(m, tm) {
       const v2 = (m.data.v | 0) >= 2, ph = String(m.ph).replace(/\/+$/, ''), src = ph + '/m.jpg';
-      const leg = v2 ? (m.mine ? 'Ta carte postale' : 'Carte postale de ' + esc(m.from || '?')) + ' · touche pour la retourner' : '';
+      const leg = v2 ? (m.mine ? 'Ta carte postale' : 'Carte postale de ' + esc(nom(m.from) || '?')) + ' · touche pour la retourner' : '';
       const face = (k) => `<div class="pgc-f ${k}">${can ? `<img alt="" data-cs="${esc(src)}">` : ''}<span class="ld">${can ? '📮 La carte arrive…' : '📮 Carte postale'}</span></div>`;
       return `<div class="pgh-bub ${m.mine ? 'me' : 'th'} pgc-bub"><div class="pgc-c${v2 ? '' : ' v1'}" ${v2 ? 'tabindex="0" role="button" aria-label="Retourner la carte"' : ''}><div class="pgc-in">${face('r')}${v2 ? face('v') : ''}</div></div>` +
         (v2 ? `<span class="pgc-leg">${leg}</span>` : m.b ? `<span class="pgc-mot">${esc(m.b)}</span>` : '') + `<small>${tm}</small></div>`;
@@ -9626,7 +9629,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     catReady.then(() => { if (dead) return; if (!D && !STG) { /* repli : le créateur attend la 3D */ } renderShowcase(); renderMe(); }).catch(() => {});
     GRAM = PGH_GRAM_MOUNT({ box, $, PG, pgInfo, memberMode, on, later, every, store, toast, tone, members, touch, setTab: (x) => setTab(x, false) });
     if (window.JDW_PG_TEST) window.JDW_PG_GRAM = GRAM;
-    CARTES = PGH_CARTES_MOUNT({ PG, esc });
+    CARTES = PGH_CARTES_MOUNT({ PG, esc, members });
     LIVRE = PGH_LIVRE_MOUNT({ box, $, PG, pgInfo, memberMode, on, later, every, store, toast, tone, members, touch });
     if (window.JDW_PG_TEST) window.JDW_PG_LIVRE = LIVRE;
     relayout(); setTab(tab, false); activeSync(); renderMe(); renderFriends(); renderToday(); renderLink(); loadWallet(); loadCatalogs(); later(loadHouse, 900);
