@@ -20,7 +20,7 @@ const TILE_NEWS = {
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-10-21 19:30' }   // Pégase 0.9 + hub : PegaGram, Grand livre, réactions (1.25 ; heure = celle de la publication)
+  pegase: { kind: 'maj', at: '2026-10-21 19:12' }   // Pégase 0.9 + hub : PegaGram, Grand livre, réactions (1.25 ; heure = celle de la publication)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
