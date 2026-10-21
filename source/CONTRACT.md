@@ -154,6 +154,20 @@ unique ; le hub ne l'enregistre nulle part et l'efface de l'écran à la fin). D
 Crockford sans 0 1 I L O U, ex. `K7Q29MXA`, affiché « K7Q2-9MXA », 120 s, un seul vivant par compte + pseudo) ; seul argument du hub transmis :
 `{ p_long: true }` → l'ancien billet LONG (64 hexa, 60 s) pour les passages appli → appli (copié en silence / extra Android), jamais affiché.
 `api.pegase.account()` : invité → quitte le hub et ouvre « Crée ton compte ».
+Depuis la 1.21.1 (messages, sms.sql) : `pg_sms_list` / `pg_sms_thread` / `pg_sms_send` / `pg_sms_read` (arguments filtrés par la borne : adresse
+`p:PSEUDO` / `pnj:id` ≤ 40, texte ≤ 2000, id ≤ 64, limite 1-100) et `api.pegase.onSms(fn)` = signal `{ t: 'sms' }` SANS contenu du canal PRIVÉ
+`jdw-sms-<pseudo en hexa UTF-8>` (le hub relit par RPC) ; rend la fonction pour se désabonner.
+Hub de Pégase 0.9 (publié avec Pégase 0.9) : `pg_sms_react` (`p_msg` ≤ 64, `p_emoji` ≤ 16 ou null = retirer ; les 6 réactions sont vérifiées par
+le serveur, sms-reactions.sql) ; PegaGram (pegagram.sql) : `pg_gram_catalogue`, `pg_gram_fil`, `pg_gram_nouveau`, `pg_gram_activite`,
+`pg_gram_reagir`, `pg_gram_mot`, `pg_gram_retirer`, `pg_gram_signaler` et, pour un gardien, `pg_gram_gardien_liste` / `_decider` / `_menage` /
+`_annonce` (arguments filtrés par la borne, `pgGramArgs` ; catalogue et gardien SANS `p_name`) ; Grand livre des espèces (livre.sql) :
+`pg_livre_amis` (AUCUN argument du hub transmis, seulement `p_code` + `p_name` de la borne). `api.pegase.has(fn)` = UN SEUL test pour toutes
+ces fonctions : la borne la laisse-t-elle passer ? (le hub cache ce qu'elle refuse : avec une borne plus ancienne, rien de nouveau ne s'affiche).
+`await api.pegase.photo(chemin)` → adresse `blob:` d'une photo du Storage PRIVÉ « pegase » (seulement `ph/<uuid>/g.jpg` ou `m.jpg`, jeton du
+compte, cache « jdw-pg-photos » : une photo ne change jamais) — fil de PegaGram, cartes postales de Messages, pages du Grand livre ;
+`await api.pegase.photoDelete(chemins)` → nombre de fichiers effacés (mes photos retirées, ménage d'un gardien ; règle « pg photos effacer »
+du serveur) ; `api.pegase.onGram(fn)` / `api.pegase.onLivre(fn)` = signaux `{ t: 'gram' }` / `{ t: 'livre' }` du canal de la salle (sans contenu :
+le hub relit) ; rendent la fonction pour se désabonner.
 
 ## Ajout 9 : l'appli native d'un jeu (api.natif, jeux de NATIVE_APPS dans shell2.js : aujourd'hui `pegase`)
 Pour un jeu qui a son HUB dans la borne (`NATIVE_HUB`) : la tuile ouvre toujours le hub, et c'est le hub qui propose l'appli native.
