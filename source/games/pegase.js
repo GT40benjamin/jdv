@@ -6498,7 +6498,9 @@ button.pgl-couv:hover{transform:translateY(-2px) rotate(-1deg)}
       const r = V.v.getBoundingClientRect(), top = 64, bot = 48;
       const dbl = r.width >= 700 && r.width > r.height * 1.12;
       let w;
-      if (dbl) w = Math.min((r.width - 2 * 76 - 70) / 2, (r.height - top - bot - 34) / 1.5);
+      // (hub 0.9) les rubans (jusqu'à ~36 u à droite du livre) ne passent jamais sous la flèche « page suivante » (76 px du bord) :
+      // à 1024 × 768, la flèche recouvrait le ruban « Légendes »
+      if (dbl) w = Math.min((r.width - 2 * 76 - 70) / 2, (r.width / 2 - 76) / 1.36, (r.height - top - bot - 34) / 1.5);
       else w = Math.min(r.width - 30, (r.height - top - bot - 54) / 1.5);
       const tiny = w < 300 && !dbl;
       w = Math.max(dbl ? 230 : 250, Math.floor(w));
