@@ -741,6 +741,12 @@ async function gramDelete(paths) {   // fichiers de MES photos retirées, ou mé
   const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/pegase', { method: 'DELETE', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: l }) });
   return r.ok ? l.length : 0;
 }
+// GRAND LIVRE DES ESPÈCES (21 oct. 2026, avec Pégase 0.9 — atelier ~/jdv-tools/pegase/borne/hub/livre ; serveur ~/jdv-tools/pegase/server/livre.sql) :
+// « Mon livre » (onglet Moi) et « Les livres de mes amis » (onglet Amis) du hub. pg_livre_amis : AUCUN argument du hub n'est transmis
+// (seulement p_code + p_name de la borne) ; onLivre(fn) = signal { t: 'livre' } du canal de la salle (envoyé par le serveur quand un copain
+// remplit une case ou change une photo ; rend la fonction pour se désabonner) ; les photos des pages passent par photo() de PegaGram.
+const PG_LIVRE = new Set(['pg_livre_amis']);
+const LIVRE_SUBS = new Set();
 function pegaseApi() {
   const guest = () => isGuest() || !profile.name;
   return {
@@ -755,9 +761,10 @@ function pegaseApi() {
         online: on(p), seen: p.seen || 0, photo: p.photo || null }));
     },
     rpc: async (fn, args) => {
-      if (!PG_RPC.has(fn) && !PG_GRAM.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
+      if (!PG_RPC.has(fn) && !PG_GRAM.has(fn) && !PG_LIVRE.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
       if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
+      if (PG_LIVRE.has(fn)) return rpc(fn, { p_code: CODE(), p_name: profile.name }, { quiet: true });   // Grand livre : arguments du hub ignorés
       const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : fn.startsWith('pg_sms_') ? pgSmsArgs(fn, args) : Object.assign({}, args || {});
       if (PG_GRAM.has(fn)) { const g = Object.assign(pgGramArgs(fn, args), { p_code: CODE() }); if (!PG_GRAM_NONAME.has(fn)) g.p_name = profile.name; return rpc(fn, g, { quiet: true }); }
       Object.assign(a, { p_code: CODE(), p_name: profile.name });
@@ -766,12 +773,13 @@ function pegaseApi() {
     },
     account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); },   // invité : créer un compte (quitte le hub)
     // UN SEUL has(fn) pour les nouveautés (hub de Pégase 0.9) : la borne laisse-t-elle passer cette fonction ? Le hub cache ce qu'elle refuse
-    // (barre des réactions : pg_sms_react ; onglet PegaGram : pg_gram_*).
-    has: fn => { const f = String(fn || ''); return PG_RPC.has(f) || PG_GRAM.has(f); },
+    // (barre des réactions : pg_sms_react ; onglet PegaGram : pg_gram_* ; Grand livre : pg_livre_amis).
+    has: fn => { const f = String(fn || ''); return PG_RPC.has(f) || PG_GRAM.has(f) || PG_LIVRE.has(f); },
     onSms: fn => { if (typeof fn !== 'function') return () => {}; SMS_SUBS.add(fn); smsTopicSync(); return () => { SMS_SUBS.delete(fn); smsTopicSync(); }; },
-    photo: path => gramPhoto(path),   // PegaGram (et cartes postales de Messages) : photo du Storage privé, ph/<uuid>/g|m.jpg
+    photo: path => gramPhoto(path),   // PegaGram, cartes postales de Messages, pages du Grand livre : photo du Storage privé, ph/<uuid>/g|m.jpg
     photoDelete: paths => gramDelete(paths),
-    onGram: fn => { if (typeof fn !== 'function') return () => {}; GRAM_SUBS.add(fn); return () => { GRAM_SUBS.delete(fn); }; }
+    onGram: fn => { if (typeof fn !== 'function') return () => {}; GRAM_SUBS.add(fn); return () => { GRAM_SUBS.delete(fn); }; },
+    onLivre: fn => { if (typeof fn !== 'function') return () => {}; LIVRE_SUBS.add(fn); return () => { LIVRE_SUBS.delete(fn); }; }
   };
 }
 
@@ -1769,6 +1777,7 @@ function onPoke(topic, event, p) {
   if (p.t === 'netinv') { if (room && topic === 'jdw-room-' + room.id) netOnInvite(p); return; }
   if (p.t === 'coopinv') { if (room && topic === 'jdw-room-' + room.id) coopOnInvite(p); return; }
   if (p.t === 'rx') { if (room && topic === 'jdw-room-' + room.id) rxShow(cleanName(p.n), cleanName(p.to), String(p.e || '').slice(0, 40)); return; }
+  if (p.t === 'livre') { if (room && topic === 'jdw-room-' + room.id) for (const f of [...LIVRE_SUBS]) { try { f(); } catch (e) {} } return; }   // Grand livre : relire
   if (p.t === 'version') { checkSiteVersion(); return; }
   if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
   if (!room || topic !== 'jdw-room-' + room.id) return;
