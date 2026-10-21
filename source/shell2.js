@@ -669,14 +669,17 @@ async function gameSetPhoto(data, scope) {
 // 1.21.x (SMS, sms.sql) : pg_sms_list / pg_sms_thread / pg_sms_send / pg_sms_read (carte « Messages » de l'onglet Amis) ; arguments filtrés
 // ici (adresse « p:PSEUDO » / « pnj:id », texte ≤ 500, id fabriqué par le hub) ; onSms(fn) = signal du canal PRIVÉ jdw-sms-<pseudo en hexa>
 // (le serveur y envoie { t: 'sms' } SANS contenu ; le hub relit par RPC) ; rend la fonction pour se désabonner.
+// 20 oct. (RÉACTIONS, sms-reactions.sql) : pg_sms_react (p_msg = id d'appareil du message ≤ 64, p_emoji ≤ 16 ou null = retirer ; la liste
+// fermée des 6 réactions est vérifiée par le serveur) ; has(fn) = la borne laisse-t-elle passer cette fonction (le hub cache la barre sinon).
 const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make',
-  'pg_sms_list', 'pg_sms_thread', 'pg_sms_send', 'pg_sms_read']);
+  'pg_sms_list', 'pg_sms_thread', 'pg_sms_send', 'pg_sms_read', 'pg_sms_react']);
 const pgStr = (v, n) => String(v == null ? '' : v).slice(0, n);
 function pgSmsArgs(fn, x) {
   x = x || {};
   if (fn === 'pg_sms_send') return { p_to: pgStr(x.p_to, 40), p_body: pgStr(x.p_body, 2000), p_id: pgStr(x.p_id, 64) };
   if (fn === 'pg_sms_thread') return { p_with: pgStr(x.p_with, 40), p_before: Number.isSafeInteger(x.p_before) && x.p_before > 0 ? x.p_before : null, p_limit: Math.max(1, Math.min(100, x.p_limit | 0 || 30)) };
   if (fn === 'pg_sms_read') return { p_with: pgStr(x.p_with, 40) };
+  if (fn === 'pg_sms_react') return { p_msg: pgStr(x.p_msg, 64), p_emoji: x.p_emoji == null || x.p_emoji === '' ? null : pgStr(x.p_emoji, 16) };
   return {};
 }
 const SMS_SUBS = new Set();
@@ -713,6 +716,7 @@ function pegaseApi() {
       return rpc(fn, a, { quiet: true });
     },
     account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); },   // invité : créer un compte (quitte le hub)
+    has: fn => PG_RPC.has(String(fn || '')),   // 20 oct. : le hub demande avant d'afficher une fonction (réactions)
     onSms: fn => { if (typeof fn !== 'function') return () => {}; SMS_SUBS.add(fn); smsTopicSync(); return () => { SMS_SUBS.delete(fn); smsTopicSync(); }; }
   };
 }
