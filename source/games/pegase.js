@@ -4618,7 +4618,7 @@
 .pgh-fut .pgh-chip{position:absolute;right:10px;top:12px;background:rgba(255,214,140,.16);color:#ffe2ad;box-shadow:inset 0 0 0 1px rgba(255,214,140,.35)}
 .pgh-foot{max-width:1080px;margin:0 auto;padding:26px 16px calc(30px + env(safe-area-inset-bottom,0px));text-align:center;font:600 12px/1.5 ${FB};color:rgba(255,240,220,.5)}
 /* ---------- onglets (collés en haut en défilant) ---------- */
-.pgh-tabs{position:sticky;top:0;z-index:8;display:flex;justify-content:center;gap:4px;padding:8px 12px 0;background:linear-gradient(180deg,rgba(16,12,34,.96),rgba(16,12,34,.9));box-shadow:0 1px 0 rgba(255,214,140,.16),0 10px 24px rgba(0,0,0,.25)}
+.pgh-tabs{position:sticky;top:0;z-index:8;display:flex;justify-content:center;gap:4px;padding:8px 12px 0;background:rgb(16,12,34);box-shadow:0 1px 0 rgba(255,214,140,.16),0 10px 24px rgba(0,0,0,.25)}
 .pgh-tab{position:relative;flex:1 1 0;max-width:200px;min-height:46px;border:0;background:none;padding:6px 8px 10px;display:flex;align-items:center;justify-content:center;gap:7px;font:700 14.5px ${FB};letter-spacing:.02em;color:rgba(255,240,220,.62);transition:color .2s}
 .pgh-tab svg{width:19px;height:19px;flex:none}
 .pgh-tab.on{color:#ffe2a6}
