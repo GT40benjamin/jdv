@@ -4609,7 +4609,7 @@
 .pgh-chip{display:inline-block;padding:2px 9px;border-radius:999px;font:700 10.5px ${FB};letter-spacing:.06em;text-transform:uppercase;color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e)}
 /* bientôt */
 .pgh-soongrid{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media (min-width:760px){.pgh-soongrid{grid-template-columns:repeat(3,1fr);gap:16px}}
+@media (min-width:760px){.pgh-soongrid{gap:16px}}@media (min-width:1100px){.pgh-soongrid{grid-template-columns:repeat(4,1fr)}}
 .pgh-fut{position:relative;overflow:hidden;padding:16px 14px 14px;border-radius:20px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
 .pgh-fut::before{content:'';position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,var(--g,rgba(255,190,110,.25)),rgba(0,0,0,0) 70%)}
 .pgh-fut .em{position:relative;width:46px;height:46px;border-radius:15px;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,214,140,.25)}
@@ -5299,8 +5299,6 @@
     ['🗓️', 'Missions de la salle', 'Une grande mission pour toute la salle chaque semaine : réussissez-la ensemble et Ailebrune s\'embellit.', 'rgba(255,200,110,.28)'],
     ['🏡', 'Chez les copains', 'Vois où se promènent tes copains dans Pégase et va visiter leur maison.', 'rgba(255,150,190,.26)'],
     ['🏆', 'Classement', 'La plus belle collection, les plus belles photos, les plus longues séries de jours.', 'rgba(255,220,120,.28)'],
-    ['🖼️', 'Album et musée', 'Tes photos du jeu arrivent ici ; le musée de la salle garde les plus belles. Un ❤️ pour voter.', 'rgba(170,150,255,.26)'],
-    ['📱', 'Le téléphone de ton personnage', 'Dans le jeu, ton avatar sort son téléphone : missions, messages, carte… comme ici.', 'rgba(120,200,255,.24)'],
     ['🎥', 'Appels vidéo', 'Appelle un copain depuis le téléphone du jeu et vois-le en vrai sur l\'écran.', 'rgba(140,240,190,.22)']
   ];
   const EMOTES = [['oui', '👍', 'Oui'], ['non', '👎', 'Non'], ['wave', '👋', 'Coucou']];
