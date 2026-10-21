@@ -671,7 +671,9 @@ async function gameSetPhoto(data, scope) {
 // (le serveur y envoie { t: 'sms' } SANS contenu ; le hub relit par RPC) ; rend la fonction pour se désabonner.
 // 20 oct. (RÉACTIONS, sms-reactions.sql) : pg_sms_react (p_msg = id d'appareil du message ≤ 64, p_emoji ≤ 16 ou null = retirer ; la liste
 // fermée des 6 réactions est vérifiée par le serveur) ; has(fn) = la borne laisse-t-elle passer cette fonction (le hub cache la barre sinon).
-const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make',
+// 21 oct. (MAISONS DES COPAINS, maisons-salle.sql) : pg_room_maisons = maisons des autres membres de la salle actuelle (lecture seule ; plan
+// {v, p, lot} + parcelle « plot ») ; AUCUN argument du hub transmis : p_code + p_name + p_room = la salle actuelle, comme pg_room_avatars.
+const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_room_maisons', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make',
   'pg_sms_list', 'pg_sms_thread', 'pg_sms_send', 'pg_sms_read', 'pg_sms_react']);
 const pgStr = (v, n) => String(v == null ? '' : v).slice(0, n);
 function pgSmsArgs(fn, x) {
@@ -765,15 +767,15 @@ function pegaseApi() {
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
       if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
       if (PG_LIVRE.has(fn)) return rpc(fn, { p_code: CODE(), p_name: profile.name }, { quiet: true });   // Grand livre : arguments du hub ignorés
-      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : fn.startsWith('pg_sms_') ? pgSmsArgs(fn, args) : Object.assign({}, args || {});
+      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : fn === 'pg_room_maisons' ? {} : fn.startsWith('pg_sms_') ? pgSmsArgs(fn, args) : Object.assign({}, args || {});
       if (PG_GRAM.has(fn)) { const g = Object.assign(pgGramArgs(fn, args), { p_code: CODE() }); if (!PG_GRAM_NONAME.has(fn)) g.p_name = profile.name; return rpc(fn, g, { quiet: true }); }
       Object.assign(a, { p_code: CODE(), p_name: profile.name });
-      if (fn === 'pg_room_avatars') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
+      if (fn === 'pg_room_avatars' || fn === 'pg_room_maisons') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
       return rpc(fn, a, { quiet: true });
     },
     account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); },   // invité : créer un compte (quitte le hub)
     // UN SEUL has(fn) pour les nouveautés (hub de Pégase 0.9) : la borne laisse-t-elle passer cette fonction ? Le hub cache ce qu'elle refuse
-    // (barre des réactions : pg_sms_react ; onglet PegaGram : pg_gram_* ; Grand livre : pg_livre_amis).
+    // (barre des réactions : pg_sms_react ; onglet PegaGram : pg_gram_* ; Grand livre : pg_livre_amis ; maison d'un copain : pg_room_maisons).
     has: fn => { const f = String(fn || ''); return PG_RPC.has(f) || PG_GRAM.has(f) || PG_LIVRE.has(f); },
     onSms: fn => { if (typeof fn !== 'function') return () => {}; SMS_SUBS.add(fn); smsTopicSync(); return () => { SMS_SUBS.delete(fn); smsTopicSync(); }; },
     photo: path => gramPhoto(path),   // PegaGram, cartes postales de Messages, pages du Grand livre : photo du Storage privé, ph/<uuid>/g|m.jpg

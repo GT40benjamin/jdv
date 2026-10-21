@@ -168,6 +168,11 @@ compte, cache « jdw-pg-photos » : une photo ne change jamais) — fil de PegaG
 `await api.pegase.photoDelete(chemins)` → nombre de fichiers effacés (mes photos retirées, ménage d'un gardien ; règle « pg photos effacer »
 du serveur) ; `api.pegase.onGram(fn)` / `api.pegase.onLivre(fn)` = signaux `{ t: 'gram' }` / `{ t: 'livre' }` du canal de la salle (sans contenu :
 le hub relit) ; rendent la fonction pour se désabonner.
+Maisons des copains (maisons-salle.sql ; borne et hub prêts le 22 oct. 2026, à publier APRÈS la mise en ligne de la fonction) : `pg_room_maisons`
+(AUCUN argument du hub transmis : `p_code` + `p_name` + `p_room` = salle actuelle, comme pg_room_avatars) → `[{ r_name, r_alias, r_maison, r_rev, r_at }]`
+= maisons des AUTRES membres de la salle (jamais la mienne), `r_maison` = `{ v, p, lot, plot? }` (format de pg_get_doc « maison » + parcelle) ou null.
+Fiche d'un copain : « 🏡 Voir sa maison » (plan vu du ciel, un niveau à la fois, parcelle, surface, date) ou « Pas encore de maison » ;
+`has('pg_room_maisons')` faux ou fonction absente du serveur (404) → « Visiter sa maison · bientôt », comme avant.
 
 ## Ajout 9 : l'appli native d'un jeu (api.natif, jeux de NATIVE_APPS dans shell2.js : aujourd'hui `pegase`)
 Pour un jeu qui a son HUB dans la borne (`NATIVE_HUB`) : la tuile ouvre toujours le hub, et c'est le hub qui propose l'appli native.

@@ -4823,6 +4823,30 @@
 .pgh-fvbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pgh-fvbtns .pgh-cta{min-height:52px;font-size:14px;flex-direction:column;gap:2px;line-height:1.1}
 .pgh-fvbtns .pgh-cta small{font:700 10px ${FB};letter-spacing:.08em;text-transform:uppercase;color:#ffcf8a}
+.pgh-fvbtns .pgh-cta small,.pgh-fvbtns .pgh-cta span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pgh-fvbtns .pgh-cta[disabled]{opacity:.62}
+/* la maison d'un copain (pg_room_maisons) : son plan vu du ciel, même dessin que « Ma maison », sa parcelle et la date */
+.pgh-hm .pgh-mcard{width:min(100%,420px)}
+.pgh-hmplan{position:relative;width:100%;max-width:340px;aspect-ratio:264 / 220;margin:14px auto 0;border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#fff2d6,#f2d39f);box-shadow:inset 0 0 0 1px rgba(120,70,30,.35),0 12px 26px rgba(0,0,0,.38)}
+.pgh-hmplan canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pgh-hmleg{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 10px;margin:8px 0 0;font:700 11px ${FB};color:rgba(255,236,210,.72)}
+.pgh-hmleg span{display:inline-flex;align-items:center;gap:5px}
+.pgh-hmleg i{width:10px;height:10px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.pgh-hmfacts{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 8px;margin-top:12px}
+.pgh-hmfacts span{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:6px 12px;border-radius:999px;font:700 13px ${FB};color:#fff1da;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,214,140,.22)}
+.pgh-hmfacts span.plot{color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e);box-shadow:none}
+.pgh-hmlv{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:10px}
+.pgh-hmlv:empty{display:none}
+.pgh-hmlv button{min-height:34px;padding:4px 14px;border-radius:999px;border:0;font:700 12.5px ${FB};color:#fff4e2;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,214,140,.25);cursor:pointer}
+.pgh-hmlv button.on{color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e);box-shadow:none}
+.pgh.short .pgh-hmplan{grid-column:1;grid-row:1 / span 6;width:auto;height:min(64vh,250px);margin:0}
+.pgh.short .pgh-hmlv,.pgh.short .pgh-hmleg,.pgh.short .pgh-hmfacts{grid-column:2;justify-content:flex-start;margin-top:4px}
+.pgh.short .pgh-hm .pgh-mcard{width:min(100%,780px)}
+.pgh.short .pgh-hm .pgh-mcard h3{font-size:17px}
+.pgh.short .pgh-hm .pgh-hmleg,.pgh.short .pgh-hm .pgh-mcard p{display:none}
+.pgh.short .pgh-hmlv button{min-height:30px;padding:2px 11px;font-size:12px}
+.pgh.short .pgh-hmfacts span{padding:4px 10px;font-size:12px}
+.pgh.short .pgh-hm .pgh-mbtns .pgh-cta{min-height:42px}
 /* ---------- modifier l'avatar SUR PLACE (panneau du bas ; côté droit en paysage) ---------- */
 .pgh-hero .pgh-copy,.pgh-hero .pgh-bottom{transition:opacity .35s,transform .35s}
 .pgh.editing .pgh-hero .pgh-copy{opacity:0;transform:translateY(-16px);pointer-events:none}
@@ -6983,6 +7007,15 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <div class="pgh-fvbtns"><button class="pgh-cta gold" data-h="fvsms"><span>✉️ Écrire</span><small style="color:#7a3d10">un message</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
   </div>
 </div>
+<div class="pgh-modal pgh-hm" data-h="hmodal" role="dialog" aria-label="La maison d'un copain"><div class="pgh-mcard">
+  <h3 data-h="hmname"></h3>
+  <div class="pgh-hmplan"><canvas data-h="hmcv" role="img" aria-label="Plan de la maison, vu du ciel"></canvas></div>
+  <div class="pgh-hmlv" data-h="hmlv"></div>
+  <div class="pgh-hmleg" data-h="hmleg"></div>
+  <div class="pgh-hmfacts" data-h="hmfacts"></div>
+  <p data-h="hmtxt"></p>
+  <div class="pgh-mbtns"><button class="pgh-cta glass" data-h="hmno">Fermer</button><button class="pgh-cta gold" data-h="hmsms"><span>✉️ Lui écrire</span></button></div>
+</div></div>
 <div class="pgh-modal" data-h="pmodal" role="dialog" aria-label="Ma photo de profil"><div class="pgh-mcard">
   <h3>Ma photo de profil</h3>
   <div class="pgh-mprev"><div class="cut"><img alt="" data-h="pimg"></div><div class="rond"><img alt="" data-h="pimg2"></div></div>
@@ -7366,15 +7399,26 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       }
       return out.join('');
     }
+    // 22 oct. (jeu, session habitants) : le début de l'histoire (M1 + M2 : arrivée, chat, affiches, permis, parcelle, maison, photos) est UNE
+    // mission, « S'installer » (histoire.json › partie.mission ; réussie quand M2 l'est) : le hub la compte comme une seule, étape en dessous
+    const START = { name: 'S\'installer', ids: ['m1', 'm2'] };
     function storyHTML(done, started) {
-      const i = STORY.findIndex((m) => !done.has(m)), n = STORY.length;
+      const list = ['start'].concat(STORY.filter((m) => !START.ids.includes(m)));
+      const i = list.findIndex((m) => (m === 'start' ? !done.has('m2') : !done.has(m))), n = list.length;
+      if (i === 0) {
+        const cur = done.has('m1') ? 'm2' : 'm1', k = START.ids.indexOf(cur), g = mGiver(cur), st = started.has(cur) || k > 0;
+        const sub = 'Étape ' + (k + 1) + ' sur ' + START.ids.length + ' : « ' + mTitle(cur) + ' »' + (g ? ', avec ' + g[0] : '') + (k === 0 && !st ? '. Le maire t\'attend à Ailebrune.' : '');
+        const rw = START.ids.filter((m) => !done.has(m)).map(rewardHTML).join('');
+        return `<div class="pgh-card pgh-story" data-h2="story" data-cur="${cur}"><span class="bk">${g ? g[1] : '📜'}</span><div><small>Ton histoire · mission 1 sur ${n}</small><h3>« ${esc(START.name)} »<span class="st${st ? ' go' : ''}">${st ? 'en cours' : 'à faire'}</span></h3><p>${esc(sub)}</p></div>` +
+          `<div class="bar" style="--p:${Math.round(k / START.ids.length / n * 100)}%"><i></i></div>${rw ? `<div class="rw">Récompense : ${rw}</div>` : ''}</div>`;
+      }
       if (i < 0) {
         const q = QUESTS.map((m) => { const ok = done.has(m), g = mGiver(m), c = MCAT.get(m), lu = c ? c.r_lucioles | 0 : (STORY_FB[m] || [])[2] | 0;
           return `<li class="${ok ? 'ok' : ''}">${g ? g[1] : '✦'} « ${esc(mTitle(m))} »${g ? ' · ' + esc(g[0]) : ''}<em>${ok ? '✓ faite' : '+' + fmtN(lu) + ' ' + LU()}</em></li>`; }).join('');
         return `<div class="pgh-card pgh-story" data-h2="story" data-cur="fin"><span class="bk">🏆</span><div><small>Ton histoire · ${n} / ${n}</small><h3>L'histoire d'arrivée est finie !</h3><p>Bravo : tu fais partie d'Ailebrune. Les habitants ont encore des quêtes pour toi :</p></div><div class="bar" style="--p:100%"><i></i></div><ul>${q}</ul></div>`;
       }
-      const id = STORY[i], g = mGiver(id), st = started.has(id);
-      const sub = i === 0 ? 'Ta toute première mission' + (g ? ', avec ' + g[0] : '') + '. Le maire t\'attend à Ailebrune.' : (g ? 'Avec ' + g[0] + ' · ' : '') + (st ? 'tu l\'as commencée' : 'à faire dans le jeu');
+      const id = list[i], g = mGiver(id), st = started.has(id);
+      const sub = (g ? 'Avec ' + g[0] + ' · ' : '') + (st ? 'tu l\'as commencée' : 'à faire dans le jeu');
       return `<div class="pgh-card pgh-story" data-h2="story" data-cur="${id}"><span class="bk">${g ? g[1] : '📜'}</span><div><small>Ton histoire · mission ${i + 1} sur ${n}</small><h3>« ${esc(mTitle(id))} »<span class="st${st ? ' go' : ''}">${st ? 'en cours' : 'à faire'}</span></h3><p>${esc(sub)}</p></div>` +
         `<div class="bar" style="--p:${Math.round(i / n * 100)}%"><i></i></div>${rewardHTML(id) ? `<div class="rw">Récompense : ${rewardHTML(id)}</div>` : ''}</div>`;
     }
@@ -8433,20 +8477,25 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       let rows; try { rows = await PG.rpc('pg_get_doc', { p_kind: 'maison' }); } catch (e) { return; }
       if (dead) return;
       const rr = Array.isArray(rows) ? rows[0] : rows, d = rr && rr.r_rev > 0 && rr.r_data && typeof rr.r_data === 'object' ? rr.r_data : null;
-      const P = d && Array.isArray(d.p) ? d.p.filter((x) => Array.isArray(x) && typeof x[0] === 'string' && Number.isFinite(+x[1]) && Number.isFinite(+x[2])).slice(0, 4000) : [];
+      const P = planOf(d);
       if (!P.length) return;
       drawHouse(P);
       const lv = new Set(P.map((x) => +x[3] || 0)).size;
       $.htxt.textContent = 'Ta maison : ' + P.length + ' pièce' + (P.length > 1 ? 's' : '') + (lv > 1 ? ' sur ' + lv + ' étages' : '') + '. Bientôt, tu pourras la modifier d\'ici et la faire visiter.';
     }
-    function drawHouse(P) {
-      const c = $.hcv, W = 264, H = 220; c.width = W; c.height = H; const x = c.getContext('2d');
+    function planOf(d) { return d && Array.isArray(d.p) ? d.p.filter((x) => Array.isArray(x) && typeof x[0] === 'string' && Number.isFinite(+x[1]) && Number.isFinite(+x[2])).slice(0, 4000) : []; }
+    const HOUSE_K = [[/mur|wall/i, '#b9805a', 'Murs'], [/porte|door/i, '#7a3f22', 'Portes'], [/fen|window/i, '#7fbfe8', 'Fenêtres'], [/sol|floor|plancher/i, '#e8c48c', 'Sols'], [/toit|roof/i, '#c0482f', 'Toit'], [/esc|stair/i, '#9a6a46', 'Escaliers']];
+    const houseK = (id) => HOUSE_K.findIndex((k) => k[0].test(id));
+    function drawHouse(P) { drawPlan($.hcv, P, 1); $.house.classList.add('has'); }
+    // le plan vu du ciel (264 × 220, × r pour un grand écran) : une pastille par pièce, les étages du dessus en plus clair
+    function drawPlan(c, P, r) {
+      const W = 264, H = 220; c.width = Math.round(W * r); c.height = Math.round(H * r); const x = c.getContext('2d'); if (r !== 1) x.scale(r, r);
       const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#fff2d6'); g.addColorStop(1, '#f2d39f'); x.fillStyle = g; x.fillRect(0, 0, W, H);
       x.strokeStyle = 'rgba(150,100,50,.15)'; x.lineWidth = 1; for (let i = 0; i <= W; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, H); x.stroke(); } for (let j = 0; j <= H; j += 16) { x.beginPath(); x.moveTo(0, j); x.lineTo(W, j); x.stroke(); }
       let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
       for (const p of P) { x0 = Math.min(x0, +p[1]); x1 = Math.max(x1, +p[1]); z0 = Math.min(z0, +p[2]); z1 = Math.max(z1, +p[2]); }
       const sp = Math.max(x1 - x0, z1 - z0, 1), k = Math.min((W - 40) / Math.max(1, x1 - x0 || sp), (H - 40) / Math.max(1, z1 - z0 || sp)), ox = (W - (x1 - x0) * k) / 2, oz = (H - (z1 - z0) * k) / 2;
-      const col = (id) => /mur|wall/i.test(id) ? '#b9805a' : /porte|door/i.test(id) ? '#7a3f22' : /fen|window/i.test(id) ? '#7fbfe8' : /sol|floor|plancher/i.test(id) ? '#e8c48c' : /toit|roof/i.test(id) ? '#c0482f' : /esc|stair/i.test(id) ? '#9a6a46' : '#6aa36a';
+      const col = (id) => { const k = houseK(id); return k < 0 ? '#6aa36a' : HOUSE_K[k][1]; };
       const sz = Math.max(4, Math.min(14, k * sp / 14));
       const lvls = [...new Set(P.map((p) => +p[3] || 0))].sort((a, b) => a - b);
       for (const lv of lvls) {
@@ -8454,9 +8503,263 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         for (const p of P) if ((+p[3] || 0) === lv) { const px = ox + (+p[1] - x0) * k, pz = oz + (+p[2] - z0) * k; x.fillStyle = col(p[0]); x.beginPath(); x.roundRect ? x.roundRect(px - sz / 2, pz - sz / 2, sz, sz, 2) : x.rect(px - sz / 2, pz - sz / 2, sz, sz); x.fill(); }
       }
       x.globalAlpha = 1; x.strokeStyle = 'rgba(120,70,30,.55)'; x.lineWidth = 2; x.strokeRect(ox - sz, oz - sz, (x1 - x0) * k + sz * 2, (z1 - z0) * k + sz * 2);
-      $.house.classList.add('has');
     }
     on($.hgo, 'click', () => { toast('🏡 Bientôt : modifie ta maison d\'ici, puis fais-la visiter aux copains'); tone(660, 880); });
+
+    // ---------- LA MAISON D'UN COPAIN (pg_room_maisons : maisons des AUTRES membres de la salle, format de « Ma maison » + parcelle « plot ») ----------
+    // Borne qui ne connaît pas la fonction (has) ou serveur pas encore à jour (404) : le bouton reste « Visiter sa maison · bientôt ».
+    const PLOTS = { p1: 'Terrasse du bois (sud-ouest)', p2: 'Terrasse du lac (nord)', p3: 'Terrasse du lac (nord-est)', p5: 'Lisière sud', p6: 'Bois du sud-ouest',
+      p7: 'Terrasse du lac (nord-est)', p8: 'Route du pont rouge (est)', arc2: 'Le haut du Clos', arc4: 'Sous le bosquet', arc5: 'L\'entrée du chemin' };
+    const HM = { rid: 0, at: 0, rows: new Map(), st: '', off: false, busy: null, tok: null, open: '', m: null, lv: 0 };
+    const hmOk = () => { if (HM.off || !memberMode()) return false; try { return !!(PG && typeof PG.has === 'function' && PG.has('pg_room_maisons')); } catch (e) { return false; } };
+    function plotName(pl) {
+      const lb = pl && typeof pl.label === 'string' ? pl.label.trim().slice(0, 60) : '';
+      if (lb) return lb;
+      const id = pl ? String(pl.id || '') : '';
+      return PLOTS[id] || (/^arc\d+$/.test(id) ? 'Le Clos de l\'Est' : 'Une parcelle du village');
+    }
+    function hmWhen(t) {
+      const d = new Date(t); if (isNaN(d)) return '';
+      const day = (v) => new Date(v.getFullYear(), v.getMonth(), v.getDate()).getTime(), dd = Math.round((day(new Date()) - day(d)) / 86400000);
+      if (dd <= 0) return 'aujourd\'hui à ' + d.getHours() + ' h ' + String(d.getMinutes()).padStart(2, '0');
+      if (dd === 1) return 'hier';
+      if (dd < 7) return ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][d.getDay()] + ' dernier';
+      return 'le ' + d.getDate() + ' ' + ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][d.getMonth()];
+    }
+    function loadMaisons(force) {
+      const i = pgInfo(); if (!hmOk() || !i.room) return Promise.resolve(false);
+      const rid = i.room.id;
+      if (HM.rid !== rid) { HM.rid = rid; HM.rows = new Map(); HM.at = 0; HM.st = ''; }
+      if (!force && HM.st === 'ok' && Date.now() - HM.at < 30000) return Promise.resolve(true);
+      if (HM.busy && HM.busy.rid === rid) return HM.busy;
+      if (HM.st !== 'ok') HM.st = 'load';
+      const tok = { rid }; HM.tok = tok;   // jeton de CE chargement : un chargement plus ancien (autre salle) ne libère pas celui-ci
+      const p = (async () => {
+        try {
+          const rows = await PG.rpc('pg_room_maisons', {});
+          if (dead || HM.rid !== rid) return false;
+          const m = new Map();
+          for (const r of Array.isArray(rows) ? rows : []) {
+            const n = String((r && r.r_name) || ''), d = n && r.r_maison && typeof r.r_maison === 'object' ? r.r_maison : null; if (!n) continue;
+            const pl = d && d.plot && typeof d.plot === 'object' ? d.plot : null;
+            m.set(n, { P: planOf(d), lot: d ? d.lot : null, plot: pl, at: r.r_at || (pl && pl.at) || null, rev: r.r_rev | 0 });
+          }
+          HM.rows = m; HM.at = Date.now(); HM.st = 'ok'; return true;
+        } catch (e) {
+          if (e && (e.status === 404 || /fonction refus|Could not find the function|PGRST202/i.test(String(e.message || e)))) HM.off = true;
+          if (HM.rid === rid && HM.st !== 'ok') HM.st = e && e.offline ? 'offline' : 'err';
+          return false;
+        } finally { if (HM.tok === tok) { HM.tok = null; HM.busy = null; } }
+      })();
+      if (HM.tok === tok) { HM.busy = p; p.rid = rid; }
+      return p;
+    }
+    // le bouton de la fiche : Voir sa maison (sa parcelle en petit) | Pas encore de maison | un instant… | réessayer | bientôt
+    function fvHouseSync() {
+      const b = $.fvhouse, m = friendOn; if (!b || !m) return;
+      let t = 'Voir sa maison', s = '', k = 'soon', dis = false;
+      if (!hmOk()) { t = 'Visiter sa maison'; s = 'bientôt'; }
+      else {
+        const h = HM.rows.get(m.name);
+        if (h && h.P.length) { k = 'see'; s = h.plot ? plotName(h.plot).replace(/\s*\(.*\)\s*$/, '') : h.P.length + ' pièce' + (h.P.length > 1 ? 's' : ''); }
+        else if (HM.st === 'ok') { k = 'none'; t = 'Pas encore de maison'; dis = true; }
+        else if (HM.st === 'load') { k = 'load'; s = 'un instant…'; dis = true; }
+        else { k = 'retry'; s = HM.st === 'offline' ? 'pas de réseau' : 'réessayer'; }
+      }
+      b.dataset.k = k; b.disabled = dis;
+      b.innerHTML = `<span>🏡 ${esc(t)}</span>` + (s ? `<small>${esc(s)}</small>` : '');
+    }
+    function fvHouseLoad(force) {
+      const m = friendOn; if (!m || !hmOk()) return;
+      const p = loadMaisons(force); fvHouseSync();
+      p.then(() => { if (dead || friendOn !== m) return; fvHouseSync(); if (HM.open === m.name) houseFill(m); });
+    }
+    // ---------- LE GRAND PLAN de la maison d'un copain : un vrai plan d'architecte, un niveau à la fois (sans le toit) ----------
+    // Format du jeu (= constructeur web ~/jdv-tools/pegase/builder/web et PegaseHouseCatalog du jeu) : [id, x, z, étage, rot(, h)] ; x, z en
+    // 1/20 de mètre (case = 5 m = 100), rot = quarts de tour ; sols et escaliers au centre d'une case ; murs, fenêtres et portes au milieu
+    // d'un bord de case (5 m, le long de x quand rot est pair) ; parcelle « lot » = [cases en x, cases en z] à partir de 0, 0.
+    // Meubles posés au sol : famille et taille au sol (dm) tirées du catalogue du constructeur (PLAN_FURN : « id famille largeur profondeur » ;
+    // L lits, S salon, T tables, R rangement, C cuisine et bain, U lumières, P tapis, V plantes, O objets, J jardin ; à refaire si le catalogue
+    // change : build/plan-meubles.txt de hub-maisons) ; objets accrochés aux murs ou posés sur un meuble : comptés, pas dessinés.
+    const PLAN_FURN_TXT = 'dv-doublebed-mattresduvetcombo L 23 20|dv-singlebed-mattressduvet L 14 20|dv-doublebed L 20 24|dv-singlebed L 15 23|dv-pillow-a L 9 4|dv-pillow-b L 9 4|bed1 L 10 20|bed2 L 12 23|bed3 L 19 24|bed4 L 20 24|bed5 L 12 26|bed6 L 11 24|bed7 L 8 21|bed8 L 27 39|bed9 L 7 17|bed10 L 7 17|bed11 L 11 22|bed12 L 7 17|bed13 L 11 21|bed14 L 7 14|bed15 L 7 14|folding_screen1 L 29 5|mirror1 L 7 5|rocking_horse1 L 5 13|vertical_hanger1 L 5 5|dv-bench S 19 7|dv-stoolshort S 9 6|dv-stooltall S 4 5|chair1 S 9 10|chair2 S 10 9|chair3 S 10 8|chair4 S 10 9|chair5 S 8 8|chair6 S 12 10|chair7 S 10 10|chair8 S 10 8|chair12 S 6 6|chair14 S 5 5|chair17 S 6 8|chair20 S 7 7|chair24 S 6 7|chair27 S 5 7|chair28 S 5 5|chair29 S 9 3|chair30 S 23 2|chair33 S 17 3|chair34 S 13 11|chair35 S 6 7|chair38 S 8 8|chair40 S 22 9|chair41 S 5 5|chair43 S 9 5|chair45 S 13 5|chair46 S 7 7|chair47 S 7 7|chair48 S 7 7|chair49 S 9 9|chair50 S 11 10|sofa1 S 25 13|sofa2 S 24 12|sofa3 S 18 10|sofa5 S 30 23|sofa6 S 27 13|sofa7 S 25 9|sofa8 S 50 24|sofa9 S 26 13|sofa10 S 27 28|sofa11 S 17 10|sofa12 S 34 23|sofa13 S 26 12|sofa14 S 20 10|sofa15 S 39 43|sofa16 S 27 28|sofa17 S 26 12|sofa18 S 51 24|sofa19 S 27 13|sofa20 S 26 13|sofa21 S 16 10|sofa22 S 36 13|sofa23 S 26 11|clock1 S 4 3|gramophone1 S 11 10|piano1 S 21 25|piano2 S 20 7|piano3 S 20 7|piano4 S 15 4|dv-rectangulartable T 30 17|dv-roundtable T 20 20|table1 T 39 15|table2 T 17 10|table4 T 12 12|table5 T 13 6|table7 T 12 5|table8 T 11 5|table9 T 14 8|table10 T 17 10|table11 T 11 9|table12 T 13 8|table13 T 11 8|table14 T 16 7|table15 T 16 7|table16 T 15 7|table17 T 22 8|table18 T 12 4|table19 T 15 6|table20 T 19 14|table21 T 21 8|table22 T 13 6|table23 T 19 13|table24 T 27 11|table25 T 18 12|table26 T 18 8|table27 T 10 10|table28 T 19 10|table29 T 16 9|table30 T 20 10|table31 T 19 8|table32 T 24 12|table33 T 19 10|table34 T 11 11|table35 T 21 10|table36 T 11 11|table37 T 19 10|table38 T 18 10|table39 T 17 9|table40 T 9 9|table41 T 19 8|table42 T 12 12|table44 T 14 10|dv-cupboard-01 R 23 7|dv-cupboard-02 R 23 7|dv-cupboard-01-shelf R 23 6|dv-shelf-01 R 23 6|dv-chestbox R 15 10|box1 R 11 6|box3 R 9 6|box4 R 8 4|box5 R 12 8|box8 R 13 7|box10 R 7 7|box12 R 6 9|box13 R 5 9|box15 R 6 8|box18 R 9 5|box19 R 9 8|box20 R 8 7|box21 R 9 7|box22 R 8 8|closet1 R 10 10|closet2 R 19 10|closet4 R 9 4|closet5 R 14 7|closet6 R 13 7|closet7 R 8 4|closet8 R 8 8|closet9 R 25 8|closet10 R 14 10|closet11 R 17 8|closet12 R 14 7|closet13 R 18 8|closet14 R 18 7|closet15 R 19 6|closet16 R 14 10|closet17 R 14 8|closet18 R 15 9|closet19 R 29 13|closet20 R 47 13|closet21 R 13 7|closet22 R 27 6|closet23 R 24 5|closet24 R 10 4|closet25 R 22 8|closet26 R 5 6|shelf1 R 12 6|shelf3 R 13 7|shelf7 R 16 4|shelf8 R 9 4|shelf10 R 12 4|shelf11 R 13 7|shelf14 R 17 5|shelf18 R 7 4|shelf19 R 12 7|shelf20 R 14 4|shelf22 R 13 2|shelf23 R 13 4|shelf24 R 10 3|shelf25 R 8 4|shelf26 R 13 5|shelf27 R 14 9|shelf29 R 9 6|shelf30 R 13 7|shelf31 R 10 4|shelf32 R 17 5|shelf33 R 13 6|shelf34 R 15 5|shelf35 R 9 8|shelf36 R 16 5|shelf37 R 5 5|shelf38 R 12 7|shelf39 R 6 6|shelf40 R 15 9|shelf41 R 11 9|shelf42 R 17 5|shelf43 R 14 5|anvil1 C 13 5|bathroom_item1 C 25 13|bathroom_item2 C 5 9|bathroom_item4 C 16 3|bathroom_item5 C 8 8|bathroom_item6 C 22 11|bathroom_item7 C 7 3|bathroom_item8 C 7 8|bathroom_item9 C 8 3|bathroom_item10 C 7 6|bathroom_item11 C 7 1|bathroom_item12 C 29 15|bathroom_item13 C 6 9|bathroom_item15 C 8 10|bathroom_item16 C 17 6|bathroom_item17 C 15 3|bathroom_item18 C 7 5|bathroom_item20 C 10 2|bathroom_item21 C 5 5|cauldron1 C 10 10|cauldron2 C 10 13|cauldron3 C 15 14|cauldron4 C 9 9|cauldron5 C 12 12|cauldron6 C 8 7|cauldron7 C 12 14|cauldron9 C 6 8|cauldron10 C 7 7|furnace1 C 14 14|furnace2 C 14 10|furnace3 C 14 14|furnace4 C 9 10|furnace5 C 11 11|furnace6 C 16 14|furnace7 C 37 32|furnace8 C 18 9|furnace9 C 21 16|furnace10 C 20 15|furnace11 C 16 11|furnace12 C 33 10|furnace13 C 24 12|kitchen_item1 C 10 3|kitchen_item2 C 10 7|kitchen_item3 C 9 7|kitchen_item4 C 11 3|kitchen_item5 C 11 12|kitchen_item6 C 18 15|kitchen_item7 C 12 8|kitchen_item8 C 9 8|kitchen_item9 C 10 8|kitchen_item10 C 12 7|kitchen_item12 C 18 8|kitchen_item13 C 12 13|candle1 U 4 11|candle2 U 8 3|candle5 U 4 8|candle6 U 2 3|candle9 U 4 8|candle11 U 6 6|candle12 U 4 4|candle13 U 5 5|candle22 U 6 18|candle27 U 10 9|lamp2 U 6 6|lamp6 U 7 7|lamp10 U 7 7|lamp13 U 7 7|dv-rug-01 P 28 43|dv-rug-02 P 23 23|dv-rug-03 P 25 25|carpet1 P 26 25|carpet2 P 25 17|carpet3 P 7 12|carpet4 P 21 21|carpet5 P 18 24|carpet6 P 26 20|carpet7 P 20 20|carpet8 P 15 25|carpet9 P 15 15|carpet10 P 25 25|carpet11 P 24 24|carpet12 P 33 34|carpet13 P 35 35|carpet14 P 8 12|carpet15 P 54 38|carpet16 P 20 75|carpet17 P 31 18|dv-flowerplanter-01 V 30 16|dv-flowerplanter-02 V 25 14|dv-flowerplanter-03 V 50 16|flower1 V 30 15|flower2 V 16 15|flower17 V 8 8|flower19 V 8 6|flower21 V 20 20|flower22 V 8 8|flower23 V 24 23|flower24 V 17 17|flower26 V 7 6|flower27 V 28 21|flower28 V 18 19|flower29 V 21 21|flower31 V 12 6|flowerpot1 V 7 7|nature2 V 23 20|nature3 V 9 6|nature4 V 8 9|nature5 V 15 12|nature6 V 9 9|nature7 V 7 7|nature10 V 10 11|nature11 V 9 11|nature12 V 8 10|nature13 V 30 33|nature14 V 40 42|nature15 V 29 31|nature16 V 25 25|nature17 V 9 8|nature19 V 14 7|nature20 V 19 1|nature21 V 8 1|nature22 V 21 1|nature23 V 8 1|nature24 V 21 1|nature25 V 12 1|nature26 V 10 8|nature27 V 10 10|nature28 V 11 11|nature29 V 7 9|nature31 V 14 12|nature34 V 14 12|nature35 V 15 8|nature36 V 40 25|nature37 V 18 24|nature38 V 20 20|nature39 V 19 29|nature40 V 20 17|nature41 V 25 16|nature42 V 19 16|nature43 V 8 5|nature44 V 15 8|nature45 V 10 10|nature46 V 10 8|dv-bunch-01 O 7 7|bicycle1 O 6 20|bicycle2 O 6 10|cage1 O 6 7|easel1 O 12 7|easel2 O 11 7|jar3 O 7 7|jar55 O 7 7|jar58 O 7 7|jar61 O 7 7|prop6 O 7 7|prop11 O 14 2|prop13 O 7 1|prop25 O 6 7|prop51 O 6 6|prop52 O 5 3|prop78 O 7 5|prop80 O 3 11|prop82 O 9 8|prop84 O 6 8|prop86 O 27 3|prop87 O 4 5|prop88 O 10 4|prop90 O 2 10|prop100 O 10 4|prop101 O 3 10|prop104 O 3 9|prop105 O 4 14|prop106 O 12 9|prop110 O 2 9|prop111 O 10 2|prop127 O 10 9|prop128 O 15 8|prop131 O 7 1|prop184 O 8 3|telescope1 O 13 17|dv-villagefence J 33 3|dv-villagefencedoor J 9 2|dv-villagefencepost J 2 2|dv-vegetablefence J 13 1|dv-benchoutdoors J 19 8|dv-streetlight J 23 14|dv-barrel-01 J 8 8|dv-barrel-02 J 8 10|dv-barrel-03 J 8 8|dv-barrelshelf J 21 9|dv-kegholder J 9 7|dv-cratesquare J 12 11|dv-crateopen J 10 6|dv-cratehandles J 10 7|dv-basket J 7 7|dv-firewood-1 J 8 3|dv-firewood-2 J 8 3|dv-firewood-3 J 8 3|dv-treestump J 10 10|dv-treelog J 33 6|dv-haystack J 25 26|dv-sack J 9 5|dv-sackstack J 13 11|dv-trough J 17 7|dv-scarecrow J 21 7|dv-warriorstatue J 38 44|dv-ladder J 8 1|dv-pitchfork J 3 1|dv-rake J 4 1|dv-shovel J 5 1';
+    let PLAN_FURN = null;
+    function planFurn(id) {
+      if (!PLAN_FURN) { PLAN_FURN = new Map(); for (const e of PLAN_FURN_TXT.split('|')) { const [i, k, w, d] = e.split(' '); PLAN_FURN.set(i, { k, w: w / 10, d: d / 10 }); } }
+      return PLAN_FURN.get(id) || null;
+    }
+    const DOOR_AT = { 'porte-a': -1.26, 'porte-b': -0.06, 'porte-b3': -0.06, 'porte-c': -0.55, 'porte-d': -0.03, 'porte-d3': -0.03, 'porte-e': 0.55, 'porte-e3': 0.55 };   // centre de la porte le long du mur (m)
+    const pkind = (id) => /^(plancher|dalles|terrasse|balcon|sol|floor)/.test(id) ? 'sol' : /^(porte|cloison-p|door)/.test(id) ? 'porte' : /^(fen|cloison-f|window)/.test(id) ? 'fen'
+      : /^cloison/.test(id) ? 'cloison' : /^(mur|wall)/.test(id) ? 'mur' : /^(escalier|esc|stair)/.test(id) ? 'esc' : /^(toit|roof|_)/.test(id) ? '' : 'meuble';
+    const lvName = (l) => (l === 0 ? 'Rez-de-chaussée' : l === 1 ? '1er étage' : l + 'e étage');
+    // ce qu'on sait de la maison (une fois par version) : pièces dessinables, niveaux, surface (sols hors terrasse / balcon), meubles, cadre
+    function planInfo(h) {
+      if (h.info) return h.info;
+      const it = [], lv = new Set(), flo = new Set();
+      let area = 0, furn = 0, x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+      for (const p of h.P) {
+        const k = pkind(p[0]); if (!k) continue;
+        const l = Math.max(0, Math.min(9, Math.round(+p[3] || 0))), x = +p[1] * 0.05, z = +p[2] * 0.05, f = k === 'meuble' ? planFurn(p[0]) : null;
+        if (k === 'meuble') { furn++; if (!f) continue; } else lv.add(l);
+        if (k === 'sol') { flo.add(l); if (!/^(terrasse|balcon)/.test(p[0])) area += 25; }
+        it.push({ id: p[0], k, l, x, z, r: +p[4] || 0, f });
+        const e = f ? Math.max(f.w, f.d) / 2 : 2.5;
+        x0 = Math.min(x0, x - e); x1 = Math.max(x1, x + e); z0 = Math.min(z0, z - e); z1 = Math.max(z1, z + e);
+      }
+      const lot = Array.isArray(h.lot) && h.lot.length >= 2 && h.lot.slice(0, 2).every((v) => Number.isInteger(v) && v > 0 && v <= 40) ? [h.lot[0] * 5, h.lot[1] * 5] : null;
+      if (lot) { x0 = Math.min(x0, 0); z0 = Math.min(z0, 0); x1 = Math.max(x1, lot[0]); z1 = Math.max(z1, lot[1]); }
+      if (!isFinite(x0)) { x0 = z0 = 0; x1 = z1 = 10; }
+      const levels = [...(flo.size ? flo : lv)].sort((a, b) => a - b);
+      return (h.info = { it, levels: levels.length ? levels : [0], area, furn, lot, box: [x0 - 1, z0 - 1, x1 + 1, z1 + 1] });
+    }
+    const PLAN_HUES = ['#c9705c', '#6f8fca', '#8db86a', '#d6a24a', '#a774c4'];
+    const planHash = (s) => { let v = 7; for (const ch of String(s)) v = (v * 31 + ch.charCodeAt(0)) >>> 0; return v; };
+    function drawFloorPlan(c, h, lvSel, r) {
+      const W = 264, H = 220, I = planInfo(h); c.width = Math.round(W * r); c.height = Math.round(H * r);
+      const x = c.getContext('2d'); x.scale(r, r);
+      const [bx0, bz0, bx1, bz1] = I.box, k = Math.min((W - 16) / (bx1 - bx0), (H - 16) / (bz1 - bz0));
+      const ox = (W - (bx1 - bx0) * k) / 2 - bx0 * k, oz = (H - (bz1 - bz0) * k) / 2 - bz0 * k, X = (v) => ox + v * k, Z = (v) => oz + v * k;
+      const rr = (x0, z0, w, d, rad) => { x.beginPath(); if (x.roundRect) x.roundRect(x0, z0, w, d, Math.max(0, Math.min(rad, w / 2, d / 2))); else x.rect(x0, z0, w, d); };
+      const disc = (cx, cz, rad) => { x.beginPath(); x.arc(cx, cz, rad, 0, Math.PI * 2); };
+      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#fff2d6'); g.addColorStop(1, '#f2d39f'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+      // la parcelle : herbe, cases de 5 m, bord en pointillés
+      if (I.lot) {
+        const gx = X(0), gz = Z(0), gw = I.lot[0] * k, gd = I.lot[1] * k, gg = x.createLinearGradient(0, gz, 0, gz + gd);
+        gg.addColorStop(0, '#d5e6ad'); gg.addColorStop(1, '#bdd791'); x.fillStyle = gg; x.fillRect(gx, gz, gw, gd);
+        x.strokeStyle = 'rgba(90,120,50,.16)'; x.lineWidth = 1; x.beginPath();
+        for (let i = 5; i < I.lot[0]; i += 5) { x.moveTo(X(i), gz); x.lineTo(X(i), gz + gd); }
+        for (let j = 5; j < I.lot[1]; j += 5) { x.moveTo(gx, Z(j)); x.lineTo(gx + gw, Z(j)); }
+        x.stroke(); x.setLineDash([4, 3]); x.strokeStyle = 'rgba(110,80,40,.7)'; x.lineWidth = 1.2; x.strokeRect(gx, gz, gw, gd); x.setLineDash([]);
+      }
+      function sol(p, ghost) {
+        const s = 5 * k, x0 = X(p.x - 2.5), z0 = Z(p.z - 2.5);
+        if (ghost) { x.fillStyle = '#c9a77a'; x.fillRect(x0, z0, s, s); return; }
+        const stone = /^dalles/.test(p.id), deck = /^(terrasse|balcon)/.test(p.id);
+        x.fillStyle = stone ? '#ddd5c4' : deck ? '#d7ad74' : '#e8bf86'; x.fillRect(x0 - 0.3, z0 - 0.3, s + 0.6, s + 0.6);
+        x.strokeStyle = stone ? 'rgba(120,105,80,.28)' : 'rgba(140,90,40,.22)'; x.lineWidth = 0.6; x.beginPath();
+        if (stone) for (let i = 1; i < 4; i++) { x.moveTo(x0 + i * s / 4, z0); x.lineTo(x0 + i * s / 4, z0 + s); x.moveTo(x0, z0 + i * s / 4); x.lineTo(x0 + s, z0 + i * s / 4); }
+        else { const n = deck ? 6 : 8, along = (Math.round(p.r) & 1) === 0; for (let i = 1; i < n; i++) { const t = i * s / n; if (along) { x.moveTo(x0, z0 + t); x.lineTo(x0 + s, z0 + t); } else { x.moveTo(x0 + t, z0); x.lineTo(x0 + t, z0 + s); } } }
+        x.stroke();
+      }
+      function mur(p, ghost) {   // murs pleins, cloisons ; fenêtres = trumeaux + baie vitrée ; portes = ouverture de 1,6 m, battant et arc
+        const a = p.r * Math.PI / 2, ux = Math.cos(a), uz = -Math.sin(a), L = 2.5;
+        const seg = (t0, t1) => { x.beginPath(); x.moveTo(X(p.x + ux * t0), Z(p.z + uz * t0)); x.lineTo(X(p.x + ux * t1), Z(p.z + uz * t1)); x.stroke(); };
+        const th = Math.max(2, (/^cloison/.test(p.id) ? 0.3 : 0.42) * k);
+        x.lineCap = 'square'; x.strokeStyle = '#5a3a24'; x.lineWidth = th;
+        if (ghost || p.k === 'mur' || p.k === 'cloison') { seg(-L, L); return; }
+        if (p.k === 'fen') {
+          seg(-L, -1.3); seg(1.3, L); x.lineCap = 'butt';
+          x.strokeStyle = '#fdfaf2'; seg(-1.3, 1.3); x.lineWidth = Math.max(1, th * 0.4); x.strokeStyle = '#6fc0ea'; seg(-1.3, 1.3);
+          return;
+        }
+        const dc = Math.max(-1.6, Math.min(1.6, DOOR_AT[p.id] || 0)), hw = 0.8;
+        seg(-L, dc - hw); seg(dc + hw, L);
+        const vx = Math.sin(a), vz = Math.cos(a), hx = X(p.x + ux * (dc - hw)), hz = Z(p.z + uz * (dc - hw)), R = 2 * hw * k;
+        x.lineCap = 'round'; x.strokeStyle = '#7a4a2a'; x.lineWidth = Math.max(1, th * 0.38);
+        x.beginPath(); x.moveTo(hx, hz); x.lineTo(hx + vx * R, hz + vz * R); x.stroke();
+        const a0 = Math.atan2(vz, vx); let d = Math.atan2(uz, ux) - a0; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+        x.setLineDash([2, 2]); x.lineWidth = 0.8; x.beginPath(); x.arc(hx, hz, R, a0, a0 + d, d < 0); x.stroke(); x.setLineDash([]);
+      }
+      function escalier(p) {
+        const w = (/2$/.test(p.id) ? 2.5 : 2.13) * k, d = 4.26 * k;
+        x.save(); x.translate(X(p.x), Z(p.z)); x.rotate(-p.r * Math.PI / 2);
+        x.fillStyle = '#f3e2c4'; x.fillRect(-w / 2, -d / 2, w, d); x.strokeStyle = '#8a5d3b'; x.lineWidth = 0.8; x.strokeRect(-w / 2, -d / 2, w, d);
+        x.beginPath(); for (let i = 1; i < 9; i++) { const t = -d / 2 + i * d / 9; x.moveTo(-w / 2, t); x.lineTo(w / 2, t); }
+        x.moveTo(0, d / 2 - 2); x.lineTo(0, -d / 2 + 3); x.moveTo(-2.2, -d / 2 + 5.5); x.lineTo(0, -d / 2 + 3); x.lineTo(2.2, -d / 2 + 5.5); x.stroke();
+        x.restore();
+      }
+      function meuble(p) {
+        const f = p.f, w = Math.max(1.6, f.w * k), d = Math.max(1.6, f.d * k), id = p.id, hue = PLAN_HUES[planHash(id + p.x + p.z) % PLAN_HUES.length];
+        x.save(); x.translate(X(p.x), Z(p.z)); x.rotate(-p.r * Math.PI / 2);
+        if (f.k !== 'P') { x.shadowColor = 'rgba(70,40,15,.3)'; x.shadowBlur = 1.6 * r; x.shadowOffsetY = 0.5 * r; }
+        const flat = () => { x.shadowColor = 'transparent'; };
+        if (f.k === 'P') {   // tapis
+          x.globalAlpha = 0.9; x.fillStyle = hue; rr(-w / 2, -d / 2, w, d, 1.5); x.fill(); x.globalAlpha = 1;
+          x.strokeStyle = 'rgba(255,248,230,.75)'; x.lineWidth = 0.7; rr(-w / 2 + 1.4, -d / 2 + 1.4, w - 2.8, d - 2.8, 1); x.stroke();
+        } else if (f.k === 'L' && Math.max(f.w, f.d) < 1.2) { x.fillStyle = '#fffaf0'; rr(-w / 2, -d / 2, w, d, 1); x.fill(); }
+        else if (f.k === 'L') {   // lit : cadre, drap, couverture, oreillers en haut
+          x.fillStyle = '#a8774a'; rr(-w / 2, -d / 2, w, d, 1.2); x.fill(); flat();
+          x.fillStyle = '#f7f0e2'; rr(-w / 2 + 0.8, -d / 2 + 0.8, w - 1.6, d - 1.6, 1); x.fill();
+          x.fillStyle = hue; rr(-w / 2 + 0.8, -d / 2 + d * 0.36, w - 1.6, d * 0.64 - 0.8, 1); x.fill();
+          const n = f.w > 1.6 ? 2 : 1, pw = (w - 2.4 - (n - 1) * 0.6) / n; x.fillStyle = '#ffffff';
+          for (let i = 0; i < n; i++) { rr(-w / 2 + 1.2 + i * (pw + 0.6), -d / 2 + 1.3, pw, Math.max(1.2, d * 0.16), 1); x.fill(); }
+        } else if (f.k === 'S') {   // canapé, banc (dossier en haut) ; chaise
+          const big = Math.max(f.w, f.d) >= 1.5;
+          x.fillStyle = big ? '#c97b5c' : '#b98b5d'; rr(-w / 2, -d / 2, w, d, big ? 2 : 1); x.fill(); flat();
+          x.fillStyle = big ? '#a95f45' : '#8f6740'; rr(-w / 2, -d / 2, w, Math.max(0.9, d * (big ? 0.3 : 0.24)), big ? 2 : 0.8); x.fill();
+        } else if (f.k === 'T') {   // table ronde ou rectangulaire, plateau plus clair
+          x.fillStyle = '#b5814f';
+          if (Math.abs(f.w - f.d) < 0.2) { disc(0, 0, (w + d) / 4); x.fill(); flat(); x.fillStyle = '#c99a6a'; disc(-w * 0.05, -d * 0.05, (w + d) / 4 * 0.72); x.fill(); }
+          else { rr(-w / 2, -d / 2, w, d, 1); x.fill(); flat(); x.fillStyle = '#c99a6a'; rr(-w / 2 + 0.9, -d / 2 + 0.9, w - 1.8, d - 1.8, 0.8); x.fill(); }
+        } else if (f.k === 'R') {   // rangement : bois foncé, deux portes
+          x.fillStyle = '#7d5535'; rr(-w / 2, -d / 2, w, d, 0.8); x.fill(); flat();
+          x.strokeStyle = 'rgba(255,230,190,.4)'; x.lineWidth = 0.6; x.beginPath(); x.moveTo(0, -d / 2 + 0.6); x.lineTo(0, d / 2 - 0.6); x.stroke();
+        } else if (f.k === 'C') {   // cuisine et bain : chaudron, four (feu), évier / baignoire
+          if (/cauldron|anvil/.test(id)) { x.fillStyle = '#4d5154'; disc(0, 0, Math.min(w, d) / 2); x.fill(); }
+          else { x.fillStyle = '#b7c2c6'; rr(-w / 2, -d / 2, w, d, 1); x.fill(); flat(); x.fillStyle = /furnace/.test(id) ? '#ef8a3c' : '#eef4f6'; rr(-w / 2 + w * 0.2, -d / 2 + d * 0.2, w * 0.6, d * 0.6, 1); x.fill(); }
+        } else if (f.k === 'U') {   // lumière : halo doré
+          flat(); const R = Math.max(1.2, Math.max(w, d) / 2), gl = x.createRadialGradient(0, 0, 0, 0, 0, R * 2.6);
+          gl.addColorStop(0, 'rgba(255,214,110,.55)'); gl.addColorStop(1, 'rgba(255,214,110,0)'); x.fillStyle = gl; disc(0, 0, R * 2.6); x.fill();
+          x.fillStyle = '#ffd36a'; disc(0, 0, R); x.fill();
+        } else if (f.k === 'V') {   // plante, arbre : feuillage en boules
+          const R = Math.max(1.3, Math.max(w, d) / 2), t0 = planHash(id) % 7;
+          x.fillStyle = '#5c9b4c'; x.beginPath(); x.moveTo(R * 0.72, 0); x.arc(0, 0, R * 0.72, 0, Math.PI * 2);
+          for (let i = 0; i < 6; i++) { const t = t0 + i * Math.PI / 3, cx = Math.cos(t) * R * 0.55, cz = Math.sin(t) * R * 0.55; x.moveTo(cx + R * 0.45, cz); x.arc(cx, cz, R * 0.45, 0, Math.PI * 2); }
+          x.fill(); flat(); x.fillStyle = 'rgba(170,222,128,.55)'; disc(-R * 0.22, -R * 0.22, R * 0.38); x.fill();
+        } else if (f.k === 'J') {   // jardin : clôture, tonneau / souche / meule, le reste en bois
+          if (Math.max(f.w, f.d) / Math.max(0.1, Math.min(f.w, f.d)) >= 4) { flat(); x.strokeStyle = '#8a6a42'; x.lineCap = 'round'; x.lineWidth = Math.max(0.9, Math.min(w, d)); x.beginPath(); if (w >= d) { x.moveTo(-w / 2, 0); x.lineTo(w / 2, 0); } else { x.moveTo(0, -d / 2); x.lineTo(0, d / 2); } x.stroke(); }
+          else if (Math.abs(f.w - f.d) < 0.35) { x.fillStyle = /hay/.test(id) ? '#e2c15a' : '#a0703f'; disc(0, 0, (w + d) / 4); x.fill(); }
+          else { x.fillStyle = '#9c7b52'; rr(-w / 2, -d / 2, w, d, 0.8); x.fill(); }
+        } else { x.fillStyle = '#bfa889'; rr(-w / 2, -d / 2, w, d, 0.8); x.fill(); }
+        x.restore();
+      }
+      const at = I.it.filter((p) => p.l === lvSel);
+      if (lvSel > 0) {   // le niveau du dessous, en fantôme
+        const below = I.it.filter((p) => p.l === lvSel - 1 && p.k !== 'meuble' && p.k !== 'esc');
+        x.globalAlpha = 0.2; for (const p of below) if (p.k === 'sol') sol(p, true); for (const p of below) if (p.k !== 'sol') mur(p, true); x.globalAlpha = 1;
+      }
+      for (const p of at) if (p.k === 'sol') sol(p);
+      for (const p of at) if (p.k === 'meuble' && p.f.k === 'P') meuble(p);
+      for (const p of at.filter((q) => q.k === 'meuble' && q.f.k !== 'P').sort((a, b) => b.f.w * b.f.d - a.f.w * a.f.d)) meuble(p);
+      for (const p of at) if (p.k === 'esc') escalier(p);
+      for (const p of at) if (p.k === 'mur' || p.k === 'cloison' || p.k === 'fen' || p.k === 'porte') mur(p);
+      // échelle « 5 m » en bas à gauche
+      const sb = 5 * k;
+      if (sb >= 14 && sb <= 120) {
+        x.strokeStyle = 'rgba(90,58,36,.85)'; x.lineWidth = 1.2; x.lineCap = 'butt'; x.beginPath(); x.moveTo(7, H - 8); x.lineTo(7 + sb, H - 8);
+        x.moveTo(7, H - 11); x.lineTo(7, H - 5); x.moveTo(7 + sb, H - 11); x.lineTo(7 + sb, H - 5); x.stroke();
+        x.fillStyle = 'rgba(90,58,36,.9)'; x.font = '700 7.5px system-ui, sans-serif'; x.textBaseline = 'bottom'; x.fillText('5 m', 9 + sb, H - 4);
+      }
+      return { lv: lvSel, at };
+    }
+    function houseFill(m) {
+      const h = HM.rows.get(m.name);
+      if (!h || !h.P.length) { closeHouse(); return; }
+      const I = planInfo(h); if (!I.levels.includes(HM.lv)) HM.lv = I.levels[0];
+      $.hmname.textContent = 'La maison de ' + m.display;
+      const d = drawFloorPlan($.hmcv, h, HM.lv, Math.min(4, (window.devicePixelRatio || 1) * 1.35));
+      $.hmlv.innerHTML = I.levels.length > 1 ? I.levels.map((l) => `<button data-lv="${l}"${l === HM.lv ? ' class="on"' : ''}>${lvName(l)}</button>`).join('') : '';
+      const has = (f) => d.at.some(f), fam = (s) => has((p) => p.k === 'meuble' && s.includes(p.f.k));
+      const leg = [[has((p) => p.k === 'mur' || p.k === 'cloison' || p.k === 'porte'), '#5a3a24', 'Murs'], [has((p) => p.k === 'fen'), '#6fc0ea', 'Fenêtres'],
+        [fam('LSTRCOU'), '#b5814f', 'Meubles'], [fam('P'), '#c9705c', 'Tapis'], [fam('V'), '#5c9b4c', 'Plantes'], [fam('J'), '#9c7b52', 'Jardin']];
+      $.hmleg.innerHTML = leg.filter((l) => l[0]).map((l) => `<span><i style="background:${l[1]}"></i>${l[2]}</span>`).join('');
+      const w = h.at ? hmWhen(h.at) : '', nl = I.levels.length;
+      const size = I.area ? '📐 ' + I.area + ' m²' + (nl > 1 ? ' sur ' + nl + ' niveaux' : '') : '🧱 ' + h.P.length + ' pièce' + (h.P.length > 1 ? 's' : '');
+      $.hmfacts.innerHTML = `<span class="plot">📍 ${esc(h.plot ? plotName(h.plot) : 'Au village d\'Ailebrune')}</span><span>${size}</span>` + (I.furn ? `<span>🪑 ${I.furn} meuble${I.furn > 1 ? 's' : ''}</span>` : '') + (w ? `<span>🗓️ Modifiée ${esc(w)}</span>` : '');
+      $.hmtxt.textContent = 'Vue du ciel, sans le toit.';
+    }
+    function openHouse(m) {
+      const h = HM.rows.get(m.name); if (!h || !h.P.length) return;
+      HM.open = m.name; HM.m = m; HM.lv = planInfo(h).levels[0]; houseFill(m); $.hmodal.classList.add('on');
+    }
+    function closeHouse() { if (!HM.open) return; HM.open = ''; HM.m = null; $.hmodal.classList.remove('on'); }
+    on($.hmodal, 'click', (e) => {
+      const h = e.target.closest('[data-h]'), b = e.target.closest('[data-lv]');
+      if (b && HM.m) { HM.lv = +b.dataset.lv; houseFill(HM.m); tone(620, 820); return; }
+      if (e.target === $.hmodal || (h && h.dataset.h === 'hmno')) { closeHouse(); tone(523, 392); return; }
+      if (h && h.dataset.h === 'hmsms') { const n = HM.open; closeHouse(); if (n) { openThread('p:' + n); tone(560, 840); } }
+    });
+    // fenêtre ouverte : relue toutes les 30 s (le copain construit peut-être en ce moment)
+    every(() => { if (HM.open && friendOn && !document.hidden) fvHouseLoad(true); }, 30000);
 
     // ---------- l'avatar sur le serveur (pg_docs « garde », version base_rev) ; copie locale gardée (invités, hors ligne) ----------
     const SRVK = KEY + '.srv';
@@ -8873,7 +9176,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     }
     for (const k of ['go-av', 'go-av2', 'go-av3']) on($[k], 'click', () => openEdit());
     on($.wrrow, 'click', (e) => { const b = e.target.closest('[data-key]'); if (!b) return; const k = b.dataset.key, c = b.dataset.cat; openEdit(c, k); });
-    on(window, 'keydown', (e) => { if (e.key === 'Escape') { if (BUY) closeBuy(); else if (editing) cancelEdit(); else if (friendOn) closeFriend(); } });
+    on(window, 'keydown', (e) => { if (e.key === 'Escape') { if (HM.open) closeHouse(); else if (BUY) closeBuy(); else if (editing) cancelEdit(); else if (friendOn) closeFriend(); } });
     // vitrine « à débloquer » de l'onglet Moi : une sélection de belles pièces verrouillées (+ un secret)
     const SHOWCASE = [['ovr.smart_dress', 'tenue'], ['fx:mq.papillon', 'maquillage'], ['hat.fedora', 'chapeau'], ['hb.twin_tail_long', 'cheveux'], ['look:3', 'perso'], ['top.seifuku', 'haut'], ['feet.high_lace_shoe', 'pieds'], ['glass.round_shaded', 'acc'], ['hacc.alien_attena', 'chapeau'], ['hb.wild_tail', 'cheveux'], ['top.hoodie', 'haut'], ['elf', 'visage']];
     function renderShowcase() {
@@ -8991,7 +9294,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       if (e.target.closest('[data-h2="acct"]')) { try { PG && PG.account && PG.account(); } catch (x) { /* rien */ } return; }
       const c = e.target.closest('.pgh-fc'); if (c) openFriend(c.dataset.n);
     });
-    // le copain en grand : la scène 3D de la page passe dans la fenêtre, avec SON avatar ; gestes ; bientôt appeler / visiter
+    // le copain en grand : la scène 3D de la page passe dans la fenêtre, avec SON avatar ; gestes ; Écrire ; Voir sa maison (pg_room_maisons)
     function openFriend(n) {
       const m = FR.list.find((x) => x.name === n); if (!m) return;
       const a = FR.av.get(n), has = !!(a && a.tenue >= 0) && !stgFail && !!STG;
@@ -9003,12 +9306,14 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       $.fvhead.innerHTML = m.photo ? `<img class="hd" alt="" src="${esc(m.photo)}">` : `<span class="ini" style="--h:${hue(m.name)}">${esc(m.display[0] || '?')}</span>`;
       $.fvnonet.textContent = m.display + ' n\'a pas encore créé son avatar.';
       $.fv.classList.add('on'); $.name.classList.remove('on');
+      fvHouseSync(); fvHouseLoad(false);
       if (has) { { const st = $.gl.style; st.left = st.top = '0px'; st.width = st.height = '100%'; GLB = { x: 0, y: 0, w: 0, h: 0, full: true }; } $.fvstage.appendChild($.gl); STG.setFrame('corps'); STG.setLook(a.look || a.tenue).then(() => { if (!dead && friendOn === m && STG) STG.gesture('wave'); }); STG.face(); }
       requestAnimationFrame(() => { if (!dead) { placeStage(); activeSync(); } });
       tone(523, 784);
     }
     function closeFriend() {
       if (!friendOn) return;
+      closeHouse();
       friendOn = null; $.fv.classList.remove('on');
       if (!stgFail && $.gl.parentNode !== $.hero) $.hero.insertBefore($.gl, $.wait);
       if (STG && D) { STG.setLook(D); if (STG.ready() && !editing) $.name.classList.add('on'); }
@@ -9018,7 +9323,21 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       const h = e.target.closest('[data-h]');
       if (h && h.dataset.h === 'fvx') { closeFriend(); return; }
       if (h && h.dataset.h === 'fvsms') { const n = friendOn && friendOn.name; if (n) { openThread('p:' + n); tone(560, 840); } return; }
-      if (h && h.dataset.h === 'fvhouse') { toast('🏡 Bientôt : visite la maison de ' + (friendOn ? friendOn.display : 'ton copain') + ' dans Pégase'); tone(660, 880); return; }
+      if (h && h.dataset.h === 'fvhouse') {
+        const m = friendOn, k = h.dataset.k || 'soon';
+        if (m && k === 'see') { openHouse(m); tone(660, 880); return; }
+        if (m && k === 'retry') {
+          h.disabled = true;
+          loadMaisons(true).then((ok) => {
+            if (dead || friendOn !== m) return; fvHouseSync();
+            const x = HM.rows.get(m.name);
+            if (ok && x && x.P.length) openHouse(m); else if (!ok && hmOk()) toast(HM.st === 'offline' ? '🏡 Pas de réseau : réessaie dans un moment' : '🏡 Sa maison ne s\'affiche pas pour l\'instant : réessaie dans un moment');
+          });
+          return;
+        }
+        if (k !== 'soon') return;
+        toast('🏡 Bientôt : visite la maison de ' + (m ? m.display : 'ton copain') + ' dans Pégase'); tone(660, 880); return;
+      }
       const b = e.target.closest('.pgh-emo'); if (b && STG && STG.ready()) { STG.gesture(b.dataset.emo); tone(740, 1180); }
     });
     // présence : la borne la connaît déjà (direct) ; on relit la liste quand l'onglet Amis se voit
