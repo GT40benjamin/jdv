@@ -693,6 +693,54 @@ function smsTopicSync() {
   if (want) { RT.topics.add(want); if (RT.ws && RT.ws.readyState === 1) rtJoin(want); else rtConnect(); }
 }
 const PG_RPC_CAT = new Set(['pg_unlock_catalog', 'pg_mission_catalog']);
+// PEGAGRAM (21 oct. 2026, avec Pégase 0.9 — atelier ~/jdv-tools/pegase/borne/hub/pegagram ; serveur ~/jdv-tools/pegase/server/pegagram.sql) : le réseau photo
+// du hub. Fonctions pg_gram_* (arguments filtrés ici ; catalogue et gardien SANS p_name), photos du Storage PRIVÉ « pegase » (ph/<uuid>/g|m.jpg,
+// jeton du compte, gardées dans le cache « jdw-pg-photos » : une photo ne change jamais), signal { t: 'gram' } du canal de la salle.
+const PG_GRAM = new Set(['pg_gram_catalogue', 'pg_gram_fil', 'pg_gram_nouveau', 'pg_gram_activite', 'pg_gram_reagir', 'pg_gram_mot', 'pg_gram_retirer', 'pg_gram_signaler',
+  'pg_gram_gardien_liste', 'pg_gram_gardien_decider', 'pg_gram_gardien_menage', 'pg_gram_gardien_annonce']);
+const PG_GRAM_NONAME = new Set(['pg_gram_catalogue', 'pg_gram_gardien_liste', 'pg_gram_gardien_decider', 'pg_gram_gardien_menage', 'pg_gram_gardien_annonce']);
+const pgInt = v => (Number.isSafeInteger(v) && v > 0 ? v : null);
+function pgGramArgs(fn, x) {
+  x = x || {};
+  switch (fn) {
+    case 'pg_gram_fil': return { p_room: pgInt(x.p_room), p_before: pgInt(x.p_before), p_limit: Math.max(1, Math.min(50, x.p_limit | 0 || 20)) };
+    case 'pg_gram_nouveau': return { p_vu: pgInt(x.p_vu) || 0, p_vu_react: pgInt(x.p_vu_react) || 0 };
+    case 'pg_gram_activite': return { p_after: pgInt(x.p_after) || 0, p_limit: Math.max(1, Math.min(100, x.p_limit | 0 || 30)) };
+    case 'pg_gram_reagir': return { p_post: pgInt(x.p_post), p_emoji: x.p_emoji == null ? null : pgStr(x.p_emoji, 16) };
+    case 'pg_gram_mot': return { p_post: pgInt(x.p_post), p_mot: x.p_mot == null ? null : pgStr(x.p_mot, 24) };
+    case 'pg_gram_retirer': return { p_post: pgInt(x.p_post) };
+    case 'pg_gram_signaler': return { p_post: pgInt(x.p_post), p_motif: pgStr(x.p_motif, 20) };
+    case 'pg_gram_gardien_decider': return { p_post: pgInt(x.p_post), p_action: pgStr(x.p_action, 10) };
+    case 'pg_gram_gardien_annonce': return { p_texte: pgStr(x.p_texte, 400), p_room: pgInt(x.p_room), p_pnj: pgStr(x.p_pnj || 'concours', 24) };
+    default: return {};
+  }
+}
+const GRAM_SUBS = new Set(), GRAM_PHOTOS = new Map();
+const gramPath = p => (/^ph\/[0-9a-f-]{36}\/(g|m)\.jpg$/.test(String(p || '')) ? String(p) : null);
+function gramPhoto(path) {
+  const p = gramPath(path); if (!p) return Promise.reject(new Error('pegase.photo : chemin refusé'));
+  if (GRAM_PHOTOS.has(p)) return GRAM_PHOTOS.get(p);
+  const pr = (async () => {
+    let blob = null;
+    try { const c = await caches.open('jdw-pg-photos'); const r = await c.match(p); if (r) blob = await r.blob(); } catch (e) { /* pas de cache : on télécharge */ }
+    if (!blob) {
+      const tok = await acctToken(profile); if (!tok) throw Object.assign(new Error('pegase.photo : compte requis'), { guest: true });
+      const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/authenticated/pegase/' + p, { headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok } });
+      if (!r.ok) throw new Error('pegase.photo ' + r.status);
+      blob = await r.blob();
+      try { const c = await caches.open('jdw-pg-photos'); await c.put(p, new Response(blob, { headers: { 'Content-Type': 'image/jpeg' } })); } catch (e) { /* rien */ }
+    }
+    return URL.createObjectURL(blob);
+  })();
+  GRAM_PHOTOS.set(p, pr); pr.catch(() => GRAM_PHOTOS.delete(p));
+  return pr;
+}
+async function gramDelete(paths) {   // fichiers de MES photos retirées, ou ménage d'un gardien (règle « pg photos effacer » du serveur)
+  const l = (Array.isArray(paths) ? paths : []).map(gramPath).filter(Boolean).slice(0, 200); if (!l.length) return 0;
+  const tok = await acctToken(profile); if (!tok) return 0;
+  const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/pegase', { method: 'DELETE', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: l }) });
+  return r.ok ? l.length : 0;
+}
 function pegaseApi() {
   const guest = () => isGuest() || !profile.name;
   return {
@@ -707,17 +755,23 @@ function pegaseApi() {
         online: on(p), seen: p.seen || 0, photo: p.photo || null }));
     },
     rpc: async (fn, args) => {
-      if (!PG_RPC.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
+      if (!PG_RPC.has(fn) && !PG_GRAM.has(fn)) throw new Error('pegase.rpc : fonction refusée (' + fn + ')');
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
       if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
       const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : fn.startsWith('pg_sms_') ? pgSmsArgs(fn, args) : Object.assign({}, args || {});
+      if (PG_GRAM.has(fn)) { const g = Object.assign(pgGramArgs(fn, args), { p_code: CODE() }); if (!PG_GRAM_NONAME.has(fn)) g.p_name = profile.name; return rpc(fn, g, { quiet: true }); }
       Object.assign(a, { p_code: CODE(), p_name: profile.name });
       if (fn === 'pg_room_avatars') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
       return rpc(fn, a, { quiet: true });
     },
     account: () => { backToLibrary(); guestAsk('Les copains de Pégase'); },   // invité : créer un compte (quitte le hub)
-    has: fn => PG_RPC.has(String(fn || '')),   // 20 oct. : le hub demande avant d'afficher une fonction (réactions)
-    onSms: fn => { if (typeof fn !== 'function') return () => {}; SMS_SUBS.add(fn); smsTopicSync(); return () => { SMS_SUBS.delete(fn); smsTopicSync(); }; }
+    // UN SEUL has(fn) pour les nouveautés (hub de Pégase 0.9) : la borne laisse-t-elle passer cette fonction ? Le hub cache ce qu'elle refuse
+    // (barre des réactions : pg_sms_react ; onglet PegaGram : pg_gram_*).
+    has: fn => { const f = String(fn || ''); return PG_RPC.has(f) || PG_GRAM.has(f); },
+    onSms: fn => { if (typeof fn !== 'function') return () => {}; SMS_SUBS.add(fn); smsTopicSync(); return () => { SMS_SUBS.delete(fn); smsTopicSync(); }; },
+    photo: path => gramPhoto(path),   // PegaGram (et cartes postales de Messages) : photo du Storage privé, ph/<uuid>/g|m.jpg
+    photoDelete: paths => gramDelete(paths),
+    onGram: fn => { if (typeof fn !== 'function') return () => {}; GRAM_SUBS.add(fn); return () => { GRAM_SUBS.delete(fn); }; }
   };
 }
 
@@ -1709,6 +1763,7 @@ const pokeTimers = {};
 function onPoke(topic, event, p) {
   if (p.from === clientId) return;
   if (p.t === 'sms') { if (topic === smsTopicOn) for (const f of [...SMS_SUBS]) { try { f(); } catch (e) {} } return; }
+  if (p.t === 'gram') { if (room && topic === 'jdw-room-' + room.id) for (const f of [...GRAM_SUBS]) { try { f(); } catch (e) {} } return; }   // PegaGram : relire
   if (p.t === 'rtc') { if (room && topic === 'jdw-room-' + room.id) rtcOnSignal(p); return; }
   if (p.t === 'net') { if (NET.topic && topic === NET.topic) netOnSignal(p); return; }
   if (p.t === 'netinv') { if (room && topic === 'jdw-room-' + room.id) netOnInvite(p); return; }
