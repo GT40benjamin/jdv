@@ -861,8 +861,9 @@ function duckMusic(level, ms) {
 function unduckMusic() { duckUntil = 0; clearTimeout(duckTimer); musicApplyLevel(0.8); }
 // variantes d'un morceau : « empilo » → empilo-1, empilo-2, empilo-3 (départ au hasard, puis à la suite)
 // calmes au début, énergiques aux niveaux difficiles ; à l'accueil, un mélange des deux
-// jeux sans musique à eux : ils prennent celle d'un autre écran (Pégase : la musique calme de l'accueil)
-const MUSIC_AS = { pegase: 'accueil' };
+// jeux sans musique à eux : ils prennent celle d'un autre écran (vide depuis que Pégase a la sienne : assets/music/pegase-1.mp3,
+// « Chez toi » harpe, célesta et violoncelle, choisie par l'utilisateur le 22 oct. 2026, jouée dès l'ouverture du hub)
+const MUSIC_AS = {};
 function musicVariants(id, mode) {
   id = MUSIC_AS[id] || id;
   const v = (window.JDW_MUSIC || {})[id]; if (!v) return [id];

@@ -199,7 +199,9 @@ Atelier : `~/jdv-tools/pegase/borne/hub` (src/ = avatar 3D : avatar.js copie de 
 wrap/tail.js = la page ; `node tools/assemble.js` → out/pegase.js à copier dans source/games/ ; paquets `node tools/pack.js` ; images
 `python tools/images.py` ; harnais `test/harness.html` (serveur : `PORT=8833 node ~/jdv-tools/pegase/tools/serve.js ~/jdv-tools/pegase/borne/hub`),
 captures `node test/shots2.js` (hub 2) ou `test/shots.js`). Test de la borne : `~/jdv-tools/test-pegase-labo.tmp.js`. L'ancien atelier three.js (borne/src, wrap/) est gardé, non publié.
-Musique : celle de l'accueil (`MUSIC_AS` dans shell2.js).
+Musique : la sienne depuis le 22 oct. 2026, `assets/music/pegase-1.mp3` (« Chez toi », harpe, célesta et violoncelle, ElevenLabs, choisie
+par l'utilisateur ; la maison du jeu a l'autre « Chez toi », piano feutré et guitare ; coupée à 64 s pour boucler en fondu), lancée dès le toucher sur la tuile, pendant le
+chargement du hub ; `MUSIC_AS` (shell2.js) est vide. Source et outils : `~/jdv-tools/pegase/musique/` (maison-2).
 **Cartes d'avancement** : `MAP_DEFS` dans shell2.js (Galaxy Wars, Magic Force, Plein Gaz, Empilo, Glouton, Chasse aux mouches, Les P'tits Rouleaux, Casse-Carreaux : tous les jeux solo ont la leur ;
 Magic Force 1.12.2 : dessinée entièrement par la bibliothèque, MAP_DEFS.magic, à partir de worlds / worldOf / levelsPerWorld / drawWorldIcon du jeu ; `def.warm` prépare la carte d'avance, au calme sur l'accueil). Un jeu peut fournir son propre dessin :
 `JDW_GAMES.<id>.mapArt = { acc, news, stops, paint, node }` (voir Empilo ; champs facultatifs de MAP_DEFS : stops, paint, node, step = carte
