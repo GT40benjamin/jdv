@@ -1,3 +1,5 @@
+📞 APPELS PARTOUT DANS LA BORNE : appelle n'importe quel copain de tes salles, même s'il n'a jamais ouvert Pégase — en vidéo entre bornes, en avatar avec ceux qui sont dans Pégase ; la borne sonne même en pleine partie (nouvelle appli 1.10 pour la caméra sur Android)
+👫 Onglet Amis : tes copains EN PIED, et ceux qui ne sont pas encore sur Pégase
 📱 PÉGASE 0.9.3.2 : en 3e personne, le téléphone s'ouvre directement en grand à gauche (un bouton de moins)
 😄 PÉGASE 0.9.3.1 : au micro, ton avatar rit, sourit et s'étonne avec ta voix (les autres le voient), « oui / non / salut » → geste ; Grand livre : nombre par onglet, légendes floues, perche, carpe, koï, brochet et la Dorée
 👫 Hub de Pégase : l'onglet Amis en tuiles — en ligne ou non, nouveaux messages, son livre ; touche un ami pour ses messages, son livre et sa maison
