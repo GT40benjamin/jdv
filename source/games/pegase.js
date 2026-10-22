@@ -3964,7 +3964,7 @@
       }
       const view = { yaw: 0.3, vyaw: 0, target: null, focus: null, w: 1, h: 1, spin: 0 };
       const FR = { y: 0.9, h: 2.5 }, FRT = { y: 0.9, h: 2.5 };
-      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 }, parle: { y: 1.47, h: 1 }, geste: { y: 1.36, h: 1.8 } };
+      const FRAMES = { corps: { y: 0.9, h: 2.5 }, buste: { y: 1.25, h: 1.55 }, tete: { y: 1.58, h: 0.92 }, visage: { y: 1.62, h: 0.7 }, jambes: { y: 0.55, h: 1.35 }, pieds: { y: 0.3, h: 0.95 }, parle: { y: 1.47, h: 1 }, selfie: { y: 1.53, h: 0.6 }, geste: { y: 1.36, h: 1.8 } };
       function setFrame(k) {
         const f = FRAMES[k] || FRAMES.corps;
         FRT.y = f.y;
@@ -4105,6 +4105,75 @@
         const a = p(0, 1.95), b = p(0, -0.1), hw = Math.abs(b.y - a.y) * 0.24, x = e.clientX - r.left, y = e.clientY - r.top;
         return y > a.y && y < b.y && Math.abs(x - (a.x + b.x) / 2) < hw;
       }
+      let P2 = null, PIP = null, pipTalk = null;
+      const pcam = new T3.PerspectiveCamera(22, 1, 0.05, 30), _hp = new T3.Vector3();
+      async function setPip(o, rect) {
+        if (o == null) {
+          PIP = null;
+          pipTalk = null;
+          if (P2) {
+            P2.talk = null;
+            if (P2.group.parent) P2.group.parent.remove(P2.group);
+          }
+          return;
+        }
+        const p = PIP = { rect: rect || null, ready: false };
+        if (!P2) P2 = new Avatar(W, { atlas: PHONE ? 512 : 1024, normals: false, shadow: false });
+        const { d, looks } = lookOf(typeof o === "number" ? o | 0 : o);
+        await Promise.all(looks.map((n) => import_pg_env.env.need(n)));
+        if (dead || PIP !== p) return;
+        await P2.set(d);
+        if (dead || PIP !== p) return;
+        P2.setExpression("sourire");
+        P2.lookAt = true;
+        P2.lookTarget.set(0, 0.03);
+        P2.group.rotation.y = 0;
+        P2.group.position.set(0, 0, 0);
+        P2.group.visible = false;
+        scene.add(P2.group);
+        P2.update(1 / 30, pcam);
+        p.ready = true;
+      }
+      function renderPip(dt) {
+        const r = PIP && PIP.ready && PIP.rect;
+        if (!r || r.w < 8 || r.h < 8) return;
+        P2.talk = pipTalk ? (() => {
+          try {
+            return pipTalk(dt);
+          } catch (e) {
+            return null;
+          }
+        })() : null;
+        P2.lookAt = true;
+        P2.lookTarget.set(Math.sin(tt * 0.6) * 0.04, 0.03);
+        P2.update(dt, pcam);
+        const hb = P2.bones.get("head");
+        if (!hb) return;
+        hb.getWorldPosition(_hp);
+        pcam.aspect = r.w / r.h;
+        const hgt = 0.6, dist = hgt / 2 / Math.tan(T3.MathUtils.degToRad(pcam.fov) / 2);
+        pcam.position.set(0, _hp.y - 0.05 + dist * 0.03, dist);
+        pcam.lookAt(0, _hp.y - 0.07, 0);
+        pcam.updateProjectionMatrix();
+        const hide = [A.group, ST.podium, ST.halo, ST.blob, motes.userData.pts, sparks.pts], vis = hide.map((x) => x.visible);
+        hide.forEach((x) => {
+          x.visible = false;
+        });
+        P2.group.visible = true;
+        const sh = R.shadowMap.enabled;
+        R.shadowMap.enabled = false;
+        R.setViewport(r.x, view.h - r.y - r.h, r.w, r.h);
+        R.setScissor(r.x, view.h - r.y - r.h, r.w, r.h);
+        R.setScissorTest(true);
+        R.render(scene, pcam);
+        R.setScissorTest(false);
+        R.setViewport(0, 0, view.w, view.h);
+        R.shadowMap.enabled = sh;
+        P2.group.visible = false;
+        hide.forEach((x, i) => {
+          x.visible = vis[i];
+        });
+      }
       canvas.addEventListener("pointerdown", onDown);
       canvas.addEventListener("pointermove", onMove);
       canvas.addEventListener("pointerup", onUp);
@@ -4168,6 +4237,7 @@
         sparks.update(dt);
         if (ready) A.update(dt, cam);
         R.render(scene, cam);
+        if (PIP) renderPip(dt);
         if (opts.onFrame && ready) {
           const hb = A.bones.get("head");
           if (hb) {
@@ -4340,6 +4410,15 @@
           talkFn = typeof fn === "function" ? fn : null;
           if (!talkFn) A.talk = null;
         },
+        setPip,
+        pipRect(r) {
+          if (PIP) PIP.rect = r || null;
+        },
+        setPipTalk(fn) {
+          pipTalk = typeof fn === "function" ? fn : null;
+        },
+        pipReady: () => !!(PIP && PIP.ready),
+        pipAvatar: () => P2,
         setHome(on) {
           view.home = !!on;
           view.homeT = 0;
@@ -4370,6 +4449,10 @@
           }
           try {
             if (B) B.dispose();
+          } catch (e) {
+          }
+          try {
+            if (P2) P2.dispose();
           } catch (e) {
           }
           scene.traverse((o) => {
@@ -4854,9 +4937,25 @@
 .pga-b{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;font:700 12.5px ${FB};background:rgba(255,236,210,.09);color:#f3e2c8;white-space:nowrap}
 .pga-b.on{background:linear-gradient(180deg,#ffe7a8,#ffb85e);color:#3a1a05}
 .pga-last{display:block;font:600 13px ${FB};color:rgba(255,236,210,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pga-h3{margin:26px 0 0;font:700 15px ${FB};letter-spacing:.06em;text-transform:uppercase;color:#fac55e}
-.pga-grid.hab .pga-t{gap:8px}
-.pga-ht .pgh-sma{width:46px;height:46px;font-size:22px}
+/* 23 oct. (l'utilisateur : « fais réellement l'avatar vu en entier comme avant ») : la tuile d'un ami = la carte en pied d'avant (.pgh-fc :
+   scène, rondin, avatar entier ; sans avatar : sa tête de la borne sur une silhouette, « Pas encore sur Pégase ») + ses nouvelles + 📞 */
+.pga-f{padding:0;gap:0}
+.pga-f .pgh-fc{flex:none;display:flex;flex-direction:column;width:100%;min-width:0;padding:8px 8px 12px;cursor:pointer;font:inherit}
+.pga-f .pgh-fc .st{height:196px;border-radius:16px}
+.pga-f .pgh-fc .av{height:176px}
+.pga-f .pgh-fc b{margin-top:10px;font-size:15.5px}
+.pga-f .pgh-fc small{font-size:12px}
+.pga-f .pgh-fc.no .none{bottom:34px;font-size:10.5px}
+.pga-f.un .pgh-fc .st{box-shadow:inset 0 0 0 2px rgba(255,190,90,.8),0 10px 22px rgba(0,0,0,.3)}
+.pga-f .pga-bd{justify-content:center;margin-top:8px}
+.pga-f .pga-last{margin-top:6px;text-align:center}
+.pga-un{position:absolute;left:8px;top:8px;z-index:4;padding:4px 9px;border-radius:999px;font:800 12px ${FB};color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffb85e);box-shadow:0 4px 10px rgba(0,0,0,.35)}
+.pga-call{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 10px 12px;min-height:44px;padding:0 14px;border:0;border-radius:999px;cursor:pointer;
+  font:800 14.5px ${FB};color:#063a18;background:linear-gradient(180deg,#a6f5bb,#3cbf68);box-shadow:0 6px 16px rgba(20,90,50,.35),inset 0 0 0 1.5px rgba(255,255,255,.35);transition:transform .15s}
+.pga-call:hover{transform:translateY(-1px)}
+.pga-call:active{transform:scale(.96)}
+.pga-call:focus-visible{outline:3px solid #fac55e;outline-offset:2px}
+.pga-f .pgh-fc{flex:1 0 auto}
 .pgh-fvbtns .pgh-cta{min-height:52px;font-size:14px;flex-direction:column;gap:2px;line-height:1.1}
 .pgh-fvbtns .pgh-cta small{font:700 10px ${FB};letter-spacing:.08em;text-transform:uppercase;color:#ffcf8a}
 .pgh-fvbtns .pgh-cta small,.pgh-fvbtns .pgh-cta span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -4883,6 +4982,56 @@
 .pgh.short .pgh-hmlv button{min-height:30px;padding:2px 11px;font-size:12px}
 .pgh.short .pgh-hmfacts span{padding:4px 10px;font-size:12px}
 .pgh.short .pgh-hm .pgh-mbtns .pgh-cta{min-height:42px}
+/* appel avec les avatars (hub 2.15) : la fiche du copain en plein écran, son avatar en grand, le mien dans le coin */
+.pgh-fvbtns .pgh-cta[hidden]{display:none}
+.pgh-fvbtns.three [data-h="fvsms"]{grid-column:auto}
+.pgh-cta.call{background:linear-gradient(180deg,#a6f5bb,#3cbf68);color:#063a18;box-shadow:0 8px 20px rgba(40,160,90,.35)}
+.pgh-fvbtns .pgh-cta.call small{color:#0b4d22}
+.pgh-fv.call .pgh-fvstage{left:0;right:0;top:0;bottom:0;width:auto;height:auto}
+.pgh-fv.call .pgh-fvpanel{display:none}
+.pgh-clpip{position:absolute;right:14px;top:calc(96px + env(safe-area-inset-top,0px));width:30%;max-width:168px;aspect-ratio:3 / 4;border-radius:22px;display:none;z-index:4;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 88%,rgba(255,196,120,.5),rgba(255,196,120,0) 70%),linear-gradient(180deg,#3d2c70,#211747);box-shadow:inset 0 0 0 2px rgba(255,214,140,.5),0 12px 26px rgba(0,0,0,.45)}
+.pgh-fv.call .pgh-clpip{display:block}
+.pgh-fv.wide .pgh-clpip{top:24px;right:24px;width:18%;max-width:190px}
+/* 23 oct. : sur la borne on se voit « en vrai » — la vidéo de l'autre plein cadre (sinon son avatar), ma caméra dans le coin (sinon mon avatar) */
+.pgh-clvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3;display:none;background:#140d28}
+.pgh-fv.vid .pgh-clvid{display:block}
+.pgh-clme{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;background:#140d28}
+.pgh-fv.cam .pgh-clme{display:block}
+.pgh-fv.cam .pgh-clpip{background:#140d28}
+.pgh-fv.cam .pgh-clpip b{padding:2px 9px;border-radius:999px;background:rgba(14,8,28,.62)}
+.pgh-clpip b{z-index:1;position:absolute;left:50%;bottom:7px;transform:translateX(-50%);font:700 11px ${FB};letter-spacing:.1em;text-transform:uppercase;color:#ffe9c2;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.pgh-fvcall{position:absolute;inset:0;display:none;pointer-events:none;z-index:3}
+.pgh-fv.call .pgh-fvcall{display:block}
+.pgh-cltop{position:absolute;left:0;right:0;top:0;padding:calc(20px + env(safe-area-inset-top,0px)) 18px 34px;background:linear-gradient(180deg,rgba(22,12,44,.82),rgba(22,12,44,0))}
+.pgh-cltop b{display:block;max-width:60%;font:400 30px ${FD};letter-spacing:.03em;color:#ffe9c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh-cltop span{display:inline-flex;align-items:center;gap:8px;margin-top:6px;font:700 15px ${FB};color:#fff1da}
+.pgh-cltop span i{width:10px;height:10px;border-radius:50%;background:#ffd36a;animation:pghClPulse 1.1s ease-in-out infinite}
+.pgh-cltop span em{font-style:normal}
+.pgh-fvcall[data-s="live"] .pgh-cltop span i{background:#7cf0a0;box-shadow:0 0 10px #7cf0a0;animation:none}
+.pgh-fvcall[data-s="end"] .pgh-cltop span i{background:#ff7b7b;animation:none}
+@keyframes pghClPulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes pghClRing{0%,100%{transform:rotate(0)}15%{transform:rotate(-14deg)}30%{transform:rotate(12deg)}45%{transform:rotate(-8deg)}60%{transform:rotate(0)}}
+.pgh-clbar{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:34px;padding:30px 16px calc(44px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,rgba(22,12,44,.85),rgba(22,12,44,0))}
+.pgh-clbar button{position:relative;width:74px;height:74px;border-radius:50%;border:0;display:none;place-items:center;font-size:30px;line-height:1;color:#fff;cursor:pointer;pointer-events:auto;box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.pgh-clbar button small{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:8px;font:700 12px ${FB};white-space:nowrap;color:#fff1da;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.pgh-clbar .end,.pgh-clbar .no{background:linear-gradient(180deg,#ff7a7a,#d93c3c)}
+.pgh-clbar .end span,.pgh-clbar .no span{display:block;transform:rotate(135deg)}
+.pgh-clbar .ok{background:linear-gradient(180deg,#8ff0a8,#2fb35c)}
+.pgh-clbar .ok span{display:block;animation:pghClRing 1.2s ease-in-out infinite}
+.pgh-clbar .mute{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.4),0 10px 26px rgba(0,0,0,.35)}
+.pgh-clbar .mute.on{background:#fff1da;color:#3a1a05}
+.pgh-clbar .cam{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.4),0 10px 26px rgba(0,0,0,.35)}
+.pgh-clbar .cam.on{background:#fff1da;color:#3a1a05}
+.pgh-clbar .flip{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.4),0 10px 26px rgba(0,0,0,.35)}
+.pgh-fv.back .pgh-clme{transform:none}
+.pgh-fvcall[data-s="in"] .ok,.pgh-fvcall[data-s="in"] .no,.pgh-fvcall[data-s="out"] .end,.pgh-fvcall[data-s="out"] .mute,.pgh-fvcall[data-s="live"] .end,.pgh-fvcall[data-s="live"] .mute,
+.pgh-fvcall[data-s="out"] .cam,.pgh-fvcall[data-s="live"] .cam,.pgh-fvcall[data-s="out"] .flip,.pgh-fvcall[data-s="live"] .flip{display:grid}
+.pgh-clbar .cam[hidden],.pgh-clbar .flip[hidden]{display:none!important}
+.pgh-fv.vid .pgh-cltop{background:linear-gradient(180deg,rgba(10,6,22,.7),rgba(10,6,22,0))}
+.pgh.short .pgh-cltop{padding-top:12px}.pgh.short .pgh-cltop b{font-size:22px}.pgh.short .pgh-clpip{top:12px;width:16%}
+.pgh.short .pgh-clbar{padding-bottom:30px;gap:26px}.pgh.short .pgh-clbar button{width:60px;height:60px;font-size:24px}
+@media (max-width:400px){.pgh-clbar{gap:18px}.pgh-clbar button{width:64px;height:64px;font-size:26px}}
 /* ---------- modifier l'avatar SUR PLACE (panneau du bas ; côté droit en paysage) ---------- */
 .pgh-hero .pgh-copy,.pgh-hero .pgh-bottom{transition:opacity .35s,transform .35s}
 .pgh.editing .pgh-hero .pgh-copy{opacity:0;transform:translateY(-16px);pointer-events:none}
@@ -5595,7 +5744,6 @@
     const pnjFace = (p) => p === 'maire' ? papiFace() : `<span class="f cc">${p === 'concours' ? '🏆' : '✨'}</span>`;
     const pnjName = (p) => (G.cat && G.cat.pnj && G.cat.pnj[p]) || (p === 'maire' ? 'Papi Auguste' : p === 'concours' ? 'Concours Pégase' : 'Pégase');
     const motT = (id) => { const m = G.cat && G.cat.mots.find((x) => x.id === id); return m ? m.t : ''; };
-    const raison = (id, inf) => { const r = G.cat && G.cat.raisons.find((x) => x.id === id); if (!r) return ''; const nom = inf && inf.nom ? inf.nom : 'Ce sujet'; return r.t.replace('{nom}', nom); };
     const meta = (inf) => {
       if (!inf) return ''; const bits = [];
       if (inf.nom) bits.push(esc(inf.nom) + (inf.nb > 1 ? ' ×' + inf.nb : ''));
@@ -5642,15 +5790,14 @@
           ${p.r_photo ? `<figure class="pgg-pol" data-a="voir" style="margin-top:10px"><div class="pgg-ph"><img alt="" data-src="${esc(p.r_m)}"><i class="hrt">❤️</i></div></figure>` : ''}${rxBar(p, rx, my, false)}</article>`;
       }
       const words = rx.filter((x) => x.m).map((x) => `<span class="pgg-mot${x.w === n ? ' mine' : ''}"><b>${esc(x.w === n ? 'Toi' : who(x.w))}</b> ${T(motT(x.m))}</span>`).join('');
-      const papi = (p.r_pnj_react || []).filter((x) => x.r).map((x) => `<div class="pgg-papi">${pnjFace(x.p)}<div class="t"><small>${esc(pnjName(x.p))} · habitant d'Ailebrune</small>${T(raison(x.r, p.r_infos))}<em>${x.e || ''}</em></div></div>`).join('');
+      // (23 oct., l'utilisateur : Papi Auguste ne COMMENTE pas les photos ; il annonce seulement les concours et les gagnants, plus haut)
       const masq = p.r_state === 'masquee';
       return `<article class="pgg-card${masq ? ' masq' : ''}" data-id="${p.r_id}" style="--rot:${(i % 3 - 1) * 0.35}deg">
         <header class="pgg-ch">${avHtml(p.r_auteur)}<div class="pgg-who"><b>${esc(mine ? 'Toi' : nameOf(p))}</b><small>${esc(p.r_salle || '')} · ${ago(p.r_at)}</small></div><button class="pgg-more" data-a="menu" aria-label="Plus d'actions">⋯</button></header>
         <figure class="pgg-pol" data-a="voir"><div class="pgg-ph${estCarte(p) ? ' carte' : ''}"><img alt="${esc(p.r_legende || 'Photo de ' + nameOf(p))}" data-src="${esc(p.r_m)}"><i class="hrt">❤️</i></div>
           <figcaption>${p.r_legende ? `<span class="pgg-leg">${T(p.r_legende)}</span>` : ''}${meta(p.r_infos) ? `<small class="pgg-meta">${meta(p.r_infos)}</small>` : ''}</figcaption></figure>
         ${masq ? '<div class="pgg-wait">⏳ <span>Des copains l\'ont signalée : elle est cachée en attendant qu\'un gardien la regarde.</span></div>' : rxBar(p, rx, my, mine)}
-        ${masq ? '' : `<div class="pgg-mots">${words}${mine ? '' : `<button class="pgg-motb" data-a="mot">💬 ${my.m ? 'Changer mon mot' : 'Un petit mot'}</button>`}</div>`}
-        ${papi}</article>`;
+        ${masq ? '' : `<div class="pgg-mots">${words}${mine ? '' : `<button class="pgg-motb" data-a="mot">💬 ${my.m ? 'Changer mon mot' : 'Un petit mot'}</button>`}</div>`}</article>`;
     }
     function rxBar(p, rx, my, mine) {
       const cnt = (e) => rx.filter((x) => x.e === e).length;
@@ -5696,9 +5843,9 @@
       return [...m.values()];
     }
     function actHtml() {
-      const fresh = G.act.filter((a) => a.r_seq > G.vuR).slice(0, 3); if (!fresh.length) return '';
-      return `<section class="pgg-act"><h3>Sur tes photos</h3>${fresh.map((a) => `<div class="pgg-actr"><img alt="" data-src="${esc(a.r_m || '')}"><span>${a.r_pnj ? `<b>${esc(pnjName(a.r_pnj))}</b> ${a.r_emoji || ''} ${T(raison(a.r_raison, (G.posts.find((p) => p.r_id === a.r_post) || {}).r_infos))}` :
-        `<b>${esc(who(a.r_qui))}</b> ${a.r_mot ? 'a écrit « ' + esc(motT(a.r_mot)) + ' »' : 'a réagi ' + (a.r_emoji || '')}`} <small>· ${ago(a.r_at)}</small></span></div>`).join('')}</section>`;
+      const fresh = G.act.filter((a) => a.r_seq > G.vuR && !a.r_pnj).slice(0, 3); if (!fresh.length) return '';   // jamais d'avis d'habitant (23 oct.)
+      return `<section class="pgg-act"><h3>Sur tes photos</h3>${fresh.map((a) => `<div class="pgg-actr"><img alt="" data-src="${esc(a.r_m || '')}"><span>`
+        + `<b>${esc(who(a.r_qui))}</b> ${a.r_mot ? 'a écrit « ' + esc(motT(a.r_mot)) + ' »' : 'a réagi ' + (a.r_emoji || '')} <small>· ${ago(a.r_at)}</small></span></div>`).join('')}</section>`;
     }
     function hookAct() { pane.querySelectorAll('.pgg-actr img[data-src]').forEach((im) => { if (im.dataset.src) load(im); }); }
     function badge() {
@@ -6982,7 +7129,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="pgh-frhead"><h2 class="pgh-h2">Mes amis</h2><span class="pgh-frcount" data-h="amicount"></span></div>
       <p class="pgh-sub">Touche un ami : ses messages, son livre, son avatar et sa maison.</p>
       <div class="pga-grid" data-h="amibox"></div>
-      <div data-h="amihab"></div>
     </section>
     <section class="pgh-sec pgh-smsec" data-h="secsms" hidden>
       <div class="pgh-frhead"><h2 class="pgh-h2">Messages</h2><span class="pgh-smsn" data-h="smsn"></span></div>
@@ -7049,14 +7195,16 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
   <div class="pgh-dbtns"><button class="pgh-cta glass rnd" data-h="drnd" aria-label="Au hasard" title="Au hasard">${PGH_SVG.dice}</button><button class="pgh-cta glass" data-h="dno">Annuler</button><button class="pgh-cta gold" data-h="dok">${PGH_SVG.check}<span>Enregistrer</span></button></div>
 </div>
 <div class="pgh-fv" data-h="fv" role="dialog" aria-label="Un copain">
-  <div class="pgh-fvstage" data-h="fvstage"><div class="pgh-fvnone" data-h="fvnone"><div><div class="ped"><span class="sil"></span><span data-h="fvhead"></span></div><p data-h="fvnonet"></p></div></div></div>
+  <div class="pgh-fvstage" data-h="fvstage"><video class="pgh-clvid" data-h="clvid" playsinline autoplay muted></video><div class="pgh-clpip" data-h="clpip"><video class="pgh-clme" data-h="clme" playsinline autoplay muted></video><b>Moi</b></div><div class="pgh-fvnone" data-h="fvnone"><div><div class="ped"><span class="sil"></span><span data-h="fvhead"></span></div><p data-h="fvnonet"></p></div></div></div>
   <div class="pgh-fvpanel">
     <div class="pgh-fvhead"><b data-h="fvname"></b><button class="pgh-dclose" data-h="fvx" aria-label="Fermer">✕</button></div>
     <span class="pgh-fvst" data-h="fvst"><i></i><span data-h="fvstt"></span></span>
     <p class="pgh-fvdesc" data-h="fvdesc"></p>
     <div class="pgh-fvemo" data-h="fvemo">${EMOTES_ALL.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
-    <div class="pgh-fvbtns"><button class="pgh-cta gold" data-h="fvsms"><span>✉️ Messages</span><small style="color:#7a3d10" data-h="fvsmsn">un message</small></button><button class="pgh-cta glass" data-h="fvlivre" hidden><span>📖 Son livre</span><small data-h="fvlivren"></small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
+    <div class="pgh-fvbtns" data-h="fvbtns"><button class="pgh-cta call" data-h="fvcall1" hidden><span>📞 Appeler</span><small>en vidéo</small></button><button class="pgh-cta gold" data-h="fvsms"><span>✉️ Messages</span><small style="color:#7a3d10" data-h="fvsmsn">un message</small></button><button class="pgh-cta glass" data-h="fvlivre" hidden><span>📖 Son livre</span><small data-h="fvlivren"></small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
   </div>
+  <div class="pgh-fvcall" data-h="fvcall" data-s=""><div class="pgh-cltop"><b data-h="clname"></b><span><i></i><em data-h="clst"></em></span></div>
+    <div class="pgh-clbar"><button class="mute" data-h="clmute" aria-label="Couper le micro">🎙️<small>Micro</small></button><button class="cam" data-h="clcam" aria-label="Couper la caméra" hidden>📷<small>Caméra</small></button><button class="flip" data-h="clflip" aria-label="Retourner la caméra : montrer ce qu'il y a devant moi" hidden>🔄<small>Retourner</small></button><button class="no" data-h="clno" aria-label="Refuser"><span>📞</span><small>Refuser</small></button><button class="end" data-h="clend" aria-label="Raccrocher"><span>📞</span><small>Raccrocher</small></button><button class="ok" data-h="clok" aria-label="Décrocher"><span>📞</span><small>Décrocher</small></button></div></div>
 </div>
 <div class="pgh-modal pgh-hm" data-h="hmodal" role="dialog" aria-label="La maison d'un copain"><div class="pgh-mcard">
   <h3 data-h="hmname"></h3>
@@ -7677,8 +7825,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       if (Math.abs(m.copyB - LAY.copyB) > 1.5 || Math.abs(m.emoT - LAY.emoT) > 1.5 || Math.abs(m.heroH - LAY.heroH) > 1.5 || Math.abs(m.heroW - LAY.heroW) > 1.5) relayout();
       else if (STG && STG.view && $.gl.parentNode === $.hero) { const g = $.gl.getBoundingClientRect(); if (Math.abs(g.width - STG.view.w) > 1.5 || Math.abs(g.height - STG.view.h) > 1.5) placeStage(); }
     }
-    function fvFocus() { const r = $.fvstage.getBoundingClientRect(); return { x: r.width * 0.05, y: wide ? 24 : 12, w: r.width * 0.9, h: r.height - (wide ? 48 : 18) }; }
+    function fvFocus() { const r = $.fvstage.getBoundingClientRect(); if (CALL.c && CALL.c.ui) return { x: r.width * 0.06, y: r.height * (wide ? 0.13 : 0.22), w: r.width * 0.88, h: r.height * (wide ? 0.66 : 0.5) }; return { x: r.width * 0.05, y: wide ? 24 : 12, w: r.width * 0.9, h: r.height - (wide ? 48 : 18) }; }
     let STG = null, PGM = null, editing = false, friendOn = null;
+    const CALL = { c: null, seen: new Map(), polling: false, off: null, lk: null, at: 0, ringT: 0, pt: 0, off404: false };   // appels (hub 2.15, plus bas)
     // la toile 3D ne couvre que la BANDE où se tient l'avatar (+ marges pour le saut, les étincelles et l'étiquette) : beaucoup moins de
     // pixels à dessiner et à composer sur les téléphones ; plein cadre pendant le créateur et chez un copain
     let GLB = { x: 0, y: 0, w: 0, h: 0, full: true };
@@ -7704,6 +7853,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         if (STG) STG.setFocus(f);
       }
       $.wait.style.left = (f.x + f.w / 2) + 'px'; $.wait.style.top = (f.y + f.h * 0.52) + 'px';
+      if (CALL.c && CALL.c.ui) pipPlace();
     }
 
     // ---------- Pégase qui passe dans le ciel (2D) ----------
@@ -7731,7 +7881,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     const env = { mobile, touch, need: (n, p) => needPack(n, p), file: (n) => STORE.files.get(n), fileAsync: (n) => fileOf(n), report, build: PG_BUILD };
     function activeSync() {
       const vis = !document.hidden;
-      if (STG) STG.setActive(vis && (editing || !!friendOn || heroVis));
+      const vidOnly = !!(CALL.c && CALL.c.ui && $.fv.classList.contains('vid') && $.fv.classList.contains('cam'));   // appel vidéo des deux côtés
+      if (STG) STG.setActive(vis && !vidOnly && (editing || !!friendOn || heroVis));
       flySet(vis && heroVis && !editing && !friendOn && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
       if (!vis) earBilan();
       earSync();
@@ -9227,7 +9378,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     }
     for (const k of ['go-av', 'go-av2', 'go-av3']) on($[k], 'click', () => openEdit());
     on($.wrrow, 'click', (e) => { const b = e.target.closest('[data-key]'); if (!b) return; const k = b.dataset.key, c = b.dataset.cat; openEdit(c, k); });
-    on(window, 'keydown', (e) => { if (e.key === 'Escape') { if (HM.open) closeHouse(); else if (BUY) closeBuy(); else if (editing) cancelEdit(); else if (friendOn) closeFriend(); } });
+    on(window, 'keydown', (e) => { if (e.key === 'Escape') { if (HM.open) closeHouse(); else if (BUY) closeBuy(); else if (editing) cancelEdit(); else if (friendOn && !CALL.c) closeFriend(); } });
     // vitrine « à débloquer » de l'onglet Moi : une sélection de belles pièces verrouillées (+ un secret)
     const SHOWCASE = [['ovr.smart_dress', 'tenue'], ['fx:mq.papillon', 'maquillage'], ['hat.fedora', 'chapeau'], ['hb.twin_tail_long', 'cheveux'], ['look:3', 'perso'], ['top.seifuku', 'haut'], ['feet.high_lace_shoe', 'pieds'], ['glass.round_shaded', 'acc'], ['hacc.alien_attena', 'chapeau'], ['hb.wild_tail', 'cheveux'], ['top.hoodie', 'haut'], ['elf', 'visage']];
     function renderShowcase() {
@@ -9343,33 +9494,28 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       wantThumb(avKey(n, a), a.look || a.tenue, 'f');
     }
     // ---------- 23 oct. 2026 (demande de l'utilisateur) : l'onglet Amis en TUILES — une tuile par ami (les copains de la salle et ceux
-    // avec qui on s'écrit) : son avatar, en ligne ou pas, ses nouveaux messages, son livre, le dernier message ; puis les habitants (leurs
-    // SMS). Une tuile ouvre SA fiche (avatar, gestes, Messages, Son livre, Sa maison) ; un ami d'une autre salle : vos messages.
+    // avec qui on s'écrit) : son avatar EN PIED, en ligne ou pas, ses nouveaux messages, son livre, le dernier message, 📞. Jamais les
+    // habitants (Papi Auguste…) : ce ne sont pas des amis. Une tuile ouvre SA fiche (avatar, gestes, Messages, Son livre, Sa maison) ; un ami
+    // d'une autre salle : vos messages.
     let amiSig = '', amiIO = null;
     function amiLivres() { try { return LIVRE && LIVRE.amis ? LIVRE.amis() : []; } catch (e) { return []; } }
     function amiConv() { try { return SMS.list || []; } catch (e) { return []; } }   // (SMS est déclaré plus bas)
+    function amiCallOk() { try { return callOk(); } catch (e) { return false; } }        // (les appels aussi)
     function amiTile(x) {
       const a = FR.av.get(x.n), has = !!(a && a.tenue >= 0);
-      let av;
+      let inner;   // la scène en pied des cartes d'avant (.pgh-fc) : l'avatar entier, ou sa tête de la borne sur une silhouette
       if (has) {
         const k = avKey(x.n, a), u = STORE.thumbs.get(k), c = GR.chars[a.tenue % 7];
-        av = `<img class="av${u ? ' on' : ''}" alt="" data-tk="${esc(k)}"${u ? ` src="${u}"` : ''}><span class="wait" style="--skin:${c.skin};--hair:${c.hair};--cloth:${c.c1}"></span>`;
-      } else av = x.photo ? `<img alt="" src="${esc(x.photo)}">` : `<span class="ini" style="--h:${hue(x.n)}">${esc((x.display || '?')[0].toUpperCase())}</span>`;
+        inner = `<img class="av${u ? ' on' : ''}" alt="" data-tk="${esc(k)}"${u ? ` src="${u}"` : ''}><span class="wait" style="--skin:${c.skin};--hair:${c.hair};--cloth:${c.c1}"></span>`;
+      } else inner = `<span class="none">Pas encore sur Pégase</span><span class="sil"></span>${x.photo ? `<img class="hd" alt="" src="${esc(x.photo)}">` : `<span class="ini" style="--h:${hue(x.n)}">${esc((x.display || '?')[0].toUpperCase())}</span>`}`;
       const st = x.online ? 'en ligne' : x.m ? seen(x.seen) : x.c && x.c.room ? 'salle ' + x.c.room : 'une autre salle';
       const last = x.c ? (x.c.mine ? 'Toi : ' : '') + (x.c.last || (x.c.photo ? '📷 Photo' : '')) : '';
-      const sms = x.un ? x.un + ' nouveau' + (x.un > 1 ? 'x' : '') : x.c ? 'Messages' : 'Écrire';
-      return `<button class="pga-t${x.online ? ' on' : ''}${x.un ? ' un' : ''}" data-n="${esc(x.n)}" aria-label="${esc(x.display)}${x.un ? ' : ' + x.un + ' nouveau' + (x.un > 1 ? 'x' : '') + ' message' + (x.un > 1 ? 's' : '') : ''}">`
-        + `<span class="pga-top"><span class="pga-av">${av}<span class="dot"></span></span><span class="pga-id"><b>${esc(x.display)}</b><small>${esc(st)}</small></span></span>`
-        + `<span class="pga-bd"><span class="pga-b${x.un ? ' on' : ''}">✉️ ${sms}</span>${x.b ? `<span class="pga-b">📖 ${x.b.total} espèce${x.b.total > 1 ? 's' : ''}</span>` : ''}</span>`
-        + (last ? `<span class="pga-last">${esc(last)}</span>` : '') + '</button>';
-    }
-    function habTile(c) {
-      const o = smsWho(c.w, c.title), un = c.unread | 0, last = (c.mine ? 'Toi : ' : '') + (c.last || (c.photo ? '📷 Photo' : ''));
-      const sorte = c.kind === 'concours' ? 'concours' : c.kind === 'systeme' ? 'Pégase' : 'habitant';
-      return `<button class="pga-t pga-ht${un ? ' un' : ''}" data-w="${esc(c.w)}" aria-label="${esc(o.name)}">`
-        + `<span class="pga-top">${smsFace(o)}<span class="pga-id"><b>${esc(o.name)}</b><small>${sorte}</small></span></span>`
-        + (un ? `<span class="pga-bd"><span class="pga-b on">✉️ ${un} nouveau${un > 1 ? 'x' : ''}</span></span>` : '')
-        + (last ? `<span class="pga-last">${esc(last)}</span>` : '') + '</button>';
+      const un = x.un ? x.un + ' nouveau' + (x.un > 1 ? 'x' : '') + ' message' + (x.un > 1 ? 's' : '') : '';
+      const bd = (x.c && !x.un ? '<span class="pga-b">✉️ Messages</span>' : '') + (x.b ? `<span class="pga-b">📖 ${x.b.total} espèce${x.b.total > 1 ? 's' : ''}</span>` : '');
+      return `<div class="pga-t pga-f${x.online ? ' on' : ''}${x.un ? ' un' : ''}${has ? '' : ' no'}" data-n="${esc(x.n)}">`
+        + `<button class="pgh-fc${x.online ? ' on' : ''}${has ? '' : ' no'}" aria-label="${esc(x.display)}${un ? ' : ' + un : ''}"><span class="st">${inner}<span class="dot"></span>${x.un ? `<span class="pga-un">✉️ ${x.un}</span>` : ''}</span>`
+        + `<b>${esc(x.display)}</b><small>${esc(st)}</small>${bd ? `<span class="pga-bd">${bd}</span>` : ''}${last ? `<span class="pga-last">${esc(last)}</span>` : ''}</button>`
+        + (amiCallOk() ? `<button class="pga-call" data-call="${esc(x.n)}" aria-label="Appeler ${esc(x.display)}">📞 Appeler</button>` : '') + '</div>';
     }
     function renderAmis() {
       if (!$.secami) return;
@@ -9386,11 +9532,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       const on = amis.length > 0;
       $.secami.hidden = !on; $.secami.parentElement.classList.toggle('tuiles', on);
       if (!on) { amiSig = ''; return; }
-      const onN = amis.filter((x) => x.online).length, hab = conv.filter((c) => /^pnj:/.test(c.w));
+      const onN = amis.filter((x) => x.online).length;   // seulement les VRAIS amis : jamais les habitants (Papi Auguste…), demande de l'utilisateur
       $.amicount.textContent = (onN ? onN + ' en ligne · ' : '') + amis.length + ' ami' + (amis.length > 1 ? 's' : '');
-      const html = amis.map(amiTile).join(''), hh = hab.length ? `<h3 class="pga-h3">Les habitants</h3><div class="pga-grid hab">${hab.map(habTile).join('')}</div>` : '';
-      if (html + hh === amiSig) return; amiSig = html + hh;
-      $.amibox.innerHTML = html; $.amihab.innerHTML = hh;
+      const html = amis.map(amiTile).join('');
+      if (html === amiSig) return; amiSig = html;
+      $.amibox.innerHTML = html;
       if (friendOn) fvAmiSync(friendOn.name);
       // les miniatures d'avatar (la même file que les cartes d'avant), quand la tuile se voit
       if (amiIO) amiIO.disconnect();
@@ -9406,8 +9552,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       $.fvlivre.hidden = !b; if (b) $.fvlivren.textContent = b.total + ' espèce' + (b.total > 1 ? 's' : '') + ' sur ' + b.sur;
     }
     on($.secami, 'click', (e) => {
+      const k = e.target.closest('.pga-call');
+      if (k) { const n = k.dataset.call, x = FR.list.find((m) => m.name === n); if (n && !CALL.c) { callOut(x || { name: n, display: smsWho('p:' + n, '').name || n }); tone(560, 840); } return; }
       const t = e.target.closest('.pga-t'); if (!t) return;
-      if (t.dataset.w) { openThread(t.dataset.w); tone(560, 840); return; }
       const n = t.dataset.n;
       if (FR.list.some((m) => m.name === n)) openFriend(n);   // un copain de la salle : sa fiche
       else { openThread('p:' + n); tone(560, 840); }          // un ami d'une autre salle : vos messages
@@ -9417,8 +9564,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       const c = e.target.closest('.pgh-fc'); if (c) openFriend(c.dataset.n);
     });
     // le copain en grand : la scène 3D de la page passe dans la fenêtre, avec SON avatar ; gestes ; Écrire ; Voir sa maison (pg_room_maisons)
-    function openFriend(n) {
-      const m = FR.list.find((x) => x.name === n); if (!m) return;
+    function openFriend(n) { const m = FR.list.find((x) => x.name === n); if (m) openFriendM(m); }
+    function openFriendM(m) {
+      const n = m.name;
       const a = FR.av.get(n), has = !!(a && a.tenue >= 0) && !stgFail && !!STG;
       friendOn = m; hintOff();
       $.fvname.textContent = m.display; $.fvst.classList.toggle('on', !!m.online); $.fvstt.textContent = m.online ? 'en ligne en ce moment' : seen(m.seen);
@@ -9428,7 +9576,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       $.fvhead.innerHTML = m.photo ? `<img class="hd" alt="" src="${esc(m.photo)}">` : `<span class="ini" style="--h:${hue(m.name)}">${esc(m.display[0] || '?')}</span>`;
       $.fvnonet.textContent = m.display + ' n\'a pas encore créé son avatar.';
       $.fv.classList.add('on'); $.name.classList.remove('on');
-      fvHouseSync(); fvHouseLoad(false); fvAmiSync(m.name);
+      fvHouseSync(); fvHouseLoad(false); fvAmiSync(m.name); fvCallSync();
       if (has) { { const st = $.gl.style; st.left = st.top = '0px'; st.width = st.height = '100%'; GLB = { x: 0, y: 0, w: 0, h: 0, full: true }; } $.fvstage.appendChild($.gl); STG.setFrame('corps'); STG.setLook(a.look || a.tenue).then(() => { if (!dead && friendOn === m && STG) STG.gesture('wave'); }); STG.face(); }
       requestAnimationFrame(() => { if (!dead) { placeStage(); activeSync(); } });
       tone(523, 784);
@@ -9443,6 +9591,13 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     }
     on($.fv, 'click', (e) => {
       const h = e.target.closest('[data-h]');
+      if (h && h.dataset.h === 'fvcall1') { if (friendOn) callOut(friendOn); return; }
+      if (h && h.dataset.h === 'clok') { callAnswer(); return; }
+      if (h && h.dataset.h === 'clno') { callDecline(); return; }
+      if (h && h.dataset.h === 'clend') { callHang(); return; }
+      if (h && h.dataset.h === 'clmute') { callMute(); return; }
+      if (h && h.dataset.h === 'clcam') { callCam(); return; }
+      if (h && h.dataset.h === 'clflip') { callFlip(); return; }
       if (h && h.dataset.h === 'fvx') { closeFriend(); return; }
       if (h && h.dataset.h === 'fvlivre') { const n = friendOn && friendOn.name; if (n && LIVRE && LIVRE.ouvrir) LIVRE.ouvrir(n); return; }   // par-dessus la fiche ; la fermer y ramène
       if (h && h.dataset.h === 'fvsms') { const n = friendOn && friendOn.name; if (n) { openThread('p:' + n); tone(560, 840); } return; }
@@ -9463,6 +9618,320 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       }
       const b = e.target.closest('.pgh-emo'); if (b && STG && STG.ready()) { STG.gesture(b.dataset.emo); tone(740, 1180); }
     });
+    // ---------- APPELS (hub 2.15, 22 oct. ; 23 oct. : la caméra, demande de l'utilisateur : « on peut appeler n'importe qui sur la borne à tout
+    // moment, même s'il n'est jamais allé sur Pégase, et ils nous voient normal depuis la borne et en avatar depuis Pégase, et vice versa ») ----------
+    // Signalisation = le serveur (pg_appel_*, ~/jdv-tools/pegase/server/APPELS-CONTRAT.md) : signal { t: 'appel' } SANS contenu sur le canal
+    // privé des messages (api.pegase.onAppel) → relire pg_appel_attente (sinon toutes les 15 s ; 2 s pendant que ça sonne ; 15 s en ligne, ce qui
+    // dit au serveur qu'on est toujours là). Hub fermé : c'est la BORNE qui sonne (bandeau « X t'appelle », shell2.js) ; Décrocher ouvre le hub,
+    // qui prend l'appel (api.pegase.appelPris() → callTake). Voix + image = LiveKit : salle privée « pegase-appel-<id> », jeton par
+    // api.pegase.voixAppel(id) (pegase-voix v3 : micro + caméra), client = copie locale de la borne (api.pegase.livekit()). Même salle que le jeu.
+    // Écran : la fiche du copain en plein écran (classe call). L'autre est sur la borne → SA CAMÉRA plein cadre (classe vid) ; il est dans
+    // Pégase (pas de vidéo) → SON avatar en gros plan, sa bouche suit SA voix (levres.js). Dans le coin : MA caméra (classe cam ; c'est ce
+    // qu'il voit), sinon (refusée, absente, coupée par 📷) MON avatar (STG.setPip), sa bouche suit mon micro (le flux du 🎤 s'il est ouvert).
+    const callOk = () => { if (CALL.off404 || !memberMode()) return false; try { return !!(PG && typeof PG.has === 'function' && PG.has('pg_appel_lancer') && typeof PG.voixAppel === 'function' && typeof PG.livekit === 'function'); } catch (e) { return false; } };
+    const callNewId = () => { const a = new Uint8Array(10); crypto.getRandomValues(a); return 'c' + Array.from(a, (b) => b.toString(16).padStart(2, '0')).join(''); };
+    const callName = (n) => { const m = FR.list.find((x) => x.name === n); return m ? m.display : String(n || ''); };
+    function lkLoad() { try { return PG.livekit(); } catch (e) { return Promise.reject(e); } }   // copie locale de la borne, chargée une fois
+    function fvCallSync() { const ok = callOk() && !!friendOn && !CALL.c; $.fvcall1.hidden = !ok; $.fvbtns.classList.toggle('three', ok); }
+    // la voix → la bouche (même analyse que le 🎤, sans les expressions ni les mots) ; muet = bouche fermée
+    function voiceNew(an, sr) { return { an, td: new Float32Array(an.fftSize), lip: PGM ? PGM.createLipSync(sr) : null, mouth: PGM ? PGM.createMouth() : null, floor: 0.004, pkr: 0.03, env: 0, slow: 0, w: 0, quiet: 9, lv: 0, off: false }; }
+    function voiceTalk(V, dt) {
+      if (!V || !V.an || !V.lip) return null;
+      V.an.getFloatTimeDomainData(V.td); if (V.off) V.td.fill(0);
+      let q = 0; for (let i = 0; i < V.td.length; i++) q += V.td[i] * V.td[i];
+      const rms = Math.sqrt(q / V.td.length);
+      V.floor = rms < V.floor ? V.floor * 0.85 + rms * 0.15 : V.floor * 0.9995 + rms * 0.0005;
+      V.pkr = Math.max(rms, V.pkr * Math.exp(-dt / 2.5), 0.012);
+      const L = Math.pow(Math.min(1, Math.max(0, rms - V.floor * 1.6) / Math.max(0.008, V.pkr * 0.8 - V.floor * 1.6)), 0.7);
+      V.env += (L - V.env) * (L > V.env ? 1 - Math.exp(-dt / 0.03) : 1 - Math.exp(-dt / 0.1)); V.slow += (V.env - V.slow) * (1 - Math.exp(-dt / 0.45)); V.lv = V.env;
+      const mo = V.mouth.step(dt, V.lip.analyze(V.td, dt, 0));
+      V.quiet = V.env > 0.06 ? 0 : V.quiet + dt;
+      V.w += ((V.quiet < 0.5 ? 1 : 0.3) - V.w) * (1 - Math.exp(-dt / (V.quiet < 0.5 ? 0.08 : 0.35)));
+      return { w: V.w, v: mo, asym: V.mouth.asym, nod: (V.env - V.slow) * 0.11, tilt: Math.sin(performance.now() / 1300) * 0.04 * V.w };
+    }
+    // le micro ET la caméra de l'appel (dans le toucher Appeler / Décrocher) : UNE question du navigateur pour les deux ; sans caméra
+    // (refusée, absente, occupée) l'appel part quand même, avec mon avatar ; le micro = le flux du 🎤 s'il est ouvert (jamais deux captures)
+    const CAM_V = { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } };
+    async function callMedia(c) {
+      const AC = window.AudioContext || window.webkitAudioContext; c.ctx = new AC();
+      try { if (c.ctx.state === 'suspended') await c.ctx.resume(); } catch (e) { /* rien */ }
+      const md = navigator.mediaDevices; if (!md || !md.getUserMedia) throw new Error('pas de micro');
+      if (MIC.on && MIC.stream && MIC.an) {
+        c.stream = MIC.stream; c.own = false; c.mv = voiceNew(MIC.an, MIC.ctx.sampleRate); wordsStop();
+        try { c.cam = await md.getUserMedia({ video: CAM_V }); } catch (e) { c.cam = null; }
+      } else {
+        const AUD = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+        let st = null;
+        try { st = await md.getUserMedia({ audio: AUD, video: CAM_V }); } catch (e) { st = null; }
+        if (!st) st = await md.getUserMedia({ audio: AUD });   // sans caméra : la voix et l'avatar
+        const v = st.getVideoTracks();
+        c.stream = new MediaStream(st.getAudioTracks()); c.own = true; c.cam = v.length ? new MediaStream(v) : null;
+        const src = c.ctx.createMediaStreamSource(c.stream), an = c.ctx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = 0.3; src.connect(an); c.mv = voiceNew(an, c.ctx.sampleRate);
+      }
+      if (c.end) { callCamStop(c); if (c.own && c.stream) c.stream.getTracks().forEach((t) => t.stop()); return; }
+      c.facing = 'user';
+      if (c.cam) { try { c.cams = (await md.enumerateDevices()).filter((d) => d.kind === 'videoinput').length; } catch (e) { c.cams = 1; } }
+      callCamSync(c);
+    }
+    // le coin « Moi » : ma caméra (ce que l'autre voit) ou mon avatar
+    function callCamSync(c) {
+      const on = !!(c && c.cam && !c.camOff && !c.end);
+      $.fv.classList.toggle('cam', on); $.fv.classList.toggle('back', !!(c && c.facing === 'environment'));
+      if (on) { if ($.clme.srcObject !== c.cam) $.clme.srcObject = c.cam; const p = $.clme.play && $.clme.play(); if (p && p.catch) p.catch(() => {}); }
+      if (STG && !stgFail && c && !c.end) {
+        if (on) { if (c.pipAv) { STG.setPip(null); c.pipAv = false; } }
+        else if (D != null && !c.pipAv) { c.pipAv = true; STG.setPip(D, null).then(() => { if (!dead) pipPlace(); }); STG.setPipTalk((dt) => (c.mv ? voiceTalk(c.mv, dt) : null)); }
+      }
+      callUi(); activeSync();
+    }
+    function callCamStop(c) {
+      if (c.cam) { try { c.cam.getTracks().forEach((t) => t.stop()); } catch (e) { /* rien */ } }
+      c.cam = null; try { $.clme.srcObject = null; } catch (e) { /* rien */ }
+    }
+    // l'image de l'autre (il est sur la borne) : plein cadre ; coupée (📷) ou absente (il est dans Pégase) : son avatar, ou sa tête
+    function callVideo(c, track) {
+      if (c.end) return;
+      c.rvid = track; c.rvidOff = false;
+      try { track.attach($.clvid); const p = $.clvid.play && $.clvid.play(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* rien */ }
+      callVidSync(c);
+    }
+    function callVidSync(c) {
+      const on = !!(c && c.rvid && !c.rvidOff && !c.end);
+      $.fv.classList.toggle('vid', on);
+      const a = c && FR.av.get(c.peer);
+      if (STG && STG.A && c && c.ui) STG.A.group.visible = !on && !!(a && a.tenue >= 0);
+      activeSync();
+    }
+    // l'écran d'appel : la fiche du copain en plein écran ; son avatar en grand (gros plan « parle »), le mien dans le coin
+    function callScreen(c) {
+      const m = FR.list.find((x) => x.name === c.peer) || { name: c.peer, display: c.peerD || c.peer, online: true, seen: 0, photo: null };
+      $.fv.classList.remove('vid', 'cam');
+      closeHouse(); if (SMS.th) closeThread(); if (BUY) closeBuy(); if (editing) cancelEdit();
+      c.fromFv = !!(friendOn && friendOn.name === m.name);
+      if (!c.fromFv) { if (friendOn) closeFriend(); openFriendM(m); }
+      c.ui = true; $.fv.classList.add('call'); $.clname.textContent = m.display;
+      if (STG && !stgFail) {
+        const a = FR.av.get(m.name), has = !!(a && a.tenue >= 0);
+        if ($.gl.parentNode !== $.fvstage) { const st = $.gl.style; st.left = st.top = '0px'; st.width = st.height = '100%'; GLB = { x: 0, y: 0, w: 0, h: 0, full: true }; $.fvstage.appendChild($.gl); c.movedGl = true; }
+        if (STG.A) STG.A.group.visible = has;
+        STG.setFrame('selfie'); STG.setHome(true); STG.face();
+        STG.setPipTalk((dt) => (c.mv ? voiceTalk(c.mv, dt) : null));
+        if (D != null) { c.pipAv = true; STG.setPip(D, null).then(() => { if (!dead) pipPlace(); }); }
+      }
+      requestAnimationFrame(() => { if (!dead) { placeStage(); pipPlace(); activeSync(); } });
+      callUi(); fvCallSync();
+    }
+    function pipPlace() {
+      const c = CALL.c; if (!STG || !c || !c.ui || $.gl.parentNode !== $.fvstage) return;
+      const g = $.gl.getBoundingClientRect(), p = $.clpip.getBoundingClientRect();
+      STG.pipRect(p.width ? { x: p.left - g.left, y: p.top - g.top, w: p.width, h: p.height } : null);
+    }
+    function callUi() {
+      const c = CALL.c; if (!c || !c.ui) return;
+      const s = c.end ? 'end' : c.dir === 'in' && !c.answered ? 'in' : c.st === 'live' ? 'live' : 'out';
+      $.fvcall.dataset.s = s;
+      let t;
+      if (c.end) t = c.end;
+      else if (s === 'in') t = 't\'appelle !';
+      else if (s === 'live') { const sec = Math.max(0, Math.floor((Date.now() - c.t0) / 1000)); t = 'En ligne · ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+      else t = c.st === 'sonne' ? 'Ça sonne…' : c.st === 'decroche' ? 'Connexion…' : 'Appel en cours…';
+      $.clst.textContent = t;
+      $.clmute.classList.toggle('on', !!c.muted); $.clmute.firstChild.textContent = c.muted ? '🔇' : '🎙️'; $.clmute.lastChild.textContent = c.muted ? 'Micro coupé' : 'Micro';
+      $.clcam.hidden = !c.cam; $.clcam.classList.toggle('on', !!c.camOff); $.clcam.lastChild.textContent = c.camOff ? 'Caméra coupée' : 'Caméra';
+      $.clflip.hidden = !(c.cam && c.cams > 1 && !c.camOff); $.clflip.lastChild.textContent = c.facing === 'environment' ? 'Selfie' : 'Retourner';
+      $.clcam.setAttribute('aria-label', c.camOff ? 'Remettre la caméra' : 'Couper la caméra');
+    }
+    function callRing(on, kind) {
+      if (CALL.ringT) { clearInterval(CALL.ringT); ivals.delete(CALL.ringT); CALL.ringT = 0; }
+      if (!on) return;
+      const f = () => { if (kind === 'in') { tone(784, 988); later(() => tone(988, 1175), 230); try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) { /* rien */ } } else tone(440, 440); };
+      f(); CALL.ringT = every(f, kind === 'in' ? 1800 : 2600);
+    }
+    function callPollSoon(ms) { clearTimeout(CALL.pt); CALL.pt = later(callPoll, ms || 0); }
+    async function callPoll() {
+      if (!callOk() || CALL.polling) return;
+      CALL.polling = true; CALL.at = Date.now();
+      let r = null;
+      try { r = await PG.rpc('pg_appel_attente', {}); }
+      catch (e) { if (e && (e.status === 404 || /Could not find the function|PGRST202|fonction refus/.test(String(e.message || e)))) { CALL.off404 = true; fvCallSync(); } }
+      finally { CALL.polling = false; }
+      if (dead || !r) return;
+      const me = pgInfo().name, L = Array.isArray(r.appels) ? r.appels : [];
+      for (const a of L) if (a && /^c[0-9a-f]{20}$/.test(String(a.id))) callSeen(a, me);
+    }
+    function callSeen(a, me) {
+      const prev = CALL.seen.get(a.id); CALL.seen.set(a.id, a.etat);
+      const c = CALL.c;
+      if (c && c.id === a.id) {
+        if (c.end) return;
+        const nm = callName(c.dir === 'out' ? a.a : a.de);
+        if (a.etat === 'sonne' && c.dir === 'out' && c.st === 'appel') { c.st = 'sonne'; callUi(); }
+        else if (a.etat === 'decroche' && c.st !== 'live' && !c.joining) { if (c.dir === 'out') { c.answered = true; callRing(false); callJoin(c); } else if (!c.answered) callEnd('Décroché sur un autre appareil'); }
+        else if (a.etat === 'refuse') callEnd(nm + ' ne peut pas répondre');
+        else if (a.etat === 'occupe') callEnd(nm + ' est déjà en ligne');
+        else if (a.etat === 'manque') callEnd(c.dir === 'out' ? nm + ' ne répond pas' : 'Appel manqué', c.dir === 'in' && !c.answered);
+        else if (a.etat === 'annule') callEnd(c.dir === 'in' ? 'Appel manqué' : 'Appel annulé', c.dir === 'in' && !c.answered);
+        else if (a.etat === 'fini') callEnd(a.par && a.par !== me ? nm + ' a raccroché' : 'Appel terminé');
+        return;
+      }
+      if (prev || a.a !== me || (a.etat !== 'appel' && a.etat !== 'sonne')) return;   // déjà vu, pas pour moi, ou déjà fini
+      if (c && !c.end) { PG.rpc('pg_appel_repondre', { p_id: a.id, p_oui: false, p_raison: 'occupe' }).catch(() => {}); return; }   // je suis déjà en ligne
+      const n = CALL.c = { id: a.id, peer: a.de, peerD: callName(a.de), dir: 'in', st: 'sonne', started: Date.now() };
+      PG.rpc('pg_appel_sonne', { p_id: a.id }).catch(() => {});
+      callScreen(n); callRing(true, 'in');
+    }
+    async function callOut(m) {
+      if (!callOk() || CALL.c) return;
+      const c = CALL.c = { id: callNewId(), peer: m.name, peerD: m.display, dir: 'out', st: 'appel', started: Date.now() };
+      callScreen(c);
+      try { await callMedia(c); } catch (e) { callEnd(e && e.name === 'NotAllowedError' ? 'Micro refusé : autorise-le pour appeler' : 'Pas de micro sur cet appareil'); return; }
+      if (c.end) return;
+      lkLoad().catch(() => {});   // le client de la voix arrive pendant que ça sonne
+      let r;
+      try { r = await PG.rpc('pg_appel_lancer', { p_to: m.name, p_id: c.id, p_video: !!c.cam }); }
+      catch (e) { callEnd(/pas copains/.test(String(e && e.message)) ? 'Vous n\'êtes plus dans la même salle' : e && e.offline ? 'Pas de réseau' : 'L\'appel n\'a pas pu partir'); return; }
+      if (c.end) return;
+      if (!r || r.ok === false) { callEnd(r && r.raison === 'occupe' ? m.display + ' est déjà en ligne' : 'L\'appel n\'a pas pu partir'); return; }
+      c.launched = true; CALL.seen.set(c.id, 'appel'); callRing(true, 'out'); callUi(); callPollSoon(1200);
+    }
+    async function callAnswer() {
+      const c = CALL.c; if (!c || c.dir !== 'in' || c.answered || c.end) return;
+      c.answered = true; callRing(false); c.st = 'decroche'; callUi();
+      try { await callMedia(c); } catch (e) { PG.rpc('pg_appel_repondre', { p_id: c.id, p_oui: false, p_raison: 'refuse' }).catch(() => {}); callEnd('Micro refusé : autorise-le pour répondre'); return; }
+      if (c.end) return;
+      lkLoad().catch(() => {});
+      let r; try { r = await PG.rpc('pg_appel_repondre', { p_id: c.id, p_oui: true }); } catch (e) { callEnd('L\'appel est perdu'); return; }
+      if (c.end) return;
+      if (r && r.etat && r.etat !== 'decroche') { callEnd('Appel manqué'); return; }
+      c.launched = true; callJoin(c);
+    }
+    function callDecline() { const c = CALL.c; if (!c || c.end) return; PG.rpc('pg_appel_repondre', { p_id: c.id, p_oui: false, p_raison: 'refuse' }).catch(() => {}); callEnd('Appel refusé'); }
+    function callHang() { const c = CALL.c; if (!c || c.end) return; if (c.launched) PG.rpc('pg_appel_fin', { p_id: c.id }).catch(() => {}); callEnd(c.st === 'live' ? 'Appel terminé' : 'Appel annulé'); }
+    function callMute() {
+      const c = CALL.c; if (!c || c.end) return; c.muted = !c.muted; if (c.mv) c.mv.off = c.muted;
+      try { const t = c.pub && c.pub.track; if (t) { if (c.muted) t.mute(); else t.unmute(); } else if (c.stream) c.stream.getAudioTracks().forEach((x) => { x.enabled = !c.muted; }); } catch (e) { /* rien */ }
+      callUi(); tone(c.muted ? 392 : 660, c.muted ? 330 : 880);
+    }
+    // 🔄 (téléphone, 2 caméras) : la caméra de DERRIÈRE pour montrer ce qu'il y a devant moi, puis retour au selfie (demande de l'utilisateur :
+    // « comme s'ils font un selfie, en pouvant tourner l'écran pour montrer devant »). Une seule caméra ouverte à la fois (beaucoup de
+    // téléphones n'en ouvrent pas deux) : l'ancienne est fermée d'abord ; ratée → on rouvre l'ancienne
+    async function callFlip() {
+      const c = CALL.c; if (!c || c.end || !c.cam || c.flipping) return;
+      c.flipping = true;
+      const md = navigator.mediaDevices, was = c.facing === 'environment' ? 'environment' : 'user', face = was === 'user' ? 'environment' : 'user';
+      const open = (f) => md.getUserMedia({ video: Object.assign({}, CAM_V, { facingMode: { exact: f } }) }).then((st) => st.getVideoTracks()[0]);
+      try { c.cam.getTracks().forEach((t) => t.stop()); } catch (e) { /* rien */ }
+      let nt = null, f = face;
+      try { nt = await open(face); } catch (e) { nt = null; }
+      if (!nt) { f = was; try { nt = await open(was); } catch (e) { nt = null; } toast("Pas d’autre caméra sur cet appareil"); }
+      try {
+        if (c.end || !nt) { if (nt) nt.stop(); if (!c.end) { callCamStop(c); callCamSync(c); } return; }
+        if (c.vpub && c.vpub.track && typeof c.vpub.track.replaceTrack === 'function') await c.vpub.track.replaceTrack(nt);
+        c.cam = new MediaStream([nt]); c.facing = f; $.clme.srcObject = null;
+        callCamSync(c); if (f !== was) tone(660, 990);
+      } catch (e) { /* rien */ } finally { c.flipping = false; }
+    }
+    function callCam() {   // 📷 : je coupe / remets ma caméra (l'autre voit alors mon avatar, ou ma tête)
+      const c = CALL.c; if (!c || c.end || !c.cam) return; c.camOff = !c.camOff;
+      try { const t = c.vpub && c.vpub.track; if (t) { if (c.camOff) t.mute(); else t.unmute(); } else c.cam.getVideoTracks().forEach((x) => { x.enabled = !c.camOff; }); } catch (e) { /* rien */ }
+      callCamSync(c); tone(c.camOff ? 392 : 660, c.camOff ? 330 : 880);
+    }
+    // décroché : la salle de l'appel (LiveKit) ; ma voix = la piste du micro de l'appel, mon image = ma caméra (borne) ; sa voix → haut-parleur
+    // + la bouche de son avatar ; son image (il est sur la borne) → plein cadre
+    async function callJoin(c) {
+      if (c.joining || c.room || c.end) return;
+      c.joining = true; c.st = 'decroche'; callUi();
+      try {
+        const [LK, tok] = await Promise.all([lkLoad(), PG.voixAppel(c.id)]);
+        if (CALL.c !== c || c.end) return;
+        const room = c.room = new LK.Room({ adaptiveStream: false, dynacast: false });
+        room.on(LK.RoomEvent.TrackSubscribed, (track) => { if (track && track.kind === 'audio') callRemote(c, track); else if (track && track.kind === 'video') callVideo(c, track); });
+        room.on(LK.RoomEvent.TrackUnsubscribed, (track) => { if (track && track === c.rvid) { try { track.detach($.clvid); } catch (e) { /* rien */ } c.rvid = null; callVidSync(c); } });
+        room.on(LK.RoomEvent.TrackMuted, (pub, who) => { if (pub && pub.kind === 'video' && who !== room.localParticipant) { c.rvidOff = true; callVidSync(c); } });
+        room.on(LK.RoomEvent.TrackUnmuted, (pub, who) => { if (pub && pub.kind === 'video' && who !== room.localParticipant) { c.rvidOff = false; callVidSync(c); } });
+        room.on(LK.RoomEvent.Disconnected, () => { if (CALL.c === c && !c.end) callEnd('La liaison est coupée'); });
+        room.on(LK.RoomEvent.ParticipantDisconnected, () => { if (CALL.c === c && !c.end) callPollSoon(300); });
+        await Promise.race([room.connect(tok.url, tok.token, { autoSubscribe: true }), new Promise((ok, ko) => setTimeout(() => ko(new Error('trop long')), 20000))]);
+        if (CALL.c !== c || c.end) { try { room.disconnect(); } catch (e) { /* rien */ } return; }
+        const tr = c.stream && c.stream.getAudioTracks()[0];
+        if (tr) c.pub = await room.localParticipant.publishTrack(tr, { source: LK.Track.Source.Microphone, name: 'micro' });
+        if (c.muted && c.pub && c.pub.track) c.pub.track.mute();
+        const vt = c.cam && c.cam.getVideoTracks()[0];   // ma caméra : refusée par le serveur (ancien jeton) → l'appel continue avec mon avatar
+        if (vt) {
+          try { c.vpub = await room.localParticipant.publishTrack(vt, { source: LK.Track.Source.Camera, name: 'camera', simulcast: false, videoEncoding: { maxBitrate: 700000, maxFramerate: 24 } }); if (c.camOff && c.vpub && c.vpub.track) c.vpub.track.mute(); }
+          catch (e) { if (!c.end) { callCamStop(c); callCamSync(c); } }
+        }
+        for (const p of room.remoteParticipants.values()) for (const pub of p.trackPublications.values()) if (pub.track && pub.kind === 'audio') callRemote(c, pub.track); else if (pub.track && pub.kind === 'video' && !c.rvid) callVideo(c, pub.track);
+      } catch (e) {
+        if (CALL.c === c && !c.end) { if (c.launched) PG.rpc('pg_appel_fin', { p_id: c.id }).catch(() => {}); callEnd('La voix n\'a pas pu se connecter'); }
+      } finally { c.joining = false; }
+    }
+    function callRemote(c, track) {
+      if (c.remote || c.end) return; c.remote = track;
+      try { const el = track.attach(); el.autoplay = true; el.style.display = 'none'; document.body.appendChild(el); c.el = el; const pr = el.play && el.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* rien */ }
+      try { const src = c.ctx.createMediaStreamSource(new MediaStream([track.mediaStreamTrack])), an = c.ctx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = 0.3; src.connect(an); c.rv = voiceNew(an, c.ctx.sampleRate); } catch (e) { c.rv = null; }
+      if (STG && c.rv) STG.setTalk((dt) => voiceTalk(c.rv, dt));
+      c.st = 'live'; c.t0 = Date.now(); callUi(); tone(880, 1320);
+    }
+    function callEnd(text, missed) {
+      const c = CALL.c; if (!c || c.end) return;
+      c.end = text || 'Appel terminé'; callRing(false);
+      try { if (c.room) c.room.disconnect(); } catch (e) { /* rien */ }
+      try { if (c.el) { if (c.remote && c.remote.detach) c.remote.detach(c.el); c.el.remove(); } } catch (e) { /* rien */ }
+      try { if (c.rvid && c.rvid.detach) c.rvid.detach($.clvid); $.clvid.srcObject = null; } catch (e) { /* rien */ }
+      c.rvid = null; callCamStop(c); $.fv.classList.remove('vid', 'cam');
+      if (c.own && c.stream) { try { c.stream.getTracks().forEach((t) => t.stop()); } catch (e) { /* rien */ } }
+      try { if (c.ctx) c.ctx.close(); } catch (e) { /* rien */ }
+      if (STG) { STG.setTalk(null); STG.setPipTalk(null); STG.setPip(null); }
+      if (missed) toast('📞 Appel manqué de ' + (c.peerD || c.peer));
+      if (!dead) { tone(523, 392); callUi(); later(() => callClose(c), missed ? 1500 : 2200); }
+    }
+    function callClose(c) {
+      if (CALL.c !== c) return; CALL.c = null;
+      $.fv.classList.remove('call', 'vid', 'cam'); $.fvcall.dataset.s = '';
+      if (STG && STG.A) STG.A.group.visible = true;
+      if (friendOn) {
+        if (!c.fromFv) closeFriend();
+        else {
+          const a = FR.av.get(friendOn.name), has = !!(a && a.tenue >= 0);
+          if (c.movedGl && !has && !stgFail) $.hero.insertBefore($.gl, $.wait);   // copain sans avatar : la scène retourne en haut de page
+          if (STG) { STG.setFrame('corps'); STG.setHome(false); }
+          requestAnimationFrame(() => { if (!dead) { placeStage(); activeSync(); } });
+        }
+      }
+      if (MIC.on && STG && !friendOn) { STG.setTalk(micTalk); wordsStart(); }   // le 🎤 était ouvert avant l'appel
+      fvCallSync();
+    }
+    function callDestroy() {   // on quitte le hub en plein appel : raccrocher (ou laisser sonner = « manqué ») et tout fermer
+      const c = CALL.c; if (CALL.off) { try { CALL.off(); } catch (e) { /* rien */ } CALL.off = null; }
+      if (!c || c.end) return;
+      if (c.dir === 'in' && !c.answered) PG.rpc('pg_appel_repondre', { p_id: c.id, p_oui: false, p_raison: 'manque' }).catch(() => {});
+      else if (c.launched) PG.rpc('pg_appel_fin', { p_id: c.id }).catch(() => {});
+      callEnd('Appel terminé');
+    }
+    // l'appel décroché sur le BANDEAU de la borne (hub fermé à ce moment-là) : la borne vient d'ouvrir le hub, qui le prend en main tout de
+    // suite (son avatar s'il joue à Pégase : la liste des avatars de la salle et la scène 3D, 4 s au plus chacune)
+    async function callTake() {
+      let t = null; try { t = PG && typeof PG.appelPris === 'function' ? PG.appelPris() : null; } catch (e) { t = null; }
+      if (!t || !/^c[0-9a-f]{20}$/.test(String(t.id)) || CALL.c || !callOk()) return;
+      CALL.seen.set(t.id, 'sonne');
+      const c = CALL.c = { id: t.id, peer: String(t.de || ''), peerD: String(t.de || ''), dir: 'in', st: 'sonne', started: Date.now(), taken: true };
+      try { await Promise.race([loadAvatars(true), new Promise((ok) => setTimeout(ok, 4000))]); } catch (e) { /* rien */ }
+      for (let i = 0; i < 16 && !dead && !stgFail && !(STG && STG.ready()); i++) await new Promise((ok) => setTimeout(ok, 250));
+      if (dead || CALL.c !== c || c.end) return;
+      c.peerD = callName(c.peer); callScreen(c); callAnswer();
+    }
+    if (PG && typeof PG.onAppel === 'function') { try { CALL.off = PG.onAppel(() => callPollSoon(150)); } catch (e) { CALL.off = null; } }
+    every(() => {
+      if (document.hidden || dead) return;
+      const c = CALL.c;
+      if (c && c.ui && c.st === 'live' && !c.end) callUi();   // le compteur « En ligne · 0:42 »
+      const per = c && !c.end ? (c.st === 'live' ? 15000 : 2000) : 15000;
+      if (Date.now() - CALL.at >= per - 300) callPoll();
+    }, 1000);
+    later(() => { callTake(); callPoll(); }, 700);
+    if (window.JDW_PG_TEST) window.__pgCALL = CALL;
+
     // présence : la borne la connaît déjà (direct) ; on relit la liste quand l'onglet Amis se voit
     every(() => { if (!document.hidden && tab === 'amis' && !editing) renderFriends(); }, 5000);
     every(() => { if (!document.hidden && tab === 'amis') loadAvatars(); }, 90000);
@@ -10081,7 +10550,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     return {
       destroy() {
         if (dead) return; dead = true;
-        flySet(false); micStop(); sayStop(); if (WD.w) { try { WD.w.dispose(); } catch (e) { /* rien */ } WD.w = null; }
+        callDestroy(); flySet(false); micStop(); sayStop(); if (WD.w) { try { WD.w.dispose(); } catch (e) { /* rien */ } WD.w = null; }
         for (const [t, ty, fn, o] of listeners) { try { t.removeEventListener(ty, fn, o); } catch (e) { /* rien */ } }
         for (const id of timers) clearTimeout(id); timers.clear();
         for (const id of ivals) clearInterval(id); ivals.clear();

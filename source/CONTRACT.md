@@ -173,6 +173,11 @@ Maisons des copains (maisons-salle.sql ; borne et hub prêts le 22 oct. 2026, à
 = maisons des AUTRES membres de la salle (jamais la mienne), `r_maison` = `{ v, p, lot, plot? }` (format de pg_get_doc « maison » + parcelle) ou null.
 Fiche d'un copain : « 🏡 Voir sa maison » (plan vu du ciel, un niveau à la fois, parcelle, surface, date) ou « Pas encore de maison » ;
 `has('pg_room_maisons')` faux ou fonction absente du serveur (404) → « Visiter sa maison · bientôt », comme avant.
+Appels (appels.sql, EN LIGNE ; contrat ~/jdv-tools/pegase/server/APPELS-CONTRAT.md) : `pg_appel_lancer` (`p_to`, `p_id`, `p_video` = vrai quand la borne appelle avec sa caméra),
+`pg_appel_sonne` / `pg_appel_fin` (`p_id`), `pg_appel_repondre` (`p_id`, `p_oui`, `p_raison` refuse | occupe | manque), `pg_appel_attente` (rien) — arguments filtrés par la borne ; `api.pegase.onAppel(fn)` = signal
+`{ t: 'appel' }` du canal PRIVÉ des messages ; `await api.pegase.voixAppel(id)` → `{ token, url, room, identity }` (Edge Function pegase-voix v3 : micro + caméra dans la salle d'un appel) ;
+`await api.pegase.livekit()` → le client LiveKit (copie LOCALE `assets/livekit-client-2.22.3.umd.js`, Apache-2.0) ; `api.pegase.appelPris()` → `{ id, de }` = l'appel qu'on vient de décrocher sur le
+BANDEAU de la borne (hub fermé : la borne sonne partout, même en pleine partie, puis ouvre le hub), ou null. Sur la borne on se voit « en vrai » (caméra), dans Pégase en avatar.
 
 ## Ajout 9 : l'appli native d'un jeu (api.natif, jeux de NATIVE_APPS dans shell2.js : aujourd'hui `pegase`)
 Pour un jeu qui a son HUB dans la borne (`NATIVE_HUB`) : la tuile ouvre toujours le hub, et c'est le hub qui propose l'appli native.
