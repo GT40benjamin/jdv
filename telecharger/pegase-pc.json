@@ -1,13 +1,13 @@
 {
-  "version": "0.9.1",
-  "build": 12,
-  "size": 1800111447,
-  "sha256": "7eaf8fb9838c4de26135755959a638b04a98ad55d40c3d4a10976c580c14f2bf",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v12/Pegase-PC-2026-10-21-0.9.1.zip",
-  "manifest": "89286a332c1ce984ef132d19847b61fd785ed145d1a5132e310c9046b6a04153",
+  "version": "0.9.2",
+  "build": 13,
+  "size": 1814888130,
+  "sha256": "0e43d6af86c940ade328f703f785d70f66f00b4cab0f64cd699a84e5e82a3093",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v13/Pegase-PC-2026-10-22-0.9.2.zip",
+  "manifest": "cf040d3720191cb33ce4bd7bc1422675b59f3573d36d29d16c1d946440363a51",
   "notes": [
-    "La photo du chat compte aussi la nuit",
-    "Papi Auguste reste assis à son bureau",
-    "Plus de cordes sur les chemins, cartes postales perso"
+    "Appelle tes copains et vois leurs maisons",
+    "Réveil chez toi, escaliers, pancartes, pêche",
+    "PegaGram, linge blanc, saut plus haut"
   ]
 }
