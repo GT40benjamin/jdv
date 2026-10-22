@@ -41,6 +41,7 @@ public class MainActivity extends Activity {
     static final int REQ_FILE = 42;
     static final int REQ_MIC = 43;
     PermissionRequest micReq;
+    boolean micAudio, micVideo;   // 1.10 : ce que la page a demandé (micro et / ou caméra)
     WebView web;
     ValueCallback<Uri[]> fileCb;
     Uri cameraUri;
@@ -133,15 +134,24 @@ public class MainActivity extends Activity {
                 boolean audio = false; if (t != null) for (String s : t) if (s != null && s.startsWith("audio")) audio = true;
                 return audio ? openAudioChooser(cb) : openChooser(cb);
             }
-            // micro pour enregistrer son cri dans le site
+            // micro (cri, 🎤 du hub, appels) et, depuis la 1.10, caméra de face (appels vidéo du hub de Pégase) : Android demande ce qui manque
             @Override
             public void onPermissionRequest(final PermissionRequest r) {
-                boolean audio = false;
-                try { for (String s : r.getResources()) if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(s)) audio = true; } catch (Throwable ignore) { }
-                if (!audio) { try { r.deny(); } catch (Throwable ignore) { } return; }
+                boolean audio = false, video = false;
                 try {
-                    if (checkSelfPermission("android.permission.RECORD_AUDIO") == 0) { r.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE}); return; }
-                    micReq = r; requestPermissions(new String[]{"android.permission.RECORD_AUDIO"}, REQ_MIC);
+                    for (String s : r.getResources()) {
+                        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(s)) audio = true;
+                        else if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(s)) video = true;
+                    }
+                } catch (Throwable ignore) { }
+                if (!audio && !video) { try { r.deny(); } catch (Throwable ignore) { } return; }
+                try {
+                    java.util.ArrayList<String> manque = new java.util.ArrayList<String>();
+                    if (audio && checkSelfPermission("android.permission.RECORD_AUDIO") != 0) manque.add("android.permission.RECORD_AUDIO");
+                    if (video && checkSelfPermission("android.permission.CAMERA") != 0) manque.add("android.permission.CAMERA");
+                    if (manque.isEmpty()) { mediaGrant(r, audio, video, true, true); return; }
+                    if (micReq != null) { try { micReq.deny(); } catch (Throwable ignore) { } }
+                    micReq = r; micAudio = audio; micVideo = video; requestPermissions(manque.toArray(new String[0]), REQ_MIC);
                 } catch (Throwable e) { try { r.deny(); } catch (Throwable ignore) { } }
             }
         });
@@ -181,10 +191,17 @@ public class MainActivity extends Activity {
         if (req == Voix.REQ_LISTEN) { if (natif != null) natif.voix.onPermission(res != null && res.length > 0 && res[0] == 0); return; }   // 1.9 : « oui / non » à voix haute
         if (req != REQ_MIC || micReq == null) return;
         try {
-            if (res != null && res.length > 0 && res[0] == 0) micReq.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
-            else micReq.deny();
-        } catch (Throwable ignore) { }
+            boolean audioOk = checkSelfPermission("android.permission.RECORD_AUDIO") == 0, videoOk = checkSelfPermission("android.permission.CAMERA") == 0;
+            mediaGrant(micReq, micAudio, micVideo, audioOk, videoOk);
+        } catch (Throwable ignore) { try { micReq.deny(); } catch (Throwable e) { } }
         micReq = null;
+    }
+    // ce que la page a demandé ET qu'Android permet ; rien → refus (la page réessaie alors avec le micro seul : l'appel garde l'avatar)
+    static void mediaGrant(PermissionRequest r, boolean audio, boolean video, boolean audioOk, boolean videoOk) {
+        java.util.ArrayList<String> ok = new java.util.ArrayList<String>();
+        if (audio && audioOk) ok.add(PermissionRequest.RESOURCE_AUDIO_CAPTURE);
+        if (video && videoOk) ok.add(PermissionRequest.RESOURCE_VIDEO_CAPTURE);
+        try { if (ok.isEmpty() || (audio && !audioOk) || (video && !videoOk)) r.deny(); else r.grant(ok.toArray(new String[0])); } catch (Throwable ignore) { }
     }
 
     boolean openAudioChooser(ValueCallback<Uri[]> cb) {

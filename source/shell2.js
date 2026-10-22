@@ -673,9 +673,51 @@ async function gameSetPhoto(data, scope) {
 // fermée des 6 réactions est vérifiée par le serveur) ; has(fn) = la borne laisse-t-elle passer cette fonction (le hub cache la barre sinon).
 // 21 oct. (MAISONS DES COPAINS, maisons-salle.sql) : pg_room_maisons = maisons des autres membres de la salle actuelle (lecture seule ; plan
 // {v, p, lot} + parcelle « plot ») ; AUCUN argument du hub transmis : p_code + p_name + p_room = la salle actuelle, comme pg_room_avatars.
+// 22 oct. (APPELS entre copains, ~/jdv-tools/pegase/server/appels.sql + APPELS-CONTRAT.md) : pg_appel_lancer / sonne / repondre / fin / attente
+// (arguments filtrés : pgAppelArgs) ; onAppel(fn) = signal { t: 'appel' } SANS contenu du canal PRIVÉ des messages (le hub relit
+// pg_appel_attente) ; voixAppel(id) = jeton LiveKit de la salle « pegase-appel-<id> » (Edge Function pegase-voix, jeton du compte du joueur
+// actuel ; le serveur vérifie que l'appel est décroché et que j'en fais partie). 23 oct. (demande de l'utilisateur : « ils nous voient normal
+// depuis la borne et en avatar depuis Pégase ») : pegase-voix v3 = micro ET caméra dans la salle d'un appel ; p_video = true quand la borne
+// appelle avec sa caméra ; livekit() = le client LiveKit (copie locale publiée avec la borne) ; appelPris() = l'appel que je viens de
+// décrocher sur le bandeau de la borne (plus bas : « appels partout dans la borne »), que le hub prend en main.
 const PG_RPC = new Set(['pg_me', 'pg_get_doc', 'pg_put_doc', 'pg_room_avatars', 'pg_room_maisons', 'pg_unlock_buy', 'pg_unlock_catalog', 'pg_mission_catalog', 'pg_link_make',
-  'pg_sms_list', 'pg_sms_thread', 'pg_sms_send', 'pg_sms_read', 'pg_sms_react']);
+  'pg_sms_list', 'pg_sms_thread', 'pg_sms_send', 'pg_sms_read', 'pg_sms_react', 'pg_appel_lancer', 'pg_appel_sonne', 'pg_appel_repondre', 'pg_appel_fin', 'pg_appel_attente']);
 const pgStr = (v, n) => String(v == null ? '' : v).slice(0, n);
+const pgCallId = v => (/^c[0-9a-f]{20}$/.test(String(v || '')) ? String(v) : '');
+function pgAppelArgs(fn, x) {
+  x = x || {};
+  if (fn === 'pg_appel_lancer') return { p_to: pgStr(x.p_to, 40), p_id: pgCallId(x.p_id), p_video: x.p_video === true };
+  if (fn === 'pg_appel_sonne' || fn === 'pg_appel_fin') return { p_id: pgCallId(x.p_id) };
+  if (fn === 'pg_appel_repondre') return { p_id: pgCallId(x.p_id), p_oui: x.p_oui === true, p_raison: ['refuse', 'occupe', 'manque'].includes(x.p_raison) ? x.p_raison : null };
+  return {};
+}
+const APPEL_SUBS = new Set();
+async function pgVoixAppel(id) {
+  const a = pgCallId(id); if (!a) throw new Error('pegase.voixAppel : appel inconnu');
+  if (isGuest() || !profile.name || !ONLINE) throw Object.assign(new Error('pegase.voixAppel : compte requis'), { guest: true });
+  const tok = await acctToken(profile); if (!tok) throw Object.assign(new Error('pegase.voixAppel : compte requis'), { guest: true });
+  const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/pegase-voix', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_name: profile.name, p_appel: a, p_cid: 'borne-' + String(clientId).replace(/[^A-Za-z0-9_-]/g, '').slice(1, 13) }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j || !j.token || !j.url) throw Object.assign(new Error('pegase.voixAppel ' + r.status + ' ' + String((j && j.error) || '').slice(0, 80)), { status: r.status });
+  return { token: String(j.token), url: String(j.url), room: String(j.room || ''), identity: String(j.identity || '') };
+}
+// le client LiveKit des appels (livekit-client 2.22.3, licence Apache-2.0) : copie LOCALE publiée avec la borne (assets/), chargée au 1er appel
+const LK_LOCAL = 'assets/livekit-client-2.22.3.umd.js';
+let lkWait = null;
+function livekitLoad() {
+  if (window.LivekitClient && window.LivekitClient.Room) return Promise.resolve(window.LivekitClient);
+  if (lkWait) return lkWait;
+  lkWait = new Promise((ok, ko) => {
+    const s = document.createElement('script'); s.src = ROOT + LK_LOCAL; s.async = true;
+    const t = setTimeout(() => ko(new Error('appel : client trop long')), 25000);
+    s.onload = () => { clearTimeout(t); if (window.LivekitClient && window.LivekitClient.Room) ok(window.LivekitClient); else ko(new Error('appel : client absent')); };
+    s.onerror = () => { clearTimeout(t); ko(new Error('appel : chargement raté')); };
+    document.head.appendChild(s);
+  });
+  lkWait.catch(() => { lkWait = null; });
+  return lkWait;
+}
 function pgSmsArgs(fn, x) {
   x = x || {};
   if (fn === 'pg_sms_send') return { p_to: pgStr(x.p_to, 40), p_body: pgStr(x.p_body, 2000), p_id: pgStr(x.p_id, 64) };
@@ -688,7 +730,7 @@ const SMS_SUBS = new Set();
 const smsHex = n => Array.from(new TextEncoder().encode(n), b => b.toString(16).padStart(2, '0')).join('');
 let smsTopicOn = null;
 function smsTopicSync() {
-  const want = SMS_SUBS.size && !isGuest() && profile.name && ONLINE ? 'jdw-sms-' + smsHex(cleanName(profile.name)) : null;
+  const want = !isGuest() && profile.name && ONLINE ? 'jdw-sms-' + smsHex(cleanName(profile.name)) : null;   // toujours : un appel peut sonner partout
   if (want === smsTopicOn) return;
   if (smsTopicOn) rtLeave(smsTopicOn);
   smsTopicOn = want;
@@ -767,7 +809,7 @@ function pegaseApi() {
       if (guest() || !ONLINE) { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; throw e; }
       if (PG_RPC_CAT.has(fn)) return rpc(fn, { p_code: CODE() }, { quiet: true });
       if (PG_LIVRE.has(fn)) return rpc(fn, { p_code: CODE(), p_name: profile.name }, { quiet: true });   // Grand livre : arguments du hub ignorés
-      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : fn === 'pg_room_maisons' ? {} : fn.startsWith('pg_sms_') ? pgSmsArgs(fn, args) : Object.assign({}, args || {});
+      const a = fn === 'pg_unlock_buy' ? { p_unlock: String((args && args.p_unlock) || '').slice(0, 80), p_op: String((args && args.p_op) || '').slice(0, 64) } : fn === 'pg_link_make' ? (args && args.p_long === true ? { p_long: true } : {}) : fn === 'pg_room_maisons' ? {} : fn.startsWith('pg_sms_') ? pgSmsArgs(fn, args) : fn.startsWith('pg_appel_') ? pgAppelArgs(fn, args) : Object.assign({}, args || {});
       if (PG_GRAM.has(fn)) { const g = Object.assign(pgGramArgs(fn, args), { p_code: CODE() }); if (!PG_GRAM_NONAME.has(fn)) g.p_name = profile.name; return rpc(fn, g, { quiet: true }); }
       Object.assign(a, { p_code: CODE(), p_name: profile.name });
       if (fn === 'pg_room_avatars' || fn === 'pg_room_maisons') { if (!room) { const e = new Error(fn + ' : pas de salle'); e.member = true; throw e; } a.p_room = room.id; }
@@ -781,9 +823,99 @@ function pegaseApi() {
     photo: path => gramPhoto(path),   // PegaGram, cartes postales de Messages, pages du Grand livre : photo du Storage privé, ph/<uuid>/g|m.jpg
     photoDelete: paths => gramDelete(paths),
     onGram: fn => { if (typeof fn !== 'function') return () => {}; GRAM_SUBS.add(fn); return () => { GRAM_SUBS.delete(fn); }; },
-    onLivre: fn => { if (typeof fn !== 'function') return () => {}; LIVRE_SUBS.add(fn); return () => { LIVRE_SUBS.delete(fn); }; }
+    onLivre: fn => { if (typeof fn !== 'function') return () => {}; LIVRE_SUBS.add(fn); return () => { LIVRE_SUBS.delete(fn); }; },
+    onAppel: fn => { if (typeof fn !== 'function') return () => {}; APPEL_SUBS.add(fn); smsTopicSync(); callgHide(); return () => { APPEL_SUBS.delete(fn); smsTopicSync(); CALLG.at = 0; }; },
+    voixAppel: id => pgVoixAppel(id),
+    livekit: () => livekitLoad(),
+    appelPris: () => { const t = CALLG.took; CALLG.took = null; return t && Date.now() - t.t < 60000 && !guest() ? { id: t.id, de: t.de } : null; }
   };
 }
+
+/* ================= Appels partout dans la borne (23 oct. 2026) ================= */
+// Demande de l'utilisateur : « on peut appeler n'importe qui sur la borne à tout moment, même s'il n'est jamais allé sur Pégase ». Le hub de
+// Pégase ouvert (abonné à onAppel) s'occupe de tout ; SINON la borne écoute elle-même : signal { t: 'appel' } du canal PRIVÉ des messages
+// (toujours ouvert pour un joueur, smsTopicSync) et relecture de pg_appel_attente (toutes les 30 s, 15 s sans le direct, 2 s pendant que ça
+// sonne) → bandeau « X t'appelle » par-dessus tout, même en pleine partie (#jdw-callring). Refuser = pg_appel_repondre (non, refuse) ;
+// Décrocher = la borne ouvre le hub de Pégase (la partie en cours s'arrête, comme « Quitter »), qui prend l'appel : api.pegase.appelPris().
+const CALLG = { seen: new Map(), cur: null, at: 0, polling: false, ringT: 0, took: null, off: false, missT: 0 };
+const callgOn = () => ONLINE && !isGuest() && !!profile.name && !APPEL_SUBS.size && !CALLG.off && !netOff();
+async function callgPoll() {
+  if (!callgOn() || CALLG.polling) return;
+  CALLG.polling = true; CALLG.at = Date.now();
+  let r = null;
+  try { r = await rpc('pg_appel_attente', { p_code: CODE(), p_name: profile.name }, { quiet: true }); }
+  catch (e) { if (e && e.status === 404) CALLG.off = true; }   // serveur sans les appels : on n'insiste pas
+  finally { CALLG.polling = false; }
+  if (!r || !callgOn()) return;
+  const me = cleanName(profile.name);
+  for (const a of Array.isArray(r.appels) ? r.appels : []) if (a && /^c[0-9a-f]{20}$/.test(String(a.id))) callgSeen(a, me);
+}
+function callgSeen(a, me) {
+  const prev = CALLG.seen.get(a.id); CALLG.seen.set(a.id, a.etat);
+  const c = CALLG.cur;
+  if (c && c.id === a.id) {
+    if (a.etat === 'appel' || a.etat === 'sonne') return;                      // ça sonne toujours
+    if (a.etat === 'manque' || a.etat === 'annule') callgMissed(c); else callgHide();   // décroché ailleurs, refusé, fini : rien à dire
+    return;
+  }
+  if (prev || a.a !== me || (a.etat !== 'appel' && a.etat !== 'sonne') || (c && !c.missed)) return;
+  CALLG.cur = { id: a.id, de: String(a.de || ''), t0: Date.now() };
+  rpc('pg_appel_sonne', { p_code: CODE(), p_name: profile.name, p_id: a.id }, { quiet: true }).catch(() => {});
+  callgShow();
+}
+function callgFace(n) {
+  const p = players.get(n), f = $('jdw-callring-face'); f.textContent = '';
+  if (p && p.photo) { const im = document.createElement('img'); im.alt = ''; im.src = p.photo; f.appendChild(im); }
+  else { const sp = document.createElement('span'); sp.textContent = (dispName(n)[0] || '?').toUpperCase(); f.appendChild(sp); }
+}
+function callgShow() {
+  const c = CALLG.cur; if (!c) return;
+  clearTimeout(CALLG.missT);
+  const el = $('jdw-callring'); if (el.parentNode !== document.body) document.body.appendChild(el);   // au-dessus de tout, même d'une partie
+  callgFace(c.de);
+  $('jdw-callring-name').textContent = dispName(c.de);
+  $('jdw-callring-sub').textContent = current && !current.over && current.game && current.game.id !== 'pegase' ? 't\'appelle · Décrocher arrête la partie' : 't\'appelle';
+  const no = $('jdw-callring-no'); no.firstChild.textContent = '📞'; no.lastChild.textContent = 'Refuser'; no.setAttribute('aria-label', 'Refuser');
+  el.classList.remove('missed'); el.hidden = false;
+  callgRing(true);
+}
+function callgRing(on) {
+  clearInterval(CALLG.ringT); CALLG.ringT = 0; if (!on) return;
+  const f = () => { Audio.ensure(); Audio.tone(784, 0.2, 'sine', 0.16); setTimeout(() => Audio.tone(988, 0.26, 'sine', 0.16), 230); try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {} };
+  f(); CALLG.ringT = setInterval(f, 1800);
+}
+function callgHide() { clearTimeout(CALLG.missT); CALLG.cur = null; callgRing(false); const el = $('jdw-callring'); if (el) el.hidden = true; }
+function callgMissed(c) {   // l'autre a raccroché avant que je réponde (ou 45 s sans réponse) : « Appel manqué » quelques secondes
+  callgRing(false); c.missed = true;
+  $('jdw-callring-sub').textContent = 'Appel manqué'; $('jdw-callring').classList.add('missed');
+  const no = $('jdw-callring-no'); no.firstChild.textContent = '✕'; no.lastChild.textContent = 'Fermer'; no.setAttribute('aria-label', 'Fermer');
+  clearTimeout(CALLG.missT); CALLG.missT = setTimeout(() => { if (CALLG.cur === c) callgHide(); }, 4500);
+}
+function callgOpenHub() {
+  const g = gameById('pegase'); if (!g) return;
+  for (const id of ['jdw-invshare', 'jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members']) { const el = $(id); if (el && !el.hidden) { if (id === 'jdw-photo') closePhoto(); else closeSheet(id); } }
+  try { if (chat.open) closeChat(); } catch (e) {}
+  if (current && current.game && current.game.id === 'pegase') return;   // déjà dans le hub : il prend l'appel tout seul
+  const busy = !!current; if (busy) backToLibrary();                     // une partie en cours s'arrête (les records sont déjà enregistrés)
+  setTimeout(() => openGame(g), busy ? 300 : 0);
+}
+$('jdw-callring-no').addEventListener('click', () => {
+  const c = CALLG.cur; if (!c || c.missed) { callgHide(); return; }
+  rpc('pg_appel_repondre', { p_code: CODE(), p_name: profile.name, p_id: c.id, p_oui: false, p_raison: 'refuse' }, { quiet: true }).catch(() => {});
+  callgHide();
+});
+$('jdw-callring-ok').addEventListener('click', () => {
+  const c = CALLG.cur; if (!c || c.missed) return;
+  CALLG.took = { id: c.id, de: c.de, t: Date.now() }; callgHide(); Audio.ensure();
+  callgOpenHub();
+});
+setInterval(() => {
+  smsTopicSync();                                         // le canal privé suit le joueur actuel (changement de joueur, de compte, réseau)
+  if (document.hidden || !callgOn()) return;
+  const per = CALLG.cur && !CALLG.cur.missed ? 2000 : RT.ok ? 30000 : 15000;
+  if (Date.now() - CALLG.at >= per - 300) callgPoll();
+}, 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) CALLG.at = 0; });   // retour sur la borne : relire tout de suite
 
 /* ================= Erreurs : remontées au serveur + sauvetage du score ================= */
 const BUILD = window.JDW_BUILD || 'dev';
@@ -1774,6 +1906,10 @@ const pokeTimers = {};
 function onPoke(topic, event, p) {
   if (p.from === clientId) return;
   if (p.t === 'sms') { if (topic === smsTopicOn) for (const f of [...SMS_SUBS]) { try { f(); } catch (e) {} } return; }
+  if (p.t === 'appel') {   // appel : relire pg_appel_attente (le hub de Pégase s'il est ouvert, sinon la borne elle-même)
+    if (topic === smsTopicOn) { if (APPEL_SUBS.size) for (const f of [...APPEL_SUBS]) { try { f(); } catch (e) {} } else { CALLG.at = 0; callgPoll(); } }
+    return;
+  }
   if (p.t === 'gram') { if (room && topic === 'jdw-room-' + room.id) for (const f of [...GRAM_SUBS]) { try { f(); } catch (e) {} } return; }   // PegaGram : relire
   if (p.t === 'rtc') { if (room && topic === 'jdw-room-' + room.id) rtcOnSignal(p); return; }
   if (p.t === 'net') { if (NET.topic && topic === NET.topic) netOnSignal(p); return; }
