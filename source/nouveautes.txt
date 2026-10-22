@@ -1,3 +1,4 @@
+🎥 PÉGASE 0.9.3.3 : appels en vidéo — tes copains te voient en selfie dans ton monde (🔄 pour montrer devant toi), et tu vois la vraie caméra de ceux qui appellent depuis la borne ; appelle tous les copains de tes salles
 📞 APPELS PARTOUT DANS LA BORNE : appelle n'importe quel copain de tes salles, même s'il n'a jamais ouvert Pégase — en vidéo entre bornes, en avatar avec ceux qui sont dans Pégase ; la borne sonne même en pleine partie (nouvelle appli 1.10 pour la caméra sur Android)
 👫 Onglet Amis : tes copains EN PIED, et ceux qui ne sont pas encore sur Pégase
 📱 PÉGASE 0.9.3.2 : en 3e personne, le téléphone s'ouvre directement en grand à gauche (un bouton de moins)
