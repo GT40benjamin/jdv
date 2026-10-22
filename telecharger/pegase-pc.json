@@ -1,13 +1,11 @@
 {
-  "version": "0.9.3.1",
-  "build": 16,
-  "size": 1912426339,
-  "sha256": "6d27017ac3c17534209aded1b46ba5147aa4ea64072ee86affa372b0af3c10d8",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v16/Pegase-PC-2026-10-23-0.9.3.1.zip",
-  "manifest": "26fbbbe1b992709fc24e9c1cf64886525a2fdfd3da1ba9a832fb939d388b3b75",
+  "version": "0.9.3.2",
+  "build": 17,
+  "size": 1912425517,
+  "sha256": "e041df7db4323e1068d67ebcaabe26f7d8f8022c71398d8167c0460fb74227f6",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v17/Pegase-PC-2026-10-23-0.9.3.2.zip",
+  "manifest": "1bc99fd485e90bdb33ff18018059e4940eb56954b3c834db924d566692aec6c3",
   "notes": [
-    "Ton avatar rit, sourit, s'étonne avec ta voix",
-    "Dis oui / non / salut au micro",
-    "Grand livre : nombres par onglet, légendes floues, 5 poissons"
+    "Téléphone directement en grand à gauche"
   ]
 }
