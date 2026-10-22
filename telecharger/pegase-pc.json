@@ -1,13 +1,16 @@
 {
-  "version": "0.9.2.1",
-  "build": 14,
-  "size": 1814881044,
-  "sha256": "78a8f2bdb6f511d70d3f3a83fb940b62655bc426cc1096440a6f7dfd97a1f4e7",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v14/Pegase-PC-2026-10-22-0.9.2.1.zip",
-  "manifest": "fe4df8449da861529ed225cd7aa474c23f5db2c498dcf3bbd0927e6a43def1a4",
+  "version": "0.9.3",
+  "build": 15,
+  "size": 1912425503,
+  "sha256": "037407f7211ecb520a16b6b10a258ca513bec4d4e82a87ea6b255a999e7bbbd3",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v15/Pegase-PC-2026-10-22-0.9.3.zip",
+  "manifest": "8adfe581484a6debadef8c7cff99b99ec3ddf01f5102d2e3ef1f78cba563338c",
   "notes": [
-    "Petites touches sur tous les boutons",
-    "X : ta bouche suit ta voix, même seul",
-    "Carte du téléphone qui glisse"
+    "Le grand-duc au sifflet",
+    "Le grand concours photo de Papi Auguste",
+    "Le vieux pêcheur et la nouvelle pêche",
+    "Missions du jour en haut de l'écran",
+    "Nouveaux gestes : bisou, bise, poignée de main",
+    "Photos dans les SMS, historique gardé"
   ]
 }
