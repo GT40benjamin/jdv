@@ -1,3 +1,5 @@
+🏡 Dans le hub de Pégase, « Voir sa maison » : la maison de chaque copain, vue du ciel, sur sa parcelle
+🎵 Nouvelle musique dans le hub de Pégase : « Chez toi »
 📞 PÉGASE 0.9.2 : appelle tes copains, vois leurs maisons et réveille-toi chez toi — escaliers, pancartes, pêche, linge blanc et des dizaines de corrections (PC et Android)
 🛠️ PÉGASE 0.9.1 : premières corrections — la photo du chat compte aussi la nuit, Papi Auguste reste assis à son bureau, plus de cordes sur les chemins, cartes postales perso
 🌱 NOUVEAU DÉPART avec Pégase 0.9 : toute l'île repart de zéro pour tout le monde — ton avatar est gardé, et tu repars avec 100 lucioles
