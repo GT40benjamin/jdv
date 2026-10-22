@@ -4994,7 +4994,7 @@
 .pgh-fv.call .pgh-clpip{display:block}
 .pgh-fv.wide .pgh-clpip{top:24px;right:24px;width:18%;max-width:190px}
 /* 23 oct. : sur la borne on se voit « en vrai » — la vidéo de l'autre plein cadre (sinon son avatar), ma caméra dans le coin (sinon mon avatar) */
-.pgh-clvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3;display:none;background:#140d28}
+.pgh-clvid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:3;display:none;background:#0b0718}  /* 23 oct. : la vidéo ENTIÈRE (paysage reste paysage), jamais recadrée */
 .pgh-fv.vid .pgh-clvid{display:block}
 .pgh-clme{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;background:#140d28}
 .pgh-fv.cam .pgh-clme{display:block}
