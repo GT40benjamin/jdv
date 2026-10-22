@@ -1,14 +1,12 @@
 {
-  "version": "0.9.3.5",
-  "build": 20,
-  "size": 1968637954,
-  "sha256": "3c1dccaa026c16b514048e9c1897c15f7ec69ad73176de85ed89aa3711d52520",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v20/Pegase-PC-2026-10-23-0.9.3.5.zip",
-  "manifest": "a2e4b5e0ffec4ebcb311f4aadd396283cc25013fd61d3099d0274f450a69b8b6",
+  "version": "0.9.3.6",
+  "build": 21,
+  "size": 1973241290,
+  "sha256": "822d0deba2f6781b683f75cf92aa6223eba10fb5a16407dc92aa7b6046cc06d7",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v21/Pegase-PC-2026-10-23-0.9.3.6.zip",
+  "manifest": "b269e45ace3de04d31fb83f70ea2a7bf2232347903c2a4d46544cde1cf090dbd",
   "notes": [
-    "Ton avatar réagit à ta voix (oui, non, haha, grrr, 6 7…)",
-    "Comme dans la borne, sur ton appareil",
-    "Selfie d'appel en meilleure qualité sur PC",
-    "Pendant un appel, la souris tourne la vue (Alt = curseur)"
+    "Les mots au micro marchent à chaque fois",
+    "Grrr entendu au son, comme la borne"
   ]
 }
