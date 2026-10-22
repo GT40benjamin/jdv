@@ -4821,6 +4821,42 @@
 .pgh-fvemo{display:flex;gap:9px}
 .pgh-fvemo .pgh-emo{width:46px;height:46px;font-size:20px}
 .pgh-fvbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pgh-fvbtns [data-h="fvsms"]{grid-column:1 / -1}
+.pgh-fvbtns [hidden]{display:none}
+.pgh-fvbtns [data-h="fvlivre"][hidden] + [data-h="fvhouse"]{grid-column:1 / -1}
+/* 23 oct. 2026 : l'onglet Amis en TUILES (une par ami : avatar, en ligne, nouveaux messages, son livre) ; les anciennes sections restent
+   pour les cas vides (invité, pas de salle) et se cachent dès qu'il y a des tuiles */
+.pgh-pane.tuiles > [data-h="secsms"],.pgh-pane.tuiles > [data-h="secfr"],.pgh-pane.tuiles > [data-h="lvfr"]{display:none!important}
+.pga-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+@media (min-width:760px){.pga-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}}
+@media (min-width:1080px){.pga-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pga-t{position:relative;display:flex;flex-direction:column;gap:10px;min-width:0;padding:12px;border:0;border-radius:20px;color:inherit;text-align:left;cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,236,210,.085),rgba(255,236,210,.03));box-shadow:inset 0 0 0 1px rgba(255,214,140,.14),0 10px 24px rgba(0,0,0,.26);transition:transform .15s,box-shadow .15s}
+.pga-t:hover{transform:translateY(-2px);box-shadow:inset 0 0 0 1px rgba(255,214,140,.32),0 14px 30px rgba(0,0,0,.32)}
+.pga-t:active{transform:scale(.98)}
+.pga-t:focus-visible{outline:3px solid #fac55e;outline-offset:2px}
+.pga-t.un{box-shadow:inset 0 0 0 2px rgba(255,190,90,.75),0 10px 26px rgba(0,0,0,.3)}
+.pga-top{display:flex;align-items:center;gap:10px;min-width:0}
+.pga-av{position:relative;flex:none;width:62px;height:62px;border-radius:18px;overflow:hidden;background:radial-gradient(120% 90% at 50% 20%,#6d4f9c,#2a1d4a)}
+.pga-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 14%}
+.pga-av img.av{opacity:0;transform:scale(1.9);transform-origin:50% 12%;transition:opacity .3s}
+.pga-av img.av.on{opacity:1}
+.pga-av .wait{position:absolute;left:50%;top:20%;width:30px;height:30px;margin-left:-15px;border-radius:50%;background:var(--skin,#e8b48f);box-shadow:0 -7px 0 3px var(--hair,#5a3a20),0 22px 0 6px var(--cloth,#6d5ab0)}
+.pga-av img.av.on + .wait{display:none}
+.pga-av .ini{position:absolute;inset:0;display:grid;place-items:center;font:400 28px ${FD};color:#fff3dc;background:hsl(var(--h,280) 45% 38%)}
+.pga-av .dot{position:absolute;right:4px;bottom:4px;width:13px;height:13px;border-radius:50%;background:#8a8496;box-shadow:0 0 0 2.5px #241a3c}
+.pga-t.on .pga-av .dot{background:#5fe08a}
+.pga-id{display:flex;flex-direction:column;min-width:0;gap:2px}
+.pga-id b{font:700 16px/1.15 ${FB};color:#fff3dc;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pga-id small{font:600 12.5px ${FB};color:rgba(255,236,210,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pga-t.on .pga-id small{color:#8ff0b0}
+.pga-bd{display:flex;flex-wrap:wrap;gap:6px}
+.pga-b{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;font:700 12.5px ${FB};background:rgba(255,236,210,.09);color:#f3e2c8;white-space:nowrap}
+.pga-b.on{background:linear-gradient(180deg,#ffe7a8,#ffb85e);color:#3a1a05}
+.pga-last{display:block;font:600 13px ${FB};color:rgba(255,236,210,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pga-h3{margin:26px 0 0;font:700 15px ${FB};letter-spacing:.06em;text-transform:uppercase;color:#fac55e}
+.pga-grid.hab .pga-t{gap:8px}
+.pga-ht .pgh-sma{width:46px;height:46px;font-size:22px}
 .pgh-fvbtns .pgh-cta{min-height:52px;font-size:14px;flex-direction:column;gap:2px;line-height:1.1}
 .pgh-fvbtns .pgh-cta small{font:700 10px ${FB};letter-spacing:.08em;text-transform:uppercase;color:#ffcf8a}
 .pgh-fvbtns .pgh-cta small,.pgh-fvbtns .pgh-cta span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -6664,6 +6700,9 @@ button.pgl-couv:hover{transform:translateY(-2px) rotate(-1deg)}
     return {
       tab(t) { L.tab = t; if (!vivant() || !L.at) return; if ((t === 'amis' || t === 'moi') && Date.now() - L.at > 30000) load(); else render(); },   // 1re lecture : 1,3 s après l'ouverture
       state() { return { st: L.st, n: L.books.length, amis: L.books.filter((b) => !b.moi).map((b) => b.name), at: L.at, err: L.err, live: !!L.off, view: L.view ? { name: L.view.name, page: L.view.page, double: L.view.double } : null, pages: PAGES.length, neufs: [...L.neufs] }; },
+      // 23 oct. (onglet Amis en tuiles) : le livre de chaque ami (nombre d'espèces), et l'ouvrir depuis sa tuile ou sa fiche
+      amis() { return L.books.filter((b) => !b.moi).map((b) => ({ name: b.name, total: b.total | 0, sur: b.sur | 0, neuf: L.neufs.has(b.name) })); },
+      ouvrir(name) { if (!L.books.some((b) => b.name === name)) return false; openBook(name); return true; },
       test: { load, openBook, closeBook, va, pages: () => PAGES.map((p) => p.k === 'garde' ? 'garde' : p.ch.id + ':' + p.b.map((x) => x.t === 'rang' ? x.cases.length : x.t[0]).join('')) },
       destroy() { dead = true; clearTimeout(L.pokeT); if (L.off) { try { L.off(); } catch (e) { /* rien */ } L.off = null; } if (L.ro) L.ro.disconnect(); if (V) { V.v.remove(); V = null; } }
     };
@@ -6933,6 +6972,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     </section>
   </div>
   <div class="pgh-pane" data-pane="amis">
+    <section class="pgh-sec pga-sec" data-h="secami" hidden>
+      <div class="pgh-frhead"><h2 class="pgh-h2">Mes amis</h2><span class="pgh-frcount" data-h="amicount"></span></div>
+      <p class="pgh-sub">Touche un ami : ses messages, son livre, son avatar et sa maison.</p>
+      <div class="pga-grid" data-h="amibox"></div>
+      <div data-h="amihab"></div>
+    </section>
     <section class="pgh-sec pgh-smsec" data-h="secsms" hidden>
       <div class="pgh-frhead"><h2 class="pgh-h2">Messages</h2><span class="pgh-smsn" data-h="smsn"></span></div>
       <p class="pgh-sub">Les SMS du téléphone de ton avatar : tes copains, et les habitants de Pégase.</p>
@@ -7004,7 +7049,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <span class="pgh-fvst" data-h="fvst"><i></i><span data-h="fvstt"></span></span>
     <p class="pgh-fvdesc" data-h="fvdesc"></p>
     <div class="pgh-fvemo" data-h="fvemo">${EMOTES_ALL.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}</button>`).join('')}</div>
-    <div class="pgh-fvbtns"><button class="pgh-cta gold" data-h="fvsms"><span>✉️ Écrire</span><small style="color:#7a3d10">un message</small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
+    <div class="pgh-fvbtns"><button class="pgh-cta gold" data-h="fvsms"><span>✉️ Messages</span><small style="color:#7a3d10" data-h="fvsmsn">un message</small></button><button class="pgh-cta glass" data-h="fvlivre" hidden><span>📖 Son livre</span><small data-h="fvlivren"></small></button><button class="pgh-cta glass" data-h="fvhouse"><span>🏡 Visiter sa maison</span><small>bientôt</small></button></div>
   </div>
 </div>
 <div class="pgh-modal pgh-hm" data-h="hmodal" role="dialog" aria-label="La maison d'un copain"><div class="pgh-mcard">
@@ -9276,6 +9321,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       $.frbdg.textContent = onN; $.frbdg.classList.toggle('on', onN > 0);
       $.frcount.textContent = list.length ? (onN ? onN + ' en ligne · ' : '') + list.length + ' copain' + (list.length > 1 ? 's' : '') : '';
       FR.list = list;
+      renderAmis();
       if (sig === FR.sig) return; FR.sig = sig;
       const row0 = $.frbox.querySelector('.pgh-frrow'), sl = row0 ? row0.scrollLeft : 0;
       $.frbox.innerHTML = html;
@@ -9290,6 +9336,76 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       const a = FR.av.get(n); if (!a || a.tenue < 0 || !STG || stgFail || tab !== 'amis') return;
       wantThumb(avKey(n, a), a.look || a.tenue, 'f');
     }
+    // ---------- 23 oct. 2026 (demande de l'utilisateur) : l'onglet Amis en TUILES — une tuile par ami (les copains de la salle et ceux
+    // avec qui on s'écrit) : son avatar, en ligne ou pas, ses nouveaux messages, son livre, le dernier message ; puis les habitants (leurs
+    // SMS). Une tuile ouvre SA fiche (avatar, gestes, Messages, Son livre, Sa maison) ; un ami d'une autre salle : vos messages.
+    let amiSig = '', amiIO = null;
+    function amiLivres() { try { return LIVRE && LIVRE.amis ? LIVRE.amis() : []; } catch (e) { return []; } }
+    function amiConv() { try { return SMS.list || []; } catch (e) { return []; } }   // (SMS est déclaré plus bas)
+    function amiTile(x) {
+      const a = FR.av.get(x.n), has = !!(a && a.tenue >= 0);
+      let av;
+      if (has) {
+        const k = avKey(x.n, a), u = STORE.thumbs.get(k), c = GR.chars[a.tenue % 7];
+        av = `<img class="av${u ? ' on' : ''}" alt="" data-tk="${esc(k)}"${u ? ` src="${u}"` : ''}><span class="wait" style="--skin:${c.skin};--hair:${c.hair};--cloth:${c.c1}"></span>`;
+      } else av = x.photo ? `<img alt="" src="${esc(x.photo)}">` : `<span class="ini" style="--h:${hue(x.n)}">${esc((x.display || '?')[0].toUpperCase())}</span>`;
+      const st = x.online ? 'en ligne' : x.m ? seen(x.seen) : x.c && x.c.room ? 'salle ' + x.c.room : 'une autre salle';
+      const last = x.c ? (x.c.mine ? 'Toi : ' : '') + (x.c.last || (x.c.photo ? '📷 Photo' : '')) : '';
+      const sms = x.un ? x.un + ' nouveau' + (x.un > 1 ? 'x' : '') : x.c ? 'Messages' : 'Écrire';
+      return `<button class="pga-t${x.online ? ' on' : ''}${x.un ? ' un' : ''}" data-n="${esc(x.n)}" aria-label="${esc(x.display)}${x.un ? ' : ' + x.un + ' nouveau' + (x.un > 1 ? 'x' : '') + ' message' + (x.un > 1 ? 's' : '') : ''}">`
+        + `<span class="pga-top"><span class="pga-av">${av}<span class="dot"></span></span><span class="pga-id"><b>${esc(x.display)}</b><small>${esc(st)}</small></span></span>`
+        + `<span class="pga-bd"><span class="pga-b${x.un ? ' on' : ''}">✉️ ${sms}</span>${x.b ? `<span class="pga-b">📖 ${x.b.total} espèce${x.b.total > 1 ? 's' : ''}</span>` : ''}</span>`
+        + (last ? `<span class="pga-last">${esc(last)}</span>` : '') + '</button>';
+    }
+    function habTile(c) {
+      const o = smsWho(c.w, c.title), un = c.unread | 0, last = (c.mine ? 'Toi : ' : '') + (c.last || (c.photo ? '📷 Photo' : ''));
+      const sorte = c.kind === 'concours' ? 'concours' : c.kind === 'systeme' ? 'Pégase' : 'habitant';
+      return `<button class="pga-t pga-ht${un ? ' un' : ''}" data-w="${esc(c.w)}" aria-label="${esc(o.name)}">`
+        + `<span class="pga-top">${smsFace(o)}<span class="pga-id"><b>${esc(o.name)}</b><small>${sorte}</small></span></span>`
+        + (un ? `<span class="pga-bd"><span class="pga-b on">✉️ ${un} nouveau${un > 1 ? 'x' : ''}</span></span>` : '')
+        + (last ? `<span class="pga-last">${esc(last)}</span>` : '') + '</button>';
+    }
+    function renderAmis() {
+      if (!$.secami) return;
+      const i = pgInfo(), conv = amiConv(), lv = new Map(amiLivres().map((b) => [b.name, b])), by = new Map();
+      const ms = !PG || i.guest || !i.name ? [] : members().filter((m) => !m.me);
+      for (const m of ms) by.set(m.name, { n: m.name, m, display: m.display, online: !!m.online, seen: m.seen, photo: m.photo, c: null });
+      for (const c of conv) if (/^p:/.test(c.w)) {
+        const n = c.w.slice(2), x = by.get(n) || { n, m: null, display: smsWho(c.w, c.title).name, online: false, seen: 0, photo: null, c: null };
+        x.c = c; by.set(n, x);
+      }
+      const amis = [...by.values()];
+      for (const x of amis) { x.un = x.c ? x.c.unread | 0 : 0; x.b = lv.get(x.n) || null; }
+      amis.sort((a, b) => (b.un > 0) - (a.un > 0) || (b.online - a.online) || (!!b.m - !!a.m) || a.display.localeCompare(b.display));
+      const on = amis.length > 0;
+      $.secami.hidden = !on; $.secami.parentElement.classList.toggle('tuiles', on);
+      if (!on) { amiSig = ''; return; }
+      const onN = amis.filter((x) => x.online).length, hab = conv.filter((c) => /^pnj:/.test(c.w));
+      $.amicount.textContent = (onN ? onN + ' en ligne · ' : '') + amis.length + ' ami' + (amis.length > 1 ? 's' : '');
+      const html = amis.map(amiTile).join(''), hh = hab.length ? `<h3 class="pga-h3">Les habitants</h3><div class="pga-grid hab">${hab.map(habTile).join('')}</div>` : '';
+      if (html + hh === amiSig) return; amiSig = html + hh;
+      $.amibox.innerHTML = html; $.amihab.innerHTML = hh;
+      if (friendOn) fvAmiSync(friendOn.name);
+      // les miniatures d'avatar (la même file que les cartes d'avant), quand la tuile se voit
+      if (amiIO) amiIO.disconnect();
+      if (typeof IntersectionObserver === 'function') {
+        amiIO = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) queueFriend(e.target.dataset.n); }, { root: null, rootMargin: '160px', threshold: 0.01 });
+        $.amibox.querySelectorAll('.pga-t[data-n]').forEach((t) => amiIO.observe(t));
+      } else amis.slice(0, 8).forEach((x) => queueFriend(x.n));
+    }
+    // la fiche : ses nouveaux messages, son livre
+    function fvAmiSync(n) {
+      const c = amiConv().find((x) => x.w === 'p:' + n), un = c ? c.unread | 0 : 0, b = amiLivres().find((x) => x.name === n);
+      $.fvsmsn.textContent = un ? un + ' nouveau' + (un > 1 ? 'x' : '') + ' message' + (un > 1 ? 's' : '') : c ? 'vos messages' : 'lui écrire';
+      $.fvlivre.hidden = !b; if (b) $.fvlivren.textContent = b.total + ' espèce' + (b.total > 1 ? 's' : '') + ' sur ' + b.sur;
+    }
+    on($.secami, 'click', (e) => {
+      const t = e.target.closest('.pga-t'); if (!t) return;
+      if (t.dataset.w) { openThread(t.dataset.w); tone(560, 840); return; }
+      const n = t.dataset.n;
+      if (FR.list.some((m) => m.name === n)) openFriend(n);   // un copain de la salle : sa fiche
+      else { openThread('p:' + n); tone(560, 840); }          // un ami d'une autre salle : vos messages
+    });
     on($.frbox, 'click', (e) => {
       if (e.target.closest('[data-h2="acct"]')) { try { PG && PG.account && PG.account(); } catch (x) { /* rien */ } return; }
       const c = e.target.closest('.pgh-fc'); if (c) openFriend(c.dataset.n);
@@ -9306,7 +9422,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       $.fvhead.innerHTML = m.photo ? `<img class="hd" alt="" src="${esc(m.photo)}">` : `<span class="ini" style="--h:${hue(m.name)}">${esc(m.display[0] || '?')}</span>`;
       $.fvnonet.textContent = m.display + ' n\'a pas encore créé son avatar.';
       $.fv.classList.add('on'); $.name.classList.remove('on');
-      fvHouseSync(); fvHouseLoad(false);
+      fvHouseSync(); fvHouseLoad(false); fvAmiSync(m.name);
       if (has) { { const st = $.gl.style; st.left = st.top = '0px'; st.width = st.height = '100%'; GLB = { x: 0, y: 0, w: 0, h: 0, full: true }; } $.fvstage.appendChild($.gl); STG.setFrame('corps'); STG.setLook(a.look || a.tenue).then(() => { if (!dead && friendOn === m && STG) STG.gesture('wave'); }); STG.face(); }
       requestAnimationFrame(() => { if (!dead) { placeStage(); activeSync(); } });
       tone(523, 784);
@@ -9322,6 +9438,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     on($.fv, 'click', (e) => {
       const h = e.target.closest('[data-h]');
       if (h && h.dataset.h === 'fvx') { closeFriend(); return; }
+      if (h && h.dataset.h === 'fvlivre') { const n = friendOn && friendOn.name; if (n && LIVRE && LIVRE.ouvrir) LIVRE.ouvrir(n); return; }   // par-dessus la fiche ; la fermer y ramène
       if (h && h.dataset.h === 'fvsms') { const n = friendOn && friendOn.name; if (n) { openThread('p:' + n); tone(560, 840); } return; }
       if (h && h.dataset.h === 'fvhouse') {
         const m = friendOn, k = h.dataset.k || 'soon';
@@ -9428,6 +9545,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         html = (rows || `<div class="pgh-smempty"><span class="em">✉️</span><div><h3>Pas encore de message</h3><p>${ms.length ? 'Écris à un copain : il le lira dans le téléphone de son avatar, ou ici sur la borne.' : 'Quand un copain ou un habitant de Pégase t\'écrira, ça arrivera ici.'}</p></div></div>`) + chips
           + (SMS.st === 'offline' ? '<p class="pgh-smwarn">Pas de réseau : les nouveaux messages arriveront avec la connexion.</p>' : '');
       }
+      renderAmis();
       if (html === SMS.sig) return; SMS.sig = html;
       $.smbox.innerHTML = html;
     }
