@@ -1,13 +1,13 @@
 {
-  "version": "0.9.3.3",
-  "build": 18,
-  "size": 1912433549,
-  "sha256": "5856bf87390d81ef67a81d7cf26b22b9ba242bae18ae429095152fc4c04c1da9",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v18/Pegase-PC-2026-10-23-0.9.3.3.zip",
-  "manifest": "451222cce1eb85448af22824824324efa9990f2df4884b7fef43110ce8b9b3cb",
+  "version": "0.9.3.4",
+  "build": 19,
+  "size": 1912434988,
+  "sha256": "593a5983d3ef775fed7856e19c4f7a7120ea52c065d7b51782d3e15de5a88491",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v19/Pegase-PC-2026-10-23-0.9.3.4.zip",
+  "manifest": "cdce23a4fe70a50c141ddd7d6751cb63c2d5fb2f9ebddaa979f0ffe303fc7631",
   "notes": [
-    "Appels en vidéo : ton selfie dans le monde",
-    "La caméra de la borne dans l'appel",
-    "Appelle tous tes copains"
+    "Selfie : téléphone devant le visage, on marche",
+    "Vidéo du copain en paysage, entière",
+    "Flèche pour ranger le téléphone"
   ]
 }
