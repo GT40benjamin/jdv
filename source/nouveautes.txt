@@ -1,3 +1,4 @@
+👫 Hub de Pégase : l'onglet Amis en tuiles — en ligne ou non, nouveaux messages, son livre ; touche un ami pour ses messages, son livre et sa maison
 🦉 PÉGASE 0.9.3 : le grand-duc au sifflet, le grand concours photo de Papi Auguste (200 lucioles à gagner), le vieux pêcheur et la nouvelle pêche, missions du jour en haut de l'écran, gestes à acheter (bisou, bise, poignée de main), photos dans les SMS — PC et Android
 ⌨️ PÉGASE 0.9.2.1 : petites touches sur tous les boutons du jeu, X fait parler ta bouche même seul, carte du téléphone qui glisse
 🏡 Dans le hub de Pégase, « Voir sa maison » : la maison de chaque copain, vue du ciel, sur sa parcelle
