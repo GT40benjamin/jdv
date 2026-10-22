@@ -1,3 +1,4 @@
+🗣️ PÉGASE 0.9.3.5 : ton avatar réagit à ta voix comme dans la borne (oui, non, coucou, haha, grrr, pas content, 6 7) ; selfie d'appel depuis les vrais objectifs du téléphone, stable en marchant, les yeux dans les yeux ; sur PC la souris tourne la vue pendant l'appel (Alt = curseur)
 📞 PÉGASE 0.9.3.4 : selfie en portrait, téléphone devant le visage, on marche en parlant ; la vidéo du copain entière (jeu et borne) ; flèche pour ranger le téléphone ; les yeux ne restent plus mi-clos
 🎥 PÉGASE 0.9.3.3 : appels en vidéo — tes copains te voient en selfie dans ton monde (🔄 pour montrer devant toi), et tu vois la vraie caméra de ceux qui appellent depuis la borne ; appelle tous les copains de tes salles
 📞 APPELS PARTOUT DANS LA BORNE : appelle n'importe quel copain de tes salles, même s'il n'a jamais ouvert Pégase — en vidéo entre bornes, en avatar avec ceux qui sont dans Pégase ; la borne sonne même en pleine partie (nouvelle appli 1.10 pour la caméra sur Android)

@@ -1,13 +1,14 @@
 {
-  "version": "0.9.3.4",
-  "build": 19,
-  "size": 1912434988,
-  "sha256": "593a5983d3ef775fed7856e19c4f7a7120ea52c065d7b51782d3e15de5a88491",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v19/Pegase-PC-2026-10-23-0.9.3.4.zip",
-  "manifest": "cdce23a4fe70a50c141ddd7d6751cb63c2d5fb2f9ebddaa979f0ffe303fc7631",
+  "version": "0.9.3.5",
+  "build": 20,
+  "size": 1968637954,
+  "sha256": "3c1dccaa026c16b514048e9c1897c15f7ec69ad73176de85ed89aa3711d52520",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v20/Pegase-PC-2026-10-23-0.9.3.5.zip",
+  "manifest": "a2e4b5e0ffec4ebcb311f4aadd396283cc25013fd61d3099d0274f450a69b8b6",
   "notes": [
-    "Selfie : téléphone devant le visage, on marche",
-    "Vidéo du copain en paysage, entière",
-    "Flèche pour ranger le téléphone"
+    "Ton avatar réagit à ta voix (oui, non, haha, grrr, 6 7…)",
+    "Comme dans la borne, sur ton appareil",
+    "Selfie d'appel en meilleure qualité sur PC",
+    "Pendant un appel, la souris tourne la vue (Alt = curseur)"
   ]
 }
