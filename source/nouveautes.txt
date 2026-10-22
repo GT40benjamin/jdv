@@ -1,3 +1,4 @@
+⌨️ PÉGASE 0.9.2.1 : petites touches sur tous les boutons du jeu, X fait parler ta bouche même seul, carte du téléphone qui glisse
 🏡 Dans le hub de Pégase, « Voir sa maison » : la maison de chaque copain, vue du ciel, sur sa parcelle
 🎵 Nouvelle musique dans le hub de Pégase : « Chez toi »
 📞 PÉGASE 0.9.2 : appelle tes copains, vois leurs maisons et réveille-toi chez toi — escaliers, pancartes, pêche, linge blanc et des dizaines de corrections (PC et Android)

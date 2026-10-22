@@ -1,13 +1,13 @@
 {
-  "version": "0.9.2",
-  "build": 13,
-  "size": 1814888130,
-  "sha256": "0e43d6af86c940ade328f703f785d70f66f00b4cab0f64cd699a84e5e82a3093",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v13/Pegase-PC-2026-10-22-0.9.2.zip",
-  "manifest": "cf040d3720191cb33ce4bd7bc1422675b59f3573d36d29d16c1d946440363a51",
+  "version": "0.9.2.1",
+  "build": 14,
+  "size": 1814881044,
+  "sha256": "78a8f2bdb6f511d70d3f3a83fb940b62655bc426cc1096440a6f7dfd97a1f4e7",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v14/Pegase-PC-2026-10-22-0.9.2.1.zip",
+  "manifest": "fe4df8449da861529ed225cd7aa474c23f5db2c498dcf3bbd0927e6a43def1a4",
   "notes": [
-    "Appelle tes copains et vois leurs maisons",
-    "Réveil chez toi, escaliers, pancartes, pêche",
-    "PegaGram, linge blanc, saut plus haut"
+    "Petites touches sur tous les boutons",
+    "X : ta bouche suit ta voix, même seul",
+    "Carte du téléphone qui glisse"
   ]
 }
