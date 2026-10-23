@@ -11,11 +11,10 @@
   "title": "Pégase",
   "notes": [
     "La mission du grand-duc s'ouvre bien pour tout le monde : Mlle Iris a quelque chose à te confier au musée (elle ne s'ouvrait pas après les photos de la maison).",
-    "Un étal de boulangerie à l'ancienne garni de pains, croissants et gâteaux, et une pendule dans chaque intérieur (demandes de Samba).",
+    "Un étal de boulangerie à l'ancienne garni de pains, croissants et gâteaux, et une pendule dans chaque intérieur.",
     "Fiche photo : chaque sujet dit s'il va dans le Grand livre, ou s'il faut s'approcher.",
     "Téléphone : touche O pour répondre, messages dans le bon ordre, défilement doux, la pastille ne compte que les messages.",
     "Voix : on s'entend mieux (la bouche de l'avatar ne coupe plus le micro).",
-    "Fenêtre de Pooky : sous-onglets « En cours » et « Faites », et un encart quand une nouvelle version sort, avec ce qui change pour toi.",
     "Sur PC, la mise à jour se prépare toute seule pendant la partie et propose de redémarrer quand tu es libre."
   ],
   "historique": [
@@ -23,29 +22,25 @@
       "version": "0.9.4.2",
       "notes": [
         "La mission du grand-duc s'ouvre bien pour tout le monde : Mlle Iris a quelque chose à te confier au musée (elle ne s'ouvrait pas après les photos de la maison).",
-        "Un étal de boulangerie à l'ancienne garni de pains, croissants et gâteaux, et une pendule dans chaque intérieur (demandes de Samba).",
+        "Un étal de boulangerie à l'ancienne garni de pains, croissants et gâteaux, et une pendule dans chaque intérieur.",
         "Fiche photo : chaque sujet dit s'il va dans le Grand livre, ou s'il faut s'approcher.",
         "Téléphone : touche O pour répondre, messages dans le bon ordre, défilement doux, la pastille ne compte que les messages.",
         "Voix : on s'entend mieux (la bouche de l'avatar ne coupe plus le micro).",
-        "Fenêtre de Pooky : sous-onglets « En cours » et « Faites », et un encart quand une nouvelle version sort, avec ce qui change pour toi.",
         "Sur PC, la mise à jour se prépare toute seule pendant la partie et propose de redémarrer quand tu es libre."
       ]
     },
     {
       "version": "0.9.4.1",
       "notes": [
-        "Pendant un appel, on voit le téléphone dans la main de l'autre joueur (demande de Samba).",
-        "Mathilde ne traverse plus son tabouret ni le comptoir, et Hugo non plus à la Poste (demande de Samba).",
-        "Le lys de la boutique photo est dans un vrai pot en terre cuite (demande de Samba).",
-        "Le micro devient une petite bouche en haut à droite : grise et barrée quand il est coupé, dorée quand il est ouvert, et elle bouge quand tu parles (demande de Patou).",
-        "Fenêtre de Pooky : réactions ❤️ 👍 😂 😮 😍 🎉 sur les demandes (et qui a réagi), croix pour tout fermer et flèche pour revenir, brouillons gardés, micro pour répondre à Pooky, ² ouvre directement la photo.",
-        "Ta version s'affiche enfin juste."
+        "Pendant un appel, on voit le téléphone dans la main de l'autre joueur.",
+        "Mathilde ne traverse plus son tabouret ni le comptoir, et Hugo non plus à la Poste.",
+        "Le lys de la boutique photo est dans un vrai pot en terre cuite.",
+        "Le micro devient une petite bouche en haut à droite : grise et barrée quand il est coupé, dorée quand il est ouvert, et elle bouge quand tu parles."
       ]
     },
     {
       "version": "0.9.4",
       "notes": [
-        "Pooky, ton assistant : touche ² (ou Réglages › Mes demandes au téléphone). Une capture de l'écran, tu entoures ce qui ne va pas, tu écris (ou tu parles), et Pooky s'en occupe et te répond. Tu vois tes demandes et celles des autres, avec une coche quand c'est fait et une autre quand c'est publié.",
         "Concours du plus gros champignon : après chaque pluie, photographie le plus gros champignon que tu trouves et publie-le sur PegaGram. Les géants légendaires sont très rares !",
         "Les fleurs entrent au Grand livre : tournesol géant, colza, coquelicot, marguerite, iris, lys de la paix et nénuphar à photographier.",
         "Champs de tournesols géants et prés de coquelicots qui dansent dans le vent.",
