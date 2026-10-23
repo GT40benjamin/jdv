@@ -1,13 +1,13 @@
 {
-  "version": "0.9.3.7",
-  "build": 22,
-  "size": 1974805442,
-  "sha256": "c580dcae82bbb584a177db77cded68a6cfd2e06bd590677511214145ed0cce18",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v22/Pegase-PC-2026-10-23-0.9.3.7.zip",
-  "manifest": "f567dc22103bb984260356c279ac65f90e5a55b96bd977db6d5ec9d59dd57665",
+  "version": "0.9.3.8",
+  "build": 23,
+  "size": 1974816524,
+  "sha256": "794c6f06701933d742cad93f02f6c5a29dd0c7bd4980c74fabdfd7425801a1ba",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v23/Pegase-PC-2026-10-23-0.9.3.8.zip",
+  "manifest": "ee43fc2fdfed9434374b6f7c59fa31e64b663353700e66278b1cd57bfe4790e2",
   "notes": [
-    "Plage du lac fleurie, village en parterre",
-    "Visio : seule la tête bouge, touches sur les boutons",
-    "Banc de jardin remis à l'endroit"
+    "Le potager partout sur ta parcelle, houe et arrosoir à l'échoppe",
+    "Averses, fontaine, mission « Les légumes de Rosalie »",
+    "Visio : plus de plantage en raccrochant"
   ]
 }

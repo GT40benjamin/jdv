@@ -107,6 +107,8 @@ button:focus-visible,input:focus-visible,[role=tab]:focus-visible{outline:3px so
 
 /* ---------- En jeu ---------- */
 #jdw-play{position:fixed;inset:0;background:var(--night)}
+/* 23 oct. (iPhone, Safari : le bas d'Empilo et ses boutons passaient SOUS la barre de Safari) : la hauteur VISIBLE (petit viewport) */
+@supports (height:100svh){#jdw-play{bottom:auto;height:100svh}}
 .topbar{position:absolute;left:0;right:0;top:0;height:calc(var(--tbh,52px) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 10px 0;
   display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;background:var(--panel);border-bottom:1px solid var(--line)}
 .topbar h1{margin:0;text-align:center;font-family:var(--display);font-weight:400;font-size:17px;color:var(--acc,var(--amber));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
