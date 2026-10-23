@@ -1,13 +1,13 @@
 {
-  "version": "0.9.3.8",
-  "build": 23,
-  "size": 1974816524,
-  "sha256": "794c6f06701933d742cad93f02f6c5a29dd0c7bd4980c74fabdfd7425801a1ba",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v23/Pegase-PC-2026-10-23-0.9.3.8.zip",
-  "manifest": "ee43fc2fdfed9434374b6f7c59fa31e64b663353700e66278b1cd57bfe4790e2",
+  "version": "0.9.3.9",
+  "build": 24,
+  "size": 1992887464,
+  "sha256": "e7e316259c7e5d20396916e2adca042a0f95ea3774c6626f5e65690e6a5d6ddc",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v24/Pegase-PC-0.9.3.9.zip",
+  "manifest": "ef28a43afa3ebf738bff5fc850d67f793756dd738d3e4a6ba35405cb39ae3db8",
   "notes": [
-    "Le potager partout sur ta parcelle, houe et arrosoir à l'échoppe",
-    "Averses, fontaine, mission « Les légumes de Rosalie »",
-    "Visio : plus de plantage en raccrochant"
+    "Nuages, arc-en-ciel, sol mouillé et 7 parapluies",
+    "Champignons et escargots dans le Grand livre",
+    "Filtre solaire et appli Météo"
   ]
 }
