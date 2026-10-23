@@ -1,13 +1,13 @@
 {
-  "version": "0.9.3.10",
-  "build": 25,
-  "size": 1994316788,
-  "sha256": "17dd17ab2201ba56c1c68a3152d46bfcfd7a3290bafd5b90529c6b44227603f0",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v25/Pegase-PC-0.9.3.10.zip",
-  "manifest": "a81d0d6c55f6d939ed388d390e7dd107f682645d207f5a4c5af6d6c9cf73ce9a",
+  "version": "0.9.3.11",
+  "build": 26,
+  "size": 1996211952,
+  "sha256": "3a818166da662d5bc4a482193e73f1a29cb1a89e9048ddba4082fb7714302745",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v26/Pegase-PC-0.9.3.11.zip",
+  "manifest": "4ae5dfba5d4fa4c790909b2dba4a94177afd73f8f70747f8b5dadc5b919c3cd6",
   "notes": [
-    "Habitants : chemins simples et portes qui s'ouvrent bien",
-    "Parapluie bien tenu, beaux nuages peints",
-    "Visio : bouton Retourner, fanion Pégase"
+    "Mises à jour plus légères sur PC",
+    "Oui / non : la tête seule, téléphone stable",
+    "Voix des appels plus nette"
   ]
 }
