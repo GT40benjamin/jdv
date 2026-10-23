@@ -1,13 +1,21 @@
 {
-  "version": "0.9.3.13",
-  "build": 28,
-  "size": 2004251968,
-  "sha256": "24f6cbf098174ef70c0188ccd4cfa4ea022881e6cbf826f0aa6ef6213789ca9f",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v28/Pegase-PC-2026-10-23-0.9.3.13.zip",
-  "manifest": "1a79aa5942944b346e972a9ac4b4d8269c4ed2ffb7665c7f30a4b88929e2ce03",
+  "version": "0.9.4",
+  "build": 29,
+  "size": 2007524196,
+  "sha256": "82e882c8103badfe0581dc2f4d03ce1d9396619fe0bc0aeecd42118e2087e20b",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v29/Pegase-PC-2026-10-23-0.9.4.zip",
+  "manifest": "b467de01720a2c9ed88e129d5c5d5ce5dbf06a5bbeb9600953b256dd9e67d6a7",
+  "patchs": [
+    {
+      "de": "0.9.3.13",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v29/Pegase-PC-patch-0.9.3.13.zip",
+      "taille": 8182620,
+      "sha256": "11c89a155cb5836478cab945fc4ebaf3289d96a980644b49b37c4d5a07392a86"
+    }
+  ],
   "notes": [
-    "Les champignons poussent après la pluie",
-    "Lactaires en tapis, cèpes en montagne",
-    "5 nouvelles espèces dans le Grand livre"
+    "Pooky, ton assistant (touche ²)",
+    "Concours du plus gros champignon",
+    "Les fleurs au Grand livre"
   ]
 }
