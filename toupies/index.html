@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05040c">
+<title>Turbo Toupies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<!--
+  Turbo Toupies, tout seul (sans la borne) : pour l'ouvrir depuis une autre appli (Pégase, un lien…).
+  …/jdv/toupies/                          menu (contre l'IA / à deux)
+  …/jdv/toupies/?mode=ia&niveau=moyen     partie contre l'IA tout de suite (niveau : facile | moyen | difficile | extreme)
+  …/jdv/toupies/?mode=deux                à deux sur le même appareil
+  &nom=PATOU&nom2=JUJU                    noms (sinon : le joueur de la borne sur cet appareil, sinon « Joueur 1 »)
+  &retour=<https://… | pegase://…>        bouton « Retour » à la fin
+  Fin de partie : postMessage { jdw: 'toupies', type: 'fin', gagnant, scores, mode } au parent / à l'ouvreur, et #fin-<gagnant>-<a>-<b>.
+  Une appli peut aussi appeler window.toupiesDemarre({ mode, niveau, joueurs: [{ nom, tete }, …] }) (tete = adresse d'image ou data:).
+  En ligne : par la borne seulement (…/jouer/?labo=toupies › Duel › En ligne).
+-->
+<style>
+:root{--ink:#f2f0ff}
+html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'Chakra Petch',system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+#root{position:fixed;inset:0}
+.pill{position:fixed;top:8px;min-width:46px;height:34px;padding:0 12px;border-radius:12px;display:grid;place-items:center;font:400 18px Bungee,Impact,sans-serif;background:rgba(10,8,26,.8);z-index:5;pointer-events:none}
+#p0{left:10px;color:#ffa630;box-shadow:0 0 0 2px #ffa630}#p1{right:10px;color:#5ef0ff;box-shadow:0 0 0 2px #5ef0ff}
+#menu{position:fixed;top:6px;left:50%;transform:translateX(-50%);width:42px;height:42px;border-radius:50%;border:0;background:rgba(10,8,26,.85);color:#fff;font:700 16px sans-serif;box-shadow:0 0 0 1.5px rgba(255,255,255,.3);z-index:5;cursor:pointer}
+.say{position:fixed;left:0;right:0;top:56%;text-align:center;font:700 16px 'Chakra Petch',sans-serif;text-shadow:0 2px 8px #000;z-index:6;pointer-events:none}
+.card{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;background:radial-gradient(ellipse at 50% 40%,rgba(42,20,88,.96),rgba(5,4,12,.97) 70%);text-align:center;padding:16px}
+.card h1{margin:0;font:400 40px/1 Bungee,Impact,sans-serif;color:#f3e9ff;text-shadow:0 4px 0 #2a0a4a,0 0 22px rgba(176,107,255,.7)}
+.card h2{margin:-6px 0 4px;font:400 22px Bungee,Impact,sans-serif;color:#ffd0ee;text-shadow:0 0 16px rgba(255,95,174,.7)}
+.card p{margin:0;font-weight:600;color:#d9d2f5;max-width:420px}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{border:0;border-radius:14px;padding:12px 20px;font:400 16px Bungee,Impact,sans-serif;color:#1a0f2a;background:linear-gradient(180deg,#fff3a8,#ffc23a 55%,#ff9a1e);box-shadow:0 5px 0 #a8661c,0 8px 18px rgba(0,0,0,.45);cursor:pointer}
+.btn.b2{background:linear-gradient(180deg,#e6dcff,#b06bff);box-shadow:0 5px 0 #4a1d9c,0 8px 18px rgba(0,0,0,.45)}
+.btn.ghost{background:transparent;color:#efe8ff;box-shadow:0 0 0 1.5px rgba(255,255,255,.35)}
+.chip{border:0;border-radius:999px;padding:7px 13px;font:700 13px 'Chakra Petch',sans-serif;color:#e8e2ff;background:rgba(255,255,255,.08);box-shadow:0 0 0 1px rgba(255,255,255,.2);cursor:pointer}
+.chip.on{background:#ffd34d;color:#1a0f2a}
+.big{font:400 30px Bungee,Impact,sans-serif}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="pill" id="p0" hidden>0</div><div class="pill" id="p1" hidden>0</div>
+<button id="menu" type="button" hidden aria-label="Pause">❚❚</button>
+<div class="say" id="say"></div>
+<div class="card" id="home" hidden>
+  <h1>TURBO</h1><h2>TOUPIES</h2>
+  <p>Dessine le chemin de ta toupie, pousse-la, fais éclater celle de l'autre !</p>
+  <div class="row" id="lv"></div>
+  <div class="row"><button class="btn" id="goAi" type="button">🤖 Contre l'IA</button><button class="btn b2" id="goTwo" type="button">👥 À deux ici</button></div>
+</div>
+<div class="card" id="rot" hidden><div class="big">↻</div><p>Tourne ton téléphone à l'horizontale pour jouer.</p></div>
+<div class="card" id="pause" hidden><div class="big">Pause</div><div class="row"><button class="btn" id="resume" type="button">Reprendre</button><button class="btn ghost" id="quit" type="button">Quitter</button></div></div>
+<div class="card" id="end" hidden><div class="big" id="endT"></div><p id="endS"></p><div class="row"><button class="btn" id="again" type="button">Revanche !</button><button class="btn ghost" id="back" type="button">Retour</button></div></div>
+<script>window.JDW_ROOT = '../';</script>
+<script src="../source/duos/toupies.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const Q = new URLSearchParams(location.search);
+  const LV = [['facile', 0.25, 'Facile'], ['moyen', 0.5, 'Moyen'], ['difficile', 0.75, 'Difficile'], ['extreme', 1, 'Extrême']];
+  const D = window.JDW_DUOS && window.JDW_DUOS.toupies;
+  const clean = (s, d) => { s = String(s || '').replace(/[<>&"]/g, '').trim().slice(0, 16); return s || d; };
+  const retour = (() => { const r = Q.get('retour') || ''; return /^(https?:\/\/|pegase:\/\/)/i.test(r) ? r : ''; })();
+  // le joueur de la borne sur cet appareil (même site) : nom et photo, seulement si la borne y est autorisée
+  const borne = (() => { try { const p = JSON.parse(localStorage.getItem('jdw.profile') || 'null'); return p && p.name ? { name: p.name, photo: p.consent && /^data:image\//.test(p.photo || '') ? p.photo : null } : null; } catch (e) { return null; } })();
+  let level = LV.find((l) => l[0] === Q.get('niveau')) ? Q.get('niveau') : (() => { try { return JSON.parse(localStorage.getItem('jdw.ailevel') || '"moyen"'); } catch (e) { return 'moyen'; } })();
+  if (!LV.find((l) => l[0] === level)) level = 'moyen';
+  let inst = null, mode = '', scores = [0, 0], over = false, players = null, seq = 0, sayT = 0;
+  const img = (src) => new Promise((res) => { if (!src) return res(null); const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+  function robot() {   // tête du robot (IA), dessinée
+    const c = document.createElement('canvas'); c.width = 160; c.height = 200; const x = c.getContext('2d');
+    x.fillStyle = '#9aa6b8'; x.fillRect(74, 18, 12, 26); x.fillStyle = '#ff5fae'; x.beginPath(); x.arc(80, 16, 9, 0, 7); x.fill();
+    const g = x.createLinearGradient(0, 40, 0, 180); g.addColorStop(0, '#e9eef6'); g.addColorStop(1, '#8e9bb0'); x.fillStyle = g;
+    x.beginPath(); x.roundRect(22, 42, 116, 128, 34); x.fill(); x.fillStyle = '#11151f'; x.beginPath(); x.roundRect(38, 70, 84, 48, 18); x.fill();
+    x.fillStyle = '#5ef0ff'; x.shadowColor = '#5ef0ff'; x.shadowBlur = 12; for (const ex of [62, 98]) { x.beginPath(); x.arc(ex, 94, 10, 0, 7); x.fill(); }
+    x.shadowBlur = 0; x.fillStyle = '#2b3446'; x.beginPath(); x.roundRect(54, 132, 52, 16, 6); x.fill(); x.fillStyle = '#5ef0ff'; for (let i = 0; i < 5; i++) x.fillRect(59 + i * 9, 137, 5, 6);
+    return c;
+  }
+  async function makePlayers(o) {
+    const J = (o && o.joueurs) || [];
+    const n0 = clean(J[0] && J[0].nom || Q.get('nom'), borne ? borne.name : 'Joueur 1');
+    const t0 = await img(J[0] && J[0].tete || Q.get('tete') || (borne && n0 === borne.name ? borne.photo : null));
+    const p0 = { name: n0, img: t0, sad: null, color: '#ffa630' };
+    if (mode === 'ia') { const r = robot(); return [p0, { name: 'IA', img: r, sad: r, color: '#5ef0ff' }]; }
+    const n1 = clean(J[1] && J[1].nom || Q.get('nom2'), 'Joueur 2');
+    return [p0, { name: n1, img: await img(J[1] && J[1].tete || Q.get('tete2')), sad: null, color: '#5ef0ff' }];
+  }
+  // petit lecteur de sons (le jeu fabrique les siens ; ceci sert aux rares bips de l'api)
+  let AC = null;
+  const audio = {
+    tone(f, d, type, vol, f2) { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime; o.type = type || 'square'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); g.gain.setValueAtTime(vol || 0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d + 0.02); } catch (e) { /* rien */ } },
+    noise() {},
+  };
+  function say(text, o) { o = o || {}; const el = $('say'); el.textContent = String(text || ''); el.style.color = o.color || '#e9f0f3'; clearTimeout(sayT); sayT = setTimeout(() => { el.textContent = ''; }, Math.max(300, Math.min(6000, o.ms || 1000))); }
+  function pills() { $('p0').textContent = scores[0]; $('p1').textContent = scores[1]; }
+  function api(s) {
+    const mine = () => s === seq;
+    return {
+      players, heads: () => [], audio, fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+      colors: { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae', amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a' },
+      assets: () => Promise.reject(new Error('sans images')),
+      point(p, why) {
+        if (!mine() || over || (p !== 0 && p !== 1)) return { scores: scores.slice(), over, winner: over ? p : null };
+        scores[p]++; pills(); over = scores[p] >= D.target;
+        say((why ? why + ' ' : '') + (over ? players[p].name + ' gagne le match !' : 'Point pour ' + players[p].name + ' !'), { ms: 1300, color: players[p].color });
+        if (over) setTimeout(() => { if (mine()) finish(p); }, 1500);
+        return { scores: scores.slice(), over, winner: over ? p : null };
+      },
+      round: () => scores[0] + scores[1] + 1, scores: () => scores.slice(),
+      say: (t, o) => { if (mine()) say(t, o); }, turn() {},
+      vibrate: (ms) => { try { if (navigator.vibrate) navigator.vibrate(Math.max(10, Math.min(400, +ms || 30))); } catch (e) { /* rien */ } },
+      hasMusic: false, online: false,
+      ai: mode === 'ia' ? { p: 1, level, k: LV.find((l) => l[0] === level)[1] } : undefined,
+    };
+  }
+  function tell(m) { const msg = Object.assign({ jdw: 'toupies' }, m); try { if (window.parent !== window) window.parent.postMessage(msg, '*'); } catch (e) { /* rien */ } try { if (window.opener) window.opener.postMessage(msg, '*'); } catch (e) { /* rien */ } }
+  function stop() { seq++; if (inst) { try { inst.destroy(); } catch (e) { /* rien */ } inst = null; } $('root').innerHTML = ''; }
+  function finish(w) {
+    stop(); for (const id of ['p0', 'p1', 'menu']) $(id).hidden = true;
+    $('endT').textContent = players[w].name + ' gagne !'; $('endT').style.color = players[w].color;
+    $('endS').textContent = players[0].name + ' ' + scores[0] + ' – ' + scores[1] + ' ' + players[1].name;
+    $('back').hidden = !retour && !Q.get('mode'); $('end').hidden = false;
+    try { history.replaceState(null, '', '#fin-' + w + '-' + scores[0] + '-' + scores[1]); } catch (e) { /* rien */ }
+    tell({ type: 'fin', gagnant: w, nom: players[w].name, scores: scores.slice(), mode });
+  }
+  function fullscreen() { try { const d = document.documentElement; if (!document.fullscreenElement && d.requestFullscreen) d.requestFullscreen().then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* rien */ } }).catch(() => {}); } catch (e) { /* rien */ } }
+  const portrait = () => innerHeight > innerWidth * 1.05;
+  function run() {
+    if (portrait()) { $('rot').hidden = false; return; }
+    $('rot').hidden = true; stop(); scores = [0, 0]; over = false; pills();
+    for (const id of ['p0', 'p1', 'menu']) $(id).hidden = false; for (const id of ['home', 'end', 'pause']) $(id).hidden = true;
+    const s = seq; inst = D.mount($('root'), api(s));
+    tell({ type: 'debut', mode, niveau: mode === 'ia' ? level : null });
+  }
+  async function start(m, o) {
+    mode = m === 'deux' ? 'deux' : 'ia';
+    if (o && o.niveau && LV.find((l) => l[0] === o.niveau)) level = o.niveau;
+    players = await makePlayers(o); fullscreen(); run();
+  }
+  window.toupiesDemarre = (o) => start(o && o.mode, o || {});
+  window.__toupies = () => inst;   // essais
+  addEventListener('resize', () => { if (!$('rot').hidden && !portrait()) run(); else if (inst && portrait()) { if (inst.pause) inst.pause(); $('rot').hidden = false; } });
+  addEventListener('message', (e) => { const d = e.data; if (d && d.jdw === 'toupies' && d.type === 'demarre') start(d.mode, d); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && inst && inst.pause && $('pause').hidden && !over) { inst.pause(); $('pause').hidden = false; } });
+  $('menu').addEventListener('click', () => { if (inst && inst.pause) inst.pause(); $('pause').hidden = false; });
+  $('resume').addEventListener('click', () => { $('pause').hidden = true; if (inst && inst.resume) inst.resume(); });
+  $('quit').addEventListener('click', () => { stop(); $('pause').hidden = true; tell({ type: 'quitte', mode }); leave(); });
+  $('again').addEventListener('click', () => run());
+  $('back').addEventListener('click', () => leave());
+  function leave() { if (retour) { location.href = retour; return; } for (const id of ['p0', 'p1', 'menu', 'end']) $(id).hidden = true; $('home').hidden = false; }
+  // menu
+  const lv = $('lv');
+  for (const [id, , name] of LV) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (id === level ? ' on' : ''); b.textContent = name; b.addEventListener('click', () => { level = id; for (const c of lv.children) c.classList.toggle('on', c === b); try { localStorage.setItem('jdw.ailevel', JSON.stringify(id)); } catch (e) { /* rien */ } }); lv.appendChild(b); }
+  $('goAi').addEventListener('click', () => start('ia'));
+  $('goTwo').addEventListener('click', () => start('deux'));
+  if (!D) { document.body.innerHTML = '<p style="padding:20px">Le jeu n\'a pas pu se charger.</p>'; return; }
+  const m = Q.get('mode');
+  if (m === 'ia' || m === 'deux') start(m); else $('home').hidden = false;
+})();
+</script>
+</body>
+</html>
