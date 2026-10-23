@@ -1,21 +1,61 @@
 {
-  "version": "0.9.4.1",
-  "build": 30,
-  "size": 2007550868,
-  "sha256": "d3c35710dfe954eed9652a0ad0e13c5c01b997b86060215c5919758348e89355",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v30/Pegase-PC-2026-10-23-0.9.4.1.zip",
-  "manifest": "b716c6b5e0d9797aa86260e21d2e386b2f357cba139c6b5847e9f19bfb91a181",
+  "version": "0.9.4.2",
+  "build": 31,
+  "size": 2007642975,
+  "sha256": "a1ee1f609d68a847429bcb11253cc85632849fe83d89392c255f1306c2f7b3cc",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v31/Pegase-PC-2026-10-23-0.9.4.2.zip",
+  "manifest": "bec67e2d41bd94434385a9cf16d49376fd7012cf6f1a3e12fb98785316b4f197",
   "patchs": [
     {
-      "de": "0.9.4",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v30/Pegase-PC-patch-0.9.4.zip",
-      "taille": 3184824,
-      "sha256": "dcc3f4142fc7cc450713de3e7ccdf8e68f4533cd085834c2b9441d16b76fdc93"
+      "de": "0.9.4.1",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v31/Pegase-PC-patch-0.9.4.1.zip",
+      "taille": 3601292,
+      "sha256": "0f301a8791e9b1cce9a7d648f216225936960d0b52b50b26844e8b1938bb7707"
     }
   ],
   "notes": [
-    "Pooky corrige vos premières demandes",
-    "Le téléphone visible pendant les appels",
-    "Réactions sur les demandes"
+    "La mission du grand-duc s'ouvre bien pour tout le monde : Mlle Iris a quelque chose à te confier au musée (elle ne s'ouvrait pas après les photos de la maison).",
+    "Un étal de boulangerie à l'ancienne garni de pains, croissants et gâteaux, et une pendule dans chaque intérieur (demandes de Samba).",
+    "Fiche photo : chaque sujet dit s'il va dans le Grand livre, ou s'il faut s'approcher.",
+    "Téléphone : touche O pour répondre, messages dans le bon ordre, défilement doux, la pastille ne compte que les messages.",
+    "Voix : on s'entend mieux (la bouche de l'avatar ne coupe plus le micro).",
+    "Fenêtre de Pooky : sous-onglets « En cours » et « Faites », et un encart quand une nouvelle version sort, avec ce qui change pour toi.",
+    "Sur PC, la mise à jour se prépare toute seule pendant la partie et propose de redémarrer quand tu es libre."
+  ],
+  "historique": [
+    {
+      "version": "0.9.4.2",
+      "notes": [
+        "La mission du grand-duc s'ouvre bien pour tout le monde : Mlle Iris a quelque chose à te confier au musée (elle ne s'ouvrait pas après les photos de la maison).",
+        "Un étal de boulangerie à l'ancienne garni de pains, croissants et gâteaux, et une pendule dans chaque intérieur (demandes de Samba).",
+        "Fiche photo : chaque sujet dit s'il va dans le Grand livre, ou s'il faut s'approcher.",
+        "Téléphone : touche O pour répondre, messages dans le bon ordre, défilement doux, la pastille ne compte que les messages.",
+        "Voix : on s'entend mieux (la bouche de l'avatar ne coupe plus le micro).",
+        "Fenêtre de Pooky : sous-onglets « En cours » et « Faites », et un encart quand une nouvelle version sort, avec ce qui change pour toi.",
+        "Sur PC, la mise à jour se prépare toute seule pendant la partie et propose de redémarrer quand tu es libre."
+      ]
+    },
+    {
+      "version": "0.9.4.1",
+      "notes": [
+        "Pendant un appel, on voit le téléphone dans la main de l'autre joueur (demande de Samba).",
+        "Mathilde ne traverse plus son tabouret ni le comptoir, et Hugo non plus à la Poste (demande de Samba).",
+        "Le lys de la boutique photo est dans un vrai pot en terre cuite (demande de Samba).",
+        "Le micro devient une petite bouche en haut à droite : grise et barrée quand il est coupé, dorée quand il est ouvert, et elle bouge quand tu parles (demande de Patou).",
+        "Fenêtre de Pooky : réactions ❤️ 👍 😂 😮 😍 🎉 sur les demandes (et qui a réagi), croix pour tout fermer et flèche pour revenir, brouillons gardés, micro pour répondre à Pooky, ² ouvre directement la photo.",
+        "Ta version s'affiche enfin juste."
+      ]
+    },
+    {
+      "version": "0.9.4",
+      "notes": [
+        "Pooky, ton assistant : touche ² (ou Réglages › Mes demandes au téléphone). Une capture de l'écran, tu entoures ce qui ne va pas, tu écris (ou tu parles), et Pooky s'en occupe et te répond. Tu vois tes demandes et celles des autres, avec une coche quand c'est fait et une autre quand c'est publié.",
+        "Concours du plus gros champignon : après chaque pluie, photographie le plus gros champignon que tu trouves et publie-le sur PegaGram. Les géants légendaires sont très rares !",
+        "Les fleurs entrent au Grand livre : tournesol géant, colza, coquelicot, marguerite, iris, lys de la paix et nénuphar à photographier.",
+        "Champs de tournesols géants et prés de coquelicots qui dansent dans le vent.",
+        "Analyse au viseur : un cercle lumineux se remplit autour de l'animal ; une espèce déjà au livre n'est plus analysée.",
+        "Choix du micro dans Réglages › Voix ; les lettres des touches sont sous les ronds."
+      ]
+    }
   ]
 }
