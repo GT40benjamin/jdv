@@ -1,13 +1,13 @@
 {
-  "version": "0.9.3.11",
-  "build": 26,
-  "size": 1996211952,
-  "sha256": "3a818166da662d5bc4a482193e73f1a29cb1a89e9048ddba4082fb7714302745",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v26/Pegase-PC-0.9.3.11.zip",
-  "manifest": "4ae5dfba5d4fa4c790909b2dba4a94177afd73f8f70747f8b5dadc5b919c3cd6",
+  "version": "0.9.3.12",
+  "build": 27,
+  "size": 1996217567,
+  "sha256": "95ada86113fc07951d3fc63fd078bef6d224d0957cc0bd9fdd80c36e747c73d7",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v27/Pegase-PC-0.9.3.12.zip",
+  "manifest": "5a2db6033b11849d3a46c2a3108bf66958bea344b5fcc3b8d1ea442cdad7a60d",
   "notes": [
-    "Mises à jour plus légères sur PC",
-    "Oui / non : la tête seule, téléphone stable",
-    "Voix des appels plus nette"
+    "Champignons à découvert, escargots sur les chapeaux",
+    "Papillons dans les champs et les prés",
+    "Première petite mise à jour PC"
   ]
 }
