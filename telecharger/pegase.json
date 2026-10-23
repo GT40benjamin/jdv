@@ -1,23 +1,34 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 29,
-  "versionName": "0.9.4.2",
-  "size": 1006470282,
-  "sha256": "c8e3ff5e45c57f9e452191f3964246ef31c10600c041665573a2c2f215a16330",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v29/pegase-0.9.4.2.apk",
+  "versionCode": 30,
+  "versionName": "0.9.4.3",
+  "size": 1014908054,
+  "sha256": "bc9569727b4f9c6039a687cd1661dc18d15d3bd3c93246dce25002218285e867",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v30/pegase-0.9.4.3.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "La mission du grand-duc s'ouvre bien pour tout le monde : Mlle Iris a quelque chose à te confier au musée (elle ne s'ouvrait pas après les photos de la maison).",
-    "Un étal de boulangerie à l'ancienne garni de pains, croissants et gâteaux, et une pendule dans chaque intérieur.",
-    "Fiche photo : chaque sujet dit s'il va dans le Grand livre, ou s'il faut s'approcher.",
-    "Téléphone : touche O pour répondre, messages dans le bon ordre, défilement doux, la pastille ne compte que les messages.",
-    "Voix : on s'entend mieux (la bouche de l'avatar ne coupe plus le micro).",
-    "Sur PC, la mise à jour se prépare toute seule pendant la partie et propose de redémarrer quand tu es libre."
+    "On ne traverse plus les meubles dans les maisons et les boutiques, et les bancs du musée laissent le passage.",
+    "La caméra se place mieux dans les boutiques et les maisons, et la molette ne zoome plus quand une fenêtre est ouverte.",
+    "Le village : le muret continue au nord, le panneau « Ailebrune » accueille à l'entrée est, les anciennes terrasses sont remontées, et un étal de légumes.",
+    "On ne reste plus coincé sur certains rochers.",
+    "La corneille s'envole quand on approche au lieu de marcher longtemps.",
+    "La flèche vers un copain montre le bon endroit, et la carte pour parler avec tes amis se clique bien."
   ],
   "historique": [
+    {
+      "version": "0.9.4.3",
+      "notes": [
+        "On ne traverse plus les meubles dans les maisons et les boutiques, et les bancs du musée laissent le passage.",
+        "La caméra se place mieux dans les boutiques et les maisons, et la molette ne zoome plus quand une fenêtre est ouverte.",
+        "Le village : le muret continue au nord, le panneau « Ailebrune » accueille à l'entrée est, les anciennes terrasses sont remontées, et un étal de légumes.",
+        "On ne reste plus coincé sur certains rochers.",
+        "La corneille s'envole quand on approche au lieu de marcher longtemps.",
+        "La flèche vers un copain montre le bon endroit, et la carte pour parler avec tes amis se clique bien."
+      ]
+    },
     {
       "version": "0.9.4.2",
       "notes": [
