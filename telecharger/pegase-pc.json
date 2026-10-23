@@ -1,21 +1,21 @@
 {
-  "version": "0.9.4",
-  "build": 29,
-  "size": 2007524196,
-  "sha256": "82e882c8103badfe0581dc2f4d03ce1d9396619fe0bc0aeecd42118e2087e20b",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v29/Pegase-PC-2026-10-23-0.9.4.zip",
-  "manifest": "b467de01720a2c9ed88e129d5c5d5ce5dbf06a5bbeb9600953b256dd9e67d6a7",
+  "version": "0.9.4.1",
+  "build": 30,
+  "size": 2007550868,
+  "sha256": "d3c35710dfe954eed9652a0ad0e13c5c01b997b86060215c5919758348e89355",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v30/Pegase-PC-2026-10-23-0.9.4.1.zip",
+  "manifest": "b716c6b5e0d9797aa86260e21d2e386b2f357cba139c6b5847e9f19bfb91a181",
   "patchs": [
     {
-      "de": "0.9.3.13",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v29/Pegase-PC-patch-0.9.3.13.zip",
-      "taille": 8182620,
-      "sha256": "11c89a155cb5836478cab945fc4ebaf3289d96a980644b49b37c4d5a07392a86"
+      "de": "0.9.4",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v30/Pegase-PC-patch-0.9.4.zip",
+      "taille": 3184824,
+      "sha256": "dcc3f4142fc7cc450713de3e7ccdf8e68f4533cd085834c2b9441d16b76fdc93"
     }
   ],
   "notes": [
-    "Pooky, ton assistant (touche ²)",
-    "Concours du plus gros champignon",
-    "Les fleurs au Grand livre"
+    "Pooky corrige vos premières demandes",
+    "Le téléphone visible pendant les appels",
+    "Réactions sur les demandes"
   ]
 }
