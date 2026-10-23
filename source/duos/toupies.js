@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-// Turbo Toupies — duel de toupies en 3D : contre l'IA, à deux sur le même téléphone (paysage, chacun son côté) ou en ligne.
+// Turbo Toupies — duel de toupies en 3D, FACE À FACE (téléphone à plat, vue de dessus) : contre l'IA, à deux sur le même téléphone ou en ligne.
 // Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
 // (assets/toupies.moteur.bin : three.js r180 + le jeu, gzippé, licence MIT). Une seule variable globale en plus : window.JDW_TP.
 // Atelier : ~/jdv-tools/duotest/toupies (sources, outils, essais ; fiche REPRISE.md).
@@ -160,14 +160,14 @@ window.JDW_DUOS.toupies = {
   id: 'toupies',
   title: 'Turbo Toupies',
   emoji: '🌀',
-  tagline: 'Dessine ton lancer, fais éclater sa toupie !',
+  tagline: 'Lance, file sur le rail et fais-la éclater !',
   accent: '#b06bff',
   target: 2,
-  layout: 'landscape',
+  layout: 'shared',
   ai: true,
   net: true,
   // manette (CONTRACT.md « Ajout 10 »)
-  pad: { help: [['ls/dpad', 'Pousser ta toupie · choisir'], ['a', 'Charge ⚡ · valider · lancer auto'], ['x', 'Spécial ★'], ['y', 'Spécial ★']] },
+  pad: { help: [['ls/dpad', 'Piloter ta toupie (rail des bords, bouclier au centre) · choisir'], ['a', 'Valider · lancer automatique']] },
   preview,
   mount,
 };

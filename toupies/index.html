@@ -22,10 +22,12 @@
 :root{--ink:#f2f0ff}
 html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'Chakra Petch',system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 #root{position:fixed;inset:0}
-.pill{position:fixed;top:8px;min-width:46px;height:34px;padding:0 12px;border-radius:12px;display:grid;place-items:center;font:400 18px Bungee,Impact,sans-serif;background:rgba(10,8,26,.8);z-index:5;pointer-events:none}
-#p0{left:10px;color:#ffa630;box-shadow:0 0 0 2px #ffa630}#p1{right:10px;color:#5ef0ff;box-shadow:0 0 0 2px #5ef0ff}
-#menu{position:fixed;top:6px;left:50%;transform:translateX(-50%);width:42px;height:42px;border-radius:50%;border:0;background:rgba(10,8,26,.85);color:#fff;font:700 16px sans-serif;box-shadow:0 0 0 1.5px rgba(255,255,255,.3);z-index:5;cursor:pointer}
-.say{position:fixed;left:0;right:0;top:56%;text-align:center;font:700 16px 'Chakra Petch',sans-serif;text-shadow:0 2px 8px #000;z-index:6;pointer-events:none}
+/* face à face (comme la borne) : pastilles au bout DROIT de la ligne du milieu (joueur 0 dessous, joueur 1 dessus et tourné), menu au bout GAUCHE */
+.pill{position:fixed;right:10px;min-width:40px;height:30px;padding:0 10px;border-radius:10px;display:grid;place-items:center;font:400 16px Bungee,Impact,sans-serif;background:rgba(10,8,26,.8);z-index:5;pointer-events:none}
+#p0{top:calc(50% + 4px);color:#ffa630;box-shadow:0 0 0 2px #ffa630}#p1{bottom:calc(50% + 4px);color:#5ef0ff;box-shadow:0 0 0 2px #5ef0ff;transform:rotate(180deg)}
+body.solo #p1{transform:none}
+#menu{position:fixed;top:50%;left:10px;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;background:rgba(10,8,26,.85);color:#fff;font:700 16px sans-serif;box-shadow:0 0 0 1.5px rgba(255,255,255,.3);z-index:5;cursor:pointer}
+.say{position:fixed;left:0;right:0;top:60%;text-align:center;font:700 16px 'Chakra Petch',sans-serif;text-shadow:0 2px 8px #000;z-index:6;pointer-events:none}
 .card{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;background:radial-gradient(ellipse at 50% 40%,rgba(42,20,88,.96),rgba(5,4,12,.97) 70%);text-align:center;padding:16px}
 .card h1{margin:0;font:400 40px/1 Bungee,Impact,sans-serif;color:#f3e9ff;text-shadow:0 4px 0 #2a0a4a,0 0 22px rgba(176,107,255,.7)}
 .card h2{margin:-6px 0 4px;font:400 22px Bungee,Impact,sans-serif;color:#ffd0ee;text-shadow:0 0 16px rgba(255,95,174,.7)}
@@ -144,8 +146,8 @@ html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'
     try { history.replaceState(null, '', '#fin-' + w + '-' + scores[0] + '-' + scores[1]); } catch (e) { /* rien */ }
     tell({ type: 'fin', gagnant: w, nom: players[w].name, scores: scores.slice(), mode });
   }
-  function fullscreen() { try { const d = document.documentElement; if (!document.fullscreenElement && d.requestFullscreen) d.requestFullscreen().then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* rien */ } }).catch(() => {}); } catch (e) { /* rien */ } }
-  const portrait = () => innerHeight > innerWidth * 1.05;
+  function fullscreen() { try { const d = document.documentElement; if (!document.fullscreenElement && d.requestFullscreen) d.requestFullscreen().then(() => { try { /* toutes orientations */ } catch (e) { /* rien */ } }).catch(() => {}); } catch (e) { /* rien */ } }
+  const portrait = () => false;   // face à face : toutes les orientations vont
   function run() {
     if (portrait()) { $('rot').hidden = false; return; }
     $('rot').hidden = true; stop(); scores = [0, 0]; over = false; pills();
@@ -154,13 +156,12 @@ html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'
     tell({ type: 'debut', mode, niveau: mode === 'ia' ? level : null });
   }
   async function start(m, o) {
-    mode = m === 'deux' ? 'deux' : 'ia';
+    mode = m === 'deux' ? 'deux' : 'ia'; document.body.classList.toggle('solo', mode === 'ia');
     if (o && o.niveau && LV.find((l) => l[0] === o.niveau)) level = o.niveau;
     players = await makePlayers(o); fullscreen(); run();
   }
   window.toupiesDemarre = (o) => start(o && o.mode, o || {});
   window.__toupies = () => inst;   // essais
-  addEventListener('resize', () => { if (!$('rot').hidden && !portrait()) run(); else if (inst && portrait()) { if (inst.pause) inst.pause(); $('rot').hidden = false; } });
   addEventListener('message', (e) => { const d = e.data; if (d && d.jdw === 'toupies' && d.type === 'demarre') start(d.mode, d); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { if (MUS.el) MUS.el.pause(); if (inst && inst.pause && $('pause').hidden && !over) { inst.pause(); $('pause').hidden = false; } } });
   $('menu').addEventListener('click', () => { if (inst && inst.pause) inst.pause(); if (MUS.el) MUS.el.pause(); $('pause').hidden = false; });
