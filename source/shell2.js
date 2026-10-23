@@ -4222,7 +4222,7 @@ const NET = { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: 
   pend: [], remote: false, helloT: 0, waitT: 0, guestInfo: null, stream: null, dest: null, vSender: null, aSender: null, start: null, ids: new Map(),
   data: false, g: null, handlers: [], queue: [], off: 0, rttv: 0, pings: [], pingT: 0, kind: '', co: null };
 // musique de chaque duel : morceaux des jeux solo qui vont bien
-const DUO_MUSIC = { toupies: ['dkombat', 'calm'], pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
+const DUO_MUSIC = { pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
   souris: ['glouton', 'calm'], spatial: ['ilo', 'intense'], mots: ['accueil', 'calm'], guerre: ['canards', 'calm'] };
 const GUEST = 'INVITÉ';
 const AI_NAME = 'IA';

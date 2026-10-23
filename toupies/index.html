@@ -52,7 +52,7 @@ html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'
   <div class="row"><button class="btn" id="goAi" type="button">🤖 Contre l'IA</button><button class="btn b2" id="goTwo" type="button">👥 À deux ici</button></div>
 </div>
 <div class="card" id="rot" hidden><div class="big">↻</div><p>Tourne ton téléphone à l'horizontale pour jouer.</p></div>
-<div class="card" id="pause" hidden><div class="big">Pause</div><div class="row"><button class="btn" id="resume" type="button">Reprendre</button><button class="btn ghost" id="quit" type="button">Quitter</button></div></div>
+<div class="card" id="pause" hidden><div class="big">Pause</div><div class="row"><button class="btn" id="resume" type="button">Reprendre</button><button class="btn ghost" id="quit" type="button">Quitter</button></div><div class="row"><button class="chip" id="mus" type="button">🎵 Musique</button></div></div>
 <div class="card" id="end" hidden><div class="big" id="endT"></div><p id="endS"></p><div class="row"><button class="btn" id="again" type="button">Revanche !</button><button class="btn ghost" id="back" type="button">Retour</button></div></div>
 <script>window.JDW_ROOT = '../';</script>
 <script src="../source/duos/toupies.js"></script>
@@ -95,6 +95,22 @@ html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'
     tone(f, d, type, vol, f2) { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime; o.type = type || 'square'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); g.gain.setValueAtTime(vol || 0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d + 0.02); } catch (e) { /* rien */ } },
     noise() {},
   };
+  // musique du duel : dtoupies-1 / -2 pendant les manches, dtoupies-x1 dès la balle de match (comme dans la borne)
+  const MUS = { el: null, want: '', on: (() => { try { return localStorage.getItem('jdw.music') !== 'false'; } catch (e) { return true; } })(), fade: 0 };
+  function music(kind) {
+    MUS.want = kind || '';
+    const src = !MUS.on || !kind ? '' : '../assets/music/' + (kind === 'x' ? 'dtoupies-x1' : Math.random() < 0.5 ? 'dtoupies-1' : 'dtoupies-2') + '.mp3';
+    const old = MUS.el; MUS.el = null;
+    if (old) { let v = old.volume; const t = setInterval(() => { v -= 0.05; if (v <= 0) { clearInterval(t); old.pause(); } else old.volume = v; }, 40); }
+    if (!src) return;
+    const a = new Audio(src); a.volume = 0; MUS.el = a;
+    // un morceau monte en tension jusqu'au bout : à 1,5 s de la fin, fondu vers le suivant
+    a.addEventListener('timeupdate', () => { if (MUS.el === a && !a.nx && a.duration && a.currentTime > a.duration - 1.5) { a.nx = 1; music(MUS.want); } });
+    const go = () => a.play().then(() => { let v = 0; const t = setInterval(() => { v += 0.04; if (v >= 0.55 || MUS.el !== a) { clearInterval(t); if (MUS.el === a) a.volume = 0.55; } else a.volume = v; }, 40); }).catch(() => { addEventListener('pointerdown', () => { if (MUS.el === a) go(); }, { once: true }); });
+    go();
+  }
+  $('mus').addEventListener('click', () => { MUS.on = !MUS.on; try { localStorage.setItem('jdw.music', String(MUS.on)); } catch (e) { /* rien */ } $('mus').classList.toggle('on', MUS.on); const w = MUS.want; music(MUS.on ? w : ''); MUS.want = w; });
+  $('mus').classList.toggle('on', MUS.on);
   function say(text, o) { o = o || {}; const el = $('say'); el.textContent = String(text || ''); el.style.color = o.color || '#e9f0f3'; clearTimeout(sayT); sayT = setTimeout(() => { el.textContent = ''; }, Math.max(300, Math.min(6000, o.ms || 1000))); }
   function pills() { $('p0').textContent = scores[0]; $('p1').textContent = scores[1]; }
   function api(s) {
@@ -106,6 +122,7 @@ html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'
       point(p, why) {
         if (!mine() || over || (p !== 0 && p !== 1)) return { scores: scores.slice(), over, winner: over ? p : null };
         scores[p]++; pills(); over = scores[p] >= D.target;
+        if (!over && scores[p] === D.target - 1) setTimeout(() => { if (mine() && MUS.want !== 'x') music('x'); }, 700);
         say((why ? why + ' ' : '') + (over ? players[p].name + ' gagne le match !' : 'Point pour ' + players[p].name + ' !'), { ms: 1300, color: players[p].color });
         if (over) setTimeout(() => { if (mine()) finish(p); }, 1500);
         return { scores: scores.slice(), over, winner: over ? p : null };
@@ -118,7 +135,7 @@ html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'
     };
   }
   function tell(m) { const msg = Object.assign({ jdw: 'toupies' }, m); try { if (window.parent !== window) window.parent.postMessage(msg, '*'); } catch (e) { /* rien */ } try { if (window.opener) window.opener.postMessage(msg, '*'); } catch (e) { /* rien */ } }
-  function stop() { seq++; if (inst) { try { inst.destroy(); } catch (e) { /* rien */ } inst = null; } $('root').innerHTML = ''; }
+  function stop() { seq++; music(''); if (inst) { try { inst.destroy(); } catch (e) { /* rien */ } inst = null; } $('root').innerHTML = ''; }
   function finish(w) {
     stop(); for (const id of ['p0', 'p1', 'menu']) $(id).hidden = true;
     $('endT').textContent = players[w].name + ' gagne !'; $('endT').style.color = players[w].color;
@@ -133,7 +150,7 @@ html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'
     if (portrait()) { $('rot').hidden = false; return; }
     $('rot').hidden = true; stop(); scores = [0, 0]; over = false; pills();
     for (const id of ['p0', 'p1', 'menu']) $(id).hidden = false; for (const id of ['home', 'end', 'pause']) $(id).hidden = true;
-    const s = seq; inst = D.mount($('root'), api(s));
+    const s = seq; inst = D.mount($('root'), api(s)); music('c');
     tell({ type: 'debut', mode, niveau: mode === 'ia' ? level : null });
   }
   async function start(m, o) {
@@ -145,9 +162,9 @@ html,body{margin:0;height:100%;background:#05040c;color:var(--ink);font-family:'
   window.__toupies = () => inst;   // essais
   addEventListener('resize', () => { if (!$('rot').hidden && !portrait()) run(); else if (inst && portrait()) { if (inst.pause) inst.pause(); $('rot').hidden = false; } });
   addEventListener('message', (e) => { const d = e.data; if (d && d.jdw === 'toupies' && d.type === 'demarre') start(d.mode, d); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && inst && inst.pause && $('pause').hidden && !over) { inst.pause(); $('pause').hidden = false; } });
-  $('menu').addEventListener('click', () => { if (inst && inst.pause) inst.pause(); $('pause').hidden = false; });
-  $('resume').addEventListener('click', () => { $('pause').hidden = true; if (inst && inst.resume) inst.resume(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (MUS.el) MUS.el.pause(); if (inst && inst.pause && $('pause').hidden && !over) { inst.pause(); $('pause').hidden = false; } } });
+  $('menu').addEventListener('click', () => { if (inst && inst.pause) inst.pause(); if (MUS.el) MUS.el.pause(); $('pause').hidden = false; });
+  $('resume').addEventListener('click', () => { $('pause').hidden = true; if (inst && inst.resume) inst.resume(); if (MUS.el) MUS.el.play().catch(() => {}); });
   $('quit').addEventListener('click', () => { stop(); $('pause').hidden = true; tell({ type: 'quitte', mode }); leave(); });
   $('again').addEventListener('click', () => run());
   $('back').addEventListener('click', () => leave());
