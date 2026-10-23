@@ -58730,6 +58730,183 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 <script>
 (() => {
 'use strict';
+// Turbo Toupies — duel de toupies en 3D : contre l'IA, à deux sur le même téléphone (paysage, chacun son côté) ou en ligne.
+// Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
+// (assets/toupies.moteur.bin : three.js r180 + le jeu, gzippé, licence MIT). Une seule variable globale en plus : window.JDW_TP.
+// Atelier : ~/jdv-tools/duotest/toupies (sources, outils, essais ; fiche REPRISE.md).
+const ROOT = () => window.JDW_ROOT || '';
+let ENGINE = null;
+async function fetchBytes(url, onProg, guess, signal) {
+  const r = await fetch(url, { signal });
+  if (!r.ok) throw new Error('moteur ' + r.status);
+  const total = +(r.headers.get('content-length') || 0) || guess;
+  if (!r.body || !r.body.getReader) { const b = new Uint8Array(await r.arrayBuffer()); onProg(1); return b; }
+  const rd = r.body.getReader(), parts = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; onProg(Math.min(1, got / Math.max(total, got))); }
+  const out = new Uint8Array(got); let k = 0; for (const p of parts) { out.set(p, k); k += p.length; }
+  return out;
+}
+function loadEngine(onProg, signal) {
+  if (window.JDW_TP && window.JDW_TP.duel) return Promise.resolve(window.JDW_TP);
+  if (ENGINE) return ENGINE;
+  ENGINE = (async () => {
+    if (typeof DecompressionStream === 'undefined') throw new Error('navigateur trop ancien');
+    const gz = await fetchBytes(ROOT() + 'assets/toupies.moteur.bin', onProg, 260000, signal);
+    const code = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    await new Promise((res, rej) => {
+      const s = document.createElement('script'), u = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+      s.onload = () => { URL.revokeObjectURL(u); res(); }; s.onerror = () => { URL.revokeObjectURL(u); rej(new Error('moteur illisible')); };
+      s.src = u; document.head.appendChild(s);
+    });
+    if (!window.JDW_TP || !window.JDW_TP.duel) throw new Error('moteur absent');
+    return window.JDW_TP;
+  })();
+  ENGINE.catch(() => { ENGINE = null; });
+  return ENGINE;
+}
+
+/* ---------- vignette 2D (tuile et accueil) : l'arène en cuvette vue de 3/4, deux toupies qui tournent et se percutent ---------- */
+let BG = null;
+const TAU = Math.PI * 2;
+function background(w, h) {
+  const c = document.createElement('canvas'); c.width = Math.round(w * 2); c.height = Math.round(h * 2);
+  const x = c.getContext('2d'); x.scale(2, 2);
+  const g = x.createRadialGradient(w / 2, h * 0.62, 10, w / 2, h * 0.55, w * 0.75);
+  g.addColorStop(0, '#2a1458'); g.addColorStop(0.55, '#0e0a24'); g.addColorStop(1, '#04040b');
+  x.fillStyle = g; x.fillRect(0, 0, w, h);
+  let sd = 11; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 26; i++) {
+    const cols = ['255,122,200', '94,240,255', '255,184,94', '176,107,255'], gx = r() * w, gy = r() * h * 0.42, rr = 3 + r() * 9;
+    const b = x.createRadialGradient(gx, gy, 0, gx, gy, rr); b.addColorStop(0, 'rgba(' + cols[i % 4] + ',.45)'); b.addColorStop(1, 'rgba(' + cols[i % 4] + ',0)');
+    x.fillStyle = b; x.beginPath(); x.arc(gx, gy, rr, 0, TAU); x.fill();
+  }
+  const cx = w / 2, cy = h * 0.66, R = w * 0.34, k = 0.42;
+  // socle et rebord
+  x.fillStyle = '#141829'; x.beginPath(); x.ellipse(cx, cy + h * 0.05, R * 1.22, R * k * 1.22, 0, 0, TAU); x.fill();
+  x.fillStyle = '#3a4270'; x.beginPath(); x.ellipse(cx, cy, R * 1.08, R * k * 1.08, 0, 0, TAU); x.fill();
+  x.strokeStyle = '#dfe6f5'; x.lineWidth = 1.6; x.beginPath(); x.ellipse(cx, cy - 1, R * 1.06, R * k * 1.06, 0, Math.PI * 1.02, Math.PI * 1.98); x.stroke();
+  // cuvette
+  const bg = x.createRadialGradient(cx, cy + R * k * 0.2, 2, cx, cy, R);
+  bg.addColorStop(0, '#2c3150'); bg.addColorStop(0.6, '#171a2e'); bg.addColorStop(1, '#0c0e1b');
+  x.fillStyle = bg; x.beginPath(); x.ellipse(cx, cy, R, R * k, 0, 0, TAU); x.fill();
+  const ring = (rr, col, lw) => { x.strokeStyle = col; x.lineWidth = lw; x.beginPath(); x.ellipse(cx, cy, R * rr, R * k * rr, 0, 0, TAU); x.stroke(); };
+  x.shadowBlur = 8; x.shadowColor = '#7a5cff'; ring(0.5, '#8a6bff', 1.4); x.shadowColor = '#5ef0ff'; ring(0.24, '#5ef0ff', 1.1); x.shadowBlur = 0;
+  for (const a of [Math.PI / 2, Math.PI / 2 + TAU / 3, Math.PI / 2 + 2 * TAU / 3]) {
+    x.strokeStyle = '#ff5a2e'; x.lineWidth = 2.4; x.shadowBlur = 8; x.shadowColor = '#ff5a2e';
+    x.beginPath(); x.ellipse(cx, cy, R * 0.98, R * k * 0.98, 0, a - 0.22, a + 0.22); x.stroke(); x.shadowBlur = 0;
+  }
+  // titre
+  const font = "'Bungee', Impact, sans-serif";
+  // titre à gauche (l'étiquette « Nouveau » de la borne se pose en haut à droite)
+  x.textAlign = 'left'; x.textBaseline = 'middle'; const tx = w * 0.06;
+  x.font = '400 ' + Math.round(h * 0.15) + 'px ' + font; x.lineWidth = 4; x.strokeStyle = '#2a0a4a'; x.strokeText('TURBO', tx, h * 0.14);
+  x.shadowColor = '#b06bff'; x.shadowBlur = 14; x.fillStyle = '#f3e9ff'; x.fillText('TURBO', tx, h * 0.14); x.shadowBlur = 0;
+  x.font = '400 ' + Math.round(h * 0.1) + 'px ' + font; x.lineWidth = 3; x.strokeText('TOUPIES', tx + 2, h * 0.28);
+  x.shadowColor = '#ff5fae'; x.shadowBlur = 12; x.fillStyle = '#ffd0ee'; x.fillText('TOUPIES', tx + 2, h * 0.28); x.shadowBlur = 0;
+  return { c, w, h, cx, cy, R, k };
+}
+// une toupie vue de 3/4 : ombre, halo, disque de métal, anneau à lames, médaillon ; a = angle de rotation, s = taille
+function top2d(x, px, py, s, a, c1, c3, c2, blades, glow) {
+  x.save(); x.translate(px, py);
+  x.fillStyle = 'rgba(0,0,0,.45)'; x.beginPath(); x.ellipse(0, s * 0.18, s * 1.05, s * 0.36, 0, 0, TAU); x.fill();
+  const g = x.createRadialGradient(0, s * 0.1, 1, 0, s * 0.1, s * 1.3); g.addColorStop(0, glow); g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.globalAlpha = 0.5; x.fillStyle = g; x.beginPath(); x.ellipse(0, s * 0.15, s * 1.3, s * 0.48, 0, 0, TAU); x.fill(); x.globalAlpha = 1;
+  x.scale(1, 0.46);
+  x.fillStyle = '#9aa3b6'; x.beginPath(); x.arc(0, s * 0.22, s * 0.92, 0, TAU); x.fill();
+  x.fillStyle = '#e9eef8'; x.beginPath(); x.arc(0, 0, s * 0.88, 0, TAU); x.fill();
+  x.fillStyle = c1; x.beginPath();
+  for (let i = 0; i <= 96; i++) { const t = i / 96 * TAU, u = (((t + a) * blades / TAU) % 1 + 1) % 1, rr = s * (0.7 + 0.32 * Math.pow(u, 1.4) * (u < 0.85 ? 1 : 0)); x.lineTo(Math.cos(t) * rr, Math.sin(t) * rr - s * 0.18); }
+  x.closePath(); x.fill(); x.strokeStyle = 'rgba(0,0,0,.35)'; x.lineWidth = 1; x.stroke();
+  x.fillStyle = c3; x.beginPath(); x.arc(0, -s * 0.2, s * 0.5, 0, TAU); x.fill();
+  x.fillStyle = '#1a1c24'; x.beginPath(); x.arc(0, -s * 0.24, s * 0.36, 0, TAU); x.fill();
+  x.fillStyle = c2; x.beginPath(); x.arc(0, -s * 0.3, s * 0.28, 0, TAU); x.fill();
+  x.strokeStyle = '#ffffff'; x.lineWidth = 1.4; x.beginPath(); x.arc(0, -s * 0.3, s * 0.3, 0, TAU); x.stroke();
+  x.restore();
+}
+function preview(ctx, w, h, t) {
+  if (!BG || BG.w !== w || BG.h !== h) BG = background(w, h);
+  ctx.drawImage(BG.c, 0, 0, w, h);
+  const { cx, cy, R, k } = BG;
+  // deux toupies qui tournent autour du centre et se percutent toutes les 2,4 s
+  const cyc = (t % 2.4) / 2.4, clash = cyc > 0.44 && cyc < 0.6 ? Math.sin((cyc - 0.44) / 0.16 * Math.PI) : 0;
+  const d = 0.62 - 0.42 * Math.sin(cyc * Math.PI), ang = t * 1.4, s = h * 0.135;
+  const ax = cx + Math.cos(ang) * R * d * 0.6, ay = cy + Math.sin(ang) * R * k * d * 0.6 - s * 0.2;
+  const bx = cx - Math.cos(ang) * R * d * 0.6, by = cy - Math.sin(ang) * R * k * d * 0.6 - s * 0.2;
+  const order = ay < by ? [[ax, ay, 0], [bx, by, 1]] : [[bx, by, 1], [ax, ay, 0]];
+  for (const [px, py, i] of order) {
+    if (i === 0) top2d(ctx, px, py + Math.sin(t * 9) * 0.6, s, t * 14, '#ffcc1a', '#ff8a00', '#18245e', 3, 'rgba(255,166,48,.8)');
+    else top2d(ctx, px, py + Math.cos(t * 9) * 0.6, s, t * 13, '#ff3b2f', '#ffb52e', '#2a0c0c', 4, 'rgba(94,240,255,.8)');
+  }
+  if (clash > 0.05) {
+    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    const g = ctx.createRadialGradient(mx, my, 0, mx, my, s * 1.6 * clash); g.addColorStop(0, 'rgba(255,255,240,' + clash + ')'); g.addColorStop(0.4, 'rgba(255,200,120,' + clash * 0.5 + ')'); g.addColorStop(1, 'rgba(255,160,60,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, s * 1.6 * clash, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,230,160,' + clash + ')'; ctx.lineWidth = 1.4;
+    for (let i = 0; i < 9; i++) { const a = i * 0.7 + t * 3, l = s * (0.6 + 1.2 * clash); ctx.beginPath(); ctx.moveTo(mx + Math.cos(a) * s * 0.3, my + Math.sin(a) * s * 0.2); ctx.lineTo(mx + Math.cos(a) * l, my + Math.sin(a) * l * 0.6 - l * 0.2); ctx.stroke(); }
+  }
+}
+
+/* ---------- lancement : petit écran de chargement tout de suite, puis le moteur prend la main ---------- */
+function mount(root, api) {
+  let inst = null, dead = false, paused = false;
+  const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const FD = (api.fonts && api.fonts.display) || 'Impact', FB = (api.fonts && api.fonts.body) || 'sans-serif';
+  root.innerHTML = '';
+  const box = document.createElement('div');
+  box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#2a1458,#05040c 70%);color:#f4eefc;font-family:' + FB;
+  box.innerHTML = '<div style="font:400 40px ' + FD + ';color:#f3e9ff;text-shadow:0 4px 0 #2a0a4a,0 0 22px rgba(176,107,255,.7)">TURBO</div>' +
+    '<div style="font:400 24px ' + FD + ';color:#ffd0ee;margin-top:-4px;text-shadow:0 0 16px rgba(255,95,174,.7)">TOUPIES</div>' +
+    '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#140b22;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#b06bff,#ff5fae 60%,#ffd34d);transition:width .2s"></u></div>' +
+    '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#d9c8f0">Chargement de l\'arène…</div>';
+  root.appendChild(box);
+  const bar = box.querySelector('u');
+  const fail = () => {
+    if (dead) return;
+    box.innerHTML = '<div style="max-width:340px;text-align:center;padding:20px"><div style="font:400 22px ' + FD + ';color:#d7b8ff;margin-bottom:8px">Oups !</div>' +
+      '<div style="font:600 14px ' + FB + ';color:#d9c8f0;margin-bottom:14px">Ton appareil n\'arrive pas à charger ce jeu 3D.</div><button type="button" style="font:400 15px ' + FD + ';color:#1a0e2a;background:#ffc75a;border:0;border-radius:12px;padding:10px 20px;box-shadow:0 5px 0 #a8661c;cursor:pointer">Réessayer</button></div>';
+    box.querySelector('button').addEventListener('click', () => {
+      if (dead) return;
+      root.innerHTML = ''; const n = mount(root, api);
+      proxy.destroy = n.destroy; proxy.pause = n.pause; proxy.resume = n.resume; Object.defineProperty(proxy, '_d', { get: () => n._d, configurable: true });
+    });
+  };
+  loadEngine((k) => { bar.style.width = Math.round(k * 100) + '%'; }, ac && ac.signal).then((TP) => {
+    if (dead) return;
+    root.innerHTML = '';
+    inst = TP.duel(root, api, {});
+    if (paused && inst.pause) inst.pause();
+  }).catch(() => fail());
+  const proxy = {
+    destroy() { dead = true; if (ac) try { ac.abort(); } catch (e) { /* rien */ } if (inst) inst.destroy(); root.innerHTML = ''; },
+    pause() { paused = true; if (inst) inst.pause(); },
+    resume() { paused = false; if (inst) inst.resume(); },
+  };
+  Object.defineProperty(proxy, '_d', { get: () => inst && inst._d, configurable: true });   // essais (harnais)
+  return proxy;
+}
+
+window.JDW_DUOS = window.JDW_DUOS || {};
+window.JDW_DUOS.toupies = {
+  id: 'toupies',
+  title: 'Turbo Toupies',
+  emoji: '🌀',
+  tagline: 'Dessine ton lancer, fais éclater sa toupie !',
+  accent: '#b06bff',
+  target: 2,
+  layout: 'landscape',
+  ai: true,
+  net: true,
+  // manette (CONTRACT.md « Ajout 10 »)
+  pad: { help: [['ls/dpad', 'Pousser ta toupie · choisir'], ['a', 'Charge ⚡ · valider · lancer auto'], ['x', 'Spécial ★'], ['y', 'Spécial ★']] },
+  preview,
+  mount,
+};
+})();
+
+</script>
+<script>
+(() => {
+'use strict';
 // Mandale Kombat — duel en 3D contre l'IA (bientôt en ligne). Ce petit module s'enregistre dans la borne, dessine la vignette
 // en 2D (jamais de tête), puis, au lancement, charge le moteur (assets/mandale.moteur.bin : three.js r180 réduit + le jeu,
 // gzippé, licences libres) et les paquets chiffrés assets/mandale.*.bin. Une seule variable globale en plus : window.JDW_MK.
@@ -95702,7 +95879,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261023230945"; window.JDW_VERSION = "1.28.3"; window.JDW_NOTES = ["\ud83c\udfe1 P\u00c9GASE 0.9.4.3 : on ne traverse plus les meubles ; cam\u00e9ra plus douce dans les maisons et boutiques ; le village se fait beau (muret, panneau \u00ab Ailebrune \u00bb, \u00e9tal de l\u00e9gumes, anciennes terrasses) ; plus coinc\u00e9 sur les rochers ; sur PC, petite mise \u00e0 jour", "\ud83e\udd89 P\u00c9GASE 0.9.4.2 : la mission du grand-duc s'ouvre bien pour tout le monde ; \u00e9tal de boulangerie et pendules ; t\u00e9l\u00e9phone (touche O, messages dans l'ordre) et voix am\u00e9lior\u00e9s ; sur PC, la mise \u00e0 jour se pr\u00e9pare toute seule (3,6 Mo)", "\ud83d\udee0\ufe0f P\u00c9GASE 0.9.4.1 : le t\u00e9l\u00e9phone visible pendant les appels, Mathilde ne traverse plus son tabouret, le lys dans un pot, le micro en petite bouche ; sur PC, mise \u00e0 jour de 3 Mo", "\u2728 P\u00c9GASE 0.9.4 : concours du plus gros champignon (g\u00e9ants l\u00e9gendaires !) ; les fleurs au Grand livre avec des champs de tournesols g\u00e9ants ; cercle d'analyse au viseur ; choix du micro ; sur PC, mise \u00e0 jour toute petite (8 Mo au lieu de 2 Go)", "\ud83c\udf44 P\u00c9GASE 0.9.3.13 : les champignons ont leurs coins (myc\u00e9lium) et ressortent apr\u00e8s chaque pluie \u2014 sans pluie, pas de champignons ; lactaires en tapis, c\u00e8pes en montagne ; 5 nouvelles esp\u00e8ces au Grand livre : girolle, trompette de la mort, pied-de-mouton, russule, bolet orang\u00e9", "\ud83c\udf44 P\u00c9GASE 0.9.3.12 : les champignons poussent \u00e0 d\u00e9couvert, sur un tapis de feuilles, parfois pr\u00e8s d'une pierre moussue ; apr\u00e8s la pluie, des escargots grimpent sur les chapeaux ; des papillons dans les champs et les pr\u00e9s, loin du village", "\u26a1 P\u00c9GASE 0.9.3.11 : mises \u00e0 jour bien plus l\u00e9g\u00e8res sur PC \u00e0 partir de la prochaine (seulement ce qui change) ; \u00ab oui \u00bb et \u00ab non \u00bb au micro : la t\u00eate seule ; le t\u00e9l\u00e9phone reste stable quand tu cours ; voix des appels plus nette", "\ud83d\udeb6 P\u00c9GASE 0.9.3.10 : les habitants prennent le chemin le plus simple et ouvrent bien leurs portes ; parapluie tenu poing ferm\u00e9 ; les beaux nuages peints reviennent ; visio : bouton \u00ab Retourner \u00bb pour montrer ce qu'il y a devant toi ; nouveau fanion P\u00e9gase", "\ud83c\udf27 P\u00c9GASE 0.9.3.9 : de vrais nuages, l'arc-en-ciel apr\u00e8s la pluie, le sol mouill\u00e9 et des traces de pas dans la boue ; 7 parapluies \u00e0 commander dans l'appli Boutique (livr\u00e9s par le facteur) ; escargots et champignons dans le Grand livre ; filtre solaire pour voir le Soleil en boule de feu ; nouvelle appli M\u00e9t\u00e9o", "\ud83c\udf31 P\u00c9GASE 0.9.3.8 : b\u00eache ton potager n'importe o\u00f9 sur ta parcelle (houe et arrosoir chez Rosalie), l'eau de la fontaine, des averses sur Ailebrune, et Rosalie vient te demander des l\u00e9gumes ; mode discret pour le grand-duc ; la visio ne plante plus en raccrochant", "\ud83d\udcf1 Empilo sur iPhone : le bas du plateau et les boutons ne passent plus sous la barre de Safari", "\ud83c\udf38 P\u00c9GASE 0.9.3.7 : la plage du lac fleurie et le village en parterre (papillons sur les fleurs), nouvelle image de chargement Ultra ; visio : seule la t\u00eate bouge, coucou de la main gauche, touches sur les boutons d'appel ; banc de jardin remis \u00e0 l'endroit", "\ud83c\udfa4 P\u00c9GASE 0.9.3.6 : les mots au micro marchent \u00e0 chaque fois (oui, non, coucou, 6 7, pas content\u2026) et le grrr est entendu au son, exactement comme dans la borne", "\ud83d\udde3\ufe0f P\u00c9GASE 0.9.3.5 : ton avatar r\u00e9agit \u00e0 ta voix comme dans la borne (oui, non, coucou, haha, grrr, pas content, 6 7) ; selfie d'appel depuis les vrais objectifs du t\u00e9l\u00e9phone, stable en marchant, les yeux dans les yeux ; sur PC la souris tourne la vue pendant l'appel (Alt = curseur)", "\ud83d\udcde P\u00c9GASE 0.9.3.4 : selfie en portrait, t\u00e9l\u00e9phone devant le visage, on marche en parlant ; la vid\u00e9o du copain enti\u00e8re (jeu et borne) ; fl\u00e8che pour ranger le t\u00e9l\u00e9phone ; les yeux ne restent plus mi-clos", "\ud83c\udfa5 P\u00c9GASE 0.9.3.3 : appels en vid\u00e9o \u2014 tes copains te voient en selfie dans ton monde (\ud83d\udd04 pour montrer devant toi), et tu vois la vraie cam\u00e9ra de ceux qui appellent depuis la borne ; appelle tous les copains de tes salles", "\ud83d\udcde APPELS PARTOUT DANS LA BORNE : appelle n'importe quel copain de tes salles, m\u00eame s'il n'a jamais ouvert P\u00e9gase \u2014 en vid\u00e9o entre bornes, en avatar avec ceux qui sont dans P\u00e9gase ; la borne sonne m\u00eame en pleine partie (nouvelle appli 1.10 pour la cam\u00e9ra sur Android)", "\ud83d\udc6b Onglet Amis : tes copains EN PIED, et ceux qui ne sont pas encore sur P\u00e9gase", "\ud83d\udcf1 P\u00c9GASE 0.9.3.2 : en 3e personne, le t\u00e9l\u00e9phone s'ouvre directement en grand \u00e0 gauche (un bouton de moins)", "\ud83d\ude04 P\u00c9GASE 0.9.3.1 : au micro, ton avatar rit, sourit et s'\u00e9tonne avec ta voix (les autres le voient), \u00ab oui / non / salut \u00bb \u2192 geste ; Grand livre : nombre par onglet, l\u00e9gendes floues, perche, carpe, ko\u00ef, brochet et la Dor\u00e9e", "\ud83d\udc6b Hub de P\u00e9gase : l'onglet Amis en tuiles \u2014 en ligne ou non, nouveaux messages, son livre ; touche un ami pour ses messages, son livre et sa maison", "\ud83e\udd89 P\u00c9GASE 0.9.3 : le grand-duc au sifflet, le grand concours photo de Papi Auguste (200 lucioles \u00e0 gagner), le vieux p\u00eacheur et la nouvelle p\u00eache, missions du jour en haut de l'\u00e9cran, gestes \u00e0 acheter (bisou, bise, poign\u00e9e de main), photos dans les SMS \u2014 PC et Android", "\u2328\ufe0f P\u00c9GASE 0.9.2.1 : petites touches sur tous les boutons du jeu, X fait parler ta bouche m\u00eame seul, carte du t\u00e9l\u00e9phone qui glisse", "\ud83c\udfe1 Dans le hub de P\u00e9gase, \u00ab Voir sa maison \u00bb : la maison de chaque copain, vue du ciel, sur sa parcelle", "\ud83c\udfb5 Nouvelle musique dans le hub de P\u00e9gase : \u00ab Chez toi \u00bb", "\ud83d\udcde P\u00c9GASE 0.9.2 : appelle tes copains, vois leurs maisons et r\u00e9veille-toi chez toi \u2014 escaliers, pancartes, p\u00eache, linge blanc et des dizaines de corrections (PC et Android)", "\ud83d\udee0\ufe0f P\u00c9GASE 0.9.1 : premi\u00e8res corrections \u2014 la photo du chat compte aussi la nuit, Papi Auguste reste assis \u00e0 son bureau, plus de cordes sur les chemins, cartes postales perso", "\ud83c\udf31 NOUVEAU D\u00c9PART avec P\u00e9gase 0.9 : toute l'\u00eele repart de z\u00e9ro pour tout le monde \u2014 ton avatar est gard\u00e9, et tu repars avec 100 lucioles", "\ud83c\udf19 P\u00c9GASE 0.9 : entre dans les boutiques du village, p\u00eache de vrais poissons et admire le ciel de nuit \u00e9toil\u00e9", "\ud83d\udcf8 PEGAGRAM dans le hub de P\u00e9gase : les plus belles photos de ta salle, prises dans le jeu \u2014 r\u00e9agis, laisse un petit mot, et Papi Auguste donne son avis !", "\ud83d\udcd6 Le GRAND LIVRE DES ESP\u00c8CES : feuillette ton livre et ceux de tes copains ; chaque animal photographi\u00e9 remplit sa case", "\ud83d\udc8c R\u00e9agis aux messages de tes copains (\u2764\ufe0f \ud83d\udc4d \ud83d\ude02 \ud83d\ude2e \ud83d\ude22 \ud83d\udc4e) et re\u00e7ois leurs cartes postales d'Ailebrune"];</script>
+<script>window.JDW_BUILD = "20261024010301"; window.JDW_VERSION = "1.29"; window.JDW_NOTES = ["\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "pegase": {"c": ["pegase-1"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -98467,6 +98644,7 @@ const TILE_NEWS = {
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
+  toupies: { kind: 'new', at: '2026-10-24 01:03' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
   pegase: { kind: 'maj', at: '2026-10-22 08:11' }   // Pégase 0.9.2 : appels entre copains, maisons des copains, réveil chez soi (1.25.2 ; heure = celle de la publication)
 };
@@ -98474,7 +98652,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set([]);   // vide : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12 (magicv1, la copie 1.12 pour comparer, retirée le 18 oct.)
+const LABO = new Set(['toupies']);   // Turbo Toupies en essai (duel 3D) ; avant : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -98504,7 +98682,7 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!L
 })();
 const gameById = id => GAMES.find(g => g.id === id);
 // jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
-const DUO_ORDER = ['kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
+const DUO_ORDER = ['toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
 const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(d => d && (!LABO.has(d.id) || LABO_ON.has(d.id)));   // duels en essai : porte labo aussi
 const duoById = id => DUOS.find(d => d.id === id);
 const store = {
@@ -102669,7 +102847,7 @@ const NET = { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: 
   pend: [], remote: false, helloT: 0, waitT: 0, guestInfo: null, stream: null, dest: null, vSender: null, aSender: null, start: null, ids: new Map(),
   data: false, g: null, handlers: [], queue: [], off: 0, rttv: 0, pings: [], pingT: 0, kind: '', co: null };
 // musique de chaque duel : morceaux des jeux solo qui vont bien
-const DUO_MUSIC = { pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
+const DUO_MUSIC = { toupies: ['dkombat', 'calm'], pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
   souris: ['glouton', 'calm'], spatial: ['ilo', 'intense'], mots: ['accueil', 'calm'], guerre: ['canards', 'calm'] };
 const GUEST = 'INVITÉ';
 const AI_NAME = 'IA';
