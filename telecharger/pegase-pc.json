@@ -1,12 +1,13 @@
 {
-  "version": "0.9.3.6",
-  "build": 21,
-  "size": 1973241290,
-  "sha256": "822d0deba2f6781b683f75cf92aa6223eba10fb5a16407dc92aa7b6046cc06d7",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v21/Pegase-PC-2026-10-23-0.9.3.6.zip",
-  "manifest": "b269e45ace3de04d31fb83f70ea2a7bf2232347903c2a4d46544cde1cf090dbd",
+  "version": "0.9.3.7",
+  "build": 22,
+  "size": 1974805442,
+  "sha256": "c580dcae82bbb584a177db77cded68a6cfd2e06bd590677511214145ed0cce18",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v22/Pegase-PC-2026-10-23-0.9.3.7.zip",
+  "manifest": "f567dc22103bb984260356c279ac65f90e5a55b96bd977db6d5ec9d59dd57665",
   "notes": [
-    "Les mots au micro marchent à chaque fois",
-    "Grrr entendu au son, comme la borne"
+    "Plage du lac fleurie, village en parterre",
+    "Visio : seule la tête bouge, touches sur les boutons",
+    "Banc de jardin remis à l'endroit"
   ]
 }
