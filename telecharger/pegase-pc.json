@@ -1,31 +1,50 @@
 {
-  "version": "0.9.4.5",
-  "build": 34,
-  "size": 2084098704,
-  "sha256": "46c298ce7b4ffa1b3e96dd900bae7cf05140a798854dc99922bcdbce5547c9ad",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v34/Pegase-PC-2026-10-24-0.9.4.5.zip",
-  "manifest": "2e5086740bf271642156f5945f0c987ae67ef66d6a4b6b05b7cdb5798ae4dbe6",
+  "version": "0.9.4.6",
+  "build": 35,
+  "size": 2119782217,
+  "sha256": "703f3af248df6df1a6f78e77d8a4130934d72c2b28f7d3b6d0a1cced4f955ff2",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v35/Pegase-PC-2026-10-24-0.9.4.6.zip",
+  "manifest": "4eab211992b8d6933f91a34df7f2af5d37568bd866e5413207cc9597a6ed3299",
   "patchs": [
     {
-      "de": "0.9.4.4",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v34/Pegase-PC-patch-0.9.4.4.zip",
-      "taille": 37532820,
-      "sha256": "44899bb11e27752fe74aae7278fed69a54ddeec0bf3cff1fc0b573c88563e266"
+      "de": "0.9.4.5",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v35/Pegase-PC-patch-0.9.4.5.zip",
+      "taille": 39861639,
+      "sha256": "1e5218aa61b7d8f325f9cebdc3eb7907578932224518756591067e70c4b4b18d"
     }
   ],
   "notes": [
-    "La pêche à la canne à coup : une longue canne fine en bambou (5 m, 6 m pour celle de Gaspard), tu tiens la ligne et tu la lâches pour lancer ; vrai flotteur, vrais sons d'eau, vibrations, ferrage et sortie du poisson au ralenti ; tes copains te voient tenir la canne et le fil.",
-    "Des déplacements tout doux : plus d'à-coups dans les escaliers, des virages qui finissent en douceur, une caméra plus calme, et tes copains bougent sans saccades.",
-    "Au viseur, tu peux marcher doucement sans quitter l'objectif.",
-    "Dans ta maison, la caméra reste à l'intérieur.",
-    "Les fourmis : quatre sortes, en colonnes, autour de leurs nids.",
-    "Le grand-duc encore plus beau au viseur, avec quelques feuilles floues autour de l'objectif.",
-    "Le village : maison de départ chaleureuse (et « Réaménager l'intérieur »), vrai four à pain avec ses braises, étal bien rangé, nom gravé sur le panneau, toits réparés, boîte aux lettres et panneau qu'on peut déplacer.",
-    "Les habitants font de vrais gestes en parlant ; Mathilde est plus simple ; les lustres du musée ne gênent plus.",
-    "Les gestes : la roue ne montre que les tiens, et un câlin tout doux.",
-    "Le Grand livre : un chapitre « Fruits et légumes », les oies et les chauves-souris."
+    "Le ponton : un long ponton de bois part de la plage vers le large, avec sa barque amarrée au bout. On y pêche, et Gaspard aussi.",
+    "Les grands combats : les gros poissons sautent hors de l'eau, se tordent en l'air, éclaboussent ; la canne plie en arc, et le poisson est ramené par la bouche jusqu'au bord.",
+    "Une interface de pêche toute propre : la distance au bord sur une barre verticale à droite, le rond à gauche, rien au milieu.",
+    "Chaque poisson bien tenu, du petit poisson rouge dans les paumes à la Dorée géante portée à deux bras.",
+    "Les parcelles du jardin : cinq parcelles à vendre au bord du chemin, avec bornes de pierre, liseré, panneau et boîte aux lettres, et leurs contours sur la carte.",
+    "Le facteur passe sur son vélo jaune et s'arrête devant chaque boîte aux lettres.",
+    "Le héron cendré pêche au bord du lac (nouvelle case du Grand livre).",
+    "Les animaux bien posés : chat, choucas et grand-duc ne flottent plus et ne traversent plus les toits.",
+    "De nouvelles petites bêtes : le moustique tigre, l'araignée-loup et le mille-pattes ; la blatte s'enfuit ; et une carte « Insecte attrapé ! » au coup de filet.",
+    "La galerie du musée : de vrais cadres dorés à hauteur des yeux, prêts à recevoir les photos que tu offres à Mlle Iris.",
+    "Les lunettes se posent sur le nez, juste devant les yeux, et leurs branches passent au-dessus des oreilles.",
+    "Des déplacements encore plus doux : départs et arrêts en courbe, caméra plus calme au stick, vue à la première personne sans secousse, et la caméra ne passe plus à travers les toiles et les auvents."
   ],
   "historique": [
+    {
+      "version": "0.9.4.6",
+      "notes": [
+        "Le ponton : un long ponton de bois part de la plage vers le large, avec sa barque amarrée au bout. On y pêche, et Gaspard aussi.",
+        "Les grands combats : les gros poissons sautent hors de l'eau, se tordent en l'air, éclaboussent ; la canne plie en arc, et le poisson est ramené par la bouche jusqu'au bord.",
+        "Une interface de pêche toute propre : la distance au bord sur une barre verticale à droite, le rond à gauche, rien au milieu.",
+        "Chaque poisson bien tenu, du petit poisson rouge dans les paumes à la Dorée géante portée à deux bras.",
+        "Les parcelles du jardin : cinq parcelles à vendre au bord du chemin, avec bornes de pierre, liseré, panneau et boîte aux lettres, et leurs contours sur la carte.",
+        "Le facteur passe sur son vélo jaune et s'arrête devant chaque boîte aux lettres.",
+        "Le héron cendré pêche au bord du lac (nouvelle case du Grand livre).",
+        "Les animaux bien posés : chat, choucas et grand-duc ne flottent plus et ne traversent plus les toits.",
+        "De nouvelles petites bêtes : le moustique tigre, l'araignée-loup et le mille-pattes ; la blatte s'enfuit ; et une carte « Insecte attrapé ! » au coup de filet.",
+        "La galerie du musée : de vrais cadres dorés à hauteur des yeux, prêts à recevoir les photos que tu offres à Mlle Iris.",
+        "Les lunettes se posent sur le nez, juste devant les yeux, et leurs branches passent au-dessus des oreilles.",
+        "Des déplacements encore plus doux : départs et arrêts en courbe, caméra plus calme au stick, vue à la première personne sans secousse, et la caméra ne passe plus à travers les toiles et les auvents."
+      ]
+    },
     {
       "version": "0.9.4.5",
       "notes": [
@@ -75,15 +94,6 @@
         "Téléphone : touche O pour répondre, messages dans le bon ordre, défilement doux, la pastille ne compte que les messages.",
         "Voix : on s'entend mieux (la bouche de l'avatar ne coupe plus le micro).",
         "Sur PC, la mise à jour se prépare toute seule pendant la partie et propose de redémarrer quand tu es libre."
-      ]
-    },
-    {
-      "version": "0.9.4.1",
-      "notes": [
-        "Pendant un appel, on voit le téléphone dans la main de l'autre joueur.",
-        "Mathilde ne traverse plus son tabouret ni le comptoir, et Hugo non plus à la Poste.",
-        "Le lys de la boutique photo est dans un vrai pot en terre cuite.",
-        "Le micro devient une petite bouche en haut à droite : grise et barrée quand il est coupé, dorée quand il est ouvert, et elle bouge quand tu parles."
       ]
     }
   ]
