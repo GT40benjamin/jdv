@@ -1010,6 +1010,8 @@ function unduckMusic() { duckUntil = 0; clearTimeout(duckTimer); musicApplyLevel
 const MUSIC_AS = {};
 function musicVariants(id, mode) {
   id = MUSIC_AS[id] || id;
+  // Pégase en mode test : la SUITE de 4 morceaux (pgsuite-1…4, voir MUSIC_SUITE) ; ailleurs, « Chez toi » comme avant
+  if (id === 'pegase' && LABO_TEST && (window.JDW_MUSIC || {}).pgsuite) return [...window.JDW_MUSIC.pgsuite.c];
   const v = (window.JDW_MUSIC || {})[id]; if (!v) return [id];
   const c = v.c || [], x = v.x || [];
   const list = id === 'accueil' ? [...c, ...x] : mode === 'intense' ? (x.length ? x : c) : (c.length ? c : x);
@@ -1080,14 +1082,41 @@ function musicOut(t) {
   const A = Audio.ctx, now = A.currentTime;
   try { c.g.gain.cancelScheduledValues(now); c.g.gain.setValueAtTime(Math.max(0.0001, c.g.gain.value), now); c.g.gain.exponentialRampToValueAtTime(0.0001, now + t); c.src.stop(now + t + 0.05); } catch (e) {}
 }
+// MUSIQUES EN SUITE (24 oct. 2026, la page Pégase : « Chez toi 2 » → « L'Île qui s'éveille » → « Lumière du soir » → « Chez Rosalie 2 »,
+// plus de 6 min variées) : toujours dans l'ordre à partir du 1er, fondu enchaîné LONG à puissance constante, sans blanc ni coupure nette ;
+// chaque morceau est mesuré une fois (début et fin réels sans silence, volume des passages joués) et ramené au même niveau.
+const MUSIC_SUITE = LABO_TEST ? { pegase: 7 } : {};   // id → durée du fondu enchaîné (s) ; mode test seulement pour l'instant
+function musicMeta(b) {
+  if (b._m) return b._m;
+  const ch = [...Array(b.numberOfChannels).keys()].map(i => b.getChannelData(i)), hop = Math.round(b.sampleRate * 0.05), n = Math.floor(b.length / hop), db = new Float32Array(n);
+  for (let i = 0; i < n; i++) { let q = 0; for (const c of ch) for (let k = i * hop; k < (i + 1) * hop; k += 4) q += c[k] * c[k]; db[i] = 10 * Math.log10(q / (hop / 4 * ch.length) + 1e-12); }
+  let s = 0; while (s < n - 1 && db[s] < -45) s++; let e = n - 1; while (e > s && db[e] < -45) e--;
+  let pw = 0, cnt = 0; for (let i = s; i <= e; i++) if (db[i] > -40) { pw += Math.pow(10, db[i] / 10); cnt++; }
+  const rms = cnt ? 10 * Math.log10(pw / cnt) : -20;
+  return (b._m = { s: s * 0.05, e: Math.min(b.duration, (e + 1) * 0.05), g: Math.min(2, Math.max(0.5, Math.pow(10, (-20.5 - rms) / 20))) });
+}
 function musicLoop(id, b, when, fadeIn, seq, list, idx) {
   const A = Audio.ctx;
   if (!MUS.gain) { MUS.gain = A.createGain(); MUS.gain.gain.value = musicLevel(); MUS.gain.connect(A.destination); }
   const src = A.createBufferSource(), g = A.createGain(); src.buffer = b; src.connect(g).connect(MUS.gain);
+  const XF = MUSIC_SUITE[id] || XFADE;
+  if (MUSIC_SUITE[id]) {
+    // fondu à puissance constante (sinus / cosinus) ; on joue de la première à la dernière note, au même niveau que les autres
+    const m = musicMeta(b), lvl = m.g, len = m.e - m.s, end = when + len, N = 64, up = new Float32Array(N), down = new Float32Array(N);
+    for (let i = 0; i < N; i++) { up[i] = Math.max(0.0001, lvl * Math.sin(i / (N - 1) * Math.PI / 2)); down[i] = Math.max(0.0001, lvl * Math.cos(i / (N - 1) * Math.PI / 2)); }
+    try { g.gain.setValueCurveAtTime(up, when, Math.max(0.05, fadeIn)); g.gain.setValueCurveAtTime(down, end - XF, XF); } catch (e) { g.gain.value = lvl; }
+    src.start(when, m.s); src.stop(end + 0.05);
+    MUS.suiteLog = (MUS.suiteLog || []).concat([[list ? list[idx] : id, +when.toFixed(2), +len.toFixed(1)]]).slice(-12);   // journal (essais)
+    return musicNext(id, b, end, XF, seq, list, idx, src, g);
+  }
   const end = when + b.duration;
   g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(1, when + fadeIn);
   g.gain.setValueAtTime(1, end - XFADE); g.gain.exponentialRampToValueAtTime(0.0001, end);
   src.start(when); src.stop(end + 0.05);
+  return musicNext(id, b, end, XFADE, seq, list, idx, src, g);
+}
+function musicNext(id, b, end, XF, seq, list, idx, src, g) {
+  const A = Audio.ctx;
   MUS.cur = { src, g }; MUS.id = id; MUS.track = list ? list[idx] : id;
   clearTimeout(MUS.loopT);
   // le morceau suivant de la liste se prépare pendant que celui-ci joue, puis prend le relais en fondu enchaîné
@@ -1096,8 +1125,8 @@ function musicLoop(id, b, when, fadeIn, seq, list, idx) {
   if (nextName && nextName !== (list ? list[idx] : null)) musicBuffer(nextName).then(nb => { nextBuf = nb; }).catch(() => {});
   MUS.loopT = setTimeout(() => {
     if (MUS.seq !== seq || MUS.id !== id) return;
-    musicLoop(id, nextBuf || b, end - XFADE, XFADE, seq, list, nextBuf ? nextIdx : idx);
-  }, Math.max(0, (end - XFADE - A.currentTime - 0.4) * 1000));
+    musicLoop(id, nextBuf || b, end - XF, XF, seq, list, nextBuf ? nextIdx : idx);
+  }, Math.max(0, (end - XF - A.currentTime - 0.4) * 1000));
 }
 async function setMusic(id, mode) {
   mode = mode || 'calm';
@@ -1111,7 +1140,7 @@ async function setMusic(id, mode) {
   if (netOff()) { let a = await musicAvail(list); if (!a.length && id !== 'accueil') a = await musicAvail(musicVariants('accueil')); if (a.length) list = a; }
   if (seq !== MUS.seq) return;
   // un morceau qui ne vient pas (réseau coupé) : on essaie les autres variantes
-  let idx = Math.floor(shellRand() * list.length), b = null;
+  let idx = MUSIC_SUITE[id] ? 0 : Math.floor(shellRand() * list.length), b = null;   // une suite commence toujours par le 1er
   for (let k = 0; k < list.length && !b; k++) { const j = (idx + k) % list.length; try { b = await musicBuffer(list[j]); idx = j; } catch (e) {} if (seq !== MUS.seq) return; }
   if (!b || seq !== MUS.seq || MUS.want !== id || !MUS.on) return;
   musicOut(0.9);
