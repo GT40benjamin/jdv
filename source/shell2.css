@@ -2554,3 +2554,8 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 }
 #jdw-lib[data-mode="pegase"] .lib-wrap{max-width:980px}   /* 3 petites cartes par ligne sur PC */
 #jdw-lib[data-mode="pegase"] .pg-isle.focus{box-shadow:0 0 0 2px #ffd36b,0 0 34px rgba(255,214,140,.45)}   /* l'île d'un lien partagé */
+@media (max-width:600px){
+  #jdw-lib[data-mode="pegase"] .pg-isles{grid-template-columns:min(300px,100%)}   /* carte de ~300 px centrée : la vidéo se voit autour */
+  #jdw-lib[data-mode="pegase"] .mode-hero p{font-size:12px}
+  #jdw-lib[data-mode="pegase"] .pg-search,#jdw-lib[data-mode="pegase"] .pg-create{width:min(340px,100%)}
+}
