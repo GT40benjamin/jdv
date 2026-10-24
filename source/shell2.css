@@ -618,7 +618,7 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
 .pg-veil{background:linear-gradient(180deg,rgba(5,10,31,.25) 0%,rgba(5,10,31,0) 22%,rgba(5,10,31,0) 45%,rgba(5,10,31,.55) 75%,rgba(5,10,31,.8) 100%)}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-video,#jdw-lib[data-mode="pegase"].pg-vid .pg-veil{display:block}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-sky{display:none}
-#jdw-lib[data-mode="pegase"].pg-vid .mode-hero p{text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 18px rgba(0,0,0,.65)}
+#jdw-lib[data-mode="pegase"].pg-vid .mode-hero p{text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 18px rgba(0,0,0,.65);padding:6px 14px;border-radius:14px;background:rgba(5,10,31,.42);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-tabs{background:rgba(6,14,36,.55)}
 #jdw-lib[data-mode="pegase"]{background:#050a1f}
 #jdw-lib[data-mode="pegase"] .lib-wrap{position:relative;z-index:1}
