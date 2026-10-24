@@ -613,7 +613,8 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
 #jdw-lib[data-mode="pegase"] .pg-sky{display:block}
 /* le vrai décor filmé dans le jeu (quand il existe) : vidéo plein écran + voile sombre en bas pour garder les cartes lisibles */
 .pg-video,.pg-veil{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:none}
-.pg-video{object-fit:cover;background:#050a1f}
+.pg-video{object-fit:cover;background:#050a1f;transition:opacity 2s ease-in-out}
+.pg-video.off{opacity:0}
 .pg-veil{background:linear-gradient(180deg,rgba(5,10,31,.25) 0%,rgba(5,10,31,0) 22%,rgba(5,10,31,0) 45%,rgba(5,10,31,.55) 75%,rgba(5,10,31,.8) 100%)}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-video,#jdw-lib[data-mode="pegase"].pg-vid .pg-veil{display:block}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-sky{display:none}

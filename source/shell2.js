@@ -1010,8 +1010,8 @@ function unduckMusic() { duckUntil = 0; clearTimeout(duckTimer); musicApplyLevel
 const MUSIC_AS = {};
 function musicVariants(id, mode) {
   id = MUSIC_AS[id] || id;
-  // Pégase en mode test : la SUITE de 4 morceaux (pgsuite-1…4, voir MUSIC_SUITE) ; ailleurs, « Chez toi » comme avant
-  if (id === 'pegase' && LABO_TEST && (window.JDW_MUSIC || {}).pgsuite) return [...window.JDW_MUSIC.pgsuite.c];
+  // Pégase (page des îles et hub) : la SUITE de 4 morceaux (pgsuite-1…4, voir MUSIC_SUITE), pour tout le monde depuis la 1.34.19
+  if (id === 'pegase' && (window.JDW_MUSIC || {}).pgsuite) return [...window.JDW_MUSIC.pgsuite.c];
   const v = (window.JDW_MUSIC || {})[id]; if (!v) return [id];
   const c = v.c || [], x = v.x || [];
   const list = id === 'accueil' ? [...c, ...x] : mode === 'intense' ? (x.length ? x : c) : (c.length ? c : x);
@@ -1085,7 +1085,7 @@ function musicOut(t) {
 // MUSIQUES EN SUITE (24 oct. 2026, la page Pégase : « Chez toi 2 » → « L'Île qui s'éveille » → « Lumière du soir » → « Chez Rosalie 2 »,
 // plus de 6 min variées) : toujours dans l'ordre à partir du 1er, fondu enchaîné LONG à puissance constante, sans blanc ni coupure nette ;
 // chaque morceau est mesuré une fois (début et fin réels sans silence, volume des passages joués) et ramené au même niveau.
-const MUSIC_SUITE = LABO_TEST ? { pegase: 7 } : {};   // id → durée du fondu enchaîné (s) ; mode test seulement pour l'instant
+const MUSIC_SUITE = { pegase: 7 };   // id → durée du fondu enchaîné (s)
 function musicMeta(b) {
   if (b._m) return b._m;
   const ch = [...Array(b.numberOfChannels).keys()].map(i => b.getChannelData(i)), hop = Math.round(b.sampleRate * 0.05), n = Math.floor(b.length / hop), db = new Float32Array(n);
@@ -4498,32 +4498,67 @@ function pgSkyFrame(now) {
     pgPegasus(x, px, py, sc, t, dir);
   }
 }
-// LE VRAI DÉCOR : une séquence filmée dans le jeu (prairie fleurie, vent, papillons, oiseaux) en fond plein écran, en boucle et sans
-// son : assets/pegase/decor.webm / .mp4 (et decor_portrait.* sur un écran en hauteur, s'il existe), affiche decor_poster.jpg pendant le
-// chargement, et SEULE quand l'appareil économise les données ou préfère moins d'animations. Tant que l'affiche n'existe pas (ou si la
-// vidéo ne se charge pas), le ciel dessiné ci-dessus reste en secours.
-const PGD = { state: '', still: false };
+// LE VRAI DÉCOR : des PLANS FIXES filmés dans le jeu (la fontaine, le grand arbre, la prairie…), environ une minute chacun, en fond plein
+// écran et sans son. La liste est dans assets/pegase/decor.json : [{ "id": "decor_01", "titre": "La fontaine" }, …] (on en ajoute ou en
+// retire sans toucher au code). Pour chaque plan : <id>.webm et <id>.mp4 (et <id>_portrait.webm / .mp4 sur un écran en hauteur, s'ils
+// existent), et <id>_poster.jpg, montré pendant le chargement. Ordre mélangé, jamais deux fois le même de suite ; deux vidéos se relaient
+// avec un fondu enchaîné de 2 s ; seul le plan suivant est préchargé. Appareil qui économise les données ou préfère moins d'animations :
+// les affiches seules, qui changent toutes les minutes. Pas de liste (ou pas d'affiche) : l'ancienne vidéo unique (decor.webm), sinon le
+// ciel dessiné reste en secours. Pause hors de la page Pégase.
+const PGD = { state: '', still: false, list: [], order: [], cur: -1, act: 0, t: 0 };
+const pgVid = (i) => $(i ? 'jdw-pg-video2' : 'jdw-pg-video');
+function pgDecorSrc(v, id) {
+  const base = ROOT + 'assets/pegase/' + id, port = innerHeight > innerWidth * 1.1;
+  while (v.firstChild) v.removeChild(v.firstChild);
+  v.poster = base + '_poster.jpg';
+  if (PGD.still) { v.removeAttribute('src'); v.load(); return; }
+  for (const [suf, type] of (port ? [['_portrait.webm', 'video/webm'], ['_portrait.mp4', 'video/mp4']] : []).concat([['.webm', 'video/webm'], ['.mp4', 'video/mp4']])) { const s = document.createElement('source'); s.src = base + suf; s.type = type; v.appendChild(s); }
+  v.preload = 'auto'; v.load();
+}
+function pgDecorPick() {   // le plan suivant : mélangé, jamais le même deux fois de suite
+  if (!PGD.order.length) { const n = PGD.list.length, o = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } if (n > 1 && o[0] === PGD.cur) o.push(o.shift()); PGD.order = o; }
+  return PGD.order.shift();
+}
+function pgDecorNext() {
+  if (!PGD.list.length) return;
+  const nxt = pgVid(1 - PGD.act), cur = pgVid(PGD.act);
+  PGD.act = 1 - PGD.act; PGD.cur = PGD.pre != null ? PGD.pre : pgDecorPick(); PGD.pre = null;
+  if (nxt.dataset.id !== PGD.list[PGD.cur].id) { pgDecorSrc(nxt, PGD.list[PGD.cur].id); nxt.dataset.id = PGD.list[PGD.cur].id; }
+  nxt.classList.remove('off'); cur.classList.add('off');   // fondu enchaîné de 2 s (CSS)
+  if (!PGD.still && MODE === 'pegase') { try { nxt.currentTime = 0; } catch (e) {} nxt.play().catch(() => {}); }
+  setTimeout(() => { if (cur === pgVid(PGD.act)) return; try { cur.pause(); } catch (e) {} if (PGD.list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(cur, PGD.list[PGD.pre].id); cur.dataset.id = PGD.list[PGD.pre].id; } }, 2300);   // le suivant se précharge dans la vidéo libérée
+  clearTimeout(PGD.t); if (PGD.still) PGD.t = setTimeout(pgDecorNext, 60000);   // affiches seules : une par minute
+}
+function pgDecorTick(v) {   // un plan qui s'achève : 2 s avant la fin, le suivant prend le relais
+  if (v !== pgVid(PGD.act) || PGD.list.length < 2 || MODE !== 'pegase') return;
+  if (v.duration && v.currentTime > v.duration - 2.05 && !v.dataset.done) { v.dataset.done = '1'; pgDecorNext(); }
+}
 function pgDecor(on) {
-  const v = $('jdw-pg-video'); if (!v) return false;
-  if (!on) { try { v.pause(); } catch (e) {} return PGD.state === 'ok'; }
-  if (PGD.state === 'ok') { if (!PGD.still) v.play().catch(() => {}); return true; }
+  const v = pgVid(0), v2 = pgVid(1); if (!v || !v2) return false;
+  if (!on) { try { v.pause(); v2.pause(); } catch (e) {} return PGD.state === 'ok'; }
+  if (PGD.state === 'ok') { if (!PGD.still) pgVid(PGD.act).play().catch(() => {}); return true; }
   if (PGD.state) return false;
   PGD.state = 'wait';
-  const base = ROOT + 'assets/pegase/decor', im = new Image();
-  im.onload = () => {
-    PGD.state = 'ok'; v.poster = im.src;
-    PGD.still = !!((navigator.connection && navigator.connection.saveData) || (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
-    if (!PGD.still) {
-      const port = innerHeight > innerWidth * 1.1, list = (port ? [['_portrait.webm', 'video/webm'], ['_portrait.mp4', 'video/mp4']] : []).concat([['.webm', 'video/webm'], ['.mp4', 'video/mp4']]);
-      for (const [suf, type] of list) { const s = document.createElement('source'); s.src = base + suf; s.type = type; v.appendChild(s); }
-      v.lastElementChild.addEventListener('error', () => { PGD.still = true; v.removeAttribute('src'); });   // aucune vidéo : l'affiche seule
-      v.load();
+  PGD.still = !!((navigator.connection && navigator.connection.saveData) || (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+  const ok = () => { PGD.state = 'ok'; $('jdw-lib').classList.add('pg-vid'); cancelAnimationFrame(PGS.raf); PGS.raf = 0; };
+  for (const x of [v, v2]) { x.loop = false; x.addEventListener('timeupdate', () => pgDecorTick(x)); x.addEventListener('playing', () => { delete x.dataset.done; }); x.addEventListener('ended', () => { if (x === pgVid(PGD.act)) { if (PGD.list.length > 1) pgDecorNext(); else { x.currentTime = 0; x.play().catch(() => {}); } } }); }
+  v2.classList.add('off');
+  fetch(ROOT + 'assets/pegase/decor.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null).then((list) => {
+    list = Array.isArray(list) ? list.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id))) : [];
+    if (list.length) {
+      // la liste : on vérifie l'affiche du premier plan avant d'éteindre le ciel
+      PGD.list = list; const first = pgDecorPick(), im = new Image();
+      im.onload = () => { ok(); PGD.cur = first; PGD.act = 0; pgDecorSrc(v, list[first].id); v.dataset.id = list[first].id; v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); if (list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(v2, list[PGD.pre].id); v2.dataset.id = list[PGD.pre].id; } if (PGD.still) PGD.t = setTimeout(() => pgDecorNext(), 60000); };
+      im.onerror = () => { PGD.state = 'bad'; };
+      im.src = ROOT + 'assets/pegase/' + list[first].id + '_poster.jpg';
+      return;
     }
-    $('jdw-lib').classList.add('pg-vid'); cancelAnimationFrame(PGS.raf); PGS.raf = 0;
-    if (MODE === 'pegase' && !PGD.still) v.play().catch(() => {});
-  };
-  im.onerror = () => { PGD.state = 'bad'; };
-  im.src = base + '_poster.jpg';
+    // pas de liste : l'ancienne vidéo unique en boucle (decor.webm / .mp4 + decor_poster.jpg)
+    const im = new Image();
+    im.onload = () => { ok(); PGD.list = []; v.loop = true; pgDecorSrc(v, 'decor'); v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); };
+    im.onerror = () => { PGD.state = 'bad'; };
+    im.src = ROOT + 'assets/pegase/decor_poster.jpg';
+  });
   return false;
 }
 function pgSky(on) {

@@ -2,6 +2,8 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre (une version de Pégase).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[pegase] ## 🎵 Nouvelle musique
+[pegase] Pégase a une nouvelle musique : quatre morceaux doux enchaînés (harpe, célesta, cordes, flûte), près de 6 minutes, sans coupure
 [pegase] ## 🎣 Pégase 0.9.4.6
 [pegase] Un long ponton en bois, avec sa barque amarrée au bout
 [pegase] Les gros poissons sautent hors de l'eau pendant le combat
