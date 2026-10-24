@@ -624,7 +624,7 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
 #jdw-lib[data-mode="pegase"] .pg-isle{background:rgba(8,18,40,.55);border:1px solid rgba(160,220,255,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .25s,box-shadow .25s}
 #jdw-lib[data-mode="pegase"] .pg-isle:hover{transform:translateY(-2px);box-shadow:0 22px 48px rgba(0,0,0,.5),0 0 0 1px rgba(94,240,255,.35),0 0 30px rgba(94,240,255,.18)}
 #jdw-lib[data-mode="pegase"] .pg-isle.cur{border-color:rgba(94,240,255,.6)}
-#jdw-lib[data-mode="pegase"] .pg-isle canvas{aspect-ratio:16/9;max-height:400px}
+#jdw-lib[data-mode="pegase"] .pg-isle canvas{aspect-ratio:4/3;max-height:460px}   /* une grande île */
 #jdw-lib[data-mode="pegase"] .pg-create{background:rgba(10,30,50,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(94,240,255,.55)}
 #jdw-lib[data-mode="pegase"] .pg-empty{background:rgba(8,18,40,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#c6d6ee}
 #jdw-lib[data-mode="pegase"] .pg-note{color:#b9cbe6;text-shadow:0 1px 6px rgba(0,0,0,.7)}

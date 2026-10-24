@@ -4697,7 +4697,9 @@ function isleFogMask(G) {
 // Brume : de gros nuages blancs OPAQUES (on ne devine rien dessous) sur chaque case non découverte d'une grille grossière (C×C), placés
 // par la table de projection (proj : cellule → centre et rayon dans l'image) ou, pour la carte plate, par le rectangle « r » (nord en haut) ;
 // la partie découverte s'ouvre avec un bord doux. Sans r_fog : tout est sous la brume sauf la zone de départ (place du village).
-const ISLE_START = [757.9, 650.9, 120];   // la zone de départ : place du village (x, z) et rayon, en mètres
+const ISLE_START = [757.9, 650.9, 120];
+// le contour de l'île (carte plate) : rayon selon l'angle, en fraction de la carte (0,5 = bord), un peu irrégulier
+const isleRim = (a) => 0.47 * (1 + 0.045 * Math.sin(3 * a + 1) + 0.03 * Math.sin(5 * a + 2) + 0.018 * Math.sin(9 * a + 0.5) + 0.01 * Math.sin(14 * a));   // la zone de départ : place du village (x, z) et rayon, en mètres
 function isleFogBits(G) {   // r_fog → { n, bits } (rangées z puis x, bit de poids faible d'abord)
   try { const n = Math.max(8, Math.min(512, G.n | 0)), raw = atob(String(G.b)), bits = new Uint8Array(n * n); for (let i = 0; i < n * n; i++) bits[i] = (raw.charCodeAt(i >> 3) >> (i & 7)) & 1; return { n, bits }; } catch (e) { return null; }
 }
@@ -4709,7 +4711,7 @@ function islePhoto(cv, im, q, seed) {
   const rad = (x, x0, y0, r0, x1, y1, r1, st) => { const g = x.createRadialGradient(x0, y0, r0, x1, y1, r1); for (let i = 0; i < st.length; i += 2) g.addColorStop(st[i], st[i + 1]); return g; };
   const P = q.photo, iso = !!(P.proj && P.proj.p), R = Array.isArray(P.r) && P.r.length === 4 ? P.r : [0, 0, 1800, 1800];
   // l'île dans la carte : entière, avec de la mer tout autour
-  const W = im.naturalWidth, H = im.naturalHeight, m = iso ? 0.92 : 0.84, sc = Math.min(w * m / W, h * m / H), iw = W * sc, ih = H * sc, ix = (w - iw) / 2, iy = (h - ih) / 2 - (iso ? h * 0.02 : 0);
+  const W = im.naturalWidth, H = im.naturalHeight, m = iso ? 0.92 : 0.9, sc = Math.min(w * m / W, h * m / H), iw = W * sc, ih = H * sc, ix = (w - iw) / 2, iy = (h - ih) / 2 - (iso ? h * 0.02 : 0);
   // ---- la mer du soir (fond fixe ; reflets animés) ----
   const [seaC, s] = off();
   const sg = s.createLinearGradient(0, 0, 0, h); sg.addColorStop(0, '#0d2550'); sg.addColorStop(0.45, '#0b4470'); sg.addColorStop(1, '#062a44'); s.fillStyle = sg; s.fillRect(0, 0, w, h);
@@ -4718,15 +4720,25 @@ function islePhoto(cv, im, q, seed) {
   // ---- l'île + sa brume (une couche : elles se balancent ensemble) ----
   const pad = 14 * S, [islC, b] = off(w, h);
   // ombre douce sous l'île, écume au pied
-  b.fillStyle = rad(b, w / 2, iy + ih * (iso ? 0.86 : 0.98), 2, w / 2, iy + ih * (iso ? 0.86 : 0.98), iw * 0.55, [0, 'rgba(0,10,25,.55)', 1, 'rgba(0,10,25,0)']); b.beginPath(); b.ellipse(w / 2, iy + ih * (iso ? 0.88 : 1.0), iw * 0.55, ih * 0.12, 0, 0, 7); b.fill();
   if (iso) {
+    b.fillStyle = rad(b, w / 2, iy + ih * 0.86, 2, w / 2, iy + ih * 0.86, iw * 0.55, [0, 'rgba(0,10,25,.55)', 1, 'rgba(0,10,25,0)']); b.beginPath(); b.ellipse(w / 2, iy + ih * 0.88, iw * 0.55, ih * 0.12, 0, 0, 7); b.fill();
     // « dessous » rocheux discret (si les bords du terrain montrent du vide)
     b.fillStyle = 'rgba(40,32,40,.55)'; b.beginPath(); b.moveTo(ix + iw * 0.18, iy + ih * 0.72); b.quadraticCurveTo(w / 2, iy + ih * 1.02, ix + iw * 0.82, iy + ih * 0.72); b.closePath(); b.fill();
+    b.imageSmoothingQuality = 'high'; b.drawImage(im, ix, iy, iw, ih);
   } else {
-    b.save(); b.shadowColor = 'rgba(0,0,0,.55)'; b.shadowBlur = 18 * S; b.shadowOffsetY = 6 * S; b.fillStyle = '#1b3a2a'; b.fillRect(ix, iy, iw, ih); b.restore();
+    // la carte du jeu découpée en forme d'ÎLE : lagon turquoise, épaisseur de terre (vue un peu de biais), plage, sable mouillé
+    const ccx = ix + iw / 2, ccy = iy + ih / 2, th = 9 * S;
+    const blobP = (k2, dy) => { b.beginPath(); for (let i = 0; i <= 140; i++) { const a = i / 140 * 6.2832, rr = isleRim(a) * k2; b.lineTo(ccx + Math.cos(a) * rr * iw, ccy + Math.sin(a) * rr * ih + (dy || 0)); } b.closePath(); };
+    blobP(1.22); b.fillStyle = 'rgba(60,200,215,.22)'; b.fill();
+    blobP(1.12); b.fillStyle = 'rgba(110,230,225,.32)'; b.fill();
+    blobP(1.06); b.fillStyle = 'rgba(180,248,236,.38)'; b.fill();
+    blobP(1.0, th + 6 * S); b.fillStyle = 'rgba(0,12,30,.45)'; b.fill();
+    blobP(1.0, th); b.fillStyle = b.createLinearGradient(0, ccy, 0, ccy + ih * 0.5 + th); b.fillStyle.addColorStop(0, '#8a6238'); b.fillStyle.addColorStop(1, '#5a3d22'); b.fill();
+    blobP(1.0); b.fillStyle = rad(b, ccx - iw * 0.2, ccy - ih * 0.25, 4, ccx, ccy, iw * 0.6, [0, '#fff1c4', 1, '#e6c98a']); b.fill();
+    b.save(); blobP(0.955); b.clip(); b.imageSmoothingQuality = 'high'; b.drawImage(im, ix, iy, iw, ih); b.restore();
+    b.save(); blobP(0.955); b.strokeStyle = 'rgba(120,90,40,.45)'; b.lineWidth = 2.5 * S; b.stroke(); b.restore();
+    b.save(); blobP(1.0); b.strokeStyle = 'rgba(255,255,255,.55)'; b.lineWidth = 1.2 * S; b.stroke(); b.restore();
   }
-  b.imageSmoothingQuality = 'high'; b.drawImage(im, ix, iy, iw, ih);
-  if (!iso) { b.strokeStyle = 'rgba(255,255,255,.18)'; b.lineWidth = 1; b.strokeRect(ix + 0.5, iy + 0.5, iw - 1, ih - 1); }
   // ---- la brume épaisse ----
   let F = q.fog && typeof q.fog === 'object' && q.fog.b ? isleFogBits(q.fog) : null, FR = q.fog && Array.isArray(q.fog.r) ? q.fog.r : R;
   if (!F) {   // pas de carte de découverte : la zone de départ seulement
@@ -4738,7 +4750,9 @@ function islePhoto(cv, im, q, seed) {
   const PJ = iso ? P.proj : null, pn = PJ ? PJ.n | 0 : 0;
   const toPx = (u, v) => {
     if (PJ && pn > 1) { const c = Math.min(pn - 1, Math.max(0, Math.round(u * (pn - 1)))), rr = Math.min(pn - 1, Math.max(0, Math.round(v * (pn - 1)))), o = (rr * pn + c) * 3, a = PJ.p[o], bb = PJ.p[o + 1], rd = PJ.p[o + 2]; if (a == null || a < 0) return null; return [ix + a * iw, iy + bb * ih, (rd || 0.03) * iw]; }
-    const x = FR[0] + u * FR[2], z = FR[1] + v * FR[3], uu = (x - R[0]) / R[2], vv = (z - R[1]) / R[3]; return [ix + uu * iw, iy + (1 - vv) * ih, iw / C * 0.8];
+    const x = FR[0] + u * FR[2], z = FR[1] + v * FR[3], uu = (x - R[0]) / R[2], vv = (z - R[1]) / R[3];
+    const dx = uu - 0.5, dy = 0.5 - vv; if (Math.hypot(dx, dy) > isleRim(Math.atan2(dy, dx)) * 0.94) return null;   // la mer : pas de brume
+    return [ix + uu * iw, iy + (1 - vv) * ih, iw / C * 0.8];
   };
   const C = Math.max(14, Math.min(36, Math.round(iw / 14)));   // grille grossière des nuages
   const seen = (ci, ri) => { let on = 0, tot = 0; const n = F.n, c0 = Math.floor(ci / C * n), c1 = Math.floor((ci + 1) / C * n), r0 = Math.floor(ri / C * n), r1 = Math.floor((ri + 1) / C * n); for (let rr = r0; rr < Math.max(r1, r0 + 1); rr++) for (let cc = c0; cc < Math.max(c1, c0 + 1); cc++) { tot++; on += F.bits[rr * n + cc]; } return on / Math.max(1, tot); };
