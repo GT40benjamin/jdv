@@ -2,9 +2,16 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre (une version de Pégase).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[bolides] ## 🏁 Bolides RC : à fond, sur trois circuits tout neufs
+[bolides] Plus aucun ralentissement automatique : joystick poussé à fond = pleine vitesse, même dans les virages, c'est toi qui décides
+[bolides] Trois circuits redessinés : longues lignes droites, grandes courbes rapides, esses, une vraie épingle au Parking
+[bolides] Vibreurs rouge et blanc dans les virages, pneus, haies, blocs de béton, cordes de plage le long de la piste
+[bolides] Un tremplin sur chaque circuit : la voiture décolle, plane et retombe en soulevant la poussière
+[bolides] Le Jardin plein de pots de fleurs, d'arrosoirs et de nains ; le Parking avec ses places peintes, palettes et piles de pneus ; la Plage au bord de la mer, avec châteaux de sable, seaux, serviettes et crabes
+[bolides] À pleine vitesse, la voiture glisse un peu dans les virages serrés et se rattrape toute seule ; contre les bordures, elle rebondit doucement et glisse le long
+[bolides] Les bolides du jeu roulent vraiment vite : l'IA « extrême » prend chaque virage à fond et dérape partout
 [bolides] ## 🏎️ Bolides RC : une conduite toute neuve
 [bolides] Pose le doigt de ton côté et pousse vers où tu veux aller : ta voiture y va et accélère toute seule
-[bolides] Avant un virage serré, la voiture ralentit d'elle-même juste ce qu'il faut : un tour propre dès la première course
 [bolides] Le bouton DÉRAPE dans les virages charge un mini-turbo : étincelles bleues, puis orange pour un super turbo
 [bolides] Un anneau à ta couleur sous ta voiture et une flèche qui montre où tu l'envoies
 [bolides] À la manette : le stick donne la direction, A pour déraper ; au clavier : les flèches, et Espace pour déraper
