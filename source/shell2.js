@@ -4591,7 +4591,12 @@ function isleArt(cv, seed, players, q) {
     const ok = (im) => { if (cv.isConnected) islePhoto(cv, im, q, seed); };
     for (const u of tries) { const im0 = ISLE_PHOTOS.get(u); if (im0 && im0.complete && im0.naturalWidth) { ok(im0); return; } }
     const next = (i) => {
-      if (i >= tries.length) { ISLE_PHOTO_BAD.add(u0); if (cv.isConnected) isleArt(cv, seed, players, q); return; }
+      if (i >= tries.length) {
+        ISLE_PHOTO_BAD.add(u0);
+        // le rendu 3D ne vient pas : la carte plate (r_photo.plate), sinon le dessin
+        if (q.photo.plate && !ISLE_PHOTO_BAD.has(q.photo.plate)) q.photo = { url: q.photo.plate, r: q.photo.r };
+        if (cv.isConnected) isleArt(cv, seed, players, q); return;
+      }
       const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
       im.onload = () => { ISLE_PHOTOS.set(tries[i], im); ok(im); };
       im.onerror = () => next(i + 1);
@@ -4809,26 +4814,27 @@ function isleNoise(x, y) {
 function isleFbm3(x, y) { return isleNoise(x * 0.866 - y * 0.5, x * 0.5 + y * 0.866) * 0.57 + isleNoise((x * 0.34 + y * 0.94) * 2.03 + 5.2, (-x * 0.94 + y * 0.34) * 2.03 + 1.3) * 0.29 + isleNoise((x * 0.98 - y * 0.2) * 4.1 + 9.1, (x * 0.2 + y * 0.98) * 4.1 + 3.7) * 0.14; }
 function isleFbm(x, y) { let s = 0, amp = 0.5, f = 1; for (let o = 0; o < 5; o++) { const c = Math.cos(o * 0.9), sn = Math.sin(o * 0.9); s += amp * isleNoise((x * c - y * sn) * f + o * 3.1, (x * sn + y * c) * f + o * 1.7); f *= 2.03; amp *= 0.5; } return s / 0.97; }
 // la côte du rendu 3D : liste en ligne ([[x, y], …] ou { p: […] }) ou adresse d'un .json (gardé en mémoire) ; null tant qu'elle manque
-const ISLE_COTE = new Map();
-function isleCoastNow(P, again) {
-  const c = P.cote; if (!c) return null;
-  const pts = (v) => { const a = Array.isArray(v) ? v : v && Array.isArray(v.p) ? v.p : null; return a && a.length > 8 && a.every(q => Array.isArray(q) && q.length >= 2 && isFinite(q[0]) && isFinite(q[1])) ? a : null; };
-  if (typeof c !== 'string') return pts(c);
-  if (!/^https:\/\//.test(c)) return null;
-  const got = ISLE_COTE.get(c); if (got && got !== 'wait') return got === 'bad' ? null : got;
-  if (!got) { ISLE_COTE.set(c, 'wait'); fetch(c).then(r => (r.ok ? r.json() : null)).catch(() => null).then((j) => { ISLE_COTE.set(c, pts(j) || 'bad'); if (pts(j)) again(); }); }
+const ISLE_JSON = new Map();
+function isleJsonNow(v, check, again) {   // objet en ligne, ou adresse https d'un .json (chargé une fois, puis on redessine)
+  if (!v) return null;
+  if (typeof v !== 'string') return check(v);
+  if (!/^https:\/\//.test(v)) return null;
+  const got = ISLE_JSON.get(v); if (got && got !== 'wait') return got === 'bad' ? null : check(got);
+  if (!got) { ISLE_JSON.set(v, 'wait'); fetch(v).then(r => (r.ok ? r.json() : null)).catch(() => null).then((j) => { ISLE_JSON.set(v, j && check(j) ? j : 'bad'); if (j && check(j)) again(); }); }
   return null;
 }
+const isleCoastOk = (v) => { const a = Array.isArray(v) ? v : v && Array.isArray(v.p) ? v.p : null; return a && a.length > 8 && a.every(q => Array.isArray(q) && q.length >= 2 && isFinite(q[0]) && isFinite(q[1])) ? a : null; };
+const isleProjOk = (v) => (v && Array.isArray(v.p) && (v.n | 0) > 1 && v.p.length >= (v.n | 0) * (v.n | 0) * 3 ? v : null);
 function islePhoto(cv, im, q, seed) {
   const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(w * k); cv.height = Math.round(h * k);
   const S = Math.min(w / 300, h / 170);
   const off = (cw, ch, kk) => { const c = document.createElement('canvas'); kk = kk == null ? k : kk; c.width = Math.max(1, Math.round((cw || w) * kk)); c.height = Math.max(1, Math.round((ch || h) * kk)); const x = c.getContext('2d'); x.scale(kk, kk); return [c, x]; };
   const rad = (x, x0, y0, r0, x1, y1, r1, st) => { const g = x.createRadialGradient(x0, y0, r0, x1, y1, r1); for (let i = 0; i < st.length; i += 2) g.addColorStop(st[i], st[i + 1]); return g; };
-  const P = q.photo, iso = !!(P.proj && P.proj.p), R = Array.isArray(P.r) && P.r.length === 4 ? P.r : [0, 0, 1800, 1800];
+  const P = q.photo, again = () => { if (cv.isConnected) islePhoto(cv, im, q, seed); }, PJx = P.proj ? isleJsonNow(P.proj, isleProjOk, again) : null, iso = !!P.proj, R = Array.isArray(P.r) && P.r.length === 4 ? P.r : [0, 0, 1800, 1800];   // proj : objet ou adresse
   const W = im.naturalWidth, H = im.naturalHeight, m = iso ? 0.92 : 0.9, sc = Math.min(w * m / W, h * m / H), iw = W * sc, ih = H * sc, ix = (w - iw) / 2, iy = (h - ih) / 2 - (iso ? h * 0.02 : 0);
   const ccx = ix + iw / 2, ccy = iy + ih / 2;
-  const CP = iso ? isleCoastNow(P, () => { if (cv.isConnected) islePhoto(cv, im, q, seed); }) : null;
+  const CP = iso ? isleJsonNow(P.cote, isleCoastOk, again) : null;
   // la vraie côte en pixels, son centre, et un tracé décalé vers le large de d pixels (vu de biais : moins en hauteur)
   const cpx = CP ? CP.map(([a, c]) => [ix + a * iw, iy + c * ih]) : null;
   const cg = cpx ? cpx.reduce((A, p2) => [A[0] + p2[0] / cpx.length, A[1] + p2[1] / cpx.length], [0, 0]) : [ccx, ccy];
@@ -4876,8 +4882,12 @@ function islePhoto(cv, im, q, seed) {
     for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) { const x = R[0] + (col + 0.5) / n * R[2], z = R[1] + (row + 0.5) / n * R[3]; if ((x - ISLE_START[0]) ** 2 + (z - ISLE_START[1]) ** 2 < ISLE_START[2] ** 2) bits[row * n + col] = 1; }
     F = { n, bits }; FR = R;
   }
-  const PJ = iso ? P.proj : null, pn = PJ ? PJ.n | 0 : 0, C = 40;
+  const PJ = iso ? PJx : null, pn = PJ ? PJ.n | 0 : 0, C = 40;
+  // hauteur du terrain d'une case (0 à 1, proj.h) ; les 15 % les plus hauts PERCENT la mer de nuages
+  const hOf = (u, v) => { if (!PJ || !Array.isArray(PJ.h)) return -1; const c = Math.min(pn - 1, Math.max(0, Math.round(u * (pn - 1)))), rr = Math.min(pn - 1, Math.max(0, Math.round(v * (pn - 1)))); return PJ.h[rr * pn + c]; };
+  const hPeak = PJ && Array.isArray(PJ.h) ? (() => { const v = PJ.h.filter(x => x >= 0).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length * 0.85)] : 2; })() : 2;
   const toPx = (u, v) => {
+    if (iso && !PJ) return null;
     if (PJ && pn > 1) { const c = Math.min(pn - 1, Math.max(0, Math.round(u * (pn - 1)))), rr = Math.min(pn - 1, Math.max(0, Math.round(v * (pn - 1)))), o = (rr * pn + c) * 3, a = PJ.p[o], bb = PJ.p[o + 1], rd = PJ.p[o + 2]; if (a == null || a < 0) return null; return [ix + a * iw, iy + bb * ih, Math.max((rd || 0.03) * iw, iw / C * 0.9)]; }
     const x = FR[0] + u * FR[2], z = FR[1] + v * FR[3], uu = (x - R[0]) / R[2], vv = (z - R[1]) / R[3];
     const dx = uu - 0.5, dy = 0.5 - vv; if (Math.hypot(dx, dy) > isleRim(Math.atan2(dy, dx)) * 0.95) return null;   // la brume reste sur la terre (plage, lagon et écume visibles ; bourrelets qui débordent par endroits)
@@ -4894,7 +4904,19 @@ function islePhoto(cv, im, q, seed) {
   mx.globalCompositeOperation = 'source-over';
   // quelques petits nuages détachés au-dessus de l'eau, autour de l'île (carte plate)
   // la brume reste sur la terre : le masque est coupé à la vraie côte (un peu au-delà ; le flou fait de petits débords)
-  if (iso && cpx) { mx.save(); mx.globalCompositeOperation = 'destination-in'; mx.setTransform(1 / DS, 0, 0, 1 / DS, 0, 0); offPath(mx, 3 * S); mx.fillStyle = '#fff'; mx.fill(); mx.restore(); }
+  if (iso && cpx) { mx.save(); mx.globalCompositeOperation = 'destination-in'; mx.setTransform(1 / DS, 0, 0, 1 / DS, 0, 0); offPath(mx, -2 * S); mx.fillStyle = '#fff'; mx.fill(); mx.restore(); }
+  if (iso && cpx) {
+    // le bord AVANT (vers le spectateur) : des bourrelets ronds au-dessus de la tranche de terre, seulement là où il y a de la brume
+    const covAt = (X, Y) => { try { return mx.getImageData(Math.round(X), Math.round(Y), 1, 1).data[3]; } catch (e) { return 0; } };
+    let sd = ((seed >>> 0) % 7919) + 5; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; mx.fillStyle = '#fff';
+    for (let i = 0; i < cpx.length; i += 9) { const p2 = cpx[i]; if (p2[1] < cg[1] + ih * 0.05) continue; const ins = [p2[0] + (cg[0] - p2[0]) * 0.05, p2[1] + (cg[1] - p2[1]) * 0.08]; if (covAt(ins[0] / DS, ins[1] / DS) < 128) continue; const rr = (7 + r() * 6) * S; mx.beginPath(); mx.ellipse(ins[0] / DS, (ins[1] - rr * 0.15) / DS, rr * 1.15 / DS, rr * 0.8 / DS, 0, 0, 7); mx.fill(); }
+  }
+  if (iso && PJ && hPeak < 2) {
+    // les SOMMETS (falaises, plateaux) dépassent de la mer de nuages ; le flou fait une collerette de brume à leur pied
+    mx.globalCompositeOperation = 'destination-out';
+    for (let ri = 0; ri < C; ri++) for (let ci = 0; ci < C; ci++) { const u = (ci + 0.5) / C, v = (ri + 0.5) / C, hh = hOf(u, v); if (hh < hPeak) continue; const p = toPx(u, v); if (!p) continue; mx.beginPath(); mx.arc(p[0] / DS, p[1] / DS, p[2] * (0.45 + (hh - hPeak) * 1.2) / DS, 0, 7); mx.fill(); }
+    mx.globalCompositeOperation = 'source-over';
+  }
   if (iso && cpx) { let sd = ((seed >>> 0) % 9973) + 11; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; mx.fillStyle = 'rgba(255,255,255,.85)'; for (let i = 0; i < 7; i++) { const p2 = cpx[Math.floor(r() * cpx.length)], f2 = 1.24 + r() * 0.16, rr = iw * (0.02 + r() * 0.025); mx.beginPath(); mx.ellipse((cg[0] + (p2[0] - cg[0]) * f2) / DS, (cg[1] + (p2[1] - cg[1]) * f2) / DS, rr * 1.6 / DS, rr / DS, 0, 0, 7); mx.fill(); } }
   if (!iso) { let sd = ((seed >>> 0) % 9973) + 11; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; mx.fillStyle = 'rgba(255,255,255,.85)'; for (let i = 0; i < 7; i++) { const a = r() * 6.2832, d = isleRim(a) * (1.2 + r() * 0.22), rr = iw * (0.025 + r() * 0.03); mx.beginPath(); mx.ellipse((ccx + Math.cos(a) * d * iw) / DS, (ccy + Math.sin(a) * d * ih) / DS, rr * 1.6 / DS, rr / DS, 0, 0, 7); mx.fill(); } }
   const [cvC, cx2] = off(cw, chh, 1); cx2.filter = 'blur(' + Math.max(1.5, 6 * S / DS) + 'px)'; cx2.drawImage(mC, 0, 0); cx2.filter = 'none';
@@ -4902,12 +4924,12 @@ function islePhoto(cv, im, q, seed) {
   const [nubC, nx] = off(cw, chh, 1), img = nx.createImageData(cw, chh), dens = new Float32Array(cw * chh), sd0 = ((seed >>> 0) % 997) * 0.37;
   const NS = 0.034 * DS / Math.max(0.6, S);   // échelle des cumulus (plus gros sur une grande carte)
   const hgt = new Float32Array(cw * chh), fb = new Float32Array(cw * chh);
-  const LX = -0.78, LY = -0.28, LZ = 0.56;   // le soleil couchant : à l'ouest (gauche), un peu au nord (haut), bas sur l'horizon
+  const LX = iso ? -0.55 : -0.78, LY = iso ? -0.6 : -0.28, LZ = iso ? 0.58 : 0.56;   // vue de biais : le couchant éclaire de l'arrière-gauche, les ombres tombent vers l'avant   // le soleil couchant : à l'ouest (gauche), un peu au nord (haut), bas sur l'horizon
   const clouds = (t) => {
     const dx = t * 0.016, dy = t * 0.004, wv = Math.sin(t * 0.07) * 0.5;
     for (let y = 0, i = 0; y < chh; y++) for (let x = 0; x < cw; x++, i++) {
       const c = cov[i]; if (c < 0.01) { dens[i] = -1; hgt[i] = 0; fb[i] = 0; continue; }
-      const X = x * NS + sd0 + dx, Y = y * NS + dy, warp = (isleNoise(X * 0.45 + wv, Y * 0.45 - wv) - 0.5) * 1.1;   // un voile qui se déforme
+      const pf = iso ? 0.72 + 0.62 * (1 - y / chh) : 1, X = x * NS * pf + sd0 + dx, Y = y * NS * pf / (iso ? 0.7 : 1) + dy, warp = (isleNoise(X * 0.45 + wv, Y * 0.45 - wv) - 0.5) * 1.1;   // un voile qui se déforme
       const n = isleFbm(X + warp, Y - warp * 0.7), tower = Math.pow(isleNoise(X * 0.32 + 7.3, Y * 0.32 + 2.1), 3.2);   // de rares tours de cumulus
       fb[i] = n;
       dens[i] = c * 1.45 - 0.55 + (Math.pow(n, 1.3) - 0.4) * 1.25 + tower * 0.4;
@@ -4918,7 +4940,7 @@ function islePhoto(cv, im, q, seed) {
       const v = dens[i], o = i * 4;
       if (v <= 0) {
         // hors des nuages : leur ombre douce (le soleil est à l'ouest : l'ombre tombe vers l'est) et des lambeaux de brume à la lisière
-        let sh = 0; for (let k = 1; k <= 7; k++) { const xx = x - k, yy = y - Math.round(k * 0.6); if (xx >= 0 && yy >= 0 && dens[yy * cw + xx] > 0.05) { sh = 0.46 * (1 - (k - 1) / 8); break; } }   // ombre nette sous les bourrelets
+        let sh = 0; for (let k = 1; k <= 7; k++) { const xx = Math.round(x - k * (iso ? 0.3 : 1)), yy = y - Math.round(k * (iso ? 1 : 0.6)); if (xx >= 0 && yy >= 0 && dens[yy * cw + xx] > 0.05) { sh = 0.46 * (1 - (k - 1) / 8); break; } }   // ombre nette sous les bourrelets
         const c = cov[i] > 0 ? cov[i] : 0, mist = c > 0.02 ? Math.max(0, Math.min(1, (fb[i] - 0.42) * 3)) * Math.min(1, c * 3) * 0.42 : 0;
         if (!sh && !mist) { d[o + 3] = 0; continue; }
         const a = mist + sh * (1 - mist), mw = a ? mist / a : 0;
@@ -4930,7 +4952,7 @@ function islePhoto(cv, im, q, seed) {
       let lit = Math.max(0, nxv * LX + nyv * LY + nz * LZ);
       // ombre portée : une tour plus haute entre ce point et le soleil
       let shade = 1; const h0 = hgt[i];   // (ombre portée plus marquée)
-      for (let k = 1; k <= 9; k++) { const xx = x - k, yy = Math.round(y - k * 0.36); if (xx < 0 || yy < 0) break; if (hgt[yy * cw + xx] > h0 + k * 0.07) { shade = 0.42; break; } }
+      for (let k = 1; k <= 9; k++) { const xx = Math.round(x - k * (iso ? 0.5 : 1)), yy = Math.round(y - k * (iso ? 0.9 : 0.36)); if (xx < 0 || yy < 0) break; if (hgt[yy * cw + xx] > h0 + k * 0.07) { shade = 0.42; break; } }
       lit = Math.min(1, Math.max(0, (0.04 + lit * 1.12) * shade + (h0 - 0.9) * 0.2));   // contraste marqué sans aplats
       const warm = Math.max(0, lit - 0.66) / 0.34;
       d[o] = 122 + (255 - 122) * lit; d[o + 1] = 116 + (249 - 116) * lit - 14 * warm; d[o + 2] = 182 + (250 - 182) * lit - 48 * warm; d[o + 3] = 255 * aa;
@@ -4964,7 +4986,7 @@ const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 
 let islTickets = store.get('jdw.iletickets', {}) || {};
 // r_fog : la carte de découverte du joueur (membre connecté seulement, sinon null → brume décorative) ; objet ou texte JSON
 // la vraie photo de l'île vue de dessus (rendue par le jeu, même rectangle que r_fog) : texte (adresse https) ou { url } ; le dessin sinon
-const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null, proj: v && v.proj && Array.isArray(v.proj.p) && (v.proj.n | 0) > 1 ? v.proj : null, cote: v && v.cote ? v.cote : null } : null; };   // cote : la côte du rendu 3D (liste ou adresse .json)   // proj : rendu 3D à fond transparent (île flottante)
+const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null, proj: v && v.proj && (typeof v.proj === 'string' || isleProjOk(v.proj)) ? v.proj : null, cote: v && v.cote ? v.cote : null, plate: v && typeof v.plate === 'string' && /^https:\/\//.test(v.plate) ? v.plate : null } : null; };   // cote : la côte du rendu 3D (liste ou adresse .json)   // proj : rendu 3D à fond transparent (île flottante)
 const islFog = (v) => { try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && typeof o === 'object' && typeof o.b === 'string' && (o.n | 0) > 0 ? o : null; } catch (e) { return null; } };
 async function islesData() {
   if (ISL.srv !== false) {
