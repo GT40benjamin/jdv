@@ -19,11 +19,11 @@ const TILE_NEWS = {
   'coop-boum': { kind: 'new', at: '2026-10-15 06:00' },   // mode Coop : Boum 2 contre 2 (1.14)
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
-  toupies: { kind: 'new', at: '2026-10-24 01:03' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
-  bolides: { kind: 'new', at: '2026-10-24 11:42' },   // Bolides RC (duel course de voitures, en essai derrière la porte labo ; heure = celle de la publication)
-  neon: { kind: 'new', at: '2026-10-24 10:17' },   // Néon Rush (Classique, jeu de rythme, en essai derrière la porte labo ; heure = celle de la publication)
-  smoothie: { kind: 'new', at: '2026-10-24 06:37' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
-  tirsaubut: { kind: 'new', at: '2026-10-24 06:08' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
+  toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
+  bolides: { kind: 'new', at: '2026-10-24 14:13' },   // Bolides RC (duel course de voitures, en essai derrière la porte labo ; heure = celle de la publication)
+  neon: { kind: 'new', at: '2026-10-24 14:13' },   // Néon Rush (Classique, jeu de rythme, en essai derrière la porte labo ; heure = celle de la publication)
+  smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
+  tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
   pegase: { kind: 'maj', at: '2026-10-22 08:11' }   // Pégase 0.9.2 : appels entre copains, maisons des copains, réveil chez soi (1.25.2 ; heure = celle de la publication)
 };
@@ -31,7 +31,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides']);   // en essai : Turbo Toupies et Tirs au But (duels), Smoothie Samouraï et Néon Rush (Classique) ; avant : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12
+const LABO = new Set(['iles']);   // en essai : Pégase en îles (onglet à gauche, page des îles) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -44,7 +44,7 @@ const LABO_ON = (() => {
   return new Set(on);
 })();
 // appareil en mode test (au moins un jeu en essai ouvert) : il voit TOUS les jeux en essai, même ceux ajoutés depuis
-const LABO_TEST = [...LABO].some(id => LABO_ON.has(id));
+const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides'].includes(id));   // les appareils déjà en test le restent
 const laboOk = id => !LABO.has(id) || LABO_TEST;
 const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && laboOk(g.id));
 // mode essai (labo) actif sur cet appareil : le titre le dit (« Borne d'arcade test » au lieu de « entre amis »)
