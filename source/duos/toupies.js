@@ -166,6 +166,7 @@ window.JDW_DUOS.toupies = {
   layout: 'shared',
   ai: true,
   net: true,
+  netAnywhere: true,          // en ligne : on pilote SA toupie en touchant n'importe où (la borne ne bloque pas la moitié du haut)
   // manette (CONTRACT.md « Ajout 10 »)
   pad: { help: [['ls/dpad', 'Piloter ta toupie (rail des bords, bouclier au centre) · choisir'], ['a', 'Valider · lancer automatique']] },
   preview,

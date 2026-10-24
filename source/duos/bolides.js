@@ -128,6 +128,7 @@ window.JDW_DUOS.bolides = {
   layout: 'shared',
   ai: true,
   net: true,
+  netAnywhere: true,          // en ligne : on touche partout (chacun ne pilote que SA voiture)
   // manette (CONTRACT.md « Ajout 10 ») : le stick = la direction où va la voiture
   pad: { help: [['ls/dpad', 'Tourner'], ['a', 'Gaz'], ['b', 'Frein · marche arrière']] },
   preview,

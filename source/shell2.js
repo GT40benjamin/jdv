@@ -6252,6 +6252,7 @@ function netGuard(e) {
   // tour par tour : en mode données, le jeu gère lui-même qui a la main (on peut toujours bouger sa caméra) ; en mode vidéo, la bibliothèque bloque
   if (DUO.d.layout === 'landscape') { if (!NET.data && NET.role === 'host' && NET.turn === 1) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); } return; }
   if (DUO.d.local === false) return;   // (ex. ping-pong) chacun a tout l'écran (sa vue depuis sa raquette) : le jeu gère lui-même ses doigts
+  if (DUO.d.netAnywhere && NET.data) return;   // (toupies, bolides) en mode données, chacun ne pilote que SON objet : on peut toucher partout
   if (e.type === 'pointerdown') { const r = DUO.root.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) NET.blocked.add(e.pointerId); }
   if (NET.blocked.has(e.pointerId)) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); if (e.type === 'pointerup' || e.type === 'pointercancel') NET.blocked.delete(e.pointerId); }
 }
