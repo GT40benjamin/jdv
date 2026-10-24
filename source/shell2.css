@@ -625,6 +625,15 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .pp-msg{margin:0;color:var(--gold);font:600 12.5px/1.35 var(--body)}
 .pp-bans{display:flex;flex-wrap:wrap;gap:6px}
 .pp-chip{padding:6px 10px;border-radius:10px;border:0;background:var(--card);color:var(--ink);font:600 12.5px var(--body);cursor:pointer}
+.pi-panel select{min-height:42px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--night);color:var(--ink);font:600 14px var(--body)}
+.pi-panel input[type=email]{min-height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--night);color:var(--ink);font:600 15px var(--body)}
+.pp-small{margin:0;color:var(--muted);font:600 11.5px/1.35 var(--body)}
+.pp-link{border:0;background:none;color:#3ad6c8;font:700 13px var(--body);text-decoration:underline;cursor:pointer;justify-self:start;padding:0}
+.pp-req{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.pp-req span{flex:1;min-width:120px}
+.pp-yes{background:color-mix(in srgb,var(--leaf) 30%,var(--card))}
+.pp-reqs{display:grid;gap:6px;color:var(--muted)}
+.pi-req{padding:8px 10px;border-radius:10px;background:var(--steel);font:700 13px/1.3 var(--body)}
+.pi-req.acceptee{background:color-mix(in srgb,var(--leaf) 28%,var(--steel))}.pi-req.refusee{background:color-mix(in srgb,var(--alarm) 25%,var(--steel))}
 .pg-new{max-width:520px;width:100%;justify-self:center}
 .pg-note{margin:0;text-align:center;font:600 12.5px/1.4 var(--body);color:var(--muted)}
 .mb-ic{display:grid;place-items:center;width:52px;height:32px;border-radius:16px;font-size:21px;line-height:1;
