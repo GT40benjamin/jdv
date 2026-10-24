@@ -225,3 +225,10 @@ harnais : `if (api.pad)`). Le jeu ne lit JAMAIS `navigator.getGamepads()` lui-m�
   se dose. Le clavier, la souris et le toucher marchent toujours en même temps.
 - Harnais : `source/test/*.html` chargent `../manette.js` et donnent `api.pad`. Essais sans vraie manette :
   `~/jdv-tools/duotest/manette/tests/vpad.js` (manette virtuelle Playwright : connect, press, stick, trig).
+
+## Ajout 11 : jeu de rythme (api.rhythm)
+Pour un jeu calé sur SA musique (Néon Rush) : `await api.rhythm.load(id)` charge `assets/music/<id>.mp3` (rend sa durée, 0 s'il ne vient pas) ;
+`await api.rhythm.play(id, at)` coupe la musique de la borne et joue le morceau depuis `at` secondes, une seule fois (rend vrai si le son joue :
+faux = musique coupée, morceau absent ou son bloqué faute de toucher, le jeu garde alors sa propre horloge) ; `api.rhythm.time()` = le temps du
+morceau en secondes (latence de sortie déduite), null si rien ne joue ; `api.rhythm.stop(fondu)`. La borne arrête le morceau quand on quitte.
+Nommer les morceaux autrement que l'id du jeu (ex. `neonrush-1` pour `neon`) pour que la borne ne les joue pas d'elle-même.
