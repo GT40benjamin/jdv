@@ -4500,9 +4500,10 @@ setInterval(() => {
   const now = Date.now(), d = v.duration, t = v.currentTime;
   if (!PGD.shownAt || PGD.shownId !== v.dataset.id + '|' + PGD.act) { PGD.shownAt = now; PGD.shownId = v.dataset.id + '|' + PGD.act; PGD.lastT = t; PGD.stuck = 0; return; }
   if (v.paused && !v.ended) v.play().catch(() => {});
-  PGD.stuck = Math.abs(t - PGD.lastT) < 0.05 ? PGD.stuck + 1 : 0; PGD.lastT = t;
+  // figée = elle a déjà joué, elle a de quoi jouer (readyState ≥ 3) et le temps n'avance plus ; un chargement lent ne compte pas
+  PGD.stuck = v.classList.contains('live') && v.readyState >= 3 && !v.seeking && Math.abs(t - PGD.lastT) < 0.05 ? PGD.stuck + 1 : 0; PGD.lastT = t;
   const late = d && isFinite(d) ? t > d - 2.05 : false;
-  if (v.ended || (late && !v.dataset.done) || now - PGD.shownAt > 75000 || PGD.stuck >= 4) { v.dataset.done = '1'; PGD.shownAt = 0; pgDecorNext(); }
+  if (v.ended || (late && !v.dataset.done) || now - PGD.shownAt > 75000 || PGD.stuck >= 5) { v.dataset.done = '1'; PGD.shownAt = 0; pgDecorNext(); }
 }, 2000);
 function pgDecor(on) {
   const v = pgVid(0), v2 = pgVid(1); if (!v || !v2) return false;
