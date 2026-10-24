@@ -10,16 +10,11 @@
 [bolides] À la manette : le stick donne la direction, A pour déraper ; au clavier : les flèches, et Espace pour déraper
 [bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur
 [bolides] En ligne : plus de voiture qui saute au début d'une nouvelle manche
-[neon] ## 🎵 Néon Rush : tout beau, tout en rythme
-[neon] Six mondes entièrement redessinés, chacun avec son décor en plusieurs plans qui défilent à des vitesses différentes : Néon City, Coucher Synthwave, Cyber Océan, Grotte de Cristal, Cœur de Lave et Galaxie
-[neon] Tout bat au rythme de la musique : le sol, les blocs, les piques, les portails, ton cube et sa traînée, et toutes les lumières du décor
-[neon] Néon City : les fenêtres des tours s'allument au rythme, enseignes au néon, projecteurs qui balaient le ciel sur les basses, pluie fine et reflets des néons sur le sol mouillé
-[neon] Coucher Synthwave : grand soleil rayé, montagnes en fil de lumière, palmiers, et une vague de lumière qui court sur la grille à chaque temps
-[neon] Cyber Océan : sous l'eau, rayons de lumière qui dansent, ville engloutie, récif qui scintille, méduses qui se contractent sur la musique, algues et bulles
-[neon] Grotte de Cristal : des grappes de cristaux qui résonnent, violettes puis bleues, d'un temps à l'autre
-[neon] Cœur de Lave : les volcans grondent sur les basses et crachent de la lave sur les gros « boum », braises qui montent et mer de lave sous le sol
-[neon] Galaxie : nébuleuses, galaxie spirale, planète à anneaux qui s'illumine, étoiles filantes
-[neon] Sur les grands moments de la musique (les « drops ») : onde de choc, éclair de lumière, et la caméra qui respire avec le son
-[neon] Quand le son joue, le décor écoute vraiment la musique : les graves, les médiums et les aigus
-[neon] Nouveau bouton ✦ en haut à droite : « effets réduits » enlève les éclairs et les secousses, pour le confort des yeux (retenu sur l'appareil)
-[neon] Les obstacles restent toujours bien visibles, et les niveaux sont exactement les mêmes
+[neon] ## 🎵 Néon Rush : le jeu comme avant, avec les nouveaux décors
+[neon] Le sol, les murs, les plafonds, les blocs, les piques, les portails et ton cube sont redevenus exactement comme avant : plus rien ne bat pendant que tu joues
+[neon] Plus de voile sombre au ras du sol ni de murs noirs au-dessus de toi : tout est revenu comme avant
+[neon] Plus de zoom, d'éclair ni d'onde de choc sur les grands moments de la musique
+[neon] Les six nouveaux décors restent (Néon City, Coucher Synthwave, Cyber Océan, Grotte de Cristal, Cœur de Lave, Galaxie), mais au calme
+[neon] De temps en temps, un seul objet du décor réagit à la musique : une enseigne qui s'allume, une méduse qui pulse, un cristal qui brille, un volcan qui crache, le soleil qui s'embrase ou une étoile filante
+[neon] Le bouton ✦ « effets réduits » enlève les éclairs, les secousses et ces petites réactions du décor
+[neon] Les niveaux n'ont pas changé

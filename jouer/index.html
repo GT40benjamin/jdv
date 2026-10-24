@@ -5922,8 +5922,8 @@ window.JDW_GAMES.pleingaz = {
   // LES MONDES (1.35 : « extrêmement beau, des éléments qui PULSENT sur la musique »)
   // Chaque monde = un ciel + des calques qui défilent en parallaxe, peints UNE fois (en cache), des calques de LUMIÈRE (additifs) dont
   // l'éclat suit la musique, et quelques éléments vivants (pluie, projecteurs, méduses, braises, étoiles filantes…).
-  // M = la musique à cet instant (voir d-game, musicAt) : beat (temps), even (temps pair), bar (1er temps de la mesure), kick (« boum »),
-  // snare (« tuch »), bass / mid / high (analyse en direct, sinon repérée), energy (force du passage), drop, rise (montée), pal (palette).
+  // 1.35.6 : le décor est CALME (d-game lui passe une musique « au repos ») ; de temps en temps, UN objet réagit à un temps fort ou à un
+  // drop : d-game appelle Wd.fire({ drop, i }) au plus toutes les 6 à 11 s, et l'objet s'allume puis s'éteint doucement (evEnv).
   // ===========================================================================
   const hashStr = (s) => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; };
   const sat = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -5982,6 +5982,9 @@ window.JDW_GAMES.pleingaz = {
   }
 
   const WORLDS = {};
+  // l'éclat d'un objet qui réagit : monte en 0,12 s, redescend en ~1,5 s
+  const evEnv = (ev) => (!ev ? 0 : ev.age < 0.12 ? ev.age / 0.12 : Math.exp(-(ev.age - 0.12) * 2.2));
+  const evAge = (Wd, S) => { if (Wd.ev) { Wd.ev.age += S.dt; if (Wd.ev.age > 2.5) Wd.ev = null; } return evEnv(Wd.ev); };
   // ---------------------------------------------------------------------------
   // NÉON CITY : ciel de nuit, grand soleil rayé derrière les tours, tours aux fenêtres qui s'allument une fois sur deux au rythme,
   // enseignes, projecteurs qui balaient le ciel sur les basses, réverbères, pluie, sol mouillé qui reflète les néons
@@ -6010,7 +6013,9 @@ window.JDW_GAMES.pleingaz = {
     const tw = [], pitch = Math.max(5, m * 0.017);
     for (let px = r() * 10; px < W - 6;) { const bw = W * (0.04 + r() * 0.042), h = GY * (0.2 + Math.pow(r(), 1.25) * 0.5); tw.push({ x: px, w: bw, h, top: Math.floor(r() * 4), c: r() < 0.5 ? T.acc : T.acc2, sign: r() < 0.5 ? pick(r, ['NÉON', 'BAR', 'CLUB', 'DJ', 'RUSH', '24H', 'HÔTEL', 'DISCO']) : null, sc: pick(r, ['#ff4ad8', '#3af0ff', '#ffd34d', '#7aff9a']), seed: Math.floor(r() * 1e6) }); px += bw + W * (0.008 + r() * 0.045); }
     const towW = (fn) => { for (const b of tw) WRAP(W, b.x + b.w / 2, b.w / 2 + 4, (c) => fn(b, c - b.w / 2)); };
-    Wd.blinks = [];
+    Wd.blinks = []; Wd.signs = [];
+    for (const b of tw) if (b.sign) { const sw = Math.min(b.w * 0.34, 15), sh = sw * 1.05 * b.sign.length + sw * 0.4, sx = b.x + b.w * 0.08, sy = GY - b.h + b.h * 0.12; if (sy + sh < GY - 10) Wd.signs.push({ x: sx, y: sy, w: sw, h: sh, c: b.sc }); }
+    Wd.fire = (e) => { if (Wd.signs.length) Wd.ev = { age: 0, i: e.i % Wd.signs.length }; };
     for (const b of tw) if (b.top >= 2) Wd.blinks.push([b.x + b.w * 0.5, GY - b.h - (b.top === 2 ? b.h * 0.12 + 14 : 22), b.c]);
     const topY = GY * 0.1;
     mkLayer(Wd, topY, GY + 1, 0.1, (x) => {
@@ -6059,6 +6064,8 @@ window.JDW_GAMES.pleingaz = {
     Bl.after = (x, S, o) => {   // après les tours : les feux des antennes (rouges, sur le 1er temps)
       const a = S.a * (0.35 + 0.65 * S.M.bar); x.globalCompositeOperation = 'lighter';
       for (const [bx, by] of Wd.blinks) { let px = bx - o; if (px < -10) px += W; putGlow(x, '#ff3a4a', px, by, 7, a); }
+      const e = evAge(Wd, S);
+      if (e > 0.01 && Wd.ev) { const g = Wd.signs[Wd.ev.i]; let px = g.x - o; if (px < -20) px += W; putGlow(x, g.c, px + g.w / 2, g.y + g.h / 2, g.h * 0.9, S.a * 0.8 * e, 1); x.globalAlpha = S.a * e; x.strokeStyle = '#ffffff'; x.lineWidth = 1.6; x.strokeRect(px + 1, g.y + 1, g.w - 2, g.h - 2); x.globalAlpha = S.a * e * 0.35; x.fillStyle = g.c; x.fillRect(px + 1, g.y + 1, g.w - 2, g.h - 2); }
       x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
     };
     // réverbères (proches)
@@ -6127,13 +6134,14 @@ window.JDW_GAMES.pleingaz = {
     Wd.live.sky = (x, S) => {
       const M = S.M, sn = Wd.sun; paintSun(sn.c, sn.R, Math.min(Wd.k, 1), ['#fff3a8', '#ffb25a', '#ff2d8a'], 9, (S.t * 0.22) % 1, yH - (sn.y - sn.R));
       x.globalAlpha = S.a; x.drawImage(sn.c, sn.x - sn.R, sn.y - sn.R, sn.R * 2, sn.R * 2);
-      x.globalCompositeOperation = 'lighter'; putGlow(x, '#ff6a6a', sn.x, sn.y, sn.R * 1.5, S.a * (0.1 + 0.32 * M.bass), 1); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+      const e = evAge(Wd, S); x.globalCompositeOperation = 'lighter'; putGlow(x, '#ff6a6a', sn.x, sn.y, sn.R * (1.5 + 0.4 * e), S.a * (0.18 + 0.5 * e), 1); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
     };
     Wd.live.front = (x, S) => {
       x.globalCompositeOperation = 'lighter'; x.fillStyle = '#ffd0f0';
       for (const p of Wd.amb) { p.x -= S.dt * S.speed * S.B * 0.2 * p.v; if (p.x < -4) p.x += W + 8; const tw = 0.5 + 0.5 * Math.sin(S.t * 3 + p.ph); x.globalAlpha = S.a * (0.15 + 0.5 * tw * (0.4 + 0.6 * S.M.high)); x.fillRect(p.x, p.y + Math.sin(S.t + p.ph) * 4, 1.6, 1.6); }
       x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
     };
+    Wd.fire = (e) => { Wd.ev = { age: 0, i: e.i }; };
     Wd.ground = { top: '#5a1a6a', face: ['#2a0838', '#12021f', '#03000a'], line: '#ff4ab0', joint: '#3af0ff', paint(x, tw, h, wh) { x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(0, wh * 0.38, tw, 1.2); x.fillStyle = 'rgba(255,90,210,0.12)'; x.fillRect(0, wh * 0.7, tw, 1); } };
     Wd.block = { base: '#1c0530', paint(x, s) { x.fillStyle = lin(x, 0, 0, 0, s, [0, 'rgba(255,90,200,0.2)', 1, 'rgba(0,0,0,0)']); x.fillRect(0, 0, s, s); x.fillStyle = 'rgba(58,240,255,0.18)'; x.fillRect(0, s * 0.33, s, 1); x.fillRect(0, s * 0.66, s, 1); } };
     Wd.obs = { fill: '#ff2d8a', line: '#7af8ff', glow: '#3af0ff', dark: '#0d0118' };
@@ -6181,12 +6189,14 @@ window.JDW_GAMES.pleingaz = {
     const jelly = (col) => { const S2 = 64, c = mkCanvas(S2, S2 * 2), x = c.getContext('2d'); x.translate(S2 / 2, S2 * 0.55); x.globalCompositeOperation = 'lighter'; x.fillStyle = rad(x, 0, -4, 2, 0, 0, 26, [0, rgba('#ffffff', 0.85), 0.35, rgba(col, 0.55), 1, rgba(col, 0.05)]); x.beginPath(); x.moveTo(-24, 6); x.bezierCurveTo(-26, -30, 26, -30, 24, 6); x.quadraticCurveTo(18, 2, 12, 7); x.quadraticCurveTo(6, 2, 0, 7); x.quadraticCurveTo(-6, 2, -12, 7); x.quadraticCurveTo(-18, 2, -24, 6); x.fill(); x.strokeStyle = rgba(col, 0.55); x.lineWidth = 1.4; for (let i = -3; i <= 3; i++) { x.beginPath(); x.moveTo(i * 6, 6); x.bezierCurveTo(i * 6 + 6, 30, i * 6 - 6, 50, i * 6 + 3, 70 - Math.abs(i) * 6); x.stroke(); } return c; };
     const JC = [jelly('#ff7ad8'), jelly('#7af6ff'), jelly('#c89aff')];
     Wd.jel = []; for (let i = 0; i < 6; i++) Wd.jel.push({ x: r() * W, y: GY * (0.15 + r() * 0.6), s: 0.35 + r() * 0.5, c: JC[i % 3], ph: r() * TAU, v: 6 + r() * 10, col: ['#ff7ad8', '#7af6ff', '#c89aff'][i % 3] });
+    Wd.fire = (e) => { let best = 0, bd = 1e9; Wd.jel.forEach((j, k) => { const d = Math.abs(j.x - W * (0.45 + (e.i % 5) * 0.1)) + (j.y < 0 || j.y > GY ? 1e6 : 0); if (d < bd) { bd = d; best = k; } }); Wd.ev = { age: 0, i: best }; };
     Wd.layers[4].after = (x, S) => {
-      const M = S.M; x.globalCompositeOperation = 'lighter';
+      evAge(Wd, S); x.globalCompositeOperation = 'lighter';
       for (const j of Wd.jel) {
-        j.y -= S.dt * j.v * (0.6 + 0.8 * M.kick); j.x -= S.dt * S.speed * S.B * 0.13 * (0.5 + j.s); if (j.y < -60) { j.y = GY + 40; j.x = Math.random() * W; } if (j.x < -60) j.x += W + 120;
-        const sq = 1 - 0.16 * M.kick * (0.6 + j.s * 0.5), sz = 64 * j.s, xx = j.x + Math.sin(S.t * 0.7 + j.ph) * 6;
-        putGlow(x, j.col, xx, j.y, sz * 1.1, S.a * (0.12 + 0.3 * M.kick));
+        const e = Wd.ev && Wd.jel[Wd.ev.i] === j ? evEnv(Wd.ev) : 0;
+        j.y -= S.dt * j.v * (0.7 + 1.2 * e); j.x -= S.dt * S.speed * S.B * 0.13 * (0.5 + j.s); if (j.y < -60) { j.y = GY + 40; j.x = Math.random() * W; } if (j.x < -60) j.x += W + 120;
+        const sq = 1 - 0.2 * e, sz = 64 * j.s, xx = j.x + Math.sin(S.t * 0.7 + j.ph) * 6;
+        putGlow(x, j.col, xx, j.y, sz * (1.1 + 0.5 * e), S.a * (0.12 + 0.55 * e));
         x.globalAlpha = S.a * (0.55 + 0.3 * M.mid); x.drawImage(j.c, xx - sz / 2 / sq, j.y - sz * 0.55 * sq, sz / sq, sz * 2 * sq);
       }
       x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
@@ -6264,11 +6274,12 @@ window.JDW_GAMES.pleingaz = {
     // anneaux de résonance (sur les « tuch » forts) et poussière scintillante
     Wd.rings = []; Wd.lastSn = -1;
     Wd.layers[3].after = (x, S, o) => {
-      const M = S.M; if (M.snId !== Wd.lastSn) { Wd.lastSn = M.snId; if (M.snF > 0.55 && Wd.crys.length) { const c = Wd.crys[(M.snId * 7) % Wd.crys.length]; Wd.rings.push({ x: c[0], y: c[1], t: 0, c: c[2] ? '#7ae8ff' : '#d08aff' }); } }
-      x.globalCompositeOperation = 'lighter';
-      for (const g of Wd.rings) { g.t += S.dt; const u = g.t / 0.9; let px = g.x - o; if (px < -60) px += W; x.globalAlpha = S.a * (1 - u) * 0.7; x.strokeStyle = g.c; x.lineWidth = 2 * (1 - u) + 0.5; x.beginPath(); x.ellipse(px, g.y, 10 + u * 70, 4 + u * 26, 0, 0, TAU); x.stroke(); }
+      const e = evAge(Wd, S); x.globalCompositeOperation = 'lighter';
+      if (e > 0.01 && Wd.ev) { const c = Wd.crys[Wd.ev.i]; let px = c[0] - o; if (px < -60) px += W; putGlow(x, c[2] ? '#7ae8ff' : '#d08aff', px, c[1], GY * 0.22, S.a * 0.75 * e, 1); }
+      for (const g of Wd.rings) { g.t += S.dt; if (g.t < 0) continue; const u = g.t / 0.9; let px = g.x - o; if (px < -60) px += W; x.globalAlpha = S.a * (1 - u) * 0.7; x.strokeStyle = g.c; x.lineWidth = 2 * (1 - u) + 0.5; x.beginPath(); x.ellipse(px, g.y, 10 + u * 70, 4 + u * 26, 0, 0, TAU); x.stroke(); }
       Wd.rings = Wd.rings.filter((g) => g.t < 0.9); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
     };
+    Wd.fire = (e) => { if (!Wd.crys.length) return; const i = e.i % Wd.crys.length, c = Wd.crys[i]; Wd.ev = { age: 0, i }; Wd.rings.push({ x: c[0], y: c[1], t: 0, c: c[2] ? '#7ae8ff' : '#d08aff' }); if (e.drop) Wd.rings.push({ x: c[0], y: c[1], t: -0.25, c: '#ffffff' }); };
     for (let i = 0; i < 34; i++) Wd.amb.push({ x: r() * W, y: r() * GY, v: 0.2 + r() * 0.6, ph: r() * 9, c: r() < 0.5 ? '#e8d8ff' : '#aef0ff' });
     Wd.live.front = (x, S) => {
       x.globalCompositeOperation = 'lighter';
@@ -6317,12 +6328,12 @@ window.JDW_GAMES.pleingaz = {
     // éruptions (sur les gros « boum » et les drops) et braises
     Wd.lava = []; Wd.lastK = -1;
     Wd.layers[1].after = (x, S, o) => {
-      const M = S.M;
-      if (M.kId !== Wd.lastK) { Wd.lastK = M.kId; if ((M.kF > 0.85 || M.drop > 0.95) && Wd.lava.length < 70) { const c = Wd.craters[M.kId % Wd.craters.length]; for (let i = 0; i < 9; i++) Wd.lava.push({ x: c[0], y: c[1], vx: (Math.random() - 0.5) * 70, vy: -90 - Math.random() * 90, t: 0 }); } }
-      x.globalCompositeOperation = 'lighter';
+      const e = evAge(Wd, S); x.globalCompositeOperation = 'lighter';
+      if (e > 0.01 && Wd.ev) for (const k of Wd.ev.all ? [0, 1] : [Wd.ev.i]) { const c = Wd.craters[k % Wd.craters.length]; let px = c[0] - o; if (px < -60) px += W; putGlow(x, '#ff8a1a', px, c[1], GY * 0.14, S.a * 0.8 * e, 1); }
       for (const p of Wd.lava) { p.t += S.dt; p.vy += 160 * S.dt; p.x += p.vx * S.dt; p.y += p.vy * S.dt; let px = p.x - o; if (px < -40) px += W; putGlow(x, '#ff8a2a', px, p.y, 5, S.a * Math.max(0, 1 - p.t / 1.6)); }
       Wd.lava = Wd.lava.filter((p) => p.t < 1.6 && p.y < GY); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
     };
+    Wd.fire = (e) => { const i = e.i % Wd.craters.length; Wd.ev = { age: 0, i, all: e.drop }; for (const k of e.drop ? [0, 1] : [i]) { const c = Wd.craters[k % Wd.craters.length]; for (let j = 0; j < 12; j++) Wd.lava.push({ x: c[0], y: c[1], vx: (Math.random() - 0.5) * 80, vy: -100 - Math.random() * 100, t: 0 }); } };
     for (let i = 0; i < 44; i++) Wd.amb.push({ x: r() * W, y: r() * H, v: 0.4 + r() * 1, ph: r() * 9, s: 1 + r() * 1.6 });
     Wd.live.front = (x, S) => {
       x.globalCompositeOperation = 'lighter';
@@ -6371,10 +6382,10 @@ window.JDW_GAMES.pleingaz = {
     Wd.shoot = []; Wd.lastSn = -1;
     Wd.live.sky = (x, S) => {
       const M = S.M; x.globalCompositeOperation = 'lighter';
-      if (M.snId !== Wd.lastSn) { Wd.lastSn = M.snId; if (M.snF > 0.6 && Wd.shoot.length < 3 && (M.snId % 3 === 0 || M.drop > 0.5)) Wd.shoot.push({ x: W * (0.3 + Math.random() * 0.7), y: GY * Math.random() * 0.4, t: 0, v: 0.8 + Math.random() * 0.6 }); }
       for (const p of Wd.shoot) { p.t += S.dt; const u = p.t / 0.9, hx = p.x - u * W * 0.5 * p.v, hy = p.y + u * GY * 0.25 * p.v; x.globalAlpha = S.a * Math.sin(Math.min(1, u) * Math.PI); x.strokeStyle = '#ffffff'; x.lineWidth = 1.6; x.beginPath(); x.moveTo(hx, hy); x.lineTo(hx + W * 0.08, hy - GY * 0.04); x.stroke(); putGlow(x, '#bfe9ff', hx, hy, 6, x.globalAlpha); }
       Wd.shoot = Wd.shoot.filter((p) => p.t < 0.9); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
     };
+    Wd.fire = (e) => { if (Wd.shoot.length < 2) Wd.shoot.push({ x: W * (0.45 + Math.random() * 0.5), y: GY * (0.05 + Math.random() * 0.3), t: 0, v: 0.8 + Math.random() * 0.6 }); };
     Wd.layers[0].after = (x, S, o) => { x.globalCompositeOperation = 'lighter'; let px = Wd.planet.x - o; if (px < -W * 0.3) px += W; putGlow(x, '#d06aff', px, Wd.planet.y, Wd.planet.R * 1.6, S.a * (0.15 + 0.35 * S.M.bass), 1); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; };
     Wd.ground = { top: '#3a1a6a', face: ['#1c0a40', '#0a0322', '#010008'], line: '#ff5aff', joint: '#5affff', paint(x, tw, h, wh) { x.fillStyle = 'rgba(255,255,255,0.5)'; x.fillRect(tw * 0.2, wh + 8, 1, 1); x.fillRect(tw * 0.7, wh + 16, 1, 1); x.strokeStyle = 'rgba(255,90,255,0.12)'; x.beginPath(); x.moveTo(0, wh + (h - wh) * 0.3); x.lineTo(tw, wh + (h - wh) * 0.3); x.stroke(); } };
     Wd.block = { base: '#0d0528', paint(x, s) { x.fillStyle = 'rgba(255,255,255,0.4)'; for (const [a, b] of [[0.2, 0.3], [0.7, 0.2], [0.5, 0.6], [0.8, 0.8], [0.3, 0.85]]) x.fillRect(s * a, s * b, 1, 1); x.strokeStyle = 'rgba(90,255,255,0.14)'; x.lineWidth = 1; x.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; x.lineTo(s / 2 + Math.cos(a) * s * 0.3, s / 2 + Math.sin(a) * s * 0.3); } x.closePath(); x.stroke(); } };
@@ -6714,7 +6725,7 @@ window.JDW_GAMES.pleingaz = {
     pauseBtn.type = 'button'; pauseBtn.setAttribute('aria-label', 'Pause'); pauseBtn.innerHTML = ICON_P;
     pauseBtn.style.cssText = 'position:absolute;top:6px;right:6px;width:46px;height:46px;border-radius:12px;border:2px solid rgba(58,240,255,0.55);background:rgba(8,4,24,0.8);color:#fff;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;z-index:3';
     root.appendChild(pauseBtn);
-    // effets réduits (épilepsie, confort) : ni éclair, ni secousse, ni zoom ; pulsations plus douces. Retenu sur l'appareil.
+    // effets réduits (épilepsie, confort) : ni éclair, ni secousse ; le décor ne réagit plus à la musique. Retenu sur l'appareil.
     let calm = false;
     try { const v = localStorage.getItem('jdw.neon.fx'); calm = v === 'calme' || (v == null && !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)); } catch (e) { /* rien */ }
     const ICON_FX = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 L13.8 9.2 L21 11 L13.8 12.8 L12 20 L10.2 12.8 L3 11 L10.2 9.2 Z" fill="currentColor"/><circle cx="19" cy="4.5" r="1.6" fill="currentColor"/><circle cx="5" cy="19" r="1.3" fill="currentColor"/></svg>';
@@ -6736,7 +6747,7 @@ window.JDW_GAMES.pleingaz = {
       W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
       dpr = Math.min(DPR_CAP[Q], window.devicePixelRatio || 1);
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-      B = Math.min(W / 16, H / 10.4); GY = H - B * 1.35; worlds = {}; sprites = {}; VIG = null;
+      B = Math.min(W / 16, H / 10.4); GY = H - B * 1.35; worlds = {}; sprites = {};
     }
     // un monde (décor en couches, sol, matière des blocs, piques) : préparé une fois pour cette taille d'écran
     function worldOf(id) {
@@ -6744,7 +6755,7 @@ window.JDW_GAMES.pleingaz = {
       return (worlds[id] = buildWorld(id, W, H, GY, B, Math.min(dpr, K_CAP[Q])));
     }
     function prepWorlds() { const keep = {}; for (const p of (L ? L.parts : [])) keep[p.theme] = worldOf(p.theme); worlds = keep; }
-    let sprites = {}, VIG = null;
+    let sprites = {};
     function spr(key, s, paint) {
       if (sprites[key]) return sprites[key];
       const P = Math.ceil(s * 2.4 * dpr), c = mkCanvas(P, P), x = c.getContext('2d');
@@ -6929,19 +6940,24 @@ window.JDW_GAMES.pleingaz = {
     }
 
     // ---------- dessin ----------
+    // 1.35.6 (retour de Benjamin : « enlève la géométrie qui pulse, je disais UN OBJET DE TEMPS EN TEMPS ; et le mur noir, ne pas y toucher ») :
+    // tout ce qui se JOUE (sol et son mur, plafond, murs du vaisseau, blocs, piques, tremplins, orbes, portails, cube et traînée) est
+    // dessiné exactement comme en 1.34, sans aucune pulsation ; plus de zoom, d'éclair ni d'onde de choc sur les drops, plus de voile.
+    // Le décor (nouveaux mondes en parallaxe) est calme ; de temps en temps, UN de ses objets réagit à un temps fort (voir fireEvent).
     const SX = (wx) => (wx - camX) * B + W * 0.3, SY = (wy) => GY - wy * B;
-    let camX = 0, lastDrop = -1, lastSpark = -1;
-    const SS = { t: 0, M, dt: 0, camX: 0, B: 30, speed: 8, a: 1 };
+    let camX = 0, lastEvK = -1, lastEvDrop = -1, evT = -99, evGap = 4, evLog = [];
+    const QUIET = { t: 0, u: 0, beat: 0, even: true, bar: 0, kick: 0, kF: 0, kId: -1, snare: 0, snF: 0, snId: -1, bass: 0.3, mid: 0.5, high: 0.4, energy: 0.5, drop: 0, dropT: 99, dropId: -1, rise: 0, pal: 0 };
+    const SS = { t: 0, M: QUIET, dt: 0, camX: 0, B: 30, speed: 8, a: 1 };
     function themeNow() { return partIdx >= 0 ? parts[partIdx].theme : (parts[0] ? parts[0].theme : 'ville'); }
     function drawSky(Wd, a) {
-      ctx.globalAlpha = a; ctx.drawImage(Wd.sky, -16, -16, W + 32, H + 32); ctx.globalAlpha = 1;
+      ctx.globalAlpha = a; ctx.drawImage(Wd.sky, -14, -14, W + 28, H + 28); ctx.globalAlpha = 1;
       if (Wd.live.sky) { SS.a = a; try { Wd.live.sky(ctx, SS); } catch (e) { /* rien */ } }
     }
     function drawLayers(Wd, a) {
       SS.a = a;
       for (const Ly of Wd.layers) {
         const o = ((camX * B * Ly.par) % W + W) % W;
-        let al = a; if (Ly.alpha) al *= clamp(Ly.alpha(M), 0, 1);
+        let al = a; if (Ly.alpha) al *= clamp(Ly.alpha(QUIET), 0, 1);
         if (al > 0.01) {
           if (Ly.lit) ctx.globalCompositeOperation = 'lighter';
           ctx.globalAlpha = al; ctx.drawImage(Ly.c, -o, Ly.top, W, Ly.h); ctx.drawImage(Ly.c, W - o, Ly.top, W, Ly.h);
@@ -6950,180 +6966,137 @@ window.JDW_GAMES.pleingaz = {
         if (Ly.after) { try { Ly.after(ctx, SS, o); } catch (e) { /* rien */ } }
       }
     }
-    // la couleur de lumière du moment (elle glisse d'une teinte à l'autre entre les passages du morceau)
-    const lightCol = (Wd) => mix(Wd.pal[0], Wd.pal[1], M.pal);
-    function drawGround(Wd, lc) {
-      const G = Wd.ground, gTop = SY(0), tw = G.tw, o = ((camX * B) % tw + tw) % tw;
-      for (let gx = -o - tw * 2; gx < W + tw * 2; gx += tw) ctx.drawImage(G.c, gx, gTop, tw, G.h);
-      if (G.below) {   // la mer de lave sous le sol (elle gronde sur les basses)
-        if (!Wd.gBelow) Wd.gBelow = lin(ctx, 0, gTop + G.wh, 0, H + B, [0, 'rgba(255,60,10,0)', 0.45, 'rgba(255,70,10,0.45)', 1, 'rgba(255,190,60,0.9)']);
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + 0.5 * M.bass; ctx.fillStyle = Wd.gBelow; ctx.fillRect(-B, gTop + G.wh, W + B * 2, H - gTop); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-      }
-      if (G.lit) {
-        const o2 = G.caustic ? ((camX * B * 0.82 + M.t * B * 0.35) % tw + tw) % tw : o;
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = G.caustic ? 0.25 + 0.4 * M.mid : 0.3 + 0.7 * M.bass;
-        for (let gx = -o2 - tw * 2; gx < W + tw * 2; gx += tw) ctx.drawImage(G.lit, gx, gTop, tw, G.h);
-        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-      }
-      if (Wd.refl && Wd.refl.c) { const R = Wd.refl, o3 = ((camX * B * R.par) % W + W) % W; ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.2 + 0.25 * M.beat; ctx.drawImage(R.c, -o3, gTop + G.wh * 0.6, W, R.h); ctx.drawImage(R.c, W - o3, gTop + G.wh * 0.6, W, R.h); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
-      // le bord du sol : une ligne de lumière qui bat, et une onde qui file devant le cube à chaque « boum »
-      glowLine(-B * 2, gTop, W + B * 2, gTop, lc, Math.max(M.beat, M.kick));
-      const kt = M.kId >= 0 ? M.t - L.fx.HK[M.kId] : 9, xw = W * 0.3 + kt * W * 1.8;
-      ctx.globalCompositeOperation = 'lighter';
-      for (let gx = -o; gx < W + tw; gx += tw / 2) { const d = (gx - xw) / (B * 2.2), a = 0.18 + 0.8 * M.kF * Math.exp(-d * d) * Math.exp(-kt * 2.5); if (a < 0.05) continue; ctx.globalAlpha = Math.min(1, a); ctx.fillStyle = lc; ctx.fillRect(gx - B * 0.35, gTop - 1.5, B * 0.7, 3); }
-      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-    }
-    function blockPat(Wd) {
-      const Bk = Wd.block; if (!Bk.pat) { try { Bk.pat = ctx.createPattern(Bk.c, 'repeat'); } catch (e) { Bk.pat = Bk.base; } }
-      if (Bk.pat && Bk.pat.setTransform) { try { Bk.pat.setTransform(new DOMMatrix([1 / Bk.k, 0, 0, 1 / Bk.k, SX(0), SY(0)])); } catch (e) { /* rien */ } }
-      return Bk.pat;
+    // un objet du décor réagit, de temps en temps : sur un très gros « boum » ou sur un drop, au plus une fois toutes les 6 à 11 s (un drop passe toujours)
+    function fireEvent(Wd, t) {
+      if (state !== 'play' || paused || calm || !Wd.fire) return;
+      const drop = M.dropId !== lastEvDrop && M.dropT < 0.25, kick = M.kId !== lastEvK && M.kF >= 0.85 && M.kick > 0.5;
+      if (M.dropId !== lastEvDrop && M.dropT >= 0.25) lastEvDrop = M.dropId;
+      if (!drop && !kick) { if (M.kId !== lastEvK) lastEvK = M.kId; return; }
+      lastEvK = M.kId; if (drop) lastEvDrop = M.dropId;
+      if (t < L.TR.beats[8] || (!drop && t - evT < evGap)) return;
+      evT = t; evGap = 6 + fxr() * 5; evLog.push([+t.toFixed(2), Wd.id, drop ? 'drop' : 'boum']);
+      try { Wd.fire({ drop, i: Math.floor(fxr() * 1000) }); } catch (e) { /* rien */ }
     }
     function draw(dtF) {
       const tp0 = performance.now();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (!L || !st || state === 'load') { ctx.fillStyle = lin(ctx, 0, 0, 0, H, [0, '#05021a', 1, '#2a0a4a']); ctx.fillRect(0, 0, W, H); bigText('NÉON RUSH', W / 2, H * 0.42, B * 1.3, '#3af0ff'); smallText('Chargement de la musique…', W / 2, H * 0.58, Math.max(13, B * 0.45), '#ff5ad2'); return; }
+      if (!L || !st || state === 'load') { ctx.fillStyle = '#05021a'; ctx.fillRect(0, 0, W, H); bigText('NÉON RUSH', W / 2, H * 0.42, B * 1.3, '#3af0ff'); smallText('Chargement de la musique…', W / 2, H * 0.58, Math.max(13, B * 0.45), '#ff5ad2'); return; }
       camX = st.x;
-      const t = tG, bi = beatIdx(t);
+      const t = tG, bi = beatIdx(t), bt = L.TR.beats[bi], pulse = state === 'play' && t >= 0 ? Math.exp(-Math.max(0, t - bt) * 9) : 0;
       musicAt(t, dtF);
-      const pulse = M.beat;
-      const th = themeNow(), Wd = worldOf(th), T = Wd.T, O = Wd.obs, acc = T.acc, acc2 = T.acc2, lc = lightCol(Wd);
+      const th = themeNow(), Wd = worldOf(th), T = Wd.T, acc = T.acc, acc2 = T.acc2;
       SS.t = t; SS.dt = paused ? 0 : dtF; SS.camX = camX; SS.B = B; SS.speed = L.speed;
-      // un drop : onde de choc, éclair, coup de zoom, petite secousse
-      if (M.dropId !== lastDrop) { const fresh = M.dropT < 0.3 && state === 'play'; lastDrop = M.dropId; if (fresh) { if (!calm) shake = Math.max(shake, 7); for (let k = 0; k < 24; k++) { const a = fxr() * Math.PI, v = 4 + fxr() * 10; pops.push({ k: 'spark', x: st.x + (fxr() - 0.5) * 16, y: 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.7 + fxr() * 0.6, s: 0.07 + fxr() * 0.08, c: fxr() < 0.5 ? lc : '#ffffff' }); } } }
-      // le cube lâche des étincelles sur les gros « boum »
-      if (M.kId !== lastSpark) { lastSpark = M.kId; if (state === 'play' && M.kF > 0.75 && M.kick > 0.4 && pops.length < 140) for (let k = 0; k < 4; k++) pops.push({ k: 'spark', x: st.x - 0.3, y: st.y + (fxr() - 0.5) * 0.5, vx: -2 - fxr() * 4, vy: (fxr() - 0.5) * 4, t: 0, life: 0.4 + fxr() * 0.3, s: 0.05 + fxr() * 0.05, c: MODES[st.mode].col }); }
+      fireEvent(Wd, t);
       const sh = calm ? 0 : shake, sx = sh ? (fxr() - 0.5) * sh : 0, sy = sh ? (fxr() - 0.5) * sh : 0;
       ctx.save(); ctx.translate(sx, sy);
-      // le ciel et les couches du décor (le monde d'avant s'efface en fondu au changement de monde)
+      // le décor du monde (ciel, couches en parallaxe) ; le monde d'avant s'efface en fondu au changement de monde
       const pW = prevTheme && themeFade > 0 ? worldOf(prevTheme) : null;
-      drawSky(Wd, 1); if (pW) drawSky(pW, themeFade);
-      if (!calm && M.kick > 0.05) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.07 * M.kick; ctx.fillStyle = lc; ctx.fillRect(-16, -16, W + 32, H + 32); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
-      // la caméra « respire » : léger zoom sur les gros temps, coup de zoom sur les drops, la tension monte avant un drop
-      const zoom = calm ? 1 : 1 + 0.012 * M.kick * (M.kF > 0.6 ? 1 : 0.4) + 0.035 * M.drop + 0.014 * M.rise, zx = W * 0.3, zy = GY - B * 1.5;
-      ctx.save(); if (zoom !== 1) { ctx.translate(zx, zy); ctx.scale(zoom, zoom); ctx.translate(-zx, -zy); }
-      drawLayers(Wd, 1); if (pW) drawLayers(pW, themeFade);
-      // lumière de la musique sur l'horizon (la couleur du moment), puis un voile sombre au ras du sol : les obstacles se détachent toujours
-      { const hz = 0.06 + 0.2 * M.bass + 0.28 * M.drop + 0.1 * M.rise; if (hz > 0.02) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, hz * 0.6); ctx.fillStyle = lin(ctx, 0, GY * 0.5, 0, GY, [0, rgba(lc, 0), 1, rgba(lc, 1)]); ctx.fillRect(-B * 2, GY * 0.5, W + B * 4, GY * 0.5 + 1); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; } }
-      if (!Wd.gHaze) Wd.gHaze = lin(ctx, 0, GY - B * 3.4, 0, GY, [0, rgba(O.dark, 0), 1, rgba(O.dark, 0.62)]);
-      ctx.fillStyle = Wd.gHaze; ctx.fillRect(-B * 2, GY - B * 3.4, W + B * 4, B * 3.4);
-      // l'adversaire géant (tête d'un copain) dans le dernier monde
+      drawSky(Wd, 1); drawLayers(Wd, 1);
+      if (pW) { drawSky(pW, themeFade); drawLayers(pW, themeFade); }
+      // l'adversaire géant (tête d'un copain) dans le dernier monde (comme en 1.34)
       if (rival && partIdx === parts.length - 1 && state !== 'dead') {
         const s = Math.min(H * 0.32, B * 4.4) * (1 + pulse * 0.06), x = W * 0.8, y = GY * 0.42;
         ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(acc2, 0.5 + pulse * 0.4); ctx.lineWidth = 8; ctx.strokeRect(x - s * 0.45, y - s * 0.55, s * 0.9, s * 1.1); ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 0.85; try { const im = state === 'clear' ? rival.sad || rival.img : rival.img, iw = im.width || 160, ih = im.height || 200, k = s / ih; ctx.drawImage(im, x - (iw * k) / 2, y - s / 2, iw * k, s); } catch (e) { /* rien */ } ctx.globalAlpha = 1;
         smallText(rival.name + ' te défie !', x, y + s * 0.62, Math.max(12, B * 0.42), acc2);
       }
-      // le sol : la matière du monde, un bord de lumière qui bat ; plafond en vaisseau et en boule
-      drawGround(Wd, lc);
-      const pat = blockPat(Wd);
-      if (st.mode === 'ball' || st.mode === 'ship') { const cy = SY(st.mode === 'ball' ? BALL_CEIL : CEIL); ctx.fillStyle = lin(ctx, 0, 0, 0, cy, [0, rgba(O.dark, 0.95), 1, rgba(mix(O.dark, lc, 0.18), 0.9)]); ctx.fillRect(-B * 2, -B * 2, W + B * 4, cy + B * 2); ctx.globalAlpha = 0.2; ctx.fillStyle = pat; ctx.fillRect(-B * 2, -B * 2, W + B * 4, cy + B * 2); ctx.globalAlpha = 1; glowLine(-B * 2, cy, W + B * 2, cy, lc, Math.max(M.beat, M.kick)); }
+      // ---- tout ce qui se joue : exactement le dessin de la 1.34, sans pulsation (p0 = 0) ----
+      const p0 = 0;
+      // le sol : le DESSUS d'un mur (une bande de lumière, des joints de dalles qui défilent doucement) ; en dessous, le VIDE noir
+      const gTop = SY(0), wallH = B * 0.42;
+      ctx.fillStyle = '#000000'; ctx.fillRect(0, gTop, W, H - gTop);
+      ctx.fillStyle = lin(ctx, 0, gTop, 0, gTop + wallH, [0, rgba(acc, 0.35 + p0 * 0.2), 0.5, rgba(T.ground, 0.95), 1, '#000000']); ctx.fillRect(0, gTop, W, wallH);
+      const go = ((camX * B) % (B * 2) + B * 2) % (B * 2); ctx.fillStyle = rgba(acc, 0.35); for (let gx = -go; gx < W + B * 2; gx += B * 2) ctx.fillRect(gx, gTop + 3, 2, wallH * 0.7);
+      ctx.fillStyle = lin(ctx, 0, gTop + wallH, 0, H, [0, rgba(acc, 0.07), 0.4, 'rgba(0,0,0,0)']); ctx.fillRect(0, gTop + wallH, W, H - gTop - wallH);
+      if (st.mode === 'ball' || st.mode === 'ship') { const cy = SY(st.mode === 'ball' ? BALL_CEIL : CEIL); ctx.fillStyle = lin(ctx, 0, 0, 0, cy, [0, '#000000', 1, rgba(T.ground, 0.95)]); ctx.fillRect(0, 0, W, cy); glowLine(0, cy, W, cy, acc, p0); }
+      glowLine(0, gTop, W, gTop, acc, p0);
       // obstacles visibles
       const x0 = camX - W * 0.3 / B - 2, x1 = camX + W * 0.7 / B + 2;
-      drawWalls(x0, x1, lc, Wd, pat);
-      for (const b of L.blocks) {
-        if (b.x1 < x0 || b.x0 > x1) continue; const X0 = SX(b.x0), Y1 = SY(b.y1), w = (b.x1 - b.x0) * B, h = (b.y1 - b.y0) * B;
-        ctx.fillStyle = pat; ctx.fillRect(X0, Y1, w, h);
-        ctx.fillStyle = rgba(lc, 0.3 + 0.35 * M.beat); ctx.fillRect(X0, Y1, w, Math.max(2, B * 0.09));
-        glowRect(X0, Y1, w, h, lc, 0.6 * M.beat + 0.4 * M.kick);
-      }
-      const spk = spr('spk' + th, B, (x) => paintSpike(x, B, O, th)), ssc = 1 + 0.07 * M.kick;
-      for (const s of L.spikes) { if (s.x0 + 1 < x0 || s.x0 > x1) continue; const cx = SX(s.x0 + 0.5), by = SY(s.y); ctx.save(); ctx.translate(cx, by); if (s.down) ctx.rotate(Math.PI); ctx.scale(ssc, ssc); ctx.drawImage(spk, -spk._h, -B * 0.5 - spk._h, spk._h * 2, spk._h * 2); ctx.restore(); }
-      for (const p of L.pads) { if (p.x0 + 1 < x0 || p.x0 > x1) continue; const cx = SX(p.x0 + 0.5), by = SY(p.y); ctx.globalCompositeOperation = 'lighter'; putGlow(ctx, '#ffd34d', cx, by - B * 0.1, B * (0.7 + 0.25 * M.beat), 0.8); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.ellipse(cx, by, B * 0.45, B * 0.18, 0, Math.PI, TAU); ctx.fill(); ctx.strokeStyle = '#fff6c0'; ctx.lineWidth = 1.5; ctx.stroke(); }
-      for (const o of L.orbs) { if (o.x0 + 1 < x0 || o.x0 - 1 > x1) continue; drawOrb(o, pulse); if (!o.used) { const k = L.orbs.indexOf(o); if (k < 3 || (li === 0 && tour === 0)) smallText('TOUCHE !', SX(o.x0), SY(o.y) - B * 0.95, Math.max(12, B * 0.4), '#ffd34d'); } }
+      drawWalls(x0, x1, acc, acc2, T, p0);
+      for (const b of L.blocks) { if (b.x1 < x0 || b.x0 > x1) continue; const X0 = SX(b.x0), Y1 = SY(b.y1), w = (b.x1 - b.x0) * B, h = (b.y1 - b.y0) * B; ctx.fillStyle = T.ground; ctx.fillRect(X0, Y1, w, h); ctx.fillStyle = lin(ctx, 0, Y1, 0, Y1 + h, [0, rgba(acc, 0.32), 0.5, rgba(acc, 0.08), 1, 'rgba(0,0,0,0)']); ctx.fillRect(X0, Y1, w, h); ctx.strokeStyle = rgba(acc, 0.25); ctx.lineWidth = 1; ctx.beginPath(); for (let k = 1; k < b.y1 - b.y0; k++) { ctx.moveTo(X0, Y1 + k * B); ctx.lineTo(X0 + w, Y1 + k * B); } ctx.stroke(); glowRect(X0, Y1, w, h, acc, p0); }
+      const spk = spr('spk' + th, B, (x) => paintSpike34(x, B, acc, acc2));
+      for (const s of L.spikes) { if (s.x0 + 1 < x0 || s.x0 > x1) continue; const cx = SX(s.x0 + 0.5), by = SY(s.y); drawSpr(spk, cx, s.down ? by + B * 0.5 : by - B * 0.5, s.down ? Math.PI : 0, 1 + p0 * 0.08); }
+      for (const p of L.pads) { if (p.x0 + 1 < x0 || p.x0 > x1) continue; const cx = SX(p.x0 + 0.5), by = SY(p.y); ctx.fillStyle = rad(ctx, cx, by, 0, cx, by, B * 0.8, [0, 'rgba(255,220,80,0.9)', 1, 'rgba(255,220,80,0)']); ctx.fillRect(cx - B, by - B, B * 2, B); ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.ellipse(cx, by, B * 0.45, B * 0.18, 0, Math.PI, TAU); ctx.fill(); }
+      for (const o of L.orbs) { if (o.x0 + 1 < x0 || o.x0 - 1 > x1) continue; drawOrb(o, p0); if (!o.used) { const k = L.orbs.indexOf(o); if (k < 3 || (li === 0 && tour === 0)) smallText('TOUCHE !', SX(o.x0), SY(o.y) - B * 0.95, Math.max(12, B * 0.4), '#ffd34d'); } }
       if (li === 0 && tour === 0) for (const h of L.taps) { if (h.x < st.x - 1 || h.x < x0 || h.x > x1 || h.air || h.mode === 'ship') continue; const cx = SX(h.x), gy2 = h.mode === 'ball' && h.y > BALL_CEIL / 2 ? SY(BALL_CEIL) + B * 0.25 : SY(0) - B * 0.12, up = !(h.mode === 'ball' && h.y > BALL_CEIL / 2); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba('#ffd34d', 0.55 + pulse * 0.45); const d = up ? -1 : 1; for (const k of [0, 0.42]) { ctx.beginPath(); ctx.moveTo(cx - B * 0.36, gy2 + d * k * B); ctx.lineTo(cx, gy2 + d * (k + 0.4) * B); ctx.lineTo(cx + B * 0.36, gy2 + d * k * B); ctx.lineTo(cx + B * 0.36, gy2 + d * (k + 0.14) * B); ctx.lineTo(cx, gy2 + d * (k + 0.54) * B); ctx.lineTo(cx - B * 0.36, gy2 + d * (k + 0.14) * B); ctx.closePath(); ctx.fill(); } ctx.globalCompositeOperation = 'source-over'; }
-      for (const p of parts) { const px = p.x - 1.5; if (px + 2 < x0 || px - 2 > x1) continue; drawPortal(SX(px), p.mode, t); }
+      for (const p of parts) { const px = p.x - 1.5; if (px + 2 < x0 || px - 2 > x1) continue; drawPortal(SX(px), p.mode); }
       // le joueur, sa traînée, les particules
-      if (state !== 'dead' && state !== 'over') drawPlayer(pulse);
+      if (state !== 'dead' && state !== 'over') drawPlayer(p0);
       for (const p of pops) {
         const u = p.t / p.life;
         if (p.k === 'shard' || p.k === 'dust') { ctx.globalAlpha = 1 - u; ctx.fillStyle = p.c; const s = p.s * B; ctx.fillRect(SX(p.x) - s / 2, SY(p.y) - s / 2, s, s); }
-        else if (p.k === 'spark') { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (1 - u) * 0.9; ctx.fillStyle = p.c; const s = p.s * B * (1 - u * 0.5); ctx.fillRect(SX(p.x) - s / 2, SY(p.y) - s / 2, s, s); ctx.globalCompositeOperation = 'source-over'; }
         else if (p.k === 'ring') { ctx.globalAlpha = 1 - u; ctx.strokeStyle = p.c || '#ffffff'; ctx.lineWidth = 3 * (1 - u) + 1; circ(ctx, SX(p.x), SY(p.y), B * (0.5 + u * 2.5)); ctx.stroke(); }
         else if (p.k === 'head') { ctx.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1; const s = (p.small ? B * 1.6 : B * 3.5) * Math.min(1, u * 6); try { const iw = p.img.width || 160, ih = p.img.height || 200, k = s / ih; ctx.drawImage(p.img, SX(p.x) - (iw * k) / 2, SY(p.y) - s / 2 - u * B, iw * k, s); } catch (e) { /* rien */ } }
       }
       ctx.globalAlpha = 1;
-      // devant : pluie, bulles, braises, paillettes (très légères)
+      // devant : pluie, bulles, braises, paillettes (très légères, calmes)
       if (Wd.live.front) { SS.a = 1; try { Wd.live.front(ctx, SS); } catch (e) { /* rien */ } }
       ctx.restore();
-      // onde de choc du drop (un anneau qui part du cube), éclair (pas en effets réduits)
-      if (M.dropT < 0.8 && state === 'play') {
-        const u = M.dropT / 0.8, cx = SX(st.x), cy = SY(st.y);
-        ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = lc;
-        for (const [d, w] of [[0, 1], [0.12, 0.6]]) { const uu = clamp(u - d, 0, 1); if (uu <= 0 || uu >= 1) continue; ctx.globalAlpha = (1 - uu) * (calm ? 0.3 : 0.75) * w; ctx.lineWidth = 1.5 + 6 * (1 - uu); circ(ctx, cx, cy, B * 0.5 + uu * W * 0.9); ctx.stroke(); }
-        if (!calm) { ctx.globalAlpha = 0.3 * Math.pow(1 - u, 2); ctx.fillStyle = mix(lc, '#ffffff', 0.2); ctx.fillRect(0, 0, W, H); }
-        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-      }
-      ctx.restore();
-      // éclair au changement de monde (en effets réduits : rien, le fondu suffit) ; vignette
-      if (partFlash > 0 && !calm) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba(acc, 0.3 * partFlash); ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; }
-      if (!VIG) VIG = rad(ctx, W * 0.45, H * 0.5, Math.min(W, H) * 0.35, W * 0.5, H * 0.5, Math.max(W, H) * 0.75, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,0,0,0.5)']);
-      ctx.fillStyle = VIG; ctx.fillRect(0, 0, W, H);
+      // éclair au changement de monde, éclair blanc à la mort (comme en 1.34 ; rien en effets réduits)
+      if (partFlash > 0 && !calm) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba(acc, 0.35 * partFlash); ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; }
       if (state === 'dead') { ctx.fillStyle = calm ? 'rgba(4,2,14,' + Math.min(0.45, stT * 0.9) + ')' : 'rgba(255,255,255,' + Math.max(0, 0.6 - stT * 1.5) + ')'; ctx.fillRect(0, 0, W, H); }
       drawHud(acc, acc2, pulse, t, bi);
-      if (paused) { ctx.fillStyle = 'rgba(4,2,14,0.7)'; ctx.fillRect(0, 0, W, H); bigText('PAUSE', W / 2, H * 0.44, B * 1.4, '#ffffff'); smallText('Touche pour reprendre', W / 2, H * 0.56, Math.max(13, B * 0.45), acc); smallText(calm ? '✦ Effets réduits (sans flash ni secousse)' : '✦ Effets complets', W / 2, H * 0.66, Math.max(12, B * 0.36), '#c8c0e8'); }
+      if (paused) { ctx.fillStyle = 'rgba(4,2,14,0.7)'; ctx.fillRect(0, 0, W, H); bigText('PAUSE', W / 2, H * 0.44, B * 1.4, '#ffffff'); smallText('Touche pour reprendre', W / 2, H * 0.56, Math.max(13, B * 0.45), acc); smallText(calm ? '✦ Effets réduits (sans éclair ni secousse)' : '✦ Effets complets', W / 2, H * 0.66, Math.max(12, B * 0.36), '#c8c0e8'); }
       else if (resumeT > 0) bigText(String(Math.ceil(resumeT / 0.4)), W / 2, H * 0.45, B * 1.8, '#ffffff');
       PERF.draw += performance.now() - tp0; PERF.n++;
     }
-    function glowLine(xa, ya, xb, yb, col, pulse) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.2 + pulse * 0.3); ctx.lineWidth = 8 + pulse * 8; ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xb, yb); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.35 + pulse * 0.45); ctx.lineWidth = 2.5; ctx.stroke(); }
-    function glowRect(x, y, w, h, col, pulse) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.22 + pulse * 0.3); ctx.lineWidth = 6 + pulse * 5; ctx.strokeRect(x, y, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.3 + pulse * 0.45); ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); }
-    function drawWalls(x0, x1, lc, Wd, pat) {
+    function glowLine(xa, ya, xb, yb, col, pulse) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.18 + pulse * 0.2); ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xb, yb); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.35 + pulse * 0.4); ctx.lineWidth = 2.5; ctx.stroke(); }
+    function glowRect(x, y, w, h, col, pulse) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.2 + pulse * 0.25); ctx.lineWidth = 7; ctx.strokeRect(x, y, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.3 + pulse * 0.4); ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); }
+    function drawWalls(x0, x1, acc, acc2, T, pulse) {
       const ws = L.walls.filter((w) => w.x1 >= x0 && w.x0 <= x1); if (!ws.length) return;
-      const pu = Math.max(M.beat, M.kick);
       for (const top of [true, false]) {
-        ctx.beginPath(); ctx.moveTo(SX(ws[0].x0), top ? -B * 2 : H + B * 2);
+        ctx.beginPath(); ctx.moveTo(SX(ws[0].x0), top ? 0 : H);
         for (const w of ws) { ctx.lineTo(SX(w.x0), SY(top ? w.hi0 : w.lo0)); ctx.lineTo(SX(w.x1), SY(top ? w.hi1 : w.lo1)); }
-        ctx.lineTo(SX(ws[ws.length - 1].x1), top ? -B * 2 : H + B * 2); ctx.closePath();
-        ctx.fillStyle = top ? lin(ctx, 0, 0, 0, H * 0.6, [0, rgba(Wd.obs.dark, 0.95), 1, rgba(mix(Wd.obs.dark, lc, 0.22), 0.88)]) : lin(ctx, 0, H * 0.4, 0, H, [0, rgba(mix(Wd.obs.dark, lc, 0.22), 0.88), 1, rgba(Wd.obs.dark, 0.95)]); ctx.fill();
-        ctx.globalAlpha = 0.2; ctx.fillStyle = pat; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.lineTo(SX(ws[ws.length - 1].x1), top ? 0 : H); ctx.closePath();
+        ctx.fillStyle = rgba(T.ground, 0.9); ctx.fill(); ctx.fillStyle = top ? lin(ctx, 0, 0, 0, H * 0.55, [0, 'rgba(0,0,0,0)', 1, rgba(acc2, 0.28)]) : lin(ctx, 0, H * 0.45, 0, H, [0, rgba(acc2, 0.28), 1, 'rgba(0,0,0,0)']); ctx.fill();
         ctx.beginPath(); ws.forEach((w, i) => { const a = [SX(w.x0), SY(top ? w.hi0 : w.lo0)]; if (!i) ctx.moveTo(a[0], a[1]); else ctx.lineTo(a[0], a[1]); ctx.lineTo(SX(w.x1), SY(top ? w.hi1 : w.lo1)); });
-        ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(lc, 0.25 + pu * 0.35); ctx.lineWidth = 8 + pu * 6; ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(lc, '#ffffff', 0.4 + pu * 0.3); ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(acc2, 0.25 + pulse * 0.25); ctx.lineWidth = 9; ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(acc2, '#ffffff', 0.4); ctx.lineWidth = 2.5; ctx.stroke();
       }
     }
     function drawOrb(o, pulse) {
       const cx = SX(o.x0), cy = SY(o.y), r = B * 0.42 * (1 + pulse * 0.15);
       if (o.used) { ctx.globalAlpha = 0.25; }
-      const a0 = ctx.globalAlpha; ctx.globalCompositeOperation = 'lighter'; putGlow(ctx, '#ffd34d', cx, cy, r * 2.4, a0 * (0.55 + 0.35 * pulse)); ctx.globalAlpha = a0; ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = rad(ctx, cx, cy, 0, cx, cy, r * 2.2, [0, 'rgba(255,220,80,0.5)', 1, 'rgba(255,220,80,0)']); circ(ctx, cx, cy, r * 2.2); ctx.fill();
       if (o.head) { ctx.save(); circ(ctx, cx, cy, r); ctx.clip(); ctx.fillStyle = '#fff6d0'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2); try { const im = o.head.img, iw = im.width || 160, ih = im.height || 200, k = (r * 2.4) / ih; ctx.drawImage(im, cx - (iw * k) / 2, cy - r * 1.15, iw * k, ih * k); } catch (e) { /* rien */ } ctx.restore(); }
       else { ctx.fillStyle = '#ffd34d'; circ(ctx, cx, cy, r * 0.6); ctx.fill(); }
       ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 3; circ(ctx, cx, cy, r); ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    function drawPortal(x, mode, t) {
-      const col = MODES[mode].col, y = SY(CEIL * 0.32), h = B * 2.4 * (1 + 0.05 * M.beat), w = B * 0.45;
+    function drawPortal(x, mode) {
+      const col = MODES[mode].col, y = SY(CEIL * 0.32), h = B * 2.4;
       ctx.globalCompositeOperation = 'lighter';
-      ctx.save(); ctx.translate(x, y); ctx.scale(0.45, 1); putGlow(ctx, col, 0, 0, h * 1.3, 0.55 + 0.35 * M.beat); ctx.restore();
-      ctx.globalAlpha = 1; ctx.strokeStyle = rgba(col, 0.5 + 0.3 * M.beat); ctx.lineWidth = 10; ctx.beginPath(); ctx.ellipse(x, y, w, h, 0, 0, TAU); ctx.stroke();
-      ctx.fillStyle = '#ffffff'; for (let i = 0; i < 8; i++) { const a = t * 3.2 + (i / 8) * TAU; ctx.globalAlpha = 0.5 + 0.5 * Math.sin(a * 2); ctx.fillRect(x + Math.cos(a) * w * 1.35 - 1.5, y + Math.sin(a) * h * 1.05 - 1.5, 3, 3); }
-      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = mix(col, '#ffffff', 0.5 + 0.3 * M.beat); ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, w, h, 0, 0, TAU); ctx.stroke();
+      ctx.fillStyle = rad(ctx, x, y, 0, x, y, h, [0, rgba(col, 0.45), 1, rgba(col, 0)]); ctx.fillRect(x - h, y - h, h * 2, h * 2);
+      ctx.strokeStyle = rgba(col, 0.5); ctx.lineWidth = 10; ctx.beginPath(); ctx.ellipse(x, y, B * 0.45, h, 0, 0, TAU); ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = mix(col, '#ffffff', 0.5); ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, B * 0.45, h, 0, 0, TAU); ctx.stroke();
     }
     function drawPlayer(pulse) {
-      const col = MODES[st.mode].col, kw = 1 + 0.35 * M.kick;
-      // traînée : ruban lisse qui s'affine (couleur de la forme, cœur blanc), qui s'élargit sur les « boum »
-      if (trail.length > 2) {
+      const col = MODES[st.mode].col;
+      // traînée
+      if (trail.length > 2) {   // une traînée propre : ruban lisse qui s'affine, couleur de la forme, cœur blanc
         const pts = trail.map((p) => [SX(p.x), SY(p.y)]), n = pts.length, Lr = [], Rr = [];
-        for (let i = 0; i < n; i++) { const a2 = pts[Math.max(0, i - 1)], b2 = pts[Math.min(n - 1, i + 1)], dx = b2[0] - a2[0], dy = b2[1] - a2[1], d = Math.hypot(dx, dy) || 1, w = B * 0.36 * kw * Math.pow(i / (n - 1), 1.3); Lr.push([pts[i][0] - (dy / d) * w, pts[i][1] + (dx / d) * w]); Rr.push([pts[i][0] + (dy / d) * w, pts[i][1] - (dx / d) * w]); }
-        const g = ctx.createLinearGradient(pts[0][0], pts[0][1], pts[n - 1][0], pts[n - 1][1]); g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(col, 0.6 + 0.3 * M.kick));
+        for (let i = 0; i < n; i++) { const a2 = pts[Math.max(0, i - 1)], b2 = pts[Math.min(n - 1, i + 1)], dx = b2[0] - a2[0], dy = b2[1] - a2[1], d = Math.hypot(dx, dy) || 1, w = B * 0.36 * Math.pow(i / (n - 1), 1.3); Lr.push([pts[i][0] - (dy / d) * w, pts[i][1] + (dx / d) * w]); Rr.push([pts[i][0] + (dy / d) * w, pts[i][1] - (dx / d) * w]); }
+        const g = ctx.createLinearGradient(pts[0][0], pts[0][1], pts[n - 1][0], pts[n - 1][1]); g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(col, 0.75));
         ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.beginPath(); Lr.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); for (let i = n - 1; i >= 0; i--) ctx.lineTo(Rr[i][0], Rr[i][1]); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,' + (0.5 + 0.3 * M.kick) + ')'; ctx.lineWidth = Math.max(1.5, B * 0.06); ctx.lineCap = 'round'; ctx.beginPath(); pts.forEach((q, i) => (i > n * 0.35 ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke(); ctx.lineCap = 'butt';
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(1.5, B * 0.06); ctx.lineCap = 'round'; ctx.beginPath(); pts.forEach((q, i) => (i > n * 0.35 ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke();
         ctx.globalCompositeOperation = 'source-over';
       }
       const px = SX(st.x), py = SY(st.y), s = B * PH * 2;
-      ctx.globalCompositeOperation = 'lighter'; putGlow(ctx, col, px, py, s * (1.5 + 0.5 * M.kick), 0.22 + 0.45 * M.kick); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       const cube = spr('cube' + st.mode, s, (x) => paintCube(x, s, col, player));
       if (st.mode === 'cube') {
         if (!st.ground) st.rot = (st.rot || 0) + 0.12; else st.rot = Math.round((st.rot || 0) / (Math.PI / 2)) * (Math.PI / 2);
-        drawSpr(cube, px, py, st.rot, 1 + 0.06 * Math.max(pulse, M.kick));
+        drawSpr(cube, px, py, st.ground ? st.rot : st.rot, 1 + pulse * 0.05);
       } else if (st.mode === 'ship') {
         ctx.save(); ctx.translate(px, py); ctx.rotate(clamp(-st.vy * 0.06, -0.5, 0.5));
         ctx.fillStyle = lin(ctx, -s, 0, s, 0, [0, mix(col, '#000000', 0.4), 1, col]); ctx.beginPath(); ctx.moveTo(s * 1.0, s * 0.1); ctx.lineTo(-s * 0.9, -s * 0.35); ctx.lineTo(-s * 0.6, s * 0.1); ctx.lineTo(-s * 0.9, s * 0.45); ctx.closePath(); ctx.fill();
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.globalCompositeOperation = 'lighter'; putGlow(ctx, col, -s * 0.9, s * 0.05, s * (0.6 + (holdIn ? 0.45 : 0) + 0.3 * M.kick), 0.9); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rad(ctx, -s * 0.9, s * 0.05, 0, -s * 0.9, s * 0.05, s * (0.5 + (holdIn ? 0.4 : 0)), [0, 'rgba(255,255,255,0.9)', 0.4, rgba(col, 0.6), 1, rgba(col, 0)]); circ(ctx, -s * 0.9, s * 0.05, s); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(cube, -cube._h * 0.55, -s * 0.85 - cube._h * 0.55 + s * 0.4, cube._h * 1.1, cube._h * 1.1);
         ctx.restore();
       } else {
         st.rot = (st.rot || 0) + 0.14 * st.grav;
         ctx.save(); ctx.translate(px, py); ctx.rotate(st.rot);
+        ctx.fillStyle = rad(ctx, 0, 0, s * 0.2, 0, 0, s * 0.85, [0, rgba(col, 0.35), 1, rgba(col, 0)]); circ(ctx, 0, 0, s * 0.85); ctx.fill();
         ctx.save(); circ(ctx, 0, 0, s * 0.5); ctx.clip(); ctx.drawImage(cube, -cube._h, -cube._h, cube._h * 2, cube._h * 2); ctx.restore();
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; circ(ctx, 0, 0, s * 0.5); ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-s * 0.5, 0); ctx.lineTo(s * 0.5, 0); ctx.stroke();
         ctx.restore();
@@ -7186,10 +7159,17 @@ window.JDW_GAMES.pleingaz = {
         // essais (captures, mesures) : pas à pas, saut dans le temps, la musique lue par les décors, effets réduits, temps de calcul
         manual(v) { manual = !!v; }, tick(dt, n, noDraw) { for (let i = 0; i < (n || 1); i++) { if (!paused && state !== 'over' && state !== 'load') update(dt); } if (!noDraw) draw(dt); return lastErr; },
         warp(tt) { let g = 0; while (tG < tt && state === 'play' && g++ < 200000) update(1 / 60); banner = null; texts = []; return tG; },
-        music() { return Object.assign({}, M); }, fx: () => L && L.fx && { drops: L.fx.drops, cuts: L.fx.cuts, dropBeats: L.fx.dropBeats, cutBeats: L.fx.cutBeats },
+        music() { return Object.assign({}, M); }, events: () => evLog.slice(), fx: () => L && L.fx && { drops: L.fx.drops, cuts: L.fx.cuts, dropBeats: L.fx.dropBeats, cutBeats: L.fx.cutBeats },
         setCalm(v) { calm = !!v; fxShow(); }, calm: () => calm, quality: () => ({ Q, dpr }), setQuality(q) { Q = q; resize(); prepWorlds(); },
         perf() { const r = { draw_ms: +(PERF.draw / Math.max(1, PERF.n)).toFixed(2), update_ms: +(PERF.upd / Math.max(1, PERF.n)).toFixed(2), frames: PERF.n }; PERF.draw = 0; PERF.upd = 0; PERF.n = 0; return r; } }; },
     };
+  }
+  // le pic de la 1.34 (triangle sombre, bord de lumière aux couleurs du monde), préparé une fois par monde
+  function paintSpike34(x, B, acc, acc2) {
+    x.fillStyle = lin(x, 0, -B * 0.5, 0, B * 0.5, [0, rgba(acc2, 0.9), 1, '#0a0418']);
+    x.beginPath(); x.moveTo(-B * 0.5, B * 0.5); x.lineTo(0, -B * 0.5); x.lineTo(B * 0.5, B * 0.5); x.closePath(); x.fill();
+    x.globalCompositeOperation = 'lighter'; x.strokeStyle = rgba(acc, 0.35); x.lineWidth = B * 0.16; x.stroke(); x.globalCompositeOperation = 'source-over';
+    x.strokeStyle = mix(acc, '#ffffff', 0.4); x.lineWidth = Math.max(1.5, B * 0.06); x.stroke();
   }
 
   // ===========================================================================
@@ -7210,7 +7190,7 @@ window.JDW_GAMES.pleingaz = {
         PV = { w, h, Wd, title: c, cube: null, spk: null, lt: t };
       }
       const Wd = PV.Wd, beat = 60 / 128, bt = t % beat, ph = (t % (beat * 4)) / beat, pulse = Math.exp(-(bt / beat) * 5), bi = Math.floor(t / beat);
-      const M = { t, u: bt / beat, beat: pulse, even: (bi & 1) === 0, bar: bi % 4 === 0 ? pulse : 0, kick: pulse, kF: 1, kId: bi, snare: 0, snF: 0, snId: -1, bass: pulse * 0.8 + 0.1, mid: 0.4 + 0.3 * pulse, high: 0.4, energy: 0.7, drop: 0, dropT: 99, rise: 0, pal: 0 };
+      const M = { t, u: 0, beat: 0, even: true, bar: 0, kick: 0, kF: 0, kId: -1, snare: 0, snF: 0, snId: -1, bass: 0.3, mid: 0.5, high: 0.4, energy: 0.5, drop: 0, dropT: 99, rise: 0, pal: 0 };   // décor calme (1.35.6)
       const dt = clamp(t - PV.lt, 0, 0.1); PV.lt = t;
       const cam = t * 4.5, S = { t, M, dt, camX: cam, B, speed: 4.5, a: 1 };
       ctx.drawImage(Wd.sky, 0, 0, w, h); if (Wd.live.sky) Wd.live.sky(ctx, S);
@@ -7224,7 +7204,7 @@ window.JDW_GAMES.pleingaz = {
       ctx.strokeStyle = mix(G.line, '#ffffff', 0.4 + pulse * 0.4); ctx.lineWidth = 2; ctx.stroke();
       if (!PV.spk) { PV.spk = mkCanvas(B * 2.4 * 2, B * 2.4 * 2); const x = PV.spk.getContext('2d'); x.scale(2, 2); x.translate(B * 1.2, B * 1.2); paintSpike(x, B, Wd.obs, 'synth'); }
       const scroll = (t * B * 4.5) % (B * 8);
-      for (let k = 0; k < 3; k++) { const sx = (w * 0.55 + k * B * 4 - scroll + w * 2) % (w * 1.2) - B, sc = 1 + 0.07 * pulse; ctx.save(); ctx.translate(sx, gy); ctx.scale(sc, sc); ctx.drawImage(PV.spk, -B * 1.2, -B * 0.5 - B * 1.2, B * 2.4, B * 2.4); ctx.restore(); }
+      for (let k = 0; k < 3; k++) { const sx = (w * 0.55 + k * B * 4 - scroll + w * 2) % (w * 1.2) - B, sc = 1; ctx.save(); ctx.translate(sx, gy); ctx.scale(sc, sc); ctx.drawImage(PV.spk, -B * 1.2, -B * 0.5 - B * 1.2, B * 2.4, B * 2.4); ctx.restore(); }
       const u = ph % 1, jy = Math.sin(Math.min(1, u * 1.15) * Math.PI) * B * 1.8, cx = w * 0.32;
       if (!PV.cube) { PV.cube = mkCanvas(B * 3, B * 3); const x = PV.cube.getContext('2d'); x.translate(B * 1.5, B * 1.5); paintCube(x, B * 0.8, MODES.cube.col, null); }
       ctx.globalCompositeOperation = 'lighter'; for (let i = 1; i < 6; i++) { ctx.fillStyle = rgba(MODES.cube.col, 0.12 * (6 - i) / 5); const ty = Math.sin(Math.min(1, Math.max(0, u - i * 0.05) * 1.15) * Math.PI) * B * 1.8; ctx.fillRect(cx - i * B * 0.3 - B * 0.25, gy - B * 0.4 - ty - B * 0.25, B * 0.5, B * 0.5); } ctx.globalCompositeOperation = 'source-over';
@@ -99197,7 +99177,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261024232832"; window.JDW_VERSION = "1.35.5"; window.JDW_NOTES = ["# NOTES DE MISE \u00c0 JOUR (cloche de la borne, \u00ab Version \u2026 install\u00e9e \u00bb). Une ligne = UNE nouveaut\u00e9, \u00e9crite en d\u00e9tail.", "# [pegase] \u2026 = notes de P\u00e9gase (rang\u00e9es sous P\u00e9gase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]\u2026 (id du jeu) = notes de ce", "# jeu (rang\u00e9es sous \u00ab Nos autres jeux \u00bb) ; sans crochets = la borne elle-m\u00eame. \u00ab [id] ## titre \u00bb = un sous-titre (une version de P\u00e9gase).", "# Les lignes qui commencent par \u00ab # \u00bb ne sont jamais montr\u00e9es. Rien de priv\u00e9 ici : c'est lu par tout le monde.", "[bolides] ## \ud83c\udfce\ufe0f Bolides RC : une conduite toute neuve", "[bolides] Pose le doigt de ton c\u00f4t\u00e9 et pousse vers o\u00f9 tu veux aller : ta voiture y va et acc\u00e9l\u00e8re toute seule", "[bolides] Avant un virage serr\u00e9, la voiture ralentit d'elle-m\u00eame juste ce qu'il faut : un tour propre d\u00e8s la premi\u00e8re course", "[bolides] Le bouton D\u00c9RAPE dans les virages charge un mini-turbo : \u00e9tincelles bleues, puis orange pour un super turbo", "[bolides] Un anneau \u00e0 ta couleur sous ta voiture et une fl\u00e8che qui montre o\u00f9 tu l'envoies", "[bolides] \u00c0 la manette : le stick donne la direction, A pour d\u00e9raper ; au clavier : les fl\u00e8ches, et Espace pour d\u00e9raper", "[bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur", "[bolides] En ligne : plus de voiture qui saute au d\u00e9but d'une nouvelle manche", "[neon] ## \ud83c\udfb5 N\u00e9on Rush : tout beau, tout en rythme", "[neon] Six mondes enti\u00e8rement redessin\u00e9s, chacun avec son d\u00e9cor en plusieurs plans qui d\u00e9filent \u00e0 des vitesses diff\u00e9rentes : N\u00e9on City, Coucher Synthwave, Cyber Oc\u00e9an, Grotte de Cristal, C\u0153ur de Lave et Galaxie", "[neon] Tout bat au rythme de la musique : le sol, les blocs, les piques, les portails, ton cube et sa tra\u00een\u00e9e, et toutes les lumi\u00e8res du d\u00e9cor", "[neon] N\u00e9on City : les fen\u00eatres des tours s'allument au rythme, enseignes au n\u00e9on, projecteurs qui balaient le ciel sur les basses, pluie fine et reflets des n\u00e9ons sur le sol mouill\u00e9", "[neon] Coucher Synthwave : grand soleil ray\u00e9, montagnes en fil de lumi\u00e8re, palmiers, et une vague de lumi\u00e8re qui court sur la grille \u00e0 chaque temps", "[neon] Cyber Oc\u00e9an : sous l'eau, rayons de lumi\u00e8re qui dansent, ville engloutie, r\u00e9cif qui scintille, m\u00e9duses qui se contractent sur la musique, algues et bulles", "[neon] Grotte de Cristal : des grappes de cristaux qui r\u00e9sonnent, violettes puis bleues, d'un temps \u00e0 l'autre", "[neon] C\u0153ur de Lave : les volcans grondent sur les basses et crachent de la lave sur les gros \u00ab boum \u00bb, braises qui montent et mer de lave sous le sol", "[neon] Galaxie : n\u00e9buleuses, galaxie spirale, plan\u00e8te \u00e0 anneaux qui s'illumine, \u00e9toiles filantes", "[neon] Sur les grands moments de la musique (les \u00ab drops \u00bb) : onde de choc, \u00e9clair de lumi\u00e8re, et la cam\u00e9ra qui respire avec le son", "[neon] Quand le son joue, le d\u00e9cor \u00e9coute vraiment la musique : les graves, les m\u00e9diums et les aigus", "[neon] Nouveau bouton \u2726 en haut \u00e0 droite : \u00ab effets r\u00e9duits \u00bb enl\u00e8ve les \u00e9clairs et les secousses, pour le confort des yeux (retenu sur l'appareil)", "[neon] Les obstacles restent toujours bien visibles, et les niveaux sont exactement les m\u00eames"];</script>
+<script>window.JDW_BUILD = "20261024234100"; window.JDW_VERSION = "1.35.6"; window.JDW_NOTES = ["# NOTES DE MISE \u00c0 JOUR (cloche de la borne, \u00ab Version \u2026 install\u00e9e \u00bb). Une ligne = UNE nouveaut\u00e9, \u00e9crite en d\u00e9tail.", "# [pegase] \u2026 = notes de P\u00e9gase (rang\u00e9es sous P\u00e9gase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]\u2026 (id du jeu) = notes de ce", "# jeu (rang\u00e9es sous \u00ab Nos autres jeux \u00bb) ; sans crochets = la borne elle-m\u00eame. \u00ab [id] ## titre \u00bb = un sous-titre (une version de P\u00e9gase).", "# Les lignes qui commencent par \u00ab # \u00bb ne sont jamais montr\u00e9es. Rien de priv\u00e9 ici : c'est lu par tout le monde.", "[bolides] ## \ud83c\udfce\ufe0f Bolides RC : une conduite toute neuve", "[bolides] Pose le doigt de ton c\u00f4t\u00e9 et pousse vers o\u00f9 tu veux aller : ta voiture y va et acc\u00e9l\u00e8re toute seule", "[bolides] Avant un virage serr\u00e9, la voiture ralentit d'elle-m\u00eame juste ce qu'il faut : un tour propre d\u00e8s la premi\u00e8re course", "[bolides] Le bouton D\u00c9RAPE dans les virages charge un mini-turbo : \u00e9tincelles bleues, puis orange pour un super turbo", "[bolides] Un anneau \u00e0 ta couleur sous ta voiture et une fl\u00e8che qui montre o\u00f9 tu l'envoies", "[bolides] \u00c0 la manette : le stick donne la direction, A pour d\u00e9raper ; au clavier : les fl\u00e8ches, et Espace pour d\u00e9raper", "[bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur", "[bolides] En ligne : plus de voiture qui saute au d\u00e9but d'une nouvelle manche", "[neon] ## \ud83c\udfb5 N\u00e9on Rush : le jeu comme avant, avec les nouveaux d\u00e9cors", "[neon] Le sol, les murs, les plafonds, les blocs, les piques, les portails et ton cube sont redevenus exactement comme avant : plus rien ne bat pendant que tu joues", "[neon] Plus de voile sombre au ras du sol ni de murs noirs au-dessus de toi : tout est revenu comme avant", "[neon] Plus de zoom, d'\u00e9clair ni d'onde de choc sur les grands moments de la musique", "[neon] Les six nouveaux d\u00e9cors restent (N\u00e9on City, Coucher Synthwave, Cyber Oc\u00e9an, Grotte de Cristal, C\u0153ur de Lave, Galaxie), mais au calme", "[neon] De temps en temps, un seul objet du d\u00e9cor r\u00e9agit \u00e0 la musique : une enseigne qui s'allume, une m\u00e9duse qui pulse, un cristal qui brille, un volcan qui crache, le soleil qui s'embrase ou une \u00e9toile filante", "[neon] Le bouton \u2726 \u00ab effets r\u00e9duits \u00bb enl\u00e8ve les \u00e9clairs, les secousses et ces petites r\u00e9actions du d\u00e9cor", "[neon] Les niveaux n'ont pas chang\u00e9"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtirsaubut": {"c": ["dtirsaubut-1", "dtirsaubut-2"], "x": ["dtirsaubut-x1"]}, "dtoupies": {"c": ["dtoupies-1", "dtoupies-2"], "x": ["dtoupies-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "neonrush": {"c": ["neonrush-1", "neonrush-2", "neonrush-3"], "x": []}, "pegase": {"c": ["pegase-1"], "x": []}, "pgsuite": {"c": ["pgsuite-1", "pgsuite-2", "pgsuite-3", "pgsuite-4"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}, "smoothie": {"c": ["smoothie-1", "smoothie-2"], "x": ["smoothie-x1"]}, "smw1": {"c": ["smw1-1"], "x": []}, "smw2": {"c": ["smw2-1"], "x": []}, "smw3": {"c": ["smw3-1"], "x": []}, "smw4": {"c": ["smw4-1"], "x": []}, "smw5": {"c": ["smw5-1"], "x": []}, "smw6": {"c": ["smw6-1"], "x": []}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -101964,7 +101944,7 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-24 22:40' },   // Bolides RC 1.35.1 : nouvelle conduite « pointe et fonce » (joystick = direction, gaz auto, DÉRAPE + mini-turbo) ; heure ≈ celle de la publication
-  neon: { kind: 'maj', at: '2026-10-24 23:30' },   // Néon Rush 1.35 : refonte graphique (6 mondes en parallaxe qui pulsent sur la musique, effets réduits) ; heure = celle de la publication
+  neon: { kind: 'maj', at: '2026-10-24 23:30' },   // Néon Rush 1.35 : nouveaux décors (6 mondes en parallaxe ; 1.35.6 : jeu dessiné comme en 1.34, décor calme, un objet réagit de temps en temps) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)

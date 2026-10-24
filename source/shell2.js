@@ -21,7 +21,7 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-24 22:40' },   // Bolides RC 1.35.1 : nouvelle conduite « pointe et fonce » (joystick = direction, gaz auto, DÉRAPE + mini-turbo) ; heure ≈ celle de la publication
-  neon: { kind: 'maj', at: '2026-10-24 23:30' },   // Néon Rush 1.35 : refonte graphique (6 mondes en parallaxe qui pulsent sur la musique, effets réduits) ; heure = celle de la publication
+  neon: { kind: 'maj', at: '2026-10-24 23:30' },   // Néon Rush 1.35 : nouveaux décors (6 mondes en parallaxe ; 1.35.6 : jeu dessiné comme en 1.34, décor calme, un objet réagit de temps en temps) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
