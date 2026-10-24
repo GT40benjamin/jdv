@@ -4395,11 +4395,12 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
 const PG_TAB = LABO_TEST && !!gameById('pegase');
 if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
-const PG = { tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
+const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
   try { if (!sessionStorage.getItem('jdw.mode')) MODE = 'pegase'; } catch (e) {}   // la borne s'ouvre sur Pégase
+  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; }   // lien partagé (?pegase, ?ile=<id>)
   $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase');
   // le badge de « Nos autres jeux » : le plus important de Classique / Duel / Coop (nouveau > mis à jour)
   const arcBadge = () => {
@@ -4531,6 +4532,17 @@ async function pgRank() {
   pgRankRender();
 }
 $('jdw-pg-rank').addEventListener('click', pgRank);
+// ↗ PARTAGER la page Pégase (ou une île : pgShare(id)) : partage du téléphone, sinon le lien copié ; le lien ne contient que ?pegase / ?ile=<id>
+async function pgShare(id) {
+  const u = new URL(ROOT + 'jouer/', location.href); u.search = id != null ? '?ile=' + encodeURIComponent(id) : '?pegase';
+  const url = u.href, data = { title: 'Pégase', text: 'Viens sur mon île dans Pégase !', url };
+  if (navigator.share && matchMedia('(pointer:coarse)').matches) { try { await navigator.share(data); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  let ok = false;
+  try { await navigator.clipboard.writeText(url); ok = true; } catch (e) {}
+  if (!ok) { try { const t = document.createElement('textarea'); t.value = url; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e) {} }
+  toastCheer(ok ? 'Lien copié ✨' : url, null, true);
+}
+$('jdw-pg-share').addEventListener('click', () => pgShare(null));
 
 // L'ÎLE DESSINÉE (cartes de la page Pégase) : vue de haut en 3/4, animée — mer profonde qui scintille, lagon turquoise, vagues d'écume qui
 // roulent sur la plage, falaise de sable, prairie texturée, collines éclairées, étang, chemin, ponton, palmiers, arbres, maisons aux
@@ -5205,7 +5217,8 @@ async function renderIsles() {
   }
   const me = isGuest() ? '' : cleanName(profile.name);
   for (const q of list) {
-    const c = document.createElement('div'); c.className = 'pg-isle' + (q.cur ? ' cur' : '') + (q.banned ? ' banned' : ''); c.setAttribute('role', 'listitem');
+    const c = document.createElement('div'); c.className = 'pg-isle' + (q.cur ? ' cur' : '') + (q.banned ? ' banned' : '') + (PG.focus === q.id ? ' focus' : ''); c.setAttribute('role', 'listitem');
+    if (PG.focus === q.id) { PG.focus = null; setTimeout(() => { try { c.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} }, 300); }   // l'île du lien partagé
     c.innerHTML = '<div class="pi-pic"><canvas aria-hidden="true"></canvas><button type="button" class="pi-gram" aria-label="PegaGram, le réseau social de l’île">' + PEGAGRAM_LOGO + '<span>PegaGram</span></button></div><span class="pi-badge"></span><span class="pi-live"><i></i><b></b></span>' +
       '<div class="pi-body"><div class="pi-name"></div><div class="pi-sub"></div><div class="pi-req" hidden></div><div class="pi-bar" hidden><u></u></div><div class="pi-act"><button type="button" class="pi-play">Jouer</button><button type="button" class="pi-watch">👀 Regarder</button></div></div>';
     c.querySelector('.pi-badge').textContent = (KIND[q.kind] || KIND.publique) + (q.cur ? ' · ton île' : '');

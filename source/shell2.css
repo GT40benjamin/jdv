@@ -2553,3 +2553,4 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
   #jdw-lib[data-mode="pegase"] .home-bar .icon-btn,#jdw-lib[data-mode="pegase"] .me-chip{width:32px;height:32px;min-width:32px}
 }
 #jdw-lib[data-mode="pegase"] .lib-wrap{max-width:980px}   /* 3 petites cartes par ligne sur PC */
+#jdw-lib[data-mode="pegase"] .pg-isle.focus{box-shadow:0 0 0 2px #ffd36b,0 0 34px rgba(255,214,140,.45)}   /* l'île d'un lien partagé */
