@@ -4848,17 +4848,24 @@ function islePhoto(cv, im, q, seed) {
   // ---- l'île (couche fixe, elle se balance avec ses nuages) ----
   const [islC, b] = off(w, h);
   if (iso && cpx) {
-    // le long de la vraie côte : lagon turquoise, ombre, épaisseur de terre, plage, sable mouillé ; puis le rendu du jeu par-dessus
-    const th = 8 * S;
-    offPath(b, 34 * S); b.fillStyle = 'rgba(60,200,215,.18)'; b.fill();
-    offPath(b, 20 * S); b.fillStyle = 'rgba(110,230,225,.28)'; b.fill();
-    offPath(b, 11 * S); b.fillStyle = 'rgba(180,248,236,.34)'; b.fill();
-    offPath(b, 5 * S, th + 6 * S); b.fillStyle = 'rgba(0,12,30,.4)'; b.fill();
-    const eg = b.createLinearGradient(0, cg[1], 0, iy + ih + th); eg.addColorStop(0, '#8a6238'); eg.addColorStop(1, '#5a3d22'); offPath(b, 5 * S, th); b.fillStyle = eg; b.fill();
-    offPath(b, 5 * S); b.fillStyle = rad(b, cg[0] - iw * 0.2, cg[1] - ih * 0.25, 4, cg[0], cg[1], iw * 0.6, [0, '#fff1c4', 1, '#e6c98a']); b.fill();
-    b.save(); offPath(b, 5 * S); b.strokeStyle = 'rgba(255,255,255,.5)'; b.lineWidth = 1.2 * S; b.stroke(); b.restore();
-    b.save(); offPath(b, 1.5 * S); b.strokeStyle = 'rgba(120,90,40,.4)'; b.lineWidth = 2.2 * S; b.stroke(); b.restore();
-    b.imageSmoothingQuality = 'high'; b.drawImage(im, ix, iy, iw, ih);
+    // le bord se FOND dans l'eau : des couches floues dont la largeur varie le long de la côte (bruit), du large vers la plage
+    const nsd = ((seed >>> 0) % 997) * 0.13, wob = (i, f) => 0.55 + 0.9 * isleNoise(i * f + nsd, 3.7 + f * 10);
+    const offN = (x, d, f) => { const n = cpx.length; x.beginPath(); for (let i = 0; i <= n; i++) { const p0 = cpx[(i - 1 + n) % n], p1 = cpx[i % n], p2 = cpx[(i + 1) % n]; let nx2 = p2[1] - p0[1], ny2 = -(p2[0] - p0[0]); const l = Math.hypot(nx2, ny2) || 1; nx2 /= l; ny2 /= l; if (nx2 * (p1[0] - cg[0]) + ny2 * (p1[1] - cg[1]) < 0) { nx2 = -nx2; ny2 = -ny2; } const dd = d * wob(i % n, f); x.lineTo(p1[0] + nx2 * dd, p1[1] + ny2 * dd * 0.62); } x.closePath(); };
+    const layer = (d, f, col, bl) => { b.save(); b.filter = 'blur(' + Math.max(1, Math.round(bl * S * k)) / k + 'px)'; offN(b, d * S, f); b.fillStyle = col; b.fill(); b.restore(); };
+    layer(64, 0.031, 'rgba(30,140,180,.22)', 16);    // bleu qui s'éclaircit
+    layer(44, 0.043, 'rgba(50,190,210,.32)', 12);    // turquoise
+    layer(28, 0.057, 'rgba(120,225,220,.42)', 9);    // eau claire
+    layer(17, 0.071, 'rgba(200,232,205,.55)', 6);    // eau très claire sur fond de sable
+    // hauts-fonds et rochers plus sombres dans le lagon
+    { let sd = ((seed >>> 0) % 6007) + 3; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; b.save(); b.filter = 'blur(' + (2.5 * S) + 'px)'; for (let i = 0; i < 9; i++) { const p2 = cpx[Math.floor(r() * cpx.length)], f2 = 1.06 + r() * 0.08, rr = (3 + r() * 5) * S; b.fillStyle = r() < 0.6 ? 'rgba(20,80,100,.35)' : 'rgba(70,60,50,.4)'; b.beginPath(); b.ellipse(cg[0] + (p2[0] - cg[0]) * f2, cg[1] + (p2[1] - cg[1]) * f2, rr * 1.4, rr * 0.8, 0, 0, 7); b.fill(); } b.restore(); }
+    layer(9, 0.089, 'rgba(214,190,140,.75)', 3.5);   // sable mouillé
+    layer(4.5, 0.11, 'rgba(242,222,172,.95)', 2.2);  // sable sec, plus clair
+    // le reflet doré du couchant sur l'eau, à l'ouest de l'île
+    b.fillStyle = rad(b, ix + iw * 0.05, cg[1], 2, ix + iw * 0.05, cg[1], iw * 0.4, [0, 'rgba(255,205,140,.16)', 1, 'rgba(255,205,140,0)']); b.fillRect(0, 0, w, h);
+    // le rendu du jeu, au contour adouci (fondu de quelques pixels vers la plage)
+    const [imC, ic] = off(w, h); ic.imageSmoothingQuality = 'high'; ic.drawImage(im, ix, iy, iw, ih);
+    ic.save(); ic.globalCompositeOperation = 'destination-in'; ic.filter = 'blur(' + (7 * S) + 'px)'; offPath(ic, -5 * S); ic.fillStyle = '#fff'; ic.fill(); ic.restore();
+    b.save(); b.setTransform(1, 0, 0, 1, 0, 0); b.drawImage(imC, 0, 0); b.restore();
   } else if (iso) {
     // côte pas encore là : l'île seule, avec une ombre douce
     b.fillStyle = rad(b, w / 2, iy + ih * 0.86, 2, w / 2, iy + ih * 0.86, iw * 0.55, [0, 'rgba(0,10,25,.45)', 1, 'rgba(0,10,25,0)']); b.beginPath(); b.ellipse(w / 2, iy + ih * 0.88, iw * 0.55, ih * 0.12, 0, 0, 7); b.fill();
@@ -4923,16 +4930,16 @@ function islePhoto(cv, im, q, seed) {
   const covA = cx2.getImageData(0, 0, cw, chh).data, cov = new Float32Array(cw * chh); for (let i = 0; i < cov.length; i++) cov[i] = covA[i * 4 + 3] / 255;
   const [nubC, nx] = off(cw, chh, 1), img = nx.createImageData(cw, chh), dens = new Float32Array(cw * chh), sd0 = ((seed >>> 0) % 997) * 0.37;
   const NS = 0.034 * DS / Math.max(0.6, S);   // échelle des cumulus (plus gros sur une grande carte)
-  const hgt = new Float32Array(cw * chh), fb = new Float32Array(cw * chh);
+  const hgt = new Float32Array(cw * chh), fb = new Float32Array(cw * chh), [nubB, nb2] = off(cw, chh, 1);
   const LX = iso ? -0.55 : -0.78, LY = iso ? -0.6 : -0.28, LZ = iso ? 0.58 : 0.56;   // vue de biais : le couchant éclaire de l'arrière-gauche, les ombres tombent vers l'avant   // le soleil couchant : à l'ouest (gauche), un peu au nord (haut), bas sur l'horizon
   const clouds = (t) => {
     const dx = t * 0.016, dy = t * 0.004, wv = Math.sin(t * 0.07) * 0.5;
     for (let y = 0, i = 0; y < chh; y++) for (let x = 0; x < cw; x++, i++) {
-      const c = cov[i]; if (c < 0.01) { dens[i] = -1; hgt[i] = 0; fb[i] = 0; continue; }
+      const c = cov[i]; if (c < 0.004 && (x & 1 || y & 1)) { dens[i] = -1; hgt[i] = hgt[i - 1] || 0; fb[i] = 0; continue; }   // loin des nuages : un pixel sur quatre suffit pour le relief
       const pf = iso ? 0.72 + 0.62 * (1 - y / chh) : 1, X = x * NS * pf + sd0 + dx, Y = y * NS * pf / (iso ? 0.7 : 1) + dy, warp = (isleNoise(X * 0.45 + wv, Y * 0.45 - wv) - 0.5) * 1.1;   // un voile qui se déforme
       const n = isleFbm(X + warp, Y - warp * 0.7), tower = Math.pow(isleNoise(X * 0.32 + 7.3, Y * 0.32 + 2.1), 3.2);   // de rares tours de cumulus
       fb[i] = n;
-      dens[i] = c * 1.45 - 0.55 + (Math.pow(n, 1.3) - 0.4) * 1.25 + tower * 0.4;
+      dens[i] = c < 0.01 ? -1 : c * 1.45 - 0.55 + (Math.pow(n, 1.3) - 0.4) * 1.25 + tower * 0.4;
       hgt[i] = Math.max(0, Math.min(1, dens[i])) * 0.5 + isleFbm3(X * 0.8 + 3.1, Y * 0.8 + 1.7) * 1.3 + tower * 1.8;   // le relief : gros dômes bombés + tours
     }
     const d = img.data, G = 16 / DS;
@@ -4940,7 +4947,7 @@ function islePhoto(cv, im, q, seed) {
       const v = dens[i], o = i * 4;
       if (v <= 0) {
         // hors des nuages : leur ombre douce (le soleil est à l'ouest : l'ombre tombe vers l'est) et des lambeaux de brume à la lisière
-        let sh = 0; for (let k = 1; k <= 7; k++) { const xx = Math.round(x - k * (iso ? 0.3 : 1)), yy = y - Math.round(k * (iso ? 1 : 0.6)); if (xx >= 0 && yy >= 0 && dens[yy * cw + xx] > 0.05) { sh = 0.46 * (1 - (k - 1) / 8); break; } }   // ombre nette sous les bourrelets
+        let sh = 0; for (let k = 1; k <= 7; k++) { const xx = Math.round(x - k * (iso ? 0.3 : 1)), yy = y - Math.round(k * (iso ? 1 : 0.6)); if (xx >= 0 && yy >= 0) { const dv = dens[yy * cw + xx]; if (dv > 0) { sh = Math.max(sh, 0.46 * Math.min(1, dv * 5) * (1 - (k - 1) / 8)); } } }   // ombre progressive (pas de marches)   // ombre nette sous les bourrelets
         const c = cov[i] > 0 ? cov[i] : 0, mist = c > 0.02 ? Math.max(0, Math.min(1, (fb[i] - 0.42) * 3)) * Math.min(1, c * 3) * 0.42 : 0;
         if (!sh && !mist) { d[o + 3] = 0; continue; }
         const a = mist + sh * (1 - mist), mw = a ? mist / a : 0;
@@ -4958,6 +4965,8 @@ function islePhoto(cv, im, q, seed) {
       d[o] = 122 + (255 - 122) * lit; d[o + 1] = 116 + (249 - 116) * lit - 14 * warm; d[o + 2] = 182 + (250 - 182) * lit - 48 * warm; d[o + 3] = 255 * aa;
     }
     nx.putImageData(img, 0, 0);
+    // un très léger flou avant d'agrandir : plus de marches au bord des nuages
+    nb2.clearRect(0, 0, cw, chh); nb2.filter = 'blur(0.8px)'; nb2.drawImage(nubC, 0, 0); nb2.filter = 'none';
   };
   let lastC = -1;
   const sparks = []; { let sd = (seed >>> 0) || 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 40; i++) sparks.push([r() * w, r() * h, 4 + r() * 10, r() * 6.3, 0.6 + r()]); }
@@ -4969,10 +4978,25 @@ function islePhoto(cv, im, q, seed) {
     for (const [sx, sy, l, p0, sp] of sparks) { const a = 0.5 + 0.5 * Math.sin(t * 2 * sp + p0); if (a < 0.35) continue; const xx = (sx + t * 6 * sp) % (w + 20) - 10; x.strokeStyle = 'rgba(255,255,255,' + (0.2 * a).toFixed(3) + ')'; x.lineWidth = 1; x.beginPath(); x.moveTo(xx, sy); x.lineTo(xx + l, sy); x.stroke(); }
     const bob = Math.sin(t * 0.9) * 2.5;
     // l'écume qui épouse la côte et roule vers la plage (carte plate)
-    if (iso && cpx) for (let j = 0; j < 2; j++) { const u = (t * 0.22 + j * 0.5) % 1; offPath(x, (16 - 9 * u) * S, bob); x.strokeStyle = 'rgba(235,252,255,' + (0.45 * Math.sin(u * Math.PI)).toFixed(3) + ')'; x.lineWidth = (0.8 + 1.4 * u) * S; x.stroke(); }
+    if (iso && cpx) {
+      const n = cpx.length, nsd2 = ((seed >>> 0) % 991) * 0.17;
+      x.lineCap = 'round';
+      for (let j = 0; j < 2; j++) {
+        const u = (t * 0.18 + j * 0.5) % 1, d0 = (15 - 8 * u) * S, al = 0.55 * Math.sin(u * Math.PI);
+        let open = false; x.beginPath();
+        for (let i = 0; i <= n; i++) {
+          const on = isleNoise(i * 0.09 + nsd2 + j * 7, t * 0.15 + j) > 0.56;
+          const p0 = cpx[(i - 1 + n) % n], p1 = cpx[i % n], p2 = cpx[(i + 1) % n]; let nx2 = p2[1] - p0[1], ny2 = -(p2[0] - p0[0]); const l = Math.hypot(nx2, ny2) || 1; nx2 /= l; ny2 /= l; if (nx2 * (p1[0] - cg[0]) + ny2 * (p1[1] - cg[1]) < 0) { nx2 = -nx2; ny2 = -ny2; }
+          const dd = d0 * (0.7 + 0.6 * isleNoise(i * 0.05 + nsd2, 9.1)), X2 = p1[0] + nx2 * dd, Y2 = p1[1] + ny2 * dd * 0.62 + bob;
+          if (on) { if (!open) { x.moveTo(X2, Y2); open = true; } else x.lineTo(X2, Y2); } else open = false;
+        }
+        x.strokeStyle = 'rgba(240,252,255,' + al.toFixed(3) + ')'; x.lineWidth = (0.7 + 1.1 * u) * S; x.stroke();
+      }
+    }
+    if (false) for (let j = 0; j < 2; j++) { const u = (t * 0.22 + j * 0.5) % 1; offPath(x, (16 - 9 * u) * S, bob); x.strokeStyle = 'rgba(235,252,255,' + (0.45 * Math.sin(u * Math.PI)).toFixed(3) + ')'; x.lineWidth = (0.8 + 1.4 * u) * S; x.stroke(); }
     if (!iso) for (let j = 0; j < 2; j++) { const u = (t * 0.22 + j * 0.5) % 1; coast(x, 1.1 - 0.08 * u, bob); x.strokeStyle = 'rgba(235,252,255,' + (0.45 * Math.sin(u * Math.PI)).toFixed(3) + ')'; x.lineWidth = (0.8 + 1.4 * u) * S; x.stroke(); }
     x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(islC, 0, bob * k);
-    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(nubC, 0, bob * k, cw * DS * k, chh * DS * k);
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(nubB, 0, bob * k, cw * DS * k, chh * DS * k);
     x.setTransform(k, 0, 0, k, 0, 0);
     x.fillStyle = rad(x, w / 2, h / 2, Math.min(w, h) * 0.5, w / 2, h / 2, Math.max(w, h) * 0.78, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,10,25,.4)']); x.fillRect(0, 0, w, h);
   });
