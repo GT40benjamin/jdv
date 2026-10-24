@@ -4444,7 +4444,7 @@ function pgDecorSrc(v, id, q) {
   v.dataset.q = q || '';
   const suf = q ? [['_' + q + '.webm', 'video/webm'], ['_' + q + '.mp4', 'video/mp4']] : (port ? [['_portrait.webm', 'video/webm'], ['_portrait.mp4', 'video/mp4']] : []).concat([['.webm', 'video/webm'], ['.mp4', 'video/mp4']]);
   for (const [sx, type] of suf) { const sEl = document.createElement('source'); sEl.src = base + sx; sEl.type = type; v.appendChild(sEl); }
-  v.preload = 'auto'; v.load();
+  v.loop = (PGD.list || []).length < 2; v.preload = 'auto'; v.load();
 }
 // la qualité supérieure, téléchargée en arrière-plan (fetch → débit mesuré, et le service worker la garde) puis en fondu au même instant
 async function pgQualUp(v) {
@@ -4486,8 +4486,20 @@ function pgDecorNext() {
 }
 function pgDecorTick(v) {   // un plan qui s'achève : 2 s avant la fin, le suivant prend le relais
   if (v !== pgVid(PGD.act) || PGD.list.length < 2 || MODE !== 'pegase') return;
-  if (v.duration && v.currentTime > v.duration - 2.05 && !v.dataset.done) { v.dataset.done = '1'; pgDecorNext(); }
+  if (v.duration && isFinite(v.duration) && v.currentTime > v.duration - 2.05 && !v.dataset.done) { v.dataset.done = '1'; pgDecorNext(); }
 }
+// GARDIEN de l'enchaînement (toutes les 2 s) : si « timeupdate » se tait (onglet en arrière-plan, appli, navigateur avare), si la vidéo est
+// finie ou figée, ou si un plan est à l'écran depuis plus de 75 s, on passe au suivant. Avec plusieurs plans, jamais de boucle.
+setInterval(() => {
+  if (MODE !== 'pegase' || document.hidden || PGD.state !== 'ok' || PGD.still || !PGD.list || PGD.list.length < 2) return;
+  const v = pgVid(PGD.act); if (!v) return;
+  v.loop = false;
+  const now = Date.now(), d = v.duration, t = v.currentTime;
+  if (!PGD.shownAt || PGD.shownId !== v.dataset.id + '|' + PGD.act) { PGD.shownAt = now; PGD.shownId = v.dataset.id + '|' + PGD.act; PGD.lastT = t; PGD.stuck = 0; return; }
+  PGD.stuck = Math.abs(t - PGD.lastT) < 0.05 && !v.paused ? PGD.stuck + 1 : 0; PGD.lastT = t;
+  const late = d && isFinite(d) ? t > d - 2.05 : false;
+  if (v.ended || (late && !v.dataset.done) || now - PGD.shownAt > 75000 || PGD.stuck >= 4) { v.dataset.done = '1'; PGD.shownAt = 0; pgDecorNext(); }
+}, 2000);
 function pgDecor(on) {
   const v = pgVid(0), v2 = pgVid(1); if (!v || !v2) return false;
   if (!on) { try { v.pause(); v2.pause(); } catch (e) {} return PGD.state === 'ok'; }
