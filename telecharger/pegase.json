@@ -1,23 +1,40 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 30,
-  "versionName": "0.9.4.3",
-  "size": 1014908054,
-  "sha256": "bc9569727b4f9c6039a687cd1661dc18d15d3bd3c93246dce25002218285e867",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v30/pegase-0.9.4.3.apk",
+  "versionCode": 31,
+  "versionName": "0.9.4.4",
+  "size": 1037877366,
+  "sha256": "7f1ce865cedf7f7856727bf96bc2ca1af8b787420df82001b9d3523d57be6772",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v31/pegase-0.9.4.4.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "On ne traverse plus les meubles dans les maisons et les boutiques, et les bancs du musée laissent le passage.",
-    "La caméra se place mieux dans les boutiques et les maisons, et la molette ne zoome plus quand une fenêtre est ouverte.",
-    "Le village : le muret continue au nord, le panneau « Ailebrune » accueille à l'entrée est, les anciennes terrasses sont remontées, et un étal de légumes.",
-    "On ne reste plus coincé sur certains rochers.",
-    "La corneille s'envole quand on approche au lieu de marcher longtemps.",
-    "La flèche vers un copain montre le bon endroit, et la carte pour parler avec tes amis se clique bien."
+    "Beaucoup plus fluide : fini les saccades pendant les missions photo.",
+    "Le grand-duc : caché dans le buisson, on voit à travers les feuilles au viseur ; il vient au sifflet, reste si tu restes discret et se tourne vers toi. Les buissons sont sur la carte et une jauge montre à quel point tu es caché.",
+    "La pluie : le ciel devient gris d'orage et on entend une pluie douce. Après l'averse, un nouvel arc-en-ciel éclatant, même la nuit.",
+    "Ta bouche bouge quand tu parles, même avec un micro de casque faible.",
+    "De nouvelles petites bêtes à photographier : scolie, mante religieuse, grande sauterelle verte, cigale, blatte des bois. Le nom sous tes photos est enfin le bon.",
+    "Concours du plus gros champignon : une seule publication avec « Déposer ma photo » et toutes les photos en grille ; des spores dorées guident la nuit.",
+    "L'album : partage ta photo sur PegaGram depuis la photo en grand.",
+    "Les fleurs du décor (iris, colza, herbe de la pampa…) se photographient et vont au Grand livre ; l'analyse prend la fleur que tu vises.",
+    "Et aussi : Réglages du téléphone rangés par thèmes, accroupi qui marche, moutons plus naturels, clôture posée poteau par poteau, panneau de parcelle propre avec ton nom."
   ],
   "historique": [
+    {
+      "version": "0.9.4.4",
+      "notes": [
+        "Beaucoup plus fluide : fini les saccades pendant les missions photo.",
+        "Le grand-duc : caché dans le buisson, on voit à travers les feuilles au viseur ; il vient au sifflet, reste si tu restes discret et se tourne vers toi. Les buissons sont sur la carte et une jauge montre à quel point tu es caché.",
+        "La pluie : le ciel devient gris d'orage et on entend une pluie douce. Après l'averse, un nouvel arc-en-ciel éclatant, même la nuit.",
+        "Ta bouche bouge quand tu parles, même avec un micro de casque faible.",
+        "De nouvelles petites bêtes à photographier : scolie, mante religieuse, grande sauterelle verte, cigale, blatte des bois. Le nom sous tes photos est enfin le bon.",
+        "Concours du plus gros champignon : une seule publication avec « Déposer ma photo » et toutes les photos en grille ; des spores dorées guident la nuit.",
+        "L'album : partage ta photo sur PegaGram depuis la photo en grand.",
+        "Les fleurs du décor (iris, colza, herbe de la pampa…) se photographient et vont au Grand livre ; l'analyse prend la fleur que tu vises.",
+        "Et aussi : Réglages du téléphone rangés par thèmes, accroupi qui marche, moutons plus naturels, clôture posée poteau par poteau, panneau de parcelle propre avec ton nom."
+      ]
+    },
     {
       "version": "0.9.4.3",
       "notes": [

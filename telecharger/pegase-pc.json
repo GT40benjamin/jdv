@@ -1,27 +1,44 @@
 {
-  "version": "0.9.4.3",
-  "build": 32,
-  "size": 2014837597,
-  "sha256": "74474c445d8a6be3c671d90f51a888a730828f923a153dc0f1d28e5bfbe63838",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v32/Pegase-PC-2026-10-23-0.9.4.3.zip",
-  "manifest": "99e3e31f276acae42252322f88e1d9760482a973bc8710a40556853a6b768f46",
+  "version": "0.9.4.4",
+  "build": 33,
+  "size": 2051075542,
+  "sha256": "a97242453e6012ffa13837b051f8a952640583c6676ba8287b699ee692375bd3",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v33/Pegase-PC-2026-10-24-0.9.4.4.zip",
+  "manifest": "86ef3259ecbfd9be31a9feb3cb99629b7edb8396b34756b1ae1ec0b634523497",
   "patchs": [
     {
-      "de": "0.9.4.2",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v32/Pegase-PC-patch-0.9.4.2.zip",
-      "taille": 7528296,
-      "sha256": "fc07d6715d3a8231a1380ccfa041c3c8c0b672878e6b13a234e87a03641f9c56"
+      "de": "0.9.4.3",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v33/Pegase-PC-patch-0.9.4.3.zip",
+      "taille": 42592725,
+      "sha256": "8e0ee74466efcbb5864a58fd766d8c038c37ce6ac19b1757dc57e769d0e4caf5"
     }
   ],
   "notes": [
-    "On ne traverse plus les meubles dans les maisons et les boutiques, et les bancs du musée laissent le passage.",
-    "La caméra se place mieux dans les boutiques et les maisons, et la molette ne zoome plus quand une fenêtre est ouverte.",
-    "Le village : le muret continue au nord, le panneau « Ailebrune » accueille à l'entrée est, les anciennes terrasses sont remontées, et un étal de légumes.",
-    "On ne reste plus coincé sur certains rochers.",
-    "La corneille s'envole quand on approche au lieu de marcher longtemps.",
-    "La flèche vers un copain montre le bon endroit, et la carte pour parler avec tes amis se clique bien."
+    "Beaucoup plus fluide : fini les saccades pendant les missions photo.",
+    "Le grand-duc : caché dans le buisson, on voit à travers les feuilles au viseur ; il vient au sifflet, reste si tu restes discret et se tourne vers toi. Les buissons sont sur la carte et une jauge montre à quel point tu es caché.",
+    "La pluie : le ciel devient gris d'orage et on entend une pluie douce. Après l'averse, un nouvel arc-en-ciel éclatant, même la nuit.",
+    "Ta bouche bouge quand tu parles, même avec un micro de casque faible.",
+    "De nouvelles petites bêtes à photographier : scolie, mante religieuse, grande sauterelle verte, cigale, blatte des bois. Le nom sous tes photos est enfin le bon.",
+    "Concours du plus gros champignon : une seule publication avec « Déposer ma photo » et toutes les photos en grille ; des spores dorées guident la nuit.",
+    "L'album : partage ta photo sur PegaGram depuis la photo en grand.",
+    "Les fleurs du décor (iris, colza, herbe de la pampa…) se photographient et vont au Grand livre ; l'analyse prend la fleur que tu vises.",
+    "Et aussi : Réglages du téléphone rangés par thèmes, accroupi qui marche, moutons plus naturels, clôture posée poteau par poteau, panneau de parcelle propre avec ton nom."
   ],
   "historique": [
+    {
+      "version": "0.9.4.4",
+      "notes": [
+        "Beaucoup plus fluide : fini les saccades pendant les missions photo.",
+        "Le grand-duc : caché dans le buisson, on voit à travers les feuilles au viseur ; il vient au sifflet, reste si tu restes discret et se tourne vers toi. Les buissons sont sur la carte et une jauge montre à quel point tu es caché.",
+        "La pluie : le ciel devient gris d'orage et on entend une pluie douce. Après l'averse, un nouvel arc-en-ciel éclatant, même la nuit.",
+        "Ta bouche bouge quand tu parles, même avec un micro de casque faible.",
+        "De nouvelles petites bêtes à photographier : scolie, mante religieuse, grande sauterelle verte, cigale, blatte des bois. Le nom sous tes photos est enfin le bon.",
+        "Concours du plus gros champignon : une seule publication avec « Déposer ma photo » et toutes les photos en grille ; des spores dorées guident la nuit.",
+        "L'album : partage ta photo sur PegaGram depuis la photo en grand.",
+        "Les fleurs du décor (iris, colza, herbe de la pampa…) se photographient et vont au Grand livre ; l'analyse prend la fleur que tu vises.",
+        "Et aussi : Réglages du téléphone rangés par thèmes, accroupi qui marche, moutons plus naturels, clôture posée poteau par poteau, panneau de parcelle propre avec ton nom."
+      ]
+    },
     {
       "version": "0.9.4.3",
       "notes": [
