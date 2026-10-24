@@ -231,4 +231,6 @@ Pour un jeu calé sur SA musique (Néon Rush) : `await api.rhythm.load(id)` char
 `await api.rhythm.play(id, at)` coupe la musique de la borne et joue le morceau depuis `at` secondes, une seule fois (rend vrai si le son joue :
 faux = musique coupée, morceau absent ou son bloqué faute de toucher, le jeu garde alors sa propre horloge) ; `api.rhythm.time()` = le temps du
 morceau en secondes (latence de sortie déduite), null si rien ne joue ; `api.rhythm.stop(fondu)`. La borne arrête le morceau quand on quitte.
+`api.rhythm.analyser()` (1.35) : un AnalyserNode branché sur le morceau (avant le volume de la musique) pour des décors qui pulsent sur le
+son (grave / médium / aigu) ; null s'il n'y a pas de son. Le jeu ne doit jamais en dépendre pour jouer (seulement pour le dessin).
 Nommer les morceaux autrement que l'id du jeu (ex. `neonrush-1` pour `neon`) pour que la borne ne les joue pas d'elle-même.

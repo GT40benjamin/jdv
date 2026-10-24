@@ -2,56 +2,16 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre (une version de Pégase).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
-[pegase] ## 🦉 Pégase 0.9.4.7
-[pegase] Le grand-duc : quand tu siffles, on l'entend arriver de loin, et il s'envole vers ses rochers s'il a peur
-[pegase] Un deuxième grand-duc vit au coin des bambous, près du petit pont rouge
-[pegase] Caché dans un buisson, le viseur sort à la lisière : tout le décor reste visible, avec des feuilles floues autour du cadre
-[pegase] Si le grand-duc se pose hors de vue, un repère te mène au buisson d'où on le voit bien
-[pegase] Un viseur plus clair : boutons carrés avec leur touche, et un seul conseil à la fois
-[pegase] Accroupi plus naturel, et assis sur un banc les mains se posent en douceur
-[pegase] Le musée : plafond plus haut, bancs qui ne gênent plus, grands cartels lisibles
-[pegase] Plus d'herbe à travers le plancher quand une maison est reconstruite
-[pegase] ## 🎵 Nouvelle musique
-[pegase] Pégase a une nouvelle musique : quatre morceaux doux enchaînés (harpe, célesta, cordes, flûte), près de 6 minutes, sans coupure
-[pegase] ## 🎣 Pégase 0.9.4.6
-[pegase] Un long ponton en bois, avec sa barque amarrée au bout
-[pegase] Les gros poissons sautent hors de l'eau pendant le combat
-[pegase] Chaque poisson est bien tenu dans la main quand on le sort de l'eau
-[pegase] Cinq parcelles à vendre au bord du chemin
-[pegase] Le facteur passe sur son vélo jaune
-[pegase] Le héron cendré pêche au bord du lac
-[pegase] Nouvelles petites bêtes : le moustique tigre, l'araignée-loup et le mille-pattes
-[pegase] Les lunettes sont bien posées sur le visage
-[pegase] La galerie du musée
-[pegase] Grand livre : nouveau chapitre « Fruits et légumes », les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa
-[pegase] Sur PC, petite mise à jour
-[pegase] ## 🎣 Pégase 0.9.4.5
-[pegase] La pêche à la canne à coup : longue canne en bambou, vrai flotteur, sortie du poisson au ralenti
-[pegase] Déplacements et caméra tout doux ; on peut marcher au viseur
-[pegase] Les fourmis
-[pegase] Le village plus chaleureux : four à pain, étal, nom gravé
-[pegase] Sur PC, petite mise à jour
-[pegase] ## 🌈 Pégase 0.9.4.4
-[pegase] Beaucoup plus fluide
-[pegase] Le grand-duc se laisse photographier depuis le buisson
-[pegase] Ciel d'orage gris, pluie douce et nouvel arc-en-ciel éclatant, même la nuit
-[pegase] Ta bouche bouge quand tu parles
-[pegase] Nouvelles petites bêtes : scolie, mante, cigale…
-[pegase] Concours des champignons sur PegaGram
-[neon] Nouveau jeu dans Classique : saute sur le rythme de la musique électro, à travers des mondes néon
-[neon] Chaque saut retombe pile sur le « boum » de la musique : le cube, la boule et les rebonds sont calés au temps près
-[neon] Niveau 1 : le vaisseau arrive au moment où les cymbales accélèrent ; on le pilote en tapotant
-[neon] Niveau 2 refait en écoutant la musique : cube, boule, vaisseau dans la partie calme, puis la boule sur le gros départ
-[neon] Les tremplins sont de vrais sauts automatiques : on roule dessus sans appuyer, et ils pardonnent un appui un peu trop tôt
-[neon] Plus de variété : marches, tremplins, pauses et séries de pics de toutes les longueurs
-[smoothie] Nouveau jeu dans Classique : tranche les fruits d'un geste, le fruit se coupe exactement là où passe ton doigt
-[smoothie] 6 mondes avec chacun sa musique, et leurs boss géants
-[bolides] Nouveau duel : course de voitures téléguidées vues de haut, en duel, contre l'IA ou en ligne
-[bolides] Joystick pour tourner et déraper, bouton GAZ et bouton FREIN ; sur le clavier, la barre d'espace donne les gaz
-[bolides] Circuits plus larges, on glisse le long des murs au lieu de s'y accrocher
-[tirsaubut] Nouveau duel : séance de penaltys, en duel, contre l'IA ou en ligne
-[tirsaubut] Vue du tireur et vraie vue du gardien quand c'est toi qui gardes les buts
-[toupies] Nouveau duel : on jette sa toupie dans l'arène, rail, bouclier et piège de glace
-[toupies] Toupies plus maniables, bonus plus fréquents, et le piège de glace qui gèle l'adversaire
-[toupies] En ligne : les deux joueurs peuvent enfin lancer leur toupie
-🌀 Un nouveau duel se prépare en coulisses… bientôt dans la borne !
+[neon] ## 🎵 Néon Rush : tout beau, tout en rythme
+[neon] Six mondes entièrement redessinés, chacun avec son décor en plusieurs plans qui défilent à des vitesses différentes : Néon City, Coucher Synthwave, Cyber Océan, Grotte de Cristal, Cœur de Lave et Galaxie
+[neon] Tout bat au rythme de la musique : le sol, les blocs, les piques, les portails, ton cube et sa traînée, et toutes les lumières du décor
+[neon] Néon City : les fenêtres des tours s'allument au rythme, enseignes au néon, projecteurs qui balaient le ciel sur les basses, pluie fine et reflets des néons sur le sol mouillé
+[neon] Coucher Synthwave : grand soleil rayé, montagnes en fil de lumière, palmiers, et une vague de lumière qui court sur la grille à chaque temps
+[neon] Cyber Océan : sous l'eau, rayons de lumière qui dansent, ville engloutie, récif qui scintille, méduses qui se contractent sur la musique, algues et bulles
+[neon] Grotte de Cristal : des grappes de cristaux qui résonnent, violettes puis bleues, d'un temps à l'autre
+[neon] Cœur de Lave : les volcans grondent sur les basses et crachent de la lave sur les gros « boum », braises qui montent et mer de lave sous le sol
+[neon] Galaxie : nébuleuses, galaxie spirale, planète à anneaux qui s'illumine, étoiles filantes
+[neon] Sur les grands moments de la musique (les « drops ») : onde de choc, éclair de lumière, et la caméra qui respire avec le son
+[neon] Quand le son joue, le décor écoute vraiment la musique : les graves, les médiums et les aigus
+[neon] Nouveau bouton ✦ en haut à droite : « effets réduits » enlève les éclairs et les secousses, pour le confort des yeux (retenu sur l'appareil)
+[neon] Les obstacles restent toujours bien visibles, et les niveaux sont exactement les mêmes
