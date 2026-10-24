@@ -233,16 +233,19 @@
             for (let k = 0; k < nS; k++) { const sx = x + span * 0.55 + k * 1.1; if (side === 'floor' ? clear(sx - 0.3, sx + 1.3, 0.85, 99) : clear(sx - 0.3, sx + 1.3, -99, BALL_CEIL - 0.85)) L.spikes.push(side === 'floor' ? { x0: sx, y: 0 } : { x0: sx, y: BALL_CEIL, down: true }); }
             sortAll(); continue;
           }
-          sim(x - 0.02); sim(x + 0.3, (g) => ({ tap: Math.abs(g.x - x) < 0.05 }));
+          // le cube RETOMBE pile sur le temps (c'est l'atterrissage qu'on sent) : il saut une durée de vol plus tôt ; sur une orbe, on la touche pile sur le temps
+          const xl = x, orb = (!easy || nP >= 2) && offSnare(bb) >= 6 && cnt % 3 === 0 && bb + 2 < b1, xj = orb ? xl - P.v * P.ta * 0.5 : xl - P.v * P.ta;
+          if (xj < ghost.x + 0.1) continue;
+          sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 }));
           // le « tuch » du contretemps, pendant le saut : une orbe à toucher pile dessus (pas au tout début du niveau 1)
-          if ((!easy || nP >= 2) && offSnare(bb) >= 6 && cnt % 3 === 0 && bb + 2 < b1) {
-            const ax = X((beats[bb] + beats[bb + 1]) / 2); sim(ax - 0.01); const ay = ghost.y; L.orbs.push({ x0: ax, y: ay, big: false, head: true }); sortAll();
+          if (orb) {
+            const ax = xl; sim(ax - 0.01); const ay = ghost.y; L.orbs.push({ x0: ax, y: ay, big: false, head: true }); sortAll();
             sim(ax + P.v * P.ta, (g) => ({ tap: Math.abs(g.x - ax) < 0.06 }));
-            for (let sx = x + 1.4; sx < ax + P.v * P.ta * 0.7; sx += 1) if (clear(sx - 0.2, sx + 1.2, gL + 0.8, 99)) L.spikes.push({ x0: sx, y: gL });
+            for (let sx = xj + 1.4; sx < ax + P.v * P.ta * 0.7; sx += 1) if (clear(sx - 0.2, sx + 1.2, gL + 0.8, 99)) L.spikes.push({ x0: sx, y: gL });
             sortAll(); lastB = bb + 1; continue;
           }
-          sim(x + P.v * P.ta + 0.2);
-          const apex = x + P.v * P.ta * 0.5, n = easy && nP === 0 ? 1 : f >= 11 ? 2 + (diff > 0.5 ? 1 : 0) : f >= 8 ? 2 : 1;
+          sim(xl + 0.2);
+          const apex = xj + P.v * P.ta * 0.5, n = easy && nP === 0 ? 1 : f >= 11 ? 2 + (diff > 0.5 ? 1 : 0) : f >= 8 ? 2 : 1;
           for (let k = 0; k < n; k++) { const sx = apex - n / 2 + k; if (clear(sx - 0.25, sx + 1.25, gL + 0.78, 99)) L.spikes.push({ x0: sx, y: gL }); }
           sortAll();
         }
@@ -456,7 +459,7 @@
           const wasGround = st.ground, vy0 = st.vy;
           if (step(st, L, L.P, sub)) { die(); break; }
           if (st.mode === 'cube' && wasGround && !st.ground && st.vy > 0 && vy0 <= 0) { sfx.jump(); dust(st.x, st.y - PH, 4); }
-          if (st.landed) { st.landed = false; dust(st.x, st.y - PH, 6); }
+          if (st.landed) { st.landed = false; dust(st.x, st.y - PH, 10); pops.push({ k: 'ring', x: st.x, y: st.y - PH, t: 0, life: 0.3, c: '#ffffff' }); shake = Math.max(shake, 2.5); }   // l'atterrissage, sur le temps : on le sent
           if (st.orbHit) { const o = st.orbHit; st.orbHit = null; orbsTaken++; sfx.orb(); rumble('tick'); pops.push({ k: 'ring', x: o.x0, y: o.y, t: 0, life: 0.35, c: '#ffd34d' }); if (o.head) { pops.push({ k: 'head', img: o.head.sad || o.head.img, x: o.x0, y: o.y, t: 0, life: 1.1, small: 1 }); texts.push({ s: 'Snif… ' + o.head.name + ' !', wx: o.x0, wy: o.y + 1.4, t: 0, life: 1.1, col: '#ffd34d', size: 0.45 }); } }
           if (st.padHit) { st.padHit = null; sfx.pad(); }
         }
