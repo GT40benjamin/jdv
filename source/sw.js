@@ -119,6 +119,33 @@ async function asset(req, rel) {
     return hit || r;
   } catch (x) { if (hit) return hit; throw x; }
 }
+// VIDÉOS DU DÉCOR : gardées après le 1er téléchargement complet (lecture instantanée et hors ligne au 2e passage) ; 150 Mo au plus, les plus
+// anciennes sortent ; une demande par plage (Range, la balise <video>) est servie depuis le fichier gardé
+const DECOR = 'jdw-decor', DECOR_MAX = 150e6;
+async function decorVideo(req, rel) {
+  const c = await caches.open(DECOR), key = ROOT + rel, hit = await c.match(key);
+  const range = req.headers.get('range');
+  if (hit) {
+    if (!range) return hit;
+    const buf = await hit.arrayBuffer(), m = /bytes=(\d+)-(\d*)/.exec(range), a = m ? +m[1] : 0, b = m && m[2] ? Math.min(+m[2], buf.byteLength - 1) : buf.byteLength - 1;
+    return new Response(buf.slice(a, b + 1), { status: 206, headers: { 'Content-Type': hit.headers.get('Content-Type') || 'video/webm', 'Content-Range': 'bytes ' + a + '-' + b + '/' + buf.byteLength, 'Content-Length': String(b - a + 1), 'Accept-Ranges': 'bytes' } });
+  }
+  const r = await fetch(req);
+  if (!range && r.ok && r.status === 200) {   // un téléchargement complet (pas une plage) : on le garde
+    const copy = r.clone();
+    (async () => {
+      try {
+        const blob = await copy.blob(), h = new Headers(copy.headers); h.set('x-jdw-t', String(Date.now())); h.set('x-jdw-s', String(blob.size));
+        await c.put(key, new Response(blob, { status: 200, headers: h }));
+        const keys = await c.keys(), info = [];
+        for (const k of keys) { const x = await c.match(k); info.push([k, +(x.headers.get('x-jdw-t') || 0), +(x.headers.get('x-jdw-s') || 0)]); }
+        info.sort((A, B) => A[1] - B[1]); let tot = info.reduce((t, x) => t + x[2], 0);
+        while (tot > DECOR_MAX && info.length > 1) { const o = info.shift(); await c.delete(o[0]); tot -= o[2]; }
+      } catch (x) {}
+    })();
+  }
+  return r;
+}
 async function shell(req, key) {
   const hit = await caches.match(key);
   if (hit) return hit;
@@ -145,7 +172,8 @@ self.addEventListener('fetch', e => {
     if (req.mode === 'navigate') { if (u.href.startsWith(SCOPE)) e.respondWith(page(e)); return; }
     if (!u.pathname.startsWith(ROOT_PATH)) return;
     const rel = decodeURIComponent(u.pathname.slice(ROOT_PATH.length));
-    if ((/^assets\/[a-z0-9/_.-]+\.(bin|mp3)$/.test(rel) || /^assets\/pegase\/[a-z0-9_.-]+\.(jpg|webp|json)$/.test(rel)) && !u.search) { e.respondWith(asset(req, rel)); return; }   // pegase/ : affiches, carte, île 3D, decor.json
+    if ((/^assets\/[a-z0-9/_.-]+\.(bin|mp3)$/.test(rel) || /^assets\/pegase\/[a-z0-9_.-]+\.(jpg|webp|json)$/.test(rel)) && !u.search) { e.respondWith(asset(req, rel)); return; }
+    if (/^assets\/pegase\/decor_[a-z0-9_]+\.(webm|mp4)$/.test(rel) && !u.search) { e.respondWith(decorVideo(req, rel)); return; }   // vidéos du décor : cache jdw-decor   // pegase/ : affiches, carte, île 3D, decor.json
     if (SHELL.includes(rel)) { e.respondWith(shell(req, ROOT + rel)); return; }
     return;                                  // site.json, telecharger/version.json… : toujours le réseau
   }

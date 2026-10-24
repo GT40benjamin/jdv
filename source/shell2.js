@@ -4419,13 +4419,53 @@ if (PG_TAB) {
 // ciel dessiné reste en secours. Pause hors de la page Pégase.
 const PGD = { state: '', still: false, list: [], order: [], cur: -1, act: 0, t: 0 };
 const pgVid = (i) => $(i ? 'jdw-pg-video2' : 'jdw-pg-video');
-function pgDecorSrc(v, id) {
-  const base = ROOT + 'assets/pegase/' + id, port = innerHeight > innerWidth * 1.1;
+// la qualité : l'écran (largeur réelle en pixels) et le débit mesuré (Mbit/s)
+const PGQ = { mbps: 0, log: [] };   // mbps : le débit MESURÉ sur nos propres téléchargements (navigator.connection n'est qu'une estimation)
+if (LABO_TEST) window.JDW_DECOR = PGQ;   // mode test : le journal du décor (qualités, débit, 1re image) pour les essais
+const pgEntry = (id) => (PGD.list || []).find(x => x.id === id) || { id };
+function pgQualWant(e) {
+  const qs = Array.isArray(e.q) ? e.q.slice().sort((a, b) => a - b) : null; if (!qs || !qs.length) return 0;
+  const px = Math.max(innerWidth, innerHeight) * Math.min(2, window.devicePixelRatio || 1), sd = navigator.connection && navigator.connection.saveData;
+  let want = px > 2200 ? 1440 : px > 1300 ? 1080 : 720;
+  const C = navigator.connection || {}, slow = /(^|-)2g$|^3g$/.test(C.effectiveType || ''), m = PGQ.mbps;   // (downlink : estimation trop prudente, pas utilisée)
+  if (sd || (m ? m < 3 : slow)) want = 720; else if (m && m < 8 && want > 1080) want = 1080;
+  return qs.filter(q => q <= want).pop() || qs[0];
+}
+function pgQualStart(e) { const qs = Array.isArray(e.q) ? e.q.slice().sort((a, b) => a - b) : null; return qs ? qs[0] : 0; }   // on démarre toujours petit
+function pgDecorSrc(v, id, q) {
+  const e = pgEntry(id), base = ROOT + 'assets/pegase/' + id, port = innerHeight > innerWidth * 1.1;
   while (v.firstChild) v.removeChild(v.firstChild);
   v.poster = base + '_poster.jpg';
   if (PGD.still) { v.removeAttribute('src'); v.load(); return; }
-  for (const [suf, type] of (port ? [['_portrait.webm', 'video/webm'], ['_portrait.mp4', 'video/mp4']] : []).concat([['.webm', 'video/webm'], ['.mp4', 'video/mp4']])) { const s = document.createElement('source'); s.src = base + suf; s.type = type; v.appendChild(s); }
+  if (q == null) q = PGD.started && pgQualWant(e) ? pgQualWant(e) : pgQualStart(e);   // le 1er plan démarre petit ; les suivants, dans la qualité visée
+  v.dataset.q = q || '';
+  const suf = q ? [['_' + q + '.webm', 'video/webm'], ['_' + q + '.mp4', 'video/mp4']] : (port ? [['_portrait.webm', 'video/webm'], ['_portrait.mp4', 'video/mp4']] : []).concat([['.webm', 'video/webm'], ['.mp4', 'video/mp4']]);
+  for (const [sx, type] of suf) { const sEl = document.createElement('source'); sEl.src = base + sx; sEl.type = type; v.appendChild(sEl); }
   v.preload = 'auto'; v.load();
+}
+// la qualité supérieure, téléchargée en arrière-plan (fetch → débit mesuré, et le service worker la garde) puis en fondu au même instant
+async function pgQualUp(v) {
+  const id = v.dataset.id, e = pgEntry(id), cur = +v.dataset.q || 0, want = pgQualWant(e);
+  if (!cur || !want || want <= cur || v.dataset.up) return;
+  v.dataset.up = '1';
+  const type = v.currentSrc && /\.mp4(\?|$)/.test(v.currentSrc) ? 'mp4' : 'webm', url = ROOT + 'assets/pegase/' + id + '_' + want + '.' + type;
+  const t0 = performance.now();
+  try {
+    const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+    const blob = await r.blob(), dt = (performance.now() - t0) / 1000;
+    PGQ.mbps = Math.max(0.3, blob.size * 8 / 1e6 / Math.max(0.2, dt)); PGQ.log.push(id + ' ' + want + 'p ' + (blob.size / 1e6).toFixed(1) + ' Mo en ' + dt.toFixed(1) + ' s (' + PGQ.mbps.toFixed(1) + ' Mbit/s)');
+    if (v.dataset.id !== id || MODE !== 'pegase') return;
+    const nxt = pgVid(1 - PGD.act); if (v !== pgVid(PGD.act)) return;
+    // la qualité supérieure monte dans l'autre vidéo, au même instant, puis fondu
+    const u = URL.createObjectURL(blob), at = v.currentTime;
+    while (nxt.firstChild) nxt.removeChild(nxt.firstChild);
+    nxt.loop = v.loop; nxt.poster = v.poster; nxt.src = u; nxt.dataset.id = id; nxt.dataset.q = want; delete nxt.dataset.done; delete nxt.dataset.up;
+    await new Promise((ok) => { nxt.addEventListener('loadeddata', ok, { once: true }); setTimeout(ok, 4000); });
+    try { nxt.currentTime = Math.min(at + (performance.now() - t0) / 1000 * 0 + 0.15, (nxt.duration || 999) - 0.5); } catch (x) {}
+    await nxt.play().catch(() => {});
+    PGD.act = 1 - PGD.act; nxt.classList.remove('off'); v.classList.add('off');
+    setTimeout(() => { try { v.pause(); } catch (x) {} if (PGD.list.length > 1) { PGD.pre = PGD.pre != null ? PGD.pre : pgDecorPick(); pgDecorSrc(v, PGD.list[PGD.pre].id); v.dataset.id = PGD.list[PGD.pre].id; } }, 2300);
+  } catch (x) { PGQ.log.push(id + ' ' + want + 'p : échec'); }
 }
 function pgDecorPick() {   // le plan suivant : mélangé, jamais le même deux fois de suite
   if (!PGD.order.length) { const n = PGD.list.length, o = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } if (n > 1 && o[0] === PGD.cur) o.push(o.shift()); PGD.order = o; }
@@ -4450,10 +4490,10 @@ function pgDecor(on) {
   if (!on) { try { v.pause(); v2.pause(); } catch (e) {} return PGD.state === 'ok'; }
   if (PGD.state === 'ok') { if (!PGD.still) pgVid(PGD.act).play().catch(() => {}); return true; }
   if (PGD.state) return false;
-  PGD.state = 'wait';
+  PGD.state = 'wait'; PGD.t0 = performance.now();
   PGD.still = !!((navigator.connection && navigator.connection.saveData) || (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
   const ok = () => { PGD.state = 'ok'; };
-  for (const x of [v, v2]) { x.loop = false; x.addEventListener('timeupdate', () => pgDecorTick(x)); x.addEventListener('playing', () => { delete x.dataset.done; x.classList.add('live'); if (x.dataset.id) pgPoster(x.dataset.id); }); x.addEventListener('ended', () => { if (x === pgVid(PGD.act)) { if (PGD.list.length > 1) pgDecorNext(); else { x.currentTime = 0; x.play().catch(() => {}); } } }); }
+  for (const x of [v, v2]) { x.loop = false; x.addEventListener('timeupdate', () => pgDecorTick(x)); x.addEventListener('playing', () => { delete x.dataset.done; x.classList.add('live'); if (x.dataset.id) pgPoster(x.dataset.id); if (!PGD.started) { PGD.started = true; PGQ.first = Math.round(performance.now() - (PGD.t0 || 0)); PGQ.log.push('1re image ' + PGQ.first + ' ms, ' + (x.dataset.q || '?') + 'p'); } setTimeout(() => pgQualUp(x), 1500); }); x.addEventListener('ended', () => { if (x === pgVid(PGD.act)) { if (PGD.list.length > 1) pgDecorNext(); else { x.currentTime = 0; x.play().catch(() => {}); } } }); }
   v2.classList.add('off');
   fetch(ROOT + 'assets/pegase/decor.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null).then((list) => {
     list = Array.isArray(list) ? list.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id))) : [];
