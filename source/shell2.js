@@ -4334,7 +4334,7 @@ async function islJoin(q, card) {
   pn.querySelector('.pp-x').addEventListener('click', () => pn.remove());
 }
 async function islWatch(q, card) {
-  if (ISL.srv && q.priv) { toastCheer('🔒 Une île privée ne se regarde pas de l\'extérieur.', null, true); return; }
+  // toutes les îles se regardent, même privées (demande de Benjamin) : c'est le serveur qui décide
   let w = null; if (ISL.srv) { try { w = await rpc('pg_island_watch', { p_id: q.id }, { quiet: true }); } catch (e) { w = null; } }
   const rows = Array.isArray(w) ? w : w ? [w] : [];
   const who = rows.map(x => x.r_name || x.name).filter(Boolean), maisons = rows.filter(x => x.r_maison || x.maison).length;
