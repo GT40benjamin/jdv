@@ -6364,24 +6364,30 @@ window.JDW_GAMES.pleingaz = {
       x.restore();
     }
   }
-  // la coupe : tranche vue de face (peau en liseré, chair, pépins…), seule la moitié du dessus (top) ou du dessous
-  function paintCut(x, t, R, top, seed) {
+  // la coupe : le morceau du dessus (top) ou du dessous, coupé sur la ligne y = cy (0 = par le milieu, ±R = tout au bord) :
+  // la peau du morceau, et la tranche (chair, pépins…) qui se voit le long de la coupure, plus petite quand on coupe près du bord
+  function paintCut(x, t, R, top, seed, cy) {
+    cy = cy || 0;
     const r = mulberry32((seed || 3) + (top ? 0 : 99));
     x.save();
-    x.beginPath(); if (top) x.rect(-R * 1.6, -R * 1.6, R * 3.2, R * 1.6); else x.rect(-R * 1.6, 0, R * 3.2, R * 1.6); x.clip();
+    x.beginPath(); if (top) x.rect(-R * 1.6, -R * 1.6, R * 3.2, R * 1.6 + cy); else x.rect(-R * 1.6, cy, R * 3.2, R * 1.6 - cy); x.clip();
     const band = t.shape === 'banana' || t.shape === 'chili' || t.shape === 'pineapple';
     if (band) {
       // forme longue : coupée en travers (banane et piment couchés : on les met debout), la chair apparaît le long de la coupure
       if (t.shape !== 'pineapple') { x.save(); x.rotate(Math.PI / 2); paintFruit(x, t, R, seed); x.restore(); } else paintFruit(x, t, R, seed);
       x.globalCompositeOperation = 'source-atop';
       const s = top ? -1 : 1;
-      x.fillStyle = lin(x, 0, 0, 0, s * R * 0.5, [0, t.edge, 0.12, t.flesh, 0.7, rgba(t.flesh, 0.85), 1, rgba(t.flesh, 0)]);
-      x.fillRect(-R * 1.6, top ? -R * 0.5 : 0, R * 3.2, R * 0.5);
+      x.fillStyle = lin(x, 0, cy, 0, cy + s * R * 0.5, [0, t.edge, 0.12, t.flesh, 0.7, rgba(t.flesh, 0.85), 1, rgba(t.flesh, 0)]);
+      x.fillRect(-R * 1.6, top ? cy - R * 0.5 : cy, R * 3.2, R * 0.5);
       x.fillStyle = rgba(t.dark, 0.6);
-      for (let i = 0; i < 9; i++) { circ(x, (r() - 0.5) * R * 1.4, s * R * (0.08 + r() * 0.15), R * 0.03); x.fill(); }
+      for (let i = 0; i < 9; i++) { circ(x, (r() - 0.5) * R * 1.4, cy + s * R * (0.08 + r() * 0.15), R * 0.03); x.fill(); }
       x.globalCompositeOperation = 'source-over';
       x.restore(); return;
     }
+    // coupe hors du milieu : la peau du morceau d'abord, la tranche (plus petite) par-dessus, un peu inclinée
+    const rf = R * Math.sqrt(Math.max(0.04, 1 - (cy / R) ** 2));
+    if (cy) paintFruit(x, t, R, seed);
+    x.save(); x.translate(0, cy); if (cy) x.scale(rf / R, (rf / R) * 0.86);
     const sq = t.shape === 'star' ? 1 : t.squash || 1;
     const face = () => { if (t.shape === 'star') shapePath(x, t, R); else { x.beginPath(); x.ellipse(0, 0, R, R * sq, 0, 0, TAU); } };
     if (t.glow) { x.fillStyle = rad(x, 0, 0, R * 0.6, 0, 0, R * 1.4, [0, rgba(t.glow, 0.5), 1, rgba(t.glow, 0)]); circ(x, 0, 0, R * 1.4); x.fill(); }
@@ -6425,8 +6431,9 @@ window.JDW_GAMES.pleingaz = {
     // gouttes de jus et brillance de la chair
     x.fillStyle = 'rgba(255,255,255,0.5)'; for (let i = 0; i < 7; i++) { const a = r() * TAU, d = Rf * (0.3 + r() * 0.55); circ(x, Math.cos(a) * d, Math.sin(a) * d, Rf * (0.02 + r() * 0.03)); x.fill(); }
     x.restore();
+    x.restore();
     // le bord coupé, bien net
-    x.strokeStyle = 'rgba(255,255,255,0.85)'; x.lineWidth = Math.max(1, R * 0.04); x.beginPath(); x.moveTo(-R * 0.98, 0); x.lineTo(R * 0.98, 0); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,0.85)'; x.lineWidth = Math.max(1, R * 0.04); x.beginPath(); x.moveTo(-rf * 0.98, cy); x.lineTo(rf * 0.98, cy); x.stroke();
     x.restore();
   }
   // une bombe (corps seulement : la mèche qui crépite est animée en direct)
@@ -6497,7 +6504,7 @@ window.JDW_GAMES.pleingaz = {
     c = mkCanvas(P, P); const x = c.getContext('2d'); x.translate(P / 2, P / 2);
     try {
       if (kind === 'f') paintFruit(x, FRUITS[key], R, key.length * 31 + 5);
-      else if (kind === 'top' || kind === 'bot') paintCut(x, FRUITS[key], R, kind === 'top', key.length * 31 + 5);
+      else if (/^(top|bot)/.test(kind)) { const q = +(kind.slice(3) || 0); paintCut(x, FRUITS[key], R, kind.startsWith('top'), key.length * 31 + 5, q * 0.22 * R); }
       else if (kind === 'bomb') paintBomb(x, R);
       else if (kind === 'boss') paintBossBody(x, key, R);
     } catch (e) { /* jamais d'erreur */ }
@@ -6756,7 +6763,7 @@ window.JDW_GAMES.pleingaz = {
       level = n; wo = worldOf(n); D = diffOf(n);
       misses = 0; got = 0; need = D.need; jar = []; queue = []; spawnT = 0.9; copainDone = false; boss = null;
       refreshHeads();
-      if (wo.w !== prevW || bgCv === null) { bgOld = bgCv; bgFade = bgOld ? 1 : 0; bgCv = null; }
+      if (wo.w !== prevW || bgCv === null) { bgOld = bgCv; bgFade = bgOld ? 1 : 0; bgCv = null; try { if (typeof api.music === 'function') api.music('smw' + (wo.w + 1)); } catch (e) { /* rien */ } }
       state = 'intro'; stT = 0; warm = warmList();
       if (wo.boss) sfx.boss();
     }
@@ -6840,8 +6847,10 @@ window.JDW_GAMES.pleingaz = {
       if (f.kind === 'bomb') return explode(f);
       f.dead = true;
       const t = f.kind === 'copain' ? FRUITS[f.base] || FRUITS.pomme : f.t, key = f.kind === 'copain' ? f.base : f.kind;
-      const nx = Math.sin(a), ny = -Math.cos(a), sp = U * 3.4;
-      for (const s of [1, -1]) halves.push({ spr: sprite(s > 0 ? 'top' : 'bot', key, f.R * dpr), x: f.x + nx * s * f.R * 0.12, y: f.y + ny * s * f.R * 0.12, vx: f.vx * 0.5 + nx * s * sp, vy: f.vy * 0.35 + ny * s * sp - U * 2.2, rot: a, vr: s * (3 + rng() * 4), drip: 0.6, dc: t.juice, t: 0 });
+      // la coupe passe là où la lame a traversé : décalage de la ligne par rapport au centre (au bord = un petit morceau)
+      const nx = Math.sin(a), ny = -Math.cos(a), sp = U * 3.4, off = (ax - f.x) * nx + (ay - f.y) * ny;
+      const q = Math.max(-3, Math.min(3, Math.round((-off / f.R) / 0.22)));
+      for (const s of [1, -1]) { const small = (s > 0 ? q < 0 : q > 0) ? 1 + Math.abs(q) * 0.25 : 1; halves.push({ spr: sprite((s > 0 ? 'top' : 'bot') + (q || ''), key, f.R * dpr), x: f.x + nx * s * f.R * 0.12, y: f.y + ny * s * f.R * 0.12, vx: f.vx * 0.5 + nx * s * sp * small, vy: f.vy * 0.35 + ny * s * sp * small - U * 2.2, rot: a, vr: s * (3 + rng() * 4) * small, drip: 0.6, dc: t.juice, t: 0 }); }
       juice(f.x, f.y, t.juice, 26 + Math.round(f.R / U * 8), f.R, a);
       flashes.push({ x: f.x, y: f.y, r: f.R * 2.2, t: 0, col: t.juice });
       if (hitStop <= 0) hitStop = 0.045;
@@ -7282,7 +7291,7 @@ window.JDW_GAMES.pleingaz = {
   // ===========================================================================
   const WORLD_LIST = WORLDS.map((w, i) => ({ n: i + 1, id: w.id, name: w.name, emoji: w.emoji, when: w.when, tag: w.tag, stages: w.stages.slice(),
     colors: { accent: w.acc, accent2: w.acc2, bg0: w.bg0, bg1: w.bg1 }, boss: { key: w.boss, name: BOSSES[w.boss].name, line: BOSSES[w.boss].line } }));
-  function worldOfMap(lv) { const o = worldOf(lv); return { n: o.n, w: o.w, tour: o.tour, stage: o.stage, boss: o.boss, world: WORLD_LIST[o.w] }; }
+  function worldOfMap(lv) { const o = worldOf(lv); return { n: o.w + 1, lv: o.n, w: o.w, tour: o.tour, stage: o.stage, boss: o.boss, world: WORLD_LIST[o.w] }; }
   function mapSeam(L, i) { if (!i) return L.H; const t = L.tiers[i], gap = t.yLo - t.yHi; return t.yLo - Math.min(96, gap * 0.32); }
   function mapBands(L) {
     const out = [];
@@ -98119,8 +98128,8 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261024114207"; window.JDW_VERSION = "1.33"; window.JDW_NOTES = ["\ud83d\udcd6 GRAND LIVRE : nouveau chapitre \u00ab Fruits et l\u00e9gumes \u00bb, les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa", "\ud83c\udfa3 P\u00c9GASE 0.9.4.5 : la p\u00eache \u00e0 la canne \u00e0 coup (longue canne en bambou, vrai flotteur, sortie du poisson au ralenti) ; des d\u00e9placements et une cam\u00e9ra tout doux ; marcher au viseur ; les fourmis ; le village plus chaleureux (four \u00e0 pain, \u00e9tal, nom grav\u00e9) ; un chapitre \u00ab Fruits et l\u00e9gumes \u00bb dans le Grand livre ; sur PC, petite mise \u00e0 jour", "\ud83c\udf08 P\u00c9GASE 0.9.4.4 : beaucoup plus fluide ; le grand-duc se laisse photographier depuis le buisson ; ciel d'orage gris, pluie douce et nouvel arc-en-ciel \u00e9clatant, m\u00eame la nuit ; ta bouche bouge quand tu parles ; nouvelles petites b\u00eates (scolie, mante, cigale\u2026) ; concours des champignons sur PegaGram ; sur PC, petite mise \u00e0 jour", "\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
-<script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtirsaubut": {"c": ["dtirsaubut-1", "dtirsaubut-2"], "x": ["dtirsaubut-x1"]}, "dtoupies": {"c": ["dtoupies-1", "dtoupies-2"], "x": ["dtoupies-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "neonrush": {"c": ["neonrush-1", "neonrush-2", "neonrush-3"], "x": []}, "pegase": {"c": ["pegase-1"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}, "smoothie": {"c": ["smoothie-1", "smoothie-2"], "x": ["smoothie-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
+<script>window.JDW_BUILD = "20261024114537"; window.JDW_VERSION = "1.33.1"; window.JDW_NOTES = ["\ud83d\udcd6 GRAND LIVRE : nouveau chapitre \u00ab Fruits et l\u00e9gumes \u00bb, les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa", "\ud83c\udfa3 P\u00c9GASE 0.9.4.5 : la p\u00eache \u00e0 la canne \u00e0 coup (longue canne en bambou, vrai flotteur, sortie du poisson au ralenti) ; des d\u00e9placements et une cam\u00e9ra tout doux ; marcher au viseur ; les fourmis ; le village plus chaleureux (four \u00e0 pain, \u00e9tal, nom grav\u00e9) ; un chapitre \u00ab Fruits et l\u00e9gumes \u00bb dans le Grand livre ; sur PC, petite mise \u00e0 jour", "\ud83c\udf08 P\u00c9GASE 0.9.4.4 : beaucoup plus fluide ; le grand-duc se laisse photographier depuis le buisson ; ciel d'orage gris, pluie douce et nouvel arc-en-ciel \u00e9clatant, m\u00eame la nuit ; ta bouche bouge quand tu parles ; nouvelles petites b\u00eates (scolie, mante, cigale\u2026) ; concours des champignons sur PegaGram ; sur PC, petite mise \u00e0 jour", "\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
+<script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtirsaubut": {"c": ["dtirsaubut-1", "dtirsaubut-2"], "x": ["dtirsaubut-x1"]}, "dtoupies": {"c": ["dtoupies-1", "dtoupies-2"], "x": ["dtoupies-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "neonrush": {"c": ["neonrush-1", "neonrush-2", "neonrush-3"], "x": []}, "pegase": {"c": ["pegase-1"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}, "smoothie": {"c": ["smoothie-1", "smoothie-2"], "x": ["smoothie-x1"]}, "smw1": {"c": ["smw1-1"], "x": []}, "smw2": {"c": ["smw2-1"], "x": []}, "smw3": {"c": ["smw3-1"], "x": []}, "smw4": {"c": ["smw4-1"], "x": []}, "smw5": {"c": ["smw5-1"], "x": []}, "smw6": {"c": ["smw6-1"], "x": []}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
 /* ================= Manette (API Gamepad du navigateur) =================

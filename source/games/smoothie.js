@@ -180,24 +180,30 @@
       x.restore();
     }
   }
-  // la coupe : tranche vue de face (peau en liseré, chair, pépins…), seule la moitié du dessus (top) ou du dessous
-  function paintCut(x, t, R, top, seed) {
+  // la coupe : le morceau du dessus (top) ou du dessous, coupé sur la ligne y = cy (0 = par le milieu, ±R = tout au bord) :
+  // la peau du morceau, et la tranche (chair, pépins…) qui se voit le long de la coupure, plus petite quand on coupe près du bord
+  function paintCut(x, t, R, top, seed, cy) {
+    cy = cy || 0;
     const r = mulberry32((seed || 3) + (top ? 0 : 99));
     x.save();
-    x.beginPath(); if (top) x.rect(-R * 1.6, -R * 1.6, R * 3.2, R * 1.6); else x.rect(-R * 1.6, 0, R * 3.2, R * 1.6); x.clip();
+    x.beginPath(); if (top) x.rect(-R * 1.6, -R * 1.6, R * 3.2, R * 1.6 + cy); else x.rect(-R * 1.6, cy, R * 3.2, R * 1.6 - cy); x.clip();
     const band = t.shape === 'banana' || t.shape === 'chili' || t.shape === 'pineapple';
     if (band) {
       // forme longue : coupée en travers (banane et piment couchés : on les met debout), la chair apparaît le long de la coupure
       if (t.shape !== 'pineapple') { x.save(); x.rotate(Math.PI / 2); paintFruit(x, t, R, seed); x.restore(); } else paintFruit(x, t, R, seed);
       x.globalCompositeOperation = 'source-atop';
       const s = top ? -1 : 1;
-      x.fillStyle = lin(x, 0, 0, 0, s * R * 0.5, [0, t.edge, 0.12, t.flesh, 0.7, rgba(t.flesh, 0.85), 1, rgba(t.flesh, 0)]);
-      x.fillRect(-R * 1.6, top ? -R * 0.5 : 0, R * 3.2, R * 0.5);
+      x.fillStyle = lin(x, 0, cy, 0, cy + s * R * 0.5, [0, t.edge, 0.12, t.flesh, 0.7, rgba(t.flesh, 0.85), 1, rgba(t.flesh, 0)]);
+      x.fillRect(-R * 1.6, top ? cy - R * 0.5 : cy, R * 3.2, R * 0.5);
       x.fillStyle = rgba(t.dark, 0.6);
-      for (let i = 0; i < 9; i++) { circ(x, (r() - 0.5) * R * 1.4, s * R * (0.08 + r() * 0.15), R * 0.03); x.fill(); }
+      for (let i = 0; i < 9; i++) { circ(x, (r() - 0.5) * R * 1.4, cy + s * R * (0.08 + r() * 0.15), R * 0.03); x.fill(); }
       x.globalCompositeOperation = 'source-over';
       x.restore(); return;
     }
+    // coupe hors du milieu : la peau du morceau d'abord, la tranche (plus petite) par-dessus, un peu inclinée
+    const rf = R * Math.sqrt(Math.max(0.04, 1 - (cy / R) ** 2));
+    if (cy) paintFruit(x, t, R, seed);
+    x.save(); x.translate(0, cy); if (cy) x.scale(rf / R, (rf / R) * 0.86);
     const sq = t.shape === 'star' ? 1 : t.squash || 1;
     const face = () => { if (t.shape === 'star') shapePath(x, t, R); else { x.beginPath(); x.ellipse(0, 0, R, R * sq, 0, 0, TAU); } };
     if (t.glow) { x.fillStyle = rad(x, 0, 0, R * 0.6, 0, 0, R * 1.4, [0, rgba(t.glow, 0.5), 1, rgba(t.glow, 0)]); circ(x, 0, 0, R * 1.4); x.fill(); }
@@ -241,8 +247,9 @@
     // gouttes de jus et brillance de la chair
     x.fillStyle = 'rgba(255,255,255,0.5)'; for (let i = 0; i < 7; i++) { const a = r() * TAU, d = Rf * (0.3 + r() * 0.55); circ(x, Math.cos(a) * d, Math.sin(a) * d, Rf * (0.02 + r() * 0.03)); x.fill(); }
     x.restore();
+    x.restore();
     // le bord coupé, bien net
-    x.strokeStyle = 'rgba(255,255,255,0.85)'; x.lineWidth = Math.max(1, R * 0.04); x.beginPath(); x.moveTo(-R * 0.98, 0); x.lineTo(R * 0.98, 0); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,0.85)'; x.lineWidth = Math.max(1, R * 0.04); x.beginPath(); x.moveTo(-rf * 0.98, cy); x.lineTo(rf * 0.98, cy); x.stroke();
     x.restore();
   }
   // une bombe (corps seulement : la mèche qui crépite est animée en direct)
@@ -313,7 +320,7 @@
     c = mkCanvas(P, P); const x = c.getContext('2d'); x.translate(P / 2, P / 2);
     try {
       if (kind === 'f') paintFruit(x, FRUITS[key], R, key.length * 31 + 5);
-      else if (kind === 'top' || kind === 'bot') paintCut(x, FRUITS[key], R, kind === 'top', key.length * 31 + 5);
+      else if (/^(top|bot)/.test(kind)) { const q = +(kind.slice(3) || 0); paintCut(x, FRUITS[key], R, kind.startsWith('top'), key.length * 31 + 5, q * 0.22 * R); }
       else if (kind === 'bomb') paintBomb(x, R);
       else if (kind === 'boss') paintBossBody(x, key, R);
     } catch (e) { /* jamais d'erreur */ }
@@ -572,7 +579,7 @@
       level = n; wo = worldOf(n); D = diffOf(n);
       misses = 0; got = 0; need = D.need; jar = []; queue = []; spawnT = 0.9; copainDone = false; boss = null;
       refreshHeads();
-      if (wo.w !== prevW || bgCv === null) { bgOld = bgCv; bgFade = bgOld ? 1 : 0; bgCv = null; }
+      if (wo.w !== prevW || bgCv === null) { bgOld = bgCv; bgFade = bgOld ? 1 : 0; bgCv = null; try { if (typeof api.music === 'function') api.music('smw' + (wo.w + 1)); } catch (e) { /* rien */ } }
       state = 'intro'; stT = 0; warm = warmList();
       if (wo.boss) sfx.boss();
     }
@@ -656,8 +663,10 @@
       if (f.kind === 'bomb') return explode(f);
       f.dead = true;
       const t = f.kind === 'copain' ? FRUITS[f.base] || FRUITS.pomme : f.t, key = f.kind === 'copain' ? f.base : f.kind;
-      const nx = Math.sin(a), ny = -Math.cos(a), sp = U * 3.4;
-      for (const s of [1, -1]) halves.push({ spr: sprite(s > 0 ? 'top' : 'bot', key, f.R * dpr), x: f.x + nx * s * f.R * 0.12, y: f.y + ny * s * f.R * 0.12, vx: f.vx * 0.5 + nx * s * sp, vy: f.vy * 0.35 + ny * s * sp - U * 2.2, rot: a, vr: s * (3 + rng() * 4), drip: 0.6, dc: t.juice, t: 0 });
+      // la coupe passe là où la lame a traversé : décalage de la ligne par rapport au centre (au bord = un petit morceau)
+      const nx = Math.sin(a), ny = -Math.cos(a), sp = U * 3.4, off = (ax - f.x) * nx + (ay - f.y) * ny;
+      const q = Math.max(-3, Math.min(3, Math.round((-off / f.R) / 0.22)));
+      for (const s of [1, -1]) { const small = (s > 0 ? q < 0 : q > 0) ? 1 + Math.abs(q) * 0.25 : 1; halves.push({ spr: sprite((s > 0 ? 'top' : 'bot') + (q || ''), key, f.R * dpr), x: f.x + nx * s * f.R * 0.12, y: f.y + ny * s * f.R * 0.12, vx: f.vx * 0.5 + nx * s * sp * small, vy: f.vy * 0.35 + ny * s * sp * small - U * 2.2, rot: a, vr: s * (3 + rng() * 4) * small, drip: 0.6, dc: t.juice, t: 0 }); }
       juice(f.x, f.y, t.juice, 26 + Math.round(f.R / U * 8), f.R, a);
       flashes.push({ x: f.x, y: f.y, r: f.R * 2.2, t: 0, col: t.juice });
       if (hitStop <= 0) hitStop = 0.045;
@@ -1098,7 +1107,7 @@
   // ===========================================================================
   const WORLD_LIST = WORLDS.map((w, i) => ({ n: i + 1, id: w.id, name: w.name, emoji: w.emoji, when: w.when, tag: w.tag, stages: w.stages.slice(),
     colors: { accent: w.acc, accent2: w.acc2, bg0: w.bg0, bg1: w.bg1 }, boss: { key: w.boss, name: BOSSES[w.boss].name, line: BOSSES[w.boss].line } }));
-  function worldOfMap(lv) { const o = worldOf(lv); return { n: o.n, w: o.w, tour: o.tour, stage: o.stage, boss: o.boss, world: WORLD_LIST[o.w] }; }
+  function worldOfMap(lv) { const o = worldOf(lv); return { n: o.w + 1, lv: o.n, w: o.w, tour: o.tour, stage: o.stage, boss: o.boss, world: WORLD_LIST[o.w] }; }
   function mapSeam(L, i) { if (!i) return L.H; const t = L.tiers[i], gap = t.yLo - t.yHi; return t.yLo - Math.min(96, gap * 0.32); }
   function mapBands(L) {
     const out = [];
