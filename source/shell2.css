@@ -2560,3 +2560,4 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
   #jdw-lib[data-mode="pegase"] .pg-search,#jdw-lib[data-mode="pegase"] .pg-create{width:min(340px,100%)}
 }
 #jdw-lib[data-mode="pegase"] .guest-bar,#jdw-lib[data-mode="pegase"] .acct-bar,#jdw-lib[data-mode="pegase"] .net-bar{width:min(680px,100%);justify-self:center;background:rgba(10,16,32,.72);border-color:rgba(255,255,255,.14)}   /* bandeaux à la largeur de la recherche */
+#jdw-lib[data-mode="pegase"] .pgs-in{color:#fff}#jdw-lib[data-mode="pegase"] .pgs-in::placeholder{color:rgba(255,255,255,.92);opacity:1}#jdw-lib[data-mode="pegase"] .pgs-ic{stroke:#fff}#jdw-lib[data-mode="pegase"] .pgs-filt svg{stroke:#fff}   /* recherche lisible sur la vidéo */

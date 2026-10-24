@@ -4420,7 +4420,7 @@ if (PG_TAB) {
 // avec un fondu enchaîné de 2 s ; seul le plan suivant est préchargé. Appareil qui économise les données ou préfère moins d'animations :
 // les affiches seules, qui changent toutes les minutes. Pas de liste (ou pas d'affiche) : l'ancienne vidéo unique (decor.webm), sinon le
 // ciel dessiné reste en secours. Pause hors de la page Pégase.
-const PGD = { state: '', still: false, list: [], order: [], cur: -1, act: 0, t: 0 };
+const PGD = { state: '', still: false, list: [], order: [], cur: -1, act: 0, t: 0, tok: 0, nextAt: 0 };
 const pgVid = (i) => $(i ? 'jdw-pg-video2' : 'jdw-pg-video');
 // la qualité : l'écran (largeur réelle en pixels) et le débit mesuré (Mbit/s)
 const PGQ = { mbps: 0, log: [] };   // mbps : le débit MESURÉ sur nos propres téléchargements (navigator.connection n'est qu'une estimation)
@@ -4450,6 +4450,7 @@ function pgDecorSrc(v, id, q) {
 async function pgQualUp(v) {
   const id = v.dataset.id, e = pgEntry(id), cur = +v.dataset.q || 0, want = pgQualWant(e);
   if (!cur || !want || want <= cur || v.dataset.up) return;
+  if (Date.now() - (PGD.nextAt || 0) < 3000) { setTimeout(() => pgQualUp(v), 3000); return; }   // un passage de plan est en cours : on attend
   v.dataset.up = '1';
   const type = v.currentSrc && /\.mp4(\?|$)/.test(v.currentSrc) ? 'mp4' : 'webm', url = ROOT + 'assets/pegase/' + id + '_' + want + '.' + type;
   const t0 = performance.now();
@@ -4458,7 +4459,8 @@ async function pgQualUp(v) {
     const blob = await r.blob(), dt = (performance.now() - t0) / 1000;
     PGQ.mbps = Math.max(0.3, blob.size * 8 / 1e6 / Math.max(0.2, dt)); PGQ.log.push(id + ' ' + want + 'p ' + (blob.size / 1e6).toFixed(1) + ' Mo en ' + dt.toFixed(1) + ' s (' + PGQ.mbps.toFixed(1) + ' Mbit/s)');
     if (v.dataset.id !== id || MODE !== 'pegase') return;
-    const nxt = pgVid(1 - PGD.act); if (v !== pgVid(PGD.act)) return;
+    const nxt = pgVid(1 - PGD.act); if (v !== pgVid(PGD.act) || Date.now() - (PGD.nextAt || 0) < 3000) return;
+    const tok = ++PGD.tok;
     // la qualité supérieure monte dans l'autre vidéo, au même instant, puis fondu
     const u = URL.createObjectURL(blob), at = v.currentTime;
     while (nxt.firstChild) nxt.removeChild(nxt.firstChild);
@@ -4467,7 +4469,7 @@ async function pgQualUp(v) {
     try { nxt.currentTime = Math.min(at + (performance.now() - t0) / 1000 * 0 + 0.15, (nxt.duration || 999) - 0.5); } catch (x) {}
     await nxt.play().catch(() => {});
     PGD.act = 1 - PGD.act; nxt.classList.remove('off'); v.classList.add('off');
-    setTimeout(() => { try { v.pause(); } catch (x) {} if (PGD.list.length > 1) { PGD.pre = PGD.pre != null ? PGD.pre : pgDecorPick(); pgDecorSrc(v, PGD.list[PGD.pre].id); v.dataset.id = PGD.list[PGD.pre].id; } }, 2300);
+    setTimeout(() => { if (tok !== PGD.tok) return; try { v.pause(); } catch (x) {} if (PGD.list.length > 1) { PGD.pre = PGD.pre != null ? PGD.pre : pgDecorPick(); pgDecorSrc(v, PGD.list[PGD.pre].id); v.dataset.id = PGD.list[PGD.pre].id; } }, 2300);
   } catch (x) { PGQ.log.push(id + ' ' + want + 'p : échec'); }
 }
 function pgDecorPick() {   // le plan suivant : mélangé, jamais le même deux fois de suite
@@ -4477,11 +4479,12 @@ function pgDecorPick() {   // le plan suivant : mélangé, jamais le même deux 
 function pgDecorNext() {
   if (!PGD.list.length) return;
   const nxt = pgVid(1 - PGD.act), cur = pgVid(PGD.act);
+  const tok = ++PGD.tok; PGD.nextAt = Date.now();   // jeton : un préchargement en attente devenu périmé ne touche plus aux vidéos
   PGD.act = 1 - PGD.act; PGD.cur = PGD.pre != null ? PGD.pre : pgDecorPick(); PGD.pre = null;
   if (nxt.dataset.id !== PGD.list[PGD.cur].id) { pgDecorSrc(nxt, PGD.list[PGD.cur].id); nxt.dataset.id = PGD.list[PGD.cur].id; }
   nxt.classList.remove('off'); cur.classList.add('off');   // fondu enchaîné de 2 s (CSS)
   if (!PGD.still && MODE === 'pegase') { try { nxt.currentTime = 0; } catch (e) {} nxt.play().catch(() => {}); }
-  setTimeout(() => { if (cur === pgVid(PGD.act)) return; try { cur.pause(); } catch (e) {} if (PGD.list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(cur, PGD.list[PGD.pre].id); cur.dataset.id = PGD.list[PGD.pre].id; } }, 2300);   // le suivant se précharge dans la vidéo libérée
+  setTimeout(() => { if (tok !== PGD.tok || cur === pgVid(PGD.act)) return; try { cur.pause(); } catch (e) {} if (PGD.list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(cur, PGD.list[PGD.pre].id); cur.dataset.id = PGD.list[PGD.pre].id; } }, 2300);   // le suivant se précharge dans la vidéo libérée
   clearTimeout(PGD.t); if (PGD.still) PGD.t = setTimeout(pgDecorNext, 60000);   // affiches seules : une par minute
 }
 function pgDecorTick(v) {   // un plan qui s'achève : 2 s avant la fin, le suivant prend le relais
@@ -4496,7 +4499,8 @@ setInterval(() => {
   v.loop = false;
   const now = Date.now(), d = v.duration, t = v.currentTime;
   if (!PGD.shownAt || PGD.shownId !== v.dataset.id + '|' + PGD.act) { PGD.shownAt = now; PGD.shownId = v.dataset.id + '|' + PGD.act; PGD.lastT = t; PGD.stuck = 0; return; }
-  PGD.stuck = Math.abs(t - PGD.lastT) < 0.05 && !v.paused ? PGD.stuck + 1 : 0; PGD.lastT = t;
+  if (v.paused && !v.ended) v.play().catch(() => {});
+  PGD.stuck = Math.abs(t - PGD.lastT) < 0.05 ? PGD.stuck + 1 : 0; PGD.lastT = t;
   const late = d && isFinite(d) ? t > d - 2.05 : false;
   if (v.ended || (late && !v.dataset.done) || now - PGD.shownAt > 75000 || PGD.stuck >= 4) { v.dataset.done = '1'; PGD.shownAt = 0; pgDecorNext(); }
 }, 2000);
