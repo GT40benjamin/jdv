@@ -1,33 +1,46 @@
 {
-  "version": "0.9.4.6",
-  "build": 35,
-  "size": 2119782217,
-  "sha256": "703f3af248df6df1a6f78e77d8a4130934d72c2b28f7d3b6d0a1cced4f955ff2",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v35/Pegase-PC-2026-10-24-0.9.4.6.zip",
-  "manifest": "4eab211992b8d6933f91a34df7f2af5d37568bd866e5413207cc9597a6ed3299",
+  "version": "0.9.4.7",
+  "build": 36,
+  "size": 2120436803,
+  "sha256": "6e48fecb6b0f38b3e1bfd562757fcaff3e5988828e1b856a243a0e1f9259e012",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v36/Pegase-PC-2026-10-24-0.9.4.7.zip",
+  "manifest": "7fe2e907d6eed5ecf4c3d233aa8bc7288f98185916dc0746c9ac3b0ccfc8ad53",
   "patchs": [
     {
-      "de": "0.9.4.5",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v35/Pegase-PC-patch-0.9.4.5.zip",
-      "taille": 39861639,
-      "sha256": "1e5218aa61b7d8f325f9cebdc3eb7907578932224518756591067e70c4b4b18d"
+      "de": "0.9.4.6",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v36/Pegase-PC-patch-0.9.4.6.zip",
+      "taille": 4964615,
+      "sha256": "b4962b17a4ca879aaefdd0c8d2745e60180173439a4d1fc5ad70e6ee36c1d51f"
     }
   ],
   "notes": [
-    "Le ponton : un long ponton de bois part de la plage vers le large, avec sa barque amarrée au bout. On y pêche, et Gaspard aussi.",
-    "Les grands combats : les gros poissons sautent hors de l'eau, se tordent en l'air, éclaboussent ; la canne plie en arc, et le poisson est ramené par la bouche jusqu'au bord.",
-    "Une interface de pêche toute propre : la distance au bord sur une barre verticale à droite, le rond à gauche, rien au milieu.",
-    "Chaque poisson bien tenu, du petit poisson rouge dans les paumes à la Dorée géante portée à deux bras.",
-    "Les parcelles du jardin : cinq parcelles à vendre au bord du chemin, avec bornes de pierre, liseré, panneau et boîte aux lettres, et leurs contours sur la carte.",
-    "Le facteur passe sur son vélo jaune et s'arrête devant chaque boîte aux lettres.",
-    "Le héron cendré pêche au bord du lac (nouvelle case du Grand livre).",
-    "Les animaux bien posés : chat, choucas et grand-duc ne flottent plus et ne traversent plus les toits.",
-    "De nouvelles petites bêtes : le moustique tigre, l'araignée-loup et le mille-pattes ; la blatte s'enfuit ; et une carte « Insecte attrapé ! » au coup de filet.",
-    "La galerie du musée : de vrais cadres dorés à hauteur des yeux, prêts à recevoir les photos que tu offres à Mlle Iris.",
-    "Les lunettes se posent sur le nez, juste devant les yeux, et leurs branches passent au-dessus des oreilles.",
-    "Des déplacements encore plus doux : départs et arrêts en courbe, caméra plus calme au stick, vue à la première personne sans secousse, et la caméra ne passe plus à travers les toiles et les auvents."
+    "Le grand-duc : quand tu siffles, on l'entend arriver de loin, et le message n'apparaît que quand il s'est vraiment posé. S'il a peur, il s'envole vers ses rochers en haut de la falaise.",
+    "Un deuxième grand-duc vit maintenant au coin des bambous, près du petit pont rouge.",
+    "Caché dans un buisson, le viseur sort à la lisière : tout le décor reste visible, avec des feuilles floues autour du cadre qui s'effacent quand on zoome. Si le grand-duc s'est posé hors de vue, un repère te mène au buisson d'où on le voit bien.",
+    "Un viseur plus clair : boutons carrés alignés avec leur touche, et un seul conseil à la fois, sur une ligne.",
+    "Les petites bêtes s'analysent dès qu'elles sont assez grandes dans l'image.",
+    "Basile montre la canne à coup en premier dans sa boutique.",
+    "Accroupi plus naturel : un genou à terre, le buste droit.",
+    "Assis sur un banc, les mains se posent naturellement, les poignets se plient en douceur et le téléphone est bien tenu.",
+    "Le musée : plafond plus haut, bancs qui ne gênent plus le passage, grands cartels lisibles dans la galerie.",
+    "Les maisons : plus d'herbe qui traverse le plancher quand une maison est reconstruite au même endroit."
   ],
   "historique": [
+    {
+      "version": "0.9.4.7",
+      "notes": [
+        "Le grand-duc : quand tu siffles, on l'entend arriver de loin, et le message n'apparaît que quand il s'est vraiment posé. S'il a peur, il s'envole vers ses rochers en haut de la falaise.",
+        "Un deuxième grand-duc vit maintenant au coin des bambous, près du petit pont rouge.",
+        "Caché dans un buisson, le viseur sort à la lisière : tout le décor reste visible, avec des feuilles floues autour du cadre qui s'effacent quand on zoome. Si le grand-duc s'est posé hors de vue, un repère te mène au buisson d'où on le voit bien.",
+        "Un viseur plus clair : boutons carrés alignés avec leur touche, et un seul conseil à la fois, sur une ligne.",
+        "Les petites bêtes s'analysent dès qu'elles sont assez grandes dans l'image.",
+        "Basile montre la canne à coup en premier dans sa boutique.",
+        "Accroupi plus naturel : un genou à terre, le buste droit.",
+        "Assis sur un banc, les mains se posent naturellement, les poignets se plient en douceur et le téléphone est bien tenu.",
+        "Le musée : plafond plus haut, bancs qui ne gênent plus le passage, grands cartels lisibles dans la galerie.",
+        "Les maisons : plus d'herbe qui traverse le plancher quand une maison est reconstruite au même endroit."
+      ]
+    },
     {
       "version": "0.9.4.6",
       "notes": [
@@ -83,17 +96,6 @@
         "On ne reste plus coincé sur certains rochers.",
         "La corneille s'envole quand on approche au lieu de marcher longtemps.",
         "La flèche vers un copain montre le bon endroit, et la carte pour parler avec tes amis se clique bien."
-      ]
-    },
-    {
-      "version": "0.9.4.2",
-      "notes": [
-        "La mission du grand-duc s'ouvre bien pour tout le monde : Mlle Iris a quelque chose à te confier au musée (elle ne s'ouvrait pas après les photos de la maison).",
-        "Un étal de boulangerie à l'ancienne garni de pains, croissants et gâteaux, et une pendule dans chaque intérieur.",
-        "Fiche photo : chaque sujet dit s'il va dans le Grand livre, ou s'il faut s'approcher.",
-        "Téléphone : touche O pour répondre, messages dans le bon ordre, défilement doux, la pastille ne compte que les messages.",
-        "Voix : on s'entend mieux (la bouche de l'avatar ne coupe plus le micro).",
-        "Sur PC, la mise à jour se prépare toute seule pendant la partie et propose de redémarrer quand tu es libre."
       ]
     }
   ]

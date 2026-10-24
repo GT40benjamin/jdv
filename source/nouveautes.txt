@@ -2,6 +2,15 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre (une version de Pégase).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[pegase] ## 🦉 Pégase 0.9.4.7
+[pegase] Le grand-duc : quand tu siffles, on l'entend arriver de loin, et il s'envole vers ses rochers s'il a peur
+[pegase] Un deuxième grand-duc vit au coin des bambous, près du petit pont rouge
+[pegase] Caché dans un buisson, le viseur sort à la lisière : tout le décor reste visible, avec des feuilles floues autour du cadre
+[pegase] Si le grand-duc se pose hors de vue, un repère te mène au buisson d'où on le voit bien
+[pegase] Un viseur plus clair : boutons carrés avec leur touche, et un seul conseil à la fois
+[pegase] Accroupi plus naturel, et assis sur un banc les mains se posent en douceur
+[pegase] Le musée : plafond plus haut, bancs qui ne gênent plus, grands cartels lisibles
+[pegase] Plus d'herbe à travers le plancher quand une maison est reconstruite
 [pegase] ## 🎵 Nouvelle musique
 [pegase] Pégase a une nouvelle musique : quatre morceaux doux enchaînés (harpe, célesta, cordes, flûte), près de 6 minutes, sans coupure
 [pegase] ## 🎣 Pégase 0.9.4.6
