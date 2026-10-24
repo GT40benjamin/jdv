@@ -609,15 +609,14 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
 #jdw-lib[data-mode="pegase"] #jdw-page-pegase{display:grid;padding-bottom:28px}   /* de l'air au-dessus de la barre du bas */
 /* ===== L'UNIVERS DE PÉGASE : le ciel du soir animé derrière toute la page (étoiles, aurore, lune, îles flottantes, mer, Pégase qui
    passe), un grand titre lumineux, des onglets et des cartes en verre ===== */
-.pg-sky{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:none}
-#jdw-lib[data-mode="pegase"] .pg-sky{display:block}
+.pg-poster{position:fixed;inset:0;z-index:0;pointer-events:none;display:none;background:#050a1f center/cover no-repeat}
+#jdw-lib[data-mode="pegase"] .pg-poster{display:block}
 /* le vrai décor filmé dans le jeu (quand il existe) : vidéo plein écran + voile sombre en bas pour garder les cartes lisibles */
 .pg-video,.pg-veil{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:none}
 .pg-video{object-fit:cover;background:#050a1f;transition:opacity 2s ease-in-out}
-.pg-video.off{opacity:0}
+.pg-video.off,.pg-video:not(.live){opacity:0}
 .pg-veil{background:linear-gradient(180deg,rgba(5,10,31,.25) 0%,rgba(5,10,31,0) 22%,rgba(5,10,31,0) 45%,rgba(5,10,31,.55) 75%,rgba(5,10,31,.8) 100%)}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-video,#jdw-lib[data-mode="pegase"].pg-vid .pg-veil{display:block}
-#jdw-lib[data-mode="pegase"].pg-vid .pg-sky{display:none}
 #jdw-lib[data-mode="pegase"].pg-vid .mode-hero p{text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 16px rgba(0,0,0,.75)}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-tabs{background:rgba(6,14,36,.55)}
 #jdw-lib[data-mode="pegase"]{background:#050a1f}
@@ -2441,3 +2440,55 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 .callring.missed .cr-no span{transform:none}
 .callring.missed .cr-no{background:rgba(255,255,255,.14)}
 @media (prefers-reduced-motion:reduce){.callring,.cr-face,.cr-ok span{animation:none}}
+
+/* ===== PAGE PÉGASE, version féerique : barre du haut épurée (ta tête · 🏆 îles · 🔔 · ♪ · ✨), cartes et barre du bas en verre doré ===== */
+.pg-only{display:none}
+#jdw-lib[data-mode="pegase"] .pg-only{display:inline-grid}
+#jdw-lib[data-mode="pegase"] #jdw-online,#jdw-lib[data-mode="pegase"] #jdw-chat-btn,#jdw-lib[data-mode="pegase"] #jdw-open-board,#jdw-lib[data-mode="pegase"] #jdw-open-settings,#jdw-lib[data-mode="pegase"] #jdw-me-name,#jdw-lib[data-mode="pegase"] .room-row{display:none !important}
+#jdw-lib[data-mode="pegase"] .home-bar{margin:8px 10px 0;border-radius:22px;border:1px solid rgba(255,214,140,.32);background:linear-gradient(180deg,rgba(18,28,64,.62),rgba(8,14,38,.55));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .8s cubic-bezier(.3,.9,.3,1),opacity .8s}
+#jdw-lib[data-mode="pegase"] .home-bar::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(2px 2px at 12% 30%,rgba(255,236,170,.9),transparent 60%),radial-gradient(1.5px 1.5px at 37% 70%,rgba(160,255,240,.8),transparent 60%),radial-gradient(1.5px 1.5px at 66% 25%,rgba(255,236,170,.7),transparent 60%),radial-gradient(2px 2px at 88% 65%,rgba(160,255,240,.7),transparent 60%);animation:pgLuc 6s ease-in-out infinite alternate}
+@keyframes pgLuc{from{opacity:.35}to{opacity:1}}
+#jdw-lib[data-mode="pegase"] .home-bar{justify-content:center}
+#jdw-lib[data-mode="pegase"] .home-bar .bar-sp{display:none}
+#jdw-lib[data-mode="pegase"] .home-bar .icon-btn,#jdw-lib[data-mode="pegase"] .me-chip{border-radius:16px;border:1px solid rgba(255,214,140,.28);background:rgba(255,255,255,.05);color:#ffe6a8}
+#jdw-lib[data-mode="pegase"] .home-bar .icon-btn svg{stroke:#ffe6a8}
+#jdw-lib[data-mode="pegase"] .home-bar .icon-btn:hover{background:rgba(94,240,255,.14);border-color:rgba(94,240,255,.5)}
+#jdw-pg-music .mute{display:none}#jdw-pg-music.off .mute{display:inline}#jdw-pg-music.off{opacity:.7}
+#jdw-lib[data-mode="pegase"] .pg-isle{border:1px solid rgba(255,214,140,.42);border-radius:22px;background:linear-gradient(180deg,rgba(20,30,70,.58),rgba(8,14,38,.66));box-shadow:0 16px 36px rgba(0,0,0,.45),0 0 0 1px rgba(94,240,255,.08) inset,0 0 26px rgba(255,214,140,.10)}
+#jdw-lib[data-mode="pegase"] .pg-isle:hover{box-shadow:0 20px 44px rgba(0,0,0,.5),0 0 0 1px rgba(255,214,140,.6),0 0 30px rgba(255,214,140,.25)}
+#jdw-lib[data-mode="pegase"] .pi-name{background:linear-gradient(180deg,#fff6d8,#ffd36b 55%,#9ff3e6);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.03em}
+#jdw-lib[data-mode="pegase"] .pi-badge,#jdw-lib[data-mode="pegase"] .pi-live{border-radius:999px;border:1px solid rgba(255,214,140,.35);background:rgba(10,14,40,.62)}
+#jdw-lib[data-mode="pegase"] .pi-act .pi-play{background:linear-gradient(180deg,#ffe08a,#ffb340);color:#2a1606;border-radius:999px;box-shadow:0 4px 14px rgba(255,180,60,.3)}
+#jdw-lib[data-mode="pegase"] .pi-act .pi-watch{border-radius:999px;border:1px solid rgba(94,240,255,.4);background:rgba(94,240,255,.12);color:#dffcf8}
+#jdw-lib[data-mode="pegase"] .pi-gram{border-radius:999px;border-color:rgba(255,214,140,.4)}
+#jdw-lib[data-mode="pegase"] .pg-search{border-radius:999px;border-color:rgba(255,214,140,.32)}
+#jdw-lib[data-mode="pegase"] .pgs-filt{border-radius:999px}
+#jdw-lib[data-mode="pegase"] .pg-create{border-color:rgba(255,214,140,.55);border-radius:22px}
+#jdw-lib[data-mode="pegase"] .pg-create b{color:#ffd36b}
+#jdw-lib[data-mode="pegase"] .modebar{border-radius:26px;border:1px solid rgba(255,214,140,.32);background:linear-gradient(180deg,rgba(18,28,64,.7),rgba(8,14,38,.78));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .8s cubic-bezier(.3,.9,.3,1),opacity .8s}
+#jdw-lib[data-mode="pegase"] .modebar button[aria-current="page"] .mb-t{color:#ffd36b}
+/* le CLASSEMENT DES ÎLES */
+.pgrank{width:100%;border-collapse:collapse;font:600 13.5px var(--body)}
+.pgrank th{padding:6px 4px;text-align:left;color:var(--muted);font:700 12px var(--body);border-bottom:1px solid var(--line)}
+.pgrank th button{border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:4px 6px;border-radius:8px}
+.pgrank th button[aria-sort="descending"]{color:#ffd36b;background:rgba(255,214,140,.12)}
+.pgrank td{padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.06)}
+.pgrank td.rk{width:34px;text-align:center}.pgrank td.nm{font-weight:700;color:var(--ink)}
+.pgrank tr.me td{background:rgba(94,240,255,.08)}
+/* le mode AMBIANCE : tout glisse et s'efface en douceur (0,8 s) ; il reste la vidéo et le titre, qui descend et brille */
+#jdw-lib[data-mode="pegase"] .lib-wrap>*{transition:opacity .8s ease,transform .8s cubic-bezier(.3,.9,.3,1)}
+#jdw-lib.pg-ambi{cursor:none;overflow:hidden}
+#jdw-lib.pg-ambi .home-bar{transform:translateY(-130%);opacity:0;pointer-events:none}
+#jdw-lib.pg-ambi .modebar{transform:translateY(140%);opacity:0;pointer-events:none}
+#jdw-lib.pg-ambi .lib-wrap>*:not(.mode-hero){opacity:0;transform:translateY(24px);pointer-events:none}
+#jdw-lib[data-mode="pegase"] #jdw-page-pegase{transition:opacity .8s ease,transform .8s cubic-bezier(.3,.9,.3,1)}
+#jdw-lib.pg-ambi #jdw-page-pegase{opacity:0;transform:translateY(24px);pointer-events:none}
+#jdw-lib.pg-ambi .lib-wrap.page-in > *,#jdw-lib.pg-ambi .lib-wrap > *{animation:none}   /* l'animation d'entrée de page ne doit pas figer l'opacité */
+#jdw-lib.pg-ambi .pg-veil{opacity:.35}
+.pg-veil{transition:opacity .8s}
+#jdw-lib.pg-ambi .mode-hero{transform:translateY(22vh)}
+#jdw-lib[data-mode="pegase"] .mode-hero h1{transition:transform .8s cubic-bezier(.3,.9,.3,1),filter .8s}
+#jdw-lib.pg-ambi .mode-hero h1{transform:scale(1.35);filter:drop-shadow(0 0 28px rgba(255,214,140,.6)) drop-shadow(0 0 60px rgba(94,240,255,.35)) drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+#jdw-lib.pg-ambi .mode-hero p{opacity:0}
+.mode-hero p{transition:opacity .8s}
+@media (prefers-reduced-motion:reduce){#jdw-lib[data-mode="pegase"] .lib-wrap>*,#jdw-lib[data-mode="pegase"] .home-bar,#jdw-lib[data-mode="pegase"] .modebar{transition:opacity .4s}}

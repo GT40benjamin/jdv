@@ -145,7 +145,7 @@ self.addEventListener('fetch', e => {
     if (req.mode === 'navigate') { if (u.href.startsWith(SCOPE)) e.respondWith(page(e)); return; }
     if (!u.pathname.startsWith(ROOT_PATH)) return;
     const rel = decodeURIComponent(u.pathname.slice(ROOT_PATH.length));
-    if (/^assets\/[a-z0-9/_.-]+\.(bin|mp3)$/.test(rel) && !u.search) { e.respondWith(asset(req, rel)); return; }
+    if ((/^assets\/[a-z0-9/_.-]+\.(bin|mp3)$/.test(rel) || /^assets\/pegase\/[a-z0-9_.-]+\.(jpg|webp|json)$/.test(rel)) && !u.search) { e.respondWith(asset(req, rel)); return; }   // pegase/ : affiches, carte, île 3D, decor.json
     if (SHELL.includes(rel)) { e.respondWith(shell(req, ROOT + rel)); return; }
     return;                                  // site.json, telecharger/version.json… : toujours le réseau
   }

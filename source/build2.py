@@ -143,10 +143,10 @@ if len(sys.argv) > 5:
 def write_sw(out):
     import hashlib
     A = os.path.join(J, '..', 'assets'); assets = {}
-    for d, sub in ((A, ''), (os.path.join(A, 'music'), 'music/')):
+    for d, sub in ((A, ''), (os.path.join(A, 'music'), 'music/'), (os.path.join(A, 'pegase'), 'pegase/')):
         if not os.path.isdir(d): continue
         for f in sorted(os.listdir(d)):
-            if re.match(r'^[a-z0-9_.-]+\.(bin|mp3)$', f) and os.path.isfile(os.path.join(d, f)):
+            if re.match(r'^[a-z0-9_.-]+\.(bin|mp3)$' if sub != 'pegase/' else r'^[a-z0-9_.-]+\.(jpg|webp|json)$', f) and os.path.isfile(os.path.join(d, f)):   # pegase/ : affiches, carte, île 3D, decor.json
                 assets['assets/' + sub + f] = hashlib.sha1(open(os.path.join(d, f), 'rb').read()).hexdigest()[:12]
     enc = set(music_enc()); ext = lambda n: n + ('.bin' if n in enc else '.mp3')
     pre = [k for k in assets if re.match(r'^assets/[a-z0-9_-]+\.bin$', k)]                        # images des jeux (ilo.bin)

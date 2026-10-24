@@ -403,7 +403,7 @@ function isGuest() {      // = acctState(profile) !== 'on', sans dépendre de l'
   return !(profile && profile.name && se && se.rt);
 }
 // seules fonctions du serveur permises à un invité (toutes les autres sont refusées ici, sans appel réseau)
-const GUEST_RPC = new Set(['pg_island_list', 'pg_island_watch', 'pg_island_request', 'pg_island_request_state', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
+const GUEST_RPC = new Set(['pg_island_ranking', 'pg_island_list', 'pg_island_watch', 'pg_island_request', 'pg_island_request_state', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
 // le joueur au nom duquel une fonction agit (son jeton est envoyé s'il est connecté sur cet appareil)
 function rpcActor(fn, args) {
   if (!args) return '';
@@ -4399,105 +4399,6 @@ if (PG_TAB) {
   };
   arcBadge(); setInterval(arcBadge, 2500);
 }
-// LE CIEL DE PÉGASE, derrière toute la page des îles : un soir magique — dégradé indigo → turquoise → horizon doré, étoiles qui scintillent,
-// deux voiles d'aurore qui ondulent, grande lune et son reflet dans la mer, îles flottantes au loin (palmiers, petites cascades de lumière),
-// nuages qui glissent, et de temps en temps PÉGASE, le cheval ailé, qui traverse le ciel avec sa traînée d'étoiles. Les couches fixes sont
-// dessinées une fois (et à chaque changement de taille) ; 30 images/s au plus, seulement quand la page Pégase est ouverte et visible.
-const PGS = { on: false, raf: 0, last: 0, w: 0, h: 0, k: 1, base: null, stars: [], isl: [], clouds: [], t0: performance.now() };
-function pgSkyBuild() {
-  const cv = $('jdw-pg-sky'); if (!cv) return;
-  const w = innerWidth, h = innerHeight, k = Math.min(1.5, window.devicePixelRatio || 1);
-  PGS.w = w; PGS.h = h; PGS.k = k; cv.width = Math.round(w * k); cv.height = Math.round(h * k);
-  let sd = 20261024; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-  const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.scale(k, k);
-  const hz = h * 0.66;   // l'horizon
-  const g = x.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, '#050a1f'); g.addColorStop(0.35, '#0f1d4a'); g.addColorStop(0.7, '#1d4f7e'); g.addColorStop(0.92, '#3c8fa6'); g.addColorStop(1, '#f2b46a');
-  x.fillStyle = g; x.fillRect(0, 0, w, hz);
-  // halo doré de l'horizon
-  const hg = x.createRadialGradient(w * 0.5, hz, 10, w * 0.5, hz, Math.max(w, h) * 0.7); hg.addColorStop(0, 'rgba(255,190,110,.55)'); hg.addColorStop(0.3, 'rgba(255,150,120,.18)'); hg.addColorStop(1, 'rgba(255,150,120,0)');
-  x.fillStyle = hg; x.fillRect(0, 0, w, hz);
-  // la mer
-  const sg = x.createLinearGradient(0, hz, 0, h); sg.addColorStop(0, '#2a6f8a'); sg.addColorStop(0.15, '#123f5c'); sg.addColorStop(1, '#030c18');
-  x.fillStyle = sg; x.fillRect(0, hz, w, h - hz);
-  // la lune
-  const mx = w * 0.78, my = h * 0.2, mr = Math.max(26, Math.min(w, h) * 0.06);
-  const mg = x.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 5); mg.addColorStop(0, 'rgba(255,245,215,.45)'); mg.addColorStop(1, 'rgba(255,245,215,0)'); x.fillStyle = mg; x.fillRect(0, 0, w, hz);
-  const mf = x.createRadialGradient(mx - mr * 0.3, my - mr * 0.3, 2, mx, my, mr); mf.addColorStop(0, '#fffdf2'); mf.addColorStop(1, '#f2e2b8'); x.fillStyle = mf; x.beginPath(); x.arc(mx, my, mr, 0, 7); x.fill();
-  x.fillStyle = 'rgba(200,180,140,.25)'; for (const [ox, oy, rr] of [[-0.3, 0.1, 0.18], [0.25, -0.2, 0.12], [0.1, 0.35, 0.1]]) { x.beginPath(); x.arc(mx + ox * mr, my + oy * mr, rr * mr, 0, 7); x.fill(); }
-  PGS.moon = [mx, my, mr];
-  // îles flottantes au loin (silhouettes avec bord éclairé), posées sur l'horizon ou suspendues dans le ciel
-  PGS.isl = [];
-  for (let i = 0; i < 5; i++) { const fl = i >= 3; PGS.isl.push({ x: w * (0.08 + i * 0.21 + r() * 0.08), y: fl ? h * (0.3 + r() * 0.12) : hz - 2, s: (fl ? 0.55 : 0.8 + r() * 0.5) * Math.min(1.4, w / 900 + 0.4), fl, ph: r() * 6.3, seed: r() }); }
-  // étoiles
-  PGS.stars = []; for (let i = 0; i < Math.round(w * h / 5200); i++) { const y = Math.pow(r(), 1.6) * hz * 0.92; PGS.stars.push([r() * w, y, 0.4 + r() * 1.3, r() * 6.3, 0.5 + r() * 2]); }
-  PGS.clouds = []; for (let i = 0; i < 6; i++) PGS.clouds.push({ x: r() * w, y: h * (0.12 + r() * 0.45), s: 0.6 + r() * 1.1, v: 4 + r() * 8, a: 0.08 + r() * 0.12 });
-  PGS.base = c; PGS.hz = hz; PGS.ctx = cv.getContext('2d');
-}
-// une île flottante : roche en pointe dessous, herbe dessus, palmiers, lumière de la lune sur le bord
-function pgIsle(x, o, t) {
-  const s = o.s * 46, bob = o.fl ? Math.sin(t * 0.6 + o.ph) * 6 : 0, cx = o.x, cy = o.y + bob;
-  x.save(); x.translate(cx, cy);
-  if (o.fl) { x.fillStyle = 'rgba(20,30,60,.9)'; x.beginPath(); x.moveTo(-s, 0); x.quadraticCurveTo(-s * 0.4, s * 0.5, 0, s * 1.1); x.quadraticCurveTo(s * 0.45, s * 0.45, s, 0); x.closePath(); x.fill();
-    // filets de lumière qui tombent (cascade)
-    const fg = x.createLinearGradient(0, 0, 0, s * 1.6); fg.addColorStop(0, 'rgba(140,240,255,.55)'); fg.addColorStop(1, 'rgba(140,240,255,0)'); x.fillStyle = fg; x.fillRect(s * 0.25, 0, 3, s * 1.6);
-  } else { x.fillStyle = 'rgba(10,30,50,.85)'; x.beginPath(); x.ellipse(0, 2, s * 1.1, s * 0.16, 0, 0, 7); x.fill(); }
-  x.fillStyle = o.fl ? '#1f5a4a' : '#123a3c'; x.beginPath(); x.ellipse(0, 0, s, s * 0.2, 0, Math.PI, 0); x.fill();
-  x.beginPath(); x.moveTo(-s * 0.6, 0); x.quadraticCurveTo(-s * 0.2, -s * 0.55, s * 0.3, -s * 0.15); x.quadraticCurveTo(s * 0.6, -s * 0.05, s * 0.8, 0); x.fill();
-  // palmiers
-  x.strokeStyle = o.fl ? '#2d7a5a' : '#174a44'; x.lineCap = 'round';
-  for (const [px, ph] of [[-s * 0.35, s * 0.6], [s * 0.15, s * 0.45]]) { x.lineWidth = Math.max(1.5, s * 0.05); x.beginPath(); x.moveTo(px, -s * 0.1); x.quadraticCurveTo(px + s * 0.08, -ph * 0.6, px + s * 0.12, -ph); x.stroke(); for (let f = 0; f < 5; f++) { const a = Math.PI + f / 4 * Math.PI, ex = px + s * 0.12 + Math.cos(a) * s * 0.28, ey = -ph + Math.sin(a) * s * 0.1 + s * 0.08; x.lineWidth = Math.max(1, s * 0.045); x.beginPath(); x.moveTo(px + s * 0.12, -ph); x.quadraticCurveTo((px + s * 0.12 + ex) / 2, -ph - s * 0.08, ex, ey); x.stroke(); } }
-  // bord éclairé par la lune
-  x.strokeStyle = 'rgba(255,240,200,.35)'; x.lineWidth = 1.2; x.beginPath(); x.ellipse(0, 0, s, s * 0.2, 0, Math.PI * 1.1, Math.PI * 1.9); x.stroke();
-  x.restore();
-}
-// Pégase : silhouette lumineuse du cheval ailé (ailes qui battent) et sa traînée d'étoiles
-function pgPegasus(x, px, py, sc, t, dir) {
-  x.save(); x.translate(px, py); x.scale(sc * dir, sc);
-  x.shadowColor = 'rgba(180,240,255,.9)'; x.shadowBlur = 18; x.fillStyle = 'rgba(245,252,255,.95)';
-  // corps, cou, tête
-  x.beginPath(); x.ellipse(0, 0, 26, 10, -0.08, 0, 7); x.fill();
-  x.beginPath(); x.moveTo(20, -4); x.quadraticCurveTo(30, -14, 34, -24); x.lineTo(42, -26); x.quadraticCurveTo(46, -22, 44, -18); x.lineTo(36, -16); x.quadraticCurveTo(32, -6, 24, 4); x.closePath(); x.fill();
-  // crinière et queue qui flottent
-  x.strokeStyle = 'rgba(200,245,255,.9)'; x.lineWidth = 3; x.lineCap = 'round';
-  x.beginPath(); x.moveTo(30, -22); x.quadraticCurveTo(22, -20 + Math.sin(t * 6) * 2, 18, -10); x.stroke();
-  x.beginPath(); x.moveTo(-25, -2); x.quadraticCurveTo(-40, -8 + Math.sin(t * 5) * 4, -52, 2 + Math.sin(t * 5 + 1) * 4); x.stroke();
-  // jambes repliées au galop
-  x.lineWidth = 3.2; const lg = Math.sin(t * 8) * 4;
-  for (const [lx, d] of [[14, 1], [8, -1], [-14, 1], [-20, -1]]) { x.beginPath(); x.moveTo(lx, 6); x.quadraticCurveTo(lx + 6 * d, 14 + lg * d, lx - 2, 20 + lg * d * 0.5); x.stroke(); }
-  // les ailes (battement)
-  const fl = Math.sin(t * 5), wy = -16 - fl * 20;
-  for (const [o, a] of [[0, 1], [-6, 0.7]]) { x.globalAlpha = a; x.beginPath(); x.moveTo(-4 + o, -6); x.quadraticCurveTo(-18 + o, wy - 10, -34 + o, wy - 2); x.quadraticCurveTo(-24 + o, wy + 6, -30 + o, wy + 12); x.quadraticCurveTo(-16 + o, wy + 10, -18 + o, wy + 20); x.quadraticCurveTo(-6 + o, -4, 8 + o, -6); x.closePath(); x.fill(); }
-  x.restore();
-}
-function pgSkyFrame(now) {
-  const x = PGS.ctx, w = PGS.w, h = PGS.h, k = PGS.k, t = (now - PGS.t0) / 1000, hz = PGS.hz;
-  x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(PGS.base, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
-  // étoiles qui scintillent
-  for (const [sx, sy, sr, p0, sp] of PGS.stars) { const a = 0.35 + 0.65 * Math.abs(Math.sin(t * sp * 0.6 + p0)); x.fillStyle = 'rgba(255,255,255,' + a.toFixed(2) + ')'; x.fillRect(sx, sy, sr, sr); }
-  // aurore : deux voiles qui ondulent
-  x.globalCompositeOperation = 'lighter';
-  for (const [col, y0, amp, sp, ph] of [['rgba(94,240,200,', 0.16, 0.05, 0.25, 0], ['rgba(170,110,255,', 0.24, 0.06, 0.18, 2]]) {
-    x.beginPath(); const Y = (u) => h * y0 + Math.sin(u * 5 + t * sp + ph) * h * amp + Math.sin(u * 13 - t * sp * 1.7) * h * amp * 0.3;
-    x.moveTo(0, Y(0)); for (let i = 1; i <= 40; i++) x.lineTo(w * i / 40, Y(i / 40)); for (let i = 40; i >= 0; i--) x.lineTo(w * i / 40, Y(i / 40) + h * 0.12);
-    const ag = x.createLinearGradient(0, h * (y0 - amp), 0, h * (y0 + amp + 0.14)); ag.addColorStop(0, col + '0)'); ag.addColorStop(0.3, col + '.09)'); ag.addColorStop(0.55, col + '.04)'); ag.addColorStop(1, col + '0)'); x.fillStyle = ag; x.fill();
-  }
-  x.globalCompositeOperation = 'source-over';
-  // îles flottantes
-  for (const o of PGS.isl) pgIsle(x, o, t);
-  // le reflet de la lune sur la mer, qui danse
-  const [mx] = PGS.moon;
-  for (let i = 0; i < 26; i++) { const y = hz + 6 + i * (h - hz) / 26, ww = (8 + i * 3.2) * (0.6 + 0.4 * Math.sin(t * 2 + i)), a = 0.35 * (1 - i / 26); x.fillStyle = 'rgba(255,236,190,' + a.toFixed(3) + ')'; x.fillRect(mx - ww / 2 + Math.sin(t * 1.3 + i * 0.7) * 6, y, ww, 1.5); }
-  for (let i = 0; i < 40; i++) { const y = hz + 4 + ((i * 37) % 100) / 100 * (h - hz), xx = ((i * 211 + t * (10 + i % 5 * 4)) % (w + 60)) - 30, a = 0.12 + 0.1 * Math.sin(t * 2 + i); x.fillStyle = 'rgba(160,230,255,' + a.toFixed(3) + ')'; x.fillRect(xx, y, 14 + (i % 4) * 6, 1); }
-  // nuages
-  for (const c of PGS.clouds) { const xx = (c.x + t * c.v) % (w + 300) - 150; for (const [ox, oy, rr] of [[0, 0, 60], [50, 10, 44], [-50, 12, 40], [20, -16, 38]]) { const g = x.createRadialGradient(xx + ox * c.s, c.y + oy * c.s, 1, xx + ox * c.s, c.y + oy * c.s, rr * c.s); g.addColorStop(0, 'rgba(220,235,255,' + c.a + ')'); g.addColorStop(1, 'rgba(220,235,255,0)'); x.fillStyle = g; x.beginPath(); x.arc(xx + ox * c.s, c.y + oy * c.s, rr * c.s, 0, 7); x.fill(); } }
-  // Pégase traverse le ciel toutes les 28 s (9 s de vol), avec une traînée d'étoiles
-  const cyc = t % 28;
-  if (cyc < 9) {
-    const u = cyc / 9, dir = Math.floor(t / 28) % 2 ? -1 : 1, px = dir > 0 ? -80 + (w + 160) * u : w + 80 - (w + 160) * u, py = h * (0.32 - 0.12 * Math.sin(u * Math.PI)) + Math.sin(t * 5) * 3, sc = Math.min(1.3, Math.max(0.7, w / 1100));
-    for (let i = 1; i < 26; i++) { const uu = u - i * 0.006; if (uu < 0) break; const tx = dir > 0 ? -80 + (w + 160) * uu : w + 80 - (w + 160) * uu, ty = h * (0.32 - 0.12 * Math.sin(uu * Math.PI)) + Math.sin((t - i * 0.05) * 5) * 3 + (i % 3 - 1) * 3; x.fillStyle = 'rgba(200,245,255,' + (0.6 * (1 - i / 26)).toFixed(3) + ')'; x.beginPath(); x.arc(tx - dir * 30 * sc, ty + 4, 1.6 * (1 - i / 30), 0, 7); x.fill(); }
-    pgPegasus(x, px, py, sc, t, dir);
-  }
-}
 // LE VRAI DÉCOR : des PLANS FIXES filmés dans le jeu (la fontaine, le grand arbre, la prairie…), environ une minute chacun, en fond plein
 // écran et sans son. La liste est dans assets/pegase/decor.json : [{ "id": "decor_01", "titre": "La fontaine" }, …] (on en ajoute ou en
 // retire sans toucher au code). Pour chaque plan : <id>.webm et <id>.mp4 (et <id>_portrait.webm / .mp4 sur un écran en hauteur, s'ils
@@ -4540,15 +4441,15 @@ function pgDecor(on) {
   if (PGD.state) return false;
   PGD.state = 'wait';
   PGD.still = !!((navigator.connection && navigator.connection.saveData) || (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
-  const ok = () => { PGD.state = 'ok'; $('jdw-lib').classList.add('pg-vid'); cancelAnimationFrame(PGS.raf); PGS.raf = 0; };
-  for (const x of [v, v2]) { x.loop = false; x.addEventListener('timeupdate', () => pgDecorTick(x)); x.addEventListener('playing', () => { delete x.dataset.done; }); x.addEventListener('ended', () => { if (x === pgVid(PGD.act)) { if (PGD.list.length > 1) pgDecorNext(); else { x.currentTime = 0; x.play().catch(() => {}); } } }); }
+  const ok = () => { PGD.state = 'ok'; };
+  for (const x of [v, v2]) { x.loop = false; x.addEventListener('timeupdate', () => pgDecorTick(x)); x.addEventListener('playing', () => { delete x.dataset.done; x.classList.add('live'); if (x.dataset.id) pgPoster(x.dataset.id); }); x.addEventListener('ended', () => { if (x === pgVid(PGD.act)) { if (PGD.list.length > 1) pgDecorNext(); else { x.currentTime = 0; x.play().catch(() => {}); } } }); }
   v2.classList.add('off');
   fetch(ROOT + 'assets/pegase/decor.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null).then((list) => {
     list = Array.isArray(list) ? list.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id))) : [];
     if (list.length) {
       // la liste : on vérifie l'affiche du premier plan avant d'éteindre le ciel ; un seul plan tourne en boucle, sans coupure
       PGD.list = list; const first = pgDecorPick(), im = new Image();
-      im.onload = () => { ok(); PGD.cur = first; PGD.act = 0; v.loop = list.length === 1; pgDecorSrc(v, list[first].id); v.dataset.id = list[first].id; v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); if (list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(v2, list[PGD.pre].id); v2.dataset.id = list[PGD.pre].id; } if (PGD.still) PGD.t = setTimeout(() => pgDecorNext(), 60000); };
+      im.onload = () => { ok(); PGD.cur = first; PGD.act = 0; v.loop = list.length === 1; pgPoster(list[first].id); pgDecorSrc(v, list[first].id); v.dataset.id = list[first].id; v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); if (list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(v2, list[PGD.pre].id); v2.dataset.id = list[PGD.pre].id; } if (PGD.still) PGD.t = setTimeout(() => pgDecorNext(), 60000); };
       im.onerror = () => { PGD.state = 'bad'; };
       im.src = ROOT + 'assets/pegase/' + list[first].id + '_poster.jpg';
       return;
@@ -4561,18 +4462,65 @@ function pgDecor(on) {
   });
   return false;
 }
-function pgSky(on) {
-  PGS.on = !!on;
-  if (pgDecor(PGS.on) && PGS.on) { PGS.on = false; return; }   // la vidéo du jeu remplace le ciel dessiné
-  if (!PGS.on) { cancelAnimationFrame(PGS.raf); PGS.raf = 0; return; }
-  if (!PGS.base || PGS.w !== innerWidth || PGS.h !== innerHeight) pgSkyBuild();
-  if (!PGS.base) return;
-  const reduce = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (PGS.raf) return;
-  const loop = (now) => { PGS.raf = PGS.on ? requestAnimationFrame(loop) : 0; if (!PGS.on || document.hidden || $('jdw-lib').hidden) return; if (now - PGS.last < (reduce ? 1000 : 33)) return; PGS.last = now; pgSkyFrame(now); };
-  pgSkyFrame(performance.now()); PGS.raf = requestAnimationFrame(loop);
+// La page Pégase : son fond (l'AFFICHE du plan, plein écran, tout de suite ; puis la vidéo en fondu dès qu'elle joue), sa barre du haut
+// épurée (ta tête · 🏆 classement des îles · 🔔 · ♪ musique · ✨ ambiance), et le mode AMBIANCE : tout s'efface en douceur, il ne reste que
+// la vidéo et le titre ; un toucher, un clic ou Échap → tout revient.
+function pgPoster(id) {   // l'affiche en fond (gardée d'une fois sur l'autre ; le service worker la garde hors ligne)
+  const u = ROOT + 'assets/pegase/' + (id || store.get('jdw.pg.poster', 'decor_01')) + '_poster.jpg', el = $('jdw-pg-poster');
+  if (id) store.set('jdw.pg.poster', id);
+  if (el && el.dataset.u !== u) { el.dataset.u = u; el.style.backgroundImage = 'url("' + u + '")'; }
 }
-addEventListener('resize', () => { if (PGS.on) { pgSkyBuild(); pgSkyFrame(performance.now()); } });
+function pgSky(on) {
+  $('jdw-lib').classList.add('pg-vid');
+  if (on) pgPoster();
+  pgDecor(!!on);
+  if (!on) pgAmbi(false);
+  pgMusicIc();
+}
+// ♪ la musique : couper / remettre, rien d'autre
+function pgMusicIc() { const b = $('jdw-pg-music'); if (!b) return; b.classList.toggle('off', !MUS.on); b.setAttribute('aria-label', MUS.on ? 'Couper la musique' : 'Remettre la musique'); b.setAttribute('aria-pressed', MUS.on ? 'false' : 'true'); }
+$('jdw-pg-music').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); });
+// ✨ le mode ambiance
+function pgAmbi(on) {
+  const L = $('jdw-lib'); if (!!on === L.classList.contains('pg-ambi')) return;
+  L.classList.toggle('pg-ambi', !!on);
+  if (on) setTimeout(() => { const done = (e) => { if (e.type === 'keydown' && e.key !== 'Escape' && e.key !== ' ' && e.key !== 'Enter') return; e.preventDefault(); e.stopPropagation(); pgAmbi(false); }; PG.ambiOff = done; addEventListener('pointerdown', done, { capture: true, once: true }); addEventListener('keydown', done, { capture: true }); }, 50);
+  else if (PG.ambiOff) { removeEventListener('pointerdown', PG.ambiOff, { capture: true }); removeEventListener('keydown', PG.ambiOff, { capture: true }); PG.ambiOff = null; }
+}
+$('jdw-pg-ambi').addEventListener('click', (e) => { e.stopPropagation(); pgAmbi(true); });
+// 🏆 le CLASSEMENT DES ÎLES : espèces du Grand livre trouvées par les habitants, temps passé sur l'île, habitants. Serveur :
+// pg_island_ranking() → [{ r_id, r_name, r_especes, r_heures, r_membres }] (lisible sans compte) ; sans lui, la liste des îles et « bientôt ».
+const PGR = { sort: 'r_especes', rows: [], srv: null };
+function pgRankRender() {
+  const tb = $('jdw-pgrank-rows'); tb.textContent = '';
+  const k = PGR.sort, rows = PGR.rows.slice().sort((a, b) => (+b[k] || 0) - (+a[k] || 0) || String(a.r_name).localeCompare(String(b.r_name)));
+  for (const b of document.querySelectorAll('#jdw-pgrank th button')) b.setAttribute('aria-sort', b.dataset.k === k ? 'descending' : 'none');
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr'); if (PG.isle && PG.isle.id === r.r_id) tr.className = 'me';
+    const td = (t, c) => { const d = document.createElement('td'); d.textContent = t; if (c) d.className = c; tr.appendChild(d); };
+    td(i < 3 && PGR.srv ? ['🥇', '🥈', '🥉'][i] : String(i + 1), 'rk'); td(String(r.r_name || 'Île').slice(0, 30), 'nm');
+    td(PGR.srv ? fmt(+r.r_especes || 0) : '—'); td(PGR.srv ? (r.r_heures != null ? fmt(Math.round(+r.r_heures)) + ' h' : '—') : '—'); td(fmt(+r.r_membres || 0));
+    tb.appendChild(tr);
+  });
+  $('jdw-pgrank-note').textContent = PGR.srv ? '' : '🌱 Bientôt : les espèces trouvées et le temps passé sur chaque île.';
+}
+async function pgRank() {
+  let sh = $('jdw-pgrank');
+  if (!sh) {
+    sh = document.createElement('div'); sh.className = 'sheet'; sh.id = 'jdw-pgrank'; sh.hidden = true;
+    sh.innerHTML = '<div class="card board-card" role="dialog" aria-modal="true" aria-labelledby="jdw-pgrank-h"><div class="card-body"><div class="card-head"><h2 id="jdw-pgrank-h">🏆 Les plus belles îles</h2><button class="btn btn-ghost btn-sm" id="jdw-pgrank-x" type="button">Fermer</button></div>'
+      + '<table class="pgrank"><thead><tr><th>#</th><th>Île</th><th><button type="button" data-k="r_especes" title="Espèces du Grand livre trouvées par les habitants">🦋 Espèces</button></th><th><button type="button" data-k="r_heures" title="Temps passé sur l’île">⏳ Temps</button></th><th><button type="button" data-k="r_membres" title="Habitants">🏡 Habitants</button></th></tr></thead><tbody id="jdw-pgrank-rows"></tbody></table><p class="pgram-note" id="jdw-pgrank-note"></p></div></div>';
+    document.body.appendChild(sh);
+    $('jdw-pgrank-x').addEventListener('click', () => closeSheet('jdw-pgrank'));
+    sh.addEventListener('click', (e) => { if (e.target === sh) closeSheet('jdw-pgrank'); });
+    for (const b of sh.querySelectorAll('th button')) b.addEventListener('click', () => { PGR.sort = b.dataset.k; pgRankRender(); });
+  }
+  openSheet('jdw-pgrank', 'jdw-pgrank-x');
+  try { const r = await rpc('pg_island_ranking', {}, { quiet404: true, quiet: true }); if (Array.isArray(r)) { PGR.srv = true; PGR.rows = r; } }
+  catch (e) { PGR.srv = false; PGR.rows = (ISL.rows || []).map(q => ({ r_id: q.id, r_name: q.name, r_membres: q.members })); if (!PGR.rows.length) PGR.rows = []; PGR.sort = 'r_membres'; }
+  pgRankRender();
+}
+$('jdw-pg-rank').addEventListener('click', pgRank);
 
 // L'ÎLE DESSINÉE (cartes de la page Pégase) : vue de haut en 3/4, animée — mer profonde qui scintille, lagon turquoise, vagues d'écume qui
 // roulent sur la plage, falaise de sable, prairie texturée, collines éclairées, étang, chemin, ponton, palmiers, arbres, maisons aux
