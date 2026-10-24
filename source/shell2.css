@@ -580,6 +580,30 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .modebar button[data-mode="pegase"] .mb-ic{background:linear-gradient(160deg,rgba(58,214,200,.18),rgba(255,211,77,.12))}
 .mb-sep{align-self:center;justify-self:center;width:2px;height:40px;border-radius:2px;background:linear-gradient(180deg,transparent,var(--line),transparent)}
 #jdw-lib[data-mode="pegase"] #jdw-page-pegase{display:grid;padding-bottom:28px}   /* de l'air au-dessus de la barre du bas */
+/* ===== L'UNIVERS DE PÉGASE : le ciel du soir animé derrière toute la page (étoiles, aurore, lune, îles flottantes, mer, Pégase qui
+   passe), un grand titre lumineux, des onglets et des cartes en verre ===== */
+.pg-sky{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:none}
+#jdw-lib[data-mode="pegase"] .pg-sky{display:block}
+#jdw-lib[data-mode="pegase"]{background:#050a1f}
+#jdw-lib[data-mode="pegase"] .lib-wrap{position:relative;z-index:1}
+#jdw-lib[data-mode="pegase"] .mode-hero{flex-direction:column;gap:6px;padding:26px 10px 8px;background:none;border:0;box-shadow:none;text-align:center}
+#jdw-lib[data-mode="pegase"] .mode-hero .mh-ic{display:none}
+#jdw-lib[data-mode="pegase"] .mode-hero h1{margin:0;font:400 clamp(44px,11vw,84px)/1 var(--display);letter-spacing:.06em;background:linear-gradient(180deg,#fff7d6 0%,#ffd36b 38%,#5ef0ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(94,240,255,.45)) drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+#jdw-lib[data-mode="pegase"] .mode-hero p{margin:0;max-width:560px;color:#d8e8ff;font:600 15px/1.45 var(--body);text-shadow:0 1px 8px rgba(0,0,0,.6)}
+#jdw-lib[data-mode="pegase"] .pg-tabs{background:rgba(10,22,48,.42);border:1px solid rgba(160,220,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#jdw-lib[data-mode="pegase"] .pg-tabs button{color:#b9cbe6}
+#jdw-lib[data-mode="pegase"] .pg-tabs button[aria-selected="true"]{background:linear-gradient(180deg,rgba(94,240,255,.28),rgba(58,214,200,.14));color:#fff;box-shadow:inset 0 -2px 0 #5ef0ff,0 0 18px rgba(94,240,255,.25)}
+#jdw-lib[data-mode="pegase"] .pg-isles{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),540px));justify-content:center;gap:18px}
+#jdw-lib[data-mode="pegase"] .pg-isle{background:rgba(8,18,40,.55);border:1px solid rgba(160,220,255,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .25s,box-shadow .25s}
+#jdw-lib[data-mode="pegase"] .pg-isle:hover{transform:translateY(-2px);box-shadow:0 22px 48px rgba(0,0,0,.5),0 0 0 1px rgba(94,240,255,.35),0 0 30px rgba(94,240,255,.18)}
+#jdw-lib[data-mode="pegase"] .pg-isle.cur{border-color:rgba(94,240,255,.6)}
+#jdw-lib[data-mode="pegase"] .pg-isle canvas{aspect-ratio:16/9;max-height:400px}
+#jdw-lib[data-mode="pegase"] .pg-create{background:rgba(10,30,50,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(94,240,255,.55)}
+#jdw-lib[data-mode="pegase"] .pg-empty{background:rgba(8,18,40,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#c6d6ee}
+#jdw-lib[data-mode="pegase"] .pg-note{color:#b9cbe6;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.pi-badge{max-width:calc(100% - 150px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.pi-live{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){#jdw-lib[data-mode="pegase"] .pg-isle{transition:none}}
 #jdw-lib[data-mode="pegase"] .mode-hero{--mc:#3ad6c8}
 #jdw-lib[data-mode="pegase"] #jdw-roombar{display:none!important}
 .pg-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
@@ -646,9 +670,17 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .pp-mem small{display:block;color:var(--muted);font:600 11px var(--body)}
 .pp-mem .on{color:var(--leaf)}
 .pi-cap{color:var(--muted);font:600 11.5px/1.3 var(--body)}
-.pp-who{display:flex;flex-wrap:wrap;gap:6px}
-.pp-who span{display:inline-flex;align-items:center;gap:6px;padding:4px 9px 4px 4px;border-radius:12px;background:var(--card);font:700 12.5px var(--body)}
-.pp-who img,.pp-who b{width:24px;height:24px;border-radius:50%;object-fit:cover;background:#3ad6c8;color:#062a27;display:grid;place-items:center;font:800 12px var(--body)}
+/* Regarder : les habitants en avatars (tête, pseudo, en ligne) */
+.pp-who{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:10px}
+.pp-who:empty{display:none}
+.pp-av{display:grid;justify-items:center;gap:5px;text-align:center;font:700 12px/1.2 var(--body);color:var(--ink);min-width:0}
+.pp-av span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp-av i{position:relative;width:56px;height:56px;border-radius:50%;padding:2px;background:linear-gradient(135deg,#5ef0ff,#ffd36b);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.pp-av.off i{background:linear-gradient(135deg,#55657a,#2c3646);filter:saturate(.6)}
+.pp-av img,.pp-av b{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#0f2338;color:#5ef0ff;font:400 22px var(--display)}
+.pp-av i::after{content:'';position:absolute;right:1px;bottom:1px;width:13px;height:13px;border-radius:50%;background:#7a8899;border:2px solid var(--steel)}
+.pp-av.on i::after{background:var(--leaf);box-shadow:0 0 8px var(--leaf)}
+.pp-av small{color:var(--muted);font:600 10.5px var(--body)}
 .pi-req{padding:8px 10px;border-radius:10px;background:var(--steel);font:700 13px/1.3 var(--body)}
 .pi-req.acceptee{background:color-mix(in srgb,var(--leaf) 28%,var(--steel))}.pi-req.refusee{background:color-mix(in srgb,var(--alarm) 25%,var(--steel))}
 .pg-new{max-width:520px;width:100%;justify-self:center}

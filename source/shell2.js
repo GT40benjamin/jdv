@@ -1159,7 +1159,9 @@ function rhythmApi(mine) {
     stop(fade) { if (mine()) rhythmStop(fade); }
   };
 }
-function screenMusic() { return !$('jdw-play').hidden && current ? current.game.id : 'accueil'; }
+// la page Pégase (choix des îles) joue la musique du hub de Pégase (« Chez toi ») ; le reste de la borne, celle de l'accueil
+const menuMusic = () => (MODE === 'pegase' ? 'pegase' : 'accueil');
+function screenMusic() { return !$('jdw-play').hidden && current ? current.game.id : menuMusic(); }
 document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) setMusic(MUS.want, MUS.wantMode); });
 // la musique démarre au premier geste (règle des navigateurs)
 addEventListener('pointerdown', function firstTouch() { removeEventListener('pointerdown', firstTouch, true); Audio.ensure(); setMusic(screenMusic()); }, true);
@@ -4292,6 +4294,8 @@ function setMode(m, user) {
   if (m === 'duel') renderSeats();
   if (m === 'coop') renderCoop();
   if (m === 'pegase') renderIsles();
+  if (typeof pgSky === 'function') pgSky(m === 'pegase');
+  if (changed && $('jdw-play').hidden && !MUS.override && MUS.want && MUS.want !== menuMusic() && (MUS.want === 'accueil' || MUS.want === 'pegase')) setMusic(menuMusic());   // entrer / sortir de Pégase : sa musique
   if (user && changed) {
     const w = document.querySelector('.lib-wrap'); w.classList.remove('page-in'); void w.offsetWidth; w.classList.add('page-in');
     $('jdw-lib').scrollTo({ top: 0 });
@@ -4320,16 +4324,137 @@ if (PG_TAB) {
   };
   arcBadge(); setInterval(arcBadge, 2500);
 }
+// LE CIEL DE PÉGASE, derrière toute la page des îles : un soir magique — dégradé indigo → turquoise → horizon doré, étoiles qui scintillent,
+// deux voiles d'aurore qui ondulent, grande lune et son reflet dans la mer, îles flottantes au loin (palmiers, petites cascades de lumière),
+// nuages qui glissent, et de temps en temps PÉGASE, le cheval ailé, qui traverse le ciel avec sa traînée d'étoiles. Les couches fixes sont
+// dessinées une fois (et à chaque changement de taille) ; 30 images/s au plus, seulement quand la page Pégase est ouverte et visible.
+const PGS = { on: false, raf: 0, last: 0, w: 0, h: 0, k: 1, base: null, stars: [], isl: [], clouds: [], t0: performance.now() };
+function pgSkyBuild() {
+  const cv = $('jdw-pg-sky'); if (!cv) return;
+  const w = innerWidth, h = innerHeight, k = Math.min(1.5, window.devicePixelRatio || 1);
+  PGS.w = w; PGS.h = h; PGS.k = k; cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+  let sd = 20261024; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.scale(k, k);
+  const hz = h * 0.66;   // l'horizon
+  const g = x.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, '#050a1f'); g.addColorStop(0.35, '#0f1d4a'); g.addColorStop(0.7, '#1d4f7e'); g.addColorStop(0.92, '#3c8fa6'); g.addColorStop(1, '#f2b46a');
+  x.fillStyle = g; x.fillRect(0, 0, w, hz);
+  // halo doré de l'horizon
+  const hg = x.createRadialGradient(w * 0.5, hz, 10, w * 0.5, hz, Math.max(w, h) * 0.7); hg.addColorStop(0, 'rgba(255,190,110,.55)'); hg.addColorStop(0.3, 'rgba(255,150,120,.18)'); hg.addColorStop(1, 'rgba(255,150,120,0)');
+  x.fillStyle = hg; x.fillRect(0, 0, w, hz);
+  // la mer
+  const sg = x.createLinearGradient(0, hz, 0, h); sg.addColorStop(0, '#2a6f8a'); sg.addColorStop(0.15, '#123f5c'); sg.addColorStop(1, '#030c18');
+  x.fillStyle = sg; x.fillRect(0, hz, w, h - hz);
+  // la lune
+  const mx = w * 0.78, my = h * 0.2, mr = Math.max(26, Math.min(w, h) * 0.06);
+  const mg = x.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 5); mg.addColorStop(0, 'rgba(255,245,215,.45)'); mg.addColorStop(1, 'rgba(255,245,215,0)'); x.fillStyle = mg; x.fillRect(0, 0, w, hz);
+  const mf = x.createRadialGradient(mx - mr * 0.3, my - mr * 0.3, 2, mx, my, mr); mf.addColorStop(0, '#fffdf2'); mf.addColorStop(1, '#f2e2b8'); x.fillStyle = mf; x.beginPath(); x.arc(mx, my, mr, 0, 7); x.fill();
+  x.fillStyle = 'rgba(200,180,140,.25)'; for (const [ox, oy, rr] of [[-0.3, 0.1, 0.18], [0.25, -0.2, 0.12], [0.1, 0.35, 0.1]]) { x.beginPath(); x.arc(mx + ox * mr, my + oy * mr, rr * mr, 0, 7); x.fill(); }
+  PGS.moon = [mx, my, mr];
+  // îles flottantes au loin (silhouettes avec bord éclairé), posées sur l'horizon ou suspendues dans le ciel
+  PGS.isl = [];
+  for (let i = 0; i < 5; i++) { const fl = i >= 3; PGS.isl.push({ x: w * (0.08 + i * 0.21 + r() * 0.08), y: fl ? h * (0.3 + r() * 0.12) : hz - 2, s: (fl ? 0.55 : 0.8 + r() * 0.5) * Math.min(1.4, w / 900 + 0.4), fl, ph: r() * 6.3, seed: r() }); }
+  // étoiles
+  PGS.stars = []; for (let i = 0; i < Math.round(w * h / 5200); i++) { const y = Math.pow(r(), 1.6) * hz * 0.92; PGS.stars.push([r() * w, y, 0.4 + r() * 1.3, r() * 6.3, 0.5 + r() * 2]); }
+  PGS.clouds = []; for (let i = 0; i < 6; i++) PGS.clouds.push({ x: r() * w, y: h * (0.12 + r() * 0.45), s: 0.6 + r() * 1.1, v: 4 + r() * 8, a: 0.08 + r() * 0.12 });
+  PGS.base = c; PGS.hz = hz; PGS.ctx = cv.getContext('2d');
+}
+// une île flottante : roche en pointe dessous, herbe dessus, palmiers, lumière de la lune sur le bord
+function pgIsle(x, o, t) {
+  const s = o.s * 46, bob = o.fl ? Math.sin(t * 0.6 + o.ph) * 6 : 0, cx = o.x, cy = o.y + bob;
+  x.save(); x.translate(cx, cy);
+  if (o.fl) { x.fillStyle = 'rgba(20,30,60,.9)'; x.beginPath(); x.moveTo(-s, 0); x.quadraticCurveTo(-s * 0.4, s * 0.5, 0, s * 1.1); x.quadraticCurveTo(s * 0.45, s * 0.45, s, 0); x.closePath(); x.fill();
+    // filets de lumière qui tombent (cascade)
+    const fg = x.createLinearGradient(0, 0, 0, s * 1.6); fg.addColorStop(0, 'rgba(140,240,255,.55)'); fg.addColorStop(1, 'rgba(140,240,255,0)'); x.fillStyle = fg; x.fillRect(s * 0.25, 0, 3, s * 1.6);
+  } else { x.fillStyle = 'rgba(10,30,50,.85)'; x.beginPath(); x.ellipse(0, 2, s * 1.1, s * 0.16, 0, 0, 7); x.fill(); }
+  x.fillStyle = o.fl ? '#1f5a4a' : '#123a3c'; x.beginPath(); x.ellipse(0, 0, s, s * 0.2, 0, Math.PI, 0); x.fill();
+  x.beginPath(); x.moveTo(-s * 0.6, 0); x.quadraticCurveTo(-s * 0.2, -s * 0.55, s * 0.3, -s * 0.15); x.quadraticCurveTo(s * 0.6, -s * 0.05, s * 0.8, 0); x.fill();
+  // palmiers
+  x.strokeStyle = o.fl ? '#2d7a5a' : '#174a44'; x.lineCap = 'round';
+  for (const [px, ph] of [[-s * 0.35, s * 0.6], [s * 0.15, s * 0.45]]) { x.lineWidth = Math.max(1.5, s * 0.05); x.beginPath(); x.moveTo(px, -s * 0.1); x.quadraticCurveTo(px + s * 0.08, -ph * 0.6, px + s * 0.12, -ph); x.stroke(); for (let f = 0; f < 5; f++) { const a = Math.PI + f / 4 * Math.PI, ex = px + s * 0.12 + Math.cos(a) * s * 0.28, ey = -ph + Math.sin(a) * s * 0.1 + s * 0.08; x.lineWidth = Math.max(1, s * 0.045); x.beginPath(); x.moveTo(px + s * 0.12, -ph); x.quadraticCurveTo((px + s * 0.12 + ex) / 2, -ph - s * 0.08, ex, ey); x.stroke(); } }
+  // bord éclairé par la lune
+  x.strokeStyle = 'rgba(255,240,200,.35)'; x.lineWidth = 1.2; x.beginPath(); x.ellipse(0, 0, s, s * 0.2, 0, Math.PI * 1.1, Math.PI * 1.9); x.stroke();
+  x.restore();
+}
+// Pégase : silhouette lumineuse du cheval ailé (ailes qui battent) et sa traînée d'étoiles
+function pgPegasus(x, px, py, sc, t, dir) {
+  x.save(); x.translate(px, py); x.scale(sc * dir, sc);
+  x.shadowColor = 'rgba(180,240,255,.9)'; x.shadowBlur = 18; x.fillStyle = 'rgba(245,252,255,.95)';
+  // corps, cou, tête
+  x.beginPath(); x.ellipse(0, 0, 26, 10, -0.08, 0, 7); x.fill();
+  x.beginPath(); x.moveTo(20, -4); x.quadraticCurveTo(30, -14, 34, -24); x.lineTo(42, -26); x.quadraticCurveTo(46, -22, 44, -18); x.lineTo(36, -16); x.quadraticCurveTo(32, -6, 24, 4); x.closePath(); x.fill();
+  // crinière et queue qui flottent
+  x.strokeStyle = 'rgba(200,245,255,.9)'; x.lineWidth = 3; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(30, -22); x.quadraticCurveTo(22, -20 + Math.sin(t * 6) * 2, 18, -10); x.stroke();
+  x.beginPath(); x.moveTo(-25, -2); x.quadraticCurveTo(-40, -8 + Math.sin(t * 5) * 4, -52, 2 + Math.sin(t * 5 + 1) * 4); x.stroke();
+  // jambes repliées au galop
+  x.lineWidth = 3.2; const lg = Math.sin(t * 8) * 4;
+  for (const [lx, d] of [[14, 1], [8, -1], [-14, 1], [-20, -1]]) { x.beginPath(); x.moveTo(lx, 6); x.quadraticCurveTo(lx + 6 * d, 14 + lg * d, lx - 2, 20 + lg * d * 0.5); x.stroke(); }
+  // les ailes (battement)
+  const fl = Math.sin(t * 5), wy = -16 - fl * 20;
+  for (const [o, a] of [[0, 1], [-6, 0.7]]) { x.globalAlpha = a; x.beginPath(); x.moveTo(-4 + o, -6); x.quadraticCurveTo(-18 + o, wy - 10, -34 + o, wy - 2); x.quadraticCurveTo(-24 + o, wy + 6, -30 + o, wy + 12); x.quadraticCurveTo(-16 + o, wy + 10, -18 + o, wy + 20); x.quadraticCurveTo(-6 + o, -4, 8 + o, -6); x.closePath(); x.fill(); }
+  x.restore();
+}
+function pgSkyFrame(now) {
+  const x = PGS.ctx, w = PGS.w, h = PGS.h, k = PGS.k, t = (now - PGS.t0) / 1000, hz = PGS.hz;
+  x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(PGS.base, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
+  // étoiles qui scintillent
+  for (const [sx, sy, sr, p0, sp] of PGS.stars) { const a = 0.35 + 0.65 * Math.abs(Math.sin(t * sp * 0.6 + p0)); x.fillStyle = 'rgba(255,255,255,' + a.toFixed(2) + ')'; x.fillRect(sx, sy, sr, sr); }
+  // aurore : deux voiles qui ondulent
+  x.globalCompositeOperation = 'lighter';
+  for (const [col, y0, amp, sp, ph] of [['rgba(94,240,200,', 0.16, 0.05, 0.25, 0], ['rgba(170,110,255,', 0.24, 0.06, 0.18, 2]]) {
+    x.beginPath(); const Y = (u) => h * y0 + Math.sin(u * 5 + t * sp + ph) * h * amp + Math.sin(u * 13 - t * sp * 1.7) * h * amp * 0.3;
+    x.moveTo(0, Y(0)); for (let i = 1; i <= 40; i++) x.lineTo(w * i / 40, Y(i / 40)); for (let i = 40; i >= 0; i--) x.lineTo(w * i / 40, Y(i / 40) + h * 0.12);
+    const ag = x.createLinearGradient(0, h * (y0 - amp), 0, h * (y0 + amp + 0.14)); ag.addColorStop(0, col + '0)'); ag.addColorStop(0.3, col + '.09)'); ag.addColorStop(0.55, col + '.04)'); ag.addColorStop(1, col + '0)'); x.fillStyle = ag; x.fill();
+  }
+  x.globalCompositeOperation = 'source-over';
+  // îles flottantes
+  for (const o of PGS.isl) pgIsle(x, o, t);
+  // le reflet de la lune sur la mer, qui danse
+  const [mx] = PGS.moon;
+  for (let i = 0; i < 26; i++) { const y = hz + 6 + i * (h - hz) / 26, ww = (8 + i * 3.2) * (0.6 + 0.4 * Math.sin(t * 2 + i)), a = 0.35 * (1 - i / 26); x.fillStyle = 'rgba(255,236,190,' + a.toFixed(3) + ')'; x.fillRect(mx - ww / 2 + Math.sin(t * 1.3 + i * 0.7) * 6, y, ww, 1.5); }
+  for (let i = 0; i < 40; i++) { const y = hz + 4 + ((i * 37) % 100) / 100 * (h - hz), xx = ((i * 211 + t * (10 + i % 5 * 4)) % (w + 60)) - 30, a = 0.12 + 0.1 * Math.sin(t * 2 + i); x.fillStyle = 'rgba(160,230,255,' + a.toFixed(3) + ')'; x.fillRect(xx, y, 14 + (i % 4) * 6, 1); }
+  // nuages
+  for (const c of PGS.clouds) { const xx = (c.x + t * c.v) % (w + 300) - 150; for (const [ox, oy, rr] of [[0, 0, 60], [50, 10, 44], [-50, 12, 40], [20, -16, 38]]) { const g = x.createRadialGradient(xx + ox * c.s, c.y + oy * c.s, 1, xx + ox * c.s, c.y + oy * c.s, rr * c.s); g.addColorStop(0, 'rgba(220,235,255,' + c.a + ')'); g.addColorStop(1, 'rgba(220,235,255,0)'); x.fillStyle = g; x.beginPath(); x.arc(xx + ox * c.s, c.y + oy * c.s, rr * c.s, 0, 7); x.fill(); } }
+  // Pégase traverse le ciel toutes les 28 s (9 s de vol), avec une traînée d'étoiles
+  const cyc = t % 28;
+  if (cyc < 9) {
+    const u = cyc / 9, dir = Math.floor(t / 28) % 2 ? -1 : 1, px = dir > 0 ? -80 + (w + 160) * u : w + 80 - (w + 160) * u, py = h * (0.32 - 0.12 * Math.sin(u * Math.PI)) + Math.sin(t * 5) * 3, sc = Math.min(1.3, Math.max(0.7, w / 1100));
+    for (let i = 1; i < 26; i++) { const uu = u - i * 0.006; if (uu < 0) break; const tx = dir > 0 ? -80 + (w + 160) * uu : w + 80 - (w + 160) * uu, ty = h * (0.32 - 0.12 * Math.sin(uu * Math.PI)) + Math.sin((t - i * 0.05) * 5) * 3 + (i % 3 - 1) * 3; x.fillStyle = 'rgba(200,245,255,' + (0.6 * (1 - i / 26)).toFixed(3) + ')'; x.beginPath(); x.arc(tx - dir * 30 * sc, ty + 4, 1.6 * (1 - i / 30), 0, 7); x.fill(); }
+    pgPegasus(x, px, py, sc, t, dir);
+  }
+}
+function pgSky(on) {
+  PGS.on = !!on;
+  if (!PGS.on) { cancelAnimationFrame(PGS.raf); PGS.raf = 0; return; }
+  if (!PGS.base || PGS.w !== innerWidth || PGS.h !== innerHeight) pgSkyBuild();
+  if (!PGS.base) return;
+  const reduce = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (PGS.raf) return;
+  const loop = (now) => { PGS.raf = PGS.on ? requestAnimationFrame(loop) : 0; if (!PGS.on || document.hidden || $('jdw-lib').hidden) return; if (now - PGS.last < (reduce ? 1000 : 33)) return; PGS.last = now; pgSkyFrame(now); };
+  pgSkyFrame(performance.now()); PGS.raf = requestAnimationFrame(loop);
+}
+addEventListener('resize', () => { if (PGS.on) { pgSkyBuild(); pgSkyFrame(performance.now()); } });
+
 // L'ÎLE DESSINÉE (cartes de la page Pégase) : vue de haut en 3/4, animée — mer profonde qui scintille, lagon turquoise, vagues d'écume qui
 // roulent sur la plage, falaise de sable, prairie texturée, collines éclairées, étang, chemin, ponton, palmiers, arbres, maisons aux
 // fenêtres allumées, voilier qui tourne autour, ombres de nuages, copains en ligne qui brillent. Et le BROUILLARD DE DÉCOUVERTE : ce qu'on
 // n'a pas encore exploré reste sous la brume (prototype : sans données du serveur, on découvre le ponton, le chemin et les maisons des
 // membres ; plus tard, la même carte de découverte que le téléphone du jeu : q.fog). Couches fixes dessinées une fois ; seuls l'eau, l'écume,
 // le bateau, les nuages et la brume bougent (30 images/s au plus, seulement quand la carte est à l'écran).
-const ISLE_ANIM = new Set();
+const ISLE_ANIM = new Set(), ISLE_PHOTOS = new Map(), ISLE_PHOTO_BAD = new Set();
 function isleArt(cv, seed, players, q) {
   if (!cv) return;
   q = q || {};
+  if (q.photo && !ISLE_PHOTO_BAD.has(q.photo.url)) {
+    const ok = (im) => { if (cv.isConnected) islePhoto(cv, im, q, seed); };
+    const im0 = ISLE_PHOTOS.get(q.photo.url); if (im0 && im0.complete && im0.naturalWidth) { ok(im0); return; }
+    const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
+    im.onload = () => { ISLE_PHOTOS.set(q.photo.url, im); ok(im); };
+    im.onerror = () => { ISLE_PHOTO_BAD.add(q.photo.url); if (cv.isConnected) isleArt(cv, seed, players, q); };
+    im.src = q.photo.url;
+    const x0 = cv.getContext('2d'); cv.width = cv.clientWidth || 300; cv.height = cv.clientHeight || 170; x0.fillStyle = '#0a4f78'; x0.fillRect(0, 0, cv.width, cv.height);   // en attendant la photo
+    return;
+  }
   const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(w * k); cv.height = Math.round(h * k);
   let sd = (seed >>> 0) || 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
@@ -4440,15 +4565,12 @@ function isleArt(cv, seed, players, q) {
     const G = q.fog && typeof q.fog === 'object' && !Array.isArray(q.fog) && q.fog.b ? q.fog : null;
     let grid = false;
     if (G) {
-      try {
-        const n = Math.max(8, Math.min(512, G.n | 0)), raw = atob(String(G.b)), m = document.createElement('canvas'); m.width = m.height = n;
-        const mx = m.getContext('2d'), im = mx.createImageData(n, n);
-        for (let i = 0; i < n * n; i++) if ((raw.charCodeAt(i >> 3) >> (i & 7)) & 1) { const row = Math.floor(i / n), col = i % n, o = ((n - 1 - row) * n + col) * 4; im.data[o + 3] = 255; }
-        mx.putImageData(im, 0, 0);
+      const m = isleFogMask(G);
+      if (m) {
         const bx = cx - rx * 1.12, by = cy - ry * 1.12, bw = rx * 2.24, bh = ry * 2.24;
-        f.save(); f.imageSmoothingEnabled = true; f.filter = 'blur(' + Math.max(2, Math.round(bw / n * 1.6)) + 'px)'; f.drawImage(m, bx, by, bw, bh); f.drawImage(m, bx, by, bw, bh); f.filter = 'none'; f.restore();
+        f.save(); f.imageSmoothingEnabled = true; f.filter = 'blur(' + Math.max(2, Math.round(bw / m.width * 1.6)) + 'px)'; f.drawImage(m, bx, by, bw, bh); f.drawImage(m, bx, by, bw, bh); f.filter = 'none'; f.restore();
         grid = true;
-      } catch (e) { grid = false; }
+      }
     }
     const holes = Array.isArray(q.fog) ? q.fog.map(([fx, fy, fr]) => [fx * w, fy * h, fr * w]) : [];
     if (!holes.length && !grid) {
@@ -4495,11 +4617,61 @@ function isleArt(cv, seed, players, q) {
     x.fillStyle = rad(x, cx, cy, Math.min(w, h) * 0.5, cx, cy, Math.max(w, h) * 0.78, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,10,25,.45)']); x.fillRect(0, 0, w, h);
   };
   frame(performance.now());
-  // animation : seulement quand la carte est à l'écran et la page visible (30 images/s au plus)
+  isleRun(cv, frame);
+}
+
+// une seule boucle pour toutes les îles à l'écran (30 images/s au plus, rien quand la page est cachée) ; un canevas = une animation
+function isleRun(cv, frame) {
+  for (const a of [...ISLE_ANIM]) if (a.cv === cv) { if (a.io) a.io.disconnect(); ISLE_ANIM.delete(a); }
+  frame(performance.now());
   const A = { cv, frame, last: 0, on: false };
   ISLE_ANIM.add(A);
   if ('IntersectionObserver' in window) { const io = new IntersectionObserver((es) => { for (const e of es) A.on = e.isIntersecting; }); io.observe(cv); A.io = io; } else A.on = true;
   if (!ISLE_ANIM.loop) { const loop = (t) => { ISLE_ANIM.loop = requestAnimationFrame(loop); if (document.hidden) return; for (const a of [...ISLE_ANIM]) { if (!a.cv.isConnected) { if (a.io) a.io.disconnect(); ISLE_ANIM.delete(a); continue; } if (!a.on || t - a.last < 33) continue; a.last = t; a.frame(t); } if (!ISLE_ANIM.size) { cancelAnimationFrame(ISLE_ANIM.loop); ISLE_ANIM.loop = 0; } }; ISLE_ANIM.loop = requestAnimationFrame(loop); }
+}
+// la grille de découverte r_fog → un petit canevas n×n (opaque = découvert), z vers le haut
+function isleFogMask(G) {
+  try {
+    const n = Math.max(8, Math.min(512, G.n | 0)), raw = atob(String(G.b)), m = document.createElement('canvas'); m.width = m.height = n;
+    const mx = m.getContext('2d'), im = mx.createImageData(n, n);
+    for (let i = 0; i < n * n; i++) if ((raw.charCodeAt(i >> 3) >> (i & 7)) & 1) { const row = Math.floor(i / n), col = i % n, o = ((n - 1 - row) * n + col) * 4; im.data[o + 3] = 255; }
+    mx.putImageData(im, 0, 0); return m;
+  } catch (e) { return null; }
+}
+// la VRAIE PHOTO de l'île (vue de dessus du monde rendue par le jeu, calée sur le rectangle « r » de la brume) : elle remplit la carte
+// (entière, au centre) ; par-dessus, la brume de découverte (r_fog, même rectangle donc pile au bon endroit), les ombres des nuages, les
+// nuages et une lumière douce. Sans r_fog (invité, non-membre) : la photo sans brume.
+function islePhoto(cv, im, q, seed) {
+  const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+  let sd = (seed >>> 0) || 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647, S = Math.min(w / 300, h / 170);
+  const off = () => { const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.scale(k, k); return [c, x]; };
+  const rad = (x, x0, y0, r0, x1, y1, r1, st) => { const g = x.createRadialGradient(x0, y0, r0, x1, y1, r1); for (let i = 0; i < st.length; i += 2) g.addColorStop(st[i], st[i + 1]); return g; };
+  // la photo ENTIÈRE au centre (pas de recadrage : on voit toute l'île), et sur les côtés la même photo agrandie et floutée
+  const W = im.naturalWidth, H = im.naturalHeight, sc = Math.min(w / W, h / H), iw = W * sc, ih = H * sc, ix = (w - iw) / 2, iy = (h - ih) / 2;
+  const [baseC, b] = off(); b.imageSmoothingQuality = 'high';
+  const cs = Math.max(w / W, h / H) * 1.15; b.filter = 'blur(' + Math.round(10 * S) + 'px) brightness(.75) saturate(1.1)'; b.drawImage(im, (w - W * cs) / 2, (h - H * cs) / 2, W * cs, H * cs); b.filter = 'none';
+  b.shadowColor = 'rgba(0,0,0,.45)'; b.shadowBlur = 14 * S; b.drawImage(im, ix, iy, iw, ih); b.shadowBlur = 0;
+  const G = q.fog && typeof q.fog === 'object' && !Array.isArray(q.fog) && q.fog.b ? q.fog : null, m = G && isleFogMask(G);
+  const [fogC, f] = off();
+  if (m) {
+    f.fillStyle = 'rgba(222,232,246,.86)'; f.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { const px = r() * w, py = r() * h, rr = (12 + r() * 24) * S; f.fillStyle = rad(f, px - rr * 0.3, py - rr * 0.4, 1, px, py, rr, [0, i % 4 ? 'rgba(255,255,255,.5)' : 'rgba(170,185,215,.35)', 1, 'rgba(255,255,255,0)']); f.beginPath(); f.ellipse(px, py, rr, rr * 0.7, 0, 0, 7); f.fill(); }
+    f.globalCompositeOperation = 'destination-out';
+    f.save(); f.imageSmoothingEnabled = true; f.filter = 'blur(' + Math.max(2, Math.round(iw / m.width * 1.6)) + 'px)'; f.drawImage(m, ix, iy, iw, ih); f.drawImage(m, ix, iy, iw, ih); f.filter = 'none'; f.restore();
+    f.globalCompositeOperation = 'source-over';
+  }
+  const clouds = []; for (let i = 0; i < 3; i++) clouds.push({ x: r() * w, y: h * (0.12 + r() * 0.6), s: (0.7 + r() * 0.6) * S, v: 3 + r() * 4 });
+  const x = cv.getContext('2d');
+  isleRun(cv, (t) => {
+    t /= 1000;
+    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(baseC, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
+    for (const c of clouds) { const xx = (c.x + t * c.v) % (w + 120) - 60; x.fillStyle = 'rgba(0,30,50,.10)'; for (const [ox, oy, rr] of [[0, 0, 22], [18, 4, 16], [-18, 5, 15]]) { x.beginPath(); x.ellipse(xx + ox * c.s + 14, c.y + oy * c.s + 26, rr * c.s, rr * c.s * 0.5, 0, 0, 7); x.fill(); } }
+    if (m) { const dx = Math.sin(t * 0.35) * 2.5 * k, dy = Math.cos(t * 0.27) * 1.5 * k; x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(fogC, dx, dy); x.setTransform(k, 0, 0, k, 0, 0); }
+    for (const c of clouds) { const xx = (c.x + t * c.v) % (w + 120) - 60; for (const [ox, oy, rr] of [[0, 0, 22], [18, 4, 16], [-18, 5, 15], [8, -8, 14]]) { x.fillStyle = rad(x, xx + ox * c.s - rr * c.s * 0.3, c.y + oy * c.s - rr * c.s * 0.4, 1, xx + ox * c.s, c.y + oy * c.s, rr * c.s, [0, 'rgba(255,255,255,.75)', 0.7, 'rgba(240,248,255,.45)', 1, 'rgba(240,248,255,0)']); x.beginPath(); x.arc(xx + ox * c.s, c.y + oy * c.s, rr * c.s, 0, 7); x.fill(); } }
+    x.fillStyle = rad(x, w * 0.2, h * 0.05, 4, w * 0.4, h * 0.4, w * 0.9, [0, 'rgba(255,240,200,.12)', 1, 'rgba(255,240,200,0)']); x.fillRect(0, 0, w, h);
+    x.fillStyle = rad(x, w / 2, h / 2, Math.min(w, h) * 0.5, w / 2, h / 2, Math.max(w, h) * 0.78, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,10,25,.45)']); x.fillRect(0, 0, w, h);
+  });
 }
 // le serveur des îles (pg_island_*, île = salle ; ~/jdv-tools/pegase/server/INTEGRATION-iles.md) ; tant qu'il n'est pas en ligne (404) :
 // l'île de la salle, comme avant. Trois sortes : publique · mdp (mot de passe) · amis. Toutes se regardent, même sans compte ; une île
@@ -4509,12 +4681,14 @@ const islName = () => (isGuest() ? null : profile.name);
 const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 Amis seulement' };
 let islTickets = store.get('jdw.iletickets', {}) || {};
 // r_fog : la carte de découverte du joueur (membre connecté seulement, sinon null → brume décorative) ; objet ou texte JSON
+// la vraie photo de l'île vue de dessus (rendue par le jeu, même rectangle que r_fog) : texte (adresse https) ou { url } ; le dessin sinon
+const islPhotoOf = (q) => { const v = q.r_photo || q.r_map || q.r_image, u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u } : null; };
 const islFog = (v) => { try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && typeof o === 'object' && typeof o.b === 'string' && (o.n | 0) > 0 ? o : null; } catch (e) { return null; } };
 async function islesData() {
   if (ISL.srv !== false) {
     try {
       const rows = await rpc('pg_island_list', { p_code: CODE() || '', p_name: islName() }, { quiet404: true, quiet: true });
-      if (Array.isArray(rows)) { ISL.srv = true; return (ISL.rows = rows.map(q => { const kind = q.r_kind || (q.r_private ? 'mdp' : 'publique'); return { id: q.r_id, name: q.r_name, kind, priv: kind !== 'publique', keeper: q.r_owner || '', n: q.r_online | 0, max: q.r_max | 0, members: q.r_members | 0, mine: !!q.r_mine, banned: !!q.r_banned, guardian: !!q.r_guardian, cur: !!(PG.isle && PG.isle.id === q.r_id), fog: islFog(q.r_fog) }; })); }
+      if (Array.isArray(rows)) { ISL.srv = true; return (ISL.rows = rows.map(q => { const kind = q.r_kind || (q.r_private ? 'mdp' : 'publique'); return { id: q.r_id, name: q.r_name, kind, priv: kind !== 'publique', keeper: q.r_owner || '', n: q.r_online | 0, max: q.r_max | 0, members: q.r_members | 0, mine: !!q.r_mine, banned: !!q.r_banned, guardian: !!q.r_guardian, cur: !!(PG.isle && PG.isle.id === q.r_id), fog: islFog(q.r_fog), photo: islPhotoOf(q) }; })); }
     } catch (e) { if (e.status === 404) ISL.srv = false; }
   }
   return [];   // pas de serveur des îles : rien (les salles de la borne ne sont pas des îles)
@@ -4541,13 +4715,14 @@ function islRequest(q, card) {
 }
 async function islJoin(q, card) {
   const g = gameById('pegase'); if (!g) return;
-  if (!ISL.srv) { openGame(g); return; }
-  if (q.cur && q.mine) { openGame(g); return; }
+  const launch = () => { if (nativeFor(g)) nativeOpen(g, true); else openGame(g); };   // le jeu sur l'appareil où l'on est
+  if (!ISL.srv) { launch(); return; }
+  if (q.cur && q.mine) { launch(); return; }
   if (isGuest()) { if (q.priv) islRequest(q, card); else toastCheer('Crée ton compte (gratuit) pour jouer sur une île 😉 — tu peux déjà la regarder.', null, true); return; }
   const go = async (pw) => {
     try { const r = await rpc('pg_island_join', { p_code: CODE(), p_name: profile.name, p_id: q.id, p_password: pw || '' }); if (r !== 'ok' && r !== true && !(Array.isArray(r) && r.length)) throw new Error(String(r)); }
     catch (e) { if (/reservee aux amis/.test(String(e.message))) { islRequest(q, card); return; } const pn = card.querySelector('.pi-panel'); if (pn) pn.querySelector('.pp-msg').textContent = islErr(e); else toastCheer(islErr(e), null, true); return; }
-    PG.isle = { id: q.id, name: q.name, kind: q.kind }; store.set('jdw.ile', PG.isle); openGame(g);   // l'appli lit l'île choisie (api.pegase.info().ile)
+    PG.isle = { id: q.id, name: q.name, kind: q.kind }; store.set('jdw.ile', PG.isle); launch();   // l'appli lit l'île choisie (api.pegase.info().ile)
   };
   if (q.kind !== 'mdp' || q.mine) { go(''); return; }
   const pn = islPanel(card, '<label>🔒 Mot de passe de l\'île<input type="password" autocomplete="off" maxlength="40"></label><div class="pp-row"><button type="button" class="pp-ok">Entrer</button><button type="button" class="pp-x">Annuler</button></div><p class="pp-msg"></p><button type="button" class="pp-link">Pas le mot de passe ? Demander l\'accès</button>');
@@ -4558,34 +4733,31 @@ async function islJoin(q, card) {
   pn.querySelector('.pp-link').addEventListener('click', () => islRequest(q, card));
 }
 async function islWatch(q, card) {
-  // toutes les îles se regardent, même privées et sans compte ; les maisons d'une île protégée : seulement pour ses amis
-  let w = null; if (ISL.srv) { try { w = await rpc('pg_island_watch', { p_id: q.id, p_code: CODE() || '', p_name: islName() }, { quiet: true }); } catch (e) { w = { err: islErr(e) }; } }
-  if (Array.isArray(w)) w = w[0] || null;
-  const pn = islPanel(card, '<b class="pp-t"></b><p class="pp-msg"></p><div class="pp-row"><button type="button" class="pp-ok" hidden>Ouvrir dans Pégase</button><button type="button" class="pp-ask pp-ok" hidden>Demander l\'accès</button><button type="button" class="pp-x">Fermer</button></div>');
-  pn.querySelector('.pp-t').textContent = '👀 Sur ' + q.name;
-  let t;
-  if (!ISL.srv) t = 'Bientôt : regarder une île sans jouer, même sans compte.';
-  else if (!w || w.err) t = (w && w.err) || 'Impossible de regarder cette île pour le moment.';
-  else {
-    // en spectateur, on ne voit que les avatars et leur pseudo public (le nom arrive tout prêt du serveur : pseudo public ou « HabitantXXXXXX »)
-    const ppl = Array.isArray(w.r_players) ? w.r_players : Array.isArray(w.r_avatars) ? w.r_avatars : [], on = w.r_online | 0;
-    const mem = w.r_members || q.members | 0;
-    t = on + ' joueur' + (on > 1 ? 's' : '') + ' en ligne' + (mem ? ' / ' + mem + ' membre' + (mem > 1 ? 's' : '') : '') + '.' + (on || ppl.length ? '' : ' Personne sur l\'île pour le moment.');
-    // les maisons : seulement pour les amis du gardien (r_houses_shown), sinon le cadenas et « Demander l'accès »
-    const hs = Array.isArray(w.r_houses) ? w.r_houses : [];
-    t += w.r_houses_shown === false ? ' 🔒 Les maisons ne se montrent qu\'aux amis du gardien.' : hs.length ? ' 🏠 ' + hs.length + ' maison' + (hs.length > 1 ? 's' : '') + ' : ' + hs.slice(0, 12).map(x => String(x.n || '').slice(0, 24)).filter(Boolean).join(', ') + (hs.length > 12 ? '…' : '') + '.' : w.r_houses_shown ? ' Pas encore de maison.' : '';
-    if (ppl.length) {
-      const who = document.createElement('div'); who.className = 'pp-who';
-      for (const a of ppl.slice(0, 24)) { const sp = document.createElement('span'), nm = String(a.r_name || a.n || a.name || '').slice(0, 24), ph = a.r_photo || a.photo || ''; if (ph && /^(data:image\/|https:\/\/)/.test(ph)) { const im = document.createElement('img'); im.src = ph; im.alt = ''; sp.appendChild(im); } else { const b = document.createElement('b'); b.textContent = (nm[0] || '?').toUpperCase(); sp.appendChild(b); } sp.appendChild(document.createTextNode(nm)); who.appendChild(sp); }
-      pn.querySelector('.pp-msg').after(who);
-    }
-    if (q.priv && !q.mine && w.r_houses_shown !== true) { const ab = pn.querySelector('.pp-ask'); ab.hidden = false; ab.addEventListener('click', () => islRequest(q, card)); }
-  }
-  pn.querySelector('.pp-msg').textContent = t;
-  // l'appli Pégase (Android) sait regarder une île : salle=<id>&regarder=1, sans jeton
-  const ob = pn.querySelector('.pp-ok');
-  if (ISL.srv && NAT.b && NAT.info && natApi() >= 1) { ob.hidden = false; ob.addEventListener('click', () => { try { NAT.b.openApp(NAT.info.pkg, (NAT.info.open || 'pegase://open') + '?from=borne&salle=' + encodeURIComponent(q.id) + '&regarder=1'); } catch (e) { toastCheer('Ouvre Pégase depuis sa tuile.', null, true); } }); }
+  // REGARDER = les habitants en avatars (tête, pseudo public, en ligne ou non) ; les chiffres sont déjà sur la carte. Les noms arrivent
+  // tout prêts du serveur (pseudo public pour un ami, « HabitantXXXXXX » sinon) ; la tête : r_photo, sinon celle de la borne si on la connaît.
+  const pn = islPanel(card, '<b class="pp-t"></b><div class="pp-who"></div><p class="pp-msg"></p><div class="pp-row"><button type="button" class="pp-ok pp-live" hidden>Voir en direct</button><button type="button" class="pp-ask pp-ok" hidden>Demander l\'accès</button><button type="button" class="pp-x">Fermer</button></div>');
+  pn.querySelector('.pp-t').textContent = '👀 Les habitants de ' + q.name;
   pn.querySelector('.pp-x').addEventListener('click', () => pn.remove());
+  if (!ISL.srv) { pn.querySelector('.pp-msg').textContent = 'Bientôt : regarder une île sans jouer, même sans compte.'; return; }
+  let w = null; try { w = await rpc('pg_island_watch', { p_id: q.id, p_code: CODE() || '', p_name: islName() }, { quiet: true }); } catch (e) { w = { err: islErr(e) }; }
+  if (Array.isArray(w)) w = w[0] || null;
+  let ppl = (w && (Array.isArray(w.r_players) ? w.r_players : Array.isArray(w.r_avatars) ? w.r_avatars : null) || []).map(a => ({ name: a.r_name || a.n || a.name, on: a.r_online !== false, photo: a.r_photo || a.photo, guard: !!a.r_guardian }));
+  if (!ppl.length && (q.mine || q.guardian) && !isGuest()) { try { ppl = (await rpc('pg_island_members', { p_code: CODE(), p_name: profile.name, p_id: q.id }, { quiet: true }) || []).map(r => ({ name: r.r_name, on: !!r.r_online, guard: !!r.r_guardian })); } catch (e) {} }
+  ppl.sort((x, y) => (y.on ? 1 : 0) - (x.on ? 1 : 0) || (y.guard ? 1 : 0) - (x.guard ? 1 : 0));
+  const who = pn.querySelector('.pp-who');
+  for (const a of ppl.slice(0, 30)) {
+    const nm = String(a.name || 'Habitant').slice(0, 24), el = document.createElement('div'); el.className = 'pp-av ' + (a.on ? 'on' : 'off');
+    const ring = document.createElement('i'), known = (() => { try { const p = players.get(cleanName(nm)); return p && p.photo; } catch (e) { return null; } })(), ph = a.photo || known || '';
+    if (ph && /^(data:image\/|https:\/\/|blob:)/.test(ph)) { const im = document.createElement('img'); im.src = ph; im.alt = ''; ring.appendChild(im); } else { const b = document.createElement('b'); b.textContent = (nm[0] || '?').toUpperCase(); ring.appendChild(b); }
+    const sp = document.createElement('span'); sp.textContent = (a.guard ? '🛡️ ' : '') + nm;
+    const sm = document.createElement('small'); sm.textContent = a.on ? 'sur l\'île' : 'pas là';
+    el.append(ring, sp, sm); who.appendChild(el);
+  }
+  pn.querySelector('.pp-msg').textContent = !w || w.err ? (w && w.err) || 'Impossible de regarder cette île pour le moment.' : ppl.length ? '' : w.r_houses_shown === false ? '🔒 Les habitants ne se montrent qu\'aux amis du gardien.' : 'Personne sur l\'île pour le moment.';
+  if (q.priv && !q.mine && !(w && w.r_houses_shown === true)) { const ab = pn.querySelector('.pp-ask'); ab.hidden = false; ab.addEventListener('click', () => islRequest(q, card)); }
+  // l'appli Pégase (Android) sait regarder une île en direct : salle=<id>&regarder=1, sans jeton
+  const ob = pn.querySelector('.pp-live');
+  if (NAT.b && NAT.info && natApi() >= 1) { ob.hidden = false; ob.addEventListener('click', () => { try { NAT.b.openApp(NAT.info.pkg, (NAT.info.open || 'pegase://open') + '?from=borne&salle=' + encodeURIComponent(q.id) + '&regarder=1'); } catch (e) { toastCheer('Ouvre Pégase depuis sa tuile.', null, true); } }); }
 }
 // ⚙️ PARAMÈTRES de l'île (gardien seulement) : Membres (en ligne ou non, Exclure / Bannir) · Accès (tout le monde / mot de passe / amis,
 // changer le mot de passe) · Demandes (Accepter / Refuser) · Bannis (débannir). Les membres et les bannis se désignent par r_key (opaque).
@@ -7351,7 +7523,7 @@ function backToLibrary() {
   unmountGame();
   try { coopReset(); } catch (e) {}
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
-  setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic('accueil');
+  setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());
   fsLeave();
   if (siteNew) setTimeout(maybeReload, 800);
 }
