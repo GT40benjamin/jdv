@@ -401,7 +401,7 @@ function isGuest() {      // = acctState(profile) !== 'on', sans dépendre de l'
   return !(profile && profile.name && se && se.rt);
 }
 // seules fonctions du serveur permises à un invité (toutes les autres sont refusées ici, sans appel réseau)
-const GUEST_RPC = new Set(['check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
+const GUEST_RPC = new Set(['pg_island_list', 'pg_island_watch', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
 // le joueur au nom duquel une fonction agit (son jeton est envoyé s'il est connecté sur cet appareil)
 function rpcActor(fn, args) {
   if (!args) return '';
@@ -4289,12 +4289,64 @@ function isleArt(cv, seed, players) {
   for (let i = 0; i < 5; i++) { const px = cx + (r() - 0.5) * rx * 1.1, py = cy + (r() - 0.5) * ry * 0.9; x.fillStyle = '#f4ead8'; x.fillRect(px - 6, py - 4, 12, 9); x.fillStyle = ['#d8503a', '#3a7ad8', '#d8a83a'][i % 3]; x.beginPath(); x.moveTo(px - 8, py - 3); x.lineTo(px, py - 11); x.lineTo(px + 8, py - 3); x.fill(); }
   for (let i = 0; i < Math.min(12, players || 0); i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 0.6; x.fillStyle = ['#ffa630', '#5ef0ff', '#ff5fae', '#ffd34d'][i % 4]; x.beginPath(); x.arc(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 3.2, 0, 7); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 1.2; x.stroke(); }
 }
+// le serveur des îles (pg_island_*, île = salle) ; tant qu'il n'est pas en ligne (404) : l'île de la salle, comme avant
+const ISL = { srv: null, rows: [] };
+const islName = () => (isGuest() ? null : profile.name);
 async function islesData() {
-  // le serveur des îles (quand il existe) ; sinon : l'île actuelle, celle de la salle
-  try { if (typeof pegaseRpcHas === 'function' && pegaseRpcHas('pg_island_list')) { const rows = await rpc('pg_island_list', { p_code: CODE() }); if (Array.isArray(rows)) return rows.map(q => ({ id: q.r_id, name: q.r_name, priv: !!q.r_private, keeper: q.r_owner, n: q.r_online | 0, max: q.r_max | 0, mine: !!q.r_mine })); } } catch (e) {}
+  if (ISL.srv !== false) {
+    try {
+      const rows = await rpc('pg_island_list', { p_code: CODE() || '', p_name: islName() }, { quiet404: true, quiet: true });
+      if (Array.isArray(rows)) { ISL.srv = true; return (ISL.rows = rows.map(q => ({ id: q.r_id, name: q.r_name, priv: !!q.r_private, keeper: q.r_owner || '', n: q.r_online | 0, max: q.r_max | 0, mine: !!q.r_mine, banned: !!q.r_banned, cur: !!(room && room.id === q.r_id) }))); }
+    } catch (e) { if (e.status === 404) ISL.srv = false; }
+  }
   const here = room ? room.name : '';
   let n = 0; try { n = tilePlayers('pegase').length; } catch (e) {}
-  return here ? [{ id: 'room', name: 'L\'île de ' + here, priv: !!(room && room.private), keeper: '', n, max: 0, mine: true, cur: true }] : [];
+  return here ? [{ id: room.id, name: 'L\'île de ' + here, priv: !!(room && room.priv), keeper: '', n, max: 0, mine: true, cur: true }] : [];
+}
+const islErr = (e) => { const t = String((e && e.message) || ''); return /pleine/.test(t) ? 'Cette île est pleine (toutes les parcelles sont prises).' : /mot de passe/.test(t) ? 'Ce n\'est pas le bon mot de passe.' : /banni/.test(t) ? 'Le gardien t\'a banni de cette île.' : /2 iles|deux iles|limite/.test(t) ? 'Tu as déjà deux îles : c\'est le maximum.' : e && e.guest ? 'Crée ton compte (gratuit) pour jouer sur une île.' : 'Impossible pour le moment, réessaie plus tard.'; };
+// petit panneau dans la carte (mot de passe, création, gestion) : pas de prompt()
+function islPanel(host, html) { let pn = host.querySelector('.pi-panel'); if (pn) pn.remove(); pn = document.createElement('div'); pn.className = 'pi-panel'; pn.innerHTML = html; host.appendChild(pn); return pn; }
+async function islJoin(q, card) {
+  const g = gameById('pegase'); if (!g) return;
+  if (!ISL.srv || q.cur) { if (q.cur || !ISL.srv) { openGame(g); return; } }
+  if (isGuest()) { toastCheer('Crée ton compte (gratuit) pour jouer sur une île 😉', null, true); return; }
+  const go = async (pw) => {
+    try { const r = await rpc('pg_island_join', { p_code: CODE(), p_name: profile.name, p_id: q.id, p_password: pw || '' }); if (r !== 'ok' && r !== true && !(Array.isArray(r) && r.length)) throw new Error(String(r)); }
+    catch (e) { const pn = card.querySelector('.pi-panel'); if (pn) pn.querySelector('.pp-msg').textContent = islErr(e); else toastCheer(islErr(e), null, true); return; }
+    enterRoom({ id: q.id, name: q.name, priv: q.priv, owner: q.keeper || null }); openGame(g);
+  };
+  if (!q.priv) { go(''); return; }
+  const pn = islPanel(card, '<label>🔒 Mot de passe de l\'île<input type="password" autocomplete="off" maxlength="40"></label><div class="pp-row"><button type="button" class="pp-ok">Entrer</button><button type="button" class="pp-x">Annuler</button></div><p class="pp-msg"></p>');
+  const inp = pn.querySelector('input'); inp.focus();
+  pn.querySelector('.pp-ok').addEventListener('click', () => go(inp.value));
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(inp.value); });
+  pn.querySelector('.pp-x').addEventListener('click', () => pn.remove());
+}
+async function islWatch(q, card) {
+  if (ISL.srv && q.priv) { toastCheer('🔒 Une île privée ne se regarde pas de l\'extérieur.', null, true); return; }
+  let w = null; if (ISL.srv) { try { w = await rpc('pg_island_watch', { p_id: q.id }, { quiet: true }); } catch (e) { w = null; } }
+  const rows = Array.isArray(w) ? w : w ? [w] : [];
+  const who = rows.map(x => x.r_name || x.name).filter(Boolean), maisons = rows.filter(x => x.r_maison || x.maison).length;
+  const pn = islPanel(card, '<b class="pp-t"></b><p class="pp-msg"></p><div class="pp-row"><button type="button" class="pp-ok" hidden>Ouvrir dans Pégase</button><button type="button" class="pp-x">Fermer</button></div>');
+  pn.querySelector('.pp-t').textContent = '👀 Sur ' + q.name;
+  pn.querySelector('.pp-msg').textContent = !ISL.srv ? 'Bientôt : regarder une île sans jouer, même sans compte.' : (who.length ? 'En ligne : ' + who.slice(0, 12).join(', ') + (who.length > 12 ? '…' : '') : 'Personne en ligne pour l\'instant.') + (maisons ? ' · ' + maisons + ' maison' + (maisons > 1 ? 's' : '') : '');
+  // l'appli Pégase (Android) sait regarder une île : salle=<id>&regarder=1, sans jeton
+  const ob = pn.querySelector('.pp-ok');
+  if (ISL.srv && NAT.b && NAT.info && natApi() >= 1) { ob.hidden = false; ob.addEventListener('click', () => { try { NAT.b.openApp(NAT.info.pkg, (NAT.info.open || 'pegase://open') + '?from=borne&salle=' + encodeURIComponent(q.id) + '&regarder=1'); } catch (e) { toastCheer('Ouvre Pégase depuis sa tuile.', null, true); } }); }
+  pn.querySelector('.pp-x').addEventListener('click', () => pn.remove());
+}
+async function islManage(q, card) {
+  const pn = islPanel(card, '<b class="pp-t">🛡️ Gardien de l\'île</b><label>Mot de passe (vide = île publique)<input type="text" class="pp-pw" maxlength="40" autocomplete="off"></label><div class="pp-row"><button type="button" class="pp-ok pp-pwok">Changer</button></div>' +
+    '<label>Bannir un joueur (son pseudo)<input type="text" class="pp-ban" maxlength="24" autocomplete="off"></label><div class="pp-row"><button type="button" class="pp-ok pp-banok">Bannir</button></div><div class="pp-bans"></div><p class="pp-msg"></p><div class="pp-row"><button type="button" class="pp-x">Fermer</button></div>');
+  const msg = (t) => { pn.querySelector('.pp-msg').textContent = t; };
+  const loadBans = async () => {
+    const box = pn.querySelector('.pp-bans'); box.textContent = '';
+    try { const rows = await rpc('pg_island_bans', { p_code: CODE(), p_name: profile.name, p_id: q.id }) || []; for (const r of rows) { const n = r.r_name || r.r_target || r; const b = document.createElement('button'); b.type = 'button'; b.className = 'pp-chip'; b.textContent = '✕ ' + n; b.title = 'Débannir'; b.addEventListener('click', async () => { try { await rpc('pg_island_unban', { p_code: CODE(), p_name: profile.name, p_id: q.id, p_target: n }); msg(n + ' peut revenir.'); loadBans(); } catch (e) { msg(islErr(e)); } }); box.appendChild(b); } } catch (e) { /* liste indisponible */ }
+  };
+  pn.querySelector('.pp-pwok').addEventListener('click', async () => { const v = pn.querySelector('.pp-pw').value; try { await rpc('pg_island_password', { p_code: CODE(), p_name: profile.name, p_id: q.id, p_password: v }); msg(v ? 'Mot de passe changé : l\'île est privée.' : 'L\'île est maintenant publique.'); renderIsles(); } catch (e) { msg(islErr(e)); } });
+  pn.querySelector('.pp-banok').addEventListener('click', async () => { const v = cleanName(pn.querySelector('.pp-ban').value); if (!v) return; try { await rpc('pg_island_ban', { p_code: CODE(), p_name: profile.name, p_id: q.id, p_target: v }); msg(v + ' est banni de l\'île.'); pn.querySelector('.pp-ban').value = ''; loadBans(); } catch (e) { msg(islErr(e)); } });
+  pn.querySelector('.pp-x').addEventListener('click', () => pn.remove());
+  loadBans();
 }
 async function renderIsles() {
   const box = $('jdw-pg-isles'); if (!box) return;
@@ -4303,27 +4355,48 @@ async function renderIsles() {
   box.textContent = '';
   if (!list.length) {
     const e = document.createElement('div'); e.className = 'pg-empty';
-    e.innerHTML = PG.tab === 'priv' ? '<b>🔒 Îles privées</b>Bientôt : une île avec mot de passe, rien que pour la famille ou les copains.' : PG.tab === 'mine' ? '<b>⭐ Tes îles</b>Les îles que tu as créées ou rejointes apparaîtront ici.' : '<b>🌍 Îles publiques</b>Bientôt : les îles ouvertes à tous, à rejoindre ou à regarder.';
+    e.innerHTML = PG.tab === 'priv' ? '<b>🔒 Îles privées</b>' + (ISL.srv ? 'Aucune île privée pour l\'instant : crée la tienne, avec un mot de passe pour la famille ou les copains.' : 'Bientôt : une île avec mot de passe, rien que pour la famille ou les copains.') : PG.tab === 'mine' ? '<b>⭐ Tes îles</b>Les îles que tu as créées ou rejointes apparaîtront ici.' : '<b>🌍 Îles publiques</b>' + (ISL.srv ? 'Aucune île publique pour l\'instant : crée la première !' : 'Bientôt : les îles ouvertes à tous, à rejoindre ou à regarder.');
     box.appendChild(e);
   }
+  const me = isGuest() ? '' : cleanName(profile.name);
   for (const q of list) {
-    const c = document.createElement('div'); c.className = 'pg-isle' + (q.cur ? ' cur' : ''); c.setAttribute('role', 'listitem');
+    const c = document.createElement('div'); c.className = 'pg-isle' + (q.cur ? ' cur' : '') + (q.banned ? ' banned' : ''); c.setAttribute('role', 'listitem');
     c.innerHTML = '<canvas aria-hidden="true"></canvas><span class="pi-badge"></span><span class="pi-live"><i></i><b></b></span>' +
       '<div class="pi-body"><div class="pi-name"></div><div class="pi-sub"></div><div class="pi-bar" hidden><u></u></div><div class="pi-act"><button type="button" class="pi-play">Jouer</button><button type="button" class="pi-watch">👀 Regarder</button></div></div>';
     c.querySelector('.pi-badge').textContent = (q.priv ? '🔒 Privée' : '🌍 Publique') + (q.cur ? ' · ton île' : '');
     c.querySelector('.pi-live b').textContent = q.n + (q.max ? ' / ' + q.max : '') + ' en ligne';
     c.querySelector('.pi-name').textContent = q.name;
-    c.querySelector('.pi-sub').textContent = q.keeper ? 'Gardien : ' + q.keeper : q.cur ? 'Les copains de ta salle y vivent déjà' : '';
+    const keeperMe = q.keeper && me && cleanName(q.keeper) === me;
+    c.querySelector('.pi-sub').textContent = q.banned ? '⛔ Le gardien t\'a banni de cette île' : keeperMe ? '🛡️ Tu es le gardien de cette île' : q.keeper ? 'Gardien : ' + q.keeper : q.cur ? 'Les copains de ta salle y vivent déjà' : '';
     if (q.max) { c.querySelector('.pi-bar').hidden = false; c.querySelector('.pi-bar u').style.width = Math.min(100, 100 * q.n / q.max) + '%'; }
-    c.querySelector('.pi-play').addEventListener('click', () => { const g = gameById('pegase'); if (g) openGame(g); });
-    c.querySelector('.pi-watch').addEventListener('click', () => toastCheer('👀 Bientôt : regarder une île sans jouer (même sans compte) !', null, true));
+    const play = c.querySelector('.pi-play'); if (q.banned) play.disabled = true; else if (q.max && q.n >= q.max && !q.cur) { play.textContent = 'Pleine'; play.disabled = true; }
+    play.addEventListener('click', () => islJoin(q, c.querySelector('.pi-body')));
+    c.querySelector('.pi-watch').addEventListener('click', () => islWatch(q, c.querySelector('.pi-body')));
+    if (keeperMe && ISL.srv) { const m = document.createElement('button'); m.type = 'button'; m.className = 'pi-watch pi-keep'; m.textContent = '🛡️'; m.title = 'Gérer l\'île (mot de passe, bannir)'; m.addEventListener('click', () => islManage(q, c.querySelector('.pi-body'))); c.querySelector('.pi-act').appendChild(m); }
     box.appendChild(c);
     requestAnimationFrame(() => isleArt(c.querySelector('canvas'), String(q.name).split('').reduce((a, ch) => a * 31 + ch.charCodeAt(0) | 0, 7), q.n));
   }
-  $('jdw-pg-note').textContent = isGuest() ? 'Sans compte, tu peux déjà regarder la liste des îles ; pour jouer, crée ton compte (c\'est gratuit).' : '';
+  $('jdw-pg-note').textContent = isGuest() ? 'Sans compte, tu vois les îles publiques et tu peux les regarder ; pour jouer, crée ton compte (c\'est gratuit).' : '';
 }
 for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.addEventListener('click', () => { PG.tab = b.dataset.t; renderIsles(); });
-$('jdw-pg-create').addEventListener('click', () => toastCheer('🏝️ Bientôt : crée ton île (publique ou avec mot de passe) et deviens son gardien !', null, true));
+// créer son île : nom, publique ou privée (mot de passe) ; le créateur en est le gardien
+$('jdw-pg-create').addEventListener('click', () => {
+  if (!ISL.srv) { toastCheer('🏝️ Bientôt : crée ton île (publique ou avec mot de passe) et deviens son gardien !', null, true); return; }
+  if (isGuest()) { toastCheer('Crée ton compte (gratuit) pour avoir ton île 😉', null, true); return; }
+  const host = $('jdw-pg-create').parentNode, old = host.querySelector('.pg-new'); if (old) { old.remove(); return; }
+  const f = document.createElement('div'); f.className = 'pg-new pi-panel';
+  f.innerHTML = '<b class="pp-t">🏝️ Ton île</b><label>Nom de l\'île<input type="text" class="pp-n" maxlength="30" autocomplete="off"></label><label class="pp-chk"><input type="checkbox" class="pp-priv"> Privée, avec un mot de passe</label><label class="pp-pwl" hidden>Mot de passe<input type="text" class="pp-pw" maxlength="40" autocomplete="off"></label><div class="pp-row"><button type="button" class="pp-ok">Créer</button><button type="button" class="pp-x">Annuler</button></div><p class="pp-msg"></p>';
+  $('jdw-pg-create').after(f);
+  f.querySelector('.pp-priv').addEventListener('change', e => { f.querySelector('.pp-pwl').hidden = !e.target.checked; });
+  f.querySelector('.pp-x').addEventListener('click', () => f.remove());
+  f.querySelector('.pp-ok').addEventListener('click', async () => {
+    const name = f.querySelector('.pp-n').value.trim(), priv = f.querySelector('.pp-priv').checked, pw = f.querySelector('.pp-pw').value;
+    if (name.length < 3) { f.querySelector('.pp-msg').textContent = 'Un nom d\'au moins 3 lettres.'; return; }
+    if (priv && pw.length < 3) { f.querySelector('.pp-msg').textContent = 'Un mot de passe d\'au moins 3 caractères.'; return; }
+    try { await rpc('pg_island_create', { p_code: CODE(), p_name: profile.name, p_island: name, p_private: priv, p_password: priv ? pw : '' }); f.remove(); PG.tab = 'mine'; renderIsles(); toastCheer('🏝️ Ton île est créée : tu en es le gardien !', null, true); }
+    catch (e) { f.querySelector('.pp-msg').textContent = islErr(e); }
+  });
+});
 
 /* ================= Duel : deux joueurs face à face sur le même téléphone ================= */
 // P0 = en bas (écran à l'endroit), P1 = en haut (écran à l'envers). Les jeux : source/duos/*.js (DUO-CONTRACT.md).
