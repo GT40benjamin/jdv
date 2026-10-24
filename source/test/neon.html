@@ -67,10 +67,11 @@ const api = {
 if (window.JDW_PAD && !api.pad) api.pad = JDW_PAD.gameApi();   // manettes (CONTRACT.md Ajout 10)
 { const m = /start=([0-9]+)/.exec(Q); if (m) api.startLevel = +m[1]; }
 if (Q.indexOf('son') >= 0 || Q.indexOf('rythme') >= 0) {
-  const AC = new (window.AudioContext || window.webkitAudioContext)(), bufs = {}; let src = null, t0 = null;
+  const AC = new (window.AudioContext || window.webkitAudioContext)(), bufs = {}; let src = null, t0 = null, an = null;
   api.rhythm = {
     async load(id) { const b = bufs[id] || (bufs[id] = await AC.decodeAudioData(await (await fetch('../../assets/music/' + id + '.mp3')).arrayBuffer())); return b.duration; },
-    async play(id, at) { if (src) { try { src.stop(); } catch (e) {} src = null; } try { await Promise.race([AC.resume(), new Promise((r) => setTimeout(r, 400))]); } catch (e) {} if (AC.state !== 'running') return false; let b = null; try { await this.load(id); b = bufs[id]; } catch (e) {} const when = AC.currentTime + 0.05; t0 = when - (at || 0); if (!b || Q.indexOf('son') < 0) return false; src = AC.createBufferSource(); src.buffer = b; src.connect(AC.destination); src.start(when, at || 0); return true; },
+    async play(id, at) { if (src) { try { src.stop(); } catch (e) {} src = null; } try { await Promise.race([AC.resume(), new Promise((r) => setTimeout(r, 400))]); } catch (e) {} if (AC.state !== 'running') return false; let b = null; try { await this.load(id); b = bufs[id]; } catch (e) {} const when = AC.currentTime + 0.05; t0 = when - (at || 0); if (!b || Q.indexOf('son') < 0) return false; src = AC.createBufferSource(); src.buffer = b; src.connect(AC.destination); if (an) src.connect(an); src.start(when, at || 0); return true; },
+    analyser() { if (!an) an = AC.createAnalyser(); if (src) try { src.connect(an); } catch (e) {} return an; },
     time() { return t0 == null ? null : AC.currentTime - t0; },
     stop() { if (src) { try { src.stop(); } catch (e) {} src = null; } t0 = null; }
   };

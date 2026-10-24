@@ -20,8 +20,8 @@ const TILE_NEWS = {
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
-  bolides: { kind: 'new', at: '2026-10-24 14:13' },   // Bolides RC (duel course de voitures, en essai derrière la porte labo ; heure = celle de la publication)
-  neon: { kind: 'new', at: '2026-10-24 14:13' },   // Néon Rush (Classique, jeu de rythme, en essai derrière la porte labo ; heure = celle de la publication)
+  bolides: { kind: 'maj', at: '2026-10-24 22:40' },   // Bolides RC 1.35.1 : nouvelle conduite « pointe et fonce » (joystick = direction, gaz auto, DÉRAPE + mini-turbo) ; heure ≈ celle de la publication
+  neon: { kind: 'maj', at: '2026-10-24 23:30' },   // Néon Rush 1.35 : refonte graphique (6 mondes en parallaxe qui pulsent sur la musique, effets réduits) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
@@ -1151,7 +1151,7 @@ function setMusicOn(on) {
   if (!MUS.on) musicOut(0.4); else { Audio.ensure(); setMusic(MUS.want || screenMusic(), MUS.wantMode); }
 }
 /* ---- musique calée d'un jeu de rythme (api.rhythm, Néon Rush) : le jeu joue lui-même SON morceau et lit son temps ---- */
-const RHY = { src: null, g: null, t0: null, seq: 0 };
+const RHY = { src: null, g: null, t0: null, seq: 0, an: null };
 function rhythmStop(fade) {
   RHY.seq++; RHY.t0 = null;
   const s = RHY.src, g = RHY.g; RHY.src = null; RHY.g = null;
@@ -1180,12 +1180,15 @@ function rhythmApi(mine) {
       RHY.t0 = when - at;
       if (!MUS.gain) { MUS.gain = A.createGain(); MUS.gain.gain.value = musicLevel(); MUS.gain.connect(A.destination); }
       const src = A.createBufferSource(), g = A.createGain(); src.buffer = b; g.gain.value = 1; src.connect(g).connect(MUS.gain);
+      if (RHY.an) { try { g.connect(RHY.an); } catch (e) {} }   // l'analyse en direct (décors qui pulsent) écoute le morceau, avant le volume
       src.start(when, at); RHY.src = src; RHY.g = g;
       return true;
     },
     // le temps de la musique (secondes, latence de sortie déduite), null si rien ne joue
     time() { const A = Audio.ctx; if (!A || RHY.t0 == null) return null; return A.currentTime - RHY.t0 - (A.outputLatency || 0) - (A.baseLatency || 0); },   // latence totale : traitement + sortie
-    stop(fade) { if (mine()) rhythmStop(fade); }
+    stop(fade) { if (mine()) rhythmStop(fade); },
+    // un AnalyserNode branché sur le morceau (grave / médium / aigu pour les décors qui pulsent) ; null sans son
+    analyser() { try { Audio.ensure(); const A = Audio.ctx; if (!A) return null; if (!RHY.an) { RHY.an = A.createAnalyser(); RHY.an.fftSize = 1024; if (RHY.g) RHY.g.connect(RHY.an); } return RHY.an; } catch (e) { return null; } }
   };
 }
 // la page Pégase (choix des îles) joue la musique du hub de Pégase (« Chez toi ») ; le reste de la borne, celle de l'accueil
