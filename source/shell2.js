@@ -41,9 +41,12 @@ const LABO_ON = (() => {
   } catch (e) {}
   return new Set(on);
 })();
-const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!LABO.has(g.id) || LABO_ON.has(g.id)));
+// appareil en mode test (au moins un jeu en essai ouvert) : il voit TOUS les jeux en essai, même ceux ajoutés depuis
+const LABO_TEST = [...LABO].some(id => LABO_ON.has(id));
+const laboOk = id => !LABO.has(id) || LABO_TEST;
+const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && laboOk(g.id));
 // mode essai (labo) actif sur cet appareil : le titre le dit (« Borne d'arcade test » au lieu de « entre amis »)
-(() => { const p = document.querySelector('.lib-title .plaque'); if (p && [...LABO].some(id => LABO_ON.has(id))) { p.textContent = 'test'; p.classList.add('plaque-test'); } })();
+(() => { const p = document.querySelector('.lib-title .plaque'); if (p && LABO_TEST) { p.textContent = 'test'; p.classList.add('plaque-test'); } })();
 (() => {
   const t = document.querySelector('.lib-title'); if (!t) return;
   let n = 0, t0 = 0;
@@ -51,7 +54,8 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!L
     const now = Date.now(); if (now - t0 > 4000) n = 0; t0 = now;
     if (++n < 7) return; n = 0;
     if (!LABO.size) return;   // aucun jeu en essai : pas de message « Labo » ni de rechargement
-    const ids = [...LABO], on = new Set(LABO_ON), has = ids.every(id => on.has(id));   // un nouveau jeu en essai s'ajoute à ceux déjà ouverts for (const id of ids) { if (has) on.delete(id); else on.add(id); }
+    const ids = [...LABO], on = new Set(LABO_ON), has = ids.every(id => on.has(id));   // un nouveau jeu en essai s'ajoute à ceux déjà ouverts
+    for (const id of ids) { if (has) on.delete(id); else on.add(id); }
     try { localStorage.setItem('jdw.labo', JSON.stringify([...on])); } catch (e) {}
     try { toastCheer(has ? 'Labo : jeux en essai cachés' : 'Labo : jeux en essai activés !', null, true); } catch (e) {}
     setTimeout(() => location.reload(), 1300);
@@ -60,7 +64,7 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && (!L
 const gameById = id => GAMES.find(g => g.id === id);
 // jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
 const DUO_ORDER = ['tirsaubut', 'toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
-const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(d => d && (!LABO.has(d.id) || LABO_ON.has(d.id)));   // duels en essai : porte labo aussi
+const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(d => d && laboOk(d.id));   // duels en essai : porte labo aussi
 const duoById = id => DUOS.find(d => d.id === id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -1111,6 +1115,44 @@ async function setMusic(id, mode) {
 function setMusicOn(on) {
   MUS.on = !!on; store.set('jdw.music', MUS.on);
   if (!MUS.on) musicOut(0.4); else { Audio.ensure(); setMusic(MUS.want || screenMusic(), MUS.wantMode); }
+}
+/* ---- musique calée d'un jeu de rythme (api.rhythm, Néon Rush) : le jeu joue lui-même SON morceau et lit son temps ---- */
+const RHY = { src: null, g: null, t0: null, seq: 0 };
+function rhythmStop(fade) {
+  RHY.seq++; RHY.t0 = null;
+  const s = RHY.src, g = RHY.g; RHY.src = null; RHY.g = null;
+  if (!s || !Audio.ctx) return;
+  const now = Audio.ctx.currentTime, f = fade || 0.05;
+  try { g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(Math.max(0.0001, g.gain.value), now); g.gain.exponentialRampToValueAtTime(0.0001, now + f); s.stop(now + f + 0.02); } catch (e) {}
+}
+function rhythmApi(mine) {
+  return {
+    // charge le morceau assets/music/<id> ; rend sa durée en secondes (0 s'il ne vient pas)
+    async load(id) { try { Audio.ensure(); return (await musicBuffer(id)).duration; } catch (e) { return 0; } },
+    // joue <id> à partir de <at> secondes, une seule fois (la musique de la borne se tait). L'horloge time() part même sans son
+    // (musique coupée, morceau absent) ; rend vrai si le son joue vraiment
+    async play(id, at) {
+      if (!mine()) return false;
+      Audio.ensure(); const A = Audio.ctx; if (!A) return false;
+      rhythmStop(0.05); const my = RHY.seq;
+      MUS.override = true; MUS.want = ''; MUS.seq++; musicOut(0.25);
+      let b = null; if (MUS.on) { try { b = await musicBuffer(id); } catch (e) {} }
+      if (my !== RHY.seq || !mine()) return false;
+      // son bloqué (pas encore touché l'écran, lancé à la manette) : on n'attend pas, le jeu garde sa propre horloge
+      try { if (A.state === 'suspended') await Promise.race([A.resume(), new Promise(r => setTimeout(r, 400))]); } catch (e) {}
+      if (my !== RHY.seq || !mine()) return false;
+      const when = A.currentTime + 0.05; at = Math.max(0, +at || 0);
+      if (!b || at >= b.duration || A.state !== 'running') return false;
+      RHY.t0 = when - at;
+      if (!MUS.gain) { MUS.gain = A.createGain(); MUS.gain.gain.value = musicLevel(); MUS.gain.connect(A.destination); }
+      const src = A.createBufferSource(), g = A.createGain(); src.buffer = b; g.gain.value = 1; src.connect(g).connect(MUS.gain);
+      src.start(when, at); RHY.src = src; RHY.g = g;
+      return true;
+    },
+    // le temps de la musique (secondes, latence de sortie déduite), null si rien ne joue
+    time() { const A = Audio.ctx; if (!A || RHY.t0 == null) return null; return A.currentTime - RHY.t0 - (A.outputLatency || A.baseLatency || 0); },
+    stop(fade) { if (mine()) rhythmStop(fade); }
+  };
 }
 function screenMusic() { return !$('jdw-play').hidden && current ? current.game.id : 'accueil'; }
 document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) setMusic(MUS.want, MUS.wantMode); });
@@ -6751,6 +6793,7 @@ function mountGame(g) {
     pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
     natif: NATIVE_APPS[g.id] ? nativeApi(g) : undefined,                                    // appli native (Android 1.8+) : carte « Android » du hub (Ajout 9)
     pad: PAD_DOM.has(g.id) ? undefined : padApi({ intro: () => { if (current && current.seq === seq) padIntro(g, null, true); } }),   // manettes (Ajout 10) : toutes pour le joueur
+    rhythm: rhythmApi(() => !!current && current.seq === seq),   // jeu de rythme : son morceau à lui, calé sur la partie (Ajout 11)
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
@@ -6773,6 +6816,7 @@ function unmountGame() {
   const { game, root, inst } = current;
   padClose(current.pad); padPauseClose(false); padIntroHide(); quitAskHide();
   try { inst && inst.destroy && inst.destroy(); } catch (e) {}
+  if (RHY.src || RHY.t0 != null) rhythmStop(0.3);
   if (game.external) root.hidden = true; else root.remove();
   current = null;
   $('jdw-cheer').hidden = true; $('jdw-rescue').hidden = true;
