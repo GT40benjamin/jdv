@@ -4852,7 +4852,7 @@ function islePhoto(cv, im, q, seed) {
   const toPx = (u, v) => {
     if (PJ && pn > 1) { const c = Math.min(pn - 1, Math.max(0, Math.round(u * (pn - 1)))), rr = Math.min(pn - 1, Math.max(0, Math.round(v * (pn - 1)))), o = (rr * pn + c) * 3, a = PJ.p[o], bb = PJ.p[o + 1], rd = PJ.p[o + 2]; if (a == null || a < 0) return null; return [ix + a * iw, iy + bb * ih, Math.max((rd || 0.03) * iw, iw / C * 0.9)]; }
     const x = FR[0] + u * FR[2], z = FR[1] + v * FR[3], uu = (x - R[0]) / R[2], vv = (z - R[1]) / R[3];
-    const dx = uu - 0.5, dy = 0.5 - vv; if (Math.hypot(dx, dy) > isleRim(Math.atan2(dy, dx)) * 1.1) return null;   // au-delà de la plage : pas de couche (le bruit décide où elle déborde)
+    const dx = uu - 0.5, dy = 0.5 - vv; if (Math.hypot(dx, dy) > isleRim(Math.atan2(dy, dx)) * 0.95) return null;   // la brume reste sur la terre (plage, lagon et écume visibles ; bourrelets qui débordent par endroits)
     return [ix + uu * iw, iy + (1 - vv) * ih, iw / C * 0.9];
   };
   const seen = (ci, ri) => { let on = 0, tot = 0; const n = F.n, c0 = Math.floor(ci / C * n), c1 = Math.floor((ci + 1) / C * n), r0 = Math.floor(ri / C * n), r1 = Math.floor((ri + 1) / C * n); for (let rr = r0; rr < Math.max(r1, r0 + 1); rr++) for (let cc = c0; cc < Math.max(c1, c0 + 1); cc++) { tot++; on += F.bits[rr * n + cc]; } return on / Math.max(1, tot); };
@@ -4887,7 +4887,7 @@ function islePhoto(cv, im, q, seed) {
       const v = dens[i], o = i * 4;
       if (v <= 0) {
         // hors des nuages : leur ombre douce (le soleil est à l'ouest : l'ombre tombe vers l'est) et des lambeaux de brume à la lisière
-        let sh = 0; for (let k = 2; k <= 7; k++) { const xx = x - k, yy = y - (k >> 2); if (xx >= 0 && yy >= 0 && dens[yy * cw + xx] > 0.05) { sh = 0.30 * (1 - (k - 2) / 7); break; } }
+        let sh = 0; for (let k = 1; k <= 7; k++) { const xx = x - k, yy = y - Math.round(k * 0.6); if (xx >= 0 && yy >= 0 && dens[yy * cw + xx] > 0.05) { sh = 0.46 * (1 - (k - 1) / 8); break; } }   // ombre nette sous les bourrelets
         const c = cov[i] > 0 ? cov[i] : 0, mist = c > 0.02 ? Math.max(0, Math.min(1, (fb[i] - 0.42) * 3)) * Math.min(1, c * 3) * 0.42 : 0;
         if (!sh && !mist) { d[o + 3] = 0; continue; }
         const a = mist + sh * (1 - mist), mw = a ? mist / a : 0;
@@ -4898,11 +4898,11 @@ function islePhoto(cv, im, q, seed) {
       let nxv = -(hr - hl) * G, nyv = -(hd - hu) * G, nz = 1; const nl = Math.hypot(nxv, nyv, nz); nxv /= nl; nyv /= nl; nz /= nl;
       let lit = Math.max(0, nxv * LX + nyv * LY + nz * LZ);
       // ombre portée : une tour plus haute entre ce point et le soleil
-      let shade = 1; const h0 = hgt[i];
-      for (let k = 1; k <= 9; k++) { const xx = x - k, yy = Math.round(y - k * 0.36); if (xx < 0 || yy < 0) break; if (hgt[yy * cw + xx] > h0 + k * 0.07) { shade = 0.58; break; } }
-      lit = Math.min(1, Math.max(0, (0.12 + lit * 1.05) * shade + (h0 - 0.9) * 0.15));
+      let shade = 1; const h0 = hgt[i];   // (ombre portée plus marquée)
+      for (let k = 1; k <= 9; k++) { const xx = x - k, yy = Math.round(y - k * 0.36); if (xx < 0 || yy < 0) break; if (hgt[yy * cw + xx] > h0 + k * 0.07) { shade = 0.42; break; } }
+      lit = Math.min(1, Math.max(0, (0.04 + lit * 1.12) * shade + (h0 - 0.9) * 0.2));   // contraste marqué sans aplats
       const warm = Math.max(0, lit - 0.66) / 0.34;
-      d[o] = 146 + (255 - 146) * lit; d[o + 1] = 142 + (246 - 142) * lit - 12 * warm; d[o + 2] = 196 + (252 - 196) * lit - 44 * warm; d[o + 3] = 255 * aa;
+      d[o] = 122 + (255 - 122) * lit; d[o + 1] = 116 + (249 - 116) * lit - 14 * warm; d[o + 2] = 182 + (250 - 182) * lit - 48 * warm; d[o + 3] = 255 * aa;
     }
     nx.putImageData(img, 0, 0);
   };
