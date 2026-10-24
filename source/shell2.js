@@ -4320,20 +4320,170 @@ if (PG_TAB) {
   };
   arcBadge(); setInterval(arcBadge, 2500);
 }
-function isleArt(cv, seed, players) {
-  // une île vue de haut, en 3/4 : mer qui scintille, plage, herbe, arbres, petites maisons (une par parcelle prise), les copains en points
+// L'ÎLE DESSINÉE (cartes de la page Pégase) : vue de haut en 3/4, animée — mer profonde qui scintille, lagon turquoise, vagues d'écume qui
+// roulent sur la plage, falaise de sable, prairie texturée, collines éclairées, étang, chemin, ponton, palmiers, arbres, maisons aux
+// fenêtres allumées, voilier qui tourne autour, ombres de nuages, copains en ligne qui brillent. Et le BROUILLARD DE DÉCOUVERTE : ce qu'on
+// n'a pas encore exploré reste sous la brume (prototype : sans données du serveur, on découvre le ponton, le chemin et les maisons des
+// membres ; plus tard, la même carte de découverte que le téléphone du jeu : q.fog). Couches fixes dessinées une fois ; seuls l'eau, l'écume,
+// le bateau, les nuages et la brume bougent (30 images/s au plus, seulement quand la carte est à l'écran).
+const ISLE_ANIM = new Set();
+function isleArt(cv, seed, players, q) {
+  if (!cv) return;
+  q = q || {};
   const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = Math.round(w * k); cv.height = Math.round(h * k); const x = cv.getContext('2d'); x.scale(k, k);
-  let sd = seed >>> 0 || 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#0b4a6e'); g.addColorStop(1, '#0f7aa0'); x.fillStyle = g; x.fillRect(0, 0, w, h);
-  x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 1; for (let i = 0; i < 40; i++) { const px = r() * w, py = r() * h; x.beginPath(); x.moveTo(px, py); x.lineTo(px + 8 + r() * 10, py); x.stroke(); }
-  const cx = w / 2, cy = h * 0.54, rx = w * 0.34, ry = h * 0.3, blob = (s) => { x.beginPath(); for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 2, q = 1 + 0.08 * Math.sin(a * 3 + seed) + 0.05 * Math.sin(a * 5 + seed * 2); x.lineTo(cx + Math.cos(a) * rx * s * q, cy + Math.sin(a) * ry * s * q); } x.closePath(); };
-  blob(1.12); x.fillStyle = 'rgba(160,240,255,.35)'; x.fill();
-  blob(1); x.fillStyle = '#f0d898'; x.fill();
-  blob(0.82); const gg = x.createRadialGradient(cx, cy - ry * 0.3, 4, cx, cy, rx); gg.addColorStop(0, '#7ccf5a'); gg.addColorStop(1, '#3f9a3a'); x.fillStyle = gg; x.fill();
-  for (let i = 0; i < 14; i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 0.7, px = cx + Math.cos(a) * rx * d, py = cy + Math.sin(a) * ry * d; x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(px + 2, py + 3, 7, 3, 0, 0, 7); x.fill(); x.fillStyle = r() < 0.5 ? '#2d7a2a' : '#3a8f30'; x.beginPath(); x.arc(px, py - 4, 6 + r() * 3, 0, 7); x.fill(); }
-  for (let i = 0; i < 5; i++) { const px = cx + (r() - 0.5) * rx * 1.1, py = cy + (r() - 0.5) * ry * 0.9; x.fillStyle = '#f4ead8'; x.fillRect(px - 6, py - 4, 12, 9); x.fillStyle = ['#d8503a', '#3a7ad8', '#d8a83a'][i % 3]; x.beginPath(); x.moveTo(px - 8, py - 3); x.lineTo(px, py - 11); x.lineTo(px + 8, py - 3); x.fill(); }
-  for (let i = 0; i < Math.min(12, players || 0); i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 0.6; x.fillStyle = ['#ffa630', '#5ef0ff', '#ff5fae', '#ffd34d'][i % 4]; x.beginPath(); x.arc(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 3.2, 0, 7); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 1.2; x.stroke(); }
+  cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+  let sd = (seed >>> 0) || 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const off = () => { const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.scale(k, k); return [c, x]; };
+  const cx = w * 0.5, cy = h * 0.55, rx = w * 0.36, ry = h * 0.33, ph = [r() * 6.3, r() * 6.3, r() * 6.3, r() * 6.3];
+  const R = (a) => 1 + 0.09 * Math.sin(3 * a + ph[0]) + 0.06 * Math.sin(5 * a + ph[1]) + 0.035 * Math.sin(8 * a + ph[2]) + 0.02 * Math.sin(13 * a + ph[3]);
+  const P = (a, s) => [cx + Math.cos(a) * rx * s * R(a), cy + Math.sin(a) * ry * s * R(a)];
+  const blob = (x, s, dy) => { x.beginPath(); for (let i = 0; i <= 96; i++) { const p = P(i / 96 * Math.PI * 2, s); x.lineTo(p[0], p[1] + (dy || 0)); } x.closePath(); };
+  // un point au hasard sur l'herbe (s < 0.8)
+  const inGrass = (m) => { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * (m || 0.72); return P(a, d); };
+  const grad = (x, x0, y0, x1, y1, st) => { const g = x.createLinearGradient(x0, y0, x1, y1); for (let i = 0; i < st.length; i += 2) g.addColorStop(st[i], st[i + 1]); return g; };
+  const rad = (x, x0, y0, r0, x1, y1, r1, st) => { const g = x.createRadialGradient(x0, y0, r0, x1, y1, r1); for (let i = 0; i < st.length; i += 2) g.addColorStop(st[i], st[i + 1]); return g; };
+  const S = Math.min(w / 300, h / 170);   // échelle des détails
+
+  // ---------- la mer (fond fixe) ----------
+  const [seaC, sea] = off();
+  sea.fillStyle = grad(sea, 0, 0, 0, h, [0, '#06324f', 0.5, '#0a4f78', 1, '#0d6390']); sea.fillRect(0, 0, w, h);
+  sea.fillStyle = rad(sea, cx, cy, rx * 0.6, cx, cy, rx * 1.9, [0, 'rgba(40,200,220,.55)', 0.45, 'rgba(25,150,190,.25)', 1, 'rgba(10,80,120,0)']); sea.fillRect(0, 0, w, h);
+  // lagon : eau claire au-dessus du sable immergé
+  blob(sea, 1.28); sea.fillStyle = 'rgba(70,220,225,.30)'; sea.fill();
+  blob(sea, 1.14); sea.fillStyle = 'rgba(120,240,230,.42)'; sea.fill();
+  blob(sea, 1.07); sea.fillStyle = 'rgba(190,250,235,.35)'; sea.fill();
+
+  // ---------- l'île (couche fixe) ----------
+  const [baseC, b] = off();
+  // épaisseur (3/4) : la falaise de sable sous la plage
+  blob(b, 1.0, 5 * S); b.fillStyle = grad(b, 0, cy, 0, cy + ry + 6, [0, '#a57d45', 1, '#7a5a2e']); b.fill();
+  blob(b, 1.0); b.fillStyle = rad(b, cx - rx * 0.3, cy - ry * 0.5, 4, cx, cy, rx * 1.1, [0, '#fff3c8', 0.6, '#f2dc9c', 1, '#e2c27c']); b.fill();
+  // sable mouillé au bord
+  b.save(); blob(b, 1.0); b.clip(); b.lineWidth = 5 * S; b.strokeStyle = 'rgba(160,120,60,.35)'; blob(b, 1.0); b.stroke(); b.restore();
+  // grains de sable
+  b.save(); blob(b, 0.98); b.clip(); for (let i = 0; i < 260; i++) { const p = P(r() * 6.283, 0.8 + r() * 0.2); b.fillStyle = r() < 0.5 ? 'rgba(255,255,255,.35)' : 'rgba(170,130,70,.25)'; b.fillRect(p[0], p[1], 1, 1); } b.restore();
+  // prairie
+  blob(b, 0.8); b.fillStyle = rad(b, cx - rx * 0.35, cy - ry * 0.55, 6, cx, cy, rx, [0, '#9be06a', 0.55, '#5fb848', 1, '#3b8a36']); b.fill();
+  b.save(); blob(b, 0.8); b.clip();
+  for (let i = 0; i < 700; i++) { const p = inGrass(0.8), l = 1.5 + r() * 2.5; b.strokeStyle = ['rgba(40,110,40,.35)', 'rgba(170,235,120,.35)', 'rgba(60,140,50,.3)'][i % 3]; b.lineWidth = 1; b.beginPath(); b.moveTo(p[0], p[1]); b.lineTo(p[0] + (r() - 0.5) * 1.5, p[1] - l); b.stroke(); }
+  // collines éclairées (lumière en haut à gauche)
+  const hills = []; for (let i = 0; i < 2 + (r() < 0.5 ? 1 : 0); i++) { const p = inGrass(0.45); hills.push([p[0], p[1], (22 + r() * 18) * S]); }
+  for (const [hx, hy, hr] of hills) { b.fillStyle = rad(b, hx - hr * 0.35, hy - hr * 0.45, 1, hx, hy, hr, [0, 'rgba(210,255,160,.55)', 0.5, 'rgba(120,200,90,.15)', 0.8, 'rgba(30,90,30,.18)', 1, 'rgba(30,90,30,0)']); b.beginPath(); b.ellipse(hx, hy, hr, hr * 0.62, 0, 0, 7); b.fill(); }
+  // étang
+  const pd = inGrass(0.5), pr = 11 * S;
+  b.fillStyle = 'rgba(30,90,40,.5)'; b.beginPath(); b.ellipse(pd[0], pd[1] + 1, pr + 2, pr * 0.55 + 2, 0, 0, 7); b.fill();
+  b.fillStyle = rad(b, pd[0] - pr * 0.3, pd[1] - pr * 0.2, 1, pd[0], pd[1], pr, [0, '#8ff0ff', 0.6, '#3cb8d8', 1, '#2a8fb0']); b.beginPath(); b.ellipse(pd[0], pd[1], pr, pr * 0.55, 0, 0, 7); b.fill();
+  b.fillStyle = 'rgba(255,255,255,.6)'; b.beginPath(); b.ellipse(pd[0] - pr * 0.3, pd[1] - pr * 0.15, pr * 0.3, pr * 0.08, -0.2, 0, 7); b.fill();
+  b.restore();
+  // ponton (en bas, vers le large) et le chemin qui monte vers les maisons
+  const da = Math.PI * (0.38 + r() * 0.24), d0 = P(da, 0.86), d1 = P(da, 1.32);
+  b.strokeStyle = '#6b4a2a'; b.lineWidth = 7 * S; b.lineCap = 'butt'; b.beginPath(); b.moveTo(d0[0], d0[1]); b.lineTo(d1[0], d1[1]); b.stroke();
+  b.strokeStyle = '#b8875a'; b.lineWidth = 5.5 * S; b.beginPath(); b.moveTo(d0[0], d0[1] - 1); b.lineTo(d1[0], d1[1] - 1); b.stroke();
+  b.strokeStyle = 'rgba(80,50,25,.6)'; b.lineWidth = 1; for (let i = 1; i < 9; i++) { const t = i / 9, x0 = d0[0] + (d1[0] - d0[0]) * t, y0 = d0[1] + (d1[1] - d0[1]) * t - 1, nx = -(d1[1] - d0[1]), ny = d1[0] - d0[0], nl = Math.hypot(nx, ny) || 1; b.beginPath(); b.moveTo(x0 - nx / nl * 3 * S, y0 - ny / nl * 3 * S); b.lineTo(x0 + nx / nl * 3 * S, y0 + ny / nl * 3 * S); b.stroke(); }
+  // maisons (une par membre, 3 à 8), groupées en village
+  const nH = Math.max(3, Math.min(8, q.members || 4)), vil = inGrass(0.35), houses = [];
+  for (let i = 0; i < nH; i++) { const a = i / nH * 6.283 + r() * 0.5, d = (14 + r() * 16) * S; houses.push([vil[0] + Math.cos(a) * d * 1.3, vil[1] + Math.sin(a) * d * 0.7, i]); }
+  const path = [d0, [(d0[0] + vil[0]) / 2 + (r() - 0.5) * 30 * S, (d0[1] + vil[1]) / 2], vil];
+  b.strokeStyle = 'rgba(120,90,50,.55)'; b.lineWidth = 6 * S; b.lineCap = 'round'; b.beginPath(); b.moveTo(path[0][0], path[0][1]); b.quadraticCurveTo(path[1][0], path[1][1], path[2][0], path[2][1]); b.stroke();
+  b.strokeStyle = '#e3c88e'; b.lineWidth = 4 * S; b.stroke();
+  // décor trié par profondeur (y) : arbres, palmiers, maisons, rochers, fleurs
+  const props = [];
+  for (let i = 0; i < 26; i++) { const p = inGrass(0.74); if (Math.hypot(p[0] - vil[0], (p[1] - vil[1]) * 1.6) < 34 * S || Math.hypot(p[0] - pd[0], (p[1] - pd[1]) * 1.6) < pr + 8) continue; props.push(['tree', p[0], p[1], (5 + r() * 4) * S]); }
+  for (let i = 0; i < 9; i++) { const a = r() * 6.283; if (Math.abs(((a - da + 9.42) % 6.283) - 3.14) < 0.35) continue; const p = P(a, 0.86 + r() * 0.08); props.push(['palm', p[0], p[1], (7 + r() * 3) * S, r() < 0.5 ? -1 : 1]); }
+  for (const hs of houses) props.push(['house', hs[0], hs[1], 6.5 * S, hs[2]]);
+  for (let i = 0; i < 5; i++) { const p = P(r() * 6.283, 0.96 + r() * 0.05); props.push(['rock', p[0], p[1], (2.5 + r() * 2.5) * S]); }
+  for (let i = 0; i < 40; i++) { const p = inGrass(0.75); props.push(['flower', p[0], p[1], 1.1 * S, i]); }
+  props.sort((A, B) => A[2] - B[2]);
+  const ROOF = ['#e0533d', '#3f7fe0', '#e8a83a', '#9b5de5', '#2fb3a0', '#e05a9b'];
+  for (const [t, x0, y0, s, v] of props) {
+    if (t === 'flower') { b.fillStyle = ['#fff', '#ffd34d', '#ff8fb8', '#b9a8ff'][v % 4]; b.fillRect(x0, y0, s, s); continue; }
+    if (t === 'rock') { b.fillStyle = 'rgba(0,0,0,.18)'; b.beginPath(); b.ellipse(x0 + 1, y0 + 1.5, s * 1.2, s * 0.5, 0, 0, 7); b.fill(); b.fillStyle = rad(b, x0 - s * 0.4, y0 - s * 0.6, 0.5, x0, y0 - s * 0.3, s, [0, '#d8d4cc', 1, '#7d7a74']); b.beginPath(); b.ellipse(x0, y0 - s * 0.3, s, s * 0.7, 0, 0, 7); b.fill(); continue; }
+    if (t === 'tree') {
+      b.fillStyle = 'rgba(10,50,20,.28)'; b.beginPath(); b.ellipse(x0 + s * 0.7, y0 + s * 0.2, s * 1.3, s * 0.5, 0, 0, 7); b.fill();
+      b.fillStyle = '#6a4425'; b.fillRect(x0 - s * 0.15, y0 - s * 0.9, s * 0.3, s * 0.9);
+      for (const [ox, oy, rr] of [[-0.45, -1.3, 0.7], [0.45, -1.35, 0.7], [0, -1.8, 0.8]]) { b.fillStyle = rad(b, x0 + (ox - 0.3) * s, y0 + (oy - 0.35) * s, 0.5, x0 + ox * s, y0 + oy * s, rr * s, [0, '#8ee070', 0.55, '#3f9a3c', 1, '#256b2a']); b.beginPath(); b.arc(x0 + ox * s, y0 + oy * s, rr * s, 0, 7); b.fill(); }
+      continue;
+    }
+    if (t === 'palm') {
+      const lean = v * s * 0.5, tx = x0 + lean, ty = y0 - s * 1.9;
+      b.fillStyle = 'rgba(80,60,20,.25)'; b.beginPath(); b.ellipse(x0 + s * 0.9, y0 + s * 0.1, s * 1.4, s * 0.35, 0, 0, 7); b.fill();
+      b.strokeStyle = '#8a6438'; b.lineWidth = s * 0.28; b.lineCap = 'round'; b.beginPath(); b.moveTo(x0, y0); b.quadraticCurveTo(x0 + lean * 0.2, y0 - s, tx, ty); b.stroke();
+      for (let f = 0; f < 6; f++) { const a = f / 6 * 6.283 + 0.3, ex = tx + Math.cos(a) * s * 1.3, ey = ty + Math.sin(a) * s * 0.55 + s * 0.25; b.strokeStyle = f % 2 ? '#3f9a3c' : '#58b84a'; b.lineWidth = s * 0.32; b.beginPath(); b.moveTo(tx, ty); b.quadraticCurveTo((tx + ex) / 2, ty - s * 0.45, ex, ey); b.stroke(); }
+      b.fillStyle = '#6b4a22'; b.beginPath(); b.arc(tx - s * 0.12, ty + s * 0.12, s * 0.14, 0, 7); b.arc(tx + s * 0.14, ty + s * 0.1, s * 0.14, 0, 7); b.fill();
+      continue;
+    }
+    // maison : ombre, mur de face, mur de côté, toit à deux pans, porte, fenêtre allumée
+    const hw = s, hh = s * 0.8, roof = ROOF[(v + (seed & 7)) % ROOF.length];
+    b.fillStyle = 'rgba(10,40,10,.3)'; b.beginPath(); b.ellipse(x0 + hw * 0.6, y0 + hw * 0.15, hw * 1.5, hw * 0.45, 0, 0, 7); b.fill();
+    b.fillStyle = '#fbf3e4'; b.fillRect(x0 - hw, y0 - hh, hw * 1.4, hh);
+    b.fillStyle = '#d9cdb6'; b.beginPath(); b.moveTo(x0 + hw * 0.4, y0); b.lineTo(x0 + hw, y0 - hh * 0.3); b.lineTo(x0 + hw, y0 - hh * 1.3); b.lineTo(x0 + hw * 0.4, y0 - hh); b.fill();
+    b.fillStyle = roof; b.beginPath(); b.moveTo(x0 - hw * 1.15, y0 - hh); b.lineTo(x0 - hw * 0.3, y0 - hh * 1.9); b.lineTo(x0 + hw * 0.55, y0 - hh); b.fill();
+    b.fillStyle = 'rgba(0,0,0,.22)'; b.beginPath(); b.moveTo(x0 + hw * 0.55, y0 - hh); b.lineTo(x0 - hw * 0.3, y0 - hh * 1.9); b.lineTo(x0 + hw * 0.25, y0 - hh * 2.15); b.lineTo(x0 + hw * 1.1, y0 - hh * 1.3); b.fill();
+    b.fillStyle = '#7a4a2a'; b.fillRect(x0 - hw * 0.35, y0 - hh * 0.6, hw * 0.3, hh * 0.6);
+    b.fillStyle = '#ffd36b'; b.fillRect(x0 - hw * 0.85, y0 - hh * 0.7, hw * 0.3, hh * 0.3);
+  }
+
+  // ---------- le brouillard de découverte (fixe, il « respire ») ----------
+  const [fogC, f] = off();
+  const fogOn = q.fog !== false;
+  if (fogOn) {
+    // une brume légère posée sur l'île seulement (la mer reste visible), faite de boules douces, bords flous
+    const [rawC, g2] = off();
+    blob(g2, 1.06); g2.fillStyle = 'rgba(222,232,246,.80)'; g2.fill();
+    for (let i = 0; i < 90; i++) { const p = P(r() * 6.283, Math.sqrt(r()) * 1.05), rr = (12 + r() * 22) * S; g2.fillStyle = rad(g2, p[0] - rr * 0.3, p[1] - rr * 0.4, 1, p[0], p[1], rr, [0, i % 4 ? 'rgba(255,255,255,.55)' : 'rgba(170,185,215,.35)', 1, 'rgba(255,255,255,0)']); g2.beginPath(); g2.ellipse(p[0], p[1], rr, rr * 0.7, 0, 0, 7); g2.fill(); }
+    f.save(); f.setTransform(1, 0, 0, 1, 0, 0); f.filter = 'blur(' + Math.round(5 * S * k) + 'px)'; f.drawImage(rawC, 0, 0); f.filter = 'none'; f.restore();
+    f.globalCompositeOperation = 'destination-out';
+    // ce qu'on a découvert : données du serveur (q.fog = liste de [x, y, rayon] entre 0 et 1), sinon le prototype
+    const holes = Array.isArray(q.fog) ? q.fog.map(([fx, fy, fr]) => [fx * w, fy * h, fr * w]) : [];
+    if (!holes.length) {
+      for (let i = 0; i <= 8; i++) { const t = i / 8, p = P(da, 1.32 - 0.46 * t); holes.push([p[0], p[1], 22 * S]); }
+      const steps = 10; for (let i = 0; i <= steps; i++) { const t = i / steps, u = 1 - t; holes.push([u * u * path[0][0] + 2 * u * t * path[1][0] + t * t * path[2][0], u * u * path[0][1] + 2 * u * t * path[1][1] + t * t * path[2][1], 24 * S]); }
+      if (q.mine) for (const hs of houses) holes.push([hs[0], hs[1] - 4 * S, 30 * S]);
+      if (q.mine) { holes.push([pd[0], pd[1], 34 * S]); for (let i = 0; i < 14; i++) { const a = da + (i - 6.5) * 0.2, p = P(a, 0.93); holes.push([p[0], p[1], 24 * S]); } }
+    }
+    for (const [hx, hy, hr] of holes) { f.fillStyle = rad(f, hx, hy, hr * 0.2, hx, hy, hr, [0, 'rgba(0,0,0,1)', 0.55, 'rgba(0,0,0,.75)', 1, 'rgba(0,0,0,0)']); f.beginPath(); f.arc(hx, hy, hr, 0, 7); f.fill(); }
+    f.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- les nuages (quelques boules douces) ----------
+  const clouds = []; for (let i = 0; i < 3; i++) clouds.push({ x: r() * w, y: h * (0.12 + r() * 0.5), s: (0.7 + r() * 0.6) * S, v: 3 + r() * 4 });
+  const sparks = []; for (let i = 0; i < 46; i++) sparks.push([r() * w, r() * h, 4 + r() * 10, r() * 6.3, 0.6 + r()]);
+  const dots = []; for (let i = 0; i < Math.min(12, players || 0); i++) { const hs = houses[i % houses.length]; dots.push([hs[0] + (r() - 0.5) * 18 * S, hs[1] + 4 * S + r() * 6 * S, ['#ffa630', '#5ef0ff', '#ff5fae', '#ffd34d'][i % 4], r() * 6.3]); }
+  const boat = { a: da + 0.9, sp: 0.035 + r() * 0.02 };
+
+  const x = cv.getContext('2d');
+  const frame = (t) => {
+    t /= 1000;
+    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(seaC, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
+    // reflets sur l'eau
+    x.lineCap = 'round';
+    for (const [sx, sy, l, p0, sp] of sparks) { const a = 0.5 + 0.5 * Math.sin(t * 2 * sp + p0); if (a < 0.35) continue; const xx = (sx + t * 6 * sp) % (w + 20) - 10; x.strokeStyle = 'rgba(255,255,255,' + (0.22 * a).toFixed(3) + ')'; x.lineWidth = 1; x.beginPath(); x.moveTo(xx, sy); x.lineTo(xx + l, sy); x.stroke(); }
+    // l'écume : deux vagues qui roulent vers la plage
+    for (let i = 0; i < 2; i++) { const u = (t * 0.28 + i * 0.5) % 1; blob(x, 1.11 - 0.09 * u); x.strokeStyle = 'rgba(255,255,255,' + (0.55 * Math.sin(u * Math.PI)).toFixed(3) + ')'; x.lineWidth = (1 + 1.6 * u) * S; x.stroke(); }
+    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(baseC, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
+    // le voilier qui fait le tour de l'île
+    const ba = boat.a + t * boat.sp, bp = P(ba, 1.42), bob = Math.sin(t * 2.2) * 0.8 * S, bs = 5 * S;
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; x.beginPath(); x.ellipse(bp[0], bp[1] + bs * 0.3, bs * 1.6, bs * 0.35, 0, 0, 7); x.stroke();
+    x.fillStyle = '#7a4a2a'; x.beginPath(); x.moveTo(bp[0] - bs, bp[1] + bob); x.lineTo(bp[0] + bs, bp[1] + bob); x.lineTo(bp[0] + bs * 0.6, bp[1] + bs * 0.45 + bob); x.lineTo(bp[0] - bs * 0.6, bp[1] + bs * 0.45 + bob); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.moveTo(bp[0], bp[1] - bs * 1.8 + bob); x.lineTo(bp[0], bp[1] - bs * 0.1 + bob); x.lineTo(bp[0] + bs * 0.9, bp[1] - bs * 0.2 + bob); x.fill();
+    // les copains en ligne : des points qui brillent
+    for (const [px, py, col, p0] of dots) { const g = 0.6 + 0.4 * Math.sin(t * 3 + p0); x.fillStyle = rad(x, px, py, 0, px, py, 7 * S, [0, col, 1, 'rgba(0,0,0,0)']); x.globalAlpha = 0.5 * g; x.beginPath(); x.arc(px, py, 7 * S, 0, 7); x.fill(); x.globalAlpha = 1; x.fillStyle = col; x.beginPath(); x.arc(px, py, 2.4 * S, 0, 7); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 1; x.stroke(); }
+    // ombres des nuages qui glissent sur l'île
+    for (const c of clouds) { const xx = (c.x + t * c.v) % (w + 120) - 60; x.fillStyle = 'rgba(0,30,50,.10)'; for (const [ox, oy, rr] of [[0, 0, 22], [18, 4, 16], [-18, 5, 15]]) { x.beginPath(); x.ellipse(xx + ox * c.s + 14, c.y + oy * c.s + 26, rr * c.s, rr * c.s * 0.5, 0, 0, 7); x.fill(); } }
+    // la brume (respire doucement)
+    if (fogOn) { const dx = Math.sin(t * 0.35) * 2.5 * k, dy = Math.cos(t * 0.27) * 1.5 * k; x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(fogC, dx, dy); x.setTransform(k, 0, 0, k, 0, 0); }
+    // les nuages
+    for (const c of clouds) { const xx = (c.x + t * c.v) % (w + 120) - 60; for (const [ox, oy, rr] of [[0, 0, 22], [18, 4, 16], [-18, 5, 15], [8, -8, 14]]) { x.fillStyle = rad(x, xx + ox * c.s - rr * c.s * 0.3, c.y + oy * c.s - rr * c.s * 0.4, 1, xx + ox * c.s, c.y + oy * c.s, rr * c.s, [0, 'rgba(255,255,255,.85)', 0.7, 'rgba(240,248,255,.55)', 1, 'rgba(240,248,255,0)']); x.beginPath(); x.arc(xx + ox * c.s, c.y + oy * c.s, rr * c.s, 0, 7); x.fill(); } }
+    // lumière douce et coins sombres
+    x.fillStyle = rad(x, w * 0.2, h * 0.05, 4, w * 0.4, h * 0.4, w * 0.9, [0, 'rgba(255,240,200,.16)', 1, 'rgba(255,240,200,0)']); x.fillRect(0, 0, w, h);
+    x.fillStyle = rad(x, cx, cy, Math.min(w, h) * 0.5, cx, cy, Math.max(w, h) * 0.78, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,10,25,.45)']); x.fillRect(0, 0, w, h);
+  };
+  frame(performance.now());
+  // animation : seulement quand la carte est à l'écran et la page visible (30 images/s au plus)
+  const A = { cv, frame, last: 0, on: false };
+  ISLE_ANIM.add(A);
+  if ('IntersectionObserver' in window) { const io = new IntersectionObserver((es) => { for (const e of es) A.on = e.isIntersecting; }); io.observe(cv); A.io = io; } else A.on = true;
+  if (!ISLE_ANIM.loop) { const loop = (t) => { ISLE_ANIM.loop = requestAnimationFrame(loop); if (document.hidden) return; for (const a of [...ISLE_ANIM]) { if (!a.cv.isConnected) { if (a.io) a.io.disconnect(); ISLE_ANIM.delete(a); continue; } if (!a.on || t - a.last < 33) continue; a.last = t; a.frame(t); } if (!ISLE_ANIM.size) { cancelAnimationFrame(ISLE_ANIM.loop); ISLE_ANIM.loop = 0; } }; ISLE_ANIM.loop = requestAnimationFrame(loop); }
 }
 // le serveur des îles (pg_island_*, île = salle ; ~/jdv-tools/pegase/server/INTEGRATION-iles.md) ; tant qu'il n'est pas en ligne (404) :
 // l'île de la salle, comme avant. Trois sortes : publique · mdp (mot de passe) · amis. Toutes se regardent, même sans compte ; une île
@@ -4513,8 +4663,11 @@ function islOnDemande(id) {
 setInterval(() => { if (PG_TAB && MODE === 'pegase' && !document.hidden) islPollDem(); }, 60000);
 async function renderIsles() {
   const box = $('jdw-pg-isles'); if (!box) return;
+  const all = await islesData();
+  // première ouverture : l'onglet où il y a quelque chose (mes îles, sinon les privées si aucune publique)
+  if (!PG.picked && all.length) { PG.picked = true; if (all.some(q => q.mine)) PG.tab = 'mine'; else if (!all.some(q => !q.priv)) PG.tab = 'priv'; }
   for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.setAttribute('aria-selected', b.dataset.t === PG.tab ? 'true' : 'false');
-  const all = await islesData(), list = all.filter(q => PG.tab === 'pub' ? !q.priv : PG.tab === 'priv' ? q.priv : q.mine || islTickets[q.id]);
+  const list = all.filter(q => PG.tab === 'pub' ? !q.priv : PG.tab === 'priv' ? q.priv : q.mine || islTickets[q.id]);
   box.textContent = '';
   if (!list.length) {
     const e = document.createElement('div'); e.className = 'pg-empty';
@@ -4552,12 +4705,12 @@ async function renderIsles() {
       }).catch(() => {});
     }
     box.appendChild(c);
-    requestAnimationFrame(() => isleArt(c.querySelector('canvas'), String(q.name).split('').reduce((a, ch) => a * 31 + ch.charCodeAt(0) | 0, 7), q.n));
+    requestAnimationFrame(() => isleArt(c.querySelector('canvas'), String(q.name).split('').reduce((a, ch) => a * 31 + ch.charCodeAt(0) | 0, 7), q.n, q));
   }
   islDots(); if (!PG.polled && ISL.srv) { PG.polled = true; islPollDem(); }
   $('jdw-pg-note').textContent = isGuest() ? 'Sans compte, tu vois toutes les îles et tu peux les regarder ; pour jouer, crée ton compte (c\'est gratuit).' : '';
 }
-for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.addEventListener('click', () => { PG.tab = b.dataset.t; renderIsles(); });
+for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.addEventListener('click', () => { PG.tab = b.dataset.t; PG.picked = true; renderIsles(); });
 // créer son île : nom, qui peut entrer (tout le monde / mot de passe / amis) ; le créateur en est le gardien
 $('jdw-pg-create').addEventListener('click', () => {
   if (!ISL.srv) { toastCheer('🏝️ Bientôt : crée ton île (publique ou avec mot de passe) et deviens son gardien !', null, true); return; }
