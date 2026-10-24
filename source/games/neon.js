@@ -29,7 +29,7 @@
   const MODES = { cube: { name: 'Cube', col: '#5aff8a', tip: 'Touche pour sauter sur le temps' }, ship: { name: 'Vaisseau', col: '#ff5ad2', tip: 'Tiens le doigt pour monter' }, ball: { name: 'Boule', col: '#ffb03a', tip: 'Touche pour inverser la gravité' } };
   // les niveaux : un morceau, ses 4 mondes (thème, façon d'avancer), la vitesse
   const LEVELS = [
-    { track: 'neonrush-1', name: 'Premier Pulse', speed: 8.2, parts: [['ville', 'cube'], ['synth', 'cube'], ['ocean', 'ship'], ['galaxie', 'cube']] },
+    { track: 'neonrush-1', name: 'Premier Pulse', speed: 8.2, ships: [[68, 88]], parts: [['ville', 'cube'], ['ocean', 'ship'], ['synth', 'cube'], ['galaxie', 'ship'], ['cristal', 'cube']] },   // ships : passages en vaisseau imposés (temps), à l'oreille (35 % : les cymbales s'accélèrent)
     { track: 'neonrush-2', name: 'Onde Rétro', speed: 8.8, parts: [['cristal', 'cube'], ['lave', 'ball'], ['synth', 'ship'], ['ville', 'cube']] },
     { track: 'neonrush-3', name: 'Surcharge', speed: 9.4, parts: [['lave', 'cube'], ['ocean', 'ball'], ['galaxie', 'ship'], ['cristal', 'cube']] },
   ];
@@ -177,7 +177,8 @@
     const nb = beats.length, lastB = nb - 6, startB = 8;
     const drum = []; for (let b = 0; b < nb; b++) { const t = beats[b]; let m = 0, c = 0; for (let k = b - 4; k <= b + 4; k++) if (k >= 0 && k < nb) { m += kick(k); c++; } drum.push(m / c); void t; }   // force de la grosse caisse autour (échelle du morceau)
     const secs = [];
-    for (let b = startB; b < lastB; b++) { const md = drum[b] >= 3 ? 'g' : 'ship'; if (!secs.length || secs[secs.length - 1].md !== md) secs.push({ md, b0: b, b1: b + 1 }); else secs[secs.length - 1].b1 = b + 1; }
+    const forced = (b) => (LV.ships || []).some(([a, z]) => b >= a && b < z);
+    for (let b = startB; b < lastB; b++) { const md = forced(b) || (drum[b] < 3 && !(LV.ships || []).some(([a, z]) => b >= z && b < z + 6)) ? 'ship' : 'g'; if (!secs.length || secs[secs.length - 1].md !== md) secs.push({ md, b0: b, b1: b + 1 }); else secs[secs.length - 1].b1 = b + 1; }
     for (let i = secs.length - 1; i > 0; i--) if (secs[i].b1 - secs[i].b0 < 12) { secs[i - 1].b1 = secs[i].b1; secs.splice(i, 1); }
     for (let i = secs.length - 1; i > 0; i--) if (secs[i].md === secs[i - 1].md) { secs[i - 1].b1 = secs[i].b1; secs.splice(i, 1); }
     if (secs[0] && secs[0].md === 'ship' && secs.length > 1) { secs[1].b0 = secs[0].b0; secs.shift(); }   // on commence toujours par sauter
@@ -208,8 +209,16 @@
         const t = beats[b], x = X(t), xNext = X(beats[Math.min(b + 1, b1 - 1)]);
         if (mode === 'ship') {
           // moment planant : le vaisseau ondule sur la mélodie (monte un temps, redescend le suivant, amplitude selon l'énergie)
-          const up = Math.floor((b - b0) / 2) % 2 === 0, amp = easy ? 0.45 : 1, top = 4 + (0.4 + 1.6 * Math.sin((b - b0) * 0.37)) * amp, bot = 2 - (0.4 - 1.0 * Math.sin((b - b0) * 0.23 + 1)) * amp;
-          sim(xNext, (g) => ({ hold: up ? g.y < top : g.y < bot }));
+          // on TAPOTE sur les cymbales : une petite tape par temps, puis deux (les cymbales s'accélèrent dans la 2e moitié) ; la hauteur
+          // suit une vague lente (la mélodie), la durée de chaque tape corrige l'altitude
+          const k01 = (b - b0) / Math.max(1, b1 - b0), sub = k01 > (easy ? 0.6 : 0.45) ? 2 : 1, amp = easy ? 0.8 : 1.3;
+          for (let q = 0; q < sub; q++) {
+            const ta = t + (beats[Math.min(b + 1, nb - 1)] - t) * q / sub, tz = t + (beats[Math.min(b + 1, nb - 1)] - t) * (q + 1) / sub;
+            sim(X(ta) - 0.01);
+            const want = 3.4 + amp * Math.sin((b - b0 + q / sub) * 0.55), per = tz - ta, hl = clamp(per * 0.42 + (want - ghost.y) * 0.06, 0.05, per * 0.7);
+            sim(X(ta + hl), () => ({ hold: true }));
+            sim(X(tz) - 0.01);
+          }
           continue;
         }
         break;
@@ -221,11 +230,12 @@
         const sc2 = (bb) => kick(bb) + 0.6 * snare(bb) + ((bb - b0) % 4 === 0 ? 2 : (bb - b0) % 2 === 0 ? 0.8 : 0);
         const cands = []; for (let bb = b0 + 2; bb < b1 - 1; bb++) cands.push(sc2(bb));
         const so = cands.slice().sort((x, y) => x - y), rt = easy ? [0.5, 0.42, 0.5, 0.58][Math.min(3, nP)] : rate, thrB = so.length ? so[Math.min(so.length - 1, Math.floor(so.length * (1 - rt)))] : 9;
-        let lastB = -99, cnt = 0;
+        let lastB = -99, cnt = 0, pause = false;
         for (let bb = b0 + 2; bb < b1 - 1; bb++) {
-          if (bb - lastB < gapB) continue;
-          const f = sc2(bb), regular = easy && nP === 0 && (bb - b0) % 2 === 0 && kick(bb) >= 3;
-          if (!regular && f < thrB) continue;
+          if (bb - lastB < gapB + (pause ? 1 : 0)) continue;
+          const f = sc2(bb);
+          if (f < thrB) continue;
+          pause = rng() < (easy ? 0.4 : 0.3);
           const x = X(beats[bb]); lastB = bb; cnt++;
           if (mode === 'ball') {
             const span = X(beats[Math.min(bb + gapB, b1 - 1)]) - x - 0.3; sim(x - 0.02); sim(x + span, (g) => ({ tap: Math.abs(g.x - x) < 0.05 }));
@@ -234,7 +244,10 @@
             sortAll(); continue;
           }
           // le cube RETOMBE pile sur le temps (c'est l'atterrissage qu'on sent) : il saut une durée de vol plus tôt ; sur une orbe, on la touche pile sur le temps
-          const xl = x, orb = (!easy || nP >= 2) && offSnare(bb) >= 6 && cnt % 3 === 0 && bb + 2 < b1, xj = orb ? xl - P.v * P.ta * 0.5 : xl - P.v * P.ta;
+          const xl = x, orb = (!easy || nP >= 2) && offSnare(bb) >= 6 && cnt % 3 === 0 && bb + 2 < b1, r2 = rng(), maxUp = easy ? (nP >= 1 ? 1 : 0) : 2;
+          const kind = orb ? 'orb' : r2 < 0.22 && gL < maxUp && bb + 3 < b1 ? 'up' : r2 < 0.34 && gL > 0 ? 'down' : r2 < 0.42 && kick(bb) >= 8 && (!easy || nP >= 1) && bb + 3 < b1 ? 'pad' : 'spike';
+          const tFly = (dh) => (P.vj + Math.sqrt(Math.max(0, P.vj * P.vj - 2 * P.g * dh))) / P.g;   // durée de vol jusqu'à retomber dh plus haut
+          const xj = kind === 'orb' ? xl - P.v * P.ta * 0.5 : xl - P.v * (kind === 'up' ? tFly(1) : kind === 'down' ? tFly(-gL) : P.ta);
           if (xj < ghost.x + 0.1) continue;
           sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 }));
           // le « tuch » du contretemps, pendant le saut : une orbe à toucher pile dessus (pas au tout début du niveau 1)
@@ -244,8 +257,24 @@
             for (let sx = xj + 1.4; sx < ax + P.v * P.ta * 0.7; sx += 1) if (clear(sx - 0.2, sx + 1.2, gL + 0.8, 99)) L.spikes.push({ x0: sx, y: gL });
             sortAll(); lastB = bb + 1; continue;
           }
+          if (kind === 'up') {
+            // une MARCHE : on retombe dessus (sur le temps), elle dure quelques temps
+            const top = gL + 1, bx0 = xj + P.v * P.ta * 0.62; L.blocks.push({ x0: bx0, x1: X(beats[Math.min(b1 - 2, bb + 2 + Math.floor(rng() * 4))]), y0: 0, y1: top }); sortAll(); gL = top;
+            sim(xl + 0.2); continue;
+          }
+          if (kind === 'down') {
+            // on redescend : la marche s'arrête juste après ce saut
+            const bl = L.blocks[L.blocks.length - 1]; if (bl && bl.x1 > xj + 0.6) bl.x1 = Math.max(bl.x0 + 1, xj + 0.6); gL = 0; sortAll();   // (le saut a déjà été rejoué : la marche raccourcie après coup ne change pas le départ)
+            sim(xl + 0.2); continue;
+          }
+          if (kind === 'pad') {
+            // un TREMPLIN sous un gros « boum » : on rebondit haut au-dessus d'une rangée de pics
+            const px = xl - 0.5; L.pads.push({ x0: px, y: gL }); sortAll(); sim(X(beats[bb + 2]));
+            for (let k = 0; k < 3; k++) { const sx = xl + 1.4 + k; if (clear(sx - 0.2, sx + 1.2, gL + 0.75, 99)) L.spikes.push({ x0: sx, y: gL }); }
+            sortAll(); lastB = bb + 1; continue;
+          }
           sim(xl + 0.2);
-          const apex = xj + P.v * P.ta * 0.5, n = easy && nP === 0 ? 1 : f >= 11 ? 2 + (diff > 0.5 ? 1 : 0) : f >= 8 ? 2 : 1;
+          const apex = xj + P.v * P.ta * 0.5, n = easy && nP === 0 ? (f >= 10 && rng() < 0.4 ? 2 : 1) : f >= 11 ? 2 + (diff > 0.5 && rng() < 0.6 ? 1 : 0) : f >= 8 || rng() < 0.3 ? 2 : 1;
           for (let k = 0; k < n; k++) { const sx = apex - n / 2 + k; if (clear(sx - 0.25, sx + 1.25, gL + 0.78, 99)) L.spikes.push({ x0: sx, y: gL }); }
           sortAll();
         }
@@ -255,10 +284,10 @@
       sim(X(beats[b1]) - 2);
       if (mode === 'ship') {
         // le couloir : autour de la trace du fantôme, avec de la marge (plus serré quand c'est difficile)
-        const gap = clamp(3.6 - diff * 1.2, 2.3, 3.6), xa = xs + 1, xb = X(beats[b1]) - 3;
+        const gap = clamp(2.9 - diff * 1.0, 1.9, 2.9), xa = xs + 1, xb = X(beats[b1]) - 3;
         for (let cx = xa; cx < xb; cx += 1) {
           let mn = 99, mx = -99; for (let k = cx - 0.8; k <= cx + 1.8; k += 0.1) { const y = yAt(k); mn = Math.min(mn, y); mx = Math.max(mx, y); }
-          const ramp = Math.max(0, 1 - (cx - xa) / (L.speed * 3)), mid = (mn + mx) / 2, half = Math.max(gap / 2, (mx - mn) / 2 + PH + 0.85) + ramp * 1.8 + (easy ? 0.6 : 0);
+          const ramp = Math.max(0, 1 - (cx - xa) / (L.speed * 3)), mid = (mn + mx) / 2, half = Math.max(gap / 2, (mx - mn) / 2 + PH + 0.5) + ramp * 1.8 + (easy ? 0.35 : 0);   // serré : on le tient en tapotant
           L.walls.push({ x0: cx, x1: cx + 1, lo0: clamp(mid - half, 0, CEIL), hi0: clamp(mid + half, 0, CEIL), lo1: 0, hi1: 0 });
         }
         for (let i = 0; i < L.walls.length; i++) { const w = L.walls[i], n2 = L.walls[i + 1]; if (n2 && n2.x0 === w.x1) { w.lo1 = n2.lo0; w.hi1 = n2.hi0; } else { w.lo1 = w.lo0; w.hi1 = w.hi0; } }
