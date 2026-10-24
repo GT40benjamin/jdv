@@ -506,7 +506,7 @@
     const pad = api.pad || null;
     const rng = mulberry32(api.seed != null ? api.seed | 0 : (Math.random() * 1e9) | 0);
     const fxr = Math.random;
-    let dead = false, raf = 0, last = 0, paused = false, overSent = false;
+    let dead = false, raf = 0, last = 0, paused = false, overSent = false, lastErr = '';
     root.innerHTML = '';
     const canvas = document.createElement('canvas');
     canvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;outline:none';
@@ -542,6 +542,7 @@
     let level = Math.max(1, Math.floor(api.startLevel || 1)), score = 0;
     let state = 'intro', stT = 0, wo = worldOf(level), D = diffOf(level);
     let misses = 0, got = 0, need = D.need, jar = [];
+    let flashes = [], sparks = [];
     let fruits = [], halves = [], drops = [], splats = [], texts = [], streaks = [], pops = [];
     let boss = null, slowT = 0, frenzyT = 0, shake = 0, spawnT = 1, queue = [], killFlash = 0, hitStop = 0;
     let heads = [], copainDone = false, firstTime = true, hintT = 4, loseAt = null;
@@ -551,7 +552,7 @@
 
     // ---------- sons ----------
     const sfx = {
-      slice() { audio.noise(0.07, 0.16, 4200); audio.tone(1300 + fxr() * 300, 0.06, 'triangle', 0.025, 380); },
+      slice(n) { const k = Math.min(8, n || 0); audio.tone(2300 + k * 180 + fxr() * 200, 0.16, 'sine', 0.035, 1500 + k * 160); audio.noise(0.06, 0.16, 5200); audio.tone(1300 + k * 90, 0.05, 'triangle', 0.02, 380); },
       squish() { audio.noise(0.12, 0.12, 800); },
       whoosh() { audio.noise(0.14, 0.035, 1800); },
       miss() { audio.tone(230, 0.28, 'sawtooth', 0.05, 110); },
@@ -655,12 +656,14 @@
       if (f.kind === 'bomb') return explode(f);
       f.dead = true;
       const t = f.kind === 'copain' ? FRUITS[f.base] || FRUITS.pomme : f.t, key = f.kind === 'copain' ? f.base : f.kind;
-      const nx = Math.sin(a), ny = -Math.cos(a), sp = U * 2.4;
-      for (const s of [1, -1]) halves.push({ spr: sprite(s > 0 ? 'top' : 'bot', key, f.R * dpr), x: f.x + nx * s * f.R * 0.1, y: f.y + ny * s * f.R * 0.1, vx: f.vx * 0.6 + nx * s * sp, vy: f.vy * 0.4 + ny * s * sp - U * 2, rot: a, vr: s * (2 + rng() * 3) });
-      juice(f.x, f.y, t.juice, 16 + Math.round(f.R / U * 6), f.R);
+      const nx = Math.sin(a), ny = -Math.cos(a), sp = U * 3.4;
+      for (const s of [1, -1]) halves.push({ spr: sprite(s > 0 ? 'top' : 'bot', key, f.R * dpr), x: f.x + nx * s * f.R * 0.12, y: f.y + ny * s * f.R * 0.12, vx: f.vx * 0.5 + nx * s * sp, vy: f.vy * 0.35 + ny * s * sp - U * 2.2, rot: a, vr: s * (3 + rng() * 4), drip: 0.6, dc: t.juice, t: 0 });
+      juice(f.x, f.y, t.juice, 26 + Math.round(f.R / U * 8), f.R, a);
+      flashes.push({ x: f.x, y: f.y, r: f.R * 2.2, t: 0, col: t.juice });
+      if (hitStop <= 0) hitStop = 0.045;
       splat(f.x, f.y, splashCol(t), f.R * 0.95);
-      streaks.push({ x: f.x, y: f.y, a, len: f.R * 3, t: 0, col: t.juice });
-      sfx.slice(); sfx.squish();
+      streaks.push({ x: f.x, y: f.y, a, len: f.R * 4.6, t: 0, col: t.juice });
+      sfx.slice(combo.n); sfx.squish();
       let pts = 10 * (1 + wo.tour);
       if (t.special === 'gold') { pts += 50; text('+50 ★', f.x, f.y - f.R, '#ffd34d', 0.75, 1.1); sfx.special(); sparkle(f.x, f.y, '#ffd34d'); }
       if (t.special === 'slow') { slowT = 4; text('RALENTI !', f.x, f.y - f.R, '#9ad8ff', 0.8, 1.2); sfx.special(); }
@@ -671,8 +674,8 @@
       combo.n++; combo.t = 0.28; combo.x = f.x; combo.y = f.y;
       rumble('tick');
     }
-    function juice(x, y, col, n, R) {
-      for (let i = 0; i < n; i++) { const a = fxr() * TAU, v = U * (2 + fxr() * 7); drops.push({ x: x + Math.cos(a) * R * 0.3, y: y + Math.sin(a) * R * 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v - U * 3, r: U * (0.05 + fxr() * 0.12), c: col, t: 0, life: 0.5 + fxr() * 0.6 }); }
+    function juice(x, y, col, n, R, cut) {
+      for (let i = 0; i < n; i++) { const a = cut != null && fxr() < 0.7 ? cut + Math.PI / 2 * (fxr() < 0.5 ? 1 : -1) + (fxr() - 0.5) * 1.1 : fxr() * TAU, v = U * (2.5 + fxr() * 9); drops.push({ x: x + Math.cos(a) * R * 0.3, y: y + Math.sin(a) * R * 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v - U * 3, r: U * (0.05 + fxr() * 0.12), c: col, t: 0, life: 0.5 + fxr() * 0.6 }); }
       if (drops.length > 420) drops.splice(0, drops.length - 420);
     }
     // la couleur de la tache : le jus, ravivé par la peau quand il est trop pâle (pomme, poire, coco…)
@@ -734,6 +737,7 @@
         const dt = Math.max(1, t - blade.lt), len = Math.hypot(x - blade.lx, y - blade.ly);
         if (len < 2) return;
         segs.push({ x0: blade.lx, y0: blade.ly, x1: x, y1: y, sp: (len / dt) * 1000 });
+        if ((len / dt) * 1000 > 600 && sparks.length < 80) for (let i = 0; i < 2; i++) sparks.push({ x: x - (x - blade.lx) * fxr(), y: y - (y - blade.ly) * fxr(), vx: (fxr() - 0.5) * U * 3, vy: (fxr() - 0.5) * U * 3, t: 0, life: 0.18 + fxr() * 0.2 });
       }
       blade.pts.push({ x, y, t }); blade.lx = x; blade.ly = y; blade.lt = t;
       if (blade.pts.length > 40) blade.pts.shift();
@@ -849,10 +853,13 @@
       for (const d of drops) { d.t += dt; d.vy += g * 0.9 * sdt; d.x += d.vx * sdt; d.y += d.vy * sdt; }
       drops = drops.filter((d) => d.t < d.life && d.y < H + 20);
       for (const s of splats) s.t += dt; splats = splats.filter((s) => s.t < 6);
-      for (const s of streaks) s.t += dt; streaks = streaks.filter((s) => s.t < 0.22);
+      for (const s of streaks) s.t += dt; streaks = streaks.filter((s) => s.t < 0.3);
+      for (const f of flashes) f.t += dt; flashes = flashes.filter((f) => f.t < 0.16);
+      for (const k of sparks) { k.t += dt; k.x += k.vx * dt; k.y += k.vy * dt; k.vy += U * 6 * dt; } sparks = sparks.filter((k) => k.t < k.life);
+      for (const h of halves) { h.t = (h.t || 0) + dt; if (h.drip > 0) { h.drip -= dt; if (fxr() < dt * 40) drops.push({ x: h.x, y: h.y, vx: h.vx * 0.3 + (fxr() - 0.5) * U, vy: h.vy * 0.3 + U * 0.5, r: U * (0.04 + fxr() * 0.06), c: h.dc, t: 0, life: 0.5 }); } }
       for (const t of texts) t.t += dt; texts = texts.filter((t) => t.t < t.life);
       for (const p of pops) p.t += dt; pops = pops.filter((p) => p.t < (p.big ? 2.2 : 1.5));
-      const now = performance.now(); blade.pts = blade.pts.filter((p) => now - p.t < 130);
+      const now = performance.now(); blade.pts = blade.pts.filter((p) => now - p.t < 170);
       shake = Math.max(0, shake - dt * 30); killFlash = Math.max(0, killFlash - dt * 1.6); bgFade = Math.max(0, bgFade - dt * 1.4);
     }
 
@@ -873,11 +880,18 @@
       // les fruits
       for (const f of fruits) drawFruit(f);
       // gouttes
-      for (const d of drops) { const a = 1 - d.t / d.life; ctx.globalAlpha = Math.min(1, a * 1.5); ctx.fillStyle = d.c; if (d.star) { ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.t * 6); ctx.fillRect(-d.r, -d.r * 0.25, d.r * 2, d.r * 0.5); ctx.fillRect(-d.r * 0.25, -d.r, d.r * 0.5, d.r * 2); ctx.restore(); } else { circ(ctx, d.x, d.y, d.r * (0.6 + 0.4 * a)); ctx.fill(); } }
+      for (const d of drops) { const a = 1 - d.t / d.life; ctx.globalAlpha = Math.min(1, a * 1.5); ctx.fillStyle = d.c; if (d.star) { ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.t * 6); ctx.fillRect(-d.r, -d.r * 0.25, d.r * 2, d.r * 0.5); ctx.fillRect(-d.r * 0.25, -d.r, d.r * 0.5, d.r * 2); ctx.restore(); } else { const sp2 = Math.hypot(d.vx, d.vy); if (sp2 > U * 4) { ctx.strokeStyle = d.c; ctx.lineCap = 'round'; ctx.lineWidth = d.r * 1.6 * (0.6 + 0.4 * a); ctx.beginPath(); ctx.moveTo(d.x - d.vx * 0.03, d.y - d.vy * 0.03); ctx.lineTo(d.x, d.y); ctx.stroke(); } else { circ(ctx, d.x, d.y, d.r * (0.6 + 0.4 * a)); ctx.fill(); } } }
       ctx.globalAlpha = 1;
       // éclairs de coupe
       ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-      for (const s of streaks) { const a = 1 - s.t / 0.22, dx = Math.cos(s.a) * s.len / 2, dy = Math.sin(s.a) * s.len / 2; ctx.strokeStyle = rgba(s.col, 0.7 * a); ctx.lineWidth = U * 0.35 * a; ctx.beginPath(); ctx.moveTo(s.x - dx, s.y - dy); ctx.lineTo(s.x + dx, s.y + dy); ctx.stroke(); ctx.strokeStyle = 'rgba(255,255,255,' + a + ')'; ctx.lineWidth = U * 0.08 * a + 1; ctx.stroke(); }
+      for (const f of flashes) { const u = f.t / 0.16, r = f.r * (0.5 + u * 0.7); ctx.fillStyle = rad(ctx, f.x, f.y, 0, f.x, f.y, r, [0, 'rgba(255,255,255,' + 0.9 * (1 - u) + ')', 0.35, rgba(f.col, 0.55 * (1 - u)), 1, rgba(f.col, 0)]); circ(ctx, f.x, f.y, r); ctx.fill(); }
+      for (const s of streaks) {
+        const a = 1 - s.t / 0.3, g = Math.min(1, s.t / 0.05), L = s.len * (0.55 + 0.45 * g), dx = Math.cos(s.a) * L / 2, dy = Math.sin(s.a) * L / 2, nx = -Math.sin(s.a), ny = Math.cos(s.a);
+        const w = U * 0.5 * a;
+        ctx.fillStyle = rgba(s.col, 0.55 * a); ctx.beginPath(); ctx.moveTo(s.x - dx, s.y - dy); ctx.quadraticCurveTo(s.x + nx * w, s.y + ny * w, s.x + dx, s.y + dy); ctx.quadraticCurveTo(s.x - nx * w, s.y - ny * w, s.x - dx, s.y - dy); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,' + a + ')'; ctx.beginPath(); ctx.moveTo(s.x - dx, s.y - dy); ctx.quadraticCurveTo(s.x + nx * w * 0.22, s.y + ny * w * 0.22, s.x + dx, s.y + dy); ctx.quadraticCurveTo(s.x - nx * w * 0.22, s.y - ny * w * 0.22, s.x - dx, s.y - dy); ctx.fill();
+      }
+      for (const k of sparks) { const u = 1 - k.t / k.life; ctx.fillStyle = 'rgba(255,255,255,' + u + ')'; ctx.fillRect(k.x - 1.5 * u, k.y - 1.5 * u, 3 * u, 3 * u); }
       ctx.globalCompositeOperation = 'source-over';
       drawBlade();
       // têtes tristes des copains tranchés
@@ -957,7 +971,7 @@
       const L = [], R2 = [];
       for (let i = 0; i < P.length; i++) {
         const p = P[i], q = P[Math.min(P.length - 1, i + 1)], o = P[Math.max(0, i - 1)], dx = q.x - o.x, dy = q.y - o.y, d = Math.hypot(dx, dy) || 1;
-        const age = clamp(1 - (now - p.t) / 130, 0, 1), wdt = U * 0.22 * age * (i / (P.length - 1));
+        const age = clamp(1 - (now - p.t) / 170, 0, 1), wdt = U * 0.3 * age * Math.pow(i / (P.length - 1), 0.8);
         L.push([p.x - (dy / d) * wdt, p.y + (dx / d) * wdt]); R2.push([p.x + (dy / d) * wdt, p.y - (dx / d) * wdt]);
       }
       ctx.globalCompositeOperation = 'lighter';
@@ -967,6 +981,7 @@
       L.forEach((p, i) => { const c = P[i]; const x = lerp(c.x, p[0], 0.4), y = lerp(c.y, p[1], 0.4); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       for (let i = R2.length - 1; i >= 0; i--) { const c = P[i]; ctx.lineTo(lerp(c.x, R2[i][0], 0.4), lerp(c.y, R2[i][1], 0.4)); }
       ctx.closePath(); ctx.fill();
+      const tip = P[P.length - 1]; ctx.fillStyle = rad(ctx, tip.x, tip.y, 0, tip.x, tip.y, U * 0.55, [0, 'rgba(255,255,255,0.95)', 0.4, rgba(acc, 0.5), 1, rgba(acc, 0)]); circ(ctx, tip.x, tip.y, U * 0.55); ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
     }
     function bigText(s, x, y, size, col) { ctx.font = '400 ' + Math.round(size) + 'px ' + FONT.display; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(4, size * 0.16); ctx.strokeStyle = 'rgba(10,6,20,0.9)'; ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y); }
@@ -1013,7 +1028,7 @@
       if (dead) return;
       raf = requestAnimationFrame(frame);
       const dt = Math.min(0.05, Math.max(0, (now - (last || now)) / 1000)); last = now;
-      if (!paused && state !== 'over') { try { update(dt); } catch (e) { /* jamais bloqué */ } }
+      if (!paused && state !== 'over') { try { update(dt); } catch (e) { lastErr = String(e && e.stack || e); } }
       else if (state === 'over') { for (const d of drops) { d.t += dt; d.x += d.vx * dt; d.y += d.vy * dt; } drops = drops.filter((d) => d.t < d.life); }
       try { draw(); } catch (e) { /* rien */ }
     }
@@ -1032,7 +1047,7 @@
       currentLevel() { return level; },
       pause() { setPaused(true); },
       resume() { setPaused(false); },
-      get _d() { return { spawn: (k, o) => launch(k, o), heads: () => heads, state, level, score, got, need, misses, fruits, boss, wo, slowT, frenzyT, W, H, U, addPoint, segs: () => segs, beginLevel, setBossHp(v) { if (boss) boss.hp = v; } }; },
+      get _d() { return { err: () => lastErr, spawn: (k, o) => launch(k, o), heads: () => heads, state, level, score, got, need, misses, fruits, boss, wo, slowT, frenzyT, W, H, U, addPoint, segs: () => segs, beginLevel, setBossHp(v) { if (boss) boss.hp = v; } }; },
     };
   }
 
