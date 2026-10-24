@@ -4492,12 +4492,19 @@ function isleArt(cv, seed, players, q) {
   if (!cv) return;
   q = q || {};
   if (q.photo && !ISLE_PHOTO_BAD.has(q.photo.url)) {
+    // la bonne taille (…_2048.webp quand la carte est grande en pixels), puis le .jpg si le .webp ne passe pas, puis le dessin
+    const big = (cv.clientWidth || 300) * Math.min(2, window.devicePixelRatio || 1) > 1100, u0 = q.photo.url;
+    const tries = [...new Set([big ? u0.replace(/_1024\.(webp|jpg)$/, '_2048.webp') : u0, u0, u0.replace(/\.webp$/, '.jpg')])];
     const ok = (im) => { if (cv.isConnected) islePhoto(cv, im, q, seed); };
-    const im0 = ISLE_PHOTOS.get(q.photo.url); if (im0 && im0.complete && im0.naturalWidth) { ok(im0); return; }
-    const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
-    im.onload = () => { ISLE_PHOTOS.set(q.photo.url, im); ok(im); };
-    im.onerror = () => { ISLE_PHOTO_BAD.add(q.photo.url); if (cv.isConnected) isleArt(cv, seed, players, q); };
-    im.src = q.photo.url;
+    for (const u of tries) { const im0 = ISLE_PHOTOS.get(u); if (im0 && im0.complete && im0.naturalWidth) { ok(im0); return; } }
+    const next = (i) => {
+      if (i >= tries.length) { ISLE_PHOTO_BAD.add(u0); if (cv.isConnected) isleArt(cv, seed, players, q); return; }
+      const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
+      im.onload = () => { ISLE_PHOTOS.set(tries[i], im); ok(im); };
+      im.onerror = () => next(i + 1);
+      im.src = tries[i];
+    };
+    next(0);
     const x0 = cv.getContext('2d'); cv.width = cv.clientWidth || 300; cv.height = cv.clientHeight || 170; x0.fillStyle = '#0a4f78'; x0.fillRect(0, 0, cv.width, cv.height);   // en attendant la photo
     return;
   }
@@ -4704,7 +4711,11 @@ function islePhoto(cv, im, q, seed) {
     f.fillStyle = 'rgba(222,232,246,.86)'; f.fillRect(0, 0, w, h);
     for (let i = 0; i < 90; i++) { const px = r() * w, py = r() * h, rr = (12 + r() * 24) * S; f.fillStyle = rad(f, px - rr * 0.3, py - rr * 0.4, 1, px, py, rr, [0, i % 4 ? 'rgba(255,255,255,.5)' : 'rgba(170,185,215,.35)', 1, 'rgba(255,255,255,0)']); f.beginPath(); f.ellipse(px, py, rr, rr * 0.7, 0, 0, 7); f.fill(); }
     f.globalCompositeOperation = 'destination-out';
-    f.save(); f.imageSmoothingEnabled = true; f.filter = 'blur(' + Math.max(2, Math.round(iw / m.width * 1.6)) + 'px)'; f.drawImage(m, ix, iy, iw, ih); f.drawImage(m, ix, iy, iw, ih); f.filter = 'none'; f.restore();
+    // le rectangle de la brume posé sur celui de la photo (mètres du monde ; le plus souvent le même : [0, 0, 1800, 1800], nord en haut)
+    const pr = Array.isArray(q.photo.r) && q.photo.r.length === 4 ? q.photo.r : G.r, gr = Array.isArray(G.r) && G.r.length === 4 ? G.r : pr;
+    let fx = ix, fy = iy, fw = iw, fh = ih;
+    if (pr && gr && pr[2] > 0 && pr[3] > 0) { fw = gr[2] / pr[2] * iw; fh = gr[3] / pr[3] * ih; fx = ix + (gr[0] - pr[0]) / pr[2] * iw; fy = iy + (1 - (gr[1] + gr[3] - pr[1]) / pr[3]) * ih; }
+    f.save(); f.imageSmoothingEnabled = true; f.filter = 'blur(' + Math.max(2, Math.round(fw / m.width * 1.6)) + 'px)'; f.drawImage(m, fx, fy, fw, fh); f.drawImage(m, fx, fy, fw, fh); f.filter = 'none'; f.restore();
     f.globalCompositeOperation = 'source-over';
   }
   const clouds = []; for (let i = 0; i < 3; i++) clouds.push({ x: r() * w, y: h * (0.12 + r() * 0.6), s: (0.7 + r() * 0.6) * S, v: 3 + r() * 4 });
@@ -4728,7 +4739,7 @@ const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 
 let islTickets = store.get('jdw.iletickets', {}) || {};
 // r_fog : la carte de découverte du joueur (membre connecté seulement, sinon null → brume décorative) ; objet ou texte JSON
 // la vraie photo de l'île vue de dessus (rendue par le jeu, même rectangle que r_fog) : texte (adresse https) ou { url } ; le dessin sinon
-const islPhotoOf = (q) => { const v = q.r_photo || q.r_map || q.r_image, u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u } : null; };
+const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null } : null; };
 const islFog = (v) => { try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && typeof o === 'object' && typeof o.b === 'string' && (o.n | 0) > 0 ? o : null; } catch (e) { return null; } };
 async function islesData() {
   if (ISL.srv !== false) {
