@@ -5189,7 +5189,7 @@ async function renderIsles() {
   box.textContent = '';
   if (!list.length) {
     const e = document.createElement('div'); e.className = 'pg-empty';
-    e.innerHTML = PG.tab === 'priv' ? '<b>🔒 Îles privées</b>' + (ISL.srv ? 'Aucune île privée pour l\'instant : crée la tienne, avec un mot de passe ou pour tes amis seulement.' : 'Bientôt : une île avec mot de passe, rien que pour la famille ou les copains.') : PG.tab === 'mine' ? '<b>⭐ Tes îles</b>Les îles que tu as créées, rejointes ou demandées apparaîtront ici.' : '<b>🌍 Îles publiques</b>' + (ISL.srv ? 'Aucune île publique pour l\'instant : crée la première !' : 'Bientôt : les îles ouvertes à tous, à rejoindre ou à regarder.');
+    e.innerHTML = PG.q.trim() && ISL.srv ? '<b>🔍 Aucune île trouvée</b>Essaie un autre nom.' : PG.tab === 'all' ? '<b>🏝️ Les îles</b>' + (ISL.srv ? 'Aucune île pour l\'instant : crée la première !' : 'Les îles apparaîtront ici dès que la connexion revient.') : PG.tab === 'priv' ? '<b>🔒 Îles privées</b>' + (ISL.srv ? 'Aucune île privée pour l\'instant : crée la tienne, avec un mot de passe ou pour tes amis seulement.' : 'Bientôt : une île avec mot de passe, rien que pour la famille ou les copains.') : PG.tab === 'mine' ? '<b>⭐ Tes îles</b>Les îles que tu as créées, rejointes ou demandées apparaîtront ici.' : '<b>🌍 Îles publiques</b>' + (ISL.srv ? 'Aucune île publique pour l\'instant : crée la première !' : 'Bientôt : les îles ouvertes à tous, à rejoindre ou à regarder.');
     box.appendChild(e);
   }
   const me = isGuest() ? '' : cleanName(profile.name);
