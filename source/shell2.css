@@ -674,6 +674,33 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
 .pi-act .pi-keep{padding:0 12px}
 .pi-act:has(.pi-keep){grid-template-columns:1fr auto auto}
 .pi-act button:disabled{opacity:.5;cursor:default}
+/* la page PegaGram publique (sans compte) : une grille de photos, en lecture seule */
+.pgram-logo svg{width:34px;height:34px;display:block}
+.pgram-note{margin:0;color:var(--muted);font:600 13px/1.4 var(--body)}
+.pgram-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));grid-auto-rows:max-content;align-content:start;gap:10px;max-height:60vh;overflow:auto;color:var(--muted);font:600 13px var(--body)}
+.pgram-grid.empty{display:block;padding:28px 12px;text-align:center;border-radius:14px;border:1px dashed var(--line)}
+.pgram-post{margin:0;border-radius:14px;overflow:hidden;background:rgba(6,12,34,.6);border:1px solid rgba(140,220,255,.15)}
+.pgram-post img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.pgram-post figcaption{padding:7px 9px 9px;font:600 12px/1.35 var(--body);color:var(--ink)}
+.pgram-post figcaption b{color:#ff8fb8}
+.pgram-post figcaption small{display:block;margin-top:3px;color:var(--muted);font-size:11px}
+/* le bouton PegaGram, posé sur l'image de l'île (en bas à droite) */
+.pi-pic{position:relative}
+.pi-gram{position:absolute;right:10px;bottom:10px;z-index:2;display:flex;align-items:center;gap:7px;padding:5px 12px 5px 5px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:rgba(12,10,36,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;font:400 13.5px/1 var(--display);letter-spacing:.02em;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .15s,box-shadow .15s}
+.pi-gram svg{width:28px;height:28px;flex:none;filter:drop-shadow(0 2px 6px rgba(255,79,139,.45))}
+.pi-gram span{background:linear-gradient(90deg,#ffd27a,#ff8fb8 55%,#b9a2ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pi-gram:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.5),0 0 16px rgba(255,79,139,.35)}
+/* panneau par-dessus la carte (la carte ne se déplie pas) */
+.pi-panel.pi-over{position:absolute;inset:0;z-index:5;margin:0;border-radius:inherit;overflow:auto;align-content:start;padding:16px;background:rgba(10,18,44,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+/* « … en ligne » : la liste des pseudos (sans les têtes) */
+.pi-live[role=button]{cursor:pointer}.pi-live[role=button]:hover{background:rgba(6,14,20,.92)}
+.pi-who{position:absolute;top:44px;right:10px;z-index:6;width:min(240px,calc(100% - 20px));max-height:62%;overflow:auto;padding:10px 12px;border-radius:14px;background:rgba(10,18,44,.95);border:1px solid rgba(140,220,255,.25);box-shadow:0 12px 30px rgba(0,0,0,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:600 13px/1.35 var(--body);color:var(--ink)}
+.pi-who b{display:block;margin-bottom:6px;font:400 13px var(--display);color:#5ef0ff}
+.pi-who ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.pi-who li{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-who li::before{content:'';flex:0 0 8px;height:8px;border-radius:50%;background:#6c7a8c}
+.pi-who li.on::before{background:var(--leaf);box-shadow:0 0 6px var(--leaf)}
+.pi-who p{margin:4px 0 0;color:var(--muted);font-size:12px}.pi-who p:empty{display:none}
 .pi-panel{scroll-margin-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);scroll-margin-top:90px;display:grid;gap:8px;margin-top:4px;padding:12px;border-radius:14px;background:var(--steel);font:600 13px/1.3 var(--body);color:var(--ink)}
 .pi-panel label{display:grid;gap:5px}
 .pi-panel input[type=text],.pi-panel input[type=password]{min-height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--night);color:var(--ink);font:600 15px var(--body)}
