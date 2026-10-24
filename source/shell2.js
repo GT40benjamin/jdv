@@ -2248,6 +2248,7 @@ const tiles = [];
 function buildLibrary() {
   const grid = $('jdw-grid');
   for (const g of GAMES) {
+    if (g.id === 'pegase' && LABO_TEST) continue;   // mode test : Pégase est à part (onglet tout à gauche)
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'tile'; b.style.setProperty('--acc', g.accent || COLORS.amber);
     b.setAttribute('aria-label', 'Jouer à ' + g.title);
@@ -4235,6 +4236,7 @@ $('jdw-new-ok').addEventListener('click', async () => {
 /* ================= Onglets : Classique / Duel / Coop ================= */
 // le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
 const MODES = {
+  pegase: { ic: '🏝️', t: 'Pégase', sub: 'Un monde à part : choisis ton île, rejoins les copains… ou viens juste regarder ce qui s\'y passe.' },
   classique: null,
   duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain ou l\'IA.' },
   coop: { ic: '🤝', t: 'Coop', sub: 'Jouez ensemble contre le jeu, avec un robot ou un copain en ligne : vos scores d\'équipe comptent !' },
@@ -4243,6 +4245,7 @@ let MODE = 'classique';
 try { const m = sessionStorage.getItem('jdw.mode'); if (m && m in MODES) MODE = m; } catch (e) {}
 function setMode(m, user) {
   if (!(m in MODES)) m = 'classique';
+  if (m === 'pegase' && document.querySelector('#jdw-modes [data-mode="pegase"]').hidden) m = 'classique';   // onglet Pégase : mode test seulement
   const changed = m !== MODE; MODE = m;
   try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}
   $('jdw-lib').dataset.mode = m;
@@ -4251,6 +4254,7 @@ function setMode(m, user) {
   if (md) { $('jdw-mh-ic').textContent = md.ic; $('jdw-mh-title').textContent = md.t; $('jdw-mh-sub').textContent = md.sub; }
   if (m === 'duel') renderSeats();
   if (m === 'coop') renderCoop();
+  if (m === 'pegase') renderIsles();
   if (user && changed) {
     const w = document.querySelector('.lib-wrap'); w.classList.remove('page-in'); void w.offsetWidth; w.classList.add('page-in');
     $('jdw-lib').scrollTo({ top: 0 });
@@ -4259,6 +4263,67 @@ function setMode(m, user) {
   }
 }
 for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListener('click', () => setMode(b.dataset.mode, true));
+
+/* ================= Pégase à part : l'onglet tout à gauche et la page des ÎLES (en essai : mode test seulement) =================
+   Une île = un serveur de Pégase qu'on rejoint (publique, ou privée avec mot de passe) ; son créateur en est le gardien (il peut bannir) ;
+   autant d'habitants que de parcelles. Tant que le serveur des îles n'existe pas (pg_island_list, voir la demande aux sessions Pégase),
+   la page montre l'île actuelle (celle de la salle) et prépare les onglets. */
+const PG_TAB = LABO_TEST && !!gameById('pegase');
+const PG = { tab: 'pub' };
+if (PG_TAB) {
+  const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
+  $('jdw-modes').classList.add('has-pg');
+}
+function isleArt(cv, seed, players) {
+  // une île vue de haut, en 3/4 : mer qui scintille, plage, herbe, arbres, petites maisons (une par parcelle prise), les copains en points
+  const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * k); cv.height = Math.round(h * k); const x = cv.getContext('2d'); x.scale(k, k);
+  let sd = seed >>> 0 || 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#0b4a6e'); g.addColorStop(1, '#0f7aa0'); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 1; for (let i = 0; i < 40; i++) { const px = r() * w, py = r() * h; x.beginPath(); x.moveTo(px, py); x.lineTo(px + 8 + r() * 10, py); x.stroke(); }
+  const cx = w / 2, cy = h * 0.54, rx = w * 0.34, ry = h * 0.3, blob = (s) => { x.beginPath(); for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 2, q = 1 + 0.08 * Math.sin(a * 3 + seed) + 0.05 * Math.sin(a * 5 + seed * 2); x.lineTo(cx + Math.cos(a) * rx * s * q, cy + Math.sin(a) * ry * s * q); } x.closePath(); };
+  blob(1.12); x.fillStyle = 'rgba(160,240,255,.35)'; x.fill();
+  blob(1); x.fillStyle = '#f0d898'; x.fill();
+  blob(0.82); const gg = x.createRadialGradient(cx, cy - ry * 0.3, 4, cx, cy, rx); gg.addColorStop(0, '#7ccf5a'); gg.addColorStop(1, '#3f9a3a'); x.fillStyle = gg; x.fill();
+  for (let i = 0; i < 14; i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 0.7, px = cx + Math.cos(a) * rx * d, py = cy + Math.sin(a) * ry * d; x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(px + 2, py + 3, 7, 3, 0, 0, 7); x.fill(); x.fillStyle = r() < 0.5 ? '#2d7a2a' : '#3a8f30'; x.beginPath(); x.arc(px, py - 4, 6 + r() * 3, 0, 7); x.fill(); }
+  for (let i = 0; i < 5; i++) { const px = cx + (r() - 0.5) * rx * 1.1, py = cy + (r() - 0.5) * ry * 0.9; x.fillStyle = '#f4ead8'; x.fillRect(px - 6, py - 4, 12, 9); x.fillStyle = ['#d8503a', '#3a7ad8', '#d8a83a'][i % 3]; x.beginPath(); x.moveTo(px - 8, py - 3); x.lineTo(px, py - 11); x.lineTo(px + 8, py - 3); x.fill(); }
+  for (let i = 0; i < Math.min(12, players || 0); i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 0.6; x.fillStyle = ['#ffa630', '#5ef0ff', '#ff5fae', '#ffd34d'][i % 4]; x.beginPath(); x.arc(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 3.2, 0, 7); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 1.2; x.stroke(); }
+}
+async function islesData() {
+  // le serveur des îles (quand il existe) ; sinon : l'île actuelle, celle de la salle
+  try { if (typeof pegaseRpcHas === 'function' && pegaseRpcHas('pg_island_list')) { const rows = await rpc('pg_island_list', { p_code: CODE() }); if (Array.isArray(rows)) return rows.map(q => ({ id: q.r_id, name: q.r_name, priv: !!q.r_private, keeper: q.r_owner, n: q.r_online | 0, max: q.r_max | 0, mine: !!q.r_mine })); } } catch (e) {}
+  const here = room ? room.name : '';
+  let n = 0; try { n = tilePlayers('pegase').length; } catch (e) {}
+  return here ? [{ id: 'room', name: 'L\'île de ' + here, priv: !!(room && room.private), keeper: '', n, max: 0, mine: true, cur: true }] : [];
+}
+async function renderIsles() {
+  const box = $('jdw-pg-isles'); if (!box) return;
+  for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.setAttribute('aria-selected', b.dataset.t === PG.tab ? 'true' : 'false');
+  const all = await islesData(), list = all.filter(q => PG.tab === 'pub' ? !q.priv : PG.tab === 'priv' ? q.priv : q.mine);
+  box.textContent = '';
+  if (!list.length) {
+    const e = document.createElement('div'); e.className = 'pg-empty';
+    e.innerHTML = PG.tab === 'priv' ? '<b>🔒 Îles privées</b>Bientôt : une île avec mot de passe, rien que pour la famille ou les copains.' : PG.tab === 'mine' ? '<b>⭐ Tes îles</b>Les îles que tu as créées ou rejointes apparaîtront ici.' : '<b>🌍 Îles publiques</b>Bientôt : les îles ouvertes à tous, à rejoindre ou à regarder.';
+    box.appendChild(e);
+  }
+  for (const q of list) {
+    const c = document.createElement('div'); c.className = 'pg-isle' + (q.cur ? ' cur' : ''); c.setAttribute('role', 'listitem');
+    c.innerHTML = '<canvas aria-hidden="true"></canvas><span class="pi-badge"></span><span class="pi-live"><i></i><b></b></span>' +
+      '<div class="pi-body"><div class="pi-name"></div><div class="pi-sub"></div><div class="pi-bar" hidden><u></u></div><div class="pi-act"><button type="button" class="pi-play">Jouer</button><button type="button" class="pi-watch">👀 Regarder</button></div></div>';
+    c.querySelector('.pi-badge').textContent = (q.priv ? '🔒 Privée' : '🌍 Publique') + (q.cur ? ' · ton île' : '');
+    c.querySelector('.pi-live b').textContent = q.n + (q.max ? ' / ' + q.max : '') + ' en ligne';
+    c.querySelector('.pi-name').textContent = q.name;
+    c.querySelector('.pi-sub').textContent = q.keeper ? 'Gardien : ' + q.keeper : q.cur ? 'Les copains de ta salle y vivent déjà' : '';
+    if (q.max) { c.querySelector('.pi-bar').hidden = false; c.querySelector('.pi-bar u').style.width = Math.min(100, 100 * q.n / q.max) + '%'; }
+    c.querySelector('.pi-play').addEventListener('click', () => { const g = gameById('pegase'); if (g) openGame(g); });
+    c.querySelector('.pi-watch').addEventListener('click', () => toastCheer('👀 Bientôt : regarder une île sans jouer (même sans compte) !', null, true));
+    box.appendChild(c);
+    requestAnimationFrame(() => isleArt(c.querySelector('canvas'), String(q.name).split('').reduce((a, ch) => a * 31 + ch.charCodeAt(0) | 0, 7), q.n));
+  }
+  $('jdw-pg-note').textContent = isGuest() ? 'Sans compte, tu peux déjà regarder la liste des îles ; pour jouer, crée ton compte (c\'est gratuit).' : '';
+}
+for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.addEventListener('click', () => { PG.tab = b.dataset.t; renderIsles(); });
+$('jdw-pg-create').addEventListener('click', () => toastCheer('🏝️ Bientôt : crée ton île (publique ou avec mot de passe) et deviens son gardien !', null, true));
 
 /* ================= Duel : deux joueurs face à face sur le même téléphone ================= */
 // P0 = en bas (écran à l'endroit), P1 = en haut (écran à l'envers). Les jeux : source/duos/*.js (DUO-CONTRACT.md).

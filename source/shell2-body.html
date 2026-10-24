@@ -120,10 +120,21 @@
         <p class="coop-soon-foot">Avec un robot (de Facile à Extrême) ou un copain en ligne. Vos scores d'équipe iront au classement.</p>
       </div>
     </section>
+    <section class="mode-page" id="jdw-page-pegase" aria-label="Pégase : les îles">
+      <div class="pg-tabs" id="jdw-pg-tabs" role="tablist" aria-label="Quelles îles">
+        <button type="button" role="tab" data-t="pub" aria-selected="true"><i>🌍</i><span>Publiques</span></button>
+        <button type="button" role="tab" data-t="priv" aria-selected="false"><i>🔒</i><span>Privées</span></button>
+        <button type="button" role="tab" data-t="mine" aria-selected="false"><i>⭐</i><span>Mes îles</span></button>
+      </div>
+      <div class="pg-isles" id="jdw-pg-isles" role="list"></div>
+      <button class="pg-create" id="jdw-pg-create" type="button"><b>＋ Créer mon île</b><small>Publique ou avec mot de passe · tu en es le gardien</small></button>
+      <p class="pg-note" id="jdw-pg-note"></p>
+    </section>
     <section class="grid" id="jdw-grid" aria-label="Jeux"></section>
     <p class="lib-note" id="jdw-note"></p>
   </div>
   <nav class="modebar" id="jdw-modes" aria-label="Modes de jeu" data-pad-skip>
+    <button type="button" data-mode="pegase" hidden><span class="mb-ic">🏝️</span><span class="mb-t">Pégase</span></button><span class="mb-sep" aria-hidden="true" hidden></span>
     <button type="button" data-mode="classique"><span class="mb-ic">🕹️</span><span class="mb-t">Classique</span><span class="mb-soon new" id="jdw-cls-badge" hidden>nouveau</span></button>
     <button type="button" data-mode="duel"><span class="mb-ic">⚔️</span><span class="mb-t">Duel</span><span class="mb-soon new" id="jdw-duo-badge" hidden>nouveau</span></button>
     <button type="button" data-mode="coop"><span class="mb-ic">🤝</span><span class="mb-t">Coop</span><span class="mb-soon" id="jdw-coop-badge">bientôt</span></button>

@@ -564,6 +564,44 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
   cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .2s}
 .modebar button[data-mode="duel"]{--mc:var(--alarm)}
 .modebar button[data-mode="coop"]{--mc:var(--leaf)}
+/* Pégase : à part, tout à gauche (un monde, pas un jeu de la salle) — seulement quand l'onglet est montré */
+.modebar.has-pg{grid-template-columns:minmax(0,1.15fr) 10px repeat(3,minmax(0,1fr))}
+@media (min-width:700px){.modebar.has-pg{width:min(620px,calc(100% - 32px))}}
+.modebar button[data-mode="pegase"]{--mc:#3ad6c8}
+.modebar button[data-mode="pegase"] .mb-ic{background:linear-gradient(160deg,rgba(58,214,200,.18),rgba(255,211,77,.12))}
+.mb-sep{align-self:center;justify-self:center;width:2px;height:40px;border-radius:2px;background:linear-gradient(180deg,transparent,var(--line),transparent)}
+#jdw-lib[data-mode="pegase"] #jdw-page-pegase{display:grid}
+#jdw-lib[data-mode="pegase"] .mode-hero{--mc:#3ad6c8}
+#jdw-lib[data-mode="pegase"] #jdw-roombar{display:none!important}
+.pg-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.pg-tabs button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;border:0;border-radius:12px;background:none;color:var(--muted);
+  font:700 14px/1 var(--body);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pg-tabs button i{font-style:normal;font-size:17px}
+.pg-tabs button[aria-selected="true"]{background:color-mix(in srgb,#3ad6c8 22%,var(--steel));color:var(--ink);box-shadow:inset 0 -2px 0 #3ad6c8}
+.pg-isles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.pg-isle{position:relative;display:grid;grid-template-rows:auto auto;border-radius:20px;overflow:hidden;background:var(--card);border:1px solid var(--line);
+  box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.pg-isle.cur{border-color:#3ad6c8;box-shadow:0 0 0 1px #3ad6c8,0 10px 26px rgba(0,0,0,.35)}
+.pg-isle canvas{display:block;width:100%;aspect-ratio:16/9}
+.pi-badge{position:absolute;top:10px;left:10px;padding:4px 9px;border-radius:10px;background:rgba(6,14,20,.75);font:700 12px/1 var(--body);color:#dffcf8}
+.pi-live{position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:10px;background:rgba(6,14,20,.75);font:700 12px/1 var(--body)}
+.pi-live i{width:8px;height:8px;border-radius:50%;background:var(--leaf);box-shadow:0 0 8px var(--leaf)}
+.pi-body{display:grid;gap:8px;padding:12px 14px 14px}
+.pi-name{font:400 18px/1.1 var(--display);color:var(--ink)}
+.pi-sub{font:600 13px/1.3 var(--body);color:var(--muted)}
+.pi-bar{height:6px;border-radius:3px;background:var(--steel);overflow:hidden}
+.pi-bar u{display:block;height:100%;background:linear-gradient(90deg,#3ad6c8,#ffd34d)}
+.pi-act{display:grid;grid-template-columns:1fr auto;gap:8px}
+.pi-act button{min-height:46px;border-radius:14px;border:0;font:400 15px/1 var(--display);cursor:pointer}
+.pi-play{background:linear-gradient(180deg,#3ad6c8,#1f9e94);color:#062a27}
+.pi-watch{padding:0 14px;background:var(--steel);color:var(--ink)}
+.pg-empty{padding:26px 18px;border-radius:18px;border:1px dashed var(--line);text-align:center;color:var(--muted);font:600 14px/1.45 var(--body)}
+.pg-empty b{display:block;margin-bottom:6px;font:400 18px/1.2 var(--display);color:var(--ink)}
+.pg-create{display:grid;gap:4px;justify-items:center;padding:14px;border-radius:18px;border:1.5px dashed #3ad6c8;background:color-mix(in srgb,#3ad6c8 8%,transparent);
+  color:var(--ink);cursor:pointer}
+.pg-create b{font:400 17px/1 var(--display);color:#3ad6c8}
+.pg-create small{font:600 12.5px/1.3 var(--body);color:var(--muted)}
+.pg-note{margin:0;text-align:center;font:600 12.5px/1.4 var(--body);color:var(--muted)}
 .mb-ic{display:grid;place-items:center;width:52px;height:32px;border-radius:16px;font-size:21px;line-height:1;
   transition:background .25s,transform .25s,box-shadow .25s}
 .mb-t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
