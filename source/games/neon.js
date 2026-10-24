@@ -145,7 +145,8 @@
   function near(arr, x) { const out = []; for (let i = lowerIdx(arr, x - 8); i < arr.length && arr[i].x0 < x + 8; i++) out.push(arr[i]); return out; }
   function lowerIdx(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m].x0 < x) lo = m + 1; else hi = m; } return Math.max(0, lo - 6); }
   function orbAt(L, st) { for (const o of near(L.orbs, st.x)) if (!o.used && Math.abs(o.x0 - st.x) < 0.95 && Math.abs(o.y - st.y) < 1.0) return o; return null; }
-  function padAt(L, st) { for (const p of near(L.pads, st.x)) if (Math.abs(p.x0 + 0.5 - st.x) < 0.5 && Math.abs(st.y - PH - p.y) < 0.3) return p; return null; }
+  // tolérant : il attrape aussi le cube qui vient de sauter un peu trop tôt (jusqu'à 1,8 de haut au-dessus de lui)
+  function padAt(L, st) { for (const p of near(L.pads, st.x)) { const dy = st.y - PH - p.y; if (Math.abs(p.x0 + 0.5 - st.x) < 0.7 && dy > -0.3 && dy < 1.8) return p; } return null; }
   function hit(L, st) {
     const x0 = st.x - PH * 0.8, x1 = st.x + PH * 0.8, y0 = st.y - PH * 0.8, y1 = st.y + PH * 0.8;
     for (const s of near(L.spikes, st.x)) {
@@ -260,6 +261,15 @@
           const kind = orb ? 'orb' : r2 < 0.22 && gL < maxUp && bb + 3 < b1 ? 'up' : r2 < 0.34 && gL > 0 ? 'down' : r2 < 0.42 && kick(bb) >= 8 && (!easy || nP >= 1) && bb + 3 < b1 ? 'pad' : 'spike';
           const tFly = (dh) => (P.vj + Math.sqrt(Math.max(0, P.vj * P.vj - 2 * P.g * dh))) / P.g;   // durée de vol jusqu'à retomber dh plus haut
           const xj = kind === 'orb' ? xl - P.v * P.ta * 0.5 : xl - P.v * (kind === 'up' ? tFly(1) : kind === 'down' ? tFly(-gL) : P.ta);
+          if (kind === 'pad') {
+            // un TREMPLIN sous un gros « boum » : on n'appuie pas, on roule dessus ; il nous lance pile sur le temps (le bord du tremplin est
+            // sur le temps) et la force est réglée pour retomber sur un temps, au-dessus d'une rangée de pics
+            const px = xl + 0.2, T = beatP * Math.max(1, Math.round(1.42 * P.ta / beatP));
+            if (px < ghost.x + 0.4 || floorAt(px - 1) !== gL) { lastB = lastB0; cnt--; continue; }
+            sim(px - 0.6); L.pads.push({ x0: px, y: gL, k: (P.g * T / 2) / P.vj }); sortAll(); sim(X(beats[Math.min(b1 - 1, bb + 2)]));
+            for (let k = 0; k < 3; k++) { const sx = xl + 1.9 + k; if (clear(sx - 0.2, sx + 1.2, gL + 0.75, 99)) L.spikes.push({ x0: sx, y: gL }); }
+            sortAll(); lastB = bb + 1; continue;
+          }
           if (xj < ghost.x + 0.1) continue;
           sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 }));
           // le « tuch » du contretemps, pendant le saut : une orbe à toucher pile dessus (pas au tout début du niveau 1)
@@ -281,12 +291,6 @@
             // on redescend : la marche s'arrête juste après ce saut
             const bl = L.blocks[L.blocks.length - 1]; if (bl && bl.x1 > xj + 0.6) bl.x1 = Math.max(bl.x0 + 1, xj + 0.6); gL = 0; sortAll();   // (le saut a déjà été rejoué : la marche raccourcie après coup ne change pas le départ)
             sim(xl + 0.2); continue;
-          }
-          if (kind === 'pad') {
-            // un TREMPLIN sous un gros « boum » : on rebondit haut au-dessus d'une rangée de pics
-            const px = xl - 0.5, T = beatP * Math.max(1, Math.round(1.42 * P.ta / beatP)); L.pads.push({ x0: px, y: gL, k: (P.g * T / 2) / P.vj }); sortAll(); sim(X(beats[bb + 2]));   // rebond réglé pour retomber sur un temps
-            for (let k = 0; k < 3; k++) { const sx = xl + 1.4 + k; if (clear(sx - 0.2, sx + 1.2, gL + 0.75, 99)) L.spikes.push({ x0: sx, y: gL }); }
-            sortAll(); lastB = bb + 1; continue;
           }
           sim(xl + 0.2);
           const apex = xj + P.v * P.ta * 0.5, n = easy && nP === 0 ? (f >= 10 && rng() < 0.4 ? 2 : 1) : f >= 11 ? 2 + (diff > 0.5 && rng() < 0.6 ? 1 : 0) : f >= 8 || rng() < 0.3 ? 2 : 1;
@@ -745,6 +749,6 @@
     pad: { help: [['a', 'Sauter · voler (tenir) · inverser la gravité']] },
     preview,
     mount,
-    _art: { THEMES, LEVELS, TRACKS, buildLevel, paintSky, paintFar, paintNear },   // pour les essais
+    _art: { THEMES, LEVELS, TRACKS, buildLevel, paintSky, paintFar, paintNear, step, newState, enterMode },   // pour les essais
   };
 })();
