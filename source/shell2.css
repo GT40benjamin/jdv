@@ -2499,3 +2499,57 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 
 /* la page Pégase respire : titre et phrase en haut, la vidéo bien visible, puis la recherche juste au-dessus des îles */
 #jdw-lib[data-mode="pegase"] .mode-hero{margin-bottom:clamp(90px,24vh,280px)}
+
+/* ===== PAGE PÉGASE ÉPURÉE (maquette de Benjamin, 24 oct.) ===== */
+.pg-wing{display:none}
+#jdw-lib[data-mode="pegase"] .pg-wing{display:block;width:clamp(44px,6vw,64px);height:auto;margin:0 auto -4px;filter:drop-shadow(0 2px 6px rgba(255,190,80,.45))}
+/* plus de barre du haut : quelques icônes rondes, translucides, dans le coin haut droit */
+#jdw-lib[data-mode="pegase"] .home-bar{position:fixed;top:10px;right:10px;left:auto;z-index:8;margin:0;padding:0;gap:6px;border:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;justify-content:flex-end;opacity:.55;transition:opacity .3s,transform .8s cubic-bezier(.3,.9,.3,1)}
+#jdw-lib[data-mode="pegase"] .home-bar::after{display:none}
+#jdw-lib[data-mode="pegase"] .home-bar:hover,#jdw-lib[data-mode="pegase"] .home-bar:focus-within{opacity:1}
+#jdw-lib[data-mode="pegase"] .home-bar .icon-btn,#jdw-lib[data-mode="pegase"] .me-chip{width:34px;height:34px;min-width:34px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(8,14,34,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#jdw-lib[data-mode="pegase"] .home-bar .icon-btn svg{width:17px;height:17px}
+#jdw-lib[data-mode="pegase"] .me-chip .avatar{width:26px;height:26px}
+#jdw-lib[data-mode="pegase"] .home-bar .badge{transform:scale(.8)}
+@media (hover:none){#jdw-lib[data-mode="pegase"] .home-bar{opacity:.75}}
+/* le haut : aile, titre, phrase, puis beaucoup de vidéo */
+#jdw-lib[data-mode="pegase"] .lib-wrap{padding-top:26px}
+#jdw-lib[data-mode="pegase"] .mode-hero h1{font-size:clamp(40px,7vw,72px)}
+#jdw-lib[data-mode="pegase"] .mode-hero p{font-size:13px;opacity:.95}
+/* recherche étroite et centrée, verre très léger */
+#jdw-lib[data-mode="pegase"] .pg-search{width:min(680px,100%);justify-self:center;background:rgba(10,16,30,.42);border-color:rgba(255,255,255,.12)}
+#jdw-lib[data-mode="pegase"] .pgs-in{height:34px;font-size:14px}
+#jdw-lib[data-mode="pegase"] .pgs-filt{width:34px;height:34px;background:none}
+/* petites cartes centrées : pastille « en ligne » en haut à droite, PegaGram en bas à droite, plus de pastille de sorte d'île */
+#jdw-lib[data-mode="pegase"] .pg-isles{grid-template-columns:repeat(auto-fit,290px);justify-content:center;gap:16px}
+@media (max-width:600px){#jdw-lib[data-mode="pegase"] .pg-isles{grid-template-columns:min(320px,100%)}}
+#jdw-lib[data-mode="pegase"] .pi-badge{display:none}
+#jdw-lib[data-mode="pegase"] .pg-isle{border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(10,16,32,.72);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+#jdw-lib[data-mode="pegase"] .pg-isle:hover{box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 1px rgba(255,214,140,.45)}
+#jdw-lib[data-mode="pegase"] .pi-live{top:7px;right:7px;padding:3px 8px;font-size:10.5px;border-color:rgba(255,255,255,.14);background:rgba(8,14,30,.7)}
+#jdw-lib[data-mode="pegase"] .pi-gram{right:7px;bottom:7px;padding:2px 8px 2px 2px;font-size:10.5px;border-color:rgba(255,255,255,.16);background:rgba(8,14,30,.72)}
+#jdw-lib[data-mode="pegase"] .pi-gram svg{width:19px;height:19px}
+#jdw-lib[data-mode="pegase"] .pi-body{gap:2px;padding:8px 12px 10px}
+#jdw-lib[data-mode="pegase"] .pi-name{font-size:15px;background:linear-gradient(180deg,#fff2c2,#ffc94d);-webkit-background-clip:text;background-clip:text;color:transparent}
+#jdw-lib[data-mode="pegase"] .pi-sub,#jdw-lib[data-mode="pegase"] .pi-cap{font-size:11px;color:#d6e2f2}
+#jdw-lib[data-mode="pegase"] .pi-act{margin-top:6px;gap:6px}
+#jdw-lib[data-mode="pegase"] .pi-act button{min-height:32px;font-size:11.5px}
+#jdw-lib[data-mode="pegase"] .pi-act .pi-watch{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#d6e2f2}
+#jdw-lib[data-mode="pegase"] .pi-act .pi-keep{width:32px;padding:0;border-radius:50%}
+/* « + Créer mon île » : bandeau léger, largeur de la recherche */
+#jdw-lib[data-mode="pegase"] .pg-create{width:min(760px,100%);justify-self:center;padding:10px;border-width:1px;border-radius:16px;background:rgba(10,16,30,.35);border-color:rgba(255,214,140,.5)}
+#jdw-lib[data-mode="pegase"] .pg-create b{font-size:14px}
+#jdw-lib[data-mode="pegase"] .pg-create small{font-size:11px}
+#jdw-lib[data-mode="pegase"] .pg-note{font-size:11.5px}
+/* barre du bas étroite, centrée, sans badges criards */
+#jdw-lib[data-mode="pegase"] .modebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);width:min(500px,calc(100vw - 24px));border-radius:20px;border:1px solid rgba(255,255,255,.14);background:rgba(10,16,32,.78)}
+#jdw-lib[data-mode="pegase"] .modebar button{min-height:52px}
+#jdw-lib[data-mode="pegase"] .modebar .mb-soon{display:none !important}
+#jdw-lib.pg-ambi .modebar{transform:translate(-50%,140%)}
+@media (max-width:600px){
+  #jdw-lib[data-mode="pegase"] .lib-wrap{padding-top:52px}
+  #jdw-lib[data-mode="pegase"] .mode-hero{margin-bottom:clamp(60px,16vh,170px)}
+  #jdw-lib[data-mode="pegase"] .home-bar{top:8px;right:8px;gap:5px}
+  #jdw-lib[data-mode="pegase"] .home-bar .icon-btn,#jdw-lib[data-mode="pegase"] .me-chip{width:32px;height:32px;min-width:32px}
+}
+#jdw-lib[data-mode="pegase"] .lib-wrap{max-width:980px}   /* 3 petites cartes par ligne sur PC */
