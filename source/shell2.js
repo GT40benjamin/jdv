@@ -4805,7 +4805,9 @@ function isleNoise(x, y) {
   const a = isleHash(xi, yi), b = isleHash(xi + 1, yi), c = isleHash(xi, yi + 1), d = isleHash(xi + 1, yi + 1);
   return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
 }
-function isleFbm(x, y) { let s = 0, amp = 0.5, f = 1; for (let o = 0; o < 5; o++) { s += amp * isleNoise(x * f, y * f); f *= 2.03; amp *= 0.5; } return s / 0.97; }
+// relief des dômes (doux) : trois couches de bruit tournées l'une par rapport à l'autre, pour qu'aucun quadrillage ne se voie
+function isleFbm3(x, y) { return isleNoise(x * 0.866 - y * 0.5, x * 0.5 + y * 0.866) * 0.57 + isleNoise((x * 0.34 + y * 0.94) * 2.03 + 5.2, (-x * 0.94 + y * 0.34) * 2.03 + 1.3) * 0.29 + isleNoise((x * 0.98 - y * 0.2) * 4.1 + 9.1, (x * 0.2 + y * 0.98) * 4.1 + 3.7) * 0.14; }
+function isleFbm(x, y) { let s = 0, amp = 0.5, f = 1; for (let o = 0; o < 5; o++) { const c = Math.cos(o * 0.9), sn = Math.sin(o * 0.9); s += amp * isleNoise((x * c - y * sn) * f + o * 3.1, (x * sn + y * c) * f + o * 1.7); f *= 2.03; amp *= 0.5; } return s / 0.97; }
 function islePhoto(cv, im, q, seed) {
   const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(w * k); cv.height = Math.round(h * k);
@@ -4850,7 +4852,7 @@ function islePhoto(cv, im, q, seed) {
   const toPx = (u, v) => {
     if (PJ && pn > 1) { const c = Math.min(pn - 1, Math.max(0, Math.round(u * (pn - 1)))), rr = Math.min(pn - 1, Math.max(0, Math.round(v * (pn - 1)))), o = (rr * pn + c) * 3, a = PJ.p[o], bb = PJ.p[o + 1], rd = PJ.p[o + 2]; if (a == null || a < 0) return null; return [ix + a * iw, iy + bb * ih, Math.max((rd || 0.03) * iw, iw / C * 0.9)]; }
     const x = FR[0] + u * FR[2], z = FR[1] + v * FR[3], uu = (x - R[0]) / R[2], vv = (z - R[1]) / R[3];
-    const dx = uu - 0.5, dy = 0.5 - vv; if (Math.hypot(dx, dy) > isleRim(Math.atan2(dy, dx)) * 1.0) return null;   // la mer : pas de nuage
+    const dx = uu - 0.5, dy = 0.5 - vv; if (Math.hypot(dx, dy) > isleRim(Math.atan2(dy, dx)) * 1.1) return null;   // au-delà de la plage : pas de couche (le bruit décide où elle déborde)
     return [ix + uu * iw, iy + (1 - vv) * ih, iw / C * 0.9];
   };
   const seen = (ci, ri) => { let on = 0, tot = 0; const n = F.n, c0 = Math.floor(ci / C * n), c1 = Math.floor((ci + 1) / C * n), r0 = Math.floor(ri / C * n), r1 = Math.floor((ri + 1) / C * n); for (let rr = r0; rr < Math.max(r1, r0 + 1); rr++) for (let cc = c0; cc < Math.max(c1, c0 + 1); cc++) { tot++; on += F.bits[rr * n + cc]; } return on / Math.max(1, tot); };
@@ -4862,27 +4864,45 @@ function islePhoto(cv, im, q, seed) {
   mx.globalCompositeOperation = 'destination-out';
   for (let ri = 0; ri < C; ri++) for (let ci = 0; ci < C; ci++) { const p = toPx((ci + 0.5) / C, (ri + 0.5) / C); if (!p || seen(ci, ri) < 0.5) continue; mx.beginPath(); mx.arc(p[0] / DS, p[1] / DS, p[2] * 1.25 / DS, 0, 7); mx.fill(); }
   mx.globalCompositeOperation = 'source-over';
+  // quelques petits nuages détachés au-dessus de l'eau, autour de l'île (carte plate)
+  if (!iso) { let sd = ((seed >>> 0) % 9973) + 11; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; mx.fillStyle = 'rgba(255,255,255,.85)'; for (let i = 0; i < 7; i++) { const a = r() * 6.2832, d = isleRim(a) * (1.2 + r() * 0.22), rr = iw * (0.025 + r() * 0.03); mx.beginPath(); mx.ellipse((ccx + Math.cos(a) * d * iw) / DS, (ccy + Math.sin(a) * d * ih) / DS, rr * 1.6 / DS, rr / DS, 0, 0, 7); mx.fill(); } }
   const [cvC, cx2] = off(cw, chh, 1); cx2.filter = 'blur(' + Math.max(1.5, 6 * S / DS) + 'px)'; cx2.drawImage(mC, 0, 0); cx2.filter = 'none';
   const covA = cx2.getImageData(0, 0, cw, chh).data, cov = new Float32Array(cw * chh); for (let i = 0; i < cov.length; i++) cov[i] = covA[i * 4 + 3] / 255;
   const [nubC, nx] = off(cw, chh, 1), img = nx.createImageData(cw, chh), dens = new Float32Array(cw * chh), sd0 = ((seed >>> 0) % 997) * 0.37;
   const NS = 0.034 * DS / Math.max(0.6, S);   // échelle des cumulus (plus gros sur une grande carte)
+  const hgt = new Float32Array(cw * chh), fb = new Float32Array(cw * chh);
+  const LX = -0.78, LY = -0.28, LZ = 0.56;   // le soleil couchant : à l'ouest (gauche), un peu au nord (haut), bas sur l'horizon
   const clouds = (t) => {
-    const dx = t * 0.018, dy = t * 0.006, wv = Math.sin(t * 0.07) * 0.6;
+    const dx = t * 0.016, dy = t * 0.004, wv = Math.sin(t * 0.07) * 0.5;
     for (let y = 0, i = 0; y < chh; y++) for (let x = 0; x < cw; x++, i++) {
-      const c = cov[i]; if (c < 0.02) { dens[i] = -1; continue; }
-      const X = x * NS + sd0 + dx, Y = y * NS * 1.25 + dy, warp = isleNoise(X * 0.5 + wv, Y * 0.5 - wv) * 1.6;   // un voile qui se déforme
-      const n = isleFbm(X + warp, Y + warp * 0.6);
-      dens[i] = c * 1.45 - 0.55 + (Math.pow(n, 1.35) - 0.4) * 1.2;   // cœur épais, lisière qui s'effiloche
+      const c = cov[i]; if (c < 0.01) { dens[i] = -1; hgt[i] = 0; fb[i] = 0; continue; }
+      const X = x * NS + sd0 + dx, Y = y * NS + dy, warp = (isleNoise(X * 0.45 + wv, Y * 0.45 - wv) - 0.5) * 1.1;   // un voile qui se déforme
+      const n = isleFbm(X + warp, Y - warp * 0.7), tower = Math.pow(isleNoise(X * 0.32 + 7.3, Y * 0.32 + 2.1), 3.2);   // de rares tours de cumulus
+      fb[i] = n;
+      dens[i] = c * 1.45 - 0.55 + (Math.pow(n, 1.3) - 0.4) * 1.25 + tower * 0.4;
+      hgt[i] = Math.max(0, Math.min(1, dens[i])) * 0.5 + isleFbm3(X * 0.8 + 3.1, Y * 0.8 + 1.7) * 1.3 + tower * 1.8;   // le relief : gros dômes bombés + tours
     }
-    const d = img.data;
+    const d = img.data, G = 16 / DS;
     for (let y = 0, i = 0; y < chh; y++) for (let x = 0; x < cw; x++, i++) {
-      const v = dens[i], o = i * 4; if (v <= 0) { d[o + 3] = 0; continue; }
+      const v = dens[i], o = i * 4;
+      if (v <= 0) {
+        // hors des nuages : leur ombre douce (le soleil est à l'ouest : l'ombre tombe vers l'est) et des lambeaux de brume à la lisière
+        let sh = 0; for (let k = 2; k <= 7; k++) { const xx = x - k, yy = y - (k >> 2); if (xx >= 0 && yy >= 0 && dens[yy * cw + xx] > 0.05) { sh = 0.30 * (1 - (k - 2) / 7); break; } }
+        const c = cov[i] > 0 ? cov[i] : 0, mist = c > 0.02 ? Math.max(0, Math.min(1, (fb[i] - 0.42) * 3)) * Math.min(1, c * 3) * 0.42 : 0;
+        if (!sh && !mist) { d[o + 3] = 0; continue; }
+        const a = mist + sh * (1 - mist), mw = a ? mist / a : 0;
+        d[o] = 46 + (242 - 46) * mw; d[o + 1] = 40 + (240 - 40) * mw; d[o + 2] = 96 + (252 - 96) * mw; d[o + 3] = 255 * a; continue;
+      }
       const al = Math.min(1, v / 0.22), aa = al * al * (3 - 2 * al);   // bord effiloché, cœur plein
-      const l = x > 0 ? dens[i - 1] : v, r = x < cw - 1 ? dens[i + 1] : v, u = y > 0 ? dens[i - cw] : v, dn = y < chh - 1 ? dens[i + cw] : v;
-      // lumière du soir venant de l'ouest (et un peu d'en haut) : pentes tournées vers l'ouest éclairées, creux plus sombres
-      let lit = 0.5 + (r - l) * 3.6 + (dn - u) * 1.4 + (Math.min(v, 1.3) - 0.6) * 0.5; lit = Math.max(0, Math.min(1, lit));
-      const warm = Math.max(0, lit - 0.62) / 0.38;
-      d[o] = 150 + (252 - 150) * lit + 3 * warm; d[o + 1] = 148 + (246 - 148) * lit - 10 * warm; d[o + 2] = 200 + (250 - 200) * lit - 40 * warm; d[o + 3] = 255 * aa;
+      const hl = x > 0 ? hgt[i - 1] : hgt[i], hr = x < cw - 1 ? hgt[i + 1] : hgt[i], hu = y > 0 ? hgt[i - cw] : hgt[i], hd = y < chh - 1 ? hgt[i + cw] : hgt[i];
+      let nxv = -(hr - hl) * G, nyv = -(hd - hu) * G, nz = 1; const nl = Math.hypot(nxv, nyv, nz); nxv /= nl; nyv /= nl; nz /= nl;
+      let lit = Math.max(0, nxv * LX + nyv * LY + nz * LZ);
+      // ombre portée : une tour plus haute entre ce point et le soleil
+      let shade = 1; const h0 = hgt[i];
+      for (let k = 1; k <= 9; k++) { const xx = x - k, yy = Math.round(y - k * 0.36); if (xx < 0 || yy < 0) break; if (hgt[yy * cw + xx] > h0 + k * 0.07) { shade = 0.58; break; } }
+      lit = Math.min(1, Math.max(0, (0.12 + lit * 1.05) * shade + (h0 - 0.9) * 0.15));
+      const warm = Math.max(0, lit - 0.66) / 0.34;
+      d[o] = 146 + (255 - 146) * lit; d[o + 1] = 142 + (246 - 142) * lit - 12 * warm; d[o + 2] = 196 + (252 - 196) * lit - 44 * warm; d[o + 3] = 255 * aa;
     }
     nx.putImageData(img, 0, 0);
   };
