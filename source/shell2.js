@@ -4434,8 +4434,24 @@ function isleArt(cv, seed, players, q) {
     f.save(); f.setTransform(1, 0, 0, 1, 0, 0); f.filter = 'blur(' + Math.round(5 * S * k) + 'px)'; f.drawImage(rawC, 0, 0); f.filter = 'none'; f.restore();
     f.globalCompositeOperation = 'destination-out';
     // ce qu'on a découvert : données du serveur (q.fog = liste de [x, y, rayon] entre 0 et 1), sinon le prototype
+    // la VRAIE découverte (r_fog du serveur, seulement pour un membre connecté) : grille n×n de bits sur l'emprise « r » de l'île
+    // ({ v: 1, n, r: [x0, z0, largeur, hauteur], b: base64 }, rangées z puis x, bit de poids faible d'abord). Le dessin de l'île n'a pas la
+    // vraie forme du terrain : l'emprise est posée sur le cadre de l'île dessinée (z vers le haut de l'image). Masque agrandi et flouté.
+    const G = q.fog && typeof q.fog === 'object' && !Array.isArray(q.fog) && q.fog.b ? q.fog : null;
+    let grid = false;
+    if (G) {
+      try {
+        const n = Math.max(8, Math.min(512, G.n | 0)), raw = atob(String(G.b)), m = document.createElement('canvas'); m.width = m.height = n;
+        const mx = m.getContext('2d'), im = mx.createImageData(n, n);
+        for (let i = 0; i < n * n; i++) if ((raw.charCodeAt(i >> 3) >> (i & 7)) & 1) { const row = Math.floor(i / n), col = i % n, o = ((n - 1 - row) * n + col) * 4; im.data[o + 3] = 255; }
+        mx.putImageData(im, 0, 0);
+        const bx = cx - rx * 1.12, by = cy - ry * 1.12, bw = rx * 2.24, bh = ry * 2.24;
+        f.save(); f.imageSmoothingEnabled = true; f.filter = 'blur(' + Math.max(2, Math.round(bw / n * 1.6)) + 'px)'; f.drawImage(m, bx, by, bw, bh); f.drawImage(m, bx, by, bw, bh); f.filter = 'none'; f.restore();
+        grid = true;
+      } catch (e) { grid = false; }
+    }
     const holes = Array.isArray(q.fog) ? q.fog.map(([fx, fy, fr]) => [fx * w, fy * h, fr * w]) : [];
-    if (!holes.length) {
+    if (!holes.length && !grid) {
       for (let i = 0; i <= 8; i++) { const t = i / 8, p = P(da, 1.32 - 0.46 * t); holes.push([p[0], p[1], 22 * S]); }
       const steps = 10; for (let i = 0; i <= steps; i++) { const t = i / steps, u = 1 - t; holes.push([u * u * path[0][0] + 2 * u * t * path[1][0] + t * t * path[2][0], u * u * path[0][1] + 2 * u * t * path[1][1] + t * t * path[2][1], 24 * S]); }
       if (q.mine) for (const hs of houses) holes.push([hs[0], hs[1] - 4 * S, 30 * S]);
@@ -4492,11 +4508,13 @@ const ISL = { srv: null, rows: [] };
 const islName = () => (isGuest() ? null : profile.name);
 const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 Amis seulement' };
 let islTickets = store.get('jdw.iletickets', {}) || {};
+// r_fog : la carte de découverte du joueur (membre connecté seulement, sinon null → brume décorative) ; objet ou texte JSON
+const islFog = (v) => { try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && typeof o === 'object' && typeof o.b === 'string' && (o.n | 0) > 0 ? o : null; } catch (e) { return null; } };
 async function islesData() {
   if (ISL.srv !== false) {
     try {
       const rows = await rpc('pg_island_list', { p_code: CODE() || '', p_name: islName() }, { quiet404: true, quiet: true });
-      if (Array.isArray(rows)) { ISL.srv = true; return (ISL.rows = rows.map(q => { const kind = q.r_kind || (q.r_private ? 'mdp' : 'publique'); return { id: q.r_id, name: q.r_name, kind, priv: kind !== 'publique', keeper: q.r_owner || '', n: q.r_online | 0, max: q.r_max | 0, members: q.r_members | 0, mine: !!q.r_mine, banned: !!q.r_banned, guardian: !!q.r_guardian, cur: !!(PG.isle && PG.isle.id === q.r_id) }; })); }
+      if (Array.isArray(rows)) { ISL.srv = true; return (ISL.rows = rows.map(q => { const kind = q.r_kind || (q.r_private ? 'mdp' : 'publique'); return { id: q.r_id, name: q.r_name, kind, priv: kind !== 'publique', keeper: q.r_owner || '', n: q.r_online | 0, max: q.r_max | 0, members: q.r_members | 0, mine: !!q.r_mine, banned: !!q.r_banned, guardian: !!q.r_guardian, cur: !!(PG.isle && PG.isle.id === q.r_id), fog: islFog(q.r_fog) }; })); }
     } catch (e) { if (e.status === 404) ISL.srv = false; }
   }
   return [];   // pas de serveur des îles : rien (les salles de la borne ne sont pas des îles)
