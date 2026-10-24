@@ -565,7 +565,16 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .modebar button[data-mode="duel"]{--mc:var(--alarm)}
 .modebar button[data-mode="coop"]{--mc:var(--leaf)}
 /* Pégase : à part, tout à gauche (un monde, pas un jeu de la salle) — seulement quand l'onglet est montré */
-.modebar.has-pg{grid-template-columns:minmax(0,1.15fr) 10px repeat(3,minmax(0,1fr))}
+/* Pégase à part : sur Pégase, la barre montre Pégase + « Nos autres jeux » ; ailleurs, Pégase se replie à gauche et Classique · Duel · Coop
+   se déroulent (colonnes animées) */
+.modebar.has-pg{grid-template-columns:minmax(0,.75fr) 10px minmax(0,0fr) repeat(3,minmax(0,1fr));transition:grid-template-columns .45s cubic-bezier(.3,1.2,.4,1)}
+.modebar.has-pg.pg-open{grid-template-columns:minmax(0,1fr) 10px minmax(0,1fr) repeat(3,minmax(0,0fr))}
+.modebar.has-pg button{transition:opacity .3s,color .2s}
+.modebar.has-pg button[data-mode="arcade"],.modebar.has-pg.pg-open button[data-mode="classique"],.modebar.has-pg.pg-open button[data-mode="duel"],.modebar.has-pg.pg-open button[data-mode="coop"]{opacity:0;pointer-events:none;padding:0;overflow:hidden}
+.modebar.has-pg.pg-open button[data-mode="arcade"]{opacity:1;pointer-events:auto;padding:5px 2px 4px;overflow:visible}
+.modebar.has-pg:not(.pg-open) button[data-mode="pegase"] .mb-ic{width:44px}
+.modebar button[data-mode="arcade"]{--mc:var(--amber)}
+@media (max-width:700px){.modebar.has-pg .mb-soon{left:auto;right:0;margin-left:0}}
 @media (min-width:700px){.modebar.has-pg{width:min(620px,calc(100% - 32px))}}
 .modebar button[data-mode="pegase"]{--mc:#3ad6c8}
 .modebar button[data-mode="pegase"] .mb-ic{background:linear-gradient(160deg,rgba(58,214,200,.18),rgba(255,211,77,.12))}

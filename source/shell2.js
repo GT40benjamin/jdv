@@ -4244,8 +4244,11 @@ const MODES = {
 let MODE = 'classique';
 try { const m = sessionStorage.getItem('jdw.mode'); if (m && m in MODES) MODE = m; } catch (e) {}
 function setMode(m, user) {
+  if (m === 'arcade') m = (typeof PG !== 'undefined' && PG.last) || 'classique';   // « Nos autres jeux » : le dernier mode de la borne
   if (!(m in MODES)) m = 'classique';
   if (m === 'pegase' && document.querySelector('#jdw-modes [data-mode="pegase"]').hidden) m = 'classique';   // onglet Pégase : mode test seulement
+  if (m !== 'pegase' && typeof PG !== 'undefined') PG.last = m;
+  $('jdw-modes').classList.toggle('pg-open', m === 'pegase');
   const changed = m !== MODE; MODE = m;
   try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}
   $('jdw-lib').dataset.mode = m;
@@ -4269,10 +4272,18 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    autant d'habitants que de parcelles. Tant que le serveur des îles n'existe pas (pg_island_list, voir la demande aux sessions Pégase),
    la page montre l'île actuelle (celle de la salle) et prépare les onglets. */
 const PG_TAB = LABO_TEST && !!gameById('pegase');
-const PG = { tab: 'pub' };
+const PG = { tab: 'pub', last: MODE !== 'pegase' ? MODE : 'classique' };
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
-  $('jdw-modes').classList.add('has-pg');
+  document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
+  $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase');
+  // le badge de « Nos autres jeux » : le plus important de Classique / Duel / Coop (nouveau > mis à jour)
+  const arcBadge = () => {
+    const bs = ['jdw-cls-badge', 'jdw-duo-badge', 'jdw-coop-badge'].map(id => $(id)).filter(x => x && !x.hidden && x.classList.length > 1), bb = $('jdw-arc-badge');
+    const pick = bs.find(x => x.classList.contains('new')) || bs.find(x => x.classList.contains('maj'));
+    bb.hidden = !pick; if (pick) { bb.className = 'mb-soon ' + (pick.classList.contains('new') ? 'new' : 'maj'); bb.textContent = pick.textContent; }
+  };
+  arcBadge(); setInterval(arcBadge, 2500);
 }
 function isleArt(cv, seed, players) {
   // une île vue de haut, en 3/4 : mer qui scintille, plage, herbe, arbres, petites maisons (une par parcelle prise), les copains en points
