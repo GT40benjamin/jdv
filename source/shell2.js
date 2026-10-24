@@ -4346,7 +4346,7 @@ $('jdw-new-ok').addEventListener('click', async () => {
 /* ================= Onglets : Classique / Duel / Coop ================= */
 // le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
 const MODES = {
-  pegase: { ic: '🏝️', t: 'Pégase', sub: 'Un monde à part : choisis ton île, rejoins les copains… ou viens juste regarder ce qui s\'y passe.' },
+  pegase: { ic: '🏝️', t: 'Pégase', sub: 'Choisis ton île, rejoins tes copains.' },
   classique: null,
   duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain ou l\'IA.' },
   coop: { ic: '🤝', t: 'Coop', sub: 'Jouez ensemble contre le jeu, avec un robot ou un copain en ligne : vos scores d\'équipe comptent !' },
@@ -4386,7 +4386,7 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
 const PG_TAB = LABO_TEST && !!gameById('pegase');
 if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
-const PG = { tab: 'pub', last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
+const PG = { tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
@@ -5232,9 +5232,12 @@ async function renderIsles() {
   const box = $('jdw-pg-isles'); if (!box) return;
   const all = await islesData();
   // première ouverture : l'onglet où il y a quelque chose (mes îles, sinon les privées si aucune publique)
-  if (!PG.picked && all.length) { PG.picked = true; if (all.some(q => q.mine)) PG.tab = 'mine'; else if (!all.some(q => !q.priv)) PG.tab = 'priv'; }
-  for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.setAttribute('aria-selected', b.dataset.t === PG.tab ? 'true' : 'false');
-  const list = all.filter(q => PG.tab === 'pub' ? !q.priv : PG.tab === 'priv' ? q.priv : q.mine || islTickets[q.id]);
+  for (const b of document.querySelectorAll('#jdw-pg-tabs button[data-t]')) b.setAttribute('aria-checked', b.dataset.t === PG.tab ? 'true' : 'false');
+  $('jdw-pg-online').setAttribute('aria-checked', PG.online ? 'true' : 'false');
+  $('jdw-pg-filt').classList.toggle('on', PG.tab !== 'all' || PG.online);
+  // la recherche (par nom, sans tenir compte des accents ni des majuscules) et le filtre
+  const fold = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), qq = fold(PG.q).trim();
+  const list = all.filter(q => (PG.tab === 'all' ? true : PG.tab === 'pub' ? !q.priv : PG.tab === 'priv' ? q.priv : q.mine || islTickets[q.id]) && (!qq || fold(q.name).includes(qq)) && (!PG.online || q.n > 0));
   box.textContent = '';
   if (!list.length) {
     const e = document.createElement('div'); e.className = 'pg-empty';
@@ -5285,7 +5288,14 @@ async function renderIsles() {
   islDots(); if (!PG.polled && ISL.srv) { PG.polled = true; islPollDem(); }
   $('jdw-pg-note').textContent = isGuest() ? 'Sans compte, tu vois les îles. Pour en rejoindre une, inscris-toi : c\'est gratuit.' : '';
 }
-for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.addEventListener('click', () => { PG.tab = b.dataset.t; PG.picked = true; renderIsles(); });
+for (const b of document.querySelectorAll('#jdw-pg-tabs button[data-t]')) b.addEventListener('click', () => { PG.tab = b.dataset.t; pgMenu(false); renderIsles(); });
+$('jdw-pg-online').addEventListener('click', () => { PG.online = !PG.online; renderIsles(); });
+// le petit menu du filtre : s'ouvre sous le bouton, se ferme en touchant ailleurs ou avec Échap
+function pgMenu(open) { const m = $('jdw-pg-tabs'), b = $('jdw-pg-filt'); m.hidden = !open; b.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+$('jdw-pg-filt').addEventListener('click', (e) => { e.stopPropagation(); pgMenu($('jdw-pg-tabs').hidden); });
+document.addEventListener('pointerdown', (e) => { const m = $('jdw-pg-tabs'); if (m && !m.hidden && !m.contains(e.target) && !$('jdw-pg-filt').contains(e.target)) pgMenu(false); }, true);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('jdw-pg-tabs').hidden) pgMenu(false); });
+{ let t = 0; $('jdw-pg-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { PG.q = $('jdw-pg-q').value; renderIsles(); }, 150); }); }
 // créer son île : nom, qui peut entrer (tout le monde / mot de passe / amis) ; le créateur en est le gardien
 $('jdw-pg-create').addEventListener('click', () => {
   if (!ISL.srv) { toastCheer('🏝️ Bientôt : crée ton île (publique ou avec mot de passe) et deviens son gardien !', null, true); return; }

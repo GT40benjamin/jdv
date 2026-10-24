@@ -123,10 +123,17 @@
       </div>
     </section>
     <section class="mode-page" id="jdw-page-pegase" aria-label="Pégase : les îles">
-      <div class="pg-tabs" id="jdw-pg-tabs" role="tablist" aria-label="Quelles îles">
-        <button type="button" role="tab" data-t="pub" aria-selected="true"><i>🌍</i><span>Publiques</span></button>
-        <button type="button" role="tab" data-t="priv" aria-selected="false"><i>🔒</i><span>Privées</span></button>
-        <button type="button" role="tab" data-t="mine" aria-selected="false"><i>⭐</i><span>Mes îles</span></button>
+      <div class="pg-search" role="search">
+        <svg class="pgs-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input class="pgs-in" id="jdw-pg-q" type="search" placeholder="Chercher une île…" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Chercher une île par son nom">
+        <button class="pgs-filt" id="jdw-pg-filt" type="button" aria-label="Filtrer les îles" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-pg-tabs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+        <div class="pgs-menu" id="jdw-pg-tabs" role="menu" aria-label="Quelles îles" hidden>
+          <button type="button" role="menuitemradio" data-t="all" aria-checked="true">🏝️ Toutes</button>
+          <button type="button" role="menuitemradio" data-t="pub" aria-checked="false">🌍 Publiques</button>
+          <button type="button" role="menuitemradio" data-t="priv" aria-checked="false">🔒 Privées</button>
+          <button type="button" role="menuitemradio" data-t="mine" aria-checked="false">⭐ Mes îles</button>
+          <button type="button" role="menuitemcheckbox" id="jdw-pg-online" aria-checked="false">● En ligne seulement</button>
+        </div>
       </div>
       <div class="pg-isles" id="jdw-pg-isles" role="list"></div>
       <button class="pg-create" id="jdw-pg-create" type="button"><b>＋ Créer mon île</b><small>Publique ou avec mot de passe · tu en es le gardien</small></button>

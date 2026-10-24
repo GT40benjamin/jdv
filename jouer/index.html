@@ -715,22 +715,62 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
 .pg-veil{background:linear-gradient(180deg,rgba(5,10,31,.25) 0%,rgba(5,10,31,0) 22%,rgba(5,10,31,0) 45%,rgba(5,10,31,.55) 75%,rgba(5,10,31,.8) 100%)}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-video,#jdw-lib[data-mode="pegase"].pg-vid .pg-veil{display:block}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-sky{display:none}
-#jdw-lib[data-mode="pegase"].pg-vid .mode-hero p{text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 18px rgba(0,0,0,.65);padding:6px 14px;border-radius:14px;background:rgba(5,10,31,.42);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+#jdw-lib[data-mode="pegase"].pg-vid .mode-hero p{text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 16px rgba(0,0,0,.75)}
 #jdw-lib[data-mode="pegase"].pg-vid .pg-tabs{background:rgba(6,14,36,.55)}
 #jdw-lib[data-mode="pegase"]{background:#050a1f}
 #jdw-lib[data-mode="pegase"] .lib-wrap{position:relative;z-index:1}
-#jdw-lib[data-mode="pegase"] .mode-hero{flex-direction:column;gap:6px;padding:26px 10px 8px;background:none;border:0;box-shadow:none;text-align:center}
+#jdw-lib[data-mode="pegase"] .mode-hero{flex-direction:column;gap:2px;padding:0 10px;margin-top:-6px;background:none;border:0;box-shadow:none;text-align:center}
 #jdw-lib[data-mode="pegase"] .mode-hero .mh-ic{display:none}
-#jdw-lib[data-mode="pegase"] .mode-hero h1{margin:0;font:400 clamp(44px,11vw,84px)/1 var(--display);letter-spacing:.06em;background:linear-gradient(180deg,#fff7d6 0%,#ffd36b 38%,#5ef0ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(94,240,255,.45)) drop-shadow(0 4px 0 rgba(0,0,0,.35))}
-#jdw-lib[data-mode="pegase"] .mode-hero p{margin:0;max-width:560px;color:#d8e8ff;font:600 15px/1.45 var(--body);text-shadow:0 1px 8px rgba(0,0,0,.6)}
+#jdw-lib[data-mode="pegase"] .mode-hero h1{margin:0;font:400 clamp(38px,10vw,64px)/1 var(--display);letter-spacing:.06em;background:linear-gradient(180deg,#fff7d6 0%,#ffd36b 38%,#5ef0ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(94,240,255,.45)) drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+#jdw-lib[data-mode="pegase"] .mode-hero p{margin:0;max-width:560px;color:#e6f0ff;font:600 13.5px/1.3 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 14px rgba(0,0,0,.6)}
 #jdw-lib[data-mode="pegase"] .pg-tabs{background:rgba(10,22,48,.42);border:1px solid rgba(160,220,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 #jdw-lib[data-mode="pegase"] .pg-tabs button{color:#b9cbe6}
 #jdw-lib[data-mode="pegase"] .pg-tabs button[aria-selected="true"]{background:linear-gradient(180deg,rgba(94,240,255,.28),rgba(58,214,200,.14));color:#fff;box-shadow:inset 0 -2px 0 #5ef0ff,0 0 18px rgba(94,240,255,.25)}
-#jdw-lib[data-mode="pegase"] .pg-isles{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),540px));justify-content:center;gap:18px}
+#jdw-lib[data-mode="pegase"] .pg-isles{grid-template-columns:repeat(auto-fit,minmax(240px,276px));justify-content:center;gap:14px}
+@media (max-width:600px){#jdw-lib[data-mode="pegase"] .pg-isles{grid-template-columns:1fr}}
+/* en haut de la page Pégase : le bouton « ajouter un ami » de la salle, petit, à droite du titre ; la barre « invité » passe en bas */
+#jdw-lib[data-mode="pegase"] .room-row{position:absolute;top:14px;right:16px;z-index:3;display:block}
+#jdw-lib[data-mode="pegase"] .room-row .room-bar{display:none}
+#jdw-lib[data-mode="pegase"] .room-row .invite-btn{width:40px;height:40px;min-width:0;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#jdw-lib[data-mode="pegase"] .room-row .invite-btn svg{width:20px;height:20px}
+#jdw-lib[data-mode="pegase"] .guest-bar,#jdw-lib[data-mode="pegase"] .acct-bar{order:20}
+#jdw-lib[data-mode="pegase"] .lib-wrap{gap:12px}
+/* la RECHERCHE d'île et son petit FILTRE */
+.pg-search{position:relative;z-index:30;display:flex;align-items:center;gap:6px;padding:4px 4px 4px 12px;border-radius:14px;background:rgba(10,22,48,.5);border:1px solid rgba(160,220,255,.18);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.pgs-ic{width:18px;height:18px;flex:none;fill:none;stroke:#9fb3d6;stroke-width:2.2;stroke-linecap:round}
+.pgs-in{flex:1;min-width:0;height:38px;border:0;background:none;color:var(--ink);font:600 15px var(--body);outline:none}
+.pgs-in::placeholder{color:#9fb3d6}
+.pgs-in::-webkit-search-cancel-button{filter:invert(1) opacity(.6)}
+.pgs-filt{position:relative;flex:none;width:38px;height:38px;border:0;border-radius:11px;background:rgba(255,255,255,.06);cursor:pointer;display:grid;place-items:center}
+.pgs-filt svg{width:18px;height:18px;fill:none;stroke:#cfe0f5;stroke-width:2.2;stroke-linecap:round}
+.pgs-filt:hover,.pgs-filt[aria-expanded="true"]{background:rgba(94,240,255,.16)}
+.pgs-filt.on::after{content:'';position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#5ef0ff;box-shadow:0 0 6px #5ef0ff}
+.pgs-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:20;display:grid;gap:2px;min-width:200px;padding:6px;border-radius:14px;background:rgba(10,18,44,.97);border:1px solid rgba(140,220,255,.25);box-shadow:0 14px 34px rgba(0,0,0,.55)}
+.pgs-menu[hidden]{display:none}
+.pgs-menu button{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 12px;border:0;border-radius:10px;background:none;color:#cfe0f5;font:600 14px var(--body);text-align:left;cursor:pointer}
+.pgs-menu button:hover{background:rgba(255,255,255,.06)}
+.pgs-menu button[aria-checked="true"]{background:rgba(94,240,255,.16);color:#fff}
+.pgs-menu #jdw-pg-online{margin-top:4px;border-top:1px solid rgba(255,255,255,.08);border-radius:0 0 10px 10px}
+.pgs-menu #jdw-pg-online[aria-checked="true"]{color:var(--leaf)}
+/* des cartes d'île plus PETITES : image 16:9, nom et infos serrés, boutons plus bas */
+#jdw-lib[data-mode="pegase"] .pg-isle canvas{aspect-ratio:16/9;max-height:none}
+#jdw-lib[data-mode="pegase"] .pi-body{gap:3px;padding:8px 12px 10px}
+#jdw-lib[data-mode="pegase"] .pi-name{font-size:17px}
+#jdw-lib[data-mode="pegase"] .pi-sub,#jdw-lib[data-mode="pegase"] .pi-cap{font-size:12px;line-height:1.25}
+#jdw-lib[data-mode="pegase"] .pi-sub:empty{display:none}
+#jdw-lib[data-mode="pegase"] .pi-bar{display:none}
+#jdw-lib[data-mode="pegase"] .pi-sub,#jdw-lib[data-mode="pegase"] .pi-cap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#jdw-lib[data-mode="pegase"] .pi-act{margin-top:4px}
+#jdw-lib[data-mode="pegase"] .pi-act button{min-height:36px;font-size:13px}
+#jdw-lib[data-mode="pegase"] .pi-badge,#jdw-lib[data-mode="pegase"] .pi-live{top:8px;padding:3px 8px;font-size:11px}
+#jdw-lib[data-mode="pegase"] .pi-badge{left:8px}#jdw-lib[data-mode="pegase"] .pi-live{right:8px}
+#jdw-lib[data-mode="pegase"] .pi-gram{right:8px;bottom:8px;padding:3px 9px 3px 3px;gap:5px;font-size:11.5px;border-radius:11px}
+#jdw-lib[data-mode="pegase"] .pi-gram svg{width:21px;height:21px}
+#jdw-lib[data-mode="pegase"] .pi-who{top:36px}
 #jdw-lib[data-mode="pegase"] .pg-isle{background:rgba(8,18,40,.55);border:1px solid rgba(160,220,255,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .25s,box-shadow .25s}
 #jdw-lib[data-mode="pegase"] .pg-isle:hover{transform:translateY(-2px);box-shadow:0 22px 48px rgba(0,0,0,.5),0 0 0 1px rgba(94,240,255,.35),0 0 30px rgba(94,240,255,.18)}
 #jdw-lib[data-mode="pegase"] .pg-isle.cur{border-color:rgba(94,240,255,.6)}
-#jdw-lib[data-mode="pegase"] .pg-isle canvas{aspect-ratio:4/3;max-height:460px}   /* une grande île */
+
 #jdw-lib[data-mode="pegase"] .pg-create{background:rgba(10,30,50,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(94,240,255,.55)}
 #jdw-lib[data-mode="pegase"] .pg-empty{background:rgba(8,18,40,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#c6d6ee}
 #jdw-lib[data-mode="pegase"] .pg-note{color:#b9cbe6;text-shadow:0 1px 6px rgba(0,0,0,.7)}
@@ -2796,10 +2836,17 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
       </div>
     </section>
     <section class="mode-page" id="jdw-page-pegase" aria-label="Pégase : les îles">
-      <div class="pg-tabs" id="jdw-pg-tabs" role="tablist" aria-label="Quelles îles">
-        <button type="button" role="tab" data-t="pub" aria-selected="true"><i>🌍</i><span>Publiques</span></button>
-        <button type="button" role="tab" data-t="priv" aria-selected="false"><i>🔒</i><span>Privées</span></button>
-        <button type="button" role="tab" data-t="mine" aria-selected="false"><i>⭐</i><span>Mes îles</span></button>
+      <div class="pg-search" role="search">
+        <svg class="pgs-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input class="pgs-in" id="jdw-pg-q" type="search" placeholder="Chercher une île…" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Chercher une île par son nom">
+        <button class="pgs-filt" id="jdw-pg-filt" type="button" aria-label="Filtrer les îles" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-pg-tabs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+        <div class="pgs-menu" id="jdw-pg-tabs" role="menu" aria-label="Quelles îles" hidden>
+          <button type="button" role="menuitemradio" data-t="all" aria-checked="true">🏝️ Toutes</button>
+          <button type="button" role="menuitemradio" data-t="pub" aria-checked="false">🌍 Publiques</button>
+          <button type="button" role="menuitemradio" data-t="priv" aria-checked="false">🔒 Privées</button>
+          <button type="button" role="menuitemradio" data-t="mine" aria-checked="false">⭐ Mes îles</button>
+          <button type="button" role="menuitemcheckbox" id="jdw-pg-online" aria-checked="false">● En ligne seulement</button>
+        </div>
       </div>
       <div class="pg-isles" id="jdw-pg-isles" role="list"></div>
       <button class="pg-create" id="jdw-pg-create" type="button"><b>＋ Créer mon île</b><small>Publique ou avec mot de passe · tu en es le gardien</small></button>
@@ -98403,7 +98450,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261024200750"; window.JDW_VERSION = "1.34.29"; window.JDW_NOTES = ["# NOTES DE MISE \u00c0 JOUR (cloche de la borne, \u00ab Version \u2026 install\u00e9e \u00bb). Une ligne = UNE nouveaut\u00e9, \u00e9crite en d\u00e9tail.", "# [pegase] \u2026 = notes de P\u00e9gase (rang\u00e9es sous P\u00e9gase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]\u2026 (id du jeu) = notes de ce", "# jeu (rang\u00e9es sous \u00ab Nos autres jeux \u00bb) ; sans crochets = la borne elle-m\u00eame. \u00ab [id] ## titre \u00bb = un sous-titre (une version de P\u00e9gase).", "# Les lignes qui commencent par \u00ab # \u00bb ne sont jamais montr\u00e9es. Rien de priv\u00e9 ici : c'est lu par tout le monde.", "[pegase] ## \ud83e\udd89 P\u00e9gase 0.9.4.7", "[pegase] Le grand-duc : quand tu siffles, on l'entend arriver de loin, et il s'envole vers ses rochers s'il a peur", "[pegase] Un deuxi\u00e8me grand-duc vit au coin des bambous, pr\u00e8s du petit pont rouge", "[pegase] Cach\u00e9 dans un buisson, le viseur sort \u00e0 la lisi\u00e8re : tout le d\u00e9cor reste visible, avec des feuilles floues autour du cadre", "[pegase] Si le grand-duc se pose hors de vue, un rep\u00e8re te m\u00e8ne au buisson d'o\u00f9 on le voit bien", "[pegase] Un viseur plus clair : boutons carr\u00e9s avec leur touche, et un seul conseil \u00e0 la fois", "[pegase] Accroupi plus naturel, et assis sur un banc les mains se posent en douceur", "[pegase] Le mus\u00e9e : plafond plus haut, bancs qui ne g\u00eanent plus, grands cartels lisibles", "[pegase] Plus d'herbe \u00e0 travers le plancher quand une maison est reconstruite", "[pegase] ## \ud83c\udfb5 Nouvelle musique", "[pegase] P\u00e9gase a une nouvelle musique : quatre morceaux doux encha\u00een\u00e9s (harpe, c\u00e9lesta, cordes, fl\u00fbte), pr\u00e8s de 6 minutes, sans coupure", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.4.6", "[pegase] Un long ponton en bois, avec sa barque amarr\u00e9e au bout", "[pegase] Les gros poissons sautent hors de l'eau pendant le combat", "[pegase] Chaque poisson est bien tenu dans la main quand on le sort de l'eau", "[pegase] Cinq parcelles \u00e0 vendre au bord du chemin", "[pegase] Le facteur passe sur son v\u00e9lo jaune", "[pegase] Le h\u00e9ron cendr\u00e9 p\u00eache au bord du lac", "[pegase] Nouvelles petites b\u00eates : le moustique tigre, l'araign\u00e9e-loup et le mille-pattes", "[pegase] Les lunettes sont bien pos\u00e9es sur le visage", "[pegase] La galerie du mus\u00e9e", "[pegase] Grand livre : nouveau chapitre \u00ab Fruits et l\u00e9gumes \u00bb, les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa", "[pegase] Sur PC, petite mise \u00e0 jour", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.4.5", "[pegase] La p\u00eache \u00e0 la canne \u00e0 coup : longue canne en bambou, vrai flotteur, sortie du poisson au ralenti", "[pegase] D\u00e9placements et cam\u00e9ra tout doux ; on peut marcher au viseur", "[pegase] Les fourmis", "[pegase] Le village plus chaleureux : four \u00e0 pain, \u00e9tal, nom grav\u00e9", "[pegase] Sur PC, petite mise \u00e0 jour", "[pegase] ## \ud83c\udf08 P\u00e9gase 0.9.4.4", "[pegase] Beaucoup plus fluide", "[pegase] Le grand-duc se laisse photographier depuis le buisson", "[pegase] Ciel d'orage gris, pluie douce et nouvel arc-en-ciel \u00e9clatant, m\u00eame la nuit", "[pegase] Ta bouche bouge quand tu parles", "[pegase] Nouvelles petites b\u00eates : scolie, mante, cigale\u2026", "[pegase] Concours des champignons sur PegaGram", "[neon] Nouveau jeu dans Classique : saute sur le rythme de la musique \u00e9lectro, \u00e0 travers des mondes n\u00e9on", "[neon] Chaque saut retombe pile sur le \u00ab boum \u00bb de la musique : le cube, la boule et les rebonds sont cal\u00e9s au temps pr\u00e8s", "[neon] Niveau 1 : le vaisseau arrive au moment o\u00f9 les cymbales acc\u00e9l\u00e8rent ; on le pilote en tapotant", "[neon] Niveau 2 refait en \u00e9coutant la musique : cube, boule, vaisseau dans la partie calme, puis la boule sur le gros d\u00e9part", "[neon] Les tremplins sont de vrais sauts automatiques : on roule dessus sans appuyer, et ils pardonnent un appui un peu trop t\u00f4t", "[neon] Plus de vari\u00e9t\u00e9 : marches, tremplins, pauses et s\u00e9ries de pics de toutes les longueurs", "[smoothie] Nouveau jeu dans Classique : tranche les fruits d'un geste, le fruit se coupe exactement l\u00e0 o\u00f9 passe ton doigt", "[smoothie] 6 mondes avec chacun sa musique, et leurs boss g\u00e9ants", "[bolides] Nouveau duel : course de voitures t\u00e9l\u00e9guid\u00e9es vues de haut, en duel, contre l'IA ou en ligne", "[bolides] Joystick pour tourner et d\u00e9raper, bouton GAZ et bouton FREIN ; sur le clavier, la barre d'espace donne les gaz", "[bolides] Circuits plus larges, on glisse le long des murs au lieu de s'y accrocher", "[tirsaubut] Nouveau duel : s\u00e9ance de penaltys, en duel, contre l'IA ou en ligne", "[tirsaubut] Vue du tireur et vraie vue du gardien quand c'est toi qui gardes les buts", "[toupies] Nouveau duel : on jette sa toupie dans l'ar\u00e8ne, rail, bouclier et pi\u00e8ge de glace", "[toupies] Toupies plus maniables, bonus plus fr\u00e9quents, et le pi\u00e8ge de glace qui g\u00e8le l'adversaire", "[toupies] En ligne : les deux joueurs peuvent enfin lancer leur toupie", "\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
+<script>window.JDW_BUILD = "20261024202807"; window.JDW_VERSION = "1.34.30"; window.JDW_NOTES = ["# NOTES DE MISE \u00c0 JOUR (cloche de la borne, \u00ab Version \u2026 install\u00e9e \u00bb). Une ligne = UNE nouveaut\u00e9, \u00e9crite en d\u00e9tail.", "# [pegase] \u2026 = notes de P\u00e9gase (rang\u00e9es sous P\u00e9gase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]\u2026 (id du jeu) = notes de ce", "# jeu (rang\u00e9es sous \u00ab Nos autres jeux \u00bb) ; sans crochets = la borne elle-m\u00eame. \u00ab [id] ## titre \u00bb = un sous-titre (une version de P\u00e9gase).", "# Les lignes qui commencent par \u00ab # \u00bb ne sont jamais montr\u00e9es. Rien de priv\u00e9 ici : c'est lu par tout le monde.", "[pegase] ## \ud83e\udd89 P\u00e9gase 0.9.4.7", "[pegase] Le grand-duc : quand tu siffles, on l'entend arriver de loin, et il s'envole vers ses rochers s'il a peur", "[pegase] Un deuxi\u00e8me grand-duc vit au coin des bambous, pr\u00e8s du petit pont rouge", "[pegase] Cach\u00e9 dans un buisson, le viseur sort \u00e0 la lisi\u00e8re : tout le d\u00e9cor reste visible, avec des feuilles floues autour du cadre", "[pegase] Si le grand-duc se pose hors de vue, un rep\u00e8re te m\u00e8ne au buisson d'o\u00f9 on le voit bien", "[pegase] Un viseur plus clair : boutons carr\u00e9s avec leur touche, et un seul conseil \u00e0 la fois", "[pegase] Accroupi plus naturel, et assis sur un banc les mains se posent en douceur", "[pegase] Le mus\u00e9e : plafond plus haut, bancs qui ne g\u00eanent plus, grands cartels lisibles", "[pegase] Plus d'herbe \u00e0 travers le plancher quand une maison est reconstruite", "[pegase] ## \ud83c\udfb5 Nouvelle musique", "[pegase] P\u00e9gase a une nouvelle musique : quatre morceaux doux encha\u00een\u00e9s (harpe, c\u00e9lesta, cordes, fl\u00fbte), pr\u00e8s de 6 minutes, sans coupure", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.4.6", "[pegase] Un long ponton en bois, avec sa barque amarr\u00e9e au bout", "[pegase] Les gros poissons sautent hors de l'eau pendant le combat", "[pegase] Chaque poisson est bien tenu dans la main quand on le sort de l'eau", "[pegase] Cinq parcelles \u00e0 vendre au bord du chemin", "[pegase] Le facteur passe sur son v\u00e9lo jaune", "[pegase] Le h\u00e9ron cendr\u00e9 p\u00eache au bord du lac", "[pegase] Nouvelles petites b\u00eates : le moustique tigre, l'araign\u00e9e-loup et le mille-pattes", "[pegase] Les lunettes sont bien pos\u00e9es sur le visage", "[pegase] La galerie du mus\u00e9e", "[pegase] Grand livre : nouveau chapitre \u00ab Fruits et l\u00e9gumes \u00bb, les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa", "[pegase] Sur PC, petite mise \u00e0 jour", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.4.5", "[pegase] La p\u00eache \u00e0 la canne \u00e0 coup : longue canne en bambou, vrai flotteur, sortie du poisson au ralenti", "[pegase] D\u00e9placements et cam\u00e9ra tout doux ; on peut marcher au viseur", "[pegase] Les fourmis", "[pegase] Le village plus chaleureux : four \u00e0 pain, \u00e9tal, nom grav\u00e9", "[pegase] Sur PC, petite mise \u00e0 jour", "[pegase] ## \ud83c\udf08 P\u00e9gase 0.9.4.4", "[pegase] Beaucoup plus fluide", "[pegase] Le grand-duc se laisse photographier depuis le buisson", "[pegase] Ciel d'orage gris, pluie douce et nouvel arc-en-ciel \u00e9clatant, m\u00eame la nuit", "[pegase] Ta bouche bouge quand tu parles", "[pegase] Nouvelles petites b\u00eates : scolie, mante, cigale\u2026", "[pegase] Concours des champignons sur PegaGram", "[neon] Nouveau jeu dans Classique : saute sur le rythme de la musique \u00e9lectro, \u00e0 travers des mondes n\u00e9on", "[neon] Chaque saut retombe pile sur le \u00ab boum \u00bb de la musique : le cube, la boule et les rebonds sont cal\u00e9s au temps pr\u00e8s", "[neon] Niveau 1 : le vaisseau arrive au moment o\u00f9 les cymbales acc\u00e9l\u00e8rent ; on le pilote en tapotant", "[neon] Niveau 2 refait en \u00e9coutant la musique : cube, boule, vaisseau dans la partie calme, puis la boule sur le gros d\u00e9part", "[neon] Les tremplins sont de vrais sauts automatiques : on roule dessus sans appuyer, et ils pardonnent un appui un peu trop t\u00f4t", "[neon] Plus de vari\u00e9t\u00e9 : marches, tremplins, pauses et s\u00e9ries de pics de toutes les longueurs", "[smoothie] Nouveau jeu dans Classique : tranche les fruits d'un geste, le fruit se coupe exactement l\u00e0 o\u00f9 passe ton doigt", "[smoothie] 6 mondes avec chacun sa musique, et leurs boss g\u00e9ants", "[bolides] Nouveau duel : course de voitures t\u00e9l\u00e9guid\u00e9es vues de haut, en duel, contre l'IA ou en ligne", "[bolides] Joystick pour tourner et d\u00e9raper, bouton GAZ et bouton FREIN ; sur le clavier, la barre d'espace donne les gaz", "[bolides] Circuits plus larges, on glisse le long des murs au lieu de s'y accrocher", "[tirsaubut] Nouveau duel : s\u00e9ance de penaltys, en duel, contre l'IA ou en ligne", "[tirsaubut] Vue du tireur et vraie vue du gardien quand c'est toi qui gardes les buts", "[toupies] Nouveau duel : on jette sa toupie dans l'ar\u00e8ne, rail, bouclier et pi\u00e8ge de glace", "[toupies] Toupies plus maniables, bonus plus fr\u00e9quents, et le pi\u00e8ge de glace qui g\u00e8le l'adversaire", "[toupies] En ligne : les deux joueurs peuvent enfin lancer leur toupie", "\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtirsaubut": {"c": ["dtirsaubut-1", "dtirsaubut-2"], "x": ["dtirsaubut-x1"]}, "dtoupies": {"c": ["dtoupies-1", "dtoupies-2"], "x": ["dtoupies-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "neonrush": {"c": ["neonrush-1", "neonrush-2", "neonrush-3"], "x": []}, "pegase": {"c": ["pegase-1"], "x": []}, "pgsuite": {"c": ["pgsuite-1", "pgsuite-2", "pgsuite-3", "pgsuite-4"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}, "smoothie": {"c": ["smoothie-1", "smoothie-2"], "x": ["smoothie-x1"]}, "smw1": {"c": ["smw1-1"], "x": []}, "smw2": {"c": ["smw2-1"], "x": []}, "smw3": {"c": ["smw3-1"], "x": []}, "smw4": {"c": ["smw4-1"], "x": []}, "smw5": {"c": ["smw5-1"], "x": []}, "smw6": {"c": ["smw6-1"], "x": []}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -105495,7 +105542,7 @@ $('jdw-new-ok').addEventListener('click', async () => {
 /* ================= Onglets : Classique / Duel / Coop ================= */
 // le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
 const MODES = {
-  pegase: { ic: '🏝️', t: 'Pégase', sub: 'Un monde à part : choisis ton île, rejoins les copains… ou viens juste regarder ce qui s\'y passe.' },
+  pegase: { ic: '🏝️', t: 'Pégase', sub: 'Choisis ton île, rejoins tes copains.' },
   classique: null,
   duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain ou l\'IA.' },
   coop: { ic: '🤝', t: 'Coop', sub: 'Jouez ensemble contre le jeu, avec un robot ou un copain en ligne : vos scores d\'équipe comptent !' },
@@ -105535,7 +105582,7 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
 const PG_TAB = LABO_TEST && !!gameById('pegase');
 if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
-const PG = { tab: 'pub', last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
+const PG = { tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
@@ -106381,9 +106428,12 @@ async function renderIsles() {
   const box = $('jdw-pg-isles'); if (!box) return;
   const all = await islesData();
   // première ouverture : l'onglet où il y a quelque chose (mes îles, sinon les privées si aucune publique)
-  if (!PG.picked && all.length) { PG.picked = true; if (all.some(q => q.mine)) PG.tab = 'mine'; else if (!all.some(q => !q.priv)) PG.tab = 'priv'; }
-  for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.setAttribute('aria-selected', b.dataset.t === PG.tab ? 'true' : 'false');
-  const list = all.filter(q => PG.tab === 'pub' ? !q.priv : PG.tab === 'priv' ? q.priv : q.mine || islTickets[q.id]);
+  for (const b of document.querySelectorAll('#jdw-pg-tabs button[data-t]')) b.setAttribute('aria-checked', b.dataset.t === PG.tab ? 'true' : 'false');
+  $('jdw-pg-online').setAttribute('aria-checked', PG.online ? 'true' : 'false');
+  $('jdw-pg-filt').classList.toggle('on', PG.tab !== 'all' || PG.online);
+  // la recherche (par nom, sans tenir compte des accents ni des majuscules) et le filtre
+  const fold = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), qq = fold(PG.q).trim();
+  const list = all.filter(q => (PG.tab === 'all' ? true : PG.tab === 'pub' ? !q.priv : PG.tab === 'priv' ? q.priv : q.mine || islTickets[q.id]) && (!qq || fold(q.name).includes(qq)) && (!PG.online || q.n > 0));
   box.textContent = '';
   if (!list.length) {
     const e = document.createElement('div'); e.className = 'pg-empty';
@@ -106434,7 +106484,14 @@ async function renderIsles() {
   islDots(); if (!PG.polled && ISL.srv) { PG.polled = true; islPollDem(); }
   $('jdw-pg-note').textContent = isGuest() ? 'Sans compte, tu vois les îles. Pour en rejoindre une, inscris-toi : c\'est gratuit.' : '';
 }
-for (const b of document.querySelectorAll('#jdw-pg-tabs button')) b.addEventListener('click', () => { PG.tab = b.dataset.t; PG.picked = true; renderIsles(); });
+for (const b of document.querySelectorAll('#jdw-pg-tabs button[data-t]')) b.addEventListener('click', () => { PG.tab = b.dataset.t; pgMenu(false); renderIsles(); });
+$('jdw-pg-online').addEventListener('click', () => { PG.online = !PG.online; renderIsles(); });
+// le petit menu du filtre : s'ouvre sous le bouton, se ferme en touchant ailleurs ou avec Échap
+function pgMenu(open) { const m = $('jdw-pg-tabs'), b = $('jdw-pg-filt'); m.hidden = !open; b.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+$('jdw-pg-filt').addEventListener('click', (e) => { e.stopPropagation(); pgMenu($('jdw-pg-tabs').hidden); });
+document.addEventListener('pointerdown', (e) => { const m = $('jdw-pg-tabs'); if (m && !m.hidden && !m.contains(e.target) && !$('jdw-pg-filt').contains(e.target)) pgMenu(false); }, true);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('jdw-pg-tabs').hidden) pgMenu(false); });
+{ let t = 0; $('jdw-pg-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { PG.q = $('jdw-pg-q').value; renderIsles(); }, 150); }); }
 // créer son île : nom, qui peut entrer (tout le monde / mot de passe / amis) ; le créateur en est le gardien
 $('jdw-pg-create').addEventListener('click', () => {
   if (!ISL.srv) { toastCheer('🏝️ Bientôt : crée ton île (publique ou avec mot de passe) et deviens son gardien !', null, true); return; }
