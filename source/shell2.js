@@ -403,7 +403,7 @@ function isGuest() {      // = acctState(profile) !== 'on', sans dépendre de l'
   return !(profile && profile.name && se && se.rt);
 }
 // seules fonctions du serveur permises à un invité (toutes les autres sont refusées ici, sans appel réseau)
-const GUEST_RPC = new Set(['pg_island_gram_public', 'pg_island_list', 'pg_island_watch', 'pg_island_request', 'pg_island_request_state', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
+const GUEST_RPC = new Set(['pg_island_list', 'pg_island_watch', 'pg_island_request', 'pg_island_request_state', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
 // le joueur au nom duquel une fonction agit (son jeton est envoyé s'il est connecté sur cet appareil)
 function rpcActor(fn, args) {
   if (!args) return '';
@@ -5005,6 +5005,9 @@ function islePhoto(cv, im, q, seed) {
 // l'île de la salle, comme avant. Trois sortes : publique · mdp (mot de passe) · amis. Toutes se regardent, même sans compte ; une île
 // protégée se demande (e-mail obligatoire sans compte) : le TICKET reste dans le navigateur pour suivre la demande.
 const ISL = { srv: null, rows: [] };
+// les îles où « Jouer » mène au bon endroit tant que les îles sont éteintes dans le jeu (PegaseIles.ActifDansLesBuilds = false) : Sl arcade
+// (île 1 = l'ancienne salle 2, où le jeu entre de toute façon)
+const ISL_JOUABLE = new Set([1]);
 const islName = () => (isGuest() ? null : profile.name);
 const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 Amis seulement' };
 let islTickets = store.get('jdw.iletickets', {}) || {};
@@ -5032,7 +5035,8 @@ const islErr = (e) => { const t = String((e && e.message) || ''); for (const [re
 // les panneaux (mot de passe, demande, ⚙️ paramètres) s'ouvrent PAR-DESSUS la carte : la carte garde sa taille, rien ne se déplie
 // PEGAGRAM de l'île : un inscrit ouvre le vrai PegaGram (le hub de Pégase, onglet PegaGram) ; sans compte, une page PUBLIQUE en lecture
 // seule : les photos de l'île, sans réaction ni commentaire possible, avec les noms rendus par le serveur (« HabitantXXXXXX »).
-// Serveur : pg_island_gram_public(p_id) → [{ r_id, r_name, r_text, r_photo (adresse https lisible), r_at, r_likes }] ; tant qu'il n'existe pas : « bientôt ».
+// Serveur : la fonction publique GET /functions/v1/pegase-gram-public?ile=<id> (en-tête apikey) → [{ r_id, r_name (toujours « HabitantNNNNNN »),
+// r_text, r_photo (lien signé 10 min), r_at, r_likes }], seulement les publications que leur auteur a mises en « public » ; 404 : « bientôt ».
 function islGram(q) {
   if (!isGuest()) { try { localStorage.setItem('jdw.pegase.tab', 'gram'); } catch (e) {} const g = gameById('pegase'); if (g) openGame(g); return; }
   let sh = $('jdw-pgram');
@@ -5049,7 +5053,9 @@ function islGram(q) {
   $('jdw-pgram-h').textContent = 'PegaGram · ' + q.name;
   const grid = $('jdw-pgram-grid'); grid.textContent = 'Chargement…'; grid.className = 'pgram-grid';
   openSheet('jdw-pgram', 'jdw-pgram-x');
-  rpc('pg_island_gram_public', { p_id: q.id }, { quiet404: true, quiet: true }).then((rows) => {
+  // la fonction publique pegase-gram-public (le seau des photos est privé : elle rend des liens signés de 10 min, sans compte)
+  (CFG ? netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/pegase-gram-public?ile=' + encodeURIComponent(q.id), { headers: { apikey: CFG.key } }, 12000) : Promise.resolve({ ok: false, status: 404 }))
+    .then((r) => { if (!r.ok) { const e = new Error('gram ' + r.status); e.status = r.status; throw e; } return r.json(); }).then((rows) => {
     rows = Array.isArray(rows) ? rows : []; grid.textContent = '';
     if (!rows.length) { grid.className = 'pgram-grid empty'; grid.textContent = 'Pas encore de photo publique sur cette île.'; return; }
     for (const r of rows.slice(0, 60)) {
@@ -5089,7 +5095,7 @@ async function islJoin(q, card) {
     if (nativeFor(g)) { nativeOpen(g, true); return; }
     let left = false; const onBlur = () => { left = true; }; addEventListener('blur', onBlur);
     const a = document.createElement('a'); a.href = 'pegase://open?from=borne&ile=' + encodeURIComponent(q.id); a.style.display = 'none'; document.body.appendChild(a); try { a.click(); } catch (e) {} a.remove();
-    setTimeout(() => { removeEventListener('blur', onBlur); if (left || document.hidden) return; toastCheer('Pégase n\'est pas encore installé sur cet appareil : télécharge-le (gratuit) depuis sa page.', null, true); openGame(g); }, 1800);
+    setTimeout(() => { removeEventListener('blur', onBlur); if (left || document.hidden) return; toastCheer('🖥️ Ouvre Pégase depuis ton bureau. Pas encore installé ? Il se télécharge (gratuit) ici, dans Infos.', null, true); try { localStorage.setItem('jdw.pegase.tab', 'infos'); } catch (e) {} openGame(g); }, 1800);   // PC : le lien pegase:// n'est pas encore enregistré par l'installation (24 oct.)
   };
   if (!ISL.srv) { launch(); return; }
   if (q.cur && q.mine) { launch(); return; }
@@ -5255,6 +5261,8 @@ async function renderIsles() {
     // (île protégée : les copains du gardien entrent directement, le serveur le sait ; les autres font une demande) ou Rejoindre (publique)
     else if (isGuest() && ISL.srv) play.textContent = 'S\'inscrire';
     else if (!q.mine && !q.guardian && ISL.srv) play.textContent = q.priv ? 'Demander' : 'Rejoindre';
+    // les îles sont encore éteintes dans le jeu (il entre dans l'ancienne salle) : « Jouer » seulement là où ça mène au bon endroit
+    else if (ISL.srv && !ISL_JOUABLE.has(q.id)) play.hidden = true;
     play.addEventListener('click', () => islJoin(q, c.querySelector('.pi-body')));
     c.querySelector('.pi-watch').addEventListener('click', () => islWatch(q));
     c.querySelector('.pi-gram').addEventListener('click', () => islGram(q));
