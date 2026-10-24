@@ -4691,44 +4691,93 @@ function isleFogMask(G) {
     mx.putImageData(im, 0, 0); return m;
   } catch (e) { return null; }
 }
-// la VRAIE PHOTO de l'île (vue de dessus du monde rendue par le jeu, calée sur le rectangle « r » de la brume) : elle remplit la carte
-// (entière, au centre) ; par-dessus, la brume de découverte (r_fog, même rectangle donc pile au bon endroit), les ombres des nuages, les
-// nuages et une lumière douce. Sans r_fog (invité, non-membre) : la photo sans brume.
+// L'ÎLE pour de vrai (rendu du jeu) posée sur la mer du soir de la carte, et le BROUILLARD ÉPAIS de révélation par-dessus.
+// Deux sortes d'image : q.photo.proj présent = rendu 3D vu de biais à FOND TRANSPARENT (île flottante : ombre douce, écume au pied,
+// « dessous » rocheux, balancement lent de 2-3 px) ; sinon = la carte plate vue de dessus (secours), posée sur la mer de la même façon.
+// Brume : de gros nuages blancs OPAQUES (on ne devine rien dessous) sur chaque case non découverte d'une grille grossière (C×C), placés
+// par la table de projection (proj : cellule → centre et rayon dans l'image) ou, pour la carte plate, par le rectangle « r » (nord en haut) ;
+// la partie découverte s'ouvre avec un bord doux. Sans r_fog : tout est sous la brume sauf la zone de départ (place du village).
+const ISLE_START = [757.9, 650.9, 120];   // la zone de départ : place du village (x, z) et rayon, en mètres
+function isleFogBits(G) {   // r_fog → { n, bits } (rangées z puis x, bit de poids faible d'abord)
+  try { const n = Math.max(8, Math.min(512, G.n | 0)), raw = atob(String(G.b)), bits = new Uint8Array(n * n); for (let i = 0; i < n * n; i++) bits[i] = (raw.charCodeAt(i >> 3) >> (i & 7)) & 1; return { n, bits }; } catch (e) { return null; }
+}
 function islePhoto(cv, im, q, seed) {
   const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(w * k); cv.height = Math.round(h * k);
   let sd = (seed >>> 0) || 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647, S = Math.min(w / 300, h / 170);
-  const off = () => { const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.scale(k, k); return [c, x]; };
+  const off = (cw, ch) => { const c = document.createElement('canvas'); c.width = Math.round((cw || w) * k); c.height = Math.round((ch || h) * k); const x = c.getContext('2d'); x.scale(k, k); return [c, x]; };
   const rad = (x, x0, y0, r0, x1, y1, r1, st) => { const g = x.createRadialGradient(x0, y0, r0, x1, y1, r1); for (let i = 0; i < st.length; i += 2) g.addColorStop(st[i], st[i + 1]); return g; };
-  // la photo ENTIÈRE au centre (pas de recadrage : on voit toute l'île), et sur les côtés la même photo agrandie et floutée
-  const W = im.naturalWidth, H = im.naturalHeight, sc = Math.min(w / W, h / H), iw = W * sc, ih = H * sc, ix = (w - iw) / 2, iy = (h - ih) / 2;
-  const [baseC, b] = off(); b.imageSmoothingQuality = 'high';
-  const cs = Math.max(w / W, h / H) * 1.15; b.filter = 'blur(' + Math.round(10 * S) + 'px) brightness(.75) saturate(1.1)'; b.drawImage(im, (w - W * cs) / 2, (h - H * cs) / 2, W * cs, H * cs); b.filter = 'none';
-  b.shadowColor = 'rgba(0,0,0,.45)'; b.shadowBlur = 14 * S; b.drawImage(im, ix, iy, iw, ih); b.shadowBlur = 0;
-  const G = q.fog && typeof q.fog === 'object' && !Array.isArray(q.fog) && q.fog.b ? q.fog : null, m = G && isleFogMask(G);
-  const [fogC, f] = off();
-  if (m) {
-    // brume du soir : bleutée et un peu transparente, on devine la carte dessous (ce qu'on n'a pas encore exploré)
-    const fg = f.createLinearGradient(0, 0, 0, h); fg.addColorStop(0, 'rgba(200,214,240,.74)'); fg.addColorStop(1, 'rgba(170,186,228,.70)'); f.fillStyle = fg; f.fillRect(0, 0, w, h);
-    for (let i = 0; i < 90; i++) { const px = r() * w, py = r() * h, rr = (12 + r() * 24) * S; f.fillStyle = rad(f, px - rr * 0.3, py - rr * 0.4, 1, px, py, rr, [0, i % 4 ? 'rgba(255,255,255,.38)' : 'rgba(150,165,215,.30)', 1, 'rgba(255,255,255,0)']); f.beginPath(); f.ellipse(px, py, rr, rr * 0.7, 0, 0, 7); f.fill(); }
-    f.globalCompositeOperation = 'destination-out';
-    // le rectangle de la brume posé sur celui de la photo (mètres du monde ; le plus souvent le même : [0, 0, 1800, 1800], nord en haut)
-    const pr = Array.isArray(q.photo.r) && q.photo.r.length === 4 ? q.photo.r : G.r, gr = Array.isArray(G.r) && G.r.length === 4 ? G.r : pr;
-    let fx = ix, fy = iy, fw = iw, fh = ih;
-    if (pr && gr && pr[2] > 0 && pr[3] > 0) { fw = gr[2] / pr[2] * iw; fh = gr[3] / pr[3] * ih; fx = ix + (gr[0] - pr[0]) / pr[2] * iw; fy = iy + (1 - (gr[1] + gr[3] - pr[1]) / pr[3]) * ih; }
-    f.save(); f.imageSmoothingEnabled = true; f.filter = 'blur(' + Math.max(2, Math.round(fw / m.width * 1.6)) + 'px)'; f.drawImage(m, fx, fy, fw, fh); f.drawImage(m, fx, fy, fw, fh); f.filter = 'none'; f.restore();
-    f.globalCompositeOperation = 'source-over';
+  const P = q.photo, iso = !!(P.proj && P.proj.p), R = Array.isArray(P.r) && P.r.length === 4 ? P.r : [0, 0, 1800, 1800];
+  // l'île dans la carte : entière, avec de la mer tout autour
+  const W = im.naturalWidth, H = im.naturalHeight, m = iso ? 0.92 : 0.84, sc = Math.min(w * m / W, h * m / H), iw = W * sc, ih = H * sc, ix = (w - iw) / 2, iy = (h - ih) / 2 - (iso ? h * 0.02 : 0);
+  // ---- la mer du soir (fond fixe ; reflets animés) ----
+  const [seaC, s] = off();
+  const sg = s.createLinearGradient(0, 0, 0, h); sg.addColorStop(0, '#0d2550'); sg.addColorStop(0.45, '#0b4470'); sg.addColorStop(1, '#062a44'); s.fillStyle = sg; s.fillRect(0, 0, w, h);
+  s.fillStyle = rad(s, w * 0.5, h * 0.55, 4, w * 0.5, h * 0.55, Math.max(w, h) * 0.7, [0, 'rgba(60,200,220,.30)', 0.5, 'rgba(30,120,170,.12)', 1, 'rgba(0,0,0,0)']); s.fillRect(0, 0, w, h);
+  s.fillStyle = rad(s, w * 0.85, -h * 0.1, 4, w * 0.85, 0, w * 0.7, [0, 'rgba(255,236,190,.22)', 1, 'rgba(255,236,190,0)']); s.fillRect(0, 0, w, h);
+  // ---- l'île + sa brume (une couche : elles se balancent ensemble) ----
+  const pad = 14 * S, [islC, b] = off(w, h);
+  // ombre douce sous l'île, écume au pied
+  b.fillStyle = rad(b, w / 2, iy + ih * (iso ? 0.86 : 0.98), 2, w / 2, iy + ih * (iso ? 0.86 : 0.98), iw * 0.55, [0, 'rgba(0,10,25,.55)', 1, 'rgba(0,10,25,0)']); b.beginPath(); b.ellipse(w / 2, iy + ih * (iso ? 0.88 : 1.0), iw * 0.55, ih * 0.12, 0, 0, 7); b.fill();
+  if (iso) {
+    // « dessous » rocheux discret (si les bords du terrain montrent du vide)
+    b.fillStyle = 'rgba(40,32,40,.55)'; b.beginPath(); b.moveTo(ix + iw * 0.18, iy + ih * 0.72); b.quadraticCurveTo(w / 2, iy + ih * 1.02, ix + iw * 0.82, iy + ih * 0.72); b.closePath(); b.fill();
+  } else {
+    b.save(); b.shadowColor = 'rgba(0,0,0,.55)'; b.shadowBlur = 18 * S; b.shadowOffsetY = 6 * S; b.fillStyle = '#1b3a2a'; b.fillRect(ix, iy, iw, ih); b.restore();
   }
-  const clouds = []; for (let i = 0; i < 3; i++) clouds.push({ x: r() * w, y: h * (0.12 + r() * 0.6), s: (0.7 + r() * 0.6) * S, v: 3 + r() * 4 });
+  b.imageSmoothingQuality = 'high'; b.drawImage(im, ix, iy, iw, ih);
+  if (!iso) { b.strokeStyle = 'rgba(255,255,255,.18)'; b.lineWidth = 1; b.strokeRect(ix + 0.5, iy + 0.5, iw - 1, ih - 1); }
+  // ---- la brume épaisse ----
+  let F = q.fog && typeof q.fog === 'object' && q.fog.b ? isleFogBits(q.fog) : null, FR = q.fog && Array.isArray(q.fog.r) ? q.fog.r : R;
+  if (!F) {   // pas de carte de découverte : la zone de départ seulement
+    const n = 64, bits = new Uint8Array(n * n);
+    for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) { const x = R[0] + (col + 0.5) / n * R[2], z = R[1] + (row + 0.5) / n * R[3]; if ((x - ISLE_START[0]) ** 2 + (z - ISLE_START[1]) ** 2 < ISLE_START[2] ** 2) bits[row * n + col] = 1; }
+    F = { n, bits }; FR = R;
+  }
+  // case (u, v entre 0 et 1, v = 0 en bas = z0) → pixel dans la carte : table de projection, sinon vue de dessus
+  const PJ = iso ? P.proj : null, pn = PJ ? PJ.n | 0 : 0;
+  const toPx = (u, v) => {
+    if (PJ && pn > 1) { const c = Math.min(pn - 1, Math.max(0, Math.round(u * (pn - 1)))), rr = Math.min(pn - 1, Math.max(0, Math.round(v * (pn - 1)))), o = (rr * pn + c) * 3, a = PJ.p[o], bb = PJ.p[o + 1], rd = PJ.p[o + 2]; if (a == null || a < 0) return null; return [ix + a * iw, iy + bb * ih, (rd || 0.03) * iw]; }
+    const x = FR[0] + u * FR[2], z = FR[1] + v * FR[3], uu = (x - R[0]) / R[2], vv = (z - R[1]) / R[3]; return [ix + uu * iw, iy + (1 - vv) * ih, iw / C * 0.8];
+  };
+  const C = Math.max(14, Math.min(36, Math.round(iw / 14)));   // grille grossière des nuages
+  const seen = (ci, ri) => { let on = 0, tot = 0; const n = F.n, c0 = Math.floor(ci / C * n), c1 = Math.floor((ci + 1) / C * n), r0 = Math.floor(ri / C * n), r1 = Math.floor((ri + 1) / C * n); for (let rr = r0; rr < Math.max(r1, r0 + 1); rr++) for (let cc = c0; cc < Math.max(c1, c0 + 1); cc++) { tot++; on += F.bits[rr * n + cc]; } return on / Math.max(1, tot); };
+  const [fogC, f] = off(w, h), [holeC, hm] = off(w, h);
+  const cells = [];
+  for (let ri = 0; ri < C; ri++) for (let ci = 0; ci < C; ci++) { const p = toPx((ci + 0.5) / C, (ri + 0.5) / C); if (!p) continue; const sn = seen(ci, ri); cells.push([p[0], p[1], Math.max(p[2], iw / C * 0.75), sn]); }
+  // 1) le fond OPAQUE sous les nuages (rien ne transparaît), 2) les gros nuages moelleux (ombre bleutée dessous, blanc dessus)
+  f.fillStyle = '#e9eef8';
+  for (const [px, py, pr, sn] of cells) if (sn < 0.5) { f.beginPath(); f.arc(px, py, pr * 1.15, 0, 7); f.fill(); }
+  // des CUMULUS : une couche de remplissage (une boule par case) + de gros dômes épars qui gonflent vers le haut, tailles variées
+  const fogged = cells.filter((c) => c[3] < 0.5), puffs = [];
+  for (const c of fogged) {
+    puffs.push([c[0] + (r() - 0.5) * c[2] * 0.7, c[1] + (r() - 0.5) * c[2] * 0.5, c[2] * (0.95 + r() * 0.45)]);
+    if (r() < 0.28) puffs.push([c[0] + (r() - 0.5) * c[2], c[1] - c[2] * (0.3 + r() * 0.5), c[2] * (1.7 + r() * 1.0)]);
+  }
+  puffs.sort((A, B) => A[1] + A[2] * 0.3 - (B[1] + B[2] * 0.3));
+  // ombre lavande sous chaque dôme, puis le dôme : blanc éclatant en haut à gauche, gris bleuté doux en bas, bord net mais moelleux
+  for (const [px, py, pr] of puffs) {
+    f.fillStyle = rad(f, px + pr * 0.1, py + pr * 0.4, pr * 0.2, px + pr * 0.1, py + pr * 0.4, pr * 1.05, [0, 'rgba(120,132,180,.24)', 1, 'rgba(120,132,180,0)']); f.beginPath(); f.arc(px + pr * 0.1, py + pr * 0.4, pr * 1.05, 0, 7); f.fill();
+    f.fillStyle = rad(f, px - pr * 0.35, py - pr * 0.45, pr * 0.05, px, py, pr, [0, '#ffffff', 0.5, '#f8fafe', 0.8, '#e9edf8', 0.93, 'rgba(225,231,245,.9)', 1, 'rgba(225,231,245,0)']); f.beginPath(); f.arc(px, py, pr, 0, 7); f.fill();
+  }
+  // 3) la partie découverte s'ouvre, bord doux
+  hm.fillStyle = '#000';
+  for (const [px, py, pr, sn] of cells) if (sn >= 0.5) { hm.fillStyle = rad(hm, px, py, pr * 0.3, px, py, pr * 1.6, [0, 'rgba(0,0,0,1)', 0.6, 'rgba(0,0,0,.85)', 1, 'rgba(0,0,0,0)']); hm.beginPath(); hm.arc(px, py, pr * 1.6, 0, 7); hm.fill(); }
+  f.save(); f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = 'destination-out'; f.filter = 'blur(' + Math.round(4 * S * k) + 'px)'; f.drawImage(holeC, 0, 0); f.restore();
+  const sparks = []; for (let i = 0; i < 40; i++) sparks.push([r() * w, r() * h, 4 + r() * 10, r() * 6.3, 0.6 + r()]);
   const x = cv.getContext('2d');
   isleRun(cv, (t) => {
     t /= 1000;
-    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(baseC, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
-    for (const c of clouds) { const xx = (c.x + t * c.v) % (w + 120) - 60; x.fillStyle = 'rgba(0,30,50,.10)'; for (const [ox, oy, rr] of [[0, 0, 22], [18, 4, 16], [-18, 5, 15]]) { x.beginPath(); x.ellipse(xx + ox * c.s + 14, c.y + oy * c.s + 26, rr * c.s, rr * c.s * 0.5, 0, 0, 7); x.fill(); } }
-    if (m) { const dx = Math.sin(t * 0.35) * 2.5 * k, dy = Math.cos(t * 0.27) * 1.5 * k; x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(fogC, dx, dy); x.setTransform(k, 0, 0, k, 0, 0); }
-    for (const c of clouds) { const xx = (c.x + t * c.v) % (w + 120) - 60; for (const [ox, oy, rr] of [[0, 0, 22], [18, 4, 16], [-18, 5, 15], [8, -8, 14]]) { x.fillStyle = rad(x, xx + ox * c.s - rr * c.s * 0.3, c.y + oy * c.s - rr * c.s * 0.4, 1, xx + ox * c.s, c.y + oy * c.s, rr * c.s, [0, 'rgba(255,255,255,.75)', 0.7, 'rgba(240,248,255,.45)', 1, 'rgba(240,248,255,0)']); x.beginPath(); x.arc(xx + ox * c.s, c.y + oy * c.s, rr * c.s, 0, 7); x.fill(); } }
-    x.fillStyle = rad(x, w * 0.2, h * 0.05, 4, w * 0.4, h * 0.4, w * 0.9, [0, 'rgba(255,240,200,.12)', 1, 'rgba(255,240,200,0)']); x.fillRect(0, 0, w, h);
-    x.fillStyle = rad(x, w / 2, h / 2, Math.min(w, h) * 0.5, w / 2, h / 2, Math.max(w, h) * 0.78, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,10,25,.45)']); x.fillRect(0, 0, w, h);
+    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(seaC, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
+    for (const [sx, sy, l, p0, sp] of sparks) { const a = 0.5 + 0.5 * Math.sin(t * 2 * sp + p0); if (a < 0.35) continue; const xx = (sx + t * 6 * sp) % (w + 20) - 10; x.strokeStyle = 'rgba(255,255,255,' + (0.2 * a).toFixed(3) + ')'; x.lineWidth = 1; x.beginPath(); x.moveTo(xx, sy); x.lineTo(xx + l, sy); x.stroke(); }
+    const bob = Math.sin(t * 0.9) * 2.5;
+    // écume qui respire au pied de l'île
+    const u = (t * 0.35) % 1; x.strokeStyle = 'rgba(220,250,255,' + (0.35 * Math.sin(u * Math.PI)).toFixed(3) + ')'; x.lineWidth = 2 * S; x.beginPath(); x.ellipse(w / 2, iy + ih * (iso ? 0.86 : 1.0) + 2, iw * (0.5 + 0.06 * u), ih * (0.1 + 0.02 * u), 0, 0, 7); x.stroke();
+    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(islC, 0, bob * k);
+    // la brume bouge un peu (deux passages légèrement décalés)
+    const dx = Math.sin(t * 0.3) * 2 * k, dy = Math.cos(t * 0.23) * 1.5 * k; x.drawImage(fogC, dx, bob * k + dy); x.globalAlpha = 0.35; x.drawImage(fogC, -dx * 1.5, bob * k - dy); x.globalAlpha = 1;
+    x.setTransform(k, 0, 0, k, 0, 0);
+    x.fillStyle = rad(x, w / 2, h / 2, Math.min(w, h) * 0.5, w / 2, h / 2, Math.max(w, h) * 0.78, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,10,25,.4)']); x.fillRect(0, 0, w, h);
   });
 }
 // le serveur des îles (pg_island_*, île = salle ; ~/jdv-tools/pegase/server/INTEGRATION-iles.md) ; tant qu'il n'est pas en ligne (404) :
@@ -4740,7 +4789,7 @@ const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 
 let islTickets = store.get('jdw.iletickets', {}) || {};
 // r_fog : la carte de découverte du joueur (membre connecté seulement, sinon null → brume décorative) ; objet ou texte JSON
 // la vraie photo de l'île vue de dessus (rendue par le jeu, même rectangle que r_fog) : texte (adresse https) ou { url } ; le dessin sinon
-const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null } : null; };
+const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null, proj: v && v.proj && Array.isArray(v.proj.p) && (v.proj.n | 0) > 1 ? v.proj : null } : null; };   // proj : rendu 3D à fond transparent (île flottante)
 const islFog = (v) => { try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && typeof o === 'object' && typeof o.b === 'string' && (o.n | 0) > 0 ? o : null; } catch (e) { return null; } };
 async function islesData() {
   if (ISL.srv !== false) {
