@@ -20,6 +20,7 @@ const TILE_NEWS = {
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 01:03' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
+  bolides: { kind: 'new', at: '2026-10-24 11:42' },   // Bolides RC (duel course de voitures, en essai derrière la porte labo ; heure = celle de la publication)
   neon: { kind: 'new', at: '2026-10-24 10:17' },   // Néon Rush (Classique, jeu de rythme, en essai derrière la porte labo ; heure = celle de la publication)
   smoothie: { kind: 'new', at: '2026-10-24 06:37' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 06:08' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
@@ -30,7 +31,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['toupies', 'tirsaubut', 'smoothie', 'neon']);   // en essai : Turbo Toupies et Tirs au But (duels), Smoothie Samouraï et Néon Rush (Classique) ; avant : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12
+const LABO = new Set(['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides']);   // en essai : Turbo Toupies et Tirs au But (duels), Smoothie Samouraï et Néon Rush (Classique) ; avant : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -64,7 +65,7 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && lab
 })();
 const gameById = id => GAMES.find(g => g.id === id);
 // jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
-const DUO_ORDER = ['tirsaubut', 'toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
+const DUO_ORDER = ['bolides', 'tirsaubut', 'toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
 const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(d => d && laboOk(d.id));   // duels en essai : porte labo aussi
 const duoById = id => DUOS.find(d => d.id === id);
 const store = {
@@ -4267,7 +4268,7 @@ const NET = { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: 
   pend: [], remote: false, helloT: 0, waitT: 0, guestInfo: null, stream: null, dest: null, vSender: null, aSender: null, start: null, ids: new Map(),
   data: false, g: null, handlers: [], queue: [], off: 0, rttv: 0, pings: [], pingT: 0, kind: '', co: null };
 // musique de chaque duel : morceaux des jeux solo qui vont bien
-const DUO_MUSIC = { pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
+const DUO_MUSIC = { bolides: ['pleingaz', 'intense'], pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
   souris: ['glouton', 'calm'], spatial: ['ilo', 'intense'], mots: ['accueil', 'calm'], guerre: ['canards', 'calm'] };
 const GUEST = 'INVITÉ';
 const AI_NAME = 'IA';

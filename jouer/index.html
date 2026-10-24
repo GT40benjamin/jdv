@@ -60670,6 +60670,145 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 <script>
 (() => {
 'use strict';
+// Bolides RC — course de petites voitures radiocommandées, circuit vu de dessus en 3/4, FACE À FACE (téléphone à plat) : à deux, contre l'IA ou en ligne.
+// Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
+// (assets/bolides.moteur.bin : three.js r180 + le jeu, gzippé, licence MIT ; circuits et voitures photographiés une fois, tout le reste en 2D).
+// Une seule variable globale en plus : window.JDW_BR.
+// Atelier : ~/jdv-tools/duotest/bolides (sources, outils, essais ; fiche REPRISE.md).
+const ROOT = () => window.JDW_ROOT || '';
+let ENGINE = null;
+async function fetchBytes(url, onProg, guess, signal) {
+  const r = await fetch(url, { signal });
+  if (!r.ok) throw new Error('moteur ' + r.status);
+  const total = +(r.headers.get('content-length') || 0) || guess;
+  if (!r.body || !r.body.getReader) { const b = new Uint8Array(await r.arrayBuffer()); onProg(1); return b; }
+  const rd = r.body.getReader(), parts = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; onProg(Math.min(1, got / Math.max(total, got))); }
+  const out = new Uint8Array(got); let k = 0; for (const p of parts) { out.set(p, k); k += p.length; }
+  return out;
+}
+function loadEngine(onProg, signal) {
+  if (window.JDW_BR && window.JDW_BR.duel) return Promise.resolve(window.JDW_BR);
+  if (ENGINE) return ENGINE;
+  ENGINE = (async () => {
+    if (typeof DecompressionStream === 'undefined') throw new Error('navigateur trop ancien');
+    const gz = await fetchBytes(ROOT() + 'assets/bolides.moteur.bin', onProg, 260000, signal);
+    const code = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    await new Promise((res, rej) => {
+      const s = document.createElement('script'), u = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+      s.onload = () => { URL.revokeObjectURL(u); res(); }; s.onerror = () => { URL.revokeObjectURL(u); rej(new Error('moteur illisible')); };
+      s.src = u; document.head.appendChild(s);
+    });
+    if (!window.JDW_BR || !window.JDW_BR.duel) throw new Error('moteur absent');
+    return window.JDW_BR;
+  })();
+  ENGINE.catch(() => { ENGINE = null; });
+  return ENGINE;
+}
+
+/* ---------- vignette 2D (tuile et accueil) : un petit circuit dans le jardin vu de dessus, deux bolides qui se doublent ---------- */
+let BG = null;
+const TAU = Math.PI * 2;
+function loopPt(w, h, u) { const a = u * TAU; return [w * 0.62 + Math.cos(a) * w * 0.3 + Math.cos(a * 2) * w * 0.04, h * 0.55 + Math.sin(a) * h * 0.33 - Math.sin(a * 2) * h * 0.06]; }
+function background(w, h) {
+  const c = document.createElement('canvas'); c.width = Math.round(w * 2); c.height = Math.round(h * 2);
+  const x = c.getContext('2d'); x.scale(2, 2);
+  x.fillStyle = '#4f9a3c'; x.fillRect(0, 0, w, h);
+  let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 500; i++) { x.fillStyle = r() < 0.5 ? 'rgba(110,190,80,.5)' : 'rgba(40,100,30,.5)'; x.fillRect(r() * w, r() * h, 1.5, 2.5); }
+  const path = () => { x.beginPath(); for (let i = 0; i <= 80; i++) { const [px, py] = loopPt(w, h, i / 80); i ? x.lineTo(px, py) : x.moveTo(px, py); } x.closePath(); };
+  path(); x.lineWidth = h * 0.2; x.strokeStyle = '#c8402a'; x.setLineDash([6, 6]); x.stroke(); x.setLineDash([]);
+  path(); x.lineWidth = h * 0.17; x.strokeStyle = '#9a7a52'; x.stroke();
+  path(); x.lineWidth = h * 0.04; x.strokeStyle = 'rgba(70,50,30,.25)'; x.stroke();
+  for (let i = 0; i < 40; i++) { const [px, py] = loopPt(w, h, i / 40); const nx = px - w * 0.62, ny = py - h * 0.55, d = Math.hypot(nx, ny) || 1; x.fillStyle = '#16161a'; x.beginPath(); x.arc(px + nx / d * h * 0.13, py + ny / d * h * 0.13, 2.6, 0, TAU); x.fill(); }
+  for (let i = 0; i < 6; i++) { x.fillStyle = '#2f7a2a'; x.beginPath(); x.arc(w * (0.05 + r() * 0.2), h * (0.5 + r() * 0.45), 8 + r() * 6, 0, TAU); x.fill(); }
+  const font = "'Bungee', Impact, sans-serif"; x.textAlign = 'left'; x.lineJoin = 'round';
+  x.font = '400 ' + Math.round(h * 0.15) + 'px ' + font; x.lineWidth = 5; x.strokeStyle = '#102a10'; x.strokeText('BOLIDES', w * 0.04, h * 0.2);
+  x.fillStyle = '#ffe9a0'; x.fillText('BOLIDES', w * 0.04, h * 0.2);
+  x.font = '400 ' + Math.round(h * 0.11) + 'px ' + font; x.lineWidth = 4; x.strokeText('RC', w * 0.05, h * 0.33); x.fillStyle = '#5ef0ff'; x.fillText('RC', w * 0.05, h * 0.33);
+  return { c, w, h };
+}
+function car(ctx, x, y, a, col, s) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(-s * 0.5 + 2, -s * 0.28 + 3, s, s * 0.56);
+  ctx.fillStyle = '#141416'; for (const [px, py] of [[0.3, -0.32], [0.3, 0.32], [-0.3, -0.32], [-0.3, 0.32]]) ctx.fillRect(px * s - s * 0.12, py * s - s * 0.08, s * 0.24, s * 0.16);
+  ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(-s * 0.48, -s * 0.24, s * 0.96, s * 0.48, s * 0.16); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(-s * 0.4, -s * 0.04, s * 0.8, s * 0.08);
+  ctx.fillStyle = '#10141c'; ctx.beginPath(); ctx.ellipse(s * 0.05, 0, s * 0.14, s * 0.12, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = col; ctx.fillRect(-s * 0.56, -s * 0.3, s * 0.1, s * 0.6);
+  ctx.restore();
+}
+function preview(ctx, w, h, t) {
+  if (!BG || BG.w !== w || BG.h !== h) BG = background(w, h);
+  ctx.drawImage(BG.c, 0, 0, w, h);
+  const s = h * 0.13;
+  for (const [u0, col, sp] of [[0, '#5ef0ff', 0.21], [0.04, '#ffa630', 0.205]]) {
+    const u = (u0 + t * sp + Math.sin(t * 0.9 + u0 * 20) * 0.015) % 1, [x, y] = loopPt(w, h, u), [x2, y2] = loopPt(w, h, (u + 0.01) % 1);
+    car(ctx, x, y, Math.atan2(y2 - y, x2 - x), col, s);
+  }
+}
+
+/* ---------- lancement : petit écran de chargement tout de suite, puis le moteur prend la main ---------- */
+function mount(root, api) {
+  let inst = null, dead = false, paused = false;
+  const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const FD = (api.fonts && api.fonts.display) || 'Impact', FB = (api.fonts && api.fonts.body) || 'sans-serif';
+  root.innerHTML = '';
+  const box = document.createElement('div');
+  box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#1e4a24,#05090a 70%);color:#f4eefc;font-family:' + FB;
+  box.innerHTML = '<div style="font:400 40px ' + FD + ';color:#ffe9a0;text-shadow:0 4px 0 #102a10,0 0 22px rgba(255,166,48,.7)">BOLIDES</div>' +
+    '<div style="font:400 24px ' + FD + ';color:#dffcff;margin-top:-4px;text-shadow:0 0 16px rgba(94,240,255,.7)">RC</div>' +
+    '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#140b22;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#ffa630,#ffd34d 60%,#5ef0ff);transition:width .2s"></u></div>' +
+    '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#d9c8f0">Chargement de l\'arène…</div>';
+  root.appendChild(box);
+  const bar = box.querySelector('u');
+  const fail = () => {
+    if (dead) return;
+    box.innerHTML = '<div style="max-width:340px;text-align:center;padding:20px"><div style="font:400 22px ' + FD + ';color:#d7b8ff;margin-bottom:8px">Oups !</div>' +
+      '<div style="font:600 14px ' + FB + ';color:#d9c8f0;margin-bottom:14px">Ton appareil n\'arrive pas à charger ce jeu 3D.</div><button type="button" style="font:400 15px ' + FD + ';color:#1a0e2a;background:#ffc75a;border:0;border-radius:12px;padding:10px 20px;box-shadow:0 5px 0 #a8661c;cursor:pointer">Réessayer</button></div>';
+    box.querySelector('button').addEventListener('click', () => {
+      if (dead) return;
+      root.innerHTML = ''; const n = mount(root, api);
+      proxy.destroy = n.destroy; proxy.pause = n.pause; proxy.resume = n.resume; Object.defineProperty(proxy, '_d', { get: () => n._d, configurable: true });
+    });
+  };
+  loadEngine((k) => { bar.style.width = Math.round(k * 100) + '%'; }, ac && ac.signal).then((TP) => {
+    if (dead) return;
+    root.innerHTML = '';
+    inst = TP.duel(root, api, {});
+    if (paused && inst.pause) inst.pause();
+  }).catch(() => fail());
+  const proxy = {
+    destroy() { dead = true; if (ac) try { ac.abort(); } catch (e) { /* rien */ } if (inst) inst.destroy(); root.innerHTML = ''; },
+    pause() { paused = true; if (inst) inst.pause(); },
+    resume() { paused = false; if (inst) inst.resume(); },
+  };
+  Object.defineProperty(proxy, '_d', { get: () => inst && inst._d, configurable: true });   // essais (harnais)
+  return proxy;
+}
+
+window.JDW_DUOS = window.JDW_DUOS || {};
+window.JDW_DUOS.bolides = {
+  id: 'bolides',
+  title: 'Bolides RC',
+  emoji: '🏎️',
+  tagline: 'Course de petites voitures téléguidées : pousse le joystick et double tout le monde !',
+  accent: '#ffa630',
+  target: 2,
+  layout: 'shared',
+  ai: true,
+  net: true,
+  // manette (CONTRACT.md « Ajout 10 ») : le stick = la direction où va la voiture
+  pad: { help: [['ls/dpad', 'Piloter : la voiture va là où tu pousses']] },
+  preview,
+  mount,
+};
+})();
+
+</script>
+<script>
+(() => {
+'use strict';
 // Tirs au But — duel de tirsaubut en 3D, FACE À FACE (téléphone à plat, vue de dessus) : contre l'IA, à deux sur le même téléphone ou en ligne.
 // Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
 // (assets/tirsaubut.moteur.bin : three.js r180 + le jeu, gzippé, licence MIT ; le stade est photographié une fois puis tout est en 2D). Une seule variable globale en plus : window.JDW_TB.
@@ -97980,7 +98119,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261024112107"; window.JDW_VERSION = "1.32.2"; window.JDW_NOTES = ["\ud83d\udcd6 GRAND LIVRE : nouveau chapitre \u00ab Fruits et l\u00e9gumes \u00bb, les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa", "\ud83c\udfa3 P\u00c9GASE 0.9.4.5 : la p\u00eache \u00e0 la canne \u00e0 coup (longue canne en bambou, vrai flotteur, sortie du poisson au ralenti) ; des d\u00e9placements et une cam\u00e9ra tout doux ; marcher au viseur ; les fourmis ; le village plus chaleureux (four \u00e0 pain, \u00e9tal, nom grav\u00e9) ; un chapitre \u00ab Fruits et l\u00e9gumes \u00bb dans le Grand livre ; sur PC, petite mise \u00e0 jour", "\ud83c\udf08 P\u00c9GASE 0.9.4.4 : beaucoup plus fluide ; le grand-duc se laisse photographier depuis le buisson ; ciel d'orage gris, pluie douce et nouvel arc-en-ciel \u00e9clatant, m\u00eame la nuit ; ta bouche bouge quand tu parles ; nouvelles petites b\u00eates (scolie, mante, cigale\u2026) ; concours des champignons sur PegaGram ; sur PC, petite mise \u00e0 jour", "\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
+<script>window.JDW_BUILD = "20261024114207"; window.JDW_VERSION = "1.33"; window.JDW_NOTES = ["\ud83d\udcd6 GRAND LIVRE : nouveau chapitre \u00ab Fruits et l\u00e9gumes \u00bb, les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa", "\ud83c\udfa3 P\u00c9GASE 0.9.4.5 : la p\u00eache \u00e0 la canne \u00e0 coup (longue canne en bambou, vrai flotteur, sortie du poisson au ralenti) ; des d\u00e9placements et une cam\u00e9ra tout doux ; marcher au viseur ; les fourmis ; le village plus chaleureux (four \u00e0 pain, \u00e9tal, nom grav\u00e9) ; un chapitre \u00ab Fruits et l\u00e9gumes \u00bb dans le Grand livre ; sur PC, petite mise \u00e0 jour", "\ud83c\udf08 P\u00c9GASE 0.9.4.4 : beaucoup plus fluide ; le grand-duc se laisse photographier depuis le buisson ; ciel d'orage gris, pluie douce et nouvel arc-en-ciel \u00e9clatant, m\u00eame la nuit ; ta bouche bouge quand tu parles ; nouvelles petites b\u00eates (scolie, mante, cigale\u2026) ; concours des champignons sur PegaGram ; sur PC, petite mise \u00e0 jour", "\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtirsaubut": {"c": ["dtirsaubut-1", "dtirsaubut-2"], "x": ["dtirsaubut-x1"]}, "dtoupies": {"c": ["dtoupies-1", "dtoupies-2"], "x": ["dtoupies-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "neonrush": {"c": ["neonrush-1", "neonrush-2", "neonrush-3"], "x": []}, "pegase": {"c": ["pegase-1"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}, "smoothie": {"c": ["smoothie-1", "smoothie-2"], "x": ["smoothie-x1"]}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -100746,6 +100885,7 @@ const TILE_NEWS = {
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 01:03' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
+  bolides: { kind: 'new', at: '2026-10-24 11:42' },   // Bolides RC (duel course de voitures, en essai derrière la porte labo ; heure = celle de la publication)
   neon: { kind: 'new', at: '2026-10-24 10:17' },   // Néon Rush (Classique, jeu de rythme, en essai derrière la porte labo ; heure = celle de la publication)
   smoothie: { kind: 'new', at: '2026-10-24 06:37' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 06:08' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
@@ -100756,7 +100896,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['toupies', 'tirsaubut', 'smoothie', 'neon']);   // en essai : Turbo Toupies et Tirs au But (duels), Smoothie Samouraï et Néon Rush (Classique) ; avant : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12
+const LABO = new Set(['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides']);   // en essai : Turbo Toupies et Tirs au But (duels), Smoothie Samouraï et Néon Rush (Classique) ; avant : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -100790,7 +100930,7 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && lab
 })();
 const gameById = id => GAMES.find(g => g.id === id);
 // jeux de duel (deux joueurs face à face) : modules source/duos/*.js, contrat DUO-CONTRACT.md
-const DUO_ORDER = ['tirsaubut', 'toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
+const DUO_ORDER = ['bolides', 'tirsaubut', 'toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'];
 const DUOS = DUO_ORDER.map(id => (window.JDW_DUOS || {})[id]).filter(d => d && laboOk(d.id));   // duels en essai : porte labo aussi
 const duoById = id => DUOS.find(d => d.id === id);
 const store = {
@@ -104993,7 +105133,7 @@ const NET = { code: '', role: '', d: null, topic: '', pc: null, ctl: null, inp: 
   pend: [], remote: false, helloT: 0, waitT: 0, guestInfo: null, stream: null, dest: null, vSender: null, aSender: null, start: null, ids: new Map(),
   data: false, g: null, handlers: [], queue: [], off: 0, rttv: 0, pings: [], pingT: 0, kind: '', co: null };
 // musique de chaque duel : morceaux des jeux solo qui vont bien
-const DUO_MUSIC = { pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
+const DUO_MUSIC = { bolides: ['pleingaz', 'intense'], pingpong: ['carreaux', 'calm'], trouve: ['accueil', 'calm'], palet: ['carreaux', 'intense'], briques: ['carreaux', 'calm'], boum: ['glouton', 'intense'],
   souris: ['glouton', 'calm'], spatial: ['ilo', 'intense'], mots: ['accueil', 'calm'], guerre: ['canards', 'calm'] };
 const GUEST = 'INVITÉ';
 const AI_NAME = 'IA';
