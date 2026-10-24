@@ -668,7 +668,7 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
 #jdw-lib[data-mode="pegase"] .pi-badge{left:8px}#jdw-lib[data-mode="pegase"] .pi-live{right:8px}
 #jdw-lib[data-mode="pegase"] .pi-gram{right:8px;bottom:8px;padding:3px 9px 3px 3px;gap:5px;font-size:11.5px;border-radius:11px}
 #jdw-lib[data-mode="pegase"] .pi-gram svg{width:21px;height:21px}
-#jdw-lib[data-mode="pegase"] .pi-who{top:36px}
+
 #jdw-lib[data-mode="pegase"] .pg-isle{background:rgba(8,18,40,.55);border:1px solid rgba(160,220,255,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .25s,box-shadow .25s}
 #jdw-lib[data-mode="pegase"] .pg-isle:hover{transform:translateY(-2px);box-shadow:0 22px 48px rgba(0,0,0,.5),0 0 0 1px rgba(94,240,255,.35),0 0 30px rgba(94,240,255,.18)}
 #jdw-lib[data-mode="pegase"] .pg-isle.cur{border-color:rgba(94,240,255,.6)}
@@ -730,10 +730,14 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
 .pi-gram span{background:linear-gradient(90deg,#ffd27a,#ff8fb8 55%,#b9a2ff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .pi-gram:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.5),0 0 16px rgba(255,79,139,.35)}
 /* panneau par-dessus la carte (la carte ne se déplie pas) */
-.pi-panel.pi-over{position:absolute;inset:0;z-index:5;margin:0;border-radius:inherit;overflow:auto;align-content:start;padding:16px;background:rgba(10,18,44,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.pi-panel.pi-over,.pi-who{position:fixed;left:50%;right:auto;top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);z-index:40;transform:translateX(-50%);width:min(440px,calc(100vw - 24px));max-height:min(52vh,480px);overflow:auto;margin:0;align-content:start;padding:16px;border-radius:24px;border:1px solid rgba(255,214,140,.38);background:linear-gradient(180deg,rgba(20,30,70,.9),rgba(8,14,38,.94));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 30px rgba(255,214,140,.12);animation:pgUp .35s cubic-bezier(.2,.9,.3,1) both}
+@keyframes pgUp{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+/* fenêtres de la page Pégase (PegaGram public, classement) : en bas, la vidéo reste visible au centre */
+.sheet.pg-low{background:rgba(3,6,20,.25);justify-content:flex-end}
+.sheet.pg-low > .card{margin:auto auto calc(env(safe-area-inset-bottom,0px) + 100px);max-height:min(62vh,640px);overflow:auto;border-radius:24px}
 /* « … en ligne » : la liste des pseudos (sans les têtes) */
 .pi-live[role=button]{cursor:pointer}.pi-live[role=button]:hover{background:rgba(6,14,20,.92)}
-.pi-who{position:absolute;top:44px;right:10px;z-index:6;width:min(240px,calc(100% - 20px));max-height:62%;overflow:auto;padding:10px 12px;border-radius:14px;background:rgba(10,18,44,.95);border:1px solid rgba(140,220,255,.25);box-shadow:0 12px 30px rgba(0,0,0,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:600 13px/1.35 var(--body);color:var(--ink)}
+.pi-who{width:min(300px,calc(100vw - 24px));font:600 13px/1.35 var(--body);color:var(--ink)}
 .pi-who b{display:block;margin-bottom:6px;font:400 13px var(--display);color:#5ef0ff}
 .pi-who ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
 .pi-who li{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2492,3 +2496,6 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 #jdw-lib.pg-ambi .mode-hero p{opacity:0}
 .mode-hero p{transition:opacity .8s}
 @media (prefers-reduced-motion:reduce){#jdw-lib[data-mode="pegase"] .lib-wrap>*,#jdw-lib[data-mode="pegase"] .home-bar,#jdw-lib[data-mode="pegase"] .modebar{transition:opacity .4s}}
+
+/* la page Pégase respire : titre et phrase en haut, la vidéo bien visible, puis la recherche juste au-dessus des îles */
+#jdw-lib[data-mode="pegase"] .mode-hero{margin-bottom:clamp(90px,24vh,280px)}

@@ -1191,9 +1191,17 @@ function rhythmApi(mine) {
 // la page Pégase (choix des îles) joue la musique du hub de Pégase (« Chez toi ») ; le reste de la borne, celle de l'accueil
 const menuMusic = () => (MODE === 'pegase' ? 'pegase' : 'accueil');
 function screenMusic() { return !$('jdw-play').hidden && current ? current.game.id : menuMusic(); }
-document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) setMusic(MUS.want, MUS.wantMode); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) { if (Audio.ctx && Audio.ctx.state === 'suspended') Audio.ctx.resume().catch(() => {}); setMusic(MUS.want, MUS.wantMode); } });
 // la musique démarre au premier geste (règle des navigateurs)
-addEventListener('pointerdown', function firstTouch() { removeEventListener('pointerdown', firstTouch, true); Audio.ensure(); setMusic(screenMusic()); }, true);
+{
+  const EV = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+  const unlock = () => {
+    Audio.ensure(); const A = Audio.ctx; if (!A) return;
+    const go = () => { if (A.state !== 'running') return; for (const ev of EV) removeEventListener(ev, unlock, true); MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); };
+    if (A.state === 'running') go(); else A.resume().then(go).catch(() => {});
+  };
+  for (const ev of EV) addEventListener(ev, unlock, true);
+}
 
 /* ================= Cris des copains ================= */
 let criAudio = null;
@@ -4369,6 +4377,7 @@ function setMode(m, user) {
   if (m === 'coop') renderCoop();
   if (m === 'pegase') renderIsles();
   if (typeof pgSky === 'function') pgSky(m === 'pegase');
+  if (m !== 'pegase') for (const o of document.querySelectorAll('.pi-panel.pi-over, .pi-who')) o.remove();
   if (changed && $('jdw-play').hidden && !MUS.override && MUS.want && MUS.want !== menuMusic() && (MUS.want === 'accueil' || MUS.want === 'pegase')) setMusic(menuMusic());   // entrer / sortir de Pégase : sa musique
   if (user && changed) {
     const w = document.querySelector('.lib-wrap'); w.classList.remove('page-in'); void w.offsetWidth; w.classList.add('page-in');
@@ -4390,6 +4399,7 @@ const PG = { tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
+  try { if (!sessionStorage.getItem('jdw.mode')) MODE = 'pegase'; } catch (e) {}   // la borne s'ouvre sur Pégase
   $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase');
   // le badge de « Nos autres jeux » : le plus important de Classique / Duel / Coop (nouveau > mis à jour)
   const arcBadge = () => {
@@ -4507,7 +4517,7 @@ function pgRankRender() {
 async function pgRank() {
   let sh = $('jdw-pgrank');
   if (!sh) {
-    sh = document.createElement('div'); sh.className = 'sheet'; sh.id = 'jdw-pgrank'; sh.hidden = true;
+    sh = document.createElement('div'); sh.className = 'sheet pg-low'; sh.id = 'jdw-pgrank'; sh.hidden = true;
     sh.innerHTML = '<div class="card board-card" role="dialog" aria-modal="true" aria-labelledby="jdw-pgrank-h"><div class="card-body"><div class="card-head"><h2 id="jdw-pgrank-h">🏆 Les plus belles îles</h2><button class="btn btn-ghost btn-sm" id="jdw-pgrank-x" type="button">Fermer</button></div>'
       + '<table class="pgrank"><thead><tr><th>#</th><th>Île</th><th><button type="button" data-k="r_especes" title="Espèces du Grand livre trouvées par les habitants">🦋 Espèces</button></th><th><button type="button" data-k="r_heures" title="Temps passé sur l’île">⏳ Temps</button></th><th><button type="button" data-k="r_membres" title="Habitants">🏡 Habitants</button></th></tr></thead><tbody id="jdw-pgrank-rows"></tbody></table><p class="pgram-note" id="jdw-pgrank-note"></p></div></div>';
     document.body.appendChild(sh);
@@ -4989,7 +4999,7 @@ function islGram(q) {
   if (!isGuest()) { try { localStorage.setItem('jdw.pegase.tab', 'gram'); } catch (e) {} const g = gameById('pegase'); if (g) openGame(g); return; }
   let sh = $('jdw-pgram');
   if (!sh) {
-    sh = document.createElement('div'); sh.className = 'sheet pgram-sheet'; sh.id = 'jdw-pgram'; sh.hidden = true;
+    sh = document.createElement('div'); sh.className = 'sheet pgram-sheet pg-low'; sh.id = 'jdw-pgram'; sh.hidden = true;
     sh.innerHTML = '<div class="card board-card board-big" role="dialog" aria-modal="true" aria-labelledby="jdw-pgram-h"><div class="card-body"><div class="card-head"><span class="pgram-logo">' + PEGAGRAM_LOGO + '</span><h2 id="jdw-pgram-h"></h2><button class="btn btn-ghost btn-sm" id="jdw-pgram-x" type="button">Fermer</button></div>'
       + '<p class="pgram-note">Les photos des habitants, à regarder seulement. Pour aimer, commenter et publier : inscris-toi (gratuit).</p><div class="pgram-grid" id="jdw-pgram-grid"></div>'
       + '<div class="row"><button class="btn btn-play btn-sm" id="jdw-pgram-join" type="button">S\u2019inscrire</button></div></div></div>';
@@ -5023,7 +5033,7 @@ const PEGAGRAM_LOGO = '<svg viewBox="0 0 32 32" aria-hidden="true"><defs><linear
   + '<rect x="2" y="2" width="28" height="28" rx="8.5" fill="url(#pgg-lg)"/><rect x="2" y="2" width="28" height="28" rx="8.5" fill="url(#pgg-sh)"/>'
   + '<rect x="7.2" y="10.4" width="17.6" height="13.6" rx="4.2" fill="none" stroke="#fff" stroke-width="2.1"/><circle cx="16" cy="17.2" r="3.7" fill="none" stroke="#fff" stroke-width="2.1"/><circle cx="21.4" cy="13.6" r="1.15" fill="#fff"/>'
   + '<path d="M8.2 10.2c.6-2.9 3.2-4.9 6.6-4.9-1.6.7-2.7 1.6-3.2 2.7 1.3-.6 2.6-.7 3.9-.4-1.4.5-2.4 1.1-3 1.9 1-.2 2-.1 2.9.3-2.6.2-5 .5-7.2.4z" fill="#fff"/></svg>';
-function islPanel(host, html) { const card = host.closest('.pg-isle') || host; let pn = card.querySelector('.pi-panel'); if (pn) pn.remove(); pn = document.createElement('div'); pn.className = 'pi-panel pi-over'; pn.innerHTML = html; card.appendChild(pn); return pn; }
+function islPanel(host, html) { for (const o of document.querySelectorAll('.pi-panel.pi-over, .pi-who')) o.remove(); const pn = document.createElement('div'); pn.className = 'pi-panel pi-over'; pn.innerHTML = html; document.body.appendChild(pn); void host; return pn; }   // centrée en bas de l'écran : la vidéo reste visible
 // demander l'accès à une île protégée : e-mail (obligatoire sans compte), puis on suit le ticket
 function islRequest(q, card) {
   const pn = islPanel(card, '<b class="pp-t"></b><label>' + (isGuest() ? 'Ton e-mail (obligatoire sans compte)' : 'Ton e-mail (facultatif)') + '<input type="email" autocomplete="email" maxlength="80"></label><div class="pp-row"><button type="button" class="pp-ok">Envoyer la demande</button><button type="button" class="pp-x">Annuler</button></div><p class="pp-msg"></p><p class="pp-small">Ton e-mail n\'est jamais montré au gardien ; il est effacé dès qu\'il répond.</p>');
@@ -5050,7 +5060,7 @@ async function islJoin(q, card) {
   if (isGuest()) { guestAsk('Pégase'); return; }   // sans compte : s'inscrire, c'est tout
   const go = async (pw) => {
     try { const r = await rpc('pg_island_join', { p_code: CODE(), p_name: profile.name, p_id: q.id, p_password: pw || '' }); if (r !== 'ok' && r !== true && !(Array.isArray(r) && r.length)) throw new Error(String(r)); }
-    catch (e) { if (/reservee aux amis/.test(String(e.message))) { islRequest(q, card); return; } const pn = card.querySelector('.pi-panel'); if (pn) pn.querySelector('.pp-msg').textContent = islErr(e); else toastCheer(islErr(e), null, true); return; }
+    catch (e) { if (/reservee aux amis/.test(String(e.message))) { islRequest(q, card); return; } const pn = document.querySelector('.pi-panel.pi-over'); if (pn) pn.querySelector('.pp-msg').textContent = islErr(e); else toastCheer(islErr(e), null, true); return; }
     PG.isle = { id: q.id, name: q.name, kind: q.kind }; store.set('jdw.ile', PG.isle); launch();   // l'appli lit l'île choisie (api.pegase.info().ile)
   };
   if (q.kind !== 'mdp' || q.mine) { go(''); return; }
@@ -5066,9 +5076,10 @@ function islWatch(q) { const g = gameById('pegase'); if (g) openGame(g); void q;
 // les PARTICIPANTS : en touchant « … en ligne », la liste des pseudos (en ligne d'abord), sans les têtes. Les noms viennent tout prêts du
 // serveur (pseudo public pour un ami, « HabitantXXXXXX » sinon) : en ligne = r_players de pg_island_watch ; tous les membres si j'en suis
 async function islWho(q, c) {
-  const old = c.querySelector('.pi-who'); if (old) { old.remove(); return; }
+  const old = document.querySelector('.pi-who'); if (old) { old.remove(); return; }
+  for (const o of document.querySelectorAll('.pi-panel.pi-over')) o.remove();
   const box = document.createElement('div'); box.className = 'pi-who'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Participants de ' + q.name);
-  box.innerHTML = '<b></b><ul></ul><p></p>'; box.querySelector('b').textContent = q.n + ' / ' + q.members + ' en ligne'; c.appendChild(box);
+  box.innerHTML = '<b></b><ul></ul><p></p>'; box.querySelector('b').textContent = q.name + ' · ' + q.n + ' / ' + q.members + ' en ligne'; document.body.appendChild(box);
   const close = (e) => { if (!box.isConnected) { document.removeEventListener('pointerdown', close, true); return; } if (!box.contains(e.target) && !c.querySelector('.pi-live').contains(e.target)) { box.remove(); document.removeEventListener('pointerdown', close, true); } };
   setTimeout(() => document.addEventListener('pointerdown', close, true), 0);
   let on = [], all = [];
@@ -5162,7 +5173,7 @@ async function islManage(q, card, tab) {
 // de l'île, reçu seulement si la borne l'écoute) ; sinon on relit les demandes des îles dont je suis gardien (ouverture + toutes les 60 s)
 function islDots() {
   for (const b of document.querySelectorAll('#jdw-pg-isles .pi-keep')) { const on = !!PG.dem[b.dataset.ile]; let i = b.querySelector('i'); if (on && !i) { i = document.createElement('i'); b.appendChild(i); } else if (!on && i) i.remove(); }
-  for (const pn of document.querySelectorAll('#jdw-pg-isles .pi-panel[data-ile]')) { const t = pn.querySelector('.pp-tabs [data-t="dem"]'); if (!t) continue; let i = t.querySelector('i'); const on = !!PG.dem[pn.dataset.ile]; if (on && !i) { i = document.createElement('i'); t.appendChild(i); } else if (!on && i) i.remove(); }
+  for (const pn of document.querySelectorAll('.pi-panel[data-ile]')) { const t = pn.querySelector('.pp-tabs [data-t="dem"]'); if (!t) continue; let i = t.querySelector('i'); const on = !!PG.dem[pn.dataset.ile]; if (on && !i) { i = document.createElement('i'); t.appendChild(i); } else if (!on && i) i.remove(); }
 }
 async function islPollDem() {
   if (!ISL.srv || isGuest() || !ONLINE) return;
@@ -5172,7 +5183,7 @@ async function islPollDem() {
 function islOnDemande(id) {
   const q = ISL.rows.find(x => x.id === id); if (!q || !islKeeper(q)) return;
   PG.dem[id] = true; islDots();
-  const pn = document.querySelector('#jdw-pg-isles .pi-panel[data-ile="' + CSS.escape(String(id)) + '"]'); if (pn && pn.dataset.tab === 'dem') pn.querySelector('.pp-tabs [data-t="dem"]').click();
+  const pn = document.querySelector('.pi-panel[data-ile="' + CSS.escape(String(id)) + '"]'); if (pn && pn.dataset.tab === 'dem') pn.querySelector('.pp-tabs [data-t="dem"]').click();
   toastCheer('✉️ Nouvelle demande pour « ' + q.name + ' » : ouvre ⚙️ pour répondre.', null, true);
 }
 setInterval(() => { if (PG_TAB && MODE === 'pegase' && !document.hidden) islPollDem(); }, 60000);
