@@ -4546,9 +4546,9 @@ function pgDecor(on) {
   fetch(ROOT + 'assets/pegase/decor.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null).then((list) => {
     list = Array.isArray(list) ? list.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id))) : [];
     if (list.length) {
-      // la liste : on vérifie l'affiche du premier plan avant d'éteindre le ciel
+      // la liste : on vérifie l'affiche du premier plan avant d'éteindre le ciel ; un seul plan tourne en boucle, sans coupure
       PGD.list = list; const first = pgDecorPick(), im = new Image();
-      im.onload = () => { ok(); PGD.cur = first; PGD.act = 0; pgDecorSrc(v, list[first].id); v.dataset.id = list[first].id; v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); if (list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(v2, list[PGD.pre].id); v2.dataset.id = list[PGD.pre].id; } if (PGD.still) PGD.t = setTimeout(() => pgDecorNext(), 60000); };
+      im.onload = () => { ok(); PGD.cur = first; PGD.act = 0; v.loop = list.length === 1; pgDecorSrc(v, list[first].id); v.dataset.id = list[first].id; v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); if (list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(v2, list[PGD.pre].id); v2.dataset.id = list[PGD.pre].id; } if (PGD.still) PGD.t = setTimeout(() => pgDecorNext(), 60000); };
       im.onerror = () => { PGD.state = 'bad'; };
       im.src = ROOT + 'assets/pegase/' + list[first].id + '_poster.jpg';
       return;
