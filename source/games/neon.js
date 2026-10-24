@@ -29,8 +29,8 @@
   const MODES = { cube: { name: 'Cube', col: '#5aff8a', tip: 'Touche pour sauter sur le temps' }, ship: { name: 'Vaisseau', col: '#ff5ad2', tip: 'Tiens le doigt pour monter' }, ball: { name: 'Boule', col: '#ffb03a', tip: 'Touche pour inverser la gravité' } };
   // les niveaux : un morceau, ses 4 mondes (thème, façon d'avancer), la vitesse
   const LEVELS = [
-    { track: 'neonrush-1', name: 'Premier Pulse', speed: 8.2, ships: [[68, 88]], parts: [['ville', 'cube'], ['ocean', 'ship'], ['synth', 'cube'], ['galaxie', 'ship'], ['cristal', 'cube']] },   // ships : passages en vaisseau imposés (temps), à l'oreille (35 % : les cymbales s'accélèrent)
-    { track: 'neonrush-2', name: 'Onde Rétro', speed: 8.8, parts: [['cristal', 'cube'], ['lave', 'ball'], ['synth', 'ship'], ['ville', 'cube']] },
+    { track: 'neonrush-1', name: 'Premier Pulse', speed: 8.2, ships: [[68, 88], [108, 125]], parts: [['ville', 'cube'], ['ocean', 'ship'], ['synth', 'cube'], ['galaxie', 'ship'], ['cristal', 'cube']] },   // ships : passages en vaisseau imposés (temps), à l'oreille (35 % : les cymbales s'accélèrent) ; cuts : changements de monde imposés
+    { track: 'neonrush-2', name: 'Onde Rétro', speed: 8.8, ships: [[72, 100]], cuts: [40, 140], parts: [['cristal', 'cube'], ['lave', 'ball'], ['synth', 'ship'], ['ville', 'cube'], ['ocean', 'ball']] },   // 72-100 : la cassure planante ; 140 : le drop
     { track: 'neonrush-3', name: 'Surcharge', speed: 9.4, parts: [['lave', 'cube'], ['ocean', 'ball'], ['galaxie', 'ship'], ['cristal', 'cube']] },
   ];
   const themeOf = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
@@ -113,8 +113,8 @@
     const m = st.mode;
     if (m === 'cube') {
       if (st.ground && (st.tap || st.hold)) { st.vy = P.vj; st.ground = false; st.jumpAt = st.x; }
-      if (!st.ground && st.tap) { const o = orbAt(L, st); if (o) { st.vy = P.vj * (o.big ? 1.25 : 1); o.used = st.ghost ? o.used : true; st.orbHit = o; } }
-      const pad = !st.padCd && padAt(L, st); if (pad) { st.vy = P.vj * 1.42; st.ground = false; st.padCd = 0.2; st.padHit = pad; }
+      if (!st.ground && st.tap) { const o = orbAt(L, st); if (o) { st.vy = P.vj * (o.k || (o.big ? 1.25 : 1)); o.used = st.ghost ? o.used : true; st.orbHit = o; } }
+      const pad = !st.padCd && padAt(L, st); if (pad) { st.vy = P.vj * (pad.k || 1.42); st.ground = false; st.padCd = 0.2; st.padHit = pad; }
       st.padCd = Math.max(0, (st.padCd || 0) - dt);
       st.vy -= P.g * dt; st.y += st.vy * dt;
       // sol et dessus des blocs
@@ -177,13 +177,16 @@
     const nb = beats.length, lastB = nb - 6, startB = 8;
     const drum = []; for (let b = 0; b < nb; b++) { const t = beats[b]; let m = 0, c = 0; for (let k = b - 4; k <= b + 4; k++) if (k >= 0 && k < nb) { m += kick(k); c++; } drum.push(m / c); void t; }   // force de la grosse caisse autour (échelle du morceau)
     const secs = [];
-    const forced = (b) => (LV.ships || []).some(([a, z]) => b >= a && b < z);
-    for (let b = startB; b < lastB; b++) { const md = forced(b) || (drum[b] < 3 && !(LV.ships || []).some(([a, z]) => b >= z && b < z + 6)) ? 'ship' : 'g'; if (!secs.length || secs[secs.length - 1].md !== md) secs.push({ md, b0: b, b1: b + 1 }); else secs[secs.length - 1].b1 = b + 1; }
+    // passages en vaisseau choisis à l'oreille (LV.ships), sinon d'après la grosse caisse ; LV.cuts : changements de monde imposés
+    const cuts = LV.cuts || [], forced = (b) => (LV.ships || []).some(([a, z]) => b >= a && b < z);
+    for (let b = startB; b < lastB; b++) { const md = forced(b) ? 'ship' : LV.ships ? 'g' : drum[b] < 3 ? 'ship' : 'g'; if (!secs.length || secs[secs.length - 1].md !== md || cuts.includes(b)) secs.push({ md, b0: b, b1: b + 1 }); else secs[secs.length - 1].b1 = b + 1; }
     for (let i = secs.length - 1; i > 0; i--) if (secs[i].b1 - secs[i].b0 < 12) { secs[i - 1].b1 = secs[i].b1; secs.splice(i, 1); }
-    for (let i = secs.length - 1; i > 0; i--) if (secs[i].md === secs[i - 1].md) { secs[i - 1].b1 = secs[i].b1; secs.splice(i, 1); }
+    for (let i = secs.length - 1; i > 0; i--) if (secs[i].md === secs[i - 1].md && !cuts.includes(secs[i].b0)) { secs[i - 1].b1 = secs[i].b1; secs.splice(i, 1); }
     if (secs[0] && secs[0].md === 'ship' && secs.length > 1) { secs[1].b0 = secs[0].b0; secs.shift(); }   // on commence toujours par sauter
     // un passage avec batterie trop long : coupé en deux mondes
     for (let i = 0; i < secs.length; i++) { const S = secs[i]; if (S.md === 'g' && S.b1 - S.b0 > 72) { const m = S.b0 + Math.round((S.b1 - S.b0) / 2 / 8) * 8; secs.splice(i + 1, 0, { md: 'g', b0: m, b1: S.b1 }); S.b1 = m; } }
+    // durée de traversée de la boule (sol → plafond), mesurée sur la vraie physique
+    const tBall = (() => { let y = PH, vy = 0, t = 0; const dt = 1 / 240; while (y < BALL_CEIL - PH && t < 2) { vy = clamp(vy + P.ballG * dt, -P.ballV, P.ballV); y += vy * dt; t += dt; } return t; })();
     let gi = 0; for (const S of secs) S.mode = S.md === 'ship' ? 'ship' : li === 0 && tour === 0 ? 'cube' : (gi++ % 2 ? 'ball' : 'cube');
     const themes = LV.parts.map((q) => q[0]);
     const easy = li === 0 && tour === 0, minGap = easy ? 2 : 1, rate = easy ? 0.55 : li === 1 && !tour ? 0.62 : 0.7;   // part des temps à frappe forte qu'on saute
@@ -191,13 +194,17 @@
     const ghost = Object.assign(newState(), { ghost: true });
     const path = [], rec = [];   // trace du fantôme [x, y] et ses appuis (pour la vérification)
     const sim = (toX, input) => { const dt = 1 / 240; while (ghost.x < toX) { if (ghost.pi < L.parts.length && ghost.x >= L.parts[ghost.pi].x) enterMode(ghost, L.parts[ghost.pi++].mode); const inp = input ? input(ghost) : null; ghost.hold = !!(inp && inp.hold); const tp = !!(inp && inp.tap) && !ghost.tapped; if (tp) { ghost.tap = true; ghost.tapped = true; } if (!(inp && inp.tap)) ghost.tapped = false; rec.push((ghost.hold ? 1 : 0) | (tp ? 2 : 0)); if (tp) L.taps.push({ x: ghost.x, y: ghost.y, mode: ghost.mode, air: !ghost.ground }); step(ghost, L, P, dt); path.push([ghost.x, ghost.y]); } };
+    const floorAt = (x) => { let t = 0; for (const b of L.blocks) if (x + PH * 0.85 > b.x0 && x - PH * 0.85 < b.x1 && b.y1 > t) t = b.y1; return t; };
+    const edgeFor = (xLand, h, under) => xLand - PH * 0.85 - P.v * Math.sqrt(2 * Math.max(0, h - under) / P.g);   // bord d'une marche pour toucher le sol en xLand
     const sortAll = () => { for (const k of ['spikes', 'blocks', 'pads', 'orbs', 'walls']) L[k].sort((a, b) => a.x0 - b.x0); };
     const yAt = (x) => { let lo = 0, hi = path.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (path[m][0] < x) lo = m + 1; else hi = m; } return path[lo] ? path[lo][1] : 0; };
     const clear = (x0, x1, minY, maxY) => { for (let x = x0; x <= x1; x += 0.1) { const y = yAt(x); if (y - PH < minY || y + PH > maxY) return false; } return true; };
     const score = (b) => snare(b) + 0.75 * kick(b) + (b % 4 === 0 ? 0.8 : 0);
     for (let part = 0; part < secs.length; part++) {
       const sec = secs[part], thm = themes[part % themes.length], mode = sec.mode, b0 = sec.b0, b1 = part === secs.length - 1 ? lastB : sec.b1;
-      const xs = X(beats[b0]);
+      let xs = X(beats[b0]);
+      // on arrive en cube depuis la boule / le vaisseau : le portail est avancé pour qu'il retombe pile sur le premier temps
+      if (mode === 'cube' && part > 0) { sim(xs - 7); const y0 = ghost.y, vy0 = ghost.mode === 'ship' ? ghost.vy : 0; const tF = (vy0 + Math.sqrt(vy0 * vy0 + 2 * P.g * Math.max(0, y0 - PH))) / P.g; xs = Math.max(ghost.x + 0.5, xs - P.v * tF); }
       L.parts.push({ x: xs, theme: thm, mode, beat: b0 });
       L.portals.push({ x0: xs - 1.5, mode });
       sim(xs + 0.01);
@@ -236,14 +243,19 @@
           const f = sc2(bb);
           if (f < thrB) continue;
           pause = rng() < (easy ? 0.4 : 0.3);
-          const x = X(beats[bb]); lastB = bb; cnt++;
+          const x = X(beats[bb]), xl0 = x, lastB0 = lastB; lastB = bb; cnt++;
           if (mode === 'ball') {
-            const span = X(beats[Math.min(bb + gapB, b1 - 1)]) - x - 0.3; sim(x - 0.02); sim(x + span, (g) => ({ tap: Math.abs(g.x - x) < 0.05 }));
+            // la boule TOUCHE l'autre côté pile sur le temps (comme le cube qui retombe) : on la retourne une durée de traversée plus tôt
+            const xt = x - P.v * tBall;
+            if (xt < ghost.x + 0.1) continue;
+            const span = X(beats[Math.min(bb + gapB, b1 - 1)]) - x - 0.3; sim(xt - 0.02); sim(x + span, (g) => ({ tap: Math.abs(g.x - xt) < 0.05 }));
             const side = ghost.grav < 0 ? 'floor' : 'ceil', nS = 1 + (f >= 9 ? 1 : 0);
             for (let k = 0; k < nS; k++) { const sx = x + span * 0.55 + k * 1.1; if (side === 'floor' ? clear(sx - 0.3, sx + 1.3, 0.85, 99) : clear(sx - 0.3, sx + 1.3, -99, BALL_CEIL - 0.85)) L.spikes.push(side === 'floor' ? { x0: sx, y: 0 } : { x0: sx, y: BALL_CEIL, down: true }); }
             sortAll(); continue;
           }
           // le cube RETOMBE pile sur le temps (c'est l'atterrissage qu'on sent) : il saut une durée de vol plus tôt ; sur une orbe, on la touche pile sur le temps
+          // le sol sous le cube (les marches finissent toutes seules) ; pas de saut qui chevauche le bord d'une marche
+          gL = floorAt(xl0 - P.v * P.ta * 1.1); if (floorAt(xl0 + 0.4) !== gL || floorAt(xl0 - P.v * P.ta * 0.5) !== gL) { lastB = lastB0; cnt--; continue; }
           const xl = x, orb = (!easy || nP >= 2) && offSnare(bb) >= 6 && cnt % 3 === 0 && bb + 2 < b1, r2 = rng(), maxUp = easy ? (nP >= 1 ? 1 : 0) : 2;
           const kind = orb ? 'orb' : r2 < 0.22 && gL < maxUp && bb + 3 < b1 ? 'up' : r2 < 0.34 && gL > 0 ? 'down' : r2 < 0.42 && kick(bb) >= 8 && (!easy || nP >= 1) && bb + 3 < b1 ? 'pad' : 'spike';
           const tFly = (dh) => (P.vj + Math.sqrt(Math.max(0, P.vj * P.vj - 2 * P.g * dh))) / P.g;   // durée de vol jusqu'à retomber dh plus haut
@@ -252,14 +264,17 @@
           sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 }));
           // le « tuch » du contretemps, pendant le saut : une orbe à toucher pile dessus (pas au tout début du niveau 1)
           if (orb) {
-            const ax = xl; sim(ax - 0.01); const ay = ghost.y; L.orbs.push({ x0: ax, y: ay, big: false, head: true }); sortAll();
-            sim(ax + P.v * P.ta, (g) => ({ tap: Math.abs(g.x - ax) < 0.06 }));
+            const ax = xl; sim(ax - 0.01); const ay = ghost.y;
+            // la force de l'orbe est réglée pour qu'on retombe sur un temps
+            const tN = (P.vj + Math.sqrt(P.vj * P.vj + 2 * P.g * Math.max(0, ay - PH - gL))) / P.g, T = beatP * Math.max(1, Math.round(tN / beatP)), ok = (gL + PH - ay + P.g * T * T / 2) / T / P.vj;
+            L.orbs.push({ x0: ax, y: ay, big: false, head: true, k: ok }); sortAll();
+            sim(ax + P.v * P.ta * 1.2, (g) => ({ tap: Math.abs(g.x - ax) < 0.06 }));
             for (let sx = xj + 1.4; sx < ax + P.v * P.ta * 0.7; sx += 1) if (clear(sx - 0.2, sx + 1.2, gL + 0.8, 99)) L.spikes.push({ x0: sx, y: gL });
             sortAll(); lastB = bb + 1; continue;
           }
           if (kind === 'up') {
             // une MARCHE : on retombe dessus (sur le temps), elle dure quelques temps
-            const top = gL + 1, bx0 = xj + P.v * P.ta * 0.62; L.blocks.push({ x0: bx0, x1: X(beats[Math.min(b1 - 2, bb + 2 + Math.floor(rng() * 4))]), y0: 0, y1: top }); sortAll(); gL = top;
+            const top = gL + 1, bx0 = xj + P.v * P.ta * 0.62, xe = X(beats[Math.min(b1 - 2, bb + 2 + Math.floor(rng() * 4))]); L.blocks.push({ x0: bx0, x1: edgeFor(xe, top, floorAt(xe)), y0: 0, y1: top }); sortAll(); gL = top;
             sim(xl + 0.2); continue;
           }
           if (kind === 'down') {
@@ -269,7 +284,7 @@
           }
           if (kind === 'pad') {
             // un TREMPLIN sous un gros « boum » : on rebondit haut au-dessus d'une rangée de pics
-            const px = xl - 0.5; L.pads.push({ x0: px, y: gL }); sortAll(); sim(X(beats[bb + 2]));
+            const px = xl - 0.5, T = beatP * Math.max(1, Math.round(1.42 * P.ta / beatP)); L.pads.push({ x0: px, y: gL, k: (P.g * T / 2) / P.vj }); sortAll(); sim(X(beats[bb + 2]));   // rebond réglé pour retomber sur un temps
             for (let k = 0; k < 3; k++) { const sx = xl + 1.4 + k; if (clear(sx - 0.2, sx + 1.2, gL + 0.75, 99)) L.spikes.push({ x0: sx, y: gL }); }
             sortAll(); lastB = bb + 1; continue;
           }
@@ -280,7 +295,7 @@
         }
       }
       // fin de la partie : le plateau redescend
-      if (gL > 0) { const bl = L.blocks[L.blocks.length - 1]; if (bl) bl.x1 = Math.min(bl.x1, X(beats[b1 - 1]) - 1); }
+      { const bl = L.blocks[L.blocks.length - 1], xe = X(beats[b1 - 2]); if (bl && bl.x1 > xe - 1) bl.x1 = edgeFor(xe, bl.y1, 0); }
       sim(X(beats[b1]) - 2);
       if (mode === 'ship') {
         // le couloir : autour de la trace du fantôme, avec de la marge (plus serré quand c'est difficile)
