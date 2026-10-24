@@ -647,6 +647,33 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .nt-notes{margin:6px 0 0;padding:0 0 0 18px;list-style:disc;font-size:13px;line-height:1.4;color:var(--muted)}
 .nt-notes li{display:list-item;margin:3px 0;padding:0;background:none;border-radius:0;box-shadow:none}
 .nt-notes li::marker{color:var(--gold)}
+/* notes de mise à jour : une carte par jeu (Pégase, chaque jeu, la borne), liste complète */
+.notif-list > li.nt-upd{align-items:start}
+.nt-grps{display:grid;gap:10px;margin-top:16px;margin-left:-44px}   /* toute la largeur, sous l'icône */
+.nt-grp{--gc:var(--volt);display:grid;gap:4px;padding:10px 12px 10px;border-radius:12px;background:color-mix(in srgb,var(--gc) 9%,rgba(0,0,0,.25));border:1px solid color-mix(in srgb,var(--gc) 35%,transparent);box-shadow:inset 3px 0 0 var(--gc)}
+.nt-gh{display:flex;align-items:center;gap:8px}
+.nt-gh i{font-style:normal;font-size:20px}
+.nt-gh b{flex:1;min-width:0;font:400 15px/1.1 var(--display);color:var(--gc);text-transform:none}
+.nt-gh small{margin:0 !important;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.3);font:700 10.5px var(--body) !important;color:var(--muted)}
+.nt-grp h4{margin:6px 0 0;font:700 12.5px/1.2 var(--body);color:var(--ink)}
+.nt-grp .nt-notes{margin-top:2px;color:#c9d6e2}
+.nt-go{justify-self:end;margin-top:2px;padding:6px 10px;border:0;border-radius:9px;background:color-mix(in srgb,var(--gc) 22%,transparent);color:var(--ink);font:700 12px var(--body);cursor:pointer}
+.nt-go:hover{background:color-mix(in srgb,var(--gc) 36%,transparent)}
+/* ===== CHARTE GRAPHIQUE DE PÉGASE pour toute la borne (onglet Pégase présent, mode test) : nuit indigo, verre, or et turquoise ===== */
+body.pg-charte{--night:#060c22;--panel:#0c1734;--steel:#16285a;--steel2:#2a4482;--card:#0e1b3e;--card-hi:#14244e;--line:#253f78;--volt:#5ef0ff;--gold:#ffd36b;--muted:#9fb3d6;--veil:rgba(3,6,20,.62)}
+body.pg-charte .sheet{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+body.pg-charte .sheet > .card{background:radial-gradient(120% 60% at 15% 0%,rgba(94,240,255,.10),transparent 60%),radial-gradient(90% 50% at 100% 100%,rgba(170,110,255,.12),transparent 60%),linear-gradient(180deg,rgba(20,34,78,.97),rgba(8,14,38,.98));border:1px solid rgba(140,220,255,.24);border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 40px rgba(94,240,255,.10),inset 0 1px 0 rgba(255,255,255,.07)}
+body.pg-charte .card-head h2{background:linear-gradient(180deg,#fff7d6,#ffd36b 45%,#5ef0ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(94,240,255,.3))}
+body.pg-charte .btn-play{background:linear-gradient(180deg,#ffe08a,#ffb340);color:#1a1030;box-shadow:0 3px 0 rgba(0,0,0,.45),0 0 18px rgba(255,200,90,.25)}
+body.pg-charte .btn-ghost{border-color:rgba(140,220,255,.35);background:rgba(94,240,255,.06)}
+body.pg-charte .btn-ghost:hover{border-color:#5ef0ff;background:rgba(94,240,255,.12)}
+body.pg-charte .input{background:rgba(4,10,30,.7);border-color:rgba(140,220,255,.28)}
+body.pg-charte .input:focus{border-color:#5ef0ff;box-shadow:0 0 0 3px rgba(94,240,255,.18)}
+body.pg-charte .seg-tabs{background:rgba(10,22,48,.5);border-color:rgba(140,220,255,.16)}
+body.pg-charte .seg-tabs [role=tab][aria-selected=true]{background:linear-gradient(180deg,rgba(94,240,255,.26),rgba(58,214,200,.10))}
+body.pg-charte .notif-list > li{background:rgba(6,12,34,.6)}
+body.pg-charte .notif-list > li.new{background:rgba(22,40,90,.6);box-shadow:inset 3px 0 0 #ffd36b}
+body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12),rgba(170,110,255,.10));border-color:rgba(94,240,255,.4)}
 
 /* ---------- modes de jeu : une page par mode, barre en bas ---------- */
 .lib-wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 104px)}
@@ -98339,7 +98366,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261024152135"; window.JDW_VERSION = "1.34.10"; window.JDW_NOTES = ["\ud83c\udf89 5 NOUVEAUX JEUX POUR TOUS : \ud83c\udfce\ufe0f Bolides RC (course de voitures t\u00e9l\u00e9guid\u00e9es, volant, gaz, d\u00e9rapages), \u26bd Tirs au But (penaltys, vue du tireur et vue du gardien), \ud83c\udf00 Turbo Toupies (on jette sa toupie, rail, bouclier, pi\u00e8ge de glace) \u2014 en duel, contre l'IA ou en ligne", "\ud83c\udf49 Smoothie Samoura\u00ef (tranche les fruits, 6 mondes et leurs boss g\u00e9ants) et \ud83c\udfb5 N\u00e9on Rush (saute sur le rythme de la musique \u00e9lectro) dans Classique", "\ud83c\udfa3 P\u00c9GASE 0.9.4.6 : un long ponton avec sa barque ; les gros poissons sautent hors de l'eau pendant le combat ; chaque poisson bien tenu ; cinq parcelles \u00e0 vendre au bord du chemin ; le facteur sur son v\u00e9lo jaune ; le h\u00e9ron cendr\u00e9 au bord du lac ; le moustique tigre, l'araign\u00e9e-loup et le mille-pattes ; des lunettes bien pos\u00e9es ; la galerie du mus\u00e9e ; sur PC, petite mise \u00e0 jour", "\ud83d\udcd6 GRAND LIVRE : nouveau chapitre \u00ab Fruits et l\u00e9gumes \u00bb, les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa", "\ud83c\udfa3 P\u00c9GASE 0.9.4.5 : la p\u00eache \u00e0 la canne \u00e0 coup (longue canne en bambou, vrai flotteur, sortie du poisson au ralenti) ; des d\u00e9placements et une cam\u00e9ra tout doux ; marcher au viseur ; les fourmis ; le village plus chaleureux (four \u00e0 pain, \u00e9tal, nom grav\u00e9) ; un chapitre \u00ab Fruits et l\u00e9gumes \u00bb dans le Grand livre ; sur PC, petite mise \u00e0 jour", "\ud83c\udf08 P\u00c9GASE 0.9.4.4 : beaucoup plus fluide ; le grand-duc se laisse photographier depuis le buisson ; ciel d'orage gris, pluie douce et nouvel arc-en-ciel \u00e9clatant, m\u00eame la nuit ; ta bouche bouge quand tu parles ; nouvelles petites b\u00eates (scolie, mante, cigale\u2026) ; concours des champignons sur PegaGram ; sur PC, petite mise \u00e0 jour", "\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
+<script>window.JDW_BUILD = "20261024152918"; window.JDW_VERSION = "1.34.11"; window.JDW_NOTES = ["# NOTES DE MISE \u00c0 JOUR (cloche de la borne, \u00ab Version \u2026 install\u00e9e \u00bb). Une ligne = UNE nouveaut\u00e9, \u00e9crite en d\u00e9tail.", "# [pegase] \u2026 = notes de P\u00e9gase (rang\u00e9es sous P\u00e9gase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]\u2026 (id du jeu) = notes de ce", "# jeu (rang\u00e9es sous \u00ab Nos autres jeux \u00bb) ; sans crochets = la borne elle-m\u00eame. \u00ab [id] ## titre \u00bb = un sous-titre (une version de P\u00e9gase).", "# Les lignes qui commencent par \u00ab # \u00bb ne sont jamais montr\u00e9es. Rien de priv\u00e9 ici : c'est lu par tout le monde.", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.4.6", "[pegase] Un long ponton en bois, avec sa barque amarr\u00e9e au bout", "[pegase] Les gros poissons sautent hors de l'eau pendant le combat", "[pegase] Chaque poisson est bien tenu dans la main quand on le sort de l'eau", "[pegase] Cinq parcelles \u00e0 vendre au bord du chemin", "[pegase] Le facteur passe sur son v\u00e9lo jaune", "[pegase] Le h\u00e9ron cendr\u00e9 p\u00eache au bord du lac", "[pegase] Nouvelles petites b\u00eates : le moustique tigre, l'araign\u00e9e-loup et le mille-pattes", "[pegase] Les lunettes sont bien pos\u00e9es sur le visage", "[pegase] La galerie du mus\u00e9e", "[pegase] Grand livre : nouveau chapitre \u00ab Fruits et l\u00e9gumes \u00bb, les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa", "[pegase] Sur PC, petite mise \u00e0 jour", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.4.5", "[pegase] La p\u00eache \u00e0 la canne \u00e0 coup : longue canne en bambou, vrai flotteur, sortie du poisson au ralenti", "[pegase] D\u00e9placements et cam\u00e9ra tout doux ; on peut marcher au viseur", "[pegase] Les fourmis", "[pegase] Le village plus chaleureux : four \u00e0 pain, \u00e9tal, nom grav\u00e9", "[pegase] Sur PC, petite mise \u00e0 jour", "[pegase] ## \ud83c\udf08 P\u00e9gase 0.9.4.4", "[pegase] Beaucoup plus fluide", "[pegase] Le grand-duc se laisse photographier depuis le buisson", "[pegase] Ciel d'orage gris, pluie douce et nouvel arc-en-ciel \u00e9clatant, m\u00eame la nuit", "[pegase] Ta bouche bouge quand tu parles", "[pegase] Nouvelles petites b\u00eates : scolie, mante, cigale\u2026", "[pegase] Concours des champignons sur PegaGram", "[neon] Nouveau jeu dans Classique : saute sur le rythme de la musique \u00e9lectro, \u00e0 travers des mondes n\u00e9on", "[neon] Chaque saut retombe pile sur le \u00ab boum \u00bb de la musique : le cube, la boule et les rebonds sont cal\u00e9s au temps pr\u00e8s", "[neon] Niveau 1 : le vaisseau arrive au moment o\u00f9 les cymbales acc\u00e9l\u00e8rent ; on le pilote en tapotant", "[neon] Niveau 2 refait en \u00e9coutant la musique : cube, boule, vaisseau dans la partie calme, puis la boule sur le gros d\u00e9part", "[neon] Les tremplins sont de vrais sauts automatiques : on roule dessus sans appuyer, et ils pardonnent un appui un peu trop t\u00f4t", "[neon] Plus de vari\u00e9t\u00e9 : marches, tremplins, pauses et s\u00e9ries de pics de toutes les longueurs", "[smoothie] Nouveau jeu dans Classique : tranche les fruits d'un geste, le fruit se coupe exactement l\u00e0 o\u00f9 passe ton doigt", "[smoothie] 6 mondes avec chacun sa musique, et leurs boss g\u00e9ants", "[bolides] Nouveau duel : course de voitures t\u00e9l\u00e9guid\u00e9es vues de haut, en duel, contre l'IA ou en ligne", "[bolides] Joystick pour tourner et d\u00e9raper, bouton GAZ et bouton FREIN ; sur le clavier, la barre d'espace donne les gaz", "[bolides] Circuits plus larges, on glisse le long des murs au lieu de s'y accrocher", "[tirsaubut] Nouveau duel : s\u00e9ance de penaltys, en duel, contre l'IA ou en ligne", "[tirsaubut] Vue du tireur et vraie vue du gardien quand c'est toi qui gardes les buts", "[toupies] Nouveau duel : on jette sa toupie dans l'ar\u00e8ne, rail, bouclier et pi\u00e8ge de glace", "[toupies] Toupies plus maniables, bonus plus fr\u00e9quents, et le pi\u00e8ge de glace qui g\u00e8le l'adversaire", "[toupies] En ligne : les deux joueurs peuvent enfin lancer leur toupie", "\ud83c\udf00 Un nouveau duel se pr\u00e9pare en coulisses\u2026 bient\u00f4t dans la borne !"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtirsaubut": {"c": ["dtirsaubut-1", "dtirsaubut-2"], "x": ["dtirsaubut-x1"]}, "dtoupies": {"c": ["dtoupies-1", "dtoupies-2"], "x": ["dtoupies-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "neonrush": {"c": ["neonrush-1", "neonrush-2", "neonrush-3"], "x": []}, "pegase": {"c": ["pegase-1"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}, "smoothie": {"c": ["smoothie-1", "smoothie-2"], "x": ["smoothie-x1"]}, "smw1": {"c": ["smw1-1"], "x": []}, "smw2": {"c": ["smw2-1"], "x": []}, "smw3": {"c": ["smw3-1"], "x": []}, "smw4": {"c": ["smw4-1"], "x": []}, "smw5": {"c": ["smw5-1"], "x": []}, "smw6": {"c": ["smw6-1"], "x": []}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -102451,8 +102478,7 @@ function notifRow(n, isNew) {
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✨'; ic.style.background = 'var(--gold)';
     const b = document.createElement('b'); b.textContent = 'Version ' + n.v + ' installée';
     tx.append(b);
-    const notes = window.JDW_NOTES || [];
-    if (notes.length) { const ul = document.createElement('ul'); ul.className = 'nt-notes'; for (const t of notes) { const li2 = document.createElement('li'); li2.textContent = t; ul.appendChild(li2); } tx.append(ul); }
+    li.classList.add('nt-upd'); notesInto(tx);
     li.append(ic, tx);
     return li;
   }
@@ -102482,6 +102508,52 @@ function notifRow(n, isNew) {
   const sm = document.createElement('small'); sm.textContent = fmt(n.score) + unit(g) + ' contre ' + fmt(n.prev) + unit(g) + ' pour toi · ' + timeAgo(n.at);
   tx.append(sm); li.append(av, tx);
   return li;
+}
+// NOTES DE MISE À JOUR rangées par jeu (source/nouveautes.txt : « [pegase] … », « [neon] … », « [id] ## sous-titre », sans crochets =
+// la borne ; lignes « # » ignorées). L'ancien format (« 🎣 PÉGASE 0.9.4.6 : a ; b ; c ») est encore compris : une version = un sous-titre,
+// une nouveauté par « ; ». Pégase d'abord, puis chaque jeu (sous « Nos autres jeux »), puis la borne. Chaque jeu a ses notes à lui.
+const NOTE_IC = { pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', borne: '🕹️' };
+function notesGroups() {
+  const G = new Map(), add = (id, kind, t) => { if (!G.has(id)) G.set(id, []); G.get(id).push({ kind, t: String(t).trim() }); };
+  for (const raw of window.JDW_NOTES || []) {
+    const l = String(raw).trim(); if (!l || l[0] === '#') continue;
+    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/);
+    if (m) { const sub = m[2].match(/^##\s*(.+)$/); if (m[2]) add(m[1], sub ? 'h' : 'i', sub ? sub[1] : m[2]); continue; }
+    const id = /P[ÉE]GASE|GRAND LIVRE|PegaGram/i.test(l) ? 'pegase' : 'borne', cut = l.indexOf(' : ');
+    if (cut > 0 && cut < 70) { add(id, 'h', l.slice(0, cut)); for (const x of l.slice(cut + 3).split(/\s*;\s*/)) if (x) add(id, 'i', x[0].toUpperCase() + x.slice(1)); }
+    else add(id, 'i', l);
+  }
+  const rank = (id) => (id === 'pegase' ? 0 : id === 'borne' ? 2 : 1);
+  return [...G.keys()].sort((a, b) => rank(a) - rank(b)).map(id => ({ id, items: G.get(id) }));
+}
+function notesInto(box) {
+  const groups = notesGroups(); if (!groups.length) return;
+  const wrap = document.createElement('div'); wrap.className = 'nt-grps';
+  for (const gr of groups) {
+    const g = gr.id === 'pegase' || gr.id === 'borne' ? null : (gameById(gr.id) || duoById(gr.id));
+    const title = gr.id === 'pegase' ? 'Pégase' : gr.id === 'borne' ? 'La borne' : g ? g.title : gr.id;
+    const sec = document.createElement('section'); sec.className = 'nt-grp' + (gr.id === 'pegase' ? ' pg' : '');
+    sec.style.setProperty('--gc', gr.id === 'pegase' ? '#5ef0ff' : gr.id === 'borne' ? 'var(--amber)' : (g && g.accent) || 'var(--volt)');
+    const hd = document.createElement('div'); hd.className = 'nt-gh';
+    const ic = document.createElement('i'); ic.textContent = NOTE_IC[gr.id] || '🎮';
+    const b = document.createElement('b'); b.textContent = title;
+    const where = document.createElement('small'); where.textContent = gr.id === 'pegase' ? 'Onglet Pégase' : gr.id === 'borne' ? 'Toute la borne' : 'Nos autres jeux';
+    hd.append(ic, b, where); sec.appendChild(hd);
+    let ul = null;
+    for (const it of gr.items) {
+      if (it.kind === 'h') { const h = document.createElement('h4'); h.textContent = it.t; sec.appendChild(h); ul = null; continue; }
+      if (!ul) { ul = document.createElement('ul'); ul.className = 'nt-notes'; sec.appendChild(ul); }
+      const li2 = document.createElement('li'); li2.textContent = it.t; ul.appendChild(li2);
+    }
+    // aller voir : Pégase → son onglet ; un jeu → « Nos autres jeux » (son mode) ; la borne → rien
+    if (gr.id !== 'borne') {
+      const go = document.createElement('button'); go.type = 'button'; go.className = 'nt-go'; go.textContent = gr.id === 'pegase' ? 'Aller dans Pégase ›' : 'Y jouer ›';
+      go.addEventListener('click', (e) => { e.stopPropagation(); closeSheet('jdw-notifs'); if (!$('jdw-play').hidden) backToLibrary(); if (gr.id === 'pegase' && PG_TAB) { setMode('pegase', true); return; } const gg = gameById(gr.id); if (gg) openGame(gg); else if (duoById(gr.id)) setMode('duel', true); });
+      sec.appendChild(go);
+    }
+    wrap.appendChild(sec);
+  }
+  box.appendChild(wrap);
 }
 function openNotifs(showOld) {
   const ol = $('jdw-notifs-list'); ol.textContent = '';
@@ -105396,6 +105468,7 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    une seule : celle de Patou et Samba, amis seulement). Tant que le serveur des îles n'existe pas, la page est vide (« bientôt »).
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
 const PG_TAB = LABO_TEST && !!gameById('pegase');
+if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
 const PG = { tab: 'pub', last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;

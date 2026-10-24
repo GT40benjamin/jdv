@@ -1,7 +1,46 @@
-🎉 5 NOUVEAUX JEUX POUR TOUS : 🏎️ Bolides RC (course de voitures téléguidées, volant, gaz, dérapages), ⚽ Tirs au But (penaltys, vue du tireur et vue du gardien), 🌀 Turbo Toupies (on jette sa toupie, rail, bouclier, piège de glace) — en duel, contre l'IA ou en ligne
-🍉 Smoothie Samouraï (tranche les fruits, 6 mondes et leurs boss géants) et 🎵 Néon Rush (saute sur le rythme de la musique électro) dans Classique
-🎣 PÉGASE 0.9.4.6 : un long ponton avec sa barque ; les gros poissons sautent hors de l'eau pendant le combat ; chaque poisson bien tenu ; cinq parcelles à vendre au bord du chemin ; le facteur sur son vélo jaune ; le héron cendré au bord du lac ; le moustique tigre, l'araignée-loup et le mille-pattes ; des lunettes bien posées ; la galerie du musée ; sur PC, petite mise à jour
-📖 GRAND LIVRE : nouveau chapitre « Fruits et légumes », les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa
-🎣 PÉGASE 0.9.4.5 : la pêche à la canne à coup (longue canne en bambou, vrai flotteur, sortie du poisson au ralenti) ; des déplacements et une caméra tout doux ; marcher au viseur ; les fourmis ; le village plus chaleureux (four à pain, étal, nom gravé) ; un chapitre « Fruits et légumes » dans le Grand livre ; sur PC, petite mise à jour
-🌈 PÉGASE 0.9.4.4 : beaucoup plus fluide ; le grand-duc se laisse photographier depuis le buisson ; ciel d'orage gris, pluie douce et nouvel arc-en-ciel éclatant, même la nuit ; ta bouche bouge quand tu parles ; nouvelles petites bêtes (scolie, mante, cigale…) ; concours des champignons sur PegaGram ; sur PC, petite mise à jour
+# NOTES DE MISE À JOUR (cloche de la borne, « Version … installée »). Une ligne = UNE nouveauté, écrite en détail.
+# [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
+# jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre (une version de Pégase).
+# Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[pegase] ## 🎣 Pégase 0.9.4.6
+[pegase] Un long ponton en bois, avec sa barque amarrée au bout
+[pegase] Les gros poissons sautent hors de l'eau pendant le combat
+[pegase] Chaque poisson est bien tenu dans la main quand on le sort de l'eau
+[pegase] Cinq parcelles à vendre au bord du chemin
+[pegase] Le facteur passe sur son vélo jaune
+[pegase] Le héron cendré pêche au bord du lac
+[pegase] Nouvelles petites bêtes : le moustique tigre, l'araignée-loup et le mille-pattes
+[pegase] Les lunettes sont bien posées sur le visage
+[pegase] La galerie du musée
+[pegase] Grand livre : nouveau chapitre « Fruits et légumes », les fourmis, les oiseaux exotiques, l'oie, la chauve-souris, la violette et l'herbe de la pampa
+[pegase] Sur PC, petite mise à jour
+[pegase] ## 🎣 Pégase 0.9.4.5
+[pegase] La pêche à la canne à coup : longue canne en bambou, vrai flotteur, sortie du poisson au ralenti
+[pegase] Déplacements et caméra tout doux ; on peut marcher au viseur
+[pegase] Les fourmis
+[pegase] Le village plus chaleureux : four à pain, étal, nom gravé
+[pegase] Sur PC, petite mise à jour
+[pegase] ## 🌈 Pégase 0.9.4.4
+[pegase] Beaucoup plus fluide
+[pegase] Le grand-duc se laisse photographier depuis le buisson
+[pegase] Ciel d'orage gris, pluie douce et nouvel arc-en-ciel éclatant, même la nuit
+[pegase] Ta bouche bouge quand tu parles
+[pegase] Nouvelles petites bêtes : scolie, mante, cigale…
+[pegase] Concours des champignons sur PegaGram
+[neon] Nouveau jeu dans Classique : saute sur le rythme de la musique électro, à travers des mondes néon
+[neon] Chaque saut retombe pile sur le « boum » de la musique : le cube, la boule et les rebonds sont calés au temps près
+[neon] Niveau 1 : le vaisseau arrive au moment où les cymbales accélèrent ; on le pilote en tapotant
+[neon] Niveau 2 refait en écoutant la musique : cube, boule, vaisseau dans la partie calme, puis la boule sur le gros départ
+[neon] Les tremplins sont de vrais sauts automatiques : on roule dessus sans appuyer, et ils pardonnent un appui un peu trop tôt
+[neon] Plus de variété : marches, tremplins, pauses et séries de pics de toutes les longueurs
+[smoothie] Nouveau jeu dans Classique : tranche les fruits d'un geste, le fruit se coupe exactement là où passe ton doigt
+[smoothie] 6 mondes avec chacun sa musique, et leurs boss géants
+[bolides] Nouveau duel : course de voitures téléguidées vues de haut, en duel, contre l'IA ou en ligne
+[bolides] Joystick pour tourner et déraper, bouton GAZ et bouton FREIN ; sur le clavier, la barre d'espace donne les gaz
+[bolides] Circuits plus larges, on glisse le long des murs au lieu de s'y accrocher
+[tirsaubut] Nouveau duel : séance de penaltys, en duel, contre l'IA ou en ligne
+[tirsaubut] Vue du tireur et vraie vue du gardien quand c'est toi qui gardes les buts
+[toupies] Nouveau duel : on jette sa toupie dans l'arène, rail, bouclier et piège de glace
+[toupies] Toupies plus maniables, bonus plus fréquents, et le piège de glace qui gèle l'adversaire
+[toupies] En ligne : les deux joueurs peuvent enfin lancer leur toupie
 🌀 Un nouveau duel se prépare en coulisses… bientôt dans la borne !

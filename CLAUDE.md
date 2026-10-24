@@ -369,7 +369,7 @@ Connecteur Supabase (MCP) disponible dans les sessions Claude : apply_migration 
   vieilles pages d'avant la 1.7. Les vieilles pages se mettent aussi à jour seules (site.json à la racine relu toutes les 60 s, l'accueil
   renvoie `?v=` vers jouer/) : verifier-publication.js refuse une publication qui casserait ce chemin.
 - Un jeu peut demander un morceau précis : api.music('iloboss') (musique de boss de Galaxy Wars), api.music() pour revenir.
-- Nouveautés d'une version : `source/nouveautes.txt` (une ligne par nouveauté) → affichées dans la cloche après la mise à jour
+- Nouveautés d'une version : `source/nouveautes.txt` → affichées dans la cloche après la mise à jour, RANGÉES PAR JEU (24 oct. 2026, demande de l'utilisateur : « chacun sa mise à jour », notes détaillées). Une ligne = une nouveauté écrite en détail ; `[pegase] …` = notes de Pégase, `[neon] …` / `[toupies] …` (id du jeu) = notes de ce jeu (sous « Nos autres jeux »), sans crochets = la borne ; `[id] ## titre` = sous-titre (une version de Pégase) ; lignes `#` ignorées. L'ancien format « 🎣 PÉGASE x.y : a ; b » est encore compris (shell2.js `notesGroups`). Rien de privé : c'est public
   automatique, avec le message « ✨ Mise à jour X installée ! ». À réécrire avant chaque publication importante.
 
 ## Plein écran sur téléphone (1.11.5, octobre 2026)

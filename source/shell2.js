@@ -1366,8 +1366,7 @@ function notifRow(n, isNew) {
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✨'; ic.style.background = 'var(--gold)';
     const b = document.createElement('b'); b.textContent = 'Version ' + n.v + ' installée';
     tx.append(b);
-    const notes = window.JDW_NOTES || [];
-    if (notes.length) { const ul = document.createElement('ul'); ul.className = 'nt-notes'; for (const t of notes) { const li2 = document.createElement('li'); li2.textContent = t; ul.appendChild(li2); } tx.append(ul); }
+    li.classList.add('nt-upd'); notesInto(tx);
     li.append(ic, tx);
     return li;
   }
@@ -1397,6 +1396,52 @@ function notifRow(n, isNew) {
   const sm = document.createElement('small'); sm.textContent = fmt(n.score) + unit(g) + ' contre ' + fmt(n.prev) + unit(g) + ' pour toi · ' + timeAgo(n.at);
   tx.append(sm); li.append(av, tx);
   return li;
+}
+// NOTES DE MISE À JOUR rangées par jeu (source/nouveautes.txt : « [pegase] … », « [neon] … », « [id] ## sous-titre », sans crochets =
+// la borne ; lignes « # » ignorées). L'ancien format (« 🎣 PÉGASE 0.9.4.6 : a ; b ; c ») est encore compris : une version = un sous-titre,
+// une nouveauté par « ; ». Pégase d'abord, puis chaque jeu (sous « Nos autres jeux »), puis la borne. Chaque jeu a ses notes à lui.
+const NOTE_IC = { pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', borne: '🕹️' };
+function notesGroups() {
+  const G = new Map(), add = (id, kind, t) => { if (!G.has(id)) G.set(id, []); G.get(id).push({ kind, t: String(t).trim() }); };
+  for (const raw of window.JDW_NOTES || []) {
+    const l = String(raw).trim(); if (!l || l[0] === '#') continue;
+    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/);
+    if (m) { const sub = m[2].match(/^##\s*(.+)$/); if (m[2]) add(m[1], sub ? 'h' : 'i', sub ? sub[1] : m[2]); continue; }
+    const id = /P[ÉE]GASE|GRAND LIVRE|PegaGram/i.test(l) ? 'pegase' : 'borne', cut = l.indexOf(' : ');
+    if (cut > 0 && cut < 70) { add(id, 'h', l.slice(0, cut)); for (const x of l.slice(cut + 3).split(/\s*;\s*/)) if (x) add(id, 'i', x[0].toUpperCase() + x.slice(1)); }
+    else add(id, 'i', l);
+  }
+  const rank = (id) => (id === 'pegase' ? 0 : id === 'borne' ? 2 : 1);
+  return [...G.keys()].sort((a, b) => rank(a) - rank(b)).map(id => ({ id, items: G.get(id) }));
+}
+function notesInto(box) {
+  const groups = notesGroups(); if (!groups.length) return;
+  const wrap = document.createElement('div'); wrap.className = 'nt-grps';
+  for (const gr of groups) {
+    const g = gr.id === 'pegase' || gr.id === 'borne' ? null : (gameById(gr.id) || duoById(gr.id));
+    const title = gr.id === 'pegase' ? 'Pégase' : gr.id === 'borne' ? 'La borne' : g ? g.title : gr.id;
+    const sec = document.createElement('section'); sec.className = 'nt-grp' + (gr.id === 'pegase' ? ' pg' : '');
+    sec.style.setProperty('--gc', gr.id === 'pegase' ? '#5ef0ff' : gr.id === 'borne' ? 'var(--amber)' : (g && g.accent) || 'var(--volt)');
+    const hd = document.createElement('div'); hd.className = 'nt-gh';
+    const ic = document.createElement('i'); ic.textContent = NOTE_IC[gr.id] || '🎮';
+    const b = document.createElement('b'); b.textContent = title;
+    const where = document.createElement('small'); where.textContent = gr.id === 'pegase' ? 'Onglet Pégase' : gr.id === 'borne' ? 'Toute la borne' : 'Nos autres jeux';
+    hd.append(ic, b, where); sec.appendChild(hd);
+    let ul = null;
+    for (const it of gr.items) {
+      if (it.kind === 'h') { const h = document.createElement('h4'); h.textContent = it.t; sec.appendChild(h); ul = null; continue; }
+      if (!ul) { ul = document.createElement('ul'); ul.className = 'nt-notes'; sec.appendChild(ul); }
+      const li2 = document.createElement('li'); li2.textContent = it.t; ul.appendChild(li2);
+    }
+    // aller voir : Pégase → son onglet ; un jeu → « Nos autres jeux » (son mode) ; la borne → rien
+    if (gr.id !== 'borne') {
+      const go = document.createElement('button'); go.type = 'button'; go.className = 'nt-go'; go.textContent = gr.id === 'pegase' ? 'Aller dans Pégase ›' : 'Y jouer ›';
+      go.addEventListener('click', (e) => { e.stopPropagation(); closeSheet('jdw-notifs'); if (!$('jdw-play').hidden) backToLibrary(); if (gr.id === 'pegase' && PG_TAB) { setMode('pegase', true); return; } const gg = gameById(gr.id); if (gg) openGame(gg); else if (duoById(gr.id)) setMode('duel', true); });
+      sec.appendChild(go);
+    }
+    wrap.appendChild(sec);
+  }
+  box.appendChild(wrap);
 }
 function openNotifs(showOld) {
   const ol = $('jdw-notifs-list'); ol.textContent = '';
@@ -4311,6 +4356,7 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    une seule : celle de Patou et Samba, amis seulement). Tant que le serveur des îles n'existe pas, la page est vide (« bientôt »).
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
 const PG_TAB = LABO_TEST && !!gameById('pegase');
+if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
 const PG = { tab: 'pub', last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
