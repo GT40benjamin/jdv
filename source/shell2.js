@@ -4708,8 +4708,9 @@ function islePhoto(cv, im, q, seed) {
   const G = q.fog && typeof q.fog === 'object' && !Array.isArray(q.fog) && q.fog.b ? q.fog : null, m = G && isleFogMask(G);
   const [fogC, f] = off();
   if (m) {
-    f.fillStyle = 'rgba(222,232,246,.86)'; f.fillRect(0, 0, w, h);
-    for (let i = 0; i < 90; i++) { const px = r() * w, py = r() * h, rr = (12 + r() * 24) * S; f.fillStyle = rad(f, px - rr * 0.3, py - rr * 0.4, 1, px, py, rr, [0, i % 4 ? 'rgba(255,255,255,.5)' : 'rgba(170,185,215,.35)', 1, 'rgba(255,255,255,0)']); f.beginPath(); f.ellipse(px, py, rr, rr * 0.7, 0, 0, 7); f.fill(); }
+    // brume du soir : bleutée et un peu transparente, on devine la carte dessous (ce qu'on n'a pas encore exploré)
+    const fg = f.createLinearGradient(0, 0, 0, h); fg.addColorStop(0, 'rgba(200,214,240,.74)'); fg.addColorStop(1, 'rgba(170,186,228,.70)'); f.fillStyle = fg; f.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { const px = r() * w, py = r() * h, rr = (12 + r() * 24) * S; f.fillStyle = rad(f, px - rr * 0.3, py - rr * 0.4, 1, px, py, rr, [0, i % 4 ? 'rgba(255,255,255,.38)' : 'rgba(150,165,215,.30)', 1, 'rgba(255,255,255,0)']); f.beginPath(); f.ellipse(px, py, rr, rr * 0.7, 0, 0, 7); f.fill(); }
     f.globalCompositeOperation = 'destination-out';
     // le rectangle de la brume posé sur celui de la photo (mètres du monde ; le plus souvent le même : [0, 0, 1800, 1800], nord en haut)
     const pr = Array.isArray(q.photo.r) && q.photo.r.length === 4 ? q.photo.r : G.r, gr = Array.isArray(G.r) && G.r.length === 4 ? G.r : pr;
