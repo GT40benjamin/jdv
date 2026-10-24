@@ -4509,7 +4509,7 @@ const ERRS = [[/pleine/, 'Cette île est pleine (toutes les parcelles sont prise
   [/pas gardien/, 'Seul le gardien de l\'île peut faire ça.'], [/pas membre/, 'Cette personne ne fait plus partie de l\'île.']];
 const islErr = (e) => { const t = String((e && e.message) || ''); for (const [re, m] of ERRS) if (re.test(t)) return m; return e && e.guest ? 'Crée ton compte (gratuit) pour jouer sur une île.' : 'Impossible pour le moment, réessaie plus tard.'; };
 // petit panneau dans la carte (mot de passe, demande, gestion) : pas de prompt()
-function islPanel(host, html) { let pn = host.querySelector('.pi-panel'); if (pn) pn.remove(); pn = document.createElement('div'); pn.className = 'pi-panel'; pn.innerHTML = html; host.appendChild(pn); return pn; }
+function islPanel(host, html) { let pn = host.querySelector('.pi-panel'); if (pn) pn.remove(); pn = document.createElement('div'); pn.className = 'pi-panel'; pn.innerHTML = html; host.appendChild(pn); setTimeout(() => { try { pn.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {} }, 400); return pn; }   // (après le chargement du contenu : le panneau entier au-dessus de la barre du bas)
 // demander l'accès à une île protégée : e-mail (obligatoire sans compte), puis on suit le ticket
 function islRequest(q, card) {
   const pn = islPanel(card, '<b class="pp-t"></b><label>' + (isGuest() ? 'Ton e-mail (obligatoire sans compte)' : 'Ton e-mail (facultatif)') + '<input type="email" autocomplete="email" maxlength="80"></label><div class="pp-row"><button type="button" class="pp-ok">Envoyer la demande</button><button type="button" class="pp-x">Annuler</button></div><p class="pp-msg"></p><p class="pp-small">Ton e-mail n\'est jamais montré au gardien ; il est effacé dès qu\'il répond.</p>');
