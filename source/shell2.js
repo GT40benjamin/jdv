@@ -4509,7 +4509,7 @@ function pgRankRender() {
     const tr = document.createElement('tr'); if (PG.isle && PG.isle.id === r.r_id) tr.className = 'me';
     const td = (t, c) => { const d = document.createElement('td'); d.textContent = t; if (c) d.className = c; tr.appendChild(d); };
     td(i < 3 && PGR.srv ? ['🥇', '🥈', '🥉'][i] : String(i + 1), 'rk'); td(String(r.r_name || 'Île').slice(0, 30), 'nm');
-    td(PGR.srv ? fmt(+r.r_especes || 0) : '—'); td(PGR.srv ? (r.r_heures != null ? fmt(Math.round(+r.r_heures)) + ' h' : '—') : '—'); td(fmt(+r.r_membres || 0));
+    td(PGR.srv ? fmt(+r.r_especes || 0) : '—'); td(PGR.srv && +r.r_heures > 0 ? (+r.r_heures < 10 ? String(Math.round(+r.r_heures * 10) / 10).replace('.', ',') : fmt(Math.round(+r.r_heures))) + ' h' : '—'); td(fmt(+r.r_membres || 0));   // temps : 0 h = pas encore compté (îles éteintes dans le jeu)
     tb.appendChild(tr);
   });
   $('jdw-pgrank-note').textContent = PGR.srv ? '' : '🌱 Bientôt : les espèces trouvées et le temps passé sur chaque île.';
