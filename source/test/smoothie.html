@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Test smoothie</title>
+<style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
+</head><body>
+<div id="root"></div>
+<script src="../manette.js"></script>
+<script>
+if (location.search.indexOf('fast') >= 0) {
+  // accélère le temps pour tester la fin de partie
+  let fakeNow = 0;
+  window.requestAnimationFrame = (cb) => setTimeout(() => { fakeNow += 50; cb(fakeNow); }, 2);
+  window.cancelAnimationFrame = (id) => clearTimeout(id);
+}
+</script>
+<script src="../games/smoothie.js"></script>
+<script>
+window.__over = [];
+window.__cele = [];
+window.__tones = 0;
+// fausse tête : visage simple sur fond transparent ; sad = même visage, teinte bleue, larmes, bouche à l'envers
+function fakeHead(skin, hair, mood, sad) {
+  const c = document.createElement('canvas'); c.width = 160; c.height = 200;
+  const g = c.getContext('2d');
+  g.fillStyle = skin; g.beginPath(); g.ellipse(80, 108, 62, 80, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = hair; g.beginPath(); g.ellipse(80, 50, 66, 40, 0, Math.PI, 0); g.fill();
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(56, 100, 13, 0, 7); g.arc(104, 100, 13, 0, 7); g.fill();
+  g.fillStyle = '#222'; g.beginPath(); g.arc(58, 102, 6, 0, 7); g.arc(102, 102, 6, 0, 7); g.fill();
+  g.strokeStyle = '#7a2a2a'; g.lineWidth = 6; g.beginPath();
+  if (sad) g.arc(80, 165, mood, 1.2 * Math.PI, 1.8 * Math.PI);
+  else g.arc(80, 140, mood, 0.15 * Math.PI, 0.85 * Math.PI);
+  g.stroke();
+  if (sad) {
+    // teinte bleue
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = 'rgba(60,110,220,0.35)'; g.fillRect(0, 0, 160, 200);
+    g.globalCompositeOperation = 'source-over';
+    // larmes
+    g.fillStyle = '#6cc8ff';
+    for (const x of [52, 108]) {
+      g.beginPath(); g.moveTo(x, 116); g.quadraticCurveTo(x + 9, 136, x, 142); g.quadraticCurveTo(x - 9, 136, x, 116); g.fill();
+    }
+  }
+  return c;
+}
+function mk(name, skin, hair, mood, withSad) {
+  const h = { name, img: fakeHead(skin, hair, mood, false) };
+  if (withSad) h.sad = fakeHead(skin, hair, mood, true);
+  return h;
+}
+const Q = location.search;
+const HEADS = Q.indexOf('heads') >= 0 ? [
+  mk('PATOU', '#f2c39b', '#5a3a1a', 22, Q.indexOf('nosad') < 0),
+  mk('Juju', '#c98b5e', '#1a1a1a', 26, Q.indexOf('nosad') < 0),
+  mk('Momo', '#ffd9c0', '#d9902a', 18, Q.indexOf('nosad') < 0)
+] : [];
+const api = {
+  heads: () => HEADS.slice(),
+  player: { name: 'PATOU', img: HEADS[0] ? HEADS[0].img : null },
+  celebrate(text, name) { console.log('CELEBRATE', text, name || ''); window.__cele.push(text); },
+  gameOver(s) { console.log('GAMEOVER', s); window.__over.push(s); },
+  audio: { tone() { window.__tones++; }, noise() {} },
+  fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+  colors: { night:'#0b141c', panel:'#111d27', steel:'#22394a', steel2:'#3a5568', ink:'#e9f0f3', muted:'#8aa0ae', amber:'#ffa630', gold:'#ffd34d', alarm:'#ff4d5e', volt:'#5ef0ff', spray:'#ff5fae', leaf:'#4cc36a' }
+};
+if (window.JDW_PAD && !api.pad) api.pad = JDW_PAD.gameApi();   // manettes (CONTRACT.md Ajout 10)
+{ const m = /start=([0-9]+)/.exec(Q); if (m) api.startLevel = +m[1]; const sd = /seed=([0-9]+)/.exec(Q); if (sd) api.seed = +sd[1]; }
+window.__game = window.JDW_GAMES.smoothie.mount(document.getElementById('root'), api);
+</script>
+</body></html>

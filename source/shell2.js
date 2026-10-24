@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
@@ -20,6 +20,7 @@ const TILE_NEWS = {
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 01:03' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
+  smoothie: { kind: 'new', at: '2026-10-24 06:37' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 06:08' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
   pegase: { kind: 'maj', at: '2026-10-22 08:11' }   // Pégase 0.9.2 : appels entre copains, maisons des copains, réveil chez soi (1.25.2 ; heure = celle de la publication)
@@ -28,7 +29,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['toupies', 'tirsaubut']);   // Turbo Toupies et Tirs au But en essai (duels) ; avant : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12
+const LABO = new Set(['toupies', 'tirsaubut', 'smoothie']);   // en essai : Turbo Toupies et Tirs au But (duels), Smoothie Samouraï (Classique) ; avant : Pégase sorti pour tous en 1.22 (20 oct.), Mandale Kombat en 1.17, Magic Force en 1.12
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -1006,7 +1007,7 @@ function musicVariants(id, mode) {
   return list.length ? list : [id];
 }
 // niveau à partir duquel la musique devient énergique, par jeu
-const INTENSE_AT = { magic: 2, ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
+const INTENSE_AT = { smoothie: 4, magic: 2, ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
 // morceaux emballés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée de la clé d'emballage
 // intégrée au site (window.JDW_ASSET_KEY, source/asset-key.txt) : pas un secret, les fichiers ne sont simplement jamais lisibles directement
 const MUSIC_ENC = new Set(window.JDW_MUSIC_ENC || []);
@@ -7809,6 +7810,44 @@ const MAP_DEFS = {
     warm(L, bgDpr, dpr) { mfWarm(L, bgDpr, dpr, this); },
     start: { title: 'Départ', sub: 'Le mage entre dans le donjon' },
     get cap() { return { title: 'Le royaume est sauvé !', sub: 'Après le Seigneur des ombres : la grande victoire' }; }
+  },
+  // Smoothie Samouraï (games/smoothie.js) : 6 mondes de 3 niveaux (le Verger, la Plage, le Dojo, le Marché de nuit, le Volcan, le Cosmos),
+  // le 3e niveau = le fruit géant du monde, puis le Tour II, III… plus rapide. Décor de chaque monde (le même que dans le jeu), médaillons
+  // (le fruit du niveau, entier ou coupé), boss (le fruit géant et sa parure) et sabre du départ : le jeu (JDW_GAMES.smoothie.mapArt).
+  smoothie: {
+    theme: 'smoothie', word: 'Niveau', tierGap: 150, majorGap: 250, tierAt: 0.55, step: 150, nodeSize: 56, bossSize: 64, bgDpr: 1.6, lazy: true,
+    count: max => Math.min(180, Math.max(18, Math.ceil((max + 2) / 18) * 18)),
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.smoothie; return G && Array.isArray(G.worlds) && G.worldOf && G.mapArt ? G : null; },
+    wo(lv) { const G = this.game(); return G ? G.worldOf(lv) : { w: Math.floor((lv - 1) / 3) % 6, tour: Math.floor((lv - 1) / 18), stage: (lv - 1) % 3, boss: (lv - 1) % 3 === 2, world: null }; },
+    level(lv) {
+      const G = this.game(), wo = this.wo(lv), D = wo.world, m = G ? G.mapArt.level(lv) : null;
+      return { lv, tier: wo.tour * 6 + wo.w, w: wo.w, tour: wo.tour, stage: wo.stage, boss: !!wo.boss,
+        kicker: 'Niveau ' + lv + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''), name: m ? m.name : 'Niveau ' + lv,
+        lines: m && m.line ? [m.line] : [], acc: D ? D.colors.accent : '#ff5a8a' };
+    },
+    short(lv) { const wo = this.wo(lv); return 'Niveau ' + lv + (wo.world ? ' · ' + wo.world.name : '') + (wo.tour ? ' · Tour ' + mapRoman(wo.tour) : ''); },
+    boss(lv) {
+      const wo = this.wo(lv); if (!wo.boss) return null;
+      const D = wo.world;
+      return { lv, bk: D ? D.boss.key : 'roi', name: (D ? D.boss.name : 'Le fruit géant') + (wo.tour ? ' ' + mapRoman(wo.tour) : ''), final: wo.w === 5,
+        kicker: (wo.tour ? 'Tour ' + mapRoman(wo.tour) + ' · ' : '') + 'Fin du monde ' + (wo.w + 1) };
+    },
+    tier(t) {
+      const G = this.game(), w = t % 6, tour = Math.floor(t / 6), D = G ? G.worlds[w] : null;
+      return { kicker: (tour ? 'Tour ' + mapRoman(tour) + ' · ' : '') + 'Monde ' + (w + 1) + (D ? ' · ' + D.when : ''), title: D ? D.name : 'Monde ' + (w + 1),
+        icon: G && G.drawWorldIcon ? (x, r) => G.drawWorldIcon(x, w + 1, 0, 0, r) : null, emoji: D ? D.emoji : '',
+        sub: D ? D.tag + '. Boss : ' + D.boss.name.replace(/^./, c => c.toLowerCase()) + '.' : '',
+        acc: D ? D.colors.accent : '#ff5a8a', acc2: D ? D.colors.accent2 : '#ffd34d', w, tour,
+        major: w === 0 && tour > 0, majorTitle: 'Tour ' + mapRoman(tour), majorSub: 'Les 6 mondes reviennent, encore plus vite !' };
+    },
+    stops(L) { const G = this.game(); return G ? G.mapArt.stops(L) : [[L.H, '#ffb98a'], [0, '#05030f']]; },
+    paint(x, L, W, y0, h) { const G = this.game(); if (G) G.mapArt.paint(x, L, W, y0, h); },
+    node(x, info, size, P) { const G = this.game(); if (G) G.mapArt.node(x, info, size, P); },
+    bossArt(x, bi, size, P) { const G = this.game(); if (G) G.mapArt.boss(x, bi, size, P); },
+    startArt(x, P) { const G = this.game(); if (G && G.mapArt.start) G.mapArt.start(x, P); },
+    warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
+    start: { title: 'Départ', sub: 'Le samouraï sort son sabre' },
+    cap: { title: 'Le festin continue…', sub: 'Un nouveau tour tous les 18 niveaux, toujours plus vite' }
   }
 };
 
