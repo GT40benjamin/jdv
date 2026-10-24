@@ -1,26 +1,42 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 31,
-  "versionName": "0.9.4.4",
-  "size": 1037877366,
-  "sha256": "7f1ce865cedf7f7856727bf96bc2ca1af8b787420df82001b9d3523d57be6772",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v31/pegase-0.9.4.4.apk",
+  "versionCode": 32,
+  "versionName": "0.9.4.5",
+  "size": 1052665850,
+  "sha256": "97007dcebaf94a85eb11e1f0f904c40fcfed33d78de4a640298e6917e91412ea",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v32/pegase-0.9.4.5.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Beaucoup plus fluide : fini les saccades pendant les missions photo.",
-    "Le grand-duc : caché dans le buisson, on voit à travers les feuilles au viseur ; il vient au sifflet, reste si tu restes discret et se tourne vers toi. Les buissons sont sur la carte et une jauge montre à quel point tu es caché.",
-    "La pluie : le ciel devient gris d'orage et on entend une pluie douce. Après l'averse, un nouvel arc-en-ciel éclatant, même la nuit.",
-    "Ta bouche bouge quand tu parles, même avec un micro de casque faible.",
-    "De nouvelles petites bêtes à photographier : scolie, mante religieuse, grande sauterelle verte, cigale, blatte des bois. Le nom sous tes photos est enfin le bon.",
-    "Concours du plus gros champignon : une seule publication avec « Déposer ma photo » et toutes les photos en grille ; des spores dorées guident la nuit.",
-    "L'album : partage ta photo sur PegaGram depuis la photo en grand.",
-    "Les fleurs du décor (iris, colza, herbe de la pampa…) se photographient et vont au Grand livre ; l'analyse prend la fleur que tu vises.",
-    "Et aussi : Réglages du téléphone rangés par thèmes, accroupi qui marche, moutons plus naturels, clôture posée poteau par poteau, panneau de parcelle propre avec ton nom."
+    "La pêche à la canne à coup : une longue canne fine en bambou (5 m, 6 m pour celle de Gaspard), tu tiens la ligne et tu la lâches pour lancer ; vrai flotteur, vrais sons d'eau, vibrations, ferrage et sortie du poisson au ralenti ; tes copains te voient tenir la canne et le fil.",
+    "Des déplacements tout doux : plus d'à-coups dans les escaliers, des virages qui finissent en douceur, une caméra plus calme, et tes copains bougent sans saccades.",
+    "Au viseur, tu peux marcher doucement sans quitter l'objectif.",
+    "Dans ta maison, la caméra reste à l'intérieur.",
+    "Les fourmis : quatre sortes, en colonnes, autour de leurs nids.",
+    "Le grand-duc encore plus beau au viseur, avec quelques feuilles floues autour de l'objectif.",
+    "Le village : maison de départ chaleureuse (et « Réaménager l'intérieur »), vrai four à pain avec ses braises, étal bien rangé, nom gravé sur le panneau, toits réparés, boîte aux lettres et panneau qu'on peut déplacer.",
+    "Les habitants font de vrais gestes en parlant ; Mathilde est plus simple ; les lustres du musée ne gênent plus.",
+    "Les gestes : la roue ne montre que les tiens, et un câlin tout doux.",
+    "Le Grand livre : un chapitre « Fruits et légumes », les oies et les chauves-souris."
   ],
   "historique": [
+    {
+      "version": "0.9.4.5",
+      "notes": [
+        "La pêche à la canne à coup : une longue canne fine en bambou (5 m, 6 m pour celle de Gaspard), tu tiens la ligne et tu la lâches pour lancer ; vrai flotteur, vrais sons d'eau, vibrations, ferrage et sortie du poisson au ralenti ; tes copains te voient tenir la canne et le fil.",
+        "Des déplacements tout doux : plus d'à-coups dans les escaliers, des virages qui finissent en douceur, une caméra plus calme, et tes copains bougent sans saccades.",
+        "Au viseur, tu peux marcher doucement sans quitter l'objectif.",
+        "Dans ta maison, la caméra reste à l'intérieur.",
+        "Les fourmis : quatre sortes, en colonnes, autour de leurs nids.",
+        "Le grand-duc encore plus beau au viseur, avec quelques feuilles floues autour de l'objectif.",
+        "Le village : maison de départ chaleureuse (et « Réaménager l'intérieur »), vrai four à pain avec ses braises, étal bien rangé, nom gravé sur le panneau, toits réparés, boîte aux lettres et panneau qu'on peut déplacer.",
+        "Les habitants font de vrais gestes en parlant ; Mathilde est plus simple ; les lustres du musée ne gênent plus.",
+        "Les gestes : la roue ne montre que les tiens, et un câlin tout doux.",
+        "Le Grand livre : un chapitre « Fruits et légumes », les oies et les chauves-souris."
+      ]
+    },
     {
       "version": "0.9.4.4",
       "notes": [
@@ -64,16 +80,6 @@
         "Mathilde ne traverse plus son tabouret ni le comptoir, et Hugo non plus à la Poste.",
         "Le lys de la boutique photo est dans un vrai pot en terre cuite.",
         "Le micro devient une petite bouche en haut à droite : grise et barrée quand il est coupé, dorée quand il est ouvert, et elle bouge quand tu parles."
-      ]
-    },
-    {
-      "version": "0.9.4",
-      "notes": [
-        "Concours du plus gros champignon : après chaque pluie, photographie le plus gros champignon que tu trouves et publie-le sur PegaGram. Les géants légendaires sont très rares !",
-        "Les fleurs entrent au Grand livre : tournesol géant, colza, coquelicot, marguerite, iris, lys de la paix et nénuphar à photographier.",
-        "Champs de tournesols géants et prés de coquelicots qui dansent dans le vent.",
-        "Analyse au viseur : un cercle lumineux se remplit autour de l'animal ; une espèce déjà au livre n'est plus analysée.",
-        "Choix du micro dans Réglages › Voix ; les lettres des touches sont sous les ronds."
       ]
     }
   ]
