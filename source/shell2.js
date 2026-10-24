@@ -4551,13 +4551,17 @@ async function islWatch(q, card) {
   else {
     // en spectateur, on ne voit que les avatars et leur pseudo public (le nom arrive tout prêt du serveur : pseudo public ou « HabitantXXXXXX »)
     const ppl = Array.isArray(w.r_players) ? w.r_players : Array.isArray(w.r_avatars) ? w.r_avatars : [], on = w.r_online | 0;
-    t = on + ' joueur' + (on > 1 ? 's' : '') + ' en ligne' + (w.r_members ? ' / ' + w.r_members + ' membre' + (w.r_members > 1 ? 's' : '') : '') + '.' + (ppl.length ? '' : ' Personne sur l\'île pour le moment.');
+    const mem = w.r_members || q.members | 0;
+    t = on + ' joueur' + (on > 1 ? 's' : '') + ' en ligne' + (mem ? ' / ' + mem + ' membre' + (mem > 1 ? 's' : '') : '') + '.' + (on || ppl.length ? '' : ' Personne sur l\'île pour le moment.');
+    // les maisons : seulement pour les amis du gardien (r_houses_shown), sinon le cadenas et « Demander l'accès »
+    const hs = Array.isArray(w.r_houses) ? w.r_houses : [];
+    t += w.r_houses_shown === false ? ' 🔒 Les maisons ne se montrent qu\'aux amis du gardien.' : hs.length ? ' 🏠 ' + hs.length + ' maison' + (hs.length > 1 ? 's' : '') + ' : ' + hs.slice(0, 12).map(x => String(x.n || '').slice(0, 24)).filter(Boolean).join(', ') + (hs.length > 12 ? '…' : '') + '.' : w.r_houses_shown ? ' Pas encore de maison.' : '';
     if (ppl.length) {
       const who = document.createElement('div'); who.className = 'pp-who';
       for (const a of ppl.slice(0, 24)) { const sp = document.createElement('span'), nm = String(a.r_name || a.n || a.name || '').slice(0, 24), ph = a.r_photo || a.photo || ''; if (ph && /^(data:image\/|https:\/\/)/.test(ph)) { const im = document.createElement('img'); im.src = ph; im.alt = ''; sp.appendChild(im); } else { const b = document.createElement('b'); b.textContent = (nm[0] || '?').toUpperCase(); sp.appendChild(b); } sp.appendChild(document.createTextNode(nm)); who.appendChild(sp); }
       pn.querySelector('.pp-msg').after(who);
     }
-    if (q.priv && !q.mine) { const ab = pn.querySelector('.pp-ask'); ab.hidden = false; ab.addEventListener('click', () => islRequest(q, card)); }
+    if (q.priv && !q.mine && w.r_houses_shown !== true) { const ab = pn.querySelector('.pp-ask'); ab.hidden = false; ab.addEventListener('click', () => islRequest(q, card)); }
   }
   pn.querySelector('.pp-msg').textContent = t;
   // l'appli Pégase (Android) sait regarder une île : salle=<id>&regarder=1, sans jeton
