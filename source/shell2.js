@@ -4808,6 +4808,17 @@ function isleNoise(x, y) {
 // relief des dômes (doux) : trois couches de bruit tournées l'une par rapport à l'autre, pour qu'aucun quadrillage ne se voie
 function isleFbm3(x, y) { return isleNoise(x * 0.866 - y * 0.5, x * 0.5 + y * 0.866) * 0.57 + isleNoise((x * 0.34 + y * 0.94) * 2.03 + 5.2, (-x * 0.94 + y * 0.34) * 2.03 + 1.3) * 0.29 + isleNoise((x * 0.98 - y * 0.2) * 4.1 + 9.1, (x * 0.2 + y * 0.98) * 4.1 + 3.7) * 0.14; }
 function isleFbm(x, y) { let s = 0, amp = 0.5, f = 1; for (let o = 0; o < 5; o++) { const c = Math.cos(o * 0.9), sn = Math.sin(o * 0.9); s += amp * isleNoise((x * c - y * sn) * f + o * 3.1, (x * sn + y * c) * f + o * 1.7); f *= 2.03; amp *= 0.5; } return s / 0.97; }
+// la côte du rendu 3D : liste en ligne ([[x, y], …] ou { p: […] }) ou adresse d'un .json (gardé en mémoire) ; null tant qu'elle manque
+const ISLE_COTE = new Map();
+function isleCoastNow(P, again) {
+  const c = P.cote; if (!c) return null;
+  const pts = (v) => { const a = Array.isArray(v) ? v : v && Array.isArray(v.p) ? v.p : null; return a && a.length > 8 && a.every(q => Array.isArray(q) && q.length >= 2 && isFinite(q[0]) && isFinite(q[1])) ? a : null; };
+  if (typeof c !== 'string') return pts(c);
+  if (!/^https:\/\//.test(c)) return null;
+  const got = ISLE_COTE.get(c); if (got && got !== 'wait') return got === 'bad' ? null : got;
+  if (!got) { ISLE_COTE.set(c, 'wait'); fetch(c).then(r => (r.ok ? r.json() : null)).catch(() => null).then((j) => { ISLE_COTE.set(c, pts(j) || 'bad'); if (pts(j)) again(); }); }
+  return null;
+}
 function islePhoto(cv, im, q, seed) {
   const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(w * k); cv.height = Math.round(h * k);
@@ -4817,6 +4828,11 @@ function islePhoto(cv, im, q, seed) {
   const P = q.photo, iso = !!(P.proj && P.proj.p), R = Array.isArray(P.r) && P.r.length === 4 ? P.r : [0, 0, 1800, 1800];
   const W = im.naturalWidth, H = im.naturalHeight, m = iso ? 0.92 : 0.9, sc = Math.min(w * m / W, h * m / H), iw = W * sc, ih = H * sc, ix = (w - iw) / 2, iy = (h - ih) / 2 - (iso ? h * 0.02 : 0);
   const ccx = ix + iw / 2, ccy = iy + ih / 2;
+  const CP = iso ? isleCoastNow(P, () => { if (cv.isConnected) islePhoto(cv, im, q, seed); }) : null;
+  // la vraie côte en pixels, son centre, et un tracé décalé vers le large de d pixels (vu de biais : moins en hauteur)
+  const cpx = CP ? CP.map(([a, c]) => [ix + a * iw, iy + c * ih]) : null;
+  const cg = cpx ? cpx.reduce((A, p2) => [A[0] + p2[0] / cpx.length, A[1] + p2[1] / cpx.length], [0, 0]) : [ccx, ccy];
+  const offPath = (x, d, dy) => { const n = cpx.length; x.beginPath(); for (let i = 0; i <= n; i++) { const p0 = cpx[(i - 1 + n) % n], p1 = cpx[i % n], p2 = cpx[(i + 1) % n]; let nx2 = p2[1] - p0[1], ny2 = -(p2[0] - p0[0]); const l = Math.hypot(nx2, ny2) || 1; nx2 /= l; ny2 /= l; if (nx2 * (p1[0] - cg[0]) + ny2 * (p1[1] - cg[1]) < 0) { nx2 = -nx2; ny2 = -ny2; } x.lineTo(p1[0] + nx2 * d, p1[1] + ny2 * d * 0.62 + (dy || 0)); } x.closePath(); };
   const coast = (x, k2, dy) => { x.beginPath(); for (let i = 0; i <= 220; i++) { const a = i / 220 * 6.2832, rr = isleRim(a) * k2; x.lineTo(ccx + Math.cos(a) * rr * iw, ccy + Math.sin(a) * rr * ih + (dy || 0)); } x.closePath(); };
   // ---- la mer du soir (fond fixe ; reflets animés) ----
   const [seaC, s] = off();
@@ -4825,9 +4841,21 @@ function islePhoto(cv, im, q, seed) {
   s.fillStyle = rad(s, -w * 0.05, h * 0.3, 4, 0, h * 0.3, w * 0.8, [0, 'rgba(255,190,130,.20)', 1, 'rgba(255,190,130,0)']); s.fillRect(0, 0, w, h);   // le couchant, à l'ouest
   // ---- l'île (couche fixe, elle se balance avec ses nuages) ----
   const [islC, b] = off(w, h);
-  if (iso) {
-    b.fillStyle = rad(b, w / 2, iy + ih * 0.86, 2, w / 2, iy + ih * 0.86, iw * 0.55, [0, 'rgba(0,10,25,.5)', 1, 'rgba(0,10,25,0)']); b.beginPath(); b.ellipse(w / 2, iy + ih * 0.88, iw * 0.55, ih * 0.12, 0, 0, 7); b.fill();
-    b.fillStyle = 'rgba(40,32,40,.55)'; b.beginPath(); b.moveTo(ix + iw * 0.18, iy + ih * 0.72); b.quadraticCurveTo(w / 2, iy + ih * 1.02, ix + iw * 0.82, iy + ih * 0.72); b.closePath(); b.fill();
+  if (iso && cpx) {
+    // le long de la vraie côte : lagon turquoise, ombre, épaisseur de terre, plage, sable mouillé ; puis le rendu du jeu par-dessus
+    const th = 8 * S;
+    offPath(b, 34 * S); b.fillStyle = 'rgba(60,200,215,.18)'; b.fill();
+    offPath(b, 20 * S); b.fillStyle = 'rgba(110,230,225,.28)'; b.fill();
+    offPath(b, 11 * S); b.fillStyle = 'rgba(180,248,236,.34)'; b.fill();
+    offPath(b, 5 * S, th + 6 * S); b.fillStyle = 'rgba(0,12,30,.4)'; b.fill();
+    const eg = b.createLinearGradient(0, cg[1], 0, iy + ih + th); eg.addColorStop(0, '#8a6238'); eg.addColorStop(1, '#5a3d22'); offPath(b, 5 * S, th); b.fillStyle = eg; b.fill();
+    offPath(b, 5 * S); b.fillStyle = rad(b, cg[0] - iw * 0.2, cg[1] - ih * 0.25, 4, cg[0], cg[1], iw * 0.6, [0, '#fff1c4', 1, '#e6c98a']); b.fill();
+    b.save(); offPath(b, 5 * S); b.strokeStyle = 'rgba(255,255,255,.5)'; b.lineWidth = 1.2 * S; b.stroke(); b.restore();
+    b.save(); offPath(b, 1.5 * S); b.strokeStyle = 'rgba(120,90,40,.4)'; b.lineWidth = 2.2 * S; b.stroke(); b.restore();
+    b.imageSmoothingQuality = 'high'; b.drawImage(im, ix, iy, iw, ih);
+  } else if (iso) {
+    // côte pas encore là : l'île seule, avec une ombre douce
+    b.fillStyle = rad(b, w / 2, iy + ih * 0.86, 2, w / 2, iy + ih * 0.86, iw * 0.55, [0, 'rgba(0,10,25,.45)', 1, 'rgba(0,10,25,0)']); b.beginPath(); b.ellipse(w / 2, iy + ih * 0.88, iw * 0.55, ih * 0.12, 0, 0, 7); b.fill();
     b.imageSmoothingQuality = 'high'; b.drawImage(im, ix, iy, iw, ih);
   } else {
     const th = 9 * S;
@@ -4865,6 +4893,9 @@ function islePhoto(cv, im, q, seed) {
   for (let ri = 0; ri < C; ri++) for (let ci = 0; ci < C; ci++) { const p = toPx((ci + 0.5) / C, (ri + 0.5) / C); if (!p || seen(ci, ri) < 0.5) continue; mx.beginPath(); mx.arc(p[0] / DS, p[1] / DS, p[2] * 1.25 / DS, 0, 7); mx.fill(); }
   mx.globalCompositeOperation = 'source-over';
   // quelques petits nuages détachés au-dessus de l'eau, autour de l'île (carte plate)
+  // la brume reste sur la terre : le masque est coupé à la vraie côte (un peu au-delà ; le flou fait de petits débords)
+  if (iso && cpx) { mx.save(); mx.globalCompositeOperation = 'destination-in'; mx.setTransform(1 / DS, 0, 0, 1 / DS, 0, 0); offPath(mx, 3 * S); mx.fillStyle = '#fff'; mx.fill(); mx.restore(); }
+  if (iso && cpx) { let sd = ((seed >>> 0) % 9973) + 11; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; mx.fillStyle = 'rgba(255,255,255,.85)'; for (let i = 0; i < 7; i++) { const p2 = cpx[Math.floor(r() * cpx.length)], f2 = 1.24 + r() * 0.16, rr = iw * (0.02 + r() * 0.025); mx.beginPath(); mx.ellipse((cg[0] + (p2[0] - cg[0]) * f2) / DS, (cg[1] + (p2[1] - cg[1]) * f2) / DS, rr * 1.6 / DS, rr / DS, 0, 0, 7); mx.fill(); } }
   if (!iso) { let sd = ((seed >>> 0) % 9973) + 11; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; mx.fillStyle = 'rgba(255,255,255,.85)'; for (let i = 0; i < 7; i++) { const a = r() * 6.2832, d = isleRim(a) * (1.2 + r() * 0.22), rr = iw * (0.025 + r() * 0.03); mx.beginPath(); mx.ellipse((ccx + Math.cos(a) * d * iw) / DS, (ccy + Math.sin(a) * d * ih) / DS, rr * 1.6 / DS, rr / DS, 0, 0, 7); mx.fill(); } }
   const [cvC, cx2] = off(cw, chh, 1); cx2.filter = 'blur(' + Math.max(1.5, 6 * S / DS) + 'px)'; cx2.drawImage(mC, 0, 0); cx2.filter = 'none';
   const covA = cx2.getImageData(0, 0, cw, chh).data, cov = new Float32Array(cw * chh); for (let i = 0; i < cov.length; i++) cov[i] = covA[i * 4 + 3] / 255;
@@ -4916,6 +4947,7 @@ function islePhoto(cv, im, q, seed) {
     for (const [sx, sy, l, p0, sp] of sparks) { const a = 0.5 + 0.5 * Math.sin(t * 2 * sp + p0); if (a < 0.35) continue; const xx = (sx + t * 6 * sp) % (w + 20) - 10; x.strokeStyle = 'rgba(255,255,255,' + (0.2 * a).toFixed(3) + ')'; x.lineWidth = 1; x.beginPath(); x.moveTo(xx, sy); x.lineTo(xx + l, sy); x.stroke(); }
     const bob = Math.sin(t * 0.9) * 2.5;
     // l'écume qui épouse la côte et roule vers la plage (carte plate)
+    if (iso && cpx) for (let j = 0; j < 2; j++) { const u = (t * 0.22 + j * 0.5) % 1; offPath(x, (16 - 9 * u) * S, bob); x.strokeStyle = 'rgba(235,252,255,' + (0.45 * Math.sin(u * Math.PI)).toFixed(3) + ')'; x.lineWidth = (0.8 + 1.4 * u) * S; x.stroke(); }
     if (!iso) for (let j = 0; j < 2; j++) { const u = (t * 0.22 + j * 0.5) % 1; coast(x, 1.1 - 0.08 * u, bob); x.strokeStyle = 'rgba(235,252,255,' + (0.45 * Math.sin(u * Math.PI)).toFixed(3) + ')'; x.lineWidth = (0.8 + 1.4 * u) * S; x.stroke(); }
     x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(islC, 0, bob * k);
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(nubC, 0, bob * k, cw * DS * k, chh * DS * k);
@@ -4932,7 +4964,7 @@ const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 
 let islTickets = store.get('jdw.iletickets', {}) || {};
 // r_fog : la carte de découverte du joueur (membre connecté seulement, sinon null → brume décorative) ; objet ou texte JSON
 // la vraie photo de l'île vue de dessus (rendue par le jeu, même rectangle que r_fog) : texte (adresse https) ou { url } ; le dessin sinon
-const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null, proj: v && v.proj && Array.isArray(v.proj.p) && (v.proj.n | 0) > 1 ? v.proj : null } : null; };   // proj : rendu 3D à fond transparent (île flottante)
+const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null, proj: v && v.proj && Array.isArray(v.proj.p) && (v.proj.n | 0) > 1 ? v.proj : null, cote: v && v.cote ? v.cote : null } : null; };   // cote : la côte du rendu 3D (liste ou adresse .json)   // proj : rendu 3D à fond transparent (île flottante)
 const islFog = (v) => { try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && typeof o === 'object' && typeof o.b === 'string' && (o.n | 0) > 0 ? o : null; } catch (e) { return null; } };
 async function islesData() {
   if (ISL.srv !== false) {
