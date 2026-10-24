@@ -611,6 +611,14 @@ body.pg-charte .nt-grp.pg{background:linear-gradient(135deg,rgba(94,240,255,.12)
    passe), un grand titre lumineux, des onglets et des cartes en verre ===== */
 .pg-sky{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:none}
 #jdw-lib[data-mode="pegase"] .pg-sky{display:block}
+/* le vrai décor filmé dans le jeu (quand il existe) : vidéo plein écran + voile sombre en bas pour garder les cartes lisibles */
+.pg-video,.pg-veil{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:none}
+.pg-video{object-fit:cover;background:#050a1f}
+.pg-veil{background:linear-gradient(180deg,rgba(5,10,31,.25) 0%,rgba(5,10,31,0) 22%,rgba(5,10,31,0) 45%,rgba(5,10,31,.55) 75%,rgba(5,10,31,.8) 100%)}
+#jdw-lib[data-mode="pegase"].pg-vid .pg-video,#jdw-lib[data-mode="pegase"].pg-vid .pg-veil{display:block}
+#jdw-lib[data-mode="pegase"].pg-vid .pg-sky{display:none}
+#jdw-lib[data-mode="pegase"].pg-vid .mode-hero p{text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 18px rgba(0,0,0,.65)}
+#jdw-lib[data-mode="pegase"].pg-vid .pg-tabs{background:rgba(6,14,36,.55)}
 #jdw-lib[data-mode="pegase"]{background:#050a1f}
 #jdw-lib[data-mode="pegase"] .lib-wrap{position:relative;z-index:1}
 #jdw-lib[data-mode="pegase"] .mode-hero{flex-direction:column;gap:6px;padding:26px 10px 8px;background:none;border:0;box-shadow:none;text-align:center}

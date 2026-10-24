@@ -4469,8 +4469,37 @@ function pgSkyFrame(now) {
     pgPegasus(x, px, py, sc, t, dir);
   }
 }
+// LE VRAI DÉCOR : une séquence filmée dans le jeu (prairie fleurie, vent, papillons, oiseaux) en fond plein écran, en boucle et sans
+// son : assets/pegase/decor.webm / .mp4 (et decor_portrait.* sur un écran en hauteur, s'il existe), affiche decor_poster.jpg pendant le
+// chargement, et SEULE quand l'appareil économise les données ou préfère moins d'animations. Tant que l'affiche n'existe pas (ou si la
+// vidéo ne se charge pas), le ciel dessiné ci-dessus reste en secours.
+const PGD = { state: '', still: false };
+function pgDecor(on) {
+  const v = $('jdw-pg-video'); if (!v) return false;
+  if (!on) { try { v.pause(); } catch (e) {} return PGD.state === 'ok'; }
+  if (PGD.state === 'ok') { if (!PGD.still) v.play().catch(() => {}); return true; }
+  if (PGD.state) return false;
+  PGD.state = 'wait';
+  const base = ROOT + 'assets/pegase/decor', im = new Image();
+  im.onload = () => {
+    PGD.state = 'ok'; v.poster = im.src;
+    PGD.still = !!((navigator.connection && navigator.connection.saveData) || (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+    if (!PGD.still) {
+      const port = innerHeight > innerWidth * 1.1, list = (port ? [['_portrait.webm', 'video/webm'], ['_portrait.mp4', 'video/mp4']] : []).concat([['.webm', 'video/webm'], ['.mp4', 'video/mp4']]);
+      for (const [suf, type] of list) { const s = document.createElement('source'); s.src = base + suf; s.type = type; v.appendChild(s); }
+      v.lastElementChild.addEventListener('error', () => { PGD.still = true; v.removeAttribute('src'); });   // aucune vidéo : l'affiche seule
+      v.load();
+    }
+    $('jdw-lib').classList.add('pg-vid'); cancelAnimationFrame(PGS.raf); PGS.raf = 0;
+    if (MODE === 'pegase' && !PGD.still) v.play().catch(() => {});
+  };
+  im.onerror = () => { PGD.state = 'bad'; };
+  im.src = base + '_poster.jpg';
+  return false;
+}
 function pgSky(on) {
   PGS.on = !!on;
+  if (pgDecor(PGS.on) && PGS.on) { PGS.on = false; return; }   // la vidéo du jeu remplace le ciel dessiné
   if (!PGS.on) { cancelAnimationFrame(PGS.raf); PGS.raf = 0; return; }
   if (!PGS.base || PGS.w !== innerWidth || PGS.h !== innerHeight) pgSkyBuild();
   if (!PGS.base) return;
