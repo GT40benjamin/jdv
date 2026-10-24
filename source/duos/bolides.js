@@ -122,15 +122,15 @@ window.JDW_DUOS.bolides = {
   id: 'bolides',
   title: 'Bolides RC',
   emoji: '🏎️',
-  tagline: 'Course de petites voitures téléguidées : volant, GAZ, dérapages… double tout le monde !',
+  tagline: 'Course de petites voitures téléguidées : pointe du doigt, fonce, dérape… double tout le monde !',
   accent: '#ffa630',
   target: 2,
   layout: 'shared',
   ai: true,
   net: true,
   netAnywhere: true,          // en ligne : on touche partout (chacun ne pilote que SA voiture)
-  // manette (CONTRACT.md « Ajout 10 ») : le stick = la direction où va la voiture
-  pad: { help: [['ls/dpad', 'Tourner'], ['a', 'Gaz'], ['b', 'Frein · marche arrière']] },
+  // manette (CONTRACT.md « Ajout 10 ») : le stick = la direction où va la voiture (elle accélère toute seule)
+  pad: { help: [['ls/dpad', 'Direction (la voiture y va)'], ['a', 'Déraper · mini-turbo']] },
   preview,
   mount,
 };

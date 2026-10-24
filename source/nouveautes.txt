@@ -2,6 +2,14 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre (une version de Pégase).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[bolides] ## 🏎️ Bolides RC : une conduite toute neuve
+[bolides] Pose le doigt de ton côté et pousse vers où tu veux aller : ta voiture y va et accélère toute seule
+[bolides] Avant un virage serré, la voiture ralentit d'elle-même juste ce qu'il faut : un tour propre dès la première course
+[bolides] Le bouton DÉRAPE dans les virages charge un mini-turbo : étincelles bleues, puis orange pour un super turbo
+[bolides] Un anneau à ta couleur sous ta voiture et une flèche qui montre où tu l'envoies
+[bolides] À la manette : le stick donne la direction, A pour déraper ; au clavier : les flèches, et Espace pour déraper
+[bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur
+[bolides] En ligne : plus de voiture qui saute au début d'une nouvelle manche
 [neon] ## 🎵 Néon Rush : tout beau, tout en rythme
 [neon] Six mondes entièrement redessinés, chacun avec son décor en plusieurs plans qui défilent à des vitesses différentes : Néon City, Coucher Synthwave, Cyber Océan, Grotte de Cristal, Cœur de Lave et Galaxie
 [neon] Tout bat au rythme de la musique : le sol, les blocs, les piques, les portails, ton cube et sa traînée, et toutes les lumières du décor

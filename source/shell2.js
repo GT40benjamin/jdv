@@ -20,7 +20,7 @@ const TILE_NEWS = {
   'coop-ilo': { kind: 'new', at: '2026-10-15 08:00' },   // mode Coop : Galaxy Wars à deux (1.15)
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
-  bolides: { kind: 'new', at: '2026-10-24 14:13' },   // Bolides RC (duel course de voitures, en essai derrière la porte labo ; heure = celle de la publication)
+  bolides: { kind: 'maj', at: '2026-10-24 22:40' },   // Bolides RC 1.35.1 : nouvelle conduite « pointe et fonce » (joystick = direction, gaz auto, DÉRAPE + mini-turbo) ; heure ≈ celle de la publication
   neon: { kind: 'maj', at: '2026-10-24 23:30' },   // Néon Rush 1.35 : refonte graphique (6 mondes en parallaxe qui pulsent sur la musique, effets réduits) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
