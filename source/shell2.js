@@ -116,7 +116,9 @@ function refreshNewBadges() {
   try { a = section(tiles); } catch (e) {}
   try { b = section(duoTiles); } catch (e) {}
   try { coopBadge(section(coopTiles)); } catch (e) {}   // 3e section : jeux à deux (ids coop-<id>), « bientôt » tant que la liste est vide
-  for (const [id, k] of [['jdw-cls-badge', a], ['jdw-duo-badge', b]]) {
+  // mode test : Pégase est à part (onglet du bas) : SA nouveauté va sur son onglet
+  let c = ''; try { const pb = document.querySelector('#jdw-modes [data-mode="pegase"]'); if (pb && !pb.hidden) c = tileNews('pegase') || ''; } catch (e) {}
+  for (const [id, k] of [['jdw-cls-badge', a], ['jdw-duo-badge', b], ['jdw-pg-badge', c]]) {
     const e = $(id); if (!e) continue;
     e.hidden = !k; e.textContent = k === 'new' ? 'nouveau' : 'mis à jour'; e.classList.toggle('maj', k === 'maj');
   }
@@ -1152,7 +1154,7 @@ function rhythmApi(mine) {
       return true;
     },
     // le temps de la musique (secondes, latence de sortie déduite), null si rien ne joue
-    time() { const A = Audio.ctx; if (!A || RHY.t0 == null) return null; return A.currentTime - RHY.t0 - (A.outputLatency || A.baseLatency || 0); },
+    time() { const A = Audio.ctx; if (!A || RHY.t0 == null) return null; return A.currentTime - RHY.t0 - (A.outputLatency || 0) - (A.baseLatency || 0); },   // latence totale : traitement + sortie
     stop(fade) { if (mine()) rhythmStop(fade); }
   };
 }
