@@ -1,8 +1,20 @@
 # NOTES DE MISE À JOUR (cloche de la borne, « Version … installée »). Une ligne = UNE nouveauté, écrite en détail.
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
-# jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre (une version de Pégase).
+# jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
-[pegase] ## 🏝️ La nouvelle page Pégase
+[pegase] ## 🏪 Pégase 0.9.5
+[pegase] Les boutiques ont de nouvelles devantures : grandes enseignes dorées, stores rayés aux couleurs de chaque commerce, vitrines éclairées, pancarte OUVERT / FERMÉ qui suit les horaires
+[pegase] La musique est revenue dans les boutiques et à la mairie, et elle reprend toute seule quand tu arrêtes la tienne
+[pegase] Le grand-duc sous une douce lueur de lune, son vrai hou-hou qui vient de sa direction et ses battements d'ailes
+[pegase] Des sons plus vrais : seuls les vrais animaux chantent, depuis l'endroit où ils sont
+[pegase] Les oiseaux se baladent d'un bosquet à l'autre, et des sangliers viennent parfois fouiller la nuit
+[pegase] Missions en bas de l'écran, plus discrètes ; chaque journée du jeu en propose de nouvelles
+[pegase] Le concours photo de Papi Auguste devient un dépôt : ta nouvelle photo remplace la précédente
+[pegase] Une belle notification quand tu obtiens un objet, un geste ou un vêtement
+[pegase] Le potager : bêcher presque partout sur sa parcelle, la pluie arrose, et le jeu te dit pourquoi un endroit est refusé
+[pegase] Ta maison : panneau et boîte aux lettres déplaçables, plus de blocage au pas de la porte
+[pegase] Et aussi : plus de pluie dans les maisons, plus d'herbe, un soleil plus doux, Ctrl pour s'accroupir en mode photo, un arrêt avant le bord des falaises
+[pegase] ## 🏝️ La nouvelle page Pégase (borne 1.36)
 [pegase] Pégase a sa propre page, tout à gauche de la borne : on y arrive directement en ouvrant la borne
 [pegase] En fond, de vrais plans filmés dans le jeu : les tournesols, la prairie sous la Voie lactée, la pluie sur la place du village
 [pegase] Les îles : cherche une île par son nom, filtre les îles publiques, privées ou les tiennes, et vois qui est en ligne
@@ -10,12 +22,12 @@
 [pegase] PegaGram en un toucher depuis l'île ; le classement des plus belles îles (espèces trouvées, habitants)
 [pegase] Le mode ambiance ✨ : tout s'efface, il ne reste que le décor et le titre ; un toucher et tout revient
 [pegase] Un bouton pour partager la page Pégase avec tes copains
-[bolides] ## 🏆 Bolides RC : une IA bien plus coriace
+[bolides] ## 🏆 Bolides RC : une IA bien plus coriace (borne 1.36.5)
 [bolides] Moyen roule maintenant comme un bon pilote : il dérape dans les grands virages
 [bolides] Difficile prend la trajectoire idéale et enchaîne les mini-turbos dans chaque virage serré
 [bolides] Extrême est un pilote quasi parfait : super mini-turbos, aucune erreur, il évite les flaques, dépasse et ferme la porte
 [bolides] Facile ne change pas
-[bolides] ## 🏁 Bolides RC : à fond, sur trois circuits tout neufs
+[bolides] ## 🏁 Bolides RC : à fond, sur trois circuits tout neufs (borne 1.35.12)
 [bolides] Plus aucun ralentissement automatique : joystick poussé à fond = pleine vitesse, même dans les virages, c'est toi qui décides
 [bolides] Trois circuits redessinés : longues lignes droites, grandes courbes rapides, esses, une vraie épingle au Parking
 [bolides] Vibreurs rouge et blanc dans les virages, pneus, haies, blocs de béton, cordes de plage le long de la piste
@@ -23,14 +35,14 @@
 [bolides] Le Jardin plein de pots de fleurs, d'arrosoirs et de nains ; le Parking avec ses places peintes, palettes et piles de pneus ; la Plage au bord de la mer, avec châteaux de sable, seaux, serviettes et crabes
 [bolides] À pleine vitesse, la voiture glisse un peu dans les virages serrés et se rattrape toute seule ; contre les bordures, elle rebondit doucement et glisse le long
 [bolides] Les bolides du jeu roulent vraiment vite : l'IA « extrême » prend chaque virage à fond et dérape partout
-[bolides] ## 🏎️ Bolides RC : une conduite toute neuve
+[bolides] ## 🏎️ Bolides RC : une conduite toute neuve (borne 1.35.1)
 [bolides] Pose le doigt de ton côté et pousse vers où tu veux aller : ta voiture y va et accélère toute seule
 [bolides] Le bouton DÉRAPE dans les virages charge un mini-turbo : étincelles bleues, puis orange pour un super turbo
 [bolides] Un anneau à ta couleur sous ta voiture et une flèche qui montre où tu l'envoies
 [bolides] À la manette : le stick donne la direction, A pour déraper ; au clavier : les flèches, et Espace pour déraper
 [bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur
 [bolides] En ligne : plus de voiture qui saute au début d'une nouvelle manche
-[neon] ## 🎵 Néon Rush : le jeu comme avant, avec les nouveaux décors
+[neon] ## 🎵 Néon Rush : le jeu comme avant, avec les nouveaux décors (borne 1.35.6)
 [neon] Le sol, les murs, les plafonds, les blocs, les piques, les portails et ton cube sont redevenus exactement comme avant : plus rien ne bat pendant que tu joues
 [neon] Plus de voile sombre au ras du sol ni de murs noirs au-dessus de toi : tout est revenu comme avant
 [neon] Plus de zoom, d'éclair ni d'onde de choc sur les grands moments de la musique

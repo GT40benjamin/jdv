@@ -1,31 +1,54 @@
 {
-  "version": "0.9.4.7",
-  "build": 36,
-  "size": 2120436803,
-  "sha256": "6e48fecb6b0f38b3e1bfd562757fcaff3e5988828e1b856a243a0e1f9259e012",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v36/Pegase-PC-2026-10-24-0.9.4.7.zip",
-  "manifest": "7fe2e907d6eed5ecf4c3d233aa8bc7288f98185916dc0746c9ac3b0ccfc8ad53",
+  "version": "0.9.5",
+  "build": 37,
+  "size": 2140741381,
+  "sha256": "e213cf4491867b9b9586497ac2e1200d0fd607ecd4b30ea3ad458377e59b83ed",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v37/Pegase-PC-2026-10-25-0.9.5.zip",
+  "manifest": "3ac5d01c541dd67822986579656a1d458458c6303037d3a6f549e6d9c96069c3",
   "patchs": [
     {
-      "de": "0.9.4.6",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v36/Pegase-PC-patch-0.9.4.6.zip",
-      "taille": 4964615,
-      "sha256": "b4962b17a4ca879aaefdd0c8d2745e60180173439a4d1fc5ad70e6ee36c1d51f"
+      "de": "0.9.4.7",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v37/Pegase-PC-patch-0.9.4.7.zip",
+      "taille": 27535535,
+      "sha256": "f5432181a779b7bbd1a011640844e503b38b762452fe06d01c68aa5678a56358"
     }
   ],
   "notes": [
-    "Le grand-duc : quand tu siffles, on l'entend arriver de loin, et le message n'apparaît que quand il s'est vraiment posé. S'il a peur, il s'envole vers ses rochers en haut de la falaise.",
-    "Un deuxième grand-duc vit maintenant au coin des bambous, près du petit pont rouge.",
-    "Caché dans un buisson, le viseur sort à la lisière : tout le décor reste visible, avec des feuilles floues autour du cadre qui s'effacent quand on zoome. Si le grand-duc s'est posé hors de vue, un repère te mène au buisson d'où on le voit bien.",
-    "Un viseur plus clair : boutons carrés alignés avec leur touche, et un seul conseil à la fois, sur une ligne.",
-    "Les petites bêtes s'analysent dès qu'elles sont assez grandes dans l'image.",
-    "Basile montre la canne à coup en premier dans sa boutique.",
-    "Accroupi plus naturel : un genou à terre, le buste droit.",
-    "Assis sur un banc, les mains se posent naturellement, les poignets se plient en douceur et le téléphone est bien tenu.",
-    "Le musée : plafond plus haut, bancs qui ne gênent plus le passage, grands cartels lisibles dans la galerie.",
-    "Les maisons : plus d'herbe qui traverse le plancher quand une maison est reconstruite au même endroit."
+    "Les boutiques ont de nouvelles devantures : grandes enseignes dorées, stores rayés aux couleurs de chaque commerce, vitrines éclairées, pancarte OUVERT / FERMÉ qui suit les horaires, ardoises et tonneaux fleuris.",
+    "La musique est revenue dans les boutiques et à la mairie, et elle reprend toute seule quand tu arrêtes la tienne.",
+    "Le grand-duc n'est plus éclairé : une lueur de lune très douce, son vrai hou-hou qui vient de sa direction et ses battements d'ailes. Caché dans un buisson, les buissons s'effacent devant toi.",
+    "Des sons plus vrais : plus aucun bruit d'animal en boucle ; seuls les vrais animaux chantent, depuis l'endroit où ils sont. Les poules et le coq de la basse-cour, eux, sont bien là.",
+    "Les oiseaux se baladent d'un bosquet à l'autre, et des sangliers viennent parfois fouiller la nuit.",
+    "Les cerfs et biches sont maintenant tous de la même belle famille.",
+    "Missions : elles passent en bas de l'écran, plus discrètes ; les missions faites disparaissent. Une fois les missions du jour finies, chaque journée du jeu en propose de nouvelles.",
+    "Le concours photo de Papi Auguste devient un dépôt : tu déposes ta photo, elle est analysée, et ta nouvelle photo remplace la précédente.",
+    "Une belle notification en bas de l'écran quand tu obtiens un objet, un geste ou un vêtement.",
+    "Le téléphone : boutique sans lignes qui se chevauchent, barre « sélectionnées » pour partager, et un joli pointeur doré sur PC.",
+    "Le potager : bêcher presque partout sur sa parcelle, radis plus lents (deux arrosages), la pluie arrose, et le jeu te dit pourquoi un endroit est refusé.",
+    "Ta maison : le panneau et la boîte aux lettres se déplacent comme en construction, la plaque du nom est collée au bois, et plus de blocage au pas de la porte ni de « perché » sur la table.",
+    "Avec tes amis : la porte s'ouvre quand ils entrent ou sortent, le téléphone est bien tenu, et on voit bien leurs gestes.",
+    "Et aussi : plus de pluie dans les maisons, tic-tac seulement près des pendules, lanternes solides, légumes bien posés, plus d'herbe sur les grandes zones vertes, un soleil plus doux, un bisou aux lèvres, Ctrl pour s'accroupir en mode photo, et un arrêt avant le bord des falaises."
   ],
   "historique": [
+    {
+      "version": "0.9.5",
+      "notes": [
+        "Les boutiques ont de nouvelles devantures : grandes enseignes dorées, stores rayés aux couleurs de chaque commerce, vitrines éclairées, pancarte OUVERT / FERMÉ qui suit les horaires, ardoises et tonneaux fleuris.",
+        "La musique est revenue dans les boutiques et à la mairie, et elle reprend toute seule quand tu arrêtes la tienne.",
+        "Le grand-duc n'est plus éclairé : une lueur de lune très douce, son vrai hou-hou qui vient de sa direction et ses battements d'ailes. Caché dans un buisson, les buissons s'effacent devant toi.",
+        "Des sons plus vrais : plus aucun bruit d'animal en boucle ; seuls les vrais animaux chantent, depuis l'endroit où ils sont. Les poules et le coq de la basse-cour, eux, sont bien là.",
+        "Les oiseaux se baladent d'un bosquet à l'autre, et des sangliers viennent parfois fouiller la nuit.",
+        "Les cerfs et biches sont maintenant tous de la même belle famille.",
+        "Missions : elles passent en bas de l'écran, plus discrètes ; les missions faites disparaissent. Une fois les missions du jour finies, chaque journée du jeu en propose de nouvelles.",
+        "Le concours photo de Papi Auguste devient un dépôt : tu déposes ta photo, elle est analysée, et ta nouvelle photo remplace la précédente.",
+        "Une belle notification en bas de l'écran quand tu obtiens un objet, un geste ou un vêtement.",
+        "Le téléphone : boutique sans lignes qui se chevauchent, barre « sélectionnées » pour partager, et un joli pointeur doré sur PC.",
+        "Le potager : bêcher presque partout sur sa parcelle, radis plus lents (deux arrosages), la pluie arrose, et le jeu te dit pourquoi un endroit est refusé.",
+        "Ta maison : le panneau et la boîte aux lettres se déplacent comme en construction, la plaque du nom est collée au bois, et plus de blocage au pas de la porte ni de « perché » sur la table.",
+        "Avec tes amis : la porte s'ouvre quand ils entrent ou sortent, le téléphone est bien tenu, et on voit bien leurs gestes.",
+        "Et aussi : plus de pluie dans les maisons, tic-tac seulement près des pendules, lanternes solides, légumes bien posés, plus d'herbe sur les grandes zones vertes, un soleil plus doux, un bisou aux lèvres, Ctrl pour s'accroupir en mode photo, et un arrêt avant le bord des falaises."
+      ]
+    },
     {
       "version": "0.9.4.7",
       "notes": [
@@ -85,17 +108,6 @@
         "L'album : partage ta photo sur PegaGram depuis la photo en grand.",
         "Les fleurs du décor (iris, colza, herbe de la pampa…) se photographient et vont au Grand livre ; l'analyse prend la fleur que tu vises.",
         "Et aussi : Réglages du téléphone rangés par thèmes, accroupi qui marche, moutons plus naturels, clôture posée poteau par poteau, panneau de parcelle propre avec ton nom."
-      ]
-    },
-    {
-      "version": "0.9.4.3",
-      "notes": [
-        "On ne traverse plus les meubles dans les maisons et les boutiques, et les bancs du musée laissent le passage.",
-        "La caméra se place mieux dans les boutiques et les maisons, et la molette ne zoome plus quand une fenêtre est ouverte.",
-        "Le village : le muret continue au nord, le panneau « Ailebrune » accueille à l'entrée est, les anciennes terrasses sont remontées, et un étal de légumes.",
-        "On ne reste plus coincé sur certains rochers.",
-        "La corneille s'envole quand on approche au lieu de marcher longtemps.",
-        "La flèche vers un copain montre le bon endroit, et la carte pour parler avec tes amis se clique bien."
       ]
     }
   ]

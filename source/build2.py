@@ -80,7 +80,18 @@ DUOS = [d for d in ['bolides', 'tirsaubut', 'toupies', 'kombat', 'pingpong', 'tr
 def notes_list():
     # nouveautés de la version (une par ligne), affichées après une mise à jour
     f = J + 'nouveautes.txt'
-    return [l.strip() for l in open(f, encoding='utf-8').read().splitlines() if l.strip()] if os.path.exists(f) else []
+    if not os.path.exists(f): return []
+    out, seen = [], set()
+    for l in open(f, encoding='utf-8').read().splitlines():
+        l = l.strip().replace('{version}', os.environ.get('SITE_VERSION', ''))
+        if not l or l[0] == '#': continue
+        # règle de Benjamin (25 oct. 2026) : chaque bloc [id] commence par « ## … <numéro de version> »
+        m = re.match(r'^\[([a-z0-9-]+)\]\s*(##)?\s*(.*)$', l)
+        if not m: raise SystemExit('nouveautes.txt : ligne sans [id], numéro de version impossible : ' + l)
+        if m.group(2) and not re.search(r'\d+\.\d+', m.group(3)): raise SystemExit('nouveautes.txt : sous-titre sans numéro de version : ' + l)
+        if m.group(1) not in seen and not m.group(2): raise SystemExit('nouveautes.txt : le bloc [' + m.group(1) + '] doit commencer par « ## … <version> »')
+        seen.add(m.group(1)); out.append(l)
+    return out
 def music_list():
     # {jeu: [numéros de variantes]} d'après les fichiers assets/music/<jeu>-<n>.mp3
     # calmes : <jeu>-<n>.mp3 ; énergiques (niveaux difficiles) : <jeu>-x<n>.mp3
