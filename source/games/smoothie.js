@@ -754,8 +754,7 @@
       splat(ax, ay, splashCol(t), r * 0.7);
       streaks.push({ x: ax, y: ay, a, len: r * 3.6, t: 0, col: t.juice });
       sfx.slice(combo.n);
-      const pts = Math.max(1, Math.round(4 * (1 + wo.tour) / Math.pow(2, h.gen - 1))); score += pts; text('+' + pts, ax, ay - r, '#fff4c2', 0.5, 0.8);
-      combo.n++; combo.t = 0.28; combo.x = ax; combo.y = ay;
+      const pts = Math.max(1, Math.round(4 * (1 + wo.tour) / Math.pow(2, h.gen - 1))); score += pts; text('+' + pts, ax, ay - r, '#fff4c2', 0.5, 0.8);   // pas de combo sur les morceaux (Benjamin)
       rumble('tick');
     }
     function juice(x, y, col, n, R, cut) {
