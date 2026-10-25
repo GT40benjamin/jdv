@@ -2,6 +2,9 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[pegase] ## 🎬 Trois nouveaux plans filmés en fond (borne 1.36.14)
+[pegase] Le lac au lever, maintenant avec ses oies ; le lac de l'arbre rouge, tout neuf ; et le bosquet du grand-duc au petit matin
+[pegase] Dix plans en tout, jusqu'à la 4K sur les grands écrans
 [pegase] ## 🎬 Huit plans filmés en fond de la page Pégase (borne 1.36.8)
 [pegase] Quatre nouveaux plans filmés dans le jeu : la pluie douce sur les tournesols, la cascade du lac de montagne, le panorama depuis la falaise et une nouvelle prairie sous la Voie lactée
 [pegase] Tous les plans en très haute qualité (jusqu'à la 4K) sur les grands écrans, et ils démarrent toujours vite en petite qualité
