@@ -4561,9 +4561,9 @@ async function hubDecor(hero) {
   const v = document.createElement('video'); v.className = 'jdw-hubvid'; v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.autoplay = true; v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
   v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:0;transition:opacity 1.2s ease;pointer-events:none';
   const bg = hero.querySelector('.pgh-bg'); if (bg && bg.nextSibling) hero.insertBefore(v, bg.nextSibling); else hero.prepend(v);
-  let i = Math.floor(Math.random() * list.length);
+  let i = Math.floor(Math.random() * list.length), first = !PGQ.mbps;
   const play = () => {
-    const e = list[i % list.length], q = pgQualWant(e) || 0, base = ROOT + 'assets/pegase/' + e.id;
+    const e = list[i % list.length], q = (first ? pgQualStart(e) : pgQualWant(e)) || 0, base = ROOT + 'assets/pegase/' + e.id; first = false;   // le 1er plan démarre petit (vite), les suivants dans la bonne qualité
     while (v.firstChild) v.removeChild(v.firstChild);
     v.poster = base + '_poster.jpg'; v.loop = list.length < 2;
     for (const [sx, type] of (q ? [['_' + q + '.webm', 'video/webm'], ['_' + q + '.mp4', 'video/mp4']] : [['.webm', 'video/webm'], ['.mp4', 'video/mp4']])) { const so = document.createElement('source'); so.src = base + sx; so.type = type; v.appendChild(so); }
