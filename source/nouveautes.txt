@@ -10,6 +10,11 @@
 [pegase] PegaGram en un toucher depuis l'île ; le classement des plus belles îles (espèces trouvées, habitants)
 [pegase] Le mode ambiance ✨ : tout s'efface, il ne reste que le décor et le titre ; un toucher et tout revient
 [pegase] Un bouton pour partager la page Pégase avec tes copains
+[bolides] ## 🏆 Bolides RC : une IA bien plus coriace
+[bolides] Moyen roule maintenant comme un bon pilote : il dérape dans les grands virages
+[bolides] Difficile prend la trajectoire idéale et enchaîne les mini-turbos dans chaque virage serré
+[bolides] Extrême est un pilote quasi parfait : super mini-turbos, aucune erreur, il évite les flaques, dépasse et ferme la porte
+[bolides] Facile ne change pas
 [bolides] ## 🏁 Bolides RC : à fond, sur trois circuits tout neufs
 [bolides] Plus aucun ralentissement automatique : joystick poussé à fond = pleine vitesse, même dans les virages, c'est toi qui décides
 [bolides] Trois circuits redessinés : longues lignes droites, grandes courbes rapides, esses, une vraie épingle au Parking
