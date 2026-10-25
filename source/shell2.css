@@ -2674,4 +2674,16 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 @keyframes pnBorn{0%{opacity:0;transform:scale(.9);box-shadow:0 0 0 2px #ffd36b,0 0 70px rgba(255,214,140,.8)}45%{opacity:1;transform:scale(1.02)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.pg-plus,.pg-plus *,.pn-spark,#jdw-lib[data-mode="pegase"] .pg-isle.born{animation:none!important;transition:none!important}}
 @media (max-width:600px){#jdw-lib[data-mode="pegase"] .pg-plus{min-height:214px}.pg-plus .pn-plus{width:54px;height:54px;font-size:36px}}
-@media (min-width:601px){#jdw-lib[data-mode="pegase"] .lib-wrap{padding-bottom:96px}}   /* le bandeau invité ne passe plus sous la barre du bas */
+/* PC : le bandeau invité en une ligne et le contenu un peu remonté, pour que tout tienne au-dessus de la barre du bas */
+@media (min-width:601px){
+  #jdw-lib[data-mode="pegase"] .lib-wrap{padding-bottom:96px}
+  #jdw-lib[data-mode="pegase"] .mode-hero{margin-bottom:clamp(60px,15vh,210px)}
+  #jdw-lib[data-mode="pegase"] .guest-bar{width:min(600px,100%);justify-self:center;grid-template-columns:auto minmax(0,1fr) auto;padding:8px 10px 8px 10px;gap:10px;border-radius:14px;background:rgba(10,16,32,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-orb{width:32px;height:32px;border-radius:10px}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-orb svg{width:18px;height:18px}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-tx b{font-size:14px}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-tx span{display:none}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-btns{grid-column:auto;flex-wrap:nowrap}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-btns .btn{flex:0 0 auto;min-height:32px;padding:6px 12px;font-size:11.5px}
+}
+#jdw-lib[data-mode="pegase"] .pg-plus:not(.open):not(.birth){background:rgba(10,16,32,.32)!important;border-color:rgba(255,214,140,.55)}   /* la tuile « + » reste légère, quel que soit le ciel */
