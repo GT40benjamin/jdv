@@ -2566,3 +2566,15 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 .jdw-mute-wait #jdw-pg-music:not(.off){animation:pgMuteWait 1.6s ease-in-out infinite}
 @keyframes pgMuteWait{0%,100%{box-shadow:0 0 0 0 rgba(255,214,140,0)}50%{box-shadow:0 0 0 6px rgba(255,214,140,.35)}}
 @media (prefers-reduced-motion:reduce){.jdw-mute-wait #jdw-pg-music:not(.off){animation:none;box-shadow:0 0 0 2px rgba(255,214,140,.5)}}
+/* JOUER sur PC : la page Pégase recule doucement sous un voile pendant que le jeu tourne */
+#jdw-lib{transition:transform 1.4s cubic-bezier(.2,.7,.2,1),filter 1.4s ease}
+body.pg-rest #jdw-lib{transform:scale(.94);filter:brightness(.45) saturate(.7) blur(2px)}
+body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transition:filter 1.4s ease}
+#jdw-pg-rest{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;background:rgba(6,10,24,0);transition:background 1.2s ease;cursor:pointer}
+#jdw-pg-rest.in{background:rgba(6,10,24,.35)}
+#jdw-pg-rest>div{display:flex;flex-direction:column;align-items:center;gap:10px;padding:22px 30px;border-radius:22px;background:rgba(18,24,48,.72);border:1px solid rgba(255,214,140,.35);color:#fff;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.45);backdrop-filter:blur(8px);opacity:0;transform:translateY(14px) scale(.97);transition:opacity 1s ease .3s,transform 1s cubic-bezier(.2,.7,.2,1) .3s}
+#jdw-pg-rest.in>div{opacity:1;transform:none}
+#jdw-pg-rest b{font-size:1.25rem}
+#jdw-pg-rest span{opacity:.85;font-size:.95rem}
+#jdw-pg-rest button{margin-top:6px;padding:10px 26px;border-radius:999px;border:0;background:linear-gradient(180deg,#ffd98a,#f0b44c);color:#3a2408;font-weight:800;font-size:1rem;cursor:pointer}
+@media (prefers-reduced-motion:reduce){#jdw-lib,#jdw-pg-rest,#jdw-pg-rest>div{transition:none}}

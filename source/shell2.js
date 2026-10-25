@@ -4515,7 +4515,7 @@ function pgDecorTick(v) {   // un plan qui s'achève : 2 s avant la fin, le suiv
 // GARDIEN de l'enchaînement (toutes les 2 s) : si « timeupdate » se tait (onglet en arrière-plan, appli, navigateur avare), si la vidéo est
 // finie ou figée, ou si un plan est à l'écran depuis plus de 75 s, on passe au suivant. Avec plusieurs plans, jamais de boucle.
 setInterval(() => {
-  if (MODE !== 'pegase' || document.hidden || PGD.state !== 'ok' || PGD.still || !PGD.list || PGD.list.length < 2) return;
+  if (MODE !== 'pegase' || document.hidden || PGD.rest || PGD.state !== 'ok' || PGD.still || !PGD.list || PGD.list.length < 2) return;
   const v = pgVid(PGD.act); if (!v) return;
   v.loop = false;
   const now = Date.now(), d = v.duration, t = v.currentTime;
@@ -5170,13 +5170,35 @@ function islRequest(q, card) {
   pn.querySelector('.pp-ok').addEventListener('click', go); inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   pn.querySelector('.pp-x').addEventListener('click', () => pn.remove());
 }
+// la page Pégase en pause pendant que le jeu tourne sur le PC ; pgRest(false) = on revient
+function pgRest(on) {
+  if (!!PGD.rest === !!on) return;
+  PGD.rest = !!on;
+  const vs = [pgVid(0), pgVid(1)].filter(Boolean);
+  if (on) {
+    PGD.restWant = MUS.want || screenMusic(); MUS.want = ''; MUS.seq++; musicOut(2.5);
+    for (const v of vs) { setTimeout(() => { if (PGD.rest) try { v.pause(); } catch (e) {} }, 1300); }
+    const o = document.createElement('div'); o.id = 'jdw-pg-rest'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', 'Pégase est lancé');
+    o.innerHTML = '<div><b>🎮 Pégase est lancé</b><span>Bon jeu sur ton île ! La borne t’attend ici.</span><button type="button">Revenir</button></div>';
+    o.addEventListener('click', () => pgRest(false));
+    document.body.appendChild(o); document.body.classList.add('pg-rest');
+    requestAnimationFrame(() => requestAnimationFrame(() => o.classList.add('in')));
+  } else {
+    document.body.classList.remove('pg-rest');
+    const o = $('jdw-pg-rest'); if (o) { o.classList.remove('in'); setTimeout(() => o.remove(), 900); }
+    const v = pgVid(PGD.act); if (v && MODE === 'pegase' && !PGD.still) v.play().catch(() => {});
+    PGD.shownAt = 0;
+    if (MUS.on) { Audio.ensure(); MUS.id = ''; setMusic(PGD.restWant || screenMusic()); }
+  }
+}
+if (LABO_TEST) window.JDW_REST = pgRest;   // essais seulement
 async function islJoin(q, card) {
   const g = gameById('pegase'); if (!g) return;
   // JOUER = le vrai jeu, sur l'appareil où l'on est : l'appli Pégase sur Android (installée / mise à jour si besoin) ; sur PC, le jeu
   // installé (lien pegase://) ; s'il ne s'ouvre pas, la page de Pégase pour le télécharger
   const launch = () => {
     if (nativeFor(g)) { nativeOpen(g, true); return; }
-    let left = false; const onBlur = () => { left = true; }; addEventListener('blur', onBlur);
+    let left = false; const onBlur = () => { left = true; pgRest(true); }; addEventListener('blur', onBlur);
     const a = document.createElement('a'); a.href = 'pegase://open?from=borne&ile=' + encodeURIComponent(q.id); a.style.display = 'none'; document.body.appendChild(a); try { a.click(); } catch (e) {} a.remove();
     setTimeout(() => { removeEventListener('blur', onBlur); if (left || document.hidden) return; toastCheer('🖥️ Ouvre Pégase depuis ton bureau. Pas encore installé ? Il se télécharge (gratuit) ici, dans Infos.', null, true); try { localStorage.setItem('jdw.pegase.tab', 'infos'); } catch (e) {} openGame(g); }, 1800);   // PC : le lien pegase:// n'est pas encore enregistré par l'installation (24 oct.)
   };
