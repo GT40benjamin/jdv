@@ -23,6 +23,8 @@
 [pegase] La musique joue pendant qu'une mise à jour se télécharge
 [pegase] La ferme : la vache meugle, le cheval hennit et s'ébroue, le cochon grogne
 [pegase] De l'herbe sur les pentes derrière les plages et au bord de l'île
+[pegase] ## 📱 Des plans filmés en hauteur pour le téléphone (borne 1.36.21)
+[pegase] Sur téléphone tenu droit, sept plans sont maintenant filmés en hauteur : tout le décor tient dans l'écran, sans rien couper
 [pegase] ## ➕ Créer son île d'un toucher (borne 1.36.19)
 [pegase] Le gros bouton « Créer mon île » devient une tuile « + » au bout de la liste des îles, sur PC comme sur téléphone
 [pegase] La création se fait dans la tuile même, en trois onglets : le nom, qui peut entrer, et créer
