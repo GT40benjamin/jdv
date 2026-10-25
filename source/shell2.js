@@ -4436,6 +4436,7 @@ function pgQualWant(e) {
   const qs = Array.isArray(e.q) ? e.q.slice().sort((a, b) => a - b) : null; if (!qs || !qs.length) return 0;
   const px = Math.max(innerWidth, innerHeight) * Math.min(2, window.devicePixelRatio || 1), sd = navigator.connection && navigator.connection.saveData;
   let want = px > 2600 ? 2160 : px > 2200 ? 1440 : px > 1300 ? 1080 : 720;   // 2160 = vraie 4K, pour les grands écrans
+  if (matchMedia('(pointer:fine)').matches && want >= 1080) want = want === 1080 ? 1440 : 2160;   // PC (souris) : une qualité au-dessus de l'écran, image plus fine (demande de Benjamin, 25 oct. 2026) ; pas sur téléphone (données)
   const C = navigator.connection || {}, slow = /(^|-)2g$|^3g$/.test(C.effectiveType || ''), m = PGQ.mbps;   // (downlink : estimation trop prudente, pas utilisée)
   if (sd || (m ? m < 3 : slow)) want = 720; else if (m && m < 13 && want > 1080) want = 1080; else if (m && m < 16 && want > 1440) want = 1440;   // la 4K (12 Mbit/s de vidéo) dès 16 Mbit/s mesurés
   return qs.filter(q => q <= want).pop() || qs[0];
