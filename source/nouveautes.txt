@@ -2,6 +2,16 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[pegase] ## 🏡 Pégase 0.9.6
+[pegase] Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte « À vendre » et leur boîte aux lettres
+[pegase] Les parcelles redessinées : elles ne débordent plus sur les chemins, leur lueur dorée épouse le sol, et deux voisines partagent la même limite
+[pegase] Le permis de construire donne une parcelle à 1000 lucioles ; les autres s'achèteront
+[pegase] Une barre d'objets en bas de l'écran : touches 1 à 5, l'objet en main s'utilise au clic ; E sert à parler, ouvrir et s'asseoir ; le parapluie s'ouvre quand tu le tiens
+[pegase] Les chemins sous le Clos nettoyés, une vraie aire de demi-tour pour l'avion, une allée jusqu'à l'escalier et plein de buissons et de fleurs autour
+[pegase] Maisons prêtes : plus de toits qui se croisent dans l'aperçu ; « Réaménager l'intérieur » est de retour à l'étape Étages
+[pegase] La musique joue pendant qu'une mise à jour se télécharge
+[pegase] La ferme : la vache meugle, le cheval hennit et s'ébroue, le cochon grogne
+[pegase] De l'herbe sur les pentes derrière les plages et au bord de l'île
 [pegase] ## 🎬 Trois nouveaux plans filmés en fond (borne 1.36.14)
 [pegase] Le lac au lever, maintenant avec ses oies ; le lac de l'arbre rouge, tout neuf ; et le bosquet du grand-duc au petit matin
 [pegase] Dix plans en tout, jusqu'à la 4K sur les grands écrans
