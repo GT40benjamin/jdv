@@ -2620,3 +2620,58 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
   #jdw-lib[data-mode="pegase"] .modebar.has-pg:not(.pg-open) button[data-mode="pegase"] .mb-ic{width:30px}
   #jdw-lib[data-mode="pegase"] #jdw-page-pegase{padding-bottom:64px}
 }
+/* LA TUILE « + » (créer son île dans la tuile même) */
+#jdw-lib[data-mode="pegase"] #jdw-pg-create{display:none}
+#jdw-lib[data-mode="pegase"] .pg-plus{position:relative;display:grid;min-height:252px;border:1.5px dashed rgba(255,214,140,.55);background:rgba(10,16,32,.32);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:none;overflow:visible}
+#jdw-lib[data-mode="pegase"] .pg-plus:hover{border-color:rgba(255,214,140,.9);box-shadow:0 0 0 1px rgba(255,214,140,.3),0 0 30px rgba(255,214,140,.15)}
+.pg-plus .pn-open{display:grid;place-items:center;align-content:center;gap:8px;width:100%;height:100%;min-height:inherit;border:0;background:none;color:#ffe6a8;cursor:pointer;font:600 13px var(--body)}
+.pg-plus .pn-plus{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;border:1.5px solid rgba(255,214,140,.6);background:radial-gradient(circle at 35% 30%,rgba(255,226,150,.28),rgba(255,214,140,.05) 70%);font:300 42px/1 var(--body);color:#ffd36b;box-shadow:0 0 24px rgba(255,214,140,.2);transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+.pg-plus .pn-open:hover .pn-plus,.pg-plus .pn-open:focus-visible .pn-plus{transform:scale(1.08) rotate(90deg)}
+.pg-plus .pn-open small{color:#d6e2f2;letter-spacing:.04em}
+#jdw-lib[data-mode="pegase"] .pg-plus.open{border-style:solid;border-color:rgba(255,214,140,.5);background:rgba(10,16,32,.8);align-content:start;gap:8px;padding:10px 12px 12px;animation:pnOpen .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes pnOpen{from{transform:scale(.96);opacity:.6}to{transform:none;opacity:1}}
+.pg-plus .pn-head{display:flex;align-items:center;gap:6px}
+.pg-plus .pn-head b{flex:1;font:400 15px/1.2 var(--display);background:linear-gradient(180deg,#fff2c2,#ffc94d);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pg-plus .pn-i,.pg-plus .pn-x{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#e6f0ff;font:700 14px/1 var(--body);cursor:pointer}
+.pg-plus .pn-i{font:italic 700 14px/1 Georgia,serif;color:#ffd36b;border-color:rgba(255,214,140,.45)}
+.pg-plus .pn-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pg-plus .pn-tabs button[aria-selected="true"]{background:linear-gradient(180deg,#ffe08a,#ffb340);color:#2a1606}
+.pg-plus .pn-pane{display:grid;gap:8px;min-height:92px;align-content:start;font:600 13px/1.3 var(--body);color:#e6f0ff}
+.pg-plus .pn-pane label{display:grid;gap:5px}
+.pg-plus .pn-pane input{min-height:38px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(4,8,20,.6);color:#fff;font:600 15px var(--body)}
+.pg-plus .pn-pane input:focus{outline:none;border-color:#ffd36b;box-shadow:0 0 0 2px rgba(255,214,140,.25)}
+.pg-plus .pn-kinds{display:grid;gap:5px}
+.pg-plus .pn-kinds button{display:flex;align-items:center;gap:8px;min-height:34px;padding:0 10px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#d6e2f2;font:600 12.5px var(--body);text-align:left;cursor:pointer}
+.pg-plus .pn-kinds button[aria-checked="true"]{border-color:#ffd36b;background:rgba(255,214,140,.14);color:#fff}
+.pg-plus .pn-sum{display:grid;gap:4px;padding:10px;border-radius:12px;background:rgba(255,214,140,.08);border:1px solid rgba(255,214,140,.25);text-align:center}
+.pg-plus .pn-sum b{font:400 18px/1.15 var(--display);color:#ffd36b;word-break:break-word}
+.pg-plus .pn-sum span{font-size:12px;color:#e6f0ff}
+.pg-plus .pn-sum small{font-size:11px;color:#b9cbe6}
+.pg-plus .pp-msg{margin:0;min-height:0;font:600 12px var(--body);color:#ff9a8a}.pg-plus .pp-msg:empty{display:none}
+.pg-plus .pn-row{display:flex;justify-content:flex-end}
+.pg-plus .pn-go{min-height:34px;padding:0 18px;border:0;border-radius:999px;background:rgba(255,255,255,.1);color:#fff;font:700 12.5px var(--body);cursor:pointer}
+.pg-plus .pn-go.big{flex:1;min-height:38px;background:linear-gradient(180deg,#ffe08a,#ffb340);color:#2a1606;box-shadow:0 4px 14px rgba(255,180,60,.3)}
+.pg-plus .pn-go:disabled{opacity:.6}
+/* « i » : les explications */
+.pn-info{width:min(360px,calc(100vw - 24px))}
+.pn-info .pn-list{gap:7px}
+.pn-info .pn-list li{display:block;white-space:normal;line-height:1.35}
+.pn-info .pn-list li::before{display:none}
+.pn-info em{font-style:normal;color:#ffd36b}
+.pn-info .pp-row{margin-top:10px;display:flex;justify-content:flex-end}
+.pn-info .pp-x{min-height:32px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,214,140,.45);background:rgba(255,214,140,.12);color:#ffe6a8;font:700 12px var(--body);cursor:pointer}
+/* la naissance de l'île : la tuile s'illumine, des étincelles, puis la vraie tuile arrive en douceur */
+#jdw-lib[data-mode="pegase"] .pg-plus.birth{border-style:solid;border-color:#ffd36b;animation:pnBirth 1.3s ease forwards}
+@keyframes pnBirth{0%{box-shadow:0 0 0 0 rgba(255,214,140,0)}35%{transform:scale(1.04);box-shadow:0 0 0 3px rgba(255,214,140,.7),0 0 70px rgba(255,214,140,.65)}100%{transform:scale(1);box-shadow:0 0 0 1px rgba(255,214,140,.4),0 0 30px rgba(255,214,140,.3)}}
+.pg-plus .pn-born{display:grid;place-items:center;align-content:center;gap:6px;min-height:inherit;text-align:center}
+.pg-plus .pn-born span{font-size:42px;animation:pnPop .7s cubic-bezier(.3,1.6,.5,1)}
+.pg-plus .pn-born b{font:400 20px/1.15 var(--display);color:#ffd36b;padding:0 12px;word-break:break-word}
+.pg-plus .pn-born small{color:#e6f0ff}
+@keyframes pnPop{from{transform:scale(0) rotate(-40deg)}to{transform:none}}
+.pn-spark{position:absolute;left:50%;top:42%;width:6px;height:6px;margin:-3px;border-radius:50%;background:#ffe6a0;box-shadow:0 0 10px #ffd36b;pointer-events:none;animation:pnSpark 1s ease-out forwards}
+@keyframes pnSpark{from{transform:rotate(var(--a)) translateY(0) scale(1);opacity:1}to{transform:rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(.2);opacity:0}}
+#jdw-lib[data-mode="pegase"] .pg-isle.born{animation:pnBorn 1.8s cubic-bezier(.2,.8,.2,1)}
+@keyframes pnBorn{0%{opacity:0;transform:scale(.9);box-shadow:0 0 0 2px #ffd36b,0 0 70px rgba(255,214,140,.8)}45%{opacity:1;transform:scale(1.02)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.pg-plus,.pg-plus *,.pn-spark,#jdw-lib[data-mode="pegase"] .pg-isle.born{animation:none!important;transition:none!important}}
+@media (max-width:600px){#jdw-lib[data-mode="pegase"] .pg-plus{min-height:214px}.pg-plus .pn-plus{width:54px;height:54px;font-size:36px}}
+@media (min-width:601px){#jdw-lib[data-mode="pegase"] .lib-wrap{padding-bottom:96px}}   /* le bandeau invité ne passe plus sous la barre du bas */

@@ -5399,9 +5399,11 @@ async function renderIsles() {
         el.className = 'pi-req ' + st; if (st === 'inconnue' || st === 'refusee') { delete islTickets[q.id]; store.set('jdw.iletickets', islTickets); }
       }).catch(() => {});
     }
+    if (PG.born != null && PG.born === q.id) { PG.born = null; c.classList.add('born'); setTimeout(() => { try { c.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} }, 80); }   // l'île qu'on vient de créer
     box.appendChild(c);
     requestAnimationFrame(() => isleArt(c.querySelector('canvas'), String(q.name).split('').reduce((a, ch) => a * 31 + ch.charCodeAt(0) | 0, 7), q.n, q));
   }
+  if (!qq) box.appendChild(islPlusTile());
   islDots(); if (!PG.polled && ISL.srv) { PG.polled = true; islPollDem(); }
   $('jdw-pg-note').textContent = isGuest() ? 'Sans compte, tu vois les îles. Pour en rejoindre une, inscris-toi : c\'est gratuit.' : '';
 }
@@ -5413,7 +5415,85 @@ $('jdw-pg-filt').addEventListener('click', (e) => { e.stopPropagation(); pgMenu(
 document.addEventListener('pointerdown', (e) => { const m = $('jdw-pg-tabs'); if (m && !m.hidden && !m.contains(e.target) && !$('jdw-pg-filt').contains(e.target)) pgMenu(false); }, true);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('jdw-pg-tabs').hidden) pgMenu(false); });
 { let t = 0; $('jdw-pg-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { PG.q = $('jdw-pg-q').value; renderIsles(); }, 150); }); }
-// créer son île : nom, qui peut entrer (tout le monde / mot de passe / amis) ; le créateur en est le gardien
+// LA TUILE « + » : créer son île dans la tuile même. Onglets Nom · Accès · Créer ; « i » = les explications ; le créateur en est le gardien
+const ISL_KINDS = [['publique', '🌍', 'Tout le monde', 'N’importe qui peut entrer.'], ['mdp', '🔒', 'Avec un mot de passe', 'Tu donnes le mot de passe à qui tu veux.'], ['amis', '💛', 'Mes amis seulement', 'Tes amis entrent directement, les autres demandent.']];
+function islPlusTile() {
+  const c = document.createElement('div'); c.className = 'pg-isle pg-plus'; c.setAttribute('role', 'listitem');
+  c.innerHTML = '<button type="button" class="pn-open" aria-label="Créer une île"><span class="pn-plus" aria-hidden="true">+</span><small>Nouvelle île</small></button>';
+  c.querySelector('.pn-open').addEventListener('click', () => islPlusOpen(c));
+  return c;
+}
+function islInfo() {   // les explications, en petite fenêtre (comme la liste des participants)
+  const old = document.querySelector('.pn-info'); if (old) { old.remove(); return; }
+  const box = document.createElement('div'); box.className = 'pi-who pn-info'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Créer une île : comment ça marche');
+  box.innerHTML = '<b>🏝️ Ton île, comment ça marche ?</b><ul class="pn-list">' +
+    '<li>🛡️ Tu en es le <em>gardien</em> : tu choisis qui entre, tu acceptes les demandes, tu peux exclure ou bannir.</li>' +
+    '<li>🌍 <em>Tout le monde</em> : l’île est publique, chacun peut la rejoindre.</li>' +
+    '<li>🔒 <em>Mot de passe</em> : seuls ceux qui l’ont entrent ; les autres font une demande.</li>' +
+    '<li>💛 <em>Mes amis</em> : tes amis entrent tout de suite, les autres font une demande.</li>' +
+    '<li>🏡 Les places dépendent des parcelles de l’île ; tu peux tout changer plus tard dans ⚙️.</li></ul><div class="pp-row"><button type="button" class="pp-x">J’ai compris</button></div>';
+  document.body.appendChild(box);
+  const close = (e) => { if (!box.isConnected) { document.removeEventListener('pointerdown', close, true); return; } if (!box.contains(e.target) && !e.target.closest('.pn-i')) { box.remove(); document.removeEventListener('pointerdown', close, true); } };
+  setTimeout(() => document.addEventListener('pointerdown', close, true), 0);
+  box.querySelector('.pp-x').addEventListener('click', () => box.remove());
+}
+function islPlusOpen(c) {
+  if (!ISL.srv) { toastCheer('🏝️ Bientôt : crée ton île (publique ou avec mot de passe) et deviens son gardien !', null, true); return; }
+  const fake = LABO_TEST && window.JDW_PLUS_FAKE;   // essais seulement : ouvrir et « créer » sans compte ni serveur
+  if (isGuest() && !fake) { guestAsk('Pégase'); return; }
+  for (const o of document.querySelectorAll('.pg-plus.open')) if (o !== c) o.replaceWith(islPlusTile());
+  const F = { name: '', kind: 'publique', pw: '', tab: 'nom' };
+  c.classList.add('open');
+  c.innerHTML = '<div class="pn-head"><b>🏝️ Nouvelle île</b><button type="button" class="pn-i" aria-label="Comment ça marche ?">i</button><button type="button" class="pn-x" aria-label="Fermer">×</button></div>' +
+    '<div class="pp-tabs pn-tabs" role="tablist"><button type="button" role="tab" data-t="nom">🏷️<br>Nom</button><button type="button" role="tab" data-t="acc">🔑<br>Accès</button><button type="button" role="tab" data-t="go">✨<br>Créer</button></div>' +
+    '<div class="pn-pane"></div><p class="pp-msg"></p><div class="pn-row"><button type="button" class="pn-go"></button></div>';
+  const pane = c.querySelector('.pn-pane'), msg = c.querySelector('.pp-msg'), go = c.querySelector('.pn-go');
+  const kindOf = (k) => ISL_KINDS.find(x => x[0] === k) || ISL_KINDS[0];
+  const check = (t) => { if (t !== 'nom' && F.name.trim().length < 3) return ['nom', 'Un nom d’au moins 3 lettres.']; if (t === 'go' && F.kind === 'mdp' && F.pw.length < 3) return ['acc', 'Un mot de passe d’au moins 3 caractères.']; return null; };
+  const show = (t) => {
+    const bad = check(t); if (bad) { t = bad[0]; msg.textContent = bad[1]; } else msg.textContent = '';
+    F.tab = t;
+    for (const b of c.querySelectorAll('.pn-tabs button')) b.setAttribute('aria-selected', b.dataset.t === t ? 'true' : 'false');
+    if (t === 'nom') {
+      pane.innerHTML = '<label>Le nom de ton île<input type="text" class="pn-n" maxlength="30" autocomplete="off" placeholder="L’île aux…"></label>';
+      const n = pane.querySelector('.pn-n'); n.value = F.name; n.addEventListener('input', () => { F.name = n.value; }); n.addEventListener('keydown', (e) => { if (e.key === 'Enter') show('acc'); });
+      setTimeout(() => { try { n.focus({ preventScroll: true }); } catch (e) {} }, 60);
+    } else if (t === 'acc') {
+      pane.innerHTML = '<div class="pn-kinds" role="radiogroup" aria-label="Qui peut entrer ?"></div><label class="pn-pwl" hidden>Le mot de passe<input type="text" class="pn-pw" maxlength="40" autocomplete="off"></label>';
+      const ks = pane.querySelector('.pn-kinds'), pwl = pane.querySelector('.pn-pwl'), pw = pane.querySelector('.pn-pw');
+      for (const [k, ic, lb] of ISL_KINDS) { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.k = k; b.innerHTML = '<span>' + ic + '</span>' + lb; ks.appendChild(b); }
+      const sync = () => { for (const b of ks.children) b.setAttribute('aria-checked', b.dataset.k === F.kind ? 'true' : 'false'); pwl.hidden = F.kind !== 'mdp'; };
+      ks.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; F.kind = b.dataset.k; sync(); if (F.kind === 'mdp') setTimeout(() => pw.focus(), 30); });
+      pw.value = F.pw; pw.addEventListener('input', () => { F.pw = pw.value; }); sync();
+    } else {
+      const k = kindOf(F.kind);
+      pane.innerHTML = '<div class="pn-sum"><b></b><span></span><small>🛡️ Tu en seras le gardien</small></div>';
+      pane.querySelector('b').textContent = F.name.trim(); pane.querySelector('span').textContent = k[1] + ' ' + k[2] + ' · ' + k[3];
+    }
+    go.textContent = t === 'go' ? 'Créer mon île ✨' : 'Suivant';
+    go.classList.toggle('big', t === 'go');
+  };
+  c.querySelector('.pn-tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) show(b.dataset.t); });
+  c.querySelector('.pn-i').addEventListener('click', islInfo);
+  c.querySelector('.pn-x').addEventListener('click', () => c.replaceWith(islPlusTile()));
+  go.addEventListener('click', async () => {
+    if (F.tab !== 'go') { show(F.tab === 'nom' ? 'acc' : 'go'); return; }
+    const bad = check('go'); if (bad) { show(bad[0]); return; }
+    go.disabled = true; go.textContent = 'Création…';
+    try {
+      const id = fake ? await new Promise(r => setTimeout(() => r(null), 300)) : await rpc('pg_island_create', { p_code: CODE(), p_name: profile.name, p_island: F.name.trim(), p_private: F.kind !== 'publique', p_password: F.kind === 'mdp' ? F.pw : '', p_kind: F.kind });
+      // la tuile vierge s'illumine, puis l'île apparaît à sa place
+      c.classList.add('birth'); c.innerHTML = '<div class="pn-born"><span aria-hidden="true">✨</span><b></b><small>Ton île est née !</small></div>'; c.querySelector('b').textContent = F.name.trim();
+      for (let i = 0; i < 14; i++) { const sp = document.createElement('i'); sp.className = 'pn-spark'; sp.style.setProperty('--a', (i / 14 * 360) + 'deg'); sp.style.setProperty('--d', (60 + (i % 3) * 22) + 'px'); c.appendChild(sp); }
+      PG.born = typeof id === 'number' || /^\d+$/.test(String(id)) ? +id : null;
+      if (PG.tab === 'pub' && F.kind !== 'publique') PG.tab = 'mine'; if (PG.tab === 'priv' && F.kind === 'publique') PG.tab = 'mine';
+      if (!fake) setTimeout(() => { renderIsles(); }, 1300);
+      toastCheer('🏝️ Ton île est créée : tu en es le gardien !', null, true);
+    } catch (e) { go.disabled = false; go.textContent = 'Créer mon île ✨'; msg.textContent = islErr(e); }
+  });
+  show('nom');
+}
+// (ancien bouton, caché sur la page Pégase depuis la tuile « + ») créer son île : nom, qui peut entrer (tout le monde / mot de passe / amis)
 $('jdw-pg-create').addEventListener('click', () => {
   if (!ISL.srv) { toastCheer('🏝️ Bientôt : crée ton île (publique ou avec mot de passe) et deviens son gardien !', null, true); return; }
   if (isGuest()) { toastCheer('Crée ton compte (gratuit) pour avoir ton île 😉', null, true); return; }

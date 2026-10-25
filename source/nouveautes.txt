@@ -23,6 +23,11 @@
 [pegase] La musique joue pendant qu'une mise à jour se télécharge
 [pegase] La ferme : la vache meugle, le cheval hennit et s'ébroue, le cochon grogne
 [pegase] De l'herbe sur les pentes derrière les plages et au bord de l'île
+[pegase] ## ➕ Créer son île d'un toucher (borne 1.36.19)
+[pegase] Le gros bouton « Créer mon île » devient une tuile « + » au bout de la liste des îles, sur PC comme sur téléphone
+[pegase] La création se fait dans la tuile même, en trois onglets : le nom, qui peut entrer, et créer
+[pegase] Toutes les explications sont rangées derrière le petit « i »
+[pegase] À la création, la tuile s'illumine dans une pluie d'étincelles, puis ton île apparaît à sa place
 [pegase] ## 📱 La page Pégase sur téléphone (borne 1.36.17)
 [pegase] Sur téléphone, tout tient sur l'écran (le titre, la recherche, ton île, créer une île) et le décor filmé se voit derrière
 [pegase] Une barre du bas plus fine, et le bandeau « invité » ramené à une ligne
