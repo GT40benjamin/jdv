@@ -514,3 +514,5 @@ pas besoin de ffmpeg) → EMBALLÉ (clé source/asset-key.txt) → `assets/music
 build2.py liste les .bin dans window.JDW_MUSIC_ENC et injecte window.JDW_ASSET_KEY ; shell2.js les déballe (decryptBin) ; sting(name) joue un jingle.
 
 magicv1 retiré le 18 oct.
+
+**Page Pégase pour tous (25 oct. 2026, accord de l'utilisateur)** : `PG_TAB = !!gameById('pegase')` dans shell2.js (avant : mode test). La borne s'ouvre sur Pégase (onglet tout à gauche) ; îles (pg_island_*), décor filmé (`assets/pegase/decor.json` + `decor_NN_<q>.webm|mp4`, qualité adaptative, cache `jdw-decor` du service worker), musique en suite (pgsuite-1…4), charte Pégase (`body.pg-charte`). Restent en mode test : l'indicateur de qualité vidéo (`pgQualTag`) et le journal `window.JDW_DECOR`. Essais : `~/jdv-tools/duotest/iles/` (enchaine.js, qualite.js, mise.js, ambiance.js…).

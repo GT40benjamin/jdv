@@ -25,7 +25,7 @@ const TILE_NEWS = {
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-10-22 08:11' }   // Pégase 0.9.2 : appels entre copains, maisons des copains, réveil chez soi (1.25.2 ; heure = celle de la publication)
+  pegase: { kind: 'maj', at: '2026-10-25 02:40' }   // la page Pégase pour tous : les îles, le décor filmé dans le jeu, la musique (25 oct. 2026) ; avant :   // Pégase 0.9.2 : appels entre copains, maisons des copains, réveil chez soi (1.25.2 ; heure = celle de la publication)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
@@ -2339,7 +2339,7 @@ const tiles = [];
 function buildLibrary() {
   const grid = $('jdw-grid');
   for (const g of GAMES) {
-    if (g.id === 'pegase' && LABO_TEST) continue;   // mode test : Pégase est à part (onglet tout à gauche)
+    if (g.id === 'pegase') continue;   // Pégase est à part : son onglet tout à gauche
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'tile'; b.style.setProperty('--acc', g.accent || COLORS.amber);
     b.setAttribute('aria-label', 'Jouer à ' + g.title);
@@ -2759,7 +2759,7 @@ $('jdw-alias-ok').addEventListener('click', saveAlias);
 // monde (liste des îles, membres, Regarder, musée) ; l'alias de salle reste pour l'arcade. 3 à 20 caractères, filtré, unique, 1 fois par jour.
 const PUBN = { ok: null, name: '' };
 async function pubNameLoad() {
-  const box = $('jdw-pubname'); box.hidden = !(LABO_TEST && ONLINE && !isGuest() && profile.name && PUBN.ok !== false); if (box.hidden) return;
+  const box = $('jdw-pubname'); box.hidden = !(ONLINE && !isGuest() && profile.name && PUBN.ok !== false); if (box.hidden) return;
   const i = $('jdw-pubname-in'), s = $('jdw-pubname-s'); s.className = 'alias-s'; s.textContent = 'Le nom que tout le monde voit, sur la borne et dans Pégase (3 à 20 caractères, une fois par jour).';
   i.placeholder = dispName(profile.name);
   try { const v = await rpc('pg_public_name_get', { p_code: CODE(), p_name: profile.name }, { quiet404: true, quiet: true }); PUBN.ok = true; const t = Array.isArray(v) ? (v[0] && (v[0].r_public || v[0].pg_public_name_get)) : v; PUBN.name = String(t || ''); if (document.activeElement !== i) i.value = PUBN.name; }
@@ -4396,7 +4396,7 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    autant d'habitants que de parcelles. Les îles NE SONT PAS les salles de la borne : un monde à part, avec ses propres membres (au départ,
    une seule : celle de Patou et Samba, amis seulement). Tant que le serveur des îles n'existe pas, la page est vide (« bientôt »).
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
-const PG_TAB = LABO_TEST && !!gameById('pegase');
+const PG_TAB = !!gameById('pegase');   // pour tout le monde depuis le 25 oct. 2026 (avant : mode test seulement)
 if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
 const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {

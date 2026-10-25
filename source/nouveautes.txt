@@ -2,6 +2,14 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre (une version de Pégase).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[pegase] ## 🏝️ La nouvelle page Pégase
+[pegase] Pégase a sa propre page, tout à gauche de la borne : on y arrive directement en ouvrant la borne
+[pegase] En fond, de vrais plans filmés dans le jeu : les tournesols, la prairie sous la Voie lactée, la pluie sur la place du village
+[pegase] Les îles : cherche une île par son nom, filtre les îles publiques, privées ou les tiennes, et vois qui est en ligne
+[pegase] Chaque île sous sa mer de nuages : la brume s'ouvre là où tu as déjà exploré
+[pegase] PegaGram en un toucher depuis l'île ; le classement des plus belles îles (espèces trouvées, habitants)
+[pegase] Le mode ambiance ✨ : tout s'efface, il ne reste que le décor et le titre ; un toucher et tout revient
+[pegase] Un bouton pour partager la page Pégase avec tes copains
 [bolides] ## 🏁 Bolides RC : à fond, sur trois circuits tout neufs
 [bolides] Plus aucun ralentissement automatique : joystick poussé à fond = pleine vitesse, même dans les virages, c'est toi qui décides
 [bolides] Trois circuits redessinés : longues lignes droites, grandes courbes rapides, esses, une vraie épingle au Parking
