@@ -4547,6 +4547,38 @@ function pgPoster(id) {   // l'affiche en fond (gardée d'une fois sur l'autre ;
   if (id) store.set('jdw.pg.poster', id);
   if (el && el.dataset.u !== u) { el.dataset.u = u; el.style.backgroundImage = 'url("' + u + '")'; }
 }
+// LE HUB DE PÉGASE (la page de ton avatar, « Regarder ») : son grand fond était une image fixe ; la borne y glisse les mêmes plans filmés que
+// la page des îles (vidéo par-dessus l'image, qui reste en secours), sans toucher au code du hub : un plan, puis le suivant à la fin
+const HUBV = { obs: null };
+async function hubDecorList() {
+  if (PGD.list && PGD.list.length) return PGD.list;
+  try { const r = await fetch(ROOT + 'assets/pegase/decor.json', { cache: 'no-cache' }); const l = r.ok ? await r.json() : []; return Array.isArray(l) ? l.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id))) : []; } catch (e) { return []; }
+}
+async function hubDecor(hero) {
+  if (!hero || hero.querySelector('.jdw-hubvid')) return;
+  if ((navigator.connection && navigator.connection.saveData) || (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  const list = await hubDecorList(); if (!list.length || !hero.isConnected) return;
+  const v = document.createElement('video'); v.className = 'jdw-hubvid'; v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.autoplay = true; v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
+  v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:0;transition:opacity 1.2s ease;pointer-events:none';
+  const bg = hero.querySelector('.pgh-bg'); if (bg && bg.nextSibling) hero.insertBefore(v, bg.nextSibling); else hero.prepend(v);
+  let i = Math.floor(Math.random() * list.length);
+  const play = () => {
+    const e = list[i % list.length], q = pgQualWant(e) || 0, base = ROOT + 'assets/pegase/' + e.id;
+    while (v.firstChild) v.removeChild(v.firstChild);
+    v.poster = base + '_poster.jpg'; v.loop = list.length < 2;
+    for (const [sx, type] of (q ? [['_' + q + '.webm', 'video/webm'], ['_' + q + '.mp4', 'video/mp4']] : [['.webm', 'video/webm'], ['.mp4', 'video/mp4']])) { const so = document.createElement('source'); so.src = base + sx; so.type = type; v.appendChild(so); }
+    v.load(); v.play().catch(() => {});
+  };
+  v.addEventListener('playing', () => { v.style.opacity = '1'; });
+  v.addEventListener('ended', () => { v.style.opacity = '0'; setTimeout(() => { i++; play(); }, 1200); });
+  play();
+}
+function hubDecorWatch() {
+  if (HUBV.obs || !window.MutationObserver) return;
+  HUBV.obs = new MutationObserver(() => { const h = document.querySelector('.pgh-hero'); if (h && !h.querySelector('.jdw-hubvid')) hubDecor(h); });
+  HUBV.obs.observe(document.body, { childList: true, subtree: true });
+}
+if (PG_TAB) hubDecorWatch();
 function pgSky(on) {
   $('jdw-lib').classList.add('pg-vid');
   if (on) pgPoster();
