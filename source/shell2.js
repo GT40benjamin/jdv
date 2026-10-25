@@ -1200,10 +1200,20 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { con
   const EV = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
   const unlock = () => {
     Audio.ensure(); const A = Audio.ctx; if (!A) return;
-    const go = () => { if (A.state !== 'running') return; for (const ev of EV) removeEventListener(ev, unlock, true); MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); };
+    const go = () => { if (A.state !== 'running') return; for (const ev of EV) removeEventListener(ev, unlock, true); document.documentElement.classList.remove('jdw-mute-wait'); MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); };
     if (A.state === 'running') go(); else A.resume().then(go).catch(() => {});
   };
   for (const ev of EV) addEventListener(ev, unlock, true);
+  // dès l'arrivée : si le navigateur permet déjà le son, la musique part sans toucher ; sinon le bouton 🎵 pulse jusqu'au 1er geste
+  const tryNow = () => {
+    if (!MUS.on || document.hidden) return;
+    try { Audio.ensure(); } catch (e) { return; }
+    const A = Audio.ctx; if (!A) return;
+    if (A.state === 'running') { unlock(); return; }
+    document.documentElement.classList.add('jdw-mute-wait');
+    Promise.race([A.resume(), new Promise(r => setTimeout(r, 600))]).then(() => { if (A.state === 'running') unlock(); }).catch(() => {});
+  };
+  setTimeout(tryNow, 300); addEventListener('pageshow', () => setTimeout(tryNow, 300));
 }
 
 /* ================= Cris des copains ================= */
