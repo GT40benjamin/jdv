@@ -2,6 +2,9 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[pegase] ## 🎬 Huit plans filmés en fond de la page Pégase (borne 1.36.8)
+[pegase] Quatre nouveaux plans filmés dans le jeu : la pluie douce sur les tournesols, la cascade du lac de montagne, le panorama depuis la falaise et une nouvelle prairie sous la Voie lactée
+[pegase] Tous les plans en très haute qualité (jusqu'à la 4K) sur les grands écrans, et ils démarrent toujours vite en petite qualité
 [pegase] ## 🏪 Pégase 0.9.5
 [pegase] Les boutiques ont de nouvelles devantures : grandes enseignes dorées, stores rayés aux couleurs de chaque commerce, vitrines éclairées, pancarte OUVERT / FERMÉ qui suit les horaires
 [pegase] La musique est revenue dans les boutiques et à la mairie, et elle reprend toute seule quand tu arrêtes la tienne

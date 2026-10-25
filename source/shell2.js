@@ -4415,7 +4415,7 @@ if (PG_TAB) {
 }
 // LE VRAI DÉCOR : des PLANS FIXES filmés dans le jeu (la fontaine, le grand arbre, la prairie…), environ une minute chacun, en fond plein
 // écran et sans son. La liste est dans assets/pegase/decor.json : [{ "id": "decor_01", "titre": "La fontaine" }, …] (on en ajoute ou en
-// retire sans toucher au code). Pour chaque plan : <id>.webm et <id>.mp4 (et <id>_portrait.webm / .mp4 sur un écran en hauteur, s'ils
+// retire sans toucher au code). Plan en qualités ("q") : <id>_<q>.mp4 seulement (un seul format, pour la taille du site). Sinon : <id>.webm et <id>.mp4 (et <id>_portrait.webm / .mp4 sur un écran en hauteur, s'ils
 // existent), et <id>_poster.jpg, montré pendant le chargement. Ordre mélangé, jamais deux fois le même de suite ; deux vidéos se relaient
 // avec un fondu enchaîné de 2 s ; seul le plan suivant est préchargé. Appareil qui économise les données ou préfère moins d'animations :
 // les affiches seules, qui changent toutes les minutes. Pas de liste (ou pas d'affiche) : l'ancienne vidéo unique (decor.webm), sinon le
@@ -4441,6 +4441,10 @@ function pgQualWant(e) {
   return qs.filter(q => q <= want).pop() || qs[0];
 }
 function pgQualStart(e) { const qs = Array.isArray(e.q) ? e.q.slice().sort((a, b) => a - b) : null; return qs ? qs[0] : 0; }   // on démarre toujours petit
+// où sont les vidéos du décor : PG_VID_BASE (ex. 'https://pub-xxxx.r2.dev/', vide = assets/pegase/ du site). Les affiches restent sur le site.
+const PG_VID_BASE = 'https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/';   // Cloudflare R2 (seau de Benjamin, 25 oct. 2026)
+// les sources d'un plan en qualité q : le seau, puis en secours la 720 du site (gardée dans le dépôt)
+const pgVidSrcs = (id, q) => PG_VID_BASE ? [PG_VID_BASE + id + '_' + q + '.mp4', ROOT + 'assets/pegase/' + id + '_720.mp4'] : [ROOT + 'assets/pegase/' + id + '_' + q + '.mp4'];
 function pgDecorSrc(v, id, q) {
   const e = pgEntry(id), base = ROOT + 'assets/pegase/' + id, port = innerHeight > innerWidth * 1.1;
   while (v.firstChild) v.removeChild(v.firstChild);
@@ -4448,8 +4452,8 @@ function pgDecorSrc(v, id, q) {
   if (PGD.still) { v.removeAttribute('src'); v.load(); return; }
   if (q == null) q = PGD.started && pgQualWant(e) ? pgQualWant(e) : pgQualStart(e);   // le 1er plan démarre petit ; les suivants, dans la qualité visée
   v.dataset.q = q || '';
-  const suf = q ? [['_' + q + '.webm', 'video/webm'], ['_' + q + '.mp4', 'video/mp4']] : (port ? [['_portrait.webm', 'video/webm'], ['_portrait.mp4', 'video/mp4']] : []).concat([['.webm', 'video/webm'], ['.mp4', 'video/mp4']]);
-  for (const [sx, type] of suf) { const sEl = document.createElement('source'); sEl.src = base + sx; sEl.type = type; v.appendChild(sEl); }
+  const suf = q ? [['_' + q + '.mp4', 'video/mp4']] : (port ? [['_portrait.webm', 'video/webm'], ['_portrait.mp4', 'video/mp4']] : []).concat([['.webm', 'video/webm'], ['.mp4', 'video/mp4']]);
+  for (const [src, type] of q ? pgVidSrcs(id, q).map(u => [u, 'video/mp4']) : suf.map(([sx, t]) => [base + sx, t])) { const sEl = document.createElement('source'); sEl.src = src; sEl.type = type; v.appendChild(sEl); }
   v.loop = (PGD.list || []).length < 2; v.preload = 'auto'; v.load();
 }
 // la qualité supérieure, téléchargée en arrière-plan (fetch → débit mesuré, et le service worker la garde) puis en fondu au même instant
@@ -4458,7 +4462,7 @@ async function pgQualUp(v) {
   if (!cur || !want || want <= cur || v.dataset.up) return;
   if (Date.now() - (PGD.nextAt || 0) < 3000) { setTimeout(() => pgQualUp(v), 3000); return; }   // un passage de plan est en cours : on attend
   v.dataset.up = '1';
-  const type = v.currentSrc && /\.mp4(\?|$)/.test(v.currentSrc) ? 'mp4' : 'webm', url = ROOT + 'assets/pegase/' + id + '_' + want + '.' + type;
+  const type = v.currentSrc && /\.mp4(\?|$)/.test(v.currentSrc) ? 'mp4' : 'webm', url = PG_VID_BASE ? pgVidSrcs(id, want)[0] : ROOT + 'assets/pegase/' + id + '_' + want + '.' + type;   // le seau doit permettre la lecture depuis le site (CORS)
   const t0 = performance.now();
   try {
     const r = await fetch(url); if (!r.ok) throw new Error(r.status);
@@ -4566,7 +4570,7 @@ async function hubDecor(hero) {
     const e = list[i % list.length], q = (first ? pgQualStart(e) : pgQualWant(e)) || 0, base = ROOT + 'assets/pegase/' + e.id; first = false;   // le 1er plan démarre petit (vite), les suivants dans la bonne qualité
     while (v.firstChild) v.removeChild(v.firstChild);
     v.poster = base + '_poster.jpg'; v.loop = list.length < 2;
-    for (const [sx, type] of (q ? [['_' + q + '.webm', 'video/webm'], ['_' + q + '.mp4', 'video/mp4']] : [['.webm', 'video/webm'], ['.mp4', 'video/mp4']])) { const so = document.createElement('source'); so.src = base + sx; so.type = type; v.appendChild(so); }
+    for (const [src, type] of (q ? pgVidSrcs(e.id, q).map(u => [u, 'video/mp4']) : [[base + '.webm', 'video/webm'], [base + '.mp4', 'video/mp4']])) { const so = document.createElement('source'); so.src = src; so.type = type; v.appendChild(so); }
     v.load(); v.play().catch(() => {});
   };
   v.addEventListener('playing', () => { v.style.opacity = '1'; });
