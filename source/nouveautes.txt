@@ -2,6 +2,17 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[pegase] ## 🎣 Pégase 0.9.7
+[pegase] La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil
+[pegase] Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches
+[pegase] Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles
+[pegase] À table : on s'assoit face à la table, les pieds dessous, des deux côtés
+[pegase] Le râteau chez Rosalie : il remet l'herbe sur une case bêchée, ou annule une plantation en te rendant la graine
+[pegase] Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête
+[pegase] La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur
+[pegase] Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres
+[pegase] Ta vue 1re ou 3e personne est retenue d'une partie à l'autre
+[pegase] Sur PC, les mises à jour sont bien plus rapides : seul ce qui change est téléchargé
 [pegase] ## 🏡 Pégase 0.9.6
 [pegase] Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte « À vendre » et leur boîte aux lettres
 [pegase] Les parcelles redessinées : elles ne débordent plus sur les chemins, leur lueur dorée épouse le sol, et deux voisines partagent la même limite

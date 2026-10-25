@@ -1,32 +1,46 @@
 {
-  "version": "0.9.6",
-  "build": 38,
-  "size": 2141210782,
-  "sha256": "6bfcb120e0a0ca2c5eabf204ccce086484fef214cd0efd8e405f50d363c2bd71",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v38/Pegase-PC-2026-10-25-0.9.6.zip",
-  "manifest": "c9ca85869959a355ab7d48686182f307d7cb2d3f63d2b0a4786764f5d8406e14",
+  "version": "0.9.7",
+  "build": 39,
+  "size": 2141246438,
+  "sha256": "b335690fc2be6615fb714bd604a87a6a57cce5f10d1fb9b6556d694dd99d2918",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v39/Pegase-PC-2026-10-25-0.9.7.zip",
+  "manifest": "302147245a19e62e1746bbf05b2791b06ccba10f1ba07e42e57965e08143a7fa",
   "patchs": [
     {
-      "de": "0.9.5",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v38/Pegase-PC-patch-0.9.5.zip",
-      "taille": 6162358,
-      "sha256": "a8c03e45df9366e8fddaccd2ea65547797581d71348ceadae27fa0f1d7a865c5"
+      "de": "0.9.6",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v39/Pegase-PC-patch-0.9.6.zip",
+      "taille": 4815097,
+      "sha256": "1c47011865a09d4d9ed623c29eb456ab0a1159de92144868e47a229b84029a6a"
     }
   ],
   "notes": [
-    "Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte « À vendre » et leur boîte aux lettres.",
-    "Les parcelles redessinées : elles ne débordent plus sur les chemins, et leur lueur dorée épouse le sol quand tu choisis ta place. Entre deux voisines, la limite est commune.",
-    "Le permis de construire donne une parcelle à 1000 lucioles ; les autres s'achèteront.",
-    "Les chemins sous le Clos sont nettoyés : un seul beau chemin, l'herbe est revenue partout ailleurs.",
-    "L'avion fait son demi-tour sur une vraie aire au bout de la piste, et une petite allée mène de sa porte au pied de l'escalier ; plein de buissons, de fleurs et d'arbres autour.",
-    "Maisons prêtes : plus de toits qui se croisent dans l'aperçu.",
-    "Réaménager l'intérieur est de retour, à l'étape « Étages » de la construction.",
-    "Une barre d'objets en bas de l'écran : touches 1 à 5 (croix et RB à la manette, toucher la case sur téléphone), l'objet choisi s'utilise au clic ; E ne sert plus qu'à parler, ouvrir et s'asseoir. Le parapluie s'ouvre quand tu le tiens.",
-    "La musique joue pendant qu'une mise à jour se télécharge.",
-    "La ferme : la vache meugle, le cheval hennit et s'ébroue, le cochon grogne, depuis l'animal lui-même.",
-    "Et aussi : de l'herbe sur les pentes derrière les plages et tout au bord de l'île, l'herbe qui va plus loin en qualité Ultra, et les sangliers qui fouillent dans les fleurs."
+    "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil pendant que tu pêches.",
+    "Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches.",
+    "Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles.",
+    "À table : on s'assoit face à la table, les pieds dessous, des deux côtés.",
+    "Le râteau chez Rosalie : il remet l'herbe sur une case bêchée, ou annule une plantation en te rendant la graine.",
+    "Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête.",
+    "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
+    "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
+    "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre.",
+    "Mises à jour bien plus rapides : environ 35 secondes au lieu de 5 minutes."
   ],
   "historique": [
+    {
+      "version": "0.9.7",
+      "notes": [
+        "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil pendant que tu pêches.",
+        "Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches.",
+        "Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles.",
+        "À table : on s'assoit face à la table, les pieds dessous, des deux côtés.",
+        "Le râteau chez Rosalie : il remet l'herbe sur une case bêchée, ou annule une plantation en te rendant la graine.",
+        "Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête.",
+        "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
+        "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
+        "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre.",
+        "Mises à jour bien plus rapides : environ 35 secondes au lieu de 5 minutes."
+      ]
+    },
     {
       "version": "0.9.6",
       "notes": [
@@ -92,21 +106,6 @@
         "La galerie du musée : de vrais cadres dorés à hauteur des yeux, prêts à recevoir les photos que tu offres à Mlle Iris.",
         "Les lunettes se posent sur le nez, juste devant les yeux, et leurs branches passent au-dessus des oreilles.",
         "Des déplacements encore plus doux : départs et arrêts en courbe, caméra plus calme au stick, vue à la première personne sans secousse, et la caméra ne passe plus à travers les toiles et les auvents."
-      ]
-    },
-    {
-      "version": "0.9.4.5",
-      "notes": [
-        "La pêche à la canne à coup : une longue canne fine en bambou (5 m, 6 m pour celle de Gaspard), tu tiens la ligne et tu la lâches pour lancer ; vrai flotteur, vrais sons d'eau, vibrations, ferrage et sortie du poisson au ralenti ; tes copains te voient tenir la canne et le fil.",
-        "Des déplacements tout doux : plus d'à-coups dans les escaliers, des virages qui finissent en douceur, une caméra plus calme, et tes copains bougent sans saccades.",
-        "Au viseur, tu peux marcher doucement sans quitter l'objectif.",
-        "Dans ta maison, la caméra reste à l'intérieur.",
-        "Les fourmis : quatre sortes, en colonnes, autour de leurs nids.",
-        "Le grand-duc encore plus beau au viseur, avec quelques feuilles floues autour de l'objectif.",
-        "Le village : maison de départ chaleureuse (et « Réaménager l'intérieur »), vrai four à pain avec ses braises, étal bien rangé, nom gravé sur le panneau, toits réparés, boîte aux lettres et panneau qu'on peut déplacer.",
-        "Les habitants font de vrais gestes en parlant ; Mathilde est plus simple ; les lustres du musée ne gênent plus.",
-        "Les gestes : la roue ne montre que les tiens, et un câlin tout doux.",
-        "Le Grand livre : un chapitre « Fruits et légumes », les oies et les chauves-souris."
       ]
     }
   ]
