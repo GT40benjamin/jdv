@@ -23,7 +23,7 @@
 [pegase] La musique joue pendant qu'une mise à jour se télécharge
 [pegase] La ferme : la vache meugle, le cheval hennit et s'ébroue, le cochon grogne
 [pegase] De l'herbe sur les pentes derrière les plages et au bord de l'île
-[pegase] ## 📱 La page Pégase sur téléphone (borne 1.36.15)
+[pegase] ## 📱 La page Pégase sur téléphone (borne 1.36.17)
 [pegase] Sur téléphone, tout tient sur l'écran (le titre, la recherche, ton île, créer une île) et le décor filmé se voit derrière
 [pegase] Une barre du bas plus fine, et le bandeau « invité » ramené à une ligne
 [pegase] Sur téléphone, seulement les plans de ciel clair et de nuit ; la pluie reste pour les grands écrans
