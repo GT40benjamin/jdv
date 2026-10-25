@@ -2578,3 +2578,45 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 #jdw-pg-rest span{opacity:.85;font-size:.95rem}
 #jdw-pg-rest button{margin-top:6px;padding:10px 26px;border-radius:999px;border:0;background:linear-gradient(180deg,#ffd98a,#f0b44c);color:#3a2408;font-weight:800;font-size:1rem;cursor:pointer}
 @media (prefers-reduced-motion:reduce){#jdw-lib,#jdw-pg-rest,#jdw-pg-rest>div{transition:none}}
+/* LE CIEL DU PLAN (decor.json "ciel") : l'interface s'y accorde. Clair (jour) : voile plus dense en haut et en bas pour lire le titre et les
+   cartes sur un ciel lumineux ; pluie : cartes un peu plus couvrantes, teinte froide ; nuit : cartes plus transparentes, reflets dorés */
+#jdw-lib[data-mode="pegase"] .pg-isle,#jdw-lib[data-mode="pegase"] .pg-search,#jdw-lib[data-mode="pegase"] .pg-create,#jdw-lib[data-mode="pegase"] .modebar{transition:background-color .9s ease,border-color .9s ease,box-shadow .9s ease}
+#jdw-lib[data-mode="pegase"][data-ciel="clair"] .pg-veil{background:linear-gradient(180deg,rgba(5,10,31,.45) 0%,rgba(5,10,31,.08) 26%,rgba(5,10,31,0) 45%,rgba(5,10,31,.6) 75%,rgba(5,10,31,.85) 100%)}
+#jdw-lib[data-mode="pegase"][data-ciel="clair"] .mode-hero p,#jdw-lib[data-mode="pegase"][data-ciel="clair"] .pg-note{text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 18px rgba(0,0,0,.8)}
+#jdw-lib[data-mode="pegase"][data-ciel="pluie"] .pg-isle{background:rgba(12,20,36,.8);border-color:rgba(170,200,230,.2)}
+#jdw-lib[data-mode="pegase"][data-ciel="pluie"] .pg-search,#jdw-lib[data-mode="pegase"][data-ciel="pluie"] .pg-create{background:rgba(12,20,36,.55)}
+#jdw-lib[data-mode="pegase"][data-ciel="pluie"] .pg-veil{background:linear-gradient(180deg,rgba(8,14,30,.35) 0%,rgba(8,14,30,.1) 30%,rgba(8,14,30,.1) 50%,rgba(8,14,30,.6) 78%,rgba(8,14,30,.85) 100%)}
+#jdw-lib[data-mode="pegase"][data-ciel="nuit"] .pg-isle{background:rgba(10,14,34,.6);border-color:rgba(255,214,140,.22)}
+#jdw-lib[data-mode="pegase"][data-ciel="nuit"] .pg-isle:hover{box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 1px rgba(255,214,140,.55),0 0 26px rgba(255,214,140,.18)}
+/* TÉLÉPHONE : tout tient sur l'écran et le décor se voit derrière (Benjamin : « réduire pour tout voir sur la page mais aussi voir derrière ») */
+@media (max-width:600px){
+  #jdw-lib[data-mode="pegase"] .lib-wrap{padding-top:44px;gap:10px}
+  #jdw-lib[data-mode="pegase"] .mode-hero{margin-bottom:clamp(18px,7vh,70px)}
+  #jdw-lib[data-mode="pegase"] .mode-hero h1{font-size:clamp(34px,11vw,46px)}
+  #jdw-lib[data-mode="pegase"] .pg-wing{width:38px}
+  #jdw-lib[data-mode="pegase"] .pg-search{width:min(320px,100%)}
+  #jdw-lib[data-mode="pegase"] .pgs-in{height:30px;font-size:13.5px}
+  #jdw-lib[data-mode="pegase"] .pgs-filt{width:30px;height:30px}
+  #jdw-lib[data-mode="pegase"] .pg-isles{grid-template-columns:min(272px,100%);gap:10px}
+  #jdw-lib[data-mode="pegase"] .pg-isle{background:rgba(10,16,32,.58);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #jdw-lib[data-mode="pegase"] .pg-isle canvas{aspect-ratio:2/1}
+  #jdw-lib[data-mode="pegase"] .pi-body{padding:6px 11px 9px}
+  #jdw-lib[data-mode="pegase"] .pi-act button{min-height:30px}
+  #jdw-lib[data-mode="pegase"] .pg-create{width:min(300px,100%);padding:7px 10px;background:rgba(10,16,30,.28)}
+  #jdw-lib[data-mode="pegase"] .pg-create b{font-size:13px}
+  #jdw-lib[data-mode="pegase"] .pg-create small{font-size:10.5px}
+  #jdw-lib[data-mode="pegase"] .pg-note{font-size:10.5px;max-width:300px;justify-self:center}
+  /* le bandeau invité : une ligne, deux petits boutons */
+  #jdw-lib[data-mode="pegase"] .guest-bar{width:min(320px,100%);justify-self:center;padding:8px 10px;gap:6px 10px;border-radius:14px;background:rgba(10,16,32,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-orb{width:30px;height:30px;border-radius:10px}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-orb svg{width:17px;height:17px}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-tx b{font-size:13px}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-tx span{display:none}
+  #jdw-lib[data-mode="pegase"] .guest-bar .gb-btns .btn{min-height:32px;padding:6px 10px;font-size:11px}
+  /* la barre du bas : une pilule fine, icône et nom côte à côte */
+  #jdw-lib[data-mode="pegase"] .modebar{bottom:calc(env(safe-area-inset-bottom,0px) + 10px);width:min(300px,calc(100vw - 40px));padding:3px;border-radius:999px;background:rgba(10,16,32,.66);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  #jdw-lib[data-mode="pegase"] .modebar button{min-height:40px;grid-auto-flow:column;justify-content:center;align-items:center;gap:6px;border-radius:999px;font-size:12px}
+  #jdw-lib[data-mode="pegase"] .modebar .mb-ic{width:30px;height:24px;border-radius:12px;font-size:16px}
+  #jdw-lib[data-mode="pegase"] .modebar.has-pg:not(.pg-open) button[data-mode="pegase"] .mb-ic{width:30px}
+  #jdw-lib[data-mode="pegase"] #jdw-page-pegase{padding-bottom:64px}
+}

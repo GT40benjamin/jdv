@@ -4455,11 +4455,20 @@ function pgQualStart(e) { const qs = Array.isArray(e.q) ? e.q.slice().sort((a, b
 // où sont les vidéos du décor : PG_VID_BASE (ex. 'https://pub-xxxx.r2.dev/', vide = assets/pegase/ du site). Les affiches restent sur le site.
 const PG_VID_BASE = 'https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/';   // Cloudflare R2 (seau de Benjamin, 25 oct. 2026)
 // les sources d'un plan en qualité q : le seau, puis en secours la 720 du site (gardée dans le dépôt)
-const pgVidSrcs = (id, q) => PG_VID_BASE ? [PG_VID_BASE + id + '_' + q + '.mp4', ROOT + 'assets/pegase/' + id + '_720.mp4'] : [ROOT + 'assets/pegase/' + id + '_' + q + '.mp4'];
+// téléphone (doigt, petit écran) : pas de plans de pluie ; écran en hauteur + plan vertical disponible ("m") : la version verticale
+const PG_PHONE = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches && Math.min(screen.width || 9999, screen.height || 9999) < 700);
+const pgSkyList = (list) => { const l = PG_PHONE ? list.filter(e => e.ciel !== 'pluie') : list; return l.length ? l : list; };
+const pgVert = (e) => !!(e && Array.isArray(e.m) && e.m.length && PG_VID_BASE && innerHeight > innerWidth * 1.1);
+const pgPosterUrl = (id) => ROOT + 'assets/pegase/' + id + (pgVert(pgEntry(id)) ? '_m' : '') + '_poster.jpg';
+const pgVidSrcs = (id, q, flat) => {   // flat : jamais la version verticale (le bandeau du hub)
+  const e = pgEntry(id);
+  if (!flat && pgVert(e)) { const m = e.m.slice().sort((a, b) => a - b), qm = m.filter(x => x <= q).pop() || m[0]; return [PG_VID_BASE + id + '_m_' + qm + '.mp4', ROOT + 'assets/pegase/' + id + '_720.mp4']; }
+  return PG_VID_BASE ? [PG_VID_BASE + id + '_' + q + '.mp4', ROOT + 'assets/pegase/' + id + '_720.mp4'] : [ROOT + 'assets/pegase/' + id + '_' + q + '.mp4'];
+};
 function pgDecorSrc(v, id, q) {
   const e = pgEntry(id), base = ROOT + 'assets/pegase/' + id, port = innerHeight > innerWidth * 1.1;
   while (v.firstChild) v.removeChild(v.firstChild);
-  v.poster = base + '_poster.jpg';
+  v.poster = e.q ? pgPosterUrl(id) : base + '_poster.jpg';
   if (PGD.still) { v.removeAttribute('src'); v.load(); return; }
   if (q == null) q = PGD.started && pgQualWant(e) ? pgQualWant(e) : pgQualStart(e);   // le 1er plan démarre petit ; les suivants, dans la qualité visée
   v.dataset.q = q || '';
@@ -4537,13 +4546,13 @@ function pgDecor(on) {
   for (const x of [v, v2]) { x.loop = false; x.addEventListener('timeupdate', () => pgDecorTick(x)); x.addEventListener('playing', () => { delete x.dataset.done; x.classList.add('live'); if (x.dataset.id) pgPoster(x.dataset.id); if (x.dataset.q && x === pgVid(PGD.act)) pgQualTag((x.dataset.q) + 'p'); if (!PGD.started) { PGD.started = true; PGQ.first = Math.round(performance.now() - (PGD.t0 || 0)); PGQ.log.push('1re image ' + PGQ.first + ' ms, ' + (x.dataset.q || '?') + 'p'); } setTimeout(() => pgQualUp(x), 1500); }); x.addEventListener('ended', () => { if (x === pgVid(PGD.act)) { if (PGD.list.length > 1) pgDecorNext(); else { x.currentTime = 0; x.play().catch(() => {}); } } }); }
   v2.classList.add('off');
   fetch(ROOT + 'assets/pegase/decor.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null).then((list) => {
-    list = Array.isArray(list) ? list.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id))) : [];
+    list = pgSkyList(Array.isArray(list) ? list.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id))) : []);
     if (list.length) {
       // la liste : on vérifie l'affiche du premier plan avant d'éteindre le ciel ; un seul plan tourne en boucle, sans coupure
       PGD.list = list; const first = pgDecorPick(), im = new Image();
       im.onload = () => { ok(); PGD.cur = first; PGD.act = 0; v.loop = list.length === 1; pgPoster(list[first].id); pgDecorSrc(v, list[first].id); v.dataset.id = list[first].id; v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); if (list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(v2, list[PGD.pre].id); v2.dataset.id = list[PGD.pre].id; } if (PGD.still) PGD.t = setTimeout(() => pgDecorNext(), 60000); };
       im.onerror = () => { PGD.state = 'bad'; };
-      im.src = ROOT + 'assets/pegase/' + list[first].id + '_poster.jpg';
+      im.src = pgPosterUrl(list[first].id);
       return;
     }
     // pas de liste : l'ancienne vidéo unique en boucle (decor.webm / .mp4 + decor_poster.jpg)
@@ -4558,8 +4567,9 @@ function pgDecor(on) {
 // épurée (ta tête · 🏆 classement des îles · 🔔 · ♪ musique · ✨ ambiance), et le mode AMBIANCE : tout s'efface en douceur, il ne reste que
 // la vidéo et le titre ; un toucher, un clic ou Échap → tout revient.
 function pgPoster(id) {   // l'affiche en fond (gardée d'une fois sur l'autre ; le service worker la garde hors ligne)
-  const u = ROOT + 'assets/pegase/' + (id || store.get('jdw.pg.poster', 'decor_01')) + '_poster.jpg', el = $('jdw-pg-poster');
+  const pid = id || store.get('jdw.pg.poster', 'decor_01'), u = pgPosterUrl(pid), el = $('jdw-pg-poster');
   if (id) store.set('jdw.pg.poster', id);
+  { const lib = $('jdw-lib'), c = (pgEntry(pid).ciel || ''); if (lib && lib.dataset.ciel !== c) lib.dataset.ciel = c; }   // l'interface suit le ciel du plan
   if (el && el.dataset.u !== u) { el.dataset.u = u; el.style.backgroundImage = 'url("' + u + '")'; }
 }
 // LE HUB DE PÉGASE (la page de ton avatar, « Regarder ») : son grand fond était une image fixe ; la borne y glisse les mêmes plans filmés que
@@ -4567,7 +4577,7 @@ function pgPoster(id) {   // l'affiche en fond (gardée d'une fois sur l'autre ;
 const HUBV = { obs: null };
 async function hubDecorList() {
   if (PGD.list && PGD.list.length) return PGD.list;
-  try { const r = await fetch(ROOT + 'assets/pegase/decor.json', { cache: 'no-cache' }); const l = r.ok ? await r.json() : []; return Array.isArray(l) ? l.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id))) : []; } catch (e) { return []; }
+  try { const r = await fetch(ROOT + 'assets/pegase/decor.json', { cache: 'no-cache' }); const l = r.ok ? await r.json() : []; return Array.isArray(l) ? pgSkyList(l.filter(x => x && /^[a-z0-9_-]{1,40}$/i.test(String(x.id)))) : []; } catch (e) { return []; }
 }
 async function hubDecor(hero) {
   if (!hero || hero.querySelector('.jdw-hubvid')) return;
@@ -4581,7 +4591,7 @@ async function hubDecor(hero) {
     const e = list[i % list.length], q = (first ? pgQualStart(e) : pgQualWant(e)) || 0, base = ROOT + 'assets/pegase/' + e.id; first = false;   // le 1er plan démarre petit (vite), les suivants dans la bonne qualité
     while (v.firstChild) v.removeChild(v.firstChild);
     v.poster = base + '_poster.jpg'; v.loop = list.length < 2;
-    for (const [src, type] of (q ? pgVidSrcs(e.id, q).map(u => [u, 'video/mp4']) : [[base + '.webm', 'video/webm'], [base + '.mp4', 'video/mp4']])) { const so = document.createElement('source'); so.src = src; so.type = type; v.appendChild(so); }
+    for (const [src, type] of (q ? pgVidSrcs(e.id, q, true).map(u => [u, 'video/mp4']) : [[base + '.webm', 'video/webm'], [base + '.mp4', 'video/mp4']])) { const so = document.createElement('source'); so.src = src; so.type = type; v.appendChild(so); }
     v.load(); v.play().catch(() => {});
   };
   v.addEventListener('playing', () => { v.style.opacity = '1'; });
