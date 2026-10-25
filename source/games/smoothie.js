@@ -83,6 +83,52 @@
   // ===========================================================================
   // DESSIN D'UN FRUIT (centré en 0,0, rayon R) : contour, peau, textures, reflets, queue et feuille
   // ===========================================================================
+  // la banane : ligne centrale (courbe de Bézier), demi-épaisseur w(u) ; rend le contour (dessus puis dessous)
+  function bananaMid(u, R) {
+    const a = [-R * 1.02, -R * 0.36], c1 = [-R * 0.42, R * 0.62], c2 = [R * 0.5, R * 0.6], b = [R * 0.98, -R * 0.5], v = 1 - u;
+    const px = v * v * v * a[0] + 3 * v * v * u * c1[0] + 3 * v * u * u * c2[0] + u * u * u * b[0], py = v * v * v * a[1] + 3 * v * v * u * c1[1] + 3 * v * u * u * c2[1] + u * u * u * b[1];
+    const dx = 3 * v * v * (c1[0] - a[0]) + 6 * v * u * (c2[0] - c1[0]) + 3 * u * u * (b[0] - c2[0]), dy = 3 * v * v * (c1[1] - a[1]) + 6 * v * u * (c2[1] - c1[1]) + 3 * u * u * (b[1] - c2[1]), l = Math.hypot(dx, dy) || 1;
+    return [px, py, -dy / l, dx / l];
+  }
+  const bananaW = (u, R) => R * (0.05 + 0.25 * Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.04)), 0.55));
+  function bananaPts(R) { const top = [], bot = [], n = 36; for (let i = 0; i <= n; i++) { const u = i / n, [px, py, nx, ny] = bananaMid(u, R), w = bananaW(u, R); top.push([px - nx * w, py - ny * w]); bot.push([px + nx * w, py + ny * w]); } return top.concat(bot.reverse()); }
+  function bananaLine(x, R, k, u0, u1) { x.beginPath(); for (let i = 0; i <= 30; i++) { const u = u0 + (u1 - u0) * i / 30, [px, py, nx, ny] = bananaMid(u, R), w = bananaW(u, R) * k; if (i) x.lineTo(px + nx * w, py + ny * w); else x.moveTo(px + nx * w, py + ny * w); } }
+  // la vraie banane : ombre qui suit sa forme, dégradé dans l'épaisseur, arêtes, reflet le long du dos, mouchetures, bout noir, queue
+  function paintBanana(x, t, R, seed, noShadow) {
+    const r = mulberry32(seed || 7);
+    x.save();
+    if (!noShadow) { x.save(); x.translate(R * 0.06, R * 0.12); x.shadowColor = 'rgba(0,0,0,0.35)'; x.shadowBlur = R * 0.18; shapePath(x, t, R); x.fillStyle = 'rgba(0,0,0,0.22)'; x.fill(); x.restore(); }
+    shapePath(x, t, R);
+    x.fillStyle = lin(x, 0, -R * 0.25, 0, R * 0.62, [0, '#fff6a8', 0.3, t.skin, 0.75, '#f2b51e', 1, '#c98a0c']); x.fill();
+    x.save(); shapePath(x, t, R); x.clip();
+    // vert tendre vers la queue, doré vers le bout
+    x.fillStyle = rad(x, R * 0.98, -R * 0.5, 0, R * 0.98, -R * 0.5, R * 0.75, [0, 'rgba(150,200,60,0.55)', 1, 'rgba(150,200,60,0)']); x.fillRect(-R * 1.6, -R * 1.6, R * 3.2, R * 3.2);
+    x.fillStyle = rad(x, -R * 1.0, -R * 0.36, 0, -R * 1.0, -R * 0.36, R * 0.5, [0, 'rgba(200,120,20,0.45)', 1, 'rgba(200,120,20,0)']); x.fillRect(-R * 1.6, -R * 1.6, R * 3.2, R * 3.2);
+    // les arêtes (la banane a des pans), plus sombres dessous
+    x.lineCap = 'round';
+    for (const [k, al] of [[-0.42, 0.22], [0.2, 0.28], [0.68, 0.32]]) { bananaLine(x, R, k, 0.06, 0.94); x.strokeStyle = rgba(t.dark, al); x.lineWidth = R * 0.022; x.stroke(); }
+    // reflet le long du dos
+    bananaLine(x, R, -0.62, 0.22, 0.78); x.strokeStyle = 'rgba(255,255,240,0.55)'; x.lineWidth = R * 0.07; x.stroke();
+    bananaLine(x, R, -0.6, 0.32, 0.6); x.strokeStyle = 'rgba(255,255,255,0.65)'; x.lineWidth = R * 0.03; x.stroke();
+    // mouchetures de sucre
+    for (let i = 0; i < 14; i++) { const u = 0.12 + r() * 0.76, [px, py, nx, ny] = bananaMid(u, R), w = bananaW(u, R) * (r() * 1.6 - 0.8); x.fillStyle = rgba('#6a3a08', 0.25 + r() * 0.35); x.beginPath(); x.ellipse(px + nx * w, py + ny * w, R * (0.012 + r() * 0.02), R * (0.008 + r() * 0.012), r() * TAU, 0, TAU); x.fill(); }
+    // ombre du ventre
+    bananaLine(x, R, 0.95, 0.05, 0.95); x.strokeStyle = rgba(t.dark, 0.45); x.lineWidth = R * 0.08; x.stroke();
+    x.restore();
+    shapePath(x, t, R); x.strokeStyle = rgba('#6a4204', 0.75); x.lineWidth = Math.max(1, R * 0.03); x.stroke();
+    // le bout noir (côté fleur) et la queue
+    { const [px, py] = bananaMid(0, R); x.fillStyle = '#3a2410'; x.beginPath(); x.ellipse(px + R * 0.01, py, R * 0.05, R * 0.045, -0.6, 0, TAU); x.fill(); }
+    { const [px, py] = bananaMid(1, R), d = [Math.cos(-0.75), Math.sin(-0.75)], L = R * 0.26, w = R * 0.055;
+      x.fillStyle = lin(x, px, py, px + d[0] * L, py + d[1] * L, [0, '#9aa83a', 0.6, '#6a7a2a', 1, '#4a3418']);
+      x.beginPath(); x.moveTo(px - d[1] * w * 1.4, py + d[0] * w * 1.4); x.lineTo(px + d[0] * L - d[1] * w, py + d[1] * L + d[0] * w); x.lineTo(px + d[0] * L + d[1] * w, py + d[1] * L - d[0] * w); x.lineTo(px + d[1] * w * 1.4, py - d[0] * w * 1.4); x.closePath(); x.fill();
+      x.fillStyle = '#3a2a14'; x.beginPath(); x.ellipse(px + d[0] * L, py + d[1] * L, w * 1.05, w * 0.7, -0.75 + Math.PI / 2, 0, TAU); x.fill(); }
+    x.restore();
+  }
+  // le contour d'un fruit, au rayon 1, pour savoir si un point est DEDANS (la lame touche vraiment le fruit) ; un seul petit canvas pour tester
+  const PATHS = {};
+  let HIT = null;
+  function unitPath(t) { const k = t.name; if (!PATHS[k]) { const P = new Path2D(); P.beginPath = () => {}; shapePath(P, t, 1); P.closePath(); PATHS[k] = P; } return PATHS[k]; }
+  function insideFruit(t, lx, ly) { if (!HIT) HIT = mkCanvas(1, 1).getContext('2d'); const P = unitPath(t); if (HIT.isPointInPath(P, lx, ly)) return true; HIT.lineWidth = 0.08; return HIT.isPointInStroke(P, lx, ly); }
   function shapePath(x, t, R) {
     const sq = t.squash || 1;
     x.beginPath();
@@ -106,11 +152,7 @@
     } else if (t.shape === 'star') {
       for (let i = 0; i <= 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? R * 0.52 : R; const px = Math.cos(a) * rr, py = Math.sin(a) * rr; if (!i) x.moveTo(px, py); else { const am = a - Math.PI / 10, rm = i % 2 ? R * 0.82 : R * 0.72; x.quadraticCurveTo(Math.cos(am) * rm, Math.sin(am) * rm, px, py); } }
     } else if (t.shape === 'banana') {
-      x.moveTo(-R * 1.15, -R * 0.42);
-      x.bezierCurveTo(-R * 0.6, R * 0.5, R * 0.6, R * 0.5, R * 1.12, -R * 0.5);
-      x.quadraticCurveTo(R * 1.2, -R * 0.36, R * 1.06, -R * 0.24);
-      x.bezierCurveTo(R * 0.5, R * 0.86, -R * 0.6, R * 0.9, -R * 1.18, -R * 0.24);
-      x.closePath();
+      bananaPts(R).forEach(([px, py], i) => (i ? x.lineTo(px, py) : x.moveTo(px, py)));
     } else if (t.shape === 'chili') {
       x.moveTo(-R * 0.9, -R * 0.36);
       x.bezierCurveTo(-R * 0.4, -R * 0.62, R * 0.5, -R * 0.4, R * 1.12, R * 0.52);
@@ -123,7 +165,8 @@
     }
     x.closePath();
   }
-  function paintFruit(x, t, R, seed) {
+  function paintFruit(x, t, R, seed, noShadow) {
+    if (t.shape === 'banana') return paintBanana(x, t, R, seed, noShadow);
     const r = mulberry32(seed || 7);
     x.save();
     if (t.glow) { x.fillStyle = rad(x, 0, 0, R * 0.6, 0, 0, R * 1.5, [0, rgba(t.glow, 0.55), 1, rgba(t.glow, 0)]); circ(x, 0, 0, R * 1.5); x.fill(); }
@@ -182,15 +225,33 @@
   }
   // la coupe : le morceau du dessus (top) ou du dessous, coupé sur la ligne y = cy (0 = par le milieu, ±R = tout au bord) :
   // la peau du morceau, et la tranche (chair, pépins…) qui se voit le long de la coupure, plus petite quand on coupe près du bord
-  function paintCut(x, t, R, top, seed, cy) {
-    cy = cy || 0;
+  function paintCut(x, t, R, top, seed, cy, rot) {
+    cy = cy || 0; rot = rot || 0;
     const r = mulberry32((seed || 3) + (top ? 0 : 99));
     x.save();
     x.beginPath(); if (top) x.rect(-R * 1.6, -R * 1.6, R * 3.2, R * 1.6 + cy); else x.rect(-R * 1.6, cy, R * 3.2, R * 1.6 - cy); x.clip();
     const band = t.shape === 'banana' || t.shape === 'chili' || t.shape === 'pineapple';
     if (band) {
       // forme longue : coupée en travers (banane et piment couchés : on les met debout), la chair apparaît le long de la coupure
-      if (t.shape !== 'pineapple') { x.save(); x.rotate(Math.PI / 2); paintFruit(x, t, R, seed); x.restore(); } else paintFruit(x, t, R, seed);
+      if (t.shape !== 'pineapple') {
+        // la peau du morceau dans son orientation, puis (hors découpe) les tranches : une ellipse de chair partout où la ligne traverse le fruit
+        x.save(); x.rotate(rot); paintFruit(x, t, R, seed, true); x.restore();
+        x.restore(); x.save();
+        if (!HIT) HIT = mkCanvas(1, 1).getContext('2d');
+        const P = unitPath(t), cuts = [], N = 120; let a0 = null;
+        for (let i = 0; i <= N; i++) { const X = -1.6 + 3.2 * i / N, Y = cy / R, u = X * Math.cos(rot) + Y * Math.sin(rot), v = -X * Math.sin(rot) + Y * Math.cos(rot), inn = i < N && HIT.isPointInPath(P, u, v); if (inn && a0 == null) a0 = X; if (!inn && a0 != null) { cuts.push([a0, X]); a0 = null; } }
+        for (const [s0, s1] of cuts) {
+          const cx = (s0 + s1) / 2 * R, hw = (s1 - s0) / 2 * R; if (hw < R * 0.03) continue;
+          x.save(); x.translate(cx, cy);
+          x.fillStyle = t.skin; x.beginPath(); x.ellipse(0, 0, hw, hw * 0.42, 0, 0, TAU); x.fill();
+          x.fillStyle = rad(x, 0, 0, 0, 0, 0, hw, [0, mix(t.flesh, '#ffffff', 0.3), 0.7, t.flesh, 1, t.edge]); x.beginPath(); x.ellipse(0, 0, hw * 0.86, hw * 0.36, 0, 0, TAU); x.fill();
+          x.fillStyle = rgba(t.dark, 0.55); for (let i = 0; i < 3; i++) { const an = i / 3 * TAU + 0.5; circ(x, Math.cos(an) * hw * 0.16, Math.sin(an) * hw * 0.07, Math.max(0.6, hw * 0.035)); x.fill(); }
+          x.strokeStyle = rgba(mix(t.flesh, t.dark, 0.3), 0.35); x.lineWidth = Math.max(0.6, hw * 0.025); for (let i = 0; i < 3; i++) { const an = i / 3 * TAU + 0.5; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(an) * hw * 0.5, Math.sin(an) * hw * 0.21); x.stroke(); }
+          x.restore();
+        }
+        x.restore(); return;
+      }
+      x.save(); x.rotate(rot); paintFruit(x, t, R, seed); x.restore();
       x.globalCompositeOperation = 'source-atop';
       const s = top ? -1 : 1;
       x.fillStyle = lin(x, 0, cy, 0, cy + s * R * 0.5, [0, t.edge, 0.12, t.flesh, 0.7, rgba(t.flesh, 0.85), 1, rgba(t.flesh, 0)]);
@@ -202,7 +263,7 @@
     }
     // coupe hors du milieu : la peau du morceau d'abord, la tranche (plus petite) par-dessus, un peu inclinée
     const rf = R * Math.sqrt(Math.max(0.04, 1 - (cy / R) ** 2));
-    if (cy) paintFruit(x, t, R, seed);
+    if (cy || rot) { x.save(); x.rotate(rot); paintFruit(x, t, R, seed); x.restore(); }
     x.save(); x.translate(0, cy); if (cy) x.scale(rf / R, (rf / R) * 0.86);
     const sq = t.shape === 'star' ? 1 : t.squash || 1;
     const face = () => { if (t.shape === 'star') shapePath(x, t, R); else { x.beginPath(); x.ellipse(0, 0, R, R * sq, 0, 0, TAU); } };
@@ -315,12 +376,12 @@
     const k = kind + '|' + key + '|' + Math.round(R);
     let c = SPR.get(k);
     if (c) return c;
-    if (SPR.size > 260) SPR.delete(SPR.keys().next().value);
+    if (SPR.size > 520) SPR.delete(SPR.keys().next().value);
     const P = Math.ceil(R * 3.6);
     c = mkCanvas(P, P); const x = c.getContext('2d'); x.translate(P / 2, P / 2);
     try {
       if (kind === 'f') paintFruit(x, FRUITS[key], R, key.length * 31 + 5);
-      else if (/^(top|bot)/.test(kind)) { const q = +(kind.slice(3) || 0); paintCut(x, FRUITS[key], R, kind.startsWith('top'), key.length * 31 + 5, q * 0.22 * R); }
+      else if (/^(top|bot)/.test(kind)) { const m = /^(top|bot)(-?\d+)?(?:@(\d+))?$/.exec(kind) || [], q = +(m[2] || 0), ra = +(m[3] || 0); paintCut(x, FRUITS[key], R, kind.startsWith('top'), key.length * 31 + 5, q * 0.11 * R, ra * TAU / 24); }
       else if (kind === 'bomb') paintBomb(x, R);
       else if (kind === 'boss') paintBossBody(x, key, R);
     } catch (e) { /* jamais d'erreur */ }
@@ -665,8 +726,8 @@
       const t = f.kind === 'copain' ? FRUITS[f.base] || FRUITS.pomme : f.t, key = f.kind === 'copain' ? f.base : f.kind;
       // la coupe passe là où la lame a traversé : décalage de la ligne par rapport au centre (au bord = un petit morceau)
       const nx = Math.sin(a), ny = -Math.cos(a), sp = U * 3.4, off = (ax - f.x) * nx + (ay - f.y) * ny;
-      const q = Math.max(-3, Math.min(3, Math.round((-off / f.R) / 0.22)));
-      for (const s of [1, -1]) { const small = (s > 0 ? q < 0 : q > 0) ? 1 + Math.abs(q) * 0.25 : 1; halves.push({ spr: sprite((s > 0 ? 'top' : 'bot') + (q || ''), key, f.R * dpr), x: f.x + nx * s * f.R * 0.12, y: f.y + ny * s * f.R * 0.12, vx: f.vx * 0.5 + nx * s * sp * small, vy: f.vy * 0.35 + ny * s * sp * small - U * 2.2, rot: a, vr: s * (3 + rng() * 4) * small, drip: 0.6, dc: t.juice, t: 0 }); }
+      const q = Math.max(-9, Math.min(9, Math.round((-off / f.R) / 0.11))), ra = f.kind === 'copain' ? 0 : ((Math.round((f.rot - a) / (TAU / 24)) % 24) + 24) % 24;   // la coupe exacte : hauteur et orientation du fruit
+      for (const s of [1, -1]) { const small = (s > 0 ? q < 0 : q > 0) ? 1 + Math.abs(q) * 0.125 : 1; halves.push({ spr: sprite((s > 0 ? 'top' : 'bot') + (q || '') + (ra ? '@' + ra : ''), key, f.R * dpr), x: f.x + nx * s * f.R * 0.12, y: f.y + ny * s * f.R * 0.12, vx: f.vx * 0.5 + nx * s * sp * small, vy: f.vy * 0.35 + ny * s * sp * small - U * 2.2, rot: a, vr: s * (3 + rng() * 4) * small, drip: 0.6, dc: t.juice, t: 0, key, R: f.R / Math.sqrt(small), gen: 1 }); }
       juice(f.x, f.y, t.juice, 26 + Math.round(f.R / U * 8), f.R, a);
       flashes.push({ x: f.x, y: f.y, r: f.R * 2.2, t: 0, col: t.juice });
       if (hitStop <= 0) hitStop = 0.045;
@@ -681,6 +742,20 @@
       score += pts;
       if (!f.free || !boss) { got++; jar.push(t.juice); if (jar.length > 40) jar.shift(); }
       combo.n++; combo.t = 0.28; combo.x = f.x; combo.y = f.y;
+      rumble('tick');
+    }
+    // RECOUPER un morceau qui tombe (autant de fois qu'on veut, jusqu'aux miettes) : deux morceaux plus petits, du jus, et quelques points,
+    // de moins en moins (4, 2, 1… au 1er tour) : c'est surtout pour la beauté
+    function recut(h, ax, ay, a) {
+      h.dead = true;
+      const t = FRUITS[h.key] || FRUITS.pomme, nx = Math.sin(a), ny = -Math.cos(a), sp = U * 2.6, r = h.R * 0.62;
+      for (const s of [1, -1]) halves.push({ spr: sprite(s > 0 ? 'top' : 'bot', h.key, r * dpr), x: h.x + nx * s * r * 0.15, y: h.y + ny * s * r * 0.15, vx: h.vx * 0.4 + nx * s * sp, vy: Math.min(h.vy, 0) * 0.3 + ny * s * sp - U * 1.6, rot: a, vr: s * (4 + rng() * 4), drip: 0.4, dc: t.juice, t: 0, key: h.key, R: r, gen: h.gen + 1 });
+      juice(ax, ay, t.juice, 12, r, a);
+      splat(ax, ay, splashCol(t), r * 0.7);
+      streaks.push({ x: ax, y: ay, a, len: r * 3.6, t: 0, col: t.juice });
+      sfx.slice(combo.n);
+      const pts = Math.max(1, Math.round(4 * (1 + wo.tour) / Math.pow(2, h.gen - 1))); score += pts; text('+' + pts, ax, ay - r, '#fff4c2', 0.5, 0.8);
+      combo.n++; combo.t = 0.28; combo.x = ax; combo.y = ay;
       rumble('tick');
     }
     function juice(x, y, col, n, R, cut) {
@@ -829,7 +904,20 @@
           for (const f of fruits) {
             if (f.dead || f.born < 0.05) continue;
             const u = clamp(((f.x - s.x0) * dx + (f.y - s.y0) * dy) / L2, 0, 1), px = s.x0 + dx * u, py = s.y0 + dy * u;
-            if ((f.x - px) ** 2 + (f.y - py) ** 2 < (f.R * 0.92) ** 2) { slice(f, px, py, a); if (state === 'lose') break; }
+            if ((f.x - px) ** 2 + (f.y - py) ** 2 >= (f.R * 1.25) ** 2) continue;
+            let hit = null;
+            if (f.kind === 'bomb' || f.kind === 'copain') { if ((f.x - px) ** 2 + (f.y - py) ** 2 < (f.R * 0.95) ** 2) hit = [px, py]; }
+            else {
+              const L = Math.sqrt(L2), n = Math.max(2, Math.ceil(L / (f.R * 0.1))), c = Math.cos(-f.rot), sn = Math.sin(-f.rot);
+              for (let k = 0; k <= n && !hit; k++) { const qx = s.x0 + dx * k / n - f.x, qy = s.y0 + dy * k / n - f.y; if (insideFruit(f.t, (qx * c - qy * sn) / f.R, (qx * sn + qy * c) / f.R)) hit = [qx + f.x, qy + f.y]; }
+            }
+            if (hit) { slice(f, hit[0], hit[1], a); if (state === 'lose') break; }
+          }
+          // les morceaux qui tombent se recoupent, un instant après la coupe d'avant
+          for (const h of halves) {
+            if (!h.gen || h.dead || h.t < 0.15 || h.R < U * 0.32) continue;
+            const u = clamp(((h.x - s.x0) * dx + (h.y - s.y0) * dy) / L2, 0, 1), px = s.x0 + dx * u, py = s.y0 + dy * u;
+            if ((h.x - px) ** 2 + (h.y - py) ** 2 < (h.R * 0.8) ** 2) recut(h, px, py, a);
           }
           if (state === 'lose') break;
           if (boss && boss.cd <= 0) {
@@ -857,8 +945,8 @@
       if (state === 'lose' && stT > 1.4 && !overSent) { overSent = true; state = 'over'; try { api.gameOver(Math.max(0, Math.floor(score))); } catch (e) { /* rien */ } }
       // les morceaux, gouttes, taches, textes
       for (const h of halves) { h.vy += g * sdt; h.x += h.vx * sdt; h.y += h.vy * sdt; h.rot += h.vr * sdt; }
-      halves = halves.filter((h) => h.y < H + U * 4);
-      if (halves.length > 60) halves.splice(0, halves.length - 60);
+      halves = halves.filter((h) => !h.dead && h.y < H + U * 4);
+      if (halves.length > 90) halves.splice(0, halves.length - 90);
       for (const d of drops) { d.t += dt; d.vy += g * 0.9 * sdt; d.x += d.vx * sdt; d.y += d.vy * sdt; }
       drops = drops.filter((d) => d.t < d.life && d.y < H + 20);
       for (const s of splats) s.t += dt; splats = splats.filter((s) => s.t < 6);

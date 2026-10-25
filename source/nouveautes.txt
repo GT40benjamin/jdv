@@ -25,6 +25,11 @@
 [pegase] PegaGram en un toucher depuis l'île ; le classement des plus belles îles (espèces trouvées, habitants)
 [pegase] Le mode ambiance ✨ : tout s'efface, il ne reste que le décor et le titre ; un toucher et tout revient
 [pegase] Un bouton pour partager la page Pégase avec tes copains
+[smoothie] ## 🍌 Smoothie Samouraï : la coupe au millimètre (borne 1.36.12)
+[smoothie] La lame tranche le fruit exactement là où ton doigt passe, en suivant sa vraie forme et son orientation : même un petit bout coupé au bord compte
+[smoothie] Un fruit touché est gagné : ses morceaux peuvent tomber sans te coûter de vie
+[smoothie] Recoupe les morceaux qui tombent, autant de fois que tu veux : quelques points en plus à chaque fois (de moins en moins), et de belles gerbes de jus
+[smoothie] Une toute nouvelle banane : bien dodue, avec ses arêtes, sa queue verte et ses rondelles quand on la tranche
 [bolides] ## 🏆 Bolides RC : une IA bien plus coriace (borne 1.36.5)
 [bolides] Moyen roule maintenant comme un bon pilote : il dérape dans les grands virages
 [bolides] Difficile prend la trajectoire idéale et enchaîne les mini-turbos dans chaque virage serré
