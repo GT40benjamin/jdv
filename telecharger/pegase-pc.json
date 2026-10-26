@@ -1,30 +1,38 @@
 {
-  "version": "0.9.8",
-  "build": 41,
-  "size": 2100156381,
-  "sha256": "ead62774291079c89e0d807428b4c38478931aef0409ad9d4a54c3ecd9fdad72",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v41/Pegase-PC-2026-10-26-0.9.8.zip",
-  "manifest": "c86a5f931c7e88d6634c7531c4c29ad1a2fad3e0066378e5daa06454758e4cfc",
+  "version": "0.9.8.1",
+  "build": 42,
+  "size": 2100156453,
+  "sha256": "df30652ba57e7ae79a7e2a1ca4e4379ac6321854a75321bd3f3f9b19a58d0d0e",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v42/Pegase-PC-2026-10-26-0.9.8.1.zip",
+  "manifest": "74537c61d61566c7a23dfbddaf75c792a5dd7922c57bb9c24ef63f1a6c975fb0",
   "patchs": [
     {
+      "de": "0.9.8",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v42/Pegase-PC-patch-0.9.8.zip",
+      "taille": 966787,
+      "sha256": "400df575a56a95062a06ad5c04b8254a42797dcb29d7a5cd0349ec00d8ffc5d2"
+    },
+    {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v41/Pegase-PC-patch-0.9.7.zip",
-      "taille": 224294697,
-      "sha256": "0e80980e45de3579023ce5045b06bd07d82483931d97178bacb8e6392fb673b1"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v42/Pegase-PC-patch-0.9.7.zip",
+      "taille": 224295150,
+      "sha256": "935013dd6e5c5bcaa399f74c3b4cce3b2021a4d30a556fd894dea601455247a0"
     }
   ],
   "notes": [
-    "La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large.",
-    "Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral.",
-    "La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges.",
-    "Des montagnes et des falaises couvertes de végétation ferment l'horizon.",
-    "Les plantes des chemins sont bien posées au sol.",
-    "Les maisons : un passage reste libre devant la porte, et la caméra entre et sort en douceur ; sous les auvents des boutiques, elle passe sous le store.",
-    "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
-    "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
-    "Le jeu démarre plus vite."
+    "Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes, disparus par erreur avec l'arrivée de la mer.",
+    "La place du village retrouve tout son décor.",
+    "Les brumes et les feuilles qui volent près des arbres et des cascades sont revenues."
   ],
   "historique": [
+    {
+      "version": "0.9.8.1",
+      "notes": [
+        "Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes, disparus par erreur avec l'arrivée de la mer.",
+        "La place du village retrouve tout son décor.",
+        "Les brumes et les feuilles qui volent près des arbres et des cascades sont revenues."
+      ]
+    },
     {
       "version": "0.9.8",
       "notes": [
@@ -86,21 +94,6 @@
         "Ta maison : le panneau et la boîte aux lettres se déplacent comme en construction, la plaque du nom est collée au bois, et plus de blocage au pas de la porte ni de « perché » sur la table.",
         "Avec tes amis : la porte s'ouvre quand ils entrent ou sortent, le téléphone est bien tenu, et on voit bien leurs gestes.",
         "Et aussi : plus de pluie dans les maisons, tic-tac seulement près des pendules, lanternes solides, légumes bien posés, plus d'herbe sur les grandes zones vertes, un soleil plus doux, un bisou aux lèvres, Ctrl pour s'accroupir en mode photo, et un arrêt avant le bord des falaises."
-      ]
-    },
-    {
-      "version": "0.9.4.7",
-      "notes": [
-        "Le grand-duc : quand tu siffles, on l'entend arriver de loin, et le message n'apparaît que quand il s'est vraiment posé. S'il a peur, il s'envole vers ses rochers en haut de la falaise.",
-        "Un deuxième grand-duc vit maintenant au coin des bambous, près du petit pont rouge.",
-        "Caché dans un buisson, le viseur sort à la lisière : tout le décor reste visible, avec des feuilles floues autour du cadre qui s'effacent quand on zoome. Si le grand-duc s'est posé hors de vue, un repère te mène au buisson d'où on le voit bien.",
-        "Un viseur plus clair : boutons carrés alignés avec leur touche, et un seul conseil à la fois, sur une ligne.",
-        "Les petites bêtes s'analysent dès qu'elles sont assez grandes dans l'image.",
-        "Basile montre la canne à coup en premier dans sa boutique.",
-        "Accroupi plus naturel : un genou à terre, le buste droit.",
-        "Assis sur un banc, les mains se posent naturellement, les poignets se plient en douceur et le téléphone est bien tenu.",
-        "Le musée : plafond plus haut, bancs qui ne gênent plus le passage, grands cartels lisibles dans la galerie.",
-        "Les maisons : plus d'herbe qui traverse le plancher quand une maison est reconstruite au même endroit."
       ]
     }
   ]

@@ -2,7 +2,7 @@
  "name": "Borne d'arcade entre amis",
  "short_name": "Borne d'arcade",
  "start_url": "jouer/",
- "scope": "./",
+ "scope": "jouer/",
  "display": "fullscreen",
  "orientation": "any",
  "background_color": "#0b141c",

@@ -21,12 +21,12 @@ elixirgamestudio.com. Le service worker de l'ancienne adresse reste figé (sa mi
   Aperçu des liens : `node source/studio-media.js` → `accueil/studio-partage.jpg` (blason sur l'affiche decor_29b).
   Vignettes des jeux dans `accueil/` (servent à jouer/ et au partage) fabriquées UNIQUEMENT à partir des preview() des jeux par
   `source/accueil-media.js` (jamais de photo). Redirige vers `jouer/` dans l'appli, en PWA installée, ou si l'adresse a des paramètres
-  (?v=, ?duel=, ?salle=, ?pegase…) ou un lien d'e-mail (#access_token…).
+  (?v=, ?duel=, ?salle=, ?pegase… ; les codes de suivi ?fbclid=, ?utm_… ajoutés par WhatsApp / Facebook sont ignorés) ou un lien d'e-mail (#access_token…).
 - `jouer/index.html` : la borne (build2.py avec SITE_ROOT=../ : elle lit ../assets, ../site.json, ../telecharger/version.json).
 - `telecharger/` : page publique + `borne-arcade.apk` en fichier direct + `version.json` (lu par l'appli pour annoncer les mises à jour).
 - `assets/ilo.bin`, `assets/music/*.bin` : images et musiques de l'Asset Store, EMBALLÉES (AES-GCM) avec la clé intégrée au site
   (`source/asset-key.txt`, pas un secret : jamais de fichier lisible directement). Les .mp3 (ElevenLabs) sont en clair.
-- `manifest.webmanifest` (start_url `jouer/`), icônes : `icon-192/512.png` (tuile, « any »), `icon-maskable-192/512.png`, `icon-180.png`
+- `manifest.webmanifest` (start_url ET scope `jouer/` depuis la 1.38.9 : une borne installée sur l'écran d'accueil ne s'empare plus des liens vers le site du studio ; l'accueil n'a plus de lien manifest), icônes : `icon-192/512.png` (tuile, « any »), `icon-maskable-192/512.png`, `icon-180.png`
   (apple-touch-icon), `favicon.ico` (16 px en pixel art, 32, 48), `logo.svg` (logo de l'en-tête de l'accueil et du téléchargement).
   Toutes dessinées en code par `node source/icone.js` (borne d'arcade sur fond de nuit ; `--apercu <dossier>` pour essayer sans toucher au dépôt),
   y compris les mipmaps Android (+ icône adaptative et monochrome).

@@ -2,12 +2,13 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
-[borne] ## 🧪 Le site d'Elixir Game Studio (borne 1.38.8)
+[borne] ## 🧪 Le site d'Elixir Game Studio (borne 1.38.9)
 [borne] Nouvelle page d'accueil sur elixirgamestudio.com : l'écran titre du studio, avec les plans filmés dans Pégase en vraie qualité (jusqu'en 4K selon ton écran, version en hauteur sur téléphone)
 [borne] Deux boutons pour entrer : « Pégase » ouvre directement la page Pégase, « La Borne d'arcade » ouvre directement les mini-jeux
 [borne] Plus bas sur le site, « Nos jeux » : Pégase à gauche, la Borne d'arcade à droite, où défilent tous ses jeux
 [borne] Sur la page Pégase, les plans filmés changent toutes les 15 secondes
 [borne] Les liens de partage montrent la nouvelle image du studio
+[borne] Un lien vers elixirgamestudio.com partagé dans WhatsApp, Messenger ou Facebook ouvre bien le site du studio (avant, il ouvrait parfois la borne)
 [borne] Le bouton « Partager » partage le côté où tu es : sur la page Pégase, le lien de Pégase ; sur les mini-jeux, le lien qui ouvre directement les mini-jeux
 [borne] ## 📨 Partager la borne et Pégase (borne 1.38.2)
 [borne] Nouveau bouton « Partager » en haut de la borne : il envoie le lien de la borne à tes copains (« Viens jouer avec moi à la Borne d'arcade entre amis ! ») par le partage du téléphone, WhatsApp, SMS ou e-mail, ou le copie sur ordinateur
@@ -121,6 +122,9 @@
 [bolides] À la manette : le stick donne la direction, A pour déraper ; au clavier : les flèches, et Espace pour déraper
 [bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur
 [bolides] En ligne : plus de voiture qui saute au début d'une nouvelle manche
+[neon] ## 🚪 Néon Rush : des portes pour changer de forme (borne 1.38.12)
+[neon] Les transformations sont maintenant de grandes portes carrées, ouvertes en bas là où passe le cube
+[neon] Les couloirs des avions sont revenus comme avant ; seul le tout début du premier avion a le bas un peu raboté, pour ne plus se prendre le rebord
 [neon] ## ✈️ Néon Rush : des couloirs d'avion tout doux (borne 1.37.5)
 [neon] À l'entrée et à la sortie des passages en avion, les parois montent et descendent en douceur, sans bosse
 [neon] ## 🎵 Néon Rush : le niveau 1 refait sur la musique (borne 1.37.4)
