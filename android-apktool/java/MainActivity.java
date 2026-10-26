@@ -23,13 +23,20 @@ import android.widget.TextView;
 
 /** Borne d'arcade : ouvre la salle d'arcade en plein écran. Les jeux viennent du site et se mettent à jour tout seuls. */
 public class MainActivity extends Activity {
-    // 1.11 : le site déménage sur elixirgamestudio.com (GitHub renvoie l'ancienne adresse vers la nouvelle). L'appli accepte les DEUX ;
-    // elle ouvre l'ancienne tant qu'elle n'a pas vu la nouvelle répondre (avant la bascule, la nouvelle ne répond pas encore), puis la nouvelle.
+    // Le site a déménagé sur elixirgamestudio.com le 26 oct. 2026 (GitHub renvoie l'ancienne adresse vers la nouvelle). L'appli accepte les
+    // DEUX. 1.11 : ouvrait l'ancienne tant qu'elle n'avait pas vu la nouvelle répondre ; 1.12 : ouvre directement la nouvelle (la redirection
+    // de GitHub passe par http://, refusé par l'appli : les adresses http:// du site sont reprises en https://).
     static final String HOME = "https://gt40benjamin.github.io/jdv/";   // ancienne adresse
     static final String NEUF = "https://elixirgamestudio.com/";          // nouvelle adresse
     static final String NEUF_WWW = "https://www.elixirgamestudio.com/";
-    static final String BORNE = HOME + "jouer/";   // la borne (la racine est la page d'accueil publique)
+    static final String BORNE = NEUF + "jouer/";   // la borne (la racine est la page d'accueil publique)
     static boolean site(String u) { return u != null && (u.startsWith(HOME) || u.startsWith(NEUF) || u.startsWith(NEUF_WWW)); }
+    // « http://elixirgamestudio.com/… » (redirection de GitHub) → la même adresse en https://, sinon null
+    static String https(String u) {
+        if (u == null || !u.startsWith("http://")) return null;
+        String h = "https://" + u.substring(7);
+        return h.startsWith(NEUF) || h.startsWith(NEUF_WWW) ? h : null;
+    }
     // REPRISE (1.11) : les réglages de la borne (profils, connexion, records de l'appareil…) sont rangés par le WebView sous l'ADRESSE du
     // site ; à la nouvelle adresse, ils seraient perdus. Tant que la nouvelle adresse ne les a pas repris, l'appli ouvre d'abord une page
     // vide « à l'ancienne adresse » (sans réseau : loadDataWithBaseURL) qui les lit et les donne à l'appli (BorneApp.garde), puis la borne ;
@@ -48,7 +55,7 @@ public class MainActivity extends Activity {
         + "a{display:inline-block;font:700 17px sans-serif;color:#0b141c;background:#ffa630;border-radius:14px;padding:14px 30px;text-decoration:none;box-shadow:0 6px 0 #b86d10}"
         + "a:active{transform:translateY(3px);box-shadow:0 3px 0 #b86d10}</style></head><body><main><div class=orb>📡</div><h1>Pas de connexion</h1>"
         + "<p>La borne a besoin d'internet la première fois. Vérifie le Wi-Fi ou les données mobiles, puis réessaie.</p>"
-        + "<a id=r href='" + "https://gt40benjamin.github.io/jdv/jouer/" + "'>Réessayer</a></main>"
+        + "<a id=r href='" + "https://elixirgamestudio.com/jouer/" + "'>Réessayer</a></main>"
         + "<script>addEventListener('online',function(){setTimeout(function(){location.href=document.getElementById('r').href},800)})</script></body></html>";
     static final int REQ_FILE = 42;
     static final int REQ_MIC = 43;
@@ -129,6 +136,8 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, String url) {
                 if (site(url) && url.indexOf("/telecharger") < 0) return false;   // 1.11 : aussi la nouvelle adresse (sinon la redirection partait dans Chrome)
+                String h = https(url);
+                if (h != null && h.indexOf("/telecharger") < 0) { try { v.loadUrl(h); } catch (Throwable ignore) { } return true; }   // 1.12
                 try { startActivity(new Intent("android.intent.action.VIEW", Uri.parse(url))); } catch (Throwable ignore) { }
                 return true;
             }
@@ -175,7 +184,7 @@ public class MainActivity extends Activity {
             }
         });
         if (!prefs().getBoolean("repris", false)) {
-            try { web.loadDataWithBaseURL(BORNE, CAPTURE_PAGE, "text/html", "utf-8", null); } catch (Throwable e) { web.loadUrl(borne()); }
+            try { web.loadDataWithBaseURL(HOME + "jouer/", CAPTURE_PAGE, "text/html", "utf-8", null); } catch (Throwable e) { web.loadUrl(borne()); }
         } else web.loadUrl(borne());
         immersive();
         fitKeyboard();
@@ -306,7 +315,7 @@ public class MainActivity extends Activity {
     }
 
     SharedPreferences prefs() { return getSharedPreferences("borne", 0); }
-    String borne() { return prefs().getBoolean("neuf", false) ? NEUF + "jouer/" : BORNE; }
+    String borne() { return BORNE; }
     static String origin(String u) { int i = u.indexOf('/', u.indexOf("://") + 3); return i < 0 ? u : u.substring(0, i); }   // « https://hôte[:port] »
 
     public class Bridge {

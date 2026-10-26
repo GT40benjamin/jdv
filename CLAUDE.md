@@ -231,7 +231,7 @@ test-map-est.js. (Chasse aux mouches : le dessin de sa carte est dans ses partie
 ## Appli Android (`android-apktool/`)
 WebView plein écran sur la borne (`https://elixirgamestudio.com/jouer/` ; l'appli 1.11 ouvre l'ancienne adresse tant qu'elle n'a pas vu la
 nouvelle répondre (préférence `neuf`), accepte les deux (`site()`), reprend les réglages une fois (`repris`) ; Java dans `java/MainActivity.java`).
-**1.11 (versionCode 13, 26 oct. 2026)** : déménagement ; essai émulateur `essai-reprise.sh` (1.10 → 1.11 → bascule simulée par un serveur 301). Construite sans SDK :
+**1.11 (versionCode 13) puis 1.12 (versionCode 14, 26 oct. 2026)** : déménagement (1.12 ouvre directement la nouvelle adresse et reprend en https:// les adresses http:// du site, car la 301 de GitHub passe par http://) ; essai émulateur `essai-reprise.sh` (1.10 → 1.11 → bascule simulée par un serveur 301). Construite sans SDK :
 `./build-apk.sh <versionCode> <versionName> sortie.apk` (javac + stubs, dx 30.0.2, apktool 2.9.3, uber-apk-signer 1.3.0 ; outils dans `TOOLS`,
 par défaut `~/jdv-tools/apk`). Clé de signature : `android/app/borne.keystore`. Depuis la 1.7 (versionCode 8) : plus de BorneApp.code().
 Les appareils en 1.6 chargent la racine → l'accueil les renvoie vers jouer/ → la cloche annonce « Nouvelle appli 1.7 » (telecharger/version.json).

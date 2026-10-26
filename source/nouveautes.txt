@@ -12,9 +12,9 @@
 [pegase] Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles
 [pegase] Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page
 [pegase] Le jeu démarre plus vite
-[borne] ## 🏠 Nouvelle adresse : elixirgamestudio.com (borne 1.38)
+[borne] ## 🏠 Nouvelle adresse : elixirgamestudio.com (borne 1.38.1)
 [borne] La borne a déménagé sur https://elixirgamestudio.com : l'ancienne adresse t'y emmène toute seule, tes liens d'invitation marchent toujours
-[borne] Dans l'appli 1.11, tout suit tout seul ; dans un navigateur, reconnecte-toi une fois avec ton pseudo ou ton e-mail et ton mot de passe
+[borne] 📲 Installe l'appli Android 1.12 (page Télécharger) : elle ouvre directement la nouvelle adresse, et tes joueurs, ta connexion et tes réglages suivent tout seuls ; dans un navigateur, reconnecte-toi une fois avec ton pseudo ou ton e-mail et ton mot de passe
 [borne] ## 📲 Nouvelle appli Android 1.11 (borne 1.37.6)
 [borne] La borne déménage bientôt sur sa nouvelle adresse, elixirgamestudio.com : installe l'appli 1.11 (page Télécharger) pour que tout continue dans l'appli
 [borne] Avec l'appli 1.11, tes joueurs, ta connexion, tes réglages et tes records de l'appareil suivent tout seuls à la nouvelle adresse, sans rien retaper
