@@ -12,6 +12,9 @@
 [pegase] Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles
 [pegase] Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page
 [pegase] Le jeu démarre plus vite
+[borne] ## 📲 Nouvelle appli Android 1.11 (borne 1.37.6)
+[borne] La borne déménage bientôt sur sa nouvelle adresse, elixirgamestudio.com : installe l'appli 1.11 (page Télécharger) pour que tout continue dans l'appli
+[borne] Avec l'appli 1.11, tes joueurs, ta connexion, tes réglages et tes records de l'appareil suivent tout seuls à la nouvelle adresse, sans rien retaper
 [borne] ## 🏠 Ton cri partout ou seulement dans une salle (borne 1.37.2)
 [borne] Dans la fenêtre des cris, « Où sonne ce cri ? » : « Partout, dans toutes mes salles » ou « Seulement dans » la salle où tu es, pour le cri de victoire comme pour le cri de perte
 [borne] Une phrase dit clairement où ton cri sonnera, et te prévient quand le cri de la salle passe avant celui de partout
