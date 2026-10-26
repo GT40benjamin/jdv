@@ -5622,8 +5622,16 @@ async function islJoin(q, card) {
   const g = gameById('pegase'); if (!g) return;
   // JOUER = le vrai jeu, sur l'appareil où l'on est : l'appli Pégase sur Android (installée / mise à jour si besoin) ; sur PC, le jeu
   // installé (lien pegase://) ; s'il ne s'ouvre pas, la page de Pégase pour le télécharger
-  const launch = () => {
+  const launch = (joined) => {
     if (nativeFor(g)) { nativeOpen(g, true); return; }
+    // téléphone sans le pont de l'appli (iPhone, Chrome d'Android, appli trop ancienne) : JAMAIS de lien pegase:// (Safari : « l'adresse
+    // n'est pas valide ») ; le hub, onglet Infos, dit comment jouer sur cet appareil (1.39.1)
+    const plat = natPlat();
+    if (plat !== 'desktop') {
+      try { localStorage.setItem('jdw.pegase.tab', 'infos'); } catch (e) {}
+      toastCheer((joined ? '✅ Tu fais partie de ' + q.name + ' ! ' : '') + (plat === 'ios' ? '📱 Pégase n’existe pas encore sur iPhone : tu peux y jouer sur un PC ou un téléphone Android.' : '📲 Pour jouer à Pégase sur ce téléphone, installe l’appli « Borne d’arcade » : tout est expliqué dans Infos.'), null, true);
+      openGame(g); return;
+    }
     let left = false; const onBlur = () => { left = true; pgRest(true); }; addEventListener('blur', onBlur);
     const a = document.createElement('a'); a.href = 'pegase://open?from=borne&ile=' + encodeURIComponent(q.id); a.style.display = 'none'; document.body.appendChild(a); try { a.click(); } catch (e) {} a.remove();
     setTimeout(() => { removeEventListener('blur', onBlur); if (left || document.hidden) return; toastCheer('🖥️ Ouvre Pégase depuis ton bureau. Pas encore installé ? Il se télécharge (gratuit) ici, dans Infos.', null, true); try { localStorage.setItem('jdw.pegase.tab', 'infos'); } catch (e) {} openGame(g); }, 1800);   // PC : le lien pegase:// n'est pas encore enregistré par l'installation (24 oct.)
@@ -5634,7 +5642,7 @@ async function islJoin(q, card) {
   const go = async (pw) => {
     try { const r = await rpc('pg_island_join', { p_code: CODE(), p_name: profile.name, p_id: q.id, p_password: pw || '' }); if (r !== 'ok' && r !== true && !(Array.isArray(r) && r.length)) throw new Error(String(r)); }
     catch (e) { if (/reservee aux amis/.test(String(e.message))) { islRequest(q, card); return; } const pn = document.querySelector('.pi-panel.pi-over'); if (pn) pn.querySelector('.pp-msg').textContent = islErr(e); else toastCheer(islErr(e), null, true); return; }
-    PG.isle = { id: q.id, name: q.name, kind: q.kind }; store.set('jdw.ile', PG.isle); launch();   // l'appli lit l'île choisie (api.pegase.info().ile)
+    PG.isle = { id: q.id, name: q.name, kind: q.kind }; store.set('jdw.ile', PG.isle); launch(true);   // l'appli lit l'île choisie (api.pegase.info().ile)
   };
   if (q.kind !== 'mdp' || q.mine) { go(''); return; }
   const pn = islPanel(card, '<label>🔒 Mot de passe de l\'île<input type="password" autocomplete="off" maxlength="40"></label><div class="pp-row"><button type="button" class="pp-ok">Entrer</button><button type="button" class="pp-x">Annuler</button></div><p class="pp-msg"></p><button type="button" class="pp-link">Pas le mot de passe ? Demander l\'accès</button>');

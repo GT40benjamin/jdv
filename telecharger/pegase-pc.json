@@ -1,30 +1,48 @@
 {
-  "version": "0.9.8.1",
-  "build": 42,
-  "size": 2100156453,
-  "sha256": "df30652ba57e7ae79a7e2a1ca4e4379ac6321854a75321bd3f3f9b19a58d0d0e",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v42/Pegase-PC-2026-10-26-0.9.8.1.zip",
-  "manifest": "74537c61d61566c7a23dfbddaf75c792a5dd7922c57bb9c24ef63f1a6c975fb0",
+  "version": "0.9.8.2",
+  "build": 43,
+  "size": 2113084627,
+  "sha256": "f990d1a8e5455b17b991e5d8a52a52ee16828303648bce9bb18dffad364ee339",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v43/Pegase-PC-2026-10-26-0.9.8.2.zip",
+  "manifest": "2e94ddaddfe98b0430a7bd0411502c23ac756f960d8513fb91ab56bb8aec2322",
   "patchs": [
     {
+      "de": "0.9.8.1",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v43/Pegase-PC-patch-0.9.8.1.zip",
+      "taille": 17866393,
+      "sha256": "2a3f59dd1c7cd92a4fe50d5ad34abd73528c9516789bfb74619bcea7685b6484"
+    },
+    {
       "de": "0.9.8",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v42/Pegase-PC-patch-0.9.8.zip",
-      "taille": 966787,
-      "sha256": "400df575a56a95062a06ad5c04b8254a42797dcb29d7a5cd0349ec00d8ffc5d2"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v43/Pegase-PC-patch-0.9.8.zip",
+      "taille": 17913572,
+      "sha256": "c13308c4d386327a228032a976f488084e0f622b192ba43493fce57bf91a6df1"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v42/Pegase-PC-patch-0.9.7.zip",
-      "taille": 224295150,
-      "sha256": "935013dd6e5c5bcaa399f74c3b4cce3b2021a4d30a556fd894dea601455247a0"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v43/Pegase-PC-patch-0.9.7.zip",
+      "taille": 228231650,
+      "sha256": "ede2e9cf1b4f511bd0d268acd4250177326e1e89d31fe6f100dbe72624bcc1be"
     }
   ],
   "notes": [
-    "Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes, disparus par erreur avec l'arrivée de la mer.",
-    "La place du village retrouve tout son décor.",
-    "Les brumes et les feuilles qui volent près des arbres et des cascades sont revenues."
+    "Les chemins de terre, les routes et les pavés du village sont revenus partout sur l'île, avec la place, les rues et les sentiers comme avant l'arrivée de la mer.",
+    "Les pentes et les falaises de l'intérieur retrouvent leur roche et leur terre.",
+    "Tes chemins tracés sont repeints par-dessus, et le chemin unique au nord-est du village est de nouveau en place.",
+    "Les villageois retrouvent la terre de leurs chemins.",
+    "Le sable des plages reste sur les plages."
   ],
   "historique": [
+    {
+      "version": "0.9.8.2",
+      "notes": [
+        "Les chemins de terre, les routes et les pavés du village sont revenus partout sur l'île, avec la place, les rues et les sentiers comme avant l'arrivée de la mer.",
+        "Les pentes et les falaises de l'intérieur retrouvent leur roche et leur terre.",
+        "Tes chemins tracés sont repeints par-dessus, et le chemin unique au nord-est du village est de nouveau en place.",
+        "Les villageois retrouvent la terre de leurs chemins.",
+        "Le sable des plages reste sur les plages."
+      ]
+    },
     {
       "version": "0.9.8.1",
       "notes": [
@@ -75,25 +93,6 @@
         "La musique joue pendant qu'une mise à jour se télécharge.",
         "La ferme : la vache meugle, le cheval hennit et s'ébroue, le cochon grogne, depuis l'animal lui-même.",
         "Et aussi : de l'herbe sur les pentes derrière les plages et tout au bord de l'île, l'herbe qui va plus loin en qualité Ultra, et les sangliers qui fouillent dans les fleurs."
-      ]
-    },
-    {
-      "version": "0.9.5",
-      "notes": [
-        "Les boutiques ont de nouvelles devantures : grandes enseignes dorées, stores rayés aux couleurs de chaque commerce, vitrines éclairées, pancarte OUVERT / FERMÉ qui suit les horaires, ardoises et tonneaux fleuris.",
-        "La musique est revenue dans les boutiques et à la mairie, et elle reprend toute seule quand tu arrêtes la tienne.",
-        "Le grand-duc n'est plus éclairé : une lueur de lune très douce, son vrai hou-hou qui vient de sa direction et ses battements d'ailes. Caché dans un buisson, les buissons s'effacent devant toi.",
-        "Des sons plus vrais : plus aucun bruit d'animal en boucle ; seuls les vrais animaux chantent, depuis l'endroit où ils sont. Les poules et le coq de la basse-cour, eux, sont bien là.",
-        "Les oiseaux se baladent d'un bosquet à l'autre, et des sangliers viennent parfois fouiller la nuit.",
-        "Les cerfs et biches sont maintenant tous de la même belle famille.",
-        "Missions : elles passent en bas de l'écran, plus discrètes ; les missions faites disparaissent. Une fois les missions du jour finies, chaque journée du jeu en propose de nouvelles.",
-        "Le concours photo de Papi Auguste devient un dépôt : tu déposes ta photo, elle est analysée, et ta nouvelle photo remplace la précédente.",
-        "Une belle notification en bas de l'écran quand tu obtiens un objet, un geste ou un vêtement.",
-        "Le téléphone : boutique sans lignes qui se chevauchent, barre « sélectionnées » pour partager.",
-        "Le potager : bêcher presque partout sur sa parcelle, radis plus lents (deux arrosages), la pluie arrose, et le jeu te dit pourquoi un endroit est refusé.",
-        "Ta maison : le panneau et la boîte aux lettres se déplacent comme en construction, la plaque du nom est collée au bois, et plus de blocage au pas de la porte ni de « perché » sur la table.",
-        "Avec tes amis : la porte s'ouvre quand ils entrent ou sortent, le téléphone est bien tenu, et on voit bien leurs gestes.",
-        "Et aussi : plus de pluie dans les maisons, tic-tac seulement près des pendules, lanternes solides, légumes bien posés, plus d'herbe sur les grandes zones vertes, un soleil plus doux, un bisou aux lèvres, Ctrl pour s'accroupir en mode photo, et un arrêt avant le bord des falaises."
       ]
     }
   ]

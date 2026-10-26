@@ -2,8 +2,10 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
-[borne] ## ✉️ Nous contacter (borne 1.39.1)
+[borne] ## ✉️ Nous contacter (borne 1.39.3)
 [borne] Nouveau : la page « Nous contacter » (en bas du site) pour nous écrire une question, un problème, une idée, ou demander d'effacer ton compte, et la page « Confidentialité » qui dit ce que la borne garde sur toi et pourquoi
+[borne] ## 📱 Pégase sur iPhone (borne 1.39.1)
+[borne] Corrigé : sur iPhone, toucher « S’inscrire » ou « Jouer » sur une île de Pégase affichait « adresse non valide ». Maintenant l’inscription se fait, puis la page Pégase explique où jouer (PC ou Android : Pégase n’existe pas encore sur iPhone)
 [borne] ## 🔑 Se connecter avec Google (borne 1.39)
 [borne] Nouveau : « Continuer avec Google » pour créer ton compte ou te connecter en un toucher, sans retenir de mot de passe (le bouton blanc apparaît dès que la connexion Google est branchée sur la borne)
 [borne] Un compte tout neuf avec Google : tu choisis ensuite ton pseudo, ta tête et tes cris, comme d'habitude ; si ton adresse Google a déjà un compte, tu retrouves tes joueurs
