@@ -2628,6 +2628,7 @@ addEventListener('keydown', e => {
   if (MAP.open) { closeMap(); return; }
   if (chat.open) { closeChat(); return; }
   if (!$('jdw-cri').hidden) { closeCri(); return; }
+  if (!$('jdw-fam').hidden) { closeSheet('jdw-fam'); return; }
   if (!$('jdw-acct').hidden) { if (!AS.locked) closeSheet('jdw-acct'); return; }
   if (!$('jdw-duo').hidden) { duoBack(); return; }
   if (!$('jdw-seatpick').hidden) { closeSheet('jdw-seatpick'); return; }
@@ -3277,8 +3278,8 @@ function startWelcome() {
   $('jdw-wel-eyebrow').textContent = adding ? 'Un copain de plus sur cet appareil' : "Bienvenue à la Borne d'arcade";
   $('jdw-wel-name').value = profile.name || '';
   Object.assign(NAMECK, { n: '', state: '', photo: null, sound: null, claimed: '' });
-  const uids = acctUids();
-  Object.assign(WEL, { tab: 'new', noAcct: false, busy: false, pick: null, uid: adding && acctLive(adding) ? adding.acct.uid : uids[0] || '' });
+  const uids = acctUidsMine();
+  Object.assign(WEL, { tab: 'new', noAcct: false, busy: false, pick: null, uid: adding && acctLive(adding) && !(sessOf(adding.acct.uid) || {}).fam ? adding.acct.uid : uids[0] || '' });
   for (const id of ['jdw-wel-email', 'jdw-wel-pass', 'jdw-wel-lemail', 'jdw-wel-lpass']) $(id).value = '';
   $('jdw-wel-check').textContent = ''; $('jdw-wel-check').className = 'wel-check'; $('jdw-wel-claim').hidden = true;
   welTab('new');
@@ -3299,7 +3300,7 @@ function welTab(t) {
 }
 // petites puces « Compte de PATOU, LOUIS » | « ✉️ Nouveau compte » (choix du compte d'un nouveau joueur)
 function acctChips(box, cur, onPick, withNew) {
-  const uids = acctUids(); box.textContent = '';
+  const uids = acctUidsMine(); box.textContent = '';
   box.hidden = !uids.length; if (!uids.length) return;
   const chip = (uid, label) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'acct-chip'; b.textContent = label;
@@ -3562,6 +3563,7 @@ function claimMsg(e, n) {
   if (e && e.offline) return 'Pas de connexion internet : réessaie dans un instant.';
   if (/pseudo deja protege/.test(m)) return n + ' est déjà protégé par un autre compte : choisis un autre pseudo.';
   if (/trop de joueurs/.test(m)) return 'Ce compte a déjà 20 joueurs : c’est le maximum.';
+  if (/compte famille/.test(m)) return 'Ce téléphone a seulement accès aux joueurs qu’on lui a prêtés : pour ' + n + ', crée ton propre compte.';
   if (/nom trop court/.test(m)) return 'Le pseudo doit faire au moins 2 lettres.';
   return 'Le serveur n’a pas pu protéger ' + n + ' : réessaie.';
 }
@@ -3579,10 +3581,21 @@ async function acctEmailOf(idf, pass) {
 // compte créé avec Google (sans mot de passe) : on le rappelle quand le mot de passe ne marche pas
 const oaHint = () => oaCan() ? ' Compte créé avec Google ? Touche « Continuer avec Google ».' : '';
 async function acctLogin(idf, pass) {
-  const who = await acctEmailOf(idf, pass);
+  const fc = famCode(pass);                        // code de famille (« k7q2-9mxa-3f ») : la forme exacte d'abord, puis la forme propre
+  if (fc && fc !== pass && /[\s-]/.test(pass)) pass = fc;
+  let who;
+  try { who = await acctEmailOf(idf, pass); }
+  catch (e) { if (!(e.nouser && fc && fc !== pass)) throw e; pass = fc; who = await acctEmailOf(idf, pass); }
   try { return { s: await authPassword(who.email, pass), name: who.name }; }
   catch (e) { throw uiErr(authMsg(e, who.name ? 'login-pseudo' : 'login') + (/invalid_credentials|invalid_grant/.test(e.code) ? oaHint() : '')); }
 }
+// « K7Q2-9MXA-3F », « k7q2 9mxa 3f » → « K7Q29MXA3F » (Crockford : O → 0, I / L → 1) ; null si ce n'est pas la forme d'un code
+function famCode(p) {
+  const t = String(p || '').replace(/[\s-]/g, '');
+  return /^[0-9a-z]{10}$/i.test(t) ? t.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1') : null;
+}
+const famFmt = c => String(c || '').replace(/^(.{4})(.{4})(.+)$/, '$1-$2-$3');
+const famMail = e => /@famille\.elixirgamestudio\.com$/i.test(String(e || ''));
 const sessOf = uid => (uid && ACCT.s[uid]) || null;
 const liveUid = uid => !!(sessOf(uid) && sessOf(uid).rt);
 const acctObjs = () => [profile, adding, ...profiles].filter(Boolean);
@@ -3592,6 +3605,8 @@ function acctFor(name) {
   return acctObjs().find(p => p.name && cleanName(p.name) === n && acctLive(p)) || null;
 }
 // comptes connectés sur l'appareil, et leur nom affiché (« PATOU, LOUIS » : jamais l'e-mail en entier)
+// comptes de l'appareil qui peuvent recevoir un nouveau joueur (pas les comptes de famille)
+const acctUidsMine = () => acctUids().filter(u => !(sessOf(u) || {}).fam);
 function acctUids() { const u = []; for (const p of acctObjs()) if (p.name && acctLive(p) && !u.includes(p.acct.uid)) u.push(p.acct.uid); for (const k in ACCT.s) if (liveUid(k) && !u.includes(k) && ACCT.s[k].bare) u.push(k); return u; }
 function acctLabel(uid) {
   const names = [...new Set(acctObjs().filter(p => p.name && p.acct && p.acct.uid === uid).map(p => cleanName(p.name)))];
@@ -3610,6 +3625,8 @@ function acctSetSess(s) {
   if (pv.includes('google') || (!pv.length && old.g)) ACCT.s[uid].g = true;
   if (pv.includes('email') || old.pw) ACCT.s[uid].pw = true;
   if (old.bare) ACCT.s[uid].bare = true;
+  const am = u.app_metadata;                       // compte de FAMILLE (famille.sql) : un joueur prêté à un autre téléphone
+  if (am ? am.borne_famille : old.fam) { ACCT.s[uid].fam = true; ACCT.s[uid].par = (am && am.parent) || old.par || ''; }
   store.set('jdw.accts', ACCT.s);
   rtToken(uid, s.access_token);
   return uid;
@@ -3637,6 +3654,11 @@ function acctRefresh(uid, force) {
   return (ACCT.busy[uid] = (async () => {
     try { const s = await authReq('token?grant_type=refresh_token', { refresh_token: a.rt }); if (!s.user) s.user = { id: uid, email: a.email }; acctSetSess(s); return true; }
     catch (e) {
+      if (!e.offline && e.status >= 400 && e.status < 500 && e.status !== 429 && a.fam) {   // joueur prêté : l'accès a été retiré
+        const gone = acctDrop(uid);
+        if (gone.length) setTimeout(() => toastCheer('L’accès à ' + gone.join(' et ') + ' a été retiré sur ce téléphone.', profile.name || gone[0], true), 400);
+        return false;
+      }
       if (!e.offline && e.status >= 400 && e.status < 500 && e.status !== 429) {
         ACCT.s[uid] = { email: a.email, lost: true }; store.set('jdw.accts', ACCT.s); acctUi();
         if (profile.acct && profile.acct.uid === uid) setTimeout(acctGate, 300);
@@ -4023,11 +4045,192 @@ async function oaUnlink(uid, b) {
   }
   if (!$('jdw-settings').hidden) renderAcctSet();
 }
+/* ---- Comptes de famille (source/famille.sql) : « LOUIS et LÉONIE sur le téléphone de leur maman, sans voir mon compte » ----
+   ⚙ › Compte › « Sur un autre téléphone » (feuille #jdw-fam) : on choisit des joueurs de son compte → famille_donner → chacun reçoit SON
+   petit compte, dont le mot de passe est un code (K7Q2-9MXA-3F, montré une seule fois). Lien à envoyer : …/jouer/#acces=LOUIS:K7Q29MXA3F,…
+   (ouvert : les joueurs arrivent sur ce téléphone, famArrive) ; ou « J'ai déjà un compte », pseudo + code (dans l'appli Android aussi).
+   Le parent garde ses joueurs comme avant (son jeton suffit) ; il peut retirer l'accès (famille_retirer : les autres téléphones sont
+   déconnectés) ou LIBÉRER le joueur (famille_liberer : le compte est à lui, son Google ou pseudo + le code donné). Un compte de famille
+   (sessOf(uid).fam) ne voit que ses joueurs et n'en crée pas d'autre. */
+const FAM = { uid: '', rows: [], kids: [], pick: new Set(), busy: false };
+const FAM_HASH = (() => {                     // …/jouer/#acces=LOUIS:K7Q29MXA3F,L%C3%89ONIE:3HG7… : lu au chargement puis retiré
+  const h = String(location.hash || ''), m = h.match(/(?:^#|&)acces=([^&]+)/);
+  if (!m) return null;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  const out = [];
+  for (const part of m[1].split(',')) {
+    const i = part.lastIndexOf(':'); if (i < 1) continue;
+    let n = ''; try { n = cleanName(decodeURIComponent(part.slice(0, i))); } catch (e) { continue; }
+    const c = famCode(part.slice(i + 1));
+    if (n.length >= 2 && c && !out.some(x => x.n === n)) out.push({ n, c });
+  }
+  return out.length ? out.slice(0, 12) : null;
+})();
+// lien ouvert sur l'autre téléphone : chaque joueur se connecte avec son code et arrive sur l'appareil (le 1er de la liste devient le joueur actuel)
+async function famArrive(list) {
+  const ok = [], bad = [];
+  for (const it of list.slice().reverse()) {
+    try {
+      const L = await acctLogin(it.n, it.c);
+      const res = await acctAdopt(L.s, { name: it.n });
+      if (res.err || !res.name) throw uiErr(res.err || 'joueur absent');
+      acctUse(res, L.s); ok.unshift(res.name);
+    } catch (e) { bad.unshift({ it, e }); }
+  }
+  if (ok.length) setTimeout(() => toastCheer(ok.join(' et ') + (ok.length > 1 ? ' sont' : ' est') + ' sur ce téléphone !', ok[0], true), 300);
+  if (bad.length) {
+    const b = bad[0];
+    if (profile.name) { adding = profile; profile = blankProfile(); }
+    startWelcome(); welTab('login');
+    $('jdw-wel-lemail').value = b.it.n; $('jdw-wel-lpass').value = famFmt(b.it.c);
+    welMsg(b.e && b.e.offline ? 'Pas de connexion internet : réessaie dans un instant.' : 'Le lien n’a pas marché pour ' + bad.map(x => x.it.n).join(' et ') + ' : il a peut-être été changé ou retiré. Demande un nouveau lien à celui qui gère son compte.', 'err');
+  }
+}
+// pour un compte de famille : qui le gère (affiché dans ⚙)
+async function famParent(uid) {
+  if (FAM.par === uid) return; FAM.par = uid;
+  try {
+    const r = await rpc('famille_parent', { p_code: CODE() }, { token: await tokenFor(uid), quiet: true, quiet404: true });
+    const se = sessOf(uid); if (se && r) { se.par = String(r); store.set('jdw.accts', ACCT.s); if (!$('jdw-settings').hidden) renderAcctSet(); }
+  } catch (e) {} finally { FAM.par = ''; }
+}
+// ⚙ › Compte : « 📲 Sur un autre téléphone »
+function famRow(box, uid) {
+  if (!ONLINE || netOff()) return;
+  if (FAM.peek !== uid) {                    // qui joue déjà ailleurs (une fois par séance)
+    FAM.peek = uid;
+    tokenFor(uid).then(tok => rpc('famille_liste', { p_code: CODE() }, { token: tok, quiet: true, quiet404: true })).then(r => {
+      if (!Array.isArray(r) || !r.length || FAM.busy) return;
+      FAM.uid = uid; FAM.kids = r; if (!$('jdw-settings').hidden) renderAcctSet();
+    }).catch(() => {});
+  }
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'acct-fam';
+  const kids = FAM.uid === uid ? FAM.kids.map(k => cleanName(k.r_name)) : [];
+  b.innerHTML = '<span aria-hidden="true">📲</span><span class="acct-g-t"><b>Sur un autre téléphone</b><small></small></span>';
+  b.querySelector('small').textContent = kids.length ? kids.join(', ') + (kids.length > 1 ? ' jouent' : ' joue') + ' aussi ailleurs' : 'Un enfant chez sa maman ? Ce téléphone-là ne verra que lui.';
+  b.addEventListener('click', () => famOpen(uid));
+  box.appendChild(b);
+}
+function famMsg(t, cls) { const el = $('jdw-fam-msg'); el.textContent = t || ''; el.className = 'acct-msg' + (cls ? ' ' + cls : ''); el.hidden = !t; }
+function famErr(e) {
+  const m = String(e && e.message || '');
+  if (e && e.offline) return 'Pas de connexion internet : réessaie dans un instant.';
+  if (e && e.status === 404) return 'Ce n’est pas encore ouvert sur le serveur : réessaie plus tard.';
+  if (/trop d essais/.test(m)) return 'Beaucoup de liens d’un coup : attends un peu avant d’en refaire.';
+  if (/pas ton joueur/.test(m)) return 'Ce joueur n’est plus sur ton compte.';
+  if (/compte famille/.test(m)) return 'Ce téléphone a seulement accès à des joueurs prêtés : il ne peut pas en prêter.';
+  return 'Ça n’a pas marché : réessaie.';
+}
+async function famOpen(uid) {
+  Object.assign(FAM, { uid, pick: new Set(), busy: false });
+  $('jdw-fam-pick').hidden = false; $('jdw-fam-done').hidden = true; famMsg('');
+  $('jdw-fam-who').textContent = '…';
+  openSheet('jdw-fam', 'jdw-fam-close');
+  await famLoad();
+  const cur = cleanName(profile.name), main = acctObjs().some(p => p.pid !== profile.pid && p.acct && p.acct.uid === uid);
+  if (cur && main && FAM.rows.some(r => cleanName(r.r_name) === cur)) FAM.pick.add(cur);   // le joueur actuel, si ce n'est pas le seul du compte
+  famRender();
+}
+async function famLoad() {
+  const tok = await tokenFor(FAM.uid);
+  try { FAM.rows = await rpc('get_my_players', { p_code: CODE() }, { token: tok, quiet: true }) || []; } catch (e) { FAM.rows = []; famMsg(famErr(e), 'err'); }
+  try { FAM.kids = await rpc('famille_liste', { p_code: CODE() }, { token: tok, quiet: true, quiet404: true }) || []; } catch (e) { FAM.kids = []; }
+}
+const famAvatar = n => { const r = FAM.rows.find(x => cleanName(x.r_name) === n), pr = acctObjs().find(p => cleanName(p.name) === n), av = document.createElement('span'); av.className = 'avatar'; photoInto(av, (r && r.r_photo) || (pr && pr.consent ? pr.photo : null), n); return av; };
+function famRender() {
+  const who = $('jdw-fam-who'); who.textContent = '';
+  for (const r of FAM.rows) {
+    const n = cleanName(r.r_name), kid = FAM.kids.some(k => cleanName(k.r_name) === n);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'acct-other'; b.setAttribute('aria-pressed', String(FAM.pick.has(n)));
+    const t = document.createElement('b'); t.textContent = n;
+    b.append(famAvatar(n), t);
+    if (kid) { const g = document.createElement('span'); g.className = 'fam-tag'; g.textContent = 'déjà ailleurs'; b.appendChild(g); }
+    b.addEventListener('click', () => { if (FAM.pick.has(n)) FAM.pick.delete(n); else FAM.pick.add(n); b.setAttribute('aria-pressed', String(FAM.pick.has(n))); famGoUi(); });
+    who.appendChild(b);
+  }
+  if (!FAM.rows.length && !$('jdw-fam-msg').textContent) famMsg('Ton compte n’a pas encore de joueur.', 'info');
+  famGoUi();
+  const rows = $('jdw-fam-rows'); rows.textContent = '';
+  $('jdw-fam-list').hidden = !FAM.kids.length;
+  for (const k of FAM.kids) {
+    const n = cleanName(k.r_name), row = document.createElement('div'); row.className = 'fam-row';
+    const top = document.createElement('div'); top.className = 'fam-row-top';
+    const tx = document.createElement('span'); tx.className = 'acct-player-tx';
+    const t = document.createElement('b'); t.textContent = n;
+    const sm = document.createElement('small'); sm.textContent = (k.r_code_at ? 'Lien actif' : 'Accès retiré') + (k.r_google ? ' · Google rattaché ✓' : '');
+    tx.append(t, sm); top.append(famAvatar(n), tx);
+    const bt = document.createElement('div'); bt.className = 'fam-row-btns';
+    const B = (label, sure, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-ghost btn-sm'; b.textContent = label;
+      b.addEventListener('click', () => { if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = sure; return; } fn(b); }); bt.appendChild(b); };
+    B('Retirer l’accès', 'Sûr ? Les autres téléphones perdent ' + n, b => famRetirer(n, b));
+    B('Libérer ' + n, 'Sûr ? ' + n + ' quitte ton compte', b => famLiberer(n, b));
+    row.append(top, bt); rows.appendChild(row);
+  }
+}
+function famGoUi() {
+  const n = FAM.pick.size, b = $('jdw-fam-go');
+  b.disabled = !n || FAM.busy;
+  b.textContent = n ? 'Créer le lien pour ' + [...FAM.pick].join(' et ') : 'Choisis au moins un joueur';
+}
+$('jdw-fam-go').addEventListener('click', async () => {
+  if (FAM.busy || !FAM.pick.size) return;
+  FAM.busy = true; famGoUi(); famMsg('');
+  let rows;
+  try { rows = await rpc('famille_donner', { p_code: CODE(), p_names: [...FAM.pick] }, { token: await tokenFor(FAM.uid), quiet404: true }) || []; }
+  catch (e) { FAM.busy = false; famGoUi(); famMsg(famErr(e), 'err'); return; }
+  FAM.busy = false;
+  if (!rows.length) { famGoUi(); famMsg('Ça n’a pas marché : réessaie.', 'err'); return; }
+  famDone(rows);
+  await famLoad(); famRender(); $('jdw-fam-pick').hidden = true;
+  if (!$('jdw-settings').hidden) renderAcctSet();
+});
+function famDone(rows) {
+  const names = rows.map(r => cleanName(r.r_name)), list = names.join(' et ');
+  FAM.url = SITE_URL() + '#acces=' + rows.map(r => encodeURIComponent(cleanName(r.r_name)) + ':' + r.r_code).join(',');
+  FAM.text = 'Pour jouer à la Borne d’arcade avec ' + list + ' sur ce téléphone, ouvre ce lien :';
+  $('jdw-fam-done-t').textContent = 'Envoie ce lien sur le téléphone où ' + list + (names.length > 1 ? ' vont' : ' va') + ' jouer (WhatsApp, SMS…).';
+  $('jdw-fam-url').value = FAM.url;
+  $('jdw-fam-share').textContent = navigator.share && TOUCH ? 'Partager' : 'Copier';
+  const ul = $('jdw-fam-codes'); ul.textContent = '';
+  for (const r of rows) { const li = document.createElement('li'), b = document.createElement('b'), c = document.createElement('code'); b.textContent = cleanName(r.r_name); c.textContent = famFmt(r.r_code); li.append(b, c); ul.appendChild(li); }
+  $('jdw-fam-how').textContent = 'Dans l’appli Android, ou si le lien ne s’ouvre pas : « J’ai déjà un compte », le pseudo et ce code comme mot de passe. Ce téléphone ne verra que ' + list + '. Le code ne s’affiche qu’une fois ; un nouveau lien en refait un (les téléphones déjà connectés le restent).';
+  $('jdw-fam-done').hidden = false;
+}
+$('jdw-fam-share').addEventListener('click', async () => {
+  if (navigator.share && TOUCH) { try { await navigator.share({ title: 'La Borne d’arcade', text: FAM.text, url: FAM.url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(FAM.text + ' ' + FAM.url); famMsg('Lien copié : colle-le dans un message.', 'ok'); }
+  catch (e) { const i = $('jdw-fam-url'); i.select(); famMsg('Sélectionne le lien et copie-le.', 'info'); }
+});
+$('jdw-fam-again').addEventListener('click', () => { FAM.pick.clear(); $('jdw-fam-done').hidden = true; $('jdw-fam-pick').hidden = false; famMsg(''); famRender(); });
+$('jdw-fam-close').addEventListener('click', () => closeSheet('jdw-fam'));
+$('jdw-fam').addEventListener('click', e => { if (e.target === $('jdw-fam')) closeSheet('jdw-fam'); });
+async function famRetirer(n, b) {
+  b.disabled = true; famMsg('');
+  try { await rpc('famille_retirer', { p_code: CODE(), p_name: n }, { token: await tokenFor(FAM.uid) }); famMsg('C’est fait : ' + n + ' n’est plus sur les autres téléphones. Un nouveau lien le remet quand tu veux.', 'ok'); }
+  catch (e) { famMsg(famErr(e), 'err'); }
+  await famLoad(); famRender();
+}
+async function famLiberer(n, b) {
+  b.disabled = true; famMsg('');
+  let code;
+  try { code = await rpc('famille_liberer', { p_code: CODE(), p_name: n }, { token: await tokenFor(FAM.uid) }); }
+  catch (e) { famMsg(famErr(e), 'err'); b.disabled = false; return; }
+  const k = FAM.kids.find(x => cleanName(x.r_name) === n);
+  famMsg('🎉 ' + n + ' est libre : son compte n’est plus le tien. Connexion ' + (k && k.r_google ? 'avec son Google, ou ' : '') + 'avec le pseudo ' + n + ' et le mot de passe ' + famFmt(code) + ' (à changer ensuite dans ⚙). Note-le : il ne s’affiche qu’une fois.', 'ok');
+  // il quitte cet appareil (il n'est plus sur ce compte)
+  const gone = profiles.filter(p => cleanName(p.name) === n && p.acct && p.acct.uid === FAM.uid);
+  if (gone.length) {
+    profiles = profiles.filter(p => !gone.includes(p)); store.set('jdw.profiles', profiles);
+    if (gone.some(p => p.pid === profile.pid)) { const o = profiles.find(p => p.acct && p.acct.uid === FAM.uid) || profiles[0]; if (o) switchProfile(o.pid); }
+  }
+  await famLoad(); famRender(); acctUi();
+}
 async function acctStart() {
   if (!ONLINE) return;
   await acctProbe();
   oaProbe();
-  if (OAUTH_Q && ACCT.ready) await oaFinish(OAUTH_Q);
+  if (FAM_HASH && ACCT.ready) await famArrive(FAM_HASH);
+  else if (OAUTH_Q && ACCT.ready) await oaFinish(OAUTH_Q);
   else if (ACCT_HASH && ACCT.ready && ACCT_HASH.err && store.get('jdw.oauth', null)) await oaFinish({ code: '', err: ACCT_HASH.err, errCode: ACCT_HASH.errCode });
   else if (ACCT_HASH && ACCT.ready) await acctArrive(ACCT_HASH);
   else acctCheckMine();
@@ -4063,7 +4266,7 @@ function renderAcctSet() {
   $('jdw-set-name-help').textContent = linked ? '🔒 Ton pseudo est lié à ton compte : il ne change plus.' : 'Ton pseudo se change ici, puis « Enregistrer ».';
   box.hidden = st === 'off'; if (st === 'off') return;
   const others = a.uid ? acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid && p.pid !== profile.pid).map(p => cleanName(p.name)) : [];
-  const T = { on: ['🔒', 'Compte protégé', (se.g ? 'Google · ' : '') + maskEmail(se.email) + (others.length ? ' · aussi ' + [...new Set(others)].join(', ') : '')],
+  const T = { on: se.fam ? ['🔒', 'Compte de ' + cleanName(profile.name), 'Géré par ' + (se.par || 'ta famille')] : ['🔒', 'Compte protégé', (se.g ? 'Google · ' : '') + (famMail(se.email) ? 'pseudo + mot de passe' : maskEmail(se.email)) + (others.length ? ' · aussi ' + [...new Set(others)].join(', ') : '')],
     pending: ['📧', 'E-mail à confirmer', a.email ? 'Lien envoyé à ' + maskEmail(a.email) : ''],
     need: ['🔑', se.lost ? 'Reconnecte-toi' : 'Ce pseudo a un compte', se.lost ? 'La connexion a expiré sur cet appareil.' : 'Connecte-toi pour jouer sous ce nom.'],
     local: ['🧒', 'Sans compte', 'Joueur de cet appareil seulement : son pseudo n’est pas protégé.'],
@@ -4072,12 +4275,20 @@ function renderAcctSet() {
   $('jdw-set-acct-ic').textContent = T[0]; $('jdw-set-acct-t').textContent = T[1];
   // visible : l'e-mail (masqué) ; les explications vont derrière « ? »
   $('jdw-set-acct-s').textContent = st === 'on' || st === 'pending' ? T[2] || '' : '';
-  $('jdw-set-acct-help').textContent = st === 'on' ? 'Ton compte protège ton pseudo : personne d’autre ne peut jouer sous ce nom, et tu le retrouves sur n’importe quel appareil.'
+  $('jdw-set-acct-help').textContent = st === 'on' && se.fam ? 'Ce téléphone a seulement accès à ce joueur, prêté par sa famille. Celui qui gère son compte peut retirer cet accès.' : st === 'on' ? 'Ton compte protège ton pseudo : personne d’autre ne peut jouer sous ce nom, et tu le retrouves sur n’importe quel appareil.'
     : st === 'pending' ? 'Clique sur le lien reçu par e-mail (regarde aussi les spams), puis « J’ai confirmé ».' : T[2] || '';
   const btns = $('jdw-set-acct-btns'); btns.textContent = '';
   const B = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm ' + (cls || 'btn-ghost'); b.textContent = t; b.addEventListener('click', () => fn(b)); btns.appendChild(b); return b; };
-  if (st === 'on') {
+  if (st === 'on' && se.fam) {                     // joueur prêté (compte de famille) : son Google, et c'est tout
+    if (!se.par) famParent(a.uid);
     oaGoogleRow(btns, a.uid, se);
+    B('🚪 Se déconnecter de cet appareil', b => {
+      if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Sûr ? ' + cleanName(profile.name) + ' quittera cet appareil'; return; }
+      acctLogout();
+    }, 'btn-ghost acct-out');
+  } else if (st === 'on') {
+    oaGoogleRow(btns, a.uid, se);
+    famRow(btns, a.uid);
     B(se.g && !se.pw ? '🔑 Choisir un mot de passe' : '🔑 Changer mon mot de passe', () => openAcct('change'));
     B('🚪 Se déconnecter de cet appareil', b => {
       const names = [...new Set(acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid).map(p => cleanName(p.name)))];
@@ -4093,14 +4304,22 @@ async function acctLogout() {
   const uid = profile.acct && profile.acct.uid; if (!uid) return;
   const se = sessOf(uid) || {};
   if (se.at) authReq('logout?scope=local', null, se.at).catch(() => {});
+  closeSheet('jdw-settings');
+  const gone = acctDrop(uid);
+  setTimeout(() => toastCheer(gone.join(', ') + (gone.length > 1 ? ' sont déconnectés' : ' est déconnecté') + ' de cet appareil.', profile.name || gone[0], true), 50);
+}
+// le compte et ses joueurs quittent l'appareil (rien sur le serveur) ; renvoie les pseudos partis
+function acctDrop(uid) {
   const gone = [...new Set(profiles.filter(p => p.acct && p.acct.uid === uid).map(p => cleanName(p.name)))];
   delete ACCT.s[uid]; store.set('jdw.accts', ACCT.s);
+  const cur = !!(profile.acct && profile.acct.uid === uid);
   profiles = profiles.filter(p => !(p.acct && p.acct.uid === uid)); store.set('jdw.profiles', profiles);
-  closeSheet('jdw-settings');
-  if (profiles.length) switchProfile(profiles[0].pid);
-  else { profile = blankProfile(); store.set('jdw.profile', profile); syncOwnPlayer(); refreshAll(); }
-  setTimeout(() => toastCheer(gone.join(', ') + (gone.length > 1 ? ' sont déconnectés' : ' est déconnecté') + ' de cet appareil.', profile.name || gone[0], true), 50);
+  if (cur) {
+    if (profiles.length) switchProfile(profiles[0].pid);
+    else { profile = blankProfile(); store.set('jdw.profile', profile); syncOwnPlayer(); refreshAll(); }
+  }
   acctUi();
+  return gone;
 }
 // « Qui joue ? » : les autres joueurs des comptes connectés, à ajouter sur l'appareil
 async function acctProfList() {
@@ -4152,7 +4371,7 @@ function openAcct(mode, o) {
   lead.append(...C[3]); lead.hidden = !C[3].length;
   $('jdw-acct-help-t').textContent = C[8] || ''; $('jdw-acct-help').hidden = !C[8];
   // choix du compte (protéger avec un compte déjà connecté sur l'appareil)
-  AS.uid = mode === 'protect' ? (o.uid !== undefined ? o.uid : acctUids()[0] || '') : '';
+  AS.uid = mode === 'protect' ? (o.uid !== undefined ? o.uid : acctUidsMine()[0] || '') : '';
   const em = $('jdw-acct-email'), pw = $('jdw-acct-pass');
   em.dataset.kind = C[4];
   em.type = C[4] === 'email' ? 'email' : 'text';
@@ -4246,7 +4465,7 @@ async function acctOk() {
       if (!idf.includes('@')) {        // pseudo : le serveur ne donne que l'adresse masquée, on demande de la taper en entier
         const n = cleanName(idf); let hint = null;
         try { hint = await rpc('recover_hint', { p_code: CODE(), p_name: n }, { anon: true, quiet: true }); }
-        catch (x) { throw uiErr(/trop d essais/.test(x.message) ? 'Trop d’essais avec ce pseudo : attends quelques minutes.' : 'Le serveur ne répond pas comme prévu : réessaie.'); }
+        catch (x) { throw uiErr(/trop d essais/.test(x.message) ? 'Trop d’essais avec ce pseudo : attends quelques minutes.' : /compte famille/.test(x.message) ? n + ' est un joueur de famille : demande un nouveau lien (ou code) à celui qui gère son compte.' : 'Le serveur ne répond pas comme prévu : réessaie.'); }
         if (!hint) throw uiErr(n + ' n’a pas de compte. Vérifie le pseudo, ou tape ton e-mail.');
         const em = $('jdw-acct-email'); em.value = ''; em.placeholder = hint;
         acctMsg('Le compte de ' + n + ' utilise l’adresse ' + hint + ' : tape-la en entier pour recevoir le lien.', 'info');
@@ -12064,6 +12283,7 @@ function jdwBack() {
   if (!$('jdw-seatpick').hidden) { closeSheet('jdw-seatpick'); return true; }
   if (chat.open) { closeChat(); return true; }
   if (!$('jdw-cri').hidden) { closeCri(); return true; }
+  if (!$('jdw-fam').hidden) { closeSheet('jdw-fam'); return true; }
   if (!$('jdw-acct').hidden) { if (!AS.locked) closeSheet('jdw-acct'); return true; }
   if (!$('jdw-inv').hidden) { invDismiss(); return true; }
   if (!$('jdw-invshare').hidden) { closeSheet('jdw-invshare'); return true; }
@@ -12121,7 +12341,7 @@ function guestSync() {
 function guestKidUid() {
   if (!profile.name || !ONLINE || !ACCT.ready) return '';
   const st = acctState(profile); if (st !== 'local' && st !== 'none') return '';
-  return acctUids()[0] || '';
+  return acctUidsMine()[0] || '';
 }
 function guestBar() {
   const bar = $('jdw-guestbar'); if (!bar) return;

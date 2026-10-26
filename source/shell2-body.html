@@ -866,6 +866,32 @@
 </div>
 
 <div class="help-src" id="jdw-help-acct" hidden><p id="jdw-acct-help-t"></p></div>
+<!-- Comptes de famille : un joueur de mon compte sur un autre téléphone (source/famille.sql) -->
+<div class="sheet sheet-top" id="jdw-fam" hidden>
+  <div class="card acct-card fam-card" role="dialog" aria-modal="true" aria-labelledby="jdw-fam-h">
+    <div class="card-body">
+      <div class="acct-hero"><span class="acct-hero-ic" aria-hidden="true">📲</span><div class="acct-hero-tx"><p class="eyebrow">Ta famille</p><h2 id="jdw-fam-h" class="wel-h">Sur un autre téléphone</h2></div></div>
+      <div class="fam-pane" id="jdw-fam-pick">
+        <p class="lead acct-lead">Chez leur maman, chez papi… Choisis qui, puis envoie le lien&nbsp;: ce téléphone-là ne verra <b>que ces joueurs</b>, jamais ton compte ni tes autres joueurs.</p>
+        <div class="fam-who" id="jdw-fam-who" role="group" aria-label="Joueurs à envoyer"></div>
+        <button class="btn btn-play" id="jdw-fam-go" type="button">Créer le lien</button>
+      </div>
+      <div class="fam-pane" id="jdw-fam-done" hidden>
+        <p class="lead acct-lead" id="jdw-fam-done-t"></p>
+        <div class="fam-link"><input class="input input-plain" id="jdw-fam-url" type="text" readonly aria-label="Lien à envoyer"><button class="btn btn-play btn-sm" id="jdw-fam-share" type="button">Partager</button></div>
+        <ul class="fam-codes" id="jdw-fam-codes"></ul>
+        <p class="small fam-how" id="jdw-fam-how"></p>
+        <button class="link-btn" id="jdw-fam-again" type="button">↩ Choisir d’autres joueurs</button>
+      </div>
+      <div class="fam-list" id="jdw-fam-list" hidden>
+        <p class="eyebrow">Déjà sur d’autres téléphones</p>
+        <div id="jdw-fam-rows"></div>
+      </div>
+      <p class="acct-msg" id="jdw-fam-msg" role="alert" hidden></p>
+      <div class="row"><button class="btn btn-ghost" id="jdw-fam-close" type="button">Fermer</button></div>
+    </div>
+  </div>
+</div>
 
 <div class="sheet" id="jdw-photo" hidden>
   <div class="card ph-card" role="dialog" aria-modal="true" aria-labelledby="jdw-ph-h">

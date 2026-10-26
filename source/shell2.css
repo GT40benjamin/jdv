@@ -1967,6 +1967,32 @@ body.net-off #jdw-coop-switch [data-where=ami] span::after{content:" · réseau"
 .g-or{display:flex;align-items:center;gap:10px;margin:2px 0 0;font-size:12.5px;font-weight:600;color:var(--muted)}
 .g-or::before,.g-or::after{content:"";flex:1 1 auto;height:1px;background:var(--steel2)}
 .g-or span{flex:0 0 auto}
+/* Comptes de famille : « Sur un autre téléphone » (feuille #jdw-fam, ligne dans ⚙ › Compte) */
+.fam-pane{display:grid;gap:12px;min-width:0}
+.fam-pane[hidden],.fam-list[hidden]{display:none}
+.fam-who{display:flex;flex-wrap:wrap;gap:8px}
+.fam-who .acct-other[aria-pressed="true"]{border-color:var(--gold);color:var(--ink);background:linear-gradient(160deg,rgba(255,211,77,.18),transparent 70%),var(--panel)}
+.fam-who .acct-other[aria-pressed="false"]{opacity:.8;text-decoration:none}
+.fam-who .acct-other[aria-pressed="true"]::after{color:var(--gold)}
+.fam-who .acct-other .fam-tag{font-size:11.5px;color:var(--leaf);font-weight:600}
+.fam-link{display:flex;gap:8px;min-width:0}
+.fam-link .input{flex:1 1 auto;min-width:0;font-size:13px;font-weight:500}
+.fam-codes{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.fam-codes li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:12px;background:var(--night);border:1px solid var(--steel2)}
+.fam-codes b{font-family:var(--display);font-weight:400;font-size:17px}
+.fam-codes code{font:700 17px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;color:var(--gold)}
+.fam-how{margin:0;line-height:1.45}
+.fam-list{display:grid;gap:8px;min-width:0}
+.fam-row{display:grid;gap:8px;padding:10px 12px;border-radius:14px;background:var(--night);border:1px solid var(--steel2)}
+.fam-row-top{display:flex;align-items:center;gap:10px;min-width:0}
+.fam-row-top .avatar{width:40px;height:40px;font-size:16px;flex:0 0 auto}
+.fam-row-top .acct-player-tx{flex:1 1 auto}
+.fam-row-btns{display:flex;flex-wrap:wrap;gap:6px}
+.fam-row-btns .btn.sure{border-color:var(--amber);color:var(--amber)}
+.acct-fam{flex:1 1 100%;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;border:1px solid var(--steel2);background:var(--night);color:var(--ink);cursor:pointer;text-align:left;font:inherit}
+.acct-fam:hover{border-color:var(--gold)}
+.acct-fam > span:first-child{font-size:22px}
+.acct-fam .acct-g-t b{color:var(--ink)}
 /* ⚙ › Compte : Google rattaché / « Rattacher mon compte Google » */
 .acct-g{flex:1 1 100%;display:grid;gap:6px;min-width:0}
 .acct-g-on{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:rgba(76,195,106,.08);border:1px solid rgba(76,195,106,.45)}

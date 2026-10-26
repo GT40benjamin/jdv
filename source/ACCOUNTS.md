@@ -18,6 +18,15 @@ Chaque salle peut aussi donner à un joueur un **pseudo de salle** (affiché seu
 4. **URL Configuration** : rien à changer (`https://gt40benjamin.github.io/jdv/**` couvre `jouer/`). Les liens des e-mails arrivent sur
    `jouer/` (nouveau site) ou sur la racine (anciens liens : l'accueil les renvoie vers `jouer/` avec le jeton).
 
+## Comptes de famille (borne 1.40) : un joueur sur un autre téléphone
+
+⚙ › Compte › **« 📲 Sur un autre téléphone »** : choisis LOUIS, LÉONIE… → « Créer le lien » → envoie le lien (WhatsApp, SMS) sur le téléphone
+de leur maman. Ce téléphone ne voit QUE ces joueurs (ni ton compte, ni tes autres joueurs, ni tes réglages) ; ils gardent leurs salles et leurs
+scores. Dans l'appli Android : « J'ai déjà un compte », pseudo + le code affiché (ex. `7RAM-CCJX-V7`). Le code ne s'affiche qu'une fois ; un
+nouveau lien en refait un. « Retirer l'accès » : les autres téléphones perdent ce joueur. « Libérer » (il est grand) : son compte devient le
+sien (pseudo + le code donné, ou son Google rattaché), il quitte le tien. Rien à régler dans Supabase. Serveur : `source/famille.sql`
+(à relancer après public.sql). Dépannage : `select * from public.player_parents;` (qui gère qui).
+
 ## « Continuer avec Google » (borne 1.39, appli Android 1.13) : à faire par Benjamin
 
 Le bouton « Continuer avec Google » est déjà dans la borne, mais il reste **caché** tant que Google n'est pas branché sur Supabase (la borne
