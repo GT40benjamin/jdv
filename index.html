@@ -14,7 +14,9 @@
       var k = decodeURIComponent(kv.split('=')[0] || '').toLowerCase();
       return k && !/^(utm_.*|fbclid|gclid|gbraid|wbraid|dclid|msclkid|igshid|mc_cid|mc_eid|ttclid|twclid|yclid|si|_ga|ref)$/.test(k);
     }), keep = q.length ? '?' + q.join('&') : '';
-    if (app || pwa || keep || auth) {
+    var site = q.some(function (kv) { return /^site(=|$)/.test(kv); });   // la maison de la borne : rester sur le site
+    if (site) { try { history.replaceState(null, '', l.pathname + l.hash); } catch (e) {} }
+    else if (app || pwa || keep || auth) {
       document.documentElement.style.visibility = 'hidden';
       l.replace('jouer/' + keep + h);
     }

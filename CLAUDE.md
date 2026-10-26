@@ -22,6 +22,8 @@ elixirgamestudio.com. Le service worker de l'ancienne adresse reste figé (sa mi
   Vignettes des jeux dans `accueil/` (servent à jouer/ et au partage) fabriquées UNIQUEMENT à partir des preview() des jeux par
   `source/accueil-media.js` (jamais de photo). Redirige vers `jouer/` dans l'appli, en PWA installée, ou si l'adresse a des paramètres
   (?v=, ?duel=, ?salle=, ?pegase… ; les codes de suivi ?fbclid=, ?utm_… ajoutés par WhatsApp / Facebook sont ignorés) ou un lien d'e-mail (#access_token…).
+  Exception : `?site` (la maison 🏠 `#jdw-site-btn` en haut de la borne, côté Borne et côté Pégase, jamais en partie) = rester sur le site
+  même dans l'appli / une borne installée ; le repère est retiré de l'adresse.
 - `jouer/index.html` : la borne (build2.py avec SITE_ROOT=../ : elle lit ../assets, ../site.json, ../telecharger/version.json).
 - `telecharger/` : page publique + `borne-arcade.apk` en fichier direct + `version.json` (lu par l'appli pour annoncer les mises à jour).
 - `assets/ilo.bin`, `assets/music/*.bin` : images et musiques de l'Asset Store, EMBALLÉES (AES-GCM) avec la clé intégrée au site

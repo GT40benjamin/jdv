@@ -2,9 +2,10 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
-[borne] ## 🧪 Le site d'Elixir Game Studio (borne 1.38.9)
+[borne] ## 🧪 Le site d'Elixir Game Studio (borne 1.38.13)
 [borne] Nouvelle page d'accueil sur elixirgamestudio.com : l'écran titre du studio, avec les plans filmés dans Pégase en vraie qualité (jusqu'en 4K selon ton écran, version en hauteur sur téléphone)
 [borne] Deux boutons pour entrer : « Pégase » ouvre directement la page Pégase, « La Borne d'arcade » ouvre directement les mini-jeux
+[borne] Une petite maison 🏠 en haut de la borne (côté mini-jeux et côté Pégase) ramène au site du studio, même dans l'appli Android
 [borne] Plus bas sur le site, « Nos jeux » : Pégase à gauche, la Borne d'arcade à droite, où défilent tous ses jeux
 [borne] Sur la page Pégase, les plans filmés changent toutes les 15 secondes
 [borne] Les liens de partage montrent la nouvelle image du studio
