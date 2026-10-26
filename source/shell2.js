@@ -9013,6 +9013,12 @@ function renderEndBoard(g, me) {
   for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me)); }
 }
 
+/* ================= La maison : retour au site du studio (1.38.13) ================= */
+// Toujours construit depuis l'adresse actuelle (le site peut changer d'adresse). « ?site » : l'accueil reste sur le site même dans l'appli
+// Android ou une borne installée (sinon il renvoie vers jouer/), puis retire ce repère de l'adresse. Visible seulement sur la bibliothèque
+// (barre du haut) : jamais pendant une partie.
+$('jdw-site-btn').href = new URL(ROOT + '?site', location.href).href;
+
 /* ================= Partager la borne / Partager Pégase (1.38.2) ================= */
 // Un lien PUBLIC, sans salle ni pseudo (l'invitation dans une salle, c'est « Inviter », plus bas) : la borne → …/jouer/?borne (côté arcade) ; Pégase → …/pegase/
 // (le bouton du haut partage le côté où l'on est : page Pégase → Pégase, sinon la borne)
