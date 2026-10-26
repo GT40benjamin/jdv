@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Nous contacter · Elixir Game Studio</title>
+<meta name="description" content="Écrire à Elixir Game Studio : une question, un problème dans un jeu, une idée, ou effacer ton compte.">
+<meta name="theme-color" content="#06070d">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@700;800&family=Chakra+Petch:wght@400;500;600;700&display=swap">
+<!-- Formulaire « Nous contacter » (source/contact.html → contact/index.html, publier.sh y met l'adresse et la clé PUBLIQUE de Supabase).
+     AUCUNE adresse e-mail sur le site (robots) : le message part dans la table contact_messages (source/contact.sql, fonction send_contact),
+     lue par Benjamin dans Supabase. Anti-robots : champ piège caché, envoi trop rapide ignoré, limite par heure côté serveur.
+     ?sujet=effacer choisit « Effacer mon compte et mes données ». -->
+<style>
+:root{--bg:#06070d;--card:#0d0f1a;--line:rgba(160,190,255,.16);--ink:#f5f2ea;--soft:#c9cbd6;--muted:#8f93a6;--gold:#ffc23d;--gold2:#ffe08a;--fire:#ff8a1f;--cyan:#4fe6ff;--ok:#5fd68a;--err:#ff6b7a;
+  --head:'Oxanium','Chakra Petch',system-ui,sans-serif;--text:'Chakra Petch',system-ui,-apple-system,'Segoe UI',sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:radial-gradient(120% 70% at 50% -10%,rgba(138,92,255,.16),transparent 60%),var(--bg);color:var(--ink);font:500 17px/1.55 var(--text);-webkit-font-smoothing:antialiased}
+a{color:var(--cyan)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:760px;margin:0 auto;padding:18px 16px}
+.top a.home{display:inline-flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font:800 18px var(--head);letter-spacing:.08em}
+.top a.home img{width:34px;height:34px}
+.top a.back{font-size:15px;color:var(--soft);text-decoration:none}
+.top a.back:hover{color:var(--gold2)}
+main{max-width:760px;margin:0 auto;padding:8px 16px 56px}
+h1{margin:10px 0 6px;font:800 clamp(30px,6vw,44px)/1.1 var(--head);letter-spacing:.02em;background:linear-gradient(180deg,var(--gold2),var(--gold) 55%,var(--fire));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{margin:0 0 24px;color:var(--soft)}
+form,.done{display:grid;gap:16px;padding:22px;border-radius:20px;background:linear-gradient(160deg,rgba(255,194,61,.07),transparent 50%),var(--card);border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,.45)}
+label{display:grid;gap:6px;font-weight:600;font-size:15px;color:var(--soft)}
+label small{font-weight:500;color:var(--muted);font-size:13px}
+input,select,textarea{width:100%;font:500 17px/1.4 var(--text);color:var(--ink);background:#070912;border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none}
+textarea{min-height:170px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(79,230,255,.18)}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--soft) 50%),linear-gradient(135deg,var(--soft) 50%,transparent 50%);background-position:calc(100% - 20px) 52%,calc(100% - 14px) 52%;background-size:6px 6px;background-repeat:no-repeat;padding-right:40px}
+.row2{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+@media (max-width:560px){.row2{grid-template-columns:1fr}}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+button{justify-self:start;min-height:52px;padding:0 28px;border:0;border-radius:14px;font:800 17px var(--head);letter-spacing:.06em;text-transform:uppercase;color:#1a1004;cursor:pointer;
+  background:linear-gradient(180deg,var(--gold2),var(--gold) 50%,var(--fire));box-shadow:0 5px 0 #a8580e,0 10px 24px rgba(255,138,31,.25)}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #a8580e}
+button[disabled]{opacity:.6;cursor:progress}
+.msg{margin:0;padding:12px 14px;border-radius:12px;font-weight:600;font-size:15px}
+.msg.err{color:#ffd0d5;background:rgba(255,107,122,.1);border:1px solid var(--err)}
+.note{margin:0;font-size:13.5px;color:var(--muted)}
+.done{text-align:center;justify-items:center}
+.done .ic{font-size:48px;line-height:1}
+.done h2{margin:0;font:800 26px var(--head);color:var(--ok)}
+.done p{margin:0;color:var(--soft)}
+footer{max-width:760px;margin:0 auto;padding:0 16px 32px;font-size:13.5px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+footer a{color:var(--muted)}
+</style></head><body>
+<header class="top"><a class="home" href="../"><img src="../logo.svg" alt="">ELIXIR</a><a class="back" href="../">← Retour au site</a></header>
+<main>
+  <h1>Nous contacter</h1>
+  <p class="lead">Une question, un souci dans un jeu, une idée, ou tu veux effacer ton compte&nbsp;? Écris-nous ici&nbsp;: on lit tout.</p>
+  <form id="f" novalidate>
+    <label>De quoi s'agit-il&nbsp;?
+      <select id="sujet">
+        <option value="Question">Une question</option>
+        <option value="Problème">Un problème dans un jeu ou dans l'appli</option>
+        <option value="Idée">Une idée</option>
+        <option value="Effacer mes données">Effacer mon compte et mes données</option>
+        <option value="Autre">Autre chose</option>
+      </select>
+    </label>
+    <div class="row2">
+      <label>Ton pseudo <small>facultatif</small><input id="pseudo" type="text" maxlength="20" autocomplete="nickname" spellcheck="false"></label>
+      <label>Ton e-mail, pour te répondre <small>facultatif (sans lui, on ne peut pas te répondre)</small><input id="email" type="email" inputmode="email" maxlength="200" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="ton@email.fr"></label>
+    </div>
+    <label>Ton message<textarea id="message" maxlength="4000" required placeholder="Écris ton message ici…"></textarea></label>
+    <div class="hp" aria-hidden="true"><label>Ne pas remplir<input id="site_web" type="text" tabindex="-1" autocomplete="off"></label></div>
+    <p class="msg err" id="err" role="alert" hidden></p>
+    <button id="go" type="submit">Envoyer</button>
+    <p class="note">Ton message est gardé seulement le temps de le traiter. Voir nos <a href="../confidentialite/">règles de confidentialité</a>.</p>
+  </form>
+  <div class="done" id="done" hidden>
+    <div class="ic" aria-hidden="true">✉️</div>
+    <h2>Message envoyé&nbsp;!</h2>
+    <p id="done-t">Merci&nbsp;! On te répond dès que possible.</p>
+    <p><a href="../">Retour au site</a></p>
+  </div>
+</main>
+<footer><span>© 2026 Elixir Game Studio</span><a href="../confidentialite/">Confidentialité</a><a href="../jouer/">La Borne d'arcade</a></footer>
+<script>
+(function () {
+  var URL0 = 'https://wplictorvvtkfikpfdnl.supabase.co', KEY = 'sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa', t0 = Date.now();
+  var $ = function (id) { return document.getElementById(id); };
+  try { if (/(^|[?&])sujet=effacer/.test(location.search)) $('sujet').value = 'Effacer mes données'; } catch (e) {}
+  function fail(t) { var e = $('err'); e.textContent = t; e.hidden = false; }
+  function done(email, sujet) {
+    $('f').hidden = true; $('done').hidden = false;
+    $('done-t').textContent = sujet === 'Effacer mes données'
+      ? (email ? 'On efface ton compte et tout ce qui va avec sous 30 jours, et on te prévient par e-mail.' : 'Laisse-nous ton e-mail ou ton pseudo exact pour qu’on retrouve ton compte : sans eux, on ne sait pas lequel effacer.')
+      : (email ? 'Merci ! On te répond dès que possible à cette adresse.' : 'Merci ! (Sans e-mail, on ne peut pas te répondre, mais on lit tout.)');
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+  $('f').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    $('err').hidden = true;
+    var sujet = $('sujet').value, pseudo = $('pseudo').value.trim(), email = $('email').value.trim(), msg = $('message').value.trim();
+    if (msg.length < 10) { fail('Ton message est un peu court : dis-nous en un peu plus (10 lettres au moins).'); $('message').focus(); return; }
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) { fail('Cette adresse e-mail n’a pas l’air juste : vérifie-la (ou laisse la case vide).'); $('email').focus(); return; }
+    var hp = $('site_web').value;
+    if (Date.now() - t0 < 3000) hp = hp || 'rapide';            // rempli en moins de 3 s : un robot
+    var b = $('go'); b.disabled = true; b.textContent = 'Envoi…';
+    fetch(URL0 + '/rest/v1/rpc/send_contact', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY },
+      body: JSON.stringify({ p_subject: sujet, p_pseudo: pseudo, p_email: email, p_message: msg, p_page: location.pathname, p_ua: navigator.userAgent.slice(0, 300), p_hp: hp })
+    }).then(function (r) { return r.text().then(function (t) { return { ok: r.ok, t: t }; }); }).then(function (r) {
+      b.disabled = false; b.textContent = 'Envoyer';
+      if (r.ok) { done(email, sujet); return; }
+      var m = ''; try { m = JSON.parse(r.t).message || ''; } catch (e) {}
+      fail(/trop de messages/.test(m) ? 'Tu as déjà envoyé plusieurs messages : attends un peu avant d’en envoyer un autre.' : /e-mail invalide/.test(m) ? 'Cette adresse e-mail n’a pas l’air juste : vérifie-la.' : /trop court/.test(m) ? 'Ton message est un peu court : dis-nous en un peu plus.' : 'L’envoi n’a pas marché : réessaie dans un moment.');
+    }).catch(function () { b.disabled = false; b.textContent = 'Envoyer'; fail('Pas de connexion internet : réessaie dans un moment.'); });
+  });
+})();
+</script>
+</body></html>
