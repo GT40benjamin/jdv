@@ -4570,7 +4570,7 @@ if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
   try { if (!sessionStorage.getItem('jdw.mode')) MODE = 'pegase'; } catch (e) {}   // la borne s'ouvre sur Pégase
-  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; }   // lien partagé (?pegase, ?ile=<id>)
+  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('borne')) MODE = PG.last; }   // lien partagé (?pegase, ?ile=<id>) ; ?borne (site du studio) : côté arcade
   $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase');
   // le badge de « Nos autres jeux » : le plus important de Classique / Duel / Coop (nouveau > mis à jour)
   const arcBadge = () => {

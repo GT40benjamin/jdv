@@ -17,467 +17,528 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Borne d'arcade entre amis · 17 jeux gratuits à plusieurs</title>
-<meta name="description" content="17 jeux d'arcade gratuits pour jouer entre copains et en famille : 8 jeux solo, 9 duels face à face (sur le même téléphone, contre l'IA ou en ligne), parties à deux et salles entre amis.">
-<meta name="theme-color" content="#0b141c">
+<title>Elixir Game Studio · Pégase et la Borne d'arcade entre amis</title>
+<meta name="description" content="Elixir Game Studio, petit studio de jeux vidéo français : Pégase, un monde en 3D à explorer et à photographier, et la Borne d'arcade entre amis, 23 mini-jeux gratuits à jouer ensemble.">
+<meta name="theme-color" content="#07080c">
 <meta name="color-scheme" content="dark">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="fr_FR">
-<meta property="og:site_name" content="Borne d'arcade entre amis">
-<meta property="og:title" content="Borne d'arcade entre amis">
-<meta property="og:description" content="17 jeux gratuits, en solo ou en duel, sur ton téléphone ou ton PC. Joue tout de suite, ou crée ta salle avec tes copains.">
+<meta property="og:site_name" content="Elixir Game Studio">
+<meta property="og:title" content="Elixir Game Studio">
+<meta property="og:description" content="Pégase, un monde en 3D à explorer et à photographier, et la Borne d'arcade entre amis : 23 mini-jeux gratuits à jouer ensemble.">
 <meta property="og:url" content="https://elixirgamestudio.com/">
-<meta property="og:image" content="https://elixirgamestudio.com/accueil/partage.jpg">
+<meta property="og:image" content="https://elixirgamestudio.com/accueil/studio-partage.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Borne d'arcade entre amis : les vignettes des jeux">
+<meta property="og:image:alt" content="Elixir Game Studio : un lac et son arbre rouge, filmé dans le jeu Pégase">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;500;600;700&display=swap">
-<link rel="preload" as="image" href="accueil/hero.webp">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@300;400;500;600;700&display=swap">
+<link rel="preload" as="image" href="accueil/studio-1.webp" media="(min-aspect-ratio: 3/4)">
+<link rel="preload" as="image" href="accueil/studio-1-m.webp" media="(max-aspect-ratio: 3/4)">
 <style>
 :root{
-  --night:#0b141c;--deep:#060b11;--panel:#0f1b25;--panel2:#132331;--line:#23394b;
-  --ink:#eef5f8;--soft:#c3d4dd;--muted:#8fa6b4;
-  --amber:#ffa630;--gold:#ffd34d;--volt:#5ef0ff;--rose:#ff5fae;--violet:#9b7bff;--leaf:#4cc36a;
-  --display:'Bungee',Impact,'Arial Black',system-ui,sans-serif;
-  --text:'Chakra Petch',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --pad:clamp(16px,4.5vw,40px);--max:1240px;
+  --bg:#07080c;--bg2:#0c0e14;--card:#0f1118;--line:rgba(236,225,200,.14);
+  --ink:#f4efe4;--soft:#cbc4b5;--muted:#9a9384;
+  --gold:#d9b46a;--gold2:#f1d79c;--goldd:#a9853d;
+  --serif:'Cormorant Garamond','Cormorant',Georgia,'Times New Roman',serif;
+  --sans:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --pad:clamp(16px,5vw,64px);--max:1280px;
+  --ease:cubic-bezier(.2,.75,.15,1);
   color-scheme:dark
 }
 *{box-sizing:border-box}
-html{background:var(--deep);-webkit-text-size-adjust:100%;scroll-behavior:smooth}
-body{margin:0;min-height:100vh;color:var(--ink);font:500 17px/1.55 var(--text);overflow-x:hidden}
+html{background:var(--bg);-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--sans);overflow-x:hidden;-webkit-font-smoothing:antialiased}
 img,video{display:block;max-width:100%}
 a{color:inherit}
-:focus-visible{outline:3px solid var(--volt);outline-offset:3px;border-radius:10px}
-
-/* ---------- ciel : nébuleuses + étoiles (comme Galaxy Wars) ---------- */
-.sky{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;
-  background:
-    radial-gradient(60vmax 45vmax at 85% 8%,rgba(155,123,255,.22),transparent 60%),
-    radial-gradient(55vmax 40vmax at 8% 30%,rgba(94,240,255,.13),transparent 62%),
-    radial-gradient(50vmax 45vmax at 70% 75%,rgba(255,95,174,.13),transparent 60%),
-    radial-gradient(45vmax 35vmax at 15% 95%,rgba(255,166,48,.12),transparent 60%),
-    linear-gradient(180deg,#05090f 0%,#0b141c 40%,#08111a 100%)}
-.stars{position:absolute;inset:-50% 0 0 0;height:200%;background-repeat:repeat;opacity:.85;animation:drift 120s linear infinite}
-.stars.s1{background-image:
-  radial-gradient(1.2px 1.2px at 20px 30px,#fff,transparent),radial-gradient(1px 1px at 140px 90px,#cfefff,transparent),
-  radial-gradient(1.4px 1.4px at 260px 160px,#fff,transparent),radial-gradient(1px 1px at 90px 220px,#ffe7b8,transparent),
-  radial-gradient(1.2px 1.2px at 330px 40px,#fff,transparent),radial-gradient(1px 1px at 200px 280px,#d8d0ff,transparent);
-  background-size:360px 320px}
-.stars.s2{background-image:
-  radial-gradient(1.8px 1.8px at 60px 120px,#fff,transparent),radial-gradient(2px 2px at 400px 300px,#bff6ff,transparent),
-  radial-gradient(1.6px 1.6px at 520px 60px,#ffd9ef,transparent);
-  background-size:620px 480px;opacity:.6;animation-duration:70s}
-@keyframes drift{to{transform:translateY(50%)}}
+:focus-visible{outline:2px solid var(--gold2);outline-offset:4px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---------- en-tête ---------- */
-.top{position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  background:linear-gradient(180deg,rgba(6,11,17,.86),rgba(6,11,17,.55));border-bottom:1px solid rgba(94,240,255,.10)}
-.top .in{max-width:var(--max);margin:0 auto;padding:10px var(--pad);display:flex;align-items:center;gap:12px}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;min-width:0}
-.brand img{width:34px;height:34px;border-radius:9px;box-shadow:0 0 0 1px #ffffff1a,0 0 18px rgba(255,166,48,.35)}
-.brand span{font:400 15px/1 var(--display);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.brand span b{font-weight:400;color:var(--gold)}
-.top nav{margin-left:auto;display:flex;gap:6px;align-items:center}
-.top nav a{text-decoration:none;font-weight:600;font-size:15px;color:var(--soft);padding:8px 12px;border-radius:10px}
-.top nav a:hover{color:var(--ink);background:#ffffff0d}
-.top nav a.play{color:var(--night);background:var(--amber);box-shadow:0 0 18px rgba(255,166,48,.45)}
+.top{position:fixed;inset:0 0 auto;z-index:30;transition:background .4s,border-color .4s,backdrop-filter .4s;border-bottom:1px solid transparent}
+.top.solid{background:rgba(7,8,12,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-color:var(--line)}
+.top .in{max-width:var(--max);margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) var(--pad) 14px;display:flex;align-items:center;gap:18px}
+.mark{display:flex;align-items:center;gap:10px;text-decoration:none;font:600 15px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase}
+.mark svg{width:22px;height:22px;flex:none;color:var(--gold)}
+.mark span{padding-top:2px}
+.top nav{margin-left:auto;display:flex;align-items:center;gap:4px}
+.top nav a{text-decoration:none;font:500 14px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--soft);padding:10px 12px;border-radius:99px;transition:color .2s}
+.top nav a:hover{color:var(--ink)}
+.top nav a.go{color:#17120a;background:var(--gold);padding:11px 18px;margin-left:6px;transition:background .2s,box-shadow .2s}
+.top nav a.go:hover{background:var(--gold2);box-shadow:0 0 26px rgba(217,180,106,.45)}
 .top nav .opt{display:none}
 @media (min-width:760px){.top nav .opt{display:inline-block}}
 
-/* ---------- boutons ---------- */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:56px;padding:0 26px;border-radius:16px;
-  text-decoration:none;font:700 18px/1.1 var(--text);letter-spacing:.01em;transition:transform .15s,box-shadow .2s,background .2s}
-.btn:active{transform:translateY(2px) scale(.99)}
-.btn svg{width:22px;height:22px;flex:none}
-.btn-play{color:#1a0e00;background:linear-gradient(180deg,#ffc15e,var(--amber) 55%,#f08c12);
-  box-shadow:0 0 0 1px #ffd59a inset,0 6px 0 #a3570a,0 10px 34px rgba(255,166,48,.45)}
-.btn-play:hover{box-shadow:0 0 0 1px #ffd59a inset,0 6px 0 #a3570a,0 12px 46px rgba(255,166,48,.7)}
-.btn-play .nm{font-family:var(--display);font-weight:400;font-size:19px}
-.btn-ghost{color:var(--ink);background:rgba(94,240,255,.07);box-shadow:0 0 0 1.5px rgba(94,240,255,.55) inset,0 0 24px rgba(94,240,255,.12)}
-.btn-ghost:hover{background:rgba(94,240,255,.14);box-shadow:0 0 0 1.5px var(--volt) inset,0 0 30px rgba(94,240,255,.3)}
+/* ---------- grand panneau d'entrée ---------- */
+.hero{position:relative;height:100vh;height:100svh;min-height:560px;overflow:hidden;display:grid;place-items:center;isolation:isolate}
+.hero .bg{position:absolute;inset:0;z-index:-3;background:#0b0d10}
+.slide{position:absolute;inset:0;opacity:0;transition:opacity 1.8s ease}
+.slide.on{opacity:1}
+.slide img{width:100%;height:100%;object-fit:cover;transform:scale(1.04);will-change:transform}
+.slide.on img{animation:kb 9s linear forwards}
+.slide:nth-child(even).on img{animation-name:kb2}
+@keyframes kb{from{transform:scale(1.04) translate3d(0,0,0)}to{transform:scale(1.13) translate3d(-1.5%,-1%,0)}}
+@keyframes kb2{from{transform:scale(1.12) translate3d(1.5%,1%,0)}to{transform:scale(1.04) translate3d(0,0,0)}}
+.reel{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease;transform:scale(1.03)}
+.reel.on{opacity:1}
+.hero .shade{position:absolute;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(120% 85% at 50% 48%,rgba(7,8,12,.18) 0%,rgba(7,8,12,.55) 62%,rgba(7,8,12,.9) 100%),
+    linear-gradient(180deg,rgba(7,8,12,.55) 0%,rgba(7,8,12,.2) 26%,rgba(7,8,12,.25) 60%,var(--bg) 100%)}
+#fx{position:absolute;inset:0;z-index:-1;width:100%;height:100%;pointer-events:none}
+.hero .c{text-align:center;padding:0 var(--pad);transform:translateY(-2vh)}
+.hero .k{margin:0 0 22px;font:600 12px/1 var(--sans);letter-spacing:.42em;text-transform:uppercase;color:var(--gold2);
+  text-shadow:0 1px 12px rgba(0,0,0,.6)}
+h1{margin:0;font-weight:400;line-height:1}
+h1 .w1{display:block;font:500 clamp(68px,17vw,208px)/.86 var(--serif);letter-spacing:.06em;text-transform:uppercase;padding-left:.06em;
+  background:linear-gradient(180deg,#fffaf0 0%,#f3e6c8 55%,#d9b46a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 6px 30px rgba(0,0,0,.55))}
+h1 .w2{display:flex;align-items:center;justify-content:center;gap:clamp(12px,2.4vw,26px);margin-top:clamp(12px,1.6vw,20px);
+  font:300 clamp(13px,1.9vw,22px)/1 var(--sans);letter-spacing:.62em;text-transform:uppercase;color:var(--ink);padding-left:.62em;
+  text-shadow:0 1px 14px rgba(0,0,0,.7)}
+h1 .w2::before,h1 .w2::after{content:'';width:clamp(26px,6vw,90px);height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+h1 .w2::after{background:linear-gradient(270deg,transparent,var(--gold))}
+.hero .tag{margin:clamp(22px,3.4vh,34px) auto 0;max-width:30em;font:italic 500 clamp(20px,2.4vw,27px)/1.35 var(--serif);color:var(--soft);
+  text-shadow:0 1px 14px rgba(0,0,0,.8)}
+.cue{position:absolute;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;
+  text-decoration:none;font:600 11.5px/1 var(--sans);letter-spacing:.34em;text-transform:uppercase;color:var(--soft);padding:6px 6px 0 calc(6px + .34em)}
+.cue i{display:block;width:1px;height:46px;background:linear-gradient(180deg,var(--gold),transparent);transform-origin:top;animation:cue 2.4s var(--ease) infinite}
+@keyframes cue{0%{transform:scaleY(0);opacity:1}60%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+.cap{position:absolute;left:var(--pad);bottom:calc(30px + env(safe-area-inset-bottom));font:500 12.5px/1.3 var(--sans);letter-spacing:.06em;color:rgba(244,239,228,.62);
+  display:none;transition:opacity .6s}
+.cap b{font-weight:700;color:var(--gold2);letter-spacing:.2em;text-transform:uppercase;font-size:11px;margin-right:8px}
+@media (min-width:900px){.cap{display:block}}
 
-/* ---------- héros ---------- */
-main{overflow-x:clip}
+/* ---------- les jeux ---------- */
+.games{position:relative;padding:clamp(70px,11vw,140px) 0 clamp(60px,9vw,120px);isolation:isolate}
+.games .glow{position:absolute;inset:0;z-index:-1;pointer-events:none;transition:opacity 1s ease;opacity:0}
+.games .glow.on{opacity:1}
+.games .glow.pg{background:radial-gradient(60% 55% at 72% 50%,rgba(74,160,140,.20),transparent 70%),radial-gradient(40% 40% at 20% 30%,rgba(217,180,106,.08),transparent 70%)}
+.games .glow.ar{background:radial-gradient(60% 55% at 72% 50%,rgba(150,90,255,.22),transparent 70%),radial-gradient(40% 40% at 20% 30%,rgba(255,80,170,.09),transparent 70%)}
 .wrap{max-width:var(--max);margin:0 auto;padding:0 var(--pad)}
-.hero{display:grid;gap:28px;padding:34px 0 26px;align-items:center}
-.eyebrow{display:inline-flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;padding:0;list-style:none}
-.eyebrow li{font:700 12.5px/1 var(--text);letter-spacing:.12em;text-transform:uppercase;color:var(--volt);
-  padding:7px 11px;border-radius:99px;background:rgba(94,240,255,.08);border:1px solid rgba(94,240,255,.25)}
-.eyebrow li.g{color:var(--gold);background:rgba(255,211,77,.08);border-color:rgba(255,211,77,.3)}
-h1{margin:0;font:400 clamp(40px,11.2vw,84px)/.98 var(--display);letter-spacing:-.005em;
-  text-shadow:0 0 34px rgba(94,240,255,.25),0 3px 0 rgba(0,0,0,.45)}
-h1 .l2{display:block;color:var(--gold);text-shadow:0 0 22px rgba(255,166,48,.6),0 0 60px rgba(255,95,174,.35),0 3px 0 rgba(0,0,0,.45)}
-.lead{margin:18px 0 0;max-width:34em;font-size:clamp(17px,2.1vw,20px);color:var(--soft)}
-.lead b{color:var(--ink)}
-.ctas{display:flex;flex-wrap:wrap;gap:14px;margin-top:26px}
-.ctas .btn{flex:1 1 auto;white-space:nowrap}
-.reassure{margin:16px 0 0;font-size:14.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
-.reassure i{font-style:normal;color:var(--leaf)}
+.games .grid{display:grid;gap:34px;align-items:center}
+@media (min-width:960px){.games .grid{grid-template-columns:minmax(0,1fr) minmax(0,1.04fr);gap:clamp(48px,6vw,96px)}}
+.kick{display:inline-flex;align-items:center;gap:14px;font:600 12px/1 var(--sans);letter-spacing:.4em;text-transform:uppercase;color:var(--gold)}
+.kick::before{content:'';width:34px;height:1px;background:var(--gold)}
+h2{margin:18px 0 0;font:500 clamp(38px,5.6vw,68px)/1.02 var(--serif);letter-spacing:-.005em}
+h2 em{font-style:italic;color:var(--gold2)}
+.intro{margin:18px 0 0;max-width:30em;color:var(--soft)}
 
-.screen{position:relative;border-radius:22px;padding:10px;
-  background:linear-gradient(145deg,#1b2d3c,#0c1720);
-  box-shadow:0 0 0 1px #ffffff14,0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(94,240,255,.18)}
-.screen::before{content:'';position:absolute;inset:-2px;border-radius:24px;padding:2px;
-  background:linear-gradient(120deg,var(--volt),var(--violet) 40%,var(--rose) 70%,var(--amber));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.85}
-.screen .vid{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#02060f}
-.screen .vid img,.screen .vid video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.screen .vid video{opacity:0;transition:opacity .45s}.screen .vid video.on{opacity:1}
-.screen .vid::after{content:'';position:absolute;inset:0;pointer-events:none;
-  background:repeating-linear-gradient(0deg,rgba(0,0,0,.10) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;opacity:.55}
-.screen .tag{position:absolute;left:22px;top:22px;z-index:2;display:flex;align-items:center;gap:8px;
-  font:400 13px/1 var(--display);color:#fff;padding:8px 12px;border-radius:10px;background:rgba(2,6,15,.72);
-  border:1px solid rgba(56,225,255,.35);box-shadow:0 0 18px rgba(56,225,255,.25)}
-.screen .tag::before{content:'';width:8px;height:8px;border-radius:50%;background:#ff4d5e;box-shadow:0 0 10px #ff4d5e;animation:blink 1.6s infinite}
-@keyframes blink{50%{opacity:.25}}
-.floaters{position:absolute;inset:0;pointer-events:none}
-.mini{position:absolute;width:30%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#000;
-  box-shadow:0 0 0 2px #ffffff22,0 16px 40px rgba(0,0,0,.6)}
-.mini img{width:100%;height:100%;object-fit:cover}
-.mini.a{right:-4%;top:-12%;transform:rotate(6deg);box-shadow:0 0 0 2px rgba(94,240,255,.7),0 0 26px rgba(94,240,255,.4),0 16px 40px rgba(0,0,0,.6)}
-.mini.b{left:-5%;bottom:-13%;transform:rotate(-7deg);box-shadow:0 0 0 2px rgba(255,110,199,.75),0 0 26px rgba(255,110,199,.4),0 16px 40px rgba(0,0,0,.6)}
-.hero-art{position:relative;margin:10px 4px 24px}
-.hero-art::before{content:'';position:absolute;inset:-18% -4%;z-index:-1;pointer-events:none;
-  background:radial-gradient(closest-side at 40% 50%,rgba(94,240,255,.30),transparent),radial-gradient(closest-side at 75% 40%,rgba(255,95,174,.28),transparent),radial-gradient(closest-side at 30% 85%,rgba(155,123,255,.32),transparent);filter:blur(10px)}
-@media (min-width:980px){
-  .hero{grid-template-columns:1.02fr 1fr;gap:56px;padding:64px 0 54px;min-height:min(78vh,720px)}
-  .hero-art{margin:0}
+.picks{list-style:none;margin:clamp(30px,4vw,48px) 0 0;padding:0;display:grid;gap:0}
+.pick{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;column-gap:22px;padding:26px 0 26px;text-decoration:none;
+  border-top:1px solid var(--line);color:rgba(244,239,228,.42);transition:color .45s var(--ease)}
+.picks li:last-child .pick{border-bottom:1px solid var(--line)}
+.pick .n{font:600 12px/1 var(--sans);letter-spacing:.2em;color:var(--muted);transition:color .45s}
+.pick .t{font:500 clamp(34px,4.4vw,56px)/1 var(--serif);letter-spacing:.005em}
+.pick .d{grid-column:2;margin-top:10px;font:500 15px/1.45 var(--sans);color:var(--muted);transition:color .45s}
+.pick .ar{grid-column:3;grid-row:1;align-self:center;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid var(--line);color:var(--gold);opacity:0;transform:translateX(-10px);transition:opacity .45s var(--ease),transform .45s var(--ease),background .3s,border-color .3s}
+.pick .ar svg{width:18px;height:18px}
+.pick::after{content:'';position:absolute;left:0;top:-1px;height:1px;width:100%;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:transform .7s var(--ease)}
+.pick.on{color:var(--ink)}
+.pick.on .n{color:var(--gold)}
+.pick.on .d{color:var(--soft)}
+.pick.on .ar{opacity:1;transform:none}
+.pick.on::after{transform:scaleX(1)}
+.pick:hover .ar{background:var(--gold);border-color:var(--gold);color:#17120a}
+@media (max-width:959px){
+  .picks{grid-template-columns:1fr 1fr;gap:10px;margin-top:26px}
+  .pick,.picks li:last-child .pick{display:block;padding:15px 14px 14px;border:1px solid var(--line);border-radius:14px;text-align:left}
+  .pick::after{top:auto;bottom:-1px;left:14px;width:calc(100% - 28px)}
+  .pick .n{display:block;margin-bottom:8px;font-size:11px}
+  .pick .t{font-size:clamp(23px,6.6vw,30px);display:block}
+  .pick .d,.pick .ar{display:none}
+  .pick.on{border-color:rgba(217,180,106,.5);background:rgba(217,180,106,.06)}
 }
 
-/* ---------- chiffres ---------- */
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 0}
-.stat{padding:14px 16px;border-radius:16px;background:rgba(15,27,37,.7);border:1px solid var(--line)}
-.stat b{display:block;font:400 26px/1 var(--display);color:var(--gold);text-shadow:0 0 14px rgba(255,211,77,.35)}
-.stat span{display:block;margin-top:6px;font-size:14px;color:var(--soft);line-height:1.3}
-@media (min-width:760px){.stats{grid-template-columns:repeat(4,1fr);gap:14px}.stat{padding:18px 20px}.stat b{font-size:32px}}
-
-/* ---------- sections ---------- */
-section.wrap{padding-top:clamp(56px,8vw,96px);padding-bottom:8px}
-.head{display:grid;gap:10px;margin-bottom:24px}
-.kicker{font:700 13px/1 var(--text);letter-spacing:.16em;text-transform:uppercase;color:var(--k,var(--volt))}
-h2{margin:0;font:400 clamp(28px,6.4vw,46px)/1.04 var(--display)}
-h2 em{font-style:normal;color:var(--k,var(--volt));text-shadow:0 0 22px color-mix(in srgb,var(--k,var(--volt)) 55%,transparent)}
-.head p{margin:0;max-width:44em;color:var(--soft)}
-
-.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-@media (min-width:700px){.games{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
-@media (min-width:1080px){.games{grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}}
-.card{--a:var(--volt);position:relative;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;text-decoration:none;
-  background:linear-gradient(180deg,var(--panel2),var(--panel));
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--a) 30%,transparent),0 14px 34px rgba(0,0,0,.45);
-  transition:transform .2s,box-shadow .25s}
-.card:hover{transform:translateY(-4px);box-shadow:0 0 0 1.5px var(--a),0 0 34px color-mix(in srgb,var(--a) 40%,transparent),0 18px 40px rgba(0,0,0,.5)}
-.media{position:relative;aspect-ratio:4/3;background:#05090f;overflow:hidden}
+/* le paquet de tuiles */
+.deckzone{position:relative;display:flex;flex-direction:column;align-items:center}
+.deck{position:relative;width:min(100%,540px);aspect-ratio:4/5;margin:22px 0 0;touch-action:pan-y}
+@media (max-width:959px){.deck{width:calc(100% - 26px);max-width:460px;margin:30px 26px 0 0;aspect-ratio:auto;height:min(132vw,620px)}}
+.card{position:absolute;inset:0;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;background:var(--card);
+  box-shadow:0 0 0 1px rgba(236,225,200,.10),0 40px 90px -20px rgba(0,0,0,.85),0 18px 40px -18px rgba(0,0,0,.7);
+  transition:transform .75s var(--ease),filter .75s var(--ease),opacity .75s;will-change:transform}
+.card.front{z-index:3;transform:none;filter:none}
+.card.back{z-index:1;transform:translate(7%,-6%) rotate(4.5deg) scale(.93);filter:brightness(.42) saturate(.7);cursor:pointer}
+.card.back:hover{filter:brightness(.58) saturate(.8);transform:translate(9%,-7%) rotate(5.5deg) scale(.93)}
+.card.out{z-index:3;transform:translate(-62%,5%) rotate(-10deg) scale(.96);transition-duration:.42s;transition-timing-function:cubic-bezier(.5,0,.75,.4)}
+@media (max-width:959px){.card.out{transform:translate(-42%,4%) rotate(-9deg) scale(.95)}.card.back{transform:translate(6%,-4.5%) rotate(4deg) scale(.94)}}
+.media{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;background:#05060a}
 .media img,.media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.media video{opacity:0;transition:opacity .45s}
-.media video.on{opacity:1}
-.card .body{padding:12px 13px 14px;display:grid;gap:5px;border-top:2px solid var(--a)}
-.card h3{margin:0;font:700 16.5px/1.2 var(--text);color:#fff;display:flex;align-items:flex-start;gap:7px}
-.card h3::before{content:'';width:8px;height:8px;margin-top:.38em;border-radius:50%;flex:none;background:var(--a);box-shadow:0 0 10px var(--a)}
-.card p{margin:0;font-size:13.5px;line-height:1.42;color:var(--muted)}
-@media (min-width:700px){.card .body{padding:14px 16px 17px;gap:6px}.card h3{font-size:18.5px}.card p{font-size:15px;color:var(--soft)}}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 20px}
-.chip{display:inline-flex;align-items:center;gap:7px;font:600 14px/1 var(--text);padding:9px 13px;border-radius:99px;color:var(--ink);
-  background:rgba(255,95,174,.08);border:1px solid rgba(255,95,174,.35)}
+.media .ph{opacity:0;transition:opacity 1.4s ease}
+.media .ph.on{opacity:1}
+.media .ph.on img{animation:kb 8s linear forwards}
+.media::after{content:'';position:absolute;inset:auto 0 0;height:46%;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(15,17,24,.92))}
+.media .lbl{position:absolute;left:18px;top:16px;z-index:2;display:flex;align-items:center;gap:8px;font:600 11px/1 var(--sans);letter-spacing:.24em;text-transform:uppercase;
+  color:var(--ink);padding:8px 12px;border-radius:99px;background:rgba(7,8,12,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.12)}
+.media .lbl::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.vids video{opacity:0;transition:opacity .7s ease}
+.vids video.on{opacity:1}
+.strip{position:absolute;left:0;right:0;bottom:12px;z-index:2;overflow:hidden;
+  -webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.strip .row{display:flex;gap:8px;width:max-content;animation:strip 60s linear infinite;animation-play-state:paused}
+.card.front.live .strip .row{animation-play-state:running}
+.strip img{position:static;width:64px;height:48px;border-radius:7px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.16);background:#111}
+@keyframes strip{to{transform:translateX(-50%)}}
+.body{position:relative;padding:clamp(18px,2.4vw,28px) clamp(20px,2.6vw,30px) clamp(20px,2.6vw,28px)}
+.body .tg{font:600 11px/1 var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold)}
+.body h3{margin:10px 0 0;font:500 clamp(30px,3.4vw,42px)/1.02 var(--serif)}
+.body p{margin:10px 0 0;font-size:15px;line-height:1.5;color:var(--soft)}
+.acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:18px}
+.btn{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:0 22px;border-radius:99px;text-decoration:none;
+  font:700 13px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:#17120a;background:var(--gold);transition:background .2s,box-shadow .25s,transform .15s}
+.btn:hover{background:var(--gold2);box-shadow:0 0 30px rgba(217,180,106,.45)}
+.btn:active{transform:scale(.98)}
+.btn svg{width:16px;height:16px}
+.lnk{font:600 13px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--soft);text-decoration:none;padding:12px 0;border-bottom:1px solid var(--line);transition:color .2s,border-color .2s}
+.lnk:hover{color:var(--ink);border-color:var(--gold)}
+.hint{margin:22px 0 0;font:500 13px/1.3 var(--sans);color:var(--muted);display:flex;align-items:center;gap:10px}
+.hint i{display:flex;gap:6px}
+.hint i b{width:7px;height:7px;border-radius:50%;background:rgba(244,239,228,.25);transition:background .4s,width .4s}
+.hint i b.on{background:var(--gold);width:20px;border-radius:4px}
+@media (min-width:960px){.hint{display:none}}
+@media (max-width:420px){.body p{font-size:14.5px}.btn{padding:0 18px}}
 
-/* ---------- modes ---------- */
-.modes{display:grid;gap:14px}
-@media (min-width:700px){.modes{grid-template-columns:repeat(2,1fr);gap:18px}}
-@media (min-width:1080px){.modes{grid-template-columns:repeat(6,1fr)}.modes .m{grid-column:span 2}.modes .m.w{grid-column:span 3}}
-.m{--a:var(--volt);position:relative;padding:22px 20px 20px;border-radius:20px;overflow:hidden;
-  background:radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--a) 16%,transparent),transparent 60%),linear-gradient(180deg,var(--panel2),var(--panel));
-  border:1px solid color-mix(in srgb,var(--a) 32%,transparent)}
-.m .ic{width:52px;height:52px;display:grid;place-items:center;border-radius:15px;font-size:27px;
-  background:color-mix(in srgb,var(--a) 14%,#0b141c);box-shadow:0 0 0 1px color-mix(in srgb,var(--a) 45%,transparent),0 0 22px color-mix(in srgb,var(--a) 30%,transparent)}
-.m h3{margin:14px 0 6px;font:700 20px/1.2 var(--text)}
-.m p{margin:0;color:var(--soft);font-size:15.5px}
-.m h3 .soon{display:inline-block;vertical-align:2px;margin-left:6px;padding:3px 8px 2px;border-radius:8px;font:700 11px/1.2 var(--text);letter-spacing:.06em;
-  text-transform:uppercase;color:var(--a);background:color-mix(in srgb,var(--a) 16%,transparent);border:1px solid color-mix(in srgb,var(--a) 50%,transparent)}
-.m ul{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
-.m li{font-size:13.5px;font-weight:600;padding:5px 10px;border-radius:9px;background:#ffffff0b;color:var(--ink)}
+/* ---------- le studio ---------- */
+.studio{position:relative;padding:clamp(70px,10vw,130px) 0 clamp(50px,7vw,90px);border-top:1px solid var(--line);
+  background:radial-gradient(70% 60% at 85% 20%,rgba(217,180,106,.07),transparent 70%)}
+.studio .grid{display:grid;gap:40px}
+@media (min-width:960px){.studio .grid{grid-template-columns:1.1fr 1fr;gap:96px;align-items:end}}
+.studio p.lead{margin:22px 0 0;max-width:34em;font-size:clamp(17px,1.5vw,19px);color:var(--soft)}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
+.fact{padding:22px 14px 0 0}
+.fact b{display:block;font:500 clamp(40px,5vw,64px)/1 var(--serif);color:var(--gold2)}
+.fact span{display:block;margin-top:10px;font:500 13.5px/1.4 var(--sans);color:var(--muted)}
+.links{margin:clamp(50px,7vw,90px) 0 0;display:grid;gap:0;list-style:none;padding:0}
+@media (min-width:760px){.links{grid-template-columns:repeat(3,1fr);gap:24px}}
+.links a{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0;text-decoration:none;border-bottom:1px solid var(--line);transition:border-color .3s}
+.links a span{display:block}
+.links a small{display:block;margin-top:4px;font:500 13.5px/1.4 var(--sans);color:var(--muted)}
+.links a strong{display:block;font:500 26px/1.1 var(--serif)}
+.links a svg{flex:none;width:20px;height:20px;color:var(--gold);transition:transform .3s var(--ease)}
+.links a:hover{border-color:var(--gold)}
+.links a:hover svg{transform:translateX(5px)}
 
-/* ---------- invité / compte ---------- */
-.two{display:grid;gap:16px}
-@media (min-width:860px){.two{grid-template-columns:1fr 1.25fr;gap:22px}}
-.p{position:relative;padding:26px 22px 24px;border-radius:22px;display:flex;flex-direction:column;gap:12px}
-.p h3{margin:0;font:400 clamp(22px,4.6vw,28px)/1.1 var(--display)}
-.p p{margin:0;color:var(--soft)}
-.p .btn{margin-top:auto;align-self:flex-start}
-.guest{background:linear-gradient(180deg,#112130,#0d1822);border:1px solid var(--line)}
-.guest h3{color:var(--volt)}
-.acct{background:radial-gradient(90% 120% at 100% 0%,rgba(255,166,48,.20),transparent 60%),linear-gradient(180deg,#1a1d22,#11161c);
-  border:1px solid rgba(255,166,48,.45);box-shadow:0 0 40px rgba(255,166,48,.12)}
-.acct h3{color:var(--gold)}
-.acct h3 small{font:700 14px/1 var(--text);color:var(--night);background:var(--leaf);padding:5px 9px;border-radius:8px;vertical-align:middle;margin-left:6px;letter-spacing:.02em}
-.ticks{margin:2px 0 6px;padding:0;list-style:none;display:grid;gap:10px}
-.ticks li{display:flex;gap:11px;align-items:flex-start}
-.ticks li::before{content:'';flex:none;width:22px;height:22px;margin-top:1px;border-radius:7px;
-  background:var(--amber) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.2 4L19 7' fill='none' stroke='%231a0e00' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat;
-  box-shadow:0 0 12px rgba(255,166,48,.5)}
-.guest .ticks li::before{background-color:var(--volt);box-shadow:0 0 12px rgba(94,240,255,.45)}
-.p .btn{min-height:52px;font-size:17px}
+footer{padding:34px 0 calc(34px + env(safe-area-inset-bottom));color:var(--muted);font-size:13.5px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;justify-content:space-between}
+footer nav{display:flex;gap:20px;flex-wrap:wrap}
+footer a{text-decoration:none;color:var(--soft)}
+footer a:hover{color:var(--ink)}
 
-/* ---------- appli ---------- */
-.app{display:grid;gap:20px;align-items:center;padding:26px 22px;border-radius:24px;
-  background:radial-gradient(70% 140% at 100% 50%,rgba(76,195,106,.18),transparent 60%),radial-gradient(60% 120% at 0% 0%,rgba(94,240,255,.12),transparent 60%),linear-gradient(180deg,#0f1d29,#0b151e);
-  border:1px solid rgba(76,195,106,.35)}
-.app h2{font-size:clamp(24px,5.4vw,36px)}
-.app p{margin:8px 0 0;color:var(--soft)}
-.app .ctas{margin-top:0}
-.app small{display:block;margin-top:12px;color:var(--muted);font-size:14px}
-@media (min-width:860px){.app{grid-template-columns:1.4fr 1fr;padding:36px 40px}}
-
-/* ---------- pied ---------- */
-footer{margin-top:64px;padding:28px 0 calc(34px + env(safe-area-inset-bottom));border-top:1px solid rgba(94,240,255,.10);color:var(--muted);font-size:14.5px}
-footer .wrap{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;justify-content:space-between}
-footer nav{display:flex;gap:18px;flex-wrap:wrap}
-footer a{color:var(--soft);text-decoration:none}
-footer a:hover{color:var(--ink);text-decoration:underline}
-
-/* ---------- apparition douce ---------- */
-.rv{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+/* apparition douce */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
 .rv.in{opacity:1;transform:none}
+.hero .c > *{animation:up 1.4s var(--ease) both}
+.hero .k{animation-delay:.15s}.hero h1 .w1{animation:up 1.6s var(--ease) .25s both}.hero h1 .w2{animation:up 1.4s var(--ease) .55s both}.hero .tag{animation-delay:.8s}
+.cue{animation:fade 1.4s ease 1.3s both}
+@keyframes up{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){
-  .stars{animation:none}.rv{opacity:1;transform:none;transition:none}.screen .tag::before{animation:none}
-  .card,.btn{transition:none}html{scroll-behavior:auto}
-}
-@media (max-width:420px){
-  .btn{min-height:54px;padding:0 18px;font-size:17px}
-  .ctas .btn{flex:1 1 100%}
-  .brand span{font-size:12.5px}
+  html{scroll-behavior:auto}
+  .slide.on img,.media .ph.on img{animation:none}
+  .rv{opacity:1;transform:none;transition:none}
+  .hero .c > *,.hero h1 .w1,.hero h1 .w2,.cue{animation:none}
+  .cue i{animation:none}
+  .card,.card.out{transition:none}
+  .strip .row{animation:none}
 }
 </style>
 </head>
 <body>
-<div class="sky" aria-hidden="true"><div class="stars s1"></div><div class="stars s2"></div></div>
 
-<header class="top"><div class="in">
-  <a class="brand" href="./" aria-label="Borne d'arcade entre amis, accueil"><img src="logo.svg" alt="" width="34" height="34"><span>Borne d'arcade <b>entre amis</b></span></a>
+<header class="top" id="top"><div class="in">
+  <a class="mark" href="./" aria-label="Elixir Game Studio, accueil">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 2.8h5.6M10.2 2.8v5.1L5.1 17.4a2.4 2.4 0 0 0 2.1 3.6h9.6a2.4 2.4 0 0 0 2.1-3.6L13.8 7.9V2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.4 14.2h9.2l1.9 3.6a1.1 1.1 0 0 1-1 1.6H6.5a1.1 1.1 0 0 1-1-1.6z" fill="currentColor" opacity=".85"/><circle cx="11" cy="11.2" r=".9" fill="currentColor"/><circle cx="13.4" cy="9.4" r=".6" fill="currentColor"/></svg>
+    <span>Elixir</span>
+  </a>
   <nav aria-label="Navigation">
-    <a class="opt" href="#jeux">Les jeux</a>
-    <a class="opt" href="#modes">Les modes</a>
-    <a class="opt" href="telecharger/">Appli Android</a>
-    <a class="play" href="jouer/">Jouer</a>
+    <a class="opt" href="#jeux">Nos jeux</a>
+    <a class="opt" href="#studio">Le studio</a>
+    <a class="go" href="jouer/">Jouer</a>
   </nav>
 </div></header>
 
 <main>
-<div class="wrap">
-  <div class="hero">
+<section class="hero" aria-label="Elixir Game Studio">
+  <div class="bg" aria-hidden="true">
+    <div class="slide on"><picture><source media="(max-aspect-ratio: 3/4)" srcset="accueil/studio-1-m.webp"><img src="accueil/studio-1.webp" alt="" width="1600" height="900" decoding="async" fetchpriority="high"></picture></div>
+  </div>
+  <div class="shade" aria-hidden="true"></div>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div class="c">
+    <p class="k">Studio de jeux vidéo · France</p>
+    <h1><span class="w1">Elixir</span><span class="w2">Game Studio</span></h1>
+    <p class="tag">Des mondes à explorer, des jeux à partager.</p>
+  </div>
+  <p class="cap" id="cap" aria-hidden="true"><b>Pégase</b><span>Le lac de l’arbre rouge</span></p>
+  <a class="cue" href="#jeux">Nos jeux<i></i></a>
+</section>
+
+<section class="games" id="jeux" aria-labelledby="jeux-t">
+  <div class="glow pg on" aria-hidden="true"></div><div class="glow ar" aria-hidden="true"></div>
+  <div class="wrap grid">
     <div>
-      <ul class="eyebrow"><li class="g">Gratuit</li><li>17 jeux</li><li>Téléphone &amp; PC</li></ul>
-      <h1>Borne d'arcade <span class="l2">entre amis</span></h1>
-      <p class="lead">Une petite salle d'arcade rien que pour la bande : <b>des jeux rapides et déjantés</b>, des duels sur le même téléphone et des records à battre entre copains, petits et grands.</p>
-      <div class="ctas">
-        <a class="btn btn-play" id="play" href="jouer/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg><span class="nm">Jouer</span></a>
-        <a class="btn btn-ghost" href="telecharger/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Télécharger l'appli Android</a>
-      </div>
-      <p class="reassure"><i>●</i> Sans inscription : tu peux jouer tout de suite en invité.</p>
-    </div>
-    <div class="hero-art">
-      <div class="screen">
-        <div class="vid">
-          <img src="accueil/hero.webp" alt="Galaxy Wars : un vaisseau fonce entre les planètes et tire sur les vagues d'ennemis" width="960" height="540">
-          <video id="herov" muted loop playsinline preload="none" poster="accueil/hero.webp" data-src="accueil/hero.webm" aria-hidden="true"></video>
-        </div>
-        <span class="tag">Galaxy Wars</span>
-      </div>
-      <div class="floaters" aria-hidden="true">
-        <div class="mini a"><img src="accueil/palet.webp" alt=""></div>
-        <div class="mini b"><img src="accueil/empilo.webp" alt=""></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="stats rv">
-    <div class="stat"><b>8</b><span>jeux solo, des records à battre</span></div>
-    <div class="stat"><b>9</b><span>duels face à face</span></div>
-    <div class="stat"><b>4</b><span>niveaux d'IA, de Facile à Extrême</span></div>
-    <div class="stat"><b>0 €</b><span>tout est gratuit</span></div>
-  </div>
-</div>
-
-<section id="jeux" class="wrap" style="--k:var(--gold)">
-  <div class="head rv">
-    <span class="kicker">Jeux solo</span>
-    <h2>8 jeux pour <em>battre tous les records</em></h2>
-    <p>Une seule vie, des niveaux de plus en plus fous et des boss. Ton meilleur score s'affiche dans le classement de ta salle… et dans celui du monde entier.</p>
-  </div>
-  <div class="games" id="solo"></div>
-</section>
-
-<section id="duels" class="wrap" style="--k:var(--rose)">
-  <div class="head rv">
-    <span class="kicker">Duels</span>
-    <h2>9 duels pour <em>se chambrer</em></h2>
-    <p>Pose le téléphone à plat entre vous deux : chacun joue de son côté, en même temps. Pas de copain sous la main ? Défie l'IA ou joue en ligne. Le Ping-pong 3D, lui, se joue contre l'IA, ou en ligne chacun sur son téléphone.</p>
-  </div>
-  <div class="chips rv"><span class="chip">📱 Sur le même téléphone</span><span class="chip">🤖 Contre l'IA</span><span class="chip">🌍 En ligne</span></div>
-  <div class="games" id="duo"></div>
-</section>
-
-<section id="modes" class="wrap" style="--k:var(--volt)">
-  <div class="head rv">
-    <span class="kicker">Comment on joue</span>
-    <h2>Seul, à deux <em>ou toute la bande</em></h2>
-  </div>
-  <div class="modes">
-    <article class="m rv" style="--a:var(--rose)"><div class="ic">📱</div><h3>Duel sur le même téléphone</h3><p>Le téléphone posé à plat, un joueur de chaque côté : multi-touch, en même temps, revanche en un geste.</p></article>
-    <article class="m rv" style="--a:var(--violet)"><div class="ic">🤖</div><h3>Contre l'IA</h3><p>Un robot prend la place du haut. Facile pour les petits, Extrême pour ceux qui se croient forts.</p></article>
-    <article class="m rv" style="--a:var(--volt)"><div class="ic">🌍</div><h3>Duel en ligne</h3><p>Lance un défi à un copain de ta salle, chacun sur son téléphone, où qu'il soit.</p></article>
-    <article class="m w rv" style="--a:var(--leaf)"><div class="ic">🤝</div><h3>À deux contre le jeu</h3><p>Mode Coop : Boum 2 contre 2 avec un robot ou un copain en ligne, chacun sur son téléphone ; vos scores d'équipe au classement. Galaxy Wars à deux et Magic Force à deux aussi.</p></article>
-    <article class="m w rv" style="--a:var(--gold)"><div class="ic">🏠</div><h3>Les salles entre copains</h3><p>Une salle pour ta bande, ta famille ou ta classe, avec un code pour y entrer.</p>
-      <ul><li>🏆 Classement</li><li>💬 Chat</li><li>😜 Têtes des copains</li><li>📣 Cris</li><li>👁 Regarder en direct</li></ul></article>
-  </div>
-</section>
-
-<section id="compte" class="wrap" style="--k:var(--amber)">
-  <div class="head rv">
-    <span class="kicker">Pour commencer</span>
-    <h2>Joue tout de suite, <em>ou crée ton compte</em></h2>
-  </div>
-  <div class="two">
-    <div class="p guest rv">
-      <h3>Joue tout de suite en invité</h3>
-      <p>Rien à remplir : ouvre la borne et lance un jeu. Parfait pour essayer ou prêter le téléphone à un copain.</p>
-      <ul class="ticks"><li>Tous les jeux solo et les duels</li><li>Duels contre l'IA</li></ul>
-      <a class="btn btn-ghost" href="jouer/">Jouer en invité</a>
-    </div>
-    <div class="p acct rv">
-      <h3>Crée ton compte <small>GRATUIT</small></h3>
-      <p>En une minute, avec ton e-mail et un mot de passe :</p>
-      <ul class="ticks">
-        <li>tes scores sont enregistrés et comptent dans les classements</li>
-        <li>tu rejoins tes copains dans une salle (chat, défis, parties à deux)</li>
-        <li>tu choisis ton pseudo, rien qu'à toi</li>
-        <li>tu ajoutes ta tête (un selfie détouré) et ton cri, qui apparaissent dans les jeux des copains</li>
+      <span class="kick rv">Nos jeux</span>
+      <h2 id="jeux-t" class="rv">Deux mondes,<br><em>une même envie :</em> jouer ensemble.</h2>
+      <p class="intro rv">Un grand monde en 3D à explorer à son rythme, ou une salle d’arcade pleine de parties rapides entre copains. Choisis ta porte.</p>
+      <ul class="picks rv" id="picks">
+        <li><a class="pick on" href="jouer/?pegase" data-k="pg" aria-current="true"><span class="n">01</span><span class="t">Pégase</span><span class="d">Un village à faire vivre et des animaux à photographier</span><span class="ar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a></li>
+        <li><a class="pick" href="jouer/?borne" data-k="ar"><span class="n">02</span><span class="t">La Borne d’arcade</span><span class="d">23 mini-jeux en solo, en duel ou à deux, entre amis</span><span class="ar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a></li>
       </ul>
-      <a class="btn btn-play" href="jouer/"><span class="nm">Créer mon compte</span></a>
+    </div>
+
+    <div class="deckzone rv">
+      <div class="deck" id="deck">
+        <article class="card back" data-k="ar" id="card-ar" aria-label="La Borne d’arcade entre amis">
+          <div class="media vids">
+            <span class="lbl" id="ar-lbl">Néon Rush</span>
+            <img class="poster" alt="" width="560" height="420" loading="lazy" decoding="async" data-src="accueil/neon.webp">
+            <div class="strip" aria-hidden="true"><div class="row" id="strip"></div></div>
+          </div>
+          <div class="body">
+            <span class="tg">23 mini-jeux · téléphone et PC</span>
+            <h3>La Borne d’arcade entre amis</h3>
+            <p>Des parties rapides et déjantées, des duels face à face sur le même téléphone, des records à battre entre copains, petits et grands.</p>
+            <div class="acts"><a class="btn" href="jouer/?borne">Jouer <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></a><a class="lnk" href="telecharger/">Appli Android</a></div>
+          </div>
+        </article>
+        <article class="card front" data-k="pg" id="card-pg" aria-label="Pégase">
+          <div class="media" id="pg-media">
+            <span class="lbl">Images du jeu</span>
+            <div class="ph on"><img src="accueil/pegase-hub-village.webp" alt="Pégase : le village d’Ailebrune, ses maisons à colombages et sa place" width="760" height="507" loading="lazy" decoding="async"></div>
+          </div>
+          <div class="body">
+            <span class="tg">Jeu en 3D · PC et Android</span>
+            <h3>Pégase</h3>
+            <p>Un village à faire vivre, des animaux à approcher et à photographier, ta maison à construire, et tes copains à retrouver.</p>
+            <div class="acts"><a class="btn" href="jouer/?pegase">Entrer dans Pégase <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+          </div>
+        </article>
+      </div>
+      <p class="hint" aria-hidden="true"><i><b class="on"></b><b></b></i><span>Glisse la tuile pour changer</span></p>
     </div>
   </div>
 </section>
 
-<section class="wrap">
-  <div class="app rv">
-    <div>
-      <span class="kicker" style="--k:var(--leaf)">Appli Android</span>
-      <h2 style="margin-top:10px">La borne en plein écran</h2>
-      <p>Une toute petite appli : les jeux en plein écran, sans barre du navigateur, avec le micro pour enregistrer ton cri.</p>
-      <small>iPhone ou PC ? Ouvre la borne puis « Ajouter à l'écran d'accueil » : tu obtiens la même icône.</small>
+<section class="studio" id="studio" aria-labelledby="studio-t">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <span class="kick rv">Le studio</span>
+        <h2 id="studio-t" class="rv">Petit studio,<br><em>grands terrains de jeu.</em></h2>
+        <p class="lead rv">Elixir Game Studio est né autour d’une bande de copains et d’une envie : fabriquer des jeux auxquels on joue ensemble. Chaque jeu est dessiné, programmé et essayé à la maison, en France, puis grandit avec les idées de ceux qui y jouent.</p>
+      </div>
+      <div class="facts rv">
+        <div class="fact"><b>2</b><span>univers</span></div>
+        <div class="fact"><b>23</b><span>mini-jeux sur la borne</span></div>
+        <div class="fact"><b>0&nbsp;€</b><span>pour jouer à la borne</span></div>
+      </div>
     </div>
-    <div class="ctas"><a class="btn btn-ghost" href="telecharger/" style="flex:1 1 100%"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Télécharger l'appli</a></div>
+    <ul class="links rv">
+      <li><a href="jouer/?pegase"><span><strong>Pégase</strong><small>Le hub, ton avatar, le jeu à installer</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></li>
+      <li><a href="jouer/?borne"><span><strong>La Borne d’arcade</strong><small>Joue tout de suite, même sans compte</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></li>
+      <li><a href="telecharger/"><span><strong>L’appli Android</strong><small>La borne en plein écran sur ton téléphone</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></li>
+    </ul>
   </div>
 </section>
 </main>
 
 <footer><div class="wrap">
-  <span>Borne d'arcade entre amis · faite maison, pour jouer entre copains</span>
-  <nav aria-label="Liens"><a href="jouer/">Jouer</a><a href="telecharger/">Appli Android</a><a href="#jeux">Les jeux</a></nav>
+  <span>© 2026 Elixir Game Studio · fait maison, en France</span>
+  <nav aria-label="Liens"><a href="jouer/?pegase">Pégase</a><a href="jouer/?borne">La Borne d’arcade</a><a href="telecharger/">Appli Android</a></nav>
 </div></footer>
 
 <script>
 (function () {
-  var SOLO = [
-    ['ilo', 'Galaxy Wars', "Fonce à travers l'espace d'ILO, pulvérise les vagues et les boss planétaires.", '#38e1ff'],
-    ['magic', 'Magic Force', 'Deviens un petit mage : sorts de feu, de glace et d’éclairs dans un donjon en 3D, jusqu’au dragon !', '#9b7bff'],
-    ['pleingaz', 'Plein Gaz', "Pilote ton jet dans l'usine, esquive les obstacles et bats un boss à chaque niveau.", '#ffa630'],
-    ['empilo', 'Empilo', 'Empile les bonbons de verre et fais tout exploser ligne par ligne !', '#ff6ec7'],
-    ['glouton', 'Glouton', 'Un canard en plastique gobe les bulles et dévore les microbes, de bain en bain !', '#ffd34d'],
-    ['mouches', 'Chasse aux mouches', 'Arrose les escadrilles de mouches vague après vague, jusqu’aux boss !', '#ff5fae'],
-    ['carreaux', 'Casse-Carreaux', 'Six pays, six boss : fais le tour du monde en cassant les plus beaux carreaux !', '#1fc9a8'],
-    ['rouleaux', "Les P'tits Rouleaux", "Donne des rôles aux petits rouleaux pour les guider jusqu'à la cuvette !", '#7fd3ff'],
-  ];
-  var DUO = [
-    ['pingpong', 'Ping-pong', 'Tennis de table en 3D, contre l’IA ou en ligne : glisse pour frapper, lifte, coupe et smashe !', '#4f8cff'],
-    ['trouve', 'Trouve-le !', 'Repère l’objet du médaillon sur ton plateau avant ton adversaire !', '#ff5fae'],
-    ['palet', 'Le palet', 'Hockey néon à deux : frappe le palet et marque dans le but d’en face !', '#5ef0ff'],
-    ['briques', 'Casse-briques face à face', 'Casse le mur, attrape les bonus et envoie la balle derrière la raquette d’en face !', '#ffa630'],
-    ['boum', 'Boum !', 'Duel de bombes : fais sauter les caisses et piège l’autre !', '#ff4d5e'],
-    ['souris', 'Chat et souris', 'La souris mange le fromage, le chat la chasse… puis on échange !', '#f5c542'],
-    ['spatial', 'Duel spatial', 'Deux vaisseaux face à face : esquive, ramasse les bonus et pulvérise ton copain !', '#9b7bff'],
-    ['mots', 'Mots mêlés', 'Le premier qui trace le mot caché dans sa grille gagne la manche !', '#ffd34d'],
-    ['guerre', 'Canards : la guerre', 'Chacun son tour, canarde l’équipe d’en face et coule ses 3 canards !', '#4cc36a']
-  ];
-  function card(g) {
-    var a = document.createElement('a');
-    a.className = 'card rv'; a.href = 'jouer/'; a.style.setProperty('--a', g[3]);
-    a.setAttribute('aria-label', g[1] + ' : ' + g[2]);
-    a.innerHTML = '<div class="media"><img loading="lazy" decoding="async" width="560" height="420" alt=""><video muted loop playsinline preload="none" aria-hidden="true"></video></div><div class="body"><h3></h3><p></p></div>';
-    var img = a.querySelector('img'), v = a.querySelector('video');
-    img.src = 'accueil/' + g[0] + '.webp';
-    v.setAttribute('poster', 'accueil/' + g[0] + '.webp');
-    v.setAttribute('data-src', 'accueil/' + g[0] + '.webm');
-    a.querySelector('h3').textContent = g[1];
-    a.querySelector('p').textContent = g[2];
-    return a;
-  }
-  var solo = document.getElementById('solo'), duo = document.getElementById('duo');
-  SOLO.forEach(function (g) { solo.appendChild(card(g)); });
-  DUO.forEach(function (g) { duo.appendChild(card(g)); });
+  var $ = function (id) { return document.getElementById(id); };
+  var mm = function (q) { return !!(window.matchMedia && matchMedia(q).matches); };
+  var still = mm('(prefers-reduced-motion: reduce)');
+  var conn = navigator.connection || {};
+  var light = !!conn.saveData || /(^|-)2g|3g/.test(conn.effectiveType || '');
+  var vt = document.createElement('video');
+  var webm = !!(vt.canPlayType && vt.canPlayType('video/webm; codecs="vp9"'));
+  function play(v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
 
-  // Bouton Jouer personnalisé si un profil existe déjà sur cet appareil (texte seulement)
-  try {
-    var p = JSON.parse(localStorage.getItem('jdw.profile') || 'null');
-    var nm = p && typeof p.name === 'string' ? p.name.replace(/\s+/g, ' ').trim().slice(0, 16) : '';
-    if (nm) document.querySelector('#play .nm').textContent = 'Jouer · ' + nm.toUpperCase();
-  } catch (e) {}
+  // ---------- en-tête : fond dès qu'on quitte le panneau ----------
+  var top = $('top');
+  function onScroll() { top.classList.toggle('solid', window.scrollY > 40); }
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
 
-  // Vidéos : seulement si le navigateur sait lire le WebM VP9, chargées quand elles arrivent à l'écran, en pause hors écran.
-  var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var test = document.createElement('video');
-  var canPlay = !!(test.canPlayType && test.canPlayType('video/webm; codecs="vp9"'));
-  var vids = [].slice.call(document.querySelectorAll('video[data-src]'));
-  // boucle sans saut : à la fin de la vidéo, une jumelle repart du début en fondu par-dessus, puis elles échangent les rôles
-  function play(x) { var pr = x.play(); if (pr && pr.catch) pr.catch(function () {}); }
-  function start(v) {
-    if (!v.src) {
-      v.src = v.getAttribute('data-src'); v.loop = false;
-      var t = v.cloneNode(false); t.removeAttribute('id'); t.removeAttribute('data-src'); t.removeAttribute('poster'); t.loop = false; t.src = v.src; t.preload = 'auto';
-      t.style.zIndex = 1; v.parentNode.insertBefore(t, v.nextSibling); v.twin = t; t.twin = v; t.isTwin = true;
-      [v, t].forEach(function (x) {
-        x.addEventListener('playing', function () { x.classList.add('on'); });
-        x.addEventListener('timeupdate', function () {
-          var o = x.twin;
-          if (!x.classList.contains('on') || o.classList.contains('on') || !x.duration || x.currentTime < x.duration - 0.5) return;
-          o.currentTime = 0; play(o);
-          setTimeout(function () { x.classList.remove('on'); x.pause(); x.style.zIndex = 0; o.style.zIndex = 1; }, 450);
-        });
-        x.addEventListener('ended', function () { if (!x.twin.classList.contains('on')) { x.currentTime = 0; play(x); } });
-      });
+  // ---------- panneau d'entrée : plans filmés dans Pégase (images, puis une courte boucle vidéo) ----------
+  var SCENES = [
+    ['studio-1', 'Le lac de l’arbre rouge'], ['studio-2', 'Panorama depuis la falaise'], ['studio-3', 'Place du village sous les étoiles'],
+    ['studio-4', 'Cascade du lac de montagne'], ['studio-5', 'Le lac au lever, les oies'], ['studio-6', 'La prairie sous la Voie lactée']
+  ];
+  var REEL = [['Le lac de l’arbre rouge', 0], ['Cascade du lac de montagne', 4.6], ['Place du village sous les étoiles', 9.2], ['Panorama depuis la falaise', 13.8]];
+  var bg = document.querySelector('.hero .bg'), cap = $('cap').lastChild, slides = [bg.firstElementChild], si = 0, slideT = 0, heroOn = true, reel = null;
+  function setCap(t) { if (cap.textContent !== t) cap.textContent = t; }
+  function slide(i) {
+    var el = slides[i];
+    if (!el) {
+      el = document.createElement('div'); el.className = 'slide';
+      el.innerHTML = '<picture><source media="(max-aspect-ratio: 3/4)" srcset="accueil/' + SCENES[i][0] + '-m.webp"><img src="accueil/' + SCENES[i][0] + '.webp" alt="" width="1600" height="900" decoding="async"></picture>';
+      bg.appendChild(el); slides[i] = el;
     }
-    var cur = v.twin && v.twin.classList.contains('on') ? v.twin : v; play(cur);
+    return el;
   }
-  if (canPlay && !still) {
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(function (es) {
-        es.forEach(function (e) { if (e.isIntersecting) start(e.target); else { e.target.pause(); if (e.target.twin) e.target.twin.pause(); } });
-      }, { rootMargin: '120px 0px', threshold: 0.15 });
-      vids.forEach(function (v) { io.observe(v); });
-    } else vids.forEach(start);
-  } else vids.forEach(function (v) { v.remove(); });
-  var hv = document.getElementById('herov'); if (hv) hv.style.transition = 'opacity .5s';
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) vids.forEach(function (v) { if (v.isConnected && (!v.paused || (v.twin && !v.twin.paused))) { v.dataset.was = '1'; v.pause(); if (v.twin) v.twin.pause(); } });
-    else vids.forEach(function (v) { if (v.dataset.was) { delete v.dataset.was; start(v); } });
+  function nextSlide() {
+    if (reel || !heroOn || document.hidden) return;
+    var n = (si + 1) % SCENES.length, el = slide(n), img = el.querySelector('img');
+    var go = function () { slides[si].classList.remove('on'); el.classList.add('on'); si = n; setCap(SCENES[n][1]); };
+    if (img.complete) go(); else img.addEventListener('load', go, { once: true });
+  }
+  if (!still) { slideT = setInterval(nextSlide, 7000); setTimeout(function () { slide(1); }, 2500); }
+  // la boucle vidéo (2,3 Mo) : seulement après le chargement de la page, et jamais en économie de données ni sur un réseau lent
+  if (!still && !light && webm) addEventListener('load', function () {
+    setTimeout(function () {
+      var v = document.createElement('video');
+      v.className = 'reel'; v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
+      v.addEventListener('playing', function () {
+        if (reel) return; reel = v; v.classList.add('on'); clearInterval(slideT);
+        setTimeout(function () { slides.forEach(function (s) { if (s) s.classList.remove('on'); }); }, 1700);
+      });
+      v.addEventListener('timeupdate', function () { if (reel) { var t = v.currentTime, k = REEL.length - 1; while (k > 0 && t < REEL[k][1] - 0.5) k--; setCap(REEL[k][0]); } });
+      v.src = 'accueil/studio-reel.webm'; bg.appendChild(v); play(v);
+    }, 900);
   });
 
-  // Typographie française : espace insécable avant ! ? : ; (évite un « ! » seul en début de ligne)
+  // ---------- lucioles (dessinées) ----------
+  var cv = $('fx'), cx = cv.getContext && cv.getContext('2d'), flies = [], fw = 0, fh = 0, dpr = 1, raf = 0;
+  function size() { dpr = Math.min(1.5, window.devicePixelRatio || 1); fw = cv.clientWidth; fh = cv.clientHeight; cv.width = Math.round(fw * dpr); cv.height = Math.round(fh * dpr); }
+  var dot = document.createElement('canvas'); dot.width = dot.height = 32;
+  (function () { var g = dot.getContext('2d'), r = g.createRadialGradient(16, 16, 0, 16, 16, 16); r.addColorStop(0, 'rgba(255,240,200,1)'); r.addColorStop(.18, 'rgba(255,214,130,.9)'); r.addColorStop(.5, 'rgba(230,170,70,.25)'); r.addColorStop(1, 'rgba(230,170,70,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); })();
+  function fly(any) { return { x: Math.random(), y: any ? Math.random() : 1.05, s: 4 + Math.random() * 10, v: .006 + Math.random() * .014, ph: Math.random() * 6.3, w: .4 + Math.random() * 1.2, a: .35 + Math.random() * .6 }; }
+  function frame(t) {
+    raf = 0; if (!heroOn || document.hidden) return;
+    t /= 1000; cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, fw, fh); cx.globalCompositeOperation = 'lighter';
+    for (var i = 0; i < flies.length; i++) {
+      var f = flies[i]; f.y -= f.v / 60; if (f.y < -0.05) flies[i] = f = fly(false);
+      var x = (f.x + Math.sin(t * .35 * f.w + f.ph) * .025) * fw, y = f.y * fh, a = f.a * (.55 + .45 * Math.sin(t * 1.7 * f.w + f.ph * 2));
+      cx.globalAlpha = Math.max(0, a) * Math.min(1, (1.05 - f.y) * 4); cx.drawImage(dot, x - f.s / 2, y - f.s / 2, f.s, f.s);
+    }
+    cx.globalAlpha = 1; raf = requestAnimationFrame(frame);
+  }
+  function flyOn() { if (!raf && cx && !still) raf = requestAnimationFrame(frame); }
+  if (cx && !still) { size(); for (var i = 0; i < (fw < 700 ? 22 : 38); i++) flies.push(fly(true)); addEventListener('resize', size); flyOn(); }
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) {
+    heroOn = es[0].isIntersecting;
+    if (reel) { if (heroOn) play(reel); else reel.pause(); }
+    if (heroOn) flyOn();
+  }, { threshold: 0.02 }).observe(document.querySelector('.hero'));
+
+  // ---------- les tuiles : celle du bouton survolé (ou touché) passe devant ----------
+  var deck = $('deck'), picks = [].slice.call(document.querySelectorAll('.pick')), cards = { pg: $('card-pg'), ar: $('card-ar') };
+  var glows = { pg: document.querySelector('.glow.pg'), ar: document.querySelector('.glow.ar') }, dots = [].slice.call(document.querySelectorAll('.hint b'));
+  var cur = 'pg', busy = false, want = null, gamesOn = false;
+  function setInert(el, on) { if (on) { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); } else { el.removeAttribute('inert'); el.removeAttribute('aria-hidden'); } }
+  setInert(cards.ar, true);
+  function show(k) {
+    if (!cards[k]) return;
+    if (busy) { want = k; return; }
+    if (k === cur) return;
+    var leave = cards[cur], rise = cards[k]; cur = k; busy = true;
+    picks.forEach(function (p) { var on = p.getAttribute('data-k') === k; p.classList.toggle('on', on); if (on) p.setAttribute('aria-current', 'true'); else p.removeAttribute('aria-current'); });
+    for (var g in glows) glows[g].classList.toggle('on', g === k);
+    dots.forEach(function (d, i) { d.classList.toggle('on', (i === 0) === (k === 'pg')); });
+    setInert(rise, false); setInert(leave, true);
+    var done = function () {
+      leave.classList.remove('out', 'front'); leave.classList.add('back'); rise.classList.remove('back'); rise.classList.add('front');
+      media(); setTimeout(function () { busy = false; if (want && want !== cur) { var w = want; want = null; show(w); } else want = null; }, still ? 0 : 420);
+    };
+    if (still) done(); else { leave.classList.add('out'); setTimeout(done, 330); }
+  }
+  var lastTouch = 0, touchCur = cur;   // au toucher, la tuile de devant AVANT le toucher (le focus du lien la change déjà)
+  addEventListener('touchstart', function () { lastTouch = Date.now(); touchCur = cur; }, { passive: true, capture: true });
+  picks.forEach(function (p) {
+    var k = p.getAttribute('data-k');
+    p.addEventListener('mouseenter', function () { if (Date.now() - lastTouch > 800) show(k); });
+    p.addEventListener('focus', function () { show(k); });
+    p.addEventListener('click', function (e) { if (Date.now() - lastTouch < 800 && touchCur !== k) {
+      e.preventDefault(); show(k);
+      var r = deck.getBoundingClientRect();   // téléphone : la tuile est sous les boutons, on la fait venir à l'écran
+      if (r.bottom > innerHeight + 40) window.scrollBy({ top: Math.min(r.top - 90, r.bottom - innerHeight + 24), behavior: still ? 'auto' : 'smooth' });
+    } });   // au toucher : d'abord montrer la tuile
+  });
+  for (var key in cards) (function (k) { cards[k].addEventListener('click', function (e) { if (cards[k].classList.contains('back')) { e.preventDefault(); show(k); } }); })(key);
+  // glisser la tuile du dessus (téléphone)
+  var sx = 0, sy = 0, sw = false;
+  deck.addEventListener('touchstart', function (e) { var t = e.touches[0]; sx = t.clientX; sy = t.clientY; sw = true; }, { passive: true });
+  deck.addEventListener('touchmove', function (e) {
+    if (!sw) return; var t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 12) { sw = false; return; }
+    if (Math.abs(dx) > 44) { sw = false; show(cur === 'pg' ? 'ar' : 'pg'); }
+  }, { passive: true });
+
+  // ---------- ce qui bouge dans les tuiles (seulement la tuile de devant, et seulement à l'écran) ----------
+  var PHOTOS = [
+    ['village', 'Le village d’Ailebrune'], ['pont', 'Le pont rouge'], ['biches', 'Des biches à la lisière'], ['arbre', 'L’arbre sacré'],
+    ['nuit', 'Le village la nuit, aux lanternes'], ['cygnes', 'Des cygnes sur le lac'], ['hibou', 'Un hibou'], ['fleurs', 'Les prés fleuris']
+  ];
+  var GAMES = [
+    ['neon', 'Néon Rush'], ['kombat', 'Mandale Kombat'], ['smoothie', 'Smoothie Samouraï'], ['toupies', 'Turbo Toupies'], ['magic', 'Magic Force'],
+    ['bolides', 'Bolides RC'], ['ilo', 'Galaxy Wars'], ['tirsaubut', 'Tirs au But'], ['pingpong', 'Ping-pong'], ['pleingaz', 'Plein Gaz'],
+    ['carreaux', 'Casse-Carreaux'], ['palet', 'Le palet'], ['empilo', 'Empilo'], ['boum', 'Boum !'], ['glouton', 'Glouton'], ['spatial', 'Duel spatial'],
+    ['mouches', 'Chasse aux mouches'], ['rouleaux', 'Les P’tits Rouleaux'], ['trouve', 'Trouve-le !'], ['briques', 'Casse-briques face à face'],
+    ['souris', 'Chat et souris'], ['mots', 'Mots mêlés'], ['guerre', 'Canards : la guerre']
+  ];
+  var pgMedia = $('pg-media'), pgPh = [pgMedia.querySelector('.ph')], pgI = 0, pgT = 0;
+  var arMedia = cards.ar.querySelector('.media'), arPoster = arMedia.querySelector('.poster'), arLbl = $('ar-lbl'), arI = 0, arT = 0, arV = [], arVi = 0, stripDone = false;
+  function pgNext() {
+    var n = (pgI + 1) % PHOTOS.length, el = pgPh[n];
+    if (!el) {
+      el = document.createElement('div'); el.className = 'ph';
+      var im = new Image(); im.alt = 'Pégase : ' + PHOTOS[n][1]; im.decoding = 'async'; im.width = 760; im.height = 507; im.src = 'accueil/pegase-hub-' + PHOTOS[n][0] + '.webp';
+      el.appendChild(im); pgMedia.appendChild(el); pgPh[n] = el;
+    }
+    var im2 = el.querySelector('img'), go = function () { pgPh[pgI].classList.remove('on'); el.classList.add('on'); pgI = n; };
+    if (im2.complete) go(); else im2.addEventListener('load', go, { once: true });
+  }
+  function arVideo(i) {
+    var g = GAMES[i]; arLbl.textContent = g[1];
+    if (!webm || still) { arPoster.src = 'accueil/' + g[0] + '.webp'; arPoster.alt = g[1]; return; }
+    var v = arV[arVi ^ 1];
+    if (!v) { v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); arMedia.insertBefore(v, arMedia.querySelector('.strip')); arV[arVi ^ 1] = v; }
+    var old = arV[arVi]; arVi ^= 1;
+    v.poster = 'accueil/' + g[0] + '.webp'; v.src = 'accueil/' + g[0] + '.webm';
+    var on = function () { v.classList.add('on'); if (old) setTimeout(function () { old.classList.remove('on'); old.pause(); }, 700); };
+    v.addEventListener('playing', on, { once: true }); play(v);
+  }
+  function stripFill() {
+    if (stripDone) return; stripDone = true;
+    var row = $('strip'), h = '';
+    for (var r = 0; r < 2; r++) GAMES.forEach(function (g) { h += '<img src="accueil/' + g[0] + '.webp" alt="" width="64" height="48" loading="lazy" decoding="async">'; });
+    row.innerHTML = h;
+  }
+  function media() {
+    clearInterval(pgT); clearInterval(arT); pgT = arT = 0;
+    cards.pg.classList.toggle('live', gamesOn && cur === 'pg'); cards.ar.classList.toggle('live', gamesOn && cur === 'ar');
+    if (!gamesOn || document.hidden) { arV.forEach(function (v) { if (v) v.pause(); }); return; }
+    if (!arPoster.src) arPoster.src = arPoster.getAttribute('data-src');
+    if (cur === 'pg') { arV.forEach(function (v) { if (v) v.pause(); }); if (!still) pgT = setInterval(pgNext, 4200); }
+    else {
+      stripFill();
+      if (!arV.length || !arV[arVi]) arVideo(arI); else play(arV[arVi]);
+      arT = setInterval(function () { arI = (arI + 1) % GAMES.length; arVideo(arI); }, still ? 6000 : 4500);
+    }
+  }
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { gamesOn = es[0].isIntersecting; media(); }, { rootMargin: '80px 0px' }).observe(deck);
+  else { gamesOn = true; media(); }
+  document.addEventListener('visibilitychange', function () { media(); if (!document.hidden) flyOn(); if (reel) { if (document.hidden) reel.pause(); else if (heroOn) play(reel); } });
+
+  // ---------- typographie française : espace insécable avant ! ? : ; ----------
   var tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
   while ((n = tw.nextNode())) if (/ [!?:;»]/.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(/ ([!?:;»])/g, ' $1');
+  GAMES.forEach(function (g) { g[1] = g[1].replace(/ ([!?:;])/g, ' $1'); });
 
-  // Apparition douce des blocs
+  // ---------- apparition douce ----------
   var rv = [].slice.call(document.querySelectorAll('.rv'));
   if (!still && 'IntersectionObserver' in window) {
-    var ro = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); } });
-    }, { rootMargin: '0px 0px -6% 0px' });
+    var ro = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' });
     rv.forEach(function (el) { ro.observe(el); });
   } else rv.forEach(function (el) { el.classList.add('in'); });
 })();
