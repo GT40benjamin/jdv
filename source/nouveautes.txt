@@ -2,10 +2,11 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
-[borne] ## 🧪 Le site d'Elixir Game Studio (borne 1.38.4)
+[borne] ## 🧪 Le site d'Elixir Game Studio (borne 1.38.5)
 [borne] Nouvelle page d'accueil sur elixirgamestudio.com : l'écran titre du studio, avec des images filmées dans Pégase
 [borne] Deux boutons pour entrer : « Pégase » ouvre directement la page Pégase, « La Borne d'arcade » ouvre directement les mini-jeux
 [borne] Les liens de partage montrent la nouvelle image du studio
+[borne] Le bouton « Partager » partage le côté où tu es : sur la page Pégase, le lien de Pégase ; sur les mini-jeux, le lien qui ouvre directement les mini-jeux
 [borne] ## 📨 Partager la borne et Pégase (borne 1.38.2)
 [borne] Nouveau bouton « Partager » en haut de la borne : il envoie le lien de la borne à tes copains (« Viens jouer avec moi à la Borne d'arcade entre amis ! ») par le partage du téléphone, WhatsApp, SMS ou e-mail, ou le copie sur ordinateur
 [borne] Sur la page Pégase et dans Pégase (à côté de Modifier / Télécharger) : « Partager Pégase », avec sa propre image d'aperçu de l'île ; le lien ouvre directement la page Pégase

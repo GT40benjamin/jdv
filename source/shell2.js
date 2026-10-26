@@ -8758,14 +8758,15 @@ function renderEndBoard(g, me) {
 }
 
 /* ================= Partager la borne / Partager Pégase (1.38.2) ================= */
-// Un lien PUBLIC, sans salle ni pseudo (l'invitation dans une salle, c'est « Inviter », plus bas) : la borne → …/jouer/ ; Pégase → …/pegase/
+// Un lien PUBLIC, sans salle ni pseudo (l'invitation dans une salle, c'est « Inviter », plus bas) : la borne → …/jouer/?borne (côté arcade) ; Pégase → …/pegase/
+// (le bouton du haut partage le côté où l'on est : page Pégase → Pégase, sinon la borne)
 // (petite page copiée par publier.sh depuis source/pegase-partage.html : ses balises og: donnent l'aperçu de Pégase, puis elle renvoie vers
 // jouer/?pegase). Les liens sont TOUJOURS construits depuis l'adresse actuelle (location), jamais en dur : le site peut changer d'adresse.
 // Téléphone : partage du système (navigator.share) ; sinon copie ; WhatsApp, SMS (téléphone) et e-mail en un toucher. Marche en invité et hors ligne.
 const SHARE = {
-  borne: { eye: 'Partager la borne', path: 'jouer/', img: 'accueil/partage.jpg', title: 'Borne d’arcade entre amis',
+  borne: { eye: 'Partager la borne', path: 'jouer/?borne', img: 'accueil/partage.jpg', title: 'Borne d’arcade entre amis',
     msg: 'Viens jouer avec moi à la Borne d’arcade entre amis ! 🎮',
-    t: 'Viens jouer avec nous sur la Borne d’arcade !', d: 'Tes copains t’invitent : 17 jeux gratuits, classements, chat et duels entre amis.' },
+    t: 'Viens jouer avec nous sur la Borne d’arcade !', d: 'Tes copains t’invitent : 23 jeux gratuits, classements, chat et duels entre amis.' },
   pegase: { eye: 'Partager Pégase', path: 'pegase/', img: 'accueil/partage-pegase.jpg', title: 'Pégase',
     msg: 'Viens photographier les animaux de l’île avec moi dans Pégase ! 🦋',
     t: 'Viens dans Pégase avec moi !', d: 'Viens photographier les animaux de l’île avec moi dans Pégase ! Gratuit, sur ton téléphone ou ton PC.' }
@@ -8780,7 +8781,7 @@ function shareOpen(kind) {
   const img = $('jdw-share-img'); if (img.dataset.src !== D.img) { img.dataset.src = D.img; img.src = ROOT + D.img; }
   $('jdw-share-dom').textContent = location.host; $('jdw-share-t').textContent = D.t; $('jdw-share-d').textContent = D.d;
   const u = $('jdw-share-url'); u.textContent = ''; u.title = url;
-  const m = url.replace(/^https?:\/\//, '').match(/^(.*\/)([^/]+\/)$/) || ['', '', url.replace(/^https?:\/\//, '')];
+  const m = url.replace(/^https?:\/\//, '').match(/^(.*\/)([^/]+\/(?:\?\w+)?)$/) || ['', '', url.replace(/^https?:\/\//, '')];
   const a = document.createElement('small'); a.textContent = m[1]; const b = document.createElement('b'); b.textContent = m[2]; u.append(a, b);
   $('jdw-share-link').classList.remove('done'); $('jdw-share-copy').textContent = 'Copier';
   $('jdw-share-go').textContent = shareSys() ? '📨 Partager' : '📋 Copier le lien';
@@ -8813,7 +8814,7 @@ async function shareCopy() {
   shareStatus('Lien copié : colle-le dans WhatsApp, Messenger, un SMS…', 'ok');
   Audio.ensure(); Audio.tone(880, 0.06, 'triangle', 0.035, 1175);
 }
-$('jdw-share-btn').addEventListener('click', () => shareOpen('borne'));
+$('jdw-share-btn').addEventListener('click', () => shareOpen(MODE === 'pegase' ? 'pegase' : 'borne'));   // le côté où l'on est
 $('jdw-share-go').addEventListener('click', shareGo);
 $('jdw-share-link').addEventListener('click', shareCopy);
 $('jdw-share-close').addEventListener('click', () => closeSheet('jdw-share'));
