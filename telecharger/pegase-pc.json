@@ -1,16 +1,16 @@
 {
   "version": "0.9.8",
-  "build": 40,
-  "size": 2205297400,
-  "sha256": "8c02d5f9d86638fec16904c1bf660eb1091126cf8187f91d593cc4f36b5970bd",
-  "url": "https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/Pegase-PC-2026-10-26-0.9.8.zip",
-  "manifest": "4e9d9e799ed7811f7128efa6b3ada4b6f3882d28dbbab03f6ff15cff12a591a9",
+  "build": 41,
+  "size": 2100156381,
+  "sha256": "ead62774291079c89e0d807428b4c38478931aef0409ad9d4a54c3ecd9fdad72",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v41/Pegase-PC-2026-10-26-0.9.8.zip",
+  "manifest": "c86a5f931c7e88d6634c7531c4c29ad1a2fad3e0066378e5daa06454758e4cfc",
   "patchs": [
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v40/Pegase-PC-patch-0.9.7.zip",
-      "taille": 194503609,
-      "sha256": "832b4c76ca521b0737f880aead09257d3e9d6c2b338c4e2ec94110e59971946a"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v41/Pegase-PC-patch-0.9.7.zip",
+      "taille": 224294697,
+      "sha256": "0e80980e45de3579023ce5045b06bd07d82483931d97178bacb8e6392fb673b1"
     }
   ],
   "notes": [
