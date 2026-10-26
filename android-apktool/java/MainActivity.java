@@ -57,6 +57,21 @@ public class MainActivity extends Activity {
         + "<p>La borne a besoin d'internet la première fois. Vérifie le Wi-Fi ou les données mobiles, puis réessaie.</p>"
         + "<a id=r href='" + "https://elixirgamestudio.com/jouer/" + "'>Réessayer</a></main>"
         + "<script>addEventListener('online',function(){setTimeout(function(){location.href=document.getElementById('r').href},800)})</script></body></html>";
+    // 1.13 : « Continuer avec Google ». Google refuse de connecter dans une WebView (« disallowed_useragent ») : la page de Google
+    // s'ouvre dans un onglet Chrome (Custom Tab : simple intent avec l'extra de session, sans bibliothèque), puis Supabase renvoie sur
+    // connexion/ du site, qui rend le code à l'appli par fr.bornearcade.app://auth?code=… (intent-filter du manifeste) ; l'appli le donne
+    // à la page (JDW_OAUTH_IN), qui finit la connexion avec son secret (PKCE : le code seul ne sert à rien).
+    static final String AUTH_SCHEME = "fr.bornearcade.app";
+    static boolean authorizeUrl(String u) { return u != null && u.matches("https://[a-z0-9]+[.]supabase[.]co/auth/v1/authorize[?][^# ]*"); }
+    // fr.bornearcade.app://auth?… → la requête (caractères sûrs seulement), sinon null
+    static String authQuery(Intent i) {
+        try {
+            Uri d = i != null ? i.getData() : null;
+            if (d == null || !AUTH_SCHEME.equals(d.getScheme()) || !"auth".equals(d.getHost())) return null;
+            String q = d.getEncodedQuery();
+            return q == null ? "" : q.replaceAll("[^A-Za-z0-9_.~%&=+-]", "");
+        } catch (Throwable e) { return null; }
+    }
     static final int REQ_FILE = 42;
     static final int REQ_MIC = 43;
     PermissionRequest micReq;
@@ -84,6 +99,7 @@ public class MainActivity extends Activity {
             showError("L'appli s'est arrêtée la dernière fois. Envoie une capture de cet écran à Claude :\n\n" + last);
             return;
         }
+        if (saved != null) fresh = false;
         try {
             start();
         } catch (Throwable e) {
@@ -117,6 +133,8 @@ public class MainActivity extends Activity {
         });
         setContentView(tv);
     }
+
+    boolean fresh = true;   // 1er démarrage de cette activité (pas une reprise après que l'appli a été tuée en arrière-plan)
 
     void start() {
         try { getWindow().addFlags(0x80); } catch (Throwable ignore) { }
@@ -183,9 +201,11 @@ public class MainActivity extends Activity {
                 } catch (Throwable e) { try { r.deny(); } catch (Throwable ignore) { } }
             }
         });
+        String q = fresh ? authQuery(getIntent()) : null;   // appli rouverte par le retour de Google (elle avait été fermée entre-temps)
         if (!prefs().getBoolean("repris", false)) {
             try { web.loadDataWithBaseURL(HOME + "jouer/", CAPTURE_PAGE, "text/html", "utf-8", null); } catch (Throwable e) { web.loadUrl(borne()); }
-        } else web.loadUrl(borne());
+        } else web.loadUrl(q != null && q.length() > 0 ? BORNE + "?" + q : borne());
+        fresh = false;
         immersive();
         fitKeyboard();
     }
@@ -303,6 +323,29 @@ public class MainActivity extends Activity {
         if (natif != null) { try { natif.onResume(); } catch (Throwable ignore) { } }   // téléchargement / installation de Pégase en cours
         immersive();
     }
+    // retour de Google pendant que l'appli est ouverte (singleTask : l'onglet Chrome au-dessus se ferme) : le code va à la page ;
+    // page pas prête (rechargement, page hors ligne…) → la borne est rouverte avec le code dans l'adresse
+    @Override protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        final String q = authQuery(i);
+        if (q == null || web == null) return;
+        try {
+            web.evaluateJavascript("(window.JDW_OAUTH_IN?(JDW_OAUTH_IN('" + q + "'),1):0)", new ValueCallback<String>() {
+                public void onReceiveValue(String v) { if (!"1".equals(v)) { try { web.loadUrl(BORNE + (q.length() > 0 ? "?" + q : "")); } catch (Throwable ignore) { } } }
+            });
+        } catch (Throwable e) { try { web.loadUrl(BORNE + (q.length() > 0 ? "?" + q : "")); } catch (Throwable ignore) { } }
+    }
+    // l'onglet Chrome de Google (Custom Tab ; sans Chrome, le navigateur par défaut)
+    void openAuth(String url) {
+        Intent i = new Intent("android.intent.action.VIEW", Uri.parse(url));
+        Bundle b = new Bundle();
+        b.putBinder("android.support.customtabs.extra.SESSION", null);
+        i.putExtras(b);
+        i.putExtra("android.support.customtabs.extra.TOOLBAR_COLOR", 0xff0b141c);
+        i.putExtra("android.support.customtabs.extra.TITLE_VISIBILITY", 1);
+        i.putExtra("androidx.browser.customtabs.extra.SHARE_STATE", 2);
+        startActivity(i);
+    }
     @Override protected void onPause() { super.onPause(); if (natif != null) natif.onPause(); if (web != null) web.onPause(); }
     @Override protected void onDestroy() { if (natif != null) { try { natif.onDestroy(); } catch (Throwable ignore) { } if (Natif.live == natif) Natif.live = null; } super.onDestroy(); }
 
@@ -320,6 +363,12 @@ public class MainActivity extends Activity {
 
     public class Bridge {
         @JavascriptInterface public int version() { return VERSION; }
+        // 1.13 : « Continuer avec Google » (seulement la page d'autorisation de Supabase Auth)
+        @JavascriptInterface public boolean oauth(final String url) {
+            if (!authorizeUrl(url)) return false;
+            runOnUiThread(new Runnable() { public void run() { try { openAuth(url); } catch (Throwable ignore) { } } });
+            return true;
+        }
         // REPRISE (1.11) : la page vide à l'ancienne adresse donne ses réglages (JSON de son localStorage), gardés sur le téléphone
         @JavascriptInterface public void garde(String json) {
             try {

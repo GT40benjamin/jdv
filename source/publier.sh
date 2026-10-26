@@ -3,6 +3,7 @@
 #   index.html             page d'accueil publique (copie de source/accueil.html ; visuels dans accueil/, voir accueil-media.js)
 #   jouer/index.html       la borne (build2.py, SITE_ROOT=../)
 #   jouer/sw.js            service worker de la borne : elle s'ouvre et se joue sans réseau (cache jdw-core-<BUILD_ID>, voir source/sw.js)
+#   connexion/index.html   retour de « Continuer avec Google » vers l'appli Android (source/connexion.html)
 #   telecharger/           page de téléchargement publique + borne-arcade.apk (fichier direct) ; version.json est à mettre à jour à la main
 #   site.json              numéro de version : les appareils rechargent la borne quand il change
 #   ./publier.sh                 avec l'APK déjà construit ($APK, par défaut ~/jdv-tools/borne-arcade.apk)
@@ -38,6 +39,8 @@ cp "$T/sw.js" ../jouer/sw.js
 cp accueil.html ../index.html
 # lien « Partager Pégase » : petite page qui renvoie vers jouer/?pegase, seulement pour l'aperçu du lien (image partage-pegase.jpg)
 mkdir -p ../pegase && cp pegase-partage.html ../pegase/index.html
+# retour de « Continuer avec Google » lancé depuis l'appli Android (1.13+) : rend le code à l'appli (fr.bornearcade.app://auth)
+mkdir -p ../connexion && cp connexion.html ../connexion/index.html
 # page de téléchargement publique + APK en fichier direct (l'appli 1.7 n'embarque plus aucun mot de passe)
 node telecharger.js "$APK" ../telecharger
 printf '{"build":"%s","version":"%s"}\n' "$BUILD_ID" "$SITE_VERSION" > ../site.json

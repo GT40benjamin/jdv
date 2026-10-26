@@ -18,6 +18,60 @@ Chaque salle peut aussi donner à un joueur un **pseudo de salle** (affiché seu
 4. **URL Configuration** : rien à changer (`https://gt40benjamin.github.io/jdv/**` couvre `jouer/`). Les liens des e-mails arrivent sur
    `jouer/` (nouveau site) ou sur la racine (anciens liens : l'accueil les renvoie vers `jouer/` avec le jeton).
 
+## « Continuer avec Google » (borne 1.39, appli Android 1.13) : à faire par Benjamin
+
+Le bouton « Continuer avec Google » est déjà dans la borne, mais il reste **caché** tant que Google n'est pas branché sur Supabase (la borne
+le demande elle-même à Supabase : `auth/v1/settings`). Dès que l'étape 2 est faite, il apparaît tout seul, sans republier. Tu ne donnes
+aucun mot de passe à personne : tu copies seulement deux codes de Google dans Supabase.
+
+### Étape 1 : Google Cloud Console (10 minutes)
+
+1. Va sur https://console.cloud.google.com et connecte-toi avec ton compte Google.
+2. En haut à gauche, à côté du logo : **Sélectionner un projet** › **Nouveau projet**. Nom : `Borne d'arcade` › **Créer**, puis choisis-le.
+3. Menu ☰ › **API et services** › **Écran de consentement OAuth** (parfois appelé **Google Auth Platform** › **Branding**) :
+   - Type d'utilisateurs : **Externe** › Créer.
+   - Nom de l'application : `Borne d'arcade entre amis` ; e-mail d'assistance : ton e-mail ; logo : facultatif (sans logo, pas de vérification).
+   - **Domaines autorisés** : ajoute `elixirgamestudio.com` et `wplictorvvtkfikpfdnl.supabase.co`.
+   - Coordonnées du développeur : ton e-mail › Enregistrer.
+   - Accès aux données (scopes) : ne rien ajouter (e-mail, profil et openid suffisent).
+   - **Audience / Utilisateurs test** : clique sur **Publier l'application** (« En production »). Sinon, seuls les comptes ajoutés comme
+     « utilisateurs test » pourraient se connecter. Avec seulement e-mail + profil, Google ne demande aucune vérification.
+4. Menu ☰ › **API et services** › **Identifiants** › **+ Créer des identifiants** › **ID client OAuth** :
+   - Type d'application : **Application Web** ; nom : `Borne (Supabase)`.
+   - **Origines JavaScript autorisées** : `https://elixirgamestudio.com`
+   - **URI de redirection autorisés** : `https://wplictorvvtkfikpfdnl.supabase.co/auth/v1/callback` (exactement, sans espace).
+   - **Créer**. Une fenêtre montre l'**ID client** (se termine par `.apps.googleusercontent.com`) et le **Code secret du client** : garde-la
+     ouverte (ou télécharge le JSON) pour l'étape 2. Le code secret ne va QUE dans Supabase, jamais dans le dépôt ni dans un message.
+
+### Étape 2 : Supabase (2 minutes)
+
+1. https://supabase.com/dashboard › projet de la borne › **Authentication** › **Sign In / Providers** › **Google**.
+2. **Enable Sign in with Google** : activé. Colle l'**ID client** dans *Client IDs* et le **code secret** dans *Client Secret (for OAuth)*.
+   Laisse *Skip nonce checks* et *Allow users without an email* désactivés. **Save**.
+3. **Authentication** › **URL Configuration** › **Redirect URLs** : vérifie que ces lignes y sont (elles y sont déjà depuis le déménagement) :
+   `https://elixirgamestudio.com/**` (couvre `jouer/` et `connexion/`, le retour de l'appli Android) et `https://gt40benjamin.github.io/jdv/**`.
+   Rien à ajouter pour l'appli : elle revient par `https://elixirgamestudio.com/connexion/`.
+
+### Étape 3 : essayer
+
+Ouvre https://elixirgamestudio.com/jouer/ dans un navigateur privé › « Créer un compte » : le bouton blanc « Continuer avec Google » est là.
+Choisis ton compte Google : la borne revient avec « ✓ Connecté avec Google », tu choisis ton pseudo, ta tête et tes cris, « C'est parti ! ».
+Si tu te connectes avec l'e-mail d'un compte qui existe déjà (créé avec un mot de passe), Supabase relie Google à CE compte : tu retrouves
+tes joueurs. Dans l'appli Android, il faut la version **1.13** (page Télécharger) : Google s'ouvre dans un onglet Chrome puis revient dans l'appli.
+
+### Ce qu'il faut savoir
+
+- Un compte créé avec Google n'a pas de mot de passe : ⚙ › Compte › « Choisir un mot de passe » en ajoute un (utile dans une vieille appli
+  ≤ 1.12 ou là où Google ne marche pas : on se connecte alors avec le pseudo ou l'e-mail et ce mot de passe).
+- Pas de bouton dans : les applis Android ≤ 1.12, les navigateurs intégrés à Facebook, Instagram, Messenger, TikTok… (Google y refuse la
+  connexion). WhatsApp ouvre les liens dans Chrome : là, ça marche.
+- Couper Google : désactiver le fournisseur dans Supabase. Le bouton disparaît, les comptes restent (avec « Mot de passe oublié » pour en
+  mettre un).
+- Technique : flux PKCE (`authorize?provider=google&code_challenge…` puis `token?grant_type=pkce`), secret gardé sur l'appareil
+  (`jdw.oauth`), section « Continuer avec Google » de shell2.js ; appli : `BorneApp.oauth` (Custom Tab) et `fr.bornearcade.app://auth`
+  (MainActivity.java, manifeste) ; page de retour `source/connexion.html`. Essais : `~/jdv-tools/google/test-google.js` (navigateur, faux
+  Supabase et faux Google) et `e2e-google.js` (émulateur : vrai Chrome, vraie appli d'essai).
+
 ## Ordre conseillé (mise en service des comptes, octobre 2026 : déjà fait)
 
 1. **SQL** : lancer `source/accounts.sql` (ou `supabase.sql` en entier : il le contient à la fin) dans Supabase > SQL Editor.

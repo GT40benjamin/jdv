@@ -1,1 +1,1 @@
-package android.net; public abstract class Uri implements android.os.Parcelable { public static Uri parse(String s) { throw new RuntimeException(); } public abstract String getPath(); }
+package android.net; public abstract class Uri implements android.os.Parcelable { public static Uri parse(String s) { throw new RuntimeException(); } public abstract String getPath(); public abstract String getScheme(); public abstract String getHost(); public abstract String getEncodedQuery(); }

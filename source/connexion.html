@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="dark">
+<title>Retour dans la Borne d'arcade</title>
+<!-- Retour de « Continuer avec Google » lancé depuis l'APPLI Android (1.13+) : Google refuse les WebView, la connexion se fait dans un
+     onglet Chrome, et Supabase renvoie ici (connexion/?code=…). Cette page rend le code à l'appli : intent fr.bornearcade.app://auth?code=…
+     (paquet fr.bornearcade.app). Le code ne sert à rien sans le secret gardé dans l'appli (PKCE). Publiée par publier.sh (connexion/index.html). -->
+<style>
+html,body{margin:0;height:100%;background:#0b141c;color:#e9f0f3;font:16px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 16px;box-sizing:border-box}
+.orb{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#22394a,#111d27);box-shadow:0 0 0 2px #22394a,0 0 40px rgba(255,166,48,.2);font-size:42px}
+h1{font:800 24px/1.2 system-ui,sans-serif;letter-spacing:.02em;margin:22px 0 8px;color:#ffd34d}
+p{margin:0 0 22px;color:#8aa0ae;max-width:320px}
+.go{display:inline-block;font:700 17px system-ui,sans-serif;color:#0b141c;background:#ffa630;border-radius:14px;padding:14px 26px;text-decoration:none;box-shadow:0 6px 0 #b86d10}
+.go:active{transform:translateY(3px);box-shadow:0 3px 0 #b86d10}
+.alt{margin-top:22px;font-size:14px;color:#5ef0ff}
+</style></head><body><main>
+<div class="orb" id="ic">🔑</div>
+<h1 id="h">Retour dans la borne…</h1>
+<p id="t">Ta connexion avec Google est prête. Si l'appli ne s'ouvre pas toute seule, touche le bouton.</p>
+<a class="go" id="go" href="#">Revenir dans la Borne d'arcade</a>
+<a class="alt" id="web" href="../jouer/">Je n'ai pas l'appli : ouvrir la borne ici</a>
+</main>
+<script>
+(function () {
+  var q = String(location.search || '').replace(/^\?/, '').replace(/[^A-Za-z0-9_.~%&=+-]/g, '');
+  var ok = /(^|&)code=/.test(q), err = /(^|&)error/.test(q);
+  var go = document.getElementById('go');
+  go.href = 'intent://auth' + (q ? '?' + q : '') + '#Intent;scheme=fr.bornearcade.app;package=fr.bornearcade.app;end';
+  if (!ok) {
+    document.getElementById('ic').textContent = err ? '😕' : '🔑';
+    document.getElementById('h').textContent = err ? 'Connexion annulée' : 'Retour dans la borne';
+    document.getElementById('t').textContent = err ? "Google ne t'a pas connecté. Reviens dans l'appli pour réessayer." : "Touche le bouton pour revenir dans l'appli.";
+  }
+  if (!/Android/i.test(navigator.userAgent || '')) { go.hidden = true; document.getElementById('t').textContent = 'Cette page sert à revenir dans l’appli Android de la borne.'; return; }
+  if (q) setTimeout(function () { try { location.replace(go.href); } catch (e) {} }, 60);
+})();
+</script>
+</body></html>

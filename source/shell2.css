@@ -1952,6 +1952,20 @@ body.net-off #jdw-coop-switch [data-where=ami] span::after{content:" · réseau"
 .acct-lead{font-size:14.5px;color:var(--ink)}
 .acct-lead b{color:var(--gold)}
 .acct-links{display:grid;gap:4px}
+/* « Continuer avec Google » (bouton clair de Google : logo G en couleurs, texte gris foncé) + séparateur « ou avec ton e-mail » */
+.g-box{display:grid;gap:8px;min-width:0}
+.g-box[hidden]{display:none}
+.g-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:48px;padding:10px 16px;border:1px solid #747775;border-radius:999px;
+  background:#fff;color:#1f1f1f;font:600 16px/1.2 'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.01em;cursor:pointer;
+  box-shadow:0 2px 0 rgba(0,0,0,.35),0 6px 16px rgba(0,0,0,.25);transition:transform .12s,box-shadow .12s,background .12s}
+.g-btn:hover{background:#f2f5f9}
+.g-btn:active{transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.25)}
+.g-btn:focus-visible{outline:3px solid var(--volt);outline-offset:3px}
+.g-btn[disabled]{opacity:.7;cursor:progress}
+.g-btn .g-logo{flex:0 0 auto;width:20px;height:20px}
+.g-or{display:flex;align-items:center;gap:10px;margin:2px 0 0;font-size:12.5px;font-weight:600;color:var(--muted)}
+.g-or::before,.g-or::after{content:"";flex:1 1 auto;height:1px;background:var(--steel2)}
+.g-or span{flex:0 0 auto}
 .acct-links:empty{display:none}
 #jdw-acct.locked{background:rgba(5,10,14,.9)}
 /* bannière d'accueil : e-mail à confirmer */
