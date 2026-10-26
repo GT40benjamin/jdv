@@ -198,9 +198,15 @@ footer a:hover{color:var(--gold2)}
 .gm .media img,.gm .media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .gm .media video{opacity:0;transition:opacity .8s ease}.gm .media video.on{opacity:1}
 .gm .media::after{content:'';position:absolute;inset:auto 0 0;height:38%;pointer-events:none;background:linear-gradient(180deg,transparent,var(--card))}
-.gm .wall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:3px;background:#05060a}
-.gm .wall i{position:relative;overflow:hidden}
+.gm .wall{position:absolute;inset:0;display:flex;flex-direction:column;gap:4px;background:#05060a;overflow:hidden}
+.gm .wall .row{flex:1;display:flex;gap:4px;width:max-content;animation:wall 70s linear infinite}
+.gm .wall .row.r2{animation-direction:reverse;animation-duration:64s}
+.gm .wall i{position:relative;height:100%;aspect-ratio:4/3;overflow:hidden;flex:none;border-radius:3px}
 .gm .wall img,.gm .wall video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gm .wall video{opacity:0;transition:opacity .5s}.gm .wall video.on{opacity:1}
+.duo:not(.live) .wall .row{animation-play-state:paused}
+@keyframes wall{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.gm .wall{overflow-x:auto}.gm .wall .row{animation:none}}
 .gm .lbl{position:absolute;left:18px;top:18px;z-index:2;display:flex;align-items:center;gap:8px;font:800 11.5px/1 var(--head);letter-spacing:.2em;text-transform:uppercase;
   color:#fff;padding:8px 11px;background:rgba(6,7,13,.74);border-left:3px solid var(--a)}
 .gm .body{display:flex;flex-direction:column;flex:1;padding:clamp(18px,2.4vw,28px) clamp(20px,2.6vw,32px) clamp(22px,2.6vw,30px)}
@@ -474,15 +480,28 @@ footer a:hover{color:var(--gold2)}
   document.addEventListener('visibilitychange', function () { if (!document.hidden) flyOn(); if (reel) { if (document.hidden) reel.pause(); else if (heroOn) play(reel); } });
 
   // ---------- nos deux jeux : vidéos seulement quand la section est à l'écran ----------
-  var WALL = [['neon', 'Néon Rush'], ['kombat', 'Mandale Kombat'], ['smoothie', 'Smoothie Samouraï'], ['toupies', 'Turbo Toupies'], ['magic', 'Magic Force'], ['bolides', 'Bolides RC']];
-  var wall = $('duo-ar'), duoPg = $('duo-pg'), duoV = [], duoOn = false, duoReady = false;
+  // tous les jeux de la borne défilent sur deux rangées (en sens inverse) ; une vignette ne s'anime que quand elle est visible dans la tuile
+  var WALL = [['neon', 'Néon Rush'], ['bolides', 'Bolides RC'], ['smoothie', 'Smoothie Samouraï'], ['tirsaubut', 'Tirs au But'], ['ilo', 'Galaxy Wars'],
+    ['toupies', 'Turbo Toupies'], ['magic', 'Magic Force'], ['kombat', 'Mandale Kombat'], ['pleingaz', 'Plein Gaz'], ['pingpong', 'Ping-pong'],
+    ['empilo', 'Empilo'], ['trouve', 'Trouve-le !'], ['glouton', 'Glouton'], ['palet', 'Le palet'], ['mouches', 'Chasse aux mouches'],
+    ['briques', 'Casse-briques face à face'], ['carreaux', 'Casse-Carreaux'], ['boum', 'Boum !'], ['rouleaux', 'Les P’tits Rouleaux'],
+    ['souris', 'Chat et souris'], ['spatial', 'Duel spatial'], ['mots', 'Mots mêlés'], ['guerre', 'Canards : la guerre']];
+  var wall = $('duo-ar'), duoPg = $('duo-pg'), duoSec = document.querySelector('.duo'), duoV = [], duoOn = false, duoReady = false, tileIO = null;
   var webm = !!(vt.canPlayType && vt.canPlayType('video/webm; codecs="vp9"'));
+  function tile(g) {
+    var cell = document.createElement('i'), im = new Image(); im.alt = ''; im.decoding = 'async'; im.loading = 'lazy'; im.width = 560; im.height = 420; im.src = 'accueil/' + g[0] + '.webp'; cell.title = g[1]; cell.appendChild(im);
+    if (tileIO) { var v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'none'; v.dataset.src = 'accueil/' + g[0] + '.webm'; v.addEventListener('playing', function () { v.classList.add('on'); }); cell.appendChild(v); tileIO.observe(cell); }
+    return cell;
+  }
+  function tileRun(v) { if (v.vis && duoOn && !document.hidden) { if (!v.src) v.src = v.dataset.src; play(v); } else if (v.src) v.pause(); }
   function duoFill() {
     if (duoReady) return; duoReady = true;
-    WALL.forEach(function (g) {
-      var cell = document.createElement('i'), im = new Image(); im.alt = ''; im.decoding = 'async'; im.width = 560; im.height = 420; im.src = 'accueil/' + g[0] + '.webp'; cell.title = g[1]; cell.appendChild(im);
-      if (webm && !still && !light) { var v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'none'; v.src = 'accueil/' + g[0] + '.webm'; v.addEventListener('playing', function () { v.classList.add('on'); }); cell.appendChild(v); duoV.push(v); }
-      wall.appendChild(cell);
+    if (webm && !still && !light && 'IntersectionObserver' in window)
+      tileIO = new IntersectionObserver(function (es) { es.forEach(function (e) { var v = e.target.querySelector('video'); v.vis = e.isIntersecting; tileRun(v); }); }, { root: wall, threshold: 0.05 });
+    [0, 1].forEach(function (r) {
+      var row = document.createElement('div'), list = WALL.filter(function (g, i) { return i % 2 === r; }); row.className = 'row' + (r ? ' r2' : '');
+      list.concat(list).forEach(function (g) { row.appendChild(tile(g)); });   // deux fois la liste : la boucle ne se voit pas
+      wall.appendChild(row);
     });
     if (canVid && !still && !light) {   // Pégase : un plan filmé en 720p / 1080p selon la taille de la carte
       var v = document.createElement('video'), d = Math.min(window.devicePixelRatio || 1, 3), q = duoPg.clientWidth * d > 700 ? 1080 : 720;
@@ -490,8 +509,12 @@ footer a:hover{color:var(--gold2)}
       v.addEventListener('playing', function () { v.classList.add('on'); }); duoPg.insertBefore(v, duoPg.querySelector('.lbl')); duoV.push(v);
     }
   }
-  function duoRun() { duoV.forEach(function (v) { if (duoOn && !document.hidden) play(v); else v.pause(); }); }
-  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { duoOn = es[0].isIntersecting; if (duoOn) duoFill(); duoRun(); }, { rootMargin: '200px 0px' }).observe(document.querySelector('.duo'));
+  function duoRun() {
+    duoSec.classList.toggle('live', duoOn && !document.hidden);
+    duoV.forEach(function (v) { if (duoOn && !document.hidden) play(v); else v.pause(); });
+    [].forEach.call(wall.querySelectorAll('video'), tileRun);
+  }
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { duoOn = es[0].isIntersecting; if (duoOn) duoFill(); duoRun(); }, { rootMargin: '200px 0px' }).observe(duoSec);
   else { duoOn = true; duoFill(); duoRun(); }
   document.addEventListener('visibilitychange', duoRun);
 

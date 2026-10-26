@@ -17,7 +17,7 @@ elixirgamestudio.com. Le service worker de l'ancienne adresse reste figé (sa mi
   de moins si la vidéo attend le réseau), affiche nette `assets/pegase/<plan>_poster.jpg` d'abord, vidéo après la page, jamais en économie de
   données / réseau lent / mouvement réduit (affiches seules) ; étincelles
   dessinées) avec DEUX boutons : Pégase → `jouer/?pegase`, La Borne d'arcade → `jouer/?borne` (la borne côté arcade : MODE = PG.last dans
-  shell2.js), puis « Le studio », puis « Nos jeux » (`#jeux`, demande de Benjamin : Pégase à GAUCHE avec un plan filmé decor_01 du seau R2, la Borne à DROITE avec un mur de 6 vignettes animées, vidéos seulement quand la section est à l'écran). Plans du panneau : 15 s chacun (SHOW).
+  shell2.js), puis « Le studio », puis « Nos jeux » (`#jeux`, demande de Benjamin : Pégase à GAUCHE avec un plan filmé decor_01 du seau R2, la Borne à DROITE où défilent les 23 jeux sur deux rangées en sens inverse (une vignette ne s'anime que visible dans la tuile), vidéos seulement quand la section est à l'écran). Plans du panneau : 15 s chacun (SHOW).
   Aperçu des liens : `node source/studio-media.js` → `accueil/studio-partage.jpg` (blason sur l'affiche decor_29b).
   Vignettes des jeux dans `accueil/` (servent à jouer/ et au partage) fabriquées UNIQUEMENT à partir des preview() des jeux par
   `source/accueil-media.js` (jamais de photo). Redirige vers `jouer/` dans l'appli, en PWA installée, ou si l'adresse a des paramètres
