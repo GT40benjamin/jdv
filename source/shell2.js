@@ -4053,7 +4053,19 @@ async function oaUnlink(uid, b) {
    déconnectés) ou LIBÉRER le joueur (famille_liberer : le compte est à lui, son Google ou pseudo + le code donné). Un compte de famille
    (sessOf(uid).fam) ne voit que ses joueurs et n'en crée pas d'autre. */
 const FAM = { uid: '', rows: [], kids: [], pick: new Set(), busy: false };
-const FAM_HASH = (() => {                     // …/jouer/#acces=LOUIS:K7Q29MXA3F,L%C3%89ONIE:3HG7… : lu au chargement puis retiré
+// …/jouer/#acces=LOUIS:K7Q29MXA3F,L%C3%89ONIE:3HG7… : lu au chargement (ou quand la borne déjà ouverte reçoit le lien : hashchange),
+// retiré de l'adresse, gardé pour la séance jusqu'à la fin des connexions (un rechargement de mise à jour ne le perd pas)
+const FAM_HASH = (() => {
+  const l = famHashRead();
+  if (l) { try { sessionStorage.setItem('jdw.acces', JSON.stringify(l)); } catch (e) {} return l; }
+  try { const s = JSON.parse(sessionStorage.getItem('jdw.acces') || 'null'); return Array.isArray(s) && s.length ? s : null; } catch (e) { return null; }
+})();
+addEventListener('hashchange', () => {
+  const l = famHashRead(); if (!l) return;
+  try { sessionStorage.setItem('jdw.acces', JSON.stringify(l)); } catch (e) {}
+  if (ACCT.ready) famArrive(l); else acctProbe().then(() => famArrive(l));
+});
+function famHashRead() {
   const h = String(location.hash || ''), m = h.match(/(?:^#|&)acces=([^&]+)/);
   if (!m) return null;
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
@@ -4065,9 +4077,10 @@ const FAM_HASH = (() => {                     // …/jouer/#acces=LOUIS:K7Q29MXA
     if (n.length >= 2 && c && !out.some(x => x.n === n)) out.push({ n, c });
   }
   return out.length ? out.slice(0, 12) : null;
-})();
+}
 // lien ouvert sur l'autre téléphone : chaque joueur se connecte avec son code et arrive sur l'appareil (le 1er de la liste devient le joueur actuel)
 async function famArrive(list) {
+  if (FAM.arriving) return; FAM.arriving = true;
   const ok = [], bad = [];
   for (const it of list.slice().reverse()) {
     try {
@@ -4077,6 +4090,8 @@ async function famArrive(list) {
       acctUse(res, L.s); ok.unshift(res.name);
     } catch (e) { bad.unshift({ it, e }); }
   }
+  FAM.arriving = false;
+  try { sessionStorage.removeItem('jdw.acces'); } catch (e) {}
   if (ok.length) setTimeout(() => toastCheer(ok.join(' et ') + (ok.length > 1 ? ' sont' : ' est') + ' sur ce téléphone !', ok[0], true), 300);
   if (bad.length) {
     const b = bad[0];

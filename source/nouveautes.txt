@@ -2,6 +2,8 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[borne] ## 🔧 Lien « Sur un autre téléphone » (borne 1.41.1)
+[borne] Corrigé : le lien envoyé pour un enfant marche aussi quand la borne est déjà ouverte dans le navigateur (avant, il ne se passait rien)
 [borne] ## 📲 Tes enfants sur un autre téléphone (borne 1.41)
 [borne] Nouveau : ⚙ › Compte › « Sur un autre téléphone » : choisis tes joueurs (un enfant, deux…) et envoie le lien sur le téléphone de leur maman ou de papi ; ce téléphone ne voit que ces joueurs, jamais ton compte ni tes autres joueurs, et ils gardent leurs salles et leurs scores
 [borne] Dans l'appli Android : « J'ai déjà un compte », le pseudo et le code donné avec le lien
