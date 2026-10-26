@@ -243,6 +243,79 @@ button:focus-visible,input:focus-visible,[role=tab]:focus-visible{outline:3px so
 .sheet{position:fixed;inset:0;z-index:30;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;overflow:auto;background:var(--veil);
   padding-inline:16px;padding-block:calc(env(safe-area-inset-top,0px) + 16px) calc(env(safe-area-inset-bottom,0px) + 16px)}
 #jdw-end{position:absolute;z-index:20}
+/* « Joué par JUJU ▾ » : discret, pour corriger le joueur si on s'est trompé */
+.endby{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.endby[hidden]{display:none}
+.endby-b{display:inline-flex;align-items:center;gap:7px;min-width:0;min-height:32px;padding:3px 11px 3px 3px;border-radius:999px;border:1px solid var(--line);
+  background:var(--night);color:var(--ink);font:700 13px var(--body);text-transform:uppercase;cursor:pointer;transition:border-color .15s,box-shadow .3s}
+.endby-b b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.endby-b .avatar{width:26px;height:26px;font-size:12px;flex:0 0 auto}
+.endby-b i{font-style:normal;font-size:11px;color:var(--muted)}
+.endby-b:hover,.endby-b[aria-expanded=true]{border-color:var(--acc,var(--amber))}
+.endby-b.moved{border-color:var(--leaf);box-shadow:0 0 0 3px rgba(76,210,122,.22),0 0 16px rgba(76,210,122,.35)}
+.endby-menu .endby-h{margin:4px 12px 6px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.endby-menu [role=menuitem]{text-transform:uppercase}
+.endby-menu [role=menuitem] .avatar{width:30px;height:30px;font-size:13px;flex:0 0 auto}
+/* écran de fin : il arrive en douceur (voile, carte qui rebondit, blocs l'un après l'autre, score qui défile) */
+#jdw-end.in{animation:endVeil .4s ease-out both}
+#jdw-end.in .card{animation:endCard .6s cubic-bezier(.18,1.3,.32,1) both}
+#jdw-end.in .card-body > :not(.end-l):not(.end-r),#jdw-end.in .end-l > *,#jdw-end.in .end-r > *{animation:endUp .46s cubic-bezier(.2,.9,.3,1) both;animation-delay:calc(var(--i,0) * 70ms + 200ms)}
+#jdw-end.in .board li{animation:endRow .42s cubic-bezier(.2,.9,.3,1) both;animation-delay:calc(var(--r,0) * 55ms + 420ms)}
+#jdw-end.in .beat{animation:endBeat .7s cubic-bezier(.2,1.4,.35,1) both;animation-delay:calc(var(--i,0) * 70ms + 200ms)}
+#jdw-end .bigscore b.pop{animation:endPop .5s cubic-bezier(.2,1.6,.4,1)}
+#jdw-end .card{position:relative}
+#jdw-end.in .card::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--acc,var(--amber)) 22%,transparent) 50%,transparent 65%);
+  background-size:250% 100%;background-position:120% 0;animation:endSheen 1.1s ease-out .35s both}
+@keyframes endVeil{from{background-color:transparent;backdrop-filter:none}}
+@keyframes endCard{from{opacity:0;transform:translateY(26px) scale(.9)}}
+@keyframes endUp{from{opacity:0;transform:translateY(12px)}}
+@keyframes endRow{from{opacity:0;transform:translateX(18px)}}
+@keyframes endBeat{0%{opacity:0;transform:scale(.7) rotate(-2deg)}60%{opacity:1;transform:scale(1.04) rotate(.6deg)}}
+@keyframes endPop{40%{transform:scale(1.14);text-shadow:0 0 22px color-mix(in srgb,var(--acc,var(--amber)) 70%,transparent)}}
+@keyframes endSheen{to{background-position:-30% 0}}
+@media (prefers-reduced-motion:reduce){#jdw-end.in,#jdw-end.in *,#jdw-end.in .card::after{animation:none!important}}
+/* fin de partie : en portrait les deux colonnes n'existent pas (display:contents) ; en paysage sur téléphone, tout tient sans défiler */
+#jdw-end .end-l,#jdw-end .end-r{display:contents}
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-end{padding-block:calc(env(safe-area-inset-top,0px) + 8px) calc(env(safe-area-inset-bottom,0px) + 8px);
+    padding-inline:max(12px,env(safe-area-inset-left,0px)) max(12px,env(safe-area-inset-right,0px))}
+  #jdw-end .card{max-width:min(900px,100%);max-height:calc(100dvh - 16px);display:flex;border-radius:14px}
+  #jdw-end .card-body{flex:1 1 auto;min-height:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;padding:12px 14px;align-items:stretch}
+  #jdw-end .end-l,#jdw-end .end-r{display:flex;flex-direction:column;gap:7px;min-width:0;min-height:0}
+  #jdw-end .end-l{justify-content:center}
+  #jdw-end .end-r{padding-left:14px;border-left:1px solid var(--line)}
+  #jdw-end .eyebrow{font-size:11px}
+  #jdw-end .bigscore b{font-size:clamp(34px,11vh,48px)}
+  #jdw-end .lvprog{margin:0}
+  #jdw-end .lv-h{margin:0 0 14px;font-size:12px}
+  #jdw-end .lv-h b{font-size:15px}
+  #jdw-end .lv-track i{height:8px}
+  #jdw-end .lv-worlds{margin-top:3px}
+  #jdw-end .beat{padding:6px 10px;gap:10px}
+  #jdw-end .beat img{width:40px}
+  #jdw-end .beat p{font-size:13px}
+  #jdw-end .beat p b{font-size:15px}
+  #jdw-end .taunt{padding:5px 10px;font-size:13px}
+  #jdw-end .taunt-head .chead{width:36px;height:36px}
+  #jdw-end .small{font-size:12px;line-height:1.3}
+  #jdw-end .end-guest{padding:8px 10px;gap:6px;font-size:13px}
+  #jdw-end .end-guest p{margin:0}
+  #jdw-end .who{padding:6px 8px;gap:5px}
+  #jdw-end .who-chip{min-height:34px}
+  #jdw-end .who-chip .avatar{width:26px;height:26px}
+  #jdw-end .board{flex:0 1 auto;min-height:0;overflow-y:auto;gap:4px;overscroll-behavior:contain}
+  #jdw-end .board li{padding:4px 8px;gap:8px;grid-template-columns:1.5em 26px minmax(0,1fr) auto;font-size:13px}
+  #jdw-end .board li .avatar{width:26px;height:26px;font-size:12px}
+  #jdw-end .end-r .row{margin-top:auto;flex-wrap:nowrap}
+  #jdw-end .end-r .row .btn{flex:1 1 0;min-height:42px;padding:8px 8px;font-size:15px;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #jdw-end .end-r:has(> .board[hidden]):not(:has(> .who:not([hidden]))){justify-content:center}
+  #jdw-end .end-r:has(> .board[hidden]):not(:has(> .who:not([hidden]))) .row{margin-top:0;flex-direction:column}
+  #jdw-end #jdw-again{flex:.8 1 0}
+  #jdw-end .end-r:has(> .board[hidden]) .row .btn{flex:0 0 auto;min-height:48px;font-size:16px}
+  #jdw-end .end-chat{min-height:32px;padding:5px 10px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  @media (max-width:820px){#jdw-end .end-r .row .btn{font-size:13px;letter-spacing:0}#jdw-end .end-chat{font-size:11.5px;letter-spacing:0}}
+}
 .card{--acc:var(--amber);width:100%;max-width:460px;min-width:0;background:var(--panel);border:1px solid var(--steel2);border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5)}
 .card-body{display:grid;gap:14px;padding:20px;min-width:0}
 .card-head{display:flex;align-items:center;gap:10px}
@@ -450,6 +523,18 @@ body.chat-open{overflow:hidden}
 .cri-wave{width:100%;max-width:340px;height:64px}
 .cri-hint{margin:0;min-height:1.4em;text-align:center;font-weight:600}
 .chead.crying i{animation-name:cry2}
+/* deux cris : victoire (rose) / perte (bleu) */
+.cri-step{margin:0 0 -4px;color:#8fc1ff}
+.cri-kind{margin:2px 0 0}
+.cri-kind button{display:flex;align-items:center;justify-content:center;gap:6px}
+.cri-kind button i{font-style:normal;font-size:17px}
+.cri-has{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--leaf);color:var(--night);font:800 11px var(--body)}
+.cri-kind button[data-k="lose"][aria-pressed="true"]{box-shadow:inset 0 -2px 0 #6aa8ff}
+.cri-txt{margin:2px 0 0;min-height:2.6em}
+#jdw-cri[data-kind="lose"] .cri-rec{background:conic-gradient(#4f8dff calc(var(--p) * 360deg),var(--steel) 0)}
+#jdw-cri[data-kind="lose"] .cri-dot{background:#4f8dff;box-shadow:0 0 0 6px rgba(79,141,255,.25)}
+#jdw-cri[data-kind="lose"][data-state="rec"] .cri-dot{animation-name:criPulseB}
+@keyframes criPulseB{50%{box-shadow:0 0 0 14px rgba(79,141,255,.1)}}
 
 /* ---------- Nouveau joueur ---------- */
 .wel-h{margin:0;font-family:var(--display);font-weight:400;font-size:26px;line-height:1.05}
@@ -483,6 +568,9 @@ body.chat-open{overflow:hidden}
 .wel-cri-txt b{font-size:15px}
 .wel-cri-txt small{font-size:12px;color:var(--muted)}
 .wel-cri-go{font-size:26px;color:var(--muted)}
+.wel-cri.lose .wel-cri-ic{background:#3a6fd8}
+.wel-cri.lose.done .wel-cri-ic{background:var(--leaf)}
+.wel-cri + .wel-cri{margin-top:-4px}
 @media (max-width:360px){.wel-face{width:92px;height:110px}}
 
 .rescue{position:absolute;left:50%;top:12px;z-index:30;transform:translateX(-50%);width:min(92%,440px);display:grid;gap:10px;padding:14px 16px;border-radius:16px;
@@ -2139,6 +2227,23 @@ body.jdw-guest #jdw-scope{display:none}
   background:radial-gradient(circle at 35% 30%,rgba(255,95,174,.32),rgba(255,95,174,.05) 70%)}
 .act-ic svg{width:34px;height:34px;fill:none;stroke:#ff86c2;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .act-tile.on .act-ic{border-color:var(--leaf);box-shadow:0 0 18px rgba(76,210,122,.28)}
+/* « Cri de perte » : une ligne sous les deux tuiles ; vide = emplacement en pointillés bien visible */
+.act-row{grid-column:1 / -1;display:flex;align-items:center;gap:12px;min-width:0;min-height:64px;padding:10px 14px;border-radius:16px;
+  border:1.5px dashed rgba(106,168,255,.55);color:var(--ink);text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  background:radial-gradient(90% 140% at 0% 50%,rgba(79,141,255,.16),transparent 70%),var(--night);transition:transform .15s,border-color .15s,box-shadow .15s}
+.act-row:hover{border-color:#8fc1ff}
+.act-row:active{transform:scale(.98)}
+.act-row[aria-expanded=true]{border-color:var(--volt);box-shadow:0 0 0 3px rgba(94,240,255,.14)}
+.act-row-ic{flex:0 0 auto;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;font-size:22px;
+  border:1px solid rgba(106,168,255,.45);background:radial-gradient(circle at 35% 30%,rgba(79,141,255,.38),rgba(79,141,255,.06) 70%)}
+.act-row-tx{flex:1 1 auto;display:grid;gap:3px;min-width:0}
+.act-row-tx b{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.02em;line-height:1}
+.act-row-tx small{font-size:12.5px;font-weight:600;color:#8fc1ff}
+.act-row-go{flex:0 0 auto;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#3a6fd8;color:#fff;font:700 20px/1 var(--body)}
+.act-row.on{border-style:solid;border-color:var(--line);background:linear-gradient(180deg,var(--card-hi),var(--card));box-shadow:0 8px 22px rgba(0,0,0,.35)}
+.act-row.on .act-row-ic{border-color:var(--leaf);box-shadow:0 0 14px rgba(76,210,122,.25)}
+.act-row.on .act-row-tx small{color:var(--leaf)}
+.act-row.on .act-row-go{background:none;color:var(--muted);font-size:22px}
 /* petit menu sous « Ma tête » / « Mon cri » */
 .act-menu{position:fixed;z-index:60;display:grid;gap:2px;padding:6px;border-radius:16px;transform-origin:var(--ax,30%) 0;
   background:linear-gradient(180deg,#18283a,#0f1a23);border:1px solid var(--steel2);box-shadow:0 18px 44px rgba(0,0,0,.62)}
@@ -2372,6 +2477,11 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 .ft-ic svg{width:19px;height:19px;fill:none;stroke:var(--amber);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .ft-x{width:30px;height:30px;padding:0;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--ink);font-size:13px;line-height:1;cursor:pointer}
 .ft-nw{white-space:nowrap}
+/* rappel « Nouveau : ton cri de perte » (une fois par joueur) */
+.lose-tip{grid-template-columns:auto minmax(0,1fr) auto auto;border-color:rgba(106,168,255,.55)}
+.lose-tip b{color:#bcd8ff}
+.lose-tip .ft-ic{font-size:19px;border-color:rgba(106,168,255,.55);background:radial-gradient(circle at 35% 30%,rgba(79,141,255,.45),rgba(79,141,255,.06) 70%);box-shadow:0 0 14px rgba(79,141,255,.25)}
+.lt-go{min-height:30px;padding:0 12px;border:0;border-radius:10px;background:#3a6fd8;color:#fff;font:700 13px var(--body,'Chakra Petch',system-ui,sans-serif);cursor:pointer;white-space:nowrap}
 @media (orientation:landscape) and (max-height:500px){.fs-tip{top:calc(env(safe-area-inset-top,0px) + 46px)}#jdw-fs svg{width:1.2em;height:1.2em;margin:-.1em 0}}
 
 /* ---------- Clavier à l'écran (shell2.js « Clavier ») : chat, fenêtres et « regarder » dans la zone visible (--kbt / --kb valent 0 sans clavier) ---------- */
@@ -3213,16 +3323,21 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
     <div class="sheet" id="jdw-end" hidden>
       <div class="card" id="jdw-endcard">
         <div class="card-body">
+          <!-- deux colonnes en paysage sur téléphone (score à gauche, classement + boutons à droite) ; en portrait : display:contents -->
+          <div class="end-l">
           <p class="eyebrow" id="jdw-endgame">Partie terminée</p>
           <div class="bigscore"><b id="jdw-endscore">0</b><span id="jdw-endunit">points</span></div>
           <div class="lvprog" id="jdw-lvprog" hidden></div>
           <button class="taunt" id="jdw-taunt" type="button" hidden><span class="taunt-head" id="jdw-taunt-head"></span><span class="taunt-txt"><b id="jdw-taunt-name"></b><span id="jdw-taunt-say"></span></span><span class="taunt-play" aria-hidden="true">🔊</span></button>
           <div class="beat" id="jdw-beat" hidden><img id="jdw-beat-img" alt=""><p id="jdw-beat-txt"></p></div>
           <p class="small" id="jdw-status"></p>
+          <div class="endby" id="jdw-endby" hidden><span class="endby-l">Joué par</span><button class="endby-b" id="jdw-endby-b" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-endby-menu"><span class="avatar" id="jdw-endby-av"></span><b id="jdw-endby-n"></b><i aria-hidden="true">▾</i></button></div>
           <div class="end-guest" id="jdw-end-guest" hidden>
             <p><b>Garde tes records !</b> Crée ton compte (gratuit) pour enregistrer tes scores et défier tes copains au classement.</p>
             <div class="row"><button class="btn btn-play btn-sm" id="jdw-end-guest-new" type="button">Créer un compte</button><button class="btn btn-ghost btn-sm" id="jdw-end-guest-login" type="button">J’ai déjà un compte</button></div>
           </div>
+          </div>
+          <div class="end-r">
           <div class="who" id="jdw-who" hidden>
             <p class="small" id="jdw-who-q">Enregistrer ce score pour :</p>
             <div class="who-list" id="jdw-who-list"></div>
@@ -3234,6 +3349,7 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
             <button class="btn btn-ghost" id="jdw-tolib" type="button">Changer de jeu</button>
           </div>
           <button class="btn btn-ghost btn-sm end-chat" id="jdw-end-chat" type="button" hidden>💬 Partager mon score dans le chat</button>
+          </div>
         </div>
       </div>
     </div>
@@ -3717,7 +3833,12 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
           </button>
           <button class="act-tile" id="jdw-set-crib" type="button" data-align="end" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-set-crimenu">
             <span class="act-ic" id="jdw-set-crib-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></span>
-            <b>Mon cri</b><small id="jdw-set-crib-s"></small>
+            <b>Cri de victoire</b><small id="jdw-set-crib-s"></small>
+          </button>
+          <button class="act-row" id="jdw-set-loseb" type="button" data-align="end" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-set-losemenu">
+            <span class="act-row-ic" aria-hidden="true">😢</span>
+            <span class="act-row-tx"><b>Cri de perte</b><small id="jdw-set-loseb-s">Ajouter mon cri de perte</small></span>
+            <span class="act-row-go" id="jdw-set-loseb-go" aria-hidden="true">+</span>
           </button>
           <div class="act-menu" id="jdw-set-headmenu" role="menu" aria-label="Ma tête" hidden>
             <button type="button" role="menuitem" id="jdw-set-photo"><i aria-hidden="true">📸</i><span>Prendre une photo</span></button>
@@ -3728,6 +3849,11 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
             <button type="button" role="menuitem" id="jdw-set-cri-play" hidden><i aria-hidden="true">▶️</i><span>Écouter</span></button>
             <button type="button" role="menuitem" id="jdw-set-cri"><i aria-hidden="true">🎙️</i><span>Enregistrer mon cri</span></button>
             <button type="button" role="menuitem" class="act-del" id="jdw-set-cridel" hidden><i aria-hidden="true">🗑️</i><span>Retirer mon cri</span></button>
+          </div>
+          <div class="act-menu" id="jdw-set-losemenu" role="menu" aria-label="Mon cri de perte" hidden>
+            <button type="button" role="menuitem" id="jdw-set-lose-play" hidden><i aria-hidden="true">▶️</i><span>Écouter</span></button>
+            <button type="button" role="menuitem" id="jdw-set-lose"><i aria-hidden="true">🎙️</i><span>Enregistrer mon cri de perte</span></button>
+            <button type="button" role="menuitem" class="act-del" id="jdw-set-losedel" hidden><i aria-hidden="true">🗑️</i><span>Retirer mon cri de perte</span></button>
           </div>
         </div>
         <button class="btn btn-ghost btn-sm look-reset" id="jdw-set-lookreset" type="button" data-in="room" hidden>↩ Comme partout</button>
@@ -3749,10 +3875,10 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
   </div>
 </div>
 <!-- explications des paramètres (montrées dans la bulle « ? ») -->
-<div class="help-src" id="jdw-help-set-me" hidden><p><b>Ta tête et ton cri</b> apparaissent dans les jeux et le chat de toutes tes salles.</p><p id="jdw-set-name-help">Ton pseudo se change ici, puis « Enregistrer ».</p></div>
+<div class="help-src" id="jdw-help-set-me" hidden><p><b>Ta tête et tes cris</b> apparaissent dans les jeux et le chat de toutes tes salles : le cri de victoire quand tu gagnes, le cri de perte quand tu perds.</p><p id="jdw-set-name-help">Ton pseudo se change ici, puis « Enregistrer ».</p></div>
 <div class="help-src" id="jdw-help-set-room" hidden><p class="look-hint" id="jdw-look-hint"></p><p>Tout ce que tu changes ici ne sert que dans <b id="jdw-alias-room"></b>. « Mon pseudo ici » vide : ton pseudo principal.</p></div>
 <div class="help-src" id="jdw-help-set-acct" hidden><p id="jdw-set-acct-help"></p><p>Un compte peut avoir plusieurs joueurs : tous gardent le même mot de passe.</p></div>
-<div class="help-src" id="jdw-help-set-snd" hidden><p><b>Cris des copains</b> : le cri d’un copain sonne quand tu le bats, et quand tu touches sa tête dans le chat.</p><p>En pleine partie, le bouton 🔊 en haut règle aussi le son.</p></div>
+<div class="help-src" id="jdw-help-set-snd" hidden><p><b>Cris des copains</b> : quand tu bats un copain, c’est son cri de perte qui sonne ; quand il gagne ou te devance, son cri de victoire. Touche sa tête dans le chat pour l’entendre.</p><p>En pleine partie, le bouton 🔊 en haut règle aussi le son.</p></div>
 
 <!-- Nouveau joueur : pseudo + tête + cri dans une seule fenêtre -->
 <div class="sheet" id="jdw-welcome" hidden>
@@ -3784,8 +3910,13 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
         </div>
       </div>
       <button class="wel-cri" id="jdw-wel-cri" type="button">
-        <span class="wel-cri-ic" aria-hidden="true">🎙️</span>
-        <span class="wel-cri-txt"><b id="jdw-wel-cri-t">Ajouter mon cri</b><small id="jdw-wel-cri-s">3 secondes pour faire rire les copains</small></span>
+        <span class="wel-cri-ic" aria-hidden="true">🎉</span>
+        <span class="wel-cri-txt"><b id="jdw-wel-cri-t">Ajouter mon cri de victoire</b><small id="jdw-wel-cri-s">3 secondes pour faire rire les copains</small></span>
+        <span class="wel-cri-go" aria-hidden="true">›</span>
+      </button>
+      <button class="wel-cri lose" id="jdw-wel-lose" type="button">
+        <span class="wel-cri-ic" aria-hidden="true">😢</span>
+        <span class="wel-cri-txt"><b id="jdw-wel-lose-t">Ajouter mon cri de perte</b><small id="jdw-wel-lose-s">Quand un copain te bat : snif, ouin, noooon !</small></span>
         <span class="wel-cri-go" aria-hidden="true">›</span>
       </button>
       <div class="acct-fields" id="jdw-wel-acct" hidden>
@@ -3816,7 +3947,7 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
   </div>
 </div>
 
-<div class="help-src" id="jdw-help-wel-new" hidden><p><b>Ton compte</b> (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouves sur n’importe quel appareil.</p><p>La tête et le cri sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains de tes salles les voient.</p></div>
+<div class="help-src" id="jdw-help-wel-new" hidden><p><b>Ton compte</b> (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouves sur n’importe quel appareil.</p><p>La tête et les cris sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains de tes salles les voient.</p></div>
 <div class="help-src" id="jdw-help-wel-login" hidden><p>Tu as déjà joué sur un autre appareil ? Connecte-toi avec ton e-mail ou ton pseudo, et le mot de passe du compte : on récupère ton joueur, sa tête et son cri.</p></div>
 
 <!-- Compte : protéger, se connecter, confirmer, mot de passe oublié / nouveau / changer -->
@@ -3886,8 +4017,13 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
 <div class="sheet" id="jdw-cri" hidden data-state="idle">
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-cri-h">
     <div class="card-body">
-      <div class="card-head"><h2 id="jdw-cri-h">Ton cri</h2><button class="btn btn-ghost btn-sm" id="jdw-cri-close" type="button">Annuler</button></div>
-      <p class="small">3 secondes pour crier, rire ou chanter. Il sonnera quand un copain perd contre toi, et quand on touche ta tête dans le chat.</p>
+      <p class="eyebrow cri-step" id="jdw-cri-step" hidden>Encore un, le dernier !</p>
+      <div class="card-head"><h2 id="jdw-cri-h">Ton cri de victoire</h2><button class="btn btn-ghost btn-sm" id="jdw-cri-close" type="button">Annuler</button></div>
+      <div class="scope cri-kind" id="jdw-cri-kind" role="group" aria-label="Quel cri ?">
+        <button type="button" data-k="win" aria-pressed="true"><i aria-hidden="true">🎉</i> Victoire<span class="cri-has" data-has="win" hidden>✓</span></button>
+        <button type="button" data-k="lose" aria-pressed="false"><i aria-hidden="true">😢</i> Perte<span class="cri-has" data-has="lose" hidden>✓</span></button>
+      </div>
+      <p class="small cri-txt" id="jdw-cri-txt"></p>
       <div class="cri-stage">
         <button class="cri-rec" id="jdw-cri-rec" type="button" aria-label="Enregistrer"><span class="cri-dot"></span></button>
         <canvas class="cri-wave" id="jdw-cri-wave"></canvas>
@@ -3914,6 +4050,8 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
     <button class="btn btn-play gmap-play" id="jdw-map-play" type="button">▶ Jouer</button>
   </footer>
 </div>
+<!-- « Joué par » de l'écran de fin : hors de la carte (qui est animée), pour rester bien placé -->
+<div class="act-menu endby-menu" id="jdw-endby-menu" role="menu" aria-label="Qui a joué ?" hidden></div>
 <input type="file" id="jdw-cri-input" accept="audio/*" hidden>
 <input type="file" id="jdw-file" accept="image/*" capture="user" hidden>
 <div class="help-pop" id="jdw-help" role="dialog" aria-label="Explications" tabindex="-1" hidden><div class="help-in" id="jdw-help-in"></div></div>
@@ -99391,7 +99529,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261025230111"; window.JDW_VERSION = "1.36.21"; window.JDW_NOTES = ["[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.7", "[pegase] La p\u00eache : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la cam\u00e9ra montre la canne enti\u00e8re avec son fil", "[pegase] Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches", "[pegase] Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles", "[pegase] \u00c0 table : on s'assoit face \u00e0 la table, les pieds dessous, des deux c\u00f4t\u00e9s", "[pegase] Le r\u00e2teau chez Rosalie : il remet l'herbe sur une case b\u00each\u00e9e, ou annule une plantation en te rendant la graine", "[pegase] Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa t\u00eate", "[pegase] La photo : cach\u00e9 dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'\u00e9cartent dans le viseur", "[pegase] Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres", "[pegase] Ta vue 1re ou 3e personne est retenue d'une partie \u00e0 l'autre", "[pegase] Sur PC, les mises \u00e0 jour sont bien plus rapides : seul ce qui change est t\u00e9l\u00e9charg\u00e9", "[pegase] ## \ud83c\udfe1 P\u00e9gase 0.9.6", "[pegase] Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte \u00ab \u00c0 vendre \u00bb et leur bo\u00eete aux lettres", "[pegase] Les parcelles redessin\u00e9es : elles ne d\u00e9bordent plus sur les chemins, leur lueur dor\u00e9e \u00e9pouse le sol, et deux voisines partagent la m\u00eame limite", "[pegase] Le permis de construire donne une parcelle \u00e0 1000 lucioles ; les autres s'ach\u00e8teront", "[pegase] Une barre d'objets en bas de l'\u00e9cran : touches 1 \u00e0 5, l'objet en main s'utilise au clic ; E sert \u00e0 parler, ouvrir et s'asseoir ; le parapluie s'ouvre quand tu le tiens", "[pegase] Les chemins sous le Clos nettoy\u00e9s, une vraie aire de demi-tour pour l'avion, une all\u00e9e jusqu'\u00e0 l'escalier et plein de buissons et de fleurs autour", "[pegase] Maisons pr\u00eates : plus de toits qui se croisent dans l'aper\u00e7u ; \u00ab R\u00e9am\u00e9nager l'int\u00e9rieur \u00bb est de retour \u00e0 l'\u00e9tape \u00c9tages", "[pegase] La musique joue pendant qu'une mise \u00e0 jour se t\u00e9l\u00e9charge", "[pegase] La ferme : la vache meugle, le cheval hennit et s'\u00e9broue, le cochon grogne", "[pegase] De l'herbe sur les pentes derri\u00e8re les plages et au bord de l'\u00eele", "[pegase] ## \ud83d\udcf1 Des plans film\u00e9s en hauteur pour le t\u00e9l\u00e9phone (borne 1.36.21)", "[pegase] Sur t\u00e9l\u00e9phone tenu droit, sept plans sont maintenant film\u00e9s en hauteur : tout le d\u00e9cor tient dans l'\u00e9cran, sans rien couper", "[pegase] ## \u2795 Cr\u00e9er son \u00eele d'un toucher (borne 1.36.19)", "[pegase] Le gros bouton \u00ab Cr\u00e9er mon \u00eele \u00bb devient une tuile \u00ab + \u00bb au bout de la liste des \u00eeles, sur PC comme sur t\u00e9l\u00e9phone", "[pegase] La cr\u00e9ation se fait dans la tuile m\u00eame, en trois onglets : le nom, qui peut entrer, et cr\u00e9er", "[pegase] Toutes les explications sont rang\u00e9es derri\u00e8re le petit \u00ab i \u00bb", "[pegase] \u00c0 la cr\u00e9ation, la tuile s'illumine dans une pluie d'\u00e9tincelles, puis ton \u00eele appara\u00eet \u00e0 sa place", "[pegase] ## \ud83d\udcf1 La page P\u00e9gase sur t\u00e9l\u00e9phone (borne 1.36.17)", "[pegase] Sur t\u00e9l\u00e9phone, tout tient sur l'\u00e9cran (le titre, la recherche, ton \u00eele, cr\u00e9er une \u00eele) et le d\u00e9cor film\u00e9 se voit derri\u00e8re", "[pegase] Une barre du bas plus fine, et le bandeau \u00ab invit\u00e9 \u00bb ramen\u00e9 \u00e0 une ligne", "[pegase] Sur t\u00e9l\u00e9phone, seulement les plans de ciel clair et de nuit ; la pluie reste pour les grands \u00e9crans", "[pegase] Les cartes et le voile s'accordent au ciel du plan : plus de contraste en plein jour, plus couvrantes sous la pluie, plus l\u00e9g\u00e8res la nuit", "[pegase] ## \ud83c\udfac Trois nouveaux plans film\u00e9s en fond (borne 1.36.14)", "[pegase] Le lac au lever, maintenant avec ses oies ; le lac de l'arbre rouge, tout neuf ; et le bosquet du grand-duc au petit matin", "[pegase] Dix plans en tout, jusqu'\u00e0 la 4K sur les grands \u00e9crans", "[pegase] ## \ud83c\udfac Huit plans film\u00e9s en fond de la page P\u00e9gase (borne 1.36.8)", "[pegase] Quatre nouveaux plans film\u00e9s dans le jeu : la pluie douce sur les tournesols, la cascade du lac de montagne, le panorama depuis la falaise et une nouvelle prairie sous la Voie lact\u00e9e", "[pegase] Tous les plans en tr\u00e8s haute qualit\u00e9 (jusqu'\u00e0 la 4K) sur les grands \u00e9crans, et ils d\u00e9marrent toujours vite en petite qualit\u00e9", "[pegase] ## \ud83c\udfea P\u00e9gase 0.9.5", "[pegase] Les boutiques ont de nouvelles devantures : grandes enseignes dor\u00e9es, stores ray\u00e9s aux couleurs de chaque commerce, vitrines \u00e9clair\u00e9es, pancarte OUVERT / FERM\u00c9 qui suit les horaires", "[pegase] La musique est revenue dans les boutiques et \u00e0 la mairie, et elle reprend toute seule quand tu arr\u00eates la tienne", "[pegase] Le grand-duc sous une douce lueur de lune, son vrai hou-hou qui vient de sa direction et ses battements d'ailes", "[pegase] Des sons plus vrais : seuls les vrais animaux chantent, depuis l'endroit o\u00f9 ils sont", "[pegase] Les oiseaux se baladent d'un bosquet \u00e0 l'autre, et des sangliers viennent parfois fouiller la nuit", "[pegase] Missions en bas de l'\u00e9cran, plus discr\u00e8tes ; chaque journ\u00e9e du jeu en propose de nouvelles", "[pegase] Le concours photo de Papi Auguste devient un d\u00e9p\u00f4t : ta nouvelle photo remplace la pr\u00e9c\u00e9dente", "[pegase] Une belle notification quand tu obtiens un objet, un geste ou un v\u00eatement", "[pegase] Le potager : b\u00eacher presque partout sur sa parcelle, la pluie arrose, et le jeu te dit pourquoi un endroit est refus\u00e9", "[pegase] Ta maison : panneau et bo\u00eete aux lettres d\u00e9pla\u00e7ables, plus de blocage au pas de la porte", "[pegase] Et aussi : plus de pluie dans les maisons, plus d'herbe, un soleil plus doux, Ctrl pour s'accroupir en mode photo, un arr\u00eat avant le bord des falaises", "[pegase] ## \ud83c\udfdd\ufe0f La nouvelle page P\u00e9gase (borne 1.36)", "[pegase] P\u00e9gase a sa propre page, tout \u00e0 gauche de la borne : on y arrive directement en ouvrant la borne", "[pegase] En fond, de vrais plans film\u00e9s dans le jeu : les tournesols, la prairie sous la Voie lact\u00e9e, la pluie sur la place du village", "[pegase] Les \u00eeles : cherche une \u00eele par son nom, filtre les \u00eeles publiques, priv\u00e9es ou les tiennes, et vois qui est en ligne", "[pegase] Chaque \u00eele sous sa mer de nuages : la brume s'ouvre l\u00e0 o\u00f9 tu as d\u00e9j\u00e0 explor\u00e9", "[pegase] PegaGram en un toucher depuis l'\u00eele ; le classement des plus belles \u00eeles (esp\u00e8ces trouv\u00e9es, habitants)", "[pegase] Le mode ambiance \u2728 : tout s'efface, il ne reste que le d\u00e9cor et le titre ; un toucher et tout revient", "[pegase] Un bouton pour partager la page P\u00e9gase avec tes copains", "[smoothie] ## \ud83c\udf4c Smoothie Samoura\u00ef : la coupe au millim\u00e8tre (borne 1.36.12)", "[smoothie] La lame tranche le fruit exactement l\u00e0 o\u00f9 ton doigt passe, en suivant sa vraie forme et son orientation : m\u00eame un petit bout coup\u00e9 au bord compte", "[smoothie] Un fruit touch\u00e9 est gagn\u00e9 : ses morceaux peuvent tomber sans te co\u00fbter de vie", "[smoothie] Recoupe les morceaux qui tombent, autant de fois que tu veux : quelques points en plus \u00e0 chaque fois (de moins en moins), et de belles gerbes de jus", "[smoothie] Une toute nouvelle banane : bien dodue, avec ses ar\u00eates, sa queue verte et ses rondelles quand on la tranche", "[bolides] ## \ud83c\udfc6 Bolides RC : une IA bien plus coriace (borne 1.36.5)", "[bolides] Moyen roule maintenant comme un bon pilote : il d\u00e9rape dans les grands virages", "[bolides] Difficile prend la trajectoire id\u00e9ale et encha\u00eene les mini-turbos dans chaque virage serr\u00e9", "[bolides] Extr\u00eame est un pilote quasi parfait : super mini-turbos, aucune erreur, il \u00e9vite les flaques, d\u00e9passe et ferme la porte", "[bolides] Facile ne change pas", "[bolides] ## \ud83c\udfc1 Bolides RC : \u00e0 fond, sur trois circuits tout neufs (borne 1.35.12)", "[bolides] Plus aucun ralentissement automatique : joystick pouss\u00e9 \u00e0 fond = pleine vitesse, m\u00eame dans les virages, c'est toi qui d\u00e9cides", "[bolides] Trois circuits redessin\u00e9s : longues lignes droites, grandes courbes rapides, esses, une vraie \u00e9pingle au Parking", "[bolides] Vibreurs rouge et blanc dans les virages, pneus, haies, blocs de b\u00e9ton, cordes de plage le long de la piste", "[bolides] Un tremplin sur chaque circuit : la voiture d\u00e9colle, plane et retombe en soulevant la poussi\u00e8re", "[bolides] Le Jardin plein de pots de fleurs, d'arrosoirs et de nains ; le Parking avec ses places peintes, palettes et piles de pneus ; la Plage au bord de la mer, avec ch\u00e2teaux de sable, seaux, serviettes et crabes", "[bolides] \u00c0 pleine vitesse, la voiture glisse un peu dans les virages serr\u00e9s et se rattrape toute seule ; contre les bordures, elle rebondit doucement et glisse le long", "[bolides] Les bolides du jeu roulent vraiment vite : l'IA \u00ab extr\u00eame \u00bb prend chaque virage \u00e0 fond et d\u00e9rape partout", "[bolides] ## \ud83c\udfce\ufe0f Bolides RC : une conduite toute neuve (borne 1.35.1)", "[bolides] Pose le doigt de ton c\u00f4t\u00e9 et pousse vers o\u00f9 tu veux aller : ta voiture y va et acc\u00e9l\u00e8re toute seule", "[bolides] Le bouton D\u00c9RAPE dans les virages charge un mini-turbo : \u00e9tincelles bleues, puis orange pour un super turbo", "[bolides] Un anneau \u00e0 ta couleur sous ta voiture et une fl\u00e8che qui montre o\u00f9 tu l'envoies", "[bolides] \u00c0 la manette : le stick donne la direction, A pour d\u00e9raper ; au clavier : les fl\u00e8ches, et Espace pour d\u00e9raper", "[bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur", "[bolides] En ligne : plus de voiture qui saute au d\u00e9but d'une nouvelle manche", "[neon] ## \ud83c\udfb5 N\u00e9on Rush : le jeu comme avant, avec les nouveaux d\u00e9cors (borne 1.35.6)", "[neon] Le sol, les murs, les plafonds, les blocs, les piques, les portails et ton cube sont redevenus exactement comme avant : plus rien ne bat pendant que tu joues", "[neon] Plus de voile sombre au ras du sol ni de murs noirs au-dessus de toi : tout est revenu comme avant", "[neon] Plus de zoom, d'\u00e9clair ni d'onde de choc sur les grands moments de la musique", "[neon] Les six nouveaux d\u00e9cors restent (N\u00e9on City, Coucher Synthwave, Cyber Oc\u00e9an, Grotte de Cristal, C\u0153ur de Lave, Galaxie), mais au calme", "[neon] De temps en temps, un seul objet du d\u00e9cor r\u00e9agit \u00e0 la musique : une enseigne qui s'allume, une m\u00e9duse qui pulse, un cristal qui brille, un volcan qui crache, le soleil qui s'embrase ou une \u00e9toile filante", "[neon] Le bouton \u2726 \u00ab effets r\u00e9duits \u00bb enl\u00e8ve les \u00e9clairs, les secousses et ces petites r\u00e9actions du d\u00e9cor", "[neon] Les niveaux n'ont pas chang\u00e9"];</script>
+<script>window.JDW_BUILD = "20261026123350"; window.JDW_VERSION = "1.37"; window.JDW_NOTES = ["[borne] ## \ud83d\ude22 Ton cri de perte (borne 1.37)", "[borne] \ud83d\ude22 Nouveau : enregistre aussi ton cri de perte ! Il sonne quand un copain bat ton record ; ton cri de victoire, lui, sonne quand tu gagnes un duel ou restes premier", "[borne] \ud83c\udf99\ufe0f Ton cri de perte se r\u00e8gle dans \u2699 (sous ta t\u00eate et ton cri de victoire) et juste apr\u00e8s le cri de victoire quand tu cr\u00e9es ton joueur ; pendant l'enregistrement, la musique de la borne se tait", "[borne] \ud83d\udd01 Fin de partie : \u00ab Jou\u00e9 par \u25be \u00bb donne le score au bon joueur de l'appareil si on s'est tromp\u00e9, tout de suite (l'ancien record de l'autre revient)", "[borne] \ud83d\udcf1 Fin de partie en paysage sur t\u00e9l\u00e9phone : tout tient sur l'\u00e9cran sans d\u00e9filer (score \u00e0 gauche, classement \u00e0 droite), avec une belle arriv\u00e9e anim\u00e9e", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.7", "[pegase] La p\u00eache : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la cam\u00e9ra montre la canne enti\u00e8re avec son fil", "[pegase] Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches", "[pegase] Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles", "[pegase] \u00c0 table : on s'assoit face \u00e0 la table, les pieds dessous, des deux c\u00f4t\u00e9s", "[pegase] Le r\u00e2teau chez Rosalie : il remet l'herbe sur une case b\u00each\u00e9e, ou annule une plantation en te rendant la graine", "[pegase] Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa t\u00eate", "[pegase] La photo : cach\u00e9 dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'\u00e9cartent dans le viseur", "[pegase] Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres", "[pegase] Ta vue 1re ou 3e personne est retenue d'une partie \u00e0 l'autre", "[pegase] Sur PC, les mises \u00e0 jour sont bien plus rapides : seul ce qui change est t\u00e9l\u00e9charg\u00e9", "[pegase] ## \ud83c\udfe1 P\u00e9gase 0.9.6", "[pegase] Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte \u00ab \u00c0 vendre \u00bb et leur bo\u00eete aux lettres", "[pegase] Les parcelles redessin\u00e9es : elles ne d\u00e9bordent plus sur les chemins, leur lueur dor\u00e9e \u00e9pouse le sol, et deux voisines partagent la m\u00eame limite", "[pegase] Le permis de construire donne une parcelle \u00e0 1000 lucioles ; les autres s'ach\u00e8teront", "[pegase] Une barre d'objets en bas de l'\u00e9cran : touches 1 \u00e0 5, l'objet en main s'utilise au clic ; E sert \u00e0 parler, ouvrir et s'asseoir ; le parapluie s'ouvre quand tu le tiens", "[pegase] Les chemins sous le Clos nettoy\u00e9s, une vraie aire de demi-tour pour l'avion, une all\u00e9e jusqu'\u00e0 l'escalier et plein de buissons et de fleurs autour", "[pegase] Maisons pr\u00eates : plus de toits qui se croisent dans l'aper\u00e7u ; \u00ab R\u00e9am\u00e9nager l'int\u00e9rieur \u00bb est de retour \u00e0 l'\u00e9tape \u00c9tages", "[pegase] La musique joue pendant qu'une mise \u00e0 jour se t\u00e9l\u00e9charge", "[pegase] La ferme : la vache meugle, le cheval hennit et s'\u00e9broue, le cochon grogne", "[pegase] De l'herbe sur les pentes derri\u00e8re les plages et au bord de l'\u00eele", "[pegase] ## \ud83d\udcf1 Des plans film\u00e9s en hauteur pour le t\u00e9l\u00e9phone (borne 1.36.21)", "[pegase] Sur t\u00e9l\u00e9phone tenu droit, sept plans sont maintenant film\u00e9s en hauteur : tout le d\u00e9cor tient dans l'\u00e9cran, sans rien couper", "[pegase] ## \u2795 Cr\u00e9er son \u00eele d'un toucher (borne 1.36.19)", "[pegase] Le gros bouton \u00ab Cr\u00e9er mon \u00eele \u00bb devient une tuile \u00ab + \u00bb au bout de la liste des \u00eeles, sur PC comme sur t\u00e9l\u00e9phone", "[pegase] La cr\u00e9ation se fait dans la tuile m\u00eame, en trois onglets : le nom, qui peut entrer, et cr\u00e9er", "[pegase] Toutes les explications sont rang\u00e9es derri\u00e8re le petit \u00ab i \u00bb", "[pegase] \u00c0 la cr\u00e9ation, la tuile s'illumine dans une pluie d'\u00e9tincelles, puis ton \u00eele appara\u00eet \u00e0 sa place", "[pegase] ## \ud83d\udcf1 La page P\u00e9gase sur t\u00e9l\u00e9phone (borne 1.36.17)", "[pegase] Sur t\u00e9l\u00e9phone, tout tient sur l'\u00e9cran (le titre, la recherche, ton \u00eele, cr\u00e9er une \u00eele) et le d\u00e9cor film\u00e9 se voit derri\u00e8re", "[pegase] Une barre du bas plus fine, et le bandeau \u00ab invit\u00e9 \u00bb ramen\u00e9 \u00e0 une ligne", "[pegase] Sur t\u00e9l\u00e9phone, seulement les plans de ciel clair et de nuit ; la pluie reste pour les grands \u00e9crans", "[pegase] Les cartes et le voile s'accordent au ciel du plan : plus de contraste en plein jour, plus couvrantes sous la pluie, plus l\u00e9g\u00e8res la nuit", "[pegase] ## \ud83c\udfac Trois nouveaux plans film\u00e9s en fond (borne 1.36.14)", "[pegase] Le lac au lever, maintenant avec ses oies ; le lac de l'arbre rouge, tout neuf ; et le bosquet du grand-duc au petit matin", "[pegase] Dix plans en tout, jusqu'\u00e0 la 4K sur les grands \u00e9crans", "[pegase] ## \ud83c\udfac Huit plans film\u00e9s en fond de la page P\u00e9gase (borne 1.36.8)", "[pegase] Quatre nouveaux plans film\u00e9s dans le jeu : la pluie douce sur les tournesols, la cascade du lac de montagne, le panorama depuis la falaise et une nouvelle prairie sous la Voie lact\u00e9e", "[pegase] Tous les plans en tr\u00e8s haute qualit\u00e9 (jusqu'\u00e0 la 4K) sur les grands \u00e9crans, et ils d\u00e9marrent toujours vite en petite qualit\u00e9", "[pegase] ## \ud83c\udfea P\u00e9gase 0.9.5", "[pegase] Les boutiques ont de nouvelles devantures : grandes enseignes dor\u00e9es, stores ray\u00e9s aux couleurs de chaque commerce, vitrines \u00e9clair\u00e9es, pancarte OUVERT / FERM\u00c9 qui suit les horaires", "[pegase] La musique est revenue dans les boutiques et \u00e0 la mairie, et elle reprend toute seule quand tu arr\u00eates la tienne", "[pegase] Le grand-duc sous une douce lueur de lune, son vrai hou-hou qui vient de sa direction et ses battements d'ailes", "[pegase] Des sons plus vrais : seuls les vrais animaux chantent, depuis l'endroit o\u00f9 ils sont", "[pegase] Les oiseaux se baladent d'un bosquet \u00e0 l'autre, et des sangliers viennent parfois fouiller la nuit", "[pegase] Missions en bas de l'\u00e9cran, plus discr\u00e8tes ; chaque journ\u00e9e du jeu en propose de nouvelles", "[pegase] Le concours photo de Papi Auguste devient un d\u00e9p\u00f4t : ta nouvelle photo remplace la pr\u00e9c\u00e9dente", "[pegase] Une belle notification quand tu obtiens un objet, un geste ou un v\u00eatement", "[pegase] Le potager : b\u00eacher presque partout sur sa parcelle, la pluie arrose, et le jeu te dit pourquoi un endroit est refus\u00e9", "[pegase] Ta maison : panneau et bo\u00eete aux lettres d\u00e9pla\u00e7ables, plus de blocage au pas de la porte", "[pegase] Et aussi : plus de pluie dans les maisons, plus d'herbe, un soleil plus doux, Ctrl pour s'accroupir en mode photo, un arr\u00eat avant le bord des falaises", "[pegase] ## \ud83c\udfdd\ufe0f La nouvelle page P\u00e9gase (borne 1.36)", "[pegase] P\u00e9gase a sa propre page, tout \u00e0 gauche de la borne : on y arrive directement en ouvrant la borne", "[pegase] En fond, de vrais plans film\u00e9s dans le jeu : les tournesols, la prairie sous la Voie lact\u00e9e, la pluie sur la place du village", "[pegase] Les \u00eeles : cherche une \u00eele par son nom, filtre les \u00eeles publiques, priv\u00e9es ou les tiennes, et vois qui est en ligne", "[pegase] Chaque \u00eele sous sa mer de nuages : la brume s'ouvre l\u00e0 o\u00f9 tu as d\u00e9j\u00e0 explor\u00e9", "[pegase] PegaGram en un toucher depuis l'\u00eele ; le classement des plus belles \u00eeles (esp\u00e8ces trouv\u00e9es, habitants)", "[pegase] Le mode ambiance \u2728 : tout s'efface, il ne reste que le d\u00e9cor et le titre ; un toucher et tout revient", "[pegase] Un bouton pour partager la page P\u00e9gase avec tes copains", "[smoothie] ## \ud83c\udf4c Smoothie Samoura\u00ef : la coupe au millim\u00e8tre (borne 1.36.12)", "[smoothie] La lame tranche le fruit exactement l\u00e0 o\u00f9 ton doigt passe, en suivant sa vraie forme et son orientation : m\u00eame un petit bout coup\u00e9 au bord compte", "[smoothie] Un fruit touch\u00e9 est gagn\u00e9 : ses morceaux peuvent tomber sans te co\u00fbter de vie", "[smoothie] Recoupe les morceaux qui tombent, autant de fois que tu veux : quelques points en plus \u00e0 chaque fois (de moins en moins), et de belles gerbes de jus", "[smoothie] Une toute nouvelle banane : bien dodue, avec ses ar\u00eates, sa queue verte et ses rondelles quand on la tranche", "[bolides] ## \ud83c\udfc6 Bolides RC : une IA bien plus coriace (borne 1.36.5)", "[bolides] Moyen roule maintenant comme un bon pilote : il d\u00e9rape dans les grands virages", "[bolides] Difficile prend la trajectoire id\u00e9ale et encha\u00eene les mini-turbos dans chaque virage serr\u00e9", "[bolides] Extr\u00eame est un pilote quasi parfait : super mini-turbos, aucune erreur, il \u00e9vite les flaques, d\u00e9passe et ferme la porte", "[bolides] Facile ne change pas", "[bolides] ## \ud83c\udfc1 Bolides RC : \u00e0 fond, sur trois circuits tout neufs (borne 1.35.12)", "[bolides] Plus aucun ralentissement automatique : joystick pouss\u00e9 \u00e0 fond = pleine vitesse, m\u00eame dans les virages, c'est toi qui d\u00e9cides", "[bolides] Trois circuits redessin\u00e9s : longues lignes droites, grandes courbes rapides, esses, une vraie \u00e9pingle au Parking", "[bolides] Vibreurs rouge et blanc dans les virages, pneus, haies, blocs de b\u00e9ton, cordes de plage le long de la piste", "[bolides] Un tremplin sur chaque circuit : la voiture d\u00e9colle, plane et retombe en soulevant la poussi\u00e8re", "[bolides] Le Jardin plein de pots de fleurs, d'arrosoirs et de nains ; le Parking avec ses places peintes, palettes et piles de pneus ; la Plage au bord de la mer, avec ch\u00e2teaux de sable, seaux, serviettes et crabes", "[bolides] \u00c0 pleine vitesse, la voiture glisse un peu dans les virages serr\u00e9s et se rattrape toute seule ; contre les bordures, elle rebondit doucement et glisse le long", "[bolides] Les bolides du jeu roulent vraiment vite : l'IA \u00ab extr\u00eame \u00bb prend chaque virage \u00e0 fond et d\u00e9rape partout", "[bolides] ## \ud83c\udfce\ufe0f Bolides RC : une conduite toute neuve (borne 1.35.1)", "[bolides] Pose le doigt de ton c\u00f4t\u00e9 et pousse vers o\u00f9 tu veux aller : ta voiture y va et acc\u00e9l\u00e8re toute seule", "[bolides] Le bouton D\u00c9RAPE dans les virages charge un mini-turbo : \u00e9tincelles bleues, puis orange pour un super turbo", "[bolides] Un anneau \u00e0 ta couleur sous ta voiture et une fl\u00e8che qui montre o\u00f9 tu l'envoies", "[bolides] \u00c0 la manette : le stick donne la direction, A pour d\u00e9raper ; au clavier : les fl\u00e8ches, et Espace pour d\u00e9raper", "[bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur", "[bolides] En ligne : plus de voiture qui saute au d\u00e9but d'une nouvelle manche", "[neon] ## \ud83c\udfb5 N\u00e9on Rush : le jeu comme avant, avec les nouveaux d\u00e9cors (borne 1.35.6)", "[neon] Le sol, les murs, les plafonds, les blocs, les piques, les portails et ton cube sont redevenus exactement comme avant : plus rien ne bat pendant que tu joues", "[neon] Plus de voile sombre au ras du sol ni de murs noirs au-dessus de toi : tout est revenu comme avant", "[neon] Plus de zoom, d'\u00e9clair ni d'onde de choc sur les grands moments de la musique", "[neon] Les six nouveaux d\u00e9cors restent (N\u00e9on City, Coucher Synthwave, Cyber Oc\u00e9an, Grotte de Cristal, C\u0153ur de Lave, Galaxie), mais au calme", "[neon] De temps en temps, un seul objet du d\u00e9cor r\u00e9agit \u00e0 la musique : une enseigne qui s'allume, une m\u00e9duse qui pulse, un cristal qui brille, un volcan qui crache, le soleil qui s'embrase ou une \u00e9toile filante", "[neon] Le bouton \u2726 \u00ab effets r\u00e9duits \u00bb enl\u00e8ve les \u00e9clairs, les secousses et ces petites r\u00e9actions du d\u00e9cor", "[neon] Les niveaux n'ont pas chang\u00e9"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtirsaubut": {"c": ["dtirsaubut-1", "dtirsaubut-2"], "x": ["dtirsaubut-x1"]}, "dtoupies": {"c": ["dtoupies-1", "dtoupies-2"], "x": ["dtoupies-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "neonrush": {"c": ["neonrush-1", "neonrush-2", "neonrush-3"], "x": []}, "pegase": {"c": ["pegase-1"], "x": []}, "pgsuite": {"c": ["pgsuite-1", "pgsuite-2", "pgsuite-3", "pgsuite-4"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}, "smoothie": {"c": ["smoothie-1", "smoothie-2"], "x": ["smoothie-x1"]}, "smw1": {"c": ["smw1-1"], "x": []}, "smw2": {"c": ["smw2-1"], "x": []}, "smw3": {"c": ["smw3-1"], "x": []}, "smw4": {"c": ["smw4-1"], "x": []}, "smw5": {"c": ["smw5-1"], "x": []}, "smw6": {"c": ["smw6-1"], "x": []}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -102608,7 +102746,7 @@ function setPlayer(name, photo, sound) {
   const cur = players.get(name);
   if (sound === undefined) sound = cur ? cur.sound : null;
   if (cur && cur.photo === (photo || null)) { cur.sound = sound || null; return; }
-  const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null, alias: cur ? cur.alias || null : null,
+  const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null, lose: cur ? cur.lose || null : null, alias: cur ? cur.alias || null : null,
     member: cur ? cur.member : memberNames.has(name), seen: cur ? cur.seen : 0, game: cur ? cur.game : null, updated: cur ? cur.updated : 0 };
   if (photo) {
     const im = new Image(); im.decoding = 'async';
@@ -102647,18 +102785,22 @@ function fitHeadWhenReady(img, p) {
 function syncOwnPlayer() {
   // la tête et le cri ACTIFS : ceux de la salle actuelle s'il y en a, sinon ceux du profil principal
   if (isGuest()) { for (const pr of profiles) if (pr.name && !players.get(cleanName(pr.name))?.member) players.delete(cleanName(pr.name)); return; }   // invité : ni tête ni cri
-  for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) { const L = curLook(pr); setPlayer(pr.name, activePhoto(pr), (L && L.sound) || pr.sound || undefined); }
-  if (profile.name) setPlayer(profile.name, activePhoto(profile), activeSound(profile));
+  for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) { const L = curLook(pr); setPlayer(pr.name, activePhoto(pr), (L && L.sound) || pr.sound || undefined); ownLose(pr); }
+  if (profile.name) { setPlayer(profile.name, activePhoto(profile), activeSound(profile)); ownLose(profile); }
 }
-/* ---- Tête et cri par salle : profile.rooms[idSalle] = { photo, photoBase, photoAcc, sound, at, sent } ----
+// cri de perte d'un joueur de l'appareil (celui de la salle, sinon le principal) ; inconnu (undefined) = on garde celui du serveur
+function ownLose(pr) { const v = activeLose(pr), p = players.get(cleanName(pr.name)); if (p && v !== undefined) p.lose = v; }
+/* ---- Tête et cris par salle : profile.rooms[idSalle] = { photo, photoBase, photoAcc, sound, lose, at, sent } ----
    Rien pour la salle (ou null) = profil principal. « at » = dernier changement, « sent » = dernier envoi réussi (save_room_look). */
-function lookOf(pr, rid) { const L = pr && pr.rooms && rid != null ? pr.rooms[rid] : null; return L && (L.photo || L.sound) ? L : null; }
+function lookOf(pr, rid) { const L = pr && pr.rooms && rid != null ? pr.rooms[rid] : null; return L && (L.photo || L.sound || L.lose) ? L : null; }
 function curLook(pr) { return lookOf(pr || profile, room ? room.id : null); }
 function activePhoto(pr) { pr = pr || profile; const L = curLook(pr); return L && L.photo ? L.photo : (pr.consent ? pr.photo : null); }
 function activeSound(pr) { pr = pr || profile; const L = curLook(pr); if (L && L.sound) return L.sound; return pr.sound === '' ? null : (pr.sound || undefined); }
+// cri de perte (source/cri-perte.sql) : pr.lose = data:audio | '' (retiré) | absent (pas connu ici) ; pr.loseDirty = pas encore envoyé
+function activeLose(pr) { pr = pr || profile; const L = curLook(pr); if (L && L.lose) return L.lose; return pr.lose === '' ? null : (pr.lose || (pr.loseDirty ? null : undefined)); }
 function lookSlot(rid) {
   if (!profile.rooms || typeof profile.rooms !== 'object') profile.rooms = {};
-  return profile.rooms[rid] || (profile.rooms[rid] = { photo: null, photoBase: null, photoAcc: null, sound: null, at: 0, sent: 0 });
+  return profile.rooms[rid] || (profile.rooms[rid] = { photo: null, photoBase: null, photoAcc: null, sound: null, lose: null, at: 0, sent: 0 });
 }
 function lookTouch(rid) { const L = lookSlot(rid); L.at = Date.now(); if (L.at <= (L.sent || 0)) L.at = (L.sent || 0) + 1; return L; }
 let roomLookMissing = false;          // le serveur n'a pas encore save_room_look (room-look.sql pas lancé) : on n'insiste pas
@@ -102672,8 +102814,9 @@ async function pushRoomLook() {
   const args = Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_photo: L.photo || '', p_sound: L.sound || '' });
   try {
     await rpc('save_room_look', args, { quiet404: true });
+    if (!loseMissing) await rpc('save_room_lose_sound', Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_sound: L.lose || '' }), { quiet404: true }).catch(e => { if (e.status === 404) loseMissing = true; else throw e; });
     const L2 = profile.pid === pid && profile.rooms && profile.rooms[rid];
-    if (L2 && L2.at === at) { L2.sent = at; if (!L2.photo && !L2.sound) delete profile.rooms[rid]; saveProfile(); }
+    if (L2 && L2.at === at) { L2.sent = at; if (!L2.photo && !L2.sound && !L2.lose) delete profile.rooms[rid]; saveProfile(); }
     poke('players'); return true;
   } catch (e) { if (e.status === 404) roomLookMissing = true; return false; }
 }
@@ -102752,6 +102895,8 @@ let selfLeave = '';                  // nom que cet appareil vient de retirer lu
 async function loadPlayers() {
   if (!ONLINE || !room) return;
   const rid = room.id;
+  // cris de perte de la salle (cri-perte.sql), en même temps ; serveur pas à jour (404) : on n'insiste pas
+  const loseP = loseMissing ? null : rpc('get_lose_sounds', Object.assign({ p_code: CODE() }, RP()), { quiet404: true, quiet: true }).catch(e => { if (e.status === 404) loseMissing = true; return null; });
   try {
     const rows = await rpc('get_players', Object.assign({ p_code: CODE() }, RP())) || [];
     if (!room || room.id !== rid) return;
@@ -102763,6 +102908,11 @@ async function loadPlayers() {
       setPlayer(r.r_name, r.r_photo, r.r_sound || null);
       const p = players.get(cleanName(r.r_name));
       if (p) { p.member = true; p.alias = r.r_alias ? cleanName(r.r_alias) : null; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; if (r.r_version) p.dbVer = r.r_version; }
+    }
+    const lr = loseP && await loseP;
+    if (Array.isArray(lr) && room && room.id === rid) {
+      const lm = new Map(lr.map(r => [cleanName(r.r_name), r.r_sound_lose || null]));
+      for (const r of rows) { const p = players.get(cleanName(r.r_name)); if (p) p.lose = lm.get(cleanName(r.r_name)) || null; }
     }
     playersAt = Date.now(); membersFor = rid;
     if (wasMe && me && knownNotMember(me) && selfLeave !== me) toastCheer(me + ' ne fait plus partie de « ' + room.name + ' ».', me, true);
@@ -102783,8 +102933,41 @@ async function pushProfile() {
   let ok = true;
   try { await rpc('save_player', args); poke('players'); }
   catch (e) { ok = false; }
-  if (ok) await pushRoomLook();
+  if (ok) { await pushLose(); await pushRoomLook(); }
   return ok;
+}
+// cri de perte du profil principal (save_lose_sound) : envoyé seulement s'il a changé ; gardé sur l'appareil sinon
+let loseMissing = false;              // le serveur n'a pas encore cri-perte.sql : gardé sur l'appareil, on n'insiste pas
+async function pushLose() {
+  if (!profile.loseDirty) return true;
+  if (!ONLINE || !profile.name || loseMissing || isGuest()) return false;
+  const data = profile.lose || '', pid = profile.pid;
+  try {
+    await rpc('save_lose_sound', { p_code: CODE(), p_name: profile.name, p_sound: data }, { quiet404: true });
+    if (profile.pid === pid && (profile.lose || '') === data) { profile.loseDirty = false; saveProfile(); }
+    poke('players'); return true;
+  } catch (e) { if (e.status === 404) loseMissing = true; return false; }
+}
+// au retour du réseau / à la connexion : le cri de perte en attente part ; puis on reprend ceux du compte (autre appareil)
+const LOSE = { synced: '', tipT: 0, tries: 0 };
+async function loseFlush() {
+  if (!ONLINE || isGuest() || !profile.name || loseMissing) return;
+  if (profile.loseDirty) await pushLose();
+  const uid = profile.acct && profile.acct.uid;
+  if (!uid || LOSE.synced === uid) return;
+  LOSE.synced = uid;
+  let rows;
+  try { rows = await rpc('get_my_lose_sounds', { p_code: CODE() }, { quiet404: true, quiet: true }) || []; }
+  catch (e) { if (e.status === 404) loseMissing = true; else LOSE.synced = ''; return; }
+  const m = new Map(rows.map(r => [cleanName(r.r_name), r.r_sound_lose || undefined]));
+  let changed = false;
+  for (const pr of [profile, ...profiles.filter(x => x.pid !== profile.pid)]) {
+    if (!pr.name || !pr.acct || pr.acct.uid !== uid || pr.loseDirty) continue;
+    const v = m.get(cleanName(pr.name));
+    if ((pr.lose || undefined) !== v) { if (v) pr.lose = v; else delete pr.lose; changed = true; }
+  }
+  if (changed) { saveProfile(); store.set('jdw.profiles', profiles); syncOwnPlayer(); if (!$('jdw-settings').hidden) renderLook(); }
+  loseTipSoon();
 }
 
 // Tête fabriquée par un jeu (Pégase : portrait de l'avatar 3D, détouré, 160 × 200) : même chemin que la photo des réglages (« ✓ » de
@@ -103127,8 +103310,9 @@ addEventListener('unhandledrejection', e => { const r = e.reason; reportError('P
 const MUS = { on: store.get('jdw.music', true) !== false, gain: null, buf: {}, order: [], cur: null, id: '', want: '', loopT: 0, seq: 0 };
 const MUSIC_VOL = 0.42, XFADE = 1.6;
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
-let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0;
-function musicLevel() { return MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1); }
+let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0, musHush = false;   // musHush : fenêtre des cris ouverte = musique coupée
+function musicLevel() { return musHush ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1); }
+function musicHush(on) { if (musHush === !!on) return; musHush = !!on; musicApplyLevel(on ? 0.15 : 0.8); }
 function musicApplyLevel(ramp) {
   if (!MUS.gain || !Audio.ctx) return;
   const A = Audio.ctx, now = A.currentTime;
@@ -103356,6 +103540,14 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { con
 /* ================= Cris des copains ================= */
 let criAudio = null;
 function hasCri(name) { const p = players.get(cleanName(name)); return !!(p && p.sound); }
+function hasLose(name) { const p = players.get(cleanName(name)); return !!(p && p.lose); }
+// le cri de PERTE d'un joueur (quand il perd) ; s'il n'en a pas : son cri habituel si orElse (comme avant), sinon rien
+function playLose(name, el, orElse) {
+  const p = players.get(cleanName(name));
+  if (p && p.lose) return playCriSrc(p.lose, el);
+  return !!orElse && playCri(name, el);
+}
+
 function playCri(name, el) {
   const p = players.get(cleanName(name));
   return !!(p && p.sound) && playCriSrc(p.sound, el);
@@ -104216,7 +104408,7 @@ function refreshEverything(force) {
   if (!force && Date.now() - lastRefresh < 2500) return;
   lastRefresh = Date.now();
   if (ONLINE && (!RT.ws || RT.ws.readyState > 1)) rtConnect();
-  heartbeat(); loadScores(); loadChat(); flushUnsent(); flushUnsentCoop(); checkSiteVersion(); progLoad();
+  heartbeat(); loadScores(); loadChat(); flushUnsent(); flushUnsentCoop(); checkSiteVersion(); progLoad(); loseFlush();
 }
 window.JDW_RESUME = () => refreshEverything(true);      // appelé par l'appli Android quand on revient dedans
 document.addEventListener('visibilitychange', () => { if (document.hidden) rtUntrack(); else refreshEverything(); });
@@ -104320,6 +104512,7 @@ function renderMembers() {
       cr.textContent = p.sound ? '🔊 cri' : 'pas de cri'; cr.disabled = !p.sound;
       if (p.sound) { cr.setAttribute('aria-label', 'Écouter le cri de ' + p.name); cr.addEventListener('click', () => playCri(p.name, hd)); }
       tags.append(ph, cr);
+      if (p.lose) { const lo = document.createElement('button'); lo.type = 'button'; lo.className = 'mem-tag yes'; lo.textContent = '😢 perte'; lo.setAttribute('aria-label', 'Écouter le cri de perte de ' + p.name); lo.addEventListener('click', () => playLose(p.name, hd)); tags.append(lo); }
       const live = online && p.name !== me && p.live && watchable(p.game) && presCid(p.name, p.game);
       if (live) { const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'mem-tag watch-btn'; wb.textContent = '👁 Regarder'; wb.setAttribute('aria-label', 'Regarder ' + p.name + ' jouer en direct'); wb.addEventListener('click', () => { closeSheet('jdw-members'); watchStart(p.name, p.game); }); tags.prepend(wb); }
       if (outside) { const jb = document.createElement('button'); jb.type = 'button'; jb.className = 'mem-tag join-btn'; jb.textContent = '+ Rejoindre'; jb.setAttribute('aria-label', 'Ajouter ' + p.name + ' à la salle ' + room.name); jb.addEventListener('click', async () => { if (await askJoin(p.name)) joinHere(); }); tags.prepend(jb); }
@@ -104843,14 +105036,14 @@ function renderLook() {
   if (rid != null) {
     if (!L) h.append('Rien de spécial ici pour l’instant : dans ', B(room.name), ', c’est ton profil principal. Prends une photo ou un cri : ils ne serviront que dans cette salle.');
     else {
-      const both = L.photo && L.sound;
-      h.append('Dans ', B(room.name), ', ' + (both ? 'ta tête et ton cri sont' : L.photo ? 'ta tête est' : 'ton cri est') + ' à part.' + (both ? '' : ' Le reste vient de ton profil principal.'));
+      const parts = [L.photo && 'ta tête', L.sound && 'ton cri de victoire', L.lose && 'ton cri de perte'].filter(Boolean);
+      h.append('Dans ', B(room.name), ', ' + parts.slice(0, -1).join(', ') + (parts.length > 1 ? ' et ' : '') + parts[parts.length - 1] + (parts.length > 1 ? ' sont' : ' est') + ' à part.' + (parts.length === 3 ? '' : ' Le reste vient de ton profil principal.'));
     }
     if (roomLookMissing) h.append(' (Le serveur ne connaît pas encore cette option : visible seulement sur cet appareil.)');
   } else if (inRoom) {
     const here = curLook();
     h.append('Ton profil principal, pour toutes les salles' + (here ? ' sauf ' : '.'));
-    if (here) h.append(B(room.name), ' (tête ou cri à part).');
+    if (here) h.append(B(room.name), ' (tête ou cris à part).');
   }
   const hasPhoto = rid != null ? !!(L && L.photo) : !!profile.photo;
   const hasCri = rid != null ? !!(L && L.sound) : mainCri;
@@ -104868,6 +105061,16 @@ function renderLook() {
   $('jdw-set-crib-s').textContent = rid != null ? (L && L.sound ? 'Spécial ici' : 'Comme partout') : hasCri ? 'Prêt ✓' : 'À ajouter';
   $('jdw-set-head').classList.toggle('on', rid != null ? !!(L && L.photo) : hasPhoto);
   $('jdw-set-crib').classList.toggle('on', rid != null ? !!(L && L.sound) : hasCri);
+  // cri de perte : une ligne sous les deux tuiles ; personne n'en a ici = emplacement vide « Ajouter mon cri de perte »
+  const mainLose = !!profile.lose, hasLose = rid != null ? !!(L && L.lose) : mainLose, anyLose = hasLose || (rid != null && mainLose);
+  $('jdw-set-loseb').classList.toggle('on', anyLose);
+  $('jdw-set-loseb-s').textContent = rid != null ? (L && L.lose ? 'Spécial ici' : mainLose ? 'Comme partout' : 'Ajouter mon cri de perte') : hasLose ? 'Prêt ✓' : 'Ajouter mon cri de perte';
+  $('jdw-set-loseb-go').textContent = anyLose ? '›' : '+';
+  $('jdw-set-loseb').setAttribute('aria-haspopup', anyLose ? 'menu' : 'dialog');
+  lbl('jdw-set-lose', rid != null ? (hasLose ? 'Changer mon cri de perte d’ici' : 'Un cri de perte pour cette salle') : (hasLose ? 'Changer mon cri de perte' : 'Enregistrer mon cri de perte'));
+  $('jdw-set-lose-play').hidden = !anyLose;
+  $('jdw-set-losedel').hidden = !hasLose;
+  lbl('jdw-set-losedel', rid != null ? 'Retirer le cri de perte d’ici' : 'Retirer mon cri de perte');
   renderAlias(rid);
 }
 // pseudo de salle (réglages, choix « Seulement dans <salle> ») : save_room_alias, unique dans la salle
@@ -104938,6 +105141,7 @@ async function lookReset(rid, what) {
   const L = profile.rooms && profile.rooms[rid]; if (!L) return;
   if (!what || what === 'photo') { L.photo = null; L.photoBase = null; L.photoAcc = null; try { localStorage.removeItem(photoSrcKey(rid)); } catch (e) {} }
   if (!what || what === 'sound') L.sound = null;
+  if (!what || what === 'lose') L.lose = null;
   lookTouch(rid); saveProfile();
   players.delete(cleanName(profile.name)); syncOwnPlayer(); refreshAll();
   if (!$('jdw-settings').hidden) renderLook();
@@ -104964,6 +105168,17 @@ $('jdw-set-head').addEventListener('click', () => menuOpen($('jdw-set-head'), $(
 $('jdw-set-crib').addEventListener('click', () => menuOpen($('jdw-set-crib'), $('jdw-set-crimenu')));
 $('jdw-set-photo').addEventListener('click', () => { lookEdit = lookHere(); startPhoto(); });
 $('jdw-set-cri').addEventListener('click', () => { lookEdit = lookHere(); openCri(); });
+$('jdw-set-loseb').addEventListener('click', () => {
+  const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null;
+  if (!(profile.lose || (L && L.lose))) { lookEdit = rid; openCri('lose'); return; }    // emplacement vide : droit à l'enregistrement
+  menuOpen($('jdw-set-loseb'), $('jdw-set-losemenu'));
+});
+$('jdw-set-lose').addEventListener('click', () => { lookEdit = lookHere(); openCri('lose'); });
+$('jdw-set-lose-play').addEventListener('click', () => {
+  const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null, src = (L && L.lose) || profile.lose || '';
+  if (!(src && playCriSrc(src))) $('jdw-set-status').textContent = muted || !criOn ? 'Le son est coupé.' : '';
+});
+$('jdw-set-losedel').addEventListener('click', () => criRemove(lookHere(), false, 'lose'));
 $('jdw-set-edit').addEventListener('click', () => { lookEdit = lookHere(); editHead(); });
 $('jdw-set-cri-play').addEventListener('click', () => {
   const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null;
@@ -105074,7 +105289,7 @@ $('jdw-prof-edit').addEventListener('click', () => { closeSheet('jdw-profiles');
 
 /* ================= Mon cri (3 s au micro ou un fichier son) ================= */
 const CRI_MAX = 3;
-const CR = { stream: null, rec: null, chunks: [], data: '', t0: 0, raf: 0, levels: [], analyser: null, src: null, stopT: 0, busy: false, mime: '' };
+const CR = { stream: null, rec: null, chunks: [], data: '', t0: 0, raf: 0, levels: [], analyser: null, src: null, stopT: 0, busy: false, mime: '', kind: 'win', chain: false };
 function criMime() {
   if (!window.MediaRecorder) return null;
   for (const t of ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm']) { try { if (MediaRecorder.isTypeSupported(t)) return t; } catch (e) {} }
@@ -105086,22 +105301,43 @@ function criState(st) {
   $('jdw-cri-rec').setAttribute('aria-label', st === 'rec' ? 'Arrêter' : 'Enregistrer');
   $('jdw-cri-play').disabled = !CR.data; $('jdw-cri-ok').disabled = !CR.data || st === 'rec';
 }
-function openCri() {
-  Audio.ensure();
-  CR.data = ''; CR.levels = []; drawWave();
-  if (lookEdit != null && !(room && room.id === lookEdit)) lookEdit = null;
-  const L = lookEdit != null ? lookOf(profile, lookEdit) : null;
-  const has = lookEdit != null ? !!(L && L.sound) : profile.sound && profile.sound !== '';
-  $('jdw-cri-del').hidden = !has;
-  $('jdw-cri-del').textContent = lookEdit != null ? 'Retirer le cri de cette salle' : 'Retirer mon cri';
-  $('jdw-cri-h').textContent = lookEdit != null ? 'Ton cri dans « ' + room.name + ' »' : 'Ton cri';
-  criHint(criMime() === null ? "Ton navigateur n'enregistre pas le son : choisis plutôt un fichier." : 'Touche le micro et crie, ris ou chante (3 secondes) !');
+// deux cris : 'win' = le cri de victoire (profile.sound, comme avant), 'lose' = le cri de perte (profile.lose)
+function criHas(kind, rid) {
+  if (rid != null) { const L = lookOf(profile, rid); return !!(L && (kind === 'lose' ? L.lose : L.sound)); }
+  return kind === 'lose' ? !!profile.lose : !!(profile.sound && profile.sound !== '');
+}
+function criKind(kind) {
+  criStop(true); CR.kind = kind === 'lose' ? 'lose' : 'win'; CR.data = ''; CR.levels = []; drawWave();
+  const lose = CR.kind === 'lose', rid = lookEdit, here = rid != null && room ? ' dans « ' + room.name + ' »' : '';
+  $('jdw-cri').dataset.kind = CR.kind;
+  for (const b of $('jdw-cri-kind').querySelectorAll('button[data-k]')) b.setAttribute('aria-pressed', String(b.dataset.k === CR.kind));
+  for (const m of $('jdw-cri-kind').querySelectorAll('.cri-has')) m.hidden = !criHas(m.dataset.has, rid);
+  $('jdw-cri-del').hidden = !criHas(CR.kind, rid);
+  $('jdw-cri-del').textContent = rid != null ? (lose ? 'Retirer le cri de perte de cette salle' : 'Retirer le cri de cette salle') : (lose ? 'Retirer mon cri de perte' : 'Retirer mon cri de victoire');
+  $('jdw-cri-h').textContent = (lose ? 'Ton cri de perte' : 'Ton cri de victoire') + here;
+  $('jdw-cri-txt').textContent = lose ? 'Il sonne quand tu perds : un copain bat ton record (ta tête pleure) ou te bat en duel. Snif, ouin, « noooon ! »…'
+    : 'Il sonne quand tu gagnes : tu bats un copain en duel, tu restes premier et tu te moques, et quand on touche ta tête dans le chat.';
+  criHint(criMime() === null ? "Ton navigateur n'enregistre pas le son : choisis plutôt un fichier." : lose ? 'Touche le micro et pleure, râle ou boude (3 secondes) !' : 'Touche le micro et crie, ris ou chante (3 secondes) !');
   criState('idle');
+}
+function openCri(kind) {
+  Audio.ensure();
+  if (lookEdit != null && !(room && room.id === lookEdit)) lookEdit = null;
+  CR.chain = false; $('jdw-cri-step').hidden = true; $('jdw-cri-close').textContent = 'Annuler';
   if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
   if (!$('jdw-chat').hidden) closeChat();
+  musicHush(true);                          // on enregistre : la musique de la borne se tait (sinon elle s'entend dans le cri)
   openSheet('jdw-cri', 'jdw-cri-rec');
+  criKind(kind);
 }
-function closeCri() { criStop(true); closeSheet('jdw-cri'); lookEdit = null; if (welReturn) reopenWelcome(); }
+// inscription : juste après le cri de victoire, le cri de perte (« Plus tard » pour passer)
+function criChainLose() {
+  criKind('lose'); CR.chain = true;
+  $('jdw-cri-step').hidden = false; $('jdw-cri-close').textContent = 'Plus tard';
+  criHint('Super ! Et maintenant ton cri de perte : touche le micro.');
+  try { Audio.tone(784, 0.08, 'sine', 0.04, 1047); } catch (e) {}
+}
+function closeCri() { criStop(true); closeSheet('jdw-cri'); musicHush(false); lookEdit = null; if (welReturn) reopenWelcome(); }
 function drawWave(live) {
   const cv = $('jdw-cri-wave'), dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth || 300, h = cv.clientHeight || 64;
   if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
@@ -105109,7 +105345,7 @@ function drawWave(live) {
   const n = 48, bw = w / n;
   for (let i = 0; i < n; i++) {
     const v = CR.levels[Math.floor(i * CR.levels.length / n)] || 0, bh = Math.max(3, Math.min(1, v * 3.2) * (h - 6));
-    x.fillStyle = i / n <= (live || 0) || !live ? (CR.levels.length ? COLORS.amber : COLORS.steel2) : COLORS.steel2;
+    x.fillStyle = i / n <= (live || 0) || !live ? (CR.levels.length ? (CR.kind === 'lose' ? '#6aa8ff' : COLORS.amber) : COLORS.steel2) : COLORS.steel2;
     x.beginPath(); x.roundRect ? x.roundRect(i * bw + 1.5, (h - bh) / 2, bw - 3, bh, 2) : x.rect(i * bw + 1.5, (h - bh) / 2, bw - 3, bh); x.fill();
   }
 }
@@ -105207,33 +105443,62 @@ $('jdw-cri-play').addEventListener('click', criPreview);
 $('jdw-cri-file').addEventListener('click', () => { const f = $('jdw-cri-input'); f.value = ''; f.click(); });
 $('jdw-cri-input').addEventListener('change', () => { const f = $('jdw-cri-input').files; if (f && f[0]) criFromFile(f[0]); });
 $('jdw-cri-close').addEventListener('click', closeCri);
+$('jdw-cri-kind').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (b && b.dataset.k !== CR.kind) criKind(b.dataset.k); });
 $('jdw-cri-ok').addEventListener('click', async () => {
   if (!CR.data) return;
-  const rid = welReturn ? null : lookEdit;
+  const rid = welReturn ? null : lookEdit, lose = CR.kind === 'lose';
+  const hear = () => setTimeout(() => { if (lose) playLose(profile.name); else playCri(profile.name); }, 300);
   if (rid != null) {                       // cri seulement pour cette salle
-    const nm = room ? room.name : '';
-    lookTouch(rid).sound = CR.data; saveProfile(); syncOwnPlayer();
+    const nm = room ? room.name : '', L = lookTouch(rid);
+    if (lose) L.lose = CR.data; else L.sound = CR.data;
+    saveProfile(); syncOwnPlayer();
     closeCri(); refreshAll();
-    const ok = await pushRoomLook() && !roomLookMissing;
-    toastCheer(ok ? 'Ton cri pour « ' + nm + ' » est prêt !' : 'Cri de « ' + nm + ' » gardé sur cet appareil.', profile.name, true);
-    setTimeout(() => playCri(profile.name), 300);
-    return;
+    const ok = await pushRoomLook() && !roomLookMissing && !(lose && loseMissing);
+    toastCheer(ok ? (lose ? 'Ton cri de perte' : 'Ton cri') + ' pour « ' + nm + ' » est prêt !' : (lose ? 'Cri de perte' : 'Cri') + ' de « ' + nm + ' » gardé ici.', profile.name, true);
+    hear(); return;
   }
-  profile.sound = CR.data;
-  if (welReturn) { closeCri(); return; }
+  if (lose) { profile.lose = CR.data; profile.loseDirty = true; } else profile.sound = CR.data;
+  if (welReturn) {
+    if (!lose && !profile.lose) { syncOwnPlayer(); criChainLose(); return; }
+    closeCri(); return;
+  }
   saveProfile(); syncOwnPlayer();
   closeCri(); refreshAll();
-  const ok = await pushProfile();
-  toastCheer(ok ? 'Ton cri est prêt : les copains vont l’entendre !' : 'Cri gardé sur cet appareil.', profile.name, true);
-  setTimeout(() => playCri(profile.name), 300);
+  const ok = lose ? await pushLose() : await pushProfile();
+  toastCheer(ok ? (lose ? 'Ton cri de perte est prêt. Snif !' : 'Ton cri est prêt : les copains vont l’entendre !') : (lose ? 'Cri de perte gardé sur cet appareil.' : 'Cri gardé sur cet appareil.'), profile.name, true);
+  hear();
 });
-$('jdw-cri-del').addEventListener('click', () => criRemove(welReturn ? null : lookEdit, true));
-// retirer le cri (fenêtre du cri, ou menu « Mon cri » des paramètres) : dans une salle, on reprend le cri principal
-async function criRemove(rid, fromCri) {
-  if (rid != null) { if (fromCri) closeCri(); await lookReset(rid, 'sound'); toastCheer('Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
-  profile.sound = ''; saveProfile(); syncOwnPlayer(); if (fromCri) closeCri(); refreshAll();
+$('jdw-cri-del').addEventListener('click', () => criRemove(welReturn ? null : lookEdit, true, CR.kind));
+// retirer un cri (fenêtre des cris, ou menus « Cri de victoire » / « Cri de perte » des paramètres) : dans une salle, on reprend le principal
+async function criRemove(rid, fromCri, kind) {
+  const lose = kind === 'lose';
+  if (rid != null) { if (fromCri) closeCri(); await lookReset(rid, lose ? 'lose' : 'sound'); toastCheer(lose ? 'Ici, tu reprends ton cri de perte principal.' : 'Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
+  if (lose) { profile.lose = ''; profile.loseDirty = true; } else profile.sound = '';
+  saveProfile(); syncOwnPlayer(); if (fromCri) closeCri(); refreshAll();
   if (!$('jdw-settings').hidden) renderLook();
-  await pushProfile(); toastCheer('Ton cri est retiré.', profile.name, true);
+  if (lose) await pushLose(); else await pushProfile();
+  toastCheer(lose ? 'Ton cri de perte est retiré.' : 'Ton cri est retiré.', profile.name, true);
+}
+// rappel discret, une fois par joueur (jdw.losetip) : « Nouveau : ton cri de perte » pour ceux qui n'en ont pas
+function loseTipSoon() { clearTimeout(LOSE.tipT); LOSE.tipT = setTimeout(loseTip, 6000); }
+function loseTip() {
+  const n = cleanName(profile.name);
+  if (!n || isGuest() || loseMissing || profile.lose || profile.loseDirty || !ONLINE || netOff()) return;
+  const seen = store.get('jdw.losetip', {}) || {}; if (seen[n]) return;
+  const busy = document.fullscreenElement || ['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-welcome', 'jdw-acct', 'jdw-profiles', 'jdw-photo', 'jdw-cri',
+    'jdw-settings', 'jdw-coopgo', 'jdw-end', 'jdw-chat', 'jdw-map', 'jdw-board'].some(id => $(id) && !$(id).hidden);
+  if (busy) { if (++LOSE.tries < 40) LOSE.tipT = setTimeout(loseTip, 15000); return; }
+  seen[n] = 1; store.set('jdw.losetip', seen);
+  const el = document.createElement('div'); el.id = 'jdw-losetip'; el.className = 'fs-tip lose-tip'; el.setAttribute('role', 'status');
+  el.innerHTML = '<span class="ft-ic" aria-hidden="true">😢</span><span class="ft-tx"><b>Nouveau&nbsp;:</b> ton <b>cri de perte</b>, il sonne quand un copain te&nbsp;bat&nbsp;!</span>' +
+    '<button class="lt-go" type="button">Enregistrer</button><button class="ft-x" type="button" aria-label="Fermer">✕</button>';
+  document.body.appendChild(el);
+  let t = 0;
+  const close = () => { clearTimeout(t); el.classList.remove('on'); setTimeout(() => el.remove(), 400); };
+  el.querySelector('.lt-go').addEventListener('click', e => { e.stopPropagation(); close(); lookEdit = null; openCri('lose'); });
+  el.addEventListener('click', close);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
+  t = setTimeout(close, 12000);
 }
 
 /* ================= Nouveau joueur (pseudo + tête + cri) ================= */
@@ -105247,8 +105512,12 @@ function renderWelcome() {
   $('jdw-wel-photo').classList.toggle('done', !!profile.photo);
   const cri = !!(profile.sound && profile.sound !== '');
   $('jdw-wel-cri').classList.toggle('done', cri);
-  $('jdw-wel-cri-t').textContent = cri ? 'Cri enregistré ✓' : 'Ajouter mon cri';
+  $('jdw-wel-cri-t').textContent = cri ? 'Cri de victoire enregistré ✓' : 'Ajouter mon cri de victoire';
   $('jdw-wel-cri-s').textContent = cri ? 'Touche pour le refaire' : '3 secondes pour faire rire les copains';
+  const lose = !!profile.lose;
+  $('jdw-wel-lose').classList.toggle('done', lose);
+  $('jdw-wel-lose-t').textContent = lose ? 'Cri de perte enregistré ✓' : 'Ajouter mon cri de perte';
+  $('jdw-wel-lose-s').textContent = lose ? 'Touche pour le refaire' : 'Quand un copain te bat : snif, ouin, noooon !';
 }
 // fenêtre « Nouveau joueur » : onglets Nouveau joueur | J'ai déjà un compte (seulement si le serveur connaît les comptes)
 // WEL.uid : compte de l'appareil auquel rattacher le nouveau joueur ('' = nouveau compte) ; WEL.noAcct : joueur sans compte (enfant)
@@ -105482,6 +105751,7 @@ $('jdw-wel-noacct').addEventListener('click', () => { WEL.noAcct = !WEL.noAcct; 
 $('jdw-wel-forgot').addEventListener('click', () => openAcct('forgot', { email: $('jdw-wel-lemail').value.trim() }));
 $('jdw-wel-photo').addEventListener('click', () => { welReturn = true; startPhoto(); });
 $('jdw-wel-cri').addEventListener('click', () => { welReturn = true; $('jdw-welcome').hidden = true; openCri(); });
+$('jdw-wel-lose').addEventListener('click', () => { welReturn = true; $('jdw-welcome').hidden = true; openCri('lose'); });
 
 /* ================= Comptes (Supabase Auth : e-mail + mot de passe) =================
    API REST de Supabase Auth, sans SDK : /auth/v1/signup, token?grant_type=password|refresh_token, recover, resend, user, logout.
@@ -105715,6 +105985,7 @@ function acctUse(res, s, uidIn) {
   syncOwnPlayer(); refreshAll(); refreshBell();
   maybeAskJoin(); heartbeat(); loadNotifs(); refreshChatBtn(); if (chat.open) renderChat(false); rtTrack();
   if (push) pushProfile(); else poke('players');
+  LOSE.synced = ''; loseFlush();
   flushUnsent(); acctUi(); afterOnboarding();
   return pr;
 }
@@ -105956,6 +106227,7 @@ function acctAttach(pr, uid, me) {
   if (me && me.r_photo && profile.photo !== me.r_photo) { profile.photo = me.r_photo; profile.consent = true; profile.photoBase = null; profile.photoAcc = null; saveProfile(); players.delete(cleanName(profile.name)); syncOwnPlayer(); refreshAll(); }
   if (me && me.r_sound && !profile.sound) { profile.sound = me.r_sound; saveProfile(); syncOwnPlayer(); }
   if ((!me || !me.r_photo) && profile.photo && profile.consent) pushProfile(); else poke('players');
+  LOSE.synced = ''; loseFlush();
   acctUi(); flushUnsent(); heartbeat();
 }
 async function acctOk() {
@@ -107966,7 +108238,8 @@ function resHalf(i, land) {
   const heads = document.createElement('div'); heads.className = 'dr-heads';
   const hd = (pl, isWin) => {
     const b = document.createElement('div'); b.className = 'dr-head' + (isWin ? ' w' : '');
-    b.appendChild(chatHead(pl.name, { passive: true, sad: !isWin }));
+    const ch = chatHead(pl.name, { passive: true, sad: !isWin }); b.appendChild(ch);
+    if (isWin && hasCri(pl.name)) { b.style.cursor = 'pointer'; b.addEventListener('click', () => playCri(pl.name, ch)); }   // toucher le gagnant : son cri de victoire
     if (isWin) { const cr = document.createElement('span'); cr.className = 'dr-crown'; cr.textContent = '👑'; b.appendChild(cr); }
     return b;
   };
@@ -108011,7 +108284,7 @@ function duoResults() {
   if (!sting('win', 0.9)) { Audio.tone(523, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(659, 0.12, 'square', 0.06), 130); setTimeout(() => Audio.tone(784, 0.3, 'square', 0.06), 260); }
   if ((window.JDW_MUSIC || {}).dscores) setMusic('dscores', 'calm');
   const wn = seatName(w);
-  if (wn !== GUEST) setTimeout(() => playCri(wn), 1800);
+  if (wn !== GUEST) setTimeout(() => playCri(wn), 1800);    // duel : seulement le cri de victoire du gagnant (décision de l'utilisateur)
   setWhere('menu');
 }
 function duoRematch() {
@@ -108680,9 +108953,10 @@ function showCoopEnd() {
     const t = $('jdw-coopend-beat-txt'); t.textContent = '';
     const b = document.createElement('b'); b.textContent = 'Vous avez battu ' + (v.kind === 'ia' ? dispName(v.p1) + ' et son robot' : dispName(v.p1) + ' et ' + dispName(v.p2)) + ' !';
     t.append(b, ' Leur score : ' + fmt(v.score)); beat.hidden = false;
-    if (hasCri(v.p1)) crier = v.p1; else if (v.kind === 'ami' && hasCri(v.p2)) crier = v.p2;
+    if (hasLose(v.p1)) crier = v.p1; else if (v.kind === 'ami' && hasLose(v.p2)) crier = v.p2;
+    else if (hasCri(v.p1)) crier = v.p1; else if (v.kind === 'ami' && hasCri(v.p2)) crier = v.p2;
     Audio.tone(523, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(784, 0.2, 'square', 0.06), 130);
-    if (crier) { beat.onclick = () => playCri(crier, hs.firstChild); setTimeout(() => { if (!$('jdw-coopend').hidden) playCri(crier, hs.firstChild); }, 450); }
+    if (crier) { beat.onclick = () => playLose(crier, hs.firstChild, true); setTimeout(() => { if (!$('jdw-coopend').hidden) playLose(crier, hs.firstChild, true); }, 450); }
   } else if (before[0] && !isGuest() && coopTeamKey(before[0].kind, before[0].p1, before[0].p2) !== mineKey && before[0].score >= sc && hasCri(before[0].p1)) {
     const lead = before[0]; setTimeout(() => { if (!$('jdw-coopend').hidden) playCri(lead.p1, null); }, 450);
   }
@@ -110497,33 +110771,89 @@ async function commitScore(name) {
   if (p.score <= prev) { if (live()) st.textContent = name + ' a déjà mieux : ' + fmt(prev) + unit(g) + '. Score non enregistré.'; return; }
   if (live()) st.textContent = 'Enregistrement pour ' + name + '…';
   const res = await saveScore(p.game, p.score, name);
+  p.saved = { name, prev, res };
   if (!live()) return;
   st.textContent = (prev ? 'Nouveau record pour ' + name + ' ! ' : 'Premier score de ' + name + ' ici ! ') +
     (res === 'shared' ? 'Enregistré en ligne dans le classement de la salle.' : (ONLINE ? "Pas de connexion : gardé sur cet appareil, il partira au retour du réseau." : 'Enregistré sur cet appareil.'));
   if (res === 'shared') loadChat();
-  renderEndBoard(g, cleanName(profile.name));
+  renderEndBoard(g, ENDBY.name || cleanName(profile.name));
+}
+// « Joué par JUJU ▾ » (écran de fin) : on s'est trompé de joueur → le score passe TOUT DE SUITE à un autre joueur de l'appareil.
+// Déjà enregistré pour le mauvais : la borne le reprend (take_back_score, source/score-corrige.sql : son record d'avant revient), puis
+// l'enregistre pour le bon (add_score). Pas encore parti (réseau coupé) : on le retire simplement de la file d'attente.
+const ENDBY = { name: '', busy: false };
+function endByRender() {
+  const el = $('jdw-endby'), others = deviceNames().filter(n => n !== ENDBY.name);
+  el.hidden = !pending || isGuest() || !ENDBY.name || !others.length;
+  if (el.hidden) return;
+  avatarInto($('jdw-endby-av'), ENDBY.name); $('jdw-endby-n').textContent = dispName(ENDBY.name);
+  const m = $('jdw-endby-menu'); m.textContent = '';
+  const h = document.createElement('p'); h.className = 'endby-h'; h.textContent = 'Ce n’était pas ' + dispName(ENDBY.name) + ' ? Le score passe à :'; m.appendChild(h);
+  for (const n of others) {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem');
+    const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, n);
+    const t = document.createElement('span'); t.textContent = dispName(n);
+    b.append(av, t); b.addEventListener('click', () => endByMove(n)); m.appendChild(b);
+  }
+}
+$('jdw-endby-b').addEventListener('click', () => { if (!ENDBY.busy) menuOpen($('jdw-endby-b'), $('jdw-endby-menu')); });
+async function endByMove(n) {
+  const p = pending, from = ENDBY.name, st = $('jdw-status'), g = p && gameById(p.game);
+  if (!p || !g || ENDBY.busy || cleanName(n) === from) return;
+  ENDBY.busy = true;
+  try {
+    if (p.saved) {
+      st.textContent = 'On reprend le score de ' + dispName(from) + '…';
+      if (!(await undoScore(p.game, p.saved.name, p.score, p.saved.prev, p.saved.res))) {
+        st.textContent = 'Impossible de reprendre le score de ' + dispName(from) + ' : vérifie la connexion et réessaie.'; return;
+      }
+    }
+    ENDBY.name = cleanName(n); p.saved = null; p.done = false; endByRender();
+    const b = $('jdw-endby-b'); b.classList.remove('moved'); void b.offsetWidth; b.classList.add('moved'); setTimeout(() => b.classList.remove('moved'), 1600);
+    await commitScore(ENDBY.name);
+    toastCheer('Score passé à ' + dispName(ENDBY.name) + ' ✓', ENDBY.name, true);
+  } finally { ENDBY.busy = false; }
+}
+// reprend un score qu'on vient d'enregistrer pour le mauvais joueur : serveur (take_back_score) ou file d'attente, puis l'appareil
+async function undoScore(game, name, score, prev, res) {
+  name = cleanName(name); prev = +prev || 0;
+  if (res === 'shared') {
+    try { await rpc('take_back_score', Object.assign({ p_code: CODE() }, RP(), { p_game: game, p_name: name, p_score: score, p_prev: prev }), { quiet404: true }); }
+    catch (e) { return false; }
+  } else if (room) { unsent = unsent.filter(u => !(u.room === room.id && u.name === name && u.game === game && +u.score === score)); store.set('jdw.unsent', unsent); }
+  const L = (local[game] || []).filter(e => !(e.name === name && e.score === score));
+  if (prev > 0) L.push({ name, score: prev, at: Date.now() - 1 });
+  local[game] = bestPerName(L).slice(0, 20); store.set('jdw.scores2', local);
+  if (bests[name]) { if (prev > 0) bests[name][game] = prev; else delete bests[name][game]; store.set('jdw.bests2', bests); }
+  if (remote[game]) { remote[game] = remote[game].filter(e => !(e.name === name && e.score === score)); if (prev > 0 && res === 'shared') remote[game].push({ name, score: prev, at: Date.now() - 1 }); }
+  if (res === 'shared') { poke('scores'); poke('chat'); loadScores(); }
+  return true;
+}
+// écran de fin : le score défile jusqu'à sa valeur, puis « pop »
+function endCount(el, to, unitTxt) {
+  const reduce = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !(to > 0)) { el.textContent = fmt(to); return; }
+  const t0 = performance.now(), D = Math.min(1100, 450 + Math.log10(to + 1) * 160), id = ++endCount.seq;
+  const step = t => {
+    if (id !== endCount.seq) return;
+    const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = fmt(Math.round(to * e));
+    if (k < 1) requestAnimationFrame(step); else { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  };
+  el.textContent = fmt(0); setTimeout(() => requestAnimationFrame(step), 260);
+}
+endCount.seq = 0;
+function endAnimate() {
+  const end = $('jdw-end'); end.classList.remove('in');
+  let i = 0;
+  for (const el of end.querySelectorAll('.card-body > :not(.end-l):not(.end-r), .end-l > *, .end-r > *')) if (!el.hidden) el.style.setProperty('--i', i++);
+  end.querySelectorAll('.board li').forEach((li, r) => li.style.setProperty('--r', r));
+  void end.offsetWidth; end.classList.add('in');
+  clearTimeout(endAnimate.t); endAnimate.t = setTimeout(() => end.classList.remove('in'), 2600);
 }
 function flushPending() { if (pending && !pending.done && pending.record) commitScore(profile.name); }
 addEventListener('pagehide', flushPending);
 document.addEventListener('visibilitychange', () => { if (document.hidden) flushPending(); });
-function whoChip(name, label, primary) {
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'who-chip' + (primary ? ' main' : '');
-  const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, name);
-  const t = document.createElement('span'); t.textContent = label;
-  b.append(av, t); b.addEventListener('click', () => commitScore(name)); return b;
-}
-function buildWho(record) {
-  const me = cleanName(profile.name), list = $('jdw-who-list'); list.textContent = '';
-  const others = deviceNames().filter(n => n !== me);
-  if (!record && !others.length) { $('jdw-who').hidden = true; return; }
-  $('jdw-who-q').textContent = record ? "C'était bien toi ? Enregistrer ce score pour :" : "Ce n'était pas " + me + ' ? Enregistrer ce score pour :';
-  if (record) list.appendChild(whoChip(me, me + ' (moi)', true));
-  for (const n of others) list.appendChild(whoChip(n, n, false));
-  const add = document.createElement('button'); add.type = 'button'; add.className = 'who-chip'; add.textContent = '+ Autre nom';
-  add.addEventListener('click', () => { $('jdw-who-newrow').hidden = false; add.hidden = true; $('jdw-who-name').value = ''; $('jdw-who-name').focus(); });
-  list.appendChild(add);
-  $('jdw-who-newrow').hidden = true; $('jdw-who').hidden = false;
-}
 $('jdw-who-ok').addEventListener('click', () => { const n = cleanName($('jdw-who-name').value); if (n) commitScore(n); else $('jdw-who-name').focus(); });
 $('jdw-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-who-ok').click(); } });
 // fin de partie : jusqu'où je suis allé dans les niveaux, comparé à mon meilleur niveau (gardé sur l'appareil, par joueur et par jeu)
@@ -110608,7 +110938,7 @@ async function showEnd(score) {
   const myBest = knownBest(me, g.id);
   $('jdw-endcard').style.setProperty('--acc', g.accent);
   $('jdw-endgame').textContent = g.title + ' · partie terminée';
-  $('jdw-endscore').textContent = fmt(score);
+  endCount($('jdw-endscore'), score);
   $('jdw-endunit').textContent = g.scoreLabel === 'm' ? 'mètres' : (g.scoreLabel || 'points');
   showLevelProgress(g, me);
   // qui ai-je battu ?
@@ -110631,7 +110961,7 @@ async function showEnd(score) {
   let crier = null, cryMode = '', ahead = null;
   if (score > 0 && beaten.length) {
     // on a battu quelqu'un : c'est lui qui pleure (jamais de moquerie)
-    if (hasCri(beaten[0].name)) { crier = beaten[0].name; cryMode = 'sad'; }
+    if (hasLose(beaten[0].name) || hasCri(beaten[0].name)) { crier = beaten[0].name; cryMode = 'sad'; }
   } else {
     // personne de battu : seul le PREMIER du classement se moque (s'il n'a pas de cri, aucun cri)
     const lead = before[0];
@@ -110648,8 +110978,8 @@ async function showEnd(score) {
       taunt.hidden = false; taunt.onclick = () => playCri(crier, head.firstChild);
       setTimeout(() => { if (!$('jdw-end').hidden) playCri(crier, head.firstChild); }, 450);
     } else {
-      $('jdw-beat').classList.add('has-cri'); $('jdw-beat').onclick = () => playCri(crier, $('jdw-beat-img'));
-      setTimeout(() => { if (!$('jdw-end').hidden) playCri(crier, $('jdw-beat-img')); }, 450);
+      $('jdw-beat').classList.add('has-cri'); $('jdw-beat').onclick = () => playLose(crier, $('jdw-beat-img'), true);
+      setTimeout(() => { if (!$('jdw-end').hidden) playLose(crier, $('jdw-beat-img'), true); }, 450);
     }
   }
   const st = $('jdw-status'), record = score > 0 && score > myBest && !isGuest();
@@ -110658,9 +110988,10 @@ async function showEnd(score) {
   if (isGuest()) st.textContent = score > 0 ? 'Joli score ! En invité, il n’est pas enregistré.' : 'Pas de points cette fois. Retente ta chance !';
   else if (record) st.textContent = 'Nouveau record ! Enregistrement en ligne…';
   else st.textContent = myBest ? 'Ton record : ' + fmt(myBest) + unit(g) + '. Encore un effort !' : 'Pas de points cette fois. Retente ta chance !';
-  if (pending && !record) buildWho(false); else $('jdw-who').hidden = true;
+  $('jdw-who').hidden = true; ENDBY.name = me; ENDBY.busy = false; endByRender();
   $('jdw-end').hidden = false;
   renderEndBoard(g, me);
+  endAnimate();
   if (record) commitScore(me);           // un record part tout de suite dans le classement en ligne
   $('jdw-again').focus({ preventScroll: true });
   if (record) Audio.tone(660, 0.1, 'square', 0.05);

@@ -2310,3 +2310,104 @@ revoke all on function public.add_coop_score(text, bigint, text, text, text, tex
 grant execute on function public.add_coop_score(text, bigint, text, text, text, text, text, text, int, int, text),
   public.get_coop_scores(text, bigint, text), public.get_world_coop_scores(text),
   public.get_coop_notifs(text, bigint, text, text), public.get_messages2(text, bigint, text, bigint) to anon, authenticated;
+
+-- ===== cri-perte.sql : le CRI DE PERTE (borne 1.37, 26 oct. 2026) =====
+-- À côté du cri (players.sound, devenu le « cri de victoire »), chaque joueur peut enregistrer un cri de perte, joué quand il perd
+-- (fin de partie : celui qu'on vient de battre ; duel : le perdant ; Coop : l'équipe battue). Aussi par salle (room_members.sound_lose),
+-- comme la tête et le cri par salle (room-look.sql).
+-- Fonctions À PART : save_player, save_room_look, get_players, get_presence, check_name et get_my_players ne changent pas
+-- (les anciennes bornes marchent comme avant ; relancer public.sql seul ne touche à rien ici).
+-- ORDRE : APRÈS public.sql (room_guard, acct_check). Peut être relancé : il garde les données.
+
+alter table public.players add column if not exists sound_lose text;
+alter table public.room_members add column if not exists sound_lose text;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'players_sound_lose_check') then
+    alter table public.players add constraint players_sound_lose_check check (sound_lose is null or char_length(sound_lose) < 300000);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'room_members_sound_lose_check') then
+    alter table public.room_members add constraint room_members_sound_lose_check check (sound_lose is null or char_length(sound_lose) < 300000);
+  end if;
+end $$;
+
+-- cri de perte du profil principal : null = inchangé, '' = retirer ; le pseudo doit être au compte connecté (acct_check)
+create or replace function public.save_lose_sound(p_code text, p_name text, p_sound text)
+returns void language plpgsql security definer set search_path = public, extensions as $$
+declare n text := upper(left(trim(coalesce(p_name, '')), 12));
+begin
+  if n = '' then raise exception 'nom vide'; end if;
+  perform public.acct_check(n);
+  if p_sound is null then return; end if;
+  if p_sound <> '' and (p_sound !~ '^data:audio/' or char_length(p_sound) >= 300000) then raise exception 'son invalide'; end if;
+  update public.players set sound_lose = nullif(p_sound, ''), updated_at = now() where name = n;
+end $$;
+
+-- cri de perte seulement dans une salle (membre existant) : null = inchangé, '' = reprendre celui du profil principal
+create or replace function public.save_room_lose_sound(p_code text, p_room bigint, p_room_code text, p_name text, p_sound text)
+returns void language plpgsql security definer set search_path = public, extensions as $$
+declare n text := upper(left(trim(coalesce(p_name, '')), 12));
+begin
+  perform public.room_guard(p_room);
+  if n = '' then raise exception 'nom vide'; end if;
+  perform public.acct_check(n);
+  if p_sound is null then return; end if;
+  if p_sound <> '' and (p_sound !~ '^data:audio/' or char_length(p_sound) >= 300000) then raise exception 'son invalide'; end if;
+  update public.room_members m set sound_lose = nullif(p_sound, ''), look_at = now() where m.room_id = p_room and m.name = n;
+end $$;
+
+-- les cris de perte des membres de la salle (celui de la salle, sinon celui du profil principal) ; seulement ceux qui en ont un
+create or replace function public.get_lose_sounds(p_code text, p_room bigint, p_room_code text)
+returns table(r_name text, r_sound_lose text)
+language plpgsql stable security definer set search_path = public, extensions as $$
+begin
+  perform public.room_guard(p_room);
+  return query
+    select m.name, coalesce(m.sound_lose, pl.sound_lose)
+    from public.room_members m left join public.players pl on pl.name = m.name
+    where m.room_id = p_room and coalesce(m.sound_lose, pl.sound_lose) is not null;
+end $$;
+
+-- mes pseudos (compte connecté) et leur cri de perte : sert à le retrouver sur un autre appareil
+create or replace function public.get_my_lose_sounds(p_code text)
+returns table(r_name text, r_sound_lose text)
+language plpgsql stable security definer set search_path = public, extensions as $$
+begin
+  return query select p.name, p.sound_lose
+    from public.players p where auth.uid() is not null and p.user_id = auth.uid() and p.sound_lose is not null order by p.name;
+end $$;
+
+revoke all on function public.save_lose_sound(text, text, text), public.save_room_lose_sound(text, bigint, text, text, text),
+  public.get_lose_sounds(text, bigint, text), public.get_my_lose_sounds(text) from public;
+grant execute on function public.save_lose_sound(text, text, text), public.save_room_lose_sound(text, bigint, text, text, text),
+  public.get_lose_sounds(text, bigint, text), public.get_my_lose_sounds(text) to anon, authenticated;
+
+-- ===== score-corrige.sql : « Joué par » sur l'écran de fin (borne 1.37, 26 oct. 2026) =====
+-- On s'est trompé de joueur (« ce n'était pas PATOU ») : la borne REPREND le score qu'elle vient d'enregistrer pour le mauvais pseudo,
+-- remet son record d'avant (p_prev, connu de l'appareil), retire la notification « X a battu ton record » et la carte « record » du chat
+-- qu'il avait créées, puis enregistre le score pour le bon joueur (add_score, inchangé).
+-- Garde-fous : le pseudo doit être au compte connecté (acct_check) et membre de la salle (room_guard) ; seulement un score de moins de
+-- 30 minutes, du même jeu, exactement ce score ; p_prev < p_score. Rien d'autre n'est touché. ORDRE : APRÈS public.sql. Peut être relancé.
+
+create or replace function public.take_back_score(p_code text, p_room bigint, p_room_code text, p_game text, p_name text, p_score int, p_prev int default 0)
+returns boolean language plpgsql security definer set search_path = public, extensions as $$
+declare n text := upper(left(trim(coalesce(p_name, '')), 12)); v_id bigint;
+begin
+  perform public.room_guard(p_room);
+  perform public.acct_check(n);
+  select s.id into v_id from public.scores s
+    where s.room_id = p_room and s.game = p_game and s.name = n and s.score = p_score and s.created_at > now() - interval '30 minutes'
+    order by s.created_at desc limit 1;
+  if v_id is null then return false; end if;
+  delete from public.scores s where s.id = v_id;
+  if coalesce(p_prev, 0) > 0 and p_prev < p_score then
+    insert into public.scores (room_id, game, name, score) values (p_room, p_game, n, p_prev);
+  end if;
+  delete from public.notifications x where x.room_id = p_room and x.actor = n and x.game = p_game and x.score = p_score
+    and x.created_at > now() - interval '30 minutes';
+  delete from public.messages x where x.room_id = p_room and x.name = n and x.kind = 'record' and x.game = p_game and x.score = p_score
+    and x.created_at > now() - interval '30 minutes';
+  return true;
+end $$;
+
+revoke all on function public.take_back_score(text, bigint, text, text, text, int, int) from public;
+grant execute on function public.take_back_score(text, bigint, text, text, text, int, int) to anon, authenticated;

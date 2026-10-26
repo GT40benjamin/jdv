@@ -2,6 +2,11 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[borne] ## 😢 Ton cri de perte (borne 1.37)
+[borne] 😢 Nouveau : enregistre aussi ton cri de perte ! Il sonne quand un copain bat ton record ; ton cri de victoire, lui, sonne quand tu gagnes un duel ou restes premier
+[borne] 🎙️ Ton cri de perte se règle dans ⚙ (sous ta tête et ton cri de victoire) et juste après le cri de victoire quand tu crées ton joueur ; pendant l'enregistrement, la musique de la borne se tait
+[borne] 🔁 Fin de partie : « Joué par ▾ » donne le score au bon joueur de l'appareil si on s'est trompé, tout de suite (l'ancien record de l'autre revient)
+[borne] 📱 Fin de partie en paysage sur téléphone : tout tient sur l'écran sans défiler (score à gauche, classement à droite), avec une belle arrivée animée
 [pegase] ## 🎣 Pégase 0.9.7
 [pegase] La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil
 [pegase] Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches

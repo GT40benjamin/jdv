@@ -183,16 +183,21 @@
     <div class="sheet" id="jdw-end" hidden>
       <div class="card" id="jdw-endcard">
         <div class="card-body">
+          <!-- deux colonnes en paysage sur téléphone (score à gauche, classement + boutons à droite) ; en portrait : display:contents -->
+          <div class="end-l">
           <p class="eyebrow" id="jdw-endgame">Partie terminée</p>
           <div class="bigscore"><b id="jdw-endscore">0</b><span id="jdw-endunit">points</span></div>
           <div class="lvprog" id="jdw-lvprog" hidden></div>
           <button class="taunt" id="jdw-taunt" type="button" hidden><span class="taunt-head" id="jdw-taunt-head"></span><span class="taunt-txt"><b id="jdw-taunt-name"></b><span id="jdw-taunt-say"></span></span><span class="taunt-play" aria-hidden="true">🔊</span></button>
           <div class="beat" id="jdw-beat" hidden><img id="jdw-beat-img" alt=""><p id="jdw-beat-txt"></p></div>
           <p class="small" id="jdw-status"></p>
+          <div class="endby" id="jdw-endby" hidden><span class="endby-l">Joué par</span><button class="endby-b" id="jdw-endby-b" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-endby-menu"><span class="avatar" id="jdw-endby-av"></span><b id="jdw-endby-n"></b><i aria-hidden="true">▾</i></button></div>
           <div class="end-guest" id="jdw-end-guest" hidden>
             <p><b>Garde tes records !</b> Crée ton compte (gratuit) pour enregistrer tes scores et défier tes copains au classement.</p>
             <div class="row"><button class="btn btn-play btn-sm" id="jdw-end-guest-new" type="button">Créer un compte</button><button class="btn btn-ghost btn-sm" id="jdw-end-guest-login" type="button">J’ai déjà un compte</button></div>
           </div>
+          </div>
+          <div class="end-r">
           <div class="who" id="jdw-who" hidden>
             <p class="small" id="jdw-who-q">Enregistrer ce score pour :</p>
             <div class="who-list" id="jdw-who-list"></div>
@@ -204,6 +209,7 @@
             <button class="btn btn-ghost" id="jdw-tolib" type="button">Changer de jeu</button>
           </div>
           <button class="btn btn-ghost btn-sm end-chat" id="jdw-end-chat" type="button" hidden>💬 Partager mon score dans le chat</button>
+          </div>
         </div>
       </div>
     </div>
@@ -687,7 +693,12 @@
           </button>
           <button class="act-tile" id="jdw-set-crib" type="button" data-align="end" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-set-crimenu">
             <span class="act-ic" id="jdw-set-crib-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></span>
-            <b>Mon cri</b><small id="jdw-set-crib-s"></small>
+            <b>Cri de victoire</b><small id="jdw-set-crib-s"></small>
+          </button>
+          <button class="act-row" id="jdw-set-loseb" type="button" data-align="end" aria-haspopup="menu" aria-expanded="false" aria-controls="jdw-set-losemenu">
+            <span class="act-row-ic" aria-hidden="true">😢</span>
+            <span class="act-row-tx"><b>Cri de perte</b><small id="jdw-set-loseb-s">Ajouter mon cri de perte</small></span>
+            <span class="act-row-go" id="jdw-set-loseb-go" aria-hidden="true">+</span>
           </button>
           <div class="act-menu" id="jdw-set-headmenu" role="menu" aria-label="Ma tête" hidden>
             <button type="button" role="menuitem" id="jdw-set-photo"><i aria-hidden="true">📸</i><span>Prendre une photo</span></button>
@@ -698,6 +709,11 @@
             <button type="button" role="menuitem" id="jdw-set-cri-play" hidden><i aria-hidden="true">▶️</i><span>Écouter</span></button>
             <button type="button" role="menuitem" id="jdw-set-cri"><i aria-hidden="true">🎙️</i><span>Enregistrer mon cri</span></button>
             <button type="button" role="menuitem" class="act-del" id="jdw-set-cridel" hidden><i aria-hidden="true">🗑️</i><span>Retirer mon cri</span></button>
+          </div>
+          <div class="act-menu" id="jdw-set-losemenu" role="menu" aria-label="Mon cri de perte" hidden>
+            <button type="button" role="menuitem" id="jdw-set-lose-play" hidden><i aria-hidden="true">▶️</i><span>Écouter</span></button>
+            <button type="button" role="menuitem" id="jdw-set-lose"><i aria-hidden="true">🎙️</i><span>Enregistrer mon cri de perte</span></button>
+            <button type="button" role="menuitem" class="act-del" id="jdw-set-losedel" hidden><i aria-hidden="true">🗑️</i><span>Retirer mon cri de perte</span></button>
           </div>
         </div>
         <button class="btn btn-ghost btn-sm look-reset" id="jdw-set-lookreset" type="button" data-in="room" hidden>↩ Comme partout</button>
@@ -719,10 +735,10 @@
   </div>
 </div>
 <!-- explications des paramètres (montrées dans la bulle « ? ») -->
-<div class="help-src" id="jdw-help-set-me" hidden><p><b>Ta tête et ton cri</b> apparaissent dans les jeux et le chat de toutes tes salles.</p><p id="jdw-set-name-help">Ton pseudo se change ici, puis « Enregistrer ».</p></div>
+<div class="help-src" id="jdw-help-set-me" hidden><p><b>Ta tête et tes cris</b> apparaissent dans les jeux et le chat de toutes tes salles : le cri de victoire quand tu gagnes, le cri de perte quand tu perds.</p><p id="jdw-set-name-help">Ton pseudo se change ici, puis « Enregistrer ».</p></div>
 <div class="help-src" id="jdw-help-set-room" hidden><p class="look-hint" id="jdw-look-hint"></p><p>Tout ce que tu changes ici ne sert que dans <b id="jdw-alias-room"></b>. « Mon pseudo ici » vide : ton pseudo principal.</p></div>
 <div class="help-src" id="jdw-help-set-acct" hidden><p id="jdw-set-acct-help"></p><p>Un compte peut avoir plusieurs joueurs : tous gardent le même mot de passe.</p></div>
-<div class="help-src" id="jdw-help-set-snd" hidden><p><b>Cris des copains</b> : le cri d’un copain sonne quand tu le bats, et quand tu touches sa tête dans le chat.</p><p>En pleine partie, le bouton 🔊 en haut règle aussi le son.</p></div>
+<div class="help-src" id="jdw-help-set-snd" hidden><p><b>Cris des copains</b> : quand tu bats un copain, c’est son cri de perte qui sonne ; quand il gagne ou te devance, son cri de victoire. Touche sa tête dans le chat pour l’entendre.</p><p>En pleine partie, le bouton 🔊 en haut règle aussi le son.</p></div>
 
 <!-- Nouveau joueur : pseudo + tête + cri dans une seule fenêtre -->
 <div class="sheet" id="jdw-welcome" hidden>
@@ -754,8 +770,13 @@
         </div>
       </div>
       <button class="wel-cri" id="jdw-wel-cri" type="button">
-        <span class="wel-cri-ic" aria-hidden="true">🎙️</span>
-        <span class="wel-cri-txt"><b id="jdw-wel-cri-t">Ajouter mon cri</b><small id="jdw-wel-cri-s">3 secondes pour faire rire les copains</small></span>
+        <span class="wel-cri-ic" aria-hidden="true">🎉</span>
+        <span class="wel-cri-txt"><b id="jdw-wel-cri-t">Ajouter mon cri de victoire</b><small id="jdw-wel-cri-s">3 secondes pour faire rire les copains</small></span>
+        <span class="wel-cri-go" aria-hidden="true">›</span>
+      </button>
+      <button class="wel-cri lose" id="jdw-wel-lose" type="button">
+        <span class="wel-cri-ic" aria-hidden="true">😢</span>
+        <span class="wel-cri-txt"><b id="jdw-wel-lose-t">Ajouter mon cri de perte</b><small id="jdw-wel-lose-s">Quand un copain te bat : snif, ouin, noooon !</small></span>
         <span class="wel-cri-go" aria-hidden="true">›</span>
       </button>
       <div class="acct-fields" id="jdw-wel-acct" hidden>
@@ -786,7 +807,7 @@
   </div>
 </div>
 
-<div class="help-src" id="jdw-help-wel-new" hidden><p><b>Ton compte</b> (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouves sur n’importe quel appareil.</p><p>La tête et le cri sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains de tes salles les voient.</p></div>
+<div class="help-src" id="jdw-help-wel-new" hidden><p><b>Ton compte</b> (e-mail + mot de passe) : personne d’autre ne pourra jouer sous ton pseudo, et tu le retrouves sur n’importe quel appareil.</p><p>La tête et les cris sont facultatifs et se changent à tout moment dans ⚙. Seuls les copains de tes salles les voient.</p></div>
 <div class="help-src" id="jdw-help-wel-login" hidden><p>Tu as déjà joué sur un autre appareil ? Connecte-toi avec ton e-mail ou ton pseudo, et le mot de passe du compte : on récupère ton joueur, sa tête et son cri.</p></div>
 
 <!-- Compte : protéger, se connecter, confirmer, mot de passe oublié / nouveau / changer -->
@@ -856,8 +877,13 @@
 <div class="sheet" id="jdw-cri" hidden data-state="idle">
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="jdw-cri-h">
     <div class="card-body">
-      <div class="card-head"><h2 id="jdw-cri-h">Ton cri</h2><button class="btn btn-ghost btn-sm" id="jdw-cri-close" type="button">Annuler</button></div>
-      <p class="small">3 secondes pour crier, rire ou chanter. Il sonnera quand un copain perd contre toi, et quand on touche ta tête dans le chat.</p>
+      <p class="eyebrow cri-step" id="jdw-cri-step" hidden>Encore un, le dernier !</p>
+      <div class="card-head"><h2 id="jdw-cri-h">Ton cri de victoire</h2><button class="btn btn-ghost btn-sm" id="jdw-cri-close" type="button">Annuler</button></div>
+      <div class="scope cri-kind" id="jdw-cri-kind" role="group" aria-label="Quel cri ?">
+        <button type="button" data-k="win" aria-pressed="true"><i aria-hidden="true">🎉</i> Victoire<span class="cri-has" data-has="win" hidden>✓</span></button>
+        <button type="button" data-k="lose" aria-pressed="false"><i aria-hidden="true">😢</i> Perte<span class="cri-has" data-has="lose" hidden>✓</span></button>
+      </div>
+      <p class="small cri-txt" id="jdw-cri-txt"></p>
       <div class="cri-stage">
         <button class="cri-rec" id="jdw-cri-rec" type="button" aria-label="Enregistrer"><span class="cri-dot"></span></button>
         <canvas class="cri-wave" id="jdw-cri-wave"></canvas>
@@ -884,6 +910,8 @@
     <button class="btn btn-play gmap-play" id="jdw-map-play" type="button">▶ Jouer</button>
   </footer>
 </div>
+<!-- « Joué par » de l'écran de fin : hors de la carte (qui est animée), pour rester bien placé -->
+<div class="act-menu endby-menu" id="jdw-endby-menu" role="menu" aria-label="Qui a joué ?" hidden></div>
 <input type="file" id="jdw-cri-input" accept="audio/*" hidden>
 <input type="file" id="jdw-file" accept="image/*" capture="user" hidden>
 <div class="help-pop" id="jdw-help" role="dialog" aria-label="Explications" tabindex="-1" hidden><div class="help-in" id="jdw-help-in"></div></div>

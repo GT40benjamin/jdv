@@ -471,7 +471,7 @@ function setPlayer(name, photo, sound) {
   const cur = players.get(name);
   if (sound === undefined) sound = cur ? cur.sound : null;
   if (cur && cur.photo === (photo || null)) { cur.sound = sound || null; return; }
-  const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null, alias: cur ? cur.alias || null : null,
+  const p = { name, photo: photo || null, img: null, sad: null, sadUrl: '', sound: sound || null, lose: cur ? cur.lose || null : null, alias: cur ? cur.alias || null : null,
     member: cur ? cur.member : memberNames.has(name), seen: cur ? cur.seen : 0, game: cur ? cur.game : null, updated: cur ? cur.updated : 0 };
   if (photo) {
     const im = new Image(); im.decoding = 'async';
@@ -510,18 +510,22 @@ function fitHeadWhenReady(img, p) {
 function syncOwnPlayer() {
   // la tête et le cri ACTIFS : ceux de la salle actuelle s'il y en a, sinon ceux du profil principal
   if (isGuest()) { for (const pr of profiles) if (pr.name && !players.get(cleanName(pr.name))?.member) players.delete(cleanName(pr.name)); return; }   // invité : ni tête ni cri
-  for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) { const L = curLook(pr); setPlayer(pr.name, activePhoto(pr), (L && L.sound) || pr.sound || undefined); }
-  if (profile.name) setPlayer(profile.name, activePhoto(profile), activeSound(profile));
+  for (const pr of profiles) if (pr.name && pr.pid !== profile.pid) { const L = curLook(pr); setPlayer(pr.name, activePhoto(pr), (L && L.sound) || pr.sound || undefined); ownLose(pr); }
+  if (profile.name) { setPlayer(profile.name, activePhoto(profile), activeSound(profile)); ownLose(profile); }
 }
-/* ---- Tête et cri par salle : profile.rooms[idSalle] = { photo, photoBase, photoAcc, sound, at, sent } ----
+// cri de perte d'un joueur de l'appareil (celui de la salle, sinon le principal) ; inconnu (undefined) = on garde celui du serveur
+function ownLose(pr) { const v = activeLose(pr), p = players.get(cleanName(pr.name)); if (p && v !== undefined) p.lose = v; }
+/* ---- Tête et cris par salle : profile.rooms[idSalle] = { photo, photoBase, photoAcc, sound, lose, at, sent } ----
    Rien pour la salle (ou null) = profil principal. « at » = dernier changement, « sent » = dernier envoi réussi (save_room_look). */
-function lookOf(pr, rid) { const L = pr && pr.rooms && rid != null ? pr.rooms[rid] : null; return L && (L.photo || L.sound) ? L : null; }
+function lookOf(pr, rid) { const L = pr && pr.rooms && rid != null ? pr.rooms[rid] : null; return L && (L.photo || L.sound || L.lose) ? L : null; }
 function curLook(pr) { return lookOf(pr || profile, room ? room.id : null); }
 function activePhoto(pr) { pr = pr || profile; const L = curLook(pr); return L && L.photo ? L.photo : (pr.consent ? pr.photo : null); }
 function activeSound(pr) { pr = pr || profile; const L = curLook(pr); if (L && L.sound) return L.sound; return pr.sound === '' ? null : (pr.sound || undefined); }
+// cri de perte (source/cri-perte.sql) : pr.lose = data:audio | '' (retiré) | absent (pas connu ici) ; pr.loseDirty = pas encore envoyé
+function activeLose(pr) { pr = pr || profile; const L = curLook(pr); if (L && L.lose) return L.lose; return pr.lose === '' ? null : (pr.lose || (pr.loseDirty ? null : undefined)); }
 function lookSlot(rid) {
   if (!profile.rooms || typeof profile.rooms !== 'object') profile.rooms = {};
-  return profile.rooms[rid] || (profile.rooms[rid] = { photo: null, photoBase: null, photoAcc: null, sound: null, at: 0, sent: 0 });
+  return profile.rooms[rid] || (profile.rooms[rid] = { photo: null, photoBase: null, photoAcc: null, sound: null, lose: null, at: 0, sent: 0 });
 }
 function lookTouch(rid) { const L = lookSlot(rid); L.at = Date.now(); if (L.at <= (L.sent || 0)) L.at = (L.sent || 0) + 1; return L; }
 let roomLookMissing = false;          // le serveur n'a pas encore save_room_look (room-look.sql pas lancé) : on n'insiste pas
@@ -535,8 +539,9 @@ async function pushRoomLook() {
   const args = Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_photo: L.photo || '', p_sound: L.sound || '' });
   try {
     await rpc('save_room_look', args, { quiet404: true });
+    if (!loseMissing) await rpc('save_room_lose_sound', Object.assign({ p_code: CODE() }, RP(), { p_name: profile.name, p_sound: L.lose || '' }), { quiet404: true }).catch(e => { if (e.status === 404) loseMissing = true; else throw e; });
     const L2 = profile.pid === pid && profile.rooms && profile.rooms[rid];
-    if (L2 && L2.at === at) { L2.sent = at; if (!L2.photo && !L2.sound) delete profile.rooms[rid]; saveProfile(); }
+    if (L2 && L2.at === at) { L2.sent = at; if (!L2.photo && !L2.sound && !L2.lose) delete profile.rooms[rid]; saveProfile(); }
     poke('players'); return true;
   } catch (e) { if (e.status === 404) roomLookMissing = true; return false; }
 }
@@ -615,6 +620,8 @@ let selfLeave = '';                  // nom que cet appareil vient de retirer lu
 async function loadPlayers() {
   if (!ONLINE || !room) return;
   const rid = room.id;
+  // cris de perte de la salle (cri-perte.sql), en même temps ; serveur pas à jour (404) : on n'insiste pas
+  const loseP = loseMissing ? null : rpc('get_lose_sounds', Object.assign({ p_code: CODE() }, RP()), { quiet404: true, quiet: true }).catch(e => { if (e.status === 404) loseMissing = true; return null; });
   try {
     const rows = await rpc('get_players', Object.assign({ p_code: CODE() }, RP())) || [];
     if (!room || room.id !== rid) return;
@@ -626,6 +633,11 @@ async function loadPlayers() {
       setPlayer(r.r_name, r.r_photo, r.r_sound || null);
       const p = players.get(cleanName(r.r_name));
       if (p) { p.member = true; p.alias = r.r_alias ? cleanName(r.r_alias) : null; p.seen = Math.max(p.seen || 0, Date.parse(r.r_seen) || 0); p.dbGame = r.r_game || null; if (!PRES.ok) p.game = r.r_game || null; p.updated = Date.parse(r.r_updated) || 0; if (r.r_version) p.dbVer = r.r_version; }
+    }
+    const lr = loseP && await loseP;
+    if (Array.isArray(lr) && room && room.id === rid) {
+      const lm = new Map(lr.map(r => [cleanName(r.r_name), r.r_sound_lose || null]));
+      for (const r of rows) { const p = players.get(cleanName(r.r_name)); if (p) p.lose = lm.get(cleanName(r.r_name)) || null; }
     }
     playersAt = Date.now(); membersFor = rid;
     if (wasMe && me && knownNotMember(me) && selfLeave !== me) toastCheer(me + ' ne fait plus partie de « ' + room.name + ' ».', me, true);
@@ -646,8 +658,41 @@ async function pushProfile() {
   let ok = true;
   try { await rpc('save_player', args); poke('players'); }
   catch (e) { ok = false; }
-  if (ok) await pushRoomLook();
+  if (ok) { await pushLose(); await pushRoomLook(); }
   return ok;
+}
+// cri de perte du profil principal (save_lose_sound) : envoyé seulement s'il a changé ; gardé sur l'appareil sinon
+let loseMissing = false;              // le serveur n'a pas encore cri-perte.sql : gardé sur l'appareil, on n'insiste pas
+async function pushLose() {
+  if (!profile.loseDirty) return true;
+  if (!ONLINE || !profile.name || loseMissing || isGuest()) return false;
+  const data = profile.lose || '', pid = profile.pid;
+  try {
+    await rpc('save_lose_sound', { p_code: CODE(), p_name: profile.name, p_sound: data }, { quiet404: true });
+    if (profile.pid === pid && (profile.lose || '') === data) { profile.loseDirty = false; saveProfile(); }
+    poke('players'); return true;
+  } catch (e) { if (e.status === 404) loseMissing = true; return false; }
+}
+// au retour du réseau / à la connexion : le cri de perte en attente part ; puis on reprend ceux du compte (autre appareil)
+const LOSE = { synced: '', tipT: 0, tries: 0 };
+async function loseFlush() {
+  if (!ONLINE || isGuest() || !profile.name || loseMissing) return;
+  if (profile.loseDirty) await pushLose();
+  const uid = profile.acct && profile.acct.uid;
+  if (!uid || LOSE.synced === uid) return;
+  LOSE.synced = uid;
+  let rows;
+  try { rows = await rpc('get_my_lose_sounds', { p_code: CODE() }, { quiet404: true, quiet: true }) || []; }
+  catch (e) { if (e.status === 404) loseMissing = true; else LOSE.synced = ''; return; }
+  const m = new Map(rows.map(r => [cleanName(r.r_name), r.r_sound_lose || undefined]));
+  let changed = false;
+  for (const pr of [profile, ...profiles.filter(x => x.pid !== profile.pid)]) {
+    if (!pr.name || !pr.acct || pr.acct.uid !== uid || pr.loseDirty) continue;
+    const v = m.get(cleanName(pr.name));
+    if ((pr.lose || undefined) !== v) { if (v) pr.lose = v; else delete pr.lose; changed = true; }
+  }
+  if (changed) { saveProfile(); store.set('jdw.profiles', profiles); syncOwnPlayer(); if (!$('jdw-settings').hidden) renderLook(); }
+  loseTipSoon();
 }
 
 // Tête fabriquée par un jeu (Pégase : portrait de l'avatar 3D, détouré, 160 × 200) : même chemin que la photo des réglages (« ✓ » de
@@ -990,8 +1035,9 @@ addEventListener('unhandledrejection', e => { const r = e.reason; reportError('P
 const MUS = { on: store.get('jdw.music', true) !== false, gain: null, buf: {}, order: [], cur: null, id: '', want: '', loopT: 0, seq: 0 };
 const MUSIC_VOL = 0.42, XFADE = 1.6;
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
-let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0;
-function musicLevel() { return MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1); }
+let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0, musHush = false;   // musHush : fenêtre des cris ouverte = musique coupée
+function musicLevel() { return musHush ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1); }
+function musicHush(on) { if (musHush === !!on) return; musHush = !!on; musicApplyLevel(on ? 0.15 : 0.8); }
 function musicApplyLevel(ramp) {
   if (!MUS.gain || !Audio.ctx) return;
   const A = Audio.ctx, now = A.currentTime;
@@ -1219,6 +1265,14 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { con
 /* ================= Cris des copains ================= */
 let criAudio = null;
 function hasCri(name) { const p = players.get(cleanName(name)); return !!(p && p.sound); }
+function hasLose(name) { const p = players.get(cleanName(name)); return !!(p && p.lose); }
+// le cri de PERTE d'un joueur (quand il perd) ; s'il n'en a pas : son cri habituel si orElse (comme avant), sinon rien
+function playLose(name, el, orElse) {
+  const p = players.get(cleanName(name));
+  if (p && p.lose) return playCriSrc(p.lose, el);
+  return !!orElse && playCri(name, el);
+}
+
 function playCri(name, el) {
   const p = players.get(cleanName(name));
   return !!(p && p.sound) && playCriSrc(p.sound, el);
@@ -2079,7 +2133,7 @@ function refreshEverything(force) {
   if (!force && Date.now() - lastRefresh < 2500) return;
   lastRefresh = Date.now();
   if (ONLINE && (!RT.ws || RT.ws.readyState > 1)) rtConnect();
-  heartbeat(); loadScores(); loadChat(); flushUnsent(); flushUnsentCoop(); checkSiteVersion(); progLoad();
+  heartbeat(); loadScores(); loadChat(); flushUnsent(); flushUnsentCoop(); checkSiteVersion(); progLoad(); loseFlush();
 }
 window.JDW_RESUME = () => refreshEverything(true);      // appelé par l'appli Android quand on revient dedans
 document.addEventListener('visibilitychange', () => { if (document.hidden) rtUntrack(); else refreshEverything(); });
@@ -2183,6 +2237,7 @@ function renderMembers() {
       cr.textContent = p.sound ? '🔊 cri' : 'pas de cri'; cr.disabled = !p.sound;
       if (p.sound) { cr.setAttribute('aria-label', 'Écouter le cri de ' + p.name); cr.addEventListener('click', () => playCri(p.name, hd)); }
       tags.append(ph, cr);
+      if (p.lose) { const lo = document.createElement('button'); lo.type = 'button'; lo.className = 'mem-tag yes'; lo.textContent = '😢 perte'; lo.setAttribute('aria-label', 'Écouter le cri de perte de ' + p.name); lo.addEventListener('click', () => playLose(p.name, hd)); tags.append(lo); }
       const live = online && p.name !== me && p.live && watchable(p.game) && presCid(p.name, p.game);
       if (live) { const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'mem-tag watch-btn'; wb.textContent = '👁 Regarder'; wb.setAttribute('aria-label', 'Regarder ' + p.name + ' jouer en direct'); wb.addEventListener('click', () => { closeSheet('jdw-members'); watchStart(p.name, p.game); }); tags.prepend(wb); }
       if (outside) { const jb = document.createElement('button'); jb.type = 'button'; jb.className = 'mem-tag join-btn'; jb.textContent = '+ Rejoindre'; jb.setAttribute('aria-label', 'Ajouter ' + p.name + ' à la salle ' + room.name); jb.addEventListener('click', async () => { if (await askJoin(p.name)) joinHere(); }); tags.prepend(jb); }
@@ -2706,14 +2761,14 @@ function renderLook() {
   if (rid != null) {
     if (!L) h.append('Rien de spécial ici pour l’instant : dans ', B(room.name), ', c’est ton profil principal. Prends une photo ou un cri : ils ne serviront que dans cette salle.');
     else {
-      const both = L.photo && L.sound;
-      h.append('Dans ', B(room.name), ', ' + (both ? 'ta tête et ton cri sont' : L.photo ? 'ta tête est' : 'ton cri est') + ' à part.' + (both ? '' : ' Le reste vient de ton profil principal.'));
+      const parts = [L.photo && 'ta tête', L.sound && 'ton cri de victoire', L.lose && 'ton cri de perte'].filter(Boolean);
+      h.append('Dans ', B(room.name), ', ' + parts.slice(0, -1).join(', ') + (parts.length > 1 ? ' et ' : '') + parts[parts.length - 1] + (parts.length > 1 ? ' sont' : ' est') + ' à part.' + (parts.length === 3 ? '' : ' Le reste vient de ton profil principal.'));
     }
     if (roomLookMissing) h.append(' (Le serveur ne connaît pas encore cette option : visible seulement sur cet appareil.)');
   } else if (inRoom) {
     const here = curLook();
     h.append('Ton profil principal, pour toutes les salles' + (here ? ' sauf ' : '.'));
-    if (here) h.append(B(room.name), ' (tête ou cri à part).');
+    if (here) h.append(B(room.name), ' (tête ou cris à part).');
   }
   const hasPhoto = rid != null ? !!(L && L.photo) : !!profile.photo;
   const hasCri = rid != null ? !!(L && L.sound) : mainCri;
@@ -2731,6 +2786,16 @@ function renderLook() {
   $('jdw-set-crib-s').textContent = rid != null ? (L && L.sound ? 'Spécial ici' : 'Comme partout') : hasCri ? 'Prêt ✓' : 'À ajouter';
   $('jdw-set-head').classList.toggle('on', rid != null ? !!(L && L.photo) : hasPhoto);
   $('jdw-set-crib').classList.toggle('on', rid != null ? !!(L && L.sound) : hasCri);
+  // cri de perte : une ligne sous les deux tuiles ; personne n'en a ici = emplacement vide « Ajouter mon cri de perte »
+  const mainLose = !!profile.lose, hasLose = rid != null ? !!(L && L.lose) : mainLose, anyLose = hasLose || (rid != null && mainLose);
+  $('jdw-set-loseb').classList.toggle('on', anyLose);
+  $('jdw-set-loseb-s').textContent = rid != null ? (L && L.lose ? 'Spécial ici' : mainLose ? 'Comme partout' : 'Ajouter mon cri de perte') : hasLose ? 'Prêt ✓' : 'Ajouter mon cri de perte';
+  $('jdw-set-loseb-go').textContent = anyLose ? '›' : '+';
+  $('jdw-set-loseb').setAttribute('aria-haspopup', anyLose ? 'menu' : 'dialog');
+  lbl('jdw-set-lose', rid != null ? (hasLose ? 'Changer mon cri de perte d’ici' : 'Un cri de perte pour cette salle') : (hasLose ? 'Changer mon cri de perte' : 'Enregistrer mon cri de perte'));
+  $('jdw-set-lose-play').hidden = !anyLose;
+  $('jdw-set-losedel').hidden = !hasLose;
+  lbl('jdw-set-losedel', rid != null ? 'Retirer le cri de perte d’ici' : 'Retirer mon cri de perte');
   renderAlias(rid);
 }
 // pseudo de salle (réglages, choix « Seulement dans <salle> ») : save_room_alias, unique dans la salle
@@ -2801,6 +2866,7 @@ async function lookReset(rid, what) {
   const L = profile.rooms && profile.rooms[rid]; if (!L) return;
   if (!what || what === 'photo') { L.photo = null; L.photoBase = null; L.photoAcc = null; try { localStorage.removeItem(photoSrcKey(rid)); } catch (e) {} }
   if (!what || what === 'sound') L.sound = null;
+  if (!what || what === 'lose') L.lose = null;
   lookTouch(rid); saveProfile();
   players.delete(cleanName(profile.name)); syncOwnPlayer(); refreshAll();
   if (!$('jdw-settings').hidden) renderLook();
@@ -2827,6 +2893,17 @@ $('jdw-set-head').addEventListener('click', () => menuOpen($('jdw-set-head'), $(
 $('jdw-set-crib').addEventListener('click', () => menuOpen($('jdw-set-crib'), $('jdw-set-crimenu')));
 $('jdw-set-photo').addEventListener('click', () => { lookEdit = lookHere(); startPhoto(); });
 $('jdw-set-cri').addEventListener('click', () => { lookEdit = lookHere(); openCri(); });
+$('jdw-set-loseb').addEventListener('click', () => {
+  const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null;
+  if (!(profile.lose || (L && L.lose))) { lookEdit = rid; openCri('lose'); return; }    // emplacement vide : droit à l'enregistrement
+  menuOpen($('jdw-set-loseb'), $('jdw-set-losemenu'));
+});
+$('jdw-set-lose').addEventListener('click', () => { lookEdit = lookHere(); openCri('lose'); });
+$('jdw-set-lose-play').addEventListener('click', () => {
+  const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null, src = (L && L.lose) || profile.lose || '';
+  if (!(src && playCriSrc(src))) $('jdw-set-status').textContent = muted || !criOn ? 'Le son est coupé.' : '';
+});
+$('jdw-set-losedel').addEventListener('click', () => criRemove(lookHere(), false, 'lose'));
 $('jdw-set-edit').addEventListener('click', () => { lookEdit = lookHere(); editHead(); });
 $('jdw-set-cri-play').addEventListener('click', () => {
   const rid = lookHere(), L = rid != null ? lookOf(profile, rid) : null;
@@ -2937,7 +3014,7 @@ $('jdw-prof-edit').addEventListener('click', () => { closeSheet('jdw-profiles');
 
 /* ================= Mon cri (3 s au micro ou un fichier son) ================= */
 const CRI_MAX = 3;
-const CR = { stream: null, rec: null, chunks: [], data: '', t0: 0, raf: 0, levels: [], analyser: null, src: null, stopT: 0, busy: false, mime: '' };
+const CR = { stream: null, rec: null, chunks: [], data: '', t0: 0, raf: 0, levels: [], analyser: null, src: null, stopT: 0, busy: false, mime: '', kind: 'win', chain: false };
 function criMime() {
   if (!window.MediaRecorder) return null;
   for (const t of ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm']) { try { if (MediaRecorder.isTypeSupported(t)) return t; } catch (e) {} }
@@ -2949,22 +3026,43 @@ function criState(st) {
   $('jdw-cri-rec').setAttribute('aria-label', st === 'rec' ? 'Arrêter' : 'Enregistrer');
   $('jdw-cri-play').disabled = !CR.data; $('jdw-cri-ok').disabled = !CR.data || st === 'rec';
 }
-function openCri() {
-  Audio.ensure();
-  CR.data = ''; CR.levels = []; drawWave();
-  if (lookEdit != null && !(room && room.id === lookEdit)) lookEdit = null;
-  const L = lookEdit != null ? lookOf(profile, lookEdit) : null;
-  const has = lookEdit != null ? !!(L && L.sound) : profile.sound && profile.sound !== '';
-  $('jdw-cri-del').hidden = !has;
-  $('jdw-cri-del').textContent = lookEdit != null ? 'Retirer le cri de cette salle' : 'Retirer mon cri';
-  $('jdw-cri-h').textContent = lookEdit != null ? 'Ton cri dans « ' + room.name + ' »' : 'Ton cri';
-  criHint(criMime() === null ? "Ton navigateur n'enregistre pas le son : choisis plutôt un fichier." : 'Touche le micro et crie, ris ou chante (3 secondes) !');
+// deux cris : 'win' = le cri de victoire (profile.sound, comme avant), 'lose' = le cri de perte (profile.lose)
+function criHas(kind, rid) {
+  if (rid != null) { const L = lookOf(profile, rid); return !!(L && (kind === 'lose' ? L.lose : L.sound)); }
+  return kind === 'lose' ? !!profile.lose : !!(profile.sound && profile.sound !== '');
+}
+function criKind(kind) {
+  criStop(true); CR.kind = kind === 'lose' ? 'lose' : 'win'; CR.data = ''; CR.levels = []; drawWave();
+  const lose = CR.kind === 'lose', rid = lookEdit, here = rid != null && room ? ' dans « ' + room.name + ' »' : '';
+  $('jdw-cri').dataset.kind = CR.kind;
+  for (const b of $('jdw-cri-kind').querySelectorAll('button[data-k]')) b.setAttribute('aria-pressed', String(b.dataset.k === CR.kind));
+  for (const m of $('jdw-cri-kind').querySelectorAll('.cri-has')) m.hidden = !criHas(m.dataset.has, rid);
+  $('jdw-cri-del').hidden = !criHas(CR.kind, rid);
+  $('jdw-cri-del').textContent = rid != null ? (lose ? 'Retirer le cri de perte de cette salle' : 'Retirer le cri de cette salle') : (lose ? 'Retirer mon cri de perte' : 'Retirer mon cri de victoire');
+  $('jdw-cri-h').textContent = (lose ? 'Ton cri de perte' : 'Ton cri de victoire') + here;
+  $('jdw-cri-txt').textContent = lose ? 'Il sonne quand tu perds : un copain bat ton record (ta tête pleure) ou te bat en duel. Snif, ouin, « noooon ! »…'
+    : 'Il sonne quand tu gagnes : tu bats un copain en duel, tu restes premier et tu te moques, et quand on touche ta tête dans le chat.';
+  criHint(criMime() === null ? "Ton navigateur n'enregistre pas le son : choisis plutôt un fichier." : lose ? 'Touche le micro et pleure, râle ou boude (3 secondes) !' : 'Touche le micro et crie, ris ou chante (3 secondes) !');
   criState('idle');
+}
+function openCri(kind) {
+  Audio.ensure();
+  if (lookEdit != null && !(room && room.id === lookEdit)) lookEdit = null;
+  CR.chain = false; $('jdw-cri-step').hidden = true; $('jdw-cri-close').textContent = 'Annuler';
   if (!$('jdw-settings').hidden) $('jdw-settings').hidden = true;
   if (!$('jdw-chat').hidden) closeChat();
+  musicHush(true);                          // on enregistre : la musique de la borne se tait (sinon elle s'entend dans le cri)
   openSheet('jdw-cri', 'jdw-cri-rec');
+  criKind(kind);
 }
-function closeCri() { criStop(true); closeSheet('jdw-cri'); lookEdit = null; if (welReturn) reopenWelcome(); }
+// inscription : juste après le cri de victoire, le cri de perte (« Plus tard » pour passer)
+function criChainLose() {
+  criKind('lose'); CR.chain = true;
+  $('jdw-cri-step').hidden = false; $('jdw-cri-close').textContent = 'Plus tard';
+  criHint('Super ! Et maintenant ton cri de perte : touche le micro.');
+  try { Audio.tone(784, 0.08, 'sine', 0.04, 1047); } catch (e) {}
+}
+function closeCri() { criStop(true); closeSheet('jdw-cri'); musicHush(false); lookEdit = null; if (welReturn) reopenWelcome(); }
 function drawWave(live) {
   const cv = $('jdw-cri-wave'), dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth || 300, h = cv.clientHeight || 64;
   if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
@@ -2972,7 +3070,7 @@ function drawWave(live) {
   const n = 48, bw = w / n;
   for (let i = 0; i < n; i++) {
     const v = CR.levels[Math.floor(i * CR.levels.length / n)] || 0, bh = Math.max(3, Math.min(1, v * 3.2) * (h - 6));
-    x.fillStyle = i / n <= (live || 0) || !live ? (CR.levels.length ? COLORS.amber : COLORS.steel2) : COLORS.steel2;
+    x.fillStyle = i / n <= (live || 0) || !live ? (CR.levels.length ? (CR.kind === 'lose' ? '#6aa8ff' : COLORS.amber) : COLORS.steel2) : COLORS.steel2;
     x.beginPath(); x.roundRect ? x.roundRect(i * bw + 1.5, (h - bh) / 2, bw - 3, bh, 2) : x.rect(i * bw + 1.5, (h - bh) / 2, bw - 3, bh); x.fill();
   }
 }
@@ -3070,33 +3168,62 @@ $('jdw-cri-play').addEventListener('click', criPreview);
 $('jdw-cri-file').addEventListener('click', () => { const f = $('jdw-cri-input'); f.value = ''; f.click(); });
 $('jdw-cri-input').addEventListener('change', () => { const f = $('jdw-cri-input').files; if (f && f[0]) criFromFile(f[0]); });
 $('jdw-cri-close').addEventListener('click', closeCri);
+$('jdw-cri-kind').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (b && b.dataset.k !== CR.kind) criKind(b.dataset.k); });
 $('jdw-cri-ok').addEventListener('click', async () => {
   if (!CR.data) return;
-  const rid = welReturn ? null : lookEdit;
+  const rid = welReturn ? null : lookEdit, lose = CR.kind === 'lose';
+  const hear = () => setTimeout(() => { if (lose) playLose(profile.name); else playCri(profile.name); }, 300);
   if (rid != null) {                       // cri seulement pour cette salle
-    const nm = room ? room.name : '';
-    lookTouch(rid).sound = CR.data; saveProfile(); syncOwnPlayer();
+    const nm = room ? room.name : '', L = lookTouch(rid);
+    if (lose) L.lose = CR.data; else L.sound = CR.data;
+    saveProfile(); syncOwnPlayer();
     closeCri(); refreshAll();
-    const ok = await pushRoomLook() && !roomLookMissing;
-    toastCheer(ok ? 'Ton cri pour « ' + nm + ' » est prêt !' : 'Cri de « ' + nm + ' » gardé sur cet appareil.', profile.name, true);
-    setTimeout(() => playCri(profile.name), 300);
-    return;
+    const ok = await pushRoomLook() && !roomLookMissing && !(lose && loseMissing);
+    toastCheer(ok ? (lose ? 'Ton cri de perte' : 'Ton cri') + ' pour « ' + nm + ' » est prêt !' : (lose ? 'Cri de perte' : 'Cri') + ' de « ' + nm + ' » gardé ici.', profile.name, true);
+    hear(); return;
   }
-  profile.sound = CR.data;
-  if (welReturn) { closeCri(); return; }
+  if (lose) { profile.lose = CR.data; profile.loseDirty = true; } else profile.sound = CR.data;
+  if (welReturn) {
+    if (!lose && !profile.lose) { syncOwnPlayer(); criChainLose(); return; }
+    closeCri(); return;
+  }
   saveProfile(); syncOwnPlayer();
   closeCri(); refreshAll();
-  const ok = await pushProfile();
-  toastCheer(ok ? 'Ton cri est prêt : les copains vont l’entendre !' : 'Cri gardé sur cet appareil.', profile.name, true);
-  setTimeout(() => playCri(profile.name), 300);
+  const ok = lose ? await pushLose() : await pushProfile();
+  toastCheer(ok ? (lose ? 'Ton cri de perte est prêt. Snif !' : 'Ton cri est prêt : les copains vont l’entendre !') : (lose ? 'Cri de perte gardé sur cet appareil.' : 'Cri gardé sur cet appareil.'), profile.name, true);
+  hear();
 });
-$('jdw-cri-del').addEventListener('click', () => criRemove(welReturn ? null : lookEdit, true));
-// retirer le cri (fenêtre du cri, ou menu « Mon cri » des paramètres) : dans une salle, on reprend le cri principal
-async function criRemove(rid, fromCri) {
-  if (rid != null) { if (fromCri) closeCri(); await lookReset(rid, 'sound'); toastCheer('Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
-  profile.sound = ''; saveProfile(); syncOwnPlayer(); if (fromCri) closeCri(); refreshAll();
+$('jdw-cri-del').addEventListener('click', () => criRemove(welReturn ? null : lookEdit, true, CR.kind));
+// retirer un cri (fenêtre des cris, ou menus « Cri de victoire » / « Cri de perte » des paramètres) : dans une salle, on reprend le principal
+async function criRemove(rid, fromCri, kind) {
+  const lose = kind === 'lose';
+  if (rid != null) { if (fromCri) closeCri(); await lookReset(rid, lose ? 'lose' : 'sound'); toastCheer(lose ? 'Ici, tu reprends ton cri de perte principal.' : 'Ici, tu reprends le cri de ton profil principal.', profile.name, true); return; }
+  if (lose) { profile.lose = ''; profile.loseDirty = true; } else profile.sound = '';
+  saveProfile(); syncOwnPlayer(); if (fromCri) closeCri(); refreshAll();
   if (!$('jdw-settings').hidden) renderLook();
-  await pushProfile(); toastCheer('Ton cri est retiré.', profile.name, true);
+  if (lose) await pushLose(); else await pushProfile();
+  toastCheer(lose ? 'Ton cri de perte est retiré.' : 'Ton cri est retiré.', profile.name, true);
+}
+// rappel discret, une fois par joueur (jdw.losetip) : « Nouveau : ton cri de perte » pour ceux qui n'en ont pas
+function loseTipSoon() { clearTimeout(LOSE.tipT); LOSE.tipT = setTimeout(loseTip, 6000); }
+function loseTip() {
+  const n = cleanName(profile.name);
+  if (!n || isGuest() || loseMissing || profile.lose || profile.loseDirty || !ONLINE || netOff()) return;
+  const seen = store.get('jdw.losetip', {}) || {}; if (seen[n]) return;
+  const busy = document.fullscreenElement || ['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-welcome', 'jdw-acct', 'jdw-profiles', 'jdw-photo', 'jdw-cri',
+    'jdw-settings', 'jdw-coopgo', 'jdw-end', 'jdw-chat', 'jdw-map', 'jdw-board'].some(id => $(id) && !$(id).hidden);
+  if (busy) { if (++LOSE.tries < 40) LOSE.tipT = setTimeout(loseTip, 15000); return; }
+  seen[n] = 1; store.set('jdw.losetip', seen);
+  const el = document.createElement('div'); el.id = 'jdw-losetip'; el.className = 'fs-tip lose-tip'; el.setAttribute('role', 'status');
+  el.innerHTML = '<span class="ft-ic" aria-hidden="true">😢</span><span class="ft-tx"><b>Nouveau&nbsp;:</b> ton <b>cri de perte</b>, il sonne quand un copain te&nbsp;bat&nbsp;!</span>' +
+    '<button class="lt-go" type="button">Enregistrer</button><button class="ft-x" type="button" aria-label="Fermer">✕</button>';
+  document.body.appendChild(el);
+  let t = 0;
+  const close = () => { clearTimeout(t); el.classList.remove('on'); setTimeout(() => el.remove(), 400); };
+  el.querySelector('.lt-go').addEventListener('click', e => { e.stopPropagation(); close(); lookEdit = null; openCri('lose'); });
+  el.addEventListener('click', close);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
+  t = setTimeout(close, 12000);
 }
 
 /* ================= Nouveau joueur (pseudo + tête + cri) ================= */
@@ -3110,8 +3237,12 @@ function renderWelcome() {
   $('jdw-wel-photo').classList.toggle('done', !!profile.photo);
   const cri = !!(profile.sound && profile.sound !== '');
   $('jdw-wel-cri').classList.toggle('done', cri);
-  $('jdw-wel-cri-t').textContent = cri ? 'Cri enregistré ✓' : 'Ajouter mon cri';
+  $('jdw-wel-cri-t').textContent = cri ? 'Cri de victoire enregistré ✓' : 'Ajouter mon cri de victoire';
   $('jdw-wel-cri-s').textContent = cri ? 'Touche pour le refaire' : '3 secondes pour faire rire les copains';
+  const lose = !!profile.lose;
+  $('jdw-wel-lose').classList.toggle('done', lose);
+  $('jdw-wel-lose-t').textContent = lose ? 'Cri de perte enregistré ✓' : 'Ajouter mon cri de perte';
+  $('jdw-wel-lose-s').textContent = lose ? 'Touche pour le refaire' : 'Quand un copain te bat : snif, ouin, noooon !';
 }
 // fenêtre « Nouveau joueur » : onglets Nouveau joueur | J'ai déjà un compte (seulement si le serveur connaît les comptes)
 // WEL.uid : compte de l'appareil auquel rattacher le nouveau joueur ('' = nouveau compte) ; WEL.noAcct : joueur sans compte (enfant)
@@ -3345,6 +3476,7 @@ $('jdw-wel-noacct').addEventListener('click', () => { WEL.noAcct = !WEL.noAcct; 
 $('jdw-wel-forgot').addEventListener('click', () => openAcct('forgot', { email: $('jdw-wel-lemail').value.trim() }));
 $('jdw-wel-photo').addEventListener('click', () => { welReturn = true; startPhoto(); });
 $('jdw-wel-cri').addEventListener('click', () => { welReturn = true; $('jdw-welcome').hidden = true; openCri(); });
+$('jdw-wel-lose').addEventListener('click', () => { welReturn = true; $('jdw-welcome').hidden = true; openCri('lose'); });
 
 /* ================= Comptes (Supabase Auth : e-mail + mot de passe) =================
    API REST de Supabase Auth, sans SDK : /auth/v1/signup, token?grant_type=password|refresh_token, recover, resend, user, logout.
@@ -3578,6 +3710,7 @@ function acctUse(res, s, uidIn) {
   syncOwnPlayer(); refreshAll(); refreshBell();
   maybeAskJoin(); heartbeat(); loadNotifs(); refreshChatBtn(); if (chat.open) renderChat(false); rtTrack();
   if (push) pushProfile(); else poke('players');
+  LOSE.synced = ''; loseFlush();
   flushUnsent(); acctUi(); afterOnboarding();
   return pr;
 }
@@ -3819,6 +3952,7 @@ function acctAttach(pr, uid, me) {
   if (me && me.r_photo && profile.photo !== me.r_photo) { profile.photo = me.r_photo; profile.consent = true; profile.photoBase = null; profile.photoAcc = null; saveProfile(); players.delete(cleanName(profile.name)); syncOwnPlayer(); refreshAll(); }
   if (me && me.r_sound && !profile.sound) { profile.sound = me.r_sound; saveProfile(); syncOwnPlayer(); }
   if ((!me || !me.r_photo) && profile.photo && profile.consent) pushProfile(); else poke('players');
+  LOSE.synced = ''; loseFlush();
   acctUi(); flushUnsent(); heartbeat();
 }
 async function acctOk() {
@@ -5829,7 +5963,8 @@ function resHalf(i, land) {
   const heads = document.createElement('div'); heads.className = 'dr-heads';
   const hd = (pl, isWin) => {
     const b = document.createElement('div'); b.className = 'dr-head' + (isWin ? ' w' : '');
-    b.appendChild(chatHead(pl.name, { passive: true, sad: !isWin }));
+    const ch = chatHead(pl.name, { passive: true, sad: !isWin }); b.appendChild(ch);
+    if (isWin && hasCri(pl.name)) { b.style.cursor = 'pointer'; b.addEventListener('click', () => playCri(pl.name, ch)); }   // toucher le gagnant : son cri de victoire
     if (isWin) { const cr = document.createElement('span'); cr.className = 'dr-crown'; cr.textContent = '👑'; b.appendChild(cr); }
     return b;
   };
@@ -5874,7 +6009,7 @@ function duoResults() {
   if (!sting('win', 0.9)) { Audio.tone(523, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(659, 0.12, 'square', 0.06), 130); setTimeout(() => Audio.tone(784, 0.3, 'square', 0.06), 260); }
   if ((window.JDW_MUSIC || {}).dscores) setMusic('dscores', 'calm');
   const wn = seatName(w);
-  if (wn !== GUEST) setTimeout(() => playCri(wn), 1800);
+  if (wn !== GUEST) setTimeout(() => playCri(wn), 1800);    // duel : seulement le cri de victoire du gagnant (décision de l'utilisateur)
   setWhere('menu');
 }
 function duoRematch() {
@@ -6543,9 +6678,10 @@ function showCoopEnd() {
     const t = $('jdw-coopend-beat-txt'); t.textContent = '';
     const b = document.createElement('b'); b.textContent = 'Vous avez battu ' + (v.kind === 'ia' ? dispName(v.p1) + ' et son robot' : dispName(v.p1) + ' et ' + dispName(v.p2)) + ' !';
     t.append(b, ' Leur score : ' + fmt(v.score)); beat.hidden = false;
-    if (hasCri(v.p1)) crier = v.p1; else if (v.kind === 'ami' && hasCri(v.p2)) crier = v.p2;
+    if (hasLose(v.p1)) crier = v.p1; else if (v.kind === 'ami' && hasLose(v.p2)) crier = v.p2;
+    else if (hasCri(v.p1)) crier = v.p1; else if (v.kind === 'ami' && hasCri(v.p2)) crier = v.p2;
     Audio.tone(523, 0.12, 'square', 0.06); setTimeout(() => Audio.tone(784, 0.2, 'square', 0.06), 130);
-    if (crier) { beat.onclick = () => playCri(crier, hs.firstChild); setTimeout(() => { if (!$('jdw-coopend').hidden) playCri(crier, hs.firstChild); }, 450); }
+    if (crier) { beat.onclick = () => playLose(crier, hs.firstChild, true); setTimeout(() => { if (!$('jdw-coopend').hidden) playLose(crier, hs.firstChild, true); }, 450); }
   } else if (before[0] && !isGuest() && coopTeamKey(before[0].kind, before[0].p1, before[0].p2) !== mineKey && before[0].score >= sc && hasCri(before[0].p1)) {
     const lead = before[0]; setTimeout(() => { if (!$('jdw-coopend').hidden) playCri(lead.p1, null); }, 450);
   }
@@ -8360,33 +8496,89 @@ async function commitScore(name) {
   if (p.score <= prev) { if (live()) st.textContent = name + ' a déjà mieux : ' + fmt(prev) + unit(g) + '. Score non enregistré.'; return; }
   if (live()) st.textContent = 'Enregistrement pour ' + name + '…';
   const res = await saveScore(p.game, p.score, name);
+  p.saved = { name, prev, res };
   if (!live()) return;
   st.textContent = (prev ? 'Nouveau record pour ' + name + ' ! ' : 'Premier score de ' + name + ' ici ! ') +
     (res === 'shared' ? 'Enregistré en ligne dans le classement de la salle.' : (ONLINE ? "Pas de connexion : gardé sur cet appareil, il partira au retour du réseau." : 'Enregistré sur cet appareil.'));
   if (res === 'shared') loadChat();
-  renderEndBoard(g, cleanName(profile.name));
+  renderEndBoard(g, ENDBY.name || cleanName(profile.name));
+}
+// « Joué par JUJU ▾ » (écran de fin) : on s'est trompé de joueur → le score passe TOUT DE SUITE à un autre joueur de l'appareil.
+// Déjà enregistré pour le mauvais : la borne le reprend (take_back_score, source/score-corrige.sql : son record d'avant revient), puis
+// l'enregistre pour le bon (add_score). Pas encore parti (réseau coupé) : on le retire simplement de la file d'attente.
+const ENDBY = { name: '', busy: false };
+function endByRender() {
+  const el = $('jdw-endby'), others = deviceNames().filter(n => n !== ENDBY.name);
+  el.hidden = !pending || isGuest() || !ENDBY.name || !others.length;
+  if (el.hidden) return;
+  avatarInto($('jdw-endby-av'), ENDBY.name); $('jdw-endby-n').textContent = dispName(ENDBY.name);
+  const m = $('jdw-endby-menu'); m.textContent = '';
+  const h = document.createElement('p'); h.className = 'endby-h'; h.textContent = 'Ce n’était pas ' + dispName(ENDBY.name) + ' ? Le score passe à :'; m.appendChild(h);
+  for (const n of others) {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem');
+    const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, n);
+    const t = document.createElement('span'); t.textContent = dispName(n);
+    b.append(av, t); b.addEventListener('click', () => endByMove(n)); m.appendChild(b);
+  }
+}
+$('jdw-endby-b').addEventListener('click', () => { if (!ENDBY.busy) menuOpen($('jdw-endby-b'), $('jdw-endby-menu')); });
+async function endByMove(n) {
+  const p = pending, from = ENDBY.name, st = $('jdw-status'), g = p && gameById(p.game);
+  if (!p || !g || ENDBY.busy || cleanName(n) === from) return;
+  ENDBY.busy = true;
+  try {
+    if (p.saved) {
+      st.textContent = 'On reprend le score de ' + dispName(from) + '…';
+      if (!(await undoScore(p.game, p.saved.name, p.score, p.saved.prev, p.saved.res))) {
+        st.textContent = 'Impossible de reprendre le score de ' + dispName(from) + ' : vérifie la connexion et réessaie.'; return;
+      }
+    }
+    ENDBY.name = cleanName(n); p.saved = null; p.done = false; endByRender();
+    const b = $('jdw-endby-b'); b.classList.remove('moved'); void b.offsetWidth; b.classList.add('moved'); setTimeout(() => b.classList.remove('moved'), 1600);
+    await commitScore(ENDBY.name);
+    toastCheer('Score passé à ' + dispName(ENDBY.name) + ' ✓', ENDBY.name, true);
+  } finally { ENDBY.busy = false; }
+}
+// reprend un score qu'on vient d'enregistrer pour le mauvais joueur : serveur (take_back_score) ou file d'attente, puis l'appareil
+async function undoScore(game, name, score, prev, res) {
+  name = cleanName(name); prev = +prev || 0;
+  if (res === 'shared') {
+    try { await rpc('take_back_score', Object.assign({ p_code: CODE() }, RP(), { p_game: game, p_name: name, p_score: score, p_prev: prev }), { quiet404: true }); }
+    catch (e) { return false; }
+  } else if (room) { unsent = unsent.filter(u => !(u.room === room.id && u.name === name && u.game === game && +u.score === score)); store.set('jdw.unsent', unsent); }
+  const L = (local[game] || []).filter(e => !(e.name === name && e.score === score));
+  if (prev > 0) L.push({ name, score: prev, at: Date.now() - 1 });
+  local[game] = bestPerName(L).slice(0, 20); store.set('jdw.scores2', local);
+  if (bests[name]) { if (prev > 0) bests[name][game] = prev; else delete bests[name][game]; store.set('jdw.bests2', bests); }
+  if (remote[game]) { remote[game] = remote[game].filter(e => !(e.name === name && e.score === score)); if (prev > 0 && res === 'shared') remote[game].push({ name, score: prev, at: Date.now() - 1 }); }
+  if (res === 'shared') { poke('scores'); poke('chat'); loadScores(); }
+  return true;
+}
+// écran de fin : le score défile jusqu'à sa valeur, puis « pop »
+function endCount(el, to, unitTxt) {
+  const reduce = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !(to > 0)) { el.textContent = fmt(to); return; }
+  const t0 = performance.now(), D = Math.min(1100, 450 + Math.log10(to + 1) * 160), id = ++endCount.seq;
+  const step = t => {
+    if (id !== endCount.seq) return;
+    const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = fmt(Math.round(to * e));
+    if (k < 1) requestAnimationFrame(step); else { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  };
+  el.textContent = fmt(0); setTimeout(() => requestAnimationFrame(step), 260);
+}
+endCount.seq = 0;
+function endAnimate() {
+  const end = $('jdw-end'); end.classList.remove('in');
+  let i = 0;
+  for (const el of end.querySelectorAll('.card-body > :not(.end-l):not(.end-r), .end-l > *, .end-r > *')) if (!el.hidden) el.style.setProperty('--i', i++);
+  end.querySelectorAll('.board li').forEach((li, r) => li.style.setProperty('--r', r));
+  void end.offsetWidth; end.classList.add('in');
+  clearTimeout(endAnimate.t); endAnimate.t = setTimeout(() => end.classList.remove('in'), 2600);
 }
 function flushPending() { if (pending && !pending.done && pending.record) commitScore(profile.name); }
 addEventListener('pagehide', flushPending);
 document.addEventListener('visibilitychange', () => { if (document.hidden) flushPending(); });
-function whoChip(name, label, primary) {
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'who-chip' + (primary ? ' main' : '');
-  const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, name);
-  const t = document.createElement('span'); t.textContent = label;
-  b.append(av, t); b.addEventListener('click', () => commitScore(name)); return b;
-}
-function buildWho(record) {
-  const me = cleanName(profile.name), list = $('jdw-who-list'); list.textContent = '';
-  const others = deviceNames().filter(n => n !== me);
-  if (!record && !others.length) { $('jdw-who').hidden = true; return; }
-  $('jdw-who-q').textContent = record ? "C'était bien toi ? Enregistrer ce score pour :" : "Ce n'était pas " + me + ' ? Enregistrer ce score pour :';
-  if (record) list.appendChild(whoChip(me, me + ' (moi)', true));
-  for (const n of others) list.appendChild(whoChip(n, n, false));
-  const add = document.createElement('button'); add.type = 'button'; add.className = 'who-chip'; add.textContent = '+ Autre nom';
-  add.addEventListener('click', () => { $('jdw-who-newrow').hidden = false; add.hidden = true; $('jdw-who-name').value = ''; $('jdw-who-name').focus(); });
-  list.appendChild(add);
-  $('jdw-who-newrow').hidden = true; $('jdw-who').hidden = false;
-}
 $('jdw-who-ok').addEventListener('click', () => { const n = cleanName($('jdw-who-name').value); if (n) commitScore(n); else $('jdw-who-name').focus(); });
 $('jdw-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('jdw-who-ok').click(); } });
 // fin de partie : jusqu'où je suis allé dans les niveaux, comparé à mon meilleur niveau (gardé sur l'appareil, par joueur et par jeu)
@@ -8471,7 +8663,7 @@ async function showEnd(score) {
   const myBest = knownBest(me, g.id);
   $('jdw-endcard').style.setProperty('--acc', g.accent);
   $('jdw-endgame').textContent = g.title + ' · partie terminée';
-  $('jdw-endscore').textContent = fmt(score);
+  endCount($('jdw-endscore'), score);
   $('jdw-endunit').textContent = g.scoreLabel === 'm' ? 'mètres' : (g.scoreLabel || 'points');
   showLevelProgress(g, me);
   // qui ai-je battu ?
@@ -8494,7 +8686,7 @@ async function showEnd(score) {
   let crier = null, cryMode = '', ahead = null;
   if (score > 0 && beaten.length) {
     // on a battu quelqu'un : c'est lui qui pleure (jamais de moquerie)
-    if (hasCri(beaten[0].name)) { crier = beaten[0].name; cryMode = 'sad'; }
+    if (hasLose(beaten[0].name) || hasCri(beaten[0].name)) { crier = beaten[0].name; cryMode = 'sad'; }
   } else {
     // personne de battu : seul le PREMIER du classement se moque (s'il n'a pas de cri, aucun cri)
     const lead = before[0];
@@ -8511,8 +8703,8 @@ async function showEnd(score) {
       taunt.hidden = false; taunt.onclick = () => playCri(crier, head.firstChild);
       setTimeout(() => { if (!$('jdw-end').hidden) playCri(crier, head.firstChild); }, 450);
     } else {
-      $('jdw-beat').classList.add('has-cri'); $('jdw-beat').onclick = () => playCri(crier, $('jdw-beat-img'));
-      setTimeout(() => { if (!$('jdw-end').hidden) playCri(crier, $('jdw-beat-img')); }, 450);
+      $('jdw-beat').classList.add('has-cri'); $('jdw-beat').onclick = () => playLose(crier, $('jdw-beat-img'), true);
+      setTimeout(() => { if (!$('jdw-end').hidden) playLose(crier, $('jdw-beat-img'), true); }, 450);
     }
   }
   const st = $('jdw-status'), record = score > 0 && score > myBest && !isGuest();
@@ -8521,9 +8713,10 @@ async function showEnd(score) {
   if (isGuest()) st.textContent = score > 0 ? 'Joli score ! En invité, il n’est pas enregistré.' : 'Pas de points cette fois. Retente ta chance !';
   else if (record) st.textContent = 'Nouveau record ! Enregistrement en ligne…';
   else st.textContent = myBest ? 'Ton record : ' + fmt(myBest) + unit(g) + '. Encore un effort !' : 'Pas de points cette fois. Retente ta chance !';
-  if (pending && !record) buildWho(false); else $('jdw-who').hidden = true;
+  $('jdw-who').hidden = true; ENDBY.name = me; ENDBY.busy = false; endByRender();
   $('jdw-end').hidden = false;
   renderEndBoard(g, me);
+  endAnimate();
   if (record) commitScore(me);           // un record part tout de suite dans le classement en ligne
   $('jdw-again').focus({ preventScroll: true });
   if (record) Audio.tone(660, 0.1, 'square', 0.05);
