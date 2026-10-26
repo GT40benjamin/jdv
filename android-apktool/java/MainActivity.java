@@ -23,8 +23,20 @@ import android.widget.TextView;
 
 /** Borne d'arcade : ouvre la salle d'arcade en plein écran. Les jeux viennent du site et se mettent à jour tout seuls. */
 public class MainActivity extends Activity {
-    static final String HOME = "https://gt40benjamin.github.io/jdv/";
+    // 1.11 : le site déménage sur elixirgamestudio.com (GitHub renvoie l'ancienne adresse vers la nouvelle). L'appli accepte les DEUX ;
+    // elle ouvre l'ancienne tant qu'elle n'a pas vu la nouvelle répondre (avant la bascule, la nouvelle ne répond pas encore), puis la nouvelle.
+    static final String HOME = "https://gt40benjamin.github.io/jdv/";   // ancienne adresse
+    static final String NEUF = "https://elixirgamestudio.com/";          // nouvelle adresse
+    static final String NEUF_WWW = "https://www.elixirgamestudio.com/";
     static final String BORNE = HOME + "jouer/";   // la borne (la racine est la page d'accueil publique)
+    static boolean site(String u) { return u != null && (u.startsWith(HOME) || u.startsWith(NEUF) || u.startsWith(NEUF_WWW)); }
+    // REPRISE (1.11) : les réglages de la borne (profils, connexion, records de l'appareil…) sont rangés par le WebView sous l'ADRESSE du
+    // site ; à la nouvelle adresse, ils seraient perdus. Tant que la nouvelle adresse ne les a pas repris, l'appli ouvre d'abord une page
+    // vide « à l'ancienne adresse » (sans réseau : loadDataWithBaseURL) qui les lit et les donne à l'appli (BorneApp.garde), puis la borne ;
+    // à la nouvelle adresse, la borne les demande une fois (BorneApp.reprise, tout en haut de la page, avant tout le reste). Rien ne quitte
+    // le téléphone, rien dans une adresse.
+    static final String CAPTURE_PAGE = "<!doctype html><meta charset=utf-8><body style='background:#0b141c'><script>"
+        + "try{BorneApp.garde(JSON.stringify(localStorage))}catch(e){}location.replace('" + BORNE + "')</script>";
     static final int VERSION = __VC__;
     static final String VNAME = "__VN__";   // même numéro que le site (ex. 1.5)
     // sans réseau au tout premier lancement (rien de gardé) : jolie page plutôt que l'erreur d'Android ; Réessayer = recharger la borne
@@ -116,7 +128,7 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, String url) {
-                if (url.startsWith(HOME) && url.indexOf("/telecharger") < 0) return false;
+                if (site(url) && url.indexOf("/telecharger") < 0) return false;   // 1.11 : aussi la nouvelle adresse (sinon la redirection partait dans Chrome)
                 try { startActivity(new Intent("android.intent.action.VIEW", Uri.parse(url))); } catch (Throwable ignore) { }
                 return true;
             }
@@ -125,6 +137,13 @@ public class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView v, int code, String desc, String failingUrl) {
                 try { v.loadDataWithBaseURL(null, OFFLINE_PAGE, "text/html", "utf-8", null); } catch (Throwable ignore) { }
+            }
+            // la nouvelle adresse a répondu : les prochaines fois, on l'ouvre directement (plus de détour par l'ancienne)
+            @Override
+            public void onPageFinished(WebView v, String url) {
+                if (url != null && (url.startsWith(NEUF) || url.startsWith(NEUF_WWW)) && !prefs().getBoolean("neuf", false)) {
+                    try { prefs().edit().putBoolean("neuf", true).apply(); } catch (Throwable ignore) { }
+                }
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
@@ -155,7 +174,9 @@ public class MainActivity extends Activity {
                 } catch (Throwable e) { try { r.deny(); } catch (Throwable ignore) { } }
             }
         });
-        web.loadUrl(BORNE);
+        if (!prefs().getBoolean("repris", false)) {
+            try { web.loadDataWithBaseURL(BORNE, CAPTURE_PAGE, "text/html", "utf-8", null); } catch (Throwable e) { web.loadUrl(borne()); }
+        } else web.loadUrl(borne());
         immersive();
         fitKeyboard();
     }
@@ -284,7 +305,29 @@ public class MainActivity extends Activity {
         });
     }
 
-    public static class Bridge {
+    SharedPreferences prefs() { return getSharedPreferences("borne", 0); }
+    String borne() { return prefs().getBoolean("neuf", false) ? NEUF + "jouer/" : BORNE; }
+    static String origin(String u) { int i = u.indexOf('/', u.indexOf("://") + 3); return i < 0 ? u : u.substring(0, i); }   // « https://hôte[:port] »
+
+    public class Bridge {
         @JavascriptInterface public int version() { return VERSION; }
+        // REPRISE (1.11) : la page vide à l'ancienne adresse donne ses réglages (JSON de son localStorage), gardés sur le téléphone
+        @JavascriptInterface public void garde(String json) {
+            try {
+                if (json == null || json.length() < 3 || json.length() > 12000000 || prefs().getBoolean("repris", false)) return;
+                getSharedPreferences("reprise", 0).edit().putString("ls", json).commit();
+            } catch (Throwable ignore) { }
+        }
+        // … et la borne À LA NOUVELLE ADRESSE les reprend, une seule fois (puis ils sont effacés de l'appli)
+        @JavascriptInterface public String reprise(String pageOrigin) {
+            try {
+                if (pageOrigin == null || pageOrigin.equals(origin(HOME))) return null;
+                SharedPreferences r = getSharedPreferences("reprise", 0);
+                String json = r.getString("ls", null);
+                r.edit().remove("ls").commit();
+                prefs().edit().putBoolean("repris", true).commit();
+                return json;
+            } catch (Throwable e) { return null; }
+        }
     }
 }

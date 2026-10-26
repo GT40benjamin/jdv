@@ -498,7 +498,7 @@ public final class Natif {
         return false;
     }
     static boolean okUrl(String u) {
-        return u != null && u.length() < 2000 && u.indexOf("..") < 0 && u.indexOf('@') < 0 && (u.startsWith(MainActivity.HOME) || u.startsWith(REL));
+        return u != null && u.length() < 2000 && u.indexOf("..") < 0 && u.indexOf('@') < 0 && (MainActivity.site(u) || u.startsWith(REL));
     }
     static String hex(byte[] d) {
         StringBuilder b = new StringBuilder(d.length * 2);

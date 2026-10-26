@@ -129,6 +129,11 @@ def page(config=None):
 def full_doc(p):
     i = p.index('<style>'); head = p[:i]; rest = p[i:]; j = rest.index('</style>') + 8
     return ('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'
+            # déménagement sur elixirgamestudio.com : dans l'appli 1.11+, les réglages gardés à l'ancienne adresse (profils, connexion…)
+            # sont repris UNE fois, avant tout le reste (BorneApp.reprise, MainActivity.java) ; une clé déjà là n'est jamais écrasée
+            '<script>try{var B=window.BorneApp;if(B&&B.reprise&&!localStorage.getItem("jdw.reprise")){var d=B.reprise(location.origin);'
+            'if(d){var o=JSON.parse(d);for(var k in o)if(localStorage.getItem(k)===null)localStorage.setItem(k,o[k]);'
+            'localStorage.setItem("jdw.reprise",String(Date.now()))}}}catch(e){}</script>\n'
             '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">\n'
             '<meta name="theme-color" content="#0b141c">\n<meta name="robots" content="noindex">\n'
             # aperçu des liens partagés (invitation ?salle=…, défi ?duel=…) : même texte pour tous, jamais le nom d'une salle
