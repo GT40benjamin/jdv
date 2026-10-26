@@ -1,7 +1,14 @@
 # Borne d'arcade entre amis — guide pour Claude Code
 
 Salle d'arcade web pour une bande de copains : 7 mini-jeux à une seule vie, salles, classements communs,
-têtes des copains (selfies détourés) dans les jeux. Site : https://gt40benjamin.github.io/jdv/ (GitHub Pages, branche main, racine).
+têtes des copains (selfies détourés) dans les jeux. Site : https://elixirgamestudio.com/ (GitHub Pages, branche main, racine ; domaine
+personnalisé depuis le 26 oct. 2026, fichier `CNAME` ; l'ancienne adresse https://gt40benjamin.github.io/jdv/… redirige en 301, chemin et
+paramètres gardés). **Déménagement** (borne 1.38, appli 1.11) : DNS chez Cloudflare (4 A @ GitHub + CNAME www, « DNS only ») ; l'origine a
+changé → le localStorage de l'ancienne adresse n'est plus lu : l'appli 1.11 le recopie (MainActivity : page vide `loadDataWithBaseURL` à
+l'ancienne adresse → `BorneApp.garde`, puis `BorneApp.reprise` en tête de la borne, build2.py) ; dans un navigateur, reconnexion une fois.
+Les applis ≤ 1.10 n'acceptent que l'ancienne adresse : la 301 les envoie dans Chrome. Fonctions Edge avec les DEUX origines (ORIGINS),
+`source/domaine.sql` (pg_island_list, ile_photo_monde), Supabase Auth (Site URL / Redirect URLs) et CORS du seau R2 (vidéos du décor) avec
+elixirgamestudio.com. Le service worker de l'ancienne adresse reste figé (sa mise à jour est redirigée) : il laisse passer la redirection.
 
 ## Ce qui est publié (racine du dépôt) — site PUBLIC depuis la 1.7 (plus de mot de passe du site)
 - `index.html` : page d'accueil publique (copie de `source/accueil.html`), visuels dans `accueil/` (boucles WebM + WebP fabriquées
@@ -222,7 +229,9 @@ test-map-est.js. (Chasse aux mouches : le dessin de sa carte est dans ses partie
 `~/jdv-tools/duotest/carreaux-v2/parts/p8b-carte.js`, même principe.)
 
 ## Appli Android (`android-apktool/`)
-WebView plein écran sur la borne (`https://gt40benjamin.github.io/jdv/jouer/`, Java dans `java/MainActivity.java`). Construite sans SDK :
+WebView plein écran sur la borne (`https://elixirgamestudio.com/jouer/` ; l'appli 1.11 ouvre l'ancienne adresse tant qu'elle n'a pas vu la
+nouvelle répondre (préférence `neuf`), accepte les deux (`site()`), reprend les réglages une fois (`repris`) ; Java dans `java/MainActivity.java`).
+**1.11 (versionCode 13, 26 oct. 2026)** : déménagement ; essai émulateur `essai-reprise.sh` (1.10 → 1.11 → bascule simulée par un serveur 301). Construite sans SDK :
 `./build-apk.sh <versionCode> <versionName> sortie.apk` (javac + stubs, dx 30.0.2, apktool 2.9.3, uber-apk-signer 1.3.0 ; outils dans `TOOLS`,
 par défaut `~/jdv-tools/apk`). Clé de signature : `android/app/borne.keystore`. Depuis la 1.7 (versionCode 8) : plus de BorneApp.code().
 Les appareils en 1.6 chargent la racine → l'accueil les renvoie vers jouer/ → la cloche annonce « Nouvelle appli 1.7 » (telecharger/version.json).
