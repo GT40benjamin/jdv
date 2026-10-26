@@ -12,6 +12,7 @@
     <button class="icon-btn" id="jdw-open-board" type="button" aria-label="Classement">
       <svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>
     </button>
+    <button class="icon-btn share-btn no-pg" id="jdw-share-btn" type="button" aria-label="Partager la borne"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><span class="sb-lab">Partager</span></button>
     <button class="icon-btn pg-only" id="jdw-pg-share" type="button" aria-label="Partager la page Pégase"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>
     <button class="icon-btn pg-only" id="jdw-pg-rank" type="button" aria-label="Classement des îles"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></button>
     <button class="icon-btn pg-only" id="jdw-pg-music" type="button" aria-label="Couper la musique"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="mute" d="M3 3l18 18"/></svg></button>
@@ -591,6 +592,32 @@
         <p class="small">Ce lien ne marchera plus pour personne (ceux qui sont déjà entrés restent dans la salle). Un nouveau lien le remplace.</p>
         <div class="row"><button class="btn btn-danger btn-sm" id="jdw-invshare-renew-ok" type="button">Refaire le lien</button><button class="btn btn-ghost btn-sm" id="jdw-invshare-renew-no" type="button">Garder</button></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Partager la borne / Partager Pégase (borne 1.38.2) : un lien public (…/jouer/ ou …/pegase/), sans salle ni pseudo ; marche aussi en invité -->
+<div class="sheet sheet-top" id="jdw-share" data-kind="borne" hidden>
+  <div class="card inv-card share-card" role="dialog" aria-modal="true" aria-labelledby="jdw-share-eye">
+    <div class="card-body">
+      <div class="inv-top"><p class="eyebrow" id="jdw-share-eye">Partager la borne</p><button class="btn btn-ghost btn-sm" id="jdw-share-close" type="button">Fermer</button></div>
+      <p class="share-msg" id="jdw-share-msg"></p>
+      <figure class="share-prev" aria-label="Ce que tes copains verront">
+        <img id="jdw-share-img" alt="" decoding="async" width="1200" height="630">
+        <figcaption><small id="jdw-share-dom"></small><b id="jdw-share-t"></b><span id="jdw-share-d"></span></figcaption>
+      </figure>
+      <button class="inv-link" id="jdw-share-link" type="button" aria-label="Copier le lien">
+        <span class="il-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 13.5a4.5 4.5 0 0 0 6.4.4l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10.5a4.5 4.5 0 0 0-6.4-.4l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg></span>
+        <span class="il-url" id="jdw-share-url"></span>
+        <span class="il-copy" id="jdw-share-copy">Copier</span>
+      </button>
+      <button class="btn btn-play inv-go" id="jdw-share-go" type="button">📨 Partager</button>
+      <div class="inv-apps share-apps">
+        <a class="btn btn-ghost btn-sm inv-app" id="jdw-share-wa" href="#" target="_blank" rel="noopener"><span class="ia-dot wa" aria-hidden="true"></span>WhatsApp</a>
+        <a class="btn btn-ghost btn-sm inv-app" id="jdw-share-sms" href="#"><span class="ia-dot sms" aria-hidden="true"></span>SMS</a>
+        <a class="btn btn-ghost btn-sm inv-app" id="jdw-share-mail" href="#"><span class="ia-dot mail" aria-hidden="true"></span>E-mail</a>
+      </div>
+      <p class="small inv-status" id="jdw-share-status" role="status"></p>
     </div>
   </div>
 </div>

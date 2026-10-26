@@ -4503,6 +4503,7 @@
   const tCanon = (o) => JSON.stringify({ v: 1, tenue: o, desc: tDescribe(o).replace(/"/g, '\'') });
 
   const PGH_SVG = {
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
     dl: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 8v30"/><path d="M20 27l12 12 12-12"/><path d="M10 40v10a5 5 0 0 0 5 5h34a5 5 0 0 0 5-5V40"/></svg>',
     zip: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 18a5 5 0 0 1 5-5h12l5 6h21a5 5 0 0 1 5 5v23a5 5 0 0 1-5 5H13a5 5 0 0 1-5-5z"/><path d="M30 25h4M30 31h4M30 37h4" stroke-width="3.4"/><path d="M42 44l8-8m0 0h-7m7 0v7" stroke-width="3.4"/></svg>',
     play: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"><rect x="9" y="9" width="46" height="46" rx="13"/><path d="M27 22l15 10-15 10z" fill="currentColor"/></svg>',
@@ -4589,6 +4590,9 @@
 .pgh-cta.gold{color:#3a1a05;background:linear-gradient(180deg,#ffe7a8,#ffc35e 55%,#ff9f4a);box-shadow:0 8px 22px rgba(255,150,60,.38),inset 0 1px 0 rgba(255,255,255,.75),inset 0 -2px 0 rgba(160,70,10,.35)}
 .pgh-cta.glass{color:#fff4e2;background:rgba(40,24,66,.74);box-shadow:inset 0 0 0 1.5px rgba(255,214,140,.55),0 8px 20px rgba(0,0,0,.3)}
 .pgh-cta:active{transform:translateY(1px) scale(.99)}
+.pgh-share[hidden]{display:none}
+.pgh-cta.sq{flex:0 0 52px;padding:0}
+.pgh-cta.sq svg{width:22px;height:22px}
 .pgh-small{font:600 12px ${FB};color:rgba(255,240,220,.78);text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .pgh-scrolltip{position:absolute;z-index:4;left:50%;bottom:6px;transform:translateX(-50%);width:22px;height:22px;opacity:.6;pointer-events:none;animation:pghBob 2s ease-in-out infinite;color:#ffe2ad}
 /* paysage / ordinateur : texte à gauche, avatar à droite */
@@ -7073,12 +7077,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <span class="pgh-eye"><i></i>Nouveau monde · PC et Android<b class="pgh-jour" style="font-weight:inherit"></b></span>
       <h1 class="pgh-title">Pégase</h1>
       <p class="pgh-pitch">Ta petite vie dans un monde magique… et quelque part dans le ciel, <b>Pégase</b>, le cheval ailé.</p>
-      <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button></div>
+      <div class="pgh-ctas2"><button class="pgh-cta gold" data-h="go-av2">${PGH_SVG.edit}<span data-h="avlab2">Créer mon avatar</span></button><button class="pgh-cta glass" data-h="go-dl">${PGH_SVG.dl}<span>Télécharger le jeu</span></button><button class="pgh-cta glass pgh-share" data-h="share2" type="button" hidden aria-label="Partager Pégase">${PGH_SVG.share}<span>Partager</span></button></div>
     </div>
     <div class="pgh-bottom">
       <div class="pgh-mprog" data-h="mprog" hidden aria-live="polite"><span data-h="mprogt"></span><b><u data-h="mprogb"></u></b></div>
       <div class="pgh-emotes" data-h="emotes">${EMOTES.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}<div class="pgh-emowrap"><button class="pgh-emo more" data-h="emomore" aria-label="Autres gestes" title="Autres gestes" aria-expanded="false"><span>⋯</span></button><div class="pgh-emofan" data-h="emofan">${EMOTES_MORE.map(([k, e, t]) => `<button class="pgh-emo" data-emo="${k}" aria-label="${t}" title="${t}">${e}<small>${t}</small></button>`).join('')}</div></div><button class="pgh-emo mic" data-h="mic" aria-label="Parler : la bouche de ton avatar suit ta voix" title="Parler (micro)"><span>🎤</span></button><button class="pgh-emo say" data-h="say" aria-label="Écouter ton avatar dire bonjour" title="Écouter ton avatar parler"><span>💬</span></button></div>
-      <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-av">${PGH_SVG.edit}<span data-h="avlab">Modifier</span></button><button class="pgh-cta glass" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button></div>
+      <div class="pgh-ctas"><button class="pgh-cta gold" data-h="go-av">${PGH_SVG.edit}<span data-h="avlab">Modifier</span></button><button class="pgh-cta glass" data-h="go-dl1">${PGH_SVG.dl}<span>Télécharger</span></button><button class="pgh-cta glass pgh-share sq" data-h="share" type="button" hidden aria-label="Partager Pégase" title="Partager Pégase">${PGH_SVG.share}</button></div>
       <div class="pgh-small" data-h="small">Gratuit · PC Windows · Android bientôt</div>
     </div>
   </section>
@@ -9425,6 +9429,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     on($.tabs, 'click', (e) => { const b = e.target.closest('.pgh-tab'); if (b) { setTab(b.dataset.tab, true); tone(560, 760); } });
     const toDl = () => { setTab('infos', false); requestAnimationFrame(() => { const s = $.scroll, t = $.secdl.offsetTop - $.tabs.offsetHeight - 6; try { s.scrollTo({ top: t, behavior: 'smooth' }); } catch (e) { s.scrollTop = t; } }); };
     for (const k of ['go-dl', 'go-dl1']) on($[k], 'click', () => { if (AND.state === 'play') andOpen(); else toDl(); });
+    // « Partager Pégase » : la fenêtre de partage de la borne (api.share, CONTRACT.md Ajout 12) ; vieille borne sans api.share : pas de bouton
+    for (const k of ['share', 'share2']) if ($[k] && api && typeof api.share === 'function') { $[k].hidden = false; on($[k], 'click', () => { tone(560, 840); api.share(); }); }
 
     // ---------- LES COPAINS DE LA SALLE ----------
     const FR = { list: [], av: new Map(), sig: '', at: 0, err: '' };

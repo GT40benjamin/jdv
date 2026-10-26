@@ -234,3 +234,8 @@ morceau en secondes (latence de sortie déduite), null si rien ne joue ; `api.rh
 `api.rhythm.analyser()` (1.35) : un AnalyserNode branché sur le morceau (avant le volume de la musique) pour des décors qui pulsent sur le
 son (grave / médium / aigu) ; null s'il n'y a pas de son. Le jeu ne doit jamais en dépendre pour jouer (seulement pour le dessin).
 Nommer les morceaux autrement que l'id du jeu (ex. `neonrush-1` pour `neon`) pour que la borne ne les joue pas d'elle-même.
+
+## Ajout 12 : partager (api.share, borne 1.38.2)
+`api.share()` (seulement pour `pegase`, sinon `undefined`) ouvre la fenêtre « Partager Pégase » de la borne PAR-DESSUS le jeu : message,
+aperçu du lien, Partager (téléphone) / Copier, WhatsApp, SMS, e-mail. Le lien (…/pegase/, construit depuis l'adresse actuelle) est public :
+il marche aussi en invité. Le jeu n'a rien d'autre à faire ; sans `api.share` (vieille borne), il cache son bouton.

@@ -36,6 +36,8 @@ mkdir -p ../jouer && cp "$T/site.html" ../jouer/index.html
 cp "$T/sw.js" ../jouer/sw.js
 # page d'accueil publique
 cp accueil.html ../index.html
+# lien « Partager Pégase » : petite page qui renvoie vers jouer/?pegase, seulement pour l'aperçu du lien (image partage-pegase.jpg)
+mkdir -p ../pegase && cp pegase-partage.html ../pegase/index.html
 # page de téléchargement publique + APK en fichier direct (l'appli 1.7 n'embarque plus aucun mot de passe)
 node telecharger.js "$APK" ../telecharger
 printf '{"build":"%s","version":"%s"}\n' "$BUILD_ID" "$SITE_VERSION" > ../site.json
