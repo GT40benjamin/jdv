@@ -883,6 +883,14 @@
         <button type="button" data-k="win" aria-pressed="true"><i aria-hidden="true">🎉</i> Victoire<span class="cri-has" data-has="win" hidden>✓</span></button>
         <button type="button" data-k="lose" aria-pressed="false"><i aria-hidden="true">😢</i> Perte<span class="cri-has" data-has="lose" hidden>✓</span></button>
       </div>
+      <div class="cri-where" id="jdw-cri-where" hidden>
+        <p class="cri-where-q">Où sonne ce cri ?</p>
+        <div class="scope" role="group" aria-label="Où sonne ce cri ?">
+          <button type="button" data-w="all" aria-pressed="true"><i aria-hidden="true">🌍</i> <span>Partout, dans toutes mes salles</span></button>
+          <button type="button" data-w="room" aria-pressed="false"><i aria-hidden="true">🏠</i> <span id="jdw-cri-where-room">Seulement ici</span></button>
+        </div>
+        <p class="cri-where-s" id="jdw-cri-where-s" role="status"></p>
+      </div>
       <p class="small cri-txt" id="jdw-cri-txt"></p>
       <div class="cri-stage">
         <button class="cri-rec" id="jdw-cri-rec" type="button" aria-label="Enregistrer"><span class="cri-dot"></span></button>

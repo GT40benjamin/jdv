@@ -2,6 +2,9 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[borne] ## 🏠 Ton cri partout ou seulement dans une salle (borne 1.37.2)
+[borne] Dans la fenêtre des cris, « Où sonne ce cri ? » : « Partout, dans toutes mes salles » ou « Seulement dans » la salle où tu es, pour le cri de victoire comme pour le cri de perte
+[borne] Une phrase dit clairement où ton cri sonnera, et te prévient quand le cri de la salle passe avant celui de partout
 [borne] ## 😢 Ton cri de perte (borne 1.37)
 [borne] 😢 Nouveau : enregistre aussi ton cri de perte ! Il sonne quand un copain bat ton record ; ton cri de victoire, lui, sonne quand tu gagnes un duel ou restes premier
 [borne] 🎙️ Ton cri de perte se règle dans ⚙ (sous ta tête et ton cri de victoire) et juste après le cri de victoire quand tu crées ton joueur ; pendant l'enregistrement, la musique de la borne se tait

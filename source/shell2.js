@@ -3033,17 +3033,35 @@ function criHas(kind, rid) {
 }
 function criKind(kind) {
   criStop(true); CR.kind = kind === 'lose' ? 'lose' : 'win'; CR.data = ''; CR.levels = []; drawWave();
+  criRender();
+  const lose = CR.kind === 'lose';
+  criHint(criMime() === null ? "Ton navigateur n'enregistre pas le son : choisis plutôt un fichier." : lose ? 'Touche le micro et pleure, râle ou boude (3 secondes) !' : 'Touche le micro et crie, ris ou chante (3 secondes) !');
+  criState('idle');
+}
+// « Où sonne ce cri ? » : partout (profil principal) ou seulement dans la salle actuelle (comme la tête par salle) ; le cri déjà
+// enregistré ou en cours reste, seul l'endroit change
+const criWhereOk = () => !!(ONLINE && room && profile.name && !isGuest() && !welReturn && !knownNotMember(profile.name));
+function criRender() {
   const lose = CR.kind === 'lose', rid = lookEdit, here = rid != null && room ? ' dans « ' + room.name + ' »' : '';
+  const W = $('jdw-cri-where'); W.hidden = !criWhereOk();
+  if (!W.hidden) {
+    for (const b of W.querySelectorAll('button[data-w]')) b.setAttribute('aria-pressed', String((b.dataset.w === 'room') === (rid != null)));
+    $('jdw-cri-where-room').textContent = 'Seulement dans « ' + room.name + ' »';
+    const s = $('jdw-cri-where-s'); s.textContent = '';
+    const B = t => { const b = document.createElement('b'); b.textContent = t; return b; };
+    const what = lose ? 'ton cri de perte' : 'ton cri de victoire', main = criHas(CR.kind, null), mine = criHas(CR.kind, room.id);
+    if (rid != null) s.append('Ce cri ne sonnera que dans ', B('« ' + room.name + ' »'), '. Dans tes autres salles : ' + what + (main ? ' de partout.' : ' de partout (pas encore enregistré).'));
+    else s.append('Ce cri sonnera dans ', B('toutes tes salles'), mine ? '. Attention : dans « ' + room.name + ' », ' + what + ' de la salle passe avant.' : '.');
+  }
+  $('jdw-cri').dataset.kind = CR.kind;
   $('jdw-cri').dataset.kind = CR.kind;
   for (const b of $('jdw-cri-kind').querySelectorAll('button[data-k]')) b.setAttribute('aria-pressed', String(b.dataset.k === CR.kind));
   for (const m of $('jdw-cri-kind').querySelectorAll('.cri-has')) m.hidden = !criHas(m.dataset.has, rid);
   $('jdw-cri-del').hidden = !criHas(CR.kind, rid);
   $('jdw-cri-del').textContent = rid != null ? (lose ? 'Retirer le cri de perte de cette salle' : 'Retirer le cri de cette salle') : (lose ? 'Retirer mon cri de perte' : 'Retirer mon cri de victoire');
   $('jdw-cri-h').textContent = (lose ? 'Ton cri de perte' : 'Ton cri de victoire') + here;
-  $('jdw-cri-txt').textContent = lose ? 'Il sonne quand tu perds : un copain bat ton record (ta tête pleure) ou te bat en duel. Snif, ouin, « noooon ! »…'
+  $('jdw-cri-txt').textContent = lose ? 'Il sonne quand tu perds : un copain bat ton record et ta tête pleure. Snif, ouin, « noooon ! »…'
     : 'Il sonne quand tu gagnes : tu bats un copain en duel, tu restes premier et tu te moques, et quand on touche ta tête dans le chat.';
-  criHint(criMime() === null ? "Ton navigateur n'enregistre pas le son : choisis plutôt un fichier." : lose ? 'Touche le micro et pleure, râle ou boude (3 secondes) !' : 'Touche le micro et crie, ris ou chante (3 secondes) !');
-  criState('idle');
 }
 function openCri(kind) {
   Audio.ensure();
@@ -3169,6 +3187,11 @@ $('jdw-cri-file').addEventListener('click', () => { const f = $('jdw-cri-input')
 $('jdw-cri-input').addEventListener('change', () => { const f = $('jdw-cri-input').files; if (f && f[0]) criFromFile(f[0]); });
 $('jdw-cri-close').addEventListener('click', closeCri);
 $('jdw-cri-kind').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (b && b.dataset.k !== CR.kind) criKind(b.dataset.k); });
+$('jdw-cri-where').addEventListener('click', e => {
+  const b = e.target.closest('button[data-w]'); if (!b || !room) return;
+  const rid = b.dataset.w === 'room' ? room.id : null; if (rid === lookEdit) return;
+  lookEdit = rid; criRender();
+});
 $('jdw-cri-ok').addEventListener('click', async () => {
   if (!CR.data) return;
   const rid = welReturn ? null : lookEdit, lose = CR.kind === 'lose';

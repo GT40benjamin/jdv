@@ -434,6 +434,19 @@ body.chat-open{overflow:hidden}
 .cri-has{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--leaf);color:var(--night);font:800 11px var(--body)}
 .cri-kind button[data-k="lose"][aria-pressed="true"]{box-shadow:inset 0 -2px 0 #6aa8ff}
 .cri-txt{margin:2px 0 0;min-height:2.6em}
+/* « Où sonne ce cri ? » : Partout | Seulement dans <salle> (dans la fenêtre des cris, toujours visible dans une salle) */
+.cri-where{display:grid;gap:6px;padding:10px;border-radius:14px;background:var(--night);border:1px solid var(--line)}
+.cri-where[hidden]{display:none}
+.cri-where-q{margin:0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cri-where .scope{grid-template-columns:minmax(0,1fr);gap:3px;padding:3px;background:var(--panel)}
+.cri-where .scope button{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-width:0;min-height:40px;padding:6px 12px;font-size:14.5px;text-align:left}
+.cri-where .scope button::after{content:"";margin-left:auto;flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:2px solid var(--steel2)}
+.cri-where .scope button[aria-pressed="true"]::after{border-color:var(--gold);background:radial-gradient(circle,var(--gold) 0 4px,transparent 5px)}
+.cri-where .scope button span{min-width:0;overflow-wrap:anywhere}
+.cri-where .scope button i{font-style:normal}
+.cri-where .scope button[data-w="room"][aria-pressed="true"]{box-shadow:inset 0 -2px 0 var(--gold);color:var(--gold)}
+.cri-where-s{margin:0;font-size:12.5px;line-height:1.35;color:var(--muted)}
+.cri-where-s b{color:var(--ink)}
 #jdw-cri[data-kind="lose"] .cri-rec{background:conic-gradient(#4f8dff calc(var(--p) * 360deg),var(--steel) 0)}
 #jdw-cri[data-kind="lose"] .cri-dot{background:#4f8dff;box-shadow:0 0 0 6px rgba(79,141,255,.25)}
 #jdw-cri[data-kind="lose"][data-state="rec"] .cri-dot{animation-name:criPulseB}
