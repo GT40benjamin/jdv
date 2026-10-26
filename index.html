@@ -9,9 +9,14 @@
     var app = !!window.BorneApp || ua.indexOf('BorneArcade') >= 0;
     var pwa = mm('(display-mode: standalone)') || mm('(display-mode: fullscreen)') || navigator.standalone === true;
     var auth = /(access_token=|error_description=|error_code=|type=recovery)/.test(h);
-    if (app || pwa || s.length > 1 || auth) {
+    // les codes de suivi qu'ajoutent WhatsApp, Facebook, Messenger, Google… (?fbclid=, ?utm_…) ne sont PAS des liens de la borne
+    var q = s.slice(1).split('&').filter(function (kv) {
+      var k = decodeURIComponent(kv.split('=')[0] || '').toLowerCase();
+      return k && !/^(utm_.*|fbclid|gclid|gbraid|wbraid|dclid|msclkid|igshid|mc_cid|mc_eid|ttclid|twclid|yclid|si|_ga|ref)$/.test(k);
+    }), keep = q.length ? '?' + q.join('&') : '';
+    if (app || pwa || keep || auth) {
       document.documentElement.style.visibility = 'hidden';
-      l.replace('jouer/' + s + h);
+      l.replace('jouer/' + keep + h);
     }
   } catch (e) {}
 })();
@@ -32,7 +37,6 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Elixir Game Studio : le logo devant un lac et son arbre rouge, filmé dans le jeu Pégase">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
