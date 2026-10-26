@@ -2,6 +2,11 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[borne] ## 🔑 Se connecter avec Google (borne 1.39)
+[borne] Nouveau : « Continuer avec Google » pour créer ton compte ou te connecter en un toucher, sans retenir de mot de passe (le bouton blanc apparaît dès que la connexion Google est branchée sur la borne)
+[borne] Un compte tout neuf avec Google : tu choisis ensuite ton pseudo, ta tête et tes cris, comme d'habitude ; si ton adresse Google a déjà un compte, tu retrouves tes joueurs
+[borne] Déjà inscrit avec ton e-mail ? ⚙ › Compte › « Rattacher mon compte Google » : ensuite tu te connectes aussi avec Google, mêmes pseudos, mêmes scores (et « Détacher » si tu changes d'avis)
+[borne] 📲 Nouvelle appli Android 1.13 (page Télécharger) : Google s'ouvre dans Chrome puis te ramène tout seul dans l'appli
 [borne] ## 🧪 Le site d'Elixir Game Studio (borne 1.38.13)
 [borne] Nouvelle page d'accueil sur elixirgamestudio.com : l'écran titre du studio, avec les plans filmés dans Pégase en vraie qualité (jusqu'en 4K selon ton écran, version en hauteur sur téléphone)
 [borne] Deux boutons pour entrer : « Pégase » ouvre directement la page Pégase, « La Borne d'arcade » ouvre directement les mini-jeux

@@ -2051,6 +2051,30 @@ body.net-off #jdw-coop-switch [data-where=ami] span::after{content:" · réseau"
 .acct-lead{font-size:14.5px;color:var(--ink)}
 .acct-lead b{color:var(--gold)}
 .acct-links{display:grid;gap:4px}
+/* « Continuer avec Google » (bouton clair de Google : logo G en couleurs, texte gris foncé) + séparateur « ou avec ton e-mail » */
+.g-box{display:grid;gap:8px;min-width:0}
+.g-box[hidden]{display:none}
+.g-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:48px;padding:10px 16px;border:1px solid #747775;border-radius:999px;
+  background:#fff;color:#1f1f1f;font:600 16px/1.2 'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.01em;cursor:pointer;
+  box-shadow:0 2px 0 rgba(0,0,0,.35),0 6px 16px rgba(0,0,0,.25);transition:transform .12s,box-shadow .12s,background .12s}
+.g-btn:hover{background:#f2f5f9}
+.g-btn:active{transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.25)}
+.g-btn:focus-visible{outline:3px solid var(--volt);outline-offset:3px}
+.g-btn[disabled]{opacity:.7;cursor:progress}
+.g-btn .g-logo{flex:0 0 auto;width:20px;height:20px}
+.g-or{display:flex;align-items:center;gap:10px;margin:2px 0 0;font-size:12.5px;font-weight:600;color:var(--muted)}
+.g-or::before,.g-or::after{content:"";flex:1 1 auto;height:1px;background:var(--steel2)}
+.g-or span{flex:0 0 auto}
+/* ⚙ › Compte : Google rattaché / « Rattacher mon compte Google » */
+.acct-g{flex:1 1 100%;display:grid;gap:6px;min-width:0}
+.acct-g-on{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:rgba(76,195,106,.08);border:1px solid rgba(76,195,106,.45)}
+.acct-g-on .g-logo{flex:0 0 auto;width:22px;height:22px}
+.acct-g-t{display:grid;gap:1px;min-width:0;flex:1 1 auto;line-height:1.3}
+.acct-g-t b{font-size:14px;color:#c4f2cf}
+.acct-g-t small{font-size:12px;color:var(--muted)}
+.acct-g-on .link-btn{flex:0 0 auto;font-size:12.5px}
+.acct-g > small{font-size:12px;color:var(--muted);text-align:center}
+.acct-g .g-btn{min-height:44px;font-size:15px}
 .acct-links:empty{display:none}
 #jdw-acct.locked{background:rgba(5,10,14,.9)}
 /* bannière d'accueil : e-mail à confirmer */
@@ -3932,6 +3956,7 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
         <div class="acct-box" id="jdw-set-acct" data-in="acct" hidden>
           <div class="acct-line"><span class="acct-line-ic" id="jdw-set-acct-ic" aria-hidden="true">🔒</span><span class="acct-line-txt"><b id="jdw-set-acct-t"></b><small id="jdw-set-acct-s"></small></span></div>
           <div class="acct-btns" id="jdw-set-acct-btns"></div>
+          <p class="acct-msg" id="jdw-set-acct-msg" role="alert" hidden></p>
         </div>
         <div class="snd-rows" data-in="snd">
           <label class="switch-row"><span><i aria-hidden="true">🎵</i>Musique</span><input type="checkbox" id="jdw-set-music"></label>
@@ -3995,6 +4020,7 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
         <div class="acct-pick" id="jdw-wel-acctpick" role="group" aria-label="Compte du nouveau joueur" hidden></div>
         <p class="acct-sess" id="jdw-wel-sess" hidden></p>
         <div class="acct-inputs" id="jdw-wel-acct-in">
+          <div class="g-box" id="jdw-g-wel" hidden><button class="g-btn" type="button" data-g="wel"><svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continuer avec Google</span></button><p class="g-or" aria-hidden="true"><span>ou avec ton e-mail</span></p></div>
           <input class="input input-plain" id="jdw-wel-email" type="email" inputmode="email" autocomplete="email" spellcheck="false" placeholder="ton@email.fr" aria-label="Ton e-mail">
           <span class="pw-wrap"><input class="input input-plain" id="jdw-wel-pass" type="password" autocomplete="new-password" placeholder="Mot de passe (6 car. min.)" aria-label="Choisis un mot de passe"><button class="pw-eye" type="button" aria-label="Afficher le mot de passe" data-for="jdw-wel-pass">👁</button></span>
         </div>
@@ -4003,6 +4029,7 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
       </div>
       <div class="wel-pane" id="jdw-wel-login" hidden>
         <p class="small" id="jdw-wel-login-txt" hidden></p>
+        <div class="g-box" id="jdw-g-login" hidden><button class="g-btn" type="button" data-g="login"><svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continuer avec Google</span></button><p class="g-or" aria-hidden="true"><span>ou avec ton e-mail ou ton pseudo</span></p></div>
         <div class="field" id="jdw-wel-lfields"><label for="jdw-wel-lemail">E-mail ou pseudo</label><input class="input input-plain" id="jdw-wel-lemail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ton@email.fr ou TON PSEUDO"></div>
         <div class="field" id="jdw-wel-lpassbox"><label for="jdw-wel-lpass">Mot de passe du compte</label><span class="pw-wrap"><input class="input input-plain" id="jdw-wel-lpass" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Ton mot de passe"><button class="pw-eye" type="button" aria-label="Afficher le mot de passe" data-for="jdw-wel-lpass">👁</button></span></div>
         <button class="link-btn" id="jdw-wel-forgot" type="button">Mot de passe oublié ?</button>
@@ -4030,6 +4057,7 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
       <div class="acct-inputs" id="jdw-acct-in">
         <div class="acct-name" id="jdw-acct-namebox" hidden><label for="jdw-acct-name">Ton pseudo</label><input class="input" id="jdw-acct-name" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" placeholder="TON PSEUDO"><small id="jdw-acct-name-s">C'est bien toi ? Tu peux le changer maintenant.</small></div>
         <div class="acct-pick" id="jdw-acct-pick" role="group" aria-label="Compte" hidden></div>
+        <div class="g-box" id="jdw-g-acct" hidden><button class="g-btn" type="button" data-g="acct"><svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continuer avec Google</span></button><p class="g-or" aria-hidden="true"><span>ou avec ton e-mail</span></p></div>
         <input class="input input-plain" id="jdw-acct-email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="ton@email.fr" aria-label="E-mail">
         <span class="pw-wrap" id="jdw-acct-pw"><input class="input input-plain" id="jdw-acct-pass" type="password" autocomplete="new-password" enterkeyhint="go" placeholder="Mot de passe" aria-label="Mot de passe"><button class="pw-eye" type="button" aria-label="Afficher le mot de passe" data-for="jdw-acct-pass">👁</button></span>
       </div>
@@ -99821,7 +99849,7 @@ void main(){
 
 </script>
 <script>window.JDW_CONFIG = {"url": "https://wplictorvvtkfikpfdnl.supabase.co", "key": "sb_publishable_4gXCDZq1C3ACXKnzXno4Qw_GPWfQkNa"};</script>
-<script>window.JDW_BUILD = "20261026230003"; window.JDW_VERSION = "1.38.13"; window.JDW_NOTES = ["[borne] ## \ud83e\uddea Le site d'Elixir Game Studio (borne 1.38.13)", "[borne] Nouvelle page d'accueil sur elixirgamestudio.com : l'\u00e9cran titre du studio, avec les plans film\u00e9s dans P\u00e9gase en vraie qualit\u00e9 (jusqu'en 4K selon ton \u00e9cran, version en hauteur sur t\u00e9l\u00e9phone)", "[borne] Deux boutons pour entrer : \u00ab P\u00e9gase \u00bb ouvre directement la page P\u00e9gase, \u00ab La Borne d'arcade \u00bb ouvre directement les mini-jeux", "[borne] Une petite maison \ud83c\udfe0 en haut de la borne (c\u00f4t\u00e9 mini-jeux et c\u00f4t\u00e9 P\u00e9gase) ram\u00e8ne au site du studio, m\u00eame dans l'appli Android", "[borne] Plus bas sur le site, \u00ab Nos jeux \u00bb : P\u00e9gase \u00e0 gauche, la Borne d'arcade \u00e0 droite, o\u00f9 d\u00e9filent tous ses jeux", "[borne] Sur la page P\u00e9gase, les plans film\u00e9s changent toutes les 15 secondes", "[borne] Les liens de partage montrent la nouvelle image du studio", "[borne] Un lien vers elixirgamestudio.com partag\u00e9 dans WhatsApp, Messenger ou Facebook ouvre bien le site du studio (avant, il ouvrait parfois la borne)", "[borne] Le bouton \u00ab Partager \u00bb partage le c\u00f4t\u00e9 o\u00f9 tu es : sur la page P\u00e9gase, le lien de P\u00e9gase ; sur les mini-jeux, le lien qui ouvre directement les mini-jeux", "[borne] ## \ud83d\udce8 Partager la borne et P\u00e9gase (borne 1.38.2)", "[borne] Nouveau bouton \u00ab Partager \u00bb en haut de la borne : il envoie le lien de la borne \u00e0 tes copains (\u00ab Viens jouer avec moi \u00e0 la Borne d'arcade entre amis ! \u00bb) par le partage du t\u00e9l\u00e9phone, WhatsApp, SMS ou e-mail, ou le copie sur ordinateur", "[borne] Sur la page P\u00e9gase et dans P\u00e9gase (\u00e0 c\u00f4t\u00e9 de Modifier / T\u00e9l\u00e9charger) : \u00ab Partager P\u00e9gase \u00bb, avec sa propre image d'aper\u00e7u de l'\u00eele ; le lien ouvre directement la page P\u00e9gase", "[borne] \u00c7a marche aussi sans compte : le lien est public, tes copains peuvent jouer tout de suite", "[pegase] ## \ud83c\udf0a P\u00e9gase 0.9.8", "[pegase] La mer tout autour de l'\u00eele : de vraies plages de sable, une eau claire o\u00f9 l'on voit le fond, turquoise pr\u00e8s du bord et bleu profond au large", "[pegase] Cinq criques cach\u00e9es entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs \u00e9toiles de mer, reli\u00e9es par un sentier du littoral", "[pegase] La rivi\u00e8re descend jusqu'\u00e0 la mer, large et calme, avec des iris, des n\u00e9nuphars et des galets sur ses berges", "[pegase] Des montagnes et des falaises couvertes de v\u00e9g\u00e9tation ferment l'horizon", "[pegase] Les plantes des chemins sont bien pos\u00e9es au sol", "[pegase] Les maisons : un passage reste libre devant la porte, la cam\u00e9ra entre et sort en douceur, et passe sous le store des boutiques", "[pegase] Le jardin : les cl\u00f4tures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se r\u00e8gle, plus de grands arbres dans les parcelles", "[pegase] Le grand livre : les violettes ont leurs tiges, et la Mauve musqu\u00e9e a sa page", "[pegase] Le jeu d\u00e9marre plus vite", "[borne] ## \ud83c\udfe0 Nouvelle adresse : elixirgamestudio.com (borne 1.38.1)", "[borne] La borne a d\u00e9m\u00e9nag\u00e9 sur https://elixirgamestudio.com : l'ancienne adresse t'y emm\u00e8ne toute seule, tes liens d'invitation marchent toujours", "[borne] \ud83d\udcf2 Installe l'appli Android 1.12 (page T\u00e9l\u00e9charger) : elle ouvre directement la nouvelle adresse, et tes joueurs, ta connexion et tes r\u00e9glages suivent tout seuls ; dans un navigateur, reconnecte-toi une fois avec ton pseudo ou ton e-mail et ton mot de passe", "[borne] ## \ud83d\udcf2 Nouvelle appli Android 1.11 (borne 1.37.6)", "[borne] La borne d\u00e9m\u00e9nage bient\u00f4t sur sa nouvelle adresse, elixirgamestudio.com : installe l'appli 1.11 (page T\u00e9l\u00e9charger) pour que tout continue dans l'appli", "[borne] Avec l'appli 1.11, tes joueurs, ta connexion, tes r\u00e9glages et tes records de l'appareil suivent tout seuls \u00e0 la nouvelle adresse, sans rien retaper", "[borne] ## \ud83c\udfe0 Ton cri partout ou seulement dans une salle (borne 1.37.2)", "[borne] Dans la fen\u00eatre des cris, \u00ab O\u00f9 sonne ce cri ? \u00bb : \u00ab Partout, dans toutes mes salles \u00bb ou \u00ab Seulement dans \u00bb la salle o\u00f9 tu es, pour le cri de victoire comme pour le cri de perte", "[borne] Une phrase dit clairement o\u00f9 ton cri sonnera, et te pr\u00e9vient quand le cri de la salle passe avant celui de partout", "[borne] ## \ud83d\ude22 Ton cri de perte (borne 1.37)", "[borne] \ud83d\ude22 Nouveau : enregistre aussi ton cri de perte ! Il sonne quand un copain bat ton record ; ton cri de victoire, lui, sonne quand tu gagnes un duel ou restes premier", "[borne] \ud83c\udf99\ufe0f Ton cri de perte se r\u00e8gle dans \u2699 (sous ta t\u00eate et ton cri de victoire) et juste apr\u00e8s le cri de victoire quand tu cr\u00e9es ton joueur ; pendant l'enregistrement, la musique de la borne se tait", "[borne] \ud83d\udd01 Fin de partie : \u00ab Jou\u00e9 par \u25be \u00bb donne le score au bon joueur de l'appareil si on s'est tromp\u00e9, tout de suite (l'ancien record de l'autre revient)", "[borne] \ud83d\udcf1 Fin de partie en paysage sur t\u00e9l\u00e9phone : tout tient sur l'\u00e9cran sans d\u00e9filer (score \u00e0 gauche, classement \u00e0 droite), avec une belle arriv\u00e9e anim\u00e9e", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.7", "[pegase] La p\u00eache : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la cam\u00e9ra montre la canne enti\u00e8re avec son fil", "[pegase] Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches", "[pegase] Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles", "[pegase] \u00c0 table : on s'assoit face \u00e0 la table, les pieds dessous, des deux c\u00f4t\u00e9s", "[pegase] Le r\u00e2teau chez Rosalie : il remet l'herbe sur une case b\u00each\u00e9e, ou annule une plantation en te rendant la graine", "[pegase] Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa t\u00eate", "[pegase] La photo : cach\u00e9 dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'\u00e9cartent dans le viseur", "[pegase] Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres", "[pegase] Ta vue 1re ou 3e personne est retenue d'une partie \u00e0 l'autre", "[pegase] Sur PC, les mises \u00e0 jour sont bien plus rapides : seul ce qui change est t\u00e9l\u00e9charg\u00e9", "[pegase] ## \ud83c\udfe1 P\u00e9gase 0.9.6", "[pegase] Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte \u00ab \u00c0 vendre \u00bb et leur bo\u00eete aux lettres", "[pegase] Les parcelles redessin\u00e9es : elles ne d\u00e9bordent plus sur les chemins, leur lueur dor\u00e9e \u00e9pouse le sol, et deux voisines partagent la m\u00eame limite", "[pegase] Le permis de construire donne une parcelle \u00e0 1000 lucioles ; les autres s'ach\u00e8teront", "[pegase] Une barre d'objets en bas de l'\u00e9cran : touches 1 \u00e0 5, l'objet en main s'utilise au clic ; E sert \u00e0 parler, ouvrir et s'asseoir ; le parapluie s'ouvre quand tu le tiens", "[pegase] Les chemins sous le Clos nettoy\u00e9s, une vraie aire de demi-tour pour l'avion, une all\u00e9e jusqu'\u00e0 l'escalier et plein de buissons et de fleurs autour", "[pegase] Maisons pr\u00eates : plus de toits qui se croisent dans l'aper\u00e7u ; \u00ab R\u00e9am\u00e9nager l'int\u00e9rieur \u00bb est de retour \u00e0 l'\u00e9tape \u00c9tages", "[pegase] La musique joue pendant qu'une mise \u00e0 jour se t\u00e9l\u00e9charge", "[pegase] La ferme : la vache meugle, le cheval hennit et s'\u00e9broue, le cochon grogne", "[pegase] De l'herbe sur les pentes derri\u00e8re les plages et au bord de l'\u00eele", "[pegase] ## \ud83d\udcf1 Des plans film\u00e9s en hauteur pour le t\u00e9l\u00e9phone (borne 1.36.21)", "[pegase] Sur t\u00e9l\u00e9phone tenu droit, sept plans sont maintenant film\u00e9s en hauteur : tout le d\u00e9cor tient dans l'\u00e9cran, sans rien couper", "[pegase] ## \u2795 Cr\u00e9er son \u00eele d'un toucher (borne 1.36.19)", "[pegase] Le gros bouton \u00ab Cr\u00e9er mon \u00eele \u00bb devient une tuile \u00ab + \u00bb au bout de la liste des \u00eeles, sur PC comme sur t\u00e9l\u00e9phone", "[pegase] La cr\u00e9ation se fait dans la tuile m\u00eame, en trois onglets : le nom, qui peut entrer, et cr\u00e9er", "[pegase] Toutes les explications sont rang\u00e9es derri\u00e8re le petit \u00ab i \u00bb", "[pegase] \u00c0 la cr\u00e9ation, la tuile s'illumine dans une pluie d'\u00e9tincelles, puis ton \u00eele appara\u00eet \u00e0 sa place", "[pegase] ## \ud83d\udcf1 La page P\u00e9gase sur t\u00e9l\u00e9phone (borne 1.36.17)", "[pegase] Sur t\u00e9l\u00e9phone, tout tient sur l'\u00e9cran (le titre, la recherche, ton \u00eele, cr\u00e9er une \u00eele) et le d\u00e9cor film\u00e9 se voit derri\u00e8re", "[pegase] Une barre du bas plus fine, et le bandeau \u00ab invit\u00e9 \u00bb ramen\u00e9 \u00e0 une ligne", "[pegase] Sur t\u00e9l\u00e9phone, seulement les plans de ciel clair et de nuit ; la pluie reste pour les grands \u00e9crans", "[pegase] Les cartes et le voile s'accordent au ciel du plan : plus de contraste en plein jour, plus couvrantes sous la pluie, plus l\u00e9g\u00e8res la nuit", "[pegase] ## \ud83c\udfac Trois nouveaux plans film\u00e9s en fond (borne 1.36.14)", "[pegase] Le lac au lever, maintenant avec ses oies ; le lac de l'arbre rouge, tout neuf ; et le bosquet du grand-duc au petit matin", "[pegase] Dix plans en tout, jusqu'\u00e0 la 4K sur les grands \u00e9crans", "[pegase] ## \ud83c\udfac Huit plans film\u00e9s en fond de la page P\u00e9gase (borne 1.36.8)", "[pegase] Quatre nouveaux plans film\u00e9s dans le jeu : la pluie douce sur les tournesols, la cascade du lac de montagne, le panorama depuis la falaise et une nouvelle prairie sous la Voie lact\u00e9e", "[pegase] Tous les plans en tr\u00e8s haute qualit\u00e9 (jusqu'\u00e0 la 4K) sur les grands \u00e9crans, et ils d\u00e9marrent toujours vite en petite qualit\u00e9", "[pegase] ## \ud83c\udfea P\u00e9gase 0.9.5", "[pegase] Les boutiques ont de nouvelles devantures : grandes enseignes dor\u00e9es, stores ray\u00e9s aux couleurs de chaque commerce, vitrines \u00e9clair\u00e9es, pancarte OUVERT / FERM\u00c9 qui suit les horaires", "[pegase] La musique est revenue dans les boutiques et \u00e0 la mairie, et elle reprend toute seule quand tu arr\u00eates la tienne", "[pegase] Le grand-duc sous une douce lueur de lune, son vrai hou-hou qui vient de sa direction et ses battements d'ailes", "[pegase] Des sons plus vrais : seuls les vrais animaux chantent, depuis l'endroit o\u00f9 ils sont", "[pegase] Les oiseaux se baladent d'un bosquet \u00e0 l'autre, et des sangliers viennent parfois fouiller la nuit", "[pegase] Missions en bas de l'\u00e9cran, plus discr\u00e8tes ; chaque journ\u00e9e du jeu en propose de nouvelles", "[pegase] Le concours photo de Papi Auguste devient un d\u00e9p\u00f4t : ta nouvelle photo remplace la pr\u00e9c\u00e9dente", "[pegase] Une belle notification quand tu obtiens un objet, un geste ou un v\u00eatement", "[pegase] Le potager : b\u00eacher presque partout sur sa parcelle, la pluie arrose, et le jeu te dit pourquoi un endroit est refus\u00e9", "[pegase] Ta maison : panneau et bo\u00eete aux lettres d\u00e9pla\u00e7ables, plus de blocage au pas de la porte", "[pegase] Et aussi : plus de pluie dans les maisons, plus d'herbe, un soleil plus doux, Ctrl pour s'accroupir en mode photo, un arr\u00eat avant le bord des falaises", "[pegase] ## \ud83c\udfdd\ufe0f La nouvelle page P\u00e9gase (borne 1.36)", "[pegase] P\u00e9gase a sa propre page, tout \u00e0 gauche de la borne : on y arrive directement en ouvrant la borne", "[pegase] En fond, de vrais plans film\u00e9s dans le jeu : les tournesols, la prairie sous la Voie lact\u00e9e, la pluie sur la place du village", "[pegase] Les \u00eeles : cherche une \u00eele par son nom, filtre les \u00eeles publiques, priv\u00e9es ou les tiennes, et vois qui est en ligne", "[pegase] Chaque \u00eele sous sa mer de nuages : la brume s'ouvre l\u00e0 o\u00f9 tu as d\u00e9j\u00e0 explor\u00e9", "[pegase] PegaGram en un toucher depuis l'\u00eele ; le classement des plus belles \u00eeles (esp\u00e8ces trouv\u00e9es, habitants)", "[pegase] Le mode ambiance \u2728 : tout s'efface, il ne reste que le d\u00e9cor et le titre ; un toucher et tout revient", "[pegase] Un bouton pour partager la page P\u00e9gase avec tes copains", "[smoothie] ## \ud83c\udf4c Smoothie Samoura\u00ef : la coupe au millim\u00e8tre (borne 1.36.12)", "[smoothie] La lame tranche le fruit exactement l\u00e0 o\u00f9 ton doigt passe, en suivant sa vraie forme et son orientation : m\u00eame un petit bout coup\u00e9 au bord compte", "[smoothie] Un fruit touch\u00e9 est gagn\u00e9 : ses morceaux peuvent tomber sans te co\u00fbter de vie", "[smoothie] Recoupe les morceaux qui tombent, autant de fois que tu veux : quelques points en plus \u00e0 chaque fois (de moins en moins), et de belles gerbes de jus", "[smoothie] Une toute nouvelle banane : bien dodue, avec ses ar\u00eates, sa queue verte et ses rondelles quand on la tranche", "[bolides] ## \ud83c\udfc6 Bolides RC : une IA bien plus coriace (borne 1.36.5)", "[bolides] Moyen roule maintenant comme un bon pilote : il d\u00e9rape dans les grands virages", "[bolides] Difficile prend la trajectoire id\u00e9ale et encha\u00eene les mini-turbos dans chaque virage serr\u00e9", "[bolides] Extr\u00eame est un pilote quasi parfait : super mini-turbos, aucune erreur, il \u00e9vite les flaques, d\u00e9passe et ferme la porte", "[bolides] Facile ne change pas", "[bolides] ## \ud83c\udfc1 Bolides RC : \u00e0 fond, sur trois circuits tout neufs (borne 1.35.12)", "[bolides] Plus aucun ralentissement automatique : joystick pouss\u00e9 \u00e0 fond = pleine vitesse, m\u00eame dans les virages, c'est toi qui d\u00e9cides", "[bolides] Trois circuits redessin\u00e9s : longues lignes droites, grandes courbes rapides, esses, une vraie \u00e9pingle au Parking", "[bolides] Vibreurs rouge et blanc dans les virages, pneus, haies, blocs de b\u00e9ton, cordes de plage le long de la piste", "[bolides] Un tremplin sur chaque circuit : la voiture d\u00e9colle, plane et retombe en soulevant la poussi\u00e8re", "[bolides] Le Jardin plein de pots de fleurs, d'arrosoirs et de nains ; le Parking avec ses places peintes, palettes et piles de pneus ; la Plage au bord de la mer, avec ch\u00e2teaux de sable, seaux, serviettes et crabes", "[bolides] \u00c0 pleine vitesse, la voiture glisse un peu dans les virages serr\u00e9s et se rattrape toute seule ; contre les bordures, elle rebondit doucement et glisse le long", "[bolides] Les bolides du jeu roulent vraiment vite : l'IA \u00ab extr\u00eame \u00bb prend chaque virage \u00e0 fond et d\u00e9rape partout", "[bolides] ## \ud83c\udfce\ufe0f Bolides RC : une conduite toute neuve (borne 1.35.1)", "[bolides] Pose le doigt de ton c\u00f4t\u00e9 et pousse vers o\u00f9 tu veux aller : ta voiture y va et acc\u00e9l\u00e8re toute seule", "[bolides] Le bouton D\u00c9RAPE dans les virages charge un mini-turbo : \u00e9tincelles bleues, puis orange pour un super turbo", "[bolides] Un anneau \u00e0 ta couleur sous ta voiture et une fl\u00e8che qui montre o\u00f9 tu l'envoies", "[bolides] \u00c0 la manette : le stick donne la direction, A pour d\u00e9raper ; au clavier : les fl\u00e8ches, et Espace pour d\u00e9raper", "[bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur", "[bolides] En ligne : plus de voiture qui saute au d\u00e9but d'une nouvelle manche", "[neon] ## \ud83d\udeaa N\u00e9on Rush : des portes pour changer de forme (borne 1.38.12)", "[neon] Les transformations sont maintenant de grandes portes carr\u00e9es, ouvertes en bas l\u00e0 o\u00f9 passe le cube", "[neon] Les couloirs des avions sont revenus comme avant ; seul le tout d\u00e9but du premier avion a le bas un peu rabot\u00e9, pour ne plus se prendre le rebord", "[neon] ## \u2708\ufe0f N\u00e9on Rush : des couloirs d'avion tout doux (borne 1.37.5)", "[neon] \u00c0 l'entr\u00e9e et \u00e0 la sortie des passages en avion, les parois montent et descendent en douceur, sans bosse", "[neon] ## \ud83c\udfb5 N\u00e9on Rush : le niveau 1 refait sur la musique (borne 1.37.4)", "[neon] Le niveau Premier Pulse a \u00e9t\u00e9 refait moment par moment sur la musique, d'apr\u00e8s les notes de Benjamin", "[neon] Un grand saut sur la cymbale, par-dessus un mur haut, puis des sauts pile sur chaque cymbale qui revient", "[neon] Un double saut sur le \u00ab boum boum \u00bb qui t'emm\u00e8ne en l'air dans la transformation, et une phase en avion plus longue", "[neon] Un escalier qui monte sur les coups rapproch\u00e9s de la musique, et une chute du haut qui explose en particules", "[neon] L'avion Galaxie finit sur un \u00e9tage \u00e0 mi-hauteur, puis des marches en 4 temps : saute sur la marche, saute le double pic, retombe, redescends", "[neon] Une marche haute et molle qui ondule quand tu tombes dessus, et un final avec deux sauts automatiques sur les deux derniers \u00ab boum \u00bb", "[neon] Les portails sont de grands cadres carr\u00e9s du sol au plafond, et les parois de l'avion sont lisses jusqu'\u00e0 la sortie", "[neon] ## \ud83d\udc46 N\u00e9on Rush : le saut part pile au toucher sur t\u00e9l\u00e9phone (borne 1.37.1)", "[neon] Sur t\u00e9l\u00e9phone, le saut part exactement \u00e0 l'instant o\u00f9 ton doigt touche l'\u00e9cran, m\u00eame quand l'image du t\u00e9l\u00e9phone arrive un peu apr\u00e8s", "[neon] Une tape tr\u00e8s courte juste avant d'atterrir n'est plus perdue : si ton doigt \u00e9tait encore pos\u00e9 \u00e0 l'atterrissage, le cube repart aussit\u00f4t", "[neon] Dans le vaisseau et la boule aussi, chaque appui et chaque rel\u00e2ch\u00e9 comptent \u00e0 la milliseconde pr\u00e8s", "[neon] Apr\u00e8s une petite saccade du t\u00e9l\u00e9phone, le jeu se recale tout de suite sur la musique", "[neon] Sur t\u00e9l\u00e9phone, le jeu est un peu plus l\u00e9ger (image un tout petit peu moins fine) pour rester bien fluide ; sur ordinateur, rien ne change", "[neon] Plus de petit \u00e0-coup quand un objet du d\u00e9cor s'allume", "[neon] ## \ud83c\udfb5 N\u00e9on Rush : le jeu comme avant, avec les nouveaux d\u00e9cors (borne 1.35.6)", "[neon] Le sol, les murs, les plafonds, les blocs, les piques, les portails et ton cube sont redevenus exactement comme avant : plus rien ne bat pendant que tu joues", "[neon] Plus de voile sombre au ras du sol ni de murs noirs au-dessus de toi : tout est revenu comme avant", "[neon] Plus de zoom, d'\u00e9clair ni d'onde de choc sur les grands moments de la musique", "[neon] Les six nouveaux d\u00e9cors restent (N\u00e9on City, Coucher Synthwave, Cyber Oc\u00e9an, Grotte de Cristal, C\u0153ur de Lave, Galaxie), mais au calme", "[neon] De temps en temps, un seul objet du d\u00e9cor r\u00e9agit \u00e0 la musique : une enseigne qui s'allume, une m\u00e9duse qui pulse, un cristal qui brille, un volcan qui crache, le soleil qui s'embrase ou une \u00e9toile filante", "[neon] Le bouton \u2726 \u00ab effets r\u00e9duits \u00bb enl\u00e8ve les \u00e9clairs, les secousses et ces petites r\u00e9actions du d\u00e9cor", "[neon] Les niveaux n'ont pas chang\u00e9"];</script>
+<script>window.JDW_BUILD = "20261026231105"; window.JDW_VERSION = "1.39"; window.JDW_NOTES = ["[borne] ## \ud83d\udd11 Se connecter avec Google (borne 1.39)", "[borne] Nouveau : \u00ab Continuer avec Google \u00bb pour cr\u00e9er ton compte ou te connecter en un toucher, sans retenir de mot de passe (le bouton blanc appara\u00eet d\u00e8s que la connexion Google est branch\u00e9e sur la borne)", "[borne] Un compte tout neuf avec Google : tu choisis ensuite ton pseudo, ta t\u00eate et tes cris, comme d'habitude ; si ton adresse Google a d\u00e9j\u00e0 un compte, tu retrouves tes joueurs", "[borne] D\u00e9j\u00e0 inscrit avec ton e-mail ? \u2699 \u203a Compte \u203a \u00ab Rattacher mon compte Google \u00bb : ensuite tu te connectes aussi avec Google, m\u00eames pseudos, m\u00eames scores (et \u00ab D\u00e9tacher \u00bb si tu changes d'avis)", "[borne] \ud83d\udcf2 Nouvelle appli Android 1.13 (page T\u00e9l\u00e9charger) : Google s'ouvre dans Chrome puis te ram\u00e8ne tout seul dans l'appli", "[borne] ## \ud83e\uddea Le site d'Elixir Game Studio (borne 1.38.13)", "[borne] Nouvelle page d'accueil sur elixirgamestudio.com : l'\u00e9cran titre du studio, avec les plans film\u00e9s dans P\u00e9gase en vraie qualit\u00e9 (jusqu'en 4K selon ton \u00e9cran, version en hauteur sur t\u00e9l\u00e9phone)", "[borne] Deux boutons pour entrer : \u00ab P\u00e9gase \u00bb ouvre directement la page P\u00e9gase, \u00ab La Borne d'arcade \u00bb ouvre directement les mini-jeux", "[borne] Une petite maison \ud83c\udfe0 en haut de la borne (c\u00f4t\u00e9 mini-jeux et c\u00f4t\u00e9 P\u00e9gase) ram\u00e8ne au site du studio, m\u00eame dans l'appli Android", "[borne] Plus bas sur le site, \u00ab Nos jeux \u00bb : P\u00e9gase \u00e0 gauche, la Borne d'arcade \u00e0 droite, o\u00f9 d\u00e9filent tous ses jeux", "[borne] Sur la page P\u00e9gase, les plans film\u00e9s changent toutes les 15 secondes", "[borne] Les liens de partage montrent la nouvelle image du studio", "[borne] Un lien vers elixirgamestudio.com partag\u00e9 dans WhatsApp, Messenger ou Facebook ouvre bien le site du studio (avant, il ouvrait parfois la borne)", "[borne] Le bouton \u00ab Partager \u00bb partage le c\u00f4t\u00e9 o\u00f9 tu es : sur la page P\u00e9gase, le lien de P\u00e9gase ; sur les mini-jeux, le lien qui ouvre directement les mini-jeux", "[borne] ## \ud83d\udce8 Partager la borne et P\u00e9gase (borne 1.38.2)", "[borne] Nouveau bouton \u00ab Partager \u00bb en haut de la borne : il envoie le lien de la borne \u00e0 tes copains (\u00ab Viens jouer avec moi \u00e0 la Borne d'arcade entre amis ! \u00bb) par le partage du t\u00e9l\u00e9phone, WhatsApp, SMS ou e-mail, ou le copie sur ordinateur", "[borne] Sur la page P\u00e9gase et dans P\u00e9gase (\u00e0 c\u00f4t\u00e9 de Modifier / T\u00e9l\u00e9charger) : \u00ab Partager P\u00e9gase \u00bb, avec sa propre image d'aper\u00e7u de l'\u00eele ; le lien ouvre directement la page P\u00e9gase", "[borne] \u00c7a marche aussi sans compte : le lien est public, tes copains peuvent jouer tout de suite", "[pegase] ## \ud83c\udf0a P\u00e9gase 0.9.8", "[pegase] La mer tout autour de l'\u00eele : de vraies plages de sable, une eau claire o\u00f9 l'on voit le fond, turquoise pr\u00e8s du bord et bleu profond au large", "[pegase] Cinq criques cach\u00e9es entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs \u00e9toiles de mer, reli\u00e9es par un sentier du littoral", "[pegase] La rivi\u00e8re descend jusqu'\u00e0 la mer, large et calme, avec des iris, des n\u00e9nuphars et des galets sur ses berges", "[pegase] Des montagnes et des falaises couvertes de v\u00e9g\u00e9tation ferment l'horizon", "[pegase] Les plantes des chemins sont bien pos\u00e9es au sol", "[pegase] Les maisons : un passage reste libre devant la porte, la cam\u00e9ra entre et sort en douceur, et passe sous le store des boutiques", "[pegase] Le jardin : les cl\u00f4tures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se r\u00e8gle, plus de grands arbres dans les parcelles", "[pegase] Le grand livre : les violettes ont leurs tiges, et la Mauve musqu\u00e9e a sa page", "[pegase] Le jeu d\u00e9marre plus vite", "[borne] ## \ud83c\udfe0 Nouvelle adresse : elixirgamestudio.com (borne 1.38.1)", "[borne] La borne a d\u00e9m\u00e9nag\u00e9 sur https://elixirgamestudio.com : l'ancienne adresse t'y emm\u00e8ne toute seule, tes liens d'invitation marchent toujours", "[borne] \ud83d\udcf2 Installe l'appli Android 1.12 (page T\u00e9l\u00e9charger) : elle ouvre directement la nouvelle adresse, et tes joueurs, ta connexion et tes r\u00e9glages suivent tout seuls ; dans un navigateur, reconnecte-toi une fois avec ton pseudo ou ton e-mail et ton mot de passe", "[borne] ## \ud83d\udcf2 Nouvelle appli Android 1.11 (borne 1.37.6)", "[borne] La borne d\u00e9m\u00e9nage bient\u00f4t sur sa nouvelle adresse, elixirgamestudio.com : installe l'appli 1.11 (page T\u00e9l\u00e9charger) pour que tout continue dans l'appli", "[borne] Avec l'appli 1.11, tes joueurs, ta connexion, tes r\u00e9glages et tes records de l'appareil suivent tout seuls \u00e0 la nouvelle adresse, sans rien retaper", "[borne] ## \ud83c\udfe0 Ton cri partout ou seulement dans une salle (borne 1.37.2)", "[borne] Dans la fen\u00eatre des cris, \u00ab O\u00f9 sonne ce cri ? \u00bb : \u00ab Partout, dans toutes mes salles \u00bb ou \u00ab Seulement dans \u00bb la salle o\u00f9 tu es, pour le cri de victoire comme pour le cri de perte", "[borne] Une phrase dit clairement o\u00f9 ton cri sonnera, et te pr\u00e9vient quand le cri de la salle passe avant celui de partout", "[borne] ## \ud83d\ude22 Ton cri de perte (borne 1.37)", "[borne] \ud83d\ude22 Nouveau : enregistre aussi ton cri de perte ! Il sonne quand un copain bat ton record ; ton cri de victoire, lui, sonne quand tu gagnes un duel ou restes premier", "[borne] \ud83c\udf99\ufe0f Ton cri de perte se r\u00e8gle dans \u2699 (sous ta t\u00eate et ton cri de victoire) et juste apr\u00e8s le cri de victoire quand tu cr\u00e9es ton joueur ; pendant l'enregistrement, la musique de la borne se tait", "[borne] \ud83d\udd01 Fin de partie : \u00ab Jou\u00e9 par \u25be \u00bb donne le score au bon joueur de l'appareil si on s'est tromp\u00e9, tout de suite (l'ancien record de l'autre revient)", "[borne] \ud83d\udcf1 Fin de partie en paysage sur t\u00e9l\u00e9phone : tout tient sur l'\u00e9cran sans d\u00e9filer (score \u00e0 gauche, classement \u00e0 droite), avec une belle arriv\u00e9e anim\u00e9e", "[pegase] ## \ud83c\udfa3 P\u00e9gase 0.9.7", "[pegase] La p\u00eache : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la cam\u00e9ra montre la canne enti\u00e8re avec son fil", "[pegase] Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches", "[pegase] Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles", "[pegase] \u00c0 table : on s'assoit face \u00e0 la table, les pieds dessous, des deux c\u00f4t\u00e9s", "[pegase] Le r\u00e2teau chez Rosalie : il remet l'herbe sur une case b\u00each\u00e9e, ou annule une plantation en te rendant la graine", "[pegase] Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa t\u00eate", "[pegase] La photo : cach\u00e9 dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'\u00e9cartent dans le viseur", "[pegase] Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres", "[pegase] Ta vue 1re ou 3e personne est retenue d'une partie \u00e0 l'autre", "[pegase] Sur PC, les mises \u00e0 jour sont bien plus rapides : seul ce qui change est t\u00e9l\u00e9charg\u00e9", "[pegase] ## \ud83c\udfe1 P\u00e9gase 0.9.6", "[pegase] Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte \u00ab \u00c0 vendre \u00bb et leur bo\u00eete aux lettres", "[pegase] Les parcelles redessin\u00e9es : elles ne d\u00e9bordent plus sur les chemins, leur lueur dor\u00e9e \u00e9pouse le sol, et deux voisines partagent la m\u00eame limite", "[pegase] Le permis de construire donne une parcelle \u00e0 1000 lucioles ; les autres s'ach\u00e8teront", "[pegase] Une barre d'objets en bas de l'\u00e9cran : touches 1 \u00e0 5, l'objet en main s'utilise au clic ; E sert \u00e0 parler, ouvrir et s'asseoir ; le parapluie s'ouvre quand tu le tiens", "[pegase] Les chemins sous le Clos nettoy\u00e9s, une vraie aire de demi-tour pour l'avion, une all\u00e9e jusqu'\u00e0 l'escalier et plein de buissons et de fleurs autour", "[pegase] Maisons pr\u00eates : plus de toits qui se croisent dans l'aper\u00e7u ; \u00ab R\u00e9am\u00e9nager l'int\u00e9rieur \u00bb est de retour \u00e0 l'\u00e9tape \u00c9tages", "[pegase] La musique joue pendant qu'une mise \u00e0 jour se t\u00e9l\u00e9charge", "[pegase] La ferme : la vache meugle, le cheval hennit et s'\u00e9broue, le cochon grogne", "[pegase] De l'herbe sur les pentes derri\u00e8re les plages et au bord de l'\u00eele", "[pegase] ## \ud83d\udcf1 Des plans film\u00e9s en hauteur pour le t\u00e9l\u00e9phone (borne 1.36.21)", "[pegase] Sur t\u00e9l\u00e9phone tenu droit, sept plans sont maintenant film\u00e9s en hauteur : tout le d\u00e9cor tient dans l'\u00e9cran, sans rien couper", "[pegase] ## \u2795 Cr\u00e9er son \u00eele d'un toucher (borne 1.36.19)", "[pegase] Le gros bouton \u00ab Cr\u00e9er mon \u00eele \u00bb devient une tuile \u00ab + \u00bb au bout de la liste des \u00eeles, sur PC comme sur t\u00e9l\u00e9phone", "[pegase] La cr\u00e9ation se fait dans la tuile m\u00eame, en trois onglets : le nom, qui peut entrer, et cr\u00e9er", "[pegase] Toutes les explications sont rang\u00e9es derri\u00e8re le petit \u00ab i \u00bb", "[pegase] \u00c0 la cr\u00e9ation, la tuile s'illumine dans une pluie d'\u00e9tincelles, puis ton \u00eele appara\u00eet \u00e0 sa place", "[pegase] ## \ud83d\udcf1 La page P\u00e9gase sur t\u00e9l\u00e9phone (borne 1.36.17)", "[pegase] Sur t\u00e9l\u00e9phone, tout tient sur l'\u00e9cran (le titre, la recherche, ton \u00eele, cr\u00e9er une \u00eele) et le d\u00e9cor film\u00e9 se voit derri\u00e8re", "[pegase] Une barre du bas plus fine, et le bandeau \u00ab invit\u00e9 \u00bb ramen\u00e9 \u00e0 une ligne", "[pegase] Sur t\u00e9l\u00e9phone, seulement les plans de ciel clair et de nuit ; la pluie reste pour les grands \u00e9crans", "[pegase] Les cartes et le voile s'accordent au ciel du plan : plus de contraste en plein jour, plus couvrantes sous la pluie, plus l\u00e9g\u00e8res la nuit", "[pegase] ## \ud83c\udfac Trois nouveaux plans film\u00e9s en fond (borne 1.36.14)", "[pegase] Le lac au lever, maintenant avec ses oies ; le lac de l'arbre rouge, tout neuf ; et le bosquet du grand-duc au petit matin", "[pegase] Dix plans en tout, jusqu'\u00e0 la 4K sur les grands \u00e9crans", "[pegase] ## \ud83c\udfac Huit plans film\u00e9s en fond de la page P\u00e9gase (borne 1.36.8)", "[pegase] Quatre nouveaux plans film\u00e9s dans le jeu : la pluie douce sur les tournesols, la cascade du lac de montagne, le panorama depuis la falaise et une nouvelle prairie sous la Voie lact\u00e9e", "[pegase] Tous les plans en tr\u00e8s haute qualit\u00e9 (jusqu'\u00e0 la 4K) sur les grands \u00e9crans, et ils d\u00e9marrent toujours vite en petite qualit\u00e9", "[pegase] ## \ud83c\udfea P\u00e9gase 0.9.5", "[pegase] Les boutiques ont de nouvelles devantures : grandes enseignes dor\u00e9es, stores ray\u00e9s aux couleurs de chaque commerce, vitrines \u00e9clair\u00e9es, pancarte OUVERT / FERM\u00c9 qui suit les horaires", "[pegase] La musique est revenue dans les boutiques et \u00e0 la mairie, et elle reprend toute seule quand tu arr\u00eates la tienne", "[pegase] Le grand-duc sous une douce lueur de lune, son vrai hou-hou qui vient de sa direction et ses battements d'ailes", "[pegase] Des sons plus vrais : seuls les vrais animaux chantent, depuis l'endroit o\u00f9 ils sont", "[pegase] Les oiseaux se baladent d'un bosquet \u00e0 l'autre, et des sangliers viennent parfois fouiller la nuit", "[pegase] Missions en bas de l'\u00e9cran, plus discr\u00e8tes ; chaque journ\u00e9e du jeu en propose de nouvelles", "[pegase] Le concours photo de Papi Auguste devient un d\u00e9p\u00f4t : ta nouvelle photo remplace la pr\u00e9c\u00e9dente", "[pegase] Une belle notification quand tu obtiens un objet, un geste ou un v\u00eatement", "[pegase] Le potager : b\u00eacher presque partout sur sa parcelle, la pluie arrose, et le jeu te dit pourquoi un endroit est refus\u00e9", "[pegase] Ta maison : panneau et bo\u00eete aux lettres d\u00e9pla\u00e7ables, plus de blocage au pas de la porte", "[pegase] Et aussi : plus de pluie dans les maisons, plus d'herbe, un soleil plus doux, Ctrl pour s'accroupir en mode photo, un arr\u00eat avant le bord des falaises", "[pegase] ## \ud83c\udfdd\ufe0f La nouvelle page P\u00e9gase (borne 1.36)", "[pegase] P\u00e9gase a sa propre page, tout \u00e0 gauche de la borne : on y arrive directement en ouvrant la borne", "[pegase] En fond, de vrais plans film\u00e9s dans le jeu : les tournesols, la prairie sous la Voie lact\u00e9e, la pluie sur la place du village", "[pegase] Les \u00eeles : cherche une \u00eele par son nom, filtre les \u00eeles publiques, priv\u00e9es ou les tiennes, et vois qui est en ligne", "[pegase] Chaque \u00eele sous sa mer de nuages : la brume s'ouvre l\u00e0 o\u00f9 tu as d\u00e9j\u00e0 explor\u00e9", "[pegase] PegaGram en un toucher depuis l'\u00eele ; le classement des plus belles \u00eeles (esp\u00e8ces trouv\u00e9es, habitants)", "[pegase] Le mode ambiance \u2728 : tout s'efface, il ne reste que le d\u00e9cor et le titre ; un toucher et tout revient", "[pegase] Un bouton pour partager la page P\u00e9gase avec tes copains", "[smoothie] ## \ud83c\udf4c Smoothie Samoura\u00ef : la coupe au millim\u00e8tre (borne 1.36.12)", "[smoothie] La lame tranche le fruit exactement l\u00e0 o\u00f9 ton doigt passe, en suivant sa vraie forme et son orientation : m\u00eame un petit bout coup\u00e9 au bord compte", "[smoothie] Un fruit touch\u00e9 est gagn\u00e9 : ses morceaux peuvent tomber sans te co\u00fbter de vie", "[smoothie] Recoupe les morceaux qui tombent, autant de fois que tu veux : quelques points en plus \u00e0 chaque fois (de moins en moins), et de belles gerbes de jus", "[smoothie] Une toute nouvelle banane : bien dodue, avec ses ar\u00eates, sa queue verte et ses rondelles quand on la tranche", "[bolides] ## \ud83c\udfc6 Bolides RC : une IA bien plus coriace (borne 1.36.5)", "[bolides] Moyen roule maintenant comme un bon pilote : il d\u00e9rape dans les grands virages", "[bolides] Difficile prend la trajectoire id\u00e9ale et encha\u00eene les mini-turbos dans chaque virage serr\u00e9", "[bolides] Extr\u00eame est un pilote quasi parfait : super mini-turbos, aucune erreur, il \u00e9vite les flaques, d\u00e9passe et ferme la porte", "[bolides] Facile ne change pas", "[bolides] ## \ud83c\udfc1 Bolides RC : \u00e0 fond, sur trois circuits tout neufs (borne 1.35.12)", "[bolides] Plus aucun ralentissement automatique : joystick pouss\u00e9 \u00e0 fond = pleine vitesse, m\u00eame dans les virages, c'est toi qui d\u00e9cides", "[bolides] Trois circuits redessin\u00e9s : longues lignes droites, grandes courbes rapides, esses, une vraie \u00e9pingle au Parking", "[bolides] Vibreurs rouge et blanc dans les virages, pneus, haies, blocs de b\u00e9ton, cordes de plage le long de la piste", "[bolides] Un tremplin sur chaque circuit : la voiture d\u00e9colle, plane et retombe en soulevant la poussi\u00e8re", "[bolides] Le Jardin plein de pots de fleurs, d'arrosoirs et de nains ; le Parking avec ses places peintes, palettes et piles de pneus ; la Plage au bord de la mer, avec ch\u00e2teaux de sable, seaux, serviettes et crabes", "[bolides] \u00c0 pleine vitesse, la voiture glisse un peu dans les virages serr\u00e9s et se rattrape toute seule ; contre les bordures, elle rebondit doucement et glisse le long", "[bolides] Les bolides du jeu roulent vraiment vite : l'IA \u00ab extr\u00eame \u00bb prend chaque virage \u00e0 fond et d\u00e9rape partout", "[bolides] ## \ud83c\udfce\ufe0f Bolides RC : une conduite toute neuve (borne 1.35.1)", "[bolides] Pose le doigt de ton c\u00f4t\u00e9 et pousse vers o\u00f9 tu veux aller : ta voiture y va et acc\u00e9l\u00e8re toute seule", "[bolides] Le bouton D\u00c9RAPE dans les virages charge un mini-turbo : \u00e9tincelles bleues, puis orange pour un super turbo", "[bolides] Un anneau \u00e0 ta couleur sous ta voiture et une fl\u00e8che qui montre o\u00f9 tu l'envoies", "[bolides] \u00c0 la manette : le stick donne la direction, A pour d\u00e9raper ; au clavier : les fl\u00e8ches, et Espace pour d\u00e9raper", "[bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur", "[bolides] En ligne : plus de voiture qui saute au d\u00e9but d'une nouvelle manche", "[neon] ## \ud83d\udeaa N\u00e9on Rush : des portes pour changer de forme (borne 1.38.12)", "[neon] Les transformations sont maintenant de grandes portes carr\u00e9es, ouvertes en bas l\u00e0 o\u00f9 passe le cube", "[neon] Les couloirs des avions sont revenus comme avant ; seul le tout d\u00e9but du premier avion a le bas un peu rabot\u00e9, pour ne plus se prendre le rebord", "[neon] ## \u2708\ufe0f N\u00e9on Rush : des couloirs d'avion tout doux (borne 1.37.5)", "[neon] \u00c0 l'entr\u00e9e et \u00e0 la sortie des passages en avion, les parois montent et descendent en douceur, sans bosse", "[neon] ## \ud83c\udfb5 N\u00e9on Rush : le niveau 1 refait sur la musique (borne 1.37.4)", "[neon] Le niveau Premier Pulse a \u00e9t\u00e9 refait moment par moment sur la musique, d'apr\u00e8s les notes de Benjamin", "[neon] Un grand saut sur la cymbale, par-dessus un mur haut, puis des sauts pile sur chaque cymbale qui revient", "[neon] Un double saut sur le \u00ab boum boum \u00bb qui t'emm\u00e8ne en l'air dans la transformation, et une phase en avion plus longue", "[neon] Un escalier qui monte sur les coups rapproch\u00e9s de la musique, et une chute du haut qui explose en particules", "[neon] L'avion Galaxie finit sur un \u00e9tage \u00e0 mi-hauteur, puis des marches en 4 temps : saute sur la marche, saute le double pic, retombe, redescends", "[neon] Une marche haute et molle qui ondule quand tu tombes dessus, et un final avec deux sauts automatiques sur les deux derniers \u00ab boum \u00bb", "[neon] Les portails sont de grands cadres carr\u00e9s du sol au plafond, et les parois de l'avion sont lisses jusqu'\u00e0 la sortie", "[neon] ## \ud83d\udc46 N\u00e9on Rush : le saut part pile au toucher sur t\u00e9l\u00e9phone (borne 1.37.1)", "[neon] Sur t\u00e9l\u00e9phone, le saut part exactement \u00e0 l'instant o\u00f9 ton doigt touche l'\u00e9cran, m\u00eame quand l'image du t\u00e9l\u00e9phone arrive un peu apr\u00e8s", "[neon] Une tape tr\u00e8s courte juste avant d'atterrir n'est plus perdue : si ton doigt \u00e9tait encore pos\u00e9 \u00e0 l'atterrissage, le cube repart aussit\u00f4t", "[neon] Dans le vaisseau et la boule aussi, chaque appui et chaque rel\u00e2ch\u00e9 comptent \u00e0 la milliseconde pr\u00e8s", "[neon] Apr\u00e8s une petite saccade du t\u00e9l\u00e9phone, le jeu se recale tout de suite sur la musique", "[neon] Sur t\u00e9l\u00e9phone, le jeu est un peu plus l\u00e9ger (image un tout petit peu moins fine) pour rester bien fluide ; sur ordinateur, rien ne change", "[neon] Plus de petit \u00e0-coup quand un objet du d\u00e9cor s'allume", "[neon] ## \ud83c\udfb5 N\u00e9on Rush : le jeu comme avant, avec les nouveaux d\u00e9cors (borne 1.35.6)", "[neon] Le sol, les murs, les plafonds, les blocs, les piques, les portails et ton cube sont redevenus exactement comme avant : plus rien ne bat pendant que tu joues", "[neon] Plus de voile sombre au ras du sol ni de murs noirs au-dessus de toi : tout est revenu comme avant", "[neon] Plus de zoom, d'\u00e9clair ni d'onde de choc sur les grands moments de la musique", "[neon] Les six nouveaux d\u00e9cors restent (N\u00e9on City, Coucher Synthwave, Cyber Oc\u00e9an, Grotte de Cristal, C\u0153ur de Lave, Galaxie), mais au calme", "[neon] De temps en temps, un seul objet du d\u00e9cor r\u00e9agit \u00e0 la musique : une enseigne qui s'allume, une m\u00e9duse qui pulse, un cristal qui brille, un volcan qui crache, le soleil qui s'embrase ou une \u00e9toile filante", "[neon] Le bouton \u2726 \u00ab effets r\u00e9duits \u00bb enl\u00e8ve les \u00e9clairs, les secousses et ces petites r\u00e9actions du d\u00e9cor", "[neon] Les niveaux n'ont pas chang\u00e9"];</script>
 <script>window.JDW_MUSIC = {"accueil": {"c": ["accueil-2", "accueil-3"], "x": ["accueil-x1"]}, "canards": {"c": ["canards-1", "canards-2", "canards-3"], "x": ["canards-x1"]}, "carreaux": {"c": ["carreaux-2", "carreaux-3"], "x": ["carreaux-x1"]}, "dboum": {"c": ["dboum-1", "dboum-2"], "x": ["dboum-x1"]}, "dbriques": {"c": ["dbriques-1", "dbriques-2"], "x": ["dbriques-x1"]}, "dguerre": {"c": ["dguerre-1", "dguerre-2"], "x": ["dguerre-x1"]}, "dkombat": {"c": ["dkombat-1", "dkombat-2"], "x": ["dkombat-x1"]}, "dmots": {"c": ["dmots-1", "dmots-2"], "x": ["dmots-x1"]}, "dpalet": {"c": ["dpalet-1", "dpalet-2"], "x": ["dpalet-x1"]}, "dpingpong": {"c": ["dpingpong-1", "dpingpong-2"], "x": ["dpingpong-x1"]}, "dscores": {"c": ["dscores-1", "dscores-2"], "x": []}, "dsouris": {"c": ["dsouris-1", "dsouris-2"], "x": ["dsouris-x1"]}, "dspatial": {"c": ["dspatial-1", "dspatial-2"], "x": ["dspatial-x1"]}, "dtirsaubut": {"c": ["dtirsaubut-1", "dtirsaubut-2"], "x": ["dtirsaubut-x1"]}, "dtoupies": {"c": ["dtoupies-1", "dtoupies-2"], "x": ["dtoupies-x1"]}, "dtrouve": {"c": ["dtrouve-1", "dtrouve-2"], "x": ["dtrouve-x1"]}, "empilo": {"c": ["empilo-2", "empilo-3"], "x": ["empilo-x1"]}, "glouton": {"c": ["glouton-2", "glouton-3"], "x": ["glouton-x1"]}, "ilo": {"c": ["ilo-2", "ilo-3", "ilo-4", "ilo-5"], "x": ["ilo-x1", "ilo-x2", "ilo-x3"]}, "iloboss": {"c": ["iloboss-1", "iloboss-2"], "x": []}, "magic": {"c": ["magic-1", "magic-2", "magic-3"], "x": ["magic-x1", "magic-x2", "magic-x3"]}, "magicboss": {"c": ["magicboss-1", "magicboss-2", "magicboss-3"], "x": []}, "mouches": {"c": ["mouches-2", "mouches-3"], "x": ["mouches-x1"]}, "neonrush": {"c": ["neonrush-1", "neonrush-2", "neonrush-3"], "x": []}, "pegase": {"c": ["pegase-1"], "x": []}, "pgsuite": {"c": ["pgsuite-1", "pgsuite-2", "pgsuite-3", "pgsuite-4"], "x": []}, "pleingaz": {"c": ["pleingaz-2", "pleingaz-3"], "x": ["pleingaz-x1"]}, "rouleaux": {"c": ["rouleaux-1", "rouleaux-2", "rouleaux-3"], "x": ["rouleaux-x1"]}, "smoothie": {"c": ["smoothie-1", "smoothie-2"], "x": ["smoothie-x1"]}, "smw1": {"c": ["smw1-1"], "x": []}, "smw2": {"c": ["smw2-1"], "x": []}, "smw3": {"c": ["smw3-1"], "x": []}, "smw4": {"c": ["smw4-1"], "x": []}, "smw5": {"c": ["smw5-1"], "x": []}, "smw6": {"c": ["smw6-1"], "x": []}}; window.JDW_MUSIC_ENC = ["dboum-1", "dboum-2", "dboum-x1", "dbriques-1", "dbriques-2", "dbriques-x1", "dguerre-1", "dguerre-2", "dguerre-x1", "dkombat-1", "dkombat-2", "dkombat-x1", "dmots-1", "dmots-2", "dmots-x1", "dpalet-1", "dpalet-2", "dpalet-x1", "dpingpong-1", "dpingpong-2", "dpingpong-x1", "dscores-1", "dscores-2", "dsouris-1", "dsouris-2", "dsouris-x1", "dspatial-1", "dspatial-2", "dspatial-x1", "dtrouve-1", "dtrouve-2", "dtrouve-x1", "magic-1", "magic-x1", "magicboss-1", "sting-go", "sting-lose", "sting-match", "sting-podium", "sting-point", "sting-win", "sting-win2"];</script>
 <script>window.JDW_ASSET_KEY = "borne-arcade-emballage-v1"; window.JDW_ROOT = "../";</script>
 <script>
@@ -105886,8 +105914,12 @@ function welAcctUi() {
   $('jdw-wel-noacct').textContent = WEL.noAcct ? '↩ Finalement, je le mets sur un compte' : "Pas d'e-mail (un enfant) ? Jouer sans compte, sur cet appareil";
   acctChips($('jdw-wel-acctpick'), WEL.uid, u => { WEL.uid = u; welMsg(''); welAcctUi(); }, true);
   $('jdw-wel-acct-in').hidden = !!WEL.uid;
+  $('jdw-g-wel').hidden = !oaCan() || !!WEL.uid; $('jdw-g-login').hidden = !oaCan() || !!WEL.pick;
   const se = $('jdw-wel-sess'); se.hidden = !WEL.uid;
-  if (WEL.uid) se.textContent = '✓ Ce joueur sera ajouté au compte de ' + acctLabel(WEL.uid) + '.';
+  if (WEL.uid) {
+    const named = acctObjs().some(p => p.name && p.acct && p.acct.uid === WEL.uid), s0 = sessOf(WEL.uid) || {};
+    se.textContent = named ? '✓ Ce joueur sera ajouté au compte de ' + acctLabel(WEL.uid) + '.' : '✓ Ce joueur sera sur ton compte' + (s0.g ? ' Google' : '') + ' (' + maskEmail(s0.email) + ').';
+  }
   // connexion : liste des joueurs du compte quand il en a plusieurs
   const pk = $('jdw-wel-pick'), picking = !!WEL.pick;
   pk.hidden = !picking; $('jdw-wel-lfields').hidden = picking; $('jdw-wel-lpassbox').hidden = picking; $('jdw-wel-forgot').hidden = picking;
@@ -106136,13 +106168,15 @@ async function acctEmailOf(idf, pass) {
   let e;
   try { e = await rpc('login_name', { p_code: CODE(), p_name: n, p_password: String(pass || '') }, { anon: true, quiet: true }); }
   catch (x) { throw uiErr(/trop d essais/.test(x.message) ? 'Trop d’essais avec ce pseudo : attends quelques minutes.' : x.offline ? 'Pas de connexion internet : réessaie dans un instant.' : 'Le serveur ne répond pas comme prévu : réessaie.'); }
-  if (!e) throw Object.assign(uiErr('Pseudo ou mot de passe incorrect (ou ' + n + ' n’a pas de compte). Tu peux aussi te connecter avec ton e-mail.'), { nouser: true, name: n });
+  if (!e) throw Object.assign(uiErr('Pseudo ou mot de passe incorrect (ou ' + n + ' n’a pas de compte). Tu peux aussi te connecter avec ton e-mail.' + oaHint()), { nouser: true, name: n });
   return { email: e, name: n };
 }
+// compte créé avec Google (sans mot de passe) : on le rappelle quand le mot de passe ne marche pas
+const oaHint = () => oaCan() ? ' Compte créé avec Google ? Touche « Continuer avec Google ».' : '';
 async function acctLogin(idf, pass) {
   const who = await acctEmailOf(idf, pass);
   try { return { s: await authPassword(who.email, pass), name: who.name }; }
-  catch (e) { throw uiErr(authMsg(e, who.name ? 'login-pseudo' : 'login')); }
+  catch (e) { throw uiErr(authMsg(e, who.name ? 'login-pseudo' : 'login') + (/invalid_credentials|invalid_grant/.test(e.code) ? oaHint() : '')); }
 }
 const sessOf = uid => (uid && ACCT.s[uid]) || null;
 const liveUid = uid => !!(sessOf(uid) && sessOf(uid).rt);
@@ -106166,7 +106200,11 @@ function acctPut(pid, acct) {
 }
 function acctSetSess(s) {
   const u = s.user || {}, uid = u.id, old = ACCT.s[uid] || {};
+  const pv = (u.app_metadata && u.app_metadata.providers) || [];      // g : compte relié à Google ; pw : il a un mot de passe
   ACCT.s[uid] = { email: u.email || old.email || '', at: s.access_token, rt: s.refresh_token, exp: Date.now() + (+s.expires_in || 3600) * 1000 };
+  if (pv.includes('google') || (!pv.length && old.g)) ACCT.s[uid].g = true;
+  if (pv.includes('email') || old.pw) ACCT.s[uid].pw = true;
+  if (old.bare) ACCT.s[uid].bare = true;
   store.set('jdw.accts', ACCT.s);
   rtToken(uid, s.access_token);
   return uid;
@@ -106342,10 +106380,251 @@ const ACCT_HASH = (() => {                 // lu tout de suite au chargement, pu
   return { at: P.get('access_token') || '', rt: P.get('refresh_token') || '', exp: +P.get('expires_in') || 3600, type: P.get('type') || '',
     err: P.get('error_description') || (P.get('error') && !P.get('access_token') ? P.get('error') : ''), errCode: P.get('error_code') || '' };
 })();
+/* ---- Continuer avec Google (Supabase Auth, fournisseur Google, flux PKCE ; mise en service : ACCOUNTS.md « Google ») ----
+   Le bouton envoie la page sur /auth/v1/authorize?provider=google avec code_challenge = SHA-256 d'un secret tiré sur l'appareil, gardé
+   dans jdw.oauth avec ce que faisait le joueur (mode, pseudo, tête et cris en cours : la page part chez Google et revient rechargée).
+   Retour : …/jouer/?code=… → token?grant_type=pkce (secret) → session, comme une connexion par mot de passe. Un compte Google tout neuf
+   passe par « Crée ton joueur » (pseudo, tête, cris) ; un e-mail déjà inscrit par mot de passe : Supabase relie Google au MÊME compte.
+   Appli Android 1.13+ (BorneApp.oauth) : Google refuse les WebView, la connexion se fait dans un onglet Chrome qui revient par
+   connexion/ (petite page) → fr.bornearcade.app://auth?code=… → l'appli → JDW_OAUTH_IN(). Vieilles applis, navigateurs intégrés
+   (Facebook, Instagram, WebView…) : pas de bouton. Serveur sans Google (auth/v1/settings) : pas de bouton non plus. */
+const OA = { on: !!store.get('jdw.gok', false), busy: 0 };
+const OA_TTL = 30 * 60e3;                   // un retour de Google plus vieux que ça n'est plus attendu
+const oaApp = () => { try { const b = window.BorneApp; return b && typeof b.oauth === 'function' ? b : null; } catch (e) { return null; } };
+// navigateur où Google refuse de se connecter (WebView d'une autre appli, Facebook, Instagram…), ou vieille appli de la borne
+const oaBlocked = () => !oaApp() && /; wv\)|FBAN|FBAV|FB_IAB|Instagram|Line\/|MicroMessenger|Snapchat|musical_ly|TikTok|BytedanceWebview|BorneArcade/i.test(navigator.userAgent || '');
+const oaCan = () => OA.on && ONLINE && ACCT.ready && !netOff() && !oaBlocked();
+// le serveur a-t-il Google ? (réglages publics de Supabase Auth ; retenu sur l'appareil)
+async function oaProbe() {
+  try { const j = await authReq('settings', null, null, 'GET'); OA.on = !!(j && j.external && j.external.google); store.set('jdw.gok', OA.on); }
+  catch (e) {}
+  if (!$('jdw-welcome').hidden) welAcctUi();
+  if (!$('jdw-acct').hidden) acctSheetUi();
+}
+const b64url = u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function oaStart(where, btn) {
+  if (Date.now() - OA.busy < 4000) return;
+  if (netOff()) { toastCheer('Il faut du réseau pour se connecter.', profile.name, true); return; }
+  // ce qu'on faisait : retrouvé au retour de Google
+  const ctx = { at: Date.now() };
+  if (where === 'wel') {
+    ctx.mode = 'new';
+    const d = { name: cleanName($('jdw-wel-name').value) };
+    for (const k of ['photo', 'consent', 'photoBase', 'photoAcc', 'sound', 'lose', 'loseDirty']) if (profile[k] !== undefined && profile[k] !== null) d[k] = profile[k];
+    ctx.draft = d;
+  } else if (where === 'login') ctx.mode = 'login';
+  else if (where === 'link') {                  // ⚙ › Compte : rattacher Google au compte connecté (liaison d'identité de Supabase)
+    ctx.mode = 'link'; ctx.uid = profile.acct && profile.acct.uid;
+    if (!ctx.uid || !liveUid(ctx.uid)) return;
+    oaSetMsg('');
+  }
+  else {
+    const pr = acctTarget();
+    ctx.mode = AS.mode; ctx.pid = pr.pid; ctx.locked = AS.locked; ctx.name = cleanName(pr.name);
+    if (AS.mode === 'protect') {
+      const N2 = cleanName($('jdw-acct-name').value);
+      if (N2.length < 2) { acctMsg(N2 ? 'Le pseudo doit faire au moins 2 lettres.' : 'Il faut un pseudo.', 'err'); $('jdw-acct-name').focus(); return; }
+      if (N2 !== ctx.name && profiles.some(p => p.pid !== pr.pid && cleanName(p.name) === N2)) { acctMsg(N2 + ' est déjà un autre joueur de cet appareil.', 'err'); $('jdw-acct-name').focus(); return; }
+      ctx.name2 = N2;
+    }
+    if (AS.mode === 'protect' || AS.mode === 'connect-mine') ctx.others = acctOthersPicked();
+  }
+  // PKCE : secret gardé ici, seule son empreinte part chez Google
+  const v = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  let ch = v, meth = 'plain';
+  try { ch = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)))); meth = 's256'; } catch (e) {}
+  ctx.v = v;
+  const app = oaApp(); ctx.app = !!app;
+  if (!store.set('jdw.oauth', ctx)) { if (ctx.draft) { delete ctx.draft.sound; delete ctx.draft.lose; delete ctx.draft.photoBase; } store.set('jdw.oauth', ctx); }
+  const back = app ? new URL('../connexion/', SITE_URL()).href : SITE_URL();
+  const q = 'provider=google&redirect_to=' + encodeURIComponent(back) + '&code_challenge=' + ch + '&code_challenge_method=' + meth + '&prompt=select_account';
+  let url = CFG.url.replace(/\/+$/, '') + '/auth/v1/authorize?' + q;
+  if (ctx.mode === 'link') {                    // Supabase donne l'adresse de Google (jeton du compte : c'est CE compte qui reçoit Google)
+    if (btn) btn.disabled = true;
+    try {
+      const tok = await tokenFor(ctx.uid); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
+      const j = await authReq('user/identities/authorize?' + q + '&skip_http_redirect=true', null, tok, 'GET');
+      if (!j || !/^https:\/\//.test(j.url || '')) throw new Error('pas d adresse');
+      url = j.url;
+    } catch (e) { if (btn) btn.disabled = false; try { localStorage.removeItem('jdw.oauth'); } catch (x) {} oaSetMsg(oaErrMsg({ err: e.message, errCode: e.code || '' }, true, e), 'err'); return; }
+  }
+  OA.busy = Date.now();
+  try { sessionStorage.setItem('jdw.mode', MODE); } catch (e) {}   // au retour, la borne rouvre du même côté (arcade ou Pégase)
+  if (btn) { btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 4000); }
+  if (app) { let ok = false; try { ok = app.oauth(url); } catch (e) {} if (ok === false) { OA.busy = 0; toastCheer('Impossible d’ouvrir Google sur ce téléphone.', profile.name, true); } return; }
+  location.assign(url);
+}
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.g-btn'); if (b) oaStart(b.dataset.g, b); });
+// retour de Google dans l'adresse : ?code=… (ou ?error=…), lu tout de suite au chargement puis retiré
+const OAUTH_Q = (() => {
+  try {
+    const P = new URLSearchParams(location.search);
+    if (!P.has('code') && !P.has('error_description') && !P.has('error_code')) return null;
+    const q = { code: P.get('code') || '', err: P.get('error_description') || P.get('error') || '', errCode: P.get('error_code') || P.get('error') || '' };
+    for (const k of ['code', 'error', 'error_code', 'error_description', 'state']) P.delete(k);
+    const qs = P.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    return q;
+  } catch (e) { return null; }
+})();
+// appli Android : le code arrive par l'appli (fr.bornearcade.app://auth?code=…), la page est déjà ouverte
+window.JDW_OAUTH_IN = qs => {
+  const P = new URLSearchParams(String(qs || '').replace(/^\?/, ''));
+  const q = { code: P.get('code') || '', err: P.get('error_description') || P.get('error') || '', errCode: P.get('error_code') || P.get('error') || '' };
+  if (!q.code && !q.err) return;
+  OA.busy = 0;
+  if (ACCT.ready) oaFinish(q); else acctProbe().then(() => oaFinish(q));
+};
+// refus de Google ou de Supabase : on revient là où on était, avec le message
+function oaBack(ctx, msg) {
+  const m = ctx && ctx.mode;
+  if (m === 'link') { oaSettings(msg, 'err'); return; }
+  if (m === 'new' || m === 'login') {
+    if (profile.name) { adding = profile; profile = blankProfile(); }
+    if (m === 'new' && ctx.draft) oaDraft(ctx.draft);
+    startWelcome(); if (m === 'new' && ctx.draft && ctx.draft.name) { $('jdw-wel-name').value = ctx.draft.name; checkName(); }
+    if (m === 'login') welTab('login');
+    welMsg(msg, 'err'); return;
+  }
+  const pr = ctx && ctx.pid ? acctObjs().find(p => p.pid === ctx.pid) : null;
+  if (pr && pr.pid !== profile.pid && profiles.some(p => p.pid === pr.pid)) switchProfile(pr.pid);
+  openAcct(pr && /^(protect|connect|connect-mine)$/.test(m) ? m : 'connect-any', { locked: !!(ctx && ctx.locked) && acctState(profile) !== 'on', msg, cls: 'err', name: m === 'protect' && ctx.name2 ? ctx.name2 : undefined });
+}
+// le brouillon du nouveau joueur (tête, cris) revient sur le profil en cours de création
+function oaDraft(d) { for (const k of ['photo', 'consent', 'photoBase', 'photoAcc', 'sound', 'lose', 'loseDirty']) if (d[k] !== undefined) profile[k] = d[k]; }
+function oaErrMsg(q, link, e) {
+  const t = (q.errCode + ' ' + q.err).toLowerCase();
+  if (link) {
+    if (/identity_already_exists|already linked|already exists|already been linked/.test(t)) return 'Ce compte Google est déjà utilisé par un autre compte de la borne : choisis une autre adresse Google (ou connecte-toi avec Google pour aller sur cet autre compte).';
+    if (/manual_linking_disabled|manual linking/.test(t)) return 'Le rattachement à Google n’est pas encore ouvert sur le serveur.';
+    if (/access_denied|cancel/.test(t)) return 'Rattachement à Google annulé.';
+    if (e && (e.offline || e.status)) return authMsg(e);
+  }
+  if (/access_denied|cancel/.test(t)) return 'Connexion avec Google annulée.';
+  if (/provider is not enabled|unsupported provider/.test(t)) return 'La connexion avec Google n’est pas encore ouverte sur le serveur.';
+  if (/multiple accounts|already|exists/.test(t)) return 'Cet e-mail a déjà un compte : connecte-toi avec ton e-mail (ou ton pseudo) et ton mot de passe.';
+  if (/signup.*disabled|signups not allowed/.test(t)) return 'Les comptes ne sont pas encore ouverts sur le serveur.';
+  return 'Google n’a pas pu te connecter' + (q.err ? ' (' + q.err.slice(0, 80) + ')' : '') + ' : réessaie.';
+}
+async function oaFinish(q) {
+  const ctx = store.get('jdw.oauth', null);
+  try { localStorage.removeItem('jdw.oauth'); } catch (e) {}
+  const live = ctx && ctx.v && Date.now() - (ctx.at || 0) < OA_TTL;
+  if (q.err) { oaBack(live ? ctx : null, oaErrMsg(q, live && ctx.mode === 'link')); return; }
+  if (!live) { oaBack(null, 'Cette connexion avec Google a commencé ailleurs (un autre navigateur ou l’appli) : recommence ici.'); return; }
+  toastCheer('🔑 Connexion avec Google…', profile.name, true);
+  let s;
+  try { s = await authReq('token?grant_type=pkce', { auth_code: q.code, code_verifier: ctx.v }); }
+  catch (e) { oaBack(ctx, e.offline ? 'Pas de connexion internet : réessaie dans un instant.' : /flow_state|expired|not.found|invalid/i.test(e.code + e.message) ? 'Ce retour de Google a expiré : recommence.' : authMsg(e)); return; }
+  if (!s.user) { try { s.user = await authUser(s.access_token); } catch (e) { oaBack(ctx, authMsg(e)); return; } }
+  const m = ctx.mode;
+  if (m === 'link') {                           // Google rattaché : même compte, mêmes pseudos et scores
+    const uid = acctSetSess(s), se = sessOf(uid); se.g = true; se.idAt = 0; store.set('jdw.accts', ACCT.s);
+    oaSettings(uid === ctx.uid ? '✓ Google est rattaché à ton compte : tu peux maintenant te connecter avec Google, partout.' : '✓ Connecté avec Google.', 'ok');
+    return;
+  }
+  if (m === 'protect' || m === 'connect' || m === 'connect-mine') {
+    const pr = acctObjs().find(p => p.pid === ctx.pid);
+    if (!pr || !pr.name) { oaBack(null, 'Ce joueur n’est plus sur cet appareil : connecte-toi.'); return; }
+    if (pr.pid !== profile.pid && profiles.some(p => p.pid === pr.pid)) switchProfile(pr.pid);
+    const N = m === 'protect' ? ctx.name2 || cleanName(pr.name) : cleanName(pr.name);
+    const res = await acctAdopt(s, { name: N, claim: m !== 'connect' });
+    if (res.err) {
+      if (m === 'protect') { const uid = acctSetSess(s); ACCT.s[uid].bare = true; store.set('jdw.accts', ACCT.s); }   // compte gardé : un autre pseudo suffira
+      oaBack(ctx, m === 'connect' && /n’est pas sur ce compte/.test(res.err) ? N + ' n’est pas sur ton compte Google : connecte-toi avec l’e-mail (ou le pseudo) et le mot de passe de ' + N + '.' : res.err);
+      return;
+    }
+    const uid = acctSetSess(s);
+    AS.locked = false; if (!$('jdw-acct').hidden) closeSheet('jdw-acct');
+    if (N !== cleanName(pr.name) && pr.pid === profile.pid) { acctPut(pr.pid, { uid }); await renameProfile(N); }
+    acctAttach(pr, uid, res.me);
+    if (ctx.others && ctx.others.length) await acctClaimOthers(ctx.others, s.access_token, uid);
+    toastCheer((m === 'protect' ? '🔒 ' + N + ' est protégé' : '✓ Connecté : ' + N) + ' avec Google !', N, true);
+    return;
+  }
+  const res = await acctAdopt(s, {});
+  if (res.nopseudo && !res.err) {               // compte Google tout neuf : « Crée ton joueur » (pseudo, tête, cris) sur ce compte
+    const uid = acctSetSess(s); ACCT.s[uid].bare = true; store.set('jdw.accts', ACCT.s);
+    if (profile.name) { adding = profile; profile = blankProfile(); }
+    if (ctx.draft) oaDraft(ctx.draft);
+    startWelcome(); WEL.uid = uid; welAcctUi();
+    const meta = s.user.user_metadata || {}, guess = cleanName(String(meta.full_name || meta.name || '').trim().split(/\s+/)[0] || '');
+    const nm = ctx.draft && ctx.draft.name || guess;
+    if (nm) { $('jdw-wel-name').value = nm; checkName(); }
+    welMsg('✓ Connecté avec Google' + (s.user.email ? ' (' + maskEmail(s.user.email) + ')' : '') + '. ' + (ctx.draft && ctx.draft.name ? 'Vérifie ton joueur, puis « C’est parti ! ».' : 'Choisis ton pseudo, ta tête et tes cris.'), 'ok');
+    return;
+  }
+  if (!$('jdw-welcome').hidden) { adding = null; closeSheet('jdw-welcome'); }
+  acctAfterAdopt(res, s, 'Choisis ton pseudo.', p => { toastCheer('Re-bonjour ' + p.name + ' !', p.name, true); setTimeout(() => playCri(p.name), 400); });
+}
+// ⚙ › Compte, avec un message (retour du rattachement à Google)
+function oaSettings(msg, cls) {
+  if (acctState(profile) !== 'on') { toastCheer(msg, profile.name, true); return; }
+  store.set('jdw.settab', 'acct'); if ($('jdw-settings').hidden) openSettings(); else { renderAcctSet(); showSetTab('acct'); }
+  oaSetMsg(msg, cls);
+}
+function oaSetMsg(t, cls) { const el = $('jdw-set-acct-msg'); if (!el) return; el.textContent = t || ''; el.className = 'acct-msg' + (cls ? ' ' + cls : ''); el.hidden = !t; }
+// ⚙ › Compte : « Google : rattaché ✓ » (+ Détacher, s'il reste l'e-mail et le mot de passe) ou « Rattacher mon compte Google »
+function oaGoogleRow(box, uid, se) {
+  if (!se.idAt || Date.now() - se.idAt > 5 * 60e3) oaIdentities(uid);
+  if (!se.g && !oaCan()) return;
+  const G = (document.querySelector('.g-logo') || {}).outerHTML || '';
+  const row = document.createElement('div'); row.className = 'acct-g';
+  if (se.g) {
+    const on = document.createElement('div'); on.className = 'acct-g-on'; on.innerHTML = G;
+    const t = document.createElement('span'); t.className = 'acct-g-t'; t.innerHTML = '<b>Google : rattaché ✓</b><small>Tu te connectes aussi avec Google.</small>';
+    on.appendChild(t);
+    if (se.em && se.gid) {
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'link-btn'; x.textContent = 'Détacher';
+      x.addEventListener('click', () => {
+        if (!x.classList.contains('sure')) { x.classList.add('sure'); x.textContent = 'Sûr ? Touche encore'; t.querySelector('small').textContent = 'Ensuite : ton e-mail (ou ton pseudo) et ton mot de passe.'; return; }
+        oaUnlink(uid, x);
+      });
+      on.appendChild(x);
+    }
+    row.appendChild(on);
+  } else {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'g-btn'; b.dataset.g = 'link';
+    b.innerHTML = G + '<span>Rattacher mon compte Google</span>';
+    const sm = document.createElement('small'); sm.textContent = 'Ensuite, tu te connectes aussi avec Google : mêmes pseudos, mêmes scores.';
+    row.append(b, sm);
+  }
+  box.appendChild(row);
+}
+// identités du compte (google, email) relues sur le serveur : rattaché ? détachable ?
+async function oaIdentities(uid) {
+  if (OA.ids === uid) return; OA.ids = uid;
+  try {
+    const tok = await tokenFor(uid); if (!tok) return;
+    const ids = (await authUser(tok)).identities || [], se = sessOf(uid); if (!se) return;
+    const was = [se.g, se.em, se.gid].join();
+    se.g = ids.some(i => i.provider === 'google'); se.em = ids.some(i => i.provider === 'email');
+    se.gid = (ids.find(i => i.provider === 'google') || {}).identity_id || ''; if (se.em) se.pw = true;
+    se.idAt = Date.now(); store.set('jdw.accts', ACCT.s);
+    if (was !== [se.g, se.em, se.gid].join() && !$('jdw-settings').hidden) renderAcctSet();
+  } catch (e) {} finally { OA.ids = ''; }
+}
+async function oaUnlink(uid, b) {
+  const se = sessOf(uid) || {}; if (!se.gid) return;
+  b.disabled = true; oaSetMsg('');
+  try {
+    const tok = await tokenFor(uid); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
+    await authReq('user/identities/' + encodeURIComponent(se.gid), null, tok, 'DELETE');
+    se.g = false; se.gid = ''; se.idAt = 0; store.set('jdw.accts', ACCT.s);
+    await acctRefresh(uid, true);
+    oaSetMsg('Google est détaché. Connecte-toi avec ton e-mail (ou ton pseudo) et ton mot de passe.', 'ok');
+  } catch (e) {
+    const t = (e.code + ' ' + e.message).toLowerCase();
+    oaSetMsg(/single_identity|last identity|at least/.test(t) ? 'Impossible : Google est la seule façon d’entrer dans ce compte.' : /manual_linking_disabled|manual linking/.test(t) ? 'Le rattachement à Google n’est pas ouvert sur le serveur.' : authMsg(e), 'err');
+  }
+  if (!$('jdw-settings').hidden) renderAcctSet();
+}
 async function acctStart() {
   if (!ONLINE) return;
   await acctProbe();
-  if (ACCT_HASH && ACCT.ready) await acctArrive(ACCT_HASH);
+  oaProbe();
+  if (OAUTH_Q && ACCT.ready) await oaFinish(OAUTH_Q);
+  else if (ACCT_HASH && ACCT.ready && ACCT_HASH.err && store.get('jdw.oauth', null)) await oaFinish({ code: '', err: ACCT_HASH.err, errCode: ACCT_HASH.errCode });
+  else if (ACCT_HASH && ACCT.ready) await acctArrive(ACCT_HASH);
   else acctCheckMine();
   setInterval(acctTick, 60e3); setInterval(() => { if (!ACCT.gateT) acctGate(); }, 5000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) acctTick(); });
@@ -106379,7 +106658,7 @@ function renderAcctSet() {
   $('jdw-set-name-help').textContent = linked ? '🔒 Ton pseudo est lié à ton compte : il ne change plus.' : 'Ton pseudo se change ici, puis « Enregistrer ».';
   box.hidden = st === 'off'; if (st === 'off') return;
   const others = a.uid ? acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid && p.pid !== profile.pid).map(p => cleanName(p.name)) : [];
-  const T = { on: ['🔒', 'Compte protégé', maskEmail(se.email) + (others.length ? ' · aussi ' + [...new Set(others)].join(', ') : '')],
+  const T = { on: ['🔒', 'Compte protégé', (se.g ? 'Google · ' : '') + maskEmail(se.email) + (others.length ? ' · aussi ' + [...new Set(others)].join(', ') : '')],
     pending: ['📧', 'E-mail à confirmer', a.email ? 'Lien envoyé à ' + maskEmail(a.email) : ''],
     need: ['🔑', se.lost ? 'Reconnecte-toi' : 'Ce pseudo a un compte', se.lost ? 'La connexion a expiré sur cet appareil.' : 'Connecte-toi pour jouer sous ce nom.'],
     local: ['🧒', 'Sans compte', 'Joueur de cet appareil seulement : son pseudo n’est pas protégé.'],
@@ -106393,7 +106672,8 @@ function renderAcctSet() {
   const btns = $('jdw-set-acct-btns'); btns.textContent = '';
   const B = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm ' + (cls || 'btn-ghost'); b.textContent = t; b.addEventListener('click', () => fn(b)); btns.appendChild(b); return b; };
   if (st === 'on') {
-    B('🔑 Changer mon mot de passe', () => openAcct('change'));
+    oaGoogleRow(btns, a.uid, se);
+    B(se.g && !se.pw ? '🔑 Choisir un mot de passe' : '🔑 Changer mon mot de passe', () => openAcct('change'));
     B('🚪 Se déconnecter de cet appareil', b => {
       const names = [...new Set(acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid).map(p => cleanName(p.name)))];
       if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Sûr ? ' + names.join(', ') + (names.length > 1 ? ' quitteront' : ' quittera') + ' cet appareil'; return; }
@@ -106459,7 +106739,8 @@ function openAcct(mode, o) {
     confirm: ['📧', 'Presque fini', 'Confirme ton e-mail', ['Lien envoyé à ', Bo(maskEmail(a.email) || 'ton adresse'), '.'], '', 'cur', "J'ai confirmé : me connecter", 'Plus tard', 'Ouvre le lien reçu par e-mail (regarde aussi les spams) pour activer ton compte, puis reviens ici et tape ton mot de passe.'],
     forgot: ['✉️', 'Mot de passe oublié', 'Pas de panique', ['On t’envoie un lien par e-mail.'], 'idf', null, 'Envoyer le lien', 'Fermer', 'Tape ton e-mail ou ton pseudo : on envoie un lien à l’adresse du compte pour choisir un nouveau mot de passe.'],
     newpass: ['🔑', AS.sess && AS.sess.user ? maskEmail(AS.sess.user.email) : 'Mon compte', 'Choisis ton nouveau mot de passe', [], '', 'new', 'Enregistrer', 'Annuler', 'Au moins 6 caractères. Il sert pour tous les joueurs du compte, sur tous tes appareils.'],
-    change: ['🔑', maskEmail((sessOf(a.uid) || {}).email) || 'Mon compte', 'Changer mon mot de passe', [], '', 'new', 'Changer', 'Annuler', 'Au moins 6 caractères. Le mot de passe sert pour tous les joueurs du compte.']
+    change: (se => se.g && !se.pw ? ['🔑', 'Google · ' + maskEmail(se.email), 'Choisir un mot de passe', ['Tu te connectes avec Google. Un mot de passe en plus sert là où Google ne marche pas (vieille appli, autre navigateur).'], '', 'new', 'Enregistrer', 'Annuler', 'Au moins 6 caractères. Ensuite, tu te connectes avec Google OU avec ton e-mail (ou ton pseudo) et ce mot de passe.']
+      : ['🔑', maskEmail(se.email) || 'Mon compte', 'Changer mon mot de passe', [], '', 'new', 'Changer', 'Annuler', 'Au moins 6 caractères. Le mot de passe sert pour tous les joueurs du compte.'])(sessOf(a.uid) || {})
   }[mode];
   if (!C) return;
   $('jdw-acct-ic').textContent = C[0]; $('jdw-acct-eyebrow').textContent = C[1]; $('jdw-acct-h').textContent = C[2];
@@ -106511,6 +106792,7 @@ function acctSheetUi() {
   if (mode !== 'protect') $('jdw-acct-pick').hidden = true;
   $('jdw-acct-email').hidden = !$('jdw-acct-email').dataset.kind || useUid;
   $('jdw-acct-pw').hidden = !$('jdw-acct-pw').dataset.kind || useUid;
+  $('jdw-g-acct').hidden = !oaCan() || useUid || !/^(protect|connect|connect-mine|connect-any)$/.test(mode);
   const ob = $('jdw-acct-others'); ob.textContent = '';
   const list = AS.others.map(pid => profiles.find(p => p.pid === pid)).filter(Boolean);
   ob.hidden = !list.length; if (!list.length) return;
@@ -106576,7 +106858,8 @@ async function acctOk() {
     try {
       const tok = await acctToken(pr); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
       await authSetPassword(tok, pass);
-      acctSetBusy(false); closeSheet('jdw-acct'); toastCheer('🔑 Mot de passe changé !', N, true);
+      const se = sessOf(pr.acct && pr.acct.uid); if (se) { se.pw = true; store.set('jdw.accts', ACCT.s); }
+      acctSetBusy(false); closeSheet('jdw-acct'); toastCheer('🔑 Mot de passe enregistré !', N, true);
     } catch (e) { acctSetBusy(false); acctMsg(authMsg(e), 'err'); }
     return;
   }
