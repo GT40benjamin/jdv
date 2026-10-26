@@ -908,7 +908,10 @@
         for (let i = Math.max(1, n - kE); i < n; i++) { lo[i] = Math.min(lo[i], lo[i - 1]); hi[i] = Math.max(hi[i], hi[i - 1]); }
         { const a = smooth(lo, 3), z = smooth(hi, 3); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
         const ss = (u) => u * u * (3 - 2 * u);
-        for (let i = 0; i < n; i++) { const w = ss(clamp(Math.min((xw[i] - xa) / 10, (xb - xw[i]) / 7), 0, 1)); lo[i] = clamp(lerp(0, lo[i], w), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], w), 0, CEIL); }
+        // 26 oct. (« encore plus plat pour le démarrage, je me prends le rebord ») : le sol reste TOUT PLAT les 3 premières secondes (un
+        // vaisseau posé au sol ne touche rien), puis la paroi du bas monte très doucement (2,5 s) ; le plafond descend sur 2 s
+        const fl = L.speed * 3;
+        for (let i = 0; i < n; i++) { const u = xw[i] - xa, e = (xb - xw[i]) / 7, wl = ss(clamp(Math.min((u - fl) / (L.speed * 2.5), e), 0, 1)), wh = ss(clamp(Math.min(u / (L.speed * 2), e), 0, 1)); lo[i] = clamp(lerp(0, lo[i], wl), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], wh), 0, CEIL); }
         const w0 = L.walls.length;
         for (let i = 0; i + 1 < n; i++) L.walls.push({ x0: xw[i], x1: xw[i + 1], lo0: lo[i], hi0: hi[i], lo1: lo[i + 1], hi1: hi[i + 1] });
         // on vérifie que le fantôme passe (sinon on élargit)
