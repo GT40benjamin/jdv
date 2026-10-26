@@ -1,35 +1,48 @@
 {
-  "version": "0.9.7",
-  "build": 39,
-  "size": 2141246438,
-  "sha256": "b335690fc2be6615fb714bd604a87a6a57cce5f10d1fb9b6556d694dd99d2918",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v39/Pegase-PC-2026-10-25-0.9.7.zip",
-  "manifest": "302147245a19e62e1746bbf05b2791b06ccba10f1ba07e42e57965e08143a7fa",
+  "version": "0.9.8",
+  "build": 40,
+  "size": 2205297400,
+  "sha256": "8c02d5f9d86638fec16904c1bf660eb1091126cf8187f91d593cc4f36b5970bd",
+  "url": "https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/Pegase-PC-2026-10-26-0.9.8.zip",
+  "manifest": "4e9d9e799ed7811f7128efa6b3ada4b6f3882d28dbbab03f6ff15cff12a591a9",
   "patchs": [
     {
-      "de": "0.9.6",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v39/Pegase-PC-patch-0.9.6.zip",
-      "taille": 4815097,
-      "sha256": "1c47011865a09d4d9ed623c29eb456ab0a1159de92144868e47a229b84029a6a"
+      "de": "0.9.7",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v40/Pegase-PC-patch-0.9.7.zip",
+      "taille": 194503609,
+      "sha256": "832b4c76ca521b0737f880aead09257d3e9d6c2b338c4e2ec94110e59971946a"
     }
   ],
   "notes": [
-    "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil pendant que tu pêches.",
-    "Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches.",
-    "Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles.",
-    "À table : on s'assoit face à la table, les pieds dessous, des deux côtés.",
-    "Le râteau chez Rosalie : il remet l'herbe sur une case bêchée, ou annule une plantation en te rendant la graine.",
-    "Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête.",
-    "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
-    "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
-    "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre.",
-    "Mises à jour bien plus rapides : environ 35 secondes au lieu de 5 minutes."
+    "La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large.",
+    "Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral.",
+    "La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges.",
+    "Des montagnes et des falaises couvertes de végétation ferment l'horizon.",
+    "Les plantes des chemins sont bien posées au sol.",
+    "Les maisons : un passage reste libre devant la porte, et la caméra entre et sort en douceur ; sous les auvents des boutiques, elle passe sous le store.",
+    "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
+    "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
+    "Le jeu démarre plus vite."
   ],
   "historique": [
     {
+      "version": "0.9.8",
+      "notes": [
+        "La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large.",
+        "Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral.",
+        "La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges.",
+        "Des montagnes et des falaises couvertes de végétation ferment l'horizon.",
+        "Les plantes des chemins sont bien posées au sol.",
+        "Les maisons : un passage reste libre devant la porte, et la caméra entre et sort en douceur ; sous les auvents des boutiques, elle passe sous le store.",
+        "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
+        "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
+        "Le jeu démarre plus vite."
+      ]
+    },
+    {
       "version": "0.9.7",
       "notes": [
-        "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil pendant que tu pêches.",
+        "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil.",
         "Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches.",
         "Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles.",
         "À table : on s'assoit face à la table, les pieds dessous, des deux côtés.",
@@ -37,8 +50,7 @@
         "Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête.",
         "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
         "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
-        "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre.",
-        "Mises à jour bien plus rapides : environ 35 secondes au lieu de 5 minutes."
+        "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre."
       ]
     },
     {
@@ -89,23 +101,6 @@
         "Assis sur un banc, les mains se posent naturellement, les poignets se plient en douceur et le téléphone est bien tenu.",
         "Le musée : plafond plus haut, bancs qui ne gênent plus le passage, grands cartels lisibles dans la galerie.",
         "Les maisons : plus d'herbe qui traverse le plancher quand une maison est reconstruite au même endroit."
-      ]
-    },
-    {
-      "version": "0.9.4.6",
-      "notes": [
-        "Le ponton : un long ponton de bois part de la plage vers le large, avec sa barque amarrée au bout. On y pêche, et Gaspard aussi.",
-        "Les grands combats : les gros poissons sautent hors de l'eau, se tordent en l'air, éclaboussent ; la canne plie en arc, et le poisson est ramené par la bouche jusqu'au bord.",
-        "Une interface de pêche toute propre : la distance au bord sur une barre verticale à droite, le rond à gauche, rien au milieu.",
-        "Chaque poisson bien tenu, du petit poisson rouge dans les paumes à la Dorée géante portée à deux bras.",
-        "Les parcelles du jardin : cinq parcelles à vendre au bord du chemin, avec bornes de pierre, liseré, panneau et boîte aux lettres, et leurs contours sur la carte.",
-        "Le facteur passe sur son vélo jaune et s'arrête devant chaque boîte aux lettres.",
-        "Le héron cendré pêche au bord du lac (nouvelle case du Grand livre).",
-        "Les animaux bien posés : chat, choucas et grand-duc ne flottent plus et ne traversent plus les toits.",
-        "De nouvelles petites bêtes : le moustique tigre, l'araignée-loup et le mille-pattes ; la blatte s'enfuit ; et une carte « Insecte attrapé ! » au coup de filet.",
-        "La galerie du musée : de vrais cadres dorés à hauteur des yeux, prêts à recevoir les photos que tu offres à Mlle Iris.",
-        "Les lunettes se posent sur le nez, juste devant les yeux, et leurs branches passent au-dessus des oreilles.",
-        "Des déplacements encore plus doux : départs et arrêts en courbe, caméra plus calme au stick, vue à la première personne sans secousse, et la caméra ne passe plus à travers les toiles et les auvents."
       ]
     }
   ]

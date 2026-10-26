@@ -1,26 +1,40 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 37,
-  "versionName": "0.9.7",
-  "size": 1099494174,
-  "sha256": "3f1980fe1eeee7cb9667e3ba4b08249966fc5dbbd9872fe04a95130a8ec89cd5",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v37/pegase-0.9.7.apk",
+  "versionCode": 38,
+  "versionName": "0.9.8",
+  "size": 1140450862,
+  "sha256": "5705a98f1d098740b6dc915bd152b033196ca74b814be0badd111106a8741433",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v38/pegase-0.9.8.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil.",
-    "Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches.",
-    "Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles.",
-    "À table : on s'assoit face à la table, les pieds dessous, des deux côtés.",
-    "Le râteau chez Rosalie : il remet l'herbe sur une case bêchée, ou annule une plantation en te rendant la graine.",
-    "Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête.",
-    "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
-    "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
-    "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre."
+    "La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large.",
+    "Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral.",
+    "La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges.",
+    "Des montagnes et des falaises couvertes de végétation ferment l'horizon.",
+    "Les plantes des chemins sont bien posées au sol.",
+    "Les maisons : un passage reste libre devant la porte, et la caméra entre et sort en douceur ; sous les auvents des boutiques, elle passe sous le store.",
+    "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
+    "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
+    "Le jeu démarre plus vite."
   ],
   "historique": [
+    {
+      "version": "0.9.8",
+      "notes": [
+        "La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large.",
+        "Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral.",
+        "La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges.",
+        "Des montagnes et des falaises couvertes de végétation ferment l'horizon.",
+        "Les plantes des chemins sont bien posées au sol.",
+        "Les maisons : un passage reste libre devant la porte, et la caméra entre et sort en douceur ; sous les auvents des boutiques, elle passe sous le store.",
+        "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
+        "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
+        "Le jeu démarre plus vite."
+      ]
+    },
     {
       "version": "0.9.7",
       "notes": [
@@ -83,23 +97,6 @@
         "Assis sur un banc, les mains se posent naturellement, les poignets se plient en douceur et le téléphone est bien tenu.",
         "Le musée : plafond plus haut, bancs qui ne gênent plus le passage, grands cartels lisibles dans la galerie.",
         "Les maisons : plus d'herbe qui traverse le plancher quand une maison est reconstruite au même endroit."
-      ]
-    },
-    {
-      "version": "0.9.4.6",
-      "notes": [
-        "Le ponton : un long ponton de bois part de la plage vers le large, avec sa barque amarrée au bout. On y pêche, et Gaspard aussi.",
-        "Les grands combats : les gros poissons sautent hors de l'eau, se tordent en l'air, éclaboussent ; la canne plie en arc, et le poisson est ramené par la bouche jusqu'au bord.",
-        "Une interface de pêche toute propre : la distance au bord sur une barre verticale à droite, le rond à gauche, rien au milieu.",
-        "Chaque poisson bien tenu, du petit poisson rouge dans les paumes à la Dorée géante portée à deux bras.",
-        "Les parcelles du jardin : cinq parcelles à vendre au bord du chemin, avec bornes de pierre, liseré, panneau et boîte aux lettres, et leurs contours sur la carte.",
-        "Le facteur passe sur son vélo jaune et s'arrête devant chaque boîte aux lettres.",
-        "Le héron cendré pêche au bord du lac (nouvelle case du Grand livre).",
-        "Les animaux bien posés : chat, choucas et grand-duc ne flottent plus et ne traversent plus les toits.",
-        "De nouvelles petites bêtes : le moustique tigre, l'araignée-loup et le mille-pattes ; la blatte s'enfuit ; et une carte « Insecte attrapé ! » au coup de filet.",
-        "La galerie du musée : de vrais cadres dorés à hauteur des yeux, prêts à recevoir les photos que tu offres à Mlle Iris.",
-        "Les lunettes se posent sur le nez, juste devant les yeux, et leurs branches passent au-dessus des oreilles.",
-        "Des déplacements encore plus doux : départs et arrêts en courbe, caméra plus calme au stick, vue à la première personne sans secousse, et la caméra ne passe plus à travers les toiles et les auvents."
       ]
     }
   ]
