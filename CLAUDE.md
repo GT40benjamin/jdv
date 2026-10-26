@@ -12,11 +12,13 @@ elixirgamestudio.com. Le service worker de l'ancienne adresse reste figé (sa mi
 
 ## Ce qui est publié (racine du dépôt) — site PUBLIC depuis la 1.7 (plus de mot de passe du site)
 - `index.html` : SITE DU STUDIO « Elixir Game Studio » (copie de `source/accueil.html`, style « écran titre » de jeu vidéo) : grand panneau
-  plein écran (blason fiole + ELIXIR / Game Studio, plans filmés de Pégase `accueil/studio-<n>.webp` (+ `-m` en hauteur) puis la boucle
-  `accueil/studio-reel.webm` (2,5 Mo, chargée après la page, jamais en économie de données / réseau lent / mouvement réduit), étincelles
+  plein écran (blason fiole + ELIXIR / Game Studio ; fond = les VRAIS plans 4K de Pégase du seau R2 (decor_29b, 28, 34, 31, 21b, 35, ~20 s
+  chacun en fondu, qualité selon l'écran : 720 / 1080 / 1440 / 2160, version verticale _m_720 / _m_1080 sur un écran en hauteur, une qualité
+  de moins si la vidéo attend le réseau), affiche nette `assets/pegase/<plan>_poster.jpg` d'abord, vidéo après la page, jamais en économie de
+  données / réseau lent / mouvement réduit (affiches seules) ; étincelles
   dessinées) avec DEUX boutons : Pégase → `jouer/?pegase`, La Borne d'arcade → `jouer/?borne` (la borne côté arcade : MODE = PG.last dans
   shell2.js), puis « Le studio » (décision de Benjamin, 26 oct. : pas de présentation des jeux sur cette page, juste les deux boutons).
-  Visuels du studio : `node source/studio-media.js` (à partir de assets/pegase/decor_*, + aperçu des liens `accueil/studio-partage.jpg`).
+  Aperçu des liens : `node source/studio-media.js` → `accueil/studio-partage.jpg` (blason sur l'affiche decor_29b).
   Vignettes des jeux dans `accueil/` (servent à jouer/ et au partage) fabriquées UNIQUEMENT à partir des preview() des jeux par
   `source/accueil-media.js` (jamais de photo). Redirige vers `jouer/` dans l'appli, en PWA installée, ou si l'adresse a des paramètres
   (?v=, ?duel=, ?salle=, ?pegase…) ou un lien d'e-mail (#access_token…).

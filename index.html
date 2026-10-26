@@ -38,8 +38,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Oxanium:wght@600;700;800&family=Chakra+Petch:wght@400;500;600;700&display=swap">
-<link rel="preload" as="image" href="accueil/studio-1.webp" media="(min-aspect-ratio: 3/4)">
-<link rel="preload" as="image" href="accueil/studio-1-m.webp" media="(max-aspect-ratio: 3/4)">
+<link rel="preload" as="image" href="assets/pegase/decor_29b_poster.jpg" media="(min-aspect-ratio: 1/1)">
+<link rel="preload" as="image" href="assets/pegase/decor_29b_m_poster.jpg" media="(max-aspect-ratio: 1/1)">
 <style>
 :root{
   --bg:#06070d;--card:#0d0f1a;--line:rgba(160,190,255,.14);
@@ -95,23 +95,18 @@ a{color:inherit}
 .hero .bg{position:absolute;inset:0;z-index:-3;background:#0b0d14}
 .slide{position:absolute;inset:0;opacity:0;transition:opacity 1.8s ease}
 .slide.on{opacity:1}
-.slide img{width:100%;height:100%;object-fit:cover;transform:scale(1.04);will-change:transform;filter:saturate(1.15)}
-.slide.on img{animation:kb 9s linear forwards}
-.slide:nth-child(even).on img{animation-name:kb2}
-@keyframes kb{from{transform:scale(1.04) translate3d(0,0,0)}to{transform:scale(1.13) translate3d(-1.5%,-1%,0)}}
-@keyframes kb2{from{transform:scale(1.12) translate3d(1.5%,1%,0)}to{transform:scale(1.04) translate3d(0,0,0)}}
-.reel{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease;transform:scale(1.03);filter:saturate(1.15)}
+.slide img{width:100%;height:100%;object-fit:cover}
+.slide.kb.on img{animation:kb 9s linear forwards;will-change:transform}
+.slide.kb:nth-child(even).on img{animation-name:kb2}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.05)}}
+@keyframes kb2{from{transform:scale(1.05)}to{transform:scale(1)}}
+.reel{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease}
 .reel.on{opacity:1}
 .hero .shade{position:absolute;inset:0;z-index:-2;pointer-events:none;
   background:
     radial-gradient(70% 55% at 50% 46%,rgba(6,7,13,.42),rgba(6,7,13,0) 70%),
     radial-gradient(130% 95% at 50% 50%,rgba(6,7,13,0) 45%,rgba(6,7,13,.75) 100%),
     linear-gradient(180deg,rgba(6,7,13,.6) 0%,rgba(6,7,13,0) 22%,rgba(30,10,60,.12) 60%,var(--bg) 100%)}
-.hero .rays{position:absolute;left:50%;top:44%;width:150vmax;height:150vmax;transform:translate(-50%,-50%);z-index:-2;pointer-events:none;opacity:.22;mix-blend-mode:screen;
-  background:repeating-conic-gradient(from 0deg,rgba(255,214,120,.55) 0deg 4deg,transparent 4deg 18deg);
-  -webkit-mask:radial-gradient(closest-side,#000 0%,rgba(0,0,0,.4) 30%,transparent 62%);mask:radial-gradient(closest-side,#000 0%,rgba(0,0,0,.4) 30%,transparent 62%);
-  animation:spin 90s linear infinite}
-@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
 #fx{position:absolute;inset:0;z-index:-1;width:100%;height:100%;pointer-events:none}
 /* cadre « HUD » aux quatre coins */
 .frame{position:absolute;inset:calc(78px + env(safe-area-inset-top)) var(--pad) calc(22px + env(safe-area-inset-bottom));pointer-events:none;z-index:-1;opacity:.75;
@@ -190,7 +185,7 @@ footer a:hover{color:var(--gold2)}
 @keyframes up{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .slide.on img,.hero .rays,.em .liq,.em .bub{animation:none}
+  .slide.kb.on img,.em .liq,.em .bub{animation:none}
   .rv{opacity:1;transform:none;transition:none}
   .hero .c > .em,.hero .tag,h1 .w1,h1 .w2,.doors{animation:none}
 }
@@ -242,10 +237,9 @@ footer a:hover{color:var(--gold2)}
 <main>
 <section class="hero" aria-label="Elixir Game Studio">
   <div class="bg" aria-hidden="true">
-    <div class="slide on"><picture><source media="(max-aspect-ratio: 3/4)" srcset="accueil/studio-1-m.webp"><img src="accueil/studio-1.webp" alt="" width="1600" height="900" decoding="async" fetchpriority="high"></picture></div>
+    <div class="slide on"><picture><source media="(max-aspect-ratio: 1/1)" srcset="assets/pegase/decor_29b_m_poster.jpg"><img src="assets/pegase/decor_29b_poster.jpg" alt="" width="1920" height="1080" decoding="async" fetchpriority="high"></picture></div>
   </div>
   <div class="shade" aria-hidden="true"></div>
-  <div class="rays" aria-hidden="true"></div>
   <canvas id="fx" aria-hidden="true"></canvas>
   <div class="frame" aria-hidden="true"></div>
   <div class="c">
@@ -288,7 +282,6 @@ footer a:hover{color:var(--gold2)}
   var conn = navigator.connection || {};
   var light = !!conn.saveData || /(^|-)2g|3g/.test(conn.effectiveType || '');
   var vt = document.createElement('video');
-  var webm = !!(vt.canPlayType && vt.canPlayType('video/webm; codecs="vp9"'));
   function play(v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
 
   // ---------- en-tête : fond dès qu'on quitte le panneau ----------
@@ -296,42 +289,77 @@ footer a:hover{color:var(--gold2)}
   function onScroll() { top.classList.toggle('solid', window.scrollY > 40); }
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
 
-  // ---------- panneau d'entrée : plans filmés dans Pégase (images, puis une courte boucle vidéo) ----------
-  var SCENES = [
-    ['studio-1', 'Le lac de l’arbre rouge'], ['studio-2', 'Panorama depuis la falaise'], ['studio-3', 'Place du village sous les étoiles'],
-    ['studio-4', 'Cascade du lac de montagne'], ['studio-5', 'Le lac au lever, les oies'], ['studio-6', 'La prairie sous la Voie lactée']
+  // ---------- panneau d'entrée : les PLANS FILMÉS de Pégase, les vrais (tournés en 4K, sur le seau R2 comme ceux de la page Pégase) ----------
+  // Affiche nette d'abord (assets/pegase/<plan>_poster.jpg, ou _m_poster en hauteur), puis la vidéo après le chargement de la page :
+  // qualité selon l'écran (720 / 1080 / 1440 / 2160, version verticale _m_720 / _m_1080 sur un écran en hauteur) et la connexion ;
+  // un plan ~20 s, puis le suivant en fondu (seul le plan suivant est préchargé ; l'ancien est vidé pour arrêter son téléchargement).
+  var R2 = 'https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/', SHOW = 20, FADE = 1.6;
+  var PLANS = [
+    ['decor_29b', 'Le lac de l’arbre rouge'], ['decor_28', 'Cascade du lac de montagne'], ['decor_34', 'Panorama depuis la falaise'],
+    ['decor_31', 'Place du village sous les étoiles'], ['decor_21b', 'Le lac au lever, les oies'], ['decor_35', 'Le bosquet du grand-duc']
   ];
-  var REEL = [['Le lac de l’arbre rouge', 0], ['Cascade du lac de montagne', 4.6], ['Place du village sous les étoiles', 9.2], ['Panorama depuis la falaise', 13.8]];
   var bg = document.querySelector('.hero .bg'), cap = $('cap').lastChild, slides = [bg.firstElementChild], si = 0, slideT = 0, heroOn = true, reel = null;
   function setCap(t) { if (cap.textContent !== t) cap.textContent = t; }
+  var port = function () { return innerHeight > innerWidth; };
+  var drop = 0;   // qualités retirées après une vidéo qui « attend » trop le réseau
+  function quality() {
+    var d = Math.min(window.devicePixelRatio || 1, 3), w = innerWidth * d, h = innerHeight * d, L = port() ? [720, 1080] : [720, 1080, 1440, 2160];
+    var px = Math.max(w, h * 16 / 9), need = port() ? (w <= 800 ? 720 : 1080) : (px <= 1300 ? 720 : px <= 1950 ? 1080 : px <= 2600 ? 1440 : 2160);
+    if (conn.type === 'cellular') need = Math.min(need, port() ? 720 : 1080);   // données mobiles ; sinon c'est la lecture qui dit si ça suit (drop)
+    return L[Math.max(0, L.indexOf(need) - drop)];
+  }
+  function src(id) { return R2 + id + (port() ? '_m_' : '_') + quality() + '.mp4'; }
+  function poster(id) { return 'assets/pegase/' + id + (port() ? '_m' : '') + '_poster.jpg'; }
+  // sans vidéo (mouvement réduit, économie de données, réseau lent) : les affiches, une toutes les 8 s
   function slide(i) {
     var el = slides[i];
     if (!el) {
-      el = document.createElement('div'); el.className = 'slide';
-      el.innerHTML = '<picture><source media="(max-aspect-ratio: 3/4)" srcset="accueil/' + SCENES[i][0] + '-m.webp"><img src="accueil/' + SCENES[i][0] + '.webp" alt="" width="1600" height="900" decoding="async"></picture>';
+      el = document.createElement('div'); el.className = 'slide' + (still ? '' : ' kb');
+      el.innerHTML = '<picture><source media="(max-aspect-ratio: 1/1)" srcset="assets/pegase/' + PLANS[i][0] + '_m_poster.jpg"><img src="assets/pegase/' + PLANS[i][0] + '_poster.jpg" alt="" width="1920" height="1080" decoding="async"></picture>';
       bg.appendChild(el); slides[i] = el;
     }
     return el;
   }
   function nextSlide() {
     if (reel || !heroOn || document.hidden) return;
-    var n = (si + 1) % SCENES.length, el = slide(n), img = el.querySelector('img');
-    var go = function () { slides[si].classList.remove('on'); el.classList.add('on'); si = n; setCap(SCENES[n][1]); };
+    var n = (si + 1) % PLANS.length, el = slide(n), img = el.querySelector('img');
+    var go = function () { slides[si].classList.remove('on'); el.classList.add('on'); si = n; setCap(PLANS[n][1]); };
     if (img.complete) go(); else img.addEventListener('load', go, { once: true });
   }
-  if (!still) { slideT = setInterval(nextSlide, 7000); setTimeout(function () { slide(1); }, 2500); }
-  // la boucle vidéo (2,3 Mo) : seulement après le chargement de la page, et jamais en économie de données ni sur un réseau lent
-  if (!still && !light && webm) addEventListener('load', function () {
-    setTimeout(function () {
+  var canVid = !!(vt.canPlayType && vt.canPlayType('video/mp4; codecs="avc1.640028"'));
+  if (still || light || !canVid) { if (!still) { slides[0].classList.add('kb'); slideT = setInterval(nextSlide, 8000); } }
+  else addEventListener('load', function () {
+    var V = [0, 1].map(function () {
       var v = document.createElement('video');
-      v.className = 'reel'; v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
-      v.addEventListener('playing', function () {
-        if (reel) return; reel = v; v.classList.add('on'); clearInterval(slideT);
-        setTimeout(function () { slides.forEach(function (s) { if (s) s.classList.remove('on'); }); }, 1700);
+      v.className = 'reel'; v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
+      bg.appendChild(v); return v;
+    });
+    var pi = 0, cur = 0, armed = false, waitT = 0;
+    function load(v, i) { v.poster = poster(PLANS[i][0]); v.src = src(PLANS[i][0]); v.dataset.i = i; v.load(); }
+    function swap() {
+      var a = V[cur], b = V[cur ^ 1]; armed = false;
+      b.addEventListener('playing', function on() {
+        b.removeEventListener('playing', on); reel = b; b.classList.add('on'); a.classList.remove('on'); cur ^= 1; setCap(PLANS[+b.dataset.i][1]);
+        setTimeout(function () { a.pause(); a.removeAttribute('src'); a.load(); }, FADE * 1000 + 100);
       });
-      v.addEventListener('timeupdate', function () { if (reel) { var t = v.currentTime, k = REEL.length - 1; while (k > 0 && t < REEL[k][1] - 0.5) k--; setCap(REEL[k][0]); } });
-      v.src = 'accueil/studio-reel.webm'; bg.appendChild(v); play(v);
-    }, 900);
+      play(b);
+    }
+    V.forEach(function (v) {
+      v.addEventListener('timeupdate', function () {
+        if (v !== reel) return;
+        if (!armed && v.currentTime > SHOW - 8) { armed = true; pi = (pi + 1) % PLANS.length; load(V[cur ^ 1], pi); }
+        if (armed && v.currentTime > SHOW && V[cur ^ 1].readyState >= 3) swap();
+      });
+      v.addEventListener('ended', function () { if (v === reel) { if (armed) swap(); else { v.currentTime = 0; play(v); } } });
+      // une vidéo qui s'arrête plus de 2,5 s pour attendre le réseau : les plans suivants une qualité en dessous
+      v.addEventListener('waiting', function () { if (v === reel) { clearTimeout(waitT); waitT = setTimeout(function () { if (v.readyState < 3) drop = Math.min(drop + 1, 3); }, 2500); } });
+      v.addEventListener('playing', function () { clearTimeout(waitT); });
+    });
+    setTimeout(function () {
+      var v = V[0];
+      v.addEventListener('playing', function on() { v.removeEventListener('playing', on); reel = v; v.classList.add('on'); setCap(PLANS[0][1]); });
+      load(v, 0); play(v);
+    }, 400);
   });
 
   // ---------- lucioles (dessinées) ----------
