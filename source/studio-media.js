@@ -70,7 +70,7 @@ h1{margin-top:10px;font:900 150px/.9 Orbitron;letter-spacing:.04em;padding-left:
 .w2{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:20px;font:800 26px/1 Oxanium;letter-spacing:.55em;text-transform:uppercase;color:#4fe6ff;padding-left:.55em;text-shadow:0 0 14px rgba(79,230,255,.7)}
 .w2:before,.w2:after{content:'';width:80px;height:2px;background:linear-gradient(90deg,transparent,#4fe6ff)}.w2:after{background:linear-gradient(270deg,transparent,#4fe6ff)}
 p{margin-top:26px;font:600 27px/1.2 'Chakra Petch';color:#fff;text-shadow:0 2px 8px #000}
-</style></head><body>${defs}<div class=bg></div><div class=sh></div><div class=fr></div><div class=c><svg class=em viewBox="0 0 64 72"><use href="#emblem"/></svg><h1>ELIXIR</h1><div class=w2>Game Studio</div><p>Pégase · La Borne d'arcade entre amis</p></div></body></html>`);
+</style></head><body>${defs}<div class=bg></div><div class=sh></div><div class=fr></div><div class=c><svg class=em viewBox="0 0 64 72"><use href="#emblem"/></svg><h1>ELIXIR</h1><div class=w2>Game Studio</div><p>Des mondes à explorer, des jeux à partager.</p></div></body></html>`);
   await share.evaluate(() => document.fonts.ready); await share.waitForTimeout(500);
   await share.screenshot({ path: path.join(REPO, 'accueil', 'studio-partage.jpg'), type: 'jpeg', quality: 84 });
   console.log('studio-partage.jpg', (fs.statSync(path.join(REPO, 'accueil', 'studio-partage.jpg')).size / 1024).toFixed(0), 'Ko');

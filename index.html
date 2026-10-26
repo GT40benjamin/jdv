@@ -82,8 +82,6 @@ a{color:inherit}
 .top nav a{text-decoration:none;font:700 13.5px/1 var(--head);letter-spacing:.16em;text-transform:uppercase;color:var(--soft);padding:10px 12px;transition:color .2s}
 .top nav a:hover{color:var(--gold2)}
 .top nav a.btn{color:#1a0f00;min-height:40px;padding:0 18px;margin-left:8px;font-size:13px}
-.top nav .opt{display:none}
-@media (min-width:760px){.top nav .opt{display:inline-block}}
 
 /* ---------- le blason (fiole qui bouillonne) ---------- */
 .em .liq{animation:slosh 3.2s ease-in-out infinite;transform-origin:50% 70%}
@@ -141,126 +139,33 @@ h1 .w2::before,h1 .w2::after{content:'';width:clamp(26px,6vw,90px);height:2px;ba
 h1 .w2::after{background:linear-gradient(270deg,transparent,var(--cyan))}
 .hero .tag{margin:clamp(18px,3vh,28px) auto 0;max-width:30em;font:600 clamp(16px,1.8vw,20px)/1.4 var(--text);color:var(--ink);letter-spacing:.02em;
   text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 18px rgba(0,0,0,.7)}
-.press{display:inline-flex;align-items:center;gap:12px;margin-top:clamp(28px,5vh,52px);text-decoration:none;padding:12px 18px;
-  font:800 clamp(14px,1.6vw,17px)/1 var(--head);letter-spacing:.3em;text-transform:uppercase;color:var(--gold2);
-  text-shadow:0 0 14px rgba(255,194,61,.8),0 2px 6px rgba(0,0,0,.9);animation:up 1.4s var(--ease) 1.1s both}
-.press span{animation:blink 1.1s steps(2,jump-none) infinite}
-.press svg{width:14px;height:14px;filter:drop-shadow(0 0 6px var(--gold))}
-@keyframes blink{50%{opacity:.5}}
-.press:hover span{animation:none}
+.doors{display:flex;flex-wrap:wrap;justify-content:center;gap:14px 18px;margin-top:clamp(28px,5vh,50px);animation:up 1.4s var(--ease) 1s both}
+.door{--a:var(--gold);position:relative;display:inline-flex;align-items:center;justify-content:center;gap:14px;width:min(330px,100%);min-height:62px;padding:0 24px;text-decoration:none;
+  font:800 clamp(16px,1.7vw,19px)/1 var(--head);letter-spacing:.16em;text-transform:uppercase;color:#fff;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--a) 26%,rgba(6,7,13,.82)),rgba(6,7,13,.82));
+  box-shadow:inset 0 0 0 2px var(--a),0 0 26px -4px var(--a);
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+  text-shadow:0 0 12px color-mix(in srgb,var(--a) 70%,transparent),0 2px 4px rgba(0,0,0,.8);transition:background .25s,color .25s,text-shadow .25s,transform .12s}
+.door.pg{--a:#4ff0bf}.door.ar{--a:#ff5fd2}
+.door::before{content:'';width:0;height:0;border-style:solid;border-width:7px 0 7px 11px;border-color:transparent transparent transparent var(--a);transition:transform .3s var(--ease),border-color .25s}
+.door:hover,.door:focus-visible{background:var(--a);color:#06070d;text-shadow:none}
+.door:hover::before,.door:focus-visible::before{border-left-color:#06070d;transform:translateX(3px)}
+.door:active{transform:translateY(1px)}
+@media (max-width:640px){.doors{flex-direction:column;align-items:stretch;width:min(100%,340px);margin-left:auto;margin-right:auto}.door{width:auto}}
 .cap{position:absolute;left:calc(var(--pad) + 18px);bottom:calc(40px + env(safe-area-inset-bottom));font:600 12px/1.3 var(--head);letter-spacing:.12em;text-transform:uppercase;
   color:rgba(245,242,234,.7);display:none}
 .cap b{font-weight:800;color:var(--gold2);margin-right:8px}
 .cap b::before{content:'◆ ';color:var(--cyan)}
 @media (min-width:900px){.cap{display:block}}
 
-/* ---------- sélection du jeu ---------- */
-.games{position:relative;padding:clamp(70px,10vw,130px) 0 clamp(60px,9vw,120px);isolation:isolate;overflow:hidden}
-.games .glow{position:absolute;inset:0;z-index:-1;pointer-events:none;transition:opacity 1s ease;opacity:0}
-.games .glow.on{opacity:1}
-.games .glow.pg{background:radial-gradient(55% 55% at 72% 50%,rgba(60,230,170,.18),transparent 70%),radial-gradient(40% 40% at 15% 25%,rgba(79,230,255,.08),transparent 70%)}
-.games .glow.ar{background:radial-gradient(55% 55% at 72% 50%,rgba(255,80,210,.20),transparent 70%),radial-gradient(40% 40% at 15% 25%,rgba(138,92,255,.12),transparent 70%)}
-.games .grid-bg{position:absolute;inset:auto 0 0;height:55%;z-index:-1;pointer-events:none;opacity:.35;
-  background:linear-gradient(rgba(160,190,255,.10) 1px,transparent 1px) 0 0/100% 46px,linear-gradient(90deg,rgba(160,190,255,.10) 1px,transparent 1px) 0 0/46px 100%;
-  -webkit-mask:linear-gradient(180deg,transparent,#000 70%);mask:linear-gradient(180deg,transparent,#000 70%);transform:perspective(500px) rotateX(55deg);transform-origin:bottom}
 .wrap{max-width:var(--max);margin:0 auto;padding:0 var(--pad)}
-.games .grid{display:grid;gap:30px;align-items:center}
-@media (min-width:960px){.games .grid{grid-template-columns:minmax(0,1fr) minmax(0,1.04fr);gap:clamp(48px,6vw,96px)}}
 .kick{display:inline-flex;align-items:center;gap:12px;font:800 12.5px/1 var(--head);letter-spacing:.34em;text-transform:uppercase;color:var(--cyan);text-shadow:0 0 12px rgba(79,230,255,.5)}
 .kick::before{content:'';width:10px;height:10px;background:var(--cyan);transform:rotate(45deg);box-shadow:0 0 10px var(--cyan)}
 h2{margin:16px 0 0;font:800 clamp(34px,5vw,62px)/1 var(--head);text-transform:uppercase;letter-spacing:.01em}
 h2 em{font-style:normal;background:linear-gradient(180deg,#fff3c4,#ffc23d 60%,#ff8a1f);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 16px rgba(255,170,50,.35))}
-.intro{margin:16px 0 0;max-width:30em;color:var(--soft)}
-
-.picks{list-style:none;margin:clamp(26px,4vw,44px) 0 0;padding:0;display:grid;gap:12px}
-.pick{--a:var(--gold);position:relative;display:grid;grid-template-columns:28px 1fr auto;align-items:center;column-gap:14px;padding:18px 20px 18px 14px;text-decoration:none;
-  color:rgba(245,242,234,.5);border:1px solid var(--line);background:rgba(255,255,255,.015);
-  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
-  transition:color .35s,background .35s,border-color .35s}
-.pick[data-k="pg"]{--a:#4ff0bf}.pick[data-k="ar"]{--a:#ff5fd2}
-.pick .cur{grid-row:1/3;width:0;height:0;border-style:solid;border-width:9px 0 9px 14px;border-color:transparent transparent transparent var(--a);opacity:0;transform:translateX(-8px);
-  filter:drop-shadow(0 0 8px var(--a));transition:opacity .3s,transform .3s var(--ease)}
-.pick .t{font:800 clamp(24px,2.5vw,34px)/1 var(--head);text-transform:uppercase;letter-spacing:.02em}
-.pick .d{grid-column:2;margin-top:6px;font:500 15px/1.4 var(--text);color:var(--muted);transition:color .35s}
-.pick .key{grid-column:3;grid-row:1/3;font:700 11px/1 var(--head);letter-spacing:.14em;text-transform:uppercase;color:var(--a);padding:7px 9px;border:1px solid currentColor;opacity:0;transition:opacity .3s}
-.pick.on{color:var(--ink);border-color:color-mix(in srgb,var(--a) 60%,transparent);
-  background:linear-gradient(90deg,color-mix(in srgb,var(--a) 22%,transparent),color-mix(in srgb,var(--a) 4%,transparent) 70%)}
-.pick.on .cur{opacity:1;transform:none;animation:nudge 1s ease-in-out infinite}
-.pick.on .d{color:var(--soft)}
-.pick.on .key{opacity:.9}
-@keyframes nudge{50%{transform:translateX(4px)}}
-@media (max-width:959px){
-  .picks{grid-template-columns:1fr 1fr;gap:10px;margin-top:24px}
-  .pick{display:block;padding:14px 14px 13px}
-  .pick .cur{display:none}
-  .pick .t{font-size:clamp(17px,4.9vw,24px);display:block}
-  .pick .d,.pick .key{display:none}
-  .pick::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--a);box-shadow:0 0 12px var(--a);transform:scaleX(0);transition:transform .4s var(--ease)}
-  .pick.on::after{transform:scaleX(1)}
-}
-
-/* le paquet de tuiles = cartes de sélection */
-.deckzone{position:relative;display:flex;flex-direction:column;align-items:center}
-.deck{position:relative;width:min(100%,520px);aspect-ratio:4/5.4;margin:22px 0 0;touch-action:pan-y}
-@media (max-width:959px){.deck{width:calc(100% - 26px);max-width:460px;margin:30px 26px 0 0;aspect-ratio:auto;height:min(150vw,680px)}}
-.card{--a:var(--gold);position:absolute;inset:0;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--card);
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--a) 45%,transparent),0 0 40px -6px color-mix(in srgb,var(--a) 45%,transparent),0 40px 80px -20px rgba(0,0,0,.9);
-  transition:transform .75s var(--ease),filter .75s var(--ease);will-change:transform}
-.card[data-k="pg"]{--a:#4ff0bf}.card[data-k="ar"]{--a:#ff5fd2}
-.card .hud{position:absolute;inset:8px;z-index:4;pointer-events:none;--c:var(--a);
-  background:
-    linear-gradient(var(--c),var(--c)) 0 0/20px 2px,linear-gradient(var(--c),var(--c)) 0 0/2px 20px,
-    linear-gradient(var(--c),var(--c)) 100% 0/20px 2px,linear-gradient(var(--c),var(--c)) 100% 0/2px 20px,
-    linear-gradient(var(--c),var(--c)) 0 100%/20px 2px,linear-gradient(var(--c),var(--c)) 0 100%/2px 20px,
-    linear-gradient(var(--c),var(--c)) 100% 100%/20px 2px,linear-gradient(var(--c),var(--c)) 100% 100%/2px 20px;
-  background-repeat:no-repeat;filter:drop-shadow(0 0 4px var(--c))}
-.card.front{z-index:3;transform:none;filter:none}
-.card.back{z-index:1;transform:translate(7%,-6%) rotate(4.5deg) scale(.93);filter:brightness(.4) saturate(.7);cursor:pointer}
-.card.back:hover{filter:brightness(.58) saturate(.85);transform:translate(9%,-7%) rotate(5.5deg) scale(.93)}
-.card.out{z-index:3;transform:translate(-62%,5%) rotate(-10deg) scale(.96);transition-duration:.42s;transition-timing-function:cubic-bezier(.5,0,.75,.4)}
-@media (max-width:959px){.card.out{transform:translate(-42%,4%) rotate(-9deg) scale(.95)}.card.back{transform:translate(6%,-4.5%) rotate(4deg) scale(.94)}}
-.media{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;background:#05060a}
-.media img,.media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.media .ph{opacity:0;transition:opacity 1.4s ease}
-.media .ph.on{opacity:1}
-.media .ph.on img{animation:kb 8s linear forwards}
-.media::after{content:'';position:absolute;inset:auto 0 0;height:42%;pointer-events:none;background:linear-gradient(180deg,transparent,var(--card))}
-.media .lbl{position:absolute;left:18px;top:18px;z-index:2;display:flex;align-items:center;gap:8px;font:800 11.5px/1 var(--head);letter-spacing:.2em;text-transform:uppercase;
-  color:#fff;padding:8px 11px;background:rgba(6,7,13,.72);border-left:3px solid var(--a)}
-.media .lbl::before{content:'';width:0;height:0;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent var(--a)}
-.vids video{opacity:0;transition:opacity .7s ease}
-.vids video.on{opacity:1}
-.strip{position:absolute;left:0;right:0;bottom:12px;z-index:2;overflow:hidden;
-  -webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
-.strip .row{display:flex;gap:8px;width:max-content;animation:strip 60s linear infinite;animation-play-state:paused}
-.card.front.live .strip .row{animation-play-state:running}
-.strip img{position:static;width:64px;height:48px;border-radius:4px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.18);background:#111}
-@keyframes strip{to{transform:translateX(-50%)}}
-.body{position:relative;padding:clamp(16px,2.2vw,24px) clamp(20px,2.6vw,28px) clamp(20px,2.6vw,26px)}
-.body .tg{display:inline-block;font:800 11px/1 var(--head);letter-spacing:.2em;text-transform:uppercase;color:#06070d;background:var(--a);padding:6px 9px 5px}
-.body h3{margin:12px 0 0;font:800 clamp(26px,3vw,36px)/1.02 var(--head);text-transform:uppercase}
-.body p{margin:8px 0 0;font-size:15px;line-height:1.45;color:var(--soft)}
-.stats{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:7px}
-.stats li{display:grid;grid-template-columns:118px 1fr;align-items:center;gap:12px;font:700 11.5px/1 var(--head);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.stats i{display:flex;gap:4px}
-.stats i b{flex:1;height:7px;background:rgba(255,255,255,.09);transform:skewX(-20deg)}
-.stats i b.f{background:var(--a);box-shadow:0 0 8px color-mix(in srgb,var(--a) 70%,transparent)}
-.card.front .stats i b.f{animation:fill .5s var(--ease) both}
-.stats li:nth-child(2) i b.f{animation-delay:.08s}.stats li:nth-child(3) i b.f{animation-delay:.16s}
-@keyframes fill{from{transform:skewX(-20deg) scaleX(0)}}
-.acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:18px}
-.lnk{font:700 13px/1 var(--head);letter-spacing:.14em;text-transform:uppercase;color:var(--soft);text-decoration:none;padding:12px 0;border-bottom:2px solid var(--line);transition:color .2s,border-color .2s}
-.lnk:hover{color:var(--ink);border-color:var(--a)}
-.hint{margin:22px 0 0;font:600 13px/1.3 var(--head);letter-spacing:.06em;color:var(--muted);display:flex;align-items:center;gap:10px}
-.hint i{display:flex;gap:6px}
-.hint i b{width:8px;height:8px;background:rgba(245,242,234,.25);transform:rotate(45deg);transition:background .4s}
-.hint i b.on{background:var(--gold);box-shadow:0 0 8px var(--gold)}
-@media (min-width:960px){.hint{display:none}}
-@media (max-width:420px){.body p{font-size:14.5px}.btn{padding:0 20px}.stats li{grid-template-columns:104px 1fr;font-size:10.5px}}
-
 /* ---------- le studio ---------- */
-.studio{position:relative;padding:clamp(70px,10vw,130px) 0 clamp(50px,7vw,90px);border-top:1px solid var(--line);
+.studio{position:relative;padding:clamp(70px,10vw,130px) 0 clamp(70px,9vw,120px);border-top:1px solid var(--line);
   background:radial-gradient(60% 60% at 85% 20%,rgba(138,92,255,.10),transparent 70%),radial-gradient(50% 50% at 10% 90%,rgba(255,194,61,.06),transparent 70%)}
 .studio .grid{display:grid;gap:40px}
 @media (min-width:960px){.studio .grid{grid-template-columns:1.1fr 1fr;gap:96px;align-items:end}}
@@ -270,16 +175,6 @@ h2 em{font-style:normal;background:linear-gradient(180deg,#fff3c4,#ffc23d 60%,#f
 .fact b{display:block;font:900 clamp(30px,4vw,50px)/1 var(--logo);background:linear-gradient(180deg,#fff3c4,#ffc23d 60%,#ff8a1f);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 12px rgba(255,170,50,.35))}
 .fact span{display:block;margin-top:10px;font:700 12px/1.35 var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.links{margin:clamp(46px,6vw,80px) 0 0;display:grid;gap:10px;list-style:none;padding:0}
-@media (min-width:760px){.links{grid-template-columns:repeat(3,1fr);gap:16px}}
-.links a{display:flex;align-items:center;gap:16px;padding:18px 18px;text-decoration:none;border:1px solid var(--line);background:rgba(255,255,255,.02);
-  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));transition:border-color .3s,background .3s}
-.links a::before{content:'';flex:none;width:0;height:0;border-style:solid;border-width:7px 0 7px 11px;border-color:transparent transparent transparent var(--gold);transition:transform .3s var(--ease)}
-.links a span{display:block}
-.links a strong{display:block;font:800 19px/1.1 var(--head);text-transform:uppercase;letter-spacing:.02em}
-.links a small{display:block;margin-top:5px;font:500 13.5px/1.4 var(--text);color:var(--muted)}
-.links a:hover{border-color:rgba(255,194,61,.6);background:rgba(255,194,61,.06)}
-.links a:hover::before{transform:translateX(4px)}
 
 footer{padding:30px 0 calc(32px + env(safe-area-inset-bottom));color:var(--muted);font:600 13px/1.4 var(--head);letter-spacing:.06em;border-top:1px solid var(--line)}
 footer .wrap{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;justify-content:space-between}
@@ -295,11 +190,9 @@ footer a:hover{color:var(--gold2)}
 @keyframes up{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .slide.on img,.media .ph.on img,.hero .rays,.em .liq,.em .bub,.press span,.pick.on .cur,.card.front .stats i b.f{animation:none}
+  .slide.on img,.hero .rays,.em .liq,.em .bub{animation:none}
   .rv{opacity:1;transform:none;transition:none}
-  .hero .c > .em,.hero .tag,h1 .w1,h1 .w2,.press{animation:none}
-  .card,.card.out{transition:none}
-  .strip .row{animation:none}
+  .hero .c > .em,.hero .tag,h1 .w1,h1 .w2,.doors{animation:none}
 }
 </style>
 </head>
@@ -324,9 +217,7 @@ footer a:hover{color:var(--gold2)}
 <header class="top" id="top"><div class="in">
   <a class="mark" href="./" aria-label="Elixir Game Studio, accueil"><svg class="em" viewBox="0 0 64 72" aria-hidden="true"><use href="#emblem"/></svg>ELIXIR</a>
   <nav aria-label="Navigation">
-    <a class="opt" href="#jeux">Nos jeux</a>
-    <a class="opt" href="#studio">Le studio</a>
-    <a class="btn" href="jouer/">Jouer</a>
+    <a href="#studio">Le studio</a>
   </nav>
 </div></header>
 
@@ -343,67 +234,9 @@ footer a:hover{color:var(--gold2)}
     <svg class="em" viewBox="0 0 64 72" aria-hidden="true"><use href="#emblem"/></svg>
     <h1><span class="w1">ELIXIR</span><span class="w2">Game Studio</span></h1>
     <p class="tag">Des mondes à explorer, des jeux à partager.</p>
-    <a class="press" href="#jeux"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0l10 6-10 6z" fill="currentColor"/></svg><span>Appuie pour jouer</span></a>
+    <nav class="doors" aria-label="Nos jeux"><a class="door pg" href="jouer/?pegase">Pégase</a><a class="door ar" href="jouer/?borne">La Borne d’arcade</a></nav>
   </div>
   <p class="cap" id="cap" aria-hidden="true"><b>Pégase</b><span>Le lac de l’arbre rouge</span></p>
-</section>
-
-<section class="games" id="jeux" aria-labelledby="jeux-t">
-  <div class="glow pg on" aria-hidden="true"></div><div class="glow ar" aria-hidden="true"></div><div class="grid-bg" aria-hidden="true"></div>
-  <div class="wrap grid">
-    <div>
-      <span class="kick rv">Sélection du jeu</span>
-      <h2 id="jeux-t" class="rv">Choisis <em>ton monde</em></h2>
-      <p class="intro rv">Un grand monde en 3D à explorer à ton rythme, ou une salle d’arcade pleine de parties rapides entre copains.</p>
-      <ul class="picks rv" id="picks">
-        <li><a class="pick on" href="jouer/?pegase" data-k="pg" aria-current="true"><span class="cur" aria-hidden="true"></span><span class="t">Pégase</span><span class="d">Un village à faire vivre, des animaux à photographier</span><span class="key" aria-hidden="true">Entrée ↵</span></a></li>
-        <li><a class="pick" href="jouer/?borne" data-k="ar"><span class="cur" aria-hidden="true"></span><span class="t">La Borne d’arcade</span><span class="d">23 mini-jeux en solo, en duel ou à deux</span><span class="key" aria-hidden="true">Entrée ↵</span></a></li>
-      </ul>
-    </div>
-
-    <div class="deckzone rv">
-      <div class="deck" id="deck">
-        <article class="card back" data-k="ar" id="card-ar" aria-label="La Borne d’arcade entre amis">
-          <div class="media vids">
-            <span class="lbl" id="ar-lbl">Néon Rush</span>
-            <img class="poster" alt="" width="560" height="420" loading="lazy" decoding="async" data-src="accueil/neon.webp">
-            <div class="strip" aria-hidden="true"><div class="row" id="strip"></div></div>
-          </div>
-          <div class="body">
-            <span class="tg">23 mini-jeux · téléphone et PC</span>
-            <h3>La Borne d’arcade entre amis</h3>
-            <p>Des parties rapides et déjantées, des duels face à face sur le même téléphone, des records à battre entre copains.</p>
-            <ul class="stats" aria-label="En bref">
-              <li>Action<i aria-hidden="true"><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b></i></li>
-              <li>Duels<i aria-hidden="true"><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b></i></li>
-              <li>Fous rires<i aria-hidden="true"><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b><b></b></i></li>
-            </ul>
-            <div class="acts"><a class="btn" href="jouer/?borne">Jouer <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></a><a class="lnk" href="telecharger/">Appli Android</a></div>
-          </div>
-          <div class="hud" aria-hidden="true"></div>
-        </article>
-        <article class="card front" data-k="pg" id="card-pg" aria-label="Pégase">
-          <div class="media" id="pg-media">
-            <span class="lbl">Images du jeu</span>
-            <div class="ph on"><img src="accueil/pegase-hub-village.webp" alt="Pégase : le village d’Ailebrune, ses maisons à colombages et sa place" width="760" height="507" loading="lazy" decoding="async"></div>
-          </div>
-          <div class="body">
-            <span class="tg">Monde ouvert 3D · PC et Android</span>
-            <h3>Pégase</h3>
-            <p>Un village à faire vivre, des animaux à approcher et à photographier, ta maison à construire, et tes copains à retrouver.</p>
-            <ul class="stats" aria-label="En bref">
-              <li>Exploration<i aria-hidden="true"><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b></i></li>
-              <li>Photo<i aria-hidden="true"><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b></i></li>
-              <li>Construction<i aria-hidden="true"><b class="f"></b><b class="f"></b><b class="f"></b><b class="f"></b><b></b></i></li>
-            </ul>
-            <div class="acts"><a class="btn" href="jouer/?pegase">Entrer dans Pégase <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
-          </div>
-          <div class="hud" aria-hidden="true"></div>
-        </article>
-      </div>
-      <p class="hint" aria-hidden="true"><i><b class="on"></b><b></b></i><span>Glisse la carte pour changer</span></p>
-    </div>
-  </div>
 </section>
 
 <section class="studio" id="studio" aria-labelledby="studio-t">
@@ -420,18 +253,13 @@ footer a:hover{color:var(--gold2)}
         <div class="fact"><b>0&nbsp;€</b><span>pour jouer à la borne</span></div>
       </div>
     </div>
-    <ul class="links rv">
-      <li><a href="jouer/?pegase"><span><strong>Pégase</strong><small>Le hub, ton avatar, le jeu à installer</small></span></a></li>
-      <li><a href="jouer/?borne"><span><strong>La Borne d’arcade</strong><small>Joue tout de suite, même sans compte</small></span></a></li>
-      <li><a href="telecharger/"><span><strong>L’appli Android</strong><small>La borne en plein écran sur ton téléphone</small></span></a></li>
-    </ul>
   </div>
 </section>
 </main>
 
 <footer><div class="wrap">
   <span>© 2026 Elixir Game Studio · fait maison, en France</span>
-  <nav aria-label="Liens"><a href="jouer/?pegase">Pégase</a><a href="jouer/?borne">La Borne d’arcade</a><a href="telecharger/">Appli Android</a></nav>
+  <nav aria-label="Liens"><a href="telecharger/">Appli Android</a></nav>
 </div></footer>
 
 <script>
@@ -515,119 +343,11 @@ footer a:hover{color:var(--gold2)}
     if (heroOn) flyOn();
   }, { threshold: 0.02 }).observe(document.querySelector('.hero'));
 
-  // ---------- les tuiles : celle du bouton survolé (ou touché) passe devant ----------
-  var deck = $('deck'), picks = [].slice.call(document.querySelectorAll('.pick')), cards = { pg: $('card-pg'), ar: $('card-ar') };
-  var glows = { pg: document.querySelector('.glow.pg'), ar: document.querySelector('.glow.ar') }, hdots = [].slice.call(document.querySelectorAll('.hint b'));
-  var cur = 'pg', busy = false, want = null, gamesOn = false;
-  function setInert(el, on) { if (on) { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); } else { el.removeAttribute('inert'); el.removeAttribute('aria-hidden'); } }
-  setInert(cards.ar, true);
-  function show(k) {
-    if (!cards[k]) return;
-    if (busy) { want = k; return; }
-    if (k === cur) return;
-    var leave = cards[cur], rise = cards[k]; cur = k; busy = true;
-    blip(k);
-    picks.forEach(function (p) { var on = p.getAttribute('data-k') === k; p.classList.toggle('on', on); if (on) p.setAttribute('aria-current', 'true'); else p.removeAttribute('aria-current'); });
-    for (var g in glows) glows[g].classList.toggle('on', g === k);
-    hdots.forEach(function (d, i) { d.classList.toggle('on', (i === 0) === (k === 'pg')); });
-    setInert(rise, false); setInert(leave, true);
-    var done = function () {
-      leave.classList.remove('out', 'front'); leave.classList.add('back'); rise.classList.remove('back'); rise.classList.add('front');
-      media(); setTimeout(function () { busy = false; if (want && want !== cur) { var w = want; want = null; show(w); } else want = null; }, still ? 0 : 420);
-    };
-    if (still) done(); else { leave.classList.add('out'); setTimeout(done, 330); }
-  }
-  var AC = null;   // son de menu : jamais avant un clic / toucher / touche sur la page, et jamais en mouvement réduit
-  ['pointerdown', 'keydown'].forEach(function (ev) { addEventListener(ev, function () { if (!AC && !still && (window.AudioContext || window.webkitAudioContext)) try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }, { capture: true, passive: true }); });
-  function blip(k) {
-    if (!AC || AC.state !== 'running') return;
-    var t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
-    o.type = 'square'; o.frequency.setValueAtTime(k === 'pg' ? 660 : 880, t); o.frequency.exponentialRampToValueAtTime(k === 'pg' ? 990 : 1320, t + .06);
-    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.035, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + .12);
-    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + .14);
-  }
-  var lastTouch = 0, touchCur = cur;   // au toucher, la tuile de devant AVANT le toucher (le focus du lien la change déjà)
-  addEventListener('touchstart', function () { lastTouch = Date.now(); touchCur = cur; }, { passive: true, capture: true });
-  picks.forEach(function (p) {
-    var k = p.getAttribute('data-k');
-    p.addEventListener('mouseenter', function () { if (Date.now() - lastTouch > 800) show(k); });
-    p.addEventListener('focus', function () { show(k); });
-    p.addEventListener('click', function (e) { if (Date.now() - lastTouch < 800 && touchCur !== k) {
-      e.preventDefault(); show(k);
-      var r = deck.getBoundingClientRect();   // téléphone : la tuile est sous les boutons, on la fait venir à l'écran
-      if (r.bottom > innerHeight + 40) window.scrollBy({ top: Math.min(r.top - 90, r.bottom - innerHeight + 24), behavior: still ? 'auto' : 'smooth' });
-    } });   // au toucher : d'abord montrer la tuile
-  });
-  for (var key in cards) (function (k) { cards[k].addEventListener('click', function (e) { if (cards[k].classList.contains('back')) { e.preventDefault(); show(k); } }); })(key);
-  // glisser la tuile du dessus (téléphone)
-  var sx = 0, sy = 0, sw = false;
-  deck.addEventListener('touchstart', function (e) { var t = e.touches[0]; sx = t.clientX; sy = t.clientY; sw = true; }, { passive: true });
-  deck.addEventListener('touchmove', function (e) {
-    if (!sw) return; var t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 12) { sw = false; return; }
-    if (Math.abs(dx) > 44) { sw = false; show(cur === 'pg' ? 'ar' : 'pg'); }
-  }, { passive: true });
-
-  // ---------- ce qui bouge dans les tuiles (seulement la tuile de devant, et seulement à l'écran) ----------
-  var PHOTOS = [
-    ['village', 'Le village d’Ailebrune'], ['pont', 'Le pont rouge'], ['biches', 'Des biches à la lisière'], ['arbre', 'L’arbre sacré'],
-    ['nuit', 'Le village la nuit, aux lanternes'], ['cygnes', 'Des cygnes sur le lac'], ['hibou', 'Un hibou'], ['fleurs', 'Les prés fleuris']
-  ];
-  var GAMES = [
-    ['neon', 'Néon Rush'], ['kombat', 'Mandale Kombat'], ['smoothie', 'Smoothie Samouraï'], ['toupies', 'Turbo Toupies'], ['magic', 'Magic Force'],
-    ['bolides', 'Bolides RC'], ['ilo', 'Galaxy Wars'], ['tirsaubut', 'Tirs au But'], ['pingpong', 'Ping-pong'], ['pleingaz', 'Plein Gaz'],
-    ['carreaux', 'Casse-Carreaux'], ['palet', 'Le palet'], ['empilo', 'Empilo'], ['boum', 'Boum !'], ['glouton', 'Glouton'], ['spatial', 'Duel spatial'],
-    ['mouches', 'Chasse aux mouches'], ['rouleaux', 'Les P’tits Rouleaux'], ['trouve', 'Trouve-le !'], ['briques', 'Casse-briques face à face'],
-    ['souris', 'Chat et souris'], ['mots', 'Mots mêlés'], ['guerre', 'Canards : la guerre']
-  ];
-  var pgMedia = $('pg-media'), pgPh = [pgMedia.querySelector('.ph')], pgI = 0, pgT = 0;
-  var arMedia = cards.ar.querySelector('.media'), arPoster = arMedia.querySelector('.poster'), arLbl = $('ar-lbl'), arI = 0, arT = 0, arV = [], arVi = 0, stripDone = false;
-  function pgNext() {
-    var n = (pgI + 1) % PHOTOS.length, el = pgPh[n];
-    if (!el) {
-      el = document.createElement('div'); el.className = 'ph';
-      var im = new Image(); im.alt = 'Pégase : ' + PHOTOS[n][1]; im.decoding = 'async'; im.width = 760; im.height = 507; im.src = 'accueil/pegase-hub-' + PHOTOS[n][0] + '.webp';
-      el.appendChild(im); pgMedia.appendChild(el); pgPh[n] = el;
-    }
-    var im2 = el.querySelector('img'), go = function () { pgPh[pgI].classList.remove('on'); el.classList.add('on'); pgI = n; };
-    if (im2.complete) go(); else im2.addEventListener('load', go, { once: true });
-  }
-  function arVideo(i) {
-    var g = GAMES[i]; arLbl.textContent = g[1];
-    if (!webm || still) { arPoster.src = 'accueil/' + g[0] + '.webp'; arPoster.alt = g[1]; return; }
-    var v = arV[arVi ^ 1];
-    if (!v) { v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); arMedia.insertBefore(v, arMedia.querySelector('.strip')); arV[arVi ^ 1] = v; }
-    var old = arV[arVi]; arVi ^= 1;
-    v.poster = 'accueil/' + g[0] + '.webp'; v.src = 'accueil/' + g[0] + '.webm';
-    var on = function () { v.classList.add('on'); if (old) setTimeout(function () { old.classList.remove('on'); old.pause(); }, 700); };
-    v.addEventListener('playing', on, { once: true }); play(v);
-  }
-  function stripFill() {
-    if (stripDone) return; stripDone = true;
-    var row = $('strip'), h = '';
-    for (var r = 0; r < 2; r++) GAMES.forEach(function (g) { h += '<img src="accueil/' + g[0] + '.webp" alt="" width="64" height="48" loading="lazy" decoding="async">'; });
-    row.innerHTML = h;
-  }
-  function media() {
-    clearInterval(pgT); clearInterval(arT); pgT = arT = 0;
-    cards.pg.classList.toggle('live', gamesOn && cur === 'pg'); cards.ar.classList.toggle('live', gamesOn && cur === 'ar');
-    if (!gamesOn || document.hidden) { arV.forEach(function (v) { if (v) v.pause(); }); return; }
-    if (!arPoster.src) arPoster.src = arPoster.getAttribute('data-src');
-    if (cur === 'pg') { arV.forEach(function (v) { if (v) v.pause(); }); if (!still) pgT = setInterval(pgNext, 4200); }
-    else {
-      stripFill();
-      if (!arV.length || !arV[arVi]) arVideo(arI); else play(arV[arVi]);
-      arT = setInterval(function () { arI = (arI + 1) % GAMES.length; arVideo(arI); }, still ? 6000 : 4500);
-    }
-  }
-  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { gamesOn = es[0].isIntersecting; media(); }, { rootMargin: '80px 0px' }).observe(deck);
-  else { gamesOn = true; media(); }
-  document.addEventListener('visibilitychange', function () { media(); if (!document.hidden) flyOn(); if (reel) { if (document.hidden) reel.pause(); else if (heroOn) play(reel); } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) flyOn(); if (reel) { if (document.hidden) reel.pause(); else if (heroOn) play(reel); } });
 
   // ---------- typographie française : espace insécable avant ! ? : ; ----------
   var tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
   while ((n = tw.nextNode())) if (/ [!?:;»]/.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(/ ([!?:;»])/g, ' $1');
-  GAMES.forEach(function (g) { g[1] = g[1].replace(/ ([!?:;])/g, ' $1'); });
 
   // ---------- apparition douce ----------
   var rv = [].slice.call(document.querySelectorAll('.rv'));

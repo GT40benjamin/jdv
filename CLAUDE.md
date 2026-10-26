@@ -11,15 +11,15 @@ Les applis ≤ 1.10 n'acceptent que l'ancienne adresse : la 301 les envoie dans 
 elixirgamestudio.com. Le service worker de l'ancienne adresse reste figé (sa mise à jour est redirigée) : il laisse passer la redirection.
 
 ## Ce qui est publié (racine du dépôt) — site PUBLIC depuis la 1.7 (plus de mot de passe du site)
-- `index.html` : SITE DU STUDIO « Elixir Game Studio » (copie de `source/accueil.html`, borne 1.39, façon site de studio) : grand panneau
-  plein écran (ELIXIR / Game Studio, plans filmés de Pégase `accueil/studio-<n>.webp` (+ `-m` en hauteur) puis la boucle
-  `accueil/studio-reel.webm` (2,4 Mo, chargée après la page, jamais en économie de données / réseau lent / mouvement réduit), lucioles
-  dessinées), puis « Nos jeux » : DEUX portes (Pégase → `jouer/?pegase`, la Borne → `jouer/?borne` = la borne côté arcade, MODE = PG.last
-  dans shell2.js) ; survol (PC) / toucher ou glisser (téléphone) d'une porte = sa tuile passe devant le paquet (Pégase : photos de la
-  galerie ; Borne : vignettes animées des 23 mini-jeux + bande qui défile), puis « Le studio ». Visuels du studio : `node source/studio-media.js`
-  (à partir de assets/pegase/decor_*, + aperçu `accueil/studio-partage.jpg`) ; vignettes des jeux dans `accueil/` fabriquées
-  UNIQUEMENT à partir des preview() des jeux par `source/accueil-media.js` (jamais de photo). Redirige vers `jouer/` dans l'appli,
-  en PWA installée, ou si l'adresse a des paramètres (?v=, ?duel=, ?salle=, ?pegase…) ou un lien d'e-mail (#access_token…).
+- `index.html` : SITE DU STUDIO « Elixir Game Studio » (copie de `source/accueil.html`, style « écran titre » de jeu vidéo) : grand panneau
+  plein écran (blason fiole + ELIXIR / Game Studio, plans filmés de Pégase `accueil/studio-<n>.webp` (+ `-m` en hauteur) puis la boucle
+  `accueil/studio-reel.webm` (2,5 Mo, chargée après la page, jamais en économie de données / réseau lent / mouvement réduit), étincelles
+  dessinées) avec DEUX boutons : Pégase → `jouer/?pegase`, La Borne d'arcade → `jouer/?borne` (la borne côté arcade : MODE = PG.last dans
+  shell2.js), puis « Le studio » (décision de Benjamin, 26 oct. : pas de présentation des jeux sur cette page, juste les deux boutons).
+  Visuels du studio : `node source/studio-media.js` (à partir de assets/pegase/decor_*, + aperçu des liens `accueil/studio-partage.jpg`).
+  Vignettes des jeux dans `accueil/` (servent à jouer/ et au partage) fabriquées UNIQUEMENT à partir des preview() des jeux par
+  `source/accueil-media.js` (jamais de photo). Redirige vers `jouer/` dans l'appli, en PWA installée, ou si l'adresse a des paramètres
+  (?v=, ?duel=, ?salle=, ?pegase…) ou un lien d'e-mail (#access_token…).
 - `jouer/index.html` : la borne (build2.py avec SITE_ROOT=../ : elle lit ../assets, ../site.json, ../telecharger/version.json).
 - `telecharger/` : page publique + `borne-arcade.apk` en fichier direct + `version.json` (lu par l'appli pour annoncer les mises à jour).
 - `assets/ilo.bin`, `assets/music/*.bin` : images et musiques de l'Asset Store, EMBALLÉES (AES-GCM) avec la clé intégrée au site
