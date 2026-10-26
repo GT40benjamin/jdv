@@ -48,6 +48,9 @@ aucun mot de passe à personne : tu copies seulement deux codes de Google dans S
 1. https://supabase.com/dashboard › projet de la borne › **Authentication** › **Sign In / Providers** › **Google**.
 2. **Enable Sign in with Google** : activé. Colle l'**ID client** dans *Client IDs* et le **code secret** dans *Client Secret (for OAuth)*.
    Laisse *Skip nonce checks* et *Allow users without an email* désactivés. **Save**.
+2b. Toujours dans **Authentication** › **Sign In / Providers**, en haut de la page (réglages des utilisateurs) : **Allow manual linking** :
+   **activé** › **Save changes**. C'est ce qui permet le bouton « Rattacher mon compte Google » (⚙ › Compte) aux joueurs déjà inscrits
+   par e-mail + mot de passe. Sans lui, ce bouton répond « Le rattachement à Google n'est pas encore ouvert sur le serveur ».
 3. **Authentication** › **URL Configuration** › **Redirect URLs** : vérifie que ces lignes y sont (elles y sont déjà depuis le déménagement) :
    `https://elixirgamestudio.com/**` (couvre `jouer/` et `connexion/`, le retour de l'appli Android) et `https://gt40benjamin.github.io/jdv/**`.
    Rien à ajouter pour l'appli : elle revient par `https://elixirgamestudio.com/connexion/`.
@@ -60,6 +63,12 @@ Si tu te connectes avec l'e-mail d'un compte qui existe déjà (créé avec un m
 tes joueurs. Dans l'appli Android, il faut la version **1.13** (page Télécharger) : Google s'ouvre dans un onglet Chrome puis revient dans l'appli.
 
 ### Ce qu'il faut savoir
+
+- **Rattacher Google à un compte e-mail** : ⚙ › Compte › « Rattacher mon compte Google » (bouton blanc). Après, ce compte s'ouvre aussi
+  avec « Continuer avec Google », même si l'adresse Google est différente de l'e-mail du compte : mêmes pseudos, mêmes scores. La ligne
+  devient « Google : rattaché ✓ » avec « Détacher » (deux touches) tant qu'il reste l'e-mail + mot de passe. Une adresse Google déjà utilisée
+  par un autre compte de la borne est refusée (« Ce compte Google est déjà utilisé par un autre compte de la borne »). Technique :
+  `user/identities/authorize?provider=google&skip_http_redirect=true` (jeton du compte, PKCE) puis `DELETE user/identities/<id>` pour détacher.
 
 - Un compte créé avec Google n'a pas de mot de passe : ⚙ › Compte › « Choisir un mot de passe » en ajoute un (utile dans une vieille appli
   ≤ 1.12 ou là où Google ne marche pas : on se connecte alors avec le pseudo ou l'e-mail et ce mot de passe).

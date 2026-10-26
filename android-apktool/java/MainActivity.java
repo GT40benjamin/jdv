@@ -62,7 +62,8 @@ public class MainActivity extends Activity {
     // connexion/ du site, qui rend le code à l'appli par fr.bornearcade.app://auth?code=… (intent-filter du manifeste) ; l'appli le donne
     // à la page (JDW_OAUTH_IN), qui finit la connexion avec son secret (PKCE : le code seul ne sert à rien).
     static final String AUTH_SCHEME = "fr.bornearcade.app";
-    static boolean authorizeUrl(String u) { return u != null && u.matches("https://[a-z0-9]+[.]supabase[.]co/auth/v1/authorize[?][^# ]*"); }
+    // page d'autorisation de Supabase Auth, ou celle de Google (« Rattacher mon compte Google » : Supabase donne l'adresse de Google)
+    static boolean authorizeUrl(String u) { return u != null && u.matches("(https://[a-z0-9]+[.]supabase[.]co/auth/v1/authorize|https://accounts[.]google[.]com/o/oauth2/[a-z0-9/]*auth)[?][^# ]*"); }
     // fr.bornearcade.app://auth?… → la requête (caractères sûrs seulement), sinon null
     static String authQuery(Intent i) {
         try {

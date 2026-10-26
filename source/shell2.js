@@ -3818,6 +3818,11 @@ async function oaStart(where, btn) {
     for (const k of ['photo', 'consent', 'photoBase', 'photoAcc', 'sound', 'lose', 'loseDirty']) if (profile[k] !== undefined && profile[k] !== null) d[k] = profile[k];
     ctx.draft = d;
   } else if (where === 'login') ctx.mode = 'login';
+  else if (where === 'link') {                  // ⚙ › Compte : rattacher Google au compte connecté (liaison d'identité de Supabase)
+    ctx.mode = 'link'; ctx.uid = profile.acct && profile.acct.uid;
+    if (!ctx.uid || !liveUid(ctx.uid)) return;
+    oaSetMsg('');
+  }
   else {
     const pr = acctTarget();
     ctx.mode = AS.mode; ctx.pid = pr.pid; ctx.locked = AS.locked; ctx.name = cleanName(pr.name);
@@ -3837,8 +3842,17 @@ async function oaStart(where, btn) {
   const app = oaApp(); ctx.app = !!app;
   if (!store.set('jdw.oauth', ctx)) { if (ctx.draft) { delete ctx.draft.sound; delete ctx.draft.lose; delete ctx.draft.photoBase; } store.set('jdw.oauth', ctx); }
   const back = app ? new URL('../connexion/', SITE_URL()).href : SITE_URL();
-  const url = CFG.url.replace(/\/+$/, '') + '/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(back) +
-    '&code_challenge=' + ch + '&code_challenge_method=' + meth + '&prompt=select_account';
+  const q = 'provider=google&redirect_to=' + encodeURIComponent(back) + '&code_challenge=' + ch + '&code_challenge_method=' + meth + '&prompt=select_account';
+  let url = CFG.url.replace(/\/+$/, '') + '/auth/v1/authorize?' + q;
+  if (ctx.mode === 'link') {                    // Supabase donne l'adresse de Google (jeton du compte : c'est CE compte qui reçoit Google)
+    if (btn) btn.disabled = true;
+    try {
+      const tok = await tokenFor(ctx.uid); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
+      const j = await authReq('user/identities/authorize?' + q + '&skip_http_redirect=true', null, tok, 'GET');
+      if (!j || !/^https:\/\//.test(j.url || '')) throw new Error('pas d adresse');
+      url = j.url;
+    } catch (e) { if (btn) btn.disabled = false; try { localStorage.removeItem('jdw.oauth'); } catch (x) {} oaSetMsg(oaErrMsg({ err: e.message, errCode: e.code || '' }, true, e), 'err'); return; }
+  }
   OA.busy = Date.now();
   try { sessionStorage.setItem('jdw.mode', MODE); } catch (e) {}   // au retour, la borne rouvre du même côté (arcade ou Pégase)
   if (btn) { btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 4000); }
@@ -3868,6 +3882,7 @@ window.JDW_OAUTH_IN = qs => {
 // refus de Google ou de Supabase : on revient là où on était, avec le message
 function oaBack(ctx, msg) {
   const m = ctx && ctx.mode;
+  if (m === 'link') { oaSettings(msg, 'err'); return; }
   if (m === 'new' || m === 'login') {
     if (profile.name) { adding = profile; profile = blankProfile(); }
     if (m === 'new' && ctx.draft) oaDraft(ctx.draft);
@@ -3881,8 +3896,14 @@ function oaBack(ctx, msg) {
 }
 // le brouillon du nouveau joueur (tête, cris) revient sur le profil en cours de création
 function oaDraft(d) { for (const k of ['photo', 'consent', 'photoBase', 'photoAcc', 'sound', 'lose', 'loseDirty']) if (d[k] !== undefined) profile[k] = d[k]; }
-function oaErrMsg(q) {
+function oaErrMsg(q, link, e) {
   const t = (q.errCode + ' ' + q.err).toLowerCase();
+  if (link) {
+    if (/identity_already_exists|already linked|already exists|already been linked/.test(t)) return 'Ce compte Google est déjà utilisé par un autre compte de la borne : choisis une autre adresse Google (ou connecte-toi avec Google pour aller sur cet autre compte).';
+    if (/manual_linking_disabled|manual linking/.test(t)) return 'Le rattachement à Google n’est pas encore ouvert sur le serveur.';
+    if (/access_denied|cancel/.test(t)) return 'Rattachement à Google annulé.';
+    if (e && (e.offline || e.status)) return authMsg(e);
+  }
   if (/access_denied|cancel/.test(t)) return 'Connexion avec Google annulée.';
   if (/provider is not enabled|unsupported provider/.test(t)) return 'La connexion avec Google n’est pas encore ouverte sur le serveur.';
   if (/multiple accounts|already|exists/.test(t)) return 'Cet e-mail a déjà un compte : connecte-toi avec ton e-mail (ou ton pseudo) et ton mot de passe.';
@@ -3893,7 +3914,7 @@ async function oaFinish(q) {
   const ctx = store.get('jdw.oauth', null);
   try { localStorage.removeItem('jdw.oauth'); } catch (e) {}
   const live = ctx && ctx.v && Date.now() - (ctx.at || 0) < OA_TTL;
-  if (q.err) { oaBack(live ? ctx : null, oaErrMsg(q)); return; }
+  if (q.err) { oaBack(live ? ctx : null, oaErrMsg(q, live && ctx.mode === 'link')); return; }
   if (!live) { oaBack(null, 'Cette connexion avec Google a commencé ailleurs (un autre navigateur ou l’appli) : recommence ici.'); return; }
   toastCheer('🔑 Connexion avec Google…', profile.name, true);
   let s;
@@ -3901,6 +3922,11 @@ async function oaFinish(q) {
   catch (e) { oaBack(ctx, e.offline ? 'Pas de connexion internet : réessaie dans un instant.' : /flow_state|expired|not.found|invalid/i.test(e.code + e.message) ? 'Ce retour de Google a expiré : recommence.' : authMsg(e)); return; }
   if (!s.user) { try { s.user = await authUser(s.access_token); } catch (e) { oaBack(ctx, authMsg(e)); return; } }
   const m = ctx.mode;
+  if (m === 'link') {                           // Google rattaché : même compte, mêmes pseudos et scores
+    const uid = acctSetSess(s), se = sessOf(uid); se.g = true; se.idAt = 0; store.set('jdw.accts', ACCT.s);
+    oaSettings(uid === ctx.uid ? '✓ Google est rattaché à ton compte : tu peux maintenant te connecter avec Google, partout.' : '✓ Connecté avec Google.', 'ok');
+    return;
+  }
   if (m === 'protect' || m === 'connect' || m === 'connect-mine') {
     const pr = acctObjs().find(p => p.pid === ctx.pid);
     if (!pr || !pr.name) { oaBack(null, 'Ce joueur n’est plus sur cet appareil : connecte-toi.'); return; }
@@ -3934,6 +3960,68 @@ async function oaFinish(q) {
   }
   if (!$('jdw-welcome').hidden) { adding = null; closeSheet('jdw-welcome'); }
   acctAfterAdopt(res, s, 'Choisis ton pseudo.', p => { toastCheer('Re-bonjour ' + p.name + ' !', p.name, true); setTimeout(() => playCri(p.name), 400); });
+}
+// ⚙ › Compte, avec un message (retour du rattachement à Google)
+function oaSettings(msg, cls) {
+  if (acctState(profile) !== 'on') { toastCheer(msg, profile.name, true); return; }
+  store.set('jdw.settab', 'acct'); if ($('jdw-settings').hidden) openSettings(); else { renderAcctSet(); showSetTab('acct'); }
+  oaSetMsg(msg, cls);
+}
+function oaSetMsg(t, cls) { const el = $('jdw-set-acct-msg'); if (!el) return; el.textContent = t || ''; el.className = 'acct-msg' + (cls ? ' ' + cls : ''); el.hidden = !t; }
+// ⚙ › Compte : « Google : rattaché ✓ » (+ Détacher, s'il reste l'e-mail et le mot de passe) ou « Rattacher mon compte Google »
+function oaGoogleRow(box, uid, se) {
+  if (!se.idAt || Date.now() - se.idAt > 5 * 60e3) oaIdentities(uid);
+  if (!se.g && !oaCan()) return;
+  const G = (document.querySelector('.g-logo') || {}).outerHTML || '';
+  const row = document.createElement('div'); row.className = 'acct-g';
+  if (se.g) {
+    const on = document.createElement('div'); on.className = 'acct-g-on'; on.innerHTML = G;
+    const t = document.createElement('span'); t.className = 'acct-g-t'; t.innerHTML = '<b>Google : rattaché ✓</b><small>Tu te connectes aussi avec Google.</small>';
+    on.appendChild(t);
+    if (se.em && se.gid) {
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'link-btn'; x.textContent = 'Détacher';
+      x.addEventListener('click', () => {
+        if (!x.classList.contains('sure')) { x.classList.add('sure'); x.textContent = 'Sûr ? Touche encore'; t.querySelector('small').textContent = 'Ensuite : ton e-mail (ou ton pseudo) et ton mot de passe.'; return; }
+        oaUnlink(uid, x);
+      });
+      on.appendChild(x);
+    }
+    row.appendChild(on);
+  } else {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'g-btn'; b.dataset.g = 'link';
+    b.innerHTML = G + '<span>Rattacher mon compte Google</span>';
+    const sm = document.createElement('small'); sm.textContent = 'Ensuite, tu te connectes aussi avec Google : mêmes pseudos, mêmes scores.';
+    row.append(b, sm);
+  }
+  box.appendChild(row);
+}
+// identités du compte (google, email) relues sur le serveur : rattaché ? détachable ?
+async function oaIdentities(uid) {
+  if (OA.ids === uid) return; OA.ids = uid;
+  try {
+    const tok = await tokenFor(uid); if (!tok) return;
+    const ids = (await authUser(tok)).identities || [], se = sessOf(uid); if (!se) return;
+    const was = [se.g, se.em, se.gid].join();
+    se.g = ids.some(i => i.provider === 'google'); se.em = ids.some(i => i.provider === 'email');
+    se.gid = (ids.find(i => i.provider === 'google') || {}).identity_id || ''; if (se.em) se.pw = true;
+    se.idAt = Date.now(); store.set('jdw.accts', ACCT.s);
+    if (was !== [se.g, se.em, se.gid].join() && !$('jdw-settings').hidden) renderAcctSet();
+  } catch (e) {} finally { OA.ids = ''; }
+}
+async function oaUnlink(uid, b) {
+  const se = sessOf(uid) || {}; if (!se.gid) return;
+  b.disabled = true; oaSetMsg('');
+  try {
+    const tok = await tokenFor(uid); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
+    await authReq('user/identities/' + encodeURIComponent(se.gid), null, tok, 'DELETE');
+    se.g = false; se.gid = ''; se.idAt = 0; store.set('jdw.accts', ACCT.s);
+    await acctRefresh(uid, true);
+    oaSetMsg('Google est détaché. Connecte-toi avec ton e-mail (ou ton pseudo) et ton mot de passe.', 'ok');
+  } catch (e) {
+    const t = (e.code + ' ' + e.message).toLowerCase();
+    oaSetMsg(/single_identity|last identity|at least/.test(t) ? 'Impossible : Google est la seule façon d’entrer dans ce compte.' : /manual_linking_disabled|manual linking/.test(t) ? 'Le rattachement à Google n’est pas ouvert sur le serveur.' : authMsg(e), 'err');
+  }
+  if (!$('jdw-settings').hidden) renderAcctSet();
 }
 async function acctStart() {
   if (!ONLINE) return;
@@ -3989,6 +4077,7 @@ function renderAcctSet() {
   const btns = $('jdw-set-acct-btns'); btns.textContent = '';
   const B = (t, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm ' + (cls || 'btn-ghost'); b.textContent = t; b.addEventListener('click', () => fn(b)); btns.appendChild(b); return b; };
   if (st === 'on') {
+    oaGoogleRow(btns, a.uid, se);
     B(se.g && !se.pw ? '🔑 Choisir un mot de passe' : '🔑 Changer mon mot de passe', () => openAcct('change'));
     B('🚪 Se déconnecter de cet appareil', b => {
       const names = [...new Set(acctObjs().filter(p => p.name && p.acct && p.acct.uid === a.uid).map(p => cleanName(p.name)))];
