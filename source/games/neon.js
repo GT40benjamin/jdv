@@ -901,8 +901,14 @@
         }
         const smooth = (a, r) => a.map((_, i) => { let s = 0, c = 0; for (let k = -r; k <= r; k++) { const w = r + 1 - Math.abs(k); s += a[clamp(i + k, 0, n - 1)] * w; c += w; } return s / c; });
         for (let it = 0; it < 4; it++) { const a = smooth(lo, 4), z = smooth(hi, 4); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
+        // 26 oct. (« lisser le monticule, une montée douce pour le début ») : sur les 3,5 premières et dernières secondes, la paroi du bas ne
+        // fait que monter (puis que descendre) et celle du haut que descendre (puis que monter) : aucune bosse à l'entrée ni à la sortie
+        const kE = Math.min(n - 1, Math.round((L.speed * 3.5) / 0.5));
+        for (let i = kE - 1; i >= 0; i--) { lo[i] = Math.min(lo[i], lo[i + 1]); hi[i] = Math.max(hi[i], hi[i + 1]); }
+        for (let i = Math.max(1, n - kE); i < n; i++) { lo[i] = Math.min(lo[i], lo[i - 1]); hi[i] = Math.max(hi[i], hi[i - 1]); }
+        { const a = smooth(lo, 3), z = smooth(hi, 3); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
         const ss = (u) => u * u * (3 - 2 * u);
-        for (let i = 0; i < n; i++) { const w = ss(clamp(Math.min(xw[i] - xa, xb - xw[i]) / 7, 0, 1)); lo[i] = clamp(lerp(0, lo[i], w), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], w), 0, CEIL); }
+        for (let i = 0; i < n; i++) { const w = ss(clamp(Math.min((xw[i] - xa) / 10, (xb - xw[i]) / 7), 0, 1)); lo[i] = clamp(lerp(0, lo[i], w), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], w), 0, CEIL); }
         const w0 = L.walls.length;
         for (let i = 0; i + 1 < n; i++) L.walls.push({ x0: xw[i], x1: xw[i + 1], lo0: lo[i], hi0: hi[i], lo1: lo[i + 1], hi1: hi[i + 1] });
         // on vérifie que le fantôme passe (sinon on élargit)

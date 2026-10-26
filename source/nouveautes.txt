@@ -104,6 +104,8 @@
 [bolides] À la manette : le stick donne la direction, A pour déraper ; au clavier : les flèches, et Espace pour déraper
 [bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur
 [bolides] En ligne : plus de voiture qui saute au début d'une nouvelle manche
+[neon] ## ✈️ Néon Rush : des couloirs d'avion tout doux (borne 1.37.5)
+[neon] À l'entrée et à la sortie des passages en avion, les parois montent et descendent en douceur, sans bosse
 [neon] ## 🎵 Néon Rush : le niveau 1 refait sur la musique (borne 1.37.4)
 [neon] Le niveau Premier Pulse a été refait moment par moment sur la musique, d'après les notes de Benjamin
 [neon] Un grand saut sur la cymbale, par-dessus un mur haut, puis des sauts pile sur chaque cymbale qui revient
