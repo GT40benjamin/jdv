@@ -59,10 +59,11 @@
   const sat = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
   const WRAP = (W, cx, hw, fn) => { fn(cx); if (cx - hw < 0) fn(cx + W); if (cx + hw > W) fn(cx - W); };   // un élément qui déborde se raccorde de l'autre côté
   const pick = (r, a) => a[Math.floor(r() * a.length) % a.length];
-  // disque de lumière en cache (posé en 'lighter')
-  const GLOW = new Map();
+  // disque de lumière en cache (posé en 'lighter') ; au-delà de 16 px, le rayon du cache va par crans de 6 % (posé ensuite à la taille
+  // exacte) : un halo qui grossit pendant un évènement ne refabrique plus une image à chaque image (à-coups sur téléphone)
+  const GLOW = new Map(); let GLOW_MADE = 0;
   function glow(col, R, soft) {
-    R = Math.max(2, Math.round(R)); const key = col + '|' + R + '|' + (soft || 0); let c = GLOW.get(key); if (c) return c;
+    R = R <= 16 ? Math.max(2, Math.round(R)) : Math.round(Math.pow(2, Math.round(Math.log2(R) * 12) / 12)); GLOW_MADE++; const key = col + '|' + R + '|' + (soft || 0); let c = GLOW.get(key); if (c) { GLOW_MADE--; return c; }
     c = mkCanvas(R * 2, R * 2); const x = c.getContext('2d');
     x.fillStyle = rad(x, R, R, 0, R, R, R, soft ? [0, rgba(col, 0.9), 0.2, rgba(col, 0.5), 0.55, rgba(col, 0.14), 1, rgba(col, 0)] : [0, rgba(col, 1), 0.35, rgba(col, 0.4), 1, rgba(col, 0)]);
     x.fillRect(0, 0, R * 2, R * 2); if (GLOW.size > 120) GLOW.clear(); GLOW.set(key, c); return c;
@@ -870,15 +871,19 @@
 
     // ---------- taille et décors ----------
     // qualité : 0 = pleine, 1 = écran moins fin, 2 = encore moins (baisse toute seule si les images n'arrivent plus à 60 par seconde)
+    // téléphone / tablette (au doigt, sans souris) : un peu plus léger (26 oct., Benjamin : « sur mobile, il faut un tout petit peu
+    // alléger pour être vraiment au taquet ») : écran un peu moins fin, décors préparés moins grands. L'ordinateur ne change pas.
     let W = 1, H = 1, dpr = 1, B = 30, GY = 0, worlds = {}, Q = 0;
-    const DPR_CAP = [2, 1.5, 1.1], K_CAP = [1.25, 1, 0.8];
+    const MOBILE = (() => { try { return !!(window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches); } catch (e) { return false; } })();
+    const DPR_CAP = MOBILE ? [1.6, 1.3, 1] : [2, 1.5, 1.1], K_CAP = MOBILE ? [1, 0.85, 0.7] : [1.25, 1, 0.8];
     function resize() {
       const r = root.getBoundingClientRect();
       W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
-      dpr = Math.min(DPR_CAP[Q], window.devicePixelRatio || 1);
-      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-      B = Math.min(W / 16, H / 10.4); GY = H - B * 1.35; worlds = {}; sprites = {};
+      setRes();
+      B = Math.min(W / 16, H / 10.4); GY = H - B * 1.35; worlds = {};
     }
+    // la finesse de l'écran seule (la qualité qui baisse en pleine partie : les décors déjà préparés restent, pas d'à-coup)
+    function setRes() { dpr = Math.min(DPR_CAP[Q], window.devicePixelRatio || 1); canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); sprites = {}; }
     // un monde (décor en couches, sol, matière des blocs, piques) : préparé une fois pour cette taille d'écran
     function worldOf(id) {
       if (worlds[id]) return worlds[id];
@@ -902,7 +907,7 @@
     let li = (start - 1) % LEVELS.length, tour = Math.floor((start - 1) / LEVELS.length);
     let L = null, st = null, tG = 0, state = 'load', stT = 0, score = 0, best = 0, scoreBase = 0, orbsTaken = 0;
     let soundOn = false, partIdx = 0, partFlash = 0, prevTheme = null, themeFade = 0, banner = null, shake = 0;
-    let parts = [], trail = [], texts = [], pops = [], heads = [], rival = null, holdIn = false, tapIn = false, resumeT = 0;
+    let parts = [], trail = [], texts = [], pops = [], heads = [], rival = null, holdIn = false, resumeT = 0;
     const player = api.player && api.player.img ? api.player.img : null;
     function refreshHeads() { try { heads = ((api.heads && api.heads()) || []).filter((h) => h && h.img); } catch (e) { heads = []; } }
     refreshHeads();
@@ -933,18 +938,53 @@
       // la musique (au plus 8 s d'attente : sinon on joue sans, sur l'horloge du jeu) ; le morceau suivant se charge pendant ce niveau
       if (RH) { try { soundOn = !!(await Promise.race([RH.play(L.LV.track, 0), new Promise((r) => setTimeout(() => r(false), 8000))])); } catch (e) { soundOn = false; } if (!soundOn) { try { RH.stop(0); } catch (e) { /* rien */ } } try { RH.load(LEVELS[(li + 1) % LEVELS.length].track); } catch (e) { /* rien */ } }
       if (dead) return;
-      tG = 0; state = 'play'; stT = 0; calTaps = []; calDone = !soundOn;
+      tG = 0; state = 'play'; stT = 0; calTaps = []; calDone = !soundOn; inQ = []; simHold = holdIn; refR = 0; lastAirG = -1; snapClear(); replayX = -1; pendDeath = null;
     }
-    // le temps de la partie suit celui de la musique (sans à-coups)
+    // le temps de la partie suit celui de la musique (sans à-coups) ; après une image très longue (> 45 ms, sur téléphone), s'il est en
+    // retard de plus de 30 ms, il la rattrape d'un coup : sinon le cube restait derrière le son pendant une demi-seconde
     function clock(dt) {
       tG += dt;
-      if (RH && soundOn) { let rt = RH.time(); if (rt != null) { rt -= CAL; const e = rt - tG; if (Math.abs(e) > 0.12) tG = rt; else tG += e * 0.08; } }
+      if (RH && soundOn) { let rt = RH.time(); if (rt != null) { rt -= CAL; const e = rt - tG; if (Math.abs(e) > 0.12 || (longF && e > 0.03)) tG = rt; else tG += e * 0.08; } }
     }
     function beatIdx(t) { const b = L.TR.beats; let lo = 0, hi = b.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (b[m] <= t) lo = m; else hi = m - 1; } return lo; }
 
     // ---------- commandes ----------
     let calTaps = [], calDone = false, calMsg = 0;
-    function press() { if (paused) { setPaused(false); return; } if (state === 'play') { holdIn = true; tapIn = true; if (L && !calDone && soundOn && tG < L.TR.beats[9]) calTaps.push(tG); } }
+    // Commandes EXACTES (26 oct., « sur mobile le clic ne se fait pas pile poil ») : chaque toucher est daté (e.timeStamp, l'instant
+    // où le doigt a touché l'écran) et appliqué au pas de simulation de cet instant, quelle que soit la cadence des images ; le relâché
+    // aussi (un toucher court entre deux images n'est plus perdu juste avant l'atterrissage). Un toucher qui arrive après coup (sur
+    // téléphone il arrive souvent une image plus tard) fait partir le cube posé au sol comme s'il avait sauté à l'heure.
+    // (refR, refG) = instant réel et temps du jeu de la dernière image ; un doigt est placé dans le temps du jeu à l'image suivante, entre
+    // les deux images (le temps du jeu suit la musique, ou sa propre horloge qui ralentit sur une image très longue)
+    let inQ = [], simHold = false, refR = 0, refG = 0, frameNow = 0, longF = false, lastAirG = -1;
+    const gOf = (ts) => (ts != null && refR > 0 ? clamp(refG + (ts - refR) / 1000, refG - 0.25, refG + 0.1) : null);
+    const okTs = (ts) => (ts > 0 && Math.abs(ts - performance.now()) < 1000 ? ts : null);   // une heure de toucher bizarre (vieux navigateur) : comme avant, à l'image suivante
+    function placeIn() {
+      const k = frameNow > refR ? (tG - refG) / ((frameNow - refR) / 1000) : 1;
+      for (const ev of inQ) if (ev.g === undefined) ev.g = ev.ts == null || !(refR > 0) ? null : ev.ts >= refR ? refG + (Math.min(ev.ts, frameNow) - refR) / 1000 * k : Math.max(refG - 0.25, refG + (ev.ts - refR) / 1000);
+    }
+    function press(ts) { if (paused) { setPaused(false); return; } if (state === 'play') { holdIn = true; inQ.push({ d: 1, ts: okTs(ts) }); if (L && !calDone && soundOn && tG < L.TR.beats[9]) { const g = gOf(okTs(ts)); calTaps.push(g != null ? g : tG); } } }
+    // un doigt, à son pas de simulation
+    function applyIn(ev) {
+      if (window.__NEONLOG) window.__NEONLOG.push([ev.d, ev.g, +(st.x / L.speed).toFixed(4), st.ground, st.mode, replayX > st.x ? 1 : 0]);
+      if (ev.d) { simHold = true; st.tap = true; } else simHold = false;
+      ev.n = inN++; DONE.push(ev);
+    }
+    // RETOUR EN ARRIÈRE : l'état du joueur au début des dernières images (au plus 0,2 s) et les doigts déjà joués. Un doigt qui arrive
+    // après coup fait REJOUER ces quelques millisecondes avec lui à sa vraie place (cube, boule ou vaisseau), sans refaire les sons et
+    // les poussières déjà vus. Jamais par-dessus un portail, une orbe, un tremplin, ni après une mort.
+    // Une collision n'est confirmée qu'à l'image suivante (16 ms, invisible) : si un doigt arrivé en retard l'aurait évitée, on rejoue.
+    let SNAP = [], DONE = [], inN = 0, replayX = -1, replayJump = null, pendDeath = null;   // inN : numéro d'ordre des doigts joués
+    function snapClear() { SNAP = []; DONE = []; }
+    function rewindFor(lateG) {
+      let k = SNAP.length - 1; while (k > 0 && SNAP[k].g > lateG) k--;
+      const sn = SNAP[k]; if (!sn) return;
+      replayX = Math.max(replayX, st.x); replayJump = st.jumpAt;
+      Object.assign(st, sn.st); simHold = sn.hold; lastAirG = sn.air;
+      const again = DONE.filter((e) => e.n >= sn.n); DONE = DONE.filter((e) => e.n < sn.n);
+      inQ = again.concat(inQ).sort((a, b) => (a.g == null ? -1 : a.g) - (b.g == null ? -1 : b.g));
+      SNAP.length = k;
+    }
     function calibrate() {
       calDone = true; if (calTaps.length < 3) return;
       const B0 = L.TR.beats, d = calTaps.map((t) => { let m = 9; for (let i = 2; i <= 9; i++) if (Math.abs(t - B0[i]) < Math.abs(m)) m = t - B0[i]; return m; }).filter((x) => Math.abs(x) < 0.3);
@@ -953,23 +993,23 @@
       if (spread > 0.18) return;
       const est = clamp(med - 0.03, -0.05, 0.35); CAL = CAL_N ? (CAL + est) / 2 : est; CAL_N++; calMsg = 2;
     }
-    function release() { holdIn = false; }
-    function onDown(e) { e.preventDefault(); if (dead) return; press(); try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } }
-    function onUp() { release(); }
+    function release(ts) { holdIn = false; if (state === 'play') inQ.push({ d: 0, ts: okTs(ts) }); }
+    function onDown(e) { e.preventDefault(); if (dead) return; press(e.timeStamp); try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } }
+    function onUp(e) { release(e && e.timeStamp); }
     canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
     const noCtx = (e) => e.preventDefault(); canvas.addEventListener('contextmenu', noCtx);
     function onKey(e) {
       if (dead || root.offsetParent === null) return;
       const tg = e.target; if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return;
       if (e.type === 'keydown' && (e.code === 'KeyP' || e.code === 'Escape')) { setPaused(!paused); e.preventDefault(); return; }
-      if (['Space', 'ArrowUp', 'KeyW', 'Enter'].includes(e.code)) { e.preventDefault(); if (e.type === 'keydown') { if (!e.repeat) press(); } else release(); }
+      if (['Space', 'ArrowUp', 'KeyW', 'Enter'].includes(e.code)) { e.preventDefault(); if (e.type === 'keydown') { if (!e.repeat) press(e.timeStamp); } else release(e.timeStamp); }
     }
     window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKey);
     function onVis() { if (document.hidden && !paused) setPaused(true); }
     document.addEventListener('visibilitychange', onVis);
     function setPaused(p) {
       if (dead || state === 'over' || paused === p) return;
-      paused = p; holdIn = false; pauseBtn.innerHTML = p ? ICON_R : ICON_P; last = 0;
+      paused = p; holdIn = false; simHold = false; inQ = []; refR = 0; snapClear(); pauseBtn.innerHTML = p ? ICON_R : ICON_P; last = 0;
       if (p) { if (RH && soundOn) RH.stop(0.15); }
       else if (state === 'play') { resumeT = 1.2; }   // petit compte à rebours, puis la musique reprend au même instant
     }
@@ -999,24 +1039,33 @@
     function update(dt) {
       stT += dt; readPad();
       if (state === 'play') {
-        if (resumeT > 0) { resumeT -= dt; if (resumeT <= 0) { if (RH) RH.play(L.LV.track, tG).then((ok) => { soundOn = ok; }); } return; }
+        if (resumeT > 0) { inQ = []; simHold = holdIn; snapClear(); resumeT -= dt; if (resumeT <= 0) { if (RH) RH.play(L.LV.track, tG).then((ok) => { soundOn = ok; }); } return; }
         clock(dt);
         if (!calDone && L.TR.beats[9] != null && tG > L.TR.beats[9] + 0.1) calibrate();
         calMsg = Math.max(0, calMsg - dt);
         const target = tG * L.speed, sub = 1 / 240;
         let guard = 0;
+        // les doigts déjà dans le passé (arrivés en retard), puis chacun à son pas de simulation
+        placeIn();
+        if (pendDeath) { const pd = pendDeath; pendDeath = null; if (!inQ.some((e) => e.g != null && e.g < pd.g)) { die(); return; } }
+        { const g0 = st.x / L.speed, late = inQ.find((e) => e.g != null && e.g < g0); if (late && !auto && SNAP.length) rewindFor(late.g); }
+        { const gs = st.x / L.speed; SNAP.push({ g: gs, n: inN, st: Object.assign({}, st), hold: simHold, air: lastAirG }); while (SNAP.length > 24 || (SNAP.length > 1 && SNAP[0].g < gs - 0.2)) SNAP.shift(); const n1 = SNAP[0].n; DONE = DONE.filter((e) => e.n >= n1); }
         while (st.x < target && guard++ < 60) {
-          if (st.pi < parts.length && st.x >= parts[st.pi].x) { enterMode(st, parts[st.pi].mode); partStart(st.pi); st.pi++; }
-          st.hold = holdIn; if (tapIn) { st.tap = true; tapIn = false; }
+          if (st.pi < parts.length && st.x >= parts[st.pi].x) { enterMode(st, parts[st.pi].mode); if (st.x >= replayX) partStart(st.pi); st.pi++; snapClear(); }
+          { const gEnd = (st.x + L.P.v * sub) / L.speed; while (inQ.length && inQ[0].g <= gEnd) applyIn(inQ.shift()); }
+          st.hold = simHold;
           if (auto && L.rec) { const r = L.rec[Math.round(st.x / (L.P.v / 240))] || 0; st.hold = !!(r & 1); if (r & 2) st.tap = true; }
-          const wasGround = st.ground, vy0 = st.vy;
-          if (step(st, L, L.P, sub)) { die(); break; }
-          if (st.mode === 'cube' && wasGround && !st.ground && st.vy > 0 && vy0 <= 0) { sfx.jump(); dust(st.x, st.y - PH, 4); }
+          const wasGround = st.ground, vy0 = st.vy, fx = st.x >= replayX;   // fx : faux pendant qu'on rejoue ce qui a déjà été montré
+          if (step(st, L, L.P, sub)) { if (!auto && !pendDeath && SNAP.length) pendDeath = { g: st.x / L.speed }; else die(); break; }
+          if (!st.ground) lastAirG = st.x / L.speed;
+          if (st.mode === 'cube' && wasGround && !st.ground && st.vy > 0 && vy0 <= 0 && (fx || Math.abs(st.jumpAt - replayJump) > 0.05)) { sfx.jump(); dust(st.x, st.y - PH, 4); }
+          if (st.orbHit || st.padHit) snapClear();
+          if (st.landed && !fx) st.landed = false;
           if (st.landed) { st.landed = false; dust(st.x, st.y - PH, 10); pops.push({ k: 'ring', x: st.x, y: st.y - PH, t: 0, life: 0.3, c: '#ffffff' }); shake = Math.max(shake, 2.5); }   // l'atterrissage, sur le temps : on le sent
           if (st.orbHit) { const o = st.orbHit; st.orbHit = null; orbsTaken++; sfx.orb(); rumble('tick'); pops.push({ k: 'ring', x: o.x0, y: o.y, t: 0, life: 0.35, c: '#ffd34d' }); if (o.head) { pops.push({ k: 'head', img: o.head.sad || o.head.img, x: o.x0, y: o.y, t: 0, life: 1.1, small: 1 }); texts.push({ s: 'Snif… ' + o.head.name + ' !', wx: o.x0, wy: o.y + 1.4, t: 0, life: 1.1, col: '#ffd34d', size: 0.45 }); } }
           if (st.padHit) { st.padHit = null; sfx.pad(); }
         }
-        tapIn = false;
+        if (state === 'play') { refR = frameNow; refG = tG; }
         if (state === 'play') { score = scoreBase + Math.floor(st.x) + orbsTaken * 25; if (st.x >= L.end) levelDone(); }
         trail.push({ x: st.x - 0.35, y: st.y }); if (trail.length > 22) trail.shift();
       } else if (state === 'dead') { if (stT > 1.5 && !overSent) { overSent = true; state = 'over'; try { api.gameOver(Math.max(0, Math.floor(score))); } catch (e) { /* rien */ } } }
@@ -1253,18 +1302,25 @@
     }
     // qualité automatique : si les images n'arrivent plus (moins de ~50 par seconde, mesuré sur l'horloge réelle), l'écran devient
     // un peu moins fin (une fois, puis une deuxième au plus) ; jamais pendant le chargement ni en pause
-    const PERF = { draw: 0, upd: 0, n: 0, real: 0, rn: 0, bad: 0, lastReal: 0, worst: 0 };
+    const PERF = { draw: 0, upd: 0, n: 0, real: 0, rn: 0, bad: 0, lastReal: 0, worst: 0, ds: [] };
     function quality() {
       const r = performance.now(), d = PERF.lastReal ? r - PERF.lastReal : 0; PERF.lastReal = r;
       if (manual || paused || state !== 'play' || d <= 0 || d > 250) return;
       PERF.real += d; PERF.rn++; PERF.worst = Math.max(PERF.worst, d);
-      if (PERF.real >= 2000) { const avg = PERF.real / PERF.rn; PERF.real = 0; PERF.rn = 0; if (avg > 20.5) { if (++PERF.bad >= 2 && Q < 2) { Q++; PERF.bad = 0; resize(); prepWorlds(); } } else PERF.bad = 0; }
+      // téléphone (écrans à 90 / 120 Hz) : on compte aussi les images sautées (plus longues que l'image la plus courte de la fenêtre)
+      if (MOBILE) PERF.ds.push(d);
+      if (PERF.real >= 2000) {
+        const avg = PERF.real / PERF.rn; let jank = false;
+        if (MOBILE && PERF.ds.length > 20) { let best = 1e9; for (const x of PERF.ds) best = Math.min(best, x); best = Math.max(6.5, best); jank = PERF.ds.filter((x) => x > best * 1.5).length > PERF.ds.length * 0.12; }
+        PERF.real = 0; PERF.rn = 0; PERF.ds = [];
+        if (avg > 20.5 || jank) { if (++PERF.bad >= 2 && Q < 2) { Q++; PERF.bad = 0; setRes(); } } else PERF.bad = 0;
+      }
     }
     function frame(now) {
       if (dead) return;
       raf = requestAnimationFrame(frame);
       if (manual) return;
-      const dt = Math.min(0.05, Math.max(0, (now - (last || now)) / 1000)); last = now;
+      const dt = Math.min(0.05, Math.max(0, (now - (last || now)) / 1000)); longF = now - (last || now) > 45; last = now; frameNow = now;
       quality();
       if (!paused && state !== 'over' && state !== 'load') { const u0 = performance.now(); try { update(dt); } catch (e) { lastErr = String((e && e.stack) || e); } PERF.upd += performance.now() - u0; }
       try { draw(dt); } catch (e) { lastErr = String((e && e.stack) || e); }
@@ -1285,12 +1341,12 @@
       currentLevel() { return levelNo(); },
       pause() { setPaused(true); },
       resume() { setPaused(false); },
-      get _d() { return { setAuto(v) { auto = !!v; }, err: () => lastErr, state, li, tour, t: tG, x: st && st.x, end: L && L.end, mode: st && st.mode, y: st && st.y, score, L, soundOn, press, release, progress,
+      get _d() { return { setAuto(v) { auto = !!v; }, err: () => lastErr, state, li, tour, t: tG, x: st && st.x, end: L && L.end, mode: st && st.mode, y: st && st.y, jumpAt: st && st.jumpAt, score, L, soundOn, press, release, progress,
         // essais (captures, mesures) : pas à pas, saut dans le temps, la musique lue par les décors, effets réduits, temps de calcul
         manual(v) { manual = !!v; }, tick(dt, n, noDraw) { for (let i = 0; i < (n || 1); i++) { if (!paused && state !== 'over' && state !== 'load') update(dt); } if (!noDraw) draw(dt); return lastErr; },
         warp(tt) { let g = 0; while (tG < tt && state === 'play' && g++ < 200000) update(1 / 60); banner = null; texts = []; return tG; },
         music() { return Object.assign({}, M); }, events: () => evLog.slice(), fx: () => L && L.fx && { drops: L.fx.drops, cuts: L.fx.cuts, dropBeats: L.fx.dropBeats, cutBeats: L.fx.cutBeats },
-        setCalm(v) { calm = !!v; fxShow(); }, calm: () => calm, quality: () => ({ Q, dpr }), setQuality(q) { Q = q; resize(); prepWorlds(); },
+        setCalm(v) { calm = !!v; fxShow(); }, calm: () => calm, quality: () => ({ Q, dpr, mobile: MOBILE }), setQuality(q) { Q = q; resize(); prepWorlds(); }, glowMade: () => GLOW_MADE,
         perf() { const r = { draw_ms: +(PERF.draw / Math.max(1, PERF.n)).toFixed(2), update_ms: +(PERF.upd / Math.max(1, PERF.n)).toFixed(2), frames: PERF.n }; PERF.draw = 0; PERF.upd = 0; PERF.n = 0; return r; } }; },
     };
   }

@@ -91,6 +91,13 @@
 [bolides] À la manette : le stick donne la direction, A pour déraper ; au clavier : les flèches, et Espace pour déraper
 [bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur
 [bolides] En ligne : plus de voiture qui saute au début d'une nouvelle manche
+[neon] ## 👆 Néon Rush : le saut part pile au toucher sur téléphone (borne 1.37.1)
+[neon] Sur téléphone, le saut part exactement à l'instant où ton doigt touche l'écran, même quand l'image du téléphone arrive un peu après
+[neon] Une tape très courte juste avant d'atterrir n'est plus perdue : si ton doigt était encore posé à l'atterrissage, le cube repart aussitôt
+[neon] Dans le vaisseau et la boule aussi, chaque appui et chaque relâché comptent à la milliseconde près
+[neon] Après une petite saccade du téléphone, le jeu se recale tout de suite sur la musique
+[neon] Sur téléphone, le jeu est un peu plus léger (image un tout petit peu moins fine) pour rester bien fluide ; sur ordinateur, rien ne change
+[neon] Plus de petit à-coup quand un objet du décor s'allume
 [neon] ## 🎵 Néon Rush : le jeu comme avant, avec les nouveaux décors (borne 1.35.6)
 [neon] Le sol, les murs, les plafonds, les blocs, les piques, les portails et ton cube sont redevenus exactement comme avant : plus rien ne bat pendant que tu joues
 [neon] Plus de voile sombre au ras du sol ni de murs noirs au-dessus de toi : tout est revenu comme avant
