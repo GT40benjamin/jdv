@@ -141,7 +141,7 @@ def full_doc(p):
             '<meta property="og:site_name" content="Borne d\'arcade entre amis">\n'
             '<meta property="og:title" content="Viens jouer avec nous sur la Borne d\'arcade !">\n'
             '<meta property="og:description" content="Tes copains t\'invitent : 17 jeux gratuits, classements, chat et duels entre amis. Touche le lien pour nous rejoindre.">\n'
-            '<meta property="og:image" content="https://gt40benjamin.github.io/jdv/accueil/partage.jpg">\n'
+            '<meta property="og:image" content="https://elixirgamestudio.com/accueil/partage.jpg">\n'
             '<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n'
             '<meta property="og:image:alt" content="Borne d\'arcade entre amis : les vignettes des jeux">\n'
             '<meta name="twitter:card" content="summary_large_image">\n'

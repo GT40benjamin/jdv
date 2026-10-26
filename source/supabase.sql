@@ -1767,7 +1767,7 @@ do $do$ begin
 end $do$;
 
 -- Inviter par un lien (à coller dans Supabase > SQL Editor, puis Run). Peut être relancé sans risque : garde toutes les données (et les liens).
--- Lien : https://gt40benjamin.github.io/jdv/jouer/?salle=<jeton>. Le jeton est un SECRET propre à chaque salle, fabriqué ici par le serveur
+-- Lien : https://elixirgamestudio.com/jouer/?salle=<jeton>. Le jeton est un SECRET propre à chaque salle, fabriqué ici par le serveur
 -- (122 bits de hasard) ; il remplace le nom + le code de la salle pour celui qui reçoit le lien.
 --   * make_invite(p_code, p_room, p_room_code, p_name, p_renew) : le lien de la salle, pour un MEMBRE (compte connecté, pseudo du compte,
 --     membre de la salle). Toujours le même lien tant qu'on ne le renouvelle pas ; p_renew = true : nouveau jeton, les anciens liens ne

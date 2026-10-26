@@ -41,8 +41,10 @@ Tant que `accounts.sql` n'est pas lancé, le site publié marche exactement comm
 
 ## 2. Authentication > URL Configuration
 
-- **Site URL** : `https://gt40benjamin.github.io/jdv/`
-- **Redirect URLs** (ajouter les deux) :
+- **Site URL** : `https://elixirgamestudio.com/` (depuis le déménagement d'octobre 2026 ; avant : `https://gt40benjamin.github.io/jdv/`)
+- **Redirect URLs** (garder les anciennes, qui redirigent vers la nouvelle adresse) :
+  - `https://elixirgamestudio.com/`
+  - `https://elixirgamestudio.com/**`
   - `https://gt40benjamin.github.io/jdv/`
   - `https://gt40benjamin.github.io/jdv/**`
 
