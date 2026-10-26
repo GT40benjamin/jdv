@@ -104,6 +104,14 @@
 [bolides] À la manette : le stick donne la direction, A pour déraper ; au clavier : les flèches, et Espace pour déraper
 [bolides] La flaque d'huile fait faire une toupie et ralentit, sans t'envoyer dans le mur
 [bolides] En ligne : plus de voiture qui saute au début d'une nouvelle manche
+[neon] ## 🎵 Néon Rush : le niveau 1 refait sur la musique (borne 1.37.4)
+[neon] Le niveau Premier Pulse a été refait moment par moment sur la musique, d'après les notes de Benjamin
+[neon] Un grand saut sur la cymbale, par-dessus un mur haut, puis des sauts pile sur chaque cymbale qui revient
+[neon] Un double saut sur le « boum boum » qui t'emmène en l'air dans la transformation, et une phase en avion plus longue
+[neon] Un escalier qui monte sur les coups rapprochés de la musique, et une chute du haut qui explose en particules
+[neon] L'avion Galaxie finit sur un étage à mi-hauteur, puis des marches en 4 temps : saute sur la marche, saute le double pic, retombe, redescends
+[neon] Une marche haute et molle qui ondule quand tu tombes dessus, et un final avec deux sauts automatiques sur les deux derniers « boum »
+[neon] Les portails sont de grands cadres carrés du sol au plafond, et les parois de l'avion sont lisses jusqu'à la sortie
 [neon] ## 👆 Néon Rush : le saut part pile au toucher sur téléphone (borne 1.37.1)
 [neon] Sur téléphone, le saut part exactement à l'instant où ton doigt touche l'écran, même quand l'image du téléphone arrive un peu après
 [neon] Une tape très courte juste avant d'atterrir n'est plus perdue : si ton doigt était encore posé à l'atterrissage, le cube repart aussitôt

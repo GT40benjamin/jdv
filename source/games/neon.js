@@ -29,7 +29,15 @@
   const MODES = { cube: { name: 'Cube', col: '#5aff8a', tip: 'Touche pour sauter sur le temps' }, ship: { name: 'Vaisseau', col: '#ff5ad2', tip: 'Tiens le doigt pour monter' }, ball: { name: 'Boule', col: '#ffb03a', tip: 'Touche pour inverser la gravité' } };
   // les niveaux : un morceau, ses 4 mondes (thème, façon d'avancer), la vitesse
   const LEVELS = [
-    { track: 'neonrush-1', name: 'Premier Pulse', speed: 8.2, ships: [[68, 88], [108, 125]], parts: [['ville', 'cube'], ['ocean', 'ship'], ['synth', 'cube'], ['galaxie', 'ship'], ['cristal', 'cube']] },   // ships : passages en vaisseau imposés (temps), à l'oreille (35 % : les cymbales s'accélèrent) ; cuts : changements de monde imposés
+    // script : moments écrits par Benjamin sur la carte du son (26 oct.) — grand saut sur la cymbale par-dessus un mur haut (14,55 s,
+    // retombe sur le « boum » de 15,10 s) ; on SAUTE sur chaque cymbale qui revient (temps 49 à 59 ; « calé sur le clic, pas sur la
+    // chute ») ; double saut sur les deux « boum » de 29,33 / 29,88 s (sans orbe : « les gens ne vont pas réussir » ; « aligne-toi
+    // sur le premier ») ; le second fait entrer le cube en l'air dans le portail de l'océan (le vaisseau commence au temps 64, 30,02 s)
+    { track: 'neonrush-1', name: 'Premier Pulse', speed: 8.2, ships: [[64, 88], [112, 125]],
+      script: [{ kind: 'pad', beat: 31, land: 15.10, wall: 3 }, { kind: 'tap', beats: [49, 51, 53, 55, 57, 59] }, { kind: 'tap', at: [29.33, 29.88] },
+        { kind: 'stairs', at: [42.32, 42.79, 43.25, 43.74], drop: 45.33 }, { kind: 'tap', from: 45.7, to: 51.9, gap: 0.85 },
+        { kind: 'etage', t: 58.63, h: 3, until: 60.27 }, { kind: 'tap', from: 61.3, to: 63.3, gap: 0.85, spikes: 2 }, { kind: 'steps4', b: 137, n: 3 },
+        { kind: 'softstep', t: 75.03, land: 75.48, h: 3, taps: [75.88, 76.64], drop: 77.49 }, { kind: 'final', pads: [89.57, 89.83], land: 90.50 }], parts: [['ville', 'cube'], ['ocean', 'ship'], ['synth', 'cube'], ['galaxie', 'ship'], ['cristal', 'cube']] },   // ships : passages en vaisseau imposés (temps), à l'oreille (35 % : les cymbales s'accélèrent) ; cuts : changements de monde imposés
     { track: 'neonrush-2', name: 'Onde Rétro', speed: 8.8, ships: [[72, 100]], cuts: [40, 140], parts: [['cristal', 'cube'], ['lave', 'ball'], ['synth', 'ship'], ['ville', 'cube'], ['ocean', 'ball']] },   // 72-100 : la cassure planante ; 140 : le drop
     { track: 'neonrush-3', name: 'Surcharge', speed: 9.4, parts: [['lave', 'cube'], ['ocean', 'ball'], ['galaxie', 'ship'], ['cristal', 'cube']] },
   ];
@@ -681,15 +689,22 @@
       const sec = secs[part], thm = themes[part % themes.length], mode = sec.mode, b0 = sec.b0, b1 = part === secs.length - 1 ? lastB : sec.b1;
       let xs = X(beats[b0]);
       // on arrive en cube depuis la boule / le vaisseau : le portail est avancé pour qu'il retombe pile sur le premier temps
-      if (mode === 'cube' && part > 0) { sim(xs - 7); const y0 = ghost.y, vy0 = ghost.mode === 'ship' ? ghost.vy : 0; const tF = (vy0 + Math.sqrt(vy0 * vy0 + 2 * P.g * Math.max(0, y0 - PH))) / P.g; xs = Math.max(ghost.x + 0.5, xs - P.v * tF); }
+      // un ÉTAGE à l'arrivée (LV.script « etage ») : on retombe du vaisseau sur une plateforme à mi-hauteur, puis on en descend sur un temps fort
+      const ET = mode === 'cube' && part > 0 && !tour ? (LV.script || []).find((s) => s.kind === 'etage' && Math.abs(s.t - beats[b0]) < 1.2) : null;
+      if (mode === 'cube' && part > 0) { sim(xs - 7); const y0 = ghost.y, vy0 = ghost.mode === 'ship' ? ghost.vy : 0; const tF = (vy0 + Math.sqrt(vy0 * vy0 + 2 * P.g * Math.max(0, y0 - PH - (ET ? ET.h : 0)))) / P.g; xs = Math.max(ghost.x + 0.5, xs - P.v * tF); }
       L.parts.push({ x: xs, theme: thm, mode, beat: b0 });
       L.portals.push({ x0: xs - 1.5, mode });
+      if (ET) { L.blocks.push({ x0: xs - 0.5, x1: edgeFor(X(ET.until), ET.h, 0), y0: 0, y1: ET.h }); sortAll(); }
       sim(xs + 0.01);
       let gL = 0, lastJ = -99, quiet = 0;   // hauteur du sol du cube (plateformes), dernier saut, temps sans saut
       // seuil propre à ce passage : on ne garde que les frappes les plus fortes (quantile), la batterie de chaque morceau est différente
       const scs = []; for (let b = b0 + 2; b < b1 - 1; b++) scs.push(score(b)); scs.sort((a2, b2) => a2 - b2); const thr = scs.length ? scs[Math.min(scs.length - 1, Math.floor(scs.length * (1 - rate)))] : 9;
       const nPart = L.parts.length - 1;
-      for (let b = b0 + 2; b < b1 - 1; b++) {
+      // un vaisseau qui entre en l'air (lancé par une orbe) se pilote dès le portail, sans retomber au sol
+      const bStart = mode === 'ship' && ghost.y > 1.5 ? b0 : b0 + 2;
+      // le vaisseau qui va finir sur un étage monte haut à la fin (la chute sur l'étage se voit)
+      const nextEt = mode === 'ship' && !tour ? (LV.script || []).find((s) => s.kind === 'etage' && Math.abs(s.t - beats[b1]) < 1.2) : null;
+      for (let b = bStart; b < b1 - 1; b++) {
         const t = beats[b], x = X(t), xNext = X(beats[Math.min(b + 1, b1 - 1)]);
         if (mode === 'ship') {
           // moment planant : le vaisseau ondule sur la mélodie (monte un temps, redescend le suivant, amplitude selon l'énergie)
@@ -699,7 +714,8 @@
           for (let q = 0; q < sub; q++) {
             const ta = t + (beats[Math.min(b + 1, nb - 1)] - t) * q / sub, tz = t + (beats[Math.min(b + 1, nb - 1)] - t) * (q + 1) / sub;
             sim(X(ta) - 0.01);
-            const want = 3.4 + amp * Math.sin((b - b0 + q / sub) * 0.55), per = tz - ta, hl = clamp(per * 0.42 + (want - ghost.y) * 0.06, 0.05, per * 0.7);
+            let want = 3.4 + amp * Math.sin((b - b0 + q / sub) * 0.55); if (nextEt) want = lerp(want, nextEt.h + 3, clamp((b + q / sub - (b1 - 6)) / 4, 0, 1));
+            const per = tz - ta, hl = clamp(per * 0.42 + (want - ghost.y) * 0.06, 0.05, per * 0.7);
             sim(X(ta + hl), () => ({ hold: true }));
             sim(X(tz) - 0.01);
           }
@@ -715,7 +731,100 @@
         const cands = []; for (let bb = b0 + 2; bb < b1 - 1; bb++) cands.push(sc2(bb));
         const so = cands.slice().sort((x, y) => x - y), rt = easy ? [0.5, 0.42, 0.5, 0.58][Math.min(3, nP)] : rate, thrB = so.length ? so[Math.min(so.length - 1, Math.floor(so.length * (1 - rt)))] : 9;
         let lastB = -99, cnt = 0, pause = false;
+        // les moments écrits à la main (LV.script, premier tour) : ils passent avant les sauts choisis d'après la batterie, qui s'écartent d'eux
+        // les « boum » forts (≥ min) entre from et to, espacés d'au moins gap
+        const pickHits = (s) => { const o = []; for (const h of HK) if (h.t >= s.from && h.t <= s.to && h.f >= (s.min || 8) && (!o.length || h.t - o[o.length - 1] >= s.gap)) o.push(h.t); return o; };
+        const sTs = (s) => (s.at ? s.at : s.beats ? s.beats.map((b) => beats[b]) : s.from != null ? pickHits(s) : [s.t]);   // les temps d'un moment « tap » / « land »
+        const sT = (s) => (s.beat != null ? beats[s.beat] : s.kind === 'steps4' ? beats[s.b] : s.kind === 'final' ? s.pads[0] : s.kind === 'etage' || s.kind === 'softstep' ? s.t : s.kind === 'stairs' ? s.at[0] : sTs(s)[0]);
+        const bIdx = (t) => { let i = 0; while (i < nb - 1 && beats[i + 1] <= t + 1e-6) i++; return i; };
+        const SCR = mode === 'cube' && !tour ? (LV.script || []).filter((s) => s.kind !== 'etage' && sT(s) >= beats[b0] && sT(s) < beats[b1 - 1]).sort((a, c) => sT(a) - sT(c)) : [];
+        const last = (a) => a[a.length - 1];
+        const zones = SCR.map((s) => (s.kind === 'pad' ? [sT(s) - 0.05, s.land + 0.35] : s.kind === 'land' ? [sT(s) - P.ta - 0.15, beats[last(s.beats)] + 0.3]
+          : s.kind === 'tap' ? [sT(s) - 0.15, last(sTs(s)) + P.ta + 0.3] : s.kind === 'stairs' || s.kind === 'softstep' ? [sT(s) - 0.15, s.drop + 0.35]
+          : s.kind === 'steps4' ? [sT(s) - 0.15, beats[s.b + 4 * s.n - 1] + 0.35] : [sT(s) - 0.1, beats[b1] + 1]));
+        if (ET) zones.push([beats[b0] - 1, ET.until + 1]);
+        // des pics au sommet d'un saut parti en xj (n pics, à la hauteur du sol qu'il y a là)
+        const apexSpikes = (xj, n) => { const ap = xj + P.v * P.ta * 0.5; for (let k = 0; k < n; k++) { const sx = ap - n / 2 + k, fy = floorAt(sx + 0.5); if (floorAt(sx - 0.25) === fy && floorAt(sx + 1.25) === fy && clear(sx - 0.25, sx + 1.25, fy + 0.78, 99)) L.spikes.push({ x0: sx, y: fy }); } sortAll(); };
+        const tapAt = (t) => { const xj = X(t); if (xj < ghost.x + 0.1) return false; sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 })); return true; };
+        let si = 0;
+        const runScript = (s) => {
+          if (s.kind === 'pad') {
+            // GRAND SAUT : on roule sur un tremplin pile sur la cymbale, il nous lance par-dessus un mur haut et on retombe sur le « boum » choisi
+            const t0 = sT(s), px = X(t0) + 0.2, T = s.land - t0;
+            sim(px - 0.6); if (ghost.mode !== 'cube' || !ghost.ground) return;
+            const gy = floorAt(px), ax = X(t0 + T / 2);
+            L.pads.push({ x0: px, y: gy, k: (P.g * T / 2) / P.vj }); L.blocks.push({ x0: ax - 0.6, x1: ax + 0.6, y0: 0, y1: gy + s.wall }); sortAll();
+            sim(X(s.land) + 0.2); lastB = bIdx(s.land); return;
+          }
+          if (s.kind === 'land') {
+            // on RETOMBE sur chacun de ces temps (les cymbales qui reviennent)
+            for (const b of s.beats) {
+              const xl = X(beats[b]), xj = xl - P.v * P.ta; if (xj < ghost.x + 0.1) continue;
+              sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 })); sim(xl + 0.2);
+              const sx = xj + P.v * P.ta * 0.5 - 0.5; if (clear(sx - 0.25, sx + 1.25, floorAt(sx) + 0.78, 99)) L.spikes.push({ x0: sx, y: floorAt(sx) }); sortAll();
+            }
+            lastB = s.beats[s.beats.length - 1]; return;
+          }
+          if (s.kind === 'tap') {
+            // on SAUTE sur chacun de ces temps (le toucher tombe sur la cymbale, l'atterrissage un peu après)
+            const ts = sTs(s), xp = X(beats[b1]) - 1.6, n = s.spikes || 1;   // pas de pic au-delà du portail suivant
+            for (const t of ts) {
+              const xj = X(t), xl = xj + P.v * P.ta; if (!tapAt(t)) continue;
+              sim(Math.min(xl + 0.2, X(beats[b1]) - 2.2));
+              if (xj + P.v * P.ta * 0.5 + n / 2 + 0.25 < xp) apexSpikes(xj, n);
+            }
+            if (ts.length) lastB = bIdx(last(ts) + P.ta); return;
+          }
+          if (s.kind === 'stairs') {
+            // un ESCALIER : une marche de plus à chaque toucher (sur les « boum » rapprochés), puis on tombe du haut pile sur le « boum » de drop
+            let lvl = floorAt(ghost.x + 1); const top = lvl + s.at.length, xe = edgeFor(X(s.drop), top, 0);
+            for (const t of s.at) { const xj = X(t); if (!tapAt(t)) continue; L.blocks.push({ x0: xj + P.v * P.ta * 0.62, x1: xe, y0: 0, y1: ++lvl }); sortAll(); }
+            sim(X(s.drop) + 0.2); lastB = bIdx(s.drop); return;
+          }
+          if (s.kind === 'steps4') {
+            // des MARCHES EN 4 TEMPS, n fois : 1 on saute sur la marche, 2 on saute un double pic dessus, 3 on retombe sur la marche,
+            // 4 on tombe tout en bas (bord de la marche réglé pour toucher le sol sur ce temps)
+            for (let k = 0; k < s.n; k++) {
+              const b = s.b + 4 * k, xj = X(beats[b]); if (!tapAt(beats[b])) continue;
+              const blk = { x0: xj + P.v * P.ta * 0.62, x1: edgeFor(X(beats[b + 3]), 1, 0), y0: 0, y1: 1 }; L.blocks.push(blk); sortAll();
+              sim(X(beats[b + 1]) - 0.4);
+              const x2 = X(beats[b + 1]); if (tapAt(beats[b + 1])) { sim(x2 + P.v * P.ta * 0.95); const ap = x2 + P.v * P.ta * 0.5; for (const sx of [ap - 1, ap]) if (sx > blk.x0 + 0.1 && sx + 1 < blk.x1 - 0.1 && clear(sx - 0.25, sx + 1.25, 1.78, 99)) L.spikes.push({ x0: sx, y: 1 }); sortAll(); }
+              sim(X(beats[b + 3]) + 0.2);
+            }
+            lastB = s.b + 4 * s.n - 1; return;
+          }
+          if (s.kind === 'softstep') {
+            // un tremplin automatique sur la cymbale vers une MARCHE HAUTE et « molle » (elle ondule et fait des ondes au sol quand on y
+            // atterrit), des pics dessus à sauter, puis on en tombe sur le « boum » de drop
+            const t0 = s.t, px = X(t0) + 0.2, T = s.land - t0; sim(px - 0.6); if (ghost.mode !== 'cube' || !ghost.ground) return;
+            const gy = floorAt(px), vy0 = (s.h + (P.g * T * T) / 2) / T;
+            L.pads.push({ x0: px, y: gy, k: vy0 / P.vj }); sortAll();
+            const blk = { x0: X(s.land) - 1.2, x1: edgeFor(X(s.drop), gy + s.h, 0), y0: 0, y1: gy + s.h, soft: true }; L.blocks.push(blk); sortAll();
+            sim(X(s.land) + 0.2);
+            for (const t of s.taps || []) { const xj = X(t); if (tapAt(t)) { sim(xj + P.v * P.ta + 0.2); apexSpikes(xj, 2); } }
+            sim(X(s.drop) + 0.2); lastB = bIdx(s.drop); return;
+          }
+          if (s.kind === 'final') {
+            // le FINAL : deux tremplins automatiques sur les deux « tuch » ; le second nous lance très haut, on retombe dans la zone tranquille
+            const [p1, p2] = s.pads, T1 = p2 - p1, T2 = s.land - p2; sim(X(p1) + 0.2 - 0.6); if (ghost.mode !== 'cube' || !ghost.ground) return;
+            const gy = floorAt(X(p1));
+            L.pads.push({ x0: X(p1) + 0.2, y: gy, k: (P.g * T1 / 2) / P.vj }, { x0: X(p2) + 0.2, y: gy, k: (P.g * T2 / 2) / P.vj }); sortAll();
+            sim(X(s.land) + 0.2); lastB = b1; return;
+          }
+          if (s.kind === 'boomorb') {
+            // « boom boom » : on saute sur le premier, on touche l'orbe sur le second, elle lance le cube dans le portail suivant
+            const xj = X(s.t), ax = X(s.orb), xp = X(beats[b1]); if (xj < ghost.x + 0.1) return;
+            sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 }));
+            sim(ax - 0.01); const ay = ghost.y, tp = beats[b1] - s.orb, k = ((s.y - ay) + (P.g * tp * tp) / 2) / tp / P.vj;
+            L.orbs.push({ x0: ax, y: ay, big: false, head: true, k }); sortAll();
+            sim(ax + 0.3, (g) => ({ tap: Math.abs(g.x - ax) < 0.06 })); sim(xp - 2.2);
+            for (let sx = ax - 0.6; sx < xp - 2.2; sx += 1) if (clear(sx - 0.2, sx + 1.2, 0.8, 99)) L.spikes.push({ x0: sx, y: 0 });
+            sortAll(); lastB = b1;
+          }
+        };
         for (let bb = b0 + 2; bb < b1 - 1; bb++) {
+          while (si < SCR.length && sT(SCR[si]) <= beats[bb] + 0.05) runScript(SCR[si++]);
+          if (zones.some(([a, z]) => beats[bb] >= a && beats[bb] <= z)) continue;
           if (bb - lastB < gapB + (pause ? 1 : 0)) continue;
           const f = sc2(bb);
           if (f < thrB) continue;
@@ -773,21 +882,31 @@
           for (let k = 0; k < n; k++) { const sx = apex - n / 2 + k; if (clear(sx - 0.25, sx + 1.25, gL + 0.78, 99)) L.spikes.push({ x0: sx, y: gL }); }
           sortAll();
         }
+        while (si < SCR.length) runScript(SCR[si++]);
       }
       // fin de la partie : le plateau redescend
       { const bl = L.blocks[L.blocks.length - 1], xe = X(beats[b1 - 2]); if (bl && bl.x1 > xe - 1) bl.x1 = edgeFor(xe, bl.y1, 0); }
       sim(X(beats[b1]) - 2);
       if (mode === 'ship') {
-        // le couloir : autour de la trace du fantôme, avec de la marge (plus serré quand c'est difficile)
-        const gap = clamp(2.9 - diff * 1.0, 1.9, 2.9), xa = xs + 1, xb = X(beats[b1]) - 3;
-        for (let cx = xa; cx < xb; cx += 1) {
-          let mn = 99, mx = -99; for (let k = cx - 0.8; k <= cx + 1.8; k += 0.1) { const y = yAt(k); mn = Math.min(mn, y); mx = Math.max(mx, y); }
+        // le couloir : autour de la trace du fantôme, avec de la marge (plus serré quand c'est difficile). 26 oct. (Benjamin : « des parois
+        // lisses jusqu'à la sortie, pas moches comme la découpe ») : des courbes douces (points tous les 0,5 bloc, lissées, sans jamais
+        // gêner le fantôme), qui partent du sol et du plafond à l'entrée et y reviennent en douceur à la sortie (sur 7 blocs)
+        const gap = clamp(2.9 - diff * 1.0, 1.9, 2.9), xa = xs + 0.5, xb = X(beats[b1]) - 3, xw = [];
+        for (let x = xa; x <= xb + 1e-6; x += 0.5) xw.push(x);
+        const n = xw.length, need = [], lo = [], hi = [];
+        for (const cx of xw) {
+          let mn = 99, mx = -99; for (let k = cx - 1; k <= cx + 1.5; k += 0.1) { const y = yAt(k); mn = Math.min(mn, y); mx = Math.max(mx, y); }
           const ramp = Math.max(0, 1 - (cx - xa) / (L.speed * 3)), mid = (mn + mx) / 2, half = Math.max(gap / 2, (mx - mn) / 2 + PH + 0.5) + ramp * 1.8 + (easy ? 0.35 : 0);   // serré : on le tient en tapotant
-          L.walls.push({ x0: cx, x1: cx + 1, lo0: clamp(mid - half, 0, CEIL), hi0: clamp(mid + half, 0, CEIL), lo1: 0, hi1: 0 });
+          need.push([mn - PH - 0.4, mx + PH + 0.4]); lo.push(mid - half); hi.push(mid + half);
         }
-        for (let i = 0; i < L.walls.length; i++) { const w = L.walls[i], n2 = L.walls[i + 1]; if (n2 && n2.x0 === w.x1) { w.lo1 = n2.lo0; w.hi1 = n2.hi0; } else { w.lo1 = w.lo0; w.hi1 = w.hi0; } }
+        const smooth = (a, r) => a.map((_, i) => { let s = 0, c = 0; for (let k = -r; k <= r; k++) { const w = r + 1 - Math.abs(k); s += a[clamp(i + k, 0, n - 1)] * w; c += w; } return s / c; });
+        for (let it = 0; it < 4; it++) { const a = smooth(lo, 4), z = smooth(hi, 4); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
+        const ss = (u) => u * u * (3 - 2 * u);
+        for (let i = 0; i < n; i++) { const w = ss(clamp(Math.min(xw[i] - xa, xb - xw[i]) / 7, 0, 1)); lo[i] = clamp(lerp(0, lo[i], w), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], w), 0, CEIL); }
+        const w0 = L.walls.length;
+        for (let i = 0; i + 1 < n; i++) L.walls.push({ x0: xw[i], x1: xw[i + 1], lo0: lo[i], hi0: hi[i], lo1: lo[i + 1], hi1: hi[i + 1] });
         // on vérifie que le fantôme passe (sinon on élargit)
-        for (const w of L.walls) for (let k = w.x0; k < w.x1; k += 0.1) { const y = yAt(k), u = (k - w.x0), lo = lerp(w.lo0, w.lo1, u), hi = lerp(w.hi0, w.hi1, u); if (y - PH < lo + 0.15) { w.lo0 = Math.max(0, w.lo0 - 0.5); w.lo1 = Math.max(0, w.lo1 - 0.5); } if (y + PH > hi - 0.15) { w.hi0 = Math.min(CEIL, w.hi0 + 0.5); w.hi1 = Math.min(CEIL, w.hi1 + 0.5); } }
+        for (const w of L.walls.slice(w0)) for (let k = w.x0; k < w.x1; k += 0.1) { const y = yAt(k), u = (k - w.x0) / (w.x1 - w.x0), lo2 = lerp(w.lo0, w.lo1, u), hi2 = lerp(w.hi0, w.hi1, u); if (y - PH < lo2 + 0.15) { w.lo0 = Math.max(0, w.lo0 - 0.5); w.lo1 = Math.max(0, w.lo1 - 0.5); } if (y + PH > hi2 - 0.15) { w.hi0 = Math.min(CEIL, w.hi0 + 0.5); w.hi1 = Math.min(CEIL, w.hi1 + 0.5); } }
       }
     }
     sortAll();
@@ -1061,7 +1180,13 @@
           if (st.mode === 'cube' && wasGround && !st.ground && st.vy > 0 && vy0 <= 0 && (fx || Math.abs(st.jumpAt - replayJump) > 0.05)) { sfx.jump(); dust(st.x, st.y - PH, 4); }
           if (st.orbHit || st.padHit) snapClear();
           if (st.landed && !fx) st.landed = false;
-          if (st.landed) { st.landed = false; dust(st.x, st.y - PH, 10); pops.push({ k: 'ring', x: st.x, y: st.y - PH, t: 0, life: 0.3, c: '#ffffff' }); shake = Math.max(shake, 2.5); }   // l'atterrissage, sur le temps : on le sent
+          if (st.landed) { st.landed = false; dust(st.x, st.y - PH, 10); pops.push({ k: 'ring', x: st.x, y: st.y - PH, t: 0, life: 0.3, c: '#ffffff' }); shake = Math.max(shake, 2.5);   // l'atterrissage, sur le temps : on le sent
+            // 26 oct. (Benjamin) : une chute HAUTE (étage, haut de l'escalier, grand tremplin) finit en explosion de particules, sans danger
+            if (vy0 < -L.P.vj * 1.05) { const fy = st.y - PH; for (let i = 0; i < 30; i++) { const a = Math.PI * (0.08 + 0.84 * fxr()), v = 4 + fxr() * 10; pops.push({ k: 'shard', x: st.x, y: fy + 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.6 + fxr() * 0.6, s: 0.1 + fxr() * 0.2, c: fxr() < 0.55 ? MODES.cube.col : '#ffffff' }); } pops.push({ k: 'ring', x: st.x, y: fy, t: 0, life: 0.5, c: '#ffffff' }, { k: 'ring', x: st.x, y: fy, t: -0.1, life: 0.6, c: MODES.cube.col }); shake = Math.max(shake, 7); rumble('tick'); }
+            // la marche « molle » : elle ondule là où l'on tombe et fait des ondes au sol (la cymbale qui résonne)
+            const sb = L.blocks.find((b) => b.soft && st.x > b.x0 - 0.4 && st.x < b.x1 + 0.4 && Math.abs(st.y - PH - b.y1) < 0.06);
+            if (sb) { sb.hitT = tG; sb.hitX = st.x; pops.push({ k: 'ripple', x: st.x, y: 0, t: -0.06, life: 0.9 }, { k: 'ripple', x: st.x, y: 0, t: -0.3, life: 0.9 }, { k: 'ripple', x: st.x, y: sb.y1, t: 0, life: 0.6 }); }
+          }
           if (st.orbHit) { const o = st.orbHit; st.orbHit = null; orbsTaken++; sfx.orb(); rumble('tick'); pops.push({ k: 'ring', x: o.x0, y: o.y, t: 0, life: 0.35, c: '#ffd34d' }); if (o.head) { pops.push({ k: 'head', img: o.head.sad || o.head.img, x: o.x0, y: o.y, t: 0, life: 1.1, small: 1 }); texts.push({ s: 'Snif… ' + o.head.name + ' !', wx: o.x0, wy: o.y + 1.4, t: 0, life: 1.1, col: '#ffd34d', size: 0.45 }); } }
           if (st.padHit) { st.padHit = null; sfx.pad(); }
         }
@@ -1192,18 +1317,21 @@
       // obstacles visibles
       const x0 = camX - W * 0.3 / B - 2, x1 = camX + W * 0.7 / B + 2;
       drawWalls(x0, x1, acc, acc2, T, p0);
-      for (const b of L.blocks) { if (b.x1 < x0 || b.x0 > x1) continue; const X0 = SX(b.x0), Y1 = SY(b.y1), w = (b.x1 - b.x0) * B, h = (b.y1 - b.y0) * B; ctx.fillStyle = T.ground; ctx.fillRect(X0, Y1, w, h); ctx.fillStyle = lin(ctx, 0, Y1, 0, Y1 + h, [0, rgba(acc, 0.32), 0.5, rgba(acc, 0.08), 1, 'rgba(0,0,0,0)']); ctx.fillRect(X0, Y1, w, h); ctx.strokeStyle = rgba(acc, 0.25); ctx.lineWidth = 1; ctx.beginPath(); for (let k = 1; k < b.y1 - b.y0; k++) { ctx.moveTo(X0, Y1 + k * B); ctx.lineTo(X0 + w, Y1 + k * B); } ctx.stroke(); glowRect(X0, Y1, w, h, acc, p0); }
+      for (const b of L.blocks) { if (b.x1 < x0 || b.x0 > x1) continue; const X0 = SX(b.x0), Y1 = SY(b.y1), w = (b.x1 - b.x0) * B, h = (b.y1 - b.y0) * B; ctx.fillStyle = T.ground; ctx.fillRect(X0, Y1, w, h); ctx.fillStyle = lin(ctx, 0, Y1, 0, Y1 + h, [0, rgba(acc, 0.32), 0.5, rgba(acc, 0.08), 1, 'rgba(0,0,0,0)']); ctx.fillRect(X0, Y1, w, h); ctx.strokeStyle = rgba(acc, 0.25); ctx.lineWidth = 1; ctx.beginPath(); for (let k = 1; k < b.y1 - b.y0; k++) { ctx.moveTo(X0, Y1 + k * B); ctx.lineTo(X0 + w, Y1 + k * B); } ctx.stroke(); glowRect(X0, Y1, w, h, acc, p0); if (b.soft) softTop(b, X0, Y1, w, acc2); }
       const spk = spr('spk' + th, B, (x) => paintSpike34(x, B, acc, acc2));
       for (const s of L.spikes) { if (s.x0 + 1 < x0 || s.x0 > x1) continue; const cx = SX(s.x0 + 0.5), by = SY(s.y); drawSpr(spk, cx, s.down ? by + B * 0.5 : by - B * 0.5, s.down ? Math.PI : 0, 1 + p0 * 0.08); }
       for (const p of L.pads) { if (p.x0 + 1 < x0 || p.x0 > x1) continue; const cx = SX(p.x0 + 0.5), by = SY(p.y); ctx.fillStyle = rad(ctx, cx, by, 0, cx, by, B * 0.8, [0, 'rgba(255,220,80,0.9)', 1, 'rgba(255,220,80,0)']); ctx.fillRect(cx - B, by - B, B * 2, B); ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.ellipse(cx, by, B * 0.45, B * 0.18, 0, Math.PI, TAU); ctx.fill(); }
       for (const o of L.orbs) { if (o.x0 + 1 < x0 || o.x0 - 1 > x1) continue; drawOrb(o, p0); if (!o.used) { const k = L.orbs.indexOf(o); if (k < 3 || (li === 0 && tour === 0)) smallText('TOUCHE !', SX(o.x0), SY(o.y) - B * 0.95, Math.max(12, B * 0.4), '#ffd34d'); } }
-      if (li === 0 && tour === 0) for (const h of L.taps) { if (h.x < st.x - 1 || h.x < x0 || h.x > x1 || h.air || h.mode === 'ship') continue; const cx = SX(h.x), gy2 = h.mode === 'ball' && h.y > BALL_CEIL / 2 ? SY(BALL_CEIL) + B * 0.25 : SY(0) - B * 0.12, up = !(h.mode === 'ball' && h.y > BALL_CEIL / 2); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba('#ffd34d', 0.55 + pulse * 0.45); const d = up ? -1 : 1; for (const k of [0, 0.42]) { ctx.beginPath(); ctx.moveTo(cx - B * 0.36, gy2 + d * k * B); ctx.lineTo(cx, gy2 + d * (k + 0.4) * B); ctx.lineTo(cx + B * 0.36, gy2 + d * k * B); ctx.lineTo(cx + B * 0.36, gy2 + d * (k + 0.14) * B); ctx.lineTo(cx, gy2 + d * (k + 0.54) * B); ctx.lineTo(cx - B * 0.36, gy2 + d * (k + 0.14) * B); ctx.closePath(); ctx.fill(); } ctx.globalCompositeOperation = 'source-over'; }
-      for (const p of parts) { const px = p.x - 1.5; if (px + 2 < x0 || px - 2 > x1) continue; drawPortal(SX(px), p.mode); }
+      if (li === 0 && tour === 0) for (const h of L.taps) { if (h.x < st.x - 1 || h.x < x0 || h.x > x1 || h.air || h.mode === 'ship' || parts.some((q) => Math.abs(q.x - h.x) < 2.5)) continue;   // jamais de flèche au pied d'une porte (Benjamin, 26 oct.)
+      const cx = SX(h.x), gy2 = h.mode === 'ball' && h.y > BALL_CEIL / 2 ? SY(BALL_CEIL) + B * 0.25 : SY(0) - B * 0.12, up = !(h.mode === 'ball' && h.y > BALL_CEIL / 2); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba('#ffd34d', 0.55 + pulse * 0.45); const d = up ? -1 : 1; for (const k of [0, 0.42]) { ctx.beginPath(); ctx.moveTo(cx - B * 0.36, gy2 + d * k * B); ctx.lineTo(cx, gy2 + d * (k + 0.4) * B); ctx.lineTo(cx + B * 0.36, gy2 + d * k * B); ctx.lineTo(cx + B * 0.36, gy2 + d * (k + 0.14) * B); ctx.lineTo(cx, gy2 + d * (k + 0.54) * B); ctx.lineTo(cx - B * 0.36, gy2 + d * (k + 0.14) * B); ctx.closePath(); ctx.fill(); } ctx.globalCompositeOperation = 'source-over'; }
+      parts.forEach((p, i) => { const px = p.x; if (px + 2 < x0 || px - 2 > x1) return;   // 26 oct. : la porte là où l'on se transforme vraiment
+      const m2 = i ? parts[i - 1].mode : 'cube'; drawPortal(SX(px), p.mode, p.mode === 'ship' || m2 === 'ship' ? CEIL : p.mode === 'ball' || m2 === 'ball' ? BALL_CEIL : CEIL); });
       // le joueur, sa traînée, les particules
       if (state !== 'dead' && state !== 'over') drawPlayer(p0);
       for (const p of pops) {
         const u = p.t / p.life;
         if (p.k === 'shard' || p.k === 'dust') { ctx.globalAlpha = 1 - u; ctx.fillStyle = p.c; const s = p.s * B; ctx.fillRect(SX(p.x) - s / 2, SY(p.y) - s / 2, s, s); }
+        else if (p.k === 'ripple') { if (u < 0) continue; ctx.globalAlpha = (1 - u) * 0.8; ctx.strokeStyle = acc; ctx.lineWidth = 2.5 * (1 - u) + 0.5; ctx.beginPath(); ctx.ellipse(SX(p.x), SY(p.y), B * (0.6 + u * 4.5), B * (0.12 + u * 0.3), 0, 0, TAU); ctx.stroke(); }
         else if (p.k === 'ring') { ctx.globalAlpha = 1 - u; ctx.strokeStyle = p.c || '#ffffff'; ctx.lineWidth = 3 * (1 - u) + 1; circ(ctx, SX(p.x), SY(p.y), B * (0.5 + u * 2.5)); ctx.stroke(); }
         else if (p.k === 'head') { ctx.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1; const s = (p.small ? B * 1.6 : B * 3.5) * Math.min(1, u * 6); try { const iw = p.img.width || 160, ih = p.img.height || 200, k = s / ih; ctx.drawImage(p.img, SX(p.x) - (iw * k) / 2, SY(p.y) - s / 2 - u * B, iw * k, s); } catch (e) { /* rien */ } }
       }
@@ -1221,12 +1349,21 @@
     }
     function glowLine(xa, ya, xb, yb, col, pulse) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.18 + pulse * 0.2); ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xb, yb); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.35 + pulse * 0.4); ctx.lineWidth = 2.5; ctx.stroke(); }
     function glowRect(x, y, w, h, col, pulse) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.2 + pulse * 0.25); ctx.lineWidth = 7; ctx.strokeRect(x, y, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.3 + pulse * 0.4); ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); }
+    // la marche « molle » (26 oct.) : un liseré de la 2e couleur du monde ; quand on y tombe, son dessus ondule autour du point d'impact et se calme
+    function softTop(b, X0, Y1, w, col) {
+      ctx.fillStyle = lin(ctx, 0, Y1, 0, Y1 + B * 1.2, [0, rgba(col, 0.28), 1, 'rgba(0,0,0,0)']); ctx.fillRect(X0, Y1, w, B * 1.2);
+      const age = b.hitT != null ? tG - b.hitT : 99, e = age < 3 ? Math.exp(-age * 2.2) : 0, hx = b.hitX != null ? SX(b.hitX) : 0;
+      ctx.beginPath(); for (let xx = X0; xx <= X0 + w + 0.5; xx += 4) { const d = (xx - hx) / B, off = e ? Math.sin(d * 2.4 - age * 15) * B * 0.16 * e * Math.exp(-Math.abs(d) / 4) : 0; if (xx === X0) ctx.moveTo(xx, Y1 - off); else ctx.lineTo(xx, Y1 - off); }
+      ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = 8; ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.45); ctx.lineWidth = 2.5; ctx.stroke();
+    }
     function drawWalls(x0, x1, acc, acc2, T, pulse) {
       const ws = L.walls.filter((w) => w.x1 >= x0 && w.x0 <= x1); if (!ws.length) return;
       for (const top of [true, false]) {
-        ctx.beginPath(); ctx.moveTo(SX(ws[0].x0), top ? 0 : H);
+        // jusqu'au plafond / au sol seulement (26 oct.) : les parois qui y reviennent en douceur finissent sans découpe
+        const edge = top ? SY(CEIL) : SY(0);
+        ctx.beginPath(); ctx.moveTo(SX(ws[0].x0), edge);
         for (const w of ws) { ctx.lineTo(SX(w.x0), SY(top ? w.hi0 : w.lo0)); ctx.lineTo(SX(w.x1), SY(top ? w.hi1 : w.lo1)); }
-        ctx.lineTo(SX(ws[ws.length - 1].x1), top ? 0 : H); ctx.closePath();
+        ctx.lineTo(SX(ws[ws.length - 1].x1), edge); ctx.closePath();
         ctx.fillStyle = rgba(T.ground, 0.9); ctx.fill(); ctx.fillStyle = top ? lin(ctx, 0, 0, 0, H * 0.55, [0, 'rgba(0,0,0,0)', 1, rgba(acc2, 0.28)]) : lin(ctx, 0, H * 0.45, 0, H, [0, rgba(acc2, 0.28), 1, 'rgba(0,0,0,0)']); ctx.fill();
         ctx.beginPath(); ws.forEach((w, i) => { const a = [SX(w.x0), SY(top ? w.hi0 : w.lo0)]; if (!i) ctx.moveTo(a[0], a[1]); else ctx.lineTo(a[0], a[1]); ctx.lineTo(SX(w.x1), SY(top ? w.hi1 : w.lo1)); });
         ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(acc2, 0.25 + pulse * 0.25); ctx.lineWidth = 9; ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(acc2, '#ffffff', 0.4); ctx.lineWidth = 2.5; ctx.stroke();
@@ -1241,13 +1378,16 @@
       ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 3; circ(ctx, cx, cy, r); ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    function drawPortal(x, mode) {
-      const col = MODES[mode].col, y = SY(CEIL * 0.32), h = B * 2.4;
+    function drawPortal(x, mode, top) {
+      // 26 oct. (Benjamin : « un grand portail à la transformation, style carré propre », « jusqu'en haut, qui touche le terrain en
+      // haut ») : un grand cadre lumineux aux coins arrondis, du sol au plafond (celui du vaisseau ou de la boule), couleur de la forme qu'on va prendre
+      const col = MODES[mode].col, y0 = SY(top || CEIL), y1 = SY(0), w = B * 1.15, r = B * 0.28, hgt = y1 - y0;
       ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = rad(ctx, x, y, 0, x, y, h, [0, rgba(col, 0.45), 1, rgba(col, 0)]); ctx.fillRect(x - h, y - h, h * 2, h * 2);
-      ctx.strokeStyle = rgba(col, 0.5); ctx.lineWidth = 10; ctx.beginPath(); ctx.ellipse(x, y, B * 0.45, h, 0, 0, TAU); ctx.stroke();
+      ctx.fillStyle = lin(ctx, x - w * 1.6, 0, x + w * 1.6, 0, [0, rgba(col, 0), 0.5, rgba(col, 0.3), 1, rgba(col, 0)]); ctx.fillRect(x - w * 1.6, y0, w * 3.2, hgt);
+      ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = 12; ctx.beginPath(); ctx.roundRect(x - w / 2, y0, w, hgt, r); ctx.stroke();
       ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = mix(col, '#ffffff', 0.5); ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, B * 0.45, h, 0, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = mix(col, '#ffffff', 0.55); ctx.lineWidth = 3.5; ctx.beginPath(); ctx.roundRect(x - w / 2, y0, w, hgt, r); ctx.stroke();
+      ctx.strokeStyle = rgba(col, 0.8); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(x - w / 2 + 6, y0 + 6, w - 12, hgt - 12, Math.max(2, r - 4)); ctx.stroke();
     }
     function drawPlayer(pulse) {
       const col = MODES[st.mode].col;
