@@ -908,10 +908,10 @@
         for (let i = Math.max(1, n - kE); i < n; i++) { lo[i] = Math.min(lo[i], lo[i - 1]); hi[i] = Math.max(hi[i], hi[i - 1]); }
         { const a = smooth(lo, 3), z = smooth(hi, 3); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
         const ss = (u) => u * u * (3 - 2 * u);
-        // 26 oct. (« encore plus plat pour le démarrage, je me prends le rebord ») : le sol reste TOUT PLAT les 3 premières secondes (un
-        // vaisseau posé au sol ne touche rien), puis la paroi du bas monte très doucement (2,5 s) ; le plafond descend sur 2 s
-        const fl = L.speed * 3;
-        for (let i = 0; i < n; i++) { const u = xw[i] - xa, e = (xb - xw[i]) / 7, wl = ss(clamp(Math.min((u - fl) / (L.speed * 2.5), e), 0, 1)), wh = ss(clamp(Math.min(u / (L.speed * 2), e), 0, 1)); lo[i] = clamp(lerp(0, lo[i], wl), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], wh), 0, CEIL); }
+        // 26 oct. (« je me prends le rebord au démarrage », puis « un tout petit peu, raboté en bas, seulement le premier avion ») : au
+        // tout début du PREMIER vaisseau du niveau 1, la paroi du bas reste au sol sur 8 blocs (~1 s) avant de monter ; rien d'autre ne change
+        const fl = li === 0 && !tour && L.parts.filter((p) => p.mode === 'ship').length === 1 ? 8 : 0;
+        for (let i = 0; i < n; i++) { const u = xw[i] - xa, e = (xb - xw[i]) / 7, w = ss(clamp(Math.min(u / 10, e), 0, 1)), wl = ss(clamp(Math.min((u - fl) / 10, e), 0, 1)); lo[i] = clamp(lerp(0, lo[i], wl), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], w), 0, CEIL); }
         const w0 = L.walls.length;
         for (let i = 0; i + 1 < n; i++) L.walls.push({ x0: xw[i], x1: xw[i + 1], lo0: lo[i], hi0: hi[i], lo1: lo[i + 1], hi1: hi[i + 1] });
         // on vérifie que le fantôme passe (sinon on élargit)
@@ -1390,13 +1390,15 @@
     function drawPortal(x, mode, top) {
       // 26 oct. (Benjamin : « un grand portail à la transformation, style carré propre », « jusqu'en haut, qui touche le terrain en
       // haut ») : un grand cadre lumineux aux coins arrondis, du sol au plafond (celui du vaisseau ou de la boule), couleur de la forme qu'on va prendre
-      const col = MODES[mode].col, y0 = SY(top || CEIL), y1 = SY(0), w = B * 1.15, r = B * 0.28, hgt = y1 - y0;
+      // puis (« une grande porte carrée, pas de barre en bas où le cube passe ») : deux montants et le linteau, ouverte en bas
+      const col = MODES[mode].col, y0 = SY(top || CEIL), y1 = SY(0), w = B * 2, r = B * 0.12, hgt = y1 - y0;
+      const door = (d) => { const xl = x - w / 2 + d, xr = x + w / 2 - d, yt = y0 + d, rr = Math.max(1, r - d * 0.5); ctx.beginPath(); ctx.moveTo(xl, y1); ctx.lineTo(xl, yt + rr); ctx.arcTo(xl, yt, xl + rr, yt, rr); ctx.lineTo(xr - rr, yt); ctx.arcTo(xr, yt, xr, yt + rr, rr); ctx.lineTo(xr, y1); ctx.stroke(); };
       ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = lin(ctx, x - w * 1.6, 0, x + w * 1.6, 0, [0, rgba(col, 0), 0.5, rgba(col, 0.3), 1, rgba(col, 0)]); ctx.fillRect(x - w * 1.6, y0, w * 3.2, hgt);
-      ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = 12; ctx.beginPath(); ctx.roundRect(x - w / 2, y0, w, hgt, r); ctx.stroke();
+      ctx.fillStyle = lin(ctx, x - w * 1.2, 0, x + w * 1.2, 0, [0, rgba(col, 0), 0.5, rgba(col, 0.3), 1, rgba(col, 0)]); ctx.fillRect(x - w * 1.2, y0, w * 2.4, hgt);
+      ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = 12; door(0);
       ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = mix(col, '#ffffff', 0.55); ctx.lineWidth = 3.5; ctx.beginPath(); ctx.roundRect(x - w / 2, y0, w, hgt, r); ctx.stroke();
-      ctx.strokeStyle = rgba(col, 0.8); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(x - w / 2 + 6, y0 + 6, w - 12, hgt - 12, Math.max(2, r - 4)); ctx.stroke();
+      ctx.strokeStyle = mix(col, '#ffffff', 0.55); ctx.lineWidth = 3.5; door(0);
+      ctx.strokeStyle = rgba(col, 0.8); ctx.lineWidth = 1.5; door(6);
     }
     function drawPlayer(pulse) {
       const col = MODES[st.mode].col;
