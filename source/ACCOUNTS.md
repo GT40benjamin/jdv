@@ -18,7 +18,7 @@ Chaque salle peut aussi donner à un joueur un **pseudo de salle** (affiché seu
 4. **URL Configuration** : rien à changer (`https://gt40benjamin.github.io/jdv/**` couvre `jouer/`). Les liens des e-mails arrivent sur
    `jouer/` (nouveau site) ou sur la racine (anciens liens : l'accueil les renvoie vers `jouer/` avec le jeton).
 
-## Comptes de famille (borne 1.40) : un joueur sur un autre téléphone
+## Comptes de famille (borne 1.41) : un joueur sur un autre téléphone
 
 ⚙ › Compte › **« 📲 Sur un autre téléphone »** : choisis LOUIS, LÉONIE… → « Créer le lien » → envoie le lien (WhatsApp, SMS) sur le téléphone
 de leur maman. Ce téléphone ne voit QUE ces joueurs (ni ton compte, ni tes autres joueurs, ni tes réglages) ; ils gardent leurs salles et leurs

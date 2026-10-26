@@ -1,5 +1,5 @@
 -- ============================================================================================================================
--- Comptes de FAMILLE (borne 1.40, 27 oct. 2026) : « LOUIS et LÉONIE sur le téléphone de leur maman, sans voir mon compte ».
+-- Comptes de FAMILLE (borne 1.41, 27 oct. 2026) : « LOUIS et LÉONIE sur le téléphone de leur maman, sans voir mon compte ».
 -- Un joueur de mon compte peut recevoir SON PROPRE petit compte (un utilisateur Supabase Auth créé ici, e-mail fictif
 -- f<id>@famille.elixirgamestudio.com, jamais d'e-mail envoyé) dont le mot de passe est un CODE (10 caractères Crockford : K7Q2-9MXA-3F).
 -- Sur l'autre téléphone : « J'ai déjà un compte », pseudo LOUIS + ce code (ou le lien …/jouer/#acces=LOUIS:K7Q29MXA3F,…) → ce
