@@ -26,7 +26,10 @@
     { id: 'lave', name: 'Cœur de Lave', sky: ['#0a0000', '#3a0404', '#8a1a04'], acc: '#ff6a1a', acc2: '#ffd34d', ground: '#1a0402', sun: '#ff8a1a' },
     { id: 'galaxie', name: 'Galaxie', sky: ['#000008', '#0a0430', '#2a0a5a'], acc: '#ff5aff', acc2: '#5affff', ground: '#06021a', sun: '#ffffff' },
   ];
-  const MODES = { cube: { name: 'Cube', col: '#5aff8a', tip: 'Touche pour sauter sur le temps' }, ship: { name: 'Vaisseau', col: '#ff5ad2', tip: 'Tiens le doigt pour monter' }, ball: { name: 'Boule', col: '#ffb03a', tip: 'Touche pour inverser la gravité' } };
+  const MODES = { cube: { name: 'Cube', col: '#5aff8a', tip: 'Touche pour sauter sur le temps' }, ship: { name: 'Vaisseau', col: '#ff5ad2', tip: 'Tiens le doigt pour monter' }, ball: { name: 'Boule', col: '#ffb03a', tip: 'Touche pour inverser la gravité' },
+    ufo: { name: 'Soucoupe', col: '#c46aff', tip: 'Touche pour battre des ailes' }, wave: { name: 'Onde', col: '#3ad8ff', tip: 'Tiens pour monter, lâche pour descendre' }, spider: { name: 'Araignée', col: '#ff4a6a', tip: 'Touche pour sauter de l’autre côté' } };
+  // les portails de vitesse (couleur et nombre de flèches selon la vitesse)
+  const SPEEDS = [[0.85, '#ffb03a', 1], [1.05, '#3af0ff', 2], [1.3, '#5aff8a', 3], [1.7, '#ff5ad2', 4], [99, '#ff3a3a', 5]];
   // les niveaux : un morceau, ses 4 mondes (thème, façon d'avancer), la vitesse
   const LEVELS = [
     // script : moments écrits par Benjamin sur la carte du son (26 oct.) — grand saut sur la cymbale par-dessus un mur haut (14,55 s,
@@ -37,7 +40,10 @@
       script: [{ kind: 'pad', beat: 31, land: 15.10, wall: 3 }, { kind: 'tap', beats: [49, 51, 53, 55, 57, 59] }, { kind: 'tap', at: [29.33, 29.88] },
         { kind: 'stairs', at: [42.32, 42.79, 43.25, 43.74], drop: 45.33 }, { kind: 'tap', from: 45.7, to: 51.9, gap: 0.85 },
         { kind: 'etage', t: 58.63, h: 3, until: 60.27 }, { kind: 'tap', from: 61.3, to: 63.3, gap: 0.85, spikes: 2 }, { kind: 'steps4', b: 137, n: 3 },
-        { kind: 'softstep', t: 75.03, land: 75.48, h: 3, taps: [75.88, 76.64], drop: 77.49 }, { kind: 'final', pads: [89.57, 89.83], land: 90.50 }], parts: [['ville', 'cube'], ['ocean', 'ship'], ['synth', 'cube'], ['galaxie', 'ship'], ['cristal', 'cube']] },   // ships : passages en vaisseau imposés (temps), à l'oreille (35 % : les cymbales s'accélèrent) ; cuts : changements de monde imposés
+        { kind: 'softstep', t: 75.03, land: 75.48, h: 3, taps: [75.88, 76.64], drop: 77.49 }, { kind: 'final', pads: [89.57, 89.83], land: 90.50 }], parts: [['ville', 'cube'], ['ocean', 'ship'], ['synth', 'cube'], ['galaxie', 'ship'], ['cristal', 'cube']],
+      // 27 oct. (chantier « La folie ») : la vitesse monte d'un cran sur le dernier drop (59,55 s) ; dans le cristal, la gravité bascule
+      // (on touche le plafond sur le temps 170, on retombe au sol sur le gros « boum » du temps 183)
+      speeds: [[59.55, 1.25]], flips: [[79.72, 85.81]] },   // ships : passages en vaisseau imposés (temps), à l'oreille (35 % : les cymbales s'accélèrent) ; cuts : changements de monde imposés
     { track: 'neonrush-2', name: 'Onde Rétro', speed: 8.8, ships: [[72, 100]], cuts: [40, 140], parts: [['cristal', 'cube'], ['lave', 'ball'], ['synth', 'ship'], ['ville', 'cube'], ['ocean', 'ball']] },   // 72-100 : la cassure planante ; 140 : le drop
     { track: 'neonrush-3', name: 'Surcharge', speed: 9.4, parts: [['lave', 'cube'], ['ocean', 'ball'], ['galaxie', 'ship'], ['cristal', 'cube']] },
   ];
@@ -584,61 +590,107 @@
 
   // ===========================================================================
   // LA PHYSIQUE (en « blocs » : x vers la droite, y vers le haut ; sol y = 0) — la même pour le joueur et pour le fantôme
+  // 27 oct. (chantier « La folie ») : portails de VITESSE, de GRAVITÉ (le cube court au plafond), MIROIR ; formes ONDE (zigzag en
+  // tenant), SOUCOUPE (petits coups d'ailes), ARAIGNÉE (téléportée sol ↔ plafond) ; taille MINI ; scies. Les portails de vitesse et de
+  // gravité sont lus DANS step() (L.gates, triés) : le joueur, le fantôme et la vérification les prennent exactement au même endroit.
   // ===========================================================================
-  const CEIL = 8, BALL_CEIL = 6, PH = 0.36;   // plafond (vaisseau), plafond (boule), demi-taille du joueur
+  const CEIL = 8, BALL_CEIL = 6, ROOF = 6, PH = 0.36, PHM = 0.22;   // plafond (vaisseau), plafond (boule, cube à l'envers), demi-taille (normale, mini)
   function physOf(speed, beatP) {
     const ta = Math.min(4.0 / speed, 0.86 * (beatP || 0.47)), h = 2.2;   // un saut = un peu moins d'un temps, 2,2 de haut
-    return { v: speed, ta, h, g: (8 * h) / (ta * ta), vj: (4 * h) / ta, shipA: 20, shipV: 6.2, ballG: 90, ballV: 16 };
+    return { v: speed, ta, h, g: (8 * h) / (ta * ta), vj: (4 * h) / ta, shipA: 20, shipV: 6.2, ballG: 90, ballV: 16, ufoV: 7.6, ufoG: 33, ufoMax: 10 };
   }
-  // un pas de simulation. st = { x, y, vy, mode, grav(+1/-1), ground, hold, tap (vrai une fois), orbs:[]... }
+  // un portail du parcours (lu au passage) : vitesse, gravité, miroir (le miroir ne change que l'image)
+  function gateHit(st, g) {
+    if (g.k === 'speed') st.v = g.v;
+    else if (g.k === 'grav') { if (st.grav !== g.g) { st.grav = g.g; st.ground = false; } }
+    else if (g.k === 'mirror') st.mir = !!g.on;
+    st.gateHit = g;
+  }
+  // le plafond où court le cube à l'envers (L.roofs : [{ x0, x1, y }] triés) ; 99 = pas de plafond
+  function roofAt(L, x) { const R = L.roofs; if (!R) return 99; for (let i = 0; i < R.length; i++) { const r = R[i]; if (x >= r.x0 && x < r.x1) return r.y; if (r.x0 > x) break; } return 99; }
+  // un pas de simulation. st = { x, y, vy, v, mode, grav(+1/-1), mini, ground, hold, tap (vrai une fois), pi, gi... }
   // L = le parcours ; rend 'dead' si on touche, sinon rien
   function step(st, L, P, dt) {
-    st.x += P.v * dt;
-    const m = st.mode;
+    const GT = L.gates; if (GT) while (st.gi < GT.length && st.x >= GT[st.gi].x) gateHit(st, GT[st.gi++]);
+    st.x += (st.v || P.v) * dt;
+    const m = st.mode, ph = st.mini ? PHM : PH;
     if (m === 'cube') {
-      if (st.ground && (st.tap || st.hold)) { st.vy = P.vj; st.ground = false; st.jumpAt = st.x; }
-      if (!st.ground && st.tap) { const o = orbAt(L, st); if (o) { st.vy = P.vj * (o.k || (o.big ? 1.25 : 1)); o.used = st.ghost ? o.used : true; st.orbHit = o; } }
-      const pad = !st.padCd && padAt(L, st); if (pad) { st.vy = P.vj * (pad.k || 1.42); st.ground = false; st.padCd = 0.2; st.padHit = pad; }
+      const gv = st.grav;
+      if (st.ground && (st.tap || st.hold)) { st.vy = gv * P.vj; st.ground = false; st.jumpAt = st.x; }
+      if (!st.ground && st.tap) { const o = orbAt(L, st); if (o) { if (o.blue) { st.grav = -gv; st.vy = gv * P.vj * 0.3; } else st.vy = gv * P.vj * (o.k || (o.big ? 1.25 : 1)); o.used = st.ghost ? o.used : true; st.orbHit = o; } }
+      const pad = !st.padCd && gv > 0 && padAt(L, st); if (pad) { st.vy = P.vj * (pad.k || 1.42); st.ground = false; st.padCd = 0.2; st.padHit = pad; }
       st.padCd = Math.max(0, (st.padCd || 0) - dt);
-      st.vy -= P.g * dt; st.y += st.vy * dt;
-      // sol et dessus des blocs
-      const top = supportAt(L, st.x, st.y - PH - st.vy * dt);   // y = centre du cube
-      if (st.y - PH <= top) { st.y = top + PH; st.vy = 0; if (!st.ground) st.landed = true; st.ground = true; } else if (st.y - PH > top + 0.01) st.ground = false;
+      st.vy -= st.grav * P.g * dt; st.y += st.vy * dt;
+      if (st.grav > 0) {
+        // sol et dessus des blocs
+        const top = supportAt(L, st.x, st.y - PH - st.vy * dt);   // y = centre du cube
+        if (st.y - PH <= top) { st.y = top + PH; st.vy = 0; if (!st.ground) st.landed = true; st.ground = true; } else if (st.y - PH > top + 0.01) st.ground = false;
+        const rf = L.roofs && L.roofs.length ? roofAt(L, st.x) : 99; if (rf < 99 && st.y + PH > rf) { st.y = rf - PH; st.vy = Math.min(0, st.vy); }
+      } else {
+        // à l'envers : on court sous le plafond
+        let rf = roofAt(L, st.x); if (rf >= 99) rf = CEIL;
+        if (st.y + PH >= rf) { st.y = rf - PH; st.vy = 0; if (!st.ground) st.landed = true; st.ground = true; } else if (st.y + PH < rf - 0.01) st.ground = false;
+        if (st.y - PH < 0) { st.y = PH; st.vy = Math.max(0, st.vy); }
+      }
     } else if (m === 'ship') {
       const tv = st.hold ? P.shipV : -P.shipV; st.vy += clamp(tv - st.vy, -P.shipA * dt, P.shipA * dt); st.vy += (tv - st.vy) * Math.min(1, 2.5 * dt); st.y += st.vy * dt;
-      if (st.y < PH) { st.y = PH; st.vy = Math.max(0, st.vy); } if (st.y > CEIL - PH) { st.y = CEIL - PH; st.vy = Math.min(0, st.vy); }
+      if (st.y < ph) { st.y = ph; st.vy = Math.max(0, st.vy); } if (st.y > CEIL - ph) { st.y = CEIL - ph; st.vy = Math.min(0, st.vy); }
+      st.ground = false;
+    } else if (m === 'ufo') {
+      // la soucoupe : chaque toucher donne un petit coup d'ailes vers le haut, puis elle retombe
+      if (st.tap) { st.vy = P.ufoV; st.flapAt = st.x; }
+      st.vy = Math.max(-P.ufoMax, st.vy - P.ufoG * dt); st.y += st.vy * dt;
+      if (st.y < ph) { st.y = ph; st.vy = Math.max(0, st.vy); } if (st.y > CEIL - ph) { st.y = CEIL - ph; st.vy = Math.min(0, st.vy); }
+      st.ground = false;
+    } else if (m === 'wave') {
+      // l'onde : monte en diagonale tant qu'on tient, redescend dès qu'on lâche (deux fois plus raide en mini)
+      st.vy = (st.hold ? 1 : -1) * (st.v || P.v) * (st.mini ? 2 : 1); st.y += st.vy * dt;
+      if (st.y < ph) st.y = ph; if (st.y > CEIL - ph) st.y = CEIL - ph;
       st.ground = false;
     } else {
-      if (st.tap && st.ground) { st.grav = -st.grav; st.ground = false; }
+      // la boule (elle traverse) et l'araignée (elle se téléporte d'un coup de l'autre côté)
+      if (st.tap && st.ground) { st.grav = -st.grav; st.ground = false; if (m === 'spider') { st.teleFrom = st.y; st.y = st.grav > 0 ? ph : BALL_CEIL - ph; st.vy = 0; st.ground = true; st.teleAt = st.x; } }
       st.vy -= st.grav * P.ballG * dt; st.vy = clamp(st.vy, -P.ballV, P.ballV); st.y += st.vy * dt;
-      const lo = PH, hi = BALL_CEIL - PH;
+      const lo = ph, hi = BALL_CEIL - ph;
       if (st.y <= lo) { st.y = lo; st.vy = 0; st.ground = st.grav > 0; } else if (st.y >= hi) { st.y = hi; st.vy = 0; st.ground = st.grav < 0; } else st.ground = false;
     }
     st.tap = false;
     return hit(L, st) ? 'dead' : null;
   }
-  // changement de façon d'avancer (au passage d'un portail) : la même règle pour le joueur et pour le fantôme
-  function enterMode(st, mode) { st.mode = mode; st.grav = 1; st.ground = false; if (mode === 'ball') st.y = Math.min(st.y, BALL_CEIL - PH); if (mode === 'ship') st.vy *= 0.3; }
-  function newState() { return { x: 0, y: PH, vy: 0, mode: 'cube', grav: 1, ground: true, hold: false, tap: false, pi: 0 }; }
+  // changement de façon d'avancer (au passage d'un portail) : la même règle pour le joueur et pour le fantôme (p = la partie)
+  function enterMode(st, p) {
+    const mode = typeof p === 'string' ? p : p.mode;
+    st.mode = mode; st.grav = 1; st.ground = false; st.mini = !!(p && p.mini);
+    if (mode === 'ball' || mode === 'spider') st.y = Math.min(st.y, BALL_CEIL - PH); if (mode === 'ship' || mode === 'ufo') st.vy *= 0.3;
+  }
+  function newState(P) { return { x: 0, y: PH, vy: 0, v: P ? P.v : 0, mode: 'cube', grav: 1, mini: false, mir: false, ground: true, hold: false, tap: false, pi: 0, gi: 0 }; }
   // ce qui porte le cube en x (sol ou dessus d'un bloc sous ses pieds)
   function supportAt(L, x, yPrev) {
-    let top = 0;
-    for (const b of near(L.blocks, x)) if (x + PH * 0.85 > b.x0 && x - PH * 0.85 < b.x1 && yPrev >= b.y1 - 0.12 && b.y1 > top) top = b.y1;
+    let top = 0; const A = L.blocks;
+    for (let i = lowerIdx(A, x - 8); i < A.length && A[i].x0 < x + 8; i++) { const b = A[i]; if (x + PH * 0.85 > b.x0 && x - PH * 0.85 < b.x1 && yPrev >= b.y1 - 0.12 && b.y1 > top) top = b.y1; }
     return top;
   }
   function near(arr, x) { const out = []; for (let i = lowerIdx(arr, x - 8); i < arr.length && arr[i].x0 < x + 8; i++) out.push(arr[i]); return out; }
   function lowerIdx(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m].x0 < x) lo = m + 1; else hi = m; } return Math.max(0, lo - 6); }
-  function orbAt(L, st) { for (const o of near(L.orbs, st.x)) if (!o.used && Math.abs(o.x0 - st.x) < 0.95 && Math.abs(o.y - st.y) < 1.0) return o; return null; }
+  // (sans tableau en plus à chaque pas : sur téléphone, 240 pas par seconde, le ramasse-miettes ne se réveille plus en pleine partie)
+  function orbAt(L, st) { const A = L.orbs; for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const o = A[i]; if (!o.used && Math.abs(o.x0 - st.x) < 0.95 && Math.abs(o.y - st.y) < 1.0) return o; } return null; }
   // tolérant : il attrape aussi le cube qui vient de sauter un peu trop tôt (jusqu'à 1,8 de haut au-dessus de lui)
-  function padAt(L, st) { for (const p of near(L.pads, st.x)) { const dy = st.y - PH - p.y; if (Math.abs(p.x0 + 0.5 - st.x) < 0.7 && dy > -0.3 && dy < 1.8) return p; } return null; }
+  function padAt(L, st) { const A = L.pads; for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const p = A[i], dy = st.y - PH - p.y; if (Math.abs(p.x0 + 0.5 - st.x) < 0.7 && dy > -0.3 && dy < 1.8) return p; } return null; }
   function hit(L, st) {
-    const x0 = st.x - PH * 0.8, x1 = st.x + PH * 0.8, y0 = st.y - PH * 0.8, y1 = st.y + PH * 0.8;
-    for (const s of near(L.spikes, st.x)) {
-      const cx = s.x0 + 0.5, hw = 0.16, base = s.y, tip = s.down ? base - 0.55 : base + 0.55;
+    const ph = st.mini ? PHM : PH, x0 = st.x - ph * 0.8, x1 = st.x + ph * 0.8, y0 = st.y - ph * 0.8, y1 = st.y + ph * 0.8;
+    let A = L.spikes;
+    for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) {
+      const s = A[i], cx = s.x0 + 0.5, hw = 0.16, base = s.y, tip = s.down ? base - 0.55 : base + 0.55;
       if (x1 > cx - hw && x0 < cx + hw && y1 > Math.min(base, tip) && y0 < Math.max(base, tip)) return true;
     }
-    for (const b of near(L.blocks, st.x)) if (x1 > b.x0 && x0 < b.x1 && y0 < b.y1 - 0.14 && y1 > b.y0) return true;
-    if (st.mode === 'ship') for (const c of near(L.walls, st.x)) if (st.x >= c.x0 && st.x < c.x1) { const k = (st.x - c.x0) / (c.x1 - c.x0), lo = lerp(c.lo0, c.lo1, k), hi = lerp(c.hi0, c.hi1, k); if (st.y - PH * 0.7 < lo || st.y + PH * 0.7 > hi) return true; }
+    A = L.blocks;
+    for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const b = A[i]; if (x1 > b.x0 && x0 < b.x1 && y0 < b.y1 - 0.14 && y1 > b.y0) return true; }
+    A = L.saws;
+    if (A) for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const s = A[i], dx = Math.max(0, Math.abs(st.x - s.x0) - ph * 0.6), dy = Math.max(0, Math.abs(st.y - s.y) - ph * 0.6); if (dx * dx + dy * dy < s.r * s.r * 0.72) return true; }
+    if (st.mode === 'ship' || st.mode === 'ufo' || st.mode === 'wave') {
+      A = L.walls; const k0 = st.mode === 'wave' ? 0.55 : 0.7;
+      for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const c = A[i]; if (st.x >= c.x0 && st.x < c.x1) { const k = (st.x - c.x0) / (c.x1 - c.x0), lo = lerp(c.lo0, c.lo1, k), hi = lerp(c.hi0, c.hi1, k); if (st.y - ph * k0 < lo || st.y + ph * k0 > hi) return true; } }
+    }
     return false;
   }
 
@@ -650,8 +702,18 @@
     const LV = LEVELS[li % LEVELS.length], TR = TRACKS[LV.track], speed = LV.speed * (1 + 0.08 * tour);
     const beats = TR.beats, beatP = (beats[beats.length - 1] - beats[0]) / (beats.length - 1);
     const P = physOf(speed, beatP), rng = mulberry32(1000 + li * 97 + tour * 7);
-    const L = { li, tour, LV, TR, P, speed, spikes: [], blocks: [], pads: [], orbs: [], walls: [], portals: [], parts: [], deco: [], taps: [], end: 0 };
-    const X = (t) => t * speed;   // x d'un instant de la musique
+    const L = { li, tour, LV, TR, P, speed, spikes: [], blocks: [], pads: [], orbs: [], walls: [], saws: [], gates: [], roofs: [], portals: [], parts: [], deco: [], taps: [], end: 0 };
+    // x d'un instant de la musique (et l'inverse) : la vitesse change aux portails de vitesse (LV.speeds : [[instant, ×vitesse]])
+    const SPD = (tour ? [] : LV.speeds || []).map(([t, m]) => [t, m]).sort((a, b) => a[0] - b[0]);
+    const X = (t) => { let x = 0, tp = 0, m = 1; for (const [ts, ms] of SPD) { if (ts >= t) break; x += (ts - tp) * speed * m; tp = ts; m = ms; } return x + (t - tp) * speed * m; };
+    const TX = (x) => { let xp = 0, tp = 0, m = 1; for (const [ts, ms] of SPD) { const xs = xp + (ts - tp) * speed * m; if (xs >= x) break; xp = xs; tp = ts; m = ms; } return tp + (x - xp) / (speed * m); };
+    const XA = (x, dt) => X(TX(x) + dt);   // x déplacé de dt secondes de course
+    const vAt = (x) => { let m = 1; for (const [ts, ms] of SPD) { if (X(ts) > x) break; m = ms; } return speed * m; };
+    L.X = X; L.TX = TX;
+    for (const [ts, ms] of SPD) L.gates.push({ x: X(ts), k: 'speed', v: speed * ms, m: ms, t: ts });
+    for (const [a, z] of (tour ? [] : LV.mirror || [])) { L.gates.push({ x: X(a), k: 'mirror', on: true, t: a }); if (z != null) L.gates.push({ x: X(z), k: 'mirror', on: false, t: z }); }
+    const sortGates = () => L.gates.sort((a, b) => a.x - b.x);
+    sortGates();
     // les frappes de la batterie (un chiffre 0..9 par demi-temps : grosse caisse « boum », caisse claire / clap « tuch », énergie)
     const num = (str) => (str || '').split('').map(Number), KK = num(TR.k), SS = num(TR.s);
     const kick = (b) => KK[2 * b] || 0, snare = (b) => SS[2 * b] || 0, offSnare = (b) => SS[2 * b + 1] || 0;
@@ -673,26 +735,35 @@
     // durée de traversée de la boule (sol → plafond), mesurée sur la vraie physique
     const tBall = (() => { let y = PH, vy = 0, t = 0; const dt = 1 / 240; while (y < BALL_CEIL - PH && t < 2) { vy = clamp(vy + P.ballG * dt, -P.ballV, P.ballV); y += vy * dt; t += dt; } return t; })();
     let gi = 0; for (const S of secs) S.mode = S.md === 'ship' ? 'ship' : li === 0 && tour === 0 ? 'cube' : (gi++ % 2 ? 'ball' : 'cube');
+    // un niveau peut imposer la forme de chaque partie (LV.forms ; LV.parts : [monde, forme, { mini }]) ; sinon comme avant
+    if (LV.forms) secs.forEach((S, i) => { const q = LV.parts[i % LV.parts.length]; if (q && q[1]) S.mode = q[1]; S.mini = !!(q && q[2] && q[2].mini); });
     const themes = LV.parts.map((q) => q[0]);
     const easy = li === 0 && tour === 0, minGap = easy ? 2 : 1, rate = easy ? 0.55 : li === 1 && !tour ? 0.62 : 0.7;   // part des temps à frappe forte qu'on saute
     const diff = clamp(0.25 + li * 0.22 + tour * 0.18, 0, 1);
-    const ghost = Object.assign(newState(), { ghost: true });
+    const ghost = Object.assign(newState(P), { ghost: true });
     const path = [], rec = [];   // trace du fantôme [x, y] et ses appuis (pour la vérification)
-    const sim = (toX, input) => { const dt = 1 / 240; while (ghost.x < toX) { if (ghost.pi < L.parts.length && ghost.x >= L.parts[ghost.pi].x) enterMode(ghost, L.parts[ghost.pi++].mode); const inp = input ? input(ghost) : null; ghost.hold = !!(inp && inp.hold); const tp = !!(inp && inp.tap) && !ghost.tapped; if (tp) { ghost.tap = true; ghost.tapped = true; } if (!(inp && inp.tap)) ghost.tapped = false; rec.push((ghost.hold ? 1 : 0) | (tp ? 2 : 0)); if (tp) L.taps.push({ x: ghost.x, y: ghost.y, mode: ghost.mode, air: !ghost.ground }); step(ghost, L, P, dt); path.push([ghost.x, ghost.y]); } };
+    const sim = (toX, input) => { const dt = 1 / 240; while (ghost.x < toX) { if (ghost.pi < L.parts.length && ghost.x >= L.parts[ghost.pi].x) enterMode(ghost, L.parts[ghost.pi++]); const inp = input ? input(ghost) : null; ghost.hold = !!(inp && inp.hold); const tp = !!(inp && inp.tap) && !ghost.tapped; if (tp) { ghost.tap = true; ghost.tapped = true; } if (!(inp && inp.tap)) ghost.tapped = false; rec.push((ghost.hold ? 1 : 0) | (tp ? 2 : 0)); if (tp) L.taps.push({ x: ghost.x, y: ghost.y, mode: ghost.mode, air: !ghost.ground }); step(ghost, L, P, dt); path.push([ghost.x, ghost.y]); } };
     const floorAt = (x) => { let t = 0; for (const b of L.blocks) if (x + PH * 0.85 > b.x0 && x - PH * 0.85 < b.x1 && b.y1 > t) t = b.y1; return t; };
-    const edgeFor = (xLand, h, under) => xLand - PH * 0.85 - P.v * Math.sqrt(2 * Math.max(0, h - under) / P.g);   // bord d'une marche pour toucher le sol en xLand
-    const sortAll = () => { for (const k of ['spikes', 'blocks', 'pads', 'orbs', 'walls']) L[k].sort((a, b) => a.x0 - b.x0); };
+    const edgeFor = (xLand, h, under) => XA(xLand, -Math.sqrt(2 * Math.max(0, h - under) / P.g)) - PH * 0.85;   // bord d'une marche pour toucher le sol en xLand
+    const sortAll = () => { for (const k of ['spikes', 'blocks', 'pads', 'orbs', 'walls', 'saws']) L[k].sort((a, b) => a.x0 - b.x0); };
     const yAt = (x) => { let lo = 0, hi = path.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (path[m][0] < x) lo = m + 1; else hi = m; } return path[lo] ? path[lo][1] : 0; };
     const clear = (x0, x1, minY, maxY) => { for (let x = x0; x <= x1; x += 0.1) { const y = yAt(x); if (y - PH < minY || y + PH > maxY) return false; } return true; };
     const score = (b) => snare(b) + 0.75 * kick(b) + (b % 4 === 0 ? 0.8 : 0);
+    const FLY = (m) => m === 'ship' || m === 'ufo' || m === 'wave';
+    // GRAVITÉ (LV.flips : [[instant où l'on touche le plafond, instant où l'on retombe au sol]]) : le portail est posé une durée de
+    // chute plus tôt (on touche le plafond PILE sur le temps) ; un plafond est posé autour, aucune marche ni orbe tout près
+    const tR = Math.sqrt((2 * (ROOF - 2 * PH)) / P.g), FLIPS = tour ? [] : (LV.flips || []).map(([a, z]) => [a, z]);
+    for (const [a, z] of FLIPS) L.roofs.push({ x0: X(a - tR) - 14, x1: X(z) + 2, y: ROOF });
+    L.roofs.sort((a, b) => a.x0 - b.x0);
+    const nearFlip = (t, w) => FLIPS.some(([a, z]) => (t > a - tR - w && t < a + 0.3) || (t > z - tR - w && t < z + 0.3) || (t >= a && t <= z));
     for (let part = 0; part < secs.length; part++) {
       const sec = secs[part], thm = themes[part % themes.length], mode = sec.mode, b0 = sec.b0, b1 = part === secs.length - 1 ? lastB : sec.b1;
       let xs = X(beats[b0]);
       // on arrive en cube depuis la boule / le vaisseau : le portail est avancé pour qu'il retombe pile sur le premier temps
       // un ÉTAGE à l'arrivée (LV.script « etage ») : on retombe du vaisseau sur une plateforme à mi-hauteur, puis on en descend sur un temps fort
       const ET = mode === 'cube' && part > 0 && !tour ? (LV.script || []).find((s) => s.kind === 'etage' && Math.abs(s.t - beats[b0]) < 1.2) : null;
-      if (mode === 'cube' && part > 0) { sim(xs - 7); const y0 = ghost.y, vy0 = ghost.mode === 'ship' ? ghost.vy : 0; const tF = (vy0 + Math.sqrt(vy0 * vy0 + 2 * P.g * Math.max(0, y0 - PH - (ET ? ET.h : 0)))) / P.g; xs = Math.max(ghost.x + 0.5, xs - P.v * tF); }
-      L.parts.push({ x: xs, theme: thm, mode, beat: b0 });
+      if (mode === 'cube' && part > 0) { sim(xs - 7); const y0 = ghost.y, vy0 = FLY(ghost.mode) ? ghost.vy : 0; const tF = (vy0 + Math.sqrt(vy0 * vy0 + 2 * P.g * Math.max(0, y0 - PH - (ET ? ET.h : 0)))) / P.g; xs = Math.max(ghost.x + 0.5, XA(xs, -tF)); }
+      L.parts.push({ x: xs, theme: thm, mode, beat: b0, mini: !!sec.mini });
       L.portals.push({ x0: xs - 1.5, mode });
       if (ET) { L.blocks.push({ x0: xs - 0.5, x1: edgeFor(X(ET.until), ET.h, 0), y0: 0, y1: ET.h }); sortAll(); }
       sim(xs + 0.01);
@@ -701,11 +772,34 @@
       const scs = []; for (let b = b0 + 2; b < b1 - 1; b++) scs.push(score(b)); scs.sort((a2, b2) => a2 - b2); const thr = scs.length ? scs[Math.min(scs.length - 1, Math.floor(scs.length * (1 - rate)))] : 9;
       const nPart = L.parts.length - 1;
       // un vaisseau qui entre en l'air (lancé par une orbe) se pilote dès le portail, sans retomber au sol
-      const bStart = mode === 'ship' && ghost.y > 1.5 ? b0 : b0 + 2;
+      const bStart = FLY(mode) && ghost.y > 1.5 ? b0 : b0 + 2;
       // le vaisseau qui va finir sur un étage monte haut à la fin (la chute sur l'étage se voit)
       const nextEt = mode === 'ship' && !tour ? (LV.script || []).find((s) => s.kind === 'etage' && Math.abs(s.t - beats[b1]) < 1.2) : null;
       for (let b = bStart; b < b1 - 1; b++) {
         const t = beats[b], x = X(t), xNext = X(beats[Math.min(b + 1, b1 - 1)]);
+        if (mode === 'ufo') {
+          // la SOUCOUPE : un coup d'ailes sur les croches (deux par temps) quand elle est sous la mélodie, sinon elle se laisse tomber
+          const sub = 2, tn = beats[Math.min(b + 1, nb - 1)];
+          for (let q = 0; q < sub; q++) {
+            const ta = t + (tn - t) * q / sub, tz = t + (tn - t) * (q + 1) / sub;
+            sim(X(ta) - 0.01);
+            const want = 3.8 + 1.6 * Math.sin((b - b0 + q / sub) * 0.5) + (q ? 0 : 0.3);
+            if (ghost.y < want || ghost.y < 1.4) sim(X(ta) + 0.04, () => ({ tap: true }));
+            sim(X(tz) - 0.01);
+          }
+          continue;
+        }
+        if (mode === 'wave') {
+          // l'ONDE : elle change de sens sur chaque croche (doubles-croches en mini) ; elle suit une vague lente sans toucher le sol ni le plafond
+          const sub = sec.mini ? 4 : 2, tn = beats[Math.min(b + 1, nb - 1)], kv = sec.mini ? 2 : 1;
+          for (let q = 0; q < sub; q++) {
+            const ta = t + (tn - t) * q / sub, tz = t + (tn - t) * (q + 1) / sub;
+            const want = 4 + 2.1 * Math.sin((b - b0 + q / sub) * 0.42), dy = vAt(X(ta)) * kv * (tz - ta);
+            let up = ghost.y < want; if (up && ghost.y + dy > CEIL - 1.1) up = false; if (!up && ghost.y - dy < 1.1) up = true;
+            sim(X(tz), () => ({ hold: up }));
+          }
+          continue;
+        }
         if (mode === 'ship') {
           // moment planant : le vaisseau ondule sur la mélodie (monte un temps, redescend le suivant, amplitude selon l'énergie)
           // on TAPOTE sur les cymbales : une petite tape par temps, puis deux (les cymbales s'accélèrent dans la 2e moitié) ; la hauteur
@@ -723,10 +817,10 @@
         }
         break;
       }
-      if (mode !== 'ship') {
+      if (!FLY(mode)) {
         // les sauts : PILE sur les temps de la musique (grille suivie à l'oreille), sur les temps les plus forts (« boum » grave + « tuch »
         // aigu, temps forts de la mesure). Niveau 1 : d'abord un saut tous les 2 temps forts, puis ça se resserre au fil des mondes.
-        const nP = L.parts.length - 1, gapB = mode === 'ball' ? 2 : easy && nP === 0 ? 2 : Math.max(1, Math.ceil((P.ta * 1.08) / beatP));
+        const nP = L.parts.length - 1, gapB = mode === 'spider' ? 1 : mode === 'ball' ? 2 : easy && nP === 0 ? 2 : Math.max(1, Math.ceil((P.ta * 1.08) / beatP));
         const sc2 = (bb) => kick(bb) + 0.6 * snare(bb) + ((bb - b0) % 4 === 0 ? 2 : (bb - b0) % 2 === 0 ? 0.8 : 0);
         const cands = []; for (let bb = b0 + 2; bb < b1 - 1; bb++) cands.push(sc2(bb));
         const so = cands.slice().sort((x, y) => x - y), rt = easy ? [0.5, 0.42, 0.5, 0.58][Math.min(3, nP)] : rate, thrB = so.length ? so[Math.min(so.length - 1, Math.floor(so.length * (1 - rt)))] : 9;
@@ -743,8 +837,12 @@
           : s.kind === 'tap' ? [sT(s) - 0.15, last(sTs(s)) + P.ta + 0.3] : s.kind === 'stairs' || s.kind === 'softstep' ? [sT(s) - 0.15, s.drop + 0.35]
           : s.kind === 'steps4' ? [sT(s) - 0.15, beats[s.b + 4 * s.n - 1] + 0.35] : [sT(s) - 0.1, beats[b1] + 1]));
         if (ET) zones.push([beats[b0] - 1, ET.until + 1]);
+        // les flips de ce passage : pas de saut juste avant (on doit être au sol) ni pendant la chute
+        const FLE = []; if (mode === 'cube') for (const [a, z] of FLIPS) { for (const [t, g] of [[a, -1], [z, 1]]) if (t > beats[b0] + 1 && t < beats[b1 - 1]) { FLE.push({ t, g }); zones.push([t - tR - P.ta - 0.2, t + 0.12]); } }
+        let fi = 0;
+        const doFlip = (e) => { const xg = Math.max(ghost.x + 0.3, X(e.t - tR)); sim(xg - 0.02); L.gates.push({ x: xg, k: 'grav', g: e.g, t: e.t }); sortGates(); sim(X(e.t) + 0.25); lastB = bIdx(e.t); };
         // des pics au sommet d'un saut parti en xj (n pics, à la hauteur du sol qu'il y a là)
-        const apexSpikes = (xj, n) => { const ap = xj + P.v * P.ta * 0.5; for (let k = 0; k < n; k++) { const sx = ap - n / 2 + k, fy = floorAt(sx + 0.5); if (floorAt(sx - 0.25) === fy && floorAt(sx + 1.25) === fy && clear(sx - 0.25, sx + 1.25, fy + 0.78, 99)) L.spikes.push({ x0: sx, y: fy }); } sortAll(); };
+        const apexSpikes = (xj, n) => { const ap = XA(xj, P.ta * 0.5); for (let k = 0; k < n; k++) { const sx = ap - n / 2 + k, fy = floorAt(sx + 0.5); if (floorAt(sx - 0.25) === fy && floorAt(sx + 1.25) === fy && clear(sx - 0.25, sx + 1.25, fy + 0.78, 99)) L.spikes.push({ x0: sx, y: fy }); } sortAll(); };
         const tapAt = (t) => { const xj = X(t); if (xj < ghost.x + 0.1) return false; sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 })); return true; };
         let si = 0;
         const runScript = (s) => {
@@ -759,9 +857,9 @@
           if (s.kind === 'land') {
             // on RETOMBE sur chacun de ces temps (les cymbales qui reviennent)
             for (const b of s.beats) {
-              const xl = X(beats[b]), xj = xl - P.v * P.ta; if (xj < ghost.x + 0.1) continue;
+              const xl = X(beats[b]), xj = XA(xl, -P.ta); if (xj < ghost.x + 0.1) continue;
               sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 })); sim(xl + 0.2);
-              const sx = xj + P.v * P.ta * 0.5 - 0.5; if (clear(sx - 0.25, sx + 1.25, floorAt(sx) + 0.78, 99)) L.spikes.push({ x0: sx, y: floorAt(sx) }); sortAll();
+              const sx = XA(xj, P.ta * 0.5) - 0.5; if (clear(sx - 0.25, sx + 1.25, floorAt(sx) + 0.78, 99)) L.spikes.push({ x0: sx, y: floorAt(sx) }); sortAll();
             }
             lastB = s.beats[s.beats.length - 1]; return;
           }
@@ -769,16 +867,16 @@
             // on SAUTE sur chacun de ces temps (le toucher tombe sur la cymbale, l'atterrissage un peu après)
             const ts = sTs(s), xp = X(beats[b1]) - 1.6, n = s.spikes || 1;   // pas de pic au-delà du portail suivant
             for (const t of ts) {
-              const xj = X(t), xl = xj + P.v * P.ta; if (!tapAt(t)) continue;
+              const xj = X(t), xl = XA(xj, P.ta); if (!tapAt(t)) continue;
               sim(Math.min(xl + 0.2, X(beats[b1]) - 2.2));
-              if (xj + P.v * P.ta * 0.5 + n / 2 + 0.25 < xp) apexSpikes(xj, n);
+              if (XA(xj, P.ta * 0.5) + n / 2 + 0.25 < xp) apexSpikes(xj, n);
             }
             if (ts.length) lastB = bIdx(last(ts) + P.ta); return;
           }
           if (s.kind === 'stairs') {
             // un ESCALIER : une marche de plus à chaque toucher (sur les « boum » rapprochés), puis on tombe du haut pile sur le « boum » de drop
             let lvl = floorAt(ghost.x + 1); const top = lvl + s.at.length, xe = edgeFor(X(s.drop), top, 0);
-            for (const t of s.at) { const xj = X(t); if (!tapAt(t)) continue; L.blocks.push({ x0: xj + P.v * P.ta * 0.62, x1: xe, y0: 0, y1: ++lvl }); sortAll(); }
+            for (const t of s.at) { const xj = X(t); if (!tapAt(t)) continue; L.blocks.push({ x0: XA(xj, P.ta * 0.62), x1: xe, y0: 0, y1: ++lvl }); sortAll(); }
             sim(X(s.drop) + 0.2); lastB = bIdx(s.drop); return;
           }
           if (s.kind === 'steps4') {
@@ -786,9 +884,9 @@
             // 4 on tombe tout en bas (bord de la marche réglé pour toucher le sol sur ce temps)
             for (let k = 0; k < s.n; k++) {
               const b = s.b + 4 * k, xj = X(beats[b]); if (!tapAt(beats[b])) continue;
-              const blk = { x0: xj + P.v * P.ta * 0.62, x1: edgeFor(X(beats[b + 3]), 1, 0), y0: 0, y1: 1 }; L.blocks.push(blk); sortAll();
+              const blk = { x0: XA(xj, P.ta * 0.62), x1: edgeFor(X(beats[b + 3]), 1, 0), y0: 0, y1: 1 }; L.blocks.push(blk); sortAll();
               sim(X(beats[b + 1]) - 0.4);
-              const x2 = X(beats[b + 1]); if (tapAt(beats[b + 1])) { sim(x2 + P.v * P.ta * 0.95); const ap = x2 + P.v * P.ta * 0.5; for (const sx of [ap - 1, ap]) if (sx > blk.x0 + 0.1 && sx + 1 < blk.x1 - 0.1 && clear(sx - 0.25, sx + 1.25, 1.78, 99)) L.spikes.push({ x0: sx, y: 1 }); sortAll(); }
+              const x2 = X(beats[b + 1]); if (tapAt(beats[b + 1])) { sim(XA(x2, P.ta * 0.95)); const ap = XA(x2, P.ta * 0.5); for (const sx of [ap - 1, ap]) if (sx > blk.x0 + 0.1 && sx + 1 < blk.x1 - 0.1 && clear(sx - 0.25, sx + 1.25, 1.78, 99)) L.spikes.push({ x0: sx, y: 1 }); sortAll(); }
               sim(X(beats[b + 3]) + 0.2);
             }
             lastB = s.b + 4 * s.n - 1; return;
@@ -801,7 +899,7 @@
             L.pads.push({ x0: px, y: gy, k: vy0 / P.vj }); sortAll();
             const blk = { x0: X(s.land) - 1.2, x1: edgeFor(X(s.drop), gy + s.h, 0), y0: 0, y1: gy + s.h, soft: true }; L.blocks.push(blk); sortAll();
             sim(X(s.land) + 0.2);
-            for (const t of s.taps || []) { const xj = X(t); if (tapAt(t)) { sim(xj + P.v * P.ta + 0.2); apexSpikes(xj, 2); } }
+            for (const t of s.taps || []) { const xj = X(t); if (tapAt(t)) { sim(XA(xj, P.ta) + 0.2); apexSpikes(xj, 2); } }
             sim(X(s.drop) + 0.2); lastB = bIdx(s.drop); return;
           }
           if (s.kind === 'final') {
@@ -824,28 +922,30 @@
         };
         for (let bb = b0 + 2; bb < b1 - 1; bb++) {
           while (si < SCR.length && sT(SCR[si]) <= beats[bb] + 0.05) runScript(SCR[si++]);
+          while (fi < FLE.length && FLE[fi].t - tR - 0.3 <= beats[bb]) doFlip(FLE[fi++]);
           if (zones.some(([a, z]) => beats[bb] >= a && beats[bb] <= z)) continue;
           if (bb - lastB < gapB + (pause ? 1 : 0)) continue;
           const f = sc2(bb);
           if (f < thrB) continue;
           pause = rng() < (easy ? 0.4 : 0.3);
           const x = X(beats[bb]), xl0 = x, lastB0 = lastB; lastB = bb; cnt++;
-          if (mode === 'ball') {
+          if (mode === 'ball' || mode === 'spider') {
             // la boule TOUCHE l'autre côté pile sur le temps (comme le cube qui retombe) : on la retourne une durée de traversée plus tôt
-            const xt = x - P.v * tBall;
+            const xt = XA(x, -(mode === 'spider' ? 0 : tBall));
             if (xt < ghost.x + 0.1) continue;
             const span = X(beats[Math.min(bb + gapB, b1 - 1)]) - x - 0.3; sim(xt - 0.02); sim(x + span, (g) => ({ tap: Math.abs(g.x - xt) < 0.05 }));
             const side = ghost.grav < 0 ? 'floor' : 'ceil', nS = 1 + (f >= 9 ? 1 : 0);
-            for (let k = 0; k < nS; k++) { const sx = x + span * 0.55 + k * 1.1; if (side === 'floor' ? clear(sx - 0.3, sx + 1.3, 0.85, 99) : clear(sx - 0.3, sx + 1.3, -99, BALL_CEIL - 0.85)) L.spikes.push(side === 'floor' ? { x0: sx, y: 0 } : { x0: sx, y: BALL_CEIL, down: true }); }
+            for (let k = 0; k < nS; k++) { const sx = x + span * 0.55 + k * 1.1; if (sx + 1.3 > x + span) break; if (side === 'floor' ? clear(sx - 0.3, sx + 1.3, 0.85, 99) : clear(sx - 0.3, sx + 1.3, -99, BALL_CEIL - 0.85)) L.spikes.push(side === 'floor' ? { x0: sx, y: 0 } : { x0: sx, y: BALL_CEIL, down: true }); }
             sortAll(); continue;
           }
           // le cube RETOMBE pile sur le temps (c'est l'atterrissage qu'on sent) : il saut une durée de vol plus tôt ; sur une orbe, on la touche pile sur le temps
           // le sol sous le cube (les marches finissent toutes seules) ; pas de saut qui chevauche le bord d'une marche
-          gL = floorAt(xl0 - P.v * P.ta * 1.1); if (floorAt(xl0 + 0.4) !== gL || floorAt(xl0 - P.v * P.ta * 0.5) !== gL) { lastB = lastB0; cnt--; continue; }
-          const xl = x, orb = (!easy || nP >= 2) && offSnare(bb) >= 6 && cnt % 3 === 0 && bb + 2 < b1, r2 = rng(), maxUp = easy ? (nP >= 1 ? 1 : 0) : 2;
-          const kind = orb ? 'orb' : r2 < 0.22 && gL < maxUp && bb + 3 < b1 ? 'up' : r2 < 0.34 && gL > 0 ? 'down' : r2 < 0.42 && kick(bb) >= 8 && (!easy || nP >= 1) && bb + 3 < b1 ? 'pad' : 'spike';
+          const inv = ghost.grav < 0;
+          gL = inv ? 0 : floorAt(XA(xl0, -P.ta * 1.1)); if (!inv && (floorAt(xl0 + 0.4) !== gL || floorAt(XA(xl0, -P.ta * 0.5)) !== gL)) { lastB = lastB0; cnt--; continue; }
+          const xl = x, orb = !inv && !nearFlip(beats[bb], 1.6) && (!easy || nP >= 2) && offSnare(bb) >= 6 && cnt % 3 === 0 && bb + 2 < b1, r2 = rng(), maxUp = inv || nearFlip(beats[bb], 2.6) ? -1 : easy ? (nP >= 1 ? 1 : 0) : 2;
+          const kind = inv || nearFlip(beats[bb], 2.6) ? 'spike' : orb ? 'orb' : r2 < 0.22 && gL < maxUp && bb + 3 < b1 ? 'up' : r2 < 0.34 && gL > 0 ? 'down' : r2 < 0.42 && kick(bb) >= 8 && (!easy || nP >= 1) && bb + 3 < b1 ? 'pad' : 'spike';
           const tFly = (dh) => (P.vj + Math.sqrt(Math.max(0, P.vj * P.vj - 2 * P.g * dh))) / P.g;   // durée de vol jusqu'à retomber dh plus haut
-          const xj = kind === 'orb' ? xl - P.v * P.ta * 0.5 : xl - P.v * (kind === 'up' ? tFly(1) : kind === 'down' ? tFly(-gL) : P.ta);
+          const xj = kind === 'orb' ? XA(xl, -P.ta * 0.5) : XA(xl, -(kind === 'up' ? tFly(1) : kind === 'down' ? tFly(-gL) : P.ta));
           if (kind === 'pad') {
             // un TREMPLIN sous un gros « boum » : on n'appuie pas, on roule dessus ; il nous lance pile sur le temps (le bord du tremplin est
             // sur le temps) et la force est réglée pour retomber sur un temps, au-dessus d'une rangée de pics
@@ -863,13 +963,13 @@
             // la force de l'orbe est réglée pour qu'on retombe sur un temps
             const tN = (P.vj + Math.sqrt(P.vj * P.vj + 2 * P.g * Math.max(0, ay - PH - gL))) / P.g, T = beatP * Math.max(1, Math.round(tN / beatP)), ok = (gL + PH - ay + P.g * T * T / 2) / T / P.vj;
             L.orbs.push({ x0: ax, y: ay, big: false, head: true, k: ok }); sortAll();
-            sim(ax + P.v * P.ta * 1.2, (g) => ({ tap: Math.abs(g.x - ax) < 0.06 }));
-            for (let sx = xj + 1.4; sx < ax + P.v * P.ta * 0.7; sx += 1) if (clear(sx - 0.2, sx + 1.2, gL + 0.8, 99)) L.spikes.push({ x0: sx, y: gL });
+            sim(XA(ax, P.ta * 1.2), (g) => ({ tap: Math.abs(g.x - ax) < 0.06 }));
+            for (let sx = xj + 1.4; sx < XA(ax, P.ta * 0.7); sx += 1) if (clear(sx - 0.2, sx + 1.2, gL + 0.8, 99)) L.spikes.push({ x0: sx, y: gL });
             sortAll(); lastB = bb + 1; continue;
           }
           if (kind === 'up') {
             // une MARCHE : on retombe dessus (sur le temps), elle dure quelques temps
-            const top = gL + 1, bx0 = xj + P.v * P.ta * 0.62, xe = X(beats[Math.min(b1 - 2, bb + 2 + Math.floor(rng() * 4))]); L.blocks.push({ x0: bx0, x1: edgeFor(xe, top, floorAt(xe)), y0: 0, y1: top }); sortAll(); gL = top;
+            const top = gL + 1, bx0 = XA(xj, P.ta * 0.62), xe = X(beats[Math.min(b1 - 2, bb + 2 + Math.floor(rng() * 4))]); L.blocks.push({ x0: bx0, x1: edgeFor(xe, top, floorAt(xe)), y0: 0, y1: top }); sortAll(); gL = top;
             sim(xl + 0.2); continue;
           }
           if (kind === 'down') {
@@ -878,35 +978,36 @@
             sim(xl + 0.2); continue;
           }
           sim(xl + 0.2);
-          const apex = xj + P.v * P.ta * 0.5, n = easy && nP === 0 ? (f >= 10 && rng() < 0.4 ? 2 : 1) : f >= 11 ? 2 + (diff > 0.5 && rng() < 0.6 ? 1 : 0) : f >= 8 || rng() < 0.3 ? 2 : 1;
-          for (let k = 0; k < n; k++) { const sx = apex - n / 2 + k; if (clear(sx - 0.25, sx + 1.25, gL + 0.78, 99)) L.spikes.push({ x0: sx, y: gL }); }
+          const apex = XA(xj, P.ta * 0.5), n = easy && nP === 0 ? (f >= 10 && rng() < 0.4 ? 2 : 1) : f >= 11 ? 2 + (diff > 0.5 && rng() < 0.6 ? 1 : 0) : f >= 8 || rng() < 0.3 ? 2 : 1;
+          for (let k = 0; k < n; k++) { const sx = apex - n / 2 + k; if (inv) { if (clear(sx - 0.25, sx + 1.25, -99, ROOF - 0.78)) L.spikes.push({ x0: sx, y: ROOF, down: true }); } else if (clear(sx - 0.25, sx + 1.25, gL + 0.78, 99)) L.spikes.push({ x0: sx, y: gL }); }
           sortAll();
         }
         while (si < SCR.length) runScript(SCR[si++]);
+        while (fi < FLE.length) doFlip(FLE[fi++]);
       }
       // fin de la partie : le plateau redescend
       { const bl = L.blocks[L.blocks.length - 1], xe = X(beats[b1 - 2]); if (bl && bl.x1 > xe - 1) bl.x1 = edgeFor(xe, bl.y1, 0); }
       sim(X(beats[b1]) - 2);
-      if (mode === 'ship') {
+      if (FLY(mode)) {
         // le couloir : autour de la trace du fantôme, avec de la marge (plus serré quand c'est difficile). 26 oct. (Benjamin : « des parois
         // lisses jusqu'à la sortie, pas moches comme la découpe ») : des courbes douces (points tous les 0,5 bloc, lissées, sans jamais
         // gêner le fantôme), qui partent du sol et du plafond à l'entrée et y reviennent en douceur à la sortie (sur 7 blocs)
-        const gap = clamp(2.9 - diff * 1.0, 1.9, 2.9), xa = xs + 0.5, xb = X(beats[b1]) - 3, xw = [];
+        const gap = clamp(2.9 - diff * 1.0, 1.9, 2.9), xa = xs + 0.5, xb = X(beats[b1]) - 3, xw = [], isW = mode === 'wave', phw = sec.mini ? PHM : PH, vS = vAt(xa) / speed;
         for (let x = xa; x <= xb + 1e-6; x += 0.5) xw.push(x);
         const n = xw.length, need = [], lo = [], hi = [];
         for (const cx of xw) {
-          let mn = 99, mx = -99; for (let k = cx - 1; k <= cx + 1.5; k += 0.1) { const y = yAt(k); mn = Math.min(mn, y); mx = Math.max(mx, y); }
-          const ramp = Math.max(0, 1 - (cx - xa) / (L.speed * 3)), mid = (mn + mx) / 2, half = Math.max(gap / 2, (mx - mn) / 2 + PH + 0.5) + ramp * 1.8 + (easy ? 0.35 : 0);   // serré : on le tient en tapotant
-          need.push([mn - PH - 0.4, mx + PH + 0.4]); lo.push(mid - half); hi.push(mid + half);
+          let mn = 99, mx = -99; for (let k = cx - (isW ? 0.3 : 1); k <= cx + (isW ? 0.3 : 1.5); k += 0.1) { const y = yAt(k); mn = Math.min(mn, y); mx = Math.max(mx, y); }
+          const ramp = Math.max(0, 1 - (cx - xa) / (L.speed * vS * 3)), mid = (mn + mx) / 2, half = isW ? (mx - mn) / 2 + phw + (sec.mini ? 0.5 : 0.7) + ramp * 1.2 : Math.max(gap / 2, (mx - mn) / 2 + PH + 0.5) + ramp * 1.8 + (easy ? 0.35 : 0);   // serré : on le tient en tapotant
+          need.push(isW ? [mn - phw - 0.12, mx + phw + 0.12] : [mn - PH - 0.4, mx + PH + 0.4]); lo.push(mid - half); hi.push(mid + half);
         }
         const smooth = (a, r) => a.map((_, i) => { let s = 0, c = 0; for (let k = -r; k <= r; k++) { const w = r + 1 - Math.abs(k); s += a[clamp(i + k, 0, n - 1)] * w; c += w; } return s / c; });
-        for (let it = 0; it < 4; it++) { const a = smooth(lo, 4), z = smooth(hi, 4); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
+        for (let it = 0; it < 4; it++) { const a = smooth(lo, isW ? 1 : 4), z = smooth(hi, isW ? 1 : 4); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
         // 26 oct. (« lisser le monticule, une montée douce pour le début ») : sur les 3,5 premières et dernières secondes, la paroi du bas ne
         // fait que monter (puis que descendre) et celle du haut que descendre (puis que monter) : aucune bosse à l'entrée ni à la sortie
-        const kE = Math.min(n - 1, Math.round((L.speed * 3.5) / 0.5));
+        const kE = Math.min(n - 1, Math.round((L.speed * vS * 3.5) / 0.5));
         for (let i = kE - 1; i >= 0; i--) { lo[i] = Math.min(lo[i], lo[i + 1]); hi[i] = Math.max(hi[i], hi[i + 1]); }
         for (let i = Math.max(1, n - kE); i < n; i++) { lo[i] = Math.min(lo[i], lo[i - 1]); hi[i] = Math.max(hi[i], hi[i - 1]); }
-        { const a = smooth(lo, 3), z = smooth(hi, 3); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
+        { const a = smooth(lo, isW ? 1 : 3), z = smooth(hi, isW ? 1 : 3); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
         const ss = (u) => u * u * (3 - 2 * u);
         // 26 oct. (« je me prends le rebord au démarrage », puis « un tout petit peu, raboté en bas, seulement le premier avion ») : au
         // tout début du PREMIER vaisseau du niveau 1, la paroi du bas reste au sol sur 8 blocs (~1 s) avant de monter ; rien d'autre ne change
@@ -915,7 +1016,7 @@
         const w0 = L.walls.length;
         for (let i = 0; i + 1 < n; i++) L.walls.push({ x0: xw[i], x1: xw[i + 1], lo0: lo[i], hi0: hi[i], lo1: lo[i + 1], hi1: hi[i + 1] });
         // on vérifie que le fantôme passe (sinon on élargit)
-        for (const w of L.walls.slice(w0)) for (let k = w.x0; k < w.x1; k += 0.1) { const y = yAt(k), u = (k - w.x0) / (w.x1 - w.x0), lo2 = lerp(w.lo0, w.lo1, u), hi2 = lerp(w.hi0, w.hi1, u); if (y - PH < lo2 + 0.15) { w.lo0 = Math.max(0, w.lo0 - 0.5); w.lo1 = Math.max(0, w.lo1 - 0.5); } if (y + PH > hi2 - 0.15) { w.hi0 = Math.min(CEIL, w.hi0 + 0.5); w.hi1 = Math.min(CEIL, w.hi1 + 0.5); } }
+        for (const w of L.walls.slice(w0)) for (let k = w.x0; k < w.x1; k += 0.1) { const y = yAt(k), u = (k - w.x0) / (w.x1 - w.x0), lo2 = lerp(w.lo0, w.lo1, u), hi2 = lerp(w.hi0, w.hi1, u); if (y - (isW ? phw * 0.6 : PH) < lo2 + (isW ? 0.05 : 0.15)) { w.lo0 = Math.max(0, w.lo0 - 0.5); w.lo1 = Math.max(0, w.lo1 - 0.5); } if (y + (isW ? phw * 0.6 : PH) > hi2 - (isW ? 0.05 : 0.15)) { w.hi0 = Math.min(CEIL, w.hi0 + 0.5); w.hi1 = Math.min(CEIL, w.hi1 + 0.5); } }
       }
     }
     sortAll();
@@ -923,20 +1024,21 @@
     L.path = path;
     // vérification finale : le fantôme rejoue tout le parcours avec ses appuis et ne doit jamais mourir (sinon on enlève l'obstacle fautif)
     L.fixes = verify(L, rec); L.rec = rec;
+    for (const g of L.gates) g.y = yAt(g.x);   // la hauteur où le fantôme passe la porte (les flèches de vitesse y sont dessinées)
     return L;
   }
   function verify(L, rec) {
     let fixes = 0;
     for (let it = 0; it < 60; it++) {
-      const st = newState(), dt = 1 / 240; let dead = null;
+      const st = newState(L.P), dt = 1 / 240; let dead = null;
       for (const o of L.orbs) o.used = false;
       for (let i = 0; i < rec.length; i++) {
-        if (st.pi < L.parts.length && st.x >= L.parts[st.pi].x) enterMode(st, L.parts[st.pi++].mode);
+        if (st.pi < L.parts.length && st.x >= L.parts[st.pi].x) enterMode(st, L.parts[st.pi++]);
         st.hold = !!(rec[i] & 1); if (rec[i] & 2) st.tap = true;
         if (step(st, L, L.P, dt)) { dead = st.x; break; }
       }
       if (dead == null) return fixes;
-      fixes++;
+      fixes++; (L.fixAt || (L.fixAt = [])).push(+dead.toFixed(1));
       const keep = (o) => o.x0 + 1.3 < dead - 1.2 || o.x0 > dead + 1.2;
       const before = L.spikes.length;
       L.spikes = L.spikes.filter(keep);
@@ -1032,7 +1134,8 @@
 
     // ---------- état ----------
     const start = Math.max(1, Math.floor(api.startLevel || 1));
-    let li = (start - 1) % LEVELS.length, tour = Math.floor((start - 1) / LEVELS.length);
+    // 27 oct. (chantier « La folie ») : plus de Tour II qui recommence les mêmes niveaux ; après le dernier, la grande victoire
+    let li = Math.min(start - 1, LEVELS.length - 1), tour = 0;
     let L = null, st = null, tG = 0, state = 'load', stT = 0, score = 0, best = 0, scoreBase = 0, orbsTaken = 0;
     let soundOn = false, partIdx = 0, partFlash = 0, prevTheme = null, themeFade = 0, banner = null, shake = 0;
     let parts = [], trail = [], texts = [], pops = [], heads = [], rival = null, holdIn = false, resumeT = 0;
@@ -1057,7 +1160,7 @@
     async function beginLevel() {
       state = 'load'; stT = 0;
       L = buildLevel(li, tour); L.fx = trackFx(L.TR); prepWorlds();
-      st = newState(); tG = 0; partIdx = -1; trail = []; prevTheme = null; themeFade = 0; banner = null;
+      st = newState(L.P); tG = 0; partIdx = -1; trail = []; prevTheme = null; themeFade = 0; banner = null;
       refreshHeads();
       rival = heads.length ? heads[Math.floor(fxr() * heads.length)] : null;
       parts = L.parts;
@@ -1094,7 +1197,7 @@
     function press(ts) { if (paused) { setPaused(false); return; } if (state === 'play') { holdIn = true; inQ.push({ d: 1, ts: okTs(ts) }); if (L && !calDone && soundOn && tG < L.TR.beats[9]) { const g = gOf(okTs(ts)); calTaps.push(g != null ? g : tG); } } }
     // un doigt, à son pas de simulation
     function applyIn(ev) {
-      if (window.__NEONLOG) window.__NEONLOG.push([ev.d, ev.g, +(st.x / L.speed).toFixed(4), st.ground, st.mode, replayX > st.x ? 1 : 0]);
+      if (window.__NEONLOG) window.__NEONLOG.push([ev.d, ev.g, +L.TX(st.x).toFixed(4), st.ground, st.mode, replayX > st.x ? 1 : 0]);
       if (ev.d) { simHold = true; st.tap = true; } else simHold = false;
       ev.n = inN++; DONE.push(ev);
     }
@@ -1164,6 +1267,13 @@
       try { if (api.celebrate) api.celebrate(CHEERS[Math.floor(fxr() * CHEERS.length)]); } catch (e) { /* rien */ }
       if (RH && soundOn) RH.stop(1.2);
     }
+    // la GRANDE VICTOIRE (tous les niveaux finis) : feu d'artifice, puis l'écran de fin de la borne
+    function win() {
+      state = 'win'; stT = 0; sfx.clear(); rumble('win'); const bonus = 5000; scoreBase += bonus; score = scoreBase;
+      texts.push({ s: 'NÉON RUSH TERMINÉ !', x: W / 2, y: H * 0.34, t: 0, life: 6, col: '#ffd34d', size: 1.25 }, { s: 'Tous les niveaux pulvérisés · +' + bonus, x: W / 2, y: H * 0.47, t: 0, life: 6, col: '#ffffff', size: 0.55 });
+      try { if (api.celebrate) api.celebrate('Néon Rush terminé !'); } catch (e) { /* rien */ }
+    }
+    function firework() { const x = camX + (fxr() - 0.2) * 14, y = 3 + fxr() * 4, c = ['#ffd34d', '#3af0ff', '#ff5ad2', '#5aff8a'][Math.floor(fxr() * 4)]; for (let i = 0; i < 22; i++) { const a = fxr() * TAU, v = 3 + fxr() * 5; pops.push({ k: 'shard', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v + 2, t: 0, life: 0.9 + fxr() * 0.6, s: 0.1 + fxr() * 0.12, c }); } pops.push({ k: 'ring', x, y, t: 0, life: 0.5, c }); sfx.pad(); }
     function update(dt) {
       stT += dt; readPad();
       if (state === 'play') {
@@ -1171,47 +1281,56 @@
         clock(dt);
         if (!calDone && L.TR.beats[9] != null && tG > L.TR.beats[9] + 0.1) calibrate();
         calMsg = Math.max(0, calMsg - dt);
-        const target = tG * L.speed, sub = 1 / 240;
+        const target = L.X(tG), sub = 1 / 240;
         let guard = 0;
         // les doigts déjà dans le passé (arrivés en retard), puis chacun à son pas de simulation
         placeIn();
         if (pendDeath) { const pd = pendDeath; pendDeath = null; if (!inQ.some((e) => e.g != null && e.g < pd.g)) { die(); return; } }
-        { const g0 = st.x / L.speed, late = inQ.find((e) => e.g != null && e.g < g0); if (late && !auto && SNAP.length) rewindFor(late.g); }
-        { const gs = st.x / L.speed; SNAP.push({ g: gs, n: inN, st: Object.assign({}, st), hold: simHold, air: lastAirG }); while (SNAP.length > 24 || (SNAP.length > 1 && SNAP[0].g < gs - 0.2)) SNAP.shift(); const n1 = SNAP[0].n; DONE = DONE.filter((e) => e.n >= n1); }
+        { const g0 = L.TX(st.x), late = inQ.find((e) => e.g != null && e.g < g0); if (late && !auto && SNAP.length) rewindFor(late.g); }
+        { const gs = L.TX(st.x); SNAP.push({ g: gs, n: inN, st: Object.assign({}, st), hold: simHold, air: lastAirG }); while (SNAP.length > 24 || (SNAP.length > 1 && SNAP[0].g < gs - 0.2)) SNAP.shift(); const n1 = SNAP[0].n; DONE = DONE.filter((e) => e.n >= n1); }
         while (st.x < target && guard++ < 60) {
-          if (st.pi < parts.length && st.x >= parts[st.pi].x) { enterMode(st, parts[st.pi].mode); if (st.x >= replayX) partStart(st.pi); st.pi++; snapClear(); }
-          { const gEnd = (st.x + L.P.v * sub) / L.speed; while (inQ.length && inQ[0].g <= gEnd) applyIn(inQ.shift()); }
+          if (st.pi < parts.length && st.x >= parts[st.pi].x) { enterMode(st, parts[st.pi]); if (st.x >= replayX) partStart(st.pi); st.pi++; snapClear(); }
+          { const gEnd = L.TX(st.x) + sub; while (inQ.length && inQ[0].g <= gEnd) applyIn(inQ.shift()); }
           st.hold = simHold;
-          if (auto && L.rec) { const r = L.rec[Math.round(st.x / (L.P.v / 240))] || 0; st.hold = !!(r & 1); if (r & 2) st.tap = true; }
+          if (auto && L.rec) { const r = L.rec[Math.round(L.TX(st.x) * 240)] || 0; st.hold = !!(r & 1); if (r & 2) st.tap = true; }
           const wasGround = st.ground, vy0 = st.vy, fx = st.x >= replayX;   // fx : faux pendant qu'on rejoue ce qui a déjà été montré
-          if (step(st, L, L.P, sub)) { if (!auto && !pendDeath && SNAP.length) pendDeath = { g: st.x / L.speed }; else die(); break; }
-          if (!st.ground) lastAirG = st.x / L.speed;
-          if (st.mode === 'cube' && wasGround && !st.ground && st.vy > 0 && vy0 <= 0 && (fx || Math.abs(st.jumpAt - replayJump) > 0.05)) { sfx.jump(); dust(st.x, st.y - PH, 4); }
+          if (step(st, L, L.P, sub)) { if (!auto && !pendDeath && SNAP.length) pendDeath = { g: L.TX(st.x) }; else die(); break; }
+          if (!st.ground) lastAirG = L.TX(st.x);
+          if (st.mode === 'cube' && wasGround && !st.ground && st.grav * st.vy > 0 && st.grav * vy0 <= 0 && (fx || Math.abs(st.jumpAt - replayJump) > 0.05)) { sfx.jump(); dust(st.x, st.y - PH * st.grav, 4); }
           if (st.orbHit || st.padHit) snapClear();
           if (st.landed && !fx) st.landed = false;
-          if (st.landed) { st.landed = false; dust(st.x, st.y - PH, 10); pops.push({ k: 'ring', x: st.x, y: st.y - PH, t: 0, life: 0.3, c: '#ffffff' }); shake = Math.max(shake, 2.5);   // l'atterrissage, sur le temps : on le sent
+          if (st.landed) { st.landed = false; const gs = st.mode === 'cube' ? st.grav : 1; dust(st.x, st.y - PH * gs, 10); pops.push({ k: 'ring', x: st.x, y: st.y - PH * gs, t: 0, life: 0.3, c: '#ffffff' }); shake = Math.max(shake, 2.5);   // l'atterrissage, sur le temps : on le sent
             // 26 oct. (Benjamin) : une chute HAUTE (étage, haut de l'escalier, grand tremplin) finit en explosion de particules, sans danger
-            if (vy0 < -L.P.vj * 1.05) { const fy = st.y - PH; for (let i = 0; i < 30; i++) { const a = Math.PI * (0.08 + 0.84 * fxr()), v = 4 + fxr() * 10; pops.push({ k: 'shard', x: st.x, y: fy + 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.6 + fxr() * 0.6, s: 0.1 + fxr() * 0.2, c: fxr() < 0.55 ? MODES.cube.col : '#ffffff' }); } pops.push({ k: 'ring', x: st.x, y: fy, t: 0, life: 0.5, c: '#ffffff' }, { k: 'ring', x: st.x, y: fy, t: -0.1, life: 0.6, c: MODES.cube.col }); shake = Math.max(shake, 7); rumble('tick'); }
+            if (gs * vy0 < -L.P.vj * 1.05) { const fy = st.y - PH * gs; for (let i = 0; i < 30; i++) { const a = Math.PI * (0.08 + 0.84 * fxr()), v = 4 + fxr() * 10; pops.push({ k: 'shard', x: st.x, y: fy + 0.05 * gs, vx: Math.cos(a) * v, vy: Math.sin(a) * v * gs, t: 0, life: 0.6 + fxr() * 0.6, s: 0.1 + fxr() * 0.2, c: fxr() < 0.55 ? MODES.cube.col : '#ffffff' }); } pops.push({ k: 'ring', x: st.x, y: fy, t: 0, life: 0.5, c: '#ffffff' }, { k: 'ring', x: st.x, y: fy, t: -0.1, life: 0.6, c: MODES.cube.col }); shake = Math.max(shake, 7); rumble('tick'); }
             // la marche « molle » : elle ondule là où l'on tombe et fait des ondes au sol (la cymbale qui résonne)
             const sb = L.blocks.find((b) => b.soft && st.x > b.x0 - 0.4 && st.x < b.x1 + 0.4 && Math.abs(st.y - PH - b.y1) < 0.06);
             if (sb) { sb.hitT = tG; sb.hitX = st.x; pops.push({ k: 'ripple', x: st.x, y: 0, t: -0.06, life: 0.9 }, { k: 'ripple', x: st.x, y: 0, t: -0.3, life: 0.9 }, { k: 'ripple', x: st.x, y: sb.y1, t: 0, life: 0.6 }); }
           }
           if (st.orbHit) { const o = st.orbHit; st.orbHit = null; orbsTaken++; sfx.orb(); rumble('tick'); pops.push({ k: 'ring', x: o.x0, y: o.y, t: 0, life: 0.35, c: '#ffd34d' }); if (o.head) { pops.push({ k: 'head', img: o.head.sad || o.head.img, x: o.x0, y: o.y, t: 0, life: 1.1, small: 1 }); texts.push({ s: 'Snif… ' + o.head.name + ' !', wx: o.x0, wy: o.y + 1.4, t: 0, life: 1.1, col: '#ffd34d', size: 0.45 }); } }
           if (st.padHit) { st.padHit = null; sfx.pad(); }
+          if (st.gateHit) { const g = st.gateHit; st.gateHit = null; snapClear(); if (fx) gateFx(g); }
+          if (st.teleAt != null && st.teleAt !== lastTele) { lastTele = st.teleAt; if (fx) { pops.push({ k: 'tele', x: st.x, y0: st.teleFrom, y: st.y, t: 0, life: 0.28 }); sfx.jump(); } }
         }
         if (state === 'play') { refR = frameNow; refG = tG; }
         if (state === 'play') { score = scoreBase + Math.floor(st.x) + orbsTaken * 25; if (st.x >= L.end) levelDone(); }
         trail.push({ x: st.x - 0.35, y: st.y }); if (trail.length > 22) trail.shift();
       } else if (state === 'dead') { if (stT > 1.5 && !overSent) { overSent = true; state = 'over'; try { api.gameOver(Math.max(0, Math.floor(score))); } catch (e) { /* rien */ } } }
-      else if (state === 'clear') { st.x += L.speed * dt; if (stT > 3) { li++; if (li >= LEVELS.length) { li = 0; tour++; } beginLevel(); } }
+      else if (state === 'clear') { st.x += (st.v || L.speed) * dt; if (stT > 3) { if (li + 1 >= LEVELS.length) win(); else { li++; beginLevel(); } } }
+      else if (state === 'win') { st.x += (st.v || L.speed) * dt; if (stT > 0.4 && fxr() < dt * 7) firework(); if (stT > 6 && !overSent) { overSent = true; state = 'over'; try { api.gameOver(Math.max(0, Math.floor(score))); } catch (e) { /* rien */ } } }
       for (const p of pops) { p.t += dt; if (p.k === 'shard' || p.k === 'dust') { p.vy -= 18 * dt; p.x += p.vx * dt; p.y += p.vy * dt; } }
       pops = pops.filter((p) => p.t < p.life);
       for (const t of texts) t.t += dt; texts = texts.filter((t) => t.t < t.life);
       shake = Math.max(0, shake - dt * 35); partFlash = Math.max(0, partFlash - dt * 2.2); themeFade = Math.max(0, themeFade - dt * 1.8);
     }
+    let lastTele = null;
+    function gateFx(g) {
+      if (g.k === 'speed') { const sp = speedLook(g.m); texts.push({ s: g.m > 1.01 ? 'VITESSE ×' + String(g.m).replace('.', ',') : 'RALENTI', x: W / 2, y: H * 0.3, t: 0, life: 1.1, col: sp[1], size: 0.85 }); sfx.portal(); shake = Math.max(shake, 5); partFlash = Math.max(partFlash, 0.5); rumble('tick'); }
+      else if (g.k === 'grav') { sfx.orb(); pops.push({ k: 'ring', x: st.x, y: st.y, t: 0, life: 0.4, c: g.g < 0 ? '#3ad8ff' : '#ffd34d' }); shake = Math.max(shake, 3); }
+      else if (g.k === 'mirror') { texts.push({ s: g.on ? 'MIROIR !' : 'À L’ENDROIT', x: W / 2, y: H * 0.3, t: 0, life: 1, col: '#ffb03a', size: 0.8 }); sfx.portal(); }
+    }
     function partStart(i) {
       const p = parts[i]; prevTheme = partIdx >= 0 ? parts[partIdx].theme : null; partIdx = i; themeFade = prevTheme ? 1 : 0; partFlash = 1;
-      banner = { t: 0, title: themeOf(p.theme).name, sub: 'Monde ' + (i + 1) + ' · ' + MODES[p.mode].name + ' — ' + MODES[p.mode].tip, col: themeOf(p.theme).acc };
+      banner = { t: 0, title: themeOf(p.theme).name, sub: 'Monde ' + (i + 1) + ' · ' + MODES[p.mode].name + (p.mini ? ' mini' : '') + ' — ' + MODES[p.mode].tip, col: themeOf(p.theme).acc };
       sfx.portal(); shake = Math.max(shake, 4);
     }
     function dust(x, y, n) { for (let i = 0; i < n; i++) pops.push({ k: 'dust', x: x - 0.2, y, vx: -1 - fxr() * 2, vy: fxr() * 2.5, t: 0, life: 0.35, s: 0.06 + fxr() * 0.08, c: '#ffffff' }); }
@@ -1258,6 +1377,7 @@
     // dessiné exactement comme en 1.34, sans aucune pulsation ; plus de zoom, d'éclair ni d'onde de choc sur les drops, plus de voile.
     // Le décor (nouveaux mondes en parallaxe) est calme ; de temps en temps, UN de ses objets réagit à un temps fort (voir fireEvent).
     const SX = (wx) => (wx - camX) * B + W * 0.3, SY = (wy) => GY - wy * B;
+    let mirT = 0, mirX = 1;   // miroir : 0 → 1 en 0,35 s ; mirX = échelle horizontale du monde (1 → −1)
     let camX = 0, lastEvK = -1, lastEvDrop = -1, evT = -99, evGap = 4, evLog = [];
     const QUIET = { t: 0, u: 0, beat: 0, even: true, bar: 0, kick: 0, kF: 0, kId: -1, snare: 0, snF: 0, snId: -1, bass: 0.3, mid: 0.5, high: 0.4, energy: 0.5, drop: 0, dropT: 99, dropId: -1, rise: 0, pal: 0 };
     const SS = { t: 0, M: QUIET, dt: 0, camX: 0, B: 30, speed: 8, a: 1 };
@@ -1298,10 +1418,11 @@
       const t = tG, bi = beatIdx(t), bt = L.TR.beats[bi], pulse = state === 'play' && t >= 0 ? Math.exp(-Math.max(0, t - bt) * 9) : 0;
       musicAt(t, dtF);
       const th = themeNow(), Wd = worldOf(th), T = Wd.T, acc = T.acc, acc2 = T.acc2;
-      SS.t = t; SS.dt = paused ? 0 : dtF; SS.camX = camX; SS.B = B; SS.speed = L.speed;
+      SS.t = t; SS.dt = paused ? 0 : dtF; SS.camX = camX; SS.B = B; SS.speed = st.v || L.speed;
       fireEvent(Wd, t);
       const sh = calm ? 0 : shake, sx = sh ? (fxr() - 0.5) * sh : 0, sy = sh ? (fxr() - 0.5) * sh : 0;
-      ctx.save(); ctx.translate(sx, sy);
+      mirT = clamp(mirT + (st.mir ? 1 : -1) * (paused ? 0 : dtF) / 0.35, 0, 1); mirX = Math.cos(Math.PI * mirT); if (Math.abs(mirX) < 0.02) mirX = mirX < 0 ? -0.02 : 0.02;
+      ctx.save(); ctx.translate(sx, sy); if (mirX !== 1) { ctx.translate(W / 2, 0); ctx.scale(mirX, 1); ctx.translate(-W / 2, 0); }
       // le décor du monde (ciel, couches en parallaxe) ; le monde d'avant s'efface en fondu au changement de monde
       const pW = prevTheme && themeFade > 0 ? worldOf(prevTheme) : null;
       drawSky(Wd, 1); drawLayers(Wd, 1);
@@ -1318,28 +1439,32 @@
       // le sol : le DESSUS d'un mur (une bande de lumière, des joints de dalles qui défilent doucement) ; en dessous, le VIDE noir
       const gTop = SY(0), wallH = B * 0.42;
       ctx.fillStyle = '#000000'; ctx.fillRect(0, gTop, W, H - gTop);
-      ctx.fillStyle = lin(ctx, 0, gTop, 0, gTop + wallH, [0, rgba(acc, 0.35 + p0 * 0.2), 0.5, rgba(T.ground, 0.95), 1, '#000000']); ctx.fillRect(0, gTop, W, wallH);
+      ctx.fillStyle = gradV('gnd' + th, gTop, gTop + wallH, [0, rgba(acc, 0.35 + p0 * 0.2), 0.5, rgba(T.ground, 0.95), 1, '#000000']); ctx.fillRect(0, gTop, W, wallH);
       const go = ((camX * B) % (B * 2) + B * 2) % (B * 2); ctx.fillStyle = rgba(acc, 0.35); for (let gx = -go; gx < W + B * 2; gx += B * 2) ctx.fillRect(gx, gTop + 3, 2, wallH * 0.7);
-      ctx.fillStyle = lin(ctx, 0, gTop + wallH, 0, H, [0, rgba(acc, 0.07), 0.4, 'rgba(0,0,0,0)']); ctx.fillRect(0, gTop + wallH, W, H - gTop - wallH);
-      if (st.mode === 'ball' || st.mode === 'ship') { const cy = SY(st.mode === 'ball' ? BALL_CEIL : CEIL); ctx.fillStyle = lin(ctx, 0, 0, 0, cy, [0, '#000000', 1, rgba(T.ground, 0.95)]); ctx.fillRect(0, 0, W, cy); glowLine(0, cy, W, cy, acc, p0); }
+      ctx.fillStyle = gradV('gnd2' + th, gTop + wallH, H, [0, rgba(acc, 0.07), 0.4, 'rgba(0,0,0,0)']); ctx.fillRect(0, gTop + wallH, W, H - gTop - wallH);
+      const cTop = ceilOf(st.mode); if (cTop) { const cy = SY(cTop); ctx.fillStyle = gradV('ceil' + th + cTop, 0, cy, [0, '#000000', 1, rgba(T.ground, 0.95)]); ctx.fillRect(0, 0, W, cy); glowLine(0, cy, W, cy, acc, p0); }
+      drawRoofs(camX - W * 0.3 / B - 2, camX + W * 0.7 / B + 2, acc, T);
       glowLine(0, gTop, W, gTop, acc, p0);
       // obstacles visibles
       const x0 = camX - W * 0.3 / B - 2, x1 = camX + W * 0.7 / B + 2;
       drawWalls(x0, x1, acc, acc2, T, p0);
-      for (const b of L.blocks) { if (b.x1 < x0 || b.x0 > x1) continue; const X0 = SX(b.x0), Y1 = SY(b.y1), w = (b.x1 - b.x0) * B, h = (b.y1 - b.y0) * B; ctx.fillStyle = T.ground; ctx.fillRect(X0, Y1, w, h); ctx.fillStyle = lin(ctx, 0, Y1, 0, Y1 + h, [0, rgba(acc, 0.32), 0.5, rgba(acc, 0.08), 1, 'rgba(0,0,0,0)']); ctx.fillRect(X0, Y1, w, h); ctx.strokeStyle = rgba(acc, 0.25); ctx.lineWidth = 1; ctx.beginPath(); for (let k = 1; k < b.y1 - b.y0; k++) { ctx.moveTo(X0, Y1 + k * B); ctx.lineTo(X0 + w, Y1 + k * B); } ctx.stroke(); glowRect(X0, Y1, w, h, acc, p0); if (b.soft) softTop(b, X0, Y1, w, acc2); }
+      for (let i = lowerIdx(L.blocks, x0 - 60); i < L.blocks.length && L.blocks[i].x0 <= x1; i++) { const b = L.blocks[i]; if (b.x1 < x0) continue; const X0 = SX(b.x0), Y1 = SY(b.y1), w = (b.x1 - b.x0) * B, h = (b.y1 - b.y0) * B; ctx.fillStyle = T.ground; ctx.fillRect(X0, Y1, w, h); ctx.fillStyle = gradV('blk' + th + '|' + b.y1 + '|' + b.y0, Y1, Y1 + h, [0, rgba(acc, 0.32), 0.5, rgba(acc, 0.08), 1, 'rgba(0,0,0,0)']); ctx.fillRect(X0, Y1, w, h); ctx.strokeStyle = rgba(acc, 0.25); ctx.lineWidth = 1; ctx.beginPath(); for (let k = 1; k < b.y1 - b.y0; k++) { ctx.moveTo(X0, Y1 + k * B); ctx.lineTo(X0 + w, Y1 + k * B); } ctx.stroke(); glowRect(X0, Y1, w, h, acc, p0); if (b.soft) softTop(b, X0, Y1, w, acc2); }
       const spk = spr('spk' + th, B, (x) => paintSpike34(x, B, acc, acc2));
-      for (const s of L.spikes) { if (s.x0 + 1 < x0 || s.x0 > x1) continue; const cx = SX(s.x0 + 0.5), by = SY(s.y); drawSpr(spk, cx, s.down ? by + B * 0.5 : by - B * 0.5, s.down ? Math.PI : 0, 1 + p0 * 0.08); }
-      for (const p of L.pads) { if (p.x0 + 1 < x0 || p.x0 > x1) continue; const cx = SX(p.x0 + 0.5), by = SY(p.y); ctx.fillStyle = rad(ctx, cx, by, 0, cx, by, B * 0.8, [0, 'rgba(255,220,80,0.9)', 1, 'rgba(255,220,80,0)']); ctx.fillRect(cx - B, by - B, B * 2, B); ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.ellipse(cx, by, B * 0.45, B * 0.18, 0, Math.PI, TAU); ctx.fill(); }
+      for (let i = lowerIdx(L.spikes, x0 - 2); i < L.spikes.length && L.spikes[i].x0 <= x1; i++) { const s = L.spikes[i]; if (s.x0 + 1 < x0) continue; const cx = SX(s.x0 + 0.5), by = SY(s.y); drawSpr(spk, cx, s.down ? by + B * 0.5 : by - B * 0.5, s.down ? Math.PI : 0, 1 + p0 * 0.08); }
+      for (const p of L.pads) { if (p.x0 + 1 < x0 || p.x0 > x1) continue; const cx = SX(p.x0 + 0.5), by = SY(p.y); ctx.save(); ctx.beginPath(); ctx.rect(cx - B, by - B, B * 2, B); ctx.clip(); drawSpr(spr('padglow', B, (x) => { x.fillStyle = rad(x, 0, 0, 0, 0, 0, B * 0.8, [0, 'rgba(255,220,80,0.9)', 1, 'rgba(255,220,80,0)']); x.fillRect(-B * 1.2, -B * 1.2, B * 2.4, B * 2.4); }), cx, by); ctx.restore(); ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.ellipse(cx, by, B * 0.45, B * 0.18, 0, Math.PI, TAU); ctx.fill(); }
       for (const o of L.orbs) { if (o.x0 + 1 < x0 || o.x0 - 1 > x1) continue; drawOrb(o, p0); if (!o.used) { const k = L.orbs.indexOf(o); if (k < 3 || (li === 0 && tour === 0)) smallText('TOUCHE !', SX(o.x0), SY(o.y) - B * 0.95, Math.max(12, B * 0.4), '#ffd34d'); } }
-      if (li === 0 && tour === 0) for (const h of L.taps) { if (h.x < st.x - 1 || h.x < x0 || h.x > x1 || h.air || h.mode === 'ship' || parts.some((q) => Math.abs(q.x - h.x) < 2.5)) continue;   // jamais de flèche au pied d'une porte (Benjamin, 26 oct.)
-      const cx = SX(h.x), gy2 = h.mode === 'ball' && h.y > BALL_CEIL / 2 ? SY(BALL_CEIL) + B * 0.25 : SY(0) - B * 0.12, up = !(h.mode === 'ball' && h.y > BALL_CEIL / 2); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba('#ffd34d', 0.55 + pulse * 0.45); const d = up ? -1 : 1; for (const k of [0, 0.42]) { ctx.beginPath(); ctx.moveTo(cx - B * 0.36, gy2 + d * k * B); ctx.lineTo(cx, gy2 + d * (k + 0.4) * B); ctx.lineTo(cx + B * 0.36, gy2 + d * k * B); ctx.lineTo(cx + B * 0.36, gy2 + d * (k + 0.14) * B); ctx.lineTo(cx, gy2 + d * (k + 0.54) * B); ctx.lineTo(cx - B * 0.36, gy2 + d * (k + 0.14) * B); ctx.closePath(); ctx.fill(); } ctx.globalCompositeOperation = 'source-over'; }
+      if (li === 0 && tour === 0) for (const h of L.taps) { if (h.x < st.x - 1 || h.x < x0 || h.x > x1 || h.air || h.mode === 'ship' || h.mode === 'ufo' || h.mode === 'wave' || parts.some((q) => Math.abs(q.x - h.x) < 2.5) || L.gates.some((q) => q.k !== 'speed' && Math.abs(q.x - h.x) < 2.5)) continue;   // jamais de flèche au pied d'une porte (Benjamin, 26 oct.)
+      const top = h.y > BALL_CEIL / 2, cx = SX(h.x), gy2 = top ? SY(h.mode === 'cube' ? ROOF : BALL_CEIL) + B * 0.25 : SY(0) - B * 0.12, up = !top; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba('#ffd34d', 0.55 + pulse * 0.45); const d = up ? -1 : 1; for (const k of [0, 0.42]) { ctx.beginPath(); ctx.moveTo(cx - B * 0.36, gy2 + d * k * B); ctx.lineTo(cx, gy2 + d * (k + 0.4) * B); ctx.lineTo(cx + B * 0.36, gy2 + d * k * B); ctx.lineTo(cx + B * 0.36, gy2 + d * (k + 0.14) * B); ctx.lineTo(cx, gy2 + d * (k + 0.54) * B); ctx.lineTo(cx - B * 0.36, gy2 + d * (k + 0.14) * B); ctx.closePath(); ctx.fill(); } ctx.globalCompositeOperation = 'source-over'; }
       parts.forEach((p, i) => { const px = p.x; if (px + 2 < x0 || px - 2 > x1) return;   // 26 oct. : la porte là où l'on se transforme vraiment
-      const m2 = i ? parts[i - 1].mode : 'cube'; drawPortal(SX(px), p.mode, p.mode === 'ship' || m2 === 'ship' ? CEIL : p.mode === 'ball' || m2 === 'ball' ? BALL_CEIL : CEIL); });
+      const m2 = i ? parts[i - 1].mode : 'cube'; drawPortal(SX(px), p.mode, Math.max(ceilOf(p.mode), ceilOf(m2)) || CEIL, p.mini); });
+      for (const g of L.gates) if (g.x > x0 - 4 && g.x < x1 + 3) drawGate(g);
       // le joueur, sa traînée, les particules
-      if (state !== 'dead' && state !== 'over') drawPlayer(p0);
+      drawSaws(x0, x1);
+      if (state !== 'dead' && state !== 'over') drawPlayer(p0, dtF);
       for (const p of pops) {
         const u = p.t / p.life;
         if (p.k === 'shard' || p.k === 'dust') { ctx.globalAlpha = 1 - u; ctx.fillStyle = p.c; const s = p.s * B; ctx.fillRect(SX(p.x) - s / 2, SY(p.y) - s / 2, s, s); }
+        else if (p.k === 'tele') { ctx.globalAlpha = 1 - u; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba(MODES.spider.col, 0.7); const xx = SX(p.x), ya = SY(p.y0), yb = SY(p.y); ctx.fillRect(xx - B * 0.3 * (1 - u), Math.min(ya, yb), B * 0.6 * (1 - u), Math.abs(yb - ya)); ctx.globalCompositeOperation = 'source-over'; }
         else if (p.k === 'ripple') { if (u < 0) continue; ctx.globalAlpha = (1 - u) * 0.8; ctx.strokeStyle = acc; ctx.lineWidth = 2.5 * (1 - u) + 0.5; ctx.beginPath(); ctx.ellipse(SX(p.x), SY(p.y), B * (0.6 + u * 4.5), B * (0.12 + u * 0.3), 0, 0, TAU); ctx.stroke(); }
         else if (p.k === 'ring') { ctx.globalAlpha = 1 - u; ctx.strokeStyle = p.c || '#ffffff'; ctx.lineWidth = 3 * (1 - u) + 1; circ(ctx, SX(p.x), SY(p.y), B * (0.5 + u * 2.5)); ctx.stroke(); }
         else if (p.k === 'head') { ctx.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1; const s = (p.small ? B * 1.6 : B * 3.5) * Math.min(1, u * 6); try { const iw = p.img.width || 160, ih = p.img.height || 200, k = s / ih; ctx.drawImage(p.img, SX(p.x) - (iw * k) / 2, SY(p.y) - s / 2 - u * B, iw * k, s); } catch (e) { /* rien */ } }
@@ -1356,6 +1481,31 @@
       else if (resumeT > 0) bigText(String(Math.ceil(resumeT / 0.4)), W / 2, H * 0.45, B * 1.8, '#ffffff');
       PERF.draw += performance.now() - tp0; PERF.n++;
     }
+    // un dégradé vertical gardé (rien ne bouge en hauteur : la caméra ne suit que x) ; vidé quand l'écran change de taille
+    let GRADS = new Map(), gradW = 0;
+    function gradV(key, y0, y1, st2) { if (gradW !== W * 10000 + H) { GRADS = new Map(); gradW = W * 10000 + H; } let g = GRADS.get(key); if (!g) { g = lin(ctx, 0, y0, 0, y1, st2); GRADS.set(key, g); } return g; }
+    function ceilOf(m) { return m === 'ship' || m === 'ufo' || m === 'wave' ? CEIL : m === 'ball' || m === 'spider' ? BALL_CEIL : 0; }
+    function speedLook(m) { for (const s2 of SPEEDS) if (m <= s2[0]) return s2; return SPEEDS[SPEEDS.length - 1]; }
+    // le plafond où court le cube à l'envers : une dalle qui descend du haut, bord de lumière
+    function drawRoofs(x0, x1, acc, T) {
+      for (const r of L.roofs) { if (r.x1 < x0 || r.x0 > x1) continue; const a = SX(Math.max(r.x0, x0)), b2 = SX(Math.min(r.x1, x1)), cy = SY(r.y);
+        ctx.fillStyle = gradV('roof' + themeNow() + r.y, 0, cy, [0, '#000000', 1, rgba(T.ground, 0.95)]); ctx.fillRect(a, 0, b2 - a, cy);
+        glowLine(a, cy, b2, cy, acc, 0); if (r.x0 >= x0) glowLine(a, 0, a, cy, acc, 0); if (r.x1 <= x1) glowLine(b2, 0, b2, cy, acc, 0); }
+    }
+    // les portails de vitesse (flèches), de gravité (porte bleue / jaune, flèche) et de miroir (porte orange) : préparés une fois
+    function drawGate(g) {
+      const x = SX(g.x);
+      if (g.k === 'speed') {
+        const sp = speedLook(g.m), c = spr('spd' + sp[2], B * 1.5, (k) => { const n = sp[2], col = sp[1], hh = B * 1.1, ww = B * 0.42; k.lineJoin = 'round'; k.lineCap = 'round'; for (let i = 0; i < n; i++) { const ox = (i - (n - 1) / 2) * ww * 0.85; k.beginPath(); k.moveTo(ox - ww / 2, -hh / 2); k.lineTo(ox + ww / 2, 0); k.lineTo(ox - ww / 2, hh / 2); k.globalCompositeOperation = 'lighter'; k.strokeStyle = rgba(col, 0.4); k.lineWidth = B * 0.3; k.stroke(); k.globalCompositeOperation = 'source-over'; k.strokeStyle = mix(col, '#ffffff', 0.45); k.lineWidth = B * 0.11; k.stroke(); } });
+        const yc = clamp(g.y != null ? g.y : 2, 0.9, 7); drawSpr(c, x, SY(yc)); return;
+      }
+      if (g.k === 'grav') { drawPortal(x, null, ROOF, false, g.g < 0 ? '#3ad8ff' : '#ffd34d', g.g < 0 ? 'up' : 'down'); return; }   // la flèche montre où l'on va tomber
+      if (g.k === 'mirror') drawPortal(x, null, CEIL, false, '#ffb03a', 'mir');
+    }
+    function drawSaws(x0, x1) {
+      for (let i = lowerIdx(L.saws, x0 - 4); i < L.saws.length && L.saws[i].x0 <= x1 + 3; i++) { const s2 = L.saws[i], R2 = s2.r * B, c = spr('saw' + s2.r + themeNow(), R2 * 1.1, (k) => { const T = themeOf(themeNow()); k.fillStyle = '#0a0418'; k.beginPath(); for (let j = 0; j < 24; j++) { const a = j / 24 * TAU, rr = j % 2 ? R2 * 0.82 : R2; k.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } k.closePath(); k.fill(); k.strokeStyle = mix(T.acc2, '#ffffff', 0.4); k.lineWidth = Math.max(1.5, B * 0.06); k.stroke(); k.strokeStyle = rgba(T.acc, 0.7); circ(k, 0, 0, R2 * 0.35); k.stroke(); });
+        drawSpr(c, SX(s2.x0), SY(s2.y), tG * 5 * (s2.dir || 1)); }
+    }
     function glowLine(xa, ya, xb, yb, col, pulse) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.18 + pulse * 0.2); ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xb, yb); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.35 + pulse * 0.4); ctx.lineWidth = 2.5; ctx.stroke(); }
     function glowRect(x, y, w, h, col, pulse) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.2 + pulse * 0.25); ctx.lineWidth = 7; ctx.strokeRect(x, y, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.3 + pulse * 0.4); ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); }
     // la marche « molle » (26 oct.) : un liseré de la 2e couleur du monde ; quand on y tombe, son dessus ondule autour du point d'impact et se calme
@@ -1366,14 +1516,15 @@
       ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = 8; ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(col, '#ffffff', 0.45); ctx.lineWidth = 2.5; ctx.stroke();
     }
     function drawWalls(x0, x1, acc, acc2, T, pulse) {
-      const ws = L.walls.filter((w) => w.x1 >= x0 && w.x0 <= x1); if (!ws.length) return;
+      const ws = []; for (let i = lowerIdx(L.walls, x0 - 2); i < L.walls.length && L.walls[i].x0 <= x1; i++) if (L.walls[i].x1 >= x0) ws.push(L.walls[i]); if (!ws.length) return;
+      const th = themeNow();
       for (const top of [true, false]) {
         // jusqu'au plafond / au sol seulement (26 oct.) : les parois qui y reviennent en douceur finissent sans découpe
         const edge = top ? SY(CEIL) : SY(0);
         ctx.beginPath(); ctx.moveTo(SX(ws[0].x0), edge);
         for (const w of ws) { ctx.lineTo(SX(w.x0), SY(top ? w.hi0 : w.lo0)); ctx.lineTo(SX(w.x1), SY(top ? w.hi1 : w.lo1)); }
         ctx.lineTo(SX(ws[ws.length - 1].x1), edge); ctx.closePath();
-        ctx.fillStyle = rgba(T.ground, 0.9); ctx.fill(); ctx.fillStyle = top ? lin(ctx, 0, 0, 0, H * 0.55, [0, 'rgba(0,0,0,0)', 1, rgba(acc2, 0.28)]) : lin(ctx, 0, H * 0.45, 0, H, [0, rgba(acc2, 0.28), 1, 'rgba(0,0,0,0)']); ctx.fill();
+        ctx.fillStyle = rgba(T.ground, 0.9); ctx.fill(); ctx.fillStyle = top ? gradV('wt' + th, 0, H * 0.55, [0, 'rgba(0,0,0,0)', 1, rgba(acc2, 0.28)]) : gradV('wb' + th, H * 0.45, H, [0, rgba(acc2, 0.28), 1, 'rgba(0,0,0,0)']); ctx.fill();
         ctx.beginPath(); ws.forEach((w, i) => { const a = [SX(w.x0), SY(top ? w.hi0 : w.lo0)]; if (!i) ctx.moveTo(a[0], a[1]); else ctx.lineTo(a[0], a[1]); ctx.lineTo(SX(w.x1), SY(top ? w.hi1 : w.lo1)); });
         ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(acc2, 0.25 + pulse * 0.25); ctx.lineWidth = 9; ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = mix(acc2, '#ffffff', 0.4); ctx.lineWidth = 2.5; ctx.stroke();
       }
@@ -1381,17 +1532,18 @@
     function drawOrb(o, pulse) {
       const cx = SX(o.x0), cy = SY(o.y), r = B * 0.42 * (1 + pulse * 0.15);
       if (o.used) { ctx.globalAlpha = 0.25; }
-      ctx.fillStyle = rad(ctx, cx, cy, 0, cx, cy, r * 2.2, [0, 'rgba(255,220,80,0.5)', 1, 'rgba(255,220,80,0)']); circ(ctx, cx, cy, r * 2.2); ctx.fill();
+      drawSpr(spr('orbglow' + (o.blue ? 'b' : ''), B, (x) => { x.fillStyle = rad(x, 0, 0, 0, 0, 0, B * 0.42 * 2.2, [0, o.blue ? 'rgba(80,200,255,0.5)' : 'rgba(255,220,80,0.5)', 1, 'rgba(255,220,80,0)']); circ(x, 0, 0, B * 0.42 * 2.2); x.fill(); }), cx, cy);
+      const oc = o.blue ? '#3ad8ff' : '#ffd34d';
       if (o.head) { ctx.save(); circ(ctx, cx, cy, r); ctx.clip(); ctx.fillStyle = '#fff6d0'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2); try { const im = o.head.img, iw = im.width || 160, ih = im.height || 200, k = (r * 2.4) / ih; ctx.drawImage(im, cx - (iw * k) / 2, cy - r * 1.15, iw * k, ih * k); } catch (e) { /* rien */ } ctx.restore(); }
-      else { ctx.fillStyle = '#ffd34d'; circ(ctx, cx, cy, r * 0.6); ctx.fill(); }
-      ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 3; circ(ctx, cx, cy, r); ctx.stroke();
+      else { ctx.fillStyle = oc; circ(ctx, cx, cy, r * 0.6); ctx.fill(); }
+      ctx.strokeStyle = oc; ctx.lineWidth = 3; circ(ctx, cx, cy, r); ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    function drawPortal(x, mode, top) {
+    function drawPortal(x, mode, top, mini, colIn, sign) {
       // 26 oct. (Benjamin : « un grand portail à la transformation, style carré propre », « jusqu'en haut, qui touche le terrain en
       // haut ») : un grand cadre lumineux aux coins arrondis, du sol au plafond (celui du vaisseau ou de la boule), couleur de la forme qu'on va prendre
       // puis (« une grande porte carrée, pas de barre en bas où le cube passe ») : deux montants et le linteau, ouverte en bas
-      const col = MODES[mode].col, y0 = SY(top || CEIL), y1 = SY(0), w = B * 2, r = B * 0.12, hgt = y1 - y0;
+      const col = colIn || MODES[mode].col, y0 = SY(top || CEIL), y1 = SY(0), w = B * 2, r = B * 0.12, hgt = y1 - y0;
       const door = (d) => { const xl = x - w / 2 + d, xr = x + w / 2 - d, yt = y0 + d, rr = Math.max(1, r - d * 0.5); ctx.beginPath(); ctx.moveTo(xl, y1); ctx.lineTo(xl, yt + rr); ctx.arcTo(xl, yt, xl + rr, yt, rr); ctx.lineTo(xr - rr, yt); ctx.arcTo(xr, yt, xr, yt + rr, rr); ctx.lineTo(xr, y1); ctx.stroke(); };
       ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = lin(ctx, x - w * 1.2, 0, x + w * 1.2, 0, [0, rgba(col, 0), 0.5, rgba(col, 0.3), 1, rgba(col, 0)]); ctx.fillRect(x - w * 1.2, y0, w * 2.4, hgt);
@@ -1399,9 +1551,14 @@
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = mix(col, '#ffffff', 0.55); ctx.lineWidth = 3.5; door(0);
       ctx.strokeStyle = rgba(col, 0.8); ctx.lineWidth = 1.5; door(6);
+      if (mini) { ctx.strokeStyle = mix(col, '#ffffff', 0.55); ctx.lineWidth = 2; door(w * 0.3); }
+      if (sign) { const yc = (y0 + y1) / 2, a = B * 0.42; ctx.strokeStyle = mix(col, '#ffffff', 0.6); ctx.lineWidth = Math.max(2, B * 0.1); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+        if (sign === 'mir') { ctx.moveTo(x - a, yc); ctx.lineTo(x + a, yc); ctx.moveTo(x - a * 0.5, yc - a * 0.5); ctx.lineTo(x - a, yc); ctx.lineTo(x - a * 0.5, yc + a * 0.5); ctx.moveTo(x + a * 0.5, yc - a * 0.5); ctx.lineTo(x + a, yc); ctx.lineTo(x + a * 0.5, yc + a * 0.5); }
+        else { const d = sign === 'down' ? 1 : -1; ctx.moveTo(x, yc - d * a); ctx.lineTo(x, yc + d * a); ctx.moveTo(x - a * 0.6, yc + d * a * 0.4); ctx.lineTo(x, yc + d * a); ctx.lineTo(x + a * 0.6, yc + d * a * 0.4); }
+        ctx.stroke(); }
     }
-    function drawPlayer(pulse) {
-      const col = MODES[st.mode].col;
+    function drawPlayer(pulse, dtF) {
+      const col = MODES[st.mode].col, rk = (dtF || 1 / 60) * 60;
       // traînée
       if (trail.length > 2) {   // une traînée propre : ruban lisse qui s'affine, couleur de la forme, cœur blanc
         const pts = trail.map((p) => [SX(p.x), SY(p.y)]), n = pts.length, Lr = [], Rr = [];
@@ -1411,11 +1568,34 @@
         ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(1.5, B * 0.06); ctx.lineCap = 'round'; ctx.beginPath(); pts.forEach((q, i) => (i > n * 0.35 ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke();
         ctx.globalCompositeOperation = 'source-over';
       }
-      const px = SX(st.x), py = SY(st.y), s = B * PH * 2;
-      const cube = spr('cube' + st.mode, s, (x) => paintCube(x, s, col, player));
+      const px = SX(st.x), py = SY(st.y), s = B * (st.mini ? PHM : PH) * 2;
+      const cube = spr('cube' + st.mode + (st.mini ? 'm' : ''), s, (x) => paintCube(x, s, col, player));
       if (st.mode === 'cube') {
-        if (!st.ground) st.rot = (st.rot || 0) + 0.12; else st.rot = Math.round((st.rot || 0) / (Math.PI / 2)) * (Math.PI / 2);
+        if (!st.ground) st.rot = (st.rot || 0) + 0.12 * rk * st.grav; else st.rot = Math.round((st.rot || 0) / (Math.PI / 2)) * (Math.PI / 2);
         drawSpr(cube, px, py, st.ground ? st.rot : st.rot, 1 + pulse * 0.05);
+      } else if (st.mode === 'ufo') {
+        // la soucoupe : une coupole (le cube dedans), une assiette, une lueur dessous qui s'allume au coup d'ailes
+        const fl = st.flapAt != null ? clamp(1 - (st.x - st.flapAt) / 2, 0, 1) : 0;
+        ctx.save(); ctx.translate(px, py); ctx.rotate(clamp(-st.vy * 0.025, -0.25, 0.25));
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba(col, 0.25 + fl * 0.5); ctx.beginPath(); ctx.ellipse(0, s * 0.45, s * 0.7, s * (0.18 + fl * 0.25), 0, 0, TAU); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(cube, -cube._h * 0.5, -s * 0.62 - cube._h * 0.5, cube._h, cube._h);
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, -s * 0.1, s * 0.55, Math.PI, TAU); ctx.stroke();
+        ctx.fillStyle = lin(ctx, 0, -s * 0.1, 0, s * 0.35, [0, mix(col, '#ffffff', 0.3), 1, mix(col, '#000000', 0.45)]); ctx.beginPath(); ctx.ellipse(0, s * 0.1, s * 1.05, s * 0.3, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#ffffff'; for (const k of [-0.6, 0, 0.6]) { circ(ctx, s * k, s * 0.12, s * 0.07); ctx.fill(); }
+        ctx.restore();
+      } else if (st.mode === 'wave') {
+        // l'onde : une flèche qui file en diagonale (le cube en petit dedans)
+        ctx.save(); ctx.translate(px, py); ctx.rotate(st.vy > 0 ? -Math.atan(st.mini ? 2 : 1) : Math.atan(st.mini ? 2 : 1));
+        const a = s * 0.85; ctx.fillStyle = lin(ctx, -a, 0, a, 0, [0, mix(col, '#000000', 0.4), 1, col]); ctx.beginPath(); ctx.moveTo(a, 0); ctx.lineTo(-a * 0.8, -a * 0.65); ctx.lineTo(-a * 0.45, 0); ctx.lineTo(-a * 0.8, a * 0.65); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.drawImage(cube, -cube._h * 0.38, -cube._h * 0.38, cube._h * 0.76, cube._h * 0.76);
+        ctx.restore();
+      } else if (st.mode === 'spider') {
+        // l'araignée : le cube avec quatre pattes, tête en bas au plafond
+        ctx.save(); ctx.translate(px, py); if (st.grav < 0) ctx.scale(1, -1);
+        ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, s * 0.09); ctx.lineCap = 'round'; const wk = Math.sin(st.x * 3) * s * 0.12;
+        ctx.beginPath(); for (const k of [-1, 1]) { ctx.moveTo(k * s * 0.3, s * 0.2); ctx.lineTo(k * s * 0.75, s * 0.15 + wk * k); ctx.lineTo(k * s * 0.85, s * 0.5); ctx.moveTo(k * s * 0.15, s * 0.3); ctx.lineTo(k * s * 0.45, s * 0.38 - wk * k); ctx.lineTo(k * s * 0.5, s * 0.5); } ctx.stroke();
+        ctx.drawImage(cube, -cube._h * 0.85, -cube._h * 0.95, cube._h * 1.7, cube._h * 1.7);
+        ctx.restore();
       } else if (st.mode === 'ship') {
         ctx.save(); ctx.translate(px, py); ctx.rotate(clamp(-st.vy * 0.06, -0.5, 0.5));
         ctx.fillStyle = lin(ctx, -s, 0, s, 0, [0, mix(col, '#000000', 0.4), 1, col]); ctx.beginPath(); ctx.moveTo(s * 1.0, s * 0.1); ctx.lineTo(-s * 0.9, -s * 0.35); ctx.lineTo(-s * 0.6, s * 0.1); ctx.lineTo(-s * 0.9, s * 0.45); ctx.closePath(); ctx.fill();
@@ -1424,7 +1604,7 @@
         ctx.drawImage(cube, -cube._h * 0.55, -s * 0.85 - cube._h * 0.55 + s * 0.4, cube._h * 1.1, cube._h * 1.1);
         ctx.restore();
       } else {
-        st.rot = (st.rot || 0) + 0.14 * st.grav;
+        st.rot = (st.rot || 0) + 0.14 * st.grav * rk;
         ctx.save(); ctx.translate(px, py); ctx.rotate(st.rot);
         ctx.fillStyle = rad(ctx, 0, 0, s * 0.2, 0, 0, s * 0.85, [0, rgba(col, 0.35), 1, rgba(col, 0)]); circ(ctx, 0, 0, s * 0.85); ctx.fill();
         ctx.save(); circ(ctx, 0, 0, s * 0.5); ctx.clip(); ctx.drawImage(cube, -cube._h, -cube._h, cube._h * 2, cube._h * 2); ctx.restore();
@@ -1442,14 +1622,14 @@
       for (let i = 1; i < parts.length; i++) { const p = parts[i]; if (!p) continue; const u = p.x / L.end; ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(bx + bw * u - 1, by - 2, 2, 12); }
       smallText(Math.floor(pr * 100) + ' %', W / 2, by + 22, Math.max(12, B * 0.4), '#ffffff');
       ctx.font = '400 ' + Math.round(Math.max(18, B * 0.7)) + 'px ' + FONT.display; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(4,2,14,0.85)'; ctx.strokeText(String(score), 12, 8); ctx.fillStyle = '#ffffff'; ctx.fillText(String(score), 12, 8);
-      smallText('Niveau ' + levelNo() + ' · ' + L.LV.name + (tour ? ' · Tour ' + (tour + 1) : ''), 12, 8 + Math.max(18, B * 0.7) + 12, Math.max(11, B * 0.36), acc, 'left');
+      smallText('Niveau ' + levelNo() + ' / ' + LEVELS.length + ' · ' + L.LV.name, 12, 8 + Math.max(18, B * 0.7) + 12, Math.max(11, B * 0.36), acc, 'left');
       // compte à rebours sur les temps de l'élan : 3, 2, 1, GO
       if (state === 'play' && bi >= 3 && bi <= 7 && t < L.TR.beats[8]) { const k = 7 - bi, s = k > 0 ? String(k) : 'GO !'; bigText(s, W / 2, H * 0.42, B * (1.6 + pulse * 0.4), k > 0 ? '#ffffff' : acc); if (bi === 3 || (bi > 3 && L.lastTick !== bi)) { if (L.lastTick !== bi) { L.lastTick = bi; sfx.tick(k); } } }
       if (state === 'play' && t < L.TR.beats[3]) { bigText(L.LV.name.toUpperCase(), W / 2, H * 0.36, B * 0.95, acc2); smallText(levelNo() === 1 ? 'Touche l’écran pour sauter, pile sur le temps !' : 'Niveau ' + levelNo(), W / 2, H * 0.48, Math.max(13, B * 0.45), '#ffffff'); }
       if (state === 'play' && soundOn && bi >= 3 && t < L.TR.beats[8]) smallText('Tape en rythme sur 3, 2, 1, GO : ça cale le son', W / 2, H * 0.58, Math.max(12, B * 0.38), '#ffd34d');
       if (calMsg > 0) { ctx.globalAlpha = Math.min(1, calMsg); smallText('Son calé ✓' + (CAL > 0.06 ? ' (retard ' + Math.round(CAL * 1000) + ' ms)' : ''), W / 2, H * 0.58, Math.max(12, B * 0.38), '#5affd2'); ctx.globalAlpha = 1; }
       if (banner) { banner.t += 1 / 60; const u = banner.t; if (u > 2.4) banner = null; else { const a = u < 0.15 ? u / 0.15 : u > 2 ? (2.4 - u) / 0.4 : 1; ctx.globalAlpha = a; bigText(banner.title.toUpperCase(), W / 2 + (1 - Math.min(1, u * 5)) * W * 0.3, H * 0.3, B * 0.95, banner.col); smallText(banner.sub, W / 2, H * 0.3 + B * 0.85, Math.max(12, B * 0.4), '#ffffff'); ctx.globalAlpha = 1; } }
-      for (const tx of texts) { const u = tx.t / tx.life, a = u > 0.7 ? (1 - u) / 0.3 : 1; ctx.globalAlpha = a; const x = tx.wx != null ? SX(tx.wx) : tx.x, y = tx.wy != null ? SY(tx.wy) - u * B : tx.y - u * B * 0.5; bigText(tx.s, x, y, B * tx.size, tx.col); ctx.globalAlpha = 1; }
+      for (const tx of texts) { const u = tx.t / tx.life, a = u > 0.7 ? (1 - u) / 0.3 : 1; ctx.globalAlpha = a; const x = tx.wx != null ? W / 2 + (SX(tx.wx) - W / 2) * mirX : tx.x, y = tx.wy != null ? SY(tx.wy) - u * B : tx.y - u * B * 0.5; bigText(tx.s, x, y, B * tx.size, tx.col); ctx.globalAlpha = 1; }
     }
     // qualité automatique : si les images n'arrivent plus (moins de ~50 par seconde, mesuré sur l'horloge réelle), l'écran devient
     // un peu moins fin (une fois, puis une deuxième au plus) ; jamais pendant le chargement ni en pause
