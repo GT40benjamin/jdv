@@ -4587,6 +4587,7 @@ if (PG_TAB) {
 // avec un fondu enchaîné de 2 s ; seul le plan suivant est préchargé. Appareil qui économise les données ou préfère moins d'animations :
 // les affiches seules, qui changent toutes les minutes. Pas de liste (ou pas d'affiche) : l'ancienne vidéo unique (decor.webm), sinon le
 // ciel dessiné reste en secours. Pause hors de la page Pégase.
+const PG_PLAN_S = 15;   // durée d'un plan à l'écran (s) ; les plans filmés durent ~60 s (26 oct. 2026, Benjamin : « essayer 15 s »)
 const PGD = { state: '', still: false, list: [], order: [], cur: -1, act: 0, t: 0, tok: 0, nextAt: 0 };
 const pgVid = (i) => $(i ? 'jdw-pg-video2' : 'jdw-pg-video');
 // la qualité : l'écran (largeur réelle en pixels) et le débit mesuré (Mbit/s)
@@ -4672,11 +4673,11 @@ function pgDecorNext() {
   nxt.classList.remove('off'); cur.classList.add('off');   // fondu enchaîné de 2 s (CSS)
   if (!PGD.still && MODE === 'pegase') { try { nxt.currentTime = 0; } catch (e) {} nxt.play().catch(() => {}); }
   setTimeout(() => { if (tok !== PGD.tok || cur === pgVid(PGD.act)) return; try { cur.pause(); } catch (e) {} if (PGD.list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(cur, PGD.list[PGD.pre].id); cur.dataset.id = PGD.list[PGD.pre].id; } }, 2300);   // le suivant se précharge dans la vidéo libérée
-  clearTimeout(PGD.t); if (PGD.still) PGD.t = setTimeout(pgDecorNext, 60000);   // affiches seules : une par minute
+  clearTimeout(PGD.t); if (PGD.still) PGD.t = setTimeout(pgDecorNext, PG_PLAN_S * 1000);   // affiches seules : une par plan
 }
-function pgDecorTick(v) {   // un plan qui s'achève : 2 s avant la fin, le suivant prend le relais
+function pgDecorTick(v) {   // un plan qui s'achève (PG_PLAN_S, ou 2 s avant la fin) : le suivant prend le relais
   if (v !== pgVid(PGD.act) || PGD.list.length < 2 || MODE !== 'pegase') return;
-  if (v.duration && isFinite(v.duration) && v.currentTime > v.duration - 2.05 && !v.dataset.done) { v.dataset.done = '1'; pgDecorNext(); }
+  if (v.duration && isFinite(v.duration) && v.currentTime > Math.min(v.duration - 2.05, PG_PLAN_S) && !v.dataset.done) { v.dataset.done = '1'; pgDecorNext(); }
 }
 // GARDIEN de l'enchaînement (toutes les 2 s) : si « timeupdate » se tait (onglet en arrière-plan, appli, navigateur avare), si la vidéo est
 // finie ou figée, ou si un plan est à l'écran depuis plus de 75 s, on passe au suivant. Avec plusieurs plans, jamais de boucle.
@@ -4707,7 +4708,7 @@ function pgDecor(on) {
     if (list.length) {
       // la liste : on vérifie l'affiche du premier plan avant d'éteindre le ciel ; un seul plan tourne en boucle, sans coupure
       PGD.list = list; const first = pgDecorPick(), im = new Image();
-      im.onload = () => { ok(); PGD.cur = first; PGD.act = 0; v.loop = list.length === 1; pgPoster(list[first].id); pgDecorSrc(v, list[first].id); v.dataset.id = list[first].id; v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); if (list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(v2, list[PGD.pre].id); v2.dataset.id = list[PGD.pre].id; } if (PGD.still) PGD.t = setTimeout(() => pgDecorNext(), 60000); };
+      im.onload = () => { ok(); PGD.cur = first; PGD.act = 0; v.loop = list.length === 1; pgPoster(list[first].id); pgDecorSrc(v, list[first].id); v.dataset.id = list[first].id; v.classList.remove('off'); if (!PGD.still && MODE === 'pegase') v.play().catch(() => {}); if (list.length > 1) { PGD.pre = pgDecorPick(); pgDecorSrc(v2, list[PGD.pre].id); v2.dataset.id = list[PGD.pre].id; } if (PGD.still) PGD.t = setTimeout(() => pgDecorNext(), PG_PLAN_S * 1000); };
       im.onerror = () => { PGD.state = 'bad'; };
       im.src = pgPosterUrl(list[first].id);
       return;

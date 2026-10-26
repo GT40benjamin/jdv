@@ -12,12 +12,12 @@ elixirgamestudio.com. Le service worker de l'ancienne adresse reste figé (sa mi
 
 ## Ce qui est publié (racine du dépôt) — site PUBLIC depuis la 1.7 (plus de mot de passe du site)
 - `index.html` : SITE DU STUDIO « Elixir Game Studio » (copie de `source/accueil.html`, style « écran titre » de jeu vidéo) : grand panneau
-  plein écran (blason fiole + ELIXIR / Game Studio ; fond = les VRAIS plans 4K de Pégase du seau R2 (decor_29b, 28, 34, 31, 21b, 35, ~20 s
+  plein écran (blason fiole + ELIXIR / Game Studio ; fond = les VRAIS plans 4K de Pégase du seau R2 (decor_29b, 28, 34, 31, 21b, 35, 15 s
   chacun en fondu, qualité selon l'écran : 720 / 1080 / 1440 / 2160, version verticale _m_720 / _m_1080 sur un écran en hauteur, une qualité
   de moins si la vidéo attend le réseau), affiche nette `assets/pegase/<plan>_poster.jpg` d'abord, vidéo après la page, jamais en économie de
   données / réseau lent / mouvement réduit (affiches seules) ; étincelles
   dessinées) avec DEUX boutons : Pégase → `jouer/?pegase`, La Borne d'arcade → `jouer/?borne` (la borne côté arcade : MODE = PG.last dans
-  shell2.js), puis « Le studio » (décision de Benjamin, 26 oct. : pas de présentation des jeux sur cette page, juste les deux boutons).
+  shell2.js), puis « Le studio », puis « Nos jeux » (`#jeux`, demande de Benjamin : Pégase à GAUCHE avec un plan filmé decor_01 du seau R2, la Borne à DROITE avec un mur de 6 vignettes animées, vidéos seulement quand la section est à l'écran). Plans du panneau : 15 s chacun (SHOW).
   Aperçu des liens : `node source/studio-media.js` → `accueil/studio-partage.jpg` (blason sur l'affiche decor_29b).
   Vignettes des jeux dans `accueil/` (servent à jouer/ et au partage) fabriquées UNIQUEMENT à partir des preview() des jeux par
   `source/accueil-media.js` (jamais de photo). Redirige vers `jouer/` dans l'appli, en PWA installée, ou si l'adresse a des paramètres
@@ -534,4 +534,4 @@ build2.py liste les .bin dans window.JDW_MUSIC_ENC et injecte window.JDW_ASSET_K
 
 magicv1 retiré le 18 oct.
 
-**Page Pégase pour tous (25 oct. 2026, accord de l'utilisateur)** : `PG_TAB = !!gameById('pegase')` dans shell2.js (avant : mode test). La borne s'ouvre sur Pégase (onglet tout à gauche) ; îles (pg_island_*), décor filmé (`assets/pegase/decor.json` + `decor_NN_<q>.webm|mp4`, qualité adaptative, cache `jdw-decor` du service worker), musique en suite (pgsuite-1…4), charte Pégase (`body.pg-charte`). Restent en mode test : l'indicateur de qualité vidéo (`pgQualTag`) et le journal `window.JDW_DECOR`. Essais : `~/jdv-tools/duotest/iles/` (enchaine.js, qualite.js, mise.js, ambiance.js…).
+**Page Pégase pour tous (25 oct. 2026, accord de l'utilisateur)** (26 oct. : chaque plan filmé reste 15 s à l'écran, `PG_PLAN_S`) : `PG_TAB = !!gameById('pegase')` dans shell2.js (avant : mode test). La borne s'ouvre sur Pégase (onglet tout à gauche) ; îles (pg_island_*), décor filmé (`assets/pegase/decor.json` + `decor_NN_<q>.webm|mp4`, qualité adaptative, cache `jdw-decor` du service worker), musique en suite (pgsuite-1…4), charte Pégase (`body.pg-charte`). Restent en mode test : l'indicateur de qualité vidéo (`pgQualTag`) et le journal `window.JDW_DECOR`. Essais : `~/jdv-tools/duotest/iles/` (enchaine.js, qualite.js, mise.js, ambiance.js…).

@@ -177,6 +177,42 @@ footer nav{display:flex;gap:20px;flex-wrap:wrap}
 footer a{text-decoration:none;color:var(--soft)}
 footer a:hover{color:var(--gold2)}
 
+/* ---------- nos deux jeux : Pégase à gauche, la Borne à droite ---------- */
+.duo{position:relative;padding:clamp(70px,10vw,130px) 0 clamp(70px,9vw,120px);border-top:1px solid var(--line);
+  background:radial-gradient(50% 60% at 15% 50%,rgba(60,230,170,.08),transparent 70%),radial-gradient(50% 60% at 85% 50%,rgba(255,80,210,.09),transparent 70%)}
+.duo .head{text-align:center;margin-bottom:clamp(30px,4vw,54px)}
+.duo .head .kick{justify-content:center}
+.duo .pair{display:grid;gap:clamp(18px,2.4vw,30px)}
+@media (min-width:900px){.duo .pair{grid-template-columns:1fr 1fr}}
+.gm{--a:var(--gold);position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--card);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--a) 45%,transparent),0 0 44px -10px color-mix(in srgb,var(--a) 55%,transparent),0 30px 70px -24px rgba(0,0,0,.9)}
+.gm.pg{--a:#4ff0bf}.gm.ar{--a:#ff5fd2}
+.gm .hud{position:absolute;inset:8px;z-index:4;pointer-events:none;--c:var(--a);
+  background:
+    linear-gradient(var(--c),var(--c)) 0 0/20px 2px,linear-gradient(var(--c),var(--c)) 0 0/2px 20px,
+    linear-gradient(var(--c),var(--c)) 100% 0/20px 2px,linear-gradient(var(--c),var(--c)) 100% 0/2px 20px,
+    linear-gradient(var(--c),var(--c)) 0 100%/20px 2px,linear-gradient(var(--c),var(--c)) 0 100%/2px 20px,
+    linear-gradient(var(--c),var(--c)) 100% 100%/20px 2px,linear-gradient(var(--c),var(--c)) 100% 100%/2px 20px;
+  background-repeat:no-repeat;filter:drop-shadow(0 0 4px var(--c))}
+.gm .media{position:relative;aspect-ratio:16/9;overflow:hidden;background:#05060a}
+.gm .media img,.gm .media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gm .media video{opacity:0;transition:opacity .8s ease}.gm .media video.on{opacity:1}
+.gm .media::after{content:'';position:absolute;inset:auto 0 0;height:38%;pointer-events:none;background:linear-gradient(180deg,transparent,var(--card))}
+.gm .wall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:3px;background:#05060a}
+.gm .wall i{position:relative;overflow:hidden}
+.gm .wall img,.gm .wall video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gm .lbl{position:absolute;left:18px;top:18px;z-index:2;display:flex;align-items:center;gap:8px;font:800 11.5px/1 var(--head);letter-spacing:.2em;text-transform:uppercase;
+  color:#fff;padding:8px 11px;background:rgba(6,7,13,.74);border-left:3px solid var(--a)}
+.gm .body{display:flex;flex-direction:column;flex:1;padding:clamp(18px,2.4vw,28px) clamp(20px,2.6vw,32px) clamp(22px,2.6vw,30px)}
+.gm .tg{align-self:flex-start;font:800 11px/1 var(--head);letter-spacing:.2em;text-transform:uppercase;color:#06070d;background:var(--a);padding:6px 9px 5px}
+.gm h3{margin:12px 0 0;font:800 clamp(28px,3vw,40px)/1.02 var(--head);text-transform:uppercase}
+.gm p{margin:10px 0 0;color:var(--soft)}
+.gm ul{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:9px}
+.gm li{display:flex;gap:12px;align-items:baseline;font:600 15.5px/1.4 var(--text);color:var(--ink)}
+.gm li::before{content:'';flex:none;width:0;height:0;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent var(--a);transform:translateY(-1px)}
+.gm .go{margin-top:auto;padding-top:22px}
+.gm .door{min-width:0;width:auto}
+
 /* apparition */
 .rv{opacity:0;transform:translateY(22px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
 .rv.in{opacity:1;transform:none}
@@ -231,6 +267,7 @@ footer a:hover{color:var(--gold2)}
   <a class="mark" href="./" aria-label="Elixir Game Studio, accueil"><svg class="em" viewBox="0 0 64 72" aria-hidden="true"><use href="#emblem"/></svg>ELIXIR</a>
   <nav aria-label="Navigation">
     <a href="#studio">Le studio</a>
+    <a href="#jeux">Nos jeux</a>
   </nav>
 </div></header>
 
@@ -267,11 +304,56 @@ footer a:hover{color:var(--gold2)}
     </div>
   </div>
 </section>
+<section class="duo" id="jeux" aria-labelledby="jeux-t">
+  <div class="wrap">
+    <div class="head">
+      <span class="kick rv">Nos jeux</span>
+      <h2 id="jeux-t" class="rv">Deux mondes, <em>une même envie</em></h2>
+    </div>
+    <div class="pair">
+      <article class="gm pg rv">
+        <div class="media" id="duo-pg">
+          <img src="assets/pegase/decor_01_poster.jpg" alt="Pégase : une prairie de tournesols et de fleurs sauvages, filmée dans le jeu" width="1920" height="1080" loading="lazy" decoding="async">
+          <span class="lbl">Filmé dans le jeu</span>
+        </div>
+        <div class="body">
+          <span class="tg">Monde ouvert 3D · PC et Android</span>
+          <h3>Pégase</h3>
+          <p>Une île à explorer à ton rythme, un village à faire vivre et des animaux sauvages à approcher.</p>
+          <ul>
+            <li>Photographie les animaux et remplis ton grand livre</li>
+            <li>Construis ta maison et décore-la</li>
+            <li>Retrouve tes copains sur ton île</li>
+          </ul>
+          <div class="go"><a class="door pg" href="jouer/?pegase">Entrer dans Pégase</a></div>
+        </div>
+        <div class="hud" aria-hidden="true"></div>
+      </article>
+      <article class="gm ar rv">
+        <div class="media">
+          <div class="wall" id="duo-ar" aria-hidden="true"></div>
+        </div>
+        <div class="body">
+          <span class="tg">23 mini-jeux · téléphone et PC</span>
+          <h3>La Borne d’arcade</h3>
+          <p>Des parties rapides et déjantées, des records à battre entre copains, petits et grands. Même sans compte.</p>
+          <ul>
+            <li>Bats les records en solo</li>
+            <li>Duels face à face sur le même téléphone, contre l’IA ou en ligne</li>
+            <li>Joue à deux contre le jeu en Coop</li>
+          </ul>
+          <div class="go"><a class="door ar" href="jouer/?borne">Jouer à la borne</a></div>
+        </div>
+        <div class="hud" aria-hidden="true"></div>
+      </article>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer><div class="wrap">
   <span>© 2026 Elixir Game Studio · fait maison, en France</span>
-  <nav aria-label="Liens"><a href="telecharger/">Appli Android</a></nav>
+  <nav aria-label="Liens"><a href="#jeux">Nos jeux</a><a href="telecharger/">Appli Android</a></nav>
 </div></footer>
 
 <script>
@@ -292,8 +374,8 @@ footer a:hover{color:var(--gold2)}
   // ---------- panneau d'entrée : les PLANS FILMÉS de Pégase, les vrais (tournés en 4K, sur le seau R2 comme ceux de la page Pégase) ----------
   // Affiche nette d'abord (assets/pegase/<plan>_poster.jpg, ou _m_poster en hauteur), puis la vidéo après le chargement de la page :
   // qualité selon l'écran (720 / 1080 / 1440 / 2160, version verticale _m_720 / _m_1080 sur un écran en hauteur) et la connexion ;
-  // un plan ~20 s, puis le suivant en fondu (seul le plan suivant est préchargé ; l'ancien est vidé pour arrêter son téléchargement).
-  var R2 = 'https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/', SHOW = 20, FADE = 1.6;
+  // un plan 15 s, puis le suivant en fondu (seul le plan suivant est préchargé ; l'ancien est vidé pour arrêter son téléchargement).
+  var R2 = 'https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/', SHOW = 15, FADE = 1.6;
   var PLANS = [
     ['decor_29b', 'Le lac de l’arbre rouge'], ['decor_28', 'Cascade du lac de montagne'], ['decor_34', 'Panorama depuis la falaise'],
     ['decor_31', 'Place du village sous les étoiles'], ['decor_21b', 'Le lac au lever, les oies'], ['decor_35', 'Le bosquet du grand-duc']
@@ -390,6 +472,28 @@ footer a:hover{color:var(--gold2)}
   }, { threshold: 0.02 }).observe(document.querySelector('.hero'));
 
   document.addEventListener('visibilitychange', function () { if (!document.hidden) flyOn(); if (reel) { if (document.hidden) reel.pause(); else if (heroOn) play(reel); } });
+
+  // ---------- nos deux jeux : vidéos seulement quand la section est à l'écran ----------
+  var WALL = [['neon', 'Néon Rush'], ['kombat', 'Mandale Kombat'], ['smoothie', 'Smoothie Samouraï'], ['toupies', 'Turbo Toupies'], ['magic', 'Magic Force'], ['bolides', 'Bolides RC']];
+  var wall = $('duo-ar'), duoPg = $('duo-pg'), duoV = [], duoOn = false, duoReady = false;
+  var webm = !!(vt.canPlayType && vt.canPlayType('video/webm; codecs="vp9"'));
+  function duoFill() {
+    if (duoReady) return; duoReady = true;
+    WALL.forEach(function (g) {
+      var cell = document.createElement('i'), im = new Image(); im.alt = ''; im.decoding = 'async'; im.width = 560; im.height = 420; im.src = 'accueil/' + g[0] + '.webp'; cell.title = g[1]; cell.appendChild(im);
+      if (webm && !still && !light) { var v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'none'; v.src = 'accueil/' + g[0] + '.webm'; v.addEventListener('playing', function () { v.classList.add('on'); }); cell.appendChild(v); duoV.push(v); }
+      wall.appendChild(cell);
+    });
+    if (canVid && !still && !light) {   // Pégase : un plan filmé en 720p / 1080p selon la taille de la carte
+      var v = document.createElement('video'), d = Math.min(window.devicePixelRatio || 1, 3), q = duoPg.clientWidth * d > 700 ? 1080 : 720;
+      v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'none'; v.src = R2 + 'decor_01_' + q + '.mp4'; v.setAttribute('aria-hidden', 'true');
+      v.addEventListener('playing', function () { v.classList.add('on'); }); duoPg.insertBefore(v, duoPg.querySelector('.lbl')); duoV.push(v);
+    }
+  }
+  function duoRun() { duoV.forEach(function (v) { if (duoOn && !document.hidden) play(v); else v.pause(); }); }
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { duoOn = es[0].isIntersecting; if (duoOn) duoFill(); duoRun(); }, { rootMargin: '200px 0px' }).observe(document.querySelector('.duo'));
+  else { duoOn = true; duoFill(); duoRun(); }
+  document.addEventListener('visibilitychange', duoRun);
 
   // ---------- typographie française : espace insécable avant ! ? : ; ----------
   var tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
