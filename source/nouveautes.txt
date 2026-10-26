@@ -2,6 +2,12 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[neon] ## 🕹️ Néon Rush : niveau 2 refait, 4 mondes tout neufs (borne 1.42)
+[neon] Quatre décors jamais vus : la Salle d’Arcade (bornes allumées, « INSERT COIN »), l’Autoroute Rétro (voitures qui filent vers le soleil), la Plage au Crépuscule (un dauphin saute parfois devant le soleil) et Tokyo Néon (cerisiers, torii, enseignes)
+[neon] Nouveau : les CHAÎNES D’ORBES ! On touche une orbe en l’air pile sur chaque temps, au-dessus d’un champ de pics (orbe rose = petit coup, jaune = grand)
+[neon] Nouveau : le VAISSEAU MINI dans la pause planante de la musique, un couloir bien plus serré
+[neon] La gravité bascule trois fois (dans la salle d’arcade et à Tokyo) et la vitesse monte deux fois, sur les deux gros drops
+[neon] Corrigé : au final du niveau 1, le second tremplin n’est plus dans le vide
 [borne] ## 🔧 Lien « Sur un autre téléphone » (borne 1.41.1)
 [borne] Corrigé : le lien envoyé pour un enfant marche aussi quand la borne est déjà ouverte dans le navigateur (avant, il ne se passait rien)
 [borne] ## 📲 Tes enfants sur un autre téléphone (borne 1.41)
