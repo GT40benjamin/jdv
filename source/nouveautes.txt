@@ -13,6 +13,16 @@
 [borne] Un nouvel onglet ILO, à gauche de Pégase : la présentation du Silence d'ILO, avec sa bande-annonce filmée dans le jeu qui tourne en boucle. Touche « Le son » pour entendre sa musique
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec la même bande-annonce
+[pegase] ## 🛶 Pégase 0.9.9.2 : la descente en barque, l'Hôtel d'Ailebrune et 20 trésors cachés (borne 1.49)
+[pegase] Une barque t'attend au bord de la grande poche, sous le pont rouge, à côté d'un panneau en bois : « Descendre la rivière en barque »
+[pegase] Le courant te porte jusqu'à la mer : les gorges et leurs rapides, les méandres calmes, l'estuaire et sa plage. Gauche / droite pour te décaler, avant pour ramer, arrière pour freiner
+[pegase] Un chrono pendant la descente (environ 5 minutes) : ton meilleur temps est gardé. Et prends des photos en route !
+[pegase] À tout moment, « Quitter la barque » te pose sur la berge, et la barque retourne toute seule à son ponton
+[pegase] 🐚 20 trésors sont cachés le long de l'eau, sans flèche ni carte : coquillages rares, pièces anciennes, vieilles cartes postales et bouteilles à message qui racontent d'étranges traces dans le ciel… Un petit éclat de lumière les trahit quand on passe tout près. Certains ne se voient que depuis la barque !
+[pegase] 🏨 L'Hôtel d'Ailebrune ouvre ses portes au bord de la falaise, à l'entrée sud du village : 12 chambres sur 3 étages, toutes différentes, avec vue sur la vallée.
+[pegase] 🛎️ Edmond t'accueille au comptoir (il s'ennuie un peu…), Mariette fait les chambres, et des voyageurs venus de partout y séjournent une semaine : tu les croiseras dans le salon, l'escalier ou sur la place du village.
+[pegase] 🧳 Les clients de l'hôtel arrivent et repartent avec leur valise à la main, et s'installent dans les fauteuils et le canapé du salon.
+[pegase] 🛋️ Grand hall avec salon, piano, gramophone, livre d'or et lustres. Tu arrives maintenant juste devant la porte de l'hôtel. Bientôt, les clients arriveront en avion !
 [pegase] ## 🌱 Pégase 0.9.9.1 : l'arrosoir en main et la vie sauvage (borne 1.48.4)
 [pegase] L'arrosoir en main : choisis-le dans ta barre, ton héroïne le porte par l'anse, le lève et le penche au-dessus du potager : l'eau coule et la terre fonce
 [pegase] Une goutte bleue flotte au-dessus d'un potager qui a soif : tu vois tout de suite où arroser

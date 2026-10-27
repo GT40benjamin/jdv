@@ -1,45 +1,47 @@
 {
-  "version": "0.9.9.1",
-  "build": 52,
-  "size": 2119770646,
-  "sha256": "9493739079a779df90970742e96c24ea85d71e967ceec7a61a6596d4db85b4eb",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v52/Pegase-PC-2026-10-27-0.9.9.1.zip",
-  "manifest": "82d42cf2d21e2a3f1e4456333333c594dcf018fffce7b7fd304ed38026bbbc5a",
+  "version": "0.9.9.2",
+  "build": 53,
+  "size": 2122201033,
+  "sha256": "dce2943db8b3ed68a2c4947eaa6545082b3e904bdd44e3c8641b58cb939cc180",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v53/Pegase-PC-2026-10-27-0.9.9.2.zip",
+  "manifest": "793aad4b90254a2847db4b4de77bb4f16e1f316b36c33a74dd1ba876d6b854d5",
   "patchs": [
     {
+      "de": "0.9.9.1",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v53/Pegase-PC-patch-0.9.9.1.zip",
+      "taille": 8257219,
+      "sha256": "615dac0f99fe799d1868574acba1c048d6234e79a202fdd152175251041f62bb"
+    },
+    {
       "de": "0.9.9",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v52/Pegase-PC-patch-0.9.9.zip",
-      "taille": 4090143,
-      "sha256": "05f103b639ffb8eb2453b95832bdba10e63f68b9a48ae411dd8fb13e0ad8a4a2"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v53/Pegase-PC-patch-0.9.9.zip",
+      "taille": 8362550,
+      "sha256": "728897b8d9cdb1edad260e6385e491dab4e4119161acc67d0e563e8c5361aca7"
     },
     {
       "de": "0.9.8.9",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v52/Pegase-PC-patch-0.9.8.9.zip",
-      "taille": 4764088,
-      "sha256": "c059d58c92f2896d84a799422df6597e363da196bb4cb7d25999fac01dba3361"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v53/Pegase-PC-patch-0.9.8.9.zip",
+      "taille": 8914192,
+      "sha256": "2fdfeb558add2690b675682358b509376e75c1e75a73ee4d76aac11bfa571554"
     },
     {
       "de": "0.9.8.8",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v52/Pegase-PC-patch-0.9.8.8.zip",
-      "taille": 11387748,
-      "sha256": "1101c24373742a44ce6318fd0eeba1bdc785d5253f537b905d02b718b6aa887f"
-    },
-    {
-      "de": "0.9.8.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v52/Pegase-PC-patch-0.9.8.7.zip",
-      "taille": 13254636,
-      "sha256": "9492a4bdf1675554b235d26db9fb7cdb264c821f091a185ffc4db2e15eeebe66"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v53/Pegase-PC-patch-0.9.8.8.zip",
+      "taille": 13396731,
+      "sha256": "64c64a5f13a969b5e64e03e8137aa306e02c4cda29f405bf0566ed33da885516"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v52/Pegase-PC-patch-0.9.7.zip",
-      "taille": 235078694,
-      "sha256": "2a4a23a10d0d8dcf6e26ad7b972e3ad2290815c4dba5591e93462e0eb8315efe"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v53/Pegase-PC-patch-0.9.7.zip",
+      "taille": 237072984,
+      "sha256": "47a54f7f581b56255d55a8e1444dec4fc5d2691507e00f2277d1b27d0534dcaf"
     }
   ],
   "notes": [
-    "L'arrosoir en main : l'eau coule sur le potager",
-    "Une goutte bleue quand le potager a soif",
-    "Potager rééquilibré, vie sauvage au sud-est (biches, cerf, ours au loin)"
+    "La descente de la rivière en barque, jusqu'à la mer",
+    "Rapides, gorges, méandres et estuaire",
+    "Un chrono et ton meilleur temps",
+    "L'Hôtel d'Ailebrune : 12 chambres au bord de la falaise",
+    "20 trésors cachés le long de l'eau"
   ]
 }
