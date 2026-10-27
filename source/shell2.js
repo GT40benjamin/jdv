@@ -27,7 +27,7 @@ const TILE_NEWS = {
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-10-27 17:56' }   // les îles ouvertes à tous (borne 1.48.1) ; avant : Pégase 0.9.9 (borne 1.48, 17:52) : les îles entre amis, la suite « Le dernier géant » (bateau de Gaspard, îlot du grand arbre, jeunes géants) ; avant : 0.9.8.9 (borne 1.46.16, 2026-10-27 16:55)
+  pegase: { kind: 'maj', at: '2026-10-27 18:20' }   // Regarder une île sans compte (borne 1.48.2) ; les îles ouvertes à tous (borne 1.48.1, 17:56) ; avant : Pégase 0.9.9 (borne 1.48, 17:52) : les îles entre amis, la suite « Le dernier géant » (bateau de Gaspard, îlot du grand arbre, jeunes géants) ; avant : 0.9.8.9 (borne 1.46.16, 2026-10-27 16:55)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
@@ -6537,21 +6537,27 @@ async function islJoin(q, card) {
   const g = gameById('pegase'); if (!g) return;
   // JOUER = le vrai jeu, sur l'appareil où l'on est : l'appli Pégase sur Android (installée / mise à jour si besoin) ; sur PC, le jeu
   // installé (lien pegase://) ; s'il ne s'ouvre pas, la page de Pégase pour le télécharger
+  islLaunch(g, q, card);
+}
+// lancer le vrai jeu sur l'île q ; watch = SPECTATEUR (« 👀 Regarder ») : ile=<id>&regarder=1, sans jeton ni compte (le jeu 0.9.9 l'ouvre
+// en caméra libre ; les maisons d'une île protégée restent cachées) ; sans watch, JOUER (avec inscription sur l'île si besoin)
+async function islLaunch(g, q, card, watch) {
+  const extra = watch ? '&regarder=1' : '';
   const launch = (joined) => {
-    if (nativeFor(g)) { nativeOpen(g, true); return; }
+    if (nativeFor(g)) { NAT.extra = watch ? '&ile=' + encodeURIComponent(q.id) + extra : ''; nativeOpen(g, true); return; }
     // téléphone sans le pont de l'appli (iPhone, Chrome d'Android, appli trop ancienne) : JAMAIS de lien pegase:// (Safari : « l'adresse
     // n'est pas valide ») ; le hub, onglet Infos, dit comment jouer sur cet appareil (1.39.1)
     const plat = natPlat();
     if (plat !== 'desktop') {
       try { localStorage.setItem('jdw.pegase.tab', 'infos'); } catch (e) {}
-      toastCheer((joined ? '✅ Tu fais partie de ' + q.name + ' ! ' : '') + (plat === 'ios' ? '📱 Pégase n’existe pas encore sur iPhone : tu peux y jouer sur un PC ou un téléphone Android.' : '📲 Pour jouer à Pégase sur ce téléphone, installe l’appli « Borne d’arcade » : tout est expliqué dans Infos.'), null, true);
+      toastCheer((joined ? '✅ Tu fais partie de ' + q.name + ' ! ' : '') + (plat === 'ios' ? '📱 Pégase n’existe pas encore sur iPhone : tu peux ' + (watch ? 'regarder les îles' : 'y jouer') + ' sur un PC ou un téléphone Android.' : '📲 Pour ' + (watch ? 'regarder une île' : 'jouer à Pégase') + ' sur ce téléphone, installe l’appli « Borne d’arcade » : tout est expliqué dans Infos.'), null, true);
       openGame(g); return;
     }
     let left = false; const onBlur = () => { left = true; pgRest(true); }; addEventListener('blur', onBlur);
-    const a = document.createElement('a'); a.href = 'pegase://open?from=borne&ile=' + encodeURIComponent(q.id); a.style.display = 'none'; document.body.appendChild(a); try { a.click(); } catch (e) {} a.remove();
+    const a = document.createElement('a'); a.href = 'pegase://open?from=borne&ile=' + encodeURIComponent(q.id) + extra; a.style.display = 'none'; document.body.appendChild(a); try { a.click(); } catch (e) {} a.remove();
     setTimeout(() => { removeEventListener('blur', onBlur); if (left || document.hidden) return; toastCheer('🖥️ Ouvre Pégase depuis ton bureau. Pas encore installé ? Il se télécharge (gratuit) ici, dans Infos.', null, true); try { localStorage.setItem('jdw.pegase.tab', 'infos'); } catch (e) {} openGame(g); }, 1800);   // PC : le lien pegase:// n'est pas encore enregistré par l'installation (24 oct.)
   };
-  if (!ISL.srv) { launch(); return; }
+  if (watch || !ISL.srv) { launch(); return; }
   if (q.cur && q.mine) { launch(); return; }
   if (isGuest()) { guestAsk('Pégase'); return; }   // sans compte : s'inscrire, c'est tout
   const go = async (pw) => {
@@ -6567,8 +6573,8 @@ async function islJoin(q, card) {
   pn.querySelector('.pp-x').addEventListener('click', () => pn.remove());
   pn.querySelector('.pp-link').addEventListener('click', () => islRequest(q, card));
 }
-// REGARDER = la page de Pégase (le hub : son avatar, ses amis, PegaGram…) pour ceux qui vivent sur l'île
-function islWatch(q) { const g = gameById('pegase'); if (g) openGame(g); void q; }
+// REGARDER = le jeu en SPECTATEUR, pour tout le monde, même sans compte (PATOU, 1.48.2 ; avant : la page du hub, pour les habitants seuls)
+function islWatch(q) { const g = gameById('pegase'); if (g) islLaunch(g, q, null, true); }
 // les PARTICIPANTS : en touchant « … en ligne », la liste des pseudos (en ligne d'abord), sans les têtes. Les noms viennent tout prêts du
 // serveur (pseudo public pour un ami, « HabitantXXXXXX » sinon) : en ligne = r_players de pg_island_watch ; tous les membres si j'en suis
 async function islWho(q, c) {
@@ -6723,7 +6729,7 @@ async function renderIsles() {
     play.addEventListener('click', () => islJoin(q, c.querySelector('.pi-body')));
     c.querySelector('.pi-watch').addEventListener('click', () => islWatch(q));
     c.querySelector('.pi-gram').addEventListener('click', () => islGram(q));
-    if (!q.mine && !q.guardian) c.querySelector('.pi-watch').hidden = true;   // « Regarder » : seulement pour les habitants de l'île
+    if (q.banned) c.querySelector('.pi-watch').hidden = true;   // « Regarder » : tout le monde (même sans compte), sauf un banni
     { const lv = c.querySelector('.pi-live'); lv.setAttribute('role', 'button'); lv.tabIndex = 0; lv.title = 'Voir les participants'; lv.addEventListener('click', () => islWho(q, c)); lv.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); islWho(q, c); } }); }
     if (keeperMe && ISL.srv) { const m = document.createElement('button'); m.type = 'button'; m.className = 'pi-watch pi-keep'; m.dataset.ile = q.id; m.textContent = '⚙️'; m.title = 'Paramètres de l\'île : membres, accès, demandes, bannis'; m.setAttribute('aria-label', 'Paramètres de l\'île'); m.addEventListener('click', () => islManage(q, c.querySelector('.pi-body'))); c.querySelector('.pi-act').appendChild(m); }
     // ma demande d'accès en cours : on suit le ticket
@@ -9125,7 +9131,8 @@ function nativeApi(g) {
 }
 function nativeLaunch() {
   const i = NAT.info; let ok = false;
-  try { ok = !!(i && NAT.b.openApp(i.pkg, (i.open || 'pegase://open') + '?from=borne&v=' + encodeURIComponent(window.JDW_VERSION || ''))); } catch (e) {}
+  const extra = NAT.extra || ''; NAT.extra = '';
+  try { ok = !!(i && NAT.b.openApp(i.pkg, (i.open || 'pegase://open') + '?from=borne&v=' + encodeURIComponent(window.JDW_VERSION || '') + extra)); } catch (e) {}
   if (!ok) { nativeSheet('broken', NAT.inst); return false; }
   if (NAT.open) nativeClose(true);
   return true;
@@ -9156,7 +9163,7 @@ function nativeGo() {
 }
 function nativeClose(silent) {
   if (!NAT.open) return;
-  NAT.open = false; cancelAnimationFrame(NAT.raf); closeSheet('jdw-natif'); store.set('jdw.natif.open', null);
+  NAT.open = false; NAT.extra = ''; cancelAnimationFrame(NAT.raf); closeSheet('jdw-natif'); store.set('jdw.natif.open', null);
   setTimeout(natNotify, 0);
   if (/^(download|verify|ready|prepare)$/.test(NAT.ui)) {
     try { NAT.b.background(); } catch (e) {}   // le téléchargement continue, mais Android ne posera pas sa question sans la feuille

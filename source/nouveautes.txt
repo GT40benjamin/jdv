@@ -10,6 +10,8 @@
 [borne] Un nouvel onglet ILO, à gauche de Pégase : la présentation du Silence d'ILO, avec sa bande-annonce filmée dans le jeu qui tourne en boucle. Touche « Le son » pour entendre sa musique
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec la même bande-annonce
+[pegase] ## 👀 Regarder une île, même sans compte (borne 1.48.2)
+[pegase] Sur chaque île, « 👀 Regarder » ouvre Pégase en spectateur : caméra libre, tu suis les joueurs sans jouer, même sans compte (les maisons d'une île d'amis restent cachées)
 [pegase] ## 🏝️ Les îles de Pégase ouvertes à tous (borne 1.48.1)
 [pegase] Sur la page Pégase, chaque île a maintenant son bouton « Jouer » : Pégase s'ouvre directement sur l'île choisie, avec tes amis
 [pegase] Pas encore de compte ? Touche « S'inscrire » sur une île pour la rejoindre
