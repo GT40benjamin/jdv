@@ -8957,6 +8957,21 @@ function levelBestApi(g) {
     }
   };
 }
+// Ajout 15 : le plus loin de chacun dans ce jeu (valeur de mapSpot), pour les repères du jeu ; la progression de la salle est relue
+// si elle a plus d'une minute ; invité : rien
+function reachedApi(g) {
+  return async () => {
+    if (isGuest()) return [];
+    if (ONLINE && room && !netOff() && !PROG.missing && (!PROG.at || Date.now() - PROG.at > 60000)) { try { await progLoad(); } catch (e) {} }
+    const me = cleanName(profile.name), out = [];
+    for (const [nm, v] of mapPeople(g.id)) {
+      if (!(v > 0)) continue;
+      const p = players.get(nm), ok = !!(p && p.img && p.img.complete && p.img.naturalWidth);
+      out.push({ name: nm === me ? 'TOI' : dispName(nm), v, me: nm === me, img: ok ? p.img : null, sad: ok ? sadOf(p) || p.img : null });
+    }
+    return out;
+  };
+}
 function mountGame(g) {
   const seq = ++mountSeq;
   let root;
@@ -8986,8 +9001,10 @@ function mountGame(g) {
     rhythm: rhythmApi(() => !!current && current.seq === seq),   // jeu de rythme : son morceau à lui, calé sur la partie (Ajout 11)
     save: g.saves ? saveApi(g) : undefined,                       // partie gardée à tout moment, appareil + serveur (Ajout 14)
     levelBest: g.saves ? levelBestApi(g) : undefined,             // meilleurs coups par niveau + classement de la salle (Ajout 14)
+    reached: g.spots ? reachedApi(g) : undefined,                 // jusqu'où est allé chaque membre de la salle (Néon Rush : où il est mort ; Ajout 15)
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
+      progTick();   // le dernier avancement (Néon Rush : l'endroit exact de la mort) avant que la partie soit finie
       current.over = true;
       try { if (api.pad) api.pad.rumble('over'); } catch (e) {}
       const sc = Math.max(0, Math.floor(+score || 0));
@@ -9063,6 +9080,7 @@ function quitGame() {
     if (sc > 0 || current.game.id === 'chrono') {   // Turbo Chrono : « Tes positions » même sans course finie
       current.over = true;
       try { current.lastLevel = current.inst.currentLevel ? +current.inst.currentLevel() || 0 : 0; } catch (e) {}   // pour l'écran de fin
+      try { current.lastSpot = current.inst.mapSpot ? +current.inst.mapSpot() || 0 : 0; } catch (e) {}
       try { current.inst.destroy && current.inst.destroy(); } catch (e) {}
       current.inst = {};
       if (current.game.external) current.root.hidden = true; else current.root.textContent = '';
@@ -9406,6 +9424,7 @@ function lvIcon(WS, n, px) {      // médaillon d'un monde (dessiné par le jeu)
 }
 function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
+  if (g.spots && MAP_DEFS[g.id] && MAP_DEFS[g.id].spot) { showSpotProgress(g, me, MAP_DEFS[g.id], box); return; }
   let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
   if (!(lv >= 1) || isGuest()) return;
   // record d'avant la partie (pendant la partie, progTick garde déjà chaque nouveau niveau sur l'appareil)
@@ -9454,6 +9473,32 @@ function showLevelProgress(g, me) {
     }
     box.append(row);
   }
+  box.hidden = false;
+}
+// avancement fin (Néon Rush) : une case par niveau, remplie jusqu'à l'endroit exact de la mort (💀), mon record d'avant (👑)
+function showSpotProgress(g, me, def, box) {
+  let v = current.lastSpot || 0; try { if (!v && current.inst.mapSpot) v = Math.floor(+current.inst.mapSpot() || 0); } catch (e) {}
+  const sp = def.spot(v); if (!sp || isGuest()) return;
+  const best = current.lvBase != null && cleanName(profile.name) === me ? current.lvBase : lvBest(me, g.id), bs = def.spot(best);
+  if (me && v > lvBest(me, g.id)) { lvSetBest(me, g.id, v); progPush(me, g.id, v); }   // dernier avancement pas encore vu par progTick
+  const n = def.n(), info = def.level(Math.min(sp.lv, n + 1));
+  const h = document.createElement('p'); h.className = 'lv-h';
+  const b = document.createElement('b'); b.textContent = sp.win ? 'Victoire !' : 'Niveau ' + sp.lv; h.append(b);
+  const c = document.createElement('span'); c.className = 'lv-w'; c.style.setProperty('--wc', info.acc); c.textContent = sp.win ? 'les ' + n + ' niveaux' : info.name + (sp.dead ? ' · mort à ' + sp.label : ''); h.append(c);
+  const r = document.createElement('span'); r.className = 'lv-rec';
+  r.textContent = v > best ? (bs ? 'plus loin que jamais !' : 'premier record !') : v === best ? 'ton record égalé !' : 'ton record : ' + (bs.win ? 'la victoire' : 'niveau ' + bs.lv + (bs.dead ? ' à ' + bs.label : ''));
+  h.append(r);
+  const track = document.createElement('div'); track.className = 'lv-spot'; track.style.setProperty('--n', n);
+  for (let i = 1; i <= n; i++) {
+    const d = document.createElement('i'), L2 = def.level(i); d.style.setProperty('--acc', L2.acc); d.style.setProperty('--d', (i * 0.06).toFixed(2) + 's'); d.title = 'Niveau ' + i + ' · ' + L2.name;
+    const f = sp.win || i < sp.lv ? 1 : i === sp.lv ? sp.f : 0;
+    const fill = document.createElement('s'); fill.style.width = (f * 100).toFixed(1) + '%'; d.append(fill);
+    if (i === sp.lv && sp.dead) { const k = document.createElement('em'); k.className = 'dead'; k.style.left = (sp.f * 100).toFixed(1) + '%'; k.innerHTML = MAP_SKULL; d.append(k); }
+    if (bs && v < best && i === bs.lv && !bs.win) { const k = document.createElement('em'); k.className = 'best'; k.style.left = (bs.f * 100).toFixed(1) + '%'; k.title = 'ton record'; k.textContent = '👑'; d.append(k); }
+    const num = document.createElement('b'); num.textContent = i; d.append(num);
+    track.append(d);
+  }
+  box.append(h, track);
   box.hidden = false;
 }
 async function showEnd(score) {
@@ -10230,6 +10275,55 @@ const MAP_DEFS = {
     warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
     start: { title: 'Départ', sub: 'Le samouraï sort son sabre' },
     cap: { title: 'Le festin continue…', sub: 'Un nouveau tour tous les 18 niveaux, toujours plus vite' }
+  },
+  // Néon Rush (games/neon.js) : 7 niveaux d'une seule vie, puis la grande victoire. Chaque niveau = le bout de chemin qui mène au suivant ;
+  // avancement FIN (spot) : la tête de chacun est posée pile là où il est mort dans son niveau (💀 + pour cent), pas seulement sur la pastille.
+  // Valeur gardée : niveau × 1000 + pour mille (mapSpot du jeu) ; 8000 = victoire ; avant le 27 oct. (1, 2, 3…, sans l'endroit) = au départ.
+  neon: {
+    theme: 'neon', word: 'Niveau', tierGap: 120, tierAt: 0.5, step: 330, nodeSize: 56, bgDpr: 1.6, lazy: true,
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.neon; return G && Array.isArray(G.levels) && G.levels.length ? G : null; },
+    n() { const G = this.game(); return G ? G.levels.length : 7; },
+    count() { return this.n() + 1; },
+    level(lv) {
+      const G = this.game(), n = this.n();
+      if (lv > n) return { lv, tier: 0, win: true, kicker: 'Grande victoire', name: 'Néon Rush terminé', lines: ['Les ' + n + ' niveaux d’une seule vie'], acc: '#ffd34d', acc2: '#ff8a3a' };
+      const D = G ? G.levels[lv - 1] : null, Wd = D ? D.worlds : [];
+      return { lv, tier: 0, kicker: 'Niveau ' + lv + (lv === n ? ' · le dernier' : ''), name: D ? D.name : 'Niveau ' + lv,
+        lines: Wd.length ? [[...new Set(Wd.map(w => w.name))].join(' · ')] : [], acc: Wd[0] ? Wd[0].acc : '#3af0ff', acc2: Wd[0] ? Wd[0].acc2 : '#ff3ac8', worlds: Wd };
+    },
+    short(lv) { const i = this.level(lv); return i.win ? 'Grande victoire' : 'Niveau ' + lv + ' · ' + i.name; },
+    tier() { return { kicker: 'Une seule vie', title: 'Néon Rush', sub: 'De Premier Pulse au Démon : ' + this.n() + ' niveaux sans tomber', acc: '#3af0ff', acc2: '#ff3ac8' }; },
+    spot(v) {
+      v = Math.floor(+v || 0); const n = this.n();
+      if (v < 1000) return null;
+      const lv = Math.floor(v / 1000), pm = v % 1000;
+      if (lv > n) return { lv: n + 1, f: 0, dead: false, win: true, label: 'Victoire', long: 'a fini les ' + n + ' niveaux' };
+      const pc = Math.floor(pm / 10);
+      return { lv, f: pm / 1000, dead: pm > 0, label: pm > 0 ? pc + ' %' : 'au départ', long: 'niveau ' + lv + (pm > 0 ? ', mort à ' + pc + ' %' : ', au départ') };
+    },
+    stops(L) {
+      const st = [[L.H, '#03010c'], [L.start.y, '#07031c']], N = L.nodes;
+      for (let k = 0; k < N.length; k++) {
+        const a = N[k], b = N[k + 1], i = a.info, Wd = i.worlds || [];
+        if (!b) { st.push([a.y, '#1a1004'], [a.y - 260, '#0c0702'], [0, '#040208']); break; }
+        const hgt = a.y - b.y;
+        st.push([a.y - 30, Wd[0] ? mixHex(Wd[0].sky[1], '#000000', 0.38) : '#0a0420']);
+        for (let w = 1; w < 4; w++) if (Wd[w]) st.push([a.y - hgt * (w / 4 + 0.08), mixHex(Wd[w].sky[1], '#000000', 0.38)]);
+      }
+      return st;
+    },
+    paint(x, L, W, y0, h) { paintNeonMap(x, L, W, y0, h); },
+    node(x, info, size, P) { neonNode(x, info, size, P); },
+    startArt(x, P) {
+      const G = this.game();
+      x.save(); x.translate(P / 2, P * 0.52);
+      const g = x.createRadialGradient(0, 0, 4, 0, 0, P * 0.5); g.addColorStop(0, 'rgba(90,255,138,.45)'); g.addColorStop(1, 'rgba(90,255,138,0)');
+      x.fillStyle = g; x.fillRect(-P / 2, -P / 2, P, P);
+      if (G && G.drawCube) G.drawCube(x, P * 0.42); else { x.fillStyle = '#5aff8a'; x.fillRect(-P * 0.21, -P * 0.21, P * 0.42, P * 0.42); }
+      x.restore();
+    },
+    start: { title: 'Départ', sub: 'Le cube prend son élan' },
+    cap: { title: 'Tout en haut…', sub: 'Personne ne va plus loin que le Démon' }
   },
   // Coffres à Secrets (games/coffres.js) : 6 mondes de 8 coffres (le 8e = le grand coffre). Carte dessinée ici : l'établi en planches teintées
   // par monde, un petit coffre par niveau (le grand coffre : doré, couronné), la clé dorée au départ.
@@ -11748,7 +11842,7 @@ function lvSetBest(name, gid, lv) { const all = store.get('jdw.bestlv', {}) || {
 // en pleine partie : un nouveau record de niveau est gardé sur l'appareil et part en ligne (seulement quand il monte)
 function progTick() {
   if (!current || !current.inst || current.over || current.coop || !current.inst.currentLevel || $('jdw-play').hidden) return;
-  let lv = 0; try { lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) { return; }
+  let lv = 0; try { lv = Math.floor(+(current.game.spots && current.inst.mapSpot ? current.inst.mapSpot() : current.inst.currentLevel()) || 0); } catch (e) { return; }
   const me = cleanName(profile.name), gid = current.game.id;
   if (!me || !(lv >= 1) || lv > 9999 || lv <= lvBest(me, gid)) return;
   lvSetBest(me, gid, lv);
@@ -11936,6 +12030,25 @@ function mapLayout(def, n, W, VH) {
   for (const t of tiers) { t.y = H - t.dMid; t.yLo = H - t.dLo; t.yHi = H - t.dHi; }
   return { W, H, S, A, start, nodes, bosses, tiers, capY: H - (d + S * 0.5 + 110) };
 }
+// avancement fin (def.spot : Néon Rush) : valeur gardée → { lv : niveau entamé (0 = au départ), f : part faite du chemin vers le niveau
+// suivant (0..1), dead, label, long } ; sans def.spot, la valeur EST le niveau
+const mapSpotOf = (def, v) => def.spot ? def.spot(v) || { lv: 0, f: 0, dead: false, label: '', long: 'pas encore parti' } : { lv: v, f: 0 };
+const mapLvOf = (def, v) => def.spot ? mapSpotOf(def, v).lv : v;
+// le point à la part f du chemin entre deux étapes (même courbe que mapSegPath, mesurée à la longueur)
+function mapPathAt(a, b, f) {
+  if (!b || !(f > 0)) return { x: a.x, y: a.y };
+  const my = (a.y + b.y) / 2, at = t => { const u = 1 - t; return { x: (u * u * u + 3 * u * u * t) * a.x + (3 * u * t * t + t * t * t) * b.x, y: u * u * u * a.y + (3 * u * u * t + 3 * u * t * t) * my + t * t * t * b.y }; };
+  const pts = [at(0)], len = [0];
+  for (let i = 1; i <= 48; i++) { const p = at(i / 48); pts.push(p); len.push(len[i - 1] + Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y)); }
+  const want = Math.min(1, f) * len[48]; let i = 1; while (i < 48 && len[i] < want) i++;
+  const k = (want - len[i - 1]) / Math.max(1e-6, len[i] - len[i - 1]);
+  return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * k, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * k };
+}
+function mapSpotXY(L, sp) {
+  if (!sp || !(sp.lv >= 1)) return { x: L.start.x, y: L.start.y };
+  const i = Math.min(sp.lv, L.nodes.length) - 1;
+  return mapPathAt(L.nodes[i], L.nodes[i + 1], sp.f);
+}
 // fond : dégradé continu d'un niveau à l'autre (couleurs du secteur / de la zone)
 function mapStops(L, def) {
   if (def.stops) { try { const own = def.stops(L); if (own && own.length) return own.sort((a, b) => a[0] - b[0]); } catch (e) {} }
@@ -12073,6 +12186,70 @@ function paintFactory(x, L, W, y0, h) {
   }
 }
 // résolution du décor d'une carte (plafonnée : au plus 14 millions de pixels)
+// Néon Rush : chaque niveau = une bande de nuit synthwave aux couleurs de ses mondes (étoiles, soleil rayé, grille en perspective) ;
+// tout en haut, la lumière dorée de la victoire
+function paintNeonMap(x, L, W, y0, h) {
+  const N = L.nodes, y1 = y0 + h;
+  x.save(); x.translate(0, -y0);
+  for (let k = 0; k < N.length; k++) {
+    const a = N[k], b = N[k + 1], i = a.info;
+    const yBot = a.y + 40, yTop = b ? b.y : 0;
+    if (yBot < y0 || yTop > y1) continue;
+    if (!b) {   // la victoire : rayons dorés autour de la dernière pastille
+      const cx = a.x, cy = a.y;
+      x.save(); x.globalCompositeOperation = 'lighter';
+      for (let r = 0; r < 16; r++) { const an = r * Math.PI / 8; x.fillStyle = 'rgba(255,211,77,' + (r % 2 ? 0.05 : 0.09) + ')'; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, 520, an, an + Math.PI / 16); x.closePath(); x.fill(); }
+      const g = x.createRadialGradient(cx, cy, 10, cx, cy, 220); g.addColorStop(0, 'rgba(255,211,77,.45)'); g.addColorStop(1, 'rgba(255,211,77,0)');
+      x.fillStyle = g; x.fillRect(cx - 220, cy - 220, 440, 440); x.restore();
+      continue;
+    }
+    const acc = i.acc, acc2 = i.acc2 || acc, hgt = yBot - yTop, rnd = mapRng(a.lv * 977 + 13);
+    // étoiles
+    const ns = Math.round(W * hgt / 2600);
+    for (let j = 0; j < ns; j++) { const sx = rnd() * W, sy = yTop + rnd() * hgt * 0.62, r = 0.5 + rnd() * 1.2; x.fillStyle = rnd() < 0.25 ? rgbaHex(acc2, 0.7) : 'rgba(255,255,255,' + (0.25 + rnd() * 0.55).toFixed(2) + ')'; x.fillRect(sx, sy, r, r); }
+    // le soleil rayé, d'un côté puis de l'autre
+    const sr = Math.min(W * 0.15, 62), sx = a.lv % 2 ? W * 0.84 : W * 0.16, sy = yTop + hgt * 0.42;
+    const sg = x.createRadialGradient(sx, sy, sr * 0.6, sx, sy, sr * 2.2); sg.addColorStop(0, rgbaHex(acc2, 0.28)); sg.addColorStop(1, rgbaHex(acc2, 0));
+    x.fillStyle = sg; x.fillRect(sx - sr * 2.2, sy - sr * 2.2, sr * 4.4, sr * 4.4);
+    x.save(); x.beginPath(); x.arc(sx, sy, sr, 0, 7); x.clip();
+    const lg = x.createLinearGradient(0, sy - sr, 0, sy + sr); lg.addColorStop(0, mixHex(acc2, '#ffffff', 0.35)); lg.addColorStop(1, acc);
+    x.globalAlpha = 0.7; x.fillStyle = lg; x.fillRect(sx - sr, sy - sr, sr * 2, sr * 2); x.globalAlpha = 1;
+    x.fillStyle = 'rgba(4,2,14,.85)'; for (let q = 0; q < 6; q++) { const yy = sy + sr * (0.05 + q * 0.17), hh = 1.5 + q * 1.4; x.fillRect(sx - sr, yy, sr * 2, hh); }
+    x.restore();
+    // la grille en perspective (horizon à mi-bande, jusqu'à la pastille du niveau)
+    const hz = yTop + hgt * 0.6, gb = yBot - 30;
+    x.save(); x.beginPath(); x.rect(0, hz, W, gb - hz); x.clip();
+    x.strokeStyle = rgbaHex(acc, 0.2); x.lineWidth = 1;
+    x.beginPath();
+    for (let q = 1; q <= 9; q++) { const yy = hz + (gb - hz) * (q / 9) * (q / 9); x.moveTo(0, yy); x.lineTo(W, yy); }
+    for (let q = -8; q <= 8; q++) { x.moveTo(W / 2 + q * 18, hz); x.lineTo(W / 2 + q * W * 0.16, gb + (gb - hz) * 0.4); }
+    x.stroke(); x.restore();
+    const hg = x.createLinearGradient(0, 0, W, 0); hg.addColorStop(0, rgbaHex(acc, 0)); hg.addColorStop(0.5, rgbaHex(acc, 0.55)); hg.addColorStop(1, rgbaHex(acc, 0));
+    x.fillStyle = hg; x.fillRect(0, hz - 1, W, 2);
+  }
+  x.restore();
+}
+// pastille d'un niveau : carré néon (comme le cube du jeu), le numéro au milieu ; la victoire : une étoile d'or
+function neonNode(x, info, size, P) {
+  const cx = P / 2, cy = P / 2, r = size / 2;
+  const glow = x.createRadialGradient(cx, cy, r * 0.5, cx, cy, r + 12); glow.addColorStop(0, rgbaHex(info.acc, 0.6)); glow.addColorStop(1, rgbaHex(info.acc, 0));
+  x.fillStyle = glow; x.fillRect(0, 0, P, P);
+  if (info.win) {
+    x.beginPath(); for (let k = 0; k < 10; k++) { const an = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r * 1.02; x.lineTo(cx + Math.cos(an) * rr, cy + Math.sin(an) * rr); } x.closePath();
+    const g = x.createLinearGradient(0, cy - r, 0, cy + r); g.addColorStop(0, '#fff3b0'); g.addColorStop(0.5, '#ffd34d'); g.addColorStop(1, '#c98a00');
+    x.fillStyle = g; x.fill(); x.strokeStyle = '#5a3500'; x.lineWidth = 2; x.lineJoin = 'round'; x.stroke();
+    return;
+  }
+  const s = size * 0.84, h = s / 2;
+  x.fillStyle = rgbaHex(info.acc, 0.3); x.fillRect(cx - h - 4, cy - h - 4, s + 8, s + 8);
+  const bg = x.createLinearGradient(0, cy - h, 0, cy + h); bg.addColorStop(0, '#1a0a3a'); bg.addColorStop(1, '#05021a');
+  x.fillStyle = bg; x.fillRect(cx - h, cy - h, s, s);
+  const bd = x.createLinearGradient(cx - h, cy - h, cx + h, cy + h); bd.addColorStop(0, info.acc); bd.addColorStop(1, info.acc2 || info.acc);
+  x.strokeStyle = bd; x.lineWidth = 3; x.strokeRect(cx - h + 1.5, cy - h + 1.5, s - 3, s - 3);
+  x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; x.strokeRect(cx - h + 5, cy - h + 5, s - 10, s - 10);
+  x.font = '400 ' + Math.round(size * 0.46) + "px 'Bungee', Impact, sans-serif"; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.shadowColor = info.acc; x.shadowBlur = 10; x.fillStyle = '#ffffff'; x.fillText(String(info.lv), cx, cy + size * 0.03); x.shadowBlur = 0;
+}
 function mapBgDpr(def, L, z) {
   let dpr = Math.min(def.bgDpr || 2.5, (window.devicePixelRatio || 1) * (z || 1));
   if (L.W * L.H * dpr * dpr > 14e6) dpr = Math.max(1, Math.sqrt(14e6 / (L.W * L.H)));
@@ -12411,13 +12588,13 @@ function mapBuild(animate) {
   const { z, W, VH } = mapSize(W0, VH0);
   MAP.z = z; world.style.zoom = z === 1 ? '' : z.toFixed(3); world.style.width = W + 'px';
   const people = mapPeople(MAP.gid), me = cleanName(profile.name);
-  let max = 0; for (const v of people.values()) max = Math.max(max, v);
+  let max = 0; for (const v of people.values()) max = Math.max(max, mapLvOf(def, v));
   const n = def.count(max), L = mapLayout(def, n, W, VH);
   MAP.L = L; MAP.n = n; MAP.heads = new Map();
   world.textContent = ''; world.style.height = L.H + 'px';
   world.classList.toggle('anim', !!animate);
-  const meLv = people.get(me) || 0;      // à l'ouverture, la carte se centre sur moi : c'est là qu'on peint d'abord
-  mapPaint(world, L, def, animate ? (meLv ? L.nodes[Math.min(meLv, L.nodes.length) - 1].y : L.start.y) : keepY);
+  const meV = people.get(me) || 0;      // à l'ouverture, la carte se centre sur moi : c'est là qu'on peint d'abord
+  mapPaint(world, L, def, animate ? mapMeXY(def, L, meV).y : keepY);
   // chemin
   const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'gmap-path'); svg.setAttribute('width', W); svg.setAttribute('height', L.H);
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + L.H); svg.setAttribute('aria-hidden', 'true');
@@ -12500,9 +12677,15 @@ function mapBuild(animate) {
   mapUpdate(animate);
   mapCenter(false);   // centrée sur moi
 }
+// où je suis sur la carte : ma pastille, ou (avancement fin) l'endroit exact
+function mapMeXY(def, L, v) {
+  if (def.spot) return mapSpotXY(L, mapSpotOf(def, v));
+  return v ? L.nodes[Math.min(v, L.nodes.length) - 1] : L.start;
+}
+const MAP_SKULL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c-5 0-8.6 3.4-8.6 8 0 2.7 1.3 4.6 3 5.8V19c0 .9.7 1.6 1.6 1.6h.7v-2h1.6v2h3.4v-2h1.6v2h.7c.9 0 1.6-.7 1.6-1.6v-3c1.7-1.2 3-3.1 3-5.8 0-4.6-3.6-8-8.6-8zM8.4 14.2a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6zm7.2 0a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6zM12 14.6l1.3 2.2h-2.6z"/></svg>';
 function mapCenter(smooth) {
   if (!MAP.L) return;
-  const mine = mapPeople(MAP.gid).get(cleanName(profile.name)) || 0, p = mine ? MAP.L.nodes[Math.min(mine, MAP.L.nodes.length) - 1] : MAP.L.start;
+  const p = mapMeXY(MAP.def, MAP.L, mapPeople(MAP.gid).get(cleanName(profile.name)) || 0);
   const sc = $('jdw-map-scroll'), top = Math.max(0, (p.y - 30) * (MAP.z || 1) - sc.clientHeight * 0.5);
   if (smooth) sc.scrollTo({ top, behavior: 'smooth' }); else sc.scrollTop = top;
 }
@@ -12510,7 +12693,9 @@ for (const ev of ['pointerdown', 'wheel', 'touchstart', 'keydown']) $('jdw-map-s
 // états des niveaux, chemin et têtes (appelé aussi à chaque nouvelle progression, sans tout redessiner)
 function mapUpdate(animate) {
   if (!MAP.open || !MAP.L) return;
-  const def = MAP.def, L = MAP.L, people = mapPeople(MAP.gid), me = cleanName(profile.name);
+  const def = MAP.def, L = MAP.L, raw = mapPeople(MAP.gid), me = cleanName(profile.name);
+  // avancement fin (def.spot) : chacun a sa valeur (raw) ; les niveaux, le chemin et le résumé parlent en niveaux entamés (people)
+  const people = def.spot ? new Map([...raw].map(([nm, v]) => [nm, mapLvOf(def, v)])) : raw;
   let max = 0; for (const v of people.values()) max = Math.max(max, v);
   if (def.count(max) !== MAP.n) { const sc = $('jdw-map-scroll'), keep = sc.scrollTop; mapBuild(false); sc.scrollTop = keep; return; }
   const mine = people.get(me) || 0;
@@ -12557,18 +12742,38 @@ function mapUpdate(animate) {
     svg.appendChild(s);
     if (state === 'mine') { const f = document.createElementNS(SVGNS, 'path'); f.setAttribute('d', mapSegPath(a, b)); f.setAttribute('class', 'gp-flow'); svg.appendChild(f); }
   }
+  if (def.spot) {
+    const sp = mapSpotOf(def, raw.get(me) || 0), a = sp.lv >= 1 ? L.nodes[sp.lv - 1] : null, b = a && L.nodes[sp.lv];
+    if (b && sp.f > 0) {
+      const pp = document.createElementNS(SVGNS, 'path'); pp.setAttribute('d', mapSegPath(a, b)); pp.setAttribute('class', 'gp-part');
+      pp.setAttribute('pathLength', '1'); pp.setAttribute('stroke-dasharray', sp.f.toFixed(4) + ' 2'); pp.setAttribute('stroke', a.info.acc); svg.appendChild(pp);
+    }
+  }
   // têtes : regroupées par niveau, moi au centre et en grand ; sous chaque tête, son meilleur score dans la salle (+ « estimé »)
   const layer = MAP.headLayer, seen = new Set(), G = gameById(MAP.gid), scores = mapScores(MAP.gid), ests = mapEst(MAP.gid, people);
-  const top = max > 0 ? [...people].filter(([, v]) => v === max).map(([n]) => n) : [];
-  for (const [lv, names0] of here) {
+  let rawMax = 0; for (const v of raw.values()) rawMax = Math.max(rawMax, v);
+  const top = max > 0 ? [...raw].filter(([, v]) => v === rawMax).map(([n]) => n) : [];
+  // groupes de têtes : par niveau ; avancement fin : par endroit (deux endroits à moins de 44 px ne font qu'un groupe, au milieu)
+  let groups = [...here].map(([lv, names]) => ({ lv, names, pos: lv >= 1 ? L.nodes[Math.min(lv, L.nodes.length) - 1] : L.start, key: lv }));
+  const spots = new Map();
+  if (def.spot) {
+    groups = [];
+    const list = [...raw].map(([nm, v]) => { const sp = mapSpotOf(def, v); spots.set(nm, Object.assign({ xy: mapSpotXY(L, sp) }, sp)); return [nm, v]; }).sort((a, b) => a[1] - b[1]);
+    for (const [nm] of list) {
+      const p = spots.get(nm).xy, g = groups.find(q => Math.hypot(q.at.x - p.x, q.at.y - p.y) < 44);
+      if (g) { g.names.push(nm); g.pts.push(p); } else groups.push({ lv: spots.get(nm).lv, names: [nm], pts: [p], at: p });
+    }
+    for (const g of groups) { g.pos = { x: g.pts.reduce((t, p) => t + p.x, 0) / g.pts.length, y: g.pts.reduce((t, p) => t + p.y, 0) / g.pts.length }; g.key = 's' + Math.round(g.at.x) + '_' + Math.round(g.at.y); }
+  }
+  const lift = def.spot ? 46 : 34;   // avancement fin : la tête au-dessus de la croix, reliée à elle par une tige
+  for (const { lv, names: names0, pos, key } of groups) {
     const names = names0.slice().sort((a, b) => (b === me) - (a === me) || a.localeCompare(b));
-    const pos = lv >= 1 ? L.nodes[Math.min(lv, L.nodes.length) - 1] : L.start;
     const cap = lv < 1 ? 6 : 4;          // au départ il y a plus de place
     const shown = names.length > cap ? names.slice(0, cap - 1) : names, extra = names.length - shown.length;
     const m = shown.length + (extra ? 1 : 0);
     // éventail : les places les plus proches du milieu d'abord (moi au milieu)
     const mid = (m - 1) / 2, slots = [...Array(m).keys()].sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid) || a - b);
-    const step = 46;
+    const step = def.spot ? 64 : 46;   // avancement fin : « 💀 63 % » sous chaque tête, plus large
     for (const [k, nm] of shown.entries()) {
       const slot = slots[k];
       const dx = (slot - mid) * step, dy = -Math.abs(slot - mid) * 8;   // les côtés un peu plus haut : loin des étiquettes
@@ -12582,26 +12787,39 @@ function mapUpdate(animate) {
       }
       h.classList.toggle('lead', top.length === 1 && top[0] === nm && people.size > 1);
       h.classList.toggle('start', lv < 1);
-      h.style.left = (pos.x + dx) + 'px'; h.style.top = (pos.y - (lv >= 1 ? 34 : 30) + dy) + 'px';
-      const sc = scores.get(nm) || 0, est = ests.has(nm);
+      h.style.left = (pos.x + dx) + 'px'; h.style.top = (pos.y - (lv >= 1 ? lift : 30) + dy) + 'px';
+      const sc = scores.get(nm) || 0, est = ests.has(nm), sp = spots.get(nm);
       h.classList.toggle('est', est);
       let tab = h.querySelector('.gh-sc'); if (!tab) tab = mapEl('span', 'gh-sc', h);
-      const key = sc + '|' + est;
-      if (tab.dataset.k !== key) {
-        tab.dataset.k = key; tab.textContent = '';
-        if (sc) mapEl('span', 'gh-pts', tab).textContent = scoreShort(sc, G);
+      const tk = sc + '|' + est + '|' + (sp ? sp.label : '');
+      if (tab.dataset.k !== tk) {
+        tab.dataset.k = tk; tab.textContent = '';
+        if (sp && sp.lv >= 1) mapEl('span', 'gh-at' + (sp.win ? ' win' : sp.dead ? ' dead' : ''), tab).textContent = (sp.win ? '🏆 ' : sp.dead ? '💀 ' : '') + sp.label;
+        else if (sc) mapEl('span', 'gh-pts', tab).textContent = scoreShort(sc, G);
         if (est) mapEl('span', 'gh-est', tab).textContent = 'estimé';
       }
-      h.title = (nm === me ? 'Toi' : nm) + ' · ' + (lv >= 1 ? def.short(lv) : 'pas encore parti') + (sc ? ' · record ' + fmt(sc) + unit(G) : '')
+      h.title = (nm === me ? 'Toi' : nm) + ' · ' + (sp ? (sp.lv >= 1 ? def.short(sp.lv) + ' · ' + sp.long : 'pas encore parti') : lv >= 1 ? def.short(lv) : 'pas encore parti') + (sc ? ' · record ' + fmt(sc) + unit(G) : '')
         + (est ? ' · position estimée d’après un ancien score' : '');
+      // avancement fin : la croix pile à l'endroit de la mort, reliée à la tête si elle a dû s'écarter
+      if (sp && sp.lv >= 1 && sp.dead) {
+        let dm = MAP.heads.get('dead|' + nm);
+        if (!dm) { dm = mapEl('div', 'gmap-dead' + (nm === me ? ' me' : ''), layer); dm.innerHTML = MAP_SKULL; MAP.heads.set('dead|' + nm, dm); }
+        dm.style.left = sp.xy.x + 'px'; dm.style.top = sp.xy.y + 'px'; dm.title = (nm === me ? 'Toi' : dispName(nm)) + ' : ' + sp.long;
+        seen.add('dead|' + nm);
+        {
+          const ln = document.createElementNS(SVGNS, 'line'); ln.setAttribute('class', 'gp-tie' + (nm === me ? ' me' : ''));
+          ln.setAttribute('x1', sp.xy.x.toFixed(1)); ln.setAttribute('y1', sp.xy.y.toFixed(1)); ln.setAttribute('x2', (pos.x + dx).toFixed(1)); ln.setAttribute('y2', (pos.y - lift + dy).toFixed(1));
+          svg.appendChild(ln);
+        }
+      }
       seen.add(nm);
     }
-    const kx = 'more' + lv;
+    const kx = 'more' + key;
     let more = MAP.heads.get(kx);
     if (extra) {
       if (!more) { more = mapEl('div', 'gmap-more', layer); MAP.heads.set(kx, more); }
       more.textContent = ''; mapEl('span', '', more).textContent = '+' + extra; more.title = names.slice(shown.length).join(', ');
-      const ms = slots[m - 1]; more.style.left = (pos.x + (ms - mid) * step) + 'px'; more.style.top = (pos.y - 34 - Math.abs(ms - mid) * 8) + 'px';
+      const ms = slots[m - 1]; more.style.left = (pos.x + (ms - mid) * step) + 'px'; more.style.top = (pos.y - lift - Math.abs(ms - mid) * 8) + 'px';
       seen.add(kx);
     }
   }
@@ -12611,16 +12829,18 @@ function mapUpdate(animate) {
   const av = mapEl('span', 'avatar', sum); avatarInto(av, me);
   const tx = mapEl('span', 'gm-sumtx', sum), mi = mine ? def.level(mine) : null;
   if (mi) sum.style.setProperty('--nc', mi.acc);
-  mapEl('small', 'gm-k', tx).textContent = mi ? 'Toi · ' + mi.kicker + (ests.has(me) ? ' · estimé' : '') : 'Toi';
+  const mySp = def.spot ? mapSpotOf(def, raw.get(me) || 0) : null;
+  mapEl('small', 'gm-k', tx).textContent = mi ? 'Toi · ' + mi.kicker + (mySp && mySp.dead ? ' · mort à ' + mySp.label : '') + (ests.has(me) ? ' · estimé' : '') : 'Toi';
   mapEl('b', '', tx).textContent = mi ? mi.name : 'Pas encore parti';
   // celui qui est devant (au niveau, puis au score) ; à égalité de niveau, le meilleur score d'abord
-  const others = [...people].filter(([n]) => n !== me).sort((a, b) => b[1] - a[1] || (scores.get(b[0]) || 0) - (scores.get(a[0]) || 0));
-  const ahead = others.length && others[0][1] > 0 ? others[0] : null, aName = ahead ? dispName(ahead[0]) : '';
+  const others = [...raw].filter(([n]) => n !== me).sort((a, b) => b[1] - a[1] || (scores.get(b[0]) || 0) - (scores.get(a[0]) || 0));
+  const ahead = others.length && others[0][1] > 0 ? others[0] : null, aName = ahead ? dispName(ahead[0]) : '', myV = raw.get(me) || 0;
+  const aSp = ahead && def.spot ? mapSpotOf(def, ahead[1]) : null;
   mapEl('small', '', tx).textContent = ahead
-    ? (ahead[1] > mine ? 'Devant toi : ' + aName + ' · ' + def.word + ' ' + ahead[1] : mine >= ahead[1] && mine > 0 ? (ahead[1] === mine ? 'À égalité en tête avec ' + aName : 'Tu mènes la salle !') : '')
+    ? (ahead[1] > myV ? 'Devant toi : ' + aName + ' · ' + (aSp ? (aSp.win ? 'grande victoire' : aSp.long) : def.word + ' ' + ahead[1]) : myV >= ahead[1] && myV > 0 ? (ahead[1] === myV ? 'À égalité en tête avec ' + aName : 'Tu mènes la salle !') : '')
     : mine ? 'Ton meilleur ' + def.word.toLowerCase() : 'Lance une partie pour poser ta tête sur la carte';
   // les scores : le sien (s'il est devant ou à égalité) et le mien
-  const myS = scores.get(me) || 0, aS = ahead && ahead[1] >= mine ? scores.get(ahead[0]) || 0 : 0;
+  const myS = scores.get(me) || 0, aS = ahead && ahead[1] >= myV ? scores.get(ahead[0]) || 0 : 0;
   const parts = [];
   if (aS) parts.push(aName + ' ' + scoreShort(aS, G));
   if (myS) parts.push((aS ? 'toi ' : 'Ton record : ') + scoreShort(myS, G));

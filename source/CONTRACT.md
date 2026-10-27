@@ -268,3 +268,13 @@ Pour un jeu qui se quitte à tout moment et se reprend EXACTEMENT où on l'a lai
 - `await api.levelBest.all()` (1.46.3) → `{ members: [{ name, img, me }], best: { niveau: [{ name, moves, ms, me }] } }` = moi + les membres de la salle
   (img = leur tête, null sans photo) et leurs meilleurs sur TOUS les niveaux en un appel (`get_level_bests_all`) ; null en invité, sans salle ou hors ligne.
 Sans `api.save.score` (borne plus ancienne), le jeu appelle `api.gameOver(total)` quand un niveau réussi fait monter le total.
+
+## Ajout 15 : avancement fin et copains sur le parcours (spots, mapSpot, api.reached ; borne 1.46.3, Néon Rush)
+Pour un jeu où l'on veut savoir OÙ chacun est mort dans un niveau (Néon Rush). Le jeu déclare `spots: true` dans son enregistrement et
+donne `levels` (nom et mondes de chaque niveau) pour sa carte (`MAP_DEFS.neon` de shell2.js). Il ajoute à l'instance `mapSpot()` = la valeur
+gardée sur la carte : niveau × 1000 + pour mille du niveau (en route : par dixième ; à la mort : l'endroit exact ; 8000 = grande victoire).
+La borne l'envoie à la place de `currentLevel()` (progTick, et une dernière fois juste avant l'écran de fin) ; `currentLevel()` reste le
+niveau (spectateurs, musique). La carte pose chaque tête à l'endroit exact (croix 💀 + « 63 % »), l'écran de fin montre une case par niveau.
+`await api.reached()` → `[{ name, v, me, img, sad }]` : le plus loin de chaque membre de la salle dans ce jeu (v = valeur de mapSpot ;
+moi : name « TOI », me vrai) ; vide en invité ; la progression de la salle est relue si elle a plus d'une minute. Valeurs < 1000 = ancien
+format (niveau seul) : au départ.

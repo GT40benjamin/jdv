@@ -2736,6 +2736,42 @@
     function refreshHeads() { try { heads = ((api.heads && api.heads()) || []).filter((h) => h && h.img); } catch (e) { heads = []; } }
     refreshHeads();
     const levelNo = () => li + 1 + tour * LEVELS.length;
+    // 27 oct. (Benjamin : « l'emplacement où le copain est allé, clairement identifier là où il est mort ») : l'avancement FIN part sur
+    // la carte de la borne (mapSpot : niveau × 1000 + pour mille du niveau ; 8000 = grande victoire), et les copains morts dans ce
+    // niveau ont leur repère sur le parcours (api.reached de la borne : le plus loin de chacun) : poteau, tête triste, nom, croix au sol
+    let deadPm = 0, won = false, reach = [], passed = new Set(), MK = { key: '', list: [] };
+    function loadReach() { try { if (api.reached) Promise.resolve(api.reached()).then((r) => { if (Array.isArray(r)) reach = r; }).catch(() => { /* rien */ }); } catch (e) { /* rien */ } }
+    function spotNow() {
+      if (won) return (LEVELS.length + 1) * 1000;
+      const base = (li + 1) * 1000;
+      if (deadPm) return base + deadPm;
+      if (state === 'clear') return base + 999;
+      if (state === 'play' && L) return base + Math.floor(clamp(Math.floor(progress() * 1000), 0, 999) / 100) * 100;   // en route : par dixième (peu d'envois)
+      return base;
+    }
+    // les repères de CE niveau : x dans le monde, rangés ; deux repères proches s'empilent
+    function marks() {
+      if (!L || tour) return [];
+      const key = li + '|' + reach.length + '|' + reach.map((r) => r.name + r.v).join(',');
+      if (MK.key === key) return MK.list;
+      const out = [];
+      for (const r of reach) {
+        const v = Math.floor(+r.v || 0), lv = Math.floor(v / 1000), pm = v % 1000;
+        if (lv !== li + 1 || pm < 1) continue;
+        out.push({ x: ((pm + 0.5) / 1000) * L.end, pm, name: String(r.name || '?'), me: !!r.me, img: r.img || null, sad: r.sad || null, k: 0 });
+      }
+      out.sort((a, b) => a.x - b.x);
+      for (let i = 1; i < out.length; i++) { const p = out[i - 1]; if (out[i].x - p.x < 1.6) out[i].k = Math.min(2, p.k + 1); }
+      MK.key = key; MK.list = out; return out;
+    }
+    function passMarks() {
+      for (const m of marks()) {
+        const id = li + '|' + m.name; if (passed.has(id) || st.x < m.x) continue;
+        passed.add(id);
+        texts.push({ s: m.me ? 'RECORD BATTU !' : 'Tu dépasses ' + m.name + ' !', x: W / 2, y: H * 0.22, t: 0, life: 1.3, col: m.me ? '#ffd34d' : '#ff8aa8', size: 0.55 });
+        sfx.tick(0);
+      }
+    }
 
     // ---------- sons (petits) ----------
     const sfx = {
@@ -2754,7 +2790,7 @@
       state = 'load'; stT = 0;
       L = buildLevel(li, tour); L.fx = trackFx(L.TR); L.crumbly = L.blocks.some((q) => q.crumble); prepWorlds();
       st = newState(L.P); tG = 0; partIdx = -1; trail = []; prevTheme = null; themeFade = 0; banner = null;
-      refreshHeads();
+      refreshHeads(); loadReach();
       rival = heads.length ? heads[Math.floor(fxr() * heads.length)] : null;
       parts = L.parts;
       for (const o of L.orbs) { o.used = false; o.head = heads.length && fxr() < 0.6 ? heads[Math.floor(fxr() * heads.length)] : null; }
@@ -2845,6 +2881,7 @@
     // ---------- la boucle ----------
     function die() {
       state = 'dead'; stT = 0; shake = 14; sfx.die(); rumble('big');
+      deadPm = clamp(Math.floor(progress() * 1000), 1, 999);
       if (RH && soundOn) RH.stop(0.35);
       const px = st.x;
       for (let i = 0; i < 26; i++) { const a = fxr() * TAU, v = 3 + fxr() * 9; pops.push({ k: 'shard', x: px, y: st.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v + 3, t: 0, life: 0.9 + fxr() * 0.5, s: 0.15 + fxr() * 0.25, c: fxr() < 0.5 ? MODES[st.mode].col : '#ffffff' }); }
@@ -2862,7 +2899,7 @@
     }
     // la GRANDE VICTOIRE (tous les niveaux finis) : feu d'artifice, puis l'écran de fin de la borne
     function win() {
-      state = 'win'; stT = 0; sfx.clear(); rumble('win'); const bonus = 5000; scoreBase += bonus; score = scoreBase;
+      state = 'win'; stT = 0; won = true; sfx.clear(); rumble('win'); const bonus = 5000; scoreBase += bonus; score = scoreBase;
       texts.push({ s: 'NÉON RUSH TERMINÉ !', x: W / 2, y: H * 0.34, t: 0, life: 6, col: '#ffd34d', size: 1.25 }, { s: 'Tous les niveaux pulvérisés · +' + bonus, x: W / 2, y: H * 0.47, t: 0, life: 6, col: '#ffffff', size: 0.55 });
       try { if (api.celebrate) api.celebrate('Néon Rush terminé !'); } catch (e) { /* rien */ }
     }
@@ -2905,7 +2942,7 @@
           if (st.teleAt != null && st.teleAt !== lastTele) { lastTele = st.teleAt; if (fx) { pops.push({ k: 'tele', x: st.x, y0: st.teleFrom, y: st.y, t: 0, life: 0.28 }); sfx.jump(); } }
         }
         if (state === 'play') { refR = frameNow; refG = tG; }
-        if (state === 'play') { score = scoreBase + Math.floor(st.x) + orbsTaken * 25; if (st.x >= L.end) levelDone(); }
+        if (state === 'play') { score = scoreBase + Math.floor(st.x) + orbsTaken * 25; passMarks(); if (st.x >= L.end) levelDone(); }
         trail.push({ x: st.x - 0.35, y: st.y }); if (trail.length > 22) trail.shift();
       } else if (state === 'dead') { if (stT > 1.5 && !overSent) { overSent = true; state = 'over'; try { api.gameOver(Math.max(0, Math.floor(score))); } catch (e) { /* rien */ } } }
       else if (state === 'clear') { st.x += (st.v || L.speed) * dt; if (stT > 3) { if (li + 1 >= LEVELS.length) win(); else { li++; beginLevel(); } } }
@@ -3029,6 +3066,8 @@
         ctx.globalAlpha = 0.85; try { const im = state === 'clear' ? rival.sad || rival.img : rival.img, iw = im.width || 160, ih = im.height || 200, k = s / ih; ctx.drawImage(im, x - (iw * k) / 2, y - s / 2, iw * k, s); } catch (e) { /* rien */ } ctx.globalAlpha = 1;
         smallText(rival.name + ' te défie !', x, y + s * 0.62, Math.max(12, B * 0.42), acc2);
       }
+      // les copains morts dans ce niveau : derrière tout ce qui se joue (rien ne pulse)
+      for (const m of marks()) { const X = SX(m.x); if (X > -B * 2 && X < W + B * 2) drawMark(m, X); }
       // ---- tout ce qui se joue : exactement le dessin de la 1.34, sans pulsation (p0 = 0) ----
       const p0 = 0;
       // le sol : le DESSUS d'un mur (une bande de lumière, des joints de dalles qui défilent doucement) ; en dessous, le VIDE noir
@@ -3229,6 +3268,20 @@
       }
     }
     function bigText(s, x, y, size, col) { ctx.font = '400 ' + Math.round(size) + 'px ' + FONT.display; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(4, size * 0.14); ctx.strokeStyle = 'rgba(4,2,14,0.9)'; ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y); }
+    // un repère : poteau en pointillés du sol à la tête (triste : il est mort ici), nom au-dessus, croix au sol ; le mien en or
+    function drawMark(m, X) {
+      const col = m.me ? '#ffd34d' : '#ff4a6a', s = B * 1.3, yH = SY(5.1 + m.k * 1.5), yG = SY(0), ahead = st.x < m.x;
+      ctx.globalAlpha = ahead ? 0.9 : 0.45;
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([B * 0.22, B * 0.18]); ctx.beginPath(); ctx.moveTo(X, yG - B * 0.1); ctx.lineTo(X, yH + s * 0.5); ctx.stroke(); ctx.setLineDash([]);
+      const cy = yG - B * 0.28, c = B * 0.2; ctx.lineWidth = Math.max(2.5, B * 0.09); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(X - c, cy - c); ctx.lineTo(X + c, cy + c); ctx.moveTo(X + c, cy - c); ctx.lineTo(X - c, cy + c); ctx.stroke(); ctx.lineCap = 'butt';
+      ctx.fillStyle = 'rgba(4,2,14,0.8)'; ctx.beginPath(); ctx.roundRect(X - s * 0.44, yH - s * 0.52, s * 0.88, s * 1.04, B * 0.18); ctx.fill();
+      const im = m.me ? m.img : m.sad || m.img;
+      if (im) { try { const iw = im.width || 160, ih = im.height || 200, k = (s * 0.96) / ih; ctx.drawImage(im, X - (iw * k) / 2, yH - s * 0.48, iw * k, s * 0.96); } catch (e) { /* rien */ } }
+      else { ctx.fillStyle = col; ctx.font = '400 ' + Math.round(s * 0.5) + 'px ' + FONT.display; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(m.name.charAt(0), X, yH); }
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(X - s * 0.44, yH - s * 0.52, s * 0.88, s * 1.04, B * 0.18); ctx.stroke();
+      smallText(m.me ? 'TON RECORD · ' + Math.floor(m.pm / 10) + ' %' : '✝ ' + m.name + ' · ' + Math.floor(m.pm / 10) + ' %', X, yH - s * 0.52 - Math.max(9, B * 0.24), Math.max(11, B * 0.34), col);
+      ctx.globalAlpha = 1;
+    }
     function smallText(s, x, y, size, col, align) { ctx.font = '700 ' + Math.round(size) + 'px ' + FONT.body; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, size * 0.22); ctx.strokeStyle = 'rgba(4,2,14,0.85)'; ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y); }
     function drawHud(acc, acc2, pulse, t, bi) {
       // barre d'avancement (comme dans les jeux de rythme), score, niveau
@@ -3236,6 +3289,7 @@
       ctx.fillStyle = 'rgba(4,2,14,0.7)'; ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, bw + 6, 14, 8); ctx.fill();
       ctx.fillStyle = lin(ctx, bx, 0, bx + bw, 0, [0, acc, 1, acc2]); ctx.beginPath(); ctx.roundRect(bx, by, Math.max(4, bw * pr), 8, 5); ctx.fill();
       for (let i = 1; i < parts.length; i++) { const p = parts[i]; if (!p) continue; const u = p.x / L.end; ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(bx + bw * u - 1, by - 2, 2, 12); }
+      for (const m of marks()) { const mx = bx + bw * (m.pm / 1000); ctx.fillStyle = m.me ? '#ffd34d' : '#ff4a6a'; ctx.fillRect(mx - 1.5, by - 4, 3, 16); ctx.beginPath(); ctx.moveTo(mx - 4, by + 15); ctx.lineTo(mx + 4, by + 15); ctx.lineTo(mx, by + 10); ctx.closePath(); ctx.fill(); }
       smallText(Math.floor(pr * 100) + ' %', W / 2, by + 22, Math.max(12, B * 0.4), '#ffffff');
       ctx.font = '400 ' + Math.round(Math.max(18, B * 0.7)) + 'px ' + FONT.display; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(4,2,14,0.85)'; ctx.strokeText(String(score), 12, 8); ctx.fillStyle = '#ffffff'; ctx.fillText(String(score), 12, 8);
       smallText('Niveau ' + levelNo() + ' / ' + LEVELS.length + ' · ' + L.LV.name, 12, 8 + Math.max(18, B * 0.7) + 12, Math.max(11, B * 0.36), acc, 'left');
@@ -3286,6 +3340,7 @@
       },
       currentScore() { return Math.max(0, Math.floor(score)); },
       currentLevel() { return levelNo(); },
+      mapSpot() { return spotNow(); },
       pause() { setPaused(true); },
       resume() { setPaused(false); },
       get _d() { return { setAuto(v) { auto = !!v; }, err: () => lastErr, state, li, tour, t: tG, x: st && st.x, end: L && L.end, mode: st && st.mode, y: st && st.y, jumpAt: st && st.jumpAt, score, L, soundOn, press, release, progress,
@@ -3354,6 +3409,9 @@
     accent: '#3af0ff',
     scoreLabel: 'points',
     pad: { help: [['a', 'Sauter · voler (tenir) · inverser la gravité']] },
+    spots: true,   // avancement fin (mapSpot) : la carte pose chaque tête là où le joueur est mort ; api.reached = les copains
+    levels: LEVELS.map((LV) => ({ name: LV.name, track: LV.track, worlds: LV.parts.map((q) => { const T = themeOf(q[0]); return { id: T.id, name: T.name, acc: T.acc, acc2: T.acc2, sky: T.sky.slice(), ground: T.ground, mode: (MODES[q[1]] || MODES.cube).name, mini: !!(q[2] && q[2].mini) }; }) })),
+    drawCube(x, s) { paintCube(x, s, MODES.cube.col, null); },
     preview,
     mount,
     _art: { THEMES, LEVELS, TRACKS, buildLevel, buildWorld, step, newState, enterMode },   // pour les essais
