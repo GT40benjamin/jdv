@@ -2,6 +2,10 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[borne] ## 🎵 Nouvelles musiques (borne 1.41.4)
+[borne] Trois nouvelles musiques à l’accueil de la borne, choisies par Benjamin : « Playful », « Funky Bass » et « Country Title ». Elles tournent avec les autres, au même volume
+[magic] ## 🎵 Magic Force : la musique de la victoire (borne 1.41.4)
+[magic] La grande victoire, après le Seigneur des ombres, a maintenant sa propre musique joyeuse, « Lighthearted », au lieu d’un morceau de combat déjà entendu dans les mondes
 [neon] ## ⚡ Néon Rush : niveau 3 refait, Surcharge (borne 1.41.3)
 [neon] Quatre nouveaux mondes : l’Usine Électrique (arcs électriques), le Cœur de l’Orage (un éclair de temps en temps), le Data Center (baies qui s’allument) et le Réacteur (une décharge fait le tour de l’anneau de plasma)
 [neon] Nouveau : la SOUCOUPE ! Chaque toucher donne un coup d’ailes pour traverser l’orage, et ça accélère sur le drop
