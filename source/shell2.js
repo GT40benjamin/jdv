@@ -3,11 +3,12 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
+  coffres: { kind: 'new', at: '2026-10-27 12:00' },   // Coffres à Secrets (casse-tête 3D, partie gardée ; en essai derrière la porte labo ; heure = celle de la publication)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
   glouton: { kind: 'maj', at: '2026-10-13 00:55' },
@@ -32,7 +33,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['iles', 'chrono']);   // en essai : Pégase en îles (onglet à gauche, page des îles), Turbo Chrono (course contre les fantômes, 1.42) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC
+const LABO = new Set(['iles', 'chrono', 'coffres']);   // en essai : Pégase en îles (onglet à gauche, page des îles), Turbo Chrono (course contre les fantômes, 1.42), Coffres à Secrets (casse-tête, 1.43) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -1541,7 +1542,7 @@ function notifRow(n, isNew) {
 // NOTES DE MISE À JOUR rangées par jeu (source/nouveautes.txt : « [pegase] … », « [neon] … », « [id] ## sous-titre », sans crochets =
 // la borne ; lignes « # » ignorées). L'ancien format (« 🎣 PÉGASE 0.9.4.6 : a ; b ; c ») est encore compris : une version = un sous-titre,
 // une nouveauté par « ; ». Pégase d'abord, puis chaque jeu (sous « Nos autres jeux »), puis la borne. Chaque jeu a ses notes à lui.
-const NOTE_IC = { chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', borne: '🕹️' };
+const NOTE_IC = { coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', borne: '🕹️' };
 function notesGroups() {
   const G = new Map(), add = (id, kind, t) => { if (!G.has(id)) G.set(id, []); G.get(id).push({ kind, t: String(t).trim() }); };
   for (const raw of window.JDW_NOTES || []) {
@@ -2170,7 +2171,7 @@ function refreshEverything(force) {
   if (!force && Date.now() - lastRefresh < 2500) return;
   lastRefresh = Date.now();
   if (ONLINE && (!RT.ws || RT.ws.readyState > 1)) rtConnect();
-  heartbeat(); loadScores(); loadChat(); flushUnsent(); flushUnsentCoop(); checkSiteVersion(); progLoad(); loseFlush();
+  heartbeat(); loadScores(); loadChat(); flushUnsent(); flushUnsentCoop(); checkSiteVersion(); progLoad(); loseFlush(); saveFlushAll();
 }
 window.JDW_RESUME = () => refreshEverything(true);      // appelé par l'appli Android quand on revient dedans
 document.addEventListener('visibilitychange', () => { if (document.hidden) rtUntrack(); else refreshEverything(); });
@@ -8720,6 +8721,80 @@ function nativeBoot() {
 
 /* ================= Lancer un jeu ================= */
 let current = null, mountSeq = 0;
+/* ================= Partie gardée d'un jeu (api.save / api.levelBest, CONTRACT.md Ajout 14 ; source/sauvegarde.sql) =================
+   Pour un jeu qui se quitte à tout moment et se reprend EXACTEMENT où on l'a laissé (Coffres à Secrets) : un document JSON par joueur et par jeu.
+   Toujours sur l'appareil (jdw.save.<jeu>.<JOUEUR | INVITE>) ; avec un compte, aussi sur le serveur (save_game, 2,5 s après la dernière
+   écriture, tout de suite en quittant) : on le retrouve sur un autre appareil. Le plus RÉCENT gagne (data.at, en ms). Hors ligne : envoyé
+   au retour du réseau (ou à la prochaine ouverture). Un invité qui crée son compte garde sa partie (copie INVITE reprise une fois).
+   api.levelBest : meilleurs coups / temps par niveau (put_level_best) et le classement de la salle sur ce niveau (get_level_bests). */
+const SAVEG = { missing: false, bestMissing: false, live: new Set() };
+function saveApi(g) {
+  const guest = isGuest(), name = guest ? '' : cleanName(profile.name || '');
+  const who = name || 'INVITE', key = 'jdw.save.' + g.id + '.' + who, sentKey = key + '.sent';
+  const S = { pending: null, busy: false, t: 0 };
+  async function push() {
+    if (!S.pending || S.busy || guest || !ONLINE || SAVEG.missing || netOff()) return false;
+    S.busy = true; const d = S.pending; S.pending = null;
+    try {
+      const r = await rpc('save_game', { p_code: CODE(), p_name: name, p_game: g.id, p_data: d, p_at: Math.max(0, Math.floor(+d.at || 0)) }, { quiet404: true });
+      const row = Array.isArray(r) ? r[0] : r;
+      // le serveur a plus récent (autre appareil) : on le garde ici aussi, la prochaine ouverture le reprendra
+      if (row && row.r_ok === false && row.r_data && (+row.r_at || 0) > (+d.at || 0)) { const loc = store.get(key, null); if (!loc || (+loc.at || 0) <= (+row.r_at || 0)) store.set(key, row.r_data); }
+      store.set(sentKey, +d.at || 0);
+      return true;
+    } catch (e) {
+      if (e.status === 404) SAVEG.missing = true;
+      else if (!e.status || e.offline) { if (!S.pending) S.pending = d; }     // pas de réseau : renvoyé plus tard
+      return false;
+    } finally { S.busy = false; }
+  }
+  const api = {
+    guest,
+    async load() {
+      let loc = store.get(key, null);
+      if (!loc && !guest) { const inv = store.get('jdw.save.' + g.id + '.INVITE', null); if (inv) { loc = inv; store.set(key, inv); } }
+      if (!guest && ONLINE && !SAVEG.missing && !netOff()) {
+        try {
+          const r = await rpc('get_game_save', { p_code: CODE(), p_name: name, p_game: g.id }, { quiet404: true });
+          const row = Array.isArray(r) ? r[0] : r;
+          if (row && row.r_data && (+row.r_at || 0) > (loc ? +loc.at || 0 : -1)) { loc = row.r_data; store.set(key, loc); store.set(sentKey, +row.r_at || 0); }
+        } catch (e) { if (e.status === 404) SAVEG.missing = true; }
+        if (loc && (+loc.at || 0) > (+store.get(sentKey, 0) || 0)) { S.pending = loc; push(); }     // copie de l'appareil pas encore envoyée
+      }
+      return loc ? { data: loc, at: +loc.at || 0 } : null;
+    },
+    put(d) {
+      if (!d || typeof d !== 'object') return;
+      store.set(key, d);
+      if (guest) return;
+      S.pending = d; clearTimeout(S.t); S.t = setTimeout(push, 2500);
+    },
+    flush() { clearTimeout(S.t); return push(); },
+    _retry: () => { if (!S.pending) { const loc = store.get(key, null); if (loc && (+loc.at || 0) > (+store.get(sentKey, 0) || 0)) S.pending = loc; } return push(); }
+  };
+  api._key = key;
+  for (const a of SAVEG.live) if (a._key === key) SAVEG.live.delete(a);   // une seule copie vivante par joueur et par jeu
+  SAVEG.live.add(api);
+  return api;
+}
+function saveFlushAll() { for (const a of SAVEG.live) { try { a._retry(); } catch (e) {} } }
+function levelBestApi(g) {
+  return {
+    put(level, moves, ms) {
+      if (isGuest() || !ONLINE || SAVEG.bestMissing || netOff()) return;
+      rpc('put_level_best', { p_code: CODE(), p_name: cleanName(profile.name), p_game: g.id, p_level: String(level), p_moves: Math.max(1, Math.floor(+moves || 1)), p_ms: Math.max(0, Math.floor(+ms || 0)) }, { quiet404: true })
+        .catch((e) => { if (e.status === 404) SAVEG.bestMissing = true; });
+    },
+    async room(level) {
+      if (isGuest() || !ONLINE || !room || SAVEG.bestMissing || netOff()) return [];
+      try {
+        const r = await rpc('get_level_bests', Object.assign({ p_code: CODE() }, RP(), { p_game: g.id, p_level: String(level) }), { quiet404: true });
+        const me = cleanName(profile.name);
+        return (r || []).filter(x => !knownNotMember(x.r_name)).map(x => ({ name: dispName(x.r_name), moves: +x.r_moves, ms: +x.r_ms, me: x.r_name === me }));
+      } catch (e) { if (e.status === 404) SAVEG.bestMissing = true; return []; }
+    }
+  };
+}
 function mountGame(g) {
   const seq = ++mountSeq;
   let root;
@@ -8747,6 +8822,8 @@ function mountGame(g) {
     natif: NATIVE_APPS[g.id] ? nativeApi(g) : undefined,                                    // appli native (Android 1.8+) : carte « Android » du hub (Ajout 9)
     pad: PAD_DOM.has(g.id) ? undefined : padApi({ intro: () => { if (current && current.seq === seq) padIntro(g, null, true); } }),   // manettes (Ajout 10) : toutes pour le joueur
     rhythm: rhythmApi(() => !!current && current.seq === seq),   // jeu de rythme : son morceau à lui, calé sur la partie (Ajout 11)
+    save: g.saves ? saveApi(g) : undefined,                       // partie gardée à tout moment, appareil + serveur (Ajout 14)
+    levelBest: g.saves ? levelBestApi(g) : undefined,             // meilleurs coups par niveau + classement de la salle (Ajout 14)
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       current.over = true;
@@ -8843,7 +8920,7 @@ const QA = { open: false, coop: false, was: false };
 function quitInGame() {
   if ($('jdw-play').hidden || !current || waitRotate) return false;
   if (current.coop) return !COOP.over && $('jdw-coopend').hidden;
-  if (current.over || !current.inst || PAD_DOM.has(current.game.id) || current.game.noScore) return false;
+  if (current.over || !current.inst || PAD_DOM.has(current.game.id) || current.game.noScore || current.game.saves) return false;   // partie gardée : rien ne se perd en quittant
   return $('jdw-end').hidden;
 }
 function quitAsk() {
@@ -9971,6 +10048,64 @@ const MAP_DEFS = {
     warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
     start: { title: 'Départ', sub: 'Le samouraï sort son sabre' },
     cap: { title: 'Le festin continue…', sub: 'Un nouveau tour tous les 18 niveaux, toujours plus vite' }
+  },
+  // Coffres à Secrets (games/coffres.js) : 6 mondes de 8 coffres (le 8e = le grand coffre). Carte dessinée ici : l'établi en planches teintées
+  // par monde, un petit coffre par niveau (le grand coffre : doré, couronné), la clé dorée au départ.
+  coffres: {
+    theme: 'coffres', word: 'Coffre', tierGap: 130, tierAt: 0.55, step: 132, nodeSize: 54, bgDpr: 1.5,
+    count: () => 48,
+    W: [['L\'Atelier', '#e0aa48', '#5a3418', '#2a170b', 'Glissières de noyer et de merisier'], ['Les Dés', '#9fd0ff', '#4a2a18', '#20120a', 'Des dés de buis qui vont partout'],
+      ['Les Plateaux', '#a8ffcf', '#3a2412', '#180e06', 'Des plateaux tournants qui font pivoter les pièces'], ['Les Tiges', '#e0b0ff', '#4a3018', '#22140a', 'Des pièces liées par une tige de laiton'],
+      ['Les Poussoirs', '#ffe08a', '#2e2420', '#120d0a', 'Poussoirs et goupilles : ouvre le passage'], ['Le Coffre du Maître', '#fff0b0', '#4a1e10', '#1c0a05', 'Tous les mécanismes à la fois']],
+    level(lv) {
+      const w = Math.floor((lv - 1) / 8) % 6, n = (lv - 1) % 8, D = this.W[w];
+      return { lv, tier: w, w, n, boss: n === 7, kicker: D[0], name: n === 7 ? 'Le grand coffre' : 'Coffre ' + (n + 1),
+        lines: n === 0 ? ['✦ ' + D[4]] : [], acc: D[1], bg: D[2], bg0: D[3] };
+    },
+    short(lv) { const w = Math.floor((lv - 1) / 8) % 6, n = (lv - 1) % 8; return this.W[w][0] + ' · ' + (n === 7 ? 'grand coffre' : 'coffre ' + (n + 1)); },
+    tier(t) { const D = this.W[t % 6]; return { kicker: 'Monde ' + (t % 6 + 1), title: D[0], acc: D[1], sub: D[4] }; },
+    paint(x, L, W, y0, h) {
+      // planches de l'établi : veinage, joints sombres, clous de laiton
+      x.save(); x.translate(0, -y0);
+      const pw = 64;
+      for (let px = -8; px < W + pw; px += pw) {
+        x.fillStyle = 'rgba(0,0,0,.28)'; x.fillRect(px, y0, 2, h);
+        x.fillStyle = 'rgba(255,220,170,.05)'; x.fillRect(px + 2, y0, 1, h);
+        x.strokeStyle = 'rgba(20,8,2,.16)'; x.lineWidth = 1;
+        for (let k = 0; k < 4; k++) { x.beginPath(); const ox = px + 10 + k * 13; for (let yy = Math.floor(y0 / 40) * 40; yy < y0 + h + 40; yy += 40) x.lineTo(ox + Math.sin(yy * 0.013 + k * 2 + px) * 4, yy); x.stroke(); }
+        for (let yy = Math.floor(y0 / 260) * 260 + (Math.round(px / pw) % 2) * 130; yy < y0 + h; yy += 260) { x.fillStyle = '#c99440'; x.beginPath(); x.arc(px + 8, yy, 2.2, 0, 7); x.arc(px + pw - 6, yy, 2.2, 0, 7); x.fill(); }
+      }
+      x.restore();
+    },
+    node(x, info, size, P) {
+      // un petit coffre (le grand coffre : doré, plus large, une couronne)
+      const cx = P / 2, cy = P / 2 + 4, big = info.boss, w = size * (big ? 1.02 : 0.86), h = size * (big ? 0.66 : 0.58), acc = info.acc;
+      const g0 = x.createRadialGradient(cx, cy, 2, cx, cy, size * 0.75); g0.addColorStop(0, rgbaHex(acc, 0.45)); g0.addColorStop(1, rgbaHex(acc, 0)); x.fillStyle = g0; x.fillRect(0, 0, P, P);
+      const rr = (a, b, ww, hh, r) => { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + ww, b, a + ww, b + hh, r); x.arcTo(a + ww, b + hh, a, b + hh, r); x.arcTo(a, b + hh, a, b, r); x.arcTo(a, b, a + ww, b, r); x.closePath(); };
+      x.fillStyle = 'rgba(0,0,0,.45)'; rr(cx - w / 2 + 2, cy - h / 2 + 5, w, h, 6); x.fill();
+      const body = x.createLinearGradient(0, cy - h / 2, 0, cy + h / 2);
+      if (big) { body.addColorStop(0, '#ffe9a0'); body.addColorStop(0.5, '#d9a23a'); body.addColorStop(1, '#8a5412'); } else { body.addColorStop(0, '#a0683a'); body.addColorStop(1, '#4a2810'); }
+      x.fillStyle = body; rr(cx - w / 2, cy - h / 2, w, h, 6); x.fill();
+      x.fillStyle = big ? 'rgba(90,50,8,.35)' : 'rgba(255,220,170,.12)'; rr(cx - w / 2, cy - h / 2, w, h * 0.38, 6); x.fill();
+      x.fillStyle = big ? '#fff3c0' : acc; x.fillRect(cx - w / 2, cy - h / 2 + h * 0.38 - 1.5, w, 3);
+      for (const sx of [-1, 1]) { x.fillStyle = big ? '#fff3c0' : '#e0aa48'; x.fillRect(cx + sx * (w / 2 - 6) - 2.5, cy - h / 2, 5, h); }
+      const lk = size * 0.2, ly = cy - h / 2 + h * 0.3; x.fillStyle = '#f5c542'; rr(cx - lk / 2, ly, lk, lk * 1.15, 3); x.fill(); x.fillStyle = '#2a1404'; x.beginPath(); x.arc(cx, ly + lk * 0.42, lk * 0.14, 0, 7); x.fill(); x.fillRect(cx - 1, ly + lk * 0.45, 2, lk * 0.4);
+      x.strokeStyle = 'rgba(0,0,0,.5)'; x.lineWidth = 1.2; rr(cx - w / 2, cy - h / 2, w, h, 6); x.stroke();
+      if (big) { x.fillStyle = '#ffd34d'; x.beginPath(); const ty = cy - h / 2 - 3, sz = size * 0.2; x.moveTo(cx - sz, ty); x.lineTo(cx - sz, ty - sz * 0.7); x.lineTo(cx - sz * 0.45, ty - sz * 0.3); x.lineTo(cx, ty - sz * 0.9); x.lineTo(cx + sz * 0.45, ty - sz * 0.3); x.lineTo(cx + sz, ty - sz * 0.7); x.lineTo(cx + sz, ty); x.closePath(); x.fill(); x.strokeStyle = '#8a5412'; x.stroke(); }
+    },
+    startArt(x, P) {
+      // la clé dorée
+      const c = P / 2; x.save(); x.translate(c, c); x.rotate(-0.6);
+      const g = x.createLinearGradient(0, -P * 0.1, 0, P * 0.1); g.addColorStop(0, '#fff3b0'); g.addColorStop(0.5, '#f5c542'); g.addColorStop(1, '#a8700e');
+      x.fillStyle = g; x.strokeStyle = '#6a4006'; x.lineWidth = 1.5;
+      x.beginPath(); x.arc(-P * 0.22, 0, P * 0.12, 0, 7); x.fill(); x.stroke();
+      x.fillStyle = '#3a2004'; x.beginPath(); x.arc(-P * 0.22, 0, P * 0.05, 0, 7); x.fill();
+      x.fillStyle = g; x.fillRect(-P * 0.1, -P * 0.03, P * 0.4, P * 0.06); x.strokeRect(-P * 0.1, -P * 0.03, P * 0.4, P * 0.06);
+      x.fillRect(P * 0.2, P * 0.03, P * 0.05, P * 0.08); x.fillRect(P * 0.27, P * 0.03, P * 0.04, P * 0.06);
+      x.restore();
+    },
+    start: { title: 'Départ', sub: 'La clé dorée attend son coffre' },
+    cap: { title: 'Le dernier coffre', sub: 'Le trésor du Maître ébéniste' }
   }
 };
 
