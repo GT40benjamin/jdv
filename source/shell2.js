@@ -8,7 +8,6 @@ const ORDER = ['coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase'
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  ilotab: { kind: 'maj', at: '2026-10-27 18:30' },   // l'onglet ILO (pas une tuile) : la musique du titre du jeu, 1.48.3 — badge « mis à jour » au lieu de « à venir » jusqu'à ce qu'on l'ouvre
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -165,8 +164,6 @@ function refreshNewBadges() {
     const e = $(id); if (!e) continue;
     e.hidden = !k; e.textContent = k === 'new' ? 'nouveau' : 'mis à jour'; e.classList.toggle('maj', k === 'maj'); e.classList.toggle('new', k === 'new');
   }
-  // l'onglet ILO : « à venir », ou « mis à jour » (TILE_NEWS.ilotab) jusqu'à ce que ce joueur l'ouvre
-  { const e = $('jdw-ilo-badge'); if (e) { let k = ''; try { k = tileNewsT('ilotab'); } catch (x) {} e.textContent = k ? 'mis à jour' : 'à venir'; e.classList.toggle('maj', !!k); } }
 }
 const fmt = n => Math.floor(n).toLocaleString('fr-FR');
 const unit = g => g && g.scoreLabel === 'm' ? ' m' : '';
@@ -347,7 +344,6 @@ if (PADJ) {
     defaultFocus: (layer, list) => {
       const pick = (...ids) => { for (const id of ids) { const e = $(id); if (e && list.includes(e)) return e; } return null; };
       if (!layer) {
-        if (!$('jdw-lib').hidden && MODE === 'ilo') { const p = $('jdw-ilo-son'); if (p && list.includes(p)) return p; }   // page ILO : « Le son » de la bande-annonce
         if (!$('jdw-lib').hidden) { const grid = MODE === 'duel' ? $('jdw-duo-grid') : MODE === 'coop' ? $('jdw-coop-grid') : $('jdw-grid'); const t = list.find(e => grid && grid.contains(e) && e.classList.contains('tile')); if (t) return t; }
         return null;
       }
@@ -1348,7 +1344,7 @@ function musicOut(t) {
 // MUSIQUES EN SUITE (24 oct. 2026, la page Pégase : « Chez toi 2 » → « L'Île qui s'éveille » → « Lumière du soir » → « Chez Rosalie 2 »,
 // plus de 6 min variées) : toujours dans l'ordre à partir du 1er, fondu enchaîné LONG à puissance constante, sans blanc ni coupure nette ;
 // chaque morceau est mesuré une fois (début et fin réels sans silence, volume des passages joués) et ramené au même niveau.
-const MUSIC_SUITE = { pegase: 7, ilotitre: 3 };   // id → durée du fondu enchaîné (s) ; ilotitre : la musique du titre d'ILO, seule, en boucle sans blanc
+const MUSIC_SUITE = { pegase: 7 };   // id → durée du fondu enchaîné (s)
 function musicMeta(b) {
   if (b._m) return b._m;
   const ch = [...Array(b.numberOfChannels).keys()].map(i => b.getChannelData(i)), hop = Math.round(b.sampleRate * 0.05), n = Math.floor(b.length / hop), db = new Float32Array(n);
@@ -1455,9 +1451,7 @@ function rhythmApi(mine) {
   };
 }
 // la page Pégase (choix des îles) joue la musique du hub de Pégase (« Chez toi ») ; le reste de la borne, celle de l'accueil
-// l'onglet ILO : la musique du titre du jeu (ilotitre-1, « quand on s'éloigne du vaisseau », MUS_Titre_Longue composée avec ElevenLabs Music) ;
-// l'id « ilo » est celui du mini-jeu de la borne (ses musiques ilo-2…, ilo-x1…)
-const menuMusic = () => (MODE === 'pegase' ? 'pegase' : MODE === 'ilo' ? 'ilotitre' : 'accueil');
+const menuMusic = () => (MODE === 'pegase' ? 'pegase' : 'accueil');
 function screenMusic() { return !$('jdw-play').hidden && current ? current.game.id : menuMusic(); }
 document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) { if (Audio.ctx && Audio.ctx.state === 'suspended') Audio.ctx.resume().catch(() => {}); setMusic(MUS.want, MUS.wantMode); } });
 // la musique démarre au premier geste (règle des navigateurs)
@@ -5273,7 +5267,6 @@ $('jdw-new-ok').addEventListener('click', async () => {
 /* ================= Onglets : Classique / Duel / Coop ================= */
 // le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
 const MODES = {
-  ilo: { ic: '🌌', t: 'ILO', sub: 'À venir · aventure spatiale 3D sur PC.' },   // l'autre jeu du studio, pas encore sorti (onglet à gauche de Pégase)
   pegase: { ic: '🏝️', t: 'Pégase', sub: 'Choisis ton île, rejoins tes copains.' },
   classique: null,
   duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain ou l\'IA.' },
@@ -5285,12 +5278,9 @@ function setMode(m, user) {
   if (m === 'arcade') m = (typeof PG !== 'undefined' && PG.last) || 'classique';   // « Nos autres jeux » : le dernier mode de la borne
   if (!(m in MODES)) m = 'classique';
   if (m === 'pegase' && document.querySelector('#jdw-modes [data-mode="pegase"]').hidden) m = 'classique';   // onglet Pégase : mode test seulement
-  if (m === 'ilo' && document.querySelector('#jdw-modes [data-mode="ilo"]').hidden) m = 'classique';         // onglet ILO : montré avec celui de Pégase
-  if (m !== 'pegase' && m !== 'ilo' && typeof PG !== 'undefined') PG.last = m;   // « Nos autres jeux » revient au dernier mode de la borne
+  if (m !== 'pegase' && typeof PG !== 'undefined') PG.last = m;
   if (m === 'pegase' && user) markGameSeen('pegase');   // l'onglet Pégase touché : son « ✨ Mis à jour » s'en va
-  if (m === 'ilo' && user) markGameSeen('ilotab');      // l'onglet ILO touché : son « mis à jour » redevient « à venir »
   $('jdw-modes').classList.toggle('pg-open', m === 'pegase');
-  $('jdw-modes').classList.toggle('ilo-open', m === 'ilo');   // ILO ouvert : comme Pégase ouvert (Classique · Duel · Coop repliés)
   const changed = m !== MODE; MODE = m;
   try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}
   $('jdw-lib').dataset.mode = m;
@@ -5301,9 +5291,8 @@ function setMode(m, user) {
   if (m === 'coop') renderCoop();
   if (m === 'pegase') renderIsles();
   if (typeof pgSky === 'function') pgSky(m === 'pegase');
-  if (typeof iloSky === 'function') iloSky(m === 'ilo');
   if (m !== 'pegase') for (const o of document.querySelectorAll('.pi-panel.pi-over, .pi-who')) o.remove();
-  if (changed && $('jdw-play').hidden && !MUS.override && MUS.want && MUS.want !== menuMusic() && (MUS.want === 'accueil' || MUS.want === 'pegase' || MUS.want === 'ilotitre')) setMusic(menuMusic());   // entrer / sortir de Pégase ou d'ILO : sa musique
+  if (changed && $('jdw-play').hidden && !MUS.override && MUS.want && MUS.want !== menuMusic() && (MUS.want === 'accueil' || MUS.want === 'pegase')) setMusic(menuMusic());   // entrer / sortir de Pégase : sa musique
   if (user && changed) {
     const w = document.querySelector('.lib-wrap'); w.classList.remove('page-in'); void w.offsetWidth; w.classList.add('page-in');
     $('jdw-lib').scrollTo({ top: 0 });
@@ -5320,15 +5309,13 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
 const PG_TAB = !!gameById('pegase');   // pour tout le monde depuis le 25 oct. 2026 (avant : mode test seulement)
 if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
-const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' && MODE !== 'ilo' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
+const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
-  // ILO (« à venir ») : son onglet tout à gauche, à côté de Pégase (has-ilo : une colonne de plus dans la barre, shell2.css)
-  { const ib = document.querySelector('#jdw-modes [data-mode="ilo"]'); if (ib) { ib.hidden = false; $('jdw-modes').classList.add('has-ilo'); } }
   try { if (!sessionStorage.getItem('jdw.mode')) MODE = 'pegase'; } catch (e) {}   // la borne s'ouvre sur Pégase
-  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('ilo')) MODE = 'ilo'; else if (sp.has('borne')) MODE = PG.last; }   // lien partagé (?pegase, ?ile=<id>, ?ilo) ; ?borne (site du studio) : côté arcade
-  $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase'); $('jdw-modes').classList.toggle('ilo-open', MODE === 'ilo');
+  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('borne')) MODE = PG.last; }   // lien partagé (?pegase, ?ile=<id>) ; ?borne (site du studio) : côté arcade
+  $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase');
   // le badge de « Nos autres jeux » : le plus important de Classique / Duel / Coop (nouveau > mis à jour)
   const arcBadge = () => {
     const bs = ['jdw-cls-badge', 'jdw-duo-badge', 'jdw-coop-badge'].map(id => $(id)).filter(x => x && !x.hidden && x.classList.length > 1), bb = $('jdw-arc-badge');
@@ -5898,72 +5885,6 @@ function pgAmbi(on) {
   else if (PG.ambiOff) { removeEventListener('pointerdown', PG.ambiOff, { capture: true }); removeEventListener('keydown', PG.ambiOff, { capture: true }); PG.ambiOff = null; }
 }
 $('jdw-pg-ambi').addEventListener('click', (e) => { e.stopPropagation(); pgAmbi(true); });
-
-/* ================= L'UNIVERS D'ILO (en production) : l'onglet à gauche de Pégase, la page « Le Silence d'ILO » =================
-   ILO = l'autre jeu du studio (Unity, PC), en production : onglet montré avec celui de Pégase (PG_TAB), badge « à venir » ; ?ilo l'ouvre.
-   La page (27/10, Benjamin : « on ne l'agrandit pas, tu la mets en boucle, ancrée dans la page, à côté d'un petit texte ») : « Elixir Game
-   Studio présente », le titre, et la BANDE-ANNONCE en boucle dans son cadre, le texte à côté — muette au départ (un navigateur ne lance pas
-   seul une vidéo qui a du son) ; « Le son » la fait entendre, et la musique de la borne se tait pendant ce temps. Vidéos du seau R2
-   (PG_VID_BASE, le même que Pégase) : ilo_bande_annonce_<1080|1440|2160>.mp4, et la 720 dans le dépôt (assets/ilo/, elle joue toujours) ;
-   une qualité absente : la plus petite suivante ; aucune : l'affiche (assets/ilo/ilo_bande_annonce_poster.jpg) et « La bande-annonce arrive
-   très bientôt. » ;
-   jamais de vidéo en économie de données, sur un réseau lent ni en mouvement réduit (l'affiche seule). */
-const ILO = { dead: false };
-const ILO_Q = [720, 1080, 1440, 2160];   // qualités envoyées sur le seau
-function iloStill() {   // affiche seule : économie de données, réseau lent, mouvement réduit
-  const C = navigator.connection || {};
-  return !!(C.saveData || /(^|-)2g$|^3g$/.test(C.effectiveType || '') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
-}
-function iloMp4() { if (ILO.mp4 == null) { try { const t = document.createElement('video'); ILO.mp4 = !!(t.canPlayType && t.canPlayType('video/mp4; codecs="avc1.640028"')); } catch (e) { ILO.mp4 = false; } } return ILO.mp4; }
-// la qualité : la largeur du cadre × la densité de l'écran (la vidéo n'est jamais agrandie : 1440 au plus) ; données mobiles : 720
-function iloQual() {
-  const f = $('jdw-ilo-film'), px = (f && f.clientWidth ? f.clientWidth : innerWidth) * Math.min(window.devicePixelRatio || 1, 3);
-  return (navigator.connection || {}).type === 'cellular' ? 720 : px > 1500 ? 1440 : px > 800 ? 1080 : 720;
-}
-// <source> de la qualité visée, puis des plus petites : le navigateur joue la première qui existe ; la 720 vient du DÉPÔT
-// (assets/ilo/ilo_bande_annonce_720.mp4, comme les plans 720 de Pégase) : la bande-annonce joue même avant l'envoi sur le seau ;
-// rend la dernière (« error » = aucune)
-function iloSources(v, name, list, want) {
-  while (v.firstChild) v.removeChild(v.firstChild);
-  let last = null;
-  const add = (u) => { last = document.createElement('source'); last.src = u; last.type = 'video/mp4'; v.appendChild(last); };
-  if (PG_VID_BASE) for (const q of list.filter(x => x <= want && x > 720).sort((a, b) => b - a)) add(PG_VID_BASE + name + q + '.mp4');
-  add(ROOT + 'assets/ilo/' + name + '720.mp4');
-  return last;
-}
-function iloSon(on) {   // le son de la bande-annonce ; la musique de la borne se tait tant qu'on l'entend
-  const v = $('jdw-ilo-video'), b = $('jdw-ilo-son'); if (!v || !b) return;
-  v.muted = !on; b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  b.querySelector('.ic').textContent = on ? '🔊' : '🔇'; b.querySelector('.tx').textContent = on ? 'Couper le son' : 'Le son';
-  musicHush(!!on && !v.paused);
-}
-function iloSoon() {   // pas (encore) sur le seau, ou illisible ici : l'affiche reste, avec « La bande-annonce arrive très bientôt. »
-  ILO.dead = true;
-  const v = $('jdw-ilo-video'); while (v.firstChild) v.removeChild(v.firstChild); try { v.load(); } catch (e) {}
-  v.classList.remove('on'); $('jdw-ilo-film').classList.add('absent'); $('jdw-ilo-son').hidden = true; iloSon(false);
-}
-function iloFilm(on) {
-  const v = $('jdw-ilo-video'), f = $('jdw-ilo-film'); if (!v || !f) return;
-  if (!on) { try { v.pause(); } catch (e) {} iloSon(false); return; }   // page quittée, partie ouverte, onglet caché : en pause, et muette
-  const u = ROOT + 'assets/ilo/ilo_bande_annonce_poster.jpg';
-  if (f.dataset.u !== u) { f.dataset.u = u; f.style.backgroundImage = 'url("' + u + '")'; }   // l'affiche d'abord (et en secours)
-  if (ILO.dead) return;
-  if (!iloMp4()) { iloSoon(); return; }
-  if (iloStill()) return;   // l'affiche seule
-  if (!v.firstElementChild) { iloSources(v, 'ilo_bande_annonce_', ILO_Q, iloQual()).addEventListener('error', iloSoon, { once: true }); v.load(); }
-  if (!document.hidden && !$('jdw-lib').hidden) v.play().catch(() => {}); else try { v.pause(); } catch (e) {}
-}
-function iloSky(on) { iloFilm(!!on); }   // appelé par setMode
-{
-  const v = $('jdw-ilo-video');
-  v.addEventListener('playing', () => { v.classList.add('on'); $('jdw-ilo-son').hidden = false; if (!v.muted) musicHush(true); });   // la vidéo arrive en fondu sur l'affiche
-  v.addEventListener('pause', () => musicHush(false));
-  v.addEventListener('error', () => { if (!ILO.dead) iloSoon(); });
-  $('jdw-ilo-son').addEventListener('click', () => { iloSon(v.muted); if (v.paused && !ILO.dead) v.play().catch(() => {}); });
-}
-document.addEventListener('visibilitychange', () => { if (MODE === 'ilo') iloFilm(!document.hidden); });
-// une partie qui s'ouvre (la page est cachée) : la bande-annonce se met en pause ; au retour, elle repart (muette)
-if (window.MutationObserver) new MutationObserver(() => { if (MODE === 'ilo') iloFilm(!$('jdw-lib').hidden); }).observe($('jdw-lib'), { attributes: true, attributeFilter: ['hidden'] });
 // 🏆 le CLASSEMENT DES ÎLES : espèces du Grand livre trouvées par les habitants, temps passé sur l'île, habitants. Serveur :
 // pg_island_ranking() → [{ r_id, r_name, r_especes, r_heures, r_membres }] (lisible sans compte) ; sans lui, la liste des îles et « bientôt ».
 const PGR = { sort: 'r_especes', rows: [], srv: null };
