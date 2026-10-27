@@ -5522,7 +5522,7 @@ $('jdw-pg-music').addEventListener('click', () => { Audio.ensure(); setMusicOn(!
    et recommandée (Ultra). Pour tous les âges, aucune violence. Images : captures du JEU au rendu PC Ultra, accueil/pgv-<nom>-<largeur>.webp
    (deux tailles, chargées à la demande). Le haut est transparent : le décor filmé de la page reste derrière le titre. */
 const pgvEsc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const PGV_IMG = {"auguste":[[1600,1600,1067],[800,800,533]],"biches":[[1600,1600,1067],[800,800,533]],"bouvreuil":[[1600,1600,1067],[800,800,533]],"chat":[[1400,1400,943],[800,800,539]],"cygnes":[[1600,1600,1067],[800,800,533]],"hibou":[[1600,1600,1067],[800,800,533]],"peche":[[1600,1600,753],[800,800,377]],"indice":[[1200,1200,747],[700,700,436]],"village2":[[2400,2400,1261],[1600,1600,841],[800,800,420]],"nuit2":[[2400,2400,1261],[1600,1600,841],[800,800,420]],"gaspard":[[1600,1600,822],[800,800,411]],"cosy":[[1600,1600,841],[800,800,420]],"rochers":[[1600,1600,841],[800,800,420]],"pont2":[[1600,1600,841],[800,800,420]],"falaises":[[2400,2400,1261],[1600,1600,841],[800,800,420]]};
+const PGV_IMG = {"auguste":[[1600,1600,1067],[800,800,533]],"biches":[[1600,1600,1067],[800,800,533]],"bouvreuil":[[1600,1600,1067],[800,800,533]],"chat":[[1400,1400,943],[800,800,539]],"cygnes":[[1600,1600,1067],[800,800,533]],"hibou":[[1600,1600,1067],[800,800,533]],"peche":[[1600,1600,753],[800,800,377]],"indice":[[1200,1200,747],[700,700,436]],"arbre":[[2400,2400,1350],[1600,1600,900],[800,800,450]],"aube":[[2400,2400,1350],[1600,1600,900],[800,800,450]],"prairie":[[1920,1920,1080],[1600,1600,900],[800,800,450]],"gaspard":[[1600,1600,822],[800,800,411]],"cosy":[[1600,1600,841],[800,800,420]],"rochers":[[1600,1600,841],[800,800,420]],"pont2":[[1600,1600,841],[800,800,420]],"falaises":[[2400,2400,1261],[1600,1600,841],[800,800,420]]};
 // <img> net sur tous les écrans : srcset avec les vraies largeurs, sizes donné par la mise en page, toujours chargé à la demande
 function pgvImg(n, alt, sizes, cls) {
   const v = (PGV_IMG[n] || []).slice().sort((a, b) => a[1] - b[1]); if (!v.length) return '';
@@ -5551,7 +5551,7 @@ function pgvBook() {
     <div class="bk-page g">${tete('Les oiseaux', 'des jardins, des bois et du lac', 6, 49)}<div class="bk-grid">${cas('moineau-domestique', 'Moineau domestique')}${cas('pie-bavarde', 'Pie bavarde')}${cas('mesange-charbonniere', 'Mésange charbonnière')}${cas('geai-des-chenes', 'Geai des chênes')}${cas('bouvreuil-pivoine', 'Bouvreuil pivoine')}${cas('canard-colvert', 'Canard colvert')}</div><span class="bk-num">2</span></div>
     <div class="bk-page d">${tete('Les animaux sauvages', 'des prés, des forêts et de la montagne', 2, 8)}<div class="bk-grid">${cas('lapin-de-garenne', 'Lapin de garenne')}${cas('la-biche', 'La biche')}</div>
       <header class="bk-tete petit"><h4>Les légendes</h4><em>on dit qu'ils vivent sur l'île…</em></header>
-      <div class="bk-leg"><div class="bk-vide" aria-label="La case de Pégase, encore vide">?</div><p class="bk-mot">Pégase&nbsp;? Une seule photo, toute floue… Cette case t'attend.<span>— Mlle Iris</span></p></div><span class="bk-num">3</span></div>
+      <div class="bk-leg"><div class="bk-vide" aria-label="La case de Pégase, encore vide">?</div><p class="bk-mot">Pégase&nbsp;? Personne ne l'a encore photographié… Cette case t'attend.<span>— Mlle Iris</span></p></div><span class="bk-num">3</span></div>
   </div><p class="bk-glisse" aria-hidden="true">Glisse pour tourner la page →</p>`;
 }
 // L'ÎLE DE PÉGASE EN 3D AVEC LA MER (vitrine, 1.46.13 ; PATOU : « l'île, il faut l'afficher avec l'eau maintenant qu'elle est belle ! ») :
@@ -5559,7 +5559,7 @@ function pgvBook() {
 // accueil/pgv-ile-couleur.webp (carte vue de dessus, nord en haut). Mer : turquoise et transparente près du bord (on voit le fond), bleu
 // profond au large, écume sur les plages, reflets du soleil, bord rond qui se fond dans la page. Tourne lentement ; ne dessine que
 // visible ; mouvement réduit = image fixe ; sans WebGL = l'image d'avant (repli dans le HTML).
-const PGV_ILE = { cote: 2250, min: -46.4, max: 193.95, mer: 14, ex: 1.6 };   // export de Pégase (ilot/hauteurs.txt, 27 oct. 2026) : carré de 2250 m, mer à 14 m
+const PGV_ILE = { cote: 2250, min: -46.4, max: 193.95, mer: 14, ex: 1.25 };   // export de Pégase (ilot/hauteurs.txt, 27 oct. 2026) : carré de 2250 m, mer à 14 m
 function pgvIsle(host) {
   const fallback = host.querySelector('img');
   const cv = document.createElement('canvas'); cv.className = 'pgv-ilecv'; cv.setAttribute('aria-hidden', 'true');
@@ -5585,12 +5585,12 @@ function pgvIsle(host) {
     for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) { const a = j * N + i; idx[q++] = a; idx[q++] = a + N; idx[q++] = a + 1; idx[q++] = a + 1; idx[q++] = a + N; idx[q++] = a + N + 1; }
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
     const prog = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; };
-    const FADE = 'float fade(vec2 xz){ float r = length(xz) / (' + (S * 0.5).toFixed(1) + '); return 1.0 - smoothstep(0.86, 1.22, r); }';
+    const FADE = 'float fade(vec2 xz){ float r = length(xz) / (' + (S * 0.5).toFixed(1) + '); return 1.0 - smoothstep(0.88, 1.3, r); }';
     const pT = prog('attribute vec3 p; attribute vec3 n; attribute vec2 t; uniform mat4 M; varying vec3 vn; varying vec2 vt; varying vec3 vp; void main(){ vn = n; vt = t; vp = p; gl_Position = M * vec4(p, 1.0); }',
       'precision mediump float; uniform sampler2D C; uniform vec3 L; uniform float sea; varying vec3 vn; varying vec2 vt; varying vec3 vp; ' + FADE +
-      ' void main(){ vec3 c = texture2D(C, vt).rgb; float dif = max(dot(normalize(vn), L), 0.0); vec3 col = c * (0.42 + 0.78 * dif) * vec3(1.06, 1.0, 0.92);' +
-      ' float under = clamp((sea - vp.y) / 40.0, 0.0, 1.0); col = mix(col, vec3(0.86, 0.78, 0.6) * (0.5 + 0.5 * dif), under * 0.7);' +
-      ' vec2 e = min(vt, 1.0 - vt); float a = fade(vp.xz) * smoothstep(0.0, 0.05, min(e.x, e.y)); gl_FragColor = vec4(col * a, a); }');
+      ' void main(){ vec3 c = texture2D(C, vt).rgb; float sl = 1.0 - normalize(vn).y; c = mix(c, vec3(0.62, 0.52, 0.43), smoothstep(0.32, 0.62, sl)); float dif = max(dot(normalize(vn), L), 0.0); vec3 col = c * (0.42 + 0.78 * dif) * vec3(1.06, 1.0, 0.92);' +
+      ' float dw = sea - vp.y; vec3 sand = mix(vec3(0.9, 0.82, 0.62), vec3(0.42, 0.5, 0.52), smoothstep(4.0, 40.0, dw)) * (0.55 + 0.45 * dif); col = mix(col, sand, smoothstep(0.0, 3.0, dw));' +   // sous l'eau : du sable (la carte a un carré clair sous l'île)
+      ' vec2 e = min(vt, 1.0 - vt); float a = fade(vp.xz) * smoothstep(0.0, 0.05, min(e.x, e.y)) * (1.0 - smoothstep(16.0, 48.0, sea - vp.y)); gl_FragColor = vec4(col * a, a); }');
     const pW = prog('attribute vec2 p; uniform mat4 M; uniform float y; varying vec2 vxz; void main(){ vxz = p; gl_Position = M * vec4(p.x, y, p.y, 1.0); }',
       'precision mediump float; uniform sampler2D Hm; uniform float t, sea, ex, hmin, hmax; uniform vec3 L, E; varying vec2 vxz; ' + FADE +
       ' void main(){ vec2 uv = vxz / ' + S.toFixed(1) + ' + 0.5; float h = hmin; if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) { vec4 s = texture2D(Hm, uv); h = hmin + (s.r * 255.0 * 256.0 + s.g * 255.0) / 65535.0 * (hmax - hmin); }' +
@@ -5617,7 +5617,7 @@ function pgvIsle(host) {
     const st = { on: false, raf: 0, t0: performance.now(), shown: false };
     const size = () => { const r = host.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, phone ? 1.5 : 2); cv.width = Math.max(2, Math.round(r.width * dpr)); cv.height = Math.max(2, Math.round(r.width * 0.78 * dpr)); };
     const draw = (now) => {
-      const t = still ? 6 : (now - st.t0) / 1000, yaw = 0.6 + t * 0.06, el = 0.6, D = S * 1.45, cy = SEA * EX;
+      const t = still ? 6 : (now - st.t0) / 1000, yaw = 0.6 + t * 0.06, el = 0.58, D = S * 1.5, cy = SEA * EX;
       const E = [Math.sin(yaw) * Math.cos(el) * D, cy + Math.sin(el) * D, Math.cos(yaw) * Math.cos(el) * D];
       const M = mul(persp(0.62, cv.width / cv.height, 20, S * 4), look(E, [0, cy - S * 0.05, 0]));
       gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -5654,17 +5654,27 @@ function pgvBuild() {
     const l = document.createElement('link'); l.id = 'jdw-pgv-font'; l.rel = 'stylesheet';
     l.href = 'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,500&family=Caveat:wght@500;600&display=swap'; document.head.appendChild(l);
   }
-  const W2 = '(max-width: 760px) 100vw, 50vw', W3 = '(max-width: 760px) 100vw, 33vw', WF = '100vw';
+  const W2 = '(max-width: 760px) 100vw, 50vw', W3 = '(max-width: 760px) 100vw, 33vw', WF = '(orientation: portrait) 178vh, 100vw';   // plein écran en « cover » : en hauteur, l'image est bien plus large que l'écran
   const card = (img, alt, t, p) => `<article class="pgv-card pgv-rv">${pgvImg(img, alt, W3)}<div><h4>${t}</h4><p>${p}</p></div></article>`;
   const feat = (ic, t, p) => `<li><span class="pgv-ic">${PGV_SVG[ic]}</span><div><b>${t}</b><p>${p}</p></div></li>`;
   const post = (img, alt, t, s, r) => `<figure class="pgv-post">${pgvImg(img, alt, '(max-width: 760px) 80vw, 300px')}<figcaption><b>${t}</b><small>${s}</small><span class="pgv-reac">${r}</span></figcaption></figure>`;
   box.innerHTML = `
   <section class="pgv-hero pgv-slide" aria-labelledby="pgv-t">
-    <p class="pgv-kick pgv-rv">Elixir Game Studio présente</p>
-    <h2 class="pgv-title pgv-rv" id="pgv-t">La légende de&nbsp;Pégase</h2>
-    <p class="pgv-lead pgv-rv">Un monde à explorer appareil photo en main, un village où poser ses valises, des amis pour tout partager… et un cheval ailé dont il n'existe qu'une seule photo, toute floue.</p>
-    <ul class="pgv-chips pgv-rv"><li>🌿 Pour tous les âges · aucune violence</li><li>🎁 Gratuit</li><li>💻 PC · 📱 Android</li></ul>
-    <div class="pgv-ctas pgv-rv"><button type="button" class="pgv-btn gold" data-go="dl">${PGV_SVG.down}Télécharger Pégase</button><button type="button" class="pgv-btn ghost" data-go="isles">🏝️ Rejoindre une île</button></div>
+    <div class="pgv-herobg" aria-hidden="true">${pgvImg('arbre', '', WF)}</div>
+    <div class="pgv-herotx">
+      <p class="pgv-kick pgv-rv">Elixir Game Studio présente</p>
+      <h2 class="pgv-title pgv-rv" id="pgv-t">La légende de&nbsp;Pégase</h2>
+      <p class="pgv-lead pgv-rv">Un monde à explorer appareil photo en main, un village où poser ses valises, des amis pour tout partager… et peut-être un jour tu verras… <span class="pgv-aile">un cheval ailé.</span></p>
+      <ul class="pgv-chips pgv-rv"><li>🌿 Pour tous les âges · aucune violence</li><li>🎁 Gratuit</li><li>💻 PC · 📱 Android</li></ul>
+      <div class="pgv-ctas pgv-rv"><button type="button" class="pgv-btn gold" data-go="dl">${PGV_SVG.down}Télécharger Pégase</button><button type="button" class="pgv-btn ghost" data-go="isles">🏝️ Rejoindre une île</button></div>
+    </div>
+    <ul class="pgv-why pgv-rv">
+      <li><span aria-hidden="true">📷</span><b>Safari photo</b><small>Plus de soixante espèces à photographier</small></li>
+      <li><span aria-hidden="true">🏡</span><b>Ton village</b><small>Ta maison, ton potager, tes voisins</small></li>
+      <li><span aria-hidden="true">🏝️</span><b>Tes amis</b><small>Une île à partager, messages et appels</small></li>
+      <li><span aria-hidden="true">🎵</span><b>Musique</b><small>Douce, composée pour l'île</small></li>
+    </ul>
+    <button type="button" class="pgv-next" data-go="next">La suite${PGV_SVG.chev}</button>
   </section>
   <div class="pgv-body">
   <section class="pgv-sec pgv-story pgv-slide" aria-labelledby="pgv-h1">
@@ -5701,7 +5711,7 @@ function pgvBuild() {
     </div>
     <div class="pgv-bookw pgv-rv">${pgvBook()}</div>
   </section>
-  <section class="pgv-band pgv-slide pgv-rv" aria-label="Le village d'Ailebrune">${pgvImg('village2', 'Ailebrune vu d’en haut : les maisons à colombages autour de la place, le torii et les prés', WF)}<div class="pgv-bandtx"><p class="pgv-kick">La vie à Ailebrune</p><h3 class="pgv-h">Un village où l'on se sent chez soi</h3></div></section>
+  <section class="pgv-band pgv-slide pgv-rv" aria-label="Le village d'Ailebrune">${pgvImg('aube', 'Ailebrune à l’heure dorée : les maisons à colombages au bord de la falaise, les arbres et les montagnes au loin', WF)}<div class="pgv-bandtx"><p class="pgv-kick">La vie à Ailebrune</p><h3 class="pgv-h">Un village où l'on se sent chez soi</h3></div></section>
   <section class="pgv-sec pgv-slide" aria-label="Ta vie au village">
     <div class="pgv-cards">
       ${card('gaspard', 'Une petite maison à colombages sur la colline, au milieu des herbes folles', 'Ta maison', 'Choisis ta parcelle, construis ta maison pièce par pièce, décore-la et plante ton potager.')}
@@ -5722,9 +5732,9 @@ function pgvBuild() {
     </div>
     <div class="pgv-isl pgv-rv"><img loading="lazy" decoding="async" alt="L’île de Pégase vue du ciel : le lac, l’arbre rouge, la rivière et les falaises" width="1024" height="694" src="${ROOT}assets/pegase/ile_3d_1024.webp" srcset="${ROOT}assets/pegase/ile_3d_1024.webp 1024w, ${ROOT}assets/pegase/ile_3d_2048.webp 2048w" sizes="(max-width: 760px) 100vw, 50vw"></div>
   </section>
-  <section class="pgv-band music pgv-slide pgv-rv" aria-labelledby="pgv-h5">${pgvImg('nuit2', 'La place du village la nuit, la fontaine et les lanternes', WF)}<div class="pgv-bandtx">
+  <section class="pgv-band music pgv-slide pgv-rv" aria-labelledby="pgv-h5">${pgvImg('prairie', 'La prairie la nuit sous la Voie lactée, les fleurs et les falaises', WF)}<div class="pgv-bandtx">
     <p class="pgv-kick">Musique</p><h3 class="pgv-h" id="pgv-h5">Une musique enchanteresse</h3>
-    <p>Harpe, célesta, violoncelle… Une musique douce, composée pour l'île, accompagne chaque instant, du lever du soleil sur le lac jusqu'aux lanternes du soir.</p>
+    <p>Harpe, célesta, violoncelle… Une musique douce, composée pour l'île, accompagne chaque instant, du lever du soleil sur le lac jusqu'aux nuits étoilées.</p>
     <button type="button" class="pgv-btn ghost" id="jdw-pgv-mus">${PGV_SVG.note}<span>Écouter</span></button></div></section>
   <section class="pgv-sec pgv-slide pgv-gram" aria-labelledby="pgv-h6">
     <div class="pgv-tx pgv-rv">
@@ -5778,13 +5788,14 @@ function pgvBuild() {
     rv.forEach(el => PGV.io.observe(el));
   }
   box.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-go]'); if (!b) return;
-    const L = $('jdw-lib'), to = b.dataset.go === 'dl' ? $('jdw-pgv-dl') : $('jdw-page-pegase');
-    const top = b.dataset.go === 'dl' ? to.getBoundingClientRect().top + L.scrollTop - 12 : 0;
+    const b = e.target.closest('[data-go]'); if (!b) return; PGV.lock = performance.now() + 1600;
+    const L = $('jdw-lib'), go = b.dataset.go, to = go === 'dl' ? $('jdw-pgv-dl') : go === 'next' ? b.closest('.pgv-slide').nextElementSibling : $('jdw-page-pegase');
+    const t1 = to && to.classList.contains('pgv-body') ? to.firstElementChild : to;   // « La suite » : l'écran suivant
+    const top = go === 'dl' || go === 'next' ? t1.getBoundingClientRect().top + L.scrollTop - (go === 'dl' ? 12 : 0) : 0;
     try { L.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (x) { L.scrollTop = top; }
   });
   $('jdw-pgv-mus').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); pgvMusic(); });
-  pgvMusic(); pgvCue(); pgvDl();
+  pgvMusic(); pgvCue(); pgvDl(); pgvTop();
   { const h = box.querySelector('.pgv-isl'); if (h) try { pgvIsle(h); } catch (e) {} }
 }
 function pgvMusic() { const b = $('jdw-pgv-mus'); if (!b) return; b.querySelector('span').textContent = MUS.on ? 'Couper la musique' : 'Écouter'; b.classList.toggle('on', MUS.on); }
@@ -5798,7 +5809,7 @@ function pgvWheel(e) {
   const now = performance.now();
   if (now < (PGV.lock || 0)) { e.preventDefault(); return; }
   const st = L.scrollTop, ch = L.clientHeight, top0 = L.getBoundingClientRect().top;
-  const areas = [L.querySelector('.lib-wrap'), ...L.querySelectorAll('.pgv-slide')].filter(Boolean).map((el) => { const r = el.getBoundingClientRect(); return { t: Math.round(r.top - top0 + st), b: Math.round(r.bottom - top0 + st) }; });
+  const areas = [L.querySelector('.lib-wrap'), L.querySelector('.pgv-hero')].filter(Boolean)   // un seul saut (les îles → la légende) ; ensuite la molette fait défiler normalement.map((el) => { const r = el.getBoundingClientRect(); return { t: Math.round(r.top - top0 + st), b: Math.round(r.bottom - top0 + st) }; });
   let i = 0; for (let k = 0; k < areas.length; k++) if (areas[k].t <= st + 2) i = k;
   let to = null;
   if (e.deltaY > 0) { if (areas[i].b > st + ch + 2) return; if (areas[i + 1]) to = areas[i + 1].t; }
@@ -5808,11 +5819,38 @@ function pgvWheel(e) {
   try { L.scrollTo({ top: to, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (x) { L.scrollTop = to; }
 }
 $('jdw-lib').addEventListener('wheel', pgvWheel, { passive: false });
+// au doigt : le même saut, seulement entre les îles et la légende (fin du glissé près de la frontière)
+{
+  const L = $('jdw-lib'); let y0 = 0, dir = 0, touching = false, tm = 0;
+  L.addEventListener('touchstart', () => { touching = true; }, { passive: true });
+  L.addEventListener('touchend', () => { touching = false; arm(); }, { passive: true });
+  L.addEventListener('scroll', () => { const y = L.scrollTop; if (y !== y0) dir = y > y0 ? 1 : -1; y0 = y; if (!touching) arm(); }, { passive: true });
+  function arm() { clearTimeout(tm); tm = setTimeout(pgvSnap, 140); }
+  function pgvSnap() {
+    if (touching || MODE !== 'pegase' || !PGV.built || L.classList.contains('pg-ambi') || performance.now() < (PGV.lock || 0)) return;
+    const h = L.querySelector('.pgv-hero'); if (!h) return;
+    const ch = L.clientHeight, t = h.getBoundingClientRect().top - L.getBoundingClientRect().top;
+    let to = null;
+    if (dir > 0 && t > 4 && t < ch * 0.8) to = L.scrollTop + t;          // on descend vers la légende : elle vient en entier
+    else if (dir < 0 && t < ch - 4 && t > ch * 0.2) to = L.scrollTop + t - ch;   // on remonte : retour aux îles
+    if (to == null) return;
+    PGV.lock = performance.now() + 750;
+    try { L.scrollTo({ top: to, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (x) { L.scrollTop = to; }
+  }
+}
+// « ↑ » : revenir aux îles, une fois la légende passée
+function pgvTop() {
+  const L = $('jdw-lib'), hero = L.querySelector('.pgv-hero'); if (!hero || L.querySelector('.pgv-top')) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pgv-top'; b.setAttribute('aria-label', 'Revenir en haut'); b.innerHTML = PGV_SVG.chev;
+  b.addEventListener('click', () => { PGV.lock = performance.now() + 1600; try { L.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (x) { L.scrollTop = 0; } });
+  L.appendChild(b);
+  let raf = 0; L.addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; b.classList.toggle('on', MODE === 'pegase' && hero.getBoundingClientRect().bottom < 40); }); }, { passive: true });
+}
 // « Découvrir Pégase » sous les îles : la flèche qui invite à descendre
 function pgvCue() {
   const p = $('jdw-page-pegase'); if (!p || p.querySelector('.pgv-cue')) return;
   const b = document.createElement('button'); b.type = 'button'; b.className = 'pgv-cue'; b.innerHTML = '<span>Découvrir Pégase</span>' + PGV_SVG.chev;
-  b.addEventListener('click', () => { const L = $('jdw-lib'), t = $('jdw-pgv').getBoundingClientRect().top + L.scrollTop; try { L.scrollTo({ top: t, behavior: 'smooth' }); } catch (x) { L.scrollTop = t; } });
+  b.addEventListener('click', () => { PGV.lock = performance.now() + 1600; const L = $('jdw-lib'), t = $('jdw-pgv').getBoundingClientRect().top + L.scrollTop; try { L.scrollTo({ top: t, behavior: 'smooth' }); } catch (x) { L.scrollTop = t; } });
   p.appendChild(b);
 }
 // téléchargement : la fiche du PC (telecharger/pegase-pc.json) et, sur Android, l'appli de la borne (même feuille que la tuile)

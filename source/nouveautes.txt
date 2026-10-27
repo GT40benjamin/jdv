@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🌸 La présentation de Pégase, qui se lit d'un seul trait (borne 1.46.17)
+[pegase] « La légende de Pégase » s'ouvre tout en haut, devant le grand arbre rouge : « … et peut-être un jour tu verras… un cheval ailé. »
+[pegase] Sous les boutons, quatre raisons de jouer (safari photo, ton village, tes amis, la musique) et « La suite » pour descendre
+[pegase] Après la légende, la page se lit d'un seul trait : on descend en glissant, sans saut, et chaque partie apparaît en douceur. Le bouton ↑ remonte aux îles
+[pegase] L'île en 3D a des pentes plus douces, de vraies falaises et un lagon de sable sous l'eau turquoise
+[pegase] De nouvelles images : le village à l'heure dorée et la prairie sous les étoiles
 [pegase] ## 🌊 Pégase 0.9.8.9 (borne 1.46.16)
 [pegase] Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol, dont le grand arbre suspendu près du pont rouge
 [pegase] Le socle de pierre du coin cosy descend maintenant jusqu'au sol, côté vallée
