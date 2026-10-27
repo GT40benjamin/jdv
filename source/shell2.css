@@ -256,6 +256,43 @@ a.icon-btn{color:inherit;text-decoration:none}   /* la maison (retour au site du
 .medal{display:inline-flex;align-items:center;gap:3px}
 .medal i{width:11px;height:11px;border-radius:50%}
 .m1 i{background:var(--gold)} .m2 i{background:var(--silver)} .m3 i{background:var(--bronze)}
+/* Turbo Chrono : des TEMPS, un circuit par colonne (4 côte à côte, 2 × 2 sur téléphone) ; chronoRenderBoard de shell2.js */
+.chb[hidden],.che[hidden]{display:none}
+.chb-msg{margin:0;padding:14px 12px;border-radius:10px;background:var(--night);color:var(--muted);font-size:14px;line-height:1.45}
+.chb-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}
+@media (max-width:680px){.chb-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+.chb-stade{--c:#5fd37a} .chb-huit{--c:#ff9a4a} .chb-folie{--c:#c77dff} .chb-orbite{--c:#6cc8ff}
+.chb-col{min-width:0;display:grid;gap:6px;padding:8px 7px 9px;border-radius:12px;background:var(--night);border:1px solid var(--line);border-top:3px solid var(--c)}
+.chb-col h3{margin:0 2px 2px;font-family:var(--display);font-weight:400;font-size:15px;line-height:1.1;color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chb-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.chb-list li{display:grid;grid-template-columns:1.25em 26px minmax(0,1fr);align-items:center;gap:6px;padding:4px 5px;border-radius:8px;background:var(--card);min-width:0}
+.chb-list .avatar{width:26px;height:26px;font-size:12px}
+.chb-r{font-family:var(--display);font-size:13px;color:var(--muted);text-align:center}
+.chb-r.p1{color:var(--gold)} .chb-r.p2{color:var(--silver)} .chb-r.p3{color:var(--bronze)}
+.chb-n{display:grid;min-width:0;line-height:1.15}
+.chb-n b{font-size:12px;font-weight:700;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chb-t{font-family:var(--display);font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chb-list li.me{background:var(--steel);box-shadow:inset 3px 0 0 var(--gold)}
+.chb-list li.out{margin-top:4px;outline:1px dashed var(--line);outline-offset:2px}
+.chb-list li.chb-empty{grid-template-columns:1fr;color:var(--muted);font-size:13px;padding:8px 6px;background:none}
+/* écran de fin de Turbo Chrono : « Tes positions » à la place du score en points */
+#jdw-end.chrono-end .bigscore,#jdw-end.chrono-end #jdw-endby,#jdw-end.chrono-end #jdw-end-chat,#jdw-end.chrono-end #jdw-status{display:none!important}
+.che{display:grid;gap:8px;min-width:0}
+.che-h{margin:0;font-family:var(--display);font-weight:400;font-size:24px;line-height:1.1;color:var(--acc,var(--amber))}
+.che-tab{display:grid;gap:4px;min-width:0}
+.che-row{display:grid;grid-template-columns:minmax(0,1fr) 5.4em 5.2em 3.6em;align-items:center;gap:6px;padding:7px 10px;border-radius:10px;background:var(--night);font-size:14px;min-width:0}
+.che-row > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.che-head{background:none;padding-block:0;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.che-head > span{overflow:visible}
+.che-c{font-weight:700}
+.che-t{font-family:var(--display);font-variant-numeric:tabular-nums}
+.che-t.none{color:var(--muted)}
+.che-r{font-weight:600;color:var(--ink)}
+.che-r.first{color:var(--gold)}
+.che-head > span:not(:first-child),.che-row > span:not(:first-child){text-align:right}
+.che-note{margin:0}
+@media (max-width:420px){.che-row{grid-template-columns:minmax(0,1fr) 5em 4.9em 3.2em;gap:5px;padding:6px 8px;font-size:13px}.che-head{font-size:10px}}
+@media (orientation:landscape) and (max-height:500px){#jdw-end .che{gap:5px}#jdw-end .che-h{font-size:19px}#jdw-end .che-row{padding:4px 8px;font-size:13px}}
 
 /* fin de partie */
 .bigscore{display:flex;align-items:baseline;gap:10px;font-family:var(--display);color:var(--acc)}

@@ -925,6 +925,114 @@ function chronoApi() {
     },
   };
 }
+// Dans la borne : des POINTS n'ont aucun sens pour un contre-la-montre (Benjamin) → le Classement (onglet « Turbo Chrono ») montre les
+// TEMPS en colonnes, un circuit par colonne, et l'écran de fin montre « Tes positions » (mon temps, mon rang dans la salle et au monde).
+// Tout vient de chrono_board (un appel par circuit, les 4 en parallèle, 8 s au plus) ; ce que le serveur rend fait foi (version des fantômes comprise).
+// Les points du jeu partent toujours par add_score (onglet « Général », record de la tuile) : rien ne change pour eux.
+const CHRONO_TRACKS = [['stade', 'Le Stade'], ['huit', 'Le Grand Huit'], ['folie', 'La Folie'], ['orbite', 'L’Orbite']];
+const chronoMs = ms => { ms = Math.max(0, Math.round(+ms || 0)); return Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0') + '.' + String(ms % 1000).padStart(3, '0'); };
+const chronoRank = i => (i + 1) + (i ? 'e' : 'er');
+const CHB = { at: 0, busy: null, data: null, who: '' };
+const chronoWho = () => (isGuest() ? '' : cleanName(profile.name)) + '|' + (room ? room.id : '');
+const chronoFresh = () => CHB.data && CHB.who === chronoWho() ? CHB.data : null;
+// { <circuit>: board | { err: 'off' | 'err' } } ; gardé 20 s (5 s si rien n'a répondu), force = relire tout de suite
+function chronoBoards(force) {
+  if (CHB.busy) return CHB.busy;
+  const who = chronoWho();
+  if (!force && chronoFresh() && Date.now() - CHB.at < 20000) return Promise.resolve(CHB.data);
+  const api = chronoApi();
+  const one = t => Promise.race([api.board(t), new Promise((_, no) => setTimeout(() => no(new Error('délai')), 8000))]).catch(e => ({ err: e && e.offline ? 'off' : 'err' }));
+  CHB.busy = Promise.all(CHRONO_TRACKS.map(([t]) => one(t))).then(L => {
+    const d = {}; CHRONO_TRACKS.forEach(([t], i) => { d[t] = L[i]; });
+    CHB.data = d; CHB.who = who; CHB.at = Date.now() - (L.every(x => x.err) ? 15000 : 0); return d;
+  }).finally(() => { CHB.busy = null; });
+  return CHB.busy;
+}
+function chronoBoardBox() {
+  let box = $('jdw-chrono-board');
+  if (!box) { box = document.createElement('div'); box.id = 'jdw-chrono-board'; box.className = 'chb'; box.hidden = true; $('jdw-board-list').after(box); }
+  return box;
+}
+// Classement › Turbo Chrono : 4 colonnes (2 × 2 sur téléphone), « Ma salle » ou « Monde » selon le bouton du haut
+function chronoRenderBoard(ol, W) {
+  ol.hidden = true;
+  const box = chronoBoardBox(); box.hidden = false; box.textContent = '';
+  const g = gameById('chrono');
+  $('jdw-board-hint').textContent = (W ? 'Top 10 mondial' : 'Tous les copains de la salle') + ' · le meilleur temps de chacun sur chaque circuit' + (g && g.tagline ? ' · ' + g.tagline : '');
+  const msg = t => { const p = document.createElement('p'); p.className = 'chb-msg'; p.textContent = t; box.appendChild(p); };
+  if (!ONLINE) return msg('Mode local : les temps de Turbo Chrono sont sur le serveur. Ils arrivent avec une salle en ligne.');
+  if (!W && isGuest()) return msg('En invité, pas de classement de salle : crée ton compte pour comparer tes temps avec tes copains. Touche « Monde » pour les meilleurs temps de tout le monde.');
+  if (!W && !room) return msg('Choisis une salle pour voir les temps de tes copains.');
+  const d = chronoFresh(), again = () => { if (!$('jdw-board').hidden && boardTab === 'chrono') renderBoardTab(); };
+  if (!d || Date.now() - CHB.at > 20000) chronoBoards().then(again, () => {});
+  if (!d) return msg(netOff() ? '📡 Il faut du réseau pour les temps de Turbo Chrono.' : 'Chargement des temps…');
+  const grid = document.createElement('div'); grid.className = 'chb-grid'; box.appendChild(grid);
+  for (const [t, title] of CHRONO_TRACKS) {
+    const b = d[t] || { err: 'err' }, col = document.createElement('section'); col.className = 'chb-col chb-' + t;
+    const h = document.createElement('h3'); h.textContent = title; col.appendChild(h);
+    const list = document.createElement('ol'); list.className = 'chb-list'; col.appendChild(list);
+    const li = (rank, x, cls) => {
+      const e = document.createElement('li'); if (x.me) e.classList.add('me'); if (cls) e.classList.add(cls);
+      const r = document.createElement('span'); r.className = 'chb-r' + (rank < 3 ? ' p' + (rank + 1) : ''); r.textContent = rank >= 0 ? String(rank + 1) : '…';
+      const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, x.key);
+      const n = document.createElement('span'); n.className = 'chb-n';
+      const nb = document.createElement('b'); nb.textContent = W ? x.key : x.name;
+      const tm = document.createElement('span'); tm.className = 'chb-t'; tm.textContent = chronoMs(x.ms);
+      n.append(nb, tm); e.append(r, av, n); list.appendChild(e);
+    };
+    const empty = txt => { const e = document.createElement('li'); e.className = 'chb-empty'; e.textContent = txt; list.appendChild(e); };
+    if (b.err) empty(b.err === 'off' ? '📡 Pas de réseau' : 'Pas de réponse du serveur');
+    else {
+      const rows = W ? b.world : b.room;
+      if (!rows.length) empty('Personne encore');
+      rows.forEach((x, i) => li(i, x));
+      if (W && b.me && !rows.some(x => x.me)) li(-1, Object.assign({}, b.me, { me: true }), 'out');   // moi, hors du top 10
+    }
+    grid.appendChild(col);
+  }
+}
+// écran de fin de Turbo Chrono : « Tes positions » (un circuit par ligne : mon temps, salle « 2e sur 5 », monde)
+function chronoEndBox() {
+  let box = $('jdw-chrono-end');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'jdw-chrono-end'; box.className = 'che';
+    const big = document.querySelector('#jdw-end .bigscore'); big.after(box);
+  }
+  return box;
+}
+async function chronoEnd() {
+  const box = chronoEndBox(); box.textContent = ''; box.hidden = false;
+  const h = document.createElement('h3'); h.className = 'che-h'; h.textContent = 'Tes positions';
+  const tb = document.createElement('div'); tb.className = 'che-tab'; tb.setAttribute('role', 'table'); tb.setAttribute('aria-label', 'Tes positions sur chaque circuit');
+  const note = document.createElement('p'); note.className = 'small che-note';
+  box.append(h, tb, note);
+  const cell = (row, txt, cls) => { const c = document.createElement('span'); c.setAttribute('role', row.dataset.h ? 'columnheader' : 'cell'); if (cls) c.className = cls; c.textContent = txt; row.appendChild(c); return c; };
+  const head = document.createElement('div'); head.className = 'che-row che-head'; head.setAttribute('role', 'row'); head.dataset.h = '1';
+  ['Circuit', 'Temps', 'Salle', 'Monde'].forEach(t => cell(head, t)); tb.appendChild(head);
+  const fill = d => {
+    tb.querySelectorAll('.che-row:not(.che-head)').forEach(e => e.remove());
+    for (const [t, title] of CHRONO_TRACKS) {
+      const b = d && d[t], row = document.createElement('div'); row.className = 'che-row'; row.setAttribute('role', 'row'); tb.appendChild(row);
+      cell(row, title, 'che-c');
+      if (!b || b.err) { cell(row, d ? '?' : '…', 'che-t'); cell(row, d ? '' : '…'); cell(row, d ? '' : '…'); continue; }
+      const ri = b.room.findIndex(x => x.me), wi = b.world.findIndex(x => x.me), mine = b.me || (ri >= 0 ? b.room[ri] : wi >= 0 ? b.world[wi] : null);
+      const tc = cell(row, mine ? chronoMs(mine.ms) : '—', 'che-t'); if (!mine) tc.classList.add('none');
+      const rc = cell(row, ri >= 0 ? chronoRank(ri) + ' sur ' + b.room.length : '—', 'che-r');
+      if (ri === 0) rc.classList.add('first');
+      const wc = cell(row, wi >= 0 ? chronoRank(wi) : mine ? '> 10e' : '—', 'che-r'); if (wi === 0) wc.classList.add('first');
+    }
+  };
+  fill(null);
+  note.textContent = 'Chargement de tes temps…';
+  if (!ONLINE || netOff()) { fill({}); note.textContent = '📡 Pas de réseau : tes positions arrivent avec la connexion (tes records restent sur l’appareil).'; return; }
+  let d = null; try { d = await chronoBoards(true); } catch (e) {}
+  if (box.hidden || $('jdw-end').hidden) return;
+  fill(d || {});
+  const ok = d && CHRONO_TRACKS.some(([t]) => d[t] && !d[t].err);
+  note.textContent = !ok ? (d && CHRONO_TRACKS.every(([t]) => d[t] && d[t].err === 'off') ? '📡 Pas de réseau : tes positions arrivent avec la connexion.' : 'Le serveur ne répond pas : réessaie dans un moment.')
+    : isGuest() ? 'En invité, tes temps ne sont pas enregistrés : seul le classement mondial est montré.'
+    : 'Tous les temps : Classement › Turbo Chrono.';
+}
 
 /* ================= Appels partout dans la borne (23 oct. 2026) ================= */
 // Demande de l'utilisateur : « on peut appeler n'importe qui sur la borne à tout moment, même s'il n'est jamais allé sur Pégase ». Le hub de
@@ -2705,7 +2813,8 @@ function renderBoardTab() {
   for (const b of $('jdw-tabs').children) b.setAttribute('aria-selected', String(b.dataset.id === boardTab));
   const sel = [...$('jdw-tabs').children].find(b => b.dataset.id === boardTab);
   if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  const ol = $('jdw-board-list'); ol.textContent = '';
+  const ol = $('jdw-board-list'); ol.textContent = ''; ol.hidden = false;
+  { const cb = $('jdw-chrono-board'); if (cb) cb.hidden = true; }   // Turbo Chrono : ses colonnes de temps (chronoRenderBoard)
   const me = cleanName(profile.name), W = boardScope === 'world';
   for (const b of document.querySelectorAll('#jdw-scope button')) b.setAttribute('aria-pressed', String(b.dataset.scope === boardScope));
   const offDev = !W && netOff() && !remoteLoaded;           // hors ligne : records gardés sur cet appareil
@@ -2713,6 +2822,7 @@ function renderBoardTab() {
   $('jdw-board').classList.toggle('net-off', netOff());
   $('jdw-coopkind').hidden = true;
   if (/^coop:/.test(boardTab)) { if (coopById(boardTab.slice(5))) return coopRenderBoard(ol, W); boardTab = 'general'; }
+  if (boardTab === 'chrono' && gameById('chrono')) return chronoRenderBoard(ol, W);   // des temps, pas des points
   if (W && !worldLoaded) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = netOff() ? '📡 Il faut du réseau pour le classement mondial. Tes records sont gardés sur cet appareil : touche « Ma salle ».' : worldErr ? "Le classement mondial arrive bientôt (mise à jour du serveur en cours)." : 'Chargement du classement mondial…'; ol.appendChild(li); return; }
   if (boardTab === 'general') {
     $('jdw-board-hint').textContent = (offDev ? 'Hors ligne : records gardés sur cet appareil. ' : netOff() && !W ? 'Hors ligne : dernier classement connu. ' : W ? 'Toutes les salles réunies. ' : '') + 'Le nombre de jeux où chacun est premier, puis deuxième, puis troisième.';
@@ -8904,7 +9014,7 @@ function quitGame() {
   if (current && !current.over && current.inst && current.inst.currentScore) {
     let sc = 0;
     try { sc = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) { sc = 0; }
-    if (sc > 0) {
+    if (sc > 0 || current.game.id === 'chrono') {   // Turbo Chrono : « Tes positions » même sans course finie
       current.over = true;
       try { current.lastLevel = current.inst.currentLevel ? +current.inst.currentLevel() || 0 : 0; } catch (e) {}   // pour l'écran de fin
       try { current.inst.destroy && current.inst.destroy(); } catch (e) {}
@@ -9309,6 +9419,10 @@ async function showEnd(score) {
   const myBest = knownBest(me, g.id);
   $('jdw-endcard').style.setProperty('--acc', g.accent);
   $('jdw-endgame').textContent = g.title + ' · partie terminée';
+  const CH = g.id === 'chrono';
+  $('jdw-end').classList.toggle('chrono-end', CH);   // Turbo Chrono : « Tes positions » à la place du score en points (et de tout ce qui en dépend)
+  { const ce = $('jdw-chrono-end'); if (ce) ce.hidden = true; }
+  if (CH) return chronoShowEnd(g, score, me, myBest);
   endCount($('jdw-endscore'), score);
   $('jdw-endunit').textContent = g.scoreLabel === 'm' ? 'mètres' : (g.scoreLabel || 'points');
   showLevelProgress(g, me);
@@ -9367,9 +9481,25 @@ async function showEnd(score) {
   $('jdw-again').focus({ preventScroll: true });
   if (record) Audio.tone(660, 0.1, 'square', 0.05);
 }
+// Turbo Chrono : la séance compte toujours en points (add_score : « Général », record de la tuile), mais l'écran ne montre que les temps
+function chronoShowEnd(g, score, me, myBest) {
+  $('jdw-endgame').textContent = g.title + ' · séance terminée';
+  $('jdw-lvprog').hidden = true; $('jdw-beat').hidden = true; $('jdw-taunt').hidden = true;
+  const record = score > 0 && score > myBest && !isGuest();
+  $('jdw-end-guest').hidden = !isGuest();
+  pending = score > 0 && !isGuest() ? { game: g.id, score, record, done: false } : null;
+  $('jdw-status').textContent = '';
+  $('jdw-who').hidden = true; ENDBY.name = me; ENDBY.busy = false; endByRender();
+  $('jdw-end').hidden = false;
+  renderEndBoard(g, me);
+  chronoEnd();
+  endAnimate();
+  if (record) commitScore(me);
+  $('jdw-again').focus({ preventScroll: true });
+}
 function renderEndBoard(g, me) {
   const ol = $('jdw-endboard'); ol.textContent = '';
-  ol.hidden = isGuest();                // invité : pas de classement (scores non enregistrés)
+  ol.hidden = isGuest() || g.id === 'chrono';   // invité : pas de classement (scores non enregistrés) ; Turbo Chrono : « Tes positions » (chronoEnd)
   if (ol.hidden) return;
   const rows = top(g.id).slice(0, 5);
   if (!rows.length) return emptyRow(ol);

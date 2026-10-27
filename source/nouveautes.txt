@@ -2,6 +2,15 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[chrono] ## 💥 Turbo Chrono (borne 1.46) : une seule vie, des accidents de folie
+[chrono] Un accident ou une chute, et la course est terminée : plus de retour au dernier passage. Ralenti, éclats de carbone, roues et ailerons qui s’envolent, fumée, et le feu si le choc est violent
+[chrono] Plus tu tapes fort, plus la voiture se casse : un aileron arraché, puis les roues, les pontons… jusqu’à la voiture en mille morceaux
+[chrono] À l’arrivée, la voiture continue sur sa lancée : plus d’accélérateur, mais tu peux tourner et tirer le frein à main (attention, l’accident est encore possible)
+[chrono] Sur L’Orbite, un tremplin sort de la route après la ligne et t’envoie te garer sur un astéroïde
+[chrono] Ton fantôme garde aussi tout ça (la fin de course et le saut), et tu pars maintenant derrière la ligne : nouveaux classements pour tout le monde
+[chrono] Le fantôme à battre est celui de ta salle (tes copains), ou le tien : plus de pilote robot
+[chrono] Sur chaque circuit : le classement de ta salle et du monde ; dans le classement de la borne, les meilleurs temps de chaque circuit en colonnes
+[chrono] Touche E (ou RB à la manette, ou le bouton 👀) pour regarder derrière toi
 [chrono] ## 🏁 Nouveau jeu : Turbo Chrono (borne 1.44)
 [chrono] Une course contre la montre en 3D, au volant d’une monoplace verte et bleue sponsorisée par les pseudos de ta salle : un tour, un chrono, à toi le record
 [chrono] Le fantôme du record roule avec toi, son nom et son temps au-dessus de la voiture : bats-le, et c’est ton fantôme que tes copains devront battre

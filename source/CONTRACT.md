@@ -248,6 +248,9 @@ la salle, sert aux têtes de api.heads()), key (pseudo principal, sert à télé
 `{ ok, best, kept, why, board }` : le serveur garde le meilleur temps de chaque joueur par circuit et vérifie le fantôme (format de
 `~/jdv-tools/duotest/chrono/src/engine/ghost.js` : en-tête « TC », version 1, tours, 100 ms, points, temps, passages ; voir chrono_check).
 Le jeu garde aussi son record et son fantôme sur l'appareil (`jdw.chrono.<PSEUDO>`) : un invité joue et retrouve ses temps sans compte.
+Dans la borne (1.44.x), les points de `gameOver` ne s'affichent plus pour ce jeu (ils partent toujours par add_score : onglet « Général », record de la tuile) :
+Classement › Turbo Chrono = les temps de `chrono_board` en colonnes (un circuit par colonne, salle ou monde), écran de fin = « Tes positions »
+(mon temps, mon rang « 2e sur 5 » dans la salle, mon rang au monde ; shell2.js `CHRONO_TRACKS`, `chronoRenderBoard`, `chronoEnd`). Un nouveau circuit : l'ajouter à `CHRONO_TRACKS`.
 
 ## Ajout 14 : partie gardée (api.save, api.levelBest ; borne 1.43, source/sauvegarde.sql)
 Pour un jeu qui se quitte à tout moment et se reprend EXACTEMENT où on l'a laissé (casse-tête : Coffres à Secrets). Le jeu le déclare par
