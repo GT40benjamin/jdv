@@ -21,7 +21,7 @@ insert into public.chrono_tracks (id, laps, splits, min_ms) values
   ('stade', 1, 3, 17000), ('huit', 1, 4, 20000), ('folie', 1, 4, 17000), ('orbite', 1, 4, 20000)   -- 1.44 : un seul tour (A → B)
 on conflict (id) do update set laps = excluded.laps, splits = excluded.splits, min_ms = excluded.min_ms;
 alter table public.chrono_tracks add column if not exists ver int not null default 2;
-update public.chrono_tracks set ver = 2 where ver <> 2;
+update public.chrono_tracks set ver = 1 where ver <> 1;   -- 1.46.2 (PATOU) : les temps d'avant le départ derrière la ligne comptent de nouveau ; les vieilles pages (octet 0) restent refusées
 
 create table if not exists public.chrono_runs (
   track text not null references public.chrono_tracks(id) on delete cascade,
