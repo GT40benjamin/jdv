@@ -1,52 +1,54 @@
 {
-  "version": "0.9.8.4",
-  "build": 45,
-  "size": 2113093163,
-  "sha256": "7c1ed51cdacb3cee067667e298351747f8f10795b9876eb7a2db17ff903a0114",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v45/Pegase-PC-2026-10-27-0.9.8.4.zip",
-  "manifest": "0961b8dfaa3bc4a8ec1e4982cd0a74a01d295cecaa02d89e5b3b817644bf4862",
+  "version": "0.9.8.5",
+  "build": 46,
+  "size": 2113098510,
+  "sha256": "06e4979e6139de51b21b24317b5dd3f243deae3a64b149d67b244b6197ddc515",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-2026-10-27-0.9.8.5.zip",
+  "manifest": "f19402f0ba0bb5f79a5df306a401df43566be57d8a4b1b6cf5bc3961df4c5403",
   "patchs": [
     {
+      "de": "0.9.8.4",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.4.zip",
+      "taille": 2274197,
+      "sha256": "6d2d5cc00feb68c30595f738166f6f1c220789b2bc7e6ab537574f80ebf0b55b"
+    },
+    {
       "de": "0.9.8.3",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v45/Pegase-PC-patch-0.9.8.3.zip",
-      "taille": 2719932,
-      "sha256": "b525fb6802402b46f34ea7b74eeb4266b87fb9dab357843ad0f350ce1df059db"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.3.zip",
+      "taille": 2969059,
+      "sha256": "367db0fe291c0f0cb0a325548d3fa024848d22512fd39d11fbd7d6282e3e1784"
     },
     {
       "de": "0.9.8.2",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v45/Pegase-PC-patch-0.9.8.2.zip",
-      "taille": 3126314,
-      "sha256": "ebfc8b2394671627f1020a0d7924a021f9dd3e396c1ca1e1939db606e649aded"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.2.zip",
+      "taille": 3364159,
+      "sha256": "cdccda576e14f73914831d5ef1af0d0eaa028c511339f679376843254b709a50"
     },
     {
       "de": "0.9.8.1",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v45/Pegase-PC-patch-0.9.8.1.zip",
-      "taille": 19243641,
-      "sha256": "9b8818d8f3146183b88c7ea9eaa7a99254daa638dafc296f0bbe5b6b6a9b4481"
-    },
-    {
-      "de": "0.9.8",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v45/Pegase-PC-patch-0.9.8.zip",
-      "taille": 19259351,
-      "sha256": "cdef2092310493db11da9a91f9c535c757935468ad6d6a234a71ec2bc369e702"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.1.zip",
+      "taille": 19480311,
+      "sha256": "89acc9b44337e0767dd39afb981d97de00811914d1ca17e26645abc1ceb747fc"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v45/Pegase-PC-patch-0.9.7.zip",
-      "taille": 228283929,
-      "sha256": "9f09931607f44e2ee838ac2639dd1e48f5778d664afc68b5e49011b215effccd"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.7.zip",
+      "taille": 228294113,
+      "sha256": "4f51bc26bb35dc71a995f22b86a21460eb6e2b4f6dd202dbd93e2aff1a05b4cf"
     }
   ],
   "notes": [
-    "Les messages du téléphone montrent l'heure d'envoi sous chaque bulle, reçue ou envoyée.",
-    "L'appareil photo affiche à gauche du viseur un bouton pour chaque module acheté (filtre de nuit, filtre solaire, capteur de nuit…), touches 1 à 9 : on les met et on les enlève quand on veut.",
-    "La pêche : le poisson reste accroché au fil par la bouche jusqu'à ta main, les pouces ne rentrent plus dans le poisson, et le ver est plus gros et plus coloré.",
-    "Le jardin : le banc de jardin se pose dos au mur tout seul, les jardinières se posent sous la fenêtre, du bon côté et à la bonne hauteur.",
-    "Papi Auguste monte le perron de la mairie bien au milieu des marches (fini, le mur !).",
-    "Les voix : on n'entend plus un habitant qui parle avec un autre joueur quand on est dehors ou loin ; le bruit de volet de la nuit au village est parti.",
-    "Les marguerites ont retrouvé leur taille."
+    "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
+    "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
   ],
   "historique": [
+    {
+      "version": "0.9.8.5",
+      "notes": [
+        "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
+        "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
+      ]
+    },
     {
       "version": "0.9.8.4",
       "notes": [
@@ -86,20 +88,6 @@
         "Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes, disparus par erreur avec l'arrivée de la mer.",
         "La place du village retrouve tout son décor.",
         "Les brumes et les feuilles qui volent près des arbres et des cascades sont revenues."
-      ]
-    },
-    {
-      "version": "0.9.8",
-      "notes": [
-        "La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large.",
-        "Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral.",
-        "La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges.",
-        "Des montagnes et des falaises couvertes de végétation ferment l'horizon.",
-        "Les plantes des chemins sont bien posées au sol.",
-        "Les maisons : un passage reste libre devant la porte, et la caméra entre et sort en douceur ; sous les auvents des boutiques, elle passe sous le store.",
-        "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
-        "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
-        "Le jeu démarre plus vite."
       ]
     }
   ]
