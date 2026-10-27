@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
@@ -21,6 +21,7 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
+  chrono: { kind: 'new', at: '2026-10-27 12:00' },   // Turbo Chrono (Classique, course 3D contre les fantômes des copains, en essai derrière la porte labo ; heure = celle de la publication)
   neon: { kind: 'maj', at: '2026-10-27 00:31' },   // Néon Rush 1.40 : chantier « La folie » (moteur v2 : vitesse, gravité, miroir, onde, soucoupe, araignée, mini ; niveau 1 refait ; victoire finale) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
@@ -31,7 +32,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['iles']);   // en essai : Pégase en îles (onglet à gauche, page des îles) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC
+const LABO = new Set(['iles', 'chrono']);   // en essai : Pégase en îles (onglet à gauche, page des îles), Turbo Chrono (course contre les fantômes, 1.42) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -403,7 +404,7 @@ function isGuest() {      // = acctState(profile) !== 'on', sans dépendre de l'
   return !(profile && profile.name && se && se.rt);
 }
 // seules fonctions du serveur permises à un invité (toutes les autres sont refusées ici, sans appel réseau)
-const GUEST_RPC = new Set(['pg_island_ranking', 'pg_island_list', 'pg_island_watch', 'pg_island_request', 'pg_island_request_state', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
+const GUEST_RPC = new Set(['chrono_board', 'pg_island_ranking', 'pg_island_list', 'pg_island_watch', 'pg_island_request', 'pg_island_request_state', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
 // le joueur au nom duquel une fonction agit (son jeton est envoyé s'il est connecté sur cet appareil)
 function rpcActor(fn, args) {
   if (!args) return '';
@@ -888,6 +889,42 @@ function pegaseApi() {
   };
 }
 
+/* ================= Turbo Chrono : les fantômes (CONTRACT.md, Ajout 13 : api.chrono ; serveur source/chrono.sql) ================= */
+// Le meilleur temps de chaque joueur sur chaque circuit, avec sa course (fantôme). Toujours au nom du joueur actuel ; la salle = la salle
+// actuelle. Lignes rendues au jeu : { name (pseudo affiché dans la salle : sert aux têtes), key (pseudo principal : sert à télécharger), ms, me }.
+const chronoTrack = t => (/^[a-z0-9_-]{2,20}$/.test(String(t || '')) ? String(t) : '');
+function chronoApi() {
+  const guest = () => isGuest() || !profile.name;
+  const off = fn => { const e = new Error(fn + ' : pas de réseau'); e.offline = true; return e; };
+  const gst = fn => { const e = new Error(fn + ' : invité (compte requis)'); e.guest = true; return e; };
+  const row = (x, me) => ({ name: dispName(x.name), key: cleanName(x.name), ms: Math.max(0, +x.ms || 0), me: !!me && cleanName(x.name) === me });
+  const board = async track => {
+    const t = chronoTrack(track); if (!t) throw new Error('chrono.board : circuit inconnu');
+    if (!ONLINE || netOff()) throw off('chrono_board');
+    const g = guest(), me = g ? '' : cleanName(profile.name);
+    const b = await rpc('chrono_board', { p_code: CODE(), p_room: !g && room ? room.id : null, p_track: t, p_name: g ? '' : profile.name }, { quiet: true }) || {};
+    return { room: (b.room || []).map(x => row(x, me)), world: (b.world || []).map(x => row(x, me)), me: b.me ? row(b.me, me) : null };
+  };
+  return {
+    info: () => { const g = guest(); return { guest: g, online: !!ONLINE && !netOff(), name: g ? '' : cleanName(profile.name), room: !g && ONLINE && room ? { id: room.id, name: String(room.name || '') } : null }; },
+    board,
+    ghost: async (track, key) => {
+      const t = chronoTrack(track); if (!t) throw new Error('chrono.ghost : circuit inconnu');
+      if (guest()) throw gst('chrono_ghost'); if (!ONLINE || netOff()) throw off('chrono_ghost');
+      const r = await rpc('chrono_ghost', { p_code: CODE(), p_track: t, p_name: String(key || '').slice(0, 12) }, { quiet: true });
+      return r && typeof r.ghost === 'string' ? { ms: +r.ms || 0, ghost: r.ghost } : null;
+    },
+    save: async (track, ms, ghost) => {
+      const t = chronoTrack(track); if (!t) throw new Error('chrono.save : circuit inconnu');
+      if (guest()) throw gst('chrono_save'); if (!ONLINE || netOff()) throw off('chrono_save');
+      const r = await rpc('chrono_save', { p_code: CODE(), p_name: profile.name, p_track: t, p_ms: Math.round(+ms || 0), p_ghost: String(ghost || '').slice(0, 160000) }, { quiet: true }) || {};
+      if (!r.ok && r.why && r.why !== 'trop d essais') { try { reportError('Turbo Chrono : temps refusé (' + r.why + ')', t + ' ' + ms + ' ms', { quiet: true }); } catch (e) {} }
+      let b = null; try { b = await board(t); } catch (e) {}
+      return { ok: !!r.ok, best: +r.best || 0, kept: !!r.kept, why: r.why || '', board: b };
+    },
+  };
+}
+
 /* ================= Appels partout dans la borne (23 oct. 2026) ================= */
 // Demande de l'utilisateur : « on peut appeler n'importe qui sur la borne à tout moment, même s'il n'est jamais allé sur Pégase ». Le hub de
 // Pégase ouvert (abonné à onAppel) s'occupe de tout ; SINON la borne écoute elle-même : signal { t: 'appel' } du canal PRIVÉ des messages
@@ -1053,7 +1090,7 @@ function unduckMusic() { duckUntil = 0; clearTimeout(duckTimer); musicApplyLevel
 // calmes au début, énergiques aux niveaux difficiles ; à l'accueil, un mélange des deux
 // jeux sans musique à eux : ils prennent celle d'un autre écran (vide depuis que Pégase a la sienne : assets/music/pegase-1.mp3,
 // « Chez toi » harpe, célesta et violoncelle, choisie par l'utilisateur le 22 oct. 2026, jouée dès l'ouverture du hub)
-const MUSIC_AS = {};
+const MUSIC_AS = { chrono: 'pleingaz' };   // Turbo Chrono : la musique de course de Plein Gaz (le jeu a son moteur et ses bruitages à lui)
 function musicVariants(id, mode) {
   id = MUSIC_AS[id] || id;
   // Pégase (page des îles et hub) : la SUITE de 4 morceaux (pgsuite-1…4, voir MUSIC_SUITE), pour tout le monde depuis la 1.34.19
@@ -1504,7 +1541,7 @@ function notifRow(n, isNew) {
 // NOTES DE MISE À JOUR rangées par jeu (source/nouveautes.txt : « [pegase] … », « [neon] … », « [id] ## sous-titre », sans crochets =
 // la borne ; lignes « # » ignorées). L'ancien format (« 🎣 PÉGASE 0.9.4.6 : a ; b ; c ») est encore compris : une version = un sous-titre,
 // une nouveauté par « ; ». Pégase d'abord, puis chaque jeu (sous « Nos autres jeux »), puis la borne. Chaque jeu a ses notes à lui.
-const NOTE_IC = { pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', borne: '🕹️' };
+const NOTE_IC = { chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', borne: '🕹️' };
 function notesGroups() {
   const G = new Map(), add = (id, kind, t) => { if (!G.has(id)) G.set(id, []); G.get(id).push({ kind, t: String(t).trim() }); };
   for (const raw of window.JDW_NOTES || []) {
@@ -8690,6 +8727,7 @@ function mountGame(g) {
     celebrate: (text, name) => { if (current && current.seq === seq) toastCheer(text, name); },
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
     pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
+    chrono: g.id === 'chrono' ? chronoApi() : undefined,                                     // Turbo Chrono : les fantômes des copains (Ajout 13)
     share: g.id === 'pegase' ? () => shareOpen('pegase') : undefined,                         // Pégase (hub) : « Partager Pégase » (Ajout 12)
     natif: NATIVE_APPS[g.id] ? nativeApi(g) : undefined,                                    // appli native (Android 1.8+) : carte « Android » du hub (Ajout 9)
     pad: PAD_DOM.has(g.id) ? undefined : padApi({ intro: () => { if (current && current.seq === seq) padIntro(g, null, true); } }),   // manettes (Ajout 10) : toutes pour le joueur

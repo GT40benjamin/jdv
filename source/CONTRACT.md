@@ -239,3 +239,12 @@ Nommer les morceaux autrement que l'id du jeu (ex. `neonrush-1` pour `neon`) pou
 `api.share()` (seulement pour `pegase`, sinon `undefined`) ouvre la fenêtre « Partager Pégase » de la borne PAR-DESSUS le jeu : message,
 aperçu du lien, Partager (téléphone) / Copier, WhatsApp, SMS, e-mail. Le lien (…/pegase/, construit depuis l'adresse actuelle) est public :
 il marche aussi en invité. Le jeu n'a rien d'autre à faire ; sans `api.share` (vieille borne), il cache son bouton.
+
+## Ajout 13 : les fantômes de Turbo Chrono (api.chrono, seulement pour le module `chrono` ; serveur source/chrono.sql)
+`api.chrono.info()` → `{ guest, online, name (pseudo principal), room: { id, name } | null }`.
+`await api.chrono.board(circuit)` → `{ room: [ligne], world: [ligne] (10 meilleurs), me: ligne | null }`, ligne = `{ name (pseudo affiché dans
+la salle, sert aux têtes de api.heads()), key (pseudo principal, sert à télécharger), ms, me }` ; un invité ne reçoit que `world` ; hors ligne = erreur `offline`.
+`await api.chrono.ghost(circuit, key)` → `{ ms, ghost (base64) }` ou null (compte requis). `await api.chrono.save(circuit, ms, ghost)` →
+`{ ok, best, kept, why, board }` : le serveur garde le meilleur temps de chaque joueur par circuit et vérifie le fantôme (format de
+`~/jdv-tools/duotest/chrono/src/engine/ghost.js` : en-tête « TC », version 1, tours, 100 ms, points, temps, passages ; voir chrono_check).
+Le jeu garde aussi son record et son fantôme sur l'appareil (`jdw.chrono.<PSEUDO>`) : un invité joue et retrouve ses temps sans compte.
