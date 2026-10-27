@@ -8,6 +8,7 @@ const ORDER = ['coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase'
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
+  ilotab: { kind: 'maj', at: '2026-10-27 18:30' },   // l'onglet ILO (pas une tuile) : la musique du titre du jeu, 1.48.3 — badge « mis à jour » au lieu de « à venir » jusqu'à ce qu'on l'ouvre
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -164,6 +165,8 @@ function refreshNewBadges() {
     const e = $(id); if (!e) continue;
     e.hidden = !k; e.textContent = k === 'new' ? 'nouveau' : 'mis à jour'; e.classList.toggle('maj', k === 'maj'); e.classList.toggle('new', k === 'new');
   }
+  // l'onglet ILO : « à venir », ou « mis à jour » (TILE_NEWS.ilotab) jusqu'à ce que ce joueur l'ouvre
+  { const e = $('jdw-ilo-badge'); if (e) { let k = ''; try { k = tileNewsT('ilotab'); } catch (x) {} e.textContent = k ? 'mis à jour' : 'à venir'; e.classList.toggle('maj', !!k); } }
 }
 const fmt = n => Math.floor(n).toLocaleString('fr-FR');
 const unit = g => g && g.scoreLabel === 'm' ? ' m' : '';
@@ -1345,7 +1348,7 @@ function musicOut(t) {
 // MUSIQUES EN SUITE (24 oct. 2026, la page Pégase : « Chez toi 2 » → « L'Île qui s'éveille » → « Lumière du soir » → « Chez Rosalie 2 »,
 // plus de 6 min variées) : toujours dans l'ordre à partir du 1er, fondu enchaîné LONG à puissance constante, sans blanc ni coupure nette ;
 // chaque morceau est mesuré une fois (début et fin réels sans silence, volume des passages joués) et ramené au même niveau.
-const MUSIC_SUITE = { pegase: 7 };   // id → durée du fondu enchaîné (s)
+const MUSIC_SUITE = { pegase: 7, ilotitre: 3 };   // id → durée du fondu enchaîné (s) ; ilotitre : la musique du titre d'ILO, seule, en boucle sans blanc
 function musicMeta(b) {
   if (b._m) return b._m;
   const ch = [...Array(b.numberOfChannels).keys()].map(i => b.getChannelData(i)), hop = Math.round(b.sampleRate * 0.05), n = Math.floor(b.length / hop), db = new Float32Array(n);
@@ -1452,7 +1455,9 @@ function rhythmApi(mine) {
   };
 }
 // la page Pégase (choix des îles) joue la musique du hub de Pégase (« Chez toi ») ; le reste de la borne, celle de l'accueil
-const menuMusic = () => (MODE === 'pegase' ? 'pegase' : 'accueil');
+// l'onglet ILO : la musique du titre du jeu (ilotitre-1, « quand on s'éloigne du vaisseau », MUS_Titre_Longue composée avec ElevenLabs Music) ;
+// l'id « ilo » est celui du mini-jeu de la borne (ses musiques ilo-2…, ilo-x1…)
+const menuMusic = () => (MODE === 'pegase' ? 'pegase' : MODE === 'ilo' ? 'ilotitre' : 'accueil');
 function screenMusic() { return !$('jdw-play').hidden && current ? current.game.id : menuMusic(); }
 document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) { if (Audio.ctx && Audio.ctx.state === 'suspended') Audio.ctx.resume().catch(() => {}); setMusic(MUS.want, MUS.wantMode); } });
 // la musique démarre au premier geste (règle des navigateurs)
@@ -5283,6 +5288,7 @@ function setMode(m, user) {
   if (m === 'ilo' && document.querySelector('#jdw-modes [data-mode="ilo"]').hidden) m = 'classique';         // onglet ILO : montré avec celui de Pégase
   if (m !== 'pegase' && m !== 'ilo' && typeof PG !== 'undefined') PG.last = m;   // « Nos autres jeux » revient au dernier mode de la borne
   if (m === 'pegase' && user) markGameSeen('pegase');   // l'onglet Pégase touché : son « ✨ Mis à jour » s'en va
+  if (m === 'ilo' && user) markGameSeen('ilotab');      // l'onglet ILO touché : son « mis à jour » redevient « à venir »
   $('jdw-modes').classList.toggle('pg-open', m === 'pegase');
   $('jdw-modes').classList.toggle('ilo-open', m === 'ilo');   // ILO ouvert : comme Pégase ouvert (Classique · Duel · Coop repliés)
   const changed = m !== MODE; MODE = m;
@@ -5297,7 +5303,7 @@ function setMode(m, user) {
   if (typeof pgSky === 'function') pgSky(m === 'pegase');
   if (typeof iloSky === 'function') iloSky(m === 'ilo');
   if (m !== 'pegase') for (const o of document.querySelectorAll('.pi-panel.pi-over, .pi-who')) o.remove();
-  if (changed && $('jdw-play').hidden && !MUS.override && MUS.want && MUS.want !== menuMusic() && (MUS.want === 'accueil' || MUS.want === 'pegase')) setMusic(menuMusic());   // entrer / sortir de Pégase : sa musique
+  if (changed && $('jdw-play').hidden && !MUS.override && MUS.want && MUS.want !== menuMusic() && (MUS.want === 'accueil' || MUS.want === 'pegase' || MUS.want === 'ilotitre')) setMusic(menuMusic());   // entrer / sortir de Pégase ou d'ILO : sa musique
   if (user && changed) {
     const w = document.querySelector('.lib-wrap'); w.classList.remove('page-in'); void w.offsetWidth; w.classList.add('page-in');
     $('jdw-lib').scrollTo({ top: 0 });

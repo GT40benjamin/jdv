@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🎵 La musique d'ILO, dans son onglet (borne 1.48.3)
+[borne] Dans l'onglet ILO, la musique du début du jeu (celle qui accompagne le vaisseau qui s'éloigne, seul dans l'espace) joue en boucle ; la musique de la borne revient quand tu changes d'onglet, et le bouton 🎵 la coupe comme les autres
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un nouvel onglet ILO, à gauche de Pégase : la présentation du Silence d'ILO, avec sa bande-annonce filmée dans le jeu qui tourne en boucle. Touche « Le son » pour entendre sa musique
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
