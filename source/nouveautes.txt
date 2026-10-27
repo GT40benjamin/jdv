@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## ✨ Le titre de la présentation de Pégase, bien en vue (borne 1.46.15)
+[pegase] Après « Découvrir Pégase », le grand titre « La légende de Pégase » arrive au milieu de l'écran, avec ses boutons bien au-dessus de la barre du bas, et les lettres comme le « g » ne sont plus coupées
 [pegase] ## 🌊 La présentation de Pégase, avec l'île en 3D et sa mer (borne 1.46.14)
 [pegase] L'île de Pégase en 3D, entourée de sa mer qui bouge : turquoise et transparente près des plages (on voit le fond), bleu profond au large, de l'écume sur le sable et des reflets du soleil. Elle tourne doucement, et se fond dans la page
 [pegase] De nouvelles images du jeu en qualité Ultra : le village vu d'en haut, la place la nuit, les prés aux herbes folles, le pont rouge, l'île vue des hauteurs
