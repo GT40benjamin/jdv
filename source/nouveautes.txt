@@ -13,6 +13,12 @@
 [borne] Un nouvel onglet ILO, à gauche de Pégase : la présentation du Silence d'ILO, avec sa bande-annonce filmée dans le jeu qui tourne en boucle. Touche « Le son » pour entendre sa musique
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec la même bande-annonce
+[pegase] ## 🌱 Pégase 0.9.9.1 : l'arrosoir en main et la vie sauvage (borne 1.48.4)
+[pegase] L'arrosoir en main : choisis-le dans ta barre, ton héroïne le porte par l'anse, le lève et le penche au-dessus du potager : l'eau coule et la terre fonce
+[pegase] Une goutte bleue flotte au-dessus d'un potager qui a soif : tu vois tout de suite où arroser
+[pegase] Le potager rééquilibré : maïs, mûres, raisin, citrouilles et pastèques poussent plus vite, les pommes de terre un peu moins ; chaque culture rapporte à peu près autant que la tomate
+[pegase] Au sud-est du village, la vie grouille : une harde de biches et un cerf, des lapins, des faisans, des perdrix, un milan… et un ours brun qu'on voit vivre de loin, depuis les rochers (approche-toi accroupi !)
+[pegase] Construction : le prix d'une case de sol s'affiche sur chaque sol (« Prix bientôt » tant que les travaux restent gratuits)
 [pegase] ## 👀 Regarder une île, même sans compte (borne 1.48.2)
 [pegase] Sur chaque île, « 👀 Regarder » ouvre Pégase en spectateur : caméra libre, tu suis les joueurs sans jouer, même sans compte (les maisons d'une île d'amis restent cachées)
 [pegase] ## 🏝️ Les îles de Pégase ouvertes à tous (borne 1.48.1)

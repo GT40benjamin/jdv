@@ -28,7 +28,7 @@ const TILE_NEWS = {
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-10-27 18:20' }   // Regarder une île sans compte (borne 1.48.2) ; les îles ouvertes à tous (borne 1.48.1, 17:56) ; avant : Pégase 0.9.9 (borne 1.48, 17:52) : les îles entre amis, la suite « Le dernier géant » (bateau de Gaspard, îlot du grand arbre, jeunes géants) ; avant : 0.9.8.9 (borne 1.46.16, 2026-10-27 16:55)
+  pegase: { kind: 'maj', at: '2026-10-27 21:05' }   // Pégase 0.9.9.1 : l'arrosoir en main, potager rééquilibré, la vie sauvage au sud-est, prix des sols (borne 1.48.4)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
