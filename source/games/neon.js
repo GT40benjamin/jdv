@@ -95,6 +95,33 @@
       script: [{ kind: 'orbs', beats: [30, 31, 32, 33, 34], ups: [1, -1.6, 1.2, -1] }, { kind: 'orbs', beats: [150, 151, 152, 153], ups: [1.2, -1.8, 1] }],
       rate: 0.75, orbEvery: 2, orbSnare: 5, pink: true, saws: 0.35, sawWall: 4, speeds: [[53.95, 1.4], [72.20, 1]],
       flips: [[62.63, 68.27, 'orb']] },
+    // 27 oct. : musique du Marché de nuit de Smoothie Samouraï (électro néon, 130 BPM). Le ROBOT dans le désert de verre (toucher = petit
+    // saut, tenir = grand), l'ARAIGNÉE dans les mirages (téléportée sol ↔ plafond), les ORBES DE DASH dans la tempête (on tient, le cube
+    // file tout droit au-dessus des pics), puis le robot dans la cité engloutie ; la vitesse monte à chaque monde
+    { track: 'smw4-1', name: 'Mirage', speed: 10.2, ships: [], cuts: [48, 96, 144], noSplit: true, forms: true,
+      parts: [['verre', 'robot'], ['mirage', 'spider'], ['tempete', 'cube'], ['engloutie', 'robot']],
+      script: [{ kind: 'dash', beats: [100, 102] }, { kind: 'orbs', beats: [124, 125, 126, 127], ups: [1, -1.6, 1.2] }, { kind: 'dash', beats: [134, 136] }],
+      rate: 0.75, orbEvery: 2, orbSnare: 5, pink: true, robotBig: 0.5, speeds: [[44.34, 1.2], [66.50, 1.4]],
+      flips: [[49.88, 53.58, 'orb']] },
+    // 27 oct. : musique du Cosmos de Smoothie Samouraï (synthwave, 116 BPM, une cassure planante puis un grand final). Les MARCHES
+    // s'effondrent derrière le cube ; le DUO (un jumeau en miroir au plafond) dans l'aurore puis dans les nuages ; vaisseau MINI dans les
+    // abysses pendant la cassure ; la CAMÉRA PENCHE doucement dans l'aurore (pas dans les nuages : 67 images / s au lieu de 143) ; vitesse ×1,5 sur le drop de 66,23 s
+    { track: 'smw6-1', name: 'Zéro Absolu', speed: 10.6, ships: [], cuts: [56, 112, 128], noSplit: true, forms: true,
+      parts: [['glace', 'cube'], ['aurore', 'cube'], ['abysses', 'ship', { mini: true }], ['nuages', 'cube']],
+      script: [{ kind: 'orbs', beats: [24, 25, 26, 27], ups: [1, -1.6, 1.2] }],
+      rate: 0.78, orbEvery: 2, orbSnare: 5, pink: true, crumble: true, dualMirror: true,
+      duals: [[33.13, 41.41], [72.44, 78.64]], tilt: [[29.5, 53, 5]], speeds: [[66.23, 1.5]],
+      flips: [[18.64, 22.79]] },
+    // 27 oct. : le DÉMON, musique de Turbo Toupies (la tension monte jusqu'au final, 130 BPM). TOUT mélangé, sans répit : cube et scies
+    // dans l'enfer, avion MINI, onde, araignée dans le vide (avec le miroir), robot et soucoupe dans la fin du monde, duo qui s'effondre et
+    // caméra qui penche dans le monde glitché, onde MINI pour finir ; la vitesse monte jusqu'à ×1,6
+    { track: 'dtoupies-1', name: 'Démon', speed: 11, ships: [], cuts: [44, 63, 96, 134, 150, 166, 180], noSplit: true, forms: true,
+      parts: [['enfer', 'cube'], ['enfer', 'ship', { mini: true }], ['vide', 'wave'], ['vide', 'spider'], ['apocalypse', 'robot'], ['apocalypse', 'ufo'], ['glitch', 'cube'], ['glitch', 'wave', { mini: true }]],
+      script: [{ kind: 'dash', beats: [24, 26] }, { kind: 'orbs', beats: [36, 37, 38, 39], ups: [1.2, -1.8, 1] }],
+      rate: 0.85, orbEvery: 2, orbSnare: 5, pink: true, saws: 0.4, sawWall: 3, robotBig: 0.55, crumble: true, dualMirror: true,
+      duals: [[77.89, 82.52]], tilt: [[63, 82, 8]], mirror: [[48.35, 55.74]],
+      speeds: [[29.43, 1.15], [62.20, 1.35], [76.97, 1.6], [83.44, 1.1]],
+      flips: [[9.59, 13.29, 'orb']] },
   ];
   const themeOf = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
 
