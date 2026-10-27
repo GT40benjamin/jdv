@@ -22,7 +22,7 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
-  chrono: { kind: 'new', at: '2026-10-27 01:46' },   // Turbo Chrono (Classique, course 3D contre les fantômes des copains, en essai derrière la porte labo ; heure = celle de la publication)
+  chrono: { kind: 'new', at: '2026-10-27 12:16' },   // Turbo Chrono (Classique, course 3D contre les fantômes des copains) : SORTI POUR TOUS en 1.44 (heure de la sortie)
   neon: { kind: 'maj', at: '2026-10-27 09:37' },   // Néon Rush 1.43.9 : niveaux 5, 6, 7 (chantier « La folie » : Mirage, Zéro Absolu, Démon ; robot, araignée, dash, duo) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
@@ -33,7 +33,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['iles', 'chrono', 'coffres']);   // en essai : Pégase en îles (onglet à gauche, page des îles), Turbo Chrono (course contre les fantômes, 1.42), Coffres à Secrets (casse-tête, 1.43) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC
+const LABO = new Set(['iles', 'coffres']);   // en essai : Pégase en îles (onglet à gauche, page des îles), Coffres à Secrets (casse-tête, 1.43) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
