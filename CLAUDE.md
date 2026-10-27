@@ -12,7 +12,7 @@ elixirgamestudio.com. Le service worker de l'ancienne adresse reste figé (sa mi
 
 ## Ce qui est publié (racine du dépôt) — site PUBLIC depuis la 1.7 (plus de mot de passe du site)
 - `index.html` : SITE DU STUDIO « Elixir Game Studio » (copie de `source/accueil.html`, style « écran titre » de jeu vidéo) : grand panneau
-  plein écran (blason fiole + ELIXIR / Game Studio ; fond = les VRAIS plans 4K de Pégase du seau R2 (decor_29b, 28, 34, 31, 21b, 35, 15 s
+  plein écran (blason fiole + ELIXIR / Game Studio ; fond = les VRAIS plans 4K de Pégase du seau R2 (decor_29b, 28, 34, 21b, 35, 15 s ; 27 et 31 retirés en 1.46.16 : on y voyait la statue de Pégase sur la fontaine
   chacun en fondu, qualité selon l'écran : 720 / 1080 / 1440 / 2160, version verticale _m_720 / _m_1080 sur un écran en hauteur, une qualité
   de moins si la vidéo attend le réseau), affiche nette `assets/pegase/<plan>_poster.jpg` d'abord, vidéo après la page, jamais en économie de
   données / réseau lent / mouvement réduit (affiches seules) ; étincelles
