@@ -27,13 +27,13 @@ const TILE_NEWS = {
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-10-27 17:52' }   // Pégase 0.9.9 (borne 1.48) : les îles entre amis, la suite « Le dernier géant » (bateau de Gaspard, îlot du grand arbre, jeunes géants) ; avant : 0.9.8.9 (borne 1.46.16, 2026-10-27 16:55)
+  pegase: { kind: 'maj', at: '2026-10-27 17:56' }   // les îles ouvertes à tous (borne 1.48.1) ; avant : Pégase 0.9.9 (borne 1.48, 17:52) : les îles entre amis, la suite « Le dernier géant » (bateau de Gaspard, îlot du grand arbre, jeunes géants) ; avant : 0.9.8.9 (borne 1.46.16, 2026-10-27 16:55)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['iles']);   // en essai : Pégase en îles (onglet à gauche, page des îles) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set([]);   // en essai : (rien) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -6431,9 +6431,6 @@ function islePhoto(cv, im, q, seed) {
 // l'île de la salle, comme avant. Trois sortes : publique · mdp (mot de passe) · amis. Toutes se regardent, même sans compte ; une île
 // protégée se demande (e-mail obligatoire sans compte) : le TICKET reste dans le navigateur pour suivre la demande.
 const ISL = { srv: null, rows: [] };
-// les îles où « Jouer » mène au bon endroit tant que les îles sont éteintes dans le jeu (PegaseIles.ActifDansLesBuilds = false) : Sl arcade
-// (île 1 = l'ancienne salle 2, où le jeu entre de toute façon)
-const ISL_JOUABLE = new Set([1]);
 const islName = () => (isGuest() ? null : profile.name);
 const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 Amis seulement' };
 let islTickets = store.get('jdw.iletickets', {}) || {};
@@ -6723,8 +6720,6 @@ async function renderIsles() {
     // (île protégée : les copains du gardien entrent directement, le serveur le sait ; les autres font une demande) ou Rejoindre (publique)
     else if (isGuest() && ISL.srv) play.textContent = 'S\'inscrire';
     else if (!q.mine && !q.guardian && ISL.srv) play.textContent = q.priv ? 'Demander' : 'Rejoindre';
-    // les îles sont encore éteintes dans le jeu (il entre dans l'ancienne salle) : « Jouer » seulement là où ça mène au bon endroit
-    else if (ISL.srv && !ISL_JOUABLE.has(q.id)) play.hidden = true;
     play.addEventListener('click', () => islJoin(q, c.querySelector('.pi-body')));
     c.querySelector('.pi-watch').addEventListener('click', () => islWatch(q));
     c.querySelector('.pi-gram').addEventListener('click', () => islGram(q));
