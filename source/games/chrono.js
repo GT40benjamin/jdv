@@ -154,7 +154,7 @@ window.JDW_GAMES.chrono = {
   accent: '#ff4d5e',
   scoreLabel: 'points',
   // manette (CONTRACT.md « Ajout 10 ») : la voiture accélère toute seule
-  pad: { help: [['ls/dpad', 'Tourner'], ['a', 'Freiner · déraper (avec le stick)'], ['x', 'Recommencer'], ['y', 'Revenir au dernier passage']] },
+  pad: { help: [['ls/dpad', 'Tourner'], ['a/rt', 'Accélérer'], ['b/lt', 'Freiner · reculer · déraper (avec le stick)'], ['x', 'Recommencer'], ['y', 'Revenir au dernier passage']] },
   preview,
   mount,
 };
