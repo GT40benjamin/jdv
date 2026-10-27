@@ -10,6 +10,7 @@
 [borne] La cloche ne montre plus que ce qui a changé depuis ta dernière visite, rangé par jeu, le plus récent en haut ; le reste est replié dans « Avant »
 [borne] Les jeux qui ont changé portent « ✨ Mis à jour » sur leur tuile (et l'onglet Pégase quand Pégase change), jusqu'à ce que tu les ouvres
 [borne] « Voir le jeu » dans une note t'emmène à sa tuile, qui brille pour que tu la trouves tout de suite
+[borne] Quand tu as déjà tout lu, la cloche montre quand même les dernières mises à jour (plus jamais « Rien de nouveau ») ; toutes les versions restent dans l'historique
 [neon] ## 🗺️ Néon Rush (borne 1.46.5) : la carte, et là où tes copains sont morts
 [neon] Néon Rush a enfin sa carte d’avancement, comme les autres jeux : les 7 niveaux de la nuit synthwave, jusqu’à l’étoile de la grande victoire
 [neon] Sur la carte, chaque tête est posée PILE là où le joueur est mort dans son niveau : une tête de mort sur le chemin, et « 💀 63 % » sous sa tête
