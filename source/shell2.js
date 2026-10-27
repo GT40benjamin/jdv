@@ -117,6 +117,8 @@ let notesV = store.get('jdw.notesv', null); if (typeof notesV !== 'string') { no
 const NOTES_BASE = (() => { const b = store.get('jdw.notesbase', null); if (typeof b === 'string') return b; const v = notesStart(); store.set('jdw.notesbase', v); return v; })();
 let noteSeen = store.get('jdw.noteseen', {}) || {};
 const freshNotes = () => NOTES.filter(b => vcmp(b.v, notesV) > 0);
+// rien de neuf : les blocs des 4 dernières versions de la borne qui en ont (la cloche n'est jamais vide après des mises à jour)
+const recentNotes = () => { const vs = [...new Set(NOTES.map(b => b.v))].sort((x, y) => vcmp(y, x)).slice(0, 4); return NOTES.filter(b => vs.includes(b.v)); };
 const noteLatest = (id) => NOTES.reduce((m, b) => (b.id === id && vcmp(b.v, m) > 0 ? b.v : m), '');
 function noteNews(id) {
   const v = noteLatest(id); if (!v || vcmp(v, NOTES_BASE) <= 0) return '';
@@ -1658,7 +1660,7 @@ function gameNotifs() {
 }
 function unseenCount() { const s = notifSeen[notifKey()] || 0; return notifs.filter(n => n.id > s).length + gameNotifs().length + updateNotifs().length + coopFreshN(); }
 function refreshBell() {
-  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length && !updateNotifs().length && !coopNotifCount());
+  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length && !updateNotifs().length && !coopNotifCount() && !NOTES.length);
   const n = unseenCount(), b = $('jdw-bell-n');
   b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n);
   $('jdw-bell').setAttribute('aria-label', n ? n + ' nouvelle' + (n > 1 ? 's' : '') + ' notification' + (n > 1 ? 's' : '') : 'Notifications');
@@ -1676,10 +1678,10 @@ function notifRow(n, isNew) {
   if (n.kind === 'coop') return coopNotifRow(n, li, tx);
   if (n.kind === 'installed') {
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✨'; ic.style.background = 'var(--gold)';
-    const b = document.createElement('b'); b.textContent = n.all ? 'Les notes de mise à jour' : 'Version ' + n.v + ' installée';
-    const sm = document.createElement('small'); sm.textContent = n.all ? 'Toutes les versions, la plus récente en haut' : 'Ce qui a changé depuis ta dernière visite';
+    const b = document.createElement('b'); b.textContent = n.all ? 'Les notes de mise à jour' : n.recent ? 'Les dernières mises à jour' : 'Version ' + n.v + ' installée';
+    const sm = document.createElement('small'); sm.textContent = n.all ? 'Toutes les versions, la plus récente en haut' : n.recent ? 'Tu as déjà tout vu : voici les plus récentes' : 'Ce qui a changé depuis ta dernière visite';
     tx.append(b, sm);
-    li.classList.add('nt-upd'); notesInto(tx, n.all ? [] : (n.fresh || freshNotes()), n.all);
+    li.classList.add('nt-upd'); notesInto(tx, n.all ? [] : n.recent ? recentNotes() : (n.fresh || freshNotes()), n.all, !!n.recent);
     li.append(ic, tx);
     return li;
   }
@@ -1757,14 +1759,14 @@ function noteGo(id) {
     el.classList.remove('tile-hl'); void el.offsetWidth; el.classList.add('tile-hl'); setTimeout(() => el.classList.remove('tile-hl'), 4200);
   }, 120);
 }
-function notesInto(box, fresh, all) {
+function notesInto(box, fresh, all, recent) {
   if (!NOTES.length) return;
   const wrap = document.createElement('div'); wrap.className = 'nt-grps';
-  for (const gr of notesByGame(fresh)) wrap.appendChild(noteGroupEl(gr, true));
+  for (const gr of notesByGame(fresh)) wrap.appendChild(noteGroupEl(gr, !recent));
   const older = NOTES.filter(b => !fresh.includes(b));
   if (older.length) {
     const det = document.createElement('details'); det.className = 'nt-avant'; if (all) det.open = true;
-    const sum = document.createElement('summary'); sum.textContent = fresh.length ? 'Avant · les mises à jour déjà vues' : 'Toutes les mises à jour';
+    const sum = document.createElement('summary'); sum.textContent = recent ? 'Avant · les mises à jour plus anciennes' : fresh.length ? 'Avant · les mises à jour déjà vues' : 'Toutes les mises à jour';
     det.appendChild(sum);
     const inner = document.createElement('div'); inner.className = 'nt-grps';
     det.addEventListener('toggle', () => { if (det.open && !inner.childElementCount) for (const gr of notesByGame(older)) inner.appendChild(noteGroupEl(gr, false)); });
@@ -1780,7 +1782,9 @@ function openNotifs(showOld) {
   const old = [{ kind: 'installed', all: true, v: CUR_V }].concat(coopNotifsList(false), notifs.filter(n => n.id <= seen));
   // ce qui est vu disparaît : la prochaine fois, seulement les nouveautés (l'historique reste consultable)
   for (const n of fresh) ol.appendChild(notifRow(n, true));
-  if (!fresh.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Rien de nouveau pour le moment.'; ol.appendChild(li); }
+  // pas de nouvelles notes : les dernières mises à jour quand même, après le reste (jamais « Rien de nouveau » quand il y a eu des versions)
+  if (!fresh.some(n => n.kind === 'installed') && NOTES.length && showOld !== true) ol.appendChild(notifRow({ kind: 'installed', recent: true, v: CUR_V }, false));
+  if (!fresh.length && !NOTES.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Rien de nouveau pour le moment.'; ol.appendChild(li); }
   if (showOld === true) for (const n of old) ol.appendChild(notifRow(n, false));
   $('jdw-notifs-old').hidden = showOld === true || !old.length;
   ol.scrollTop = 0;
