@@ -23,7 +23,7 @@ const TILE_NEWS = {
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'new', at: '2026-10-27 12:16' },   // Turbo Chrono (Classique, course 3D contre les fantômes des copains) : SORTI POUR TOUS en 1.44 (heure de la sortie)
-  neon: { kind: 'maj', at: '2026-10-27 09:37' },   // Néon Rush 1.43.9 : niveaux 5, 6, 7 (chantier « La folie » : Mirage, Zéro Absolu, Démon ; robot, araignée, dash, duo) ; heure = celle de la publication
+  neon: { kind: 'maj', at: '2026-10-27 14:57' },   // Néon Rush 1.46.5 : la carte d'avancement + l'endroit où chaque copain est mort (sur la carte et dans le jeu) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
@@ -82,16 +82,51 @@ const INV_RX = /^[A-Za-z0-9_-]{16,64}$/;
 // les nouveautés déjà là ne s'affichent pas (jdw.tilebase), seulement celles qui arriveront ensuite.
 let seenGames = store.get('jdw.seengames', {}) || {};
 let tileSeen = store.get('jdw.tileseen', {}) || {};
+let DEVICE_FRESH = false;            // aucune donnée jdw.* au premier lancement de cette page (appareil tout neuf)
 const TILE_BASE = (() => {
-  const b = store.get('jdw.tilebase', null); if (typeof b === 'string') return b;
   let fresh = true;
   try { for (let i = 0; i < localStorage.length; i++) if (/^jdw\./.test(localStorage.key(i) || '')) { fresh = false; break; } } catch (e) { fresh = false; }
+  DEVICE_FRESH = fresh;
+  const b = store.get('jdw.tilebase', null); if (typeof b === 'string') return b;
   const v = fresh ? Object.values(TILE_NEWS).reduce((m, x) => x.at > m ? x.at : m, '') : '';
   store.set('jdw.tilebase', v); return v;
 })();
 const seenKey = () => cleanName(profile.name) || '*';
+// NOTES DE MISE À JOUR (source/nouveautes.txt, window.JDW_NOTES) en blocs { id, title, v, items } : v = la version de la borne où le bloc
+// sort (« (borne 1.46.3) » du sous-titre, exigé par build2.py). 27 oct. 2026, PATOU : « les mises à jour ne sont pas claires et les jeux
+// concernés ne sont pas pointés » → la cloche ne montre que ce qui est plus récent que la dernière version vue sur l'appareil (jdw.notesv),
+// rangé par jeu, le plus récent en haut, le reste replié dans « Avant » ; la tuile (ou l'onglet Pégase) d'un jeu qui a une note plus
+// récente que la dernière fois où ce joueur l'a ouvert porte « ✨ Mis à jour » (jdw.noteseen) jusqu'à ce qu'il l'ouvre.
+const vcmp = (a, b) => { const x = String(a || '0').split('.').map(Number), y = String(b || '0').split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
+const CUR_V = String(window.JDW_VERSION || '') || '999';
+const NOTES = (() => {
+  const out = []; let cur = null;
+  for (const raw of window.JDW_NOTES || []) {
+    const l = String(raw).trim(); if (!l || l[0] === '#') continue;
+    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/); if (!m) continue;
+    const sub = m[2].match(/^##\s*(.+)$/);
+    if (sub) { const vm = sub[1].match(/\(borne (\d+(?:\.\d+)*)\)/); cur = { id: m[1], title: sub[1].replace(/\s*\(borne [\d.]+\)/, '').trim(), v: vm ? vm[1] : '0', items: [] }; if (vcmp(cur.v, CUR_V) <= 0) out.push(cur); }
+    else if (cur && cur.id === m[1] && m[2]) cur.items.push(m[2]);
+  }
+  return out;
+})();
+// appareils déjà là avant ce système (27 oct. 2026) : les nouveautés depuis la 1.45 ; appareil tout neuf : rien d'ancien
+const NOTES_ROLLOUT = '1.45';
+const notesStart = () => (DEVICE_FRESH ? CUR_V : NOTES_ROLLOUT);
+let notesV = store.get('jdw.notesv', null); if (typeof notesV !== 'string') { notesV = notesStart(); store.set('jdw.notesv', notesV); }
+const NOTES_BASE = (() => { const b = store.get('jdw.notesbase', null); if (typeof b === 'string') return b; const v = notesStart(); store.set('jdw.notesbase', v); return v; })();
+let noteSeen = store.get('jdw.noteseen', {}) || {};
+const freshNotes = () => NOTES.filter(b => vcmp(b.v, notesV) > 0);
+// rien de neuf : les blocs des 4 dernières versions de la borne qui en ont (la cloche n'est jamais vide après des mises à jour)
+const recentNotes = () => { const vs = [...new Set(NOTES.map(b => b.v))].sort((x, y) => vcmp(y, x)).slice(0, 4); return NOTES.filter(b => vs.includes(b.v)); };
+const noteLatest = (id) => NOTES.reduce((m, b) => (b.id === id && vcmp(b.v, m) > 0 ? b.v : m), '');
+function noteNews(id) {
+  const v = noteLatest(id); if (!v || vcmp(v, NOTES_BASE) <= 0) return '';
+  const s2 = (noteSeen[seenKey()] || {})[id]; return s2 && vcmp(v, s2) <= 0 ? '' : 'maj';
+}
 // l'étiquette de ce jeu / duel pour le joueur actuel : 'new', 'maj' ou ''
-function tileNews(id) {
+function tileNews(id) { const k = tileNewsT(id); return k === 'new' ? k : (noteNews(id) || k); }
+function tileNewsT(id) {
   const x = TILE_NEWS[id]; if (!x || x.at <= TILE_BASE) return '';
   if (!(Date.now() - Date.parse(x.at.replace(' ', 'T')) < NEWS_DAYS * 86400e3)) return '';
   const me = seenKey();
@@ -102,27 +137,32 @@ function tileNews(id) {
 const gameSeen = (id) => tileNews(id) !== 'new';
 // clic sur la tuile (jeu ouvert, duel lancé) : l'étiquette s'en va pour ce joueur
 function markGameSeen(id) {
-  const x = TILE_NEWS[id]; if (!x || !tileNews(id)) return;
-  const me = seenKey(); (tileSeen[me] = tileSeen[me] || {})[id] = x.at; store.set('jdw.tileseen', tileSeen);
+  if (!tileNews(id)) return;
+  const me = seenKey(), x = TILE_NEWS[id];
+  if (x && tileNewsT(id)) { (tileSeen[me] = tileSeen[me] || {})[id] = x.at; store.set('jdw.tileseen', tileSeen); }
+  const v = noteLatest(id); if (v) { (noteSeen[me] = noteSeen[me] || {})[id] = v; store.set('jdw.noteseen', noteSeen); }
   refreshNewBadges(); refreshBell();
 }
 function refreshNewBadges() {
   const put = (el, k) => {
     let nb = el.querySelector('.tile-new');
+    const tl = el.closest('.tile') || el; tl.classList.toggle('tile-maj', k === 'maj'); tl.classList.toggle('tile-nw', k === 'new');
     if (!k) { if (nb) nb.hidden = true; return; }
     if (!nb) { nb = document.createElement('span'); nb.className = 'tile-new'; el.appendChild(nb); }
-    nb.hidden = false; nb.classList.toggle('maj', k === 'maj'); nb.textContent = k === 'new' ? 'Nouveau' : 'Mis à jour';
+    nb.hidden = false; nb.classList.toggle('maj', k === 'maj'); nb.textContent = k === 'new' ? 'Nouveau' : '✨ Mis à jour';
   };
-  const section = list => { let k = ''; for (const t of list) { const n = tileNews(t.g.id); put(t.el, n); if (n === 'new' || (n && !k)) k = n; } return k; };
+  for (const el of document.querySelectorAll('.tile-hl')) el.classList.remove('tile-hl');
+  // tuiles pas encore construites (la borne ouverte sur Pégase) : le badge de la page se calcule sur la liste des jeux
+  const section = (list, ids) => { let k = ''; for (const t of list) { const n = tileNews(t.g.id); put(t.el, n); if (n === 'new' || (n && !k)) k = n; } if (!list.length) for (const id of ids || []) { const n = tileNews(id); if (n === 'new' || (n && !k)) k = n; } return k; };
   let a = '', b = '';
-  try { a = section(tiles); } catch (e) {}
-  try { b = section(duoTiles); } catch (e) {}
+  try { a = section(tiles, GAMES.filter(g => g.id !== 'pegase').map(g => g.id)); } catch (e) {}
+  try { b = section(duoTiles, DUOS.map(d => d.id)); } catch (e) {}
   try { coopBadge(section(coopTiles)); } catch (e) {}   // 3e section : jeux à deux (ids coop-<id>), « bientôt » tant que la liste est vide
   // mode test : Pégase est à part (onglet du bas) : SA nouveauté va sur son onglet
   let c = ''; try { const pb = document.querySelector('#jdw-modes [data-mode="pegase"]'); if (pb && !pb.hidden) c = tileNews('pegase') || ''; } catch (e) {}
   for (const [id, k] of [['jdw-cls-badge', a], ['jdw-duo-badge', b], ['jdw-pg-badge', c]]) {
     const e = $(id); if (!e) continue;
-    e.hidden = !k; e.textContent = k === 'new' ? 'nouveau' : 'mis à jour'; e.classList.toggle('maj', k === 'maj');
+    e.hidden = !k; e.textContent = k === 'new' ? 'nouveau' : 'mis à jour'; e.classList.toggle('maj', k === 'maj'); e.classList.toggle('new', k === 'new');
   }
 }
 const fmt = n => Math.floor(n).toLocaleString('fr-FR');
@@ -1570,6 +1610,18 @@ async function flushUnsent() {
 }
 
 /* ================= Notifications « X a battu ton record » ================= */
+// records PAR NIVEAU (source/records-copains.sql, 1.46.9) : game = '<jeu>@<niveau>' ('chrono@stade', 'coffres@3-7'), score / prev = temps
+// en ms (Turbo Chrono) ou coups (coffres) : plus petit = meilleur. recTag dit comment l'écrire.
+function recTag(tag) {
+  const t = String(tag || ''), i = t.indexOf('@'), base = i > 0 ? t.slice(0, i) : t, lv = i > 0 ? t.slice(i + 1) : '';
+  const g = gameById(base) || null;
+  if (!lv) return { g, base, lv: '', where: g ? g.title : '', val: v => fmt(v) + unit(g), word: 'ton record', ic: '🏆' };
+  const msT = v => { const c = Math.round(v / 10), m = Math.floor(c / 6000), sec = Math.floor(c / 100) % 60; return m + ':' + String(sec).padStart(2, '0') + '.' + String(c % 100).padStart(2, '0'); };
+  if (base === 'chrono') return { g, base, lv, where: (g ? g.title : 'Turbo Chrono') + ' · ' + ((CHRONO_TRACKS.find(x => x[0] === lv) || [])[1] || lv), val: msT, word: 'ton temps', ic: '⏱️' };
+  const m = lv.match(/^(\d+)-(\d+)$/), label = base === 'coffres' && m ? 'Monde ' + m[1] + ' · ' + (+m[2] === 8 ? 'grand coffre' : 'coffre ' + m[2]) : 'niveau ' + lv;
+  if (base !== 'coffres') return { g, base, lv, where: (g ? g.title + ' · ' : '') + label, val: v => fmt(v), word: 'ton record', ic: '🏆' };   // jeu à niveaux pas encore connu ici : sans unité
+  return { g, base, lv, where: (g ? g.title : 'Coffres à Secrets') + ' · ' + label, val: v => fmt(v) + ' coup' + (v > 1 ? 's' : ''), word: 'ton record', ic: '🗝️' };
+}
 let notifs = [], notifsOk = false;                 // [{ id, actor, game, score, prev, at }]
 let localNotifs = store.get('jdw.localnotifs', []); if (!Array.isArray(localNotifs)) localNotifs = [];
 let notifSeen = store.get('jdw.notifseen', {}) || {}, notifToasted = store.get('jdw.notiftoast', {}) || {};
@@ -1598,8 +1650,8 @@ async function loadNotifs() {
   refreshBell();
   const key = notifKey(), last = notifToasted[key] || 0, fresh = notifs.filter(n => n.id > last);
   if (fresh.length && $('jdw-play').hidden && last) {
-    const n = fresh[0], g = gameById(n.game);
-    toastCheer(n.actor + ' a battu ton record' + (g ? ' à ' + g.title : '') + ' !', n.actor, true);
+    const n = fresh[0], rt = recTag(n.game);
+    toastCheer(dispName(n.actor) + ' a battu ' + rt.word + (rt.where ? ' · ' + rt.where : '') + ' !', n.actor, true);
   }
   if (notifs.length) { notifToasted[key] = Math.max(last, ...notifs.map(n => n.id)); store.set('jdw.notiftoast', notifToasted); }
   else if (!last) { notifToasted[key] = 1; store.set('jdw.notiftoast', notifToasted); }
@@ -1609,7 +1661,7 @@ let gameNotifSeen = store.get('jdw.gamenotifseen', {}) || {};
 const UPD = { site: '', app: '', seen: store.get('jdw.updseen', {}) || {} };
 function updateNotifs() {
   const out = [];
-  if (UPD.installed && UPD.seen.installed !== UPD.installed) out.push({ kind: 'installed', v: UPD.installed });
+  if (freshNotes().length) out.push({ kind: 'installed', v: CUR_V + (/^\d{12}/.test(String(window.JDW_BUILD)) ? ' du ' + String(window.JDW_BUILD).slice(6, 8) + '/' + String(window.JDW_BUILD).slice(4, 6) : '') });
   if (UPD.site && UPD.seen.site !== UPD.site) out.push({ kind: 'site', v: UPD.site });
   if (UPD.app && UPD.seen.app !== UPD.app) out.push({ kind: 'app', v: UPD.app });
   return out;
@@ -1620,7 +1672,7 @@ function gameNotifs() {
 }
 function unseenCount() { const s = notifSeen[notifKey()] || 0; return notifs.filter(n => n.id > s).length + gameNotifs().length + updateNotifs().length + coopFreshN(); }
 function refreshBell() {
-  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length && !updateNotifs().length && !coopNotifCount());
+  $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length && !updateNotifs().length && !coopNotifCount() && !NOTES.length);
   const n = unseenCount(), b = $('jdw-bell-n');
   b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n);
   $('jdw-bell').setAttribute('aria-label', n ? n + ' nouvelle' + (n > 1 ? 's' : '') + ' notification' + (n > 1 ? 's' : '') : 'Notifications');
@@ -1638,9 +1690,10 @@ function notifRow(n, isNew) {
   if (n.kind === 'coop') return coopNotifRow(n, li, tx);
   if (n.kind === 'installed') {
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✨'; ic.style.background = 'var(--gold)';
-    const b = document.createElement('b'); b.textContent = 'Version ' + n.v + ' installée';
-    tx.append(b);
-    li.classList.add('nt-upd'); notesInto(tx);
+    const b = document.createElement('b'); b.textContent = n.all ? 'Les notes de mise à jour' : n.recent ? 'Les dernières mises à jour' : 'Version ' + n.v + ' installée';
+    const sm = document.createElement('small'); sm.textContent = n.all ? 'Toutes les versions, la plus récente en haut' : n.recent ? 'Tu as déjà tout vu : voici les plus récentes' : 'Ce qui a changé depuis ta dernière visite';
+    tx.append(b, sm);
+    li.classList.add('nt-upd'); notesInto(tx, n.all ? [] : n.recent ? recentNotes() : (n.fresh || freshNotes()), n.all, !!n.recent);
     li.append(ic, tx);
     return li;
   }
@@ -1663,57 +1716,76 @@ function notifRow(n, isNew) {
     li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (g) openGame(g); });
     return li;
   }
-  const g = gameById(n.game);
+  const rt = recTag(n.game), g = rt.g;
   const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, n.actor);
   const b = document.createElement('b'); b.textContent = dispName(n.actor);
-  tx.append(b, ' a battu ton record' + (g ? ' à ' + g.title : ''));
-  const sm = document.createElement('small'); sm.textContent = fmt(n.score) + unit(g) + ' contre ' + fmt(n.prev) + unit(g) + ' pour toi · ' + timeAgo(n.at);
+  tx.append(b, ' a battu ' + rt.word + (rt.where ? (rt.lv ? ' sur ' : ' à ') + rt.where : ''));
+  const sm = document.createElement('small'); sm.textContent = rt.ic + ' ' + rt.val(n.score) + ' contre ' + rt.val(n.prev) + ' pour toi · ' + timeAgo(n.at);
   tx.append(sm); li.append(av, tx);
+  // toucher : le jeu s'ouvre (pour reprendre le record)
+  if (g) { li.classList.add('click'); li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (!$('jdw-play').hidden) backToLibrary(); openGame(g); }); }
   return li;
 }
-// NOTES DE MISE À JOUR rangées par jeu (source/nouveautes.txt : « [pegase] … », « [neon] … », « [id] ## sous-titre », sans crochets =
-// la borne ; lignes « # » ignorées). L'ancien format (« 🎣 PÉGASE 0.9.4.6 : a ; b ; c ») est encore compris : une version = un sous-titre,
-// une nouveauté par « ; ». Pégase d'abord, puis chaque jeu (sous « Nos autres jeux »), puis la borne. Chaque jeu a ses notes à lui.
-const NOTE_IC = { coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', borne: '🕹️' };
-function notesGroups() {
-  const G = new Map(), add = (id, kind, t) => { if (!G.has(id)) G.set(id, []); G.get(id).push({ kind, t: String(t).trim() }); };
-  for (const raw of window.JDW_NOTES || []) {
-    const l = String(raw).trim(); if (!l || l[0] === '#') continue;
-    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/);
-    if (m) { const sub = m[2].match(/^##\s*(.+)$/); if (m[2]) add(m[1], sub ? 'h' : 'i', sub ? sub[1] : m[2]); continue; }
-    const id = /P[ÉE]GASE|GRAND LIVRE|PegaGram/i.test(l) ? 'pegase' : 'borne', cut = l.indexOf(' : ');
-    if (cut > 0 && cut < 70) { add(id, 'h', l.slice(0, cut)); for (const x of l.slice(cut + 3).split(/\s*;\s*/)) if (x) add(id, 'i', x[0].toUpperCase() + x.slice(1)); }
-    else add(id, 'i', l);
-  }
-  const rank = (id) => (id === 'pegase' ? 0 : id === 'borne' ? 2 : 1);
-  return [...G.keys()].sort((a, b) => rank(a) - rank(b)).map(id => ({ id, items: G.get(id) }));
+// NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
+// dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
+const NOTE_IC = { coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
+const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : g ? g.title : id; };
+function notesByGame(blocks) {
+  const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }
+  const out = [...G.entries()].map(([id, l]) => ({ id, blocks: l.sort((x, y) => vcmp(y.v, x.v)) }));
+  return out.sort((x, y) => vcmp(y.blocks[0].v, x.blocks[0].v) || (x.id === 'borne') - (y.id === 'borne'));
 }
-function notesInto(box) {
-  const groups = notesGroups(); if (!groups.length) return;
+function noteGroupEl(gr, fresh) {
+  const g = gr.id === 'pegase' || gr.id === 'borne' ? null : (gameById(gr.id) || duoById(gr.id));
+  const sec = document.createElement('section'); sec.className = 'nt-grp' + (gr.id === 'pegase' ? ' pg' : '') + (fresh ? ' fresh' : '');
+  sec.style.setProperty('--gc', gr.id === 'pegase' ? '#5ef0ff' : gr.id === 'borne' ? 'var(--amber)' : (g && g.accent) || 'var(--volt)');
+  const hd = document.createElement('div'); hd.className = 'nt-gh';
+  const top = gr.blocks[0], em = (top.title.match(/^(\p{Extended_Pictographic}\uFE0F?)/u) || [])[1];
+  const ic = document.createElement('i'); ic.textContent = em || NOTE_IC[gr.id] || '🎮';
+  const b = document.createElement('b'); b.textContent = noteName(gr.id);
+  const ver = document.createElement('small'); ver.textContent = 'borne ' + top.v + (gr.blocks.length > 1 && fresh ? ' · ' + gr.blocks.length + ' mises à jour' : '');
+  hd.append(ic, b, ver); sec.appendChild(hd);
+  for (const bl of gr.blocks) {
+    // \u00AB \uD83C\uDFC6 Turbo Chrono : les anciens temps\u2026 \u00BB dans le bloc Turbo Chrono \u2192 \u00AB Les anciens temps\u2026 \u00BB (le nom du jeu est d\u00E9j\u00E0 en t\u00EAte)
+    let tt = bl.title.replace(/^(\p{Extended_Pictographic}\uFE0F?)\s*/u, ''); const nm = noteName(gr.id);
+    if (tt.toLowerCase().startsWith(nm.toLowerCase() + ' :')) { tt = tt.slice(nm.length + 2).trim(); tt = tt.charAt(0).toUpperCase() + tt.slice(1); }
+    const h = document.createElement('h4'); h.textContent = tt;
+    const vv = document.createElement('em'); vv.textContent = 'borne ' + bl.v; h.appendChild(vv); sec.appendChild(h);
+    if (bl.items.length) { const ul = document.createElement('ul'); ul.className = 'nt-notes'; for (const t of bl.items) { const li2 = document.createElement('li'); li2.textContent = t; ul.appendChild(li2); } sec.appendChild(ul); }
+  }
+  // aller voir : Pégase → son onglet ; un jeu → sa tuile, mise en avant (un 2e toucher l'ouvre) ; la borne → rien
+  if (gr.id !== 'borne' && (gr.id === 'pegase' || g)) {
+    const go = document.createElement('button'); go.type = 'button'; go.className = 'nt-go'; go.textContent = gr.id === 'pegase' ? 'Aller dans Pégase ›' : 'Voir le jeu ›';
+    go.addEventListener('click', (e) => { e.stopPropagation(); closeSheet('jdw-notifs'); noteGo(gr.id); });
+    sec.appendChild(go);
+  }
+  return sec;
+}
+// « Voir le jeu » : la page de sa tuile, la tuile défile à l'écran et brille ; Pégase : son onglet
+function noteGo(id) {
+  if (!$('jdw-play').hidden) backToLibrary();
+  if (id === 'pegase') { if (PG_TAB) setMode('pegase', true); else { const g = gameById('pegase'); if (g) openGame(g); } return; }
+  const g = gameById(id), d = !g && duoById(id);
+  setMode(g ? 'classique' : d ? 'duel' : MODE, true);
+  setTimeout(() => {
+    const t = (g ? tiles : duoTiles).find(x => x.g.id === id); if (!t) { if (g) openGame(g); return; }
+    const el = t.el.closest('.tile') || t.el; el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.remove('tile-hl'); void el.offsetWidth; el.classList.add('tile-hl'); setTimeout(() => el.classList.remove('tile-hl'), 4200);
+  }, 120);
+}
+function notesInto(box, fresh, all, recent) {
+  if (!NOTES.length) return;
   const wrap = document.createElement('div'); wrap.className = 'nt-grps';
-  for (const gr of groups) {
-    const g = gr.id === 'pegase' || gr.id === 'borne' ? null : (gameById(gr.id) || duoById(gr.id));
-    const title = gr.id === 'pegase' ? 'Pégase' : gr.id === 'borne' ? 'La borne' : g ? g.title : gr.id;
-    const sec = document.createElement('section'); sec.className = 'nt-grp' + (gr.id === 'pegase' ? ' pg' : '');
-    sec.style.setProperty('--gc', gr.id === 'pegase' ? '#5ef0ff' : gr.id === 'borne' ? 'var(--amber)' : (g && g.accent) || 'var(--volt)');
-    const hd = document.createElement('div'); hd.className = 'nt-gh';
-    const ic = document.createElement('i'); ic.textContent = NOTE_IC[gr.id] || '🎮';
-    const b = document.createElement('b'); b.textContent = title;
-    const where = document.createElement('small'); where.textContent = gr.id === 'pegase' ? 'Onglet Pégase' : gr.id === 'borne' ? 'Toute la borne' : 'Nos autres jeux';
-    hd.append(ic, b, where); sec.appendChild(hd);
-    let ul = null;
-    for (const it of gr.items) {
-      if (it.kind === 'h') { const h = document.createElement('h4'); h.textContent = it.t; sec.appendChild(h); ul = null; continue; }
-      if (!ul) { ul = document.createElement('ul'); ul.className = 'nt-notes'; sec.appendChild(ul); }
-      const li2 = document.createElement('li'); li2.textContent = it.t; ul.appendChild(li2);
-    }
-    // aller voir : Pégase → son onglet ; un jeu → « Nos autres jeux » (son mode) ; la borne → rien
-    if (gr.id !== 'borne') {
-      const go = document.createElement('button'); go.type = 'button'; go.className = 'nt-go'; go.textContent = gr.id === 'pegase' ? 'Aller dans Pégase ›' : 'Y jouer ›';
-      go.addEventListener('click', (e) => { e.stopPropagation(); closeSheet('jdw-notifs'); if (!$('jdw-play').hidden) backToLibrary(); if (gr.id === 'pegase' && PG_TAB) { setMode('pegase', true); return; } const gg = gameById(gr.id); if (gg) openGame(gg); else if (duoById(gr.id)) setMode('duel', true); });
-      sec.appendChild(go);
-    }
-    wrap.appendChild(sec);
+  for (const gr of notesByGame(fresh)) wrap.appendChild(noteGroupEl(gr, !recent));
+  const older = NOTES.filter(b => !fresh.includes(b));
+  if (older.length) {
+    const det = document.createElement('details'); det.className = 'nt-avant'; if (all) det.open = true;
+    const sum = document.createElement('summary'); sum.textContent = recent ? 'Avant · les mises à jour plus anciennes' : fresh.length ? 'Avant · les mises à jour déjà vues' : 'Toutes les mises à jour';
+    det.appendChild(sum);
+    const inner = document.createElement('div'); inner.className = 'nt-grps';
+    det.addEventListener('toggle', () => { if (det.open && !inner.childElementCount) for (const gr of notesByGame(older)) inner.appendChild(noteGroupEl(gr, false)); });
+    if (all) for (const gr of notesByGame(older)) inner.appendChild(noteGroupEl(gr, false));
+    det.appendChild(inner); wrap.appendChild(det);
   }
   box.appendChild(wrap);
 }
@@ -1721,15 +1793,19 @@ function openNotifs(showOld) {
   const ol = $('jdw-notifs-list'); ol.textContent = '';
   const key = notifKey(), seen = notifSeen[key] || 0, me = cleanName(profile.name);
   const fresh = [...updateNotifs(), ...gameNotifs(), ...coopNotifsList(true), ...notifs.filter(n => n.id > seen)];
-  const old = coopNotifsList(false).concat(notifs.filter(n => n.id <= seen));
+  const old = [{ kind: 'installed', all: true, v: CUR_V }].concat(coopNotifsList(false), notifs.filter(n => n.id <= seen));
   // ce qui est vu disparaît : la prochaine fois, seulement les nouveautés (l'historique reste consultable)
   for (const n of fresh) ol.appendChild(notifRow(n, true));
-  if (!fresh.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Rien de nouveau pour le moment.'; ol.appendChild(li); }
+  // pas de nouvelles notes : les dernières mises à jour quand même, après le reste (jamais « Rien de nouveau » quand il y a eu des versions)
+  if (!fresh.some(n => n.kind === 'installed') && NOTES.length && showOld !== true) ol.appendChild(notifRow({ kind: 'installed', recent: true, v: CUR_V }, false));
+  if (!fresh.length && !NOTES.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Rien de nouveau pour le moment.'; ol.appendChild(li); }
   if (showOld === true) for (const n of old) ol.appendChild(notifRow(n, false));
   $('jdw-notifs-old').hidden = showOld === true || !old.length;
+  ol.scrollTop = 0;
   if (notifs.length) { notifSeen[key] = Math.max(seen, ...notifs.map(n => n.id)); store.set('jdw.notifseen', notifSeen); }
   coopNotifsSeenSafe();
-  for (const u of updateNotifs()) UPD.seen[u.kind] = u.v;
+  for (const u of updateNotifs()) if (u.kind !== 'installed') UPD.seen[u.kind] = u.v;
+  if (vcmp(CUR_V, notesV) > 0) { notesV = CUR_V; store.set('jdw.notesv', notesV); }   // vues : la prochaine fois, seulement les suivantes
   store.set('jdw.updseen', UPD.seen);
   const gn = gameNotifs(); if (gn.length && me) { gameNotifSeen[me] = [...(gameNotifSeen[me] || []), ...gn.map(n => n.game)]; store.set('jdw.gamenotifseen', gameNotifSeen); }
   refreshBell();
@@ -1821,16 +1897,16 @@ function dayLabel(t) {
 const onlyEmoji = s => /^(\p{Extended_Pictographic}|\p{Emoji_Component}|\s){1,12}$/u.test(s) && !/[0-9#*]/.test(s);
 function chatAtBottom() { const l = $('jdw-chat-log'); return l.scrollHeight - l.scrollTop - l.clientHeight < 60; }
 function recordCard(m) {
-  const g = gameById(m.game), el = document.createElement('div'); el.className = 'chat-record';
+  const rt = recTag(m.game), g = rt.g, el = document.createElement('div'); el.className = 'chat-record';
   if (g) el.style.setProperty('--acc', g.accent);
   const heads = document.createElement('div'); heads.className = 'cr-heads';
   const a = chatHead(m.name, { cls: 'win' }); const crown = document.createElement('span'); crown.className = 'cr-crown'; crown.textContent = '👑'; a.appendChild(crown);
   const b = chatHead(m.beaten, { cls: 'lose', sad: true });
   heads.append(b, a);
   const tx = document.createElement('div'); tx.className = 'cr-txt';
-  const eb = document.createElement('small'); eb.textContent = '🏆 Nouveau record' + (g ? ' · ' + g.title : '');
+  const eb = document.createElement('small'); eb.textContent = (rt.lv ? rt.ic + ' Nouveau record de la salle' : '🏆 Nouveau record') + (rt.where ? ' · ' + rt.where : '');
   const t = document.createElement('b'); t.textContent = dispName(m.name) + ' détrône ' + dispName(m.beaten) + ' !';
-  const sc = document.createElement('span'); sc.textContent = fmt(m.score) + unit(g) + ' contre ' + fmt(m.beatenScore) + unit(g) + ' · ' + hhmm(m.at);
+  const sc = document.createElement('span'); sc.textContent = rt.val(m.score) + ' contre ' + rt.val(m.beatenScore) + ' · ' + hhmm(m.at);
   tx.append(eb, t, sc);
   el.append(heads, tx);
   if (m.id) { el.dataset.mid = m.id; const rx = reactPill(m.id); if (rx) { el.appendChild(rx); el.classList.add('has-rx'); } }
@@ -5200,6 +5276,7 @@ function setMode(m, user) {
   if (!(m in MODES)) m = 'classique';
   if (m === 'pegase' && document.querySelector('#jdw-modes [data-mode="pegase"]').hidden) m = 'classique';   // onglet Pégase : mode test seulement
   if (m !== 'pegase' && typeof PG !== 'undefined') PG.last = m;
+  if (m === 'pegase' && user) markGameSeen('pegase');   // l'onglet Pégase touché : son « ✨ Mis à jour » s'en va
   $('jdw-modes').classList.toggle('pg-open', m === 'pegase');
   const changed = m !== MODE; MODE = m;
   try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}
@@ -5428,14 +5505,231 @@ function hubDecorWatch() {
 if (PG_TAB) hubDecorWatch();
 function pgSky(on) {
   $('jdw-lib').classList.add('pg-vid');
-  if (on) pgPoster();
+  if (on) { pgPoster(); setTimeout(pgvBuild, 0); }   // la vitrine sous les îles, construite à la 1re visite
   pgDecor(!!on);
   if (!on) pgAmbi(false);
   pgMusicIc();
 }
 // ♪ la musique : couper / remettre, rien d'autre
 function pgMusicIc() { const b = $('jdw-pg-music'); if (!b) return; b.classList.toggle('off', !MUS.on); b.setAttribute('aria-label', MUS.on ? 'Couper la musique' : 'Remettre la musique'); b.setAttribute('aria-pressed', MUS.on ? 'false' : 'true'); }
-$('jdw-pg-music').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); });
+$('jdw-pg-music').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); pgvMusic(); });
+/* ================= LA VITRINE DE PÉGASE : sous les îles, à la molette (demande de PATOU, 27 oct. 2026) =================
+   « La légende de Pégase » : l'histoire (un photographe vient sur l'île photographier et étudier le cheval ailé de la légende), le safari
+   photo, la vie au village, les îles entre amis, la musique, PegaGram, puis TÉLÉCHARGER (PC / Android / iPhone) + configuration PC minimale
+   et recommandée (Ultra). Pour tous les âges, aucune violence. Images : captures du JEU au rendu PC Ultra, accueil/pgv-<nom>-<largeur>.webp
+   (deux tailles, chargées à la demande). Le haut est transparent : le décor filmé de la page reste derrière le titre. */
+const pgvEsc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const PGV_IMG = {"auguste":[[1600,1600,1067],[800,800,533]],"biches":[[1600,1600,1067],[800,800,533]],"bouvreuil":[[1600,1600,1067],[800,800,533]],"chat":[[1400,1400,943],[800,800,539]],"cygnes":[[1600,1600,1067],[800,800,533]],"echoppe":[[1600,1600,800],[800,800,400]],"fleurs":[[1600,1600,1067],[800,800,533]],"hibou":[[1600,1600,1067],[800,800,533]],"livre":[[700,700,1050],[480,480,720]],"maison":[[1600,1600,900],[800,800,450]],"nuit":[[1600,1600,1067],[2400,2400,1600],[800,800,533]],"oies":[[1600,1600,1067],[800,800,533]],"peche":[[1600,1600,753],[800,800,377]],"indice":[[1200,1200,747],[700,700,436]],"pont":[[1600,1600,1067],[800,800,533]],"potager":[[1600,1600,810],[800,800,405]],"village":[[1600,1600,1067],[2400,2400,1600],[800,800,533]]};
+// <img> net sur tous les écrans : srcset avec les vraies largeurs, sizes donné par la mise en page, toujours chargé à la demande
+function pgvImg(n, alt, sizes, cls) {
+  const v = (PGV_IMG[n] || []).slice().sort((a, b) => a[1] - b[1]); if (!v.length) return '';
+  const src = (x) => ROOT + 'accueil/pgv-' + n + '-' + x[0] + '.webp', s = v[0];
+  return `<img class="${cls || ''}" loading="lazy" decoding="async" alt="${pgvEsc(alt)}" width="${s[1]}" height="${s[2]}" src="${src(s)}" srcset="${v.map(x => src(x) + ' ' + x[1] + 'w').join(', ')}" sizes="${sizes || '100vw'}">`;
+}
+const PGV_SVG = {
+  cam: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="4"/></svg>',
+  book: '<svg viewBox="0 0 24 24"><path d="M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6v14"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',
+  pc: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+  android: '<svg viewBox="0 0 24 24"><rect x="5" y="9" width="14" height="10" rx="2"/><path d="M8 9a4 4 0 0 1 8 0M8 5l1.5 2M16 5l-1.5 2"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>',
+  down: '<svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg>',
+  note: '<svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
+  shield: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
+  chev: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+};
+const PGV = { built: false, io: null, pc: null };
+function pgvBuild() {
+  if (PGV.built || !PG_TAB) return; PGV.built = true;
+  const box = $('jdw-pgv'); if (!box) return;
+  if (!document.getElementById('jdw-pgv-font')) {   // le titre en lettres classiques (EB Garamond : Cormorant décale les accents ^ et ` dans Chrome, 1.46.8) ; sans réseau : la police serif du système
+    const l = document.createElement('link'); l.id = 'jdw-pgv-font'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,500&display=swap'; document.head.appendChild(l);
+  }
+  const W2 = '(max-width: 760px) 100vw, 50vw', W3 = '(max-width: 760px) 100vw, 33vw', WF = '100vw';
+  const card = (img, alt, t, p) => `<article class="pgv-card pgv-rv">${pgvImg(img, alt, W3)}<div><h4>${t}</h4><p>${p}</p></div></article>`;
+  const feat = (ic, t, p) => `<li><span class="pgv-ic">${PGV_SVG[ic]}</span><div><b>${t}</b><p>${p}</p></div></li>`;
+  const post = (img, alt, t, s, r) => `<figure class="pgv-post">${pgvImg(img, alt, '(max-width: 760px) 80vw, 300px')}<figcaption><b>${t}</b><small>${s}</small><span class="pgv-reac">${r}</span></figcaption></figure>`;
+  box.innerHTML = `
+  <section class="pgv-hero pgv-slide" aria-labelledby="pgv-t">
+    <p class="pgv-kick pgv-rv">Elixir Game Studio présente</p>
+    <h2 class="pgv-title pgv-rv" id="pgv-t">La légende de&nbsp;Pégase</h2>
+    <p class="pgv-lead pgv-rv">Un monde à explorer appareil photo en main, un village où poser ses valises, des amis pour tout partager… et un cheval ailé dont il n'existe qu'une seule photo, toute floue.</p>
+    <ul class="pgv-chips pgv-rv"><li>🌿 Pour tous les âges · aucune violence</li><li>🎁 Gratuit</li><li>💻 PC · 📱 Android</li></ul>
+    <div class="pgv-ctas pgv-rv"><button type="button" class="pgv-btn gold" data-go="dl">${PGV_SVG.down}Télécharger Pégase</button><button type="button" class="pgv-btn ghost" data-go="isles">🏝️ Rejoindre une île</button></div>
+  </section>
+  <div class="pgv-body">
+  <section class="pgv-sec pgv-story pgv-slide" aria-labelledby="pgv-h1">
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">La légende</p>
+      <h3 class="pgv-h" id="pgv-h1">Tout a commencé par une photo floue…</h3>
+      <p>Un matin de brume, il y a bien des années, <b>Mlle Iris</b>, la naturaliste du village d'Ailebrune, marchait entre les bouleaux, son vieil appareil autour du cou. Un bruissement, un éclat blanc… elle a déclenché, une seule fois.</p>
+      <p>Sur la photo, presque rien&nbsp;: une grande aile floue entre les arbres. Depuis, personne ne l'a revu. Les uns parlent d'un cygne, les autres d'un rêve. Mlle Iris, elle, l'appelle <b>Pégase</b>.</p>
+      <p>Toi, tu es photographe. Tu viens sur l'île pour retrouver sa trace, rassembler les indices… et le photographier pour de vrai.</p>
+    </div>
+    <figure class="pgv-indice pgv-rv">${pgvImg('indice', 'La seule photo connue : une grande aile blanche, floue, entre les bouleaux', W2)}<figcaption>Ailebrune, à l'aube · I.</figcaption><small>Le seul cliché connu · collection de Mlle Iris</small></figure>
+  </section>
+  <section class="pgv-sec pgv-slide pgv-safari" aria-labelledby="pgv-h2">
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">Safari photo</p>
+      <h3 class="pgv-h" id="pgv-h2">Un safari photo, entre amis</h3>
+      <p>Approche-toi sans bruit, fais la mise au point, zoome… clic&nbsp;! Biches au bord du lac, grand-duc dans la nuit, bouvreuil dans les fleurs, cygnes à l'aube&nbsp;: plus de soixante espèces t'attendent, des oiseaux du jardin aux animaux de la forêt.</p>
+      <ul class="pgv-feats">
+        ${feat('cam', 'Un vrai appareil photo', 'Mise au point, zoom, macro, et tes réglages&nbsp;: lumière, flou d’arrière-plan, couleurs, grain.')}
+        ${feat('gear', 'Des modules à débloquer', 'Ton appareil grandit avec toi, au fil de l’aventure.')}
+        ${feat('book', 'Le Grand Livre des espèces', 'Chaque belle photo remplit une page. Des médailles récompensent les meilleurs naturalistes.')}
+      </ul>
+    </div>
+    <div class="pgv-mosaic pgv-rv">
+      ${pgvImg('biches', 'Biches au bord du lac, le matin', W3, 'm1')}${pgvImg('hibou', 'Le grand-duc la nuit dans le grand osmanthe', W3, 'm2')}${pgvImg('bouvreuil', 'Un bouvreuil dans les fleurs', W3, 'm3')}${pgvImg('cygnes', 'Cygnes à l’aube sur le lac', W3, 'm4')}${pgvImg('oies', 'Vol d’oies en V à l’heure dorée', W3, 'm5')}
+    </div>
+  </section>
+  <section class="pgv-sec pgv-slide pgv-split rev pgv-livre" aria-labelledby="pgv-h3">
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">Le Grand Livre</p>
+      <h3 class="pgv-h" id="pgv-h3">Ton carnet de naturaliste</h3>
+      <p>Chaque espèce photographiée trouve sa place dans le <b>Grand Livre des espèces</b>&nbsp;: oiseaux, animaux de la ferme et de la forêt, reptiles, petites bêtes, poissons… et les légendes.</p>
+      <p>Remplis les pages, gagne des médailles, et feuillette les livres de tes amis pour voir qui a trouvé quoi.</p>
+    </div>
+    <div class="pgv-book pgv-rv">${pgvImg('livre', 'Une page du Grand Livre des espèces : les oiseaux des jardins', '(max-width: 760px) 80vw, 420px')}</div>
+  </section>
+  <section class="pgv-band pgv-slide pgv-rv" aria-label="Le village d'Ailebrune">${pgvImg('village', 'Ailebrune, le village au bord du lac, la cascade et l’arbre sacré', WF)}<div class="pgv-bandtx"><p class="pgv-kick">La vie à Ailebrune</p><h3 class="pgv-h">Un village où l'on se sent chez soi</h3></div></section>
+  <section class="pgv-sec pgv-slide" aria-label="Ta vie au village">
+    <div class="pgv-cards">
+      ${card('maison', 'Une maison à colombages et son jardin fleuri', 'Ta maison', 'Choisis ta parcelle, construis ta maison pièce par pièce et décore-la à ton goût.')}
+      ${card('potager', 'Choux, carottes et radis dans le potager', 'Ton potager', 'Sème, arrose, récolte… et vends tes légumes à l’échoppe du village contre des lucioles.')}
+      ${card('peche', 'Pêche à la ligne au bout du ponton', 'La pêche', 'Le lac, la rivière, la mer et ses criques&nbsp;: chaque coin d’eau a ses poissons. Et chaque semaine, un concours&nbsp;!')}
+      ${card('auguste', 'Papi Auguste, le maire, à son bureau', 'Les habitants', 'Papi Auguste le maire, les commerçants, les voisins&nbsp;: chacun a une histoire et des missions à te confier.')}
+      ${card('echoppe', 'Le marché du village et ses étals', 'Le marché', 'Des graines, des objets, des tenues&nbsp;: dépense tes lucioles et garnis ta maison.')}
+      ${card('chat', 'Le chat des toits sur un faîtage', 'Les petits secrets', 'Un chat qui se promène sur les toits, un musée à remplir, des missions chaque jour… et des surprises bien cachées.')}
+    </div>
+  </section>
+  <section class="pgv-sec pgv-slide pgv-split" aria-labelledby="pgv-h4">
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">Les îles</p>
+      <h3 class="pgv-h" id="pgv-h4">Ton île, avec tes amis</h3>
+      <p>Crée ton île ou rejoins celle de tes copains&nbsp;: chacun sa parcelle, son avatar, sa maison. On se retrouve au village, on se promène, on danse, on s'appelle en vidéo, on s'envoie des messages et des cartes postales.</p>
+      <p>Ton avatar se prépare ici, dans la borne, et te suit dans le jeu.</p>
+      <button type="button" class="pgv-btn ghost" data-go="isles">🏝️ Voir les îles</button>
+    </div>
+    <div class="pgv-isl pgv-rv"><img loading="lazy" decoding="async" alt="L’île de Pégase vue du ciel : le lac, l’arbre rouge, la rivière et les falaises" width="1024" height="694" src="${ROOT}assets/pegase/ile_3d_1024.webp" srcset="${ROOT}assets/pegase/ile_3d_1024.webp 1024w, ${ROOT}assets/pegase/ile_3d_2048.webp 2048w" sizes="(max-width: 760px) 100vw, 50vw"></div>
+  </section>
+  <section class="pgv-band music pgv-slide pgv-rv" aria-labelledby="pgv-h5">${pgvImg('nuit', 'La place du village la nuit, lanternes et lucioles', WF)}<div class="pgv-bandtx">
+    <p class="pgv-kick">Musique</p><h3 class="pgv-h" id="pgv-h5">Une musique enchanteresse</h3>
+    <p>Harpe, célesta, violoncelle… Une musique douce, composée pour l'île, accompagne chaque instant, du lever du soleil sur le lac jusqu'aux lanternes du soir.</p>
+    <button type="button" class="pgv-btn ghost" id="jdw-pgv-mus">${PGV_SVG.note}<span>Écouter</span></button></div></section>
+  <section class="pgv-sec pgv-slide pgv-split rev" aria-labelledby="pgv-h6">
+    <div class="pgv-feed pgv-rv" aria-hidden="true">
+      ${post('fleurs', '', 'Champ de fleurs à l’aube', 'Photo de la semaine', '❤️ 24 · 😍 9')}
+      ${post('hibou', '', 'Le grand-duc', 'Concours de nuit', '⭐ 18 · 😮 7')}
+      ${post('pont', '', 'Le pont rouge', 'Sur ton île', '❤️ 15 · 👍 6')}
+    </div>
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">PegaGram</p>
+      <h3 class="pgv-h" id="pgv-h6">Partage tes plus belles photos</h3>
+      <p>Tes photos préférées vont sur PegaGram, le petit album partagé de ton île&nbsp;: tes copains réagissent, les plus belles gagnent des concours, et Papi Auguste annonce les gagnants.</p>
+      <p>Seuls tes amis voient tes photos.</p>
+    </div>
+  </section>
+  <section class="pgv-sec pgv-slide pgv-dl" id="jdw-pgv-dl" aria-labelledby="pgv-h7">
+    <div class="pgv-dlhead pgv-rv"><p class="pgv-kick">Jouer</p><h3 class="pgv-h" id="pgv-h7">Gratuit, sur PC et Android</h3>
+      <p>Pégase est un vrai jeu à installer. Une fois installé, il se met à jour tout seul.</p></div>
+    <div class="pgv-plats">
+      <article class="pgv-plat pgv-rv"><div class="pgv-ph">${PGV_SVG.pc}<div><h4>PC (Windows)</h4><p data-v="pcmeta">On cherche la dernière version…</p></div></div>
+        <div data-v="pczone"></div>
+        <ol class="pgv-steps"><li><b>Télécharge</b> le fichier zip</li><li><b>Extrais-le</b> (clic droit → Extraire tout)</li><li>Ouvre <b>Pegase.exe</b></li></ol>
+        <details class="pgv-ss"><summary>${PGV_SVG.shield}Un écran bleu « Windows a protégé votre ordinateur » ?</summary><p>C'est normal&nbsp;: Pégase est tout neuf, Windows ne le connaît pas encore. Clique sur <b>Informations complémentaires</b>, puis sur <b>Exécuter quand même</b>.</p></details></article>
+      <article class="pgv-plat pgv-rv"><div class="pgv-ph">${PGV_SVG.android}<div><h4>Android</h4><p data-v="andmeta">Téléphone ou tablette, Android 8 ou plus</p></div></div>
+        <div data-v="andzone"></div></article>
+      <article class="pgv-plat soon pgv-rv"><div class="pgv-ph">${PGV_SVG.phone}<div><h4>iPhone et iPad</h4><p>À venir</p></div></div><p class="pgv-small">Un peu plus tard. En attendant, prépare ton avatar dans la borne&nbsp;!</p></article>
+    </div>
+  </section>
+  <section class="pgv-sec pgv-cfgsec pgv-slide" aria-label="Configuration PC">
+    <div class="pgv-cfg pgv-rv">
+      <h4>Configuration PC</h4>
+      <div class="pgv-tbl" role="table" aria-label="Configuration PC minimale et recommandée">
+        <div role="row" class="hd"><span role="columnheader"></span><span role="columnheader">Minimale</span><span role="columnheader">Recommandée <em>Ultra</em></span></div>
+        <div role="row"><span role="rowheader">Système</span><span role="cell">Windows 10 (64 bits)</span><span role="cell">Windows 11 (64 bits)</span></div>
+        <div role="row"><span role="rowheader">Processeur</span><span role="cell">4 cœurs (Intel Core i5 ou AMD Ryzen 5 récents)</span><span role="cell">6 cœurs ou plus (Intel Core i7 ou AMD Ryzen 7)</span></div>
+        <div role="row"><span role="rowheader">Mémoire</span><span role="cell">8 Go</span><span role="cell">16 Go</span></div>
+        <div role="row"><span role="rowheader">Carte graphique</span><span role="cell">DirectX 11, 4 Go (GeForce GTX 1050 Ti, Radeon RX 570) ; les puces intégrées jouent en qualité Basse</span><span role="cell">DirectX 12, 10 Go ou plus (GeForce RTX 3080 ou 4070, Radeon RX 6800)</span></div>
+        <div role="row"><span role="rowheader">Espace libre</span><span role="cell">8 Go</span><span role="cell">8 Go sur SSD</span></div>
+        <div role="row"><span role="rowheader">Commandes</span><span role="cell">Souris et clavier</span><span role="cell">Souris et clavier, ou manette</span></div>
+      </div>
+      <p class="pgv-small">Pégase choisit tout seul la qualité d'image selon ta carte graphique (Basse, Moyenne, Haute ou Ultra)&nbsp;; tu peux la changer dans les Réglages du jeu. Téléchargement d'environ 2&nbsp;Go, 5&nbsp;Go une fois installé.</p>
+      <p class="pgv-small"><b>Android&nbsp;:</b> Android 8 ou plus, téléphone 64 bits, 4&nbsp;Go de mémoire (6&nbsp;Go conseillés), 3&nbsp;Go d'espace libre.</p>
+    </div>
+    <footer class="pgv-foot"><p class="pgv-age">🌿 Pour tous les âges · aucune violence</p><p>Les images de cette page viennent du jeu, au rendu PC Ultra.</p><p class="pgv-sig">Elixir Game Studio</p></footer>
+  </section>
+  </div>`;
+  // apparition douce à l'écran (rien sans IntersectionObserver ou si l'appareil préfère moins d'animations)
+  const rv = box.querySelectorAll('.pgv-rv');
+  if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    box.classList.add('pgv-anim');
+    PGV.io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { e.target.classList.add('in'); PGV.io.unobserve(e.target); } }, { root: $('jdw-lib'), rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    rv.forEach(el => PGV.io.observe(el));
+  }
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]'); if (!b) return;
+    const L = $('jdw-lib'), to = b.dataset.go === 'dl' ? $('jdw-pgv-dl') : $('jdw-page-pegase');
+    const top = b.dataset.go === 'dl' ? to.getBoundingClientRect().top + L.scrollTop - 12 : 0;
+    try { L.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (x) { L.scrollTop = top; }
+  });
+  $('jdw-pgv-mus').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); pgvMusic(); });
+  pgvMusic(); pgvCue(); pgvDl();
+}
+function pgvMusic() { const b = $('jdw-pgv-mus'); if (!b) return; b.querySelector('span').textContent = MUS.on ? 'Couper la musique' : 'Écouter'; b.classList.toggle('on', MUS.on); }
+// 1.46.11 (PATOU : « ça doit monter d'une page entière ») : à la molette ou au pavé tactile, un geste vers le bas en bas d'un écran = l'écran
+// suivant entier (vers le haut : le précédent), en douceur ; un écran plus haut que la fenêtre (îles nombreuses) se défile d'abord librement.
+// Au doigt, c'est l'aimantation CSS (scroll-snap) qui fait le même travail.
+function pgvWheel(e) {
+  const L = $('jdw-lib');
+  if (MODE !== 'pegase' || !PGV.built || L.classList.contains('pg-ambi') || e.ctrlKey || Math.abs(e.deltaY) < Math.abs(e.deltaX) || !e.deltaY) return;
+  if (e.target.closest && e.target.closest('.pgs-menu, textarea, select, .pn-card, [data-noscroll]')) return;
+  const now = performance.now();
+  if (now < (PGV.lock || 0)) { e.preventDefault(); return; }
+  const st = L.scrollTop, ch = L.clientHeight, top0 = L.getBoundingClientRect().top;
+  const areas = [L.querySelector('.lib-wrap'), ...L.querySelectorAll('.pgv-slide')].filter(Boolean).map((el) => { const r = el.getBoundingClientRect(); return { t: Math.round(r.top - top0 + st), b: Math.round(r.bottom - top0 + st) }; });
+  let i = 0; for (let k = 0; k < areas.length; k++) if (areas[k].t <= st + 2) i = k;
+  let to = null;
+  if (e.deltaY > 0) { if (areas[i].b > st + ch + 2) return; if (areas[i + 1]) to = areas[i + 1].t; }
+  else { if (st > areas[i].t + 2) return; const pv = areas[i - 1]; if (pv) to = Math.max(pv.t, pv.b - ch); }
+  if (to == null) return;
+  e.preventDefault(); PGV.lock = now + 750;
+  try { L.scrollTo({ top: to, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (x) { L.scrollTop = to; }
+}
+$('jdw-lib').addEventListener('wheel', pgvWheel, { passive: false });
+// « Découvrir Pégase » sous les îles : la flèche qui invite à descendre
+function pgvCue() {
+  const p = $('jdw-page-pegase'); if (!p || p.querySelector('.pgv-cue')) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pgv-cue'; b.innerHTML = '<span>Découvrir Pégase</span>' + PGV_SVG.chev;
+  b.addEventListener('click', () => { const L = $('jdw-lib'), t = $('jdw-pgv').getBoundingClientRect().top + L.scrollTop; try { L.scrollTo({ top: t, behavior: 'smooth' }); } catch (x) { L.scrollTop = t; } });
+  p.appendChild(b);
+}
+// téléchargement : la fiche du PC (telecharger/pegase-pc.json) et, sur Android, l'appli de la borne (même feuille que la tuile)
+async function pgvDl() {
+  const box = $('jdw-pgv'), q = (k) => box.querySelector('[data-v="' + k + '"]');
+  try {
+    const r = await fetch(new URL(ROOT + 'telecharger/pegase-pc.json?t=' + Math.floor(Date.now() / 60000), location.href), { cache: 'no-store' });
+    const f = r.ok ? await r.json() : null;
+    if (f && /^https:\/\//.test(f.url || '') && f.version) {
+      q('pcmeta').textContent = 'Version ' + String(f.version).replace(/[^0-9a-z.\- ]/gi, '') + (f.size ? ' · ' + natMo(f.size) : '') + ' · gratuit';
+      q('pczone').innerHTML = `<a class="pgv-btn gold" href="${pgvEsc(f.url)}" rel="noopener" download>${PGV_SVG.down}Télécharger pour PC</a>`;
+    } else { q('pcmeta').textContent = 'Bientôt disponible'; }
+  } catch (e) { q('pcmeta').textContent = netOff() ? 'Il faut du réseau pour voir la dernière version' : 'Bientôt disponible'; }
+  const g = gameById('pegase'); if (!g) return;
+  let st = null; try { st = await nativeStatus(g); } catch (e) {}
+  const z = q('andzone'), meta = q('andmeta');
+  if (st && st.versionName) meta.textContent = 'Version ' + st.versionName.replace(/[^0-9a-z.\- ]/gi, '') + (st.size ? ' · ' + natMo(st.size) : '') + ' · Android 8 ou plus';
+  const btn = (t) => `<button type="button" class="pgv-btn gold" data-and="1">${PGV_SVG.android}${t}</button>`;
+  const s = st ? st.state : 'none';
+  z.innerHTML = s === 'install' ? btn('Installer sur ce téléphone') : s === 'update' || s === 'replace' ? btn('Mettre à jour') : s === 'play' ? btn('Jouer à Pégase') : s === 'busy' ? btn('Voir le téléchargement')
+    : s === 'browser' ? `<p class="pgv-small">Installe d'abord l'appli <b>« Borne d'arcade »</b>&nbsp;: elle installe Pégase pour toi, d'un toucher.</p><a class="pgv-btn ghost" href="${pgvEsc(ROOT + 'telecharger/')}">${PGV_SVG.down}L'appli de la borne</a>`
+    : s === 'oldapp' ? '<p class="pgv-small">Mets à jour l’appli de la borne (page Télécharger) pour installer Pégase.</p>'
+    : s === 'unfit' ? '<p class="pgv-small">Ce téléphone n’est pas assez récent pour Pégase.</p>'
+    : '<p class="pgv-small">Ouvre la borne dans son appli Android&nbsp;: elle installe Pégase pour toi, d’un toucher.</p>';
+  const b = z.querySelector('[data-and]'); if (b) b.addEventListener('click', () => nativeOpen(g, true));
+}
 // ✨ le mode ambiance
 function pgAmbi(on) {
   const L = $('jdw-lib'); if (!!on === L.classList.contains('pg-ambi')) return;
@@ -8957,6 +9251,21 @@ function levelBestApi(g) {
     }
   };
 }
+// Ajout 15 : le plus loin de chacun dans ce jeu (valeur de mapSpot), pour les repères du jeu ; la progression de la salle est relue
+// si elle a plus d'une minute ; invité : rien
+function reachedApi(g) {
+  return async () => {
+    if (isGuest()) return [];
+    if (ONLINE && room && !netOff() && !PROG.missing && (!PROG.at || Date.now() - PROG.at > 60000)) { try { await progLoad(); } catch (e) {} }
+    const me = cleanName(profile.name), out = [];
+    for (const [nm, v] of mapPeople(g.id)) {
+      if (!(v > 0)) continue;
+      const p = players.get(nm), ok = !!(p && p.img && p.img.complete && p.img.naturalWidth);
+      out.push({ name: nm === me ? 'TOI' : dispName(nm), v, me: nm === me, img: ok ? p.img : null, sad: ok ? sadOf(p) || p.img : null });
+    }
+    return out;
+  };
+}
 function mountGame(g) {
   const seq = ++mountSeq;
   let root;
@@ -8986,8 +9295,10 @@ function mountGame(g) {
     rhythm: rhythmApi(() => !!current && current.seq === seq),   // jeu de rythme : son morceau à lui, calé sur la partie (Ajout 11)
     save: g.saves ? saveApi(g) : undefined,                       // partie gardée à tout moment, appareil + serveur (Ajout 14)
     levelBest: g.saves ? levelBestApi(g) : undefined,             // meilleurs coups par niveau + classement de la salle (Ajout 14)
+    reached: g.spots ? reachedApi(g) : undefined,                 // jusqu'où est allé chaque membre de la salle (Néon Rush : où il est mort ; Ajout 15)
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
+      progTick();   // le dernier avancement (Néon Rush : l'endroit exact de la mort) avant que la partie soit finie
       current.over = true;
       try { if (api.pad) api.pad.rumble('over'); } catch (e) {}
       const sc = Math.max(0, Math.floor(+score || 0));
@@ -9063,6 +9374,7 @@ function quitGame() {
     if (sc > 0 || current.game.id === 'chrono') {   // Turbo Chrono : « Tes positions » même sans course finie
       current.over = true;
       try { current.lastLevel = current.inst.currentLevel ? +current.inst.currentLevel() || 0 : 0; } catch (e) {}   // pour l'écran de fin
+      try { current.lastSpot = current.inst.mapSpot ? +current.inst.mapSpot() || 0 : 0; } catch (e) {}
       try { current.inst.destroy && current.inst.destroy(); } catch (e) {}
       current.inst = {};
       if (current.game.external) current.root.hidden = true; else current.root.textContent = '';
@@ -9406,6 +9718,7 @@ function lvIcon(WS, n, px) {      // médaillon d'un monde (dessiné par le jeu)
 }
 function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
+  if (g.spots && MAP_DEFS[g.id] && MAP_DEFS[g.id].spot) { showSpotProgress(g, me, MAP_DEFS[g.id], box); return; }
   let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
   if (!(lv >= 1) || isGuest()) return;
   // record d'avant la partie (pendant la partie, progTick garde déjà chaque nouveau niveau sur l'appareil)
@@ -9454,6 +9767,32 @@ function showLevelProgress(g, me) {
     }
     box.append(row);
   }
+  box.hidden = false;
+}
+// avancement fin (Néon Rush) : une case par niveau, remplie jusqu'à l'endroit exact de la mort (💀), mon record d'avant (👑)
+function showSpotProgress(g, me, def, box) {
+  let v = current.lastSpot || 0; try { if (!v && current.inst.mapSpot) v = Math.floor(+current.inst.mapSpot() || 0); } catch (e) {}
+  const sp = def.spot(v); if (!sp || isGuest()) return;
+  const best = current.lvBase != null && cleanName(profile.name) === me ? current.lvBase : lvBest(me, g.id), bs = def.spot(best);
+  if (me && v > lvBest(me, g.id)) { lvSetBest(me, g.id, v); progPush(me, g.id, v); }   // dernier avancement pas encore vu par progTick
+  const n = def.n(), info = def.level(Math.min(sp.lv, n + 1));
+  const h = document.createElement('p'); h.className = 'lv-h';
+  const b = document.createElement('b'); b.textContent = sp.win ? 'Victoire !' : 'Niveau ' + sp.lv; h.append(b);
+  const c = document.createElement('span'); c.className = 'lv-w'; c.style.setProperty('--wc', info.acc); c.textContent = sp.win ? 'les ' + n + ' niveaux' : info.name + (sp.dead ? ' · mort à ' + sp.label : ''); h.append(c);
+  const r = document.createElement('span'); r.className = 'lv-rec';
+  r.textContent = v > best ? (bs ? 'plus loin que jamais !' : 'premier record !') : v === best ? 'ton record égalé !' : 'ton record : ' + (bs.win ? 'la victoire' : 'niveau ' + bs.lv + (bs.dead ? ' à ' + bs.label : ''));
+  h.append(r);
+  const track = document.createElement('div'); track.className = 'lv-spot'; track.style.setProperty('--n', n);
+  for (let i = 1; i <= n; i++) {
+    const d = document.createElement('i'), L2 = def.level(i); d.style.setProperty('--acc', L2.acc); d.style.setProperty('--d', (i * 0.06).toFixed(2) + 's'); d.title = 'Niveau ' + i + ' · ' + L2.name;
+    const f = sp.win || i < sp.lv ? 1 : i === sp.lv ? sp.f : 0;
+    const fill = document.createElement('s'); fill.style.width = (f * 100).toFixed(1) + '%'; d.append(fill);
+    if (i === sp.lv && sp.dead) { const k = document.createElement('em'); k.className = 'dead'; k.style.left = (sp.f * 100).toFixed(1) + '%'; k.innerHTML = MAP_SKULL; d.append(k); }
+    if (bs && v < best && i === bs.lv && !bs.win) { const k = document.createElement('em'); k.className = 'best'; k.style.left = (bs.f * 100).toFixed(1) + '%'; k.title = 'ton record'; k.textContent = '👑'; d.append(k); }
+    const num = document.createElement('b'); num.textContent = i; d.append(num);
+    track.append(d);
+  }
+  box.append(h, track);
   box.hidden = false;
 }
 async function showEnd(score) {
@@ -10230,6 +10569,55 @@ const MAP_DEFS = {
     warm(L, bgDpr, dpr) { const G = this.game(); if (G && G.mapArt.warm) G.mapArt.warm(L, bgDpr, dpr, { node: this.nodeSize, boss: this.bossSize }); },
     start: { title: 'Départ', sub: 'Le samouraï sort son sabre' },
     cap: { title: 'Le festin continue…', sub: 'Un nouveau tour tous les 18 niveaux, toujours plus vite' }
+  },
+  // Néon Rush (games/neon.js) : 7 niveaux d'une seule vie, puis la grande victoire. Chaque niveau = le bout de chemin qui mène au suivant ;
+  // avancement FIN (spot) : la tête de chacun est posée pile là où il est mort dans son niveau (💀 + pour cent), pas seulement sur la pastille.
+  // Valeur gardée : niveau × 1000 + pour mille (mapSpot du jeu) ; 8000 = victoire ; avant le 27 oct. (1, 2, 3…, sans l'endroit) = au départ.
+  neon: {
+    theme: 'neon', word: 'Niveau', tierGap: 120, tierAt: 0.5, step: 330, nodeSize: 56, bgDpr: 1.6, lazy: true,
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.neon; return G && Array.isArray(G.levels) && G.levels.length ? G : null; },
+    n() { const G = this.game(); return G ? G.levels.length : 7; },
+    count() { return this.n() + 1; },
+    level(lv) {
+      const G = this.game(), n = this.n();
+      if (lv > n) return { lv, tier: 0, win: true, kicker: 'Grande victoire', name: 'Néon Rush terminé', lines: ['Les ' + n + ' niveaux d’une seule vie'], acc: '#ffd34d', acc2: '#ff8a3a' };
+      const D = G ? G.levels[lv - 1] : null, Wd = D ? D.worlds : [];
+      return { lv, tier: 0, kicker: 'Niveau ' + lv + (lv === n ? ' · le dernier' : ''), name: D ? D.name : 'Niveau ' + lv,
+        lines: Wd.length ? [[...new Set(Wd.map(w => w.name))].join(' · ')] : [], acc: Wd[0] ? Wd[0].acc : '#3af0ff', acc2: Wd[0] ? Wd[0].acc2 : '#ff3ac8', worlds: Wd };
+    },
+    short(lv) { const i = this.level(lv); return i.win ? 'Grande victoire' : 'Niveau ' + lv + ' · ' + i.name; },
+    tier() { return { kicker: 'Une seule vie', title: 'Néon Rush', sub: 'De Premier Pulse au Démon : ' + this.n() + ' niveaux sans tomber', acc: '#3af0ff', acc2: '#ff3ac8' }; },
+    spot(v) {
+      v = Math.floor(+v || 0); const n = this.n();
+      if (v < 1000) return null;
+      const lv = Math.floor(v / 1000), pm = v % 1000;
+      if (lv > n) return { lv: n + 1, f: 0, dead: false, win: true, label: 'Victoire', long: 'a fini les ' + n + ' niveaux' };
+      const pc = Math.floor(pm / 10);
+      return { lv, f: pm / 1000, dead: pm > 0, label: pm > 0 ? pc + ' %' : 'au départ', long: 'niveau ' + lv + (pm > 0 ? ', mort à ' + pc + ' %' : ', au départ') };
+    },
+    stops(L) {
+      const st = [[L.H, '#03010c'], [L.start.y, '#07031c']], N = L.nodes;
+      for (let k = 0; k < N.length; k++) {
+        const a = N[k], b = N[k + 1], i = a.info, Wd = i.worlds || [];
+        if (!b) { st.push([a.y, '#1a1004'], [a.y - 260, '#0c0702'], [0, '#040208']); break; }
+        const hgt = a.y - b.y;
+        st.push([a.y - 30, Wd[0] ? mixHex(Wd[0].sky[1], '#000000', 0.38) : '#0a0420']);
+        for (let w = 1; w < 4; w++) if (Wd[w]) st.push([a.y - hgt * (w / 4 + 0.08), mixHex(Wd[w].sky[1], '#000000', 0.38)]);
+      }
+      return st;
+    },
+    paint(x, L, W, y0, h) { paintNeonMap(x, L, W, y0, h); },
+    node(x, info, size, P) { neonNode(x, info, size, P); },
+    startArt(x, P) {
+      const G = this.game();
+      x.save(); x.translate(P / 2, P * 0.52);
+      const g = x.createRadialGradient(0, 0, 4, 0, 0, P * 0.5); g.addColorStop(0, 'rgba(90,255,138,.45)'); g.addColorStop(1, 'rgba(90,255,138,0)');
+      x.fillStyle = g; x.fillRect(-P / 2, -P / 2, P, P);
+      if (G && G.drawCube) G.drawCube(x, P * 0.42); else { x.fillStyle = '#5aff8a'; x.fillRect(-P * 0.21, -P * 0.21, P * 0.42, P * 0.42); }
+      x.restore();
+    },
+    start: { title: 'Départ', sub: 'Le cube prend son élan' },
+    cap: { title: 'Tout en haut…', sub: 'Personne ne va plus loin que le Démon' }
   },
   // Coffres à Secrets (games/coffres.js) : 6 mondes de 8 coffres (le 8e = le grand coffre). Carte dessinée ici : l'établi en planches teintées
   // par monde, un petit coffre par niveau (le grand coffre : doré, couronné), la clé dorée au départ.
@@ -11748,7 +12136,7 @@ function lvSetBest(name, gid, lv) { const all = store.get('jdw.bestlv', {}) || {
 // en pleine partie : un nouveau record de niveau est gardé sur l'appareil et part en ligne (seulement quand il monte)
 function progTick() {
   if (!current || !current.inst || current.over || current.coop || !current.inst.currentLevel || $('jdw-play').hidden) return;
-  let lv = 0; try { lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) { return; }
+  let lv = 0; try { lv = Math.floor(+(current.game.spots && current.inst.mapSpot ? current.inst.mapSpot() : current.inst.currentLevel()) || 0); } catch (e) { return; }
   const me = cleanName(profile.name), gid = current.game.id;
   if (!me || !(lv >= 1) || lv > 9999 || lv <= lvBest(me, gid)) return;
   lvSetBest(me, gid, lv);
@@ -11936,6 +12324,25 @@ function mapLayout(def, n, W, VH) {
   for (const t of tiers) { t.y = H - t.dMid; t.yLo = H - t.dLo; t.yHi = H - t.dHi; }
   return { W, H, S, A, start, nodes, bosses, tiers, capY: H - (d + S * 0.5 + 110) };
 }
+// avancement fin (def.spot : Néon Rush) : valeur gardée → { lv : niveau entamé (0 = au départ), f : part faite du chemin vers le niveau
+// suivant (0..1), dead, label, long } ; sans def.spot, la valeur EST le niveau
+const mapSpotOf = (def, v) => def.spot ? def.spot(v) || { lv: 0, f: 0, dead: false, label: '', long: 'pas encore parti' } : { lv: v, f: 0 };
+const mapLvOf = (def, v) => def.spot ? mapSpotOf(def, v).lv : v;
+// le point à la part f du chemin entre deux étapes (même courbe que mapSegPath, mesurée à la longueur)
+function mapPathAt(a, b, f) {
+  if (!b || !(f > 0)) return { x: a.x, y: a.y };
+  const my = (a.y + b.y) / 2, at = t => { const u = 1 - t; return { x: (u * u * u + 3 * u * u * t) * a.x + (3 * u * t * t + t * t * t) * b.x, y: u * u * u * a.y + (3 * u * u * t + 3 * u * t * t) * my + t * t * t * b.y }; };
+  const pts = [at(0)], len = [0];
+  for (let i = 1; i <= 48; i++) { const p = at(i / 48); pts.push(p); len.push(len[i - 1] + Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y)); }
+  const want = Math.min(1, f) * len[48]; let i = 1; while (i < 48 && len[i] < want) i++;
+  const k = (want - len[i - 1]) / Math.max(1e-6, len[i] - len[i - 1]);
+  return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * k, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * k };
+}
+function mapSpotXY(L, sp) {
+  if (!sp || !(sp.lv >= 1)) return { x: L.start.x, y: L.start.y };
+  const i = Math.min(sp.lv, L.nodes.length) - 1;
+  return mapPathAt(L.nodes[i], L.nodes[i + 1], sp.f);
+}
 // fond : dégradé continu d'un niveau à l'autre (couleurs du secteur / de la zone)
 function mapStops(L, def) {
   if (def.stops) { try { const own = def.stops(L); if (own && own.length) return own.sort((a, b) => a[0] - b[0]); } catch (e) {} }
@@ -12073,6 +12480,70 @@ function paintFactory(x, L, W, y0, h) {
   }
 }
 // résolution du décor d'une carte (plafonnée : au plus 14 millions de pixels)
+// Néon Rush : chaque niveau = une bande de nuit synthwave aux couleurs de ses mondes (étoiles, soleil rayé, grille en perspective) ;
+// tout en haut, la lumière dorée de la victoire
+function paintNeonMap(x, L, W, y0, h) {
+  const N = L.nodes, y1 = y0 + h;
+  x.save(); x.translate(0, -y0);
+  for (let k = 0; k < N.length; k++) {
+    const a = N[k], b = N[k + 1], i = a.info;
+    const yBot = a.y + 40, yTop = b ? b.y : 0;
+    if (yBot < y0 || yTop > y1) continue;
+    if (!b) {   // la victoire : rayons dorés autour de la dernière pastille
+      const cx = a.x, cy = a.y;
+      x.save(); x.globalCompositeOperation = 'lighter';
+      for (let r = 0; r < 16; r++) { const an = r * Math.PI / 8; x.fillStyle = 'rgba(255,211,77,' + (r % 2 ? 0.05 : 0.09) + ')'; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, 520, an, an + Math.PI / 16); x.closePath(); x.fill(); }
+      const g = x.createRadialGradient(cx, cy, 10, cx, cy, 220); g.addColorStop(0, 'rgba(255,211,77,.45)'); g.addColorStop(1, 'rgba(255,211,77,0)');
+      x.fillStyle = g; x.fillRect(cx - 220, cy - 220, 440, 440); x.restore();
+      continue;
+    }
+    const acc = i.acc, acc2 = i.acc2 || acc, hgt = yBot - yTop, rnd = mapRng(a.lv * 977 + 13);
+    // étoiles
+    const ns = Math.round(W * hgt / 2600);
+    for (let j = 0; j < ns; j++) { const sx = rnd() * W, sy = yTop + rnd() * hgt * 0.62, r = 0.5 + rnd() * 1.2; x.fillStyle = rnd() < 0.25 ? rgbaHex(acc2, 0.7) : 'rgba(255,255,255,' + (0.25 + rnd() * 0.55).toFixed(2) + ')'; x.fillRect(sx, sy, r, r); }
+    // le soleil rayé, d'un côté puis de l'autre
+    const sr = Math.min(W * 0.15, 62), sx = a.lv % 2 ? W * 0.84 : W * 0.16, sy = yTop + hgt * 0.42;
+    const sg = x.createRadialGradient(sx, sy, sr * 0.6, sx, sy, sr * 2.2); sg.addColorStop(0, rgbaHex(acc2, 0.28)); sg.addColorStop(1, rgbaHex(acc2, 0));
+    x.fillStyle = sg; x.fillRect(sx - sr * 2.2, sy - sr * 2.2, sr * 4.4, sr * 4.4);
+    x.save(); x.beginPath(); x.arc(sx, sy, sr, 0, 7); x.clip();
+    const lg = x.createLinearGradient(0, sy - sr, 0, sy + sr); lg.addColorStop(0, mixHex(acc2, '#ffffff', 0.35)); lg.addColorStop(1, acc);
+    x.globalAlpha = 0.7; x.fillStyle = lg; x.fillRect(sx - sr, sy - sr, sr * 2, sr * 2); x.globalAlpha = 1;
+    x.fillStyle = 'rgba(4,2,14,.85)'; for (let q = 0; q < 6; q++) { const yy = sy + sr * (0.05 + q * 0.17), hh = 1.5 + q * 1.4; x.fillRect(sx - sr, yy, sr * 2, hh); }
+    x.restore();
+    // la grille en perspective (horizon à mi-bande, jusqu'à la pastille du niveau)
+    const hz = yTop + hgt * 0.6, gb = yBot - 30;
+    x.save(); x.beginPath(); x.rect(0, hz, W, gb - hz); x.clip();
+    x.strokeStyle = rgbaHex(acc, 0.2); x.lineWidth = 1;
+    x.beginPath();
+    for (let q = 1; q <= 9; q++) { const yy = hz + (gb - hz) * (q / 9) * (q / 9); x.moveTo(0, yy); x.lineTo(W, yy); }
+    for (let q = -8; q <= 8; q++) { x.moveTo(W / 2 + q * 18, hz); x.lineTo(W / 2 + q * W * 0.16, gb + (gb - hz) * 0.4); }
+    x.stroke(); x.restore();
+    const hg = x.createLinearGradient(0, 0, W, 0); hg.addColorStop(0, rgbaHex(acc, 0)); hg.addColorStop(0.5, rgbaHex(acc, 0.55)); hg.addColorStop(1, rgbaHex(acc, 0));
+    x.fillStyle = hg; x.fillRect(0, hz - 1, W, 2);
+  }
+  x.restore();
+}
+// pastille d'un niveau : carré néon (comme le cube du jeu), le numéro au milieu ; la victoire : une étoile d'or
+function neonNode(x, info, size, P) {
+  const cx = P / 2, cy = P / 2, r = size / 2;
+  const glow = x.createRadialGradient(cx, cy, r * 0.5, cx, cy, r + 12); glow.addColorStop(0, rgbaHex(info.acc, 0.6)); glow.addColorStop(1, rgbaHex(info.acc, 0));
+  x.fillStyle = glow; x.fillRect(0, 0, P, P);
+  if (info.win) {
+    x.beginPath(); for (let k = 0; k < 10; k++) { const an = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r * 1.02; x.lineTo(cx + Math.cos(an) * rr, cy + Math.sin(an) * rr); } x.closePath();
+    const g = x.createLinearGradient(0, cy - r, 0, cy + r); g.addColorStop(0, '#fff3b0'); g.addColorStop(0.5, '#ffd34d'); g.addColorStop(1, '#c98a00');
+    x.fillStyle = g; x.fill(); x.strokeStyle = '#5a3500'; x.lineWidth = 2; x.lineJoin = 'round'; x.stroke();
+    return;
+  }
+  const s = size * 0.84, h = s / 2;
+  x.fillStyle = rgbaHex(info.acc, 0.3); x.fillRect(cx - h - 4, cy - h - 4, s + 8, s + 8);
+  const bg = x.createLinearGradient(0, cy - h, 0, cy + h); bg.addColorStop(0, '#1a0a3a'); bg.addColorStop(1, '#05021a');
+  x.fillStyle = bg; x.fillRect(cx - h, cy - h, s, s);
+  const bd = x.createLinearGradient(cx - h, cy - h, cx + h, cy + h); bd.addColorStop(0, info.acc); bd.addColorStop(1, info.acc2 || info.acc);
+  x.strokeStyle = bd; x.lineWidth = 3; x.strokeRect(cx - h + 1.5, cy - h + 1.5, s - 3, s - 3);
+  x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; x.strokeRect(cx - h + 5, cy - h + 5, s - 10, s - 10);
+  x.font = '400 ' + Math.round(size * 0.46) + "px 'Bungee', Impact, sans-serif"; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.shadowColor = info.acc; x.shadowBlur = 10; x.fillStyle = '#ffffff'; x.fillText(String(info.lv), cx, cy + size * 0.03); x.shadowBlur = 0;
+}
 function mapBgDpr(def, L, z) {
   let dpr = Math.min(def.bgDpr || 2.5, (window.devicePixelRatio || 1) * (z || 1));
   if (L.W * L.H * dpr * dpr > 14e6) dpr = Math.max(1, Math.sqrt(14e6 / (L.W * L.H)));
@@ -12411,13 +12882,13 @@ function mapBuild(animate) {
   const { z, W, VH } = mapSize(W0, VH0);
   MAP.z = z; world.style.zoom = z === 1 ? '' : z.toFixed(3); world.style.width = W + 'px';
   const people = mapPeople(MAP.gid), me = cleanName(profile.name);
-  let max = 0; for (const v of people.values()) max = Math.max(max, v);
+  let max = 0; for (const v of people.values()) max = Math.max(max, mapLvOf(def, v));
   const n = def.count(max), L = mapLayout(def, n, W, VH);
   MAP.L = L; MAP.n = n; MAP.heads = new Map();
   world.textContent = ''; world.style.height = L.H + 'px';
   world.classList.toggle('anim', !!animate);
-  const meLv = people.get(me) || 0;      // à l'ouverture, la carte se centre sur moi : c'est là qu'on peint d'abord
-  mapPaint(world, L, def, animate ? (meLv ? L.nodes[Math.min(meLv, L.nodes.length) - 1].y : L.start.y) : keepY);
+  const meV = people.get(me) || 0;      // à l'ouverture, la carte se centre sur moi : c'est là qu'on peint d'abord
+  mapPaint(world, L, def, animate ? mapMeXY(def, L, meV).y : keepY);
   // chemin
   const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'gmap-path'); svg.setAttribute('width', W); svg.setAttribute('height', L.H);
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + L.H); svg.setAttribute('aria-hidden', 'true');
@@ -12500,9 +12971,15 @@ function mapBuild(animate) {
   mapUpdate(animate);
   mapCenter(false);   // centrée sur moi
 }
+// où je suis sur la carte : ma pastille, ou (avancement fin) l'endroit exact
+function mapMeXY(def, L, v) {
+  if (def.spot) return mapSpotXY(L, mapSpotOf(def, v));
+  return v ? L.nodes[Math.min(v, L.nodes.length) - 1] : L.start;
+}
+const MAP_SKULL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c-5 0-8.6 3.4-8.6 8 0 2.7 1.3 4.6 3 5.8V19c0 .9.7 1.6 1.6 1.6h.7v-2h1.6v2h3.4v-2h1.6v2h.7c.9 0 1.6-.7 1.6-1.6v-3c1.7-1.2 3-3.1 3-5.8 0-4.6-3.6-8-8.6-8zM8.4 14.2a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6zm7.2 0a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6zM12 14.6l1.3 2.2h-2.6z"/></svg>';
 function mapCenter(smooth) {
   if (!MAP.L) return;
-  const mine = mapPeople(MAP.gid).get(cleanName(profile.name)) || 0, p = mine ? MAP.L.nodes[Math.min(mine, MAP.L.nodes.length) - 1] : MAP.L.start;
+  const p = mapMeXY(MAP.def, MAP.L, mapPeople(MAP.gid).get(cleanName(profile.name)) || 0);
   const sc = $('jdw-map-scroll'), top = Math.max(0, (p.y - 30) * (MAP.z || 1) - sc.clientHeight * 0.5);
   if (smooth) sc.scrollTo({ top, behavior: 'smooth' }); else sc.scrollTop = top;
 }
@@ -12510,7 +12987,9 @@ for (const ev of ['pointerdown', 'wheel', 'touchstart', 'keydown']) $('jdw-map-s
 // états des niveaux, chemin et têtes (appelé aussi à chaque nouvelle progression, sans tout redessiner)
 function mapUpdate(animate) {
   if (!MAP.open || !MAP.L) return;
-  const def = MAP.def, L = MAP.L, people = mapPeople(MAP.gid), me = cleanName(profile.name);
+  const def = MAP.def, L = MAP.L, raw = mapPeople(MAP.gid), me = cleanName(profile.name);
+  // avancement fin (def.spot) : chacun a sa valeur (raw) ; les niveaux, le chemin et le résumé parlent en niveaux entamés (people)
+  const people = def.spot ? new Map([...raw].map(([nm, v]) => [nm, mapLvOf(def, v)])) : raw;
   let max = 0; for (const v of people.values()) max = Math.max(max, v);
   if (def.count(max) !== MAP.n) { const sc = $('jdw-map-scroll'), keep = sc.scrollTop; mapBuild(false); sc.scrollTop = keep; return; }
   const mine = people.get(me) || 0;
@@ -12557,18 +13036,38 @@ function mapUpdate(animate) {
     svg.appendChild(s);
     if (state === 'mine') { const f = document.createElementNS(SVGNS, 'path'); f.setAttribute('d', mapSegPath(a, b)); f.setAttribute('class', 'gp-flow'); svg.appendChild(f); }
   }
+  if (def.spot) {
+    const sp = mapSpotOf(def, raw.get(me) || 0), a = sp.lv >= 1 ? L.nodes[sp.lv - 1] : null, b = a && L.nodes[sp.lv];
+    if (b && sp.f > 0) {
+      const pp = document.createElementNS(SVGNS, 'path'); pp.setAttribute('d', mapSegPath(a, b)); pp.setAttribute('class', 'gp-part');
+      pp.setAttribute('pathLength', '1'); pp.setAttribute('stroke-dasharray', sp.f.toFixed(4) + ' 2'); pp.setAttribute('stroke', a.info.acc); svg.appendChild(pp);
+    }
+  }
   // têtes : regroupées par niveau, moi au centre et en grand ; sous chaque tête, son meilleur score dans la salle (+ « estimé »)
   const layer = MAP.headLayer, seen = new Set(), G = gameById(MAP.gid), scores = mapScores(MAP.gid), ests = mapEst(MAP.gid, people);
-  const top = max > 0 ? [...people].filter(([, v]) => v === max).map(([n]) => n) : [];
-  for (const [lv, names0] of here) {
+  let rawMax = 0; for (const v of raw.values()) rawMax = Math.max(rawMax, v);
+  const top = max > 0 ? [...raw].filter(([, v]) => v === rawMax).map(([n]) => n) : [];
+  // groupes de têtes : par niveau ; avancement fin : par endroit (deux endroits à moins de 44 px ne font qu'un groupe, au milieu)
+  let groups = [...here].map(([lv, names]) => ({ lv, names, pos: lv >= 1 ? L.nodes[Math.min(lv, L.nodes.length) - 1] : L.start, key: lv }));
+  const spots = new Map();
+  if (def.spot) {
+    groups = [];
+    const list = [...raw].map(([nm, v]) => { const sp = mapSpotOf(def, v); spots.set(nm, Object.assign({ xy: mapSpotXY(L, sp) }, sp)); return [nm, v]; }).sort((a, b) => a[1] - b[1]);
+    for (const [nm] of list) {
+      const p = spots.get(nm).xy, g = groups.find(q => Math.hypot(q.at.x - p.x, q.at.y - p.y) < 44);
+      if (g) { g.names.push(nm); g.pts.push(p); } else groups.push({ lv: spots.get(nm).lv, names: [nm], pts: [p], at: p });
+    }
+    for (const g of groups) { g.pos = { x: g.pts.reduce((t, p) => t + p.x, 0) / g.pts.length, y: g.pts.reduce((t, p) => t + p.y, 0) / g.pts.length }; g.key = 's' + Math.round(g.at.x) + '_' + Math.round(g.at.y); }
+  }
+  const lift = def.spot ? 46 : 34;   // avancement fin : la tête au-dessus de la croix, reliée à elle par une tige
+  for (const { lv, names: names0, pos, key } of groups) {
     const names = names0.slice().sort((a, b) => (b === me) - (a === me) || a.localeCompare(b));
-    const pos = lv >= 1 ? L.nodes[Math.min(lv, L.nodes.length) - 1] : L.start;
     const cap = lv < 1 ? 6 : 4;          // au départ il y a plus de place
     const shown = names.length > cap ? names.slice(0, cap - 1) : names, extra = names.length - shown.length;
     const m = shown.length + (extra ? 1 : 0);
     // éventail : les places les plus proches du milieu d'abord (moi au milieu)
     const mid = (m - 1) / 2, slots = [...Array(m).keys()].sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid) || a - b);
-    const step = 46;
+    const step = def.spot ? 64 : 46;   // avancement fin : « 💀 63 % » sous chaque tête, plus large
     for (const [k, nm] of shown.entries()) {
       const slot = slots[k];
       const dx = (slot - mid) * step, dy = -Math.abs(slot - mid) * 8;   // les côtés un peu plus haut : loin des étiquettes
@@ -12582,26 +13081,39 @@ function mapUpdate(animate) {
       }
       h.classList.toggle('lead', top.length === 1 && top[0] === nm && people.size > 1);
       h.classList.toggle('start', lv < 1);
-      h.style.left = (pos.x + dx) + 'px'; h.style.top = (pos.y - (lv >= 1 ? 34 : 30) + dy) + 'px';
-      const sc = scores.get(nm) || 0, est = ests.has(nm);
+      h.style.left = (pos.x + dx) + 'px'; h.style.top = (pos.y - (lv >= 1 ? lift : 30) + dy) + 'px';
+      const sc = scores.get(nm) || 0, est = ests.has(nm), sp = spots.get(nm);
       h.classList.toggle('est', est);
       let tab = h.querySelector('.gh-sc'); if (!tab) tab = mapEl('span', 'gh-sc', h);
-      const key = sc + '|' + est;
-      if (tab.dataset.k !== key) {
-        tab.dataset.k = key; tab.textContent = '';
-        if (sc) mapEl('span', 'gh-pts', tab).textContent = scoreShort(sc, G);
+      const tk = sc + '|' + est + '|' + (sp ? sp.label : '');
+      if (tab.dataset.k !== tk) {
+        tab.dataset.k = tk; tab.textContent = '';
+        if (sp && sp.lv >= 1) mapEl('span', 'gh-at' + (sp.win ? ' win' : sp.dead ? ' dead' : ''), tab).textContent = (sp.win ? '🏆 ' : sp.dead ? '💀 ' : '') + sp.label;
+        else if (sc) mapEl('span', 'gh-pts', tab).textContent = scoreShort(sc, G);
         if (est) mapEl('span', 'gh-est', tab).textContent = 'estimé';
       }
-      h.title = (nm === me ? 'Toi' : nm) + ' · ' + (lv >= 1 ? def.short(lv) : 'pas encore parti') + (sc ? ' · record ' + fmt(sc) + unit(G) : '')
+      h.title = (nm === me ? 'Toi' : nm) + ' · ' + (sp ? (sp.lv >= 1 ? def.short(sp.lv) + ' · ' + sp.long : 'pas encore parti') : lv >= 1 ? def.short(lv) : 'pas encore parti') + (sc ? ' · record ' + fmt(sc) + unit(G) : '')
         + (est ? ' · position estimée d’après un ancien score' : '');
+      // avancement fin : la croix pile à l'endroit de la mort, reliée à la tête si elle a dû s'écarter
+      if (sp && sp.lv >= 1 && sp.dead) {
+        let dm = MAP.heads.get('dead|' + nm);
+        if (!dm) { dm = mapEl('div', 'gmap-dead' + (nm === me ? ' me' : ''), layer); dm.innerHTML = MAP_SKULL; MAP.heads.set('dead|' + nm, dm); }
+        dm.style.left = sp.xy.x + 'px'; dm.style.top = sp.xy.y + 'px'; dm.title = (nm === me ? 'Toi' : dispName(nm)) + ' : ' + sp.long;
+        seen.add('dead|' + nm);
+        {
+          const ln = document.createElementNS(SVGNS, 'line'); ln.setAttribute('class', 'gp-tie' + (nm === me ? ' me' : ''));
+          ln.setAttribute('x1', sp.xy.x.toFixed(1)); ln.setAttribute('y1', sp.xy.y.toFixed(1)); ln.setAttribute('x2', (pos.x + dx).toFixed(1)); ln.setAttribute('y2', (pos.y - lift + dy).toFixed(1));
+          svg.appendChild(ln);
+        }
+      }
       seen.add(nm);
     }
-    const kx = 'more' + lv;
+    const kx = 'more' + key;
     let more = MAP.heads.get(kx);
     if (extra) {
       if (!more) { more = mapEl('div', 'gmap-more', layer); MAP.heads.set(kx, more); }
       more.textContent = ''; mapEl('span', '', more).textContent = '+' + extra; more.title = names.slice(shown.length).join(', ');
-      const ms = slots[m - 1]; more.style.left = (pos.x + (ms - mid) * step) + 'px'; more.style.top = (pos.y - 34 - Math.abs(ms - mid) * 8) + 'px';
+      const ms = slots[m - 1]; more.style.left = (pos.x + (ms - mid) * step) + 'px'; more.style.top = (pos.y - lift - Math.abs(ms - mid) * 8) + 'px';
       seen.add(kx);
     }
   }
@@ -12611,16 +13123,18 @@ function mapUpdate(animate) {
   const av = mapEl('span', 'avatar', sum); avatarInto(av, me);
   const tx = mapEl('span', 'gm-sumtx', sum), mi = mine ? def.level(mine) : null;
   if (mi) sum.style.setProperty('--nc', mi.acc);
-  mapEl('small', 'gm-k', tx).textContent = mi ? 'Toi · ' + mi.kicker + (ests.has(me) ? ' · estimé' : '') : 'Toi';
+  const mySp = def.spot ? mapSpotOf(def, raw.get(me) || 0) : null;
+  mapEl('small', 'gm-k', tx).textContent = mi ? 'Toi · ' + mi.kicker + (mySp && mySp.dead ? ' · mort à ' + mySp.label : '') + (ests.has(me) ? ' · estimé' : '') : 'Toi';
   mapEl('b', '', tx).textContent = mi ? mi.name : 'Pas encore parti';
   // celui qui est devant (au niveau, puis au score) ; à égalité de niveau, le meilleur score d'abord
-  const others = [...people].filter(([n]) => n !== me).sort((a, b) => b[1] - a[1] || (scores.get(b[0]) || 0) - (scores.get(a[0]) || 0));
-  const ahead = others.length && others[0][1] > 0 ? others[0] : null, aName = ahead ? dispName(ahead[0]) : '';
+  const others = [...raw].filter(([n]) => n !== me).sort((a, b) => b[1] - a[1] || (scores.get(b[0]) || 0) - (scores.get(a[0]) || 0));
+  const ahead = others.length && others[0][1] > 0 ? others[0] : null, aName = ahead ? dispName(ahead[0]) : '', myV = raw.get(me) || 0;
+  const aSp = ahead && def.spot ? mapSpotOf(def, ahead[1]) : null;
   mapEl('small', '', tx).textContent = ahead
-    ? (ahead[1] > mine ? 'Devant toi : ' + aName + ' · ' + def.word + ' ' + ahead[1] : mine >= ahead[1] && mine > 0 ? (ahead[1] === mine ? 'À égalité en tête avec ' + aName : 'Tu mènes la salle !') : '')
+    ? (ahead[1] > myV ? 'Devant toi : ' + aName + ' · ' + (aSp ? (aSp.win ? 'grande victoire' : aSp.long) : def.word + ' ' + ahead[1]) : myV >= ahead[1] && myV > 0 ? (ahead[1] === myV ? 'À égalité en tête avec ' + aName : 'Tu mènes la salle !') : '')
     : mine ? 'Ton meilleur ' + def.word.toLowerCase() : 'Lance une partie pour poser ta tête sur la carte';
   // les scores : le sien (s'il est devant ou à égalité) et le mien
-  const myS = scores.get(me) || 0, aS = ahead && ahead[1] >= mine ? scores.get(ahead[0]) || 0 : 0;
+  const myS = scores.get(me) || 0, aS = ahead && ahead[1] >= myV ? scores.get(ahead[0]) || 0 : 0;
   const parts = [];
   if (aS) parts.push(aName + ' ' + scoreShort(aS, G));
   if (myS) parts.push((aS ? 'toi ' : 'Ton record : ') + scoreShort(myS, G));
