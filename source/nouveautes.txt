@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[chrono] ## 🚀 Turbo Chrono (borne 1.46.13) : le grand saut de L’Orbite, version 2
+[chrono] Le tremplin est maintenant droit, en face, dès la ligne d’arrivée : il est déjà là quand tu la passes
+[chrono] Le saut monte au-dessus du circuit vers un gros astéroïde marqué d’une colonne de lumière, avec 3 anneaux pour viser
+[chrono] En l’air, c’est toi qui fais les figures : ◀ ▶ pour tourner, GAZ / FREIN pour les saltos, FREIN + ◀ ▶ pour un tonneau. Retombe à plat, sinon c’est le crash !
+[chrono] Tomber dans le vide de l’espace sans rien toucher ne casse plus rien : la voiture part à l’infini, intacte
+[chrono] Chaque salle a ses propres temps : seuls les temps faits en jouant dans la salle comptent dans son classement (le classement mondial garde le meilleur de partout)
 [chrono] ## 🎥 Turbo Chrono (borne 1.46.12) : la caméra ne traverse plus les murs
 [chrono] Quand ta voiture s’arrête contre un muret, la caméra reste de ton côté : tu ne vois plus la voiture à travers le mur
 [pegase] ## 🕯️ La légende de Pégase : une seule photo, toute floue (borne 1.46.11)

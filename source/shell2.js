@@ -22,7 +22,7 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
-  chrono: { kind: 'maj', at: '2026-10-27 16:05' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 (12:16) ; « Mis à jour » à chaque publication (règle de PATOU), heure de la dernière : 1.46.12
+  chrono: { kind: 'maj', at: '2026-10-27 16:25' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 (12:16) ; « Mis à jour » à chaque publication (règle de PATOU), heure de la dernière : 1.46.13
   neon: { kind: 'maj', at: '2026-10-27 14:57' },   // Néon Rush 1.46.5 : la carte d'avancement + l'endroit où chaque copain est mort (sur la carte et dans le jeu) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
@@ -949,19 +949,22 @@ function chronoApi() {
   return {
     info: () => { const g = guest(); return { guest: g, online: !!ONLINE && !netOff(), name: g ? '' : cleanName(profile.name), room: !g && ONLINE && room ? { id: room.id, name: String(room.name || '') } : null }; },
     board,
-    ghost: async (track, key) => {
+    // 1.46.13 : opts.room = le fantôme de sa meilleure course DANS la salle actuelle (les temps d'une salle sont à elle)
+    ghost: async (track, key, opts) => {
       const t = chronoTrack(track); if (!t) throw new Error('chrono.ghost : circuit inconnu');
       if (guest()) throw gst('chrono_ghost'); if (!ONLINE || netOff()) throw off('chrono_ghost');
-      const r = await rpc('chrono_ghost', { p_code: CODE(), p_track: t, p_name: String(key || '').slice(0, 12) }, { quiet: true });
+      const a = { p_code: CODE(), p_track: t, p_name: String(key || '').slice(0, 12) }; if (opts && opts.room && room) a.p_room = room.id;
+      const r = await rpc('chrono_ghost', a, { quiet: true });
       return r && typeof r.ghost === 'string' ? { ms: +r.ms || 0, ghost: r.ghost } : null;
     },
     save: async (track, ms, ghost) => {
       const t = chronoTrack(track); if (!t) throw new Error('chrono.save : circuit inconnu');
       if (guest()) throw gst('chrono_save'); if (!ONLINE || netOff()) throw off('chrono_save');
-      const r = await rpc('chrono_save', { p_code: CODE(), p_name: profile.name, p_track: t, p_ms: Math.round(+ms || 0), p_ghost: String(ghost || '').slice(0, 160000) }, { quiet: true }) || {};
+      // la course est faite DANS la salle actuelle : elle compte pour la salle (si elle bat mon temps de la salle) et pour le monde
+      const r = await rpc('chrono_save', { p_code: CODE(), p_name: profile.name, p_track: t, p_ms: Math.round(+ms || 0), p_ghost: String(ghost || '').slice(0, 160000), p_room: room ? room.id : null }, { quiet: true }) || {};
       if (!r.ok && r.why && r.why !== 'trop d essais') { try { reportError('Turbo Chrono : temps refusé (' + r.why + ')', t + ' ' + ms + ' ms', { quiet: true }); } catch (e) {} }
       let b = null; try { b = await board(t); } catch (e) {}
-      return { ok: !!r.ok, best: +r.best || 0, kept: !!r.kept, why: r.why || '', board: b };
+      return { ok: !!r.ok, best: +r.best || 0, kept: !!r.kept, roomBest: +r.room_best || 0, why: r.why || '', board: b };
     },
   };
 }
