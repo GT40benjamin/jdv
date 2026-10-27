@@ -22,7 +22,7 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
-  chrono: { kind: 'new', at: '2026-10-27 12:16' },   // Turbo Chrono (Classique, course 3D contre les fantômes des copains) : SORTI POUR TOUS en 1.44 (heure de la sortie)
+  chrono: { kind: 'maj', at: '2026-10-27 16:05' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 (12:16) ; « Mis à jour » à chaque publication (règle de PATOU), heure de la dernière : 1.46.12
   neon: { kind: 'maj', at: '2026-10-27 14:57' },   // Néon Rush 1.46.5 : la carte d'avancement + l'endroit où chaque copain est mort (sur la carte et dans le jeu) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
