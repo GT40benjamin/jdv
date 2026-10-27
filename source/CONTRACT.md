@@ -248,3 +248,16 @@ la salle, sert aux têtes de api.heads()), key (pseudo principal, sert à télé
 `{ ok, best, kept, why, board }` : le serveur garde le meilleur temps de chaque joueur par circuit et vérifie le fantôme (format de
 `~/jdv-tools/duotest/chrono/src/engine/ghost.js` : en-tête « TC », version 1, tours, 100 ms, points, temps, passages ; voir chrono_check).
 Le jeu garde aussi son record et son fantôme sur l'appareil (`jdw.chrono.<PSEUDO>`) : un invité joue et retrouve ses temps sans compte.
+
+## Ajout 14 : partie gardée (api.save, api.levelBest ; borne 1.43, source/sauvegarde.sql)
+Pour un jeu qui se quitte à tout moment et se reprend EXACTEMENT où on l'a laissé (casse-tête : Coffres à Secrets). Le jeu le déclare par
+`saves: true` dans son enregistrement : « Quitter » sort alors tout de suite (pas de question « Quitter la partie ? »), sans écran de fin si
+`currentScore()` rend 0. Le jeu n'écrit jamais lui-même dans localStorage : il passe par `api.save`.
+- `await api.save.load()` → `{ data, at }` ou null : la copie la plus RÉCENTE (champ `data.at`, en ms) entre l'appareil et le serveur (compte connecté).
+- `api.save.put(data)` : objet JSON (≤ 200 000 caractères, avec `at` = Date.now()) gardé tout de suite sur l'appareil, envoyé au serveur
+  2,5 s après la dernière écriture (`save_game` ; une copie plus vieille que celle du serveur est refusée). Invité : appareil seulement.
+- `api.save.flush()` : envoi immédiat (à appeler en quittant / quand la page se cache). `api.save.guest` : vrai pour un invité.
+- `api.levelBest.put(niveau, coups, ms)` : meilleur perso sur ce niveau (moins de coups, puis moins de temps ; `put_level_best`) ;
+  `await api.levelBest.room(niveau)` → `[{ name, moves, ms, me }]` = les membres de la salle sur ce niveau, du meilleur au moins bon (vide en invité).
+Le score du jeu reste celui de `api.gameOver(score)` (classement habituel, records, cris) : pour un casse-tête, appelé quand un niveau
+réussi fait monter le total, « Rejouer » de la borne remonte le jeu, qui reprend au niveau suivant.

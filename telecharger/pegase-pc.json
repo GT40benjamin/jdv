@@ -1,45 +1,66 @@
 {
-  "version": "0.9.8.3",
-  "build": 44,
-  "size": 2113087608,
-  "sha256": "07b007c26632e2799c9ca3269dd19494dac5a4d87394e522b6f773a3f380c2f7",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-2026-10-27-0.9.8.3.zip",
-  "manifest": "119efe23e61d01507f4f23574757dbee71a16930623a9708321efffdacce84b9",
+  "version": "0.9.8.5",
+  "build": 46,
+  "size": 2113098510,
+  "sha256": "06e4979e6139de51b21b24317b5dd3f243deae3a64b149d67b244b6197ddc515",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-2026-10-27-0.9.8.5.zip",
+  "manifest": "f19402f0ba0bb5f79a5df306a401df43566be57d8a4b1b6cf5bc3961df4c5403",
   "patchs": [
     {
+      "de": "0.9.8.4",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.4.zip",
+      "taille": 2274197,
+      "sha256": "6d2d5cc00feb68c30595f738166f6f1c220789b2bc7e6ab537574f80ebf0b55b"
+    },
+    {
+      "de": "0.9.8.3",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.3.zip",
+      "taille": 2969059,
+      "sha256": "367db0fe291c0f0cb0a325548d3fa024848d22512fd39d11fbd7d6282e3e1784"
+    },
+    {
       "de": "0.9.8.2",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-patch-0.9.8.2.zip",
-      "taille": 2756263,
-      "sha256": "f588376016a281fcc6789f9157e2ece59dfb81b5481f6cd67390ebc1cda34d2e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.2.zip",
+      "taille": 3364159,
+      "sha256": "cdccda576e14f73914831d5ef1af0d0eaa028c511339f679376843254b709a50"
     },
     {
       "de": "0.9.8.1",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-patch-0.9.8.1.zip",
-      "taille": 18957395,
-      "sha256": "732cfd83aa05a1aaa406232ce603b370c1db1d8df0a18f741078886209811c24"
-    },
-    {
-      "de": "0.9.8",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-patch-0.9.8.zip",
-      "taille": 18987032,
-      "sha256": "d59dd53ccce5458bb702b15034730402e2e51a42e3e783d552181fbf42662306"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.1.zip",
+      "taille": 19480311,
+      "sha256": "89acc9b44337e0767dd39afb981d97de00811914d1ca17e26645abc1ceb747fc"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-patch-0.9.7.zip",
-      "taille": 228265603,
-      "sha256": "3bc61c7369cd517b086178d7eef57336f6a9da6cbcb7ebe06c8c6ca965604214"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.7.zip",
+      "taille": 228294113,
+      "sha256": "4f51bc26bb35dc71a995f22b86a21460eb6e2b4f6dd202dbd93e2aff1a05b4cf"
     }
   ],
   "notes": [
-    "La brume du matin change chaque jour : certains matins une belle brume flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair. Le jour, juste un léger voile au loin, plus épais avant la pluie.",
-    "Les gros nuages avancent doucement dans le ciel.",
-    "Le fond est plus net : les montagnes au loin ne sont plus floues.",
-    "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
-    "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
-    "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
+    "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
+    "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
   ],
   "historique": [
+    {
+      "version": "0.9.8.5",
+      "notes": [
+        "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
+        "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
+      ]
+    },
+    {
+      "version": "0.9.8.4",
+      "notes": [
+        "Les messages du téléphone montrent l'heure d'envoi sous chaque bulle, reçue ou envoyée.",
+        "L'appareil photo affiche à gauche du viseur un bouton pour chaque module acheté (filtre de nuit, filtre solaire, capteur de nuit…), touches 1 à 9 : on les met et on les enlève quand on veut.",
+        "La pêche : le poisson reste accroché au fil par la bouche jusqu'à ta main, les pouces ne rentrent plus dans le poisson, et le ver est plus gros et plus coloré.",
+        "Le jardin : le banc de jardin se pose dos au mur tout seul, les jardinières se posent sous la fenêtre, du bon côté et à la bonne hauteur.",
+        "Papi Auguste monte le perron de la mairie bien au milieu des marches (fini, le mur !).",
+        "Les voix : on n'entend plus un habitant qui parle avec un autre joueur quand on est dehors ou loin ; le bruit de volet de la nuit au village est parti.",
+        "Les marguerites ont retrouvé leur taille."
+      ]
+    },
     {
       "version": "0.9.8.3",
       "notes": [
@@ -67,34 +88,6 @@
         "Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes, disparus par erreur avec l'arrivée de la mer.",
         "La place du village retrouve tout son décor.",
         "Les brumes et les feuilles qui volent près des arbres et des cascades sont revenues."
-      ]
-    },
-    {
-      "version": "0.9.8",
-      "notes": [
-        "La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large.",
-        "Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral.",
-        "La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges.",
-        "Des montagnes et des falaises couvertes de végétation ferment l'horizon.",
-        "Les plantes des chemins sont bien posées au sol.",
-        "Les maisons : un passage reste libre devant la porte, et la caméra entre et sort en douceur ; sous les auvents des boutiques, elle passe sous le store.",
-        "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
-        "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
-        "Le jeu démarre plus vite."
-      ]
-    },
-    {
-      "version": "0.9.7",
-      "notes": [
-        "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil.",
-        "Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches.",
-        "Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles.",
-        "À table : on s'assoit face à la table, les pieds dessous, des deux côtés.",
-        "Le râteau chez Rosalie : il remet l'herbe sur une case bêchée, ou annule une plantation en te rendant la graine.",
-        "Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête.",
-        "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
-        "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
-        "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre."
       ]
     }
   ]
