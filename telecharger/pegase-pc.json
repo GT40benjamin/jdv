@@ -1,50 +1,66 @@
 {
-  "version": "0.9.8.6",
-  "build": 47,
-  "size": 2113100915,
-  "sha256": "0ad03b212897514efb96f137edcaf1255bcc9f987337906c2e2ef5c750348db3",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-2026-10-27-0.9.8.6.zip",
-  "manifest": "62bf3e40bfc3dbecbf86ace3c4abb0d4c65d42254a28b033253647f329620f32",
+  "version": "0.9.8.7",
+  "build": 48,
+  "size": 2113142972,
+  "sha256": "acabf6593a9dacc9a097912f03c6edbfaeda659c35304ffee3c55b0b029029ce",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-2026-10-27-0.9.8.7.zip",
+  "manifest": "bc7489f00c7d5c076be122b3c6abf73564a1d30443f83ddca28d85bf4c21ad39",
   "patchs": [
     {
+      "de": "0.9.8.6",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.8.6.zip",
+      "taille": 3486786,
+      "sha256": "dc04316c63694ee1bcad280463cacba9af3c1a0b0b5d8d3cb74cbadd9fc1bcd5"
+    },
+    {
       "de": "0.9.8.5",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.8.5.zip",
-      "taille": 3662188,
-      "sha256": "b6d78b0c6bdde5965f35fd49540c4b11384c291e8ed3df0999a7f373a5b14dd6"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.8.5.zip",
+      "taille": 3952574,
+      "sha256": "8178e21e65bd35c13d506844738ae7f910beb712b7d63822135bd8f01fd4b36c"
     },
     {
       "de": "0.9.8.4",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.8.4.zip",
-      "taille": 3856409,
-      "sha256": "9fc85ad41dc5ef438e3cf3f33105181664c79c98137fe9e9a675aa2f931444fe"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.8.4.zip",
+      "taille": 4017762,
+      "sha256": "3bf3dc5cb4fdcdd43a60c38a126afd6157f337ca125ef13f9a2f7625f62b446c"
     },
     {
       "de": "0.9.8.3",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.8.3.zip",
-      "taille": 3884280,
-      "sha256": "6df5c69ad3343c6a6298d80ffede4fb4d933e592f1e34fb0852d1934a56f31c7"
-    },
-    {
-      "de": "0.9.8.2",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.8.2.zip",
-      "taille": 4188377,
-      "sha256": "ac65bb334e95e5c5d87d5e33d96f79b01cc3e32c09d826210e7c64c65542588b"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.8.3.zip",
+      "taille": 4026802,
+      "sha256": "379fbdaf27ad8caf2d2bc8ec52e8d3dc67a1a26222d1cb54d90ad446b870da89"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.7.zip",
-      "taille": 228297943,
-      "sha256": "5e94073bb117c5f25a9915ba54a7334876aec9973dcbd98ba8aa4f77f1c35b7e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.7.zip",
+      "taille": 228330373,
+      "sha256": "baea0238f7233fbddcbe3fcd756bb97843eb86833754b734ad579c7f75993295"
     }
   ],
   "notes": [
-    "Les parcelles ne débordent plus sur le chemin : devant le portique rouge, au pied de l'escalier et sous la falaise, les bords des parcelles à vendre reculent jusqu'à l'herbe.",
-    "L'allée vers le coin cosy est dégagée : entre les parcelles, quatre arbres ont été écartés du passage.",
-    "Un vrai escalier de pierre au bout du chemin du Clos, posé sur le chemin et qui suit la pente, une lanterne de chaque côté.",
-    "Les affiches se posent plus facilement : si l'endroit visé est déjà pris (une affiche à côté, le bord du mur, une poutre, une fenêtre), l'affiche glisse toute seule jusqu'à la place libre la plus proche sur le même mur.",
-    "Hugo, le facteur, ne roule plus sur le muret du perron de la mairie pendant sa tournée."
+    "La profondeur de ton bouchon : à la molette (manette : croix haut / bas), de 0,3 à 2,5 m ; une carte « Profondeur » à droite montre où est ton appât, et s'il touche le fond. Profond, les gros s'y intéressent ; tout près de la surface, les petits mordent vite.",
+    "Marche avec ta canne pendant que tu attends : le long du bord ou sur le ponton, jamais dans l'eau ; ton bouchon suit au bout du fil.",
+    "Agite ta canne (clic droit, manette : bouton ouest) : un petit coup de scion qui réveille les poissons… sans en abuser, sinon ils se méfient.",
+    "Pendant le combat, gauche et droite te font aussi marcher le long du bord, pour suivre ton poisson.",
+    "Un bouchon plus gros, plus facile à suivre.",
+    "De vrais bruits de pêche : le fouet de la canne au lancer, le bouchon qui plonge, le fil qui casse.",
+    "Gaspard t'explique la pêche telle qu'elle est maintenant.",
+    "Les portillons de jardin s'ouvrent tout seuls quand tu t'approches, et se referment derrière toi."
   ],
   "historique": [
+    {
+      "version": "0.9.8.7",
+      "notes": [
+        "La profondeur de ton bouchon : à la molette (manette : croix haut / bas), de 0,3 à 2,5 m ; une carte « Profondeur » à droite montre où est ton appât, et s'il touche le fond. Profond, les gros s'y intéressent ; tout près de la surface, les petits mordent vite.",
+        "Marche avec ta canne pendant que tu attends : le long du bord ou sur le ponton, jamais dans l'eau ; ton bouchon suit au bout du fil.",
+        "Agite ta canne (clic droit, manette : bouton ouest) : un petit coup de scion qui réveille les poissons… sans en abuser, sinon ils se méfient.",
+        "Pendant le combat, gauche et droite te font aussi marcher le long du bord, pour suivre ton poisson.",
+        "Un bouchon plus gros, plus facile à suivre.",
+        "De vrais bruits de pêche : le fouet de la canne au lancer, le bouchon qui plonge, le fil qui casse.",
+        "Gaspard t'explique la pêche telle qu'elle est maintenant.",
+        "Les portillons de jardin s'ouvrent tout seuls quand tu t'approches, et se referment derrière toi."
+      ]
+    },
     {
       "version": "0.9.8.6",
       "notes": [
@@ -83,16 +99,6 @@
         "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
         "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
         "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
-      ]
-    },
-    {
-      "version": "0.9.8.2",
-      "notes": [
-        "Les chemins de terre, les routes et les pavés du village sont revenus partout sur l'île, avec la place, les rues et les sentiers comme avant l'arrivée de la mer.",
-        "Les pentes et les falaises de l'intérieur retrouvent leur roche et leur terre.",
-        "Tes chemins tracés sont repeints par-dessus, et le chemin unique au nord-est du village est de nouveau en place.",
-        "Les villageois retrouvent la terre de leurs chemins.",
-        "Le sable des plages reste sur les plages."
       ]
     }
   ]
