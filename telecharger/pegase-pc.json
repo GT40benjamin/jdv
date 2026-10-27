@@ -1,53 +1,58 @@
 {
-  "version": "0.9.8.7",
-  "build": 48,
-  "size": 2113142972,
-  "sha256": "acabf6593a9dacc9a097912f03c6edbfaeda659c35304ffee3c55b0b029029ce",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-2026-10-27-0.9.8.7.zip",
-  "manifest": "bc7489f00c7d5c076be122b3c6abf73564a1d30443f83ddca28d85bf4c21ad39",
+  "version": "0.9.8.8",
+  "build": 49,
+  "size": 2119178935,
+  "sha256": "44dad9076663c931af160439d9b899d71f2b250ff2a38dbb8b5a540970ea9d8b",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v49/Pegase-PC-2026-10-27-0.9.8.8.zip",
+  "manifest": "ed309bcd54593ee693953a7c00719898e9bfef183631bb7f19f49e684fe9f957",
   "patchs": [
     {
+      "de": "0.9.8.7",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v49/Pegase-PC-patch-0.9.8.7.zip",
+      "taille": 12259718,
+      "sha256": "0b204afda966cfea47df0fbfc881464d340861c4b81f787b2197e153adc14574"
+    },
+    {
       "de": "0.9.8.6",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.8.6.zip",
-      "taille": 3486786,
-      "sha256": "dc04316c63694ee1bcad280463cacba9af3c1a0b0b5d8d3cb74cbadd9fc1bcd5"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v49/Pegase-PC-patch-0.9.8.6.zip",
+      "taille": 12316416,
+      "sha256": "b71897b073d1f93745801f2ce044e32a0d3d9008b95a570672f98e0a1c6d3be8"
     },
     {
       "de": "0.9.8.5",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.8.5.zip",
-      "taille": 3952574,
-      "sha256": "8178e21e65bd35c13d506844738ae7f910beb712b7d63822135bd8f01fd4b36c"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v49/Pegase-PC-patch-0.9.8.5.zip",
+      "taille": 12325600,
+      "sha256": "82fd24a6241d3e1b689f8c25be2cb504646cbbececfa1923379b5eaec6ddf989"
     },
     {
       "de": "0.9.8.4",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.8.4.zip",
-      "taille": 4017762,
-      "sha256": "3bf3dc5cb4fdcdd43a60c38a126afd6157f337ca125ef13f9a2f7625f62b446c"
-    },
-    {
-      "de": "0.9.8.3",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.8.3.zip",
-      "taille": 4026802,
-      "sha256": "379fbdaf27ad8caf2d2bc8ec52e8d3dc67a1a26222d1cb54d90ad446b870da89"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v49/Pegase-PC-patch-0.9.8.4.zip",
+      "taille": 12349459,
+      "sha256": "254282eae797c71aeaa9ff4996c6e2b851dd104c31468d8124bc9a991ad19f53"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v48/Pegase-PC-patch-0.9.7.zip",
-      "taille": 228330373,
-      "sha256": "baea0238f7233fbddcbe3fcd756bb97843eb86833754b734ad579c7f75993295"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v49/Pegase-PC-patch-0.9.7.zip",
+      "taille": 234290729,
+      "sha256": "d16ca3b7d8b38a0916f96567fa589517a8d71b0738ac649a22a51d62adba9e78"
     }
   ],
   "notes": [
-    "La profondeur de ton bouchon : à la molette (manette : croix haut / bas), de 0,3 à 2,5 m ; une carte « Profondeur » à droite montre où est ton appât, et s'il touche le fond. Profond, les gros s'y intéressent ; tout près de la surface, les petits mordent vite.",
-    "Marche avec ta canne pendant que tu attends : le long du bord ou sur le ponton, jamais dans l'eau ; ton bouchon suit au bout du fil.",
-    "Agite ta canne (clic droit, manette : bouton ouest) : un petit coup de scion qui réveille les poissons… sans en abuser, sinon ils se méfient.",
-    "Pendant le combat, gauche et droite te font aussi marcher le long du bord, pour suivre ton poisson.",
-    "Un bouchon plus gros, plus facile à suivre.",
-    "De vrais bruits de pêche : le fouet de la canne au lancer, le bouchon qui plonge, le fil qui casse.",
-    "Gaspard t'explique la pêche telle qu'elle est maintenant.",
-    "Les portillons de jardin s'ouvrent tout seuls quand tu t'approches, et se referment derrière toi."
+    "Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec ses bancs et leurs coussins, une table basse aux bougies sur un tapis, des lanternes, du lierre et des fleurs.",
+    "Plus de grandes nappes vertes toutes plates (PC) : le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs.",
+    "Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque.",
+    "Bêcher, c'est plus clair : houe ou pelle en main, un liseré doré entoure au sol la case que tu vas bêcher."
   ],
   "historique": [
+    {
+      "version": "0.9.8.8",
+      "notes": [
+        "Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec ses bancs et leurs coussins, une table basse aux bougies sur un tapis, des lanternes, du lierre et des fleurs.",
+        "Plus de grandes nappes vertes toutes plates (PC) : le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs.",
+        "Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque.",
+        "Bêcher, c'est plus clair : houe ou pelle en main, un liseré doré entoure au sol la case que tu vas bêcher."
+      ]
+    },
     {
       "version": "0.9.8.7",
       "notes": [
@@ -88,17 +93,6 @@
         "Papi Auguste monte le perron de la mairie bien au milieu des marches (fini, le mur !).",
         "Les voix : on n'entend plus un habitant qui parle avec un autre joueur quand on est dehors ou loin ; le bruit de volet de la nuit au village est parti.",
         "Les marguerites ont retrouvé leur taille."
-      ]
-    },
-    {
-      "version": "0.9.8.3",
-      "notes": [
-        "La brume du matin change chaque jour : certains matins une belle brume flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair. Le jour, juste un léger voile au loin, plus épais avant la pluie.",
-        "Les gros nuages avancent doucement dans le ciel.",
-        "Le fond est plus net : les montagnes au loin ne sont plus floues.",
-        "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
-        "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
-        "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
       ]
     }
   ]

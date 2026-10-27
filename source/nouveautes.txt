@@ -17,6 +17,12 @@
 [chrono] 4 circuits ouverts dès le départ : Le Stade, Le Grand Huit (looping, tremplin, pont), La Folie (la nuit, sans murs) et L’Orbite (dans l’espace, entre les planètes)
 [chrono] À l’arrivée, le classement du circuit avec ta place, puis « Refaire » ou « Changer de course » ; médailles de bronze, d’argent, d’or et de l’auteur
 [chrono] Boutons GAZ et FREIN, ◀ ▶ à gauche (mieux en paysage), clavier ou manette ; attention aux piliers et aux réceptions ratées : la voiture part en tonneaux !
+[coffres] ## 🗝️ Nouveau jeu : Coffres à Secrets (borne 1.45)
+[coffres] Un casse-tête en 3D : fais glisser les pièces de bois du couvercle pour sortir la clé dorée par la fente, et le coffre s’ouvre sur son trésor
+[coffres] 6 mondes de 8 coffres, de Facile à Expert : glissières, dés, plateaux qui tournent, tiges de laiton, poussoirs… et au bout de chaque monde, le grand coffre d’un copain
+[coffres] Moins de coups = plus d’étoiles ; annuler et refaire sans limite, et « Revoir » pour regarder ta solution en accéléré
+[coffres] Ta partie est gardée à chaque coup, sur ton téléphone et sur ton compte : tu reprends exactement où tu en étais, même sur un autre appareil
+[coffres] Au doigt, à la souris, au clavier ou à la manette, sur la musique « Pizz Menu »
 [coffres] ## 🗝️ Coffres à Secrets : on enchaîne les coffres (borne 1.43.5)
 [coffres] « Coffre suivant » t’emmène tout de suite au coffre d’après, puis au monde suivant, sans jamais sortir du jeu ; ton score part quand même au classement
 [coffres] En haut : « Coffre 3/8 », le monde, une pastille par coffre et la difficulté (de Facile à Expert) ; l’étagère devient la carte des 6 mondes avec leurs cadenas
