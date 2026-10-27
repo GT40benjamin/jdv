@@ -2,6 +2,8 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[chrono] ## 👻 Turbo Chrono (borne 1.46.1) : choisis ton fantôme
+[chrono] Sur le menu du jeu, « Fantôme à battre » : le 1er de ta salle ou le 1er mondial (ton choix est retenu)
 [chrono] ## 💥 Turbo Chrono (borne 1.46) : une seule vie, des accidents de folie
 [chrono] Un accident ou une chute, et la course est terminée : plus de retour au dernier passage. Ralenti, éclats de carbone, roues et ailerons qui s’envolent, fumée, et le feu si le choc est violent
 [chrono] Plus tu tapes fort, plus la voiture se casse : un aileron arraché, puis les roues, les pontons… jusqu’à la voiture en mille morceaux
