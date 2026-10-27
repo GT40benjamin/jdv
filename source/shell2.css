@@ -2821,6 +2821,7 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 #jdw-lib[data-mode="pegase"] .modebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);width:min(500px,calc(100vw - 24px));border-radius:20px;border:1px solid rgba(255,255,255,.14);background:rgba(10,16,32,.78)}
 #jdw-lib[data-mode="pegase"] .modebar button{min-height:52px}
 #jdw-lib[data-mode="pegase"] .modebar .mb-soon{display:none !important}
+#jdw-lib[data-mode="pegase"] .modebar #jdw-pg-badge:not([hidden]){display:inline-block !important;background:#ffd36b;color:#1a1030}   /* 1.46.8 : « Mis à jour » de Pégase visible aussi sur sa page */
 #jdw-lib.pg-ambi .modebar{transform:translate(-50%,140%)}
 @media (max-width:600px){
   #jdw-lib[data-mode="pegase"] .lib-wrap{padding-top:52px}
@@ -3011,7 +3012,7 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 @media (prefers-reduced-motion:reduce){.lv-spot i{animation:none;opacity:1}}
 
 /* ===== LA VITRINE DE PÉGASE (27 oct. 2026) : sous les îles, à la molette ; le haut est transparent (le décor filmé reste derrière) ===== */
-.pgv{display:none;position:relative;z-index:1;--pgv-serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;--pgv-bg:#050816;--pgv-ink:#f6efe0;--pgv-soft:#c8d1e4;--pgv-gold:#ffd98a}
+.pgv{display:none;position:relative;z-index:1;--pgv-serif:'EB Garamond',Georgia,'Times New Roman',serif;--pgv-bg:#050816;--pgv-ink:#f6efe0;--pgv-soft:#c8d1e4;--pgv-gold:#ffd98a}
 #jdw-lib[data-mode="pegase"] .pgv{display:block}
 #jdw-lib.pg-ambi .pgv{opacity:0;pointer-events:none}
 .pgv svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}

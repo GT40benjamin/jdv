@@ -5528,9 +5528,9 @@ const PGV = { built: false, io: null, pc: null };
 function pgvBuild() {
   if (PGV.built || !PG_TAB) return; PGV.built = true;
   const box = $('jdw-pgv'); if (!box) return;
-  if (!document.getElementById('jdw-pgv-font')) {   // le titre en lettres classiques (Cormorant Garamond) ; sans réseau : la police serif du système
+  if (!document.getElementById('jdw-pgv-font')) {   // le titre en lettres classiques (EB Garamond : Cormorant décale les accents ^ et ` dans Chrome, 1.46.8) ; sans réseau : la police serif du système
     const l = document.createElement('link'); l.id = 'jdw-pgv-font'; l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap'; document.head.appendChild(l);
+    l.href = 'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,500&display=swap'; document.head.appendChild(l);
   }
   const W2 = '(max-width: 760px) 100vw, 50vw', W3 = '(max-width: 760px) 100vw, 33vw', WF = '100vw';
   const card = (img, alt, t, p) => `<article class="pgv-card pgv-rv">${pgvImg(img, alt, W3)}<div><h4>${t}</h4><p>${p}</p></div></article>`;
