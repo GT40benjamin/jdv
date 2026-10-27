@@ -8,7 +8,7 @@ const ORDER = ['coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase'
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  coffres: { kind: 'new', at: '2026-10-27 12:00' },   // Coffres à Secrets (casse-tête 3D, partie gardée ; en essai derrière la porte labo ; heure = celle de la publication)
+  coffres: { kind: 'new', at: '2026-10-27 02:45' },   // Coffres à Secrets (casse-tête 3D, partie gardée ; en essai derrière la porte labo ; heure = celle de la publication)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
   glouton: { kind: 'maj', at: '2026-10-13 00:55' },
