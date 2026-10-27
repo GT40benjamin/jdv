@@ -245,8 +245,8 @@ footer a:hover{color:var(--gold2)}
 .gm.il{--a:var(--lava);background:#070914;
   box-shadow:0 0 0 1px rgba(255,106,26,.45),0 0 50px -10px rgba(255,106,26,.5),0 0 90px -30px rgba(94,240,255,.35),0 30px 70px -24px rgba(0,0,0,.9)}
 .gm.il .hud{--c:var(--ship)}
-.gm.il .media{background:var(--deep)}
-.gm.il .media::after{height:45%;background:linear-gradient(180deg,transparent,#070914)}
+.gm.il .media{background:var(--deep);aspect-ratio:16/9}   /* la bande-annonce entière, sans voile par-dessus */
+.gm.il .media::after{display:none}
 .gm.il .lbl{border-left-color:var(--ship)}
 .gm.il .tgs{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
 .gm.il .tg{background:var(--ship)}
@@ -254,44 +254,23 @@ footer a:hover{color:var(--gold2)}
   background:linear-gradient(90deg,var(--lava2),var(--lava));padding:6px 10px 5px;box-shadow:0 0 18px rgba(255,106,26,.55)}
 .soon::before{content:'';width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;animation:blink 1.6s ease-in-out infinite}
 @keyframes blink{50%{opacity:.25}}
-/* « ▶ Voir la bande-annonce », sur l'image */
-.trl{position:absolute;left:clamp(14px,2.2vw,24px);bottom:clamp(14px,2.2vw,24px);z-index:3;display:inline-flex;align-items:center;gap:12px;min-height:52px;padding:0 20px 0 8px;
-  border:0;cursor:pointer;font:800 13.5px/1 var(--head);letter-spacing:.16em;text-transform:uppercase;color:#fff;background:rgba(5,6,15,.66);
-  box-shadow:inset 0 0 0 2px var(--lava),0 0 26px -4px var(--lava);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
-  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .25s,color .25s,transform .12s}
-.trl i{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-style:normal;font-size:13px;color:#1a0800;
-  background:linear-gradient(180deg,var(--lava2),var(--lava));box-shadow:0 0 18px rgba(255,106,26,.75)}
-.trl:hover,.trl:focus-visible{background:var(--lava);color:#1a0800}
-.trl:hover i,.trl:focus-visible i{background:#1a0800;color:var(--lava2);box-shadow:none}
-.trl:active{transform:translateY(1px)}
-/* téléphone (écran en hauteur) : la version verticale, plus haute ; ordinateur : l'image à gauche, le texte à droite */
-@media (max-aspect-ratio:1/1){.gm.il .media{aspect-ratio:4/5;max-height:74vh}}
+/* « Le son » sur la bande-annonce (elle démarre muette : un navigateur ne lance pas seul une vidéo qui a du son) */
+.son{position:absolute;right:clamp(12px,1.8vw,20px);bottom:clamp(12px,1.8vw,20px);z-index:3;display:inline-flex;align-items:center;gap:9px;min-height:42px;padding:0 16px 0 12px;
+  border:0;cursor:pointer;font:800 12px/1 var(--head);letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(5,6,15,.62);
+  box-shadow:inset 0 0 0 1.5px rgba(94,240,255,.55);border-radius:999px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .25s,color .25s,box-shadow .25s}
+.son[hidden]{display:none}
+.son i{font-style:normal;font-size:15px;letter-spacing:0}
+.son:hover,.son:focus-visible{background:var(--lava);color:#1a0800;box-shadow:none}
+.son[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--lava2),0 0 22px -4px var(--lava)}
+.wait{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:34px 18px 18px;text-align:center;font:800 clamp(15px,1.9vw,21px)/1.25 var(--head);color:#fff;
+  text-shadow:0 2px 12px rgba(0,0,0,.95);background:linear-gradient(180deg,transparent,rgba(5,6,15,.86))}
+.wait[hidden]{display:none}
+/* ordinateur : la bande-annonce à gauche, le texte à droite */
 @media (min-width:900px) and (min-aspect-ratio:1/1){
-  .gm.il{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
-  .gm.il .media{align-self:stretch;width:100%;aspect-ratio:16/9}   /* largeur = la colonne (sinon la hauteur étirée l'élargit sur le texte) */
-  .gm.il .media::after{inset:0 0 0 auto;width:30%;height:auto;background:linear-gradient(90deg,transparent,#070914)}
+  .gm.il{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);align-items:center}
+  .gm.il .media{width:100%}   /* largeur = la colonne */
   .gm.il .body{justify-content:center;padding:clamp(26px,3vw,44px) clamp(26px,3vw,44px) clamp(26px,3vw,44px) clamp(10px,1.4vw,20px)}
 }
-/* le lecteur de la bande-annonce, par-dessus la page */
-.tl{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:calc(64px + env(safe-area-inset-top)) 3vw calc(28px + env(safe-area-inset-bottom));
-  background:radial-gradient(70% 60% at 50% 45%,rgba(18,22,46,.6),rgba(3,4,10,.96) 72%),rgba(3,4,10,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:tlIn .35s var(--ease) both}
-.tl[hidden]{display:none}
-@keyframes tlIn{from{opacity:0}to{opacity:1}}
-.tl-box{width:min(94vw,calc((100vh - 150px) * 16 / 9),1500px);width:min(94vw,calc((100svh - 150px) * 16 / 9),1500px);display:grid;gap:12px;animation:up .5s var(--ease) both}
-.tl-t{margin:0;font:800 12.5px/1.2 var(--head);letter-spacing:.3em;text-transform:uppercase;color:var(--lava2)}
-.tl-v{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:8px;background:#000;
-  box-shadow:0 0 0 1px rgba(94,240,255,.32),0 0 60px -10px rgba(255,106,26,.45),0 40px 90px -30px #000}
-.tl-v video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-.tl-soon{position:absolute;inset:0;display:none;place-items:center}
-.tl-v.absent .tl-soon{display:grid}
-.tl-v.absent video{visibility:hidden}
-.tl-soon img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.5) saturate(1.1)}
-.tl-soon p{position:relative;margin:0;display:grid;justify-items:center;gap:16px;padding:0 22px;text-align:center;font:800 clamp(18px,2.6vw,30px)/1.25 var(--head);color:#fff;
-  text-shadow:0 2px 12px rgba(0,0,0,.95)}
-.tl-x{position:fixed;top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:2;width:48px;height:48px;border:0;border-radius:50%;cursor:pointer;
-  display:grid;place-items:center;font:700 21px/1 var(--text);color:#fff;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);transition:background .2s,color .2s}
-.tl-x:hover,.tl-x:focus-visible{background:var(--lava);color:#1a0800}
-html.tl-on{overflow:hidden}
 .nw{white-space:nowrap}
 
 /* apparition */
@@ -305,7 +284,7 @@ html.tl-on{overflow:hidden}
   .slide.kb.on img,.em .liq,.em .bub{animation:none}
   .rv{opacity:1;transform:none;transition:none}
   .hero .c > .em,.hero .tag,h1 .w1,h1 .w2,.doors{animation:none}
-  .ilo::after,.soon::before,.tl,.tl-box{animation:none}
+  .ilo::after,.soon::before{animation:none}
 }
 </style>
 </head>
@@ -434,23 +413,24 @@ html.tl-on{overflow:hidden}
 <section class="ilo" id="ilo" aria-labelledby="ilo-t">
   <div class="wrap">
     <div class="head">
-      <span class="kick rv">À venir</span>
+      <span class="kick rv">En production</span>
       <h2 id="ilo-t" class="rv">ILO, <em>seul dans l’univers</em></h2>
     </div>
     <article class="gm il rv">
       <div class="media" id="ilo-media">
-        <picture><source media="(max-aspect-ratio: 1/1)" srcset="assets/ilo/ilo_boucle_m_poster.jpg"><img src="assets/ilo/ilo_boucle_poster.jpg" alt="Le Silence d’ILO, filmé dans le jeu" width="1920" height="1080" loading="lazy" decoding="async"></picture>
+        <img src="assets/ilo/ilo_bande_annonce_poster.jpg" alt="Le Silence d’ILO, filmé dans le jeu : le vaisseau se pose sur K-107 au couchant" width="1920" height="1080" loading="lazy" decoding="async">
         <span class="lbl">Filmé dans le jeu</span>
-        <button class="trl" id="ilo-play" type="button" aria-haspopup="dialog"><i aria-hidden="true">▶</i>Voir la bande-annonce</button>
+        <span class="wait" id="ilo-wait" hidden>La bande-annonce arrive très bientôt.</span>
+        <button class="son" id="ilo-son" type="button" aria-pressed="false" hidden><i aria-hidden="true">🔇</i><span>Le son</span></button>
       </div>
       <div class="body">
-        <div class="tgs"><span class="tg">Aventure spatiale 3D · PC</span><span class="soon">À venir</span></div>
+        <div class="tgs"><span class="tg">Aventure spatiale 3D · PC</span><span class="soon">En production</span></div>
         <h3>Le Silence d’ILO</h3>
-        <p>Tu te réveilles à bord d’un vaisseau, au bord d’une ceinture d’astéroïdes. Une voix te guide. Dehors, des mondes entiers t’attendent : les déserts de <span class="nw">K-107</span>, le port de la Nuit Galactique, le volcan de Busteria.</p>
+        <p>Un monde ouvert dans l’espace, et toute la liberté de l’explorer : pilote ton vaisseau de planète en planète, des déserts de <span class="nw">K-107</span> au volcan de Busteria.</p>
         <ul>
-          <li>Pilote ton vaisseau d’un monde à l’autre</li>
-          <li>Affronte ce qui vit sous le sable et dans la lave</li>
-          <li>Perce les mystères de ton réveil</li>
+          <li>Un monde ouvert dans l’espace, en toute liberté</li>
+          <li>De l’action et des combats, du sable à la lave</li>
+          <li>Des mystères à percer, seul dans l’univers</li>
         </ul>
       </div>
       <div class="hud" aria-hidden="true"></div>
@@ -463,18 +443,6 @@ html.tl-on{overflow:hidden}
   <span>© 2026 Elixir Game Studio · fait maison, en France</span>
   <nav aria-label="Liens"><a href="#jeux">Nos jeux</a><a href="telecharger/">Appli Android</a><a href="contact/">Nous contacter</a><a href="confidentialite/">Confidentialité</a></nav>
 </div></footer>
-
-<!-- la bande-annonce d'ILO, par-dessus la page (vidéo du seau R2, avec le son) -->
-<div class="tl" id="ilo-tl" role="dialog" aria-modal="true" aria-labelledby="ilo-tl-t" hidden>
-  <div class="tl-box">
-    <p class="tl-t" id="ilo-tl-t">Le Silence d’ILO · bande-annonce</p>
-    <div class="tl-v" id="ilo-tl-v">
-      <video id="ilo-tl-video" controls playsinline preload="none" controlslist="nodownload" disablepictureinpicture></video>
-      <div class="tl-soon"><img src="assets/ilo/ilo_bande_annonce_poster.jpg" alt="" width="1920" height="1080" loading="lazy" decoding="async"><p><span class="soon">À venir</span>La bande-annonce arrive très bientôt.</p></div>
-    </div>
-  </div>
-  <button class="tl-x" id="ilo-tl-x" type="button" aria-label="Fermer la bande-annonce">✕</button>
-</div>
 
 <script>
 (function () {
@@ -632,75 +600,44 @@ html.tl-on{overflow:hidden}
   else { duoOn = true; duoFill(); duoRun(); }
   document.addEventListener('visibilitychange', duoRun);
 
-  // ---------- ILO, à venir : la boucle muette en fond de la carte (comme le plan de Pégase), la bande-annonce par-dessus la page ----------
-  // Vidéos sur le seau R2 : ilo_boucle_<720|1080|1440|2160>.mp4 (15 s, muette), ilo_boucle_m_<720|1080>.mp4 (écran en hauteur),
-  // ilo_bande_annonce_<720|1080|1440|2160>.mp4 (avec le son). Une qualité absente : la plus petite suivante ; aucune (pas encore envoyées) :
-  // l'affiche reste, sans message, et le lecteur dit « La bande-annonce arrive très bientôt. »
-  var iloSec = $('ilo'), iloBox = $('ilo-media'), iloV = null, iloOn = false, iloDead = false;
-  var tl = $('ilo-tl'), tlBox = $('ilo-tl-v'), tlV = $('ilo-tl-video'), tlX = $('ilo-tl-x'), tlOpen = false, tlFrom = null, tlBad = false;
-  var iloPort = function () { return mm('(max-aspect-ratio: 1/1)'); };   // comme l'affiche (<picture>)
+  // ---------- ILO, en production : la BANDE-ANNONCE en boucle dans la carte, à côté du texte, jamais agrandie (27/10, Benjamin : « on ne
+  // l'agrandit pas, tu la mets en boucle, ancrée dans la page ») — muette au départ (un navigateur ne lance pas seul une vidéo qui a du son),
+  // « Le son » la fait entendre ; elle se met en pause (et se tait) quand la section sort de l'écran. Vidéos sur le seau R2 :
+  // ilo_bande_annonce_<720|1080|1440|2160>.mp4 ; une qualité absente : la plus petite suivante ; aucune (pas encore envoyées) : l'affiche et
+  // « La bande-annonce arrive très bientôt. » ; jamais de vidéo en économie de données, sur un réseau lent ni en mouvement réduit (l'affiche seule).
+  var iloSec = $('ilo'), iloBox = $('ilo-media'), iloSonB = $('ilo-son'), iloV = null, iloOn = false, iloDead = false;
   function iloSrc(v, name, list, want) {   // la qualité visée, puis les plus petites : le navigateur joue la première qui existe
     var last = null;
     list.filter(function (x) { return x <= want; }).reverse().forEach(function (x) { var s = document.createElement('source'); s.src = R2 + name + x + '.mp4'; s.type = 'video/mp4'; v.appendChild(s); last = s; });
     return last;
   }
+  function iloSon(on) {
+    if (iloV) iloV.muted = !on;
+    iloSonB.setAttribute('aria-pressed', on ? 'true' : 'false');
+    iloSonB.querySelector('i').textContent = on ? '🔊' : '🔇'; iloSonB.querySelector('span').textContent = on ? 'Couper le son' : 'Le son';
+  }
+  function iloSoon() {   // pas (encore) sur le seau : l'affiche reste, avec le mot
+    iloDead = true; if (iloV) { iloV.pause(); iloV.remove(); iloV = null; }
+    iloSonB.hidden = true; $('ilo-wait').hidden = false;
+  }
   function iloFill() {
-    if (iloV || iloDead || !canVid || still || light) return;
-    var d = Math.min(window.devicePixelRatio || 1, 3), px = iloBox.clientWidth * d, port = iloPort();
-    var q = port ? (px > 700 ? 1080 : 720) : (px > 1500 ? 1440 : px > 700 ? 1080 : 720);
-    if (conn.type === 'cellular') q = Math.min(q, port ? 720 : 1080);   // données mobiles
-    var v = document.createElement('video'), gone = function () { iloDead = true; if (iloV) { iloV.pause(); iloV.remove(); iloV = null; } };
-    v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'none'; v.disablePictureInPicture = true; v.setAttribute('aria-hidden', 'true');
-    iloSrc(v, port ? 'ilo_boucle_m_' : 'ilo_boucle_', port ? [720, 1080] : [720, 1080, 1440, 2160], q).addEventListener('error', gone);   // pas encore sur le seau : l'affiche reste
-    v.addEventListener('error', gone);
-    v.addEventListener('playing', function () { v.classList.add('on'); });
+    if (iloV || iloDead || still || light) return;   // économie de données, réseau lent, mouvement réduit : l'affiche seule
+    if (!canVid) { iloSoon(); return; }
+    var px = iloBox.clientWidth * Math.min(window.devicePixelRatio || 1, 3);
+    var q = conn.type === 'cellular' ? 720 : px > 1500 ? 1440 : px > 800 ? 1080 : 720;   // la taille de la carte (jamais agrandie) ; données mobiles : 720
+    var v = document.createElement('video');
+    v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'none';
+    v.disablePictureInPicture = true; v.setAttribute('disableremoteplayback', ''); v.setAttribute('aria-label', 'La bande-annonce du Silence d’ILO, filmée dans le jeu');
+    iloSrc(v, 'ilo_bande_annonce_', [720, 1080, 1440, 2160], q).addEventListener('error', iloSoon);
+    v.addEventListener('error', iloSoon);
+    v.addEventListener('playing', function () { v.classList.add('on'); iloSonB.hidden = false; });
     iloBox.insertBefore(v, iloBox.querySelector('.lbl')); iloV = v;
   }
-  function iloRun() { if (iloV) { if (iloOn && !tlOpen && !document.hidden) play(iloV); else iloV.pause(); } }
+  function iloRun() { if (iloV) { if (iloOn && !document.hidden) play(iloV); else { iloV.pause(); iloSon(false); } } }
+  iloSonB.addEventListener('click', function () { if (iloV) { iloSon(iloV.muted); play(iloV); } });
   if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { iloOn = es[0].isIntersecting; if (iloOn) iloFill(); iloRun(); }, { rootMargin: '200px 0px' }).observe(iloSec);
   else { iloOn = true; iloFill(); iloRun(); }
   document.addEventListener('visibilitychange', iloRun);
-  // le lecteur : qualité selon l'écran (on peut passer en plein écran) ; 720 sur les données mobiles, en économie de données ou sur un réseau lent
-  function tlSoon() { tlBad = true; tlBox.classList.add('absent'); }
-  function tlLoad() {
-    while (tlV.firstChild) tlV.removeChild(tlV.firstChild);
-    tlBad = false; tlBox.classList.remove('absent');
-    if (!canVid) { tlSoon(); return; }
-    var px = Math.max(innerWidth, innerHeight) * Math.min(window.devicePixelRatio || 1, 2);
-    var q = px > 2600 ? 2160 : px > 2200 ? 1440 : px > 1300 ? 1080 : 720;
-    if (light || conn.type === 'cellular') q = 720;
-    tlV.poster = 'assets/ilo/ilo_bande_annonce_poster.jpg';
-    iloSrc(tlV, 'ilo_bande_annonce_', [720, 1080, 1440, 2160], q).addEventListener('error', tlSoon);
-    tlV.load();
-  }
-  function tlShow(from) {
-    if (tlOpen) return;
-    tlOpen = true; tlFrom = from || document.activeElement;
-    tl.hidden = false; document.documentElement.classList.add('tl-on');
-    if (!tlV.firstChild || tlBad) tlLoad();   // la 1re fois, ou absente la dernière fois : on regarde de nouveau sur le seau
-    if (!tlBad) play(tlV);
-    iloRun();
-    setTimeout(function () { try { tlX.focus({ preventScroll: true }); } catch (e) {} }, 30);
-  }
-  function tlHide() {
-    if (!tlOpen) return;
-    tlOpen = false; tlV.pause(); tl.hidden = true; document.documentElement.classList.remove('tl-on');
-    iloRun();
-    if (tlFrom && tlFrom.focus) { try { tlFrom.focus({ preventScroll: true }); } catch (e) {} }   // le focus revient au bouton
-    tlFrom = null;
-  }
-  tlV.addEventListener('error', tlSoon);
-  $('ilo-play').addEventListener('click', function (e) { tlShow(e.currentTarget); });
-  tlX.addEventListener('click', tlHide);
-  tl.addEventListener('click', function (e) { if (e.target === tl) tlHide(); });   // un clic sur le fond sombre
-  document.addEventListener('keydown', function (e) {
-    if (!tlOpen) return;
-    if (e.key === 'Escape') { e.preventDefault(); tlHide(); return; }
-    if (e.key === 'Tab') {   // le focus reste dans le lecteur
-      var f = tlBad ? [tlX] : [tlV, tlX], i = f.indexOf(document.activeElement);
-      e.preventDefault(); f[(i < 0 ? 0 : i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus();
-    }
-  });
 
   // ---------- typographie française : espace insécable avant ! ? : ; ----------
   var tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;

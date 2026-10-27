@@ -344,7 +344,7 @@ if (PADJ) {
     defaultFocus: (layer, list) => {
       const pick = (...ids) => { for (const id of ids) { const e = $(id); if (e && list.includes(e)) return e; } return null; };
       if (!layer) {
-        if (!$('jdw-lib').hidden && MODE === 'ilo') { const p = $('jdw-ilo-play'); if (p && list.includes(p)) return p; }   // page ILO : « ▶ Bande-annonce »
+        if (!$('jdw-lib').hidden && MODE === 'ilo') { const p = $('jdw-ilo-son'); if (p && list.includes(p)) return p; }   // page ILO : « Le son » de la bande-annonce
         if (!$('jdw-lib').hidden) { const grid = MODE === 'duel' ? $('jdw-duo-grid') : MODE === 'coop' ? $('jdw-coop-grid') : $('jdw-grid'); const t = list.find(e => grid && grid.contains(e) && e.classList.contains('tile')); if (t) return t; }
         return null;
       }
@@ -5855,27 +5855,25 @@ function pgAmbi(on) {
 }
 $('jdw-pg-ambi').addEventListener('click', (e) => { e.stopPropagation(); pgAmbi(true); });
 
-/* ================= L'UNIVERS D'ILO (« à venir ») : l'onglet à gauche de Pégase, la page « Le Silence d'ILO », la bande-annonce =================
-   ILO = l'autre jeu du studio (Unity, PC), pas encore sorti : onglet montré avec celui de Pégase (PG_TAB), badge « à venir » ; ?ilo l'ouvre.
-   Fond de la page : une BOUCLE MUETTE de 15 s filmée dans le jeu — l'affiche du dépôt tout de suite (assets/ilo/ilo_boucle_poster.jpg,
-   ilo_boucle_m_poster.jpg sur un écran en hauteur), puis la vidéo du seau R2 (PG_VID_BASE, le même que Pégase : ilo_boucle_<720|1080|1440|2160>.mp4,
-   ilo_boucle_m_<720|1080>.mp4) en fondu dès qu'elle joue ; jamais en économie de données, sur un réseau lent ni en mouvement réduit (affiche seule).
-   « ▶ Bande-annonce » : lecteur par-dessus la page (ilo_bande_annonce_<720|1080|1440|2160>.mp4, AVEC le son) ; la musique de la borne se tait
-   pendant qu'elle joue et revient à la fin ou à la fermeture. Une qualité absente du seau : la plus petite suivante ; aucune (vidéos pas encore
-   envoyées) : l'affiche reste, sans erreur, et le lecteur dit « La bande-annonce arrive très bientôt. » */
-const ILO = { port: null, dead: {}, tl: false, from: null, bad: false, rt: 0 };
-const ILO_Q = [720, 1080, 1440, 2160], ILO_QM = [720, 1080];   // qualités envoyées sur le seau (paysage, vertical)
-const iloPort = () => innerHeight > innerWidth * 1.1;            // écran en hauteur : la version verticale (comme les plans de Pégase)
+/* ================= L'UNIVERS D'ILO (en production) : l'onglet à gauche de Pégase, la page « Le Silence d'ILO » =================
+   ILO = l'autre jeu du studio (Unity, PC), en production : onglet montré avec celui de Pégase (PG_TAB), badge « à venir » ; ?ilo l'ouvre.
+   La page (27/10, Benjamin : « on ne l'agrandit pas, tu la mets en boucle, ancrée dans la page, à côté d'un petit texte ») : « Elixir Game
+   Studio présente », le titre, et la BANDE-ANNONCE en boucle dans son cadre, le texte à côté — muette au départ (un navigateur ne lance pas
+   seul une vidéo qui a du son) ; « Le son » la fait entendre, et la musique de la borne se tait pendant ce temps. Vidéos du seau R2
+   (PG_VID_BASE, le même que Pégase) : ilo_bande_annonce_<720|1080|1440|2160>.mp4 ; une qualité absente : la plus petite suivante ; aucune
+   (pas encore envoyées) : l'affiche du dépôt (assets/ilo/ilo_bande_annonce_poster.jpg) et « La bande-annonce arrive très bientôt. » ;
+   jamais de vidéo en économie de données, sur un réseau lent ni en mouvement réduit (l'affiche seule). */
+const ILO = { dead: false };
+const ILO_Q = [720, 1080, 1440, 2160];   // qualités envoyées sur le seau
 function iloStill() {   // affiche seule : économie de données, réseau lent, mouvement réduit
   const C = navigator.connection || {};
   return !!(C.saveData || /(^|-)2g$|^3g$/.test(C.effectiveType || '') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
 }
 function iloMp4() { if (ILO.mp4 == null) { try { const t = document.createElement('video'); ILO.mp4 = !!(t.canPlayType && t.canPlayType('video/mp4; codecs="avc1.640028"')); } catch (e) { ILO.mp4 = false; } } return ILO.mp4; }
-// la qualité : l'écran et le débit mesuré sur les plans de Pégase (pgQualWant) ; données mobiles : 1080 au plus (720 en hauteur)
-function iloQual(list) {
-  let q = pgQualWant({ q: list }) || list[0];
-  if ((navigator.connection || {}).type === 'cellular') q = Math.min(q, list === ILO_QM ? 720 : 1080);
-  return q;
+// la qualité : la largeur du cadre × la densité de l'écran (la vidéo n'est jamais agrandie : 1440 au plus) ; données mobiles : 720
+function iloQual() {
+  const f = $('jdw-ilo-film'), px = (f && f.clientWidth ? f.clientWidth : innerWidth) * Math.min(window.devicePixelRatio || 1, 3);
+  return (navigator.connection || {}).type === 'cellular' ? 720 : px > 1500 ? 1440 : px > 800 ? 1080 : 720;
 }
 // <source> de la qualité visée, puis des plus petites : le navigateur joue la première qui existe sur le seau ; rend la dernière (« error » = aucune)
 function iloSources(v, name, list, want) {
@@ -5884,77 +5882,39 @@ function iloSources(v, name, list, want) {
   for (const q of list.filter(x => x <= want).sort((a, b) => b - a)) { last = document.createElement('source'); last.src = PG_VID_BASE + name + q + '.mp4'; last.type = 'video/mp4'; v.appendChild(last); }
   return last;
 }
-function iloBg(on) {
-  const bg = $('jdw-ilo-bg'), v = $('jdw-ilo-video'); if (!bg || !v) return;
-  if (!on) { try { v.pause(); } catch (e) {} return; }
-  const port = iloPort(), u = ROOT + 'assets/ilo/ilo_boucle' + (port ? '_m' : '') + '_poster.jpg';
-  if (bg.dataset.u !== u) { bg.dataset.u = u; bg.style.backgroundImage = 'url("' + u + '")'; }   // l'affiche d'abord (et en secours)
-  if (!PG_VID_BASE || ILO.dead[port] || iloStill() || !iloMp4()) { try { v.pause(); } catch (e) {} v.classList.remove('on'); return; }
-  if (ILO.port !== port) {   // la 1re fois, ou l'écran a tourné : la bonne version
-    ILO.port = port; v.classList.remove('on');
-    const last = iloSources(v, port ? 'ilo_boucle_m_' : 'ilo_boucle_', port ? ILO_QM : ILO_Q, iloQual(port ? ILO_QM : ILO_Q));
-    last.addEventListener('error', () => {   // pas (encore) sur le seau : l'affiche reste, on ne redemande plus
-      ILO.dead[port] = true; if (ILO.port !== port) return;
-      ILO.port = null; v.classList.remove('on'); while (v.firstChild) v.removeChild(v.firstChild); try { v.load(); } catch (e) {}
-    }, { once: true });
-    v.load();
-  }
-  if (!document.hidden && !$('jdw-lib').hidden && !ILO.tl) v.play().catch(() => {}); else try { v.pause(); } catch (e) {}
+function iloSon(on) {   // le son de la bande-annonce ; la musique de la borne se tait tant qu'on l'entend
+  const v = $('jdw-ilo-video'), b = $('jdw-ilo-son'); if (!v || !b) return;
+  v.muted = !on; b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.querySelector('.ic').textContent = on ? '🔊' : '🔇'; b.querySelector('.tx').textContent = on ? 'Couper le son' : 'Le son';
+  musicHush(!!on && !v.paused);
 }
-function iloSky(on) { iloBg(!!on); if (!on) iloTlClose(); }   // appelé par setMode
-$('jdw-ilo-video').addEventListener('playing', (e) => e.target.classList.add('on'));   // la vidéo arrive en fondu sur l'affiche
-$('jdw-ilo-video').addEventListener('error', (e) => e.target.classList.remove('on'));   // coupure en route : l'affiche revient
-addEventListener('resize', () => { clearTimeout(ILO.rt); ILO.rt = setTimeout(() => { if (MODE === 'ilo' && !$('jdw-lib').hidden) iloBg(true); }, 250); });
-document.addEventListener('visibilitychange', () => { if (MODE === 'ilo') iloBg(!document.hidden); });
-// une partie qui s'ouvre (la page est cachée) : le fond se met en pause, la bande-annonce se ferme ; au retour, le fond repart
-if (window.MutationObserver) new MutationObserver(() => { const hid = $('jdw-lib').hidden; if (hid) iloTlClose(); if (MODE === 'ilo') iloBg(!hid); }).observe($('jdw-lib'), { attributes: true, attributeFilter: ['hidden'] });
-// ---- le lecteur de la bande-annonce ----
-function iloTlSoon() {   // pas encore sur le seau (ou illisible ici) : l'affiche et « La bande-annonce arrive très bientôt. »
-  ILO.bad = true;
-  const box = $('jdw-ilo-tl-box'); box.style.backgroundImage = 'url("' + ROOT + 'assets/ilo/ilo_bande_annonce_poster.jpg")'; box.classList.add('absent');
-  musicHush(false);
+function iloSoon() {   // pas (encore) sur le seau, ou illisible ici : l'affiche reste, avec « La bande-annonce arrive très bientôt. »
+  ILO.dead = true;
+  const v = $('jdw-ilo-video'); while (v.firstChild) v.removeChild(v.firstChild); try { v.load(); } catch (e) {}
+  v.classList.remove('on'); $('jdw-ilo-film').classList.add('absent'); $('jdw-ilo-son').hidden = true; iloSon(false);
 }
-function iloTlLoad() {
-  const v = $('jdw-ilo-tl-v'), C = navigator.connection || {};
-  ILO.bad = false; $('jdw-ilo-tl-box').classList.remove('absent');
-  v.poster = ROOT + 'assets/ilo/ilo_bande_annonce_poster.jpg';
-  if (!PG_VID_BASE || !iloMp4()) { while (v.firstChild) v.removeChild(v.firstChild); iloTlSoon(); return; }
-  const light = C.saveData || C.type === 'cellular' || /(^|-)2g$|^3g$/.test(C.effectiveType || '');   // données mobiles, économie, réseau lent : 720
-  iloSources(v, 'ilo_bande_annonce_', ILO_Q, light ? 720 : iloQual(ILO_Q)).addEventListener('error', () => { if (ILO.tl) iloTlSoon(); else ILO.bad = true; }, { once: true });
-  v.load();
+function iloFilm(on) {
+  const v = $('jdw-ilo-video'), f = $('jdw-ilo-film'); if (!v || !f) return;
+  if (!on) { try { v.pause(); } catch (e) {} iloSon(false); return; }   // page quittée, partie ouverte, onglet caché : en pause, et muette
+  const u = ROOT + 'assets/ilo/ilo_bande_annonce_poster.jpg';
+  if (f.dataset.u !== u) { f.dataset.u = u; f.style.backgroundImage = 'url("' + u + '")'; }   // l'affiche d'abord (et en secours)
+  if (ILO.dead) return;
+  if (!PG_VID_BASE || !iloMp4()) { iloSoon(); return; }
+  if (iloStill()) return;   // l'affiche seule
+  if (!v.firstElementChild) { iloSources(v, 'ilo_bande_annonce_', ILO_Q, iloQual()).addEventListener('error', iloSoon, { once: true }); v.load(); }
+  if (!document.hidden && !$('jdw-lib').hidden) v.play().catch(() => {}); else try { v.pause(); } catch (e) {}
 }
-function iloTlOpen(from) {
-  const el = $('jdw-ilo-tl'), v = $('jdw-ilo-tl-v'); if (!el || ILO.tl) return;
-  ILO.tl = true; ILO.from = from || document.activeElement;
-  el.hidden = false; iloBg(false);   // le fond se met en pause derrière
-  if (!v.firstElementChild || ILO.bad) iloTlLoad();   // la 1re fois, ou absente la dernière fois : on regarde de nouveau sur le seau
-  if (!ILO.bad) v.play().catch(() => {});
-  setTimeout(() => { const x = $('jdw-ilo-tl-x'); if (!ILO.tl) return; try { x.focus({ preventScroll: true }); } catch (e) {} if (PADJ) PADJ.autoFocus(); }, 40);
-}
-function iloTlClose() {
-  if (!ILO.tl) return;
-  ILO.tl = false;
-  try { $('jdw-ilo-tl-v').pause(); } catch (e) {}
-  $('jdw-ilo-tl').hidden = true; musicHush(false);   // la musique de la borne revient
-  if (MODE === 'ilo' && !$('jdw-lib').hidden) iloBg(true);
-  const f = ILO.from; ILO.from = null;
-  if (f && f.isConnected && !$('jdw-lib').hidden) { try { f.focus({ preventScroll: true }); } catch (e) {} if (PADJ) PADJ.autoFocus(); }   // le focus revient au bouton
-}
+function iloSky(on) { iloFilm(!!on); }   // appelé par setMode
 {
-  const v = $('jdw-ilo-tl-v');
-  v.addEventListener('playing', () => { if (ILO.tl) musicHush(true); });   // la bande-annonce a le son : la musique de la borne se tait
-  v.addEventListener('ended', () => musicHush(false));
-  v.addEventListener('error', () => { if (ILO.tl) iloTlSoon(); });
-  $('jdw-ilo-play').addEventListener('click', (e) => iloTlOpen(e.currentTarget));
-  $('jdw-ilo-tl-x').addEventListener('click', iloTlClose);
-  $('jdw-ilo-tl').addEventListener('click', (e) => { if (e.target === e.currentTarget) iloTlClose(); });   // le fond sombre autour
-  // Échap ferme le lecteur (avant les autres fenêtres) ; Tab reste dans le lecteur
-  addEventListener('keydown', (e) => {
-    if (!ILO.tl) return;
-    if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); iloTlClose(); return; }
-    if (e.key === 'Tab') { const f = [ILO.bad ? null : v, $('jdw-ilo-tl-x')].filter(Boolean), i = f.indexOf(document.activeElement); e.preventDefault(); f[(i < 0 ? 0 : i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus(); }
-  }, true);
+  const v = $('jdw-ilo-video');
+  v.addEventListener('playing', () => { v.classList.add('on'); $('jdw-ilo-son').hidden = false; if (!v.muted) musicHush(true); });   // la vidéo arrive en fondu sur l'affiche
+  v.addEventListener('pause', () => musicHush(false));
+  v.addEventListener('error', () => { if (!ILO.dead) iloSoon(); });
+  $('jdw-ilo-son').addEventListener('click', () => { iloSon(v.muted); if (v.paused && !ILO.dead) v.play().catch(() => {}); });
 }
+document.addEventListener('visibilitychange', () => { if (MODE === 'ilo') iloFilm(!document.hidden); });
+// une partie qui s'ouvre (la page est cachée) : la bande-annonce se met en pause ; au retour, elle repart (muette)
+if (window.MutationObserver) new MutationObserver(() => { if (MODE === 'ilo') iloFilm(!$('jdw-lib').hidden); }).observe($('jdw-lib'), { attributes: true, attributeFilter: ['hidden'] });
 // 🏆 le CLASSEMENT DES ÎLES : espèces du Grand livre trouvées par les habitants, temps passé sur l'île, habitants. Serveur :
 // pg_island_ranking() → [{ r_id, r_name, r_especes, r_heures, r_membres }] (lisible sans compte) ; sans lui, la liste des îles et « bientôt ».
 const PGR = { sort: 'r_especes', rows: [], srv: null };
@@ -13370,7 +13330,6 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 // retour d'Android : un B de la manette vient peut-être de faire la même chose (manette.js) → une seule fois
 window.JDW_BACK = () => (PADJ && PADJ.nativeBack()) ? true : jdwBack();
 function jdwBack() {
-  if (ILO.tl) { iloTlClose(); return true; }           // la bande-annonce d'ILO, par-dessus tout
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
   if (popCloseAll()) return true;
   if (PADP.open) { padPauseClose(true); return true; }

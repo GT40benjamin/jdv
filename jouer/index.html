@@ -3346,6 +3346,123 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 .pgv-isl.gl .pgv-ilecv{animation:pgvIleIn 1.2s ease}
 @keyframes pgvIleIn{from{opacity:0}to{opacity:1}}
 
+/* ===== L'UNIVERS D'ILO (« à venir ») : l'onglet tout à gauche, à côté de Pégase ; la page « Le Silence d'ILO » (espace profond, lave,
+   feux cyan du vaisseau) ; la bande-annonce par-dessus la page. has-ilo : l'onglet est montré (avec celui de Pégase, shell2.js) ===== */
+/* la barre du bas : ILO · Pégase · séparateur · Nos autres jeux · Classique · Duel · Coop ; ILO ouvert = comme Pégase ouvert */
+.modebar.has-pg.has-ilo{grid-template-columns:minmax(0,.62fr) minmax(0,.75fr) 10px minmax(0,0fr) repeat(3,minmax(0,1fr))}
+.modebar.has-pg.has-ilo.pg-open,.modebar.has-pg.has-ilo.ilo-open{grid-template-columns:minmax(0,.62fr) minmax(0,1fr) 10px minmax(0,1.18fr) repeat(3,minmax(0,0fr))}
+.modebar.has-pg.ilo-open button[data-mode="classique"],.modebar.has-pg.ilo-open button[data-mode="duel"],.modebar.has-pg.ilo-open button[data-mode="coop"]{opacity:0;pointer-events:none;padding:0;overflow:hidden}
+.modebar.has-pg.ilo-open button[data-mode="arcade"]{opacity:1;pointer-events:auto;padding:5px 2px 4px;overflow:visible}
+.modebar button[data-mode="ilo"]{--mc:#5ef0ff}
+.modebar button[data-mode="ilo"] .mb-ic{background:linear-gradient(160deg,rgba(94,240,255,.16),rgba(255,106,26,.18))}
+.modebar.has-pg.has-ilo:not(.ilo-open) button[data-mode="ilo"] .mb-ic{width:40px}
+#jdw-ilo-badge{left:50%;right:auto;top:-5px;margin-left:0;transform:translateX(-50%);background:linear-gradient(90deg,#ffb347,#ff6a1a);color:#1a0800;box-shadow:0 0 10px rgba(255,106,26,.5)}
+#jdw-lib[data-mode="pegase"] .modebar #jdw-ilo-badge{display:block !important}   /* « à venir » se voit aussi depuis Pégase (ses autres badges restent cachés) */
+#jdw-lib[data-mode="ilo"] .modebar .mb-soon:not(#jdw-ilo-badge){display:none !important}
+/* le fond : l'espace profond (étoiles, lueurs de la lave et des feux cyan du vaisseau), sans vidéo : la bande-annonce est DANS la page, dans
+   son cadre (27/10, Benjamin : « on ne l'agrandit pas, en boucle, ancrée dans la page, à côté d'un petit texte ») */
+.ilo-bg{position:fixed;inset:0;z-index:0;pointer-events:none;display:none;
+  background:radial-gradient(60% 55% at 6% 100%,rgba(255,106,26,.16),transparent 70%),radial-gradient(50% 50% at 96% 4%,rgba(94,240,255,.12),transparent 70%),
+    radial-gradient(45% 45% at 60% 60%,rgba(110,60,255,.1),transparent 72%),#05060f}
+.ilo-bg::before,.ilo-bg::after{content:'';position:absolute;inset:0}
+.ilo-bg::before{opacity:.75;background:radial-gradient(1.4px 1.4px at 24px 38px,#fff,transparent),radial-gradient(1px 1px at 142px 96px,rgba(255,255,255,.8),transparent),
+  radial-gradient(1.6px 1.6px at 232px 168px,rgba(94,240,255,.95),transparent),radial-gradient(1px 1px at 70px 214px,rgba(255,190,140,.85),transparent),
+  radial-gradient(1.2px 1.2px at 288px 52px,#fff,transparent),radial-gradient(1px 1px at 190px 252px,rgba(255,255,255,.6),transparent);background-size:310px 270px}
+.ilo-bg::after{opacity:.5;background:radial-gradient(1.8px 1.8px at 60px 120px,#fff,transparent),radial-gradient(1.3px 1.3px at 330px 40px,rgba(255,179,71,.9),transparent),
+  radial-gradient(1.5px 1.5px at 420px 300px,rgba(94,240,255,.9),transparent);background-size:470px 410px;animation:iloTwinkle 5s ease-in-out infinite alternate}
+@keyframes iloTwinkle{from{opacity:.15}to{opacity:.65}}
+#jdw-lib[data-mode="ilo"] .ilo-bg{display:block}
+#jdw-lib[data-mode="ilo"]{background:#05060f}
+#jdw-lib[data-mode="ilo"] .lib-wrap{position:relative;z-index:1;min-height:100%;align-content:center;gap:14px;padding-top:64px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 104px)}
+#jdw-lib[data-mode="ilo"] .mode-hero{display:none}
+#jdw-lib[data-mode="ilo"] .lib-wrap{max-width:1180px}   /* la bande-annonce plus large que la grille des jeux (900 px), sans être agrandie */
+#jdw-lib[data-mode="ilo"] #jdw-page-ilo{display:grid}
+#jdw-page-ilo{justify-items:center;justify-self:center;width:min(1180px,100%);gap:clamp(8px,1.6vh,14px);text-align:center;padding:0 4px clamp(4px,1.5vh,16px)}
+/* la barre du haut : quelques icônes rondes dans le coin, comme sur Pégase (🏠 · ta tête · 🔔 · ♪) */
+#jdw-lib[data-mode="ilo"] #jdw-online,#jdw-lib[data-mode="ilo"] #jdw-chat-btn,#jdw-lib[data-mode="ilo"] #jdw-open-board,#jdw-lib[data-mode="ilo"] #jdw-open-settings,#jdw-lib[data-mode="ilo"] #jdw-me-name,#jdw-lib[data-mode="ilo"] #jdw-share-btn,#jdw-lib[data-mode="ilo"] .room-row{display:none !important}
+#jdw-lib[data-mode="ilo"] #jdw-pg-music{display:inline-grid}
+#jdw-lib[data-mode="ilo"] .home-bar{position:fixed;top:10px;right:10px;left:auto;z-index:8;margin:0;padding:0;gap:6px;border:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;justify-content:flex-end;opacity:.7;transition:opacity .3s}
+#jdw-lib[data-mode="ilo"] .home-bar .bar-sp{display:none}
+#jdw-lib[data-mode="ilo"] .home-bar:hover,#jdw-lib[data-mode="ilo"] .home-bar:focus-within{opacity:1}
+@media (hover:none){#jdw-lib[data-mode="ilo"] .home-bar{opacity:.85}}
+#jdw-lib[data-mode="ilo"] .home-bar .icon-btn,#jdw-lib[data-mode="ilo"] .me-chip{width:34px;height:34px;min-width:34px;padding:0;justify-content:center;border-radius:50%;border:1px solid rgba(94,240,255,.28);background:rgba(5,6,15,.45);color:#dffcff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#jdw-lib[data-mode="ilo"] .home-bar .icon-btn svg{width:17px;height:17px}
+#jdw-lib[data-mode="ilo"] .me-chip .avatar{width:26px;height:26px}
+#jdw-lib[data-mode="ilo"] .home-bar .badge{transform:scale(.8)}
+/* les bandeaux (invité, compte, réseau) : sous le texte, en verre sombre */
+#jdw-lib[data-mode="ilo"] .guest-bar,#jdw-lib[data-mode="ilo"] .acct-bar{order:20}
+#jdw-lib[data-mode="ilo"] .guest-bar,#jdw-lib[data-mode="ilo"] .acct-bar,#jdw-lib[data-mode="ilo"] .net-bar{width:min(620px,100%);justify-self:center;background:rgba(5,6,15,.66);border-color:rgba(94,240,255,.2);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#jdw-lib[data-mode="ilo"] .guest-bar .gb-tx span{display:none}
+#jdw-lib[data-mode="ilo"] .guest-bar .gb-btns .btn{min-height:32px;padding:6px 12px;font-size:11.5px}
+@media (min-width:601px){#jdw-lib[data-mode="ilo"] .guest-bar{grid-template-columns:auto minmax(0,1fr) auto;padding:8px 10px;gap:10px;border-radius:14px}#jdw-lib[data-mode="ilo"] .guest-bar .gb-btns{grid-column:auto;flex-wrap:nowrap}}
+/* « Elixir Game Studio présente », le titre, la bande-annonce dans son cadre et, à côté, le petit texte */
+.ilo-kick{margin:0;font:600 clamp(11px,1.3vw,13px)/1 var(--body);letter-spacing:.42em;padding-left:.42em;text-transform:uppercase;color:#ffcf99;
+  text-shadow:0 0 12px rgba(255,140,40,.6),0 2px 6px rgba(0,0,0,.9)}
+.ilo-soon{display:inline-flex;align-items:center;gap:7px;padding:6px 12px 5px;border-radius:999px;font:400 11.5px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:#1a0800;
+  background:linear-gradient(90deg,#ffb347,#ff6a1a);box-shadow:0 0 22px rgba(255,106,26,.55),inset 0 1px 0 rgba(255,255,255,.45)}
+.ilo-soon::before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;animation:iloBlink 1.6s ease-in-out infinite}
+@keyframes iloBlink{50%{opacity:.25}}
+.ilo-title{margin:0;display:grid;justify-items:center;font-weight:400;line-height:1}
+.ilo-title .it1{font:600 clamp(13px,2.2vw,19px)/1 var(--body);letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;color:#c9fbff;text-shadow:0 0 14px rgba(94,240,255,.75),0 2px 6px rgba(0,0,0,.9)}
+.ilo-title .it2{margin-top:.06em;font:400 clamp(48px,min(11vw,13vh),118px)/.92 var(--display);letter-spacing:.1em;padding-left:.1em;
+  background:linear-gradient(180deg,#ffffff 0%,#e4fdff 32%,#5ef0ff 64%,#1f6dff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px rgba(94,240,255,.45)) drop-shadow(0 5px 0 rgba(0,0,0,.4)) drop-shadow(0 10px 40px rgba(255,106,26,.4))}
+.ilo-duo{display:grid;gap:clamp(14px,2.4vw,34px);width:100%;margin-top:clamp(4px,1.2vh,12px);align-items:center;text-align:left}
+@media (min-width:900px) and (min-aspect-ratio:1/1){.ilo-duo{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}}
+.ilo-film{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:16px;background:#000 center/cover no-repeat;
+  box-shadow:0 0 0 1px rgba(94,240,255,.34),0 0 50px -10px rgba(255,106,26,.5),0 0 90px -30px rgba(94,240,255,.35),0 30px 70px -24px rgba(0,0,0,.9)}
+.ilo-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease}
+.ilo-video.on{opacity:1}
+.ilo-filmed{position:absolute;left:12px;top:12px;padding:4px 9px 3px;border-left:2px solid #5ef0ff;font:600 10.5px/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;
+  color:#dffcff;background:rgba(5,6,15,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.ilo-wait{position:absolute;left:0;right:0;bottom:0;display:none;padding:26px 16px 16px;text-align:center;font:400 clamp(14px,1.8vw,19px)/1.3 var(--display);color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,.95);background:linear-gradient(180deg,transparent,rgba(5,6,15,.88))}
+.ilo-film.absent .ilo-wait{display:block}
+.ilo-son{position:absolute;right:12px;bottom:12px;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 14px 0 10px;border:0;border-radius:999px;cursor:pointer;
+  font:600 12.5px/1 var(--body);letter-spacing:.06em;color:#fff;background:rgba(5,6,15,.62);box-shadow:inset 0 0 0 1px rgba(94,240,255,.45);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .2s,color .2s}
+.ilo-son[hidden]{display:none}
+.ilo-son .ic{font-size:15px}
+.ilo-son:hover,.ilo-son:focus-visible{background:#ff6a1a;color:#1a0800}
+.ilo-son[aria-pressed="true"]{box-shadow:inset 0 0 0 1px #ffb347,0 0 18px rgba(255,106,26,.45)}
+.ilo-side{display:grid;justify-items:start;gap:12px}
+.ilo-txt{margin:0;max-width:30em;font:600 clamp(14px,1.5vw,17px)/1.5 var(--body);color:#eef8ff;text-shadow:0 1px 3px rgba(0,0,0,.95)}
+.ilo-txt .nw{white-space:nowrap}
+.ilo-chips{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.ilo-chips li{padding:7px 12px 6px;border-radius:999px;font:600 12.5px/1.2 var(--body);color:#dffcff;background:rgba(94,240,255,.08);box-shadow:inset 0 0 0 1px rgba(94,240,255,.28)}
+@media (max-width:899px),(max-aspect-ratio:1/1){.ilo-duo{text-align:center}.ilo-side{justify-items:center}.ilo-chips{justify-content:center}}
+/* la barre du bas sur la page ILO : flottante, en verre sombre (comme sur Pégase) */
+#jdw-lib[data-mode="ilo"] .modebar{left:50%;right:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);width:min(540px,calc(100vw - 24px));padding:7px;border-radius:22px;
+  border:1px solid rgba(94,240,255,.22);background:rgba(5,6,15,.74);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 12px 34px rgba(0,0,0,.45),0 0 26px rgba(94,240,255,.07)}
+#jdw-lib[data-mode="ilo"] .modebar button{min-height:52px}
+#jdw-lib[data-mode="ilo"] .modebar button[aria-current="page"] .mb-t{color:#5ef0ff}
+@media (max-width:600px){
+  #jdw-lib[data-mode="ilo"] .lib-wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 74px)}
+  #jdw-lib[data-mode="ilo"] .modebar{bottom:calc(env(safe-area-inset-bottom,0px) + 10px);width:min(360px,calc(100vw - 24px));padding:3px;border-radius:999px}
+  #jdw-lib[data-mode="ilo"] .modebar button{min-height:40px;grid-auto-flow:column;justify-content:center;align-items:center;gap:6px;border-radius:999px;font-size:12px}
+  #jdw-lib[data-mode="ilo"] .modebar .mb-ic{width:30px;height:24px;border-radius:12px;font-size:16px}
+  #jdw-lib[data-mode="pegase"] .modebar.has-ilo{width:min(360px,calc(100vw - 24px))}   /* une pilule de plus : un peu plus large */
+  #jdw-lib[data-mode="pegase"] .modebar.has-ilo button[data-mode="ilo"] .mb-ic{width:30px}
+  #jdw-lib[data-mode="pegase"] .modebar #jdw-ilo-badge,#jdw-lib[data-mode="ilo"] .modebar #jdw-ilo-badge{top:-9px;padding:2px 6px 1px}
+  #jdw-lib[data-mode="ilo"] .home-bar{top:8px;right:8px;gap:5px}
+  #jdw-lib[data-mode="ilo"] .home-bar .icon-btn,#jdw-lib[data-mode="ilo"] .me-chip{width:32px;height:32px;min-width:32px}
+}
+/* écran bas (téléphone couché) : tout tient au-dessus de la barre du bas */
+@media (max-height:520px){
+  #jdw-lib[data-mode="ilo"] .lib-wrap{padding-top:44px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
+  #jdw-page-ilo{gap:6px}
+  #jdw-page-ilo .ilo-kick{display:none}
+  .ilo-title .it2{font-size:clamp(40px,14vh,80px)}
+  .ilo-film{justify-self:center;width:min(100%,calc((100vh - 236px) * 16 / 9));width:min(100%,calc((100dvh - 236px) * 16 / 9))}   /* tout au-dessus de la barre du bas */
+  .ilo-duo{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);text-align:left}
+  .ilo-side{justify-items:start}
+  .ilo-chips{justify-content:flex-start}
+  .ilo-txt{font-size:13.5px}
+  .ilo-chips li{font-size:11.5px;padding:5px 10px 4px}
+  #jdw-lib[data-mode="ilo"] .modebar button{min-height:44px}
+}
+@media (prefers-reduced-motion:reduce){.ilo-soon::before,.ilo-bg::after{animation:none}.ilo-video{transition:none}}
+
 /* ---------- éditeur de tête : aperçu, onglets d'accessoires, grille de miniatures (accessoires.js) ---------- */
 #jdw-photo .ph-card{overflow:clip}                      /* « clip » (pas « hidden ») : l'aperçu reste collé en haut pendant qu'on fait défiler */
 .ph-cols{display:grid;gap:14px;min-width:0}
@@ -3544,6 +3661,7 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
   </div>
   <div class="pg-poster" id="jdw-pg-poster" aria-hidden="true"></div>
   <video class="pg-video" id="jdw-pg-video" muted playsinline preload="none" disablepictureinpicture aria-hidden="true"></video><video class="pg-video off" id="jdw-pg-video2" muted playsinline preload="none" disablepictureinpicture aria-hidden="true"></video><div class="pg-veil" aria-hidden="true"></div>
+  <div class="ilo-bg" id="jdw-ilo-bg" aria-hidden="true"></div>
   <div class="lib-wrap">
     <div class="room-row" id="jdw-roomrow" hidden>
     <button class="room-bar" id="jdw-roombar" type="button">
@@ -3665,11 +3783,29 @@ body.jdw-pad[data-padk="nin"] .tile-wrap:has(> .tile.jdw-padfocus) .tile-map::be
       <button class="pg-create" id="jdw-pg-create" type="button"><b>＋ Créer mon île</b><small>Publique ou avec mot de passe · tu en es le gardien</small></button>
       <p class="pg-note" id="jdw-pg-note"></p>
     </section>
+    <section class="mode-page" id="jdw-page-ilo" aria-labelledby="jdw-ilo-t">
+      <p class="ilo-kick">Elixir Game Studio présente</p>
+      <h2 class="ilo-title" id="jdw-ilo-t" aria-label="Le Silence d’ILO"><span class="it1">Le Silence d’</span><span class="it2">ILO</span></h2>
+      <div class="ilo-duo">
+        <div class="ilo-film" id="jdw-ilo-film">
+          <video class="ilo-video" id="jdw-ilo-video" muted loop playsinline preload="none" disablepictureinpicture disableremoteplayback aria-label="La bande-annonce du Silence d’ILO, filmée dans le jeu"></video>
+          <span class="ilo-filmed" aria-hidden="true">Filmé dans le jeu</span>
+          <span class="ilo-wait">La bande-annonce arrive très bientôt.</span>
+          <button class="ilo-son" id="jdw-ilo-son" type="button" aria-pressed="false" hidden><span class="ic" aria-hidden="true">🔇</span><span class="tx">Le son</span></button>
+        </div>
+        <div class="ilo-side">
+          <span class="ilo-soon">En production</span>
+          <p class="ilo-txt">Un monde ouvert dans l’espace, et toute la liberté de l’explorer&nbsp;: pilote ton vaisseau de planète en planète. De l’action, des combats… et des mystères à percer.</p>
+          <ul class="ilo-chips"><li>🌌 Monde ouvert dans l’espace</li><li>🚀 Liberté totale</li><li>⚔️ Action et combats</li><li>💻 Sur PC</li></ul>
+        </div>
+      </div>
+    </section>
     <section class="grid" id="jdw-grid" aria-label="Jeux"></section>
     <p class="lib-note" id="jdw-note"></p>
   </div>
   <div class="pgv" id="jdw-pgv"></div>
   <nav class="modebar" id="jdw-modes" aria-label="Modes de jeu" data-pad-skip>
+    <button type="button" data-mode="ilo" hidden><span class="mb-ic">🌌</span><span class="mb-t">ILO</span><span class="mb-soon" id="jdw-ilo-badge">à venir</span></button>
     <button type="button" data-mode="pegase" hidden><span class="mb-ic">🏝️</span><span class="mb-t">Pégase</span><span class="mb-soon" id="jdw-pg-badge" hidden></span></button><span class="mb-sep" aria-hidden="true" hidden></span>
     <button type="button" data-mode="arcade" hidden><span class="mb-ic">🕹️</span><span class="mb-t">Nos autres jeux</span><span class="mb-soon" id="jdw-arc-badge" hidden></span></button>
     <button type="button" data-mode="classique"><span class="mb-ic">🕹️</span><span class="mb-t">Classique</span><span class="mb-soon new" id="jdw-cls-badge" hidden>nouveau</span></button>
@@ -105570,6 +105706,7 @@ if (PADJ) {
     defaultFocus: (layer, list) => {
       const pick = (...ids) => { for (const id of ids) { const e = $(id); if (e && list.includes(e)) return e; } return null; };
       if (!layer) {
+        if (!$('jdw-lib').hidden && MODE === 'ilo') { const p = $('jdw-ilo-son'); if (p && list.includes(p)) return p; }   // page ILO : « Le son » de la bande-annonce
         if (!$('jdw-lib').hidden) { const grid = MODE === 'duel' ? $('jdw-duo-grid') : MODE === 'coop' ? $('jdw-coop-grid') : $('jdw-grid'); const t = list.find(e => grid && grid.contains(e) && e.classList.contains('tile')); if (t) return t; }
         return null;
       }
@@ -110493,6 +110630,7 @@ $('jdw-new-ok').addEventListener('click', async () => {
 /* ================= Onglets : Classique / Duel / Coop ================= */
 // le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
 const MODES = {
+  ilo: { ic: '🌌', t: 'ILO', sub: 'À venir · aventure spatiale 3D sur PC.' },   // l'autre jeu du studio, pas encore sorti (onglet à gauche de Pégase)
   pegase: { ic: '🏝️', t: 'Pégase', sub: 'Choisis ton île, rejoins tes copains.' },
   classique: null,
   duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain ou l\'IA.' },
@@ -110504,9 +110642,11 @@ function setMode(m, user) {
   if (m === 'arcade') m = (typeof PG !== 'undefined' && PG.last) || 'classique';   // « Nos autres jeux » : le dernier mode de la borne
   if (!(m in MODES)) m = 'classique';
   if (m === 'pegase' && document.querySelector('#jdw-modes [data-mode="pegase"]').hidden) m = 'classique';   // onglet Pégase : mode test seulement
-  if (m !== 'pegase' && typeof PG !== 'undefined') PG.last = m;
+  if (m === 'ilo' && document.querySelector('#jdw-modes [data-mode="ilo"]').hidden) m = 'classique';         // onglet ILO : montré avec celui de Pégase
+  if (m !== 'pegase' && m !== 'ilo' && typeof PG !== 'undefined') PG.last = m;   // « Nos autres jeux » revient au dernier mode de la borne
   if (m === 'pegase' && user) markGameSeen('pegase');   // l'onglet Pégase touché : son « ✨ Mis à jour » s'en va
   $('jdw-modes').classList.toggle('pg-open', m === 'pegase');
+  $('jdw-modes').classList.toggle('ilo-open', m === 'ilo');   // ILO ouvert : comme Pégase ouvert (Classique · Duel · Coop repliés)
   const changed = m !== MODE; MODE = m;
   try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}
   $('jdw-lib').dataset.mode = m;
@@ -110517,6 +110657,7 @@ function setMode(m, user) {
   if (m === 'coop') renderCoop();
   if (m === 'pegase') renderIsles();
   if (typeof pgSky === 'function') pgSky(m === 'pegase');
+  if (typeof iloSky === 'function') iloSky(m === 'ilo');
   if (m !== 'pegase') for (const o of document.querySelectorAll('.pi-panel.pi-over, .pi-who')) o.remove();
   if (changed && $('jdw-play').hidden && !MUS.override && MUS.want && MUS.want !== menuMusic() && (MUS.want === 'accueil' || MUS.want === 'pegase')) setMusic(menuMusic());   // entrer / sortir de Pégase : sa musique
   if (user && changed) {
@@ -110535,13 +110676,15 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
 const PG_TAB = !!gameById('pegase');   // pour tout le monde depuis le 25 oct. 2026 (avant : mode test seulement)
 if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
-const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
+const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' && MODE !== 'ilo' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
+  // ILO (« à venir ») : son onglet tout à gauche, à côté de Pégase (has-ilo : une colonne de plus dans la barre, shell2.css)
+  { const ib = document.querySelector('#jdw-modes [data-mode="ilo"]'); if (ib) { ib.hidden = false; $('jdw-modes').classList.add('has-ilo'); } }
   try { if (!sessionStorage.getItem('jdw.mode')) MODE = 'pegase'; } catch (e) {}   // la borne s'ouvre sur Pégase
-  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('borne')) MODE = PG.last; }   // lien partagé (?pegase, ?ile=<id>) ; ?borne (site du studio) : côté arcade
-  $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase');
+  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('ilo')) MODE = 'ilo'; else if (sp.has('borne')) MODE = PG.last; }   // lien partagé (?pegase, ?ile=<id>, ?ilo) ; ?borne (site du studio) : côté arcade
+  $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase'); $('jdw-modes').classList.toggle('ilo-open', MODE === 'ilo');
   // le badge de « Nos autres jeux » : le plus important de Classique / Duel / Coop (nouveau > mis à jour)
   const arcBadge = () => {
     const bs = ['jdw-cls-badge', 'jdw-duo-badge', 'jdw-coop-badge'].map(id => $(id)).filter(x => x && !x.hidden && x.classList.length > 1), bb = $('jdw-arc-badge');
@@ -111073,6 +111216,67 @@ function pgAmbi(on) {
   else if (PG.ambiOff) { removeEventListener('pointerdown', PG.ambiOff, { capture: true }); removeEventListener('keydown', PG.ambiOff, { capture: true }); PG.ambiOff = null; }
 }
 $('jdw-pg-ambi').addEventListener('click', (e) => { e.stopPropagation(); pgAmbi(true); });
+
+/* ================= L'UNIVERS D'ILO (en production) : l'onglet à gauche de Pégase, la page « Le Silence d'ILO » =================
+   ILO = l'autre jeu du studio (Unity, PC), en production : onglet montré avec celui de Pégase (PG_TAB), badge « à venir » ; ?ilo l'ouvre.
+   La page (27/10, Benjamin : « on ne l'agrandit pas, tu la mets en boucle, ancrée dans la page, à côté d'un petit texte ») : « Elixir Game
+   Studio présente », le titre, et la BANDE-ANNONCE en boucle dans son cadre, le texte à côté — muette au départ (un navigateur ne lance pas
+   seul une vidéo qui a du son) ; « Le son » la fait entendre, et la musique de la borne se tait pendant ce temps. Vidéos du seau R2
+   (PG_VID_BASE, le même que Pégase) : ilo_bande_annonce_<720|1080|1440|2160>.mp4 ; une qualité absente : la plus petite suivante ; aucune
+   (pas encore envoyées) : l'affiche du dépôt (assets/ilo/ilo_bande_annonce_poster.jpg) et « La bande-annonce arrive très bientôt. » ;
+   jamais de vidéo en économie de données, sur un réseau lent ni en mouvement réduit (l'affiche seule). */
+const ILO = { dead: false };
+const ILO_Q = [720, 1080, 1440, 2160];   // qualités envoyées sur le seau
+function iloStill() {   // affiche seule : économie de données, réseau lent, mouvement réduit
+  const C = navigator.connection || {};
+  return !!(C.saveData || /(^|-)2g$|^3g$/.test(C.effectiveType || '') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+}
+function iloMp4() { if (ILO.mp4 == null) { try { const t = document.createElement('video'); ILO.mp4 = !!(t.canPlayType && t.canPlayType('video/mp4; codecs="avc1.640028"')); } catch (e) { ILO.mp4 = false; } } return ILO.mp4; }
+// la qualité : la largeur du cadre × la densité de l'écran (la vidéo n'est jamais agrandie : 1440 au plus) ; données mobiles : 720
+function iloQual() {
+  const f = $('jdw-ilo-film'), px = (f && f.clientWidth ? f.clientWidth : innerWidth) * Math.min(window.devicePixelRatio || 1, 3);
+  return (navigator.connection || {}).type === 'cellular' ? 720 : px > 1500 ? 1440 : px > 800 ? 1080 : 720;
+}
+// <source> de la qualité visée, puis des plus petites : le navigateur joue la première qui existe sur le seau ; rend la dernière (« error » = aucune)
+function iloSources(v, name, list, want) {
+  while (v.firstChild) v.removeChild(v.firstChild);
+  let last = null;
+  for (const q of list.filter(x => x <= want).sort((a, b) => b - a)) { last = document.createElement('source'); last.src = PG_VID_BASE + name + q + '.mp4'; last.type = 'video/mp4'; v.appendChild(last); }
+  return last;
+}
+function iloSon(on) {   // le son de la bande-annonce ; la musique de la borne se tait tant qu'on l'entend
+  const v = $('jdw-ilo-video'), b = $('jdw-ilo-son'); if (!v || !b) return;
+  v.muted = !on; b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.querySelector('.ic').textContent = on ? '🔊' : '🔇'; b.querySelector('.tx').textContent = on ? 'Couper le son' : 'Le son';
+  musicHush(!!on && !v.paused);
+}
+function iloSoon() {   // pas (encore) sur le seau, ou illisible ici : l'affiche reste, avec « La bande-annonce arrive très bientôt. »
+  ILO.dead = true;
+  const v = $('jdw-ilo-video'); while (v.firstChild) v.removeChild(v.firstChild); try { v.load(); } catch (e) {}
+  v.classList.remove('on'); $('jdw-ilo-film').classList.add('absent'); $('jdw-ilo-son').hidden = true; iloSon(false);
+}
+function iloFilm(on) {
+  const v = $('jdw-ilo-video'), f = $('jdw-ilo-film'); if (!v || !f) return;
+  if (!on) { try { v.pause(); } catch (e) {} iloSon(false); return; }   // page quittée, partie ouverte, onglet caché : en pause, et muette
+  const u = ROOT + 'assets/ilo/ilo_bande_annonce_poster.jpg';
+  if (f.dataset.u !== u) { f.dataset.u = u; f.style.backgroundImage = 'url("' + u + '")'; }   // l'affiche d'abord (et en secours)
+  if (ILO.dead) return;
+  if (!PG_VID_BASE || !iloMp4()) { iloSoon(); return; }
+  if (iloStill()) return;   // l'affiche seule
+  if (!v.firstElementChild) { iloSources(v, 'ilo_bande_annonce_', ILO_Q, iloQual()).addEventListener('error', iloSoon, { once: true }); v.load(); }
+  if (!document.hidden && !$('jdw-lib').hidden) v.play().catch(() => {}); else try { v.pause(); } catch (e) {}
+}
+function iloSky(on) { iloFilm(!!on); }   // appelé par setMode
+{
+  const v = $('jdw-ilo-video');
+  v.addEventListener('playing', () => { v.classList.add('on'); $('jdw-ilo-son').hidden = false; if (!v.muted) musicHush(true); });   // la vidéo arrive en fondu sur l'affiche
+  v.addEventListener('pause', () => musicHush(false));
+  v.addEventListener('error', () => { if (!ILO.dead) iloSoon(); });
+  $('jdw-ilo-son').addEventListener('click', () => { iloSon(v.muted); if (v.paused && !ILO.dead) v.play().catch(() => {}); });
+}
+document.addEventListener('visibilitychange', () => { if (MODE === 'ilo') iloFilm(!document.hidden); });
+// une partie qui s'ouvre (la page est cachée) : la bande-annonce se met en pause ; au retour, elle repart (muette)
+if (window.MutationObserver) new MutationObserver(() => { if (MODE === 'ilo') iloFilm(!$('jdw-lib').hidden); }).observe($('jdw-lib'), { attributes: true, attributeFilter: ['hidden'] });
 // 🏆 le CLASSEMENT DES ÎLES : espèces du Grand livre trouvées par les habitants, temps passé sur l'île, habitants. Serveur :
 // pg_island_ranking() → [{ r_id, r_name, r_especes, r_heures, r_membres }] (lisible sans compte) ; sans lui, la liste des îles et « bientôt ».
 const PGR = { sort: 'r_especes', rows: [], srv: null };
