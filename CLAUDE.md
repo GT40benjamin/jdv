@@ -538,6 +538,10 @@ hub.js, et a/ b/ c/ d/ e/ par groupe de jeux).
 pas besoin de ffmpeg) → EMBALLÉ (clé source/asset-key.txt) → `assets/music/<id>.bin` (même sel pour tous : `source/music-salt.hex`). `d<duel>-<n>` / `d<duel>-x<n>`
 (énergique, à la balle de match), `dscores-<n>` (écran des résultats), `sting-<nom>` (jingles : win, podium, point, go, match…).
 build2.py liste les .bin dans window.JDW_MUSIC_ENC et injecte window.JDW_ASSET_KEY ; shell2.js les déballe (decryptBin) ; sting(name) joue un jingle.
+1.41.4 (27 oct. 2026, choix de Benjamin) : `accueil-4` Playful, `accueil-5` Funky Bass, `accueil-6` Country Title Loop (un .bin `<jeu>-<n>` entre seul dans
+la rotation ; `LOUD` de pack-music.js = volume visé + limiteur doux, l'accueil est vers -14 à -17 dBFS) et `magicfin-1` Lighthearted LOOP LONG = la grande
+victoire de Magic Force (`api.music('magicfin')` dans finale(), part `v24/parts/p7e-worlds.js` de l'atelier). « Pizz Menu » : réservé à un futur casse-tête.
+Tests : `~/jdv-tools/partage/test-musiques.js` (volume, emballage), `test-musiques-accueil.js` (rotation), `duotest/magic/tools/finale-musique.js` (DV=v24, serveur 8800).
 
 magicv1 retiré le 18 oct.
 

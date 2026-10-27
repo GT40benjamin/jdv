@@ -22,7 +22,7 @@ const TILE_NEWS = {
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'new', at: '2026-10-27 12:00' },   // Turbo Chrono (Classique, course 3D contre les fantômes des copains, en essai derrière la porte labo ; heure = celle de la publication)
-  neon: { kind: 'maj', at: '2026-10-27 00:31' },   // Néon Rush 1.40 : chantier « La folie » (moteur v2 : vitesse, gravité, miroir, onde, soucoupe, araignée, mini ; niveau 1 refait ; victoire finale) ; heure = celle de la publication
+  neon: { kind: 'maj', at: '2026-10-27 01:12' },   // Néon Rush 1.41.3 : niveau 3 refait (chantier « La folie » : usine, orage, data center, réacteur ; soucoupe, miroir, orbes bleues, ×2) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
@@ -4090,7 +4090,19 @@ async function oaUnlink(uid, b) {
    déconnectés) ou LIBÉRER le joueur (famille_liberer : le compte est à lui, son Google ou pseudo + le code donné). Un compte de famille
    (sessOf(uid).fam) ne voit que ses joueurs et n'en crée pas d'autre. */
 const FAM = { uid: '', rows: [], kids: [], pick: new Set(), busy: false };
-const FAM_HASH = (() => {                     // …/jouer/#acces=LOUIS:K7Q29MXA3F,L%C3%89ONIE:3HG7… : lu au chargement puis retiré
+// …/jouer/#acces=LOUIS:K7Q29MXA3F,L%C3%89ONIE:3HG7… : lu au chargement (ou quand la borne déjà ouverte reçoit le lien : hashchange),
+// retiré de l'adresse, gardé pour la séance jusqu'à la fin des connexions (un rechargement de mise à jour ne le perd pas)
+const FAM_HASH = (() => {
+  const l = famHashRead();
+  if (l) { try { sessionStorage.setItem('jdw.acces', JSON.stringify(l)); } catch (e) {} return l; }
+  try { const s = JSON.parse(sessionStorage.getItem('jdw.acces') || 'null'); return Array.isArray(s) && s.length ? s : null; } catch (e) { return null; }
+})();
+addEventListener('hashchange', () => {
+  const l = famHashRead(); if (!l) return;
+  try { sessionStorage.setItem('jdw.acces', JSON.stringify(l)); } catch (e) {}
+  if (ACCT.ready) famArrive(l); else acctProbe().then(() => famArrive(l));
+});
+function famHashRead() {
   const h = String(location.hash || ''), m = h.match(/(?:^#|&)acces=([^&]+)/);
   if (!m) return null;
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
@@ -4102,9 +4114,10 @@ const FAM_HASH = (() => {                     // …/jouer/#acces=LOUIS:K7Q29MXA
     if (n.length >= 2 && c && !out.some(x => x.n === n)) out.push({ n, c });
   }
   return out.length ? out.slice(0, 12) : null;
-})();
+}
 // lien ouvert sur l'autre téléphone : chaque joueur se connecte avec son code et arrive sur l'appareil (le 1er de la liste devient le joueur actuel)
 async function famArrive(list) {
+  if (FAM.arriving) return; FAM.arriving = true;
   const ok = [], bad = [];
   for (const it of list.slice().reverse()) {
     try {
@@ -4114,6 +4127,8 @@ async function famArrive(list) {
       acctUse(res, L.s); ok.unshift(res.name);
     } catch (e) { bad.unshift({ it, e }); }
   }
+  FAM.arriving = false;
+  try { sessionStorage.removeItem('jdw.acces'); } catch (e) {}
   if (ok.length) setTimeout(() => toastCheer(ok.join(' et ') + (ok.length > 1 ? ' sont' : ' est') + ' sur ce téléphone !', ok[0], true), 300);
   if (bad.length) {
     const b = bad[0];

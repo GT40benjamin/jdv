@@ -17,8 +17,15 @@ const LOOPS = {
   'dguerre-1': 'Locations/Remote Island - Main Loop.wav', 'dguerre-2': 'Locations/Western OUTSIDE LOOP.wav', 'dguerre-x1': 'Combat/Desperate Battle LOOP.wav',
   'dscores-1': 'Short Cues/Scores/Scores.wav', 'dscores-2': 'Titles/Casual/Playtime LOOP.wav',
   'dpingpong-1': 'Titles/Casual/Funky Bass.wav', 'dpingpong-2': 'Titles/Casual/Casual Title GUITAR LOOP.wav', 'dpingpong-x1': 'Titles/Casual/Chase MENU LOOP.wav',
-  'dkombat-1': 'Combat/Close Combat LOOP.wav', 'dkombat-2': 'Combat/Bandits LOOP.wav', 'dkombat-x1': 'Combat/Tense Combat LOOP.wav'
+  'dkombat-1': 'Combat/Close Combat LOOP.wav', 'dkombat-2': 'Combat/Bandits LOOP.wav', 'dkombat-x1': 'Combat/Tense Combat LOOP.wav',
+  // accueil-4 / -5 : musiques de l'accueil choisies par Benjamin (27 oct. 2026), entrent seules dans la rotation (accueil-2, -3, -x1)
+  'accueil-4': 'Platform/Playful LOOP.wav', 'accueil-5': 'Titles/Casual/Funky Bass.wav', 'accueil-6': 'Titles/Casual/Country Title Loop.wav',
+  // magicfin-1 : la grande victoire de Magic Force (api.music('magicfin') dans finale(), à la place d'un morceau de combat qui revenait)
+  'magicfin-1': 'Puzzles/Lighthearted LOOP LONG.wav'
 };
+// volume visé (efficace) par morceau, s'il doit sonner plus fort que 0,12 : l'accueil (ElevenLabs) est vers -14 à -17 dBFS ;
+// au-delà de la crête, un limiteur doux (pas de saturation dure). Les autres morceaux ne changent pas.
+const LOUD = { 'accueil-4': 0.16, 'accueil-5': 0.14, 'accueil-6': 0.16 };
 const STINGS = {
   'sting-win': 'Short Cues/Winning/Fanfare Win.wav', 'sting-win2': 'Short Cues/Winning/Casual Win 1.wav', 'sting-podium': 'Short Cues/Winning/Triumphant Victory.wav',
   'sting-lose': 'Short Cues/Losing/Casual Lose 1.wav', 'sting-point': 'Short Cues/Scales/Combo Hit 3.wav', 'sting-go': 'Short Cues/Quest SFX/Quest Start DRUMS BIG.wav',
@@ -49,7 +56,7 @@ const STINGS = {
   let total = 0;
   for (const [id, rel] of todo) {
     const sting = id.startsWith('sting-');
-    const res = await page.evaluate(async ({ url, sting }) => {
+    const res = await page.evaluate(async ({ url, sting, loud }) => {
       const ab = await (await fetch(url)).arrayBuffer();
       const buf = await new OfflineAudioContext(2, 1, 44100).decodeAudioData(ab);
       const n = buf.length, ch = [buf.getChannelData(0), buf.numberOfChannels > 1 ? buf.getChannelData(1) : buf.getChannelData(0)];
@@ -57,10 +64,12 @@ const STINGS = {
       let sum = 0, peak = 0;
       for (const c of ch) for (let i = 0; i < n; i++) { const v = c[i]; sum += v * v; const a = v < 0 ? -v : v; if (a > peak) peak = a; }
       const rms = Math.sqrt(sum / (2 * n)) || 1e-6;
-      const gain = Math.min((sting ? 0.16 : 0.12) / rms, 0.97 / (peak || 1));
+      const gain = loud ? loud / rms : Math.min((sting ? 0.16 : 0.12) / rms, 0.97 / (peak || 1));
+      // limiteur doux (seulement avec un volume visé) : linéaire sous 0,8, courbe tanh au-dessus, jamais plus de 0,97
+      const lim = loud ? v => { const a = v < 0 ? -v : v; if (a <= 0.8) return v; const y = 0.8 + 0.17 * Math.tanh((a - 0.8) / 0.17); return v < 0 ? -y : y; } : v => v;
       const fi = Math.min(n, 441), fo = Math.min(n, sting ? 2205 : 1323);
       const L = new Float32Array(n), R = new Float32Array(n);
-      for (let i = 0; i < n; i++) { let g = gain; if (i < fi) g *= i / fi; if (i > n - fo) g *= (n - i) / fo; L[i] = ch[0][i] * g; R[i] = ch[1][i] * g; }
+      for (let i = 0; i < n; i++) { let g = gain; if (i < fi) g *= i / fi; if (i > n - fo) g *= (n - i) / fo; L[i] = lim(ch[0][i] * g); R[i] = lim(ch[1][i] * g); }
       const parts = []; let err = null;
       const enc = new AudioEncoder({ output: c => { const a = new Uint8Array(c.byteLength); c.copyTo(a); parts.push(a); }, error: e => { err = e; } });
       enc.configure({ codec: 'mp4a.40.2', sampleRate: 44100, numberOfChannels: 2, bitrate: sting ? 128000 : 96000, aac: { format: 'adts' } });
@@ -76,7 +85,7 @@ const STINGS = {
       // vérification : le fichier AAC se relit
       const back = await new OfflineAudioContext(2, 1, 44100).decodeAudioData(all.buffer.slice(0));
       return { b64: btoa(Array.from(all, x => String.fromCharCode(x)).join('')), dur: buf.duration, back: back.duration, gain };
-    }, { url: '/wav?f=' + encodeURIComponent(rel), sting });
+    }, { url: '/wav?f=' + encodeURIComponent(rel), sting, loud: LOUD[id] || 0 });
     const aac = Buffer.from(res.b64, 'base64');
     const iv = webcrypto.getRandomValues(new Uint8Array(12));
     const ct = Buffer.from(await subtle.encrypt({ name: 'AES-GCM', iv }, key, aac));

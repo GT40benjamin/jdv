@@ -6130,7 +6130,8 @@ ${SEAF[kind] || SEAF.stars}
       heroFull('Cheer', { once: false, fade: 0.2 });
       sfx('victory', 0.9); sfx('treasure', 0.7, 1.1); celebrate('Tu as sauvé le royaume !');
       banner('LE ROYAUME EST SAUVÉ !', '', 'blue', 3.4);
-      try { if (typeof api.music === 'function') api.music(); } catch (e) { /* rien */ }
+      // sa propre musique (« Lighthearted », collection emballée magicfin-1 ; 1.41.4) : avant, un morceau de combat qui revenait
+      try { if (typeof api.music === 'function') api.music('magicfin'); } catch (e) { /* rien */ }
       // pluie d'or, feu d'artifice au-dessus de la salle du trône, rayons de lumière sur le mage
       const R0 = ROOMS[ROOMS.length - 1];
       FIN.rays = addStatic({ x: hero.x, y: 0.08, z: hero.z, s: 9, cell: 'rays', col: 0xffd36a, k: 1.6, mode: 1, a: 0.7, vr: 0.4, pulse: 1.5 });
