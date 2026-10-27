@@ -2,6 +2,13 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[chrono] ## 🪐 Turbo Chrono (borne 1.46.4) : le grand saut de L’Orbite
+[chrono] Après la ligne de L’Orbite, une rampe courbe quitte la route vers le vide : un vrai saut, sans coup de pouce, avec ralenti, tonneau et caméra qui tourne autour de la voiture
+[chrono] Assez vite : tu te poses sur l’astéroïde (pile au centre, c’est la fête). Un peu trop lent : tu t’écrases contre le rocher. Bien trop lent : le fond de l’univers…
+[chrono] Des astéroïdes flottent autour du rocher et le long de la piste : si tu sors de la route et que tu en touches un, tu exploses
+[chrono] Plus de points : sur la tuile, le roi est celui qui a le plus de médailles d’or
+[chrono] Quitter le jeu montre tout de suite « Tes positions » (plus de question « Quitter la partie ? »)
+[chrono] « Refaire » te remet bien sur la ligne de départ pendant 3, 2, 1
 [chrono] ## 🏆 Turbo Chrono (borne 1.46.2) : les anciens temps sont de retour
 [chrono] Les temps faits avant le nouveau départ comptent de nouveau dans les classements, et leurs fantômes roulent avec toi
 [chrono] ## 👻 Turbo Chrono (borne 1.46.1) : choisis ton fantôme

@@ -928,8 +928,32 @@ function chronoApi() {
 // Dans la borne : des POINTS n'ont aucun sens pour un contre-la-montre (Benjamin) → le Classement (onglet « Turbo Chrono ») montre les
 // TEMPS en colonnes, un circuit par colonne, et l'écran de fin montre « Tes positions » (mon temps, mon rang dans la salle et au monde).
 // Tout vient de chrono_board (un appel par circuit, les 4 en parallèle, 8 s au plus) ; ce que le serveur rend fait foi (version des fantômes comprise).
-// Les points du jeu partent toujours par add_score (onglet « Général », record de la tuile) : rien ne change pour eux.
-const CHRONO_TRACKS = [['stade', 'Le Stade'], ['huit', 'Le Grand Huit'], ['folie', 'La Folie'], ['orbite', 'L’Orbite']];
+// 1.46.3 : plus de points du tout (le jeu rend 0) ; la tuile montre le roi des médailles d'or (chronoKing).
+// [id, nom, temps de la médaille d'OR (ms), temps de l'AUTEUR (ms)] : mêmes seuils que le jeu (auteur × 1,07 arrondi au dixième au-dessus ;
+// à refaire si tools/auteur.mjs de l'atelier change les temps de l'auteur)
+const CHRONO_TRACKS = [['stade', 'Le Stade', 25400, 23678], ['huit', 'Le Grand Huit', 29900, 27856], ['folie', 'La Folie', 27600, 25704], ['orbite', 'L’Orbite', 32000, 29902]];
+// 1.46.3 (PATOU : « celui qui a le plus de médailles d'or est le roi sur la tuile ») : plus de points pour Turbo Chrono ; la tuile montre le
+// joueur qui a le plus de médailles d'or (l'auteur compte comme de l'or), puis le plus de médailles de l'auteur, puis le plus petit total
+// des temps. Salle si on en a une, sinon le monde.
+function chronoKing(d) {
+  if (!d) return null;
+  const P = new Map();
+  for (const [t, , gold, aut] of CHRONO_TRACKS) {
+    const b = d[t]; if (!b || b.err) continue;
+    for (const x of (room && !isGuest() ? b.room : b.world) || []) {
+      const k = x.key || x.name, o = P.get(k) || { name: x.name, key: k, golds: 0, auts: 0, sum: 0 };
+      if (x.ms <= gold) o.golds++; if (x.ms <= aut) o.auts++; o.sum += x.ms; P.set(k, o);
+    }
+  }
+  const L = [...P.values()].filter(o => o.golds > 0).sort((a, b) => b.golds - a.golds || b.auts - a.auts || a.sum - b.sum);
+  return L[0] || null;
+}
+const CHK = { at: 0 };
+function chronoKingNow() {   // le roi d'après les temps gardés ; relit le serveur au plus une fois par minute (la tuile se redessine à l'arrivée)
+  if (!gameById('chrono') || !ONLINE) return null;
+  if ((!chronoFresh() || Date.now() - CHB.at > 60000) && Date.now() - CHK.at > 60000) { CHK.at = Date.now(); chronoBoards().then(() => { refreshChamps(true); refreshOnline(); }, () => {}); }
+  return chronoKing(chronoFresh());
+}
 const chronoMs = ms => { ms = Math.max(0, Math.round(+ms || 0)); return Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0') + '.' + String(ms % 1000).padStart(3, '0'); };
 const chronoRank = i => (i + 1) + (i ? 'e' : 'er');
 const CHB = { at: 0, busy: null, data: null, who: '' };
@@ -2589,7 +2613,8 @@ function openBoardFor(gameId) {
 function refreshChamps(force) {
   const show = ONLINE && !!room && remoteLoaded;
   for (const t of tiles) {
-    const lead = show ? top(t.g.id)[0] : null, ch = t.champ; if (!ch) continue;
+    const king = t.g.id === 'chrono' ? (show ? chronoKingNow() : null) : undefined;
+    const lead = king !== undefined ? (king ? { name: king.name, score: king.golds } : null) : show ? top(t.g.id)[0] : null, ch = t.champ; if (!ch) continue;
     const lp = lead ? players.get(lead.name) || {} : {};
     const key = lead ? lead.name + ':' + lead.score + ':' + (lp.photo || '').length + ':' + (lp.topFrac || '') : '';
     if (ch.dataset.k === key && !force) continue;
@@ -2603,8 +2628,9 @@ function refreshChamps(force) {
     cr.style.top = crownTop + 'px';
     ch.style.top = Math.max(6, 4 - crownTop) + 'px';     // la bulle descend juste assez pour que la couronne reste dans la tuile
     ch.append(hd, cr);
-    ch.setAttribute('aria-label', 'Champion de la salle à ' + t.g.title + ' : ' + dispName(lead.name) + ', ' + fmt(lead.score) + unit(t.g) + '. Voir le classement de la salle');
-    ch.title = dispName(lead.name) + ' · ' + fmt(lead.score) + unit(t.g);
+    const what = king ? lead.score + (lead.score > 1 ? ' médailles d’or' : ' médaille d’or') : fmt(lead.score) + unit(t.g);
+    ch.setAttribute('aria-label', 'Champion de la salle à ' + t.g.title + ' : ' + dispName(lead.name) + ', ' + what + '. Voir le classement de la salle');
+    ch.title = dispName(lead.name) + ' · ' + what;
   }
 }
 function refreshOnline() {
@@ -2622,6 +2648,7 @@ function refreshOnline() {
     if (live) span.textContent = ps.length ? (ps.length === 1 && ps[0].name === cleanName(profile.name) ? 'Toi, sur un autre appareil' : tileName(ps[0].name) + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue') : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
     if (live && / joue$/.test(span.textContent)) { const v = document.createElement('em'); v.className = 'tile-verb'; v.textContent = ' joue'; span.textContent = span.textContent.slice(0, -5); span.appendChild(v); }   // « joue » s'efface sur téléphone à côté de 👁 + carte
     else if (t.g.noScore) span.textContent = 'À installer · PC et Android';   // Pégase (hub, pas de score) : pas de « Pas encore de record »
+    else if (t.g.id === 'chrono') { const k = chronoKingNow(); span.textContent = k ? '👑 ' + dispName(k.name) + ' · ' + k.golds + (k.golds > 1 ? ' médailles d’or' : ' médaille d’or') : 'Pas encore de médaille d’or'; }
     else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + dispName(b.name) : 'Pas encore de record'; }
     if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
   }
@@ -9036,7 +9063,7 @@ const QA = { open: false, coop: false, was: false };
 function quitInGame() {
   if ($('jdw-play').hidden || !current || waitRotate) return false;
   if (current.coop) return !COOP.over && $('jdw-coopend').hidden;
-  if (current.over || !current.inst || PAD_DOM.has(current.game.id) || current.game.noScore || current.game.saves) return false;   // partie gardée : rien ne se perd en quittant
+  if (current.over || !current.inst || PAD_DOM.has(current.game.id) || current.game.noScore || current.game.saves || current.game.id === 'chrono') return false;   // partie gardée (ou Turbo Chrono : temps gardés à chaque arrivée) : rien ne se perd en quittant
   return $('jdw-end').hidden;
 }
 function quitAsk() {
