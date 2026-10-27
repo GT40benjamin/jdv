@@ -2,7 +2,7 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
-[neon] ## 🗺️ Néon Rush (borne 1.46.3) : la carte, et là où tes copains sont morts
+[neon] ## 🗺️ Néon Rush (borne 1.46.5) : la carte, et là où tes copains sont morts
 [neon] Néon Rush a enfin sa carte d’avancement, comme les autres jeux : les 7 niveaux de la nuit synthwave, jusqu’à l’étoile de la grande victoire
 [neon] Sur la carte, chaque tête est posée PILE là où le joueur est mort dans son niveau : une tête de mort sur le chemin, et « 💀 63 % » sous sa tête
 [neon] Dans le jeu, les copains morts dans le niveau ont leur repère sur le parcours : un poteau, leur tête triste, leur nom et le pourcentage, une croix au sol. Ton record est en or. Ils sont aussi marqués sur la barre d’avancement en haut
