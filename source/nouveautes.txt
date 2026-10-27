@@ -13,6 +13,12 @@
 [borne] Trois nouvelles musiques à l’accueil de la borne, choisies par Benjamin : « Playful », « Funky Bass » et « Country Title ». Elles tournent avec les autres, au même volume
 [magic] ## 🎵 Magic Force : la musique de la victoire (borne 1.41.4)
 [magic] La grande victoire, après le Seigneur des ombres, a maintenant sa propre musique joyeuse, « Lighthearted », au lieu d’un morceau de combat déjà entendu dans les mondes
+[neon] ## 🌴 Néon Rush : niveau 4, Jungle Sauvage (borne 1.43.7)
+[neon] Un NOUVEAU niveau, sur la musique du Volcan de Smoothie Samouraï (gros tambours) : quatre mondes jamais vus, la Jungle Néon, le Temple Perdu, la Grande Cascade et la Forêt des Champignons
+[neon] Nouveau : l’ONDE ! Dans le temple, tiens pour monter en diagonale, lâche pour redescendre, et faufile-toi dans le couloir en zigzag
+[neon] Nouveau : les SCIES qui tournent, au sol et à moitié enfoncées dans les parois des couloirs
+[neon] Dans la cascade, vitesse ×1,4 sur le gros drop et une orbe bleue qui te fait courir au plafond
+[neon] Pour finir, l’onde MINI dans la forêt des champignons : toute petite, plus raide, dans un couloir serré
 [neon] ## ⚡ Néon Rush : niveau 3 refait, Surcharge (borne 1.41.3)
 [neon] Quatre nouveaux mondes : l’Usine Électrique (arcs électriques), le Cœur de l’Orage (un éclair de temps en temps), le Data Center (baies qui s’allument) et le Réacteur (une décharge fait le tour de l’anneau de plasma)
 [neon] Nouveau : la SOUCOUPE ! Chaque toucher donne un coup d’ailes pour traverser l’orage, et ça accélère sur le drop

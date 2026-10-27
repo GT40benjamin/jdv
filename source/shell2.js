@@ -23,7 +23,7 @@ const TILE_NEWS = {
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'new', at: '2026-10-27 01:46' },   // Turbo Chrono (Classique, course 3D contre les fantômes des copains, en essai derrière la porte labo ; heure = celle de la publication)
-  neon: { kind: 'maj', at: '2026-10-27 01:12' },   // Néon Rush 1.41.3 : niveau 3 refait (chantier « La folie » : usine, orage, data center, réacteur ; soucoupe, miroir, orbes bleues, ×2) ; heure = celle de la publication
+  neon: { kind: 'maj', at: '2026-10-27 08:45' },   // Néon Rush 1.43.7 : niveau 4 Jungle Sauvage (chantier « La folie » : jungle, temple, cascade, champignons ; onde, scies, onde mini) ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
