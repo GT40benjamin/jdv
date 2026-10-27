@@ -30,6 +30,11 @@
     { id: 'autoroute', name: 'Autoroute Rétro', sky: ['#04021a', '#1a0a46', '#5a1a7a'], acc: '#ff4a4a', acc2: '#ffd34d', ground: '#0a0316', sun: '#ff9a3a' },
     { id: 'crepuscule', name: 'Plage au Crépuscule', sky: ['#1a0630', '#7a1a5a', '#ff7a4a'], acc: '#ffb03a', acc2: '#ff5ab0', ground: '#1a0618', sun: '#ffd06a' },
     { id: 'tokyo', name: 'Tokyo Néon', sky: ['#05010f', '#1a0420', '#3a0a3a'], acc: '#ff3a8a', acc2: '#3ad8ff', ground: '#0a0210', sun: '#ff5a5a' },
+    // niveau 3 (Surcharge)
+    { id: 'usine', name: 'Usine Électrique', sky: ['#060606', '#1a1208', '#3a2408'], acc: '#ffb020', acc2: '#3ad8ff', ground: '#0c0804', sun: '#ffb020' },
+    { id: 'orage', name: 'Cœur de l’Orage', sky: ['#02030c', '#0a1430', '#1a2a5a'], acc: '#8ad8ff', acc2: '#e0ff4a', ground: '#04060e', sun: '#c8ecff' },
+    { id: 'datacenter', name: 'Data Center', sky: ['#000806', '#001a14', '#003a2a'], acc: '#3aff8a', acc2: '#3ad8ff', ground: '#000c08', sun: '#8affc8' },
+    { id: 'reacteur', name: 'Réacteur', sky: ['#080010', '#200030', '#4a0a5a'], acc: '#ff3aff', acc2: '#ffffff', ground: '#0c0014', sun: '#ff8aff' },
   ];
   const MODES = { cube: { name: 'Cube', col: '#5aff8a', tip: 'Touche pour sauter sur le temps' }, ship: { name: 'Vaisseau', col: '#ff5ad2', tip: 'Tiens le doigt pour monter' }, ball: { name: 'Boule', col: '#ffb03a', tip: 'Touche pour inverser la gravité' },
     ufo: { name: 'Soucoupe', col: '#c46aff', tip: 'Touche pour battre des ailes' }, wave: { name: 'Onde', col: '#3ad8ff', tip: 'Tiens pour monter, lâche pour descendre' }, spider: { name: 'Araignée', col: '#ff4a6a', tip: 'Touche pour sauter de l’autre côté' } };
@@ -55,7 +60,13 @@
       forms: true, parts: [['arcade', 'cube'], ['autoroute', 'ball'], ['crepuscule', 'ship', { mini: true }], ['tokyo', 'cube'], ['lave', 'ball']],
       script: [{ kind: 'orbs', beats: [20, 21, 22, 23, 24], ups: [0.8, -1.6, 1.4, -1.2] }, { kind: 'orbs', beats: [104, 105, 106, 107], ups: [1, -1.6, 1] }, { kind: 'orbs', beats: [121, 122, 123, 124], ups: [0.9, -1.8, 1] }],
       rate: 0.7, orbEvery: 2, orbSnare: 5, pink: true, speeds: [[45.80, 1.2], [64.03, 1.35]], flips: [[12.47, 16.02], [49.81, 53.37], [56.91, 60.48]] },
-    { track: 'neonrush-3', name: 'Surcharge', speed: 9.4, parts: [['lave', 'cube'], ['ocean', 'ball'], ['galaxie', 'ship'], ['cristal', 'cube']] },
+    // 27 oct. (chantier « La folie ») : 4 mondes neufs ; la SOUCOUPE dans l'orage (×1,5 sur le drop de 16,91 s), le MIROIR dans le data
+    // center (une chaîne d'orbes y passe), les ORBES BLEUES qui font basculer la gravité, puis VITESSE ×2 sur le drop de 60,02 s (réacteur)
+    { track: 'neonrush-3', name: 'Surcharge', speed: 9.4, cuts: [28, 56, 134], noSplit: true, forms: true,
+      parts: [['usine', 'cube'], ['orage', 'ufo'], ['datacenter', 'cube'], ['reacteur', 'cube']],
+      script: [{ kind: 'orbs', beats: [16, 17, 18, 19, 20], ups: [1, -1.6, 1.2, -1] }, { kind: 'orbs', beats: [80, 81, 82, 83], ups: [1.2, -1.8, 1] }, { kind: 'orbs', beats: [172, 173, 174, 175], ups: [0.8, -1.6, 1.2] }],
+      rate: 0.75, orbEvery: 2, orbSnare: 5, pink: true, speeds: [[16.91, 1.5], [25.36, 1.15], [60.02, 2]], mirror: [[30.70, 43.13]],
+      flips: [[46.70, 50.24, 'orb'], [53.80, 57.35, 'orb'], [66.25, 71.58], [80.47, 85.81]] },
   ];
   const themeOf = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
 
@@ -826,6 +837,242 @@
   };
 
   // ---------------------------------------------------------------------------
+  // USINE ÉLECTRIQUE (nuit) : ciel brumeux orangé, tours de refroidissement et cheminées (feux rouges), pylônes et câbles qui pendent,
+  // transformateurs à ailettes, isolateurs, tapis roulant, lampes jaunes de chantier ; étincelles orange qui tombent ;
+  // de temps en temps, UN arc électrique claque entre deux isolateurs (Wd.fire)
+  // ---------------------------------------------------------------------------
+  WORLDS.usine = (Wd, r, s) => {
+    const { W, H, GY, m } = Wd, yH = GY * 0.62;
+    s.fillStyle = lin(s, 0, 0, 0, yH, [0, '#04060f', 0.45, '#0e1426', 0.8, '#2a2030', 1, '#5a3424']); s.fillRect(0, 0, W, yH + 1);
+    stars(s, W, 0, yH * 0.35, 40, r, ['#ffffff', '#d0dcff']);
+    s.globalCompositeOperation = 'lighter'; for (let i = 0; i < 4; i++) putGlow(s, '#ff7a2a', W * (0.1 + i * 0.27 + r() * 0.08), yH, W * 0.22, 0.16, 1); s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1;
+    s.fillStyle = lin(s, 0, yH, 0, H, [0, '#1a1418', 0.5, '#0a080e', 1, '#030205']); s.fillRect(0, yH, W, H - yH);
+    // fumées (traînées douces qui partent vers la droite), peintes une fois
+    const stacks = [{ x: W * 0.16, w: m * 0.028, h: GY * 0.42 }, { x: W * 0.21, w: m * 0.022, h: GY * 0.36 }, { x: W * 0.71, w: m * 0.03, h: GY * 0.46 }];
+    const towers = [{ x: W * 0.4, w: m * 0.17, h: GY * 0.3 }, { x: W * 0.53, w: m * 0.15, h: GY * 0.26 }, { x: W * 0.92, w: m * 0.16, h: GY * 0.28 }];
+    mkLayer(Wd, 0, yH + 1, 0.012, (x) => {
+      for (const t of towers.concat(stacks)) { const top = yH - t.h; WRAP(W, t.x, W * 0.3, (cx) => { for (let i = 0; i < 9; i++) { const k = i / 8; x.globalAlpha = 0.09 * (1 - k * 0.6); x.fillStyle = i % 2 ? '#6a5a6a' : '#4a4058'; x.beginPath(); x.ellipse(cx + k * W * 0.16, top - t.w * 0.6 - k * GY * 0.12, t.w * (0.6 + k * 2.2), t.w * (0.4 + k * 0.9), -0.15, 0, TAU); x.fill(); } }); }
+      x.globalAlpha = 1;
+    });
+    // la centrale au loin : tours de refroidissement (évasées), cheminées rayées, bâtiments aux fenêtres
+    const bld = []; for (let px = 0; px < W;) { const w = W * (0.04 + r() * 0.07); bld.push({ x: px, w, h: GY * (0.05 + r() * 0.12) }); px += w; }
+    const plant = (x, lit) => {
+      for (const b of bld) WRAP(W, b.x + b.w / 2, b.w / 2, (c) => { const l = c - b.w / 2; if (!lit) { x.fillStyle = '#0d0a14'; x.fillRect(l, yH - b.h, b.w - 1, b.h + 1); } else { const rr = mulberry32(Math.round(b.x)); x.fillStyle = '#ffc06a'; for (let yy = yH - b.h + 4; yy < yH - 3; yy += 5) for (let xx = l + 3; xx < l + b.w - 4; xx += 6) if (rr() < 0.18) { x.globalAlpha = 0.4 + rr() * 0.5; x.fillRect(xx, yy, 2, 1.6); } x.globalAlpha = 1; } });
+      for (const t of towers) WRAP(W, t.x, t.w, (c) => { const top = yH - t.h; if (!lit) { x.fillStyle = lin(x, c - t.w / 2, 0, c + t.w / 2, 0, [0, '#1a1622', 0.4, '#2a2434', 1, '#0e0c16']); x.beginPath(); x.moveTo(c - t.w * 0.5, yH + 1); x.quadraticCurveTo(c - t.w * 0.22, top + t.h * 0.45, c - t.w * 0.32, top); x.lineTo(c + t.w * 0.32, top); x.quadraticCurveTo(c + t.w * 0.22, top + t.h * 0.45, c + t.w * 0.5, yH + 1); x.closePath(); x.fill(); x.strokeStyle = 'rgba(255,140,60,0.18)'; x.lineWidth = 1; x.stroke(); } else { x.fillStyle = 'rgba(255,150,70,0.35)'; x.fillRect(c - t.w * 0.33, top - 1, t.w * 0.66, 2); } });
+      for (const t of stacks) WRAP(W, t.x, t.w, (c) => { const top = yH - t.h; if (!lit) { x.fillStyle = '#16121c'; x.fillRect(c - t.w / 2, top, t.w, t.h + 1); x.fillStyle = 'rgba(200,60,60,0.35)'; for (let k = 0; k < 3; k++) x.fillRect(c - t.w / 2, top + t.h * (0.04 + k * 0.1), t.w, t.h * 0.04); } else { x.fillStyle = '#ff3a2a'; circ(x, c, top - 2, 1.8); x.fill(); circ(x, c, top + t.h * 0.5, 1.4); x.fill(); } });
+    };
+    mkLayer(Wd, GY * 0.1, yH + 1, 0.03, (x) => plant(x, false));
+    mkLayer(Wd, GY * 0.1, yH + 1, 0.03, (x) => plant(x, true), { lit: true, alpha: () => 0.75 });
+    // les pylônes en treillis et leurs câbles qui pendent (une chaînette d'un pylône à l'autre, raccordée)
+    const pyl = [], np = 3; for (let i = 0; i < np; i++) pyl.push({ x: (i + 0.5) * W / np, h: GY * (0.5 + r() * 0.08) });
+    const pylon = (x, c, h) => {
+      const base = GY, top = GY - h, bw = h * 0.22, tw = h * 0.05; x.strokeStyle = '#2a2836'; x.lineWidth = 1.6;
+      x.beginPath(); x.moveTo(c - bw, base); x.lineTo(c - tw, top); x.moveTo(c + bw, base); x.lineTo(c + tw, top);
+      for (let k = 0; k < 9; k++) { const u0 = k / 9, u1 = (k + 1) / 9, w0 = lerp(bw, tw, u0), w1 = lerp(bw, tw, u1), y0 = lerp(base, top, u0), y1 = lerp(base, top, u1); x.moveTo(c - w0, y0); x.lineTo(c + w1, y1); x.moveTo(c + w0, y0); x.lineTo(c - w1, y1); }
+      for (const [u, a] of [[0.78, 0.34], [0.92, 0.26]]) { const y = lerp(base, top, u); x.moveTo(c - h * a, y); x.lineTo(c + h * a, y); }
+      x.stroke();
+    };
+    const arms = (p) => [[0.78, -0.32], [0.78, 0.32], [0.92, -0.24], [0.92, 0.24]].map(([u, a]) => [a * p.h, GY - p.h * u + 4]);
+    mkLayer(Wd, GY * 0.3, GY + 1, 0.07, (x) => {
+      x.strokeStyle = 'rgba(160,170,200,0.35)'; x.lineWidth = 1;
+      for (let i = 0; i < np; i++) { const a = pyl[i], b = pyl[(i + 1) % np], bx = b.x + (i === np - 1 ? W : 0); const A2 = arms(a), B2 = arms(b);
+        for (let k = 0; k < 4; k++) for (const sh of [0, -W]) { const x0 = a.x + A2[k][0] + sh, y0 = A2[k][1], x1 = bx + B2[k][0] + sh, y1 = B2[k][1]; x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo((x0 + x1) / 2, Math.max(y0, y1) + GY * 0.07, x1, y1); x.stroke(); } }
+      for (const p of pyl) WRAP(W, p.x, p.h * 0.4, (c) => pylon(x, c, p.h));
+    });
+    // devant : transformateurs à ailettes, isolateurs, tapis roulant, lampes de chantier (leur lumière dans un calque à part)
+    const trs = []; for (let i = 0; i < 3; i++) trs.push({ x: (i + 0.3 + r() * 0.4) * W / 3, w: m * (0.16 + r() * 0.05), h: GY * (0.17 + r() * 0.05) });
+    const isoTops = []; for (const t of trs) for (const u of [-0.28, 0, 0.28]) isoTops.push([t.x + u * t.w, GY - t.h - t.h * 0.55]);
+    Wd.iso = isoTops;
+    const near = (x) => {
+      // tapis roulant (rouleaux) le long du sol
+      x.fillStyle = '#0c0a10'; x.fillRect(0, GY - GY * 0.05, W, GY * 0.05); x.strokeStyle = 'rgba(255,190,80,0.25)'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, GY - GY * 0.05); x.lineTo(W, GY - GY * 0.05); x.stroke();
+      x.fillStyle = '#1c1820'; for (let xx = 4; xx < W; xx += m * 0.03) { circ(x, xx, GY - GY * 0.025, GY * 0.012); x.fill(); }
+      for (const t of trs) WRAP(W, t.x, t.w, (c) => {
+        const l = c - t.w / 2, top = GY - t.h; x.fillStyle = lin(x, l, 0, l + t.w, 0, [0, '#16141c', 0.5, '#24202c', 1, '#0e0c12']); x.fillRect(l, top, t.w, t.h);
+        x.strokeStyle = 'rgba(0,0,0,0.6)'; x.lineWidth = 1.2; x.beginPath(); for (let xx = l + 4; xx < l + t.w - 2; xx += 4) { x.moveTo(xx, top + t.h * 0.18); x.lineTo(xx, GY - 3); } x.stroke();
+        x.fillStyle = '#2a2632'; x.fillRect(l - 3, top - 4, t.w + 6, 5);
+        for (const u of [-0.28, 0, 0.28]) { const ix = c + u * t.w; for (let k = 0; k < 6; k++) { x.fillStyle = k % 2 ? '#5a4a3a' : '#8a6a4a'; x.beginPath(); x.ellipse(ix, top - 6 - k * t.h * 0.085, t.w * 0.055, t.h * 0.03, 0, 0, TAU); x.fill(); } x.fillStyle = '#b0a0a0'; circ(x, ix, top - t.h * 0.55, 2.2); x.fill(); }
+        x.fillStyle = '#ffd34d'; x.fillRect(l + t.w * 0.08, top + t.h * 0.3, t.w * 0.12, t.h * 0.12); { const bx = l + t.w * 0.14, by = top + t.h * 0.36, q = t.h * 0.045; x.fillStyle = '#000'; x.beginPath(); x.moveTo(bx + q * 0.3, by - q); x.lineTo(bx - q * 0.5, by + q * 0.15); x.lineTo(bx, by + q * 0.15); x.lineTo(bx - q * 0.3, by + q); x.lineTo(bx + q * 0.5, by - q * 0.15); x.lineTo(bx, by - q * 0.15); x.closePath(); x.fill(); }
+      });
+      for (let i = 0; i < 4; i++) { const lx = (i + 0.75) * W / 4; WRAP(W, lx, 20, (c) => { x.strokeStyle = '#2a2632'; x.lineWidth = 2; x.beginPath(); x.moveTo(c, GY); x.lineTo(c, GY - GY * 0.34); x.lineTo(c + 9, GY - GY * 0.34); x.stroke(); x.fillStyle = '#ffd34d'; x.fillRect(c + 6, GY - GY * 0.34, 8, 4); }); }
+    };
+    const N = mkLayer(Wd, GY * 0.4, GY + 1, 0.22, near);
+    mkLayer(Wd, GY * 0.4, GY + 1, 0.22, (x) => { for (let i = 0; i < 4; i++) { const lx = (i + 0.75) * W / 4 + 10; WRAP(W, lx, GY * 0.2, (c) => { const y0 = GY - GY * 0.33; x.fillStyle = lin(x, 0, y0, 0, GY, [0, 'rgba(255,211,77,0.28)', 1, 'rgba(255,211,77,0)']); x.beginPath(); x.moveTo(c - 3, y0); x.lineTo(c + 3, y0); x.lineTo(c + GY * 0.14, GY); x.lineTo(c - GY * 0.14, GY); x.closePath(); x.fill(); putGlow(x, '#ffd34d', c, y0, 10, 0.8, 1); }); } x.globalAlpha = 1; }, { lit: true, alpha: () => 0.7 });
+    // l'arc électrique entre deux isolateurs voisins (lignes brisées tirées au hasard à chaque évènement)
+    N.after = (x, S, o) => {
+      const e = evAge(Wd, S); if (e < 0.01 || !Wd.ev) return;
+      const ev = Wd.ev, a = Wd.iso[ev.i % Wd.iso.length], b = Wd.iso[(ev.i % Wd.iso.length) + (ev.i % 3 === 2 ? -1 : 1)] || Wd.iso[0];
+      let ax = a[0] - o, bx = b[0] - o; if (ax < -40) { ax += W; bx += W; }
+      if (!ev.pts || ev.flick < S.t) { ev.flick = S.t + 0.06; ev.pts = []; for (let k = 0; k <= 8; k++) { const u = k / 8; ev.pts.push([lerp(ax, bx, u), lerp(a[1], b[1], u) - Math.sin(u * Math.PI) * 14 + (k && k < 8 ? (Math.random() - 0.5) * 12 : 0)]); } }
+      x.globalCompositeOperation = 'lighter'; putGlow(x, '#8ad8ff', (ax + bx) / 2, a[1] - 10, 60, S.a * 0.55 * e, 1);
+      for (const [lw, c] of [[7, 'rgba(120,200,255,0.35)'], [2.2, '#e8f8ff']]) { x.strokeStyle = c; x.lineWidth = lw; x.globalAlpha = S.a * e; x.beginPath(); ev.pts.forEach((p, k) => (k ? x.lineTo(p[0] + (ax - ev.pts[0][0]), p[1]) : x.moveTo(p[0] + (ax - ev.pts[0][0]), p[1]))); x.stroke(); }
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    };
+    Wd.fire = (e) => { Wd.ev = { age: 0, i: e.i }; };
+    // étincelles orange qui tombent devant (une petite dizaine)
+    for (let i = 0; i < 12; i++) Wd.amb.push({ x: r() * W, y: r() * GY, vy: 30 + r() * 60, v: 0.5 + r() * 0.5, ph: r() * 9 });
+    Wd.live.front = (x, S) => {
+      x.globalCompositeOperation = 'lighter'; x.fillStyle = '#ffb04a';
+      for (const p of Wd.amb) { p.y += S.dt * p.vy; p.x -= S.dt * S.speed * S.B * 0.25 * p.v; if (p.y > GY) { p.y = GY * (0.3 + Math.random() * 0.3); p.x = Math.random() * W; } if (p.x < -4) p.x += W + 8; x.globalAlpha = S.a * (0.35 + 0.35 * Math.sin(S.t * 9 + p.ph) ** 2); x.fillRect(p.x, p.y, 1.6, 3); }
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    };
+    Wd.ground = { top: '#3a2a20', face: ['#1e1612', '#0c0806', '#030202'], line: '#ffb03a', joint: '#ffd34d', paint(x, tw, h, wh) { x.fillStyle = 'rgba(255,211,77,0.18)'; for (let i = 0; i < 8; i++) { x.save(); x.translate(i * tw / 8, wh * 0.3); x.fillRect(0, 0, tw / 16, 3); x.restore(); } } };
+    Wd.block = { base: '#16120e', paint(x, s2) { x.strokeStyle = 'rgba(255,176,58,0.25)'; x.lineWidth = 1; x.strokeRect(s2 * 0.08, s2 * 0.08, s2 * 0.84, s2 * 0.84); x.fillStyle = 'rgba(255,211,77,0.35)'; for (const [a, b] of [[0.14, 0.14], [0.86, 0.14], [0.14, 0.86], [0.86, 0.86]]) { circ(x, s2 * a, s2 * b, 1.4); x.fill(); } } };
+    Wd.obs = { fill: '#ff8a2a', line: '#fff0c0', glow: '#ffd34d', dark: '#120804' };
+  };
+
+  // ---------------------------------------------------------------------------
+  // ORAGE : au cœur de l'orage, au-dessus de la ville : nuages lourds en couches (bords pâles), sommets de tours aux feux rouges qui
+  // percent la brume, pluie oblique poussée par le vent ; de temps en temps, UN éclair (Wd.fire) — jamais sur chaque temps
+  // ---------------------------------------------------------------------------
+  WORLDS.orage = (Wd, r, s) => {
+    const { W, H, GY, m } = Wd;
+    s.fillStyle = lin(s, 0, 0, 0, GY, [0, '#04050c', 0.35, '#121a34', 0.7, '#26304e', 1, '#141a2c']); s.fillRect(0, 0, W, H);
+    s.globalCompositeOperation = 'lighter'; putGlow(s, '#4a6aaa', W * 0.7, GY * 0.25, W * 0.35, 0.12, 1); s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1;
+    // nuages : grappes d'ellipses (corps sombre, bord haut éclairé), trois couches en parallaxe
+    const cloudLayer = (top, bot, par, n, body, rim, sz, fillDown) => mkLayer(Wd, top, bot, par, (x) => {
+      const rr = mulberry32(Math.floor(r() * 1e6));
+      for (let i = 0; i < n; i++) { const cx = rr() * W, cy = top + (bot - top) * (0.35 + rr() * 0.4), w = sz * (0.7 + rr() * 0.8);
+        WRAP(W, cx, w * 1.6, (c) => { for (let k = 0; k < 6; k++) { const ex = c + (k - 2.5) * w * 0.32 + (rr() - 0.5) * w * 0.2, ey = cy - Math.sin((k + 0.5) / 6 * Math.PI) * w * 0.22 + rr() * w * 0.05, rw = w * (0.32 + rr() * 0.2), rh = rw * 0.6; x.fillStyle = rim; x.beginPath(); x.ellipse(ex, ey - 1.5, rw, rh, 0, 0, TAU); x.fill(); x.fillStyle = body; x.beginPath(); x.ellipse(ex, ey + 1, rw, rh, 0, 0, TAU); x.fill(); } if (fillDown) { x.fillStyle = body; x.fillRect(c - w * 0.9, cy, w * 1.8, bot - cy); } }); }
+    });
+    cloudLayer(0, GY * 0.34, 0.01, 5, '#10162a', 'rgba(140,160,220,0.4)', W * 0.12);
+    const CL = cloudLayer(GY * 0.18, GY * 0.5, 0.03, 4, '#0c1122', 'rgba(160,180,235,0.35)', W * 0.1);
+    // les sommets des tours (antennes, feux rouges), puis la brume basse qui les noie
+    const tw = []; for (let px = r() * 30; px < W - 10;) { const w = W * (0.035 + r() * 0.04); tw.push({ x: px, w, h: GY * (0.18 + r() * 0.3), ant: r() < 0.6, k: Math.floor(r() * 3) }); px += w + W * (0.03 + r() * 0.08); }
+    const tops = (x, lit) => { for (const b of tw) WRAP(W, b.x + b.w / 2, b.w / 2 + 4, (c) => { const l = c - b.w / 2, top = GY - b.h; if (!lit) { x.fillStyle = lin(x, 0, top, 0, GY, [0, '#1a1e2e', 1, '#080a12']); x.beginPath(); if (b.k === 1) { x.moveTo(l, GY); x.lineTo(l, top + b.w * 0.5); x.lineTo(c, top); x.lineTo(l + b.w, top + b.w * 0.5); x.lineTo(l + b.w, GY); } else { x.rect(l, top, b.w, b.h); } x.fill(); if (b.k === 2) x.fillRect(l + b.w * 0.2, top - b.w * 0.3, b.w * 0.6, b.w * 0.3); if (b.ant) { x.fillRect(c - 0.8, top - b.h * 0.25, 1.6, b.h * 0.25); } x.strokeStyle = 'rgba(140,170,230,0.18)'; x.lineWidth = 1; x.beginPath(); x.moveTo(l + 0.5, GY); x.lineTo(l + 0.5, top + (b.k === 1 ? b.w * 0.5 : 0)); x.stroke(); } else { const rr = mulberry32(Math.round(b.x * 7)); x.fillStyle = '#8ab0ff'; for (let yy = top + 6; yy < GY - 4; yy += 6) for (let xx = l + 3; xx < l + b.w - 3; xx += 5) if (rr() < 0.12) { x.globalAlpha = 0.25 + rr() * 0.4; x.fillRect(xx, yy, 2, 2); } x.globalAlpha = 1; if (b.ant) { x.fillStyle = '#ff3a3a'; circ(x, c, top - b.h * 0.25, 1.8); x.fill(); } } }); };
+    mkLayer(Wd, GY * 0.3, GY + 1, 0.09, (x) => tops(x, false));
+    mkLayer(Wd, GY * 0.3, GY + 1, 0.09, (x) => tops(x, true), { lit: true, alpha: () => 0.7 });
+    cloudLayer(GY * 0.68, GY + 1, 0.2, 5, '#080a14', 'rgba(110,130,180,0.25)', W * 0.13, true);
+    mkLayer(Wd, GY * 0.7, GY + 1, 0.2, (x) => { x.fillStyle = lin(x, 0, GY * 0.7, 0, GY, [0, 'rgba(8,10,20,0)', 1, 'rgba(4,5,10,0.85)']); x.fillRect(0, GY * 0.7, W, GY * 0.3 + 1); });
+    Wd.tw = tw;
+    // l'éclair : une ligne brisée (et deux branches) du haut du ciel vers le sommet d'une tour, flash dans les nuages
+    CL.after = (x, S) => {
+      const e = evAge(Wd, S); if (e < 0.01 || !Wd.ev) return;
+      const ev = Wd.ev;
+      if (!ev.pts) { const tx = W * (0.3 + Math.random() * 0.6), ty = GY * (0.4 + Math.random() * 0.12); let px = tx + (Math.random() - 0.5) * W * 0.2, py = 0; ev.pts = [[px, py]]; const n = 12; for (let k = 1; k <= n; k++) { const u = k / n; ev.pts.push([lerp(px, tx, u) + (k < n ? (Math.random() - 0.5) * 30 : 0), lerp(py, ty, u)]); } ev.br = [3, 6].map((k) => { const p = ev.pts[k], o2 = []; let bx = p[0], by = p[1]; o2.push([bx, by]); for (let j = 0; j < 4; j++) { bx += (Math.random() - 0.3) * 26; by += 14 + Math.random() * 10; o2.push([bx, by]); } return o2; }); ev.cx = tx; }
+      const fl = e * (ev.age < 0.25 ? (Math.floor(ev.age * 40) % 3 ? 1 : 0.5) : 1);
+      x.globalCompositeOperation = 'lighter'; putGlow(x, '#9ab8ff', ev.cx, GY * 0.15, W * 0.3, S.a * 0.35 * fl, 1);
+      for (const pts of [ev.pts].concat(ev.br)) for (const [lw, c, a] of [[8, '#6a8aff', 0.3], [2.4, '#f0f6ff', 1]]) { x.strokeStyle = c; x.lineWidth = pts === ev.pts ? lw : lw * 0.55; x.globalAlpha = S.a * fl * a; x.beginPath(); pts.forEach((p, k) => (k ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.stroke(); }
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    };
+    Wd.fire = (e) => { Wd.ev = { age: 0, i: e.i }; };
+    // la pluie oblique (poussée par le vent)
+    for (let i = 0; i < 46; i++) Wd.amb.push({ x: r() * W, y: r() * H, v: 0.6 + r() * 0.6, l: 8 + r() * 14 });
+    Wd.live.front = (x, S) => {
+      const dx = S.dt * (S.speed * S.B * 0.5 + 140), dy = S.dt * H * 1.6; x.strokeStyle = 'rgba(170,190,240,0.22)'; x.lineWidth = 1; x.globalAlpha = S.a; x.beginPath();
+      for (const p of Wd.amb) { p.x -= dx * p.v; p.y += dy * p.v; if (p.y > H) { p.y -= H + 20; p.x = Math.random() * W * 1.3; } if (p.x < -30) p.x += W + 60; x.moveTo(p.x, p.y); x.lineTo(p.x + p.l * 0.55, p.y - p.l); }
+      x.stroke(); x.globalAlpha = 1;
+    };
+    Wd.ground = { top: '#2a3048', face: ['#141826', '#080a12', '#020306'], line: '#8ab0ff', joint: '#ffffff', paint(x, tw2, h, wh) { x.fillStyle = 'rgba(160,190,255,0.12)'; x.fillRect(0, wh * 0.6, tw2, 1); } };
+    Wd.block = { base: '#10141e', paint(x, s2) { x.strokeStyle = 'rgba(138,176,255,0.2)'; x.lineWidth = 1; x.beginPath(); x.moveTo(s2 * 0.2, 0); x.lineTo(s2 * 0.45, s2 * 0.45); x.lineTo(s2 * 0.3, s2 * 0.55); x.lineTo(s2 * 0.6, s2); x.stroke(); } };
+    Wd.obs = { fill: '#5a7aff', line: '#ffffff', glow: '#8ab0ff', dark: '#04060c' };
+  };
+
+  // ---------------------------------------------------------------------------
+  // DATA-CENTER : une salle de serveurs ; au plafond des chemins de câbles qui fuient vers le fond, sol technique en dalles, trois
+  // rangées de baies (loin, milieu, près) aux voyants verts / bleus, lignes de données qui glissent le long des câbles ;
+  // de temps en temps, UNE rangée de baies s'allume (Wd.fire)
+  // ---------------------------------------------------------------------------
+  WORLDS.datacenter = (Wd, r, s) => {
+    const { W, H, GY, m } = Wd, vx = W * 0.5, vy = GY * 0.46;
+    s.fillStyle = lin(s, 0, 0, 0, GY, [0, '#02060a', 0.5, '#06121a', 1, '#04080c']); s.fillRect(0, 0, W, H);
+    // plafond en perspective : poutres et chemins de câbles qui fuient vers le point de fuite, néons froids
+    s.strokeStyle = 'rgba(80,200,255,0.12)'; s.lineWidth = 1; s.beginPath();
+    for (let i = -8; i <= 8; i++) { const x0 = vx + i * W * 0.12; s.moveTo(x0, 0); s.lineTo(vx + (x0 - vx) * 0.12, vy - GY * 0.06); }
+    for (let k = 1; k < 9; k++) { const z = 1 + k * k * 0.14, y = (vy - GY * 0.06) * (1 - 1 / z); s.moveTo(0, y); s.lineTo(W, y); }
+    s.stroke();
+    for (let k = 0; k < 6; k++) { const z = 1 + k * 0.7, y = (vy - GY * 0.06) * (1 - 1 / (z + 0.4)), w = W * 0.3 / z; s.globalCompositeOperation = 'lighter'; putGlow(s, '#7ae0ff', vx, y, w * 0.6, 0.12, 1); s.globalCompositeOperation = 'source-over'; s.globalAlpha = 0.5; s.fillStyle = '#d0f4ff'; s.fillRect(vx - w / 2, y - 1, w, 2); s.globalAlpha = 1; }
+    // sol technique en perspective (dalles), lueur bleue au fond de l'allée
+    s.fillStyle = lin(s, 0, vy, 0, GY, [0, '#071824', 1, '#020609']); s.fillRect(0, vy, W, H - vy);
+    s.strokeStyle = 'rgba(80,200,255,0.1)'; s.beginPath(); for (let i = -14; i <= 14; i++) { const x0 = vx + i * W * 0.1; s.moveTo(x0, GY); s.lineTo(vx + (x0 - vx) * 0.1, vy); } for (let k = 1; k < 10; k++) { const z = 1 + k * k * 0.1, y = vy + (GY - vy) / z; s.moveTo(0, y); s.lineTo(W, y); } s.stroke();
+    s.globalCompositeOperation = 'lighter'; putGlow(s, '#3ad8ff', vx, vy, W * 0.18, 0.28, 1); s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1;
+    // les chemins de câbles (au plafond, en travers : ils défilent) et leurs lignes de données
+    mkLayer(Wd, 0, GY * 0.2, 0.05, (x) => { for (const [y, h] of [[GY * 0.05, GY * 0.025], [GY * 0.12, GY * 0.02]]) { x.fillStyle = '#0a1820'; x.fillRect(0, y, W, h); x.strokeStyle = 'rgba(80,200,255,0.25)'; x.lineWidth = 1; x.strokeRect(-2, y, W + 4, h); x.fillStyle = '#122a36'; for (let xx = 0; xx < W; xx += W / 24) x.fillRect(xx, y + h, 2, GY * 0.03); } });
+    // les baies : une caisse noire, des tiroirs, des voyants (dans un calque de lumière), une porte grillagée pour les plus proches
+    const row = (n, top, bot, seed) => { const out = [], cw = W / n; for (let i = 0; i < n; i++) out.push({ x: i * cw + cw * (n < 8 ? 0.22 : 0.06), w: cw * (n < 8 ? 0.56 : 0.88), top: top + (r() - 0.5) * (bot - top) * 0.04, bot, seed: seed + i * 31 }); return out; };
+    const far = row(16, GY * 0.36, GY * 0.6, 100), mid = row(10, GY * 0.34, GY * 0.8, 200), nearR = row(5, GY * 0.42, GY, 300);
+    Wd.mid = mid;
+    const rack = (x, b, l, k, grill) => { x.fillStyle = k; x.fillRect(l, b.top, b.w, b.bot - b.top); x.strokeStyle = 'rgba(80,200,255,0.18)'; x.lineWidth = 1; x.strokeRect(l + 0.5, b.top + 0.5, b.w - 1, b.bot - b.top - 1); const u = (b.bot - b.top) / 22; x.fillStyle = 'rgba(0,0,0,0.5)'; for (let j = 1; j < 21; j++) x.fillRect(l + 2, b.top + j * u, b.w - 4, 1); if (grill) { x.strokeStyle = 'rgba(120,200,230,0.08)'; x.beginPath(); for (let xx = l + 3; xx < l + b.w - 2; xx += 3) { x.moveTo(xx, b.top + 3); x.lineTo(xx, b.bot - 3); } x.stroke(); } };
+    const leds = (x, b, l, dens, big) => { const rr = mulberry32(b.seed), u = (b.bot - b.top) / 22; for (let j = 1; j < 21; j++) { if (rr() < 0.15) continue; const n = 1 + Math.floor(rr() * 4); for (let q = 0; q < n; q++) { const c = rr(); x.fillStyle = c < 0.55 ? '#3aff8a' : c < 0.9 ? '#3ad8ff' : '#ffb03a'; x.globalAlpha = 0.7 + rr() * 0.3; x.fillRect(l + 3 + rr() * (b.w * 0.5), b.top + j * u + u * 0.35, big, big * 0.8); } if (rr() < dens) { x.globalAlpha = 0.25; x.fillStyle = '#3ad8ff'; x.fillRect(l + b.w * 0.6, b.top + j * u + u * 0.45, b.w * 0.3, 1); } } x.globalAlpha = 1; };
+    for (const [R2, par, k, dens, big, grill] of [[far, 0.04, '#06121a', 0.2, 1.2, false], [mid, 0.1, '#050d14', 0.35, 1.6, false], [nearR, 0.26, '#03080c', 0.5, 2.2, true]]) {
+      const top = Math.min(...R2.map((b) => b.top)) - 2, bot = R2[0].bot + 1;
+      mkLayer(Wd, top, bot, par, (x) => { for (const b of R2) rack(x, b, b.x, k, grill); if (R2 === far) { x.fillStyle = lin(x, 0, top, 0, bot, [0, 'rgba(2,6,10,0.1)', 1, 'rgba(2,6,10,0.5)']); x.fillRect(0, top, W, bot - top); } });
+      const Ly = mkLayer(Wd, top, bot, par, (x) => { for (const b of R2) leds(x, b, b.x, dens, big); }, { lit: true, alpha: () => (R2 === nearR ? 0.7 : 0.9) });
+      if (R2 === mid) Wd.midLy = Ly;
+    }
+    // une rangée de baies du milieu s'allume (lumière blanc-bleu qui balaie de haut en bas)
+    Wd.midLy.after = (x, S, o) => {
+      const e = evAge(Wd, S); if (e < 0.01 || !Wd.ev) return;
+      const i0 = Wd.ev.i % mid.length; x.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 3; k++) { const b = mid[(i0 + k) % mid.length]; let l = b.x - o; if (l < -b.w) l += W; if (l > W) l -= W; const sweep = clamp(Wd.ev.age * 3 - k * 0.25, 0, 1), h = (b.bot - b.top) * sweep; x.globalAlpha = S.a * e * 0.55; x.fillStyle = lin(x, 0, b.top, 0, b.top + h + 1, [0, 'rgba(160,240,255,0.1)', 1, 'rgba(200,250,255,0.9)']); x.fillRect(l + 2, b.top, b.w - 4, h); putGlow(x, '#7ae0ff', l + b.w / 2, b.top + h, b.w, S.a * e * 0.5, 1); }
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    };
+    Wd.fire = (e) => { Wd.ev = { age: 0, i: e.i }; };
+    // lignes de données : quelques petits traits lumineux qui glissent le long des chemins de câbles (vitesse constante)
+    for (let i = 0; i < 10; i++) Wd.amb.push({ x: r() * W, y: i % 2 ? GY * 0.0625 : GY * 0.13, v: 60 + r() * 120, c: r() < 0.6 ? '#3ad8ff' : '#3aff8a' });
+    Wd.live.front = (x, S) => {
+      x.globalCompositeOperation = 'lighter';
+      for (const p of Wd.amb) { p.x += S.dt * p.v - S.dt * S.speed * S.B * 0.05; if (p.x > W + 20) p.x -= W + 40; if (p.x < -20) p.x += W + 40; x.globalAlpha = S.a * 0.7; x.fillStyle = p.c; x.fillRect(p.x, p.y, 14, 1.6); x.globalAlpha = S.a * 0.25; x.fillRect(p.x - 18, p.y, 18, 1.6); }
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    };
+    Wd.ground = { top: '#12303e', face: ['#0a1c26', '#050e14', '#010305'], line: '#3ad8ff', joint: '#3aff8a', paint(x, tw2, h, wh) { x.strokeStyle = 'rgba(58,216,255,0.15)'; x.lineWidth = 1; x.strokeRect(1, 2, tw2 / 2 - 2, wh - 3); x.strokeRect(tw2 / 2 + 1, 2, tw2 / 2 - 2, wh - 3); } };
+    Wd.block = { base: '#061218', paint(x, s2) { x.fillStyle = 'rgba(0,0,0,0.5)'; for (let j = 1; j < 6; j++) x.fillRect(2, j * s2 / 6, s2 - 4, 1); x.fillStyle = 'rgba(58,255,138,0.6)'; x.fillRect(s2 * 0.15, s2 * 0.25, 2, 2); x.fillStyle = 'rgba(58,216,255,0.6)'; x.fillRect(s2 * 0.15, s2 * 0.6, 2, 2); } };
+    Wd.obs = { fill: '#3ad8ff', line: '#e0fff0', glow: '#3aff8a', dark: '#020a0e' };
+  };
+
+  // ---------------------------------------------------------------------------
+  // RÉACTEUR À PLASMA : un tore géant (bobines tout autour, anneau de plasma rose et blanc qui tourne doucement), passerelles en
+  // treillis, gros tuyaux aux bandes roses, poussières de plasma qui montent ; de temps en temps, UNE décharge fait le tour de l'anneau
+  // ---------------------------------------------------------------------------
+  WORLDS.reacteur = (Wd, r, s) => {
+    const { W, H, GY, m } = Wd, cx = W * 0.6, cy = GY * 0.4, RX = Math.min(W * 0.34, m * 0.62), RY = RX * 0.36, th = RX * 0.16;
+    Wd.ring = { cx, cy, RX, RY, th };
+    s.fillStyle = lin(s, 0, 0, 0, GY, [0, '#06020e', 0.5, '#120624', 1, '#1a0a26']); s.fillRect(0, 0, W, H);
+    // murs de la salle : grandes nervures verticales, lueur rose au centre
+    s.strokeStyle = 'rgba(255,90,200,0.08)'; s.lineWidth = 2; s.beginPath(); for (let i = 0; i < 18; i++) { const xx = (i + 0.5) * W / 18; s.moveTo(xx, 0); s.lineTo(xx, GY); } s.stroke();
+    s.globalCompositeOperation = 'lighter'; putGlow(s, '#ff4ad8', cx, cy, RX * 1.5, 0.3, 1); s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1;
+    // le tore : moitié arrière (derrière le plasma), plasma, moitié avant avec les bobines
+    const torus = (half) => { s.save(); s.beginPath(); if (half === 'back') s.rect(0, 0, W, cy); else s.rect(0, cy, W, H); s.clip();
+      s.lineWidth = th * 2; s.strokeStyle = half === 'back' ? '#1e1430' : '#2a1c40'; s.beginPath(); s.ellipse(cx, cy, RX, RY, 0, 0, TAU); s.stroke();
+      s.lineWidth = 1.5; s.strokeStyle = 'rgba(255,140,230,0.25)'; s.beginPath(); s.ellipse(cx, cy, RX + th, RY + th, 0, 0, TAU); s.stroke(); s.beginPath(); s.ellipse(cx, cy, RX - th, Math.max(4, RY - th), 0, 0, TAU); s.stroke();
+      s.restore(); };
+    torus('back');
+    s.globalCompositeOperation = 'lighter'; s.lineWidth = th * 0.9; s.strokeStyle = 'rgba(255,90,210,0.35)'; s.beginPath(); s.ellipse(cx, cy, RX, RY, 0, 0, TAU); s.stroke(); s.lineWidth = th * 0.35; s.strokeStyle = 'rgba(255,220,250,0.55)'; s.stroke(); s.globalCompositeOperation = 'source-over';
+    torus('front');
+    for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU, px = cx + Math.cos(a) * RX, py = cy + Math.sin(a) * RY; if (Math.sin(a) < -0.1) continue; const w = th * 0.8, h = th * 2.4 * (0.75 + 0.25 * Math.sin(a)); s.fillStyle = lin(s, px - w, 0, px + w, 0, [0, '#08040e', 0.5, '#22163a', 1, '#08040e']); s.fillRect(px - w / 2, py - h / 2, w, h); s.strokeStyle = 'rgba(255,150,230,0.35)'; s.lineWidth = 1; s.strokeRect(px - w / 2, py - h / 2, w, h); s.fillStyle = '#ff6ad8'; s.fillRect(px - 1.5, py - h * 0.3, 3, 2); }
+    // passerelles (treillis, rambardes) en deux hauteurs, piliers
+    const walk = (x, y, par) => { x.fillStyle = '#0e0818'; x.fillRect(0, y, W, GY * 0.022); x.strokeStyle = 'rgba(255,120,220,0.35)'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, y); x.lineTo(W, y); x.moveTo(0, y - GY * 0.05); x.lineTo(W, y - GY * 0.05); for (let xx = 0; xx < W; xx += W / 40) { x.moveTo(xx, y); x.lineTo(xx, y - GY * 0.05); } x.stroke(); x.strokeStyle = 'rgba(120,90,160,0.4)'; x.beginPath(); for (let xx = 0; xx < W; xx += W / 20) { x.moveTo(xx, y + GY * 0.022); x.lineTo(xx + W / 40, y + GY * 0.07); x.lineTo(xx + W / 20, y + GY * 0.022); } x.stroke(); x.fillStyle = '#0a0612'; for (let xx = W * 0.08; xx < W; xx += W / 3) x.fillRect(xx, y + GY * 0.02, GY * 0.025, GY); };
+    mkLayer(Wd, GY * 0.5, GY + 1, 0.06, (x) => walk(x, GY * 0.6, 0.06));
+    // gros tuyaux devant (brides, vannes), bandes roses dans un calque de lumière
+    const pipes = [[GY * 0.78, GY * 0.06], [GY * 0.9, GY * 0.045]];
+    mkLayer(Wd, GY * 0.62, GY + 1, 0.2, (x) => {
+      for (const [y, d] of pipes) { x.fillStyle = lin(x, 0, y - d / 2, 0, y + d / 2, [0, '#2a2038', 0.4, '#3e3052', 1, '#0c0814']); x.fillRect(0, y - d / 2, W, d); for (let xx = W * 0.05; xx < W; xx += W / 6) { x.fillStyle = '#1a1226'; x.fillRect(xx, y - d * 0.65, d * 0.35, d * 1.3); } }
+      for (let xx = W * 0.3; xx < W; xx += W / 2) { const y = pipes[0][0]; x.strokeStyle = '#3a2c4e'; x.lineWidth = 3; circ(x, xx, y - pipes[0][1] * 1.1, pipes[0][1] * 0.45); x.stroke(); x.beginPath(); x.moveTo(xx, y - pipes[0][1] * 0.5); x.lineTo(xx, y - pipes[0][1] * 0.65); x.stroke(); }
+      for (let xx = W * 0.15; xx < W; xx += W / 3) { x.fillStyle = '#0e0a16'; x.fillRect(xx, pipes[0][0], GY * 0.03, GY); }
+    });
+    mkLayer(Wd, GY * 0.62, GY + 1, 0.2, (x) => { for (const [y, d] of pipes) { x.fillStyle = rgba('#ff4ad8', 0.7); for (let xx = W * 0.12; xx < W; xx += W / 6) x.fillRect(xx, y - d * 0.12, W * 0.05, d * 0.24); } }, { lit: true, alpha: () => 0.55 });
+    mkLayer(Wd, GY * 0.75, GY + 1, 0.2, (x) => { x.fillStyle = lin(x, 0, GY * 0.75, 0, GY, [0, 'rgba(6,2,14,0)', 1, 'rgba(4,1,10,0.7)']); x.fillRect(0, GY * 0.75, W, GY * 0.25 + 1); });
+    // le plasma tourne doucement (deux éclats qui suivent l'anneau, toujours au même rythme) ; la décharge fait le tour en une seconde
+    Wd.live.sky = (x, S) => {
+      const R = Wd.ring; x.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 2; k++) { const a = S.t * 0.6 + k * Math.PI, px = R.cx + Math.cos(a) * R.RX, py = R.cy + Math.sin(a) * R.RY; if (Math.sin(a) > 0.15) continue; putGlow(x, '#ffb0f0', px, py, R.th * 2.2, S.a * 0.35, 1); }
+      const e = evAge(Wd, S);
+      if (e > 0.01 && Wd.ev) { const a0 = Wd.ev.age * 6.5; putGlow(x, '#ff6ad8', R.cx, R.cy, R.RX * 1.2, S.a * 0.25 * e, 1); for (let k = 0; k < 7; k++) { const a = a0 - k * 0.12, px = R.cx + Math.cos(a) * R.RX, py = R.cy + Math.sin(a) * R.RY; putGlow(x, '#ffffff', px, py, R.th * (2.4 - k * 0.25), S.a * e * (1 - k / 8), 1); } }
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    };
+    Wd.fire = (e) => { Wd.ev = { age: 0, i: e.i }; };
+    for (let i = 0; i < 18; i++) Wd.amb.push({ x: r() * W, y: GY * (0.3 + r() * 0.7), v: 0.4 + r() * 0.6, ph: r() * 9 });
+    Wd.live.front = (x, S) => {
+      x.globalCompositeOperation = 'lighter'; x.fillStyle = '#ff9ae8';
+      for (const p of Wd.amb) { p.y -= S.dt * 18 * p.v; p.x -= S.dt * S.speed * S.B * 0.18 * p.v; if (p.y < GY * 0.15) { p.y = GY; p.x = Math.random() * W; } if (p.x < -4) p.x += W + 8; x.globalAlpha = S.a * (0.2 + 0.3 * (0.5 + 0.5 * Math.sin(S.t * 2 + p.ph))); x.fillRect(p.x + Math.sin(S.t + p.ph) * 3, p.y, 1.8, 1.8); }
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    };
+    Wd.ground = { top: '#3a1a4a', face: ['#1e0c2a', '#0c0414', '#030106'], line: '#ff4ad8', joint: '#ffffff', paint(x, tw2, h, wh) { x.fillStyle = 'rgba(255,74,216,0.14)'; x.fillRect(0, wh * 0.45, tw2, 1.5); } };
+    Wd.block = { base: '#140a1e', paint(x, s2) { x.strokeStyle = 'rgba(255,74,216,0.28)'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, s2 * 0.5); x.lineTo(s2, s2 * 0.5); x.moveTo(s2 * 0.5, 0); x.lineTo(s2 * 0.5, s2); x.stroke(); x.fillStyle = 'rgba(255,200,250,0.4)'; circ(x, s2 * 0.5, s2 * 0.5, 1.6); x.fill(); } };
+    Wd.obs = { fill: '#ff4ad8', line: '#fff0fa', glow: '#ff9ae8', dark: '#0c0210' };
+  };
+
+  // ---------------------------------------------------------------------------
   // fabrication d'un monde à la taille de l'écran (une fois ; ~quelques dizaines de ms)
   // ---------------------------------------------------------------------------
   function buildWorld(id, W, H, GY, B, k) {
@@ -852,7 +1099,7 @@
     bx.fillStyle = Bk.base; bx.fillRect(0, 0, B, B); try { Bk.paint(bx, B); } catch (e) { /* rien */ } bx.strokeStyle = 'rgba(255,255,255,0.06)'; bx.lineWidth = 1; bx.strokeRect(0.5, 0.5, B - 1, B - 1);
     Bk.c = bc; Bk.k = bk;
     Wd.obs = Wd.obs || { fill: T.acc2, line: '#ffffff', glow: T.acc, dark: '#0a0418' };
-    Wd.pal = ({ ville: ['#3af0ff', '#ff4ad8'], synth: ['#ff4ab0', '#ffb03a'], ocean: ['#3affd2', '#4aa0ff'], cristal: ['#c89aff', '#6ad8ff'], lave: ['#ff7a1a', '#ffd34d'], galaxie: ['#ff5aff', '#5affff'], arcade: ['#ffe14d', '#ff3a6a'], autoroute: ['#ff4a4a', '#ffd34d'], crepuscule: ['#ffb03a', '#ff5ab0'], tokyo: ['#ff3a8a', '#3ad8ff'] })[id] || [T.acc, T.acc2];
+    Wd.pal = ({ usine: ['#ffb03a', '#8ad8ff'], orage: ['#8ab0ff', '#ffffff'], datacenter: ['#3ad8ff', '#3aff8a'], reacteur: ['#ff4ad8', '#ffb0f0'], ville: ['#3af0ff', '#ff4ad8'], synth: ['#ff4ab0', '#ffb03a'], ocean: ['#3affd2', '#4aa0ff'], cristal: ['#c89aff', '#6ad8ff'], lave: ['#ff7a1a', '#ffd34d'], galaxie: ['#ff5aff', '#5affff'], arcade: ['#ffe14d', '#ff3a6a'], autoroute: ['#ff4a4a', '#ffd34d'], crepuscule: ['#ffb03a', '#ff5ab0'], tokyo: ['#ff3a8a', '#3ad8ff'] })[id] || [T.acc, T.acc2];
     return Wd;
   }
   // un pic, aux couleurs du monde : liseré sombre (il se détache même devant un soleil), cœur coloré, bord de lumière
@@ -1019,7 +1266,7 @@
     for (let i = secs.length - 1; i > 0; i--) if (secs[i].md === secs[i - 1].md && !cuts.includes(secs[i].b0)) { secs[i - 1].b1 = secs[i].b1; secs.splice(i, 1); }
     if (secs[0] && secs[0].md === 'ship' && secs.length > 1) { secs[1].b0 = secs[0].b0; secs.shift(); }   // on commence toujours par sauter
     // un passage avec batterie trop long : coupé en deux mondes
-    for (let i = 0; i < secs.length; i++) { const S = secs[i]; if (S.md === 'g' && S.b1 - S.b0 > 72) { const m = S.b0 + Math.round((S.b1 - S.b0) / 2 / 8) * 8; secs.splice(i + 1, 0, { md: 'g', b0: m, b1: S.b1 }); S.b1 = m; } }
+    for (let i = 0; i < secs.length; i++) { const S = secs[i]; if (S.md === 'g' && S.b1 - S.b0 > 72 && !LV.noSplit) { const m = S.b0 + Math.round((S.b1 - S.b0) / 2 / 8) * 8; secs.splice(i + 1, 0, { md: 'g', b0: m, b1: S.b1 }); S.b1 = m; } }
     // durée de traversée de la boule (sol → plafond), mesurée sur la vraie physique
     const tBall = (() => { let y = PH, vy = 0, t = 0; const dt = 1 / 240; while (y < BALL_CEIL - PH && t < 2) { vy = clamp(vy + P.ballG * dt, -P.ballV, P.ballV); y += vy * dt; t += dt; } return t; })();
     let gi = 0; for (const S of secs) S.mode = S.md === 'ship' ? 'ship' : li === 0 && tour === 0 ? 'cube' : (gi++ % 2 ? 'ball' : 'cube');
@@ -1040,7 +1287,9 @@
     const FLY = (m) => m === 'ship' || m === 'ufo' || m === 'wave';
     // GRAVITÉ (LV.flips : [[instant où l'on touche le plafond, instant où l'on retombe au sol]]) : le portail est posé une durée de
     // chute plus tôt (on touche le plafond PILE sur le temps) ; un plafond est posé autour, aucune marche ni orbe tout près
-    const tR = Math.sqrt((2 * (ROOF - 2 * PH)) / P.g), FLIPS = tour ? [] : (LV.flips || []).map(([a, z]) => [a, z]);
+    const tR = Math.sqrt((2 * (ROOF - 2 * PH)) / P.g), FLIPS = tour ? [] : (LV.flips || []).map(([a, z, o]) => [a, z, o]);
+    // ORBE BLEUE (flip [a, z, 'orb']) : on saute, on touche l'orbe bleue au sommet, la gravité bascule ; durée du sommet au plafond :
+    const tB = (() => { const v = P.vj * 0.3, d = ROOF - 2 * PH - P.h; return (-v + Math.sqrt(v * v + 2 * P.g * d)) / P.g; })();
     for (const [a, z] of FLIPS) L.roofs.push({ x0: X(a - tR) - 14, x1: X(z) + 2, y: ROOF });
     L.roofs.sort((a, b) => a.x0 - b.x0);
     const nearFlip = (t, w) => FLIPS.some(([a, z]) => (t > a - tR - w && t < a + 0.3) || (t > z - tR - w && t < z + 0.3) || (t >= a && t <= z));
@@ -1126,9 +1375,11 @@
           : s.kind === 'steps4' ? [sT(s) - 0.15, beats[s.b + 4 * s.n - 1] + 0.35] : s.kind === 'orbs' ? [sT(s) - P.ta - 0.3, last(sTs(s)) + beatP * 2 + 0.3] : [sT(s) - 0.1, beats[b1] + 1]));
         if (ET) zones.push([beats[b0] - 1, ET.until + 1]);
         // les flips de ce passage : pas de saut juste avant (on doit être au sol) ni pendant la chute
-        const FLE = []; if (mode === 'cube') for (const [a, z] of FLIPS) { for (const [t, g] of [[a, -1], [z, 1]]) if (t > beats[b0] + 1 && t < beats[b1 - 1]) { FLE.push({ t, g }); zones.push([t - tR - P.ta - 0.2, t + 0.12]); } }
+        const FLE = []; if (mode === 'cube') for (const [a, z, o] of FLIPS) { for (const [t, g] of [[a, -1], [z, 1]]) if (t > beats[b0] + 1 && t < beats[b1 - 1]) { FLE.push({ t, g, orb: o === 'orb' }); zones.push(o === 'orb' ? [t - tB - P.ta * 1.5 - 0.2, t + 0.12] : [t - tR - P.ta - 0.2, t + 0.12]); } }
         let fi = 0;
-        const doFlip = (e) => { const xg = Math.max(ghost.x + 0.3, X(e.t - tR)); sim(xg - 0.02); L.gates.push({ x: xg, k: 'grav', g: e.g, t: e.t }); sortGates(); sim(X(e.t) + 0.25); lastB = bIdx(e.t); };
+        const doFlip = (e) => {
+          if (e.orb) { const to = e.t - tB, xj = X(to - P.ta * 0.5); if (xj > ghost.x + 0.2) { sim(xj - 0.02); if (ghost.ground) { sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 })); const ax = X(to); sim(ax - 0.01); L.orbs.push({ x0: ax, y: ghost.y, blue: true, k: 1 }); sortAll(); sim(ax + 0.3, (g) => ({ tap: Math.abs(g.x - ax) < 0.06 })); sim(X(e.t) + 0.25); lastB = bIdx(e.t); return; } } }
+          const xg = Math.max(ghost.x + 0.3, X(e.t - tR)); sim(xg - 0.02); L.gates.push({ x: xg, k: 'grav', g: e.g, t: e.t }); sortGates(); sim(X(e.t) + 0.25); lastB = bIdx(e.t); };
         // des pics au sommet d'un saut parti en xj (n pics, à la hauteur du sol qu'il y a là)
         const apexSpikes = (xj, n) => { const ap = XA(xj, P.ta * 0.5); for (let k = 0; k < n; k++) { const sx = ap - n / 2 + k, fy = floorAt(sx + 0.5); if (floorAt(sx - 0.25) === fy && floorAt(sx + 1.25) === fy && clear(sx - 0.25, sx + 1.25, fy + 0.78, 99)) L.spikes.push({ x0: sx, y: fy }); } sortAll(); };
         const tapAt = (t) => { const xj = X(t); if (xj < ghost.x + 0.1) return false; sim(xj - 0.02); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 })); return true; };
@@ -1228,7 +1479,7 @@
         };
         for (let bb = b0 + 2; bb < b1 - 1; bb++) {
           while (si < SCR.length && sT(SCR[si]) <= beats[bb] + 0.05) runScript(SCR[si++]);
-          while (fi < FLE.length && FLE[fi].t - tR - 0.3 <= beats[bb]) doFlip(FLE[fi++]);
+          while (fi < FLE.length && FLE[fi].t - (FLE[fi].orb ? tB + P.ta * 0.5 + 0.1 : tR) - 0.3 <= beats[bb]) doFlip(FLE[fi++]);
           if (zones.some(([a, z]) => beats[bb] >= a && beats[bb] <= z)) continue;
           if (bb - lastB < gapB + (pause ? 1 : 0)) continue;
           const f = sc2(bb);
