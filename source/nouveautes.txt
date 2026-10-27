@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 📖 Le Grand Livre des espèces, en plus soigné (borne 1.46.10)
+[pegase] Dans le Grand Livre des espèces (le tien et ceux de tes amis), les titres et l'italique ont de nouvelles lettres : les accents (î, ê, è, ù, û…) sont enfin bien à leur place, comme dans « Les petites bêtes » ou « Mésange charbonnière »
 [borne] ## 🏆 Qui a battu ton temps, qui a battu ton coffre (borne 1.46.9)
 [borne] Quand un copain de ta salle bat ton temps sur un circuit de Turbo Chrono, ou ton record sur un coffre de Coffres à Secrets, tu le sais : « JUJU a battu ton temps sur Turbo Chrono · Le Stade, 0:23.10 contre 0:23.40 », dans la cloche et en petit message s'il arrive pendant que tu es là
 [borne] Touche la notification : le jeu s'ouvre, à toi de reprendre ton record
