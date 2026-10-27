@@ -1610,6 +1610,18 @@ async function flushUnsent() {
 }
 
 /* ================= Notifications « X a battu ton record » ================= */
+// records PAR NIVEAU (source/records-copains.sql, 1.46.9) : game = '<jeu>@<niveau>' ('chrono@stade', 'coffres@3-7'), score / prev = temps
+// en ms (Turbo Chrono) ou coups (coffres) : plus petit = meilleur. recTag dit comment l'écrire.
+function recTag(tag) {
+  const t = String(tag || ''), i = t.indexOf('@'), base = i > 0 ? t.slice(0, i) : t, lv = i > 0 ? t.slice(i + 1) : '';
+  const g = gameById(base) || null;
+  if (!lv) return { g, base, lv: '', where: g ? g.title : '', val: v => fmt(v) + unit(g), word: 'ton record', ic: '🏆' };
+  const msT = v => { const c = Math.round(v / 10), m = Math.floor(c / 6000), sec = Math.floor(c / 100) % 60; return m + ':' + String(sec).padStart(2, '0') + '.' + String(c % 100).padStart(2, '0'); };
+  if (base === 'chrono') return { g, base, lv, where: (g ? g.title : 'Turbo Chrono') + ' · ' + ((CHRONO_TRACKS.find(x => x[0] === lv) || [])[1] || lv), val: msT, word: 'ton temps', ic: '⏱️' };
+  const m = lv.match(/^(\d+)-(\d+)$/), label = base === 'coffres' && m ? 'Monde ' + m[1] + ' · ' + (+m[2] === 8 ? 'grand coffre' : 'coffre ' + m[2]) : 'niveau ' + lv;
+  if (base !== 'coffres') return { g, base, lv, where: (g ? g.title + ' · ' : '') + label, val: v => fmt(v), word: 'ton record', ic: '🏆' };   // jeu à niveaux pas encore connu ici : sans unité
+  return { g, base, lv, where: (g ? g.title : 'Coffres à Secrets') + ' · ' + label, val: v => fmt(v) + ' coup' + (v > 1 ? 's' : ''), word: 'ton record', ic: '🗝️' };
+}
 let notifs = [], notifsOk = false;                 // [{ id, actor, game, score, prev, at }]
 let localNotifs = store.get('jdw.localnotifs', []); if (!Array.isArray(localNotifs)) localNotifs = [];
 let notifSeen = store.get('jdw.notifseen', {}) || {}, notifToasted = store.get('jdw.notiftoast', {}) || {};
@@ -1638,8 +1650,8 @@ async function loadNotifs() {
   refreshBell();
   const key = notifKey(), last = notifToasted[key] || 0, fresh = notifs.filter(n => n.id > last);
   if (fresh.length && $('jdw-play').hidden && last) {
-    const n = fresh[0], g = gameById(n.game);
-    toastCheer(n.actor + ' a battu ton record' + (g ? ' à ' + g.title : '') + ' !', n.actor, true);
+    const n = fresh[0], rt = recTag(n.game);
+    toastCheer(dispName(n.actor) + ' a battu ' + rt.word + (rt.where ? ' · ' + rt.where : '') + ' !', n.actor, true);
   }
   if (notifs.length) { notifToasted[key] = Math.max(last, ...notifs.map(n => n.id)); store.set('jdw.notiftoast', notifToasted); }
   else if (!last) { notifToasted[key] = 1; store.set('jdw.notiftoast', notifToasted); }
@@ -1704,12 +1716,14 @@ function notifRow(n, isNew) {
     li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (g) openGame(g); });
     return li;
   }
-  const g = gameById(n.game);
+  const rt = recTag(n.game), g = rt.g;
   const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, n.actor);
   const b = document.createElement('b'); b.textContent = dispName(n.actor);
-  tx.append(b, ' a battu ton record' + (g ? ' à ' + g.title : ''));
-  const sm = document.createElement('small'); sm.textContent = fmt(n.score) + unit(g) + ' contre ' + fmt(n.prev) + unit(g) + ' pour toi · ' + timeAgo(n.at);
+  tx.append(b, ' a battu ' + rt.word + (rt.where ? (rt.lv ? ' sur ' : ' à ') + rt.where : ''));
+  const sm = document.createElement('small'); sm.textContent = rt.ic + ' ' + rt.val(n.score) + ' contre ' + rt.val(n.prev) + ' pour toi · ' + timeAgo(n.at);
   tx.append(sm); li.append(av, tx);
+  // toucher : le jeu s'ouvre (pour reprendre le record)
+  if (g) { li.classList.add('click'); li.addEventListener('click', () => { closeSheet('jdw-notifs'); if (!$('jdw-play').hidden) backToLibrary(); openGame(g); }); }
   return li;
 }
 // NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
@@ -1883,16 +1897,16 @@ function dayLabel(t) {
 const onlyEmoji = s => /^(\p{Extended_Pictographic}|\p{Emoji_Component}|\s){1,12}$/u.test(s) && !/[0-9#*]/.test(s);
 function chatAtBottom() { const l = $('jdw-chat-log'); return l.scrollHeight - l.scrollTop - l.clientHeight < 60; }
 function recordCard(m) {
-  const g = gameById(m.game), el = document.createElement('div'); el.className = 'chat-record';
+  const rt = recTag(m.game), g = rt.g, el = document.createElement('div'); el.className = 'chat-record';
   if (g) el.style.setProperty('--acc', g.accent);
   const heads = document.createElement('div'); heads.className = 'cr-heads';
   const a = chatHead(m.name, { cls: 'win' }); const crown = document.createElement('span'); crown.className = 'cr-crown'; crown.textContent = '👑'; a.appendChild(crown);
   const b = chatHead(m.beaten, { cls: 'lose', sad: true });
   heads.append(b, a);
   const tx = document.createElement('div'); tx.className = 'cr-txt';
-  const eb = document.createElement('small'); eb.textContent = '🏆 Nouveau record' + (g ? ' · ' + g.title : '');
+  const eb = document.createElement('small'); eb.textContent = (rt.lv ? rt.ic + ' Nouveau record de la salle' : '🏆 Nouveau record') + (rt.where ? ' · ' + rt.where : '');
   const t = document.createElement('b'); t.textContent = dispName(m.name) + ' détrône ' + dispName(m.beaten) + ' !';
-  const sc = document.createElement('span'); sc.textContent = fmt(m.score) + unit(g) + ' contre ' + fmt(m.beatenScore) + unit(g) + ' · ' + hhmm(m.at);
+  const sc = document.createElement('span'); sc.textContent = rt.val(m.score) + ' contre ' + rt.val(m.beatenScore) + ' · ' + hhmm(m.at);
   tx.append(eb, t, sc);
   el.append(heads, tx);
   if (m.id) { el.dataset.mid = m.id; const rx = reactPill(m.id); if (rx) { el.appendChild(rx); el.classList.add('has-rx'); } }

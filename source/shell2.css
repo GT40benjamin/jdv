@@ -3130,3 +3130,6 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 .pgv-isl{display:grid;place-items:center}
 .pgv-isl img{display:block;width:100%;height:auto;filter:drop-shadow(0 30px 50px rgba(0,0,0,.55)) drop-shadow(0 0 40px rgba(94,240,255,.12))}
 @media (max-width:760px){.pgv-post{width:52%}.pgv-post:nth-child(1){transform:rotate(-6deg) translateX(24%)}.pgv-post:nth-child(3){transform:rotate(6deg) translateX(-24%)}}
+/* carte « record » du chat : le style du bandeau d'appel (.callring .cr-txt, même nom) la coupait sur une ligne (« JUJU DÉTR… ») */
+.chat-record .cr-txt b{display:block;font-size:16px;letter-spacing:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.chat-record .cr-txt span{display:block;margin-top:0;font-size:12px;font-weight:400;color:var(--muted)}
