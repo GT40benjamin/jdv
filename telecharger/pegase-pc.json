@@ -1,47 +1,60 @@
 {
-  "version": "0.9.8.5",
-  "build": 46,
-  "size": 2113098510,
-  "sha256": "06e4979e6139de51b21b24317b5dd3f243deae3a64b149d67b244b6197ddc515",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-2026-10-27-0.9.8.5.zip",
-  "manifest": "f19402f0ba0bb5f79a5df306a401df43566be57d8a4b1b6cf5bc3961df4c5403",
+  "version": "0.9.8.6",
+  "build": 47,
+  "size": 2113100915,
+  "sha256": "0ad03b212897514efb96f137edcaf1255bcc9f987337906c2e2ef5c750348db3",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-2026-10-27-0.9.8.6.zip",
+  "manifest": "62bf3e40bfc3dbecbf86ace3c4abb0d4c65d42254a28b033253647f329620f32",
   "patchs": [
     {
+      "de": "0.9.8.5",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.8.5.zip",
+      "taille": 3662188,
+      "sha256": "b6d78b0c6bdde5965f35fd49540c4b11384c291e8ed3df0999a7f373a5b14dd6"
+    },
+    {
       "de": "0.9.8.4",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.4.zip",
-      "taille": 2274197,
-      "sha256": "6d2d5cc00feb68c30595f738166f6f1c220789b2bc7e6ab537574f80ebf0b55b"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.8.4.zip",
+      "taille": 3856409,
+      "sha256": "9fc85ad41dc5ef438e3cf3f33105181664c79c98137fe9e9a675aa2f931444fe"
     },
     {
       "de": "0.9.8.3",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.3.zip",
-      "taille": 2969059,
-      "sha256": "367db0fe291c0f0cb0a325548d3fa024848d22512fd39d11fbd7d6282e3e1784"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.8.3.zip",
+      "taille": 3884280,
+      "sha256": "6df5c69ad3343c6a6298d80ffede4fb4d933e592f1e34fb0852d1934a56f31c7"
     },
     {
       "de": "0.9.8.2",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.2.zip",
-      "taille": 3364159,
-      "sha256": "cdccda576e14f73914831d5ef1af0d0eaa028c511339f679376843254b709a50"
-    },
-    {
-      "de": "0.9.8.1",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.8.1.zip",
-      "taille": 19480311,
-      "sha256": "89acc9b44337e0767dd39afb981d97de00811914d1ca17e26645abc1ceb747fc"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.8.2.zip",
+      "taille": 4188377,
+      "sha256": "ac65bb334e95e5c5d87d5e33d96f79b01cc3e32c09d826210e7c64c65542588b"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v46/Pegase-PC-patch-0.9.7.zip",
-      "taille": 228294113,
-      "sha256": "4f51bc26bb35dc71a995f22b86a21460eb6e2b4f6dd202dbd93e2aff1a05b4cf"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v47/Pegase-PC-patch-0.9.7.zip",
+      "taille": 228297943,
+      "sha256": "5e94073bb117c5f25a9915ba54a7334876aec9973dcbd98ba8aa4f77f1c35b7e"
     }
   ],
   "notes": [
-    "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
-    "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
+    "Les parcelles ne débordent plus sur le chemin : devant le portique rouge, au pied de l'escalier et sous la falaise, les bords des parcelles à vendre reculent jusqu'à l'herbe.",
+    "L'allée vers le coin cosy est dégagée : entre les parcelles, quatre arbres ont été écartés du passage.",
+    "Un vrai escalier de pierre au bout du chemin du Clos, posé sur le chemin et qui suit la pente, une lanterne de chaque côté.",
+    "Les affiches se posent plus facilement : si l'endroit visé est déjà pris (une affiche à côté, le bord du mur, une poutre, une fenêtre), l'affiche glisse toute seule jusqu'à la place libre la plus proche sur le même mur.",
+    "Hugo, le facteur, ne roule plus sur le muret du perron de la mairie pendant sa tournée."
   ],
   "historique": [
+    {
+      "version": "0.9.8.6",
+      "notes": [
+        "Les parcelles ne débordent plus sur le chemin : devant le portique rouge, au pied de l'escalier et sous la falaise, les bords des parcelles à vendre reculent jusqu'à l'herbe.",
+        "L'allée vers le coin cosy est dégagée : entre les parcelles, quatre arbres ont été écartés du passage.",
+        "Un vrai escalier de pierre au bout du chemin du Clos, posé sur le chemin et qui suit la pente, une lanterne de chaque côté.",
+        "Les affiches se posent plus facilement : si l'endroit visé est déjà pris (une affiche à côté, le bord du mur, une poutre, une fenêtre), l'affiche glisse toute seule jusqu'à la place libre la plus proche sur le même mur.",
+        "Hugo, le facteur, ne roule plus sur le muret du perron de la mairie pendant sa tournée."
+      ]
+    },
     {
       "version": "0.9.8.5",
       "notes": [
@@ -80,14 +93,6 @@
         "Tes chemins tracés sont repeints par-dessus, et le chemin unique au nord-est du village est de nouveau en place.",
         "Les villageois retrouvent la terre de leurs chemins.",
         "Le sable des plages reste sur les plages."
-      ]
-    },
-    {
-      "version": "0.9.8.1",
-      "notes": [
-        "Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes, disparus par erreur avec l'arrivée de la mer.",
-        "La place du village retrouve tout son décor.",
-        "Les brumes et les feuilles qui volent près des arbres et des cascades sont revenues."
       ]
     }
   ]

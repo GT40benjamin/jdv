@@ -1,66 +1,12 @@
 {
-  "pkg": "fr.bornearcade.pegase",
-  "versionCode": 43,
-  "versionName": "0.9.8.5",
-  "size": 1149116038,
-  "sha256": "fa15fa7e3cd81985e9d2f5b33f85ed15b0bbb93c1004885471adb543b09090c8",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v43/pegase-0.9.8.5.apk",
-  "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
-  "minSdk": 26,
-  "abi": "arm64-v8a",
-  "title": "Pégase",
-  "notes": [
-    "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
-    "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
-  ],
-  "historique": [
-    {
-      "version": "0.9.8.5",
-      "notes": [
-        "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
-        "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
-      ]
-    },
-    {
-      "version": "0.9.8.4",
-      "notes": [
-        "Les messages du téléphone montrent l'heure d'envoi sous chaque bulle, reçue ou envoyée.",
-        "L'appareil photo affiche à gauche du viseur un bouton pour chaque module acheté (filtre de nuit, filtre solaire, capteur de nuit…), touches 1 à 9 : on les met et on les enlève quand on veut.",
-        "La pêche : le poisson reste accroché au fil par la bouche jusqu'à ta main, les pouces ne rentrent plus dans le poisson, et le ver est plus gros et plus coloré.",
-        "Le jardin : le banc de jardin se pose dos au mur tout seul, les jardinières se posent sous la fenêtre, du bon côté et à la bonne hauteur.",
-        "Papi Auguste monte le perron de la mairie bien au milieu des marches (fini, le mur !).",
-        "Les voix : on n'entend plus un habitant qui parle avec un autre joueur quand on est dehors ou loin ; le bruit de volet de la nuit au village est parti.",
-        "Les marguerites ont retrouvé leur taille."
-      ]
-    },
-    {
-      "version": "0.9.8.3",
-      "notes": [
-        "La brume du matin change chaque jour : certains matins une belle brume flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair. Le jour, juste un léger voile au loin, plus épais avant la pluie.",
-        "Les gros nuages avancent doucement dans le ciel.",
-        "Le fond est plus net : les montagnes au loin ne sont plus floues.",
-        "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
-        "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
-        "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
-      ]
-    },
-    {
-      "version": "0.9.8.2",
-      "notes": [
-        "Les chemins de terre, les routes et les pavés du village sont revenus partout sur l'île, avec la place, les rues et les sentiers comme avant l'arrivée de la mer.",
-        "Les pentes et les falaises de l'intérieur retrouvent leur roche et leur terre.",
-        "Tes chemins tracés sont repeints par-dessus, et le chemin unique au nord-est du village est de nouveau en place.",
-        "Les villageois retrouvent la terre de leurs chemins.",
-        "Le sable des plages reste sur les plages."
-      ]
-    },
-    {
-      "version": "0.9.8.1",
-      "notes": [
-        "Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes, disparus par erreur avec l'arrivée de la mer.",
-        "La place du village retrouve tout son décor.",
-        "Les brumes et les feuilles qui volent près des arbres et des cascades sont revenues."
-      ]
-    }
-  ]
+ "pkg": "fr.bornearcade.pegase",
+ "versionCode": 44,
+ "versionName": "0.9.8.6",
+ "size": 1149096358,
+ "sha256": "1049418e41881667189230a141f70f05acae905a101d5c85d372a1694841273f",
+ "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v44/pegase-0.9.8.6.apk",
+ "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
+ "minSdk": 26,
+ "abi": "arm64-v8a",
+ "title": "Pégase"
 }
