@@ -93,3 +93,17 @@ revoke all on function public.save_game(text, text, text, jsonb, bigint), public
   public.put_level_best(text, text, text, text, integer, integer), public.get_level_bests(text, bigint, text, text, text) from public;
 grant execute on function public.save_game(text, text, text, jsonb, bigint), public.get_game_save(text, text, text),
   public.put_level_best(text, text, text, text, integer, integer), public.get_level_bests(text, bigint, text, text, text) to anon, authenticated;
+
+-- TOUS les niveaux d'un jeu d'un coup, pour les membres de la salle (borne 1.46.3 : tableau des copains de Coffres à Secrets)
+create or replace function public.get_level_bests_all(p_code text, p_room bigint, p_room_code text, p_game text)
+returns table(r_level text, r_name text, r_moves integer, r_ms integer)
+language plpgsql stable security definer set search_path = public, extensions as $$
+begin
+  perform public.room_guard(p_room);
+  if p_game is null or p_game !~ '^[a-z0-9_-]{2,20}$' then raise exception 'jeu invalide'; end if;
+  return query select b.level, b.name, b.moves, b.ms from public.level_bests b
+    join public.room_members m on m.room_id = p_room and m.name = b.name
+    where b.game = p_game order by b.level, b.moves, b.ms, b.at limit 5000;
+end $$;
+revoke all on function public.get_level_bests_all(text, bigint, text, text) from public;
+grant execute on function public.get_level_bests_all(text, bigint, text, text) to anon, authenticated;
