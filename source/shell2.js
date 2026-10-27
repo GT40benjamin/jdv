@@ -5491,14 +5491,213 @@ function hubDecorWatch() {
 if (PG_TAB) hubDecorWatch();
 function pgSky(on) {
   $('jdw-lib').classList.add('pg-vid');
-  if (on) pgPoster();
+  if (on) { pgPoster(); setTimeout(pgvBuild, 0); }   // la vitrine sous les îles, construite à la 1re visite
   pgDecor(!!on);
   if (!on) pgAmbi(false);
   pgMusicIc();
 }
 // ♪ la musique : couper / remettre, rien d'autre
 function pgMusicIc() { const b = $('jdw-pg-music'); if (!b) return; b.classList.toggle('off', !MUS.on); b.setAttribute('aria-label', MUS.on ? 'Couper la musique' : 'Remettre la musique'); b.setAttribute('aria-pressed', MUS.on ? 'false' : 'true'); }
-$('jdw-pg-music').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); });
+$('jdw-pg-music').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); pgvMusic(); });
+/* ================= LA VITRINE DE PÉGASE : sous les îles, à la molette (demande de PATOU, 27 oct. 2026) =================
+   « La légende de Pégase » : l'histoire (un photographe vient sur l'île photographier et étudier le cheval ailé de la légende), le safari
+   photo, la vie au village, les îles entre amis, la musique, PegaGram, puis TÉLÉCHARGER (PC / Android / iPhone) + configuration PC minimale
+   et recommandée (Ultra). Pour tous les âges, aucune violence. Images : captures du JEU au rendu PC Ultra, accueil/pgv-<nom>-<largeur>.webp
+   (deux tailles, chargées à la demande). Le haut est transparent : le décor filmé de la page reste derrière le titre. */
+const pgvEsc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const PGV_IMG = {"auguste":[[1600,1600,1067],[800,800,533]],"biches":[[1600,1600,1067],[800,800,533]],"bouvreuil":[[1600,1600,1067],[800,800,533]],"chat":[[1400,1400,943],[800,800,539]],"cygnes":[[1600,1600,1067],[800,800,533]],"echoppe":[[1600,1600,800],[800,800,400]],"fleurs":[[1600,1600,1067],[800,800,533]],"hibou":[[1600,1600,1067],[800,800,533]],"livre":[[700,700,1050],[480,480,720]],"maison":[[1600,1600,900],[800,800,450]],"nuit":[[1600,1600,1067],[2400,2400,1600],[800,800,533]],"oies":[[1600,1600,1067],[800,800,533]],"peche":[[1600,1600,753],[800,800,377]],"pegase":[[1400,1210,807],[800,800,534]],"polaroid":[[1600,1600,818],[800,800,409]],"pont":[[1600,1600,1067],[800,800,533]],"potager":[[1600,1600,810],[800,800,405]],"village":[[1600,1600,1067],[2400,2400,1600],[800,800,533]],"viseur":[[1600,1600,720],[800,800,360]]};
+// <img> net sur tous les écrans : srcset avec les vraies largeurs, sizes donné par la mise en page, toujours chargé à la demande
+function pgvImg(n, alt, sizes, cls) {
+  const v = (PGV_IMG[n] || []).slice().sort((a, b) => a[1] - b[1]); if (!v.length) return '';
+  const src = (x) => ROOT + 'accueil/pgv-' + n + '-' + x[0] + '.webp', s = v[0];
+  return `<img class="${cls || ''}" loading="lazy" decoding="async" alt="${pgvEsc(alt)}" width="${s[1]}" height="${s[2]}" src="${src(s)}" srcset="${v.map(x => src(x) + ' ' + x[1] + 'w').join(', ')}" sizes="${sizes || '100vw'}">`;
+}
+const PGV_SVG = {
+  cam: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="4"/></svg>',
+  book: '<svg viewBox="0 0 24 24"><path d="M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6v14"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',
+  pc: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+  android: '<svg viewBox="0 0 24 24"><rect x="5" y="9" width="14" height="10" rx="2"/><path d="M8 9a4 4 0 0 1 8 0M8 5l1.5 2M16 5l-1.5 2"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>',
+  down: '<svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg>',
+  note: '<svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
+  shield: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
+  chev: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+};
+const PGV = { built: false, io: null, pc: null };
+function pgvBuild() {
+  if (PGV.built || !PG_TAB) return; PGV.built = true;
+  const box = $('jdw-pgv'); if (!box) return;
+  if (!document.getElementById('jdw-pgv-font')) {   // le titre en lettres classiques (Cormorant Garamond) ; sans réseau : la police serif du système
+    const l = document.createElement('link'); l.id = 'jdw-pgv-font'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap'; document.head.appendChild(l);
+  }
+  const W2 = '(max-width: 760px) 100vw, 50vw', W3 = '(max-width: 760px) 100vw, 33vw', WF = '100vw';
+  const card = (img, alt, t, p) => `<article class="pgv-card pgv-rv">${pgvImg(img, alt, W3)}<div><h4>${t}</h4><p>${p}</p></div></article>`;
+  const feat = (ic, t, p) => `<li><span class="pgv-ic">${PGV_SVG[ic]}</span><div><b>${t}</b><p>${p}</p></div></li>`;
+  const post = (img, alt, t, s, r) => `<figure class="pgv-post">${pgvImg(img, alt, '(max-width: 760px) 80vw, 300px')}<figcaption><b>${t}</b><small>${s}</small><span class="pgv-reac">${r}</span></figcaption></figure>`;
+  box.innerHTML = `
+  <section class="pgv-hero" aria-labelledby="pgv-t">
+    <p class="pgv-kick pgv-rv">Elixir Game Studio présente</p>
+    <h2 class="pgv-title pgv-rv" id="pgv-t">La légende de&nbsp;Pégase</h2>
+    <p class="pgv-lead pgv-rv">Un monde à explorer appareil photo en main, un village où poser ses valises, des amis pour tout partager… et un cheval ailé que presque personne n'a jamais vu.</p>
+    <ul class="pgv-chips pgv-rv"><li>🌿 Pour tous les âges · aucune violence</li><li>🎁 Gratuit</li><li>💻 PC · 📱 Android</li></ul>
+    <div class="pgv-ctas pgv-rv"><button type="button" class="pgv-btn gold" data-go="dl">${PGV_SVG.down}Télécharger Pégase</button><button type="button" class="pgv-btn ghost" data-go="isles">🏝️ Rejoindre une île</button></div>
+  </section>
+  <div class="pgv-body">
+  <section class="pgv-sec pgv-story" aria-labelledby="pgv-h1">
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">L'histoire</p>
+      <h3 class="pgv-h" id="pgv-h1">On raconte qu'un cheval ailé vit sur l'île…</h3>
+      <p>Tu es photographe. Un jour, une vieille légende arrive jusqu'à toi&nbsp;: sur une île au bout du monde vivrait <b>Pégase</b>, un cheval ailé que presque personne n'a jamais vu.</p>
+      <p>Ton appareil en bandoulière, tu embarques pour <b>Ailebrune</b>, le petit village de l'île. Ton rêve&nbsp;: le retrouver, le photographier, et l'étudier pour percer son secret.</p>
+      <p>Mais l'île cache bien d'autres merveilles… et on s'y sent si bien qu'on finit par y poser ses valises.</p>
+    </div>
+    <div class="pgv-pola pgv-rv" aria-hidden="false">
+      <figure class="p2">${pgvImg('polaroid', 'La photo de Pégase se développe dans le viseur', W2)}</figure>
+      <figure class="p1">${pgvImg('pegase', 'Pégase, le cheval ailé, entre les bouleaux', W2)}<figcaption>Pégase · légendaire</figcaption></figure>
+    </div>
+  </section>
+  <section class="pgv-wide pgv-rv" aria-label="Le viseur de l'appareil photo">${pgvImg('viseur', 'Pégase dans le viseur doré de l’appareil photo', WF)}<span class="pgv-cap">Dans le viseur, enfin&nbsp;!</span></section>
+  <section class="pgv-sec pgv-safari" aria-labelledby="pgv-h2">
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">Safari photo</p>
+      <h3 class="pgv-h" id="pgv-h2">Un safari photo, entre amis</h3>
+      <p>Approche-toi sans bruit, fais la mise au point, zoome… clic&nbsp;! Biches au bord du lac, grand-duc dans la nuit, bouvreuil dans les fleurs, cygnes à l'aube&nbsp;: plus de soixante espèces t'attendent, des oiseaux du jardin aux animaux de la forêt.</p>
+      <ul class="pgv-feats">
+        ${feat('cam', 'Un vrai appareil photo', 'Mise au point, zoom, macro, et tes réglages&nbsp;: lumière, flou d’arrière-plan, couleurs, grain.')}
+        ${feat('gear', 'Des modules à débloquer', 'Ton appareil grandit avec toi, au fil de l’aventure.')}
+        ${feat('book', 'Le Grand Livre des espèces', 'Chaque belle photo remplit une page. Des médailles récompensent les meilleurs naturalistes.')}
+      </ul>
+    </div>
+    <div class="pgv-mosaic pgv-rv">
+      ${pgvImg('biches', 'Biches au bord du lac, le matin', W3, 'm1')}${pgvImg('hibou', 'Le grand-duc la nuit dans le grand osmanthe', W3, 'm2')}${pgvImg('bouvreuil', 'Un bouvreuil dans les fleurs', W3, 'm3')}${pgvImg('cygnes', 'Cygnes à l’aube sur le lac', W3, 'm4')}${pgvImg('oies', 'Vol d’oies en V à l’heure dorée', W3, 'm5')}
+    </div>
+  </section>
+  <section class="pgv-sec pgv-split rev pgv-livre" aria-labelledby="pgv-h3">
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">Le Grand Livre</p>
+      <h3 class="pgv-h" id="pgv-h3">Ton carnet de naturaliste</h3>
+      <p>Chaque espèce photographiée trouve sa place dans le <b>Grand Livre des espèces</b>&nbsp;: oiseaux, animaux de la ferme et de la forêt, reptiles, petites bêtes, poissons… et les légendes.</p>
+      <p>Remplis les pages, gagne des médailles, et feuillette les livres de tes amis pour voir qui a trouvé quoi.</p>
+    </div>
+    <div class="pgv-book pgv-rv">${pgvImg('livre', 'Une page du Grand Livre des espèces : les oiseaux des jardins', '(max-width: 760px) 80vw, 420px')}</div>
+  </section>
+  <section class="pgv-band pgv-rv" aria-label="Le village d'Ailebrune">${pgvImg('village', 'Ailebrune, le village au bord du lac, la cascade et l’arbre sacré', WF)}<div class="pgv-bandtx"><p class="pgv-kick">La vie à Ailebrune</p><h3 class="pgv-h">Un village où l'on se sent chez soi</h3></div></section>
+  <section class="pgv-sec" aria-label="Ta vie au village">
+    <div class="pgv-cards">
+      ${card('maison', 'Une maison à colombages et son jardin fleuri', 'Ta maison', 'Choisis ta parcelle, construis ta maison pièce par pièce et décore-la à ton goût.')}
+      ${card('potager', 'Choux, carottes et radis dans le potager', 'Ton potager', 'Sème, arrose, récolte… et vends tes légumes à l’échoppe du village contre des lucioles.')}
+      ${card('peche', 'Pêche à la ligne au bout du ponton', 'La pêche', 'Le lac, la rivière, la mer et ses criques&nbsp;: chaque coin d’eau a ses poissons. Et chaque semaine, un concours&nbsp;!')}
+      ${card('auguste', 'Papi Auguste, le maire, à son bureau', 'Les habitants', 'Papi Auguste le maire, les commerçants, les voisins&nbsp;: chacun a une histoire et des missions à te confier.')}
+      ${card('echoppe', 'Le marché du village et ses étals', 'Le marché', 'Des graines, des objets, des tenues&nbsp;: dépense tes lucioles et garnis ta maison.')}
+      ${card('chat', 'Le chat des toits sur un faîtage', 'Les petits secrets', 'Un chat qui se promène sur les toits, un musée à remplir, des missions chaque jour… et des surprises bien cachées.')}
+    </div>
+  </section>
+  <section class="pgv-sec pgv-split" aria-labelledby="pgv-h4">
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">Les îles</p>
+      <h3 class="pgv-h" id="pgv-h4">Ton île, avec tes amis</h3>
+      <p>Crée ton île ou rejoins celle de tes copains&nbsp;: chacun sa parcelle, son avatar, sa maison. On se retrouve au village, on se promène, on danse, on s'appelle en vidéo, on s'envoie des messages et des cartes postales.</p>
+      <p>Ton avatar se prépare ici, dans la borne, et te suit dans le jeu.</p>
+      <button type="button" class="pgv-btn ghost" data-go="isles">🏝️ Voir les îles</button>
+    </div>
+    <div class="pgv-isl pgv-rv"><img loading="lazy" decoding="async" alt="L’île de Pégase vue du ciel : le lac, l’arbre rouge, la rivière et les falaises" width="1024" height="694" src="${ROOT}assets/pegase/ile_3d_1024.webp" srcset="${ROOT}assets/pegase/ile_3d_1024.webp 1024w, ${ROOT}assets/pegase/ile_3d_2048.webp 2048w" sizes="(max-width: 760px) 100vw, 50vw"></div>
+  </section>
+  <section class="pgv-band music pgv-rv" aria-labelledby="pgv-h5">${pgvImg('nuit', 'La place du village la nuit, lanternes et lucioles', WF)}<div class="pgv-bandtx">
+    <p class="pgv-kick">Musique</p><h3 class="pgv-h" id="pgv-h5">Une musique enchanteresse</h3>
+    <p>Harpe, célesta, violoncelle… Une musique douce, composée pour l'île, accompagne chaque instant, du lever du soleil sur le lac jusqu'aux lanternes du soir.</p>
+    <button type="button" class="pgv-btn ghost" id="jdw-pgv-mus">${PGV_SVG.note}<span>Écouter</span></button></div></section>
+  <section class="pgv-sec pgv-split rev" aria-labelledby="pgv-h6">
+    <div class="pgv-feed pgv-rv" aria-hidden="true">
+      ${post('fleurs', '', 'Champ de fleurs à l’aube', 'Photo de la semaine', '❤️ 24 · 😍 9')}
+      ${post('hibou', '', 'Le grand-duc', 'Concours de nuit', '⭐ 18 · 😮 7')}
+      ${post('pont', '', 'Le pont rouge', 'Sur ton île', '❤️ 15 · 👍 6')}
+    </div>
+    <div class="pgv-tx pgv-rv">
+      <p class="pgv-kick">PegaGram</p>
+      <h3 class="pgv-h" id="pgv-h6">Partage tes plus belles photos</h3>
+      <p>Tes photos préférées vont sur PegaGram, le petit album partagé de ton île&nbsp;: tes copains réagissent, les plus belles gagnent des concours, et Papi Auguste annonce les gagnants.</p>
+      <p>Seuls tes amis voient tes photos.</p>
+    </div>
+  </section>
+  <section class="pgv-sec pgv-dl" id="jdw-pgv-dl" aria-labelledby="pgv-h7">
+    <div class="pgv-dlhead pgv-rv"><p class="pgv-kick">Jouer</p><h3 class="pgv-h" id="pgv-h7">Gratuit, sur PC et Android</h3>
+      <p>Pégase est un vrai jeu à installer. Une fois installé, il se met à jour tout seul.</p></div>
+    <div class="pgv-plats">
+      <article class="pgv-plat pgv-rv"><div class="pgv-ph">${PGV_SVG.pc}<div><h4>PC (Windows)</h4><p data-v="pcmeta">On cherche la dernière version…</p></div></div>
+        <div data-v="pczone"></div>
+        <ol class="pgv-steps"><li><b>Télécharge</b> le fichier zip</li><li><b>Extrais-le</b> (clic droit → Extraire tout)</li><li>Ouvre <b>Pegase.exe</b></li></ol>
+        <details class="pgv-ss"><summary>${PGV_SVG.shield}Un écran bleu « Windows a protégé votre ordinateur » ?</summary><p>C'est normal&nbsp;: Pégase est tout neuf, Windows ne le connaît pas encore. Clique sur <b>Informations complémentaires</b>, puis sur <b>Exécuter quand même</b>.</p></details></article>
+      <article class="pgv-plat pgv-rv"><div class="pgv-ph">${PGV_SVG.android}<div><h4>Android</h4><p data-v="andmeta">Téléphone ou tablette, Android 8 ou plus</p></div></div>
+        <div data-v="andzone"></div></article>
+      <article class="pgv-plat soon pgv-rv"><div class="pgv-ph">${PGV_SVG.phone}<div><h4>iPhone et iPad</h4><p>À venir</p></div></div><p class="pgv-small">Un peu plus tard. En attendant, prépare ton avatar dans la borne&nbsp;!</p></article>
+    </div>
+    <div class="pgv-cfg pgv-rv">
+      <h4>Configuration PC</h4>
+      <div class="pgv-tbl" role="table" aria-label="Configuration PC minimale et recommandée">
+        <div role="row" class="hd"><span role="columnheader"></span><span role="columnheader">Minimale</span><span role="columnheader">Recommandée <em>Ultra</em></span></div>
+        <div role="row"><span role="rowheader">Système</span><span role="cell">Windows 10 (64 bits)</span><span role="cell">Windows 11 (64 bits)</span></div>
+        <div role="row"><span role="rowheader">Processeur</span><span role="cell">4 cœurs (Intel Core i5 ou AMD Ryzen 5 récents)</span><span role="cell">6 cœurs ou plus (Intel Core i7 ou AMD Ryzen 7)</span></div>
+        <div role="row"><span role="rowheader">Mémoire</span><span role="cell">8 Go</span><span role="cell">16 Go</span></div>
+        <div role="row"><span role="rowheader">Carte graphique</span><span role="cell">DirectX 11, 4 Go (GeForce GTX 1050 Ti, Radeon RX 570) ; les puces intégrées jouent en qualité Basse</span><span role="cell">DirectX 12, 10 Go ou plus (GeForce RTX 3080 ou 4070, Radeon RX 6800)</span></div>
+        <div role="row"><span role="rowheader">Espace libre</span><span role="cell">8 Go</span><span role="cell">8 Go sur SSD</span></div>
+        <div role="row"><span role="rowheader">Commandes</span><span role="cell">Souris et clavier</span><span role="cell">Souris et clavier, ou manette</span></div>
+      </div>
+      <p class="pgv-small">Pégase choisit tout seul la qualité d'image selon ta carte graphique (Basse, Moyenne, Haute ou Ultra)&nbsp;; tu peux la changer dans les Réglages du jeu. Téléchargement d'environ 2&nbsp;Go, 5&nbsp;Go une fois installé.</p>
+      <p class="pgv-small"><b>Android&nbsp;:</b> Android 8 ou plus, téléphone 64 bits, 4&nbsp;Go de mémoire (6&nbsp;Go conseillés), 3&nbsp;Go d'espace libre.</p>
+    </div>
+  </section>
+  <footer class="pgv-foot"><p class="pgv-age">🌿 Pour tous les âges · aucune violence</p><p>Les images de cette page viennent du jeu, au rendu PC Ultra.</p><p class="pgv-sig">Elixir Game Studio</p></footer>
+  </div>`;
+  // apparition douce à l'écran (rien sans IntersectionObserver ou si l'appareil préfère moins d'animations)
+  const rv = box.querySelectorAll('.pgv-rv');
+  if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    box.classList.add('pgv-anim');
+    PGV.io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { e.target.classList.add('in'); PGV.io.unobserve(e.target); } }, { root: $('jdw-lib'), rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    rv.forEach(el => PGV.io.observe(el));
+  }
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]'); if (!b) return;
+    const L = $('jdw-lib'), to = b.dataset.go === 'dl' ? $('jdw-pgv-dl') : $('jdw-page-pegase');
+    const top = b.dataset.go === 'dl' ? to.getBoundingClientRect().top + L.scrollTop - 12 : 0;
+    try { L.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (x) { L.scrollTop = top; }
+  });
+  $('jdw-pgv-mus').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); pgvMusic(); });
+  pgvMusic(); pgvCue(); pgvDl();
+}
+function pgvMusic() { const b = $('jdw-pgv-mus'); if (!b) return; b.querySelector('span').textContent = MUS.on ? 'Couper la musique' : 'Écouter'; b.classList.toggle('on', MUS.on); }
+// « Découvrir Pégase » sous les îles : la flèche qui invite à descendre
+function pgvCue() {
+  const p = $('jdw-page-pegase'); if (!p || p.querySelector('.pgv-cue')) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pgv-cue'; b.innerHTML = '<span>Découvrir Pégase</span>' + PGV_SVG.chev;
+  b.addEventListener('click', () => { const L = $('jdw-lib'), t = $('jdw-pgv').getBoundingClientRect().top + L.scrollTop; try { L.scrollTo({ top: t, behavior: 'smooth' }); } catch (x) { L.scrollTop = t; } });
+  p.appendChild(b);
+}
+// téléchargement : la fiche du PC (telecharger/pegase-pc.json) et, sur Android, l'appli de la borne (même feuille que la tuile)
+async function pgvDl() {
+  const box = $('jdw-pgv'), q = (k) => box.querySelector('[data-v="' + k + '"]');
+  try {
+    const r = await fetch(new URL(ROOT + 'telecharger/pegase-pc.json?t=' + Math.floor(Date.now() / 60000), location.href), { cache: 'no-store' });
+    const f = r.ok ? await r.json() : null;
+    if (f && /^https:\/\//.test(f.url || '') && f.version) {
+      q('pcmeta').textContent = 'Version ' + String(f.version).replace(/[^0-9a-z.\- ]/gi, '') + (f.size ? ' · ' + natMo(f.size) : '') + ' · gratuit';
+      q('pczone').innerHTML = `<a class="pgv-btn gold" href="${pgvEsc(f.url)}" rel="noopener" download>${PGV_SVG.down}Télécharger pour PC</a>`;
+    } else { q('pcmeta').textContent = 'Bientôt disponible'; }
+  } catch (e) { q('pcmeta').textContent = netOff() ? 'Il faut du réseau pour voir la dernière version' : 'Bientôt disponible'; }
+  const g = gameById('pegase'); if (!g) return;
+  let st = null; try { st = await nativeStatus(g); } catch (e) {}
+  const z = q('andzone'), meta = q('andmeta');
+  if (st && st.versionName) meta.textContent = 'Version ' + st.versionName.replace(/[^0-9a-z.\- ]/gi, '') + (st.size ? ' · ' + natMo(st.size) : '') + ' · Android 8 ou plus';
+  const btn = (t) => `<button type="button" class="pgv-btn gold" data-and="1">${PGV_SVG.android}${t}</button>`;
+  const s = st ? st.state : 'none';
+  z.innerHTML = s === 'install' ? btn('Installer sur ce téléphone') : s === 'update' || s === 'replace' ? btn('Mettre à jour') : s === 'play' ? btn('Jouer à Pégase') : s === 'busy' ? btn('Voir le téléchargement')
+    : s === 'browser' ? `<p class="pgv-small">Installe d'abord l'appli <b>« Borne d'arcade »</b>&nbsp;: elle installe Pégase pour toi, d'un toucher.</p><a class="pgv-btn ghost" href="${pgvEsc(ROOT + 'telecharger/')}">${PGV_SVG.down}L'appli de la borne</a>`
+    : s === 'oldapp' ? '<p class="pgv-small">Mets à jour l’appli de la borne (page Télécharger) pour installer Pégase.</p>'
+    : s === 'unfit' ? '<p class="pgv-small">Ce téléphone n’est pas assez récent pour Pégase.</p>'
+    : '<p class="pgv-small">Ouvre la borne dans son appli Android&nbsp;: elle installe Pégase pour toi, d’un toucher.</p>';
+  const b = z.querySelector('[data-and]'); if (b) b.addEventListener('click', () => nativeOpen(g, true));
+}
 // ✨ le mode ambiance
 function pgAmbi(on) {
   const L = $('jdw-lib'); if (!!on === L.classList.contains('pg-ambi')) return;
