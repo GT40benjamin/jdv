@@ -94,7 +94,7 @@ revoke all on function public.save_game(text, text, text, jsonb, bigint), public
 grant execute on function public.save_game(text, text, text, jsonb, bigint), public.get_game_save(text, text, text),
   public.put_level_best(text, text, text, text, integer, integer), public.get_level_bests(text, bigint, text, text, text) to anon, authenticated;
 
--- TOUS les niveaux d'un jeu d'un coup, pour les membres de la salle (borne 1.45.2 : tableau des copains de Coffres à Secrets)
+-- TOUS les niveaux d'un jeu d'un coup, pour les membres de la salle (borne 1.46.3 : tableau des copains de Coffres à Secrets)
 create or replace function public.get_level_bests_all(p_code text, p_room bigint, p_room_code text, p_game text)
 returns table(r_level text, r_name text, r_moves integer, r_ms integer)
 language plpgsql stable security definer set search_path = public, extensions as $$

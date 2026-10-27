@@ -8909,7 +8909,7 @@ function levelBestApi(g) {
         return (r || []).filter(x => !knownNotMember(x.r_name)).map(x => ({ name: dispName(x.r_name), moves: +x.r_moves, ms: +x.r_ms, me: x.r_name === me }));
       } catch (e) { if (e.status === 404) SAVEG.bestMissing = true; return []; }
     },
-    // TOUS les niveaux d'un coup (1.45.2, tableau des copains) : { members: [{ name, img, me }], best: { niveau: [{ name, moves, ms, me }] } } ;
+    // TOUS les niveaux d'un coup (1.46.3, tableau des copains) : { members: [{ name, img, me }], best: { niveau: [{ name, moves, ms, me }] } } ;
     // members = moi + les membres de la salle (même sans photo : img null) ; null en invité / sans salle / hors ligne
     async all() {
       if (isGuest() || !ONLINE || !room || netOff()) return null;
