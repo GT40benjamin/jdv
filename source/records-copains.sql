@@ -54,24 +54,31 @@ exception when others then
 end $$;
 revoke all on function public.rec_copains(text, text, int, bigint, bigint, jsonb) from public, anon, authenticated;
 
--- Turbo Chrono : un temps meilleur sur un circuit
-create or replace function public.rec_chrono_trg() returns trigger language plpgsql security definer set search_path = public, extensions as $$
-declare oth jsonb;
+-- Turbo Chrono : un temps meilleur sur un circuit DANS UNE SALLE (1.46.13 : chrono_room_runs = le classement de la salle ; le monde,
+-- chrono_runs, ne prévient plus personne : jamais deux notifications pour une course). Seulement les autres membres de CETTE salle, et
+-- seulement leurs temps de la version du circuit (comme chrono_board).
+create or replace function public.rec_chrono_room_trg() returns trigger language plpgsql security definer set search_path = public, extensions as $$
+declare oth jsonb; tv int := (select k.ver from public.chrono_tracks k where k.id = new.track);
 begin
-  if tg_op = 'UPDATE' and new.ms >= old.ms then return new; end if;
+  if tg_op = 'UPDATE' and new.ms >= old.ms and old.ver >= tv then return new; end if;
   select coalesce(jsonb_object_agg(x.room_id, x.l), '{}'::jsonb) into oth from (
-    select m.room_id, jsonb_agg(jsonb_build_object('n', c.name, 'v', c.ms, 'k', c.ms)) l
-    from public.room_members m
-    join public.room_members o on o.room_id = m.room_id and o.name <> m.name
-    join public.chrono_runs c on c.track = new.track and c.name = o.name
-    where m.name = new.name group by m.room_id) x;
-  perform public.rec_copains('chrono@' || new.track, new.name, new.ms, new.ms::bigint, case when tg_op = 'UPDATE' then old.ms::bigint end, oth);
+    select new.room_id as room_id, jsonb_agg(jsonb_build_object('n', c.name, 'v', c.ms, 'k', c.ms)) l
+    from public.chrono_room_runs c
+    where c.track = new.track and c.room_id = new.room_id and c.name <> new.name and c.ver >= tv
+      and exists (select 1 from public.room_members m where m.room_id = new.room_id and m.name = c.name)
+    having count(*) > 0) x;
+  perform public.rec_copains('chrono@' || new.track, new.name, new.ms, new.ms::bigint,
+    case when tg_op = 'UPDATE' and old.ver >= tv then old.ms::bigint end, oth);
   return new;
 end $$;
-do $$ begin if to_regclass('public.chrono_runs') is not null then
-  drop trigger if exists rec_chrono on public.chrono_runs;
-  create trigger rec_chrono after insert or update of ms on public.chrono_runs for each row execute function public.rec_chrono_trg();
-end if; end $$;
+do $$ begin
+  if to_regclass('public.chrono_runs') is not null then drop trigger if exists rec_chrono on public.chrono_runs; end if;
+  if to_regclass('public.chrono_room_runs') is not null then
+    drop trigger if exists rec_chrono_room on public.chrono_room_runs;
+    create trigger rec_chrono_room after insert or update of ms, ver on public.chrono_room_runs for each row execute function public.rec_chrono_room_trg();
+  end if;
+end $$;
+drop function if exists public.rec_chrono_trg();
 
 -- Coffres à Secrets (et tout jeu à niveaux) : moins de coups, puis moins de temps
 create or replace function public.rec_level_trg() returns trigger language plpgsql security definer set search_path = public, extensions as $$
