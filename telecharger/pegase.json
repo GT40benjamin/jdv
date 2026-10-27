@@ -1,23 +1,36 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 41,
-  "versionName": "0.9.8.3",
-  "size": 1149084910,
-  "sha256": "7e4276c6e1bfe6c9fb235867c4381e300cf3bf76322ef39d147b315e6364c884",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v41/pegase-0.9.8.3.apk",
+  "versionCode": 42,
+  "versionName": "0.9.8.4",
+  "size": 1149097322,
+  "sha256": "d3ba1582f6023e08aef0b5a8a855d063199f40a15c70f2c900a018b6512b0ef2",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v42/pegase-0.9.8.4.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "La brume du matin change chaque jour : certains matins une belle brume flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair. Le jour, juste un léger voile au loin, plus épais avant la pluie.",
-    "Les gros nuages avancent doucement dans le ciel.",
-    "Le fond est plus net : les montagnes au loin ne sont plus floues.",
-    "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
-    "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
-    "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
+    "Les messages du téléphone montrent l'heure d'envoi sous chaque bulle, reçue ou envoyée.",
+    "L'appareil photo affiche à gauche du viseur un bouton pour chaque module acheté (filtre de nuit, filtre solaire, capteur de nuit…), touches 1 à 9 : on les met et on les enlève quand on veut.",
+    "La pêche : le poisson reste accroché au fil par la bouche jusqu'à ta main, les pouces ne rentrent plus dans le poisson, et le ver est plus gros et plus coloré.",
+    "Le jardin : le banc de jardin se pose dos au mur tout seul, les jardinières se posent sous la fenêtre, du bon côté et à la bonne hauteur.",
+    "Papi Auguste monte le perron de la mairie bien au milieu des marches (fini, le mur !).",
+    "Les voix : on n'entend plus un habitant qui parle avec un autre joueur quand on est dehors ou loin ; le bruit de volet de la nuit au village est parti.",
+    "Les marguerites ont retrouvé leur taille."
   ],
   "historique": [
+    {
+      "version": "0.9.8.4",
+      "notes": [
+        "Les messages du téléphone montrent l'heure d'envoi sous chaque bulle, reçue ou envoyée.",
+        "L'appareil photo affiche à gauche du viseur un bouton pour chaque module acheté (filtre de nuit, filtre solaire, capteur de nuit…), touches 1 à 9 : on les met et on les enlève quand on veut.",
+        "La pêche : le poisson reste accroché au fil par la bouche jusqu'à ta main, les pouces ne rentrent plus dans le poisson, et le ver est plus gros et plus coloré.",
+        "Le jardin : le banc de jardin se pose dos au mur tout seul, les jardinières se posent sous la fenêtre, du bon côté et à la bonne hauteur.",
+        "Papi Auguste monte le perron de la mairie bien au milieu des marches (fini, le mur !).",
+        "Les voix : on n'entend plus un habitant qui parle avec un autre joueur quand on est dehors ou loin ; le bruit de volet de la nuit au village est parti.",
+        "Les marguerites ont retrouvé leur taille."
+      ]
+    },
     {
       "version": "0.9.8.3",
       "notes": [
@@ -59,20 +72,6 @@
         "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
         "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
         "Le jeu démarre plus vite."
-      ]
-    },
-    {
-      "version": "0.9.7",
-      "notes": [
-        "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil.",
-        "Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches.",
-        "Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles.",
-        "À table : on s'assoit face à la table, les pieds dessous, des deux côtés.",
-        "Le râteau chez Rosalie : il remet l'herbe sur une case bêchée, ou annule une plantation en te rendant la graine.",
-        "Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête.",
-        "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
-        "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
-        "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre."
       ]
     }
   ]
