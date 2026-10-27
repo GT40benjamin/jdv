@@ -257,7 +257,9 @@ Pour un jeu qui se quitte à tout moment et se reprend EXACTEMENT où on l'a lai
 - `api.save.put(data)` : objet JSON (≤ 200 000 caractères, avec `at` = Date.now()) gardé tout de suite sur l'appareil, envoyé au serveur
   2,5 s après la dernière écriture (`save_game` ; une copie plus vieille que celle du serveur est refusée). Invité : appareil seulement.
 - `api.save.flush()` : envoi immédiat (à appeler en quittant / quand la page se cache). `api.save.guest` : vrai pour un invité.
+- `api.save.score(total)` (1.43.4) : un meilleur total part au classement habituel (add_score, records, notifications) SANS quitter le jeu
+  ni écran de fin : un casse-tête enchaîne ses niveaux sans jamais sortir. Le jeu rend alors `currentScore()` = 0 (rien à envoyer en quittant).
+- `fps: false` dans l'enregistrement du jeu : le compteur d'images de la borne (réglage « 📈 Images/s ») ne s'affiche pas dans ce jeu.
 - `api.levelBest.put(niveau, coups, ms)` : meilleur perso sur ce niveau (moins de coups, puis moins de temps ; `put_level_best`) ;
   `await api.levelBest.room(niveau)` → `[{ name, moves, ms, me }]` = les membres de la salle sur ce niveau, du meilleur au moins bon (vide en invité).
-Le score du jeu reste celui de `api.gameOver(score)` (classement habituel, records, cris) : pour un casse-tête, appelé quand un niveau
-réussi fait monter le total, « Rejouer » de la borne remonte le jeu, qui reprend au niveau suivant.
+Sans `api.save.score` (borne plus ancienne), le jeu appelle `api.gameOver(total)` quand un niveau réussi fait monter le total.

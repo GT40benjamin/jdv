@@ -2,6 +2,13 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+[coffres] ## 🗝️ Coffres à Secrets : on enchaîne les coffres (borne 1.43.5)
+[coffres] « Coffre suivant » t’emmène tout de suite au coffre d’après, puis au monde suivant, sans jamais sortir du jeu ; ton score part quand même au classement
+[coffres] En haut : « Coffre 3/8 », le monde, une pastille par coffre et la difficulté (de Facile à Expert) ; l’étagère devient la carte des 6 mondes avec leurs cadenas
+[coffres] Chaque coffre garde ton record de coups ET ton meilleur temps, sur ton téléphone et sur ton compte : « Nouveau record ! » à l’ouverture
+[coffres] Des trésors de plus en plus fous : pièces, puis gemmes, colliers, couronnes et statues d’or, avec des rayons de lumière dans les derniers coffres de chaque monde
+[coffres] Plus d’indice : à toi de trouver ! Et après le Coffre du Maître, une grande fin avec ton bilan des 6 mondes
+[coffres] Glisser est plus doux : la pièce s’éclaire et se soulève sous le doigt, un geste vif l’envoie jusqu’au bout, petit rebond, son et vibration à chaque coup
 [borne] ## 🎵 Nouvelles musiques (borne 1.41.4)
 [borne] Trois nouvelles musiques à l’accueil de la borne, choisies par Benjamin : « Playful », « Funky Bass » et « Country Title ». Elles tournent avec les autres, au même volume
 [magic] ## 🎵 Magic Force : la musique de la victoire (borne 1.41.4)

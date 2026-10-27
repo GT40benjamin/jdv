@@ -8,8 +8,9 @@
 // Atelier : ~/jdv-tools/duotest/coffres (sources, générateur des niveaux, essais ; fiche REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
 let ENGINE = null;
-async function fetchBytes(url, onProg, guess, signal) {
-  const r = await fetch(url, { signal });
+const WANT = 'cf-cab7e49e';   // version du moteur de CE module (posée par tools/build.js)
+async function fetchBytes(url, onProg, guess, signal, opt) {
+  const r = await fetch(url, Object.assign({ signal }, opt || {}));
   if (!r.ok) throw new Error('moteur ' + r.status);
   const total = +(r.headers.get('content-length') || 0) || guess;
   if (!r.body || !r.body.getReader) { const b = new Uint8Array(await r.arrayBuffer()); onProg(1); return b; }
@@ -23,14 +24,24 @@ function loadEngine(onProg, signal) {
   if (ENGINE) return ENGINE;
   ENGINE = (async () => {
     if (typeof DecompressionStream === 'undefined') throw new Error('navigateur trop ancien');
-    const gz = await fetchBytes(ROOT() + 'assets/coffres.moteur.bin', onProg, 240000, signal);
-    const code = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
-    await new Promise((res, rej) => {
-      const s = document.createElement('script'), u = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
-      s.onload = () => { URL.revokeObjectURL(u); res(); }; s.onerror = () => { URL.revokeObjectURL(u); rej(new Error('moteur illisible')); };
-      s.src = u; document.head.appendChild(s);
-    });
-    if (!window.JDW_CF || !window.JDW_CF.play) throw new Error('moteur absent');
+    const run = async (url, opt) => {
+      const gz = await fetchBytes(url, onProg, 240000, signal, opt);
+      const code = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+      await new Promise((res, rej) => {
+        const s = document.createElement('script'), u = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+        s.onload = () => { URL.revokeObjectURL(u); res(); }; s.onerror = () => { URL.revokeObjectURL(u); rej(new Error('moteur illisible')); };
+        s.src = u; document.head.appendChild(s);
+      });
+      if (!window.JDW_CF || !window.JDW_CF.play) throw new Error('moteur absent');
+      return window.JDW_CF.v;
+    };
+    const got = await run(ROOT() + 'assets/coffres.moteur.bin');
+    if (got !== WANT && !/__CF_ENGINE__/.test(WANT)) {
+      // un vieux moteur gardé quelque part : on le jette et on va le chercher au serveur (l'adresse avec ?v= passe à côté du service worker)
+      window.JDW_CF = undefined;
+      const again = await run(ROOT() + 'assets/coffres.moteur.bin?v=' + WANT.slice(3) + '-' + Date.now(), { cache: 'reload' });
+      try { if (window.JDW_SHELL_LOG) window.JDW_SHELL_LOG('Coffres : vieux moteur ' + got + ' remplacé par ' + again); } catch (e) { /* rien */ }
+    }
     return window.JDW_CF;
   })();
   ENGINE.catch(() => { ENGINE = null; });
@@ -178,7 +189,8 @@ window.JDW_GAMES.coffres = {
   accent: '#e0aa48',
   scoreLabel: 'points',
   saves: true,                        // la partie est gardée à tout moment (api.save) : Quitter n'arrête rien, sans question
-  pad: { help: [['ls/dpad', 'Choisir une pièce'], ['a', 'Prendre / poser'], ['ls/dpad', 'Glisser (pièce prise)'], ['x', 'Plateau dans l\'autre sens'], ['lb', 'Annuler'], ['rb', 'Refaire'], ['y', 'Indice'], ['rs', 'Tourner la vue'], ['lt+rt', 'Zoom']] },
+  fps: false,                         // pas de compteur d'images de la borne par-dessus le titre
+  pad: { help: [['ls/dpad', 'Choisir une pièce'], ['a', 'Prendre / poser'], ['ls/dpad', 'Glisser (pièce prise)'], ['x', 'Plateau dans l\'autre sens'], ['lb', 'Annuler'], ['rb', 'Refaire'], ['rs', 'Tourner la vue'], ['lt+rt', 'Zoom']] },
   preview, mount
 };
 })();
