@@ -2,10 +2,124 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+# 27 oct. 2026 (PATOU) : chaque « ## » porte « (borne X.Y.Z) » = la version de la borne où ça sort. La cloche ne montre que les blocs plus récents
+# que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
+# une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
+# (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🌊 Pégase 0.9.8.9 (borne 1.46.16)
+[pegase] Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol, dont le grand arbre suspendu près du pont rouge
+[pegase] Le socle de pierre du coin cosy descend maintenant jusqu'au sol, côté vallée
+[pegase] Au potager, creuser fait un vrai trou dans la terre : ta graine tombe tout au fond, et chaque légume a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…)
+[pegase] Pendant le concours photo, Hugo, Iris et Rosalie se promènent et prennent des photos du village (parfois de toi !), puis rentrent chez eux à pied ; Mathilde retourne à sa boutique
+[pegase] De temps en temps, un voisin passe devant ta maison, la regarde, te dit parfois qu'elle est jolie, puis repart
+[pegase] Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane
+[pegase] L'herbe sur les rochers demande moins d'effort à ton ordinateur
+[pegase] ## ✨ Le titre de la présentation de Pégase, bien en vue (borne 1.46.15)
+[pegase] Après « Découvrir Pégase », le grand titre « La légende de Pégase » arrive au milieu de l'écran, avec ses boutons bien au-dessus de la barre du bas, et les lettres comme le « g » ne sont plus coupées
+[pegase] ## 🌊 La présentation de Pégase, avec l'île en 3D et sa mer (borne 1.46.14)
+[pegase] L'île de Pégase en 3D, entourée de sa mer qui bouge : turquoise et transparente près des plages (on voit le fond), bleu profond au large, de l'écume sur le sable et des reflets du soleil. Elle tourne doucement, et se fond dans la page
+[pegase] De nouvelles images du jeu en qualité Ultra : le village vu d'en haut, la place la nuit, les prés aux herbes folles, le pont rouge, l'île vue des hauteurs
+[pegase] Le Grand Livre des espèces s'ouvre en double page, comme un vrai carnet : les oiseaux à gauche, les animaux sauvages et les légendes à droite. Sur téléphone, glisse pour tourner la page
+[pegase] PegaGram a sa vraie place : « Partage tes plus belles photos sur PegaGram », le réseau social de Pégase, avec un téléphone qui montre le fil des photos. Seuls tes amis voient tes photos
+[chrono] ## 🚀 Turbo Chrono (borne 1.46.13) : le grand saut de L’Orbite, version 2
+[chrono] Le tremplin est maintenant droit, en face, dès la ligne d’arrivée : il est déjà là quand tu la passes
+[chrono] Le saut monte au-dessus du circuit vers un gros astéroïde marqué d’une colonne de lumière, avec 3 anneaux pour viser
+[chrono] En l’air, c’est toi qui fais les figures : ◀ ▶ pour tourner, GAZ / FREIN pour les saltos, FREIN + ◀ ▶ pour un tonneau. Retombe à plat, sinon c’est le crash !
+[chrono] Tomber dans le vide de l’espace sans rien toucher ne casse plus rien : la voiture part à l’infini, intacte
+[chrono] Chaque salle a ses propres temps : seuls les temps faits en jouant dans la salle comptent dans son classement (le classement mondial garde le meilleur de partout)
+[chrono] ## 🎥 Turbo Chrono (borne 1.46.12) : la caméra ne traverse plus les murs
+[chrono] Quand ta voiture s’arrête contre un muret, la caméra reste de ton côté : tu ne vois plus la voiture à travers le mur
+[pegase] ## 🕯️ La légende de Pégase : une seule photo, toute floue (borne 1.46.11)
+[pegase] La présentation de Pégase (sous les îles) raconte maintenant la vraie légende : tout a commencé par une photo floue, prise un matin de brume par Mlle Iris, la naturaliste du village. Depuis, personne ne l'a revu : à toi de retrouver sa trace et de le photographier pour de vrai
+[pegase] Pégase reste un mystère : on ne le voit plus sur aucune image, seulement sur ce vieux tirage où l'on devine une grande aile entre les bouleaux
+[pegase] La page défile écran par écran : « Découvrir Pégase », la molette ou le doigt font passer d'une partie à la suivante, en douceur, sur téléphone comme sur ordinateur
+[pegase] ## 📖 Le Grand Livre des espèces, en plus soigné (borne 1.46.10)
+[pegase] Dans le Grand Livre des espèces (le tien et ceux de tes amis), les titres et l'italique ont de nouvelles lettres : les accents (î, ê, è, ù, û…) sont enfin bien à leur place, comme dans « Les petites bêtes » ou « Mésange charbonnière »
+[borne] ## 🏆 Qui a battu ton temps, qui a battu ton coffre (borne 1.46.9)
+[borne] Quand un copain de ta salle bat ton temps sur un circuit de Turbo Chrono, ou ton record sur un coffre de Coffres à Secrets, tu le sais : « JUJU a battu ton temps sur Turbo Chrono · Le Stade, 0:23.10 contre 0:23.40 », dans la cloche et en petit message s'il arrive pendant que tu es là
+[borne] Touche la notification : le jeu s'ouvre, à toi de reprendre ton record
+[borne] Le nouveau 1er d'un circuit ou d'un coffre est annoncé dans le chat de ta salle, sans en faire trop : une seule carte par joueur et par jeu dans l'heure, mise à jour avec son dernier record
+[borne] Les cartes « record » du chat ne coupent plus le nom (« JUJU DÉTR… ») : tout s'affiche
+[pegase] ## ✨ La présentation de Pégase, en plus soigné (borne 1.46.8)
+[pegase] Les grands titres de la présentation de Pégase (sous les îles) ont de nouvelles lettres : les accents (î, ê, ù, û…) sont enfin bien à leur place
+[pegase] L'étiquette « Mis à jour » se voit aussi sur l'onglet 🏝️ Pégase quand tu es déjà sur sa page
+[pegase] ## 🏝️ La légende de Pégase, à découvrir sous les îles (borne 1.46.7)
+[pegase] Descends sous les îles de la page Pégase : une grande page raconte l'histoire du jeu. Tu es photographe, et tu viens sur l'île photographier et étudier Pégase, le cheval ailé de la légende
+[pegase] Le safari photo, le Grand Livre des espèces, la vie au village d'Ailebrune, ton île avec tes amis, la musique et PegaGram, en grandes images du jeu
+[pegase] Tout pour installer Pégase au même endroit : le téléchargement pour PC (ou l'installation sur ton téléphone Android) et la configuration PC conseillée, de la plus simple jusqu'à l'Ultra
+[borne] ## 🔔 Des mises à jour claires (borne 1.46.6)
+[borne] La cloche ne montre plus que ce qui a changé depuis ta dernière visite, rangé par jeu, le plus récent en haut ; le reste est replié dans « Avant »
+[borne] Les jeux qui ont changé portent « ✨ Mis à jour » sur leur tuile (et l'onglet Pégase quand Pégase change), jusqu'à ce que tu les ouvres
+[borne] « Voir le jeu » dans une note t'emmène à sa tuile, qui brille pour que tu la trouves tout de suite
+[borne] Quand tu as déjà tout lu, la cloche montre quand même les dernières mises à jour (plus jamais « Rien de nouveau ») ; toutes les versions restent dans l'historique
+[neon] ## 🗺️ Néon Rush (borne 1.46.5) : la carte, et là où tes copains sont morts
+[neon] Néon Rush a enfin sa carte d’avancement, comme les autres jeux : les 7 niveaux de la nuit synthwave, jusqu’à l’étoile de la grande victoire
+[neon] Sur la carte, chaque tête est posée PILE là où le joueur est mort dans son niveau : une tête de mort sur le chemin, et « 💀 63 % » sous sa tête
+[neon] Dans le jeu, les copains morts dans le niveau ont leur repère sur le parcours : un poteau, leur tête triste, leur nom et le pourcentage, une croix au sol. Ton record est en or. Ils sont aussi marqués sur la barre d’avancement en haut
+[neon] Quand tu passes l’endroit où un copain est mort : « Tu dépasses JUJU ! »
+[neon] À la fin de la partie : une case par niveau, remplie jusqu’à l’endroit exact où tu es mort, avec ton record d’avant
+[chrono] ## 🪐 Turbo Chrono (borne 1.46.4) : le grand saut de L’Orbite
+[chrono] Après la ligne de L’Orbite, une rampe courbe quitte la route vers le vide : un vrai saut, sans coup de pouce, avec ralenti, tonneau et caméra qui tourne autour de la voiture
+[chrono] Assez vite : tu te poses sur l’astéroïde (pile au centre, c’est la fête). Un peu trop lent : tu t’écrases contre le rocher. Bien trop lent : le fond de l’univers…
+[chrono] Des astéroïdes flottent autour du rocher et le long de la piste : si tu sors de la route et que tu en touches un, tu exploses
+[chrono] Plus de points : sur la tuile, le roi est celui qui a le plus de médailles d’or
+[chrono] Quitter le jeu montre tout de suite « Tes positions » (plus de question « Quitter la partie ? »)
+[chrono] « Refaire » te remet bien sur la ligne de départ pendant 3, 2, 1
+[chrono] ## 🏆 Turbo Chrono (borne 1.46.2) : les anciens temps sont de retour
+[chrono] Les temps faits avant le nouveau départ comptent de nouveau dans les classements, et leurs fantômes roulent avec toi
+[chrono] ## 👻 Turbo Chrono (borne 1.46.1) : choisis ton fantôme
+[chrono] Sur le menu du jeu, « Fantôme à battre » : le 1er de ta salle ou le 1er mondial (ton choix est retenu)
+[chrono] ## 💥 Turbo Chrono (borne 1.46) : une seule vie, des accidents de folie
+[chrono] Un accident ou une chute, et la course est terminée : plus de retour au dernier passage. Ralenti, éclats de carbone, roues et ailerons qui s’envolent, fumée, et le feu si le choc est violent
+[chrono] Plus tu tapes fort, plus la voiture se casse : un aileron arraché, puis les roues, les pontons… jusqu’à la voiture en mille morceaux
+[chrono] À l’arrivée, la voiture continue sur sa lancée : plus d’accélérateur, mais tu peux tourner et tirer le frein à main (attention, l’accident est encore possible)
+[chrono] Sur L’Orbite, un tremplin sort de la route après la ligne et t’envoie te garer sur un astéroïde
+[chrono] Ton fantôme garde aussi tout ça (la fin de course et le saut), et tu pars maintenant derrière la ligne : nouveaux classements pour tout le monde
+[chrono] Le fantôme à battre est celui de ta salle (tes copains), ou le tien : plus de pilote robot
+[chrono] Sur chaque circuit : le classement de ta salle et du monde ; dans le classement de la borne, les meilleurs temps de chaque circuit en colonnes
+[chrono] Touche E (ou RB à la manette, ou le bouton 👀) pour regarder derrière toi
+[chrono] ## 🏁 Nouveau jeu : Turbo Chrono (borne 1.44)
+[chrono] Une course contre la montre en 3D, au volant d’une monoplace verte et bleue sponsorisée par les pseudos de ta salle : un tour, un chrono, à toi le record
+[chrono] Le fantôme du record roule avec toi, son nom et son temps au-dessus de la voiture : bats-le, et c’est ton fantôme que tes copains devront battre
+[chrono] 4 circuits ouverts dès le départ : Le Stade, Le Grand Huit (looping, tremplin, pont), La Folie (la nuit, sans murs) et L’Orbite (dans l’espace, entre les planètes)
+[chrono] À l’arrivée, le classement du circuit avec ta place, puis « Refaire » ou « Changer de course » ; médailles de bronze, d’argent, d’or et de l’auteur
+[chrono] Boutons GAZ et FREIN, ◀ ▶ à gauche (mieux en paysage), clavier ou manette ; attention aux piliers et aux réceptions ratées : la voiture part en tonneaux !
+[coffres] ## 🗝️ Coffres à Secrets : le tableau des copains (borne 1.46.3)
+[coffres] L’étagère est refaite : un onglet par monde, puis un tableau avec une ligne par coffre, ton record, et une colonne par copain de ta salle
+[coffres] Sur chaque coffre, la tête de chaque copain : en couleur avec ses coups s’il l’a ouvert, grisée s’il ne l’a pas encore fait, et 👑 pour le meilleur
+[coffres] Passe la souris sur une ligne (ou touche-la sur téléphone) : qui l’a ouvert, en combien de coups et de temps, et qui ne l’a pas encore fait
+[coffres] ## 🗝️ Nouveau jeu : Coffres à Secrets (borne 1.45)
+[coffres] Un casse-tête en 3D : fais glisser les pièces de bois du couvercle pour sortir la clé dorée par la fente, et le coffre s’ouvre sur son trésor
+[coffres] 6 mondes de 8 coffres, de Facile à Expert : glissières, dés, plateaux qui tournent, tiges de laiton, poussoirs… et au bout de chaque monde, le grand coffre d’un copain
+[coffres] Moins de coups = plus d’étoiles ; annuler et refaire sans limite, et « Revoir » pour regarder ta solution en accéléré
+[coffres] Ta partie est gardée à chaque coup, sur ton téléphone et sur ton compte : tu reprends exactement où tu en étais, même sur un autre appareil
+[coffres] Au doigt, à la souris, au clavier ou à la manette, sur la musique « Pizz Menu »
+[coffres] ## 🗝️ Coffres à Secrets : on enchaîne les coffres (borne 1.43.5)
+[coffres] « Coffre suivant » t’emmène tout de suite au coffre d’après, puis au monde suivant, sans jamais sortir du jeu ; ton score part quand même au classement
+[coffres] En haut : « Coffre 3/8 », le monde, une pastille par coffre et la difficulté (de Facile à Expert) ; l’étagère devient la carte des 6 mondes avec leurs cadenas
+[coffres] Chaque coffre garde ton record de coups ET ton meilleur temps, sur ton téléphone et sur ton compte : « Nouveau record ! » à l’ouverture
+[coffres] Des trésors de plus en plus fous : pièces, puis gemmes, colliers, couronnes et statues d’or, avec des rayons de lumière dans les derniers coffres de chaque monde
+[coffres] Plus d’indice : à toi de trouver ! Et après le Coffre du Maître, une grande fin avec ton bilan des 6 mondes
+[coffres] Glisser est plus doux : la pièce s’éclaire et se soulève sous le doigt, un geste vif l’envoie jusqu’au bout, petit rebond, son et vibration à chaque coup
 [borne] ## 🎵 Nouvelles musiques (borne 1.41.4)
 [borne] Trois nouvelles musiques à l’accueil de la borne, choisies par Benjamin : « Playful », « Funky Bass » et « Country Title ». Elles tournent avec les autres, au même volume
 [magic] ## 🎵 Magic Force : la musique de la victoire (borne 1.41.4)
 [magic] La grande victoire, après le Seigneur des ombres, a maintenant sa propre musique joyeuse, « Lighthearted », au lieu d’un morceau de combat déjà entendu dans les mondes
+[neon] ## 😈 Néon Rush : niveaux 5, 6 et 7, jusqu’au Démon (borne 1.43.9)
+[neon] Trois NOUVEAUX niveaux, chacun sur une musique de la borne et avec quatre mondes jamais vus : Mirage (désert de verre, mirages, tempête de sable, cité engloutie), Zéro Absolu (palais de glace, aurore boréale, abysses, nuages) et le Démon (enfer, le vide, la fin du monde, le monde glitché)
+[neon] Nouveau : le ROBOT ! Touche pour un petit saut, tiens pour un grand saut
+[neon] Nouveau : l’ARAIGNÉE ! Chaque toucher la téléporte d’un coup du sol au plafond
+[neon] Nouveau : les ORBES DE DASH (vertes) ! Touche-la au sommet de ton saut et tiens : le cube file tout droit au-dessus des pics, lâche pile pour retomber sur le temps
+[neon] Nouveau : le DUO ! Un jumeau court en miroir au plafond, et il ne doit rien toucher non plus
+[neon] Nouveau : les marches qui s’effondrent derrière toi, et la caméra qui penche doucement dans l’aurore
+[neon] Le niveau 7, le DÉMON : huit passages sans répit qui mélangent tout (cube, avion mini, onde, araignée dans le miroir, robot, soucoupe, duo, onde mini), la vitesse monte jusqu’à ×1,6
+[neon] Une seule vie, et après le Démon : la grande victoire !
+[neon] ## 🌴 Néon Rush : niveau 4, Jungle Sauvage (borne 1.43.7)
+[neon] Un NOUVEAU niveau, sur la musique du Volcan de Smoothie Samouraï (gros tambours) : quatre mondes jamais vus, la Jungle Néon, le Temple Perdu, la Grande Cascade et la Forêt des Champignons
+[neon] Nouveau : l’ONDE ! Dans le temple, tiens pour monter en diagonale, lâche pour redescendre, et faufile-toi dans le couloir en zigzag
+[neon] Nouveau : les SCIES qui tournent, au sol et à moitié enfoncées dans les parois des couloirs
+[neon] Dans la cascade, vitesse ×1,4 sur le gros drop et une orbe bleue qui te fait courir au plafond
+[neon] Pour finir, l’onde MINI dans la forêt des champignons : toute petite, plus raide, dans un couloir serré
 [neon] ## ⚡ Néon Rush : niveau 3 refait, Surcharge (borne 1.41.3)
 [neon] Quatre nouveaux mondes : l’Usine Électrique (arcs électriques), le Cœur de l’Orage (un éclair de temps en temps), le Data Center (baies qui s’allument) et le Réacteur (une décharge fait le tour de l’anneau de plasma)
 [neon] Nouveau : la SOUCOUPE ! Chaque toucher donne un coup d’ailes pour traverser l’orage, et ça accélère sur le drop
@@ -53,7 +167,46 @@
 [borne] Nouveau bouton « Partager » en haut de la borne : il envoie le lien de la borne à tes copains (« Viens jouer avec moi à la Borne d'arcade entre amis ! ») par le partage du téléphone, WhatsApp, SMS ou e-mail, ou le copie sur ordinateur
 [borne] Sur la page Pégase et dans Pégase (à côté de Modifier / Télécharger) : « Partager Pégase », avec sa propre image d'aperçu de l'île ; le lien ouvre directement la page Pégase
 [borne] Ça marche aussi sans compte : le lien est public, tes copains peuvent jouer tout de suite
-[pegase] ## 🌊 Pégase 0.9.8
+[pegase] ## 🌿 Pégase 0.9.8.8 (borne 1.45.1)
+[pegase] Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec bancs et coussins, table basse aux bougies, lanternes, lierre et fleurs
+[pegase] Sur PC, le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs
+[pegase] Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque
+[pegase] Bêcher est plus clair : houe ou pelle en main, un liseré doré entoure la case que tu vas bêcher
+[pegase] ## 🎣 Pégase 0.9.8.7 (borne 1.43.10)
+[pegase] Règle la profondeur de ton bouchon (molette, ou croix de la manette) : profond, les gros poissons s'y intéressent ; près de la surface, les petits mordent vite
+[pegase] Marche avec ta canne pendant que tu attends, le long du bord ou sur le ponton, et agite-la pour réveiller les poissons (sans en abuser)
+[pegase] Pendant le combat, tu peux marcher le long du bord pour suivre ton poisson
+[pegase] Un bouchon plus gros, et de vrais bruits de pêche : la canne au lancer, le bouchon qui plonge, le fil qui casse
+[pegase] Gaspard t'explique la pêche telle qu'elle est maintenant
+[pegase] Les portillons de jardin s'ouvrent tout seuls quand tu t'approches
+[pegase] ## 🪜 Pégase 0.9.8.6 (borne 1.43.8)
+[pegase] Les parcelles ne débordent plus sur le chemin, et l'allée vers le coin cosy est dégagée
+[pegase] Un vrai escalier de pierre au bout du chemin du Clos, avec une lanterne de chaque côté
+[pegase] Si la place visée est déjà prise, ton affiche glisse toute seule jusqu'à la place libre la plus proche
+[pegase] Hugo, le facteur, ne roule plus sur le muret du perron de la mairie
+[pegase] ## 📬 Pégase 0.9.8.5 (borne 1.43.2)
+[pegase] Une fenêtre de vente claire chez Basile et chez Rosalie : tu coches ce que tu vends, tu vois le total, puis « Vendre » ; le poisson promis à Gaspard reste décoché
+[pegase] Ta boîte aux lettres se secoue doucement quand du courrier t'attend
+[pegase] ## 📷 Pégase 0.9.8.4 (borne 1.43.1)
+[pegase] Les messages du téléphone montrent l'heure d'envoi sous chaque bulle
+[pegase] L'appareil photo a un bouton pour chaque module acheté (filtre de nuit, filtre solaire…), à mettre et enlever quand tu veux
+[pegase] À la pêche, le poisson reste accroché au fil jusqu'à ta main, et le ver est plus gros
+[pegase] Le banc de jardin se pose dos au mur, les jardinières sous la fenêtre, à la bonne hauteur
+[pegase] Papi Auguste monte le perron de la mairie bien au milieu des marches, et les marguerites ont retrouvé leur taille
+[pegase] On n'entend plus un habitant qui parle avec un autre joueur quand on est loin
+[pegase] ## ☁️ Pégase 0.9.8.3 (borne 1.41.5)
+[pegase] La brume du matin change chaque jour : certains matins elle flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair
+[pegase] Les gros nuages avancent doucement, et les montagnes au loin ne sont plus floues
+[pegase] Les palmiers ont retrouvé un vrai tronc et des palmes bien vertes
+[pegase] La caméra reste douce quand tu la tournes contre un mur
+[pegase] Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès
+[pegase] ## 🛤️ Pégase 0.9.8.2 (borne 1.39.2)
+[pegase] Les chemins de terre, les routes et les pavés du village sont revenus partout sur l'île, avec la place et les sentiers
+[pegase] Les pentes et les falaises retrouvent leur roche et leur terre, et le sable reste sur les plages
+[pegase] ## 🪨 Pégase 0.9.8.1 (borne 1.38.11)
+[pegase] Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes
+[pegase] La place du village retrouve son décor, avec les brumes et les feuilles qui volent près des arbres et des cascades
+[pegase] ## 🌊 Pégase 0.9.8 (borne 1.37.3)
 [pegase] La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large
 [pegase] Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral
 [pegase] La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges
@@ -77,7 +230,7 @@
 [borne] 🎙️ Ton cri de perte se règle dans ⚙ (sous ta tête et ton cri de victoire) et juste après le cri de victoire quand tu crées ton joueur ; pendant l'enregistrement, la musique de la borne se tait
 [borne] 🔁 Fin de partie : « Joué par ▾ » donne le score au bon joueur de l'appareil si on s'est trompé, tout de suite (l'ancien record de l'autre revient)
 [borne] 📱 Fin de partie en paysage sur téléphone : tout tient sur l'écran sans défiler (score à gauche, classement à droite), avec une belle arrivée animée
-[pegase] ## 🎣 Pégase 0.9.7
+[pegase] ## 🎣 Pégase 0.9.7 (borne 1.36.16)
 [pegase] La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil
 [pegase] Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches
 [pegase] Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles
@@ -88,7 +241,7 @@
 [pegase] Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres
 [pegase] Ta vue 1re ou 3e personne est retenue d'une partie à l'autre
 [pegase] Sur PC, les mises à jour sont bien plus rapides : seul ce qui change est téléchargé
-[pegase] ## 🏡 Pégase 0.9.6
+[pegase] ## 🏡 Pégase 0.9.6 (borne 1.36.15)
 [pegase] Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte « À vendre » et leur boîte aux lettres
 [pegase] Les parcelles redessinées : elles ne débordent plus sur les chemins, leur lueur dorée épouse le sol, et deux voisines partagent la même limite
 [pegase] Le permis de construire donne une parcelle à 1000 lucioles ; les autres s'achèteront
@@ -116,7 +269,7 @@
 [pegase] ## 🎬 Huit plans filmés en fond de la page Pégase (borne 1.36.8)
 [pegase] Quatre nouveaux plans filmés dans le jeu : la pluie douce sur les tournesols, la cascade du lac de montagne, le panorama depuis la falaise et une nouvelle prairie sous la Voie lactée
 [pegase] Tous les plans en très haute qualité (jusqu'à la 4K) sur les grands écrans, et ils démarrent toujours vite en petite qualité
-[pegase] ## 🏪 Pégase 0.9.5
+[pegase] ## 🏪 Pégase 0.9.5 (borne 1.36.6)
 [pegase] Les boutiques ont de nouvelles devantures : grandes enseignes dorées, stores rayés aux couleurs de chaque commerce, vitrines éclairées, pancarte OUVERT / FERMÉ qui suit les horaires
 [pegase] La musique est revenue dans les boutiques et à la mairie, et elle reprend toute seule quand tu arrêtes la tienne
 [pegase] Le grand-duc sous une douce lueur de lune, son vrai hou-hou qui vient de sa direction et ses battements d'ailes

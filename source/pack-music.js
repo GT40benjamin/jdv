@@ -17,6 +17,7 @@ const LOOPS = {
   'dguerre-1': 'Locations/Remote Island - Main Loop.wav', 'dguerre-2': 'Locations/Western OUTSIDE LOOP.wav', 'dguerre-x1': 'Combat/Desperate Battle LOOP.wav',
   'dscores-1': 'Short Cues/Scores/Scores.wav', 'dscores-2': 'Titles/Casual/Playtime LOOP.wav',
   'dpingpong-1': 'Titles/Casual/Funky Bass.wav', 'dpingpong-2': 'Titles/Casual/Casual Title GUITAR LOOP.wav', 'dpingpong-x1': 'Titles/Casual/Chase MENU LOOP.wav',
+  'coffres-1': 'Puzzles/Pizz Menu LOOP.wav', 'coffres-2': 'Puzzles/Pizz Menu BASIC LOOP.wav',   // Coffres à Secrets (casse-tête) : le morceau choisi par Benjamin
   'dkombat-1': 'Combat/Close Combat LOOP.wav', 'dkombat-2': 'Combat/Bandits LOOP.wav', 'dkombat-x1': 'Combat/Tense Combat LOOP.wav',
   // accueil-4 / -5 : musiques de l'accueil choisies par Benjamin (27 oct. 2026), entrent seules dans la rotation (accueil-2, -3, -x1)
   'accueil-4': 'Platform/Playful LOOP.wav', 'accueil-5': 'Titles/Casual/Funky Bass.wav', 'accueil-6': 'Titles/Casual/Country Title Loop.wav',

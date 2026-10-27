@@ -2464,6 +2464,9 @@ grant execute on function public.send_contact(text, text, text, text, text, text
 -- télécharger un fantôme = être connecté. Anti-triche simple : circuit connu, temps plus long que le minimum du circuit, fantôme bien
 -- formé (en-tête, nombre de passages, passages dans l'ordre, dernier passage = temps annoncé, durée cohérente, pas de bond impossible
 -- entre deux points, sauf les retours au dernier point de passage, 12 au plus). Relançable sans perte (if not exists / or replace).
+-- 1.45 : VERSION de la course (chrono_tracks.ver, octet libre du fantôme juste avant les points) : départ derrière la ligne → version 2 ;
+-- les temps d'une version plus ancienne restent dans la table mais ne comptent plus (classement, fantôme, record à battre).
+-- Le fantôme garde aussi jusqu'à 12 s APRÈS l'arrivée (la voiture qui finit sa course, le saut vers l'astéroïde de L'Orbite).
 
 create table if not exists public.chrono_tracks (
   id text primary key check (id ~ '^[a-z0-9_-]{2,20}$'),
@@ -2475,8 +2478,10 @@ alter table public.chrono_tracks enable row level security;
 revoke all on public.chrono_tracks from anon, authenticated;
 -- un circuit = ses tours, ses temps de passage (points de passage + ligne, par tour) et le temps sous lequel personne ne peut descendre
 insert into public.chrono_tracks (id, laps, splits, min_ms) values
-  ('stade', 3, 9, 40000), ('huit', 3, 12, 50000), ('folie', 3, 12, 40000), ('orbite', 3, 12, 52000)
+  ('stade', 1, 3, 17000), ('huit', 1, 4, 20000), ('folie', 1, 4, 17000), ('orbite', 1, 4, 20000)   -- 1.44 : un seul tour (A → B)
 on conflict (id) do update set laps = excluded.laps, splits = excluded.splits, min_ms = excluded.min_ms;
+alter table public.chrono_tracks add column if not exists ver int not null default 2;
+update public.chrono_tracks set ver = 1 where ver <> 1;   -- 1.46.2 (PATOU) : les temps d'avant le départ derrière la ligne comptent de nouveau ; les vieilles pages (octet 0) restent refusées
 
 create table if not exists public.chrono_runs (
   track text not null references public.chrono_tracks(id) on delete cascade,
@@ -2486,6 +2491,7 @@ create table if not exists public.chrono_runs (
   created_at timestamptz not null default now(),
   primary key (track, name)
 );
+alter table public.chrono_runs add column if not exists ver int not null default 1;   -- version de la course (1 = avant la 1.45)
 create index if not exists chrono_runs_best on public.chrono_runs (track, ms, created_at);
 alter table public.chrono_runs enable row level security;
 revoke all on public.chrono_runs from anon, authenticated;
@@ -2513,7 +2519,8 @@ begin
   ns := get_byte(b, 11);
   if ns <> t.splits then return 'passages manquants'; end if;
   if length(b) <> 13 + ns * 4 + n * 12 then return 'fantome illisible'; end if;
-  if n * 100 < p_ms - 100 or n * 100 > p_ms + 300 then return 'fantome trop court'; end if;
+  if n * 100 < p_ms - 100 or n * 100 > p_ms + 12300 then return 'fantome trop court'; end if;   -- 1.45 : jusqu'à 12 s après l'arrivée
+  if get_byte(b, 12 + ns * 4) < t.ver then return 'ancienne version'; end if;
   for i in 0 .. ns - 1 loop
     o := 12 + i * 4;
     v := get_byte(b, o) + get_byte(b, o + 1) * 256 + get_byte(b, o + 2) * 65536 + get_byte(b, o + 3)::bigint * 16777216;
@@ -2547,12 +2554,12 @@ begin
   if p_room is not null then
     perform public.room_guard(p_room);
     select coalesce(jsonb_agg(jsonb_build_object('name', c.name, 'ms', c.ms, 'at', c.created_at) order by c.ms, c.created_at), '[]'::jsonb) into r
-      from public.chrono_runs c where c.track = p_track and exists (select 1 from public.room_members m where m.room_id = p_room and m.name = c.name);
+      from public.chrono_runs c where c.track = p_track and c.ver >= (select k.ver from public.chrono_tracks k where k.id = p_track) and exists (select 1 from public.room_members m where m.room_id = p_room and m.name = c.name);
   end if;
   select coalesce(jsonb_agg(jsonb_build_object('name', x.name, 'ms', x.ms) order by x.ms, x.created_at), '[]'::jsonb) into w
-    from (select c.name, c.ms, c.created_at from public.chrono_runs c where c.track = p_track order by c.ms, c.created_at limit 10) x;
+    from (select c.name, c.ms, c.created_at from public.chrono_runs c where c.track = p_track and c.ver >= (select k.ver from public.chrono_tracks k where k.id = p_track) order by c.ms, c.created_at limit 10) x;
   if n <> '' and public.acct_own(n) then
-    select jsonb_build_object('name', c.name, 'ms', c.ms, 'at', c.created_at) into me from public.chrono_runs c where c.track = p_track and c.name = n;
+    select jsonb_build_object('name', c.name, 'ms', c.ms, 'at', c.created_at) into me from public.chrono_runs c where c.track = p_track and c.name = n and c.ver >= (select k.ver from public.chrono_tracks k where k.id = p_track);
   end if;
   return jsonb_build_object('room', r, 'world', w, 'me', me);
 end $$;
@@ -2563,7 +2570,7 @@ returns jsonb language plpgsql stable security definer set search_path = public,
 declare c public.chrono_runs;
 begin
   if auth.uid() is null then raise exception 'connexion requise'; end if;
-  select * into c from public.chrono_runs where track = p_track and name = upper(left(trim(coalesce(p_name, '')), 12));
+  select * into c from public.chrono_runs where track = p_track and name = upper(left(trim(coalesce(p_name, '')), 12)) and ver >= (select k.ver from public.chrono_tracks k where k.id = p_track);
   if not found then return null; end if;
   return jsonb_build_object('name', c.name, 'ms', c.ms, 'ghost', c.ghost);
 end $$;
@@ -2582,10 +2589,10 @@ begin
   if char_length(coalesce(p_ghost, '')) > 160000 then return jsonb_build_object('ok', false, 'why', 'fantome trop lourd'); end if;
   why := public.chrono_check(p_track, p_ms, p_ghost);
   if why is not null then return jsonb_build_object('ok', false, 'why', why); end if;
-  select ms into old from public.chrono_runs where track = p_track and name = n;
+  select ms into old from public.chrono_runs where track = p_track and name = n and ver >= (select k.ver from public.chrono_tracks k where k.id = p_track);   -- un temps d'une ancienne version ne bloque pas
   if old is not null and old <= p_ms then return jsonb_build_object('ok', true, 'best', old, 'kept', true); end if;
-  insert into public.chrono_runs (track, name, ms, ghost) values (p_track, n, p_ms, p_ghost)
-    on conflict (track, name) do update set ms = excluded.ms, ghost = excluded.ghost, created_at = now();
+  insert into public.chrono_runs (track, name, ms, ghost, ver) values (p_track, n, p_ms, p_ghost, (select k.ver from public.chrono_tracks k where k.id = p_track))
+    on conflict (track, name) do update set ms = excluded.ms, ghost = excluded.ghost, ver = excluded.ver, created_at = now();
   return jsonb_build_object('ok', true, 'best', p_ms, 'kept', false);
 end $$;
 
@@ -2594,6 +2601,306 @@ revoke all on function public.chrono_board(text, bigint, text, text), public.chr
   public.chrono_save(text, text, text, int, text) from public;
 grant execute on function public.chrono_board(text, bigint, text, text), public.chrono_ghost(text, text, text),
   public.chrono_save(text, text, text, int, text) to anon, authenticated;
+
+-- 1.46.13 (PATOU : « la salle est propre à sa salle ») : les TEMPS D'UNE SALLE = seulement les courses faites en jouant DANS cette salle
+-- (chrono_room_runs : le meilleur de chaque membre, avec son fantôme) ; le MONDE garde le meilleur de chacun, toutes salles confondues
+-- (chrono_runs, inchangé). Une course envoyée avec p_room (membre de la salle) entre dans les deux. Les temps d'avant restent au monde.
+create table if not exists public.chrono_room_runs (
+  track text not null references public.chrono_tracks(id) on delete cascade,
+  room_id bigint not null references public.rooms(id) on delete cascade,
+  name text not null references public.players(name) on delete cascade on update cascade,
+  ms int not null check (ms between 3000 and 1800000),
+  ghost text not null check (char_length(ghost) <= 160000),
+  ver int not null default 1,
+  created_at timestamptz not null default now(),
+  primary key (track, room_id, name)
+);
+create index if not exists chrono_room_runs_best on public.chrono_room_runs (track, room_id, ms, created_at);
+alter table public.chrono_room_runs enable row level security;
+revoke all on public.chrono_room_runs from anon, authenticated;
+
+create or replace function public.chrono_board(p_code text, p_room bigint, p_track text, p_name text)
+returns jsonb language plpgsql stable security definer set search_path = public, extensions as $$
+declare r jsonb := '[]'::jsonb; w jsonb; me jsonb := null; n text := upper(left(trim(coalesce(p_name, '')), 12));
+  tv int := (select k.ver from public.chrono_tracks k where k.id = p_track);
+begin
+  if p_room is not null then
+    perform public.room_guard(p_room);
+    select coalesce(jsonb_agg(jsonb_build_object('name', c.name, 'ms', c.ms, 'at', c.created_at) order by c.ms, c.created_at), '[]'::jsonb) into r
+      from public.chrono_room_runs c where c.track = p_track and c.room_id = p_room and c.ver >= tv
+        and exists (select 1 from public.room_members m where m.room_id = p_room and m.name = c.name);
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object('name', x.name, 'ms', x.ms) order by x.ms, x.created_at), '[]'::jsonb) into w
+    from (select c.name, c.ms, c.created_at from public.chrono_runs c where c.track = p_track and c.ver >= tv order by c.ms, c.created_at limit 10) x;
+  if n <> '' and public.acct_own(n) then
+    select jsonb_build_object('name', c.name, 'ms', c.ms, 'at', c.created_at) into me from public.chrono_runs c where c.track = p_track and c.name = n and c.ver >= tv;
+  end if;
+  return jsonb_build_object('room', r, 'world', w, 'me', me);
+end $$;
+
+-- le fantôme d'un joueur : p_room = celui de sa meilleure course DANS la salle (membre requis), sinon son meilleur au monde
+drop function if exists public.chrono_ghost(text, text, text);
+create or replace function public.chrono_ghost(p_code text, p_track text, p_name text, p_room bigint default null)
+returns jsonb language plpgsql stable security definer set search_path = public, extensions as $$
+declare n text := upper(left(trim(coalesce(p_name, '')), 12)); tv int := (select k.ver from public.chrono_tracks k where k.id = p_track); g text; m int;
+begin
+  if auth.uid() is null then raise exception 'connexion requise'; end if;
+  if p_room is not null then
+    perform public.room_guard(p_room);
+    select c.ghost, c.ms into g, m from public.chrono_room_runs c where c.track = p_track and c.room_id = p_room and c.name = n and c.ver >= tv;
+  else
+    select c.ghost, c.ms into g, m from public.chrono_runs c where c.track = p_track and c.name = n and c.ver >= tv;
+  end if;
+  if g is null then return null; end if;
+  return jsonb_build_object('name', n, 'ms', m, 'ghost', g);
+end $$;
+
+-- enregistre ma course : dans la salle (p_room, si j'en suis membre) si elle bat mon temps de la salle, et au monde si elle bat le mien
+drop function if exists public.chrono_save(text, text, text, int, text);
+create or replace function public.chrono_save(p_code text, p_name text, p_track text, p_ms int, p_ghost text, p_room bigint default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := upper(left(trim(coalesce(p_name, '')), 12)); why text; old int; rold int; rbest int := null;
+  tv int := (select k.ver from public.chrono_tracks k where k.id = p_track);
+begin
+  perform public.acct_check(n);
+  if (select count(*) from public.chrono_tries x where x.name = n and x.at > now() - interval '10 minutes') >= 60 then
+    return jsonb_build_object('ok', false, 'why', 'trop d essais');
+  end if;
+  insert into public.chrono_tries (name) values (n);
+  delete from public.chrono_tries where at < now() - interval '1 day';
+  if char_length(coalesce(p_ghost, '')) > 160000 then return jsonb_build_object('ok', false, 'why', 'fantome trop lourd'); end if;
+  why := public.chrono_check(p_track, p_ms, p_ghost);
+  if why is not null then return jsonb_build_object('ok', false, 'why', why); end if;
+  if p_room is not null and exists (select 1 from public.room_members m where m.room_id = p_room and m.name = n) then
+    select ms into rold from public.chrono_room_runs where track = p_track and room_id = p_room and name = n and ver >= tv;
+    if rold is null or p_ms < rold then
+      insert into public.chrono_room_runs (track, room_id, name, ms, ghost, ver) values (p_track, p_room, n, p_ms, p_ghost, tv)
+        on conflict (track, room_id, name) do update set ms = excluded.ms, ghost = excluded.ghost, ver = excluded.ver, created_at = now();
+      rbest := p_ms;
+    else rbest := rold; end if;
+  end if;
+  select ms into old from public.chrono_runs where track = p_track and name = n and ver >= tv;   -- un temps d'une ancienne version ne bloque pas
+  if old is not null and old <= p_ms then return jsonb_build_object('ok', true, 'best', old, 'kept', true, 'room_best', rbest); end if;
+  insert into public.chrono_runs (track, name, ms, ghost, ver) values (p_track, n, p_ms, p_ghost, tv)
+    on conflict (track, name) do update set ms = excluded.ms, ghost = excluded.ghost, ver = excluded.ver, created_at = now();
+  return jsonb_build_object('ok', true, 'best', p_ms, 'kept', false, 'room_best', rbest);
+end $$;
+
+revoke all on function public.chrono_board(text, bigint, text, text), public.chrono_ghost(text, text, text, bigint),
+  public.chrono_save(text, text, text, int, text, bigint) from public;
+grant execute on function public.chrono_board(text, bigint, text, text), public.chrono_ghost(text, text, text, bigint),
+  public.chrono_save(text, text, text, int, text, bigint) to anon, authenticated;
+
+-- ===== sauvegarde.sql : la partie GARDÉE d'un jeu + les meilleurs coups par niveau (borne 1.43, 27 oct. 2026) =====
+-- Premier utilisateur : Coffres à Secrets (casse-tête). On peut quitter à tout moment et retrouver chaque coffre exactement où on l'a laissé,
+-- sur un autre appareil aussi (même compte). Invité : rien ici (sauvegarde sur l'appareil seulement, côté borne).
+-- game_saves  : UN document JSON par pseudo et par jeu (≤ 200 000 caractères). Le plus RÉCENT gagne : `at` (millisecondes, horloge de
+--               l'appareil qui a écrit) ; un appareil resté hors ligne qui renvoie une vieille copie est refusé et reçoit la copie du serveur.
+-- level_bests : le meilleur (moins de coups, puis moins de temps) de chaque pseudo sur chaque niveau ; lu par salle (membres seulement).
+-- ORDRE : après public.sql (acct_check, room_guard). Relançable : il garde les données. Fonctions à part : rien d'autre ne change.
+
+create table if not exists public.game_saves (
+  name text not null,
+  game text not null check (game ~ '^[a-z0-9_-]{2,20}$'),
+  data jsonb not null check (jsonb_typeof(data) = 'object' and octet_length(data::text) < 200000),
+  at bigint not null default 0,
+  rev integer not null default 1,
+  updated_at timestamptz not null default now(),
+  primary key (name, game)
+);
+alter table public.game_saves enable row level security;       -- aucune politique : seulement par les fonctions ci-dessous
+revoke all on public.game_saves from anon, authenticated;
+
+create table if not exists public.level_bests (
+  name text not null,
+  game text not null check (game ~ '^[a-z0-9_-]{2,20}$'),
+  level text not null check (level ~ '^[a-z0-9_-]{1,20}$'),
+  moves integer not null check (moves between 1 and 100000),
+  ms integer not null check (ms between 0 and 864000000),
+  at timestamptz not null default now(),
+  primary key (name, game, level)
+);
+alter table public.level_bests enable row level security;
+revoke all on public.level_bests from anon, authenticated;
+
+-- écrire la partie gardée : p_at = heure de la copie (ms) ; refusée si le serveur a plus récent (r_ok = false + la copie du serveur)
+create or replace function public.save_game(p_code text, p_name text, p_game text, p_data jsonb, p_at bigint)
+returns table(r_ok boolean, r_at bigint, r_rev integer, r_data jsonb)
+language plpgsql security definer set search_path = public, extensions as $$
+declare n text := upper(left(trim(coalesce(p_name, '')), 12)); cur public.game_saves;
+begin
+  if n = '' then raise exception 'nom vide'; end if;
+  perform public.acct_check(n);
+  if p_game is null or p_game !~ '^[a-z0-9_-]{2,20}$' then raise exception 'jeu invalide'; end if;
+  if p_data is null or jsonb_typeof(p_data) <> 'object' or octet_length(p_data::text) >= 200000 then raise exception 'sauvegarde invalide'; end if;
+  if p_at is null or p_at < 0 then raise exception 'heure invalide'; end if;
+  select * into cur from public.game_saves g where g.name = n and g.game = p_game for update;
+  if found and cur.at > p_at then
+    return query select false, cur.at, cur.rev, cur.data; return;
+  end if;
+  insert into public.game_saves as g (name, game, data, at, rev, updated_at) values (n, p_game, p_data, p_at, 1, now())
+    on conflict (name, game) do update set data = excluded.data, at = excluded.at, rev = g.rev + 1, updated_at = now();
+  return query select true, p_at, coalesce(cur.rev, 0) + 1, null::jsonb;
+end $$;
+
+-- lire la partie gardée (null si aucune)
+create or replace function public.get_game_save(p_code text, p_name text, p_game text)
+returns table(r_data jsonb, r_at bigint, r_rev integer)
+language plpgsql stable security definer set search_path = public, extensions as $$
+declare n text := upper(left(trim(coalesce(p_name, '')), 12));
+begin
+  if n = '' then raise exception 'nom vide'; end if;
+  perform public.acct_check(n);
+  return query select g.data, g.at, g.rev from public.game_saves g where g.name = n and g.game = p_game;
+end $$;
+
+-- un niveau réussi : garde le meilleur (moins de coups, puis moins de temps) ; rend vrai si c'est un nouveau record perso
+create or replace function public.put_level_best(p_code text, p_name text, p_game text, p_level text, p_moves integer, p_ms integer)
+returns boolean
+language plpgsql security definer set search_path = public, extensions as $$
+declare n text := upper(left(trim(coalesce(p_name, '')), 12)); cur public.level_bests;
+begin
+  if n = '' then raise exception 'nom vide'; end if;
+  perform public.acct_check(n);
+  if p_game is null or p_game !~ '^[a-z0-9_-]{2,20}$' or p_level is null or p_level !~ '^[a-z0-9_-]{1,20}$' then raise exception 'niveau invalide'; end if;
+  if p_moves is null or p_moves < 1 or p_moves > 100000 or p_ms is null or p_ms < 0 or p_ms > 864000000 then raise exception 'valeur invalide'; end if;
+  select * into cur from public.level_bests b where b.name = n and b.game = p_game and b.level = p_level for update;
+  if found and (cur.moves < p_moves or (cur.moves = p_moves and cur.ms <= p_ms)) then return false; end if;
+  insert into public.level_bests as b (name, game, level, moves, ms, at) values (n, p_game, p_level, p_moves, p_ms, now())
+    on conflict (name, game, level) do update set moves = excluded.moves, ms = excluded.ms, at = now();
+  return true;
+end $$;
+
+-- les meilleurs de la salle sur un niveau (membres seulement)
+create or replace function public.get_level_bests(p_code text, p_room bigint, p_room_code text, p_game text, p_level text)
+returns table(r_name text, r_moves integer, r_ms integer, r_at timestamptz)
+language plpgsql stable security definer set search_path = public, extensions as $$
+begin
+  perform public.room_guard(p_room);
+  return query select b.name, b.moves, b.ms, b.at from public.level_bests b
+    join public.room_members m on m.room_id = p_room and m.name = b.name
+    where b.game = p_game and b.level = p_level order by b.moves, b.ms, b.at limit 20;
+end $$;
+
+revoke all on function public.save_game(text, text, text, jsonb, bigint), public.get_game_save(text, text, text),
+  public.put_level_best(text, text, text, text, integer, integer), public.get_level_bests(text, bigint, text, text, text) from public;
+grant execute on function public.save_game(text, text, text, jsonb, bigint), public.get_game_save(text, text, text),
+  public.put_level_best(text, text, text, text, integer, integer), public.get_level_bests(text, bigint, text, text, text) to anon, authenticated;
+
+-- TOUS les niveaux d'un jeu d'un coup, pour les membres de la salle (borne 1.46.3 : tableau des copains de Coffres à Secrets)
+create or replace function public.get_level_bests_all(p_code text, p_room bigint, p_room_code text, p_game text)
+returns table(r_level text, r_name text, r_moves integer, r_ms integer)
+language plpgsql stable security definer set search_path = public, extensions as $$
+begin
+  perform public.room_guard(p_room);
+  if p_game is null or p_game !~ '^[a-z0-9_-]{2,20}$' then raise exception 'jeu invalide'; end if;
+  return query select b.level, b.name, b.moves, b.ms from public.level_bests b
+    join public.room_members m on m.room_id = p_room and m.name = b.name
+    where b.game = p_game order by b.level, b.moves, b.ms, b.at limit 5000;
+end $$;
+revoke all on function public.get_level_bests_all(text, bigint, text, text) from public;
+grant execute on function public.get_level_bests_all(text, bigint, text, text) to anon, authenticated;
+
+-- ===== records-copains.sql : « JUJU a battu ton record » aussi pour les TEMPS de Turbo Chrono et les COFFRES (borne 1.46.9, 27 oct. 2026) =====
+-- PATOU : « le fait que quelqu'un a battu ou pas s'affiche en notification dans l'application ; ça se met dans les messages de la salle ».
+-- Les scores des jeux classiques le faisaient déjà (add_score : notifications + carte « record » du chat). Les temps par circuit (chrono_runs)
+-- et les meilleurs coups par coffre (level_bests) sont gardés par joueur, pour tout le monde : quand l'un d'eux s'améliore, on regarde chaque
+-- salle du joueur :
+--   * chaque membre dont il vient de passer devant (il ne l'était pas avant) reçoit une notification (table notifications, lue par
+--     get_notifications comme avant) ;
+--   * s'il prend la 1re place de la salle sur ce circuit / ce coffre : carte « record » dans le chat de la salle (table messages).
+-- game = '<jeu>@<niveau>' : 'chrono@stade', 'coffres@3-7' (les bornes d'avant la 1.46.9 l'affichent sans le nom du jeu, sans planter).
+-- score / prev : chrono = millisecondes ; coffres = coups. Plus petit = meilleur.
+-- PAS DE SPAM : une même notification (salle, copain, auteur, circuit ou coffre) dans l'heure est mise à jour au lieu d'être répétée ;
+-- dans le chat, une seule carte par joueur et par jeu et par heure (la carte de l'heure est mise à jour avec le dernier record).
+-- ORDRE : après chrono.sql et sauvegarde.sql. Relançable. Ne change AUCUNE fonction existante (déclencheurs à part).
+
+create or replace function public.rec_copains(p_tag text, p_name text, p_val int, k_new bigint, k_old bigint, p_others jsonb)
+returns void language plpgsql security definer set search_path = public, extensions as $$
+-- p_others : { "<salle>": [{ "n": nom, "v": valeur affichée, "k": clé de comparaison }] } = les autres membres de chaque salle du joueur
+declare r record; o jsonb; best jsonb; base text := split_part(p_tag, '@', 1); mid bigint;
+begin
+  if k_old is not null and k_new >= k_old then return; end if;
+  for r in select key::bigint as room_id, value as lst from jsonb_each(coalesce(p_others, '{}'::jsonb)) loop
+    best := null;
+    for o in select value from jsonb_array_elements(r.lst) loop
+      if best is null or (o->>'k')::bigint < (best->>'k')::bigint then best := o; end if;
+      -- il passe devant ce copain (il ne l'était pas avant) : notification, une seule par heure (mise à jour)
+      if k_new < (o->>'k')::bigint and (k_old is null or k_old >= (o->>'k')::bigint) then
+        update public.notifications x set score = p_val, prev = (o->>'v')::int, created_at = now()
+          where x.id = (select y.id from public.notifications y where y.room_id = r.room_id and y.target = o->>'n' and y.actor = p_name
+                        and y.game = p_tag and y.created_at > now() - interval '1 hour' order by y.id desc limit 1)
+          returning x.id into mid;
+        if mid is null then
+          insert into public.notifications (room_id, target, actor, game, score, prev) values (r.room_id, o->>'n', p_name, p_tag, p_val, (o->>'v')::int);
+        end if;
+        mid := null;
+      end if;
+    end loop;
+    -- 1re place de la salle sur ce circuit / ce coffre : carte « record » dans le chat (une par joueur, par jeu, par heure)
+    if best is not null and k_new < (best->>'k')::bigint and (k_old is null or k_old >= (best->>'k')::bigint) then
+      update public.messages m set game = p_tag, score = p_val, beaten = best->>'n', beaten_score = (best->>'v')::int,
+          body = p_name || ' a battu le record de ' || (best->>'n')
+        where m.id = (select z.id from public.messages z where z.room_id = r.room_id and z.kind = 'record' and z.name = p_name
+                      and split_part(coalesce(z.game, ''), '@', 1) = base and z.game like '%@%' and z.created_at > now() - interval '1 hour' order by z.id desc limit 1)
+        returning m.id into mid;
+      if mid is null then
+        insert into public.messages (room_id, name, body, kind, game, score, beaten, beaten_score)
+          values (r.room_id, p_name, p_name || ' a battu le record de ' || (best->>'n'), 'record', p_tag, p_val, best->>'n', (best->>'v')::int);
+      end if;
+      mid := null;
+    end if;
+  end loop;
+exception when others then
+  -- jamais bloquer l'enregistrement d'un temps ou d'un coffre pour une notification
+  raise warning 'rec_copains : %', sqlerrm;
+end $$;
+revoke all on function public.rec_copains(text, text, int, bigint, bigint, jsonb) from public, anon, authenticated;
+
+-- Turbo Chrono : un temps meilleur sur un circuit DANS UNE SALLE (1.46.13 : chrono_room_runs = le classement de la salle ; le monde,
+-- chrono_runs, ne prévient plus personne : jamais deux notifications pour une course). Seulement les autres membres de CETTE salle, et
+-- seulement leurs temps de la version du circuit (comme chrono_board).
+create or replace function public.rec_chrono_room_trg() returns trigger language plpgsql security definer set search_path = public, extensions as $$
+declare oth jsonb; tv int := (select k.ver from public.chrono_tracks k where k.id = new.track);
+begin
+  if tg_op = 'UPDATE' and new.ms >= old.ms and old.ver >= tv then return new; end if;
+  select coalesce(jsonb_object_agg(x.room_id, x.l), '{}'::jsonb) into oth from (
+    select new.room_id as room_id, jsonb_agg(jsonb_build_object('n', c.name, 'v', c.ms, 'k', c.ms)) l
+    from public.chrono_room_runs c
+    where c.track = new.track and c.room_id = new.room_id and c.name <> new.name and c.ver >= tv
+      and exists (select 1 from public.room_members m where m.room_id = new.room_id and m.name = c.name)
+    having count(*) > 0) x;
+  perform public.rec_copains('chrono@' || new.track, new.name, new.ms, new.ms::bigint,
+    case when tg_op = 'UPDATE' and old.ver >= tv then old.ms::bigint end, oth);
+  return new;
+end $$;
+do $$ begin
+  if to_regclass('public.chrono_runs') is not null then drop trigger if exists rec_chrono on public.chrono_runs; end if;
+  if to_regclass('public.chrono_room_runs') is not null then
+    drop trigger if exists rec_chrono_room on public.chrono_room_runs;
+    create trigger rec_chrono_room after insert or update of ms, ver on public.chrono_room_runs for each row execute function public.rec_chrono_room_trg();
+  end if;
+end $$;
+drop function if exists public.rec_chrono_trg();
+
+-- Coffres à Secrets (et tout jeu à niveaux) : moins de coups, puis moins de temps
+create or replace function public.rec_level_trg() returns trigger language plpgsql security definer set search_path = public, extensions as $$
+declare oth jsonb; kn bigint := new.moves::bigint * 1000000000 + new.ms; ko bigint;
+begin
+  if tg_op = 'UPDATE' then ko := old.moves::bigint * 1000000000 + old.ms; if kn >= ko then return new; end if; end if;
+  select coalesce(jsonb_object_agg(x.room_id, x.l), '{}'::jsonb) into oth from (
+    select m.room_id, jsonb_agg(jsonb_build_object('n', b.name, 'v', b.moves, 'k', b.moves::bigint * 1000000000 + b.ms)) l
+    from public.room_members m
+    join public.room_members o on o.room_id = m.room_id and o.name <> m.name
+    join public.level_bests b on b.game = new.game and b.level = new.level and b.name = o.name
+    where m.name = new.name group by m.room_id) x;
+  perform public.rec_copains(new.game || '@' || new.level, new.name, new.moves, kn, ko, oth);
+  return new;
+end $$;
+do $$ begin if to_regclass('public.level_bests') is not null then
+  drop trigger if exists rec_level on public.level_bests;
+  create trigger rec_level after insert or update of moves, ms on public.level_bests for each row execute function public.rec_level_trg();
+end if; end $$;
 
 -- ===== famille.sql : comptes de famille (borne 1.41, 27 oct. 2026) — TOUJOURS EN DERNIER : il redéfinit acct_own, room_access,
 -- get_my_players, list_rooms, check_name, rt_topic_ok, get_my_lose_sounds, claim_name, recover_hint (avec le parent). Relancer famille.sql

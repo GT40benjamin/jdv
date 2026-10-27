@@ -248,3 +248,33 @@ la salle, sert aux têtes de api.heads()), key (pseudo principal, sert à télé
 `{ ok, best, kept, why, board }` : le serveur garde le meilleur temps de chaque joueur par circuit et vérifie le fantôme (format de
 `~/jdv-tools/duotest/chrono/src/engine/ghost.js` : en-tête « TC », version 1, tours, 100 ms, points, temps, passages ; voir chrono_check).
 Le jeu garde aussi son record et son fantôme sur l'appareil (`jdw.chrono.<PSEUDO>`) : un invité joue et retrouve ses temps sans compte.
+Dans la borne (1.44.x), les points de `gameOver` ne s'affichent plus pour ce jeu (ils partent toujours par add_score : onglet « Général », record de la tuile) :
+Classement › Turbo Chrono = les temps de `chrono_board` en colonnes (un circuit par colonne, salle ou monde), écran de fin = « Tes positions »
+(mon temps, mon rang « 2e sur 5 » dans la salle, mon rang au monde ; shell2.js `CHRONO_TRACKS`, `chronoRenderBoard`, `chronoEnd`). Un nouveau circuit : l'ajouter à `CHRONO_TRACKS`.
+
+## Ajout 14 : partie gardée (api.save, api.levelBest ; borne 1.43, source/sauvegarde.sql)
+Pour un jeu qui se quitte à tout moment et se reprend EXACTEMENT où on l'a laissé (casse-tête : Coffres à Secrets). Le jeu le déclare par
+`saves: true` dans son enregistrement : « Quitter » sort alors tout de suite (pas de question « Quitter la partie ? »), sans écran de fin si
+`currentScore()` rend 0. Le jeu n'écrit jamais lui-même dans localStorage : il passe par `api.save`.
+- `await api.save.load()` → `{ data, at }` ou null : la copie la plus RÉCENTE (champ `data.at`, en ms) entre l'appareil et le serveur (compte connecté).
+- `api.save.put(data)` : objet JSON (≤ 200 000 caractères, avec `at` = Date.now()) gardé tout de suite sur l'appareil, envoyé au serveur
+  2,5 s après la dernière écriture (`save_game` ; une copie plus vieille que celle du serveur est refusée). Invité : appareil seulement.
+- `api.save.flush()` : envoi immédiat (à appeler en quittant / quand la page se cache). `api.save.guest` : vrai pour un invité.
+- `api.save.score(total)` (1.43.4) : un meilleur total part au classement habituel (add_score, records, notifications) SANS quitter le jeu
+  ni écran de fin : un casse-tête enchaîne ses niveaux sans jamais sortir. Le jeu rend alors `currentScore()` = 0 (rien à envoyer en quittant).
+- `fps: false` dans l'enregistrement du jeu : le compteur d'images de la borne (réglage « 📈 Images/s ») ne s'affiche pas dans ce jeu.
+- `api.levelBest.put(niveau, coups, ms)` : meilleur perso sur ce niveau (moins de coups, puis moins de temps ; `put_level_best`) ;
+  `await api.levelBest.room(niveau)` → `[{ name, moves, ms, me }]` = les membres de la salle sur ce niveau, du meilleur au moins bon (vide en invité).
+- `await api.levelBest.all()` (1.46.3) → `{ members: [{ name, img, me }], best: { niveau: [{ name, moves, ms, me }] } }` = moi + les membres de la salle
+  (img = leur tête, null sans photo) et leurs meilleurs sur TOUS les niveaux en un appel (`get_level_bests_all`) ; null en invité, sans salle ou hors ligne.
+Sans `api.save.score` (borne plus ancienne), le jeu appelle `api.gameOver(total)` quand un niveau réussi fait monter le total.
+
+## Ajout 15 : avancement fin et copains sur le parcours (spots, mapSpot, api.reached ; borne 1.46.5, Néon Rush)
+Pour un jeu où l'on veut savoir OÙ chacun est mort dans un niveau (Néon Rush). Le jeu déclare `spots: true` dans son enregistrement et
+donne `levels` (nom et mondes de chaque niveau) pour sa carte (`MAP_DEFS.neon` de shell2.js). Il ajoute à l'instance `mapSpot()` = la valeur
+gardée sur la carte : niveau × 1000 + pour mille du niveau (en route : par dixième ; à la mort : l'endroit exact ; 8000 = grande victoire).
+La borne l'envoie à la place de `currentLevel()` (progTick, et une dernière fois juste avant l'écran de fin) ; `currentLevel()` reste le
+niveau (spectateurs, musique). La carte pose chaque tête à l'endroit exact (croix 💀 + « 63 % »), l'écran de fin montre une case par niveau.
+`await api.reached()` → `[{ name, v, me, img, sad }]` : le plus loin de chaque membre de la salle dans ce jeu (v = valeur de mapSpot ;
+moi : name « TOI », me vrai) ; vide en invité ; la progression de la salle est relue si elle a plus d'une minute. Valeurs < 1000 = ancien
+format (niveau seul) : au départ.

@@ -74,7 +74,7 @@ script = "let PG_ACTIVE = false, PG_API = null, PG_HEADS = [], PG_PILOT_IMG = nu
 
 # ---------- assemblage ----------
 SKIP = [x for x in os.environ.get('SKIP_GAMES', '').split(',') if x]   # ex. SKIP_GAMES=ilo : jeu pas encore prêt
-GAMES = [g for g in ['chrono', 'neon', 'smoothie', 'ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'magic', 'pegase'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
+GAMES = [g for g in ['coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'magic', 'pegase'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
 # jeux de duel (deux joueurs face à face) : source/duos/<id>.js, contrat DUO-CONTRACT.md
 DUOS = [d for d in ['bolides', 'tirsaubut', 'toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'] if os.path.exists(J + 'duos/' + d + '.js') and d not in SKIP]
 def notes_list():
@@ -90,8 +90,39 @@ def notes_list():
         if not m: raise SystemExit('nouveautes.txt : ligne sans [id], numéro de version impossible : ' + l)
         if m.group(2) and not re.search(r'\d+\.\d+', m.group(3)): raise SystemExit('nouveautes.txt : sous-titre sans numéro de version : ' + l)
         if m.group(1) not in seen and not m.group(2): raise SystemExit('nouveautes.txt : le bloc [' + m.group(1) + '] doit commencer par « ## … <version> »')
+        # 27 oct. 2026 : chaque sous-titre dit dans QUELLE version de la borne il sort, « (borne 1.46.3) » : la cloche ne montre que ce qui est
+        # plus récent que la dernière version vue par l'appareil, et les tuiles concernées sont marquées « Mis à jour »
+        if m.group(2) and not re.search(r'\(borne \d+\.\d+(?:\.\d+)?\)', m.group(3)): raise SystemExit('nouveautes.txt : sous-titre sans « (borne X.Y) » : ' + l)
         seen.add(m.group(1)); out.append(l)
+    if os.environ.get('NOTES_CHECK'): notes_check(out)
     return out
+def notes_check(lines):
+    # PUBLICATION (publier.sh) : un jeu dont les fichiers changent depuis la dernière publication doit avoir sa note « [id] ## … (borne <cette version>) ».
+    # Règle de PATOU (27 oct. 2026 : « les briques de jeux concernées ne sont pas pointées pour la mise à jour »). Échappatoire volontaire et
+    # rare : NOTES_SKIP=id1,id2 (changement invisible pour les joueurs), écrit en clair dans la sortie.
+    import subprocess
+    ver = os.environ.get('SITE_VERSION', '')
+    if not ver: return
+    root = os.path.normpath(J + '..')
+    try:
+        base = subprocess.run(['git', 'log', '-1', '--format=%H', '--', 'source/version.txt'], cwd=root, capture_output=True, text=True).stdout.strip()
+        changed = subprocess.run(['git', 'diff', '--name-only', base], cwd=root, capture_output=True, text=True).stdout.split() if base else []
+        changed += subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], cwd=root, capture_output=True, text=True).stdout.split()
+    except Exception as e:
+        print('notes : vérification impossible (' + str(e) + ')'); return
+    ids = set(GAMES) | set(DUOS)
+    touched = set()
+    for f in changed:
+        m = re.match(r'^source/(?:games|duos)/([a-z0-9]+)\.js$', f) or re.match(r'^assets/([a-z0-9]+)(?:\.[^/]*)?\.bin$', f) or re.match(r'^telecharger/(pegase)(?:-pc)?\.json$', f)
+        if m and m.group(1) in ids: touched.add(m.group(1))
+    have = set()
+    for l in lines:
+        m = re.match(r'^\[([a-z0-9-]+)\]\s*##.*\(borne ' + re.escape(ver) + r'\)', l)
+        if m: have.add(m.group(1))
+    skip = set(x for x in os.environ.get('NOTES_SKIP', '').split(',') if x)
+    for x in sorted(skip & touched): print('notes : ' + x + ' changé SANS note (NOTES_SKIP)')
+    miss = sorted(touched - have - skip)
+    if miss: raise SystemExit('nouveautes.txt : ces jeux changent dans la ' + ver + ' sans note « [id] ## … (borne ' + ver + ') » : ' + ', '.join(miss) + ' — (changement invisible pour les joueurs : NOTES_SKIP=' + ','.join(miss) + ')')
 def music_list():
     # {jeu: [numéros de variantes]} d'après les fichiers assets/music/<jeu>-<n>.mp3
     # calmes : <jeu>-<n>.mp3 ; énergiques (niveaux difficiles) : <jeu>-x<n>.mp3

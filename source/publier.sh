@@ -31,7 +31,8 @@ export SITE_VERSION="$MAJ.$MIN"; [ "$PAT" -gt 0 ] && SITE_VERSION="$SITE_VERSION
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 PY=$(command -v python3 >/dev/null && python3 -c 1 2>/dev/null && echo python3 || echo python)
 # la borne : dans jouer/ (elle lit ../assets, ../site.json, ../telecharger/version.json)
-SITE_ROOT=../ PYTHONUTF8=1 $PY build2.py "$T/art.html" "$T/standalone.html" "$T/site.html" "$SUPABASE_URL" "$SUPABASE_KEY"
+# NOTES_CHECK : un jeu qui change sans sa note « [id] ## … (borne <version>) » dans nouveautes.txt bloque la publication (NOTES_SKIP=id pour passer)
+NOTES_CHECK=1 SITE_ROOT=../ PYTHONUTF8=1 $PY build2.py "$T/art.html" "$T/standalone.html" "$T/site.html" "$SUPABASE_URL" "$SUPABASE_KEY"
 mkdir -p ../jouer && cp "$T/site.html" ../jouer/index.html
 # service worker de la borne (jeu hors ligne) : écrit par build2.py à côté de site.html, son cache porte le numéro BUILD_ID
 cp "$T/sw.js" ../jouer/sw.js

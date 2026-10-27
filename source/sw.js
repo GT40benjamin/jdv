@@ -114,7 +114,9 @@ async function asset(req, rel) {
   const c = await caches.open(MEDIA), hit = await c.match(ROOT + rel);
   if (fresh(hit, rel)) return hit;
   try {
-    const r = await fetch(req);
+    // « no-cache » : le navigateur revalide auprès du serveur (sinon sa copie de 10 min, peut-être l'ANCIEN fichier, serait rangée
+    // sous l'empreinte du nouveau, et gardée pour toujours ; 1.43.5)
+    const r = await fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' });
     if (r.ok && r.status === 200) return await putMedia(c, rel, r);
     return hit || r;
   } catch (x) { if (hit) return hit; throw x; }

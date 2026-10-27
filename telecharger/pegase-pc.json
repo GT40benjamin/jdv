@@ -1,100 +1,99 @@
 {
-  "version": "0.9.8.3",
-  "build": 44,
-  "size": 2113087608,
-  "sha256": "07b007c26632e2799c9ca3269dd19494dac5a4d87394e522b6f773a3f380c2f7",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-2026-10-27-0.9.8.3.zip",
-  "manifest": "119efe23e61d01507f4f23574757dbee71a16930623a9708321efffdacce84b9",
+  "version": "0.9.8.9",
+  "build": 50,
+  "size": 2119685647,
+  "sha256": "6dd8625fa31c1f2f1cece8255271ae4957681a3d8303c8847b7228430a7446c0",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-2026-10-27-0.9.8.9.zip",
+  "manifest": "b207916367a0239b8764f6958b80267aa656ebb329f344447f40e985a5ea2b14",
   "patchs": [
     {
-      "de": "0.9.8.2",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-patch-0.9.8.2.zip",
-      "taille": 2756263,
-      "sha256": "f588376016a281fcc6789f9157e2ece59dfb81b5481f6cd67390ebc1cda34d2e"
+      "de": "0.9.8.8",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.8.8.zip",
+      "taille": 10693575,
+      "sha256": "36445c5ca426f5542707277e076580a631b504125c5315d49d757dc86597615f"
     },
     {
-      "de": "0.9.8.1",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-patch-0.9.8.1.zip",
-      "taille": 18957395,
-      "sha256": "732cfd83aa05a1aaa406232ce603b370c1db1d8df0a18f741078886209811c24"
+      "de": "0.9.8.7",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.8.7.zip",
+      "taille": 12928365,
+      "sha256": "e37568deb51f3f48c65b0b67b8373446fee5678701cc53520bae609cfe7a5143"
     },
     {
-      "de": "0.9.8",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-patch-0.9.8.zip",
-      "taille": 18987032,
-      "sha256": "d59dd53ccce5458bb702b15034730402e2e51a42e3e783d552181fbf42662306"
+      "de": "0.9.8.6",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.8.6.zip",
+      "taille": 12964388,
+      "sha256": "3a6a3ac295b334bc6cd2c8edb4a868dc166ba3acb5dce6df71e4ad07ee02afbc"
+    },
+    {
+      "de": "0.9.8.5",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.8.5.zip",
+      "taille": 12975539,
+      "sha256": "36b61b12c577264e109e2020e46590635bb1e12519967da349a865ba9c94e1b9"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v44/Pegase-PC-patch-0.9.7.zip",
-      "taille": 228265603,
-      "sha256": "3bc61c7369cd517b086178d7eef57336f6a9da6cbcb7ebe06c8c6ca965604214"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.7.zip",
+      "taille": 234848968,
+      "sha256": "d4df0a91830ba4fd55e7b03543cd7ba2721d61ceb4030e1f2f4835c74a860e9f"
     }
   ],
   "notes": [
-    "La brume du matin change chaque jour : certains matins une belle brume flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair. Le jour, juste un léger voile au loin, plus épais avant la pluie.",
-    "Les gros nuages avancent doucement dans le ciel.",
-    "Le fond est plus net : les montagnes au loin ne sont plus floues.",
-    "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
-    "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
-    "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
+    "Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol (dont le grand arbre suspendu près du pont rouge), et le socle du coin cosy descend jusqu'au sol.",
+    "De vrais trous dans le potager : quand tu creuses, c'est un vrai trou dans la terre ; tes graines tombent au fond, et chaque espèce a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…).",
+    "Le village photographie le concours : pendant le concours, Hugo, Iris et Rosalie se promènent et prennent des photos (parfois de toi !) ; Mathilde retourne à sa boutique, et chacun rentre à pied.",
+    "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
+    "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
+    "L'herbe des rochers est plus légère pour ton ordinateur."
   ],
   "historique": [
     {
-      "version": "0.9.8.3",
+      "version": "0.9.8.9",
       "notes": [
-        "La brume du matin change chaque jour : certains matins une belle brume flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair. Le jour, juste un léger voile au loin, plus épais avant la pluie.",
-        "Les gros nuages avancent doucement dans le ciel.",
-        "Le fond est plus net : les montagnes au loin ne sont plus floues.",
-        "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
-        "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
-        "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
+        "Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol (dont le grand arbre suspendu près du pont rouge), et le socle du coin cosy descend jusqu'au sol.",
+        "De vrais trous dans le potager : quand tu creuses, c'est un vrai trou dans la terre ; tes graines tombent au fond, et chaque espèce a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…).",
+        "Le village photographie le concours : pendant le concours, Hugo, Iris et Rosalie se promènent et prennent des photos (parfois de toi !) ; Mathilde retourne à sa boutique, et chacun rentre à pied.",
+        "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
+        "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
+        "L'herbe des rochers est plus légère pour ton ordinateur."
       ]
     },
     {
-      "version": "0.9.8.2",
+      "version": "0.9.8.8",
       "notes": [
-        "Les chemins de terre, les routes et les pavés du village sont revenus partout sur l'île, avec la place, les rues et les sentiers comme avant l'arrivée de la mer.",
-        "Les pentes et les falaises de l'intérieur retrouvent leur roche et leur terre.",
-        "Tes chemins tracés sont repeints par-dessus, et le chemin unique au nord-est du village est de nouveau en place.",
-        "Les villageois retrouvent la terre de leurs chemins.",
-        "Le sable des plages reste sur les plages."
+        "Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec ses bancs et leurs coussins, une table basse aux bougies sur un tapis, des lanternes, du lierre et des fleurs.",
+        "Plus de grandes nappes vertes toutes plates (PC) : le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs.",
+        "Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque.",
+        "Bêcher, c'est plus clair : houe ou pelle en main, un liseré doré entoure au sol la case que tu vas bêcher."
       ]
     },
     {
-      "version": "0.9.8.1",
+      "version": "0.9.8.7",
       "notes": [
-        "Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes, disparus par erreur avec l'arrivée de la mer.",
-        "La place du village retrouve tout son décor.",
-        "Les brumes et les feuilles qui volent près des arbres et des cascades sont revenues."
+        "La profondeur de ton bouchon : à la molette (manette : croix haut / bas), de 0,3 à 2,5 m ; une carte « Profondeur » à droite montre où est ton appât, et s'il touche le fond. Profond, les gros s'y intéressent ; tout près de la surface, les petits mordent vite.",
+        "Marche avec ta canne pendant que tu attends : le long du bord ou sur le ponton, jamais dans l'eau ; ton bouchon suit au bout du fil.",
+        "Agite ta canne (clic droit, manette : bouton ouest) : un petit coup de scion qui réveille les poissons… sans en abuser, sinon ils se méfient.",
+        "Pendant le combat, gauche et droite te font aussi marcher le long du bord, pour suivre ton poisson.",
+        "Un bouchon plus gros, plus facile à suivre.",
+        "De vrais bruits de pêche : le fouet de la canne au lancer, le bouchon qui plonge, le fil qui casse.",
+        "Gaspard t'explique la pêche telle qu'elle est maintenant.",
+        "Les portillons de jardin s'ouvrent tout seuls quand tu t'approches, et se referment derrière toi."
       ]
     },
     {
-      "version": "0.9.8",
+      "version": "0.9.8.6",
       "notes": [
-        "La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large.",
-        "Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral.",
-        "La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges.",
-        "Des montagnes et des falaises couvertes de végétation ferment l'horizon.",
-        "Les plantes des chemins sont bien posées au sol.",
-        "Les maisons : un passage reste libre devant la porte, et la caméra entre et sort en douceur ; sous les auvents des boutiques, elle passe sous le store.",
-        "Le jardin : les clôtures s'accrochent au bord de ta parcelle, le panneau reste sur son poteau et se règle, plus de grands arbres dans les parcelles, et l'invite du potager ne s'affiche plus dans la maison.",
-        "Le grand livre : les violettes ont leurs tiges, et la Mauve musquée a sa page.",
-        "Le jeu démarre plus vite."
+        "Les parcelles ne débordent plus sur le chemin : devant le portique rouge, au pied de l'escalier et sous la falaise, les bords des parcelles à vendre reculent jusqu'à l'herbe.",
+        "L'allée vers le coin cosy est dégagée : entre les parcelles, quatre arbres ont été écartés du passage.",
+        "Un vrai escalier de pierre au bout du chemin du Clos, posé sur le chemin et qui suit la pente, une lanterne de chaque côté.",
+        "Les affiches se posent plus facilement : si l'endroit visé est déjà pris (une affiche à côté, le bord du mur, une poutre, une fenêtre), l'affiche glisse toute seule jusqu'à la place libre la plus proche sur le même mur.",
+        "Hugo, le facteur, ne roule plus sur le muret du perron de la mairie pendant sa tournée."
       ]
     },
     {
-      "version": "0.9.7",
+      "version": "0.9.8.5",
       "notes": [
-        "La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil.",
-        "Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches.",
-        "Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles.",
-        "À table : on s'assoit face à la table, les pieds dessous, des deux côtés.",
-        "Le râteau chez Rosalie : il remet l'herbe sur une case bêchée, ou annule une plantation en te rendant la graine.",
-        "Le parapluie est tenu au poing, bien droit, et ton ombre a toujours sa tête.",
-        "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
-        "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
-        "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre."
+        "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
+        "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
       ]
     }
   ]
