@@ -1,100 +1,45 @@
 {
-  "version": "0.9.8.9",
-  "build": 50,
-  "size": 2119685647,
-  "sha256": "6dd8625fa31c1f2f1cece8255271ae4957681a3d8303c8847b7228430a7446c0",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-2026-10-27-0.9.8.9.zip",
-  "manifest": "b207916367a0239b8764f6958b80267aa656ebb329f344447f40e985a5ea2b14",
+  "version": "0.9.9",
+  "build": 51,
+  "size": 2119691156,
+  "sha256": "e80e092e46b7c98bb9c49d2ee075e6383c4ebb5aa5897cbd6318eacf1665aef1",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v51/Pegase-PC-2026-10-27-0.9.9.zip",
+  "manifest": "56de7805054d456150f893c157bd2ff34205fbf10f66af0e42c8b77aa7be41a3",
   "patchs": [
     {
+      "de": "0.9.8.9",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v51/Pegase-PC-patch-0.9.8.9.zip",
+      "taille": 2879692,
+      "sha256": "a97ca8ad6ac45c7afd095e71c8d35dd2444cceefc36eaba5958fb7c0057b532b"
+    },
+    {
       "de": "0.9.8.8",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.8.8.zip",
-      "taille": 10693575,
-      "sha256": "36445c5ca426f5542707277e076580a631b504125c5315d49d757dc86597615f"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v51/Pegase-PC-patch-0.9.8.8.zip",
+      "taille": 11274283,
+      "sha256": "42eb963230114eb6df8a18382173478ea277e9338bfddb47f4972b073cfa602e"
     },
     {
       "de": "0.9.8.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.8.7.zip",
-      "taille": 12928365,
-      "sha256": "e37568deb51f3f48c65b0b67b8373446fee5678701cc53520bae609cfe7a5143"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v51/Pegase-PC-patch-0.9.8.7.zip",
+      "taille": 13146613,
+      "sha256": "0e04712202125a39731c976e18a2b4a0cd6c97fceeb0a0ded54f88a2908b797a"
     },
     {
       "de": "0.9.8.6",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.8.6.zip",
-      "taille": 12964388,
-      "sha256": "3a6a3ac295b334bc6cd2c8edb4a868dc166ba3acb5dce6df71e4ad07ee02afbc"
-    },
-    {
-      "de": "0.9.8.5",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.8.5.zip",
-      "taille": 12975539,
-      "sha256": "36b61b12c577264e109e2020e46590635bb1e12519967da349a865ba9c94e1b9"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v51/Pegase-PC-patch-0.9.8.6.zip",
+      "taille": 13182120,
+      "sha256": "3b1687cf8ce3d2c937b94fb6737e2ab39c0cb19c01604cce2d0a20258ccbc72d"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v50/Pegase-PC-patch-0.9.7.zip",
-      "taille": 234848968,
-      "sha256": "d4df0a91830ba4fd55e7b03543cd7ba2721d61ceb4030e1f2f4835c74a860e9f"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v51/Pegase-PC-patch-0.9.7.zip",
+      "taille": 234984737,
+      "sha256": "554806df36112b0145d3a101442abe5324bf27df73d5840bff00e16e22ca91d7"
     }
   ],
   "notes": [
-    "Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol (dont le grand arbre suspendu près du pont rouge), et le socle du coin cosy descend jusqu'au sol.",
-    "De vrais trous dans le potager : quand tu creuses, c'est un vrai trou dans la terre ; tes graines tombent au fond, et chaque espèce a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…).",
-    "Le village photographie le concours : pendant le concours, Hugo, Iris et Rosalie se promènent et prennent des photos (parfois de toi !) ; Mathilde retourne à sa boutique, et chacun rentre à pied.",
-    "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
-    "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
-    "L'herbe des rochers est plus légère pour ton ordinateur."
-  ],
-  "historique": [
-    {
-      "version": "0.9.8.9",
-      "notes": [
-        "Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol (dont le grand arbre suspendu près du pont rouge), et le socle du coin cosy descend jusqu'au sol.",
-        "De vrais trous dans le potager : quand tu creuses, c'est un vrai trou dans la terre ; tes graines tombent au fond, et chaque espèce a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…).",
-        "Le village photographie le concours : pendant le concours, Hugo, Iris et Rosalie se promènent et prennent des photos (parfois de toi !) ; Mathilde retourne à sa boutique, et chacun rentre à pied.",
-        "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
-        "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
-        "L'herbe des rochers est plus légère pour ton ordinateur."
-      ]
-    },
-    {
-      "version": "0.9.8.8",
-      "notes": [
-        "Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec ses bancs et leurs coussins, une table basse aux bougies sur un tapis, des lanternes, du lierre et des fleurs.",
-        "Plus de grandes nappes vertes toutes plates (PC) : le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs.",
-        "Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque.",
-        "Bêcher, c'est plus clair : houe ou pelle en main, un liseré doré entoure au sol la case que tu vas bêcher."
-      ]
-    },
-    {
-      "version": "0.9.8.7",
-      "notes": [
-        "La profondeur de ton bouchon : à la molette (manette : croix haut / bas), de 0,3 à 2,5 m ; une carte « Profondeur » à droite montre où est ton appât, et s'il touche le fond. Profond, les gros s'y intéressent ; tout près de la surface, les petits mordent vite.",
-        "Marche avec ta canne pendant que tu attends : le long du bord ou sur le ponton, jamais dans l'eau ; ton bouchon suit au bout du fil.",
-        "Agite ta canne (clic droit, manette : bouton ouest) : un petit coup de scion qui réveille les poissons… sans en abuser, sinon ils se méfient.",
-        "Pendant le combat, gauche et droite te font aussi marcher le long du bord, pour suivre ton poisson.",
-        "Un bouchon plus gros, plus facile à suivre.",
-        "De vrais bruits de pêche : le fouet de la canne au lancer, le bouchon qui plonge, le fil qui casse.",
-        "Gaspard t'explique la pêche telle qu'elle est maintenant.",
-        "Les portillons de jardin s'ouvrent tout seuls quand tu t'approches, et se referment derrière toi."
-      ]
-    },
-    {
-      "version": "0.9.8.6",
-      "notes": [
-        "Les parcelles ne débordent plus sur le chemin : devant le portique rouge, au pied de l'escalier et sous la falaise, les bords des parcelles à vendre reculent jusqu'à l'herbe.",
-        "L'allée vers le coin cosy est dégagée : entre les parcelles, quatre arbres ont été écartés du passage.",
-        "Un vrai escalier de pierre au bout du chemin du Clos, posé sur le chemin et qui suit la pente, une lanterne de chaque côté.",
-        "Les affiches se posent plus facilement : si l'endroit visé est déjà pris (une affiche à côté, le bord du mur, une poutre, une fenêtre), l'affiche glisse toute seule jusqu'à la place libre la plus proche sur le même mur.",
-        "Hugo, le facteur, ne roule plus sur le muret du perron de la mairie pendant sa tournée."
-      ]
-    },
-    {
-      "version": "0.9.8.5",
-      "notes": [
-        "Une fenêtre de vente claire chez Basile et chez Rosalie : chaque poisson, insecte, trouvaille ou récolte sur sa ligne, avec sa taille et son prix ; tu coches ce que tu vends, tu vois le total, puis « Vendre » ou « Annuler ». Le poisson promis à Gaspard reste décoché.",
-        "Ta boîte aux lettres se secoue doucement quand du courrier t'attend."
-      ]
-    }
+    "Pégase en îles : rejoins l'île de tes amis",
+    "Regarder une île depuis la borne",
+    "Le dernier géant : le bateau, l'îlot et les graines"
   ]
 }
