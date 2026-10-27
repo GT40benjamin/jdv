@@ -15,7 +15,7 @@ alter table public.chrono_tracks enable row level security;
 revoke all on public.chrono_tracks from anon, authenticated;
 -- un circuit = ses tours, ses temps de passage (points de passage + ligne, par tour) et le temps sous lequel personne ne peut descendre
 insert into public.chrono_tracks (id, laps, splits, min_ms) values
-  ('stade', 3, 9, 40000), ('huit', 3, 12, 50000), ('folie', 3, 12, 40000), ('orbite', 3, 12, 52000)
+  ('stade', 1, 3, 17000), ('huit', 1, 4, 20000), ('folie', 1, 4, 17000), ('orbite', 1, 4, 20000)   -- 1.44 : un seul tour (A → B)
 on conflict (id) do update set laps = excluded.laps, splits = excluded.splits, min_ms = excluded.min_ms;
 
 create table if not exists public.chrono_runs (
