@@ -13,6 +13,15 @@
 [borne] Trois nouvelles musiques à l’accueil de la borne, choisies par Benjamin : « Playful », « Funky Bass » et « Country Title ». Elles tournent avec les autres, au même volume
 [magic] ## 🎵 Magic Force : la musique de la victoire (borne 1.41.4)
 [magic] La grande victoire, après le Seigneur des ombres, a maintenant sa propre musique joyeuse, « Lighthearted », au lieu d’un morceau de combat déjà entendu dans les mondes
+[neon] ## 😈 Néon Rush : niveaux 5, 6 et 7, jusqu’au Démon (borne 1.43.9)
+[neon] Trois NOUVEAUX niveaux, chacun sur une musique de la borne et avec quatre mondes jamais vus : Mirage (désert de verre, mirages, tempête de sable, cité engloutie), Zéro Absolu (palais de glace, aurore boréale, abysses, nuages) et le Démon (enfer, le vide, la fin du monde, le monde glitché)
+[neon] Nouveau : le ROBOT ! Touche pour un petit saut, tiens pour un grand saut
+[neon] Nouveau : l’ARAIGNÉE ! Chaque toucher la téléporte d’un coup du sol au plafond
+[neon] Nouveau : les ORBES DE DASH (vertes) ! Touche-la au sommet de ton saut et tiens : le cube file tout droit au-dessus des pics, lâche pile pour retomber sur le temps
+[neon] Nouveau : le DUO ! Un jumeau court en miroir au plafond, et il ne doit rien toucher non plus
+[neon] Nouveau : les marches qui s’effondrent derrière toi, et la caméra qui penche doucement dans l’aurore
+[neon] Le niveau 7, le DÉMON : huit passages sans répit qui mélangent tout (cube, avion mini, onde, araignée dans le miroir, robot, soucoupe, duo, onde mini), la vitesse monte jusqu’à ×1,6
+[neon] Une seule vie, et après le Démon : la grande victoire !
 [neon] ## 🌴 Néon Rush : niveau 4, Jungle Sauvage (borne 1.43.7)
 [neon] Un NOUVEAU niveau, sur la musique du Volcan de Smoothie Samouraï (gros tambours) : quatre mondes jamais vus, la Jungle Néon, le Temple Perdu, la Grande Cascade et la Forêt des Champignons
 [neon] Nouveau : l’ONDE ! Dans le temple, tiens pour monter en diagonale, lâche pour redescendre, et faufile-toi dans le couloir en zigzag
