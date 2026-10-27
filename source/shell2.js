@@ -5519,7 +5519,7 @@ $('jdw-pg-music').addEventListener('click', () => { Audio.ensure(); setMusicOn(!
    et recommandée (Ultra). Pour tous les âges, aucune violence. Images : captures du JEU au rendu PC Ultra, accueil/pgv-<nom>-<largeur>.webp
    (deux tailles, chargées à la demande). Le haut est transparent : le décor filmé de la page reste derrière le titre. */
 const pgvEsc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const PGV_IMG = {"auguste":[[1600,1600,1067],[800,800,533]],"biches":[[1600,1600,1067],[800,800,533]],"bouvreuil":[[1600,1600,1067],[800,800,533]],"chat":[[1400,1400,943],[800,800,539]],"cygnes":[[1600,1600,1067],[800,800,533]],"echoppe":[[1600,1600,800],[800,800,400]],"fleurs":[[1600,1600,1067],[800,800,533]],"hibou":[[1600,1600,1067],[800,800,533]],"livre":[[700,700,1050],[480,480,720]],"maison":[[1600,1600,900],[800,800,450]],"nuit":[[1600,1600,1067],[2400,2400,1600],[800,800,533]],"oies":[[1600,1600,1067],[800,800,533]],"peche":[[1600,1600,753],[800,800,377]],"pegase":[[1400,1210,807],[800,800,534]],"polaroid":[[1600,1600,818],[800,800,409]],"pont":[[1600,1600,1067],[800,800,533]],"potager":[[1600,1600,810],[800,800,405]],"village":[[1600,1600,1067],[2400,2400,1600],[800,800,533]],"viseur":[[1600,1600,720],[800,800,360]]};
+const PGV_IMG = {"auguste":[[1600,1600,1067],[800,800,533]],"biches":[[1600,1600,1067],[800,800,533]],"bouvreuil":[[1600,1600,1067],[800,800,533]],"chat":[[1400,1400,943],[800,800,539]],"cygnes":[[1600,1600,1067],[800,800,533]],"echoppe":[[1600,1600,800],[800,800,400]],"fleurs":[[1600,1600,1067],[800,800,533]],"hibou":[[1600,1600,1067],[800,800,533]],"livre":[[700,700,1050],[480,480,720]],"maison":[[1600,1600,900],[800,800,450]],"nuit":[[1600,1600,1067],[2400,2400,1600],[800,800,533]],"oies":[[1600,1600,1067],[800,800,533]],"peche":[[1600,1600,753],[800,800,377]],"indice":[[1200,1200,747],[700,700,436]],"pont":[[1600,1600,1067],[800,800,533]],"potager":[[1600,1600,810],[800,800,405]],"village":[[1600,1600,1067],[2400,2400,1600],[800,800,533]]};
 // <img> net sur tous les écrans : srcset avec les vraies largeurs, sizes donné par la mise en page, toujours chargé à la demande
 function pgvImg(n, alt, sizes, cls) {
   const v = (PGV_IMG[n] || []).slice().sort((a, b) => a[1] - b[1]); if (!v.length) return '';
@@ -5551,29 +5551,25 @@ function pgvBuild() {
   const feat = (ic, t, p) => `<li><span class="pgv-ic">${PGV_SVG[ic]}</span><div><b>${t}</b><p>${p}</p></div></li>`;
   const post = (img, alt, t, s, r) => `<figure class="pgv-post">${pgvImg(img, alt, '(max-width: 760px) 80vw, 300px')}<figcaption><b>${t}</b><small>${s}</small><span class="pgv-reac">${r}</span></figcaption></figure>`;
   box.innerHTML = `
-  <section class="pgv-hero" aria-labelledby="pgv-t">
+  <section class="pgv-hero pgv-slide" aria-labelledby="pgv-t">
     <p class="pgv-kick pgv-rv">Elixir Game Studio présente</p>
     <h2 class="pgv-title pgv-rv" id="pgv-t">La légende de&nbsp;Pégase</h2>
-    <p class="pgv-lead pgv-rv">Un monde à explorer appareil photo en main, un village où poser ses valises, des amis pour tout partager… et un cheval ailé que presque personne n'a jamais vu.</p>
+    <p class="pgv-lead pgv-rv">Un monde à explorer appareil photo en main, un village où poser ses valises, des amis pour tout partager… et un cheval ailé dont il n'existe qu'une seule photo, toute floue.</p>
     <ul class="pgv-chips pgv-rv"><li>🌿 Pour tous les âges · aucune violence</li><li>🎁 Gratuit</li><li>💻 PC · 📱 Android</li></ul>
     <div class="pgv-ctas pgv-rv"><button type="button" class="pgv-btn gold" data-go="dl">${PGV_SVG.down}Télécharger Pégase</button><button type="button" class="pgv-btn ghost" data-go="isles">🏝️ Rejoindre une île</button></div>
   </section>
   <div class="pgv-body">
-  <section class="pgv-sec pgv-story" aria-labelledby="pgv-h1">
+  <section class="pgv-sec pgv-story pgv-slide" aria-labelledby="pgv-h1">
     <div class="pgv-tx pgv-rv">
-      <p class="pgv-kick">L'histoire</p>
-      <h3 class="pgv-h" id="pgv-h1">On raconte qu'un cheval ailé vit sur l'île…</h3>
-      <p>Tu es photographe. Un jour, une vieille légende arrive jusqu'à toi&nbsp;: sur une île au bout du monde vivrait <b>Pégase</b>, un cheval ailé que presque personne n'a jamais vu.</p>
-      <p>Ton appareil en bandoulière, tu embarques pour <b>Ailebrune</b>, le petit village de l'île. Ton rêve&nbsp;: le retrouver, le photographier, et l'étudier pour percer son secret.</p>
-      <p>Mais l'île cache bien d'autres merveilles… et on s'y sent si bien qu'on finit par y poser ses valises.</p>
+      <p class="pgv-kick">La légende</p>
+      <h3 class="pgv-h" id="pgv-h1">Tout a commencé par une photo floue…</h3>
+      <p>Un matin de brume, il y a bien des années, <b>Mlle Iris</b>, la naturaliste du village d'Ailebrune, marchait entre les bouleaux, son vieil appareil autour du cou. Un bruissement, un éclat blanc… elle a déclenché, une seule fois.</p>
+      <p>Sur la photo, presque rien&nbsp;: une grande aile floue entre les arbres. Depuis, personne ne l'a revu. Les uns parlent d'un cygne, les autres d'un rêve. Mlle Iris, elle, l'appelle <b>Pégase</b>.</p>
+      <p>Toi, tu es photographe. Tu viens sur l'île pour retrouver sa trace, rassembler les indices… et le photographier pour de vrai.</p>
     </div>
-    <div class="pgv-pola pgv-rv" aria-hidden="false">
-      <figure class="p2">${pgvImg('polaroid', 'La photo de Pégase se développe dans le viseur', W2)}</figure>
-      <figure class="p1">${pgvImg('pegase', 'Pégase, le cheval ailé, entre les bouleaux', W2)}<figcaption>Pégase · légendaire</figcaption></figure>
-    </div>
+    <figure class="pgv-indice pgv-rv">${pgvImg('indice', 'La seule photo connue : une grande aile blanche, floue, entre les bouleaux', W2)}<figcaption>Ailebrune, à l'aube · I.</figcaption><small>Le seul cliché connu · collection de Mlle Iris</small></figure>
   </section>
-  <section class="pgv-wide pgv-rv" aria-label="Le viseur de l'appareil photo">${pgvImg('viseur', 'Pégase dans le viseur doré de l’appareil photo', WF)}<span class="pgv-cap">Dans le viseur, enfin&nbsp;!</span></section>
-  <section class="pgv-sec pgv-safari" aria-labelledby="pgv-h2">
+  <section class="pgv-sec pgv-slide pgv-safari" aria-labelledby="pgv-h2">
     <div class="pgv-tx pgv-rv">
       <p class="pgv-kick">Safari photo</p>
       <h3 class="pgv-h" id="pgv-h2">Un safari photo, entre amis</h3>
@@ -5588,7 +5584,7 @@ function pgvBuild() {
       ${pgvImg('biches', 'Biches au bord du lac, le matin', W3, 'm1')}${pgvImg('hibou', 'Le grand-duc la nuit dans le grand osmanthe', W3, 'm2')}${pgvImg('bouvreuil', 'Un bouvreuil dans les fleurs', W3, 'm3')}${pgvImg('cygnes', 'Cygnes à l’aube sur le lac', W3, 'm4')}${pgvImg('oies', 'Vol d’oies en V à l’heure dorée', W3, 'm5')}
     </div>
   </section>
-  <section class="pgv-sec pgv-split rev pgv-livre" aria-labelledby="pgv-h3">
+  <section class="pgv-sec pgv-slide pgv-split rev pgv-livre" aria-labelledby="pgv-h3">
     <div class="pgv-tx pgv-rv">
       <p class="pgv-kick">Le Grand Livre</p>
       <h3 class="pgv-h" id="pgv-h3">Ton carnet de naturaliste</h3>
@@ -5597,8 +5593,8 @@ function pgvBuild() {
     </div>
     <div class="pgv-book pgv-rv">${pgvImg('livre', 'Une page du Grand Livre des espèces : les oiseaux des jardins', '(max-width: 760px) 80vw, 420px')}</div>
   </section>
-  <section class="pgv-band pgv-rv" aria-label="Le village d'Ailebrune">${pgvImg('village', 'Ailebrune, le village au bord du lac, la cascade et l’arbre sacré', WF)}<div class="pgv-bandtx"><p class="pgv-kick">La vie à Ailebrune</p><h3 class="pgv-h">Un village où l'on se sent chez soi</h3></div></section>
-  <section class="pgv-sec" aria-label="Ta vie au village">
+  <section class="pgv-band pgv-slide pgv-rv" aria-label="Le village d'Ailebrune">${pgvImg('village', 'Ailebrune, le village au bord du lac, la cascade et l’arbre sacré', WF)}<div class="pgv-bandtx"><p class="pgv-kick">La vie à Ailebrune</p><h3 class="pgv-h">Un village où l'on se sent chez soi</h3></div></section>
+  <section class="pgv-sec pgv-slide" aria-label="Ta vie au village">
     <div class="pgv-cards">
       ${card('maison', 'Une maison à colombages et son jardin fleuri', 'Ta maison', 'Choisis ta parcelle, construis ta maison pièce par pièce et décore-la à ton goût.')}
       ${card('potager', 'Choux, carottes et radis dans le potager', 'Ton potager', 'Sème, arrose, récolte… et vends tes légumes à l’échoppe du village contre des lucioles.')}
@@ -5608,7 +5604,7 @@ function pgvBuild() {
       ${card('chat', 'Le chat des toits sur un faîtage', 'Les petits secrets', 'Un chat qui se promène sur les toits, un musée à remplir, des missions chaque jour… et des surprises bien cachées.')}
     </div>
   </section>
-  <section class="pgv-sec pgv-split" aria-labelledby="pgv-h4">
+  <section class="pgv-sec pgv-slide pgv-split" aria-labelledby="pgv-h4">
     <div class="pgv-tx pgv-rv">
       <p class="pgv-kick">Les îles</p>
       <h3 class="pgv-h" id="pgv-h4">Ton île, avec tes amis</h3>
@@ -5618,11 +5614,11 @@ function pgvBuild() {
     </div>
     <div class="pgv-isl pgv-rv"><img loading="lazy" decoding="async" alt="L’île de Pégase vue du ciel : le lac, l’arbre rouge, la rivière et les falaises" width="1024" height="694" src="${ROOT}assets/pegase/ile_3d_1024.webp" srcset="${ROOT}assets/pegase/ile_3d_1024.webp 1024w, ${ROOT}assets/pegase/ile_3d_2048.webp 2048w" sizes="(max-width: 760px) 100vw, 50vw"></div>
   </section>
-  <section class="pgv-band music pgv-rv" aria-labelledby="pgv-h5">${pgvImg('nuit', 'La place du village la nuit, lanternes et lucioles', WF)}<div class="pgv-bandtx">
+  <section class="pgv-band music pgv-slide pgv-rv" aria-labelledby="pgv-h5">${pgvImg('nuit', 'La place du village la nuit, lanternes et lucioles', WF)}<div class="pgv-bandtx">
     <p class="pgv-kick">Musique</p><h3 class="pgv-h" id="pgv-h5">Une musique enchanteresse</h3>
     <p>Harpe, célesta, violoncelle… Une musique douce, composée pour l'île, accompagne chaque instant, du lever du soleil sur le lac jusqu'aux lanternes du soir.</p>
     <button type="button" class="pgv-btn ghost" id="jdw-pgv-mus">${PGV_SVG.note}<span>Écouter</span></button></div></section>
-  <section class="pgv-sec pgv-split rev" aria-labelledby="pgv-h6">
+  <section class="pgv-sec pgv-slide pgv-split rev" aria-labelledby="pgv-h6">
     <div class="pgv-feed pgv-rv" aria-hidden="true">
       ${post('fleurs', '', 'Champ de fleurs à l’aube', 'Photo de la semaine', '❤️ 24 · 😍 9')}
       ${post('hibou', '', 'Le grand-duc', 'Concours de nuit', '⭐ 18 · 😮 7')}
@@ -5635,7 +5631,7 @@ function pgvBuild() {
       <p>Seuls tes amis voient tes photos.</p>
     </div>
   </section>
-  <section class="pgv-sec pgv-dl" id="jdw-pgv-dl" aria-labelledby="pgv-h7">
+  <section class="pgv-sec pgv-slide pgv-dl" id="jdw-pgv-dl" aria-labelledby="pgv-h7">
     <div class="pgv-dlhead pgv-rv"><p class="pgv-kick">Jouer</p><h3 class="pgv-h" id="pgv-h7">Gratuit, sur PC et Android</h3>
       <p>Pégase est un vrai jeu à installer. Une fois installé, il se met à jour tout seul.</p></div>
     <div class="pgv-plats">
@@ -5647,6 +5643,8 @@ function pgvBuild() {
         <div data-v="andzone"></div></article>
       <article class="pgv-plat soon pgv-rv"><div class="pgv-ph">${PGV_SVG.phone}<div><h4>iPhone et iPad</h4><p>À venir</p></div></div><p class="pgv-small">Un peu plus tard. En attendant, prépare ton avatar dans la borne&nbsp;!</p></article>
     </div>
+  </section>
+  <section class="pgv-sec pgv-cfgsec pgv-slide" aria-label="Configuration PC">
     <div class="pgv-cfg pgv-rv">
       <h4>Configuration PC</h4>
       <div class="pgv-tbl" role="table" aria-label="Configuration PC minimale et recommandée">
@@ -5661,8 +5659,8 @@ function pgvBuild() {
       <p class="pgv-small">Pégase choisit tout seul la qualité d'image selon ta carte graphique (Basse, Moyenne, Haute ou Ultra)&nbsp;; tu peux la changer dans les Réglages du jeu. Téléchargement d'environ 2&nbsp;Go, 5&nbsp;Go une fois installé.</p>
       <p class="pgv-small"><b>Android&nbsp;:</b> Android 8 ou plus, téléphone 64 bits, 4&nbsp;Go de mémoire (6&nbsp;Go conseillés), 3&nbsp;Go d'espace libre.</p>
     </div>
+    <footer class="pgv-foot"><p class="pgv-age">🌿 Pour tous les âges · aucune violence</p><p>Les images de cette page viennent du jeu, au rendu PC Ultra.</p><p class="pgv-sig">Elixir Game Studio</p></footer>
   </section>
-  <footer class="pgv-foot"><p class="pgv-age">🌿 Pour tous les âges · aucune violence</p><p>Les images de cette page viennent du jeu, au rendu PC Ultra.</p><p class="pgv-sig">Elixir Game Studio</p></footer>
   </div>`;
   // apparition douce à l'écran (rien sans IntersectionObserver ou si l'appareil préfère moins d'animations)
   const rv = box.querySelectorAll('.pgv-rv');
@@ -5681,6 +5679,26 @@ function pgvBuild() {
   pgvMusic(); pgvCue(); pgvDl();
 }
 function pgvMusic() { const b = $('jdw-pgv-mus'); if (!b) return; b.querySelector('span').textContent = MUS.on ? 'Couper la musique' : 'Écouter'; b.classList.toggle('on', MUS.on); }
+// 1.46.11 (PATOU : « ça doit monter d'une page entière ») : à la molette ou au pavé tactile, un geste vers le bas en bas d'un écran = l'écran
+// suivant entier (vers le haut : le précédent), en douceur ; un écran plus haut que la fenêtre (îles nombreuses) se défile d'abord librement.
+// Au doigt, c'est l'aimantation CSS (scroll-snap) qui fait le même travail.
+function pgvWheel(e) {
+  const L = $('jdw-lib');
+  if (MODE !== 'pegase' || !PGV.built || L.classList.contains('pg-ambi') || e.ctrlKey || Math.abs(e.deltaY) < Math.abs(e.deltaX) || !e.deltaY) return;
+  if (e.target.closest && e.target.closest('.pgs-menu, textarea, select, .pn-card, [data-noscroll]')) return;
+  const now = performance.now();
+  if (now < (PGV.lock || 0)) { e.preventDefault(); return; }
+  const st = L.scrollTop, ch = L.clientHeight, top0 = L.getBoundingClientRect().top;
+  const areas = [L.querySelector('.lib-wrap'), ...L.querySelectorAll('.pgv-slide')].filter(Boolean).map((el) => { const r = el.getBoundingClientRect(); return { t: Math.round(r.top - top0 + st), b: Math.round(r.bottom - top0 + st) }; });
+  let i = 0; for (let k = 0; k < areas.length; k++) if (areas[k].t <= st + 2) i = k;
+  let to = null;
+  if (e.deltaY > 0) { if (areas[i].b > st + ch + 2) return; if (areas[i + 1]) to = areas[i + 1].t; }
+  else { if (st > areas[i].t + 2) return; const pv = areas[i - 1]; if (pv) to = Math.max(pv.t, pv.b - ch); }
+  if (to == null) return;
+  e.preventDefault(); PGV.lock = now + 750;
+  try { L.scrollTo({ top: to, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (x) { L.scrollTop = to; }
+}
+$('jdw-lib').addEventListener('wheel', pgvWheel, { passive: false });
 // « Découvrir Pégase » sous les îles : la flèche qui invite à descendre
 function pgvCue() {
   const p = $('jdw-page-pegase'); if (!p || p.querySelector('.pgv-cue')) return;

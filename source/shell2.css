@@ -3133,3 +3133,51 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 /* carte « record » du chat : le style du bandeau d'appel (.callring .cr-txt, même nom) la coupait sur une ligne (« JUJU DÉTR… ») */
 .chat-record .cr-txt b{display:block;font-size:16px;letter-spacing:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
 .chat-record .cr-txt span{display:block;margin-top:0;font-size:12px;font-weight:400;color:var(--muted)}
+/* 1.46.11 (PATOU) : la page Pégase défile ÉCRAN PAR ÉCRAN (îles, puis chaque partie de la vitrine prend tout l'écran, aimantée en douceur) */
+#jdw-lib[data-mode="pegase"]{scroll-snap-type:y mandatory}
+#jdw-lib.pg-ambi{scroll-snap-type:none}
+#jdw-lib[data-mode="pegase"] .lib-wrap{scroll-snap-align:start;min-height:100svh;box-sizing:border-box}
+.pgv-slide{scroll-snap-align:start;scroll-snap-stop:always;min-height:100svh;box-sizing:border-box}
+.pgv-sec.pgv-slide{display:grid;align-content:center;padding-top:clamp(40px,7vh,88px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + clamp(92px,12vh,124px))}
+.pgv-band.pgv-slide{height:100svh}
+.pgv-band.pgv-slide .pgv-bandtx{bottom:calc(env(safe-area-inset-bottom,0px) + clamp(96px,14vh,140px))}
+.pgv-cfgsec .pgv-foot{padding:28px 0 0}
+/* la seule photo connue de Pégase : un vieux tirage flou de Mlle Iris, scotché */
+.pgv-indice{position:relative;margin:0 auto;width:min(560px,92%);padding:12px 12px 58px;background:#f4ecd9;border-radius:3px;transform:rotate(-2.5deg);box-shadow:0 26px 60px rgba(0,0,0,.6),inset 0 0 40px rgba(120,90,40,.18)}
+.pgv-indice::before{content:"";position:absolute;top:-14px;left:50%;width:120px;height:30px;margin-left:-60px;background:rgba(255,248,220,.55);transform:rotate(3deg);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.pgv-indice img{display:block;width:100%;height:auto;border-radius:1px;filter:contrast(1.02)}
+.pgv-indice figcaption{position:absolute;left:0;right:0;bottom:22px;text-align:center;font:italic 500 22px var(--pgv-serif);color:#4a3a22}
+.pgv-indice small{position:absolute;left:0;right:0;bottom:6px;text-align:center;font:500 11px var(--body);letter-spacing:.06em;color:#8a7650}
+.pgv-anim .pgv-indice.pgv-rv{transform:rotate(-6deg) translateY(30px)}
+.pgv-anim .pgv-indice.pgv-rv.in{transform:rotate(-2.5deg)}
+@media (max-width:760px){
+  .pgv-band.pgv-slide{height:100svh}
+  .pgv-indice{padding:9px 9px 50px}.pgv-indice figcaption{font-size:19px;bottom:20px}
+  .pgv-sec.pgv-slide{padding-top:clamp(28px,5vh,56px)}
+}
+@media (prefers-reduced-motion:reduce){#jdw-lib[data-mode="pegase"]{scroll-snap-type:y proximity}}
+/* 1.46.11 : sur téléphone, chaque partie tient dans l'écran (texte et images resserrés, cartes du village en 2 colonnes) */
+@media (max-width:760px){
+  .pgv-sec.pgv-slide{padding-top:max(18px,env(safe-area-inset-top,0px));padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px);gap:14px}
+  .pgv-slide .pgv-h{font-size:clamp(26px,7.6vw,31px);margin-bottom:.35em}
+  .pgv-slide .pgv-kick{margin-bottom:6px;font-size:10.5px}
+  .pgv-slide .pgv-tx p{font-size:13.5px;line-height:1.5;margin-bottom:.6em}
+  .pgv-story .pgv-indice{width:76%}
+  .pgv-safari .pgv-feats{gap:8px;margin-top:10px}.pgv-safari .pgv-feats li{grid-template-columns:30px 1fr;gap:10px}
+  .pgv-safari .pgv-ic{width:30px;height:30px;border-radius:9px}.pgv-safari .pgv-ic svg{width:16px;height:16px}
+  .pgv-safari .pgv-feats b{font-size:13.5px}.pgv-safari .pgv-feats p{font-size:12px}
+  .pgv-safari .pgv-mosaic{grid-auto-rows:clamp(54px,14vw,72px);gap:6px}
+  .pgv-livre .pgv-book img{width:min(230px,62%)}
+  .pgv-cards{grid-template-columns:1fr 1fr;gap:8px}
+  .pgv-card{border-radius:14px}.pgv-card img{aspect-ratio:4/3}.pgv-card>div{padding:8px 10px 11px}
+  .pgv-card h4{font-size:17px;margin-bottom:2px}.pgv-card p{font-size:11px;line-height:1.38}
+  .pgv-dlhead{margin-bottom:14px}.pgv-dlhead p{font-size:13.5px}
+  .pgv-plats{gap:10px}.pgv-plat{padding:14px;gap:9px;border-radius:16px}
+  .pgv-ph>svg{width:34px;height:34px;padding:7px}.pgv-ph h4{font-size:20px}.pgv-ph p{font-size:12px}
+  .pgv-steps{font-size:12.5px;line-height:1.6}.pgv-ss{font-size:12.5px}
+  .pgv-plat.soon .pgv-small{display:none}
+  .pgv-cfg{padding:14px;gap:8px}.pgv-cfg h4{font-size:22px}
+  .pgv-tbl>div{padding:6px 0;font-size:12px;line-height:1.35}
+  .pgv-cfg .pgv-small{font-size:11.5px;line-height:1.45}
+  .pgv-cfgsec .pgv-foot{padding-top:12px;font-size:11.5px}.pgv-cfgsec .pgv-sig{margin-top:6px !important;font-size:15px}
+}

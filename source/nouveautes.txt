@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🕯️ La légende de Pégase : une seule photo, toute floue (borne 1.46.11)
+[pegase] La présentation de Pégase (sous les îles) raconte maintenant la vraie légende : tout a commencé par une photo floue, prise un matin de brume par Mlle Iris, la naturaliste du village. Depuis, personne ne l'a revu : à toi de retrouver sa trace et de le photographier pour de vrai
+[pegase] Pégase reste un mystère : on ne le voit plus sur aucune image, seulement sur ce vieux tirage où l'on devine une grande aile entre les bouleaux
+[pegase] La page défile écran par écran : « Découvrir Pégase », la molette ou le doigt font passer d'une partie à la suivante, en douceur, sur téléphone comme sur ordinateur
 [pegase] ## 📖 Le Grand Livre des espèces, en plus soigné (borne 1.46.10)
 [pegase] Dans le Grand Livre des espèces (le tien et ceux de tes amis), les titres et l'italique ont de nouvelles lettres : les accents (î, ê, è, ù, û…) sont enfin bien à leur place, comme dans « Les petites bêtes » ou « Mésange charbonnière »
 [borne] ## 🏆 Qui a battu ton temps, qui a battu ton coffre (borne 1.46.9)
