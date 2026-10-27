@@ -82,16 +82,49 @@ const INV_RX = /^[A-Za-z0-9_-]{16,64}$/;
 // les nouveautés déjà là ne s'affichent pas (jdw.tilebase), seulement celles qui arriveront ensuite.
 let seenGames = store.get('jdw.seengames', {}) || {};
 let tileSeen = store.get('jdw.tileseen', {}) || {};
+let DEVICE_FRESH = false;            // aucune donnée jdw.* au premier lancement de cette page (appareil tout neuf)
 const TILE_BASE = (() => {
-  const b = store.get('jdw.tilebase', null); if (typeof b === 'string') return b;
   let fresh = true;
   try { for (let i = 0; i < localStorage.length; i++) if (/^jdw\./.test(localStorage.key(i) || '')) { fresh = false; break; } } catch (e) { fresh = false; }
+  DEVICE_FRESH = fresh;
+  const b = store.get('jdw.tilebase', null); if (typeof b === 'string') return b;
   const v = fresh ? Object.values(TILE_NEWS).reduce((m, x) => x.at > m ? x.at : m, '') : '';
   store.set('jdw.tilebase', v); return v;
 })();
 const seenKey = () => cleanName(profile.name) || '*';
+// NOTES DE MISE À JOUR (source/nouveautes.txt, window.JDW_NOTES) en blocs { id, title, v, items } : v = la version de la borne où le bloc
+// sort (« (borne 1.46.3) » du sous-titre, exigé par build2.py). 27 oct. 2026, PATOU : « les mises à jour ne sont pas claires et les jeux
+// concernés ne sont pas pointés » → la cloche ne montre que ce qui est plus récent que la dernière version vue sur l'appareil (jdw.notesv),
+// rangé par jeu, le plus récent en haut, le reste replié dans « Avant » ; la tuile (ou l'onglet Pégase) d'un jeu qui a une note plus
+// récente que la dernière fois où ce joueur l'a ouvert porte « ✨ Mis à jour » (jdw.noteseen) jusqu'à ce qu'il l'ouvre.
+const vcmp = (a, b) => { const x = String(a || '0').split('.').map(Number), y = String(b || '0').split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
+const CUR_V = String(window.JDW_VERSION || '') || '999';
+const NOTES = (() => {
+  const out = []; let cur = null;
+  for (const raw of window.JDW_NOTES || []) {
+    const l = String(raw).trim(); if (!l || l[0] === '#') continue;
+    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/); if (!m) continue;
+    const sub = m[2].match(/^##\s*(.+)$/);
+    if (sub) { const vm = sub[1].match(/\(borne (\d+(?:\.\d+)*)\)/); cur = { id: m[1], title: sub[1].replace(/\s*\(borne [\d.]+\)/, '').trim(), v: vm ? vm[1] : '0', items: [] }; if (vcmp(cur.v, CUR_V) <= 0) out.push(cur); }
+    else if (cur && cur.id === m[1] && m[2]) cur.items.push(m[2]);
+  }
+  return out;
+})();
+// appareils déjà là avant ce système (27 oct. 2026) : les nouveautés depuis la 1.45 ; appareil tout neuf : rien d'ancien
+const NOTES_ROLLOUT = '1.45';
+const notesStart = () => (DEVICE_FRESH ? CUR_V : NOTES_ROLLOUT);
+let notesV = store.get('jdw.notesv', null); if (typeof notesV !== 'string') { notesV = notesStart(); store.set('jdw.notesv', notesV); }
+const NOTES_BASE = (() => { const b = store.get('jdw.notesbase', null); if (typeof b === 'string') return b; const v = notesStart(); store.set('jdw.notesbase', v); return v; })();
+let noteSeen = store.get('jdw.noteseen', {}) || {};
+const freshNotes = () => NOTES.filter(b => vcmp(b.v, notesV) > 0);
+const noteLatest = (id) => NOTES.reduce((m, b) => (b.id === id && vcmp(b.v, m) > 0 ? b.v : m), '');
+function noteNews(id) {
+  const v = noteLatest(id); if (!v || vcmp(v, NOTES_BASE) <= 0) return '';
+  const s2 = (noteSeen[seenKey()] || {})[id]; return s2 && vcmp(v, s2) <= 0 ? '' : 'maj';
+}
 // l'étiquette de ce jeu / duel pour le joueur actuel : 'new', 'maj' ou ''
-function tileNews(id) {
+function tileNews(id) { const k = tileNewsT(id); return k === 'new' ? k : (noteNews(id) || k); }
+function tileNewsT(id) {
   const x = TILE_NEWS[id]; if (!x || x.at <= TILE_BASE) return '';
   if (!(Date.now() - Date.parse(x.at.replace(' ', 'T')) < NEWS_DAYS * 86400e3)) return '';
   const me = seenKey();
@@ -102,27 +135,32 @@ function tileNews(id) {
 const gameSeen = (id) => tileNews(id) !== 'new';
 // clic sur la tuile (jeu ouvert, duel lancé) : l'étiquette s'en va pour ce joueur
 function markGameSeen(id) {
-  const x = TILE_NEWS[id]; if (!x || !tileNews(id)) return;
-  const me = seenKey(); (tileSeen[me] = tileSeen[me] || {})[id] = x.at; store.set('jdw.tileseen', tileSeen);
+  if (!tileNews(id)) return;
+  const me = seenKey(), x = TILE_NEWS[id];
+  if (x && tileNewsT(id)) { (tileSeen[me] = tileSeen[me] || {})[id] = x.at; store.set('jdw.tileseen', tileSeen); }
+  const v = noteLatest(id); if (v) { (noteSeen[me] = noteSeen[me] || {})[id] = v; store.set('jdw.noteseen', noteSeen); }
   refreshNewBadges(); refreshBell();
 }
 function refreshNewBadges() {
   const put = (el, k) => {
     let nb = el.querySelector('.tile-new');
+    const tl = el.closest('.tile') || el; tl.classList.toggle('tile-maj', k === 'maj'); tl.classList.toggle('tile-nw', k === 'new');
     if (!k) { if (nb) nb.hidden = true; return; }
     if (!nb) { nb = document.createElement('span'); nb.className = 'tile-new'; el.appendChild(nb); }
-    nb.hidden = false; nb.classList.toggle('maj', k === 'maj'); nb.textContent = k === 'new' ? 'Nouveau' : 'Mis à jour';
+    nb.hidden = false; nb.classList.toggle('maj', k === 'maj'); nb.textContent = k === 'new' ? 'Nouveau' : '✨ Mis à jour';
   };
-  const section = list => { let k = ''; for (const t of list) { const n = tileNews(t.g.id); put(t.el, n); if (n === 'new' || (n && !k)) k = n; } return k; };
+  for (const el of document.querySelectorAll('.tile-hl')) el.classList.remove('tile-hl');
+  // tuiles pas encore construites (la borne ouverte sur Pégase) : le badge de la page se calcule sur la liste des jeux
+  const section = (list, ids) => { let k = ''; for (const t of list) { const n = tileNews(t.g.id); put(t.el, n); if (n === 'new' || (n && !k)) k = n; } if (!list.length) for (const id of ids || []) { const n = tileNews(id); if (n === 'new' || (n && !k)) k = n; } return k; };
   let a = '', b = '';
-  try { a = section(tiles); } catch (e) {}
-  try { b = section(duoTiles); } catch (e) {}
+  try { a = section(tiles, GAMES.filter(g => g.id !== 'pegase').map(g => g.id)); } catch (e) {}
+  try { b = section(duoTiles, DUOS.map(d => d.id)); } catch (e) {}
   try { coopBadge(section(coopTiles)); } catch (e) {}   // 3e section : jeux à deux (ids coop-<id>), « bientôt » tant que la liste est vide
   // mode test : Pégase est à part (onglet du bas) : SA nouveauté va sur son onglet
   let c = ''; try { const pb = document.querySelector('#jdw-modes [data-mode="pegase"]'); if (pb && !pb.hidden) c = tileNews('pegase') || ''; } catch (e) {}
   for (const [id, k] of [['jdw-cls-badge', a], ['jdw-duo-badge', b], ['jdw-pg-badge', c]]) {
     const e = $(id); if (!e) continue;
-    e.hidden = !k; e.textContent = k === 'new' ? 'nouveau' : 'mis à jour'; e.classList.toggle('maj', k === 'maj');
+    e.hidden = !k; e.textContent = k === 'new' ? 'nouveau' : 'mis à jour'; e.classList.toggle('maj', k === 'maj'); e.classList.toggle('new', k === 'new');
   }
 }
 const fmt = n => Math.floor(n).toLocaleString('fr-FR');
@@ -1609,7 +1647,7 @@ let gameNotifSeen = store.get('jdw.gamenotifseen', {}) || {};
 const UPD = { site: '', app: '', seen: store.get('jdw.updseen', {}) || {} };
 function updateNotifs() {
   const out = [];
-  if (UPD.installed && UPD.seen.installed !== UPD.installed) out.push({ kind: 'installed', v: UPD.installed });
+  if (freshNotes().length) out.push({ kind: 'installed', v: CUR_V + (/^\d{12}/.test(String(window.JDW_BUILD)) ? ' du ' + String(window.JDW_BUILD).slice(6, 8) + '/' + String(window.JDW_BUILD).slice(4, 6) : '') });
   if (UPD.site && UPD.seen.site !== UPD.site) out.push({ kind: 'site', v: UPD.site });
   if (UPD.app && UPD.seen.app !== UPD.app) out.push({ kind: 'app', v: UPD.app });
   return out;
@@ -1638,9 +1676,10 @@ function notifRow(n, isNew) {
   if (n.kind === 'coop') return coopNotifRow(n, li, tx);
   if (n.kind === 'installed') {
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✨'; ic.style.background = 'var(--gold)';
-    const b = document.createElement('b'); b.textContent = 'Version ' + n.v + ' installée';
-    tx.append(b);
-    li.classList.add('nt-upd'); notesInto(tx);
+    const b = document.createElement('b'); b.textContent = n.all ? 'Les notes de mise à jour' : 'Version ' + n.v + ' installée';
+    const sm = document.createElement('small'); sm.textContent = n.all ? 'Toutes les versions, la plus récente en haut' : 'Ce qui a changé depuis ta dernière visite';
+    tx.append(b, sm);
+    li.classList.add('nt-upd'); notesInto(tx, n.all ? [] : (n.fresh || freshNotes()), n.all);
     li.append(ic, tx);
     return li;
   }
@@ -1671,49 +1710,66 @@ function notifRow(n, isNew) {
   tx.append(sm); li.append(av, tx);
   return li;
 }
-// NOTES DE MISE À JOUR rangées par jeu (source/nouveautes.txt : « [pegase] … », « [neon] … », « [id] ## sous-titre », sans crochets =
-// la borne ; lignes « # » ignorées). L'ancien format (« 🎣 PÉGASE 0.9.4.6 : a ; b ; c ») est encore compris : une version = un sous-titre,
-// une nouveauté par « ; ». Pégase d'abord, puis chaque jeu (sous « Nos autres jeux »), puis la borne. Chaque jeu a ses notes à lui.
-const NOTE_IC = { coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', borne: '🕹️' };
-function notesGroups() {
-  const G = new Map(), add = (id, kind, t) => { if (!G.has(id)) G.set(id, []); G.get(id).push({ kind, t: String(t).trim() }); };
-  for (const raw of window.JDW_NOTES || []) {
-    const l = String(raw).trim(); if (!l || l[0] === '#') continue;
-    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/);
-    if (m) { const sub = m[2].match(/^##\s*(.+)$/); if (m[2]) add(m[1], sub ? 'h' : 'i', sub ? sub[1] : m[2]); continue; }
-    const id = /P[ÉE]GASE|GRAND LIVRE|PegaGram/i.test(l) ? 'pegase' : 'borne', cut = l.indexOf(' : ');
-    if (cut > 0 && cut < 70) { add(id, 'h', l.slice(0, cut)); for (const x of l.slice(cut + 3).split(/\s*;\s*/)) if (x) add(id, 'i', x[0].toUpperCase() + x.slice(1)); }
-    else add(id, 'i', l);
-  }
-  const rank = (id) => (id === 'pegase' ? 0 : id === 'borne' ? 2 : 1);
-  return [...G.keys()].sort((a, b) => rank(a) - rank(b)).map(id => ({ id, items: G.get(id) }));
+// NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
+// dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
+const NOTE_IC = { coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
+const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : g ? g.title : id; };
+function notesByGame(blocks) {
+  const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }
+  const out = [...G.entries()].map(([id, l]) => ({ id, blocks: l.sort((x, y) => vcmp(y.v, x.v)) }));
+  return out.sort((x, y) => vcmp(y.blocks[0].v, x.blocks[0].v) || (x.id === 'borne') - (y.id === 'borne'));
 }
-function notesInto(box) {
-  const groups = notesGroups(); if (!groups.length) return;
+function noteGroupEl(gr, fresh) {
+  const g = gr.id === 'pegase' || gr.id === 'borne' ? null : (gameById(gr.id) || duoById(gr.id));
+  const sec = document.createElement('section'); sec.className = 'nt-grp' + (gr.id === 'pegase' ? ' pg' : '') + (fresh ? ' fresh' : '');
+  sec.style.setProperty('--gc', gr.id === 'pegase' ? '#5ef0ff' : gr.id === 'borne' ? 'var(--amber)' : (g && g.accent) || 'var(--volt)');
+  const hd = document.createElement('div'); hd.className = 'nt-gh';
+  const top = gr.blocks[0], em = (top.title.match(/^(\p{Extended_Pictographic}\uFE0F?)/u) || [])[1];
+  const ic = document.createElement('i'); ic.textContent = em || NOTE_IC[gr.id] || '🎮';
+  const b = document.createElement('b'); b.textContent = noteName(gr.id);
+  const ver = document.createElement('small'); ver.textContent = 'borne ' + top.v + (gr.blocks.length > 1 && fresh ? ' · ' + gr.blocks.length + ' mises à jour' : '');
+  hd.append(ic, b, ver); sec.appendChild(hd);
+  for (const bl of gr.blocks) {
+    // \u00AB \uD83C\uDFC6 Turbo Chrono : les anciens temps\u2026 \u00BB dans le bloc Turbo Chrono \u2192 \u00AB Les anciens temps\u2026 \u00BB (le nom du jeu est d\u00E9j\u00E0 en t\u00EAte)
+    let tt = bl.title.replace(/^(\p{Extended_Pictographic}\uFE0F?)\s*/u, ''); const nm = noteName(gr.id);
+    if (tt.toLowerCase().startsWith(nm.toLowerCase() + ' :')) { tt = tt.slice(nm.length + 2).trim(); tt = tt.charAt(0).toUpperCase() + tt.slice(1); }
+    const h = document.createElement('h4'); h.textContent = tt;
+    const vv = document.createElement('em'); vv.textContent = 'borne ' + bl.v; h.appendChild(vv); sec.appendChild(h);
+    if (bl.items.length) { const ul = document.createElement('ul'); ul.className = 'nt-notes'; for (const t of bl.items) { const li2 = document.createElement('li'); li2.textContent = t; ul.appendChild(li2); } sec.appendChild(ul); }
+  }
+  // aller voir : Pégase → son onglet ; un jeu → sa tuile, mise en avant (un 2e toucher l'ouvre) ; la borne → rien
+  if (gr.id !== 'borne' && (gr.id === 'pegase' || g)) {
+    const go = document.createElement('button'); go.type = 'button'; go.className = 'nt-go'; go.textContent = gr.id === 'pegase' ? 'Aller dans Pégase ›' : 'Voir le jeu ›';
+    go.addEventListener('click', (e) => { e.stopPropagation(); closeSheet('jdw-notifs'); noteGo(gr.id); });
+    sec.appendChild(go);
+  }
+  return sec;
+}
+// « Voir le jeu » : la page de sa tuile, la tuile défile à l'écran et brille ; Pégase : son onglet
+function noteGo(id) {
+  if (!$('jdw-play').hidden) backToLibrary();
+  if (id === 'pegase') { if (PG_TAB) setMode('pegase', true); else { const g = gameById('pegase'); if (g) openGame(g); } return; }
+  const g = gameById(id), d = !g && duoById(id);
+  setMode(g ? 'classique' : d ? 'duel' : MODE, true);
+  setTimeout(() => {
+    const t = (g ? tiles : duoTiles).find(x => x.g.id === id); if (!t) { if (g) openGame(g); return; }
+    const el = t.el.closest('.tile') || t.el; el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.remove('tile-hl'); void el.offsetWidth; el.classList.add('tile-hl'); setTimeout(() => el.classList.remove('tile-hl'), 4200);
+  }, 120);
+}
+function notesInto(box, fresh, all) {
+  if (!NOTES.length) return;
   const wrap = document.createElement('div'); wrap.className = 'nt-grps';
-  for (const gr of groups) {
-    const g = gr.id === 'pegase' || gr.id === 'borne' ? null : (gameById(gr.id) || duoById(gr.id));
-    const title = gr.id === 'pegase' ? 'Pégase' : gr.id === 'borne' ? 'La borne' : g ? g.title : gr.id;
-    const sec = document.createElement('section'); sec.className = 'nt-grp' + (gr.id === 'pegase' ? ' pg' : '');
-    sec.style.setProperty('--gc', gr.id === 'pegase' ? '#5ef0ff' : gr.id === 'borne' ? 'var(--amber)' : (g && g.accent) || 'var(--volt)');
-    const hd = document.createElement('div'); hd.className = 'nt-gh';
-    const ic = document.createElement('i'); ic.textContent = NOTE_IC[gr.id] || '🎮';
-    const b = document.createElement('b'); b.textContent = title;
-    const where = document.createElement('small'); where.textContent = gr.id === 'pegase' ? 'Onglet Pégase' : gr.id === 'borne' ? 'Toute la borne' : 'Nos autres jeux';
-    hd.append(ic, b, where); sec.appendChild(hd);
-    let ul = null;
-    for (const it of gr.items) {
-      if (it.kind === 'h') { const h = document.createElement('h4'); h.textContent = it.t; sec.appendChild(h); ul = null; continue; }
-      if (!ul) { ul = document.createElement('ul'); ul.className = 'nt-notes'; sec.appendChild(ul); }
-      const li2 = document.createElement('li'); li2.textContent = it.t; ul.appendChild(li2);
-    }
-    // aller voir : Pégase → son onglet ; un jeu → « Nos autres jeux » (son mode) ; la borne → rien
-    if (gr.id !== 'borne') {
-      const go = document.createElement('button'); go.type = 'button'; go.className = 'nt-go'; go.textContent = gr.id === 'pegase' ? 'Aller dans Pégase ›' : 'Y jouer ›';
-      go.addEventListener('click', (e) => { e.stopPropagation(); closeSheet('jdw-notifs'); if (!$('jdw-play').hidden) backToLibrary(); if (gr.id === 'pegase' && PG_TAB) { setMode('pegase', true); return; } const gg = gameById(gr.id); if (gg) openGame(gg); else if (duoById(gr.id)) setMode('duel', true); });
-      sec.appendChild(go);
-    }
-    wrap.appendChild(sec);
+  for (const gr of notesByGame(fresh)) wrap.appendChild(noteGroupEl(gr, true));
+  const older = NOTES.filter(b => !fresh.includes(b));
+  if (older.length) {
+    const det = document.createElement('details'); det.className = 'nt-avant'; if (all) det.open = true;
+    const sum = document.createElement('summary'); sum.textContent = fresh.length ? 'Avant · les mises à jour déjà vues' : 'Toutes les mises à jour';
+    det.appendChild(sum);
+    const inner = document.createElement('div'); inner.className = 'nt-grps';
+    det.addEventListener('toggle', () => { if (det.open && !inner.childElementCount) for (const gr of notesByGame(older)) inner.appendChild(noteGroupEl(gr, false)); });
+    if (all) for (const gr of notesByGame(older)) inner.appendChild(noteGroupEl(gr, false));
+    det.appendChild(inner); wrap.appendChild(det);
   }
   box.appendChild(wrap);
 }
@@ -1721,15 +1777,17 @@ function openNotifs(showOld) {
   const ol = $('jdw-notifs-list'); ol.textContent = '';
   const key = notifKey(), seen = notifSeen[key] || 0, me = cleanName(profile.name);
   const fresh = [...updateNotifs(), ...gameNotifs(), ...coopNotifsList(true), ...notifs.filter(n => n.id > seen)];
-  const old = coopNotifsList(false).concat(notifs.filter(n => n.id <= seen));
+  const old = [{ kind: 'installed', all: true, v: CUR_V }].concat(coopNotifsList(false), notifs.filter(n => n.id <= seen));
   // ce qui est vu disparaît : la prochaine fois, seulement les nouveautés (l'historique reste consultable)
   for (const n of fresh) ol.appendChild(notifRow(n, true));
   if (!fresh.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Rien de nouveau pour le moment.'; ol.appendChild(li); }
   if (showOld === true) for (const n of old) ol.appendChild(notifRow(n, false));
   $('jdw-notifs-old').hidden = showOld === true || !old.length;
+  ol.scrollTop = 0;
   if (notifs.length) { notifSeen[key] = Math.max(seen, ...notifs.map(n => n.id)); store.set('jdw.notifseen', notifSeen); }
   coopNotifsSeenSafe();
-  for (const u of updateNotifs()) UPD.seen[u.kind] = u.v;
+  for (const u of updateNotifs()) if (u.kind !== 'installed') UPD.seen[u.kind] = u.v;
+  if (vcmp(CUR_V, notesV) > 0) { notesV = CUR_V; store.set('jdw.notesv', notesV); }   // vues : la prochaine fois, seulement les suivantes
   store.set('jdw.updseen', UPD.seen);
   const gn = gameNotifs(); if (gn.length && me) { gameNotifSeen[me] = [...(gameNotifSeen[me] || []), ...gn.map(n => n.game)]; store.set('jdw.gamenotifseen', gameNotifSeen); }
   refreshBell();
@@ -5200,6 +5258,7 @@ function setMode(m, user) {
   if (!(m in MODES)) m = 'classique';
   if (m === 'pegase' && document.querySelector('#jdw-modes [data-mode="pegase"]').hidden) m = 'classique';   // onglet Pégase : mode test seulement
   if (m !== 'pegase' && typeof PG !== 'undefined') PG.last = m;
+  if (m === 'pegase' && user) markGameSeen('pegase');   // l'onglet Pégase touché : son « ✨ Mis à jour » s'en va
   $('jdw-modes').classList.toggle('pg-open', m === 'pegase');
   const changed = m !== MODE; MODE = m;
   try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}

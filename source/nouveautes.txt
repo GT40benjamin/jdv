@@ -2,6 +2,14 @@
 # [pegase] … = notes de Pégase (rangées sous Pégase) ; [neon], [smoothie], [bolides], [tirsaubut], [toupies]… (id du jeu) = notes de ce
 # jeu (rangées sous « Nos autres jeux ») ; sans crochets = la borne elle-même. « [id] ## titre » = un sous-titre ; il porte TOUJOURS un numéro de version (règle de Benjamin, 25 oct. 2026 : build2.py refuse sinon).
 # Les lignes qui commencent par « # » ne sont jamais montrées. Rien de privé ici : c'est lu par tout le monde.
+# 27 oct. 2026 (PATOU) : chaque « ## » porte « (borne X.Y.Z) » = la version de la borne où ça sort. La cloche ne montre que les blocs plus récents
+# que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
+# une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
+# (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🔔 Des mises à jour claires (borne 1.46.6)
+[borne] La cloche ne montre plus que ce qui a changé depuis ta dernière visite, rangé par jeu, le plus récent en haut ; le reste est replié dans « Avant »
+[borne] Les jeux qui ont changé portent « ✨ Mis à jour » sur leur tuile (et l'onglet Pégase quand Pégase change), jusqu'à ce que tu les ouvres
+[borne] « Voir le jeu » dans une note t'emmène à sa tuile, qui brille pour que tu la trouves tout de suite
 [neon] ## 🗺️ Néon Rush (borne 1.46.5) : la carte, et là où tes copains sont morts
 [neon] Néon Rush a enfin sa carte d’avancement, comme les autres jeux : les 7 niveaux de la nuit synthwave, jusqu’à l’étoile de la grande victoire
 [neon] Sur la carte, chaque tête est posée PILE là où le joueur est mort dans son niveau : une tête de mort sur le chemin, et « 💀 63 % » sous sa tête
@@ -117,7 +125,46 @@
 [borne] Nouveau bouton « Partager » en haut de la borne : il envoie le lien de la borne à tes copains (« Viens jouer avec moi à la Borne d'arcade entre amis ! ») par le partage du téléphone, WhatsApp, SMS ou e-mail, ou le copie sur ordinateur
 [borne] Sur la page Pégase et dans Pégase (à côté de Modifier / Télécharger) : « Partager Pégase », avec sa propre image d'aperçu de l'île ; le lien ouvre directement la page Pégase
 [borne] Ça marche aussi sans compte : le lien est public, tes copains peuvent jouer tout de suite
-[pegase] ## 🌊 Pégase 0.9.8
+[pegase] ## 🌿 Pégase 0.9.8.8 (borne 1.45.1)
+[pegase] Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec bancs et coussins, table basse aux bougies, lanternes, lierre et fleurs
+[pegase] Sur PC, le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs
+[pegase] Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque
+[pegase] Bêcher est plus clair : houe ou pelle en main, un liseré doré entoure la case que tu vas bêcher
+[pegase] ## 🎣 Pégase 0.9.8.7 (borne 1.43.10)
+[pegase] Règle la profondeur de ton bouchon (molette, ou croix de la manette) : profond, les gros poissons s'y intéressent ; près de la surface, les petits mordent vite
+[pegase] Marche avec ta canne pendant que tu attends, le long du bord ou sur le ponton, et agite-la pour réveiller les poissons (sans en abuser)
+[pegase] Pendant le combat, tu peux marcher le long du bord pour suivre ton poisson
+[pegase] Un bouchon plus gros, et de vrais bruits de pêche : la canne au lancer, le bouchon qui plonge, le fil qui casse
+[pegase] Gaspard t'explique la pêche telle qu'elle est maintenant
+[pegase] Les portillons de jardin s'ouvrent tout seuls quand tu t'approches
+[pegase] ## 🪜 Pégase 0.9.8.6 (borne 1.43.8)
+[pegase] Les parcelles ne débordent plus sur le chemin, et l'allée vers le coin cosy est dégagée
+[pegase] Un vrai escalier de pierre au bout du chemin du Clos, avec une lanterne de chaque côté
+[pegase] Si la place visée est déjà prise, ton affiche glisse toute seule jusqu'à la place libre la plus proche
+[pegase] Hugo, le facteur, ne roule plus sur le muret du perron de la mairie
+[pegase] ## 📬 Pégase 0.9.8.5 (borne 1.43.2)
+[pegase] Une fenêtre de vente claire chez Basile et chez Rosalie : tu coches ce que tu vends, tu vois le total, puis « Vendre » ; le poisson promis à Gaspard reste décoché
+[pegase] Ta boîte aux lettres se secoue doucement quand du courrier t'attend
+[pegase] ## 📷 Pégase 0.9.8.4 (borne 1.43.1)
+[pegase] Les messages du téléphone montrent l'heure d'envoi sous chaque bulle
+[pegase] L'appareil photo a un bouton pour chaque module acheté (filtre de nuit, filtre solaire…), à mettre et enlever quand tu veux
+[pegase] À la pêche, le poisson reste accroché au fil jusqu'à ta main, et le ver est plus gros
+[pegase] Le banc de jardin se pose dos au mur, les jardinières sous la fenêtre, à la bonne hauteur
+[pegase] Papi Auguste monte le perron de la mairie bien au milieu des marches, et les marguerites ont retrouvé leur taille
+[pegase] On n'entend plus un habitant qui parle avec un autre joueur quand on est loin
+[pegase] ## ☁️ Pégase 0.9.8.3 (borne 1.41.5)
+[pegase] La brume du matin change chaque jour : certains matins elle flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair
+[pegase] Les gros nuages avancent doucement, et les montagnes au loin ne sont plus floues
+[pegase] Les palmiers ont retrouvé un vrai tronc et des palmes bien vertes
+[pegase] La caméra reste douce quand tu la tournes contre un mur
+[pegase] Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès
+[pegase] ## 🛤️ Pégase 0.9.8.2 (borne 1.39.2)
+[pegase] Les chemins de terre, les routes et les pavés du village sont revenus partout sur l'île, avec la place et les sentiers
+[pegase] Les pentes et les falaises retrouvent leur roche et leur terre, et le sable reste sur les plages
+[pegase] ## 🪨 Pégase 0.9.8.1 (borne 1.38.11)
+[pegase] Les rochers sont de retour partout sur l'île : gros blocs, falaises, pierres plates et montagnes
+[pegase] La place du village retrouve son décor, avec les brumes et les feuilles qui volent près des arbres et des cascades
+[pegase] ## 🌊 Pégase 0.9.8 (borne 1.37.3)
 [pegase] La mer tout autour de l'île : de vraies plages de sable, une eau claire où l'on voit le fond, turquoise près du bord et bleu profond au large
 [pegase] Cinq criques cachées entre de hautes falaises, avec leurs palmiers, leurs coquillages et leurs étoiles de mer, reliées par un sentier du littoral
 [pegase] La rivière descend jusqu'à la mer, large et calme, avec des iris, des nénuphars et des galets sur ses berges
@@ -141,7 +188,7 @@
 [borne] 🎙️ Ton cri de perte se règle dans ⚙ (sous ta tête et ton cri de victoire) et juste après le cri de victoire quand tu crées ton joueur ; pendant l'enregistrement, la musique de la borne se tait
 [borne] 🔁 Fin de partie : « Joué par ▾ » donne le score au bon joueur de l'appareil si on s'est trompé, tout de suite (l'ancien record de l'autre revient)
 [borne] 📱 Fin de partie en paysage sur téléphone : tout tient sur l'écran sans défiler (score à gauche, classement à droite), avec une belle arrivée animée
-[pegase] ## 🎣 Pégase 0.9.7
+[pegase] ## 🎣 Pégase 0.9.7 (borne 1.36.16)
 [pegase] La pêche : le poisson repose vraiment dans tes mains, de la petite perche au gros brochet, et la caméra montre la canne entière avec son fil
 [pegase] Le ponton de Gaspard : plus de poteaux au milieu, on marche jusqu'au bout, et Gaspard reste bien sur les planches
 [pegase] Les parcelles : toute ta parcelle est constructible, seules ses cases s'affichent, et les pierres des maisons ne clignotent plus aux angles
@@ -152,7 +199,7 @@
 [pegase] Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres
 [pegase] Ta vue 1re ou 3e personne est retenue d'une partie à l'autre
 [pegase] Sur PC, les mises à jour sont bien plus rapides : seul ce qui change est téléchargé
-[pegase] ## 🏡 Pégase 0.9.6
+[pegase] ## 🏡 Pégase 0.9.6 (borne 1.36.15)
 [pegase] Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte « À vendre » et leur boîte aux lettres
 [pegase] Les parcelles redessinées : elles ne débordent plus sur les chemins, leur lueur dorée épouse le sol, et deux voisines partagent la même limite
 [pegase] Le permis de construire donne une parcelle à 1000 lucioles ; les autres s'achèteront
@@ -180,7 +227,7 @@
 [pegase] ## 🎬 Huit plans filmés en fond de la page Pégase (borne 1.36.8)
 [pegase] Quatre nouveaux plans filmés dans le jeu : la pluie douce sur les tournesols, la cascade du lac de montagne, le panorama depuis la falaise et une nouvelle prairie sous la Voie lactée
 [pegase] Tous les plans en très haute qualité (jusqu'à la 4K) sur les grands écrans, et ils démarrent toujours vite en petite qualité
-[pegase] ## 🏪 Pégase 0.9.5
+[pegase] ## 🏪 Pégase 0.9.5 (borne 1.36.6)
 [pegase] Les boutiques ont de nouvelles devantures : grandes enseignes dorées, stores rayés aux couleurs de chaque commerce, vitrines éclairées, pancarte OUVERT / FERMÉ qui suit les horaires
 [pegase] La musique est revenue dans les boutiques et à la mairie, et elle reprend toute seule quand tu arrêtes la tienne
 [pegase] Le grand-duc sous une douce lueur de lune, son vrai hou-hou qui vient de sa direction et ses battements d'ailes

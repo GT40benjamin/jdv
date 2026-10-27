@@ -701,6 +701,25 @@ button.update-bar{width:100%;border:0;text-align:left;font:inherit;cursor:pointe
 .nt-grp .nt-notes{margin-top:2px;color:#c9d6e2}
 .nt-go{justify-self:end;margin-top:2px;padding:6px 10px;border:0;border-radius:9px;background:color-mix(in srgb,var(--gc) 22%,transparent);color:var(--ink);font:700 12px var(--body);cursor:pointer}
 .nt-go:hover{background:color-mix(in srgb,var(--gc) 36%,transparent)}
+.nt-grp h4{display:flex;align-items:baseline;gap:8px;margin-top:8px}
+.nt-grp h4 em{margin-left:auto;flex:none;padding:1px 7px;border-radius:7px;background:rgba(0,0,0,.35);font:700 10.5px var(--body);font-style:normal;color:var(--muted)}
+.nt-grp.fresh{background:linear-gradient(135deg,color-mix(in srgb,var(--gc) 16%,rgba(0,0,0,.25)),rgba(0,0,0,.22));box-shadow:inset 3px 0 0 var(--gc),0 0 18px color-mix(in srgb,var(--gc) 22%,transparent)}
+.nt-grp.fresh .nt-gh b{font-size:16.5px}
+.nt-grp.fresh .nt-gh small{background:color-mix(in srgb,var(--gc) 26%,rgba(0,0,0,.3));color:var(--ink)}
+.nt-avant{margin-top:4px;border-radius:12px;background:rgba(0,0,0,.18);border:1px dashed rgba(255,255,255,.14)}
+.nt-avant > summary{cursor:pointer;list-style:none;padding:10px 12px;font:700 12.5px var(--body);color:var(--muted)}
+.nt-avant > summary::-webkit-details-marker{display:none}
+.nt-avant > summary::before{content:'▸';display:inline-block;margin-right:8px;transition:transform .2s}
+.nt-avant[open] > summary::before{transform:rotate(90deg)}
+.nt-avant > .nt-grps{margin:0;padding:0 8px 8px}
+.nt-avant .nt-grp{opacity:.85}
+/* une tuile mise à jour : halo vert qui respire ; mise en avant depuis une note : anneau doré */
+.tile.tile-maj{box-shadow:0 0 0 2px var(--leaf),0 0 22px color-mix(in srgb,var(--leaf) 45%,transparent);animation:majGlow 2.6s ease-in-out infinite}
+@keyframes majGlow{50%{box-shadow:0 0 0 2px var(--leaf),0 0 34px color-mix(in srgb,var(--leaf) 70%,transparent)}}
+.tile-new.maj{animation:newPulse 1.6s ease-in-out infinite}
+.tile.tile-hl{animation:tileHl 1.1s ease-in-out 3;outline:3px solid var(--gold);outline-offset:3px}
+@keyframes tileHl{50%{transform:scale(1.04);outline-color:#fff}}
+@media (prefers-reduced-motion:reduce){.tile.tile-maj,.tile.tile-hl,.tile-new{animation:none}}
 /* ===== CHARTE GRAPHIQUE DE PÉGASE pour toute la borne (onglet Pégase présent, mode test) : nuit indigo, verre, or et turquoise ===== */
 body.pg-charte{--night:#060c22;--panel:#0c1734;--steel:#16285a;--steel2:#2a4482;--card:#0e1b3e;--card-hi:#14244e;--line:#253f78;--volt:#5ef0ff;--gold:#ffd36b;--muted:#9fb3d6;--veil:rgba(3,6,20,.62)}
 body.pg-charte .sheet{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
