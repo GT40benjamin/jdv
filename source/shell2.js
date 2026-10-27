@@ -5522,7 +5522,7 @@ $('jdw-pg-music').addEventListener('click', () => { Audio.ensure(); setMusicOn(!
    et recommandée (Ultra). Pour tous les âges, aucune violence. Images : captures du JEU au rendu PC Ultra, accueil/pgv-<nom>-<largeur>.webp
    (deux tailles, chargées à la demande). Le haut est transparent : le décor filmé de la page reste derrière le titre. */
 const pgvEsc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const PGV_IMG = {"auguste":[[1600,1600,1067],[800,800,533]],"biches":[[1600,1600,1067],[800,800,533]],"bouvreuil":[[1600,1600,1067],[800,800,533]],"chat":[[1400,1400,943],[800,800,539]],"cygnes":[[1600,1600,1067],[800,800,533]],"echoppe":[[1600,1600,800],[800,800,400]],"fleurs":[[1600,1600,1067],[800,800,533]],"hibou":[[1600,1600,1067],[800,800,533]],"livre":[[700,700,1050],[480,480,720]],"maison":[[1600,1600,900],[800,800,450]],"nuit":[[1600,1600,1067],[2400,2400,1600],[800,800,533]],"oies":[[1600,1600,1067],[800,800,533]],"peche":[[1600,1600,753],[800,800,377]],"indice":[[1200,1200,747],[700,700,436]],"pont":[[1600,1600,1067],[800,800,533]],"potager":[[1600,1600,810],[800,800,405]],"village":[[1600,1600,1067],[2400,2400,1600],[800,800,533]]};
+const PGV_IMG = {"auguste":[[1600,1600,1067],[800,800,533]],"biches":[[1600,1600,1067],[800,800,533]],"bouvreuil":[[1600,1600,1067],[800,800,533]],"chat":[[1400,1400,943],[800,800,539]],"cygnes":[[1600,1600,1067],[800,800,533]],"hibou":[[1600,1600,1067],[800,800,533]],"peche":[[1600,1600,753],[800,800,377]],"indice":[[1200,1200,747],[700,700,436]],"village2":[[2400,2400,1261],[1600,1600,841],[800,800,420]],"nuit2":[[2400,2400,1261],[1600,1600,841],[800,800,420]],"gaspard":[[1600,1600,822],[800,800,411]],"cosy":[[1600,1600,841],[800,800,420]],"rochers":[[1600,1600,841],[800,800,420]],"pont2":[[1600,1600,841],[800,800,420]],"falaises":[[2400,2400,1261],[1600,1600,841],[800,800,420]]};
 // <img> net sur tous les écrans : srcset avec les vraies largeurs, sizes donné par la mise en page, toujours chargé à la demande
 function pgvImg(n, alt, sizes, cls) {
   const v = (PGV_IMG[n] || []).slice().sort((a, b) => a[1] - b[1]); if (!v.length) return '';
@@ -5541,13 +5541,118 @@ const PGV_SVG = {
   shield: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
   chev: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
 };
+// le Grand Livre ouvert sur une DOUBLE PAGE (1.46.13, PATOU : « affiche-le sur 2 pages ») : les vraies cases du livre du hub (photo + nom
+// manuscrit + date, photographiées une à une dans le harnais de l'atelier : accueil/pgv-cas-<espèce>.webp), un mot de Mlle Iris et la case
+// de Pégase encore vide ; au téléphone, on glisse d'une page à l'autre
+function pgvBook() {
+  const cas = (id, nom) => `<figure class="bk-cas"><img loading="lazy" decoding="async" width="360" height="355" src="${ROOT}accueil/pgv-cas-${id}.webp" alt="${pgvEsc(nom)}, photographié et rangé dans le Grand Livre"></figure>`;
+  const tete = (t, sub, n, sur) => `<header class="bk-tete"><h4>${t}</h4><em>${sub}</em><span class="bk-prog"><small>${n} / ${sur} trouvées</small><i style="--p:${Math.round(n / sur * 100)}%"></i></span></header>`;
+  return `<div class="pgv-book2" role="group" aria-label="Le Grand Livre des espèces, ouvert sur une double page">
+    <div class="bk-page g">${tete('Les oiseaux', 'des jardins, des bois et du lac', 6, 49)}<div class="bk-grid">${cas('moineau-domestique', 'Moineau domestique')}${cas('pie-bavarde', 'Pie bavarde')}${cas('mesange-charbonniere', 'Mésange charbonnière')}${cas('geai-des-chenes', 'Geai des chênes')}${cas('bouvreuil-pivoine', 'Bouvreuil pivoine')}${cas('canard-colvert', 'Canard colvert')}</div><span class="bk-num">2</span></div>
+    <div class="bk-page d">${tete('Les animaux sauvages', 'des prés, des forêts et de la montagne', 2, 8)}<div class="bk-grid">${cas('lapin-de-garenne', 'Lapin de garenne')}${cas('la-biche', 'La biche')}</div>
+      <header class="bk-tete petit"><h4>Les légendes</h4><em>on dit qu'ils vivent sur l'île…</em></header>
+      <div class="bk-leg"><div class="bk-vide" aria-label="La case de Pégase, encore vide">?</div><p class="bk-mot">Pégase&nbsp;? Une seule photo, toute floue… Cette case t'attend.<span>— Mlle Iris</span></p></div><span class="bk-num">3</span></div>
+  </div><p class="bk-glisse" aria-hidden="true">Glisse pour tourner la page →</p>`;
+}
+// L'ÎLE DE PÉGASE EN 3D AVEC LA MER (vitrine, 1.46.13 ; PATOU : « l'île, il faut l'afficher avec l'eau maintenant qu'elle est belle ! ») :
+// WebGL 1 sans bibliothèque. Relief = accueil/pgv-ile-h.png (256², hauteur 16 bits : R octet fort, G faible ; export du jeu), couleurs =
+// accueil/pgv-ile-couleur.webp (carte vue de dessus, nord en haut). Mer : turquoise et transparente près du bord (on voit le fond), bleu
+// profond au large, écume sur les plages, reflets du soleil, bord rond qui se fond dans la page. Tourne lentement ; ne dessine que
+// visible ; mouvement réduit = image fixe ; sans WebGL = l'image d'avant (repli dans le HTML).
+const PGV_ILE = { cote: 2250, min: -46.4, max: 193.95, mer: 14, ex: 1.6 };   // export de Pégase (ilot/hauteurs.txt, 27 oct. 2026) : carré de 2250 m, mer à 14 m
+function pgvIsle(host) {
+  const fallback = host.querySelector('img');
+  const cv = document.createElement('canvas'); cv.className = 'pgv-ilecv'; cv.setAttribute('aria-hidden', 'true');
+  let gl = null; try { gl = cv.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: true }); } catch (e) {}
+  if (!gl) return;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches, phone = PG_PHONE;
+  const N = phone ? 128 : 192, S = PGV_ILE.cote, EX = PGV_ILE.ex, SEA = PGV_ILE.mer;
+  const load = (src) => new Promise((ok, ko) => { const im = new Image(); im.decoding = 'async'; im.onload = () => ok(im); im.onerror = ko; im.src = src; });
+  Promise.all([load(ROOT + 'accueil/pgv-ile-couleur.webp'), load(ROOT + 'accueil/pgv-ile-h.png')]).then(([col, hi]) => {
+    // hauteurs (mètres) depuis l'image 16 bits
+    const c2 = document.createElement('canvas'); c2.width = hi.width; c2.height = hi.height; const x2 = c2.getContext('2d', { willReadFrequently: true });
+    x2.drawImage(hi, 0, 0); const px = x2.getImageData(0, 0, hi.width, hi.height).data, HW = hi.width;
+    const h1 = (x, y) => { const i = (Math.min(HW - 1, Math.max(0, y)) * HW + Math.min(HW - 1, Math.max(0, x))) * 4; return PGV_ILE.min + (px[i] * 256 + px[i + 1]) / 65535 * (PGV_ILE.max - PGV_ILE.min); };
+    const H = (u, v) => { const x = u * (HW - 1), y = v * (HW - 1), x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;   // bilinéaire : pas de marches
+      return (h1(x0, y0) * (1 - fx) + h1(x0 + 1, y0) * fx) * (1 - fy) + (h1(x0, y0 + 1) * (1 - fx) + h1(x0 + 1, y0 + 1) * fx) * fy; };
+    // maillage du relief
+    const pos = new Float32Array(N * N * 3), nor = new Float32Array(N * N * 3), uv = new Float32Array(N * N * 2), hgt = new Float32Array(N * N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const k = j * N + i, u = i / (N - 1), v = j / (N - 1); hgt[k] = H(u, v); pos[k * 3] = (u - 0.5) * S; pos[k * 3 + 1] = hgt[k] * EX; pos[k * 3 + 2] = (v - 0.5) * S; uv[k * 2] = u; uv[k * 2 + 1] = v; }
+    const d = S / (N - 1);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const k = j * N + i, l = hgt[j * N + Math.max(0, i - 1)], r = hgt[j * N + Math.min(N - 1, i + 1)], t = hgt[Math.max(0, j - 1) * N + i], b = hgt[Math.min(N - 1, j + 1) * N + i];
+      let nx = (l - r) * EX, ny = 2 * d, nz = (t - b) * EX; const m = Math.hypot(nx, ny, nz); nor[k * 3] = nx / m; nor[k * 3 + 1] = ny / m; nor[k * 3 + 2] = nz / m; }
+    const idx = new Uint16Array((N - 1) * (N - 1) * 6); let q = 0;
+    for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) { const a = j * N + i; idx[q++] = a; idx[q++] = a + N; idx[q++] = a + 1; idx[q++] = a + 1; idx[q++] = a + N; idx[q++] = a + N + 1; }
+    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+    const prog = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; };
+    const FADE = 'float fade(vec2 xz){ float r = length(xz) / (' + (S * 0.5).toFixed(1) + '); return 1.0 - smoothstep(0.86, 1.22, r); }';
+    const pT = prog('attribute vec3 p; attribute vec3 n; attribute vec2 t; uniform mat4 M; varying vec3 vn; varying vec2 vt; varying vec3 vp; void main(){ vn = n; vt = t; vp = p; gl_Position = M * vec4(p, 1.0); }',
+      'precision mediump float; uniform sampler2D C; uniform vec3 L; uniform float sea; varying vec3 vn; varying vec2 vt; varying vec3 vp; ' + FADE +
+      ' void main(){ vec3 c = texture2D(C, vt).rgb; float dif = max(dot(normalize(vn), L), 0.0); vec3 col = c * (0.42 + 0.78 * dif) * vec3(1.06, 1.0, 0.92);' +
+      ' float under = clamp((sea - vp.y) / 40.0, 0.0, 1.0); col = mix(col, vec3(0.86, 0.78, 0.6) * (0.5 + 0.5 * dif), under * 0.7);' +
+      ' vec2 e = min(vt, 1.0 - vt); float a = fade(vp.xz) * smoothstep(0.0, 0.05, min(e.x, e.y)); gl_FragColor = vec4(col * a, a); }');
+    const pW = prog('attribute vec2 p; uniform mat4 M; uniform float y; varying vec2 vxz; void main(){ vxz = p; gl_Position = M * vec4(p.x, y, p.y, 1.0); }',
+      'precision mediump float; uniform sampler2D Hm; uniform float t, sea, ex, hmin, hmax; uniform vec3 L, E; varying vec2 vxz; ' + FADE +
+      ' void main(){ vec2 uv = vxz / ' + S.toFixed(1) + ' + 0.5; float h = hmin; if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) { vec4 s = texture2D(Hm, uv); h = hmin + (s.r * 255.0 * 256.0 + s.g * 255.0) / 65535.0 * (hmax - hmin); }' +
+      ' float dep = sea - h; if (dep < 0.0) discard;' +
+      ' float k = smoothstep(0.0, 26.0, dep); vec3 col = mix(vec3(0.36, 0.9, 0.86), vec3(0.03, 0.2, 0.48), k);' +
+      ' float a = mix(0.3, 0.95, smoothstep(0.0, 16.0, dep));' +
+      ' vec3 n = normalize(vec3(sin(vxz.x * 0.021 + t * 1.1) * 0.09 + sin(vxz.y * 0.033 - t * 0.7) * 0.06, 1.0, cos(vxz.x * 0.017 - t * 0.9) * 0.08 + sin((vxz.x + vxz.y) * 0.027 + t) * 0.05));' +
+      ' vec3 v = normalize(E - vec3(vxz.x, sea * ex, vxz.y)); float sp = pow(max(dot(reflect(-L, n), v), 0.0), 70.0);' +
+      ' float foam = (1.0 - smoothstep(0.0, 2.6, dep)) * (0.55 + 0.45 * sin(t * 2.2 + (vxz.x - vxz.y) * 0.06));' +
+      ' col = mix(col, vec3(1.0), foam * 0.85) + sp * vec3(1.0, 0.93, 0.78); a = max(a, foam * 0.9); a *= fade(vxz); gl_FragColor = vec4(col * a, a); }');
+    const buf = (data, kind) => { const b = gl.createBuffer(); gl.bindBuffer(kind || gl.ARRAY_BUFFER, b); gl.bufferData(kind || gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); return b; };
+    const bP = buf(pos), bN = buf(nor), bU = buf(uv), bI = buf(idx, gl.ELEMENT_ARRAY_BUFFER);
+    const R = S * 0.75, bW = buf(new Float32Array([-R, -R, R, -R, -R, R, R, R]));
+    const tex = (im, nearest) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, nearest ? gl.NEAREST : gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, nearest ? gl.NEAREST : gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+    const tC = tex(col, false), tH = tex(hi, true);   // la hauteur : NEAREST (deux octets dans deux canaux, pas de mélange)
+    const L = (() => { const v = [-0.55, 0.62, 0.45], m = Math.hypot(...v); return v.map((x) => x / m); })();
+    const persp = (f, a, n, fr) => { const t = 1 / Math.tan(f / 2); return [t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (fr + n) / (n - fr), -1, 0, 0, 2 * fr * n / (n - fr), 0]; };
+    const look = (e, c) => { const z = [e[0] - c[0], e[1] - c[1], e[2] - c[2]], zl = Math.hypot(...z); z[0] /= zl; z[1] /= zl; z[2] /= zl; const x = [z[2], 0, -z[0]], xl = Math.hypot(...x); x[0] /= xl; x[2] /= xl;
+      const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+      return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -(x[0] * e[0] + x[1] * e[1] + x[2] * e[2]), -(y[0] * e[0] + y[1] * e[1] + y[2] * e[2]), -(z[0] * e[0] + z[1] * e[1] + z[2] * e[2]), 1]; };
+    const mul = (a, b) => { const o = new Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; };
+    const st = { on: false, raf: 0, t0: performance.now(), shown: false };
+    const size = () => { const r = host.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, phone ? 1.5 : 2); cv.width = Math.max(2, Math.round(r.width * dpr)); cv.height = Math.max(2, Math.round(r.width * 0.78 * dpr)); };
+    const draw = (now) => {
+      const t = still ? 6 : (now - st.t0) / 1000, yaw = 0.6 + t * 0.06, el = 0.6, D = S * 1.45, cy = SEA * EX;
+      const E = [Math.sin(yaw) * Math.cos(el) * D, cy + Math.sin(el) * D, Math.cos(yaw) * Math.cos(el) * D];
+      const M = mul(persp(0.62, cv.width / cv.height, 20, S * 4), look(E, [0, cy - S * 0.05, 0]));
+      gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.useProgram(pT); gl.depthMask(true);
+      const at = (p, n, b, sz) => { const l = gl.getAttribLocation(p, n); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, sz, gl.FLOAT, false, 0, 0); return l; };
+      const l1 = at(pT, 'p', bP, 3), l2 = at(pT, 'n', bN, 3), l3 = at(pT, 't', bU, 2);
+      gl.uniformMatrix4fv(gl.getUniformLocation(pT, 'M'), false, M); gl.uniform3fv(gl.getUniformLocation(pT, 'L'), L); gl.uniform1f(gl.getUniformLocation(pT, 'sea'), SEA * EX);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tC); gl.uniform1i(gl.getUniformLocation(pT, 'C'), 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bI); gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
+      [l1, l2, l3].forEach((l) => gl.disableVertexAttribArray(l));
+      gl.useProgram(pW); gl.depthMask(false);
+      const lw = at(pW, 'p', bW, 2);
+      gl.uniformMatrix4fv(gl.getUniformLocation(pW, 'M'), false, M); gl.uniform1f(gl.getUniformLocation(pW, 'y'), SEA * EX);
+      for (const [k, v] of [['t', t], ['sea', SEA], ['ex', EX], ['hmin', PGV_ILE.min], ['hmax', PGV_ILE.max]]) gl.uniform1f(gl.getUniformLocation(pW, k), v);
+      gl.uniform3fv(gl.getUniformLocation(pW, 'L'), L); gl.uniform3fv(gl.getUniformLocation(pW, 'E'), E);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tH); gl.uniform1i(gl.getUniformLocation(pW, 'Hm'), 1);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.disableVertexAttribArray(lw); gl.depthMask(true);
+      if (!st.shown) { st.shown = true; host.classList.add('gl'); }
+    };
+    const loop = (now) => { if (!st.on) return; draw(now); st.raf = still ? 0 : requestAnimationFrame(loop); };
+    size(); host.insertBefore(cv, fallback || null);
+    addEventListener('resize', () => { size(); if (!st.on) draw(performance.now()); });
+    const io = new IntersectionObserver((es) => { const v = es[0].isIntersecting && MODE === 'pegase'; if (v && !st.on) { st.on = true; st.raf = requestAnimationFrame(loop); } else if (!v) { st.on = false; cancelAnimationFrame(st.raf); } }, { threshold: 0.05 });
+    io.observe(host);
+    window.JDW_PGV_ILE = st;   // essais
+  }).catch(() => {});
+}
 const PGV = { built: false, io: null, pc: null };
 function pgvBuild() {
   if (PGV.built || !PG_TAB) return; PGV.built = true;
   const box = $('jdw-pgv'); if (!box) return;
   if (!document.getElementById('jdw-pgv-font')) {   // le titre en lettres classiques (EB Garamond : Cormorant décale les accents ^ et ` dans Chrome, 1.46.8) ; sans réseau : la police serif du système
     const l = document.createElement('link'); l.id = 'jdw-pgv-font'; l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,500&display=swap'; document.head.appendChild(l);
+    l.href = 'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,500&family=Caveat:wght@500;600&display=swap'; document.head.appendChild(l);
   }
   const W2 = '(max-width: 760px) 100vw, 50vw', W3 = '(max-width: 760px) 100vw, 33vw', WF = '100vw';
   const card = (img, alt, t, p) => `<article class="pgv-card pgv-rv">${pgvImg(img, alt, W3)}<div><h4>${t}</h4><p>${p}</p></div></article>`;
@@ -5576,7 +5681,7 @@ function pgvBuild() {
     <div class="pgv-tx pgv-rv">
       <p class="pgv-kick">Safari photo</p>
       <h3 class="pgv-h" id="pgv-h2">Un safari photo, entre amis</h3>
-      <p>Approche-toi sans bruit, fais la mise au point, zoome… clic&nbsp;! Biches au bord du lac, grand-duc dans la nuit, bouvreuil dans les fleurs, cygnes à l'aube&nbsp;: plus de soixante espèces t'attendent, des oiseaux du jardin aux animaux de la forêt.</p>
+      <p>Approche-toi sans bruit, fais la mise au point, zoome… clic&nbsp;! Biches au bord du lac, grand-duc dans la nuit, bouvreuil dans les fleurs, cygnes à l'aube, sanglier dans les hautes herbes&nbsp;: plus de soixante espèces t'attendent, des oiseaux du jardin aux animaux de la forêt.</p>
       <ul class="pgv-feats">
         ${feat('cam', 'Un vrai appareil photo', 'Mise au point, zoom, macro, et tes réglages&nbsp;: lumière, flou d’arrière-plan, couleurs, grain.')}
         ${feat('gear', 'Des modules à débloquer', 'Ton appareil grandit avec toi, au fil de l’aventure.')}
@@ -5584,26 +5689,26 @@ function pgvBuild() {
       </ul>
     </div>
     <div class="pgv-mosaic pgv-rv">
-      ${pgvImg('biches', 'Biches au bord du lac, le matin', W3, 'm1')}${pgvImg('hibou', 'Le grand-duc la nuit dans le grand osmanthe', W3, 'm2')}${pgvImg('bouvreuil', 'Un bouvreuil dans les fleurs', W3, 'm3')}${pgvImg('cygnes', 'Cygnes à l’aube sur le lac', W3, 'm4')}${pgvImg('oies', 'Vol d’oies en V à l’heure dorée', W3, 'm5')}
+      ${pgvImg('biches', 'Biches au bord du lac, le matin', W3, 'm1')}${pgvImg('hibou', 'Le grand-duc la nuit dans le grand osmanthe', W3, 'm2')}${pgvImg('bouvreuil', 'Un bouvreuil dans les fleurs', W3, 'm3')}${pgvImg('cygnes', 'Cygnes à l’aube sur le lac', W3, 'm4')}${pgvImg('rochers', 'Le grand pré aux herbes folles, le pont rouge et un sanglier au loin', W3, 'm5')}
     </div>
   </section>
-  <section class="pgv-sec pgv-slide pgv-split rev pgv-livre" aria-labelledby="pgv-h3">
+  <section class="pgv-sec pgv-slide pgv-livre" aria-labelledby="pgv-h3">
     <div class="pgv-tx pgv-rv">
       <p class="pgv-kick">Le Grand Livre</p>
       <h3 class="pgv-h" id="pgv-h3">Ton carnet de naturaliste</h3>
       <p>Chaque espèce photographiée trouve sa place dans le <b>Grand Livre des espèces</b>&nbsp;: oiseaux, animaux de la ferme et de la forêt, reptiles, petites bêtes, poissons… et les légendes.</p>
       <p>Remplis les pages, gagne des médailles, et feuillette les livres de tes amis pour voir qui a trouvé quoi.</p>
     </div>
-    <div class="pgv-book pgv-rv">${pgvImg('livre', 'Une page du Grand Livre des espèces : les oiseaux des jardins', '(max-width: 760px) 80vw, 420px')}</div>
+    <div class="pgv-bookw pgv-rv">${pgvBook()}</div>
   </section>
-  <section class="pgv-band pgv-slide pgv-rv" aria-label="Le village d'Ailebrune">${pgvImg('village', 'Ailebrune, le village au bord du lac, la cascade et l’arbre sacré', WF)}<div class="pgv-bandtx"><p class="pgv-kick">La vie à Ailebrune</p><h3 class="pgv-h">Un village où l'on se sent chez soi</h3></div></section>
+  <section class="pgv-band pgv-slide pgv-rv" aria-label="Le village d'Ailebrune">${pgvImg('village2', 'Ailebrune vu d’en haut : les maisons à colombages autour de la place, le torii et les prés', WF)}<div class="pgv-bandtx"><p class="pgv-kick">La vie à Ailebrune</p><h3 class="pgv-h">Un village où l'on se sent chez soi</h3></div></section>
   <section class="pgv-sec pgv-slide" aria-label="Ta vie au village">
     <div class="pgv-cards">
-      ${card('maison', 'Une maison à colombages et son jardin fleuri', 'Ta maison', 'Choisis ta parcelle, construis ta maison pièce par pièce et décore-la à ton goût.')}
-      ${card('potager', 'Choux, carottes et radis dans le potager', 'Ton potager', 'Sème, arrose, récolte… et vends tes légumes à l’échoppe du village contre des lucioles.')}
+      ${card('gaspard', 'Une petite maison à colombages sur la colline, au milieu des herbes folles', 'Ta maison', 'Choisis ta parcelle, construis ta maison pièce par pièce, décore-la et plante ton potager.')}
+      ${card('pont2', 'Herbes folles et pont rouge sous le ciel bleu', 'Les balades', 'Prés fleuris, ponts rouges, cascades et falaises&nbsp;: chaque sentier mène à un nouveau coin à photographier.')}
       ${card('peche', 'Pêche à la ligne au bout du ponton', 'La pêche', 'Le lac, la rivière, la mer et ses criques&nbsp;: chaque coin d’eau a ses poissons. Et chaque semaine, un concours&nbsp;!')}
       ${card('auguste', 'Papi Auguste, le maire, à son bureau', 'Les habitants', 'Papi Auguste le maire, les commerçants, les voisins&nbsp;: chacun a une histoire et des missions à te confier.')}
-      ${card('echoppe', 'Le marché du village et ses étals', 'Le marché', 'Des graines, des objets, des tenues&nbsp;: dépense tes lucioles et garnis ta maison.')}
+      ${card('falaises', 'L’île vue des hauteurs : le lac, l’arbre rouge, la cascade et les falaises au loin', 'Toute une île', 'Du lac à l’arbre rouge, des falaises aux criques&nbsp;: grimpe, regarde au loin… l’île est immense.')}
       ${card('chat', 'Le chat des toits sur un faîtage', 'Les petits secrets', 'Un chat qui se promène sur les toits, un musée à remplir, des missions chaque jour… et des surprises bien cachées.')}
     </div>
   </section>
@@ -5617,22 +5722,22 @@ function pgvBuild() {
     </div>
     <div class="pgv-isl pgv-rv"><img loading="lazy" decoding="async" alt="L’île de Pégase vue du ciel : le lac, l’arbre rouge, la rivière et les falaises" width="1024" height="694" src="${ROOT}assets/pegase/ile_3d_1024.webp" srcset="${ROOT}assets/pegase/ile_3d_1024.webp 1024w, ${ROOT}assets/pegase/ile_3d_2048.webp 2048w" sizes="(max-width: 760px) 100vw, 50vw"></div>
   </section>
-  <section class="pgv-band music pgv-slide pgv-rv" aria-labelledby="pgv-h5">${pgvImg('nuit', 'La place du village la nuit, lanternes et lucioles', WF)}<div class="pgv-bandtx">
+  <section class="pgv-band music pgv-slide pgv-rv" aria-labelledby="pgv-h5">${pgvImg('nuit2', 'La place du village la nuit, la fontaine et les lanternes', WF)}<div class="pgv-bandtx">
     <p class="pgv-kick">Musique</p><h3 class="pgv-h" id="pgv-h5">Une musique enchanteresse</h3>
     <p>Harpe, célesta, violoncelle… Une musique douce, composée pour l'île, accompagne chaque instant, du lever du soleil sur le lac jusqu'aux lanternes du soir.</p>
     <button type="button" class="pgv-btn ghost" id="jdw-pgv-mus">${PGV_SVG.note}<span>Écouter</span></button></div></section>
-  <section class="pgv-sec pgv-slide pgv-split rev" aria-labelledby="pgv-h6">
-    <div class="pgv-feed pgv-rv" aria-hidden="true">
-      ${post('fleurs', '', 'Champ de fleurs à l’aube', 'Photo de la semaine', '❤️ 24 · 😍 9')}
-      ${post('hibou', '', 'Le grand-duc', 'Concours de nuit', '⭐ 18 · 😮 7')}
-      ${post('pont', '', 'Le pont rouge', 'Sur ton île', '❤️ 15 · 👍 6')}
-    </div>
+  <section class="pgv-sec pgv-slide pgv-gram" aria-labelledby="pgv-h6">
     <div class="pgv-tx pgv-rv">
-      <p class="pgv-kick">PegaGram</p>
-      <h3 class="pgv-h" id="pgv-h6">Partage tes plus belles photos</h3>
-      <p>Tes photos préférées vont sur PegaGram, le petit album partagé de ton île&nbsp;: tes copains réagissent, les plus belles gagnent des concours, et Papi Auguste annonce les gagnants.</p>
-      <p>Seuls tes amis voient tes photos.</p>
+      <div class="pgv-glogo">${PEGAGRAM_LOGO.replace(/pgg-/g, 'pgv-')}<span>PegaGram</span></div>
+      <h3 class="pgv-h" id="pgv-h6">Partage tes plus belles photos sur PegaGram</h3>
+      <p class="pgv-gsub">le réseau social de Pégase</p>
+      <p>Tes copains réagissent ❤️ 😍 ⭐, les plus belles photos gagnent des concours, et Papi Auguste annonce les gagnants.</p>
+      <p><b>Seuls tes amis voient tes photos.</b></p>
     </div>
+    <div class="pgv-phone pgv-rv" aria-hidden="true"><div class="ph-scr">
+      <div class="ph-bar">${PEGAGRAM_LOGO.replace(/pgg-/g, 'pgw-')}<b>PegaGram</b><i>🔔</i></div>
+      ${['cosy:Coucher de soleil sur le pré:Photo de la semaine:❤️ 24 · 😍 9', 'hibou:Le grand-duc, la nuit:Concours de nuit · 1er:⭐ 18 · 😮 7', 'rochers:Le pont rouge:Sur ton île:❤️ 15 · 👍 6'].map((x) => { const [im, t, s2, r] = x.split(':'); return `<article class="ph-post"><header><span class="ph-av">${t[0]}</span><div><b>${t}</b><small>${s2}</small></div></header>${pgvImg(im, '', '(max-width: 760px) 70vw, 300px')}<footer>${r}</footer></article>`; }).join('')}
+    </div></div>
   </section>
   <section class="pgv-sec pgv-slide pgv-dl" id="jdw-pgv-dl" aria-labelledby="pgv-h7">
     <div class="pgv-dlhead pgv-rv"><p class="pgv-kick">Jouer</p><h3 class="pgv-h" id="pgv-h7">Gratuit, sur PC et Android</h3>
@@ -5680,6 +5785,7 @@ function pgvBuild() {
   });
   $('jdw-pgv-mus').addEventListener('click', () => { Audio.ensure(); setMusicOn(!MUS.on); pgMusicIc(); pgvMusic(); });
   pgvMusic(); pgvCue(); pgvDl();
+  { const h = box.querySelector('.pgv-isl'); if (h) try { pgvIsle(h); } catch (e) {} }
 }
 function pgvMusic() { const b = $('jdw-pgv-mus'); if (!b) return; b.querySelector('span').textContent = MUS.on ? 'Couper la musique' : 'Écouter'; b.classList.toggle('on', MUS.on); }
 // 1.46.11 (PATOU : « ça doit monter d'une page entière ») : à la molette ou au pavé tactile, un geste vers le bas en bas d'un écran = l'écran

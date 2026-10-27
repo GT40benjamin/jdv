@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🌊 La présentation de Pégase, avec l'île en 3D et sa mer (borne 1.46.14)
+[pegase] L'île de Pégase en 3D, entourée de sa mer qui bouge : turquoise et transparente près des plages (on voit le fond), bleu profond au large, de l'écume sur le sable et des reflets du soleil. Elle tourne doucement, et se fond dans la page
+[pegase] De nouvelles images du jeu en qualité Ultra : le village vu d'en haut, la place la nuit, les prés aux herbes folles, le pont rouge, l'île vue des hauteurs
+[pegase] Le Grand Livre des espèces s'ouvre en double page, comme un vrai carnet : les oiseaux à gauche, les animaux sauvages et les légendes à droite. Sur téléphone, glisse pour tourner la page
+[pegase] PegaGram a sa vraie place : « Partage tes plus belles photos sur PegaGram », le réseau social de Pégase, avec un téléphone qui montre le fil des photos. Seuls tes amis voient tes photos
 [chrono] ## 🚀 Turbo Chrono (borne 1.46.13) : le grand saut de L’Orbite, version 2
 [chrono] Le tremplin est maintenant droit, en face, dès la ligne d’arrivée : il est déjà là quand tu la passes
 [chrono] Le saut monte au-dessus du circuit vers un gros astéroïde marqué d’une colonne de lumière, avec 3 anneaux pour viser

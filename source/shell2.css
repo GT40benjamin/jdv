@@ -3181,3 +3181,69 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
   .pgv-cfg .pgv-small{font-size:11.5px;line-height:1.45}
   .pgv-cfgsec .pgv-foot{padding-top:12px;font-size:11.5px}.pgv-cfgsec .pgv-sig{margin-top:6px !important;font-size:15px}
 }
+/* 1.46.13 : le Grand Livre ouvert sur une DOUBLE PAGE (vraies cases du livre du hub) */
+.pgv-livre{display:grid;grid-template-columns:.75fr 1.25fr;gap:clamp(28px,4vw,64px);align-items:center}
+.pgv-bookw{min-width:0}
+.pgv-book2{--hand:'Caveat','Segoe Print','Bradley Hand',cursive;position:relative;display:grid;grid-template-columns:1fr 1fr;gap:56px;padding:26px 30px 30px;border:10px solid #2e4b31;border-radius:12px;
+  background:radial-gradient(120% 90% at 25% 40%,#f6ecd2 0%,#ecdcb7 60%,#dcc59a 100%) left/50% 100% no-repeat,radial-gradient(120% 90% at 75% 40%,#f6ecd2 0%,#ecdcb7 60%,#dcc59a 100%) right/50% 100% no-repeat;
+  box-shadow:0 34px 80px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4),inset 0 0 30px rgba(110,80,30,.18);color:#3a2a14;transform:perspective(1600px) rotateX(4deg)}
+.pgv-book2::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:70px;margin-left:-35px;background:linear-gradient(90deg,rgba(90,60,20,0) 0%,rgba(90,60,20,.22) 42%,rgba(60,40,10,.35) 50%,rgba(90,60,20,.22) 58%,rgba(90,60,20,0) 100%);pointer-events:none}
+.bk-page{position:relative;min-width:0;padding-bottom:20px}
+.bk-tete{margin:0 0 10px}
+.bk-tete h4{margin:0;font:600 30px/1.05 var(--pgv-serif);color:#33220e}
+.bk-tete em{display:block;margin-top:2px;font:500 21px/1.1 var(--hand);color:#7a5734}
+.bk-prog{display:flex;align-items:center;gap:10px;margin-top:6px}
+.bk-prog small{font:italic 500 13px var(--pgv-serif);color:#6a5236;white-space:nowrap}
+.bk-prog i{flex:1;height:5px;border-radius:3px;background:linear-gradient(90deg,#d9a54a var(--p),rgba(120,90,50,.18) var(--p))}
+.bk-tete.petit{margin-top:16px}.bk-tete.petit h4{font-size:24px}.bk-tete.petit em{font-size:18px}
+.bk-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+.bk-cas{margin:0}
+.bk-cas img{display:block;width:100%;height:auto;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(transparent,#000 7%,#000 93%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(transparent,#000 7%,#000 93%,transparent);mask-composite:intersect}
+.bk-leg{display:grid;grid-template-columns:.8fr 1.2fr;gap:12px;align-items:center;margin-top:8px}
+.bk-vide{aspect-ratio:1/.92;display:grid;place-items:center;border:2px dashed rgba(150,115,70,.55);border-radius:4px;font:600 46px var(--hand);color:rgba(150,115,70,.75);background:rgba(255,250,235,.25)}
+.bk-mot{margin:0;padding:10px 12px;border-left:3px solid #c9a46a;background:rgba(255,250,235,.45);font:500 19px/1.2 var(--hand);color:#4a3520}
+.bk-mot span{display:block;text-align:right;margin-top:4px;font-size:17px;color:#7a5734}
+.bk-num{position:absolute;bottom:-8px;font:italic 500 14px var(--pgv-serif);color:#8a7050}.bk-page.g .bk-num{left:0}.bk-page.d .bk-num{right:0}
+.bk-glisse{display:none}
+@media (max-width:760px){
+  .pgv-livre{grid-template-columns:1fr;gap:12px}
+  .pgv-bookw{overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;margin:0 -18px;padding:0 18px 4px;scrollbar-width:none}
+  .pgv-bookw::-webkit-scrollbar{display:none}
+  .pgv-book2{grid-template-columns:78vw 78vw;width:max-content;gap:30px;padding:14px 16px 20px;border-width:7px;transform:none}
+  .bk-page{scroll-snap-align:center}
+  .bk-tete h4{font-size:23px}.bk-tete em{font-size:17px}.bk-tete.petit h4{font-size:19px}.bk-tete.petit em{font-size:15px}
+  .bk-grid{gap:2px 8px}.bk-mot{font-size:15.5px;padding:7px 9px}.bk-mot span{font-size:14px}.bk-vide{font-size:34px}
+  .pgv-livre .pgv-tx p+p{display:none}
+  .bk-page.g .bk-grid{grid-template-columns:repeat(3,1fr)}
+  .bk-glisse{display:block;margin:6px 0 0;text-align:center;font:500 18px var(--hand);color:#e8d3a0}
+}
+/* 1.46.13 : PegaGram avec son vrai logo + un téléphone qui montre le fil */
+.pgv-gram{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(28px,5vw,72px);align-items:center}
+.pgv-glogo{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.pgv-glogo svg{width:clamp(64px,7vw,92px);height:auto;filter:drop-shadow(0 8px 22px rgba(255,79,139,.45))}
+.pgv-glogo span{font:400 clamp(30px,4.2vw,54px)/1 var(--display);letter-spacing:.03em;background:linear-gradient(90deg,#ffc44d,#ff4f8b 55%,#9a7bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pgv-gsub{margin:-.2em 0 1em !important;font:italic 500 clamp(19px,2vw,26px) var(--pgv-serif) !important;color:#ffb2cf !important}
+.pgv-phone{justify-self:center;width:min(330px,100%);padding:12px;border-radius:44px;background:linear-gradient(160deg,#2a2f45,#0b0e1c);box-shadow:0 40px 90px rgba(0,0,0,.65),inset 0 0 0 2px rgba(255,255,255,.08)}
+.ph-scr{height:min(620px,64vh);overflow:hidden;border-radius:34px;background:#0d1020;-webkit-mask-image:linear-gradient(180deg,#000 82%,transparent);mask-image:linear-gradient(180deg,#000 82%,transparent)}
+.ph-bar{display:flex;align-items:center;gap:8px;padding:16px 16px 10px;border-bottom:1px solid rgba(255,255,255,.07)}
+.ph-bar svg{width:26px;height:26px}.ph-bar b{flex:1;font:400 17px var(--display);letter-spacing:.03em;color:#fff}.ph-bar i{font-style:normal;font-size:16px}
+.ph-post{padding:10px 12px 12px}
+.ph-post header{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.ph-av{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#ffc44d,#ff4f8b);font:700 13px var(--body);color:#fff}
+.ph-post b{display:block;font:600 13px var(--body);color:#fff}.ph-post small{display:block;font:500 11px var(--body);color:#9fb0d0}
+.ph-post img{display:block;width:100%;aspect-ratio:4/3;height:auto;object-fit:cover;border-radius:12px}
+.ph-post footer{margin-top:7px;font:600 12.5px var(--body);color:#ffe0a0}
+@media (max-width:760px){
+  .pgv-gram{grid-template-columns:1fr;gap:14px}
+  .pgv-glogo{margin-bottom:8px;gap:10px}.pgv-glogo svg{width:52px}.pgv-glogo span{font-size:28px}
+  .pgv-gram .pgv-tx p{margin-bottom:.4em}
+  .pgv-phone{width:min(250px,72%);padding:8px;border-radius:32px}.ph-scr{height:min(330px,40vh);border-radius:25px}
+  .ph-bar{padding:10px 12px 7px}.ph-post{padding:7px 9px 9px}
+}
+/* 1.46.13 : l'île en 3D avec la mer (canvas WebGL) ; l'image d'avant reste en repli */
+.pgv-isl{position:relative}
+.pgv-ilecv{display:block;width:100%;height:auto}
+.pgv-isl:not(.gl) .pgv-ilecv{position:absolute;inset:0;opacity:0}
+.pgv-isl.gl img{display:none}
+.pgv-isl.gl .pgv-ilecv{animation:pgvIleIn 1.2s ease}
+@keyframes pgvIleIn{from{opacity:0}to{opacity:1}}
