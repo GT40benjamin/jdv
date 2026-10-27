@@ -1,22 +1,34 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 40,
-  "versionName": "0.9.8.2",
-  "size": 1149044974,
-  "sha256": "1b2ccc6842d395b71f29e5319455cd3f1cb7ebdbfc009223fed86bede2cb08fa",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v40/pegase-0.9.8.2.apk",
+  "versionCode": 41,
+  "versionName": "0.9.8.3",
+  "size": 1149084910,
+  "sha256": "7e4276c6e1bfe6c9fb235867c4381e300cf3bf76322ef39d147b315e6364c884",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v41/pegase-0.9.8.3.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les chemins de terre, les routes et les pavés du village sont revenus partout sur l'île, avec la place, les rues et les sentiers comme avant l'arrivée de la mer.",
-    "Les pentes et les falaises de l'intérieur retrouvent leur roche et leur terre.",
-    "Tes chemins tracés sont repeints par-dessus, et le chemin unique au nord-est du village est de nouveau en place.",
-    "Les villageois retrouvent la terre de leurs chemins.",
-    "Le sable des plages reste sur les plages."
+    "La brume du matin change chaque jour : certains matins une belle brume flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair. Le jour, juste un léger voile au loin, plus épais avant la pluie.",
+    "Les gros nuages avancent doucement dans le ciel.",
+    "Le fond est plus net : les montagnes au loin ne sont plus floues.",
+    "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
+    "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
+    "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
   ],
   "historique": [
+    {
+      "version": "0.9.8.3",
+      "notes": [
+        "La brume du matin change chaque jour : certains matins une belle brume flotte dans les vallons et se lève vers 10 h, d'autres matins le ciel est clair. Le jour, juste un léger voile au loin, plus épais avant la pluie.",
+        "Les gros nuages avancent doucement dans le ciel.",
+        "Le fond est plus net : les montagnes au loin ne sont plus floues.",
+        "Les palmiers ont retrouvé un vrai tronc et des palmes vertes naturelles (plus de palmes jaune pâle qui brillent le soir).",
+        "La caméra contre un mur reste douce quand on la tourne : plus de sursauts.",
+        "Trois plantes du bord de mer entrent dans le Grand livre : la Cordyline rose, le Liseron des plages et l'Aloès, à photographier au bord des criques et le long du sentier du littoral."
+      ]
+    },
     {
       "version": "0.9.8.2",
       "notes": [
@@ -61,22 +73,6 @@
         "La photo : caché dans un buisson, il reste entier autour de toi ; seules les feuilles devant l'objectif s'écartent dans le viseur.",
         "Plus calme : le vent est bien plus doux, et les lapins ne se cachent plus dans les arbres.",
         "Ta vue 1re ou 3e personne est retenue d'une partie à l'autre."
-      ]
-    },
-    {
-      "version": "0.9.6",
-      "notes": [
-        "Deux grandes parcelles au pied de la falaise, offertes avec ton permis de construire, le long d'un nouveau chemin, avec leur pancarte « À vendre » et leur boîte aux lettres.",
-        "Les parcelles redessinées : elles ne débordent plus sur les chemins, et leur lueur dorée épouse le sol quand tu choisis ta place. Entre deux voisines, la limite est commune.",
-        "Le permis de construire donne une parcelle à 1000 lucioles ; les autres s'achèteront.",
-        "Les chemins sous le Clos sont nettoyés : un seul beau chemin, l'herbe est revenue partout ailleurs.",
-        "L'avion fait son demi-tour sur une vraie aire au bout de la piste, et une petite allée mène de sa porte au pied de l'escalier ; plein de buissons, de fleurs et d'arbres autour.",
-        "Maisons prêtes : plus de toits qui se croisent dans l'aperçu.",
-        "Réaménager l'intérieur est de retour, à l'étape « Étages » de la construction.",
-        "Une barre d'objets en bas de l'écran : touches 1 à 5 (croix et RB à la manette, toucher la case sur téléphone), l'objet choisi s'utilise au clic ; E ne sert plus qu'à parler, ouvrir et s'asseoir. Le parapluie s'ouvre quand tu le tiens.",
-        "La musique joue pendant qu'une mise à jour se télécharge.",
-        "La ferme : la vache meugle, le cheval hennit et s'ébroue, le cochon grogne, depuis l'animal lui-même.",
-        "Et aussi : de l'herbe sur les pentes derrière les plages et tout au bord de l'île, l'herbe qui va plus loin en qualité Ultra, et les sangliers qui fouillent dans les fleurs."
       ]
     }
   ]
