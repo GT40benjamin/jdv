@@ -303,6 +303,7 @@ if (PADJ) {
     defaultFocus: (layer, list) => {
       const pick = (...ids) => { for (const id of ids) { const e = $(id); if (e && list.includes(e)) return e; } return null; };
       if (!layer) {
+        if (!$('jdw-lib').hidden && MODE === 'ilo') { const p = $('jdw-ilo-play'); if (p && list.includes(p)) return p; }   // page ILO : « ▶ Bande-annonce »
         if (!$('jdw-lib').hidden) { const grid = MODE === 'duel' ? $('jdw-duo-grid') : MODE === 'coop' ? $('jdw-coop-grid') : $('jdw-grid'); const t = list.find(e => grid && grid.contains(e) && e.classList.contains('tile')); if (t) return t; }
         return null;
       }
@@ -5050,6 +5051,7 @@ $('jdw-new-ok').addEventListener('click', async () => {
 /* ================= Onglets : Classique / Duel / Coop ================= */
 // le mode « Classique » est la page normale ; les autres modes ont chacun leur page (barre des modes en bas)
 const MODES = {
+  ilo: { ic: '🌌', t: 'ILO', sub: 'À venir · aventure spatiale 3D sur PC.' },   // l'autre jeu du studio, pas encore sorti (onglet à gauche de Pégase)
   pegase: { ic: '🏝️', t: 'Pégase', sub: 'Choisis ton île, rejoins tes copains.' },
   classique: null,
   duel: { ic: '⚔️', t: 'Duel', sub: 'Toi contre un copain ou l\'IA.' },
@@ -5061,8 +5063,10 @@ function setMode(m, user) {
   if (m === 'arcade') m = (typeof PG !== 'undefined' && PG.last) || 'classique';   // « Nos autres jeux » : le dernier mode de la borne
   if (!(m in MODES)) m = 'classique';
   if (m === 'pegase' && document.querySelector('#jdw-modes [data-mode="pegase"]').hidden) m = 'classique';   // onglet Pégase : mode test seulement
-  if (m !== 'pegase' && typeof PG !== 'undefined') PG.last = m;
+  if (m === 'ilo' && document.querySelector('#jdw-modes [data-mode="ilo"]').hidden) m = 'classique';         // onglet ILO : montré avec celui de Pégase
+  if (m !== 'pegase' && m !== 'ilo' && typeof PG !== 'undefined') PG.last = m;   // « Nos autres jeux » revient au dernier mode de la borne
   $('jdw-modes').classList.toggle('pg-open', m === 'pegase');
+  $('jdw-modes').classList.toggle('ilo-open', m === 'ilo');   // ILO ouvert : comme Pégase ouvert (Classique · Duel · Coop repliés)
   const changed = m !== MODE; MODE = m;
   try { sessionStorage.setItem('jdw.mode', m); } catch (e) {}
   $('jdw-lib').dataset.mode = m;
@@ -5073,6 +5077,7 @@ function setMode(m, user) {
   if (m === 'coop') renderCoop();
   if (m === 'pegase') renderIsles();
   if (typeof pgSky === 'function') pgSky(m === 'pegase');
+  if (typeof iloSky === 'function') iloSky(m === 'ilo');
   if (m !== 'pegase') for (const o of document.querySelectorAll('.pi-panel.pi-over, .pi-who')) o.remove();
   if (changed && $('jdw-play').hidden && !MUS.override && MUS.want && MUS.want !== menuMusic() && (MUS.want === 'accueil' || MUS.want === 'pegase')) setMusic(menuMusic());   // entrer / sortir de Pégase : sa musique
   if (user && changed) {
@@ -5091,13 +5096,15 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
 const PG_TAB = !!gameById('pegase');   // pour tout le monde depuis le 25 oct. 2026 (avant : mode test seulement)
 if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
-const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
+const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' && MODE !== 'ilo' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
 if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
+  // ILO (« à venir ») : son onglet tout à gauche, à côté de Pégase (has-ilo : une colonne de plus dans la barre, shell2.css)
+  { const ib = document.querySelector('#jdw-modes [data-mode="ilo"]'); if (ib) { ib.hidden = false; $('jdw-modes').classList.add('has-ilo'); } }
   try { if (!sessionStorage.getItem('jdw.mode')) MODE = 'pegase'; } catch (e) {}   // la borne s'ouvre sur Pégase
-  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('borne')) MODE = PG.last; }   // lien partagé (?pegase, ?ile=<id>) ; ?borne (site du studio) : côté arcade
-  $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase');
+  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('ilo')) MODE = 'ilo'; else if (sp.has('borne')) MODE = PG.last; }   // lien partagé (?pegase, ?ile=<id>, ?ilo) ; ?borne (site du studio) : côté arcade
+  $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase'); $('jdw-modes').classList.toggle('ilo-open', MODE === 'ilo');
   // le badge de « Nos autres jeux » : le plus important de Classique / Duel / Coop (nouveau > mis à jour)
   const arcBadge = () => {
     const bs = ['jdw-cls-badge', 'jdw-duo-badge', 'jdw-coop-badge'].map(id => $(id)).filter(x => x && !x.hidden && x.classList.length > 1), bb = $('jdw-arc-badge');
@@ -5306,6 +5313,107 @@ function pgAmbi(on) {
   else if (PG.ambiOff) { removeEventListener('pointerdown', PG.ambiOff, { capture: true }); removeEventListener('keydown', PG.ambiOff, { capture: true }); PG.ambiOff = null; }
 }
 $('jdw-pg-ambi').addEventListener('click', (e) => { e.stopPropagation(); pgAmbi(true); });
+
+/* ================= L'UNIVERS D'ILO (« à venir ») : l'onglet à gauche de Pégase, la page « Le Silence d'ILO », la bande-annonce =================
+   ILO = l'autre jeu du studio (Unity, PC), pas encore sorti : onglet montré avec celui de Pégase (PG_TAB), badge « à venir » ; ?ilo l'ouvre.
+   Fond de la page : une BOUCLE MUETTE de 15 s filmée dans le jeu — l'affiche du dépôt tout de suite (assets/ilo/ilo_boucle_poster.jpg,
+   ilo_boucle_m_poster.jpg sur un écran en hauteur), puis la vidéo du seau R2 (PG_VID_BASE, le même que Pégase : ilo_boucle_<720|1080|1440|2160>.mp4,
+   ilo_boucle_m_<720|1080>.mp4) en fondu dès qu'elle joue ; jamais en économie de données, sur un réseau lent ni en mouvement réduit (affiche seule).
+   « ▶ Bande-annonce » : lecteur par-dessus la page (ilo_bande_annonce_<720|1080|1440|2160>.mp4, AVEC le son) ; la musique de la borne se tait
+   pendant qu'elle joue et revient à la fin ou à la fermeture. Une qualité absente du seau : la plus petite suivante ; aucune (vidéos pas encore
+   envoyées) : l'affiche reste, sans erreur, et le lecteur dit « La bande-annonce arrive très bientôt. » */
+const ILO = { port: null, dead: {}, tl: false, from: null, bad: false, rt: 0 };
+const ILO_Q = [720, 1080, 1440, 2160], ILO_QM = [720, 1080];   // qualités envoyées sur le seau (paysage, vertical)
+const iloPort = () => innerHeight > innerWidth * 1.1;            // écran en hauteur : la version verticale (comme les plans de Pégase)
+function iloStill() {   // affiche seule : économie de données, réseau lent, mouvement réduit
+  const C = navigator.connection || {};
+  return !!(C.saveData || /(^|-)2g$|^3g$/.test(C.effectiveType || '') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+}
+function iloMp4() { if (ILO.mp4 == null) { try { const t = document.createElement('video'); ILO.mp4 = !!(t.canPlayType && t.canPlayType('video/mp4; codecs="avc1.640028"')); } catch (e) { ILO.mp4 = false; } } return ILO.mp4; }
+// la qualité : l'écran et le débit mesuré sur les plans de Pégase (pgQualWant) ; données mobiles : 1080 au plus (720 en hauteur)
+function iloQual(list) {
+  let q = pgQualWant({ q: list }) || list[0];
+  if ((navigator.connection || {}).type === 'cellular') q = Math.min(q, list === ILO_QM ? 720 : 1080);
+  return q;
+}
+// <source> de la qualité visée, puis des plus petites : le navigateur joue la première qui existe sur le seau ; rend la dernière (« error » = aucune)
+function iloSources(v, name, list, want) {
+  while (v.firstChild) v.removeChild(v.firstChild);
+  let last = null;
+  for (const q of list.filter(x => x <= want).sort((a, b) => b - a)) { last = document.createElement('source'); last.src = PG_VID_BASE + name + q + '.mp4'; last.type = 'video/mp4'; v.appendChild(last); }
+  return last;
+}
+function iloBg(on) {
+  const bg = $('jdw-ilo-bg'), v = $('jdw-ilo-video'); if (!bg || !v) return;
+  if (!on) { try { v.pause(); } catch (e) {} return; }
+  const port = iloPort(), u = ROOT + 'assets/ilo/ilo_boucle' + (port ? '_m' : '') + '_poster.jpg';
+  if (bg.dataset.u !== u) { bg.dataset.u = u; bg.style.backgroundImage = 'url("' + u + '")'; }   // l'affiche d'abord (et en secours)
+  if (!PG_VID_BASE || ILO.dead[port] || iloStill() || !iloMp4()) { try { v.pause(); } catch (e) {} v.classList.remove('on'); return; }
+  if (ILO.port !== port) {   // la 1re fois, ou l'écran a tourné : la bonne version
+    ILO.port = port; v.classList.remove('on');
+    const last = iloSources(v, port ? 'ilo_boucle_m_' : 'ilo_boucle_', port ? ILO_QM : ILO_Q, iloQual(port ? ILO_QM : ILO_Q));
+    last.addEventListener('error', () => {   // pas (encore) sur le seau : l'affiche reste, on ne redemande plus
+      ILO.dead[port] = true; if (ILO.port !== port) return;
+      ILO.port = null; v.classList.remove('on'); while (v.firstChild) v.removeChild(v.firstChild); try { v.load(); } catch (e) {}
+    }, { once: true });
+    v.load();
+  }
+  if (!document.hidden && !$('jdw-lib').hidden && !ILO.tl) v.play().catch(() => {}); else try { v.pause(); } catch (e) {}
+}
+function iloSky(on) { iloBg(!!on); if (!on) iloTlClose(); }   // appelé par setMode
+$('jdw-ilo-video').addEventListener('playing', (e) => e.target.classList.add('on'));   // la vidéo arrive en fondu sur l'affiche
+$('jdw-ilo-video').addEventListener('error', (e) => e.target.classList.remove('on'));   // coupure en route : l'affiche revient
+addEventListener('resize', () => { clearTimeout(ILO.rt); ILO.rt = setTimeout(() => { if (MODE === 'ilo' && !$('jdw-lib').hidden) iloBg(true); }, 250); });
+document.addEventListener('visibilitychange', () => { if (MODE === 'ilo') iloBg(!document.hidden); });
+// une partie qui s'ouvre (la page est cachée) : le fond se met en pause, la bande-annonce se ferme ; au retour, le fond repart
+if (window.MutationObserver) new MutationObserver(() => { const hid = $('jdw-lib').hidden; if (hid) iloTlClose(); if (MODE === 'ilo') iloBg(!hid); }).observe($('jdw-lib'), { attributes: true, attributeFilter: ['hidden'] });
+// ---- le lecteur de la bande-annonce ----
+function iloTlSoon() {   // pas encore sur le seau (ou illisible ici) : l'affiche et « La bande-annonce arrive très bientôt. »
+  ILO.bad = true;
+  const box = $('jdw-ilo-tl-box'); box.style.backgroundImage = 'url("' + ROOT + 'assets/ilo/ilo_bande_annonce_poster.jpg")'; box.classList.add('absent');
+  musicHush(false);
+}
+function iloTlLoad() {
+  const v = $('jdw-ilo-tl-v'), C = navigator.connection || {};
+  ILO.bad = false; $('jdw-ilo-tl-box').classList.remove('absent');
+  v.poster = ROOT + 'assets/ilo/ilo_bande_annonce_poster.jpg';
+  if (!PG_VID_BASE || !iloMp4()) { while (v.firstChild) v.removeChild(v.firstChild); iloTlSoon(); return; }
+  const light = C.saveData || C.type === 'cellular' || /(^|-)2g$|^3g$/.test(C.effectiveType || '');   // données mobiles, économie, réseau lent : 720
+  iloSources(v, 'ilo_bande_annonce_', ILO_Q, light ? 720 : iloQual(ILO_Q)).addEventListener('error', () => { if (ILO.tl) iloTlSoon(); else ILO.bad = true; }, { once: true });
+  v.load();
+}
+function iloTlOpen(from) {
+  const el = $('jdw-ilo-tl'), v = $('jdw-ilo-tl-v'); if (!el || ILO.tl) return;
+  ILO.tl = true; ILO.from = from || document.activeElement;
+  el.hidden = false; iloBg(false);   // le fond se met en pause derrière
+  if (!v.firstElementChild || ILO.bad) iloTlLoad();   // la 1re fois, ou absente la dernière fois : on regarde de nouveau sur le seau
+  if (!ILO.bad) v.play().catch(() => {});
+  setTimeout(() => { const x = $('jdw-ilo-tl-x'); if (!ILO.tl) return; try { x.focus({ preventScroll: true }); } catch (e) {} if (PADJ) PADJ.autoFocus(); }, 40);
+}
+function iloTlClose() {
+  if (!ILO.tl) return;
+  ILO.tl = false;
+  try { $('jdw-ilo-tl-v').pause(); } catch (e) {}
+  $('jdw-ilo-tl').hidden = true; musicHush(false);   // la musique de la borne revient
+  if (MODE === 'ilo' && !$('jdw-lib').hidden) iloBg(true);
+  const f = ILO.from; ILO.from = null;
+  if (f && f.isConnected && !$('jdw-lib').hidden) { try { f.focus({ preventScroll: true }); } catch (e) {} if (PADJ) PADJ.autoFocus(); }   // le focus revient au bouton
+}
+{
+  const v = $('jdw-ilo-tl-v');
+  v.addEventListener('playing', () => { if (ILO.tl) musicHush(true); });   // la bande-annonce a le son : la musique de la borne se tait
+  v.addEventListener('ended', () => musicHush(false));
+  v.addEventListener('error', () => { if (ILO.tl) iloTlSoon(); });
+  $('jdw-ilo-play').addEventListener('click', (e) => iloTlOpen(e.currentTarget));
+  $('jdw-ilo-tl-x').addEventListener('click', iloTlClose);
+  $('jdw-ilo-tl').addEventListener('click', (e) => { if (e.target === e.currentTarget) iloTlClose(); });   // le fond sombre autour
+  // Échap ferme le lecteur (avant les autres fenêtres) ; Tab reste dans le lecteur
+  addEventListener('keydown', (e) => {
+    if (!ILO.tl) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); iloTlClose(); return; }
+    if (e.key === 'Tab') { const f = [ILO.bad ? null : v, $('jdw-ilo-tl-x')].filter(Boolean), i = f.indexOf(document.activeElement); e.preventDefault(); f[(i < 0 ? 0 : i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus(); }
+  }, true);
+}
 // 🏆 le CLASSEMENT DES ÎLES : espèces du Grand livre trouvées par les habitants, temps passé sur l'île, habitants. Serveur :
 // pg_island_ranking() → [{ r_id, r_name, r_especes, r_heures, r_membres }] (lisible sans compte) ; sans lui, la liste des îles et « bientôt ».
 const PGR = { sort: 'r_especes', rows: [], srv: null };
@@ -12322,6 +12430,7 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 // retour d'Android : un B de la manette vient peut-être de faire la même chose (manette.js) → une seule fois
 window.JDW_BACK = () => (PADJ && PADJ.nativeBack()) ? true : jdwBack();
 function jdwBack() {
+  if (ILO.tl) { iloTlClose(); return true; }           // la bande-annonce d'ILO, par-dessus tout
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
   if (popCloseAll()) return true;
   if (PADP.open) { padPauseClose(true); return true; }

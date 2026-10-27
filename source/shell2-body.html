@@ -24,6 +24,7 @@
   </div>
   <div class="pg-poster" id="jdw-pg-poster" aria-hidden="true"></div>
   <video class="pg-video" id="jdw-pg-video" muted playsinline preload="none" disablepictureinpicture aria-hidden="true"></video><video class="pg-video off" id="jdw-pg-video2" muted playsinline preload="none" disablepictureinpicture aria-hidden="true"></video><div class="pg-veil" aria-hidden="true"></div>
+  <div class="ilo-bg" id="jdw-ilo-bg" aria-hidden="true"><video class="ilo-video" id="jdw-ilo-video" muted loop playsinline preload="none" disablepictureinpicture aria-hidden="true"></video><div class="ilo-veil"></div></div>
   <div class="lib-wrap">
     <div class="room-row" id="jdw-roomrow" hidden>
     <button class="room-bar" id="jdw-roombar" type="button">
@@ -145,10 +146,17 @@
       <button class="pg-create" id="jdw-pg-create" type="button"><b>＋ Créer mon île</b><small>Publique ou avec mot de passe · tu en es le gardien</small></button>
       <p class="pg-note" id="jdw-pg-note"></p>
     </section>
+    <section class="mode-page" id="jdw-page-ilo" aria-labelledby="jdw-ilo-t">
+      <span class="ilo-soon">À venir</span>
+      <h2 class="ilo-title" id="jdw-ilo-t" aria-label="Le Silence d’ILO"><span class="it1">Le Silence d’</span><span class="it2">ILO</span></h2>
+      <p class="ilo-txt">Seul dans l’univers, aux commandes d’un vaisseau&nbsp;: <span class="nw">K-107</span>, la Nuit Galactique, Busteria… Bientôt sur PC.</p>
+      <button class="ilo-play" id="jdw-ilo-play" type="button" aria-haspopup="dialog"><i aria-hidden="true">▶</i><span>Bande-annonce</span></button>
+    </section>
     <section class="grid" id="jdw-grid" aria-label="Jeux"></section>
     <p class="lib-note" id="jdw-note"></p>
   </div>
   <nav class="modebar" id="jdw-modes" aria-label="Modes de jeu" data-pad-skip>
+    <button type="button" data-mode="ilo" hidden><span class="mb-ic">🌌</span><span class="mb-t">ILO</span><span class="mb-soon" id="jdw-ilo-badge">à venir</span></button>
     <button type="button" data-mode="pegase" hidden><span class="mb-ic">🏝️</span><span class="mb-t">Pégase</span><span class="mb-soon" id="jdw-pg-badge" hidden></span></button><span class="mb-sep" aria-hidden="true" hidden></span>
     <button type="button" data-mode="arcade" hidden><span class="mb-ic">🕹️</span><span class="mb-t">Nos autres jeux</span><span class="mb-soon" id="jdw-arc-badge" hidden></span></button>
     <button type="button" data-mode="classique"><span class="mb-ic">🕹️</span><span class="mb-t">Classique</span><span class="mb-soon new" id="jdw-cls-badge" hidden>nouveau</span></button>
@@ -975,6 +983,17 @@
     <div class="gmap-sum" id="jdw-map-sum"></div>
     <button class="btn btn-play gmap-play" id="jdw-map-play" type="button">▶ Jouer</button>
   </footer>
+</div>
+<!-- la bande-annonce d'ILO (page ILO) : par-dessus la page, la musique de la borne se tait pendant qu'elle joue -->
+<div class="ilo-tl" id="jdw-ilo-tl" role="dialog" aria-modal="true" aria-labelledby="jdw-ilo-tl-t" hidden>
+  <div class="ilo-tl-in">
+    <p class="ilo-tl-t" id="jdw-ilo-tl-t">Le Silence d’ILO · bande-annonce</p>
+    <div class="ilo-tl-v" id="jdw-ilo-tl-box">
+      <video id="jdw-ilo-tl-v" controls playsinline preload="none" controlslist="nodownload" disablepictureinpicture></video>
+      <div class="ilo-tl-soon"><span class="ilo-soon">À venir</span><b>La bande-annonce arrive très bientôt.</b></div>
+    </div>
+  </div>
+  <button class="ilo-tl-x" id="jdw-ilo-tl-x" type="button" aria-label="Fermer la bande-annonce" data-pad-default>✕</button>
 </div>
 <!-- « Joué par » de l'écran de fin : hors de la carte (qui est animée), pour rester bien placé -->
 <div class="act-menu endby-menu" id="jdw-endby-menu" role="menu" aria-label="Qui a joué ?" hidden></div>

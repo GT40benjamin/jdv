@@ -2889,3 +2889,108 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
   #jdw-lib[data-mode="pegase"] .guest-bar .gb-btns .btn{flex:0 0 auto;min-height:32px;padding:6px 12px;font-size:11.5px}
 }
 #jdw-lib[data-mode="pegase"] .pg-plus:not(.open):not(.birth){background:rgba(10,16,32,.32)!important;border-color:rgba(255,214,140,.55)}   /* la tuile « + » reste légère, quel que soit le ciel */
+
+/* ===== L'UNIVERS D'ILO (« à venir ») : l'onglet tout à gauche, à côté de Pégase ; la page « Le Silence d'ILO » (espace profond, lave,
+   feux cyan du vaisseau) ; la bande-annonce par-dessus la page. has-ilo : l'onglet est montré (avec celui de Pégase, shell2.js) ===== */
+/* la barre du bas : ILO · Pégase · séparateur · Nos autres jeux · Classique · Duel · Coop ; ILO ouvert = comme Pégase ouvert */
+.modebar.has-pg.has-ilo{grid-template-columns:minmax(0,.62fr) minmax(0,.75fr) 10px minmax(0,0fr) repeat(3,minmax(0,1fr))}
+.modebar.has-pg.has-ilo.pg-open,.modebar.has-pg.has-ilo.ilo-open{grid-template-columns:minmax(0,.62fr) minmax(0,1fr) 10px minmax(0,1.18fr) repeat(3,minmax(0,0fr))}
+.modebar.has-pg.ilo-open button[data-mode="classique"],.modebar.has-pg.ilo-open button[data-mode="duel"],.modebar.has-pg.ilo-open button[data-mode="coop"]{opacity:0;pointer-events:none;padding:0;overflow:hidden}
+.modebar.has-pg.ilo-open button[data-mode="arcade"]{opacity:1;pointer-events:auto;padding:5px 2px 4px;overflow:visible}
+.modebar button[data-mode="ilo"]{--mc:#5ef0ff}
+.modebar button[data-mode="ilo"] .mb-ic{background:linear-gradient(160deg,rgba(94,240,255,.16),rgba(255,106,26,.18))}
+.modebar.has-pg.has-ilo:not(.ilo-open) button[data-mode="ilo"] .mb-ic{width:40px}
+#jdw-ilo-badge{left:50%;right:auto;top:-5px;margin-left:0;transform:translateX(-50%);background:linear-gradient(90deg,#ffb347,#ff6a1a);color:#1a0800;box-shadow:0 0 10px rgba(255,106,26,.5)}
+#jdw-lib[data-mode="pegase"] .modebar #jdw-ilo-badge{display:block !important}   /* « à venir » se voit aussi depuis Pégase (ses autres badges restent cachés) */
+#jdw-lib[data-mode="ilo"] .modebar .mb-soon:not(#jdw-ilo-badge){display:none !important}
+/* le fond : l'affiche, puis la boucle filmée dans le jeu en fondu ; un voile sombre en bas pour lire le texte */
+.ilo-bg{position:fixed;inset:0;z-index:0;pointer-events:none;display:none;background:#05060f center/cover no-repeat}
+#jdw-lib[data-mode="ilo"] .ilo-bg{display:block}
+.ilo-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease}
+.ilo-video.on{opacity:1}
+.ilo-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,6,15,.5) 0%,rgba(5,6,15,0) 20%,rgba(5,6,15,0) 38%,rgba(5,6,15,.6) 66%,rgba(5,6,15,.92) 100%)}
+#jdw-lib[data-mode="ilo"]{background:#05060f}
+#jdw-lib[data-mode="ilo"] .lib-wrap{position:relative;z-index:1;min-height:100%;align-content:end;gap:14px;padding-top:60px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px)}
+#jdw-lib[data-mode="ilo"] .mode-hero{display:none}
+#jdw-lib[data-mode="ilo"] #jdw-page-ilo{display:grid}
+#jdw-page-ilo{justify-items:center;gap:12px;text-align:center;padding:0 4px clamp(4px,2.5vh,30px)}
+/* la barre du haut : quelques icônes rondes dans le coin, comme sur Pégase (🏠 · ta tête · 🔔 · ♪) */
+#jdw-lib[data-mode="ilo"] #jdw-online,#jdw-lib[data-mode="ilo"] #jdw-chat-btn,#jdw-lib[data-mode="ilo"] #jdw-open-board,#jdw-lib[data-mode="ilo"] #jdw-open-settings,#jdw-lib[data-mode="ilo"] #jdw-me-name,#jdw-lib[data-mode="ilo"] #jdw-share-btn,#jdw-lib[data-mode="ilo"] .room-row{display:none !important}
+#jdw-lib[data-mode="ilo"] #jdw-pg-music{display:inline-grid}
+#jdw-lib[data-mode="ilo"] .home-bar{position:fixed;top:10px;right:10px;left:auto;z-index:8;margin:0;padding:0;gap:6px;border:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;justify-content:flex-end;opacity:.7;transition:opacity .3s}
+#jdw-lib[data-mode="ilo"] .home-bar .bar-sp{display:none}
+#jdw-lib[data-mode="ilo"] .home-bar:hover,#jdw-lib[data-mode="ilo"] .home-bar:focus-within{opacity:1}
+@media (hover:none){#jdw-lib[data-mode="ilo"] .home-bar{opacity:.85}}
+#jdw-lib[data-mode="ilo"] .home-bar .icon-btn,#jdw-lib[data-mode="ilo"] .me-chip{width:34px;height:34px;min-width:34px;padding:0;justify-content:center;border-radius:50%;border:1px solid rgba(94,240,255,.28);background:rgba(5,6,15,.45);color:#dffcff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#jdw-lib[data-mode="ilo"] .home-bar .icon-btn svg{width:17px;height:17px}
+#jdw-lib[data-mode="ilo"] .me-chip .avatar{width:26px;height:26px}
+#jdw-lib[data-mode="ilo"] .home-bar .badge{transform:scale(.8)}
+/* les bandeaux (invité, compte, réseau) : sous le texte, en verre sombre */
+#jdw-lib[data-mode="ilo"] .guest-bar,#jdw-lib[data-mode="ilo"] .acct-bar{order:20}
+#jdw-lib[data-mode="ilo"] .guest-bar,#jdw-lib[data-mode="ilo"] .acct-bar,#jdw-lib[data-mode="ilo"] .net-bar{width:min(620px,100%);justify-self:center;background:rgba(5,6,15,.66);border-color:rgba(94,240,255,.2);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#jdw-lib[data-mode="ilo"] .guest-bar .gb-tx span{display:none}
+#jdw-lib[data-mode="ilo"] .guest-bar .gb-btns .btn{min-height:32px;padding:6px 12px;font-size:11.5px}
+@media (min-width:601px){#jdw-lib[data-mode="ilo"] .guest-bar{grid-template-columns:auto minmax(0,1fr) auto;padding:8px 10px;gap:10px;border-radius:14px}#jdw-lib[data-mode="ilo"] .guest-bar .gb-btns{grid-column:auto;flex-wrap:nowrap}}
+/* le titre, le badge, le texte, le bouton */
+.ilo-soon{display:inline-flex;align-items:center;gap:7px;padding:6px 12px 5px;border-radius:999px;font:400 11.5px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:#1a0800;
+  background:linear-gradient(90deg,#ffb347,#ff6a1a);box-shadow:0 0 22px rgba(255,106,26,.55),inset 0 1px 0 rgba(255,255,255,.45)}
+.ilo-soon::before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;animation:iloBlink 1.6s ease-in-out infinite}
+@keyframes iloBlink{50%{opacity:.25}}
+.ilo-title{margin:0;display:grid;justify-items:center;font-weight:400;line-height:1}
+.ilo-title .it1{font:600 clamp(13px,2.2vw,19px)/1 var(--body);letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;color:#c9fbff;text-shadow:0 0 14px rgba(94,240,255,.75),0 2px 6px rgba(0,0,0,.9)}
+.ilo-title .it2{margin-top:.06em;font:400 clamp(64px,min(21vw,24vh),176px)/.92 var(--display);letter-spacing:.1em;padding-left:.1em;
+  background:linear-gradient(180deg,#ffffff 0%,#e4fdff 32%,#5ef0ff 64%,#1f6dff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px rgba(94,240,255,.45)) drop-shadow(0 5px 0 rgba(0,0,0,.4)) drop-shadow(0 10px 40px rgba(255,106,26,.4))}
+.ilo-txt{margin:0;max-width:30em;font:600 clamp(14px,1.7vw,17px)/1.45 var(--body);color:#eef8ff;text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 18px rgba(0,0,0,.75)}
+.ilo-txt .nw{white-space:nowrap}
+.ilo-play{display:inline-flex;align-items:center;gap:12px;min-height:54px;margin-top:4px;padding:0 24px 0 8px;border:0;border-radius:999px;cursor:pointer;
+  font:400 15px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:#1a0800;background:linear-gradient(180deg,#ffd08a,#ffb347 42%,#ff6a1a);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 26px rgba(255,106,26,.45),0 0 44px rgba(255,106,26,.25);transition:transform .15s,filter .2s,box-shadow .2s}
+.ilo-play i{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font-style:normal;font-size:14px;color:#5ef0ff;background:#05060f;
+  box-shadow:inset 0 0 0 2px rgba(94,240,255,.6),inset 0 0 14px rgba(94,240,255,.45)}
+.ilo-play:hover{filter:brightness(1.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 10px 32px rgba(255,106,26,.6),0 0 54px rgba(255,106,26,.35)}
+.ilo-play:active{transform:translateY(1px) scale(.98)}
+/* la barre du bas sur la page ILO : flottante, en verre sombre (comme sur Pégase) */
+#jdw-lib[data-mode="ilo"] .modebar{left:50%;right:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);width:min(540px,calc(100vw - 24px));padding:7px;border-radius:22px;
+  border:1px solid rgba(94,240,255,.22);background:rgba(5,6,15,.74);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 12px 34px rgba(0,0,0,.45),0 0 26px rgba(94,240,255,.07)}
+#jdw-lib[data-mode="ilo"] .modebar button{min-height:52px}
+#jdw-lib[data-mode="ilo"] .modebar button[aria-current="page"] .mb-t{color:#5ef0ff}
+@media (max-width:600px){
+  #jdw-lib[data-mode="ilo"] .lib-wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 74px)}
+  #jdw-lib[data-mode="ilo"] .modebar{bottom:calc(env(safe-area-inset-bottom,0px) + 10px);width:min(360px,calc(100vw - 24px));padding:3px;border-radius:999px}
+  #jdw-lib[data-mode="ilo"] .modebar button{min-height:40px;grid-auto-flow:column;justify-content:center;align-items:center;gap:6px;border-radius:999px;font-size:12px}
+  #jdw-lib[data-mode="ilo"] .modebar .mb-ic{width:30px;height:24px;border-radius:12px;font-size:16px}
+  #jdw-lib[data-mode="pegase"] .modebar.has-ilo{width:min(360px,calc(100vw - 24px))}   /* une pilule de plus : un peu plus large */
+  #jdw-lib[data-mode="pegase"] .modebar.has-ilo button[data-mode="ilo"] .mb-ic{width:30px}
+  #jdw-lib[data-mode="pegase"] .modebar #jdw-ilo-badge,#jdw-lib[data-mode="ilo"] .modebar #jdw-ilo-badge{top:-9px;padding:2px 6px 1px}
+  #jdw-lib[data-mode="ilo"] .home-bar{top:8px;right:8px;gap:5px}
+  #jdw-lib[data-mode="ilo"] .home-bar .icon-btn,#jdw-lib[data-mode="ilo"] .me-chip{width:32px;height:32px;min-width:32px}
+}
+/* écran bas (téléphone couché) : tout tient au-dessus de la barre du bas */
+@media (max-height:520px){
+  #jdw-lib[data-mode="ilo"] .lib-wrap{padding-top:44px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
+  #jdw-page-ilo{gap:8px}
+  .ilo-title .it2{font-size:clamp(52px,22vh,110px)}
+  .ilo-txt{font-size:14px}
+  .ilo-play{min-height:46px}
+  .ilo-play i{width:32px;height:32px}
+  #jdw-lib[data-mode="ilo"] .modebar button{min-height:44px}
+}
+/* la bande-annonce, par-dessus la page */
+.ilo-tl{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:calc(env(safe-area-inset-top,0px) + 62px) 3vw calc(env(safe-area-inset-bottom,0px) + 24px);
+  background:radial-gradient(70% 60% at 50% 45%,rgba(18,22,46,.6),rgba(3,4,10,.96) 72%),rgba(3,4,10,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:iloTlIn .3s ease both}
+.ilo-tl[hidden]{display:none}
+@keyframes iloTlIn{from{opacity:0}to{opacity:1}}
+.ilo-tl-in{width:min(94vw,calc((100vh - 140px) * 16 / 9),1500px);width:min(94vw,calc((100dvh - 140px) * 16 / 9),1500px);display:grid;gap:10px}
+.ilo-tl-t{margin:0;font:400 12px/1.2 var(--display);letter-spacing:.2em;text-transform:uppercase;color:#ffb347;text-shadow:0 0 12px rgba(255,106,26,.5)}
+.ilo-tl-v{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:12px;background:#000 center/cover no-repeat;
+  box-shadow:0 0 0 1px rgba(94,240,255,.32),0 0 60px -10px rgba(255,106,26,.45),0 40px 90px -30px #000}
+.ilo-tl-v video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.ilo-tl-soon{position:absolute;inset:0;display:none;place-items:center;align-content:center;gap:16px;padding:0 20px;text-align:center;background:rgba(5,6,15,.52)}
+.ilo-tl-v.absent .ilo-tl-soon{display:grid}
+.ilo-tl-v.absent video{visibility:hidden}
+.ilo-tl-soon b{font:400 clamp(17px,2.6vw,28px)/1.25 var(--display);color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.95)}
+.ilo-tl-x{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 12px);width:48px;height:48px;padding:0;border:0;border-radius:50%;cursor:pointer;
+  display:grid;place-items:center;font:700 21px/1 var(--body);color:#fff;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);transition:background .2s,color .2s}
+.ilo-tl-x:hover{background:#ff6a1a;color:#1a0800}
+@media (prefers-reduced-motion:reduce){.ilo-soon::before,.ilo-tl{animation:none}.ilo-video{transition:none}}
