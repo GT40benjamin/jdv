@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🏝️ La légende de Pégase, à découvrir sous les îles (borne 1.46.7)
+[pegase] Descends sous les îles de la page Pégase : une grande page raconte l'histoire du jeu. Tu es photographe, et tu viens sur l'île photographier et étudier Pégase, le cheval ailé de la légende
+[pegase] Le safari photo, le Grand Livre des espèces, la vie au village d'Ailebrune, ton île avec tes amis, la musique et PegaGram, en grandes images du jeu
+[pegase] Tout pour installer Pégase au même endroit : le téléchargement pour PC (ou l'installation sur ton téléphone Android) et la configuration PC conseillée, de la plus simple jusqu'à l'Ultra
 [borne] ## 🔔 Des mises à jour claires (borne 1.46.6)
 [borne] La cloche ne montre plus que ce qui a changé depuis ta dernière visite, rangé par jeu, le plus récent en haut ; le reste est replié dans « Avant »
 [borne] Les jeux qui ont changé portent « ✨ Mis à jour » sur leur tuile (et l'onglet Pégase quand Pégase change), jusqu'à ce que tu les ouvres
