@@ -265,4 +265,6 @@ Pour un jeu qui se quitte à tout moment et se reprend EXACTEMENT où on l'a lai
 - `fps: false` dans l'enregistrement du jeu : le compteur d'images de la borne (réglage « 📈 Images/s ») ne s'affiche pas dans ce jeu.
 - `api.levelBest.put(niveau, coups, ms)` : meilleur perso sur ce niveau (moins de coups, puis moins de temps ; `put_level_best`) ;
   `await api.levelBest.room(niveau)` → `[{ name, moves, ms, me }]` = les membres de la salle sur ce niveau, du meilleur au moins bon (vide en invité).
+- `await api.levelBest.all()` (1.45.2) → `{ members: [{ name, img, me }], best: { niveau: [{ name, moves, ms, me }] } }` = moi + les membres de la salle
+  (img = leur tête, null sans photo) et leurs meilleurs sur TOUS les niveaux en un appel (`get_level_bests_all`) ; null en invité, sans salle ou hors ligne.
 Sans `api.save.score` (borne plus ancienne), le jeu appelle `api.gameOver(total)` quand un niveau réussi fait monter le total.

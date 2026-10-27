@@ -8908,6 +8908,25 @@ function levelBestApi(g) {
         const me = cleanName(profile.name);
         return (r || []).filter(x => !knownNotMember(x.r_name)).map(x => ({ name: dispName(x.r_name), moves: +x.r_moves, ms: +x.r_ms, me: x.r_name === me }));
       } catch (e) { if (e.status === 404) SAVEG.bestMissing = true; return []; }
+    },
+    // TOUS les niveaux d'un coup (1.45.2, tableau des copains) : { members: [{ name, img, me }], best: { niveau: [{ name, moves, ms, me }] } } ;
+    // members = moi + les membres de la salle (même sans photo : img null) ; null en invité / sans salle / hors ligne
+    async all() {
+      if (isGuest() || !ONLINE || !room || netOff()) return null;
+      const me = cleanName(profile.name);
+      const members = [];
+      for (const p of players.values()) {
+        if (p.name === 'IA' || !(p.name === me || !knownNotMember(p.name))) continue;   // comme headsList
+        members.push({ name: dispName(p.name), img: p.img && p.img.complete && p.img.naturalWidth ? p.img : null, me: p.name === me });
+      }
+      const best = {};
+      if (!SAVEG.allMissing) {
+        try {
+          const r = await rpc('get_level_bests_all', Object.assign({ p_code: CODE() }, RP(), { p_game: g.id }), { quiet404: true });
+          for (const x of r || []) { if (knownNotMember(x.r_name)) continue; (best[x.r_level] = best[x.r_level] || []).push({ name: dispName(x.r_name), moves: +x.r_moves, ms: +x.r_ms, me: x.r_name === me }); }
+        } catch (e) { if (e.status === 404) SAVEG.allMissing = true; }
+      }
+      return { members, best };
     }
   };
 }

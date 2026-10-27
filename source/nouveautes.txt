@@ -21,6 +21,10 @@
 [chrono] 4 circuits ouverts dès le départ : Le Stade, Le Grand Huit (looping, tremplin, pont), La Folie (la nuit, sans murs) et L’Orbite (dans l’espace, entre les planètes)
 [chrono] À l’arrivée, le classement du circuit avec ta place, puis « Refaire » ou « Changer de course » ; médailles de bronze, d’argent, d’or et de l’auteur
 [chrono] Boutons GAZ et FREIN, ◀ ▶ à gauche (mieux en paysage), clavier ou manette ; attention aux piliers et aux réceptions ratées : la voiture part en tonneaux !
+[coffres] ## 🗝️ Coffres à Secrets : le tableau des copains (borne 1.45.2)
+[coffres] L’étagère est refaite : un onglet par monde, puis un tableau avec une ligne par coffre, ton record, et une colonne par copain de ta salle
+[coffres] Sur chaque coffre, la tête de chaque copain : en couleur avec ses coups s’il l’a ouvert, grisée s’il ne l’a pas encore fait, et 👑 pour le meilleur
+[coffres] Passe la souris sur une ligne (ou touche-la sur téléphone) : qui l’a ouvert, en combien de coups et de temps, et qui ne l’a pas encore fait
 [coffres] ## 🗝️ Nouveau jeu : Coffres à Secrets (borne 1.45)
 [coffres] Un casse-tête en 3D : fais glisser les pièces de bois du couvercle pour sortir la clé dorée par la fente, et le coffre s’ouvre sur son trésor
 [coffres] 6 mondes de 8 coffres, de Facile à Expert : glissières, dés, plateaux qui tournent, tiges de laiton, poussoirs… et au bout de chaque monde, le grand coffre d’un copain

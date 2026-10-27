@@ -8,7 +8,7 @@
 // Atelier : ~/jdv-tools/duotest/coffres (sources, générateur des niveaux, essais ; fiche REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
 let ENGINE = null;
-const WANT = 'cf-cab7e49e';   // version du moteur de CE module (posée par tools/build.js)
+const WANT = 'cf-5d5926b7';   // version du moteur de CE module (posée par tools/build.js)
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));
   if (!r.ok) throw new Error('moteur ' + r.status);
