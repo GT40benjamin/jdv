@@ -6,6 +6,14 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🌊 Pégase 0.9.8.9 (borne 1.46.16)
+[pegase] Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol, dont le grand arbre suspendu près du pont rouge
+[pegase] Le socle de pierre du coin cosy descend maintenant jusqu'au sol, côté vallée
+[pegase] Au potager, creuser fait un vrai trou dans la terre : ta graine tombe tout au fond, et chaque légume a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…)
+[pegase] Pendant le concours photo, Hugo, Iris et Rosalie se promènent et prennent des photos du village (parfois de toi !), puis rentrent chez eux à pied ; Mathilde retourne à sa boutique
+[pegase] De temps en temps, un voisin passe devant ta maison, la regarde, te dit parfois qu'elle est jolie, puis repart
+[pegase] Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane
+[pegase] L'herbe sur les rochers demande moins d'effort à ton ordinateur
 [pegase] ## ✨ Le titre de la présentation de Pégase, bien en vue (borne 1.46.15)
 [pegase] Après « Découvrir Pégase », le grand titre « La légende de Pégase » arrive au milieu de l'écran, avec ses boutons bien au-dessus de la barre du bas, et les lettres comme le « g » ne sont plus coupées
 [pegase] ## 🌊 La présentation de Pégase, avec l'île en 3D et sa mer (borne 1.46.14)

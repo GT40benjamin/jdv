@@ -27,7 +27,7 @@ const TILE_NEWS = {
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-10-25 02:40' }   // la page Pégase pour tous : les îles, le décor filmé dans le jeu, la musique (25 oct. 2026) ; avant :   // Pégase 0.9.2 : appels entre copains, maisons des copains, réveil chez soi (1.25.2 ; heure = celle de la publication)
+  pegase: { kind: 'maj', at: '2026-10-27 16:55' }   // Pégase 0.9.8.9 (borne 1.46.16) : plus rien ne flotte, vrais trous au potager, le village photographie le concours, voisins devant ta maison, coin de Gaspard ; avant : pegase: { kind: 'maj', at: '2026-10-25 02:40' }   // la page Pégase pour tous : les îles, le décor filmé dans le jeu, la musique (25 oct. 2026) ; avant :   // Pégase 0.9.2 : appels entre copains, mais
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
