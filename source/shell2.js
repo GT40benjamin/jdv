@@ -5904,8 +5904,9 @@ $('jdw-pg-ambi').addEventListener('click', (e) => { e.stopPropagation(); pgAmbi(
    La page (27/10, Benjamin : « on ne l'agrandit pas, tu la mets en boucle, ancrée dans la page, à côté d'un petit texte ») : « Elixir Game
    Studio présente », le titre, et la BANDE-ANNONCE en boucle dans son cadre, le texte à côté — muette au départ (un navigateur ne lance pas
    seul une vidéo qui a du son) ; « Le son » la fait entendre, et la musique de la borne se tait pendant ce temps. Vidéos du seau R2
-   (PG_VID_BASE, le même que Pégase) : ilo_bande_annonce_<720|1080|1440|2160>.mp4 ; une qualité absente : la plus petite suivante ; aucune
-   (pas encore envoyées) : l'affiche du dépôt (assets/ilo/ilo_bande_annonce_poster.jpg) et « La bande-annonce arrive très bientôt. » ;
+   (PG_VID_BASE, le même que Pégase) : ilo_bande_annonce_<1080|1440|2160>.mp4, et la 720 dans le dépôt (assets/ilo/, elle joue toujours) ;
+   une qualité absente : la plus petite suivante ; aucune : l'affiche (assets/ilo/ilo_bande_annonce_poster.jpg) et « La bande-annonce arrive
+   très bientôt. » ;
    jamais de vidéo en économie de données, sur un réseau lent ni en mouvement réduit (l'affiche seule). */
 const ILO = { dead: false };
 const ILO_Q = [720, 1080, 1440, 2160];   // qualités envoyées sur le seau
@@ -5919,11 +5920,15 @@ function iloQual() {
   const f = $('jdw-ilo-film'), px = (f && f.clientWidth ? f.clientWidth : innerWidth) * Math.min(window.devicePixelRatio || 1, 3);
   return (navigator.connection || {}).type === 'cellular' ? 720 : px > 1500 ? 1440 : px > 800 ? 1080 : 720;
 }
-// <source> de la qualité visée, puis des plus petites : le navigateur joue la première qui existe sur le seau ; rend la dernière (« error » = aucune)
+// <source> de la qualité visée, puis des plus petites : le navigateur joue la première qui existe ; la 720 vient du DÉPÔT
+// (assets/ilo/ilo_bande_annonce_720.mp4, comme les plans 720 de Pégase) : la bande-annonce joue même avant l'envoi sur le seau ;
+// rend la dernière (« error » = aucune)
 function iloSources(v, name, list, want) {
   while (v.firstChild) v.removeChild(v.firstChild);
   let last = null;
-  for (const q of list.filter(x => x <= want).sort((a, b) => b - a)) { last = document.createElement('source'); last.src = PG_VID_BASE + name + q + '.mp4'; last.type = 'video/mp4'; v.appendChild(last); }
+  const add = (u) => { last = document.createElement('source'); last.src = u; last.type = 'video/mp4'; v.appendChild(last); };
+  if (PG_VID_BASE) for (const q of list.filter(x => x <= want && x > 720).sort((a, b) => b - a)) add(PG_VID_BASE + name + q + '.mp4');
+  add(ROOT + 'assets/ilo/' + name + '720.mp4');
   return last;
 }
 function iloSon(on) {   // le son de la bande-annonce ; la musique de la borne se tait tant qu'on l'entend
@@ -5943,7 +5948,7 @@ function iloFilm(on) {
   const u = ROOT + 'assets/ilo/ilo_bande_annonce_poster.jpg';
   if (f.dataset.u !== u) { f.dataset.u = u; f.style.backgroundImage = 'url("' + u + '")'; }   // l'affiche d'abord (et en secours)
   if (ILO.dead) return;
-  if (!PG_VID_BASE || !iloMp4()) { iloSoon(); return; }
+  if (!iloMp4()) { iloSoon(); return; }
   if (iloStill()) return;   // l'affiche seule
   if (!v.firstElementChild) { iloSources(v, 'ilo_bande_annonce_', ILO_Q, iloQual()).addEventListener('error', iloSoon, { once: true }); v.load(); }
   if (!document.hidden && !$('jdw-lib').hidden) v.play().catch(() => {}); else try { v.pause(); } catch (e) {}

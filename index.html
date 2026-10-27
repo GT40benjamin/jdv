@@ -603,12 +603,13 @@ footer a:hover{color:var(--gold2)}
   // ---------- ILO, en production : la BANDE-ANNONCE en boucle dans la carte, à côté du texte, jamais agrandie (27/10, Benjamin : « on ne
   // l'agrandit pas, tu la mets en boucle, ancrée dans la page ») — muette au départ (un navigateur ne lance pas seul une vidéo qui a du son),
   // « Le son » la fait entendre ; elle se met en pause (et se tait) quand la section sort de l'écran. Vidéos sur le seau R2 :
-  // ilo_bande_annonce_<720|1080|1440|2160>.mp4 ; une qualité absente : la plus petite suivante ; aucune (pas encore envoyées) : l'affiche et
+  // ilo_bande_annonce_<1080|1440|2160>.mp4, la 720 dans le dépôt (assets/ilo/) ; une qualité absente : la plus petite suivante ; aucune : l'affiche et
   // « La bande-annonce arrive très bientôt. » ; jamais de vidéo en économie de données, sur un réseau lent ni en mouvement réduit (l'affiche seule).
   var iloSec = $('ilo'), iloBox = $('ilo-media'), iloSonB = $('ilo-son'), iloV = null, iloOn = false, iloDead = false;
-  function iloSrc(v, name, list, want) {   // la qualité visée, puis les plus petites : le navigateur joue la première qui existe
-    var last = null;
-    list.filter(function (x) { return x <= want; }).reverse().forEach(function (x) { var s = document.createElement('source'); s.src = R2 + name + x + '.mp4'; s.type = 'video/mp4'; v.appendChild(s); last = s; });
+  function iloSrc(v, name, list, want) {   // la qualité visée, puis les plus petites (seau R2) ; la 720 vient du dépôt (assets/ilo/) : elle joue toujours
+    var last = null, add = function (u) { var s = document.createElement('source'); s.src = u; s.type = 'video/mp4'; v.appendChild(s); last = s; };
+    list.filter(function (x) { return x <= want && x > 720; }).reverse().forEach(function (x) { add(R2 + name + x + '.mp4'); });
+    add('assets/ilo/' + name + '720.mp4');
     return last;
   }
   function iloSon(on) {
