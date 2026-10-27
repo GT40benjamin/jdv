@@ -8770,6 +8770,12 @@ function saveApi(g) {
       S.pending = d; clearTimeout(S.t); S.t = setTimeout(push, 2500);
     },
     flush() { clearTimeout(S.t); return push(); },
+    // un meilleur total (casse-tête : un niveau réussi) part au classement habituel SANS quitter le jeu ni écran de fin (1.43.4)
+    score(total) {
+      const sc = Math.max(0, Math.floor(+total || 0));
+      if (!sc || !current || current.game !== g || current.over) return Promise.resolve('none');
+      return saveScore(g.id, sc).catch(() => 'local');
+    },
     _retry: () => { if (!S.pending) { const loc = store.get(key, null); if (loc && (+loc.at || 0) > (+store.get(sentKey, 0) || 0)) S.pending = loc; } return push(); }
   };
   api._key = key;
@@ -12717,7 +12723,7 @@ if (ONLINE && !isGuest()) { RT.topics.add('jdw-all'); if (room) RT.topics.add('j
 setTimeout(checkSiteVersion, 4000);
 // les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)
 setTimeout(() => { for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
-window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api, coop: () => COOP };   // diagnostic (tests)
+window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.mode, track: MUS.track, on: MUS.on, vol: MUS.gain ? +MUS.gain.gain.value.toFixed(3) : null }), toast: toastCheer, game: () => current && current.inst, duo: () => DUO.inst, duoApi: () => DUO.api, coop: () => COOP, noFps: () => !!(current && current.game && current.game.fps === false && !$('jdw-play').hidden) };   // diagnostic (tests) ; noFps : compteur d'images coupé pour ce jeu
 })();
 
 // ---------- Compteur d'images par seconde (essai) : réglage « 📈 Images/s (essai) » du menu du son, retenu sur l'appareil (jdw.fps).
@@ -12729,7 +12735,8 @@ window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.m
   const cb = $('jdw-sm-fps'); let on = false; try { on = localStorage.getItem('jdw.fps') === '1'; } catch (e) {}
   if (cb) { cb.checked = on; cb.addEventListener('change', () => { on = cb.checked; try { localStorage.setItem('jdw.fps', on ? '1' : '0'); } catch (e) {} tick0(); }); }
   let raf = 0, n = 0, t0 = 0, last = 0, worst = 0;
-  const inGame = () => !$('jdw-play').hidden || !$('jdw-duo').hidden;
+  const noFps = () => { try { const sh = window.JDW_SHELL; return !!(sh && sh.noFps && sh.noFps()); } catch (e) { return false; } };
+  const inGame = () => (!$('jdw-play').hidden || !$('jdw-duo').hidden) && !noFps();
   function draw(now) {
     raf = 0; if (!on || !inGame() || document.hidden) { box.hidden = true; return; }
     if (last) { const d = now - last; if (d > worst) worst = d; } last = now; n++;

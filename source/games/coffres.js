@@ -178,7 +178,8 @@ window.JDW_GAMES.coffres = {
   accent: '#e0aa48',
   scoreLabel: 'points',
   saves: true,                        // la partie est gardée à tout moment (api.save) : Quitter n'arrête rien, sans question
-  pad: { help: [['ls/dpad', 'Choisir une pièce'], ['a', 'Prendre / poser'], ['ls/dpad', 'Glisser (pièce prise)'], ['x', 'Plateau dans l\'autre sens'], ['lb', 'Annuler'], ['rb', 'Refaire'], ['y', 'Indice'], ['rs', 'Tourner la vue'], ['lt+rt', 'Zoom']] },
+  fps: false,                         // pas de compteur d'images de la borne par-dessus le titre
+  pad: { help: [['ls/dpad', 'Choisir une pièce'], ['a', 'Prendre / poser'], ['ls/dpad', 'Glisser (pièce prise)'], ['x', 'Plateau dans l\'autre sens'], ['lb', 'Annuler'], ['rb', 'Refaire'], ['rs', 'Tourner la vue'], ['lt+rt', 'Zoom']] },
   preview, mount
 };
 })();
