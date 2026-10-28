@@ -23,11 +23,11 @@ const TILE_NEWS = {
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-27 16:25' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 (12:16) ; « Mis à jour » à chaque publication (règle de PATOU), heure de la dernière : 1.46.13
-  neon: { kind: 'maj', at: '2026-10-27 14:57' },   // Néon Rush 1.46.5 : la carte d'avancement + l'endroit où chaque copain est mort (sur la carte et dans le jeu) ; heure = celle de la publication
+  neon: { kind: 'maj', at: '2026-10-29 01:30' },   // Néon Rush (borne 1.50.13) : les bulles en l'air plus faciles à prendre ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-10-28 23:24' }   // Pégase 0.9.9.12 : une serviette pour rêver (borne 1.50.12)
+  pegase: { kind: 'maj', at: '2026-10-29 01:30' }   // Pégase 0.9.9.13 : les missions en haut, et plus aucun appel perdu (borne 1.50.13)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));

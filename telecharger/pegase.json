@@ -1,12 +1,76 @@
 {
- "pkg": "fr.bornearcade.pegase",
- "versionCode": 60,
- "versionName": "0.9.9.12",
- "size": 1175033822,
- "sha256": "a4146a32f037763bf0cf1f5f42b83381f5cbd7cc9fcfb3c796ca95baf81d732f",
- "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v60/pegase-0.9.9.12.apk",
- "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
- "minSdk": 26,
- "abi": "arm64-v8a",
- "title": "Pégase"
+  "pkg": "fr.bornearcade.pegase",
+  "versionCode": 61,
+  "versionName": "0.9.9.13",
+  "size": 1179330718,
+  "sha256": "008dba365d628dc36c83a6d53c45a2e1bf0cf2f9b2788b334faedfe029326b02",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v61/pegase-0.9.9.13.apk",
+  "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
+  "minSdk": 26,
+  "abi": "arm64-v8a",
+  "title": "Pégase",
+  "notes": [
+    "La mission en cours et les missions du jour sont revenues en haut à gauche, sous tes lucioles : plus rien ne gêne les boutons ni le joystick.",
+    "Un appel d'un habitant raté, refusé ou coupé reste dans ton téléphone : « Appel manqué » en haut de Contacts, et « Rappeler » pour le réécouter depuis le début.",
+    "En visio, tu vois toujours l'habitant qui t'appelle, même s'il était rentré chez lui.",
+    "L'hôtel ne s'efface plus en pointillés sur téléphone, et son entrée a un perron.",
+    "Les « ! » au-dessus des habitants n'apparaissent plus que tout près, et seulement si tu vois la personne.",
+    "Les chiens Filou et Réglisse ont une tête plus douce, de grands yeux et des oreilles tombantes."
+  ],
+  "historique": [
+    {
+      "version": "0.9.9.13",
+      "notes": [
+        "La mission en cours et les missions du jour sont revenues en haut à gauche, sous tes lucioles : plus rien ne gêne les boutons ni le joystick.",
+        "Un appel d'un habitant raté, refusé ou coupé reste dans ton téléphone : « Appel manqué » en haut de Contacts, et « Rappeler » pour le réécouter depuis le début.",
+        "En visio, tu vois toujours l'habitant qui t'appelle, même s'il était rentré chez lui.",
+        "L'hôtel ne s'efface plus en pointillés sur téléphone, et son entrée a un perron.",
+        "Les « ! » au-dessus des habitants n'apparaissent plus que tout près, et seulement si tu vois la personne.",
+        "Les chiens Filou et Réglisse ont une tête plus douce, de grands yeux et des oreilles tombantes."
+      ]
+    },
+    {
+      "version": "0.9.8.9",
+      "notes": [
+        "Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol (dont le grand arbre suspendu près du pont rouge), et le socle du coin cosy descend jusqu'au sol.",
+        "De vrais trous dans le potager : quand tu creuses, c'est un vrai trou dans la terre ; tes graines tombent au fond, et chaque espèce a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…).",
+        "Le village photographie le concours : pendant le concours, Hugo, Iris et Rosalie se promènent et prennent des photos (parfois de toi !) ; Mathilde retourne à sa boutique, et chacun rentre à pied.",
+        "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
+        "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
+        "L'herbe des rochers est plus légère pour ton ordinateur."
+      ]
+    },
+    {
+      "version": "0.9.8.8",
+      "notes": [
+        "Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec ses bancs et leurs coussins, une table basse aux bougies sur un tapis, des lanternes, du lierre et des fleurs.",
+        "Plus de grandes nappes vertes toutes plates (PC) : le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs.",
+        "Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque.",
+        "Bêcher, c'est plus clair : houe ou pelle en main, un liseré doré entoure au sol la case que tu vas bêcher."
+      ]
+    },
+    {
+      "version": "0.9.8.7",
+      "notes": [
+        "La profondeur de ton bouchon : à la molette (manette : croix haut / bas), de 0,3 à 2,5 m ; une carte « Profondeur » à droite montre où est ton appât, et s'il touche le fond. Profond, les gros s'y intéressent ; tout près de la surface, les petits mordent vite.",
+        "Marche avec ta canne pendant que tu attends : le long du bord ou sur le ponton, jamais dans l'eau ; ton bouchon suit au bout du fil.",
+        "Agite ta canne (clic droit, manette : bouton ouest) : un petit coup de scion qui réveille les poissons… sans en abuser, sinon ils se méfient.",
+        "Pendant le combat, gauche et droite te font aussi marcher le long du bord, pour suivre ton poisson.",
+        "Un bouchon plus gros, plus facile à suivre.",
+        "De vrais bruits de pêche : le fouet de la canne au lancer, le bouchon qui plonge, le fil qui casse.",
+        "Gaspard t'explique la pêche telle qu'elle est maintenant.",
+        "Les portillons de jardin s'ouvrent tout seuls quand tu t'approches, et se referment derrière toi."
+      ]
+    },
+    {
+      "version": "0.9.8.6",
+      "notes": [
+        "Les parcelles ne débordent plus sur le chemin : devant le portique rouge, au pied de l'escalier et sous la falaise, les bords des parcelles à vendre reculent jusqu'à l'herbe.",
+        "L'allée vers le coin cosy est dégagée : entre les parcelles, quatre arbres ont été écartés du passage.",
+        "Un vrai escalier de pierre au bout du chemin du Clos, posé sur le chemin et qui suit la pente, une lanterne de chaque côté.",
+        "Les affiches se posent plus facilement : si l'endroit visé est déjà pris (une affiche à côté, le bord du mur, une poutre, une fenêtre), l'affiche glisse toute seule jusqu'à la place libre la plus proche sur le même mur.",
+        "Hugo, le facteur, ne roule plus sur le muret du perron de la mairie pendant sa tournée."
+      ]
+    }
+  ]
 }
