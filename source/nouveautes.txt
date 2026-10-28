@@ -13,6 +13,10 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## 🗝️ Pégase 0.9.9.3 : 20 nouveaux trésors et un hôtel plein de vie (borne 1.49.2)
+[pegase] 🗝️ 20 nouveaux trésors cachés à l'intérieur de l'île, sans flèche ni carte : sous les ponts et les arches de pierre, au pied des sanctuaires, des portiques rouges, des grands troncs et des marches du cimetière. Nouvelle famille : les objets d'autrefois (vieilles poteries, clés rouillées)
+[pegase] 📜 Quatre nouvelles bouteilles à message et quatre cartes postales continuent la légende… Seras-tu le premier à trouver les 40 trésors ?
+[pegase] 🏨 L'hôtel d'Ailebrune s'anime : Edmond s'ennuie et pianote à son comptoir, Mariette ramasse le linge et s'accroupit au pied des lits, les voyageurs s'étirent en bâillant en arrivant dans leur chambre ; les fauteuils, le canapé et la table du salon sont à taille humaine : on s'y assoit vraiment, le dos contre le dossier.
 [pegase] ## 🛶 Pégase 0.9.9.2 : la descente en barque, l'Hôtel d'Ailebrune et 20 trésors cachés (borne 1.49)
 [pegase] Une barque t'attend au bord de la grande poche, sous le pont rouge, à côté d'un panneau en bois : « Descendre la rivière en barque »
 [pegase] Le courant te porte jusqu'à la mer : les gorges et leurs rapides, les méandres calmes, l'estuaire et sa plage. Gauche / droite pour te décaler, avant pour ramer, arrière pour freiner
