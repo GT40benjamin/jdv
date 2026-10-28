@@ -24,7 +24,7 @@
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
 [pegase] ## 🏝️ Pégase a maintenant sa propre page (borne 1.50)
-[pegase] Pégase s'ouvre dans sa propre page (son propre onglet sur un ordinateur) : les îles, Regarder, PegaGram et Jouer y sont tous. Depuis la borne, touche « Pégase → » en haut ; pour revenir aux jeux d'arcade, « La borne d'arcade » en bas
+[pegase] Pégase s'ouvre dans sa propre page (son propre onglet sur un ordinateur) : les îles, Regarder, PegaGram et Jouer y sont tous. Depuis la borne, il est dans le menu « ⋯ » en haut ; pour revenir aux jeux d'arcade, « La borne d'arcade » en bas
 [pegase] Un appel d'un copain sonne partout sur le site, même sur la borne ou la page du studio : Décrocher ouvre Pégase sur l'appel
 [pegase] En haut, plusieurs boutons sont rangés sous « ⋯ »
 [pegase] ## ☁️ Les îles gardent leur mer de nuages (borne 1.49.8)

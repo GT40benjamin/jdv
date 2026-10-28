@@ -3981,8 +3981,13 @@ function acctRefresh(uid, force) {
   const fresh = (ms) => { const x = sessOf(uid); return !!(x && x.at && x.exp - Date.now() > ms); };
   if (acctAdopt(uid) && fresh(60e3)) return Promise.resolve(true);      // un autre onglet vient de le faire
   if (!force && fresh(5 * 60e3)) return Promise.resolve(true);
+  const t0 = Date.now();
   const run = async () => {
+    // le verrou a dû ATTENDRE : un autre onglet vient sans doute de rafraîchir, mais sa session met un instant à arriver ici (localStorage est
+    // recopié d'un onglet à l'autre de façon asynchrone ; vu le 28 oct. : le 2e onglet présentait encore l'ancien jeton) : 300 ms pour qu'elle arrive
+    if (Date.now() - t0 > 40 && !(acctAdopt(uid) && fresh(60e3))) await new Promise((ok) => setTimeout(ok, 300));
     if (acctAdopt(uid) && fresh(60e3)) return true;                   // fait par un autre onglet pendant l'attente du verrou
+    if (!force && fresh(5 * 60e3)) return true;                        // déjà à jour (l'événement storage l'a apporté pendant l'attente)
     const a = sessOf(uid); if (!a || !a.rt) return false;
     try { const s = await authReq('token?grant_type=refresh_token', { refresh_token: a.rt }); if (!s.user) s.user = { id: uid, email: a.email }; acctSetSess(s); return true; }
     catch (e) {
@@ -13705,13 +13710,13 @@ function moreClose() { const m = $('jdw-more-menu'); if (!m || m.hidden) return 
 })();
 
 /* ================= Les pages du site (28 oct. 2026) =================
-   Borne d'arcade (jouer/, sans Pégase) : le petit lien « Pégase → » (pas d'autre bouton : Benjamin, 28 oct., « ça rajoute un bouton ça ne va pas » ;
+   Borne d'arcade (jouer/, sans Pégase) : « Pégase » dans le menu « ⋯ » (pas d'autre bouton : Benjamin, 28 oct., « ça rajoute un bouton ça ne va pas » ;
    on appelle ses amis depuis Pégase, un appel reçu sonne partout). Page de Pégase (pegase/) : ?appel=<id>&de=<pseudo> = l'appel décroché sur le
    bandeau d'une AUTRE page : le hub s'ouvre et le prend (api.pegase.appelPris). Un joueur « sans Pégase » (Les couverts) : la page de Pégase est
    fermée, avec un message neutre. */
 function pagesBoot() {
   const pgHere = !!gameById('pegase');
-  const lk = $('jdw-pg-link');   // « Pégase → » dans la barre du haut
+  const lk = $('jdw-pg-link');   // « Pégase » : la première ligne du menu « ⋯ » (Benjamin : « je ne veux pas le bouton Pégase en haut, juste dans les petits points »)
   if (lk) {
     lk.hidden = PAGE !== 'borne' || pgHere || PG_SANS;
     lk.addEventListener('click', (e) => { e.preventDefault(); siteGo(lk.href, true); });

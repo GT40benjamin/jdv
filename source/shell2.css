@@ -3279,13 +3279,8 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 .pgv-isl.gl img{display:none}
 .pgv-isl.gl .pgv-ilecv{animation:pgvIleIn 1.2s ease}
 @keyframes pgvIleIn{from{opacity:0}to{opacity:1}}
-/* 28 oct. 2026 : la borne et Pégase sont deux pages. Le petit chemin discret « Pégase → » de la borne d'arcade (jouer/), 📞 « Appeler un ami »,
-   et la page de Pégase fermée à un joueur « sans Pégase » (Les couverts) */
-.pg-link{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(94,240,255,.28);background:rgba(58,214,200,.08);color:#a9f3ec;font:600 12.5px/1 var(--body);text-decoration:none;white-space:nowrap;opacity:.82;transition:opacity .2s,background .2s}
-.pg-link b{font-weight:700;transition:transform .2s}
-.pg-link:hover,.pg-link:focus-visible{opacity:1;background:rgba(58,214,200,.16)}
-.pg-link:hover b{transform:translateX(2px)}
-.pg-link[hidden]{display:none}
+/* 28 oct. 2026 : la borne et Pégase sont deux pages (« Pégase » est dans le menu « ⋯ » de la borne d'arcade),
+   la page de Pégase fermée à un joueur « sans Pégase » (Les couverts) */
 /* le menu « ⋯ » (Benjamin, 28 oct.) : les mêmes boutons, en lignes « icône + nom » (leur aria-label) */
 .more{position:relative;display:inline-flex}
 .more-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:30;display:grid;gap:2px;min-width:232px;max-width:min(86vw,320px);padding:6px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:#0c1228;box-shadow:0 14px 36px rgba(0,0,0,.6)}
@@ -3294,6 +3289,7 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 #jdw-lib .more-menu .icon-btn::after{content:attr(aria-label);white-space:normal}
 #jdw-lib .more-menu .icon-btn svg,#jdw-lib[data-mode] .home-bar .more-menu .icon-btn svg{width:20px;height:20px;flex:0 0 auto;stroke:currentColor}
 #jdw-lib .more-menu .icon-btn:hover,#jdw-lib .more-menu .icon-btn:focus-visible{background:rgba(94,240,255,.12)}
+#jdw-lib .more-menu .pg-go{color:#a9f3ec}   /* « Pégase », en tête du menu de la borne */
 #jdw-lib .more-menu .sb-lab{display:none}
 /* ce que la page montre : les boutons de Pégase sur Pégase, ceux de la borne ailleurs (mêmes règles que dans la barre : .pg-only / .no-pg) */
 #jdw-lib[data-mode] .home-bar .more-menu .pg-only{display:none}
