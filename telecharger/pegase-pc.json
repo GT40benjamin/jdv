@@ -1,44 +1,43 @@
 {
-  "version": "0.9.9.8",
-  "build": 59,
-  "size": 2131413177,
-  "sha256": "33bd0c801659c3d7bcc86458fd00a623dd88fe972a1cebd8925bd20b48c1a318",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v59/Pegase-PC-2026-10-28-0.9.9.8.zip",
-  "manifest": "1fec71b74c7853570e7a33016681633736a8f86b62ae768afad320c03da74925",
+  "version": "0.9.9.9",
+  "build": 60,
+  "size": 2131555374,
+  "sha256": "7c5fe4e4babd776bc31eeb48ce90abe463a2dcc101472ac0f8c24b1a5e57c648",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v60/Pegase-PC-2026-10-28-0.9.9.9.zip",
+  "manifest": "5cce9494ebb9672f5eff013d0908ca368179352bd9c62f8c2c553267f5bbf67c",
   "patchs": [
     {
+      "de": "0.9.9.8",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v60/Pegase-PC-patch-0.9.9.8.zip",
+      "taille": 3414421,
+      "sha256": "d900d3deab8f02df9b9dcf397096af07ba8ff13e7046ee29ac11f48f2805fd16"
+    },
+    {
       "de": "0.9.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v59/Pegase-PC-patch-0.9.9.7.zip",
-      "taille": 4757196,
-      "sha256": "6958fad2c0b1858830a8977ffb551cc5abaf86ff8e4d28b7ad743618ac8e7a2c"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v60/Pegase-PC-patch-0.9.9.7.zip",
+      "taille": 5187808,
+      "sha256": "bc99f103d89b7f6e09328036b1d2ecc07f9ffe2a9c0bb5c0fd0117aa5cd19a58"
     },
     {
       "de": "0.9.9.6",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v59/Pegase-PC-patch-0.9.9.6.zip",
-      "taille": 4802082,
-      "sha256": "5f6ef3c97f854bb22e5f9a7ab5910afa0a42364bd90296387ba2d525ab4fa450"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v60/Pegase-PC-patch-0.9.9.6.zip",
+      "taille": 5231936,
+      "sha256": "e586bc2e8379f3a79cca5cd6bfc0a3c4250afc356f7168023ddb91f291df76b3"
     },
     {
       "de": "0.9.9.5",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v59/Pegase-PC-patch-0.9.9.5.zip",
-      "taille": 12276597,
-      "sha256": "9bde9a47b44b7f65014d56238b75ab323bb733084c47b1425e0b1849f5d0587d"
-    },
-    {
-      "de": "0.9.9.4",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v59/Pegase-PC-patch-0.9.9.4.zip",
-      "taille": 15649565,
-      "sha256": "bc97194867cb3390b4cb96f1f70834facbf61d99c141bccc28c42c2d009b71ea"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v60/Pegase-PC-patch-0.9.9.5.zip",
+      "taille": 12639330,
+      "sha256": "6882684ac5b25513a1e9de474bdad1bcba3aa016d2590b4306fe103de4646180"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v59/Pegase-PC-patch-0.9.7.zip",
-      "taille": 246421003,
-      "sha256": "b3de08648f246a0cd70a551834b7c20356a1c99c49c2c87803180cbb89fa0875"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v60/Pegase-PC-patch-0.9.7.zip",
+      "taille": 246571662,
+      "sha256": "3d60c5996a7b75e0b9a07d0ecdf15a39cda07954cc22ea17ad703b153c4b3519"
     }
   ],
   "notes": [
-    "Les missions de la mer de Basile et Gaspard",
-    "120 trésors cachés"
+    "La rivière plus belle, de la source à la mer"
   ]
 }
