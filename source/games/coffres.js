@@ -8,7 +8,7 @@
 // Atelier : ~/jdv-tools/duotest/coffres (sources, générateur des niveaux, essais ; fiche REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
 let ENGINE = null;
-const WANT = 'cf-5d5926b7';   // version du moteur de CE module (posée par tools/build.js)
+const WANT = 'cf-df846b76';   // version du moteur de CE module (posée par tools/build.js)
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));
   if (!r.ok) throw new Error('moteur ' + r.status);
@@ -192,7 +192,7 @@ window.JDW_GAMES.coffres = {
   scoreLabel: 'points',
   saves: true,                        // la partie est gardée à tout moment (api.save) : Quitter n'arrête rien, sans question
   fps: false,                         // pas de compteur d'images de la borne par-dessus le titre
-  pad: { help: [['ls/dpad', 'Choisir une pièce'], ['a', 'Prendre / poser'], ['ls/dpad', 'Glisser (pièce prise)'], ['x', 'Plateau dans l\'autre sens'], ['lb', 'Annuler'], ['rb', 'Refaire'], ['rs', 'Tourner la vue'], ['lt+rt', 'Zoom']] },
+  pad: { help: [['ls/dpad', 'Choisir une pièce'], ['a', 'Prendre / poser'], ['ls/dpad', 'Glisser (pièce prise)'], ['x', 'Plateau dans l\'autre sens'], ['lb', 'Annuler'], ['rb', 'Refaire']] },
   preview, mount
 };
 })();
