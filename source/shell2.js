@@ -3972,9 +3972,11 @@ const acctToken = pr => pr && pr.acct && pr.acct.uid ? tokenFor(pr.acct.uid) : P
 // 28 oct. 2026 — PLUSIEURS ONGLETS (Pégase a sa propre page, souvent dans un 2e onglet) : chaque onglet gardait SES jetons et les rafraîchissait
 // seul ; le 2e présentait un jeton de rafraîchissement déjà consommé par le 1er (Supabase le refuse, et peut fermer la session : déconnecté au
 // bout d'une heure). Désormais : un onglet à la fois (verrou « jdw-acct-<uid> », navigator.locks), et d'abord la session RANGÉE sur l'appareil
-// (acctAdopt : un autre onglet l'a peut-être déjà rafraîchie) ; acctSave ne range jamais une session plus vieille que celle déjà rangée ; les
+// (acctTakeStored : un autre onglet l'a peut-être déjà rafraîchie) ; acctSave ne range jamais une session plus vieille que celle déjà rangée ; les
 // onglets se tiennent à jour par l'événement « storage » (plus bas).
-function acctAdopt(uid) {   // la session rangée sur l'appareil est plus fraîche que la mienne (un autre onglet) : je la prends
+// ⛔ nom UNIQUE : « acctAdopt » existe déjà plus bas (la connexion d'un compte) et l'emportait sur celle-ci (1.50 → 1.50.6 : la reprise entre
+// onglets ne passait jamais ici, et un refus vrai ne marquait plus la session perdue)
+function acctTakeStored(uid) {   // la session rangée sur l'appareil est plus fraîche que la mienne (un autre onglet) : je la prends
   const st = (store.get('jdw.accts', {}) || {})[uid], a = ACCT.s[uid];
   if (!st || !st.rt || !a || st.rt === a.rt || !((st.exp || 0) > (a.exp || 0))) return false;
   ACCT.s[uid] = Object.assign({}, a, st); try { rtToken(uid, st.at); } catch (e) {}
@@ -3989,20 +3991,24 @@ function acctRefresh(uid, force) {
   const a0 = sessOf(uid);
   if (!a0 || !a0.rt) return Promise.resolve(false);
   if (ACCT.busy[uid]) return ACCT.busy[uid];
+  const rt0 = a0.rt;                                                    // le jeton de rafraîchissement au moment de la demande
   const fresh = (ms) => { const x = sessOf(uid); return !!(x && x.at && x.exp - Date.now() > ms); };
-  if (acctAdopt(uid) && fresh(60e3)) return Promise.resolve(true);      // un autre onglet vient de le faire
+  const other = () => { acctTakeStored(uid); const x = sessOf(uid); return !!(x && x.rt && x.rt !== rt0 && x.exp - Date.now() > 60e3); };   // rafraîchie ailleurs
+  if (other()) return Promise.resolve(true);                            // un autre onglet vient de le faire
   if (!force && fresh(5 * 60e3)) return Promise.resolve(true);
   const t0 = Date.now();
   const run = async () => {
     // le verrou a dû ATTENDRE : un autre onglet vient sans doute de rafraîchir, mais sa session met un instant à arriver ici (localStorage est
     // recopié d'un onglet à l'autre de façon asynchrone ; vu le 28 oct. : le 2e onglet présentait encore l'ancien jeton) : 300 ms pour qu'elle arrive
-    if (Date.now() - t0 > 40 && !(acctAdopt(uid) && fresh(60e3))) await new Promise((ok) => setTimeout(ok, 300));
-    if (acctAdopt(uid) && fresh(60e3)) return true;                   // fait par un autre onglet pendant l'attente du verrou
-    if (!force && fresh(5 * 60e3)) return true;                        // déjà à jour (l'événement storage l'a apporté pendant l'attente)
+    if (Date.now() - t0 > 40 && !other()) await new Promise((ok) => setTimeout(ok, 300));
+    if (other()) return true;                                            // fait par un autre onglet pendant l'attente du verrou (même après un 401)
+    if (!force && fresh(5 * 60e3)) return true;
     const a = sessOf(uid); if (!a || !a.rt) return false;
-    try { const s = await authReq('token?grant_type=refresh_token', { refresh_token: a.rt }); if (!s.user) s.user = { id: uid, email: a.email }; acctSetSess(s); return true; }
+    const used = a.rt;
+    try { const s = await authReq('token?grant_type=refresh_token', { refresh_token: used }); if (!s.user) s.user = { id: uid, email: a.email }; acctSetSess(s); return true; }
     catch (e) {
-      if (acctAdopt(uid)) return true;                                   // refusé parce qu'un autre onglet venait de le consommer : sa session
+      // refusé parce qu'un autre onglet venait de le consommer : sa session (arrivée ici par localStorage, ou par l'événement storage)
+      acctTakeStored(uid); { const x = sessOf(uid); if (x && x.rt && x.rt !== used && x.exp - Date.now() > 60e3) return true; }
       if (!e.offline && e.status >= 400 && e.status < 500 && e.status !== 429 && a.fam) {   // joueur prêté : l'accès a été retiré
         const gone = acctDrop(uid);
         if (gone.length) setTimeout(() => toastCheer('L’accès à ' + gone.join(' et ') + ' a été retiré sur ce téléphone.', profile.name || gone[0], true), 400);
