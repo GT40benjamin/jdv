@@ -41,8 +41,8 @@ NOTES_CHECK=1 PAGE=pegase SKIP_GAMES= SITE_ROOT=../ PYTHONUTF8=1 $PY build2.py "
 mkdir -p ../pegase && cp "$T/pg/site.html" ../pegase/index.html
 # service worker de la borne (jeu hors ligne) : écrit par build2.py à côté de site.html, son cache porte le numéro BUILD_ID
 cp "$T/sw.js" ../jouer/sw.js
-# page d'accueil publique
-cp accueil.html ../index.html
+# page d'accueil publique ; elle reçoit l'adresse et la clé PUBLIQUE de Supabase : les appels y sonnent aussi (28 oct. 2026)
+sed "s#__SUPABASE_URL__#$SUPABASE_URL#; s#__SUPABASE_KEY__#$SUPABASE_KEY#" accueil.html > ../index.html
 # (la page pegase/ porte elle-même l'aperçu du lien « Partager Pégase » : l'ancienne pegase-partage.html, qui renvoyait vers jouer/?pegase, n'est plus copiée)
 # retour de « Continuer avec Google » lancé depuis l'appli Android (1.13+) : rend le code à l'appli (fr.bornearcade.app://auth)
 mkdir -p ../connexion && cp connexion.html ../connexion/index.html

@@ -18,13 +18,14 @@
     if (site) { try { history.replaceState(null, '', l.pathname + l.hash); } catch (e) {} }
     else if (app || pwa || keep || auth) {
       document.documentElement.style.visibility = 'hidden';
-      l.replace('jouer/' + keep + h);
+      // 28 oct. 2026 : Pégase a sa propre page ; un lien de Pégase y va directement (la borne le renverrait de toute façon)
+      l.replace((/(^|[?&])(pegase|ile|appel)(=|&|$)/.test(keep) ? 'pegase/' : 'jouer/') + keep + h);
     }
   } catch (e) {}
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Elixir Game Studio · Pégase et la Borne d'arcade entre amis</title>
+<title>Elixir Game Studio · ILO, Pégase et la Borne d'arcade entre amis</title>
 <meta name="description" content="Elixir Game Studio, petit studio de jeux vidéo français : Pégase, un monde en 3D à explorer et à photographier, et la Borne d'arcade entre amis, 23 mini-jeux gratuits à jouer ensemble.">
 <meta name="theme-color" content="#07080c">
 <meta name="color-scheme" content="dark">
@@ -44,8 +45,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Oxanium:wght@600;700;800&family=Chakra+Petch:wght@400;500;600;700&display=swap">
-<link rel="preload" as="image" href="assets/pegase/decor_29b_poster.jpg" media="(min-aspect-ratio: 1/1)">
-<link rel="preload" as="image" href="assets/pegase/decor_29b_m_poster.jpg" media="(max-aspect-ratio: 1/1)">
+<link rel="preload" as="image" href="assets/ilo/ilo_bande_annonce_poster.jpg">
 <style>
 :root{
   --bg:#06070d;--card:#0d0f1a;--line:rgba(160,190,255,.14);
@@ -239,6 +239,14 @@ footer a:hover{color:var(--gold2)}
   radial-gradient(1.5px 1.5px at 420px 300px,rgba(94,240,255,.9),transparent);background-size:470px 410px;animation:twinkle 5s ease-in-out infinite alternate}
 @keyframes twinkle{from{opacity:.15}to{opacity:.7}}
 .ilo .head{text-align:center;margin-bottom:clamp(30px,4vw,54px)}
+/* 28 oct. 2026 : ILO en vedette, tout en haut de la page (la bande-annonce reste dans la carte, jamais agrandie) */
+.ilo.vedette{border-top:0;padding-top:calc(clamp(86px,10vw,124px) + env(safe-area-inset-top))}
+.ilo.vedette h2{font-size:clamp(40px,6.4vw,84px)}
+.duo .gm{cursor:pointer}
+.duo .gm h3{font-size:clamp(30px,3.4vw,46px)}
+.duo .gm p{font-size:clamp(16px,1.4vw,18px);color:var(--ink)}
+.duo .gm .door{width:100%;min-height:64px;font-size:16px}
+@media (max-width:600px){.ilo.vedette .gm.il ul{display:none}}   /* téléphone : les deux portes plus vite sous le pouce */
 .ilo .kick{color:var(--lava2);text-shadow:0 0 12px rgba(255,140,40,.55)}
 .ilo .kick::before{background:var(--lava);box-shadow:0 0 10px var(--lava),0 0 22px rgba(255,106,26,.6)}
 .ilo h2 em{background:linear-gradient(180deg,#ffe6c2,#ffb347 45%,#ff6a1a);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 18px rgba(255,106,26,.45))}
@@ -286,6 +294,25 @@ footer a:hover{color:var(--gold2)}
   .hero .c > .em,.hero .tag,h1 .w1,h1 .w2,.doors{animation:none}
   .ilo::after,.soon::before{animation:none}
 }
+/* le bandeau d'un appel reçu (28 oct. 2026 : les appels sonnent partout sur le site ; le même que celui de la borne) */
+.callring{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:100;transform:translateX(-50%);width:min(calc(100% - 24px),460px);
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:12px 12px 22px 14px;border-radius:24px;color:#fff6e6;
+  background:linear-gradient(180deg,rgba(58,40,104,.97),rgba(32,22,62,.97));box-shadow:0 18px 44px rgba(0,0,0,.55),inset 0 0 0 1.5px rgba(255,214,140,.38);animation:crIn .35s cubic-bezier(.2,1.4,.4,1) both}
+.callring[hidden]{display:none}
+@keyframes crIn{from{opacity:0;transform:translate(-50%,-24px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+.cr-face{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#7b5bc4,#3a2672);box-shadow:0 0 0 3px rgba(124,240,160,.85);animation:crPulse 1.8s ease-in-out infinite;font:800 26px/1 var(--head);color:#fff3dc}
+@keyframes crPulse{0%,100%{box-shadow:0 0 0 3px rgba(124,240,160,.85),0 0 10px rgba(124,240,160,.3)}50%{box-shadow:0 0 0 6px rgba(124,240,160,.35),0 0 26px rgba(124,240,160,.6)}}
+.cr-txt{min-width:0}
+.cr-txt b{display:block;font:800 21px/1.1 var(--head);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-txt span{display:block;margin-top:2px;font:700 13.5px/1.2 var(--text);color:#ffd9a0}
+.cr-btns{display:flex;gap:10px}
+.cr-btns button{position:relative;width:54px;height:54px;border-radius:50%;border:0;display:grid;place-items:center;font-size:24px;line-height:1;color:#fff;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.4)}
+.cr-btns small{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;font:800 10px/1 var(--text);letter-spacing:.04em;white-space:nowrap;color:#ffe9c9}
+.cr-no{background:linear-gradient(180deg,#ff7a7a,#d93c3c)}.cr-no span{display:block;transform:rotate(135deg)}
+.cr-ok{background:linear-gradient(180deg,#8ff0a8,#2fb35c)}.cr-ok span{display:block;animation:crRing 1.2s ease-in-out infinite}
+@keyframes crRing{0%,100%{transform:rotate(0)}15%{transform:rotate(-14deg)}30%{transform:rotate(12deg)}45%{transform:rotate(-8deg)}60%{transform:rotate(0)}}
+.callring.missed .cr-face{animation:none;box-shadow:0 0 0 3px rgba(255,123,123,.8)}.callring.missed .cr-txt span{color:#ff9b9b}.callring.missed .cr-ok{display:none}
+.callring.missed .cr-no span{transform:none}.callring.missed .cr-no{background:rgba(255,255,255,.14)}
 </style>
 </head>
 <body>
@@ -327,90 +354,13 @@ footer a:hover{color:var(--gold2)}
 <header class="top" id="top"><div class="in">
   <a class="mark" href="./" aria-label="Elixir Game Studio, accueil"><svg class="em" viewBox="0 0 64 72" aria-hidden="true"><use href="#emblem"/></svg>ELIXIR</a>
   <nav aria-label="Navigation">
-    <a href="#studio">Le studio</a>
     <a href="#jeux">Nos jeux</a>
+    <a href="#studio">Le studio</a>
   </nav>
 </div></header>
 
 <main>
-<section class="hero" aria-label="Elixir Game Studio">
-  <div class="bg" aria-hidden="true">
-    <div class="slide on"><picture><source media="(max-aspect-ratio: 1/1)" srcset="assets/pegase/decor_29b_m_poster.jpg"><img src="assets/pegase/decor_29b_poster.jpg" alt="" width="1920" height="1080" decoding="async" fetchpriority="high"></picture></div>
-  </div>
-  <div class="shade" aria-hidden="true"></div>
-  <canvas id="fx" aria-hidden="true"></canvas>
-  <div class="frame" aria-hidden="true"></div>
-  <div class="c">
-    <svg class="em" viewBox="0 0 64 72" aria-hidden="true"><use href="#emblem"/></svg>
-    <h1><span class="w1">ELIXIR</span><span class="w2">Game Studio</span></h1>
-    <p class="tag">Des mondes à explorer, des jeux à partager.</p>
-    <nav class="doors" aria-label="Nos jeux"><a class="door pg" href="jouer/?pegase">Pégase</a><a class="door ar" href="jouer/?borne">La Borne d’arcade</a></nav>
-  </div>
-  <p class="cap" id="cap" aria-hidden="true"><b>Pégase</b><span>Le lac de l’arbre rouge</span></p>
-</section>
-
-<section class="studio" id="studio" aria-labelledby="studio-t">
-  <div class="wrap">
-    <div class="grid">
-      <div>
-        <span class="kick rv">Le studio</span>
-        <h2 id="studio-t" class="rv">Petit studio,<br><em>grands terrains de jeu</em></h2>
-        <p class="lead rv">Elixir Game Studio est né autour d’une bande de copains et d’une envie : fabriquer des jeux auxquels on joue ensemble. Chaque jeu est dessiné, programmé et essayé à la maison, en France, puis grandit avec les idées de ceux qui y jouent.</p>
-      </div>
-      <div class="facts rv">
-        <div class="fact"><b>2</b><span>univers</span></div>
-        <div class="fact"><b>23</b><span>mini-jeux</span></div>
-        <div class="fact"><b>0&nbsp;€</b><span>pour jouer à la borne</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-<section class="duo" id="jeux" aria-labelledby="jeux-t">
-  <div class="wrap">
-    <div class="head">
-      <span class="kick rv">Nos jeux</span>
-      <h2 id="jeux-t" class="rv">Deux mondes, <em>une même envie</em></h2>
-    </div>
-    <div class="pair">
-      <article class="gm pg rv">
-        <div class="media" id="duo-pg">
-          <img src="assets/pegase/decor_01_poster.jpg" alt="Pégase : une prairie de tournesols et de fleurs sauvages, filmée dans le jeu" width="1920" height="1080" loading="lazy" decoding="async">
-          <span class="lbl">Filmé dans le jeu</span>
-        </div>
-        <div class="body">
-          <span class="tg">Monde ouvert 3D · PC et Android</span>
-          <h3>Pégase</h3>
-          <p>Une île à explorer à ton rythme, un village à faire vivre et des animaux sauvages à approcher.</p>
-          <ul>
-            <li>Photographie les animaux et remplis ton grand livre</li>
-            <li>Construis ta maison et décore-la</li>
-            <li>Retrouve tes copains sur ton île</li>
-          </ul>
-          <div class="go"><a class="door pg" href="jouer/?pegase">Entrer dans Pégase</a></div>
-        </div>
-        <div class="hud" aria-hidden="true"></div>
-      </article>
-      <article class="gm ar rv">
-        <div class="media">
-          <div class="wall" id="duo-ar" aria-hidden="true"></div>
-        </div>
-        <div class="body">
-          <span class="tg">23 mini-jeux · téléphone et PC</span>
-          <h3>La Borne d’arcade</h3>
-          <p>Des parties rapides et déjantées, des records à battre entre copains, petits et grands. Même sans compte.</p>
-          <ul>
-            <li>Bats les records en solo</li>
-            <li>Duels face à face sur le même téléphone, contre l’IA ou en ligne</li>
-            <li>Joue à deux contre le jeu en Coop</li>
-          </ul>
-          <div class="go"><a class="door ar" href="jouer/?borne">Jouer à la borne</a></div>
-        </div>
-        <div class="hud" aria-hidden="true"></div>
-      </article>
-    </div>
-  </div>
-</section>
-<section class="ilo" id="ilo" aria-labelledby="ilo-t">
+<section class="ilo vedette" id="ilo" aria-labelledby="ilo-t">
   <div class="wrap">
     <div class="head">
       <span class="kick rv">En production</span>
@@ -437,6 +387,58 @@ footer a:hover{color:var(--gold2)}
     </article>
   </div>
 </section>
+
+<section class="duo" id="jeux" aria-labelledby="jeux-t">
+  <div class="wrap">
+    <div class="head">
+      <span class="kick rv">Nos jeux</span>
+      <h2 id="jeux-t" class="rv">Où veux-tu <em>jouer ?</em></h2>
+    </div>
+    <div class="pair">
+      <article class="gm pg rv">
+        <div class="media" id="duo-pg">
+          <img src="assets/pegase/decor_01_poster.jpg" alt="Pégase : une prairie de tournesols et de fleurs sauvages, filmée dans le jeu" width="1920" height="1080" loading="lazy" decoding="async">
+          <span class="lbl">Filmé dans le jeu</span>
+        </div>
+        <div class="body">
+          <span class="tg">Monde ouvert 3D · PC et Android</span>
+          <h3>🏝️ Jouer à Pégase</h3>
+          <p>Une île en 3D à explorer avec tes copains : photographie les animaux, construis ta maison, retrouve-les au village.</p>
+          <div class="go"><a class="door pg" href="pegase/" data-onglet>Entrer dans Pégase</a></div>
+        </div>
+        <div class="hud" aria-hidden="true"></div>
+      </article>
+      <article class="gm ar rv">
+        <div class="media">
+          <div class="wall" id="duo-ar" aria-hidden="true"></div>
+        </div>
+        <div class="body">
+          <span class="tg">23 mini-jeux · téléphone et PC</span>
+          <h3>🕹️ La borne d’arcade</h3>
+          <p>23 mini-jeux gratuits et rapides, à jouer seul, en duel ou à deux contre le jeu, sur ton téléphone ou ton PC.</p>
+          <div class="go"><a class="door ar" href="jouer/">Jouer à la borne</a></div>
+        </div>
+        <div class="hud" aria-hidden="true"></div>
+      </article>
+    </div>
+  </div>
+</section>
+<section class="studio" id="studio" aria-labelledby="studio-t">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <span class="kick rv">Le studio</span>
+        <h2 id="studio-t" class="rv">Petit studio,<br><em>grands terrains de jeu</em></h2>
+        <p class="lead rv">Elixir Game Studio est né autour d’une bande de copains et d’une envie : fabriquer des jeux auxquels on joue ensemble. Chaque jeu est dessiné, programmé et essayé à la maison, en France, puis grandit avec les idées de ceux qui y jouent.</p>
+      </div>
+      <div class="facts rv">
+        <div class="fact"><b>2</b><span>univers</span></div>
+        <div class="fact"><b>23</b><span>mini-jeux</span></div>
+        <div class="fact"><b>0&nbsp;€</b><span>pour jouer à la borne</span></div>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer><div class="wrap">
@@ -459,107 +461,9 @@ footer a:hover{color:var(--gold2)}
   function onScroll() { top.classList.toggle('solid', window.scrollY > 40); }
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
 
-  // ---------- panneau d'entrée : les PLANS FILMÉS de Pégase, les vrais (tournés en 4K, sur le seau R2 comme ceux de la page Pégase) ----------
-  // Affiche nette d'abord (assets/pegase/<plan>_poster.jpg, ou _m_poster en hauteur), puis la vidéo après le chargement de la page :
-  // qualité selon l'écran (720 / 1080 / 1440 / 2160, version verticale _m_720 / _m_1080 sur un écran en hauteur) et la connexion ;
-  // un plan 15 s, puis le suivant en fondu (seul le plan suivant est préchargé ; l'ancien est vidé pour arrêter son téléchargement).
-  var R2 = 'https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/', SHOW = 15, FADE = 1.6;
-  var PLANS = [
-    ['decor_29b', 'Le lac de l’arbre rouge'], ['decor_28', 'Cascade du lac de montagne'], ['decor_34', 'Panorama depuis la falaise'],
-    ['decor_21b', 'Le lac au lever, les oies'], ['decor_35', 'Le bosquet du grand-duc']
-  ];
-  var bg = document.querySelector('.hero .bg'), cap = $('cap').lastChild, slides = [bg.firstElementChild], si = 0, slideT = 0, heroOn = true, reel = null;
-  function setCap(t) { if (cap.textContent !== t) cap.textContent = t; }
-  var port = function () { return innerHeight > innerWidth; };
-  var drop = 0;   // qualités retirées après une vidéo qui « attend » trop le réseau
-  function quality() {
-    var d = Math.min(window.devicePixelRatio || 1, 3), w = innerWidth * d, h = innerHeight * d, L = port() ? [720, 1080] : [720, 1080, 1440, 2160];
-    var px = Math.max(w, h * 16 / 9), need = port() ? (w <= 800 ? 720 : 1080) : (px <= 1300 ? 720 : px <= 1950 ? 1080 : px <= 2600 ? 1440 : 2160);
-    if (conn.type === 'cellular') need = Math.min(need, port() ? 720 : 1080);   // données mobiles ; sinon c'est la lecture qui dit si ça suit (drop)
-    return L[Math.max(0, L.indexOf(need) - drop)];
-  }
-  function src(id) { return R2 + id + (port() ? '_m_' : '_') + quality() + '.mp4'; }
-  function poster(id) { return 'assets/pegase/' + id + (port() ? '_m' : '') + '_poster.jpg'; }
-  // sans vidéo (mouvement réduit, économie de données, réseau lent) : les affiches, une toutes les 8 s
-  function slide(i) {
-    var el = slides[i];
-    if (!el) {
-      el = document.createElement('div'); el.className = 'slide' + (still ? '' : ' kb');
-      el.innerHTML = '<picture><source media="(max-aspect-ratio: 1/1)" srcset="assets/pegase/' + PLANS[i][0] + '_m_poster.jpg"><img src="assets/pegase/' + PLANS[i][0] + '_poster.jpg" alt="" width="1920" height="1080" decoding="async"></picture>';
-      bg.appendChild(el); slides[i] = el;
-    }
-    return el;
-  }
-  function nextSlide() {
-    if (reel || !heroOn || document.hidden) return;
-    var n = (si + 1) % PLANS.length, el = slide(n), img = el.querySelector('img');
-    var go = function () { slides[si].classList.remove('on'); el.classList.add('on'); si = n; setCap(PLANS[n][1]); };
-    if (img.complete) go(); else img.addEventListener('load', go, { once: true });
-  }
+  // le seau R2 des vidéos (plans de Pégase, bande-annonce d'ILO) ; une vidéo mp4 se lit-elle ici ?
+  var R2 = 'https://pub-73155b5974ae4fc5bb5e9728477e7e4a.r2.dev/';
   var canVid = !!(vt.canPlayType && vt.canPlayType('video/mp4; codecs="avc1.640028"'));
-  if (still || light || !canVid) { if (!still) { slides[0].classList.add('kb'); slideT = setInterval(nextSlide, 8000); } }
-  else addEventListener('load', function () {
-    var V = [0, 1].map(function () {
-      var v = document.createElement('video');
-      v.className = 'reel'; v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
-      bg.appendChild(v); return v;
-    });
-    var pi = 0, cur = 0, armed = false, waitT = 0;
-    function load(v, i) { v.poster = poster(PLANS[i][0]); v.src = src(PLANS[i][0]); v.dataset.i = i; v.load(); }
-    function swap() {
-      var a = V[cur], b = V[cur ^ 1]; armed = false;
-      b.addEventListener('playing', function on() {
-        b.removeEventListener('playing', on); reel = b; b.classList.add('on'); a.classList.remove('on'); cur ^= 1; setCap(PLANS[+b.dataset.i][1]);
-        setTimeout(function () { a.pause(); a.removeAttribute('src'); a.load(); }, FADE * 1000 + 100);
-      });
-      play(b);
-    }
-    V.forEach(function (v) {
-      v.addEventListener('timeupdate', function () {
-        if (v !== reel) return;
-        if (!armed && v.currentTime > SHOW - 8) { armed = true; pi = (pi + 1) % PLANS.length; load(V[cur ^ 1], pi); }
-        if (armed && v.currentTime > SHOW && V[cur ^ 1].readyState >= 3) swap();
-      });
-      v.addEventListener('ended', function () { if (v === reel) { if (armed) swap(); else { v.currentTime = 0; play(v); } } });
-      // une vidéo qui s'arrête plus de 2,5 s pour attendre le réseau : les plans suivants une qualité en dessous
-      v.addEventListener('waiting', function () { if (v === reel) { clearTimeout(waitT); waitT = setTimeout(function () { if (v.readyState < 3) drop = Math.min(drop + 1, 3); }, 2500); } });
-      v.addEventListener('playing', function () { clearTimeout(waitT); });
-    });
-    setTimeout(function () {
-      var v = V[0];
-      v.addEventListener('playing', function on() { v.removeEventListener('playing', on); reel = v; v.classList.add('on'); setCap(PLANS[0][1]); });
-      load(v, 0); play(v);
-    }, 400);
-  });
-
-  // ---------- lucioles (dessinées) ----------
-  var cv = $('fx'), cx = cv.getContext && cv.getContext('2d'), flies = [], fw = 0, fh = 0, dpr = 1, raf = 0;
-  function size() { dpr = Math.min(1.5, window.devicePixelRatio || 1); fw = cv.clientWidth; fh = cv.clientHeight; cv.width = Math.round(fw * dpr); cv.height = Math.round(fh * dpr); }
-  function sprite(c1, c2) {
-    var d = document.createElement('canvas'); d.width = d.height = 32;
-    var g = d.getContext('2d'), r = g.createRadialGradient(16, 16, 0, 16, 16, 16); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.18, c1); r.addColorStop(.5, c2); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); return d;
-  }
-  var dots = [sprite('rgba(255,214,120,.95)', 'rgba(255,150,40,.25)'), sprite('rgba(120,235,255,.95)', 'rgba(80,150,255,.22)')];
-  function fly(any) { return { x: Math.random(), y: any ? Math.random() : 1.05, s: 4 + Math.random() * 11, v: .008 + Math.random() * .018, ph: Math.random() * 6.3, w: .4 + Math.random() * 1.2, a: .4 + Math.random() * .6, d: dots[Math.random() < .35 ? 1 : 0] }; }
-  function frame(t) {
-    raf = 0; if (!heroOn || document.hidden) return;
-    t /= 1000; cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, fw, fh); cx.globalCompositeOperation = 'lighter';
-    for (var i = 0; i < flies.length; i++) {
-      var f = flies[i]; f.y -= f.v / 60; if (f.y < -0.05) flies[i] = f = fly(false);
-      var x = (f.x + Math.sin(t * .35 * f.w + f.ph) * .025) * fw, y = f.y * fh, a = f.a * (.55 + .45 * Math.sin(t * 1.7 * f.w + f.ph * 2));
-      cx.globalAlpha = Math.max(0, a) * Math.min(1, (1.05 - f.y) * 4); cx.drawImage(f.d, x - f.s / 2, y - f.s / 2, f.s, f.s);
-    }
-    cx.globalAlpha = 1; raf = requestAnimationFrame(frame);
-  }
-  function flyOn() { if (!raf && cx && !still) raf = requestAnimationFrame(frame); }
-  if (cx && !still) { size(); for (var i = 0; i < (fw < 700 ? 22 : 38); i++) flies.push(fly(true)); addEventListener('resize', size); flyOn(); }
-  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) {
-    heroOn = es[0].isIntersecting;
-    if (reel) { if (heroOn) play(reel); else reel.pause(); }
-    if (heroOn) flyOn();
-  }, { threshold: 0.02 }).observe(document.querySelector('.hero'));
-
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) flyOn(); if (reel) { if (document.hidden) reel.pause(); else if (heroOn) play(reel); } });
 
   // ---------- nos deux jeux : vidéos seulement quand la section est à l'écran ----------
   // tous les jeux de la borne défilent sur deux rangées (en sens inverse) ; une vignette ne s'anime que quand elle est visible dans la tuile
@@ -640,6 +544,13 @@ footer a:hover{color:var(--gold2)}
   else { iloOn = true; iloFill(); iloRun(); }
   document.addEventListener('visibilitychange', iloRun);
 
+  // ---------- les deux portes (28 oct. 2026) : toute la carte se touche ; Pégase s'ouvre dans son propre onglet sur un ordinateur ----------
+  [].forEach.call(document.querySelectorAll('.duo .gm'), function (card) {
+    var a = card.querySelector('.door'); if (!a) return;
+    if (a.hasAttribute('data-onglet') && mm('(pointer:fine)')) { a.target = '_blank'; a.rel = 'noopener'; }
+    card.addEventListener('click', function (e) { if (!e.target.closest('a, button')) a.click(); });
+  });
+
   // ---------- typographie française : espace insécable avant ! ? : ; ----------
   var tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
   while ((n = tw.nextNode())) if (/ [!?:;»]/.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(/ ([!?:;»])/g, ' $1');
@@ -650,6 +561,118 @@ footer a:hover{color:var(--gold2)}
     var ro = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' });
     rv.forEach(function (el) { ro.observe(el); });
   } else rv.forEach(function (el) { el.classList.add('in'); });
+})();
+</script>
+<script>
+// 28 oct. 2026 — les APPELS sur la page du studio (Benjamin : « Les appels seront toujours possibles depuis n'importe où du site ») : un joueur
+// connecté sur cet appareil (la même session que la borne et Pégase) entend sonner ses appels ici aussi : le bandeau « X t'appelle » ; Décrocher
+// ouvre la page de Pégase sur l'appel (son hub le prend, un toucher), Refuser répond « non ». Visiteur, joueur « sans Pégase » : rien. Les mêmes
+// règles que la borne (shell2.js) : un seul onglet sonne (verrou « jdw-sonnerie »), le canal « jdw-appels » ferme le bandeau dans les autres
+// onglets, les jetons se rafraîchissent un onglet à la fois (verrou « jdw-acct-<uid> », relecture de jdw.accts). Relecture toutes les 20 s
+// (2 s pendant que ça sonne), seulement quand la page est à l'écran.
+(function () {
+  var SB = '__SUPABASE_URL__', KEY = '__SUPABASE_KEY__';
+  if (!/^https:\/\//.test(SB) || KEY.indexOf('SUPABASE') >= 0 || !KEY) return;   // page pas encore publiée (essais sans clé)
+  var ls = function (k, d) { try { var v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  var pr = ls('jdw.profile', null), uid = pr && pr.acct && pr.acct.uid, me = String((pr && pr.name) || '').trim().toUpperCase();
+  var sess = function () { return (ls('jdw.accts', {}) || {})[uid] || null; };
+  if (!uid || !me || !(sess() || {}).rt || window.BorneApp) return;
+  var sans = ls('jdw.pgsans', []); if (Array.isArray(sans) && sans.indexOf(pr.name) >= 0) return;   // « Les couverts » : pas d'appels
+  var locks = navigator.locks && navigator.locks.request ? navigator.locks : null;
+  function token() {
+    var s0 = sess(); if (!s0 || !s0.rt) return Promise.resolve('');
+    if (s0.at && s0.exp - Date.now() > 60e3) return Promise.resolve(s0.at);
+    var run = function () {
+      var s = sess(); if (!s || !s.rt) return '';
+      if (s.at && s.exp - Date.now() > 60e3) return s.at;   // un autre onglet vient de le faire
+      return fetch(SB + '/auth/v1/token?grant_type=refresh_token', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: s.rt }) })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (!j || !j.access_token) { var s3 = sess(); return s3 && s3.rt !== s.rt && s3.at ? s3.at : ''; }   // refusé : la borne s'en occupera
+          var all = ls('jdw.accts', {}) || {};
+          all[uid] = Object.assign({}, all[uid] || {}, { at: j.access_token, rt: j.refresh_token, exp: Date.now() + (+j.expires_in || 3600) * 1000 });
+          try { localStorage.setItem('jdw.accts', JSON.stringify(all)); } catch (e) {}
+          return j.access_token;
+        }).catch(function () { return ''; });
+    };
+    return locks ? locks.request('jdw-acct-' + uid, run) : Promise.resolve(run());
+  }
+  function rpc(fn, args) {
+    return token().then(function (t) {
+      if (!t) throw new Error('jeton');
+      return fetch(SB + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+    }).then(function (r) { if (!r.ok) { var e = new Error(fn + ' ' + r.status); e.status = r.status; throw e; } return r.json().catch(function () { return null; }); });
+  }
+  // ---- le bandeau ----
+  var el = document.createElement('div'); el.className = 'callring'; el.hidden = true; el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-live', 'assertive');
+  el.innerHTML = '<div class="cr-face" aria-hidden="true"></div><div class="cr-txt"><b></b><span>t’appelle</span></div>' +
+    '<div class="cr-btns"><button class="cr-no" type="button" aria-label="Refuser"><span>📞</span><small>Refuser</small></button><button class="cr-ok" type="button" aria-label="Décrocher"><span>📞</span><small>Décrocher</small></button></div>';
+  document.body.appendChild(el);
+  var face = el.querySelector('.cr-face'), nm = el.querySelector('.cr-txt b'), sub = el.querySelector('.cr-txt span'), no = el.querySelector('.cr-no'), ok = el.querySelector('.cr-ok');
+  var A = { cur: null, seen: {}, at: 0, busy: false, off: false, ringT: 0, rel: null, retry: 0, missT: 0, hubAt: 0, ac: null };
+  var ch = null; try { ch = new BroadcastChannel('jdw-appels'); } catch (e) { ch = null; }
+  var say = function (m) { try { if (ch) ch.postMessage(m); } catch (e) {} };
+  if (ch) ch.onmessage = function (e) { var m = (e && e.data) || {}; if (m.t === 'hub') A.hubAt = m.on ? Date.now() : 0; else if (m.t === 'fin' && A.cur && A.cur.id === m.id) { A.seen[m.id] = 'fin'; hide(); } };
+  function tone(f, d) {
+    try {
+      if (!A.ac) A.ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (A.ac.state === 'suspended') A.ac.resume();
+      var o = A.ac.createOscillator(), g = A.ac.createGain(), t = A.ac.currentTime;
+      o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(A.ac.destination); o.start(t); o.stop(t + d + 0.02);
+    } catch (e) {}
+  }
+  function ring(on) {
+    clearInterval(A.ringT); A.ringT = 0; clearTimeout(A.retry); A.retry = 0;
+    if (A.rel) { try { A.rel(); } catch (e) {} A.rel = null; }
+    if (!on || Date.now() - A.hubAt < 25000) return;   // le hub de Pégase est ouvert dans un autre onglet : c'est lui qui sonne
+    var go = function () { var f = function () { tone(784, 0.2); setTimeout(function () { tone(988, 0.26); }, 230); try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {} }; f(); A.ringT = setInterval(f, 1800); };
+    if (!locks) { go(); return; }
+    var c = A.cur;
+    locks.request('jdw-sonnerie', { ifAvailable: true }, function (lock) {
+      if (!lock) { A.retry = setTimeout(function () { if (A.cur === c && c && !c.missed && !A.ringT) ring(true); }, 2500); return; }
+      if (A.cur !== c || !c || c.missed) return;
+      go(); return new Promise(function (res) { A.rel = res; });
+    }).catch(go);
+  }
+  function show() {
+    var c = A.cur; clearTimeout(A.missT);
+    face.textContent = (c.de[0] || '?').toUpperCase(); nm.textContent = c.de; sub.textContent = 't’appelle';
+    el.classList.remove('missed'); no.querySelector('small').textContent = 'Refuser'; no.setAttribute('aria-label', 'Refuser'); el.hidden = false; ring(true);
+  }
+  function hide() { clearTimeout(A.missT); A.cur = null; ring(false); el.hidden = true; }
+  function missed(c) { ring(false); c.missed = true; el.classList.add('missed'); sub.textContent = 'Appel manqué'; no.querySelector('small').textContent = 'Fermer'; no.setAttribute('aria-label', 'Fermer'); A.missT = setTimeout(function () { if (A.cur === c) hide(); }, 4500); }
+  function seenOne(a) {
+    var prev = A.seen[a.id]; A.seen[a.id] = a.etat;
+    var c = A.cur;
+    if (c && c.id === a.id) { if (a.etat === 'appel' || a.etat === 'sonne') return; if (a.etat === 'manque' || a.etat === 'annule') missed(c); else hide(); return; }
+    if (prev || String(a.a || '').trim().toUpperCase() !== me || (a.etat !== 'appel' && a.etat !== 'sonne') || (c && !c.missed)) return;
+    A.cur = { id: a.id, de: String(a.de || '').slice(0, 40) };
+    rpc('pg_appel_sonne', { p_code: '', p_name: pr.name, p_id: a.id }).catch(function () {});
+    show();
+  }
+  function poll() {
+    if (A.busy || A.off || document.hidden) return;
+    A.busy = true; A.at = Date.now();
+    rpc('pg_appel_attente', { p_code: '', p_name: pr.name }).then(function (r) {
+      A.busy = false; (r && Array.isArray(r.appels) ? r.appels : []).forEach(function (a) { if (a && /^c[0-9a-f]{20}$/.test(String(a.id))) seenOne(a); });
+    }).catch(function (e) { A.busy = false; if (e && (e.status === 404 || e.message === 'jeton')) A.off = true; });   // serveur sans appels, session perdue : on n'insiste pas
+  }
+  no.addEventListener('click', function () {
+    var c = A.cur; if (!c || c.missed) { hide(); return; }
+    rpc('pg_appel_repondre', { p_code: '', p_name: pr.name, p_id: c.id, p_oui: false, p_raison: 'refuse' }).catch(function () {});
+    say({ t: 'fin', id: c.id }); hide();
+  });
+  ok.addEventListener('click', function () {
+    var c = A.cur; if (!c || c.missed) return;
+    say({ t: 'fin', id: c.id }); hide();
+    var u = 'pegase/?appel=' + encodeURIComponent(c.id) + '&de=' + encodeURIComponent(c.de), w = null;
+    if (window.matchMedia && matchMedia('(pointer:fine)').matches) { try { w = window.open(u, '_blank'); } catch (e) { w = null; } if (w) { try { w.opener = null; } catch (e) {} return; } }
+    location.href = u;
+  });
+  setInterval(function () { var per = A.cur && !A.cur.missed ? 2000 : 20000; if (!document.hidden && Date.now() - A.at >= per - 300) poll(); }, 1000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) A.at = 0; });
+  if (window.JDW_PG_TEST) window.__jdwA = A;   // essais seulement
 })();
 </script>
 </body></html>
