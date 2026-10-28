@@ -31,6 +31,12 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## 🚶 Pégase 0.9.9.10 : des habitants plus polis et mieux vivants (borne 1.50.10)
+[pegase] 🙋 Les habitants ne te traversent plus : si tu es sur leur chemin, ils s'arrêtent, te disent un mot, puis passent à côté de toi.
+[pegase] ☂️ Sous l'averse, les habitants dehors ouvrent leur parapluie, chacun le sien, et le referment à l'abri.
+[pegase] 🪜 Fini les jambes dans les marches : les habitants montent bien les perrons.
+[pegase] 🎥 Dans les petites boutiques, la caméra cadre mieux la conversation.
+[pegase] ✈️ L'avion de l'arrivée ne traverse plus les arbres ni les rochers : il se pose en douceur par la vallée.
 [pegase] ## 💧 Pégase 0.9.9.9 : la rivière plus belle, de la source à la mer (borne 1.50.5)
 [pegase] 🏞️ À la source, l'eau tombe maintenant en petites cascades entre les bassins, avec de l'écume et des galets au bord des chutes.
 [pegase] 🌊 L'eau de la rivière devient plus claire là où elle touche la roche, et plus profonde au milieu : fini les bords en carton.
