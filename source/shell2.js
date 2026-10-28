@@ -5978,17 +5978,17 @@ const ISLE_ANIM = new Set(), ISLE_PHOTOS = new Map(), ISLE_PHOTO_BAD = new Set()
 function isleArt(cv, seed, players, q) {
   if (!cv) return;
   q = q || {};
+  // le rendu 3D ne passe pas (son image, ou son proj sans lequel ses nuages ne se placent pas) : la carte plate (r_photo.plate), sinon le dessin
+  if (q.photo && ISLE_PHOTO_BAD.has(q.photo.url) && q.photo.plate && !ISLE_PHOTO_BAD.has(q.photo.plate)) q.photo = { url: q.photo.plate, r: q.photo.r };
   if (q.photo && !ISLE_PHOTO_BAD.has(q.photo.url)) {
     // la bonne taille (…_2048.webp quand la carte est grande en pixels), puis le .jpg si le .webp ne passe pas, puis le dessin
     const big = (cv.clientWidth || 300) * Math.min(2, window.devicePixelRatio || 1) > 1100, u0 = q.photo.url;
     const tries = [...new Set([big ? u0.replace(/_1024\.(webp|jpg)$/, '_2048.webp') : u0, u0, u0.replace(/\.webp$/, '.jpg')])];
-    const ok = (im) => { if (cv.isConnected) islePhoto(cv, im, q, seed); };
+    const ok = (im) => { if (cv.isConnected) islePhoto(cv, im, q, seed, players); };
     for (const u of tries) { const im0 = ISLE_PHOTOS.get(u); if (im0 && im0.complete && im0.naturalWidth) { ok(im0); return; } }
     const next = (i) => {
       if (i >= tries.length) {
         ISLE_PHOTO_BAD.add(u0);
-        // le rendu 3D ne vient pas : la carte plate (r_photo.plate), sinon le dessin
-        if (q.photo.plate && !ISLE_PHOTO_BAD.has(q.photo.plate)) q.photo = { url: q.photo.plate, r: q.photo.r };
         if (cv.isConnected) isleArt(cv, seed, players, q); return;
       }
       const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
@@ -6166,8 +6166,9 @@ function isleArt(cv, seed, players, q) {
 }
 
 // une seule boucle pour toutes les îles à l'écran (30 images/s au plus, rien quand la page est cachée) ; un canevas = une animation
+const isleStop = (cv) => { for (const a of [...ISLE_ANIM]) if (a.cv === cv) { if (a.io) a.io.disconnect(); ISLE_ANIM.delete(a); } };
 function isleRun(cv, frame) {
-  for (const a of [...ISLE_ANIM]) if (a.cv === cv) { if (a.io) a.io.disconnect(); ISLE_ANIM.delete(a); }
+  isleStop(cv);
   frame(performance.now());
   const A = { cv, frame, last: 0, on: false };
   ISLE_ANIM.add(A);
@@ -6208,24 +6209,34 @@ function isleNoise(x, y) {
 function isleFbm3(x, y) { return isleNoise(x * 0.866 - y * 0.5, x * 0.5 + y * 0.866) * 0.57 + isleNoise((x * 0.34 + y * 0.94) * 2.03 + 5.2, (-x * 0.94 + y * 0.34) * 2.03 + 1.3) * 0.29 + isleNoise((x * 0.98 - y * 0.2) * 4.1 + 9.1, (x * 0.2 + y * 0.98) * 4.1 + 3.7) * 0.14; }
 function isleFbm(x, y) { let s = 0, amp = 0.5, f = 1; for (let o = 0; o < 5; o++) { const c = Math.cos(o * 0.9), sn = Math.sin(o * 0.9); s += amp * isleNoise((x * c - y * sn) * f + o * 3.1, (x * sn + y * c) * f + o * 1.7); f *= 2.03; amp *= 0.5; } return s / 0.97; }
 // la côte du rendu 3D : liste en ligne ([[x, y], …] ou { p: […] }) ou adresse d'un .json (gardé en mémoire) ; null tant qu'elle manque
-const ISLE_JSON = new Map();
+const ISLE_JSON = new Map(), ISLE_JSON_WAIT = new Map();
 function isleJsonNow(v, check, again) {   // objet en ligne, ou adresse https d'un .json (chargé une fois, puis on redessine)
   if (!v) return null;
   if (typeof v !== 'string') return check(v);
   if (!/^https:\/\//.test(v)) return null;
   const got = ISLE_JSON.get(v); if (got && got !== 'wait') return got === 'bad' ? null : check(got);
-  if (!got) { ISLE_JSON.set(v, 'wait'); fetch(v).then(r => (r.ok ? r.json() : null)).catch(() => null).then((j) => { ISLE_JSON.set(v, j && check(j) ? j : 'bad'); if (j && check(j)) again(); }); }
+  // TOUTES les cartes qui l'attendent sont redessinées quand il arrive (ou qu'il ne vient pas) : les îles ont la même photo, donc les mêmes .json,
+  // et seule la première était redessinée (28 oct. 2026 : les autres restaient sans leurs nuages, la vraie carte en clair)
+  if (again) { const ws = ISLE_JSON_WAIT.get(v) || []; ws.push(again); ISLE_JSON_WAIT.set(v, ws); }
+  if (!got) { ISLE_JSON.set(v, 'wait'); fetch(v).then(r => (r.ok ? r.json() : null)).catch(() => null).then((j) => { ISLE_JSON.set(v, j && check(j) ? j : 'bad'); const ws = ISLE_JSON_WAIT.get(v) || []; ISLE_JSON_WAIT.delete(v); for (const f of ws) try { f(); } catch (e) {} }); }
   return null;
 }
 const isleCoastOk = (v) => { const a = Array.isArray(v) ? v : v && Array.isArray(v.p) ? v.p : null; return a && a.length > 8 && a.every(q => Array.isArray(q) && q.length >= 2 && isFinite(q[0]) && isFinite(q[1])) ? a : null; };
 const isleProjOk = (v) => (v && Array.isArray(v.p) && (v.n | 0) > 1 && v.p.length >= (v.n | 0) * (v.n | 0) * 3 ? v : null);
-function islePhoto(cv, im, q, seed) {
+function islePhoto(cv, im, q, seed, players) {
+  const P = q.photo, again = () => { if (cv.isConnected) islePhoto(cv, im, q, seed, players); }, PJx = P.proj ? isleJsonNow(P.proj, isleProjOk, again) : null, iso = !!P.proj, R = Array.isArray(P.r) && P.r.length === 4 ? P.r : [0, 0, 1800, 1800];   // proj : objet ou adresse
+  // ⛔ JAMAIS la vraie carte sans sa mer de nuages (28 oct. 2026, fuite de la carte) : ceux du rendu 3D se placent avec proj. Tant qu'il se
+  // charge : la mer seule (il redessine en arrivant) ; s'il ne vient pas : la carte plate (ses nuages ne dépendent de rien), sinon le dessin
+  if (iso && !PJx) {
+    if (ISLE_JSON.get(P.proj) !== 'wait') { ISLE_PHOTO_BAD.add(P.url); isleArt(cv, seed, players, q); return; }
+    isleStop(cv); const x0 = cv.getContext('2d'); cv.width = cv.clientWidth || 300; cv.height = cv.clientHeight || 170; x0.fillStyle = '#0a4f78'; x0.fillRect(0, 0, cv.width, cv.height);
+    return;
+  }
   const w = cv.clientWidth || 300, h = cv.clientHeight || 170, k = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(w * k); cv.height = Math.round(h * k);
   const S = Math.min(w / 300, h / 170);
   const off = (cw, ch, kk) => { const c = document.createElement('canvas'); kk = kk == null ? k : kk; c.width = Math.max(1, Math.round((cw || w) * kk)); c.height = Math.max(1, Math.round((ch || h) * kk)); const x = c.getContext('2d'); x.scale(kk, kk); return [c, x]; };
   const rad = (x, x0, y0, r0, x1, y1, r1, st) => { const g = x.createRadialGradient(x0, y0, r0, x1, y1, r1); for (let i = 0; i < st.length; i += 2) g.addColorStop(st[i], st[i + 1]); return g; };
-  const P = q.photo, again = () => { if (cv.isConnected) islePhoto(cv, im, q, seed); }, PJx = P.proj ? isleJsonNow(P.proj, isleProjOk, again) : null, iso = !!P.proj, R = Array.isArray(P.r) && P.r.length === 4 ? P.r : [0, 0, 1800, 1800];   // proj : objet ou adresse
   const W = im.naturalWidth, H = im.naturalHeight, m = iso ? 0.92 : 0.9, sc = Math.min(w * m / W, h * m / H), iw = W * sc, ih = H * sc, ix = (w - iw) / 2, iy = (h - ih) / 2 - (iso ? h * 0.02 : 0);
   const ccx = ix + iw / 2, ccy = iy + ih / 2;
   const CP = iso ? isleJsonNow(P.cote, isleCoastOk, again) : null;
