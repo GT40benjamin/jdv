@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🔑 Connexion plus fiable (borne 1.50.7)
+[borne] Si ta connexion a expiré, la borne te le dit tout de suite pour que tu te reconnectes, même avec Pégase ouvert dans un autre onglet
 [borne] ## 🔊 Le son revient tout seul (borne 1.50.6)
 [borne] Si le téléphone a coupé le son (appel, écran verrouillé, appli en arrière-plan), il revient dès qu'on retouche l'écran ; remettre la musique dans les paramètres marche à tous les coups
 [borne] ## 👁 Tes copains peuvent te regarder jouer à tous les jeux (borne 1.50.1)
