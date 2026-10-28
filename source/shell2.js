@@ -930,7 +930,7 @@ function pegaseApi() {
     photoDelete: paths => gramDelete(paths),
     onGram: fn => { if (typeof fn !== 'function') return () => {}; GRAM_SUBS.add(fn); return () => { GRAM_SUBS.delete(fn); }; },
     onLivre: fn => { if (typeof fn !== 'function') return () => {}; LIVRE_SUBS.add(fn); return () => { LIVRE_SUBS.delete(fn); }; },
-    onAppel: fn => { if (typeof fn !== 'function') return () => {}; APPEL_SUBS.add(fn); smsTopicSync(); callgHide(); return () => { APPEL_SUBS.delete(fn); smsTopicSync(); CALLG.at = 0; }; },
+    onAppel: fn => { if (typeof fn !== 'function') return () => {}; APPEL_SUBS.add(fn); smsTopicSync(); callgHide(); TABS.sayAt = Date.now(); tabSay({ t: 'hub', on: true }); return () => { APPEL_SUBS.delete(fn); smsTopicSync(); CALLG.at = 0; if (!APPEL_SUBS.size) tabSay({ t: 'hub', on: false }); }; },
     voixAppel: id => pgVoixAppel(id),
     livekit: () => livekitLoad(),
     appelPris: () => { const t = CALLG.took; CALLG.took = null; return t && Date.now() - t.t < 60000 && !guest() ? { id: t.id, de: t.de, tap: !!t.tap } : null; },
@@ -1116,6 +1116,18 @@ async function chronoEnd() {
 // sonne) → bandeau « X t'appelle » par-dessus tout, même en pleine partie (#jdw-callring). Refuser = pg_appel_repondre (non, refuse) ;
 // Décrocher = la borne ouvre le hub de Pégase (la partie en cours s'arrête, comme « Quitter »), qui prend l'appel : api.pegase.appelPris().
 const CALLG = { seen: new Map(), cur: null, at: 0, polling: false, ringT: 0, took: null, off: false, missT: 0, live: false };
+// 28 oct. 2026 — PLUSIEURS ONGLETS du site ouverts (borne, Pégase, studio) : un appel ne sonne que dans UN onglet (verrou « jdw-sonnerie » ; le
+// hub de Pégase ouvert dans un autre onglet sonne lui-même, signalé sur le canal), le bandeau se voit dans chacun, et décrocher ou refuser
+// dans l'un le ferme dans les autres (canal « jdw-appels »)
+const TABS = { ch: null, hubAt: 0, sayAt: 0, ringRel: null, ringRetry: 0 };
+try { TABS.ch = new BroadcastChannel('jdw-appels'); } catch (e) { TABS.ch = null; }
+const tabSay = (m) => { try { if (TABS.ch) TABS.ch.postMessage(m); } catch (e) {} };
+if (window.JDW_PG_TEST) window.__jdwT = { CALLG, ACCT, TABS, poll: () => { CALLG.at = 0; return callgPoll(); } };   // essais seulement (comme __pgCALL du hub)
+if (TABS.ch) TABS.ch.onmessage = (e) => {
+  const m = (e && e.data) || {};
+  if (m.t === 'hub') TABS.hubAt = m.on ? Date.now() : 0;
+  else if (m.t === 'fin' && CALLG.cur && CALLG.cur.id === m.id) { CALLG.seen.set(m.id, 'fin'); callgHide(); }
+};
 const callgOn = () => ONLINE && !isGuest() && !!profile.name && !APPEL_SUBS.size && !CALLG.off && !netOff() && !PG_SANS;
 async function callgPoll() {
   if (!callgOn() || CALLG.polling) return;
@@ -1158,9 +1170,21 @@ function callgShow() {
   callgRing(true);
 }
 function callgRing(on) {
-  clearInterval(CALLG.ringT); CALLG.ringT = 0; if (!on) return;
-  const f = () => { Audio.ensure(); Audio.tone(784, 0.2, 'sine', 0.16); setTimeout(() => Audio.tone(988, 0.26, 'sine', 0.16), 230); try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {} };
-  f(); CALLG.ringT = setInterval(f, 1800);
+  clearInterval(CALLG.ringT); CALLG.ringT = 0; clearTimeout(TABS.ringRetry); TABS.ringRetry = 0;
+  if (TABS.ringRel) { try { TABS.ringRel(); } catch (e) {} TABS.ringRel = null; }
+  if (!on) return;
+  if (Date.now() - TABS.hubAt < 25000) return;   // le hub de Pégase est ouvert dans un autre onglet : c'est lui qui sonne (le bandeau reste ici)
+  const go = () => {
+    const f = () => { Audio.ensure(); Audio.tone(784, 0.2, 'sine', 0.16); setTimeout(() => Audio.tone(988, 0.26, 'sine', 0.16), 230); try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {} };
+    f(); CALLG.ringT = setInterval(f, 1800);
+  };
+  if (!(navigator.locks && navigator.locks.request)) { go(); return; }
+  const c = CALLG.cur;
+  navigator.locks.request('jdw-sonnerie', { ifAvailable: true }, (lock) => {
+    if (!lock) { TABS.ringRetry = setTimeout(() => { if (CALLG.cur === c && c && !c.missed && !CALLG.ringT) callgRing(true); }, 2500); return; }   // un autre onglet sonne déjà (fermé : on reprend)
+    if (CALLG.cur !== c || !c || c.missed) return;
+    go(); return new Promise((res) => { TABS.ringRel = res; });   // le verrou est gardé tant que ça sonne ici
+  }).catch(() => go());
 }
 function callgHide() { clearTimeout(CALLG.missT); CALLG.cur = null; callgRing(false); const el = $('jdw-callring'); if (el) el.hidden = true; }
 function callgMissed(c) {   // l'autre a raccroché avant que je réponde (ou 45 s sans réponse) : « Appel manqué » quelques secondes
@@ -1184,15 +1208,16 @@ function callgOpenHub() {
 $('jdw-callring-no').addEventListener('click', () => {
   const c = CALLG.cur; if (!c || c.missed) { callgHide(); return; }
   rpc('pg_appel_repondre', { p_code: CODE(), p_name: profile.name, p_id: c.id, p_oui: false, p_raison: 'refuse' }, { quiet: true }).catch(() => {});
-  callgHide();
+  tabSay({ t: 'fin', id: c.id }); callgHide();
 });
 $('jdw-callring-ok').addEventListener('click', () => {
   const c = CALLG.cur; if (!c || c.missed) return;
-  CALLG.took = { id: c.id, de: c.de, t: Date.now() }; callgHide(); Audio.ensure();
+  CALLG.took = { id: c.id, de: c.de, t: Date.now() }; tabSay({ t: 'fin', id: c.id }); callgHide(); Audio.ensure();
   callgOpenHub();
 });
 setInterval(() => {
   smsTopicSync();                                         // le canal privé suit le joueur actuel (changement de joueur, de compte, réseau)
+  if (APPEL_SUBS.size && Date.now() - TABS.sayAt > 10000) { TABS.sayAt = Date.now(); tabSay({ t: 'hub', on: true }); }   // le hub est toujours ouvert ici
   if (document.hidden || !callgOn()) return;
   const per = CALLG.cur && !CALLG.cur.missed ? 2000 : RT.ok ? 30000 : 15000;
   if (Date.now() - CALLG.at >= per - 300) callgPoll();
@@ -3911,7 +3936,7 @@ function acctSetSess(s) {
   if (old.bare) ACCT.s[uid].bare = true;
   const am = u.app_metadata;                       // compte de FAMILLE (famille.sql) : un joueur prêté à un autre téléphone
   if (am ? am.borne_famille : old.fam) { ACCT.s[uid].fam = true; ACCT.s[uid].par = (am && am.parent) || old.par || ''; }
-  store.set('jdw.accts', ACCT.s);
+  acctSave();
   rtToken(uid, s.access_token);
   return uid;
 }
@@ -3929,28 +3954,64 @@ async function tokenFor(uid) {
   return s.at || '';
 }
 const acctToken = pr => pr && pr.acct && pr.acct.uid ? tokenFor(pr.acct.uid) : Promise.resolve('');
-// nouveau jeton avant expiration (une seule demande à la fois par compte) ; refus = session perdue, il faudra se reconnecter
+// nouveau jeton avant expiration (une seule demande à la fois par compte) ; refus = session perdue, il faudra se reconnecter.
+// 28 oct. 2026 — PLUSIEURS ONGLETS (Pégase a sa propre page, souvent dans un 2e onglet) : chaque onglet gardait SES jetons et les rafraîchissait
+// seul ; le 2e présentait un jeton de rafraîchissement déjà consommé par le 1er (Supabase le refuse, et peut fermer la session : déconnecté au
+// bout d'une heure). Désormais : un onglet à la fois (verrou « jdw-acct-<uid> », navigator.locks), et d'abord la session RANGÉE sur l'appareil
+// (acctAdopt : un autre onglet l'a peut-être déjà rafraîchie) ; acctSave ne range jamais une session plus vieille que celle déjà rangée ; les
+// onglets se tiennent à jour par l'événement « storage » (plus bas).
+function acctAdopt(uid) {   // la session rangée sur l'appareil est plus fraîche que la mienne (un autre onglet) : je la prends
+  const st = (store.get('jdw.accts', {}) || {})[uid], a = ACCT.s[uid];
+  if (!st || !st.rt || !a || st.rt === a.rt || !((st.exp || 0) > (a.exp || 0))) return false;
+  ACCT.s[uid] = Object.assign({}, a, st); try { rtToken(uid, st.at); } catch (e) {}
+  return true;
+}
+function acctSave() {   // ranger les sessions, sans écraser une session plus fraîche rangée entre-temps par un autre onglet
+  const st = store.get('jdw.accts', {}) || {};
+  for (const k in st) { const a = ACCT.s[k], b = st[k]; if (a && b && a.rt && b.rt && a.rt !== b.rt && (b.exp || 0) > (a.exp || 0)) ACCT.s[k] = Object.assign({}, a, b); }
+  return store.set('jdw.accts', ACCT.s);
+}
 function acctRefresh(uid, force) {
-  const a = sessOf(uid);
-  if (!a || !a.rt) return Promise.resolve(false);
+  const a0 = sessOf(uid);
+  if (!a0 || !a0.rt) return Promise.resolve(false);
   if (ACCT.busy[uid]) return ACCT.busy[uid];
-  if (!force && a.at && a.exp - Date.now() > 5 * 60e3) return Promise.resolve(true);
-  return (ACCT.busy[uid] = (async () => {
+  const fresh = (ms) => { const x = sessOf(uid); return !!(x && x.at && x.exp - Date.now() > ms); };
+  if (acctAdopt(uid) && fresh(60e3)) return Promise.resolve(true);      // un autre onglet vient de le faire
+  if (!force && fresh(5 * 60e3)) return Promise.resolve(true);
+  const run = async () => {
+    if (acctAdopt(uid) && fresh(60e3)) return true;                   // fait par un autre onglet pendant l'attente du verrou
+    const a = sessOf(uid); if (!a || !a.rt) return false;
     try { const s = await authReq('token?grant_type=refresh_token', { refresh_token: a.rt }); if (!s.user) s.user = { id: uid, email: a.email }; acctSetSess(s); return true; }
     catch (e) {
+      if (acctAdopt(uid)) return true;                                   // refusé parce qu'un autre onglet venait de le consommer : sa session
       if (!e.offline && e.status >= 400 && e.status < 500 && e.status !== 429 && a.fam) {   // joueur prêté : l'accès a été retiré
         const gone = acctDrop(uid);
         if (gone.length) setTimeout(() => toastCheer('L’accès à ' + gone.join(' et ') + ' a été retiré sur ce téléphone.', profile.name || gone[0], true), 400);
         return false;
       }
       if (!e.offline && e.status >= 400 && e.status < 500 && e.status !== 429) {
-        ACCT.s[uid] = { email: a.email, lost: true }; store.set('jdw.accts', ACCT.s); acctUi();
+        ACCT.s[uid] = { email: a.email, lost: true }; acctSave(); acctUi();
         if (profile.acct && profile.acct.uid === uid) setTimeout(acctGate, 300);
       }
       return false;
-    } finally { delete ACCT.busy[uid]; }
-  })());
+    }
+  };
+  const p = navigator.locks && navigator.locks.request ? navigator.locks.request('jdw-acct-' + uid, run) : run();
+  return (ACCT.busy[uid] = p.catch(() => false).finally(() => { delete ACCT.busy[uid]; }));
 }
+// les autres onglets du site (borne, Pégase, studio) : leurs sessions rafraîchies, connectées, déconnectées (une session PERDUE ailleurs, non :
+// chaque onglet le constate lui-même avec ses propres jetons)
+addEventListener('storage', (e) => {
+  if (e.key !== 'jdw.accts' || (e.storageArea && e.storageArea !== localStorage)) return;
+  let nv = {}, ov = {};
+  try { nv = JSON.parse(e.newValue || '{}') || {}; ov = JSON.parse(e.oldValue || '{}') || {}; } catch (er) { return; }
+  for (const k in nv) {
+    const a = ACCT.s[k], b = nv[k]; if (!b || !b.rt) continue;
+    if (!a) ACCT.s[k] = b;
+    else if (a.rt !== b.rt && (b.exp || 0) > (a.exp || 0)) { ACCT.s[k] = Object.assign({}, a, b); try { rtToken(k, b.at); } catch (er) {} }
+  }
+  for (const k in ov) if (!(k in nv) && ACCT.s[k]) delete ACCT.s[k];   // déconnecté dans un autre onglet
+});
 function acctTick() { if (ACCT.netFail) acctProbe().then(acctCheckMine); for (const k in ACCT.s) { const a = ACCT.s[k]; if (a && a.rt && a.exp - Date.now() < 5 * 60e3) acctRefresh(k); } }
 // le serveur a répondu « compte requis » pour ce pseudo : il faut se connecter (passage obligatoire)
 function acctNeed(name) {
@@ -4076,7 +4137,7 @@ async function acctArrive(h) {
 function acctAfterAdopt(res, s, nopseudoMsg, done) {
   if (res.pick) { welPick(s, res.pick); return; }
   if (res.nopseudo) {
-    const uid = acctSetSess(s); ACCT.s[uid].bare = true; store.set('jdw.accts', ACCT.s);
+    const uid = acctSetSess(s); ACCT.s[uid].bare = true; acctSave();
     if (profile.name) { adding = profile; profile = blankProfile(); }
     startWelcome(); WEL.uid = uid; welAcctUi(); welMsg(res.err || nopseudoMsg, res.err ? 'err' : 'ok'); return;
   }
@@ -4229,7 +4290,7 @@ async function oaFinish(q) {
   if (!s.user) { try { s.user = await authUser(s.access_token); } catch (e) { oaBack(ctx, authMsg(e)); return; } }
   const m = ctx.mode;
   if (m === 'link') {                           // Google rattaché : même compte, mêmes pseudos et scores
-    const uid = acctSetSess(s), se = sessOf(uid); se.g = true; se.idAt = 0; store.set('jdw.accts', ACCT.s);
+    const uid = acctSetSess(s), se = sessOf(uid); se.g = true; se.idAt = 0; acctSave();
     oaSettings(uid === ctx.uid ? '✓ Google est rattaché à ton compte : tu peux maintenant te connecter avec Google, partout.' : '✓ Connecté avec Google.', 'ok');
     return;
   }
@@ -4240,7 +4301,7 @@ async function oaFinish(q) {
     const N = m === 'protect' ? ctx.name2 || cleanName(pr.name) : cleanName(pr.name);
     const res = await acctAdopt(s, { name: N, claim: m !== 'connect' });
     if (res.err) {
-      if (m === 'protect') { const uid = acctSetSess(s); ACCT.s[uid].bare = true; store.set('jdw.accts', ACCT.s); }   // compte gardé : un autre pseudo suffira
+      if (m === 'protect') { const uid = acctSetSess(s); ACCT.s[uid].bare = true; acctSave(); }   // compte gardé : un autre pseudo suffira
       oaBack(ctx, m === 'connect' && /n’est pas sur ce compte/.test(res.err) ? N + ' n’est pas sur ton compte Google : connecte-toi avec l’e-mail (ou le pseudo) et le mot de passe de ' + N + '.' : res.err);
       return;
     }
@@ -4254,7 +4315,7 @@ async function oaFinish(q) {
   }
   const res = await acctAdopt(s, {});
   if (res.nopseudo && !res.err) {               // compte Google tout neuf : « Crée ton joueur » (pseudo, tête, cris) sur ce compte
-    const uid = acctSetSess(s); ACCT.s[uid].bare = true; store.set('jdw.accts', ACCT.s);
+    const uid = acctSetSess(s); ACCT.s[uid].bare = true; acctSave();
     if (profile.name) { adding = profile; profile = blankProfile(); }
     if (ctx.draft) oaDraft(ctx.draft);
     startWelcome(); WEL.uid = uid; welAcctUi();
@@ -4310,7 +4371,7 @@ async function oaIdentities(uid) {
     const was = [se.g, se.em, se.gid].join();
     se.g = ids.some(i => i.provider === 'google'); se.em = ids.some(i => i.provider === 'email');
     se.gid = (ids.find(i => i.provider === 'google') || {}).identity_id || ''; if (se.em) se.pw = true;
-    se.idAt = Date.now(); store.set('jdw.accts', ACCT.s);
+    se.idAt = Date.now(); acctSave();
     if (was !== [se.g, se.em, se.gid].join() && !$('jdw-settings').hidden) renderAcctSet();
   } catch (e) {} finally { OA.ids = ''; }
 }
@@ -4320,7 +4381,7 @@ async function oaUnlink(uid, b) {
   try {
     const tok = await tokenFor(uid); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
     await authReq('user/identities/' + encodeURIComponent(se.gid), null, tok, 'DELETE');
-    se.g = false; se.gid = ''; se.idAt = 0; store.set('jdw.accts', ACCT.s);
+    se.g = false; se.gid = ''; se.idAt = 0; acctSave();
     await acctRefresh(uid, true);
     oaSetMsg('Google est détaché. Connecte-toi avec ton e-mail (ou ton pseudo) et ton mot de passe.', 'ok');
   } catch (e) {
@@ -4390,7 +4451,7 @@ async function famParent(uid) {
   if (FAM.par === uid) return; FAM.par = uid;
   try {
     const r = await rpc('famille_parent', { p_code: CODE() }, { token: await tokenFor(uid), quiet: true, quiet404: true });
-    const se = sessOf(uid); if (se && r) { se.par = String(r); store.set('jdw.accts', ACCT.s); if (!$('jdw-settings').hidden) renderAcctSet(); }
+    const se = sessOf(uid); if (se && r) { se.par = String(r); acctSave(); if (!$('jdw-settings').hidden) renderAcctSet(); }
   } catch (e) {} finally { FAM.par = ''; }
 }
 // ⚙ › Compte : « 📲 Sur un autre téléphone »
@@ -4610,7 +4671,7 @@ async function acctLogout() {
 // le compte et ses joueurs quittent l'appareil (rien sur le serveur) ; renvoie les pseudos partis
 function acctDrop(uid) {
   const gone = [...new Set(profiles.filter(p => p.acct && p.acct.uid === uid).map(p => cleanName(p.name)))];
-  delete ACCT.s[uid]; store.set('jdw.accts', ACCT.s);
+  delete ACCT.s[uid]; acctSave();
   const cur = !!(profile.acct && profile.acct.uid === uid);
   profiles = profiles.filter(p => !(p.acct && p.acct.uid === uid)); store.set('jdw.profiles', profiles);
   if (cur) {
@@ -4781,7 +4842,7 @@ async function acctOk() {
     try {
       const tok = await acctToken(pr); if (!tok) throw Object.assign(new Error('session'), { status: 401 });
       await authSetPassword(tok, pass);
-      const se = sessOf(pr.acct && pr.acct.uid); if (se) { se.pw = true; store.set('jdw.accts', ACCT.s); }
+      const se = sessOf(pr.acct && pr.acct.uid); if (se) { se.pw = true; acctSave(); }
       acctSetBusy(false); closeSheet('jdw-acct'); toastCheer('🔑 Mot de passe enregistré !', N, true);
     } catch (e) { acctSetBusy(false); acctMsg(authMsg(e), 'err'); }
     return;
