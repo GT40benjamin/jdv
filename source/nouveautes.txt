@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[neon] ## 🫧 Les bulles en l'air plus faciles à prendre (borne 1.50.13)
+[neon] Les bulles en l'air se prennent bien plus facilement : la zone qui compte est plus grande, un appui un peu avant la bulle est gardé en mémoire et un appui un peu en retard compte encore, au clavier, à la souris comme au doigt
 [coffres] ## 🔒 La vue du coffre ne tourne plus (borne 1.50.9)
 [coffres] La vue du coffre ne tourne plus : tu ne déplaces que les pièces. Le coffre reste toujours bien droit, de face, en entier sur l'écran (téléphone en hauteur ou en largeur, ordinateur), même quand tu tires une pièce près du bord
 [magic] ## 🔧 Petites corrections (borne 1.50.8)

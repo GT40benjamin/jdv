@@ -2141,10 +2141,11 @@
     const m = st.mode, ph = st.mini ? PHM : PH;
     if (m === 'cube' || m === 'robot') {
       // le ROBOT (27 oct.) : saut plus court, mais tant qu'on TIENT (au plus rbT s) il continue de monter : petit ou grand saut
-      const gv = st.grav, rb = m === 'robot', vj0 = rb ? P.vj * 0.8 : P.vj;
+      const gv = st.grav, rb = m === 'robot', vj0 = rb ? P.vj * 0.8 : P.vj, airTap = st.tap && !st.ground;
       if (st.ground && (st.tap || st.hold)) { st.vy = gv * vj0; st.ground = false; st.jumpAt = st.x; if (rb) st.boost = P.rbT; }
       if (rb && st.boost > 0) { if (st.hold) { st.vy = gv * Math.max(gv * st.vy, vj0); st.boost -= dt; } else st.boost = 0; }
-      if (!st.ground && st.tap) { const o = orbAt(L, st); if (o) { if (o.dash) { st.dash = true; st.vy = 0; } else if (o.blue) { st.grav = -gv; st.vy = gv * P.vj * 0.3; } else st.vy = gv * P.vj * (o.k || (o.big ? 1.25 : 1)); o.used = st.ghost ? o.used : true; st.orbHit = o; } }
+      if (!st.ghost && !st.vrf) orbPlayer(st, L, P, gv, airTap, dt);
+      else if (!st.ground && st.tap) { const o = orbAt(L, st); if (o) { if (o.dash) { st.dash = true; st.vy = 0; } else if (o.blue) { st.grav = -gv; st.vy = gv * P.vj * 0.3; } else st.vy = gv * P.vj * (o.k || (o.big ? 1.25 : 1)); o.used = st.ghost ? o.used : true; st.orbHit = o; } }
       const pad = !st.padCd && gv > 0 && padAt(L, st); if (pad) { st.vy = P.vj * (pad.k || 1.42); st.ground = false; st.padCd = 0.2; st.padHit = pad; }
       st.padCd = Math.max(0, (st.padCd || 0) - dt);
       // ORBE DE DASH (27 oct.) : tant qu'on tient, le cube file tout droit, sans tomber ; on lâche, il retombe
@@ -2184,7 +2185,9 @@
       if (st.y <= lo) { st.y = lo; st.vy = 0; st.ground = st.grav > 0; } else if (st.y >= hi) { st.y = hi; st.vy = 0; st.ground = st.grav < 0; } else st.ground = false;
     }
     st.tap = false;
-    if (hit(L, st)) return 'dead';
+    // sous une bulle pas encore prise (toucher en retard possible), un pic n'est mortel qu'à la fin de la fenêtre si l'on n'a pas touché
+    if (hit(L, st)) { if (st.opO && !st.ground) st.ohurt = true; else return 'dead'; }
+    if (st.ohurt && !st.opO) return 'dead';
     // le DUO (27 oct.) : le jumeau court au plafond, exactement en miroir (même toucher) ; il meurt aussi s'il touche
     if (st.dual) { TWIN.x = st.x; TWIN.y = ROOF - st.y; TWIN.mini = st.mini; if (hit(L, TWIN)) return 'dead'; }
     return null;
@@ -2193,7 +2196,7 @@
   // changement de façon d'avancer (au passage d'un portail) : la même règle pour le joueur et pour le fantôme (p = la partie)
   function enterMode(st, p) {
     const mode = typeof p === 'string' ? p : p.mode;
-    st.mode = mode; st.grav = 1; st.ground = false; st.mini = !!(p && p.mini);
+    st.mode = mode; st.grav = 1; st.ground = false; st.mini = !!(p && p.mini); st.obuf = 0; st.opO = null; st.ofT = 0;
     if (mode === 'ball' || mode === 'spider') st.y = Math.min(st.y, BALL_CEIL - PH); if (mode === 'ship' || mode === 'ufo') st.vy *= 0.3;
   }
   function newState(P) { return { x: 0, y: PH, vy: 0, v: P ? P.v : 0, mode: 'cube', grav: 1, mini: false, mir: false, ground: true, hold: false, tap: false, pi: 0, gi: 0 }; }
@@ -2207,6 +2210,53 @@
   function lowerIdx(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m].x0 < x) lo = m + 1; else hi = m; } return Math.max(0, lo - 6); }
   // (sans tableau en plus à chaque pas : sur téléphone, 240 pas par seconde, le ramasse-miettes ne se réveille plus en pleine partie)
   function orbAt(L, st) { const A = L.orbs; for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const o = A[i]; if (!o.used && Math.abs(o.x0 - st.x) < 0.95 && Math.abs(o.y - st.y) < 1.0) return o; } return null; }
+  // LES BULLES DU JOUEUR (29 oct., Benjamin : « les bulles en l'air plus faciles à prendre ») — souris, clavier et toucher arrivent tous
+  // ici par st.tap ; le fantôme et la vérification des parcours gardent orbAt (les niveaux ne bougent pas d'un bloc) :
+  // - zone 1,7 fois plus grande : ORB_ZX × ORB_ZY autour de la bulle (avant 0,95 × 1,0) ;
+  // - MÉMOIRE DE CLIC : un toucher en l'air jusqu'à ORB_EARLY s AVANT est gardé ; il part quand le cube passe le centre de la bulle
+  //   (là où le fantôme la touche : le saut est alors exactement le sien) ;
+  // - un toucher APRÈS le centre, jusqu'à ORB_LATE s (et dans la zone), compte COMME S'IL ÉTAIT PILE : le cube prend la vitesse qu'il
+  //   aurait eue et rejoint en douceur la hauteur où il serait (au moins ORB_FIX s), puis suit la même courbe que le fantôme ; pendant
+  //   ce temps la bulle le retient (coussin) et un pic sous elle n'est mortel qu'à la fin si l'on n'a pas touché.
+  // Le toucher qui fait sauter du sol n'est gardé que si une bulle est juste devant (sinon elle partirait toute seule après un saut).
+  const ORB_ZX = 0.95 * 1.7, ORB_ZY = 1.0 * 1.7, ORB_EARLY = 0.21, ORB_LATE = 0.14, ORB_FIX = 0.08, ORB_CUSH = 0.03;
+  function orbKick(st, o, P, gv) {
+    if (o.dash) { st.dash = true; st.vy = 0; } else if (o.blue) { st.grav = -gv; st.vy = gv * P.vj * 0.3; } else st.vy = gv * P.vj * (o.k || (o.big ? 1.25 : 1));
+    o.used = true; st.orbHit = o; st.obuf = 0; st.opO = null; st.ohurt = false;
+  }
+  function orbPlayer(st, L, P, gv, airTap, dt) {
+    if (st.ground) { st.obuf = 0; st.opO = null; st.ofT = 0; return; }
+    const v = st.v || P.v, A = L.orbs;
+    if (st.opO) { st.opT += dt; if (st.opO.used || st.opT > ORB_LATE || st.opT * v > ORB_ZX) st.opO = null; }
+    if (airTap) {
+      // en retard sur la bulle d'avant (si elle est plus près que la suivante) : comme si l'on avait touché pile à son centre
+      let nx = 99; for (let i = lowerIdx(A, st.x); i < A.length && A[i].x0 < st.x + 8; i++) if (!A[i].used && A[i].x0 > st.x) { nx = (A[i].x0 - st.x) / v; break; }
+      const o = st.opO;
+      if (o && st.opT < nx) {
+        const d = st.opT; st.grav = st.opG; st.vy = st.opVy; orbKick(st, o, P, st.opG);
+        const g = st.grav * P.g, yv = o.dash ? st.opY : st.opY + st.vy * d - g * d * d / 2;
+        if (!o.dash) st.vy -= g * d;
+        st.ofY = yv - st.y; st.ofT0 = st.ofT = Math.max(ORB_FIX, d);
+      } else st.obuf = ORB_EARLY;
+    } else if (st.tap) {
+      // le toucher qui fait sauter du sol prend la bulle déjà là (comme le fantôme), ou celle juste devant (gardé jusqu'à son centre)
+      const o = orbAt(L, st);
+      if (o) orbKick(st, o, P, gv);
+      else for (let i = lowerIdx(A, st.x); i < A.length && A[i].x0 < st.x + ORB_ZX; i++) if (!A[i].used && A[i].x0 > st.x && Math.abs(A[i].y - st.y) < ORB_ZY) { st.obuf = ORB_EARLY; break; }
+    }
+    // le cube passe le centre d'une bulle (dans la zone) pendant ce pas : il la prend si un toucher est gardé, sinon on retient l'instant
+    const x0 = st.x - v * dt;
+    for (let i = lowerIdx(A, x0); i < A.length && A[i].x0 <= st.x; i++) {
+      const o = A[i]; if (o.used || o.x0 <= x0 || Math.abs(o.y - st.y) >= ORB_ZY) continue;
+      if (st.obuf > 0) { orbKick(st, o, P, gv); break; }
+      st.opO = o; st.opT = 0; st.opY = st.y; st.opVy = st.vy; st.opG = gv;
+    }
+    st.obuf = Math.max(0, (st.obuf || 0) - dt);
+    // le COUSSIN : tant qu'un toucher en retard est possible, la bulle freine la chute (le cube y flotte un instant, 20 % de la gravité)
+    if (st.opO) st.vy = st.vy * Math.exp(-dt / ORB_CUSH) + st.grav * P.g * dt * 0.8;
+    // le rattrapage (toucher en retard) : la hauteur manquante, petit à petit
+    if (st.ofT > 0) { const s = Math.min(dt, st.ofT); st.y += st.ofY * s / st.ofT0; st.ofT -= s; }
+  }
   // tolérant : il attrape aussi le cube qui vient de sauter un peu trop tôt (jusqu'à 1,8 de haut au-dessus de lui)
   function padAt(L, st) { const A = L.pads; for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const p = A[i], dy = st.y - PH - p.y; if (Math.abs(p.x0 + 0.5 - st.x) < 0.7 && dy > -0.3 && dy < 1.8) return p; } return null; }
   function hit(L, st) {
@@ -2623,7 +2673,7 @@
   function verify(L, rec) {
     let fixes = 0;
     for (let it = 0; it < 60; it++) {
-      const st = newState(L.P), dt = 1 / 240; let dead = null;
+      const st = Object.assign(newState(L.P), { vrf: true }), dt = 1 / 240; let dead = null;   // vrf : les règles de bulle du fantôme
       for (const o of L.orbs) o.used = false;
       for (let i = 0; i < rec.length; i++) {
         if (st.pi < L.parts.length && st.x >= L.parts[st.pi].x) enterMode(st, L.parts[st.pi++]);
