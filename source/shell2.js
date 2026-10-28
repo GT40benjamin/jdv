@@ -185,7 +185,8 @@ let criOn = store.get('jdw.cris', true) !== false;      // cris des copains
 const Audio = {
   ctx: null, master: null, buf: null,
   ensure() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    // un son à l'arrêt, quel qu'en soit l'état (« suspended », ou « interrupted » sur iPhone après un appel ou l'écran verrouillé) : on le relance
+    if (this.ctx) { if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') { try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) {} } return; }
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.master = this.ctx.createGain(); this.master.gain.value = muted ? 0 : 0.6; this.master.connect(this.ctx.destination);
@@ -1462,7 +1463,7 @@ async function setMusic(id, mode) {
 }
 function setMusicOn(on) {
   MUS.on = !!on; store.set('jdw.music', MUS.on);
-  if (!MUS.on) musicOut(0.4); else { Audio.ensure(); setMusic(MUS.want || screenMusic(), MUS.wantMode); }
+  if (!MUS.on) musicOut(0.4); else { Audio.ensure(); MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); audioWake(); }
 }
 /* ---- musique calée d'un jeu de rythme (api.rhythm, Néon Rush) : le jeu joue lui-même SON morceau et lit son temps ---- */
 const RHY = { src: null, g: null, t0: null, seq: 0, an: null };
@@ -1508,7 +1509,16 @@ function rhythmApi(mine) {
 // la page Pégase (choix des îles) joue la musique du hub de Pégase (« Chez toi ») ; le reste de la borne, celle de l'accueil
 const menuMusic = () => (MODE === 'pegase' ? 'pegase' : 'accueil');
 function screenMusic() { return !$('jdw-play').hidden && current ? current.game.id : menuMusic(); }
-document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) { if (Audio.ctx && Audio.ctx.state === 'suspended') Audio.ctx.resume().catch(() => {}); setMusic(MUS.want, MUS.wantMode); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { const w = MUS.want; musicOut(0.3); MUS.want = w; } else if (MUS.want) { Audio.ensure(); setMusic(MUS.want, MUS.wantMode); } });
+// 28 oct. 2026 (Samba : « je n'ai plus la musique […] pourtant en paramètres c'est bien sélectionné ») : le téléphone peut mettre le son de la page
+// en pause APRÈS le 1er geste (appel, appli en arrière-plan, écran verrouillé ; iPhone : « interrupted ») et la relance sans toucher peut être
+// refusée : CHAQUE toucher relance un son à l'arrêt, puis la musique de l'écran repart si rien ne joue (réglage « musique » allumé)
+function audioWake() {
+  const A = Audio.ctx; if (!A || A.state === 'running' || A.state === 'closed') return;
+  let p = null; try { p = A.resume(); } catch (e) { return; }
+  if (p && p.then) p.then(() => { if (A.state === 'running' && MUS.on && !MUS.cur && !document.hidden) { MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); } }).catch(() => {});
+}
+for (const ev of ['pointerdown', 'touchend', 'keydown']) addEventListener(ev, audioWake, { capture: true, passive: true });
 // la musique démarre au premier geste (règle des navigateurs)
 {
   const EV = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];

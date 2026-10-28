@@ -2840,7 +2840,7 @@ body.net-off #jdw-duel-switch [data-where=online] span::after{content:" · rése
 #jdw-lib[data-mode="pegase"] .pgs-in{color:#fff}#jdw-lib[data-mode="pegase"] .pgs-in::placeholder{color:rgba(255,255,255,.92);opacity:1}#jdw-lib[data-mode="pegase"] .pgs-ic{stroke:#fff}#jdw-lib[data-mode="pegase"] .pgs-filt svg{stroke:#fff}   /* recherche lisible sur la vidéo */
 .pg-qtag{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);z-index:50;padding:4px 10px;border-radius:999px;background:rgba(6,10,24,.6);border:1px solid rgba(255,255,255,.15);color:#e8f1ff;font:600 11px var(--body);opacity:0;transition:opacity .4s;pointer-events:none}.pg-qtag.on{opacity:1}   /* mode test : la qualité qui joue */
 /* son pas encore permis : le bouton musique de la page Pégase pulse doucement jusqu'au 1er toucher */
-.jdw-mute-wait #jdw-pg-music:not(.off){animation:pgMuteWait 1.6s ease-in-out infinite}
+.jdw-mute-wait #jdw-lib[data-mode="pegase"] #jdw-more-btn,.jdw-mute-wait #jdw-pg-music:not(.off){animation:pgMuteWait 1.6s ease-in-out infinite}
 @keyframes pgMuteWait{0%,100%{box-shadow:0 0 0 0 rgba(255,214,140,0)}50%{box-shadow:0 0 0 6px rgba(255,214,140,.35)}}
 @media (prefers-reduced-motion:reduce){.jdw-mute-wait #jdw-pg-music:not(.off){animation:none;box-shadow:0 0 0 2px rgba(255,214,140,.5)}}
 /* JOUER sur PC : la page Pégase recule doucement sous un voile pendant que le jeu tourne */
