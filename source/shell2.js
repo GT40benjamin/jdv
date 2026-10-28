@@ -1727,7 +1727,9 @@ function gameNotifs() {
   const me = cleanName(profile.name); if (!me) return [];
   return [...NEW_GAMES].filter(id => (gameById(id) || (/^coop-/.test(id) && coopById(id.slice(5)))) && tileNews(id) === 'new' && !(gameNotifSeen[me] || []).includes(id)).map(id => ({ kind: 'game', game: id }));
 }
-function unseenCount() { const s = notifSeen[notifKey()] || 0; return notifs.filter(n => n.id > s).length + gameNotifs().length + updateNotifs().length + coopFreshN(); }
+// la page de Pégase (28 oct. 2026) : ni les records ni la coop de la borne d'arcade (ils restent « nouveaux » pour la borne)
+function bellArcade() { return PAGE !== 'pegase'; }
+function unseenCount() { const s = notifSeen[notifKey()] || 0; return (bellArcade() ? notifs.filter(n => n.id > s).length + coopFreshN() : 0) + gameNotifs().length + updateNotifs().length; }
 function refreshBell() {
   $('jdw-bell').hidden = !profile.name || (!notifsOk && !gameNotifs().length && !updateNotifs().length && !coopNotifCount() && !NOTES.length);
   const n = unseenCount(), b = $('jdw-bell-n');
@@ -1849,8 +1851,9 @@ function notesInto(box, fresh, all, recent) {
 function openNotifs(showOld) {
   const ol = $('jdw-notifs-list'); ol.textContent = '';
   const key = notifKey(), seen = notifSeen[key] || 0, me = cleanName(profile.name);
-  const fresh = [...updateNotifs(), ...gameNotifs(), ...coopNotifsList(true), ...notifs.filter(n => n.id > seen)];
-  const old = [{ kind: 'installed', all: true, v: CUR_V }].concat(coopNotifsList(false), notifs.filter(n => n.id <= seen));
+  const arc = bellArcade();
+  const fresh = [...updateNotifs(), ...gameNotifs(), ...(arc ? [...coopNotifsList(true), ...notifs.filter(n => n.id > seen)] : [])];
+  const old = [{ kind: 'installed', all: true, v: CUR_V }].concat(arc ? coopNotifsList(false) : [], arc ? notifs.filter(n => n.id <= seen) : []);
   // ce qui est vu disparaît : la prochaine fois, seulement les nouveautés (l'historique reste consultable)
   for (const n of fresh) ol.appendChild(notifRow(n, true));
   // pas de nouvelles notes : les dernières mises à jour quand même, après le reste (jamais « Rien de nouveau » quand il y a eu des versions)
@@ -1859,8 +1862,8 @@ function openNotifs(showOld) {
   if (showOld === true) for (const n of old) ol.appendChild(notifRow(n, false));
   $('jdw-notifs-old').hidden = showOld === true || !old.length;
   ol.scrollTop = 0;
-  if (notifs.length) { notifSeen[key] = Math.max(seen, ...notifs.map(n => n.id)); store.set('jdw.notifseen', notifSeen); }
-  coopNotifsSeenSafe();
+  if (notifs.length && arc) { notifSeen[key] = Math.max(seen, ...notifs.map(n => n.id)); store.set('jdw.notifseen', notifSeen); }
+  if (arc) coopNotifsSeenSafe();
   for (const u of updateNotifs()) if (u.kind !== 'installed') UPD.seen[u.kind] = u.v;
   if (vcmp(CUR_V, notesV) > 0) { notesV = CUR_V; store.set('jdw.notesv', notesV); }   // vues : la prochaine fois, seulement les suivantes
   store.set('jdw.updseen', UPD.seen);
