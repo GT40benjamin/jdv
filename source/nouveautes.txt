@@ -31,6 +31,9 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## 🏨 Pégase 0.9.9.11 : on parle à tout l'hôtel (borne 1.50.11)
+[pegase] 🏨 À l'hôtel, tu peux parler à Edmond, à Mariette et aux clients ; les clients ne traversent plus les murs ni les bancs.
+[pegase] 🪑 Les habitants s'assoient pour de vrai : ils s'approchent du siège et s'y posent, sans glisser dedans.
 [pegase] ## 🚶 Pégase 0.9.9.10 : des habitants plus polis et mieux vivants (borne 1.50.10)
 [pegase] 🙋 Les habitants ne te traversent plus : si tu es sur leur chemin, ils s'arrêtent, te disent un mot, puis passent à côté de toi.
 [pegase] ☂️ Sous l'averse, les habitants dehors ouvrent leur parapluie, chacun le sien, et le referment à l'abri.

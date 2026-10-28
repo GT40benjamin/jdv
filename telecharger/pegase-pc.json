@@ -1,44 +1,44 @@
 {
-  "version": "0.9.9.10",
-  "build": 61,
-  "size": 2131804708,
-  "sha256": "c401f1c0e7309b78f87cfab1789d6aa23b93354c056c669bba682c8c01d0fb6c",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v61/Pegase-PC-2026-10-28-0.9.9.10.zip",
-  "manifest": "0875bde242f39f05a209a1e017bcb9a3bf1ef161a8c514fe3e151281024d7e06",
+  "version": "0.9.9.11",
+  "build": 62,
+  "size": 2131807718,
+  "sha256": "034f33655166e445cc39d9b3b8f85d57e72c80a4c974bc8e92204cc539a49887",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v62/Pegase-PC-2026-10-28-0.9.9.11.zip",
+  "manifest": "e3f96875167118b2565e649c3608ec99451e7438503f3c66738703e288274e0c",
   "patchs": [
     {
+      "de": "0.9.9.10",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v62/Pegase-PC-patch-0.9.9.10.zip",
+      "taille": 2655804,
+      "sha256": "0daaef27f1dd7ff301c20bcf5c83cfdd24aebcf90084bfdfd2ffe5ba2c35f355"
+    },
+    {
       "de": "0.9.9.9",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v61/Pegase-PC-patch-0.9.9.9.zip",
-      "taille": 4896589,
-      "sha256": "a6cffc95e3b0f4bd7f14808f7a6c3882643d91b69eac0ac6642fb147d1f16951"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v62/Pegase-PC-patch-0.9.9.9.zip",
+      "taille": 4984410,
+      "sha256": "44fb48bd973dbe19188a126cf608327bab93f2a8b48297bf163a9c06db46e121"
     },
     {
       "de": "0.9.9.8",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v61/Pegase-PC-patch-0.9.9.8.zip",
-      "taille": 7169011,
-      "sha256": "9fa492193c2019c761cacfe7eb89778ca4ddadf635222ee5eeb9af9ed34b927b"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v62/Pegase-PC-patch-0.9.9.8.zip",
+      "taille": 7301258,
+      "sha256": "9c39bc3ba62d04db7582028cd19fc69b108f8e13e374a8c1efaa01ffacb42e25"
     },
     {
       "de": "0.9.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v61/Pegase-PC-patch-0.9.9.7.zip",
-      "taille": 7290900,
-      "sha256": "39c80f80bb4962c7a0d135a944403822a3cba1f5da54b4e2870f34c21ba385ef"
-    },
-    {
-      "de": "0.9.9.6",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v61/Pegase-PC-patch-0.9.9.6.zip",
-      "taille": 7321720,
-      "sha256": "a8cde3b7cb1218afd0b8b7c812e22246d9a9f2d560e790fd4d6e41229378b8f6"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v62/Pegase-PC-patch-0.9.9.7.zip",
+      "taille": 7324014,
+      "sha256": "0e54d35df6385c4af85ed8a0311752a76c407c33dc9fa1cef44b8f307d945457"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v61/Pegase-PC-patch-0.9.7.zip",
-      "taille": 247223568,
-      "sha256": "6cf6768c85afc377bd0f73ef12cf4df3785bff8ed01ae2f1045e547bb0b1cfac"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v62/Pegase-PC-patch-0.9.7.zip",
+      "taille": 247229481,
+      "sha256": "9b30c4cc6d404cea84240ee5e1739acf9a8e7cc4bb4463365becd4616383a988"
     }
   ],
   "notes": [
-    "Les habitants plus polis (ils ne te traversent plus)",
-    "Leurs parapluies sous la pluie"
+    "On parle à tout l'hôtel",
+    "Les habitants s'assoient pour de vrai"
   ]
 }
