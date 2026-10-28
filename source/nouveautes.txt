@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 🕹️ La borne d'arcade, rien que les jeux (borne 1.50)
+[borne] La borne ne garde que les jeux d'arcade : Classique, Duel et Coop, avec tes salles et tes copains
+[borne] En haut, plusieurs boutons sont rangés sous « ⋯ » : le site du studio, le classement, partager, les paramètres
 [borne] ## 🏠 Chaque salle peut avoir ses propres onglets (borne 1.49.6)
 [borne] Une salle peut maintenant choisir les onglets que voient ses joueurs : les jeux de la borne et la salle restent toujours là
 [borne] ## 🌌 ILO quitte la barre de la borne (borne 1.49.1)
@@ -15,6 +18,10 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## 🏝️ Pégase a maintenant sa propre page (borne 1.50)
+[pegase] Pégase s'ouvre dans sa propre page (son propre onglet sur un ordinateur) : les îles, Regarder, PegaGram et Jouer y sont tous. Depuis la borne, touche « Pégase → » en haut ; pour revenir aux jeux d'arcade, « La borne d'arcade » en bas
+[pegase] Un appel d'un copain sonne partout sur le site, même sur la borne ou la page du studio : Décrocher ouvre Pégase sur l'appel
+[pegase] En haut, plusieurs boutons sont rangés sous « ⋯ »
 [pegase] ## ☁️ Les îles gardent leur mer de nuages (borne 1.49.8)
 [pegase] Sur la liste des îles, chaque carte se dessine toujours avec sa mer de nuages : ce que tu n'as pas encore exploré reste caché, même avec une connexion lente
 [pegase] ## 🚣 Pégase 0.9.9.7 : le défi de la descente, le secret de Gaspard et 100 trésors cachés (borne 1.49.7)
