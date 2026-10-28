@@ -23,6 +23,11 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## 🌊 Pégase 0.9.9.8 : les missions de la mer et 120 trésors cachés (borne 1.50.3)
+[pegase] 🐟 Basile collectionne ce que la mer dépose sur l'île : rapporte-lui des bouteilles à message et de beaux coquillages pour sa vitrine, puis des truites pour sa poissonnerie.
+[pegase] 🎣 Le vieux Gaspard t'apprend à pêcher le brochet au large du lac, puis te demande de retrouver les cartes postales du bord de mer… et une mystérieuse bouteille échouée dans une crique.
+[pegase] 🏝️ 120 trésors cachés : 20 nouveaux sur l'îlot du grand arbre (traverse le lac en barque) et au fond des criques encore inexplorées. Le Cabinet du musée a une place pour chacun.
+[pegase] 📷 Photos de près plus belles : fini le halo flou autour d'une fleur, d'un insecte ou d'une plume bien nets.
 [pegase] ## 🏝️ Pégase a maintenant sa propre page (borne 1.50)
 [pegase] Pégase s'ouvre dans sa propre page (son propre onglet sur un ordinateur) : les îles, Regarder, PegaGram et Jouer y sont tous. Depuis la borne, il est dans le menu « ⋯ » en haut ; pour revenir aux jeux d'arcade, « La borne d'arcade » en bas
 [pegase] Un appel d'un copain sonne partout sur le site, même sur la borne ou la page du studio : Décrocher ouvre Pégase sur l'appel
