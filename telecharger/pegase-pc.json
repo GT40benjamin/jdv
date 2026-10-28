@@ -1,44 +1,44 @@
 {
-  "version": "0.9.9.4",
-  "build": 55,
-  "size": 2122512793,
-  "sha256": "05187e1a8ce96d26197974194fa3e391d2a33072e3ad2097569ae34aa1251749",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v55/Pegase-PC-2026-10-28-0.9.9.4.zip",
-  "manifest": "aae2213bd7da91d6586c812ecfb31c45af757698b03e0e833b45d0c0c1ce7661",
+  "version": "0.9.9.5",
+  "build": 56,
+  "size": 2126648169,
+  "sha256": "8ce2ebe7deaa71c2434ca2d5f882dd2f015e042db76b845e5741fd92524aa795",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v56/Pegase-PC-2026-10-28-0.9.9.5.zip",
+  "manifest": "5a4b8c1b3bcfb35e6f580e5ff12d8d27f1aa956b24fcd4d6b2d9a504cd56ed76",
   "patchs": [
     {
+      "de": "0.9.9.4",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v56/Pegase-PC-patch-0.9.9.4.zip",
+      "taille": 10435473,
+      "sha256": "4ea17112e86cb7569691840aa8c1431333b2374b122684a363fec725006f7111"
+    },
+    {
       "de": "0.9.9.3",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v55/Pegase-PC-patch-0.9.9.3.zip",
-      "taille": 2323227,
-      "sha256": "53da7ce624491dc5771fed72b7d6bf60085f96b2f8d2a9b47690eb8ed524d6a5"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v56/Pegase-PC-patch-0.9.9.3.zip",
+      "taille": 10487954,
+      "sha256": "ce9c2c4342bcaa2aa14e17ddf407d6b97e5492429547bdc18f4fdf7f84555f00"
     },
     {
       "de": "0.9.9.2",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v55/Pegase-PC-patch-0.9.9.2.zip",
-      "taille": 6322861,
-      "sha256": "1e28475d143f51595a0bce2b79550ea392d276bc47ef6550a4dc34c820d5d4a0"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v56/Pegase-PC-patch-0.9.9.2.zip",
+      "taille": 10790361,
+      "sha256": "c6a4cfc006ddae4235ea50042d30422a929f2f2e921aae112102b2ce5a396c2f"
     },
     {
       "de": "0.9.9.1",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v55/Pegase-PC-patch-0.9.9.1.zip",
-      "taille": 8591331,
-      "sha256": "b9671368233c7fc0aa01b0056f2f606b2638680694ecca9eb08f4a97c52eaf91"
-    },
-    {
-      "de": "0.9.9",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v55/Pegase-PC-patch-0.9.9.zip",
-      "taille": 8696129,
-      "sha256": "dea4639359ae791fc1b63f1db9312ee33805a73d4a6a91921afd940f6a09617c"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v56/Pegase-PC-patch-0.9.9.1.zip",
+      "taille": 13014706,
+      "sha256": "6b8b743e65f88558c68d77a2c2b01ba537210c5d71b788ff2962a09b69988c91"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v55/Pegase-PC-patch-0.9.7.zip",
-      "taille": 237402447,
-      "sha256": "e8eb28299c1cfd06c05a74d81a19bf3cd4483297e270eaf89ff8cc28fd6137c6"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v56/Pegase-PC-patch-0.9.7.zip",
+      "taille": 241593546,
+      "sha256": "c35299318ff3b3981c5ccd2e06a18a4c74846c5895e291d595359efd2be5b5dd"
     }
   ],
   "notes": [
-    "Les voyageurs arrivent par l'avion de 10 h",
-    "Missions annexes de l'hôtel : leurs petites envies"
+    "20 nouveaux trésors cachés dans l'île",
+    "Le Cabinet des trouvailles ouvre au musée"
   ]
 }

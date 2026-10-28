@@ -13,6 +13,10 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## 🗝️ Pégase 0.9.9.5 : 20 nouveaux trésors cachés et le Cabinet des trouvailles au musée (borne 1.49.4)
+[pegase] 🔎 Recoins : 20 nouveaux trésors se cachent dans des coins encore vides de l'île : au cœur des bambouseraies, en haut des rochers moussus où l'on grimpe, sur les balcons du village, au pied des cascades et au bout des grands troncs couchés. Il y en a maintenant 60, 10 de chaque sorte.
+[pegase] 🏛️ Musée : le Cabinet des trouvailles ouvre dans l'aile des Fouilles. Chaque trésor que tu trouves y prend sa place sur l'étagère de sa famille, en vrai. Ceux qui manquent montrent leur silhouette sombre : tu sais ce qu'il te reste à chercher.
+[pegase] 🏨 Hôtel : les clients peuvent maintenant te demander d'aller à la crique, à la plage, à l'étang, dans la jungle de bambous, au jardin aux poules ou au belvédère de la falaise.
 [pegase] ## ✈️ Pégase 0.9.9.4 : les voyageurs de l'hôtel et leurs petites envies (borne 1.49.3)
 [pegase] ✈️ Les clients de l'hôtel arrivent par l'avion de Lou, chaque jour à 10 h : ils descendent à la porte, valise en main, et marchent jusqu'à l'hôtel ; ceux qui repartent les attendent au pied de l'avion et montent à bord.
 [pegase] 🏨 Missions annexes de l'hôtel (téléphone › Missions › Annexes) : chaque client a 2 ou 3 petites envies — une photo d'un animal, un poisson, un légume du potager, une trouvaille à la pelle, un endroit de l'île à aller voir. Fais-le pendant son séjour : il te remercie, et ça rapporte des lucioles. Facultatif, jamais bloquant.
