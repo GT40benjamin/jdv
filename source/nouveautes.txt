@@ -13,6 +13,9 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## ✈️ Pégase 0.9.9.4 : les voyageurs de l'hôtel et leurs petites envies (borne 1.49.3)
+[pegase] ✈️ Les clients de l'hôtel arrivent par l'avion de Lou, chaque jour à 10 h : ils descendent à la porte, valise en main, et marchent jusqu'à l'hôtel ; ceux qui repartent les attendent au pied de l'avion et montent à bord.
+[pegase] 🏨 Missions annexes de l'hôtel (téléphone › Missions › Annexes) : chaque client a 2 ou 3 petites envies — une photo d'un animal, un poisson, un légume du potager, une trouvaille à la pelle, un endroit de l'île à aller voir. Fais-le pendant son séjour : il te remercie, et ça rapporte des lucioles. Facultatif, jamais bloquant.
 [pegase] ## 🗝️ Pégase 0.9.9.3 : 20 nouveaux trésors et un hôtel plein de vie (borne 1.49.2)
 [pegase] 🗝️ 20 nouveaux trésors cachés à l'intérieur de l'île, sans flèche ni carte : sous les ponts et les arches de pierre, au pied des sanctuaires, des portiques rouges, des grands troncs et des marches du cimetière. Nouvelle famille : les objets d'autrefois (vieilles poteries, clés rouillées)
 [pegase] 📜 Quatre nouvelles bouteilles à message et quatre cartes postales continuent la légende… Seras-tu le premier à trouver les 40 trésors ?
