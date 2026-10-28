@@ -31,6 +31,11 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## 🏖️ Pégase 0.9.9.12 : une serviette pour rêver (borne 1.50.12)
+[pegase] 🏖️ Nouveau geste « Serviette » : tu étales ta serviette, tu t'allonges, et la nuit tu regardes les étoiles ; les autres joueurs te voient.
+[pegase] 🐦 Les oiseaux et les animaux ne font plus demi-tour d'un coup : ils tournent, prennent leur élan et freinent en douceur.
+[pegase] 🛋️ Au salon de l'hôtel, les clients s'assoient naturellement (mains sur les genoux, coude sur la table…) et changent de pose de temps en temps.
+[pegase] 🏨 À l'hôtel, Edmond te présente les clients, chacun te dit ce qu'il voudrait, et un « ! » montre ceux que tu n'as pas encore écoutés.
 [pegase] ## 🏨 Pégase 0.9.9.11 : on parle à tout l'hôtel (borne 1.50.11)
 [pegase] 🏨 À l'hôtel, tu peux parler à Edmond, à Mariette et aux clients ; les clients ne traversent plus les murs ni les bancs.
 [pegase] 🪑 Les habitants s'assoient pour de vrai : ils s'approchent du siège et s'y posent, sans glisser dedans.
