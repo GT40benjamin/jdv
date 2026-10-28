@@ -16,6 +16,11 @@
 # AVANT la première publication 1.7 : appliquer source/public.sql sur Supabase (sinon le serveur réclame encore le mot de passe).
 set -e
 cd "$(dirname "$0")"
+# 28 oct. 2026 (l'acctAdopt de la 1.50 : deux « function » du même nom dans shell2.js, la DERNIÈRE gagnait sans aucune erreur, et la
+# régression est restée en ligne jusqu'à la 1.50.7) : aucun nom déclaré deux fois dans le JavaScript des pages (doublons.js), AVANT tout le
+# reste ; s'il y en a un, la publication s'arrête avec le nom et les lignes. En urgence : DOUBLONS_SKIP=1 ./publier.sh
+if [ "${DOUBLONS_SKIP:-0}" = 1 ]; then echo "⚠ DOUBLONS_SKIP=1 : contrôle des noms déclarés deux fois SAUTÉ"
+else node doublons.js || { echo "Publication arrêtée : un nom déclaré deux fois (le nom et les lignes ci-dessus). En urgence : DOUBLONS_SKIP=1 ./publier.sh"; exit 1; }; fi
 SUPABASE_URL=${SUPABASE_URL:-https://wplictorvvtkfikpfdnl.supabase.co}
 SUPABASE_KEY=${SUPABASE_KEY:-$(cat "$HOME/jdv-tools/supabase-key.txt" 2>/dev/null)}
 : "${SUPABASE_KEY:?définis SUPABASE_KEY=sb_publishable_…}"

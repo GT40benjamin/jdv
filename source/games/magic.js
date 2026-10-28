@@ -8408,7 +8408,6 @@ void main(){ if (vK >= 0.999) discard;
       }
     }
     let netEv = null;                          // en ligne : envoi d'un événement (p9b-net.js)
-    function netMate() { /* en ligne : le héros de l'autre appareil (p9b-net.js) */ }
     // ===========================================================================
     // EN LIGNE (api.coop.net, COOP-CONTRACT.md « modèle conseillé » + permis (a)) :
     // - l'HÔTE fait tourner le donjon (monstres, boss, salles, portes, coffres, tonneaux, score) et envoie 20 fois par seconde un
