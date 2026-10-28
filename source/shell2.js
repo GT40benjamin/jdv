@@ -1122,6 +1122,7 @@ const CALLG = { seen: new Map(), cur: null, at: 0, polling: false, ringT: 0, too
 const TABS = { ch: null, hubAt: 0, sayAt: 0, ringRel: null, ringRetry: 0 };
 try { TABS.ch = new BroadcastChannel('jdw-appels'); } catch (e) { TABS.ch = null; }
 const tabSay = (m) => { try { if (TABS.ch) TABS.ch.postMessage(m); } catch (e) {} };
+if (window.JDW_PG_TEST) window.__jdwIsle = (cv, seed, q) => isleArt(cv, seed, 0, q);   // outils et essais seulement (vitrine.js)
 if (window.JDW_PG_TEST) window.__jdwT = { CALLG, ACCT, TABS, poll: () => { CALLG.at = 0; return callgPoll(); } };   // essais seulement (comme __pgCALL du hub)
 if (TABS.ch) TABS.ch.onmessage = (e) => {
   const m = (e && e.data) || {};
@@ -5692,8 +5693,10 @@ function pgvBook() {
   </div><p class="bk-glisse" aria-hidden="true">Glisse pour tourner la page →</p>`;
 }
 // L'ÎLE DE PÉGASE EN 3D AVEC LA MER (vitrine, 1.46.13 ; PATOU : « l'île, il faut l'afficher avec l'eau maintenant qu'elle est belle ! ») :
-// WebGL 1 sans bibliothèque. Relief = accueil/pgv-ile-h.png (256², hauteur 16 bits : R octet fort, G faible ; export du jeu), couleurs =
-// accueil/pgv-ile-couleur.webp (carte vue de dessus, nord en haut). Mer : turquoise et transparente près du bord (on voit le fond), bleu
+// WebGL 1 sans bibliothèque. Relief = accueil/pgv-ile-h.png (256², hauteur 16 bits : R octet fort, G faible), couleurs =
+// accueil/pgv-ile-couleur.webp (vue de dessus, nord en haut). ⛔ 28 oct. 2026 : ce sont les versions SOUS LA MER DE NUAGES (outil
+// ~/jdv-tools/ilo-a-venir/v4/ile3d_nuages.js) : la mer, les plages et la côte de la vraie île, l'intérieur en dôme de cumulus ; la vraie carte et le
+// vrai relief ne sont plus publics (le dépôt est public). Mer : turquoise et transparente près du bord (on voit le fond), bleu
 // profond au large, écume sur les plages, reflets du soleil, bord rond qui se fond dans la page. Tourne lentement ; ne dessine que
 // visible ; mouvement réduit = image fixe ; sans WebGL = l'image d'avant (repli dans le HTML).
 const PGV_ILE = { cote: 2250, min: -46.4, max: 193.95, mer: 14, ex: 1.25 };   // export de Pégase (ilot/hauteurs.txt, 27 oct. 2026) : carré de 2250 m, mer à 14 m
@@ -5867,7 +5870,7 @@ function pgvBuild() {
       <p>Ton avatar se prépare ici, dans la borne, et te suit dans le jeu.</p>
       <button type="button" class="pgv-btn ghost" data-go="isles">🏝️ Voir les îles</button>
     </div>
-    <div class="pgv-isl pgv-rv"><img loading="lazy" decoding="async" alt="L’île de Pégase vue du ciel : le lac, l’arbre rouge, la rivière et les falaises" width="1024" height="694" src="${ROOT}assets/pegase/ile_3d_1024.webp" srcset="${ROOT}assets/pegase/ile_3d_1024.webp 1024w, ${ROOT}assets/pegase/ile_3d_2048.webp 2048w" sizes="(max-width: 760px) 100vw, 50vw"></div>
+    <div class="pgv-isl pgv-rv"><img loading="lazy" decoding="async" alt="L’île de Pégase vue du ciel, sous sa mer de nuages : on la découvre en l’explorant" width="1024" height="694" src="${ROOT}assets/pegase/ile_nuages_1024.webp" srcset="${ROOT}assets/pegase/ile_nuages_1024.webp 1024w, ${ROOT}assets/pegase/ile_nuages_2048.webp 2048w" sizes="(max-width: 760px) 100vw, 50vw"></div>
   </section>
   <section class="pgv-band music pgv-slide pgv-rv" aria-labelledby="pgv-h5">${pgvImg('prairie', 'La prairie la nuit sous la Voie lactée, les fleurs et les falaises', WF)}<div class="pgv-bandtx">
     <p class="pgv-kick">Musique</p><h3 class="pgv-h" id="pgv-h5">Une musique enchanteresse</h3>
@@ -6095,7 +6098,8 @@ function isleArt(cv, seed, players, q) {
       const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
       im.onload = () => { ISLE_PHOTOS.set(tries[i], im); ok(im); };
       im.onerror = () => next(i + 1);
-      im.src = tries[i];
+      if (pgCarteOk(tries[i])) pgCarte(tries[i]).then((u) => { im.src = u; }, () => next(i + 1));   // carte privée (membre)
+      else im.src = tries[i];
     };
     next(0);
     const x0 = cv.getContext('2d'); cv.width = cv.clientWidth || 300; cv.height = cv.clientHeight || 170; x0.fillStyle = '#0a4f78'; x0.fillRect(0, 0, cv.width, cv.height);   // en attendant la photo
@@ -6310,16 +6314,33 @@ function isleNoise(x, y) {
 function isleFbm3(x, y) { return isleNoise(x * 0.866 - y * 0.5, x * 0.5 + y * 0.866) * 0.57 + isleNoise((x * 0.34 + y * 0.94) * 2.03 + 5.2, (-x * 0.94 + y * 0.34) * 2.03 + 1.3) * 0.29 + isleNoise((x * 0.98 - y * 0.2) * 4.1 + 9.1, (x * 0.2 + y * 0.98) * 4.1 + 3.7) * 0.14; }
 function isleFbm(x, y) { let s = 0, amp = 0.5, f = 1; for (let o = 0; o < 5; o++) { const c = Math.cos(o * 0.9), sn = Math.sin(o * 0.9); s += amp * isleNoise((x * c - y * sn) * f + o * 3.1, (x * sn + y * c) * f + o * 1.7); f *= 2.03; amp *= 0.5; } return s / 0.97; }
 // la côte du rendu 3D : liste en ligne ([[x, y], …] ou { p: […] }) ou adresse d'un .json (gardé en mémoire) ; null tant qu'elle manque
+// CARTES PRIVÉES (28 oct. 2026 ; le dépôt du site est PUBLIC : la vraie carte n'y est plus) : le serveur donne aux MEMBRES « pg:carte/<fichier> »
+// (pegase_int.ile_photo_monde) ; la page la lit dans le seau PRIVÉ « pegase-cartes » du Storage avec le jeton du compte (règle « pg cartes lire » : un compte
+// dont un pseudo habite une île). Gardée en mémoire le temps de la page seulement (rien dans les caches du navigateur). Refusée, absente : le dessin.
+const PG_CARTES = new Map();
+const pgCarteOk = (v) => typeof v === 'string' && /^pg:carte\/[a-z0-9_-]{2,60}\.(webp|jpg|json)$/.test(v);
+function pgCarte(v, json) {
+  if (!pgCarteOk(v)) return Promise.reject(new Error('carte : chemin refusé'));
+  const k = v + (json ? '#j' : ''); if (PG_CARTES.has(k)) return PG_CARTES.get(k);
+  const pr = (async () => {
+    const tok = await acctToken(profile); if (!tok) throw Object.assign(new Error('carte : compte requis'), { guest: true });
+    const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/authenticated/pegase-cartes/' + v.slice(9), { headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok } });   // « pg:carte/<fichier> »
+    if (!r.ok) throw Object.assign(new Error('carte ' + r.status), { status: r.status });
+    return json ? r.json() : URL.createObjectURL(await r.blob());
+  })();
+  PG_CARTES.set(k, pr); pr.catch(() => PG_CARTES.delete(k));
+  return pr;
+}
 const ISLE_JSON = new Map(), ISLE_JSON_WAIT = new Map();
 function isleJsonNow(v, check, again) {   // objet en ligne, ou adresse https d'un .json (chargé une fois, puis on redessine)
   if (!v) return null;
   if (typeof v !== 'string') return check(v);
-  if (!/^https:\/\//.test(v)) return null;
+  if (!/^https:\/\//.test(v) && !pgCarteOk(v)) return null;
   const got = ISLE_JSON.get(v); if (got && got !== 'wait') return got === 'bad' ? null : check(got);
   // TOUTES les cartes qui l'attendent sont redessinées quand il arrive (ou qu'il ne vient pas) : les îles ont la même photo, donc les mêmes .json,
   // et seule la première était redessinée (28 oct. 2026 : les autres restaient sans leurs nuages, la vraie carte en clair)
   if (again) { const ws = ISLE_JSON_WAIT.get(v) || []; ws.push(again); ISLE_JSON_WAIT.set(v, ws); }
-  if (!got) { ISLE_JSON.set(v, 'wait'); fetch(v).then(r => (r.ok ? r.json() : null)).catch(() => null).then((j) => { ISLE_JSON.set(v, j && check(j) ? j : 'bad'); const ws = ISLE_JSON_WAIT.get(v) || []; ISLE_JSON_WAIT.delete(v); for (const f of ws) try { f(); } catch (e) {} }); }
+  if (!got) { ISLE_JSON.set(v, 'wait'); (pgCarteOk(v) ? pgCarte(v, true) : fetch(v).then(r => (r.ok ? r.json() : null))).catch(() => null).then((j) => { ISLE_JSON.set(v, j && check(j) ? j : 'bad'); const ws = ISLE_JSON_WAIT.get(v) || []; ISLE_JSON_WAIT.delete(v); for (const f of ws) try { f(); } catch (e) {} }); }
   return null;
 }
 const isleCoastOk = (v) => { const a = Array.isArray(v) ? v : v && Array.isArray(v.p) ? v.p : null; return a && a.length > 8 && a.every(q => Array.isArray(q) && q.length >= 2 && isFinite(q[0]) && isFinite(q[1])) ? a : null; };
@@ -6480,9 +6501,11 @@ function islePhoto(cv, im, q, seed, players) {
   isleRun(cv, (t) => {
     t /= 1000;
     if (lastC < 0 || t - lastC > 0.12) { clouds(t); lastC = t; }   // les nuages dérivent très lentement : 8 calculs par seconde suffisent
-    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(seaC, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
-    for (const [sx, sy, l, p0, sp] of sparks) { const a = 0.5 + 0.5 * Math.sin(t * 2 * sp + p0); if (a < 0.35) continue; const xx = (sx + t * 6 * sp) % (w + 20) - 10; x.strokeStyle = 'rgba(255,255,255,' + (0.2 * a).toFixed(3) + ')'; x.lineWidth = 1; x.beginPath(); x.moveTo(xx, sy); x.lineTo(xx + l, sy); x.stroke(); }
-    const bob = Math.sin(t * 0.9) * 2.5;
+    // q.vitrine (outil ~/jdv-tools/ilo-a-venir/v4/vitrine.js : l'image FIXE de la présentation, 28 oct. 2026) : ni la mer du soir, ni ses reflets,
+    // ni le voile du bord ; l'île, sa côte, son écume et sa mer de nuages, sur fond transparent
+    x.setTransform(1, 0, 0, 1, 0, 0); if (q.vitrine) x.clearRect(0, 0, cv.width, cv.height); else x.drawImage(seaC, 0, 0); x.setTransform(k, 0, 0, k, 0, 0);
+    if (!q.vitrine) for (const [sx, sy, l, p0, sp] of sparks) { const a = 0.5 + 0.5 * Math.sin(t * 2 * sp + p0); if (a < 0.35) continue; const xx = (sx + t * 6 * sp) % (w + 20) - 10; x.strokeStyle = 'rgba(255,255,255,' + (0.2 * a).toFixed(3) + ')'; x.lineWidth = 1; x.beginPath(); x.moveTo(xx, sy); x.lineTo(xx + l, sy); x.stroke(); }
+    const bob = q.vitrine ? 0 : Math.sin(t * 0.9) * 2.5;
     // l'écume qui épouse la côte et roule vers la plage (carte plate)
     if (iso && cpx) {
       const n = cpx.length, nsd2 = ((seed >>> 0) % 991) * 0.17;
@@ -6504,7 +6527,7 @@ function islePhoto(cv, im, q, seed, players) {
     x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(islC, 0, bob * k);
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(nubB, 0, bob * k, cw * DS * k, chh * DS * k);
     x.setTransform(k, 0, 0, k, 0, 0);
-    x.fillStyle = rad(x, w / 2, h / 2, Math.min(w, h) * 0.5, w / 2, h / 2, Math.max(w, h) * 0.78, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,10,25,.4)']); x.fillRect(0, 0, w, h);
+    if (!q.vitrine) { x.fillStyle = rad(x, w / 2, h / 2, Math.min(w, h) * 0.5, w / 2, h / 2, Math.max(w, h) * 0.78, [0, 'rgba(0,0,0,0)', 1, 'rgba(0,10,25,.4)']); x.fillRect(0, 0, w, h); }
   });
 }
 // le serveur des îles (pg_island_*, île = salle ; ~/jdv-tools/pegase/server/INTEGRATION-iles.md) ; tant qu'il n'est pas en ligne (404) :
@@ -6516,7 +6539,7 @@ const KIND = { publique: '🌍 Publique', mdp: '🔒 Mot de passe', amis: '💛 
 let islTickets = store.get('jdw.iletickets', {}) || {};
 // r_fog : la carte de découverte du joueur (membre connecté seulement, sinon null → brume décorative) ; objet ou texte JSON
 // la vraie photo de l'île vue de dessus (rendue par le jeu, même rectangle que r_fog) : texte (adresse https) ou { url } ; le dessin sinon
-const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && /^https:\/\//.test(u) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null, proj: v && v.proj && (typeof v.proj === 'string' || isleProjOk(v.proj)) ? v.proj : null, cote: v && v.cote ? v.cote : null, plate: v && typeof v.plate === 'string' && /^https:\/\//.test(v.plate) ? v.plate : null } : null; };   // cote : la côte du rendu 3D (liste ou adresse .json)   // proj : rendu 3D à fond transparent (île flottante)
+const islPhotoOf = (q) => { let v = q.r_photo || q.r_map || q.r_image; if (typeof v === 'string' && v[0] === '{') try { v = JSON.parse(v); } catch (e) {} const u = typeof v === 'string' ? v : v && v.url; return typeof u === 'string' && (/^https:\/\//.test(u) || pgCarteOk(u)) ? { url: u, r: v && Array.isArray(v.r) ? v.r.map(Number) : null, proj: v && v.proj && (typeof v.proj === 'string' || isleProjOk(v.proj)) ? v.proj : null, cote: v && v.cote ? v.cote : null, plate: v && typeof v.plate === 'string' && (/^https:\/\//.test(v.plate) || pgCarteOk(v.plate)) ? v.plate : null } : null; };   // cote : la côte du rendu 3D (liste ou adresse .json)   // proj : rendu 3D à fond transparent (île flottante)
 const islFog = (v) => { try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && typeof o === 'object' && typeof o.b === 'string' && (o.n | 0) > 0 ? o : null; } catch (e) { return null; } };
 async function islesData() {
   if (ISL.srv !== false) {

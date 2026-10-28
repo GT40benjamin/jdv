@@ -13,10 +13,9 @@ const files = execSync('git ls-files -co --exclude-standard', { cwd: ROOT, encod
   .filter(f => fs.existsSync(path.join(ROOT, f)));
 const bad = [];
 const IMG_OK = [/^icon-(maskable-)?\d+\.png$/, /^android(-apktool)?\/.*ic_launcher(_round|_foreground|_background|_monochrome)?\.png$/, /^android\/icon-512\.png$/, /^accueil\/[a-z0-9_-]+\.(webp|jpg|jpeg|png|webm|svg)$/,
-  /^assets\/pegase\/carte_ile_(1024|2048)\.(webp|jpg)$/,
   /^assets\/pegase\/decor(_\d{2}[a-z]?)?(_portrait|_m)?_poster\.(jpg|webp)$/,   // affiche du décor filmé dans le jeu (prairie, aucune personne)
   /^assets\/ilo\/ilo_(boucle|bande_annonce)(_m)?_poster\.(jpg|webp)$/,   // affiches d'ILO filmées dans le jeu (espace, vaisseau, aucune personne), 27 oct. 2026
-  /^assets\/pegase\/ile_3d(_\d+)?\.(png|webp)$/];   // rendu 3D de l'île (fond transparent, aucune personne)   // carte de l'île de Pégase vue de dessus (rendu du jeu, aucune personne), 24 oct. 2026
+  /^assets\/pegase\/ile_nuages_(1024|2048)\.webp$/];   // l'île SOUS SA MER DE NUAGES (image fixe de la présentation, rendue par ~/jdv-tools/ilo-a-venir/v4/vitrine.js ; 28 oct. 2026 : la vraie carte n'est plus publique)   // rendu 3D de l'île (fond transparent, aucune personne)   // carte de l'île de Pégase vue de dessus (rendu du jeu, aucune personne), 24 oct. 2026
 const TEXT = /\.(html?|js|mjs|json|md|txt|sql|sh|css|java|xml|yml|webmanifest|svg|py|gradle|properties|hex)$/i;
 for (const f of files) {
   const full = path.join(ROOT, f), buf = fs.readFileSync(full);
