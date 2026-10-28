@@ -147,7 +147,9 @@ ROOT = os.environ.get('SITE_ROOT', '')
 FONT_CSS = 'https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600&display=swap'
 def page(config=None):
     body = open(J + 'shell2-body.html').read().replace('PG_MARKUP', '<section id="jdw-pg" hidden>\n' + markup + '\n</section>')
-    games = ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
+    # regarder un copain : tout l'écran du jeu pour le spectateur ; avant les jeux (il note la sorte de chaque canvas créé)
+    games = '<script>\n' + open(J + 'regarder.js', encoding='utf-8').read() + '\n</script>\n'
+    games += ''.join('<script>\n' + open(J + 'games/' + g + '.js').read() + '\n</script>\n' for g in GAMES)
     games += ''.join('<script>\n' + open(J + 'duos/' + d + '.js', encoding='utf-8').read() + '\n</script>\n' for d in DUOS)
     cfg = ('<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else '') + \
           '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + '; window.JDW_VERSION = ' + json.dumps(os.environ.get('SITE_VERSION', '')) + '; window.JDW_NOTES = ' + json.dumps(notes_list()) + ';</script>\n' + \

@@ -278,3 +278,12 @@ niveau (spectateurs, musique). La carte pose chaque tête à l'endroit exact (cr
 `await api.reached()` → `[{ name, v, me, img, sad }]` : le plus loin de chaque membre de la salle dans ce jeu (v = valeur de mapSpot ;
 moi : name « TOI », me vrai) ; vide en invité ; la progression de la salle est relue si elle a plus d'une minute. Valeurs < 1000 = ancien
 format (niveau seul) : au départ.
+
+## Ajout 16 : regarder un copain (castRedraw, facultatif ; borne 1.50.1, source/regarder.js)
+Le spectateur voit TOUT l'écran du jeu : `regarder.js` (window.JDW_CAST) repeint, pendant qu'un copain regarde seulement, une toile 2D
+avec chaque canvas du jeu à sa place (une 3D WebGL est recopiée juste après chaque image dessinée, avant qu'elle s'efface : rien à faire
+dans le jeu, pas besoin de `preserveDrawingBuffer`) puis le HTML de la racine du jeu (fonds, dégradés, bordures, anneaux en box-shadow,
+textes, images, SVG, filtres) ; un duel : tout l'écran du duel. Un jeu 3D qui ne redessine QUE quand quelque chose bouge (casse-tête)
+ajoute à l'instance `castRedraw()` = « redessine une image » (Coffres à Secrets : `stage.dirty = true`) : la borne l'appelle tant qu'elle
+n'a pas encore d'image de sa 3D. Les pseudo-éléments CSS (::before / ::after) et les transformations (rotation) ne sont pas recopiés :
+ce qui compte pour le spectateur doit être un vrai élément.

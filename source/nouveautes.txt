@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[borne] ## 👁 Tes copains peuvent te regarder jouer à tous les jeux (borne 1.50.1)
+[borne] « 👁 Regarder » montre maintenant TOUT ton écran au copain qui te regarde : le jeu, ton score, tes vies, tes compteurs et tes boutons, comme tu les vois
+[borne] Les jeux en 3D et le casse-tête Coffres à Secrets (avant : écran noir chez le copain) se regardent aussi, et les duels aussi maintenant : touche « en ligne » puis 👁 à côté du copain qui joue
+[coffres] ## 👁 Tes copains te regardent ouvrir les coffres (borne 1.50.1)
+[coffres] Un copain peut te regarder chercher la clé en direct (« 👁 Voir » sous la tuile) : il voit le coffre, tes pièces, tes coups et ton temps
 [borne] ## 🕹️ La borne d'arcade, rien que les jeux (borne 1.50)
 [borne] La borne ne garde que les jeux d'arcade : Classique, Duel et Coop, avec tes salles et tes copains
 [borne] En haut, plusieurs boutons sont rangés sous « ⋯ » : le site du studio, le classement, partager, les paramètres
