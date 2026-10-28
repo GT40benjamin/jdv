@@ -52,6 +52,9 @@ try {
   if (to !== 'jouer/?v=20261013005153') bad.push('index.html : l\'accueil ne renvoie plus « ?v=… » vers jouer/ (les vieilles bornes resteraient bloquées sur l\'accueil)');
 } catch (e) { bad.push('index.html absent à la racine'); }
 if (!fs.existsSync(path.join(ROOT, 'jouer', 'index.html'))) bad.push('jouer/index.html absent (la borne)');
+// 28 oct. 2026 : Pégase a sa propre page (build2.py PAGE=pegase) ; l'ancienne petite page de renvoi vers jouer/?pegase ne doit plus revenir
+try { const pg = fs.readFileSync(path.join(ROOT, 'pegase', 'index.html'), 'utf8'); if (!/window\.JDW_PAGE = "pegase"/.test(pg)) bad.push('pegase/index.html : ce n’est pas la page de Pégase (build2.py PAGE=pegase)'); }
+catch (e) { bad.push('pegase/index.html absent (la page de Pégase)'); }
 if (!pw) console.log('(mot de passe de l\'ancien site introuvable : vérification du mot de passe sautée)');
 if (bad.length) { console.error('PUBLICATION REFUSÉE :\n  ' + bad.join('\n  ')); process.exit(1); }
 console.log('Vérification : ' + files.length + ' fichiers, rien de secret ni de protégé en clair.');

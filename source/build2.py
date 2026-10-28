@@ -77,6 +77,12 @@ SKIP = [x for x in os.environ.get('SKIP_GAMES', '').split(',') if x]   # ex. SKI
 GAMES = [g for g in ['coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'magic', 'pegase'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
 # jeux de duel (deux joueurs face à face) : source/duos/<id>.js, contrat DUO-CONTRACT.md
 DUOS = [d for d in ['bolides', 'tirsaubut', 'toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'] if os.path.exists(J + 'duos/' + d + '.js') and d not in SKIP]
+# 28 oct. 2026 (Benjamin : « On va séparer la borne de Pégase […] Pégase sera dans sa propre fenêtre ») : la MÊME bibliothèque fait deux pages.
+# PAGE=borne (jouer/, publier.sh la construit avec SKIP_GAMES=pegase) : l'arcade seule ; PAGE=pegase (pegase/) : Pégase seul, sans les jeux
+# d'arcade ni les duels (plus légère). shell2.js le lit dans window.JDW_PAGE.
+PAGE = os.environ.get('PAGE', 'borne')
+assert PAGE in ('borne', 'pegase'), PAGE
+if PAGE == 'pegase': GAMES = [g for g in GAMES if g == 'pegase']; DUOS = []
 def notes_list():
     # nouveautés de la version (une par ligne), affichées après une mise à jour
     f = J + 'nouveautes.txt'
@@ -146,8 +152,8 @@ def page(config=None):
     cfg = ('<script>window.JDW_CONFIG = ' + json.dumps(config) + ';</script>\n' if config else '') + \
           '<script>window.JDW_BUILD = ' + json.dumps(os.environ.get('BUILD_ID', 'dev')) + '; window.JDW_VERSION = ' + json.dumps(os.environ.get('SITE_VERSION', '')) + '; window.JDW_NOTES = ' + json.dumps(notes_list()) + ';</script>\n' + \
           '<script>window.JDW_MUSIC = ' + json.dumps(music_list()) + '; window.JDW_MUSIC_ENC = ' + json.dumps(music_enc()) + ';</script>\n' + \
-          '<script>window.JDW_ASSET_KEY = ' + json.dumps(open(J + 'asset-key.txt', encoding='utf-8').read().strip()) + '; window.JDW_ROOT = ' + json.dumps(ROOT) + ';</script>\n'
-    return ('<title>Borne d\'arcade entre amis</title>\n'
+          '<script>window.JDW_ASSET_KEY = ' + json.dumps(open(J + 'asset-key.txt', encoding='utf-8').read().strip()) + '; window.JDW_ROOT = ' + json.dumps(ROOT) + '; window.JDW_PAGE = ' + json.dumps(PAGE) + ';</script>\n'
+    return (('<title>Pégase · Elixir Game Studio</title>\n' if PAGE == 'pegase' else '<title>Borne d\'arcade entre amis</title>\n') +
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
             '<link rel="stylesheet" href="' + FONT_CSS + '">\n'
             '<style>\n' + pg_css + '\n' + open(J + 'shell2.css').read() + '\n' + open(J + 'accessoires.css', encoding='utf-8').read() + '\n' + open(J + 'manette.css', encoding='utf-8').read() + '\n</style>\n' + body + '\n'
@@ -157,26 +163,42 @@ def page(config=None):
             # accessoires de la tête (dessins, onglets, miniatures) : avant la bibliothèque, qui s'en sert
             '<script>\n' + open(J + 'accessoires.js', encoding='utf-8').read() + '\n</script>\n'
             '<script>\n' + open(J + 'shell2.js').read() + '\n</script>\n')
+OG = {
+    'borne': {
+        'site': 'Borne d\'arcade entre amis', 'title': 'Viens jouer avec nous sur la Borne d\'arcade !',
+        'desc': 'Tes copains t\'invitent : 17 jeux gratuits, classements, chat et duels entre amis. Touche le lien pour nous rejoindre.',
+        'img': 'https://elixirgamestudio.com/accueil/partage.jpg', 'alt': 'Borne d\'arcade entre amis : les vignettes des jeux', 'url': '', 'theme': '#0b141c'},
+    'pegase': {
+        'site': 'Elixir Game Studio', 'title': 'Viens dans Pégase avec moi !',
+        'desc': 'Viens photographier les animaux de l\'île avec moi dans Pégase ! Gratuit, sur ton téléphone ou ton PC.',
+        'img': 'https://elixirgamestudio.com/accueil/partage-pegase.jpg', 'alt': 'Pégase : une prairie fleurie de l\'île, au pied des falaises',
+        'url': 'https://elixirgamestudio.com/pegase/', 'theme': '#060c22'},
+}
+# borne publiée : un lien de Pégase (?pegase, ?ile=<id>&regarder=1, ?appel=<id> d'un appel décroché, ?appeler) part tout de suite vers pegase/
+# (mêmes paramètres) ; ?borne (le site du studio) reste sur la borne
+REDIRECT_PG = ('<script>(function(){try{var s=location.search;if(/[?&](pegase|ile|appel|appeler)(=|&|$)/.test(s)&&!/[?&]borne(=|&|$)/.test(s)){'
+               'document.documentElement.style.visibility="hidden";location.replace(' + json.dumps(ROOT + 'pegase/') + '+s+location.hash)}}catch(e){}})();</script>\n')
 def full_doc(p):
     i = p.index('<style>'); head = p[:i]; rest = p[i:]; j = rest.index('</style>') + 8
+    o = OG[PAGE]
     return ('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'
             # déménagement sur elixirgamestudio.com : dans l'appli 1.11+, les réglages gardés à l'ancienne adresse (profils, connexion…)
             # sont repris UNE fois, avant tout le reste (BorneApp.reprise, MainActivity.java) ; une clé déjà là n'est jamais écrasée
             '<script>try{var B=window.BorneApp;if(B&&B.reprise&&!localStorage.getItem("jdw.reprise")){var d=B.reprise(location.origin);'
             'if(d){var o=JSON.parse(d);for(var k in o)if(localStorage.getItem(k)===null)localStorage.setItem(k,o[k]);'
-            'localStorage.setItem("jdw.reprise",String(Date.now()))}}}catch(e){}</script>\n'
+            'localStorage.setItem("jdw.reprise",String(Date.now()))}}}catch(e){}</script>\n' + (REDIRECT_PG if PAGE == 'borne' and ROOT else '') +
             '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">\n'
-            '<meta name="theme-color" content="#0b141c">\n<meta name="robots" content="noindex">\n'
+            '<meta name="theme-color" content="' + o['theme'] + '">\n<meta name="robots" content="noindex">\n'
             # aperçu des liens partagés (invitation ?salle=…, défi ?duel=…) : même texte pour tous, jamais le nom d'une salle
             '<meta property="og:type" content="website">\n<meta property="og:locale" content="fr_FR">\n'
-            '<meta property="og:site_name" content="Borne d\'arcade entre amis">\n'
-            '<meta property="og:title" content="Viens jouer avec nous sur la Borne d\'arcade !">\n'
-            '<meta property="og:description" content="Tes copains t\'invitent : 17 jeux gratuits, classements, chat et duels entre amis. Touche le lien pour nous rejoindre.">\n'
-            '<meta property="og:image" content="https://elixirgamestudio.com/accueil/partage.jpg">\n'
+            '<meta property="og:site_name" content="' + o['site'] + '">\n'
+            '<meta property="og:title" content="' + o['title'] + '">\n'
+            '<meta property="og:description" content="' + o['desc'] + '">\n' + ('<meta property="og:url" content="' + o['url'] + '">\n' if o['url'] else '') +
+            '<meta property="og:image" content="' + o['img'] + '">\n'
             '<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n'
-            '<meta property="og:image:alt" content="Borne d\'arcade entre amis : les vignettes des jeux">\n'
+            '<meta property="og:image:alt" content="' + o['alt'] + '">\n'
             '<meta name="twitter:card" content="summary_large_image">\n'
-            '<meta name="description" content="Tes copains t\'invitent : 17 jeux gratuits, classements, chat et duels entre amis. Touche le lien pour nous rejoindre.">\n'
+            '<meta name="description" content="' + o['desc'] + '">\n'
             '<link rel="manifest" href="' + ROOT + 'manifest.webmanifest">\n<link rel="icon" href="' + ROOT + 'favicon.ico" sizes="16x16 32x32 48x48">\n<link rel="apple-touch-icon" href="' + ROOT + 'icon-180.png">\n' + head + rest[:j] + '\n</head>\n<body>\n' + rest[j:] + '\n</body>\n</html>\n')
 
 art = page()
@@ -205,6 +227,6 @@ def write_sw(out):
            .replace('__PRE__', json.dumps([p for p in pre if p in assets])).replace('__FONT_CSS__', json.dumps(FONT_CSS))
     assert ('__' + 'BUILD__') not in sw and ('__' + 'ASSETS__') not in sw and ('__' + 'PRE__') not in sw
     open(out, 'w', encoding='utf-8').write(sw)
-if len(sys.argv) > 5 and ROOT:      # borne publiée (jouer/) : sw.js à côté de la page
+if len(sys.argv) > 5 and ROOT and PAGE == 'borne':      # borne publiée (jouer/) : sw.js à côté de la page (pas pour pegase/)
     write_sw(os.path.join(os.path.dirname(os.path.abspath(sys.argv[3])), 'sw.js'))
-print('built', len(art))
+print('built', PAGE, len(art))

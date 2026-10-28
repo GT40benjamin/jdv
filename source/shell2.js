@@ -49,8 +49,11 @@ const LABO_ON = (() => {
 const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides'].includes(id));   // les appareils déjà en test le restent
 const laboOk = id => !LABO.has(id) || LABO_TEST;
 // joueur d'une salle « sans Pégase » (section « Salles sans Pégase ») : Pégase n'existe pas pour lui sur cet appareil
+// 28 oct. 2026 (Benjamin : « On va séparer la borne de Pégase […] Pégase sera dans sa propre fenêtre ») : la même bibliothèque fait DEUX pages
+// (build2.py PAGE) : 'pegase' = pegase/, Pégase seul ; 'borne' = jouer/, la borne d'arcade (construite SANS Pégase depuis la 1.50)
+const PAGE = window.JDW_PAGE === 'pegase' ? 'pegase' : 'borne';
 const PG_SANS = (() => { try { const n = (JSON.parse(localStorage.getItem('jdw.profile') || 'null') || {}).name, l = JSON.parse(localStorage.getItem('jdw.pgsans') || '[]'); return !!n && Array.isArray(l) && l.includes(n); } catch (e) { return false; } })();
-const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && laboOk(g.id) && !(PG_SANS && g.id === 'pegase'));
+const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && laboOk(g.id) && !(PG_SANS && g.id === 'pegase') && (PAGE !== 'pegase' || g.id === 'pegase'));
 // mode essai (labo) actif sur cet appareil : le titre le dit (« Borne d'arcade test » au lieu de « entre amis »)
 (() => { const p = document.querySelector('.lib-title .plaque'); if (p && LABO_TEST) { p.textContent = 'test'; p.classList.add('plaque-test'); } })();
 (() => {
@@ -101,11 +104,13 @@ const seenKey = () => cleanName(profile.name) || '*';
 // récente que la dernière fois où ce joueur l'a ouvert porte « ✨ Mis à jour » (jdw.noteseen) jusqu'à ce qu'il l'ouvre.
 const vcmp = (a, b) => { const x = String(a || '0').split('.').map(Number), y = String(b || '0').split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
 const CUR_V = String(window.JDW_VERSION || '') || '999';
+// les notes de CETTE page : pegase/ → celles de Pégase ; jouer/ → toutes, sauf celles de Pégase (il a sa page) ; « sans Pégase » : jamais Pégase
+const noteOnPage = (id) => (PAGE === 'pegase' ? id === 'pegase' && !PG_SANS : id !== 'pegase');
 const NOTES = (() => {
   const out = []; let cur = null;
   for (const raw of window.JDW_NOTES || []) {
     const l = String(raw).trim(); if (!l || l[0] === '#') continue;
-    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/); if (!m || PG_SANS && m[1] === 'pegase') continue;   // salle « sans Pégase » : pas ses notes non plus
+    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/); if (!m || !noteOnPage(m[1])) continue;   // pas une note de cette page (ni, salle « sans Pégase », celles de Pégase)
     const sub = m[2].match(/^##\s*(.+)$/);
     if (sub) { const vm = sub[1].match(/\(borne (\d+(?:\.\d+)*)\)/); cur = { id: m[1], title: sub[1].replace(/\s*\(borne [\d.]+\)/, '').trim(), v: vm ? vm[1] : '0', items: [] }; if (vcmp(cur.v, CUR_V) <= 0) out.push(cur); }
     else if (cur && cur.id === m[1] && m[2]) cur.items.push(m[2]);
@@ -928,7 +933,8 @@ function pegaseApi() {
     onAppel: fn => { if (typeof fn !== 'function') return () => {}; APPEL_SUBS.add(fn); smsTopicSync(); callgHide(); return () => { APPEL_SUBS.delete(fn); smsTopicSync(); CALLG.at = 0; }; },
     voixAppel: id => pgVoixAppel(id),
     livekit: () => livekitLoad(),
-    appelPris: () => { const t = CALLG.took; CALLG.took = null; return t && Date.now() - t.t < 60000 && !guest() ? { id: t.id, de: t.de } : null; }
+    appelPris: () => { const t = CALLG.took; CALLG.took = null; return t && Date.now() - t.t < 60000 && !guest() ? { id: t.id, de: t.de, tap: !!t.tap } : null; },
+    appelEnCours: on => { CALLG.live = !!on; }   // hub 2.16 (28 oct. 2026) : un appel en cours ici → les liens du site s'ouvrent dans un nouvel onglet
   };
 }
 
@@ -1109,8 +1115,8 @@ async function chronoEnd() {
 // (toujours ouvert pour un joueur, smsTopicSync) et relecture de pg_appel_attente (toutes les 30 s, 15 s sans le direct, 2 s pendant que ça
 // sonne) → bandeau « X t'appelle » par-dessus tout, même en pleine partie (#jdw-callring). Refuser = pg_appel_repondre (non, refuse) ;
 // Décrocher = la borne ouvre le hub de Pégase (la partie en cours s'arrête, comme « Quitter »), qui prend l'appel : api.pegase.appelPris().
-const CALLG = { seen: new Map(), cur: null, at: 0, polling: false, ringT: 0, took: null, off: false, missT: 0 };
-const callgOn = () => ONLINE && !isGuest() && !!profile.name && !APPEL_SUBS.size && !CALLG.off && !netOff();
+const CALLG = { seen: new Map(), cur: null, at: 0, polling: false, ringT: 0, took: null, off: false, missT: 0, live: false };
+const callgOn = () => ONLINE && !isGuest() && !!profile.name && !APPEL_SUBS.size && !CALLG.off && !netOff() && !PG_SANS;
 async function callgPoll() {
   if (!callgOn() || CALLG.polling) return;
   CALLG.polling = true; CALLG.at = Date.now();
@@ -1164,7 +1170,11 @@ function callgMissed(c) {   // l'autre a raccroché avant que je réponde (ou 45
   clearTimeout(CALLG.missT); CALLG.missT = setTimeout(() => { if (CALLG.cur === c) callgHide(); }, 4500);
 }
 function callgOpenHub() {
-  const g = gameById('pegase'); if (!g) return;
+  const g = gameById('pegase');
+  if (!g) {   // jouer/ (la borne sans Pégase) : l'appel se prend dans la page de Pégase, qui ouvre le hub dessus (pegase/?appel=…)
+    const t = CALLG.took; if (!t || PG_SANS) return; CALLG.took = null;
+    siteGo(ROOT + 'pegase/?appel=' + encodeURIComponent(t.id) + '&de=' + encodeURIComponent(t.de), true); return;
+  }
   for (const id of ['jdw-invshare', 'jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members']) { const el = $(id); if (el && !el.hidden) { if (id === 'jdw-photo') closePhoto(); else closeSheet(id); } }
   try { if (chat.open) closeChat(); } catch (e) {}
   if (current && current.game && current.game.id === 'pegase') return;   // déjà dans le hub : il prend l'appel tout seul
@@ -1188,6 +1198,23 @@ setInterval(() => {
   if (Date.now() - CALLG.at >= per - 300) callgPoll();
 }, 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) CALLG.at = 0; });   // retour sur la borne : relire tout de suite
+
+/* ================= D'une page du site à l'autre (28 oct. 2026 : la borne, Pégase et le studio sont des pages séparées) =================
+   Pégase s'ouvre dans SON onglet sur un ordinateur (Benjamin : « Pégase sera dans sa propre fenêtre ») ; téléphone et appli Android : la même vue.
+   Pendant un appel (le hub de Pégase de CET onglet), changer de page le couperait : la page demandée s'ouvre dans un nouvel onglet (JDCEA,
+   28 oct.) ; l'appli n'a qu'une vue : on prévient, rien ne bouge. */
+const IN_APP = !!window.BorneApp || /BorneArcade\//.test(navigator.userAgent);
+const bigScreen = () => !IN_APP && !!(window.matchMedia && matchMedia('(pointer:fine)').matches);
+const callNow = () => !!CALLG.live;
+function siteGo(url, own) {
+  const tab = () => { let w = null; try { w = window.open(url, '_blank'); } catch (e) { w = null; } if (w) try { w.opener = null; } catch (e) {} return !!w; };
+  if (callNow()) {
+    if (!IN_APP && tab()) return;
+    toastCheer('📞 Raccroche d’abord : changer de page couperait l’appel.', profile.name, true); return;
+  }
+  if (own && bigScreen() && tab()) return;
+  location.href = url;
+}
 
 /* ================= Erreurs : remontées au serveur + sauvetage du score ================= */
 const BUILD = window.JDW_BUILD || 'dev';
@@ -5278,6 +5305,7 @@ const MODES = {
 let MODE = 'classique';
 try { const m = sessionStorage.getItem('jdw.mode'); if (m && m in MODES) MODE = m; } catch (e) {}
 function setMode(m, user) {
+  if (PAGE === 'pegase') { if (m === 'arcade' && user) { siteGo(ROOT + 'jouer/?borne'); return; } m = 'pegase'; }   // pegase/ : Pégase seul
   if (m === 'arcade') m = (typeof PG !== 'undefined' && PG.last) || 'classique';   // « Nos autres jeux » : le dernier mode de la borne
   if (!(m in MODES)) m = 'classique';
   if (m === 'pegase' && document.querySelector('#jdw-modes [data-mode="pegase"]').hidden) m = 'classique';   // onglet Pégase : mode test seulement
@@ -5350,7 +5378,11 @@ if (PG_TAB) {
   const b = document.querySelector('#jdw-modes [data-mode="pegase"]'); b.hidden = false; document.querySelector('#jdw-modes .mb-sep').hidden = false;
   document.querySelector('#jdw-modes [data-mode="arcade"]').hidden = false;
   try { if (!sessionStorage.getItem('jdw.mode')) MODE = 'pegase'; } catch (e) {}   // la borne s'ouvre sur Pégase
-  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('borne')) MODE = PG.last; }   // lien partagé (?pegase, ?ile=<id>) ; ?borne (site du studio) : côté arcade
+  { const sp = new URLSearchParams(location.search); if (sp.has('pegase') || sp.has('ile')) MODE = 'pegase'; else if (sp.has('borne')) MODE = PG.last; }
+  if (PAGE === 'pegase') {   // pegase/ : toujours sur Pégase ; « Nos autres jeux » devient le chemin de la borne d'arcade
+    MODE = 'pegase';
+    const ab = document.querySelector('#jdw-modes [data-mode="arcade"]'); ab.querySelector('.mb-t').textContent = 'La borne d’arcade'; ab.setAttribute('aria-label', 'Aller à la borne d’arcade');
+  }   // lien partagé (?pegase, ?ile=<id>) ; ?borne (site du studio) : côté arcade
   $('jdw-modes').classList.add('has-pg'); $('jdw-modes').classList.toggle('pg-open', MODE === 'pegase');
   // le badge de « Nos autres jeux » : le plus important de Classique / Duel / Coop (nouveau > mis à jour)
   const arcBadge = () => {
@@ -10092,12 +10124,12 @@ function renderEndBoard(g, me) {
 // Android ou une borne installée (sinon il renvoie vers jouer/), puis retire ce repère de l'adresse. Visible seulement sur la bibliothèque
 // (barre du haut) : jamais pendant une partie.
 $('jdw-site-btn').href = new URL(ROOT + '?site', location.href).href;
+$('jdw-site-btn').addEventListener('click', (e) => { if (callNow()) { e.preventDefault(); siteGo(e.currentTarget.href); } });
 
 /* ================= Partager la borne / Partager Pégase (1.38.2) ================= */
 // Un lien PUBLIC, sans salle ni pseudo (l'invitation dans une salle, c'est « Inviter », plus bas) : la borne → …/jouer/?borne (côté arcade) ; Pégase → …/pegase/
 // (le bouton du haut partage le côté où l'on est : page Pégase → Pégase, sinon la borne)
-// (petite page copiée par publier.sh depuis source/pegase-partage.html : ses balises og: donnent l'aperçu de Pégase, puis elle renvoie vers
-// jouer/?pegase). Les liens sont TOUJOURS construits depuis l'adresse actuelle (location), jamais en dur : le site peut changer d'adresse.
+// (depuis la 1.50, la vraie page de Pégase : build2.py PAGE=pegase, ses balises og: donnent l'aperçu de Pégase). Les liens sont TOUJOURS construits depuis l'adresse actuelle (location), jamais en dur : le site peut changer d'adresse.
 // Téléphone : partage du système (navigator.share) ; sinon copie ; WhatsApp, SMS (téléphone) et e-mail en un toucher. Marche en invité et hors ligne.
 const SHARE = {
   borne: { eye: 'Partager la borne', path: 'jouer/?borne', img: 'accueil/partage.jpg', title: 'Borne d’arcade entre amis',
@@ -13350,6 +13382,7 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 window.JDW_BACK = () => (PADJ && PADJ.nativeBack()) ? true : jdwBack();
 function jdwBack() {
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
+  if (moreClose()) return true;   // le menu « ⋯ » de la barre du haut
   if (popCloseAll()) return true;
   if (PADP.open) { padPauseClose(true); return true; }
   if (NAT.open) { nativeClose(); return true; }
@@ -13371,7 +13404,7 @@ function jdwBack() {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
   if (!$('jdw-play').hidden) { quitAsk(); return true; }   // partie en cours (coop comprise) : pause + « Quitter la partie ? » ; sinon direct
-  if (MODE !== 'classique' && !$('jdw-lib').hidden) { setMode('classique', true); return true; }   // les autres modes sont des pages : retour à la page normale
+  if (PAGE !== 'pegase' && MODE !== 'classique' && !$('jdw-lib').hidden) { setMode('classique', true); return true; }   // les autres modes sont des pages : retour à la page normale
   return false;
 }
 checkAppVersion();
@@ -13552,7 +13585,7 @@ for (const id of ['jdw-chat-btn', 'jdw-roombar', 'jdw-invite']) {
 }
 // Service worker (jouer/sw.js) : la borne s'ouvre sans réseau (page, images, jingles, polices, musiques gardées à l'usage).
 // Seulement pour la borne publiée (jouer/, SITE_ROOT=../) ; jamais pour les appels du serveur (Supabase).
-const SW_OK = 'serviceWorker' in navigator && !!ROOT && BUILD !== 'dev' && /^https?:$/.test(location.protocol);
+const SW_OK = 'serviceWorker' in navigator && !!ROOT && BUILD !== 'dev' && /^https?:$/.test(location.protocol) && PAGE === 'borne';
 if (SW_OK) setTimeout(() => { navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' }).catch(() => {}); }, 1500);
 // au calme et en ligne : une musique par jeu gardée sur l'appareil (pour jouer en musique sans réseau), une fois par version
 function swWarm() {
@@ -13587,6 +13620,51 @@ function gameWarm() {
 setTimeout(gameWarm, 30000);
 window.addEventListener('online', () => setTimeout(gameWarm, 15000));
 
+/* ================= « ⋯ » : le menu de la barre du haut (28 oct. 2026) =================
+   Benjamin : « regroupe plusieurs boutons en haut sous 3 petits points ». Le site du studio, le classement, partager, les paramètres (et, sur la
+   page de Pégase, partager Pégase, le classement des îles, la musique, l'ambiance) : les MÊMES boutons (mêmes id, mêmes actions), rangés dans le
+   menu ; leur nom (aria-label) s'y lit en toutes lettres. Un choix ferme le menu ; toucher ailleurs ou Échap aussi. */
+function moreClose() { const m = $('jdw-more-menu'); if (!m || m.hidden) return false; m.hidden = true; $('jdw-more-btn').setAttribute('aria-expanded', 'false'); return true; }
+(() => {
+  const btn = $('jdw-more-btn'), menu = $('jdw-more-menu'); if (!btn || !menu) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation(); if (moreClose()) return;
+    menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); Audio.ensure(); Audio.tone(660, 0.04, 'sine', 0.025, 880);
+    const f = [...menu.querySelectorAll('button, a')].find(x => x.offsetParent); if (f) try { f.focus({ preventScroll: true }); } catch (er) {}
+  });
+  menu.addEventListener('click', () => { setTimeout(moreClose, 0); });   // le bouton choisi fait d'abord son travail
+  document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) moreClose(); }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && moreClose()) { e.stopPropagation(); try { btn.focus(); } catch (er) {} } }, true);
+})();
+
+/* ================= Les pages du site (28 oct. 2026) =================
+   Borne d'arcade (jouer/, sans Pégase) : le petit lien « Pégase → » (pas d'autre bouton : Benjamin, 28 oct., « ça rajoute un bouton ça ne va pas » ;
+   on appelle ses amis depuis Pégase, un appel reçu sonne partout). Page de Pégase (pegase/) : ?appel=<id>&de=<pseudo> = l'appel décroché sur le
+   bandeau d'une AUTRE page : le hub s'ouvre et le prend (api.pegase.appelPris). Un joueur « sans Pégase » (Les couverts) : la page de Pégase est
+   fermée, avec un message neutre. */
+function pagesBoot() {
+  const pgHere = !!gameById('pegase');
+  const lk = $('jdw-pg-link');   // « Pégase → » dans la barre du haut
+  if (lk) {
+    lk.hidden = PAGE !== 'borne' || pgHere || PG_SANS;
+    lk.addEventListener('click', (e) => { e.preventDefault(); siteGo(lk.href, true); });
+  }
+  if (PAGE !== 'pegase') return;
+  if (PG_SANS) { pgClosed(); return; }
+  let sp = null; try { sp = new URLSearchParams(location.search); } catch (e) { return; }
+  const id = sp.get('appel');
+  if (id) { try { sp.delete('appel'); sp.delete('de'); const qs = sp.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } catch (e) {} }
+  if (isGuest() || !pgHere) return;
+  // tap : dans ce nouvel onglet, personne n'a encore touché la page (le navigateur couperait le son) : le hub fait sonner, on redécroche d'un toucher
+  if (id && /^c[0-9a-f]{20}$/.test(id)) { CALLG.took = { id, de: String(sp.get('de') || '').slice(0, 40), t: Date.now(), tap: true }; setTimeout(callgOpenHub, 400); }
+}
+function pgClosed() {   // pegase/ pour un joueur « sans Pégase » : rien de Pégase, un mot neutre et le chemin de la borne
+  const d = document.createElement('div'); d.className = 'pg-closed'; d.id = 'jdw-pg-closed'; d.setAttribute('role', 'alert');
+  d.innerHTML = '<div class="pgc-in"><b aria-hidden="true">🕹️</b><p>Cette page n’est pas ouverte pour ton compte.</p><a class="pgc-go"></a></div>';
+  const a = d.querySelector('.pgc-go'); a.href = ROOT + 'jouer/?borne'; a.textContent = 'Aller à la borne d’arcade';
+  document.body.appendChild(d); $('jdw-lib').setAttribute('aria-hidden', 'true');
+}
+
 /* ================= Démarrage ================= */
 ['jdw-guestask', 'jdw-inv', 'jdw-invshare', 'jdw-play', 'jdw-end', 'jdw-board', 'jdw-settings', 'jdw-welcome', 'jdw-photo', 'jdw-cheer', 'jdw-rooms', 'jdw-rotate', 'jdw-notifs', 'jdw-profiles', 'jdw-chat', 'jdw-cri', 'jdw-members', 'jdw-duo', 'jdw-seatpick', 'jdw-coopgo', 'jdw-coop-pause', 'jdw-coopend', 'jdw-watch', 'jdw-net', 'jdw-netinv', 'jdw-map', 'jdw-acct'].forEach(id => { if ($(id)) $(id).hidden = true; });
 if ($('jdw-pg')) $('jdw-pg').hidden = true;
@@ -13594,6 +13672,7 @@ $('jdw-lib').hidden = false;
 if (isGuest()) room = null;      // la salle reste retenue sur l'appareil (jdw.room) : elle revient avec le compte
 syncOwnPlayer();
 buildLibrary(); buildDuoLibrary(); buildCoopLibrary(); buildTabs(); syncMute(); refreshAll(); setMode(MODE);
+pagesBoot();                    // 28 oct. 2026 : le chemin de Pégase (borne), l'appel décroché ailleurs et « Les couverts » (pegase/)
 requestAnimationFrame(previewLoop);
 nativeBoot();                   // appli Android 1.8+ : Pégase en vraie appli (étiquette de la tuile, installation en route)
 if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee').catch(() => {}); document.fonts.load('600 14px "Chakra Petch"').catch(() => {}); }

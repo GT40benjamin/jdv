@@ -9733,8 +9733,10 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       const g = $.gl.getBoundingClientRect(), p = $.clpip.getBoundingClientRect();
       STG.pipRect(p.width ? { x: p.left - g.left, y: p.top - g.top, w: p.width, h: p.height } : null);
     }
+    // hub 2.16 (28 oct. 2026) : la borne sait qu'un appel est en cours dans CET onglet (les liens du site s'ouvrent alors dans un nouvel onglet)
+    const callLive = (on) => { try { if (PG && typeof PG.appelEnCours === 'function') PG.appelEnCours(!!on); } catch (e) { /* rien */ } };
     function callUi() {
-      const c = CALL.c; if (!c || !c.ui) return;
+      const c = CALL.c; callLive(c && !c.end); if (!c || !c.ui) return;
       const s = c.end ? 'end' : c.dir === 'in' && !c.answered ? 'in' : c.st === 'live' ? 'live' : 'out';
       $.fvcall.dataset.s = s;
       let t;
@@ -9798,7 +9800,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       try { r = await PG.rpc('pg_appel_lancer', { p_to: m.name, p_id: c.id, p_video: !!c.cam }); }
       catch (e) { callEnd(/pas copains/.test(String(e && e.message)) ? 'Vous n\'êtes plus dans la même salle' : e && e.offline ? 'Pas de réseau' : 'L\'appel n\'a pas pu partir'); return; }
       if (c.end) return;
-      if (!r || r.ok === false) { callEnd(r && r.raison === 'occupe' ? m.display + ' est déjà en ligne' : 'L\'appel n\'a pas pu partir'); return; }
+      if (!r || r.ok === false) { callEnd(r && r.raison === 'occupe' ? m.display + ' est déjà en ligne' : r && r.raison === 'indisponible' ? m.display + ' n\'est pas disponible' : 'L\'appel n\'a pas pu partir'); return; }   // indisponible : le serveur refuse (joueur « sans Pégase », 28 oct. 2026)
       c.launched = true; CALL.seen.set(c.id, 'appel'); callRing(true, 'out'); callUi(); callPollSoon(1200);
     }
     async function callAnswer() {
@@ -9894,7 +9896,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       if (!dead) { tone(523, 392); callUi(); later(() => callClose(c), missed ? 1500 : 2200); }
     }
     function callClose(c) {
-      if (CALL.c !== c) return; CALL.c = null;
+      if (CALL.c !== c) return; CALL.c = null; callLive(false);
       $.fv.classList.remove('call', 'vid', 'cam'); $.fvcall.dataset.s = '';
       if (STG && STG.A) STG.A.group.visible = true;
       if (friendOn) {
@@ -9926,7 +9928,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       try { await Promise.race([loadAvatars(true), new Promise((ok) => setTimeout(ok, 4000))]); } catch (e) { /* rien */ }
       for (let i = 0; i < 16 && !dead && !stgFail && !(STG && STG.ready()); i++) await new Promise((ok) => setTimeout(ok, 250));
       if (dead || CALL.c !== c || c.end) return;
-      c.peerD = callName(c.peer); callScreen(c); callAnswer();
+      c.peerD = callName(c.peer); callScreen(c);
+      // décroché sur le bandeau d'une AUTRE page (la borne, le site) : ce nouvel onglet n'a pas encore été touché (le navigateur couperait le son de
+      // l'appel) → ça sonne ici, un toucher sur Décrocher (28 oct. 2026)
+      if (t.tap) { callRing(true, 'in'); return; }
+      callAnswer();
     }
     if (PG && typeof PG.onAppel === 'function') { try { CALL.off = PG.onAppel(() => callPollSoon(150)); } catch (e) { CALL.off = null; } }
     every(() => {
