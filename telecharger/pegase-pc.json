@@ -1,44 +1,45 @@
 {
-  "version": "0.9.9.6",
-  "build": 57,
-  "size": 2131382195,
-  "sha256": "65dfb46e66c58b835ad9c7af447a2095d9a332a3cf493c5f5395eee5a520be8e",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v57/Pegase-PC-2026-10-28-0.9.9.6.zip",
-  "manifest": "00a430ed7d7b8b9cd27548b2e71c7ab7274b4285c5ca477e0260caca9b1cc5da",
+  "version": "0.9.9.7",
+  "build": 58,
+  "size": 2131396967,
+  "sha256": "879459a409450ecfd9ae1c5d04dae7743cbef074b922fbdb852cc582c0428625",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v58/Pegase-PC-2026-10-28-0.9.9.7.zip",
+  "manifest": "bfd49e3cd8e6d9dd7a16edf379a7508d7373773400cc2ec9f94d769637345812",
   "patchs": [
     {
+      "de": "0.9.9.6",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v58/Pegase-PC-patch-0.9.9.6.zip",
+      "taille": 4770069,
+      "sha256": "036fd2c0df9775c8e4cf3b9f3611d5e1bd5557705f05be8e92f66f901f9b23e0"
+    },
+    {
       "de": "0.9.9.5",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v57/Pegase-PC-patch-0.9.9.5.zip",
-      "taille": 12182447,
-      "sha256": "a265e0eee91e160138a51fb1e27de45e0f2d30a45d0353f3fdd2ee9d54b0ebaf"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v58/Pegase-PC-patch-0.9.9.5.zip",
+      "taille": 12253041,
+      "sha256": "3f4121ec0a9d454289bd1edae921fdd9f93033b7cef609ad7f8aa5c25b118041"
     },
     {
       "de": "0.9.9.4",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v57/Pegase-PC-patch-0.9.9.4.zip",
-      "taille": 15574451,
-      "sha256": "a42beed13316eb62618886076902a8fa248cab57e7f7880d2bd8a63d4406841e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v58/Pegase-PC-patch-0.9.9.4.zip",
+      "taille": 15631114,
+      "sha256": "84555a25f2b3a3ed9960fb27ece39b90f698dd541a49fcb6dee2c979efd4a647"
     },
     {
       "de": "0.9.9.3",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v57/Pegase-PC-patch-0.9.9.3.zip",
-      "taille": 15623544,
-      "sha256": "3e899716406fdabd4f81ab774fa10c508d3af90bef55e7872015f38fc1bb58cc"
-    },
-    {
-      "de": "0.9.9.2",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v57/Pegase-PC-patch-0.9.9.2.zip",
-      "taille": 15921026,
-      "sha256": "08a5136639979a86e4197e88c4c3bb74b38d3aa581cb1e73a7950f444d880607"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v58/Pegase-PC-patch-0.9.9.3.zip",
+      "taille": 15671675,
+      "sha256": "c2d79adbdd6bb31b7336d887e8e5f3a476ae56edd753bb2a7cf451a6e137c06b"
     },
     {
       "de": "0.9.7",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v57/Pegase-PC-patch-0.9.7.zip",
-      "taille": 246380517,
-      "sha256": "685a11f664e559234acc911796c8b9a84e5f5ded0aad2fecbd778fb2b2898815"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v58/Pegase-PC-patch-0.9.7.zip",
+      "taille": 246403355,
+      "sha256": "3c2761a4a4ed044f9b770f6a8993a9bd6d82673acd61060e0441740f28bc5ca7"
     }
   ],
   "notes": [
-    "20 trésors de plus, de la prairie à la montagne",
-    "Le Cabinet des trouvailles passe à 80 places"
+    "Le défi de la descente de Basile",
+    "Le secret du carnet de Gaspard, la photo de Mlle Iris",
+    "100 trésors cachés"
   ]
 }

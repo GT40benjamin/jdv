@@ -15,6 +15,14 @@
 [borne] ## 🌌 ILO, notre prochain jeu, en production (borne 1.47)
 [borne] Un monde ouvert dans l'espace, en toute liberté : pilote ton vaisseau de planète en planète, de l'action, des combats… Le jeu est en production, pour PC
 [borne] Sur le site du studio, tout en bas : « ILO, seul dans l'univers », avec sa bande-annonce filmée dans le jeu, qui tourne en boucle. Touche « Le son » pour entendre sa musique
+[pegase] ## 🚣 Pégase 0.9.9.7 : le défi de la descente, le secret de Gaspard et 100 trésors cachés (borne 1.49.7)
+[pegase] 📸 Mlle Iris a quelque chose à te montrer… Un matin de brume, elle a pris une photo bien étrange. Aide-la à retrouver d'où elle l'a prise, et garde l'œil ouvert.
+[pegase] 📓 Le vieux Gaspard n'a pas toujours été pêcheur : il garde un secret dans son vieux carnet… à qui saura retrouver ce qui s'est envolé.
+[pegase] 🐟 Rivière : pendant la descente en barque, des truites sautent maintenant hors de l'eau devant toi. Basile te lance un défi : descends la rivière en moins de 5 minutes et photographie 3 truites en plein saut. À la clé : 150 lucioles !
+[pegase] 🔎 100 trésors cachés : 20 nouveaux dans les coins les plus reculés de l'île (la côte est, le grand nord, le plateau de l'ouest, la pointe sud), et le Cabinet du musée a une place pour chacun.
+[pegase] 🚶 Un habitant qui a quelque chose pour toi s'arrête maintenant quand tu lui parles, même s'il était en route.
+[pegase] 💧 Arrose le potager de tes amis : leurs plantes assoiffées t'attendent sur leur île.
+[pegase] ⏱️ Ton record de descente de la rivière est en ligne : tes amis sont prévenus quand tu les bats.
 [pegase] ## 🗺️ Pégase 0.9.9.6 : 20 trésors de plus, de la prairie à la montagne (borne 1.49.5)
 [pegase] 🔎 Recoins : 20 nouveaux trésors cachés dans la prairie des jeunes géants, autour de l'aérodrome, au bord du marais et de l'étang, le long des sentiers de montagne et sur les passerelles. Il y en a maintenant 80.
 [pegase] 🏛️ Musée : le Cabinet des trouvailles a la place pour les 80. Chaque nouveau trésor y a déjà sa silhouette, qui attend d'être trouvée.
