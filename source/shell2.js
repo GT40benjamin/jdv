@@ -2295,7 +2295,7 @@ async function heartbeat() {
   refreshOnline(); if (chat.open) refreshChatOnline();
   refreshPresence();
 }
-function setWhere(w) { where = w; rtTrack(); heartbeat().then(() => poke('presence')); }
+function setWhere(w) { if (/^duel-/.test(where) && !/^duel-/.test(w)) castEndAll(); where = w; rtTrack(); heartbeat().then(() => poke('presence')); }
 setInterval(() => { if (!document.hidden) heartbeat(); }, 15000);
 setInterval(() => { if (!document.hidden && !$('jdw-lib').hidden) loadScores(); }, 20000);
 setInterval(() => { if (!document.hidden && $('jdw-lib').hidden) loadScores(); }, 30000);   // pendant une partie (le direct fait le reste)
@@ -8454,12 +8454,15 @@ function iceReport(what, pc, stage) {
 const TAUNTS = ['Tu vas perdre !', 'Attention !', 'Derrière toi !', 'Raté !', 'Trop fort 😮', 'Allez !'];
 const CAST = new Map();   // moi qui joue : sid → { pc, name, cid, stream, dc, pend }
 const WATCH = { sid: '', pc: null, cid: '', name: '', game: '', live: false, timer: 0, pend: [], rxLast: 0, hudT: 0 };
-const watchable = g => !!g && g !== 'menu' && !/^duel-/.test(g) && (!!gameById(g) || (/^coop-/.test(g) && !!coopById(g.slice(5))));
+const watchable = g => !!g && g !== 'menu' && (!!gameById(g) || (/^coop-/.test(g) && !!coopById(g.slice(5))) || (/^duel-/.test(g) && !!duoById(g.slice(5))));
 function presCid(name, game) { const x = presList().find(m => m.name === name && m.game === game && m.cid && m.cid !== clientId); return x ? x.cid : ''; }
 function rtcSignal(o) { return rtBroadcast(Object.assign({ t: 'rtc', fromCid: clientId, fromName: cleanName(profile.name) }, o)); }
 // ---------- côté joueur : quelqu'un veut me regarder ----------
 function gameCanvas() {
+  if (!current && DUO.d && !$('jdw-duo').hidden) return window.JDW_CAST ? window.JDW_CAST.canvas($('jdw-duo'), DUO.inst) : null;   // un duel
   if (!current || !current.root) return null;
+  // tout l'écran du jeu (3D, autres canvas, compteurs en HTML) : regarder.js ; sinon le plus grand canvas
+  try { const all = window.JDW_CAST && window.JDW_CAST.canvas(current.root, current.inst); if (all) return all; } catch (e) {}
   let best = null, area = 0;
   for (const c of current.root.querySelectorAll('canvas')) {
     if (c.offsetParent === null) continue;
@@ -8470,7 +8473,7 @@ function gameCanvas() {
 }
 async function castWant(p) {
   const cv = gameCanvas();
-  if (!cv || !cv.captureStream || !window.RTCPeerConnection || current.over) { rtcSignal({ k: 'no', to: p.fromCid, sid: p.sid, why: 'pas en jeu' }); return; }
+  if (!cv || !cv.captureStream || !window.RTCPeerConnection || (current && current.over)) { rtcSignal({ k: 'no', to: p.fromCid, sid: p.sid, why: 'pas en jeu' }); return; }
   if (CAST.size >= (NET.kind === 'coop' ? 2 : 3) && !CAST.has(p.sid)) { rtcSignal({ k: 'no', to: p.fromCid, sid: p.sid, why: 'complet' }); return; }
   try {
     const pc = new RTCPeerConnection(RTC_CFG), sess = { pc, name: cleanName(p.fromName), cid: p.fromCid, pend: [], remote: false };
@@ -8484,7 +8487,7 @@ async function castWant(p) {
     sess.dc = pc.createDataChannel('hud');
     await pc.setLocalDescription(await pc.createOffer());
     castTune();
-    rtcSignal({ k: 'offer', to: p.fromCid, sid: p.sid, sdp: pc.localDescription.sdp, g: current.game.id });
+    rtcSignal({ k: 'offer', to: p.fromCid, sid: p.sid, sdp: pc.localDescription.sdp, g: current ? current.game.id : 'duel-' + (DUO.d && DUO.d.id) });
     renderWatchers();
   } catch (e) { castEnd(p.sid); rtcSignal({ k: 'no', to: p.fromCid, sid: p.sid, why: 'erreur' }); reportError('Diffusion : ' + e.message, e.stack, { quiet: true }); }
 }
@@ -8555,7 +8558,7 @@ function watchStart(name, game) {
   const cid = presCid(name, game); if (!cid || !window.RTCPeerConnection) { toastCheer('Impossible de regarder ' + name + ' pour le moment.', name, true); return; }
   watchStop(true);
   Audio.ensure();
-  const sid = 'w' + Date.now().toString(36) + shellRand().toString(36).slice(2, 6), g = gameById(game);
+  const sid = 'w' + Date.now().toString(36) + shellRand().toString(36).slice(2, 6), g = gameById(game) || duoById(String(game).replace(/^duel-/, ''));
   Object.assign(WATCH, { sid, cid, name, game, live: false, pend: [] });
   const hd = $('jdw-watch-head'); hd.textContent = ''; hd.appendChild(chatHead(name, { passive: true }));
   $('jdw-watch-name').textContent = dispName(name); $('jdw-watch-game').textContent = g ? g.title : '';

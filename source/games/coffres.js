@@ -166,6 +166,8 @@ function mount(root, api) {
     currentLevel: () => (inst && inst.currentLevel ? inst.currentLevel() : 1),
     pause() { if (inst && inst.pause) inst.pause(); },
     resume() { if (inst && inst.resume) inst.resume(); },
+    // regarder un copain (regarder.js) : la 3D ne se redessine que quand une pièce bouge ; une image tout de suite pour le spectateur
+    castRedraw() { const d = inst && inst._debug ? inst._debug() : null; if (d && d.stage) d.stage.dirty = true; },
     _debug: () => (inst && inst._debug ? inst._debug() : null)
   };
   const fail = () => {
