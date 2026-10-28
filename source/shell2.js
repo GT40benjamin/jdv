@@ -48,7 +48,9 @@ const LABO_ON = (() => {
 // appareil en mode test (au moins un jeu en essai ouvert) : il voit TOUS les jeux en essai, même ceux ajoutés depuis
 const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides'].includes(id));   // les appareils déjà en test le restent
 const laboOk = id => !LABO.has(id) || LABO_TEST;
-const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && laboOk(g.id));
+// joueur d'une salle « sans Pégase » (section « Salles sans Pégase ») : Pégase n'existe pas pour lui sur cet appareil
+const PG_SANS = (() => { try { const n = (JSON.parse(localStorage.getItem('jdw.profile') || 'null') || {}).name, l = JSON.parse(localStorage.getItem('jdw.pgsans') || '[]'); return !!n && Array.isArray(l) && l.includes(n); } catch (e) { return false; } })();
+const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && laboOk(g.id) && !(PG_SANS && g.id === 'pegase'));
 // mode essai (labo) actif sur cet appareil : le titre le dit (« Borne d'arcade test » au lieu de « entre amis »)
 (() => { const p = document.querySelector('.lib-title .plaque'); if (p && LABO_TEST) { p.textContent = 'test'; p.classList.add('plaque-test'); } })();
 (() => {
@@ -103,7 +105,7 @@ const NOTES = (() => {
   const out = []; let cur = null;
   for (const raw of window.JDW_NOTES || []) {
     const l = String(raw).trim(); if (!l || l[0] === '#') continue;
-    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/); if (!m) continue;
+    const m = l.match(/^\[([a-z0-9-]+)\]\s*(.*)$/); if (!m || PG_SANS && m[1] === 'pegase') continue;   // salle « sans Pégase » : pas ses notes non plus
     const sub = m[2].match(/^##\s*(.+)$/);
     if (sub) { const vm = sub[1].match(/\(borne (\d+(?:\.\d+)*)\)/); cur = { id: m[1], title: sub[1].replace(/\s*\(borne [\d.]+\)/, '').trim(), v: vm ? vm[1] : '0', items: [] }; if (vcmp(cur.v, CUR_V) <= 0) out.push(cur); }
     else if (cur && cur.id === m[1] && m[2]) cur.items.push(m[2]);
@@ -2225,6 +2227,7 @@ async function refreshPresence() {
   finally { presenceBusy = false; }
 }
 async function heartbeat() {
+  pgSansCheck();   // Pégase est-il ouvert à ce joueur ? (section « Salles sans Pégase »)
   if (!ONLINE || !profile.name || !room) return;
   try {
     const hb = { p_code: CODE(), p_room: room.id, p_client: clientId, p_name: profile.name, p_game: where };
@@ -5307,6 +5310,39 @@ for (const b of document.querySelectorAll('#jdw-modes button')) b.addEventListen
    autant d'habitants que de parcelles. Les îles NE SONT PAS les salles de la borne : un monde à part, avec ses propres membres (au départ,
    une seule : celle de Patou et Samba, amis seulement). Tant que le serveur des îles n'existe pas, la page est vide (« bientôt »).
    Les NOMS affichés (gardien, membres, Regarder) viennent tels quels du serveur : pseudo public pour un ami, « HabitantXXXXXX » sinon. */
+/* ================= Salles « sans Pégase » (28 oct. 2026) =================
+   Benjamin : « tous les gens de Les couverts, il faut leur donner accès qu'à la borne et à leur salle, mais pas à l'onglet Pégase ». Une salle
+   peut fermer Pégase à ses joueurs (rooms.pegase = false, source/salles-sans-pegase.sql) : un joueur dont TOUTES les salles sont « sans Pégase »
+   ne voit rien de Pégase (onglet, îles, Regarder, hub, appels, PegaGram) : la borne s'ouvre pour lui comme une borne sans Pégase (PG_SANS, en
+   tête : Pégase retiré de GAMES). Le serveur le dit (pg_acces, revu à chaque battement de présence quand le joueur ou la salle change, sinon
+   toutes les 2 minutes) ; l'appareil le retient par pseudo (jdw.pgsans) et se recharge UNE fois, au calme, quand ça change. Le serveur refuse
+   aussi toute entrée sur une île (pg_ile_membres). Visiteur sans compte, joueur sans salle, serveur sans pg_acces : rien ne change. */
+const PGS = { k: '', at: 0, busy: false, want: false };
+async function pgSansCheck() {
+  const n = profile.name;
+  if (!ONLINE || !n || PGS.busy || isGuest() || netOff()) return;
+  const k = n + '|' + (room ? room.id : '');
+  if (k === PGS.k && Date.now() - PGS.at < 120000) return;
+  PGS.busy = true;
+  let ok = null;
+  try { ok = await rpc('pg_acces', { p_code: CODE(), p_name: n }); } catch (e) {}   // serveur sans pg_acces (ou hors ligne) : rien ne change
+  PGS.busy = false; PGS.k = k; PGS.at = Date.now();
+  if (typeof ok !== 'boolean' || profile.name !== n) return;
+  const l = store.get('jdw.pgsans', []), list = Array.isArray(l) ? l.filter(x => x !== n) : [];
+  if (!ok) list.push(n);
+  if (!store.set('jdw.pgsans', list) || PG_SANS === !ok) return;   // la page est déjà comme il faut
+  PGS.want = true; pgSansApply();
+}
+function pgSansApply() {   // recharger au calme (pas pendant une partie, une fenêtre ouverte, une saisie)
+  if (!PGS.want || !calmMoment()) return;
+  PGS.want = false;
+  const key = profile.name + (PG_SANS ? ':avec' : ':sans');
+  let tried = ''; try { tried = sessionStorage.getItem('jdw.pgsansfor') || ''; } catch (e) {}
+  if (tried === key) return;   // anti-boucle : une seule fois par changement (le suivant attend la prochaine ouverture)
+  try { sessionStorage.setItem('jdw.pgsansfor', key); } catch (e) {}
+  location.reload();
+}
+setInterval(() => { if (PGS.want && !document.hidden) pgSansApply(); }, 3000);
 const PG_TAB = !!gameById('pegase');   // pour tout le monde depuis le 25 oct. 2026 (avant : mode test seulement)
 if (PG_TAB) document.body.classList.add('pg-charte');   // charte graphique de Pégase (shell2.css : body.pg-charte)
 const PG = { focus: (() => { const v = new URLSearchParams(location.search).get('ile'); return v && /^\d{1,9}$/.test(v) ? +v : null; })(), tab: 'all', q: '', online: false, last: MODE !== 'pegase' ? MODE : 'classique', isle: store.get('jdw.ile', null), dem: {} };   // isle : l'île choisie ; dem : îles avec une demande en attente
