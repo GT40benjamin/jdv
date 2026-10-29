@@ -13771,7 +13771,7 @@ function pagesBoot() {
   const lk = $('jdw-pg-link');   // « Pégase » : la première ligne du menu « ⋯ » (Benjamin : « je ne veux pas le bouton Pégase en haut, juste dans les petits points »)
   if (lk) {
     lk.hidden = PAGE !== 'borne' || pgHere || PG_SANS;
-    lk.addEventListener('click', (e) => { e.preventDefault(); siteGo(lk.href, true); });
+    lk.addEventListener('click', (e) => { e.preventDefault(); siteGo(lk.href); });   // 1.51.5 (Benjamin : « il ne faut pas ouvrir une autre fenêtre ») : même fenêtre (nouvel onglet seulement pendant un appel)
   }
   if (PAGE !== 'pegase') return;
   if (PG_SANS) { pgClosed(); return; }
