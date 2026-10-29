@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : le Grand Fleuve, à la première personne, avec tes copains (borne 1.53)
+[abracadabra] 🎤 Ouvre le micro et parle normalement : le mage attrape les mots magiques dans tout ce que tu dis, la phrase tourbillonne, devient LE mot… et BOUM, le sort part là où tu regardes.
+[abracadabra] 🌊 Le Grand Fleuve fait 30 mètres de large, avec deux îlots au milieu : le bois flotte (radeaux !), la pierre coule. Construis ton passage jusqu'à l'arche d'arrivée.
+[abracadabra] 📖 Près de 1 800 objets et 150 mots : murs, escaliers, baignoires, pianos, potions, cristaux, sapins, vaches, zombies… Le Grimoire les range tous. Chaque mot ne sert toujours qu'une fois.
+[abracadabra] 👀 Tes copains de la salle qui jouent en même temps apparaissent : tu vois leur mage, leurs sorts et tout ce qu'ils font apparaître.
+[abracadabra] 🪄 Ton mage tient maintenant une vraie baguette magique, et sa robe change de couleur pour ne pas ressembler à celui de Magic Force.
 [neon] ## 🌈 Néon Rush : textes plus lisibles (borne 1.52.3)
 [neon] 🔤 Quand une porte (VITESSE, DUO, MIROIR) arrive en même temps qu'un nouveau monde, son texte se place sous le nom du monde au lieu de l'écraser.
 [sensinterdit] ## ⛔ Sens Interdit : finitions (borne 1.52.3)

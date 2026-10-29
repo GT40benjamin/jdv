@@ -287,3 +287,9 @@ textes, images, SVG, filtres) ; un duel : tout l'écran du duel. Un jeu 3D qui n
 ajoute à l'instance `castRedraw()` = « redessine une image » (Coffres à Secrets : `stage.dirty = true`) : la borne l'appelle tant qu'elle
 n'a pas encore d'image de sa 3D. Les pseudo-éléments CSS (::before / ::after) et les transformations (rotation) ne sont pas recopiés :
 ce qui compte pour le spectateur doit être un vrai élément.
+
+## Ajout 17 : le direct entre joueurs de la salle (api.live, borne 1.53, Abracadabra)
+Un jeu qui déclare `live: true` reçoit `api.live` : `info()` → `{ on, name, room }` (`on` faux pour un invité, hors ligne ou sans salle :
+le jeu se joue seul) ; `send(obj)` envoie un petit objet JSON (< 900 octets, 8 par seconde au plus : le jeu regroupe) aux membres de la
+salle qui jouent au même jeu, par le canal privé de la salle (Supabase Realtime) ; `on(fn)` → `fn({ from, name, d })` à chaque message des
+AUTRES (jamais le sien), rend une fonction pour se désabonner. Rien n'est gardé sur le serveur.

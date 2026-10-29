@@ -2497,6 +2497,7 @@ function poke(kind, topic) {
 }
 const pokeTimers = {};
 function onPoke(topic, event, p) {
+  if (event === 'live') { if (topic === roomTopic()) liveRecu(p); return; }   // Ajout 17 : direct d'un jeu (Abracadabra)
   if (event === 'ile' && p.k === 'ile_demande') { if (typeof islOnDemande === 'function') islOnDemande(p.ile); return; }
   if (p.from === clientId) return;
   if (p.t === 'sms') { if (topic === smsTopicOn) for (const f of [...SMS_SUBS]) { try { f(); } catch (e) {} } return; }
@@ -9689,6 +9690,28 @@ function rivalsApi(g) {
     return top(g.id).slice(0, 5).map(r => { const p = players.get(r.name), ok = !!(p && p.img && p.img.complete && p.img.naturalWidth); return { name: dispName(r.name), kmh: +r.score || 0, img: ok ? p.img : null, me: r.name === me }; });
   };
 }
+// Ajout 17 (30 oct. 2026, Abracadabra) : le DIRECT d'un jeu entre les membres de la salle qui y jouent en même temps — petits messages
+// (position, sort lancé, objet apparu) par le canal PRIVÉ de la salle (Supabase Realtime : membres seulement ; invité, hors ligne ou pas de
+// salle : rien, le jeu se joue seul). Le jeu ne reçoit que ce que les AUTRES envoient depuis le même jeu. 8 messages / s au plus, < 900 octets.
+const LIVE = { fns: new Set(), g: null, t: 0, n: 0 };
+function liveApi(g, seq) {
+  LIVE.fns.clear(); LIVE.g = g.id;
+  const ok = () => !!current && current.seq === seq && RT.ok && !!roomTopic() && !isGuest();
+  return {
+    info: () => ({ on: ok(), name: cleanName(profile.name), room: room ? room.name : '' }),
+    send(d) {
+      if (!ok()) return false;
+      const now = Date.now(); if (now - LIVE.t > 1000) { LIVE.t = now; LIVE.n = 0; } if (++LIVE.n > 8) return false;
+      let s; try { s = JSON.stringify(d); } catch (e) { return false; } if (!s || s.length > 900) return false;
+      return !!rtSend(roomTopic(), 'broadcast', { type: 'broadcast', event: 'live', payload: { g: g.id, cid: clientId, n: cleanName(profile.name), d } });
+    },
+    on(fn) { LIVE.fns.add(fn); return () => LIVE.fns.delete(fn); },
+  };
+}
+function liveRecu(p) {
+  if (!p || p.g !== LIVE.g || p.cid === clientId || !current || !current.game || current.game.id !== p.g) return;
+  for (const f of LIVE.fns) { try { f({ from: String(p.cid || ''), name: cleanName(p.n), d: p.d }); } catch (e) {} }
+}
 function mountGame(g) {
   const seq = ++mountSeq;
   let root;
@@ -9721,6 +9744,7 @@ function mountGame(g) {
     save: g.saves ? saveApi(g) : undefined,                       // partie gardée à tout moment, appareil + serveur (Ajout 14)
     levelBest: g.saves ? levelBestApi(g) : undefined,             // meilleurs coups par niveau + classement de la salle (Ajout 14)
     reached: g.spots ? reachedApi(g) : undefined,
+    live: g.live ? liveApi(g, seq) : undefined,                   // Abracadabra : les autres joueurs de la salle en direct (Ajout 17)
     rivals: g.id === 'sensinterdit' ? rivalsApi(g) : undefined,   // Sens Interdit : les records de la salle (vitesse moyenne) deviennent des voitures-fantômes                 // jusqu'où est allé chaque membre de la salle (Néon Rush : où il est mort ; Ajout 15)
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;

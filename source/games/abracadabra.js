@@ -38,10 +38,11 @@ function loadEngine(onProg, signal) {
   return STORE.engine;
 }
 // paquet emballé : sel(16) + iv(12) + AES-GCM( [taille en-tête][en-tête JSON][données] ) ; en-tête { v, e: { 'type:nom': { o, l, t } } }
-function loadPack(onProg, signal) {
-  if (STORE.pack) return STORE.pack;
-  STORE.pack = (async () => {
-    const buf = await fetchBytes(ROOT() + 'assets/abra.fleuve.bin', onProg, 1400000, signal);
+function loadPack(onProg, signal, nom = 'fleuve') {
+  const K = 'pack_' + nom;
+  if (STORE[K]) return STORE[K];
+  STORE[K] = (async () => {
+    const buf = await fetchBytes(ROOT() + 'assets/abra.' + nom + '.bin', onProg, nom === 'fleuve' ? 1400000 : 2500000, signal);
     const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(window.JDW_ASSET_KEY || ''), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
@@ -56,8 +57,8 @@ function loadPack(onProg, signal) {
     }));
     return { glb, img, json };
   })();
-  STORE.pack.catch(() => { STORE.pack = null; });
-  return STORE.pack;
+  STORE[K].catch(() => { STORE[K] = null; });
+  return STORE[K];
 }
 
 /* ---------- vignette 2D : le fleuve, un pont de bric et de broc, le mage qui fait apparaître une vache dans les étoiles ---------- */
@@ -134,7 +135,11 @@ function mount(root, api) {
   Promise.all([loadEngine((k) => { prog.e = k; upd(); }, ac && ac.signal), loadPack((k) => { prog.p = k; upd(); }, ac && ac.signal)]).then(([AB, pack]) => {
     if (dead) return;
     root.innerHTML = '';
-    inst = AB.game(root, api, { pack });
+    // le 2e paquet (les autres objets) arrive pendant qu'on joue
+    const packPlus = loadPack(() => {}, ac && ac.signal, 'objets').catch(() => null);
+    // les autres paquets (« m1_maison », « m1_meuble »…) : chargés au 1er mot qui en a besoin
+    const chargePack = (nom) => loadPack(() => {}, ac && ac.signal, nom);
+    inst = AB.game(root, api, { pack, packPlus, chargePack });
     if (paused && inst.pause) inst.pause();
   }).catch(fail);
   const proxy = {
@@ -157,6 +162,7 @@ window.JDW_GAMES[ID] = {
   tagline: 'Dis un mot magique et l\'objet apparaît : construis un pont de bric et de broc pour traverser le fleuve… chaque mot une seule fois !',
   accent: '#c79bff',
   scoreLabel: 'points',
+  live: true,   // les autres joueurs de la salle en direct (api.live, Ajout 17)
   fps: false,
   pad: { help: [['ls', 'Marcher'], ['rb', 'Maintenir pour parler'], ['a', 'Poser / sauter'], ['b', 'Jeter']] },
   preview,
