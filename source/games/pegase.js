@@ -2978,6 +2978,7 @@
       nan: "non",
       salut: "salut",
       coucou: "salut",
+      serveur: "serveur",
       haha: "rire",
       hahaha: "rire",
       hahahaha: "rire",
@@ -8280,7 +8281,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       if (window.JDW_PG_TEST) (window.__pgWORDS = window.__pgWORDS || []).push([cat, info.fin, info.calc, performance.now()]);
       if (cat === 'rire') { laughGo('mot', 1); return; }
       WD.hint = '';
-      const k = cat === 'salut' ? 'wave' : cat;
+      // 29 oct. (bar de l'hôtel, miroir du jeu PegaseMotsVoix) : « serveur » = lever la main -> le même coucou que « salut »
+      const k = cat === 'salut' || cat === 'serveur' ? 'wave' : cat;
       if (k === 'grr' && STG.A && STG.A.laughT > 0) STG.A.laughT = Math.min(STG.A.laughT, 0.3);   // il grogne : le rire s'arrête
       if (!STG.gesture(k)) return;
       hintOff();

@@ -1,35 +1,48 @@
 {
-  "version": "0.9.9.17",
-  "build": 68,
-  "size": 2056367129,
-  "sha256": "cb1425fd2e66edd9a8526f6d9dea9faf02c24e0ef149dd62daec22ecb78079b9",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v68/Pegase-PC-2026-10-29-0.9.9.17.zip",
-  "manifest": "b4f5c0c61dfb4364331968c549857bb017f08e33a610509723e9b4dae64ddad8",
+  "version": "0.9.9.18",
+  "build": 69,
+  "size": 1652287632,
+  "sha256": "b4f4de96c383a5e0a904def8fa16cd466d3e0a5018c6dd0d95824743ca7a3035",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v69/Pegase-PC-2026-10-29-0.9.9.18.zip",
+  "manifest": "2a3a7df9de2a03a1101e9af0cc04e6765249db452fc0fc5c4ea41468fed385b6",
   "patchs": [
     {
+      "de": "0.9.9.17",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v69/Pegase-PC-patch-0.9.9.17.zip",
+      "taille": 176139816,
+      "sha256": "9dbfaec11de249e4504185d1f3ed5b256bb709ed08f21d76523b1f4022107458"
+    },
+    {
       "de": "0.9.9.16",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v68/Pegase-PC-patch-0.9.9.16.zip",
-      "taille": 7055339,
-      "sha256": "fe15d590ce35def581d0358a4cd5fd8d0c1ad96ec387b9e4b1188f106f6ee937"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v69/Pegase-PC-patch-0.9.9.16.zip",
+      "taille": 176985960,
+      "sha256": "180ffb38604f04bd061dbf359470b772dc19536dedd128ac2cc746c9a342351b"
     },
     {
       "de": "0.9.9.15",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v68/Pegase-PC-patch-0.9.9.15.zip",
-      "taille": 7273585,
-      "sha256": "dd40286027069decc3e4ba101c3e4f3108da6b4e557e61d3b03066fd0f1145a3"
-    },
-    {
-      "de": "0.9.9.14",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v68/Pegase-PC-patch-0.9.9.14.zip",
-      "taille": 8519180,
-      "sha256": "f1c9f4263f8a5e2fa1549f58611e334cb4092fff817aff12d30395b6e9e9cb9e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v69/Pegase-PC-patch-0.9.9.15.zip",
+      "taille": 176960094,
+      "sha256": "c21cea7cc673d98872603da1e9441a2e73045da9d578d4849e6b9cba23387725"
     }
   ],
   "notes": [
-    "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
-    "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
+    "Nouveau : le bar de l'hôtel d'Ailebrune, « Chez Désiré » ! Assieds-toi au comptoir, lève la main (ou dis « serveur ! ») : Désiré te sert citronnade, chocolat chaud, jus de pomme… offerts, ou la Lumineuse, une boisson qui brille (20 lucioles).",
+    "Entre amis, chacun commande ; on peut payer pour toute la table ou offrir une boisson à un ami, et boire son verre gorgée après gorgée.",
+    "Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Une petite épave s'est échouée sur la plage.",
+    "Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations (assis, renifler, accueillir l'héroïne). Nouvelles tortues sur une berge de rivière et une plage du lac, lézards verts au soleil sur les rochers.",
+    "Le jeu PC est plus léger, sans rien perdre en beauté."
   ],
   "historique": [
+    {
+      "version": "0.9.9.18",
+      "notes": [
+        "Nouveau : le bar de l'hôtel d'Ailebrune, « Chez Désiré » ! Assieds-toi au comptoir, lève la main (ou dis « serveur ! ») : Désiré te sert citronnade, chocolat chaud, jus de pomme… offerts, ou la Lumineuse, une boisson qui brille (20 lucioles).",
+        "Entre amis, chacun commande ; on peut payer pour toute la table ou offrir une boisson à un ami, et boire son verre gorgée après gorgée.",
+        "Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Une petite épave s'est échouée sur la plage.",
+        "Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations (assis, renifler, accueillir l'héroïne). Nouvelles tortues sur une berge de rivière et une plage du lac, lézards verts au soleil sur les rochers.",
+        "Le jeu PC est plus léger, sans rien perdre en beauté."
+      ]
+    },
     {
       "version": "0.9.9.17",
       "notes": [
@@ -70,17 +83,6 @@
         "Si tu tombes à l'eau loin au large, tu nages un instant puis tu te retrouves doucement dans ta barque ou sur le quai le plus proche.",
         "Des balises (un étendard au bout du ponton est, deux cairns de galets) montrent la passe pour sortir du petit port.",
         "Sur téléphone en mode portrait, les boutons « sauter », « s'accroupir » et « œil » ne sortent plus de l'écran et ne se chevauchent plus."
-      ]
-    },
-    {
-      "version": "0.9.9.13",
-      "notes": [
-        "La mission en cours et les missions du jour sont revenues en haut à gauche, sous tes lucioles : plus rien ne gêne les boutons ni le joystick.",
-        "Un appel d'un habitant raté, refusé ou coupé reste dans ton téléphone : « Appel manqué » en haut de Contacts, et « Rappeler » pour le réécouter depuis le début.",
-        "En visio, tu vois toujours l'habitant qui t'appelle, même s'il était rentré chez lui.",
-        "L'hôtel ne s'efface plus en pointillés sur téléphone, et son entrée a un perron.",
-        "Les « ! » au-dessus des habitants n'apparaissent plus que tout près, et seulement si tu vois la personne.",
-        "Les chiens Filou et Réglisse ont une tête plus douce, de grands yeux et des oreilles tombantes."
       ]
     }
   ]

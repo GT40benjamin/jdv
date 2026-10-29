@@ -1,19 +1,32 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 65,
-  "versionName": "0.9.9.17",
-  "size": 1178899378,
-  "sha256": "24ccdbd9f813b422969398f7ec78eb356621703a6babdce16b635d9a30187861",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v65/pegase-0.9.9.17.apk",
+  "versionCode": 66,
+  "versionName": "0.9.9.18",
+  "size": 1205831058,
+  "sha256": "de466c02e9b0b7d9a3e8505cd862259a6087f85601b46da14cc2b134c8eae8dc",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v66/pegase-0.9.9.18.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
-    "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
+    "Nouveau : le bar de l'hôtel d'Ailebrune, « Chez Désiré » ! Assieds-toi au comptoir, lève la main (ou dis « serveur ! ») : Désiré te sert citronnade, chocolat chaud, jus de pomme… offerts, ou la Lumineuse, une boisson qui brille (20 lucioles).",
+    "Entre amis, chacun commande ; on peut payer pour toute la table ou offrir une boisson à un ami, et boire son verre gorgée après gorgée.",
+    "Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Une petite épave s'est échouée sur la plage.",
+    "Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations (assis, renifler, accueillir l'héroïne). Nouvelles tortues sur une berge de rivière et une plage du lac, lézards verts au soleil sur les rochers.",
+    "Le jeu PC est plus léger, sans rien perdre en beauté."
   ],
   "historique": [
+    {
+      "version": "0.9.9.18",
+      "notes": [
+        "Nouveau : le bar de l'hôtel d'Ailebrune, « Chez Désiré » ! Assieds-toi au comptoir, lève la main (ou dis « serveur ! ») : Désiré te sert citronnade, chocolat chaud, jus de pomme… offerts, ou la Lumineuse, une boisson qui brille (20 lucioles).",
+        "Entre amis, chacun commande ; on peut payer pour toute la table ou offrir une boisson à un ami, et boire son verre gorgée après gorgée.",
+        "Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Une petite épave s'est échouée sur la plage.",
+        "Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations (assis, renifler, accueillir l'héroïne). Nouvelles tortues sur une berge de rivière et une plage du lac, lézards verts au soleil sur les rochers.",
+        "Le jeu PC est plus léger, sans rien perdre en beauté."
+      ]
+    },
     {
       "version": "0.9.9.17",
       "notes": [
@@ -54,17 +67,6 @@
         "Si tu tombes à l'eau loin au large, tu nages un instant puis tu te retrouves doucement dans ta barque ou sur le quai le plus proche.",
         "Des balises (un étendard au bout du ponton est, deux cairns de galets) montrent la passe pour sortir du petit port.",
         "Sur téléphone en mode portrait, les boutons « sauter », « s'accroupir » et « œil » ne sortent plus de l'écran et ne se chevauchent plus."
-      ]
-    },
-    {
-      "version": "0.9.9.13",
-      "notes": [
-        "La mission en cours et les missions du jour sont revenues en haut à gauche, sous tes lucioles : plus rien ne gêne les boutons ni le joystick.",
-        "Un appel d'un habitant raté, refusé ou coupé reste dans ton téléphone : « Appel manqué » en haut de Contacts, et « Rappeler » pour le réécouter depuis le début.",
-        "En visio, tu vois toujours l'habitant qui t'appelle, même s'il était rentré chez lui.",
-        "L'hôtel ne s'efface plus en pointillés sur téléphone, et son entrée a un perron.",
-        "Les « ! » au-dessus des habitants n'apparaissent plus que tout près, et seulement si tu vois la personne.",
-        "Les chiens Filou et Réglisse ont une tête plus douce, de grands yeux et des oreilles tombantes."
       ]
     }
   ]

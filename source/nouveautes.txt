@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## ☕ Pégase 0.9.9.18 : Chez Désiré et le lagon vivant (borne 1.51.1)
+[pegase] ☕ Nouveau : le bar de l'hôtel d'Ailebrune, « Chez Désiré » ! Assieds-toi au comptoir, lève la main (ou dis « serveur ! ») : Désiré te sert citronnade, chocolat chaud, jus de pomme… offerts, ou la Lumineuse, une boisson qui brille (20 lucioles).
+[pegase] 🥤 Entre amis, chacun commande ; on peut payer pour toute la table ou offrir une boisson à un ami, et boire son verre gorgée après gorgée.
+[pegase] 🐠 Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Approche-toi du bord pour les voir nager. Une petite épave s'est échouée sur la plage.
+[pegase] 🐶 Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations ; des tortues sur les berges et des lézards verts au soleil sur les rochers.
+[pegase] 💻 Le jeu PC est plus léger, sans rien perdre en beauté.
 [sensinterdit] ## ⛔ Nouveau jeu en essai : Sens Interdit (borne 1.51)
 [sensinterdit] ⛔ Fonce à contresens sur 10 km au milieu de la circulation : tu gères ta vitesse (gaz, frein, nitro), le plus rapide à l'arrivée gagne. Ton record = ta vitesse moyenne en km/h.
 [sensinterdit] 💥 À chaque choc, c'est la folie : tout explose autour de toi (BOUM ! KABOUM !), ta voiture fait des tonneaux, puis elle repart… mais le chrono, lui, ne s'arrête pas.
