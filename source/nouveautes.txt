@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🪶 Pégase 0.9.9.16 : les îlots vivants (borne 1.50.17)
+[pegase] 🪶 Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.
+[pegase] 🍾 Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.
+[pegase] 🏮 Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque.
 [pegase] ## 🩱 Pégase 0.9.9.15 : le maillot de bain et l'étendard du ponton (borne 1.50.16)
 [pegase] 🩱 Pour aller à l'eau, ton héroïne enfile un maillot de bain turquoise : quelques brasses, puis un doux retour sur le quai ou sur la rive, en mer comme au lac.
 [pegase] 🚩 Un grand étendard rouge et une lanterne marquent le ponton de la plage est, et des cairns balisent la passe pour sortir du petit port.

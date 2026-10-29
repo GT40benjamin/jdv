@@ -1,22 +1,28 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 63,
-  "versionName": "0.9.9.15",
-  "size": 1176505374,
-  "sha256": "c68a4bbd7486b7c83351b9e3051b7e24910f96a4a43a2d32da032924fe267c74",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v63/pegase-0.9.9.15.apk",
+  "versionCode": 64,
+  "versionName": "0.9.9.16",
+  "size": 1176546770,
+  "sha256": "f776343bcda1f942a5e423125e920768ce51e29772608d55bdbca049a47d70ca",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v64/pegase-0.9.9.16.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Pour aller à l'eau, ton héroïne enfile un maillot de bain turquoise : quelques brasses, puis un doux retour sur le quai ou sur la rive, en mer comme au lac.",
-    "Un grand étendard rouge et une lanterne marquent le ponton de la plage est, et des cairns balisent la passe pour sortir du petit port.",
-    "La flèche du guide ne passe plus sous les boutons, ni sur la barre d'objets.",
-    "Les traces de sabots de l'aventure « Là où l'eau sort de la roche » ont la couleur du sol où elles sont.",
-    "Le jeu PC est plus léger, sans rien perdre en beauté."
+    "Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.",
+    "Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.",
+    "Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque."
   ],
   "historique": [
+    {
+      "version": "0.9.9.16",
+      "notes": [
+        "Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.",
+        "Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.",
+        "Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque."
+      ]
+    },
     {
       "version": "0.9.9.15",
       "notes": [
@@ -64,15 +70,6 @@
         "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
         "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
         "L'herbe des rochers est plus légère pour ton ordinateur."
-      ]
-    },
-    {
-      "version": "0.9.8.8",
-      "notes": [
-        "Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec ses bancs et leurs coussins, une table basse aux bougies sur un tapis, des lanternes, du lierre et des fleurs.",
-        "Plus de grandes nappes vertes toutes plates (PC) : le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs.",
-        "Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque.",
-        "Bêcher, c'est plus clair : houe ou pelle en main, un liseré doré entoure au sol la case que tu vas bêcher."
       ]
     }
   ]
