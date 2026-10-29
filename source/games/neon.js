@@ -78,13 +78,13 @@
       // 27 oct. (chantier « La folie ») : 5 mondes que l'on ne voit nulle part ailleurs ; la gravité bascule (salle d'arcade, Tokyo),
       // vaisseau MINI dans la cassure planante (couloir serré), la vitesse monte sur le drop de 45,80 s puis encore sur celui de 64,03 s
       forms: true, parts: [['arcade', 'cube'], ['autoroute', 'ball'], ['crepuscule', 'ship', { mini: true }], ['tokyo', 'cube'], ['lave', 'ball']],
-      script: [{ kind: 'orbs', beats: [20, 21, 22, 23, 24], ups: [0.8, -1.6, 1.4, -1.2] }, { kind: 'orbs', beats: [104, 105, 106, 107], ups: [1, -1.6, 1] }, { kind: 'orbs', beats: [121, 122, 123, 124], ups: [0.9, -1.8, 1] }],
-      rate: 0.7, orbEvery: 2, orbSnare: 5, pink: true, speeds: [[45.80, 1.2], [64.03, 1.35]], flips: [[12.47, 16.02], [49.81, 53.37], [56.91, 60.48]] },
+      script: [{ kind: 'orbs', beats: [20, 21, 22], ups: [0.6] }, { kind: 'orbs', beats: [104, 105, 106, 107], ups: [0.6, -0.6, 0.6] }, { kind: 'orbs', beats: [121, 122, 123, 124], ups: [0.6, -0.8, 0.6] }],   // 29 oct. soir : plus simple (Benjamin : « c'est trop dur »)
+      rate: 0.6, orbEvery: 2, orbSnare: 5, pink: true, speeds: [[45.80, 1.2], [64.03, 1.35]], flips: [[12.47, 16.02], [49.81, 53.37], [56.91, 60.48]] },
     // 27 oct. (chantier « La folie ») : 4 mondes neufs ; la SOUCOUPE dans l'orage (×1,5 sur le drop de 16,91 s), le MIROIR dans le data
     // center (une chaîne d'orbes y passe), les ORBES BLEUES qui font basculer la gravité, puis VITESSE ×2 sur le drop de 60,02 s (réacteur)
     { track: 'neonrush-3', name: 'Surcharge', speed: 9.4, cuts: [28, 56, 134], noSplit: true, forms: true,
       parts: [['usine', 'cube'], ['orage', 'ufo'], ['datacenter', 'cube'], ['reacteur', 'cube']],
-      script: [{ kind: 'orbs', beats: [16, 17, 18, 19, 20], ups: [1, -1.6, 1.2, -1] }, { kind: 'orbs', beats: [80, 81, 82, 83], ups: [1.2, -1.8, 1] }, { kind: 'orbs', beats: [172, 173, 174, 175], ups: [0.8, -1.6, 1.2] }],
+      script: [{ kind: 'orbs', beats: [16, 17, 18, 19], ups: [0.8, -0.8, 0.8] }, { kind: 'orbs', beats: [80, 81, 82, 83], ups: [1.2, -1.8, 1] }, { kind: 'orbs', beats: [172, 173, 174, 175], ups: [0.8, -1.6, 1.2] }],
       rate: 0.75, orbEvery: 2, orbSnare: 5, pink: true, speeds: [[16.91, 1.5], [25.36, 1.15], [60.02, 2]], mirror: [[30.70, 43.13]],
       flips: [[46.70, 50.24, 'orb'], [53.80, 57.35, 'orb'], [66.25, 71.58], [80.47, 85.81]] },
     // 27 oct. (chantier « La folie ») : musique du Volcan de Smoothie Samouraï (taikos, 138 BPM ; plus de crédits ElevenLabs, choix de
@@ -2142,7 +2142,7 @@
     if (m === 'cube' || m === 'robot') {
       // le ROBOT (27 oct.) : saut plus court, mais tant qu'on TIENT (au plus rbT s) il continue de monter : petit ou grand saut
       const gv = st.grav, rb = m === 'robot', vj0 = rb ? P.vj * 0.8 : P.vj, airTap = st.tap && !st.ground;
-      if (st.ground && (st.tap || st.hold)) { st.vy = gv * vj0; st.ground = false; st.jumpAt = st.x; if (rb) st.boost = P.rbT; }
+      if (st.ground && (st.tap || st.hold || st.jbuf > 0)) { st.vy = gv * vj0; st.ground = false; st.jumpAt = st.x; st.jbuf = 0; if (rb) st.boost = P.rbT; }
       if (rb && st.boost > 0) { if (st.hold) { st.vy = gv * Math.max(gv * st.vy, vj0); st.boost -= dt; } else st.boost = 0; }
       if (!st.ghost && !st.vrf) orbPlayer(st, L, P, gv, airTap, dt);
       else if (!st.ground && st.tap) { const o = orbAt(L, st); if (o) { if (o.dash) { st.dash = true; st.vy = 0; } else if (o.blue) { st.grav = -gv; st.vy = gv * P.vj * 0.3; } else st.vy = gv * P.vj * (o.k || (o.big ? 1.25 : 1)); o.used = st.ghost ? o.used : true; st.orbHit = o; } }
@@ -2219,25 +2219,27 @@
   //   aurait eue et rejoint en douceur la hauteur où il serait (au moins ORB_FIX s), puis suit la même courbe que le fantôme ; pendant
   //   ce temps la bulle le retient (coussin) et un pic sous elle n'est mortel qu'à la fin si l'on n'a pas touché.
   // Le toucher qui fait sauter du sol n'est gardé que si une bulle est juste devant (sinon elle partirait toute seule après un saut).
-  const ORB_ZX = 0.95 * 1.7, ORB_ZY = 1.0 * 1.7, ORB_EARLY = 0.21, ORB_LATE = 0.14, ORB_FIX = 0.08, ORB_CUSH = 0.03;
+  const ORB_ZX = 0.95 * 1.7, ORB_ZY = 1.0 * 1.7, ORB_EARLY = 0.27, ORB_LATE = 0.28, ORB_FIX = 0.08, ORB_CUSH = 0.03, JUMP_BUF = 0.12;   // 29 oct. soir : marge humaine 0,25 s (avant 0,21 / 0,14)
   function orbKick(st, o, P, gv) {
     if (o.dash) { st.dash = true; st.vy = 0; } else if (o.blue) { st.grav = -gv; st.vy = gv * P.vj * 0.3; } else st.vy = gv * P.vj * (o.k || (o.big ? 1.25 : 1));
-    o.used = true; st.orbHit = o; st.obuf = 0; st.opO = null; st.ohurt = false;
+    o.used = true; st.orbHit = o; st.obuf = 0; st.jbuf = 0; st.opO = null; st.ohurt = false;
   }
   function orbPlayer(st, L, P, gv, airTap, dt) {
-    if (st.ground) { st.obuf = 0; st.opO = null; st.ofT = 0; return; }
+    st.jbuf = Math.max(0, (st.jbuf || 0) - dt);
+    if (st.ground || st.jumpAt === st.x) { st.obuf = 0; st.opO = null; st.ofT = 0; return; }   // un saut du sol arrête aussi le rattrapage (29 oct. soir)
     const v = st.v || P.v, A = L.orbs;
-    if (st.opO) { st.opT += dt; if (st.opO.used || st.opT > ORB_LATE || st.opT * v > ORB_ZX) st.opO = null; }
+    if (st.opO) { st.opT += dt; if (st.opO.used || st.opT > ORB_LATE || st.opT * v > ORB_ZX * 3.5) st.opO = null; }
     if (airTap) {
       // en retard sur la bulle d'avant (si elle est plus près que la suivante) : comme si l'on avait touché pile à son centre
       let nx = 99; for (let i = lowerIdx(A, st.x); i < A.length && A[i].x0 < st.x + 8; i++) if (!A[i].used && A[i].x0 > st.x) { nx = (A[i].x0 - st.x) / v; break; }
       const o = st.opO;
       if (o && st.opT < nx) {
         const d = st.opT; st.grav = st.opG; st.vy = st.opVy; orbKick(st, o, P, st.opG);
-        const g = st.grav * P.g, yv = o.dash ? st.opY : st.opY + st.vy * d - g * d * d / 2;
+        const g = st.grav * P.g; let yv = o.dash ? st.opY : st.opY + st.vy * d - g * d * d / 2;
+        if (st.grav > 0) yv = Math.max(yv, supportAt(L, st.x, st.y) + PH);   // le fantôme, lui, serait déjà posé : jamais sous le sol
         if (!o.dash) st.vy -= g * d;
         st.ofY = yv - st.y; st.ofT0 = st.ofT = Math.max(ORB_FIX, d);
-      } else st.obuf = ORB_EARLY;
+      } else { st.obuf = ORB_EARLY; st.jbuf = JUMP_BUF; }   // pas de bulle : peut-être un saut un poil trop tôt, gardé jusqu'au sol
     } else if (st.tap) {
       // le toucher qui fait sauter du sol prend la bulle déjà là (comme le fantôme), ou celle juste devant (gardé jusqu'à son centre)
       const o = orbAt(L, st);
@@ -2514,12 +2516,12 @@
             const ups = s.ups || [];
             for (let i = 0; i < ts.length; i++) {
               const ax = X(ts[i]); sim(ax - 0.01); const ay = ghost.y, lastO = i === ts.length - 1, T = lastO ? beatP * (s.land || 1) : ts[i + 1] - ts[i];
-              const dh = lastO ? gy + PH - ay : clamp(ups[i] != null ? ups[i] : 0, 1.3 - ay, 3.4 - ay), k = (dh + (P.g * T * T) / 2) / T / P.vj;
+              const dh = lastO ? gy + PH - ay : clamp(ups[i] != null ? ups[i] : 0, gy + 2.9 - ay, gy + 4.1 - ay), k = (dh + (P.g * T * T) / 2) / T / P.vj;
               L.orbs.push({ x0: ax, y: ay, big: false, head: true, k }); sortAll();
               sim(ax + 0.3, (g) => ({ tap: Math.abs(g.x - ax) < 0.06 }));
             }
             const xe = X(last(ts) + beatP * (s.land || 1)); sim(xe + 0.2);
-            for (let sx = xj + 1.6; sx < xe - 1.2; sx += 1) { const fy = floorAt(sx + 0.5); if (floorAt(sx - 0.2) === fy && floorAt(sx + 1.2) === fy && clear(sx - 0.2, sx + 1.2, fy + 0.8, 99)) L.spikes.push({ x0: sx, y: fy }); }
+            for (let sx = xj + 1.6; sx < xe - 2.2; sx += 1) { const fy = floorAt(sx + 0.5); if (floorAt(sx - 0.2) === fy && floorAt(sx + 1.2) === fy && clear(sx - 0.2, sx + 1.2, fy + 0.8, 99)) L.spikes.push({ x0: sx, y: fy }); }
             sortAll(); lastB = bIdx(xe ? last(ts) + beatP * (s.land || 1) : 0); return;
           }
           if (s.kind === 'dash') {

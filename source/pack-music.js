@@ -24,9 +24,9 @@ const LOOPS = {
   // magicfin-1 : la grande victoire de Magic Force (api.music('magicfin') dans finale(), à la place d'un morceau de combat qui revenait)
   'magicfin-1': 'Puzzles/Lighthearted LOOP LONG.wav',
   // Sens Interdit (29 oct. 2026) : une musique par route, de plus en plus intense (route 3 = neonrush, déjà là)
-  'si1-1': 'Platform/Soaring WITH SOLO.wav', 'si1-2': 'Platform/Platform Action LOOP.wav',
-  'si2-1': 'Platform/Downhill Chase LOOP.wav',
-  'si4-1': 'Combat/Tribal Chase LOOP.wav', 'si4-2': 'Combat/Frantic Pursuit LOOP.wav',
+  // Sens Interdit (29 oct. soir, Benjamin : « des musiques plus speed ») : monde 1 = Plein Gaz, 2 = si6, 3 = Néon Rush, 4 = si7, 5 = si5
+  'si6-1': 'Combat/Chasing LOOP.wav', 'si6-2': 'Platform/Chase LOOP.wav',
+  'si7-1': 'Combat/Frantic Battle LOOP.wav', 'si7-2': 'Combat/Assassins LOOP.wav', 'si7-3': 'Combat/Frantic Pursuit LOOP.wav',
   'si5-1': 'Space/Hangar Escape LOOP.wav', 'si5-2': 'Space/Long Range Combat LOOP.wav'
 };
 // volume visé (efficace) par morceau, s'il doit sonner plus fort que 0,12 : l'accueil (ElevenLabs) est vers -14 à -17 dBFS ;

@@ -6,6 +6,21 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : plus clair, plus réaliste, plus rapide (borne 1.51.6)
+[sensinterdit] 📴 Plus aucune vibration de l'écran ; la vitesse se sent autrement : traits qui filent sur les côtés, bords de l'écran qui s'assombrissent, champ de vision qui s'ouvre.
+[sensinterdit] 🔇 Le moteur se tait dès que ta voiture est détruite.
+[sensinterdit] 🛣️ Les voitures d'en face restent dans leur voie : plus aucune ne change de file pour te foncer dessus.
+[sensinterdit] 🔤 Les textes (FRÔLÉ, KM, BOUM, un copain en face) sont petits et sur le côté : ils ne cachent plus la route. Le bilan de l'accident est plus discret.
+[sensinterdit] 🚗 Accidents plus réalistes : la voiture se froisse d'abord en profondeur (l'avant s'enfonce, le capot se plie), puis perd ses morceaux, ses roues et prend feu au fil des chocs.
+[sensinterdit] 🧩 Les morceaux qui volent peuvent passer par-dessus la glissière ; la caméra de l'accident reste au-dessus de la route et la route continue loin derrière.
+[sensinterdit] 💡 Nouveaux phares : un point lumineux net avec un reflet, et la nuit une flaque de lumière douce sur la route.
+[sensinterdit] 🎵 Musiques plus rapides : la course de Plein Gaz sur la Corniche, des poursuites au Col des Neiges et au Volcan.
+[neon] ## 🌈 Néon Rush plus simple et plus juste (borne 1.51.6)
+[neon] 🫧 Les bulles en l'air au-dessus des longues rangées de pics sont bien plus hautes : le cube passe largement au-dessus des pointes, et les pics s'arrêtent plus tôt avant l'atterrissage.
+[neon] ⏱️ Plus de marge pour toucher une bulle : un quart de seconde trop tôt ou trop tard compte encore comme pile, même à grande vitesse.
+[neon] 🦘 Un saut touché un poil avant de retomber sur le sol est gardé et part dès que le cube touche le sol.
+[neon] 🌊 Niveau 2 « Onde Rétro » plus facile : moins d'obstacles et des chaînes de bulles plus douces (la première ne compte plus que 3 bulles).
+[neon] 🏁 L'écran de fin de partie montre toujours ton score et les boutons Rejouer / Changer de jeu.
 [borne] ## 🕹️ La borne (borne 1.51.5)
 [borne] 🏝️ Dans le menu « ⋯ » de la borne, « Pégase » s'ouvre maintenant dans la même fenêtre (plus de nouvel onglet).
 [pegase] ## 🐈 Pégase 0.9.9.19 : chats, ferme et nouveaux poissons (borne 1.51.4)

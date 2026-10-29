@@ -8,7 +8,7 @@ const ORDER = ['sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', '
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  sensinterdit: { kind: 'maj', at: '2026-10-29 20:44' },   // Sens Interdit (EN ESSAI, porte labo) : 1.51.3 — course sans fin, une seule vie, score = km × vitesse max, mondes de 4 km (heure de la publication)
+  sensinterdit: { kind: 'maj', at: '2026-10-29 21:35' },   // Sens Interdit (EN ESSAI, porte labo) : 1.51.6 — plus de vibrations, textes sur le côté, dégâts progressifs, phares, musiques rapides ; avant 1.51.3 — course sans fin, une seule vie, score = km × vitesse max, mondes de 4 km (heure de la publication)
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -24,7 +24,7 @@ const TILE_NEWS = {
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
-  neon: { kind: 'maj', at: '2026-10-29 01:30' },   // Néon Rush (borne 1.50.13) : les bulles en l'air plus faciles à prendre ; heure = celle de la publication
+  neon: { kind: 'maj', at: '2026-10-29 21:35' },   // Néon Rush (borne 1.51.6) : bulles au-dessus des pics plus hautes, plus de marge, niveau 2 plus simple ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
@@ -10147,7 +10147,23 @@ function showSpotProgress(g, me, def, box) {
   box.append(h, track);
   box.hidden = false;
 }
+// 29 oct. soir (Néon Rush : « l'écran de fin est un panneau vide ») : une erreur dans une partie de l'écran (avancement, cri, tête…) ne doit
+// jamais le laisser à moitié rempli ; le score et les boutons sont toujours là, et 1,6 s plus tard on vérifie qu'ils se voient (sinon : journal)
 async function showEnd(score) {
+  try { await showEndInner(score); }
+  catch (e) {
+    reportError('Fin de partie : ' + (e && e.message || e), (e && e.stack || '') + ' · score ' + score, { quiet: true });
+    try { $('jdw-endscore').textContent = fmt(score); $('jdw-who').hidden = true; } catch (e2) {}
+  }
+  const end = $('jdw-end'); end.hidden = false;
+  clearTimeout(showEnd.t); showEnd.t = setTimeout(() => {
+    if (end.hidden) return;
+    const look = (el) => { if (!el) return 'absent'; const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width < 2 || r.height < 2 ? 'taille ' + Math.round(r.width) + 'x' + Math.round(r.height) : cs.visibility === 'hidden' || +cs.opacity < 0.2 ? 'opacité ' + cs.opacity + ' ' + cs.visibility : ''; };
+    const bad = [['score', $('jdw-endscore')], ['rejouer', $('jdw-again')], ['carte', $('jdw-endcard')]].map(([k, el]) => [k, look(el)]).filter(([, v]) => v);
+    if (bad.length) { end.classList.remove('in'); reportError('Fin de partie invisible : ' + bad.map(([k, v]) => k + ' ' + v).join(', '), 'classes ' + end.className + ' · carte ' + $('jdw-endcard').className + ' · ' + innerWidth + 'x' + innerHeight, { quiet: true }); }
+  }, 1600);
+}
+async function showEndInner(score) {
   quitAskHide();
   castEndAll(score);   // les spectateurs voient le score final
   flushPending(); musicBaseLevel(0.5);
