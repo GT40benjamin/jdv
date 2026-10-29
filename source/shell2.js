@@ -3,11 +3,12 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
+  sensinterdit: { kind: 'new', at: '2026-10-29 18:22' },   // Sens Interdit (course 3D à contresens) : EN ESSAI derrière la porte labo depuis la 1.51 (heure de la publication)
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -33,7 +34,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set([]);   // en essai : (rien) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set(['sensinterdit']);   // en essai : Sens Interdit (course 3D à contresens, 29 oct. 2026) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -173,7 +174,7 @@ function refreshNewBadges() {
   }
 }
 const fmt = n => Math.floor(n).toLocaleString('fr-FR');
-const unit = g => g && g.scoreLabel === 'm' ? ' m' : '';
+const unit = g => g && g.scoreLabel === 'm' ? ' m' : g && g.scoreLabel === 'km/h' ? ' km/h' : '';   // Sens Interdit : vitesse moyenne
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 12).toUpperCase();
 const COLORS = { night: '#0b141c', panel: '#111d27', steel: '#22394a', steel2: '#3a5568', ink: '#e9f0f3', muted: '#8aa0ae',
   amber: '#ffa630', gold: '#ffd34d', alarm: '#ff4d5e', volt: '#5ef0ff', spray: '#ff5fae', leaf: '#4cc36a' };
@@ -1325,7 +1326,7 @@ function unduckMusic() { duckUntil = 0; clearTimeout(duckTimer); musicApplyLevel
 // calmes au début, énergiques aux niveaux difficiles ; à l'accueil, un mélange des deux
 // jeux sans musique à eux : ils prennent celle d'un autre écran (vide depuis que Pégase a la sienne : assets/music/pegase-1.mp3,
 // « Chez toi » harpe, célesta et violoncelle, choisie par l'utilisateur le 22 oct. 2026, jouée dès l'ouverture du hub)
-const MUSIC_AS = { chrono: 'pleingaz' };   // Turbo Chrono : la musique de course de Plein Gaz (le jeu a son moteur et ses bruitages à lui)
+const MUSIC_AS = { chrono: 'pleingaz', sensinterdit: 'pleingaz' };   // Sens Interdit : la musique de course de Plein Gaz aussi   // Turbo Chrono : la musique de course de Plein Gaz (le jeu a son moteur et ses bruitages à lui)
 function musicVariants(id, mode) {
   id = MUSIC_AS[id] || id;
   // Pégase (page des îles et hub) : la SUITE de 4 morceaux (pgsuite-1…4, voir MUSIC_SUITE), pour tout le monde depuis la 1.34.19
@@ -1801,7 +1802,7 @@ function notifRow(n, isNew) {
 }
 // NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
 // dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
-const NOTE_IC = { coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
+const NOTE_IC = { sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
 const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : g ? g.title : id; };
 function notesByGame(blocks) {
   const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }
@@ -2117,7 +2118,7 @@ $('jdw-end-chat').addEventListener('click', async () => {
   if (p && !p.done && p.record) await commitScore(profile.name);   // le record part d'abord : sa carte arrive dans le chat
   if (p && g && p.score > 0 && !p.shared) {
     p.shared = true;
-    sendChat('🎮 ' + fmt(p.score) + (g.scoreLabel === 'm' ? ' m' : ' points') + ' à ' + g.title + ' ! Qui fait mieux ?');
+    sendChat('🎮 ' + fmt(p.score) + (g.scoreLabel === 'm' ? ' m' : g.scoreLabel === 'km/h' ? ' km/h de moyenne' : ' points') + ' à ' + g.title + ' ! Qui fait mieux ?');
   }
   openChat();
 });
@@ -9608,6 +9609,14 @@ function reachedApi(g) {
     return out;
   };
 }
+// Sens Interdit : les meilleurs de la salle (score = vitesse moyenne en km/h) avec leur tête ; invité : rien
+function rivalsApi(g) {
+  return async () => {
+    if (isGuest()) return [];
+    const me = cleanName(profile.name);
+    return top(g.id).slice(0, 5).map(r => { const p = players.get(r.name), ok = !!(p && p.img && p.img.complete && p.img.naturalWidth); return { name: dispName(r.name), kmh: +r.score || 0, img: ok ? p.img : null, me: r.name === me }; });
+  };
+}
 function mountGame(g) {
   const seq = ++mountSeq;
   let root;
@@ -9637,7 +9646,8 @@ function mountGame(g) {
     rhythm: rhythmApi(() => !!current && current.seq === seq),   // jeu de rythme : son morceau à lui, calé sur la partie (Ajout 11)
     save: g.saves ? saveApi(g) : undefined,                       // partie gardée à tout moment, appareil + serveur (Ajout 14)
     levelBest: g.saves ? levelBestApi(g) : undefined,             // meilleurs coups par niveau + classement de la salle (Ajout 14)
-    reached: g.spots ? reachedApi(g) : undefined,                 // jusqu'où est allé chaque membre de la salle (Néon Rush : où il est mort ; Ajout 15)
+    reached: g.spots ? reachedApi(g) : undefined,
+    rivals: g.id === 'sensinterdit' ? rivalsApi(g) : undefined,   // Sens Interdit : les records de la salle (vitesse moyenne) deviennent des voitures-fantômes                 // jusqu'où est allé chaque membre de la salle (Néon Rush : où il est mort ; Ajout 15)
     gameOver(score) {
       if (!current || current.seq !== seq || current.over) return;
       progTick();   // le dernier avancement (Néon Rush : l'endroit exact de la mort) avant que la partie soit finie
