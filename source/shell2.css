@@ -181,6 +181,7 @@ a.icon-btn{color:inherit;text-decoration:none}   /* la maison (retour au site du
 @media (prefers-reduced-motion:reduce){#jdw-end.in,#jdw-end.in *,#jdw-end.in .card::after{animation:none!important}}
 /* fin de partie : en portrait les deux colonnes n'existent pas (display:contents) ; en paysage sur téléphone, tout tient sans défiler */
 #jdw-end .end-l,#jdw-end .end-r{display:contents}
+#jdw-end .card-body{grid-template-columns:minmax(0,1fr)}   /* 30 oct. : une seule colonne jamais plus large que la carte (fenêtre 635 px : tout débordait à droite) */
 @media (orientation:landscape) and (max-height:500px){
   #jdw-end{padding-block:calc(env(safe-area-inset-top,0px) + 8px) calc(env(safe-area-inset-bottom,0px) + 8px);
     padding-inline:max(12px,env(safe-area-inset-left,0px)) max(12px,env(safe-area-inset-right,0px))}
@@ -1301,6 +1302,8 @@ body.net-off #jdw-coop-switch [data-where=ami] span::after{content:" · réseau"
 .rx-me.in-watch{top:calc(env(safe-area-inset-top,0px) + 84px)}
 /* fin de partie : progression dans les niveaux */
 .lvprog{margin:6px 0 10px}.lvprog[hidden]{display:none}
+.end-ei{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}.end-ei b{font:400 clamp(30px,8vw,44px)/1 var(--display);color:#fff;text-shadow:0 0 18px color-mix(in srgb,var(--acc) 55%,transparent)}
+.end-ei .u{font:400 15px var(--display);color:var(--acc);letter-spacing:.04em}.end-ei .s{flex-basis:100%;font:600 14px var(--body);color:var(--muted)}
 .lv-h{margin:0 0 20px;font:600 13px var(--body);color:var(--muted)}.lv-h b{font:400 18px var(--display);color:var(--acc,var(--amber));margin-right:2px}
 .lv-track{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px}
 .lv-track i{position:relative;height:10px;border-radius:4px;background:var(--steel2,#22394a);opacity:0;animation:lvIn .3s ease-out var(--d) forwards}

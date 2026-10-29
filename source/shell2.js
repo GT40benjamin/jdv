@@ -8,7 +8,7 @@ const ORDER = ['sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', '
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  sensinterdit: { kind: 'maj', at: '2026-10-30 00:05' },   // Sens Interdit (EN ESSAI, porte labo) : 1.51.10 copains au bord de la route (plus de têtes sur les voitures) ; 1.51.9 conduite d'avant, moins de voitures ; 1.51.8 ligne des copains, panneaux, palmiers ; 1.51.6 — plus de vibrations, textes sur le côté, dégâts progressifs, phares, musiques rapides ; avant 1.51.3 — course sans fin, une seule vie, score = km × vitesse max, mondes de 4 km (heure de la publication)
+  sensinterdit: { kind: 'new', at: '2026-10-29 23:25' },   // Sens Interdit SORTI POUR TOUS (borne 1.51.11) : étiquette « Nouveau » + notification « Nouveau jeu disponible » ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -34,7 +34,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['sensinterdit']);   // en essai : Sens Interdit (course 3D à contresens, 29 oct. 2026) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set([]);   // en essai : aucun ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -47,7 +47,7 @@ const LABO_ON = (() => {
   return new Set(on);
 })();
 // appareil en mode test (au moins un jeu en essai ouvert) : il voit TOUS les jeux en essai, même ceux ajoutés depuis
-const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides'].includes(id));   // les appareils déjà en test le restent
+const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides', 'sensinterdit'].includes(id));   // les appareils déjà en test le restent
 const laboOk = id => !LABO.has(id) || LABO_TEST;
 // joueur d'une salle « sans Pégase » (section « Salles sans Pégase ») : Pégase n'existe pas pour lui sur cet appareil
 // 28 oct. 2026 (Benjamin : « On va séparer la borne de Pégase […] Pégase sera dans sa propre fenêtre ») : la même bibliothèque fait DEUX pages
@@ -1326,7 +1326,7 @@ function unduckMusic() { duckUntil = 0; clearTimeout(duckTimer); musicApplyLevel
 // calmes au début, énergiques aux niveaux difficiles ; à l'accueil, un mélange des deux
 // jeux sans musique à eux : ils prennent celle d'un autre écran (vide depuis que Pégase a la sienne : assets/music/pegase-1.mp3,
 // « Chez toi » harpe, célesta et violoncelle, choisie par l'utilisateur le 22 oct. 2026, jouée dès l'ouverture du hub)
-const MUSIC_AS = { chrono: 'pleingaz', sensinterdit: 'pleingaz' };   // Sens Interdit : la musique de course de Plein Gaz aussi   // Turbo Chrono : la musique de course de Plein Gaz (le jeu a son moteur et ses bruitages à lui)
+const MUSIC_AS = { chrono: 'pleingaz', sensinterdit: 'si6' };   // Sens Interdit : sa poursuite si6 (30 oct. : plus Plein Gaz, « la première est nulle »)   // Turbo Chrono : la musique de course de Plein Gaz (le jeu a son moteur et ses bruitages à lui)
 function musicVariants(id, mode) {
   id = MUSIC_AS[id] || id;
   // Pégase (page des îles et hub) : la SUITE de 4 morceaux (pgsuite-1…4, voir MUSIC_SUITE), pour tout le monde depuis la 1.34.19
@@ -1444,11 +1444,13 @@ function musicNext(id, b, end, XF, seq, list, idx, src, g) {
   if (nextName && nextName !== (list ? list[idx] : null)) musicBuffer(nextName).then(nb => { nextBuf = nb; }).catch(() => {});
   MUS.loopT = setTimeout(() => {
     if (MUS.seq !== seq || MUS.id !== id) return;
+    // un jeu a demandé le morceau suivant « à la fin de celui-ci » (api.music(id, { after: true })) : il commence maintenant, en fondu
+    if (MUS.queue) { const q = MUS.queue; MUS.queue = null; setMusic(q.id, q.mode); return; }
     musicLoop(id, nextBuf || b, end - XF, XF, seq, list, nextBuf ? nextIdx : idx);
   }, Math.max(0, (end - XF - A.currentTime - 0.4) * 1000));
 }
 async function setMusic(id, mode) {
-  mode = mode || 'calm';
+  mode = mode || 'calm'; MUS.queue = null;
   MUS.want = id || ''; MUS.wantMode = mode;
   if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
   if (MUS.id === id && MUS.mode === mode && MUS.cur) return;
@@ -9626,8 +9628,10 @@ function mountGame(g) {
     audio: audioApi, colors: COLORS, fonts: FONTS,
     assets: () => window.JDW_ASSETS.load(g.id),
     // un jeu peut demander un morceau précis (ex. musique de boss) ; api.music() rend la main à la musique normale
-    music: (track) => {
+    music: (track, o) => {
       if (!current || current.seq !== seq) return;
+      // { after: true } (30 oct., Sens Interdit) : le morceau en cours se finit en entier, puis ce morceau-là commence
+      if (o && o.after && track && MUS.on && MUS.cur && MUS.id && MUS.id !== track) { MUS.override = true; MUS.queue = { id: track, mode: 'calm' }; return; }
       if (track && track !== g.id) { MUS.override = true; setMusic(track, 'calm'); return; }
       MUS.override = false;
       let lvl = 0; try { lvl = current.inst && current.inst.currentLevel ? +current.inst.currentLevel() : 0; } catch (e) {}
@@ -9727,6 +9731,7 @@ function quitGame() {
       current.over = true;
       try { current.lastLevel = current.inst.currentLevel ? +current.inst.currentLevel() || 0 : 0; } catch (e) {}   // pour l'écran de fin
       try { current.lastSpot = current.inst.mapSpot ? +current.inst.mapSpot() || 0 : 0; } catch (e) {}
+      try { current.endInfo = current.inst.endInfo ? current.inst.endInfo() : null; } catch (e) {}   // le résumé du jeu, avant qu'il soit détruit
       try { current.inst.destroy && current.inst.destroy(); } catch (e) {}
       current.inst = {};
       if (current.game.external) current.root.hidden = true; else current.root.textContent = '';
@@ -10070,6 +10075,15 @@ function lvIcon(WS, n, px) {      // médaillon d'un monde (dessiné par le jeu)
 }
 function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
+  // 30 oct. : un jeu peut donner son propre résumé de fin, endInfo() → { big, unit, sub } (Sens Interdit : la vitesse max en grand, la distance)
+  let ei = current.endInfo || null; try { if (!ei && current.inst && current.inst.endInfo) ei = current.inst.endInfo(); } catch (e) { ei = null; }
+  if (ei && ei.big) {
+    const h = document.createElement('p'); h.className = 'end-ei';
+    const b = document.createElement('b'); b.textContent = ei.big; const u = document.createElement('span'); u.className = 'u'; u.textContent = ei.unit || '';
+    h.append(b, u); if (ei.sub) { const s = document.createElement('span'); s.className = 's'; s.textContent = ei.sub; h.append(s); }
+    box.append(h); box.hidden = false; return;
+  }
+  if (g.spots && !(MAP_DEFS[g.id] && MAP_DEFS[g.id].spot)) return;   // avancement en dizaines de mètres (la ligne des copains) : pas de « Niveau n »
   if (g.spots && MAP_DEFS[g.id] && MAP_DEFS[g.id].spot) { showSpotProgress(g, me, MAP_DEFS[g.id], box); return; }
   let lv = current.lastLevel || 0; try { if (!lv) lv = Math.floor(+current.inst.currentLevel() || 0); } catch (e) {}
   if (!(lv >= 1) || isGuest()) return;

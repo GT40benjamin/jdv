@@ -157,7 +157,7 @@ function mount(root, api) {
     box.querySelector('button').addEventListener('click', () => {
       if (dead) return;
       root.innerHTML = ''; const n = mount(root, api);
-      for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel', 'mapSpot']) proxy[k] = n[k];
+      for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel', 'mapSpot', 'endInfo']) proxy[k] = n[k];
       Object.defineProperty(proxy, '_d', { get: () => n._d, configurable: true });
     });
   };
@@ -173,7 +173,8 @@ function mount(root, api) {
     resume() { paused = false; if (inst) inst.resume(); },
     currentScore() { return inst ? inst.currentScore() : 0; },
     currentLevel() { return inst ? inst.currentLevel() : 1; },
-    mapSpot() { return inst && inst.mapSpot ? inst.mapSpot() : 0; },   // jusqu'où je suis allé, en dizaines de mètres (la ligne des copains)
+    mapSpot() { return inst && inst.mapSpot ? inst.mapSpot() : 0; },
+    endInfo() { return inst && inst.endInfo ? inst.endInfo() : null; },   // résumé de l'écran de fin : vitesse max en grand, distance   // jusqu'où je suis allé, en dizaines de mètres (la ligne des copains)
   };
   Object.defineProperty(proxy, '_d', { get: () => inst && inst._d, configurable: true });   // essais (harnais)
   proxy._boom = () => inst && inst._boom && inst._boom();   // essais : une voiture posée juste devant
