@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : tout simple, avec tes copains sur la route (borne 1.51.8)
+[sensinterdit] 👆 Plus simple : la voiture accélère toute seule ; touche n'importe où à gauche ou à droite de l'écran pour tourner. Plus de bouton Gaz ni Frein.
+[sensinterdit] 🏁 La ligne des copains : là où chaque copain de ta salle s'est arrêté, une ligne en travers de la route et un panneau avec sa tête. En haut : « PATOU dans 800 m », puis « Tu dépasses PATOU ! ».
+[sensinterdit] 🪧 Panneaux au bord de la route : « 1 km », « 2 km »… et « Tunnel 300 m » avant chaque tunnel (plus de portique au-dessus de la route).
+[sensinterdit] 🌴 De vrais palmiers sur la Corniche, droits, penchés et doubles.
 [neon] ## 🟨 Néon Rush : des plateformes au-dessus des piques (borne 1.51.7)
 [neon] 🟨 Au-dessus des longues rangées de piques, des plateformes : on saute sur la première, puis sur une deuxième plus haute, puis on ressort. Un saut simple tous les deux temps de la musique, dans les 7 niveaux (plus de chaîne de bulles collée aux piques).
 [neon] ⏱️ Sur ces plateformes, un saut jusqu'à 0,2 s trop tôt ou trop tard passe encore.

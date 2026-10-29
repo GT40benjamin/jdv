@@ -157,7 +157,7 @@ function mount(root, api) {
     box.querySelector('button').addEventListener('click', () => {
       if (dead) return;
       root.innerHTML = ''; const n = mount(root, api);
-      for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel']) proxy[k] = n[k];
+      for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel', 'mapSpot']) proxy[k] = n[k];
       Object.defineProperty(proxy, '_d', { get: () => n._d, configurable: true });
     });
   };
@@ -173,6 +173,7 @@ function mount(root, api) {
     resume() { paused = false; if (inst) inst.resume(); },
     currentScore() { return inst ? inst.currentScore() : 0; },
     currentLevel() { return inst ? inst.currentLevel() : 1; },
+    mapSpot() { return inst && inst.mapSpot ? inst.mapSpot() : 0; },   // jusqu'où je suis allé, en dizaines de mètres (la ligne des copains)
   };
   Object.defineProperty(proxy, '_d', { get: () => inst && inst._d, configurable: true });   // essais (harnais)
   proxy._boom = () => inst && inst._boom && inst._boom();   // essais : une voiture posée juste devant
@@ -183,11 +184,12 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.sensinterdit = {
   id: 'sensinterdit',
   title: 'Sens Interdit',
-  tagline: 'Fonce à contresens au milieu des voitures, toujours plus vite : va le plus loin et le plus vite possible… au premier choc, tout explose !',
+  tagline: 'La voiture fonce toute seule à contresens : touche à gauche ou à droite pour éviter les voitures. Va plus loin que tes copains !',
   accent: '#ff3b3b',
   scoreLabel: 'points',
+  spots: true,   // la borne garde jusqu'où chacun est allé (mapSpot) et le rend par api.reached : la ligne des copains sur la route
   fps: false,
-  pad: { help: [['ls/dpad', 'Changer de voie'], ['a/rt', 'Gaz'], ['b/lt', 'Frein']] },
+  pad: { help: [['ls/dpad', 'Tourner']] },
   preview,
   mount,
 };
