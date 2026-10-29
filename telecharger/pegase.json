@@ -1,20 +1,26 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 64,
-  "versionName": "0.9.9.16",
-  "size": 1176546770,
-  "sha256": "f776343bcda1f942a5e423125e920768ce51e29772608d55bdbca049a47d70ca",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v64/pegase-0.9.9.16.apk",
+  "versionCode": 65,
+  "versionName": "0.9.9.17",
+  "size": 1178899378,
+  "sha256": "24ccdbd9f813b422969398f7ec78eb356621703a6babdce16b635d9a30187861",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v65/pegase-0.9.9.17.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.",
-    "Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.",
-    "Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque."
+    "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
+    "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
   ],
   "historique": [
+    {
+      "version": "0.9.9.17",
+      "notes": [
+        "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
+        "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
+      ]
+    },
     {
       "version": "0.9.9.16",
       "notes": [
@@ -59,17 +65,6 @@
         "L'hôtel ne s'efface plus en pointillés sur téléphone, et son entrée a un perron.",
         "Les « ! » au-dessus des habitants n'apparaissent plus que tout près, et seulement si tu vois la personne.",
         "Les chiens Filou et Réglisse ont une tête plus douce, de grands yeux et des oreilles tombantes."
-      ]
-    },
-    {
-      "version": "0.9.8.9",
-      "notes": [
-        "Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol (dont le grand arbre suspendu près du pont rouge), et le socle du coin cosy descend jusqu'au sol.",
-        "De vrais trous dans le potager : quand tu creuses, c'est un vrai trou dans la terre ; tes graines tombent au fond, et chaque espèce a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…).",
-        "Le village photographie le concours : pendant le concours, Hugo, Iris et Rosalie se promènent et prennent des photos (parfois de toi !) ; Mathilde retourne à sa boutique, et chacun rentre à pied.",
-        "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
-        "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
-        "L'herbe des rochers est plus légère pour ton ordinateur."
       ]
     }
   ]

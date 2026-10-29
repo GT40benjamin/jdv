@@ -1,36 +1,42 @@
 {
-  "version": "0.9.9.16",
-  "build": 67,
-  "size": 2055155088,
-  "sha256": "2fe58a76d8f058760d6596187d31a6c84a8a35ea131b581a61edb9a0dc6adbc7",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v67/Pegase-PC-2026-10-29-0.9.9.16.zip",
-  "manifest": "c3d9be17085e5b33789569d8bf159ba6f76a76398cb727be8569d2c03b95e6d6",
+  "version": "0.9.9.17",
+  "build": 68,
+  "size": 2056367129,
+  "sha256": "cb1425fd2e66edd9a8526f6d9dea9faf02c24e0ef149dd62daec22ecb78079b9",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v68/Pegase-PC-2026-10-29-0.9.9.17.zip",
+  "manifest": "b4f5c0c61dfb4364331968c549857bb017f08e33a610509723e9b4dae64ddad8",
   "patchs": [
     {
+      "de": "0.9.9.16",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v68/Pegase-PC-patch-0.9.9.16.zip",
+      "taille": 7055339,
+      "sha256": "fe15d590ce35def581d0358a4cd5fd8d0c1ad96ec387b9e4b1188f106f6ee937"
+    },
+    {
       "de": "0.9.9.15",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v67/Pegase-PC-patch-0.9.9.15.zip",
-      "taille": 5653016,
-      "sha256": "7483ca226806641d233e7cfa1e57be5db4414367a325885330f3ccd1e4009da0"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v68/Pegase-PC-patch-0.9.9.15.zip",
+      "taille": 7273585,
+      "sha256": "dd40286027069decc3e4ba101c3e4f3108da6b4e557e61d3b03066fd0f1145a3"
     },
     {
       "de": "0.9.9.14",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v67/Pegase-PC-patch-0.9.9.14.zip",
-      "taille": 6990430,
-      "sha256": "726bebf5be1b7d28e244b10aed5786bec424d7348212ff09a6ba0ac6e89b9b5f"
-    },
-    {
-      "de": "0.9.9.12",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v67/Pegase-PC-patch-0.9.9.12.zip",
-      "taille": 69526152,
-      "sha256": "cc5ef2bb08422bdf09933438f179a3681ce624ad4d8858e3c3e2b8745c9b699e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v68/Pegase-PC-patch-0.9.9.14.zip",
+      "taille": 8519180,
+      "sha256": "f1c9f4263f8a5e2fa1549f58611e334cb4092fff817aff12d30395b6e9e9cb9e"
     }
   ],
   "notes": [
-    "Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.",
-    "Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.",
-    "Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque."
+    "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
+    "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
   ],
   "historique": [
+    {
+      "version": "0.9.9.17",
+      "notes": [
+        "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
+        "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
+      ]
+    },
     {
       "version": "0.9.9.16",
       "notes": [
@@ -75,17 +81,6 @@
         "L'hôtel ne s'efface plus en pointillés sur téléphone, et son entrée a un perron.",
         "Les « ! » au-dessus des habitants n'apparaissent plus que tout près, et seulement si tu vois la personne.",
         "Les chiens Filou et Réglisse ont une tête plus douce, de grands yeux et des oreilles tombantes."
-      ]
-    },
-    {
-      "version": "0.9.8.9",
-      "notes": [
-        "Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol (dont le grand arbre suspendu près du pont rouge), et le socle du coin cosy descend jusqu'au sol.",
-        "De vrais trous dans le potager : quand tu creuses, c'est un vrai trou dans la terre ; tes graines tombent au fond, et chaque espèce a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…).",
-        "Le village photographie le concours : pendant le concours, Hugo, Iris et Rosalie se promènent et prennent des photos (parfois de toi !) ; Mathilde retourne à sa boutique, et chacun rentre à pied.",
-        "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
-        "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
-        "L'herbe des rochers est plus légère pour ton ordinateur."
       ]
     }
   ]
