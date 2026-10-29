@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 💻 Pégase 0.9.9.14 arrive aussi sur PC (borne 1.50.15)
+[pegase] 💻 Sur PC, la mise à jour se télécharge toute seule au lancement : les îlots du large, la pêche posée et les plages dorées.
 [pegase] ## 🏝️ Pégase 0.9.9.14 : les îlots du large, la pêche posée et les plages dorées (borne 1.50.14)
 [pegase] ⛵ Nouveau : la barque de mer de Gaspard, au ponton de la plage est, et trois îlots du large aux nids géants (la Couronne, le Grand Nid, la Plume), avec trois nouvelles missions de Gaspard ; des balises montrent la passe, et si tu tombes à l'eau au large, tu te retrouves doucement dans ta barque.
 [pegase] 🎣 Pêche posée : tu plantes ta canne dans un piquet, tu t'assois sur ta chaise pliante avec un sandwich, et la clochette sonne quand ça mord ; le combat est plus clair (barre et rond côte à côte, flèches pour centrer, souris pour tirer).
