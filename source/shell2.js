@@ -22,7 +22,7 @@ const TILE_NEWS = {
   'coop-magic': { kind: 'maj', at: '2026-10-20 23:40' },   // Magic Force à deux : les mêmes 6 mondes (chantier 24 ; heure = celle de la publication)
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
-  chrono: { kind: 'maj', at: '2026-10-27 16:25' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 (12:16) ; « Mis à jour » à chaque publication (règle de PATOU), heure de la dernière : 1.46.13
+  chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
   neon: { kind: 'maj', at: '2026-10-29 01:30' },   // Néon Rush (borne 1.50.13) : les bulles en l'air plus faciles à prendre ; heure = celle de la publication
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
@@ -1000,10 +1000,13 @@ function chronoKing(d) {
   const L = [...P.values()].filter(o => o.golds > 0).sort((a, b) => b.golds - a.golds || b.auts - a.auts || a.sum - b.sum);
   return L[0] || null;
 }
-const CHK = { at: 0 };
+const CHK = { at: 0, who: null };
 function chronoKingNow() {   // le roi d'après les temps gardés ; relit le serveur au plus une fois par minute (la tuile se redessine à l'arrivée)
   if (!gameById('chrono') || !ONLINE) return null;
-  if ((!chronoFresh() || Date.now() - CHB.at > 60000) && Date.now() - CHK.at > 60000) { CHK.at = Date.now(); chronoBoards().then(() => { refreshChamps(true); refreshOnline(); }, () => {}); }
+  // 1.50.19 (PATOU : « Pas encore de médaille d'or » alors qu'il a l'or partout) : les temps lus avant le choix du pseudo ou de la salle ne
+  // comptaient plus (chronoFresh change de « who ») et la relecture attendait une minute ; on relit tout de suite quand le joueur ou la salle change
+  const w = chronoWho();
+  if ((!chronoFresh() || Date.now() - CHB.at > 60000) && !CHB.busy && (Date.now() - CHK.at > 60000 || CHK.who !== w)) { CHK.at = Date.now(); CHK.who = w; chronoBoards().then(() => { refreshChamps(true); refreshOnline(); }, () => {}); }
   return chronoKing(chronoFresh());
 }
 const chronoMs = ms => { ms = Math.max(0, Math.round(+ms || 0)); return Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0') + '.' + String(ms % 1000).padStart(3, '0'); };
