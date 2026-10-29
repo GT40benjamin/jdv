@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🩱 Pégase 0.9.9.15 : le maillot de bain et l'étendard du ponton (borne 1.50.16)
+[pegase] 🩱 Pour aller à l'eau, ton héroïne enfile un maillot de bain turquoise : quelques brasses, puis un doux retour sur le quai ou sur la rive, en mer comme au lac.
+[pegase] 🚩 Un grand étendard rouge et une lanterne marquent le ponton de la plage est, et des cairns balisent la passe pour sortir du petit port.
+[pegase] 🧭 La flèche du guide ne passe plus sous les boutons ; les traces de sabots de l'aventure ont la couleur du sol où elles sont.
 [pegase] ## 💻 Pégase 0.9.9.14 arrive aussi sur PC (borne 1.50.15)
 [pegase] 💻 Sur PC, la mise à jour se télécharge toute seule au lancement : les îlots du large, la pêche posée et les plages dorées.
 [pegase] ## 🏝️ Pégase 0.9.9.14 : les îlots du large, la pêche posée et les plages dorées (borne 1.50.14)

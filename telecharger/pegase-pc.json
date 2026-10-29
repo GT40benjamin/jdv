@@ -1,33 +1,95 @@
 {
-  "version": "0.9.9.14",
-  "build": 65,
-  "size": 2055014253,
-  "sha256": "f09c7febafea61e70feb843a436503cd626cb3381c77ae4275ece982c97f1980",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v65/Pegase-PC-2026-10-29-0.9.9.14.zip",
-  "manifest": "cca187cad6f5ab8cf1479c3342e8fb6c055448f2e363c3de26d56aefcfb133c3",
+  "version": "0.9.9.15",
+  "build": 66,
+  "size": 2055128756,
+  "sha256": "c98a1b70efd86d79c0de7625f43a7564deeec8478d7a6835afaf046a5d97707e",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v66/Pegase-PC-2026-10-29-0.9.9.15.zip",
+  "manifest": "e16b7266510db476e17054696ef9304240c3f04a2b891e44600859dd6208bd7e",
   "patchs": [
     {
+      "de": "0.9.9.14",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v66/Pegase-PC-patch-0.9.9.14.zip",
+      "taille": 6689249,
+      "sha256": "13ae69304367efc9e6aaea95b2d616f93949dcdecd39a3417302a0c2ae013983"
+    },
+    {
       "de": "0.9.9.12",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v65/Pegase-PC-patch-0.9.9.12.zip",
-      "taille": 69388765,
-      "sha256": "5056dbba2f8fc91331823fb196288818a4151b21c5c0b5d619a41f9c22d17e27"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v66/Pegase-PC-patch-0.9.9.12.zip",
+      "taille": 69490620,
+      "sha256": "7e9f37ea4020754f1e038eea374ea1a72b0abedac27fe0f8ef4f60b12a1b5075"
     },
     {
       "de": "0.9.9.11",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v65/Pegase-PC-patch-0.9.9.11.zip",
-      "taille": 70295614,
-      "sha256": "63d1995e079b3e5928f9f225fd643b1c70aefdd7bf86756afcb81ce3a2202f21"
-    },
-    {
-      "de": "0.9.9.10",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v65/Pegase-PC-patch-0.9.9.10.zip",
-      "taille": 70300682,
-      "sha256": "60beff7c9d2ea138b93639f908235fd44df35d8217278fc8ab3f7cee32de3134"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v66/Pegase-PC-patch-0.9.9.11.zip",
+      "taille": 70394130,
+      "sha256": "8f40d8989ad96a33481c7ce82197e85537492be2136c36b45ecb12669a814893"
     }
   ],
   "notes": [
-    "Les îlots du large et la barque de mer",
-    "La pêche posée et des plages dorées",
-    "Les chiens et les adresses du village"
+    "Pour aller à l'eau, ton héroïne enfile un maillot de bain turquoise : quelques brasses, puis un doux retour sur le quai ou sur la rive, en mer comme au lac.",
+    "Un grand étendard rouge et une lanterne marquent le ponton de la plage est, et des cairns balisent la passe pour sortir du petit port.",
+    "La flèche du guide ne passe plus sous les boutons, ni sur la barre d'objets.",
+    "Les traces de sabots de l'aventure « Là où l'eau sort de la roche » ont la couleur du sol où elles sont.",
+    "Le jeu PC est plus léger, sans rien perdre en beauté."
+  ],
+  "historique": [
+    {
+      "version": "0.9.9.15",
+      "notes": [
+        "Pour aller à l'eau, ton héroïne enfile un maillot de bain turquoise : quelques brasses, puis un doux retour sur le quai ou sur la rive, en mer comme au lac.",
+        "Un grand étendard rouge et une lanterne marquent le ponton de la plage est, et des cairns balisent la passe pour sortir du petit port.",
+        "La flèche du guide ne passe plus sous les boutons, ni sur la barre d'objets.",
+        "Les traces de sabots de l'aventure « Là où l'eau sort de la roche » ont la couleur du sol où elles sont.",
+        "Le jeu PC est plus léger, sans rien perdre en beauté."
+      ]
+    },
+    {
+      "version": "0.9.9.14",
+      "notes": [
+        "Nouveau : la barque de mer de Gaspard, au ponton de la plage est, et trois îlots du large aux nids géants (la Couronne, le Grand Nid, la Plume), avec trois nouvelles missions de Gaspard.",
+        "Pêche posée : tu plantes ta canne dans un piquet, tu t'assois sur ta chaise pliante avec un sandwich, et la clochette sonne quand ça mord.",
+        "Combat de pêche plus clair : la barre de puissance et le rond côte à côte ; on centre avec les flèches (ou le joystick) et on tire avec la souris (ou le bouton), en relâchant dans le rouge.",
+        "Serviette à deux : rejoins un ami allongé pour regarder les étoiles, ou pour un câlin.",
+        "Les plages de tout le tour de l'île ont retrouvé leur sable doré, avec des coquillages, des étoiles de mer, du bois flotté et des herbes de dune ; fini les flaques grises.",
+        "Les chiens Filou et Réglisse se promènent enfin au village, et un vrai perron de pierre attend devant l'Hôtel d'Ailebrune.",
+        "Chaque maison a son adresse sur une plaque émaillée (n° 1 : la mairie), et la nuit les lanternes brillent doucement.",
+        "Nouvelle aventure « Là où l'eau sort de la roche » : des traces de sabots à suivre de la source jusqu'à l'estuaire.",
+        "Plus de glissade vers la mer quand on se tient sur un ponton au-dessus de l'eau profonde.",
+        "Si tu tombes à l'eau loin au large, tu nages un instant puis tu te retrouves doucement dans ta barque ou sur le quai le plus proche.",
+        "Des balises (un étendard au bout du ponton est, deux cairns de galets) montrent la passe pour sortir du petit port.",
+        "Sur téléphone en mode portrait, les boutons « sauter », « s'accroupir » et « œil » ne sortent plus de l'écran et ne se chevauchent plus."
+      ]
+    },
+    {
+      "version": "0.9.9.13",
+      "notes": [
+        "La mission en cours et les missions du jour sont revenues en haut à gauche, sous tes lucioles : plus rien ne gêne les boutons ni le joystick.",
+        "Un appel d'un habitant raté, refusé ou coupé reste dans ton téléphone : « Appel manqué » en haut de Contacts, et « Rappeler » pour le réécouter depuis le début.",
+        "En visio, tu vois toujours l'habitant qui t'appelle, même s'il était rentré chez lui.",
+        "L'hôtel ne s'efface plus en pointillés sur téléphone, et son entrée a un perron.",
+        "Les « ! » au-dessus des habitants n'apparaissent plus que tout près, et seulement si tu vois la personne.",
+        "Les chiens Filou et Réglisse ont une tête plus douce, de grands yeux et des oreilles tombantes."
+      ]
+    },
+    {
+      "version": "0.9.8.9",
+      "notes": [
+        "Plus rien ne flotte : les arbres, buissons, statues, lanternes et pancartes qui étaient en l'air sont reposés au sol (dont le grand arbre suspendu près du pont rouge), et le socle du coin cosy descend jusqu'au sol.",
+        "De vrais trous dans le potager : quand tu creuses, c'est un vrai trou dans la terre ; tes graines tombent au fond, et chaque espèce a ses graines (billes rouges du radis, grains jaunes du maïs, graines noires de la pastèque…).",
+        "Le village photographie le concours : pendant le concours, Hugo, Iris et Rosalie se promènent et prennent des photos (parfois de toi !) ; Mathilde retourne à sa boutique, et chacun rentre à pied.",
+        "Des voisins passent voir ta maison : de temps en temps, un habitant vient la regarder, te dit parfois qu'elle est jolie, puis repart.",
+        "Le coin de Gaspard est embelli : tonneau, caisse aux étoiles de mer, corde, jardinières fleuries, lierre et lanterne le long de sa cabane.",
+        "L'herbe des rochers est plus légère pour ton ordinateur."
+      ]
+    },
+    {
+      "version": "0.9.8.8",
+      "notes": [
+        "Le coin cosy au bord de la falaise : au bout de l'allée entre les parcelles, une terrasse en bois tournée vers la vallée, avec ses bancs et leurs coussins, une table basse aux bougies sur un tapis, des lanternes, du lierre et des fleurs.",
+        "Plus de grandes nappes vertes toutes plates (PC) : le dessus moussu des rochers et des falaises se couvre de la même herbe que les prés, avec quelques fleurs.",
+        "Donne un nom à ta maison depuis ta boîte aux lettres : il est gravé sur ton panneau, et tes amis le lisent sur ta plaque.",
+        "Bêcher, c'est plus clair : houe ou pelle en main, un liseré doré entoure au sol la case que tu vas bêcher."
+      ]
+    }
   ]
 }
