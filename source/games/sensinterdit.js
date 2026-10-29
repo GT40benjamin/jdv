@@ -3,7 +3,7 @@
 // Sens Interdit — course de 10 km à CONTRESENS en 3D, au milieu de la circulation, sur 5 routes (la Corniche, le Col des Neiges,
 // Néon City, le Volcan, la Route des Étoiles). Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
 // (assets/sensinterdit.moteur.bin : three.js r180 + le jeu, gzippé, licence MIT) et les voitures (assets/sensinterdit.voitures.bin :
-// modèles et textures de l'Asset Store, EMBALLÉS avec la clé intégrée au site, jamais en clair). Score = vitesse moyenne (km/h).
+// modèles et textures de l'Asset Store, EMBALLÉS avec la clé intégrée au site, jamais en clair). Score = km parcourus × vitesse max (km/h) × 10.
 // 5 routes de plus en plus incroyables, accidents en vraie physique (la voiture se casse en morceaux), carambolages.
 // Une seule variable globale en plus : window.JDW_SI. Atelier : ~/jdv-tools/duotest/sensinterdit (sources, outils, essais ; REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
@@ -175,6 +175,7 @@ function mount(root, api) {
     currentLevel() { return inst ? inst.currentLevel() : 1; },
   };
   Object.defineProperty(proxy, '_d', { get: () => inst && inst._d, configurable: true });   // essais (harnais)
+  proxy._boom = () => inst && inst._boom && inst._boom();   // essais : une voiture posée juste devant
   return proxy;
 }
 
@@ -182,11 +183,11 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.sensinterdit = {
   id: 'sensinterdit',
   title: 'Sens Interdit',
-  tagline: '10 km à contresens au milieu des voitures : le plus rapide à l\'arrivée gagne, et à chaque choc tout explose !',
+  tagline: 'Fonce à contresens au milieu des voitures, toujours plus vite : va le plus loin et le plus vite possible… au premier choc, tout explose !',
   accent: '#ff3b3b',
-  scoreLabel: 'km/h',
+  scoreLabel: 'points',
   fps: false,
-  pad: { help: [['ls/dpad', 'Changer de voie'], ['a/rt', 'Gaz'], ['b/lt', 'Frein'], ['x/rb', 'Nitro']] },
+  pad: { help: [['ls/dpad', 'Changer de voie'], ['a/rt', 'Gaz'], ['b/lt', 'Frein']] },
   preview,
   mount,
 };

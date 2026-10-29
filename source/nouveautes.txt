@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : course sans fin, une seule vie (borne 1.51.3)
+[sensinterdit] ♾️ La route ne s'arrête plus : va le plus loin et le plus vite possible. Ton score = kilomètres parcourus × ta vitesse max (km/h) × 10.
+[sensinterdit] 🚀 Plus de nitro : tiens le gaz et la vitesse monte sans fin (500, 800, plus de 1 000 km/h…) ; à toi de doser.
+[sensinterdit] 💥 Une seule vie : au premier choc, tu regardes l'accident (moins de flammes et d'éclairs, on voit bien la voiture se casser), puis tu recommences.
+[sensinterdit] 🌍 Cinq mondes de 4 km chacun, bien annoncés : grand portique « MONDE n » à l'entrée, le nom du monde en haut de l'écran, les lumières du tunnel aux couleurs du monde qui arrive.
+[sensinterdit] 🌞 Plus réaliste : vraies ombres, le ciel qui se reflète dans la peinture, la voiture qui plonge au freinage et se cabre en accélérant, les roues avant qui braquent, marquage d'autoroute.
+[sensinterdit] 🎥 Accident dans un tunnel : la caméra reste dans le tunnel.
 [sensinterdit] ## ⛔ Sens Interdit refait de fond en comble (borne 1.51.2)
 [sensinterdit] 🛣️ Cinq routes de plus en plus belles : la Corniche, le Col des Neiges, Néon City, le Volcan avec ses rivières de lave et ses éruptions, puis la Route des Étoiles, suspendue dans le ciel sous une aurore boréale et une planète géante.
 [sensinterdit] 💥 Les accidents sont de vrais accidents : ta voiture se froisse, se casse en morceaux, perd ses roues et part en tonneaux sans jamais passer à travers la route ; plus elle tombe de haut, plus elle est en miettes.
