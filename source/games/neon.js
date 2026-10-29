@@ -3016,13 +3016,14 @@
     }
     let lastTele = null;
     function gateFx(g) {
-      if (g.k === 'speed') { const sp = speedLook(g.m); texts.push({ s: g.m > 1.01 ? 'VITESSE ×' + String(g.m).replace('.', ',') : 'RALENTI', x: W / 2, y: H * 0.3, t: 0, life: 1.1, col: sp[1], size: 0.85 }); sfx.portal(); shake = Math.max(shake, 5); partFlash = Math.max(partFlash, 0.5); rumble('tick'); }
+      if (g.k === 'speed') { const sp = speedLook(g.m); texts.push({ s: g.m > 1.01 ? 'VITESSE ×' + String(g.m).replace('.', ',') : 'RALENTI', x: W / 2, y: banner ? H * 0.52 : H * 0.3, t: 0, life: 1.1, col: sp[1], size: 0.85 }); sfx.portal(); shake = Math.max(shake, 5); partFlash = Math.max(partFlash, 0.5); rumble('tick'); }
       else if (g.k === 'grav') { sfx.orb(); pops.push({ k: 'ring', x: st.x, y: st.y, t: 0, life: 0.4, c: g.g < 0 ? '#3ad8ff' : '#ffd34d' }); shake = Math.max(shake, 3); }
-      else if (g.k === 'dual') { texts.push({ s: g.on ? 'DUO !' : 'SOLO', x: W / 2, y: H * 0.3, t: 0, life: 1, col: '#ff8a3a', size: 0.8 }); sfx.portal(); shake = Math.max(shake, 3); }
-      else if (g.k === 'mirror') { texts.push({ s: g.on ? 'MIROIR !' : 'À L’ENDROIT', x: W / 2, y: H * 0.3, t: 0, life: 1, col: '#ffb03a', size: 0.8 }); sfx.portal(); }
+      else if (g.k === 'dual') { texts.push({ s: g.on ? 'DUO !' : 'SOLO', x: W / 2, y: banner ? H * 0.52 : H * 0.3, t: 0, life: 1, col: '#ff8a3a', size: 0.8 }); sfx.portal(); shake = Math.max(shake, 3); }
+      else if (g.k === 'mirror') { texts.push({ s: g.on ? 'MIROIR !' : 'À L’ENDROIT', x: W / 2, y: banner ? H * 0.52 : H * 0.3, t: 0, life: 1, col: '#ffb03a', size: 0.8 }); sfx.portal(); }
     }
     function partStart(i) {
       const p = parts[i]; prevTheme = partIdx >= 0 ? parts[partIdx].theme : null; partIdx = i; themeFade = prevTheme ? 1 : 0; partFlash = 1;
+      for (const tx of texts) if (Math.abs(tx.y - H * 0.3) < 1) tx.y = H * 0.52;   // 30 oct. : un texte de porte (VITESSE, DUO…) déjà là descend sous la bannière du monde
       banner = { t: 0, title: themeOf(p.theme).name, sub: 'Monde ' + (i + 1) + ' · ' + MODES[p.mode].name + (p.mini ? ' mini' : '') + ' — ' + MODES[p.mode].tip, col: themeOf(p.theme).acc };
       sfx.portal(); shake = Math.max(shake, 4);
     }

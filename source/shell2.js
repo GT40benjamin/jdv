@@ -9,7 +9,7 @@ const ORDER = ['abracadabra', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoo
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
   abracadabra: { kind: 'new', at: '2026-10-30 00:30' },   // Abracadabra (on dit un mot, l'objet apparaît ; un pont pour traverser le fleuve) : EN ESSAI derrière la porte labo depuis la 1.52
-  sensinterdit: { kind: 'new', at: '2026-10-30 00:27' },   // Sens Interdit SORTI POUR TOUS (1.51.11) ; 1.52.2 : plus de cachette au bord de la route ; 1.52.1 : deux classements ; heure = celle de la publication
+  sensinterdit: { kind: 'new', at: '2026-10-30 00:37' },   // Sens Interdit SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -25,7 +25,7 @@ const TILE_NEWS = {
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
-  neon: { kind: 'maj', at: '2026-10-29 23:31' },   // Néon Rush (borne 1.51.12) : couloirs en vol bien plus hauts ; 1.51.7 : plateformes au-dessus des pics
+  neon: { kind: 'maj', at: '2026-10-30 00:37' },   // Néon Rush (borne 1.52.3) : les textes des portes ne se posent plus sur le nom du monde ; 1.51.12 : couloirs en vol plus hauts
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
