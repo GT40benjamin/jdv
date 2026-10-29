@@ -2644,7 +2644,9 @@
         for (const cx of xw) {
           let mn = 99, mx = -99; for (let k = cx - (isW ? 0.3 : sec.mini ? 0.5 : 1); k <= cx + (isW ? 0.3 : sec.mini ? 0.8 : 1.5); k += 0.1) { const y = yAt(k); mn = Math.min(mn, y); mx = Math.max(mx, y); }
           const ramp = Math.max(0, 1 - (cx - xa) / (L.speed * vS * 3)), mid = (mn + mx) / 2, half = isW ? (mx - mn) / 2 + phw + (sec.mini ? 0.9 : 0.8) + ramp * 1.2 : sec.mini ? Math.max(gap * 0.36, (mx - mn) / 2 + phw + 0.36) + ramp * 1.5 : Math.max(gap / 2, (mx - mn) / 2 + PH + 0.5) + ramp * 1.8 + (easy ? 0.35 : 0);   // serré : on le tient en tapotant
-          need.push(isW ? [mn - phw - 0.12, mx + phw + 0.12] : sec.mini ? [mn - phw - 0.3, mx + phw + 0.3] : [mn - PH - 0.4, mx + PH + 0.4]); lo.push(mid - half); hi.push(mid + half);
+          // 30 oct. (Benjamin : « la soucoupe volante, il faut plus large la hauteur du chemin ») : couloirs en vol bien plus hauts (vaisseau et soucoupe ×1,6, vague ×1,85 : une vague décalée de 0,2 s s'écarte de 2 blocs)
+          const wide = mode === 'wave' ? 1.85 : 1.6;
+          need.push(isW ? [mn - phw - 0.12, mx + phw + 0.12] : sec.mini ? [mn - phw - 0.3, mx + phw + 0.3] : [mn - PH - 0.4, mx + PH + 0.4]); lo.push(mid - half * wide); hi.push(mid + half * wide);
         }
         const smooth = (a, r) => a.map((_, i) => { let s = 0, c = 0; for (let k = -r; k <= r; k++) { const w = r + 1 - Math.abs(k); s += a[clamp(i + k, 0, n - 1)] * w; c += w; } return s / c; });
         for (let it = 0; it < 4; it++) { const a = smooth(lo, isW ? 1 : 4), z = smooth(hi, isW ? 1 : 4); for (let i = 0; i < n; i++) { lo[i] = Math.min(a[i], need[i][0]); hi[i] = Math.max(z[i], need[i][1]); } }
@@ -2658,7 +2660,7 @@
         // 26 oct. (« je me prends le rebord au démarrage », puis « un tout petit peu, raboté en bas, seulement le premier avion ») : au
         // tout début du PREMIER vaisseau du niveau 1, la paroi du bas reste au sol sur 8 blocs (~1 s) avant de monter ; rien d'autre ne change
         const fl = li === 0 && !tour && L.parts.filter((p) => p.mode === 'ship').length === 1 ? 8 : 0;
-        for (let i = 0; i < n; i++) { const u = xw[i] - xa, e = (xb - xw[i]) / 7, w = ss(clamp(Math.min(u / 10, e), 0, 1)), wl = ss(clamp(Math.min((u - fl) / 10, e), 0, 1)); lo[i] = clamp(lerp(0, lo[i], wl), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], w), 0, CEIL); }
+        for (let i = 0; i < n; i++) { const u = xw[i] - xa, e = (xb - xw[i]) / 7, w = ss(clamp(Math.min(u / 10, e), 0, 1)), wl = isW && xb - xw[i] < 10 ? 0 : ss(clamp(Math.min((u - fl) / 10, (xb - xw[i]) / 12), 0, 1));   /* 30 oct. : la paroi du bas rejoint le sol plus tôt avant la sortie (vague : d'un coup, une pente la rattraperait) */ lo[i] = clamp(lerp(0, lo[i], wl), 0, CEIL); hi[i] = clamp(lerp(CEIL, hi[i], w), 0, CEIL); }
         const w0 = L.walls.length;
         for (let i = 0; i + 1 < n; i++) L.walls.push({ x0: xw[i], x1: xw[i + 1], lo0: lo[i], hi0: hi[i], lo1: lo[i + 1], hi1: hi[i + 1] });
         // on vérifie que le fantôme passe (sinon on élargit)
@@ -2667,7 +2669,7 @@
         if (LV.sawWall && !tour) { const WS = L.walls.slice(w0), wAt = (x) => { const w = WS.find((q) => x >= q.x0 && x < q.x1); if (!w) return null; const u = (x - w.x0) / (w.x1 - w.x0); return [lerp(w.lo0, w.lo1, u), lerp(w.hi0, w.hi1, u)]; }, r = 0.9, ph2 = sec.mini ? PHM : PH; let up = rng() < 0.5;
           for (let x = xa + 9; x < xb - 5; x = XA(x, LV.sawWall * beatP * (0.8 + rng() * 0.5))) { const lh = wAt(x); if (!lh) continue; let mn = 99, mx = -99; for (let k = x - r - 0.8; k <= x + r + 0.8; k += 0.1) { const y = yAt(k); mn = Math.min(mn, y); mx = Math.max(mx, y); }
             // la scie est enfoncée dans la paroi : elle n'en sort que de ce qui laisse passer (danger = 0,85 r autour du centre ; 0,55 de marge : un doigt en retard de 40 ms passe encore)
-            const pLo = Math.min(r * 0.8, mn - lh[0] - 0.6 * ph2 - 0.55 + 0.15 * r), pHi = Math.min(r * 0.8, lh[1] - mx - 0.6 * ph2 - 0.55 + 0.15 * r);
+            const pLo = Math.min(r * 0.8, mn - lh[0] - 0.6 * ph2 - 1.7 + 0.15 * r), pHi = Math.min(r * 0.8, lh[1] - mx - 0.6 * ph2 - 1.7 + 0.15 * r);   // 30 oct. : marge 1,7 (un doigt 0,2 s en retard passe ; avant 0,55 = 40 ms)
             if (pLo < 0.25 && pHi < 0.25) continue; const top = pHi >= 0.25 && (up || pLo < 0.25); L.saws.push({ x0: x, y: top ? lh[1] + r - pHi : lh[0] + pLo - r, r, dir: top ? -1 : 1 }); up = !up; }
           sortAll(); }
       }

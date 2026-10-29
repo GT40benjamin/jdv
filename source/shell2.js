@@ -24,7 +24,7 @@ const TILE_NEWS = {
   toupies: { kind: 'new', at: '2026-10-24 14:13' },   // Turbo Toupies (duel 3D, en essai derrière la porte labo)
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
-  neon: { kind: 'maj', at: '2026-10-29 21:50' },   // Néon Rush (borne 1.51.7) : plateformes au-dessus des longues rangées de pics ; 1.51.6 : plus de marge, niveau 2 plus simple ; heure = celle de la publication
+  neon: { kind: 'maj', at: '2026-10-29 23:31' },   // Néon Rush (borne 1.51.12) : couloirs en vol bien plus hauts ; 1.51.7 : plateformes au-dessus des pics
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
