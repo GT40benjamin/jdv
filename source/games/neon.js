@@ -2219,6 +2219,7 @@
   //   aurait eue et rejoint en douceur la hauteur où il serait (au moins ORB_FIX s), puis suit la même courbe que le fantôme ; pendant
   //   ce temps la bulle le retient (coussin) et un pic sous elle n'est mortel qu'à la fin si l'on n'a pas touché.
   // Le toucher qui fait sauter du sol n'est gardé que si une bulle est juste devant (sinon elle partirait toute seule après un saut).
+  const HOP_E = 0.2, HOP_L = 0.22;   // plateformes au-dessus des pics (29 oct. soir) : marge humaine, trop tôt / trop tard (s)
   const ORB_ZX = 0.95 * 1.7, ORB_ZY = 1.0 * 1.7, ORB_EARLY = 0.27, ORB_LATE = 0.28, ORB_FIX = 0.08, ORB_CUSH = 0.03, JUMP_BUF = 0.12;   // 29 oct. soir : marge humaine 0,25 s (avant 0,21 / 0,14)
   function orbKick(st, o, P, gv) {
     if (o.dash) { st.dash = true; st.vy = 0; } else if (o.blue) { st.grav = -gv; st.vy = gv * P.vj * 0.3; } else st.vy = gv * P.vj * (o.k || (o.big ? 1.25 : 1));
@@ -2269,7 +2270,7 @@
       if (x1 > cx - hw && x0 < cx + hw && y1 > Math.min(base, tip) && y0 < Math.max(base, tip)) return true;
     }
     A = L.blocks;
-    for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const b = A[i]; if (x1 > b.x0 && x0 < b.x1 && y0 < b.y1 - 0.14 && y1 > b.y0) return true; }
+    for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const b = A[i]; if (b.oneway) continue; if (x1 > b.x0 && x0 < b.x1 && y0 < b.y1 - 0.14 && y1 > b.y0) return true; }   // plateforme « oneway » : on la traverse par-dessous et par le côté, on se pose dessus
     A = L.saws;
     if (A) for (let i = lowerIdx(A, st.x - 8); i < A.length && A[i].x0 < st.x + 8; i++) { const s = A[i], dx = Math.max(0, Math.abs(st.x - s.x0) - ph * 0.6), dy = Math.max(0, Math.abs(st.y - s.y) - ph * 0.6); if (dx * dx + dy * dy < s.r * s.r * 0.72) return true; }
     if (st.mode === 'ship' || st.mode === 'ufo' || st.mode === 'wave') {
@@ -2424,12 +2425,13 @@
         const pickHits = (s) => { const o = []; for (const h of HK) if (h.t >= s.from && h.t <= s.to && h.f >= (s.min || 8) && (!o.length || h.t - o[o.length - 1] >= s.gap)) o.push(h.t); return o; };
         const sTs = (s) => (s.at ? s.at : s.beats ? s.beats.map((b) => beats[b]) : s.from != null ? pickHits(s) : [s.t]);   // les temps d'un moment « tap » / « land »
         const sT = (s) => (s.beat != null ? beats[s.beat] : s.kind === 'steps4' ? beats[s.b] : s.kind === 'final' ? s.pads[0] : s.kind === 'etage' || s.kind === 'softstep' ? s.t : s.kind === 'stairs' ? s.at[0] : sTs(s)[0]);
+        const hopTimes = (s, off) => { const b = s.beats[0] + (off || 0), n = Math.min(3, Math.max(2, s.beats.length)), o = []; for (let k = 0; k < n; k++) if (b + 2 * k < nb) o.push(beats[b + 2 * k]); return o; };   // plateformes : un saut tous les 2 temps
         const bIdx = (t) => { let i = 0; while (i < nb - 1 && beats[i + 1] <= t + 1e-6) i++; return i; };
         const SCR = mode === 'cube' && !tour ? (LV.script || []).filter((s) => s.kind !== 'etage' && sT(s) >= beats[b0] && sT(s) < beats[b1 - 1]).sort((a, c) => sT(a) - sT(c)) : [];
         const last = (a) => a[a.length - 1];
         const zones = SCR.map((s) => (s.kind === 'pad' ? [sT(s) - 0.05, s.land + 0.35] : s.kind === 'land' ? [sT(s) - P.ta - 0.15, beats[last(s.beats)] + 0.3]
           : s.kind === 'tap' ? [sT(s) - 0.15, last(sTs(s)) + P.ta + 0.3] : s.kind === 'stairs' || s.kind === 'softstep' ? [sT(s) - 0.15, s.drop + 0.35]
-          : s.kind === 'steps4' ? [sT(s) - 0.15, beats[s.b + 4 * s.n - 1] + 0.35] : s.kind === 'orbs' ? [sT(s) - P.ta - 0.3, last(sTs(s)) + beatP * 2 + 0.3] : s.kind === 'dash' ? [sT(s) - P.ta - 0.3, beats[s.beats[1]] + 0.3] : [sT(s) - 0.1, beats[b1] + 1]));
+          : s.kind === 'steps4' ? [sT(s) - 0.15, beats[s.b + 4 * s.n - 1] + 0.35] : s.kind === 'orbs' ? [sT(s) - P.ta - 0.3, last(hopTimes(s, 2)) + P.ta * 1.6 + 0.4] : s.kind === 'dash' ? [sT(s) - P.ta - 0.3, beats[s.beats[1]] + 0.3] : [sT(s) - 0.1, beats[b1] + 1]));
         if (ET) zones.push([beats[b0] - 1, ET.until + 1]);
         // les flips de ce passage : pas de saut juste avant (on doit être au sol) ni pendant la chute
         const FLE = []; if (mode === 'cube') for (const [a, z, o] of FLIPS) { for (const [t, g] of [[a, -1], [z, 1]]) if (t > beats[b0] + 1 && t < beats[b1 - 1]) { FLE.push({ t, g, orb: o === 'orb' }); zones.push(o === 'orb' ? [t - tB - P.ta * 1.5 - 0.2, t + 0.12] : [t - tR - P.ta - 0.2, t + 0.12]); } }
@@ -2509,20 +2511,26 @@
             sim(X(s.land) + 0.2); lastB = b1; return;
           }
           if (s.kind === 'orbs') {
-            // CHAÎNE D'ORBES (27 oct., chantier « La folie ») : on saute juste avant le premier temps, puis on touche une orbe en l'air PILE sur
-            // chaque temps (rose = petit coup, jaune = grand), elles montent et descendent ; un champ de pics dessous ; on retombe sur un temps
-            const ts = sTs(s), x0 = X(ts[0]); if (XA(x0, -P.ta * 0.5) < ghost.x + 0.2) return;
-            const xj = XA(x0, -P.ta * 0.5); sim(xj - 0.02); if (!ghost.ground) return; const gy = floorAt(xj); sim(xj + 0.3, (g) => ({ tap: Math.abs(g.x - xj) < 0.05 }));
-            const ups = s.ups || [];
-            for (let i = 0; i < ts.length; i++) {
-              const ax = X(ts[i]); sim(ax - 0.01); const ay = ghost.y, lastO = i === ts.length - 1, T = lastO ? beatP * (s.land || 1) : ts[i + 1] - ts[i];
-              const dh = lastO ? gy + PH - ay : clamp(ups[i] != null ? ups[i] : 0, gy + 2.9 - ay, gy + 4.1 - ay), k = (dh + (P.g * T * T) / 2) / T / P.vj;
-              L.orbs.push({ x0: ax, y: ay, big: false, head: true, k }); sortAll();
-              sim(ax + 0.3, (g) => ({ tap: Math.abs(g.x - ax) < 0.06 }));
+            // PLATEFORMES au-dessus d'une rangée de pics (29 oct. soir, Benjamin : « mets des plateformes où on saute dessus : un saut pour aller
+            // sur une plateforme, puis un autre, puis sortir ») — plus de chaîne de bulles. Un saut tous les 2 temps (sur la musique), chacun
+            // simple ; chaque plateforme reçoit le cube même s'il saute HOP_E s trop tôt et le garde jusqu'à HOP_L s trop tard
+            let tj = null, x0 = 0;   // le cube doit être au sol pour partir : sinon on décale d'un temps (2 au plus)
+            for (let o = 0; o < 3 && !tj; o++) { const tt = hopTimes(s, o); if (!tt.length || X(tt[0]) < ghost.x + 0.3) continue; sim(X(tt[0]) - 0.3); if (ghost.ground && ghost.mode === 'cube' && floorAt(X(tt[0])) === floorAt(ghost.x)) { tj = tt; x0 = X(tt[0]); } }
+            if (!tj) return; const gy = floorAt(x0);
+            const land = (xj, y0, H) => { const d = H - y0, t = (P.vj + Math.sqrt(Math.max(0, P.vj * P.vj - 2 * P.g * d))) / P.g; return XA(xj, t); };
+            let yp = gy; const plats = [];
+            for (let k = 1; k < tj.length; k++) {
+              const H = gy + (k % 2 ? 1.5 : 2.5), xa = land(XA(X(tj[k - 1]), -HOP_E), yp, H) - PH * 0.85 - 0.2, xb = XA(X(tj[k]), HOP_L) + PH * 0.85;
+              plats.push({ x0: xa, x1: Math.max(xa + 1.6, xb), y0: H - 0.4, y1: H, oneway: true }); yp = H;   // plateforme qui flotte : les pics restent dessous
             }
-            const xe = X(last(ts) + beatP * (s.land || 1)); sim(xe + 0.2);
-            for (let sx = xj + 1.6; sx < xe - 2.2; sx += 1) { const fy = floorAt(sx + 0.5); if (floorAt(sx - 0.2) === fy && floorAt(sx + 1.2) === fy && clear(sx - 0.2, sx + 1.2, fy + 0.8, 99)) L.spikes.push({ x0: sx, y: fy }); }
-            sortAll(); lastB = bIdx(xe ? last(ts) + beatP * (s.land || 1) : 0); return;
+            for (const b of plats) L.blocks.push(b); sortAll();
+            // le toucher du fantôme : une fois, au premier pas qui atteint le temps (à grande vitesse un pas dépasse la fenêtre de tapAt)
+            for (const t of tj) { const xj = X(t); if (xj < ghost.x + 0.1) return; sim(xj - 0.02); let done = false; sim(xj + 0.3, (g) => { const on = !done && g.x >= xj - 0.04; if (on) done = true; return { tap: on }; }); }
+            const xOut = land(XA(X(last(tj)), -HOP_E), yp, gy) - 1.2;   // le cube sorti trop tôt retombe là : pas de pic après
+            sim(land(XA(X(last(tj)), HOP_L), yp, gy) + 0.6);
+            const isP = new Set(plats), sol = (x) => { let t = 0; for (const b of L.blocks) if (!isP.has(b) && x + PH * 0.85 > b.x0 && x - PH * 0.85 < b.x1 && b.y1 > t) t = b.y1; return t; };
+            for (let sx = XA(x0, HOP_L) + 1.2; sx < xOut - 1; sx += 1) if (sol(sx + 0.5) === gy && sol(sx - 0.2) === gy && sol(sx + 1.2) === gy && clear(sx - 0.2, sx + 1.2, gy + 0.8, 99)) L.spikes.push({ x0: sx, y: gy });
+            sortAll(); lastB = bIdx(last(tj) + P.ta * 1.6); return;
           }
           if (s.kind === 'dash') {
             // DASH : on saute, on touche l'orbe verte au sommet (sur un temps) et on TIENT : le cube file tout droit au-dessus des pics ; on lâche
