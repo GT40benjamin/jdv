@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit refait de fond en comble (borne 1.51.2)
+[sensinterdit] 🛣️ Cinq routes de plus en plus belles : la Corniche, le Col des Neiges, Néon City, le Volcan avec ses rivières de lave et ses éruptions, puis la Route des Étoiles, suspendue dans le ciel sous une aurore boréale et une planète géante.
+[sensinterdit] 💥 Les accidents sont de vrais accidents : ta voiture se froisse, se casse en morceaux, perd ses roues et part en tonneaux sans jamais passer à travers la route ; plus elle tombe de haut, plus elle est en miettes.
+[sensinterdit] 🚗💥🚙 Carambolages : les épaves restent sur la route et les voitures qui arrivent s'y écrasent à leur tour.
+[sensinterdit] 🎯 Les chocs sont précis au centimètre : tu ne touches plus une voiture que tu as évitée.
+[sensinterdit] 🏎️ Nouvelles voitures en face (des sportives de toutes les couleurs) et une musique pour chaque route, de plus en plus intense.
 [pegase] ## ☕ Pégase 0.9.9.18 : Chez Désiré et le lagon vivant (borne 1.51.1)
 [pegase] ☕ Nouveau : le bar de l'hôtel d'Ailebrune, « Chez Désiré » ! Assieds-toi au comptoir, lève la main (ou dis « serveur ! ») : Désiré te sert citronnade, chocolat chaud, jus de pomme… offerts, ou la Lumineuse, une boisson qui brille (20 lucioles).
 [pegase] 🥤 Entre amis, chacun commande ; on peut payer pour toute la table ou offrir une boisson à un ami, et boire son verre gorgée après gorgée.

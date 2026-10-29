@@ -1,9 +1,10 @@
 (() => {
 'use strict';
-// Sens Interdit — course de 10 km à CONTRESENS en 3D, au milieu de la circulation, sur 4 routes (la Corniche, Néon City, le Canyon,
-// le Grand Pont). Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
+// Sens Interdit — course de 10 km à CONTRESENS en 3D, au milieu de la circulation, sur 5 routes (la Corniche, le Col des Neiges,
+// Néon City, le Volcan, la Route des Étoiles). Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur
 // (assets/sensinterdit.moteur.bin : three.js r180 + le jeu, gzippé, licence MIT) et les voitures (assets/sensinterdit.voitures.bin :
 // modèles et textures de l'Asset Store, EMBALLÉS avec la clé intégrée au site, jamais en clair). Score = vitesse moyenne (km/h).
+// 5 routes de plus en plus incroyables, accidents en vraie physique (la voiture se casse en morceaux), carambolages.
 // Une seule variable globale en plus : window.JDW_SI. Atelier : ~/jdv-tools/duotest/sensinterdit (sources, outils, essais ; REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
 const STORE = { engine: null, pack: null };
@@ -39,7 +40,7 @@ function loadEngine(onProg, signal) {
 function loadPack(onProg, signal) {
   if (STORE.pack) return STORE.pack;
   STORE.pack = (async () => {
-    const buf = await fetchBytes(ROOT() + 'assets/sensinterdit.voitures.bin', onProg, 1260000, signal);
+    const buf = await fetchBytes(ROOT() + 'assets/sensinterdit.voitures.bin', onProg, 1000000, signal);
     const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(window.JDW_ASSET_KEY || ''), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
