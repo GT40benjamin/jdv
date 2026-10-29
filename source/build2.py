@@ -74,7 +74,7 @@ script = "let PG_ACTIVE = false, PG_API = null, PG_HEADS = [], PG_PILOT_IMG = nu
 
 # ---------- assemblage ----------
 SKIP = [x for x in os.environ.get('SKIP_GAMES', '').split(',') if x]   # ex. SKIP_GAMES=ilo : jeu pas encore prêt
-GAMES = [g for g in ['sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'magic', 'pegase'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
+GAMES = [g for g in ['abracadabra', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'magic', 'pegase'] if os.path.exists(J + 'games/' + g + '.js') and g not in SKIP]
 # jeux de duel (deux joueurs face à face) : source/duos/<id>.js, contrat DUO-CONTRACT.md
 DUOS = [d for d in ['bolides', 'tirsaubut', 'toupies', 'kombat', 'pingpong', 'trouve', 'palet', 'briques', 'boum', 'souris', 'spatial', 'mots', 'guerre'] if os.path.exists(J + 'duos/' + d + '.js') and d not in SKIP]
 # 28 oct. 2026 (Benjamin : « On va séparer la borne de Pégase […] Pégase sera dans sa propre fenêtre ») : la MÊME bibliothèque fait deux pages.

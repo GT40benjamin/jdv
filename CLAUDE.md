@@ -69,6 +69,11 @@ Tests du site publié sans rien publier : `bash ~/jdv-tools/pubtest.sh` + `node 
 **À chaque nouveau jeu / duel ou refonte publiée** : l'ajouter dans `TILE_NEWS` en tête de shell2.js (`{ kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' }`)
 → étiquette « Nouveau » / « Mis à jour » sur la tuile jusqu'au clic (par joueur de l'appareil, 30 jours au plus) et sur le bouton Classique / Duel
 tant qu'il contient une nouveauté pas vue ; un appareil tout neuf ne voit que les nouveautés suivantes (jdw.tilebase). Test : test-badges.js.
+**Abracadabra** (source/games/abracadabra.js, jeu 3D three.js r180 + physique Rapier) : EN ESSAI derrière la porte labo (`?labo=abracadabra`) depuis la 1.52 (30 oct. 2026).
+On DIT un mot (voix reconnue sur l'appareil : Vosk de assets/mots.vosk.bin + modèle assets/mots-fr-1.tgz, les mêmes que les mots du hub de Pégase ; ou écrit au clavier),
+l'objet apparaît devant le mage, on le place et on le pose ; but : traverser le fleuve sur un pont de bric et de broc, chaque mot une seule fois. Moteur
+`assets/abracadabra.moteur.bin` (gzip, `window.JDW_ABRA`), objets `assets/abra.fleuve.bin` (EMBALLÉ : modèles du projet Unity Pégase et de l'Asset Store
+convertis en glTF sans l'éditeur). Atelier : `~/jdv-tools/duotest/abracadabra` (REPRISE.md : catalogue/objets.txt, tools/convertir.py, tools/pack.js, tests).
 **Magic Force** (source/games/magic.js, jeu 3D three.js r180) : SORTI POUR TOUS en 1.12 (14 oct. 2026). La porte « labo » (LABO dans shell2.js,
 vide maintenant) reste pour un prochain jeu en essai : la tuile d'un jeu de LABO n'apparaît qu'après `…/jouer/?labo=<id>` (retenu sur l'appareil,
 `?labo=aucun` pour cacher ; dans l'appli : 7 touches sur le titre). Données emballées
