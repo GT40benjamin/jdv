@@ -8,7 +8,7 @@ const ORDER = ['sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', '
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  sensinterdit: { kind: 'new', at: '2026-10-29 23:25' },   // Sens Interdit SORTI POUR TOUS (borne 1.51.11) : étiquette « Nouveau » + notification « Nouveau jeu disponible » ; heure = celle de la publication
+  sensinterdit: { kind: 'new', at: '2026-10-29 23:51' },   // Sens Interdit SORTI POUR TOUS (1.51.11) ; 1.51.13 : les km en grand (fin, récap, course) ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -10077,10 +10077,12 @@ function showLevelProgress(g, me) {
   const box = $('jdw-lvprog'); box.hidden = true; box.textContent = '';
   // 30 oct. : un jeu peut donner son propre résumé de fin, endInfo() → { big, unit, sub } (Sens Interdit : la vitesse max en grand, la distance)
   let ei = current.endInfo || null; try { if (!ei && current.inst && current.inst.endInfo) ei = current.inst.endInfo(); } catch (e) { ei = null; }
-  if (ei && ei.big) {
+  // { stats: [{ v, u }, …] } (30 oct., Sens Interdit : les km ET la vitesse max, aussi gros l'un que l'autre)
+  const eiStats = ei && Array.isArray(ei.stats) ? ei.stats.filter(x => x && x.v) : ei && ei.big ? [{ v: ei.big, u: ei.unit || '' }] : [];
+  if (eiStats.length) {
     const h = document.createElement('p'); h.className = 'end-ei';
-    const b = document.createElement('b'); b.textContent = ei.big; const u = document.createElement('span'); u.className = 'u'; u.textContent = ei.unit || '';
-    h.append(b, u); if (ei.sub) { const s = document.createElement('span'); s.className = 's'; s.textContent = ei.sub; h.append(s); }
+    for (const x of eiStats) { const c = document.createElement('span'); c.className = 'st'; const b = document.createElement('b'); b.textContent = x.v; const u = document.createElement('span'); u.className = 'u'; u.textContent = x.u || ''; c.append(b, u); h.append(c); }
+    if (ei.sub) { const s = document.createElement('span'); s.className = 's'; s.textContent = ei.sub; h.append(s); }
     box.append(h); box.hidden = false; return;
   }
   if (g.spots && !(MAP_DEFS[g.id] && MAP_DEFS[g.id].spot)) return;   // avancement en dizaines de mètres (la ligne des copains) : pas de « Niveau n »
