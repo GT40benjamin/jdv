@@ -9,7 +9,7 @@ const ORDER = ['abracadabra', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoo
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
   abracadabra: { kind: 'new', at: '2026-10-30 00:30' },   // Abracadabra (on dit un mot, l'objet apparaît ; un pont pour traverser le fleuve) : EN ESSAI derrière la porte labo depuis la 1.52
-  sensinterdit: { kind: 'new', at: '2026-10-29 23:51' },   // Sens Interdit SORTI POUR TOUS (1.51.11) ; 1.51.13 : les km en grand (fin, récap, course) ; heure = celle de la publication
+  sensinterdit: { kind: 'new', at: '2026-10-30 00:06' },   // Sens Interdit SORTI POUR TOUS (1.51.11) ; 1.52.1 : deux classements Plus loin / Plus vite (plus de points) ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -1072,6 +1072,72 @@ function chronoRenderBoard(ol, W) {
     grid.appendChild(col);
   }
 }
+/* ================= Sens Interdit : deux classements, « Plus loin » et « Plus vite » (30 oct.) ================= */
+// Benjamin : « le record de Sens Interdit, ce n'est pas les points, c'est celui qui est allé le plus vite et le plus loin : deux classements à part ».
+// Deux scores ordinaires (add_score accepte tout id valide) : sensinterdit-km (mètres parcourus) et sensinterdit-vitesse (km/h max).
+// Les anciens points (id « sensinterdit ») restent sur le serveur, jamais montrés.
+const SI_BOARDS = [
+  { id: 'sensinterdit-km', title: '🛣️ Plus loin', ic: '🛣️', short: 'Plus loin', u: 'km', num: v => (Math.max(0, +v || 0) / 1000).toFixed(2).replace('.', ','), val: v => (Math.max(0, +v || 0) / 1000).toFixed(2).replace('.', ',') + ' km' },
+  { id: 'sensinterdit-vitesse', title: '🚀 Plus vite', ic: '🚀', short: 'Plus vite', u: 'km/h max', num: v => fmt(Math.max(0, +v || 0)), val: v => fmt(Math.max(0, +v || 0)) + ' km/h' },
+];
+const siBoard = id => SI_BOARDS.find(b => b.id === id) || null;
+function siRenderBoard(ol, W) {
+  ol.hidden = true;
+  const box = chronoBoardBox(); box.hidden = false; box.textContent = '';
+  $('jdw-board-hint').textContent = (W ? 'Top 10 mondial' : 'Tous les copains de la salle') + ' · le plus loin et le plus vite de chacun';
+  const msg = t => { const p = document.createElement('p'); p.className = 'chb-msg'; p.textContent = t; box.appendChild(p); };
+  if (!W && isGuest()) return msg('En invité, pas de classement de salle : crée ton compte pour comparer tes records avec tes copains. Touche « Monde » pour les records de tout le monde.');
+  if (W && !worldLoaded) return msg(netOff() ? '📡 Il faut du réseau pour le classement mondial.' : 'Chargement du classement mondial…');
+  const me = cleanName(profile.name), grid = document.createElement('div'); grid.className = 'chb-grid si-grid'; box.appendChild(grid);
+  for (const b of SI_BOARDS) {
+    const col = document.createElement('section'); col.className = 'chb-col';
+    const h = document.createElement('h3'); h.textContent = b.title; col.appendChild(h);
+    const list = document.createElement('ol'); list.className = 'chb-list'; col.appendChild(list);
+    const rows = top(b.id, W ? 'world' : undefined);
+    if (!rows.length) { const e = document.createElement('li'); e.className = 'chb-empty'; e.textContent = 'Personne encore'; list.appendChild(e); }
+    rows.forEach((x, i) => {
+      const e = document.createElement('li'); if (x.name === me) e.classList.add('me');
+      const r = document.createElement('span'); r.className = 'chb-r' + (i < 3 ? ' p' + (i + 1) : ''); r.textContent = String(i + 1);
+      const av = document.createElement('span'); av.className = 'avatar'; avatarInto(av, x.name);
+      const n = document.createElement('span'); n.className = 'chb-n'; const nb = document.createElement('b'); nb.textContent = dispName(x.name);
+      const tm = document.createElement('span'); tm.className = 'chb-t'; tm.textContent = b.val(x.score); n.append(nb, tm); e.append(r, av, n); list.appendChild(e);
+    });
+    grid.appendChild(col);
+  }
+}
+// écran de fin : les km et la vitesse max (endInfo().raw du jeu), mon rang dans la salle pour chacun ; les deux records enregistrés
+function siEndBox() {
+  let box = $('jdw-si-end');
+  if (!box) { box = document.createElement('div'); box.id = 'jdw-si-end'; box.className = 'si-end'; document.querySelector('#jdw-end .bigscore').after(box); }
+  return box;
+}
+async function siShowEnd(g, me) {
+  $('jdw-endgame').textContent = g.title + ' · partie terminée';
+  $('jdw-lvprog').hidden = true; $('jdw-beat').hidden = true; $('jdw-taunt').hidden = true; $('jdw-endboard').hidden = true; $('jdw-endboard').textContent = '';
+  let ei = current.endInfo || null; try { if (!ei && current.inst && current.inst.endInfo) ei = current.inst.endInfo(); } catch (e) { ei = null; }
+  const raw = (ei && ei.raw) || {}, vals = { 'sensinterdit-km': Math.max(0, Math.round(+raw.m || 0)), 'sensinterdit-vitesse': Math.max(0, Math.round(+raw.kmh || 0)) };
+  pending = null; $('jdw-end-chat').hidden = true; $('jdw-end-guest').hidden = !isGuest(); $('jdw-who').hidden = true; ENDBY.name = me; ENDBY.busy = false; endByRender();
+  const box = siEndBox(); box.hidden = false; box.textContent = '';
+  const lines = {};
+  for (const b of SI_BOARDS) {
+    const v = vals[b.id], row = document.createElement('div'); row.className = 'si-end-row';
+    const big = document.createElement('b'); big.textContent = b.num(v); const u = document.createElement('span'); u.className = 'u'; u.textContent = b.u;
+    const info = document.createElement('span'); info.className = 'si-end-r'; info.textContent = b.title;
+    row.append(big, u, info); box.appendChild(row); lines[b.id] = info;
+  }
+  $('jdw-status').textContent = isGuest() ? 'Joli ! En invité, tes records ne sont pas enregistrés.' : 'Enregistrement…';
+  $('jdw-end').hidden = false; endAnimate(); $('jdw-again').focus({ preventScroll: true });
+  if (isGuest()) return;
+  let rec = 0, res = '';
+  for (const b of SI_BOARDS) {
+    const v = vals[b.id], prev = knownBest(me, b.id);
+    if (v > prev) { rec++; res = (await saveScore(b.id, v, me)) || res; }
+    if (!current || $('jdw-end').hidden) return;
+    const rows = top(b.id), i = rows.findIndex(r => r.name === me);
+    lines[b.id].textContent = b.title + ' · ' + (v > prev ? (prev ? 'nouveau record !' : 'premier record !') : 'ton record : ' + b.val(Math.max(v, prev))) + (i >= 0 ? ' · ' + chronoRank(i) + ' de la salle' : '');
+  }
+  $('jdw-status').textContent = rec ? (res === 'shared' ? 'Enregistré dans les classements de la salle (Plus loin et Plus vite).' : ONLINE ? 'Pas de connexion : gardé sur cet appareil, il partira au retour du réseau.' : 'Enregistré sur cet appareil.') : 'Pas de nouveau record cette fois. Retente ta chance !';
+}
 // écran de fin de Turbo Chrono : « Tes positions » (un circuit par ligne : mon temps, salle « 2e sur 5 », monde)
 function chronoEndBox() {
   let box = $('jdw-chrono-end');
@@ -1689,6 +1755,7 @@ async function flushUnsent() {
 // en ms (Turbo Chrono) ou coups (coffres) : plus petit = meilleur. recTag dit comment l'écrire.
 function recTag(tag) {
   const t = String(tag || ''), i = t.indexOf('@'), base = i > 0 ? t.slice(0, i) : t, lv = i > 0 ? t.slice(i + 1) : '';
+  const sb = siBoard(base); if (sb) { const gs = gameById('sensinterdit'); return { g: gs, base, lv: sb.short, where: (gs ? gs.title : 'Sens Interdit') + ' · ' + sb.short, val: sb.val, word: 'ton record', ic: sb.ic }; }
   const g = gameById(base) || null;
   if (!lv) return { g, base, lv: '', where: g ? g.title : '', val: v => fmt(v) + unit(g), word: 'ton record', ic: '🏆' };
   const msT = v => { const c = Math.round(v / 10), m = Math.floor(c / 6000), sec = Math.floor(c / 100) % 60; return m + ':' + String(sec).padStart(2, '0') + '.' + String(c % 100).padStart(2, '0'); };
@@ -2769,7 +2836,7 @@ function refreshChamps(force) {
   const show = ONLINE && !!room && remoteLoaded;
   for (const t of tiles) {
     const king = t.g.id === 'chrono' ? (show ? chronoKingNow() : null) : undefined;
-    const lead = king !== undefined ? (king ? { name: king.name, score: king.golds } : null) : show ? top(t.g.id)[0] : null, ch = t.champ; if (!ch) continue;
+    const lead = king !== undefined ? (king ? { name: king.name, score: king.golds } : null) : show ? top(t.g.id === 'sensinterdit' ? 'sensinterdit-km' : t.g.id)[0] : null, ch = t.champ; if (!ch) continue;
     const lp = lead ? players.get(lead.name) || {} : {};
     const key = lead ? lead.name + ':' + lead.score + ':' + (lp.photo || '').length + ':' + (lp.topFrac || '') : '';
     if (ch.dataset.k === key && !force) continue;
@@ -2783,7 +2850,7 @@ function refreshChamps(force) {
     cr.style.top = crownTop + 'px';
     ch.style.top = Math.max(6, 4 - crownTop) + 'px';     // la bulle descend juste assez pour que la couronne reste dans la tuile
     ch.append(hd, cr);
-    const what = king ? lead.score + (lead.score > 1 ? ' médailles d’or' : ' médaille d’or') : fmt(lead.score) + unit(t.g);
+    const what = king ? lead.score + (lead.score > 1 ? ' médailles d’or' : ' médaille d’or') : t.g.id === 'sensinterdit' ? SI_BOARDS[0].val(lead.score) : fmt(lead.score) + unit(t.g);
     ch.setAttribute('aria-label', 'Champion de la salle à ' + t.g.title + ' : ' + dispName(lead.name) + ', ' + what + '. Voir le classement de la salle');
     ch.title = dispName(lead.name) + ' · ' + what;
   }
@@ -2803,6 +2870,7 @@ function refreshOnline() {
     if (live) span.textContent = ps.length ? (ps.length === 1 && ps[0].name === cleanName(profile.name) ? 'Toi, sur un autre appareil' : tileName(ps[0].name) + (ps.length > 1 ? ' + ' + (ps.length - 1) : '') + ' joue') : n ? (n === 1 ? '1 joueur' : n + ' joueurs') : 'Personne';
     if (live && / joue$/.test(span.textContent)) { const v = document.createElement('em'); v.className = 'tile-verb'; v.textContent = ' joue'; span.textContent = span.textContent.slice(0, -5); span.appendChild(v); }   // « joue » s'efface sur téléphone à côté de 👁 + carte
     else if (t.g.noScore) span.textContent = 'À installer · PC et Android';   // Pégase (hub, pas de score) : pas de « Pas encore de record »
+    else if (t.g.id === 'sensinterdit') { const v = top('sensinterdit-vitesse')[0]; span.textContent = v ? '👑 ' + dispName(v.name) + ' · ' + SI_BOARDS[1].val(v.score) : 'Pas encore de record'; }
     else if (t.g.id === 'chrono') { const k = chronoKingNow(); span.textContent = k ? '👑 ' + dispName(k.name) + ' · ' + k.golds + (k.golds > 1 ? ' médailles d’or' : ' médaille d’or') : 'Pas encore de médaille d’or'; }
     else { const b = top(t.g.id)[0]; span.textContent = b ? 'Record ' + fmt(b.score) + unit(t.g) + ' · ' + dispName(b.name) : 'Pas encore de record'; }
     if (t.watch) { t.watch.hidden = !ps.length; t.watch.setAttribute('aria-label', ps.length === 1 ? 'Regarder ' + ps[0].name + ' jouer à ' + t.g.title : 'Voir qui joue à ' + t.g.title); t.el.parentNode.classList.toggle('can-watch', !!ps.length); }
@@ -2986,7 +3054,7 @@ function rowEl(name, right, me, world) {
 }
 function generalRanking() {
   const m = new Map();
-  for (const g of GAMES) top(g.id, boardScope).slice(0, 3).forEach((r, i) => {
+  for (const g of GAMES) top(g.id === 'sensinterdit' ? 'sensinterdit-km' : g.id, boardScope).slice(0, 3).forEach((r, i) => {
     const e = m.get(r.name) || { name: r.name, m: [0, 0, 0] }; e.m[i]++; m.set(r.name, e);
   });
   return [...m.values()].sort((a, b) => b.m[0] - a.m[0] || b.m[1] - a.m[1] || b.m[2] - a.m[2] || a.name.localeCompare(b.name));
@@ -3005,6 +3073,7 @@ function renderBoardTab() {
   $('jdw-coopkind').hidden = true;
   if (/^coop:/.test(boardTab)) { if (coopById(boardTab.slice(5))) return coopRenderBoard(ol, W); boardTab = 'general'; }
   if (boardTab === 'chrono' && gameById('chrono')) return chronoRenderBoard(ol, W);   // des temps, pas des points
+  if (boardTab === 'sensinterdit' && gameById('sensinterdit')) return siRenderBoard(ol, W);   // Plus loin / Plus vite, pas des points
   if (W && !worldLoaded) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = netOff() ? '📡 Il faut du réseau pour le classement mondial. Tes records sont gardés sur cet appareil : touche « Ma salle ».' : worldErr ? "Le classement mondial arrive bientôt (mise à jour du serveur en cours)." : 'Chargement du classement mondial…'; ol.appendChild(li); return; }
   if (boardTab === 'general') {
     $('jdw-board-hint').textContent = (offDev ? 'Hors ligne : records gardés sur cet appareil. ' : netOff() && !W ? 'Hors ligne : dernier classement connu. ' : W ? 'Toutes les salles réunies. ' : '') + 'Le nombre de jeux où chacun est premier, puis deuxième, puis troisième.';
@@ -9916,7 +9985,7 @@ function recReset() { REC.leader = ''; REC.score = -1; REC.passed = ''; REC.flas
 function recLine() {
   const el = $('jdw-recline');
   if (current && current.coop && !$('jdw-play').hidden) { coopRecLine(el); return; }
-  if (!current || $('jdw-play').hidden || !$('jdw-end').hidden || isGuest() || current.game.noScore) { el.hidden = true; return; }   // invité : pas de classement ; noScore : page sans score (hub de Pégase)
+  if (!current || $('jdw-play').hidden || !$('jdw-end').hidden || isGuest() || current.game.noScore || current.game.id === 'sensinterdit') { el.hidden = true; return; }   // Sens Interdit : ses copains sont sur la route (pas de ligne en points)   // invité : pas de classement ; noScore : page sans score (hub de Pégase)
   const g = current.game, me = cleanName(profile.name), lead = top(g.id)[0], u = unit(g);
   let cur = 0;
   try { if (!current.over && current.inst && current.inst.currentScore) cur = Math.max(0, Math.floor(+current.inst.currentScore() || 0)); } catch (e) {}
@@ -10193,6 +10262,9 @@ async function showEndInner(score) {
   $('jdw-end').classList.toggle('chrono-end', CH);   // Turbo Chrono : « Tes positions » à la place du score en points (et de tout ce qui en dépend)
   { const ce = $('jdw-chrono-end'); if (ce) ce.hidden = true; }
   if (CH) return chronoShowEnd(g, score, me, myBest);
+  { const se = $('jdw-si-end'); if (se) se.hidden = true; }
+  $('jdw-end').classList.toggle('si-end-on', g.id === 'sensinterdit');
+  if (g.id === 'sensinterdit') return siShowEnd(g, me);   // Sens Interdit : Plus loin et Plus vite, pas de points
   endCount($('jdw-endscore'), score);
   $('jdw-endunit').textContent = g.scoreLabel === 'm' ? 'mètres' : (g.scoreLabel || 'points');
   showLevelProgress(g, me);

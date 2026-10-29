@@ -187,7 +187,7 @@ window.JDW_GAMES.sensinterdit = {
   title: 'Sens Interdit',
   tagline: 'Fonce à contresens au milieu des voitures, toujours plus vite : va le plus loin et le plus vite possible… au premier choc, tout explose !',
   accent: '#ff3b3b',
-  scoreLabel: 'points',
+  scoreLabel: 'km',   // (le score rendu à la borne n'est plus montré : deux classements Plus loin / Plus vite, voir shell2.js SI_BOARDS)
   spots: true,   // la borne garde jusqu'où chacun est allé (mapSpot) et le rend par api.reached : la ligne des copains sur la route
   fps: false,
   pad: { help: [['ls/dpad', 'Changer de voie'], ['a/rt', 'Gaz'], ['b/lt', 'Frein']] },

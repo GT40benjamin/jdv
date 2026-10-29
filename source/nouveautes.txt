@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : deux classements, Plus loin et Plus vite (borne 1.52.1)
+[sensinterdit] 🏆 Plus de points : deux records à part, « 🛣️ Plus loin » (les km parcourus) et « 🚀 Plus vite » (ta vitesse max), dans la salle et au monde.
+[sensinterdit] 👑 La tuile montre le roi de la vitesse ; l'écran de fin donne tes km, ta vitesse max et ta place dans la salle pour chacun.
 [abracadabra] ## 🪄 Nouveau jeu en essai : Abracadabra (borne 1.52)
 [abracadabra] 🪄 Dis un mot magique au micro (« une planche », « un tonneau », « une vache »…) et l'objet apparaît devant ton mage, en vraie 3D.
 [abracadabra] 🌉 Place-le où tu veux, tourne-le, pose-le : il tombe pour de vrai. Construis un pont de bric et de broc pour traverser le fleuve… et marche dessus jusqu'à l'autre rive !
