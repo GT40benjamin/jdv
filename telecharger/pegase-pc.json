@@ -38,14 +38,37 @@
     }
   ],
   "notes": [
-    "La mission en cours et les missions du jour sont revenues en haut à gauche, sous tes lucioles : plus rien ne gêne les boutons ni le joystick.",
-    "Un appel d'un habitant raté, refusé ou coupé reste dans ton téléphone : « Appel manqué » en haut de Contacts, et « Rappeler » pour le réécouter depuis le début.",
-    "En visio, tu vois toujours l'habitant qui t'appelle, même s'il était rentré chez lui.",
-    "L'hôtel ne s'efface plus en pointillés sur téléphone, et son entrée a un perron.",
-    "Les « ! » au-dessus des habitants n'apparaissent plus que tout près, et seulement si tu vois la personne.",
-    "Les chiens Filou et Réglisse ont une tête plus douce, de grands yeux et des oreilles tombantes."
+    "Nouveau : la barque de mer de Gaspard, au ponton de la plage est, et trois îlots du large aux nids géants (la Couronne, le Grand Nid, la Plume), avec trois nouvelles missions de Gaspard.",
+    "Pêche posée : tu plantes ta canne dans un piquet, tu t'assois sur ta chaise pliante avec un sandwich, et la clochette sonne quand ça mord.",
+    "Combat de pêche plus clair : la barre de puissance et le rond côte à côte ; on centre avec les flèches (ou le joystick) et on tire avec la souris (ou le bouton), en relâchant dans le rouge.",
+    "Serviette à deux : rejoins un ami allongé pour regarder les étoiles, ou pour un câlin.",
+    "Les plages de tout le tour de l'île ont retrouvé leur sable doré, avec des coquillages, des étoiles de mer, du bois flotté et des herbes de dune ; fini les flaques grises.",
+    "Les chiens Filou et Réglisse se promènent enfin au village, et un vrai perron de pierre attend devant l'Hôtel d'Ailebrune.",
+    "Chaque maison a son adresse sur une plaque émaillée (n° 1 : la mairie), et la nuit les lanternes brillent doucement.",
+    "Nouvelle aventure « Là où l'eau sort de la roche » : des traces de sabots à suivre de la source jusqu'à l'estuaire.",
+    "Plus de glissade vers la mer quand on se tient sur un ponton au-dessus de l'eau profonde.",
+    "Si tu tombes à l'eau loin au large, tu nages un instant puis tu te retrouves doucement dans ta barque ou sur le quai le plus proche.",
+    "Des balises (un étendard au bout du ponton est, deux cairns de galets) montrent la passe pour sortir du petit port.",
+    "Sur téléphone en mode portrait, les boutons « sauter », « s'accroupir » et « œil » ne sortent plus de l'écran et ne se chevauchent plus."
   ],
   "historique": [
+    {
+      "version": "0.9.9.14",
+      "notes": [
+        "Nouveau : la barque de mer de Gaspard, au ponton de la plage est, et trois îlots du large aux nids géants (la Couronne, le Grand Nid, la Plume), avec trois nouvelles missions de Gaspard.",
+        "Pêche posée : tu plantes ta canne dans un piquet, tu t'assois sur ta chaise pliante avec un sandwich, et la clochette sonne quand ça mord.",
+        "Combat de pêche plus clair : la barre de puissance et le rond côte à côte ; on centre avec les flèches (ou le joystick) et on tire avec la souris (ou le bouton), en relâchant dans le rouge.",
+        "Serviette à deux : rejoins un ami allongé pour regarder les étoiles, ou pour un câlin.",
+        "Les plages de tout le tour de l'île ont retrouvé leur sable doré, avec des coquillages, des étoiles de mer, du bois flotté et des herbes de dune ; fini les flaques grises.",
+        "Les chiens Filou et Réglisse se promènent enfin au village, et un vrai perron de pierre attend devant l'Hôtel d'Ailebrune.",
+        "Chaque maison a son adresse sur une plaque émaillée (n° 1 : la mairie), et la nuit les lanternes brillent doucement.",
+        "Nouvelle aventure « Là où l'eau sort de la roche » : des traces de sabots à suivre de la source jusqu'à l'estuaire.",
+        "Plus de glissade vers la mer quand on se tient sur un ponton au-dessus de l'eau profonde.",
+        "Si tu tombes à l'eau loin au large, tu nages un instant puis tu te retrouves doucement dans ta barque ou sur le quai le plus proche.",
+        "Des balises (un étendard au bout du ponton est, deux cairns de galets) montrent la passe pour sortir du petit port.",
+        "Sur téléphone en mode portrait, les boutons « sauter », « s'accroupir » et « œil » ne sortent plus de l'écran et ne se chevauchent plus."
+      ]
+    },
     {
       "version": "0.9.9.13",
       "notes": [
@@ -88,16 +111,6 @@
         "De vrais bruits de pêche : le fouet de la canne au lancer, le bouchon qui plonge, le fil qui casse.",
         "Gaspard t'explique la pêche telle qu'elle est maintenant.",
         "Les portillons de jardin s'ouvrent tout seuls quand tu t'approches, et se referment derrière toi."
-      ]
-    },
-    {
-      "version": "0.9.8.6",
-      "notes": [
-        "Les parcelles ne débordent plus sur le chemin : devant le portique rouge, au pied de l'escalier et sous la falaise, les bords des parcelles à vendre reculent jusqu'à l'herbe.",
-        "L'allée vers le coin cosy est dégagée : entre les parcelles, quatre arbres ont été écartés du passage.",
-        "Un vrai escalier de pierre au bout du chemin du Clos, posé sur le chemin et qui suit la pente, une lanterne de chaque côté.",
-        "Les affiches se posent plus facilement : si l'endroit visé est déjà pris (une affiche à côté, le bord du mur, une poutre, une fenêtre), l'affiche glisse toute seule jusqu'à la place libre la plus proche sur le même mur.",
-        "Hugo, le facteur, ne roule plus sur le muret du perron de la mairie pendant sa tournée."
       ]
     }
   ]
