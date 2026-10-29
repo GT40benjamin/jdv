@@ -8,7 +8,7 @@ const ORDER = ['sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', '
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  sensinterdit: { kind: 'maj', at: '2026-10-29 23:45' },   // Sens Interdit (EN ESSAI, porte labo) : 1.51.9 conduite d'avant, moins de voitures ; 1.51.8 ligne des copains, panneaux, palmiers ; 1.51.6 — plus de vibrations, textes sur le côté, dégâts progressifs, phares, musiques rapides ; avant 1.51.3 — course sans fin, une seule vie, score = km × vitesse max, mondes de 4 km (heure de la publication)
+  sensinterdit: { kind: 'maj', at: '2026-10-30 00:05' },   // Sens Interdit (EN ESSAI, porte labo) : 1.51.10 copains au bord de la route (plus de têtes sur les voitures) ; 1.51.9 conduite d'avant, moins de voitures ; 1.51.8 ligne des copains, panneaux, palmiers ; 1.51.6 — plus de vibrations, textes sur le côté, dégâts progressifs, phares, musiques rapides ; avant 1.51.3 — course sans fin, une seule vie, score = km × vitesse max, mondes de 4 km (heure de la publication)
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
