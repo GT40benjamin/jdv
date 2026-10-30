@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : des villageois tous différents (borne 1.56.1)
+[abracadabra] 🧑‍🌾 Les six villageois ne se ressemblent plus : le grand-père à béret, lunettes et barbe blanche, le fermier au chapeau de paille et à la moustache, la fillette blonde à nattes et couronne de fleurs, la maman au chignon roux, le garçon au bonnet à pompon, la grand-mère à lunettes ; chacun sa taille, sa carrure, son teint et ses habits.
+[abracadabra] 🤫 Les villageois ne soufflent plus la réponse : à toi de trouver ce qui les aidera.
 [abracadabra] ## 🪄 Abracadabra devient « Les missions du sorcier » (borne 1.56)
 [abracadabra] 🎬 Une petite cinématique au début : un jeune villageois trouve un bâton magique… tout ce qu'il dit apparaît devant lui, et il décide d'aider le monde. On peut la revoir depuis la carte.
 [abracadabra] 🗺️ La carte des missions : on avance de mission en mission, l'avancement est gardé, et on voit sur la carte jusqu'où sont allés les copains.
