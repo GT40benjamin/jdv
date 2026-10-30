@@ -296,3 +296,6 @@ AUTRES (jamais le sien), rend une fonction pour se désabonner. Rien n'est gard�
 Présence : pas de liste côté borne ; chaque jeu envoie lui-même un petit message de position (~3 par seconde) et considère comme parti
 un joueur muet depuis quelques secondes. Abracadabra (borne 1.54) : partie ouverte à toute la salle, le plus ancien dans la partie est
 l'hôte (sa physique fait foi), un nouveau arrivé demande tout l'état ; si l'hôte part, le suivant reprend.
+Voix (borne 1.55) : `await api.live.voix()` → `{ token, url, room, identity }` = jeton LiveKit (6 h, micro seul) de la salle vocale
+« <id du jeu>-<id de salle> » (Edge Function pegase-voix v4 avec `p_jeu` ; seuls les jeux de sa liste JEUX sont acceptés) ; `api.live.livekit()`
+→ le client LiveKit de la borne (copie locale). Le jeu publie le MÊME micro que celui qu'il écoute (une seule capture).

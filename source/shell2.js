@@ -9706,6 +9706,20 @@ function liveApi(g, seq) {
       return !!rtSend(roomTopic(), 'broadcast', { type: 'broadcast', event: 'live', payload: { g: g.id, cid: clientId, n: cleanName(profile.name), d } });
     },
     on(fn) { LIVE.fns.add(fn); return () => LIVE.fns.delete(fn); },
+    // la VOIX entre joueurs du même jeu dans la salle (chat vocal, borne 1.55) : jeton LiveKit de la salle « <id du jeu>-<id de salle> »
+    // (Edge Function pegase-voix v4, p_jeu ; la base décide comme pour la voix de la salle : membre, compte, pas invité), micro seul
+    async voix() {
+      if (!ok()) throw new Error('live.voix : hors salle');
+      const tok = await acctToken(profile); if (!tok) throw Object.assign(new Error('live.voix : compte requis'), { guest: true });
+      const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/pegase-voix', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_name: profile.name, p_room: room.id, p_jeu: g.id, p_cid: 'borne-' + String(clientId).replace(/[^A-Za-z0-9_-]/g, '').slice(1, 13) }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j || !j.token || !j.url) throw Object.assign(new Error('live.voix ' + r.status + ' ' + String((j && j.error) || '').slice(0, 80)), { status: r.status });
+      // une fonction d'avant la v4 ignorerait p_jeu et donnerait la voix de la salle de Pégase : jamais
+      if (String(j.room || '').indexOf(g.id + '-') !== 0) throw new Error('live.voix : serveur pas à jour');
+      return { token: String(j.token), url: String(j.url), room: String(j.room || ''), identity: String(j.identity || '') };
+    },
+    livekit: () => livekitLoad(),
   };
 }
 function liveRecu(p) {

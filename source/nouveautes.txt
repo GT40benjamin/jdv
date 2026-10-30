@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : on s'entend au micro (borne 1.54.1)
+[abracadabra] 🗣️ Quand vous jouez à plusieurs dans la salle, vous vous entendez en direct : appuie sur GO et tes copains t'entendent, pendant que ton bâton attrape les noms. Plus un sorcier est loin sur le fleuve, moins on l'entend, et « 🔊 » s'allume au-dessus de celui qui parle. STOP coupe ton micro.
+[abracadabra] 🎯 Les noms que disent tes copains ne font rien apparaître chez toi : chacun fait apparaître ses propres objets, et tout le monde les voit.
 [abracadabra] ## 🪄 Abracadabra : GO, le bâton magique et le très long Grand Fleuve (borne 1.54)
 [abracadabra] 🎤 Appuie sur GO : le micro reste ouvert. Dis tous les noms qui te passent par la tête (« vache, piano, tonneau, sapin… ») : chacun part tout de suite, à la suite, sans attendre la fin de ta phrase. STOP pour couper.
 [abracadabra] ⚡ Plus de mage à l'écran : tu tiens un bâton magique foufou (sucre d'orge, cristal rose et deux yeux rigolos). À chaque nom, un ÉCLAIR part du bâton et l'objet tombe là où tu regardes, dans un nuage d'étincelles et de confettis.
