@@ -1,23 +1,34 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 73,
-  "versionName": "0.9.9.25",
-  "size": 1233063450,
-  "sha256": "8e160e7e281cafd47ef624b45ae733c9924530be26cb8f6e0f1f6cca993c3185",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v73/pegase-0.9.9.25.apk",
+  "versionCode": 74,
+  "versionName": "0.9.9.26",
+  "size": 1233072078,
+  "sha256": "6d0e0cf7643e58064bf10e975aa3d06628ed2fd5bc4bca41ecbed7079a91bcfe",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v74/pegase-0.9.9.26.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Village : les habitants qui ne vous connaissent pas encore vous vouvoient partout (Désiré au bar, Edmond, Gaspard, Basile, Mathilde…), et Gaspard est bien à son ponton après une nuit de sommeil.",
-    "Hôtel et boutiques : la nuit, le hall de l'hôtel s'éclaire de lampes dorées ; à la fermeture, le commerçant vous dit au revoir et vous raccompagne dehors.",
-    "Plus d'herbe ni de fleurs à travers les planchers des bâtiments ; les bulles se cachent quand une fenêtre est ouverte ; les petits messages ont un fond bien lisible.",
-    "Animaux : les chiens du village ne se traversent plus, se posent sur les perrons, aboient doucement quand vous arrivez et respirent en dormant ; les chats ne se laissent plus marcher dessus ; l'oie de l'enclos cacarde, et sa photo est reconnue même quand elle broute.",
-    "Pêche : la caméra de la prise ne se cache plus dans les rochers ni les herbes, la prise est bien cadrée sur téléphone, et la barre d'outils ne recouvre plus la carte de prise.",
-    "Vélo : il s'arrête net au pied des escaliers des ponts, avec le bon message."
+    "Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.",
+    "À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.",
+    "Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.",
+    "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
+    "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
+    "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
   ],
   "historique": [
+    {
+      "version": "0.9.9.26",
+      "notes": [
+        "Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.",
+        "À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.",
+        "Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.",
+        "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
+        "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
+        "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
+      ]
+    },
     {
       "version": "0.9.9.25",
       "notes": [
@@ -49,16 +60,6 @@
       "version": "0.9.9.22",
       "notes": [
         "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
-      ]
-    },
-    {
-      "version": "0.9.9.21",
-      "notes": [
-        "Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !",
-        "Le sac a de vraies images pour les fourmis, le sandwich et la fiche du potager.",
-        "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
-        "Les animaux qui s'arrêtent ne marchent plus sur place.",
-        "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
       ]
     }
   ]

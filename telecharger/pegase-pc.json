@@ -1,39 +1,50 @@
 {
-  "version": "0.9.9.25",
-  "build": 76,
-  "size": 1668401278,
-  "sha256": "a052e0ccace8218f20b40111cad37e590ed7e4b9e3d3b6cd768c51f7478b59ad",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v76/Pegase-PC-2026-10-30-0.9.9.25.zip",
-  "manifest": "a609d146b55d9e0ab4abd93d529ba1eb58d5f18fd548ded376d42247bda1aaf1",
+  "version": "0.9.9.26",
+  "build": 77,
+  "size": 1668402900,
+  "sha256": "98101f5878936c98c8476a5e797e80430fcf55321fa7c70574030034c09495cb",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v77/Pegase-PC-2026-10-30-0.9.9.26.zip",
+  "manifest": "caf027268b5a674c45c5c7b3d43207154d3a18796e5d8588c54c8616f7b3b24d",
   "patchs": [
     {
+      "de": "0.9.9.25",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v77/Pegase-PC-patch-0.9.9.25.zip",
+      "taille": 3281826,
+      "sha256": "5884d84b0358e9145ecaca300a8a60187ada14273f52bfff243704f6ff8aa7ae"
+    },
+    {
       "de": "0.9.9.24",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v76/Pegase-PC-patch-0.9.9.24.zip",
-      "taille": 9997678,
-      "sha256": "545f3aa2af9db95d9ecf651b149993f9ad8426c4df6a108c9a794be723c47a4a"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v77/Pegase-PC-patch-0.9.9.24.zip",
+      "taille": 9756198,
+      "sha256": "b6089b594f9be3c532e077bb48988b6cf80776d36e0da57df1be3b75573ac41c"
     },
     {
       "de": "0.9.9.23",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v76/Pegase-PC-patch-0.9.9.23.zip",
-      "taille": 10069679,
-      "sha256": "3c4876edeea88de6a396b0bf098882df713b5ad7d5255a7d11376158cb520f76"
-    },
-    {
-      "de": "0.9.9.22",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v76/Pegase-PC-patch-0.9.9.22.zip",
-      "taille": 9373788,
-      "sha256": "c8a929871efab814bd1e379857a96e95c0dfcfc2ced74472f5386e9b7d9d5bca"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v77/Pegase-PC-patch-0.9.9.23.zip",
+      "taille": 9529604,
+      "sha256": "e82e85c6d284a0603a759101f4c801621dcd97321ae5909c02009cbdcb0b35f2"
     }
   ],
   "notes": [
-    "Village : les habitants qui ne vous connaissent pas encore vous vouvoient partout (Désiré au bar, Edmond, Gaspard, Basile, Mathilde…), et Gaspard est bien à son ponton après une nuit de sommeil.",
-    "Hôtel et boutiques : la nuit, le hall de l'hôtel s'éclaire de lampes dorées ; à la fermeture, le commerçant vous dit au revoir et vous raccompagne dehors.",
-    "Plus d'herbe ni de fleurs à travers les planchers des bâtiments ; les bulles se cachent quand une fenêtre est ouverte ; les petits messages ont un fond bien lisible.",
-    "Animaux : les chiens du village ne se traversent plus, se posent sur les perrons, aboient doucement quand vous arrivez et respirent en dormant ; les chats ne se laissent plus marcher dessus ; l'oie de l'enclos cacarde, et sa photo est reconnue même quand elle broute.",
-    "Pêche : la caméra de la prise ne se cache plus dans les rochers ni les herbes, la prise est bien cadrée sur téléphone, et la barre d'outils ne recouvre plus la carte de prise.",
-    "Vélo : il s'arrête net au pied des escaliers des ponts, avec le bon message."
+    "Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.",
+    "À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.",
+    "Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.",
+    "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
+    "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
+    "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
   ],
   "historique": [
+    {
+      "version": "0.9.9.26",
+      "notes": [
+        "Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.",
+        "À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.",
+        "Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.",
+        "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
+        "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
+        "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
+      ]
+    },
     {
       "version": "0.9.9.25",
       "notes": [
@@ -65,16 +76,6 @@
       "version": "0.9.9.22",
       "notes": [
         "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
-      ]
-    },
-    {
-      "version": "0.9.9.21",
-      "notes": [
-        "Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !",
-        "Le sac a de vraies images pour les fourmis, le sandwich et la fiche du potager.",
-        "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
-        "Les animaux qui s'arrêtent ne marchent plus sur place.",
-        "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
       ]
     }
   ]

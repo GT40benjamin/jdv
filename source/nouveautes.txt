@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🛠️ Pégase 0.9.9.26 : la chasse aux bugs, suite (borne 1.56.7)
+[pegase] ✉️ Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.
+[pegase] 🏡 À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.
+[pegase] 🌱 Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.
+[pegase] 🐠 Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.
+[pegase] 🐈 Le chat couché respire, et le grand-duc est bien posé sur son rocher.
+[pegase] 🏛️ Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection.
 [pegase] ## 🪽 Le logo PÉGASE : l'aile dorée devient l'accent du É (borne 1.56.6)
 [pegase] 🪽 Sur la page de Pégase, l'aile dorée du logo est maintenant posée sur le É, comme son accent.
 [pegase] ## 🛠️ Pégase 0.9.9.25 : la chasse aux bugs (borne 1.56.5)
