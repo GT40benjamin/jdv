@@ -9,7 +9,7 @@ const ORDER = ['abracadabra', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoo
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
   abracadabra: { kind: 'new', at: '2026-10-30 01:30' },   // Abracadabra (on dit un mot, l'objet apparaît ; un pont pour traverser le fleuve) : EN ESSAI derrière la porte labo depuis la 1.52
-  sensinterdit: { kind: 'new', at: '2026-10-30 00:37' },   // Sens Interdit SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
+  sensinterdit: { kind: 'maj', at: '2026-10-30 02:50' },   // Sens Interdit (borne 1.55.4) : plus jamais collé à la glissière, le dernier appui gagne ; SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -10280,10 +10280,10 @@ async function showEnd(score) {
     try { $('jdw-endscore').textContent = fmt(score); $('jdw-who').hidden = true; } catch (e2) {}
   }
   const end = $('jdw-end'); end.hidden = false;
-  clearTimeout(showEnd.t); showEnd.t = setTimeout(() => {
+  clearTimeout(showEnd.t); showEnd.t = setTimeout(() => {   // Sens Interdit : son gros chiffre est caché exprès (si-end-on), on regarde ses deux records
     if (end.hidden) return;
     const look = (el) => { if (!el) return 'absent'; const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width < 2 || r.height < 2 ? 'taille ' + Math.round(r.width) + 'x' + Math.round(r.height) : cs.visibility === 'hidden' || +cs.opacity < 0.2 ? 'opacité ' + cs.opacity + ' ' + cs.visibility : ''; };
-    const bad = [['score', $('jdw-endscore')], ['rejouer', $('jdw-again')], ['carte', $('jdw-endcard')]].map(([k, el]) => [k, look(el)]).filter(([, v]) => v);
+    const bad = [['score', end.classList.contains('si-end-on') ? $('jdw-si-end') : $('jdw-endscore')], ['rejouer', $('jdw-again')], ['carte', $('jdw-endcard')]].map(([k, el]) => [k, look(el)]).filter(([, v]) => v);
     if (bad.length) { end.classList.remove('in'); reportError('Fin de partie invisible : ' + bad.map(([k, v]) => k + ' ' + v).join(', '), 'classes ' + end.className + ' · carte ' + $('jdw-endcard').className + ' · ' + innerWidth + 'x' + innerHeight, { quiet: true }); }
   }, 1600);
 }

@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : la voiture ne reste plus collée à la glissière (borne 1.55.4)
+[sensinterdit] 🛤️ Contre la glissière, ta voiture la longe en glissant, avec des étincelles, et ne ralentit qu'un peu (avant, elle perdait presque toute sa vitesse et semblait bloquée). Rester collé au bord ne fait toujours rien gagner : des voitures y roulent aussi.
+[sensinterdit] ↔️ Dès que tu tournes de l'autre côté, elle repart tout de suite, même si tu n'as pas encore lâché la première flèche : c'est toujours ton dernier appui qui compte (clavier, doigts ou manette).
+[sensinterdit] 👆 Sur téléphone, un doigt « perdu » (geste du téléphone, appli passée derrière, pause) ne tient plus la voiture d'un côté : un nouveau doigt reprend la main, et plus aucun doigt à l'écran = plus rien d'appuyé. Pareil pour une touche du clavier relâchée pendant la pause.
+[sensinterdit] 🏁 Repoussé derrière la ligne de départ, le compteur ne parle plus d'un « MONDE -4 ».
 [pegase] ## 🛠️ Pégase 0.9.9.20 : la grande correction (borne 1.55.3)
 [pegase] 🏨 À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.
 [pegase] 🙂 Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.
