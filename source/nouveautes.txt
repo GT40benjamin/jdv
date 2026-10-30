@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : une nouvelle histoire, une vraie arrivée en volant, des villageois bavards (borne 1.56.4)
+[abracadabra] 🎬 L'histoire du début est toute neuve : plus lente et sans coupure, sur une belle musique d'orchestre. Le jeune villageois trouve le bâton, qui s'envole jusque dans sa main ; il dit une phrase, un mot s'allume… et boum, une citrouille ! Puis un piano, une vache, un lapin : boum, boum, boum. Il regarde la caméra : « Grâce à ce bâton… je vais sauver le monde ! », et part vers la lumière. Les bulles restent le temps de les lire.
+[abracadabra] 🕊️ L'arrivée dans la mission : on voit ton sorcier (le héros de l'histoire, son bâton à la main) descendre du ciel sur un cercle de runes, la caméra le suit puis glisse jusque dans ses yeux. En le voyant se poser, tous les villageois crient ensemble : « On est sauvés ! Ouais ! Un sorcier ! ». Plus aucune téléportation : après un plouf, le bâton te ramène en volant sur la berge, et les copains arrivent eux aussi en volant.
+[abracadabra] 💬 Des centaines de nouvelles répliques, jamais deux fois la même dans un niveau. Chaque objet surprend tout le monde, et ils le commentent avec le mot que tu as dit : « Bizarre, le burger. Pourquoi un burger ? J'ai pas faim. »
+[abracadabra] 👀 À chaque sort, tous les villageois se tournent vers toi. Ils sont plus près les uns des autres (tu les vois tous à l'écran) et ne s'éloignent plus de leur place.
+[abracadabra] 🔉 Dans les niveaux, la musique et la nature restent basses du début à la fin, pour laisser la place au micro.
+[abracadabra] 🗺️ La carte se remet en place quand on tourne le téléphone, et elle défile au doigt.
 [abracadabra] ## 🪄 Abracadabra : l'arrivée en volant et le bouton du sort (borne 1.56.3)
 [abracadabra] 🕊️ Tu arrives dans la mission en volant : une longue descente du ciel jusqu'au milieu des villageois, qui te suivent des yeux puis crient « On est sauvés ! ». Ta mission s'écrit ensuite en haut à gauche.
 [abracadabra] 🎤 Le bouton du sort, avec son petit micro, remplace le saut. Un appui = un sort : tu parles autant que tu veux, tes mots s'enchaînent en bas de l'écran, et dès que le bâton reconnaît un nom, l'objet apparaît. Pendant que tu parles, la musique et la nature se font discrètes et les villageois se tournent vers toi. Sur ordinateur : Espace.
