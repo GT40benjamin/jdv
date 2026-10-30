@@ -1,35 +1,50 @@
 {
-  "version": "0.9.9.24",
-  "build": 75,
-  "size": 1663347813,
-  "sha256": "2a49352e87f8d5ac8c51b5d058ee678da1536c606724f9f34fa78d61b5263c86",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v75/Pegase-PC-2026-10-30-0.9.9.24.zip",
-  "manifest": "1dade5e6cc4fe45ce3c3d4f8f685b5fde8dede98d93e16caf48a51f68f399eb5",
+  "version": "0.9.9.25",
+  "build": 76,
+  "size": 1668401278,
+  "sha256": "a052e0ccace8218f20b40111cad37e590ed7e4b9e3d3b6cd768c51f7478b59ad",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v76/Pegase-PC-2026-10-30-0.9.9.25.zip",
+  "manifest": "a609d146b55d9e0ab4abd93d529ba1eb58d5f18fd548ded376d42247bda1aaf1",
   "patchs": [
     {
+      "de": "0.9.9.24",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v76/Pegase-PC-patch-0.9.9.24.zip",
+      "taille": 9997678,
+      "sha256": "545f3aa2af9db95d9ecf651b149993f9ad8426c4df6a108c9a794be723c47a4a"
+    },
+    {
       "de": "0.9.9.23",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v75/Pegase-PC-patch-0.9.9.23.zip",
-      "taille": 1024001,
-      "sha256": "74c85780d8d9897b4744ae129a5583d51699fb5c024c12c9e2b4cc1f2598f800"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v76/Pegase-PC-patch-0.9.9.23.zip",
+      "taille": 10069679,
+      "sha256": "3c4876edeea88de6a396b0bf098882df713b5ad7d5255a7d11376158cb520f76"
     },
     {
       "de": "0.9.9.22",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v75/Pegase-PC-patch-0.9.9.22.zip",
-      "taille": 3206165,
-      "sha256": "57b6cd1d96f0ecedda0f896bf3e2aa59d5ab3da0a7e2f86ad572c3385df7a71f"
-    },
-    {
-      "de": "0.9.9.21",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v75/Pegase-PC-patch-0.9.9.21.zip",
-      "taille": 2708799,
-      "sha256": "bc4772e85b837fed267dabac7fd123204342c447db83a6f5d91a0150a34f2904"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v76/Pegase-PC-patch-0.9.9.22.zip",
+      "taille": 9373788,
+      "sha256": "c8a929871efab814bd1e379857a96e95c0dfcfc2ced74472f5386e9b7d9d5bca"
     }
   ],
   "notes": [
-    "Vélo : il s'arrête maintenant sur le sable, avant l'écume du bord de l'eau, et se gare toujours bien droit.",
-    "Hugo vous vouvoie aussi quand vous lui achetez des cartes postales vierges."
+    "Village : les habitants qui ne vous connaissent pas encore vous vouvoient partout (Désiré au bar, Edmond, Gaspard, Basile, Mathilde…), et Gaspard est bien à son ponton après une nuit de sommeil.",
+    "Hôtel et boutiques : la nuit, le hall de l'hôtel s'éclaire de lampes dorées ; à la fermeture, le commerçant vous dit au revoir et vous raccompagne dehors.",
+    "Plus d'herbe ni de fleurs à travers les planchers des bâtiments ; les bulles se cachent quand une fenêtre est ouverte ; les petits messages ont un fond bien lisible.",
+    "Animaux : les chiens du village ne se traversent plus, se posent sur les perrons, aboient doucement quand vous arrivez et respirent en dormant ; les chats ne se laissent plus marcher dessus ; l'oie de l'enclos cacarde, et sa photo est reconnue même quand elle broute.",
+    "Pêche : la caméra de la prise ne se cache plus dans les rochers ni les herbes, la prise est bien cadrée sur téléphone, et la barre d'outils ne recouvre plus la carte de prise.",
+    "Vélo : il s'arrête net au pied des escaliers des ponts, avec le bon message."
   ],
   "historique": [
+    {
+      "version": "0.9.9.25",
+      "notes": [
+        "Village : les habitants qui ne vous connaissent pas encore vous vouvoient partout (Désiré au bar, Edmond, Gaspard, Basile, Mathilde…), et Gaspard est bien à son ponton après une nuit de sommeil.",
+        "Hôtel et boutiques : la nuit, le hall de l'hôtel s'éclaire de lampes dorées ; à la fermeture, le commerçant vous dit au revoir et vous raccompagne dehors.",
+        "Plus d'herbe ni de fleurs à travers les planchers des bâtiments ; les bulles se cachent quand une fenêtre est ouverte ; les petits messages ont un fond bien lisible.",
+        "Animaux : les chiens du village ne se traversent plus, se posent sur les perrons, aboient doucement quand vous arrivez et respirent en dormant ; les chats ne se laissent plus marcher dessus ; l'oie de l'enclos cacarde, et sa photo est reconnue même quand elle broute.",
+        "Pêche : la caméra de la prise ne se cache plus dans les rochers ni les herbes, la prise est bien cadrée sur téléphone, et la barre d'outils ne recouvre plus la carte de prise.",
+        "Vélo : il s'arrête net au pied des escaliers des ponts, avec le bon message."
+      ]
+    },
     {
       "version": "0.9.9.24",
       "notes": [
@@ -60,20 +75,6 @@
         "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
         "Les animaux qui s'arrêtent ne marchent plus sur place.",
         "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
-      ]
-    },
-    {
-      "version": "0.9.9.20",
-      "notes": [
-        "À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.",
-        "Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.",
-        "Au potager, quand vous ratissez ou bêchez une case, seule cette case change : les autres plantes ne clignotent plus, et les hautes herbes ne débordent plus sur la terre bêchée.",
-        "Les koïs ne traversent plus les rochers du bassin. Pixel, le carlin, respire quand il se repose, se relève en douceur et trottine pour suivre Mathilde.",
-        "Brume, le lévrier de la ferme, fait sa ronde au pas et vient vous saluer calmement.",
-        "Au lagon, la pieuvre glisse d'un rocher à l'autre et ne s'enfuit plus quand vous passez en barque.",
-        "Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.",
-        "Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.",
-        "Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram."
       ]
     }
   ]
