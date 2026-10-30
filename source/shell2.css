@@ -3307,3 +3307,7 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 .pg-closed b{font-size:44px;line-height:1}
 .pg-closed p{margin:0;font:600 17px/1.4 var(--body)}
 .pg-closed .pgc-go{display:inline-flex;align-items:center;min-height:46px;padding:0 20px;border-radius:14px;background:linear-gradient(180deg,#ffd36b,#f0a93a);color:#1a1205;font:700 15px/1 var(--body);text-decoration:none}
+
+/* 30 oct. : l'aile dorée sert d'accent au É de PÉGASE */
+#jdw-lib[data-mode="pegase"] .mode-hero h1 .pg-e{position:relative}
+#jdw-lib[data-mode="pegase"] .mode-hero h1 .pg-e .pg-wing{position:absolute;left:50%;bottom:74%;width:.7em;height:auto;margin:0;transform:translateX(-38%) rotate(-10deg);pointer-events:none}

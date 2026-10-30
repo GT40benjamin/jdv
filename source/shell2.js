@@ -29,7 +29,7 @@ const TILE_NEWS = {
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
-  pegase: { kind: 'maj', at: '2026-10-30 19:04' }   // Pégase 0.9.9.25 : la chasse aux bugs (borne 1.56.5)
+  pegase: { kind: 'maj', at: '2026-10-30 20:21' }   // logo PÉGASE : l'aile = accent du É (borne 1.56.6)
 };
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
@@ -5467,6 +5467,7 @@ const MODES = {
 };
 let MODE = 'classique';
 try { const m = sessionStorage.getItem('jdw.mode'); if (m && m in MODES) MODE = m; } catch (e) {}
+let PG_WING = null;   // l'aile du logo Pégase (déplacée sur le É en mode Pégase)
 function setMode(m, user) {
   if (PAGE === 'pegase') { if (m === 'arcade' && user) { siteGo(ROOT + 'jouer/?borne'); return; } m = 'pegase'; }   // pegase/ : Pégase seul
   if (m === 'arcade') m = (typeof PG !== 'undefined' && PG.last) || 'classique';   // « Nos autres jeux » : le dernier mode de la borne
@@ -5481,6 +5482,13 @@ function setMode(m, user) {
   for (const b of document.querySelectorAll('#jdw-modes button')) { if (b.dataset.mode === m) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
   const md = MODES[m];
   if (md) { $('jdw-mh-ic').textContent = md.ic; $('jdw-mh-title').textContent = md.t; $('jdw-mh-sub').textContent = md.sub; }
+  // 30 oct. (demande de Benjamin) : sur le logo PÉGASE, l'aile dorée EST l'accent du É (posée sur le E, plus au-dessus du mot)
+  if (md) {
+    const h = $('jdw-mh-title');
+    PG_WING = PG_WING || document.querySelector('#jdw-lib .pg-wing');
+    if (m === 'pegase' && PG_WING) { h.setAttribute('aria-label', md.t); h.textContent = ''; const e = document.createElement('span'); e.className = 'pg-e'; e.textContent = 'e'; e.appendChild(PG_WING); h.append('P', e, 'gase'); }
+    else { h.removeAttribute('aria-label'); if (PG_WING && PG_WING.parentNode !== $('jdw-mh-title').parentNode) $('jdw-mh-title').before(PG_WING); }
+  }
   if (m === 'duel') renderSeats();
   if (m === 'coop') renderCoop();
   if (m === 'pegase') renderIsles();
