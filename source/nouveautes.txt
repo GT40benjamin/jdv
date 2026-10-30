@@ -6,6 +6,16 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🛠️ Pégase 0.9.9.20 : la grande correction (borne 1.55.3)
+[pegase] 🏨 À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.
+[pegase] 🙂 Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.
+[pegase] 🌱 Au potager, quand vous ratissez ou bêchez une case, seule cette case change : les autres plantes ne clignotent plus, et les hautes herbes ne débordent plus sur la terre bêchée.
+[pegase] 🐟 Les koïs ne traversent plus les rochers du bassin. Pixel, le carlin, respire quand il se repose, se relève en douceur et trottine pour suivre Mathilde.
+[pegase] 🐕 Brume, le lévrier de la ferme, fait sa ronde au pas et vient vous saluer calmement.
+[pegase] 🐙 Au lagon, la pieuvre glisse d'un rocher à l'autre et ne s'enfuit plus quand vous passez en barque.
+[pegase] 🦎 Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.
+[pegase] 🌊 Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.
+[pegase] 📸 Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram.
 [abracadabra] ## 🪄 Abracadabra : plus rapide sur téléphone (borne 1.55.2)
 [abracadabra] 📶 Les animaux, les oiseaux et les objets d'Orient arrivent par petits paquets : sur un réseau lent, le premier mouton ou le premier perroquet apparaît deux fois plus vite. Pendant qu'il arrive, « ✨ « mouton » arrive… » s'affiche.
 [abracadabra] ## 🪄 Abracadabra : finitions (borne 1.55.1)

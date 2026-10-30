@@ -1,36 +1,56 @@
 {
-  "version": "0.9.9.19",
-  "build": 70,
-  "size": 1657205608,
-  "sha256": "61f5f4c6f2cbb23f52cb014ff17b69d6b64f3814c1bf626bd0a785b5cac8ab65",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v70/Pegase-PC-2026-10-29-0.9.9.19.zip",
-  "manifest": "0605a21e2b937dfd2b5cf803f60666ad91b214096cae46e23e2b679f0f1cc2e9",
+  "version": "0.9.9.20",
+  "build": 71,
+  "size": 1662819106,
+  "sha256": "7e639b8d81fc7bfa8dfd1a55d05070e95585a60f05777c08599dd02d598e5d5b",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v71/Pegase-PC-2026-10-30-0.9.9.20.zip",
+  "manifest": "2410388c69a7d824c5fe13f083e95daae761918223a0024f217f643776a11a9a",
   "patchs": [
     {
+      "de": "0.9.9.19",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v71/Pegase-PC-patch-0.9.9.19.zip",
+      "taille": 11951340,
+      "sha256": "2df4fc6701145946a566e77409d4eb776c6f2128010fe678c4a58f8a8b073dc5"
+    },
+    {
       "de": "0.9.9.18",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v70/Pegase-PC-patch-0.9.9.18.zip",
-      "taille": 10278642,
-      "sha256": "1df6bddfdd7b34bb605b2079e04b94c7746a53017687deed3e327f0de9479383"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v71/Pegase-PC-patch-0.9.9.18.zip",
+      "taille": 16785987,
+      "sha256": "73c715cdeb92c1674f49d90cad2bf4ff89e5c2b6e9e616d8d76cbe8216001053"
     },
     {
       "de": "0.9.9.17",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v70/Pegase-PC-patch-0.9.9.17.zip",
-      "taille": 181099525,
-      "sha256": "97bea5df3b0bc97d9972573f122ee18536b0c9fd8947ee0cea4241688f849454"
-    },
-    {
-      "de": "0.9.9.16",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v70/Pegase-PC-patch-0.9.9.16.zip",
-      "taille": 181953468,
-      "sha256": "8173a6c99e13bff385dadef8c3cf12eab80ca6d7f9b152a661f44954ebd4d09e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v71/Pegase-PC-patch-0.9.9.17.zip",
+      "taille": 187144447,
+      "sha256": "7c3a4ce26221995afce0bc69724c2393096452e46e6f76505d4e0953168408ca"
     }
   ],
   "notes": [
-    "Trois chats (tigré gris, noir, blanc) vivent au village : sieste au soleil, toilette, petites promenades.",
-    "Une ferme près de la grange de l'aérodrome : moutons et cochons, chevaux et vaches au pré.",
-    "Trois nouveaux poissons mordent à l'hameçon : la truite arc-en-ciel, l'ombre commun et la tanche."
+    "À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.",
+    "Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.",
+    "Au potager, quand vous ratissez ou bêchez une case, seule cette case change : les autres plantes ne clignotent plus, et les hautes herbes ne débordent plus sur la terre bêchée.",
+    "Les koïs ne traversent plus les rochers du bassin. Pixel, le carlin, respire quand il se repose, se relève en douceur et trottine pour suivre Mathilde.",
+    "Brume, le lévrier de la ferme, fait sa ronde au pas et vient vous saluer calmement.",
+    "Au lagon, la pieuvre glisse d'un rocher à l'autre et ne s'enfuit plus quand vous passez en barque.",
+    "Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.",
+    "Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.",
+    "Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram."
   ],
   "historique": [
+    {
+      "version": "0.9.9.20",
+      "notes": [
+        "À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.",
+        "Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.",
+        "Au potager, quand vous ratissez ou bêchez une case, seule cette case change : les autres plantes ne clignotent plus, et les hautes herbes ne débordent plus sur la terre bêchée.",
+        "Les koïs ne traversent plus les rochers du bassin. Pixel, le carlin, respire quand il se repose, se relève en douceur et trottine pour suivre Mathilde.",
+        "Brume, le lévrier de la ferme, fait sa ronde au pas et vient vous saluer calmement.",
+        "Au lagon, la pieuvre glisse d'un rocher à l'autre et ne s'enfuit plus quand vous passez en barque.",
+        "Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.",
+        "Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.",
+        "Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram."
+      ]
+    },
     {
       "version": "0.9.9.19",
       "notes": [
@@ -62,16 +82,6 @@
         "Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.",
         "Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.",
         "Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque."
-      ]
-    },
-    {
-      "version": "0.9.9.15",
-      "notes": [
-        "Pour aller à l'eau, ton héroïne enfile un maillot de bain turquoise : quelques brasses, puis un doux retour sur le quai ou sur la rive, en mer comme au lac.",
-        "Un grand étendard rouge et une lanterne marquent le ponton de la plage est, et des cairns balisent la passe pour sortir du petit port.",
-        "La flèche du guide ne passe plus sous les boutons, ni sur la barre d'objets.",
-        "Les traces de sabots de l'aventure « Là où l'eau sort de la roche » ont la couleur du sol où elles sont.",
-        "Le jeu PC est plus léger, sans rien perdre en beauté."
       ]
     }
   ]

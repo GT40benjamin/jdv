@@ -1,20 +1,40 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 67,
-  "versionName": "0.9.9.19",
-  "size": 1216630506,
-  "sha256": "4265aa93a3f928ffd4fb3b1be23d0e743bff880fee5b7a5634a7abfece203330",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v67/pegase-0.9.9.19.apk",
+  "versionCode": 68,
+  "versionName": "0.9.9.20",
+  "size": 1224516358,
+  "sha256": "68ccee11446293f4722e56716849ff115f47ef75be536a579294177794478a3e",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v68/pegase-0.9.9.20.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Trois chats (tigré gris, noir, blanc) vivent au village : sieste au soleil, toilette, petites promenades.",
-    "Une ferme près de la grange de l'aérodrome : moutons et cochons, chevaux et vaches au pré.",
-    "Trois nouveaux poissons mordent à l'hameçon : la truite arc-en-ciel, l'ombre commun et la tanche."
+    "À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.",
+    "Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.",
+    "Au potager, quand vous ratissez ou bêchez une case, seule cette case change : les autres plantes ne clignotent plus, et les hautes herbes ne débordent plus sur la terre bêchée.",
+    "Les koïs ne traversent plus les rochers du bassin. Pixel, le carlin, respire quand il se repose, se relève en douceur et trottine pour suivre Mathilde.",
+    "Brume, le lévrier de la ferme, fait sa ronde au pas et vient vous saluer calmement.",
+    "Au lagon, la pieuvre glisse d'un rocher à l'autre et ne s'enfuit plus quand vous passez en barque.",
+    "Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.",
+    "Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.",
+    "Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram."
   ],
   "historique": [
+    {
+      "version": "0.9.9.20",
+      "notes": [
+        "À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.",
+        "Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.",
+        "Au potager, quand vous ratissez ou bêchez une case, seule cette case change : les autres plantes ne clignotent plus, et les hautes herbes ne débordent plus sur la terre bêchée.",
+        "Les koïs ne traversent plus les rochers du bassin. Pixel, le carlin, respire quand il se repose, se relève en douceur et trottine pour suivre Mathilde.",
+        "Brume, le lévrier de la ferme, fait sa ronde au pas et vient vous saluer calmement.",
+        "Au lagon, la pieuvre glisse d'un rocher à l'autre et ne s'enfuit plus quand vous passez en barque.",
+        "Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.",
+        "Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.",
+        "Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram."
+      ]
+    },
     {
       "version": "0.9.9.19",
       "notes": [
@@ -46,16 +66,6 @@
         "Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.",
         "Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.",
         "Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque."
-      ]
-    },
-    {
-      "version": "0.9.9.15",
-      "notes": [
-        "Pour aller à l'eau, ton héroïne enfile un maillot de bain turquoise : quelques brasses, puis un doux retour sur le quai ou sur la rive, en mer comme au lac.",
-        "Un grand étendard rouge et une lanterne marquent le ponton de la plage est, et des cairns balisent la passe pour sortir du petit port.",
-        "La flèche du guide ne passe plus sous les boutons, ni sur la barre d'objets.",
-        "Les traces de sabots de l'aventure « Là où l'eau sort de la roche » ont la couleur du sol où elles sont.",
-        "Le jeu PC est plus léger, sans rien perdre en beauté."
       ]
     }
   ]
