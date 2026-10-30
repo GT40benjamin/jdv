@@ -1,37 +1,42 @@
 {
-  "version": "0.9.9.23",
-  "build": 74,
-  "size": 1663347622,
-  "sha256": "2178a001e9e3d9353e7407b295a850f7f087d7590abda25448e15465943d0e51",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v74/Pegase-PC-2026-10-30-0.9.9.23.zip",
-  "manifest": "7749ee96c3a8e92b10859e6ae893d2cbaa8186558e8f4ade8e978f9be6d8b0c0",
+  "version": "0.9.9.24",
+  "build": 75,
+  "size": 1663347813,
+  "sha256": "2a49352e87f8d5ac8c51b5d058ee678da1536c606724f9f34fa78d61b5263c86",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v75/Pegase-PC-2026-10-30-0.9.9.24.zip",
+  "manifest": "1dade5e6cc4fe45ce3c3d4f8f685b5fde8dede98d93e16caf48a51f68f399eb5",
   "patchs": [
     {
+      "de": "0.9.9.23",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v75/Pegase-PC-patch-0.9.9.23.zip",
+      "taille": 1024001,
+      "sha256": "74c85780d8d9897b4744ae129a5583d51699fb5c024c12c9e2b4cc1f2598f800"
+    },
+    {
       "de": "0.9.9.22",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v74/Pegase-PC-patch-0.9.9.22.zip",
-      "taille": 3070405,
-      "sha256": "0dfc893ad02b47c3129d5850ee15ba7c000a9aa965553d86b893eb15c0c09d0e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v75/Pegase-PC-patch-0.9.9.22.zip",
+      "taille": 3206165,
+      "sha256": "57b6cd1d96f0ecedda0f896bf3e2aa59d5ab3da0a7e2f86ad572c3385df7a71f"
     },
     {
       "de": "0.9.9.21",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v74/Pegase-PC-patch-0.9.9.21.zip",
-      "taille": 2538678,
-      "sha256": "0f2ae3371a0edbb532e4003777e0ad582ceca3e9052e160b5c00664dec6dfdd0"
-    },
-    {
-      "de": "0.9.9.20",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v74/Pegase-PC-patch-0.9.9.20.zip",
-      "taille": 4970902,
-      "sha256": "b8ec1ec8e3aacddd771b2196ef16df5cb778ca47da20a3cfa9349afa95d5c83e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v75/Pegase-PC-patch-0.9.9.21.zip",
+      "taille": 2708799,
+      "sha256": "bc4772e85b837fed267dabac7fd123204342c447db83a6f5d91a0150a34f2904"
     }
   ],
   "notes": [
-    "Vélo : il s'arrête désormais au bord de l'eau, ne rentre plus dans les bâtiments ni dans les décors, se gare pour de vrai (on ne le traverse plus), et la caméra reste dégagée sous les stores des boutiques.",
-    "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
-    "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
-    "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
+    "Vélo : il s'arrête maintenant sur le sable, avant l'écume du bord de l'eau, et se gare toujours bien droit.",
+    "Hugo vous vouvoie aussi quand vous lui achetez des cartes postales vierges."
   ],
   "historique": [
+    {
+      "version": "0.9.9.24",
+      "notes": [
+        "Vélo : il s'arrête maintenant sur le sable, avant l'écume du bord de l'eau, et se gare toujours bien droit.",
+        "Hugo vous vouvoie aussi quand vous lui achetez des cartes postales vierges."
+      ]
+    },
     {
       "version": "0.9.9.23",
       "notes": [
@@ -69,14 +74,6 @@
         "Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.",
         "Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.",
         "Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram."
-      ]
-    },
-    {
-      "version": "0.9.9.19",
-      "notes": [
-        "Trois chats (tigré gris, noir, blanc) vivent au village : sieste au soleil, toilette, petites promenades.",
-        "Une ferme près de la grange de l'aérodrome : moutons et cochons, chevaux et vaches au pré.",
-        "Trois nouveaux poissons mordent à l'hameçon : la truite arc-en-ciel, l'ombre commun et la tanche."
       ]
     }
   ]
