@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : la grotte, sa musique et le clavier (borne 1.56.2)
+[abracadabra] 🕯️ La cinématique se passe maintenant au fond d'une grotte : un rayon de lumière, le bâton qui brille sur un rocher, des cristaux qui luisent, l'appel au secours venu du dehors. Elle est plus courte (15 s).
+[abracadabra] 🎬 Entrer dans une mission est rapide : la caméra plonge vers toi, et tu te retrouves au milieu des villageois, qui t'accueillent.
+[abracadabra] 🎵 Abracadabra a ses propres musiques douces (harpe, guitare, boîte à musique) et l'ambiance de la nature : rivière, oiseaux, vent dans les feuilles ; des gouttes qui résonnent dans la grotte.
+[abracadabra] ⌨️ Sur ordinateur : la souris fait tourner la caméra dès que la mission commence, et chaque bouton a sa touche, écrite dessus (G : micro, M : carte, Entrée : jouer ou passer, R : rejouer, H : l'histoire).
 [abracadabra] ## 🪄 Abracadabra : des villageois tous différents (borne 1.56.1)
 [abracadabra] 🧑‍🌾 Les six villageois ne se ressemblent plus : le grand-père à béret, lunettes et barbe blanche, le fermier au chapeau de paille et à la moustache, la fillette blonde à nattes et couronne de fleurs, la maman au chignon roux, le garçon au bonnet à pompon, la grand-mère à lunettes ; chacun sa taille, sa carrure, son teint et ses habits.
 [abracadabra] 🤫 Les villageois ne soufflent plus la réponse : à toi de trouver ce qui les aidera.

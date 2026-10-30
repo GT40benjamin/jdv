@@ -48,14 +48,15 @@ function loadPack(onProg, signal, nom = 'fleuve') {
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
     const hl = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0, true);
     const head = JSON.parse(new TextDecoder().decode(plain.subarray(4, 4 + hl))), base = 4 + hl;
-    const glb = {}, img = {}, json = {};
+    const glb = {}, img = {}, json = {}, son = {};
     await Promise.all(Object.keys(head.e).map(async (k) => {
       const e = head.e[k], raw = plain.slice(base + e.o, base + e.o + e.l), nom = k.slice(k.indexOf(':') + 1);
       if (e.t === 'glb') glb[nom] = raw.buffer;
+      else if (e.t === 'son') son[nom] = raw.buffer;
       else if (e.t === 'json') { try { json[nom] = JSON.parse(new TextDecoder().decode(raw)); } catch (er) { /* rien */ } }
       else if (e.t === 'webp') img[nom] = await new Promise((res) => { const im = new Image(), u = URL.createObjectURL(new Blob([raw], { type: 'image/webp' })); im.onload = () => res(im); im.onerror = () => res(null); im.src = u; });
     }));
-    return { glb, img, json };
+    return { glb, img, json, son };
   })();
   STORE[K].catch(() => { STORE[K] = null; });
   return STORE[K];
