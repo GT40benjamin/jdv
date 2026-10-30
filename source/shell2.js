@@ -8,7 +8,7 @@ const ORDER = ['abracadabra', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoo
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  abracadabra: { kind: 'new', at: '2026-10-30 00:30' },   // Abracadabra (on dit un mot, l'objet apparaît ; un pont pour traverser le fleuve) : EN ESSAI derrière la porte labo depuis la 1.52
+  abracadabra: { kind: 'new', at: '2026-10-30 01:30' },   // Abracadabra (on dit un mot, l'objet apparaît ; un pont pour traverser le fleuve) : EN ESSAI derrière la porte labo depuis la 1.52
   sensinterdit: { kind: 'new', at: '2026-10-30 00:37' },   // Sens Interdit SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
@@ -9692,7 +9692,7 @@ function rivalsApi(g) {
 }
 // Ajout 17 (30 oct. 2026, Abracadabra) : le DIRECT d'un jeu entre les membres de la salle qui y jouent en même temps — petits messages
 // (position, sort lancé, objet apparu) par le canal PRIVÉ de la salle (Supabase Realtime : membres seulement ; invité, hors ligne ou pas de
-// salle : rien, le jeu se joue seul). Le jeu ne reçoit que ce que les AUTRES envoient depuis le même jeu. 8 messages / s au plus, < 900 octets.
+// salle : rien, le jeu se joue seul). Le jeu ne reçoit que ce que les AUTRES envoient depuis le même jeu. 10 messages / s au plus, < 1 000 octets.
 const LIVE = { fns: new Set(), g: null, t: 0, n: 0 };
 function liveApi(g, seq) {
   LIVE.fns.clear(); LIVE.g = g.id;
@@ -9701,8 +9701,8 @@ function liveApi(g, seq) {
     info: () => ({ on: ok(), name: cleanName(profile.name), room: room ? room.name : '' }),
     send(d) {
       if (!ok()) return false;
-      const now = Date.now(); if (now - LIVE.t > 1000) { LIVE.t = now; LIVE.n = 0; } if (++LIVE.n > 8) return false;
-      let s; try { s = JSON.stringify(d); } catch (e) { return false; } if (!s || s.length > 900) return false;
+      const now = Date.now(); if (now - LIVE.t > 1000) { LIVE.t = now; LIVE.n = 0; } if (++LIVE.n > 10) return false;
+      let s; try { s = JSON.stringify(d); } catch (e) { return false; } if (!s || s.length > 1000) return false;
       return !!rtSend(roomTopic(), 'broadcast', { type: 'broadcast', event: 'live', payload: { g: g.id, cid: clientId, n: cleanName(profile.name), d } });
     },
     on(fn) { LIVE.fns.add(fn); return () => LIVE.fns.delete(fn); },

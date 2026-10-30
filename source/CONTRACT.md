@@ -290,6 +290,9 @@ ce qui compte pour le spectateur doit être un vrai élément.
 
 ## Ajout 17 : le direct entre joueurs de la salle (api.live, borne 1.53, Abracadabra)
 Un jeu qui déclare `live: true` reçoit `api.live` : `info()` → `{ on, name, room }` (`on` faux pour un invité, hors ligne ou sans salle :
-le jeu se joue seul) ; `send(obj)` envoie un petit objet JSON (< 900 octets, 8 par seconde au plus : le jeu regroupe) aux membres de la
+le jeu se joue seul) ; `send(obj)` envoie un petit objet JSON (< 1 000 octets, 10 par seconde au plus : le jeu regroupe ; rend faux si refusé) aux membres de la
 salle qui jouent au même jeu, par le canal privé de la salle (Supabase Realtime) ; `on(fn)` → `fn({ from, name, d })` à chaque message des
 AUTRES (jamais le sien), rend une fonction pour se désabonner. Rien n'est gardé sur le serveur.
+Présence : pas de liste côté borne ; chaque jeu envoie lui-même un petit message de position (~3 par seconde) et considère comme parti
+un joueur muet depuis quelques secondes. Abracadabra (borne 1.54) : partie ouverte à toute la salle, le plus ancien dans la partie est
+l'hôte (sa physique fait foi), un nouveau arrivé demande tout l'état ; si l'hôte part, le suivant reprend.

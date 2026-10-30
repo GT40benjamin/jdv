@@ -1,7 +1,7 @@
 (() => {
 'use strict';
-// Abracadabra — on DIT un mot magique (« une planche », « un tonneau », « une vache »…) et l'objet apparaît devant le mage ; on le place,
-// on le pose, il devient un vrai objet en 3D (physique). But : traverser le fleuve sur un pont de bric et de broc, chaque mot une seule fois.
+// Abracadabra — on appuie sur GO et on DIT des noms (« vache », « piano », « tonneau »…) : un éclair part du bâton magique et l'objet tombe
+// dans le Grand Fleuve, en vrai objet 3D (physique). But : traverser le fleuve à plusieurs sur ce qui flotte et s'empile.
 // La voix est reconnue SUR L'APPAREIL (Vosk, le même moteur et le même modèle français que les mots du hub de Pégase ; rien n'est envoyé).
 // Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement, il charge le moteur (assets/abracadabra.moteur.bin :
 // three.js r180 + Rapier + le jeu, gzippé) et les objets (assets/abra.fleuve.bin : modèles de l'Asset Store EMBALLÉS avec la clé du site,
@@ -116,7 +116,7 @@ function mount(root, api) {
   box.innerHTML = '<div style="font-size:54px;filter:drop-shadow(0 0 14px rgba(200,120,255,.7))">🪄</div>' +
     '<div style="font:400 34px ' + FD + ';color:#ffe08a;margin-top:6px;text-shadow:0 4px 0 #2a0c3a,0 0 22px rgba(200,120,255,.7)">' + NOM.toUpperCase() + '</div>' +
     '<div style="margin-top:16px;width:min(320px,62vw);height:14px;border-radius:7px;background:#140b22;box-shadow:0 0 0 1.5px rgba(255,255,255,.2);overflow:hidden"><u style="display:block;height:100%;width:0;background:linear-gradient(90deg,#c79bff,#ffe08a);transition:width .2s"></u></div>' +
-    '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#e8d8ff">Le mage cherche sa baguette…</div>';
+    '<div style="margin-top:10px;font:600 14px ' + FB + ';color:#e8d8ff">Le bâton magique se réveille…</div>';
   root.appendChild(box);
   const bar = box.querySelector('u');
   const prog = { e: 0, p: 0 }, upd = () => { bar.style.width = Math.round((prog.e * 0.4 + prog.p * 0.6) * 100) + '%'; };
@@ -159,12 +159,12 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES[ID] = {
   id: ID,
   title: NOM,
-  tagline: 'Dis un mot magique et l\'objet apparaît : construis un pont de bric et de broc pour traverser le fleuve… chaque mot une seule fois !',
+  tagline: 'Appuie sur GO et dis des noms : vache, piano, tonneau… L\'éclair de ton bâton les fait tomber dans le Grand Fleuve. Traversez-le à plusieurs !',
   accent: '#c79bff',
   scoreLabel: 'points',
   live: true,   // les autres joueurs de la salle en direct (api.live, Ajout 17)
   fps: false,
-  pad: { help: [['ls', 'Marcher'], ['rb', 'Maintenir pour parler'], ['a', 'Poser / sauter'], ['b', 'Jeter']] },
+  pad: { help: [['ls', 'Marcher'], ['rs', 'Regarder'], ['rb', 'GO / STOP (micro)'], ['a', 'Sauter']] },
   preview,
   mount,
 };

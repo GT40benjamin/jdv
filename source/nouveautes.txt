@@ -6,6 +6,14 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : GO, le bâton magique et le très long Grand Fleuve (borne 1.54)
+[abracadabra] 🎤 Appuie sur GO : le micro reste ouvert. Dis tous les noms qui te passent par la tête (« vache, piano, tonneau, sapin… ») : chacun part tout de suite, à la suite, sans attendre la fin de ta phrase. STOP pour couper.
+[abracadabra] ⚡ Plus de mage à l'écran : tu tiens un bâton magique foufou (sucre d'orge, cristal rose et deux yeux rigolos). À chaque nom, un ÉCLAIR part du bâton et l'objet tombe là où tu regardes, dans un nuage d'étincelles et de confettis.
+[abracadabra] 🌊 Le Grand Fleuve fait maintenant 260 mètres de long entre deux falaises, avec six îlots à drapeaux pour souffler. Les objets dégringolent dans l'eau, s'empilent, flottent ou coulent : à force, ils font un passage. Plouf ? Tu reviens au dernier endroit sûr.
+[abracadabra] 📜 À gauche, la liste de tout ce qui arrive : l'image de l'objet, son nom et « Sorcier PATOU » avec sa tête et sa couleur. En haut, « 12 / 316 mots trouvés » et la traversée en mètres.
+[abracadabra] 🔁 Un nom = un seul objet dans le monde : si quelqu'un le redit, l'ancien disparaît en confettis et réapparaît devant lui (« Sorcier JUJU a repris »). Ça peut faire s'écrouler le pont !
+[abracadabra] 👫 Toute la salle peut jouer ensemble : ceux qui ouvrent le jeu rejoignent la partie en cours, avec le pont déjà construit, et chacun voit les mêmes objets au même endroit. Si celui qui a lancé la partie s'en va, elle continue.
+[abracadabra] 🦘 Un meilleur saut : plus haut si tu gardes la touche, et tu peux sauter depuis un objet penché. La fête quand tous les sorciers ont traversé !
 [abracadabra] ## 🪄 Abracadabra : le Grand Fleuve, à la première personne, avec tes copains (borne 1.53)
 [abracadabra] 🎤 Ouvre le micro et parle normalement : le mage attrape les mots magiques dans tout ce que tu dis, la phrase tourbillonne, devient LE mot… et BOUM, le sort part là où tu regardes.
 [abracadabra] 🌊 Le Grand Fleuve fait 30 mètres de large, avec deux îlots au milieu : le bois flotte (radeaux !), la pierre coule. Construis ton passage jusqu'à l'arche d'arrivée.
