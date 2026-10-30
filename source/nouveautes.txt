@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : finitions (borne 1.55.1)
+[abracadabra] 🛶 Chaque objet tombe sa plus grande longueur dans le sens où tu regardes : un pont enjambe l'eau au lieu de se mettre en travers, une poutre file vers l'autre rive. Le pont tient enfin debout.
+[abracadabra] 🔤 Quand tu dis plusieurs noms d'affilée, ils s'empilent au centre de l'écran au lieu de se mélanger.
+[abracadabra] 🛠️ Corrigé : le jeu pouvait se bloquer si l'objet sur lequel tu étais debout disparaissait (un copain qui le redit).
 [abracadabra] ## 🪄 Abracadabra : 1 447 mots à trouver (borne 1.55)
 [abracadabra] 📚 Le dictionnaire passe à 1 447 noms ! Des centaines d'objets en plus : mouton, cheval, poney, chien, chat, truie, taureau, grenouille, tortue, serpent, crabe et une vingtaine de poissons ; une soixantaine d'oiseaux (canard, hibou, perroquet, toucan, cygne…), des papillons et des insectes.
 [abracadabra] 🏡 Le village débarque dans le fleuve : maison, chalet, tour, église, ponton, balcon, botte de foin, abreuvoir, chevalier, lustre, réverbère… et d'Orient : pont, temple, torii, nénuphar, bonsaï, lampion.
