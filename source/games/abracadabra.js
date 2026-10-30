@@ -42,7 +42,7 @@ function loadPack(onProg, signal, nom = 'fleuve') {
   const K = 'pack_' + nom;
   if (STORE[K]) return STORE[K];
   STORE[K] = (async () => {
-    const buf = await fetchBytes(ROOT() + 'assets/abra.' + nom + '.bin', onProg, nom === 'fleuve' ? 1900000 : 2500000, signal);
+    const buf = await fetchBytes(ROOT() + 'assets/abra.' + nom + '.bin', onProg, nom === 'fleuve' ? 2600000 : 2500000, signal);
     const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(window.JDW_ASSET_KEY || ''), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
@@ -270,7 +270,7 @@ function mount(root, api) {
     box.querySelector('button').addEventListener('click', () => {
       if (dead) return;
       root.innerHTML = ''; const n = mount(root, api);
-      for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel', 'endInfo']) proxy[k] = n[k];
+      for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel', 'mapSpot', 'endInfo']) proxy[k] = n[k];
       Object.defineProperty(proxy, '_d', { get: () => n._d, configurable: true });
     });
   };
@@ -290,6 +290,7 @@ function mount(root, api) {
     resume() { paused = false; if (inst) inst.resume(); },
     currentScore() { return inst ? inst.currentScore() : 0; },
     currentLevel() { return inst ? inst.currentLevel() : 1; },
+    mapSpot() { return inst && inst.mapSpot ? inst.mapSpot() : 1000; },
     endInfo() { return inst && inst.endInfo ? inst.endInfo() : null; },
   };
   Object.defineProperty(proxy, '_d', { get: () => inst && inst._d, configurable: true });   // essais (harnais)
@@ -301,12 +302,13 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES[ID] = {
   id: ID,
   title: NOM,
-  tagline: 'Appuie sur GO et dis des noms : vache, piano, tonneau… L\'éclair de ton bâton les fait tomber dans le Grand Fleuve. Traversez-le à plusieurs !',
+  tagline: 'Tu es un sorcier : lance tes sorts À VOIX HAUTE et aide les villageois, mission après mission. Qui ira le plus loin sur la carte ?',
   accent: '#c79bff',
   scoreLabel: 'points',
-  live: true,   // les autres joueurs de la salle en direct (api.live, Ajout 17)
+  saves: true,   // l'avancement est gardé (api.save, Ajout 14) : Quitter sort tout de suite
+  spots: true,   // jusqu'où chacun est allé sur la carte des missions (mapSpot, api.reached, Ajout 15)
   fps: false,
-  pad: { help: [['ls', 'Marcher'], ['rs', 'Regarder'], ['rb', 'GO / STOP (micro)'], ['a', 'Sauter']] },
+  pad: { help: [['ls', 'Marcher'], ['rs', 'Regarder'], ['rb', 'GO / STOP (micro : les sorts)'], ['a', 'Sauter']] },
   preview,
   mount,
 };

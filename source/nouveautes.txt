@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra devient « Les missions du sorcier » (borne 1.56)
+[abracadabra] 🎬 Une petite cinématique au début : un jeune villageois trouve un bâton magique… tout ce qu'il dit apparaît devant lui, et il décide d'aider le monde. On peut la revoir depuis la carte.
+[abracadabra] 🗺️ La carte des missions : on avance de mission en mission, l'avancement est gardé, et on voit sur la carte jusqu'où sont allés les copains.
+[abracadabra] ✨ Mission 1 : les villageois sont bloqués au bord de la rivière et se désolent. Lance tes sorts à voix haute et trouve ce qui les aidera… personne ne te donnera la réponse ! Le nom de chaque mission ne se dévoile qu'une fois réussie.
+[abracadabra] 🫠 Ce qui tombe dans la rivière fond : erreur de sort ! Les villageois réagissent à tout ce qui apparaît et à ce que tu dis (un animal les surprend, un mot rigolo les fait rire…) et, si les erreurs s'enchaînent, ils commencent à douter de toi.
+[abracadabra] 🎤 Les sorts se lancent au micro : ce que le bâton entend s'écrit en direct et les noms qui lancent un sort s'allument en or ; la voix répond plus vite sur téléphone.
+[abracadabra] 🏖️ Tomber à l'eau te ramène sur la berge. Le jeu se joue seul (plus de partie en direct).
 [pegase] ## 🚲 Pégase 0.9.9.24 : finitions du vélo (borne 1.55.11)
 [pegase] 🚲 Vélo : il s'arrête maintenant sur le sable, avant l'écume du bord de l'eau, et se gare toujours bien droit.
 [pegase] 📮 Hugo vous vouvoie aussi quand vous lui achetez des cartes postales vierges.
