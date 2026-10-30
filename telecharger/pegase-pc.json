@@ -1,39 +1,44 @@
 {
-  "version": "0.9.9.26",
-  "build": 77,
-  "size": 1668402900,
-  "sha256": "98101f5878936c98c8476a5e797e80430fcf55321fa7c70574030034c09495cb",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v77/Pegase-PC-2026-10-30-0.9.9.26.zip",
-  "manifest": "caf027268b5a674c45c5c7b3d43207154d3a18796e5d8588c54c8616f7b3b24d",
+  "version": "0.9.9.27",
+  "build": 78,
+  "size": 1668404757,
+  "sha256": "47cc55c080d6f32e3bc1d817bfc0d12564df2646b25061b9306aaeb36e8a7d47",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v78/Pegase-PC-2026-10-30-0.9.9.27.zip",
+  "manifest": "df531c2d3a06b9c4d1a678303ee781e01bdfaa5eb98b54741d35ab055a94c447",
   "patchs": [
     {
+      "de": "0.9.9.26",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v78/Pegase-PC-patch-0.9.9.26.zip",
+      "taille": 2594380,
+      "sha256": "f40c14fc5ba53ae5f9bb663ae98e5e35c5e6879fa9f085310e36792cbe12971f"
+    },
+    {
       "de": "0.9.9.25",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v77/Pegase-PC-patch-0.9.9.25.zip",
-      "taille": 3281826,
-      "sha256": "5884d84b0358e9145ecaca300a8a60187ada14273f52bfff243704f6ff8aa7ae"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v78/Pegase-PC-patch-0.9.9.25.zip",
+      "taille": 2956172,
+      "sha256": "f0c393e15f5a91f45781b4249f2a1183d9ee1bc785be2a8cef44c58f39f994ba"
     },
     {
       "de": "0.9.9.24",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v77/Pegase-PC-patch-0.9.9.24.zip",
-      "taille": 9756198,
-      "sha256": "b6089b594f9be3c532e077bb48988b6cf80776d36e0da57df1be3b75573ac41c"
-    },
-    {
-      "de": "0.9.9.23",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v77/Pegase-PC-patch-0.9.9.23.zip",
-      "taille": 9529604,
-      "sha256": "e82e85c6d284a0603a759101f4c801621dcd97321ae5909c02009cbdcb0b35f2"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v78/Pegase-PC-patch-0.9.9.24.zip",
+      "taille": 9984458,
+      "sha256": "12fb6c2f19d0c18fcaa7c0ce7ad53d2862fca10feab0a8660654a8fd00500f75"
     }
   ],
   "notes": [
-    "Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.",
-    "À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.",
-    "Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.",
-    "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
-    "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
-    "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
+    "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
+    "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
+    "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
   ],
   "historique": [
+    {
+      "version": "0.9.9.27",
+      "notes": [
+        "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
+        "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
+        "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
+      ]
+    },
     {
       "version": "0.9.9.26",
       "notes": [
@@ -70,12 +75,6 @@
         "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
         "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
         "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
-      ]
-    },
-    {
-      "version": "0.9.9.22",
-      "notes": [
-        "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
       ]
     }
   ]

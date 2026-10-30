@@ -1,23 +1,28 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 74,
-  "versionName": "0.9.9.26",
-  "size": 1233072078,
-  "sha256": "6d0e0cf7643e58064bf10e975aa3d06628ed2fd5bc4bca41ecbed7079a91bcfe",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v74/pegase-0.9.9.26.apk",
+  "versionCode": 75,
+  "versionName": "0.9.9.27",
+  "size": 1233079558,
+  "sha256": "f8fe587795ef519cc3ddff30b7cd0eb2f2e79f63c5d6b8dcd10828cce309373f",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v75/pegase-0.9.9.27.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.",
-    "À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.",
-    "Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.",
-    "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
-    "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
-    "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
+    "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
+    "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
+    "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
   ],
   "historique": [
+    {
+      "version": "0.9.9.27",
+      "notes": [
+        "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
+        "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
+        "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
+      ]
+    },
     {
       "version": "0.9.9.26",
       "notes": [
@@ -54,12 +59,6 @@
         "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
         "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
         "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
-      ]
-    },
-    {
-      "version": "0.9.9.22",
-      "notes": [
-        "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
       ]
     }
   ]
