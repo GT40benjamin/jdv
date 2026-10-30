@@ -1,34 +1,46 @@
 {
-  "version": "0.9.9.22",
-  "build": 73,
-  "size": 1663344526,
-  "sha256": "aa9ea1ba68673c9620867d85054590287451432500fcf0209569b46206f8a39b",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v73/Pegase-PC-2026-10-30-0.9.9.22.zip",
-  "manifest": "761477f4e4936d4ced4ba1af257dddb0ded14c473c3dc39d316308403cf52f1e",
+  "version": "0.9.9.23",
+  "build": 74,
+  "size": 1663347622,
+  "sha256": "2178a001e9e3d9353e7407b295a850f7f087d7590abda25448e15465943d0e51",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v74/Pegase-PC-2026-10-30-0.9.9.23.zip",
+  "manifest": "7749ee96c3a8e92b10859e6ae893d2cbaa8186558e8f4ade8e978f9be6d8b0c0",
   "patchs": [
     {
+      "de": "0.9.9.22",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v74/Pegase-PC-patch-0.9.9.22.zip",
+      "taille": 3070405,
+      "sha256": "0dfc893ad02b47c3129d5850ee15ba7c000a9aa965553d86b893eb15c0c09d0e"
+    },
+    {
       "de": "0.9.9.21",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v73/Pegase-PC-patch-0.9.9.21.zip",
-      "taille": 2859296,
-      "sha256": "5f7f09b4f728074cd726b8591b478d68458d5a2abebb01d473788c6d5a41696e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v74/Pegase-PC-patch-0.9.9.21.zip",
+      "taille": 2538678,
+      "sha256": "0f2ae3371a0edbb532e4003777e0ad582ceca3e9052e160b5c00664dec6dfdd0"
     },
     {
       "de": "0.9.9.20",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v73/Pegase-PC-patch-0.9.9.20.zip",
-      "taille": 5372270,
-      "sha256": "a5b3b1b40ab508c457519342af70e013d14bf79c2faacb9190d1414189d25227"
-    },
-    {
-      "de": "0.9.9.19",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v73/Pegase-PC-patch-0.9.9.19.zip",
-      "taille": 12325209,
-      "sha256": "ab972ff94a71f9efdd222fa3b0a6eb63b919b593a3223942a9bb03bd2e9340e2"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v74/Pegase-PC-patch-0.9.9.20.zip",
+      "taille": 4970902,
+      "sha256": "b8ec1ec8e3aacddd771b2196ef16df5cb778ca47da20a3cfa9349afa95d5c83e"
     }
   ],
   "notes": [
-    "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
+    "Vélo : il s'arrête désormais au bord de l'eau, ne rentre plus dans les bâtiments ni dans les décors, se gare pour de vrai (on ne le traverse plus), et la caméra reste dégagée sous les stores des boutiques.",
+    "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
+    "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
+    "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
   ],
   "historique": [
+    {
+      "version": "0.9.9.23",
+      "notes": [
+        "Vélo : il s'arrête désormais au bord de l'eau, ne rentre plus dans les bâtiments ni dans les décors, se gare pour de vrai (on ne le traverse plus), et la caméra reste dégagée sous les stores des boutiques.",
+        "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
+        "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
+        "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
+      ]
+    },
     {
       "version": "0.9.9.22",
       "notes": [
@@ -65,16 +77,6 @@
         "Trois chats (tigré gris, noir, blanc) vivent au village : sieste au soleil, toilette, petites promenades.",
         "Une ferme près de la grange de l'aérodrome : moutons et cochons, chevaux et vaches au pré.",
         "Trois nouveaux poissons mordent à l'hameçon : la truite arc-en-ciel, l'ombre commun et la tanche."
-      ]
-    },
-    {
-      "version": "0.9.9.18",
-      "notes": [
-        "Nouveau : le bar de l'hôtel d'Ailebrune, « Chez Désiré » ! Assieds-toi au comptoir, lève la main (ou dis « serveur ! ») : Désiré te sert citronnade, chocolat chaud, jus de pomme… offerts, ou la Lumineuse, une boisson qui brille (20 lucioles).",
-        "Entre amis, chacun commande ; on peut payer pour toute la table ou offrir une boisson à un ami, et boire son verre gorgée après gorgée.",
-        "Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Une petite épave s'est échouée sur la plage.",
-        "Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations (assis, renifler, accueillir l'héroïne). Nouvelles tortues sur une berge de rivière et une plage du lac, lézards verts au soleil sur les rochers.",
-        "Le jeu PC est plus léger, sans rien perdre en beauté."
       ]
     }
   ]

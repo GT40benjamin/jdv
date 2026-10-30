@@ -1,18 +1,30 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 70,
-  "versionName": "0.9.9.22",
-  "size": 1225019870,
-  "sha256": "2138eddca13e15db0b927327dcb12b6cc08d808f10967e077520d80baf79f0cd",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v70/pegase-0.9.9.22.apk",
+  "versionCode": 71,
+  "versionName": "0.9.9.23",
+  "size": 1225032990,
+  "sha256": "ccf45b77000566cd5c0396d3373f453bb3a9af8238fe9cb6b24ba7dce6d973ee",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v71/pegase-0.9.9.23.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
+    "Vélo : il s'arrête désormais au bord de l'eau, ne rentre plus dans les bâtiments ni dans les décors, se gare pour de vrai (on ne le traverse plus), et la caméra reste dégagée sous les stores des boutiques.",
+    "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
+    "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
+    "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
   ],
   "historique": [
+    {
+      "version": "0.9.9.23",
+      "notes": [
+        "Vélo : il s'arrête désormais au bord de l'eau, ne rentre plus dans les bâtiments ni dans les décors, se gare pour de vrai (on ne le traverse plus), et la caméra reste dégagée sous les stores des boutiques.",
+        "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
+        "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
+        "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
+      ]
+    },
     {
       "version": "0.9.9.22",
       "notes": [
@@ -49,16 +61,6 @@
         "Trois chats (tigré gris, noir, blanc) vivent au village : sieste au soleil, toilette, petites promenades.",
         "Une ferme près de la grange de l'aérodrome : moutons et cochons, chevaux et vaches au pré.",
         "Trois nouveaux poissons mordent à l'hameçon : la truite arc-en-ciel, l'ombre commun et la tanche."
-      ]
-    },
-    {
-      "version": "0.9.9.18",
-      "notes": [
-        "Nouveau : le bar de l'hôtel d'Ailebrune, « Chez Désiré » ! Assieds-toi au comptoir, lève la main (ou dis « serveur ! ») : Désiré te sert citronnade, chocolat chaud, jus de pomme… offerts, ou la Lumineuse, une boisson qui brille (20 lucioles).",
-        "Entre amis, chacun commande ; on peut payer pour toute la table ou offrir une boisson à un ami, et boire son verre gorgée après gorgée.",
-        "Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Une petite épave s'est échouée sur la plage.",
-        "Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations (assis, renifler, accueillir l'héroïne). Nouvelles tortues sur une berge de rivière et une plage du lac, lézards verts au soleil sur les rochers.",
-        "Le jeu PC est plus léger, sans rien perdre en beauté."
       ]
     }
   ]
