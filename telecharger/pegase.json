@@ -1,22 +1,24 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 69,
-  "versionName": "0.9.9.21",
-  "size": 1225018582,
-  "sha256": "a2823536eafc1e2001979b848c2bb99165955dd99b848a0e4d149d0052a1303b",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v69/pegase-0.9.9.21.apk",
+  "versionCode": 70,
+  "versionName": "0.9.9.22",
+  "size": 1225019870,
+  "sha256": "2138eddca13e15db0b927327dcb12b6cc08d808f10967e077520d80baf79f0cd",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v70/pegase-0.9.9.22.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !",
-    "Le sac a de vraies images pour les fourmis, le sandwich et la fiche du potager.",
-    "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
-    "Les animaux qui s'arrêtent ne marchent plus sur place.",
-    "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
+    "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
   ],
   "historique": [
+    {
+      "version": "0.9.9.22",
+      "notes": [
+        "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
+      ]
+    },
     {
       "version": "0.9.9.21",
       "notes": [
@@ -57,13 +59,6 @@
         "Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Une petite épave s'est échouée sur la plage.",
         "Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations (assis, renifler, accueillir l'héroïne). Nouvelles tortues sur une berge de rivière et une plage du lac, lézards verts au soleil sur les rochers.",
         "Le jeu PC est plus léger, sans rien perdre en beauté."
-      ]
-    },
-    {
-      "version": "0.9.9.17",
-      "notes": [
-        "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
-        "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
       ]
     }
   ]

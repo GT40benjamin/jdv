@@ -1,38 +1,40 @@
 {
-  "version": "0.9.9.21",
-  "build": 72,
-  "size": 1663341861,
-  "sha256": "badeaa9dfbca105d9a6e917852bb91a1db98c757b1c6e14b0b8085fbe231a173",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v72/Pegase-PC-2026-10-30-0.9.9.21.zip",
-  "manifest": "af52bcf8c5b4ece7a309719b61ffb563f8bffd5db2a856f5154010f8efb0fb01",
+  "version": "0.9.9.22",
+  "build": 73,
+  "size": 1663344526,
+  "sha256": "aa9ea1ba68673c9620867d85054590287451432500fcf0209569b46206f8a39b",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v73/Pegase-PC-2026-10-30-0.9.9.22.zip",
+  "manifest": "761477f4e4936d4ced4ba1af257dddb0ded14c473c3dc39d316308403cf52f1e",
   "patchs": [
     {
+      "de": "0.9.9.21",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v73/Pegase-PC-patch-0.9.9.21.zip",
+      "taille": 2859296,
+      "sha256": "5f7f09b4f728074cd726b8591b478d68458d5a2abebb01d473788c6d5a41696e"
+    },
+    {
       "de": "0.9.9.20",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v72/Pegase-PC-patch-0.9.9.20.zip",
-      "taille": 4718826,
-      "sha256": "9fbb7fa4e3fb20c8613925f48c6037a506d21b067b06aac956206d9d291bd806"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v73/Pegase-PC-patch-0.9.9.20.zip",
+      "taille": 5372270,
+      "sha256": "a5b3b1b40ab508c457519342af70e013d14bf79c2faacb9190d1414189d25227"
     },
     {
       "de": "0.9.9.19",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v72/Pegase-PC-patch-0.9.9.19.zip",
-      "taille": 12543651,
-      "sha256": "626ef715cf01a90864ae5822499a449286e851e4ca5a8cdde877a254b0593806"
-    },
-    {
-      "de": "0.9.9.18",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v72/Pegase-PC-patch-0.9.9.18.zip",
-      "taille": 17411423,
-      "sha256": "d74d364df4d56507678fe988329e56ae5e392399bee68ba737638ee72ddaf64a"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v73/Pegase-PC-patch-0.9.9.19.zip",
+      "taille": 12325209,
+      "sha256": "ab972ff94a71f9efdd222fa3b0a6eb63b919b593a3223942a9bb03bd2e9340e2"
     }
   ],
   "notes": [
-    "Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !",
-    "Le sac a de vraies images pour les fourmis, le sandwich et la fiche du potager.",
-    "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
-    "Les animaux qui s'arrêtent ne marchent plus sur place.",
-    "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
+    "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
   ],
   "historique": [
+    {
+      "version": "0.9.9.22",
+      "notes": [
+        "Les cochons ne glissent plus en marchant et trottinent quand ils pressent le pas ; les animaux s'écartent quand ils se rentrent dedans."
+      ]
+    },
     {
       "version": "0.9.9.21",
       "notes": [
@@ -73,13 +75,6 @@
         "Dans le lagon du ponton de la plage est, la mer s'anime : algues, coraux, poissons tropicaux colorés, bancs de sardines, une pieuvre cachée… Une petite épave s'est échouée sur la plage.",
         "Vrais chiens au village : Filou le beagle et Réglisse le chien courant grec, avec leurs vraies animations (assis, renifler, accueillir l'héroïne). Nouvelles tortues sur une berge de rivière et une plage du lac, lézards verts au soleil sur les rochers.",
         "Le jeu PC est plus léger, sans rien perdre en beauté."
-      ]
-    },
-    {
-      "version": "0.9.9.17",
-      "notes": [
-        "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
-        "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
       ]
     }
   ]
