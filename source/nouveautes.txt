@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : les voitures bien posées sur la route (borne 1.55.10)
+[sensinterdit] 🛻 Le pick-up ne flotte plus au-dessus de la route : ses roues touchent le bitume.
+[sensinterdit] 🏎️ Les roues des voitures de sport (la tienne comprise) ne s'enfoncent plus dans la route.
 [abracadabra] ## 🪄 Abracadabra : un vrai bâton de sorcier, et l'objet naît devant toi (borne 1.55.9)
 [abracadabra] 🪄 Nouveau bâton : bois torsadé et lianes dorées, un gros cristal d'améthyste qui brille de l'intérieur, de fines étincelles qui flottent autour. Des runes s'allument sur le bâton quand il t'entend, le cristal pulse à chaque éclair et le bâton donne un coup vers l'avant quand il lance un objet.
 [abracadabra] ✨ Dis un nom : l'objet apparaît juste devant toi dans un éclair, flotte un instant en tournant avec son nom écrit au-dessus, puis le bâton le lance en l'air et il retombe là où tu regardes.
