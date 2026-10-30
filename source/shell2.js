@@ -8,7 +8,7 @@ const ORDER = ['abracadabra', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoo
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  abracadabra: { kind: 'new', at: '2026-10-30 12:30' },   // Abracadabra « Les missions du sorcier » (1.56 : cinématique, carte des missions, mission 1 le pont du village) : EN ESSAI derrière la porte labo depuis la 1.52
+  abracadabra: { kind: 'new', at: '2026-10-30 15:00' },   // Abracadabra « Les missions du sorcier » (1.56 : cinématique, carte des missions, mission 1 le pont du village) : EN ESSAI derrière la porte labo depuis la 1.52
   sensinterdit: { kind: 'maj', at: '2026-10-30 11:30' },   // Sens Interdit (borne 1.55.10) : les voitures bien posées sur la route ; 1.55.5 : les traits des copains arrivent en direct pendant la partie ; 1.55.4 : plus jamais collé à la glissière, le dernier appui gagne ; SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
@@ -9744,6 +9744,8 @@ function mountGame(g) {
       let lvl = 0; try { lvl = current.inst && current.inst.currentLevel ? +current.inst.currentLevel() : 0; } catch (e) {}
       setMusic(g.id, lvl >= (INTENSE_AT[g.id] || 99) ? 'intense' : 'calm');
     },
+    // un jeu qui écoute au micro (30 oct. 2026, Abracadabra : le sort) : la musique se fait discrète le temps de l'écoute, duck(false) la rend
+    duck: (on) => { if (!current || current.seq !== seq) return; if (on) duckMusic(0.3, 90000); else unduckMusic(); },
     isMuted: () => muted,
     heads: () => headsShown(),
     player: playerObj(),

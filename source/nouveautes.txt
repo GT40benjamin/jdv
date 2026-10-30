@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : l'arrivée en volant et le bouton du sort (borne 1.56.3)
+[abracadabra] 🕊️ Tu arrives dans la mission en volant : une longue descente du ciel jusqu'au milieu des villageois, qui te suivent des yeux puis crient « On est sauvés ! ». Ta mission s'écrit ensuite en haut à gauche.
+[abracadabra] 🎤 Le bouton du sort, avec son petit micro, remplace le saut. Un appui = un sort : tu parles autant que tu veux, tes mots s'enchaînent en bas de l'écran, et dès que le bâton reconnaît un nom, l'objet apparaît. Pendant que tu parles, la musique et la nature se font discrètes et les villageois se tournent vers toi. Sur ordinateur : Espace.
+[abracadabra] 🌊 Plus rien n'est lancé : les petites choses tombent à tes pieds, les grosses tombent au milieu de la rivière et y restent. Les villageois trouvent ça fou… mais pas très utile, et à force, ils doutent de toi.
+[abracadabra] 💬 Les bulles des villageois sont bien plus lisibles (grosses lettres en gras, même taille de près comme de loin, jamais l'une sur l'autre), et les villageois font plein de choses en attendant : ils s'assoient, s'accroupissent au bord de l'eau, font les cent pas, sautillent, trépignent, soufflent…
+[abracadabra] 📱 Sur un téléphone tenu en hauteur, le jeu te propose de le tourner.
 [abracadabra] ## 🪄 Abracadabra : la grotte, sa musique et le clavier (borne 1.56.2)
 [abracadabra] 🕯️ La cinématique se passe maintenant au fond d'une grotte : un rayon de lumière, le bâton qui brille sur un rocher, des cristaux qui luisent, l'appel au secours venu du dehors. Elle est plus courte (15 s).
 [abracadabra] 🎬 Entrer dans une mission est rapide : la caméra plonge vers toi, et tu te retrouves au milieu des villageois, qui t'accueillent.

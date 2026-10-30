@@ -299,3 +299,7 @@ l'hôte (sa physique fait foi), un nouveau arrivé demande tout l'état ; si l'h
 Voix (borne 1.55) : `await api.live.voix()` → `{ token, url, room, identity }` = jeton LiveKit (6 h, micro seul) de la salle vocale
 « <id du jeu>-<id de salle> » (Edge Function pegase-voix v4 avec `p_jeu` ; seuls les jeux de sa liste JEUX sont acceptés) ; `api.live.livekit()`
 → le client LiveKit de la borne (copie locale). Le jeu publie le MÊME micro que celui qu'il écoute (une seule capture).
+
+## Ajout 18 : la musique discrète pendant le micro (api.duck, facultatif ; borne 1.56.3, Abracadabra)
+`api.duck(true)` : la musique de la borne baisse (30 %) pendant qu'un jeu écoute au micro (90 s au plus) ; `api.duck(false)` la rend. Un jeu
+qui ne l'appelle pas ne change rien ; vérifier `api.duck` avant de l'appeler (vieilles bornes).
