@@ -1,26 +1,32 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 68,
-  "versionName": "0.9.9.20",
-  "size": 1224516358,
-  "sha256": "68ccee11446293f4722e56716849ff115f47ef75be536a579294177794478a3e",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v68/pegase-0.9.9.20.apk",
+  "versionCode": 69,
+  "versionName": "0.9.9.21",
+  "size": 1225018582,
+  "sha256": "a2823536eafc1e2001979b848c2bb99165955dd99b848a0e4d149d0052a1303b",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v69/pegase-0.9.9.21.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.",
-    "Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.",
-    "Au potager, quand vous ratissez ou bêchez une case, seule cette case change : les autres plantes ne clignotent plus, et les hautes herbes ne débordent plus sur la terre bêchée.",
-    "Les koïs ne traversent plus les rochers du bassin. Pixel, le carlin, respire quand il se repose, se relève en douceur et trottine pour suivre Mathilde.",
-    "Brume, le lévrier de la ferme, fait sa ronde au pas et vient vous saluer calmement.",
-    "Au lagon, la pieuvre glisse d'un rocher à l'autre et ne s'enfuit plus quand vous passez en barque.",
-    "Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.",
-    "Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.",
-    "Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram."
+    "Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !",
+    "Le sac a de vraies images pour les fourmis, le sandwich et la fiche du potager.",
+    "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
+    "Les animaux qui s'arrêtent ne marchent plus sur place.",
+    "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
   ],
   "historique": [
+    {
+      "version": "0.9.9.21",
+      "notes": [
+        "Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !",
+        "Le sac a de vraies images pour les fourmis, le sandwich et la fiche du potager.",
+        "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
+        "Les animaux qui s'arrêtent ne marchent plus sur place.",
+        "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
+      ]
+    },
     {
       "version": "0.9.9.20",
       "notes": [
@@ -58,14 +64,6 @@
       "notes": [
         "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
         "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
-      ]
-    },
-    {
-      "version": "0.9.9.16",
-      "notes": [
-        "Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.",
-        "Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.",
-        "Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque."
       ]
     }
   ]

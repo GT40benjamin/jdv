@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🚲 Pégase 0.9.9.21 : le vélo (borne 1.55.6)
+[pegase] 🚲 Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !
+[pegase] 🎒 Le sac a de vraies images pour les fourmis, le sandwich, la fiche du potager et le kit de pêche posée.
+[pegase] 🐞 Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.
+[pegase] 🐎 Les animaux qui s'arrêtent ne marchent plus sur place.
 [sensinterdit] ## ⛔ Sens Interdit : les copains en direct sur ta route (borne 1.55.5)
 [sensinterdit] 🏁 Si un copain va plus loin pendant que tu roules, son trait d'arrivée et son panneau apparaissent sur ta route, loin devant toi, et tu peux encore le dépasser. Un trait déjà en vue ne bouge pas sous tes yeux, et rien n'apparaît jamais sous tes roues.
 [sensinterdit] ## ⛔ Sens Interdit : la voiture ne reste plus collée à la glissière (borne 1.55.4)

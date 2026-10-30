@@ -1,42 +1,48 @@
 {
-  "version": "0.9.9.20",
-  "build": 71,
-  "size": 1662819106,
-  "sha256": "7e639b8d81fc7bfa8dfd1a55d05070e95585a60f05777c08599dd02d598e5d5b",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v71/Pegase-PC-2026-10-30-0.9.9.20.zip",
-  "manifest": "2410388c69a7d824c5fe13f083e95daae761918223a0024f217f643776a11a9a",
+  "version": "0.9.9.21",
+  "build": 72,
+  "size": 1663341861,
+  "sha256": "badeaa9dfbca105d9a6e917852bb91a1db98c757b1c6e14b0b8085fbe231a173",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v72/Pegase-PC-2026-10-30-0.9.9.21.zip",
+  "manifest": "af52bcf8c5b4ece7a309719b61ffb563f8bffd5db2a856f5154010f8efb0fb01",
   "patchs": [
     {
+      "de": "0.9.9.20",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v72/Pegase-PC-patch-0.9.9.20.zip",
+      "taille": 4718826,
+      "sha256": "9fbb7fa4e3fb20c8613925f48c6037a506d21b067b06aac956206d9d291bd806"
+    },
+    {
       "de": "0.9.9.19",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v71/Pegase-PC-patch-0.9.9.19.zip",
-      "taille": 11951340,
-      "sha256": "2df4fc6701145946a566e77409d4eb776c6f2128010fe678c4a58f8a8b073dc5"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v72/Pegase-PC-patch-0.9.9.19.zip",
+      "taille": 12543651,
+      "sha256": "626ef715cf01a90864ae5822499a449286e851e4ca5a8cdde877a254b0593806"
     },
     {
       "de": "0.9.9.18",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v71/Pegase-PC-patch-0.9.9.18.zip",
-      "taille": 16785987,
-      "sha256": "73c715cdeb92c1674f49d90cad2bf4ff89e5c2b6e9e616d8d76cbe8216001053"
-    },
-    {
-      "de": "0.9.9.17",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v71/Pegase-PC-patch-0.9.9.17.zip",
-      "taille": 187144447,
-      "sha256": "7c3a4ce26221995afce0bc69724c2393096452e46e6f76505d4e0953168408ca"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v72/Pegase-PC-patch-0.9.9.18.zip",
+      "taille": 17411423,
+      "sha256": "d74d364df4d56507678fe988329e56ae5e392399bee68ba737638ee72ddaf64a"
     }
   ],
   "notes": [
-    "À l'hôtel, les clients ne vous assaillent plus de demandes : on comprend tout de suite qui veut quoi, et les récompenses en lucioles sont justes.",
-    "Les habitants du village vous vouvoient tant que vous ne vous connaissez pas : à votre première mission réussie ensemble, ils vous proposent de vous tutoyer.",
-    "Au potager, quand vous ratissez ou bêchez une case, seule cette case change : les autres plantes ne clignotent plus, et les hautes herbes ne débordent plus sur la terre bêchée.",
-    "Les koïs ne traversent plus les rochers du bassin. Pixel, le carlin, respire quand il se repose, se relève en douceur et trottine pour suivre Mathilde.",
-    "Brume, le lévrier de la ferme, fait sa ronde au pas et vient vous saluer calmement.",
-    "Au lagon, la pieuvre glisse d'un rocher à l'autre et ne s'enfuit plus quand vous passez en barque.",
-    "Les rats de la grange ne s'enfoncent plus dans l'escalier, et les lézards suivent la pente des rochers.",
-    "Au bord de la mer, l'épave et la caisse sont bien posées sur le sable, la barque ne passe plus à travers les quais, et sur téléphone tenu en hauteur la caméra de pêche garde l'héroïne dans l'image.",
-    "Nouvelle mission rare, de temps en temps : partager votre plus belle photo sur PegaGram."
+    "Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !",
+    "Le sac a de vraies images pour les fourmis, le sandwich et la fiche du potager.",
+    "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
+    "Les animaux qui s'arrêtent ne marchent plus sur place.",
+    "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
   ],
   "historique": [
+    {
+      "version": "0.9.9.21",
+      "notes": [
+        "Nouveau : achetez un vélo de ville chez Hugo, à La Poste (300 lucioles, 5 couleurs), sortez-le de votre sac et filez sur les chemins, avec sa petite sonnette !",
+        "Le sac a de vraies images pour les fourmis, le sandwich et la fiche du potager.",
+        "Si votre sauvegarde contenait encore une libellule, une coccinelle, une cétoine ou un lucane d'avant, ils retournent à la nature et vous recevez leur prix en lucioles.",
+        "Les animaux qui s'arrêtent ne marchent plus sur place.",
+        "Dans le sac, le kit de pêche posée a maintenant sa propre image : la chaise pliante, le piquet et la clochette."
+      ]
+    },
     {
       "version": "0.9.9.20",
       "notes": [
@@ -74,14 +80,6 @@
       "notes": [
         "Sur les plages des îlots du large, la mer a laissé des coquillages et des étoiles de mer, en petits tas nacrés, roses et corail.",
         "Sur la Couronne, un banc t'attend face au soleil couchant : la plus belle photo de l'île."
-      ]
-    },
-    {
-      "version": "0.9.9.16",
-      "notes": [
-        "Les îlots du large s'animent : des plumes blanches dérivent au-dessus des nids géants, et du duvet tapisse chaque nid.",
-        "Six nouveaux trésors sont cachés sur les îlots (126 en tout) : une bouteille à message, une conque, un sou ancien, un galet troué… à ranger au Cabinet des trouvailles du musée.",
-        "Le soir, deux lanternes s'allument sur le ponton de la plage est, et leur reflet doré guide la barque."
       ]
     }
   ]
