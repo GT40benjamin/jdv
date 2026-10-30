@@ -8,7 +8,7 @@ const ORDER = ['abracadabra', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoo
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
-  abracadabra: { kind: 'new', at: '2026-10-30 01:30' },   // Abracadabra (on dit un mot, l'objet apparaît ; un pont pour traverser le fleuve) : EN ESSAI derrière la porte labo depuis la 1.52
+  abracadabra: { kind: 'new', at: '2026-10-30 09:45' },   // Abracadabra (on dit un mot, l'objet apparaît ; un pont pour traverser le fleuve) : EN ESSAI derrière la porte labo depuis la 1.52
   sensinterdit: { kind: 'maj', at: '2026-10-30 03:15' },   // Sens Interdit (borne 1.55.5) : les traits des copains arrivent en direct pendant la partie ; 1.55.4 : plus jamais collé à la glissière, le dernier appui gagne ; SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)

@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪄 Abracadabra : un vrai bâton de sorcier, et l'objet naît devant toi (borne 1.55.9)
+[abracadabra] 🪄 Nouveau bâton : bois torsadé et lianes dorées, un gros cristal d'améthyste qui brille de l'intérieur, de fines étincelles qui flottent autour. Des runes s'allument sur le bâton quand il t'entend, le cristal pulse à chaque éclair et le bâton donne un coup vers l'avant quand il lance un objet.
+[abracadabra] ✨ Dis un nom : l'objet apparaît juste devant toi dans un éclair, flotte un instant en tournant avec son nom écrit au-dessus, puis le bâton le lance en l'air et il retombe là où tu regardes.
+[abracadabra] 🥕 Les petits objets (carotte, hibou, poisson, canard…) sont agrandis : on voit bien ce qu'on a fait apparaître, et on peut marcher dessus.
+[abracadabra] 🎶 Plusieurs noms d'une traite : ils apparaissent chacun leur tour, sans se marcher dessus. Tes copains voient la même chose devant ton sorcier, qui a maintenant le même beau bâton.
 [pegase] ## 🚲 Pégase 0.9.9.23 : un vélo plus sage et des animaux à leur place (borne 1.55.8)
 [pegase] 🚲 Vélo : il s'arrête désormais au bord de l'eau, ne rentre plus dans les bâtiments ni dans les décors, se gare pour de vrai (on ne le traverse plus), et la caméra reste dégagée sous les stores des boutiques.
 [pegase] 📮 Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.

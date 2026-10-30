@@ -42,7 +42,7 @@ function loadPack(onProg, signal, nom = 'fleuve') {
   const K = 'pack_' + nom;
   if (STORE[K]) return STORE[K];
   STORE[K] = (async () => {
-    const buf = await fetchBytes(ROOT() + 'assets/abra.' + nom + '.bin', onProg, nom === 'fleuve' ? 1400000 : 2500000, signal);
+    const buf = await fetchBytes(ROOT() + 'assets/abra.' + nom + '.bin', onProg, nom === 'fleuve' ? 1900000 : 2500000, signal);
     const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(window.JDW_ASSET_KEY || ''), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
