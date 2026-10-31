@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : plus beau sur ordinateur et en paysage (borne 1.62.24)
+[sensinterdit] 💨 Les traits de vitesse filent au ras des bas-côtés, plus discrets : fini les traits blancs en travers du ciel (surtout au Volcan).
+[sensinterdit] 🚗 Au Volcan, plus d'éclat blanc sur le capot : le soleil éclaire la voiture de côté.
+[sensinterdit] ⛵ Le phare de la Corniche a enfin ses bandes rouges et blanches (il paraissait tout pâle).
+[sensinterdit] ⌨️ Sur ordinateur, l'aide des touches s'affiche dans le coin en bas à gauche, plus au milieu de la route.
 [sensinterdit] ## ⛔ Sens Interdit : le vrai panache du volcan (borne 1.62.20)
 [sensinterdit] 🌋 Quand le volcan entre en éruption, une colonne de cendre jaillit du cratère, s'élargit en champignon penché par le vent et s'effiloche dans le ciel (fini la grosse boule sombre).
 [sensinterdit] ## ⛔ Sens Interdit : le ciel du Col bien dégagé (borne 1.62.18)
