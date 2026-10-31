@@ -13702,10 +13702,10 @@ setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou 
 
 
 /* ================= Espace privé (31 oct. 2026) ================= */
-// Quelques comptes ont un module de plus dans la page. C'est le SERVEUR qui décide : jdw_prive(p_code, p_name) rend à ces comptes la clé
-// du paquet chiffré assets/jdw.prive.bin (AES-GCM : 12 octets d'IV, puis le texte chiffré et son étiquette), et RIEN aux autres : pour
-// eux, rien ne se télécharge ni ne s'affiche. Le module reçoit privApi() et rend { stop } ; ses signaux arrivent sans contenu par le canal
-// privé du joueur ({ t: 'px' }, onPoke) ; il n'appelle que les fonctions pk_* du serveur. Serveur pas prêt (404) : rien, sans erreur.
+// Quelques comptes ont un module de plus dans la page. Il n'est PAS dans le site : c'est le SERVEUR qui le rend, jdw_prive(p_code, p_name)
+// → { v, src } (le code du module) à ces comptes, null aux autres : pour eux, rien n'arrive ni ne s'affiche. Le module reçoit privApi()
+// et rend { stop } ; ses signaux arrivent sans contenu par le canal privé du joueur ({ t: 'px' }, onPoke) ; il n'appelle que les fonctions
+// pk_* du serveur. Serveur pas prêt (404) : rien, sans erreur.
 const PRIV = { who: '', mod: null, done: false, busy: false, next: 0, subs: new Set(), back: null };
 function privStop() {
   if (PRIV.mod && PRIV.mod.stop) { try { PRIV.mod.stop(); } catch (e) {} }
@@ -13735,14 +13735,9 @@ async function privSync() {
   try {
     const r = await rpc('jdw_prive', { p_code: CODE(), p_name: profile.name }, { quiet: true, quiet404: true });
     if (PRIV.who !== who) return;
-    if (!r || typeof r.k !== 'string') { PRIV.done = true; return; }
-    const res = await netFetch(ROOT + 'assets/jdw.prive.bin?v=' + encodeURIComponent(window.JDW_BUILD || ''));
-    if (!res.ok) throw new Error('paquet ' + res.status);
-    const buf = new Uint8Array(await res.arrayBuffer());
-    const key = await crypto.subtle.importKey('raw', Uint8Array.from(atob(r.k), c => c.charCodeAt(0)), 'AES-GCM', false, ['decrypt']);
-    const src = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.subarray(0, 12) }, key, buf.subarray(12)));
-    if (PRIV.who !== who) return;
-    PRIV.done = true; PRIV.mod = (new Function('api', src))(privApi()) || {};
+    PRIV.done = true;
+    if (!r || typeof r.src !== 'string' || !r.src) return;
+    PRIV.mod = (new Function('api', r.src))(privApi()) || {};
   } catch (e) {
     if (e && e.status === 404) PRIV.done = true;                                            // serveur pas encore prêt : rien
     else if (e && (e.offline || e.acct || e.guest)) PRIV.next = Date.now() + 30000;          // réseau, jeton : on réessaie plus tard

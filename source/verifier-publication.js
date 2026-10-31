@@ -12,8 +12,8 @@ if (!pw && process.platform === 'win32') {
 const files = execSync('git ls-files -co --exclude-standard', { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
   .filter(f => fs.existsSync(path.join(ROOT, f)));
 const bad = [];
-// clé du module de l'espace privé (hors dépôt, ~/jdv-tools/espace-prive/cle.txt) : jamais dans un fichier publié
-let pk = ''; try { pk = fs.readFileSync(path.join(require('os').homedir(), 'jdv-tools', 'espace-prive', 'cle.txt'), 'utf8').trim(); } catch (e) {}
+// le module de l'espace privé est servi par la base, JAMAIS publié : ses marques (et le nom de sa mascotte) ne doivent être dans aucun fichier
+const PRIV_MARQUES = [['jdw', 'pk', 'win'].join('-'), ['pk', 'ov'].join('-') + '{', ['pk', 'billet', 'lire'].join('_')], PRIV_NOM = new RegExp(['po', 'oky'].join(''), 'i');
 const IMG_OK = [/^icon-(maskable-)?\d+\.png$/, /^android(-apktool)?\/.*ic_launcher(_round|_foreground|_background|_monochrome)?\.png$/, /^android\/icon-512\.png$/, /^accueil\/[a-z0-9_-]+\.(webp|jpg|jpeg|png|webm|svg)$/,
   /^assets\/pegase\/decor(_\d{2}[a-z]?)?(_portrait|_m)?_poster\.(jpg|webp)$/,   // affiche du décor filmé dans le jeu (prairie, aucune personne)
   /^assets\/ilo\/ilo_(boucle|bande_annonce)(_m)?_poster\.(jpg|webp)$/,   // affiches d'ILO filmées dans le jeu (espace, vaisseau, aucune personne), 27 oct. 2026
@@ -25,7 +25,7 @@ for (const f of files) {
   if (/\.(png|jpe?g|webp|gif|bmp|heic|avif)$/i.test(f) && !IMG_OK.some(r => r.test(f))) bad.push(f + ' : image inattendue (photo ?)');
   if (pw && pw.length >= 3 && buf.toString('latin1').includes(pw)) bad.push(f + ' : contient le mot de passe de l\'ancien site');
   if (pw && pw.length >= 3 && buf.toString('utf16le').includes(pw)) bad.push(f + ' : contient le mot de passe (UTF-16)');
-  if (pk.length >= 40 && (buf.toString('latin1').includes(pk) || buf.toString('latin1').includes(Buffer.from(pk, 'base64').toString('hex')))) bad.push(f + ' : contient la clé de l\'espace privé');
+  if (/^assets\/jdw\.prive/.test(f)) bad.push(f + ' : ancien paquet de l\'espace privé (le module est servi par la base)');
   if (/^assets\/.*\.bin$/.test(f)) {
     const h = buf.subarray(0, 12).toString('latin1');
     if (/^RIFF|WEBP|^\x89PNG|^ID3/.test(h) || (buf[0] === 0xff && (buf[1] & 0xf0) === 0xf0)) bad.push(f + ' : paquet de l\'Asset Store en clair');
@@ -33,6 +33,7 @@ for (const f of files) {
   if (TEXT.test(f)) {
     const t = buf.toString('utf8');
     for (const m of t.matchAll(/data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]{20000,})/g)) bad.push(f + ' : grosse image ' + m[1] + ' en base64 (' + Math.round(m[2].length / 1365) + ' Ko) : photo ?');
+    if (PRIV_MARQUES.some(m => t.includes(m)) || PRIV_NOM.test(t)) bad.push(f + ' : contient le module de l\'espace privé (ou le nom de sa mascotte)');
     if (/__IMG_(PILOT|HEAD|FACE)__/.test(t) && !/pleingaz-src\.html$/.test(f) && !/build2\.py$/.test(f)) bad.push(f + ' : emplacement de photo de Plein Gaz non remplacé');
   }
 }

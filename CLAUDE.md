@@ -306,11 +306,11 @@ construit par `Unity.exe -batchmode -quit -projectPath D:\Games\PegaseUnity6 -bu
 marche à suivre (PUBLIER.md) : `~/jdv-tools/pegase/android-bridge/`.
 
 ## Espace privé (31 oct. 2026)
-Section « Espace privé » de shell2.js : quelques comptes ont un module de plus. Le SERVEUR décide (`jdw_prive` rend une clé, `null` aux autres,
-404 tant que son SQL n'est pas appliqué) ; avec la clé, la page déchiffre `assets/jdw.prive.bin` (AES-GCM) et le lance avec `privApi()`
-(fonctions `pk_*` seulement) ; signaux `{ t: 'px' }` du canal privé du joueur ; `PRIV.back` en tête de `jdwBack`. Atelier, SQL, essais et
-fiche : `~/jdv-tools/espace-prive/README.md` (hors dépôt). La clé n'est jamais dans le dépôt (`verifier-publication.js` le vérifie) ;
-rien de cet espace dans `nouveautes.txt` ni dans les annonces.
+Section « Espace privé » de shell2.js : quelques comptes ont un module de plus, qui n'est PAS dans le site. Le SERVEUR le rend
+(`jdw_prive` → `{ v, src }` à ces comptes, `null` aux autres, 404 tant que son SQL n'existe pas) et la page l'exécute avec `privApi()`
+(fonctions `pk_*` seulement) ; signaux `{ t: 'px' }` du canal privé du joueur ; `PRIV.back` en tête de `jdwBack`. Aucune clé, aucun
+paquet : `verifier-publication.js` refuse tout fichier qui contient ce module. Atelier, SQL, essais et fiche :
+`~/jdv-tools/espace-prive/README.md` (hors dépôt). Rien de cet espace dans `nouveautes.txt` ni dans les annonces.
 
 ## Serveur (Supabase)
 `supabase.sql` = schéma complet (contient la ligne de l'ancien mot de passe, gardé seulement pour get_errors / login_email : remplacer CHANGE-MOI).
