@@ -120,6 +120,9 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## 🎤 Abracadabra, en essai : une meilleure écoute (borne 1.62.33)
+[abracadabra] 🔊 Quand tu appuies sur le sort, le son du jeu ne se coupe plus : le micro s'ouvre sans passer le téléphone en mode « appel », et le jeu règle lui-même le volume de ta voix.
+[abracadabra] 🧹 Moins d'objets au hasard : « mais non », « vers la rivière », « sous la table » ou « coucou ! » ne font plus apparaître du maïs, un ver, des pièces ou un oiseau (dis « du maïs », « un coucou »… si tu les veux vraiment).
 [abracadabra] ## 🎮 Abracadabra, en essai : plus agréable à jouer (borne 1.62.28)
 [abracadabra] 💬 Quand un gros objet tombe ailleurs qu'à la rivière, les villageois réagissent à ce qu'ils voient (avant : des phrases de la rivière, « ça flotte… », là où il n'y a pas d'eau).
 [abracadabra] 👀 Un gros objet ne tombe plus juste devant toi : il ne cache plus les villageois (avant : parfois un mur, ou tout l'écran brun).
