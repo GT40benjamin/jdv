@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : de vrais oiseaux (borne 1.62.46)
+[sensinterdit] 🕊️ Les mouettes de la Corniche sont de vrais oiseaux : corps fuselé, tête et bec jaune, queue en éventail, ailes coudées grises dessus et blanches dessous, bouts noirs ; elles battent des ailes puis planent en « M ».
+[sensinterdit] 🐦‍⬛ Au Col des Neiges, les vols en V sont faits de vrais oiseaux sombres qui battent des ailes.
 [sensinterdit] ## ⛔ Sens Interdit : des oiseaux dans le ciel (borne 1.62.44)
 [sensinterdit] 🕊️ Sur la Corniche, des mouettes planent au-dessus de la mer, ailes relevées et bouts d'ailes noirs, et battent des ailes de temps en temps.
 [sensinterdit] 🦅 Au Col des Neiges, des vols d'oiseaux en V traversent le ciel au-dessus des sommets.
