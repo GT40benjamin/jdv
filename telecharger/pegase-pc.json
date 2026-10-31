@@ -1,36 +1,44 @@
 {
-  "version": "0.9.9.27",
-  "build": 78,
-  "size": 1668404757,
-  "sha256": "47cc55c080d6f32e3bc1d817bfc0d12564df2646b25061b9306aaeb36e8a7d47",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v78/Pegase-PC-2026-10-30-0.9.9.27.zip",
-  "manifest": "df531c2d3a06b9c4d1a678303ee781e01bdfaa5eb98b54741d35ab055a94c447",
+  "version": "0.9.9.28",
+  "build": 79,
+  "size": 1668412068,
+  "sha256": "f05cc0e1a8590685f493a8f33afb8d1238f477461033cdfe8f7136d26580cf4a",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v79/Pegase-PC-2026-10-30-0.9.9.28.zip",
+  "manifest": "7469a9006a92e7ceae5e1d60a680a962ea5c9fd161b4e66946c19d176856d2b1",
   "patchs": [
     {
+      "de": "0.9.9.27",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v79/Pegase-PC-patch-0.9.9.27.zip",
+      "taille": 2658644,
+      "sha256": "d7feb695822e7bbd84c3915a48ce2a443091928fc9a0c9a681b14f2060ef4b5f"
+    },
+    {
       "de": "0.9.9.26",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v78/Pegase-PC-patch-0.9.9.26.zip",
-      "taille": 2594380,
-      "sha256": "f40c14fc5ba53ae5f9bb663ae98e5e35c5e6879fa9f085310e36792cbe12971f"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v79/Pegase-PC-patch-0.9.9.26.zip",
+      "taille": 2993842,
+      "sha256": "d133239d9c8787ec38141b1960e30be7c9ba262fedf57a105281eae65782fa64"
     },
     {
       "de": "0.9.9.25",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v78/Pegase-PC-patch-0.9.9.25.zip",
-      "taille": 2956172,
-      "sha256": "f0c393e15f5a91f45781b4249f2a1183d9ee1bc785be2a8cef44c58f39f994ba"
-    },
-    {
-      "de": "0.9.9.24",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v78/Pegase-PC-patch-0.9.9.24.zip",
-      "taille": 9984458,
-      "sha256": "12fb6c2f19d0c18fcaa7c0ce7ad53d2862fca10feab0a8660654a8fd00500f75"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v79/Pegase-PC-patch-0.9.9.25.zip",
+      "taille": 2881279,
+      "sha256": "61c0e4d5a76c124561b02309cf1fdfdefeb2af88cde0ebaa05f1096a71c92ec5"
     }
   ],
   "notes": [
-    "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
-    "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
-    "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
+    "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
+    "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
+    "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
   ],
   "historique": [
+    {
+      "version": "0.9.9.28",
+      "notes": [
+        "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
+        "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
+        "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
+      ]
+    },
     {
       "version": "0.9.9.27",
       "notes": [
@@ -66,15 +74,6 @@
       "notes": [
         "Vélo : il s'arrête maintenant sur le sable, avant l'écume du bord de l'eau, et se gare toujours bien droit.",
         "Hugo vous vouvoie aussi quand vous lui achetez des cartes postales vierges."
-      ]
-    },
-    {
-      "version": "0.9.9.23",
-      "notes": [
-        "Vélo : il s'arrête désormais au bord de l'eau, ne rentre plus dans les bâtiments ni dans les décors, se gare pour de vrai (on ne le traverse plus), et la caméra reste dégagée sous les stores des boutiques.",
-        "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
-        "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
-        "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
       ]
     }
   ]

@@ -1,20 +1,28 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 75,
-  "versionName": "0.9.9.27",
-  "size": 1233079558,
-  "sha256": "f8fe587795ef519cc3ddff30b7cd0eb2f2e79f63c5d6b8dcd10828cce309373f",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v75/pegase-0.9.9.27.apk",
+  "versionCode": 76,
+  "versionName": "0.9.9.28",
+  "size": 1233088730,
+  "sha256": "31f3e5e49d094ad4c6ecb9d922dab8b918cde7915226f205c771085ffa48e0e5",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v76/pegase-0.9.9.28.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
-    "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
-    "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
+    "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
+    "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
+    "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
   ],
   "historique": [
+    {
+      "version": "0.9.9.28",
+      "notes": [
+        "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
+        "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
+        "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
+      ]
+    },
     {
       "version": "0.9.9.27",
       "notes": [
@@ -50,15 +58,6 @@
       "notes": [
         "Vélo : il s'arrête maintenant sur le sable, avant l'écume du bord de l'eau, et se gare toujours bien droit.",
         "Hugo vous vouvoie aussi quand vous lui achetez des cartes postales vierges."
-      ]
-    },
-    {
-      "version": "0.9.9.23",
-      "notes": [
-        "Vélo : il s'arrête désormais au bord de l'eau, ne rentre plus dans les bâtiments ni dans les décors, se gare pour de vrai (on ne le traverse plus), et la caméra reste dégagée sous les stores des boutiques.",
-        "Hugo vous vouvoie aussi quand il vous vend le vélo, tant que vous ne vous connaissez pas ; sur téléphone, les boutons pour monter et descendre du vélo ont leur icône.",
-        "Le pic épeiche se perche dans les arbres des bosquets ; les moutons de la ferme ont plus de place ; les animaux s'écartent avant de se rentrer dedans.",
-        "Dans le hall de l'hôtel, l'herbe et les fleurs ne sortent plus du plancher."
       ]
     }
   ]
