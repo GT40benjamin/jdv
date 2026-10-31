@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[flechettes] ## 🎯 Tête de Cible : tes cibles à toi, et la partie de salle (borne 1.61)
+[flechettes] 🧱 Une étagère de cibles : Monsieur Grincheux est la cible de base, et « ＋ Nouvelle cible » ouvre le constructeur.
+[flechettes] 🛠️ Le constructeur : choisis le support (rondin de chêne, liège, botte de paille, cible de foire), importe ta photo, puis pose les cibles où tu veux et choisis combien chacune rapporte (de 1 à 500 points). Si un visage est trouvé, les yeux, la bouche, le nez, les joues et le front sont déjà posés : tu changes tout comme tu veux.
+[flechettes] 🏷️ Chaque cible garde son nom (touche-le pour le changer) et ton meilleur score ; ✏️ pour la modifier, 🗑️ pour la retirer (l'image est effacée pour de bon).
+[flechettes] 🎯 Seul ou à deux sur le même téléphone : 5 fléchettes chacun.
+[flechettes] 🏠 Partie de salle : chacun met une de ses cibles en jeu, et tout le monde tire 3 fléchettes sur la cible de chacun ; scores en direct, +10 de bonus sur la cible des autres, et K.O. pour la cible qui a pris le plus.
+[flechettes] 🔒 Tes cibles sont rangées dans ton compte et toi seul les vois ; en partie de salle, les joueurs de ta salle les voient pendant la partie. Sans compte, elles restent sur ton appareil.
 [flechettes] ## 🎯 Nouveau jeu en essai : Tête de Cible (borne 1.60)
 [flechettes] 📸 Mets la photo que tu veux sur une vraie cible en bois : prends-la avec l'appareil photo ou choisis-la dans ta galerie (sur ordinateur : choisis un fichier, glisse-la ou colle-la).
 [flechettes] 🎯 Le visage est trouvé tout seul sur ton appareil ; sinon, tu touches les yeux, le nez et la bouche. Dans l'œil 50 points (60 en plein dedans), la bouche 30, le nez 25, les joues et le front 5.

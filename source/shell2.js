@@ -26,7 +26,7 @@ const TILE_NEWS = {
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
   neon: { kind: 'maj', at: '2026-10-30 00:37' },   // Néon Rush (borne 1.52.3) : les textes des portes ne se posent plus sur le nom du monde ; 1.51.12 : couloirs en vol plus hauts
-  flechettes: { kind: 'new', at: '2026-10-31 15:00' },   // Tête de Cible (fléchettes sur la photo qu'on veut, en essai derrière la porte labo ; heure = celle de la publication)
+  flechettes: { kind: 'new', at: '2026-10-31 14:00' },   // Tête de Cible (fléchettes, en essai derrière la porte labo) : 1.61 = étagère de cibles, constructeur, partie de salle (heure = celle de la publication)
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
@@ -977,6 +977,85 @@ function chronoApi() {
       if (!r.ok && r.why && r.why !== 'trop d essais') { try { reportError('Turbo Chrono : temps refusé (' + r.why + ')', t + ' ' + ms + ' ms', { quiet: true }); } catch (e) {} }
       let b = null; try { b = await board(t); } catch (e) {}
       return { ok: !!r.ok, best: +r.best || 0, kept: !!r.kept, roomBest: +r.room_best || 0, why: r.why || '', board: b };
+    },
+  };
+}
+// TÊTE DE CIBLE (jeu « flechettes », borne 1.61, CONTRACT.md Ajout 19 ; serveur source/flechettes.sql) : « Mes cibles » = l'étagère de chaque
+// pseudo (image que le joueur importe lui-même + les cibles et les points qu'il y pose), rangée dans le seau PRIVÉ « cibles » du Storage
+// (lue avec le jeton du compte : le propriétaire, ou un membre d'une salle où elle est en jeu depuis moins de 12 h). Invité : rien ici, le
+// jeu garde ses cibles sur l'appareil. Serveur pas encore à jour (404) : `info().server` faux, le jeu fait pareil et cache la partie de salle.
+const FL = { off: false, img: new Map() };
+function ciblesApi() {
+  const guest = () => isGuest() || !profile.name;
+  const base = () => CFG.url.replace(/\/+$/, '');
+  const pth = p => (/^c\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$/.test(String(p || '')) ? String(p) : null);
+  const uid = v => (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(String(v || '')) ? String(v) : null);
+  const nom = v => String(v == null ? '' : v).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 24);
+  const zon = z => { let t = ''; try { t = JSON.stringify(z); } catch (e) { t = ''; } if (!t || t.length > 20000) throw new Error('cibles : zones trop grandes'); return JSON.parse(t); };
+  const need = fn => {
+    if (guest()) throw Object.assign(new Error(fn + ' : invité (compte requis)'), { guest: true });
+    if (!ONLINE || netOff()) throw Object.assign(new Error(fn + ' : pas de réseau'), { offline: true });
+    if (FL.off) throw Object.assign(new Error(fn + ' : serveur pas prêt'), { status: 404 });
+  };
+  const call = async (fn, a) => {
+    need(fn);
+    try { return await rpc(fn, Object.assign({ p_code: CODE(), p_name: profile.name }, a), { quiet404: true }); }
+    catch (e) { if (e.status === 404) FL.off = true; throw e; }
+  };
+  const tok = async () => { const t = await acctToken(profile); if (!t) throw Object.assign(new Error('cibles : compte requis'), { guest: true }); return t; };
+  const effacer = async paths => {
+    const l = (paths || []).map(pth).filter(Boolean).slice(0, 50); if (!l.length) return 0;
+    const r = await netFetch(base() + '/storage/v1/object/cibles', { method: 'DELETE', headers: { apikey: CFG.key, Authorization: 'Bearer ' + await tok(), 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: l }) });
+    return r.ok ? l.length : 0;
+  };
+  return {
+    info: () => { const g = guest(); return { guest: g, online: !!ONLINE && !netOff(), server: !FL.off, name: g ? '' : cleanName(profile.name), room: !g && ONLINE && room ? { id: room.id, name: String(room.name || '') } : null }; },
+    // mon étagère (et ménage des fichiers orphelins d'un retrait raté)
+    async list() {
+      const r = await call('fl_mes', {}) || {};
+      if (Array.isArray(r.orphelins) && r.orphelins.length) effacer(r.orphelins).catch(() => {});
+      return { max: +r.max || 40, cibles: (r.cibles || []).filter(c => uid(c.id) && pth(c.path)).map(c => ({ id: c.id, nom: nom(c.nom), zones: c.zones || {}, w: +c.w || 0, h: +c.h || 0, best: +c.best || 0, envoye: !!c.envoye, path: c.path, at: +c.at || 0 })) };
+    },
+    // une nouvelle cible : la ligne, puis le fichier (WebP, 2 Mo au plus), puis « envoyée »
+    async add(blob, n, zones, w, h) {
+      if (!(blob instanceof Blob) || blob.size > 2097152 || !/^image\/(webp|jpeg)$/.test(blob.type)) throw new Error('cibles.add : image refusée');
+      const r = await call('fl_nouvelle', { p_nom: nom(n) || 'Ma cible', p_zones: zon(zones), p_w: Math.round(+w || 0), p_h: Math.round(+h || 0) });
+      if (!r || !uid(r.id) || !pth(r.path)) throw new Error('cibles.add : réponse');
+      const up = await netFetch(base() + '/storage/v1/object/cibles/' + r.path, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + await tok(), 'Content-Type': blob.type, 'x-upsert': 'true' }, body: blob });
+      if (!up.ok) { try { await call('fl_retirer', { p_id: r.id }); } catch (e) { /* rien */ } throw new Error('cibles.add : envoi ' + up.status); }
+      await call('fl_maj', { p_id: r.id, p_envoye: true });
+      return { id: r.id, path: r.path };
+    },
+    update: (id, o) => {
+      o = o || {}; if (!uid(id)) return Promise.reject(new Error('cibles.update : id'));
+      return call('fl_maj', { p_id: id, p_nom: o.nom == null ? null : (nom(o.nom) || null), p_zones: o.zones == null ? null : zon(o.zones), p_best: o.best == null ? null : Math.max(0, Math.min(100000, Math.round(+o.best || 0))) });
+    },
+    async remove(id) {
+      if (!uid(id)) throw new Error('cibles.remove : id');
+      const r = await call('fl_retirer', { p_id: id }) || {};
+      FL.img.delete(r.path);
+      try { await effacer([r.path]); } catch (e) { /* fl_mes le rendra en « orphelin » */ }
+      return true;
+    },
+    // l'image d'une cible (mienne, ou en jeu dans ma salle) → adresse blob: (gardée en mémoire seulement)
+    image(path) {
+      const p = pth(path); if (!p) return Promise.reject(new Error('cibles.image : chemin refusé'));
+      if (FL.img.has(p)) return FL.img.get(p);
+      const pr = (async () => {
+        need('cibles.image');
+        const r = await netFetch(base() + '/storage/v1/object/authenticated/cibles/' + p, { headers: { apikey: CFG.key, Authorization: 'Bearer ' + await tok() } });
+        if (!r.ok) throw Object.assign(new Error('cibles.image ' + r.status), { status: r.status });
+        return URL.createObjectURL(await r.blob());
+      })();
+      FL.img.set(p, pr); pr.catch(() => FL.img.delete(p));
+      return pr;
+    },
+    // la partie de salle : mettre une de mes cibles en jeu (null = la retirer), lire celles de la salle
+    roomPut: id => { if (!room) return Promise.reject(new Error('cibles.roomPut : pas de salle')); return call('fl_salle_mettre', { p_room: room.id, p_id: id == null ? null : uid(id) }); },
+    async roomList() {
+      if (!room) return [];
+      const L = await call('fl_salle_liste', { p_room: room.id }) || [];
+      return L.filter(c => uid(c.id) && pth(c.path)).map(c => ({ name: cleanName(c.name), id: c.id, nom: nom(c.nom), zones: c.zones || {}, w: +c.w || 0, h: +c.h || 0, path: c.path }));
     },
   };
 }
@@ -9764,6 +9843,7 @@ function mountGame(g) {
     profilePhoto: { info: gamePhotoInfo, set: (data, scope) => gameSetPhoto(data, scope) },   // Pégase : l'avatar en photo de profil
     pegase: g.id === 'pegase' ? pegaseApi() : undefined,                                     // Pégase (hub) : copains, garde-robe sur le serveur
     chrono: g.id === 'chrono' ? chronoApi() : undefined,                                     // Turbo Chrono : les fantômes des copains (Ajout 13)
+    cibles: g.id === 'flechettes' ? ciblesApi() : undefined,                                 // Tête de Cible : « Mes cibles » + partie de salle (Ajout 19)
     share: g.id === 'pegase' ? () => shareOpen('pegase') : undefined,                         // Pégase (hub) : « Partager Pégase » (Ajout 12)
     natif: NATIVE_APPS[g.id] ? nativeApi(g) : undefined,                                    // appli native (Android 1.8+) : carte « Android » du hub (Ajout 9)
     pad: PAD_DOM.has(g.id) ? undefined : padApi({ intro: () => { if (current && current.seq === seq) padIntro(g, null, true); } }),   // manettes (Ajout 10) : toutes pour le joueur

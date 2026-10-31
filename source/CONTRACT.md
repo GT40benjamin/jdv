@@ -303,3 +303,13 @@ Voix (borne 1.55) : `await api.live.voix()` → `{ token, url, room, identity }`
 ## Ajout 18 : la musique discrète pendant le micro (api.duck, facultatif ; borne 1.56.3, Abracadabra)
 `api.duck(true)` : la musique de la borne baisse (30 %) pendant qu'un jeu écoute au micro (90 s au plus) ; `api.duck(false)` la rend. Un jeu
 qui ne l'appelle pas ne change rien ; vérifier `api.duck` avant de l'appeler (vieilles bornes).
+
+## Ajout 19 : les cibles de Tête de Cible (api.cibles, seulement pour le module `flechettes` ; borne 1.61, serveur source/flechettes.sql)
+« Mes cibles » = l'étagère de chaque pseudo : l'image que le joueur importe lui-même (WebP ≤ 2 Mo) + les cibles qu'il y pose et leurs points
+(`zones` = `{ list: [{ x, y, a, b, r, pts, k? }], … }`, 30 ronds au plus, 0 à 500 points), 40 cibles au plus. Privé : seul le joueur la voit ;
+en partie de salle, les membres la lisent pendant 12 h au plus (jamais dans leur étagère, les records, la galerie ni les annonces).
+`api.cibles.info()` → `{ guest, online, server, name, room: { id, name } | null }` (`server` faux = flechettes.sql pas appliqué : le jeu garde
+ses cibles sur l'appareil et cache la partie de salle) ; `await list()` → `{ max, cibles: [{ id, nom, zones, w, h, best, envoye, path, at }] }` ;
+`await add(blob, nom, zones, w, h)` → `{ id, path }` ; `update(id, { nom?, zones?, best? })` (best = le plus grand gardé) ; `remove(id)` (efface
+aussi le fichier) ; `await image(path)` → adresse `blob:` (en mémoire seulement) ; `roomPut(id | null)` (mettre une de MES cibles en jeu dans la
+salle actuelle) ; `await roomList()` → `[{ name, id, nom, zones, w, h, path }]`. Invité : erreur `guest`. Le déroulé de la partie passe par `api.live`.

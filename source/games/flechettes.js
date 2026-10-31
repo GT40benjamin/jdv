@@ -160,10 +160,11 @@ window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES.flechettes = {
   id: 'flechettes',
   title: 'Tête de Cible',
-  tagline: 'Mets la photo que tu veux sur la cible en bois et vise l’œil !',
+  tagline: 'Fabrique ta cible avec ta photo, pose les cibles et leurs points, et lance tes fléchettes !',
   accent: '#ff8a2a',
   scoreLabel: 'points',
   fps: false,
+  live: true,   // partie de salle : api.live (CONTRACT.md Ajout 17) ; les cibles : api.cibles (Ajout 19)
   pad: { help: [['ls/dpad', 'Viser'], ['a/rt', 'Tenir pour la force, lâcher pour lancer']] },
   preview,
   mount,
