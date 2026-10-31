@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : de plus douces lumières la nuit (borne 1.62.12)
+[sensinterdit] 🌃 À Néon City, le liseré de lumière de ta voiture est plus discret : juste un contour.
+[sensinterdit] 💡 Les phares sur la route ne font plus de zone claire à bords nets devant ta voiture.
+[sensinterdit] ✨ Sous les portiques de Néon City, de fines traînées de lumière sur la route mouillée (fini les grandes flaques de couleur en travers de la route).
 [pegase] ## 🚪 Pégase 0.9.9.32 : portes, Désiré et oiseaux (borne 1.62.4)
 [pegase] 🚪 Les portes de l'hôtel (l'entrée et les 12 chambres) ont enfin de vrais battants qui s'ouvrent devant toi et se referment derrière, et plus aucune marche ne te bloque à la sortie.
 [pegase] 🏘️ Au village, les portes s'ouvrent vers dehors, bien visibles, et seulement pour quelqu'un qui entre vraiment ; la boulangerie n'a plus qu'une porte, Mathilde monte son escalier et Odette ne piétine plus sur son seuil.
