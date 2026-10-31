@@ -90,6 +90,9 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## 🪄 Abracadabra, en essai : un bâton plus beau (borne 1.62.19)
+[abracadabra] ✨ Le bâton est plus grand en main et son cristal brille dans une aura douce ; une étoile y scintille de temps en temps et trois lucioles dorées tournent autour (elles s'emballent quand tu parles et à chaque éclair).
+[abracadabra] 👀 Il ne passe plus sous la phrase d'aide ni contre le bouton SORT.
 [abracadabra] ## 🪄 Abracadabra : deux missions plus lisibles (borne 1.61.1)
 [abracadabra] ☃️ La boule de neige géante se détache enfin de la neige : son dessous est ombré de bleu, avec des traces de terre là où elle a roulé.
 [abracadabra] ☁️ Les îles volantes : les villageois attendent au bord de leur île, face à toi, et tu arrives plus près : on les voit bien mieux.
