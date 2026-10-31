@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : le son et les sensations (borne 1.62.27)
+[sensinterdit] 🔊 Dans les tunnels, le bruit du moteur et du vent résonne contre les parois.
+[sensinterdit] ⚙️ Le long de la glissière, on entend la tôle frotter tant qu'on la longe, et la manette vibre.
+[sensinterdit] 🚀 Au-delà de 450 km/h, le moteur continue de monter dans les aigus avec la vitesse.
+[sensinterdit] 🎮 La manette vibre aussi quand tu frôles une voiture, tous les 5 km, et beaucoup plus fort pour un accident à pleine vitesse.
+[sensinterdit] 💥 Les gros accidents, avec toutes leurs explosions, ne saturent plus le son.
 [sensinterdit] ## ⛔ Sens Interdit : plus beau sur ordinateur et en paysage (borne 1.62.24)
 [sensinterdit] 💨 Les traits de vitesse filent au ras des bas-côtés, plus discrets : fini les traits blancs en travers du ciel (surtout au Volcan).
 [sensinterdit] 🚗 Au Volcan, plus d'éclat blanc sur le capot : le soleil éclaire la voiture de côté.
