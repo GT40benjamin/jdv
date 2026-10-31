@@ -3310,4 +3310,4 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 
 /* 30 oct. : l'aile dorée sert d'accent au É de PÉGASE */
 #jdw-lib[data-mode="pegase"] .mode-hero h1 .pg-e{position:relative;display:inline-block;background:linear-gradient(180deg,#fff7d6 0%,#ffd36b 38%,#5ef0ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}   /* 31 oct. : le E a son propre dégradé (sinon certains navigateurs ne le dessinent pas sous l'aile) */
-#jdw-lib[data-mode="pegase"] .mode-hero h1 .pg-e .pg-wing{position:absolute;left:50%;bottom:74%;width:.7em;height:auto;margin:0;transform:translateX(-38%) rotate(-10deg);pointer-events:none}
+#jdw-lib[data-mode="pegase"] .mode-hero h1 .pg-e .pg-wing{position:absolute;left:50%;bottom:.9em;width:.62em;height:auto;margin:0;transform:translateX(-38%) rotate(-10deg);pointer-events:none}
