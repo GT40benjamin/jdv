@@ -56,6 +56,11 @@
 [sensinterdit] ## ⛔ Sens Interdit : un pick-up enfin complet (borne 1.62.1)
 [sensinterdit] 🛻 Le pick-up de la circulation a retrouvé son pare-brise et ses vitres teintées, ses rétroviseurs, son hayon, son pare-chocs arrière et ses feux.
 [sensinterdit] ✨ Sa calandre et ses pare-chocs sont chromés comme il faut (fini le damier noir et blanc), et ses pneus tout-terrain ne sont plus abîmés.
+[flechettes] ## 🎯 Tête de Cible : les portraits de tout le monde (borne 1.62.14)
+[flechettes] 🔓 Les cibles que vous aviez déjà faites remontent maintenant pour toute la salle, dès que chacun ouvre Tête de Cible : tu vois les portraits de tous tes copains dans ton étagère.
+[flechettes] 🔒 Sur chacune de tes tuiles, le petit cadenas : 🔓 = la salle la voit, 🔒 = toi seul. Touche-le pour changer ; ton choix est retenu.
+[flechettes] 🆕 Une nouvelle cible remonte d'office pour la salle.
+[flechettes] 🧱 Quand l'étagère se remplit, elle passe sur deux rangées pour voir tout le monde d'un coup d'œil.
 [flechettes] ## 🎯 Tête de Cible : les cibles de la salle et les cris (borne 1.62.11)
 [flechettes] 👀 Tes cibles remontent pour toute ta salle : celles de tes copains arrivent dans ton étagère (« de KIM »), tu tires dessus quand tu veux et tu y gardes ton record ; 👑 = le meilleur de la salle sur chaque cible.
 [flechettes] 🔒 Le bouton « 👀 Salle / 🔒 Moi » choisit, cible par cible, si la salle la voit ou si elle reste pour toi seul. Jamais en dehors de la salle.
