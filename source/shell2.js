@@ -13719,6 +13719,8 @@ function privApi() {
     onPoke: fn => { PRIV.subs.add(fn); return () => PRIV.subs.delete(fn); },
     back: fn => { PRIV.back = fn; },
     bar: () => $('jdw-me'),
+    topbar: () => $('jdw-play').querySelector('.topbar'),                  // barre du haut d'un jeu (le hub de Pégase)
+    game: () => (current && current.game && !$('jdw-play').hidden ? current.game.id : ''),
     online: () => !netOff(),
     app: !!window.JDWAndroid, touch: TOUCH,
     report: (m, d) => reportError(m, d, { quiet: true }),
