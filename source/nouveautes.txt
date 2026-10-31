@@ -132,6 +132,9 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## ⚡ Abracadabra, en essai : on arrive plus vite (borne 1.62.39)
+[abracadabra] 🪄 Le vol d'arrivée dans une mission est plus court (7 s, 5 s pour une mission déjà faite), et un toucher pendant le vol l'accélère.
+[abracadabra] 🧗 Mission 2 : tu arrives au pied de la falaise, les villageois en haut se voient bien.
 [abracadabra] ## 🤔 Abracadabra, en essai : « Tu voulais dire ? » (borne 1.62.36)
 [abracadabra] 🎤 Quand le bâton n'est pas sûr d'avoir compris (« un loup » entendu « allô », « un hibou » entendu « haribo »…), il te propose 2 ou 3 noms qui sonnent pareil en gros boutons : touche le bon et l'objet apparaît. Si aucun ne va, ignore-les : rien n'apparaît tout seul.
 [abracadabra] ## 👀 Abracadabra, en essai : on voit mieux les villageois (borne 1.62.35)
