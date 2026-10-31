@@ -92,6 +92,9 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## 🏝️ Abracadabra, en essai : de vrais palmiers (borne 1.62.21)
+[abracadabra] 🌴 Les palmiers, les buissons tropicaux et les palmes sèches ont enfin leurs vraies feuilles (avant, de grandes plaques vertes et blanches), sur l'île de la mission 6 comme à l'oasis du désert.
+[abracadabra] 🏖️ Mission 6 : un sable doré au lieu d'un blanc qui éblouissait, et un soleil un peu plus doux.
 [abracadabra] ## 🪄 Abracadabra, en essai : un bâton plus beau (borne 1.62.19)
 [abracadabra] ✨ Le bâton est plus grand en main et son cristal brille dans une aura douce ; une étoile y scintille de temps en temps et trois lucioles dorées tournent autour (elles s'emballent quand tu parles et à chaque éclair).
 [abracadabra] 👀 Il ne passe plus sous la phrase d'aide ni contre le bouton SORT.
