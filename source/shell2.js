@@ -9,7 +9,7 @@ const ORDER = ['abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono',
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
   abracadabra: { kind: 'maj', at: '2026-10-31 19:52' },   // Abracadabra (en essai) : tour des missions — répliques justes, gros objets qui ne bouchent plus la vue, une seule aide
-  sensinterdit: { kind: 'maj', at: '2026-10-31 19:37' },   // Sens Interdit (borne 1.62.27) : écho des tunnels, glissière, moteur, vibrations ; 1.62.24 : traits de vitesse, capot, phare, aide des touches ; 1.62.20 : panache en colonne puis champignon ; 1.62.18 : voiles du Col plus fins et plus hauts ; 1.62.15 : route usée, anneaux qui s'éteignent, phares doux ; 1.62.13 : panache de cendre, voiture sans halo au Volcan ; 1.62.12 : liseré plus discret, phares sans bords nets, traînées sous les portiques ; 1.62.10 : ciel du Col, feux d'artifice, voiture bordée de lumière la nuit, titre du monde ; 1.62.9 : la Route des Étoiles plus belle (cristaux, espace sous la route) ; 1.62.8 : le Volcan plus beau (volcan, coulées, croûtes, fissures, arches) ; 1.62.7 : Néon City plus belle (façades, toits, reflets sur la route) ; 1.62.6 : le Col des Neiges plus beau (montagnes, sapins, rochers, lac, prés) ; 1.62.5 : la Corniche en vraie garrigue (sol, massifs, buissons, cyprès, palmiers verts) ; 1.62.3 : la Corniche plus belle (villas, muret, bougainvilliers, cyprès) ; 1.62.2 : de belles nuits, sans taches de lumière ; 1.62.1 : un pick-up enfin complet (vitres, feux, hayon, calandre chromée) ; 1.55.10 : les voitures bien posées sur la route ; 1.55.5 : les traits des copains arrivent en direct pendant la partie ; 1.55.4 : plus jamais collé à la glissière, le dernier appui gagne ; SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
+  sensinterdit: { kind: 'maj', at: '2026-10-31 19:58' },   // Sens Interdit (borne 1.62.29) : musique de l'espace aux Étoiles, même volume partout ; 1.62.27 : écho des tunnels, glissière, moteur, vibrations ; 1.62.24 : traits de vitesse, capot, phare, aide des touches ; 1.62.20 : panache en colonne puis champignon ; 1.62.18 : voiles du Col plus fins et plus hauts ; 1.62.15 : route usée, anneaux qui s'éteignent, phares doux ; 1.62.13 : panache de cendre, voiture sans halo au Volcan ; 1.62.12 : liseré plus discret, phares sans bords nets, traînées sous les portiques ; 1.62.10 : ciel du Col, feux d'artifice, voiture bordée de lumière la nuit, titre du monde ; 1.62.9 : la Route des Étoiles plus belle (cristaux, espace sous la route) ; 1.62.8 : le Volcan plus beau (volcan, coulées, croûtes, fissures, arches) ; 1.62.7 : Néon City plus belle (façades, toits, reflets sur la route) ; 1.62.6 : le Col des Neiges plus beau (montagnes, sapins, rochers, lac, prés) ; 1.62.5 : la Corniche en vraie garrigue (sol, massifs, buissons, cyprès, palmiers verts) ; 1.62.3 : la Corniche plus belle (villas, muret, bougainvilliers, cyprès) ; 1.62.2 : de belles nuits, sans taches de lumière ; 1.62.1 : un pick-up enfin complet (vitres, feux, hayon, calandre chromée) ; 1.55.10 : les voitures bien posées sur la route ; 1.55.5 : les traits des copains arrivent en direct pendant la partie ; 1.55.4 : plus jamais collé à la glissière, le dernier appui gagne ; SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
   magic: { kind: 'maj', at: '2026-10-20 23:40' },   // 6 mondes tous différents, le Jardin et le Vieux Chêne, grande victoire (chantier 24 ; heure = celle de la publication)
   ilo: { kind: 'new', at: '2026-10-12 00:27' },
@@ -1614,8 +1614,11 @@ function musicMeta(b) {
   let s = 0; while (s < n - 1 && db[s] < -45) s++; let e = n - 1; while (e > s && db[e] < -45) e--;
   let pw = 0, cnt = 0; for (let i = s; i <= e; i++) if (db[i] > -40) { pw += Math.pow(10, db[i] / 10); cnt++; }
   const rms = cnt ? 10 * Math.log10(pw / cnt) : -20;
-  return (b._m = { s: s * 0.05, e: Math.min(b.duration, (e + 1) * 0.05), g: Math.min(2, Math.max(0.5, Math.pow(10, (-20.5 - rms) / 20))) });
+  return (b._m = { s: s * 0.05, e: Math.min(b.duration, (e + 1) * 0.05), g: Math.min(2, Math.max(0.5, Math.pow(10, (-20.5 - rms) / 20))), r: rms });
 }
+// 31 oct. 2026 (Sens Interdit : une musique par monde, venues de collections différentes, jusqu'à 6 dB d'écart) : un jeu qui demande
+// api.music(id, { level: true }) a chaque morceau ramené au niveau des musiques de la collection (−18,5 dB RMS des passages joués)
+function musicLvl(b) { return Math.min(1.6, Math.max(0.3, Math.pow(10, (-18.5 - musicMeta(b).r) / 20))); }
 function musicLoop(id, b, when, fadeIn, seq, list, idx) {
   const A = Audio.ctx;
   if (!MUS.gain) { MUS.gain = A.createGain(); MUS.gain.gain.value = musicLevel(); MUS.gain.connect(A.destination); }
@@ -1630,9 +1633,9 @@ function musicLoop(id, b, when, fadeIn, seq, list, idx) {
     MUS.suiteLog = (MUS.suiteLog || []).concat([[list ? list[idx] : id, +when.toFixed(2), +len.toFixed(1)]]).slice(-12);   // journal (essais)
     return musicNext(id, b, end, XF, seq, list, idx, src, g);
   }
-  const end = when + b.duration;
-  g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(1, when + fadeIn);
-  g.gain.setValueAtTime(1, end - XFADE); g.gain.exponentialRampToValueAtTime(0.0001, end);
+  const end = when + b.duration, lv = MUS.level ? musicLvl(b) : 1;
+  g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(lv, when + fadeIn);
+  g.gain.setValueAtTime(lv, end - XFADE); g.gain.exponentialRampToValueAtTime(0.0001, end);
   src.start(when); src.stop(end + 0.05);
   return musicNext(id, b, end, XFADE, seq, list, idx, src, g);
 }
@@ -1647,12 +1650,12 @@ function musicNext(id, b, end, XF, seq, list, idx, src, g) {
   MUS.loopT = setTimeout(() => {
     if (MUS.seq !== seq || MUS.id !== id) return;
     // un jeu a demandé le morceau suivant « à la fin de celui-ci » (api.music(id, { after: true })) : il commence maintenant, en fondu
-    if (MUS.queue) { const q = MUS.queue; MUS.queue = null; setMusic(q.id, q.mode); return; }
+    if (MUS.queue) { const q = MUS.queue; MUS.queue = null; setMusic(q.id, q.mode, q.level); return; }
     musicLoop(id, nextBuf || b, end - XF, XF, seq, list, nextBuf ? nextIdx : idx);
   }, Math.max(0, (end - XF - A.currentTime - 0.4) * 1000));
 }
-async function setMusic(id, mode) {
-  mode = mode || 'calm'; MUS.queue = null;
+async function setMusic(id, mode, level) {
+  mode = mode || 'calm'; MUS.queue = null; MUS.level = !!level;
   MUS.want = id || ''; MUS.wantMode = mode;
   if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
   if (MUS.id === id && MUS.mode === mode && MUS.cur) return;
@@ -9882,8 +9885,8 @@ function mountGame(g) {
     music: (track, o) => {
       if (!current || current.seq !== seq) return;
       // { after: true } (30 oct., Sens Interdit) : le morceau en cours se finit en entier, puis ce morceau-là commence
-      if (o && o.after && track && MUS.on && MUS.cur && MUS.id && MUS.id !== track) { MUS.override = true; MUS.queue = { id: track, mode: 'calm' }; return; }
-      if (track && track !== g.id) { MUS.override = true; setMusic(track, 'calm'); return; }
+      if (o && o.after && track && MUS.on && MUS.cur && MUS.id && MUS.id !== track) { MUS.override = true; MUS.queue = { id: track, mode: 'calm', level: !!o.level }; return; }
+      if (track && track !== g.id) { MUS.override = true; setMusic(track, 'calm', !!(o && o.level)); return; }
       MUS.override = false;
       let lvl = 0; try { lvl = current.inst && current.inst.currentLevel ? +current.inst.currentLevel() : 0; } catch (e) {}
       setMusic(g.id, lvl >= (INTENSE_AT[g.id] || 99) ? 'intense' : 'calm');

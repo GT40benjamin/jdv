@@ -177,6 +177,7 @@ function mount(root, api) {
     endInfo() { return inst && inst.endInfo ? inst.endInfo() : null; },   // résumé de l'écran de fin : vitesse max en grand, distance   // jusqu'où je suis allé, en dizaines de mètres (la ligne des copains)
   };
   Object.defineProperty(proxy, '_d', { get: () => inst && inst._d, configurable: true });   // essais (harnais)
+  proxy._jump = (d) => inst && inst._jump && inst._jump(d);   // essais (tests/son-mondes.js)
   proxy._boom = () => inst && inst._boom && inst._boom();   // essais : une voiture posée juste devant
   return proxy;
 }
