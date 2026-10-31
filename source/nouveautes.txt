@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : une route qui a vécu (borne 1.62.15)
+[sensinterdit] 🛣️ La route n'est plus d'un gris tout uni : grain du bitume, traces des pneus dans chaque voie, morceaux rapiécés, fissures et taches d'huile.
+[sensinterdit] 💫 Sur la Route des Étoiles, les grands anneaux s'éteignent doucement en passant au-dessus de toi (en portrait, on ne voit plus d'arc coupé par l'écran).
+[sensinterdit] 🔦 La nuit, la lumière de tes phares sur la route est plus douce : plus de tache pâle devant la voiture.
 [sensinterdit] ## ⛔ Sens Interdit : le Volcan sans éblouissement (borne 1.62.13)
 [sensinterdit] 🌋 Quand le volcan entre en éruption, un vrai panache de cendre sombre monte et s'étale dans le ciel, rougi par la lave (fini la grosse boule jaune).
 [sensinterdit] 🚗 Au Volcan, ta voiture n'est plus éblouie : elle garde sa couleur, avec de beaux reflets, sans halo orange.
