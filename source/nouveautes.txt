@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🪽 Le logo PÉGASE : le E est bien visible sous l'aile (borne 1.58.4)
+[pegase] 🪽 Sur certains téléphones, le E de PÉGASE disparaissait sous l'aile dorée : il est maintenant toujours dessiné.
 [pegase] ## 📱 Pégase 0.9.9.31 : pêche au téléphone, cascades et fourmis (borne 1.58.3)
 [pegase] 📱 Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.
 [pegase] 🎥 Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.
