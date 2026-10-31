@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🚪 Pégase 0.9.9.33 : portes doubles et animaux bien posés (borne 1.62.17)
+[pegase] 🚪 À l'hôtel, l'entrée et les 12 chambres ont maintenant de vraies portes à deux battants, qui s'ouvrent ensemble devant toi et se referment derrière.
+[pegase] 🐐 Les bouquetins se reposent sur les replats au bord de leur rocher, plus jamais dans la pente, et les vaches Highland ne partagent plus la même place.
+[pegase] 🐄 Plus aucun animal ne se pose dans un rocher ou dans un objet du décor, et les animaux se mettent en place bien plus vite au chargement.
+[pegase] 🎣 La pêche est plus solide : un combat ne peut plus rester bloqué au bord de l'eau.
+[pegase] 🎣 Quand l'héroïne charge et lance sa canne, sa main gauche ne flotte plus ouverte en l'air.
 [sensinterdit] ## ⛔ Sens Interdit : une route qui a vécu (borne 1.62.15)
 [sensinterdit] 🛣️ La route n'est plus d'un gris tout uni : grain du bitume, traces des pneus dans chaque voie, morceaux rapiécés, fissures et taches d'huile.
 [sensinterdit] 💫 Sur la Route des Étoiles, les grands anneaux s'éteignent doucement en passant au-dessus de toi (en portrait, on ne voit plus d'arc coupé par l'écran).

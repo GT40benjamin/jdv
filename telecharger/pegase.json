@@ -1,24 +1,32 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 80,
-  "versionName": "0.9.9.32",
-  "size": 1233132410,
-  "sha256": "9f7d5e64d01848766fd984fba3e5d3e7fe2363ae2022fc0942c758ba43c01eb5",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v80/pegase-0.9.9.32.apk",
+  "versionCode": 81,
+  "versionName": "0.9.9.33",
+  "size": 1233152810,
+  "sha256": "8ef31ca1810ad731dd844ee9eb97a565ed48b6758fd3b3b3dd8b9f15c688dbef",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v81/pegase-0.9.9.33.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les portes de l'hôtel (l'entrée et les 12 chambres) ont enfin de vrais battants qui s'ouvrent devant toi et se referment derrière, et plus aucune marche ne te bloque à la sortie.",
-    "Au village, les portes s'ouvrent vers dehors, bien visibles, et seulement pour quelqu'un qui entre vraiment ; la boulangerie n'a plus qu'une porte, Mathilde monte son escalier et Odette ne piétine plus sur son seuil.",
-    "Au bar, Désiré fait des gestes en parlant, vient poser ton verre devant toi de sa main, puis retourne à son poste.",
-    "Les oiseaux ont des ailes à leur vraie taille, battent vite et se redressent pour se poser ; ils ne bougent plus tous en même temps.",
-    "Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.",
-    "À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.",
-    "Sur téléphone, l'interface est mieux dimensionnée."
+    "À l'hôtel, l'entrée et les 12 chambres ont maintenant de vraies portes à deux battants, qui s'ouvrent ensemble devant toi et se referment derrière.",
+    "Les bouquetins se reposent sur les replats au bord de leur rocher, plus jamais dans la pente, et les vaches Highland ne partagent plus la même place.",
+    "Plus aucun animal ne se pose dans un rocher ou dans un objet du décor, et les animaux se mettent en place bien plus vite au chargement.",
+    "La pêche est plus solide : un combat ne peut plus rester bloqué au bord de l'eau.",
+    "Quand l'héroïne charge et lance sa canne, sa main gauche ne flotte plus ouverte en l'air."
   ],
   "historique": [
+    {
+      "version": "0.9.9.33",
+      "notes": [
+        "À l'hôtel, l'entrée et les 12 chambres ont maintenant de vraies portes à deux battants, qui s'ouvrent ensemble devant toi et se referment derrière.",
+        "Les bouquetins se reposent sur les replats au bord de leur rocher, plus jamais dans la pente, et les vaches Highland ne partagent plus la même place.",
+        "Plus aucun animal ne se pose dans un rocher ou dans un objet du décor, et les animaux se mettent en place bien plus vite au chargement.",
+        "La pêche est plus solide : un combat ne peut plus rester bloqué au bord de l'eau.",
+        "Quand l'héroïne charge et lance sa canne, sa main gauche ne flotte plus ouverte en l'air."
+      ]
+    },
     {
       "version": "0.9.9.32",
       "notes": [
@@ -53,14 +61,6 @@
         "Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.",
         "Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.",
         "Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier."
-      ]
-    },
-    {
-      "version": "0.9.9.28",
-      "notes": [
-        "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
-        "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
-        "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
       ]
     }
   ]
