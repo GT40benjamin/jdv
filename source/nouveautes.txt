@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : la Corniche plus belle (borne 1.62.3)
+[sensinterdit] 🏡 Au bord de la Corniche, de nouvelles villas : une maison ocre à volets bleus avec sa terrasse, et une villa rose aux arcades blanches.
+[sensinterdit] 🌺 Un vrai bord de route provençal : muret de pierre, haies, bougainvilliers en fleurs et grands cyprès.
+[sensinterdit] 💥 Et à pleine vitesse, les nouvelles villas basculent elles aussi quand tu t'écrases.
 [sensinterdit] ## ⛔ Sens Interdit : de belles nuits, sans taches de lumière (borne 1.62.2)
 [sensinterdit] 🌌 Route des Étoiles : plus de grande bande blanche à côté de ta voiture (la lune se reflétait trop sur la route, maintenant satinée).
 [sensinterdit] 💡 Les phares des voitures d'en face ne font plus de traînée lumineuse quand tu les croises de près.
