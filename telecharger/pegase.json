@@ -1,20 +1,28 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 78,
-  "versionName": "0.9.9.30",
-  "size": 1233090622,
-  "sha256": "55369cc2ffa9d7d9e90c122e7616eeb9f479d67febebb671570fd2913496f457",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v78/pegase-0.9.9.30.apk",
+  "versionCode": 79,
+  "versionName": "0.9.9.31",
+  "size": 1233084894,
+  "sha256": "ace5a16535ce602ab6d64b7dbbca66ec9b7a3e41ca8400c0adadbc8cdf6ae719",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v79/pegase-0.9.9.31.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "La caméra ne se perd plus dans les plantes en pot, les buissons et les lampadaires du village : ils s'effacent pour laisser voir l'héroïne.",
-    "Les oiseaux qui sautillent au sol restent sur le vrai sol : plus d'oiseau enfoncé dans une marche, une butte ou une falaise.",
-    "Rivières et cascades : il n'y a plus d'endroit où l'on marche sous l'eau, l'héroïne s'arrête au bord partout."
+    "Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.",
+    "Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.",
+    "Les fourmilières ne sont plus collées aux maisons ni sous les toits, et leurs pistes ne traversent plus les murs."
   ],
   "historique": [
+    {
+      "version": "0.9.9.31",
+      "notes": [
+        "Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.",
+        "Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.",
+        "Les fourmilières ne sont plus collées aux maisons ni sous les toits, et leurs pistes ne traversent plus les murs."
+      ]
+    },
     {
       "version": "0.9.9.30",
       "notes": [
@@ -45,17 +53,6 @@
         "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
         "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
         "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
-      ]
-    },
-    {
-      "version": "0.9.9.26",
-      "notes": [
-        "Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.",
-        "À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.",
-        "Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.",
-        "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
-        "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
-        "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
       ]
     }
   ]

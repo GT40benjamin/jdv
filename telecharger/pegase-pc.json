@@ -1,36 +1,44 @@
 {
-  "version": "0.9.9.30",
-  "build": 81,
-  "size": 1668422776,
-  "sha256": "517ae558718bef2f149d65d63534bb808f4865a2a6858f95fbd72a264d146534",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v81/Pegase-PC-2026-10-30-0.9.9.30.zip",
-  "manifest": "f5b9062472685938dc0404c56aad2c47f2338db3f97ea88380a8778c11338dd5",
+  "version": "0.9.9.31",
+  "build": 82,
+  "size": 1668438928,
+  "sha256": "4e2195a3fbbb787831e1675d35cfb4501417c10f2470ca1d3c3560d5198206fb",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v82/Pegase-PC-2026-10-30-0.9.9.31.zip",
+  "manifest": "39f0807a6123ef446e261029b876ca4c8bfb10ba9bb0822551f3ab0ae9688c89",
   "patchs": [
     {
+      "de": "0.9.9.30",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v82/Pegase-PC-patch-0.9.9.30.zip",
+      "taille": 3824450,
+      "sha256": "9a693f1bc250361e1067beaa125d80b25d3501a122f5c628b63fff619b83a862"
+    },
+    {
       "de": "0.9.9.29",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v81/Pegase-PC-patch-0.9.9.29.zip",
-      "taille": 2845143,
-      "sha256": "c96a06c94fb18ff92eebd16c50ae1a4054655564b841945d275cf33318a448f6"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v82/Pegase-PC-patch-0.9.9.29.zip",
+      "taille": 4457940,
+      "sha256": "3934b17c406e484c365c9a33a181fad9904380a0e37edf4c7db6030ee0e52c6b"
     },
     {
       "de": "0.9.9.28",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v81/Pegase-PC-patch-0.9.9.28.zip",
-      "taille": 3157344,
-      "sha256": "b4139610223cfc19823a6c66ca776ac73866ed742385159426622af29082ff01"
-    },
-    {
-      "de": "0.9.9.27",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v81/Pegase-PC-patch-0.9.9.27.zip",
-      "taille": 2604266,
-      "sha256": "7d5ea04ca9b338ab9fa9ae28ac5a35ab0bfeadc68cccb6cb086820a0a7045706"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v82/Pegase-PC-patch-0.9.9.28.zip",
+      "taille": 4393877,
+      "sha256": "5e2bb198911872342b353f70346b3b6ae2db24629a7ae28351db06cf478a3eda"
     }
   ],
   "notes": [
-    "La caméra ne se perd plus dans les plantes en pot, les buissons et les lampadaires du village : ils s'effacent pour laisser voir l'héroïne.",
-    "Les oiseaux qui sautillent au sol restent sur le vrai sol : plus d'oiseau enfoncé dans une marche, une butte ou une falaise.",
-    "Rivières et cascades : il n'y a plus d'endroit où l'on marche sous l'eau, l'héroïne s'arrête au bord partout."
+    "Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.",
+    "Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.",
+    "Les fourmilières ne sont plus collées aux maisons ni sous les toits, et leurs pistes ne traversent plus les murs."
   ],
   "historique": [
+    {
+      "version": "0.9.9.31",
+      "notes": [
+        "Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.",
+        "Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.",
+        "Les fourmilières ne sont plus collées aux maisons ni sous les toits, et leurs pistes ne traversent plus les murs."
+      ]
+    },
     {
       "version": "0.9.9.30",
       "notes": [
@@ -61,17 +69,6 @@
         "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
         "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
         "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
-      ]
-    },
-    {
-      "version": "0.9.9.26",
-      "notes": [
-        "Sur téléphone, l'atelier « Écris ta carte » tient enfin dans l'écran, même en portrait sur un petit téléphone.",
-        "À la fin d'une mission, les habitants vous vouvoient jusqu'au bout puis vous proposent de vous tutoyer (Papi Auguste, Gaspard, Basile) ; Edmond ne promet plus de clients « à 10 h » le soir.",
-        "Au potager, une case remise en herbe se rebêche à la houe, et le râteau ne déterre plus une plante qui pousse.",
-        "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
-        "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
-        "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
       ]
     }
   ]
