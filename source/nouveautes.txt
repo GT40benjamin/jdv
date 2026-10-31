@@ -14,6 +14,9 @@
 [pegase] 🐄 Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.
 [pegase] 🎮 À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.
 [pegase] 📱 Sur téléphone, l'interface est mieux dimensionnée.
+[sensinterdit] ## ⛔ Sens Interdit : la Route des Étoiles plus belle (borne 1.62.9)
+[sensinterdit] 💎 De vraies grappes de cristaux à six pans qui brillent de leur couleur (violet, bleu, rose), avec des pointes claires.
+[sensinterdit] 🌌 Sous la route, l'espace : des nébuleuses colorées et des étoiles de toutes tailles, qui se fondent dans le ciel au loin (fini le grand sol sombre coupé net à l'horizon).
 [sensinterdit] ## ⛔ Sens Interdit : le Volcan plus beau (borne 1.62.8)
 [sensinterdit] 🌋 Le volcan a de vrais flancs découpés, rougis par le ciel, et des coulées de lave qui descendent de son cratère vers la route.
 [sensinterdit] 🪨 Les rivières de lave sont bordées de croûtes de roche noire, et le sol de cendre est parcouru de fissures qui rougeoient.
