@@ -1,24 +1,34 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 82,
-  "versionName": "0.9.9.34",
-  "size": 1233112622,
-  "sha256": "63a3cce726f1f04b4147e69fd37f1e66c07a5397353c1bcc41abb0a129340cf2",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v82/pegase-0.9.9.34.apk",
+  "versionCode": 83,
+  "versionName": "0.9.9.35",
+  "size": 1233265202,
+  "sha256": "a8661b1de9e69eff97a6326354aaa7d82e330458e89cfc7da2c3f94b7a191f83",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v83/pegase-0.9.9.35.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Pendant l'arrivée en avion, la barre d'objets ne s'affiche plus sur le tableau de bord.",
-    "Dans les choix de dialogue, le texte passe à la ligne avant la pastille « Entrée » au lieu de passer dessous.",
-    "À l'hôtel, les jardinières ont retrouvé leurs fleurs, et les clients ne se collent plus à toi : ils gardent leurs distances et se contournent.",
-    "À l'hôtel, les portes des chambres s'ouvrent en grand quand un client sort, plus à moitié.",
-    "Quand l'héroïne lance sa canne, elle regarde l'eau puis le point de chute : elle ne se plie plus en arrière.",
-    "Les animaux de la ferme et des troupeaux ne se marchent plus dessus : ils regardent devant eux, s'écartent à temps et ne glissent plus de côté.",
-    "À la pêche, le fil casse moins vite quand l'aiguille est dans le rouge : tu as le temps de relâcher (avant, un gros poisson cassait presque toujours)."
+    "À vélo, tu ralentis en douceur avant une pente raide, une marche ou un mur au lieu de t'arrêter net, et le pédalier ne tourne plus quand tu ne pédales pas.",
+    "On entend enfin la mer sur les plages.",
+    "Pendant le combat, l'héroïne tourne vraiment la manivelle de la main gauche.",
+    "En sortant de l'avion, la caméra ne frôle plus la porte.",
+    "Les poissons rouges de la fontaine sont petits, comme de vrais poissons rouges, et ne se traversent plus.",
+    "Les ronds dans l'eau autour des canards et des poissons n'ont plus de bord carré."
   ],
   "historique": [
+    {
+      "version": "0.9.9.35",
+      "notes": [
+        "À vélo, tu ralentis en douceur avant une pente raide, une marche ou un mur au lieu de t'arrêter net, et le pédalier ne tourne plus quand tu ne pédales pas.",
+        "On entend enfin la mer sur les plages.",
+        "Pendant le combat, l'héroïne tourne vraiment la manivelle de la main gauche.",
+        "En sortant de l'avion, la caméra ne frôle plus la porte.",
+        "Les poissons rouges de la fontaine sont petits, comme de vrais poissons rouges, et ne se traversent plus.",
+        "Les ronds dans l'eau autour des canards et des poissons n'ont plus de bord carré."
+      ]
+    },
     {
       "version": "0.9.9.34",
       "notes": [
@@ -59,14 +69,6 @@
         "Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.",
         "Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.",
         "Les fourmilières ne sont plus collées aux maisons ni sous les toits, et leurs pistes ne traversent plus les murs."
-      ]
-    },
-    {
-      "version": "0.9.9.30",
-      "notes": [
-        "La caméra ne se perd plus dans les plantes en pot, les buissons et les lampadaires du village : ils s'effacent pour laisser voir l'héroïne.",
-        "Les oiseaux qui sautillent au sol restent sur le vrai sol : plus d'oiseau enfoncé dans une marche, une butte ou une falaise.",
-        "Rivières et cascades : il n'y a plus d'endroit où l'on marche sous l'eau, l'héroïne s'arrête au bord partout."
       ]
     }
   ]
