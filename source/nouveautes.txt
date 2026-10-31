@@ -146,6 +146,9 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## 💬 Abracadabra, en essai : des villageois pleins de caractère (borne 1.62.47)
+[abracadabra] 👴 Chacun réagit à sa façon : le grand-père ronchonne, la fillette s'émerveille, le fermier se demande à quoi ça sert, la maman s'inquiète, le garçon fait le malin, la grand-mère n'a pas bien entendu… avec leurs gestes à eux.
+[abracadabra] ⚡ Quand tu enchaînes les objets : « Encore ?! », « Mais combien il en fait ?! », « On n'a plus de place ! »… et ils rient des objets absurdes. Jamais deux fois la même phrase dans une mission.
 [abracadabra] ## 🎤 Abracadabra, en essai : enchaîne les mots ! (borne 1.62.45)
 [abracadabra] 🎤 Après SORT, le bâton t'écoute tant que tu n'as pas trouvé : plus de coupure à la fin d'une phrase ni au silence (il se repose tout seul après 20 s sans un mot, ou quand tu retouches SORT).
 [abracadabra] ⚡ Dis plusieurs noms à la suite (« une vache, un tonneau, un piano ») : ils sortent du bâton l'un après l'autre, vite (une demi-seconde chacun), sans repasser par SORT.
