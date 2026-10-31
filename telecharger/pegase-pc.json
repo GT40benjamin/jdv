@@ -1,36 +1,44 @@
 {
-  "version": "0.9.9.29",
-  "build": 80,
-  "size": 1668417399,
-  "sha256": "48a9a0d72f7e1f778a03a7096b1628e8b6b4ff4e42f405c6746db64b9d562efb",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v80/Pegase-PC-2026-10-30-0.9.9.29.zip",
-  "manifest": "c3dbfbf7dcf1fcf8b61f06399b6fb31977b82dc01caee13d4857ffa5dff46229",
+  "version": "0.9.9.30",
+  "build": 81,
+  "size": 1668422776,
+  "sha256": "517ae558718bef2f149d65d63534bb808f4865a2a6858f95fbd72a264d146534",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v81/Pegase-PC-2026-10-30-0.9.9.30.zip",
+  "manifest": "f5b9062472685938dc0404c56aad2c47f2338db3f97ea88380a8778c11338dd5",
   "patchs": [
     {
+      "de": "0.9.9.29",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v81/Pegase-PC-patch-0.9.9.29.zip",
+      "taille": 2845143,
+      "sha256": "c96a06c94fb18ff92eebd16c50ae1a4054655564b841945d275cf33318a448f6"
+    },
+    {
       "de": "0.9.9.28",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v80/Pegase-PC-patch-0.9.9.28.zip",
-      "taille": 3082990,
-      "sha256": "b03658ddb84f1a2fda6441bf1eddeb7f9ae16d0ed81dd865554ac8f5f581ddd6"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v81/Pegase-PC-patch-0.9.9.28.zip",
+      "taille": 3157344,
+      "sha256": "b4139610223cfc19823a6c66ca776ac73866ed742385159426622af29082ff01"
     },
     {
       "de": "0.9.9.27",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v80/Pegase-PC-patch-0.9.9.27.zip",
-      "taille": 3268176,
-      "sha256": "b2245b1cc69c756388cda2973df388aa477719fae17fb605fd1cc07024386f46"
-    },
-    {
-      "de": "0.9.9.26",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v80/Pegase-PC-patch-0.9.9.26.zip",
-      "taille": 3527894,
-      "sha256": "17b56bec1f1528e8a9d0a2e0fa1678d994acf38ee86c58392f0589910de50fab"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v81/Pegase-PC-patch-0.9.9.27.zip",
+      "taille": 2604266,
+      "sha256": "7d5ea04ca9b338ab9fa9ae28ac5a35ab0bfeadc68cccb6cb086820a0a7045706"
     }
   ],
   "notes": [
-    "Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.",
-    "Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.",
-    "Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier."
+    "La caméra ne se perd plus dans les plantes en pot, les buissons et les lampadaires du village : ils s'effacent pour laisser voir l'héroïne.",
+    "Les oiseaux qui sautillent au sol restent sur le vrai sol : plus d'oiseau enfoncé dans une marche, une butte ou une falaise.",
+    "Rivières et cascades : il n'y a plus d'endroit où l'on marche sous l'eau, l'héroïne s'arrête au bord partout."
   ],
   "historique": [
+    {
+      "version": "0.9.9.30",
+      "notes": [
+        "La caméra ne se perd plus dans les plantes en pot, les buissons et les lampadaires du village : ils s'effacent pour laisser voir l'héroïne.",
+        "Les oiseaux qui sautillent au sol restent sur le vrai sol : plus d'oiseau enfoncé dans une marche, une butte ou une falaise.",
+        "Rivières et cascades : il n'y a plus d'endroit où l'on marche sous l'eau, l'héroïne s'arrête au bord partout."
+      ]
+    },
     {
       "version": "0.9.9.29",
       "notes": [
@@ -64,17 +72,6 @@
         "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
         "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
         "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
-      ]
-    },
-    {
-      "version": "0.9.9.25",
-      "notes": [
-        "Village : les habitants qui ne vous connaissent pas encore vous vouvoient partout (Désiré au bar, Edmond, Gaspard, Basile, Mathilde…), et Gaspard est bien à son ponton après une nuit de sommeil.",
-        "Hôtel et boutiques : la nuit, le hall de l'hôtel s'éclaire de lampes dorées ; à la fermeture, le commerçant vous dit au revoir et vous raccompagne dehors.",
-        "Plus d'herbe ni de fleurs à travers les planchers des bâtiments ; les bulles se cachent quand une fenêtre est ouverte ; les petits messages ont un fond bien lisible.",
-        "Animaux : les chiens du village ne se traversent plus, se posent sur les perrons, aboient doucement quand vous arrivez et respirent en dormant ; les chats ne se laissent plus marcher dessus ; l'oie de l'enclos cacarde, et sa photo est reconnue même quand elle broute.",
-        "Pêche : la caméra de la prise ne se cache plus dans les rochers ni les herbes, la prise est bien cadrée sur téléphone, et la barre d'outils ne recouvre plus la carte de prise.",
-        "Vélo : il s'arrête net au pied des escaliers des ponts, avec le bon message."
       ]
     }
   ]

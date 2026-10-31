@@ -1,20 +1,28 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 77,
-  "versionName": "0.9.9.29",
-  "size": 1233102122,
-  "sha256": "8ad8faff1242c196e177b3eb887e0605ea8d1f803727d8bc1cd3dff8915f0c32",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v77/pegase-0.9.9.29.apk",
+  "versionCode": 78,
+  "versionName": "0.9.9.30",
+  "size": 1233090622,
+  "sha256": "55369cc2ffa9d7d9e90c122e7616eeb9f479d67febebb671570fd2913496f457",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v78/pegase-0.9.9.30.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.",
-    "Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.",
-    "Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier."
+    "La caméra ne se perd plus dans les plantes en pot, les buissons et les lampadaires du village : ils s'effacent pour laisser voir l'héroïne.",
+    "Les oiseaux qui sautillent au sol restent sur le vrai sol : plus d'oiseau enfoncé dans une marche, une butte ou une falaise.",
+    "Rivières et cascades : il n'y a plus d'endroit où l'on marche sous l'eau, l'héroïne s'arrête au bord partout."
   ],
   "historique": [
+    {
+      "version": "0.9.9.30",
+      "notes": [
+        "La caméra ne se perd plus dans les plantes en pot, les buissons et les lampadaires du village : ils s'effacent pour laisser voir l'héroïne.",
+        "Les oiseaux qui sautillent au sol restent sur le vrai sol : plus d'oiseau enfoncé dans une marche, une butte ou une falaise.",
+        "Rivières et cascades : il n'y a plus d'endroit où l'on marche sous l'eau, l'héroïne s'arrête au bord partout."
+      ]
+    },
     {
       "version": "0.9.9.29",
       "notes": [
@@ -48,17 +56,6 @@
         "Les poissons rouges de la fontaine sont enfin rouges, dans une eau plus claire ; un papillon caché derrière une tige ne compte plus sur une photo.",
         "Le chat couché respire, et le grand-duc est bien posé sur son rocher.",
         "Musée : les plaques des aquariums se voient enfin, et celles des aquariums et de la serre ne se chevauchent plus, même avec une grande collection."
-      ]
-    },
-    {
-      "version": "0.9.9.25",
-      "notes": [
-        "Village : les habitants qui ne vous connaissent pas encore vous vouvoient partout (Désiré au bar, Edmond, Gaspard, Basile, Mathilde…), et Gaspard est bien à son ponton après une nuit de sommeil.",
-        "Hôtel et boutiques : la nuit, le hall de l'hôtel s'éclaire de lampes dorées ; à la fermeture, le commerçant vous dit au revoir et vous raccompagne dehors.",
-        "Plus d'herbe ni de fleurs à travers les planchers des bâtiments ; les bulles se cachent quand une fenêtre est ouverte ; les petits messages ont un fond bien lisible.",
-        "Animaux : les chiens du village ne se traversent plus, se posent sur les perrons, aboient doucement quand vous arrivez et respirent en dormant ; les chats ne se laissent plus marcher dessus ; l'oie de l'enclos cacarde, et sa photo est reconnue même quand elle broute.",
-        "Pêche : la caméra de la prise ne se cache plus dans les rochers ni les herbes, la prise est bien cadrée sur téléphone, et la barre d'outils ne recouvre plus la carte de prise.",
-        "Vélo : il s'arrête net au pied des escaliers des ponts, avec le bon message."
       ]
     }
   ]
