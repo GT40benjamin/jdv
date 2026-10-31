@@ -14,6 +14,11 @@
 [pegase] 🐄 Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.
 [pegase] 🎮 À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.
 [pegase] 📱 Sur téléphone, l'interface est mieux dimensionnée.
+[sensinterdit] ## ⛔ Sens Interdit : un ciel plus net, une voiture qu'on voit la nuit (borne 1.62.10)
+[sensinterdit] 🏔️ Au Col des Neiges, de fins voiles d'altitude au-dessus des sommets (fini les gros nuages beiges qui cachaient les montagnes).
+[sensinterdit] 🎆 Tous les 5 km, de vrais feux d'artifice, plus gros et plus près (avant, on ne voyait que de petites formes brillantes dans le ciel).
+[sensinterdit] 🌃 À Néon City, ta voiture est bordée de lumière rose et bleue : on la voit bien la nuit (et un peu aussi sur la Route des Étoiles).
+[sensinterdit] ✨ Le nom du monde s'efface tout de suite après ton arrivée, sans rester en transparence dans le ciel.
 [sensinterdit] ## ⛔ Sens Interdit : la Route des Étoiles plus belle (borne 1.62.9)
 [sensinterdit] 💎 De vraies grappes de cristaux à six pans qui brillent de leur couleur (violet, bleu, rose), avec des pointes claires.
 [sensinterdit] 🌌 Sous la route, l'espace : des nébuleuses colorées et des étoiles de toutes tailles, qui se fondent dans le ciel au loin (fini le grand sol sombre coupé net à l'horizon).
