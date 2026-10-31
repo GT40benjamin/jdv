@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : le vrai panache du volcan (borne 1.62.20)
+[sensinterdit] 🌋 Quand le volcan entre en éruption, une colonne de cendre jaillit du cratère, s'élargit en champignon penché par le vent et s'effiloche dans le ciel (fini la grosse boule sombre).
 [sensinterdit] ## ⛔ Sens Interdit : le ciel du Col bien dégagé (borne 1.62.18)
 [sensinterdit] 🏔️ Au Col des Neiges, les voiles d'altitude sont plus fins et plus hauts : le ciel n'est plus laiteux et les sommets restent bien nets, sur téléphone en hauteur comme en largeur.
 [pegase] ## 🚪 Pégase 0.9.9.33 : portes doubles et animaux bien posés (borne 1.62.17)
