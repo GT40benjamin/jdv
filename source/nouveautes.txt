@@ -14,6 +14,10 @@
 [pegase] 🐄 Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.
 [pegase] 🎮 À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.
 [pegase] 📱 Sur téléphone, l'interface est mieux dimensionnée.
+[sensinterdit] ## ⛔ Sens Interdit : le Col des Neiges plus beau (borne 1.62.6)
+[sensinterdit] 🏔️ De vraies montagnes découpées, avec leurs crêtes, leur neige et leurs ombres (fini les rayures sur les sommets).
+[sensinterdit] 🌲 Des sapins à étages qui retombent, avec de la neige sur chaque branche, et des rochers enneigés.
+[sensinterdit] 🏞️ Un vrai lac : une berge le long de la route et une forêt sur l'autre rive ; dans les prés, de l'herbe, des éboulis et des plaques de neige.
 [sensinterdit] ## ⛔ Sens Interdit : la Corniche en vraie garrigue (borne 1.62.5)
 [sensinterdit] 🌾 Derrière le muret, plus de terre toute plate : herbe sèche, gravier, terre rouge et coins verts, avec des touffes d'herbe, des massifs de lavande, des agaves et des pierres claires.
 [sensinterdit] 🌳 Des buissons tout ronds en plusieurs verts, des bougainvilliers plus fleuris et de vrais cyprès élancés.
