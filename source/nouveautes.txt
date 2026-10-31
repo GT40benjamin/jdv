@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : un pick-up enfin complet (borne 1.62.1)
+[sensinterdit] 🛻 Le pick-up de la circulation a retrouvé son pare-brise et ses vitres teintées, ses rétroviseurs, son hayon, son pare-chocs arrière et ses feux.
+[sensinterdit] ✨ Sa calandre et ses pare-chocs sont chromés comme il faut (fini le damier noir et blanc), et ses pneus tout-terrain ne sont plus abîmés.
 [flechettes] ## 🎯 Nouveau jeu pour tous : Tête de Cible (borne 1.62)
 [flechettes] 🎯 Des fléchettes en 3D sur une vraie cible : Monsieur Grincheux t'attend en première tuile, et « ＋ Nouvelle cible » te fait fabriquer la tienne avec la photo que tu veux.
 [flechettes] 🛠️ Choisis le support (chêne, liège, paille, cible de foire), pose tes cibles où tu veux et décide combien chacune rapporte.
