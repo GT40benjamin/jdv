@@ -92,6 +92,8 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## ☁️ Abracadabra, en essai : la mer de nuages (borne 1.62.22)
+[abracadabra] ☁️ Mission 7 : sous les îles volantes, une vraie mer de nuages roses et dorés jusqu'à l'horizon, et de gros nuages ronds autour des racines des îles (avant, un vide couleur pêche).
 [abracadabra] ## 🏝️ Abracadabra, en essai : de vrais palmiers (borne 1.62.21)
 [abracadabra] 🌴 Les palmiers, les buissons tropicaux et les palmes sèches ont enfin leurs vraies feuilles (avant, de grandes plaques vertes et blanches), sur l'île de la mission 6 comme à l'oasis du désert.
 [abracadabra] 🏖️ Mission 6 : un sable doré au lieu d'un blanc qui éblouissait, et un soleil un peu plus doux.
