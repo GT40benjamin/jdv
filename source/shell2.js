@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['abracadabra', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
@@ -26,6 +26,7 @@ const TILE_NEWS = {
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
   neon: { kind: 'maj', at: '2026-10-30 00:37' },   // Néon Rush (borne 1.52.3) : les textes des portes ne se posent plus sur le nom du monde ; 1.51.12 : couloirs en vol plus hauts
+  flechettes: { kind: 'new', at: '2026-10-31 15:00' },   // Tête de Cible (fléchettes sur la photo qu'on veut, en essai derrière la porte labo ; heure = celle de la publication)
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
@@ -35,7 +36,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['abracadabra']);   // en essai : Abracadabra (la voix fait apparaître les objets, 30 oct. 2026) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set(['abracadabra', 'flechettes']);   // en essai : Abracadabra (la voix fait apparaître les objets, 30 oct. 2026), Tête de Cible (fléchettes sur une photo, 31 oct. 2026) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -1873,7 +1874,7 @@ function notifRow(n, isNew) {
 }
 // NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
 // dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
-const NOTE_IC = { abracadabra: '🪄', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
+const NOTE_IC = { abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
 const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : g ? g.title : id; };
 function notesByGame(blocks) {
   const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }
