@@ -103,6 +103,10 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## 🎮 Abracadabra, en essai : plus agréable à jouer (borne 1.62.28)
+[abracadabra] 💬 Quand un gros objet tombe ailleurs qu'à la rivière, les villageois réagissent à ce qu'ils voient (avant : des phrases de la rivière, « ça flotte… », là où il n'y a pas d'eau).
+[abracadabra] 👀 Un gros objet ne tombe plus juste devant toi : il ne cache plus les villageois (avant : parfois un mur, ou tout l'écran brun).
+[abracadabra] 🧹 Une seule aide pour lancer un sort (près du bouton) ; la grande bulle du milieu n'apparaît plus qu'à la première mission.
 [abracadabra] ## 🏜️ Abracadabra, en essai : un vrai désert (borne 1.62.26)
 [abracadabra] 🌅 Mission 4 : un soleil plus bas et chaud qui dessine les ombres des dunes, et les rides du sable soufflé par le vent.
 [abracadabra] 🌴 L'oasis est vivante : roseaux au bord de l'eau, fleurs, un canard qui nage et une grenouille.
