@@ -1,38 +1,52 @@
 {
-  "version": "0.9.9.33",
-  "build": 84,
-  "size": 1668480568,
-  "sha256": "3a2bf3ca62984ded310419757eeee94f3c38a69270e4813d65c70962d31e8643",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v84/Pegase-PC-2026-10-31-0.9.9.33.zip",
-  "manifest": "72d27ac37c64881cc88df0cff8923cd24ef7d5a1b226eeccae7acdf26e22c05e",
+  "version": "0.9.9.34",
+  "build": 85,
+  "size": 1668484925,
+  "sha256": "1f210a5da11e1e04045f572fa68d4278b05e6012151b009a12f1f12d42b243e1",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v85/Pegase-PC-2026-10-31-0.9.9.34.zip",
+  "manifest": "43d2c84a9a4e4bfd3baeb25db87887354d648ffcca1855d36e0c23cf161a85a3",
   "patchs": [
     {
+      "de": "0.9.9.33",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v85/Pegase-PC-patch-0.9.9.33.zip",
+      "taille": 4542051,
+      "sha256": "9d1feed3c39271bb169e11a747cba0b34d25e2aec5660e887e81652b18362048"
+    },
+    {
       "de": "0.9.9.32",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v84/Pegase-PC-patch-0.9.9.32.zip",
-      "taille": 2774645,
-      "sha256": "a26d0f11ca7bde52b90c4789221c4e64fa53c8e6ad269fd1347a87ee2450ddd3"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v85/Pegase-PC-patch-0.9.9.32.zip",
+      "taille": 4761132,
+      "sha256": "c548b47a5f24747b86689b2fd2ff1a3dca25685e573366c6f4daa818265bddb0"
     },
     {
       "de": "0.9.9.31",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v84/Pegase-PC-patch-0.9.9.31.zip",
-      "taille": 4705225,
-      "sha256": "81725ab8ae5208bf51e4d975a85999bce9bc30d57ecb71a2da5068366c9697f6"
-    },
-    {
-      "de": "0.9.9.30",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v84/Pegase-PC-patch-0.9.9.30.zip",
-      "taille": 4818205,
-      "sha256": "7604b48f167ff4a27f228a33efb1fd9c8bfab0d577a4535223846ffa01044111"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v85/Pegase-PC-patch-0.9.9.31.zip",
+      "taille": 5160443,
+      "sha256": "36f7adce01811fbaabd653d93fa0589686c5a30b5383e4812c217646e7b64bad"
     }
   ],
   "notes": [
-    "À l'hôtel, l'entrée et les 12 chambres ont maintenant de vraies portes à deux battants, qui s'ouvrent ensemble devant toi et se referment derrière.",
-    "Les bouquetins se reposent sur les replats au bord de leur rocher, plus jamais dans la pente, et les vaches Highland ne partagent plus la même place.",
-    "Plus aucun animal ne se pose dans un rocher ou dans un objet du décor, et les animaux se mettent en place bien plus vite au chargement.",
-    "La pêche est plus solide : un combat ne peut plus rester bloqué au bord de l'eau.",
-    "Quand l'héroïne charge et lance sa canne, sa main gauche ne flotte plus ouverte en l'air."
+    "Pendant l'arrivée en avion, la barre d'objets ne s'affiche plus sur le tableau de bord.",
+    "Dans les choix de dialogue, le texte passe à la ligne avant la pastille « Entrée » au lieu de passer dessous.",
+    "À l'hôtel, les jardinières ont retrouvé leurs fleurs, et les clients ne se collent plus à toi : ils gardent leurs distances et se contournent.",
+    "À l'hôtel, les portes des chambres s'ouvrent en grand quand un client sort, plus à moitié.",
+    "Quand l'héroïne lance sa canne, elle regarde l'eau puis le point de chute : elle ne se plie plus en arrière.",
+    "Les animaux de la ferme et des troupeaux ne se marchent plus dessus : ils regardent devant eux, s'écartent à temps et ne glissent plus de côté.",
+    "À la pêche, le fil casse moins vite quand l'aiguille est dans le rouge : tu as le temps de relâcher (avant, un gros poisson cassait presque toujours)."
   ],
   "historique": [
+    {
+      "version": "0.9.9.34",
+      "notes": [
+        "Pendant l'arrivée en avion, la barre d'objets ne s'affiche plus sur le tableau de bord.",
+        "Dans les choix de dialogue, le texte passe à la ligne avant la pastille « Entrée » au lieu de passer dessous.",
+        "À l'hôtel, les jardinières ont retrouvé leurs fleurs, et les clients ne se collent plus à toi : ils gardent leurs distances et se contournent.",
+        "À l'hôtel, les portes des chambres s'ouvrent en grand quand un client sort, plus à moitié.",
+        "Quand l'héroïne lance sa canne, elle regarde l'eau puis le point de chute : elle ne se plie plus en arrière.",
+        "Les animaux de la ferme et des troupeaux ne se marchent plus dessus : ils regardent devant eux, s'écartent à temps et ne glissent plus de côté.",
+        "À la pêche, le fil casse moins vite quand l'aiguille est dans le rouge : tu as le temps de relâcher (avant, un gros poisson cassait presque toujours)."
+      ]
+    },
     {
       "version": "0.9.9.33",
       "notes": [
@@ -69,14 +83,6 @@
         "La caméra ne se perd plus dans les plantes en pot, les buissons et les lampadaires du village : ils s'effacent pour laisser voir l'héroïne.",
         "Les oiseaux qui sautillent au sol restent sur le vrai sol : plus d'oiseau enfoncé dans une marche, une butte ou une falaise.",
         "Rivières et cascades : il n'y a plus d'endroit où l'on marche sous l'eau, l'héroïne s'arrête au bord partout."
-      ]
-    },
-    {
-      "version": "0.9.9.29",
-      "notes": [
-        "Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.",
-        "Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.",
-        "Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier."
       ]
     }
   ]

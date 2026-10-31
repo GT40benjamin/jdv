@@ -6,6 +6,14 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## ✈️ Pégase 0.9.9.34 : une arrivée plus propre et des animaux qui s'évitent (borne 1.62.32)
+[pegase] ✈️ Pendant l'arrivée en avion, la barre d'objets ne s'affiche plus sur le tableau de bord.
+[pegase] 💬 Dans les choix de dialogue, le texte passe à la ligne avant la pastille « Entrée » au lieu de passer dessous.
+[pegase] 🏨 À l'hôtel, les jardinières ont retrouvé leurs fleurs, et les clients ne se collent plus à toi : ils gardent leurs distances et se contournent.
+[pegase] 🚪 À l'hôtel, les portes des chambres s'ouvrent en grand quand un client sort, plus à moitié.
+[pegase] 🎣 Quand l'héroïne lance sa canne, elle regarde l'eau puis le point de chute : elle ne se plie plus en arrière.
+[pegase] 🐄 Les animaux de la ferme et des troupeaux ne se marchent plus dessus : ils regardent devant eux, s'écartent à temps et ne glissent plus de côté.
+[pegase] 🎣 À la pêche, le fil casse moins vite quand l'aiguille est dans le rouge : tu as le temps de relâcher (avant, un gros poisson cassait presque toujours).
 [sensinterdit] ## ⛔ Sens Interdit : lampadaires, villa provençale et voiture au Volcan (borne 1.62.31)
 [sensinterdit] 💡 À Néon City, seuls les globes des lampadaires s'allument (avant, tout le lampadaire brillait comme un grand pilier beige) ; les lampadaires ont un mât effilé et un bras courbé.
 [sensinterdit] 🏡 Sur la Corniche, la maison blanche est devenue une vraie maison provençale : toit de tuiles, volets bleus, porte, perron et terrasse sous une treille fleurie.
