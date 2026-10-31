@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[flechettes] ## 🎯 Nouveau jeu pour tous : Tête de Cible (borne 1.62)
+[flechettes] 🎯 Des fléchettes en 3D sur une vraie cible : Monsieur Grincheux t'attend en première tuile, et « ＋ Nouvelle cible » te fait fabriquer la tienne avec la photo que tu veux.
+[flechettes] 🛠️ Choisis le support (chêne, liège, paille, cible de foire), pose tes cibles où tu veux et décide combien chacune rapporte.
+[flechettes] 👆 Vise au doigt et lance d'un coup vers le haut, ou à la souris, ou à la manette ; la photo réagit en dessin animé et finit K.O.
+[flechettes] 🏠 Seul ou à deux sur un téléphone (5 fléchettes chacun), ou en partie de salle : chacun met sa cible en jeu et tout le monde tire dessus.
+[flechettes] 🔒 Tes cibles sont rangées dans ton compte et toi seul les vois ; en partie de salle, la salle les voit pendant la partie.
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.

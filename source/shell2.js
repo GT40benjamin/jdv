@@ -26,7 +26,7 @@ const TILE_NEWS = {
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
   neon: { kind: 'maj', at: '2026-10-30 00:37' },   // Néon Rush (borne 1.52.3) : les textes des portes ne se posent plus sur le nom du monde ; 1.51.12 : couloirs en vol plus hauts
-  flechettes: { kind: 'new', at: '2026-10-31 14:17' },   // Tête de Cible (fléchettes, en essai derrière la porte labo) : 1.61 = étagère de cibles, constructeur, partie de salle (heure = celle de la publication)
+  flechettes: { kind: 'new', at: '2026-10-31 14:32' },   // Tête de Cible : SORTI POUR TOUS en 1.62 (heure = celle de la sortie) ; en essai derrière la porte labo de la 1.60 à la 1.61.2
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
@@ -36,7 +36,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['abracadabra', 'flechettes']);   // en essai : Abracadabra (la voix fait apparaître les objets, 30 oct. 2026), Tête de Cible (fléchettes sur une photo, 31 oct. 2026) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set(['abracadabra']);   // en essai : Abracadabra (la voix fait apparaître les objets, 30 oct. 2026) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -49,7 +49,7 @@ const LABO_ON = (() => {
   return new Set(on);
 })();
 // appareil en mode test (au moins un jeu en essai ouvert) : il voit TOUS les jeux en essai, même ceux ajoutés depuis
-const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides', 'sensinterdit'].includes(id));   // les appareils déjà en test le restent
+const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides', 'sensinterdit', 'flechettes'].includes(id));   // les appareils déjà en test le restent
 const laboOk = id => !LABO.has(id) || LABO_TEST;
 // joueur d'une salle « sans Pégase » (section « Salles sans Pégase ») : Pégase n'existe pas pour lui sur cet appareil
 // 28 oct. 2026 (Benjamin : « On va séparer la borne de Pégase […] Pégase sera dans sa propre fenêtre ») : la même bibliothèque fait DEUX pages
