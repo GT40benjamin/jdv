@@ -1,36 +1,44 @@
 {
-  "version": "0.9.9.28",
-  "build": 79,
-  "size": 1668412068,
-  "sha256": "f05cc0e1a8590685f493a8f33afb8d1238f477461033cdfe8f7136d26580cf4a",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v79/Pegase-PC-2026-10-30-0.9.9.28.zip",
-  "manifest": "7469a9006a92e7ceae5e1d60a680a962ea5c9fd161b4e66946c19d176856d2b1",
+  "version": "0.9.9.29",
+  "build": 80,
+  "size": 1668417399,
+  "sha256": "48a9a0d72f7e1f778a03a7096b1628e8b6b4ff4e42f405c6746db64b9d562efb",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v80/Pegase-PC-2026-10-30-0.9.9.29.zip",
+  "manifest": "c3dbfbf7dcf1fcf8b61f06399b6fb31977b82dc01caee13d4857ffa5dff46229",
   "patchs": [
     {
+      "de": "0.9.9.28",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v80/Pegase-PC-patch-0.9.9.28.zip",
+      "taille": 3082990,
+      "sha256": "b03658ddb84f1a2fda6441bf1eddeb7f9ae16d0ed81dd865554ac8f5f581ddd6"
+    },
+    {
       "de": "0.9.9.27",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v79/Pegase-PC-patch-0.9.9.27.zip",
-      "taille": 2658644,
-      "sha256": "d7feb695822e7bbd84c3915a48ce2a443091928fc9a0c9a681b14f2060ef4b5f"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v80/Pegase-PC-patch-0.9.9.27.zip",
+      "taille": 3268176,
+      "sha256": "b2245b1cc69c756388cda2973df388aa477719fae17fb605fd1cc07024386f46"
     },
     {
       "de": "0.9.9.26",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v79/Pegase-PC-patch-0.9.9.26.zip",
-      "taille": 2993842,
-      "sha256": "d133239d9c8787ec38141b1960e30be7c9ba262fedf57a105281eae65782fa64"
-    },
-    {
-      "de": "0.9.9.25",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v79/Pegase-PC-patch-0.9.9.25.zip",
-      "taille": 2881279,
-      "sha256": "61c0e4d5a76c124561b02309cf1fdfdefeb2af88cde0ebaa05f1096a71c92ec5"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v80/Pegase-PC-patch-0.9.9.26.zip",
+      "taille": 3527894,
+      "sha256": "17b56bec1f1528e8a9d0a2e0fa1678d994acf38ee86c58392f0589910de50fab"
     }
   ],
   "notes": [
-    "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
-    "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
-    "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
+    "Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.",
+    "Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.",
+    "Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier."
   ],
   "historique": [
+    {
+      "version": "0.9.9.29",
+      "notes": [
+        "Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.",
+        "Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.",
+        "Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier."
+      ]
+    },
     {
       "version": "0.9.9.28",
       "notes": [
@@ -67,13 +75,6 @@
         "Animaux : les chiens du village ne se traversent plus, se posent sur les perrons, aboient doucement quand vous arrivez et respirent en dormant ; les chats ne se laissent plus marcher dessus ; l'oie de l'enclos cacarde, et sa photo est reconnue même quand elle broute.",
         "Pêche : la caméra de la prise ne se cache plus dans les rochers ni les herbes, la prise est bien cadrée sur téléphone, et la barre d'outils ne recouvre plus la carte de prise.",
         "Vélo : il s'arrête net au pied des escaliers des ponts, avec le bon message."
-      ]
-    },
-    {
-      "version": "0.9.9.24",
-      "notes": [
-        "Vélo : il s'arrête maintenant sur le sable, avant l'écume du bord de l'eau, et se gare toujours bien droit.",
-        "Hugo vous vouvoie aussi quand vous lui achetez des cartes postales vierges."
       ]
     }
   ]

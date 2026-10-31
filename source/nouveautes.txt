@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🌧️ Pégase 0.9.9.29 : plages, averse et moineau (borne 1.58.1)
+[pegase] 🏖️ Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.
+[pegase] 🌧️ Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.
+[pegase] 🐦 Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier.
 [pegase] ## 💧 Pégase 0.9.9.28 : de la vraie eau et une caméra sage (borne 1.57.1)
 [pegase] 💧 Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.
 [pegase] 🎥 Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.

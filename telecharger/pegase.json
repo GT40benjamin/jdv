@@ -1,20 +1,28 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 76,
-  "versionName": "0.9.9.28",
-  "size": 1233088730,
-  "sha256": "31f3e5e49d094ad4c6ecb9d922dab8b918cde7915226f205c771085ffa48e0e5",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v76/pegase-0.9.9.28.apk",
+  "versionCode": 77,
+  "versionName": "0.9.9.29",
+  "size": 1233102122,
+  "sha256": "8ad8faff1242c196e177b3eb887e0605ea8d1f803727d8bc1cd3dff8915f0c32",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v77/pegase-0.9.9.29.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
-    "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
-    "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
+    "Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.",
+    "Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.",
+    "Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier."
   ],
   "historique": [
+    {
+      "version": "0.9.9.29",
+      "notes": [
+        "Plages et criques : plus de grandes herbes qui poussent sur le sable, et la caméra passe au-dessus des hautes herbes au lieu d'y entrer.",
+        "Quand il pleut, la lumière baisse vraiment, doucement au début et à la fin de l'averse, de jour comme de nuit.",
+        "Le moineau se pose maintenant sur le rebord du tonneau de la place, bien entier."
+      ]
+    },
     {
       "version": "0.9.9.28",
       "notes": [
@@ -51,13 +59,6 @@
         "Animaux : les chiens du village ne se traversent plus, se posent sur les perrons, aboient doucement quand vous arrivez et respirent en dormant ; les chats ne se laissent plus marcher dessus ; l'oie de l'enclos cacarde, et sa photo est reconnue même quand elle broute.",
         "Pêche : la caméra de la prise ne se cache plus dans les rochers ni les herbes, la prise est bien cadrée sur téléphone, et la barre d'outils ne recouvre plus la carte de prise.",
         "Vélo : il s'arrête net au pied des escaliers des ponts, avec le bon message."
-      ]
-    },
-    {
-      "version": "0.9.9.24",
-      "notes": [
-        "Vélo : il s'arrête maintenant sur le sable, avant l'écume du bord de l'eau, et se gare toujours bien droit.",
-        "Hugo vous vouvoie aussi quand vous lui achetez des cartes postales vierges."
       ]
     }
   ]
