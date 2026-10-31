@@ -97,6 +97,9 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## 🏜️ Abracadabra, en essai : un vrai désert (borne 1.62.26)
+[abracadabra] 🌅 Mission 4 : un soleil plus bas et chaud qui dessine les ombres des dunes, et les rides du sable soufflé par le vent.
+[abracadabra] 🌴 L'oasis est vivante : roseaux au bord de l'eau, fleurs, un canard qui nage et une grenouille.
 [abracadabra] ## 🌾 Abracadabra, en essai : des prairies vivantes (borne 1.62.25)
 [abracadabra] 🌿 Mission 9 : la prairie de la ferme n'est plus d'un seul vert (des coins d'herbe drue, d'autres plus secs), avec des touffes d'herbe et d'autres fleurs.
 [abracadabra] 🍂 Mission 10 : l'automne garde ses ors, mais avec des prés encore verts, des creux plus sombres, des herbes dorées et une lumière moins orange.
