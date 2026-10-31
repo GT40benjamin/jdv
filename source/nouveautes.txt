@@ -60,6 +60,8 @@
 [sensinterdit] ## ⛔ Sens Interdit : un pick-up enfin complet (borne 1.62.1)
 [sensinterdit] 🛻 Le pick-up de la circulation a retrouvé son pare-brise et ses vitres teintées, ses rétroviseurs, son hayon, son pare-chocs arrière et ses feux.
 [sensinterdit] ✨ Sa calandre et ses pare-chocs sont chromés comme il faut (fini le damier noir et blanc), et ses pneus tout-terrain ne sont plus abîmés.
+[flechettes] ## 🎯 Tête de Cible : « Qui la voit ? » (borne 1.62.16)
+[flechettes] 🔓 Dans le constructeur (nouvelle cible ou ✏️ Modifier), un interrupteur « Partagée avec la salle » / « 🔒 Seulement moi » : partagée par défaut, tu peux revenir dessus quand tu veux.
 [flechettes] ## 🎯 Tête de Cible : les portraits de tout le monde (borne 1.62.14)
 [flechettes] 🔓 Les cibles que vous aviez déjà faites remontent maintenant pour toute la salle, dès que chacun ouvre Tête de Cible : tu vois les portraits de tous tes copains dans ton étagère.
 [flechettes] 🔒 Sur chacune de tes tuiles, le petit cadenas : 🔓 = la salle la voit, 🔒 = toi seul. Touche-le pour changer ; ton choix est retenu.
