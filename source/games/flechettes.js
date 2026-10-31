@@ -6,7 +6,7 @@
 // assets/flechettes.visage*.bin) ne se charge que si l'on choisit une photo : tout se passe sur l'appareil, la photo n'est jamais envoyée.
 // Une seule variable globale en plus : window.JDW_FL (et window.JDW_FLV pour le détecteur). Atelier : ~/jdv-tools/duotest/flechettes (REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
-const WANT = "0ba70ec1";   // version du moteur de CE module (posée par tools/build.js)
+const WANT = "25198e67";   // version du moteur de CE module (posée par tools/build.js)
 let ENGINE = null;
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));

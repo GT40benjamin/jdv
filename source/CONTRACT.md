@@ -313,3 +313,13 @@ ses cibles sur l'appareil et cache la partie de salle) ; `await list()` → `{ m
 `await add(blob, nom, zones, w, h)` → `{ id, path }` ; `update(id, { nom?, zones?, best? })` (best = le plus grand gardé) ; `remove(id)` (efface
 aussi le fichier) ; `await image(path)` → adresse `blob:` (en mémoire seulement) ; `roomPut(id | null)` (mettre une de MES cibles en jeu dans la
 salle actuelle) ; `await roomList()` → `[{ name, id, nom, zones, w, h, path }]`. Invité : erreur `guest`. Le déroulé de la partie passe par `api.live`.
+**1.62.11 (serveur source/flechettes2.sql)** : « dans la salle les cibles remontent pour tous » (Benjamin) — `info().server2` (faux = flechettes2.sql
+absent : rien de ce qui suit) ; `list()` rend aussi `salle` (id de la salle de partage ou null) et `top` ({ name, best } : le meilleur de la salle) ;
+`share(id, oui)` partage une de MES cibles avec la salle actuelle (ou la garde pour moi) ; `await salle()` → les cibles que les AUTRES membres ont
+partagées avec ma salle `[{ id, owner, nom, zones, w, h, path, at, mine, top }]` (lues par `image(path)`) ; `await score(id, s)` → `{ best, top }`
+(mon record sur une cible, la mienne ou une de la salle) ; les CRIS enregistrés : `criPut(id, n, blobWav)` (n = 1 à 4, WAV ≤ 400 Ko),
+`criDel(id, n)`, `criPath(id, n)` (lu par `image(path)` → adresse blob:), numéros présents dans `zones.cris`, voix dans `zones.voix`.
+
+## Ajout 20 : jouer un vrai son (api.audio.sample, borne 1.62.11, Tête de Cible)
+`await api.audio.sample.decode(arrayBuffer)` → AudioBuffer ; `api.audio.sample.play(buffer, vol = 1, rate = 1)` le joue dans le réglage des
+bruitages (coupés = rien). Vérifier `api.audio.sample` avant de s'en servir (vieilles bornes).

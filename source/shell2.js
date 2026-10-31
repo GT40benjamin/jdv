@@ -26,7 +26,7 @@ const TILE_NEWS = {
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
   neon: { kind: 'maj', at: '2026-10-30 00:37' },   // Néon Rush (borne 1.52.3) : les textes des portes ne se posent plus sur le nom du monde ; 1.51.12 : couloirs en vol plus hauts
-  flechettes: { kind: 'new', at: '2026-10-31 14:32' },   // Tête de Cible : SORTI POUR TOUS en 1.62 (heure = celle de la sortie) ; en essai derrière la porte labo de la 1.60 à la 1.61.2
+  flechettes: { kind: 'maj', at: '2026-10-31 17:41' },   // Tête de Cible : 1.62.x « les cibles remontent pour toute la salle » + cris de douleur (sorti pour tous en 1.62)
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)
@@ -218,7 +218,22 @@ const Audio = {
     } catch (e) {}
   }
 };
-const audioApi = { tone: (...a) => Audio.tone(...a), noise: (...a) => Audio.noise(...a) };
+// un vrai son (ArrayBuffer d'un WAV / MP3…) : decode() une fois, play() autant qu'on veut, dans le même réglage que les effets (coupés = muet)
+const sampleApi = {
+  decode(ab) {
+    Audio.ensure(); const A = Audio.ctx; if (!A) return Promise.reject(new Error('audio : pas de son'));
+    return new Promise((res, rej) => A.decodeAudioData(ab.slice ? ab.slice(0) : ab, res, rej));
+  },
+  play(buf, vol = 1, rate = 1) {
+    const A = Audio.ctx; if (!A || muted || !buf) return false;
+    try {
+      const s = A.createBufferSource(), g = A.createGain();
+      s.buffer = buf; s.playbackRate.value = Math.max(0.5, Math.min(2, +rate || 1)); g.gain.value = Math.max(0, Math.min(1.5, +vol || 0));
+      s.connect(g).connect(Audio.master); s.start(); return true;
+    } catch (e) { return false; }
+  }
+};
+const audioApi = { tone: (...a) => Audio.tone(...a), noise: (...a) => Audio.noise(...a), sample: sampleApi };
 
 /* ================= Manette (Xbox, PlayStation, manettes génériques : source/manette.js) =================
    La navigation de toute la borne (focus doré, A valider, B retour, gâchettes = onglets, Start = pause), api.pad des jeux
@@ -984,11 +999,15 @@ function chronoApi() {
 // pseudo (image que le joueur importe lui-même + les cibles et les points qu'il y pose), rangée dans le seau PRIVÉ « cibles » du Storage
 // (lue avec le jeton du compte : le propriétaire, ou un membre d'une salle où elle est en jeu depuis moins de 12 h). Invité : rien ici, le
 // jeu garde ses cibles sur l'appareil. Serveur pas encore à jour (404) : `info().server` faux, le jeu fait pareil et cache la partie de salle.
-const FL = { off: false, img: new Map() };
+const FL = { off: false, off2: false, img: new Map() };
 function ciblesApi() {
   const guest = () => isGuest() || !profile.name;
   const base = () => CFG.url.replace(/\/+$/, '');
   const pth = p => (/^c\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$/.test(String(p || '')) ? String(p) : null);
+  // un fichier de cible : l'image, ou un de ses cris (c/<id>-c1.wav … -c4.wav, flechettes2.sql)
+  const fic = p => (/^c\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.webp|-c[1-4]\.wav)$/.test(String(p || '')) ? String(p) : null);
+  const criPath = (id, n) => 'c/' + id + '-c' + n + '.wav';
+  const top = t => (t && typeof t === 'object' && t.name ? { name: cleanName(t.name), best: +t.best || 0 } : null);
   const uid = v => (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(String(v || '')) ? String(v) : null);
   const nom = v => String(v == null ? '' : v).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 24);
   const zon = z => { let t = ''; try { t = JSON.stringify(z); } catch (e) { t = ''; } if (!t || t.length > 20000) throw new Error('cibles : zones trop grandes'); return JSON.parse(t); };
@@ -1002,19 +1021,26 @@ function ciblesApi() {
     try { return await rpc(fn, Object.assign({ p_code: CODE(), p_name: profile.name }, a), { quiet404: true }); }
     catch (e) { if (e.status === 404) FL.off = true; throw e; }
   };
+  // les fonctions de flechettes2.sql (partage avec la salle, records, cris) : un 404 ne coupe qu'elles
+  const call2 = async (fn, a) => {
+    if (FL.off2) throw Object.assign(new Error(fn + ' : serveur pas prêt'), { status: 404 });
+    need(fn);
+    try { return await rpc(fn, Object.assign({ p_code: CODE(), p_name: profile.name }, a), { quiet404: true }); }
+    catch (e) { if (e.status === 404) FL.off2 = true; throw e; }
+  };
   const tok = async () => { const t = await acctToken(profile); if (!t) throw Object.assign(new Error('cibles : compte requis'), { guest: true }); return t; };
   const effacer = async paths => {
-    const l = (paths || []).map(pth).filter(Boolean).slice(0, 50); if (!l.length) return 0;
+    const l = (paths || []).map(fic).filter(Boolean).slice(0, 50); if (!l.length) return 0;
     const r = await netFetch(base() + '/storage/v1/object/cibles', { method: 'DELETE', headers: { apikey: CFG.key, Authorization: 'Bearer ' + await tok(), 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: l }) });
     return r.ok ? l.length : 0;
   };
   return {
-    info: () => { const g = guest(); return { guest: g, online: !!ONLINE && !netOff(), server: !FL.off, name: g ? '' : cleanName(profile.name), room: !g && ONLINE && room ? { id: room.id, name: String(room.name || '') } : null }; },
+    info: () => { const g = guest(); return { guest: g, online: !!ONLINE && !netOff(), server: !FL.off, server2: !FL.off && !FL.off2, name: g ? '' : cleanName(profile.name), room: !g && ONLINE && room ? { id: room.id, name: String(room.name || '') } : null }; },
     // mon étagère (et ménage des fichiers orphelins d'un retrait raté)
     async list() {
       const r = await call('fl_mes', {}) || {};
       if (Array.isArray(r.orphelins) && r.orphelins.length) effacer(r.orphelins).catch(() => {});
-      return { max: +r.max || 40, cibles: (r.cibles || []).filter(c => uid(c.id) && pth(c.path)).map(c => ({ id: c.id, nom: nom(c.nom), zones: c.zones || {}, w: +c.w || 0, h: +c.h || 0, best: +c.best || 0, envoye: !!c.envoye, path: c.path, at: +c.at || 0 })) };
+      return { max: +r.max || 40, cibles: (r.cibles || []).filter(c => uid(c.id) && pth(c.path)).map(c => ({ id: c.id, nom: nom(c.nom), zones: c.zones || {}, w: +c.w || 0, h: +c.h || 0, best: +c.best || 0, envoye: !!c.envoye, path: c.path, at: +c.at || 0, salle: c.salle == null ? null : +c.salle, top: top(c.top) })) };
     },
     // une nouvelle cible : la ligne, puis le fichier (WebP, 2 Mo au plus), puis « envoyée »
     async add(blob, n, zones, w, h) {
@@ -1033,13 +1059,14 @@ function ciblesApi() {
     async remove(id) {
       if (!uid(id)) throw new Error('cibles.remove : id');
       const r = await call('fl_retirer', { p_id: id }) || {};
-      FL.img.delete(r.path);
-      try { await effacer([r.path]); } catch (e) { /* fl_mes le rendra en « orphelin » */ }
+      const l = [r.path, criPath(id, 1), criPath(id, 2), criPath(id, 3), criPath(id, 4)];
+      l.forEach(x => FL.img.delete(x));
+      try { await effacer(l); } catch (e) { /* fl_mes le rendra en « orphelin » */ }
       return true;
     },
     // l'image d'une cible (mienne, ou en jeu dans ma salle) → adresse blob: (gardée en mémoire seulement)
     image(path) {
-      const p = pth(path); if (!p) return Promise.reject(new Error('cibles.image : chemin refusé'));
+      const p = fic(path); if (!p) return Promise.reject(new Error('cibles.image : chemin refusé'));
       if (FL.img.has(p)) return FL.img.get(p);
       const pr = (async () => {
         need('cibles.image');
@@ -1057,6 +1084,33 @@ function ciblesApi() {
       const L = await call('fl_salle_liste', { p_room: room.id }) || [];
       return L.filter(c => uid(c.id) && pth(c.path)).map(c => ({ name: cleanName(c.name), id: c.id, nom: nom(c.nom), zones: c.zones || {}, w: +c.w || 0, h: +c.h || 0, path: c.path }));
     },
+    // ---- flechettes2.sql : « dans la salle, les cibles remontent pour tous » (Benjamin, 31 oct.) ----
+    // partager une de MES cibles avec la salle actuelle (true) ou la garder pour moi (false)
+    share: (id, on) => { if (!uid(id)) return Promise.reject(new Error('cibles.share : id')); if (on && !room) return Promise.reject(new Error('cibles.share : pas de salle')); return call2('fl_partager', { p_id: id, p_room: on ? room.id : null }); },
+    // les cibles que les AUTRES membres ont partagées avec ma salle : [{ id, owner, nom, zones, w, h, path, at, mine, top }]
+    async salle() {
+      if (!room) return [];
+      const L = await call2('fl_etagere_salle', { p_room: room.id }) || [];
+      return L.filter(c => uid(c.id) && pth(c.path)).map(c => ({ id: c.id, owner: cleanName(c.owner), nom: nom(c.nom), zones: c.zones || {}, w: +c.w || 0, h: +c.h || 0, path: c.path, at: +c.at || 0, mine: +c.mine || 0, top: top(c.top) }));
+    },
+    // mon score sur une cible (la mienne ou une de la salle) → { best, top }
+    async score(id, sc) {
+      if (!uid(id)) throw new Error('cibles.score : id');
+      const r = await call2('fl_score', { p_id: id, p_score: Math.max(0, Math.min(100000, Math.round(+sc || 0))) }) || {};
+      return { best: +r.best || 0, top: top(r.top) };
+    },
+    // un cri enregistré (WAV ≤ 400 Ko) d'une de MES cibles : n = 1 à 4
+    async criPut(id, n, blob) {
+      n = Math.round(+n); if (!uid(id) || !(n >= 1 && n <= 4)) throw new Error('cibles.criPut : id');
+      if (!(blob instanceof Blob) || blob.size > 400000 || blob.type !== 'audio/wav') throw new Error('cibles.criPut : son refusé');
+      need('cibles.criPut'); if (FL.off2) throw Object.assign(new Error('cibles.criPut : serveur pas prêt'), { status: 404 });
+      const p = criPath(id, n);
+      const up = await netFetch(base() + '/storage/v1/object/cibles/' + p, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + await tok(), 'Content-Type': 'audio/wav', 'x-upsert': 'true' }, body: blob });
+      if (!up.ok) throw Object.assign(new Error('cibles.criPut : envoi ' + up.status), { status: up.status });
+      FL.img.delete(p); return p;
+    },
+    async criDel(id, n) { n = Math.round(+n); if (!uid(id) || !(n >= 1 && n <= 4)) return 0; const p = criPath(id, n); FL.img.delete(p); need('cibles.criDel'); return effacer([p]); },
+    criPath: (id, n) => (uid(id) && n >= 1 && n <= 4 ? criPath(id, Math.round(n)) : null),
   };
 }
 // Dans la borne : des POINTS n'ont aucun sens pour un contre-la-montre (Benjamin) → le Classement (onglet « Turbo Chrono ») montre les
