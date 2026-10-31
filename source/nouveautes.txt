@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : un classement lisible sur ordinateur (borne 1.62.37)
+[sensinterdit] 🏆 Sur ordinateur, le classement de Sens Interdit (Plus loin et Plus vite) prend toute la largeur, avec les noms, les records et les têtes en plus grand (avant, deux petites colonnes serrées dans un coin).
 [sensinterdit] ## ⛔ Sens Interdit : le trait des copains et la lueur du volcan (borne 1.62.34)
 [sensinterdit] 👋 Quand tu passes la ligne d'un copain, son trait et son nom peints sur la route s'effacent doucement juste avant ta voiture (avant, ils couvraient un instant le bas de l'écran d'une grande bande de couleur).
 [sensinterdit] 🌋 La lueur du cratère est un halo doux (avant, un disque orange qui faisait comme un soleil derrière le volcan).

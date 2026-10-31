@@ -262,6 +262,12 @@ a.icon-btn{color:inherit;text-decoration:none}   /* la maison (retour au site du
 .chb-msg{margin:0;padding:14px 12px;border-radius:10px;background:var(--night);color:var(--muted);font-size:14px;line-height:1.45}
 .chb-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}
 @media (max-width:680px){.chb-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+/* Sens Interdit (31 oct.) : 2 classements, Plus loin et Plus vite → 2 colonnes pleine largeur (la grille de Turbo Chrono en a 4 : sur PC, deux petites colonnes
+   serrées dans un coin) ; sur grand écran, noms, records et têtes plus grands */
+.chb-grid.si-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (min-width:681px){.si-grid .chb-col{padding:12px 12px 13px;gap:8px}.si-grid .chb-col h3{font-size:20px}.si-grid .chb-list{gap:6px}
+.si-grid .chb-list li{grid-template-columns:1.6em 40px minmax(0,1fr);gap:10px;padding:7px 10px}.si-grid .chb-list .avatar{width:40px;height:40px;font-size:16px}
+.si-grid .chb-r{font-size:18px}.si-grid .chb-n b{font-size:15px}.si-grid .chb-t{font-size:19px}}
 .chb-stade{--c:#5fd37a} .chb-huit{--c:#ff9a4a} .chb-folie{--c:#c77dff} .chb-orbite{--c:#6cc8ff}
 .chb-col{min-width:0;display:grid;gap:6px;padding:8px 7px 9px;border-radius:12px;background:var(--night);border:1px solid var(--line);border-top:3px solid var(--c)}
 .chb-col h3{margin:0 2px 2px;font-family:var(--display);font-weight:400;font-size:15px;line-height:1.1;color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
