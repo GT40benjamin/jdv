@@ -12,6 +12,8 @@ if (!pw && process.platform === 'win32') {
 const files = execSync('git ls-files -co --exclude-standard', { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
   .filter(f => fs.existsSync(path.join(ROOT, f)));
 const bad = [];
+// clé du module de l'espace privé (hors dépôt, ~/jdv-tools/espace-prive/cle.txt) : jamais dans un fichier publié
+let pk = ''; try { pk = fs.readFileSync(path.join(require('os').homedir(), 'jdv-tools', 'espace-prive', 'cle.txt'), 'utf8').trim(); } catch (e) {}
 const IMG_OK = [/^icon-(maskable-)?\d+\.png$/, /^android(-apktool)?\/.*ic_launcher(_round|_foreground|_background|_monochrome)?\.png$/, /^android\/icon-512\.png$/, /^accueil\/[a-z0-9_-]+\.(webp|jpg|jpeg|png|webm|svg)$/,
   /^assets\/pegase\/decor(_\d{2}[a-z]?)?(_portrait|_m)?_poster\.(jpg|webp)$/,   // affiche du décor filmé dans le jeu (prairie, aucune personne)
   /^assets\/ilo\/ilo_(boucle|bande_annonce)(_m)?_poster\.(jpg|webp)$/,   // affiches d'ILO filmées dans le jeu (espace, vaisseau, aucune personne), 27 oct. 2026
@@ -23,6 +25,7 @@ for (const f of files) {
   if (/\.(png|jpe?g|webp|gif|bmp|heic|avif)$/i.test(f) && !IMG_OK.some(r => r.test(f))) bad.push(f + ' : image inattendue (photo ?)');
   if (pw && pw.length >= 3 && buf.toString('latin1').includes(pw)) bad.push(f + ' : contient le mot de passe de l\'ancien site');
   if (pw && pw.length >= 3 && buf.toString('utf16le').includes(pw)) bad.push(f + ' : contient le mot de passe (UTF-16)');
+  if (pk.length >= 40 && (buf.toString('latin1').includes(pk) || buf.toString('latin1').includes(Buffer.from(pk, 'base64').toString('hex')))) bad.push(f + ' : contient la clé de l\'espace privé');
   if (/^assets\/.*\.bin$/.test(f)) {
     const h = buf.subarray(0, 12).toString('latin1');
     if (/^RIFF|WEBP|^\x89PNG|^ID3/.test(h) || (buf[0] === 0xff && (buf[1] & 0xf0) === 0xf0)) bad.push(f + ' : paquet de l\'Asset Store en clair');

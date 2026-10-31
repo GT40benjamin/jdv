@@ -1290,6 +1290,7 @@ $('jdw-callring-ok').addEventListener('click', () => {
 });
 setInterval(() => {
   smsTopicSync();                                         // le canal privé suit le joueur actuel (changement de joueur, de compte, réseau)
+  privSync();                                             // l'espace privé aussi
   if (APPEL_SUBS.size && Date.now() - TABS.sayAt > 10000) { TABS.sayAt = Date.now(); tabSay({ t: 'hub', on: true }); }   // le hub est toujours ouvert ici
   if (document.hidden || !callgOn()) return;
   const per = CALLG.cur && !CALLG.cur.missed ? 2000 : RT.ok ? 30000 : 15000;
@@ -2501,6 +2502,7 @@ function onPoke(topic, event, p) {
   if (event === 'ile' && p.k === 'ile_demande') { if (typeof islOnDemande === 'function') islOnDemande(p.ile); return; }
   if (p.from === clientId) return;
   if (p.t === 'sms') { if (topic === smsTopicOn) for (const f of [...SMS_SUBS]) { try { f(); } catch (e) {} } return; }
+  if (p.t === 'px') { if (topic === smsTopicOn) for (const f of [...PRIV.subs]) { try { f(p); } catch (e) {} } return; }   // espace privé
   if (p.t === 'appel') {   // appel : relire pg_appel_attente (le hub de Pégase s'il est ouvert, sinon la borne elle-même)
     if (topic === smsTopicOn) { if (APPEL_SUBS.size) for (const f of [...APPEL_SUBS]) { try { f(); } catch (e) {} } else { CALLG.at = 0; callgPoll(); } }
     return;
@@ -13658,6 +13660,7 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 // retour d'Android : un B de la manette vient peut-être de faire la même chose (manette.js) → une seule fois
 window.JDW_BACK = () => (PADJ && PADJ.nativeBack()) ? true : jdwBack();
 function jdwBack() {
+  if (PRIV.back && PRIV.back()) return true;   // espace privé (fenêtre ouverte par-dessus tout)
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
   if (moreClose()) return true;   // le menu « ⋯ » de la barre du haut
   if (popCloseAll()) return true;
@@ -13696,6 +13699,53 @@ setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou 
   setTimeout(() => { refreshBell(); toastCheer('✨ Mise à jour ' + (window.JDW_VERSION || '') + ' installée !', profile.name, true); }, 1800);
 })();
 
+
+/* ================= Espace privé (31 oct. 2026) ================= */
+// Quelques comptes ont un module de plus dans la page. C'est le SERVEUR qui décide : jdw_prive(p_code, p_name) rend à ces comptes la clé
+// du paquet chiffré assets/jdw.prive.bin (AES-GCM : 12 octets d'IV, puis le texte chiffré et son étiquette), et RIEN aux autres : pour
+// eux, rien ne se télécharge ni ne s'affiche. Le module reçoit privApi() et rend { stop } ; ses signaux arrivent sans contenu par le canal
+// privé du joueur ({ t: 'px' }, onPoke) ; il n'appelle que les fonctions pk_* du serveur. Serveur pas prêt (404) : rien, sans erreur.
+const PRIV = { who: '', mod: null, done: false, busy: false, next: 0, subs: new Set(), back: null };
+function privStop() {
+  if (PRIV.mod && PRIV.mod.stop) { try { PRIV.mod.stop(); } catch (e) {} }
+  PRIV.mod = null; PRIV.subs.clear(); PRIV.back = null;
+}
+function privApi() {
+  return {
+    name: () => cleanName(profile.name),
+    rpc: (fn, args) => (/^pk_[a-z_]{2,30}$/.test(fn) ? rpc(fn, Object.assign({}, args, { p_code: CODE(), p_name: profile.name }), { quiet: true }) : Promise.reject(new Error(fn + ' : refusé'))),
+    token: () => acctToken(profile),
+    sb: { url: CFG.url, key: CFG.key },
+    onPoke: fn => { PRIV.subs.add(fn); return () => PRIV.subs.delete(fn); },
+    back: fn => { PRIV.back = fn; },
+    bar: () => $('jdw-me'),
+    online: () => !netOff(),
+    app: !!window.JDWAndroid, touch: TOUCH,
+    report: (m, d) => reportError(m, d, { quiet: true }),
+  };
+}
+async function privSync() {
+  const a = profile.acct, who = ONLINE && !isGuest() && profile.name && a && a.uid ? cleanName(profile.name) + '|' + a.uid : '';
+  if (who !== PRIV.who) { privStop(); PRIV.who = who; PRIV.done = false; PRIV.next = 0; }
+  if (!who || PRIV.done || PRIV.busy || Date.now() < PRIV.next || netOff()) return;
+  PRIV.busy = true;
+  try {
+    const r = await rpc('jdw_prive', { p_code: CODE(), p_name: profile.name }, { quiet: true, quiet404: true });
+    if (PRIV.who !== who) return;
+    if (!r || typeof r.k !== 'string') { PRIV.done = true; return; }
+    const res = await netFetch(ROOT + 'assets/jdw.prive.bin?v=' + encodeURIComponent(window.JDW_BUILD || ''));
+    if (!res.ok) throw new Error('paquet ' + res.status);
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const key = await crypto.subtle.importKey('raw', Uint8Array.from(atob(r.k), c => c.charCodeAt(0)), 'AES-GCM', false, ['decrypt']);
+    const src = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.subarray(0, 12) }, key, buf.subarray(12)));
+    if (PRIV.who !== who) return;
+    PRIV.done = true; PRIV.mod = (new Function('api', src))(privApi()) || {};
+  } catch (e) {
+    if (e && e.status === 404) PRIV.done = true;                                            // serveur pas encore prêt : rien
+    else if (e && (e.offline || e.acct || e.guest)) PRIV.next = Date.now() + 30000;          // réseau, jeton : on réessaie plus tard
+    else { PRIV.next = Date.now() + 600000; reportError('Espace privé : ' + ((e && e.message) || e), '', { quiet: true }); }
+  } finally { PRIV.busy = false; }
+}
 
 /* ================= Invité (site public, sans compte) ================= */
 // Un visiteur joue tout de suite : jeux solo, duels sur l'appareil ou contre l'IA. Le reste (scores, salles, chat, duel en ligne,

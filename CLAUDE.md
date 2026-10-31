@@ -305,6 +305,13 @@ construit par `Unity.exe -batchmode -quit -projectPath D:\Games\PegaseUnity6 -bu
 `publier-pegase.sh <apk> C:/Users/Benjamin/jdv` (chemin Windows : node ne lit pas /c/…) ; `release-github.js … --go` crée une PRÉ-VERSION. Atelier, essais (test-natif.js : faux pont dans Chrome ; e2e.js : émulateur Android 15, vrai pont, vrais écrans d'Android) et
 marche à suivre (PUBLIER.md) : `~/jdv-tools/pegase/android-bridge/`.
 
+## Espace privé (31 oct. 2026)
+Section « Espace privé » de shell2.js : quelques comptes ont un module de plus. Le SERVEUR décide (`jdw_prive` rend une clé, `null` aux autres,
+404 tant que son SQL n'est pas appliqué) ; avec la clé, la page déchiffre `assets/jdw.prive.bin` (AES-GCM) et le lance avec `privApi()`
+(fonctions `pk_*` seulement) ; signaux `{ t: 'px' }` du canal privé du joueur ; `PRIV.back` en tête de `jdwBack`. Atelier, SQL, essais et
+fiche : `~/jdv-tools/espace-prive/README.md` (hors dépôt). La clé n'est jamais dans le dépôt (`verifier-publication.js` le vérifie) ;
+rien de cet espace dans `nouveautes.txt` ni dans les annonces.
+
 ## Serveur (Supabase)
 `supabase.sql` = schéma complet (contient la ligne de l'ancien mot de passe, gardé seulement pour get_errors / login_email : remplacer CHANGE-MOI).
 Le script peut être relancé : il garde les données et remet les fonctions à jour. `public.sql` (aussi à la fin de supabase.sql) = règles
