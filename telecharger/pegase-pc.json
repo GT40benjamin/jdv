@@ -1,36 +1,52 @@
 {
-  "version": "0.9.9.31",
-  "build": 82,
-  "size": 1668438928,
-  "sha256": "4e2195a3fbbb787831e1675d35cfb4501417c10f2470ca1d3c3560d5198206fb",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v82/Pegase-PC-2026-10-30-0.9.9.31.zip",
-  "manifest": "39f0807a6123ef446e261029b876ca4c8bfb10ba9bb0822551f3ab0ae9688c89",
+  "version": "0.9.9.32",
+  "build": 83,
+  "size": 1668473677,
+  "sha256": "7337ea52244fc2f1b38bfa7e9c58809fef27dc7786c1092ba4b902736b363fc1",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v83/Pegase-PC-2026-10-31-0.9.9.32.zip",
+  "manifest": "71276f7807371b7ae680f94242d96927fbea7dd141c98e6e8526e9aa9e0ec3d0",
   "patchs": [
     {
+      "de": "0.9.9.31",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v83/Pegase-PC-patch-0.9.9.31.zip",
+      "taille": 4983806,
+      "sha256": "eb682d5833fb06a58fff9a260f54b927439c51830174b5737276b2b7a6c902f4"
+    },
+    {
       "de": "0.9.9.30",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v82/Pegase-PC-patch-0.9.9.30.zip",
-      "taille": 3824450,
-      "sha256": "9a693f1bc250361e1067beaa125d80b25d3501a122f5c628b63fff619b83a862"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v83/Pegase-PC-patch-0.9.9.30.zip",
+      "taille": 5047628,
+      "sha256": "6b838348ca26e77a3323c14918227846856c175167cdd301a246506c2e8a692b"
     },
     {
       "de": "0.9.9.29",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v82/Pegase-PC-patch-0.9.9.29.zip",
-      "taille": 4457940,
-      "sha256": "3934b17c406e484c365c9a33a181fad9904380a0e37edf4c7db6030ee0e52c6b"
-    },
-    {
-      "de": "0.9.9.28",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v82/Pegase-PC-patch-0.9.9.28.zip",
-      "taille": 4393877,
-      "sha256": "5e2bb198911872342b353f70346b3b6ae2db24629a7ae28351db06cf478a3eda"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v83/Pegase-PC-patch-0.9.9.29.zip",
+      "taille": 5368779,
+      "sha256": "563d44e4e48e23e65a0cdc173545589ae3cecb488bafcfcfeb3e1e4cf4d9e025"
     }
   ],
   "notes": [
-    "Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.",
-    "Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.",
-    "Les fourmilières ne sont plus collées aux maisons ni sous les toits, et leurs pistes ne traversent plus les murs."
+    "Les portes de l'hôtel (l'entrée et les 12 chambres) ont enfin de vrais battants qui s'ouvrent devant toi et se referment derrière, et plus aucune marche ne te bloque à la sortie.",
+    "Au village, les portes s'ouvrent vers dehors, bien visibles, et seulement pour quelqu'un qui entre vraiment ; la boulangerie n'a plus qu'une porte, Mathilde monte son escalier et Odette ne piétine plus sur son seuil.",
+    "Au bar, Désiré fait des gestes en parlant, vient poser ton verre devant toi de sa main, puis retourne à son poste.",
+    "Les oiseaux ont des ailes à leur vraie taille, battent vite et se redressent pour se poser ; ils ne bougent plus tous en même temps.",
+    "Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.",
+    "À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.",
+    "Sur téléphone, l'interface est mieux dimensionnée."
   ],
   "historique": [
+    {
+      "version": "0.9.9.32",
+      "notes": [
+        "Les portes de l'hôtel (l'entrée et les 12 chambres) ont enfin de vrais battants qui s'ouvrent devant toi et se referment derrière, et plus aucune marche ne te bloque à la sortie.",
+        "Au village, les portes s'ouvrent vers dehors, bien visibles, et seulement pour quelqu'un qui entre vraiment ; la boulangerie n'a plus qu'une porte, Mathilde monte son escalier et Odette ne piétine plus sur son seuil.",
+        "Au bar, Désiré fait des gestes en parlant, vient poser ton verre devant toi de sa main, puis retourne à son poste.",
+        "Les oiseaux ont des ailes à leur vraie taille, battent vite et se redressent pour se poser ; ils ne bougent plus tous en même temps.",
+        "Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.",
+        "À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.",
+        "Sur téléphone, l'interface est mieux dimensionnée."
+      ]
+    },
     {
       "version": "0.9.9.31",
       "notes": [
@@ -61,14 +77,6 @@
         "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
         "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
         "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
-      ]
-    },
-    {
-      "version": "0.9.9.27",
-      "notes": [
-        "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
-        "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
-        "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
       ]
     }
   ]

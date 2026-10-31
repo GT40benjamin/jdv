@@ -1,20 +1,36 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 79,
-  "versionName": "0.9.9.31",
-  "size": 1233084894,
-  "sha256": "ace5a16535ce602ab6d64b7dbbca66ec9b7a3e41ca8400c0adadbc8cdf6ae719",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v79/pegase-0.9.9.31.apk",
+  "versionCode": 80,
+  "versionName": "0.9.9.32",
+  "size": 1233132410,
+  "sha256": "9f7d5e64d01848766fd984fba3e5d3e7fe2363ae2022fc0942c758ba43c01eb5",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v80/pegase-0.9.9.32.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.",
-    "Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.",
-    "Les fourmilières ne sont plus collées aux maisons ni sous les toits, et leurs pistes ne traversent plus les murs."
+    "Les portes de l'hôtel (l'entrée et les 12 chambres) ont enfin de vrais battants qui s'ouvrent devant toi et se referment derrière, et plus aucune marche ne te bloque à la sortie.",
+    "Au village, les portes s'ouvrent vers dehors, bien visibles, et seulement pour quelqu'un qui entre vraiment ; la boulangerie n'a plus qu'une porte, Mathilde monte son escalier et Odette ne piétine plus sur son seuil.",
+    "Au bar, Désiré fait des gestes en parlant, vient poser ton verre devant toi de sa main, puis retourne à son poste.",
+    "Les oiseaux ont des ailes à leur vraie taille, battent vite et se redressent pour se poser ; ils ne bougent plus tous en même temps.",
+    "Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.",
+    "À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.",
+    "Sur téléphone, l'interface est mieux dimensionnée."
   ],
   "historique": [
+    {
+      "version": "0.9.9.32",
+      "notes": [
+        "Les portes de l'hôtel (l'entrée et les 12 chambres) ont enfin de vrais battants qui s'ouvrent devant toi et se referment derrière, et plus aucune marche ne te bloque à la sortie.",
+        "Au village, les portes s'ouvrent vers dehors, bien visibles, et seulement pour quelqu'un qui entre vraiment ; la boulangerie n'a plus qu'une porte, Mathilde monte son escalier et Odette ne piétine plus sur son seuil.",
+        "Au bar, Désiré fait des gestes en parlant, vient poser ton verre devant toi de sa main, puis retourne à son poste.",
+        "Les oiseaux ont des ailes à leur vraie taille, battent vite et se redressent pour se poser ; ils ne bougent plus tous en même temps.",
+        "Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.",
+        "À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.",
+        "Sur téléphone, l'interface est mieux dimensionnée."
+      ]
+    },
     {
       "version": "0.9.9.31",
       "notes": [
@@ -45,14 +61,6 @@
         "Les ruisseaux et bassins des cascades sont de vraie eau : on ne peut plus marcher au fond, l'héroïne s'arrête au bord comme au lac.",
         "Dans l'hôtel, la caméra ne passe plus à travers les meubles des chambres.",
         "Les habitants viennent visiter votre maison sur toutes les parcelles, même la plus éloignée des chemins."
-      ]
-    },
-    {
-      "version": "0.9.9.27",
-      "notes": [
-        "Les poissons rouges de la fontaine sont enfin nets et bien rouges en photo : la nappe d'eau qui tombe de la vasque ne les voile plus.",
-        "Sous l'averse, les chiens du village vont s'abriter sous un toit, puis reviennent quand la pluie s'arrête.",
-        "Pêche : la nuit, le poisson que vous montrez est enfin bien éclairé."
       ]
     }
   ]
