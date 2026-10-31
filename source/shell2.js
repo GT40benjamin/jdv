@@ -26,7 +26,7 @@ const TILE_NEWS = {
   bolides: { kind: 'maj', at: '2026-10-25 00:16' },   // Bolides RC : à fond (plus de ralentissement automatique), 3 circuits redessinés, tremplins, décors (1.35.1 : conduite « pointe et fonce ») ; heure ≈ celle de la publication
   chrono: { kind: 'maj', at: '2026-10-29 17:45' },   // Turbo Chrono : SORTI POUR TOUS en 1.44 ; « Mis à jour » à chaque publication (règle de PATOU), dernière : 1.50.19 (mur + tuile des médailles)
   neon: { kind: 'maj', at: '2026-10-30 00:37' },   // Néon Rush (borne 1.52.3) : les textes des portes ne se posent plus sur le nom du monde ; 1.51.12 : couloirs en vol plus hauts
-  flechettes: { kind: 'new', at: '2026-10-31 14:00' },   // Tête de Cible (fléchettes, en essai derrière la porte labo) : 1.61 = étagère de cibles, constructeur, partie de salle (heure = celle de la publication)
+  flechettes: { kind: 'new', at: '2026-10-31 14:17' },   // Tête de Cible (fléchettes, en essai derrière la porte labo) : 1.61 = étagère de cibles, constructeur, partie de salle (heure = celle de la publication)
   smoothie: { kind: 'new', at: '2026-10-24 14:13' },   // Smoothie Samouraï (Classique, en essai derrière la porte labo ; heure = celle de la publication)
   tirsaubut: { kind: 'new', at: '2026-10-24 14:13' },   // Tirs au But (duel penaltys, en essai derrière la porte labo ; heure = celle de la publication)
   kombat: { kind: 'new', at: '2026-10-16 09:00' },   // Mandale Kombat sorti pour tous (1.17)

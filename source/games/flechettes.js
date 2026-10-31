@@ -6,9 +6,10 @@
 // assets/flechettes.visage*.bin) ne se charge que si l'on choisit une photo : tout se passe sur l'appareil, la photo n'est jamais envoyée.
 // Une seule variable globale en plus : window.JDW_FL (et window.JDW_FLV pour le détecteur). Atelier : ~/jdv-tools/duotest/flechettes (REPRISE.md).
 const ROOT = () => window.JDW_ROOT || '';
+const WANT = "0ba70ec1";   // version du moteur de CE module (posée par tools/build.js)
 let ENGINE = null;
-async function fetchBytes(url, onProg, guess, signal) {
-  const r = await fetch(url, { signal });
+async function fetchBytes(url, onProg, guess, signal, opt) {
+  const r = await fetch(url, Object.assign({ signal }, opt || {}));
   if (!r.ok) throw new Error('moteur ' + r.status);
   const total = +(r.headers.get('content-length') || 0) || guess;
   if (!r.body || !r.body.getReader) { const b = new Uint8Array(await r.arrayBuffer()); onProg(1); return b; }
@@ -18,18 +19,29 @@ async function fetchBytes(url, onProg, guess, signal) {
   return out;
 }
 function loadEngine(onProg, signal) {
-  if (window.JDW_FL && window.JDW_FL.game) return Promise.resolve(window.JDW_FL);
+  const fresh = () => window.JDW_FL && window.JDW_FL.game && (window.JDW_FL.build === WANT || /__FL_ENGINE__/.test(WANT));
+  if (fresh()) return Promise.resolve(window.JDW_FL);
   if (ENGINE) return ENGINE;
   ENGINE = (async () => {
     if (typeof DecompressionStream === 'undefined') throw new Error('navigateur trop ancien');
-    const gz = await fetchBytes(ROOT() + 'assets/flechettes.moteur.bin', onProg, 200000, signal);
-    const code = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
-    await new Promise((res, rej) => {
-      const s = document.createElement('script'), u = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
-      s.onload = () => { URL.revokeObjectURL(u); res(); }; s.onerror = () => { URL.revokeObjectURL(u); rej(new Error('moteur illisible')); };
-      s.src = u; document.head.appendChild(s);
-    });
-    if (!window.JDW_FL || !window.JDW_FL.game) throw new Error('moteur absent');
+    const run = async (url, opt) => {
+      window.JDW_FL = undefined;
+      const gz = await fetchBytes(url, onProg, 200000, signal, opt);
+      const code = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+      await new Promise((res, rej) => {
+        const s = document.createElement('script'), u = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+        s.onload = () => { URL.revokeObjectURL(u); res(); }; s.onerror = () => { URL.revokeObjectURL(u); rej(new Error('moteur illisible')); };
+        s.src = u; document.head.appendChild(s);
+      });
+      if (!window.JDW_FL || !window.JDW_FL.game) throw new Error('moteur absent');
+      return window.JDW_FL.build;
+    };
+    const got = await run(ROOT() + 'assets/flechettes.moteur.bin');
+    // un vieux moteur gardé quelque part (cache du navigateur) : on le jette et on va chercher le bon au serveur (?v= passe à côté des caches)
+    if (!fresh()) {
+      const again = await run(ROOT() + 'assets/flechettes.moteur.bin?v=' + WANT + '-' + Date.now(), { cache: 'reload' });
+      try { if (window.JDW_SHELL_LOG) window.JDW_SHELL_LOG('Tête de Cible : vieux moteur ' + got + ' remplacé par ' + again); } catch (e) { /* rien */ }
+    }
     return window.JDW_FL;
   })();
   ENGINE.catch(() => { ENGINE = null; });
