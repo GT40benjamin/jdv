@@ -1057,3 +1057,6 @@
 [abracadabra] 💬 Les villageois réagissent à tout ce que tu fais apparaître, chacun avec son caractère : le grand-père ronchon, la fillette émerveillée, le fermier pratique, la maman inquiète, le garçon farceur, la grand-mère tendre.
 [abracadabra] 🎤 Enchaîne les mots sans t'arrêter : « une vache, un tonneau, un piano »… tout sort du bâton, l'un après l'autre. Le micro reste ouvert tant que tu parles.
 [abracadabra] 👫 Joue seul ou en salle avec tes amis, et parlez-vous à la voix pendant la partie.
+[abracadabra] ## 👀 Abracadabra : la vue toujours dégagée (borne 1.63.5)
+[abracadabra] 👀 Les petits objets que tu fais apparaître retombent maintenant un peu plus loin, en arc et sur le côté : un piano ou un tonneau ne reste plus collé devant tes yeux jusqu'à la fin de la mission.
+[abracadabra] 🏔️ À l'arrivée dans la montagne, plus de grand vide rose au bord du monde : la brume de la neige à la place.
