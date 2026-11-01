@@ -152,6 +152,8 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## 👧 Abracadabra, en essai : la fillette bouge comme une vraie petite fille (borne 1.62.50)
+[abracadabra] 👧 Fini les poses bizarres à l'arrivée : la fillette ne fait plus l'avion avec les bras écartés, elle salue, saute de joie et fait coucou. Les bras de tous les villageois retombent le long du corps quand ils ne s'en servent pas.
 [abracadabra] ## 💬 Abracadabra, en essai : des villageois pleins de caractère (borne 1.62.47)
 [abracadabra] 👴 Chacun réagit à sa façon : le grand-père ronchonne, la fillette s'émerveille, le fermier se demande à quoi ça sert, la maman s'inquiète, le garçon fait le malin, la grand-mère n'a pas bien entendu… avec leurs gestes à eux.
 [abracadabra] ⚡ Quand tu enchaînes les objets : « Encore ?! », « Mais combien il en fait ?! », « On n'a plus de place ! »… et ils rient des objets absurdes. Jamais deux fois la même phrase dans une mission.
