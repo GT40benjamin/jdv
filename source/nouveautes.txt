@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : des dauphins et des gerbes de lave (borne 1.62.49)
+[sensinterdit] 🐬 Sur la Corniche, des dauphins sautent hors de la mer, à côté de la route, et replongent.
+[sensinterdit] 🌋 Au Volcan, des gerbes de lave jaillissent des rivières, de chaque côté de la route, avec leurs étincelles.
 [sensinterdit] ## ⛔ Sens Interdit : choisis la couleur de ta voiture (borne 1.62.48)
 [sensinterdit] 🎨 Dans la pause, « Ma voiture » : 10 teintes vernies (orange, rouge, rose, violet, bleu, turquoise, vert, jaune, blanc, noir). Ta voiture change de couleur tout de suite.
 [sensinterdit] 💾 Ta couleur est gardée sur l'appareil : tu la retrouves à chaque partie.
