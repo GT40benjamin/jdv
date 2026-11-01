@@ -1064,3 +1064,7 @@
 [abracadabra] 🏔️ À l'arrivée dans la montagne, plus de grand vide rose au bord du monde : la brume de la neige à la place.
 [abracadabra] ## 🌳 Abracadabra : la plage du pont, même dans ton dos (borne 1.63.7)
 [abracadabra] 🌳 Retourne-toi à la première mission : derrière la plage, plus de grand mur sombre tout nu, mais une pente de grès chaud avec de l'herbe sur les replats, des rochers à son pied, des buissons, et des arbres tout en haut.
+[abracadabra] ## 🤫 Abracadabra : aucun indice, nulle part (borne 1.63.8)
+[abracadabra] 🤫 Les villageois ne soufflent plus jamais la solution : plus de « Il y avait un pont, avant… » ni de devinettes du genre « Qui voit dans le noir, déjà ? ». À toi de trouver, avec ton imagination !
+[abracadabra] ## 🔍 Abracadabra : des décors bien nets sur téléphone (borne 1.63.8)
+[abracadabra] 🔍 Sur téléphone, fini l'image floue et pleine de petits escaliers : le jeu se dessine deux fois plus fin, les bords sont lissés, les rochers, falaises, arbres et maisons ont des textures deux fois plus détaillées, et l'herbe, les roseaux et les fleurs près de toi sont tout nets. Si ton téléphone peine, la finesse baisse toute seule pour que ça reste fluide.
