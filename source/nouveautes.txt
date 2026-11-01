@@ -1016,3 +1016,5 @@
 [neon] De temps en temps, un seul objet du décor réagit à la musique : une enseigne qui s'allume, une méduse qui pulse, un cristal qui brille, un volcan qui crache, le soleil qui s'embrase ou une étoile filante
 [neon] Le bouton ✦ « effets réduits » enlève les éclairs, les secousses et ces petites réactions du décor
 [neon] Les niveaux n'ont pas changé
+[abracadabra] ## 🧍 Abracadabra, en essai : les villageois restent les pieds sur terre (borne 1.62.76)
+[abracadabra] 🧍 Plus personne ne s'assoit ni ne s'accroupit dans le vide en attendant le sorcier : ils regardent, s'ennuient, cueillent une fleur, bien debout sur le sol.
