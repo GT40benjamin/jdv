@@ -1062,3 +1062,5 @@
 [abracadabra] ## 👀 Abracadabra : la vue toujours dégagée (borne 1.63.5)
 [abracadabra] 👀 Les petits objets que tu fais apparaître retombent maintenant un peu plus loin, en arc et sur le côté : un piano ou un tonneau ne reste plus collé devant tes yeux jusqu'à la fin de la mission.
 [abracadabra] 🏔️ À l'arrivée dans la montagne, plus de grand vide rose au bord du monde : la brume de la neige à la place.
+[abracadabra] ## 🌳 Abracadabra : la plage du pont, même dans ton dos (borne 1.63.7)
+[abracadabra] 🌳 Retourne-toi à la première mission : derrière la plage, plus de grand mur sombre tout nu, mais une pente de grès chaud avec de l'herbe sur les replats, des rochers à son pied, des buissons, et des arbres tout en haut.
