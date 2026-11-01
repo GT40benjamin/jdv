@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : les premières images de la course (borne 1.63.3)
+[sensinterdit] 🎬 Dès la première image, tu vois ta voiture sur la ligne de départ : fini l'écran tout blanc et le monde à l'envers juste avant le compte à rebours.
+[sensinterdit] ⏳ L'écran « On prépare la route… » reste affiché jusqu'à ce que tout soit prêt.
 [pegase] ## 💌 Pégase 0.9.9.39 : la grande correction continue (borne 1.63.2)
 [pegase] ✋ Des mains plus naturelles : Désiré referme ses mains quand il parle, l'héroïne et les habitantes ont des doigts détendus au repos.
 [pegase] 🌉 En prenant tout droit l'escalier du pont rouge, l'héroïne contourne toujours le poteau du côté du pont : plus de chute dans le vide.
