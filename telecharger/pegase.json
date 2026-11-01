@@ -1,27 +1,28 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 85,
-  "versionName": "0.9.9.37",
-  "size": 1233281238,
-  "sha256": "3dc99955652a5206153784989788e938322b509014ed0723d674980b58f28013",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v85/pegase-0.9.9.37.apk",
+  "versionCode": 86,
+  "versionName": "0.9.9.38",
+  "size": 1233292582,
+  "sha256": "137b2dfdf73022d36763ee96a33f31d4439af87e123540ff81ba7205189d468e",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v86/pegase-0.9.9.38.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Un avatar de garçon marche et se tient enfin comme un garçon (il gardait la marche et la pose de l'héroïne).",
-    "À l'hôtel, Edmond n'est plus coincé entre deux armoires derrière son comptoir.",
-    "À l'hôtel, des rambardes bordent maintenant le vide près de l'escalier : on ne peut plus tomber jusqu'au rez-de-chaussée.",
-    "Dans le hall de l'hôtel, la tête de cerf accrochée au mur ne traverse plus le plancher de l'étage.",
-    "Devant l'étal de Rosalie, les clients de l'hôtel ne se superposent plus : chacun prend sa place.",
-    "En courant près de l'escalier du pont rouge, l'héroïne enjambe la marche au lieu de s'arrêter net.",
-    "En sortant de La Poste sous l'auvent, « Sortir le vélo » fonctionne enfin.",
-    "Après une reprise de partie, si tu avais laissé ton vélo dehors, un message te dit qu'il est rangé dans ton sac.",
-    "Les palmiers ne s'effacent plus quand tu passes à côté.",
-    "Deux papillons ne se posent plus jamais sur la même fleur."
+    "Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.",
+    "En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.",
+    "En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées."
   ],
   "historique": [
+    {
+      "version": "0.9.9.38",
+      "notes": [
+        "Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.",
+        "En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.",
+        "En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées."
+      ]
+    },
     {
       "version": "0.9.9.37",
       "notes": [
@@ -72,16 +73,6 @@
         "Quand l'héroïne lance sa canne, elle regarde l'eau puis le point de chute : elle ne se plie plus en arrière.",
         "Les animaux de la ferme et des troupeaux ne se marchent plus dessus : ils regardent devant eux, s'écartent à temps et ne glissent plus de côté.",
         "À la pêche, le fil casse moins vite quand l'aiguille est dans le rouge : tu as le temps de relâcher (avant, un gros poisson cassait presque toujours)."
-      ]
-    },
-    {
-      "version": "0.9.9.33",
-      "notes": [
-        "À l'hôtel, l'entrée et les 12 chambres ont maintenant de vraies portes à deux battants, qui s'ouvrent ensemble devant toi et se referment derrière.",
-        "Les bouquetins se reposent sur les replats au bord de leur rocher, plus jamais dans la pente, et les vaches Highland ne partagent plus la même place.",
-        "Plus aucun animal ne se pose dans un rocher ou dans un objet du décor, et les animaux se mettent en place bien plus vite au chargement.",
-        "La pêche est plus solide : un combat ne peut plus rester bloqué au bord de l'eau.",
-        "Quand l'héroïne charge et lance sa canne, sa main gauche ne flotte plus ouverte en l'air."
       ]
     }
   ]

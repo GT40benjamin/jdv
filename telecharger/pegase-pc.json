@@ -1,43 +1,44 @@
 {
-  "version": "0.9.9.37",
-  "build": 88,
-  "size": 1668662819,
-  "sha256": "d2395b39893304d5522b7464dc8b2a6c04576500331d8913a58de848a82f0460",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v88/Pegase-PC-2026-11-01-0.9.9.37.zip",
-  "manifest": "15d4c8a629d3c1c82bc3c99c317e258b1e4688ddf9a26a882a77e6aab31f15ca",
+  "version": "0.9.9.38",
+  "build": 89,
+  "size": 1668663678,
+  "sha256": "478a39624d1612238889c8dfd4edeee52f118e36b21faf7383ff5f39edff4618",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v89/Pegase-PC-2026-11-01-0.9.9.38.zip",
+  "manifest": "0641ac3786a44a216ab84a14e78eae3a17d746de7cf5cab43e31f8c090d19827",
   "patchs": [
     {
+      "de": "0.9.9.37",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v89/Pegase-PC-patch-0.9.9.37.zip",
+      "taille": 3062603,
+      "sha256": "03f23344117928b012c1e95e60c9cfbb4c7b6b39a6352525ce072b62e76a86ea"
+    },
+    {
       "de": "0.9.9.36",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v88/Pegase-PC-patch-0.9.9.36.zip",
-      "taille": 3202403,
-      "sha256": "3e789d6a69e2d29646f6577584bea4489380bd5a787af2705450a757976d3e4e"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v89/Pegase-PC-patch-0.9.9.36.zip",
+      "taille": 3192383,
+      "sha256": "c94ac70afe5c636ca298898d22d081db20412ba49aa43eff980a5502e83a081f"
     },
     {
       "de": "0.9.9.35",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v88/Pegase-PC-patch-0.9.9.35.zip",
-      "taille": 2900394,
-      "sha256": "55a241c4ea7bc0fb7d37938d80af9c5dd15c8fd36e7ede11edbe9fdf9691a152"
-    },
-    {
-      "de": "0.9.9.34",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v88/Pegase-PC-patch-0.9.9.34.zip",
-      "taille": 4578095,
-      "sha256": "0c257ab3aaed1eaabb72242ec1d1960e3ad2e9a827adc3da3e51c38737244024"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v89/Pegase-PC-patch-0.9.9.35.zip",
+      "taille": 3453136,
+      "sha256": "a06fb1f7beece59b808c90e48ade006be3632795a364c8f9472cef08233030fb"
     }
   ],
   "notes": [
-    "Un avatar de garçon marche et se tient enfin comme un garçon (il gardait la marche et la pose de l'héroïne).",
-    "À l'hôtel, Edmond n'est plus coincé entre deux armoires derrière son comptoir.",
-    "À l'hôtel, des rambardes bordent maintenant le vide près de l'escalier : on ne peut plus tomber jusqu'au rez-de-chaussée.",
-    "Dans le hall de l'hôtel, la tête de cerf accrochée au mur ne traverse plus le plancher de l'étage.",
-    "Devant l'étal de Rosalie, les clients de l'hôtel ne se superposent plus : chacun prend sa place.",
-    "En courant près de l'escalier du pont rouge, l'héroïne enjambe la marche au lieu de s'arrêter net.",
-    "En sortant de La Poste sous l'auvent, « Sortir le vélo » fonctionne enfin.",
-    "Après une reprise de partie, si tu avais laissé ton vélo dehors, un message te dit qu'il est rangé dans ton sac.",
-    "Les palmiers ne s'effacent plus quand tu passes à côté.",
-    "Deux papillons ne se posent plus jamais sur la même fleur."
+    "Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.",
+    "En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.",
+    "En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées."
   ],
   "historique": [
+    {
+      "version": "0.9.9.38",
+      "notes": [
+        "Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.",
+        "En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.",
+        "En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées."
+      ]
+    },
     {
       "version": "0.9.9.37",
       "notes": [
@@ -88,16 +89,6 @@
         "Quand l'héroïne lance sa canne, elle regarde l'eau puis le point de chute : elle ne se plie plus en arrière.",
         "Les animaux de la ferme et des troupeaux ne se marchent plus dessus : ils regardent devant eux, s'écartent à temps et ne glissent plus de côté.",
         "À la pêche, le fil casse moins vite quand l'aiguille est dans le rouge : tu as le temps de relâcher (avant, un gros poisson cassait presque toujours)."
-      ]
-    },
-    {
-      "version": "0.9.9.33",
-      "notes": [
-        "À l'hôtel, l'entrée et les 12 chambres ont maintenant de vraies portes à deux battants, qui s'ouvrent ensemble devant toi et se referment derrière.",
-        "Les bouquetins se reposent sur les replats au bord de leur rocher, plus jamais dans la pente, et les vaches Highland ne partagent plus la même place.",
-        "Plus aucun animal ne se pose dans un rocher ou dans un objet du décor, et les animaux se mettent en place bien plus vite au chargement.",
-        "La pêche est plus solide : un combat ne peut plus rester bloqué au bord de l'eau.",
-        "Quand l'héroïne charge et lance sa canne, sa main gauche ne flotte plus ouverte en l'air."
       ]
     }
   ]

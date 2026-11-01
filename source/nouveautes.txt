@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 💌 Pégase 0.9.9.38 : la grande correction continue (borne 1.62.66)
+[pegase] 🪵 Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.
+[pegase] 🌉 En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.
+[pegase] 🐄 En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées.
 [pegase] ## 💌 Pégase 0.9.9.37 : vos demandes corrigées (borne 1.62.65)
 [pegase] 🧍 Un avatar de garçon marche et se tient enfin comme un garçon (il gardait la marche et la pose de l'héroïne).
 [pegase] 🛎️ À l'hôtel, Edmond n'est plus coincé entre deux armoires derrière son comptoir.
