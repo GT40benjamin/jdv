@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : les phares d'en face éclairent la route (borne 1.62.63)
+[sensinterdit] 🔦 La nuit (Néon City, le Volcan, la Route des Étoiles), les voitures d'en face posent devant elles un long tapis de lumière sur la route : on les voit arriver de bien plus loin.
+[sensinterdit] ✨ De loin, leurs phares restent deux points bien nets.
 [sensinterdit] ## ⛔ Sens Interdit : tour de contrôle des 5 mondes (borne 1.62.62)
 [sensinterdit] 💥 L'explosion d'un accident se voit toujours en entier, même pendant le feu d'artifice des 5 km.
 [sensinterdit] 🌧️ À Néon City, la pluie s'étire de nouveau avec la vitesse.
