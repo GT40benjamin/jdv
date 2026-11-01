@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : de vrais dauphins (borne 1.62.52)
+[sensinterdit] 🐬 Les dauphins de la Corniche ont maintenant un front bombé et un petit bec arrondi, un corps dodu et un aileron en faucille : plus aucun air de requin.
+[sensinterdit] 💦 Ils sautent plus haut, avec une gerbe d'eau et de gouttes quand ils sortent de la mer et quand ils replongent.
 [sensinterdit] ## ⛔ Sens Interdit : le moment du dépassement (borne 1.62.51)
 [sensinterdit] 🏁 En arrivant sur la ligne d'un copain (ou de ton record), son panneau au bord de la route s'entoure d'un cadre doré qui bat comme un cœur.
 [sensinterdit] ⏱️ Au moment où tu passes la ligne : un court ralenti, un « whoosh », et la manette vibre.
