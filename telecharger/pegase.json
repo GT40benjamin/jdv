@@ -1,26 +1,42 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 84,
-  "versionName": "0.9.9.36",
-  "size": 1233277478,
-  "sha256": "e9e35f539943b26a5abcbe6721ae63d8c1ab4698d9623d19bf784e3afcceffb6",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v84/pegase-0.9.9.36.apk",
+  "versionCode": 85,
+  "versionName": "0.9.9.37",
+  "size": 1233281238,
+  "sha256": "3dc99955652a5206153784989788e938322b509014ed0723d674980b58f28013",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v85/pegase-0.9.9.37.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Au musée et dans les boutiques, plus de fente entre un meuble et un mur où l'on restait coincé : on va toujours jusqu'au commerçant.",
-    "Au potager, la dernière case se ratisse : le potager est enlevé et l'herbe repousse.",
-    "Pelle en main, le jeu te dit toujours pourquoi on ne peut pas bêcher à un endroit.",
-    "En courant dans une pente qu'on descend sans peine, l'héroïne ne passe plus de force au pas.",
-    "Dans la barque, la caméra reste à bonne distance, la bâche ne te cache plus la vue, et la barque ne passe plus sous le ponton.",
-    "Tes pas font de petites éclaboussures dans l'eau peu profonde, et un liseré d'écume borde les rochers : ils ne semblent plus flotter.",
-    "La porte d'entrée de l'hôtel s'ouvre vers le hall, sans balayer les bacs à fleurs.",
-    "À la ferme, la faune sauvage laisse les bêtes tranquilles : lapins, corneilles et cerfs vivent plus loin, et plus rien ne fait d'allers-retours sur le chemin.",
-    "Les canetons et les poussins ne passent plus à travers le corps de leur mère."
+    "Un avatar de garçon marche et se tient enfin comme un garçon (il gardait la marche et la pose de l'héroïne).",
+    "À l'hôtel, Edmond n'est plus coincé entre deux armoires derrière son comptoir.",
+    "À l'hôtel, des rambardes bordent maintenant le vide près de l'escalier : on ne peut plus tomber jusqu'au rez-de-chaussée.",
+    "Dans le hall de l'hôtel, la tête de cerf accrochée au mur ne traverse plus le plancher de l'étage.",
+    "Devant l'étal de Rosalie, les clients de l'hôtel ne se superposent plus : chacun prend sa place.",
+    "En courant près de l'escalier du pont rouge, l'héroïne enjambe la marche au lieu de s'arrêter net.",
+    "En sortant de La Poste sous l'auvent, « Sortir le vélo » fonctionne enfin.",
+    "Après une reprise de partie, si tu avais laissé ton vélo dehors, un message te dit qu'il est rangé dans ton sac.",
+    "Les palmiers ne s'effacent plus quand tu passes à côté.",
+    "Deux papillons ne se posent plus jamais sur la même fleur."
   ],
   "historique": [
+    {
+      "version": "0.9.9.37",
+      "notes": [
+        "Un avatar de garçon marche et se tient enfin comme un garçon (il gardait la marche et la pose de l'héroïne).",
+        "À l'hôtel, Edmond n'est plus coincé entre deux armoires derrière son comptoir.",
+        "À l'hôtel, des rambardes bordent maintenant le vide près de l'escalier : on ne peut plus tomber jusqu'au rez-de-chaussée.",
+        "Dans le hall de l'hôtel, la tête de cerf accrochée au mur ne traverse plus le plancher de l'étage.",
+        "Devant l'étal de Rosalie, les clients de l'hôtel ne se superposent plus : chacun prend sa place.",
+        "En courant près de l'escalier du pont rouge, l'héroïne enjambe la marche au lieu de s'arrêter net.",
+        "En sortant de La Poste sous l'auvent, « Sortir le vélo » fonctionne enfin.",
+        "Après une reprise de partie, si tu avais laissé ton vélo dehors, un message te dit qu'il est rangé dans ton sac.",
+        "Les palmiers ne s'effacent plus quand tu passes à côté.",
+        "Deux papillons ne se posent plus jamais sur la même fleur."
+      ]
+    },
     {
       "version": "0.9.9.36",
       "notes": [
@@ -66,18 +82,6 @@
         "Plus aucun animal ne se pose dans un rocher ou dans un objet du décor, et les animaux se mettent en place bien plus vite au chargement.",
         "La pêche est plus solide : un combat ne peut plus rester bloqué au bord de l'eau.",
         "Quand l'héroïne charge et lance sa canne, sa main gauche ne flotte plus ouverte en l'air."
-      ]
-    },
-    {
-      "version": "0.9.9.32",
-      "notes": [
-        "Les portes de l'hôtel (l'entrée et les 12 chambres) ont enfin de vrais battants qui s'ouvrent devant toi et se referment derrière, et plus aucune marche ne te bloque à la sortie.",
-        "Au village, les portes s'ouvrent vers dehors, bien visibles, et seulement pour quelqu'un qui entre vraiment ; la boulangerie n'a plus qu'une porte, Mathilde monte son escalier et Odette ne piétine plus sur son seuil.",
-        "Au bar, Désiré fait des gestes en parlant, vient poser ton verre devant toi de sa main, puis retourne à son poste.",
-        "Les oiseaux ont des ailes à leur vraie taille, battent vite et se redressent pour se poser ; ils ne bougent plus tous en même temps.",
-        "Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.",
-        "À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.",
-        "Sur téléphone, l'interface est mieux dimensionnée."
       ]
     }
   ]
