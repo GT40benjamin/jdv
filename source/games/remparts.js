@@ -7,7 +7,7 @@
 // Une seule variable globale en plus : window.JDW_TD. Atelier : ~/jdv-tools/duotest/towerdefense (fiche REPRISE.md).
 const ID = 'remparts', NOM = 'Remparts !';
 const ROOT = () => window.JDW_ROOT || '';
-const WANT = 'td-0acaa3fb';
+const WANT = 'td-595b00ad';
 const STORE = {};
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));
@@ -55,9 +55,9 @@ function loadPack(onProg, signal, nom) {
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
     const hl = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0, true);
-    const head = JSON.parse(new TextDecoder().decode(plain.subarray(4, 4 + hl))), base = 4 + hl, glb = {};
-    for (const k of Object.keys(head.e)) { const e = head.e[k]; if (e.t === 'glb') glb[k.slice(k.indexOf(':') + 1)] = plain.slice(base + e.o, base + e.o + e.l).buffer; }
-    return { glb };
+    const head = JSON.parse(new TextDecoder().decode(plain.subarray(4, 4 + hl))), base = 4 + hl, glb = {}, son = {};
+    for (const k of Object.keys(head.e)) { const e = head.e[k], raw = plain.slice(base + e.o, base + e.o + e.l).buffer, nm = k.slice(k.indexOf(':') + 1); if (e.t === 'glb') glb[nm] = raw; else if (e.t === 'son') son[nm] = raw; }
+    return { glb, son };
   })();
   STORE[K].catch(() => { STORE[K] = null; });
   return STORE[K];
