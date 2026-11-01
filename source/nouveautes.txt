@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : les roues soulèvent le décor (borne 1.62.67)
+[sensinterdit] ❄️ Au Col des Neiges, tes roues et celles des voitures d'en face soulèvent des nuages de poudreuse.
+[sensinterdit] 💦 À Néon City, une fine gerbe d'eau jaillit des roues sur la chaussée mouillée.
+[sensinterdit] 🔥 Au Volcan, de petites braises s'échappent des roues.
 [pegase] ## 💌 Pégase 0.9.9.38 : la grande correction continue (borne 1.62.66)
 [pegase] 🪵 Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.
 [pegase] 🌉 En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.
