@@ -1,20 +1,34 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 86,
-  "versionName": "0.9.9.38",
-  "size": 1233292582,
-  "sha256": "137b2dfdf73022d36763ee96a33f31d4439af87e123540ff81ba7205189d468e",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v86/pegase-0.9.9.38.apk",
+  "versionCode": 87,
+  "versionName": "0.9.9.39",
+  "size": 1233390330,
+  "sha256": "995770fc016a501f9547cdac78cc5e43e3b6ad81c7cfac2f77c3571b6ae7b8ee",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v87/pegase-0.9.9.39.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.",
-    "En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.",
-    "En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées."
+    "Des mains plus naturelles : Désiré referme ses mains quand il parle, l'héroïne et les habitantes ont des doigts détendus au repos.",
+    "En prenant tout droit l'escalier du pont rouge, l'héroïne contourne toujours le poteau du côté du pont : plus de chute dans le vide.",
+    "Le ruisseau sous le pont rouge est maintenant une vraie eau bleue qui coule, avec de l'écume sur ses rives.",
+    "Une bête qui détale fait d'abord volte-face : elle ne part plus de côté ou à reculons.",
+    "Poules, coq, pigeons, corneilles, faisans… : leurs pattes ne glissent plus en marchant, et la basse-cour marche d'un pas vif au lieu de trotter.",
+    "Une bête qui se tourne un peu pendant un repos fait quelques pas au lieu de pivoter les pattes figées ; couchée ou en train de brouter, elle garde son cap."
   ],
   "historique": [
+    {
+      "version": "0.9.9.39",
+      "notes": [
+        "Des mains plus naturelles : Désiré referme ses mains quand il parle, l'héroïne et les habitantes ont des doigts détendus au repos.",
+        "En prenant tout droit l'escalier du pont rouge, l'héroïne contourne toujours le poteau du côté du pont : plus de chute dans le vide.",
+        "Le ruisseau sous le pont rouge est maintenant une vraie eau bleue qui coule, avec de l'écume sur ses rives.",
+        "Une bête qui détale fait d'abord volte-face : elle ne part plus de côté ou à reculons.",
+        "Poules, coq, pigeons, corneilles, faisans… : leurs pattes ne glissent plus en marchant, et la basse-cour marche d'un pas vif au lieu de trotter.",
+        "Une bête qui se tourne un peu pendant un repos fait quelques pas au lieu de pivoter les pattes figées ; couchée ou en train de brouter, elle garde son cap."
+      ]
+    },
     {
       "version": "0.9.9.38",
       "notes": [
@@ -61,18 +75,6 @@
         "En sortant de l'avion, la caméra ne frôle plus la porte.",
         "Les poissons rouges de la fontaine sont petits, comme de vrais poissons rouges, et ne se traversent plus.",
         "Les ronds dans l'eau autour des canards et des poissons n'ont plus de bord carré."
-      ]
-    },
-    {
-      "version": "0.9.9.34",
-      "notes": [
-        "Pendant l'arrivée en avion, la barre d'objets ne s'affiche plus sur le tableau de bord.",
-        "Dans les choix de dialogue, le texte passe à la ligne avant la pastille « Entrée » au lieu de passer dessous.",
-        "À l'hôtel, les jardinières ont retrouvé leurs fleurs, et les clients ne se collent plus à toi : ils gardent leurs distances et se contournent.",
-        "À l'hôtel, les portes des chambres s'ouvrent en grand quand un client sort, plus à moitié.",
-        "Quand l'héroïne lance sa canne, elle regarde l'eau puis le point de chute : elle ne se plie plus en arrière.",
-        "Les animaux de la ferme et des troupeaux ne se marchent plus dessus : ils regardent devant eux, s'écartent à temps et ne glissent plus de côté.",
-        "À la pêche, le fil casse moins vite quand l'aiguille est dans le rouge : tu as le temps de relâcher (avant, un gros poisson cassait presque toujours)."
       ]
     }
   ]

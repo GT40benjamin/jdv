@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 💌 Pégase 0.9.9.39 : la grande correction continue (borne 1.63.2)
+[pegase] ✋ Des mains plus naturelles : Désiré referme ses mains quand il parle, l'héroïne et les habitantes ont des doigts détendus au repos.
+[pegase] 🌉 En prenant tout droit l'escalier du pont rouge, l'héroïne contourne toujours le poteau du côté du pont : plus de chute dans le vide.
+[pegase] 💧 Le ruisseau sous le pont rouge est maintenant une vraie eau bleue qui coule, avec de l'écume sur ses rives.
+[pegase] 🦌 Une bête qui détale fait d'abord volte-face : elle ne part plus de côté ou à reculons.
+[pegase] 🐔 Poules, coq, pigeons, corneilles, faisans… : leurs pattes ne glissent plus en marchant, et la basse-cour marche d'un pas vif au lieu de trotter.
+[pegase] 🐄 Une bête qui se tourne un peu pendant un repos fait quelques pas au lieu de pivoter les pattes figées ; couchée ou en train de brouter, elle garde son cap.
 [sensinterdit] ## ⛔ Sens Interdit : un départ sans à-coup (borne 1.63.1)
 [sensinterdit] 🚦 Le compte à rebours du départ ne se fige plus : tout est préparé pendant l'écran « On prépare la route… ».
 [sensinterdit] ## ⛔ Sens Interdit : Néon City, la brume des roues plus légère (borne 1.62.84)
