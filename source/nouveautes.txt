@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : des cendres dans l'air du Volcan (borne 1.62.78)
+[sensinterdit] 🌋 Au Volcan, de fines cendres grises flottent et tombent doucement dans l'air.
 [sensinterdit] ## ⛔ Sens Interdit : la neige se pose sur ta voiture (borne 1.62.77)
 [sensinterdit] ❄️ Au Col des Neiges, la neige se pose peu à peu sur ta voiture, par plaques sur le toit et l'arrière, puis fond quand tu quittes le Col.
 [sensinterdit] ## ⛔ Sens Interdit : la Route des Étoiles, un sol de verre (borne 1.62.75)
