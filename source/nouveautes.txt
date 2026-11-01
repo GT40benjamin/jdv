@@ -226,6 +226,9 @@
 [flechettes] ## 🎯 Tête de Cible : l'étagère de tuiles pour tout le monde (borne 1.61.2)
 [flechettes] 🧱 L'étagère s'ouvre sur Monsieur Grincheux, la première tuile, puis « ＋ Nouvelle cible » pour fabriquer la tienne avec ta photo.
 [flechettes] 🔄 Un téléphone qui avait gardé l'ancienne version du jeu va maintenant chercher la nouvelle tout seul.
+[abracadabra] ## ❄️ Abracadabra, en essai : la neige et la prairie du port (borne 1.62.72)
+[abracadabra] ❄️ Mission 3 : la neige a des congères claires et des creux bleutés au lieu d'un gris uni.
+[abracadabra] 🌿 Mission 8 : la prairie au pied du phare a des touffes plus sombres et des coins jaunis par le vent de la mer.
 [abracadabra] ## 🌾 Abracadabra, en essai : une plus belle rivière (borne 1.62.68)
 [abracadabra] 🌾 Mission 1 : des roseaux et des massettes sur la rive d'en face, des fleurs dans l'herbe, du grain sur le sable, et des rochers plus naturels (moins gros, bien posés, d'une pierre plus chaude).
 [abracadabra] ## 👧 Abracadabra, en essai : la fillette bouge comme une vraie petite fille (borne 1.62.50)
