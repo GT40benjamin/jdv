@@ -1024,3 +1024,6 @@
 [neon] Les niveaux n'ont pas changé
 [abracadabra] ## 🧍 Abracadabra, en essai : les villageois restent les pieds sur terre (borne 1.62.76)
 [abracadabra] 🧍 Plus personne ne s'assoit ni ne s'accroupit dans le vide en attendant le sorcier : ils regardent, s'ennuient, cueillent une fleur, bien debout sur le sol.
+[abracadabra] ## 🌅 Abracadabra, en essai : de vrais ciels (borne 1.62.80)
+[abracadabra] 🌅 Les ciels de jour ont enfin les couleurs prévues : plus clairs et plus doux, au lieu d'un bleu roi trop foncé. À la falaise, un vrai ciel de fin de journée.
+[abracadabra] 🌸 À la falaise, les fleurs ne poussent plus sur la paroi (elles y faisaient une tache sombre). Les nuits gardent leur bleu profond.
