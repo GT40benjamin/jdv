@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : tour de regard et d'écoute, 1re retouche (borne 1.62.82)
+[sensinterdit] 🪐 Route des Étoiles : plus de tache rose floue sur la route à côté de ta voiture sur téléphone.
+[sensinterdit] 🌋 Volcan : les bombes de lave grondent moins souvent (un grondement par volée au lieu d'un par bombe).
+[sensinterdit] ❄️ Col des Neiges : la neige sur ta voiture est plus légère, ta couleur reste bien visible.
 [sensinterdit] ## ⛔ Sens Interdit : les phares d'en face comme au cinéma (borne 1.62.81)
 [sensinterdit] 🎬 La nuit, un fin trait de lumière bleutée passe sur les phares des voitures d'en face, comme dans un film.
 [sensinterdit] ## ⛔ Sens Interdit : les lampadaires de Néon City dans la route mouillée (borne 1.62.79)
