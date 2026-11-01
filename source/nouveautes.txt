@@ -6,6 +6,16 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 💌 Pégase 0.9.9.36 : vos demandes corrigées (borne 1.62.58)
+[pegase] 🏛️ Au musée et dans les boutiques, plus de fente entre un meuble et un mur où l'on restait coincé : on va toujours jusqu'au commerçant.
+[pegase] 🌱 Au potager, la dernière case se ratisse : le potager est enlevé et l'herbe repousse.
+[pegase] 🪏 Pelle en main, le jeu te dit toujours pourquoi on ne peut pas bêcher à un endroit.
+[pegase] 🏃 En courant dans une pente qu'on descend sans peine, l'héroïne ne passe plus de force au pas.
+[pegase] 🚣 Dans la barque, la caméra reste à bonne distance, la bâche ne te cache plus la vue, et la barque ne passe plus sous le ponton.
+[pegase] 💧 Tes pas font de petites éclaboussures dans l'eau peu profonde, et un liseré d'écume borde les rochers : ils ne semblent plus flotter.
+[pegase] 🚪 La porte d'entrée de l'hôtel s'ouvre vers le hall, sans balayer les bacs à fleurs.
+[pegase] 🐄 À la ferme, la faune sauvage laisse les bêtes tranquilles : lapins, corneilles et cerfs vivent plus loin, et plus rien ne fait d'allers-retours sur le chemin.
+[pegase] 🐣 Les canetons et les poussins ne passent plus à travers le corps de leur mère.
 [sensinterdit] ## ⛔ Sens Interdit : les voitures d'en face réagissent (borne 1.62.57)
 [sensinterdit] 🚘 La voiture que tu vas frôler te fait un appel de phares (deux éclats, de jour comme de nuit) juste avant de te croiser.
 [sensinterdit] 📯 Et elle klaxonne souvent quand tu la frôles : plus fort et plus aigu quand tu vas vite.

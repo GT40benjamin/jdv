@@ -1,39 +1,56 @@
 {
-  "version": "0.9.9.35",
-  "build": 86,
-  "size": 1668655310,
-  "sha256": "d0c4a8c6091c9c564fb164207923821f233563f74a106c7c75532e846a9d3d8c",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v86/Pegase-PC-2026-10-31-0.9.9.35.zip",
-  "manifest": "725d230f604c6a505de90a2ec268452ca5074462c9cdc80516bba6782f70e92a",
+  "version": "0.9.9.36",
+  "build": 87,
+  "size": 1668659305,
+  "sha256": "bdb2fc8bcc4c41c13a2972ee4555051f46446a9963bcc2e1d54ede7da8f3a7ba",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v87/Pegase-PC-2026-11-01-0.9.9.36.zip",
+  "manifest": "810de434bfc30ef9cf3154d3222ab0c4be187bcf3c944f7836f9f22b3606b2ae",
   "patchs": [
     {
+      "de": "0.9.9.35",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v87/Pegase-PC-patch-0.9.9.35.zip",
+      "taille": 3000300,
+      "sha256": "6938ecd61abad614e2245d350df7bd524d294058c6468e7f0d76536f0a1fffc7"
+    },
+    {
       "de": "0.9.9.34",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v86/Pegase-PC-patch-0.9.9.34.zip",
-      "taille": 4407831,
-      "sha256": "44f7c42c77784f8c78e1118cbe7c8c580766dcdd0fd4bea087c0e9cfe2d90223"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v87/Pegase-PC-patch-0.9.9.34.zip",
+      "taille": 3949103,
+      "sha256": "352d05542832fe6e31988d26a051fba5929044b9a09c6d20d1dd4b9df77b4e79"
     },
     {
       "de": "0.9.9.33",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v86/Pegase-PC-patch-0.9.9.33.zip",
-      "taille": 4621783,
-      "sha256": "98ca96bf547368843c6ec8ea110fbc7429f511e0128b336d80c8a112bc9e5367"
-    },
-    {
-      "de": "0.9.9.32",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v86/Pegase-PC-patch-0.9.9.32.zip",
-      "taille": 4542793,
-      "sha256": "0118b46c475ce17ffd4c2a4cf78d4db35915663df64ab66a0f6caaf3bce9ec14"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v87/Pegase-PC-patch-0.9.9.33.zip",
+      "taille": 4782710,
+      "sha256": "40ed4e9a7cc85b96fe03d405a9c605577ae881ef716804f9d317777356883bbb"
     }
   ],
   "notes": [
-    "À vélo, tu ralentis en douceur avant une pente raide, une marche ou un mur au lieu de t'arrêter net, et le pédalier ne tourne plus quand tu ne pédales pas.",
-    "On entend enfin la mer sur les plages.",
-    "Pendant le combat, l'héroïne tourne vraiment la manivelle de la main gauche.",
-    "En sortant de l'avion, la caméra ne frôle plus la porte.",
-    "Les poissons rouges de la fontaine sont petits, comme de vrais poissons rouges, et ne se traversent plus.",
-    "Les ronds dans l'eau autour des canards et des poissons n'ont plus de bord carré."
+    "Au musée et dans les boutiques, plus de fente entre un meuble et un mur où l'on restait coincé : on va toujours jusqu'au commerçant.",
+    "Au potager, la dernière case se ratisse : le potager est enlevé et l'herbe repousse.",
+    "Pelle en main, le jeu te dit toujours pourquoi on ne peut pas bêcher à un endroit.",
+    "En courant dans une pente qu'on descend sans peine, l'héroïne ne passe plus de force au pas.",
+    "Dans la barque, la caméra reste à bonne distance, la bâche ne te cache plus la vue, et la barque ne passe plus sous le ponton.",
+    "Tes pas font de petites éclaboussures dans l'eau peu profonde, et un liseré d'écume borde les rochers : ils ne semblent plus flotter.",
+    "La porte d'entrée de l'hôtel s'ouvre vers le hall, sans balayer les bacs à fleurs.",
+    "À la ferme, la faune sauvage laisse les bêtes tranquilles : lapins, corneilles et cerfs vivent plus loin, et plus rien ne fait d'allers-retours sur le chemin.",
+    "Les canetons et les poussins ne passent plus à travers le corps de leur mère."
   ],
   "historique": [
+    {
+      "version": "0.9.9.36",
+      "notes": [
+        "Au musée et dans les boutiques, plus de fente entre un meuble et un mur où l'on restait coincé : on va toujours jusqu'au commerçant.",
+        "Au potager, la dernière case se ratisse : le potager est enlevé et l'herbe repousse.",
+        "Pelle en main, le jeu te dit toujours pourquoi on ne peut pas bêcher à un endroit.",
+        "En courant dans une pente qu'on descend sans peine, l'héroïne ne passe plus de force au pas.",
+        "Dans la barque, la caméra reste à bonne distance, la bâche ne te cache plus la vue, et la barque ne passe plus sous le ponton.",
+        "Tes pas font de petites éclaboussures dans l'eau peu profonde, et un liseré d'écume borde les rochers : ils ne semblent plus flotter.",
+        "La porte d'entrée de l'hôtel s'ouvre vers le hall, sans balayer les bacs à fleurs.",
+        "À la ferme, la faune sauvage laisse les bêtes tranquilles : lapins, corneilles et cerfs vivent plus loin, et plus rien ne fait d'allers-retours sur le chemin.",
+        "Les canetons et les poussins ne passent plus à travers le corps de leur mère."
+      ]
+    },
     {
       "version": "0.9.9.35",
       "notes": [
@@ -77,14 +94,6 @@
         "Les bêtes au repos ne se mêlent plus les unes aux autres : ferme, enclos, harde et bouquetins sur leurs rochers.",
         "À la manette, RB pose la canne, et les aides de la pêche sont justes au clavier comme à la manette.",
         "Sur téléphone, l'interface est mieux dimensionnée."
-      ]
-    },
-    {
-      "version": "0.9.9.31",
-      "notes": [
-        "Sur téléphone tenu à l'horizontale, l'interface de la pêche et de l'eau est lisible et rien n'est coupé ; les boutons de la barque et du kit de pêche ont leur icône, et le tableau du concours s'affiche dans la bulle de Basile.",
-        "Aux cascades, la caméra ne passe plus sous l'eau ni à travers le rideau de la chute.",
-        "Les fourmilières ne sont plus collées aux maisons ni sous les toits, et leurs pistes ne traversent plus les murs."
       ]
     }
   ]
