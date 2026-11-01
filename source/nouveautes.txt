@@ -1037,3 +1037,9 @@
 [abracadabra] ## 🌅 Abracadabra, en essai : de vrais ciels (borne 1.62.80)
 [abracadabra] 🌅 Les ciels de jour ont enfin les couleurs prévues : plus clairs et plus doux, au lieu d'un bleu roi trop foncé. À la falaise, un vrai ciel de fin de journée.
 [abracadabra] 🌸 À la falaise, les fleurs ne poussent plus sur la paroi (elles y faisaient une tache sombre). Les nuits gardent leur bleu profond.
+[abracadabra] ## 🪄 Nouveau jeu pour tous : Abracadabra (borne 1.63)
+[abracadabra] 🪄 Tu es un sorcier avec un vrai bâton magique : touche le bouton du sort, dis à voix haute ce que tu veux faire apparaître… et ça apparaît !
+[abracadabra] 🗺️ Dix missions sur la carte, de la rivière au géant endormi : des villageois sont coincés, à toi de trouver le bon objet pour les aider. Aucun indice, juste ton imagination.
+[abracadabra] 💬 Les villageois réagissent à tout ce que tu fais apparaître, chacun avec son caractère : le grand-père ronchon, la fillette émerveillée, le fermier pratique, la maman inquiète, le garçon farceur, la grand-mère tendre.
+[abracadabra] 🎤 Enchaîne les mots sans t'arrêter : « une vache, un tonneau, un piano »… tout sort du bâton, l'un après l'autre. Le micro reste ouvert tant que tu parles.
+[abracadabra] 👫 Joue seul ou en salle avec tes amis, et parlez-vous à la voix pendant la partie.
