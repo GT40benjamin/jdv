@@ -328,3 +328,12 @@ bruitages (coupés = rien). Vérifier `api.audio.sample` avant de s'en servir (v
 `api.musicMuffle(k)` : `k` de 0 (musique normale) à 1 (très étouffée : passe-bas qui descend vers 450 Hz), changement en douceur (~0,1 s).
 Sens Interdit s'en sert dans ses tunnels. Facultatif : un jeu qui ne l'appelle jamais ne change rien (le filtre n'existe pas) ; revenue à 0,
 la musique reprend son chemin direct, et la borne la remet normale quand le jeu se ferme.
+
+## Ajout 22 : meilleur SCORE par niveau, « plus = mieux » (api.levelBest.putScore / allScores ; borne 1.63, Remparts !)
+Pour un jeu à points où chaque niveau / monde a son meilleur score (le plus GRAND gagne) : `saves: true` comme l'Ajout 14, puis
+- `api.levelBest.putScore(niveau, score)` : meilleur perso sur ce niveau (score entier 1..99 999) ;
+- `await api.levelBest.roomScores(niveau)` → `[{ name, score, me }]` du plus grand au plus petit ;
+- `await api.levelBest.allScores()` → `{ members: [{ name, img, me }], best: { niveau: [{ name, score, me }] } }` (null en invité / sans salle / hors ligne).
+Côté serveur RIEN ne change : c'est la table `level_bests` (« moins de coups = mieux ») avec coups = 100 000 − score et temps 0 ;
+les notifications « X a battu ton record » marchent telles quelles (recTag de shell2.js les relit en points pour `remparts`).
+Un nouveau jeu qui s'en sert : l'ajouter à recTag (nom des niveaux, « points »).

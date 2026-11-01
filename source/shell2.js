@@ -1548,7 +1548,7 @@ function musicVariants(id, mode) {
   return list.length ? list : [id];
 }
 // niveau à partir duquel la musique devient énergique, par jeu
-const INTENSE_AT = { smoothie: 4, magic: 2, ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
+const INTENSE_AT = { remparts: 7, smoothie: 4, magic: 2, ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
 // morceaux emballés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée de la clé d'emballage
 // intégrée au site (window.JDW_ASSET_KEY, source/asset-key.txt) : pas un secret, les fichiers ne sont simplement jamais lisibles directement
 const MUSIC_ENC = new Set(window.JDW_MUSIC_ENC || []);
@@ -1906,6 +1906,7 @@ function recTag(tag) {
   const g = gameById(base) || null;
   if (!lv) return { g, base, lv: '', where: g ? g.title : '', val: v => fmt(v) + unit(g), word: 'ton record', ic: '🏆' };
   const msT = v => { const c = Math.round(v / 10), m = Math.floor(c / 6000), sec = Math.floor(c / 100) % 60; return m + ':' + String(sec).padStart(2, '0') + '.' + String(c % 100).padStart(2, '0'); };
+  if (base === 'remparts') { const W = { prairie: 'La Prairie', dunes: 'Les Dunes', neige: 'Les Pics Gelés', volcan: 'Le Volcan', hante: 'Le Château Hanté' }; return { g, base, lv, where: (g ? g.title : 'Remparts !') + ' · ' + (W[lv] || lv), val: v => fmt(Math.max(0, 100000 - v)) + ' points', word: 'ton record', ic: '🏰' }; }   // Ajout 22 : coups = 100 000 − score
   if (base === 'chrono') return { g, base, lv, where: (g ? g.title : 'Turbo Chrono') + ' · ' + ((CHRONO_TRACKS.find(x => x[0] === lv) || [])[1] || lv), val: msT, word: 'ton temps', ic: '⏱️' };
   const m = lv.match(/^(\d+)-(\d+)$/), label = base === 'coffres' && m ? 'Monde ' + m[1] + ' · ' + (+m[2] === 8 ? 'grand coffre' : 'coffre ' + m[2]) : 'niveau ' + lv;
   if (base !== 'coffres') return { g, base, lv, where: (g ? g.title + ' · ' : '') + label, val: v => fmt(v), word: 'ton record', ic: '🏆' };   // jeu à niveaux pas encore connu ici : sans unité
@@ -9820,6 +9821,20 @@ function levelBestApi(g) {
         } catch (e) { if (e.status === 404) SAVEG.allMissing = true; }
       }
       return { members, best };
+    },
+    // Ajout 22 (1er nov. 2026, Remparts !) : la variante « PLUS = MIEUX » (un score de points par niveau / monde). Même table et mêmes
+    // fonctions du serveur (level_bests, « moins de coups = mieux ») : le score est rangé en coups = 100 000 − score (0..99 999), temps 0.
+    // Le serveur garde donc le PLUS GRAND score, classe la salle du plus grand au plus petit, et les notifications « X a battu ton
+    // record » marchent telles quelles (recTag les relit en points). Aucun changement côté serveur.
+    putScore(level, score) {
+      const v = Math.max(0, Math.min(99999, Math.floor(+score || 0))); if (!v) return;
+      this.put(level, 100000 - v, 0);
+    },
+    async roomScores(level) { return (await this.room(level)).map(x => ({ name: x.name, score: 100000 - x.moves, me: x.me })); },
+    async allScores() {
+      const a = await this.all(); if (!a) return null;
+      const best = {}; for (const lv of Object.keys(a.best)) best[lv] = a.best[lv].map(x => ({ name: x.name, score: 100000 - x.moves, me: x.me })).sort((x, y) => y.score - x.score);
+      return { members: a.members, best };
     }
   };
 }

@@ -27,7 +27,12 @@ const LOOPS = {
   // Sens Interdit (29 oct. soir, Benjamin : « des musiques plus speed ») : monde 1 = Plein Gaz, 2 = si6, 3 = Néon Rush, 4 = si7, 5 = si5
   'si6-1': 'Combat/Chasing LOOP.wav', 'si6-2': 'Platform/Chase LOOP.wav',
   'si7-1': 'Combat/Frantic Battle LOOP.wav', 'si7-2': 'Combat/Assassins LOOP.wav', 'si7-3': 'Combat/Frantic Pursuit LOOP.wav',
-  'si5-1': 'Space/Hangar Escape LOOP.wav', 'si5-2': 'Space/Long Range Combat LOOP.wav'
+  'si5-1': 'Space/Hangar Escape LOOP.wav', 'si5-2': 'Space/Long Range Combat LOOP.wav',
+  // Remparts ! (tower defense, 1er nov. 2026) : une musique par monde (api.music('remparts<monde>')), énergique dès la vague 7, le boss à part
+  'remparts-1': 'Locations/Medieval Market LOOP.wav', 'remparts-x1': 'Combat/Skeletons LOOP.wav',
+  'rempartsdunes-1': 'Locations/The Bazaar LOOP.wav', 'rempartsneige-1': 'Seasonal/Christmas/Hidden Gifts/Hidden Gifts LOOP.wav',
+  'rempartsvolcan-1': 'Combat/Barren Combat LOOP.wav', 'rempartshante-1': 'Seasonal/Halloween/Haunted LOOP.wav',
+  'rempartsboss-1': 'Combat/Boss Battle 1 Loop.wav'
 };
 // volume visé (efficace) par morceau, s'il doit sonner plus fort que 0,12 : l'accueil (ElevenLabs) est vers -14 à -17 dBFS ;
 // au-delà de la crête, un limiteur doux (pas de saturation dure). Les autres morceaux ne changent pas.
