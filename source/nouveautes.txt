@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[sensinterdit] ## ⛔ Sens Interdit : les voitures d'en face réagissent (borne 1.62.57)
+[sensinterdit] 🚘 La voiture que tu vas frôler te fait un appel de phares (deux éclats, de jour comme de nuit) juste avant de te croiser.
+[sensinterdit] 📯 Et elle klaxonne souvent quand tu la frôles : plus fort et plus aigu quand tu vas vite.
 [sensinterdit] ## ⛔ Sens Interdit : les dauphins plus souvent (borne 1.62.56)
 [sensinterdit] 🐬 Les dauphins de la Corniche ont un vrai aileron en faucille, courbé vers l'arrière, et sautent plus souvent.
 [sensinterdit] ## ⛔ Sens Interdit : la fête du record (borne 1.62.55)
