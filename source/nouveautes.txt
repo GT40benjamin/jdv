@@ -1068,3 +1068,10 @@
 [abracadabra] 🤫 Les villageois ne soufflent plus jamais la solution : plus de « Il y avait un pont, avant… » ni de devinettes du genre « Qui voit dans le noir, déjà ? ». À toi de trouver, avec ton imagination !
 [abracadabra] ## 🔍 Abracadabra : des décors bien nets sur téléphone (borne 1.63.8)
 [abracadabra] 🔍 Sur téléphone, fini l'image floue et pleine de petits escaliers : le jeu se dessine deux fois plus fin, les bords sont lissés, les rochers, falaises, arbres et maisons ont des textures deux fois plus détaillées, et l'herbe, les roseaux et les fleurs près de toi sont tout nets. Si ton téléphone peine, la finesse baisse toute seule pour que ça reste fluide.
+[abracadabra] ## 🐴 Abracadabra : des bêtes qui marchent pour de vrai, et le bon mot fêté en grand (borne 1.63.9)
+[abracadabra] 🐴 Le cheval ne glisse plus : il part au petit galop, ses sabots suivent le sable, il démarre et s'arrête en douceur. La vache et le taureau aussi.
+[abracadabra] 🦉 Le hibou vole enfin dans le bon sens, en battant des ailes, et se pose au bout du sentier. Les canards de l'oasis nagent pour de vrai.
+[abracadabra] ✨ Quand tu trouves LE bon mot : « C'EST ÇA ! », le mot en grand et doré, un éclat de lumière et une petite fanfare.
+[abracadabra] ⏩ Pendant la fin de mission, un bouton « ×2 » pour accélérer (touche 2, bouton Y de la manette).
+[abracadabra] 💡 Tu sèches ? Après quelques essais, un bouton « INDICE » apparaît en haut : une devinette, jamais la réponse !
+[abracadabra] 🔍 Les villageois et les objets que tu fais le plus souvent apparaître (table, chaise, lit, canapé, maison, pont, bateau, lanterne…) ont des textures deux fois plus fines.
