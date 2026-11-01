@@ -323,3 +323,8 @@ partagées avec ma salle `[{ id, owner, nom, zones, w, h, path, at, mine, top }]
 ## Ajout 20 : jouer un vrai son (api.audio.sample, borne 1.62.11, Tête de Cible)
 `await api.audio.sample.decode(arrayBuffer)` → AudioBuffer ; `api.audio.sample.play(buffer, vol = 1, rate = 1)` le joue dans le réglage des
 bruitages (coupés = rien). Vérifier `api.audio.sample` avant de s'en servir (vieilles bornes).
+
+## Ajout 21 : la musique étouffée (api.musicMuffle, facultatif ; borne 1.62.69, Sens Interdit)
+`api.musicMuffle(k)` : `k` de 0 (musique normale) à 1 (très étouffée : passe-bas qui descend vers 450 Hz), changement en douceur (~0,1 s).
+Sens Interdit s'en sert dans ses tunnels. Facultatif : un jeu qui ne l'appelle jamais ne change rien (le filtre n'existe pas) ; revenue à 0,
+la musique reprend son chemin direct, et la borne la remet normale quand le jeu se ferme.
