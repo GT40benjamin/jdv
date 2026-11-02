@@ -1619,7 +1619,7 @@ function musicBuffer(id) {
 }
 async function musicBuffer0(id) {
   const enc = MUSIC_ENC.has(id);
-  const r = await fetch(ROOT + 'assets/music/' + id + (enc ? '.bin' : '.mp3')); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
+  const r = await fetch(id === 'atelier' ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/s/e23a0321-5bcc-498c-af3f-6c7fe136a20c.mp3' : ROOT + 'assets/music/' + id + (enc ? '.bin' : '.mp3')); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
   let ab = await r.arrayBuffer();
   if (enc) ab = await decryptBin(new Uint8Array(ab));
   const b = await new Promise((res, rej) => Audio.ctx.decodeAudioData(ab, res, rej));
@@ -1659,7 +1659,7 @@ function musicOut(t) {
 // MUSIQUES EN SUITE (24 oct. 2026, la page Pégase : « Chez toi 2 » → « L'Île qui s'éveille » → « Lumière du soir » → « Chez Rosalie 2 »,
 // plus de 6 min variées) : toujours dans l'ordre à partir du 1er, fondu enchaîné LONG à puissance constante, sans blanc ni coupure nette ;
 // chaque morceau est mesuré une fois (début et fin réels sans silence, volume des passages joués) et ramené au même niveau.
-const MUSIC_SUITE = { pegase: 7 };   // id → durée du fondu enchaîné (s)
+const MUSIC_SUITE = { pegase: 7, atelier: 5 };   // atelier : la musique de l'Atelier des jeux (s/e23a0321…, seau atelier-ia), silence coupé, fondu de 5 s   // id → durée du fondu enchaîné (s)
 function musicMeta(b) {
   if (b._m) return b._m;
   const ch = [...Array(b.numberOfChannels).keys()].map(i => b.getChannelData(i)), hop = Math.round(b.sampleRate * 0.05), n = Math.floor(b.length / hop), db = new Float32Array(n);
@@ -1710,6 +1710,7 @@ function musicNext(id, b, end, XF, seq, list, idx, src, g) {
   }, Math.max(0, (end - XF - A.currentTime - 0.4) * 1000));
 }
 async function setMusic(id, mode, level) {
+  if (id && window.JDW_ATL_MUS_OFF && current && current.game && current.game.id === window.JDW_ATL_MUS_OFF && !$('jdw-play').hidden) id = '';   // musique retirée par l'équipe de l'Atelier
   mode = mode || 'calm'; MUS.queue = null; MUS.level = !!level;
   MUS.want = id || ''; MUS.wantMode = mode;
   if (!MUS.on || !id || !Audio.ctx || document.hidden) { musicOut(0.6); return; }
@@ -10083,6 +10084,7 @@ function backToLibrary() {
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
   setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());
   fsLeave();
+  if ($('jdw-back').dataset.atl) { const qb = $('jdw-back'); delete qb.dataset.atl; qb.innerHTML = '✕<span class="tb-word"> Quitter</span>'; qb.setAttribute('aria-label', 'Quitter la partie'); window.JDW_ATL_OFF = []; window.JDW_ATL_MUS_OFF = ''; }
   if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); const t = ATL.retourTab || 'jeu'; ATL.retourTab = ''; setTimeout(() => { ATL.tab = t; atlOpen(); atlOuvrir(id); ATL.tab = t; }, 30); }   // jeu lancé depuis l'Atelier : retour au projet (onglet choisi)
   if (siteNew) setTimeout(maybeReload, 800);
 }
@@ -14094,6 +14096,14 @@ const atlProjNew = pj => !!(pj && pj.reponse_at) && String(pj.reponse_at) > Stri
 const ATL_ETATS = { brouillon: '📝 Brouillon', en_discussion: '💬 En discussion', complete: '🎉 Fiche complète', design: '🎨 Choix du design', design_choisi: '📮 Lettre à envoyer',
   envoyee: '🛠️ Conception en cours', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans ta salle', publie_monde: '🌍 Publié pour tous' };
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
+// 23 h 55 (Benjamin : « la version très simple, V1 ou V2 ») : le badge d'un projet
+function atlVersion(p, att) {
+  const et = String((p && p.etat) || ''), v = (p && p.version) | 0 || 1;
+  if (et === 'alpha') return '🎮 V' + v; if (et === 'publie_salle') return '🌟 V' + v + ' · publié'; if (et === 'publie_monde') return '🌍 V' + v + ' · publié pour tous';
+  if (et === 'envoyee' || et === 'acceptee') return '🛠️ V1 en construction'; if (et === 'refusee') return 'Pas retenu';
+  if (att || ['en_discussion', 'complete', 'design', 'design_choisi'].includes(et)) return '⏳ En attente ' + gDe();
+  return '📝 Brouillon';
+}
 const atlLastReply = () => atlMsgs().reduce((m, x) => (x.atelier && String(x.at) > m ? String(x.at) : m), '');
 const atlUnread = () => { const l = atlLastReply(); return !!l && !!ATL.cur && l > String(ATL.seen[atlSeenKey(ATL.cur)] || ''); };
 const atlWaiting = () => { const ms = atlMsgs(); return !!ms.length && !ms[ms.length - 1].atelier && ['en_discussion', 'brouillon', 'complete'].includes(atlEtat()); };
@@ -14222,7 +14232,7 @@ function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
-    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><button class="atl-cred" type="button" hidden title="Recharger mes crédits"></button><button class="atl-abob" type="button" hidden title="Mon abonnement Atelier+">⭐ Atelier+</button><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
+    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><button class="atl-cred" type="button" hidden title="Recharger mes crédits"></button><button class="atl-abob" type="button" hidden title="Mon abonnement Atelier+">⭐ Atelier+</button><button class="btn btn-ghost btn-sm atl-demb" type="button" hidden>📋 Mes demandes</button><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<div class="atl-frise" hidden></div><details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
@@ -14246,7 +14256,8 @@ function atlBuild() {
   q('.atl-sendh').addEventListener('click', atlEnvoyer);
   q('.atl-suivib').addEventListener('click', atlSuivi);
   q('.atl-cred').addEventListener('click', atlRecharger);
-  q('.atl-abob').addEventListener('click', atlRecharger);   // 21 h 50 : toucher son solde → « Recharger mes crédits »
+  q('.atl-abob').addEventListener('click', atlRecharger);
+  q('.atl-demb').addEventListener('click', atlMesDemandes);   // 21 h 50 : toucher son solde → « Recharger mes crédits »
   q('.atl-zoom').addEventListener('click', () => { const z = q('.atl-zoom'); z.hidden = true; z.textContent = ''; });
   q('.atl-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) atlImage(f); });
   return R;
@@ -14257,7 +14268,8 @@ function atlOpen() {
   if (isGuest()) { guestAsk('L’Atelier'); return; }
   if (netOff()) { try { netNeed('L’Atelier'); } catch (e) { toastCheer('Pas de connexion : l’Atelier revient avec le réseau', null, true); } return; }
   atlBuild(); ATL.open = true; ATL.root.hidden = false; document.body.classList.add('atl-on');
-  atlRender(); atlLoad(true);
+  musicBaseLevel(0.55); MUS.override = false; setMusic('atelier');   // 22 h 45 : la musique de l'Atelier, douce
+  atlRender(); atlLoad(true); setTimeout(atlBienvenue, 1200); atlDemCharger(true);
   setTimeout(() => { const i = ATL.root.querySelector('.atl-in'); if (i && !TOUCH) i.focus({ preventScroll: true }); }, 60);
 }
 function atlClose() {
@@ -14266,6 +14278,8 @@ function atlClose() {
   atlMicStop(); atlLetterClose(true); if (ATL.choix === 'question') ATL.choix = null;
   atlFrameStop();
   ATL.open = false; ATL.root.hidden = true; document.body.classList.remove('atl-on');
+  if (ATL_SON) { try { ATL_SON.pause(); } catch (e) {} ATL_SON = null; ATL_SON_U = ''; musicHush(false); }
+  if (MUS.want === 'atelier') { musicBaseLevel(1); setMusic(menuMusic()); }
   atlTileState(); refreshBell(); atlSchedule();
   if (siteNew) setTimeout(maybeReload, 800);   // la mise à jour attendait la sortie de l'Atelier
 }
@@ -14295,7 +14309,7 @@ function atlRenderProjets() {
     // 19 h 38 (Benjamin) : idée envoyée, réponse pas encore arrivée → « ⏳ En attente de l'Atelier » (badge et couleur), pas « Brouillon »
     const att = !!pj.joueur_at && (!pj.reponse_at || String(pj.joueur_at) > String(pj.reponse_at)) && ['brouillon', 'en_discussion', 'complete'].includes(String(pj.etat || ''));
     if (att) b.classList.add('att');
-    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', '', att ? '⏳ En attente ' + gDe() : ATL_ETATS[pj.etat] || String(pj.etat || '')));
+    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(pj, att)) ? ' v' : ''), atlVersion(pj, att)));
     if (att) b.appendChild(atlEl('span', 'atl-patt', '⏳ En attente'));
     if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
     b.addEventListener('click', () => atlOuvrir(pj.id));
@@ -14308,9 +14322,10 @@ function atlRenderProjets() {
   nb.append(atlEl('span', 'atl-pv', '＋'), atlEl('b', '', 'Nouveau projet'), atlEl('small', '', ps.length + ' / ' + max + ' projets'));
   if (ps.length >= max) { nb.disabled = true; nb.title = max + ' projets au plus : termine ou abandonne un projet avant d’en commencer un autre.'; }
   nb.addEventListener('click', atlNouveau); g.appendChild(nb); box.appendChild(g);
+  if (cr && cr.tous_projets) atlTousProjets(box);
   R.querySelector('.atl-hs').textContent = 'Mes projets · ' + ps.length + ' / ' + max;
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); R.querySelector('.atl-sendh').hidden = true;
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
 }
 function atlOuvrir(id) {
   atlMicStop(); atlLetterClose(true); atlErr('');
@@ -14443,7 +14458,7 @@ function atlRenderChat() {
   R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu';
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
   cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin · touche pour recharger'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R);
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R);
   R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
   atlChatRetour(bn);
   const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = atlCoutMsg() ? '💎 ' + atlCoutMsg() + ' par message' : '🎁 Raconter ton idée : gratuit';
@@ -14458,7 +14473,7 @@ const ATL_STEPS = [
   ['personnages', '🦸', 'Personnages', 'Le héros, ses amis, les méchants…'],
   ['objets', '🎁', 'Objets', 'Ce qu’on ramasse, ce qu’on utilise, les bonus…'],
   ['decor', '🏞️', 'Décor', 'Les endroits où se passe ton jeu.'],
-  ['sons', '🎵', 'Sons', 'Les bruitages et les musiques.'],
+  ['sons', '🔊', 'Sons et bruitages', 'Les bruitages et les musiques.'],
   ['design', '🎨', 'Le design', 'L’ambiance de ton jeu, et les dessins de tous ses éléments.']
 ];
 const atlListeDe = v => (Array.isArray(v) ? v.map(atlVal).filter(Boolean) : atlVal(v) ? atlElements(atlVal(v)) : []);
@@ -14522,7 +14537,7 @@ function atlRenderWiz() {
   const ae = document.activeElement; if (ae && W.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.value) return;   // le joueur écrit : on ne redessine pas
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, et = String(f.etat || ''), cr = atlCred();
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr && !ATL.soldeT) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.classList.remove('low'); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); R.querySelector('.atl-sendh').hidden = true;
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
   if (ATL_AFTER.has(et) || et === 'refusee') { atlRenderProjet(W, f); return; }   // 17 h 20 : la vraie page du projet
   W.textContent = ''; ATL.pSig = '';
   const box = atlEl('div', 'atl-wbox'); W.appendChild(box);
@@ -14577,7 +14592,7 @@ function atlRenderWiz() {
 // Le cadre n'est jamais reconstruit par le rafraîchissement (signature ATL.pSig) : la partie continue.
 const atlSonUrl = f => /^s\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.mp3$/.test(String(f || '')) ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/' + f : '';
 const ATL_FICHE_ORDRE = [['idee', '💡', 'L’idée'], ['but', '🎯', 'Le but du jeu'], ['score', '🏆', 'Le score entre copains'], ['personnages', '🦸', 'Personnages'], ['heros', '🦸', 'Le héros'],
-  ['objets', '🎁', 'Objets'], ['decor', '🏞️', 'Décor'], ['monde', '🗺️', 'Le monde'], ['sons', '🎵', 'Sons'], ['style', '🎨', 'Le style'], ['dimension', '🧊', '2D ou 3D'], ['commandes', '🎮', 'Les commandes'], ['mobile', '📱', 'Sur téléphone']];
+  ['objets', '🎁', 'Objets'], ['decor', '🏞️', 'Décor'], ['monde', '🗺️', 'Le monde'], ['sons', '🔊', 'Sons et bruitages'], ['style', '🎨', 'Le style'], ['dimension', '🧊', '2D ou 3D'], ['commandes', '🎮', 'Les commandes'], ['mobile', '📱', 'Sur téléphone']];
 function atlFrameStop() { const W = ATL && ATL.root && ATL.root.querySelector('.atl-wiz'); if (W) { const i = W.querySelector('.atl-gframe iframe'); if (i) { i.src = 'about:blank'; i.remove(); } } if (ATL) ATL.pSig = ''; }
 function atlFrameStart() {
   const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(), fr = W && W.querySelector('.atl-gframe'); if (!fr || !f || !f.jeu) return;
@@ -14617,7 +14632,7 @@ function atlRenderProjet(W, f) {
   const hd = atlEl('header', 'atl-phd');
   const hv = atlEl('div', 'atl-phv'); if (dz) { const im = atlEl('img'); im.alt = ''; im.src = dz; im.addEventListener('click', () => atlZoom(dz)); hv.appendChild(im); } else hv.textContent = '🎮';
   const ht = atlEl('div', 'atl-pht');
-  ht.append(atlEl('h1', '', f.titre || 'Mon jeu sans nom'), atlEl('span', 'atl-pet atl-pet-' + et, ATL_ETATS[et] || et));
+  ht.append(atlEl('h1', '', f.titre || 'Mon jeu sans nom'), atlEl('span', 'atl-pet atl-pet-' + et, atlVersion(f)));
   ht.appendChild(atlEl('small', '', 'Commencé le ' + atlDate(f.created_at) + (f.envoyee_at ? ' · conception lancée le ' + atlDate(f.envoyee_at) : '')));
   hd.append(hv, ht); box.appendChild(hd);
   // 20 h 35 (Benjamin) : la fiche et les dessins sont dans la feuille de route (à droite) ; ici : Jouer + Discussion, ou la V1 en construction
@@ -14743,7 +14758,14 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
 function atlJouerVrai(f) {
   const g = (window.JDW_GAMES || {})[f.jeu];
   if (!g || g.id !== f.jeu) { toastCheer('Ton jeu arrive sur la borne très bientôt !', null, true); return; }
-  ATL.jeu = f.id; window.JDW_ATL_JEU = true; atlClose();   // repère pour le jeu : la touche P est l'arrêt sur image du guide (pas sa pause)
+  ATL.jeu = f.id; window.JDW_ATL_JEU = true;   // repère pour le jeu : la touche P est l'arrêt sur image du guide (pas sa pause)
+  // les éléments retirés par l'équipe (assets[].actif = false) : le jeu ne les montre plus (window.JDW_ATL_OFF, message atl-off) ;
+  // une musique retirée : la borne ne lance pas la musique du jeu
+  const off = (Array.isArray(f.assets) ? f.assets : []).filter(a => a && a.actif === false).map(a => String(a.nom || ''));
+  window.JDW_ATL_OFF = off; window.JDW_ATL_MUS_OFF = (Array.isArray(f.assets) ? f.assets : []).some(a => a && a.actif === false && (a.sorte === 'musique' || a.cat === 'musique')) ? g.id : '';
+  try { window.postMessage({ type: 'atl-off', noms: off }, location.origin); } catch (e) {}
+  atlClose();
+  const qb = $('jdw-back'); qb.dataset.atl = '1'; qb.innerHTML = '↩<span class="tb-word"> Retour à l’Atelier</span>'; qb.setAttribute('aria-label', 'Retour à l’Atelier');
   try { markGameSeen(g.id); } catch (e) {}
   openGame(g, true);
   if ($('jdw-play').hidden) { ATL.jeu = null; atlOpen(); atlOuvrir(f.id); return; }   // pas de partie (salle à choisir…)
@@ -15096,7 +15118,7 @@ function atlRenderRoute(liste) {
   const ecrire = !atlWizOn() && !lance && R.classList.contains('ecrire');   // avant la 1re analyse : l'idée, c'est la case d'écriture
   const idee = atlVal(fi.idee) || (ecrire ? String((R.querySelector('.atl-in') || {}).value || '').replace(/^Mon jeu \(en [23]D\) :[^\n]*\n?(Mon idée : )?/, '').trim() : '');
   ligne(s2, '💡', 'L’idée', idee ? '✔' : '…', etape(0) || (ecrire ? () => { const i = R.querySelector('.atl-in'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } : null), !!idee, idee ? court(idee, 90) : '');
-  [['personnages', '🦸', 'Personnages', 1], ['objets', '🎁', 'Objets', 2], ['decor', '🏞️', 'Décor', 3], ['sons', '🎵', 'Sons', 4]].forEach(([k, ic, lab, i]) => { const l = atlListeDe(fi[k]); ligne(s2, ic, lab, l.length ? String(l.length) : '…', etape(i), !!l.length, l.length ? court(l.join(', '), 80) : ''); });
+  [['personnages', '🦸', 'Personnages', 1], ['objets', '🎁', 'Objets', 2], ['decor', '🏞️', 'Décor', 3], ['sons', '🔊', 'Sons et bruitages', 4]].forEach(([k, ic, lab, i]) => { const l = atlListeDe(fi[k]); ligne(s2, ic, lab, l.length ? String(l.length) : '…', etape(i), !!l.length, l.length ? court(l.join(', '), 80) : ''); });
   const s3 = sec('🎨 Le design');
   const els = f ? atlElemsFiche(fi) : [], faits = f ? els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length : 0, att = f && Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours.length : 0;
   ligne(s3, '🖼️', 'L’ambiance', f && f.design_en_cours ? '⏳' : f && f.design ? '✔' : '…', etape(5), !!(f && f.design));
@@ -15124,19 +15146,8 @@ function atlIntro(on) {
   const bub = atlEl('div', 'atl-ibub'), tx = atlEl('div');
   tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-ibq', 'Raconte-moi ton jeu ! 🎮'), atlEl('p', 'atl-is', 'Écris ou dicte ton idée 🎤 : le héros, ce qu’on fait, le monde, les objets… Je monte tout ton projet, puis tu dessines tes éléments principaux.'));
   bub.append(atlGuideAv('atl-wav'), tx); I.appendChild(bub);
-  const bx = atlEl('div', 'atl-ibases'); bx.appendChild(atlEl('p', 'atl-ibk', 'Tu peux aussi m’aider en choisissant… (facultatif)'));
-  const cur = atlBasesVal();
-  for (const [k, ic, , court, opts] of ATL_BASES) {
-    if (k === 'dim') continue;   // toujours en 2D pour l'instant
-    const row = atlEl('div', 'atl-ibrow'); row.appendChild(atlEl('span', 'atl-iblab', ic + ' ' + court));
-    for (const [oi, lab, , bientot] of opts) {
-      if (bientot) continue;
-      const c = atlEl('button', 'atl-ibc' + (cur[k] === lab ? ' on' : ''), (oi ? oi + ' ' : '') + lab); c.type = 'button';
-      c.addEventListener('click', () => atlBaseCarte(k, lab)); row.appendChild(c);
-    }
-    bx.appendChild(row);
-  }
-  I.append(bx, atlEl('p', 'atl-inote', '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais. · 🤖 Ton jeu est créé avec l’aide de l’IA.'));
+  // 23 h 40 (Benjamin : « c'est pas intuitif ») : plus de bases à choisir ici ; le guide les remplit d'après l'idée (2D par défaut)
+  I.append(atlEl('p', 'atl-inote', '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais. · 🤖 Ton jeu est créé avec l’aide de l’IA.'));
 }
 // une base choisie (ou décochée) dans la discussion : gardée dans la fiche (le projet existe dès ce choix : brouillon)
 function atlBaseCarte(k, lab) {
@@ -15301,7 +15312,7 @@ function atlFrise(liste) {
 // design, personnages et leurs poses, objets, décors, interface, sons, musiques), source at_fiches.assets (+ les éléments de la fiche pas
 // encore dessinés), rangés par catégories, chacun dans son ENCART (vignette, nom, type) avec un menu ⋯ : Renommer · Modifier avec le guide
 // (une demande, cout_demande) · Écouter · Voir en grand ; « ＋ Créer un élément » en tête de chaque catégorie.
-const ATL_CATS = [['personnage', '🦸', 'Personnages', 'personnages'], ['objet', '🎁', 'Objets', 'objets'], ['decor', '🏞️', 'Décor', 'decor'], ['interface', '🖥️', 'Interface', ''], ['son', '🔊', 'Sons', ''], ['musique', '🎵', 'Musiques', '']];
+const ATL_CATS = [['personnage', '🦸', 'Personnages', 'personnages'], ['objet', '🎁', 'Objets', 'objets'], ['decor', '🏞️', 'Décor', 'decor'], ['interface', '🖥️', 'Interface', ''], ['son', '🔊', 'Sons et bruitages', ''], ['musique', '🎵', 'Musiques', '']];
 const atlAssetUrl = a => atlIaUrl(a.image) || atlSonUrl(a.son) || '';
 function atlAssetCat(a, fi) {
   const c = String(a.cat || '').toLowerCase();
@@ -15320,7 +15331,7 @@ function atlBiblioItems(f, fi) {
   for (const [cat] of ATL_CATS) items[cat] = [];
   for (const a of as) {
     const cat = atlAssetCat(a, fi), cle = (a.image || a.son) + (a.case ? '#' + a.case : ''); if (!cat || vus.has(cle)) continue; vus.add(cle);
-    items[cat].push({ nom: atlVal(a.nom) || 'Sans nom', pose: atlVal(a.pose), parent: atlVal(a.parent), url: atlAssetUrl(a), path: a.image || a.son, son: !!a.son, asset: true, cat, case: a.case, grille: a.grille, nb: as.filter(x => x.image === a.image).length });
+    items[cat].push({ nom: atlVal(a.nom) || 'Sans nom', pose: atlVal(a.pose), parent: atlVal(a.parent), url: atlAssetUrl(a), path: a.image || a.son, son: !!a.son, asset: true, ix: as.indexOf(a), anim: a.anim, ordre: a.ordre, fps: a.fps, cat, case: a.case, grille: a.grille, nb: as.filter(x => x.image === a.image).length });
   }
   for (const [cat, , , k] of ATL_CATS) {
     if (!k) continue;
@@ -15334,24 +15345,229 @@ function atlBiblioItems(f, fi) {
   for (const cat in items) items[cat].sort((p, q) => String(p.parent || p.nom).localeCompare(String(q.parent || q.nom), 'fr') || (p.pose ? 1 : 0) - (q.pose ? 1 : 0));
   return items;
 }
-function atlBiblio(host, f, fi) {
-  const et = String(f.etat || ''), libre = ['brouillon', 'en_discussion', 'complete'].includes(et), items = atlBiblioItems(f, fi);
-  const lib = atlEl('div', 'atl-lib');
-  const dz = f.design && atlIaUrl(f.design.f);
-  for (const [cat, ic, lab, k] of ATL_CATS) {
-    const l = items[cat], sec = atlEl('section', 'atl-libc'), hd = atlEl('div', 'atl-libh');
-    hd.appendChild(atlEl('h4', '', ic + ' ' + lab + (l.length ? ' · ' + l.length : '')));
-    const cc = atlCred(), px = cat === 'musique' ? (cc && cc.musique != null ? cc.musique | 0 : 50) : cat === 'son' ? (cc && cc.son != null ? cc.son | 0 : 10) : 0;
-    const cr = atlEl('button', 'btn btn-ghost btn-sm', '＋ Créer' + (px ? ' · ' + px + ' 💎' : '')); cr.type = 'button'; cr.addEventListener('click', () => atlCreerElem(cat, lab, k, libre, f, fi));
-    hd.appendChild(cr); sec.appendChild(hd);
-    const gr = atlEl('div', 'atl-libg');
-    for (const it of l) gr.appendChild(atlEncart(it, f, fi, libre));
-    if (!l.length) gr.appendChild(atlEl('p', 'atl-chv', cat === 'musique' ? 'Ton jeu est livré avec une musique (60 s, en boucle). « ＋ Créer » pour en ajouter d’autres, quand tu veux.' : cat === 'son' ? '« ＋ Créer » pour ajouter un son, quand tu veux.' : 'Rien pour l’instant.'));
-    sec.appendChild(gr); lib.appendChild(sec);
+// 22 h 45 → 23 h 25 (Benjamin) : la bibliothèque en SOUS-ONGLETS (Personnages · Objets · Décor · Interface · Sons et bruitages · Musiques,
+// avec le nombre ; le choix est retenu) ; les personnages groupés (un sous-titre par personnage) ; une PLANCHE (tileset) pour les
+// personnages (une rangée par animation, aperçu animé, même échelle, même ligne de sol), les objets, le décor et l'interface ; bascule
+// Vue planche / Vue cartes ; ⬇ Télécharger la planche (PNG assemblé) ; un clic sur un élément ouvre sa fiche. lecture : projet d'un autre (admin)
+const ATL_STOP = new Set(['les', 'des', 'une', 'petit', 'petite', 'grand', 'grande', 'gros', 'grosse', 'bord']);
+const atlMots = t => atlNorm(t).split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !ATL_STOP.has(w));
+function atlMemeChose(a, b) {   // « Le petit robot de bord » = « Le robot de bord »
+  const x = atlMots(a), y = atlMots(b); if (!x.length || !y.length) return atlNorm(a) === atlNorm(b);
+  const [p, q] = x.length <= y.length ? [x, y] : [y, x]; return p.every(w => q.includes(w));
+}
+function atlBiblio(host, f, fi, lecture) {
+  const et = String(f.etat || ''), libre = !lecture && ['brouillon', 'en_discussion', 'complete'].includes(et), items = atlBiblioItems(f, fi);
+  for (const cat in items) {   // un nom de la fiche « à dessiner » alors que ses poses existent déjà : retiré
+    const pleins = items[cat].filter(it => it.asset);
+    items[cat] = items[cat].filter(it => it.asset || !pleins.some(z => atlMemeChose(z.parent || z.nom, it.nom)));
   }
+  const lib = atlEl('div', 'atl-lib' + (lecture ? ' lecture' : ''));
+  let cat = store.get('jdw.atl.libcat', 'personnage'); if (!ATL_CATS.some(c => c[0] === cat)) cat = 'personnage';
+  const nav = atlEl('div', 'atl-libnav'); nav.setAttribute('role', 'tablist');
+  for (const [k, ic, lab] of ATL_CATS) { const b = atlEl('button', 'atl-libt' + (k === cat ? ' on' : ''), ic + ' ' + lab + ' · ' + items[k].length); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', k); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
+  lib.appendChild(nav);
+  const [, ic, lab, k] = ATL_CATS.find(c => c[0] === cat), l = items[cat], visuel = !['son', 'musique'].includes(cat);
+  let vue = store.get('jdw.atl.libvue', 'planche'); if (vue !== 'cartes') vue = 'planche';
+  const bar = atlEl('div', 'atl-libbar');
+  if (!lecture) {
+    const cc = atlCred(), px = cat === 'musique' ? (cc && cc.musique != null ? cc.musique | 0 : 50) : cat === 'son' ? (cc && cc.son != null ? cc.son | 0 : 10) : 0;
+    const cr = atlEl('button', 'btn btn-ghost btn-sm', (cat === 'son' ? '＋ Créer un bruitage' : cat === 'musique' ? '＋ Créer une musique' : '＋ Créer') + (px ? ' · ' + px + ' 💎' : '')); cr.type = 'button'; cr.addEventListener('click', () => atlCreerElem(cat, lab, k, libre, f, fi)); bar.appendChild(cr);
+  }
+  const avec = l.filter(it => it.url && !it.son);
+  if (visuel && avec.length) {
+    const vb = atlEl('button', 'btn btn-ghost btn-sm', vue === 'planche' ? '🗂️ Vue cartes' : '🧩 Vue planche'); vb.type = 'button';
+    vb.addEventListener('click', () => { store.set('jdw.atl.libvue', vue === 'planche' ? 'cartes' : 'planche'); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); });
+    const dl = atlEl('button', 'btn btn-ghost btn-sm', '⬇ Télécharger la planche'); dl.type = 'button';
+    dl.addEventListener('click', () => atlPlanchePng(f, cat, lab, l, dl));
+    bar.append(vb, dl);
+  }
+  lib.appendChild(bar);
+  const sec = atlEl('section', 'atl-libc');
+  if (!l.length) sec.appendChild(atlEl('p', 'atl-libvide', cat === 'musique' ? 'Pas encore de musique : « ＋ Créer une musique » pour en demander une.' : cat === 'son' ? '« ＋ Créer un bruitage » pour en ajouter un, quand tu veux.' : 'Rien pour l’instant.'));
+  else if (cat === 'personnage') {
+    const grp = new Map(); for (const it of l) { const g = it.parent || it.nom; if (!grp.has(g)) grp.set(g, []); grp.get(g).push(it); }
+    const rang = xs => Math.min(1e9, ...xs.map(x => x.asset ? x.ix : 1e9));   // l'ordre du jeu (le héros d'abord), les noms « à dessiner » après
+    for (const [g, xs] of [...grp].sort((a, b) => rang(a[1]) - rang(b[1]))) {
+      const poses = xs.filter(x => x.asset).length;
+      sec.appendChild(atlEl('h5', 'atl-libsub', g + (poses ? ' · ' + poses + ' pose' + (poses > 1 ? 's' : '') : '')));
+      if (vue === 'planche' && xs.some(x => x.url && !x.case)) sec.appendChild(atlTileset(xs, f, fi, libre, lecture));
+      else { const gr = atlEl('div', 'atl-libg'); for (const it of xs) gr.appendChild(atlEncart(it, f, fi, libre, lecture)); sec.appendChild(gr); }
+    }
+  } else if (visuel && vue === 'planche' && avec.length) {
+    sec.appendChild(atlPlancheCat(l, f, fi, libre, lecture));
+  } else { const gr = atlEl('div', 'atl-libg'); for (const it of l) gr.appendChild(atlEncart(it, f, fi, libre, lecture)); sec.appendChild(gr); }
+  lib.appendChild(sec);
   host.appendChild(lib);
 }
-function atlEncart(it, f, fi, libre) {
+// les animations d'un personnage, déduites des poses (« marche de face 1 », « 2 et 4 », « marche de dos 2 et repos de dos »), ou des clés
+// facultatives anim / ordre / fps des assets ; dans l'ordre repos puis marche pour chaque direction, puis les autres
+function atlAnims(xs) {
+  const rows = new Map(), add = (anim, n, it) => { anim = anim.replace(/\s+/g, ' ').trim() || 'pose'; if (!rows.has(anim)) rows.set(anim, { anim, fr: [], i: rows.size }); rows.get(anim).fr.push([n, it]); };
+  for (const it of xs) {
+    if (!it.url || it.son) continue;
+    if (it.anim) { add(String(it.anim), +it.ordre || 1, it); continue; }
+    const core = String(it.pose || it.nom).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+    let last = '';
+    for (const part of core.split(/\s+et\s+/)) {
+      const m = /^(.*?)\s*(\d+)$/.exec(part.trim());
+      if (m && m[1]) { last = m[1]; add(m[1], +m[2], it); } else if (m && last) add(last, +m[2], it); else { last = part; add(part, 1, it); }
+    }
+  }
+  const dir = a => { const m = /^(repos|marche)\s+(.*)$/.exec(a); return m ? m[2] : null; };
+  const list = [...rows.values()], first = {};
+  for (const r of list) { const d = dir(r.anim); if (d != null && !(d in first)) first[d] = r.i; }
+  const key = r => { const d = dir(r.anim); return d != null ? [first[d], /^repos/.test(r.anim) ? 0 : 1] : [1000 + r.i, 0]; };
+  list.sort((a, b) => { const x = key(a), y = key(b); return x[0] - y[0] || x[1] - y[1]; });
+  for (const r of list) r.fr.sort((a, b) => a[0] - b[0]);
+  return list.map(r => ({ anim: r.anim, frames: r.fr.map(x => x[1]), fps: +(r.fr[0][1].fps) || (r.fr.length > 1 ? 8 : 0) }));
+}
+let ATL_TS_T = 0;
+function atlTsTick() {   // un seul minuteur pour tous les aperçus animés
+  if (ATL_TS_T) return;
+  ATL_TS_T = setInterval(() => {
+    const ps = document.querySelectorAll('.atl-tsprev[data-n]'); if (!ps.length) { clearInterval(ATL_TS_T); ATL_TS_T = 0; return; }
+    const t = performance.now();
+    for (const p of ps) { const n = +p.dataset.n, fps = +p.dataset.fps || 8, k = Math.floor(t / (1000 / fps)) % n; const ims = p.children; for (let i = 0; i < ims.length; i++) ims[i].style.visibility = i === k ? 'visible' : 'hidden'; }
+  }, 40);
+}
+// même échelle pour tout un groupe : la plus grande image tient dans la hauteur ; toutes posées sur la même ligne de sol
+function atlEchelle(imgs, haut) {
+  let n = 0; const go = () => { const mh = Math.max(1, ...imgs.map(i => i.naturalHeight || 0)); for (const i of imgs) if (i.naturalHeight) { i.style.height = Math.round(i.naturalHeight / mh * haut) + 'px'; i.style.width = 'auto'; } };
+  for (const i of imgs) { if (i.complete && i.naturalHeight) n++; else i.addEventListener('load', () => { if (++n >= imgs.length) go(); else go(); }, { once: true }); }
+  go();
+}
+function atlTileset(xs, f, fi, libre, lecture) {
+  const W = atlEl('div', 'atl-ts'), all = [];
+  for (const r of atlAnims(xs)) {
+    const row = atlEl('div', 'atl-tsr');
+    const pv = atlEl('div', 'atl-tsprev'); if (r.frames.length > 1) { pv.dataset.n = String(r.frames.length); pv.dataset.fps = String(r.fps); }
+    for (const it of r.frames) { const im = atlEl('img'); im.alt = ''; im.src = it.url; pv.appendChild(im); all.push(im); }
+    const lb = atlEl('div', 'atl-tsl'); lb.append(pv, atlEl('small', '', r.anim + (r.frames.length > 1 ? ' · ' + r.frames.length + ' images' : '')));
+    const fr = atlEl('div', 'atl-tsf');
+    r.frames.forEach((it, n) => { const b = atlEl('button', 'atl-tsc'); b.type = 'button'; b.title = it.pose || it.nom; const im = atlEl('img'); im.alt = it.pose || it.nom; im.src = it.url; all.push(im); b.append(im, atlEl('span', '', String(n + 1))); b.addEventListener('click', () => atlFicheElem(it, f, fi, libre, lecture)); fr.appendChild(b); });
+    row.append(lb, fr); W.appendChild(row);
+  }
+  atlEchelle(all, 92); atlTsTick();
+  return W;
+}
+function atlPlancheCat(l, f, fi, libre, lecture) {
+  const W = atlEl('div', 'atl-pl'), imgs = [];
+  for (const it of l) {
+    const b = atlEl('button', 'atl-plc'); b.type = 'button';
+    const v = atlEl('span', 'atl-plv');
+    if (it.url && it.case && Array.isArray(it.grille)) v.appendChild(atlCrop(it.url, it.case, it.grille, it.nom, it.nb));
+    else if (it.url) { const im = atlEl('img'); im.alt = it.nom; im.src = it.url; v.appendChild(im); imgs.push(im); }
+    else v.appendChild(atlEl('span', 'atl-encx', it.attente ? '⏳' : '✏️'));
+    b.append(v, atlEl('small', '', it.nom)); b.addEventListener('click', () => atlFicheElem(it, f, fi, libre, lecture)); W.appendChild(b);
+  }
+  // même échelle relative : la plus grande dimension de la catégorie remplit la case
+  const go = () => { const md = Math.max(1, ...imgs.map(i => Math.max(i.naturalWidth || 0, i.naturalHeight || 0))); for (const i of imgs) if (i.naturalWidth) { const k = 110 / md; i.style.width = Math.max(14, Math.round(i.naturalWidth * k)) + 'px'; i.style.height = Math.max(14, Math.round(i.naturalHeight * k)) + 'px'; } };
+  for (const i of imgs) if (!i.complete) i.addEventListener('load', go, { once: true });
+  go(); return W;
+}
+// ⬇ la planche en PNG (images rechargées avec CORS pour pouvoir les assembler)
+async function atlPlanchePng(f, cat, lab, l, btn) {
+  const charge = u => new Promise(ok => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = u + (u.includes('?') ? '&' : '?') + 'planche=1'; });
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ Je prépare la planche…';
+  try {
+    const PAD = 16, LAB = 26, cv = document.createElement('canvas'), g = cv.getContext('2d'), rows = [];
+    if (cat === 'personnage') {
+      const grp = new Map(); for (const it of l) if (it.url && !it.son && !it.case) { const k = it.parent || it.nom; if (!grp.has(k)) grp.set(k, []); grp.get(k).push(it); }
+      for (const [nom, xs] of grp) { rows.push({ titre: nom }); for (const r of atlAnims(xs)) rows.push({ anim: r.anim, ims: await Promise.all(r.frames.map(it => charge(it.url))) }); }
+      const all = rows.flatMap(r => r.ims || []).filter(Boolean), mh = Math.max(1, ...all.map(i => i.naturalHeight)), k = Math.min(1, 160 / mh), H = Math.round(mh * k);
+      const wrow = r => (r.ims || []).reduce((a, i) => a + (i ? Math.round(i.naturalWidth * k) + PAD : 0), 0);
+      cv.width = Math.min(8000, 220 + Math.max(400, ...rows.map(wrow)) + PAD); cv.height = Math.min(16000, PAD + rows.reduce((a, r) => a + (r.titre ? 40 : H + LAB + PAD), 0));
+      g.fillStyle = '#14112a'; g.fillRect(0, 0, cv.width, cv.height); let y = PAD;
+      for (const r of rows) {
+        if (r.titre) { g.fillStyle = '#ffd34d'; g.font = 'bold 22px sans-serif'; g.fillText(r.titre, PAD, y + 26); y += 40; continue; }
+        g.fillStyle = '#cfc8ff'; g.font = '15px sans-serif'; g.fillText(r.anim, PAD, y + H / 2 + 5);
+        let x = 220; for (const i of r.ims) { if (!i) continue; const w = Math.round(i.naturalWidth * k), h = Math.round(i.naturalHeight * k); g.drawImage(i, x, y + H - h, w, h); x += w + PAD; }
+        y += H + LAB + PAD;
+      }
+    } else {
+      const xs = l.filter(it => it.url && !it.son && !it.case), ims = await Promise.all(xs.map(it => charge(it.url))), C = 180, cols = Math.max(1, Math.min(6, xs.length));
+      const md = Math.max(1, ...ims.filter(Boolean).map(i => Math.max(i.naturalWidth, i.naturalHeight)));
+      cv.width = PAD + cols * (C + PAD); cv.height = PAD + 44 + Math.ceil(xs.length / cols) * (C + LAB + PAD);
+      g.fillStyle = '#14112a'; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = '#ffd34d'; g.font = 'bold 22px sans-serif'; g.fillText(lab, PAD, PAD + 24);
+      xs.forEach((it, n) => { const i = ims[n], x = PAD + (n % cols) * (C + PAD), y = PAD + 44 + Math.floor(n / cols) * (C + LAB + PAD); if (i) { const k = (C - 10) / md, w = i.naturalWidth * k, h = i.naturalHeight * k; g.drawImage(i, x + (C - w) / 2, y + C - h, w, h); } g.fillStyle = '#e8e4ff'; g.font = '13px sans-serif'; g.textAlign = 'center'; g.fillText(String(it.nom).slice(0, 26), x + C / 2, y + C + 18); g.textAlign = 'left'; });
+    }
+    const blob = await new Promise(ok => cv.toBlob(ok, 'image/png'));
+    if (!blob) throw new Error('png');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ((f.titre || 'Mon jeu') + ' - ' + lab).replace(/[\\/:*?"<>|]+/g, ' ') + '.png';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  } catch (e) { toastCheer('La planche n’a pas pu se préparer. Réessaie dans un moment.', null, true); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+// la FICHE d'un élément : grande image (ou ▶), nom, pose / animation ; ✂️ Retouche (cout_retouche) · 🎨 Redessiner (cout_image) ·
+// 🗑️ Demander de le retirer (cout_demande) ; le joueur décrit (texte ou 🎤) ; tout part dans « 📋 Mes demandes »
+function atlFicheElem(it, f, fi, libre, lecture) {
+  const M = ATL.root.querySelector('.atl-mod'); if (!M) return; M.textContent = ''; M.hidden = false;
+  const cr = atlCred(), c = atlEl('div', 'atl-mcard atl-fel');
+  c.appendChild(atlEl('h2', '', (it.son ? (it.cat === 'musique' ? '🎵 ' : '🔊 ') : '🧩 ') + (it.parent && it.pose ? it.parent : it.nom)));
+  if (it.pose) c.appendChild(atlEl('p', 'atl-aide', 'Pose : ' + it.pose));
+  if (it.url && !it.son) { const im = atlEl('img', 'atl-felimg'); im.alt = it.nom; im.src = it.url; im.addEventListener('click', () => atlZoom(it.url)); c.appendChild(im); }
+  else if (it.son) { const pl = atlEl('button', 'atl-encplay atl-felplay', '▶'); pl.type = 'button'; pl.addEventListener('click', () => atlEcouter(it.url, pl)); c.appendChild(pl); }
+  else c.appendChild(atlEl('p', 'atl-chv', it.attente ? '⏳ En cours de dessin…' : '✏️ Pas encore dessiné.'));
+  const row = atlEl('div', 'atl-felbtns'), no = atlEl('button', 'btn btn-ghost', 'Fermer'); no.type = 'button'; no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
+  if (!lecture && it.asset) {
+    const px = k => k === 'retouche' ? (cr && cr.retouche != null ? cr.retouche | 0 : 3) : k === 'redessin' ? (cr && cr.cout != null ? cr.cout | 0 : 10) : (cr && cr.demande != null ? cr.demande | 0 : 5);
+    const b = (t, k, cls) => { const x = atlEl('button', 'btn ' + (cls || 'btn-ghost'), t + ' · ' + px(k) + ' 💎'); x.type = 'button'; x.addEventListener('click', () => atlModif(it, f, k)); row.appendChild(x); };
+    if (!it.son) { b('✂️ Retouche par ' + gN(), 'retouche', 'btn-play'); b('🎨 Redessiner', 'redessin'); }
+    else { const x = atlEl('button', 'btn btn-play', (it.cat === 'musique' ? '🎵' : '🔊') + ' Changer ce son · ' + (cr && cr.demande != null ? cr.demande | 0 : 5) + ' 💎'); x.type = 'button'; x.addEventListener('click', () => atlDemandeElem(it, f)); row.appendChild(x); }
+    b('🗑️ Demander ' + gA() + ' de le retirer', 'retirer');
+    c.appendChild(atlEl('p', 'atl-felx', it.son ? '' : '✂️ Retouche : recadrer, changer la taille ou les couleurs, miroir, corriger le fond… sans nouveau dessin. 🎨 Redessiner : un tout nouveau dessin. Si une retouche suffit, ' + gN() + ' la fait au prix de la retouche.'));
+  } else if (!lecture && it.vide && libre) { const x = atlEl('button', 'btn btn-play', '🎨 Le dessiner'); x.type = 'button'; x.addEventListener('click', () => atlModale()); row.appendChild(x); }
+  row.appendChild(no); c.appendChild(row); M.appendChild(c);
+}
+function atlModif(it, f, type) {
+  const M = ATL.root.querySelector('.atl-mod'); M.textContent = ''; M.hidden = false;
+  const cr = atlCred(), cout = type === 'retouche' ? (cr && cr.retouche != null ? cr.retouche | 0 : 3) : type === 'redessin' ? (cr && cr.cout != null ? cr.cout | 0 : 10) : (cr && cr.demande != null ? cr.demande | 0 : 5);
+  const c = atlEl('div', 'atl-mcard'), hd = atlEl('div', 'atl-arh'), ht = atlEl('div');
+  ht.append(atlEl('b', '', gNM()), atlEl('p', '', type === 'retouche' ? 'Qu’est-ce que je retouche sur « ' + it.nom + ' » ? (recadrer, taille, couleurs, miroir, fond…)' : type === 'redessin' ? 'Comment veux-tu que je redessine « ' + it.nom + ' » ?' : 'Tu veux que je retire « ' + it.nom + ' » du jeu ? Je regarde, j’adapte ton jeu et je publie une nouvelle version.'));
+  hd.append(atlGuideAv('atl-wav'), ht); c.appendChild(hd);
+  if (it.url && !it.son) { const im = atlEl('img', 'atl-demimg'); im.alt = it.nom; im.src = it.url; c.appendChild(im); }
+  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = type === 'retirer' ? 'Pourquoi ? (facultatif)' : 'Ce que tu veux…'; c.appendChild(atlAvecMic(ta));
+  const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎'); no.type = go.type = 'button';
+  no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
+  go.addEventListener('click', async () => {
+    const t = ta.value.trim(); if (type !== 'retirer' && t.length < 2) { ta.focus(); return; }
+    if (cr && (cr.solde | 0) < cout) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
+    go.disabled = true; er.hidden = true;
+    try {
+      const r = await rpc('at_demande_modif', { p_name: profile.name, p_fiche: f.id, p_nom: it.nom, p_path: it.path || null, p_texte: t, p_type: type }, { quiet: true });
+      if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
+      M.hidden = true; M.textContent = ''; toastCheer('✉️ Demande envoyée ' + gA() + ' ! Suis-la dans « 📋 Mes demandes ».', null, true); ATL.demAt = 0; atlLoad(true);
+    } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
+  });
+  row.append(no, go); c.append(row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); M.appendChild(c); ta.focus();
+}
+// 23 h 05 (Benjamin : « sur ces fenêtres je veux le micro ») : 🎤 dans chaque champ où l'on écrit au guide ; la dictée s'ajoute au texte
+function atlAvecMic(field) {
+  const w = atlEl('div', 'atl-artw atl-micw'); w.appendChild(field);
+  const kind = atlMicKind(); if (!kind) return w;
+  const mi = atlEl('button', 'atl-armic', '🎤'); mi.type = 'button'; mi.setAttribute('aria-label', 'Dicter'); w.appendChild(mi);
+  let rec = null;
+  const stop = () => { const r = rec; rec = null; mi.classList.remove('on'); micQuiet(false); try { if (r && r.r) r.r.stop(); if (r && r.nv) { r.nv.stopListen(); r.off(); } } catch (e) {} };
+  mi.addEventListener('click', () => {
+    if (rec) { stop(); return; }
+    const base = field.value.replace(/\s+$/, ''), max = +field.maxLength > 0 ? +field.maxLength : 1000, put = t => { field.value = (base + (base && t ? ' ' : '') + t).slice(0, max); };
+    rec = { fin: '' }; mi.classList.add('on'); micQuiet(true);
+    if (kind === 'web') {
+      try { const r = rec.r = new ATL_SR(); r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true;
+        r.onresult = ev => { let t = ''; for (const x of ev.results) t += x[0].transcript; put(t.trim()); };
+        r.onend = () => { if (rec && rec.r === r) stop(); }; r.onerror = r.onend; r.start(); } catch (e) { stop(); }
+    } else {
+      const nv = nativeVoice(), me = rec; rec.nv = nv; let txt = '';
+      rec.off = nv.onEvent(ev => { if (rec !== me || !ev || ev.state !== 'stt') return; const ws = Array.isArray(ev.words) ? ev.words.map(String) : [];
+        if (ev.ev === 'partial') put((txt + ' ' + (ws[0] || '')).trim()); else if (ev.ev === 'result') { txt = (txt + ' ' + (ws[0] || '')).trim(); put(txt); stop(); } else if (ev.ev === 'error') stop(); });
+      if (String(nv.listen()) === 'none') stop();
+    }
+  });
+  return w;
+}
+
+function atlEncart(it, f, fi, libre, lecture) {
   const c = atlEl('figure', 'atl-enc' + (it.vide ? ' vide' : '') + (it.principal ? ' main' : ''));
   const vis = atlEl('div', 'atl-encv');
   if (it.url && !it.son && it.case && Array.isArray(it.grille)) { const cp = atlCrop(it.url, it.case, it.grille, it.nom, it.nb); cp.addEventListener('click', () => atlZoom(it.url)); vis.appendChild(cp); }   // ancienne planche : la case de l'élément
@@ -15362,20 +15578,22 @@ function atlEncart(it, f, fi, libre) {
   else vis.appendChild(atlEl('span', 'atl-encx', '✏️'));
   const lab = ATL_CATS.find(x => x[0] === it.cat);
   const cap = atlEl('figcaption'); cap.append(atlEl('b', '', (it.principal ? '⭐ ' : '') + (it.parent && it.pose ? it.parent : it.nom)), atlEl('small', '', it.pose ? (it.parent ? it.pose : 'pose : ' + it.pose) : it.vide ? 'à dessiner' : it.attente ? 'en cours…' : (lab ? lab[2].replace(/s$/, '') : '')));
+  if (lecture) { c.append(vis, cap); return c; }
   const mb = atlEl('button', 'atl-encm', '⋯'); mb.type = 'button'; mb.setAttribute('aria-label', 'Actions sur « ' + it.nom + ' »');
   mb.addEventListener('click', e => { e.stopPropagation(); atlEncMenu(c, it, f, fi, libre); });
+  cap.style.cursor = 'pointer'; cap.addEventListener('click', () => atlFicheElem(it, f, fi, libre));
   c.append(vis, cap, mb); return c;
 }
 let ATL_SON = null, ATL_SON_U = '';
 function atlEcouter(u, btn) {
-  try { if (ATL_SON) { ATL_SON.pause(); if (ATL_SON_U === u) { ATL_SON = null; ATL_SON_U = ''; if (btn) btn.textContent = '▶'; return; } } } catch (e) {}
+  try { if (ATL_SON) { ATL_SON.pause(); if (ATL_SON_U === u) { ATL_SON = null; ATL_SON_U = ''; if (btn) btn.textContent = '▶'; musicHush(false); return; } } } catch (e) {}
   for (const x of document.querySelectorAll('.atl-encplay')) x.textContent = '▶';   // un seul son à la fois
   if (!u) return;
   // 22 h 20 (Benjamin : « ça ne fonctionne pas ») : « Audio » est ici le moteur de sons de la borne → le lecteur du navigateur est window.Audio ;
   // créé dans le geste du clic, volume plein : une écoute voulue, même quand le son de la borne est coupé
-  const a = new window.Audio(u); a.volume = 1; ATL_SON = a; ATL_SON_U = u; if (btn) btn.textContent = '⏸';
-  a.onended = () => { if (btn) btn.textContent = '▶'; if (ATL_SON === a) { ATL_SON = null; ATL_SON_U = ''; } };
-  a.play().catch(() => { if (btn) btn.textContent = '▶'; if (ATL_SON === a) { ATL_SON = null; ATL_SON_U = ''; } });
+  const a = new window.Audio(u); a.volume = 1; ATL_SON = a; ATL_SON_U = u; if (btn) btn.textContent = '⏸'; musicHush(true);   // la musique de l'Atelier se tait pendant l'écoute
+  a.onended = () => { if (btn) btn.textContent = '▶'; if (ATL_SON === a) { ATL_SON = null; ATL_SON_U = ''; musicHush(false); } };
+  a.play().catch(() => { if (btn) btn.textContent = '▶'; if (ATL_SON === a) { ATL_SON = null; ATL_SON_U = ''; musicHush(false); } });
 }
 function atlEncMenu(c, it, f, fi, libre) {
   const old = ATL.root.querySelector('.atl-encmenu'); if (old) { const same = old.parentNode === c; old.remove(); if (same) return; }
@@ -15383,7 +15601,9 @@ function atlEncMenu(c, it, f, fi, libre) {
   if ((it.asset && !it.case) || (libre && it.k && !it.asset)) add('✏️ Renommer', () => atlEncRenommer(c, it, f, fi));   // un élément d'une ancienne planche partage son image : pas de renommage
   if (it.vide && libre) add('🎨 Le dessiner', () => atlModale());
   if (!it.asset && !libre) add('🎨 Demander ' + gA(), () => atlDemandeElem({ nom: it.nom, cat: it.cat }, f));   // projet lancé : le guide s'en charge
-  if (it.asset && !it.son) add('🎨 Modifier avec ' + gN(), () => atlDemandeElem(it, f));
+  if (it.asset) add('🔎 Sa fiche', () => atlFicheElem(it, f, fi, libre));
+  if (it.asset && !it.son) { add('✂️ Retouche par ' + gN(), () => atlModif(it, f, 'retouche')); add('🎨 Redessiner', () => atlModif(it, f, 'redessin')); }
+  if (it.asset) add('🗑️ Demander ' + gA() + ' de le retirer', () => atlModif(it, f, 'retirer'));
   if (it.son) add('▶ Écouter', () => atlEcouter(it.url, c.querySelector('.atl-encplay')));
   if (it.son) add('🎵 Modifier avec ' + gN(), () => atlDemandeElem(it, f));
   if (it.url && !it.son) add('🔍 Voir en grand', () => atlZoom(it.url));
@@ -15421,8 +15641,8 @@ function atlDemandeElem(it, f, cat) {
   const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', creer ? (cat === 'musique' ? 'Dis-moi quelle musique tu veux : l’ambiance, les instruments, quand elle joue. Je la compose !' : cat === 'son' ? 'Dis-moi quel son tu veux : à quel moment il joue, comment il sonne. Je le fabrique !' : 'Dis-moi ce que tu veux créer, je m’en occupe !') : 'Qu’est-ce que je change sur « ' + it.nom + ' » ?')); hd.append(atlGuideAv('atl-wav'), ht);
   c.appendChild(hd);
   if (it && it.url && !it.son) { const im = atlEl('img', 'atl-demimg'); im.alt = it.nom; im.src = it.url; c.appendChild(im); }
-  let ni = null; if (creer) { ni = atlEl('input', 'atl-chin2'); ni.type = 'text'; ni.maxLength = 80; ni.placeholder = 'Son nom (ex. : ' + ({ son: 'le bruit du saut', musique: 'la musique du menu', interface: 'le bouton Jouer' }[cat] || 'un dragon bleu') + ')'; c.appendChild(ni); }
-  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = creer ? (cat === 'musique' ? 'Ex. : douce et mystérieuse, au piano, pendant l’exploration…' : cat === 'son' ? 'Ex. : un petit « boing » joyeux quand on saute…' : 'Décris-le : couleurs, ambiance, à quoi il sert…') : 'Ce que tu veux changer…'; c.appendChild(ta);
+  let ni = null; if (creer) { ni = atlEl('input', 'atl-chin2'); ni.type = 'text'; ni.maxLength = 80; ni.placeholder = 'Son nom (ex. : ' + ({ son: 'le bruit du saut', musique: 'la musique du menu', interface: 'le bouton Jouer' }[cat] || 'un dragon bleu') + ')'; c.appendChild(atlAvecMic(ni)); }
+  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = creer ? (cat === 'musique' ? 'Ex. : douce et mystérieuse, au piano, pendant l’exploration…' : cat === 'son' ? 'Ex. : un petit « boing » joyeux quand on saute…' : 'Décris-le : couleurs, ambiance, à quoi il sert…') : 'Ce que tu veux changer…'; c.appendChild(atlAvecMic(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎'); no.type = 'button'; go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
@@ -15443,7 +15663,7 @@ function atlCreerElem(cat, lab, k, libre, f, fi) {
   if (!k || !libre) { atlDemandeElem(null, f, cat); return; }
   const M = ATL.root.querySelector('.atl-mod'); M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard'); c.append(atlEl('h2', '', '＋ ' + lab.replace(/s$/, '') + ' à créer'), atlEl('p', 'atl-aide', 'Donne-lui un nom : il s’ajoute à ta fiche, puis tu peux le faire dessiner.'));
-  const i = atlEl('input', 'atl-chin2'); i.type = 'text'; i.maxLength = 80; i.placeholder = 'Son nom (ex. : un dragon bleu)'; c.appendChild(i);
+  const i = atlEl('input', 'atl-chin2'); i.type = 'text'; i.maxLength = 80; i.placeholder = 'Son nom (ex. : un dragon bleu)'; c.appendChild(atlAvecMic(i));
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), ok = atlEl('button', 'btn btn-ghost', 'Ajouter'), dr = atlEl('button', 'btn btn-play', 'Ajouter et dessiner');
   no.type = ok.type = dr.type = 'button';
   const go = draw => { const v = i.value.replace(/\s+/g, ' ').trim().slice(0, 80); if (v.length < 2) { i.focus(); return; } const l = atlListeDe(fi[k]); if (l.length >= 30) return; l.push(v); atlEtape(k, l); M.hidden = true; M.textContent = ''; atlRender(); if (draw) atlModale(); };
@@ -15547,6 +15767,106 @@ async function atlStripe(corps, b, er) {
     if (v !== 'annule') for (const t of [3000, 8000, 16000]) setTimeout(() => { try { atlLoad(true); } catch (e) {} }, t);
   }, 1500);
 })();
+
+// ---- 23 h 15 (Benjamin : « un petit bouton pour suivre mes demandes ») : 📋 MES DEMANDES — toutes les demandes du joueur (arrêts sur
+// image, retouches, redessins, créations, sons, musiques, retraits, messages d'un projet jouable), la plus récente en haut, avec l'état
+// (📨 Envoyée → 👀 Vue → 🛠️ En cours → ✅ Faite / ❌ Pas possible) et la réponse ; une pastille quand un état change (at_mes_demandes)
+const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible' };
+const ATL_DEM_SO = { arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Redessin', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', message: '💬 Message' };
+async function atlDemCharger(force) {
+  if (!force && ATL.demAt && Date.now() - ATL.demAt < 60000) return ATL.dem;
+  ATL.demAt = Date.now();
+  try { ATL.dem = await rpc('at_mes_demandes', { p_name: profile.name }, { quiet: true }); } catch (e) {}
+  if (ATL.root) atlDemBtn(ATL.root);
+  return ATL.dem;
+}
+function atlDemBtn(R) {
+  const b = R && R.querySelector('.atl-demb'); if (!b) return;
+  const d = ATL.dem, n = d && Array.isArray(d.demandes) ? d.demandes.length : 0;
+  b.hidden = !n; b.textContent = '📋 Mes demandes (' + n + ')'; b.classList.toggle('nouveau', !!(d && d.nouveaux > 0));
+  if (!ATL.demAt || Date.now() - ATL.demAt > 60000) atlDemCharger(false);
+}
+async function atlMesDemandes() {
+  const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
+  z.textContent = ''; z.hidden = false; z.classList.add('suivi');
+  const P = atlEl('div', 'atl-suivi atl-dems'); P.addEventListener('click', e => e.stopPropagation()); z.appendChild(P);
+  const close = atlEl('button', 'btn btn-ghost btn-sm', 'Fermer'); close.type = 'button'; close.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
+  P.append(atlEl('b', 'atl-cq', '📋 Mes demandes'), atlEl('p', '', 'Un instant…'));
+  const d = await atlDemCharger(true); P.lastChild.remove();
+  const l = d && Array.isArray(d.demandes) ? d.demandes : [];
+  if (!l.length) P.appendChild(atlEl('p', 'atl-chv', 'Pas encore de demande.'));
+  for (const x of l) {
+    const c = atlEl('div', 'atl-dem' + (x.nouveau && x.etat !== 'envoyee' ? ' nouveau' : '') + ' e-' + x.etat);
+    const u = /^a\//.test(x.image || '') ? atlImgUrl(x.image) : atlIaUrl(x.image);
+    if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; im.addEventListener('click', () => atlZoom(u)); c.appendChild(im); } else c.appendChild(atlEl('span', 'atl-demic', (ATL_DEM_SO[x.sorte] || '💬').split(' ')[0]));
+    const t = atlEl('div', 'atl-demt'), d0 = new Date(x.at);
+    t.append(atlEl('b', 'atl-demet', (ATL_DEM_ET[x.etat] || x.etat) + (x.etat === 'vue' ? gN() : '')),
+      atlEl('small', '', (ATL_DEM_SO[x.sorte] || '') + ' · ' + (x.projet || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + (x.cout ? ' · ' + x.cout + ' 💎' : '')),
+      atlEl('p', '', String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').slice(0, 400)));
+    if (x.reponse) t.appendChild(atlEl('p', 'atl-demrep', '🤖 ' + gN() + ' : ' + x.reponse));
+    c.appendChild(t); P.appendChild(c);
+  }
+  P.appendChild(close);
+  if (d && d.nouveaux > 0) { try { await rpc('at_demandes_vues', { p_name: profile.name }, { quiet: true }); d.nouveaux = 0; atlDemBtn(ATL.root); } catch (e) {} }
+}
+// ---- 23 h 45 (Benjamin) : « 🗂️ Tous les projets (admin) » — at_admins seulement (vérifié par le serveur : at_tous_projets / at_voir) ;
+// filtres joueur / état ; un clic ouvre le projet en LECTURE (bandeau « Projet de … »), sans modification ni dépense
+async function atlTousProjets(box) {
+  const sec = atlEl('section', 'atl-tous'); box.appendChild(sec);
+  sec.append(atlEl('h2', 'atl-ph', '🗂️ Tous les projets (admin)'));
+  let l = ATL.tous && Date.now() - ATL.tous.at < 60000 ? ATL.tous.l : null;
+  if (!l) { try { l = await rpc('at_tous_projets', { p_name: profile.name }, { quiet: true }); ATL.tous = { at: Date.now(), l }; } catch (e) { sec.appendChild(atlEl('p', 'atl-chv', 'Liste indisponible.')); return; } }
+  if (!Array.isArray(l)) return;
+  const fj = atlEl('select', 'atl-tousf'), fe = atlEl('select', 'atl-tousf'), g = atlEl('div', 'atl-pgrid');
+  fj.append(new Option('Tous les joueurs', '')); for (const j of [...new Set(l.map(x => x.joueur))].sort()) fj.append(new Option(dispName(j), j));
+  const ets = { '': 'Tous les états', brouillon: '📝 Brouillon', attente: '⏳ En attente', construction: '🛠️ En construction', v: '🎮 Jouable', publie: '🌟 Publié' };
+  for (const k in ets) fe.append(new Option(ets[k], k));
+  const famille = x => x.etat === 'brouillon' ? 'brouillon' : ['envoyee', 'acceptee'].includes(x.etat) ? 'construction' : x.etat === 'alpha' ? 'v' : /^publie/.test(x.etat) ? 'publie' : 'attente';
+  const show = () => {
+    g.textContent = '';
+    for (const x of l.filter(x => (!fj.value || x.joueur === fj.value) && (!fe.value || famille(x) === fe.value))) {
+      const b = atlEl('button', 'atl-ptile'); b.type = 'button';
+      const v = atlEl('span', 'atl-pv'), u = atlIaUrl(x.vignette); if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; v.appendChild(im); } else v.textContent = '🎮';
+      const d0 = new Date(x.maj_at);
+      b.append(v, atlEl('b', '', x.titre || 'Sans nom'), atlEl('small', 'atl-pver', atlVersion(x)), atlEl('small', '', '👤 ' + dispName(x.joueur || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))));
+      if (x.attente) b.appendChild(atlEl('span', 'atl-patt', '📨 Demande'));
+      b.addEventListener('click', () => atlVoirProjet(x.id)); g.appendChild(b);
+    }
+    if (!g.firstChild) g.appendChild(atlEl('p', 'atl-chv', 'Aucun projet.'));
+  };
+  fj.addEventListener('change', show); fe.addEventListener('change', show);
+  const fl = atlEl('div', 'atl-tousfl'); fl.append(fj, fe); sec.append(fl, g); show();
+}
+async function atlVoirProjet(id) {
+  const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
+  z.textContent = ''; z.hidden = false; z.classList.add('suivi');
+  const P = atlEl('div', 'atl-suivi atl-voir'); P.addEventListener('click', e => e.stopPropagation()); z.appendChild(P);
+  const close = atlEl('button', 'btn btn-ghost btn-sm', 'Fermer'); close.type = 'button'; close.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
+  P.appendChild(atlEl('p', '', 'Un instant…'));
+  let r; try { r = await rpc('at_voir', { p_name: profile.name, p_fiche: id }, { quiet: true }); } catch (e) { P.lastChild.textContent = 'Projet indisponible.'; P.appendChild(close); return; }
+  P.textContent = '';
+  const f = r.fiche || {}, fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {};
+  P.append(atlEl('p', 'atl-voirb', '👀 Projet de ' + dispName(r.joueur || '') + ' · lecture seule'), atlEl('h2', '', f.titre || 'Sans nom'), atlEl('small', 'atl-pver', atlVersion(f)));
+  const g = f.jeu && (window.JDW_GAMES || {})[f.jeu];
+  if (g && ['alpha', 'publie_salle', 'publie_monde'].includes(f.etat)) { const pl = atlEl('button', 'btn btn-play btn-sm', '▶ Jouer la V' + ((f.version | 0) || 1)); pl.type = 'button'; pl.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); atlClose(); openGame(g, true); }); P.appendChild(pl); }
+  const id0 = fi.idee || ''; if (id0) P.appendChild(atlEl('p', 'atl-voiri', '💡 ' + atlVal(id0).slice(0, 600)));
+  const el = atlEl('div', 'atl-voire'); P.appendChild(atlEl('b', 'atl-rh2', '🧩 Éléments')); P.appendChild(el); atlBiblio(el, f, fi, true);
+  P.appendChild(atlEl('b', 'atl-rh2', '💬 Discussion'));
+  const ms = atlEl('div', 'atl-pmsgs'); for (const m of (Array.isArray(r.messages) ? r.messages : []).slice(-60)) ms.appendChild(atlBubble(m)); P.appendChild(ms);
+  P.appendChild(close);
+}
+// ---- 0 h (Benjamin) : le CADEAU DE BIENVENUE — 200 crédits une seule fois par compte, à la 1re ouverture de l'Atelier (at_bienvenue)
+async function atlBienvenue() {
+  const k = 'jdw.atl.bv.' + (profile.name || ''); if (!profile.name || store.get(k, false)) return;
+  let r; try { r = await rpc('at_bienvenue', { p_name: profile.name }, { quiet: true }); } catch (e) { return; }
+  store.set(k, true);
+  if (!r || !(r.offert > 0) || !ATL.root) return;
+  if (Number.isFinite(+r.solde)) atlSolde(r.solde);
+  const M = ATL.root.querySelector('.atl-mod'); if (!M) return; M.textContent = ''; M.hidden = false;
+  const c = atlEl('div', 'atl-mcard atl-bv'), av = atlGuideAv('atl-wav'); av.classList.add('atl-bvjoie');
+  c.append(av, atlEl('h2', '', '🎁 Bienvenue !'), atlEl('p', '', 'Je t’offre ' + (r.offert | 0) + ' crédits : c’est assez pour créer ton propre jeu vidéo !'), atlEl('small', 'atl-noremb', 'Les crédits servent seulement dans l’Atelier et ne sont pas remboursés.'));
+  const ok = atlEl('button', 'btn btn-play', 'C’est parti !'); ok.type = 'button'; ok.addEventListener('click', () => { M.hidden = true; M.textContent = ''; }); c.appendChild(ok); M.appendChild(c);
+}
 
 // ---------- serveur ----------
 async function atlLoad(force) {

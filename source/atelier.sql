@@ -2526,3 +2526,224 @@ begin
     execute d;
   end if;
 end $$;
+
+-- (v31, 2 nov. 2026 23 h → 0 h, Benjamin) :
+-- · « 📋 Mes demandes » : at_demandes (une ligne par demande du joueur : arrêt sur image, création, retouche, redessin, retrait, message
+--   d'un projet jouable), remplie par un déclencheur sur at_messages ; états envoyee → vue → en_cours → faite | impossible ;
+--   at_mes_demandes / at_demandes_vues (joueur) ; at_demande_etat (service : le guide fait avancer l'état, sa réponse arrive dans la discussion) ;
+-- · retouche / redessin / retrait d'un élément : at_demande_modif (cout_retouche 3, cout_image 10, cout_demande 5) ; at_asset_actif (service
+--   seulement : le retrait est fait par l'équipe, jamais par un interrupteur du joueur) ;
+-- · version du jeu : at_fiches.version_jeu (1 à la première V1 jouable), at_version_suivante (service, « 🎉 Ta V2 est prête ») ;
+-- · « 🗂️ Tous les projets (admin) » : at_tous_projets / at_voir (at_admins seulement, vérifié ici ; lecture seule) ;
+-- · cadeau de bienvenue : at_bienvenue (200 crédits une seule fois par compte ; les comptes déjà là ne reçoivent rien) ;
+-- · le patron (suivi en €, Stripe, dons) : BENJAMIN ou PATOU (pegase_int.at_patron).
+create or replace function pegase_int.at_patron(n text) returns boolean language sql immutable as $$ select n in ('BENJAMIN', 'PATOU') $$;
+insert into public.at_reglages (k, v) values ('cout_retouche', 3), ('bienvenue_credits', 200) on conflict (k) do nothing;
+insert into public.at_admins (name) values ('SAMBA') on conflict do nothing;
+
+-- ---- la version du jeu
+alter table public.at_fiches add column if not exists version_jeu int;
+create or replace function pegase_int.at_version_auto() returns trigger language plpgsql as $$
+begin
+  if new.etat in ('alpha', 'publie_salle', 'publie_monde') and new.version_jeu is null then new.version_jeu := 1; end if;
+  return new;
+end $$;
+drop trigger if exists at_fiches_version on public.at_fiches;
+create trigger at_fiches_version before insert or update of etat on public.at_fiches for each row execute function pegase_int.at_version_auto();
+update public.at_fiches set version_jeu = 2 where id = 'cc4d84c0-9ea0-48c9-98e8-68bd1d112e17';   -- Seul sur la Lune : V2 (V1 corrigée avec les sons)
+update public.at_fiches set version_jeu = 1 where id = 'a5badecc-073f-464b-98cd-0bef7b25da25' and version_jeu is null;   -- La Maison des Licornes : V1
+
+-- ---- les demandes
+create table if not exists public.at_demandes (id uuid primary key, fiche uuid not null references public.at_fiches(id) on delete cascade, name text not null,
+  sorte text not null default 'message', texte text not null, image text, cout int, etat text not null default 'envoyee'
+  check (etat in ('envoyee', 'vue', 'en_cours', 'faite', 'impossible')), reponse text, at timestamptz not null default now(), etat_at timestamptz not null default now(), vu_joueur_at timestamptz);
+alter table public.at_demandes enable row level security; revoke all on public.at_demandes from anon, authenticated;
+create index if not exists at_demandes_name on public.at_demandes (name, at desc);
+
+create or replace function pegase_int.at_demande_auto() returns trigger language plpgsql security definer set search_path = public as $$
+declare f public.at_fiches; so text; img text; c text := current_setting('atelier.cout', true);
+begin
+  if new.de_atelier then return new; end if;
+  select * into f from public.at_fiches x where x.id = new.fiche; if f.id is null then return new; end if;
+  so := case when new.texte like '🎯%' then 'arret' when new.texte like '✂️%' then 'retouche' when new.texte like '🎨 Redessiner%' then 'redessin'
+             when new.texte like '🎨%' then 'modifier' when new.texte like '🗑️%' then 'retirer' when new.texte like '＋ Créer un son%' then 'son'
+             when new.texte like '＋ Créer une musique%' then 'musique' when new.texte like '＋%' then 'creer' else 'message' end;
+  if so = 'message' and f.etat not in ('alpha', 'publie_salle', 'publie_monde') then return new; end if;   -- l'écriture de l'idée n'est pas une demande
+  img := case when new.image then 'a/' || new.id || '.jpg' else new.images -> 0 ->> 'f' end;
+  insert into public.at_demandes (id, fiche, name, sorte, texte, image, cout, at) values (new.id, f.id, f.name, so, new.texte, img, nullif(c, '')::int, new.at) on conflict (id) do nothing;
+  return new;
+end $$;
+drop trigger if exists at_messages_demande on public.at_messages;
+create trigger at_messages_demande after insert on public.at_messages for each row execute function pegase_int.at_demande_auto();
+-- les demandes déjà faites (arrêts sur image, créations, modifications)
+insert into public.at_demandes (id, fiche, name, sorte, texte, image, at)
+  select m.id, f.id, f.name, case when m.texte like '🎯%' then 'arret' when m.texte like '🎨%' then 'modifier' when m.texte like '＋ Créer un son%' then 'son' when m.texte like '＋ Créer une musique%' then 'musique' else 'creer' end,
+    m.texte, case when m.image then 'a/' || m.id || '.jpg' else m.images -> 0 ->> 'f' end, m.at
+  from public.at_messages m join public.at_fiches f on f.id = m.fiche where not m.de_atelier and (m.texte like '🎯%' or m.texte like '🎨%' or m.texte like '＋%')
+  on conflict (id) do nothing;
+
+-- le coût exact : at_demande / at_demande_element le notent pour le déclencheur
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_demande(text,uuid,text,numeric,numeric,boolean)'::regprocedure);
+  if position('atelier.cout' in d) = 0 then
+    d := replace(d, '  insert into public.at_messages (fiche, texte, image) values', '  perform set_config(''atelier.cout'', coalesce(pegase_int.at_reglage(''cout_demande''), 5)::text, true);' || chr(10) || '  insert into public.at_messages (fiche, texte, image) values');
+    if position('atelier.cout' in d) = 0 then raise exception 'at_demande'; end if; execute d;
+  end if;
+  d := pg_get_functiondef('public.at_demande_element(text,uuid,text,text,text,text)'::regprocedure);
+  if position('atelier.cout' in d) = 0 then
+    d := replace(d, '  insert into public.at_messages (fiche, texte, images) values', '  perform set_config(''atelier.cout'', (case when coalesce(p_path, '''') = '''' and c = ''musique'' then coalesce(pegase_int.at_reglage(''cout_musique''), 50) when coalesce(p_path, '''') = '''' and c = ''son'' then coalesce(pegase_int.at_reglage(''cout_son''), 10) else coalesce(pegase_int.at_reglage(''cout_demande''), 5) end)::text, true);' || chr(10) || '  insert into public.at_messages (fiche, texte, images) values');
+    if position('atelier.cout' in d) = 0 then raise exception 'at_demande_element'; end if; execute d;
+  end if;
+end $$;
+
+create or replace function public.at_mes_demandes(p_name text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name);
+begin
+  perform public.acct_check(n);
+  return jsonb_build_object('demandes', coalesce((select jsonb_agg(jsonb_build_object('id', d.id, 'fiche', d.fiche, 'projet', f.titre, 'sorte', d.sorte, 'texte', d.texte, 'image', d.image,
+      'cout', d.cout, 'etat', d.etat, 'reponse', d.reponse, 'at', d.at, 'etat_at', d.etat_at, 'nouveau', d.vu_joueur_at is null or d.vu_joueur_at < d.etat_at) order by d.at desc)
+    from (select * from public.at_demandes x where x.name = n order by x.at desc limit 100) d join public.at_fiches f on f.id = d.fiche), '[]'::jsonb),
+    'nouveaux', (select count(*) from public.at_demandes x where x.name = n and x.etat <> 'envoyee' and (x.vu_joueur_at is null or x.vu_joueur_at < x.etat_at)),
+    'ouvertes', (select count(*) from public.at_demandes x where x.name = n and x.etat in ('envoyee', 'vue', 'en_cours')));
+end $$;
+revoke all on function public.at_mes_demandes(text) from public, anon; grant execute on function public.at_mes_demandes(text) to authenticated;
+
+create or replace function public.at_demandes_vues(p_name text) returns void language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name);
+begin
+  perform public.acct_check(n);
+  update public.at_demandes x set vu_joueur_at = now() where x.name = n and (x.vu_joueur_at is null or x.vu_joueur_at < x.etat_at);
+end $$;
+revoke all on function public.at_demandes_vues(text) from public, anon; grant execute on function public.at_demandes_vues(text) to authenticated;
+
+create or replace function public.at_demande_etat(p_id uuid, p_etat text, p_reponse text default null) returns jsonb language plpgsql security definer set search_path = public as $$
+declare d public.at_demandes;
+begin
+  if p_etat not in ('envoyee', 'vue', 'en_cours', 'faite', 'impossible') then raise exception 'etat inconnu'; end if;
+  update public.at_demandes x set etat = p_etat, etat_at = now(), reponse = coalesce(nullif(btrim(p_reponse), ''), x.reponse) where x.id = p_id returning * into d;
+  if d.id is null then raise exception 'demande inconnue'; end if;
+  if nullif(btrim(p_reponse), '') is not null then
+    insert into public.at_messages (fiche, texte, de_atelier) values (d.fiche, case p_etat when 'faite' then '✅ ' when 'impossible' then '❌ ' else '' end || btrim(p_reponse), true);
+  end if;
+  return jsonb_build_object('id', d.id, 'etat', d.etat);
+end $$;
+revoke all on function public.at_demande_etat(uuid, text, text) from public, anon, authenticated; grant execute on function public.at_demande_etat(uuid, text, text) to service_role;
+
+-- ---- retouche / redessin / retrait d'un élément (le joueur décrit ; le guide fait au prix de la retouche si elle suffit)
+create or replace function public.at_demande_modif(p_name text, p_fiche uuid, p_nom text, p_path text, p_texte text, p_type text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; t text := left(btrim(coalesce(p_texte, '')), 1000); nm text := left(btrim(coalesce(p_nom, '')), 80);
+  why text; s int; i uuid; c int; img jsonb := null; ty text := lower(coalesce(p_type, ''));
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier', 30, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if ty not in ('retouche', 'redessin', 'retirer') then raise exception 'type inconnu'; end if;
+  if length(nm) < 1 or (ty <> 'retirer' and length(t) < 2) then raise exception 'texte vide'; end if;
+  why := pegase_int.at_filtre(t || ' ' || nm); if why <> '' then raise exception 'filtre %', why; end if;
+  if p_path ~ '^[is]/[0-9a-f-]{36}[.](png|jpg|webp|mp3)$' then img := jsonb_build_array(jsonb_build_object('n', 1, 'f', p_path, 't', nm)); end if;
+  c := case ty when 'retouche' then coalesce(pegase_int.at_reglage('cout_retouche'), 3) when 'redessin' then coalesce(pegase_int.at_reglage('cout_image'), 10) else coalesce(pegase_int.at_reglage('cout_demande'), 5) end;
+  s := pegase_int.at_debiter(n, c);
+  perform set_config('atelier.cout', c::text, true);
+  insert into public.at_messages (fiche, texte, images) values (f.id,
+    case ty when 'retouche' then '✂️ Retouche de « ' || nm || ' »' when 'redessin' then '🎨 Redessiner « ' || nm || ' »' else '🗑️ Retirer « ' || nm || ' » du jeu' end
+    || coalesce(' (' || nullif(p_path, '') || ')', '') || case when t <> '' then ' : ' || t else '' end, img) returning id into i;
+  update public.at_fiches x set maj_at = now() where x.id = f.id;
+  return jsonb_build_object('id', i, 'solde', s, 'cout', c);
+end $$;
+revoke all on function public.at_demande_modif(text, uuid, text, text, text, text) from public, anon; grant execute on function public.at_demande_modif(text, uuid, text, text, text, text) to authenticated;
+
+-- activer / désactiver un élément : l'équipe seulement (clé de service), jamais le joueur
+create or replace function public.at_asset_actif(p_fiche uuid, p_nom text, p_actif boolean) returns int language plpgsql security definer set search_path = public as $$
+declare k int;
+begin
+  update public.at_fiches f set assets = (select jsonb_agg(case when a ->> 'nom' = p_nom then case when p_actif then a - 'actif' else a || '{"actif": false}'::jsonb end else a end) from jsonb_array_elements(f.assets) a), maj_at = now()
+    where f.id = p_fiche and exists (select 1 from jsonb_array_elements(f.assets) a where a ->> 'nom' = p_nom);
+  get diagnostics k = row_count; return k;
+end $$;
+revoke all on function public.at_asset_actif(uuid, text, boolean) from public, anon, authenticated; grant execute on function public.at_asset_actif(uuid, text, boolean) to service_role;
+
+-- ---- la version suivante (service) : le joueur est prévenu
+create or replace function public.at_version_suivante(p_fiche uuid, p_note text default null) returns int language plpgsql security definer set search_path = public as $$
+declare v int;
+begin
+  update public.at_fiches f set version_jeu = coalesce(f.version_jeu, 1) + 1, maj_at = now() where f.id = p_fiche returning version_jeu into v;
+  if v is null then raise exception 'projet inconnu'; end if;
+  insert into public.at_messages (fiche, texte, de_atelier) values (p_fiche, '🎉 Ta V' || v || ' est prête !' || coalesce(' ' || nullif(btrim(p_note), ''), ''), true);
+  return v;
+end $$;
+revoke all on function public.at_version_suivante(uuid, text) from public, anon, authenticated; grant execute on function public.at_version_suivante(uuid, text) to service_role;
+
+-- ---- tous les projets (admins de l'Atelier, vérifié ici), lecture seule
+create or replace function public.at_tous_projets(p_name text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name);
+begin
+  perform public.acct_check(n);
+  if not exists (select 1 from public.at_admins a where a.name = n) then raise exception 'admin requis'; end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'joueur', x.name, 'titre', x.titre, 'etat', x.etat, 'version', x.version_jeu, 'maj_at', x.maj_at, 'created_at', x.created_at, 'jeu', x.jeu,
+      'vignette', coalesce(x.design ->> 'f', (select m.images -> 0 ->> 'f' from public.at_messages m where m.fiche = x.id and m.de_atelier and m.images is not null and not m.planche order by m.at desc limit 1)),
+      'attente', exists (select 1 from public.at_demandes d where d.fiche = x.id and d.etat in ('envoyee', 'vue', 'en_cours'))) order by x.maj_at desc)
+    from public.at_fiches x where x.etat not in ('supprime') and x.supprime_at is null), '[]'::jsonb);
+end $$;
+revoke all on function public.at_tous_projets(text) from public, anon; grant execute on function public.at_tous_projets(text) to authenticated;
+
+create or replace function public.at_voir(p_name text, p_fiche uuid) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches;
+begin
+  perform public.acct_check(n);
+  if not exists (select 1 from public.at_admins a where a.name = n) then raise exception 'admin requis'; end if;
+  select * into f from public.at_fiches x where x.id = p_fiche and x.supprime_at is null; if f.id is null then raise exception 'projet inconnu'; end if;
+  return jsonb_build_object('joueur', f.name,
+    'fiche', jsonb_build_object('id', f.id, 'titre', f.titre, 'etat', f.etat, 'fiche', f.fiche, 'created_at', f.created_at, 'maj_at', f.maj_at, 'complete_at', f.complete_at, 'envoyee_at', f.envoyee_at,
+      'jeu', f.jeu, 'salle', f.salle, 'design', f.design, 'assets', f.assets, 'version', f.version_jeu, 'lecture', true, 'joueur', f.name),
+    'messages', coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'texte', m.texte, 'atelier', m.de_atelier, 'micro', m.micro,
+      'image', case when m.image then 'a/' || m.id || '.jpg' end, 'images', m.images, 'planche', m.planche, 'at', m.at) order by m.at) from public.at_messages m where m.fiche = f.id), '[]'::jsonb));
+end $$;
+revoke all on function public.at_voir(text, uuid) from public, anon; grant execute on function public.at_voir(text, uuid) to authenticated;
+
+-- ---- le cadeau de bienvenue (une seule fois par compte)
+create table if not exists pegase_int.at_bienvenue (name text primary key, credits int not null default 0, at timestamptz not null default now());
+alter table pegase_int.at_bienvenue enable row level security; revoke all on pegase_int.at_bienvenue from public, anon, authenticated;
+insert into pegase_int.at_bienvenue (name, credits) select c.name, 0 from public.at_credits c on conflict do nothing;   -- les comptes déjà là : rien en plus
+create or replace function public.at_bienvenue(p_name text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); c int := greatest(0, coalesce(pegase_int.at_reglage('bienvenue_credits'), 200)); k int; s int;
+begin
+  perform public.acct_check(n);
+  insert into pegase_int.at_bienvenue (name, credits) values (n, c) on conflict (name) do nothing;
+  get diagnostics k = row_count;
+  if k = 0 then return jsonb_build_object('offert', 0); end if;
+  perform pegase_int.at_solde(n);
+  update public.at_credits x set solde = x.solde + c, maj_at = now() where x.name = n returning solde into s;
+  return jsonb_build_object('offert', c, 'solde', s);
+end $$;
+revoke all on function public.at_bienvenue(text) from public, anon; grant execute on function public.at_bienvenue(text) to authenticated;
+
+-- ---- at_lire : version, prix de retouche, admin des projets ; le patron (BENJAMIN / PATOU) pour le suivi en €, Stripe et les dons
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_lire(text,uuid)'::regprocedure);
+  if position('version_jeu' in d) = 0 then
+    d := replace(d, '''jeu'', x.jeu,', '''jeu'', x.jeu, ''version'', x.version_jeu,');
+    d := replace(d, '''jeu'', f.jeu, ''prix'', f.prix,', '''jeu'', f.jeu, ''version'', f.version_jeu, ''prix'', f.prix,');
+    d := replace(d, '''forme'', coalesce(pegase_int.at_reglage(''cout_forme''), 3),', '''forme'', coalesce(pegase_int.at_reglage(''cout_forme''), 3), ''retouche'', coalesce(pegase_int.at_reglage(''cout_retouche''), 3), ''tous_projets'', exists (select 1 from public.at_admins z where z.name = n), ''patron'', pegase_int.at_patron(n),');
+    if (length(d) - length(replace(d, 'version_jeu', ''))) / 11 <> 2 or position('tous_projets' in d) = 0 then raise exception 'at_lire'; end if;
+    execute d;
+  end if;
+  d := pg_get_functiondef('public.at_suivi(text)'::regprocedure);
+  if position('at_patron' in d) = 0 then
+    d := replace(d, '''achats'', case when n = ''BENJAMIN'' then', '''achats'', case when pegase_int.at_patron(n) then');
+    if position('at_patron' in d) = 0 then raise exception 'at_suivi'; end if; execute d;
+  end if;
+  d := pg_get_functiondef('public.at_credits_donner(text,text,integer,text)'::regprocedure);
+  if position('at_patron' in d) = 0 then
+    d := replace(d, 'if n <> ''BENJAMIN'' then', 'if not pegase_int.at_patron(n) then');
+    if position('at_patron' in d) = 0 then raise exception 'at_credits_donner'; end if; execute d;
+  end if;
+  d := pg_get_functiondef('public.at_stripe_autoriser(text)'::regprocedure);
+  if position('at_patron' in d) = 0 then
+    d := replace(d, 'if n <> ''BENJAMIN'' then', 'if not pegase_int.at_patron(n) then');
+    if position('at_patron' in d) = 0 then raise exception 'at_stripe_autoriser'; end if; execute d;
+  end if;
+end $$;
