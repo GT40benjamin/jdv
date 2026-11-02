@@ -14176,7 +14176,7 @@ function atlBuild() {
     + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<div class="atl-projets" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
-    + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot">📁 Jusqu’à 5 projets en même temps</p></div></aside>'
+    + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
     + '<div class="atl-chat"><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
     + '<form class="atl-comp" autocomplete="off"><div class="atl-rec" hidden><span class="atl-recdot"></span><span class="atl-rect">Je t’écoute… parle normalement. Touche le micro pour arrêter.</span></div>'
     + '<p class="atl-err" hidden></p><div class="atl-lock" hidden></div><div class="atl-choix" hidden></div>'
@@ -14260,7 +14260,7 @@ function atlNouveau() {
 }
 function atlListe() { atlMicStop(); atlLetterClose(true); atlErr(''); ATL.cur = null; ATL.nouveau = false; ATL.choix = null; atlRender(); atlLoad(true); }
 function atlRenderFiche() {
-  const R = ATL.root; if (!R) return;
+  const R = ATL.root; if (!R || ATL.editing) return;   // une section en cours de modification n'est pas redessinée
   const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}, et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
   const ff = mine ? fi : {};
   R.querySelector('.atl-ft').textContent = mine && f.titre ? f.titre : 'Mon jeu (titre à trouver)';
@@ -14276,9 +14276,13 @@ function atlRenderFiche() {
     const v = atlVal(ff[k]), d = atlEl('div', 'atl-fr' + (v ? '' : ' empty'));
     const dt = atlEl('dt'); if (i < ATL_FIELDS.length) dt.appendChild(atlEl('span', 'atl-fn', String(i + 1))); dt.append(atlEl('span', 'atl-fi', ic), lab);   // sections numérotées : « dis-moi le numéro à modifier »
     const dd = atlEl('dd', '', v || 'à découvrir avec l’Atelier…');
+    if (i < ATL_FIELDS.length && mine && !atlChoix() && ['brouillon', 'en_discussion', 'complete', 'acceptee', 'alpha', 'publie_salle', 'publie_monde'].includes(et)) {
+      d.classList.add('edit'); dd.title = 'Touche pour modifier toi-même'; dd.addEventListener('click', () => atlEditSection(dd, k, v, i + 1, lab));
+    }
     d.append(dt, dd); dl.appendChild(d);
   });
   // le design choisi sur la planche, et ce qu'il y aura dans le jeu (les assets retenus par l'Atelier)
+  const ff2 = R.querySelector('.atl-ffoot'), cr0 = atlCred(); ff2.textContent = mine ? '✏️ Touche une section pour la modifier toi-même' + (cr0 ? ' · 💎 ' + (cr0.solde | 0) + ' crédits' : '') : (cr0 ? '💎 ' + (cr0.solde | 0) + ' crédits' : '');
   const fd = R.querySelector('.atl-fdesign'); fd.textContent = '';
   const dz = mine && f.design && atlIaUrl(f.design.f);
   if (dz) { fd.appendChild(atlEl('div', 'atl-rh', '🎨 Le design choisi (n° ' + (f.design.n || '?') + ')')); const im = atlEl('img', 'atl-fdimg'); im.alt = 'Le design choisi'; im.loading = 'lazy'; im.src = dz; im.addEventListener('click', () => atlZoom(dz)); fd.appendChild(im); }
@@ -14337,7 +14341,7 @@ function atlBubble(m, wel) {
   li.appendChild(col); return li;
 }
 function atlRenderChat() {
-  const R = ATL.root; if (!R) return;
+  const R = ATL.root; if (!R || R.querySelector('.atl-chin:focus')) return;   // un élément en cours d'ajout sur une planche : pas de rafraîchissement
   const log = R.querySelector('.atl-log'), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
   const f = atlFiche(), et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
   log.textContent = '';
@@ -14480,6 +14484,25 @@ async function atlImage(file) {
   } finally { ATL.sending = false; }
 }
 
+// ---------- le joueur modifie une section de sa fiche (Benjamin, 15 h 50) : l'Atelier remanie ensuite à partir de son idée ----------
+function atlEditSection(dd, k, v, num, lab) {
+  if (ATL.editing) return; ATL.editing = k;
+  const ta = atlEl('textarea', 'atl-fta'); ta.value = v || ''; ta.maxLength = 600; ta.rows = 3;
+  const cr = atlCred(), row = atlEl('div', 'atl-fedb');
+  const ok = atlEl('button', 'btn btn-play btn-sm', 'Enregistrer' + (cr && cr.message ? ' (' + (cr.message | 0) + ' 💎)' : '')); ok.type = 'button';
+  const no = atlEl('button', 'btn btn-ghost btn-sm', 'Annuler'); no.type = 'button';
+  const fin = () => { ATL.editing = null; atlRenderFiche(); };
+  no.addEventListener('click', fin);
+  ok.addEventListener('click', async () => {
+    const t = ta.value.trim(); if (t.length < 2 || t === v) { fin(); return; }
+    ok.disabled = true;
+    try { const r = await rpc('at_fiche_joueur', { p_name: profile.name, p_fiche: ATL.cur, p_cle: k, p_texte: t }, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ATL.editing = null; ATL.stick = true; await atlLoad(true); }
+    catch (e) { ok.disabled = false; atlErr(/credits/.test(String(e && e.message)) ? 'Plus assez de crédits pour modifier.' : atlWhy(e)); }
+  });
+  row.append(ok, no);
+  const box = atlEl('div', 'atl-fed'); box.append(ta, row);
+  dd.replaceWith(box); ta.focus(); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+}
 // ---------- « Envoyer mon projet » : les choix à cliquer (2 nov. 13 h 55, Benjamin) ----------
 function atlEnvoyer() {
   const et = atlEtat(); atlErr('');
@@ -14619,27 +14642,76 @@ function atlPlanchesAFaire() {
     els: typeof x === 'string' ? [x] : Array.isArray(x && x.elements) ? x.elements.map(atlVal).filter(Boolean) : atlElements(x && x.elements), faite: !!(x && typeof x === 'object' && x.faite) }))
     .filter(x => !x.faite).slice(0, 6);
 }
-function atlPropCard() {
-  const f = atlFiche(), et = atlEtat(), todo = atlPlanchesAFaire();
-  if (!f || !todo.length || atlChoix() || !['en_discussion', 'complete', 'acceptee', 'alpha', 'publie_salle', 'publie_monde'].includes(et)) return null;
-  if (!ATL.drawing && ATL.propHide === String(f.maj_at || '')) return null;
-  const cr = atlCred(), cc = cr ? cr.cout | 0 : 10, tot = todo.length * cc, box = atlEl('div', 'atl-prop' + (ATL.drawing ? ' busy' : ''));
-  box.appendChild(atlEl('b', 'atl-cq', ATL.drawing ? '🎨 L’Atelier dessine ' + (todo.length > 1 ? 'tes planches' : 'ta planche') + '…' : '🎨 L’Atelier te propose de dessiner ton jeu'));
-  box.appendChild(atlEl('p', '', ATL.drawing ? 'Ça prend environ une minute par planche. Ne ferme pas l’Atelier !' : 'Voici tout ce qui sera dessiné :'));
-  for (const t of todo) {
-    const g = atlEl('div', 'atl-pp'), h = atlEl('div', 'atl-pph');
-    h.append(atlEl('b', '', (todo.length > 1 ? 'Planche ' + t.i + ' · ' : '') + t.nom), atlEl('span', 'atl-plc', cc + ' 💎'));
-    const ch = atlEl('div', 'atl-chips'); for (const e of t.els.slice(0, 9)) ch.appendChild(atlEl('span', 'atl-chip on', e));
-    g.append(h, ch); box.appendChild(g);
+// la proposition en TUILES : une tuile par planche (nom, éléments en étiquettes avec ✕, « ＋ Ajouter », 10 crédits), « ＋ Nouvelle planche »,
+// total en direct ; chaque changement est enregistré (at_planches_joueur, 9 éléments par planche, sinon une planche de plus)
+function atlPlModel() {
+  const f = atlFiche(), key = f ? f.id + '|' + (f.maj_at || '') : '';
+  if (!ATL.plEdit || (!ATL.plDirty && !ATL.plSaving && ATL.plKey !== key)) { ATL.plEdit = atlPlanchesAFaire().map(t => ({ nom: t.nom, els: t.els.slice(0, 9) })); ATL.plKey = key; }
+  return ATL.plEdit;
+}
+function atlPlChange() { ATL.plDirty = true; clearTimeout(ATL.plT); ATL.plT = setTimeout(() => atlPlSave(), 700); atlRenderChat(); }
+async function atlPlSave() {
+  clearTimeout(ATL.plT); if (!ATL.plDirty || !ATL.plEdit || !ATL.cur) return true;
+  ATL.plSaving = true; ATL.plDirty = false;
+  try {
+    await rpc('at_planches_joueur', { p_name: profile.name, p_fiche: ATL.cur, p_planches: ATL.plEdit.filter(x => x.els.length).map(x => ({ nom: x.nom, elements: x.els })) }, { quiet: true });
+    ATL.propMsg = ''; return true;
+  } catch (e) { const m = String(e && e.message); ATL.propMsg = /filtre/.test(m) ? 'Je ne peux pas dessiner ça : change un peu cet élément !' : /9 au plus/.test(m) ? '9 éléments au plus par planche.' : atlWhy(e); return false; }
+  finally { ATL.plSaving = false; ATL.plEdit = null; await atlLoad(true); }
+}
+function atlPlAjout(pl, idx, txt) {
+  for (const raw of String(txt || '').split(/\s*[,;\n]\s*/)) {
+    const v = raw.replace(/[<>]/g, '').trim().slice(0, 60); if (v.length < 2) continue;
+    let k = idx; while (pl[k] && pl[k].els.length >= 9) k++;
+    if (!pl[k]) { if (pl.length >= 6) { ATL.propMsg = '6 planches au plus.'; break; } pl.push({ nom: 'Planche ' + (pl.length + 1), els: [] }); }
+    pl[k].els.push(v);
   }
+}
+function atlPropCard() {
+  const f = atlFiche(), et = atlEtat();
+  if (!f || atlChoix() || !['en_discussion', 'complete', 'acceptee', 'alpha', 'publie_salle', 'publie_monde'].includes(et)) return null;
+  const pl = atlPlModel(); if (!pl.length && !ATL.drawing) return null;
+  if (!ATL.drawing && !ATL.plDirty && ATL.propHide === String(f.maj_at || '')) return null;
+  const cr = atlCred(), cc = cr ? cr.cout | 0 : 10, nb = pl.filter(x => x.els.length).length, box = atlEl('div', 'atl-prop' + (ATL.drawing ? ' busy' : ''));
+  box.appendChild(atlEl('b', 'atl-cq', ATL.drawing ? '🎨 L’Atelier dessine ' + (nb > 1 ? 'tes planches' : 'ta planche') + '…' : '🎨 L’Atelier te propose de dessiner ton jeu'));
+  box.appendChild(atlEl('p', '', ATL.drawing ? 'Ça prend environ une minute par planche. Ne ferme pas l’Atelier !' : 'Voici tout ce qui sera dessiné. Tu peux ajouter ou retirer des éléments :'));
+  const g = atlEl('div', 'atl-plg');
+  pl.forEach((t, idx) => {
+    const tile = atlEl('div', 'atl-pltile'), h = atlEl('div', 'atl-pph');
+    h.append(atlEl('b', '', t.nom), atlEl('span', 'atl-plc', cc + ' 💎')); tile.appendChild(h);
+    const ch = atlEl('div', 'atl-chips');
+    t.els.forEach((e, k) => {
+      const c = atlEl('span', 'atl-chip on', e);
+      if (!ATL.drawing) { const x = atlEl('button', 'atl-chx', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Retirer ' + e); x.addEventListener('click', () => { t.els.splice(k, 1); if (!t.els.length) pl.splice(idx, 1); atlPlChange(); }); c.appendChild(x); }
+      ch.appendChild(c);
+    });
+    if (!ATL.drawing && t.els.length < 9) {
+      const add = atlEl('button', 'atl-chip atl-chadd', '＋ Ajouter'); add.type = 'button';
+      add.addEventListener('click', () => {
+        const inp = atlEl('input', 'atl-chin'); inp.type = 'text'; inp.maxLength = 120; inp.placeholder = 'un élément (ou plusieurs, avec des virgules)';
+        const ok = () => { if (inp.dataset.fait) return; inp.dataset.fait = '1'; const v = inp.value; inp.blur(); if (v.trim()) { atlPlAjout(pl, idx, v); atlPlChange(); } else atlRenderChat(); };   // une seule fois (Entrée puis perte du focus)
+        inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); ok(); } else if (ev.key === 'Escape') atlRenderChat(); });
+        inp.addEventListener('blur', () => setTimeout(ok, 120));
+        add.replaceWith(inp); inp.focus();
+      });
+      ch.appendChild(add);
+    }
+    tile.appendChild(ch); tile.appendChild(atlEl('small', 'atl-plcount', t.els.length + ' / 9 éléments')); g.appendChild(tile);
+  });
+  if (!ATL.drawing && pl.length < 6) {
+    const nt = atlEl('button', 'atl-pltile atl-plnew'); nt.type = 'button'; nt.append(atlEl('span', '', '＋'), atlEl('b', '', 'Nouvelle planche'));
+    nt.addEventListener('click', () => { pl.push({ nom: 'Planche ' + (pl.length + 1), els: [] }); atlRenderChat(); const last = ATL.root.querySelectorAll('.atl-chadd'); if (last.length) last[last.length - 1].click(); });
+    g.appendChild(nt);
+  }
+  box.appendChild(g);
   if (ATL.drawing) return box;
-  box.appendChild(atlEl('p', 'atl-pltot', (todo.length > 1 ? todo.length + ' planches' : '1 planche') + ' = ' + tot + ' crédits' + (cr ? ' (il t’en reste ' + (cr.solde | 0) + ')' : '')));
+  box.appendChild(atlEl('p', 'atl-pltot', nb + ' planche' + (nb > 1 ? 's' : '') + ' = ' + nb * cc + ' crédits' + (cr ? ' (il t’en reste ' + (cr.solde | 0) + ')' : '') + (ATL.plDirty || ATL.plSaving ? ' · enregistrement…' : '')));
   box.appendChild(atlEl('p', 'atl-plrule', '⭐ ' + ATL_PLANCHE_TXT(cc)));
   if (ATL.propMsg) box.appendChild(atlEl('p', 'atl-perr', ATL.propMsg));
   const row = atlEl('div', 'atl-cbtns');
-  const ok = atlChoixBtn(row, '✅ Oui, dessine ' + (todo.length > 1 ? 'mes ' + todo.length + ' planches' : 'ma planche'), 'btn-play', () => atlDessinePlanches());
+  const ok = atlChoixBtn(row, '✅ Oui, dessine ' + (nb > 1 ? 'mes ' + nb + ' planches' : 'ma planche'), 'btn-play', () => atlDessinePlanches()); ok.disabled = !nb;
   if (cr && (cr.solde | 0) < cc) { ok.disabled = true; atlCreditsBtn(row); }
-  atlChoixBtn(row, '✏️ Je veux encore changer', 'btn-ghost', () => {
+  atlChoixBtn(row, '✏️ J’en parle à l’Atelier', 'btn-ghost', () => {
     ATL.propHide = String(f.maj_at || ''); ATL.propMsg = ''; atlRenderChat();
     const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Dis à l’Atelier ce que tu veux ajouter ou changer sur ta planche…'; if (!TOUCH) inp.focus();
   });
@@ -14648,6 +14720,7 @@ function atlPropCard() {
 }
 async function atlDessinePlanches() {
   if (ATL.drawing || ATL.sending) return;
+  if (ATL.plDirty || ATL.plSaving) { if (!(await atlPlSave())) return; }   // les derniers ajouts d'abord
   const todo = atlPlanchesAFaire(); if (!todo.length) return;
   ATL.drawing = true; ATL.propMsg = ''; ATL.stick = true; atlRenderChat();
   try {

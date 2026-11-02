@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## ✏️ Ta fiche et tes planches, tu les modifies toi-même (borne 1.63.53)
+[atelier] ✏️ Touche une section de ta fiche pour la modifier toi-même, puis « Enregistrer » : l'Atelier voit ton changement et remanie ton projet.
+[atelier] 🧩 Les planches proposées s'affichent en tuiles : retire un élément avec ✕, ajoutes-en avec « ＋ Ajouter » (9 par planche, sinon une nouvelle planche se crée), ou touche « ＋ Nouvelle planche ». Le total des crédits se met à jour tout seul.
+
 [abracadabra] ## 🦓 Abracadabra : un vrai zèbre, et des couleurs franches (borne 1.63.52)
 [abracadabra] 🦓 « Zèbre » fait enfin apparaître un zèbre, rayé noir et blanc (avant, c'était… un poisson !). Le poney, le cheval et le zèbre sont trois bêtes bien différentes.
 [abracadabra] 🚗 « Une voiture rouge » donne une voiture d'un rouge franc (avant, la couleur sortait rose pâle), et la voiture est un peu plus grosse. Pareil pour toutes les couleurs des véhicules.
