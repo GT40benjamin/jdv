@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## ✏️ Crée ton jeu : l'Atelier des jeux, en essai (borne 1.63.22)
+[atelier] ✨ Une grande tuile « CRÉE TON JEU » tout en haut de la borne : raconte le jeu dont tu rêves, il peut devenir un vrai jeu de la borne. C'est gratuit !
+[atelier] 🎤 Décris ton idée comme tu veux : au clavier ou au micro, et joins des images qui t'inspirent (photos, dessins, captures).
+[atelier] 📋 L'Atelier te répond sous 10 minutes environ et te pose des questions ; ta fiche de projet se remplit au fil de la discussion. La cloche 🔔 te prévient quand il a répondu.
+[atelier] 📮 Fiche complète : tu coches la case d'accord et tu envoies ton projet, une vraie lettre tamponnée et signée, que Benjamin va lire. Un jeu par joueur !
+[borne] ## 🖥️ Sur ordinateur, la borne prend tout l'écran (borne 1.63.22)
+[borne] 🖥️ Sur PC, les jeux remplissent toute la largeur de l'écran : des tuiles plus petites, 4 à 6 par ligne selon la taille de l'écran (sur téléphone, rien ne change).
 [remparts] ## 🏰 Remparts !, en essai : un tout nouveau look peint, et le mode Sans fin (borne 1.63.20)
 [remparts] 🎨 Tout le jeu est redessiné comme un tableau : herbe, sable, neige, cendre et cimetière peints, de vraies ombres, des tours en pierre et en bois, et une carte qui remplit tout l'écran (au téléphone, elle se met debout).
 [remparts] 💀 Les méchants sont dessinés un par un : squelettes, voleurs encapuchonnés, guerriers en armure, chauves-souris, nécromanciens au bâton vert, fantômes, et le Roi Squelette avec sa couronne et sa cape.
