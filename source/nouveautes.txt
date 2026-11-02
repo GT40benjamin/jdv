@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[licornes] ## 🦄 La Maison des Licornes : les licornes marchent au sol (borne 1.63.103)
+[licornes] 🦄 L'aquarium a disparu : tes licornes se baladent maintenant sur le carrelage de la Maison. Elles marchent pour de vrai, une patte après l'autre, et respirent tranquillement quand elles s'arrêtent : les bébés comme les grandes, la blanche, l'arc-en-ciel, la nuit étoilée et la dorée.
+[licornes] 🎵 Le jeu a maintenant une musique douce et magique, et ses bruitages : les pièces quand tu achètes, l'œuf qui éclot, la licorne contente quand elle grandit, la caisse quand tu vends, le scintillement d'un accessoire et le nid d'amour.
 [abracadabra] ## 🚁 Abracadabra : un vrai avion et un vrai hélicoptère (borne 1.63.100)
 [abracadabra] ✈️ « Avion » : un petit avion bleu nuit et or traverse le ciel devant toi, son moteur tousse, il pique… et s'écrase sur l'autre rive dans un gros nuage de fumée (personne dedans, ouf !). Les villageois le suivent des yeux et commentent.
 [abracadabra] 🚁 « Hélicoptère » (ou hélico) : un hélicoptère rouge à bulle de verre arrive de loin, reste en vol au-dessus de la rivière en soulevant la poussière, avec le bruit de ses pales, puis repart au loin.

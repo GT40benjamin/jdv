@@ -8,6 +8,7 @@
 const ROOT = () => window.JDW_ROOT || '';
 const TAU = Math.PI * 2;
 const DUREE = 180;
+const FOULEE = 70, FOULEE_BEBE = 46;   // pixels parcourus par pas complet (8 images de marche)
 
 /* ---------- images (paquet LIC1 : en-tête JSON + WebP à la suite) ---------- */
 const IMG = {};
@@ -124,7 +125,7 @@ function mount(root, api) {
         hud: { y: 8, h: 50 },
         belt: { x0: 210, x1: 1185, y: 128, sz: 74 },
         couv: { x: 236, y: 318, w: 156, h: 150 }, nid: { x: 470, y: 346, w: 176, h: 124 },
-        enclos: { x: 870, y: 480, w: 370, h: 96 },
+        enclos: { x: 770, y: 548, w: 530, h: 66 },   // le sol carrelé à droite (l'aquarium est retiré du fond : demande de PATOU, 2 nov. 23 h)
         sell: { x: 26, y: 606, w: 150, h: 152 },
         tray: { x: 196, y: 636, w: 566, h: 116 },
         act: { x: 790, y: 630, w: 520, h: 120 },
@@ -137,7 +138,7 @@ function mount(root, api) {
         hud: { y: 8, h: 56 },
         belt: { x0: 18, x1: 702, y: 150, sz: 74, draw: { x: 0, y: 116, w: 720 } },
         enclosDraw: { x: 8, y: 222, w: 704, h: 334 + ex },
-        enclos: { x: 110, y: 420 + ex * 0.6, w: 500, h: 108 + ex * 0.4 },
+        enclos: { x: 70, y: 222 + 0.74 * (334 + ex), w: 580, h: 0.2 * (334 + ex) },   // les pieds sur le carrelage
         counterDraw: { x: 8, y: 700 + ex, w: 470 },
         couv: { x: 40, y: 572 + ex, w: 160, h: 150 }, nid: { x: 236, y: 600 + ex, w: 190, h: 130 },
         sell: { x: 520, y: 640 + ex, w: 170, h: 172 },
@@ -182,15 +183,28 @@ function mount(root, api) {
   }
 
   // ---------- sons (fabriqués par le programme) ----------
+  // ---------- les vrais bruitages (assets/licornes.sons.bin, MP3 d'ElevenLabs, joués par la borne : « son coupé » respecté) ----------
+  // quand un son est là, il remplace le petit bip ; la musique, elle, est jouée en boucle par la borne (assets/music/licornes-1.mp3)
+  const SONS = {}, SVOL = { acheter: 0.8, eclosion: 0.9, contente: 0.8, vendre: 0.75, accessoire: 0.7, nid: 0.8 };   // sons déjà mis au même niveau (~/jdv-tools/licornes/sons.py)
+  (async () => {
+    const S = api.audio && api.audio.sample; if (!S) return;
+    try {
+      const r = await fetch(ROOT() + 'assets/licornes.sons.bin'); if (!r.ok) return;
+      const b = new Uint8Array(await r.arrayBuffer()), n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24);
+      const idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
+      for (const [nom, o, l] of idx) { if (dead) return; try { SONS[nom] = await S.decode(b.slice(base + o, base + o + l).buffer); } catch (e) { /* rien */ } }
+    } catch (e) { /* pas de son : le jeu marche quand même */ }
+  })();
+  const vrai = (nom, rate) => { if (!SONS[nom]) return false; try { return api.audio.sample.play(SONS[nom], SVOL[nom] || 1, rate || 1) !== false; } catch (e) { return false; } };
   const snd = {
-    buy() { audio.tone(880, 0.08, 'sine', 0.07, 1320); setTimeout(() => !dead && audio.tone(1320, 0.1, 'sine', 0.05, 1760), 70); },
+    buy() { if (vrai('acheter', 0.97 + Math.random() * 0.06)) return; audio.tone(880, 0.08, 'sine', 0.07, 1320); setTimeout(() => !dead && audio.tone(1320, 0.1, 'sine', 0.05, 1760), 70); },
     no() { audio.tone(260, 0.12, 'triangle', 0.07, 200); },
-    hatch() { [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.12, 'sine', 0.06), i * 70)); },
+    hatch() { if (vrai('eclosion')) return; [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.12, 'sine', 0.06), i * 70)); },
     grow() { audio.tone(520, 0.25, 'sine', 0.06, 1040); },
-    adult() { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.16, 'triangle', 0.05), i * 80)); },
-    dress() { audio.tone(1500, 0.06, 'sine', 0.05, 2200); setTimeout(() => !dead && audio.tone(1900, 0.08, 'sine', 0.04, 2600), 60); },
-    sell() { [1568, 2093, 1568, 2637].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.07, 'square', 0.03), i * 60)); },
-    love() { audio.tone(440, 0.3, 'sine', 0.05, 660); setTimeout(() => !dead && audio.tone(554, 0.35, 'sine', 0.05, 830), 160); },
+    adult() { if (vrai('contente')) return; [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.16, 'triangle', 0.05), i * 80)); },
+    dress() { if (vrai('accessoire', 0.95 + Math.random() * 0.1)) return; audio.tone(1500, 0.06, 'sine', 0.05, 2200); setTimeout(() => !dead && audio.tone(1900, 0.08, 'sine', 0.04, 2600), 60); },
+    sell() { if (vrai('vendre')) return; [1568, 2093, 1568, 2637].forEach((f, i) => setTimeout(() => !dead && audio.tone(f, 0.07, 'square', 0.03), i * 60)); },
+    love() { if (vrai('nid')) return; audio.tone(440, 0.3, 'sine', 0.05, 660); setTimeout(() => !dead && audio.tone(554, 0.35, 'sine', 0.05, 830), 160); },
     pick() { audio.tone(700, 0.05, 'sine', 0.04, 900); },
     tick() { audio.tone(1200, 0.04, 'square', 0.03); },
     go() { audio.tone(660, 0.12, 'sine', 0.07); setTimeout(() => !dead && audio.tone(990, 0.2, 'sine', 0.07), 120); }
@@ -218,6 +232,13 @@ function mount(root, api) {
     return u;
   }
   function uniImg(u) { return u.bebe ? OEUFS[u.ligne].bebe : ADULTES[u.adulte].img; }
+  // la pose du moment : marche (8 images, au rythme des pas) ou repos (4 images de respiration) ; ailleurs (nid, glissé) : debout
+  function uniPose(u) {
+    const nm = uniImg(u);
+    if (u.nid == null && !(drag && drag.u === u) && u.marche && IMG[nm + '-m0']) return nm + '-m' + (Math.floor(u.step || 0) % 8);
+    if (IMG[nm + '-r0']) return nm + '-r' + (Math.floor(((u.repos || 0) + u.id * 0.37) / 0.6) % 4);
+    return nm;
+  }
   function uniH(u) { const base = portrait ? 190 : 150; return base * (u.bebe ? 0.74 : 1); }
   function uniPos(u) {   // pied de la licorne (logique)
     if (u.nid != null) { const n = L.nid; return { x: n.x + n.w * (u.nid ? 0.72 : 0.28), y: n.y + n.h * 0.62 }; }
@@ -296,7 +317,7 @@ function mount(root, api) {
   }
   function fromNid(u, x, y) {
     if (u.nid == null) return;
-    if (unis.length >= MAX_UNIS) { snd.no(); say('L’enclos est plein'); return; }
+    if (unis.length >= MAX_UNIS) { snd.no(); say('La maison est pleine'); return; }
     nid[u.nid] = null; u.nid = null; nidT = 0;
     if (x != null) { u.u = Math.min(1, Math.max(0, (x - L.enclos.x) / L.enclos.w)); u.v = Math.min(1, Math.max(0, (y - L.enclos.y) / L.enclos.h)); }
     else { u.u = Math.random() * 0.4; u.v = 0.5; }
@@ -475,7 +496,7 @@ function mount(root, api) {
         flyers.push({ img: OEUFS[c.t].bebe, x0: x, y0: y, x1: uniPos(u).x, y1: uniPos(u).y - uniH(u) / 2, t: 0, s: uniH(u) });
         u.pop = 0.9;
         if (c.t === 'leg') { try { api.celebrate && api.celebrate('Un bébé légendaire !'); } catch (e) { /* rien */ } }
-      } else if (c.done && unis.length >= MAX_UNIS && Math.random() < dt * 0.4) say('L’enclos est plein : vends ou mets des licornes au nid');
+      } else if (c.done && unis.length >= MAX_UNIS && Math.random() < dt * 0.4) say('La maison est pleine : vends ou mets des licornes au nid');
     }
     while (couv.length < 2 && queue.length) couv.push({ t: queue.shift(), p: 0, done: false, wob: 0 });
     // nid d'amour
@@ -494,8 +515,13 @@ function mount(root, api) {
       if (u.bebe) { u.laitT += dt; if (u.laitT > 25) { u.laitT = 0; grow(u, 1); } }
       if (u.nid != null || (drag && drag.u === u)) continue;
       const dx = u.tu - u.u, dy = u.tv - u.v, d = Math.hypot(dx * L.enclos.w, dy * L.enclos.h);
-      if (d < 4) { u.wait -= dt; if (u.wait <= 0) { u.tu = Math.random(); u.tv = Math.random(); u.wait = 1 + Math.random() * 3; } }
-      else { const v = (u.bebe ? 34 : 46) * dt / d; u.u += dx * Math.min(1, v); u.v += dy * Math.min(1, v); if (Math.abs(dx) > 0.01) u.face = dx > 0 ? 1 : -1; }
+      if (d < 4) { u.marche = false; u.repos = (u.repos || 0) + dt; u.wait -= dt; if (u.wait <= 0) { u.tu = Math.random(); u.tv = Math.random(); u.wait = 1 + Math.random() * 3; } }
+      else {
+        const pas = (u.bebe ? 34 : 46) * dt, v = pas / d; u.u += dx * Math.min(1, v); u.v += dy * Math.min(1, v);
+        // un tour de marche (8 images) tous les FOULEE pixels : les sabots ne glissent pas
+        if (!u.marche) { u.marche = true; u.step = 0; } u.step = (u.step || 0) + Math.min(pas, d) / ((u.bebe ? FOULEE_BEBE : FOULEE) / 8); u.repos = 0;
+        if (Math.abs(dx * L.enclos.w) > 6) u.face = dx > 0 ? 1 : -1;
+      }
     }
     // manette : A = acheter l'objet le plus à gauche qu'on peut payer (aide simple pour l'alpha)
     if (pad && pad.pressed && pad.pressed('a')) { const it = belt.filter(i => i.x < L.belt.x1 && coins >= i.prix).sort((a, b) => a.x - b.x)[0]; if (it) buy(it); }
@@ -514,7 +540,7 @@ function mount(root, api) {
     ctx.drawImage(f, 0, 600, 1344, 168, 0, fy, LW, Math.max(140, LH - fy));
     ctx.drawImage(f, 360, 28, 140, 70, 60, 60, 140, 70); ctx.drawImage(f, 960, 28, 140, 70, 520, 60, 140, 70);   // arcs-en-ciel
     const b = L.belt.draw; ctx.drawImage(f, 175, 88, 1037, 112, b.x, b.y, b.w, b.w * 112 / 1037);
-    const e = L.enclosDraw; ctx.drawImage(f, 748, 336, 566, 272, e.x, e.y, e.w, e.h);
+    const e = L.enclosDraw; ctx.drawImage(f, 748, 330, 566, 290, e.x, e.y, e.w, e.h);   // le mur, la plinthe et le sol (plus d'aquarium)
     const c = L.counterDraw; ctx.drawImage(f, 195, 416, 536, 196, c.x, c.y, c.w, c.w * 196 / 536);
   }
   function drawHud() {
@@ -584,7 +610,7 @@ function mount(root, api) {
   }
   function drawUni(u) {
     const b = uniBox(u), nm = uniImg(u), dragging = drag && drag.u === u;
-    const hop = (u.hop > 0 ? Math.sin(u.hop / 0.35 * Math.PI) * 18 : 0) + (u.nid == null && !dragging && Math.abs(u.tu - u.u) + Math.abs(u.tv - u.v) > 0.01 ? Math.abs(Math.sin(u.ph * 7)) * 6 : 0);
+    const hop = u.hop > 0 ? Math.sin(u.hop / 0.35 * Math.PI) * 18 : 0;   // le petit saut quand on la pose (la marche, elle, est dans les images)
     const pop = u.pop > 0 ? 1 + Math.sin(u.pop * 12) * 0.06 * u.pop : 1;
     // ombre
     ctx.fillStyle = 'rgba(90,50,110,0.18)'; ctx.beginPath(); ctx.ellipse(b.fx, b.fy - 2, b.w * 0.34, b.h * 0.06, 0, 0, TAU); ctx.fill();
@@ -593,7 +619,7 @@ function mount(root, api) {
     if (u.bebe && u.ligne === 'leg') { ctx.shadowColor = 'rgba(255,215,90,0.95)'; ctx.shadowBlur = 18; }
     const accs = u.accs.map(a => ({ a, d: ACC[a][u.bebe ? 'k' : 'a'] }));
     for (const o of accs) if (o.d.b) accDraw(o, b);
-    drawImg(ctx, nm, 0, 0, b.w, b.h); ctx.shadowBlur = 0;
+    drawImg(ctx, uniPose(u), 0, 0, b.w, b.h); ctx.shadowBlur = 0;
     for (const o of accs) if (!o.d.b) accDraw(o, b);
     ctx.restore();
     if (u.bebe) {   // le lait bu (3 = adulte)
@@ -743,6 +769,9 @@ function mount(root, api) {
     resume() { setPaused(false); },
     // essais (harnais) : avancer le temps, état
     _test: {
+      spawn(ligne, adulte, accs) { const u = newUni(ligne || 'commun'); if (adulte) { u.bebe = false; u.adulte = adulte; } if (accs) u.accs = accs; u.tu = u.u; u.tv = u.v; unis.push(u); return u.id; },
+      uni: id => { const u = unis.find(v => v.id === id); if (!u) return null; const b = uniBox(u); return { x: ox + b.fx * sc, y: oy + b.fy * sc, h: b.h * sc, pose: uniPose(u), face: u.face }; },
+      go(id, tu, tv) { const u = unis.find(v => v.id === id); if (u) { u.tu = tu; u.tv = tv; u.wait = 99; } },
       state: () => state, coins: () => coins, n: () => unis.length, score, skip(s) { timeLeft = Math.max(0.1, timeLeft - s); }, give(c) { coins += c; }, fast(k) { FAST = k; },
       css: (x, y) => ({ x: ox + x * sc, y: oy + y * sc }),
       items: () => belt.map(it => { const b = itemBox(it); return Object.assign({ k: it.k, t: it.t }, { x: ox + (b.x + b.w / 2) * sc, y: oy + (b.y + b.h / 2) * sc }); }),
