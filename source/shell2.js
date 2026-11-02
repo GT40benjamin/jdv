@@ -3,11 +3,12 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['remparts', 'abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['poneys', 'remparts', 'abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
 const TILE_NEWS = {
+  poneys: { kind: 'new', at: '2026-11-02 14:30' },   // Ranch des Poneys (1er projet de l'Atelier des jeux) : en essai derrière la porte labo (borne 1.63.27)
   abracadabra: { kind: 'new', at: '2026-11-01 12:30' },   // Abracadabra : SORTI POUR TOUS en 1.63 (heure = celle de la sortie) ; en essai derrière la porte labo de la 1.55 à la 1.62.80
   sensinterdit: { kind: 'maj', at: '2026-11-02 12:13' },   // Sens Interdit (borne 1.63.21) : plus d'écran vide sur les petits téléphones (mode léger) ; 1.63.14 : plus de nuage à 1200 km/h, un seul trait (le 1er de la salle) ; 1.63.6 : moins d'attente au lancement ; 1.63.4 : un chargement sans trou ; 1.63.3 : les premières images de la course ; 1.63.1 : un départ sans à-coup ; 1.62.84 : la brume des roues plus légère ; 1.62.83 : Néon City plus lisible sur téléphone ; 1.62.82 : retouches après le tour des mondes ; 1.62.81 : les phares comme au cinéma ; 1.62.79 : les lampadaires dans la route mouillée ; 1.62.78 : des cendres dans l'air du Volcan ; 1.62.77 : la neige se pose sur ta voiture ; 1.62.75 : la planète se reflète dans la route ; 1.62.73 : la lave éclaire ta voiture ; 1.62.71 : le soleil scintille sur la mer ; 1.62.70 : Néon City, la route mouillée ; 1.62.69 : la musique étouffée dans les tunnels ; 1.62.67 : les roues soulèvent le décor ; 1.62.64 : le tunnel en fête ; 1.62.63 : les phares éclairent la route ; 1.62.62 : tour de contrôle des 5 mondes ; 1.62.61 : le bec des dauphins ; 1.62.60 : étoiles filantes et comète ; 1.62.59 : bombes de lave ; 1.62.57 : appels de phares et klaxons ; 1.62.56 : dauphins plus souvent ; 1.62.55 : la fête du record ; 1.62.54 : Néon City aux noms des copains ; 1.62.53 : le mur du son ; 1.62.52 : de vrais dauphins ; 1.62.51 : le moment du dépassement ; 1.62.49 : dauphins et gerbes de lave ; 1.62.48 : choisis la couleur de ta voiture ; 1.62.46 : de vrais oiseaux ; 1.62.44 : mouettes et vols d'oiseaux ; 1.62.41 : combos de frôlés ; 1.62.40 : neige au Col, pluie sur Néon City ; 1.62.37 : classement lisible sur ordinateur ; 1.62.34 : trait des copains, lueur du volcan ; 1.62.31 : lampadaires, villa, voiture au Volcan ; 1.62.30 : de vrais chalets au Col ; 1.62.29 : musique de l'espace aux Étoiles, même volume partout ; 1.62.27 : écho des tunnels, glissière, moteur, vibrations ; 1.62.24 : traits de vitesse, capot, phare, aide des touches ; 1.62.20 : panache en colonne puis champignon ; 1.62.18 : voiles du Col plus fins et plus hauts ; 1.62.15 : route usée, anneaux qui s'éteignent, phares doux ; 1.62.13 : panache de cendre, voiture sans halo au Volcan ; 1.62.12 : liseré plus discret, phares sans bords nets, traînées sous les portiques ; 1.62.10 : ciel du Col, feux d'artifice, voiture bordée de lumière la nuit, titre du monde ; 1.62.9 : la Route des Étoiles plus belle (cristaux, espace sous la route) ; 1.62.8 : le Volcan plus beau (volcan, coulées, croûtes, fissures, arches) ; 1.62.7 : Néon City plus belle (façades, toits, reflets sur la route) ; 1.62.6 : le Col des Neiges plus beau (montagnes, sapins, rochers, lac, prés) ; 1.62.5 : la Corniche en vraie garrigue (sol, massifs, buissons, cyprès, palmiers verts) ; 1.62.3 : la Corniche plus belle (villas, muret, bougainvilliers, cyprès) ; 1.62.2 : de belles nuits, sans taches de lumière ; 1.62.1 : un pick-up enfin complet (vitres, feux, hayon, calandre chromée) ; 1.55.10 : les voitures bien posées sur la route ; 1.55.5 : les traits des copains arrivent en direct pendant la partie ; 1.55.4 : plus jamais collé à la glissière, le dernier appui gagne ; SORTI POUR TOUS (1.51.11) ; 1.52.3 : bannière du monde sous la puce en portrait ; 1.52.1 : deux classements ; heure = celle de la publication
   coffres: { kind: 'new', at: '2026-10-27 13:10' },   // Coffres à Secrets (casse-tête 3D, partie gardée) : SORTI POUR TOUS en 1.45 (heure de la sortie)
@@ -36,7 +37,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['remparts', 'atelier']);   // en essai : Remparts ! (tower defense arcade, …/jouer/?labo=remparts) et l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set(['remparts', 'atelier', 'poneys']);   // en essai : Ranch des Poneys (le 1er projet de l'Atelier des jeux, idée de PATOU, …/jouer/?labo=poneys, 2 nov. 2026) ; Remparts ! (tower defense arcade, …/jouer/?labo=remparts) et l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -51,6 +52,14 @@ const LABO_ON = (() => {
 // appareil en mode test (au moins un jeu en essai ouvert) : il voit TOUS les jeux en essai, même ceux ajoutés depuis
 const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides', 'sensinterdit', 'flechettes', 'abracadabra'].includes(id));   // les appareils déjà en test le restent
 const laboOk = id => !LABO.has(id) || LABO_TEST;
+// 2 nov. 2026, Benjamin : « toutes les tuiles labo test, il faut qu'elles soient identifiées comme telles pour nous les admins » :
+// la tuile d'un jeu encore en essai porte un ruban « TEST » (vue seulement sur les appareils en mode test, comme le jeu lui-même)
+function laboMark(b, id) {
+  if (!LABO.has(id) || !LABO_TEST) return;
+  b.classList.add('tile-labo'); const im = b.querySelector('.tile-img'); if (!im) return;
+  const c = document.createElement('span'), t = document.createElement('span'); c.className = 'tile-labo-clip'; c.title = 'Jeu en essai : visible seulement en mode test';
+  t.className = 'tile-labo-tag'; t.textContent = 'TEST'; c.appendChild(t); im.appendChild(c);
+}
 // joueur d'une salle « sans Pégase » (section « Salles sans Pégase ») : Pégase n'existe pas pour lui sur cet appareil
 // 28 oct. 2026 (Benjamin : « On va séparer la borne de Pégase […] Pégase sera dans sa propre fenêtre ») : la même bibliothèque fait DEUX pages
 // (build2.py PAGE) : 'pegase' = pegase/, Pégase seul ; 'borne' = jouer/, la borne d'arcade (construite SANS Pégase depuis la 1.50)
@@ -108,7 +117,7 @@ const seenKey = () => cleanName(profile.name) || '*';
 const vcmp = (a, b) => { const x = String(a || '0').split('.').map(Number), y = String(b || '0').split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
 const CUR_V = String(window.JDW_VERSION || '') || '999';
 // les notes de CETTE page : pegase/ → celles de Pégase ; jouer/ → toutes, sauf celles de Pégase (il a sa page) ; « sans Pégase » : jamais Pégase
-const noteOnPage = (id) => (PAGE === 'pegase' ? id === 'pegase' && !PG_SANS : id !== 'pegase' && (id !== 'atelier' || laboOk('atelier')));   // l'Atelier : seulement là où sa tuile est ouverte (porte labo)
+const noteOnPage = (id) => (PAGE === 'pegase' ? id === 'pegase' && !PG_SANS : id !== 'pegase' && laboOk(id));   // un jeu en essai (l'Atelier, Ranch des Poneys…) : seulement là où sa tuile est ouverte (porte labo)
 const NOTES = (() => {
   const out = []; let cur = null;
   for (const raw of window.JDW_NOTES || []) {
@@ -1548,7 +1557,7 @@ function musicVariants(id, mode) {
   return list.length ? list : [id];
 }
 // niveau à partir duquel la musique devient énergique, par jeu
-const INTENSE_AT = { remparts: 7, smoothie: 4, magic: 2, ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
+const INTENSE_AT = { poneys: 3, remparts: 7, smoothie: 4, magic: 2, ilo: 4, pleingaz: 4, empilo: 6, glouton: 4, mouches: 7, carreaux: 7, rouleaux: 7, canards: 6 };
 // morceaux emballés (assets/music/<nom>.bin, collection de l'Asset Store) : sel(16) + iv(12) + AES-GCM, clé tirée de la clé d'emballage
 // intégrée au site (window.JDW_ASSET_KEY, source/asset-key.txt) : pas un secret, les fichiers ne sont simplement jamais lisibles directement
 const MUSIC_ENC = new Set(window.JDW_MUSIC_ENC || []);
@@ -2028,7 +2037,7 @@ function notifRow(n, isNew) {
 }
 // NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
 // dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
-const NOTE_IC = { atelier: '✏️', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
+const NOTE_IC = { atelier: '✏️', poneys: '🦄', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
 const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : id === 'atelier' ? 'L’Atelier des jeux' : g ? g.title : id; };
 function notesByGame(blocks) {
   const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }
@@ -2980,6 +2989,7 @@ function buildLibrary() {
       mapWarmSoon(g.id);
     }
     grid.appendChild(wrap);
+    laboMark(b, g.id);
     tiles.push({ g, el: b, champ: ch, watch: wb, canvas: b.querySelector('canvas'), on: b.querySelector('.tile-online'), visible: true });
   }
   if ('IntersectionObserver' in window) {
@@ -7388,6 +7398,7 @@ function buildDuoLibrary() {
     });
     const wrap = document.createElement('div'); wrap.className = 'tile-wrap'; wrap.style.setProperty('--acc', d.accent || COLORS.amber);
     wrap.appendChild(b); grid.appendChild(wrap);
+    laboMark(b, d.id);
     duoTiles.push({ g: d, el: b, canvas: b.querySelector('canvas'), tag: b.querySelector('.duo-tag'), visible: false });
   }
   if ('IntersectionObserver' in window) {
@@ -13972,6 +13983,7 @@ function atlTile(grid) {
     + '<span class="tile-new">Nouveau</span><span class="atl-pill" hidden></span></div>'
     + '<div class="tile-meta"><div class="tile-name">Crée ton jeu</div><div class="tile-online atl-foot"><i></i><span>Ton idée devient un vrai jeu — gratuit</span></div></div>';
   b.addEventListener('click', () => { store.set('jdw.atl.vu', true); atlOpen(); atlTileState(); });
+  laboMark(b, 'atelier');
   wrap.appendChild(b); grid.insertBefore(wrap, grid.firstChild);
   ATL.tile = b; atlTileState();
 }

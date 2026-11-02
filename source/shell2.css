@@ -3539,3 +3539,10 @@ body.atl-on #jdw-modes{visibility:hidden}
 .atl-accord[hidden]{display:none}
 .atl-accord input{flex:0 0 24px;width:24px;height:24px;margin:1px 0 0;accent-color:#ffd34d;cursor:pointer}
 .atl-go:disabled{opacity:.45;filter:grayscale(.7);cursor:not-allowed;box-shadow:none}
+
+/* ---------- tuile d'un jeu en essai (porte labo) : ruban « TEST » pour les admins (2 nov. 2026) ---------- */
+.tile.tile-labo{outline:2px dashed #ffd400;outline-offset:-2px}
+.tile-labo-tag{position:absolute;right:-30px;bottom:14px;z-index:2;width:120px;padding:3px 0;transform:rotate(-38deg);text-align:center;pointer-events:none;
+  font:400 12px var(--display);letter-spacing:.18em;color:#111;text-shadow:0 1px 0 rgba(255,255,255,.5);
+  background:repeating-linear-gradient(135deg,#ffd400 0 10px,#ffe866 10px 20px);border-top:2px solid #111;border-bottom:2px solid #111;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.tile-labo-clip{position:absolute;inset:0;z-index:2;overflow:hidden;pointer-events:none}

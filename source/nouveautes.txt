@@ -6,6 +6,14 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[poneys] ## 🦄 Ranch des Poneys, en essai : le premier jeu né dans l'Atelier (borne 1.63.27)
+[poneys] 🦄 Les poneys arrivent au ranch avec une envie dans leur bulle : être brossés, une carotte, de l'eau ou un joli ruban. Choisis le bon outil en bas et occupe-toi d'eux avant qu'ils perdent patience !
+[poneys] 🪮 La brosse se frotte pour de vrai : glisse le doigt (ou la souris) sur le poney jusqu'à ce que toute la boue soit partie et qu'il brille.
+[poneys] 🥚 De temps en temps, un œuf de poney arrive dans un nid : touche-le plusieurs fois pour le réchauffer, il éclot et un petit poney sort !
+[poneys] ⏳ Chaque poney tout content te rend du temps, un poney qui s'en va triste t'en fait perdre. Enchaîne-les vite pour le combo, et bats le record de la salle !
+[atelier] ## 🧪 Les jeux en essai portent un ruban « TEST » (borne 1.63.27)
+[atelier] 🧪 Sur les appareils en mode test, la tuile de chaque jeu encore en essai (Crée ton jeu, Remparts !, Ranch des Poneys…) porte un ruban jaune et noir « TEST » et un contour pointillé : on voit tout de suite ce qui n'est pas encore sorti pour tout le monde.
+
 [abracadabra] ## 🗺️ Abracadabra : la carte des missions et la mission au classement (borne 1.63.26)
 [abracadabra] 🗺️ Abracadabra a enfin sa carte sur la borne (le bouton carte de sa tuile) : un grimoire de nuit étoilée qui s'éclaire jusqu'à l'aube, les 12 missions en médaillons, et chaque copain de la salle posé sur la mission où il en est.
 [abracadabra] 🏆 Au classement de la salle, à côté du score : la mission atteinte par chacun (« Mission 5 », ou 🏆 12/12).
