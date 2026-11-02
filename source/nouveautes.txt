@@ -44,7 +44,7 @@
 [atelier] 📮 Fiche complète : tu coches la case d'accord et tu envoies ton projet, une vraie lettre tamponnée et signée, que Benjamin va lire. Un jeu par joueur !
 [borne] ## 🖥️ Sur ordinateur, la borne prend tout l'écran (borne 1.63.22)
 [borne] 🖥️ Sur PC, les jeux remplissent toute la largeur de l'écran : des tuiles plus petites, 4 à 6 par ligne selon la taille de l'écran (sur téléphone, rien ne change).
-[remparts] ## 🏰 Remparts !, en essai : un tout nouveau look peint, et le mode Sans fin (borne 1.63.23)
+[remparts] ## 🏰 Remparts !, en essai : un tout nouveau look peint, et le mode Sans fin (borne 1.63.20)
 [remparts] 🎨 Tout le jeu est redessiné comme un tableau : herbe, sable, neige, cendre et cimetière peints, de vraies ombres, des tours en pierre et en bois, et une carte qui remplit tout l'écran (au téléphone, elle se met debout).
 [remparts] 💀 Les méchants sont dessinés un par un : squelettes, voleurs encapuchonnés, guerriers en armure, chauves-souris, nécromanciens au bâton vert, fantômes, et le Roi Squelette avec sa couronne et sa cape.
 [remparts] 💥 Des morts spectaculaires : les squelettes éclatent en os qui volent, tournoient et rebondissent ; la catapulte les fait exploser, le givre les brise en éclats de glace, l'éclair les carbonise en cendres, les fantômes s'évaporent, et les pièces filent jusqu'à ton compteur d'or. Le Roi Squelette meurt au ralenti et sa couronne roule par terre. Au Château Hanté, les os se rassemblent quand un squelette se relève !
