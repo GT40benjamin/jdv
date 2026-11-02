@@ -14084,6 +14084,8 @@ const ATL_ACTIVE = new Set(['brouillon', 'en_discussion', 'complete', 'design', 
 const ATL_AFTER = new Set(['envoyee', 'acceptee', 'alpha', 'publie_salle', 'publie_monde']);   // la lettre est partie
 // images DESSINÉES par l'Atelier (Gemini, fonction Edge atelier-image ; seau public atelier-ia) : seuls les chemins i/<uuid>.<ext> s'affichent
 const atlIaUrl = f => /^i\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/.test(String(f || '')) ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/' + f : '';
+const atlAdminIci = () => !!(ATL && ATL.adminVoir && ATL.cur === ATL.adminVoir.id && ATL.data && ATL.data.admin_voir);
+function atlCredTxt(v) { if (atlAdminIci()) { const av = ATL.data.admin_voir; return '💎 ' + dispName(av.joueur) + ' ' + Math.max(0, av.solde | 0) + ' · toi ' + Math.max(0, v | 0); } return '💎 ' + Math.max(0, v | 0) + ' crédits'; }
 const atlCred = () => { const c = (ATL.data && ATL.data.credits && typeof ATL.data.credits === 'object') ? ATL.data.credits : null; if (c && VUE_JOUEUR) { c.admin = false; c.tous_projets = false; c.patron = false; } return c; };   // vue joueur : pas d'outils admin
 const atlFull = () => { const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}; return ATL_FIELDS.every(([k]) => atlVal(fi[k])); };
 // « Envoyer mon projet » cliqué : la discussion se BLOQUE, plus que des choix à cliquer (question, puis planche, puis lettre)
@@ -14157,6 +14159,7 @@ function atlSolde(v) {
   const to = Math.max(0, Math.round(+v)), cp = ATL.root && ATL.root.querySelector('.atl-cred'); cr.solde = to;
   if (!cp || cp.hidden) return;
   clearInterval(ATL.soldeT);
+  if (atlAdminIci()) { cp.textContent = atlCredTxt(to); return; }   // mode admin : pas de défilement (deux soldes affichés)
   let cur = parseInt(String(cp.textContent).replace(/\D+/g, ''), 10); if (!Number.isFinite(cur)) cur = to;
   if (cur === to) return;
   cp.classList.remove('tick'); void cp.offsetWidth; cp.classList.add('tick');
@@ -14415,7 +14418,7 @@ function atlRenderProjets() {
   nb.addEventListener('click', atlNouveau); g.appendChild(nb); box.appendChild(g);
   if (cr && cr.tous_projets) atlTousProjets(box);
   R.querySelector('.atl-hs').textContent = 'Mes projets · ' + ps.length + ' / ' + max;
-  const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
+  const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr) { cp.textContent = atlCredTxt(cr.solde); cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
   R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
 }
 function atlOuvrir(id) {
@@ -14552,7 +14555,7 @@ function atlRenderChat() {
   atlRenderChoix();
   R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu';
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
-  cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par élément · touche pour recharger'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
+  cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = atlCredTxt(cr.solde); cp.title = 'Crédits Elixir : ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par élément · touche pour recharger'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
   R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R);
   R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
   atlChatRetour(bn);
@@ -14685,7 +14688,7 @@ function atlRenderWiz() {
   const R = ATL.root, W = R && R.querySelector('.atl-wiz'), f = atlFiche(); if (!W || !f) return;
   const ae = document.activeElement; if (ae && W.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.value) return;   // le joueur écrit : on ne redessine pas
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, et = String(f.etat || ''), cr = atlCred();
-  const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr && !ATL.soldeT) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.classList.remove('low'); }
+  const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr && !ATL.soldeT) { cp.textContent = atlCredTxt(cr.solde); cp.classList.remove('low'); }
   R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
   if (ATL_AFTER.has(et) || et === 'refusee') { atlRenderProjet(W, f); return; }   // 17 h 20 : la vraie page du projet
   W.textContent = ''; ATL.pSig = '';
@@ -14828,7 +14831,7 @@ function atlRenderProjet(W, f) {
     inf.append(atlEl('b', '', g ? '▶ Touche la tuile pour jouer' : '⏳ Ton jeu arrive sur la borne…'), atlEl('small', '', rec ? '🏆 Ton record : ' + rec.toLocaleString('fr-FR') : 'Pas encore de record : à toi de jouer !'));
     const ib = (t, fn, cls) => { const x = atlEl('button', 'btn btn-sm ' + (cls || 'btn-ghost'), t); x.type = 'button'; x.addEventListener('click', fn); inf.appendChild(x); };
     ib('🛠️ Améliorer avec ' + gN(), () => { atlFrameStop(); ATL.chat = true; ATL.stick = true; atlRender(); }, 'btn-play');
-    ib('📋 Mes demandes', atlMesDemandes);
+    if (atlAdminIci()) ib('📋 Demandes de ' + dispName(ATL.data.admin_voir.joueur), atlAdminDemandes); else ib('📋 Mes demandes', atlMesDemandes);
     ib('🖼️ Modifier l’image de présentation', () => atlVignetteDem(f, vg));
     fr.appendChild(inf); p.appendChild(fr);
     const bar = atlEl('div', 'atl-gbar');
@@ -16041,6 +16044,10 @@ async function atlDemCharger(force) {
 function atlDemBtn(R) {
   const b = R && R.querySelector('.atl-demb'); if (!b) return;
   const d = ATL.dem, n = d && Array.isArray(d.demandes) ? d.demandes.length : 0;
+  if (atlAdminIci()) {   // les demandes du JOUEUR sur ce projet, pas celles de l'admin
+    const l = Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet : [], ouv0 = l.filter(x => ['envoyee', 'vue', 'en_cours'].includes(x.etat)).length;
+    b.hidden = false; b.textContent = '📋 Demandes de ' + dispName(ATL.data.admin_voir.joueur) + ' (' + l.length + ')'; b.classList.toggle('nouveau', ouv0 > 0); return;
+  }
   const ouv = d && Array.isArray(d.demandes) ? d.demandes.filter(atlPropOuverte).length : 0;
   b.hidden = !n; b.textContent = '📋 Mes demandes (' + n + ')' + (ouv ? ' · 💬 ' + ouv + ' à choisir' : ''); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
   if (!ATL.demAt || Date.now() - ATL.demAt > 60000) atlDemCharger(false);
@@ -16163,6 +16170,7 @@ function atlAdminBandeau() {
   let b = R.querySelector('.atl-adminb'); const m = ATL.adminVoir, av = ATL.data && ATL.data.admin_voir;
   if (!m || !ATL.cur || ATL.cur !== m.id) { if (b) b.remove(); return; }
   if (!b) { b = atlEl('div', 'atl-adminb'); const bar = R.querySelector('.atl-bar'); if (bar) bar.prepend(b); else R.prepend(b); }   // dans la barre du haut (la page est une grille sur PC)
+  { const cp = R.querySelector('.atl-cred'), cr = atlCred(); if (cp && cr) cp.textContent = atlCredTxt(cr.solde); }   // le solde du joueur, à chaque rendu
   const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0);
   if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
   b.appendChild(atlEl('b', '', '🛡️ Mode admin : projet de ' + (av ? dispName(av.joueur) + ' · ' + (av.solde | 0) + ' 💎' : '…')));
