@@ -395,6 +395,7 @@ if (PADJ) {
       if (current) { padPauseOpen(kind); return true; }
       return false;
     },
+    select: () => { try { return atlMicManette(); } catch (e) { return false; } },   // fenêtre de l'Atelier ouverte : le micro
     modes: d => {
       if ($('jdw-lib').hidden) return false;
       const M = ['classique', 'duel', 'coop'], i = Math.max(0, M.indexOf(MODE));
@@ -14343,7 +14344,7 @@ function atlBuild() {
   q('.atl-comp').addEventListener('submit', e => { e.preventDefault(); atlSend(); });
   q('.atl-in').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); atlSend(); } });
   q('.atl-in').addEventListener('input', () => { if (!q('.atl-in').value.trim()) ATL.micUsed = false; atlErr(''); if (ATL.root.classList.contains('ecrire')) { clearTimeout(ATL.brT); ATL.brT = setTimeout(() => atlBrSave(), 1000); } });
-  q('.atl-mic').addEventListener('click', atlMic);
+  q('.atl-mic').addEventListener('click', atlMic); ATL_MICS.add(q('.atl-mic')); q('.atl-mic')._champ = q('.atl-in'); if (!TOUCH) q('.atl-mic').dataset.k = 'Ctrl+Espace';
   q('.atl-imgb:not(.atl-drawb)').addEventListener('click', () => q('.atl-file').click());
   q('.atl-sendh').addEventListener('click', atlEnvoyer);
   q('.atl-suivib').addEventListener('click', atlSuivi);
@@ -14912,25 +14913,12 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
   zone.addEventListener('pointerleave', () => { if (!pose) mk.hidden = true; });
   const tw = atlEl('div', 'atl-artw'), ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux changer ici…'; tw.appendChild(ta);
   ta.addEventListener('input', () => { if (vis.x != null) majLeg(); });
-  // le micro (dictée), comme pour raconter son idée
-  let rec = null;
-  if (ATL_SR) {
-    const mi = atlEl('button', 'atl-armic', '🎤'); mi.type = 'button'; mi.setAttribute('aria-label', 'Dicter ma demande');
-    mi.addEventListener('click', () => {
-      if (rec) { try { rec.stop(); } catch (e) {} return; }
-      try {
-        rec = new ATL_SR(); rec.lang = 'fr-FR'; rec.interimResults = true; rec.continuous = false; const base = ta.value ? ta.value.trim() + ' ' : '';
-        rec.onresult = ev => { let t = ''; for (const r of ev.results) t += r[0].transcript; ta.value = (base + t).slice(0, 1000); };
-        rec.onend = () => { rec = null; mi.classList.remove('on'); }; rec.onerror = rec.onend;
-        mi.classList.add('on'); rec.start();
-      } catch (e) { rec = null; }
-    });
-    tw.appendChild(mi);
-  }
+  // le micro : le moteur unique (continu, Ctrl+Espace, bouton Vue / Select de la manette)
+  if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true;
   const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', '▶ Reprendre'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎');
   rp.type = 'button'; go.type = 'button';
-  const fin = () => { try { if (rec) rec.stop(); } catch (e) {} O.remove(); reprendre(); };
+  const fin = () => { if (ATL_MIC && ATL_MIC.field === ta) atlMicFin(); O.remove(); reprendre(); };
   rp.addEventListener('click', fin);
   go.addEventListener('click', async () => {
     const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
@@ -15815,27 +15803,9 @@ function atlModif(it, f, type) {
   row.append(no, go); c.append(row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); M.appendChild(c); ta.focus();
 }
 // 23 h 05 (Benjamin : « sur ces fenêtres je veux le micro ») : 🎤 dans chaque champ où l'on écrit au guide ; la dictée s'ajoute au texte
-function atlAvecMic(field) {
+function atlAvecMic(field) {   // 23 h 05 puis 3 nov. 1 h 05 : le 🎤 d'un champ, sur le moteur unique (continu, Ctrl+Espace)
   const w = atlEl('div', 'atl-artw atl-micw'); w.appendChild(field);
-  const kind = atlMicKind(); if (!kind) return w;
-  const mi = atlEl('button', 'atl-armic', '🎤'); mi.type = 'button'; mi.setAttribute('aria-label', 'Dicter'); w.appendChild(mi);
-  let rec = null;
-  const stop = () => { const r = rec; rec = null; mi.classList.remove('on'); micQuiet(false); try { if (r && r.r) r.r.stop(); if (r && r.nv) { r.nv.stopListen(); r.off(); } } catch (e) {} };
-  mi.addEventListener('click', () => {
-    if (rec) { stop(); return; }
-    const base = field.value.replace(/\s+$/, ''), max = +field.maxLength > 0 ? +field.maxLength : 1000, put = t => { field.value = (base + (base && t ? ' ' : '') + t).slice(0, max); };
-    rec = { fin: '' }; mi.classList.add('on'); micQuiet(true);
-    if (kind === 'web') {
-      try { const r = rec.r = new ATL_SR(); r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true;
-        r.onresult = ev => { let t = ''; for (const x of ev.results) t += x[0].transcript; put(t.trim()); };
-        r.onend = () => { if (rec && rec.r === r) stop(); }; r.onerror = r.onend; r.start(); } catch (e) { stop(); }
-    } else {
-      const nv = nativeVoice(), me = rec; rec.nv = nv; let txt = '';
-      rec.off = nv.onEvent(ev => { if (rec !== me || !ev || ev.state !== 'stt') return; const ws = Array.isArray(ev.words) ? ev.words.map(String) : [];
-        if (ev.ev === 'partial') put((txt + ' ' + (ws[0] || '')).trim()); else if (ev.ev === 'result') { txt = (txt + ' ' + (ws[0] || '')).trim(); put(txt); stop(); } else if (ev.ev === 'error') stop(); });
-      if (String(nv.listen()) === 'none') stop();
-    }
-  });
+  if (atlMicKind()) w.appendChild(atlMicBouton(field));
   return w;
 }
 
@@ -16768,48 +16738,102 @@ function atlAboBadge(R) { const b = R && R.querySelector('.atl-abob'); if (b) b.
 
 // ---------- micro : la dictée va dans la case, le joueur relit puis envoie ----------
 function atlMicKind() { try { const nv = nativeVoice(); if (nv && nv.canListen()) return 'natif'; } catch (e) {} return ATL_SR ? 'web' : ''; }
-function atlMicUi(on) {
-  micQuiet(on);   // la borne se tait pendant qu'on parle
-  const R = ATL.root; if (!R) return;
-  R.querySelector('.atl-mic').classList.toggle('on', !!on); R.querySelector('.atl-rec').hidden = !on;
-  R.querySelector('.atl-mic').setAttribute('aria-label', on ? 'Arrêter le micro' : 'Parler au micro');
+// ---- 3 nov. 1 h 05 (Benjamin : « le micro coupe tout le temps ») : UN SEUL micro pour tout l'Atelier — reconnaissance EN CONTINU,
+// relancée en silence quand le navigateur coupe (fin de session, « no-speech ») tant que le joueur ne l'arrête pas ; texte provisoire en
+// direct, texte final ajouté sans doublon ; arrêt : le bouton 🎤, Ctrl+Espace (ou le bouton Vue / Select de la manette dans une fenêtre),
+// ou 2 min sans parole (avec un message) ; bouton rouge qui pulse et « 🎙️ Je t'écoute… » partout
+const ATL_MICS = new Set();
+let ATL_MIC = null;
+const ATL_MIC_SILENCE = 120000;
+function atlMicEtat() {
+  const m = ATL_MIC;
+  for (const b of ATL_MICS) { if (!b.isConnected) { ATL_MICS.delete(b); continue; } const on = !!m && m.btn === b; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Arrêter le micro' : 'Parler au micro'); }
+  let ind = document.getElementById('atl-ecoute');
+  if (m && !ind) { ind = document.createElement('div'); ind.id = 'atl-ecoute'; ind.setAttribute('role', 'status'); document.body.appendChild(ind); }
+  if (ind) { ind.hidden = !m; ind.textContent = m ? '🎙️ Je t’écoute…' + (TOUCH ? ' (touche 🎤 pour arrêter)' : ' (Ctrl+Espace pour arrêter)') : ''; }
+  if (ATL && ATL.root) { const rc = ATL.root.querySelector('.atl-rec'); if (rc) rc.hidden = !(m && m.field && m.field.classList.contains('atl-in')); }
+  if (ATL) ATL.rec = m;   // (ancien repère : un micro est ouvert)
 }
-function atlMic() {
-  if (ATL.rec) { atlMicStop(); return; }
-  const kind = atlMicKind(), inp = ATL.root.querySelector('.atl-in');
-  if (!kind) { atlErr('Le micro ne marche pas dans ce navigateur : écris ton idée au clavier (ou essaie avec Chrome).'); return; }
-  atlErr('');
-  const base = inp.value.replace(/\s+$/, ''), sep = base ? ' ' : '';
-  const rec = ATL.rec = { kind, base: base + sep, fin: '', n: 0 };
-  const show = (interim) => { inp.value = (rec.base + rec.fin + (interim ? (rec.fin && !/\s$/.test(rec.fin) ? ' ' : '') + interim : '')).slice(0, 2000); inp.scrollTop = inp.scrollHeight; if (rec.fin || interim) ATL.micUsed = true; };
+function atlMicBouton(field, cls) {   // le bouton 🎤 d'un champ (fenêtres) ; la touche rapide écrite dessus sur ordinateur
+  const b = atlEl('button', cls || 'atl-armic', '🎤'); b.type = 'button'; b.setAttribute('aria-label', 'Parler au micro'); if (!TOUCH) { b.dataset.k = 'Ctrl+Espace'; b.title = 'Dicter (Ctrl+Espace)'; }
+  b._champ = field; ATL_MICS.add(b); b.addEventListener('click', () => atlMicBascule(field, b)); return b;
+}
+function atlMicBascule(field, btn) { if (ATL_MIC && ATL_MIC.field === field) { atlMicFin(); return; } atlMicDebut(field, btn); }
+function atlMicDebut(field, btn) {
+  if (ATL_MIC) atlMicFin();
+  const kind = atlMicKind();
+  if (!kind) { atlToast('Le micro ne marche pas dans ce navigateur : écris au clavier (ou essaie avec Chrome).'); return; }
+  const max = +field.maxLength > 0 ? +field.maxLength : 2000, base = field.value.replace(/\s+$/, '');
+  const m = ATL_MIC = { field, btn, kind, base, garde: '', sess: '', last: Date.now(), actif: true };
+  const montre = mid => { const t = (m.garde + (m.garde && m.sess ? ' ' : '') + m.sess).trim(), tout = (t + (mid ? (t ? ' ' : '') + mid : '')).trim(); field.value = (m.base + (m.base && tout ? ' ' : '') + tout).slice(0, max); field.scrollTop = field.scrollHeight; if (tout && field.classList.contains('atl-in')) ATL.micUsed = true; try { field.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} };
+  m.montre = montre;
+  m.chrono = setInterval(() => { if (ATL_MIC !== m) { clearInterval(m.chrono); return; } if (Date.now() - m.last > ATL_MIC_SILENCE) { atlMicFin(); atlToast('🎤 Micro arrêté : 2 minutes sans parole.'); } }, 5000);
+  micQuiet(true);
   if (kind === 'web') {
-    let r; try { r = new ATL_SR(); } catch (e) { ATL.rec = null; atlErr('Le micro ne démarre pas : écris ton idée au clavier.'); return; }
-    rec.r = r; r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true;
-    r.onresult = ev => { let fin = '', mid = ''; for (let i = 0; i < ev.results.length; i++) { const x = ev.results[i]; if (x.isFinal) fin += x[0].transcript; else mid += x[0].transcript; } rec.fin = fin.trim() ? fin.replace(/^\s+/, '') : ''; show(mid.trim()); };
-    r.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') atlErr('🎤 Autorise le micro pour dicter ton idée (ou écris-la au clavier).'); else if (ev.error === 'network') atlErr('Le micro a besoin d’Internet : réessaie.'); };
-    r.onend = () => { if (ATL.rec === rec) { ATL.rec = null; show(''); atlMicUi(false); } };
-    try { r.start(); } catch (e) { ATL.rec = null; atlErr('Le micro ne démarre pas : écris ton idée au clavier.'); return; }
+    const lance = () => {
+      if (ATL_MIC !== m) return;
+      let r; try { r = new ATL_SR(); } catch (e) { atlMicFin(); return; }
+      m.r = r; r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true;
+      r.onresult = ev => { let fin = '', mid = ''; for (let k = 0; k < ev.results.length; k++) { const x = ev.results[k]; if (x.isFinal) fin += x[0].transcript; else mid += x[0].transcript; } m.sess = fin.replace(/\s+/g, ' ').trim(); m.last = Date.now(); montre(mid.replace(/\s+/g, ' ').trim()); };
+      r.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { atlMicFin(); atlToast('🎤 Autorise le micro pour dicter (ou écris au clavier).'); } };
+      r.onend = () => { if (ATL_MIC !== m || m.r !== r) return; if (m.sess) { m.garde = (m.garde + ' ' + m.sess).trim(); m.sess = ''; } montre(''); setTimeout(lance, 120); };   // relance en silence
+      try { r.start(); } catch (e) { setTimeout(() => { if (ATL_MIC === m) { try { r.start(); } catch (x) { atlMicFin(); } } }, 300); }
+    };
+    lance();
   } else {
-    const nv = nativeVoice();
-    rec.nv = nv;
-    rec.off = nv.onEvent(ev => {
-      if (ATL.rec !== rec || !ev || ev.state !== 'stt') return;
+    const nv = nativeVoice(); m.nv = nv;
+    m.off = nv.onEvent(ev => {
+      if (ATL_MIC !== m || !ev || ev.state !== 'stt') return;
       const ws = Array.isArray(ev.words) ? ev.words.map(String) : [];
-      if (ev.ev === 'partial') show((ws[0] || '').trim());
-      else if (ev.ev === 'result') { const w = (ws[0] || '').trim(); if (w) rec.fin += (rec.fin ? ' ' : '') + w; show(''); later2(); }
-      else if (ev.ev === 'error') { const er = String(ev.err || ''); if (er === 'perm') { atlErr('🎤 Autorise le micro de l’appli pour dicter ton idée.'); atlMicStop(); } else later2(); }
+      if (ev.ev === 'partial') { m.last = Date.now(); montre((ws[0] || '').trim()); }
+      else if (ev.ev === 'result') { const w = (ws[0] || '').trim(); if (w) { m.garde = (m.garde + ' ' + w).trim(); m.last = Date.now(); } montre(''); encore(); }
+      else if (ev.ev === 'error') { if (String(ev.err || '') === 'perm') { atlMicFin(); atlToast('🎤 Autorise le micro de l’appli pour dicter.'); } else encore(); }
     });
-    const later2 = () => { if (ATL.rec !== rec) return; if (++rec.n > 40) { atlMicStop(); return; } setTimeout(() => { if (ATL.rec === rec) { const s = String(nv.listen()); if (s === 'none') atlMicStop(); } }, 250); };
-    const s = String(nv.listen()); if (s === 'none') { rec.off(); ATL.rec = null; atlErr('Le micro ne marche pas ici : écris ton idée au clavier.'); return; }
+    const encore = () => setTimeout(() => { if (ATL_MIC === m) { const st = String(nv.listen()); if (st === 'none') atlMicFin(); } }, 200);
+    if (String(nv.listen()) === 'none') { atlMicFin(); atlToast('Le micro ne marche pas ici : écris au clavier.'); return; }
   }
-  atlMicUi(true);
+  atlMicEtat();
 }
-function atlMicStop() {
-  const rec = ATL && ATL.rec; if (!rec) return; ATL.rec = null;
-  try { if (rec.r) rec.r.stop(); } catch (e) {}
-  try { if (rec.nv) rec.nv.stopListen(); if (rec.off) rec.off(); } catch (e) {}
-  atlMicUi(false);
+function atlMicFin() {
+  const m = ATL_MIC; if (!m) return; ATL_MIC = null;
+  clearInterval(m.chrono);
+  try { if (m.r) { m.r.onend = null; m.r.stop(); } } catch (e) {}
+  try { if (m.nv) m.nv.stopListen(); if (m.off) m.off(); } catch (e) {}
+  if (m.sess) { m.garde = (m.garde + ' ' + m.sess).trim(); m.sess = ''; }
+  try { if (m.montre) { ATL_MIC = null; m.montre(''); } } catch (e) {}
+  micQuiet(false); atlMicEtat();
 }
+// l'ancien micro de la grande case (idée, discussion) passe par le même moteur
+function atlMicUi() { atlMicEtat(); }
+function atlMic() { const R = ATL.root, inp = R && R.querySelector('.atl-in'), b = R && R.querySelector('.atl-mic'); if (!inp) return; atlErr(''); atlMicBascule(inp, b); }
+function atlMicStop() { atlMicFin(); }
+// la touche rapide : Ctrl+Espace partout dans l'Atelier (et pendant l'arrêt sur image) ; le champ visé = celui qui a le curseur, sinon
+// le champ de la fenêtre ouverte, sinon la grande case
+function atlMicCible() {
+  const vis = el => !!el && el.isConnected && !!(el.offsetParent || el.getClientRects().length);
+  const ae = document.activeElement;
+  if (ae && /^(INPUT|TEXTAREA)$/.test(ae.tagName)) { for (const b of ATL_MICS) if (b._champ === ae && vis(b)) return [ae, b]; if (ae.classList.contains('atl-in')) return [ae, ATL.root.querySelector('.atl-mic')]; }
+  const ar = document.querySelector('.atl-arret2 textarea, .atl-arret textarea'); if (vis(ar)) for (const b of ATL_MICS) if (b._champ === ar) return [ar, b];
+  const mod = ATL.root && ATL.root.querySelector('.atl-mod:not([hidden]), .atl-zoom:not([hidden])');
+  if (mod) for (const b of ATL_MICS) if (vis(b) && mod.contains(b)) return [b._champ, b];
+  const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (vis(inp)) return [inp, ATL.root.querySelector('.atl-mic')];
+  return null;
+}
+function atlMicRaccourci() {
+  if (ATL_MIC) { atlMicFin(); return true; }
+  if (!(ATL && (ATL.open || document.querySelector('.atl-arret2')))) return false;
+  const c = atlMicCible(); if (!c) return false;
+  atlMicDebut(c[0], c[1]); try { c[0].focus({ preventScroll: true }); } catch (e) {} return true;
+}
+function atlMicManette() {   // le bouton Vue / Select de la manette, quand une fenêtre de l'Atelier est ouverte
+  if (!(ATL && (ATL.open || document.querySelector('.atl-arret2')))) return false;
+  if (!document.querySelector('.atl-arret2') && !(ATL.root && ATL.root.querySelector('.atl-mod:not([hidden]), .atl-zoom:not([hidden])')) && !ATL_MIC) return false;
+  return atlMicRaccourci();
+}
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey && (e.code === 'Space' || e.key === ' '))) return;
+  if (atlMicRaccourci()) { e.preventDefault(); e.stopPropagation(); }
+}, true);
 
 // ---------- la LETTRE : le projet tamponné et signé, qui part ----------
 function atlFont() {

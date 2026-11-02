@@ -4285,3 +4285,10 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-predr{display:grid;grid-template-columns:1fr 90px auto;gap:6px}.atl-predm{color:var(--muted)}
 
 .atl-mconf{display:grid;gap:6px;margin-top:8px;padding:12px;border-radius:12px;border:2px solid #ffd34d;background:rgba(255,211,77,.08)}.atl-mconf p{margin:0;color:var(--muted);font:13.5px var(--body)}
+
+/* 3 nov. 1 h 05 : le micro unique — rouge qui pulse quand il écoute, la touche rapide écrite dessus, « Je t'écoute… » en haut */
+.atl-armic.on{background:radial-gradient(circle at 35% 30%,#ff9aa8,#ff3b5c 55%,#c8102e);color:#fff;animation:atlPulseR 1.1s infinite}
+.atl-armic[data-k]::after,.atl-mic[data-k]::after{content:attr(data-k);position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:2px;font:600 9.5px var(--body);color:var(--muted);white-space:nowrap;pointer-events:none}
+.atl-mic{position:relative}.atl-micw{padding-bottom:12px}
+#atl-ecoute{position:fixed;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);z-index:2147483003;padding:6px 14px;border-radius:999px;background:#c8102e;color:#fff;font:700 14px var(--body);box-shadow:0 4px 16px rgba(0,0,0,.5);animation:atlPulseR 1.4s infinite;pointer-events:none}
+#atl-ecoute[hidden]{display:none}
