@@ -2267,3 +2267,9 @@ begin
 end $$;
 revoke all on function public.at_demande_element(text, uuid, text, text, text, text) from public, anon;
 grant execute on function public.at_demande_element(text, uuid, text, text, text, text) to authenticated;
+
+-- (v27, borne 1.63.95, 2 nov. 21 h 45, Benjamin) : un jeu est livré avec 1 musique (60 s, en boucle) ; le joueur en AJOUTE quand il veut
+-- (« ＋ Créer » dans Musiques / Sons = une demande, payée à l'envoi : cout_musique 50, cout_son 10, provisoires) ; RIEN N'EST REMBOURSÉ
+-- (plus de crédits rendus si un dessin, un design ou une demande rate : at_gen_apres, at_ia_fin). Appliqué en base : migration
+-- atelier_v27_musiques_sans_remboursement (at_reglages cout_musique / cout_son, at_gen_apres sans remboursement, at_ia_fin rend := 0,
+-- at_demande_element au prix de la catégorie, at_lire « son » et « musique »).

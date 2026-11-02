@@ -4126,3 +4126,6 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 .atl-armic{position:absolute;right:8px;bottom:8px;width:40px;height:40px;border-radius:50%;border:0;background:#ffd34d;font-size:18px;cursor:pointer}
 .atl-armic.on{background:#ff5d73;animation:atlGlow .7s ease-in-out infinite alternate}
 @media (max-width:600px){.atl-arret2 .atl-arimg{max-height:34vh}}
+
+/* rien n'est remboursé (borne 1.63.95) */
+.atl-noremb{margin:2px 0 0;color:var(--muted);font:12.5px var(--body);text-align:center}

@@ -10081,7 +10081,7 @@ function backToLibrary() {
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
   setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());
   fsLeave();
-  if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); setTimeout(() => { atlOpen(); atlOuvrir(id); ATL.tab = 'jeu'; }, 30); }   // jeu lancé depuis l'Atelier : retour au projet
+  if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); setTimeout(() => { atlOpen(); atlOuvrir(id); ATL.tab = 'jeu'; }, 30); }   // jeu lancé depuis l'Atelier : retour au projet
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
@@ -14551,7 +14551,7 @@ function atlRenderWiz() {
     mi.addEventListener('input', () => { ATL.dchg = mi.value; });
     const mb = atlEl('button', 'btn btn-play', '✏️ Modifier' + prix); mb.type = 'submit'; mb.disabled = pend;
     mf.addEventListener('submit', e => { e.preventDefault(); const v = mi.value.trim(); if (v.length < 3) { mi.focus(); return; } atlDesign(v, mb); });
-    mf.append(mi, mb); row.appendChild(rf); page.append(row, mf);
+    mf.append(mi, mb); row.appendChild(rf); page.append(row, mf, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.'));
     atlWizDessins(page, f, fi);
   } else atlWizChips(page, k, fi);
   box.appendChild(page);
@@ -14560,7 +14560,7 @@ function atlRenderWiz() {
   if (st === ATL_STEPS.length - 1) {
     const cc = cr ? cr.conception | 0 : 0, go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cc > 0 ? ' · ' + cc + ' 💎' : '')); go.type = 'button';
     go.addEventListener('click', () => atlLancer(go));
-    box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous.'));
+    box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'));
   }
   const w = atlEl('button', 'atl-wchat', '✏️ Retravailler mon idée ou ajouter du style (2 💎 le message)'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
   box.append(w, atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
@@ -14729,7 +14729,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
       toastCheer('✉️ Demande envoyée ' + gA() + ' !', null, true); fin(); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
-  row.append(rp, go); O.append(hd, zone, tw, er, row); host.appendChild(O);
+  row.append(rp, go); O.append(hd, zone, tw, er, row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
   if (!TOUCH) ta.focus({ preventScroll: true });   // téléphone : le clavier ne cache pas l'image
   return O;
 }
@@ -14738,11 +14738,12 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
 function atlJouerVrai(f) {
   const g = (window.JDW_GAMES || {})[f.jeu];
   if (!g || g.id !== f.jeu) { toastCheer('Ton jeu arrive sur la borne très bientôt !', null, true); return; }
-  ATL.jeu = f.id; atlClose();
+  ATL.jeu = f.id; window.JDW_ATL_JEU = true; atlClose();   // repère pour le jeu : la touche P est l'arrêt sur image du guide (pas sa pause)
   try { markGameSeen(g.id); } catch (e) {}
   openGame(g, true);
   if ($('jdw-play').hidden) { ATL.jeu = null; atlOpen(); atlOuvrir(f.id); return; }   // pas de partie (salle à choisir…)
   atlFlotteur(true);
+  try { window.postMessage({ type: 'atl-guide', nom: gNM(), a: gA(), de: gDe(), img: atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp' }, location.origin); } catch (e) {}
 }
 function atlFlotteur(on) {
   let b = document.getElementById('atl-flot');
@@ -14771,9 +14772,10 @@ function atlCaptureJeu() {
 function atlArretJeu() {
   if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return;
   try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (e) {}
+  try { window.postMessage({ type: 'atl-pause' }, location.origin); } catch (e) {}   // même message que dans le cadre : le jeu se gèle
   let shot = null; try { shot = atlCaptureJeu(); } catch (e) { shot = null; }
   atlFlotteur(false);
-  atlArretUI(document.body, shot, ATL.jeu, () => { try { if (current && current.inst && current.inst.resume) current.inst.resume(); } catch (e) {} if (ATL.jeu && !$('jdw-play').hidden) atlFlotteur(true); }, true);
+  atlArretUI(document.body, shot, ATL.jeu, () => { try { if (current && current.inst && current.inst.resume) current.inst.resume(); } catch (e) {} try { window.postMessage({ type: 'atl-reprendre' }, location.origin); } catch (e) {} if (ATL.jeu && !$('jdw-play').hidden) atlFlotteur(true); }, true);
 }
 document.addEventListener('keydown', e => {
   if (!ATL || !ATL.jeu || $('jdw-play').hidden || e.repeat || (e.key !== 'p' && e.key !== 'P')) return;
@@ -14995,6 +14997,7 @@ function atlModale() {
     cb.addEventListener('change', maj); ul.appendChild(l); boxes.push([cb, e]);
   }
   const tot = atlEl('p', 'atl-mtot'), row = atlEl('div', 'atl-mbtns');
+  card.appendChild(atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.'));
   const non = atlEl('button', 'btn btn-ghost', 'Annuler'); non.type = 'button'; non.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   const go = atlEl('button', 'btn btn-play', ''); go.type = 'button'; row.append(non, go);
   const er = atlEl('p', 'atl-werr'); er.hidden = true;
@@ -15280,11 +15283,12 @@ function atlBiblio(host, f, fi) {
   for (const [cat, ic, lab, k] of ATL_CATS) {
     const l = items[cat], sec = atlEl('section', 'atl-libc'), hd = atlEl('div', 'atl-libh');
     hd.appendChild(atlEl('h4', '', ic + ' ' + lab + (l.length ? ' · ' + l.length : '')));
-    const cr = atlEl('button', 'btn btn-ghost btn-sm', '＋ Créer'); cr.type = 'button'; cr.addEventListener('click', () => atlCreerElem(cat, lab, k, libre, f, fi));
+    const cc = atlCred(), px = cat === 'musique' ? (cc && cc.musique != null ? cc.musique | 0 : 50) : cat === 'son' ? (cc && cc.son != null ? cc.son | 0 : 10) : 0;
+    const cr = atlEl('button', 'btn btn-ghost btn-sm', '＋ Créer' + (px ? ' · ' + px + ' 💎' : '')); cr.type = 'button'; cr.addEventListener('click', () => atlCreerElem(cat, lab, k, libre, f, fi));
     hd.appendChild(cr); sec.appendChild(hd);
     const gr = atlEl('div', 'atl-libg');
     for (const it of l) gr.appendChild(atlEncart(it, f, fi, libre));
-    if (!l.length) gr.appendChild(atlEl('p', 'atl-chv', cat === 'son' || cat === 'musique' ? 'Arrivent pendant la construction.' : 'Rien pour l’instant.'));
+    if (!l.length) gr.appendChild(atlEl('p', 'atl-chv', cat === 'musique' ? 'Ton jeu est livré avec une musique (60 s, en boucle). « ＋ Créer » pour en ajouter d’autres, quand tu veux.' : cat === 'son' ? '« ＋ Créer » pour ajouter un son, quand tu veux.' : 'Rien pour l’instant.'));
     sec.appendChild(gr); lib.appendChild(sec);
   }
   host.appendChild(lib);
@@ -15346,14 +15350,15 @@ function atlEncRenommer(c, it, f, fi) {
 }
 // « Modifier avec le guide » (élément joint) ou « Créer » un élément (interface, son, musique, ou après le lancement) : une demande (cout_demande)
 function atlDemandeElem(it, f, cat) {
-  const M = ATL.root.querySelector('.atl-mod'), cr = atlCred(), cout = cr && cr.demande != null ? cr.demande | 0 : 5, creer = !it;
+  const creer = !it, cr = atlCred(), M = ATL.root.querySelector('.atl-mod');
+  const cout = creer && cat === 'musique' ? (cr && cr.musique != null ? cr.musique | 0 : 50) : creer && cat === 'son' ? (cr && cr.son != null ? cr.son | 0 : 10) : (cr && cr.demande != null ? cr.demande | 0 : 5);   // 21 h 45 : une musique, un son, une demande
   M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard');
-  const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', creer ? 'Dis-moi ce que tu veux créer, je m’en occupe !' : 'Qu’est-ce que je change sur « ' + it.nom + ' » ?')); hd.append(atlGuideAv('atl-wav'), ht);
+  const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', creer ? (cat === 'musique' ? 'Dis-moi quelle musique tu veux : l’ambiance, les instruments, quand elle joue. Je la compose !' : cat === 'son' ? 'Dis-moi quel son tu veux : à quel moment il joue, comment il sonne. Je le fabrique !' : 'Dis-moi ce que tu veux créer, je m’en occupe !') : 'Qu’est-ce que je change sur « ' + it.nom + ' » ?')); hd.append(atlGuideAv('atl-wav'), ht);
   c.appendChild(hd);
   if (it && it.url && !it.son) { const im = atlEl('img', 'atl-demimg'); im.alt = it.nom; im.src = it.url; c.appendChild(im); }
   let ni = null; if (creer) { ni = atlEl('input', 'atl-chin2'); ni.type = 'text'; ni.maxLength = 80; ni.placeholder = 'Son nom (ex. : ' + ({ son: 'le bruit du saut', musique: 'la musique du menu', interface: 'le bouton Jouer' }[cat] || 'un dragon bleu') + ')'; c.appendChild(ni); }
-  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = creer ? 'Décris-le : couleurs, ambiance, à quoi il sert…' : 'Ce que tu veux changer…'; c.appendChild(ta);
+  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = creer ? (cat === 'musique' ? 'Ex. : douce et mystérieuse, au piano, pendant l’exploration…' : cat === 'son' ? 'Ex. : un petit « boing » joyeux quand on saute…' : 'Décris-le : couleurs, ambiance, à quoi il sert…') : 'Ce que tu veux changer…'; c.appendChild(ta);
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎'); no.type = 'button'; go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
@@ -15367,7 +15372,7 @@ function atlDemandeElem(it, f, cat) {
       M.hidden = true; M.textContent = ''; toastCheer('✉️ Demande envoyée ' + gA() + ' !', null, true); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
-  row.append(no, go); c.appendChild(row); M.appendChild(c); (ni || ta).focus();
+  row.append(no, go); c.append(row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); M.appendChild(c); (ni || ta).focus();
 }
 // « ＋ Créer » en tête d'une catégorie : personnage / objet / décor → ajouté à la fiche puis « Dessiner » (avant le lancement) ; sinon une demande
 function atlCreerElem(cat, lab, k, libre, f, fi) {
@@ -15656,7 +15661,7 @@ function atlIaWhy(res) {
   if (res.j.etat === 'bientot') return ['bientot', 'Les dessins arrivent très bientôt ! Ta fiche est bien gardée.'];
   if (e === 'credits') return ['credits', 'Il ne te reste que ' + ((cr && cr.solde) | 0) + ' crédits ce mois-ci. Le 1er du mois, tu en retrouves ' + (((cr && cr.mois) | 0) || 200) + '. Tu peux aussi en demander.'];
   if (e === 'filtre') return ['filtre', res.j.raison === 'protege' ? 'Je ne peux pas dessiner un personnage ou une marque qui existe déjà : invente le tien, il sera encore mieux !' : 'Je ne peux pas dessiner ça : on garde la borne gentille pour tout le monde. Change un peu ta demande !'];
-  if (e === 'ratee') return ['ratee', res.j.raison === 'refus' ? 'Le dessin n’a pas pu se faire avec cette idée : essaie de la dire autrement.' : 'Le dessin a raté (tes crédits te sont rendus). Réessaie dans un moment.'];
+  if (e === 'ratee') return ['ratee', res.j.raison === 'refus' ? 'Le dessin n’a pas pu se faire avec cette idée : essaie de la dire autrement.' : 'Le dessin a raté. Réessaie dans un moment.'];
   if (e === 'en cours') return ['ratee', 'Les dessins sont déjà en route : patiente un peu.'];
   if (e === 'pause') return ['pause', 'L’atelier de dessin est en pause jusqu’au mois prochain : tout le monde a beaucoup dessiné ce mois-ci ! Tes crédits ne sont pas touchés. Tu peux continuer à parler de ton jeu.'];
   if (e === 'etat') return ['ratee', 'Cette planche ne peut pas être dessinée maintenant.'];

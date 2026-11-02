@@ -59,6 +59,11 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 🎵 Ajoute des musiques et des sons quand tu veux (borne 1.63.95)
+[atelier] 🎵 Ton jeu est livré avec une musique (60 s, en boucle). Dans « Musiques » et « Sons », « ＋ Créer » te permet d'en demander d'autres à ton guide, quand tu veux : le prix est écrit sur le bouton.
+[atelier] 💎 Les crédits utilisés ne sont pas remboursés, même si un dessin rate : c'est écrit près de chaque bouton qui coûte des crédits.
+[atelier] 🛠️ Pendant ta V1, la touche P et ton guide flottant font l'arrêt sur image ; ton jeu se met en pause avec lui et reprend tout seul quand tu touches « Reprendre ».
+
 [atelier] ## 🎮 Ta V1 se joue comme un vrai jeu de la borne (borne 1.63.93)
 [atelier] 🎮 « Jouer » ouvre ta V1 en grand, exactement comme une tuile de la borne : écran titre, barre, manettes sur téléphone, fin de partie. « Quitter » te ramène à ton projet.
 [atelier] 👁️ Pendant la partie, ton guide flotte dans un coin (tu peux le déplacer) : touche-le, ou appuie sur P, pour faire un arrêt sur image, poser le viseur et lui écrire ou lui dicter ta demande.
