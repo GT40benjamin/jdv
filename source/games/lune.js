@@ -155,6 +155,7 @@ function mount(root, api) {
   function toLocal(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
   function onDown(e) {
     e.preventDefault();
+    if (gele) return;
     if (paused) { setPaused(false); return; }
     const p = toLocal(e);
     if (state === 'title') { if (LOADED || loadErr) startGame(); return; }
@@ -166,6 +167,7 @@ function mount(root, api) {
   function onUp(e) { if (joy.on && e.pointerId === joy.id) { joy.on = false; joy.id = -1; } }
   function onKey(e) {
     const k = e.key, down = e.type === 'keydown';
+    if (gele) return;
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(k)) e.preventDefault();
     keys[k.toLowerCase()] = down;
     if (!down) return;
@@ -179,8 +181,16 @@ function mount(root, api) {
   }
   function onKeyUp(e) { keys[e.key.toLowerCase()] = false; }
   function setPaused(v) { paused = v; pauseBtn.innerHTML = v ? PB_PLAY : PB_PAUSE; if (v) { joy.on = false; for (const k in keys) keys[k] = false; } }
-  function onPauseBtn(e) { e.preventDefault(); e.stopPropagation(); if (state === 'play') setPaused(!paused); }
+  function onPauseBtn(e) { e.preventDefault(); e.stopPropagation(); if (!gele && state === 'play') setPaused(!paused); }
   function onVis() { if (document.hidden && state === 'play') setPaused(true); }
+  // pause de l'Atelier (bouton ⏸ au-dessus du cadre : le joueur parle à son guide) : tout est gelé jusqu'à « atl-reprendre »
+  let gele = false;
+  function onMsg(e) {
+    if (e.origin !== location.origin || !e.data || typeof e.data !== 'object') return;
+    if (e.data.type === 'atl-pause') { gele = true; joy.on = false; for (const k in keys) keys[k] = false; }
+    else if (e.data.type === 'atl-reprendre') { gele = false; last = 0; }
+  }
+  window.addEventListener('message', onMsg);
   canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
   window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKeyUp); document.addEventListener('visibilitychange', onVis);
@@ -568,7 +578,7 @@ function mount(root, api) {
   }
   function draw() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (state === 'load' || state === 'title') { drawTitle(); if (paused) drawPause(); return; }
+    if (state === 'load' || state === 'title') { drawTitle(); if (paused) drawPause(); if (gele) drawGele(); return; }
     const kx = shake ? (Math.random() - 0.5) * shake : 0, ky = shake ? (Math.random() - 0.5) * shake : 0;
     ctx.setTransform(dpr, 0, 0, dpr, dpr * kx, dpr * ky);
     drawGround(); drawWorld(); drawFlyers(); drawFalling(); drawFx();
@@ -579,7 +589,9 @@ function mount(root, api) {
     if (state === 'intro') drawIntro();
     if (state === 'end') drawEnd();
     if (paused) drawPause();
+    if (gele) drawGele();
   }
+  function drawGele() { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = 'rgba(4,6,20,0.6)'; ctx.fillRect(0, 0, W, H); big('PAUSE', H / 2 - 30 * U); big('Parle à ton guide, ton jeu t’attend', H / 2 + 40 * U, 0.4); }
   function drawPause() { ctx.fillStyle = 'rgba(4,6,20,0.6)'; ctx.fillRect(0, 0, W, H); big('PAUSE', H / 2 - 30 * U); big('Touche pour reprendre', H / 2 + 40 * U, 0.4); }
 
   function frame(now) {
@@ -587,6 +599,7 @@ function mount(root, api) {
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(0.05, (now - last) / 1000) : 0; last = now;
     try {
+      if (gele) { draw(); return; }
       if (!paused) update(dt * FAST); else if (state === 'title' || state === 'load') stT += dt;
       if (state === 'title' || state === 'load') stT += paused ? 0 : 0;
       if ((state === 'title' || state === 'intro' || state === 'end') && pad && pad.pressed && pad.pressed('a')) {
@@ -602,7 +615,7 @@ function mount(root, api) {
       dead = true; cancelAnimationFrame(raf); ro.disconnect();
       canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp);
-      window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('message', onMsg);
       pauseBtn.removeEventListener('pointerdown', onPauseBtn);
       root.innerHTML = '';
     },
