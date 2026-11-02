@@ -15549,7 +15549,7 @@ function atlBiblio(host, f, fi, lecture) {
   let vue = store.get('jdw.atl.libvue', 'planche'); if (vue !== 'cartes') vue = 'planche';
   const bar = atlEl('div', 'atl-libbar');
   if (!lecture) {
-    const cc = atlCred(), px = cat === 'musique' ? (cc && cc.musique != null ? cc.musique | 0 : 100) : cat === 'son' ? (cc && cc.son != null ? cc.son | 0 : 20) : 0;
+    const cc = atlCred(), px = cat === 'musique' ? (cc && cc.musique != null ? cc.musique | 0 : 30) : cat === 'son' ? (cc && cc.son != null ? cc.son | 0 : 5) : 0;
     const cr = atlEl('button', 'btn btn-ghost btn-sm', (cat === 'son' ? '＋ Créer un bruitage' : cat === 'musique' ? '＋ Créer une musique' : '＋ Créer') + (px ? ' · ' + px + ' 💎' : '')); cr.type = 'button'; cr.addEventListener('click', () => atlCreerElem(cat, lab, k, libre, f, fi)); bar.appendChild(cr);
   }
   const avec = l.filter(it => it.url && !it.son);
@@ -15863,7 +15863,7 @@ function atlEncRenommer(c, it, f, fi) {
 // « Modifier avec le guide » (élément joint) ou « Créer » un élément (interface, son, musique, ou après le lancement) : une demande (cout_demande)
 function atlDemandeElem(it, f, cat) {
   const creer = !it, cr = atlCred(), M = ATL.root.querySelector('.atl-mod');
-  const cout = creer && cat === 'musique' ? (cr && cr.musique != null ? cr.musique | 0 : 100) : creer && cat === 'son' ? (cr && cr.son != null ? cr.son | 0 : 20) : (cr && cr.demande != null ? cr.demande | 0 : 5);   // 21 h 45 : une musique, un son, une demande
+  const cout = creer && cat === 'musique' ? (cr && cr.musique != null ? cr.musique | 0 : 30) : creer && cat === 'son' ? (cr && cr.son != null ? cr.son | 0 : 5) : (cr && cr.demande != null ? cr.demande | 0 : 5);   // 21 h 45 : une musique, un son, une demande
   M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard');
   const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', creer ? (cat === 'musique' ? 'Dis-moi quelle musique tu veux : l’ambiance, les instruments, quand elle joue. Je la compose !' : cat === 'son' ? 'Dis-moi quel son tu veux : à quel moment il joue, comment il sonne. Je le fabrique !' : 'Dis-moi ce que tu veux créer, je m’en occupe !') : 'Qu’est-ce que je change sur « ' + it.nom + ' » ?')); hd.append(atlGuideAv('atl-wav'), ht);
@@ -16106,7 +16106,7 @@ function atlAdminBandeau() {
   const R = ATL.root; if (!R) return;
   let b = R.querySelector('.atl-adminb'); const m = ATL.adminVoir, av = ATL.data && ATL.data.admin_voir;
   if (!m || !ATL.cur || ATL.cur !== m.id) { if (b) b.remove(); return; }
-  if (!b) { b = atlEl('div', 'atl-adminb'); const fr = R.querySelector('.atl-frise'); if (fr) fr.parentNode.insertBefore(b, fr); else R.prepend(b); }
+  if (!b) { b = atlEl('div', 'atl-adminb'); const bar = R.querySelector('.atl-bar'); if (bar) bar.prepend(b); else R.prepend(b); }   // dans la barre du haut (la page est une grille sur PC)
   const sig = (av ? av.joueur + av.solde : '') + (ATL.data && Array.isArray(ATL.data.demandes_projet) ? ATL.data.demandes_projet.length : 0);
   if (b.dataset.sig === sig) return; b.dataset.sig = sig; b.textContent = '';
   b.appendChild(atlEl('b', '', '🛡️ Mode admin : projet de ' + (av ? dispName(av.joueur) + ' · ' + (av.solde | 0) + ' 💎' : '…')));

@@ -4252,3 +4252,11 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 
 /* 23 h 55 : pendant une fenêtre, la page dessous ne défile plus */
 #jdw-atelier:has(> .atl-zoom:not([hidden])) .atl-wiz,#jdw-atelier:has(> .atl-mod:not([hidden])) .atl-wiz,#jdw-atelier:has(.atl-zoom:not([hidden])) .atl-main{overflow:hidden}
+
+/* 0 h 10 (Safari iPhone : la barre d'onglets collante passait encore par-dessus les fenêtres) : les fenêtres sont FIXES à l'écran, sur
+   leur propre calque, et la zone qui défile isole ses barres collantes dans son propre empilement */
+#jdw-atelier .atl-zoom,#jdw-atelier .atl-mod{position:fixed;inset:0;-webkit-transform:translateZ(0);transform:translateZ(0)}
+#jdw-atelier .atl-wiz,#jdw-atelier .atl-main,#jdw-atelier .atl-projets{position:relative;z-index:0;isolation:isolate}
+/* le bandeau admin : en tête de la barre du haut, sur toute sa largeur */
+.atl-bar:has(> .atl-adminb){flex-wrap:wrap;row-gap:8px}
+.atl-bar > .atl-adminb{position:static;flex:1 0 100%;order:-1;margin:-4px -16px 2px;border-radius:0}
