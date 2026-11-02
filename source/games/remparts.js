@@ -7,7 +7,7 @@
 // Une seule variable globale en plus : window.JDW_TD. Atelier : ~/jdv-tools/duotest/towerdefense (fiche REPRISE.md).
 const ID = 'remparts', NOM = 'Remparts !';
 const ROOT = () => window.JDW_ROOT || '';
-const WANT = 'td-9ec340f7';
+const WANT = 'td-11b9aa5f';
 const STORE = {};
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));
@@ -161,16 +161,25 @@ function mount(root, api) {
     resume() { if (inst && inst.resume) inst.resume(); },
     _debug: () => (inst && inst._debug ? inst._debug() : null)
   };
-  const fail = () => {
+  const fail = (e) => {
     if (dead) return;
+    // la cause part au journal de la borne (appareil, mémoire, 3D possible ?) : un « Oups » qu'on peut enfin expliquer
+    try {
+      const f = api.report || api.reportError; let gl = '?';
+      try { const c = document.createElement('canvas'); gl = c.getContext('webgl2') ? 'webgl2' : c.getContext('webgl') ? 'webgl1' : 'AUCUN'; } catch (x) { gl = 'erreur'; }
+      if (f) f(NOM + ' : chargement raté (' + ((e && e.message) || e || 'inconnu') + ')', String((e && e.stack) || '').slice(0, 1500) + ' | 3D : ' + gl + ' · mémoire ' + (navigator.deviceMemory || '?') + ' Go · cœurs ' + (navigator.hardwareConcurrency || '?') + ' · DecompressionStream ' + (typeof DecompressionStream !== 'undefined') + ' · moteur ' + Math.round(pe * 100) + ' % · paquet ' + Math.round(pp * 100) + ' %');
+    } catch (x) { /* rien */ }
+    if (inst && inst.destroy) { try { inst.destroy(); } catch (x) { /* rien */ } inst = null; }
+    if (!box.isConnected) { root.innerHTML = ''; root.appendChild(box); }   // le jeu a pu vider la page en démarrant : on remet le message
     box.innerHTML = '<div style="max-width:340px;text-align:center;padding:20px;background:rgba(20,30,20,.8);border-radius:16px;color:#fff"><div style="font:400 22px ' + FD + ';color:#ffd34d;margin-bottom:8px">Oups !</div>' +
       '<div style="font:600 14px ' + FB + ';margin-bottom:14px">Ton appareil n\'arrive pas à charger ce jeu 3D.</div><button type="button" style="font:400 15px ' + FD + ';color:#2a1404;background:#ffd34d;border:0;border-radius:12px;padding:10px 20px;box-shadow:0 5px 0 #8a5412;cursor:pointer">Réessayer</button></div>';
     box.querySelector('button').addEventListener('click', () => { if (dead) return; root.innerHTML = ''; const n = mount(root, api); Object.assign(proxy, n); });
   };
   Promise.all([loadEngine((p) => { pe = p; prog(); }, ac && ac.signal), loadPack((p) => { pp = p; prog(); }, ac && ac.signal, 'magie')]).then(([E, pack]) => {
     if (dead) return;
-    try { inst = E.play(root, api, pack); } catch (e) { fail(); throw e; }
-  }).catch(() => { if (!dead) fail(); });
+    try { inst = E.play(root, api, pack); } catch (e) { fail(e); return; }
+    if (inst && inst.ready && inst.ready.catch) inst.ready.catch((e) => fail(e));
+  }).catch((e) => { if (!dead) fail(e); });
   return proxy;
 }
 
