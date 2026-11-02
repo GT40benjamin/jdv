@@ -1,30 +1,46 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 89,
-  "versionName": "0.9.9.41",
-  "size": 1234559054,
-  "sha256": "0cced9ec3c0181354c5a83277e1dfe6bc3da42802e2f49fb5d61c11e42cc2d23",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v89/pegase-0.9.9.41.apk",
+  "versionCode": 90,
+  "versionName": "0.9.9.42",
+  "size": 1234578150,
+  "sha256": "5a9d1d43d3d041ea50adebdb302ee57bcdba60025751e975ae7eb4f6422bc51b",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v90/pegase-0.9.9.42.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les chiens viennent tout près de toi, s'assoient à tes pieds et réclament : « Caresser » (E, ou le bouton cœur au téléphone), l'héroïne s'accroupit, le chien s'assoit tout content et un cœur s'envole. Les chats au repos te laissent approcher au pas et se laissent caresser aussi. (En robe ou en jupe, elle les caresse debout.) Et ils ne te poussent jamais.",
-    "Pêche en mer depuis les rochers et les plages : maquereau, chirurgiens, poisson-papillon, poisson-clown, idole des Maures, et plus au large cabillaud et mahi-mahi, selon le fond, l'heure et l'appât. Tes prises vont dans le sac et dans ton carnet des prises.",
-    "Dans 4 criques, des bancs de poissons de mer nagent près du bord : on les voit depuis la plage ou les rochers, et ils filent quand tu t'approches.",
-    "Les grandes cascades s'entendent quand tu t'en approches, et leur brume est blanche (et non plus beige) de jour comme au coucher du soleil.",
-    "Les falaises et les gros rochers derrière la plage ne sont plus d'un brun sombre : ils ont une couleur de grès plus claire et plus chaude, où l'on voit le relief de la roche.",
-    "Les cerfs, les biches et les autres grandes bêtes sauvages vivent leur journée : ils partent ensemble, en file, boire au lac ou à la rivière à l'aube et le soir, et se reposent à l'abri sous les arbres aux heures chaudes et la nuit. Dérangés, ils filent se cacher à leur place.",
-    "À l'hôtel, le salon n'est plus vide le soir : les clients y descendent un moment avant d'aller se coucher. On entend enfin l'intérieur (le bois qui craque, le dehors étouffé), Edmond et les clients ne récitent plus leurs adresses, et le grand fauteuil qui bouchait la chambre 8 est enlevé.",
-    "En haut à gauche, l'histoire principale a son étiquette dorée « HISTOIRE », et toutes les missions du jour sont affichées (jusqu'à 6, 4 au téléphone en hauteur).",
-    "Le viseur ne reconnaît plus « Le dernier géant » avant que l'histoire en parle.",
-    "La boîte aux lettres n'est plus prise dans le mur de la maison : elle recule vers le chemin.",
-    "Le téléphone des autres joueurs est tenu devant eux, à hauteur du ventre, au lieu de pendre au bout du bras.",
-    "À vélo, les grands plateaux de roche couverts d'herbe à l'est de l'île se roulent enfin, sans « Un rocher bloque le passage » sur le plat.",
-    "Les papillons ne volent plus sous les planchers, contre les murs ni dans la terrasse du coin cosy, et les animaux se chargent plus vite au lancement."
+    "Les cerfs, les biches, les sangliers, les ours, les loups et les bouquetins qui broutent ou se reposent lèvent la tête et se tournent vers toi quand tu approches. Ils te fixent tant que tu restes là, puis se remettent à brouter quand tu t'éloignes. Si tu t'approches trop, ils s'enfuient.",
+    "Quand une bête va boire, elle se tourne bien face à l'eau avant de baisser la tête. Plus de bêtes vont boire au vrai bord de l'eau, dont l'ours du sud-est.",
+    "Les chevaux ont enfin leur vraie taille. Ils se méfient de plus loin et partent au galop ; les vaches s'écartent aussi un peu plus tôt.",
+    "Plus de faux bébés : les marcassins, qui étaient des sangliers adultes rapetissés, sont retirés.",
+    "Dans « Mon sac », chaque objet a un bouton « Mettre dans la barre » (X à la manette) : outils, graines, récoltes, poissons, objets précieux… La case « Sac » au bout de la barre montre le dessin du sac et sa touche.",
+    "L'héroïne tient l'arrosoir pour de vrai : le coude plié, l'anse bien dans la main.",
+    "Quand tu te colles dans l'angle d'un mur, la caméra ne saute plus dans le mur.",
+    "Les inscriptions des géants sont gravées net : lettres sombres, bords taillés, plus de flou.",
+    "Dehors, les clients de l'hôtel qui vont à l'avion ou se promènent sur la place marchent bien sur le sol, plus dans le vide.",
+    "Plus de tête de cerf en trophée à l'hôtel : dans Pégase, on ne chasse pas les animaux.",
+    "Dans les criques, les idoles des Maures montrent leurs bandes jaunes, blanches et noires quand tu les regardes de près. La nuit, ces poissons ne brillent plus.",
+    "À vélo, le bord herbeux du plateau de l'est ne t'arrête plus « contre un rocher » : le retour de l'estuaire au village se fait d'une traite."
   ],
   "historique": [
+    {
+      "version": "0.9.9.42",
+      "notes": [
+        "Les cerfs, les biches, les sangliers, les ours, les loups et les bouquetins qui broutent ou se reposent lèvent la tête et se tournent vers toi quand tu approches. Ils te fixent tant que tu restes là, puis se remettent à brouter quand tu t'éloignes. Si tu t'approches trop, ils s'enfuient.",
+        "Quand une bête va boire, elle se tourne bien face à l'eau avant de baisser la tête. Plus de bêtes vont boire au vrai bord de l'eau, dont l'ours du sud-est.",
+        "Les chevaux ont enfin leur vraie taille. Ils se méfient de plus loin et partent au galop ; les vaches s'écartent aussi un peu plus tôt.",
+        "Plus de faux bébés : les marcassins, qui étaient des sangliers adultes rapetissés, sont retirés.",
+        "Dans « Mon sac », chaque objet a un bouton « Mettre dans la barre » (X à la manette) : outils, graines, récoltes, poissons, objets précieux… La case « Sac » au bout de la barre montre le dessin du sac et sa touche.",
+        "L'héroïne tient l'arrosoir pour de vrai : le coude plié, l'anse bien dans la main.",
+        "Quand tu te colles dans l'angle d'un mur, la caméra ne saute plus dans le mur.",
+        "Les inscriptions des géants sont gravées net : lettres sombres, bords taillés, plus de flou.",
+        "Dehors, les clients de l'hôtel qui vont à l'avion ou se promènent sur la place marchent bien sur le sol, plus dans le vide.",
+        "Plus de tête de cerf en trophée à l'hôtel : dans Pégase, on ne chasse pas les animaux.",
+        "Dans les criques, les idoles des Maures montrent leurs bandes jaunes, blanches et noires quand tu les regardes de près. La nuit, ces poissons ne brillent plus.",
+        "À vélo, le bord herbeux du plateau de l'est ne t'arrête plus « contre un rocher » : le retour de l'estuaire au village se fait d'une traite."
+      ]
+    },
     {
       "version": "0.9.9.41",
       "notes": [
@@ -73,21 +89,6 @@
         "Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.",
         "En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.",
         "En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées."
-      ]
-    },
-    {
-      "version": "0.9.9.37",
-      "notes": [
-        "Un avatar de garçon marche et se tient enfin comme un garçon (il gardait la marche et la pose de l'héroïne).",
-        "À l'hôtel, Edmond n'est plus coincé entre deux armoires derrière son comptoir.",
-        "À l'hôtel, des rambardes bordent maintenant le vide près de l'escalier : on ne peut plus tomber jusqu'au rez-de-chaussée.",
-        "Dans le hall de l'hôtel, la tête de cerf accrochée au mur ne traverse plus le plancher de l'étage.",
-        "Devant l'étal de Rosalie, les clients de l'hôtel ne se superposent plus : chacun prend sa place.",
-        "En courant près de l'escalier du pont rouge, l'héroïne enjambe la marche au lieu de s'arrêter net.",
-        "En sortant de La Poste sous l'auvent, « Sortir le vélo » fonctionne enfin.",
-        "Après une reprise de partie, si tu avais laissé ton vélo dehors, un message te dit qu'il est rangé dans ton sac.",
-        "Les palmiers ne s'effacent plus quand tu passes à côté.",
-        "Deux papillons ne se posent plus jamais sur la même fleur."
       ]
     }
   ]

@@ -6,6 +6,20 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🦌 Pégase 0.9.9.42 : les bêtes te regardent venir (borne 1.63.51)
+[pegase] 🦌 Les cerfs, les biches, les sangliers, les ours, les loups et les bouquetins qui broutent ou se reposent lèvent la tête et se tournent vers toi quand tu approches. Ils te fixent tant que tu restes là, puis se remettent à brouter quand tu t'éloignes. Si tu t'approches trop, ils s'enfuient.
+[pegase] 💧 Quand une bête va boire, elle se tourne bien face à l'eau avant de baisser la tête. Plus de bêtes vont boire au vrai bord de l'eau, dont l'ours du sud-est.
+[pegase] 🐴 Les chevaux ont enfin leur vraie taille. Ils se méfient de plus loin et partent au galop ; les vaches s'écartent aussi un peu plus tôt.
+[pegase] 🐗 Plus de faux bébés : les marcassins, qui étaient des sangliers adultes rapetissés, sont retirés.
+[pegase] 🎒 Dans « Mon sac », chaque objet a un bouton « Mettre dans la barre » (X à la manette) : outils, graines, récoltes, poissons, objets précieux… La case « Sac » au bout de la barre montre le dessin du sac et sa touche.
+[pegase] 🪴 L'héroïne tient l'arrosoir pour de vrai : le coude plié, l'anse bien dans la main.
+[pegase] 📷 Quand tu te colles dans l'angle d'un mur, la caméra ne saute plus dans le mur.
+[pegase] 🪵 Les inscriptions des géants sont gravées net : lettres sombres, bords taillés, plus de flou.
+[pegase] ✈️ Dehors, les clients de l'hôtel qui vont à l'avion ou se promènent sur la place marchent bien sur le sol, plus dans le vide.
+[pegase] 🏨 Plus de tête de cerf en trophée à l'hôtel : dans Pégase, on ne chasse pas les animaux.
+[pegase] 🐠 Dans les criques, les idoles des Maures montrent leurs bandes jaunes, blanches et noires quand tu les regardes de près. La nuit, ces poissons ne brillent plus.
+[pegase] 🚲 À vélo, le bord herbeux du plateau de l'est ne t'arrête plus « contre un rocher » : le retour de l'estuaire au village se fait d'une traite.
+[pegase] 💻 Mise à jour sur PC : la musique joue dès le début du téléchargement, et Pégase redémarre tout seul à la fin (rien à faire).
 [atelier] ## ▶ Teste et publie ton jeu toi-même (borne 1.63.50)
 [atelier] ▶ Dès que la première version de ton jeu est prête, touche « Tester mon jeu » dans ton projet : il se lance tout de suite.
 [atelier] 🌟 « Publier dans ma salle » : c'est toi qui décides, tes copains de la salle le voient avec son classement.
