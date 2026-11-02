@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🏰 Nouveau jeu pour tous : Remparts ! (borne 1.63.105)
+[remparts] 🏰 Défends la tour du sorcier ! Des vagues de monstres suivent le chemin : construis tes tours sur les emplacements au bord de la route pour les arrêter avant qu'ils n'arrivent.
+[remparts] 🏹 Cinq tours à combiner et à améliorer : les archers, la catapulte qui écrase les groupes, la tour de glace qui ralentit, la tour d'éclairs qui saute d'un monstre à l'autre et la baliste contre les monstres volants. Leur tête pivote toute seule vers l'ennemi.
+[remparts] 🗺️ Cinq mondes magiques : la Forêt enchantée, le Jardin maudit et ses deux chemins, les Grottes de glace, les Forges ardentes et la Crypte oubliée, avec le Roi des monstres à la fin.
+[remparts] ♾️ Une fois un monde gagné, essaie le mode Sans fin et grimpe au classement de tes amis.
 [remparts] ## 🔮 Remparts magiques, en essai : le décor remplit tout l'écran (borne 1.63.104)
 [remparts] 🌲 Plus de vide violet autour du plateau : la forêt, les jardins, la neige, les forges et la crypte s'étendent jusqu'aux bords de l'écran, même sur un écran très large ou en portrait.
 [licornes] ## 🦄 La Maison des Licornes : les licornes marchent au sol (borne 1.63.103)
