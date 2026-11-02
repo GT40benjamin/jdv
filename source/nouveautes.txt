@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 😴 Abracadabra : le géant endormi… qui se rendort ! (borne 1.63.38)
+[abracadabra] 🛏️ Mission 10 : pendant que le géant se réveille au chant du coq, dis « oreiller », « coussin » ou « lit » : il bâille, se rallonge en travers du chemin et se rendort en ronflant encore plus fort. Redis « coq » !
 [atelier] ## 💎 Crédits Elixir : 1 par message, et 3 questions avant les dessins (borne 1.63.36)
 [atelier] 💎 Tes crédits Elixir (200 offerts chaque mois) sont dans l'Atelier, en haut : le compteur descend en direct. Un message coûte 1 crédit, un dessin 4, ta lettre 1.
 [atelier] 🎨 Avant de dessiner tes designs, l'Atelier te pose 3 questions à cliquer : quel style, quelles couleurs, quelle ambiance. Les 3 dessins suivent tes réponses : plus de chances qu'ils te plaisent du premier coup !
