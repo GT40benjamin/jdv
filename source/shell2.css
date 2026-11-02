@@ -4215,3 +4215,8 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-vopt{display:grid;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 .atl-vopt.on{border-color:#ffd34d;background:rgba(255,211,77,.1)}.atl-vopt small{color:var(--muted)}
 .atl-sver{display:block;margin:10px 0 4px;color:var(--muted);font:11.5px var(--body)}
+
+/* 23 h 10 : le bandeau du mode admin */
+.atl-adminb{position:sticky;top:0;z-index:9;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;background:#5a1d1d;color:#fff;border-bottom:2px solid #ff8a65;box-shadow:0 6px 12px -6px rgba(0,0,0,.6)}
+.atl-adminb b{margin-right:auto;font:800 14px var(--body)}
+.atl-adminb .btn{color:#fff;border-color:rgba(255,255,255,.4)}

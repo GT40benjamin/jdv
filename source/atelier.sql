@@ -2762,3 +2762,8 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (v33, 3 nov. 2026 1 h, Benjamin) : at_bienvenue donne bienvenue_credits (500) SEULEMENT si l e-mail du compte est vérifié
 -- (auth.users.email_confirmed_at) ; sinon {offert: 0, verifier: true, credits} et rien n est marqué. Réglages : bienvenue_credits 500,
 -- cout_conception 300, cout_son 20, cout_musique 100 (posés par l équipe). Texte complet : migration atelier_v33_bienvenue_email_verifie.
+
+-- (v34, 2 nov. 2026 23 h 10, Benjamin) : MODE ADMIN — at_admin_lire (le projet comme le joueur le voit), at_admin_agir (dire comme le guide
+-- avec at_messages.auteur, fiche, renommer, lancer, version, demande_etat, credits, tuile_animee ; jamais de débit), journal at_admin_journal,
+-- pegase_int.at_admin_ok (at_admins) ; at_fiches.tuile_animee (offerte pour Lune et Licornes) ; at_tous_projets : joueur_at / reponse_at.
+-- Texte complet : migration atelier_v34_mode_admin.
