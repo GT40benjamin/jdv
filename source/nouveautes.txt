@@ -6,6 +6,13 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🔮 Remparts !, en essai : Remparts magiques, tout en 3D (borne 1.63.28)
+[remparts] 🔮 Le tower defense change d'univers : une île flottante en 3D, des tours de mages à cristaux lumineux, et la tour du sorcier à défendre au bout du chemin.
+[remparts] 🗺️ 5 mondes inspirés de Magic Force : la Forêt enchantée, le Jardin maudit (deux portes), les Grottes de glace (verglas), les Forges ardentes (lave et forges) et la Crypte oubliée (les monstres se relèvent).
+[remparts] 👾 Des monstres animés qui marchent, courent, volent et tombent : orcs, ninjas, yétis, démons, sorciers, fantômes, et un Roi des monstres géant à la fin de chaque monde (avec la tête d'un copain !).
+[remparts] 🎯 Les têtes des tourelles pivotent vers leur cible et tirent seulement une fois bien alignées, en visant là où le monstre VA arriver. Touche une tour pour choisir qui elle vise : 🏃 le plus avancé, 💪 le plus costaud ou 📍 le plus proche.
+[remparts] 💥 Des morts magiques : chaque monstre s'effondre dans un éclat d'étincelles, un flash et une onde au sol, et ses pièces filent jusqu'à ton compteur d'or. Le Roi meurt au ralenti dans une pluie d'or.
+[remparts] ⭐ Toujours le système « celui qui a le plus de points gagne » : combos, vagues parfaites, défi du jour, records, 20 succès et le mode ♾️ Sans fin.
 [poneys] ## 🦄 Ranch des Poneys, en essai : le premier jeu né dans l'Atelier (borne 1.63.27)
 [poneys] 🦄 Les poneys arrivent au ranch avec une envie dans leur bulle : être brossés, une carotte, de l'eau ou un joli ruban. Choisis le bon outil en bas et occupe-toi d'eux avant qu'ils perdent patience !
 [poneys] 🪮 La brosse se frotte pour de vrai : glisse le doigt (ou la souris) sur le poney jusqu'à ce que toute la boue soit partie et qu'il brille.
