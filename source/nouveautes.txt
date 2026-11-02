@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🐑 Abracadabra : les moutons dispersés… et le loup de la crête (borne 1.63.42)
+[abracadabra] 🐺 Mission 12 : pendant que le chien de berger rassemble le troupeau, dis « loup » : il hurle sur la crête, les moutons pas encore rentrés s'éparpillent à nouveau, et le chien part chasser le loup. Ceux qui sont dans la bergerie y restent : redis « chien » pour finir !
+[abracadabra] ✨ Avec cette mission, les 12 missions d'Abracadabra ont toutes leurs conséquences : un bon mot ne compte que quand l'action est finie, et un mauvais mot peut tout gâcher.
 [abracadabra] ## 🐈 Abracadabra : le chat sur le toit… et le chien gourmand (borne 1.63.41)
 [abracadabra] 🐶 Mission 11 : pendant que Pompon descend vers le poisson, dis « chien » : il fonce sur le poisson et l'avale (« Miam ! »). Pompon crache, fait le gros dos et remonte bouder sur le toit. Redis « poisson » !
 [atelier] ## 🧩 Les planches : tous les éléments de ton jeu sur un seul dessin (borne 1.63.40)
