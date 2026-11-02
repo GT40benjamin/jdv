@@ -10081,6 +10081,7 @@ function backToLibrary() {
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
   setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());
   fsLeave();
+  if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); setTimeout(() => { atlOpen(); atlOuvrir(id); ATL.tab = 'jeu'; }, 30); }   // jeu lancé depuis l'Atelier : retour au projet
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
@@ -14629,7 +14630,7 @@ function atlRenderProjet(W, f) {
     const po = atlEl('button', 'atl-gposter'); po.type = 'button'; po.setAttribute('aria-label', 'Jouer à mon jeu ici');
     if (dz) { const im = atlEl('img'); im.alt = ''; im.src = dz; po.appendChild(im); }
     po.appendChild(atlEl('span', 'atl-gplay', g ? '▶ Jouer à mon jeu' : '⏳ Ton jeu arrive sur la borne…')); po.disabled = !g;
-    po.addEventListener('click', atlFrameStart); fr.appendChild(po); p.appendChild(fr);
+    po.addEventListener('click', () => atlJouerVrai(f)); fr.appendChild(po); p.appendChild(fr);   // 21 h 15 : le vrai jeu, plein écran
     const bar = atlEl('div', 'atl-gbar');
     const fs = atlEl('button', 'btn btn-ghost btn-sm', '⛶ Plein écran'); fs.type = 'button'; fs.disabled = !g;
     fs.addEventListener('click', () => { atlFrameStart(); try { (fr.requestFullscreen || fr.webkitRequestFullscreen).call(fr); } catch (e) {} });
@@ -14638,8 +14639,8 @@ function atlRenderProjet(W, f) {
     const ps = atlEl('button', 'btn btn-play btn-sm atl-parret', '⏸ Pause · 💬 Parler ' + gA()); ps.type = 'button'; ps.disabled = !g;
     ps.addEventListener('click', () => atlArret());
     const fl = atlGuideAv('atl-garret'); fl.setAttribute('role', 'button'); fl.tabIndex = 0; fl.title = 'Arrêt sur image : montre ' + gA() + ' ce qu’il faut changer (touche P)'; fl.addEventListener('click', () => atlArret()); fr.appendChild(fl);
-    bar.append(ps, fs, rj); p.appendChild(bar);
-    p.appendChild(atlEl('p', 'atl-gaide', '⏸ Pendant la partie, touche P (ou le petit robot) : arrêt sur image, tu montres avec le viseur ce qu’il faut changer, et ' + gN() + ' s’en occupe.'));
+    p.appendChild(bar);
+    p.appendChild(atlEl('p', 'atl-gaide', '🎮 Ton jeu s’ouvre en grand, comme sur la borne. Pendant la partie, touche P (ou ' + gN() + ', le petit bouton qui flotte) : arrêt sur image, tu montres avec le viseur ce qu’il faut changer, et ' + gN() + ' s’en occupe.'));
     const pub = atlEl('div', 'atl-pub'); pub.appendChild(atlEl('h3', '', et === 'alpha' ? '🌟 Quand il te plaît : publie-le !' : et === 'publie_monde' ? '🌍 Publié pour tout le monde' : '🌟 Publié dans ta salle'));
     atlBoutonsJeu(pub, f, true); p.appendChild(pub);
   } else {
@@ -14675,18 +14676,38 @@ function atlArret() {
   const i = fr.querySelector('iframe'); if (!i) { atlFrameStart(); return; }
   try { i.contentWindow.postMessage({ type: 'atl-pause' }, location.origin); } catch (e) {}
   let shot = null; try { shot = atlCapture(i); } catch (e) { shot = null; }
+  atlArretUI(fr, shot, f.id, () => { try { i.contentWindow.postMessage({ type: 'atl-reprendre' }, location.origin); i.focus(); } catch (e) {} });
+  try { fr.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+}
+// la fenêtre d'arrêt sur image : capture, VISEUR, texte ou micro, envoi (at_demande, cout_demande) ; reprendre
+function atlArretUI(host, shot, ficheId, reprendre, plein) {
   const cr = atlCred(), cout = cr && cr.demande != null ? cr.demande | 0 : 5, vis = { x: null, y: null };
-  const O = atlEl('div', 'atl-arret'); O.setAttribute('role', 'dialog'); O.setAttribute('aria-label', 'Arrêt sur image');
+  const O = atlEl('div', 'atl-arret' + (plein ? ' atl-arret2' : '')); O.setAttribute('role', 'dialog'); O.setAttribute('aria-label', 'Arrêt sur image');
   const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', 'Arrêt sur image ! Touche l’endroit à changer avec le viseur 👁️, puis dis-moi ce que tu veux.')); hd.append(atlGuideAv('atl-wav'), ht);
   const zone = atlEl('div', 'atl-arz'), mk = atlEl('span', 'atl-arv'); mk.hidden = true;
   if (shot) { shot.className = 'atl-arimg'; zone.appendChild(shot); } else zone.appendChild(atlEl('div', 'atl-arno', 'Ton jeu est en pause.'));
   zone.appendChild(mk);
   zone.addEventListener('click', e => { const r = (shot || zone).getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 100, y = (e.clientY - r.top) / r.height * 100; if (x < 0 || x > 100 || y < 0 || y > 100) return; vis.x = x; vis.y = y; mk.hidden = false; mk.style.left = x + '%'; mk.style.top = y + '%'; });
-  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux changer ici…';
+  const tw = atlEl('div', 'atl-artw'), ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux changer ici…'; tw.appendChild(ta);
+  // le micro (dictée), comme pour raconter son idée
+  let rec = null;
+  if (ATL_SR) {
+    const mi = atlEl('button', 'atl-armic', '🎤'); mi.type = 'button'; mi.setAttribute('aria-label', 'Dicter ma demande');
+    mi.addEventListener('click', () => {
+      if (rec) { try { rec.stop(); } catch (e) {} return; }
+      try {
+        rec = new ATL_SR(); rec.lang = 'fr-FR'; rec.interimResults = true; rec.continuous = false; const base = ta.value ? ta.value.trim() + ' ' : '';
+        rec.onresult = ev => { let t = ''; for (const r of ev.results) t += r[0].transcript; ta.value = (base + t).slice(0, 1000); };
+        rec.onend = () => { rec = null; mi.classList.remove('on'); }; rec.onerror = rec.onend;
+        mi.classList.add('on'); rec.start();
+      } catch (e) { rec = null; }
+    });
+    tw.appendChild(mi);
+  }
   const er = atlEl('p', 'atl-werr'); er.hidden = true;
   const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', '▶ Reprendre'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎');
   rp.type = 'button'; go.type = 'button';
-  const fin = () => { O.remove(); try { i.contentWindow.postMessage({ type: 'atl-reprendre' }, location.origin); i.focus(); } catch (e) {} };
+  const fin = () => { try { if (rec) rec.stop(); } catch (e) {} O.remove(); reprendre(); };
   rp.addEventListener('click', fin);
   go.addEventListener('click', async () => {
     const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
@@ -14699,7 +14720,7 @@ function atlArret() {
         if (vis.x != null) { const x = vis.x / 100 * c.width, y = vis.y / 100 * c.height, rr = Math.max(14, c.width * 0.035); g.lineWidth = Math.max(3, rr * 0.22); g.strokeStyle = '#ff2d55'; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.moveTo(x - rr * 1.6, y); g.lineTo(x - rr * 0.6, y); g.moveTo(x + rr * 0.6, y); g.lineTo(x + rr * 1.6, y); g.moveTo(x, y - rr * 1.6); g.lineTo(x, y - rr * 0.6); g.moveTo(x, y + rr * 0.6); g.lineTo(x, y + rr * 1.6); g.stroke(); }
         const raw = await new Promise(ok => c.toBlob(ok, 'image/png')); if (raw) { try { blob = await atlJpeg(raw); } catch (e) { blob = null; } }
       }
-      const r = await rpc('at_demande', { p_name: profile.name, p_fiche: f.id, p_texte: t, p_x: vis.x, p_y: vis.y, p_image: !!blob }, { quiet: true });
+      const r = await rpc('at_demande', { p_name: profile.name, p_fiche: ficheId, p_texte: t, p_x: vis.x, p_y: vis.y, p_image: !!blob }, { quiet: true });
       if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
       if (blob && r && /^a\/[0-9a-f-]{36}\.jpg$/.test(String(r.image || ''))) {
         const tok = await acctToken(profile);
@@ -14708,9 +14729,57 @@ function atlArret() {
       toastCheer('✉️ Demande envoyée ' + gA() + ' !', null, true); fin(); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
-  row.append(rp, go); O.append(hd, zone, ta, er, row); fr.appendChild(O);
-  try { fr.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} if (!TOUCH) ta.focus({ preventScroll: true });   // téléphone : le clavier ne cache pas l'image
+  row.append(rp, go); O.append(hd, zone, tw, er, row); host.appendChild(O);
+  if (!TOUCH) ta.focus({ preventScroll: true });   // téléphone : le clavier ne cache pas l'image
+  return O;
 }
+// ---- 21 h 15 (Benjamin) : « 🎮 Jouer » (la V1) = EXACTEMENT comme une tuile de la borne (plein écran, écran titre, barre, manettes, fin de
+// partie) ; « Quitter » revient à la page du projet. Pendant la partie : le petit guide flottant (déplaçable) et la touche P → arrêt sur image.
+function atlJouerVrai(f) {
+  const g = (window.JDW_GAMES || {})[f.jeu];
+  if (!g || g.id !== f.jeu) { toastCheer('Ton jeu arrive sur la borne très bientôt !', null, true); return; }
+  ATL.jeu = f.id; atlClose();
+  try { markGameSeen(g.id); } catch (e) {}
+  openGame(g, true);
+  if ($('jdw-play').hidden) { ATL.jeu = null; atlOpen(); atlOuvrir(f.id); return; }   // pas de partie (salle à choisir…)
+  atlFlotteur(true);
+}
+function atlFlotteur(on) {
+  let b = document.getElementById('atl-flot');
+  if (!on) { if (b) b.remove(); return; }
+  if (b) return;
+  b = atlGuideAv('atl-flot'); b.id = 'atl-flot'; b.setAttribute('role', 'button'); b.tabIndex = 0; b.title = 'Arrêt sur image : montre ' + gA() + ' ce qu’il faut changer (touche P)';
+  const pos = ATL.flotPos || { r: 14, b: 120 }; b.style.right = pos.r + 'px'; b.style.bottom = pos.b + 'px';
+  let st = null;
+  b.addEventListener('pointerdown', e => { st = { x: e.clientX, y: e.clientY, r: parseFloat(b.style.right), b: parseFloat(b.style.bottom), moved: false }; try { b.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); e.stopPropagation(); });
+  b.addEventListener('pointermove', e => { if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y; if (Math.abs(dx) + Math.abs(dy) > 6) st.moved = true; if (!st.moved) return;
+    const r = Math.max(4, Math.min(innerWidth - 60, st.r - dx)), bt = Math.max(4, Math.min(innerHeight - 60, st.b - dy)); b.style.right = r + 'px'; b.style.bottom = bt + 'px'; ATL.flotPos = { r, b: bt }; e.stopPropagation(); });
+  b.addEventListener('pointerup', e => { const m = st && st.moved; st = null; e.stopPropagation(); if (!m) atlArretJeu(); });
+  b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); atlArretJeu(); } });
+  document.body.appendChild(b);
+}
+function atlCaptureJeu() {
+  const P0 = $('jdw-play'); if (!P0) return null;
+  let best = null, ba = 0;
+  for (const c of P0.querySelectorAll('canvas')) { const r = c.getBoundingClientRect(), ar = r.width * r.height; if (c.width && c.height && ar > ba) { best = c; ba = ar; } }
+  if (!best) return null;
+  const k = Math.min(1, 1280 / Math.max(best.width, best.height)), o = document.createElement('canvas');
+  o.width = Math.max(1, Math.round(best.width * k)); o.height = Math.max(1, Math.round(best.height * k));
+  const g = o.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, o.width, o.height); try { g.drawImage(best, 0, 0, o.width, o.height); } catch (e) { return null; }
+  return o;
+}
+function atlArretJeu() {
+  if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return;
+  try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (e) {}
+  let shot = null; try { shot = atlCaptureJeu(); } catch (e) { shot = null; }
+  atlFlotteur(false);
+  atlArretUI(document.body, shot, ATL.jeu, () => { try { if (current && current.inst && current.inst.resume) current.inst.resume(); } catch (e) {} if (ATL.jeu && !$('jdw-play').hidden) atlFlotteur(true); }, true);
+}
+document.addEventListener('keydown', e => {
+  if (!ATL || !ATL.jeu || $('jdw-play').hidden || e.repeat || (e.key !== 'p' && e.key !== 'P')) return;
+  if (/^(INPUT|TEXTAREA)$/.test((document.activeElement || {}).tagName || '') || document.querySelector('.atl-arret2')) return;
+  atlArretJeu();
+}, true);
 window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'atl-arret' && ATL && ATL.open) atlArret(); });
 
 // ---------- 2 nov. 18 h 25 (Benjamin) : ÉTAPE 1 « Les bases de ton jeu » (5 questions, une à l'écran, avant l'invite), l'invite PRÉ-REMPLIE,
@@ -15714,7 +15783,7 @@ function atlBoutonsJeu(bn, f, sansTester) {
   t.addEventListener('click', () => {
     const g = (window.JDW_GAMES || {})[f.jeu];
     if (!g || g.id !== f.jeu) { toastCheer('Ton jeu arrive sur la borne très bientôt !', null, true); return; }
-    if (ATL.open && ATL.cur === f.id) { ATL.chat = false; ATL.tab = 'jeu'; ATL.pSig = ''; atlRender(); atlFrameStart(); return; }
+    if (ATL.open) { atlJouerVrai(f); return; }
     atlClose(); try { markGameSeen(g.id); } catch (e) {} openGame(g);
   });
   if (!sansTester) row.appendChild(t);
