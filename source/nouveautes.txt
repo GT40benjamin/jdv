@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## ☂️ Abracadabra : les îles dans les nuages, gare aux rapaces (borne 1.63.32)
+[abracadabra] 🦅 Mission 7 : pendant que les villageois descendent en parapluie, dis « aigle », « faucon » ou « vautour » : il fond sur l'un d'eux, le parapluie se retourne, il dégringole jusqu'à notre île (« Ouille ! ») et rentre quand même.
+[abracadabra] 🎈 Des ballons pendant la descente : ceux qui n'ont pas encore sauté s'y accrochent… et s'envolent dans le ciel !
 [borne] ## 👀 Les titres des jeux bien lisibles, et le silence quand tu parles au micro (borne 1.63.30)
 [borne] 👀 Sur les tuiles, l'étiquette « Nouveau » / « Mis à jour » et la tête du champion de la salle descendent en bas de l'image : le titre de chaque jeu, dessiné en haut, se lit en entier (sur ordinateur comme sur téléphone).
 [borne] 🤫 Quand tu parles au micro pour raconter ton idée dans « Crée ton jeu », la musique et les bruitages de la borne se font presque muets, puis reviennent doucement quand tu as fini. Dans un jeu qui t'écoute, la musique de la borne descend aussi presque à zéro.
