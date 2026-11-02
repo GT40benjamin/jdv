@@ -22,6 +22,13 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 🧱 Les bases de ton jeu, la feuille de route et les dessins découpés (borne 1.63.66)
+[atelier] 🧱 Un nouveau projet commence par « Les bases de ton jeu » : 5 questions à toucher (le genre de jeu, la vue, avec qui on joue, le score, le style), ou ta réponse à toi avec « ✏️ Personnaliser ». Ton jeu est toujours en 2D.
+[atelier] ✍️ Ensuite, ta description arrive déjà pré-remplie avec tes 5 choix : tu n'as plus qu'à raconter ton idée.
+[atelier] 🗺️ La « Feuille de route » se remplit en direct (à droite sur ordinateur, en haut sur téléphone) : tes bases, ta fiche, tes dessins et tes crédits. Touche une ligne pour y revenir.
+[atelier] 🎨 « Dessiner mes éléments » : notre IA dessine tes personnages, objets et décors par planches de 8 au plus, puis les découpe un par un, fond retiré, à leur nom (10 crédits la planche).
+[atelier] 🔷 Les formes simples (rond, carré, étoile, barre, plateforme…) sont dessinées tout de suite, sans IA, pour 3 crédits chacune.
+
 [atelier] ## 🎮 Ton jeu en essai se joue dans l'Atelier (borne 1.63.63)
 [atelier] 🎮 Tant que ton jeu est en essai, il n'a pas de tuile sur la borne : tu le trouves et tu y joues dans l'Atelier, sur la page de ton projet (onglet « Jouer »). Il arrive sur la borne quand tu le publies dans ta salle, ou quand il est mis en ligne pour tous.
 

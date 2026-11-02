@@ -14191,14 +14191,14 @@ const ATL_WELCOME = [
   '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais dans ton jeu.',
   '✨ L’Atelier remplit alors toute ta fiche et dessine un premier design de ton jeu (quelques minutes : va jouer, la cloche 🔔 te préviendra).',
   'Ensuite tu relis chaque étape, tu ajoutes ou enlèves ce que tu veux, puis tu touches « 🚀 Lancer la conception » : notre équipe construit ton jeu.',
-  '🤖 Ton jeu est créé avec l’aide de l’IA. 💎 Ce qui coûte des crédits affiche son prix sur le bouton.'
+  '🤖 Ton jeu est créé avec l’aide de l’IA. 💎 Parler à l’Atelier : 2 crédits le message · un dessin : 10 · une forme simple : 3. Le prix est toujours écrit sur le bouton.'
 ];
 function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
     + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
-    + '<div class="atl-projets" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
+    + '<details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
     + '<div class="atl-chat"><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
@@ -14208,7 +14208,7 @@ function atlBuild() {
     + '<button class="atl-mic" type="button" aria-label="Parler au micro"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/></svg></button></div>'
     + '<div class="atl-row2"><button class="atl-imgb" type="button"><span aria-hidden="true">🖼️</span> Joindre une image</button><input class="atl-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>'
     + '<small class="atl-cost" hidden></small><button class="btn btn-play atl-send" type="submit">Envoyer ➤</button></div></form></div></div>'
-    + '<div class="atl-lv" hidden></div><div class="atl-zoom" hidden role="dialog" aria-label="Image en grand"></div>';
+    + '<div class="atl-lv" hidden></div><div class="atl-zoom" hidden role="dialog" aria-label="Image en grand"></div><div class="atl-mod" hidden role="dialog" aria-modal="true" aria-label="Dessiner mes éléments"></div>';
   document.body.appendChild(R); ATL.root = R;
   const q = s => R.querySelector(s);
   q('.atl-back').addEventListener('click', () => { if (ATL.cur || ATL.nouveau) atlListe(); else atlClose(); });   // dans un projet : « ← Mes projets »
@@ -14244,11 +14244,12 @@ function atlErr(t) { if (!ATL.root) return; const e = ATL.root.querySelector('.a
 function atlRender() {
   if (!ATL.root || !ATL.open) return;
   const liste = !ATL.cur && !ATL.nouveau, R = ATL.root;
-  const wiz = !liste && atlWizOn();
-  R.querySelector('.atl-main').hidden = liste || wiz; R.querySelector('.atl-projets').hidden = !liste; R.querySelector('.atl-wiz').hidden = !wiz;
-  R.classList.toggle('liste', liste); R.classList.toggle('wiz', wiz); R.classList.toggle('a1', !liste && !wiz);
+  const bases = !liste && atlBasesOn(), wiz = !liste && !bases && atlWizOn();
+  R.querySelector('.atl-main').hidden = liste || wiz || bases; R.querySelector('.atl-projets').hidden = !liste; R.querySelector('.atl-wiz').hidden = !wiz; R.querySelector('.atl-bases').hidden = !bases;
+  R.classList.toggle('liste', liste); R.classList.toggle('wiz', wiz); R.classList.toggle('a1', !liste && !wiz && !bases); R.classList.toggle('route', !liste);
   R.querySelector('.atl-back').setAttribute('aria-label', liste ? 'Retour à la borne' : 'Mes projets');
-  if (liste) atlRenderProjets(); else if (wiz) atlRenderWiz(); else { atlRenderFiche(); atlRenderChat(); }
+  if (liste) atlRenderProjets(); else if (bases) atlRenderBases(); else if (wiz) atlRenderWiz(); else { atlRenderFiche(); atlRenderChat(); atlPrefill(); }
+  atlRenderRoute(liste);
 }
 // ---------- « Mes projets » : une tuile par projet (titre, vignette, état, nouvelle réponse) + « Nouveau projet » ----------
 function atlRenderProjets() {
@@ -14274,14 +14275,14 @@ function atlRenderProjets() {
 }
 function atlOuvrir(id) {
   atlMicStop(); atlLetterClose(true); atlErr('');
-  ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.lance = 0; ATL.tab = ''; ATL.pSig = ''; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
+  ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.lance = 0; ATL.tab = ''; ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
   const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) inp.placeholder = 'Décris ton jeu…';
   atlRender(); atlLoad(true);
 }
 function atlNouveau() {
   const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
   if (atlProjets().length >= max) { toastCheer(max + ' projets au plus', null, true); return; }
-  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.pend = []; ATL.stick = true; atlErr('');
+  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.basesLoc = {}; ATL.basesDone = false; ATL.basesOn = false; ATL.bq = 0; ATL.pend = []; ATL.stick = true; atlErr('');
   atlRender();
   const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Raconte ton nouveau jeu…'; if (!TOUCH) inp.focus();
 }
@@ -14414,7 +14415,7 @@ const ATL_STEPS = [
   ['objets', '🎁', 'Objets', 'Ce qu’on ramasse, ce qu’on utilise, les bonus…'],
   ['decor', '🏞️', 'Décor', 'Les endroits où se passe ton jeu.'],
   ['sons', '🎵', 'Sons', 'Les bruitages et les musiques.'],
-  ['design', '🎨', 'Le design', 'À quoi ressemble ton jeu.']
+  ['design', '🎨', 'Le design', 'L’ambiance de ton jeu, et les dessins de tous ses éléments.']
 ];
 const atlListeDe = v => (Array.isArray(v) ? v.map(atlVal).filter(Boolean) : atlVal(v) ? atlElements(atlVal(v)) : []);
 const atlRempli = f => { const fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; return !!atlVal(fi.idee) && ['personnages', 'objets', 'decor'].some(k => atlListeDe(fi[k]).length); };
@@ -14514,6 +14515,7 @@ function atlRenderWiz() {
     const mb = atlEl('button', 'btn btn-play', '✏️ Modifier' + prix); mb.type = 'submit'; mb.disabled = pend;
     mf.addEventListener('submit', e => { e.preventDefault(); const v = mi.value.trim(); if (v.length < 3) { mi.focus(); return; } atlDesign(v, mb); });
     mf.append(mi, mb); row.appendChild(rf); page.append(row, mf);
+    atlWizDessins(page, f, fi);
   } else atlWizChips(page, k, fi);
   box.appendChild(page);
   const er = atlEl('p', 'atl-werr'); er.hidden = true; box.appendChild(er);
@@ -14526,7 +14528,7 @@ function atlRenderWiz() {
     go.addEventListener('click', () => atlLancer(go));
     box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus : notre équipe construit ton jeu, puis l’administrateur choisit s’il est proposé dans ta salle ou à tous.'));
   }
-  const w = atlEl('button', 'atl-wchat', '💬 Une question ? Écris à l’Atelier'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
+  const w = atlEl('button', 'atl-wchat', '✏️ Retravailler mon idée ou ajouter du style (2 💎 le message)'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
   box.append(w, atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
 }
 
@@ -14622,8 +14624,9 @@ function atlRenderProjet(W, f) {
     if (dzd) { const d = atlEl('figure', 'atl-pdz'); const im = atlEl('img'); im.alt = 'Le design du jeu'; im.src = dzd; im.addEventListener('click', () => atlZoom(dzd)); d.append(im, atlEl('figcaption', '', '🎨 Le design')); p.appendChild(d); }
     const grp = (titre, list, fn) => { if (!list.length) return; p.appendChild(atlEl('h3', 'atl-ph3', titre + ' · ' + list.length)); const gr = atlEl('div', 'atl-pgal'); for (const a of list) gr.appendChild(fn(a)); p.appendChild(gr); };
     const fig = (a, vis) => { const d = atlEl('figure', 'atl-pa'); d.appendChild(vis); d.appendChild(atlEl('figcaption', '', atlVal(a.nom))); return d; };
-    grp('🖼️ Les grandes images', as.filter(a => !a.case && atlIaUrl(a.image)), a => { const u = atlIaUrl(a.image), im = atlEl('img'); im.alt = atlVal(a.nom); im.loading = 'lazy'; im.src = u; im.addEventListener('click', () => atlZoom(u)); const d = fig(a, im); d.classList.add('big'); return d; });
-    grp('🧩 Les éléments du jeu', as.filter(a => a.case && Array.isArray(a.grille) && atlIaUrl(a.image)), a => { const u = atlIaUrl(a.image), cp = atlCrop(u, a.case, a.grille, atlVal(a.nom), as.filter(x => x.image === a.image).length); cp.addEventListener('click', () => atlZoom(u)); return fig(a, cp); });
+    grp('🖼️ Les grandes images', as.filter(a => !a.case && a.sorte !== 'élément' && atlIaUrl(a.image)), a => { const u = atlIaUrl(a.image), im = atlEl('img'); im.alt = atlVal(a.nom); im.loading = 'lazy'; im.src = u; im.addEventListener('click', () => atlZoom(u)); const d = fig(a, im); d.classList.add('big'); return d; });
+    grp('🧩 Les éléments du jeu', as.filter(a => (a.case && Array.isArray(a.grille) || a.sorte === 'élément') && atlIaUrl(a.image)), a => { const u = atlIaUrl(a.image); let v; if (a.case && Array.isArray(a.grille)) v = atlCrop(u, a.case, a.grille, atlVal(a.nom), as.filter(x => x.image === a.image).length); else { v = atlEl('img', 'atl-cut'); v.alt = atlVal(a.nom); v.loading = 'lazy'; v.src = u; } v.addEventListener('click', () => atlZoom(u)); return fig(a, v); });
+    grp('🔷 Les formes', (Array.isArray(fi.formes) ? fi.formes : []).filter(x => x && ATL_FORMES_OK.has(x.forme)), x => fig(x, atlFormeSvg(x.forme, x.couleur)));
     grp('🎵 Les sons', as.filter(a => atlSonUrl(a.son)), a => { const au = atlEl('audio'); au.controls = true; au.preload = 'none'; au.src = atlSonUrl(a.son); const d = fig(a, au); d.classList.add('son'); return d; });
     if (!dzd && !as.length) p.appendChild(atlEl('p', 'atl-chv', 'Les dessins arrivent pendant la conception.')); }
   // 💬 Discussion
@@ -14631,6 +14634,192 @@ function atlRenderProjet(W, f) {
     const w = atlEl('button', 'btn btn-play btn-sm', '💬 Écrire à l’Atelier'); w.type = 'button'; w.addEventListener('click', () => { atlFrameStop(); ATL.chat = true; ATL.stick = true; atlRender(); }); p.appendChild(w); }
   box.appendChild(atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
   atlProjMsgs(W, f); atlProjTab(ATL.tab);
+}
+
+// ---------- 2 nov. 18 h 25 (Benjamin) : ÉTAPE 1 « Les bases de ton jeu » (5 questions, une à l'écran, avant l'invite), l'invite PRÉ-REMPLIE,
+// la FEUILLE DE ROUTE (colonne de droite sur PC, repliable en haut sur téléphone), les DESSINS des éléments (planches de 8 au plus, découpées
+// par le serveur) et les FORMES simples dessinées par le code (3 crédits). Le jeu est toujours en 2D. Les textes du joueur : textContent seulement.
+const ATL_BASES = [
+  ['type', '🎮', 'Quel genre de jeu ?', 'Genre', [['🏃', 'Toujours en avant', 'comme Contresens, Subway Surfers, Flappy Bird'], ['🪜', 'À niveaux', 'comme Mario, Candy Crush, Angry Birds'], ['🌱', 'Faire grandir', 'comme La Maison des Licornes, Cookie Clicker'], ['🗺️', 'Monde libre', 'comme Zelda, Pokémon, Animal Crossing']]],
+  ['vue', '👀', 'On voit le jeu comment ?', 'Vue', [['➡️', 'De côté', ''], ['⬇️', 'Vu de dessus', ''], ['🎯', 'De face, ça avance vers moi', '']]],
+  ['avec', '👥', 'Avec qui on joue ?', 'Avec qui', [['🙋', 'Seul', ''], ['👫', 'À deux sur le même écran', ''], ['⚔️', 'En duel', '']]],
+  ['score', '🏆', 'Le score, c’est…', 'Score', [['⭐', 'Des points', ''], ['⏱️', 'Le temps', ''], ['📏', 'La distance', ''], ['💰', 'Ce qu’on possède', ''], ['🏆', 'Les niveaux réussis', '']]],
+  ['style', '🎨', 'Quel style ?', 'Style', [['🧸', 'Mignon', ''], ['👾', 'Rétro pixel', ''], ['💡', 'Néon', ''], ['🎨', 'Dessin animé', ''], ['🌲', 'Plus réaliste', '']]]
+];
+const atlBasesVal = () => { const f = atlFiche(), b = f && f.fiche && typeof f.fiche === 'object' ? f.fiche.bases : null; return b && typeof b === 'object' ? b : (ATL.basesLoc || {}); };
+const atlBasesOn = () => {
+  if (ATL.basesOn) return true;
+  if (ATL.nouveau && !ATL.cur) return !ATL.basesDone;
+  const f = atlFiche(); if (!f || ATL.chat || ATL_AFTER.has(f.etat) || f.etat === 'refusee' || atlRempli(f)) return false;
+  return !(f.fiche && f.fiche.bases) && !atlMsgs().some(m => !m.atelier);
+};
+const atlBasesTexte = b => { const v = k => String(b[k] || '').toLowerCase(); const parts = [b.type && 'un jeu « ' + b.type + ' »', b.vue && v('vue'), b.avec && 'à jouer ' + v('avec'), b.score && 'le score : ' + v('score'), b.style && 'style ' + v('style')].filter(Boolean);
+  return parts.length ? 'Mon jeu (en 2D) : ' + parts.join(', ') + '.\nMon idée : ' : ''; };
+function atlPrefill() {
+  if (!ATL.prefill || !ATL.root) return; ATL.prefill = false;
+  const inp = ATL.root.querySelector('.atl-in'), t = atlBasesTexte(atlBasesVal()); if (!inp || !t || inp.value.trim()) return;
+  inp.value = t; if (!TOUCH) { inp.focus(); inp.setSelectionRange(t.length, t.length); }
+}
+async function atlBasesEnvoyer(fiche) {
+  const b = ATL.basesLoc; ATL.basesLoc = null; if (!b || !Object.keys(b).length) return;
+  try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: fiche, p_cle: 'bases', p_valeur: b }, { quiet: true }); } catch (e) {}
+}
+function atlBasesChoisir(k, v) {
+  const f = atlFiche(), b = Object.assign({}, atlBasesVal(), { [k]: String(v).slice(0, 120) });
+  if (f && f.id) { f.fiche = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; f.fiche.bases = b; if (!ATL_AFTER.has(f.etat)) atlEtape('bases', b); }
+  else ATL.basesLoc = b;
+  ATL.bq = (ATL.bq | 0) + 1;
+  if (ATL.bq >= ATL_BASES.length || (ATL.basesOn && ATL.basesUne)) { ATL.basesOn = false; ATL.basesUne = false; ATL.basesDone = true; ATL.prefill = !f; ATL.bq = 0; }
+  atlRender();
+}
+function atlRenderBases() {
+  const R = ATL.root, B = R.querySelector('.atl-bases'), q = Math.max(0, Math.min(ATL_BASES.length - 1, ATL.bq | 0)), [k, ic, titre, , opts] = ATL_BASES[q], cur = String(atlBasesVal()[k] || '');
+  R.querySelector('.atl-hs').textContent = 'Les bases de ton jeu · ' + (q + 1) + ' / ' + ATL_BASES.length;
+  B.textContent = '';
+  const box = atlEl('div', 'atl-bbox');
+  const dots = atlEl('div', 'atl-bdots'); ATL_BASES.forEach((_, i) => dots.appendChild(atlEl('i', i < q ? 'vu' : i === q ? 'on' : ''))); box.appendChild(dots);
+  box.append(atlEl('p', 'atl-bk', 'Étape 1 · Les bases de ton jeu'), atlEl('h2', 'atl-bt', ic + ' ' + titre));
+  const grid = atlEl('div', 'atl-bgrid');
+  for (const [oi, lab, ex] of opts) {
+    const b = atlEl('button', 'atl-bcard' + (cur === lab ? ' on' : '')); b.type = 'button';
+    b.append(atlEl('span', 'atl-bic', oi), atlEl('b', '', lab)); if (ex) b.appendChild(atlEl('small', '', ex));
+    b.addEventListener('click', () => atlBasesChoisir(k, lab)); grid.appendChild(b);
+  }
+  const perso = !!cur && !opts.some(o => o[1] === cur);
+  const pc = atlEl('form', 'atl-bcard atl-bperso' + (perso ? ' on' : '')), pi = atlEl('input'); pi.type = 'text'; pi.maxLength = 120; pi.placeholder = 'À ma façon…'; pi.setAttribute('aria-label', 'Ma réponse à moi'); if (perso) pi.value = cur;
+  const pb = atlEl('button', 'btn btn-play btn-sm', 'OK'); pb.type = 'submit';
+  pc.append(atlEl('span', 'atl-bic', '✏️'), atlEl('b', '', 'Personnaliser'), pi, pb);
+  pc.addEventListener('submit', e => { e.preventDefault(); const v = pi.value.trim(); if (v.length < 2) { pi.focus(); return; } atlBasesChoisir(k, v); });
+  grid.appendChild(pc); box.appendChild(grid);
+  const nav = atlEl('div', 'atl-bnav');
+  const back = atlEl('button', 'btn btn-ghost', q ? '← Retour' : (ATL.basesOn ? '← Fermer' : '← Mes projets')); back.type = 'button';
+  back.addEventListener('click', () => { if (q && !ATL.basesUne) { ATL.bq = q - 1; atlRender(); } else if (ATL.basesOn) { ATL.basesOn = false; ATL.basesUne = false; atlRender(); } else atlListe(); });
+  nav.appendChild(back);
+  if (cur) { const nx = atlEl('button', 'btn btn-ghost', 'Garder « ' + cur.slice(0, 24) + ' » →'); nx.type = 'button'; nx.addEventListener('click', () => atlBasesChoisir(k, cur)); nav.appendChild(nx); }
+  box.append(nav, atlEl('p', 'atl-b2d', '🧊 Ton jeu sera toujours en 2D.'));
+  B.appendChild(box);
+}
+// ---- les formes simples, dessinées par le code (pas de génération d'image) ----
+const ATL_FORMES_OK = new Set(['rond', 'carre', 'rectangle', 'etoile', 'barre', 'triangle', 'coeur', 'losange', 'anneau']);
+const ATL_LETTRE = 'a-zàâäéèêëîïôöùûüçœ';
+const atlMot = s => new RegExp('(^|[^' + ATL_LETTRE + '])(' + s + ')(?=$|[^' + ATL_LETTRE + '])', 'i');
+const ATL_FORMES = [['rond|ronde|cercle|boule|bulle|disque|balle|point', 'rond'], ['carré|carrée|carre|cube|bloc|brique|caisse', 'carre'], ['rectangle', 'rectangle'], ['étoile|etoile', 'etoile'],
+  ['barre|plateforme|plate-forme|poutre|sol', 'barre'], ['triangle|pic|pique', 'triangle'], ['cœur|coeur', 'coeur'], ['losange|diamant', 'losange'], ['anneau', 'anneau']].map(([m, f]) => [atlMot(m), f]);
+const ATL_COUL = [['rouge', '#e53935'], ['bleue?', '#1e88e5'], ['verte?', '#43a047'], ['jaune', '#fdd835'], ['orange', '#fb8c00'], ['violette?', '#8e24aa'], ['rose', '#ec407a'], ['noire?', '#263238'],
+  ['blanche?|blanc', '#fafafa'], ['grise?', '#9e9e9e'], ['marron', '#6d4c41'], ['dorée?|doré|or', '#ffc107'], ['argent|argentée?', '#cfd8dc'], ['turquoise', '#26c6da']].map(([m, c]) => [atlMot(m), c]);
+const ATL_FORME_DEF = { rond: '#42a5f5', carre: '#ff7043', rectangle: '#8d6e63', etoile: '#ffd34d', barre: '#8d6e63', triangle: '#ab47bc', coeur: '#ef5350', losange: '#26c6da', anneau: '#ffc107' };
+function atlForme(nom) {
+  const t = String(nom || '').trim(); if (!t || t.split(/\s+/).length > 4) return null;
+  const hit = ATL_FORMES.find(([rx]) => rx.test(t)); if (!hit) return null;
+  const c = ATL_COUL.find(([rx]) => rx.test(t));
+  return { nom: t.slice(0, 80), forme: hit[1], couleur: c ? c[1] : ATL_FORME_DEF[hit[1]] };
+}
+function atlFormeSvg(forme, couleur) {
+  const NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg'), col = /^#[0-9a-f]{6}$/i.test(String(couleur)) ? couleur : '#ffd34d';
+  s.setAttribute('viewBox', '0 0 100 100'); s.setAttribute('class', 'atl-forme'); s.setAttribute('aria-hidden', 'true');
+  const el = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); s.appendChild(e); return e; };
+  const st = { fill: col, stroke: 'rgba(0,0,0,.35)', 'stroke-width': '4', 'stroke-linejoin': 'round' };
+  const P = { etoile: '50,6 62,38 96,38 68,58 79,92 50,72 21,92 32,58 4,38 38,38', triangle: '50,8 92,88 8,88', losange: '50,5 95,50 50,95 5,50' };
+  if (forme === 'rond') el('circle', Object.assign({ cx: 50, cy: 50, r: 40 }, st));
+  else if (forme === 'carre') el('rect', Object.assign({ x: 12, y: 12, width: 76, height: 76, rx: 10 }, st));
+  else if (forme === 'rectangle') el('rect', Object.assign({ x: 5, y: 28, width: 90, height: 44, rx: 8 }, st));
+  else if (forme === 'barre') el('rect', Object.assign({ x: 4, y: 40, width: 92, height: 20, rx: 10 }, st));
+  else if (forme === 'anneau') el('circle', { cx: 50, cy: 50, r: 34, fill: 'none', stroke: col, 'stroke-width': '14' });
+  else if (forme === 'coeur') el('path', Object.assign({ d: 'M50 88 C20 66 6 50 6 32 C6 16 18 8 30 8 C40 8 47 14 50 22 C53 14 60 8 70 8 C82 8 94 16 94 32 C94 50 80 66 50 88 Z' }, st));
+  else el('polygon', Object.assign({ points: P[forme] || P.etoile }, st));
+  el('ellipse', { cx: 38, cy: 32, rx: 12, ry: 6, fill: 'rgba(255,255,255,.35)' });   // un petit reflet
+  return s;
+}
+// ---- l'étape « Le design » : chaque élément de la fiche, avec son dessin (découpé), sa forme, ou « à dessiner »
+const atlNorm = s => String(s || '').trim().toLowerCase();
+function atlElemsFiche(fi) { const out = []; for (const k of ['personnages', 'objets', 'decor']) for (const x of atlListeDe(fi[k])) if (!out.some(o => atlNorm(o.nom) === atlNorm(x))) out.push({ nom: x, k }); return out; }
+function atlDessinDe(f, fi, nom) {
+  const n = atlNorm(nom), as = Array.isArray(f.assets) ? f.assets : [];
+  const a = as.slice().reverse().find(x => x && x.sorte === 'élément' && atlNorm(x.nom) === n && atlIaUrl(x.image)); if (a) return { img: atlIaUrl(a.image) };
+  const fo = (Array.isArray(fi.formes) ? fi.formes : []).find(x => x && atlNorm(x.nom) === n && ATL_FORMES_OK.has(x.forme)); if (fo) return { forme: fo };
+  if ((Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours : []).some(x => atlNorm(x) === n)) return { attente: true };
+  return null;
+}
+function atlWizDessins(page, f, fi) {
+  const els = atlElemsFiche(fi); if (!els.length) return;
+  const sec = atlEl('div', 'atl-wds'); sec.appendChild(atlEl('h3', '', '🧩 Les dessins de ton jeu'));
+  const gr = atlEl('div', 'atl-wdg'); let faits = 0;
+  for (const e of els) {
+    const d = atlDessinDe(f, fi, e.nom), c = atlEl('figure', 'atl-wdc' + (d ? (d.attente ? ' att' : ' ok') : ''));
+    if (d && d.img) { const im = atlEl('img'); im.alt = e.nom; im.loading = 'lazy'; im.src = d.img; im.addEventListener('click', () => atlZoom(d.img)); c.appendChild(im); faits++; }
+    else if (d && d.forme) { c.appendChild(atlFormeSvg(d.forme.forme, d.forme.couleur)); faits++; }
+    else if (d && d.attente) { const o = atlEl('div', 'atl-wdv'); o.appendChild(atlEl('span', 'atl-spin')); c.appendChild(o); }
+    else c.appendChild(atlEl('div', 'atl-wdv', '✏️'));
+    c.appendChild(atlEl('figcaption', '', e.nom)); gr.appendChild(c);
+  }
+  sec.appendChild(gr);
+  const att = Array.isArray(f.dessins_en_cours) && f.dessins_en_cours.length;
+  sec.appendChild(atlEl('p', 'atl-aide', att ? '⏳ Notre IA dessine tes éléments, puis les découpe un par un (une à deux minutes).' : faits + ' / ' + els.length + ' dessinés. Notre IA les dessine par planches de 8 au plus, puis les découpe un par un ; les formes simples (rond, carré, étoile, barre…) sont dessinées tout de suite.'));
+  const b = atlEl('button', 'btn btn-play', '🎨 Dessiner mes éléments'); b.type = 'button'; b.disabled = !!att; b.addEventListener('click', atlModale);
+  sec.appendChild(b); page.appendChild(sec);
+}
+function atlModale() {
+  const R = ATL.root, M = R.querySelector('.atl-mod'), f = atlFiche(); if (!f) return;
+  const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, cr = atlCred(), ci = cr ? cr.cout | 0 : 10, cf = cr ? (cr.forme == null ? 3 : cr.forme | 0) : 3;
+  const els = atlElemsFiche(fi).map(e => Object.assign(e, { fait: !!atlDessinDe(f, fi, e.nom), forme: atlForme(e.nom) }));
+  M.textContent = ''; M.hidden = false;
+  const card = atlEl('div', 'atl-mcard'); M.appendChild(card);
+  card.append(atlEl('h2', '', '🎨 Dessiner mes éléments'), atlEl('p', 'atl-aide', 'Notre IA dessine tes éléments par planches de 8 au plus (' + ci + ' 💎 la planche), puis les découpe un par un, fond retiré. Les formes simples sont dessinées tout de suite, sans IA (' + cf + ' 💎 chacune).'));
+  const ul = atlEl('div', 'atl-mlist'), boxes = [];
+  for (const e of els) {
+    const l = atlEl('label', 'atl-mrow'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = !e.fait;
+    const v = atlEl('span', 'atl-mvis'); if (e.forme) v.appendChild(atlFormeSvg(e.forme.forme, e.forme.couleur)); else v.textContent = '🖌️';
+    l.append(cb, v, atlEl('span', 'atl-mnom', e.nom), atlEl('small', 'atl-mtag' + (e.forme ? ' f' : ''), e.fait ? 'déjà dessiné' : e.forme ? 'forme · ' + cf + ' 💎' : 'dessin'));
+    cb.addEventListener('change', maj); ul.appendChild(l); boxes.push([cb, e]);
+  }
+  const tot = atlEl('p', 'atl-mtot'), row = atlEl('div', 'atl-mbtns');
+  const non = atlEl('button', 'btn btn-ghost', 'Annuler'); non.type = 'button'; non.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
+  const go = atlEl('button', 'btn btn-play', ''); go.type = 'button'; row.append(non, go);
+  const er = atlEl('p', 'atl-werr'); er.hidden = true;
+  card.append(ul, tot, er, row);
+  function calc() { const sel = boxes.filter(([cb]) => cb.checked).map(([, e]) => e), fo = sel.filter(e => e.forme), de = sel.filter(e => !e.forme), np = Math.ceil(de.length / 8); return { fo, de, np, cout: np * ci + fo.length * cf }; }
+  function maj() { const c = calc(); go.disabled = !c.fo.length && !c.de.length; go.textContent = 'Dessiner · ' + c.cout + ' 💎'; tot.textContent = c.de.length + ' dessin' + (c.de.length > 1 ? 's' : '') + ' (' + c.np + ' planche' + (c.np > 1 ? 's' : '') + ') + ' + c.fo.length + ' forme' + (c.fo.length > 1 ? 's' : '') + ' = ' + c.cout + ' crédits'; }
+  go.addEventListener('click', async () => {
+    const c = calc(); if (go.disabled || ATL.sending) return;
+    if (cr && (cr.solde | 0) < c.cout) { er.hidden = false; er.textContent = 'Il te manque des crédits : décoche des éléments, ou demande des crédits.'; atlCreditsBtn(er); return; }
+    ATL.sending = true; go.disabled = true; er.hidden = true;
+    try {
+      const r = await rpc('at_dessins_demander', { p_name: profile.name, p_fiche: f.id, p_elements: c.de.map(e => e.nom), p_formes: c.fo.map(e => e.forme) }, { quiet: true });
+      if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
+      f.dessins_en_cours = (Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours : []).concat(c.de.map(e => e.nom));
+      fi.formes = (Array.isArray(fi.formes) ? fi.formes : []).filter(x => !c.fo.some(e => atlNorm(e.nom) === atlNorm(x && x.nom))).concat(c.fo.map(e => e.forme)); f.fiche = fi;
+      M.hidden = true; M.textContent = ''; atlRenderWiz(); atlRenderRoute(false);
+      toastCheer(c.de.length ? '🎨 Notre IA dessine tes éléments !' : '🔷 Tes formes sont prêtes !', null, true);
+    } catch (e) { go.disabled = false; er.hidden = false; const m = String((e && e.message) || ''); er.textContent = /dessins en cours/.test(m) ? 'Tes dessins sont déjà en route : encore un petit moment !' : atlWizWhy(e); if (/credits insuffisants/.test(m)) atlCreditsBtn(er); }
+    finally { ATL.sending = false; }
+  });
+  maj();
+}
+// ---- la FEUILLE DE ROUTE : ce qui est choisi, rempli, dessiné ; les crédits ----
+function atlRenderRoute(liste) {
+  const R = ATL.root, D = R && R.querySelector('.atl-route'); if (!D) return;
+  D.hidden = !!liste; if (liste) return;
+  const large = window.matchMedia('(min-width: 1000px)').matches; if (large) D.open = true;
+  const f = atlFiche(), fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, b = atlBasesVal(), cr = atlCred(), et = f ? String(f.etat || '') : '', lance = f && (ATL_AFTER.has(et) || et === 'refusee');
+  const B = D.querySelector('.atl-rbody'); B.textContent = '';
+  const sec = (t) => { const s = atlEl('section', 'atl-rsec'); s.appendChild(atlEl('h4', '', t)); B.appendChild(s); return s; };
+  const ligne = (s, ic, lab, val, fn, ok) => { const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); s.appendChild(r); };
+  const s1 = sec('🧱 Les bases');
+  ATL_BASES.forEach(([k, ic, , court], i) => ligne(s1, ic, court, b[k] || '—', lance ? null : () => { ATL.basesOn = true; ATL.basesUne = !!(f && f.id && atlRempli(f)); ATL.bq = i; atlRender(); }, !!b[k]));
+  const s2 = sec('📋 Ta fiche');
+  const etape = i => (f && atlWizOn() && !lance) ? () => { ATL.basesOn = false; ATL.step = i; atlRender(); } : null;
+  ligne(s2, '💡', 'L’idée', atlVal(fi.idee) ? '✔' : '…', etape(0), !!atlVal(fi.idee));
+  [['personnages', '🦸', 'Personnages', 1], ['objets', '🎁', 'Objets', 2], ['decor', '🏞️', 'Décor', 3], ['sons', '🎵', 'Sons', 4]].forEach(([k, ic, lab, i]) => { const n = atlListeDe(fi[k]).length; ligne(s2, ic, lab, n ? String(n) : '…', etape(i), !!n); });
+  const s3 = sec('🎨 Le design');
+  const els = f ? atlElemsFiche(fi) : [], faits = f ? els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length : 0, att = f && Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours.length : 0;
+  ligne(s3, '🖼️', 'L’ambiance', f && f.design_en_cours ? '⏳' : f && f.design ? '✔' : '…', etape(5), !!(f && f.design));
+  ligne(s3, '🧩', 'Dessins', els.length ? faits + ' / ' + els.length + (att ? ' ⏳' : '') : '…', etape(5), !!els.length && faits === els.length);
+  const s4 = sec('🚀 Où en est ton jeu');
+  s4.appendChild(atlEl('p', 'atl-rst', !f ? (ATL.nouveau ? (atlBasesOn() ? 'Étape 1 : les bases' : 'Étape 2 : décris ton jeu') : '') : ATL_ETATS[et] || et));
+  const s5 = sec('💎 Crédits');
+  s5.appendChild(atlEl('p', 'atl-rcr', cr ? Math.max(0, cr.solde | 0) + ' crédits' : '…'));
+  s5.appendChild(atlEl('small', 'atl-rcx', 'Un message : ' + (cr ? cr.message | 0 : 2) + ' · un dessin : ' + (cr ? cr.cout | 0 : 10) + ' · une forme : ' + (cr && cr.forme != null ? cr.forme | 0 : 3)));
+  B.appendChild(atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
 }
 
 // ---------- serveur ----------
@@ -14672,7 +14861,7 @@ async function atlSend() {
   if (cr) atlSolde(before - (cr.message | 0));
   try {
     const r = await rpc('at_dire', { p_name: profile.name, p_texte: t, p_micro: micro, p_image: false, p_fiche: ATL.cur || null, p_nouveau: !ATL.cur }, { quiet: true });
-    if (r && r.fiche && !ATL.cur) { ATL.cur = r.fiche; ATL.nouveau = false; }
+    if (r && r.fiche && !ATL.cur) { ATL.cur = r.fiche; ATL.nouveau = false; atlBasesEnvoyer(r.fiche); }
     if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
     if (inp.value.trim() === t) inp.value = ''; ATL.micUsed = false;
     ATL.pend = []; ATL.stick = true; await atlLoad(true);

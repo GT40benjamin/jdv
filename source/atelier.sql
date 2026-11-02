@@ -1850,3 +1850,178 @@ end $$;
 revoke all on function pegase_int.at_gen_apres(uuid, boolean, text) from public, anon, authenticated;
 revoke all on function pegase_int.at_prompt_design(public.at_fiches, text) from public, anon, authenticated;
 revoke all on function pegase_int.at_design_en_cours(uuid) from public, anon, authenticated;
+
+-- ===================================================================================================================================
+-- LES BASES, LES DESSINS DÉCOUPÉS, LES FORMES (borne 1.63.64, 2 nov. 2026 18 h 25, Benjamin) :
+-- · « Les bases de ton jeu » (5 questions : type, vue, avec qui, score, style ; le jeu est toujours en 2D) → fiche.bases (at_fiche_etape, gratuit) ;
+-- · DESIGN = GÉNÉRATION D'ASSETS : le joueur demande les dessins de ses éléments (at_dessins_demander) → planches de 8 éléments au plus
+--   (cout_image crédits la planche), dessinées par la file de l'équipe (role 'assets') puis DÉCOUPÉES AUTOMATIQUEMENT par la fonction Edge
+--   (détection des dessins, fond retiré, PNG transparents, nommés comme dans la fiche) → at_fiches.assets (un élément = une image) ;
+-- · les FORMES simples (rond, carré, étoile, barre, plateforme…) ne sont pas générées : dessinées par le code de la borne (fiche.formes),
+--   cout_forme crédits chacune (3) ;
+-- · (équipe) at_gen_decouper : redécouper une planche déjà dessinée, sans rien générer (0 €).
+insert into public.at_reglages (k, v) values ('cout_forme', 3) on conflict (k) do nothing;
+alter table public.at_gen_file add column if not exists source text;
+
+-- la file : une découpe seule (role 'decoupe') ne coûte rien et ne compte pas dans le plafond
+create or replace function public.at_gen_prendre()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare g public.at_gen_file; c int;
+begin
+  update public.at_gen_file x set etat = case when x.essais >= 3 then 'erreur' else 'attente' end, erreur = case when x.essais >= 3 then 'trop d essais' else x.erreur end
+    where x.etat = 'en_cours' and x.debut_at < now() - interval '10 minutes';
+  perform pegase_int.at_gen_apres(x.id, false, null) from public.at_gen_file x where x.etat = 'erreur' and x.erreur = 'trop d essais' and coalesce(x.credits, 0) > 0;
+  select * into g from public.at_gen_file x where x.etat = 'attente' order by x.at limit 1 for update skip locked;
+  if g.id is null then return null; end if;
+  c := case when g.role = 'decoupe' then 0 when g.sorte = 'image' then coalesce(pegase_int.at_reglage('cout_image_centimes'), 4) when g.sorte = 'son' then coalesce(pegase_int.at_reglage('cout_son_centimes'), 10)
+       else coalesce(pegase_int.at_reglage('cout_musique_centimes'), 50) end;
+  if c > 0 then
+    perform pg_advisory_xact_lock(hashtext('atelier-ia-plafond'));
+    if pegase_int.at_ia_centimes() + c > coalesce(pegase_int.at_reglage('budget_euros_mois'), 0) * 100
+       or (g.sorte = 'image' and pegase_int.at_ia_utilisees() + 1 > coalesce(pegase_int.at_reglage('plafond_images_mois'), 0)) then
+      update public.at_gen_file x set etat = 'erreur', erreur = 'budget ou plafond du mois atteint', fin_at = now() where x.id = g.id;
+      perform pegase_int.at_gen_apres(g.id, false, null);
+      return jsonb_build_object('pause', true);
+    end if;
+  end if;
+  update public.at_gen_file x set etat = 'en_cours', essais = x.essais + 1, debut_at = now(), cents = c where x.id = g.id returning * into g;
+  return jsonb_build_object('id', g.id, 'sorte', g.sorte, 'prompt', g.prompt, 'ratio', g.ratio, 'modele', g.modele, 'duree', g.duree,
+    'role', g.role, 'elements', g.elements, 'source', g.source);
+end $$;
+revoke all on function public.at_gen_prendre() from public, anon, authenticated;
+grant execute on function public.at_gen_prendre() to service_role;
+
+-- la fin d'un travail : p_decoupes = les éléments découpés [{nom, path}] (un élément = une image transparente)
+drop function if exists public.at_gen_fin(uuid, text, text, text);
+create or replace function public.at_gen_fin(p_id uuid, p_path text, p_modele text default null, p_erreur text default null, p_decoupes jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare g public.at_gen_file; f public.at_fiches; ok boolean := p_path is not null; ne int; dec jsonb := '[]'::jsonb;
+begin
+  select * into g from public.at_gen_file x where x.id = p_id; if g.id is null then raise exception 'travail inconnu'; end if;
+  if g.etat <> 'en_cours' then raise exception 'pas en cours'; end if;
+  if ok and p_path !~ '^(i/[0-9a-f-]{36}[.](png|jpg|webp)|s/[0-9a-f-]{36}[.]mp3)$' then raise exception 'chemin refuse'; end if;
+  if jsonb_typeof(p_decoupes) = 'array' then
+    select coalesce(jsonb_agg(jsonb_build_object('nom', left(btrim(d ->> 'nom'), 80), 'path', d ->> 'path') order by o), '[]'::jsonb) into dec
+      from jsonb_array_elements(p_decoupes) with ordinality as e(d, o)
+      where o <= 12 and (d ->> 'path') ~ '^i/[0-9a-f-]{36}[.]png$' and length(btrim(coalesce(d ->> 'nom', ''))) between 1 and 80;
+  end if;
+  update public.at_gen_file x set etat = case when ok then 'fait' else 'erreur' end, fin_at = now(), erreur = left(p_erreur, 300),
+    resultat = case when ok then jsonb_build_object('path', p_path, 'decoupes', dec) else null end where x.id = g.id;
+  select * into f from public.at_fiches x where x.id = g.fiche;
+  if coalesce(g.role, '') <> 'decoupe' then
+    insert into public.at_ia (fiche, name, sorte, consigne, nb, cout, at, fin_at, ok, erreur, modele, projet, cents, choix)
+      values (g.fiche, coalesce(f.name, 'EQUIPE'), 'equipe-' || g.sorte, left(g.titre, 200), 1, 0, g.debut_at, now(), case when ok then 1 else 0 end, left(p_erreur, 200), left(p_modele, 80), f.titre,
+              case when ok then g.cents else 0 end, case when g.elements is not null then jsonb_build_object('elements', g.elements) end);
+  end if;
+  if ok and f.id is not null and coalesce(g.role, '') <> 'design' then
+    ne := coalesce(jsonb_array_length(g.elements), 0);
+    update public.at_fiches x set maj_at = now(), assets = coalesce(x.assets, '[]'::jsonb) || case
+      when jsonb_array_length(dec) > 0 then (select jsonb_agg(jsonb_build_object('nom', d ->> 'nom', 'sorte', 'élément', 'source', 'dessiné par notre IA', 'licence', 'à nous', 'image', d ->> 'path', 'planche', p_path)) from jsonb_array_elements(dec) d)
+      when g.sorte = 'image' and ne > 1 then jsonb_build_array(jsonb_build_object('nom', coalesce(nullif(g.titre, ''), 'Planche'), 'sorte', 'planche', 'source', 'dessiné par notre IA', 'licence', 'à nous', 'image', p_path, 'elements', g.elements))
+      when g.sorte = 'image' then jsonb_build_array(jsonb_build_object('nom', coalesce(nullif(g.titre, ''), g.elements ->> 0), 'sorte', 'grande image', 'source', 'dessiné par notre IA', 'licence', 'à nous', 'image', p_path))
+      else jsonb_build_array(jsonb_build_object('nom', coalesce(nullif(g.titre, ''), g.sorte), 'sorte', g.sorte, 'source', 'ElevenLabs (équipe)', 'licence', 'à nous', 'son', p_path)) end
+    where x.id = f.id and length(coalesce(x.assets, '[]'::jsonb)::text) < 60000;
+  end if;
+  perform pegase_int.at_gen_apres(g.id, ok, p_path);
+  return jsonb_build_object('id', g.id, 'ok', ok, 'decoupes', jsonb_array_length(dec));
+end $$;
+revoke all on function public.at_gen_fin(uuid, text, text, text, jsonb) from public, anon, authenticated;
+grant execute on function public.at_gen_fin(uuid, text, text, text, jsonb) to service_role;
+
+-- crédits rendus si un dessin payé par le joueur rate (design ou planche d'éléments)
+create or replace function pegase_int.at_gen_apres(p_id uuid, ok boolean, p_path text) returns void language plpgsql security definer set search_path = public as $$
+declare g public.at_gen_file;
+begin
+  select * into g from public.at_gen_file x where x.id = p_id; if g.id is null or coalesce(g.role, '') not in ('design', 'assets') then return; end if;
+  if ok and g.role = 'design' then
+    update public.at_fiches x set design = jsonb_build_object('f', p_path, 'at', now(), 'changement', nullif(regexp_replace(g.titre, '^Design( : )?', ''), '')), design_at = now(), maj_at = now() where x.id = g.fiche;
+  elsif not ok and g.paye_par is not null and coalesce(g.credits, 0) > 0 then
+    update public.at_credits x set solde = x.solde + g.credits, maj_at = now() where x.name = g.paye_par;
+    update public.at_gen_file x set credits = 0 where x.id = g.id;
+  end if;
+end $$;
+revoke all on function pegase_int.at_gen_apres(uuid, boolean, text) from public, anon, authenticated;
+
+-- (joueur) les dessins de ses éléments : planches de 8 au plus (cout_image la planche) + formes simples dessinées par le code (cout_forme)
+create or replace function public.at_dessins_demander(p_name text, p_fiche uuid, p_elements text[], p_formes jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; el text[]; fo jsonb := '[]'::jsonb; ci int := coalesce(pegase_int.at_reglage('cout_image'), 10);
+  cf int := coalesce(pegase_int.at_reglage('cout_forme'), 3); np int; tot int; s int; why text; i int; ch text[]; pr jsonb; u uuid; nj int := 0;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-design', 12, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if f.etat not in ('brouillon', 'en_discussion', 'complete') or f.paye is not null then raise exception 'projet lance'; end if;
+  select coalesce(array_agg(distinct left(btrim(x), 80)), '{}') into el from unnest(coalesce(p_elements, '{}')) x where length(btrim(x)) >= 2;
+  if jsonb_typeof(p_formes) = 'array' then
+    select coalesce(jsonb_agg(jsonb_build_object('nom', left(btrim(d ->> 'nom'), 80), 'forme', d ->> 'forme', 'couleur', lower(d ->> 'couleur'))), '[]'::jsonb) into fo
+      from jsonb_array_elements(p_formes) d
+      where (d ->> 'forme') in ('rond', 'carre', 'rectangle', 'etoile', 'barre', 'triangle', 'coeur', 'losange', 'anneau')
+        and (d ->> 'couleur') ~* '^#[0-9a-f]{6}$' and length(btrim(coalesce(d ->> 'nom', ''))) between 1 and 80;
+  end if;
+  if coalesce(array_length(el, 1), 0) + jsonb_array_length(fo) = 0 then raise exception 'rien a dessiner'; end if;
+  if coalesce(array_length(el, 1), 0) > 24 or jsonb_array_length(fo) > 30 then raise exception 'trop d elements'; end if;
+  if coalesce(array_length(el, 1), 0) > 0 then
+    if coalesce(pegase_int.at_reglage('ia_admins_seulement'), 0) = 1 and not exists (select 1 from public.at_admins a where a.name = n) then raise exception 'plafond global'; end if;
+    if exists (select 1 from public.at_gen_file g where g.fiche = f.id and g.role = 'assets' and g.etat in ('attente', 'en_cours')) then raise exception 'dessins en cours'; end if;
+  end if;
+  why := pegase_int.at_filtre(array_to_string(el, ' ') || ' ' || coalesce((select string_agg(d ->> 'nom', ' ') from jsonb_array_elements(fo) d), '')); if why <> '' then raise exception 'filtre %', why; end if;
+  np := ceil(coalesce(array_length(el, 1), 0) / 8.0)::int;
+  tot := np * ci + jsonb_array_length(fo) * cf;
+  s := pegase_int.at_debiter(n, tot);
+  if jsonb_array_length(fo) > 0 then
+    update public.at_fiches x set fiche = x.fiche || jsonb_build_object('formes',
+      coalesce((select jsonb_agg(o) from jsonb_array_elements(coalesce(x.fiche -> 'formes', '[]'::jsonb)) o where not exists (select 1 from jsonb_array_elements(fo) z where z ->> 'nom' = o ->> 'nom')), '[]'::jsonb) || fo),
+      maj_at = now() where x.id = f.id returning * into f;
+  end if;
+  for i in 0 .. np - 1 loop
+    ch := el[i * 8 + 1 : least(i * 8 + 8, array_length(el, 1))];
+    pr := pegase_int.at_prompt_planche(f, ch);
+    insert into public.at_gen_file (fiche, sorte, titre, prompt, elements, ratio, role, paye_par, credits)
+      values (f.id, 'image', left('Dessins : ' || array_to_string(ch, ', '), 80), pr ->> 'prompt', to_jsonb(ch), pr ->> 'ratio', 'assets', n, ci) returning id into u;
+    nj := nj + 1;
+  end loop;
+  if nj > 0 then perform pegase_int.at_gen_reveil(); end if;
+  return jsonb_build_object('solde', s, 'planches', nj, 'formes', jsonb_array_length(fo), 'cout', tot);
+end $$;
+revoke all on function public.at_dessins_demander(text, uuid, text[], jsonb) from public, anon;
+grant execute on function public.at_dessins_demander(text, uuid, text[], jsonb) to authenticated;
+
+-- (équipe) redécouper une planche déjà dessinée (0 €) : p_fiche null = essai sans rien ajouter au projet
+create or replace function public.at_gen_decouper(p_fiche uuid, p_path text, p_elements text[]) returns uuid language plpgsql security definer set search_path = public as $$
+declare u uuid;
+begin
+  if p_path !~ '^i/[0-9a-f-]{36}[.](png|jpg|webp)$' then raise exception 'chemin refuse'; end if;
+  if coalesce(array_length(p_elements, 1), 0) not between 1 and 12 then raise exception 'de 1 a 12 elements'; end if;
+  insert into public.at_gen_file (fiche, sorte, titre, prompt, elements, role, source)
+    values (p_fiche, 'image', left('Découpe : ' || array_to_string(p_elements, ', '), 80), '(découpe)', to_jsonb(p_elements), 'decoupe', p_path) returning id into u;
+  perform pegase_int.at_gen_reveil();
+  return u;
+end $$;
+revoke all on function public.at_gen_decouper(uuid, text, text[]) from public, anon, authenticated;
+
+-- at_fiche_etape : + les bases (objet type / vue / avec / score / style)
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_fiche_etape(text, uuid, text, jsonb)'::regprocedure);
+  if position('''bases''' in d) = 0 then
+    d := replace(d, 'if p_cle not in (''idee'', ''titre'', ''personnages'', ''objets'', ''decor'', ''sons'') then', 'if p_cle not in (''idee'', ''titre'', ''personnages'', ''objets'', ''decor'', ''sons'', ''bases'') then');
+    d := replace(d, '  if p_cle in (''idee'', ''titre'') then',
+      '  if p_cle = ''bases'' then' || chr(10) ||
+      '    if jsonb_typeof(p_valeur) <> ''object'' then raise exception ''objet attendu''; end if;' || chr(10) ||
+      '    select coalesce(jsonb_object_agg(k, left(btrim(v), 120)), ''{}''::jsonb) into v from jsonb_each_text(p_valeur) t(k, v) where k in (''type'', ''vue'', ''avec'', ''score'', ''style'') and length(btrim(v)) >= 1;' || chr(10) ||
+      '    e := (select string_agg(x, '' '') from jsonb_each_text(v) t(k, x));' || chr(10) ||
+      '  elsif p_cle in (''idee'', ''titre'') then');
+    if position('''bases''' in d) = 0 or position('jsonb_each_text(p_valeur)' in d) = 0 then raise exception 'at_fiche_etape'; end if;
+    execute d;
+  end if;
+  -- at_lire : les éléments en cours de dessin, et le prix d'une forme
+  d := pg_get_functiondef('public.at_lire(text, uuid)'::regprocedure);
+  if position('dessins_en_cours' in d) = 0 then
+    d := replace(d, '''design_en_cours'', pegase_int.at_design_en_cours(f.id),', '''design_en_cours'', pegase_int.at_design_en_cours(f.id), ''dessins_en_cours'', (select coalesce(jsonb_agg(e), ''[]''::jsonb) from public.at_gen_file g, jsonb_array_elements_text(g.elements) e where g.fiche = f.id and g.role = ''assets'' and g.etat in (''attente'', ''en_cours'')),');
+    d := replace(d, '''conception'', greatest(0,', '''forme'', coalesce(pegase_int.at_reglage(''cout_forme''), 3), ''conception'', greatest(0,');
+    if position('dessins_en_cours' in d) = 0 or position('cout_forme' in d) = 0 then raise exception 'at_lire'; end if;
+    execute d;
+  end if;
+end $$;
