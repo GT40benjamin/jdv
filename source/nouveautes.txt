@@ -6,6 +6,12 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🌋 Abracadabra : chaque mot a ses conséquences au pont du village (borne 1.63.13)
+[abracadabra] 🎳 Mission 1 : le pont n'est gagné que quand les 6 villageois sont de l'autre côté. Dis « boule », « rocher » ou « météorite » pendant qu'ils traversent : ça tombe du ciel, le pont casse en deux et plonge dans la rivière !
+[abracadabra] 🏊 Ceux qui étaient dessus tombent à l'eau (« Blub ! Au secours ! »), nagent jusqu'à la berge et ressortent trempés. Redis « pont » pour en refaire un.
+[abracadabra] 🌋 Dis « volcan » : une montagne sort de terre, gronde, explose et fait pleuvoir la lave. Les villageois courent partout et finissent tout noirs de suie (« Kof ! Kof ! ») : mission perdue !
+[abracadabra] 🐟 Une truite ou un poisson ne reste plus planté dans l'herbe : il gigote et rejoint la rivière en petits bonds, encouragé par les villageois.
+[abracadabra] 🏎️ « Voiture » fait apparaître une vraie voiture de sport (la petite voiture jouet reste là si tu dis « petite voiture »). Une voiture ou une grosse bête peut parfois casser le pont, elle aussi.
 [pegase] ## 🐕 Pégase 0.9.9.40 : plus personne ne te bouscule (borne 1.63.12)
 [pegase] 🐕 Les chiens, les chats et les habitants ne poussent plus l'héroïne : ils gardent leurs distances, la contournent et s'écartent quand elle avance. Au coin du perron de la mairie ou au pied des piliers de la place, tu peux toujours repartir.
 [pegase] 🎩 Papi Auguste n'est plus invisible pour « Aller écouter Papi Auguste à la mairie » : tant que la mission est proposée, il t'attend en haut des escaliers de la mairie, à toute heure, même la nuit. Parle-lui pour faire venir la foule, puis reparle-lui pour son discours.
