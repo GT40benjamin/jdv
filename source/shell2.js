@@ -14197,7 +14197,7 @@ function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
-    + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
+    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
@@ -14247,6 +14247,7 @@ function atlRender() {
   const liste = !ATL.cur && !ATL.nouveau, R = ATL.root;
   const bases = !liste && atlBasesOn(), wiz = !liste && !bases && atlWizOn();
   R.querySelector('.atl-main').hidden = liste || wiz || bases; R.querySelector('.atl-projets').hidden = !liste; R.querySelector('.atl-wiz').hidden = !wiz; R.querySelector('.atl-bases').hidden = !bases;
+  atlNom(liste);
   R.classList.toggle('liste', liste); R.classList.toggle('wiz', wiz); R.classList.toggle('a1', !liste && !wiz && !bases); R.classList.toggle('route', !liste);
   R.querySelector('.atl-back').setAttribute('aria-label', liste ? 'Retour à la borne' : 'Mes projets');
   if (liste) atlRenderProjets(); else if (bases) atlRenderBases(); else if (wiz) atlRenderWiz(); else { atlRenderFiche(); atlRenderChat(); atlPrefill(); }
@@ -14262,7 +14263,7 @@ function atlRenderProjets() {
     const b = atlEl('button', 'atl-ptile' + (atlProjNew(pj) ? ' new' : '')); b.type = 'button';
     const v = atlEl('span', 'atl-pv'), u = atlIaUrl(pj.vignette);
     if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; v.appendChild(im); } else v.textContent = '🎮';
-    b.append(v, atlEl('b', '', pj.titre || 'Projet sans titre'), atlEl('small', '', ATL_ETATS[pj.etat] || String(pj.etat || '')));
+    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', '', ATL_ETATS[pj.etat] || String(pj.etat || '')));
     if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
     b.addEventListener('click', () => atlOuvrir(pj.id)); g.appendChild(b);
   }
@@ -14503,7 +14504,7 @@ function atlRenderWiz() {
   const [k, ic, lab, aide] = ATL_STEPS[st], page = atlEl('section', 'atl-page');
   page.append(atlEl('h2', '', ic + ' ' + lab), atlEl('p', 'atl-aide', aide));
   if (k === 'idee') {
-    const tl = atlEl('label', 'atl-flab', 'Le nom de ton jeu'), ti = atlEl('input', 'atl-wti'); ti.type = 'text'; ti.maxLength = 60; ti.value = f.titre || ''; ti.placeholder = 'Le nom de ton jeu';
+    const tl = atlEl('label', 'atl-flab', 'Le nom de ton jeu'), ti = atlEl('input', 'atl-wti'); ti.type = 'text'; ti.maxLength = 40; ti.value = f.titre || ''; ti.placeholder = 'Le nom de ton jeu';
     ti.addEventListener('change', () => { const v = ti.value.trim(); if (v.length >= 2 && v !== f.titre) atlEtape('titre', v); });
     const ta = atlEl('textarea', 'atl-wta'); ta.rows = 6; ta.maxLength = 1500; ta.value = atlVal(fi.idee); ta.setAttribute('aria-label', 'L’idée de ton jeu');
     ta.addEventListener('change', () => { const v = ta.value.trim(); if (v.length >= 2 && v !== atlVal(fi.idee)) atlEtape('idee', v); });
@@ -14582,7 +14583,7 @@ function atlRenderProjet(W, f) {
   const hd = atlEl('header', 'atl-phd');
   const hv = atlEl('div', 'atl-phv'); if (dz) { const im = atlEl('img'); im.alt = ''; im.src = dz; im.addEventListener('click', () => atlZoom(dz)); hv.appendChild(im); } else hv.textContent = '🎮';
   const ht = atlEl('div', 'atl-pht');
-  ht.append(atlEl('h1', '', f.titre || 'Mon jeu'), atlEl('span', 'atl-pet atl-pet-' + et, ATL_ETATS[et] || et));
+  ht.append(atlEl('h1', '', f.titre || 'Mon jeu sans nom'), atlEl('span', 'atl-pet atl-pet-' + et, ATL_ETATS[et] || et));
   ht.appendChild(atlEl('small', '', 'Commencé le ' + atlDate(f.created_at) + (f.envoyee_at ? ' · conception lancée le ' + atlDate(f.envoyee_at) : '')));
   hd.append(hv, ht); box.appendChild(hd);
   // les onglets
@@ -14951,6 +14952,32 @@ async function atlBrSave(cur0) {
   try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: id, p_cle: 'brouillon', p_valeur: t }, { quiet: true }); } catch (e) {}
 }
 function atlBrFlush() { if (ATL && ATL.brT) atlBrSave(ATL.cur); }
+
+// ---- 2 nov. 19 h 35 (Benjamin) : NOMMER son projet — en haut à gauche, « Mon jeu sans nom » par défaut, ✏️ pour le changer (gratuit,
+// 40 caractères, enregistré tout seul, montré sur la tuile de « Mes projets ») ; texte du joueur : textContent / value seulement
+function atlNom(liste) {
+  const R = ATL.root, n = R.querySelector('.atl-nom'), bt = R.querySelector('.atl-nomb'), nr = R.querySelector('.atl-nomr'); if (!n || nr.querySelector('input')) return;
+  const f = atlFiche(), ok = !liste && (ATL.nouveau || (f && f.etat !== 'refusee'));
+  n.textContent = liste ? 'L’Atelier des jeux' : ((f && f.titre) || 'Mon jeu sans nom'); bt.hidden = !ok; n.classList.toggle('edit', !!ok);
+  if (!n.dataset.on) { n.dataset.on = '1'; const go = () => { if (!bt.hidden) atlNomEdit(); }; n.addEventListener('click', go); bt.addEventListener('click', go); }
+}
+function atlNomEdit() {
+  const R = ATL.root, n = R.querySelector('.atl-nom'), bt = R.querySelector('.atl-nomb'), nr = R.querySelector('.atl-nomr'), f = atlFiche();
+  const i = atlEl('input', 'atl-nomi'); i.type = 'text'; i.maxLength = 40; i.value = (f && f.titre) || ''; i.placeholder = 'Mon jeu sans nom'; i.setAttribute('aria-label', 'Le nom de mon jeu');
+  n.hidden = true; bt.hidden = true; nr.insertBefore(i, n); i.focus(); i.select();
+  let fini = false;
+  const fin = garder => { if (fini) return; fini = true; const v = i.value.replace(/\s+/g, ' ').trim().slice(0, 40); i.remove(); n.hidden = false; if (garder && v.length >= 2 && v !== ((f && f.titre) || '')) atlNomSave(v); atlNom(false); };
+  i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fin(true); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fin(false); } });
+  i.addEventListener('blur', () => fin(true));
+}
+async function atlNomSave(v) {
+  const f = atlFiche(); if (f) f.titre = v;
+  for (const pj of atlProjets()) if (pj.id === ATL.cur) pj.titre = v;
+  ATL.nomLoc = v; ATL.pSig = '';
+  const id = ATL.cur || await atlBrouillon(); if (!id) return;
+  try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: id, p_cle: 'titre', p_valeur: v }, { quiet: true }); toastCheer('✏️ « ' + v + ' » enregistré', null, true); atlLoad(true); }
+  catch (e) { toastCheer(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie', null, true); atlLoad(true); }
+}
 
 // ---------- serveur ----------
 async function atlLoad(force) {

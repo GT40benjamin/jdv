@@ -2070,3 +2070,18 @@ begin
     execute d;
   end if;
 end $$;
+
+-- (v21, borne 1.63.71, 2 nov. 19 h 35, Benjamin : « nommer son projet ») : le titre se change à tout moment (sauf projet refusé), 40 caractères
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_fiche_etape(text, uuid, text, jsonb)'::regprocedure);
+  if position('p_cle <> ''titre'' and' in d) = 0 then
+    d := replace(d, '  if f.etat not in (''brouillon'', ''en_discussion'', ''complete'') or f.paye is not null then raise exception ''projet lance''; end if;',
+      '  if p_cle <> ''titre'' and (f.etat not in (''brouillon'', ''en_discussion'', ''complete'') or f.paye is not null) then raise exception ''projet lance''; end if;' || chr(10) ||
+      '  if f.etat = ''refusee'' then raise exception ''projet lance''; end if;');
+    d := replace(d, 'case when p_cle = ''titre'' then 60 else 1500 end', 'case when p_cle = ''titre'' then 40 else 1500 end');
+    if position('p_cle <> ''titre'' and' in d) = 0 or position('then 40 else 1500' in d) = 0 then raise exception 'at_fiche_etape'; end if;
+    execute d;
+  end if;
+end $$;

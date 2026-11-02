@@ -31,6 +31,9 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## ✏️ Donne un nom à ton projet (borne 1.63.72)
+[atelier] ✏️ En haut à gauche de ton projet, touche le crayon pour lui donner un nom (40 lettres au plus). Il s'enregistre tout seul et s'affiche sur sa tuile dans « Mes projets ». Sans nom, c'est « Mon jeu sans nom ».
+
 [atelier] ## 📝 Un projet commencé reste en brouillon (borne 1.63.70)
 [atelier] 📝 Dès que tu commences un projet (une base choisie ou passée, quelques mots écrits), il est gardé dans « Mes projets » comme brouillon, même si tu quittes. Ton texte en cours est gardé aussi : tu le retrouves quand tu reviens. C'est gratuit.
 
