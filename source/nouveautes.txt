@@ -22,6 +22,10 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 🖼️ Les bases de ton jeu, avec un exemple dessiné pour chaque choix (borne 1.63.68)
+[atelier] 🧊 La 1re question : 2D ou 3D ? La 2D est prête, la 3D arrive bientôt.
+[atelier] 🖼️ Chaque réponse montre un petit dessin d'exemple : un jeu « toujours en avant », à niveaux, où l'on fait grandir, un monde libre, vu de côté, de dessus ou de face, seul, à deux ou en duel, et chaque style (mignon, rétro pixel, néon, dessin animé, plus réaliste).
+
 [atelier] ## ⏭️ Les bases de ton jeu sont facultatives (borne 1.63.67)
 [atelier] ⏭️ Chaque question des bases a un bouton « Passer », et « Passer tout et décrire mon jeu » t'emmène directement à ta description. Ce que tu passes reste « à préciser » dans ta feuille de route, et tu peux y revenir plus tard.
 

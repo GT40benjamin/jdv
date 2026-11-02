@@ -2025,3 +2025,15 @@ begin
     execute d;
   end if;
 end $$;
+
+-- (v19, borne 1.63.68) les bases : + « dim » (2D ou 3D ; la 3D arrive bientôt) — at_fiche_etape accepte dim, type, vue, avec, score, style
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_fiche_etape(text, uuid, text, jsonb)'::regprocedure);
+  if position('''dim'', ''type''' in d) = 0 then
+    d := replace(d, 'k in (''type'', ''vue'', ''avec'', ''score'', ''style'')', 'k in (''dim'', ''type'', ''vue'', ''avec'', ''score'', ''style'')');
+    if position('''dim'', ''type''' in d) = 0 then raise exception 'at_fiche_etape'; end if;
+    execute d;
+  end if;
+end $$;

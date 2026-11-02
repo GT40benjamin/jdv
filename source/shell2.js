@@ -14640,12 +14640,66 @@ function atlRenderProjet(W, f) {
 // la FEUILLE DE ROUTE (colonne de droite sur PC, repliable en haut sur téléphone), les DESSINS des éléments (planches de 8 au plus, découpées
 // par le serveur) et les FORMES simples dessinées par le code (3 crédits). Le jeu est toujours en 2D. Les textes du joueur : textContent seulement.
 const ATL_BASES = [
+  ['dim', '🧊', '2D ou 3D ?', '2D / 3D', [['', '2D', 'à plat, comme Mario ou Candy Crush'], ['', '3D', 'en relief — bientôt !', true]]],
   ['type', '🎮', 'Quel genre de jeu ?', 'Genre', [['🏃', 'Toujours en avant', 'comme Contresens, Subway Surfers, Flappy Bird'], ['🪜', 'À niveaux', 'comme Mario, Candy Crush, Angry Birds'], ['🌱', 'Faire grandir', 'comme La Maison des Licornes, Cookie Clicker'], ['🗺️', 'Monde libre', 'comme Zelda, Pokémon, Animal Crossing']]],
   ['vue', '👀', 'On voit le jeu comment ?', 'Vue', [['➡️', 'De côté', ''], ['⬇️', 'Vu de dessus', ''], ['🎯', 'De face, ça avance vers moi', '']]],
   ['avec', '👥', 'Avec qui on joue ?', 'Avec qui', [['🙋', 'Seul', ''], ['👫', 'À deux sur le même écran', ''], ['⚔️', 'En duel', '']]],
   ['score', '🏆', 'Le score, c’est…', 'Score', [['⭐', 'Des points', ''], ['⏱️', 'Le temps', ''], ['📏', 'La distance', ''], ['💰', 'Ce qu’on possède', ''], ['🏆', 'Les niveaux réussis', '']]],
   ['style', '🎨', 'Quel style ?', 'Style', [['🧸', 'Mignon', ''], ['👾', 'Rétro pixel', ''], ['💡', 'Néon', ''], ['🎨', 'Dessin animé', ''], ['🌲', 'Plus réaliste', '']]]
 ];
+// ---- un EXEMPLE VISUEL pour chaque choix des bases (Benjamin, 18 h 50 : « un bel exemple visuel directement ») : petites scènes SVG
+// dessinées par le code (aucune image générée, aucun texte du joueur) ; clé = question + numéro du choix
+const ATL_SKY = (a, b) => '<rect width="160" height="100" fill="' + a + '"/><rect y="62" width="160" height="38" fill="' + b + '"/>';
+const ATL_HERO = (x, y, c, s) => '<g transform="translate(' + x + ' ' + y + ') scale(' + (s || 1) + ')"><rect x="-9" y="-20" width="18" height="20" rx="6" fill="' + (c || '#ff7043') + '" stroke="#2a1340" stroke-width="2"/><circle cx="-3" cy="-13" r="2.4" fill="#fff"/><circle cx="4" cy="-13" r="2.4" fill="#fff"/><circle cx="-2.4" cy="-12.6" r="1.1" fill="#2a1340"/><circle cx="4.6" cy="-12.6" r="1.1" fill="#2a1340"/></g>';
+const ATL_TREE = (x, y, s) => '<g transform="translate(' + x + ' ' + y + ') scale(' + (s || 1) + ')"><rect x="-2" y="-6" width="4" height="8" fill="#6d4c41"/><circle cy="-12" r="9" fill="#43a047" stroke="#1b5e20" stroke-width="1.5"/></g>';
+const ATL_ART = {
+  dim0: ATL_SKY('#7ec8ff', '#5dbb63') + '<rect x="20" y="40" width="34" height="8" rx="3" fill="#a1887f" stroke="#5d4037" stroke-width="2"/><rect x="96" y="30" width="40" height="8" rx="3" fill="#a1887f" stroke="#5d4037" stroke-width="2"/>'
+    + '<circle cx="114" cy="22" r="5" fill="#ffd34d" stroke="#e0a800" stroke-width="2"/><circle cx="36" cy="32" r="5" fill="#ffd34d" stroke="#e0a800" stroke-width="2"/>' + ATL_HERO(70, 62, '#ff7043') + '<circle cx="138" cy="14" r="8" fill="#fff59d"/>',
+  dim1: '<rect width="160" height="100" fill="#2a2f45"/><g stroke="#4c5679" stroke-width="1">' + [0, 1, 2, 3, 4, 5].map(i => '<line x1="' + (10 + i * 28) + '" y1="100" x2="80" y2="44"/>').join('') + '<line x1="0" y1="80" x2="160" y2="80"/><line x1="20" y1="64" x2="140" y2="64"/></g>'
+    + '<polygon points="80,22 106,36 80,50 54,36" fill="#90a4ae"/><polygon points="54,36 80,50 80,78 54,64" fill="#607d8b"/><polygon points="106,36 80,50 80,78 106,64" fill="#78909c"/>',
+  type0: ATL_SKY('#ffcc80', '#8d6e63') + '<g stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"><line x1="18" y1="44" x2="36" y2="44"/><line x1="12" y1="54" x2="34" y2="54"/></g>' + ATL_HERO(52, 62, '#29b6f6')
+    + '<rect x="96" y="48" width="12" height="14" fill="#5d4037"/><rect x="132" y="40" width="12" height="22" fill="#5d4037"/><path d="M70 30 h40 l-6 -6 M110 30 l-6 6" stroke="#2a1340" stroke-width="3" fill="none" stroke-linecap="round"/>',
+  type1: ATL_SKY('#b3e5fc', '#7cb342') + '<rect x="14" y="54" width="34" height="8" fill="#ffb74d" stroke="#e65100" stroke-width="2"/><rect x="58" y="40" width="34" height="8" fill="#ffb74d" stroke="#e65100" stroke-width="2"/><rect x="102" y="26" width="34" height="8" fill="#ffb74d" stroke="#e65100" stroke-width="2"/>'
+    + '<line x1="130" y1="26" x2="130" y2="6" stroke="#5d4037" stroke-width="2"/><path d="M130 6 l14 4 l-14 4z" fill="#e53935"/>' + ATL_HERO(30, 54, '#ec407a', .8)
+    + '<g font-family="sans-serif" font-weight="700" font-size="10" fill="#2a1340"><text x="27" y="74">1</text><text x="71" y="60">2</text><text x="115" y="46">3</text></g>',
+  type2: ATL_SKY('#e1bee7', '#a5d6a7') + '<g transform="translate(26 70)"><path d="M0 0 v-8" stroke="#43a047" stroke-width="3"/><ellipse cx="4" cy="-9" rx="5" ry="3" fill="#66bb6a"/></g>'
+    + '<path d="M44 66 h10 l-4 -4 M54 66 l-4 4" stroke="#7b1fa2" stroke-width="2.5" fill="none" stroke-linecap="round"/><g transform="translate(76 72)"><path d="M0 0 v-22" stroke="#43a047" stroke-width="4"/><ellipse cx="-7" cy="-16" rx="8" ry="4" fill="#66bb6a"/><ellipse cx="7" cy="-22" rx="8" ry="4" fill="#66bb6a"/></g>'
+    + '<path d="M96 66 h10 l-4 -4 M106 66 l-4 4" stroke="#7b1fa2" stroke-width="2.5" fill="none" stroke-linecap="round"/>' + ATL_TREE(132, 74, 2.2) + '<circle cx="126" cy="44" r="3" fill="#ef5350"/><circle cx="138" cy="50" r="3" fill="#ef5350"/>',
+  type3: '<rect width="160" height="100" fill="#81c784"/><path d="M0 70 C40 60 60 80 100 66 S150 50 160 56 V100 H0z" fill="#4fc3f7"/><path d="M20 20 C50 40 70 30 90 50 S120 80 140 70" stroke="#fff3c4" stroke-width="6" fill="none" stroke-dasharray="2 6" stroke-linecap="round"/>'
+    + ATL_TREE(30, 40, 1.2) + ATL_TREE(120, 30, 1.2) + ATL_TREE(140, 46, 1) + '<g transform="translate(60 26)"><rect x="-10" y="-8" width="20" height="14" fill="#ffccbc" stroke="#6d4c41" stroke-width="2"/><path d="M-13 -8 L0 -18 L13 -8z" fill="#e53935" stroke="#6d4c41" stroke-width="2"/></g>' + ATL_HERO(92, 56, '#ffb300', .8),
+  vue0: ATL_SKY('#90caf9', '#8bc34a') + '<rect x="98" y="38" width="44" height="8" rx="3" fill="#a1887f" stroke="#5d4037" stroke-width="2"/>' + ATL_HERO(60, 62, '#ff7043', 1.3) + ATL_TREE(24, 62, 1.4) + '<path d="M60 92 l-24 0" stroke="#33691e" stroke-width="2"/>',
+  vue1: '<rect width="160" height="100" fill="#9ccc65"/><g stroke="#8bc34a" stroke-width="1">' + [1, 2, 3, 4, 5, 6, 7].map(i => '<line x1="' + i * 20 + '" y1="0" x2="' + i * 20 + '" y2="100"/>').join('') + [1, 2, 3, 4].map(i => '<line x1="0" y1="' + i * 20 + '" x2="160" y2="' + i * 20 + '"/>').join('') + '</g>'
+    + '<rect x="60" y="0" width="22" height="100" fill="#d7ccc8"/><circle cx="30" cy="30" r="12" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"/><circle cx="128" cy="70" r="14" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"/><circle cx="118" cy="22" r="9" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"/>'
+    + '<circle cx="71" cy="56" r="9" fill="#ff7043" stroke="#2a1340" stroke-width="2"/><circle cx="68" cy="52" r="2" fill="#fff"/><circle cx="74" cy="52" r="2" fill="#fff"/>',
+  vue2: '<rect width="160" height="100" fill="#81d4fa"/><rect y="42" width="160" height="58" fill="#7cb342"/><polygon points="72,42 88,42 140,100 20,100" fill="#78909c"/><g stroke="#fff" stroke-width="3"><line x1="80" y1="48" x2="80" y2="54"/><line x1="80" y1="62" x2="80" y2="72"/><line x1="80" y1="82" x2="80" y2="96"/></g>'
+    + '<rect x="74" y="50" width="10" height="8" fill="#e53935"/><rect x="96" y="58" width="14" height="10" fill="#ffb300"/>' + ATL_HERO(80, 98, '#ab47bc', 1.4),
+  avec0: '<rect width="160" height="100" rx="0" fill="#263238"/><rect x="30" y="14" width="100" height="62" rx="6" fill="#4fc3f7" stroke="#cfd8dc" stroke-width="3"/>' + ATL_HERO(80, 66, '#ff7043', 1.4) + '<rect x="68" y="84" width="24" height="10" rx="5" fill="#90a4ae"/>',
+  avec1: '<rect width="160" height="100" fill="#263238"/><rect x="18" y="12" width="124" height="66" rx="6" fill="#4fc3f7" stroke="#cfd8dc" stroke-width="3"/><line x1="80" y1="12" x2="80" y2="78" stroke="#cfd8dc" stroke-width="2" stroke-dasharray="4 3"/>'
+    + ATL_HERO(50, 66, '#ff7043', 1.3) + ATL_HERO(110, 66, '#66bb6a', 1.3) + '<rect x="34" y="84" width="24" height="10" rx="5" fill="#ff8a65"/><rect x="102" y="84" width="24" height="10" rx="5" fill="#81c784"/>',
+  avec2: '<rect width="160" height="100" fill="#3949ab"/><rect width="80" height="100" fill="#e53935"/>' + ATL_HERO(42, 70, '#ffcc80', 1.6) + ATL_HERO(118, 70, '#b2dfdb', 1.6)
+    + '<g font-family="Impact,sans-serif" font-size="26" text-anchor="middle"><text x="80" y="40" fill="#2a1340" stroke="#2a1340" stroke-width="6">VS</text><text x="80" y="40" fill="#ffd34d">VS</text></g>',
+  score0: '<rect width="160" height="100" fill="#3f2a78"/><g fill="#ffd34d" stroke="#e0a800" stroke-width="2">' + [[34, 30], [80, 22], [126, 34]].map(([x, y]) => '<polygon transform="translate(' + x + ' ' + y + ') scale(.32)" points="0,-40 11,-12 40,-12 17,6 26,36 0,18 -26,36 -17,6 -40,-12 -11,-12"/>').join('') + '</g>'
+    + '<text x="80" y="78" text-anchor="middle" font-family="Impact,sans-serif" font-size="30" fill="#fff">12 450</text>',
+  score1: '<rect width="160" height="100" fill="#004d40"/><circle cx="80" cy="46" r="30" fill="#e0f2f1" stroke="#80cbc4" stroke-width="5"/><line x1="80" y1="46" x2="80" y2="24" stroke="#00695c" stroke-width="4" stroke-linecap="round"/><line x1="80" y1="46" x2="96" y2="54" stroke="#e53935" stroke-width="3" stroke-linecap="round"/><rect x="74" y="10" width="12" height="6" rx="2" fill="#80cbc4"/>'
+    + '<text x="80" y="94" text-anchor="middle" font-family="Impact,sans-serif" font-size="16" fill="#fff">00:42</text>',
+  score2: ATL_SKY('#ffe082', '#bcaaa4') + '<rect x="14" y="70" width="132" height="10" fill="#fff" stroke="#5d4037" stroke-width="2"/><g stroke="#5d4037" stroke-width="2">' + [0, 1, 2, 3, 4, 5, 6].map(i => '<line x1="' + (14 + i * 22) + '" y1="70" x2="' + (14 + i * 22) + '" y2="' + (i % 2 ? 76 : 80) + '"/>').join('') + '</g>'
+    + ATL_HERO(124, 62, '#29b6f6') + '<text x="60" y="42" text-anchor="middle" font-family="Impact,sans-serif" font-size="22" fill="#5d4037">350 m</text>',
+  score3: '<rect width="160" height="100" fill="#4e342e"/><g fill="#ffd34d" stroke="#c49000" stroke-width="2">' + [[40, 80], [56, 80], [72, 80], [48, 70], [64, 70], [56, 60]].map(([x, y]) => '<ellipse cx="' + x + '" cy="' + y + '" rx="9" ry="5"/>').join('') + '</g>'
+    + '<g transform="translate(112 66)"><rect x="-22" y="-14" width="44" height="28" rx="3" fill="#8d6e63" stroke="#3e2723" stroke-width="2"/><path d="M-22 -14 q22 -20 44 0" fill="#a1887f" stroke="#3e2723" stroke-width="2"/><rect x="-4" y="-6" width="8" height="8" fill="#ffd34d"/></g><circle cx="104" cy="40" r="4" fill="#4fc3f7"/><circle cx="118" cy="36" r="4" fill="#ec407a"/>',
+  score4: '<rect width="160" height="100" fill="#1a237e"/>' + [0, 1, 2].map(i => '<g transform="translate(' + (36 + i * 44) + ' 42)"><rect x="-17" y="-17" width="34" height="34" rx="8" fill="' + (i < 2 ? '#43a047' : '#5c6bc0') + '" stroke="#fff" stroke-width="2"/><text y="7" text-anchor="middle" font-family="Impact,sans-serif" font-size="20" fill="#fff">' + (i + 1) + '</text></g>').join('')
+    + '<g fill="#ffd34d">' + [0, 1, 2].map(i => '<polygon transform="translate(' + (62 + i * 18) + ' 80) scale(.2)" points="0,-40 11,-12 40,-12 17,6 26,36 0,18 -26,36 -17,6 -40,-12 -11,-12"/>').join('') + '</g>',
+  style0: '<rect width="160" height="100" fill="#fce4ec"/><circle cx="30" cy="22" r="6" fill="#fff"/><circle cx="130" cy="18" r="4" fill="#fff"/><ellipse cx="80" cy="60" rx="34" ry="30" fill="#f8bbd0" stroke="#ec407a" stroke-width="3"/>'
+    + '<circle cx="68" cy="54" r="8" fill="#2a1340"/><circle cx="92" cy="54" r="8" fill="#2a1340"/><circle cx="70" cy="51" r="3" fill="#fff"/><circle cx="94" cy="51" r="3" fill="#fff"/><ellipse cx="60" cy="68" rx="6" ry="3" fill="#f48fb1"/><ellipse cx="100" cy="68" rx="6" ry="3" fill="#f48fb1"/><path d="M74 70 q6 6 12 0" stroke="#2a1340" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+  style1: '<rect width="160" height="100" fill="#1b1b3a"/><g shape-rendering="crispEdges">' + ['....rrrr....', '...rrrrrr...', '...ssbsbs...', '...ssssss...', '....gggg....', '...gggggg...', '...gg..gg...', '...bb..bb...'].map((row, y) => row.split('').map((c, x) => c === '.' ? '' : '<rect x="' + (44 + x * 6) + '" y="' + (22 + y * 7) + '" width="6" height="7" fill="' + { r: '#e53935', s: '#ffcc80', b: '#3e2723', g: '#1e88e5' }[c] + '"/>').join('')).join('') + '</g>'
+    + '<rect x="0" y="80" width="160" height="20" fill="#8d6e63"/>' + [0, 1, 2, 3, 4, 5, 6, 7].map(i => '<rect x="' + i * 20 + '" y="80" width="18" height="6" fill="#a1887f"/>').join(''),
+  style2: '<rect width="160" height="100" fill="#0a0420"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 84 H160" stroke="#ff2bd6" stroke-width="2"/><path d="M80 84 L20 100 M80 84 L140 100 M80 84 L80 100" stroke="#ff2bd6" stroke-width="1.5" opacity=".6"/>'
+    + '<circle cx="80" cy="40" r="22" stroke="#ffcf3f" stroke-width="3" opacity=".9"/><rect x="58" y="52" width="44" height="22" rx="6" stroke="#2bf0ff" stroke-width="3"/><circle cx="72" cy="62" r="3" stroke="#2bf0ff" stroke-width="2"/><circle cx="88" cy="62" r="3" stroke="#2bf0ff" stroke-width="2"/>'
+    + '<path d="M58 52 h44" stroke="#2bf0ff" stroke-width="7" opacity=".25"/><circle cx="80" cy="40" r="22" stroke="#ffcf3f" stroke-width="9" opacity=".18"/></g>',
+  style3: ATL_SKY('#4fc3f7', '#66bb6a') + '<circle cx="132" cy="18" r="10" fill="#ffeb3b" stroke="#2a1340" stroke-width="3"/><g stroke="#2a1340" stroke-width="3.5" stroke-linejoin="round"><ellipse cx="78" cy="58" rx="22" ry="20" fill="#ff7043"/><circle cx="70" cy="52" r="7" fill="#fff"/><circle cx="88" cy="52" r="7" fill="#fff"/></g>'
+    + '<circle cx="71" cy="53" r="3" fill="#2a1340"/><circle cx="89" cy="53" r="3" fill="#2a1340"/><path d="M70 66 q8 8 16 0" stroke="#2a1340" stroke-width="3" fill="#fff"/><path d="M56 50 l-12 -8 M100 50 l12 -8" stroke="#2a1340" stroke-width="3.5" stroke-linecap="round"/>',
+  style4: '<defs><radialGradient id="atl-r4" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffe0b2"/><stop offset=".6" stop-color="#a1887f"/><stop offset="1" stop-color="#3e2723"/></radialGradient><linearGradient id="atl-r4s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#90a4ae"/><stop offset="1" stop-color="#cfd8dc"/></linearGradient></defs>'
+    + '<rect width="160" height="100" fill="url(#atl-r4s)"/><rect y="70" width="160" height="30" fill="#6d4c41"/><ellipse cx="80" cy="78" rx="30" ry="5" fill="rgba(0,0,0,.35)"/><circle cx="80" cy="50" r="26" fill="url(#atl-r4)"/>'
+};
 const atlBasesVal = () => { const f = atlFiche(), b = f && f.fiche && typeof f.fiche === 'object' ? f.fiche.bases : null; return b && typeof b === 'object' ? b : (ATL.basesLoc || {}); };
 const atlBasesOn = () => {
   if (ATL.basesOn) return true;
@@ -14654,7 +14708,7 @@ const atlBasesOn = () => {
   return !(f.fiche && f.fiche.bases) && !atlMsgs().some(m => !m.atelier);
 };
 const atlBasesTexte = b => { const v = k => String(b[k] || '').toLowerCase(); const parts = [b.type && 'un jeu « ' + b.type + ' »', b.vue && v('vue'), b.avec && 'à jouer ' + v('avec'), b.score && 'le score : ' + v('score'), b.style && 'style ' + v('style')].filter(Boolean);
-  return parts.length ? 'Mon jeu (en 2D) : ' + parts.join(', ') + '.\nMon idée : ' : ''; };
+  return parts.length ? 'Mon jeu (en ' + (b.dim === '3D' ? '3D' : '2D') + ') : ' + parts.join(', ') + '.\nMon idée : ' : ''; };
 function atlPrefill() {
   if (!ATL.prefill || !ATL.root) return; ATL.prefill = false;
   const inp = ATL.root.querySelector('.atl-in'), t = atlBasesTexte(atlBasesVal()); if (!inp || !t || inp.value.trim()) return;
@@ -14686,17 +14740,24 @@ function atlRenderBases() {
   if (!ATL.basesUne) { const pt = atlEl('button', 'btn btn-play btn-sm atl-bpasst', 'Passer tout et décrire mon jeu ✍️'); pt.type = 'button'; pt.addEventListener('click', () => atlBasesSuite(true)); box.appendChild(pt); }
   box.appendChild(atlEl('h2', 'atl-bt', ic + ' ' + titre));
   const grid = atlEl('div', 'atl-bgrid');
-  for (const [oi, lab, ex] of opts) {
-    const b = atlEl('button', 'atl-bcard' + (cur === lab ? ' on' : '')); b.type = 'button';
-    b.append(atlEl('span', 'atl-bic', oi), atlEl('b', '', lab)); if (ex) b.appendChild(atlEl('small', '', ex));
-    b.addEventListener('click', () => atlBasesChoisir(k, lab)); grid.appendChild(b);
-  }
+  opts.forEach(([oi, lab, ex, bientot], i) => {
+    const b = atlEl('button', 'atl-bcard' + (cur === lab ? ' on' : '') + (bientot ? ' soon' : '')); b.type = 'button';
+    const art = ATL_ART[k + i]; if (art) { const v = atlEl('span', 'atl-bart'); v.innerHTML = '<svg viewBox="0 0 160 100" aria-hidden="true">' + art + '</svg>'; b.appendChild(v); } else b.appendChild(atlEl('span', 'atl-bic', oi));   // dessins fixes du code (jamais de texte du joueur)
+    b.appendChild(atlEl('b', '', (art && oi ? oi + ' ' : '') + lab)); if (ex) b.appendChild(atlEl('small', '', ex));
+    if (bientot) { b.disabled = true; b.appendChild(atlEl('span', 'atl-bsoon', 'Bientôt')); }
+    else b.addEventListener('click', () => atlBasesChoisir(k, lab));
+    grid.appendChild(b);
+  });
   const perso = !!cur && !opts.some(o => o[1] === cur);
+  if (k === 'dim') { box.appendChild(grid); grid.classList.add('dim'); atlBasesNav(box, q, k, cur); B.appendChild(box); return; }   // 2D ou 3D : pas de « Personnaliser »
   const pc = atlEl('form', 'atl-bcard atl-bperso' + (perso ? ' on' : '')), pi = atlEl('input'); pi.type = 'text'; pi.maxLength = 120; pi.placeholder = 'À ma façon…'; pi.setAttribute('aria-label', 'Ma réponse à moi'); if (perso) pi.value = cur;
   const pb = atlEl('button', 'btn btn-play btn-sm', 'OK'); pb.type = 'submit';
   pc.append(atlEl('span', 'atl-bic', '✏️'), atlEl('b', '', 'Personnaliser'), pi, pb);
   pc.addEventListener('submit', e => { e.preventDefault(); const v = pi.value.trim(); if (v.length < 2) { pi.focus(); return; } atlBasesChoisir(k, v); });
   grid.appendChild(pc); box.appendChild(grid);
+  atlBasesNav(box, q, k, cur); B.appendChild(box);
+}
+function atlBasesNav(box, q, k, cur) {
   const nav = atlEl('div', 'atl-bnav');
   const back = atlEl('button', 'btn btn-ghost', q ? '← Retour' : (ATL.basesOn ? '← Fermer' : '← Mes projets')); back.type = 'button';
   back.addEventListener('click', () => { if (q && !ATL.basesUne) { ATL.bq = q - 1; atlRender(); } else if (ATL.basesOn) { ATL.basesOn = false; ATL.basesUne = false; atlRender(); } else atlListe(); });
@@ -14704,8 +14765,6 @@ function atlRenderBases() {
   if (cur) { const nx = atlEl('button', 'btn btn-ghost', 'Garder « ' + cur.slice(0, 24) + ' » →'); nx.type = 'button'; nx.addEventListener('click', () => atlBasesChoisir(k, cur)); nav.appendChild(nx); }
   const ps = atlEl('button', 'btn btn-ghost atl-bpass', 'Passer →'); ps.type = 'button'; ps.addEventListener('click', () => atlBasesSuite(false)); nav.appendChild(ps);
   box.appendChild(nav);
-  box.appendChild(atlEl('p', 'atl-b2d', '🧊 Ton jeu sera toujours en 2D.'));
-  B.appendChild(box);
 }
 // ---- les formes simples, dessinées par le code (pas de génération d'image) ----
 const ATL_FORMES_OK = new Set(['rond', 'carre', 'rectangle', 'etoile', 'barre', 'triangle', 'coeur', 'losange', 'anneau']);
