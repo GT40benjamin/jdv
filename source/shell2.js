@@ -15917,11 +15917,11 @@ async function atlSuivi() {
   const ach = r.achats && typeof r.achats === 'object' ? r.achats : null;   // les achats de crédits (Stripe), Benjamin seulement
   if (ach) {
     P.appendChild(atlEl('b', 'atl-rh2', '💳 Achats de crédits'));
-    P.appendChild(atlEl('p', 'atl-stot', 'Ce mois : ' + (ach.mois_nb | 0) + ' achat' + ((ach.mois_nb | 0) > 1 ? 's' : '') + ' · ' + String(ach.mois_euros || 0).replace('.', ',') + ' € · frais Stripe estimés ' + String(ach.mois_frais || 0).replace('.', ',') + ' €'));
+    P.appendChild(atlEl('p', 'atl-stot', 'Ce mois (paiements réels) : ' + (ach.mois_nb | 0) + ' achat' + ((ach.mois_nb | 0) > 1 ? 's' : '') + ' · ' + String(ach.mois_euros || 0).replace('.', ',') + ' € · frais Stripe estimés ' + String(ach.mois_frais || 0).replace('.', ',') + ' €'));
     const la = Array.isArray(ach.lignes) ? ach.lignes : [];
     if (la.length) {
-      const t3 = atlEl('table', 'atl-stab'), th = atlEl('tr'); for (const h of ['Quand', 'Joueur', 'Crédits', '€', 'État']) th.appendChild(atlEl('th', '', h)); t3.appendChild(th);
-      for (const a of la) { const tr = atlEl('tr'), d = new Date(a.at); for (const v of [isNaN(d) ? '' : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), dispName(a.joueur || ''), String(a.credits | 0), String(a.euros || 0).replace('.', ','), { paye: '✅ payé', attente: '⏳ en attente', annule: '✕ annulé' }[a.etat] || a.etat]) tr.appendChild(atlEl('td', '', v)); t3.appendChild(tr); }
+      const t3 = atlEl('table', 'atl-stab'), th = atlEl('tr'); for (const h of ['Quand', 'Joueur', 'Crédits', '€', 'État', 'Paiement']) th.appendChild(atlEl('th', '', h)); t3.appendChild(th);
+      for (const a of la) { const tr = atlEl('tr'), d = new Date(a.at); for (const v of [isNaN(d) ? '' : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), dispName(a.joueur || ''), String(a.credits | 0), String(a.euros || 0).replace('.', ','), { paye: '✅ payé', attente: '⏳ en attente', annule: '✕ annulé' }[a.etat] || a.etat, a.reel ? '💶 réel' : '🧪 essai']) tr.appendChild(atlEl('td', '', v)); t3.appendChild(tr); }
       const w3 = atlEl('div', 'atl-swrap'); w3.appendChild(t3); P.appendChild(w3);
     } else P.appendChild(atlEl('p', '', 'Aucun achat pour l’instant.'));
     P.appendChild(atlEl('p', 'atl-stot', '⭐ Atelier+ : ' + (ach.abonnes | 0) + ' abonné' + ((ach.abonnes | 0) > 1 ? 's' : '') + ' · ' + String(ach.abo_mois_euros || 0).replace('.', ',') + ' € ce mois'));
@@ -15937,6 +15937,23 @@ async function atlSuivi() {
       finally { ok.disabled = false; }
     });
     fd.append(qui, combien, note, ok); P.append(fd, msg);
+    // 22 h 15 (Benjamin : « tu peux faire le webhook ? ») : brancher Stripe côté serveur (fonction Edge stripe-config) — le webhook (sans
+    // doublon, son secret rangé dans la base privée) et le portail client ; aucune clé ne passe par la borne
+    P.appendChild(atlEl('b', 'atl-rh2', '🔌 Stripe'));
+    const sb = atlEl('button', 'btn btn-ghost btn-sm', '🔌 Brancher Stripe (webhook + portail)'), sm = atlEl('small'); sb.type = 'button';
+    sb.addEventListener('click', async () => {
+      sb.disabled = true; sm.textContent = 'Un instant…';
+      try {
+        const tok = await acctToken(profile);
+        const x = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/stripe-config', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_name: profile.name }) }, 45000);
+        let j = null; try { j = await x.json(); } catch (e) {}
+        if (!x.ok || !j) sm.textContent = 'Pas possible (' + x.status + ').';
+        else if (j.etat === 'pas de cle') sm.textContent = 'La clé Stripe n’est pas encore posée.';
+        else sm.textContent = (j.mode === 'reel' ? '💶 Réel' : '🧪 Essai') + ' · webhook : ' + j.webhook + (j.secret ? ' (secret ' + j.secret + ')' : '') + (j.code ? ' ' + j.code : '') + ' · portail : ' + j.portail + (j.code_portail ? ' ' + j.code_portail : '');
+      } catch (e) { sm.textContent = 'Pas de réseau.'; }
+      finally { sb.disabled = false; }
+    });
+    P.append(sb, sm);
   }
   P.appendChild(close);
 }

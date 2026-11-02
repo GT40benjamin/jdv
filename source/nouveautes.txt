@@ -61,6 +61,9 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 💶 Paiement réel (borne 1.63.99)
+[atelier] 💶 Les packs de crédits et l'abonnement Atelier+ passent au vrai paiement, toujours sur la page sécurisée de Stripe.
+
 [atelier] ## ⭐ Atelier+ (borne 1.63.98)
 [atelier] ⭐ Nouveau : l'abonnement Atelier+ ! 400 crédits chaque mois pour 3 € par mois, sans engagement et résiliable à tout moment (« Gérer mon abonnement »). Tes crédits s'ajoutent d'un mois à l'autre, jusqu'à 1 200. Les packs sont toujours là pour recharger.
 [atelier] 🎁 Raconter ton idée est gratuit : le 1er message de chaque projet ne coûte rien, et les bases, l'écriture et le brouillon restent gratuits.

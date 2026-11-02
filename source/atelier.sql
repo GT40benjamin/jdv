@@ -2482,3 +2482,47 @@ begin
     execute d;
   end if;
 end $$;
+
+-- (v30, borne 1.63.99, 2 nov. 2026 22 h 15, Benjamin : « j'ai mis le sk live […] tu peux faire le webhook ? ») — PAIEMENT RÉEL.
+-- · pegase_int.stripe_config : le secret de signature du webhook (whsec_) créé PAR LE SERVEUR (fonction Edge stripe-config, déclenchée par
+--   Benjamin depuis son Suivi) ; table privée, RLS fermée, aucun accès public / anon / authenticated ; jamais affiché ni journalisé ;
+-- · stripe_whsec_lire / stripe_whsec_ranger : clé de service seulement ; at_stripe_autoriser : Benjamin seulement (compte vérifié) ;
+-- · at_suivi : chaque achat dit s'il est RÉEL (session cs_live_) ou d'ESSAI ; les totaux du mois ne comptent que le réel.
+create table if not exists pegase_int.stripe_config (k text primary key, v text not null, maj_at timestamptz not null default now());
+alter table pegase_int.stripe_config enable row level security;
+revoke all on pegase_int.stripe_config from public, anon, authenticated;
+
+create or replace function public.stripe_whsec_lire() returns text language sql stable security definer set search_path = public as $$
+  select c.v from pegase_int.stripe_config c where c.k = 'whsec'
+$$;
+revoke all on function public.stripe_whsec_lire() from public, anon, authenticated; grant execute on function public.stripe_whsec_lire() to service_role;
+
+create or replace function public.stripe_whsec_ranger(p_secret text, p_endpoint text) returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_secret !~ '^whsec_[A-Za-z0-9]{20,200}$' then raise exception 'secret refuse'; end if;
+  insert into pegase_int.stripe_config (k, v) values ('whsec', p_secret), ('endpoint', coalesce(p_endpoint, ''))
+    on conflict (k) do update set v = excluded.v, maj_at = now();
+end $$;
+revoke all on function public.stripe_whsec_ranger(text, text) from public, anon, authenticated; grant execute on function public.stripe_whsec_ranger(text, text) to service_role;
+
+create or replace function public.at_stripe_autoriser(p_name text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name);
+begin
+  perform public.acct_check(n);
+  if n <> 'BENJAMIN' then raise exception 'admin requis'; end if;
+  perform public.pg_rate(n, 'stripe-config', 10, interval '1 hour');
+  return jsonb_build_object('ok', true, 'secret_range', exists (select 1 from pegase_int.stripe_config c where c.k = 'whsec'));
+end $$;
+revoke all on function public.at_stripe_autoriser(text) from public, anon; grant execute on function public.at_stripe_autoriser(text) to authenticated;
+
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_suivi(text)'::regprocedure);
+  if position('''reel''' in d) = 0 then
+    d := replace(d, '''etat'', a.etat, ''at'', a.at)', '''etat'', a.etat, ''at'', a.at, ''reel'', coalesce(a.stripe_session like ''cs_live_%'', false))');
+    d := replace(d, 'where a.etat = ''paye'' and a.paye_at >=', 'where a.etat = ''paye'' and a.stripe_session like ''cs_live_%'' and a.paye_at >=');
+    if position('''reel''' in d) = 0 or (length(d) - length(replace(d, 'cs_live_', ''))) / 8 <> 4 then raise exception 'at_suivi'; end if;
+    execute d;
+  end if;
+end $$;
