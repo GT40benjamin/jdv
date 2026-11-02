@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 // hasard de la bibliothèque (musique, messages…) : séparé de celui des jeux, qui peut être fixé (mode Local : même partie pour tous)
 const shellRand = Math.random.bind(Math);
-const ORDER = ['licornes', 'remparts', 'abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
+const ORDER = ['lune', 'licornes', 'remparts', 'abracadabra', 'flechettes', 'sensinterdit', 'coffres', 'chrono', 'neon', 'smoothie', 'ilo', 'magic', 'pegase', 'pleingaz', 'empilo', 'glouton', 'mouches', 'carreaux', 'rouleaux', 'canards'];
 // Étiquettes des tuiles : « Nouveau » (jeu ou duel ajouté) ou « Mis à jour » (refonte) jusqu'à ce que le joueur l'ouvre.
 // id du jeu ou du duel → { kind: 'new' | 'maj', at: 'AAAA-MM-JJ HH:MM' } ; une date plus récente fait revenir l'étiquette, qui s'efface
 // seule au bout de NEWS_DAYS jours. Les boutons Classique / Duel disent « nouveau » / « mis à jour » tant qu'une de leurs tuiles en a une.
@@ -37,7 +37,7 @@ const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
 // ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
-const LABO = new Set(['licornes', 'remparts', 'atelier']);   // en essai : La Maison des Licornes (1er jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 : visible des admins / porte labo et de son auteur par « ⭐ MON JEU ») ; Remparts ! (tower defense arcade, …/jouer/?labo=remparts) et l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
+const LABO = new Set(['lune', 'licornes', 'remparts', 'atelier']);   // en essai : Seul sur la Lune (2e jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 au soir) ; La Maison des Licornes (1er jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 : visible des admins / porte labo et de son auteur par « ⭐ MON JEU ») ; Remparts ! (tower defense arcade, …/jouer/?labo=remparts) et l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
@@ -66,7 +66,7 @@ const laboOk = id => !LABO.has(id) || LABO_TEST || ATL_JEUX.has(id);
 // 2 nov. 17 h 30, Benjamin : un jeu NÉ À L'ATELIER n'a PAS de tuile sur la borne (ni en mode test, ni « ⭐ MON JEU ») tant qu'il n'est pas
 // publié : en alpha il se trouve et se joue UNIQUEMENT dans l'Atelier (page du projet, onglet 🎮 Jouer). Il arrive sur la borne avec
 // « Publier dans ma salle » (salle du joueur) ou la mise en ligne mondiale acceptée — at_jeux le dit (etat publie_salle / publie_monde).
-const ATL_NES = new Set(['licornes']);   // les jeux nés à l'Atelier (id du module) : à compléter à chaque nouveau jeu de l'Atelier
+const ATL_NES = new Set(['licornes', 'lune']);   // les jeux nés à l'Atelier (id du module) : à compléter à chaque nouveau jeu de l'Atelier
 const atlEnGrille = id => { const x = ATL_JEUX.get(id); if (!ATL_NES.has(id) && !x) return true; return !!x && /^publie_(salle|monde)$/.test(x.etat); };
 // 2 nov. 2026, Benjamin : « toutes les tuiles labo test, il faut qu'elles soient identifiées comme telles pour nous les admins » :
 // la tuile d'un jeu encore en essai porte un ruban « TEST » (vue seulement sur les appareils en mode test, comme le jeu lui-même)
@@ -2075,7 +2075,7 @@ function notifRow(n, isNew) {
 }
 // NOTES rangées par JEU : un bloc par jeu (icône + nom + dernière version), ses versions de la plus récente à la plus ancienne ; les jeux
 // dans l'ordre de leur dernière nouveauté. Ce qui est déjà vu : replié dans « Avant » (ou tout replié si on rouvre l'historique).
-const NOTE_IC = { licornes: '🦄', atelier: '✏️', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
+const NOTE_IC = { lune: '🌕', licornes: '🦄', atelier: '✏️', remparts: '🏰', abracadabra: '🪄', flechettes: '🎯', sensinterdit: '⛔', coffres: '🗝️', chrono: '🏁', pegase: '🏝️', neon: '🎵', smoothie: '🍉', bolides: '🏎️', tirsaubut: '⚽', toupies: '🌀', magic: '🪄', borne: '🕹️' };
 const noteName = (id) => { const g = id === 'pegase' || id === 'borne' ? null : (gameById(id) || duoById(id)); return id === 'pegase' ? 'Pégase' : id === 'borne' ? 'La borne' : id === 'atelier' ? 'L’Atelier des jeux' : g ? g.title : id; };
 function notesByGame(blocks) {
   const G = new Map(); for (const b of blocks) { if (!G.has(b.id)) G.set(b.id, []); G.get(b.id).push(b); }

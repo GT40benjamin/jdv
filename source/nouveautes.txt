@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[lune] ## 🌕 Seul sur la Lune : la première version à tester (borne ..1)
+[lune] 🚀 Ton vaisseau s'est écrasé sur la Lune : tu es le seul survivant. Explore librement la Lune vue de dessus (flèches, manette ou glisse ton doigt), ton petit robot roule à côté de toi et te montre le chemin.
+[lune] ⚙️ Retrouve les 5 pièces du vaisseau et ramène-les à la navette de secours, ramasse l'oxygène (il baisse sans arrêt) et les cristaux lunaires, puis décolle pour rentrer sur Terre.
+[lune] ☄️ Attention aux pluies de météorites et aux cratères ! La trousse de secours te protège d'un choc, la lampe torche fait voir plus loin à ton radar, et la vieille base lunaire refait ton plein d'oxygène. Ton score, c'est tout ce que tu possèdes.
 [remparts] ## 🔮 Remparts magiques, en essai : un carrefour bien raccordé (borne 1.63.73)
 [remparts] 🛤️ Au Jardin maudit, là où les deux chemins se rejoignent, le carrefour est un vrai T : même largeur, bords alignés, plus de marche.
 [remparts] 💧 Le lac du Jardin maudit est une eau sombre (avant, un aplat vert clair qu'on prenait pour un trou dans le décor).
@@ -34,10 +38,14 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
-[atelier] ## 👀 Deux vues pour ton jeu en 2D (borne 1.63.78)
+<<<<<<< ours
+[atelier] ## 👀 Deux vues pour ton jeu en 2D (borne ..1)
 [atelier] 👀 Dans les bases de ton jeu, la vue se choisit entre « De côté » et « Vu de dessus » (ou ta réponse à toi avec « Personnaliser »).
 
 [atelier] ## 🤖 Ton guide de l'Atelier (borne 1.63.77)
+=======
+[atelier] ## 🤖 Ton guide de l'Atelier (borne ..1)
+>>>>>>> theirs
 [atelier] 🤖 Dans l'Atelier, tu parles maintenant à ton guide : il remplit ta fiche, dessine ton premier design et te répond, avec sa petite bulle et son avatar. Touche « Parler à ton guide » pour lui écrire.
 
 [atelier] ## 🎨 Ton design au centre, ton idée à droite (borne 1.63.76)
