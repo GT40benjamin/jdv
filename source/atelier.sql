@@ -2037,3 +2037,36 @@ begin
     execute d;
   end if;
 end $$;
+
+-- (v20, borne 1.63.70, 2 nov. 19 h 10, Benjamin : « tout projet commencé doit rester en brouillon quand on quitte ») : le projet existe dès
+-- la 1re action du joueur (une base choisie ou passée, quelques mots écrits), GRATUITEMENT (at_brouillon, état « brouillon ») ; le texte en
+-- cours d'écriture est gardé dans fiche.brouillon (at_fiche_etape 'brouillon', gratuit) et revient quand on rouvre le projet.
+create or replace function public.at_brouillon(p_name text, p_bases jsonb default null, p_texte text default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; b jsonb := '{}'::jsonb; t text := left(btrim(coalesce(p_texte, '')), 1500); why text;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-fiche', 300, interval '1 hour');
+  perform pegase_int.at_projets_ok(n);
+  if jsonb_typeof(p_bases) = 'object' then
+    select coalesce(jsonb_object_agg(k, left(btrim(v), 120)), '{}'::jsonb) into b from jsonb_each_text(p_bases) x(k, v) where k in ('dim', 'type', 'vue', 'avec', 'score', 'style') and length(btrim(v)) >= 1;
+  end if;
+  why := pegase_int.at_filtre(t || ' ' || coalesce((select string_agg(v, ' ') from jsonb_each_text(b) x(k, v)), '')); if why <> '' then raise exception 'filtre %', why; end if;
+  insert into public.at_fiches (name, etat, fiche) values (n, 'brouillon', jsonb_build_object('bases', b) || case when t <> '' then jsonb_build_object('brouillon', t) else '{}'::jsonb end) returning * into f;
+  return jsonb_build_object('fiche', f.id, 'etat', f.etat);
+end $$;
+revoke all on function public.at_brouillon(text, jsonb, text) from public, anon;
+grant execute on function public.at_brouillon(text, jsonb, text) to authenticated;
+
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_fiche_etape(text, uuid, text, jsonb)'::regprocedure);
+  if position('''brouillon''' in d) = 0 then
+    d := replace(d, '''sons'', ''bases'') then', '''sons'', ''bases'', ''brouillon'') then');
+    d := replace(d, 'elsif p_cle in (''idee'', ''titre'') then', 'elsif p_cle in (''idee'', ''titre'', ''brouillon'') then');
+    d := replace(d, 'if length(e) < 2 then raise exception ''texte vide''; end if;', 'if length(e) < 2 and p_cle <> ''brouillon'' then raise exception ''texte vide''; end if;');
+    if position('''bases'', ''brouillon'')' in d) = 0 or position('''titre'', ''brouillon'')' in d) = 0 or position('p_cle <> ''brouillon''' in d) = 0 then raise exception 'at_fiche_etape'; end if;
+    execute d;
+  end if;
+end $$;

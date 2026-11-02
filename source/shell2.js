@@ -14083,7 +14083,7 @@ const atlMsgs = () => (atlFiche() && Array.isArray(ATL.data.messages) ? ATL.data
 const atlProjets = () => (ATL.data && Array.isArray(ATL.data.projets) ? ATL.data.projets : []);
 const atlSeenKey = id => ATL.name + '|' + id;
 const atlProjNew = pj => !!(pj && pj.reponse_at) && String(pj.reponse_at) > String(ATL.seen[atlSeenKey(pj.id)] || '');
-const ATL_ETATS = { brouillon: '💬 En discussion', en_discussion: '💬 En discussion', complete: '🎉 Fiche complète', design: '🎨 Choix du design', design_choisi: '📮 Lettre à envoyer',
+const ATL_ETATS = { brouillon: '📝 Brouillon', en_discussion: '💬 En discussion', complete: '🎉 Fiche complète', design: '🎨 Choix du design', design_choisi: '📮 Lettre à envoyer',
   envoyee: '🛠️ Conception en cours', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans ta salle', publie_monde: '🌍 Publié pour tous' };
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
 const atlLastReply = () => atlMsgs().reduce((m, x) => (x.atelier && String(x.at) > m ? String(x.at) : m), '');
@@ -14215,7 +14215,7 @@ function atlBuild() {
   q('.atl-fhead').addEventListener('click', () => { ATL.fopen = !ATL.fopen; atlRenderFiche(); });
   q('.atl-comp').addEventListener('submit', e => { e.preventDefault(); atlSend(); });
   q('.atl-in').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); atlSend(); } });
-  q('.atl-in').addEventListener('input', () => { if (!q('.atl-in').value.trim()) ATL.micUsed = false; atlErr(''); });
+  q('.atl-in').addEventListener('input', () => { if (!q('.atl-in').value.trim()) ATL.micUsed = false; atlErr(''); if (ATL.root.classList.contains('ecrire')) { clearTimeout(ATL.brT); ATL.brT = setTimeout(() => atlBrSave(), 1000); } });
   q('.atl-mic').addEventListener('click', atlMic);
   q('.atl-imgb:not(.atl-drawb)').addEventListener('click', () => q('.atl-file').click());
   q('.atl-sendh').addEventListener('click', atlEnvoyer);
@@ -14235,6 +14235,7 @@ function atlOpen() {
 }
 function atlClose() {
   if (!ATL.root) return;
+  atlBrFlush();
   atlMicStop(); atlLetterClose(true); if (ATL.choix === 'question') ATL.choix = null;
   atlFrameStop();
   ATL.open = false; ATL.root.hidden = true; document.body.classList.remove('atl-on');
@@ -14276,17 +14277,18 @@ function atlRenderProjets() {
 function atlOuvrir(id) {
   atlMicStop(); atlLetterClose(true); atlErr('');
   ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.lance = 0; ATL.tab = ''; ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
-  const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) inp.placeholder = 'Décris ton jeu…';
+  const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) { inp.placeholder = 'Décris ton jeu…'; inp.value = ''; }
+  ATL.basesEnCours = false; ATL.prefill = true; ATL.brLast = '';   // un brouillon rouvert : son texte revient dans la case
   atlRender(); atlLoad(true);
 }
 function atlNouveau() {
   const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
   if (atlProjets().length >= max) { toastCheer(max + ' projets au plus', null, true); return; }
-  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.basesLoc = {}; ATL.basesDone = false; ATL.basesOn = false; ATL.bq = 0; ATL.pend = []; ATL.stick = true; atlErr('');
+  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.basesLoc = {}; ATL.basesDone = false; ATL.basesEnCours = true; ATL.brLast = ''; { const i0 = ATL.root && ATL.root.querySelector('.atl-in'); if (i0) i0.value = ''; } ATL.basesOn = false; ATL.bq = 0; ATL.pend = []; ATL.stick = true; atlErr('');
   atlRender();
   const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Raconte ton nouveau jeu…'; if (!TOUCH) inp.focus();
 }
-function atlListe() { atlFrameStop(); atlMicStop(); atlLetterClose(true); atlErr(''); ATL.cur = null; ATL.nouveau = false; ATL.choix = null; atlRender(); atlLoad(true); }
+function atlListe() { atlBrFlush(); ATL.basesEnCours = false; atlFrameStop(); atlMicStop(); atlLetterClose(true); atlErr(''); ATL.cur = null; ATL.nouveau = false; ATL.choix = null; atlRender(); atlLoad(true); }
 function atlRenderFiche() {
   const R = ATL.root; if (!R || ATL.editing) return;   // une section en cours de modification n'est pas redessinée
   const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}, et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
@@ -14706,7 +14708,7 @@ const ATL_ART = {
 };
 const atlBasesVal = () => { const f = atlFiche(), b = f && f.fiche && typeof f.fiche === 'object' ? f.fiche.bases : null; return b && typeof b === 'object' ? b : (ATL.basesLoc || {}); };
 const atlBasesOn = () => {
-  if (ATL.basesOn) return true;
+  if (ATL.basesOn || ATL.basesEnCours) return true;
   if (ATL.nouveau && !ATL.cur) return !ATL.basesDone;
   const f = atlFiche(); if (!f || ATL.chat || ATL_AFTER.has(f.etat) || f.etat === 'refusee' || atlRempli(f)) return false;
   return !(f.fiche && f.fiche.bases) && !atlMsgs().some(m => !m.atelier);
@@ -14714,8 +14716,10 @@ const atlBasesOn = () => {
 const atlBasesTexte = b => { const v = k => String(b[k] || '').toLowerCase(); const parts = [b.type && 'un jeu « ' + b.type + ' »', b.vue && v('vue'), b.avec && 'à jouer ' + v('avec'), b.score && 'le score : ' + v('score'), b.style && 'style ' + v('style')].filter(Boolean);
   return parts.length ? 'Mon jeu (en ' + (b.dim === '3D' ? '3D' : '2D') + ') : ' + parts.join(', ') + '.\nMon idée : ' : ''; };
 function atlPrefill() {
-  if (!ATL.prefill || !ATL.root) return; ATL.prefill = false;
-  const inp = ATL.root.querySelector('.atl-in'), t = atlBasesTexte(atlBasesVal()); if (!inp || !t || inp.value.trim()) return;
+  if (!ATL.prefill || !ATL.root || (ATL.cur && !atlFiche())) return; ATL.prefill = false;   // un projet rouvert : attendre sa fiche
+  const f = atlFiche(), br = f && f.fiche && typeof f.fiche.brouillon === 'string' ? f.fiche.brouillon : '';
+  const inp = ATL.root.querySelector('.atl-in'), t = br || atlBasesTexte(atlBasesVal()); if (!inp || !t || inp.value.trim()) return;
+  ATL.brLast = br;
   inp.value = t; if (!TOUCH) { inp.focus(); inp.setSelectionRange(t.length, t.length); }
 }
 async function atlBasesEnvoyer(fiche) {
@@ -14724,14 +14728,16 @@ async function atlBasesEnvoyer(fiche) {
 }
 function atlBasesChoisir(k, v) {
   const f = atlFiche(), b = Object.assign({}, atlBasesVal(), { [k]: String(v).slice(0, 120) });
+  ATL.basesLoc = b;
   if (f && f.id) { f.fiche = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; f.fiche.bases = b; if (!ATL_AFTER.has(f.etat)) atlEtape('bases', b); }
-  else ATL.basesLoc = b;
+  else atlBrouillon();   // 1re action : le projet existe (brouillon gratuit)
   atlBasesSuite(false);
 }
 // 18 h 30, Benjamin : l'étape 1 est FACULTATIVE — « Passer » une question (elle reste « à préciser »), ou tout passer et décrire son jeu
 function atlBasesSuite(tout) {
   const f = atlFiche(); ATL.bq = (ATL.bq | 0) + 1;
-  if (tout || ATL.bq >= ATL_BASES.length || (ATL.basesOn && ATL.basesUne)) { ATL.basesOn = false; ATL.basesUne = false; ATL.basesDone = true; ATL.prefill = !f; ATL.bq = 0; }
+  if (!f && !ATL.cur) atlBrouillon();   // passer une question compte aussi : le projet est commencé
+  if (tout || ATL.bq >= ATL_BASES.length || (ATL.basesOn && ATL.basesUne)) { ATL.basesOn = false; ATL.basesUne = false; ATL.basesDone = true; ATL.basesEnCours = false; ATL.prefill = true; ATL.bq = 0; }
   atlRender();
 }
 function atlRenderBases() {
@@ -14915,6 +14921,36 @@ function atlIntro(on) {
   }
   I.append(tips, atlEl('p', 'atl-inote', '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais. · 🤖 Ton jeu est créé avec l’aide de l’IA.'));
 }
+
+// ---- 2 nov. 19 h 10 (Benjamin) : « tout projet commencé reste en BROUILLON quand on quitte » — le projet existe dès la 1re action
+// (une base choisie ou passée, quelques mots écrits), gratuitement (at_brouillon) ; le texte en cours est gardé (fiche.brouillon)
+function atlBrouillon() {
+  if (ATL.cur) return Promise.resolve(ATL.cur);
+  if (!ATL.nouveau) return Promise.resolve(null);
+  if (ATL.brP) return ATL.brP;
+  const sent = JSON.stringify(ATL.basesLoc || {});
+  ATL.brP = (async () => {
+    try {
+      const r = await rpc('at_brouillon', { p_name: profile.name, p_bases: ATL.basesLoc || {}, p_texte: null }, { quiet: true });
+      if (!r || !r.fiche) return null;
+      if (ATL.nouveau && !ATL.cur) { ATL.cur = r.fiche; ATL.nouveau = false; }
+      if (JSON.stringify(ATL.basesLoc || {}) !== sent) { try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: r.fiche, p_cle: 'bases', p_valeur: ATL.basesLoc }, { quiet: true }); } catch (e) {} }
+      atlLoad(true); return r.fiche;
+    } catch (e) { if (/trop de projets/.test(String(e && e.message))) toastCheer('5 projets au plus : termine ou abandonne un projet', null, true); return null; }
+    finally { ATL.brP = null; }
+  })();
+  return ATL.brP;
+}
+async function atlBrSave(cur0) {
+  clearTimeout(ATL.brT); ATL.brT = 0;
+  const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (!inp) return;
+  const t = inp.value.slice(0, 1500); if (t === (ATL.brLast || '') || (!t.trim() && !ATL.brLast)) return;
+  let id = cur0 || ATL.cur; if (!id) { if (t.trim().length < 3) return; id = await atlBrouillon(); } if (!id) return;
+  ATL.brLast = t;
+  const f = atlFiche(); if (f && f.id === id) { f.fiche = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; f.fiche.brouillon = t; }
+  try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: id, p_cle: 'brouillon', p_valeur: t }, { quiet: true }); } catch (e) {}
+}
+function atlBrFlush() { if (ATL && ATL.brT) atlBrSave(ATL.cur); }
 
 // ---------- serveur ----------
 async function atlLoad(force) {
