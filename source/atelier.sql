@@ -2139,3 +2139,45 @@ begin
   d := pg_get_functiondef('public.at_gen_fin(uuid, text, text, text, jsonb)'::regprocedure);
   if position('ElevenLabs (équipe)' in d) > 0 then d := replace(d, 'ElevenLabs (équipe)', 'fait pour ton jeu'); execute d; end if;
 end $$;
+
+-- (v24, borne 1.63.81, 2 nov. 20 h 25-20 h 40, Benjamin) : LE GUIDE de l'Atelier = la mascotte de la maison (décision de Benjamin). Son nom
+-- et son image ne sont écrits dans AUCUN fichier publié (verifier-publication.js le refuse : c'est aussi le nom du module de l'espace privé) :
+-- ils sont dans la table at_textes (k = 'guide', posée directement en base) et arrivent à la borne par at_lire (« guide »).
+-- + la DEMANDE « ARRÊT SUR IMAGE » pendant la partie (at_demande : capture + viseur + texte, prix fixe cout_demande = 5 crédits).
+create table if not exists public.at_textes (k text primary key, v jsonb not null, maj_at timestamptz not null default now());
+alter table public.at_textes enable row level security;
+revoke all on public.at_textes from anon, authenticated;
+insert into public.at_reglages (k, v) values ('cout_demande', 5) on conflict (k) do nothing;
+
+create or replace function public.at_demande(p_name text, p_fiche uuid, p_texte text, p_x numeric default null, p_y numeric default null, p_image boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; t text := left(btrim(coalesce(p_texte, '')), 1000); why text; s int; i uuid; vis text := '';
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier', 30, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if f.etat not in ('alpha', 'publie_salle', 'publie_monde') then raise exception 'pas jouable'; end if;
+  if length(t) < 2 then raise exception 'texte vide'; end if;
+  why := pegase_int.at_filtre(t); if why <> '' then raise exception 'filtre %', why; end if;
+  if coalesce(p_image, false) and (select count(*) from public.at_messages m where m.fiche = f.id and m.image and not m.de_atelier) >= 40 then raise exception 'trop d images'; end if;
+  if p_x is not null and p_y is not null and p_x between 0 and 100 and p_y between 0 and 100 then vis := ' (viseur à ' || round(p_x) || ' % de la largeur, ' || round(p_y) || ' % de la hauteur)'; end if;
+  s := pegase_int.at_debiter(n, coalesce(pegase_int.at_reglage('cout_demande'), 5));
+  insert into public.at_messages (fiche, texte, image) values (f.id, '🎯 Arrêt sur image, pendant la partie' || vis || ' : ' || t, coalesce(p_image, false)) returning id into i;
+  update public.at_fiches x set maj_at = now() where x.id = f.id;
+  return jsonb_build_object('id', i, 'image', case when coalesce(p_image, false) then 'a/' || i || '.jpg' end, 'solde', s);
+end $$;
+revoke all on function public.at_demande(text, uuid, text, numeric, numeric, boolean) from public, anon;
+grant execute on function public.at_demande(text, uuid, text, numeric, numeric, boolean) to authenticated;
+
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_lire(text, uuid)'::regprocedure);
+  if position('at_textes' in d) = 0 then
+    d := replace(d, '''forme'', coalesce(pegase_int.at_reglage(''cout_forme''), 3),', '''forme'', coalesce(pegase_int.at_reglage(''cout_forme''), 3), ''demande'', coalesce(pegase_int.at_reglage(''cout_demande''), 5),');
+    d := replace(d, '  return jsonb_build_object(''credits'', cr, ''projets'', pr,', '  return jsonb_build_object(''credits'', cr, ''projets'', pr, ''guide'', (select g.v from public.at_textes g where g.k = ''guide''),');
+    d := replace(d, 'then return jsonb_build_object(''fiche'', null, ''messages'', ''[]''::jsonb, ''credits'', cr, ''projets'', pr);', 'then return jsonb_build_object(''fiche'', null, ''messages'', ''[]''::jsonb, ''credits'', cr, ''projets'', pr, ''guide'', (select g.v from public.at_textes g where g.k = ''guide''));');
+    if (length(d) - length(replace(d, 'at_textes', ''))) / 9 <> 2 or position('cout_demande' in d) = 0 then raise exception 'at_lire'; end if;
+    execute d;
+  end if;
+end $$;

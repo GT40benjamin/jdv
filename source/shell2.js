@@ -14187,20 +14187,28 @@ function atlTileState() {
 // ---------- l'espace Atelier ----------
 // 2 nov. 20 h 08 (Benjamin : « écrire à l'Atelier, il ne faut pas ! ») : le joueur parle à un PERSONNAGE, un robot guide (dessin et nom
 // choisis par Benjamin) ; « l'Atelier » reste le nom du lieu. Nom et avatar ici SEULEMENT (nom provisoire : « ton guide », avatar 🤖)
-const ATL_GUIDE = { nom: 'ton guide', img: '' };   // img : chemin i/<uuid>.png du seau atelier-ia, ou '' (🤖)
-const gN = () => ATL_GUIDE.nom, gNM = () => ATL_GUIDE.nom.charAt(0).toUpperCase() + ATL_GUIDE.nom.slice(1);
+// 20 h 25 : le guide est la MASCOTTE de la maison ; son nom et son image arrivent du serveur (at_lire « guide », table at_textes) et ne sont
+// écrits dans AUCUN fichier publié (verifier-publication.js le refuse). Par défaut, avant la 1re lecture : « ton guide », 🤖
+const ATL_GUIDE = { nom: 'ton guide', a: 'à ton guide', de: 'de ton guide', img: '' };   // img : chemin i/<uuid>.png du seau atelier-ia, ou '' (🤖)
+const gN = () => ATL_GUIDE.nom, gNM = () => ATL_GUIDE.nom.charAt(0).toUpperCase() + ATL_GUIDE.nom.slice(1), gA = () => ATL_GUIDE.a, gDe = () => ATL_GUIDE.de;
+function atlGuideMaj(g) {
+  if (!g || typeof g !== 'object') return;
+  const t = (v, n) => (typeof v === 'string' && v.trim() && v.length <= n && !/[<>]/.test(v) ? v.trim() : '');
+  const nom = t(g.nom, 30); if (!nom) return;
+  ATL_GUIDE.nom = nom; ATL_GUIDE.a = t(g.a, 40) || 'à ' + nom; ATL_GUIDE.de = t(g.de, 40) || 'de ' + nom; ATL_GUIDE.img = atlIaUrl(g.img) ? g.img : '';
+}
 function atlGuideAv(cls) {
   const a = atlEl('span', cls || 'atl-av'), u = atlIaUrl(ATL_GUIDE.img);
   if (u) { const im = atlEl('img'); im.alt = ''; im.src = u; a.appendChild(im); } else a.textContent = '🤖';
   a.title = gNM(); return a;
 }
-const ATL_WELCOME = [
+const atlWelcome = () => [
   'Bienvenue à l’Atelier des jeux ! 👋',
   'Décris le jeu dont tu rêves, en une seule fois, au clavier ou au micro 🎤 : le héros, ce qu’on fait, le monde, les objets, les sons… Plus tu racontes, mieux c’est !',
   '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais dans ton jeu.',
   '✨ ' + gNM() + ' remplit alors toute ta fiche et dessine un premier design de ton jeu (quelques minutes : va jouer, la cloche 🔔 te préviendra).',
   'Ensuite tu relis chaque étape, tu ajoutes ou enlèves ce que tu veux, puis tu touches « 🚀 Lancer la conception » : ton jeu se construit.',
-  '🤖 Ton jeu est créé avec l’aide de l’IA. 💎 Parler à ' + gN() + ' : 2 crédits le message · un dessin : 10 · une forme simple : 3. Le prix est toujours écrit sur le bouton.'
+  '🤖 Ton jeu est créé avec l’aide de l’IA. 💎 Parler ' + gA() + ' : 2 crédits le message · un dessin : 10 · une forme simple : 3. Le prix est toujours écrit sur le bouton.'
 ];
 function atlBuild() {
   if (ATL.root) return ATL.root;
@@ -14266,6 +14274,7 @@ function atlRender() {
 function atlRenderProjets() {
   const R = ATL.root, box = R.querySelector('.atl-projets'); box.textContent = '';
   const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
+  atlAccueil(box, ps, max);
   box.append(atlEl('h2', 'atl-ph', 'Mes projets'), atlEl('p', 'atl-psub', ps.length ? 'Touche un projet pour le continuer, ou commence-en un nouveau.' : 'Commence ton premier jeu : touche « Nouveau projet » !'));
   const g = atlEl('div', 'atl-pgrid');
   for (const pj of ps) {
@@ -14275,7 +14284,7 @@ function atlRenderProjets() {
     // 19 h 38 (Benjamin) : idée envoyée, réponse pas encore arrivée → « ⏳ En attente de l'Atelier » (badge et couleur), pas « Brouillon »
     const att = !!pj.joueur_at && (!pj.reponse_at || String(pj.joueur_at) > String(pj.reponse_at)) && ['brouillon', 'en_discussion', 'complete'].includes(String(pj.etat || ''));
     if (att) b.classList.add('att');
-    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', '', att ? '⏳ En attente de ' + gN() : ATL_ETATS[pj.etat] || String(pj.etat || '')));
+    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', '', att ? '⏳ En attente ' + gDe() : ATL_ETATS[pj.etat] || String(pj.etat || '')));
     if (att) b.appendChild(atlEl('span', 'atl-patt', '⏳ En attente'));
     if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
     b.addEventListener('click', () => atlOuvrir(pj.id)); g.appendChild(b);
@@ -14374,7 +14383,7 @@ function atlBubble(m, wel) {
   const col = atlEl('div', 'atl-mc');
   if (at) col.appendChild(atlEl('small', 'atl-who', gNM()));
   const bub = atlEl('div', 'atl-b');
-  if (wel) { for (const p of ATL_WELCOME) bub.appendChild(atlEl('p', '', p)); }
+  if (wel) { for (const p of atlWelcome()) bub.appendChild(atlEl('p', '', p)); }
   else {
     if (m.texte) bub.appendChild(atlEl('p', '', m.texte));
     if (Array.isArray(m.images) && m.images.length && !m.planche) bub.appendChild(atlImgs(m));
@@ -14406,7 +14415,7 @@ function atlRenderChat() {
   const bn = R.querySelector('.atl-banner'), lock = R.querySelector('.atl-lock');
   let btxt = '', bk = '', locked = '';
   if (et === 'complete' && !atlChoix() && !atlRempli(f)) { btxt = f.prix ? '🎁 Ton jeu : ' + (f.prix | 0) + ' crédits pour tout. Si tout te plaît, envoie ton projet. Sinon, touche une section pour la changer.' : '🎉 Ta fiche est complète ! L’Atelier prépare le prix de ton jeu.'; bk = 'go'; }
-  else if (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde') { btxt = et === 'alpha' ? '🎮 Ton jeu est jouable ! Sa tuile « MON JEU » t’attend sur la borne. Dis à ' + gN() + ' ce que tu veux changer.' : '🌟 Ton jeu est publié ' + (et === 'publie_monde' ? 'pour tout le monde !' : 'dans ta salle !') + ' Tu peux encore demander des modifications.'; bk = 'ok'; }
+  else if (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde') { btxt = et === 'alpha' ? '🎮 Ton jeu est jouable ! Sa tuile « MON JEU » t’attend sur la borne. Dis ' + gA() + ' ce que tu veux changer.' : '🌟 Ton jeu est publié ' + (et === 'publie_monde' ? 'pour tout le monde !' : 'dans ta salle !') + ' Tu peux encore demander des modifications.'; bk = 'ok'; }
   else if (et === 'envoyee') { btxt = '🛠️ Construction en cours de « ' + (f.titre || 'Mon jeu sans nom') + ' ». La cloche 🔔 te prévient dès qu’il est prêt à tester.'; bk = 'sent'; }
   else if (et === 'acceptee') { btxt = '✅ Ton projet est accepté ! ' + gNM() + ' te tiendra au courant.'; bk = 'ok'; locked = 'Un jeu par joueur : celui-ci est le tien ! 🎮'; }
   else if (et === 'refusee') { btxt = 'Ton projet n’a pas été retenu cette fois. Tu peux en proposer un autre : écris ta nouvelle idée !'; bk = 'no'; }
@@ -14451,7 +14460,7 @@ function atlWizWhy(e) {
   if (/design en cours/.test(m)) return 'Ton design est déjà en train d’être dessiné : encore un petit moment !';
   if (/projet lance/.test(m)) return 'La conception est lancée : ton projet ne se modifie plus.';
   if (/plafond global/.test(m)) return 'Le dessin fait une petite pause : réessaie un peu plus tard.';
-  if (/fiche vide/.test(m)) return 'Raconte d’abord ton jeu à ' + gN() + '.';
+  if (/fiche vide/.test(m)) return 'Raconte d’abord ton jeu ' + gA() + '.';
   return atlWhy(e);
 }
 async function atlEtape(cle, val) {
@@ -14594,12 +14603,14 @@ function atlRenderProjet(W, f) {
   ht.append(atlEl('h1', '', f.titre || 'Mon jeu sans nom'), atlEl('span', 'atl-pet atl-pet-' + et, ATL_ETATS[et] || et));
   ht.appendChild(atlEl('small', '', 'Commencé le ' + atlDate(f.created_at) + (f.envoyee_at ? ' · conception lancée le ' + atlDate(f.envoyee_at) : '')));
   hd.append(hv, ht); box.appendChild(hd);
-  // les onglets
-  const T = [[jouable ? 'jeu' : 'etat', jouable ? '🎮 Jouer' : et === 'refusee' ? '📌 État' : '⚙️ Conception'], ['fiche', '📋 La fiche'], ['dessins', '🎨 Les dessins'], ['discussion', '💬 Discussion']];
-  if (!T.some(x => x[0] === ATL.tab)) ATL.tab = T[0][0];
-  const nav = atlEl('div', 'atl-ptabs'); nav.setAttribute('role', 'tablist');
-  for (const [k, lab] of T) { const b = atlEl('button', 'atl-ptab', lab); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'tab'); b.addEventListener('click', () => atlProjTab(k)); nav.appendChild(b); }
-  box.appendChild(nav);
+  // 20 h 35 (Benjamin) : la fiche et les dessins sont dans la feuille de route (à droite) ; ici : Jouer + Discussion, ou la V1 en construction
+  const T = jouable ? [['jeu', '🎮 Jouer'], ['discussion', '💬 Discussion']] : [];
+  if (jouable && !T.some(x => x[0] === ATL.tab)) ATL.tab = 'jeu';
+  if (jouable) {
+    const nav = atlEl('div', 'atl-ptabs'); nav.setAttribute('role', 'tablist');
+    for (const [k, lab] of T) { const b = atlEl('button', 'atl-ptab', lab); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'tab'); b.addEventListener('click', () => atlProjTab(k)); nav.appendChild(b); }
+    box.appendChild(nav);
+  }
   const pane = k => { const p = atlEl('section', 'atl-pane'); p.dataset.k = k; p.setAttribute('role', 'tabpanel'); box.appendChild(p); return p; };
   // 🎮 Jouer
   if (jouable) {
@@ -14613,43 +14624,81 @@ function atlRenderProjet(W, f) {
     fs.addEventListener('click', () => { atlFrameStart(); try { (fr.requestFullscreen || fr.webkitRequestFullscreen).call(fr); } catch (e) {} });
     const rj = atlEl('button', 'btn btn-ghost btn-sm', '↺ Rejouer'); rj.type = 'button'; rj.disabled = !g;
     rj.addEventListener('click', () => { const i = fr.querySelector('iframe'); if (!i) { atlFrameStart(); return; } try { i.contentWindow.postMessage({ atl: 'rejouer' }, location.origin); } catch (e) { i.src = i.src; } });
-    bar.append(fs, rj); p.appendChild(bar);
+    const ps = atlEl('button', 'btn btn-play btn-sm atl-parret', '⏸ Pause · 💬 Parler ' + gA()); ps.type = 'button'; ps.disabled = !g;
+    ps.addEventListener('click', () => atlArret());
+    const fl = atlGuideAv('atl-garret'); fl.setAttribute('role', 'button'); fl.tabIndex = 0; fl.title = 'Arrêt sur image : montre ' + gA() + ' ce qu’il faut changer (touche P)'; fl.addEventListener('click', () => atlArret()); fr.appendChild(fl);
+    bar.append(ps, fs, rj); p.appendChild(bar);
+    p.appendChild(atlEl('p', 'atl-gaide', '⏸ Pendant la partie, touche P (ou le petit robot) : arrêt sur image, tu montres avec le viseur ce qu’il faut changer, et ' + gN() + ' s’en occupe.'));
     const pub = atlEl('div', 'atl-pub'); pub.appendChild(atlEl('h3', '', et === 'alpha' ? '🌟 Quand il te plaît : publie-le !' : et === 'publie_monde' ? '🌍 Publié pour tout le monde' : '🌟 Publié dans ta salle'));
     atlBoutonsJeu(pub, f, true); p.appendChild(pub);
   } else {
     const p = pane('etat'), c = atlEl('div', 'atl-fin' + (et === 'refusee' ? '' : ' run'));
     if (et === 'refusee') c.append(atlEl('h2', '', 'Ce projet n’a pas été retenu'), atlEl('p', '', 'Tu peux en commencer un autre depuis « Mes projets ».'));
-    else { c.innerHTML = '<div class="atl-gear" aria-hidden="true"><span>⚙️</span><span>⚙️</span><b>✨</b></div>'; c.append(atlEl('h2', '', 'Conception en cours…'), atlEl('p', '', 'Construction en cours de « ' + (f.titre || 'Mon jeu sans nom') + ' ». Va jouer en attendant : la cloche 🔔 te prévient dès qu’il est prêt à tester.')); }
+    else { c.innerHTML = '<div class="atl-gear" aria-hidden="true"><span>⚙️</span><span>⚙️</span><b>✨</b></div>'; c.append(atlEl('h2', '', '🛠️ Ta V1 est en construction'), atlEl('p', '', 'Ta V1 de « ' + (f.titre || 'Mon jeu sans nom') + ' » est en construction. Va jouer en attendant : la cloche 🔔 te prévient dès qu’elle est prête à tester.')); }
     p.appendChild(c);
   }
-  // 📋 La fiche
-  { const p = pane('fiche'), grid = atlEl('div', 'atl-pfiche'); let n = 0;
-    for (const [k, ic, lab] of ATL_FICHE_ORDRE) {
-      const v = fi[k]; if (!atlVal(v)) continue; n++;
-      const c = atlEl('article', 'atl-pcard' + (k === 'idee' || k === 'but' ? ' large' : '')); c.appendChild(atlEl('h4', '', ic + ' ' + lab));
-      if (Array.isArray(v)) { const ch = atlEl('div', 'atl-chips'); for (const x of atlListeDe(v)) ch.appendChild(atlEl('span', 'atl-chip ro', x)); c.appendChild(ch); }
-      else c.appendChild(atlEl('p', '', atlVal(v)));
-      grid.appendChild(c);
-    }
-    if (!n) grid.appendChild(atlEl('p', 'atl-chv', 'La fiche est vide.'));
-    p.appendChild(grid); }
-  // 🎨 Les dessins
-  { const p = pane('dessins');
-    const dzd = f.design && atlIaUrl(f.design.f);
-    if (dzd) { const d = atlEl('figure', 'atl-pdz'); const im = atlEl('img'); im.alt = 'Le design du jeu'; im.src = dzd; im.addEventListener('click', () => atlZoom(dzd)); d.append(im, atlEl('figcaption', '', '🎨 Le design')); p.appendChild(d); }
-    const grp = (titre, list, fn) => { if (!list.length) return; p.appendChild(atlEl('h3', 'atl-ph3', titre + ' · ' + list.length)); const gr = atlEl('div', 'atl-pgal'); for (const a of list) gr.appendChild(fn(a)); p.appendChild(gr); };
-    const fig = (a, vis) => { const d = atlEl('figure', 'atl-pa'); d.appendChild(vis); d.appendChild(atlEl('figcaption', '', atlVal(a.nom))); return d; };
-    grp('🖼️ Les grandes images', as.filter(a => !a.case && a.sorte !== 'élément' && atlIaUrl(a.image)), a => { const u = atlIaUrl(a.image), im = atlEl('img'); im.alt = atlVal(a.nom); im.loading = 'lazy'; im.src = u; im.addEventListener('click', () => atlZoom(u)); const d = fig(a, im); d.classList.add('big'); return d; });
-    grp('🧩 Les éléments du jeu', as.filter(a => (a.case && Array.isArray(a.grille) || a.sorte === 'élément') && atlIaUrl(a.image)), a => { const u = atlIaUrl(a.image); let v; if (a.case && Array.isArray(a.grille)) v = atlCrop(u, a.case, a.grille, atlVal(a.nom), as.filter(x => x.image === a.image).length); else { v = atlEl('img', 'atl-cut'); v.alt = atlVal(a.nom); v.loading = 'lazy'; v.src = u; } v.addEventListener('click', () => atlZoom(u)); return fig(a, v); });
-    grp('🔷 Les formes', (Array.isArray(fi.formes) ? fi.formes : []).filter(x => x && ATL_FORMES_OK.has(x.forme)), x => fig(x, atlFormeSvg(x.forme, x.couleur)));
-    grp('🎵 Les sons', as.filter(a => atlSonUrl(a.son)), a => { const au = atlEl('audio'); au.controls = true; au.preload = 'none'; au.src = atlSonUrl(a.son); const d = fig(a, au); d.classList.add('son'); return d; });
-    if (!dzd && !as.length) p.appendChild(atlEl('p', 'atl-chv', 'Les dessins arrivent pendant la conception.')); }
   // 💬 Discussion
   { const p = pane('discussion'), l = atlEl('div', 'atl-pmsgs'); p.appendChild(l);
-    const w = atlEl('button', 'btn btn-play btn-sm', '💬 Parler à ' + gN()); w.type = 'button'; w.addEventListener('click', () => { atlFrameStop(); ATL.chat = true; ATL.stick = true; atlRender(); }); p.appendChild(w); }
+    const w = atlEl('button', 'btn btn-play btn-sm', '💬 Parler ' + gA()); w.type = 'button'; w.addEventListener('click', () => { atlFrameStop(); ATL.chat = true; ATL.stick = true; atlRender(); }); p.appendChild(w); }
   box.appendChild(atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
-  atlProjMsgs(W, f); atlProjTab(ATL.tab);
+  atlProjMsgs(W, f);
+  if (jouable) atlProjTab(ATL.tab); else for (const q of W.querySelectorAll('.atl-pane')) q.hidden = false;   // la V1 en construction : tout sur une page
 }
+// ---- 20 h 25-20 h 35 (Benjamin) : ARRÊT SUR IMAGE dans le jeu — touche P (dans le cadre), le petit robot ou « ⏸ Pause » : le jeu se met en
+// pause (postMessage atl-pause), la capture du cadre s'affiche, le joueur pose le VISEUR sur ce qu'il veut corriger, écrit sa demande et
+// l'envoie au guide (at_demande : prix fixe cout_demande ; capture ré-encodée en JPEG, viseur dessiné dessus) ; ▶ Reprendre (atl-reprendre)
+function atlCapture(i) {
+  const d = i.contentDocument; if (!d) return null;
+  let best = null, ba = 0;
+  for (const c of d.querySelectorAll('canvas')) { const r = c.getBoundingClientRect(), ar = r.width * r.height; if (c.width && c.height && ar > ba) { best = c; ba = ar; } }
+  if (!best) return null;
+  const k = Math.min(1, 1280 / Math.max(best.width, best.height)), o = document.createElement('canvas');
+  o.width = Math.max(1, Math.round(best.width * k)); o.height = Math.max(1, Math.round(best.height * k));
+  const g = o.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, o.width, o.height); g.drawImage(best, 0, 0, o.width, o.height);
+  return o;
+}
+function atlArret() {
+  const R = ATL.root, fr = R && R.querySelector('.atl-wiz .atl-gframe'), f = atlFiche(); if (!fr || !f || fr.querySelector('.atl-arret')) return;
+  const i = fr.querySelector('iframe'); if (!i) { atlFrameStart(); return; }
+  try { i.contentWindow.postMessage({ type: 'atl-pause' }, location.origin); } catch (e) {}
+  let shot = null; try { shot = atlCapture(i); } catch (e) { shot = null; }
+  const cr = atlCred(), cout = cr && cr.demande != null ? cr.demande | 0 : 5, vis = { x: null, y: null };
+  const O = atlEl('div', 'atl-arret'); O.setAttribute('role', 'dialog'); O.setAttribute('aria-label', 'Arrêt sur image');
+  const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', 'Arrêt sur image ! Touche l’endroit à changer avec le viseur 👁️, puis dis-moi ce que tu veux.')); hd.append(atlGuideAv('atl-wav'), ht);
+  const zone = atlEl('div', 'atl-arz'), mk = atlEl('span', 'atl-arv'); mk.hidden = true;
+  if (shot) { shot.className = 'atl-arimg'; zone.appendChild(shot); } else zone.appendChild(atlEl('div', 'atl-arno', 'Ton jeu est en pause.'));
+  zone.appendChild(mk);
+  zone.addEventListener('click', e => { const r = (shot || zone).getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 100, y = (e.clientY - r.top) / r.height * 100; if (x < 0 || x > 100 || y < 0 || y > 100) return; vis.x = x; vis.y = y; mk.hidden = false; mk.style.left = x + '%'; mk.style.top = y + '%'; });
+  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux changer ici…';
+  const er = atlEl('p', 'atl-werr'); er.hidden = true;
+  const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', '▶ Reprendre'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎');
+  rp.type = 'button'; go.type = 'button';
+  const fin = () => { O.remove(); try { i.contentWindow.postMessage({ type: 'atl-reprendre' }, location.origin); i.focus(); } catch (e) {} };
+  rp.addEventListener('click', fin);
+  go.addEventListener('click', async () => {
+    const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
+    if (cr && (cr.solde | 0) < cout) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
+    go.disabled = true; er.hidden = true;
+    try {
+      let blob = null;
+      if (shot) {
+        const c = document.createElement('canvas'); c.width = shot.width; c.height = shot.height; const g = c.getContext('2d'); g.drawImage(shot, 0, 0);
+        if (vis.x != null) { const x = vis.x / 100 * c.width, y = vis.y / 100 * c.height, rr = Math.max(14, c.width * 0.035); g.lineWidth = Math.max(3, rr * 0.22); g.strokeStyle = '#ff2d55'; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.moveTo(x - rr * 1.6, y); g.lineTo(x - rr * 0.6, y); g.moveTo(x + rr * 0.6, y); g.lineTo(x + rr * 1.6, y); g.moveTo(x, y - rr * 1.6); g.lineTo(x, y - rr * 0.6); g.moveTo(x, y + rr * 0.6); g.lineTo(x, y + rr * 1.6); g.stroke(); }
+        const raw = await new Promise(ok => c.toBlob(ok, 'image/png')); if (raw) { try { blob = await atlJpeg(raw); } catch (e) { blob = null; } }
+      }
+      const r = await rpc('at_demande', { p_name: profile.name, p_fiche: f.id, p_texte: t, p_x: vis.x, p_y: vis.y, p_image: !!blob }, { quiet: true });
+      if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
+      if (blob && r && /^a\/[0-9a-f-]{36}\.jpg$/.test(String(r.image || ''))) {
+        const tok = await acctToken(profile);
+        await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/atelier/' + r.image, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: blob }, 60000);
+      }
+      toastCheer('✉️ Demande envoyée ' + gA() + ' !', null, true); fin(); atlLoad(true);
+    } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
+  });
+  row.append(rp, go); O.append(hd, zone, ta, er, row); fr.appendChild(O);
+  try { fr.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} if (!TOUCH) ta.focus({ preventScroll: true });   // téléphone : le clavier ne cache pas l'image
+}
+window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'atl-arret' && ATL && ATL.open) atlArret(); });
 
 // ---------- 2 nov. 18 h 25 (Benjamin) : ÉTAPE 1 « Les bases de ton jeu » (5 questions, une à l'écran, avant l'invite), l'invite PRÉ-REMPLIE,
 // la FEUILLE DE ROUTE (colonne de droite sur PC, repliable en haut sur téléphone), les DESSINS des éléments (planches de 8 au plus, découpées
@@ -14661,7 +14710,7 @@ const ATL_BASES = [
   ['vue', '👀', 'On voit le jeu comment ?', 'Vue', [['➡️', 'De côté', ''], ['⬇️', 'Vu de dessus', '']]],
   ['avec', '👥', 'Avec qui on joue ?', 'Avec qui', [['🙋', 'Seul', ''], ['👫', 'À deux sur le même écran', ''], ['⚔️', 'En duel', '']]],
   ['score', '🏆', 'Le score, c’est…', 'Score', [['⭐', 'Des points', ''], ['⏱️', 'Le temps', ''], ['📏', 'La distance', ''], ['💰', 'Ce qu’on possède', ''], ['🏆', 'Les niveaux réussis', '']]],
-  ['style', '🎨', 'Quel style ?', 'Style', [['🧸', 'Mignon', ''], ['👾', 'Rétro pixel', ''], ['💡', 'Néon', ''], ['🎨', 'Dessin animé', ''], ['🌲', 'Plus réaliste', '']]]
+  ['style', '🎨', 'Quel style ?', 'Style', [['🧸', 'Mignon', ''], ['👾', 'Rétro pixel', ''], ['💡', 'Néon', ''], ['🎨', 'Dessin animé', ''], ['🌲', 'Plus réaliste', 'Bientôt (3D)', true]]]
 ];
 // ---- un EXEMPLE VISUEL pour chaque choix des bases (Benjamin, 18 h 50 : « un bel exemple visuel directement ») : petites scènes SVG
 // dessinées par le code (aucune image générée, aucun texte du joueur) ; clé = question + numéro du choix
@@ -14903,6 +14952,9 @@ function atlRenderRoute(liste) {
   const s3 = sec('🎨 Le design');
   const els = f ? atlElemsFiche(fi) : [], faits = f ? els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length : 0, att = f && Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours.length : 0;
   ligne(s3, '🖼️', 'L’ambiance', f && f.design_en_cours ? '⏳' : f && f.design ? '✔' : '…', etape(5), !!(f && f.design));
+  { const th = atlEl('div', 'atl-rth'); let n = 0;
+    for (const e of els) { const d = f && atlDessinDe(f, fi, e.nom); if (!d || d.attente || n >= 15) continue; n++; let v; if (d.img) { v = atlEl('img'); v.alt = e.nom; v.loading = 'lazy'; v.src = d.img; v.addEventListener('click', () => atlZoom(d.img)); } else v = atlFormeSvg(d.forme.forme, d.forme.couleur); v.title = e.nom; th.appendChild(v); }
+    if (n) setTimeout(() => s3.appendChild(th), 0); }
   ligne(s3, '🧩', 'Dessins', els.length ? faits + ' / ' + els.length + (att ? ' ⏳' : '') : '…', etape(5), !!els.length && faits === els.length);
   const s4 = sec('🚀 Où en est ton jeu');
   s4.appendChild(atlEl('p', 'atl-rst', !f ? (ATL.nouveau ? (atlBasesOn() ? 'Étape 1 : les bases' : 'Étape 2 : décris ton jeu') : '') : ATL_ETATS[et] || et));
@@ -14915,8 +14967,8 @@ function atlRenderRoute(liste) {
 // ---- l'étape 2 « Décris ton jeu » : la page d'écriture (au-dessus de la grande case, du micro et de « Joindre une image »)
 function atlIntro(on) {
   const R = ATL.root, I = R && R.querySelector('.atl-intro'); if (!I) return;
-  I.hidden = !on; R.querySelector('.atl-send').textContent = on ? '✨ Envoyer à ' + gN() : 'Envoyer ➤';
-  R.querySelector('.atl-in').placeholder = on ? 'Raconte ton jeu ici…' : 'Écris à ' + gN() + '…';
+  I.hidden = !on; R.querySelector('.atl-send').textContent = on ? '✨ Envoyer ' + gA() : 'Envoyer ➤';
+  R.querySelector('.atl-in').placeholder = on ? 'Raconte ton jeu ici…' : 'Écris ' + gA() + '…';
   if (!on) { I.textContent = ''; return; }
   if (I.dataset.on === '1' && I.firstChild) return; I.dataset.on = '1'; I.textContent = '';
   I.append(atlEl('p', 'atl-bk', 'Étape 2 · Décris ton jeu'), atlEl('h2', 'atl-it', '✍️ Raconte-nous ton jeu'),
@@ -14991,6 +15043,27 @@ async function atlNomSave(v) {
   catch (e) { toastCheer(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie', null, true); atlLoad(true); }
 }
 
+// ---- 20 h 25 (Benjamin) : en entrant dans l'Atelier, le guide est là : il dit bonjour, propose quoi faire, signale les nouveautés
+function atlAccueil(box, ps, max) {
+  const A = atlEl('div', 'atl-acc'), tx = atlEl('div', 'atl-acct');
+  const nom = profile && profile.name ? dispName(profile.name) : '';
+  tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-accq', 'Bonjour' + (nom ? ' ' + nom : '') + ' ! 👋 Qu’est-ce qu’on fait aujourd’hui ?'));
+  const news = atlEl('div', 'atl-accn');
+  for (const pj of ps.filter(atlProjNew).slice(0, 3)) {
+    const b = atlEl('button', 'atl-accnew', pj.etat === 'alpha' ? '🎉 Ta V1 de « ' + (pj.titre || 'Mon jeu sans nom') + ' » est prête !' : '✉️ Tu as un nouveau message sur « ' + (pj.titre || 'Mon jeu sans nom') + ' »');
+    b.type = 'button'; b.addEventListener('click', () => atlOuvrir(pj.id)); news.appendChild(b);
+  }
+  if (news.childNodes.length) tx.appendChild(news);
+  const act = atlEl('div', 'atl-acca'), btn = (t, cls, fn, off) => { const b = atlEl('button', 'btn btn-sm ' + cls, t); b.type = 'button'; b.disabled = !!off; b.addEventListener('click', fn); act.appendChild(b); };
+  btn('＋ Nouveau projet', 'btn-play', atlNouveau, ps.length >= max);
+  const br = ps.find(pj => ['brouillon', 'en_discussion', 'complete'].includes(String(pj.etat || '')));
+  if (br) btn('📝 Reprendre « ' + (br.titre || 'Mon jeu sans nom') + ' »', 'btn-ghost', () => atlOuvrir(br.id));
+  const v1 = ps.find(pj => ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')));
+  if (v1) btn('🎮 Tester ma V1 de « ' + (v1.titre || 'Mon jeu sans nom') + ' »', 'btn-ghost', () => { ATL.tab = 'jeu'; atlOuvrir(v1.id); });
+  tx.appendChild(act);
+  A.append(atlGuideAv('atl-accav'), tx); box.appendChild(A);
+}
+
 // ---------- serveur ----------
 async function atlLoad(force) {
   if (!ATL || !ATL_ON() || !ONLINE || ATL.off) return;
@@ -15005,6 +15078,7 @@ async function atlLoad(force) {
     const lastAll = () => atlProjets().reduce((m, x) => (x.reponse_at && String(x.reponse_at) > m ? String(x.reponse_at) : m), '');
     const before = lastAll();
     ATL.data = r && typeof r === 'object' ? r : { fiche: null, messages: [], projets: [] }; ATL.err = 0;
+    atlGuideMaj(ATL.data.guide);
     const after = lastAll();
     if (ATL.open && !document.hidden) atlMarkSeen();
     else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { toastCheer('✉️ ' + gNM() + ' t’a répondu !', null, true); } catch (e) {} }
@@ -15878,7 +15952,13 @@ if (CADRE) {   // le jeu seul, dans la page du projet
   const g0 = (window.JDW_GAMES || {})[CADRE], g = g0 && g0.id === CADRE && laboOk(CADRE) ? g0 : null;   // un jeu de l'Atelier en alpha n'est pas dans GAMES (pas de tuile)
   if (g) { CADRE_G = g; setTimeout(() => { try { markGameSeen(g.id); Audio.ensure(); } catch (e) {} $('jdw-lib').hidden = true; $('jdw-play').style.setProperty('--acc', g.accent); $('jdw-gtitle').textContent = g.title; backToLibrary(); }, 200); }   // sans salle ni appli : le jeu, tout de suite
   else { const d = document.createElement('div'); d.className = 'cadre-vide'; d.textContent = 'Ce jeu arrive sur la borne très bientôt !'; document.body.appendChild(d); }
-  window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.atl === 'rejouer' && CADRE_G) backToLibrary(); });
+  window.addEventListener('message', e => {
+    if (e.origin !== location.origin || !e.data) return;
+    if (e.data.atl === 'rejouer' && CADRE_G) backToLibrary();
+    else if (e.data.type === 'atl-pause') { try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (x) {} }
+    else if (e.data.type === 'atl-reprendre') { try { if (current && current.inst && current.inst.resume) current.inst.resume(); } catch (x) {} }
+  });
+  window.addEventListener('keydown', e => { if ((e.key === 'p' || e.key === 'P') && !e.repeat && !/^(INPUT|TEXTAREA)$/.test((document.activeElement || {}).tagName || '')) { try { window.parent.postMessage({ type: 'atl-arret' }, location.origin); } catch (x) {} } }, true);
 }
 acctBar(); acctStart();         // comptes : bannière « Protège ton compte », lien reçu par e-mail, jetons rafraîchis
 if (ONLINE && (invPending() || INV.bad)) setTimeout(invRun, 900);   // lien d'invitation (?salle=…) ouvert, ou gardé d'une visite précédente
