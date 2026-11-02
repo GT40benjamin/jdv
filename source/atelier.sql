@@ -2351,3 +2351,134 @@ begin
     execute d;
   end if;
 end $$;
+
+-- (v29, borne 1.63.98, 2 nov. 2026 21 h 55 – 22 h 02, Benjamin) :
+-- · ABONNEMENT « Atelier+ » (Stripe, MODE TEST d'abord) : abo_prix 300 centimes / mois, abo_credits 400 crédits à CHAQUE paiement mensuel
+--   (invoice.paid, idempotent sur l'id de facture), cumulables jusqu'à abo_plafond 1 200 ; résiliation / impayé → plus de crédits mensuels ;
+-- · PLUS DE CRÉDITS GRATUITS CHAQUE MOIS : le solde ne se remet plus à zéro (credits_mois = 0 ; les soldes déjà donnés restent, rien n'est
+--   retiré) ; les crédits viennent seulement d'Atelier+ et des packs (+ un don de Benjamin, at_credits_donner, depuis sa page admin) ;
+-- · « Demander des crédits » retiré côté joueur (at_credits_demander n'est plus ouvert aux joueurs) ;
+-- · le 1er message d'un projet (l'idée) est GRATUIT : choisir ses bases, écrire son idée et garder son brouillon ne coûtent rien.
+insert into public.at_reglages (k, v) values ('abo_prix', 300), ('abo_credits', 400), ('abo_plafond', 1200) on conflict (k) do nothing;
+update public.at_reglages set v = 0 where k = 'credits_mois';
+
+create or replace function pegase_int.at_solde(n text) returns integer language plpgsql security definer set search_path = public as $$
+declare m text := to_char(now() at time zone 'Europe/Paris', 'YYYY-MM'); s int;
+begin
+  -- 22 h (Benjamin) : plus de remise à zéro chaque mois ; un nouveau joueur commence à credits_mois (0)
+  insert into public.at_credits (name, mois, solde) values (n, m, coalesce(pegase_int.at_reglage('credits_mois'), 0)) on conflict (name) do nothing;
+  select c.solde into s from public.at_credits c where c.name = n; return s;
+end $$;
+
+create table if not exists public.at_abos (name text primary key, stripe_customer text, stripe_subscription text unique,
+  etat text not null default 'actif' check (etat in ('actif', 'annule', 'impaye')), fin_periode timestamptz, debut_at timestamptz not null default now(), maj_at timestamptz not null default now());
+alter table public.at_abos enable row level security; revoke all on public.at_abos from anon, authenticated;
+create table if not exists public.at_abo_factures (facture text primary key, name text not null, credits int not null, centimes int not null, at timestamptz not null default now());
+alter table public.at_abo_factures enable row level security; revoke all on public.at_abo_factures from anon, authenticated;
+
+-- (joueur, via stripe-paiement avec SON jeton) : préparer l'abonnement / lire son abonnement (pour le portail)
+create or replace function public.at_abo_preparer(p_name text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); a public.at_abos;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-achat', 20, interval '1 hour');
+  select * into a from public.at_abos x where x.name = n;
+  if a.name is not null and a.etat = 'actif' then raise exception 'deja abonne'; end if;
+  return jsonb_build_object('name', n, 'prix', coalesce(pegase_int.at_reglage('abo_prix'), 300), 'credits', coalesce(pegase_int.at_reglage('abo_credits'), 400), 'customer', a.stripe_customer);
+end $$;
+revoke all on function public.at_abo_preparer(text) from public, anon; grant execute on function public.at_abo_preparer(text) to authenticated;
+create or replace function public.at_abo_client(p_name text) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); a public.at_abos;
+begin
+  perform public.acct_check(n);
+  select * into a from public.at_abos x where x.name = n; if a.name is null or a.stripe_customer is null then raise exception 'pas abonne'; end if;
+  return jsonb_build_object('customer', a.stripe_customer);
+end $$;
+revoke all on function public.at_abo_client(text) from public, anon; grant execute on function public.at_abo_client(text) to authenticated;
+
+-- (service, stripe-webhook) : l'abonnement démarre (checkout terminé) / une facture payée = les crédits du mois / fin ou impayé
+create or replace function public.at_abo_debut(p_name text, p_customer text, p_subscription text) returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_subscription !~ '^sub_[A-Za-z0-9]{6,200}$' or p_customer !~ '^cus_[A-Za-z0-9]{6,200}$' then raise exception 'references refusees'; end if;
+  if not exists (select 1 from public.players p where p.name = p_name) then raise exception 'joueur inconnu'; end if;
+  insert into public.at_abos (name, stripe_customer, stripe_subscription, etat) values (p_name, p_customer, p_subscription, 'actif')
+    on conflict (name) do update set stripe_customer = excluded.stripe_customer, stripe_subscription = excluded.stripe_subscription, etat = 'actif', maj_at = now();
+end $$;
+revoke all on function public.at_abo_debut(text, text, text) from public, anon, authenticated; grant execute on function public.at_abo_debut(text, text, text) to service_role;
+create or replace function public.at_abo_paye(p_facture text, p_subscription text, p_name text, p_montant int, p_devise text, p_fin bigint) returns jsonb language plpgsql security definer set search_path = public as $$
+declare a public.at_abos; n text; c int := coalesce(pegase_int.at_reglage('abo_credits'), 400); pl int := coalesce(pegase_int.at_reglage('abo_plafond'), 1200); s int; ajout int; fid uuid;
+begin
+  if p_facture !~ '^in_[A-Za-z0-9]{6,200}$' then raise exception 'facture refusee'; end if;
+  if exists (select 1 from public.at_abo_factures f where f.facture = p_facture) then return jsonb_build_object('deja', true); end if;   -- idempotent
+  select * into a from public.at_abos x where x.stripe_subscription = p_subscription;
+  n := coalesce(a.name, nullif(p_name, ''));
+  if n is null or not exists (select 1 from public.players p where p.name = n) then raise exception 'abonne inconnu'; end if;
+  if lower(coalesce(p_devise, '')) <> 'eur' or coalesce(p_montant, 0) < 1 then raise exception 'montant different'; end if;
+  perform pegase_int.at_solde(n);
+  select solde into s from public.at_credits where name = n for update;
+  ajout := least(c, greatest(0, pl - s));   -- les crédits de l'abonnement s'ajoutent, jusqu'au plafond (3 mois)
+  update public.at_credits x set solde = x.solde + ajout, maj_at = now() where x.name = n returning solde into s;
+  insert into public.at_abo_factures (facture, name, credits, centimes) values (p_facture, n, ajout, p_montant);
+  update public.at_abos x set etat = 'actif', fin_periode = case when p_fin > 0 then to_timestamp(p_fin) else x.fin_periode end, maj_at = now() where x.name = n;
+  select x.id into fid from public.at_fiches x where x.name = n and x.etat not in ('refusee', 'supprime') order by x.maj_at desc limit 1;
+  if fid is not null then insert into public.at_messages (fiche, texte, de_atelier) values (fid, '⭐ Atelier+ : tu as reçu ' || ajout || ' crédits ce mois-ci ! Il te reste maintenant ' || s || ' crédits.', true); end if;
+  return jsonb_build_object('name', n, 'credits', ajout, 'solde', s);
+end $$;
+revoke all on function public.at_abo_paye(text, text, text, int, text, bigint) from public, anon, authenticated; grant execute on function public.at_abo_paye(text, text, text, int, text, bigint) to service_role;
+create or replace function public.at_abo_etat(p_subscription text, p_etat text, p_fin bigint default null) returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_etat not in ('actif', 'annule', 'impaye') then raise exception 'etat refuse'; end if;
+  update public.at_abos x set etat = p_etat, fin_periode = case when p_fin > 0 then to_timestamp(p_fin) else x.fin_periode end, maj_at = now() where x.stripe_subscription = p_subscription;
+end $$;
+revoke all on function public.at_abo_etat(text, text, bigint) from public, anon, authenticated; grant execute on function public.at_abo_etat(text, text, bigint) to service_role;
+
+-- (Benjamin seul, depuis sa page admin) : donner des crédits à un joueur, sans demande
+create or replace function public.at_credits_donner(p_name text, p_joueur text, p_montant int, p_note text default null) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); j text := public.pg_n(p_joueur); s int; fid uuid;
+begin
+  perform public.acct_check(n);
+  if n <> 'BENJAMIN' then raise exception 'admin requis'; end if;
+  if p_montant is null or p_montant < 1 or p_montant > 5000 then raise exception 'montant entre 1 et 5000'; end if;
+  if not exists (select 1 from public.players p where p.name = j) then raise exception 'joueur inconnu'; end if;
+  perform pegase_int.at_solde(j);
+  update public.at_credits c set solde = c.solde + p_montant, maj_at = now() where c.name = j returning solde into s;
+  select x.id into fid from public.at_fiches x where x.name = j and x.etat not in ('refusee', 'supprime') order by x.maj_at desc limit 1;
+  if fid is not null then insert into public.at_messages (fiche, texte, de_atelier) values (fid, '🎁 Tu as reçu ' || p_montant || ' crédits ! Il te reste maintenant ' || s || ' crédits.', true); end if;
+  return jsonb_build_object('joueur', j, 'solde', s);
+end $$;
+revoke all on function public.at_credits_donner(text, text, int, text) from public, anon; grant execute on function public.at_credits_donner(text, text, int, text) to authenticated;
+
+-- « Demander des crédits » n'est plus ouvert aux joueurs ; les demandes encore en attente sont fermées (aucune aujourd'hui)
+do $$ begin
+  if to_regprocedure('public.at_credits_demander(text,text)') is not null then execute 'revoke execute on function public.at_credits_demander(text, text) from authenticated'; end if;
+end $$;
+update public.at_credit_demandes set etat = 'refusee', decision_at = now(), note = 'Les crédits viennent maintenant d''Atelier+ ou des packs.' where etat = 'attente';
+
+-- le 1er message d'un projet (l'idée) est gratuit ; at_lire : l'abonnement et ses prix
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_dire(text,text,boolean,boolean,uuid,boolean)'::regprocedure);
+  if position('premier_gratuit' in d) = 0 then
+    d := replace(d, '  s := pegase_int.at_debiter(n, pegase_int.at_reglage(''cout_message''));',
+      '  s := pegase_int.at_debiter(n, case when f.id is null or not exists (select 1 from public.at_messages m where m.fiche = f.id and not m.de_atelier) then 0 else pegase_int.at_reglage(''cout_message'') end);   -- premier_gratuit : raconter son idée ne coûte rien');
+    if position('premier_gratuit' in d) = 0 then raise exception 'at_dire'; end if;
+    execute d;
+  end if;
+  d := pg_get_functiondef('public.at_lire(text, uuid)'::regprocedure);
+  if position('at_abos' in d) = 0 then
+    d := replace(d, '''forme'', coalesce(pegase_int.at_reglage(''cout_forme''), 3),',
+      '''forme'', coalesce(pegase_int.at_reglage(''cout_forme''), 3), ''abo'', (select jsonb_build_object(''etat'', a.etat, ''fin'', a.fin_periode) from public.at_abos a where a.name = n), ''abo_prix'', coalesce(pegase_int.at_reglage(''abo_prix''), 300), ''abo_credits'', coalesce(pegase_int.at_reglage(''abo_credits''), 400),');
+    if position('at_abos' in d) = 0 then raise exception 'at_lire'; end if;
+    execute d;
+  end if;
+  -- le suivi de Benjamin : les abonnés
+  d := pg_get_functiondef('public.at_suivi(text)'::regprocedure);
+  if position('at_abos' in d) = 0 then
+    d := replace(d, '''mois_nb'', (select count(*) from public.at_achats a where a.etat = ''paye'' and a.paye_at >= date_trunc(''month'', now())))',
+      '''mois_nb'', (select count(*) from public.at_achats a where a.etat = ''paye'' and a.paye_at >= date_trunc(''month'', now())),' ||
+      ' ''abonnes'', (select count(*) from public.at_abos b where b.etat = ''actif''), ''abo_mois_euros'', (select round(coalesce(sum(f.centimes), 0) / 100.0, 2) from public.at_abo_factures f where f.at >= date_trunc(''month'', now())))');
+    if position('at_abos' in d) = 0 then raise exception 'at_suivi'; end if;
+    execute d;
+  end if;
+end $$;

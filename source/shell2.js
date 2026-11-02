@@ -14219,7 +14219,7 @@ function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
-    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><button class="atl-cred" type="button" hidden title="Recharger mes crédits"></button><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
+    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><button class="atl-cred" type="button" hidden title="Recharger mes crédits"></button><button class="atl-abob" type="button" hidden title="Mon abonnement Atelier+">⭐ Atelier+</button><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<div class="atl-frise" hidden></div><details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
@@ -14242,7 +14242,8 @@ function atlBuild() {
   q('.atl-imgb:not(.atl-drawb)').addEventListener('click', () => q('.atl-file').click());
   q('.atl-sendh').addEventListener('click', atlEnvoyer);
   q('.atl-suivib').addEventListener('click', atlSuivi);
-  q('.atl-cred').addEventListener('click', atlRecharger);   // 21 h 50 : toucher son solde → « Recharger mes crédits »
+  q('.atl-cred').addEventListener('click', atlRecharger);
+  q('.atl-abob').addEventListener('click', atlRecharger);   // 21 h 50 : toucher son solde → « Recharger mes crédits »
   q('.atl-zoom').addEventListener('click', () => { const z = q('.atl-zoom'); z.hidden = true; z.textContent = ''; });
   q('.atl-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) atlImage(f); });
   return R;
@@ -14306,7 +14307,7 @@ function atlRenderProjets() {
   nb.addEventListener('click', atlNouveau); g.appendChild(nb); box.appendChild(g);
   R.querySelector('.atl-hs').textContent = 'Mes projets · ' + ps.length + ' / ' + max;
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); R.querySelector('.atl-sendh').hidden = true;
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); R.querySelector('.atl-sendh').hidden = true;
 }
 function atlOuvrir(id) {
   atlMicStop(); atlLetterClose(true); atlErr('');
@@ -14438,11 +14439,11 @@ function atlRenderChat() {
   atlRenderChoix();
   R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu';
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
-  cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.mois | 0) + ' offerts chaque mois · ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin);
+  cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin · touche pour recharger'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R);
   R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
   atlChatRetour(bn);
-  const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = '💎 ' + (cr.message | 0) + ' par message';
+  const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = atlCoutMsg() ? '💎 ' + atlCoutMsg() + ' par message' : '🎁 Raconter ton idée : gratuit';
 }
 
 // ---------- 2 nov. 16 h 25 (Benjamin) : le parcours HYPER SIMPLE — un seul prompt remplit tout, puis ÉTAPE PAR ÉTAPE ----------
@@ -14518,7 +14519,7 @@ function atlRenderWiz() {
   const ae = document.activeElement; if (ae && W.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.value) return;   // le joueur écrit : on ne redessine pas
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, et = String(f.etat || ''), cr = atlCred();
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr && !ATL.soldeT) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.classList.remove('low'); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); R.querySelector('.atl-sendh').hidden = true;
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); R.querySelector('.atl-sendh').hidden = true;
   if (ATL_AFTER.has(et) || et === 'refusee') { atlRenderProjet(W, f); return; }   // 17 h 20 : la vraie page du projet
   W.textContent = ''; ATL.pSig = '';
   const box = atlEl('div', 'atl-wbox'); W.appendChild(box);
@@ -15007,7 +15008,7 @@ function atlModale() {
   function maj() { const c = calc(); go.disabled = !c.fo.length && !c.de.length; go.textContent = 'Dessiner · ' + c.cout + ' 💎'; tot.textContent = c.de.length + ' dessin' + (c.de.length > 1 ? 's' : '') + ' + ' + c.fo.length + ' forme' + (c.fo.length > 1 ? 's' : '') + ' = ' + c.cout + ' crédits'; }
   go.addEventListener('click', async () => {
     const c = calc(); if (go.disabled || ATL.sending) return;
-    if (cr && (cr.solde | 0) < c.cout) { er.hidden = false; er.textContent = 'Il te manque des crédits : décoche des éléments, ou demande des crédits.'; atlCreditsBtn(er); return; }
+    if (cr && (cr.solde | 0) < c.cout) { er.hidden = false; er.textContent = 'Il te manque des crédits : décoche des éléments, ou recharge tes crédits.'; atlCreditsBtn(er); return; }
     ATL.sending = true; go.disabled = true; er.hidden = true;
     try {
       const r = await rpc('at_dessins_demander', { p_name: profile.name, p_fiche: f.id, p_elements: c.de.map(e => e.nom), p_formes: c.fo.map(e => e.forme) }, { quiet: true });
@@ -15431,12 +15432,24 @@ async function atlRecharger() {
   const M = ATL.root.querySelector('.atl-mod'), cr = atlCred(); if (!M) return;
   M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard atl-rech');
-  c.append(atlEl('h2', '', '💎 Recharger mes crédits'), atlEl('p', 'atl-aide', 'Tu as ' + Math.max(0, cr ? cr.solde | 0 : 0) + ' crédits. Choisis un pack :'));
+  c.append(atlEl('h2', '', '💎 Mes crédits'), atlEl('p', 'atl-aide', 'Tu as ' + Math.max(0, cr ? cr.solde | 0 : 0) + ' crédits.'));
+  const er0 = atlEl('p', 'atl-werr'); er0.hidden = true;
+  const ab = atlEl('div', 'atl-abo'), abc = (cr && cr.abo_credits) | 0 || 400, abp = (((cr && cr.abo_prix) | 0 || 300) / 100).toFixed(2).replace('.', ',').replace(',00', '');
+  if (atlAbonne()) {
+    const fin = cr.abo.fin ? new Date(cr.abo.fin) : null;
+    ab.append(atlEl('b', 'atl-abot', '⭐ Tu es abonné Atelier+'), atlEl('p', '', abc + ' crédits chaque mois' + (fin && !isNaN(fin) ? ' · prochain mois le ' + fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '') + '.'));
+    const g = atlEl('button', 'btn btn-ghost btn-sm', 'Gérer mon abonnement'); g.type = 'button'; g.addEventListener('click', () => atlStripe({ p_portail: true }, g, er0)); ab.appendChild(g);
+  } else {
+    ab.append(atlEl('b', 'atl-abot', '⭐ Atelier+'), atlEl('p', '', abc + ' crédits chaque mois pour ' + abp + ' € par mois. Tes crédits s’ajoutent (jusqu’à ' + ((cr && cr.plafond) | 0 || 1200) + ').'));
+    const g = atlEl('button', 'btn btn-play', 'S’abonner · ' + abp + ' €/mois'); g.type = 'button'; g.addEventListener('click', () => atlStripe({ p_abo: true }, g, er0)); ab.appendChild(g);
+  }
+  ab.appendChild(atlEl('small', 'atl-noremb', 'Sans engagement, résiliable à tout moment · Les crédits ne sont pas remboursés'));
+  c.append(ab, er0, atlEl('p', 'atl-aide', 'Ou choisis un pack :'));
   const gr = atlEl('div', 'atl-packs'); gr.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); c.appendChild(gr);
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   c.appendChild(atlEl('p', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés · Les crédits servent seulement dans l’Atelier.'));
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Fermer'); no.type = 'button'; no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
-  const dm = atlEl('div', 'atl-rdem'); atlCreditsBtn(dm); row.append(dm, no); c.appendChild(row); M.appendChild(c);
+  row.append(no); c.appendChild(row); M.appendChild(c);
   let packs = [];
   try { packs = await rpc('at_packs_lire', {}, { quiet: true }); } catch (e) { packs = []; }
   gr.textContent = '';
@@ -15447,27 +15460,29 @@ async function atlRecharger() {
     b.addEventListener('click', () => atlAcheter(k, b, er)); gr.appendChild(b);
   }
 }
-async function atlAcheter(k, b, er) {
+function atlAcheter(k, b, er) { return atlStripe({ p_pack: k.id | 0 }, b, er); }
+// un pack, l'abonnement (p_abo) ou le portail « Gérer mon abonnement » (p_portail) : la fonction Edge stripe-paiement donne l'adresse Stripe
+async function atlStripe(corps, b, er) {
   if (ATL.achat) return; ATL.achat = true; er.hidden = true;
   const old = b.innerHTML; b.disabled = true; b.classList.add('wait');
   try {
     const tok = await acctToken(profile);
-    const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/stripe-paiement', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_name: profile.name, p_pack: k.id | 0 }) }, 30000);
+    const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/stripe-paiement', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ p_name: profile.name }, corps)) }, 30000);
     let j = null; try { j = await r.json(); } catch (e) {}
-    if (j && j.etat === 'bientot') { er.hidden = false; er.textContent = '⏳ Le paiement par carte sera bientôt disponible. En attendant, tu peux demander des crédits.'; return; }
-    if (r.ok && j && typeof j.url === 'string' && /^https:\/\/checkout\.stripe\.com\//.test(j.url)) { try { atlBrFlush(); } catch (e) {} location.href = j.url; return; }   // la page de paiement Stripe
-    er.hidden = false; er.textContent = r.status === 403 || r.status === 401 ? 'Connecte-toi à ton compte pour acheter des crédits.' : r.status === 429 ? 'Doucement 😄 Réessaie dans un moment.' : 'Le paiement n’a pas pu démarrer. Réessaie dans un moment.';
+    if (j && j.etat === 'bientot') { er.hidden = false; er.textContent = '⏳ Le paiement par carte sera bientôt disponible.'; return; }
+    if (r.ok && j && typeof j.url === 'string' && /^https:\/\/(checkout|billing)\.stripe\.com\//.test(j.url)) { try { atlBrFlush(); } catch (e) {} location.href = j.url; return; }   // la page de paiement Stripe
+    er.hidden = false; er.textContent = r.status === 409 && j && j.error === 'deja abonne' ? 'Tu es déjà abonné Atelier+ ⭐' : r.status === 403 || r.status === 401 ? 'Connecte-toi à ton compte pour acheter des crédits.' : r.status === 429 ? 'Doucement 😄 Réessaie dans un moment.' : 'Le paiement n’a pas pu démarrer. Réessaie dans un moment.';
   } catch (e) { er.hidden = false; er.textContent = 'Pas de réseau : réessaie dans un moment.'; }
   finally { ATL.achat = false; b.disabled = false; b.classList.remove('wait'); b.innerHTML = old; }
 }
 // le retour de Stripe (…/jouer/?atelier=merci ou annule) : l'Atelier s'ouvre, « Merci ! », les crédits arrivent (webhook) quelques secondes après
 (() => {
   let v = ''; try { const sp = new URLSearchParams(location.search); v = sp.get('atelier') || ''; if (v) { sp.delete('atelier'); const qs = sp.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } } catch (e) { v = ''; }
-  if (v !== 'merci' && v !== 'annule') return;
+  if (!['merci', 'annule', 'abonne', 'portail'].includes(v)) return;
   setTimeout(() => {
     try { atlOpen(); } catch (e) {}
-    toastCheer(v === 'merci' ? '🎁 Merci ! Tes crédits arrivent dans un instant.' : 'Paiement annulé : rien n’a été payé.', profile.name, true);
-    if (v === 'merci') for (const t of [3000, 8000, 16000]) setTimeout(() => { try { atlLoad(true); } catch (e) {} }, t);
+    if (v !== 'portail') toastCheer(v === 'merci' ? '🎁 Merci ! Tes crédits arrivent dans un instant.' : v === 'abonne' ? '⭐ Bienvenue dans Atelier+ ! Tes crédits arrivent dans un instant.' : 'Paiement annulé : rien n’a été payé.', profile.name, true);
+    if (v !== 'annule') for (const t of [3000, 8000, 16000]) setTimeout(() => { try { atlLoad(true); } catch (e) {} }, t);
   }, 1500);
 })();
 
@@ -15506,10 +15521,10 @@ async function atlSend() {
   if (!t || ATL.sending) { if (!t) inp.focus(); return; }
   atlMicStop();
   const micro = ATL.micUsed; ATL.sending = true; atlErr('');
-  const cr = atlCred(), before = cr ? cr.solde | 0 : 0;
-  if (cr && before < (cr.message | 0)) { ATL.sending = false; atlErr(atlIaWhy({ status: 402, j: { error: 'credits' } })[1]); atlCreditsBtn(); return; }
+  const cr = atlCred(), before = cr ? cr.solde | 0 : 0, cout = atlCoutMsg();
+  if (cr && before < cout) { ATL.sending = false; atlErr(atlIaWhy({ status: 402, j: { error: 'credits' } })[1]); atlCreditsBtn(); return; }
   ATL.pend = [{ texte: t, micro, pending: true, at: new Date().toISOString() }]; ATL.stick = true; atlRenderChat();
-  if (cr) atlSolde(before - (cr.message | 0));
+  if (cr && cout) atlSolde(before - cout);
   try {
     const r = await rpc('at_dire', { p_name: profile.name, p_texte: t, p_micro: micro, p_image: false, p_fiche: ATL.cur || null, p_nouveau: !ATL.cur }, { quiet: true });
     if (r && r.fiche && !ATL.cur) { ATL.cur = r.fiche; ATL.nouveau = false; atlBasesEnvoyer(r.fiche); }
@@ -15526,7 +15541,7 @@ function atlWhy(e) {
   if (/deja envoye/.test(m)) return 'Ton projet est déjà lancé : il est en construction.';
   if (/trop de projets/.test(m)) return 'Tu as déjà le maximum de projets : continue un de tes projets.';
   if (/choix en cours/.test(m)) return 'Termine d’abord tes choix (ou touche « Je veux modifier »).';
-  if (/credits insuffisants/.test(m)) return 'Plus assez de crédits ce mois-ci : le 1er du mois, tu retrouves tes crédits. Tu peux aussi en demander.';
+  if (/credits insuffisants/.test(m)) return 'Plus assez de crédits : passe à Atelier+ ou recharge tes crédits.';
   if (e && (e.acct || e.guest)) return 'Connecte-toi à ton compte pour créer ton jeu.';
   return 'Oups, le message n’est pas parti. Réessaie.';
 }
@@ -15697,7 +15712,7 @@ async function atlChoisir(msg, n, b) {
   catch (e) { atlErr(atlWhy(e)); atlRender(); }
   finally { ATL.sending = false; }
 }
-// ---------- l'Atelier DESSINE (Gemini, fonction Edge atelier-image ; crédits Elixir : 200 par mois, 2 par image) ----------
+// ---------- l'Atelier DESSINE (Gemini, fonction Edge atelier-image ; crédits Elixir : Atelier+ ou packs, 2 par image) ----------
 async function atlIa(body) {
   const tok = await acctToken(profile);
   const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/atelier-image', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ p_name: profile.name, p_fiche: ATL.cur || null }, body)) }, 180000);
@@ -15707,7 +15722,7 @@ async function atlIa(body) {
 function atlIaWhy(res) {
   const e = String(res.j.error || ''), cr = atlCred();
   if (res.j.etat === 'bientot') return ['bientot', 'Les dessins arrivent très bientôt ! Ta fiche est bien gardée.'];
-  if (e === 'credits') return ['credits', 'Il ne te reste que ' + ((cr && cr.solde) | 0) + ' crédits ce mois-ci. Le 1er du mois, tu en retrouves ' + (((cr && cr.mois) | 0) || 200) + '. Tu peux aussi en demander.'];
+  if (e === 'credits') return ['credits', 'Il ne te reste que ' + ((cr && cr.solde) | 0) + ' crédits. Passe à Atelier+ (' + ((cr && cr.abo_credits) | 0 || 400) + ' crédits chaque mois) ou recharge tes crédits.'];
   if (e === 'filtre') return ['filtre', res.j.raison === 'protege' ? 'Je ne peux pas dessiner un personnage ou une marque qui existe déjà : invente le tien, il sera encore mieux !' : 'Je ne peux pas dessiner ça : on garde la borne gentille pour tout le monde. Change un peu ta demande !'];
   if (e === 'ratee') return ['ratee', res.j.raison === 'refus' ? 'Le dessin n’a pas pu se faire avec cette idée : essaie de la dire autrement.' : 'Le dessin a raté. Réessaie dans un moment.'];
   if (e === 'en cours') return ['ratee', 'Les dessins sont déjà en route : patiente un peu.'];
@@ -15909,24 +15924,35 @@ async function atlSuivi() {
       for (const a of la) { const tr = atlEl('tr'), d = new Date(a.at); for (const v of [isNaN(d) ? '' : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), dispName(a.joueur || ''), String(a.credits | 0), String(a.euros || 0).replace('.', ','), { paye: '✅ payé', attente: '⏳ en attente', annule: '✕ annulé' }[a.etat] || a.etat]) tr.appendChild(atlEl('td', '', v)); t3.appendChild(tr); }
       const w3 = atlEl('div', 'atl-swrap'); w3.appendChild(t3); P.appendChild(w3);
     } else P.appendChild(atlEl('p', '', 'Aucun achat pour l’instant.'));
+    P.appendChild(atlEl('p', 'atl-stot', '⭐ Atelier+ : ' + (ach.abonnes | 0) + ' abonné' + ((ach.abonnes | 0) > 1 ? 's' : '') + ' · ' + String(ach.abo_mois_euros || 0).replace('.', ',') + ' € ce mois'));
+    // donner des crédits (Benjamin seulement, at_credits_donner) : sans demande du joueur
+    P.appendChild(atlEl('b', 'atl-rh2', '🎁 Donner des crédits'));
+    const fd = atlEl('div', 'atl-don'), qui = atlEl('input'), combien = atlEl('input'), note = atlEl('input'), ok = atlEl('button', 'btn btn-play btn-sm', 'Donner'), msg = atlEl('small');
+    qui.placeholder = 'Joueur'; qui.maxLength = 40; combien.type = 'number'; combien.min = '1'; combien.max = '5000'; combien.placeholder = 'Crédits'; note.placeholder = 'Note (facultatif)'; note.maxLength = 120; ok.type = 'button';
+    ok.addEventListener('click', async () => {
+      const n = Math.round(+combien.value); if (!qui.value.trim() || !(n > 0)) { msg.textContent = 'Le joueur et le nombre de crédits.'; return; }
+      ok.disabled = true; msg.textContent = '';
+      try { const x = await rpc('at_credits_donner', { p_name: profile.name, p_joueur: qui.value.trim(), p_montant: n, p_note: note.value.trim() }, { quiet: true }); msg.textContent = '✅ ' + n + ' crédits donnés' + (x && Number.isFinite(+x.solde) ? ' · solde ' + (x.solde | 0) : '') + '.'; combien.value = ''; note.value = ''; }
+      catch (e) { msg.textContent = /inconnu/.test(String(e && e.message)) ? 'Joueur inconnu.' : 'Pas possible : ' + String((e && e.message) || '').slice(0, 60); }
+      finally { ok.disabled = false; }
+    });
+    fd.append(qui, combien, note, ok); P.append(fd, msg);
   }
-  const dms = Array.isArray(r.demandes) ? r.demandes : [];
-  if (dms.length) { P.appendChild(atlEl('b', 'atl-rh2', '💎 Demandes de crédits en attente')); const ul = atlEl('ul'); for (const d of dms) ul.appendChild(atlEl('li', '', dispName(d.joueur || '') + ' (solde ' + (d.solde | 0) + ')' + (d.message ? ' : ' + d.message : ''))); P.appendChild(ul); P.appendChild(atlEl('small', '', 'Pour les accorder, demande à l’équipe.')); }
   P.appendChild(close);
 }
-// « Demander des crédits » (pas de vente : l'équipe accorde ; le joueur est prévenu par un message de l'Atelier, donc la cloche)
+// 22 h 02 (Benjamin) : plus de « Demander des crédits » ; à court de crédits → « ⭐ Passer à Atelier+ » (si pas abonné) et « 💎 Recharger »
 function atlCreditsBtn(into) {
-  const cr = atlCred(), dm = cr && cr.demande, wait = dm && dm.etat === 'attente';
+  const cr = atlCred(), abo = atlAbonne();
   const box = into || (ATL.root && ATL.root.querySelector('.atl-err')); if (!box) return;
-  const b = atlEl('button', 'btn btn-sm ' + (wait ? 'btn-ghost' : 'btn-play') + ' atl-credb', wait ? '⏳ Demande envoyée' : '💎 Demander des crédits'); b.type = 'button'; b.disabled = !!wait;
-  b.addEventListener('click', async () => {
-    b.disabled = true;
-    try { await rpc('at_credits_demander', { p_name: profile.name, p_message: '' }, { quiet: true }); b.textContent = '⏳ Demande envoyée'; if (cr) cr.demande = { etat: 'attente' }; toastCheer('Demande envoyée 💎', null, true); }
-    catch (e) { b.disabled = false; atlErr(atlWhy(e)); }
-  });
   if (!into) { box.hidden = false; box.appendChild(document.createTextNode(' ')); }
-  box.appendChild(b);
+  if (!abo) { const a = atlEl('button', 'btn btn-sm btn-play atl-credb', '⭐ Passer à Atelier+'); a.type = 'button'; a.addEventListener('click', atlRecharger); box.appendChild(a); box.appendChild(document.createTextNode(' ')); }
+  const b = atlEl('button', 'btn btn-sm ' + (abo ? 'btn-play' : 'btn-ghost') + ' atl-credb', '💎 Recharger'); b.type = 'button'; b.addEventListener('click', atlRecharger); box.appendChild(b);
+  void cr;
 }
+const atlAbonne = () => { const cr = atlCred(); return !!(cr && cr.abo && cr.abo.etat === 'actif'); };
+// le 1er message d'un projet (raconter son idée) ne coûte rien (at_dire, « premier_gratuit »)
+function atlCoutMsg() { const cr = atlCred(); if (!cr) return 0; return atlMsgs().some(m => !m.atelier) ? cr.message | 0 : 0; }
+function atlAboBadge(R) { const b = R && R.querySelector('.atl-abob'); if (b) b.hidden = !atlAbonne(); }
 
 // ---------- micro : la dictée va dans la case, le joueur relit puis envoie ----------
 function atlMicKind() { try { const nv = nativeVoice(); if (nv && nv.canListen()) return 'natif'; } catch (e) {} return ATL_SR ? 'web' : ''; }
