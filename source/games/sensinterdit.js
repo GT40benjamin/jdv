@@ -134,9 +134,53 @@ function preview(ctx, w, h, t) {
   } catch (e) { /* une vignette ne casse jamais la borne */ }
 }
 
+/* ---------- 2 nov. : téléphones fragiles (Redmi Note 10 d'EMPEREUR : écran blanc, AUCUNE erreur au journal) ----------
+   - trace de l'étape en cours (jdw.si.trace) : si la partie d'avant s'est arrêtée net (onglet tué par manque de mémoire, pilote graphique planté),
+     on le dit au journal au lancement suivant (api.report) et on passe en MODE LÉGER (jdw.si.leger) ;
+   - mode léger d'office sur les puces graphiques d'entrée de gamme (Adreno ≤ 61x, Mali G31/G51/G52, PowerVR) ou ?leger ;
+   - chargement trop long (90 s) → écran « Oups » + rapport, au lieu d'attendre pour toujours. */
+const LS = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* rien */ } } };
+const TRK = 'jdw.si.trace', LEGER = 'jdw.si.leger';
+const rep = (api, m, d) => { try { const f = api.report || api.reportError; if (f) f(m, d); } catch (e) { /* rien */ } };
+let GPUI = null;
+function gpuInfo() {
+  if (GPUI) return GPUI;
+  try {
+    const c = document.createElement('canvas'), gl = c.getContext('webgl2');
+    if (!gl) return (GPUI = { gpu: 'sans WebGL 2', weak: false });
+    const x = gl.getExtension('WEBGL_debug_renderer_info'), g = String(x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 80);
+    const l = gl.getExtension('WEBGL_lose_context'); if (l) l.loseContext();
+    GPUI = { gpu: g, weak: /Adreno \(TM\) ([345]\d\d|6[01]\d)\b|Mali-(4\d\d|T\d|G31|G51|G52)\b|PowerVR|SGX/i.test(g) || (navigator.deviceMemory > 0 && navigator.deviceMemory < 4) };
+  } catch (e) { GPUI = { gpu: '?', weak: false }; }
+  return GPUI;
+}
+
 /* ---------- lancement : écran de chargement tout de suite, puis le moteur prend la main ---------- */
-function mount(root, api) {
+function mount(root, api, mo) {
+  mo = mo || {};
   let inst = null, dead = false, paused = false;
+  { let prev = null; try { prev = JSON.parse(LS.get(TRK) || 'null'); } catch (e) { prev = null; }
+    if (prev && prev.s && prev.s !== 'fin' && Date.now() - (prev.at || 0) < 3 * 864e5) {
+      rep(api, 'Sens Interdit : arrêt net sans message (étape ' + prev.s + (prev.lite ? ', mode léger' : '') + ')', JSON.stringify(prev) + ' mem ' + (navigator.deviceMemory || '?'));
+      LS.set(LEGER, '1');
+    } }
+  const G = gpuInfo(), lite = !!mo.lite || LS.get(LEGER) === '1' || G.weak || /[?&]leger\b/.test(location.search);
+  let cur = 'charge', stT = 0;
+  const mark = (x) => { cur = x; LS.set(TRK, JSON.stringify({ s: x, at: Date.now(), lite, gpu: G.gpu, ecran: innerWidth + 'x' + innerHeight })); };
+  const hide = () => { if (document.visibilityState === 'hidden') LS.set(TRK, JSON.stringify({ s: 'fin', at: Date.now() })); else if (!dead) mark(cur); };
+  const gone = () => LS.set(TRK, JSON.stringify({ s: 'fin', at: Date.now() }));
+  document.addEventListener('visibilitychange', hide); addEventListener('pagehide', gone);
+  mark('charge');
+  const stage = (x) => { if (dead) return; mark(x); clearTimeout(stT); if (x === 'modeles' || x === 'shaders') stT = setTimeout(() => { if (!dead && cur === x) rep(api, 'Sens Interdit : bloqué à l\'étape ' + x + ' depuis 60 s', G.gpu + (lite ? ' (léger)' : '')); }, 60000); };
+  const remount = (o2) => {
+    if (dead) return;
+    gone(); document.removeEventListener('visibilitychange', hide); removeEventListener('pagehide', gone); clearTimeout(stT); clearTimeout(slowT);
+    try { if (inst) inst.destroy(); } catch (e) { /* rien */ } inst = null;
+    root.innerHTML = ''; const n = mount(root, api, o2);
+    for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel', 'mapSpot', 'endInfo']) proxy[k] = n[k];
+    Object.defineProperty(proxy, '_d', { get: () => n._d, configurable: true });
+  };
+  const onLost = lite ? null : () => { LS.set(LEGER, '1'); remount({ lite: true }); };
   const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const FD = (api.fonts && api.fonts.display) || 'Impact', FB = (api.fonts && api.fonts.body) || 'sans-serif';
   root.innerHTML = '';
@@ -149,26 +193,23 @@ function mount(root, api) {
   root.appendChild(box);
   const bar = box.querySelector('u');
   const prog = { e: 0, p: 0 }, upd = () => { bar.style.width = Math.round((prog.e * 0.2 + prog.p * 0.8) * 100) + '%'; };
+  let failed = false;
   const fail = (e) => {
-    if (dead) return;
-    try { if (api.reportError) api.reportError('Sens Interdit : chargement raté (' + (e && e.message) + ')'); } catch (er) { /* rien */ }
+    if (dead || failed) return; failed = true;
+    rep(api, 'Sens Interdit : chargement raté (' + (e && e.message) + ')', G.gpu + (lite ? ' (léger)' : '') + ' ' + (navigator.connection ? navigator.connection.effectiveType : ''));
     box.innerHTML = '<div style="max-width:340px;text-align:center;padding:20px"><div style="font:400 22px ' + FD + ';color:#ffb8b8;margin-bottom:8px">Oups !</div>' +
       '<div style="font:600 14px ' + FB + ';color:#e8c8d8;margin-bottom:14px">Ton appareil n\'arrive pas à charger ce jeu 3D.</div><button type="button" style="font:400 15px ' + FD + ';color:#1a0e2a;background:#ffc75a;border:0;border-radius:12px;padding:10px 18px;cursor:pointer">Réessayer</button></div>';
-    box.querySelector('button').addEventListener('click', () => {
-      if (dead) return;
-      root.innerHTML = ''; const n = mount(root, api);
-      for (const k of ['destroy', 'pause', 'resume', 'currentScore', 'currentLevel', 'mapSpot', 'endInfo']) proxy[k] = n[k];
-      Object.defineProperty(proxy, '_d', { get: () => n._d, configurable: true });
-    });
+    box.querySelector('button').addEventListener('click', () => remount({ lite }));
   };
   Promise.all([loadEngine((k) => { prog.e = k; upd(); }, ac && ac.signal), loadPack((k) => { prog.p = k; upd(); }, ac && ac.signal)]).then(([SI, pack]) => {
     if (dead) return;
     root.innerHTML = '';
-    inst = SI.game(root, api, { pack });
+    clearTimeout(slowT); inst = SI.game(root, api, { pack, lite, stage, onLost });
     if (paused && inst.pause) inst.pause();
   }).catch(fail);
+  const slowT = setTimeout(() => { if (!inst && !dead) { if (ac) try { ac.abort(); } catch (e) { /* rien */ } fail(new Error('chargement trop long (90 s)')); } }, 90000);
   const proxy = {
-    destroy() { dead = true; if (ac) try { ac.abort(); } catch (e) { /* rien */ } if (inst) inst.destroy(); root.innerHTML = ''; },
+    destroy() { gone(); document.removeEventListener('visibilitychange', hide); removeEventListener('pagehide', gone); clearTimeout(stT); clearTimeout(slowT); dead = true; if (ac) try { ac.abort(); } catch (e) { /* rien */ } if (inst) inst.destroy(); root.innerHTML = ''; },
     pause() { paused = true; if (inst) inst.pause(); },
     resume() { paused = false; if (inst) inst.resume(); },
     currentScore() { return inst ? inst.currentScore() : 0; },

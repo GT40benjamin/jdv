@@ -66,6 +66,8 @@
 [flechettes] 🎭 Nouvel onglet « Déguiser » sur la photo de la cible : 140 accessoires et maquillages (lunettes, moustaches, chapeaux, nez de clown, maquillage…) se posent tout seuls sur chaque visage.
 [flechettes] ✋ Glisse, pince et tourne pour les ajuster, enlève-les ou annule ; ça marche avec plusieurs visages, et le déguisement fait partie de la cible.
 [flechettes] ＋🙂 Un visage que l'appareil ne trouve pas ? Touche ses deux yeux avec le bouton « ＋🙂 », puis déguise-le comme les autres.
+[sensinterdit] ## ⛔ Sens Interdit : plus d'écran vide sur les petits téléphones (borne 1.63.21)
+[sensinterdit] 📱 Sur les téléphones plus modestes, le jeu passe tout seul en mode léger (moins d'effets, même course). Si la 3D s'arrête quand même, un message s'affiche avec un bouton pour relancer, au lieu d'un écran vide.
 [sensinterdit] ## ⛔ Sens Interdit : plus de nuage, un seul trait (borne 1.63.14)
 [sensinterdit] 🏁 Le nuage qui arrivait vers 1200 km/h est enlevé : il cachait la route au pire moment. Sur la route, un seul trait doré : là où le 1er de la salle est arrivé, avec son nom écrit au sol.
 [sensinterdit] ## ⛔ Sens Interdit : moins d'attente au lancement (borne 1.63.6)
