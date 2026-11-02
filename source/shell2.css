@@ -3778,3 +3778,48 @@ body.atl-on #jdw-modes{visibility:hidden}
 .atl-gear b{position:absolute;right:10px;top:4px;font-size:26px;animation:atlPulse .9s ease-in-out infinite alternate}
 @media (prefers-reduced-motion:reduce){.atl-gear span,.atl-spin{animation-duration:8s}}
 @media (max-width:520px){.atl-wdm{flex-direction:column}.atl-wdm .btn{width:100%}}
+
+/* ---------- la page du projet (borne 1.63.62) ---------- */
+.atl-pbox{max-width:1100px;margin:0 auto;display:grid;gap:14px}
+.atl-phd{display:flex;align-items:center;gap:16px;padding:12px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(135deg,rgba(122,76,255,.16),rgba(255,79,154,.08)),var(--card)}
+.atl-phv{flex:0 0 auto;width:min(220px,34vw);aspect-ratio:16/9;border-radius:12px;overflow:hidden;display:grid;place-items:center;font-size:42px;background:#120a24}
+.atl-phv img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.atl-pht{display:grid;gap:6px;min-width:0}
+.atl-pht h1{margin:0;font:700 clamp(20px,3.2vw,30px)/1.1 var(--display,var(--body))}
+.atl-pht small{color:var(--muted);font:13px var(--body)}
+.atl-pet{justify-self:start;padding:4px 10px;border-radius:999px;background:rgba(255,211,77,.14);border:1px solid rgba(255,211,77,.45);color:#ffe9a8;font:700 12.5px var(--body)}
+.atl-pet-alpha,.atl-pet-publie_salle,.atl-pet-publie_monde{background:rgba(47,191,113,.16);border-color:rgba(47,191,113,.5);color:#b7f5d2}
+.atl-ptabs{position:sticky;top:0;z-index:2;display:flex;gap:6px;padding:6px;border-radius:14px;background:rgba(10,8,22,.85);backdrop-filter:blur(8px);border:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.atl-ptab{flex:1 0 auto;padding:10px 14px;border:0;border-radius:10px;background:none;color:var(--muted);font:700 14px var(--body);cursor:pointer;white-space:nowrap}
+.atl-ptab.on{background:#ffd34d;color:#2a1340}
+.atl-pane{display:grid;gap:14px}
+.atl-pane[hidden]{display:none}
+.atl-gframe{position:relative;width:100%;height:min(74vh,820px);border-radius:16px;overflow:hidden;background:#000;border:1px solid var(--line)}
+.atl-gframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.atl-gframe.on .atl-gposter{display:none}
+.atl-gframe:fullscreen{border-radius:0;height:100%}
+.atl-gposter{position:absolute;inset:0;display:grid;place-items:center;padding:0;border:0;background:#120a24;cursor:pointer}
+.atl-gposter img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.55)}
+.atl-gplay{position:relative;padding:16px 26px;border-radius:999px;background:#ffd34d;color:#2a1340;font:700 clamp(17px,2.4vw,22px) var(--display,var(--body));box-shadow:0 8px 30px rgba(0,0,0,.5);animation:atlGlow 1s ease-in-out infinite alternate}
+.atl-gposter:disabled{cursor:default}.atl-gposter:disabled .atl-gplay{background:rgba(255,255,255,.12);color:var(--ink);animation:none}
+.atl-gbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.atl-pub{display:grid;gap:8px;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--card)}
+.atl-pub h3,.atl-ph3{margin:4px 0 0;font:700 16px var(--body)}
+.atl-pfiche{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.atl-pcard{padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--card)}
+.atl-pcard.large{grid-column:1/-1}
+.atl-pcard h4{margin:0 0 8px;font:700 15px var(--body);color:#ffe9a8}
+.atl-pcard p{margin:0;font:14.5px/1.5 var(--body);white-space:pre-line}
+.atl-chip.ro{padding:6px 12px}
+.atl-pdz{margin:0;display:grid;gap:6px}
+.atl-pdz img{width:100%;max-height:60vh;object-fit:contain;border-radius:14px;background:#120a24;cursor:zoom-in}
+.atl-pdz figcaption,.atl-pa figcaption{color:var(--muted);font:600 13px var(--body);text-align:center}
+.atl-pgal{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.atl-pa{margin:0;display:grid;gap:6px;align-content:start;padding:8px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.atl-pa .atl-crop,.atl-pa img{width:100%;aspect-ratio:1;object-fit:contain;background:rgba(255,255,255,.04);border-radius:8px;cursor:zoom-in;background-repeat:no-repeat}
+.atl-pa.big{grid-column:span 2}.atl-pa.big img{aspect-ratio:16/9;object-fit:cover}
+.atl-pa.son{grid-column:span 2}.atl-pa.son audio{width:100%}
+.atl-pmsgs{display:grid;gap:10px;max-height:60vh;overflow-y:auto;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.18)}
+@media (max-width:600px){.atl-phd{flex-direction:column;align-items:stretch}.atl-phv{width:100%}.atl-gframe{height:72vh}.atl-pgal{grid-template-columns:repeat(2,minmax(0,1fr))}.atl-pa.big,.atl-pa.son{grid-column:1/-1}}
+/* la borne dans le cadre d'un projet : le jeu seul */
+body.cadre .cadre-vide{position:fixed;inset:0;display:grid;place-items:center;padding:20px;text-align:center;background:#120a24;color:#ffe9a8;font:700 18px var(--body);z-index:50}

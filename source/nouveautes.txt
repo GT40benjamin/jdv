@@ -16,6 +16,10 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 🎮 Teste ton jeu dans la page de ton projet (borne 1.63.62)
+[atelier] 🎮 Quand ton jeu est prêt, il se joue directement dans la page de ton projet, en grand, avec « ⛶ Plein écran » et « ↺ Rejouer ». Tu restes dans l'Atelier !
+[atelier] 📋 La page de ton projet montre tout, en onglets : Jouer, La fiche (idée, personnages, objets, décor, sons…), Les dessins (le design, les images, chaque élément du jeu, les sons) et la Discussion avec l'Atelier.
+
 [atelier] ## 🚀 Crée ton jeu en une seule fois, puis étape par étape (borne 1.63.58)
 [atelier] ✨ Décris ton jeu une seule fois, au clavier ou au micro : l'Atelier remplit toute ta fiche et dessine un premier design de ton jeu.
 [atelier] 🧭 Ensuite, relis ton projet étape par étape : L'idée, Personnages, Objets, Décor, Sons, Le design. Sur chaque étape, ajoute ou enlève ce que tu veux (＋ / ✕), c'est gratuit.
