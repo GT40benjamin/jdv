@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## ✏️ Crée ton jeu : une vraie tuile de jeu (borne 1.63.24)
+[atelier] 🎮 « Crée ton jeu » a maintenant sa tuile, comme les autres jeux, tout en haut de la borne : clique dessus pour raconter ton idée à l'Atelier. Une petite pastille te dit où en est ton projet.
 [abracadabra] ## 🌋 Abracadabra : des personnages bien finis, et un volcan qui souffle (borne 1.63.23)
 [abracadabra] 👧 La petite fille n'a plus de trou dans le corps : le haut de sa poitrine et de son dos, au-dessus de sa robe sans bretelles, était invisible.
 [abracadabra] 💪 Les bras de tous les villageois ne traversent plus jamais leur corps, quel que soit le geste (la révérence et le geste inquiet rentraient dans le ventre).

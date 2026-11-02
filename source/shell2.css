@@ -3329,64 +3329,30 @@ body.pg-rest .pg-video,body.pg-rest #jdw-pg-poster{filter:brightness(.5);transit
 @media (min-width:1500px){#jdw-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (min-width:1800px){#jdw-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:18px}}
 
-/* ---------- L'Atelier des jeux : la tuile « CRÉE TON JEU » (toute la largeur, en premier) ---------- */
-.atl-wrap{grid-column:1/-1}
-.tile.atl-tile{--acc:#ffd34d;position:relative;display:grid;grid-template-rows:none;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px 18px;
-  min-height:178px;padding:18px 18px 18px 8px;border-radius:20px;overflow:hidden;isolation:isolate;color:#fff;
-  background:radial-gradient(90% 140% at 0% 0%,rgba(122,76,255,.85) 0%,transparent 60%),radial-gradient(80% 140% at 100% 100%,rgba(255,79,154,.75) 0%,transparent 60%),linear-gradient(115deg,#1a1150 0%,#2a0f55 48%,#43103f 100%);
-  border:1px solid rgba(255,214,110,.55);box-shadow:0 0 0 1px rgba(255,214,110,.12) inset,0 14px 40px rgba(120,60,255,.35),0 0 60px rgba(255,79,154,.18)}
-.tile.atl-tile::before{content:"";position:absolute;inset:-40% -10%;z-index:-1;background:linear-gradient(100deg,transparent 40%,rgba(255,255,255,.16) 50%,transparent 60%);transform:translateX(-70%);animation:atlSheen 5.5s ease-in-out infinite}
-.tile.atl-tile:hover{transform:translateY(-2px);border-color:#ffe48a;box-shadow:0 0 0 1px rgba(255,214,110,.3) inset,0 18px 48px rgba(120,60,255,.5),0 0 80px rgba(255,79,154,.3)}
-.atl-sky{position:absolute;inset:0;z-index:-1;pointer-events:none}
-.atl-sky i{position:absolute;left:var(--x);top:var(--y);width:calc(6px * var(--s));height:calc(6px * var(--s));border-radius:50%;background:#fff6c9;box-shadow:0 0 10px 2px rgba(255,230,140,.8);opacity:0;animation:atlTwinkle 3s ease-in-out var(--d) infinite}
-.atl-art{display:block;width:118px}
-.atl-art svg{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 8px 18px rgba(0,0,0,.4))}
-.atl-pad{animation:atlBob 3.2s ease-in-out infinite;transform-origin:70px 70px}
-.atl-pen{animation:atlPen 2.6s ease-in-out infinite;transform-origin:90px 60px}
-.atl-spark{animation:atlSpark 2.2s ease-in-out infinite;transform-origin:30px 30px;transform-box:fill-box}
-.atl-spark.s2{animation-delay:1.1s}
-.atl-tx{display:grid;gap:6px;min-width:0;justify-items:start}
-.atl-kick{font:600 12px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:#ffe9a8;opacity:.95}
-.atl-big{display:block;font:400 clamp(30px,9vw,46px)/1 var(--display);text-transform:uppercase;letter-spacing:.02em;
-  background:linear-gradient(180deg,#fff9d6 0%,#ffd34d 55%,#ff9a3d 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 3px 0 rgba(70,20,90,.9)) drop-shadow(0 0 18px rgba(255,200,90,.45))}
-.atl-sub{font:600 clamp(13px,3.6vw,17px)/1.3 var(--body);color:#f4ecff;text-wrap:balance}
-.atl-sub em{font-style:normal;color:#7dffb0;font-weight:700}
-.atl-cta{display:inline-flex;align-items:center;gap:10px;margin-top:4px;padding:9px 16px;border-radius:999px;background:linear-gradient(180deg,#ffe27a,#ffb238);color:#2a1340;
-  font:400 14px/1 var(--display);box-shadow:0 3px 0 rgba(60,20,40,.6),0 0 22px rgba(255,200,80,.45)}
-.atl-cta > span:last-child{display:inline-block;animation:atlArrow 1.4s ease-in-out infinite}
-.atl-steps{display:none}
-@media (min-width:1100px){
-  .tile.atl-tile{grid-template-columns:240px minmax(0,1fr) auto!important}
-  .atl-steps{display:grid;gap:10px;align-self:center;padding:14px 18px;border-radius:16px;background:rgba(8,6,30,.35);border:1px solid rgba(255,255,255,.14)}
-  .atl-steps > span{display:grid;grid-template-columns:34px auto;grid-template-rows:auto auto;column-gap:12px;align-items:center;font:600 16px/1.2 var(--body);color:#fff}
-  .atl-steps b{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(180deg,#ffe27a,#ffb238);color:#2a1340;font:400 16px var(--display)}
-  .atl-steps small{font:500 13px var(--body);color:#d9cdf5}
-}
-.atl-state{position:absolute;top:10px;right:10px;max-width:calc(100% - 20px);padding:6px 11px;border-radius:999px;background:rgba(8,6,30,.72);border:1px solid rgba(255,255,255,.25);
-  font:600 12.5px/1.2 var(--body);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.atl-state[data-k="new"],.atl-state[data-k="go"]{background:#ffd34d;color:#2a1340;border-color:#fff1b8;animation:atlPulse 1.6s ease-in-out infinite}
-.atl-state[data-k="ok"]{background:#2fbf71;border-color:#9bf5c3}
-@media (max-width:520px){
-  .tile.atl-tile{grid-template-columns:minmax(0,1fr);padding:16px 16px 18px;min-height:190px}
-  .atl-art{position:absolute;right:-8px;bottom:-6px;width:118px;opacity:.9;z-index:-1}
-  .atl-tx{padding-right:70px}
-  .atl-state{position:static;justify-self:start;order:-1;margin-bottom:2px}
-}
-@media (min-width:700px){.tile.atl-tile{min-height:210px;padding:22px 26px 22px 18px}.atl-art{width:160px}.atl-big{font-size:clamp(40px,5.4vw,58px)}}
-@media (min-width:1200px){
-  .tile.atl-tile{min-height:250px;grid-template-columns:240px minmax(0,1fr);padding:26px 40px 26px 30px}
-  .atl-art{width:220px}.atl-big{font-size:clamp(56px,4.6vw,86px)}.atl-sub{font-size:20px}.atl-cta{font-size:17px;padding:12px 22px}.atl-kick{font-size:13px}
-  .atl-state{top:16px;right:18px;font-size:14px;padding:8px 14px}
-}
-@keyframes atlSheen{0%,55%{transform:translateX(-70%)}85%,100%{transform:translateX(70%)}}
+/* ---------- L'Atelier des jeux : sa tuile, au même format que les autres jeux (en premier dans la grille) ---------- */
+.atl-cover svg{display:block;width:100%;height:100%}
+.atl-cover .tile-new{left:8px;right:auto;background:#ff4f9a;color:#fff}
+.atl-tw{fill:#fff6c9;opacity:0;animation:atlTwinkle 3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.atl-pad{animation:atlBob 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.atl-pen{animation:atlPen 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:20% 80%}
+.atl-spark{animation:atlSpark 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.atl-spark.s2{animation-delay:.8s}.atl-spark.s3{animation-delay:1.5s}
+.atl-pill{position:absolute;left:8px;bottom:10px;z-index:2;max-width:calc(100% - 16px);padding:4px 10px;border-radius:999px;background:rgba(8,6,30,.8);border:1px solid rgba(255,255,255,.3);
+  font:600 12px/1.2 var(--body);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.atl-pill[data-k="new"],.atl-pill[data-k="go"]{background:#ffd34d;color:#2a1340;border-color:#fff1b8;animation:atlPulse 1.6s ease-in-out infinite}
+.atl-pill[data-k="ok"]{background:#2fbf71;border-color:#9bf5c3}
+.atl-foot{color:#ffe9a8;white-space:normal;align-items:flex-start;line-height:1.25}
+.atl-foot i{margin-top:4px}
+.atl-foot i{background:#ffd34d!important;box-shadow:0 0 6px #ffd34d}
+.tile.atl-tile{box-shadow:0 0 0 1px rgba(255,214,110,.35),0 10px 24px rgba(0,0,0,.35),0 0 26px rgba(160,90,255,.35)}
+.atl-hot .tile.atl-tile{box-shadow:0 0 0 2px #ffd34d,0 0 26px rgba(255,211,77,.55)}
 @keyframes atlTwinkle{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1)}}
 @keyframes atlBob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-6px) rotate(2deg)}}
 @keyframes atlPen{0%,100%{transform:rotate(0)}50%{transform:rotate(-7deg) translate(-3px,2px)}}
 @keyframes atlSpark{0%,100%{transform:scale(.5) rotate(0);opacity:.4}50%{transform:scale(1.15) rotate(45deg);opacity:1}}
 @keyframes atlArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
 @keyframes atlPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,211,77,.6)}50%{box-shadow:0 0 0 7px rgba(255,211,77,0)}}
-@media (prefers-reduced-motion:reduce){.tile.atl-tile::before,.atl-sky i,.atl-pad,.atl-pen,.atl-spark,.atl-cta > span:last-child,.atl-state{animation:none!important}.atl-sky i{opacity:.7}}
+@media (prefers-reduced-motion:reduce){.atl-tw,.atl-pad,.atl-pen,.atl-spark,.atl-pill{animation:none!important}.atl-tw{opacity:.7}}
 
 /* ---------- L'Atelier : l'espace (fiche à gauche / en haut, discussion à droite) ---------- */
 .atl{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;color:var(--ink);

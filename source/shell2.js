@@ -13914,37 +13914,45 @@ const atlEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cl
 
 // ---------- la tuile « CRÉE TON JEU » (tout en haut de la grille, toute la largeur) ----------
 function atlTile(grid) {
+  // 2 nov. 13 h 20, Benjamin : « une vraie TUILE DE JEU » — même format que les autres (image de couverture 4:3 + pied), en premier
   if (!ATL_ON() || ATL.tile) return;
-  const wrap = atlEl('div', 'tile-wrap atl-wrap');
-  const b = atlEl('button', 'tile atl-tile'); b.type = 'button'; b.setAttribute('aria-label', 'Crée ton jeu : décris ton idée à l’Atelier des jeux, c’est gratuit');
-  let stars = ''; for (let i = 0; i < 14; i++) stars += '<i style="--x:' + ((i * 37 + 11) % 100) + '%;--y:' + ((i * 53 + 7) % 100) + '%;--d:' + (i * 0.37 % 3).toFixed(2) + 's;--s:' + (0.6 + (i % 4) * 0.25).toFixed(2) + '"></i>';
-  b.innerHTML = '<span class="atl-sky" aria-hidden="true">' + stars + '</span>'
-    + '<span class="atl-art" aria-hidden="true"><svg viewBox="0 0 160 120"><defs><linearGradient id="atl-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient><linearGradient id="atl-g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ef7ff"/><stop offset="1" stop-color="#3a7bff"/></linearGradient></defs>'
-    + '<g class="atl-pad"><rect x="22" y="44" width="96" height="52" rx="26" fill="url(#atl-g2)"/><rect x="38" y="62" width="8" height="22" rx="2" fill="#0b1a3a"/><rect x="31" y="69" width="22" height="8" rx="2" fill="#0b1a3a"/><circle cx="94" cy="64" r="6" fill="#ff5d73"/><circle cx="106" cy="76" r="6" fill="#ffd34d"/><circle cx="82" cy="76" r="6" fill="#6dff9c"/></g>'
-    + '<g class="atl-pen"><path d="M118 10l22 22-50 50-26 6 6-26z" fill="url(#atl-g1)"/><path d="M70 62l-6 26 26-6z" fill="#ffe9c4"/><path d="M64 88l3-12 9 9z" fill="#2b1a0a"/><path d="M118 10l22 22-8 8-22-22z" fill="#ff5d73"/></g>'
-    + '<path class="atl-spark" d="M30 18l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#fff6c9"/><path class="atl-spark s2" d="M140 86l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff6c9"/></svg></span>'
-    + '<span class="atl-tx"><small class="atl-kick">✨ Nouveau · L’Atelier des jeux</small><b class="atl-big">Crée ton jeu</b>'
-    + '<span class="atl-sub">Ton idée devient un vrai jeu de la borne — <em>gratuit</em></span>'
-    + '<span class="atl-cta"><span class="atl-cta-t">Raconte ton idée</span><span aria-hidden="true">→</span></span></span>'
-    + '<span class="atl-steps" aria-hidden="true"><span><b>1</b>Raconte ton idée<small>au clavier ou au micro</small></span><span><b>2</b>L’Atelier te répond<small>sous 10 minutes environ</small></span><span><b>3</b>Envoie ton projet<small>tamponné, signé, gratuit</small></span></span>'
-    + '<span class="atl-state" hidden></span>';
-  b.addEventListener('click', () => atlOpen());
+  const wrap = atlEl('div', 'tile-wrap atl-wrap'); wrap.style.setProperty('--acc', '#ffd34d');
+  const b = atlEl('button', 'tile atl-tile'); b.type = 'button'; b.style.setProperty('--acc', '#ffd34d');
+  b.setAttribute('aria-label', 'Crée ton jeu : décris ton idée à l’Atelier des jeux, c’est gratuit');
+  let stars = ''; for (let i = 0; i < 16; i++) stars += '<circle class="atl-tw" cx="' + ((i * 61 + 23) % 400) + '" cy="' + ((i * 37 + 11) % 170) + '" r="' + (1.2 + (i % 3) * 0.8).toFixed(1) + '" style="animation-delay:' + (i * 0.29 % 3).toFixed(2) + 's"/>';
+  b.innerHTML = '<div class="tile-img atl-cover"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>'
+    + '<radialGradient id="atl-bg" cx=".2" cy=".1" r="1.1"><stop offset="0" stop-color="#7a4cff"/><stop offset=".55" stop-color="#2a0f55"/><stop offset="1" stop-color="#4a0f45"/></radialGradient>'
+    + '<linearGradient id="atl-gt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff9d6"/><stop offset=".55" stop-color="#ffd34d"/><stop offset="1" stop-color="#ff9a3d"/></linearGradient>'
+    + '<linearGradient id="atl-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient>'
+    + '<linearGradient id="atl-g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ef7ff"/><stop offset="1" stop-color="#3a7bff"/></linearGradient></defs>'
+    + '<rect width="400" height="300" fill="url(#atl-bg)"/><circle cx="330" cy="250" r="150" fill="#ff4f9a" opacity=".28"/>' + stars
+    + '<g transform="translate(0 34)"><g class="atl-pad"><rect x="118" y="150" width="164" height="90" rx="45" fill="url(#atl-g2)" stroke="#0b1a3a" stroke-width="5"/><rect x="146" y="180" width="13" height="36" rx="3" fill="#0b1a3a"/><rect x="134" y="192" width="37" height="13" rx="3" fill="#0b1a3a"/>'
+    + '<circle cx="240" cy="183" r="10" fill="#ff5d73"/><circle cx="260" cy="203" r="10" fill="#ffd34d"/><circle cx="220" cy="203" r="10" fill="#6dff9c"/></g>'
+    + '<g class="atl-pen"><path d="M300 92l34 34-78 78-40 10 10-40z" fill="url(#atl-g1)" stroke="#2a1340" stroke-width="4" stroke-linejoin="round"/><path d="M226 174l-10 40 40-10z" fill="#ffe9c4" stroke="#2a1340" stroke-width="4" stroke-linejoin="round"/><path d="M216 214l5-18 13 13z" fill="#2a1340"/><path d="M300 92l34 34-13 13-34-34z" fill="#ff5d73" stroke="#2a1340" stroke-width="4" stroke-linejoin="round"/></g>'
+    + '</g><path class="atl-spark" d="M70 170l5 14 14 5-14 5-5 14-5-14-14-5 14-5z" fill="#fff6c9"/><path class="atl-spark s2" d="M350 60l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="#fff6c9"/><path class="atl-spark s3" d="M96 250l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#fff6c9"/>'
+    + '<g class="atl-logo2" font-family="Bungee,Impact,\'Arial Black\',sans-serif" text-anchor="middle"><text x="200" y="96" font-size="54" fill="#2a1340" stroke="#2a1340" stroke-width="12" stroke-linejoin="round">CRÉE TON</text><text x="200" y="96" font-size="54" fill="url(#atl-gt)">CRÉE TON</text>'
+    + '<text x="200" y="152" font-size="58" fill="#2a1340" stroke="#2a1340" stroke-width="12" stroke-linejoin="round">JEU !</text><text x="200" y="152" font-size="58" fill="url(#atl-gt)">JEU !</text></g></svg>'
+    + '<span class="tile-new">Nouveau</span><span class="atl-pill" hidden></span></div>'
+    + '<div class="tile-meta"><div class="tile-name">Crée ton jeu</div><div class="tile-online atl-foot"><i></i><span>Ton idée devient un vrai jeu — gratuit</span></div></div>';
+  b.addEventListener('click', () => { store.set('jdw.atl.vu', true); atlOpen(); atlTileState(); });
   wrap.appendChild(b); grid.insertBefore(wrap, grid.firstChild);
   ATL.tile = b; atlTileState();
 }
 function atlTileState() {
   const b = ATL && ATL.tile; if (!b) return;
-  const f = atlFiche(), et = atlEtat(), st = b.querySelector('.atl-state'), cta = b.querySelector('.atl-cta-t');
+  const f = atlFiche(), et = atlEtat(), st = b.querySelector('.atl-pill'), nb = b.querySelector('.tile-new'), foot = b.querySelector('.atl-foot span');
   let s = '', k = '';
-  if (f && ATL_ACTIVE.has(et) || et === 'acceptee') {
-    if (et === 'envoyee') { s = '📮 Projet envoyé · Benjamin va le lire'; k = 'sent'; }
-    else if (et === 'acceptee') { s = '✅ Ton projet est accepté !'; k = 'ok'; }
-    else if (et === 'complete') { s = '🎉 Ta fiche est complète : envoie ton projet !'; k = 'go'; }
-    else if (atlUnread()) { s = '✉️ L’Atelier t’a répondu !'; k = 'new'; }
-    else if (atlWaiting()) { s = '⏳ L’Atelier prépare sa réponse…'; k = 'wait'; }
+  if (f && (ATL_ACTIVE.has(et) || et === 'acceptee')) {
+    if (et === 'envoyee') { s = '📮 Projet envoyé'; k = 'sent'; }
+    else if (et === 'acceptee') { s = '✅ Projet accepté !'; k = 'ok'; }
+    else if (et === 'complete') { s = '🎉 Fiche complète'; k = 'go'; }
+    else if (atlUnread()) { s = '✉️ Nouvelle réponse !'; k = 'new'; }
+    else if (atlWaiting()) { s = '⏳ Réponse en route…'; k = 'wait'; }
   }
   st.hidden = !s; st.textContent = s; st.dataset.k = k;
-  cta.textContent = f && (ATL_ACTIVE.has(et) || et === 'acceptee') ? (et === 'envoyee' || et === 'acceptee' ? 'Voir mon projet' : 'Continuer mon projet') : 'Raconte ton idée';
+  nb.hidden = !!s || !!f || !!store.get('jdw.atl.vu', false);
+  foot.textContent = et === 'complete' ? 'Envoie ton projet' : f && ATL_ACTIVE.has(et) && et !== 'envoyee' ? 'Continue ton projet' : 'Ton idée devient un vrai jeu — gratuit';
+  b.parentNode.classList.toggle('atl-hot', k === 'new' || k === 'go');
 }
 
 // ---------- l'espace Atelier ----------
