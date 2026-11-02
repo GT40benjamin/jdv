@@ -14513,6 +14513,8 @@ async function atlDesign(chg, btn) {
 }
 async function atlLancer(btn) {
   const f = atlFiche(); if (!f || ATL.sending) return;
+  const crc = atlCred(), prix = crc ? crc.conception | 0 : 0;
+  if (crc && prix > 0 && (crc.solde | 0) < prix) { atlWizErr('Pour lancer la conception de ton jeu, il faut ' + prix + ' crédits : tu en as ' + Math.max(0, crc.solde | 0) + '. Passe à Atelier+ ou recharge tes crédits, puis reviens ici !'); const x = ATL.root.querySelector('.atl-werr'); atlCreditsBtn(x); x.hidden = false; return; }
   if (Date.now() - (ATL.lance || 0) > 5000) { ATL.lance = Date.now(); btn.textContent = '🚀 Sûr ? Touche encore pour lancer !'; btn.classList.add('sur'); setTimeout(() => { if (btn.isConnected && Date.now() - ATL.lance >= 5000) atlRenderWiz(); }, 5100); return; }
   ATL.sending = true; btn.disabled = true; atlWizErr('');
   try { const r = await rpc('at_lancer', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ATL.lance = 0; f.etat = 'envoyee'; atlRender(); toastCheer('🚀 C’est parti, je me mets au travail sur ta V1 !', null, true); await atlLoad(true); }
@@ -14582,7 +14584,7 @@ function atlRenderWiz() {
     go.addEventListener('click', () => atlLancer(go));
     box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'));
   }
-  const w = atlEl('button', 'atl-wchat', '✏️ Retravailler mon idée ou ajouter du style (2 💎 le message)'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
+  const w = atlEl('button', 'atl-wchat', '✏️ Retravailler mon idée ou ajouter du style (' + (cr ? cr.message | 0 : 2) + ' 💎 le message)'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
   box.append(w, atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
 }
 
@@ -15387,7 +15389,7 @@ function atlBiblio(host, f, fi, lecture) {
   let vue = store.get('jdw.atl.libvue', 'planche'); if (vue !== 'cartes') vue = 'planche';
   const bar = atlEl('div', 'atl-libbar');
   if (!lecture) {
-    const cc = atlCred(), px = cat === 'musique' ? (cc && cc.musique != null ? cc.musique | 0 : 50) : cat === 'son' ? (cc && cc.son != null ? cc.son | 0 : 10) : 0;
+    const cc = atlCred(), px = cat === 'musique' ? (cc && cc.musique != null ? cc.musique | 0 : 100) : cat === 'son' ? (cc && cc.son != null ? cc.son | 0 : 20) : 0;
     const cr = atlEl('button', 'btn btn-ghost btn-sm', (cat === 'son' ? '＋ Créer un bruitage' : cat === 'musique' ? '＋ Créer une musique' : '＋ Créer') + (px ? ' · ' + px + ' 💎' : '')); cr.type = 'button'; cr.addEventListener('click', () => atlCreerElem(cat, lab, k, libre, f, fi)); bar.appendChild(cr);
   }
   const avec = l.filter(it => it.url && !it.son);
@@ -15701,7 +15703,7 @@ function atlEncRenommer(c, it, f, fi) {
 // « Modifier avec le guide » (élément joint) ou « Créer » un élément (interface, son, musique, ou après le lancement) : une demande (cout_demande)
 function atlDemandeElem(it, f, cat) {
   const creer = !it, cr = atlCred(), M = ATL.root.querySelector('.atl-mod');
-  const cout = creer && cat === 'musique' ? (cr && cr.musique != null ? cr.musique | 0 : 50) : creer && cat === 'son' ? (cr && cr.son != null ? cr.son | 0 : 10) : (cr && cr.demande != null ? cr.demande | 0 : 5);   // 21 h 45 : une musique, un son, une demande
+  const cout = creer && cat === 'musique' ? (cr && cr.musique != null ? cr.musique | 0 : 100) : creer && cat === 'son' ? (cr && cr.son != null ? cr.son | 0 : 20) : (cr && cr.demande != null ? cr.demande | 0 : 5);   // 21 h 45 : une musique, un son, une demande
   M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard');
   const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', creer ? (cat === 'musique' ? 'Dis-moi quelle musique tu veux : l’ambiance, les instruments, quand elle joue. Je la compose !' : cat === 'son' ? 'Dis-moi quel son tu veux : à quel moment il joue, comment il sonne. Je le fabrique !' : 'Dis-moi ce que tu veux créer, je m’en occupe !') : 'Qu’est-ce que je change sur « ' + it.nom + ' » ?')); hd.append(atlGuideAv('atl-wav'), ht);
@@ -15925,12 +15927,13 @@ async function atlVoirProjet(id) {
 async function atlBienvenue() {
   const k = 'jdw.atl.bv.' + (profile.name || ''); if (!profile.name || store.get(k, false)) return;
   let r; try { r = await rpc('at_bienvenue', { p_name: profile.name }, { quiet: true }); } catch (e) { return; }
+  if (r && r.verifier) { if (!ATL.bvDit) { ATL.bvDit = true; toastCheer('📧 Vérifie ton e-mail pour recevoir tes ' + ((r.credits | 0) || 500) + ' crédits de bienvenue !', null, true); } return; }   // 1 h : seulement un e-mail vérifié
   store.set(k, true);
   if (!r || !(r.offert > 0) || !ATL.root) return;
   if (Number.isFinite(+r.solde)) atlSolde(r.solde);
   const M = ATL.root.querySelector('.atl-mod'); if (!M) return; M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard atl-bv'), av = atlGuideAv('atl-wav'); av.classList.add('atl-bvjoie');
-  c.append(av, atlEl('h2', '', '🎁 Bienvenue !'), atlEl('p', '', 'Je t’offre ' + (r.offert | 0) + ' crédits : c’est assez pour créer ton propre jeu vidéo !'), atlEl('small', 'atl-noremb', 'Les crédits servent seulement dans l’Atelier et ne sont pas remboursés.'));
+  c.append(av, atlEl('h2', '', '🎁 Bienvenue !'), atlEl('p', '', '🎁 Je t’offre ' + (r.offert | 0) + ' crédits : assez pour créer ton premier jeu et le décorer !'), atlEl('small', 'atl-noremb', 'Les crédits servent seulement dans l’Atelier et ne sont pas remboursés.'));
   const ok = atlEl('button', 'btn btn-play', 'C’est parti !'); ok.type = 'button'; ok.addEventListener('click', () => { M.hidden = true; M.textContent = ''; }); c.appendChild(ok); M.appendChild(c);
 }
 

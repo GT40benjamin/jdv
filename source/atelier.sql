@@ -2758,3 +2758,7 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- at_lire : 'admin' = (… x.suivi) and pegase_int.at_patron(n) ; 'tuile_animee' ; vignette des projets : role = 'vignette' d'abord
 -- at_demande_modif : types vignette / vignette_animee (« 🖼️ Nouvelle image de présentation » / « 🖼️ Image de présentation ANIMÉE ») ;
 -- pegase_int.at_demande_auto : sorte 'vignette' pour les textes « 🖼️… »
+
+-- (v33, 3 nov. 2026 1 h, Benjamin) : at_bienvenue donne bienvenue_credits (500) SEULEMENT si l e-mail du compte est vérifié
+-- (auth.users.email_confirmed_at) ; sinon {offert: 0, verifier: true, credits} et rien n est marqué. Réglages : bienvenue_credits 500,
+-- cout_conception 300, cout_son 20, cout_musique 100 (posés par l équipe). Texte complet : migration atelier_v33_bienvenue_email_verifie.
