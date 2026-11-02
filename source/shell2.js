@@ -167,7 +167,7 @@ function refreshNewBadges() {
     let nb = el.querySelector('.tile-new');
     const tl = el.closest('.tile') || el; tl.classList.toggle('tile-maj', k === 'maj'); tl.classList.toggle('tile-nw', k === 'new');
     if (!k) { if (nb) nb.hidden = true; return; }
-    if (!nb) { nb = document.createElement('span'); nb.className = 'tile-new'; el.appendChild(nb); }
+    if (!nb) { nb = document.createElement('span'); nb.className = 'tile-new'; (el.querySelector('.tile-img') || el).appendChild(nb); }   // en bas de l'image : le titre dessiné en haut reste lisible
     nb.hidden = false; nb.classList.toggle('maj', k === 'maj'); nb.textContent = k === 'new' ? 'Nouveau' : '✨ Mis à jour';
   };
   for (const el of document.querySelectorAll('.tile-hl')) el.classList.remove('tile-hl');
@@ -201,7 +201,7 @@ const Audio = {
     if (this.ctx) { if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') { try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) {} } return; }
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      this.master = this.ctx.createGain(); this.master.gain.value = muted ? 0 : 0.6; this.master.connect(this.ctx.destination);
+      this.master = this.ctx.createGain(); this.master.gain.value = sfxLevel(); this.master.connect(this.ctx.destination);
       this.buf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
       const d = this.buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = shellRand() * 2 - 1;
     } catch (e) { this.ctx = null; }
@@ -1520,7 +1520,17 @@ const MUS = { on: store.get('jdw.music', true) !== false, gain: null, buf: {}, o
 const MUSIC_VOL = 0.42, XFADE = 1.6;
 // niveau de la musique selon l'écran (accueil 1, en jeu 0.8, fin de partie 0.5) et baisse momentanée pendant un cri
 let musBase = 1, duckLvl = 1, duckUntil = 0, duckTimer = 0, musHush = false;   // musHush : fenêtre des cris ouverte = musique coupée
-function musicLevel() { return musHush ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1); }
+function musicLevel() { return musHush ? 0 : MUSIC_VOL * musBase * (Date.now() < duckUntil ? duckLvl : 1) * (micQ ? MIC_QUIET : 1); }
+// 2 nov. 2026, Benjamin : « quand on utilise le micro pour parler, il faut couper le son ou le réduire énormément » : pendant que la borne
+// écoute au micro (l'Atelier des jeux), musique ET bruitages à 5 %, puis retour en douceur (api.duck d'un jeu : la musique seule, à 5 %)
+const MIC_QUIET = 0.05;
+let micQ = false;
+function sfxLevel() { return muted ? 0 : 0.6 * (micQ ? MIC_QUIET : 1); }
+function micQuiet(on) {
+  if (micQ === !!on) return; micQ = !!on; musicApplyLevel(on ? 0.25 : 1.4);
+  const A = Audio.ctx, m = Audio.master; if (!A || !m) return;
+  try { const now = A.currentTime; m.gain.cancelScheduledValues(now); m.gain.setValueAtTime(m.gain.value, now); m.gain.linearRampToValueAtTime(sfxLevel(), now + (on ? 0.25 : 1.4)); } catch (e) {}
+}
 function musicHush(on) { if (musHush === !!on) return; musHush = !!on; musicApplyLevel(on ? 0.15 : 0.8); }
 function musicApplyLevel(ramp) {
   if (!MUS.gain || !Audio.ctx) return;
@@ -9946,7 +9956,7 @@ function mountGame(g) {
       setMusic(g.id, lvl >= (INTENSE_AT[g.id] || 99) ? 'intense' : 'calm');
     },
     // un jeu qui écoute au micro (30 oct. 2026, Abracadabra : le sort) : la musique se fait discrète le temps de l'écoute, duck(false) la rend
-    duck: (on) => { if (!current || current.seq !== seq) return; if (on) duckMusic(0.3, 90000); else unduckMusic(); },
+    duck: (on) => { if (!current || current.seq !== seq) return; if (on) duckMusic(MIC_QUIET, 90000); else unduckMusic(); },
     isMuted: () => muted,
     heads: () => headsShown(),
     player: playerObj(),
@@ -10125,7 +10135,7 @@ function syncMute() {
   const silent = muted && !MUS.on && !criOn;
   $('jdw-mute').textContent = silent ? '🔇' : '🔊';
   $('jdw-mute').setAttribute('aria-label', 'Réglages du son : musique, bruitages, cris');
-  if (Audio.master) Audio.master.gain.value = muted ? 0 : 0.6;
+  if (Audio.master) Audio.master.gain.value = sfxLevel();
   for (const g of GAMES) if (g.setMuted) { try { g.setMuted(muted); } catch (e) {} }
 }
 // bouton de la partie : un petit menu pour couper séparément la musique, les bruitages et les cris
@@ -14230,6 +14240,7 @@ async function atlImage(file) {
 // ---------- micro : la dictée va dans la case, le joueur relit puis envoie ----------
 function atlMicKind() { try { const nv = nativeVoice(); if (nv && nv.canListen()) return 'natif'; } catch (e) {} return ATL_SR ? 'web' : ''; }
 function atlMicUi(on) {
+  micQuiet(on);   // la borne se tait pendant qu'on parle
   const R = ATL.root; if (!R) return;
   R.querySelector('.atl-mic').classList.toggle('on', !!on); R.querySelector('.atl-rec').hidden = !on;
   R.querySelector('.atl-mic').setAttribute('aria-label', on ? 'Arrêter le micro' : 'Parler au micro');
