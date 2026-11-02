@@ -174,6 +174,8 @@ function mount(root, api) {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(k)) e.preventDefault();
     keys[k.toLowerCase()] = down;
     if (!down) return;
+    // dans le cadre de l'Atelier, P appartient à la page du projet (arrêt sur image + atl-pause) : le jeu n'ajoute pas sa propre pause
+    if ((k === 'p' || k === 'P') && DANS_CADRE) return;
     if (k === 'p' || k === 'Escape') { if (state === 'play') setPaused(!paused); return; }
     if (paused) { setPaused(false); return; }
     if (k === 'Enter' || k === ' ') {
@@ -188,6 +190,7 @@ function mount(root, api) {
   function onVis() { if (document.hidden && state === 'play') setPaused(true); }
   // pause de l'Atelier (bouton ⏸ au-dessus du cadre : le joueur parle à son guide) : tout est gelé jusqu'à « atl-reprendre »
   let gele = false, guideA = '';
+  const DANS_CADRE = (() => { try { return window.parent !== window && window.parent.location.origin === location.origin && /[?&]cadre=/.test(location.search); } catch (e) { return false; } })();
   function onMsg(e) {
     if (e.origin !== location.origin || !e.data || typeof e.data !== 'object') return;
     // le nom du guide vient de la page du projet (jamais écrit ici) : « Parle à … »
