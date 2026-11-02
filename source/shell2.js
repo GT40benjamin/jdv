@@ -14178,7 +14178,7 @@ function atlTile(grid) {
     + '<span class="tile-new">Nouveau</span><span class="atl-pill" hidden></span></div>'
     + '<div class="tile-meta"><div class="tile-name">Crée ton jeu</div><div class="tile-online atl-foot"><i></i><span>Ton idée devient un vrai jeu</span></div></div>';
   b.addEventListener('click', () => { store.set('jdw.atl.vu', true); atlOpen(); atlTileState(); });
-  laboMark(b, 'atelier');
+  // 23 h 40 (Benjamin : « enlève le test sur la brique de Crée ton jeu ») : pas de ruban TEST (elle reste réservée aux admins et au labo)
   wrap.appendChild(b); grid.insertBefore(wrap, grid.firstChild);
   ATL.tile = b; atlTileState();
 }
