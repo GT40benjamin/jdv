@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🥕 Abracadabra : gare au voleur de carotte dans le désert (borne 1.63.19)
+[abracadabra] 🐇 Mission 4 : pendant que le cheval suit la carotte, dis « lapin », « chèvre » ou « cochon »… il arrive en sautillant, la carotte tombe dans le sable et il la croque ! Le cheval s'arrête net, la caravane aussi : redis « carotte » pour repartir.
+[abracadabra] 🐍 Le serpent fait fuir le cheval même en plein trajet. Et ceux qui sont déjà arrivés à l'oasis n'en repartent plus.
 [abracadabra] ## 🔥 Abracadabra : une vraie boule de feu contre la boule de neige (borne 1.63.18)
 [abracadabra] 🔥 Mission 3 : dis « feu » (ou un feu de camp, un braséro…) et une boule de feu se forme devant toi en crépitant, puis file en arc jusqu'à la boule de neige géante.
 [abracadabra] 💥 Au choc : gerbe de flammes et grand pschitt de vapeur. La boule de neige s'embrase, rougeoie et fond à vue d'œil.
