@@ -14114,7 +14114,7 @@ function atlTile(grid) {
   if (!ATL_ON() || ATL.tile) return;
   const wrap = atlEl('div', 'tile-wrap atl-wrap'); wrap.style.setProperty('--acc', '#ffd34d');
   const b = atlEl('button', 'tile atl-tile'); b.type = 'button'; b.style.setProperty('--acc', '#ffd34d');
-  b.setAttribute('aria-label', 'Crée ton jeu : décris ton idée à l’Atelier des jeux, c’est gratuit');
+  b.setAttribute('aria-label', 'Crée ton jeu : décris ton idée à l’Atelier des jeux');
   let stars = ''; for (let i = 0; i < 16; i++) stars += '<circle class="atl-tw" cx="' + ((i * 61 + 23) % 400) + '" cy="' + ((i * 37 + 11) % 170) + '" r="' + (1.2 + (i % 3) * 0.8).toFixed(1) + '" style="animation-delay:' + (i * 0.29 % 3).toFixed(2) + 's"/>';
   b.innerHTML = '<div class="tile-img atl-cover"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>'
     + '<radialGradient id="atl-bg" cx=".2" cy=".1" r="1.1"><stop offset="0" stop-color="#7a4cff"/><stop offset=".55" stop-color="#2a0f55"/><stop offset="1" stop-color="#4a0f45"/></radialGradient>'
@@ -14129,7 +14129,7 @@ function atlTile(grid) {
     + '<g class="atl-logo2" font-family="Bungee,Impact,\'Arial Black\',sans-serif" text-anchor="middle"><text x="200" y="96" font-size="54" fill="#2a1340" stroke="#2a1340" stroke-width="12" stroke-linejoin="round">CRÉE TON</text><text x="200" y="96" font-size="54" fill="url(#atl-gt)">CRÉE TON</text>'
     + '<text x="200" y="152" font-size="58" fill="#2a1340" stroke="#2a1340" stroke-width="12" stroke-linejoin="round">JEU !</text><text x="200" y="152" font-size="58" fill="url(#atl-gt)">JEU !</text></g></svg>'
     + '<span class="tile-new">Nouveau</span><span class="atl-pill" hidden></span></div>'
-    + '<div class="tile-meta"><div class="tile-name">Crée ton jeu</div><div class="tile-online atl-foot"><i></i><span>Ton idée devient un vrai jeu — gratuit</span></div></div>';
+    + '<div class="tile-meta"><div class="tile-name">Crée ton jeu</div><div class="tile-online atl-foot"><i></i><span>Ton idée devient un vrai jeu</span></div></div>';
   b.addEventListener('click', () => { store.set('jdw.atl.vu', true); atlOpen(); atlTileState(); });
   laboMark(b, 'atelier');
   wrap.appendChild(b); grid.insertBefore(wrap, grid.firstChild);
@@ -14153,7 +14153,7 @@ function atlTileState() {
   }
   st.hidden = !s; st.textContent = s; st.dataset.k = k;
   nb.hidden = !!s || !!f || !!store.get('jdw.atl.vu', false);
-  foot.textContent = ps.length > 1 ? 'Continue tes projets' : et === 'complete' ? 'Envoie ton projet' : f && ATL_ACTIVE.has(et) && !ATL_AFTER.has(et) ? 'Continue ton projet' : 'Ton idée devient un vrai jeu — gratuit';
+  foot.textContent = ps.length > 1 ? 'Continue tes projets' : et === 'complete' ? 'Envoie ton projet' : f && ATL_ACTIVE.has(et) && !ATL_AFTER.has(et) ? 'Continue ton projet' : 'Ton idée devient un vrai jeu';
   b.parentNode.classList.toggle('atl-hot', k === 'new' || k === 'go');
 }
 
@@ -14163,20 +14163,20 @@ const ATL_WELCOME = [
   'Décris le jeu dont tu rêves, comme tu veux : en deux mots ou en racontant tout, au clavier ou au micro 🎤.',
   '🖼️ Mets ici des images qui te plaisent (captures, dessins, photos) : je m’en inspire. On ne les copie jamais dans ton jeu, c’est seulement pour comprendre ce que tu aimes.',
   'L’Atelier te répond sous 10 minutes environ (va jouer en attendant, la cloche 🔔 te préviendra) et remplit tout de suite ta fiche, en 9 sections numérotées. Pour changer quelque chose, dis-lui le numéro de la section.',
-  '💎 Tu as des crédits Elixir, gratuits, remis chaque mois : 2 crédits par message, 10 par planche dessinée.',
+  '💎 Tu as des crédits Elixir, remis chaque mois : 2 crédits par message, 10 par planche dessinée.',
   '🎨 Quand ton projet est bien ficelé, l’Atelier te PROPOSE la liste de tout ce qu’il va dessiner pour ton jeu, avec le prix. Tu n’as plus qu’à dire « Oui, dessine ma planche » (ou demander encore des changements).',
   '⭐ Important : mets TOUT ce que tu veux sur ta planche (personnages, ennemis, objets, bonus…) : une planche = 10 crédits, quel que soit le nombre d’éléments ! 6 à 9 éléments, c’est l’idéal.',
   'Bon à savoir : sur la borne, ce qui compte c’est le SCORE ENTRE COPAINS 🏆 — pense à comment on bat le record des autres ! Et sur téléphone, ton jeu sera un peu moins beau que sur PC.',
-  'Quand tout te plaît, touche « Envoyer mon projet » en haut : tu choisiras ton design, puis tu signeras ta lettre. C’est gratuit, et c’est un jeu par joueur : choisis ta meilleure idée !'
+  'Quand tout te plaît, touche « Envoyer mon projet » en haut : tu choisiras ton design, puis tu signeras ta lettre. Tu peux mener jusqu’à 5 projets en même temps !'
 ];
 function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
-    + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu · gratuit</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
+    + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<div class="atl-projets" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
-    + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot">🎁 Projet gratuit · un projet par joueur</p></div></aside>'
+    + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot">📁 Jusqu’à 5 projets en même temps</p></div></aside>'
     + '<div class="atl-chat"><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
     + '<form class="atl-comp" autocomplete="off"><div class="atl-rec" hidden><span class="atl-recdot"></span><span class="atl-rect">Je t’écoute… parle normalement. Touche le micro pour arrêter.</span></div>'
     + '<p class="atl-err" hidden></p><div class="atl-lock" hidden></div><div class="atl-choix" hidden></div>'
@@ -14361,12 +14361,13 @@ function atlRenderChat() {
   else if (et === 'refusee') { btxt = 'Ton projet n’a pas été retenu cette fois. Tu peux en proposer un autre : écris ta nouvelle idée !'; bk = 'no'; }
   bn.hidden = !btxt; bn.dataset.k = bk; bn.textContent = btxt;
   if (et === 'complete' && !atlChoix()) { const b = atlEl('button', 'btn btn-play btn-sm', '📮 Envoyer mon projet'); b.type = 'button'; b.addEventListener('click', atlEnvoyer); bn.appendChild(b); }
+  if (f && f.jeu && (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde')) atlBoutonsJeu(bn, f);
   if (et === 'envoyee' || et === 'acceptee') { const b = atlEl('button', 'btn btn-ghost btn-sm', 'Revoir ma lettre'); b.type = 'button'; b.addEventListener('click', () => atlLetter(true)); bn.appendChild(b); }
   lock.hidden = !locked; lock.textContent = locked;
   const ch = atlChoix();
   for (const s of ['.atl-row', '.atl-row2']) R.querySelector(s).hidden = !!locked || ch;
   atlRenderChoix();
-  R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu · gratuit';
+  R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu';
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
   cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.mois | 0) + ' offerts chaque mois · ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
   R.querySelector('.atl-suivib').hidden = !(cr && cr.admin);
@@ -14658,6 +14659,37 @@ async function atlDessinePlanches() {
   } catch (e) { ATL.propMsg = e && e.offline ? 'Pas de réseau : réessaie dans un moment.' : 'Oups, le dessin n’a pas pu se faire. Réessaie dans un moment.'; }
   finally { ATL.drawing = false; ATL.stick = true; await atlLoad(true); }
 }
+// ---------- le jeu d'un projet est prêt : le tester, le publier dans SA salle, demander la mise en ligne mondiale ----------
+function atlBoutonsJeu(bn, f) {
+  const et = f.etat, row = atlEl('div', 'atl-jbtns');
+  const t = atlEl('button', 'btn btn-play btn-sm', '▶ Tester mon jeu'); t.type = 'button';
+  t.addEventListener('click', () => {
+    const g = (window.JDW_GAMES || {})[f.jeu];
+    if (!g || g.id !== f.jeu) { toastCheer('Ton jeu arrive sur la borne très bientôt !', null, true); return; }
+    atlClose(); try { markGameSeen(g.id); } catch (e) {} openGame(g);
+  });
+  row.appendChild(t);
+  if (et === 'alpha' || (et === 'publie_salle' && room && room.id !== f.salle)) {
+    const ps = atlEl('button', 'btn btn-ghost btn-sm', '🌟 Publier dans ma salle'); ps.type = 'button';
+    ps.addEventListener('click', async () => {
+      if (!room || !room.id) { toastCheer('Rejoins d’abord une salle pour y publier ton jeu', null, true); return; }
+      ps.disabled = true;
+      try { await rpc('at_publier_salle', { p_name: profile.name, p_fiche: f.id, p_salle: room.id }, { quiet: true }); toastCheer('🌟 Publié dans « ' + (room.name || 'ta salle') + ' » !', null, true); try { atlJeuxLoad(); } catch (e) {} await atlLoad(true); }
+      catch (e) { ps.disabled = false; atlErr(/pas membre/.test(String(e && e.message)) ? 'Tu n’es pas dans cette salle.' : /pas pret/.test(String(e && e.message)) ? 'Ton jeu n’est pas encore prêt.' : atlWhy(e)); }
+    });
+    row.appendChild(ps);
+  }
+  if (et === 'alpha' || et === 'publie_salle') {
+    const asked = !!f.monde_demande_at, mw = atlEl('button', 'btn btn-ghost btn-sm', asked ? '⏳ Demande mondiale envoyée' : '🌍 Demander la mise en ligne mondiale'); mw.type = 'button'; mw.disabled = asked;
+    mw.addEventListener('click', async () => {
+      mw.disabled = true;
+      try { await rpc('at_demander_monde', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); mw.textContent = '⏳ Demande mondiale envoyée'; toastCheer('Demande envoyée à Benjamin 🌍', null, true); await atlLoad(true); }
+      catch (e) { mw.disabled = false; atlErr(atlWhy(e)); }
+    });
+    row.appendChild(mw);
+  }
+  bn.appendChild(row);
+}
 // ---------- le SUIVI des dépenses (admins seulement, at_suivi) : chaque dessin, son coût estimé, le total du mois sur le budget ----------
 async function atlSuivi() {
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
@@ -14687,6 +14719,8 @@ async function atlSuivi() {
     }
     const wrap = atlEl('div', 'atl-swrap'); wrap.appendChild(t); P.appendChild(wrap);
   }
+  const mds = Array.isArray(r.mondes) ? r.mondes : [];
+  if (mds.length) { P.appendChild(atlEl('b', 'atl-rh2', '🌍 Demandes de mise en ligne mondiale')); const ul = atlEl('ul'); for (const d of mds) ul.appendChild(atlEl('li', '', '« ' + (d.titre || 'Projet') + ' » de ' + dispName(d.joueur || '') + ' (' + (d.etat === 'publie_salle' ? 'déjà dans sa salle' : 'version d’essai') + ')')); P.appendChild(ul); P.appendChild(atlEl('small', '', 'Pour accepter ou refuser, dis-le à l’équipe.')); }
   const dms = Array.isArray(r.demandes) ? r.demandes : [];
   if (dms.length) { P.appendChild(atlEl('b', 'atl-rh2', '💎 Demandes de crédits en attente')); const ul = atlEl('ul'); for (const d of dms) ul.appendChild(atlEl('li', '', dispName(d.joueur || '') + ' (solde ' + (d.solde | 0) + ')' + (d.message ? ' : ' + d.message : ''))); P.appendChild(ul); P.appendChild(atlEl('small', '', 'Pour les accorder, demande à l’équipe.')); }
   P.appendChild(close);
@@ -14766,7 +14800,7 @@ function atlLetter(review) {
   P.innerHTML = '<header class="atl-lh"><span class="atl-logo" aria-hidden="true"><svg viewBox="0 0 40 48"><rect x="6" y="2" width="28" height="44" rx="5" fill="#3a2a6e"/><rect x="10" y="7" width="20" height="15" rx="2" fill="#7ef7ff"/><circle cx="15" cy="31" r="3" fill="#ff5d73"/><circle cx="25" cy="31" r="3" fill="#ffd34d"/><rect x="11" y="38" width="18" height="3" rx="1.5" fill="#c9b8ff"/></svg></span>'
     + '<div class="atl-lhn"><b>Borne d’arcade</b><small>Atelier des jeux</small></div><div class="atl-ref"></div></header>'
     + '<p class="atl-obj">Objet : proposition d’un nouveau jeu pour la borne</p><h2 class="atl-lt"></h2><p class="atl-by"></p><dl class="atl-ls"></dl>'
-    + '<p class="atl-free"><b>Projet gratuit.</b> Aucun paiement, jamais. Si ton jeu est retenu, il arrivera sur la borne pour toute la bande.</p>'
+    + '<p class="atl-free"><b>Un jeu gratuit pour les joueurs.</b> Si ton jeu est retenu, il arrivera sur la borne, dans ta salle ou pour toute la bande.</p>'
     + '<p class="atl-terms">Jeu gratuit · l’administrateur choisit : ta salle ou tout le monde · modifications réservées à l’administrateur</p>'
     + '<footer class="atl-sig"><div class="atl-sg"><small>Pour l’Atelier des jeux</small><svg viewBox="0 0 220 70" aria-hidden="true"><path class="atl-sigp" d="M8 50c14-2 20-30 30-34 8-3 6 22-2 30-6 6 14-20 24-18 8 2-4 20 4 20s14-22 22-22-2 18 6 18 12-12 18-14c5-2 4 10 10 10s10-14 18-12c6 2 2 12 10 12 10 0 16-10 26-14M40 60c40-6 90-8 160-14"/></svg></div>'
     + '<div class="atl-stamp" aria-label="Tampon : projet accepté pour étude"><span>Projet accepté<br>pour étude</span><small></small></div>'
@@ -14796,7 +14830,7 @@ function atlLetter(review) {
     const lab = atlEl('label', 'atl-accord'), cb = atlEl('input'); cb.type = 'checkbox'; lab.append(cb, atlEl('span', '', ATL_ACCORD));
     cb.addEventListener('change', () => { go.disabled = !cb.checked; lab.classList.toggle('on', cb.checked); });
     accEl = lab;
-    btns.appendChild(go); note.textContent = 'Ta lettre part à l’Atelier, qui la transmet à Benjamin. C’est gratuit.';
+    btns.appendChild(go); note.textContent = 'Ta lettre part à l’Atelier, qui la transmet à Benjamin.';
   } else note.textContent = f.etat === 'acceptee' ? '✅ Projet accepté par Benjamin.' : f.etat === 'refusee' ? 'Projet pas retenu cette fois.' : '📮 Lettre envoyée le ' + date + '. Benjamin va la lire.';
   lv.append(stage); if (accEl) lv.appendChild(accEl); lv.append(btns, note);
   lv.scrollTop = 0;
@@ -14963,7 +14997,7 @@ const GUEST_WHY = {
   'Coop en ligne': 'Joue avec un copain, chacun sur son téléphone : vos scores d\'équipe vont au classement.',
   'Ton joueur': 'Ton pseudo, ta tête détourée et ton cri, dans tous les jeux.',
   'Le classement': 'Tes records enregistrés, le classement de ta salle et le classement mondial.',
-  'L’Atelier': 'Décris le jeu dont tu rêves : l’Atelier en fait une vraie fiche de projet, gratuitement.',
+  'L’Atelier': 'Décris le jeu dont tu rêves : l’Atelier en fait une vraie fiche de projet.',
   'Les copains de Pégase': 'Vois les avatars de tes copains, qui est là en ce moment, et garde ton avatar sur ton compte.'
 };
 function guestAsk(what) {

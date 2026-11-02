@@ -3694,3 +3694,7 @@ body.atl-on #jdw-modes{visibility:hidden}
 .atl-pnew{position:absolute;top:8px;right:8px;padding:4px 9px;border-radius:999px;background:#ffd34d;color:#2a1340;font:700 11.5px var(--body)}
 .atl-pplus .atl-pv{background:rgba(255,211,77,.08);border-bottom:1px dashed rgba(255,211,77,.5);font-size:56px}
 @media (max-width:520px){.atl-pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---------- tester / publier son jeu (borne 1.63.50) ---------- */
+.atl-jbtns{display:flex;flex-wrap:wrap;gap:8px;width:100%;margin-top:4px}
+.atl-banner .atl-jbtns .btn{margin-left:0}

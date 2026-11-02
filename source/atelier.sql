@@ -1284,3 +1284,82 @@ begin
 end $$;
 revoke all on function public.at_valider(text, boolean, uuid), public.at_envoyer(text, text, uuid), public.at_ia_debut(text, text, text, jsonb, uuid) from public, anon;
 grant execute on function public.at_valider(text, boolean, uuid), public.at_envoyer(text, text, uuid), public.at_ia_debut(text, text, text, jsonb, uuid) to authenticated;
+
+-- ===================================================================================================================================
+-- LE JOUEUR TESTE ET PUBLIE SON JEU (borne 1.63.50, 2 nov. 2026 15 h 50, Benjamin) : dès que le jeu d'un projet existe (alpha) :
+--  « ▶ Tester mon jeu » (la borne le lance), « Publier dans ma salle » (LE JOUEUR décide : publie_salle, sa salle), « Demander la mise en
+--  ligne mondiale » (demande à l'admin : at_monde_decider l'accepte → publie_monde, ou la refuse, avec un message au joueur).
+alter table public.at_fiches add column if not exists monde_demande_at timestamptz;
+alter table public.at_fiches add column if not exists monde_reponse text;
+
+create or replace function public.at_publier_salle(p_name text, p_fiche uuid, p_salle bigint)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; rn text;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier', 30, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche);
+  if f.id is null then raise exception 'projet inconnu'; end if;
+  if f.jeu is null or f.etat not in ('alpha', 'publie_salle') then raise exception 'jeu pas pret'; end if;
+  if not exists (select 1 from public.room_members r where r.room_id = p_salle and r.name = n) then raise exception 'pas membre de cette salle'; end if;
+  select r.name into rn from public.rooms r where r.id = p_salle;
+  update public.at_fiches x set etat = 'publie_salle', salle = p_salle, maj_at = now() where x.id = f.id;
+  insert into public.at_messages (fiche, texte, de_atelier) values (f.id, '🌟 Ton jeu est publié dans ta salle « ' || coalesce(rn, '?') || ' » ! Tes copains le voient sur leur borne, avec son classement de la salle.', true);
+  return jsonb_build_object('id', f.id, 'etat', 'publie_salle', 'salle', p_salle, 'salle_nom', rn);
+end $$;
+
+create or replace function public.at_demander_monde(p_name text, p_fiche uuid)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier', 30, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche);
+  if f.id is null then raise exception 'projet inconnu'; end if;
+  if f.jeu is null or f.etat not in ('alpha', 'publie_salle') then raise exception 'jeu pas pret'; end if;
+  if f.monde_demande_at is not null then return jsonb_build_object('id', f.id, 'monde_demande_at', f.monde_demande_at); end if;
+  update public.at_fiches x set monde_demande_at = now(), monde_reponse = null, maj_at = now() where x.id = f.id;
+  insert into public.at_messages (fiche, texte) values (f.id, '🌍 Je demande la mise en ligne mondiale de mon jeu !');
+  return jsonb_build_object('id', f.id, 'monde_demande_at', now());
+end $$;
+
+-- (admin) la décision de Benjamin : p_ok → publié pour tous (classement mondial) ; sinon refus ; p_message = le mot pour le joueur
+create or replace function public.at_monde_decider(p_fiche uuid, p_ok boolean, p_message text default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare f public.at_fiches;
+begin
+  select * into f from public.at_fiches x where x.id = p_fiche; if f.id is null then raise exception 'fiche inconnue'; end if;
+  if f.monde_demande_at is null then raise exception 'pas de demande'; end if;
+  update public.at_fiches x set etat = case when p_ok then 'publie_monde' else x.etat end, monde_demande_at = null,
+    monde_reponse = case when p_ok then 'ok' else 'non' end, decision_at = now(), maj_at = now() where x.id = f.id;
+  insert into public.at_messages (fiche, texte, de_atelier) values (f.id, coalesce(nullif(btrim(p_message), ''),
+    case when p_ok then '🌍 Bonne nouvelle : Benjamin a mis ton jeu en ligne pour TOUT LE MONDE, avec le classement mondial !'
+         else 'Benjamin préfère garder ton jeu dans ta salle pour l’instant. Continue à l’améliorer, tu pourras redemander plus tard !' end), true);
+  return jsonb_build_object('id', f.id, 'ok', p_ok);
+end $$;
+create or replace view public.at_monde_attente with (security_invoker = true) as
+  select f.id as fiche, f.name as joueur, f.titre, f.jeu, f.etat, f.monde_demande_at from public.at_fiches f where f.monde_demande_at is not null order by f.monde_demande_at;
+revoke all on public.at_monde_attente from anon, authenticated;
+
+revoke all on function public.at_publier_salle(text, uuid, bigint), public.at_demander_monde(text, uuid) from public, anon;
+grant execute on function public.at_publier_salle(text, uuid, bigint), public.at_demander_monde(text, uuid) to authenticated;
+revoke all on function public.at_monde_decider(uuid, boolean, text) from public, anon, authenticated;
+
+-- at_lire : la fiche dit si une demande mondiale est en cours ; at_suivi : les demandes mondiales en attente
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_lire(text, uuid)'::regprocedure);
+  if position('monde_demande_at' in d) = 0 then
+    d := replace(d, '''jeu'', f.jeu, ''design'', f.design,', '''jeu'', f.jeu, ''salle'', f.salle, ''monde_demande_at'', f.monde_demande_at, ''monde_reponse'', f.monde_reponse, ''design'', f.design,');
+    if position('monde_demande_at' in d) = 0 then raise exception 'at_lire'; end if;
+    execute d;
+  end if;
+  d := pg_get_functiondef('public.at_suivi(text)'::regprocedure);
+  if position('at_monde_attente' in d) = 0 then
+    d := replace(d, '''demandes'', coalesce((select jsonb_agg(to_jsonb(d)) from public.at_credits_attente d), ''[]''::jsonb));',
+                    '''demandes'', coalesce((select jsonb_agg(to_jsonb(d)) from public.at_credits_attente d), ''[]''::jsonb), ''mondes'', coalesce((select jsonb_agg(to_jsonb(w)) from public.at_monde_attente w), ''[]''::jsonb));');
+    if position('at_monde_attente' in d) = 0 then raise exception 'at_suivi'; end if;
+    execute d;
+  end if;
+end $$;
