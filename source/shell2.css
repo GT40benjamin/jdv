@@ -4220,3 +4220,13 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-adminb{position:sticky;top:0;z-index:9;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;background:#5a1d1d;color:#fff;border-bottom:2px solid #ff8a65;box-shadow:0 6px 12px -6px rgba(0,0,0,.6)}
 .atl-adminb b{margin-right:auto;font:800 14px var(--body)}
 .atl-adminb .btn{color:#fff;border-color:rgba(255,255,255,.4)}
+
+/* 23 h 30 : le devis */
+.atl-devis{margin:12px 0;padding:12px 14px;border-radius:14px;border:2px solid #ffd34d;background:rgba(255,211,77,.06)}
+.atl-devis h4{margin:0 0 4px;font:800 16px var(--body);color:#ffe9a8}
+.atl-dvl{display:grid;gap:4px;margin:8px 0}
+.atl-dvr{display:grid;grid-template-columns:24px 1fr auto 34px;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.04)}
+.atl-dvr.off{opacity:.45}.atl-dvr.off .atl-dvn,.atl-dvr.off .atl-dvc{text-decoration:line-through}
+.atl-dvn{font:14px var(--body)}.atl-dvc{font:800 14px var(--body);white-space:nowrap}
+.atl-dvx{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-size:14px}
+.atl-dvt{margin:6px 0 0;text-align:right;font:800 18px var(--body);color:#ffd34d}

@@ -2770,3 +2770,7 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 
 -- (v35, 2 nov. 2026 23 h 20, Benjamin) : la 1re idée d un COMPTE est gratuite (pegase_int.at_idee_offerte, at_idee_prise), les suivantes
 -- coûtent cout_idee (20) dans at_dire ; at_lire : idee, idee_offerte. Texte complet : migration atelier_v35_premiere_idee_offerte.
+
+-- (v36, 2 nov. 2026 23 h 30, Benjamin) : le DEVIS — fiche.devis [{id, ligne, cat, credits, retirable, note, retire}] ; grille devis_* dans
+-- at_reglages ; at_devis_retirer (joueur, avant le lancement) ; at_lancer : prix = pegase_int.at_devis_total(fiche) (sinon cout_conception),
+-- puis devis_scelle / devis_total. Texte complet : migration atelier_v36_devis.

@@ -14522,9 +14522,51 @@ async function atlDesign(chg, btn) {
   } catch (e) { if (btn) btn.disabled = false; atlWizErr(atlWizWhy(e)); if (/credits insuffisants/.test(String(e && e.message))) { const x = ATL.root.querySelector('.atl-werr'); atlCreditsBtn(x); x.hidden = false; } }
   finally { ATL.sending = false; }
 }
+// ---- 23 h 30 (Benjamin) : le DEVIS du jeu (fiche.devis, rempli par l'équipe au montage) — une ligne par élément avec ses crédits ;
+// ✕ retire une ligne retirable (et l'élément de la fiche), ↩ la remet ; total en direct ; le serveur refait le calcul au lancement
+// (at_devis_retirer, at_lancer) ; après le lancement : scellé, en lecture dans la feuille de route
+const ATL_DEVIS_CLE = { personnage: 'personnages', ennemi: 'personnages', objet: 'objets', decor: 'decor', son: 'sons', musique: 'sons' };
+const ATL_DEVIS_IC = { base: '🧱', personnage: '🦸', ennemi: '👾', objet: '🎁', decor: '🏞️', niveau: '🗺️', son: '🔊', musique: '🎵', mecanique: '⚙️' };
+function atlDevis(f) {
+  const fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, l = Array.isArray(fi.devis) ? fi.devis.filter(x => x && typeof x === 'object') : [];
+  if (!l.length) return null;
+  const total = l.reduce((a, x) => a + (x.retire ? 0 : Math.max(0, Math.round(+x.credits || 0))), 0);
+  return { l, total, scelle: !!fi.devis_scelle, paye: fi.devis_total };
+}
+function atlDevisEncart(f, fi, lecture) {
+  const d = atlDevis(f), box = atlEl('section', 'atl-devis'); if (!d) return box;
+  const fige = lecture || d.scelle || ATL_AFTER.has(String(f.etat || ''));
+  box.appendChild(atlEl('h4', '', '🧾 Le devis de ton jeu' + (fige ? ' (scellé)' : '')));
+  if (!fige) box.appendChild(atlEl('p', 'atl-aide', 'Chaque élément a son prix. Touche ✕ pour retirer ce dont tu n’as pas besoin : le total baisse. ↩ pour le remettre.'));
+  const tb = atlEl('div', 'atl-dvl');
+  for (const x of d.l) {
+    const r = atlEl('div', 'atl-dvr' + (x.retire ? ' off' : ''));
+    r.append(atlEl('span', 'atl-dvi', ATL_DEVIS_IC[x.cat] || '•'), atlEl('span', 'atl-dvn', String(x.ligne || '') + (x.note ? ' · ' + x.note : '')), atlEl('b', 'atl-dvc', Math.max(0, Math.round(+x.credits || 0)) + ' 💎'));
+    if (!fige && x.retirable) {
+      const b = atlEl('button', 'atl-dvx', x.retire ? '↩' : '✕'); b.type = 'button'; b.setAttribute('aria-label', (x.retire ? 'Remettre ' : 'Retirer ') + (x.ligne || ''));
+      b.addEventListener('click', () => atlDevisBascule(f, fi, x, b));
+      r.appendChild(b);
+    } else r.appendChild(atlEl('span', 'atl-dvx0'));
+    tb.appendChild(r);
+  }
+  box.appendChild(tb);
+  box.appendChild(atlEl('p', 'atl-dvt', (fige ? 'Total payé : ' + ((d.paye != null ? d.paye : d.total) | 0) : 'Total : ' + d.total) + ' 💎'));
+  if (!fige) box.appendChild(atlEl('small', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.'));
+  return box;
+}
+async function atlDevisBascule(f, fi, x, b) {
+  const ret = !x.retire; b.disabled = true;
+  try {
+    await rpc('at_devis_retirer', { p_name: profile.name, p_fiche: f.id, p_id: String(x.id), p_retire: ret }, { quiet: true });
+    x.retire = ret;
+    const k = ATL_DEVIS_CLE[x.cat];   // l'élément suit : retiré de la fiche, ou remis
+    if (k) { const l = atlListeDe(fi[k]), nom = String(x.ligne || '').trim(); if (ret) atlEtape(k, l.filter(v => !atlMemeChose(v, nom))); else if (nom && !l.some(v => atlMemeChose(v, nom))) atlEtape(k, l.concat([nom])); }
+    atlRenderWiz();
+  } catch (e) { b.disabled = false; atlWizErr(/scelle/.test(String(e && e.message)) ? 'Le devis est scellé : la conception est lancée.' : /obligatoire/.test(String(e && e.message)) ? 'Cette ligne est indispensable à ton jeu.' : atlWhy(e)); }
+}
 async function atlLancer(btn) {
   const f = atlFiche(); if (!f || ATL.sending) return;
-  const crc = atlCred(), prix = crc ? crc.conception | 0 : 0;
+  const crc = atlCred(), dvp = atlDevis(f), prix = dvp ? dvp.total : crc ? crc.conception | 0 : 0;   // 23 h 30 : le prix = le devis (revérifié par le serveur)
   if (crc && prix > 0 && (crc.solde | 0) < prix) { atlWizErr('Pour lancer la conception de ton jeu, il faut ' + prix + ' crédits : tu en as ' + Math.max(0, crc.solde | 0) + '. Passe à Atelier+ ou recharge tes crédits, puis reviens ici !'); const x = ATL.root.querySelector('.atl-werr'); atlCreditsBtn(x); x.hidden = false; return; }
   if (Date.now() - (ATL.lance || 0) > 5000) { ATL.lance = Date.now(); btn.textContent = '🚀 Sûr ? Touche encore pour lancer !'; btn.classList.add('sur'); setTimeout(() => { if (btn.isConnected && Date.now() - ATL.lance >= 5000) atlRenderWiz(); }, 5100); return; }
   ATL.sending = true; btn.disabled = true; atlWizErr('');
@@ -14591,7 +14633,8 @@ function atlRenderWiz() {
   const er = atlEl('p', 'atl-werr'); er.hidden = true; box.appendChild(er);
   if (st !== DZ) { const foot = atlEl('div', 'atl-wfoot'), n = atlEl('button', 'btn btn-play', '✔ C’est bon, retour au design'); n.type = 'button'; n.addEventListener('click', () => { ATL.step = DZ; atlRenderWiz(); atlRenderRoute(false); W.scrollTop = 0; }); foot.appendChild(n); box.appendChild(foot); }
   if (st === ATL_STEPS.length - 1) {
-    const cc = cr ? cr.conception | 0 : 0, go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cc > 0 ? ' · ' + cc + ' 💎' : '')); go.type = 'button';
+    const dv = atlDevis(f); if (dv) box.appendChild(atlDevisEncart(f, fi, false));
+    const cc = dv ? dv.total : cr ? cr.conception | 0 : 0, go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cc > 0 ? ' · ' + cc + ' 💎' : '')); go.type = 'button';
     go.addEventListener('click', () => atlLancer(go));
     box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous. Les crédits utilisés ne sont pas remboursés.'));
   }
@@ -15150,6 +15193,7 @@ function atlRenderRoute(liste) {
   const idee = atlVal(fi.idee) || (ecrire ? String((R.querySelector('.atl-in') || {}).value || '').replace(/^Mon jeu \(en [23]D\) :[^\n]*\n?(Mon idée : )?/, '').trim() : '');
   ligne(s2, '💡', 'L’idée', idee ? '✔' : '…', etape(0) || (ecrire ? () => { const i = R.querySelector('.atl-in'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } : null), !!idee, idee ? court(idee, 90) : '');
   [['personnages', '🦸', 'Personnages', 1], ['objets', '🎁', 'Objets', 2], ['decor', '🏞️', 'Décor', 3], ['sons', '🔊', 'Sons et bruitages', 4]].forEach(([k, ic, lab, i]) => { const l = atlListeDe(fi[k]); ligne(s2, ic, lab, l.length ? String(l.length) : '…', etape(i), !!l.length, l.length ? court(l.join(', '), 80) : ''); });
+  if (f && atlDevis(f)) B.appendChild(atlDevisEncart(f, fi, true));   // 23 h 30 : le devis, en lecture dans la feuille de route
   const s3 = sec('🎨 Le design');
   const els = f ? atlElemsFiche(fi) : [], faits = f ? els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length : 0, att = f && Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours.length : 0;
   ligne(s3, '🖼️', 'L’ambiance', f && f.design_en_cours ? '⏳' : f && f.design ? '✔' : '…', etape(5), !!(f && f.design));
