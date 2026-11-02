@@ -63,6 +63,11 @@ const ATL_JEUX = (() => {
     const l = n && Array.isArray(all[n]) ? all[n] : []; return new Map(l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => [String(x.jeu), x])); } catch (e) { return new Map(); }
 })();
 const laboOk = id => !LABO.has(id) || LABO_TEST || ATL_JEUX.has(id);
+// 2 nov. 17 h 30, Benjamin : un jeu NÉ À L'ATELIER n'a PAS de tuile sur la borne (ni en mode test, ni « ⭐ MON JEU ») tant qu'il n'est pas
+// publié : en alpha il se trouve et se joue UNIQUEMENT dans l'Atelier (page du projet, onglet 🎮 Jouer). Il arrive sur la borne avec
+// « Publier dans ma salle » (salle du joueur) ou la mise en ligne mondiale acceptée — at_jeux le dit (etat publie_salle / publie_monde).
+const ATL_NES = new Set(['licornes']);   // les jeux nés à l'Atelier (id du module) : à compléter à chaque nouveau jeu de l'Atelier
+const atlEnGrille = id => { const x = ATL_JEUX.get(id); if (!ATL_NES.has(id) && !x) return true; return !!x && /^publie_(salle|monde)$/.test(x.etat); };
 // 2 nov. 2026, Benjamin : « toutes les tuiles labo test, il faut qu'elles soient identifiées comme telles pour nous les admins » :
 // la tuile d'un jeu encore en essai porte un ruban « TEST » (vue seulement sur les appareils en mode test, comme le jeu lui-même)
 function laboMark(b, id) {
@@ -76,7 +81,7 @@ function laboMark(b, id) {
 // (build2.py PAGE) : 'pegase' = pegase/, Pégase seul ; 'borne' = jouer/, la borne d'arcade (construite SANS Pégase depuis la 1.50)
 const PAGE = window.JDW_PAGE === 'pegase' ? 'pegase' : 'borne';
 const PG_SANS = (() => { try { const n = (JSON.parse(localStorage.getItem('jdw.profile') || 'null') || {}).name, l = JSON.parse(localStorage.getItem('jdw.pgsans') || '[]'); return !!n && Array.isArray(l) && l.includes(n); } catch (e) { return false; } })();
-const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && laboOk(g.id) && !(PG_SANS && g.id === 'pegase') && (PAGE !== 'pegase' || g.id === 'pegase'));
+const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && laboOk(g.id) && atlEnGrille(g.id) && !(PG_SANS && g.id === 'pegase') && (PAGE !== 'pegase' || g.id === 'pegase'));
 // mode essai (labo) actif sur cet appareil : le titre le dit (« Borne d'arcade test » au lieu de « entre amis »)
 (() => { const p = document.querySelector('.lib-title .plaque'); if (p && LABO_TEST) { p.textContent = 'test'; p.classList.add('plaque-test'); } })();
 (() => {
@@ -128,7 +133,7 @@ const seenKey = () => cleanName(profile.name) || '*';
 const vcmp = (a, b) => { const x = String(a || '0').split('.').map(Number), y = String(b || '0').split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
 const CUR_V = String(window.JDW_VERSION || '') || '999';
 // les notes de CETTE page : pegase/ → celles de Pégase ; jouer/ → toutes, sauf celles de Pégase (il a sa page) ; « sans Pégase » : jamais Pégase
-const noteOnPage = (id) => (PAGE === 'pegase' ? id === 'pegase' && !PG_SANS : id !== 'pegase' && laboOk(id));   // un jeu en essai (l'Atelier, Ranch des Poneys…) : seulement là où sa tuile est ouverte (porte labo)
+const noteOnPage = (id) => (PAGE === 'pegase' ? id === 'pegase' && !PG_SANS : id !== 'pegase' && laboOk(id) && atlEnGrille(id));   // un jeu en essai (l'Atelier, Ranch des Poneys…) : seulement là où sa tuile est ouverte (porte labo)
 const NOTES = (() => {
   const out = []; let cur = null;
   for (const raw of window.JDW_NOTES || []) {
@@ -14119,7 +14124,7 @@ async function atlJeuxLoad() {
   for (const x of l) {
     let t = tiles.find(t2 => t2.g.id === x.jeu);
     if (!t) {
-      const g = (window.JDW_GAMES || {})[x.jeu]; if (!g || g.id !== x.jeu || GAMES.includes(g)) continue;
+      const g = (window.JDW_GAMES || {})[x.jeu]; if (!g || g.id !== x.jeu || GAMES.includes(g) || !atlEnGrille(x.jeu)) continue;   // alpha : seulement dans l'Atelier
       GAMES.push(g); const w = gameTile(grid, g); const first = grid.querySelector('.tile-wrap:not(.atl-wrap)');
       if (w && first && first !== w) grid.insertBefore(w, first);   // en tête des jeux, juste après « Crée ton jeu »
       t = tiles.find(t2 => t2.g.id === x.jeu);
@@ -15512,7 +15517,7 @@ if (netOff()) { document.body.classList.add('net-off'); netBar(); }   // ouverte
 if (ONLINE && !isGuest() && !room && !netOff() && !invPending() && !INV.bad && !CADRE) openRooms();
 if (CADRE) {   // le jeu seul, dans la page du projet
   document.body.classList.add('cadre');
-  const g = gameById(CADRE);
+  const g0 = (window.JDW_GAMES || {})[CADRE], g = g0 && g0.id === CADRE && laboOk(CADRE) ? g0 : null;   // un jeu de l'Atelier en alpha n'est pas dans GAMES (pas de tuile)
   if (g) { CADRE_G = g; setTimeout(() => { try { markGameSeen(g.id); Audio.ensure(); } catch (e) {} $('jdw-lib').hidden = true; $('jdw-play').style.setProperty('--acc', g.accent); $('jdw-gtitle').textContent = g.title; backToLibrary(); }, 200); }   // sans salle ni appli : le jeu, tout de suite
   else { const d = document.createElement('div'); d.className = 'cadre-vide'; d.textContent = 'Ce jeu arrive sur la borne très bientôt !'; document.body.appendChild(d); }
   window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.atl === 'rejouer' && CADRE_G) backToLibrary(); });
