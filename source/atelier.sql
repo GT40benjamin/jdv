@@ -1440,3 +1440,232 @@ begin
 end $$;
 
 -- 2 nov. 2026 16 h 05 : les messages automatiques de at_monde_decider disent « notre équipe » (plus « Benjamin ») — appliqué par remplacement du texte de la fonction.
+
+-- ===================================================================================================================================
+-- LA FILE DE L'ÉQUIPE (borne 1.63.56, 2 nov. 2026, Benjamin 16 h 10 → 16 h 20) : après l'envoi, c'est l'ÉQUIPE qui fait les images (Gemini /
+-- Imagen) et les sons / musiques (ElevenLabs). Rien n'est ouvert aux joueurs : seule l'équipe (rôle serveur, en SQL) remplit at_gen_file ;
+-- une tâche planifiée (pg_cron, chaque minute s'il y a du travail) appelle la fonction Edge atelier-image avec un SECRET tiré au hasard et
+-- gardé dans le coffre (vault « atelier_file », jamais affiché) ; la fonction vérifie ce secret auprès de la base (at_gen_cle_ok, clé de
+-- service) avant de prendre le travail (at_gen_prendre) et de rendre le résultat (at_gen_fin). Tout est compté dans le journal des euros
+-- (at_ia, colonne cents) et soumis au plafond et au budget du mois.
+insert into public.at_reglages (k, v) values ('cout_son_centimes', 10), ('cout_musique_centimes', 50) on conflict (k) do nothing;
+alter table public.at_ia add column if not exists cents int;
+alter table public.at_ia drop constraint if exists at_ia_sorte_check;
+alter table public.at_ia add constraint at_ia_sorte_check check (sorte in ('planche', 'dessin', 'assets', 'equipe-image', 'equipe-son', 'equipe-musique'));
+-- le coût du mois : centimes réels de chaque ligne (images à cout_image_centimes par défaut)
+create or replace function pegase_int.at_ia_centimes() returns int language sql stable security definer set search_path = public as $$
+  select coalesce(sum(coalesce(a.cents, (case when a.fin_at is null then a.nb else coalesce(a.ok, 0) end) * coalesce(pegase_int.at_reglage('cout_image_centimes'), 4))), 0)::int
+  from public.at_ia a where a.at >= pegase_int.at_debut_mois() $$;
+create or replace view public.at_ia_journal with (security_invoker = true) as
+  select a.at, a.name as joueur, coalesce(f.titre, a.projet) as projet, a.sorte, a.nb as images_demandees, coalesce(a.ok, 0) as images_reussies,
+    coalesce(jsonb_array_length(a.choix -> 'elements'), 0) as elements, a.cout as credits,
+    round(coalesce(a.cents, coalesce(case when a.fin_at is null then a.nb else a.ok end, 0) * coalesce(pegase_int.at_reglage('cout_image_centimes'), 4)) / 100.0, 2) as euros_estimes,
+    case when a.fin_at is null then 'en cours' when coalesce(a.ok, 0) > 0 then 'OK' else 'erreur' || case when a.cout > 0 then ' (crédits rendus)' else '' end end as statut, a.erreur, a.modele
+  from public.at_ia a left join public.at_fiches f on f.id = a.fiche order by a.at desc;
+revoke all on public.at_ia_journal from anon, authenticated;
+
+create table if not exists public.at_gen_file (
+  id uuid primary key default gen_random_uuid(), fiche uuid references public.at_fiches (id) on delete set null,
+  sorte text not null check (sorte in ('image', 'son', 'musique')), titre text not null default '',
+  prompt text not null, elements jsonb, ratio text, modele text, duree numeric,
+  etat text not null default 'attente' check (etat in ('attente', 'en_cours', 'fait', 'erreur')), essais int not null default 0,
+  resultat jsonb, erreur text, cents int, at timestamptz not null default now(), debut_at timestamptz, fin_at timestamptz);
+create index if not exists at_gen_file_attente on public.at_gen_file (etat, at);
+alter table public.at_gen_file enable row level security;
+revoke all on public.at_gen_file from anon, authenticated;
+
+-- le secret de la file (tiré au hasard, gardé dans le coffre, jamais affiché)
+do $$ begin
+  if not exists (select 1 from vault.secrets where name = 'atelier_file') then perform vault.create_secret(encode(gen_random_bytes(32), 'hex'), 'atelier_file', 'clé de la file de l''Atelier (pg_cron → atelier-image)'); end if;
+end $$;
+create or replace function public.at_gen_cle_ok(p_cle text) returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce(p_cle, '') <> '' and p_cle = (select decrypted_secret from vault.decrypted_secrets where name = 'atelier_file') $$;
+
+-- la consigne d'une planche d'éléments pour l'équipe (même recette que at_ia_debut : sprite sheet de jeu, fond uni, N objets isolés)
+create or replace function pegase_int.at_prompt_planche(f public.at_fiches, el text[]) returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare fi jsonb := f.fiche; ne int := coalesce(array_length(el, 1), 0); cols int; rws int; sty text; fond text; vue text; ch jsonb;
+begin
+  cols := case when ne <= 1 then 1 when ne <= 4 then 2 else 3 end; rws := greatest(1, ceil(ne::numeric / cols)::int);
+  ch := (select pegase_int.at_choix_ok(a.choix) from public.at_ia a where a.fiche = f.id and a.sorte = 'planche' and a.choix is not null order by a.at desc limit 1);
+  sty := coalesce(ch ->> 'style' || ', ' || (ch ->> 'couleurs'), nullif(fi ->> 'style', ''), 'dessin animé coloré');
+  fond := case when lower(coalesce(sty, '') || ' ' || coalesce(f.titre, '') || ' ' || coalesce(fi ->> 'monde', '')) ~ '(n[ée]on|nuit|espace|spatial|night|space)'
+               then 'pure black #000000' else 'pure magenta #FF00FF (do not use magenta in the objects)' end;
+  vue := case when lower(coalesce(fi ->> 'dimension', '')) ~ 'dessus|top' then 'top-down view' when lower(coalesce(fi ->> 'dimension', '')) ~ '3d' then '3D-rendered look, three-quarter view' else 'side view' end;
+  if ne = 1 then
+    return jsonb_build_object('ratio', '16:9', 'prompt', 'Polished 2D video game art for a kids arcade game (' || coalesce(nullif(f.titre, ''), coalesce(fi ->> 'idee', '')) || '). Art style: ' || sty || ', ' || vue ||
+      ', vibrant colors, clean outlines, game-ready. It shows: ' || el[1] || '. Full image, well composed, landscape 16:9. No logos, no brands, no existing copyrighted characters, no text unless it is a title (then only the title, clearly readable).');
+  end if;
+  return jsonb_build_object('ratio', case when cols = 3 and rws = 2 then '3:2' when cols = 3 and rws = 1 then '21:9' when cols = 2 and rws = 1 then '16:9' else '1:1' end,
+    'prompt', '2D video game sprite sheet for a kids arcade game (' || coalesce(nullif(f.titre, ''), coalesce(fi ->> 'idee', 'mon jeu')) || '). ' ||
+      'Polished, game-ready assets in one consistent art style: clean outlines, cel shading, soft shadows, vibrant colors. Art style: ' || sty || ', ' || vue || '. ' ||
+      'Exactly ' || ne || ' separate objects, each one complete and isolated, evenly spaced in ' || rws || ' row' || case when rws > 1 then 's' else '' end || ' of ' || cols ||
+      ', with plenty of empty space around each object. NO frames, NO boxes, NO borders, NO grid lines, NO text, NO numbers, NO labels. ' ||
+      'Plain flat uniform background color: ' || fond || ', everywhere, no gradient, no ground, no cast shadow on the background. ' ||
+      'The objects, in reading order (left to right, then top to bottom): ' || (select string_agg(i || '. ' || el[i], ' ; ' order by i) from generate_series(1, ne) i) || '. ' ||
+      'Same scale and same style for all. No logos, no brands, no existing copyrighted characters.');
+end $$;
+
+-- réveiller la fonction tout de suite (sinon la tâche planifiée passe dans la minute)
+create or replace function pegase_int.at_gen_reveil() returns void language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform net.http_post(url := 'https://wplictorvvtkfikpfdnl.supabase.co/functions/v1/atelier-image',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwbGljdG9ydnZ0a2Zpa3BmZG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3Mjg0NzEsImV4cCI6MjEwNzMwNDQ3MX0.A3QCbA1Mti3tL7fMZwgYrqcgRTvOjlTpIKIL2ALm3kM',
+      'x-atelier-file', (select decrypted_secret from vault.decrypted_secrets where name = 'atelier_file')),
+    body := '{"file":true}'::jsonb, timeout_milliseconds := 1000);
+end $$;
+
+-- ===== ce que l'ÉQUIPE demande (SQL, rôle serveur seulement) =====
+-- une planche d'éléments (2 à 9) ou une grande image (1 élément) pour un projet ; p_modele : null = Gemini, 'imagen' = Imagen 4
+create or replace function public.at_gen_image(p_fiche uuid, p_titre text, p_elements text[], p_modele text default null)
+returns uuid language plpgsql security definer set search_path = public, extensions as $$
+declare f public.at_fiches; pr jsonb; u uuid; why text;
+begin
+  select * into f from public.at_fiches x where x.id = p_fiche; if f.id is null then raise exception 'fiche inconnue'; end if;
+  if coalesce(array_length(p_elements, 1), 0) < 1 or array_length(p_elements, 1) > 9 then raise exception 'de 1 a 9 elements'; end if;
+  why := pegase_int.at_filtre(array_to_string(p_elements, ' ') || ' ' || coalesce(p_titre, '')); if why <> '' then raise exception 'filtre %', why; end if;
+  pr := pegase_int.at_prompt_planche(f, p_elements);
+  insert into public.at_gen_file (fiche, sorte, titre, prompt, elements, ratio, modele)
+    values (f.id, 'image', left(coalesce(p_titre, ''), 80), pr ->> 'prompt', to_jsonb(p_elements), pr ->> 'ratio', case when p_modele = 'imagen' then 'imagen-4.0-generate-001' end) returning id into u;
+  perform pegase_int.at_gen_reveil();
+  return u;
+end $$;
+-- un bruitage (ElevenLabs sound effects, 0,5 à 22 s) ou une musique (ElevenLabs music, 10 à 180 s) ; p_description en anglais de préférence
+create or replace function public.at_gen_son(p_fiche uuid, p_titre text, p_description text, p_duree numeric default 2, p_musique boolean default false)
+returns uuid language plpgsql security definer set search_path = public, extensions as $$
+declare f public.at_fiches; u uuid; why text; d numeric;
+begin
+  select * into f from public.at_fiches x where x.id = p_fiche; if f.id is null then raise exception 'fiche inconnue'; end if;
+  if length(btrim(coalesce(p_description, ''))) < 3 then raise exception 'description vide'; end if;
+  why := pegase_int.at_filtre(p_description || ' ' || coalesce(p_titre, '')); if why <> '' then raise exception 'filtre %', why; end if;
+  d := case when p_musique then least(180, greatest(10, coalesce(p_duree, 30))) else least(22, greatest(0.5, coalesce(p_duree, 2))) end;
+  insert into public.at_gen_file (fiche, sorte, titre, prompt, duree)
+    values (f.id, case when p_musique then 'musique' else 'son' end, left(coalesce(p_titre, ''), 80), left(btrim(p_description), 1000), d) returning id into u;
+  perform pegase_int.at_gen_reveil();
+  return u;
+end $$;
+-- refaire un travail (raté, ou image pas assez belle) : une nouvelle demande identique
+create or replace function public.at_gen_refaire(p_id uuid, p_prompt text default null)
+returns uuid language plpgsql security definer set search_path = public, extensions as $$
+declare g public.at_gen_file; u uuid;
+begin
+  select * into g from public.at_gen_file x where x.id = p_id; if g.id is null then raise exception 'travail inconnu'; end if;
+  insert into public.at_gen_file (fiche, sorte, titre, prompt, elements, ratio, modele, duree)
+    values (g.fiche, g.sorte, g.titre, coalesce(nullif(btrim(p_prompt), ''), g.prompt), g.elements, g.ratio, g.modele, g.duree) returning id into u;
+  perform pegase_int.at_gen_reveil();
+  return u;
+end $$;
+
+-- ===== côté fonction Edge (clé de service) =====
+create or replace function public.at_gen_prendre() returns jsonb language plpgsql security definer set search_path = public as $$
+declare g public.at_gen_file; c int;
+begin
+  -- un travail resté « en cours » plus de 10 minutes repart (3 essais au plus)
+  update public.at_gen_file x set etat = case when x.essais >= 3 then 'erreur' else 'attente' end, erreur = case when x.essais >= 3 then 'trop d essais' else x.erreur end
+    where x.etat = 'en_cours' and x.debut_at < now() - interval '10 minutes';
+  select * into g from public.at_gen_file x where x.etat = 'attente' order by x.at limit 1 for update skip locked;
+  if g.id is null then return null; end if;
+  c := case g.sorte when 'image' then coalesce(pegase_int.at_reglage('cout_image_centimes'), 4) when 'son' then coalesce(pegase_int.at_reglage('cout_son_centimes'), 10)
+       else coalesce(pegase_int.at_reglage('cout_musique_centimes'), 50) end;
+  perform pg_advisory_xact_lock(hashtext('atelier-ia-plafond'));
+  if pegase_int.at_ia_centimes() + c > coalesce(pegase_int.at_reglage('budget_euros_mois'), 0) * 100
+     or (g.sorte = 'image' and pegase_int.at_ia_utilisees() + 1 > coalesce(pegase_int.at_reglage('plafond_images_mois'), 0)) then
+    update public.at_gen_file x set etat = 'erreur', erreur = 'budget ou plafond du mois atteint', fin_at = now() where x.id = g.id;
+    return jsonb_build_object('pause', true);
+  end if;
+  update public.at_gen_file x set etat = 'en_cours', essais = x.essais + 1, debut_at = now(), cents = c where x.id = g.id returning * into g;
+  return jsonb_build_object('id', g.id, 'sorte', g.sorte, 'prompt', g.prompt, 'ratio', g.ratio, 'modele', g.modele, 'duree', g.duree);
+end $$;
+-- le résultat : p_path (i/<uuid>.<ext> pour une image, s/<uuid>.mp3 pour un son) ; tout entre dans le journal des euros ;
+-- une image réussie range ses éléments dans fiche.assets (découpage par détection à l'affichage et à la construction)
+create or replace function public.at_gen_fin(p_id uuid, p_path text, p_modele text default null, p_erreur text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare g public.at_gen_file; f public.at_fiches; ok boolean := p_path is not null; ne int;
+begin
+  select * into g from public.at_gen_file x where x.id = p_id; if g.id is null then raise exception 'travail inconnu'; end if;
+  if g.etat <> 'en_cours' then raise exception 'pas en cours'; end if;
+  if ok and p_path !~ '^(i/[0-9a-f-]{36}[.](png|jpg|webp)|s/[0-9a-f-]{36}[.]mp3)$' then raise exception 'chemin refuse'; end if;
+  update public.at_gen_file x set etat = case when ok then 'fait' else 'erreur' end, fin_at = now(), erreur = left(p_erreur, 300),
+    resultat = case when ok then jsonb_build_object('path', p_path) else null end where x.id = g.id;
+  select * into f from public.at_fiches x where x.id = g.fiche;
+  insert into public.at_ia (fiche, name, sorte, consigne, nb, cout, at, fin_at, ok, erreur, modele, projet, cents, choix)
+    values (g.fiche, coalesce(f.name, 'EQUIPE'), 'equipe-' || g.sorte, left(g.titre, 200), 1, 0, g.debut_at, now(), case when ok then 1 else 0 end, left(p_erreur, 200), left(p_modele, 80), f.titre,
+            case when ok then g.cents else 0 end, case when g.elements is not null then jsonb_build_object('elements', g.elements) end);
+  if ok and f.id is not null then
+    ne := coalesce(jsonb_array_length(g.elements), 0);
+    update public.at_fiches x set maj_at = now(), assets = coalesce(x.assets, '[]'::jsonb) || case
+      when g.sorte = 'image' and ne > 1 then (select coalesce(jsonb_agg(jsonb_build_object('nom', e.v, 'sorte', 'élément', 'source', 'dessiné par l’équipe', 'licence', 'à nous', 'image', p_path,
+          'case', e.o::int, 'grille', jsonb_build_array(case when ne <= 4 then 2 else 3 end, ceil(ne::numeric / case when ne <= 4 then 2 else 3 end)::int)) order by e.o), '[]'::jsonb)
+          from jsonb_array_elements_text(g.elements) with ordinality as e(v, o))
+      when g.sorte = 'image' then jsonb_build_array(jsonb_build_object('nom', coalesce(nullif(g.titre, ''), g.elements ->> 0), 'sorte', 'grande image', 'source', 'dessiné par l’équipe', 'licence', 'à nous', 'image', p_path))
+      else jsonb_build_array(jsonb_build_object('nom', coalesce(nullif(g.titre, ''), g.sorte), 'sorte', g.sorte, 'source', 'ElevenLabs (équipe)', 'licence', 'à nous', 'son', p_path)) end
+    where x.id = f.id and length(coalesce(x.assets, '[]'::jsonb)::text) < 18000;
+  end if;
+  return jsonb_build_object('id', g.id, 'ok', ok);
+end $$;
+
+revoke all on function public.at_gen_cle_ok(text), public.at_gen_prendre(), public.at_gen_fin(uuid, text, text, text),
+  public.at_gen_image(uuid, text, text[], text), public.at_gen_son(uuid, text, text, numeric, boolean), public.at_gen_refaire(uuid, text),
+  pegase_int.at_prompt_planche(public.at_fiches, text[]), pegase_int.at_gen_reveil() from public, anon, authenticated;
+grant execute on function public.at_gen_cle_ok(text), public.at_gen_prendre(), public.at_gen_fin(uuid, text, text, text) to service_role;
+
+-- le seau accepte aussi les sons (mp3) déposés par la fonction Edge
+update storage.buckets set allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp', 'audio/mpeg'] where id = 'atelier-ia';
+
+-- la tâche planifiée : chaque minute, s'il y a du travail en attente (ou bloqué), réveiller la fonction
+select cron.unschedule(jobid) from cron.job where jobname = 'atelier-file';
+select cron.schedule('atelier-file', '* * * * *', $cron$
+  select pegase_int.at_gen_reveil() where exists (select 1 from public.at_gen_file where etat = 'attente' or (etat = 'en_cours' and debut_at < now() - interval '10 minutes'))
+$cron$);
+-- suivi : la file dans le compteur de l'admin
+create or replace view public.at_gen_suivi with (security_invoker = true) as
+  select g.at, g.sorte, g.titre, f.titre as projet, g.etat, g.essais, g.erreur, g.resultat ->> 'path' as fichier, round(coalesce(g.cents, 0) / 100.0, 2) as euros
+  from public.at_gen_file g left join public.at_fiches f on f.id = g.fiche order by g.at desc;
+revoke all on public.at_gen_suivi from anon, authenticated;
+-- le plafond d'IMAGES ne compte pas les sons et musiques (ils comptent seulement dans le budget en euros)
+create or replace function pegase_int.at_ia_utilisees() returns int language sql stable security definer set search_path = public as $$
+  select coalesce(sum(case when a.fin_at is null then a.nb else coalesce(a.ok, 0) end), 0)::int from public.at_ia a
+  where a.at >= (date_trunc('month', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris') and a.sorte not in ('equipe-son', 'equipe-musique') $$;
+
+-- (v15c) at_gen_suivi : + id (pour at_gen_refaire), fiche et url publique du fichier
+create or replace view public.at_gen_suivi with (security_invoker = true) as
+  select g.at, g.sorte, g.titre, f.titre as projet, g.etat, g.essais, g.erreur, g.resultat ->> 'path' as fichier, round(coalesce(g.cents, 0) / 100.0, 2) as euros,
+    g.id, g.fiche, case when g.resultat ->> 'path' is not null then 'https://wplictorvvtkfikpfdnl.supabase.co/storage/v1/object/public/atelier-ia/' || (g.resultat ->> 'path') end as url
+  from public.at_gen_file g left join public.at_fiches f on f.id = g.fiche order by g.at desc;
+revoke all on public.at_gen_suivi from anon, authenticated;
+
+-- ===================================================================================================================================
+-- LE COÛT RÉEL D'UN PROJET (2 nov. 2026 16 h 45, Benjamin : « on mesure d'abord le coût réel total sur La Maison des Licornes — images
+-- Gemini + sons/musique ElevenLabs + temps de construction — puis je déciderai du prix ») : chaque génération de la file de l'équipe est
+-- déjà au journal at_ia, rattachée à la fiche ; le TEMPS de l'équipe se note à la main (at_temps_noter, minutes + ce qui a été fait) ;
+-- at_cout_projets fait le total par projet. Rien n'est débité au joueur tant que l'admin n'a pas fixé de prix (at_prix).
+create table if not exists public.at_temps (
+  id bigint generated always as identity primary key,
+  fiche uuid references public.at_fiches(id) on delete set null,
+  projet text, minutes int not null check (minutes between 1 and 1440), note text, at timestamptz not null default now());
+alter table public.at_temps enable row level security;
+revoke all on public.at_temps from anon, authenticated;
+
+create or replace function public.at_temps_noter(p_fiche uuid, p_minutes int, p_note text default null)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare f public.at_fiches; u bigint;
+begin
+  select * into f from public.at_fiches x where x.id = p_fiche; if f.id is null then raise exception 'fiche inconnue'; end if;
+  insert into public.at_temps (fiche, projet, minutes, note) values (f.id, f.titre, p_minutes, left(p_note, 300)) returning id into u;
+  return u;
+end $$;
+revoke all on function public.at_temps_noter(uuid, int, text) from public, anon, authenticated;
+
+create or replace view public.at_cout_projets with (security_invoker = true) as
+  select f.id as fiche, f.titre as projet, f.name as joueur, f.etat, f.prix, f.paye,
+    coalesce(i.images, 0) as images, coalesce(i.sons, 0) as sons, coalesce(i.musiques, 0) as musiques, coalesce(i.ratees, 0) as ratees,
+    round(coalesce(i.cents, 0) / 100.0, 2) as euros_generation, coalesce(t.minutes, 0) as minutes_equipe
+  from public.at_fiches f
+  left join (select a.fiche, sum(a.ok) filter (where a.sorte not in ('equipe-son', 'equipe-musique')) as images,
+                    sum(a.ok) filter (where a.sorte = 'equipe-son') as sons, sum(a.ok) filter (where a.sorte = 'equipe-musique') as musiques,
+                    count(*) filter (where coalesce(a.ok, 0) = 0) as ratees,
+                    sum(coalesce(a.cents, coalesce(a.ok, 0) * coalesce(pegase_int.at_reglage('cout_image_centimes'), 4))) as cents
+             from public.at_ia a group by a.fiche) i on i.fiche = f.id
+  left join (select x.fiche, sum(x.minutes) as minutes from public.at_temps x group by x.fiche) t on t.fiche = f.id
+  where i.fiche is not null or t.fiche is not null or f.etat = 'envoyee';
+revoke all on public.at_cout_projets from anon, authenticated;

@@ -13942,6 +13942,9 @@ setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou 
   try { sessionStorage.removeItem('jdw.reloadfor'); } catch (e) {}
   const B = String(window.JDW_BUILD);
   UPD.installed = (window.JDW_VERSION || '') + (/^\d{12}/.test(B) ? ' du ' + B.slice(6, 8) + '/' + B.slice(4, 6) : '');
+  // 2 nov. 2026, Benjamin : ce qui touche les jeux du labo, seuls les admins le voient → une version qui ne change que des jeux en essai
+  // (aucune note de CETTE version visible ici) s'installe en silence
+  if (!NOTES.some(b => vcmp(b.v, CUR_V) === 0)) { setTimeout(refreshBell, 1800); return; }
   setTimeout(() => { refreshBell(); toastCheer('✨ Mise à jour ' + (window.JDW_VERSION || '') + ' installée !', profile.name, true); }, 1800);
 })();
 

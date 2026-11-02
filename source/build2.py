@@ -83,11 +83,17 @@ DUOS = [d for d in ['bolides', 'tirsaubut', 'toupies', 'kombat', 'pingpong', 'tr
 PAGE = os.environ.get('PAGE', 'borne')
 assert PAGE in ('borne', 'pegase'), PAGE
 if PAGE == 'pegase': GAMES = [g for g in GAMES if g == 'pegase']; DUOS = []
+# les noms des jeux en essai, tels que les joueurs les liraient dans une note (le nom de code du jeu sinon)
+LABO_MOTS = {'atelier': ['Crée ton jeu', 'Atelier des jeux'], 'remparts': ['Remparts']}
 def notes_list():
     # nouveautés de la version (une par ligne), affichées après une mise à jour
     f = J + 'nouveautes.txt'
     if not os.path.exists(f): return []
     out, seen = [], set()
+    sh = open(J + 'shell2.js', encoding='utf-8').read(); lm = re.search(r"const LABO = new Set\(\[([^\]]*)\]\)", sh)
+    labo = set(re.findall(r"'([a-z0-9-]+)'", lm.group(1))) if lm else set()
+    mots = [w for i in labo for w in LABO_MOTS.get(i, [i])]
+    labo_rx = re.compile(r'\b(?:' + '|'.join(re.escape(w) for w in mots) + r')\b', re.I) if mots else None
     for l in open(f, encoding='utf-8').read().splitlines():
         l = l.strip().replace('{version}', os.environ.get('SITE_VERSION', ''))
         if not l or l[0] == '#': continue
@@ -99,6 +105,10 @@ def notes_list():
         # 27 oct. 2026 : chaque sous-titre dit dans QUELLE version de la borne il sort, « (borne 1.46.3) » : la cloche ne montre que ce qui est
         # plus récent que la dernière version vue par l'appareil, et les tuiles concernées sont marquées « Mis à jour »
         if m.group(2) and not re.search(r'\(borne \d+\.\d+(?:\.\d+)?\)', m.group(3)): raise SystemExit('nouveautes.txt : sous-titre sans « (borne X.Y) » : ' + l)
+        # 2 nov. 2026, Benjamin : ce qui touche les jeux du LABO (en essai), seuls les admins le voient ; une note d'un autre bloc ([borne]…)
+        # qui en parle serait lue par tous les joueurs → refusée (la mettre dans le bloc du jeu en essai)
+        hit = labo_rx.search(m.group(3)) if labo_rx and m.group(1) not in labo else None
+        if hit: raise SystemExit('nouveautes.txt : cette note [' + m.group(1) + '] parle d\'un jeu en essai (« ' + hit.group(0) + ' ») : tous les joueurs la verraient ; mets-la dans le bloc du jeu en essai : ' + l)
         seen.add(m.group(1)); out.append(l)
     if os.environ.get('NOTES_CHECK'): notes_check(out)
     return out

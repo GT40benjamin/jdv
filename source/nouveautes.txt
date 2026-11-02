@@ -8,6 +8,9 @@
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 🔒 Les nouveautés du labo restent entre admins (borne 1.63.57)
+[atelier] 🔒 Les notes, les étiquettes « Nouveau » / « Mis à jour » et le message « Mise à jour installée » d'une version qui ne change que des jeux en essai ne s'affichent que sur les appareils en mode test. Un joueur normal ne voit rien de différent.
+
 [atelier] ## 🎁 Un seul prix pour tout ton jeu (borne 1.63.55)
 [atelier] 🎁 Quand ta fiche est prête, l'Atelier te donne LE prix de ton jeu en crédits : un seul prix, pour tout (images, sons, construction). Plus de planches ni de petits prix à calculer.
 [atelier] 📮 Tu envoies ton projet : les crédits sont payés une seule fois, ton projet est scellé, et notre équipe construit ton jeu. Tu suis son avancée dans l'Atelier, et la cloche 🔔 te prévient quand il est prêt à tester.
@@ -107,7 +110,7 @@
 [abracadabra] 🎈 Des ballons pendant la descente : ceux qui n'ont pas encore sauté s'y accrochent… et s'envolent dans le ciel !
 [borne] ## 👀 Les titres des jeux bien lisibles, et le silence quand tu parles au micro (borne 1.63.30)
 [borne] 👀 Sur les tuiles, l'étiquette « Nouveau » / « Mis à jour » et la tête du champion de la salle descendent en bas de l'image : le titre de chaque jeu, dessiné en haut, se lit en entier (sur ordinateur comme sur téléphone).
-[borne] 🤫 Quand tu parles au micro pour raconter ton idée dans « Crée ton jeu », la musique et les bruitages de la borne se font presque muets, puis reviennent doucement quand tu as fini. Dans un jeu qui t'écoute, la musique de la borne descend aussi presque à zéro.
+[borne] 🤫 Dans un jeu qui t'écoute au micro, la musique et les bruitages de la borne se font presque muets, puis reviennent doucement quand tu as fini.
 
 [abracadabra] ## 🐢 Abracadabra : l'île aux tortues, une traversée mouvementée (borne 1.63.29)
 [abracadabra] 🦈 Mission 6 : dis « requin » pendant que la tortue les ramène : elle a peur, fait demi-tour à toute vitesse vers l'îlot avec tout le monde sur son dos… et plus personne n'ose entrer dans l'eau !
