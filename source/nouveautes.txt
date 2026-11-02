@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[lune] ## 🔊 Seul sur la Lune : les sons et la musique (borne 1.63.94)
+[lune] 🔊 Le jeu a maintenant ses bruitages : un tintement quand tu ramasses un objet (plus aigu pour un cristal, plus grave pour une pièce), un clic de réparation quand une pièce se pose sur la navette, l'alarme qui annonce la pluie de météorites, l'impact (plus faible quand il tombe loin), le bip quand l'oxygène est presque vide et le grondement du décollage.
+[lune] 🎵 Une musique calme et mystérieuse de l'espace t'accompagne, en boucle sans coupure. Comme tous les sons de la borne, elle suit le bouton « son coupé ».
 [lune] ## ⏸ Seul sur la Lune : une seule pause dans l'Atelier (borne 1.63.92)
 [lune] ⏸ Dans l'Atelier, la touche P n'ouvre plus deux pauses l'une sur l'autre : c'est l'arrêt sur image de l'Atelier qui fige le jeu, et il repart tout de suite quand tu reprends. Ailleurs, P met toujours le jeu en pause.
 [lune] ## 🧑‍🚀 Seul sur la Lune : un seul et même survivant, de face, de profil et dans toutes ses réactions (borne 1.63.90)

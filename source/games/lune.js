@@ -149,7 +149,23 @@ function mount(root, api) {
   function bulles(x, y) { for (let i = 0; i < 14; i++) parts.push({ x: x + (Math.random() - 0.5) * 50, y: y - Math.random() * 30, vx: (Math.random() - 0.5) * 20, vy: -40 - Math.random() * 60, t: 0, d: 1 + Math.random() * 0.6, c: 'rgba(190,255,215,0.9)', r: 3 + Math.random() * 5, bulle: 1 }); }
 
   function startGame() { reset(); state = 'intro'; stT = 0; }
-  loadImages().then(() => { if (state === 'load') state = 'title'; }, () => { loadErr = true; if (state === 'load') state = 'title'; });
+  loadImages().then(() => { if (state === 'load') state = 'title'; chargerSons(); }, () => { loadErr = true; if (state === 'load') state = 'title'; });
+
+  // ---------- les bruitages (assets/lune.sons.bin, MP3 d'ElevenLabs) : joués par la borne (api.audio.sample : « son coupé » respecté) ----------
+  // la musique, elle, est jouée en boucle par la borne (assets/music/lune-1.mp3)
+  const SONS = {};
+  const VOL = { ramasser: 1.2, piece: 0.9, alerte: 0.55, impact: 1.1, oxygene: 0.6, decollage: 0.55 };
+  async function chargerSons() {
+    const S = api.audio && api.audio.sample; if (!S) return;
+    try {
+      const r = await fetch(ROOT() + 'assets/lune.sons.bin'); if (!r.ok) return;
+      const b = new Uint8Array(await r.arrayBuffer()), n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24);
+      const idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
+      for (const [nom, o, l] of idx) { if (dead) return; try { SONS[nom] = await S.decode(b.slice(base + o, base + o + l).buffer); } catch (e) { /* un son illisible : le jeu reste muet pour lui */ } }
+    } catch (e) { /* pas de son : le jeu marche quand même */ }
+  }
+  // joue un bruitage (vol : multiplié par le réglage du son, rate : hauteur, pour varier sans fichier en double)
+  function son(nom, vol, rate) { if (gele || !SONS[nom]) return; try { api.audio.sample.play(SONS[nom], (VOL[nom] || 1) * (vol == null ? 1 : vol), rate || 1); } catch (e) { /* rien */ } }
 
   // monde → écran
   const sx = x => W / 2 + (x - camX) * Z, sy = y => H / 2 + (y - camY) * Z;
@@ -222,7 +238,7 @@ function mount(root, api) {
     for (const t of texts) t.t += dt; texts = texts.filter(t => t.t < 1.3);
     for (const p of parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.g) p.vy += 240 * dt; } parts = parts.filter(p => p.t < p.d);
     for (const p of puffs) p.t += dt; puffs = puffs.filter(p => p.t < 0.6);
-    for (const f of flyers) f.t += dt * 1.6; flyers = flyers.filter(f => { if (f.t >= 1) { burst(0, -80, '#ffd36b', 10, 120); return false; } return true; });
+    for (const f of flyers) f.t += dt * 1.6; flyers = flyers.filter(f => { if (f.t >= 1) { burst(0, -80, '#ffd36b', 10, 120); son('piece'); return false; } return true; });
     for (const im of impacts) im.t += dt; impacts = impacts.filter(im => im.t < 1.1);
     for (const q of prises) q.t += dt / 0.35; prises = prises.filter(q => q.t < 1);
     shake = Math.max(0, shake - dt * 30); flash = Math.max(0, flash - dt * 2); robot.joie = Math.max(0, robot.joie - dt); repT = Math.max(0, repT - dt);
@@ -233,6 +249,7 @@ function mount(root, api) {
     const kc = state === 'liftoff' ? (liftT > 1.4 ? 1 : Math.min(1, dt * 7)) : state === 'end' && endWhy === 'win' ? 1 : Math.min(1, dt * 3);
     camX += (tx - camX) * kc; camY += (ty - camY) * kc;
     if (state === 'liftoff') {
+      if (liftT < 1.1 && liftT + dt >= 1.1) son('decollage');   // l'allumage du réacteur
       liftT += dt;
       // le survivant et le robot montent à bord (ils marchent jusqu'à la porte et y entrent)
       if (liftT > 0.6 && liftT < 1.4) { for (const o of [P, robot]) { o.x += (0 - o.x) * Math.min(1, dt * 4); o.y += (-20 - o.y) * Math.min(1, dt * 4); } P.step += dt * 6; P.moving = true; P.dir = 'dos'; }
@@ -275,7 +292,7 @@ function mount(root, api) {
     if (!inCr) crT = null;
     // l'oxygène baisse (un peu plus vite en marchant)
     oxy -= dt * (0.85 + sp / VITESSE * 0.55);
-    if (oxy < 20 && Math.floor(tJeu * 2) !== Math.floor((tJeu - dt) * 2)) flash = Math.max(flash, 0.35);
+    if (oxy < 20 && Math.floor(tJeu * 2) !== Math.floor((tJeu - dt) * 2)) { flash = Math.max(flash, 0.35); if (Math.floor(tJeu * 2) % 2 === 0) son('oxygene'); }   // un bip par seconde
     // le robot suit (à côté, un peu derrière)
     // le robot reste un peu derrière toi et du côté d'où tu viens : il ne te cache jamais
     // de profil, il se met du côté d'où tu viens ; sinon il garde son côté ; un peu plus haut que toi : s'il change de côté, il passe DERRIÈRE toi
@@ -290,6 +307,7 @@ function mount(root, api) {
       if (o.pris || !/^(piece|cristal|oxygene|trousse|lampe)$/.test(o.k)) continue;
       if (Math.hypot(o.x - P.x, (o.y - P.y) / 0.7) > 60) continue;
       o.pris = true; robot.joie = 1.2; prises.push({ k: o.k, x: o.x, y: o.y, h: o.h, t: 0 });
+      son('ramasser', 1, { cristal: 1.15, piece: 0.8, oxygene: 0.95, trousse: 1, lampe: 1.05 }[o.k] * (0.97 + Math.random() * 0.06));
       const px = o.x, py = o.y - 50;
       if (o.k === 'piece') { pieces++; pop('+' + VAL_PIECE + ' · ' + PIECES[o.n], '#ffd36b', px, py); burst(o.x, o.y - 30, '#ffd36b', 20); say('Tu as trouvé ' + PIECES[o.n] + ' ! Ramène-la à la navette.'); try { api.celebrate && api.celebrate('Une pièce du vaisseau !'); } catch (e) { /* rien */ } }
       else if (o.k === 'cristal') { cristaux++; pop('+' + VAL_CRISTAL, '#7fe3ff', px, py); burst(o.x, o.y - 25, '#7fe3ff', 14); }
@@ -313,7 +331,7 @@ function mount(root, api) {
     }
     // pluies de météorites
     showerT -= dt;
-    if (!showerOn && showerT < 3 && showerT + dt >= 3) say('⚠️ Pluie de météorites ! Évite les ombres rouges !', 3);
+    if (!showerOn && showerT < 3 && showerT + dt >= 3) { say('⚠️ Pluie de météorites ! Évite les ombres rouges !', 3); son('alerte'); }
     if (!showerOn && showerT <= 0) { showerOn = true; showerLeft = 6 + Math.min(8, Math.floor(tJeu / 40)); showerT = 0.2; }
     if (showerOn && showerT <= 0) {
       if (showerLeft-- > 0) {
@@ -326,6 +344,7 @@ function mount(root, api) {
       m.t += dt;
       if (m.t >= m.d && !m.done) {
         m.done = true; shake = Math.max(shake, 9); impacts.push({ x: m.x, y: m.y, t: 0 });
+        son('impact', Math.max(0.25, 1 - Math.hypot(m.x - P.x, m.y - P.y) / 700), 0.9 + Math.random() * 0.2);   // plus faible quand elle tombe loin
         if (!craters.some(c => Math.hypot(c.x - m.x, c.y - m.y) < c.r) && Math.hypot(m.x, m.y) > 200) craters.push({ x: m.x, y: m.y, r: 42, neuf: 1 });
         burst(m.x, m.y - 10, '#9a9ba2', 16, 220, 120);
         if (Math.hypot(m.x - P.x, (m.y - P.y) / 0.7) < 75) {
