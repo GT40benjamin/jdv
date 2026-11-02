@@ -4202,3 +4202,17 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-ptabs{background:var(--bg,#0d0b1c);backdrop-filter:none;z-index:6;box-shadow:0 8px 14px -6px rgba(0,0,0,.6);border-radius:0 0 14px 14px}
 .atl-ptabs::before{content:'';position:absolute;left:-16px;right:-16px;bottom:100%;height:24px;background:var(--bg,#0d0b1c);pointer-events:none}
 .atl-frise{background:var(--bg,#0d0b1c)}
+
+/* 0 h 40 : la tuile du jeu (onglet Jouer), comme une brique de la borne ; le choix de l'image de présentation */
+.atl-gframe.atl-gtuile{display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:center;aspect-ratio:auto;height:auto;min-height:0;background:none;border:0;padding:6px 0}
+.atl-gtw{flex:0 0 auto;width:min(300px,86vw)}
+.atl-gtw .tile{width:100%}
+.atl-gtw .atl-gposter{position:relative;inset:auto;display:grid;place-items:stretch;border:2px solid var(--acc,#ffd34d);border-radius:16px;overflow:hidden;background:var(--card)}
+.atl-gtw .tile-img{position:relative;overflow:hidden;display:grid;place-items:center;font-size:48px}.atl-gtw .tile-img img{width:100%;height:100%;object-fit:cover;display:block}
+.atl-gver{position:absolute;top:8px;right:8px;padding:3px 10px;border-radius:999px;background:#ffd34d;color:#2a1340;font:800 13px var(--body)}
+.atl-ginfo{display:grid;gap:8px;justify-items:start;min-width:220px;max-width:340px}.atl-ginfo small{color:var(--muted)}
+.atl-gtuile .atl-garret{display:none}
+.atl-vchoix{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:8px 0}
+.atl-vopt{display:grid;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.atl-vopt.on{border-color:#ffd34d;background:rgba(255,211,77,.1)}.atl-vopt small{color:var(--muted)}
+.atl-sver{display:block;margin:10px 0 4px;color:var(--muted);font:11.5px var(--body)}

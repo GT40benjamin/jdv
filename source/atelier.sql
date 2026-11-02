@@ -2747,3 +2747,14 @@ begin
     if position('at_patron' in d) = 0 then raise exception 'at_stripe_autoriser'; end if; execute d;
   end if;
 end $$;
+
+-- (v32, 3 nov. 2026 0 h 05 → 0 h 45, Benjamin) : 📊 Suivi = PATOU / BENJAMIN seulement (vérifié dans at_suivi et le drapeau admin d'at_lire) ;
+-- projets supprimés hors du tableau ; l'image de présentation : at_demande_modif types 'vignette' (cout_image) et 'vignette_animee'
+-- (cout_tuile_animee, 30 provisoire) ; la vignette d'un projet = l'élément d'interface de rôle « vignette », sinon le design.
+-- (appliquée en deux migrations : atelier_v32_suivi_patron_vignette et atelier_v32b_vignette_tuile ; voir leur texte dans Supabase)
+insert into public.at_reglages (k, v) values ('cout_tuile_animee', 30) on conflict (k) do nothing;
+update public.at_admins set suivi = false where not pegase_int.at_patron(name);
+-- at_suivi : « if not (exists (… x.suivi) and pegase_int.at_patron(n)) then raise exception 'admin requis' » ; projets : x.supprime_at is null and x.etat <> 'supprime'
+-- at_lire : 'admin' = (… x.suivi) and pegase_int.at_patron(n) ; 'tuile_animee' ; vignette des projets : role = 'vignette' d'abord
+-- at_demande_modif : types vignette / vignette_animee (« 🖼️ Nouvelle image de présentation » / « 🖼️ Image de présentation ANIMÉE ») ;
+-- pegase_int.at_demande_auto : sorte 'vignette' pour les textes « 🖼️… »

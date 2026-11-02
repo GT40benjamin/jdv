@@ -14646,11 +14646,22 @@ function atlRenderProjet(W, f) {
   const pane = k => { const p = atlEl('section', 'atl-pane'); p.dataset.k = k; p.setAttribute('role', 'tabpanel'); box.appendChild(p); return p; };
   // 🎮 Jouer
   if (jouable) {
-    const p = pane('jeu'), fr = atlEl('div', 'atl-gframe');
-    const po = atlEl('button', 'atl-gposter'); po.type = 'button'; po.setAttribute('aria-label', 'Jouer à mon jeu ici');
-    if (dz) { const im = atlEl('img'); im.alt = ''; im.src = dz; po.appendChild(im); }
-    po.appendChild(atlEl('span', 'atl-gplay', g ? '▶ Jouer à mon jeu' : '⏳ Ton jeu arrive sur la borne…')); po.disabled = !g;
-    po.addEventListener('click', () => atlJouerVrai(f)); fr.appendChild(po); p.appendChild(fr);   // 21 h 15 : le vrai jeu, plein écran
+    const p = pane('jeu'), fr = atlEl('div', 'atl-gframe atl-gtuile');
+    // 0 h 40 (Benjamin) : une vraie TUILE de jeu, comme une brique de la borne (image de présentation, titre, badge V, record) ; on clique, ça se lance
+    const vg = atlVignetteUrl(f) || dz, wrap = atlEl('div', 'tile-wrap atl-gtw'), po = atlEl('button', 'tile atl-gposter'); po.type = 'button'; po.setAttribute('aria-label', 'Jouer à ' + (f.titre || 'mon jeu'));
+    if (g && g.accent) { wrap.style.setProperty('--acc', g.accent); po.style.setProperty('--acc', g.accent); }
+    const ti = atlEl('div', 'tile-img'); if (vg) { const im = atlEl('img'); im.alt = ''; im.src = vg; ti.appendChild(im); } else ti.textContent = '🎮';
+    ti.appendChild(atlEl('span', 'atl-gver', 'V' + ((f.version | 0) || 1)));
+    const tm = atlEl('div', 'tile-meta'); tm.appendChild(atlEl('div', 'tile-name', f.titre || 'Mon jeu')); po.append(ti, tm); po.disabled = !g;
+    let rec = 0; try { rec = g ? +knownBest(profile.name, g.id) || 0 : 0; } catch (e) { rec = 0; }
+    po.addEventListener('click', () => atlJouerVrai(f)); wrap.appendChild(po); fr.appendChild(wrap);
+    const inf = atlEl('div', 'atl-ginfo');
+    inf.append(atlEl('b', '', g ? '▶ Touche la tuile pour jouer' : '⏳ Ton jeu arrive sur la borne…'), atlEl('small', '', rec ? '🏆 Ton record : ' + rec.toLocaleString('fr-FR') : 'Pas encore de record : à toi de jouer !'));
+    const ib = (t, fn, cls) => { const x = atlEl('button', 'btn btn-sm ' + (cls || 'btn-ghost'), t); x.type = 'button'; x.addEventListener('click', fn); inf.appendChild(x); };
+    ib('🛠️ Améliorer avec ' + gN(), () => { atlFrameStop(); ATL.chat = true; ATL.stick = true; atlRender(); }, 'btn-play');
+    ib('📋 Mes demandes', atlMesDemandes);
+    ib('🖼️ Modifier l’image de présentation', () => atlVignetteDem(f, vg));
+    fr.appendChild(inf); p.appendChild(fr);
     const bar = atlEl('div', 'atl-gbar');
     const fs = atlEl('button', 'btn btn-ghost btn-sm', '⛶ Plein écran'); fs.type = 'button'; fs.disabled = !g;
     fs.addEventListener('click', () => { atlFrameStart(); try { (fr.requestFullscreen || fr.webkitRequestFullscreen).call(fr); } catch (e) {} });
@@ -15246,6 +15257,7 @@ function atlRoue(w, pj) {
   const sp = atlEl('button', 'del', '🗑️ Supprimer'); sp.type = 'button'; sp.disabled = bloque;
   sp.addEventListener('click', e => { e.stopPropagation(); M.remove(); atlSupprimerAsk(pj); });
   M.append(rn, sp);
+  if (['alpha', 'publie_salle', 'publie_monde'].includes(et)) { const vi = atlEl('button', '', '🖼️ Image de présentation'); vi.type = 'button'; vi.addEventListener('click', e => { e.stopPropagation(); M.remove(); atlVignetteDem(pj, atlIaUrl(pj.vignette)); }); M.insertBefore(vi, sp); }
   if (bloque) M.appendChild(atlEl('small', '', et.startsWith('publie') ? 'Publié : impossible de le supprimer.' : 'En construction : impossible de le supprimer pour l’instant.'));
   w.appendChild(M);
   const off = e => { if (!M.contains(e.target)) { M.remove(); document.removeEventListener('pointerdown', off, true); } };
@@ -15519,6 +15531,41 @@ function atlFicheElem(it, f, fi, libre, lecture) {
   } else if (!lecture && it.vide && libre) { const x = atlEl('button', 'btn btn-play', '🎨 Le dessiner'); x.type = 'button'; x.addEventListener('click', () => atlModale()); row.appendChild(x); }
   row.appendChild(no); c.appendChild(row); M.appendChild(c);
 }
+// 0 h 45 (Benjamin) : l'IMAGE DE PRÉSENTATION du jeu (sa tuile) = l'élément d'interface de rôle « vignette » (sinon le design) ;
+// « 🖼️ Modifier l'image de présentation » : une demande au guide, image fixe (cout_image) ou ANIMÉE (cout_tuile_animee), image actuelle jointe
+function atlVignetteUrl(f) {
+  const as = Array.isArray(f && f.assets) ? f.assets : [];
+  const a = as.find(x => x && x.role === 'vignette' && x.actif !== false && atlIaUrl(x.image)); return a ? atlIaUrl(a.image) : '';
+}
+function atlVignetteDem(f, url) {
+  const M = ATL.root.querySelector('.atl-mod'); if (!M) return; M.textContent = ''; M.hidden = false;
+  const cr = atlCred(), px = { vignette: cr && cr.cout != null ? cr.cout | 0 : 10, vignette_animee: cr && cr.tuile_animee != null ? cr.tuile_animee | 0 : 30 };
+  const c = atlEl('div', 'atl-mcard'), hd = atlEl('div', 'atl-arh'), ht = atlEl('div');
+  ht.append(atlEl('b', '', gNM()), atlEl('p', '', 'Comment veux-tu l’image de présentation de « ' + (f.titre || 'ton jeu') + ' » ? C’est l’image de sa tuile sur la borne.'));
+  hd.append(atlGuideAv('atl-wav'), ht); c.appendChild(hd);
+  if (url) { const im = atlEl('img', 'atl-demimg'); im.alt = ''; im.src = url; c.appendChild(im); }
+  let type = 'vignette';
+  const ch = atlEl('div', 'atl-vchoix'), opt = (k, t, d) => { const b = atlEl('button', 'atl-vopt' + (k === type ? ' on' : '')); b.type = 'button'; b.append(atlEl('b', '', t + ' · ' + px[k] + ' 💎'), atlEl('small', '', d)); b.addEventListener('click', () => { type = k; for (const x of ch.children) x.classList.toggle('on', x === b); go.textContent = 'Envoyer ' + gA() + ' · ' + px[type] + ' 💎'; }); ch.appendChild(b); };
+  opt('vignette', '🖼️ Image fixe', 'un nouveau dessin');
+  opt('vignette_animee', '✨ Image animée', 'une tuile vivante : personnages qui bougent, étincelles…');
+  c.appendChild(ch);
+  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux voir sur l’image…'; c.appendChild(atlAvecMic(ta));
+  const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + px[type] + ' 💎'); no.type = go.type = 'button';
+  no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
+  go.addEventListener('click', async () => {
+    const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
+    if (cr && (cr.solde | 0) < px[type]) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
+    go.disabled = true; er.hidden = true;
+    const m = /\/atelier-ia\/(i\/[0-9a-f-]{36}\.(?:png|jpg|webp))$/.exec(url || '');
+    try {
+      const r = await rpc('at_demande_modif', { p_name: profile.name, p_fiche: f.id, p_nom: 'Image de présentation', p_path: m ? m[1] : null, p_texte: t, p_type: type }, { quiet: true });
+      if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
+      M.hidden = true; M.textContent = ''; toastCheer('✉️ Demande envoyée ' + gA() + ' ! Suis-la dans « 📋 Mes demandes ».', null, true); ATL.demAt = 0; atlDemCharger(true);
+    } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
+  });
+  row.append(no, go); c.append(row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); M.appendChild(c);
+}
 function atlModif(it, f, type) {
   const M = ATL.root.querySelector('.atl-mod'); M.textContent = ''; M.hidden = false;
   const cr = atlCred(), cout = type === 'retouche' ? (cr && cr.retouche != null ? cr.retouche | 0 : 3) : type === 'redessin' ? (cr && cr.cout != null ? cr.cout | 0 : 10) : (cr && cr.demande != null ? cr.demande | 0 : 5);
@@ -15772,7 +15819,7 @@ async function atlStripe(corps, b, er) {
 // image, retouches, redessins, créations, sons, musiques, retraits, messages d'un projet jouable), la plus récente en haut, avec l'état
 // (📨 Envoyée → 👀 Vue → 🛠️ En cours → ✅ Faite / ❌ Pas possible) et la réponse ; une pastille quand un état change (at_mes_demandes)
 const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible' };
-const ATL_DEM_SO = { arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Redessin', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', message: '💬 Message' };
+const ATL_DEM_SO = { vignette: '🖼️ Image de présentation', arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Redessin', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', message: '💬 Message' };
 async function atlDemCharger(force) {
   if (!force && ATL.demAt && Date.now() - ATL.demAt < 60000) return ATL.dem;
   ATL.demAt = Date.now();
@@ -16287,7 +16334,7 @@ async function atlSuivi() {
     }
     const wrap = atlEl('div', 'atl-swrap'); wrap.appendChild(t); P.appendChild(wrap);
   }
-  const pjs = Array.isArray(r.projets) ? r.projets : [];
+  const pjs = (Array.isArray(r.projets) ? r.projets : []).filter(x => x && x.etat !== 'supprime' && x.titre);   // 0 h 10 : sans les projets supprimés
   if (pjs.length) {
     P.appendChild(atlEl('b', 'atl-rh2', '🎁 Projets et prix'));
     const t2 = atlEl('table', 'atl-stab'), h2 = atlEl('tr'); for (const c of ['Joueur', 'Projet', 'État', 'Prix', 'Payé', 'Détail interne']) h2.appendChild(atlEl('th', '', c)); t2.appendChild(h2);
@@ -16296,7 +16343,8 @@ async function atlSuivi() {
   }
   const mds = Array.isArray(r.mondes) ? r.mondes : [];
   if (mds.length) { P.appendChild(atlEl('b', 'atl-rh2', '🌍 Demandes de mise en ligne mondiale')); const ul = atlEl('ul'); for (const d of mds) ul.appendChild(atlEl('li', '', '« ' + (d.titre || 'Projet') + ' » de ' + dispName(d.joueur || '') + ' (' + (d.etat === 'publie_salle' ? 'déjà dans sa salle' : 'version d’essai') + ')')); P.appendChild(ul); P.appendChild(atlEl('small', '', 'Pour accepter ou refuser, dis-le à l’équipe.')); }
-  const ach = r.achats && typeof r.achats === 'object' ? r.achats : null;   // les achats de crédits (Stripe), Benjamin seulement
+  const ach = r.achats && typeof r.achats === 'object' ? r.achats : (atlCred() && atlCred().patron ? { lignes: [], erreur: true } : null);   // les achats de crédits (Stripe), PATOU / BENJAMIN seulement
+  if (ach && ach.erreur) P.appendChild(atlEl('p', 'atl-werr', '⚠️ Les achats ne sont pas arrivés du serveur : recharge la page (ta borne est peut-être une ancienne version).'));
   if (ach) {
     P.appendChild(atlEl('b', 'atl-rh2', '💳 Achats de crédits'));
     P.appendChild(atlEl('p', 'atl-stot', 'Ce mois (paiements réels) : ' + (ach.mois_nb | 0) + ' achat' + ((ach.mois_nb | 0) > 1 ? 's' : '') + ' · ' + String(ach.mois_euros || 0).replace('.', ',') + ' € · frais Stripe estimés ' + String(ach.mois_frais || 0).replace('.', ',') + ' €'));
@@ -16337,6 +16385,7 @@ async function atlSuivi() {
     });
     P.append(sb, sm);
   }
+  P.appendChild(atlEl('small', 'atl-sver', 'Borne ' + (window.JDW_VERSION || '?') + (window.JDW_BUILD ? ' · ' + window.JDW_BUILD : '')));
   P.appendChild(close);
 }
 // 22 h 02 (Benjamin) : plus de « Demander des crédits » ; à court de crédits → « ⭐ Passer à Atelier+ » (si pas abonné) et « 💎 Recharger »
