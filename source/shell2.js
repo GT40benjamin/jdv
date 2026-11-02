@@ -2751,6 +2751,7 @@ async function checkSiteVersion() {
       const first = !siteNew; siteNew = true; UPD.siteBuild = v.build;
       if (UPD.site !== label) { UPD.site = label; refreshBell(); }
       if (first && !$('jdw-play').hidden) toastCheer('Une mise à jour arrive : elle s\'installera à la fin de ta partie.', profile.name, true);
+      else if (first && !CADRE && typeof ATL !== 'undefined' && ATL && ATL.open) toastCheer('Nouvelle version disponible : elle s\'installera quand tu quitteras l\'Atelier.', profile.name, true);
       maybeReload();
     }
   } catch (e) {}
@@ -2771,6 +2772,9 @@ async function checkAppVersion() {
 let saving = 0;
 function calmMoment() {
   if (!$('jdw-play').hidden || !$('jdw-duo').hidden || chat.open || saving > 0 || MAP.open) return false;
+  // 2 nov. 20 h 40, Benjamin : « être dans l'Atelier, c'est comme être dans un jeu » — jamais de rechargement tant qu'il est ouvert
+  // (page du projet, jeu V1 dans le cadre, écriture, brouillon) ; la borne dans le cadre d'un projet ne se recharge jamais d'elle-même
+  if (CADRE || (typeof ATL !== 'undefined' && ATL && ATL.open)) return false;
   for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) return false;
   const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA)$/.test(a.tagName));
 }
@@ -14198,8 +14202,8 @@ function atlGuideMaj(g) {
   ATL_GUIDE.nom = nom; ATL_GUIDE.a = t(g.a, 40) || 'à ' + nom; ATL_GUIDE.de = t(g.de, 40) || 'de ' + nom; ATL_GUIDE.img = atlIaUrl(g.img) ? g.img : '';
 }
 function atlGuideAv(cls) {
-  const a = atlEl('span', cls || 'atl-av'), u = atlIaUrl(ATL_GUIDE.img);
-  if (u) { const im = atlEl('img'); im.alt = ''; im.src = u; a.appendChild(im); } else a.textContent = '🤖';
+  const a = atlEl('span', cls || 'atl-av'), u = atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp';   // 20 h 40 : le dessin du guide (accueil/guide-*.webp)
+  const im = atlEl('img'); im.alt = ''; im.src = u; im.onerror = () => { im.remove(); a.textContent = '🤖'; }; a.appendChild(im);
   a.title = gNM(); return a;
 }
 const atlWelcome = () => [
@@ -14257,6 +14261,7 @@ function atlClose() {
   atlFrameStop();
   ATL.open = false; ATL.root.hidden = true; document.body.classList.remove('atl-on');
   atlTileState(); refreshBell(); atlSchedule();
+  if (siteNew) setTimeout(maybeReload, 800);   // la mise à jour attendait la sortie de l'Atelier
 }
 function atlErr(t) { if (!ATL.root) return; const e = ATL.root.querySelector('.atl-err'); e.hidden = !t; e.textContent = t || ''; }
 function atlRender() {
@@ -14569,6 +14574,8 @@ function atlFrameStart() {
   if (fr.querySelector('iframe')) return;
   const i = atlEl('iframe'); i.title = 'Ton jeu : ' + (f.titre || f.jeu); i.allow = 'autoplay; fullscreen; microphone; gamepad'; i.setAttribute('allowfullscreen', '');
   i.src = ROOT + 'jouer/?cadre=' + encodeURIComponent(f.jeu);
+  // le nom du guide pour le jeu dans le cadre (un jeu de l'Atelier peut dire « Parle à … » sans l'écrire dans ses fichiers)
+  i.addEventListener('load', () => { try { i.contentWindow.postMessage({ type: 'atl-guide', nom: gNM(), a: gA(), de: gDe(), img: atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp' }, location.origin); } catch (e) {} });
   fr.classList.add('on'); fr.appendChild(i);
 }
 function atlProjTab(k) {
@@ -15061,7 +15068,8 @@ function atlAccueil(box, ps, max) {
   const v1 = ps.find(pj => ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')));
   if (v1) btn('🎮 Tester ma V1 de « ' + (v1.titre || 'Mon jeu sans nom') + ' »', 'btn-ghost', () => { ATL.tab = 'jeu'; atlOuvrir(v1.id); });
   tx.appendChild(act);
-  A.append(atlGuideAv('atl-accav'), tx); box.appendChild(A);
+  const pic = atlEl('img', 'atl-accimg'); pic.alt = ''; pic.src = ROOT + 'accueil/guide-coucou.webp'; pic.onerror = () => pic.replaceWith(atlGuideAv('atl-accav'));
+  A.append(pic, tx); box.appendChild(A);
 }
 
 // ---------- serveur ----------

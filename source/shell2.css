@@ -3984,3 +3984,8 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 @media (max-width:600px){.atl-acc{padding:12px}.atl-accav{flex-basis:48px;width:48px;height:48px;font-size:28px}.atl-accq{font-size:15px}}
 .atl-arimg{max-height:34vh}
 @media (max-width:600px){.atl-arimg{max-height:24vh}.atl-arret{padding:10px;gap:8px}.atl-arin{min-height:64px}}
+
+/* le dessin du guide à l'accueil de l'Atelier (borne 1.63.83) */
+.atl-accimg{flex:0 0 auto;width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45))}
+@media (max-width:600px){.atl-accimg{width:84px;height:84px}}
+.atl-av,.atl-wav,.atl-garret,.atl-accav{background:linear-gradient(135deg,#bfe6ff,#9b7bff)}

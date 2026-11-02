@@ -40,6 +40,10 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 🛡️ L'Atelier ne se ferme plus pour une mise à jour (borne 1.63.83)
+[atelier] 🛡️ Être dans l'Atelier, c'est comme être dans un jeu : une nouvelle version ne te fait plus sortir. Elle s'installe quand tu quittes l'Atelier, et tes brouillons sont gardés.
+[atelier] 🤖 Ton guide a maintenant son vrai visage, et il te fait coucou en entrant dans l'Atelier.
+
 [atelier] ## 🤖 Ton guide t'accueille, et l'arrêt sur image dans ton jeu (borne 1.63.82)
 [atelier] 👋 En entrant dans l'Atelier, ton guide te dit bonjour et te propose quoi faire : un nouveau projet, reprendre ton brouillon, tester ta V1. Il te signale aussi tes nouveaux messages.
 [atelier] ⏸ Pendant que tu testes ta V1, touche P (ou le petit robot) : arrêt sur image ! Pose le viseur sur ce que tu veux changer, écris ta demande et envoie-la (5 crédits).
