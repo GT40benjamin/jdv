@@ -8,6 +8,7 @@
 <script>window.JDW_ROOT = '../../';</script>
 <script src="../games/licornes.js"></script>
 <script>
+const MUET = /[?&]muet/.test(location.search);   // banc d'essai sans son
 window.__over = [];
 let AC = null;
 const api = {
@@ -15,12 +16,12 @@ const api = {
   fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
   gameOver(s) { console.log('GAMEOVER', s); window.__over.push(s); },
   audio: {
-    tone(f, d, type, vol, f2) { try { AC = AC || new AudioContext(); const o = AC.createOscillator(), g = AC.createGain(); o.type = type || 'square'; o.frequency.setValueAtTime(f, AC.currentTime); if (f2) o.frequency.linearRampToValueAtTime(f2, AC.currentTime + d); g.gain.setValueAtTime(vol || 0.08, AC.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + d); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + d); } catch (e) {} },
+    tone(f, d, type, vol, f2) { try { AC = AC || new AudioContext(); const o = AC.createOscillator(), g = AC.createGain(); o.type = type || 'square'; o.frequency.setValueAtTime(f, AC.currentTime); if (f2) o.frequency.linearRampToValueAtTime(f2, AC.currentTime + d); g.gain.setValueAtTime(vol || 0.08, AC.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + d); o.connect(g).connect(MUET ? AC.createGain() : AC.destination); o.start(); o.stop(AC.currentTime + d); } catch (e) {} },
     noise() {},
     // comme la borne : decode() une fois, play() ensuite ; window.__sons garde la trace des sons joués (essais)
     sample: {
       decode(ab) { AC = AC || new AudioContext(); return AC.decodeAudioData(ab); },
-      play(buf, vol, rate) { (window.__sons = window.__sons || []).push([buf.duration.toFixed(2), +(+vol).toFixed(2)]); try { const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = buf; s.playbackRate.value = rate || 1; g.gain.value = vol; s.connect(g).connect(AC.destination); s.start(); } catch (e) {} return true; }
+      play(buf, vol, rate) { (window.__sons = window.__sons || []).push([buf.duration.toFixed(2), +(+vol).toFixed(2)]); try { const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = buf; s.playbackRate.value = rate || 1; g.gain.value = vol; s.connect(g).connect(MUET ? AC.createGain() : AC.destination); s.start(); } catch (e) {} return true; }
     }
   }
 };

@@ -34,9 +34,9 @@ function loadImages() {
 
 /* ---------- le catalogue ---------- */
 const OEUFS = {
-  commun: { img: 'oeuf-commun', prix: 20, eclot: 5, bebe: 'bebe-rose', valBebe: 30, nom: 'Œuf commun' },
-  rare: { img: 'oeuf-rare', prix: 70, eclot: 7, bebe: 'bebe-arc', valBebe: 95, nom: 'Œuf rare' },
-  leg: { img: 'oeuf-legendaire', prix: 200, eclot: 9, bebe: 'bebe-arc', valBebe: 270, nom: 'Œuf légendaire' }
+  commun: { img: 'oeuf-commun', prix: 20, eclot: 7, bebe: 'bebe-rose', valBebe: 30, nom: 'Œuf commun' },
+  rare: { img: 'oeuf-rare', prix: 70, eclot: 9, bebe: 'bebe-arc', valBebe: 95, nom: 'Œuf rare' },
+  leg: { img: 'oeuf-legendaire', prix: 200, eclot: 12, bebe: 'bebe-arc', valBebe: 270, nom: 'Œuf légendaire' }
 };
 const ADULTES = {
   blanche: { img: 'adulte-blanche', val: 80, rang: 0, nom: 'Licorne blanche' },
@@ -58,10 +58,36 @@ const ACC = {
 };
 const ACC_IDS = Object.keys(ACC);
 const BIB_PRIX = 5;
+const GCOUV_PRIX = 120;   // la grande couveuse (4 œufs à la fois) passe de temps en temps sur le tapis (demande de PATOU, 3 nov.)
+// la couleur choisie pour l'œuf qui couve : l'œuf et le bébé prennent cette couleur (demande de PATOU, 3 nov.)
+const COULEURS = [{ n: 'Rose', h: 330, c: '#ff8cc6' }, { n: 'Violet', h: 272, c: '#b48cff' }, { n: 'Bleu', h: 205, c: '#6fc2ff' },
+  { n: 'Vert', h: 125, c: '#7fdc8a' }, { n: 'Jaune', h: 50, c: '#ffd84d' }, { n: 'Orange', h: 25, c: '#ffa25a' }];
+// une image recolorée (teinte choisie, ombres et reflets gardés) : les traits sombres et les blancs restent tels quels ; gardée en cache
+const TEINTES = {};
+function teinte(nom, h) {
+  const im = IMG[nom]; if (!im || h == null) return im;
+  const k = nom + '|' + h; if (TEINTES[k]) return TEINTES[k];
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  try {
+    const d = x.getImageData(0, 0, c.width, c.height), a = d.data, H = h / 360;
+    const f = (p, q, t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+    for (let i = 0; i < a.length; i += 4) {
+      if (a[i + 3] < 8) continue;
+      const R = a[i] / 255, G = a[i + 1] / 255, B = a[i + 2] / 255, mx = Math.max(R, G, B), mn = Math.min(R, G, B), l = (mx + mn) / 2, dd = mx - mn;
+      if (l < 0.26 || dd < 0.06) continue;   // traits, yeux et blancs : intacts
+      let sa = dd / (1 - Math.abs(2 * l - 1)); sa = Math.max(0.5, Math.min(1, sa));
+      const q = l < 0.5 ? l * (1 + sa) : l + sa - l * sa, p2 = 2 * l - q;
+      a[i] = f(p2, q, H + 1 / 3) * 255; a[i + 1] = f(p2, q, H) * 255; a[i + 2] = f(p2, q, H - 1 / 3) * 255;
+    }
+    x.putImageData(d, 0, 0);
+  } catch (e) { return im; }
+  return (TEINTES[k] = c);
+}
 const EMOJI = { 'oeuf-commun': '🥚', 'oeuf-rare': '🥚', 'oeuf-legendaire': '🥚', biberon: '🍼', piece: '🪙', vendre: '💰', couveuse: '🫧', nid: '💞', etoile: '⭐' };
 
-function drawImg(ctx, nom, x, y, w, h) {
-  const im = IMG[nom];
+function drawImg(ctx, nom, x, y, w, h, hue) {
+  const im = hue == null ? IMG[nom] : teinte(nom, hue);
   if (im) { ctx.drawImage(im, x, y, w, h); return; }
   ctx.save(); ctx.font = Math.round(h * 0.8) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(EMOJI[nom] || (ADULTES[nom] || nom.startsWith('bebe') || nom.startsWith('adulte') ? '🦄' : '🎀'), x + w / 2, y + h / 2); ctx.restore();
@@ -122,8 +148,9 @@ function mount(root, api) {
     if (!portrait) {
       LW = 1344; LH = 768; sc = Math.min(W / LW, H / LH);
       L = {
-        hud: { y: 8, h: 50 },
+        hud: { y: 4, h: 46 },
         belt: { x0: 210, x1: 1185, y: 128, sz: 74 },
+        trous: { g: { x: 214, bas: 135, w: 108, h: 84 }, d: { x: 1176, bas: 135, w: 108, h: 84 } },
         couv: { x: 236, y: 318, w: 156, h: 150 }, nid: { x: 470, y: 346, w: 176, h: 124 },
         enclos: { x: 770, y: 548, w: 530, h: 66 },   // le sol carrelé à droite (l'aquarium est retiré du fond : demande de PATOU, 2 nov. 23 h)
         sell: { x: 26, y: 606, w: 150, h: 152 },
@@ -137,6 +164,7 @@ function mount(root, api) {
       L = {
         hud: { y: 8, h: 56 },
         belt: { x0: 18, x1: 702, y: 150, sz: 74, draw: { x: 0, y: 116, w: 720 } },
+        trous: { g: { x: 34, bas: 156, w: 88, h: 90 }, d: { x: 686, bas: 156, w: 88, h: 90 } },
         enclosDraw: { x: 8, y: 222, w: 704, h: 334 + ex },
         enclos: { x: 70, y: 222 + 0.74 * (334 + ex), w: 580, h: 0.2 * (334 + ex) },   // les pieds sur le carrelage
         counterDraw: { x: 8, y: 700 + ex, w: 470 },
@@ -164,7 +192,9 @@ function mount(root, api) {
   let state = LOADED ? 'title' : 'load', stT = 0, timeLeft = DUREE, coins = 60, best = 0;
   let belt = [], beltT = 0.3, beltN = 0, couv = [], queue = [], tray = [], bib = 1, unis = [], nid = [null, null], nidT = 0, nidEgg = null;
   let sel = null, parts = [], texts = [], flyers = [], msg = null, drag = null, down = null, uid = 1, hover = null, tick = -1, loadErr = '';
-  const NID_DUREE = 6, MAX_UNIS = 8, MAX_TRAY = 8, MAX_QUEUE = 3;
+  const NID_DUREE = 8, MAX_UNIS = 8, MAX_TRAY = 8, MAX_QUEUE = 3;
+  let grande = false, grandeT = 30;   // la grande couveuse : achetée ? prochaine apparition sur le tapis
+  const cap = () => grande ? 4 : 2;
 
   function valeur(u) {
     let v = u.bebe ? OEUFS[u.ligne].valBebe : ADULTES[u.adulte].val;
@@ -179,6 +209,7 @@ function mount(root, api) {
     for (const t of queue) s += OEUFS[t].prix;
     for (const a of tray) s += ACC[a].prix;
     if (nidEgg) s += OEUFS[nidEgg].prix;
+    if (grande) s += GCOUV_PRIX;
     return Math.max(0, Math.round(s));
   }
 
@@ -264,6 +295,7 @@ function mount(root, api) {
     beltN++;
     const prog = 1 - timeLeft / DUREE, r = Math.random();
     let it;
+    if (!grande && grandeT <= 0 && !belt.some(i => i.k === 'gcouv')) { grandeT = 40 + Math.random() * 20; it = { k: 'gcouv', prix: GCOUV_PRIX, img: 'couveuse', x: L.trous.d.x + 6, bob: 0, shake: 0 }; belt.push(it); return; }
     const pRare = 0.12 + prog * 0.06, pLeg = 0.035 + prog * 0.04;
     if (beltN % 6 === 1 || r < 0.26) it = { k: 'egg', t: 'commun' };
     else if (r < 0.26 + pRare) it = { k: 'egg', t: 'rare' };
@@ -272,16 +304,30 @@ function mount(root, api) {
     else it = { k: 'bib' };
     it.prix = it.k === 'egg' ? OEUFS[it.t].prix : it.k === 'acc' ? ACC[it.t].prix : BIB_PRIX;
     it.img = it.k === 'egg' ? OEUFS[it.t].img : it.k === 'acc' ? it.t : 'biberon';
-    it.x = L.belt.x1 + 40; it.bob = Math.random() * 6; it.shake = 0;
+    it.x = L.trous.d.x + 6; it.bob = Math.random() * 6; it.shake = 0;
     belt.push(it);
   }
-  function itemBox(it) { const s = L.belt.sz, w = s * Math.min(1.3, ratio(it.img)), h = w / ratio(it.img); const hh = Math.min(h, s * 1.05), ww = hh * ratio(it.img); return { x: it.x - ww / 2, y: L.belt.y - hh - Math.abs(Math.sin(it.bob)) * 3, w: ww, h: hh }; }
+  const visible = it => it.x > L.trous.g.x + 18 && it.x < L.trous.d.x - 18;
+  // les pastilles de couleur, au-dessus de la couveuse, pour le premier œuf qui n'a pas encore sa couleur
+  function palette() {
+    const o = couv.find(e => e.col == null && !e.done); if (!o || state !== 'play') return [];
+    const c = L.couv, r0 = portrait ? 19 : 16, gap = portrait ? 44 : 38, n = COULEURS.length, x0 = Math.max(18 + r0, Math.min(LW - 18 - r0 - gap * (n - 1), c.x + c.w / 2 - gap * (n - 1) / 2)), y = c.y - (portrait ? 14 : 22);
+    return COULEURS.map((k, i) => ({ o, hue: k.h, c: k.c, n: k.n, x: x0 + i * gap - r0, y: y - r0, w: r0 * 2, h: r0 * 2 }));
+  }
+  function itemBox(it) { const s = L.belt.sz * (it.k === 'gcouv' ? 1.25 : 1), w = s * Math.min(1.3, ratio(it.img)), h = w / ratio(it.img); const hh = Math.min(h, s * 1.05), ww = hh * ratio(it.img); return { x: it.x - ww / 2, y: L.belt.y - hh - Math.abs(Math.sin(it.bob)) * 3, w: ww, h: hh }; }
   function buy(it) {
     const b = itemBox(it);
     if (coins < it.prix) { it.shake = 0.4; snd.no(); say('Pas assez de pièces : vends une licorne au panneau VENDRE'); return; }
     let to;
+    if (it.k === 'gcouv') {
+      coins -= it.prix; belt.splice(belt.indexOf(it), 1); snd.buy(); grande = true;
+      floatText(b.x + b.w / 2, b.y, '-' + it.prix, '#c0507a'); sparkle(b.x + b.w / 2, b.y + b.h / 2, 16, '#ffd34d', 160);
+      flyers.push({ img: 'couveuse', x0: b.x + b.w / 2, y0: b.y + b.h / 2, x1: L.couv.x + L.couv.w / 2, y1: L.couv.y + L.couv.h / 2, t: 0, s: b.h });
+      say('Grande couveuse : 4 œufs à la fois !');
+      return;
+    }
     if (it.k === 'egg') {
-      if (couv.length < 2) to = 'couv'; else if (queue.length < MAX_QUEUE) to = 'queue';
+      if (couv.length < cap()) to = 'couv'; else if (queue.length < MAX_QUEUE) to = 'queue';
       else { it.shake = 0.4; snd.no(); say('La couveuse est pleine !'); return; }
     } else if (it.k === 'acc') {
       if (tray.length >= MAX_TRAY) { it.shake = 0.4; snd.no(); say('Ton coffre à accessoires est plein : habille tes licornes !'); return; }
@@ -289,7 +335,7 @@ function mount(root, api) {
     } else to = 'bib';
     coins -= it.prix; belt.splice(belt.indexOf(it), 1); snd.buy();
     floatText(b.x + b.w / 2, b.y, '-' + it.prix, '#c0507a'); sparkle(b.x + b.w / 2, b.y + b.h / 2, 8);
-    if (to === 'couv') couv.push({ t: it.t, p: 0, done: false, wob: 0 });
+    if (to === 'couv') couv.push({ t: it.t, p: 0, done: false, wob: 0, col: null });
     if (to === 'queue') queue.push(it.t);
     if (to === 'tray') tray.push(it.t);
     if (to === 'bib') bib = Math.min(99, bib + 1);
@@ -419,7 +465,9 @@ function mount(root, api) {
   }
   function tap(p, d) {
     // tapis
-    for (let i = belt.length - 1; i >= 0; i--) if (inBox(p, itemBox(belt[i]), 8)) { buy(belt[i]); return; }
+    for (let i = belt.length - 1; i >= 0; i--) if (visible(belt[i]) && inBox(p, itemBox(belt[i]), 8)) { buy(belt[i]); return; }
+    // la couleur de l'œuf qui couve
+    for (const d2 of palette()) if (inBox(p, d2, 6)) { d2.o.col = d2.hue; snd.dress(); sparkle(d2.x + d2.w / 2, d2.y + d2.h / 2, 10, d2.c, 120); return; }
     // boutons d'action
     for (const a of actions()) if (inBox(p, a)) {
       if (!a.on && a.id !== 'feed') { snd.no(); if (a.id === 'nid') say('Le nid est déjà occupé'); return; }
@@ -457,7 +505,7 @@ function mount(root, api) {
   function startGame() {
     state = 'ready'; stT = 0; snd.go();
     for (let i = 0; i < 4; i++) { spawnItem(); belt[belt.length - 1].x = L.belt.x0 + 120 + i * (L.belt.x1 - L.belt.x0 - 120) / 4; }
-    couv.push({ t: 'commun', p: 0.55, done: false, wob: 0 });   // un premier œuf déjà au chaud
+    couv.push({ t: 'commun', p: 0.45, done: false, wob: 0, col: null });   // un premier œuf déjà au chaud
   }
   if (!LOADED) loadImages().then(() => { if (!dead && state === 'load') state = 'title'; }).catch(e => { loadErr = String(e && e.message || e); if (!dead) state = 'title'; });
 
@@ -477,10 +525,11 @@ function mount(root, api) {
     if (s <= 10 && s !== tick && s > 0) { tick = s; snd.tick(); }
     if (timeLeft <= 0) { timeLeft = 0; state = 'end'; stT = 0; sel = null; drag = null; snd.adult(); best = score(); return; }
     // tapis
-    beltT -= dt; if (beltT <= 0) { spawnItem(); beltT = 1.5 + Math.random() * 0.7; }
-    const spd = portrait ? 62 : 78;
-    for (const it of belt) { it.x -= spd * dt; it.bob += dt * 5; if (it.shake > 0) it.shake -= dt; }
-    belt = belt.filter(it => it.x > L.belt.x0 - 50);
+    // le tapis, plus doux (demande de PATOU, 3 nov.) : les objets sortent du trou de droite et rentrent dans celui de gauche
+    beltT -= dt; if (!grande) grandeT -= dt; if (beltT <= 0) { spawnItem(); beltT = 2.2 + Math.random() * 1.0; }
+    const spd = portrait ? 45 : 56;
+    for (const it of belt) { it.x -= spd * dt; it.bob += dt * 4; if (it.shake > 0) it.shake -= dt; }
+    belt = belt.filter(it => it.x > L.trous.g.x - 30);
     // couveuse
     for (const c of couv) {
       if (!c.done) { c.p += dt / OEUFS[c.t].eclot; if (c.p >= 1) { c.p = 1; c.done = true; } }
@@ -490,15 +539,15 @@ function mount(root, api) {
       const c = couv[i];
       if (c.done && unis.length < MAX_UNIS) {
         couv.splice(i, 1); i--;
-        const u = newUni(c.t); u.u = 0.1 + Math.random() * 0.3; u.v = Math.random(); unis.push(u);
+        const u = newUni(c.t); u.col = c.col; u.u = 0.1 + Math.random() * 0.3; u.v = Math.random(); unis.push(u);
         const x = L.couv.x + L.couv.w / 2, y = L.couv.y + L.couv.h * 0.45;
         snd.hatch(); sparkle(x, y, 20, null, 180); floatText(x, L.couv.y, 'Un bébé !', '#d0569a');
-        flyers.push({ img: OEUFS[c.t].bebe, x0: x, y0: y, x1: uniPos(u).x, y1: uniPos(u).y - uniH(u) / 2, t: 0, s: uniH(u) });
+        flyers.push({ img: OEUFS[c.t].bebe, hue: c.col, x0: x, y0: y, x1: uniPos(u).x, y1: uniPos(u).y - uniH(u) / 2, t: 0, s: uniH(u) });
         u.pop = 0.9;
         if (c.t === 'leg') { try { api.celebrate && api.celebrate('Un bébé légendaire !'); } catch (e) { /* rien */ } }
       } else if (c.done && unis.length >= MAX_UNIS && Math.random() < dt * 0.4) say('La maison est pleine : vends ou mets des licornes au nid');
     }
-    while (couv.length < 2 && queue.length) couv.push({ t: queue.shift(), p: 0, done: false, wob: 0 });
+    while (couv.length < cap() && queue.length) couv.push({ t: queue.shift(), p: 0, done: false, wob: 0, col: null });
     // nid d'amour
     if (nid[0] && nid[1] && !nidEgg) {
       nidT += dt;
@@ -506,25 +555,25 @@ function mount(root, api) {
       if (nidT >= NID_DUREE) { nidT = 0; nidEgg = nidOeuf(); snd.hatch(); sparkle(L.nid.x + L.nid.w / 2, L.nid.y + L.nid.h / 2, 20, '#ff9fd0'); floatText(L.nid.x + L.nid.w / 2, L.nid.y, OEUFS[nidEgg].nom + ' !', '#d0569a'); }
     }
     if (nidEgg) {
-      if (couv.length < 2) { couv.push({ t: nidEgg, p: 0, done: false, wob: 0 }); flyers.push({ img: OEUFS[nidEgg].img, x0: L.nid.x + L.nid.w / 2, y0: L.nid.y + L.nid.h / 2, x1: L.couv.x + L.couv.w / 2, y1: L.couv.y + L.couv.h * 0.4, t: 0, s: 60 }); nidEgg = null; }
+      if (couv.length < cap()) { couv.push({ t: nidEgg, p: 0, done: false, wob: 0, col: null }); flyers.push({ img: OEUFS[nidEgg].img, x0: L.nid.x + L.nid.w / 2, y0: L.nid.y + L.nid.h / 2, x1: L.couv.x + L.couv.w / 2, y1: L.couv.y + L.couv.h * 0.4, t: 0, s: 60 }); nidEgg = null; }
       else if (queue.length < MAX_QUEUE) { queue.push(nidEgg); nidEgg = null; }
     }
     // les licornes se promènent ; les bébés boivent un peu de lait tout seuls (très lentement)
     for (const u of unis.concat(nid.filter(Boolean))) {
       u.ph += dt; if (u.pop > 0) u.pop = Math.max(0, u.pop - dt); if (u.hop > 0) u.hop = Math.max(0, u.hop - dt);
-      if (u.bebe) { u.laitT += dt; if (u.laitT > 25) { u.laitT = 0; grow(u, 1); } }
+      if (u.bebe) { u.laitT += dt; if (u.laitT > 32) { u.laitT = 0; grow(u, 1); } }
       if (u.nid != null || (drag && drag.u === u)) continue;
       const dx = u.tu - u.u, dy = u.tv - u.v, d = Math.hypot(dx * L.enclos.w, dy * L.enclos.h);
       if (d < 4) { u.marche = false; u.repos = (u.repos || 0) + dt; u.wait -= dt; if (u.wait <= 0) { u.tu = Math.random(); u.tv = Math.random(); u.wait = 1 + Math.random() * 3; } }
       else {
-        const pas = (u.bebe ? 34 : 46) * dt, v = pas / d; u.u += dx * Math.min(1, v); u.v += dy * Math.min(1, v);
+        const pas = (u.bebe ? 28 : 38) * dt, v = pas / d; u.u += dx * Math.min(1, v); u.v += dy * Math.min(1, v);
         // un tour de marche (8 images) tous les FOULEE pixels : les sabots ne glissent pas
         if (!u.marche) { u.marche = true; u.step = 0; } u.step = (u.step || 0) + Math.min(pas, d) / ((u.bebe ? FOULEE_BEBE : FOULEE) / 8); u.repos = 0;
         if (Math.abs(dx * L.enclos.w) > 6) u.face = dx > 0 ? 1 : -1;
       }
     }
     // manette : A = acheter l'objet le plus à gauche qu'on peut payer (aide simple pour l'alpha)
-    if (pad && pad.pressed && pad.pressed('a')) { const it = belt.filter(i => i.x < L.belt.x1 && coins >= i.prix).sort((a, b) => a.x - b.x)[0]; if (it) buy(it); }
+    if (pad && pad.pressed && pad.pressed('a')) { const it = belt.filter(i => visible(i) && coins >= i.prix).sort((a, b) => a.x - b.x)[0]; if (it) buy(it); }
   }
 
   // ---------- dessin ----------
@@ -561,33 +610,88 @@ function mount(root, api) {
     ctx.fillStyle = '#8a4fb0'; ctx.textAlign = 'left'; ctx.font = 'bold ' + Math.round(fs * 0.55) + 'px ' + RF; ctx.fillText('VALEUR', vx + 16, y + h / 2 + 1);
     ctx.font = 'bold ' + fs + 'px ' + RF; ctx.textAlign = 'right'; ctx.fillText('⭐ ' + score(), vx + vw - 14, y + h / 2 + 1);
   }
+  // un trou sombre dans le mur, au bout du tapis : la voûte (arrondie en haut), le noir du fond, le bord crème comme la porte du mur
+  function voute(t) { const r0 = t.w / 2, top = t.bas - t.h; ctx.beginPath(); ctx.moveTo(t.x - r0, t.bas); ctx.lineTo(t.x - r0, top + r0); ctx.arc(t.x, top + r0, r0, Math.PI, 0); ctx.lineTo(t.x + r0, t.bas); ctx.closePath(); }
+  function trouFond(t) {
+    voute(t); const g = ctx.createRadialGradient(t.x, t.bas - t.h * 0.42, 4, t.x, t.bas - t.h * 0.42, t.h * 0.75);
+    g.addColorStop(0, '#1d0b26'); g.addColorStop(0.7, '#3a1a48'); g.addColorStop(1, '#5c2f6c'); ctx.fillStyle = g; ctx.fill();
+  }
+  function trouDevant(t, versDroite) {
+    // l'ombre qui avale les objets : noire au fond du trou, transparente au bord
+    ctx.save(); voute(t); ctx.clip();
+    const x0 = versDroite ? t.x - t.w / 2 : t.x + t.w / 2, g = ctx.createLinearGradient(x0, 0, t.x, 0);
+    g.addColorStop(0, 'rgba(29,11,38,0)'); g.addColorStop(0.5, 'rgba(29,11,38,0.9)'); g.addColorStop(0.8, 'rgba(29,11,38,1)');
+    ctx.fillStyle = g; ctx.fillRect(t.x - t.w / 2, t.bas - t.h, t.w, t.h); ctx.restore();
+    // le bord de la voûte
+    voute(t); ctx.lineJoin = 'round'; ctx.lineWidth = t.w * 0.13; ctx.strokeStyle = '#fbe9f1'; ctx.stroke();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#d99bbd'; ctx.stroke();
+    ctx.save(); ctx.globalAlpha = 0.55; ctx.lineWidth = t.w * 0.05; ctx.strokeStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(t.x, t.bas - t.h + t.w / 2, t.w / 2 - t.w * 0.03, Math.PI * 1.15, Math.PI * 1.45); ctx.stroke(); ctx.restore();
+  }
   function drawBelt() {
+    const T = L.trous;
+    trouFond(T.g); trouFond(T.d);
+    // les objets n'existent qu'entre le milieu des deux trous (ils y entrent et en sortent)
+    ctx.save(); ctx.beginPath();
+    const rg = T.g.w / 2, rd = T.d.w / 2, yg = T.g.bas - T.g.h + rg, yd = T.d.bas - T.d.h + rd, bas = L.belt.y + 60;
+    ctx.moveTo(T.g.x, bas); ctx.lineTo(T.g.x, yg - rg); ctx.arc(T.g.x, yg, rg, -Math.PI / 2, 0); ctx.lineTo(T.g.x + rg, 0);
+    ctx.lineTo(T.d.x - rd, 0); ctx.lineTo(T.d.x - rd, yd); ctx.arc(T.d.x, yd, rd, Math.PI, Math.PI * 1.5); ctx.lineTo(T.d.x, bas); ctx.closePath(); ctx.clip();
     for (const it of belt) {
       const b = itemBox(it), sh = it.shake > 0 ? Math.sin(it.shake * 60) * 4 : 0;
       const ok = coins >= it.prix;
       ctx.save(); if (!ok) ctx.globalAlpha = 0.6;
+      if (it.k === 'gcouv') {   // la grande couveuse : un halo doré et « ×4 »
+        const gl = ctx.createRadialGradient(it.x, b.y + b.h / 2, 4, it.x, b.y + b.h / 2, b.w * 0.75); gl.addColorStop(0, 'rgba(255,224,110,0.75)'); gl.addColorStop(1, 'rgba(255,224,110,0)');
+        ctx.fillStyle = gl; ctx.fillRect(b.x - b.w * 0.3, b.y - b.h * 0.3, b.w * 1.6, b.h * 1.6);
+      }
       drawImg(ctx, it.img, b.x + sh, b.y, b.w, b.h);
+      if (it.k === 'gcouv') { ctx.font = 'bold 20px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 5; ctx.strokeStyle = '#fff'; ctx.strokeText('×4', b.x + b.w - 8, b.y + 10); ctx.fillStyle = '#c0408a'; ctx.fillText('×4', b.x + b.w - 8, b.y + 10); }
       ctx.restore();
       // étiquette de prix
-      const pw = 64, ph = 26, px = it.x - pw / 2, py = L.belt.y + 4;
+      const pw = it.k === 'gcouv' ? 74 : 64, ph = 26, px = it.x - pw / 2, py = L.belt.y + 4;
+      ctx.globalAlpha = Math.max(0, Math.min(1, (T.d.x - T.d.w / 2 - it.x + 10) / 40, (it.x - T.g.x - T.g.w / 2 + 10) / 40));   // l'étiquette s'efface au bord des trous
       pill(ctx, px, py, pw, ph, 13); ctx.fillStyle = ok ? '#fff6c8' : '#f1e3ea'; ctx.fill(); ctx.strokeStyle = ok ? '#e2b33c' : '#d7b5c7'; ctx.lineWidth = 2; ctx.stroke();
       ctx.font = 'bold 17px ' + RF; ctx.fillStyle = ok ? '#9a6a00' : '#a08a96'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('🪙' + it.prix, it.x, py + ph / 2 + 1);
+      ctx.fillText('🪙' + it.prix, it.x, py + ph / 2 + 1); ctx.globalAlpha = 1;
     }
+    ctx.restore();
+    trouDevant(T.g, false); trouDevant(T.d, true);
   }
+  // la couveuse : jamais vide à l'intérieur (un coussin de paille), les œufs posés dessus ; la grande couveuse en prend 4
   function drawCouv() {
-    const c = L.couv;
+    const c0 = L.couv, k = grande ? 1.28 : 1, c = { x: c0.x + c0.w * (1 - k) / 2, y: c0.y + c0.h * (1 - k), w: c0.w * k, h: c0.h * k };
+    if (grande) { const gl = ctx.createRadialGradient(c.x + c.w / 2, c.y + c.h * 0.5, 6, c.x + c.w / 2, c.y + c.h * 0.5, c.w * 0.7); gl.addColorStop(0, 'rgba(255,224,110,0.35)'); gl.addColorStop(1, 'rgba(255,224,110,0)'); ctx.fillStyle = gl; ctx.fillRect(c.x - 30, c.y - 30, c.w + 60, c.h + 60); }
     drawImg(ctx, 'couveuse', c.x, c.y, c.w, c.h);
+    // le coussin de paille
+    const nx = c.x + c.w / 2, ny = c.y + c.h * 0.63, nrx = c.w * (grande ? 0.31 : 0.26), nry = c.h * 0.075;
+    ctx.fillStyle = 'rgba(120,70,40,0.25)'; ctx.beginPath(); ctx.ellipse(nx, ny + nry * 0.5, nrx * 1.05, nry * 1.1, 0, 0, TAU); ctx.fill();
+    const gp = ctx.createLinearGradient(0, ny - nry, 0, ny + nry); gp.addColorStop(0, '#f6dd8a'); gp.addColorStop(1, '#d7a94a');
+    ctx.fillStyle = gp; ctx.beginPath(); ctx.ellipse(nx, ny, nrx, nry, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(160,110,40,0.75)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    for (let i = 0; i < 14; i++) { const a = i / 14 * TAU, x1 = nx + Math.cos(a) * nrx * 0.95, y1 = ny + Math.sin(a) * nry * 0.9; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + Math.cos(a + 1.2) * nrx * 0.28, y1 + Math.sin(a + 1.2) * nry * 0.5 - 2); ctx.stroke(); }
+    ctx.lineCap = 'butt';
+    // les œufs, posés sur la paille
+    const n = couv.length, s = n > 2 ? 0.3 : n > 1 ? 0.36 : 0.44, eh = c0.h * s;
     couv.forEach((o, i) => {
-      const s = couv.length > 1 ? 0.36 : 0.44, eh = c.h * s, ew = eh * ratio(OEUFS[o.t].img);
-      const cx = c.x + c.w * (couv.length > 1 ? (i ? 0.64 : 0.36) : 0.5), cy = c.y + c.h * 0.5;
-      ctx.save(); ctx.translate(cx, cy + eh / 2); ctx.rotate(Math.sin(o.wob) * (o.done ? 0.2 : 0.06));
-      drawImg(ctx, OEUFS[o.t].img, -ew / 2, -eh, ew, eh); ctx.restore();
+      const ew = eh * ratio(OEUFS[o.t].img), cx = nx + (n > 1 ? (i - (n - 1) / 2) * Math.min(ew * 1.02, nrx * 2 / n) : 0), cy = ny + nry * 0.25;
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.sin(o.wob) * (o.done ? 0.2 : 0.06));
+      drawImg(ctx, OEUFS[o.t].img, -ew / 2, -eh, ew, eh, o.col); ctx.restore();
       // jauge
-      ctx.fillStyle = 'rgba(255,255,255,0.8)'; pill(ctx, cx - 26, c.y + c.h - 6, 52, 9, 4); ctx.fill();
-      ctx.fillStyle = '#ff8cc6'; pill(ctx, cx - 26, c.y + c.h - 6, 52 * o.p, 9, 4); ctx.fill();
+      const jw = n > 2 ? 34 : 52; ctx.fillStyle = 'rgba(255,255,255,0.8)'; pill(ctx, cx - jw / 2, c.y + c.h - 6, jw, 9, 4); ctx.fill();
+      ctx.fillStyle = '#ff8cc6'; pill(ctx, cx - jw / 2, c.y + c.h - 6, jw * o.p, 9, 4); ctx.fill();
     });
-    queue.forEach((t, i) => drawImg(ctx, OEUFS[t].img, c.x + c.w - 6 + i * 26 - 0, c.y + c.h - 36 - i * 4, 24, 32));
+    // un reflet sur la cloche, par-dessus les œufs (ils sont dedans)
+    ctx.save(); ctx.globalAlpha = 0.35; ctx.strokeStyle = '#fff'; ctx.lineWidth = c.w * 0.035; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(c.x + c.w * 0.5, c.y + c.h * 0.5, c.w * 0.33, Math.PI * 1.12, Math.PI * 1.36); ctx.stroke(); ctx.restore();
+    queue.forEach((t, i) => drawImg(ctx, OEUFS[t].img, c0.x + c0.w - 6 + i * 26 - 0, c0.y + c0.h - 36 - i * 4, 24, 32));
+    // le choix de la couleur
+    const P = palette();
+    if (P.length) {
+      const a = P[0], z = P[P.length - 1], pul = 1 + Math.sin(stT * 5) * 0.06;
+      pill(ctx, a.x - 10, a.y - 24, z.x + z.w - a.x + 20, a.h + 32, 18); ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill(); ctx.strokeStyle = '#efb3d6'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = 'bold 14px ' + RF; ctx.fillStyle = '#9a4fb8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Choisis la couleur de l’œuf', (a.x + z.x + z.w) / 2, a.y - 11);
+      for (const d of P) { ctx.beginPath(); ctx.arc(d.x + d.w / 2, d.y + d.h / 2, d.w / 2 * pul, 0, TAU); ctx.fillStyle = d.c; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+    }
   }
   function label(s, x, y) {
     ctx.font = 'bold 18px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -619,7 +723,7 @@ function mount(root, api) {
     if (u.bebe && u.ligne === 'leg') { ctx.shadowColor = 'rgba(255,215,90,0.95)'; ctx.shadowBlur = 18; }
     const accs = u.accs.map(a => ({ a, d: ACC[a][u.bebe ? 'k' : 'a'] }));
     for (const o of accs) if (o.d.b) accDraw(o, b);
-    drawImg(ctx, uniPose(u), 0, 0, b.w, b.h); ctx.shadowBlur = 0;
+    drawImg(ctx, uniPose(u), 0, 0, b.w, b.h, u.bebe ? u.col : null); ctx.shadowBlur = 0;
     for (const o of accs) if (!o.d.b) accDraw(o, b);
     ctx.restore();
     if (u.bebe) {   // le lait bu (3 = adulte)
@@ -658,7 +762,7 @@ function mount(root, api) {
       return;
     }
     const nm = uniImg(u), ih = 86, iw = ih * ratio(nm);
-    ctx.save(); ctx.translate(a.x + 70, a.y + a.h / 2 + ih / 2 - 4); ctx.scale(Math.min(1, 120 / iw), Math.min(1, 120 / iw)); drawImg(ctx, nm, -iw / 2, -ih, iw, ih); ctx.restore();
+    ctx.save(); ctx.translate(a.x + 70, a.y + a.h / 2 + ih / 2 - 4); ctx.scale(Math.min(1, 120 / iw), Math.min(1, 120 / iw)); drawImg(ctx, nm, -iw / 2, -ih, iw, ih, u.bebe ? u.col : null); ctx.restore();
     ctx.font = 'bold 15px ' + RF; ctx.fillStyle = '#8a4fb0'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText((u.bebe ? 'Bébé · ' + ['', 'rare', 'légendaire'][['commun', 'rare', 'leg'].indexOf(u.ligne)] : ADULTES[u.adulte].nom).replace(/ · $/, '') + (u.accs.length ? ' · ' + u.accs.length + ' accessoire' + (u.accs.length > 1 ? 's' : '') : ''), a.x + 150, a.y + 16);
     for (const b of actions()) {
@@ -672,7 +776,7 @@ function mount(root, api) {
   function drawFx() {
     for (const f of flyers) {
       const e = 1 - Math.pow(1 - f.t, 3), x = f.x0 + (f.x1 - f.x0) * e, y = f.y0 + (f.y1 - f.y0) * e - Math.sin(f.t * Math.PI) * 80, s = f.s * (1 - f.t * 0.4);
-      ctx.globalAlpha = 1 - f.t * 0.3; drawImg(ctx, f.img, x - s * ratio(f.img) / 2, y - s / 2, s * ratio(f.img), s); ctx.globalAlpha = 1;
+      ctx.globalAlpha = 1 - f.t * 0.3; drawImg(ctx, f.img, x - s * ratio(f.img) / 2, y - s / 2, s * ratio(f.img), s, f.hue); ctx.globalAlpha = 1;
     }
     for (const p of parts) {
       const a = 1 - p.t / p.d; ctx.globalAlpha = Math.max(0, a); ctx.fillStyle = p.c;
@@ -778,6 +882,9 @@ function mount(root, api) {
       unis: () => unis.concat(nid.filter(Boolean)).map(u => { const b = uniBox(u); return { bebe: u.bebe, nid: u.nid, x: ox + b.fx * sc, y: oy + (b.y + b.h * 0.55) * sc }; }),
       acts: () => actions().map(a => ({ id: a.id, x: ox + (a.x + a.w / 2) * sc, y: oy + (a.y + a.h / 2) * sc })),
       tray: () => trayBoxes().map(b => ({ x: ox + (b.x + b.w / 2) * sc, y: oy + (b.y + b.h / 2) * sc })),
+      couv: () => couv.map(o => ({ t: o.t, p: +o.p.toFixed(2), col: o.col })), grande: () => grande, viens(k) { if (k === 'gcouv') grandeT = 0; },
+      palette: () => palette().map(d => ({ hue: d.hue, x: ox + (d.x + d.w / 2) * sc, y: oy + (d.y + d.h / 2) * sc })),
+      bebes: () => unis.filter(u => u.bebe).map(u => u.col),
       zone: k => ({ x: ox + (L[k].x + L[k].w / 2) * sc, y: oy + (L[k].y + L[k].h / 2) * sc })
     }
   };
