@@ -14292,7 +14292,11 @@ function atlRenderProjets() {
     b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', '', att ? '⏳ En attente ' + gDe() : ATL_ETATS[pj.etat] || String(pj.etat || '')));
     if (att) b.appendChild(atlEl('span', 'atl-patt', '⏳ En attente'));
     if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
-    b.addEventListener('click', () => atlOuvrir(pj.id)); g.appendChild(b);
+    b.addEventListener('click', () => atlOuvrir(pj.id));
+    // 20 h 50 (Benjamin) : la ROUE ⚙️ de chaque tuile (Renommer / Supprimer) ; à côté de la tuile, pour ne pas ouvrir le projet
+    const w = atlEl('div', 'atl-pwrap'), rg = atlEl('button', 'atl-proue', '⚙️'); rg.type = 'button'; rg.setAttribute('aria-label', 'Réglages du projet « ' + (pj.titre || 'Mon jeu sans nom') + ' »');
+    rg.addEventListener('click', e => { e.stopPropagation(); atlRoue(w, pj); });
+    w.append(b, rg); g.appendChild(w);
   }
   const nb = atlEl('button', 'atl-ptile atl-pplus'); nb.type = 'button';
   nb.append(atlEl('span', 'atl-pv', '＋'), atlEl('b', '', 'Nouveau projet'), atlEl('small', '', ps.length + ' / ' + max + ' projets'));
@@ -15070,6 +15074,58 @@ function atlAccueil(box, ps, max) {
   tx.appendChild(act);
   const pic = atlEl('img', 'atl-accimg'); pic.alt = ''; pic.src = ROOT + 'accueil/guide-coucou.webp'; pic.onerror = () => pic.replaceWith(atlGuideAv('atl-accav'));
   A.append(pic, tx); box.appendChild(A);
+}
+
+// ---- la roue ⚙️ d'un projet : ✏️ Renommer (40 caractères, gratuit) ; 🗑️ Supprimer (masqué, pas effacé ; pas pendant la construction)
+function atlRoue(w, pj) {
+  const old = ATL.root.querySelector('.atl-pmenu'); if (old) { const same = old.parentNode === w; old.remove(); if (same) return; }
+  const M = atlEl('div', 'atl-pmenu'), et = String(pj.etat || ''), bloque = ['envoyee', 'acceptee', 'publie_salle', 'publie_monde'].includes(et);
+  const rn = atlEl('button', '', '✏️ Renommer'); rn.type = 'button';
+  rn.addEventListener('click', e => { e.stopPropagation(); M.remove(); atlRenommerTuile(w, pj); });
+  const sp = atlEl('button', 'del', '🗑️ Supprimer'); sp.type = 'button'; sp.disabled = bloque;
+  sp.addEventListener('click', e => { e.stopPropagation(); M.remove(); atlSupprimerAsk(pj); });
+  M.append(rn, sp);
+  if (bloque) M.appendChild(atlEl('small', '', et.startsWith('publie') ? 'Publié : impossible de le supprimer.' : 'En construction : impossible de le supprimer pour l’instant.'));
+  w.appendChild(M);
+  const off = e => { if (!M.contains(e.target)) { M.remove(); document.removeEventListener('pointerdown', off, true); } };
+  setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
+}
+function atlRenommerTuile(w, pj) {
+  const b = w.querySelector('.atl-ptile b'); if (!b) return;
+  const i = atlEl('input', 'atl-ptin'); i.type = 'text'; i.maxLength = 40; i.value = pj.titre || ''; i.placeholder = 'Mon jeu sans nom'; i.setAttribute('aria-label', 'Le nom du projet');
+  b.style.visibility = 'hidden'; w.appendChild(i); i.focus(); i.select();   // par-dessus la tuile (un champ dans un bouton se comporte mal)
+  let fini = false;
+  const fin = async garder => {
+    if (fini) return; fini = true;
+    const v = i.value.replace(/\s+/g, ' ').trim().slice(0, 40);
+    if (garder && v.length >= 2 && v !== (pj.titre || '')) {
+      pj.titre = v;
+      try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: pj.id, p_cle: 'titre', p_valeur: v }, { quiet: true }); toastCheer('✏️ « ' + v + ' » enregistré', null, true); }
+      catch (e) { toastCheer(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie', null, true); }
+    }
+    atlRender(); atlLoad(true);
+  };
+  i.addEventListener('click', e => e.stopPropagation());
+  i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); fin(true); } else if (e.key === 'Escape') { e.preventDefault(); fin(false); } });
+  i.addEventListener('blur', () => fin(true));
+}
+function atlSupprimerAsk(pj) {
+  const M = ATL.root.querySelector('.atl-mod'), nom = pj.titre || 'Mon jeu sans nom';
+  M.textContent = ''; M.hidden = false;
+  const c = atlEl('div', 'atl-mcard');
+  c.append(atlEl('h2', '', '🗑️ Supprimer « ' + nom + ' » ?'), atlEl('p', 'atl-aide', 'Ce projet et ses dessins disparaîtront. Les crédits déjà utilisés ne sont pas rendus.'));
+  const er = atlEl('p', 'atl-werr'); er.hidden = true;
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), ok = atlEl('button', 'btn atl-bdel', 'Supprimer'); no.type = 'button'; ok.type = 'button';
+  no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
+  ok.addEventListener('click', async () => {
+    ok.disabled = true;
+    try {
+      await rpc('at_supprimer', { p_name: profile.name, p_fiche: pj.id }, { quiet: true });
+      if (ATL.data && Array.isArray(ATL.data.projets)) ATL.data.projets = ATL.data.projets.filter(x => x.id !== pj.id);
+      M.hidden = true; M.textContent = ''; toastCheer('🗑️ « ' + nom + ' » supprimé', null, true); atlRender(); atlTileState(); atlLoad(true);
+    } catch (e) { ok.disabled = false; er.hidden = false; er.textContent = /en construction/.test(String(e && e.message)) ? 'En construction : impossible de le supprimer pour l’instant.' : atlWhy(e); }
+  });
+  row.append(no, ok); c.append(er, row); M.appendChild(c); no.focus();
 }
 
 // ---------- serveur ----------

@@ -3989,3 +3989,16 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 .atl-accimg{flex:0 0 auto;width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45))}
 @media (max-width:600px){.atl-accimg{width:84px;height:84px}}
 .atl-av,.atl-wav,.atl-garret,.atl-accav{background:linear-gradient(135deg,#bfe6ff,#9b7bff)}
+
+/* la roue ⚙️ des tuiles de projet (borne 1.63.84) */
+.atl-pwrap{position:relative;display:grid}
+.atl-proue{position:absolute;top:8px;right:8px;z-index:2;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(10,8,22,.78);font-size:20px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(4px)}
+.atl-proue:hover,.atl-proue:focus-visible{border-color:#ffd34d}
+.atl-pwrap .atl-pnew{right:58px}
+.atl-pmenu{position:absolute;top:56px;right:8px;z-index:5;display:grid;gap:4px;min-width:200px;padding:8px;border-radius:14px;border:1px solid var(--line);background:#16122c;box-shadow:0 12px 34px rgba(0,0,0,.55)}
+.atl-pmenu button{padding:10px 12px;border:0;border-radius:10px;background:none;color:var(--ink);font:700 14.5px var(--body);text-align:left;cursor:pointer}
+.atl-pmenu button:hover{background:rgba(255,255,255,.07)}
+.atl-pmenu button.del{color:#ff8a9a}.atl-pmenu button:disabled{opacity:.4;cursor:not-allowed}
+.atl-pmenu small{padding:0 12px 4px;color:var(--muted);font:12.5px/1.35 var(--body)}
+.atl-ptin{position:absolute;left:8px;right:8px;bottom:26px;z-index:3;padding:6px 8px;border-radius:8px;border:2px solid #ffd34d;background:var(--night);color:var(--ink);font:700 15px var(--body)}
+.atl-bdel{background:#e53950;color:#fff;border-color:#e53950}

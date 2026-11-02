@@ -2181,3 +2181,44 @@ begin
     execute d;
   end if;
 end $$;
+
+-- (v25, borne 1.63.84, 2 nov. 20 h 50, Benjamin) : SUPPRIMER un projet depuis sa tuile (roue ⚙️) = le masquer (état « supprime ») :
+-- rien n'est effacé (fichiers, messages, journal des dépenses), sa place se libère dans la limite de 5, les crédits dépensés ne sont pas
+-- rendus. Interdit pendant la construction (« envoyee », « acceptee ») et une fois publié (« publie_salle », « publie_monde »).
+alter table public.at_fiches drop constraint if exists at_fiches_etat_check;
+alter table public.at_fiches add constraint at_fiches_etat_check check (etat = any (array['brouillon', 'en_discussion', 'complete', 'design', 'design_choisi', 'envoyee', 'acceptee', 'refusee', 'alpha', 'publie_salle', 'publie_monde', 'supprime']));
+alter table public.at_fiches add column if not exists supprime_at timestamptz;
+
+create or replace function public.at_supprimer(p_name text, p_fiche uuid)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-fiche', 300, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if f.etat in ('envoyee', 'acceptee', 'publie_salle', 'publie_monde') then raise exception 'en construction'; end if;
+  update public.at_fiches x set etat = 'supprime', supprime_at = now(), maj_at = now() where x.id = f.id;
+  return jsonb_build_object('id', f.id, 'etat', 'supprime');
+end $$;
+revoke all on function public.at_supprimer(text, uuid) from public, anon;
+grant execute on function public.at_supprimer(text, uuid) to authenticated;
+
+-- un projet supprimé disparaît partout comme un projet refusé (lecture, limite de 5, file d'attente de l'équipe)
+do $$
+declare d text; fn text;
+begin
+  foreach fn in array array['pegase_int.at_fiche_de(text,uuid)', 'pegase_int.at_projets_ok(text)', 'public.at_lire(text,uuid)'] loop
+    d := pg_get_functiondef(fn::regprocedure);
+    if position('''supprime''' in d) = 0 then
+      d := replace(d, 'etat <> ''refusee''', 'etat not in (''refusee'', ''supprime'')');
+      if position('''supprime''' in d) = 0 then raise exception '%', fn; end if;
+      execute d;
+    end if;
+  end loop;
+  d := pg_get_viewdef('public.at_en_attente'::regclass);
+  if position('supprime' in d) = 0 then
+    d := replace(d, '(etat <> ''refusee''::text)', '(etat <> all (array[''refusee''::text, ''supprime''::text]))');
+    if position('supprime' in d) = 0 then raise exception 'at_en_attente'; end if;
+    execute 'create or replace view public.at_en_attente as ' || d;
+  end if;
+end $$;

@@ -40,6 +40,9 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## ⚙️ Renomme ou supprime tes projets (borne 1.63.84)
+[atelier] ⚙️ Chaque projet a sa roue : « Renommer » pour changer son nom, « Supprimer » pour le retirer de « Mes projets » (avec une confirmation). Un projet en construction ou publié ne se supprime pas.
+
 [atelier] ## 🛡️ L'Atelier ne se ferme plus pour une mise à jour (borne 1.63.83)
 [atelier] 🛡️ Être dans l'Atelier, c'est comme être dans un jeu : une nouvelle version ne te fait plus sortir. Elle s'installe quand tu quittes l'Atelier, et tes brouillons sont gardés.
 [atelier] 🤖 Ton guide a maintenant son vrai visage, et il te fait coucou en entrant dans l'Atelier.
