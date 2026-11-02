@@ -6,6 +6,15 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🐕 Pégase 0.9.9.40 : plus personne ne te bouscule (borne 1.63.12)
+[pegase] 🐕 Les chiens, les chats et les habitants ne poussent plus l'héroïne : ils gardent leurs distances, la contournent et s'écartent quand elle avance. Au coin du perron de la mairie ou au pied des piliers de la place, tu peux toujours repartir.
+[pegase] 🎩 Papi Auguste n'est plus invisible pour « Aller écouter Papi Auguste à la mairie » : tant que la mission est proposée, il t'attend en haut des escaliers de la mairie, à toute heure, même la nuit. Parle-lui pour faire venir la foule, puis reparle-lui pour son discours.
+[pegase] 🧭 Mission « Trouver les 3 inscriptions des géants » : le repère doré et la flèche (avec la distance) te mènent à l'inscription la plus proche qu'il te reste à envoyer.
+[pegase] 🏡 Après « Modifier ma maison » (boîte aux lettres ou panneau), l'héroïne revient exactement là où elle était, au lieu de se retrouver dans le jardin voisin.
+[pegase] 🏨 À l'hôtel, les lits des chambres sont dans le bon sens, des tableaux plus gais remplacent les tableaux sombres, et une petite musique d'ambiance (piano et violoncelle) t'accueille.
+[pegase] 🚲 À vélo, un gros rocher arrête doucement la roue (« Un rocher bloque le passage ») au lieu de te faire grimper dessus ; les petites pierres se franchissent toujours.
+[pegase] 🦋 Les papillons ne volent plus dans le feuillage, ne traversent plus les rochers ni les fondations, et ne butinent plus les fleurs collées à un mur, une clôture ou une falaise.
+[pegase] 🐣 Les poussins trottinent à la bonne cadence derrière leur mère, le grand tétras ne plonge plus la tête dans le sol en picorant, et le rossignol chante dans un taillis, loin de la grange.
 [remparts] ## 🏰 Remparts !, en essai : le tower defense de la borne (borne 1.63.11)
 [remparts] 🏰 Défends ton château dans 5 mondes (la Prairie, les Dunes, les Pics Gelés, le Volcan, le Château Hanté) : pose tes tours, arrête les vagues d'ennemis, et vise le plus gros score.
 [remparts] 🏆 Un défi du jour (une carte, une règle, un seul essai compté) avec son classement, 19 succès et un écran des records.

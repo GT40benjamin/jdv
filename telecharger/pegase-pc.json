@@ -1,39 +1,54 @@
 {
-  "version": "0.9.9.39",
-  "build": 90,
-  "size": 1668635735,
-  "sha256": "737db8e8abcb85ae5b92e0631a879c91d69aa6df15706f152956d652f594983e",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v90/Pegase-PC-2026-11-01-0.9.9.39.zip",
-  "manifest": "852943d92d162fdbe6d9db653d2347452743dfb3221107e123b2cdc4460a768c",
+  "version": "0.9.9.40",
+  "build": 91,
+  "size": 1669950326,
+  "sha256": "762ef9ed3fdfddb9a64ee69972932a9c93a12d26153505334b0aa994379f9335",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v91/Pegase-PC-2026-11-01-0.9.9.40.zip",
+  "manifest": "f3e47aa8085afed43b63eb21c76c9c6fcc86730d3357a4e7d762a152a80cebe6",
   "patchs": [
     {
+      "de": "0.9.9.39",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v91/Pegase-PC-patch-0.9.9.39.zip",
+      "taille": 5937407,
+      "sha256": "7257aa67d70567572f7403bcbbf530294d3f80397ad93ef7ec00d410236fe5bf"
+    },
+    {
       "de": "0.9.9.38",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v90/Pegase-PC-patch-0.9.9.38.zip",
-      "taille": 6934422,
-      "sha256": "8b463e5ac29af09244fede8aa2afe18a6cf92290a7191e61a0d34e28fda94999"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v91/Pegase-PC-patch-0.9.9.38.zip",
+      "taille": 8525488,
+      "sha256": "17672439bcffab6b28bf2623407c0efc96203ab05fea593ec05dde66ea857879"
     },
     {
       "de": "0.9.9.37",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v90/Pegase-PC-patch-0.9.9.37.zip",
-      "taille": 7049707,
-      "sha256": "2ae8e0f721573803f262c9cb868ccdac716cb27ab36f6f8da0eb82be59fe91fd"
-    },
-    {
-      "de": "0.9.9.36",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v90/Pegase-PC-patch-0.9.9.36.zip",
-      "taille": 7120352,
-      "sha256": "90cef09f6da58bcbbfb0ba78a2a6e7c77c864d935ba0829d83446c75b7cf638d"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v91/Pegase-PC-patch-0.9.9.37.zip",
+      "taille": 8549277,
+      "sha256": "01234f9f50b6d4498ce43d3628264007cb65bb24b801db68c3d5ebe20cfd3d80"
     }
   ],
   "notes": [
-    "Des mains plus naturelles : Désiré referme ses mains quand il parle, l'héroïne et les habitantes ont des doigts détendus au repos.",
-    "En prenant tout droit l'escalier du pont rouge, l'héroïne contourne toujours le poteau du côté du pont : plus de chute dans le vide.",
-    "Le ruisseau sous le pont rouge est maintenant une vraie eau bleue qui coule, avec de l'écume sur ses rives.",
-    "Une bête qui détale fait d'abord volte-face : elle ne part plus de côté ou à reculons.",
-    "Poules, coq, pigeons, corneilles, faisans… : leurs pattes ne glissent plus en marchant, et la basse-cour marche d'un pas vif au lieu de trotter.",
-    "Une bête qui se tourne un peu pendant un repos fait quelques pas au lieu de pivoter les pattes figées ; couchée ou en train de brouter, elle garde son cap."
+    "Les chiens, les chats et les habitants ne poussent plus l'héroïne : ils gardent leurs distances, la contournent et s'écartent quand elle avance. Au coin du perron de la mairie ou au pied des piliers de la place, tu peux toujours repartir.",
+    "Papi Auguste n'est plus invisible pour « Aller écouter Papi Auguste à la mairie » : tant que la mission est proposée, il t'attend en haut des escaliers de la mairie, à toute heure, même la nuit. Parle-lui pour faire venir la foule, puis reparle-lui pour son discours.",
+    "Mission « Trouver les 3 inscriptions des géants » : le repère doré et la flèche (avec la distance) te mènent à l'inscription la plus proche qu'il te reste à envoyer.",
+    "Après « Modifier ma maison » (boîte aux lettres ou panneau), l'héroïne revient exactement là où elle était, au lieu de se retrouver dans le jardin voisin.",
+    "À l'hôtel, les lits des chambres sont dans le bon sens, des tableaux plus gais remplacent les tableaux sombres, et une petite musique d'ambiance (piano et violoncelle) t'accueille.",
+    "À vélo, un gros rocher arrête doucement la roue (« Un rocher bloque le passage ») au lieu de te faire grimper dessus ; les petites pierres se franchissent toujours.",
+    "Les papillons ne volent plus dans le feuillage, ne traversent plus les rochers ni les fondations, et ne butinent plus les fleurs collées à un mur, une clôture ou une falaise.",
+    "Les poussins trottinent à la bonne cadence derrière leur mère, le grand tétras ne plonge plus la tête dans le sol en picorant, et le rossignol chante dans un taillis, loin de la grange."
   ],
   "historique": [
+    {
+      "version": "0.9.9.40",
+      "notes": [
+        "Les chiens, les chats et les habitants ne poussent plus l'héroïne : ils gardent leurs distances, la contournent et s'écartent quand elle avance. Au coin du perron de la mairie ou au pied des piliers de la place, tu peux toujours repartir.",
+        "Papi Auguste n'est plus invisible pour « Aller écouter Papi Auguste à la mairie » : tant que la mission est proposée, il t'attend en haut des escaliers de la mairie, à toute heure, même la nuit. Parle-lui pour faire venir la foule, puis reparle-lui pour son discours.",
+        "Mission « Trouver les 3 inscriptions des géants » : le repère doré et la flèche (avec la distance) te mènent à l'inscription la plus proche qu'il te reste à envoyer.",
+        "Après « Modifier ma maison » (boîte aux lettres ou panneau), l'héroïne revient exactement là où elle était, au lieu de se retrouver dans le jardin voisin.",
+        "À l'hôtel, les lits des chambres sont dans le bon sens, des tableaux plus gais remplacent les tableaux sombres, et une petite musique d'ambiance (piano et violoncelle) t'accueille.",
+        "À vélo, un gros rocher arrête doucement la roue (« Un rocher bloque le passage ») au lieu de te faire grimper dessus ; les petites pierres se franchissent toujours.",
+        "Les papillons ne volent plus dans le feuillage, ne traversent plus les rochers ni les fondations, et ne butinent plus les fleurs collées à un mur, une clôture ou une falaise.",
+        "Les poussins trottinent à la bonne cadence derrière leur mère, le grand tétras ne plonge plus la tête dans le sol en picorant, et le rossignol chante dans un taillis, loin de la grange."
+      ]
+    },
     {
       "version": "0.9.9.39",
       "notes": [
@@ -80,17 +95,6 @@
         "La porte d'entrée de l'hôtel s'ouvre vers le hall, sans balayer les bacs à fleurs.",
         "À la ferme, la faune sauvage laisse les bêtes tranquilles : lapins, corneilles et cerfs vivent plus loin, et plus rien ne fait d'allers-retours sur le chemin.",
         "Les canetons et les poussins ne passent plus à travers le corps de leur mère."
-      ]
-    },
-    {
-      "version": "0.9.9.35",
-      "notes": [
-        "À vélo, tu ralentis en douceur avant une pente raide, une marche ou un mur au lieu de t'arrêter net, et le pédalier ne tourne plus quand tu ne pédales pas.",
-        "On entend enfin la mer sur les plages.",
-        "Pendant le combat, l'héroïne tourne vraiment la manivelle de la main gauche.",
-        "En sortant de l'avion, la caméra ne frôle plus la porte.",
-        "Les poissons rouges de la fontaine sont petits, comme de vrais poissons rouges, et ne se traversent plus.",
-        "Les ronds dans l'eau autour des canards et des poissons n'ont plus de bord carré."
       ]
     }
   ]
