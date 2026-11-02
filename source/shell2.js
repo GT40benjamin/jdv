@@ -1688,7 +1688,9 @@ function musicNext(id, b, end, XF, seq, list, idx, src, g) {
   // le morceau suivant de la liste se prépare pendant que celui-ci joue, puis prend le relais en fondu enchaîné
   const nextIdx = list && list.length > 1 ? (idx + 1) % list.length : idx, nextName = list ? list[nextIdx] : null;
   let nextBuf = null;
-  if (nextName && nextName !== (list ? list[idx] : null)) musicBuffer(nextName).then(nb => { nextBuf = nb; }).catch(() => {});
+  // (2 nov.) préparé 40 s avant la fin, pas tout de suite : à l'ouverture d'un jeu, plusieurs morceaux de 2 Mo partaient en même temps
+  // que le jeu lui-même et passaient devant lui sur la ligne d'un téléphone (Abracadabra : 25 s d'attente au lieu de 12 en 4 Mbit/s)
+  if (nextName && nextName !== (list ? list[idx] : null)) { clearTimeout(MUS.prepT); MUS.prepT = setTimeout(() => { if (MUS.seq === seq && MUS.id === id) musicBuffer(nextName).then(nb => { nextBuf = nb; }).catch(() => {}); }, Math.max(0, (end - A.currentTime - 40) * 1000)); }
   MUS.loopT = setTimeout(() => {
     if (MUS.seq !== seq || MUS.id !== id) return;
     // un jeu a demandé le morceau suivant « à la fin de celui-ci » (api.music(id, { after: true })) : il commence maintenant, en fondu
@@ -1709,7 +1711,9 @@ async function setMusic(id, mode, level) {
   if (seq !== MUS.seq) return;
   // un morceau qui ne vient pas (réseau coupé) : on essaie les autres variantes
   let idx = MUSIC_SUITE[id] ? 0 : Math.floor(shellRand() * list.length), b = null;   // une suite commence toujours par le 1er
+  MUS.charge = seq;
   for (let k = 0; k < list.length && !b; k++) { const j = (idx + k) % list.length; try { b = await musicBuffer(list[j]); idx = j; } catch (e) {} if (seq !== MUS.seq) return; }
+  if (MUS.charge === seq) MUS.charge = 0;
   if (!b || seq !== MUS.seq || MUS.want !== id || !MUS.on) return;
   musicOut(0.9);
   musicLoop(id, b, Audio.ctx.currentTime + 0.05, 0.9, seq, list, idx);
@@ -1769,7 +1773,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { con
 function audioWake() {
   const A = Audio.ctx; if (!A || A.state === 'running' || A.state === 'closed') return;
   let p = null; try { p = A.resume(); } catch (e) { return; }
-  if (p && p.then) p.then(() => { if (A.state === 'running' && MUS.on && !MUS.cur && !document.hidden) { MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); } }).catch(() => {});
+  // (2 nov.) pas pendant qu'un morceau arrive (MUS.charge) : la relance en tirait un autre au hasard, un 2e téléchargement de 2 Mo en même temps que le jeu
+  if (p && p.then) p.then(() => { if (A.state === 'running' && MUS.on && !MUS.cur && !MUS.charge && !document.hidden) { MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); } }).catch(() => {});
 }
 for (const ev of ['pointerdown', 'touchend', 'keydown']) addEventListener(ev, audioWake, { capture: true, passive: true });
 // la musique démarre au premier geste (règle des navigateurs)
@@ -1777,7 +1782,7 @@ for (const ev of ['pointerdown', 'touchend', 'keydown']) addEventListener(ev, au
   const EV = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
   const unlock = () => {
     Audio.ensure(); const A = Audio.ctx; if (!A) return;
-    const go = () => { if (A.state !== 'running') return; for (const ev of EV) removeEventListener(ev, unlock, true); document.documentElement.classList.remove('jdw-mute-wait'); MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); };
+    const go = () => { if (A.state !== 'running') return; for (const ev of EV) removeEventListener(ev, unlock, true); document.documentElement.classList.remove('jdw-mute-wait'); if (MUS.charge) return; MUS.id = ''; setMusic(MUS.want || screenMusic(), MUS.wantMode); };   // (2 nov. : pas pendant qu'un morceau arrive — voir audioWake)
     if (A.state === 'running') go(); else A.resume().then(go).catch(() => {});
   };
   for (const ev of EV) addEventListener(ev, unlock, true);
