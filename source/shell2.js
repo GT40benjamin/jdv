@@ -1598,8 +1598,15 @@ async function musicAvail(list) {
   }
   return out;
 }
-async function musicBuffer(id) {
-  if (MUS.buf[id]) return MUS.buf[id];
+// (2 nov.) un morceau déjà en route n'est pas redemandé : plusieurs setMusic d'affilée (l'ouverture d'un jeu) lançaient chacun leur
+// téléchargement — 13 Mo de musique en double avant qu'Abracadabra soit prêt, qui se disputaient la ligne d'un téléphone avec le jeu
+const MUS_EN_ROUTE = {};
+function musicBuffer(id) {
+  if (MUS.buf[id]) return Promise.resolve(MUS.buf[id]);
+  if (!MUS_EN_ROUTE[id]) MUS_EN_ROUTE[id] = musicBuffer0(id).finally(() => { delete MUS_EN_ROUTE[id]; });
+  return MUS_EN_ROUTE[id];
+}
+async function musicBuffer0(id) {
   const enc = MUSIC_ENC.has(id);
   const r = await fetch(ROOT + 'assets/music/' + id + (enc ? '.bin' : '.mp3')); if (!r.ok) throw new Error('musique ' + id + ' ' + r.status);
   let ab = await r.arrayBuffer();

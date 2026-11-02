@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🎵 Abracadabra s'ouvre plus vite (borne 1.63.60)
+[abracadabra] ⏱️ À l'ouverture du jeu, chaque musique n'est plus téléchargée qu'une fois (avant, deux à quatre fois en même temps) : environ 13 Mo de moins avant de pouvoir jouer, bien plus rapide sur un réseau mobile. Les autres jeux en profitent aussi.
 [licornes] ## 🦄 La Maison des Licornes : la première version à tester (borne 1.63.59)
 [licornes] 🦄 Le premier jeu né à l'Atelier ! Un tapis magique fait défiler des œufs, des accessoires et des biberons : achète-les avec les pièces du jeu (jamais d'argent réel).
 [licornes] 🥚 Les œufs éclosent dans la couveuse, les bébés grandissent au biberon, tu les habilles (3 accessoires au plus), tu revends au panneau VENDRE pour acheter des œufs plus rares, et deux adultes dans le nid d'amour donnent un nouvel œuf.
