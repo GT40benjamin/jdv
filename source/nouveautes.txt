@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 🎁 Un seul prix pour tout ton jeu (borne 1.63.55)
+[atelier] 🎁 Quand ta fiche est prête, l'Atelier te donne LE prix de ton jeu en crédits : un seul prix, pour tout (images, sons, construction). Plus de planches ni de petits prix à calculer.
+[atelier] 📮 Tu envoies ton projet : les crédits sont payés une seule fois, ton projet est scellé, et notre équipe construit ton jeu. Tu suis son avancée dans l'Atelier, et la cloche 🔔 te prévient quand il est prêt à tester.
+
 [abracadabra] ## 🐺 Abracadabra : le loup et le hibou bien entendus (borne 1.63.54)
 [abracadabra] 🎤 « Un loup » et « un hibou » sont courts, et le micro les entendait souvent « allo », « le lot » ou « haribo ». Maintenant, ça fait bien apparaître un loup ou un hibou.
 [atelier] ## ✏️ Ta fiche et tes planches, tu les modifies toi-même (borne 1.63.53)
@@ -32,7 +36,7 @@
 [atelier] ## ▶ Teste et publie ton jeu toi-même (borne 1.63.50)
 [atelier] ▶ Dès que la première version de ton jeu est prête, touche « Tester mon jeu » dans ton projet : il se lance tout de suite.
 [atelier] 🌟 « Publier dans ma salle » : c'est toi qui décides, tes copains de la salle le voient avec son classement.
-[atelier] 🌍 « Demander la mise en ligne mondiale » : ta demande part à Benjamin, qui te répond dans l'Atelier.
+[atelier] 🌍 « Demander la mise en ligne mondiale » : ta demande part à notre équipe, qui te répond dans l'Atelier.
 
 [atelier] ## 📁 Plusieurs projets en même temps (borne 1.63.49)
 [atelier] 📁 L'Atelier s'ouvre maintenant sur « Mes projets » : une tuile par jeu imaginé (avec son dessin et où il en est), et « ＋ Nouveau projet » pour en commencer un autre (jusqu'à 5).
@@ -94,7 +98,7 @@
 [abracadabra] 🐋 La baleine emporte la barque au large, même en plein retour.
 [atelier] ## ⭐ Ton jeu sur la borne, avec le macaron « MON JEU » (borne 1.63.33)
 [atelier] ⭐ Quand une première version de ton jeu imaginé dans l'Atelier est prête, sa tuile apparaît sur ta borne avec un gros macaron « MON JEU ». Touche le crayon ✏️ « Modifier mon jeu » pour rouvrir l'Atelier et demander des changements.
-[atelier] 🎨 Quand Benjamin publie ton jeu dans ta salle, tes copains le voient aussi, avec « Jeu de » et ton pseudo sur la tuile.
+[atelier] 🎨 Quand ton jeu est publié dans ta salle, tes copains le voient aussi, avec « Jeu de » et ton pseudo sur la tuile.
 
 [abracadabra] ## ☂️ Abracadabra : les îles dans les nuages, gare aux rapaces (borne 1.63.32)
 [abracadabra] 🦅 Mission 7 : pendant que les villageois descendent en parapluie, dis « aigle », « faucon » ou « vautour » : il fond sur l'un d'eux, le parapluie se retourne, il dégringole jusqu'à notre île (« Ouille ! ») et rentre quand même.
@@ -136,7 +140,7 @@
 [atelier] ✨ Une grande tuile « CRÉE TON JEU » tout en haut de la borne : raconte le jeu dont tu rêves, il peut devenir un vrai jeu de la borne. C'est gratuit !
 [atelier] 🎤 Décris ton idée comme tu veux : au clavier ou au micro, et joins des images qui t'inspirent (photos, dessins, captures).
 [atelier] 📋 L'Atelier te répond sous 10 minutes environ et te pose des questions ; ta fiche de projet se remplit au fil de la discussion. La cloche 🔔 te prévient quand il a répondu.
-[atelier] 📮 Fiche complète : tu coches la case d'accord et tu envoies ton projet, une vraie lettre tamponnée et signée, que Benjamin va lire. Un jeu par joueur !
+[atelier] 📮 Fiche complète : tu coches la case d'accord et tu envoies ton projet, une vraie lettre tamponnée et signée, pour notre équipe.
 [borne] ## 🖥️ Sur ordinateur, la borne prend tout l'écran (borne 1.63.22)
 [borne] 🖥️ Sur PC, les jeux remplissent toute la largeur de l'écran : des tuiles plus petites, 4 à 6 par ligne selon la taille de l'écran (sur téléphone, rien ne change).
 [remparts] ## 🏰 Remparts !, en essai : un tout nouveau look peint, et le mode Sans fin (borne 1.63.20)

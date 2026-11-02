@@ -1363,3 +1363,80 @@ begin
     execute d;
   end if;
 end $$;
+
+-- ===================================================================================================================================
+-- UN PRIX FERME, PAYÉ UNE FOIS (borne 1.63.54, 2 nov. 2026 16 h 20, Benjamin) : le joueur ne voit plus ni planches ni détail de coûts.
+-- Quand la fiche est prête, l'Atelier fixe UN prix pour tout le jeu (at_prix : prix ferme en crédits, 1 crédit = 1 centime, calculé large ;
+-- le détail interne n'est visible que de l'admin) ; à l'envoi (at_envoyer) le prix est DÉBITÉ une fois et le projet est SCELLÉ (sections
+-- figées) ; l'équipe fait ensuite tout le travail. Le joueur peut encore écrire (demande de modification = nouveau devis de l'Atelier).
+alter table public.at_fiches add column if not exists prix int;
+alter table public.at_fiches add column if not exists prix_detail jsonb;
+alter table public.at_fiches add column if not exists prix_at timestamptz;
+alter table public.at_fiches add column if not exists paye int;
+
+-- (admin) le prix ferme du projet ; p_detail = le calcul interne (images, sons, construction, marge) ; p_message = le mot au joueur
+create or replace function public.at_prix(p_fiche uuid, p_prix int, p_detail jsonb default null, p_message text default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare f public.at_fiches;
+begin
+  if p_prix is null or p_prix < 1 or p_prix > 100000 then raise exception 'prix entre 1 et 100000'; end if;
+  select * into f from public.at_fiches x where x.id = p_fiche; if f.id is null then raise exception 'fiche inconnue'; end if;
+  if f.paye is not null then raise exception 'deja paye'; end if;
+  update public.at_fiches x set prix = p_prix, prix_detail = p_detail, prix_at = now(), maj_at = now(),
+    etat = case when x.etat in ('brouillon', 'en_discussion') and pegase_int.at_pleine(x.fiche) then 'complete' else x.etat end where x.id = f.id;
+  insert into public.at_messages (fiche, texte, de_atelier) values (f.id, coalesce(nullif(btrim(p_message), ''),
+    '🎁 Ton jeu est prêt à être créé ! Prix pour TOUT ton jeu (images, sons, construction) : ' || p_prix || ' crédits, une seule fois. Si tout te plaît, touche « Envoyer mon projet ».'), true);
+  return jsonb_build_object('id', f.id, 'prix', p_prix);
+end $$;
+revoke all on function public.at_prix(uuid, int, jsonb, text) from public, anon, authenticated;
+
+-- at_envoyer : le prix fixé doit exister ; il est débité UNE fois ; le projet est scellé (« envoyee »)
+create or replace function public.at_envoyer(p_name text, p_accord text, p_fiche uuid default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; a text := btrim(coalesce(p_accord, '')); s int;
+begin
+  perform public.acct_check(n);
+  if length(a) < 40 then raise exception 'accord requis'; end if;
+  f := pegase_int.at_fiche_de(n, p_fiche);
+  if f.id is null then raise exception 'aucun projet'; end if;
+  if f.etat = 'envoyee' or f.paye is not null then return jsonb_build_object('id', f.id, 'etat', f.etat, 'envoyee_at', f.envoyee_at, 'accord_at', f.accord_at, 'paye', f.paye); end if;
+  if f.etat not in ('en_discussion', 'complete', 'design', 'design_choisi') or not pegase_int.at_pleine(f.fiche) then raise exception 'fiche pas complete'; end if;
+  if f.prix is null then raise exception 'prix pas fixe'; end if;
+  s := pegase_int.at_debiter(n, f.prix);
+  insert into public.at_messages (fiche, texte) values (f.id, '📮 J’ai envoyé mon projet ! (' || f.prix || ' crédits)');
+  update public.at_fiches x set etat = 'envoyee', envoyee_at = now(), maj_at = now(), accord_at = now(), accord_texte = left(a, 1000), paye = f.prix
+    where x.id = f.id returning * into f;
+  return jsonb_build_object('id', f.id, 'etat', f.etat, 'envoyee_at', f.envoyee_at, 'accord_at', f.accord_at, 'paye', f.paye, 'solde', s);
+end $$;
+revoke all on function public.at_envoyer(text, text, uuid) from public, anon;
+grant execute on function public.at_envoyer(text, text, uuid) to authenticated;
+
+do $$
+declare d text;
+begin
+  -- at_lire : le prix et ce qui a été payé (jamais le détail interne)
+  d := pg_get_functiondef('public.at_lire(text, uuid)'::regprocedure);
+  if position('''prix''' in d) = 0 then
+    d := replace(d, '''jeu'', f.jeu, ''salle'', f.salle,', '''jeu'', f.jeu, ''prix'', f.prix, ''paye'', f.paye, ''salle'', f.salle,');
+    if position('''prix''' in d) = 0 then raise exception 'at_lire'; end if;
+    execute d;
+  end if;
+  -- at_dire : après l'envoi, le joueur peut encore écrire (une demande de modification = un nouveau devis)
+  d := pg_get_functiondef('public.at_dire(text, text, boolean, boolean, uuid, boolean)'::regprocedure);
+  if position('projet deja envoye' in d) > 0 then
+    d := replace(d, '  if f.id is not null and f.etat = ''envoyee'' then raise exception ''projet deja envoye''; end if;' || chr(10), '');
+    d := replace(d, '  if f.id is not null and not pegase_int.at_parle(f.etat) then raise exception ''choix en cours''; end if;',
+                    '  if f.id is not null and not pegase_int.at_parle(f.etat) and f.etat <> ''envoyee'' then raise exception ''choix en cours''; end if;');
+    if position('projet deja envoye' in d) > 0 then raise exception 'at_dire'; end if;
+    execute d;
+  end if;
+  -- at_suivi : les projets avec leur prix, ce qui a été payé et le détail interne (admin seulement)
+  d := pg_get_functiondef('public.at_suivi(text)'::regprocedure);
+  if position('prix_detail' in d) = 0 then
+    d := replace(d, '''mondes'', coalesce(', '''projets'', coalesce((select jsonb_agg(jsonb_build_object(''joueur'', x.name, ''titre'', x.titre, ''etat'', x.etat, ''prix'', x.prix, ''paye'', x.paye, ''detail'', x.prix_detail, ''maj_at'', x.maj_at) order by x.maj_at desc) from public.at_fiches x where x.prix is not null or x.etat not in (''brouillon'', ''en_discussion'', ''refusee'')), ''[]''::jsonb), ''mondes'', coalesce(');
+    if position('prix_detail' in d) = 0 then raise exception 'at_suivi'; end if;
+    execute d;
+  end if;
+end $$;
+
+-- 2 nov. 2026 16 h 05 : les messages automatiques de at_monde_decider disent « notre équipe » (plus « Benjamin ») — appliqué par remplacement du texte de la fonction.

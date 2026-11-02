@@ -3716,3 +3716,5 @@ body.atl-on #jdw-modes{visibility:hidden}
 .atl-fed{display:grid;gap:6px}
 .atl-fta{width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid #c9a24a;background:#fffdf4;color:#2b2318;font:14px/1.4 Georgia,serif;resize:vertical}
 .atl-fedb{display:flex;gap:6px}
+
+.atl-lprix{margin:12px 0 4px;padding:10px 12px;border:2px solid #c9a24a;border-radius:6px;background:#fff6d6;font:700 15px var(--body);color:#5a3a00;text-align:center}
