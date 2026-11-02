@@ -163,3 +163,113 @@ alter table public.at_messages alter column at set default clock_timestamp();
 -- seulement (pas de mise à jour ni d effacement : jamais d écrasement), chemin a/<id de SON message> ; les images sont ré-encodées par la borne.
 alter table public.at_fiches add constraint at_fiches_taille check (length(fiche::text) <= 20000 and length(titre) <= 60);
 alter table public.at_messages add constraint at_messages_taille check (length(texte) <= 4000);
+
+-- ===================================================================================================================================
+-- LES JEUX NÉS À L'ATELIER SUR LA BORNE (borne 1.63.32, 2 nov. 2026, Benjamin : « la tuile du jeu créé par l'Atelier dans la SALLE du
+-- joueur, avec un macaron MON JEU, et il peut le faire modifier ») :
+--  * états après l'envoi : acceptee → alpha (version d'essai jouable, at_etat … p_jeu = id du jeu de la borne) → publie_salle (la salle du
+--    joueur, p_salle = id de la salle) ou publie_monde (tout le monde, classement mondial) : c'est Benjamin qui décide ;
+--  * le joueur garde la discussion ouverte pour demander des modifications (at_dire permis en acceptee / alpha / publie_*) ;
+--  * at_jeux(p_name) : les jeux de l'Atelier que ce joueur voit (le sien, ceux publiés dans une de ses salles, ceux publiés pour tous).
+alter table public.at_fiches drop constraint if exists at_fiches_etat_check;
+alter table public.at_fiches add constraint at_fiches_etat_check check (etat in ('brouillon', 'en_discussion', 'complete', 'envoyee', 'acceptee', 'refusee',
+  'alpha', 'publie_salle', 'publie_monde'));
+alter table public.at_fiches add column if not exists jeu text;
+alter table public.at_fiches add column if not exists salle bigint references public.rooms (id) on delete set null;
+-- un seul projet par joueur, du premier message à la publication (refusé : il peut en proposer un autre)
+drop index if exists public.at_fiches_un_actif;
+create unique index if not exists at_fiches_un_actif on public.at_fiches (name) where etat <> 'refusee';
+
+create or replace function public.at_lire(p_name text)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches;
+begin
+  perform public.acct_check(n);
+  select * into f from public.at_fiches x where x.name = n order by (x.etat <> 'refusee') desc, x.created_at desc limit 1;
+  if f.id is null then return jsonb_build_object('fiche', null, 'messages', '[]'::jsonb); end if;
+  return jsonb_build_object(
+    'fiche', jsonb_build_object('id', f.id, 'titre', f.titre, 'etat', f.etat, 'fiche', f.fiche, 'created_at', f.created_at, 'maj_at', f.maj_at,
+                                'complete_at', f.complete_at, 'envoyee_at', f.envoyee_at, 'decision_at', f.decision_at, 'accord_at', f.accord_at, 'jeu', f.jeu),
+    'messages', coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'texte', m.texte, 'atelier', m.de_atelier, 'micro', m.micro,
+                  'image', case when m.image then 'a/' || m.id || '.jpg' end, 'at', m.at) order by m.at) from public.at_messages m where m.fiche = f.id), '[]'::jsonb));
+end $$;
+
+create or replace function public.at_dire(p_name text, p_texte text, p_micro boolean default false, p_image boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); t text := btrim(coalesce(p_texte, '')); f public.at_fiches; i uuid;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier', 30, interval '1 hour');
+  if t = '' and not coalesce(p_image, false) then raise exception 'texte vide'; end if;
+  select * into f from public.at_fiches x where x.name = n and x.etat <> 'refusee' limit 1;
+  if f.id is null then insert into public.at_fiches (name, etat) values (n, 'en_discussion') returning * into f; end if;
+  if f.etat = 'envoyee' then raise exception 'projet deja envoye'; end if;
+  if coalesce(p_image, false) and (select count(*) from public.at_messages m where m.fiche = f.id and m.image and not m.de_atelier) >= 6 then raise exception 'trop d images'; end if;
+  insert into public.at_messages (fiche, texte, micro, image) values (f.id, left(t, 2000), coalesce(p_micro, false), coalesce(p_image, false)) returning id into i;
+  update public.at_fiches x set maj_at = now(), etat = case when x.etat = 'brouillon' then 'en_discussion' else x.etat end where x.id = f.id;
+  return jsonb_build_object('id', i, 'fiche', f.id, 'image', case when coalesce(p_image, false) then 'a/' || i || '.jpg' end);
+end $$;
+
+create or replace function public.at_envoyer(p_name text, p_accord text)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; a text := btrim(coalesce(p_accord, ''));
+begin
+  perform public.acct_check(n);
+  if length(a) < 40 then raise exception 'accord requis'; end if;
+  select * into f from public.at_fiches x where x.name = n and x.etat <> 'refusee' limit 1;
+  if f.id is null then raise exception 'aucun projet'; end if;
+  if f.etat = 'envoyee' then return jsonb_build_object('id', f.id, 'etat', 'envoyee', 'envoyee_at', f.envoyee_at, 'accord_at', f.accord_at); end if;
+  if f.etat <> 'complete' then raise exception 'fiche pas complete'; end if;
+  update public.at_fiches x set etat = 'envoyee', envoyee_at = now(), maj_at = now(), accord_at = now(), accord_texte = left(a, 1000)
+    where x.id = f.id returning * into f;
+  return jsonb_build_object('id', f.id, 'etat', f.etat, 'envoyee_at', f.envoyee_at, 'accord_at', f.accord_at);
+end $$;
+
+create or replace function public.at_jeux(p_name text)
+returns jsonb language plpgsql stable security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name);
+begin
+  perform public.acct_check(n);
+  return coalesce((select jsonb_agg(jsonb_build_object('jeu', f.jeu, 'titre', f.titre, 'auteur', f.name, 'etat', f.etat, 'mien', f.name = n))
+    from public.at_fiches f where f.jeu ~ '^[a-z0-9_-]{2,20}$' and (
+      (f.name = n and f.etat in ('alpha', 'publie_salle', 'publie_monde'))
+      or (f.etat = 'publie_salle' and exists (select 1 from public.room_members r where r.room_id = f.salle and r.name = n))
+      or f.etat = 'publie_monde')), '[]'::jsonb);
+end $$;
+
+drop function if exists public.at_etat(uuid, text, text);
+create or replace function public.at_etat(p_fiche uuid, p_etat text, p_note text default null, p_jeu text default null, p_salle bigint default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare r public.at_fiches;
+begin
+  if p_etat not in ('en_discussion', 'complete', 'acceptee', 'refusee', 'alpha', 'publie_salle', 'publie_monde') then raise exception 'etat refuse : %', p_etat; end if;
+  if p_jeu is not null and p_jeu !~ '^[a-z0-9_-]{2,20}$' then raise exception 'id de jeu refuse'; end if;
+  select * into r from public.at_fiches x where x.id = p_fiche; if r.id is null then raise exception 'fiche inconnue'; end if;
+  if p_etat = 'alpha' and coalesce(p_jeu, r.jeu) is null then raise exception 'alpha : p_jeu obligatoire'; end if;
+  if p_etat = 'publie_salle' and coalesce(p_salle, r.salle) is null then raise exception 'publie_salle : p_salle obligatoire'; end if;
+  update public.at_fiches x set etat = p_etat, maj_at = now(),
+    complete_at = case when p_etat = 'complete' then now() else x.complete_at end,
+    decision_at = case when p_etat in ('acceptee', 'refusee', 'publie_salle', 'publie_monde') then now() else x.decision_at end,
+    note_benjamin = coalesce(p_note, x.note_benjamin), jeu = coalesce(p_jeu, x.jeu), salle = coalesce(p_salle, x.salle)
+  where x.id = p_fiche returning * into r;
+  return jsonb_build_object('id', r.id, 'etat', r.etat, 'jeu', r.jeu, 'salle', r.salle);
+end $$;
+
+-- l'Atelier voit aussi les demandes de modification d'un jeu déjà accepté / en alpha / publié
+create or replace view public.at_en_attente with (security_invoker = true) as
+  select f.id as fiche, f.name as joueur, f.titre, f.etat, f.fiche as contenu,
+    (select max(m.at) from public.at_messages m where m.fiche = f.id and not m.de_atelier) as dernier_message_at,
+    (select jsonb_agg(jsonb_build_object('texte', m.texte, 'micro', m.micro,
+        'image', case when m.image then 'https://wplictorvvtkfikpfdnl.supabase.co/storage/v1/object/public/atelier/a/' || m.id || '.jpg' end, 'at', m.at) order by m.at)
+       from public.at_messages m where m.fiche = f.id and not m.de_atelier
+         and m.at > coalesce((select max(a.at) from public.at_messages a where a.fiche = f.id and a.de_atelier), '-infinity'::timestamptz)) as messages_sans_reponse
+  from public.at_fiches f
+  where f.etat <> 'refusee'
+    and exists (select 1 from public.at_messages m where m.fiche = f.id and not m.de_atelier
+                and m.at > coalesce((select max(a.at) from public.at_messages a where a.fiche = f.id and a.de_atelier), '-infinity'::timestamptz))
+  order by dernier_message_at;
+revoke all on public.at_en_attente from anon, authenticated;
+
+revoke all on function public.at_jeux(text) from public, anon;
+grant execute on function public.at_jeux(text) to authenticated;
+revoke all on function public.at_etat(uuid, text, text, text, bigint) from public, anon, authenticated;

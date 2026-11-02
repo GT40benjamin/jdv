@@ -3553,3 +3553,16 @@ body.atl-on #jdw-modes{visibility:hidden}
 .tile-labo .tile-img > .tile-new{right:84px}
 @media (max-width:700px){.tile-labo .tile-img > .tile-new{display:none}}   /* tuile étroite : le ruban TEST dit déjà que c'est nouveau */
 .tile-wrap > .tile-champ{top:0;margin-top:calc(75% - 58px)}
+
+/* ---------- jeu né à l'Atelier : macaron « MON JEU » en bas à droite de l'image (à la place de « Nouveau / Mis à jour »), « Modifier mon jeu » en bas (borne 1.63.32) ---------- */
+.tile-mine{position:absolute;top:0;right:8px;margin-top:calc(75% - 42px);transform:rotate(-3deg);z-index:4;pointer-events:none;white-space:nowrap;
+  padding:5px 14px;border-radius:999px;background:linear-gradient(180deg,#ffe680,#ffb020);color:#3a1a00;border:2px solid #fff6c9;
+  font:400 13px var(--display);letter-spacing:.06em;box-shadow:0 4px 14px rgba(0,0,0,.5),0 0 0 2px rgba(58,26,0,.35)}
+.tile-mine.theirs{background:linear-gradient(180deg,#d6c2ff,#9a6cff);color:#1e0a45;border-color:#efe6ff;font-size:11px}
+.tile-wrap.atl-game .tile-new{display:none}
+.tile-wrap.atl-mine > .tile{border-color:#ffc23d;box-shadow:0 0 0 2px rgba(255,194,61,.55),0 10px 24px rgba(0,0,0,.35)}
+.tile-mod{position:absolute;right:8px;bottom:6px;z-index:3;height:30px;padding:0 10px;border-radius:9px;border:1px solid #ffc23d;cursor:pointer;
+  background:color-mix(in srgb,#ffc23d 22%,var(--card));color:var(--ink);font:700 12px/1 var(--body);white-space:nowrap}
+.tile-mod:hover,.tile-mod:focus-visible{background:#ffc23d;color:#2a1400}
+.tile-wrap.has-mod .tile-watch{right:150px}
+@media (max-width:700px){.tile-mod{font-size:0;width:30px;padding:0}.tile-mod::first-letter{font-size:15px}.tile-wrap.has-mod .tile-watch{right:44px}}

@@ -50,7 +50,14 @@ const LABO_ON = (() => {
 })();
 // appareil en mode test (au moins un jeu en essai ouvert) : il voit TOUS les jeux en essai, même ceux ajoutés depuis
 const LABO_TEST = [...LABO].some(id => LABO_ON.has(id)) || [...LABO_ON].some(id => ['toupies', 'tirsaubut', 'smoothie', 'neon', 'bolides', 'sensinterdit', 'flechettes', 'abracadabra'].includes(id));   // les appareils déjà en test le restent
-const laboOk = id => !LABO.has(id) || LABO_TEST;
+// les jeux nés à l'Atelier des jeux que ce joueur voit (borne 1.63.32, Benjamin : « la tuile du jeu dans la SALLE du joueur, avec un
+// macaron MON JEU, et il peut le faire modifier ») : le sien en version d'essai (alpha) ou publié, ceux publiés dans une de ses salles,
+// ceux publiés pour tous — liste du serveur (at_jeux) gardée sur l'appareil par joueur (jdw.atl.jeux), relue à chaque ouverture
+const ATL_JEUX = (() => {
+  try { const n = String((JSON.parse(localStorage.getItem('jdw.profile') || 'null') || {}).name || '').trim().slice(0, 12).toUpperCase(), all = JSON.parse(localStorage.getItem('jdw.atl.jeux') || '{}') || {};
+    const l = n && Array.isArray(all[n]) ? all[n] : []; return new Map(l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => [String(x.jeu), x])); } catch (e) { return new Map(); }
+})();
+const laboOk = id => !LABO.has(id) || LABO_TEST || ATL_JEUX.has(id);
 // 2 nov. 2026, Benjamin : « toutes les tuiles labo test, il faut qu'elles soient identifiées comme telles pour nous les admins » :
 // la tuile d'un jeu encore en essai porte un ruban « TEST » (vue seulement sur les appareils en mode test, comme le jeu lui-même)
 function laboMark(b, id) {
@@ -2972,8 +2979,15 @@ const tiles = [];
 function buildLibrary() {
   const grid = $('jdw-grid');
   atlTile(grid);   // « CRÉE TON JEU » : tout en haut, toute la largeur (porte labo)
-  for (const g of GAMES) {
-    if (g.id === 'pegase') continue;   // Pégase est à part : son onglet tout à gauche
+  for (const g of GAMES) gameTile(grid, g);
+  if ('IntersectionObserver' in window) {
+    tilesIO = new IntersectionObserver(es => es.forEach(e => { const t = tiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
+    tiles.forEach(t => tilesIO.observe(t.el));
+  }
+}
+let tilesIO = null;
+function gameTile(grid, g) {
+    if (g.id === 'pegase') return;   // Pégase est à part : son onglet tout à gauche
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'tile'; b.style.setProperty('--acc', g.accent || COLORS.amber);
     b.setAttribute('aria-label', 'Jouer à ' + g.title);
@@ -2998,13 +3012,10 @@ function buildLibrary() {
       mapWarmSoon(g.id);
     }
     grid.appendChild(wrap);
-    laboMark(b, g.id);
+    laboMark(b, g.id); atlMineMark(wrap, b, g.id);
     tiles.push({ g, el: b, champ: ch, watch: wb, canvas: b.querySelector('canvas'), on: b.querySelector('.tile-online'), visible: true });
-  }
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(es => es.forEach(e => { const t = tiles.find(x => x.el === e.target); if (t) t.visible = e.isIntersecting; }), { root: $('jdw-lib') });
-    tiles.forEach(t => io.observe(t.el));
-  }
+    if (tilesIO) tilesIO.observe(b);
+    return wrap;
 }
 function openBoardFor(gameId) {
   boardScope = 'room'; store.set('jdw.boardscope', boardScope); boardTab = gameId;
@@ -3060,6 +3071,7 @@ function tilePlayers(gid) { try { return presList().filter(m => m.game === gid &
 const tileName = n => n === cleanName(profile.name) ? 'Toi (autre appareil)' : dispName(n);
 function refreshMe() {
   if (ATL && ATL.name && ATL.name !== cleanName(profile.name)) { ATL.name = ''; ATL.data = null; setTimeout(() => atlLoad(true), 0); }   // autre joueur : son projet à lui
+  if (ATL) setTimeout(() => atlJeuxLoad(), 0);
   $('jdw-me-name').textContent = isGuest() && !profile.name ? 'Invité' : profile.name ? dispName(profile.name) : 'Joueur';
   if (isGuest() && !profile.name) { const av = $('jdw-me-av'); av.textContent = ''; av.style.background = ''; av.classList.add('guest-av'); av.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>'; return; }
   $('jdw-me-av').classList.remove('guest-av');
@@ -13942,7 +13954,7 @@ setTimeout(loadTurn, 4000);   // relais prêt avant le premier duel en ligne ou 
 // seau public « atelier », a/<id du message>.jpg). Mode d'emploi de l'Atelier : ATELIER.md (hors dépôt, dans jdv-tools, dossier de l’équipe).
 // RÈGLE : ce que voit le joueur ne nomme JAMAIS l'outil qui répond : on dit « l'Atelier ». En essai : porte labo (…/jouer/?labo=atelier).
 var ATL = null;   // var : refreshBell() peut passer avant cette section au démarrage
-const ATL_ON = () => laboOk('atelier') && PAGE !== 'pegase';
+const ATL_ON = () => (laboOk('atelier') || [...ATL_JEUX.values()].some(x => x.mien)) && PAGE !== 'pegase';   // l'auteur d'un jeu de l'Atelier garde l'Atelier (« Modifier mon jeu »)
 const ATL_FIELDS = [
   ['idee', '💡', 'L’idée'], ['but', '🎯', 'Le but du jeu'], ['score', '🏆', 'Le score entre copains'], ['heros', '🦸', 'Le héros'],
   ['monde', '🗺️', 'Le monde'], ['dimension', '🧊', '2D ou 3D'], ['style', '🎨', 'Le style'], ['commandes', '🎮', 'Les commandes'],
@@ -13968,6 +13980,44 @@ const atlImgUrl = p => CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/
 const atlDate = t => { const d = new Date(t || Date.now()); return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
 const atlNum = f => 'N° ' + String((f && f.id) || '000000').replace(/-/g, '').slice(0, 6).toUpperCase();
 const atlEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+// ---------- les jeux nés à l'Atelier : macaron « MON JEU » (ou « Jeu de NOM ») + « Modifier mon jeu » pour l'auteur ----------
+function atlMineMark(wrap, b, id) {
+  const x = ATL_JEUX.get(id); if (!x || !wrap || !b) return;
+  for (const o of wrap.querySelectorAll('.tile-mine,.tile-mod')) o.remove();
+  wrap.classList.toggle('atl-mine', !!x.mien); wrap.classList.add('atl-game');
+  const m = atlEl('span', 'tile-mine' + (x.mien ? '' : ' theirs'), x.mien ? '⭐ MON JEU' : '🎨 Jeu de ' + dispName(x.auteur || ''));
+  m.setAttribute('aria-hidden', 'true'); wrap.appendChild(m);
+  if (x.mien) {
+    const md = atlEl('button', 'tile-mod', '✏️ Modifier mon jeu'); md.type = 'button'; md.setAttribute('aria-label', 'Modifier mon jeu avec l’Atelier');
+    md.addEventListener('click', e => { e.stopPropagation(); atlOpen(); }); wrap.appendChild(md); wrap.classList.add('has-mod');
+  }
+}
+async function atlJeuxLoad() {
+  if (!ONLINE || isGuest() || !profile.name || netOff() || PAGE === 'pegase') return;
+  const me = cleanName(profile.name);
+  let l; try { l = await rpc('at_jeux', { p_name: profile.name }, { quiet404: true, quiet: true }); } catch (e) { return; }
+  if (cleanName(profile.name) !== me || !Array.isArray(l)) return;
+  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien }));
+  const all = store.get('jdw.atl.jeux', {}) || {}, was = JSON.stringify(all[me] || []);
+  all[me] = l; store.set('jdw.atl.jeux', all);
+  if (was === JSON.stringify(l)) return;
+  // nouveauté pendant que la borne est ouverte : la tuile arrive tout de suite (un jeu retiré disparaît au prochain lancement)
+  ATL_JEUX.clear(); for (const x of l) ATL_JEUX.set(x.jeu, x);
+  const grid = $('jdw-grid'); if (!grid) return;
+  for (const x of l) {
+    let t = tiles.find(t2 => t2.g.id === x.jeu);
+    if (!t) {
+      const g = (window.JDW_GAMES || {})[x.jeu]; if (!g || g.id !== x.jeu || GAMES.includes(g)) continue;
+      GAMES.push(g); const w = gameTile(grid, g); const first = grid.querySelector('.tile-wrap:not(.atl-wrap)');
+      if (w && first && first !== w) grid.insertBefore(w, first);   // en tête des jeux, juste après « Crée ton jeu »
+      t = tiles.find(t2 => t2.g.id === x.jeu);
+    }
+    if (t) atlMineMark(t.el.parentNode, t.el, x.jeu);
+  }
+  try { refreshNewBadges(); } catch (e) {}
+  if (ATL && !ATL.tile && ATL_ON()) { try { atlTile(grid); } catch (e) {} }
+}
 
 // ---------- la tuile « CRÉE TON JEU » (tout en haut de la grille, toute la largeur) ----------
 function atlTile(grid) {
@@ -14355,8 +14405,8 @@ async function atlPost(go, note, cb) {
     note.textContent = /pas complete/.test(String(e && e.message)) ? 'La fiche n’est plus marquée complète : l’Atelier a encore une question.' : atlWhy(e).replace('ton message est resté dans la case', 'ta lettre n’est pas partie');
   } finally { ATL.posting = false; }
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && ATL && ATL_ON()) atlLoad(false); });
-setTimeout(() => atlLoad(false), 2500);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ATL && ATL_ON()) atlLoad(false); if (!document.hidden) atlJeuxLoad(); });
+setTimeout(() => { atlLoad(false); atlJeuxLoad(); }, 2500);
 
 
 /* ================= Espace privé (31 oct. 2026) ================= */
