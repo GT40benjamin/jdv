@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🐶 Abracadabra : des bêtes bien vivantes au pont du village (borne 1.63.16)
+[abracadabra] 🐶 Mission 1 : le chien aboie, court d'un villageois à l'autre, puis aboie sur la rivière. Quand le pont est là, il le traverse en courant.
+[abracadabra] 🐱 Le chat file se cacher sans un regard pour personne, la poule picore en sautillant, et le cheval tombé dans la rivière nage jusqu'à la berge, s'ébroue, boit… et part parfois au galop.
+[abracadabra] 🐟 La truite fait de plus grands bonds jusqu'à l'eau, et la fumée du volcan est plus douce, comme un vrai nuage.
 [pegase] ## 🐕 Pégase 0.9.9.41 : caresses, criques et cascades (borne 1.63.15)
 [pegase] 🐕 Les chiens viennent tout près de toi, s'assoient à tes pieds et réclament : « Caresser » (E, ou le bouton cœur au téléphone), l'héroïne s'accroupit, le chien s'assoit tout content et un cœur s'envole. Les chats au repos te laissent approcher au pas et se laissent caresser aussi. (En robe ou en jupe, elle les caresse debout.) Et ils ne te poussent jamais.
 [pegase] 🎣 Pêche en mer depuis les rochers et les plages : maquereau, chirurgiens, poisson-papillon, poisson-clown, idole des Maures, et plus au large cabillaud et mahi-mahi, selon le fond, l'heure et l'appât. Tes prises vont dans le sac et dans ton carnet des prises.
