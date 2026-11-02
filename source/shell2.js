@@ -2007,10 +2007,10 @@ function notifRow(n, isNew) {
   if (n.kind === 'coop') return coopNotifRow(n, li, tx);
   if (n.kind === 'atelier') {   // l'Atelier des jeux a répondu au projet du joueur
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✉️'; ic.style.background = 'var(--gold)';
-    const f = atlFiche(), b = document.createElement('b'); b.textContent = 'L’Atelier t’a répondu !';
+    const f = atlProjets().find(atlProjNew) || atlFiche(), b = document.createElement('b'); b.textContent = 'L’Atelier t’a répondu !';
     const sm = document.createElement('small'); sm.textContent = (f && f.titre ? 'Ton projet « ' + f.titre + ' » · ' : 'Ton projet de jeu · ') + 'touche pour lire';
     tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
-    li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); });
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); if (f && f.id) atlOuvrir(f.id); });
     return li;
   }
   if (n.kind === 'installed') {
@@ -14048,15 +14048,22 @@ function atlSolde(v) {
 }
 const ATL_SR = /BorneArcade\//.test(navigator.userAgent) ? null : (window.SpeechRecognition || window.webkitSpeechRecognition || null);
 ATL = { open: false, letter: false, data: null, name: '', busy: false, pollT: 0, err: 0, off: false, seen: store.get('jdw.atl.seen', {}) || {},
-  rec: null, micUsed: false, sending: false, fopen: false, tile: null, root: null, toastedFor: '', choix: null, drawing: false, iaMsg: '', iaK: '', tried: '', dchoix: {}, soldeT: 0 };
-const atlFiche = () => (ATL.data && ATL.data.fiche) || null;
-const atlMsgs = () => (ATL.data && Array.isArray(ATL.data.messages) ? ATL.data.messages : []);
+  rec: null, micUsed: false, sending: false, fopen: false, tile: null, root: null, toastedFor: '', choix: null, drawing: false, iaMsg: '', iaK: '', tried: '', dchoix: {}, soldeT: 0, cur: null, nouveau: false };
+// 2 nov. 15 h 40 (Benjamin) : PLUSIEURS PROJETS — l'Atelier s'ouvre sur « Mes projets » (une tuile par projet + « Nouveau projet ») ;
+// ATL.cur = le projet ouvert (sinon la liste), ATL.nouveau = un nouveau projet dont le 1er message n'est pas encore parti
+const atlFiche = () => (ATL.cur && ATL.data && ATL.data.fiche && ATL.data.fiche.id === ATL.cur ? ATL.data.fiche : null);
+const atlMsgs = () => (atlFiche() && Array.isArray(ATL.data.messages) ? ATL.data.messages : []);
+const atlProjets = () => (ATL.data && Array.isArray(ATL.data.projets) ? ATL.data.projets : []);
+const atlSeenKey = id => ATL.name + '|' + id;
+const atlProjNew = pj => !!(pj && pj.reponse_at) && String(pj.reponse_at) > String(ATL.seen[atlSeenKey(pj.id)] || '');
+const ATL_ETATS = { brouillon: '💬 En discussion', en_discussion: '💬 En discussion', complete: '🎉 Fiche complète', design: '🎨 Choix du design', design_choisi: '📮 Lettre à envoyer',
+  envoyee: '📮 Envoyé à Benjamin', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans ta salle', publie_monde: '🌍 Publié pour tous' };
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
 const atlLastReply = () => atlMsgs().reduce((m, x) => (x.atelier && String(x.at) > m ? String(x.at) : m), '');
-const atlUnread = () => { const l = atlLastReply(); return !!l && l > String(ATL.seen[ATL.name] || ''); };
+const atlUnread = () => { const l = atlLastReply(); return !!l && !!ATL.cur && l > String(ATL.seen[atlSeenKey(ATL.cur)] || ''); };
 const atlWaiting = () => { const ms = atlMsgs(); return !!ms.length && !ms[ms.length - 1].atelier && ['en_discussion', 'brouillon', 'complete'].includes(atlEtat()); };
-function atlMarkSeen() { const l = atlLastReply(); if (l && ATL.name) { ATL.seen[ATL.name] = l; store.set('jdw.atl.seen', ATL.seen); } }
-function atlNotifs() { try { return ATL && ATL_ON() && !isGuest() && ATL.name === cleanName(profile.name) && atlUnread() ? [{ kind: 'atelier' }] : []; } catch (e) { return []; } }
+function atlMarkSeen() { const l = atlLastReply(); if (l && ATL.name && ATL.cur) { ATL.seen[atlSeenKey(ATL.cur)] = l; store.set('jdw.atl.seen', ATL.seen); } }
+function atlNotifs() { try { return ATL && ATL_ON() && !isGuest() && ATL.name === cleanName(profile.name) && atlProjets().some(atlProjNew) ? [{ kind: 'atelier' }] : []; } catch (e) { return []; } }
 const atlVal = v => (v == null ? '' : Array.isArray(v) ? v.map(atlVal).filter(Boolean).join(' · ') : typeof v === 'object' ? Object.values(v).map(atlVal).filter(Boolean).join(' · ') : String(v).trim());
 const atlImgUrl = p => CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier/' + p;
 const atlDate = t => { const d = new Date(t || Date.now()); return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
@@ -14130,21 +14137,23 @@ function atlTile(grid) {
 }
 function atlTileState() {
   const b = ATL && ATL.tile; if (!b) return;
-  const f = atlFiche(), et = atlEtat(), st = b.querySelector('.atl-pill'), nb = b.querySelector('.tile-new'), foot = b.querySelector('.atl-foot span');
+  const ps = atlProjets(), nw = ps.find(atlProjNew), st = b.querySelector('.atl-pill'), nb = b.querySelector('.tile-new'), foot = b.querySelector('.atl-foot span');
+  const f = nw || ps[0] || null, et = f ? String(f.etat || '') : '';
   let s = '', k = '';
-  if (f && (ATL_ACTIVE.has(et) || et === 'acceptee')) {
+  if (nw) { s = '✉️ Nouvelle réponse !'; k = 'new'; }
+  else if (ps.length > 1) { s = '📁 ' + ps.length + ' projets'; k = 'wait'; }
+  else if (f && (ATL_ACTIVE.has(et) || et === 'acceptee')) {
     if (et === 'envoyee') { s = '📮 Projet envoyé'; k = 'sent'; }
     else if (et === 'acceptee') { s = '✅ Projet accepté !'; k = 'ok'; }
     else if (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde') { s = '🎮 Ton jeu est jouable !'; k = 'ok'; }
-    else if (et === 'design') { s = atlUnread() ? '🎨 Tes designs sont prêts !' : '🎨 Design en préparation…'; k = atlUnread() ? 'new' : 'wait'; }
+    else if (et === 'design') { s = '🎨 Design en préparation…'; k = 'wait'; }
     else if (et === 'design_choisi') { s = '📮 Ta lettre t’attend'; k = 'go'; }
     else if (et === 'complete') { s = '🎉 Fiche complète'; k = 'go'; }
-    else if (atlUnread()) { s = '✉️ Nouvelle réponse !'; k = 'new'; }
-    else if (atlWaiting()) { s = '⏳ Réponse en route…'; k = 'wait'; }
+    else if (f.joueur_at && (!f.reponse_at || String(f.joueur_at) > String(f.reponse_at))) { s = '⏳ Réponse en route…'; k = 'wait'; }
   }
   st.hidden = !s; st.textContent = s; st.dataset.k = k;
   nb.hidden = !!s || !!f || !!store.get('jdw.atl.vu', false);
-  foot.textContent = et === 'complete' ? 'Envoie ton projet' : f && ATL_ACTIVE.has(et) && !ATL_AFTER.has(et) ? 'Continue ton projet' : 'Ton idée devient un vrai jeu — gratuit';
+  foot.textContent = ps.length > 1 ? 'Continue tes projets' : et === 'complete' ? 'Envoie ton projet' : f && ATL_ACTIVE.has(et) && !ATL_AFTER.has(et) ? 'Continue ton projet' : 'Ton idée devient un vrai jeu — gratuit';
   b.parentNode.classList.toggle('atl-hot', k === 'new' || k === 'go');
 }
 
@@ -14165,7 +14174,7 @@ function atlBuild() {
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
     + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu · gratuit</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
-    + '<div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
+    + '<div class="atl-projets" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot">🎁 Projet gratuit · un projet par joueur</p></div></aside>'
     + '<div class="atl-chat"><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
@@ -14178,7 +14187,7 @@ function atlBuild() {
     + '<div class="atl-lv" hidden></div><div class="atl-zoom" hidden role="dialog" aria-label="Image en grand"></div>';
   document.body.appendChild(R); ATL.root = R;
   const q = s => R.querySelector(s);
-  q('.atl-back').addEventListener('click', atlClose);
+  q('.atl-back').addEventListener('click', () => { if (ATL.cur || ATL.nouveau) atlListe(); else atlClose(); });   // dans un projet : « ← Mes projets »
   q('.atl-fhead').addEventListener('click', () => { ATL.fopen = !ATL.fopen; atlRenderFiche(); });
   q('.atl-comp').addEventListener('submit', e => { e.preventDefault(); atlSend(); });
   q('.atl-in').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TOUCH) { e.preventDefault(); atlSend(); } });
@@ -14207,7 +14216,49 @@ function atlClose() {
   atlTileState(); refreshBell(); atlSchedule();
 }
 function atlErr(t) { if (!ATL.root) return; const e = ATL.root.querySelector('.atl-err'); e.hidden = !t; e.textContent = t || ''; }
-function atlRender() { if (!ATL.root || !ATL.open) return; atlRenderFiche(); atlRenderChat(); }
+function atlRender() {
+  if (!ATL.root || !ATL.open) return;
+  const liste = !ATL.cur && !ATL.nouveau, R = ATL.root;
+  R.querySelector('.atl-main').hidden = liste; R.querySelector('.atl-projets').hidden = !liste; R.classList.toggle('liste', liste);
+  R.querySelector('.atl-back').setAttribute('aria-label', liste ? 'Retour à la borne' : 'Mes projets');
+  if (liste) atlRenderProjets(); else { atlRenderFiche(); atlRenderChat(); }
+}
+// ---------- « Mes projets » : une tuile par projet (titre, vignette, état, nouvelle réponse) + « Nouveau projet » ----------
+function atlRenderProjets() {
+  const R = ATL.root, box = R.querySelector('.atl-projets'); box.textContent = '';
+  const ps = atlProjets(), cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
+  box.append(atlEl('h2', 'atl-ph', 'Mes projets'), atlEl('p', 'atl-psub', ps.length ? 'Touche un projet pour le continuer, ou commence-en un nouveau.' : 'Raconte ton premier jeu à l’Atelier : touche « Nouveau projet » !'));
+  const g = atlEl('div', 'atl-pgrid');
+  for (const pj of ps) {
+    const b = atlEl('button', 'atl-ptile' + (atlProjNew(pj) ? ' new' : '')); b.type = 'button';
+    const v = atlEl('span', 'atl-pv'), u = atlIaUrl(pj.vignette);
+    if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; v.appendChild(im); } else v.textContent = '🎮';
+    b.append(v, atlEl('b', '', pj.titre || 'Projet sans titre'), atlEl('small', '', ATL_ETATS[pj.etat] || String(pj.etat || '')));
+    if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
+    b.addEventListener('click', () => atlOuvrir(pj.id)); g.appendChild(b);
+  }
+  const nb = atlEl('button', 'atl-ptile atl-pplus'); nb.type = 'button';
+  nb.append(atlEl('span', 'atl-pv', '＋'), atlEl('b', '', 'Nouveau projet'), atlEl('small', '', ps.length + ' / ' + max + ' projets'));
+  if (ps.length >= max) { nb.disabled = true; nb.title = max + ' projets au plus : termine ou abandonne un projet avant d’en commencer un autre.'; }
+  nb.addEventListener('click', atlNouveau); g.appendChild(nb); box.appendChild(g);
+  R.querySelector('.atl-hs').textContent = 'Mes projets · ' + ps.length + ' / ' + max;
+  const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); R.querySelector('.atl-sendh').hidden = true;
+}
+function atlOuvrir(id) {
+  atlMicStop(); atlLetterClose(true); atlErr('');
+  ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
+  const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) inp.placeholder = 'Décris ton jeu…';
+  atlRender(); atlLoad(true);
+}
+function atlNouveau() {
+  const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
+  if (atlProjets().length >= max) { toastCheer(max + ' projets au plus', null, true); return; }
+  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.pend = []; ATL.stick = true; atlErr('');
+  atlRender();
+  const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Raconte ton nouveau jeu…'; if (!TOUCH) inp.focus();
+}
+function atlListe() { atlMicStop(); atlLetterClose(true); atlErr(''); ATL.cur = null; ATL.nouveau = false; ATL.choix = null; atlRender(); atlLoad(true); }
 function atlRenderFiche() {
   const R = ATL.root; if (!R) return;
   const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}, et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
@@ -14319,7 +14370,7 @@ function atlRenderChat() {
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
   cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.mois | 0) + ' offerts chaque mois · ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
   R.querySelector('.atl-suivib').hidden = !(cr && cr.admin);
-  const sh = R.querySelector('.atl-sendh');
+  const sh = R.querySelector('.atl-sendh'); sh.hidden = false;
   sh.textContent = ATL_AFTER.has(et) || et === 'refusee' ? '📮 Ma lettre' : '📮 Envoyer mon projet';
   sh.classList.toggle('btn-ghost', ATL_AFTER.has(et) || ch); sh.classList.toggle('btn-play', !(ATL_AFTER.has(et) || ch));
   const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = '💎 ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par planche';
@@ -14334,22 +14385,23 @@ async function atlLoad(force) {
   if (ATL.name !== me) { ATL.name = me; ATL.data = null; ATL.pend = []; }
   if (ATL.busy) return; ATL.busy = true;
   try {
-    const r = await rpc('at_lire', { p_name: profile.name }, { quiet404: true, quiet: true });
+    const r = await rpc('at_lire', { p_name: profile.name, p_fiche: ATL.cur || null }, { quiet404: true, quiet: true });
     if (cleanName(profile.name) !== me) return;
-    const before = atlLastReply();
-    ATL.data = r && typeof r === 'object' ? r : { fiche: null, messages: [] }; ATL.err = 0;
-    const after = atlLastReply();
+    const lastAll = () => atlProjets().reduce((m, x) => (x.reponse_at && String(x.reponse_at) > m ? String(x.reponse_at) : m), '');
+    const before = lastAll();
+    ATL.data = r && typeof r === 'object' ? r : { fiche: null, messages: [], projets: [] }; ATL.err = 0;
+    const after = lastAll();
     if (ATL.open && !document.hidden) atlMarkSeen();
     else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { toastCheer('✉️ L’Atelier t’a répondu !', null, true); } catch (e) {} }
     atlRender();
-  } catch (e) { if (e && e.status === 404) ATL.off = true; ATL.err++; }
+  } catch (e) { if (e && e.status === 404) ATL.off = true; ATL.err++; if (/projet inconnu/.test(String(e && e.message)) && ATL.cur) { ATL.cur = null; ATL.err = 0; atlRender(); } }
   finally { ATL.busy = false; atlTileState(); try { refreshBell(); } catch (e) {} atlSchedule(); }
 }
 function atlSchedule() {
   if (!ATL) return; clearTimeout(ATL.pollT);
   if (!ATL_ON() || ATL.off || !ONLINE) return;
-  const et = atlEtat(), live = ATL_ACTIVE.has(et);
-  const ms = ATL.open ? 20000 : live ? (atlWaiting() ? 60000 : 180000) : 0;
+  const live = atlProjets().length > 0;
+  const ms = ATL.open ? 20000 : live ? 120000 : 0;
   if (ms) ATL.pollT = setTimeout(() => atlLoad(false), ms * Math.min(4, 1 + ATL.err));
 }
 async function atlSend() {
@@ -14362,7 +14414,8 @@ async function atlSend() {
   ATL.pend = [{ texte: t, micro, pending: true, at: new Date().toISOString() }]; ATL.stick = true; atlRenderChat();
   if (cr) atlSolde(before - (cr.message | 0));
   try {
-    const r = await rpc('at_dire', { p_name: profile.name, p_texte: t, p_micro: micro, p_image: false }, { quiet: true });
+    const r = await rpc('at_dire', { p_name: profile.name, p_texte: t, p_micro: micro, p_image: false, p_fiche: ATL.cur || null, p_nouveau: !ATL.cur }, { quiet: true });
+    if (r && r.fiche && !ATL.cur) { ATL.cur = r.fiche; ATL.nouveau = false; }
     if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
     if (inp.value.trim() === t) inp.value = ''; ATL.micUsed = false;
     ATL.pend = []; ATL.stick = true; await atlLoad(true);
@@ -14374,6 +14427,7 @@ function atlWhy(e) {
   if (e && e.offline) return 'Pas de réseau : ton message est resté dans la case, réessaie dans un moment.';
   if (/trop d essais/.test(m)) return 'Doucement 😄 Beaucoup de messages en une heure : réessaie un peu plus tard.';
   if (/deja envoye/.test(m)) return 'Ton projet est déjà envoyé : Benjamin va le lire.';
+  if (/trop de projets/.test(m)) return 'Tu as déjà le maximum de projets : continue un de tes projets.';
   if (/choix en cours/.test(m)) return 'Termine d’abord tes choix (ou touche « Je veux modifier »).';
   if (/credits insuffisants/.test(m)) return 'Plus assez de crédits ce mois-ci : le 1er du mois, tu retrouves tes crédits. Tu peux aussi en demander à l’équipe.';
   if (e && (e.acct || e.guest)) return 'Connecte-toi à ton compte pour parler à l’Atelier.';
@@ -14410,7 +14464,8 @@ async function atlImage(file) {
     if (atlMsgs().filter(m => m.image && !m.atelier).length >= ATL_IMG_MAX) throw new Error('trop d images');
     const blob = await atlJpeg(file);
     ATL.pend = [{ texte: (cap ? cap + ' ' : '') + '🖼️ (image en route…)', pending: true, at: new Date().toISOString() }]; ATL.stick = true; atlRenderChat();
-    const r = await rpc('at_dire', { p_name: profile.name, p_texte: cap, p_micro: ATL.micUsed && !!cap, p_image: true }, { quiet: true });
+    const r = await rpc('at_dire', { p_name: profile.name, p_texte: cap, p_micro: ATL.micUsed && !!cap, p_image: true, p_fiche: ATL.cur || null, p_nouveau: !ATL.cur }, { quiet: true });
+    if (r && r.fiche && !ATL.cur) { ATL.cur = r.fiche; ATL.nouveau = false; }
     if (!r || !/^a\/[0-9a-f-]{36}\.jpg$/.test(String(r.image || ''))) throw new Error('réponse');
     const tok = await acctToken(profile);
     const up = await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/atelier/' + r.image, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: blob }, 60000);
@@ -14507,7 +14562,7 @@ async function atlValider(oui) {
   const et = atlEtat(), hint = () => { const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Dis-moi le numéro de la section à modifier (1 à 9) et ce que tu veux à la place…'; if (!TOUCH) inp.focus(); };
   try {
     if (!oui && et !== 'design' && et !== 'design_choisi') { ATL.choix = null; atlRender(); hint(); return; }   // juste la question : rien côté serveur
-    await rpc('at_valider', { p_name: profile.name, p_oui: !!oui }, { quiet: true });
+    await rpc('at_valider', { p_name: profile.name, p_oui: !!oui, p_fiche: ATL.cur }, { quiet: true });
     ATL.choix = null; ATL.iaK = ''; ATL.iaMsg = ''; ATL.stick = true;
     await atlLoad(true);
     if (!oui) hint();
@@ -14524,7 +14579,7 @@ async function atlChoisir(msg, n, b) {
 // ---------- l'Atelier DESSINE (Gemini, fonction Edge atelier-image ; crédits Elixir : 200 par mois, 2 par image) ----------
 async function atlIa(body) {
   const tok = await acctToken(profile);
-  const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/atelier-image', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ p_name: profile.name }, body)) }, 180000);
+  const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/atelier-image', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ p_name: profile.name, p_fiche: ATL.cur || null }, body)) }, 180000);
   let j = null; try { j = await r.json(); } catch (e) {}
   return { status: r.status, j: j || {} };
 }
@@ -14754,7 +14809,7 @@ async function atlPost(go, note, cb) {
   if (ATL.posting) return; ATL.posting = true; go.disabled = true; go.textContent = 'Envoi…';
   const lv = ATL.root.querySelector('.atl-lv');
   try {
-    const r = await rpc('at_envoyer', { p_name: profile.name, p_accord: ATL_ACCORD }, { quiet: true });
+    const r = await rpc('at_envoyer', { p_name: profile.name, p_accord: ATL_ACCORD, p_fiche: ATL.cur }, { quiet: true });
     if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
     if (cb) cb.closest('label').hidden = true;
     if (!r || r.etat !== 'envoyee') throw new Error('réponse');

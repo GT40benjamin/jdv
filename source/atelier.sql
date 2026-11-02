@@ -1175,3 +1175,112 @@ begin
     'legendes', case when p_sorte = 'planche' then (select jsonb_agg((array['En pleine action', 'Le monde du jeu', 'Le héros de près'])[1 + ((k - 1) % 3)] order by k) from generate_series(1, nb) k)
       else jsonb_build_array(pnom) end);
 end $$;
+
+-- ===================================================================================================================================
+-- PLUSIEURS PROJETS PAR JOUEUR (borne 1.63.47, 2 nov. 2026 15 h 40, Benjamin) : l'Atelier s'ouvre sur « Mes projets » (une tuile par
+-- projet + « Nouveau projet ») ; plus de règle « un seul projet actif » : projets_max (5) projets non refusés par joueur. Chaque action
+-- du joueur vise UN projet (p_fiche) ; sans p_fiche : le projet le plus récent (anciennes bornes). at_en_attente était déjà par projet.
+insert into public.at_reglages (k, v) values ('projets_max', 5) on conflict (k) do nothing;
+drop index if exists public.at_fiches_un_actif;
+create index if not exists at_fiches_name on public.at_fiches (name, maj_at desc);
+
+-- le projet visé : p_fiche (doit être à ce joueur et pas refusé), sinon le plus récent (ou null s'il n'y en a pas)
+create or replace function pegase_int.at_fiche_de(n text, p_fiche uuid) returns public.at_fiches language plpgsql stable security definer set search_path = public as $$
+declare f public.at_fiches;
+begin
+  if p_fiche is null then select * into f from public.at_fiches x where x.name = n and x.etat <> 'refusee' order by x.maj_at desc limit 1; return f; end if;
+  select * into f from public.at_fiches x where x.id = p_fiche and x.name = n and x.etat <> 'refusee';
+  if f.id is null then raise exception 'projet inconnu'; end if;
+  return f;
+end $$;
+create or replace function pegase_int.at_projets_ok(n text) returns void language plpgsql stable security definer set search_path = public as $$
+begin
+  if (select count(*) from public.at_fiches x where x.name = n and x.etat <> 'refusee') >= coalesce(pegase_int.at_reglage('projets_max'), 5) then raise exception 'trop de projets'; end if;
+end $$;
+revoke all on function pegase_int.at_fiche_de(text, uuid), pegase_int.at_projets_ok(text) from public, anon, authenticated;
+
+-- at_lire : la liste « Mes projets » (vignette = design choisi, sinon dernière planche dessinée) + le projet ouvert (p_fiche, sinon le plus récent)
+drop function if exists public.at_lire(text);
+create or replace function public.at_lire(p_name text, p_fiche uuid default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; dm public.at_credit_demandes; cr jsonb; pr jsonb;
+begin
+  perform public.acct_check(n);
+  select * into dm from public.at_credit_demandes d where d.name = n order by d.at desc limit 1;
+  cr := jsonb_build_object('solde', pegase_int.at_solde(n), 'cout', pegase_int.at_reglage('cout_image'), 'mois', pegase_int.at_reglage('credits_mois'),
+    'planche', pegase_int.at_reglage('images_planche'), 'admin', exists (select 1 from public.at_admins x where x.name = n and x.suivi),
+    'message', coalesce(pegase_int.at_reglage('cout_message'), 0), 'lettre', coalesce(pegase_int.at_reglage('cout_lettre'), 0),
+    'projets_max', coalesce(pegase_int.at_reglage('projets_max'), 5),
+    'demande', case when dm.id is null then null else jsonb_build_object('etat', dm.etat, 'montant', dm.montant, 'at', dm.at, 'decision_at', dm.decision_at) end);
+  pr := coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'titre', x.titre, 'etat', x.etat, 'maj_at', x.maj_at, 'created_at', x.created_at, 'jeu', x.jeu,
+      'vignette', coalesce(x.design ->> 'f', (select m.images -> 0 ->> 'f' from public.at_messages m where m.fiche = x.id and m.de_atelier and m.images is not null and not m.planche order by m.at desc limit 1)),
+      'reponse_at', (select max(m.at) from public.at_messages m where m.fiche = x.id and m.de_atelier),
+      'joueur_at', (select max(m.at) from public.at_messages m where m.fiche = x.id and not m.de_atelier),
+      'complete', pegase_int.at_pleine(x.fiche)) order by x.maj_at desc) from public.at_fiches x where x.name = n and x.etat <> 'refusee'), '[]'::jsonb);
+  f := pegase_int.at_fiche_de(n, p_fiche);
+  if f.id is null then return jsonb_build_object('fiche', null, 'messages', '[]'::jsonb, 'credits', cr, 'projets', pr); end if;
+  return jsonb_build_object('credits', cr, 'projets', pr,
+    'fiche', jsonb_build_object('id', f.id, 'titre', f.titre, 'etat', f.etat, 'fiche', f.fiche, 'created_at', f.created_at, 'maj_at', f.maj_at,
+                                'complete_at', f.complete_at, 'envoyee_at', f.envoyee_at, 'decision_at', f.decision_at, 'accord_at', f.accord_at,
+                                'jeu', f.jeu, 'design', f.design, 'design_at', f.design_at, 'assets', f.assets),
+    'messages', coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'texte', m.texte, 'atelier', m.de_atelier, 'micro', m.micro,
+                  'image', case when m.image then 'a/' || m.id || '.jpg' end, 'images', m.images, 'planche', m.planche, 'at', m.at) order by m.at)
+                  from public.at_messages m where m.fiche = f.id), '[]'::jsonb));
+end $$;
+revoke all on function public.at_lire(text, uuid) from public, anon;
+grant execute on function public.at_lire(text, uuid) to authenticated;
+
+-- at_dire : p_fiche = le projet ; p_nouveau = un NOUVEAU projet (dans la limite projets_max)
+drop function if exists public.at_dire(text, text, boolean, boolean);
+create or replace function public.at_dire(p_name text, p_texte text, p_micro boolean default false, p_image boolean default false, p_fiche uuid default null, p_nouveau boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); t text := btrim(coalesce(p_texte, '')); f public.at_fiches; i uuid; s int;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier', 30, interval '1 hour');
+  if t = '' and not coalesce(p_image, false) then raise exception 'texte vide'; end if;
+  if not coalesce(p_nouveau, false) then f := pegase_int.at_fiche_de(n, p_fiche); end if;
+  if f.id is not null and f.etat = 'envoyee' then raise exception 'projet deja envoye'; end if;
+  if f.id is not null and not pegase_int.at_parle(f.etat) then raise exception 'choix en cours'; end if;
+  if f.id is not null and coalesce(p_image, false) and (select count(*) from public.at_messages m where m.fiche = f.id and m.image and not m.de_atelier) >= 6 then raise exception 'trop d images'; end if;
+  if f.id is null then perform pegase_int.at_projets_ok(n); end if;
+  s := pegase_int.at_debiter(n, pegase_int.at_reglage('cout_message'));
+  if f.id is null then insert into public.at_fiches (name, etat) values (n, 'en_discussion') returning * into f; end if;
+  insert into public.at_messages (fiche, texte, micro, image) values (f.id, left(t, 2000), coalesce(p_micro, false), coalesce(p_image, false)) returning id into i;
+  update public.at_fiches x set maj_at = now(), etat = case when x.etat = 'brouillon' then 'en_discussion' else x.etat end where x.id = f.id;
+  return jsonb_build_object('id', i, 'fiche', f.id, 'image', case when coalesce(p_image, false) then 'a/' || i || '.jpg' end, 'solde', s);
+end $$;
+revoke all on function public.at_dire(text, text, boolean, boolean, uuid, boolean) from public, anon;
+grant execute on function public.at_dire(text, text, boolean, boolean, uuid, boolean) to authenticated;
+
+-- at_valider / at_envoyer / at_ia_debut : + p_fiche ; at_choisir_design : le projet est celui du message de la planche
+do $$
+declare d text; old text := 'select * into f from public.at_fiches x where x.name = n and x.etat <> ''refusee'' limit 1;';
+begin
+  -- at_valider
+  d := pg_get_functiondef('public.at_valider(text, boolean)'::regprocedure);
+  d := replace(d, 'public.at_valider(p_name text, p_oui boolean)', 'public.at_valider(p_name text, p_oui boolean, p_fiche uuid DEFAULT NULL::uuid)');
+  d := replace(d, old, 'f := pegase_int.at_fiche_de(n, p_fiche);');
+  if position('p_fiche' in d) = 0 or position(old in d) > 0 then raise exception 'at_valider'; end if;
+  drop function public.at_valider(text, boolean); execute d;
+  -- at_envoyer
+  d := pg_get_functiondef('public.at_envoyer(text, text)'::regprocedure);
+  d := replace(d, 'public.at_envoyer(p_name text, p_accord text)', 'public.at_envoyer(p_name text, p_accord text, p_fiche uuid DEFAULT NULL::uuid)');
+  d := replace(d, old, 'f := pegase_int.at_fiche_de(n, p_fiche);');
+  if position('p_fiche' in d) = 0 or position(old in d) > 0 then raise exception 'at_envoyer'; end if;
+  drop function public.at_envoyer(text, text); execute d;
+  -- at_ia_debut
+  d := pg_get_functiondef('public.at_ia_debut(text, text, text, jsonb)'::regprocedure);
+  d := replace(d, 'public.at_ia_debut(p_name text, p_sorte text, p_consigne text DEFAULT ''''::text, p_choix jsonb DEFAULT NULL::jsonb)',
+                  'public.at_ia_debut(p_name text, p_sorte text, p_consigne text DEFAULT ''''::text, p_choix jsonb DEFAULT NULL::jsonb, p_fiche uuid DEFAULT NULL::uuid)');
+  d := replace(d, old, 'f := pegase_int.at_fiche_de(n, p_fiche);');
+  if position('p_fiche' in d) = 0 or position(old in d) > 0 then raise exception 'at_ia_debut'; end if;
+  drop function public.at_ia_debut(text, text, text, jsonb); execute d;
+  -- at_choisir_design
+  d := pg_get_functiondef('public.at_choisir_design(text, uuid, integer)'::regprocedure);
+  d := replace(d, old, 'select x.* into f from public.at_fiches x join public.at_messages m on m.fiche = x.id where m.id = p_msg and x.name = n and x.etat <> ''refusee'';');
+  if position(old in d) > 0 then raise exception 'at_choisir_design'; end if;
+  execute d;
+end $$;
+revoke all on function public.at_valider(text, boolean, uuid), public.at_envoyer(text, text, uuid), public.at_ia_debut(text, text, text, jsonb, uuid) from public, anon;
+grant execute on function public.at_valider(text, boolean, uuid), public.at_envoyer(text, text, uuid), public.at_ia_debut(text, text, text, jsonb, uuid) to authenticated;

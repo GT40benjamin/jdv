@@ -3676,3 +3676,21 @@ body.atl-on #jdw-modes{visibility:hidden}
 .atl-stab th{color:var(--muted);font-weight:600}
 .atl-stab tr.ko td{color:var(--muted)}
 .atl-suivi > .btn{justify-self:end}
+
+/* ---------- « Mes projets » (borne 1.63.47) ---------- */
+.atl-projets{flex:1 1 auto;overflow-y:auto;padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 24px)}
+.atl-projets[hidden],.atl-main[hidden]{display:none}
+.atl-ph{margin:0 0 4px;font:400 22px var(--display);color:#ffe9a8}
+.atl-psub{margin:0 0 14px;color:var(--muted);font:14px var(--body)}
+.atl-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;max-width:1100px}
+.atl-ptile{position:relative;display:grid;gap:4px;padding:0 0 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-align:left;cursor:pointer;overflow:hidden;transition:transform .15s,border-color .15s}
+.atl-ptile:hover,.atl-ptile:focus-visible{transform:translateY(-2px);border-color:#ffd34d}
+.atl-ptile.new{border-color:#ffd34d;box-shadow:0 0 0 2px rgba(255,211,77,.45)}
+.atl-ptile:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.atl-pv{display:grid;place-items:center;aspect-ratio:4/3;background:radial-gradient(circle at 30% 20%,#3a1f6e,#120a24);font-size:44px;color:#ffd34d;overflow:hidden}
+.atl-pv img{width:100%;height:100%;object-fit:cover}
+.atl-ptile b{padding:0 12px;font:700 15px var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.atl-ptile small{padding:0 12px;color:var(--muted);font:12.5px var(--body)}
+.atl-pnew{position:absolute;top:8px;right:8px;padding:4px 9px;border-radius:999px;background:#ffd34d;color:#2a1340;font:700 11.5px var(--body)}
+.atl-pplus .atl-pv{background:rgba(255,211,77,.08);border-bottom:1px dashed rgba(255,211,77,.5);font-size:56px}
+@media (max-width:520px){.atl-pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
