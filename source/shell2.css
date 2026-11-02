@@ -3642,3 +3642,19 @@ body.atl-on #jdw-modes{visibility:hidden}
 .atl-plc{float:right;font:700 12px var(--body);color:#2a6a8a}
 .atl-pltot{margin:6px 0 0;font:700 13px var(--body);color:#3a2a14}
 .atl-plrule{margin:8px 0 10px;padding:8px 10px;border-radius:8px;background:#fff3c4;border:1px solid #f0c94a;font:600 12.5px/1.35 var(--body);color:#5a3a00}
+
+/* ---------- l'Atelier propose les planches, le joueur confirme (borne 1.63.41) ---------- */
+.atl-prop{display:grid;gap:8px;margin:6px 0 4px;padding:14px;border-radius:14px;background:linear-gradient(180deg,rgba(255,211,77,.16),rgba(255,154,61,.08));border:1px solid rgba(255,211,77,.55)}
+.atl-prop .atl-cq{font:400 17px/1.2 var(--display);color:#ffe9a8}
+.atl-prop p{margin:0;font:14px/1.4 var(--body);color:var(--ink)}
+.atl-prop.busy .atl-cq::after{content:"";display:inline-block;width:14px;height:14px;margin-left:10px;border:3px solid #ffd34d;border-right-color:transparent;border-radius:50%;animation:atlSpin .8s linear infinite;vertical-align:-2px}
+.atl-pp{display:grid;gap:6px;padding:10px;border-radius:10px;background:rgba(0,0,0,.2)}
+.atl-pph{display:flex;align-items:center;gap:8px}
+.atl-pph b{flex:1 1 auto;font:700 14px var(--body);color:#fff6dc}
+.atl-prop .atl-plc{float:none;color:#7ef7ff}
+.atl-prop .atl-chip{cursor:default}
+.atl-prop .atl-pltot{font:700 14px var(--body);color:#fff6dc}
+.atl-prop .atl-plrule{color:#5a3a00}
+.atl-perr{color:#ffc2cb!important}
+.atl-pl li.fait b{text-decoration:line-through;opacity:.7}
+@media (prefers-reduced-motion:reduce){.atl-prop.busy .atl-cq::after{animation:none}}

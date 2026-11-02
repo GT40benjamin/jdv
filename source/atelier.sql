@@ -877,3 +877,121 @@ begin
 end $$;
 revoke all on function pegase_int.at_ia_plafond(int) from public, anon, authenticated;
 update public.at_reglages set v = 2 where k = 'cout_message';   -- 2 nov. 14 h 45 (Benjamin) : 2 crédits par message
+
+-- ===================================================================================================================================
+-- L'ATELIER PROPOSE LES PLANCHES (borne 1.63.41, 2 nov. 2026 15 h 05, Benjamin) : plus de « Dessine » libre au fil de la discussion. On
+-- collecte d'abord (fiche complète, modifications par numéro), puis l'Atelier PROPOSE les planches dans la fiche (clé « planches » :
+-- [{nom, elements}], le moins de planches possible, idéalement UNE) ; le joueur voit la liste + le coût et CONFIRME (« Oui, dessine ma
+-- planche ») : seulement alors at_ia_debut(…, 'assets', 'planche N') dessine LA planche N de la fiche (les éléments viennent de la fiche,
+-- jamais d'un texte libre). Une planche d'un seul élément = une grande image (fond, titre). La sorte « dessin » libre est fermée.
+create or replace function public.at_ia_debut(p_name text, p_sorte text, p_consigne text default '', p_choix jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; c text := left(btrim(coalesce(p_consigne, '')), 600); nb int; cout int; s int; u uuid;
+  fi jsonb; base text; why text; ch jsonb; el text[]; ne int; cols int; rws int; sty text; pi int; pj jsonb; pnom text; scenes text[] := array[
+    'Le héros en pleine action, au cœur du jeu, comme une capture d''écran.',
+    'Une vue large du monde du jeu avec le héros petit au milieu, comme l''écran titre.',
+    'Le héros de près, souriant, avec un objet ou un ami du jeu à côté de lui.'];
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-ia', 20, interval '1 hour');
+  select * into f from public.at_fiches x where x.name = n and x.etat <> 'refusee' limit 1;
+  if f.id is null then raise exception 'aucun projet'; end if;
+  fi := f.fiche;
+  if p_sorte = 'planche' then
+    if f.etat <> 'design' then raise exception 'etat %', f.etat; end if;
+    ch := pegase_int.at_choix_ok(coalesce(p_choix, '{}'::jsonb));
+    if ch is null then raise exception 'choix de design requis'; end if;
+    if exists (select 1 from public.at_ia a where a.fiche = f.id and a.sorte = 'planche' and a.fin_at is null and a.at > now() - interval '5 minutes') then raise exception 'planche en cours'; end if;
+    nb := pegase_int.at_reglage('images_planche');
+    base := concat_ws(' ', fi ->> 'idee', fi ->> 'heros', fi ->> 'monde', f.titre);
+  elsif p_sorte = 'assets' then
+    if not pegase_int.at_parle(f.etat) then raise exception 'choix en cours'; end if;
+    pi := (regexp_match(c, '^planche ([0-9]{1,2})$'))[1]::int;   -- « planche N » : la N-ième planche PROPOSÉE dans la fiche (1, 2, 3…)
+    if pi is null or jsonb_typeof(fi -> 'planches') <> 'array' or pi < 1 or pi > jsonb_array_length(fi -> 'planches') then raise exception 'planche inconnue'; end if;
+    pj := (fi -> 'planches') -> (pi - 1);
+    if jsonb_typeof(pj) = 'object' and coalesce((pj ->> 'faite')::boolean, false) then raise exception 'planche deja dessinee'; end if;
+    if exists (select 1 from public.at_ia a where a.fiche = f.id and a.sorte = 'assets' and a.fin_at is null and a.at > now() - interval '5 minutes' and (a.choix ->> 'planche')::int = pi) then raise exception 'planche en cours'; end if;
+    pnom := case when jsonb_typeof(pj) = 'string' then pj #>> '{}' else coalesce(pj ->> 'nom', 'Planche ' || pi) end;
+    el := case when jsonb_typeof(pj) = 'object' and jsonb_typeof(pj -> 'elements') = 'array' then (select array_agg(left(btrim(v), 60)) from jsonb_array_elements_text(pj -> 'elements') v where length(btrim(v)) >= 2)
+               when jsonb_typeof(pj) = 'object' then pegase_int.at_elements(pj ->> 'elements')
+               else array[left(pnom, 60)] end;
+    ne := coalesce(array_length(el, 1), 0);
+    if ne < 1 then el := array[left(pnom, 60)]; ne := 1; end if;
+    if ne > 9 then raise exception 'elements : 9 au plus'; end if;
+    cols := case when ne = 1 then 1 when ne <= 4 then 2 else 3 end; rws := ceil(ne::numeric / cols)::int;
+    nb := 1; base := pnom || ' ' || array_to_string(el, ' ');
+  else raise exception 'sorte inconnue'; end if;   -- (la sorte « dessin » libre est fermée depuis la 1.63.41)
+  why := pegase_int.at_filtre(base);
+  if why <> '' then raise exception 'filtre %', why; end if;
+  cout := nb * pegase_int.at_reglage('cout_image');
+  perform pegase_int.at_ia_plafond(nb);
+  s := pegase_int.at_debiter(n, cout);
+  sty := coalesce((select pegase_int.at_choix_ok(a.choix) ->> 'style' || ', ' || (pegase_int.at_choix_ok(a.choix) ->> 'couleurs')
+                   from public.at_ia a where a.fiche = f.id and a.sorte = 'planche' and a.choix is not null order by a.at desc limit 1), nullif(fi ->> 'style', ''), 'dessin animé coloré');
+  insert into public.at_ia (fiche, name, sorte, consigne, nb, cout, choix) values (f.id, n, p_sorte, case when p_sorte = 'planche' then '' else c end, nb, cout,
+    case when p_sorte = 'assets' then jsonb_build_object('planche', pi, 'nom', pnom, 'elements', to_jsonb(el), 'cols', cols, 'rows', rws) else p_choix end) returning id into u;
+  return jsonb_build_object('usage', u, 'nb', nb, 'solde', s,
+    'consignes', case
+      when p_sorte = 'planche' then (select jsonb_agg(
+        'Image d''un jeu vidéo d''arcade pour enfants, gentil, à jouer entre copains. ' ||
+        'Idée du jeu : ' || coalesce(fi ->> 'idee', '') || ' Héros : ' || coalesce(fi ->> 'heros', '') || '. Monde : ' || coalesce(fi ->> 'monde', '') ||
+        '. Vue : ' || coalesce(fi ->> 'dimension', '') || '. Style graphique : ' || (ch ->> 'style') || '. Couleurs : ' || (ch ->> 'couleurs') ||
+        '. ' || initcap(left(ch ->> 'ambiance', 1)) || substr(ch ->> 'ambiance', 2) || '. ' || scenes[1 + ((k - 1) % 3)] ||
+        ' Aucun texte, aucun logo, aucune marque, aucun personnage existant protégé. Format paysage 4:3.' order by k) from generate_series(1, nb) k)
+      when ne = 1 then jsonb_build_array(
+        'Grande image pour un jeu vidéo 2D pour enfants, gentil et coloré (jeu : ' || coalesce(nullif(f.titre, ''), coalesce(fi ->> 'idee', '')) || '). Style : ' || sty || '. ' ||
+        'Elle représente : ' || el[1] || '. Image entière, bien composée, format paysage 16:9. Aucun logo, aucune marque, aucun personnage existant protégé, ' ||
+        'aucun texte sauf si c''est un titre (alors seulement le titre, bien lisible).')
+      else jsonb_build_array(
+        'Planche d''éléments (sprite sheet) pour un jeu vidéo 2D pour enfants, gentil et coloré. Style : ' || sty || '. ' ||
+        'Une grille RÉGULIÈRE de ' || cols || ' colonnes et ' || rws || ' lignes, toutes les cases de la même taille. ' ||
+        'Dans chaque case, UN SEUL élément, entier, centré, bien séparé, qui ne touche pas les bords de sa case. ' ||
+        'Fond blanc pur uni (#FFFFFF) partout, sans ombre au sol, sans décor, sans quadrillage visible, sans cadre, sans texte, sans numéro. ' ||
+        'Les éléments, dans l''ordre (de gauche à droite, puis de haut en bas) : ' ||
+        (select string_agg(i || '. ' || el[i], ' ; ' order by i) from generate_series(1, ne) i) ||
+        (case when ne < cols * rws then '. Les cases en trop restent blanches.' else '.' end) ||
+        ' Même style et même taille apparente pour tous. Aucun logo, aucune marque, aucun personnage existant protégé. Image carrée.') end,
+    'legendes', case when p_sorte = 'planche' then (select jsonb_agg((array['En pleine action', 'Le monde du jeu', 'Le héros de près'])[1 + ((k - 1) % 3)] order by k) from generate_series(1, nb) k)
+      else jsonb_build_array(pnom) end);
+end $$;
+
+-- at_ia_fin : la planche N dessinée est marquée « faite » dans la fiche (avec son image) ; une planche d'un seul élément n'a pas de grille
+create or replace function public.at_ia_fin(p_usage uuid, p_images text[], p_legendes text[] default null, p_modele text default null, p_erreur text default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare a public.at_ia; nok int := coalesce(array_length(p_images, 1), 0); ims jsonb := '[]'::jsonb; k int; rend int; mid uuid; s int; ne int; el jsonb; pi int;
+begin
+  select * into a from public.at_ia x where x.id = p_usage; if a.id is null then raise exception 'usage inconnu'; end if;
+  if a.fin_at is not null then raise exception 'deja fini'; end if;
+  if nok > a.nb then raise exception 'trop d images'; end if;
+  el := coalesce(a.choix -> 'elements', '[]'::jsonb); ne := jsonb_array_length(el); pi := (a.choix ->> 'planche')::int;
+  for k in 1 .. nok loop
+    if p_images[k] !~ '^i/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[.](png|jpg|webp)$' then raise exception 'chemin refuse'; end if;
+    ims := ims || jsonb_build_array(jsonb_build_object('n', k, 'f', p_images[k], 't', left(coalesce(p_legendes[k], ''), 80))
+      || case when a.sorte = 'assets' and ne > 1 then jsonb_build_object('g', jsonb_build_array(a.choix -> 'cols', a.choix -> 'rows'), 'e', el) else '{}'::jsonb end);
+  end loop;
+  rend := (a.nb - nok) * (a.cout / a.nb);
+  if rend > 0 then perform pegase_int.at_solde(a.name); update public.at_credits c set solde = c.solde + rend, maj_at = now() where c.name = a.name; end if;
+  update public.at_ia x set fin_at = now(), ok = nok, erreur = left(p_erreur, 200), modele = left(p_modele, 80) where x.id = a.id;
+  select c.solde into s from public.at_credits c where c.name = a.name;
+  if nok > 0 then
+    insert into public.at_messages (fiche, texte, de_atelier, images, planche) values (a.fiche,
+      case when a.sorte = 'planche' then 'Voici ' || nok || ' idées de design pour ton jeu 🎨 Touche celle que tu préfères !'
+           when a.sorte = 'assets' and ne > 1 then 'Voilà ta planche « ' || coalesce(a.choix ->> 'nom', '') || ' » : ' || ne || ' éléments ! 🧩 Je les ai rangés dans ta fiche, rubrique « Ce qu’il y aura dans ton jeu ». (' || a.cout || ' crédits, il t’en reste ' || s || ')'
+           when a.sorte = 'assets' then 'Voilà « ' || coalesce(a.choix ->> 'nom', '') || ' » ! 🎨 (' || a.cout || ' crédits, il t’en reste ' || s || ')'
+           else 'Voilà ton dessin ! 🎨 (' || a.cout / a.nb || ' crédits, il t’en reste ' || s || ')' end, true, ims, a.sorte = 'planche') returning id into mid;
+    if a.sorte = 'assets' then
+      update public.at_fiches x set maj_at = now(),
+        assets = (coalesce(x.assets, '[]'::jsonb) || (select coalesce(jsonb_agg(jsonb_build_object(
+          'nom', e.v, 'sorte', case when ne > 1 then 'élément' else 'grande image' end, 'source', 'planche dessinée par l’Atelier', 'licence', 'à nous', 'image', p_images[1])
+          || case when ne > 1 then jsonb_build_object('case', e.o::int, 'grille', jsonb_build_array(a.choix -> 'cols', a.choix -> 'rows')) else '{}'::jsonb end order by e.o), '[]'::jsonb)
+          from jsonb_array_elements_text(el) with ordinality as e(v, o))),
+        fiche = case when pi is not null and jsonb_typeof(x.fiche -> 'planches') = 'array' and pi <= jsonb_array_length(x.fiche -> 'planches')
+          then jsonb_set(x.fiche, array['planches', (pi - 1)::text],
+                 case when jsonb_typeof(x.fiche -> 'planches' -> (pi - 1)) = 'object' then (x.fiche -> 'planches' -> (pi - 1)) else jsonb_build_object('nom', x.fiche -> 'planches' ->> (pi - 1)) end
+                 || jsonb_build_object('faite', true, 'image', p_images[1]))
+          else x.fiche end
+      where x.id = a.fiche and length(coalesce(x.assets, '[]'::jsonb)::text) < 15000;
+    end if;
+  end if;
+  return jsonb_build_object('message', mid, 'rendus', rend, 'solde', s);
+end $$;

@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## ✅ L'Atelier te propose ta planche, tu confirmes (borne 1.63.43)
+[atelier] 🎨 Plus besoin de demander les dessins toi-même : quand ton projet est bien ficelé, l'Atelier te PROPOSE la liste de tout ce qu'il va dessiner (le moins de planches possible, souvent une seule), avec le prix.
+[atelier] ✅ Touche « Oui, dessine ma planche » pour lancer le dessin, ou « Je veux encore changer » pour ajouter ou modifier des éléments avant. Rien n'est dessiné (ni payé) sans ton accord.
+
 [abracadabra] ## 🐑 Abracadabra : les moutons dispersés… et le loup de la crête (borne 1.63.42)
 [abracadabra] 🐺 Mission 12 : pendant que le chien de berger rassemble le troupeau, dis « loup » : il hurle sur la crête, les moutons pas encore rentrés s'éparpillent à nouveau, et le chien part chasser le loup. Ceux qui sont dans la bergerie y restent : redis « chien » pour finir !
 [abracadabra] ✨ Avec cette mission, les 12 missions d'Abracadabra ont toutes leurs conséquences : un bon mot ne compte que quand l'action est finie, et un mauvais mot peut tout gâcher.
