@@ -20,13 +20,8 @@
 [remparts] 🎯 Les têtes des tourelles pivotent vers leur cible et tirent seulement une fois bien alignées, en visant là où le monstre VA arriver. Touche une tour pour choisir qui elle vise : 🏃 le plus avancé, 💪 le plus costaud ou 📍 le plus proche.
 [remparts] 💥 Des morts magiques : chaque monstre s'effondre dans un éclat d'étincelles, un flash et une onde au sol, et ses pièces filent jusqu'à ton compteur d'or. Le Roi meurt au ralenti dans une pluie d'or.
 [remparts] ⭐ Toujours le système « celui qui a le plus de points gagne » : combos, vagues parfaites, défi du jour, records, 20 succès et le mode ♾️ Sans fin.
-[poneys] ## 🦄 Ranch des Poneys, en essai : le premier jeu né dans l'Atelier (borne 1.63.27)
-[poneys] 🦄 Les poneys arrivent au ranch avec une envie dans leur bulle : être brossés, une carotte, de l'eau ou un joli ruban. Choisis le bon outil en bas et occupe-toi d'eux avant qu'ils perdent patience !
-[poneys] 🪮 La brosse se frotte pour de vrai : glisse le doigt (ou la souris) sur le poney jusqu'à ce que toute la boue soit partie et qu'il brille.
-[poneys] 🥚 De temps en temps, un œuf de poney arrive dans un nid : touche-le plusieurs fois pour le réchauffer, il éclot et un petit poney sort !
-[poneys] ⏳ Chaque poney tout content te rend du temps, un poney qui s'en va triste t'en fait perdre. Enchaîne-les vite pour le combo, et bats le record de la salle !
 [atelier] ## 🧪 Les jeux en essai portent un ruban « TEST » (borne 1.63.27)
-[atelier] 🧪 Sur les appareils en mode test, la tuile de chaque jeu encore en essai (Crée ton jeu, Remparts !, Ranch des Poneys…) porte un ruban jaune et noir « TEST » et un contour pointillé : on voit tout de suite ce qui n'est pas encore sorti pour tout le monde.
+[atelier] 🧪 Sur les appareils en mode test, la tuile de chaque jeu encore en essai (Crée ton jeu, Remparts !…) porte un ruban jaune et noir « TEST » et un contour pointillé : on voit tout de suite ce qui n'est pas encore sorti pour tout le monde.
 
 [abracadabra] ## 🗺️ Abracadabra : la carte des missions et la mission au classement (borne 1.63.26)
 [abracadabra] 🗺️ Abracadabra a enfin sa carte sur la borne (le bouton carte de sa tuile) : un grimoire de nuit étoilée qui s'éclaire jusqu'à l'aube, les 12 missions en médaillons, et chaque copain de la salle posé sur la mission où il en est.
