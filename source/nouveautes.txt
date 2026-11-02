@@ -18,6 +18,10 @@
 [pegase] 🌼 Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.
 [pegase] 🌸 De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.
 [pegase] 🧥 Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps.
+[noisette] ## 🦉 Noisette et ses amis : des amis plus vivants (borne 1.63.120)
+[noisette] 🦉 Hulotte bat vraiment des ailes (ailes en haut, à plat, en bas, à mi-hauteur) et Pompon ne reste plus figé quand il attend : il respire, bouge les oreilles et le nez.
+[noisette] 🐾 Quand Noisette s'arrête, ses amis se rangent en file derrière lui au lieu de lui rentrer dedans.
+[noisette] 📖 L'aide des commandes sur l'écran titre est maintenant bien lisible.
 [noisette] ## 🐿️ Noisette et ses amis : réglages de la première version (borne 1.63.117)
 [noisette] 🛠️ Les éléments retirés à la demande disparaissent bien en entier (tous les corbeaux, toutes les décorations, tous les décors) ; le jeu reste toujours faisable jusqu'au grand chêne.
 [noisette] ## 🐿️ Noisette et ses amis : la première version à tester (borne 1.63.115)

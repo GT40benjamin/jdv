@@ -20,9 +20,9 @@ const NIVEAUX = [
 ];
 // les amis : leurs images (repos, respire, cycle de déplacement), leur façon de bouger, leur taille
 const AMIS = {
-  pompon: { nom: 'Pompon', h: 58, cycle: ['pompon-s1', 'pompon-s2', 'pompon-s2', 'pompon-s1'], saute: 1 },   // il bondit : accroupi, étiré
+  pompon: { nom: 'Pompon', h: 58, cycle: ['pompon-s1', 'pompon-s2', 'pompon-s2', 'pompon-s1'], saute: 1, repos: ['pompon-r1', 'pompon-r2', 'pompon-r1', 'pompon-r4', 'pompon-r1', 'pompon-r3'] },   // il bondit : accroupi, étiré ; au repos : respire, bouge les oreilles et le nez
   piquant: { nom: 'Piquant', h: 50, cycle: ['piquant-m1', 'piquant-m2', 'piquant-m3', 'piquant-m4'], boule: 'piquant-boule' },
-  hulotte: { nom: 'Hulotte', h: 54, cycle: ['hulotte-v1', 'hulotte-v2', 'hulotte-v1', 'hulotte-v2'], vole: 1 },   // ailes en haut, ailes en bas
+  hulotte: { nom: 'Hulotte', h: 54, cycle: ['hulotte-w1', 'hulotte-w2', 'hulotte-w3', 'hulotte-w4'], vole: 1 },   // battement complet : ailes en haut, à plat, en bas, à mi-hauteur
   roussette: { nom: 'Roussette', h: 56, cycle: ['roussette-c1', 'roussette-c2', 'roussette-c3', 'roussette-c4'] }
 };
 
@@ -131,7 +131,7 @@ function preview(ctx, w, h) {
   const gy = h * 0.86;
   ctx.fillStyle = '#6b4a2d'; ctx.fillRect(0, gy, w, h - gy); ctx.fillStyle = '#6cc44c'; ctx.fillRect(0, gy - h * 0.025, w, h * 0.05);
   drawFoot(ctx, 'pompon-repos', w * 0.18, gy, h * 0.24); drawFoot(ctx, 'piquant-repos', w * 0.33, gy, h * 0.2);
-  drawFoot(ctx, 'n-c1', w * 0.55, gy - h * 0.06, h * 0.36); drawFoot(ctx, 'hulotte-v1', w * 0.78, gy - h * 0.36, h * 0.22); drawFoot(ctx, 'roussette-repos', w * 0.86, gy, h * 0.24);
+  drawFoot(ctx, 'n-c1', w * 0.55, gy - h * 0.06, h * 0.36); drawFoot(ctx, 'hulotte-w1', w * 0.78, gy - h * 0.36, h * 0.22); drawFoot(ctx, 'roussette-repos', w * 0.86, gy, h * 0.24);
   for (let i = 0; i < 5; i++) drawFoot(ctx, 'noix', w * (0.36 + i * 0.07), gy - h * (0.3 + Math.sin(i) * 0.03), h * 0.08);
 }
 
@@ -167,6 +167,7 @@ function mount(root, api) {
   const ELEM = {
     corbeau: 'Les corbeaux chapardeurs', ronce: 'Ronces', gland: 'Gland magique (vitesse)', ressort: 'Feuille-ressort (super saut)', champi: 'Champignon rebondissant',
     deco: 'Décorations de la forêt', fond: 'Décors des niveaux',
+    fond1: 'Décors des niveaux — la forêt du matin', fond2: 'Décors des niveaux — le sous-bois aux champignons', fond3: 'Décors des niveaux — la rivière et ses rondins', fond4: 'Décors des niveaux — le grand chêne',
     saut: 'Saut', roulade: 'Roulade', noix_son: 'Ramasser une noisette', ami_son: 'Retrouver un ami', aie: 'Touché par une ronce', bonus_son: 'Bonus'
   };
   let OFF = new Set();
@@ -365,7 +366,7 @@ function mount(root, api) {
     }
     // la trace (les amis suivent les pas de Noisette)
     trace.unshift({ x: P.x, y: P.y, sol: P.sol, boule: P.boule, flip: P.flip, vx: P.vx }); if (trace.length > 220) trace.pop();
-    for (let i = 0; i < amis.length; i++) suivre(amis[i], trace[Math.min(trace.length - 1, 16 * (i + 1))], dt);
+    for (let i = 0; i < amis.length; i++) suivre(amis[i], place(i), dt);
     // la caméra : un peu d'avance dans le sens de la course
     const tx = P.x - W / Z * 0.35 + P.vx * 0.25, ty = Math.min(P.y - (H / Z) * 0.62, 760 - H / Z);
     cam.x += (tx - cam.x) * Math.min(1, dt * 5); cam.y += (ty - cam.y) * Math.min(1, dt * 4);
@@ -379,6 +380,15 @@ function mount(root, api) {
     sac = 0;
   }
   function blesse(dex) { if (P.invul > 0) return; P.touche = 0.8; P.invul = 1.6; P.boule = false; P.vx = (P.x < dex ? -1 : 1) * 320; P.vy = -480; P.sol = false; shake = 9; son('aie'); perdre(false); }
+  // la place d'un ami : les pas de Noisette d'il y a un moment, mais jamais plus près que sa place dans la file (sinon, quand Noisette
+  // s'arrête, tout le monde lui rentre dedans) ; la file se range derrière lui, du côté opposé à son regard
+  function place(i) {
+    const t = trace[Math.min(trace.length - 1, 16 * (i + 1))]; if (!t) return t;
+    const ecart = 60 * (i + 1), der = P.flip ? 1 : -1;
+    if (Math.abs(t.x - P.x) >= ecart) return t;
+    const x = P.x + der * ecart, g = solA(x);
+    return Object.assign({}, t, { x, y: g != null && Math.abs(g - P.y) < 80 ? g : t.y, sol: true, boule: false });
+  }
   function suivre(a, t, dt) {
     if (!t) return;
     const ox = a.x; a.x += (t.x - a.x) * Math.min(1, dt * 12); a.y += (t.y - a.y) * Math.min(1, dt * 12);
@@ -393,7 +403,7 @@ function mount(root, api) {
     const g = solA(P.x); if (g != null) P.y = g;
     if (P.joie > 0) P.joie += dt;
     trace.unshift({ x: P.x, y: P.y, sol: true, boule: false, flip: P.flip, vx: P.vx }); if (trace.length > 220) trace.pop();
-    for (let i = 0; i < amis.length; i++) suivre(amis[i], trace[Math.min(trace.length - 1, 16 * (i + 1))], dt);
+    for (let i = 0; i < amis.length; i++) suivre(amis[i], place(i), dt);
     const tx = P.x - W / Z * 0.45; cam.x += (tx - cam.x) * Math.min(1, dt * 3);
     if (P.joie > 3) {
       amis.push({ k: A.k, x: A.x, y: A.y, flip: true, step: 0, repos: 0 });
@@ -411,7 +421,7 @@ function mount(root, api) {
   // ---------- dessin ----------
   const sx = x => (x - cam.x) * Z, sy = y => (y - cam.y) * Z;
   function drawFond() {
-    const f = off('fond') ? null : IMG[NIVEAUX[niv].fond];
+    const k = NIVEAUX[niv].fond, f = OFF.has(ELEM.fond) || off(k) ? null : IMG[k];   // chaque décor de fond se retire séparément (« Décors des niveaux » seul : tous)
     if (!f) { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#bfe6ff'); g.addColorStop(1, '#d8f2c4'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); return; }
     const s = H / f.height, w = f.width * s, off0 = ((cam.x * Z * 0.25) % (2 * w) + 2 * w) % (2 * w);
     for (let i = -1, x = -off0; x < W; i++, x += w) {
@@ -453,7 +463,8 @@ function mount(root, api) {
     // le panneau et l'ami qui attend
     drawFoot(ctx, 'panneau', sx(L.panneau.x), sy(L.panneau.y) + 4 * Z, 92 * Z);
     const A = L.ami; if (!A.trouve || finT > 0) { const a = AMIS[A.k], fl = true;
-      const nm = A.trouve ? (IMG[A.k + '-joie'] ? A.k + '-joie' : A.k + '-repos') : (Math.sin(tNiv * 2.2) > 0.3 ? A.k + '-respire' : A.k + '-repos');
+      // l'ami qui attend : son cycle de repos dessiné (Pompon), sinon ses deux poses de repos ; puis sa joie
+      const nm = A.trouve ? (IMG[A.k + '-joie'] ? A.k + '-joie' : A.k + '-repos') : a.repos ? a.repos[Math.floor(tNiv / 0.38) % a.repos.length] : (Math.sin(tNiv * 2.2) > 0.3 && IMG[A.k + '-respire'] ? A.k + '-respire' : A.k + '-repos');
       const hop = A.trouve ? Math.abs(Math.sin(P.joie * 6)) * 22 * Z : 0;
       drawFoot(ctx, nm, sx(A.x), sy(A.y) - hop, a.h * Z, fl);
       if (!A.trouve) { ctx.fillStyle = '#fff'; ctx.font = 'bold ' + Math.round(22 * Z) + 'px ' + RF; ctx.textAlign = 'center'; ctx.fillText('?', sx(A.x), sy(A.y) - (a.h + 16) * Z + Math.sin(tNiv * 4) * 4 * Z); } }
@@ -503,7 +514,8 @@ function mount(root, api) {
       else if (Math.abs(a.vx) > 25) nm = d.cycle[Math.floor(a.step || 0) % 4];
       else nm = 'souffle';
       ctx.fillStyle = 'rgba(40,30,20,0.22)'; ctx.beginPath(); ctx.ellipse(x, sy(a.y) + 2 * Z, h * 0.3, h * 0.07, 0, 0, TAU); ctx.fill();
-      if (nm === 'souffle') souffle(a.k + '-repos', x, y, h, a.flip, (a.repos || 0) + i);
+      if (nm === 'souffle' && d.repos && IMG[d.repos[0]]) drawFoot(ctx, d.repos[Math.floor(((a.repos || 0) + i * 0.3) / 0.38) % d.repos.length], x, y, h, a.flip);   // un vrai cycle de repos dessiné
+      else if (nm === 'souffle') souffle(a.k + '-repos', x, y, h, a.flip, (a.repos || 0) + i);
       else if (rot != null) drawFoot(ctx, nm, x, y, h * 0.8, a.flip, rot);
       else drawFoot(ctx, nm, x, y - (d.saute && Math.abs(a.vx) > 25 ? Math.abs(Math.sin((a.step || 0) * Math.PI / 2)) * 14 * Z : 0), h, a.flip); }
   }
@@ -549,7 +561,7 @@ function mount(root, api) {
     ctx.lineWidth = Math.max(4, fs * 0.16); ctx.strokeStyle = 'rgba(90,45,10,0.85)'; ctx.strokeText(s, W / 2, y); ctx.fillStyle = c || '#fff'; ctx.fillText(s, W / 2, y);
   }
   function drawTitle() {
-    const f = off('fond') ? null : IMG.fond1;
+    const f = OFF.has(ELEM.fond) || off('fond1') ? null : IMG.fond1;
     if (f) { const s = Math.max(W / f.width, H / f.height); ctx.drawImage(f, (W - f.width * s) / 2, (H - f.height * s) / 2, f.width * s, f.height * s); }
     else { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#bfe6ff'); g.addColorStop(1, '#8fd46a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
     const gy = H * (portrait ? 0.62 : 0.8), u = U;
@@ -568,7 +580,12 @@ function mount(root, api) {
     const gg = ctx.createLinearGradient(0, -bh / 2, 0, bh / 2); gg.addColorStop(0, '#ffb14d'); gg.addColorStop(1, '#e0702a'); ctx.fillStyle = gg; ctx.fill();
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold ' + Math.round(bh * 0.42) + 'px ' + RF; ctx.textAlign = 'center';
     ctx.fillText(state === 'load' ? 'Chargement…' : '▶ Jouer', 0, 2); ctx.restore();
-    ctx.font = Math.round(14 * u) + 'px ' + RF; ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.textAlign = 'center'; ctx.fillText(tactile ? 'Boutons à l’écran · ⤒ sauter · ⟳ rouler' : 'Flèches · Espace pour sauter · ↓ pour rouler', W / 2, by + bh + 24 * u);
+    // l'aide des commandes, dans un bandeau sombre (lisible sur le ciel clair)
+    const aide = tactile ? 'Boutons à l’écran · ⤒ sauter · ⟳ rouler' : 'Flèches · Espace pour sauter · ↓ pour rouler';
+    ctx.font = 'bold ' + Math.round(15 * u) + 'px ' + RF; const aw = Math.min(W - 24, ctx.measureText(aide).width + 28 * u), ay = by + bh + 12 * u;
+    pill(ctx, (W - aw) / 2, ay, aw, 28 * u, 14 * u); ctx.fillStyle = 'rgba(70,38,12,0.82)'; ctx.fill();
+    ctx.fillStyle = '#fff3d6'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(aide, W / 2, ay + 14 * u + 1, W - 40);
+    ctx.font = Math.round(14 * u) + 'px ' + RF; ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.fillText('Créé avec l’aide de l’IA', W / 2, H - 14 * u);
     if (loadErr) { ctx.fillStyle = '#ffb3b3'; ctx.fillText('Les images n’ont pas pu se charger : le jeu marche quand même.', W / 2, H - 36 * u, W - 30); }
   }
@@ -628,7 +645,7 @@ function mount(root, api) {
     _test: {
       state: () => state, score: () => score, niv: () => niv, P: () => P, L: () => L, amis: () => amis.map(a => a.k), fast(k) { FAST = k; },
       play() { startGame(); }, aller(n) { nouveauNiveau(n); }, tousLesAmis() { amis = ['pompon', 'piquant', 'hulotte', 'roussette'].map((k, i) => ({ k, x: P.x - 60 * (i + 1), y: P.y, flip: false, step: 0, repos: 0 })); },
-      pente() { const s = L.sol.find(s => s.y1 - s.y0 > 100); return s ? s.x0 - 200 : null; }, corbeau() { const c = L.corbeaux[0]; return c ? c.x0 - 300 : null; }, tp(x) { P.x = x; const g = solA(x); P.y = g != null ? g : P.y; P.vy = 0; cam.x = P.x - 200; },
+      pente() { const s = L.sol.find(s => s.y1 - s.y0 > 100); return s ? s.x0 - 200 : null; }, corbeau() { const c = L.corbeaux[0]; return c ? c.x0 - 300 : null; }, tp(x) { P.x = x; const g = solA(x); P.y = g != null ? g : P.y; P.vy = 0; cam.x = P.x - 200; trace = trace.map((e, i) => ({ x: P.x - 4 * i, y: P.y, sol: true, boule: false, flip: false, vx: 0 })); amis.forEach((a, i) => { a.x = P.x - 64 * (i + 1); a.y = P.y; }); },
       ecran: () => ({ x: sx(P.x), y: sy(P.y), z: Z }), pose: () => poseNoisette().n
     }
   };
