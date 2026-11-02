@@ -4129,3 +4129,14 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 
 /* rien n'est remboursé (borne 1.63.95) */
 .atl-noremb{margin:2px 0 0;color:var(--muted);font:12.5px var(--body);text-align:center}
+
+/* recharger mes crédits (Stripe, borne 1.63.97) */
+button.atl-cred{cursor:pointer;font:inherit}
+button.atl-cred:hover{filter:brightness(1.15)}
+.atl-packs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.atl-pack{display:grid;justify-items:center;gap:4px;padding:16px 10px;border-radius:16px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:transform .15s,border-color .15s}
+.atl-pack:hover,.atl-pack:focus-visible{transform:translateY(-3px);border-color:#ffd34d}
+.atl-pack.wait{opacity:.6;cursor:wait}
+.atl-packc{font:800 22px var(--body);color:#ffe9a8}.atl-pack small{color:var(--muted);font:12.5px var(--body)}
+.atl-packp{margin-top:6px;padding:6px 14px;border-radius:999px;background:#ffd34d;color:#2a1340;font:800 16px var(--body)}
+.atl-rdem{margin-right:auto}

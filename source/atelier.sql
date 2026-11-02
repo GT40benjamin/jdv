@@ -2273,3 +2273,81 @@ grant execute on function public.at_demande_element(text, uuid, text, text, text
 -- (plus de crédits rendus si un dessin, un design ou une demande rate : at_gen_apres, at_ia_fin). Appliqué en base : migration
 -- atelier_v27_musiques_sans_remboursement (at_reglages cout_musique / cout_son, at_gen_apres sans remboursement, at_ia_fin rend := 0,
 -- at_demande_element au prix de la catégorie, at_lire « son » et « musique »).
+
+-- (v28, borne 1.63.97, 2 nov. 2026 21 h 50, Benjamin : « on connecte Stripe ») — D'ABORD EN MODE TEST. Acheter des crédits de l'Atelier :
+-- · at_packs : les packs (crédits, prix en centimes) ; at_packs_lire (joueur) ;
+-- · at_achat_creer (le joueur, via la fonction Edge stripe-paiement, avec SON jeton) : une commande « attente » au prix DE LA BASE (jamais
+--   celui du navigateur) ; at_achat_session (service) : l'id de la session Stripe Checkout ;
+-- · at_achat_payer (service, fonction Edge stripe-webhook, signature Stripe vérifiée) : crédite UNE SEULE FOIS (idempotent), vérifie le
+--   montant et la devise, prévient le joueur (« 🎁 Tu as reçu N crédits ») ;
+-- · at_suivi (Benjamin seulement) : les achats, le total du mois, les frais Stripe estimés (1,5 % + 0,25 € par paiement, cartes UE).
+-- Aucune donnée de carte ne passe par la borne ni par la base. Les secrets STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET sont posés par Benjamin.
+create table if not exists public.at_packs (id serial primary key, nom text not null, credits int not null check (credits between 1 and 100000),
+  prix_centimes int not null check (prix_centimes between 50 and 100000), actif boolean not null default true, ordre int not null default 0);
+alter table public.at_packs enable row level security; revoke all on public.at_packs from anon, authenticated;
+insert into public.at_packs (nom, credits, prix_centimes, ordre)
+  select * from (values ('Petit pack', 300, 300, 1), ('Pack moyen', 600, 500, 2), ('Grand pack', 1500, 1000, 3)) v(nom, credits, prix_centimes, ordre)
+  where not exists (select 1 from public.at_packs);
+
+create table if not exists public.at_achats (id uuid primary key default gen_random_uuid(), name text not null, pack int references public.at_packs(id),
+  credits int not null, centimes int not null, etat text not null default 'attente' check (etat in ('attente', 'paye', 'annule')),
+  stripe_session text unique, at timestamptz not null default now(), paye_at timestamptz);
+alter table public.at_achats enable row level security; revoke all on public.at_achats from anon, authenticated;
+
+create or replace function public.at_packs_lire() returns jsonb language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', p.id, 'nom', p.nom, 'credits', p.credits, 'prix', p.prix_centimes) order by p.ordre, p.id), '[]'::jsonb) from public.at_packs p where p.actif
+$$;
+revoke all on function public.at_packs_lire() from public, anon; grant execute on function public.at_packs_lire() to authenticated;
+
+create or replace function public.at_achat_creer(p_name text, p_pack int) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); k public.at_packs; u uuid;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-achat', 20, interval '1 hour');
+  select * into k from public.at_packs x where x.id = p_pack and x.actif; if k.id is null then raise exception 'pack inconnu'; end if;
+  insert into public.at_achats (name, pack, credits, centimes) values (n, k.id, k.credits, k.prix_centimes) returning id into u;
+  return jsonb_build_object('id', u, 'name', n, 'pack', k.id, 'nom', k.nom, 'credits', k.credits, 'centimes', k.prix_centimes);
+end $$;
+revoke all on function public.at_achat_creer(text, int) from public, anon; grant execute on function public.at_achat_creer(text, int) to authenticated;
+
+create or replace function public.at_achat_session(p_id uuid, p_session text) returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_session !~ '^cs_(test|live)_[A-Za-z0-9]{10,200}$' then raise exception 'session refusee'; end if;
+  update public.at_achats x set stripe_session = p_session where x.id = p_id and x.etat = 'attente' and x.stripe_session is null;
+end $$;
+revoke all on function public.at_achat_session(uuid, text) from public, anon, authenticated; grant execute on function public.at_achat_session(uuid, text) to service_role;
+
+create or replace function public.at_achat_payer(p_session text, p_achat uuid, p_montant int, p_devise text) returns jsonb language plpgsql security definer set search_path = public as $$
+declare a public.at_achats; s int; fid uuid;
+begin
+  select * into a from public.at_achats x where x.id = p_achat for update;
+  if a.id is null then raise exception 'achat inconnu'; end if;
+  if a.stripe_session is distinct from p_session then raise exception 'session differente'; end if;
+  if a.etat = 'paye' then return jsonb_build_object('id', a.id, 'deja', true); end if;   -- idempotent : Stripe peut renvoyer l'événement
+  if lower(coalesce(p_devise, '')) <> 'eur' or p_montant is distinct from a.centimes then raise exception 'montant different'; end if;
+  perform pegase_int.at_solde(a.name);
+  update public.at_credits c set solde = c.solde + a.credits, maj_at = now() where c.name = a.name returning solde into s;
+  update public.at_achats x set etat = 'paye', paye_at = now() where x.id = a.id;
+  select x.id into fid from public.at_fiches x where x.name = a.name and x.etat not in ('refusee', 'supprime') order by x.maj_at desc limit 1;
+  if fid is not null then insert into public.at_messages (fiche, texte, de_atelier) values (fid, '🎁 Tu as reçu ' || a.credits || ' crédits ! Merci pour ton achat. Il te reste maintenant ' || s || ' crédits.', true); end if;
+  return jsonb_build_object('id', a.id, 'credits', a.credits, 'solde', s);
+end $$;
+revoke all on function public.at_achat_payer(text, uuid, int, text) from public, anon, authenticated; grant execute on function public.at_achat_payer(text, uuid, int, text) to service_role;
+
+-- le suivi : les achats (Benjamin seulement)
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_suivi(text)'::regprocedure);
+  if position('at_achats' in d) = 0 then
+    d := replace(d, '''mondes'', coalesce((select jsonb_agg(to_jsonb(w)) from public.at_monde_attente w), ''[]''::jsonb));',
+      '''mondes'', coalesce((select jsonb_agg(to_jsonb(w)) from public.at_monde_attente w), ''[]''::jsonb),' || chr(10) ||
+      '    ''achats'', case when n = ''BENJAMIN'' then jsonb_build_object(' || chr(10) ||
+      '      ''lignes'', coalesce((select jsonb_agg(jsonb_build_object(''joueur'', a.name, ''credits'', a.credits, ''euros'', round(a.centimes / 100.0, 2), ''etat'', a.etat, ''at'', a.at) order by a.at desc) from (select * from public.at_achats order by at desc limit 60) a), ''[]''::jsonb),' || chr(10) ||
+      '      ''mois_euros'', (select round(coalesce(sum(a.centimes), 0) / 100.0, 2) from public.at_achats a where a.etat = ''paye'' and a.paye_at >= date_trunc(''month'', now())),' || chr(10) ||
+      '      ''mois_frais'', (select round(coalesce(sum(a.centimes * 0.015 + 25), 0) / 100.0, 2) from public.at_achats a where a.etat = ''paye'' and a.paye_at >= date_trunc(''month'', now())),' || chr(10) ||
+      '      ''mois_nb'', (select count(*) from public.at_achats a where a.etat = ''paye'' and a.paye_at >= date_trunc(''month'', now()))) end);');
+    if position('at_achats' in d) = 0 then raise exception 'at_suivi'; end if;
+    execute d;
+  end if;
+end $$;

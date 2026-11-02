@@ -61,6 +61,9 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 💎 Recharger tes crédits (borne 1.63.97)
+[atelier] 💎 Touche ton solde de crédits dans l'Atelier pour le recharger : choisis un pack, le paiement se fait sur la page sécurisée de Stripe, et tes crédits arrivent tout seuls. Tu peux toujours demander des crédits à l'administrateur. (Pour l'instant en essai : « Bientôt disponible ».)
+
 [atelier] ## 🎵 Ajoute des musiques et des sons quand tu veux (borne 1.63.95)
 [atelier] 🎵 Ton jeu est livré avec une musique (60 s, en boucle). Dans « Musiques » et « Sons », « ＋ Créer » te permet d'en demander d'autres à ton guide, quand tu veux : le prix est écrit sur le bouton.
 [atelier] 💎 Les crédits utilisés ne sont pas remboursés, même si un dessin rate : c'est écrit près de chaque bouton qui coûte des crédits.

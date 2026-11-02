@@ -14219,7 +14219,7 @@ function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
-    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
+    + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><button class="atl-cred" type="button" hidden title="Recharger mes crédits"></button><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<div class="atl-frise" hidden></div><details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
@@ -14242,6 +14242,7 @@ function atlBuild() {
   q('.atl-imgb:not(.atl-drawb)').addEventListener('click', () => q('.atl-file').click());
   q('.atl-sendh').addEventListener('click', atlEnvoyer);
   q('.atl-suivib').addEventListener('click', atlSuivi);
+  q('.atl-cred').addEventListener('click', atlRecharger);   // 21 h 50 : toucher son solde → « Recharger mes crédits »
   q('.atl-zoom').addEventListener('click', () => { const z = q('.atl-zoom'); z.hidden = true; z.textContent = ''; });
   q('.atl-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) atlImage(f); });
   return R;
@@ -15423,6 +15424,53 @@ function atlGuideScene(lignes) {
   return sc;
 }
 
+// ---- 21 h 50 (Benjamin : « on connecte Stripe », d'abord en MODE TEST) : RECHARGER MES CRÉDITS — les packs (at_packs_lire), le paiement
+// sur la page Stripe (fonction Edge stripe-paiement : le prix vient de la base, jamais d'ici) ; les crédits arrivent quand Stripe confirme
+// (stripe-webhook, signature vérifiée). Aucune donnée de carte ne passe par la borne. Sans clé Stripe : « Bientôt disponible ».
+async function atlRecharger() {
+  const M = ATL.root.querySelector('.atl-mod'), cr = atlCred(); if (!M) return;
+  M.textContent = ''; M.hidden = false;
+  const c = atlEl('div', 'atl-mcard atl-rech');
+  c.append(atlEl('h2', '', '💎 Recharger mes crédits'), atlEl('p', 'atl-aide', 'Tu as ' + Math.max(0, cr ? cr.solde | 0 : 0) + ' crédits. Choisis un pack :'));
+  const gr = atlEl('div', 'atl-packs'); gr.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); c.appendChild(gr);
+  const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
+  c.appendChild(atlEl('p', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés · Les crédits servent seulement dans l’Atelier.'));
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Fermer'); no.type = 'button'; no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
+  const dm = atlEl('div', 'atl-rdem'); atlCreditsBtn(dm); row.append(dm, no); c.appendChild(row); M.appendChild(c);
+  let packs = [];
+  try { packs = await rpc('at_packs_lire', {}, { quiet: true }); } catch (e) { packs = []; }
+  gr.textContent = '';
+  if (!Array.isArray(packs) || !packs.length) { gr.appendChild(atlEl('p', 'atl-chv', 'Les packs arrivent bientôt.')); return; }
+  for (const k of packs) {
+    const b = atlEl('button', 'atl-pack'); b.type = 'button';
+    b.append(atlEl('span', 'atl-packc', '💎 ' + (k.credits | 0)), atlEl('small', '', 'crédits'), atlEl('b', 'atl-packp', ((k.prix | 0) / 100).toFixed(2).replace('.', ',') + ' €'));
+    b.addEventListener('click', () => atlAcheter(k, b, er)); gr.appendChild(b);
+  }
+}
+async function atlAcheter(k, b, er) {
+  if (ATL.achat) return; ATL.achat = true; er.hidden = true;
+  const old = b.innerHTML; b.disabled = true; b.classList.add('wait');
+  try {
+    const tok = await acctToken(profile);
+    const r = await netFetch(CFG.url.replace(/\/+$/, '') + '/functions/v1/stripe-paiement', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_name: profile.name, p_pack: k.id | 0 }) }, 30000);
+    let j = null; try { j = await r.json(); } catch (e) {}
+    if (j && j.etat === 'bientot') { er.hidden = false; er.textContent = '⏳ Le paiement par carte sera bientôt disponible. En attendant, tu peux demander des crédits.'; return; }
+    if (r.ok && j && typeof j.url === 'string' && /^https:\/\/checkout\.stripe\.com\//.test(j.url)) { try { atlBrFlush(); } catch (e) {} location.href = j.url; return; }   // la page de paiement Stripe
+    er.hidden = false; er.textContent = r.status === 403 || r.status === 401 ? 'Connecte-toi à ton compte pour acheter des crédits.' : r.status === 429 ? 'Doucement 😄 Réessaie dans un moment.' : 'Le paiement n’a pas pu démarrer. Réessaie dans un moment.';
+  } catch (e) { er.hidden = false; er.textContent = 'Pas de réseau : réessaie dans un moment.'; }
+  finally { ATL.achat = false; b.disabled = false; b.classList.remove('wait'); b.innerHTML = old; }
+}
+// le retour de Stripe (…/jouer/?atelier=merci ou annule) : l'Atelier s'ouvre, « Merci ! », les crédits arrivent (webhook) quelques secondes après
+(() => {
+  let v = ''; try { const sp = new URLSearchParams(location.search); v = sp.get('atelier') || ''; if (v) { sp.delete('atelier'); const qs = sp.toString(); history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } } catch (e) { v = ''; }
+  if (v !== 'merci' && v !== 'annule') return;
+  setTimeout(() => {
+    try { atlOpen(); } catch (e) {}
+    toastCheer(v === 'merci' ? '🎁 Merci ! Tes crédits arrivent dans un instant.' : 'Paiement annulé : rien n’a été payé.', profile.name, true);
+    if (v === 'merci') for (const t of [3000, 8000, 16000]) setTimeout(() => { try { atlLoad(true); } catch (e) {} }, t);
+  }, 1500);
+})();
+
 // ---------- serveur ----------
 async function atlLoad(force) {
   if (!ATL || !ATL_ON() || !ONLINE || ATL.off) return;
@@ -15851,6 +15899,17 @@ async function atlSuivi() {
   }
   const mds = Array.isArray(r.mondes) ? r.mondes : [];
   if (mds.length) { P.appendChild(atlEl('b', 'atl-rh2', '🌍 Demandes de mise en ligne mondiale')); const ul = atlEl('ul'); for (const d of mds) ul.appendChild(atlEl('li', '', '« ' + (d.titre || 'Projet') + ' » de ' + dispName(d.joueur || '') + ' (' + (d.etat === 'publie_salle' ? 'déjà dans sa salle' : 'version d’essai') + ')')); P.appendChild(ul); P.appendChild(atlEl('small', '', 'Pour accepter ou refuser, dis-le à l’équipe.')); }
+  const ach = r.achats && typeof r.achats === 'object' ? r.achats : null;   // les achats de crédits (Stripe), Benjamin seulement
+  if (ach) {
+    P.appendChild(atlEl('b', 'atl-rh2', '💳 Achats de crédits'));
+    P.appendChild(atlEl('p', 'atl-stot', 'Ce mois : ' + (ach.mois_nb | 0) + ' achat' + ((ach.mois_nb | 0) > 1 ? 's' : '') + ' · ' + String(ach.mois_euros || 0).replace('.', ',') + ' € · frais Stripe estimés ' + String(ach.mois_frais || 0).replace('.', ',') + ' €'));
+    const la = Array.isArray(ach.lignes) ? ach.lignes : [];
+    if (la.length) {
+      const t3 = atlEl('table', 'atl-stab'), th = atlEl('tr'); for (const h of ['Quand', 'Joueur', 'Crédits', '€', 'État']) th.appendChild(atlEl('th', '', h)); t3.appendChild(th);
+      for (const a of la) { const tr = atlEl('tr'), d = new Date(a.at); for (const v of [isNaN(d) ? '' : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), dispName(a.joueur || ''), String(a.credits | 0), String(a.euros || 0).replace('.', ','), { paye: '✅ payé', attente: '⏳ en attente', annule: '✕ annulé' }[a.etat] || a.etat]) tr.appendChild(atlEl('td', '', v)); t3.appendChild(tr); }
+      const w3 = atlEl('div', 'atl-swrap'); w3.appendChild(t3); P.appendChild(w3);
+    } else P.appendChild(atlEl('p', '', 'Aucun achat pour l’instant.'));
+  }
   const dms = Array.isArray(r.demandes) ? r.demandes : [];
   if (dms.length) { P.appendChild(atlEl('b', 'atl-rh2', '💎 Demandes de crédits en attente')); const ul = atlEl('ul'); for (const d of dms) ul.appendChild(atlEl('li', '', dispName(d.joueur || '') + ' (solde ' + (d.solde | 0) + ')' + (d.message ? ' : ' + d.message : ''))); P.appendChild(ul); P.appendChild(atlEl('small', '', 'Pour les accorder, demande à l’équipe.')); }
   P.appendChild(close);
