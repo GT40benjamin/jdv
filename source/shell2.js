@@ -14922,7 +14922,7 @@ function atlH2I() {
   if (!ATL_H2I) ATL_H2I = new Promise((ok, ko) => { const sc = document.createElement('script'); sc.src = ROOT + 'assets/lib/html-to-image-1.11.11.js'; sc.onload = () => window.htmlToImage ? ok(window.htmlToImage) : ko(new Error('h2i')); sc.onerror = () => { ATL_H2I = null; ko(new Error('h2i')); }; document.head.appendChild(sc); });
   return ATL_H2I;
 }
-const atlPasPhoto = el => !!(el && (el.id === 'jdw-atelier' || el.id === 'atl-flot' || (el.classList && (el.classList.contains('atl-arret2') || el.classList.contains('atl-rappel')))));
+const atlPasPhoto = el => !!(el && (el.id === 'jdw-atelier' || el.id === 'atl-flot' || el.id === 'jdw-fps' || (el.classList && (el.classList.contains('atl-arret2') || el.classList.contains('atl-rappel')))));
 const atlVisible = el => { if (!el || el.hidden) return false; const cs = getComputedStyle(el), r = el.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.02 && r.width > 1 && r.height > 1 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight; };
 function atlCaptureJeu() {
   const P0 = $('jdw-play'); if (!P0) return null;
@@ -14932,7 +14932,7 @@ function atlCaptureJeu() {
   const snaps = [];   // une copie de chaque canvas, prise au même instant (un canvas WebGL s'efface après l'image affichée)
   for (const c of P0.querySelectorAll('canvas')) {
     if (!c.width || !c.height || !atlVisible(c)) continue; const r = c.getBoundingClientRect();
-    try { const cp = document.createElement('canvas'); cp.width = c.width; cp.height = c.height; cp.getContext('2d').drawImage(c, 0, 0); g.drawImage(cp, r.left * k, r.top * k, r.width * k, r.height * k); snaps.push([c, cp]); } catch (e) {}
+    try { const cp = document.createElement('canvas'); cp.width = Math.max(1, Math.round(r.width * k)); cp.height = Math.max(1, Math.round(r.height * k)); cp.getContext('2d').drawImage(c, 0, 0, cp.width, cp.height); g.drawImage(cp, r.left * k, r.top * k, r.width * k, r.height * k); snaps.push([c, cp]); } catch (e) {}
   }
   if (!snaps.length) return null;
   o._snaps = snaps;
@@ -14946,7 +14946,7 @@ async function atlCaptureHtml(o) {
   if (!o || !o._calques || !o._calques.length) return false;
   const h = await Promise.race([atlH2I(), new Promise((_, ko) => setTimeout(() => ko(new Error('lent')), 6000))]);
   const g = o.getContext('2d'), k = o._k;
-  for (const [c, cp] of o._snaps || []) c.toDataURL = (...a) => cp.toDataURL(...a);   // le rendu HTML reprend les canvas photographiés, à leur place
+  for (const [c, cp] of o._snaps || []) c.toDataURL = () => cp.toDataURL('image/jpeg', 0.85);   // le rendu HTML reprend les canvas photographiés, à leur place (léger)
   try {
     for (const el of o._calques) {
       const r = el.getBoundingClientRect();
@@ -16064,8 +16064,9 @@ function atlAdminBandeau() {
   bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } });
   bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); });
 }
-function atlAdminDemandes() {
+async function atlAdminDemandes() {
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'), m = ATL.adminVoir; if (!z || !m) return;
+  try { const r0 = await rpc('at_admin_lire', { p_name: profile.name, p_fiche: m.id }, { quiet: true }); if (r0 && ATL.data) ATL.data.demandes_projet = r0.demandes_projet; } catch (e) {}   // l'état réel, pas celui d'il y a 20 s
   z.textContent = ''; z.hidden = false; z.classList.add('suivi');
   const P = atlEl('div', 'atl-suivi atl-dems'); P.addEventListener('click', e => e.stopPropagation()); z.appendChild(P);
   const close = atlEl('button', 'btn btn-ghost btn-sm', 'Fermer'); close.type = 'button'; close.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
@@ -16076,9 +16077,12 @@ function atlAdminDemandes() {
     const c = atlEl('div', 'atl-dem e-' + x.etat), u = /^a\//.test(x.image || '') ? atlImgUrl(x.image) : atlIaUrl(x.image);
     if (u) { const im = atlEl('img'); im.alt = ''; im.src = u; im.addEventListener('click', () => atlZoom(u)); c.appendChild(im); } else c.appendChild(atlEl('span', 'atl-demic', (ATL_DEM_SO[x.sorte] || '💬').split(' ')[0]));
     const t = atlEl('div', 'atl-demt'), d0 = new Date(x.at);
-    t.append(atlEl('small', '', (ATL_DEM_SO[x.sorte] || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + (x.cout ? ' · ' + x.cout + ' 💎' : '')), atlEl('p', '', String(x.texte || '').slice(0, 400)));
+    const d1 = new Date(x.etat_at), fdt = d => isNaN(d) ? '' : d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    t.append(atlEl('b', 'atl-demet', (ATL_DEM_ET[x.etat] || x.etat) + (x.etat === 'vue' ? gN() : '') + (x.etat !== 'envoyee' && !isNaN(d1) ? ' · ' + fdt(d1) : '')),
+      atlEl('small', '', (ATL_DEM_SO[x.sorte] || '') + ' · ' + fdt(d0) + (x.cout ? ' · ' + x.cout + ' 💎' : '')), atlEl('p', '', String(x.texte || '').slice(0, 400)));
+    if (x.reponse) t.appendChild(atlEl('p', 'atl-demrep', '🤖 Réponse envoyée : ' + x.reponse));
     const se = atlEl('select', 'atl-tousf'); for (const k of ['envoyee', 'vue', 'en_cours', 'faite', 'impossible']) { const o = new Option((ATL_DEM_ET[k] || k) + (k === 'vue' ? gN() : ''), k); if (k === x.etat) o.selected = true; se.appendChild(o); }
-    const ta = atlEl('textarea', 'atl-arin'); ta.rows = 2; ta.maxLength = 1000; ta.placeholder = 'Réponse au joueur (facultatif, elle arrive aussi dans la discussion)'; if (x.reponse) ta.placeholder = 'Réponse actuelle : ' + x.reponse;
+    const ta = atlEl('textarea', 'atl-arin'); ta.rows = 2; ta.maxLength = 1000; ta.placeholder = x.reponse ? 'Nouvelle réponse (facultatif)' : 'Réponse au joueur (facultatif, elle arrive aussi dans la discussion)';
     const ok = atlEl('button', 'btn btn-play btn-sm', 'Enregistrer'); ok.type = 'button';
     ok.addEventListener('click', async () => { ok.disabled = true; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'demande_etat', p_args: { id: x.id, etat: se.value, reponse: ta.value.trim() } }, { quiet: true }); x.etat = se.value; if (ta.value.trim()) x.reponse = ta.value.trim(); ok.textContent = '✅ Enregistré'; atlLoad(true); } catch (e) { ok.disabled = false; ok.textContent = 'Réessayer'; } });
     const row = atlEl('div', 'atl-tousfl'); row.append(se, ok); t.append(row, atlAvecMic(ta)); c.appendChild(t); P.appendChild(c);
@@ -17059,7 +17063,7 @@ window.JDW_SHELL = { players, headsList, music: () => ({ id: MUS.id, mode: MUS.m
   if (cb) { cb.checked = on; cb.addEventListener('change', () => { on = cb.checked; try { localStorage.setItem('jdw.fps', on ? '1' : '0'); } catch (e) {} tick0(); }); }
   let raf = 0, n = 0, t0 = 0, last = 0, worst = 0;
   const noFps = () => { try { const sh = window.JDW_SHELL; return !!(sh && sh.noFps && sh.noFps()); } catch (e) { return false; } };
-  const inGame = () => (!$('jdw-play').hidden || !$('jdw-duo').hidden) && !noFps();
+  const inGame = () => (!$('jdw-play').hidden || !$('jdw-duo').hidden) && !noFps() && !window.JDW_ATL_JEU;   // 23 h 55 : jamais pendant un jeu de l'Atelier
   function draw(now) {
     raf = 0; if (!on || !inGame() || document.hidden) { box.hidden = true; return; }
     if (last) { const d = now - last; if (d > worst) worst = d; } last = now; n++;

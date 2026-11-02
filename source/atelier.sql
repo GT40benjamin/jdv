@@ -2779,3 +2779,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (at_devis_retirer) ; chaque ligne = le montant fixé par l équipe (0 à 2 000, jamais la grille) ; « reutilise » affiché sous la ligne.
 
 -- (v38, 23 h 50) : at_demande_modif écrit « 🎨 Refaire l’élément « … » » (plus « Redessiner ») ; at_demande_auto reconnaît les deux.
+
+-- (v39, 2 nov. 2026 23 h 55) : at_admin_lire donne aussi etat_at pour chaque demande du projet.

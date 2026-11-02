@@ -4249,3 +4249,6 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-arleg.gauche{transform:translateX(-100%);margin-left:-34px}.atl-arleg.haut{transform:translateY(-100%);margin-top:-12px}.atl-arleg.gauche.haut{transform:translate(-100%,-100%)}
 /* 23 h 58 : les fenêtres (demandes, suivi, fiche d'un élément…) passent AU-DESSUS des barres collantes (onglets, bandeau admin) */
 .atl-zoom{z-index:30}.atl-mod{z-index:31}
+
+/* 23 h 55 : pendant une fenêtre, la page dessous ne défile plus */
+#jdw-atelier:has(> .atl-zoom:not([hidden])) .atl-wiz,#jdw-atelier:has(> .atl-mod:not([hidden])) .atl-wiz,#jdw-atelier:has(.atl-zoom:not([hidden])) .atl-main{overflow:hidden}
