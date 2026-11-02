@@ -37,11 +37,12 @@ const TILE_NEWS = {
 const NEWS_DAYS = 30;
 const NEW_GAMES = new Set(Object.keys(TILE_NEWS).filter(id => TILE_NEWS[id].kind === 'new'));
 // Porte « labo » : un jeu en essai n'apparaît que sur les appareils ouverts une fois avec …/jouer/?labo=<id> (retenu sur l'appareil,
-// ?labo=aucun pour tout cacher). Dans l'appli Android (pas de barre d'adresse) : 7 touches rapides sur le titre « Borne d'arcade ».
+// ?labo=aucun pour tout cacher). Sur l'appareil (et dans l'appli Android) : 5 touches rapides sur le titre « Borne d'arcade » = vue admin ⇄ vue joueur.
 const LABO = new Set(['noisette', 'lune', 'licornes', 'atelier']);   // en essai : Seul sur la Lune (2e jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 au soir) ; La Maison des Licornes (1er jeu de l'Atelier, alpha de PATOU, 2 nov. 2026 : visible des admins / porte labo et de son auteur par « ⭐ MON JEU ») ; l'Atelier des jeux (tuile « CRÉE TON JEU », …/jouer/?labo=atelier, 2 nov. 2026) ; sorti pour tous le 2026-11-02 : Remparts ! (tower defense magique 3D, « Oui, public » de Benjamin) ; sorti pour tous le 2026-11-01 : Abracadabra (la voix fait apparaître les objets, borne 1.63, « Tu peux publier à tous abracadabra » de Benjamin) ; sorti pour tous le 2026-10-31 : Tête de Cible (fléchettes, borne 1.62, « Ok publier le jeu de fléchettes » de Benjamin) ; sorti pour tous le 2026-10-29 : Sens Interdit (1.51.11) ; sortis pour tous le 2026-10-27 : Pégase en îles (1.48.1) ; sortis pour tous le 2026-10-24 : Turbo Toupies, Tirs au But, Smoothie Samouraï, Néon Rush, Bolides RC ; le 2026-10-27 : Turbo Chrono (1.44), Coffres à Secrets (1.45)
 // ménage de la copie magicv1 retirée (18 oct.) : ses réglages jdw.magicv1.* et son entrée dans jdw.labo (jamais jdw.magic.*)
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
+const VUE_JOUEUR = (() => { try { return localStorage.getItem('jdw.vuejoueur') === '1' && !new URLSearchParams(location.search).get('labo'); } catch (e) { return false; } })();   // 23 h 45 : vue joueur normale (5 touches sur le titre)
 const LABO_ON = (() => {
   let on = []; try { on = JSON.parse(localStorage.getItem('jdw.labo') || '[]') || []; } catch (e) { on = []; }
   try {
@@ -89,13 +90,18 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && lab
   const t = document.querySelector('.lib-title'); if (!t) return;
   let n = 0, t0 = 0;
   t.addEventListener('click', () => {
-    const now = Date.now(); if (now - t0 > 4000) n = 0; t0 = now;
-    if (++n < 7) return; n = 0;
-    if (!LABO.size) return;   // aucun jeu en essai : pas de message « Labo » ni de rechargement
-    const ids = [...LABO], on = new Set(LABO_ON), has = ids.every(id => on.has(id));   // un nouveau jeu en essai s'ajoute à ceux déjà ouverts
-    for (const id of ids) { if (has) on.delete(id); else on.add(id); }
-    try { localStorage.setItem('jdw.labo', JSON.stringify([...on])); } catch (e) {}
-    try { toastCheer(has ? 'Labo : jeux en essai cachés' : 'Labo : jeux en essai activés !', null, true); } catch (e) {}
+    // 23 h 45 (Benjamin : « si je clique 5 fois, laisse-moi revenir normal ») : 5 touches en moins de 2 s (remplace les 7 touches) —
+    // vue admin / labo ⇄ VUE JOUEUR NORMALE (plus de jeux en essai, plus d'outils admin) ; seulement l'affichage sur cet appareil
+    const now = Date.now(); if (now - t0 > 2000) n = 0; if (!n) t0 = now;
+    if (++n < 5) return; n = 0;
+    const joueur = VUE_JOUEUR || ![...LABO].some(id => LABO_ON.has(id));
+    try {
+      if (joueur) {   // → vue admin : les jeux en essai d'avant (et tous ceux d'aujourd'hui)
+        let av = []; try { av = JSON.parse(localStorage.getItem('jdw.labo.avant') || '[]') || []; } catch (e) { av = []; }
+        localStorage.setItem('jdw.labo', JSON.stringify([...new Set(av.concat([...LABO]))])); localStorage.removeItem('jdw.vuejoueur');
+      } else { localStorage.setItem('jdw.labo.avant', JSON.stringify([...LABO_ON])); localStorage.setItem('jdw.labo', '[]'); localStorage.setItem('jdw.vuejoueur', '1'); }
+    } catch (e) {}
+    try { toastCheer(joueur ? '🛡️ Vue admin' : '👀 Vue joueur normale', null, true); } catch (e) {}
     setTimeout(() => location.reload(), 1300);
   });
 })();
@@ -14004,7 +14010,7 @@ const ATL_ACTIVE = new Set(['brouillon', 'en_discussion', 'complete', 'design', 
 const ATL_AFTER = new Set(['envoyee', 'acceptee', 'alpha', 'publie_salle', 'publie_monde']);   // la lettre est partie
 // images DESSINÉES par l'Atelier (Gemini, fonction Edge atelier-image ; seau public atelier-ia) : seuls les chemins i/<uuid>.<ext> s'affichent
 const atlIaUrl = f => /^i\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/.test(String(f || '')) ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/' + f : '';
-const atlCred = () => (ATL.data && ATL.data.credits && typeof ATL.data.credits === 'object') ? ATL.data.credits : null;
+const atlCred = () => { const c = (ATL.data && ATL.data.credits && typeof ATL.data.credits === 'object') ? ATL.data.credits : null; if (c && VUE_JOUEUR) { c.admin = false; c.tous_projets = false; c.patron = false; } return c; };   // vue joueur : pas d'outils admin
 const atlFull = () => { const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}; return ATL_FIELDS.every(([k]) => atlVal(fi[k])); };
 // « Envoyer mon projet » cliqué : la discussion se BLOQUE, plus que des choix à cliquer (question, puis planche, puis lettre)
 const atlChoix = () => ['design', 'design_choisi'].includes(atlEtat()) || ATL.choix === 'question';
