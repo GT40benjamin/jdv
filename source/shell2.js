@@ -11467,6 +11467,55 @@ const MAP_DEFS = {
     },
     start: { title: 'Départ', sub: 'La clé dorée attend son coffre' },
     cap: { title: 'Le dernier coffre', sub: 'Le trésor du Maître ébéniste' }
+  },
+  // Noisette et ses amis (games/noisette.js, labo de l'Atelier) : 4 niveaux, un ami retrouvé au bout de chacun, puis le grand chêne
+  // (currentLevel = 5 quand les 4 amis sont retrouvés). Carte dessinée ici : la forêt du bas vers la cime, une noisette par niveau.
+  noisette: {
+    theme: 'noisette', word: 'Niveau', tierGap: 130, tierAt: 0.5, step: 200, nodeSize: 56, bgDpr: 1.5,
+    N: [['La forêt du matin', 'Pompon le lapin', '#7fd35a', '🌳'], ['Le sous-bois aux champignons', 'Piquant le hérisson', '#5fb06a', '🍄'],
+      ['La rivière et ses rondins', 'Hulotte la chouette', '#5fc4ff', '🌊'], ['Le grand chêne', 'Roussette la renarde', '#e8a03a', '🌰']],
+    count: () => 5,
+    level(lv) {
+      if (lv > 4) return { lv, tier: 0, win: true, kicker: 'Grande victoire', name: 'Les 4 amis retrouvés', lines: ['Tous ensemble au grand chêne'], acc: '#ffd34d' };
+      const D = this.N[lv - 1];
+      return { lv, tier: 0, kicker: 'Niveau ' + lv, name: D[0], lines: ['Au bout : ' + D[1]], acc: D[2], emoji: D[3] };
+    },
+    short(lv) { const i = this.level(lv); return i.win ? 'Les 4 amis retrouvés' : 'Niveau ' + lv + ' · ' + i.name; },
+    tier() { return { kicker: 'Noisette et ses amis', title: 'La forêt', sub: '4 niveaux pour retrouver Pompon, Piquant, Hulotte et Roussette', acc: '#e88a3a', acc2: '#7fd35a' }; },
+    stops(L) { return [[L.H, '#3f6b2c'], [L.H * 0.55, '#2c5a3a'], [L.H * 0.2, '#3f7c8a'], [0, '#2e5f86']]; },
+    paint(x, L, W, y0, h) {
+      // des sapins et des feuillus de chaque côté du chemin, toujours aux mêmes places
+      x.save(); x.translate(0, -y0);
+      for (let yy = Math.floor(y0 / 90) * 90; yy < y0 + h + 90; yy += 90) {
+        const r = mapRng(yy * 7 + 3);
+        for (const side of [0, 1]) {
+          const tx = side ? W - 20 - r() * W * 0.22 : 20 + r() * W * 0.22, s = 26 + r() * 22;
+          x.fillStyle = 'rgba(0,0,0,.18)'; x.beginPath(); x.ellipse(tx, yy + 4, s * 0.6, s * 0.16, 0, 0, 7); x.fill();
+          x.fillStyle = '#6b4a2b'; x.fillRect(tx - s * 0.08, yy - s * 0.5, s * 0.16, s * 0.5);
+          if (r() < 0.5) { x.fillStyle = '#2f7a3a'; x.beginPath(); x.moveTo(tx, yy - s * 1.6); x.lineTo(tx + s * 0.55, yy - s * 0.35); x.lineTo(tx - s * 0.55, yy - s * 0.35); x.closePath(); x.fill(); }
+          else { x.fillStyle = '#4c9a3e'; x.beginPath(); x.arc(tx, yy - s * 0.9, s * 0.55, 0, 7); x.fill(); x.fillStyle = 'rgba(255,255,255,.12)'; x.beginPath(); x.arc(tx - s * 0.18, yy - s * 1.05, s * 0.25, 0, 7); x.fill(); }
+        }
+      }
+      x.restore();
+    },
+    node(x, info, size, P) {
+      // une noisette (dorée à la victoire) sur une pastille de la couleur du niveau
+      const cx = P / 2, cy = P / 2, r = size * 0.42, acc = info.acc;
+      const g0 = x.createRadialGradient(cx, cy, 2, cx, cy, size * 0.75); g0.addColorStop(0, rgbaHex(acc, 0.5)); g0.addColorStop(1, rgbaHex(acc, 0)); x.fillStyle = g0; x.fillRect(0, 0, P, P);
+      x.fillStyle = '#fff8e6'; x.strokeStyle = acc; x.lineWidth = 3; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.stroke();
+      const nb = x.createLinearGradient(0, cy - r * 0.5, 0, cy + r * 0.7); nb.addColorStop(0, info.win ? '#ffe9a0' : '#c98a4a'); nb.addColorStop(1, info.win ? '#c99420' : '#7a4a22');
+      x.fillStyle = nb; x.beginPath(); x.ellipse(cx, cy + r * 0.12, r * 0.5, r * 0.56, 0, 0, 7); x.fill();
+      x.fillStyle = info.win ? '#8a5a12' : '#5a3a1a'; x.beginPath(); x.ellipse(cx, cy - r * 0.32, r * 0.56, r * 0.22, 0, 0, 7); x.fill();
+      x.fillStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.ellipse(cx - r * 0.18, cy + r * 0.05, r * 0.1, r * 0.22, -0.3, 0, 7); x.fill();
+    },
+    startArt(x, P) {
+      // Noisette lui-même, dessiné par le jeu (sinon une noisette)
+      const G = window.JDW_GAMES && window.JDW_GAMES.noisette;
+      if (G && G.heros) { try { if (G.heros(x, P)) return; } catch (e) { /* une noisette à la place */ } }
+      x.fillStyle = '#a0683a'; x.beginPath(); x.ellipse(P / 2, P * 0.55, P * 0.22, P * 0.25, 0, 0, 7); x.fill();
+    },
+    start: { title: 'Départ', sub: 'Noisette s’est perdu dans la forêt' },
+    cap: { title: 'Le grand chêne', sub: 'Tous les amis réunis' }
   }
 };
 
@@ -13045,8 +13094,10 @@ function scoreShort(v, g) {
 const MAP = { open: false, gid: null, def: null, L: null, heads: new Map(), opener: null, rt: 0, closing: 0 };
 const SVGNS = 'http://www.w3.org/2000/svg';
 function mapEl(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; if (parent) parent.appendChild(e); return e; }
+// le jeu d'une carte : aussi un jeu de l'Atelier encore en essai (pas dans la grille, mais sa tuile V1 a le bouton carte)
+const mapGame = id => gameById(id) || (ATL_NES.has(id) ? (window.JDW_GAMES || {})[id] || null : null);
 function openMap(gid, opener) {
-  const def = MAP_DEFS[gid], g = gameById(gid); if (!def || !g) return;
+  const def = MAP_DEFS[gid], g = mapGame(gid); if (!def || !g) return;
   if (isGuest()) { guestAsk('Les salles'); return; }
   const mapOld = netOff() && !!room;                     // hors ligne : la dernière carte connue (gardée sur l'appareil), sinon rien à montrer
   if (mapOld && PROG.room !== room.id) { netNeed('La carte d’avancement'); return; }
@@ -13835,7 +13886,7 @@ function mapUpdate(animate) {
     }
   }
   // têtes : regroupées par niveau, moi au centre et en grand ; sous chaque tête, son meilleur score dans la salle (+ « estimé »)
-  const layer = MAP.headLayer, seen = new Set(), G = gameById(MAP.gid), scores = mapScores(MAP.gid), ests = mapEst(MAP.gid, people);
+  const layer = MAP.headLayer, seen = new Set(), G = mapGame(MAP.gid), scores = mapScores(MAP.gid), ests = mapEst(MAP.gid, people);
   let rawMax = 0; for (const v of raw.values()) rawMax = Math.max(rawMax, v);
   const top = max > 0 ? [...raw].filter(([, v]) => v === rawMax).map(([n]) => n) : [];
   // groupes de têtes : par niveau ; avancement fin : par endroit (deux endroits à moins de 44 px ne font qu'un groupe, au milieu)
@@ -13933,7 +13984,7 @@ function mapUpdate(animate) {
   sum.title = (ahead && aS ? aName + ' : ' + fmt(aS) + unit(G) + ' · ' : '') + (myS ? 'toi : ' + fmt(myS) + unit(G) : '');
 }
 $('jdw-map-close').addEventListener('click', closeMap);
-$('jdw-map-play').addEventListener('click', () => { const g = gameById(MAP.gid); closeMap(); if (g) setTimeout(() => openGame(g), 120); });
+$('jdw-map-play').addEventListener('click', () => { const g = mapGame(MAP.gid); closeMap(); if (g) setTimeout(() => openGame(g), 120); });
 $('jdw-map-me').addEventListener('click', () => {
   mapCenter(true);
   const h = MAP.heads.get(cleanName(profile.name)); if (h) { h.classList.remove('ping'); void h.offsetWidth; h.classList.add('ping'); }

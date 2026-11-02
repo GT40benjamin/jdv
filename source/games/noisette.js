@@ -657,7 +657,7 @@ function mount(root, api) {
       root.innerHTML = '';
     },
     currentScore() { return state === 'play' || state === 'end' ? score : 0; },
-    currentLevel() { return niv + 1; },
+    currentLevel() { return state === 'end' ? NIVEAUX.length + 1 : niv + 1; },   // 5 = les 4 amis retrouvés (la carte de la borne : MAP_DEFS.noisette)
     pause() { if (state === 'play') setPaused(true); },
     resume() { setPaused(false); },
     _test: {
@@ -679,6 +679,7 @@ window.JDW_GAMES.noisette = {
   scoreLabel: 'points',
   preview,
   mount,
+  heros(x, P) { try { loadImages(); } catch (e) { /* rien */ } if (!IMG['n-repos']) return false; drawFoot(x, 'n-repos', P / 2, P * 0.9, P * 0.72); return true; },   // Noisette au départ de la carte
   pad: { help: [['ls/dpad', 'Courir'], ['a', 'Sauter'], ['b', 'Rouler en boule']], intro: false }
 };
 })();
