@@ -1,12 +1,94 @@
 {
- "pkg": "fr.bornearcade.pegase",
- "versionCode": 88,
- "versionName": "0.9.9.40",
- "size": 1234375402,
- "sha256": "ebbcf830fc1ee69e8e29cc1ddf7e012cb75a7af91c2384fc99851d23566bdb08",
- "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v88/pegase-0.9.9.40.apk",
- "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
- "minSdk": 26,
- "abi": "arm64-v8a",
- "title": "Pégase"
+  "pkg": "fr.bornearcade.pegase",
+  "versionCode": 89,
+  "versionName": "0.9.9.41",
+  "size": 1234559054,
+  "sha256": "0cced9ec3c0181354c5a83277e1dfe6bc3da42802e2f49fb5d61c11e42cc2d23",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v89/pegase-0.9.9.41.apk",
+  "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
+  "minSdk": 26,
+  "abi": "arm64-v8a",
+  "title": "Pégase",
+  "notes": [
+    "Les chiens viennent tout près de toi, s'assoient à tes pieds et réclament : « Caresser » (E, ou le bouton cœur au téléphone), l'héroïne s'accroupit, le chien s'assoit tout content et un cœur s'envole. Les chats au repos te laissent approcher au pas et se laissent caresser aussi. (En robe ou en jupe, elle les caresse debout.) Et ils ne te poussent jamais.",
+    "Pêche en mer depuis les rochers et les plages : maquereau, chirurgiens, poisson-papillon, poisson-clown, idole des Maures, et plus au large cabillaud et mahi-mahi, selon le fond, l'heure et l'appât. Tes prises vont dans le sac et dans ton carnet des prises.",
+    "Dans 4 criques, des bancs de poissons de mer nagent près du bord : on les voit depuis la plage ou les rochers, et ils filent quand tu t'approches.",
+    "Les grandes cascades s'entendent quand tu t'en approches, et leur brume est blanche (et non plus beige) de jour comme au coucher du soleil.",
+    "Les falaises et les gros rochers derrière la plage ne sont plus d'un brun sombre : ils ont une couleur de grès plus claire et plus chaude, où l'on voit le relief de la roche.",
+    "Les cerfs, les biches et les autres grandes bêtes sauvages vivent leur journée : ils partent ensemble, en file, boire au lac ou à la rivière à l'aube et le soir, et se reposent à l'abri sous les arbres aux heures chaudes et la nuit. Dérangés, ils filent se cacher à leur place.",
+    "À l'hôtel, le salon n'est plus vide le soir : les clients y descendent un moment avant d'aller se coucher. On entend enfin l'intérieur (le bois qui craque, le dehors étouffé), Edmond et les clients ne récitent plus leurs adresses, et le grand fauteuil qui bouchait la chambre 8 est enlevé.",
+    "En haut à gauche, l'histoire principale a son étiquette dorée « HISTOIRE », et toutes les missions du jour sont affichées (jusqu'à 6, 4 au téléphone en hauteur).",
+    "Le viseur ne reconnaît plus « Le dernier géant » avant que l'histoire en parle.",
+    "La boîte aux lettres n'est plus prise dans le mur de la maison : elle recule vers le chemin.",
+    "Le téléphone des autres joueurs est tenu devant eux, à hauteur du ventre, au lieu de pendre au bout du bras.",
+    "À vélo, les grands plateaux de roche couverts d'herbe à l'est de l'île se roulent enfin, sans « Un rocher bloque le passage » sur le plat.",
+    "Les papillons ne volent plus sous les planchers, contre les murs ni dans la terrasse du coin cosy, et les animaux se chargent plus vite au lancement."
+  ],
+  "historique": [
+    {
+      "version": "0.9.9.41",
+      "notes": [
+        "Les chiens viennent tout près de toi, s'assoient à tes pieds et réclament : « Caresser » (E, ou le bouton cœur au téléphone), l'héroïne s'accroupit, le chien s'assoit tout content et un cœur s'envole. Les chats au repos te laissent approcher au pas et se laissent caresser aussi. (En robe ou en jupe, elle les caresse debout.) Et ils ne te poussent jamais.",
+        "Pêche en mer depuis les rochers et les plages : maquereau, chirurgiens, poisson-papillon, poisson-clown, idole des Maures, et plus au large cabillaud et mahi-mahi, selon le fond, l'heure et l'appât. Tes prises vont dans le sac et dans ton carnet des prises.",
+        "Dans 4 criques, des bancs de poissons de mer nagent près du bord : on les voit depuis la plage ou les rochers, et ils filent quand tu t'approches.",
+        "Les grandes cascades s'entendent quand tu t'en approches, et leur brume est blanche (et non plus beige) de jour comme au coucher du soleil.",
+        "Les falaises et les gros rochers derrière la plage ne sont plus d'un brun sombre : ils ont une couleur de grès plus claire et plus chaude, où l'on voit le relief de la roche.",
+        "Les cerfs, les biches et les autres grandes bêtes sauvages vivent leur journée : ils partent ensemble, en file, boire au lac ou à la rivière à l'aube et le soir, et se reposent à l'abri sous les arbres aux heures chaudes et la nuit. Dérangés, ils filent se cacher à leur place.",
+        "À l'hôtel, le salon n'est plus vide le soir : les clients y descendent un moment avant d'aller se coucher. On entend enfin l'intérieur (le bois qui craque, le dehors étouffé), Edmond et les clients ne récitent plus leurs adresses, et le grand fauteuil qui bouchait la chambre 8 est enlevé.",
+        "En haut à gauche, l'histoire principale a son étiquette dorée « HISTOIRE », et toutes les missions du jour sont affichées (jusqu'à 6, 4 au téléphone en hauteur).",
+        "Le viseur ne reconnaît plus « Le dernier géant » avant que l'histoire en parle.",
+        "La boîte aux lettres n'est plus prise dans le mur de la maison : elle recule vers le chemin.",
+        "Le téléphone des autres joueurs est tenu devant eux, à hauteur du ventre, au lieu de pendre au bout du bras.",
+        "À vélo, les grands plateaux de roche couverts d'herbe à l'est de l'île se roulent enfin, sans « Un rocher bloque le passage » sur le plat.",
+        "Les papillons ne volent plus sous les planchers, contre les murs ni dans la terrasse du coin cosy, et les animaux se chargent plus vite au lancement."
+      ]
+    },
+    {
+      "version": "0.9.9.40",
+      "notes": [
+        "Les chiens, les chats et les habitants ne poussent plus l'héroïne : ils gardent leurs distances, la contournent et s'écartent quand elle avance. Au coin du perron de la mairie ou au pied des piliers de la place, tu peux toujours repartir.",
+        "Papi Auguste n'est plus invisible pour « Aller écouter Papi Auguste à la mairie » : tant que la mission est proposée, il t'attend en haut des escaliers de la mairie, à toute heure, même la nuit. Parle-lui pour faire venir la foule, puis reparle-lui pour son discours.",
+        "Mission « Trouver les 3 inscriptions des géants » : le repère doré et la flèche (avec la distance) te mènent à l'inscription la plus proche qu'il te reste à envoyer.",
+        "Après « Modifier ma maison » (boîte aux lettres ou panneau), l'héroïne revient exactement là où elle était, au lieu de se retrouver dans le jardin voisin.",
+        "À l'hôtel, les lits des chambres sont dans le bon sens, des tableaux plus gais remplacent les tableaux sombres, et une petite musique d'ambiance (piano et violoncelle) t'accueille.",
+        "À vélo, un gros rocher arrête doucement la roue (« Un rocher bloque le passage ») au lieu de te faire grimper dessus ; les petites pierres se franchissent toujours.",
+        "Les papillons ne volent plus dans le feuillage, ne traversent plus les rochers ni les fondations, et ne butinent plus les fleurs collées à un mur, une clôture ou une falaise.",
+        "Les poussins trottinent à la bonne cadence derrière leur mère, le grand tétras ne plonge plus la tête dans le sol en picorant, et le rossignol chante dans un taillis, loin de la grange."
+      ]
+    },
+    {
+      "version": "0.9.9.39",
+      "notes": [
+        "Des mains plus naturelles : Désiré referme ses mains quand il parle, l'héroïne et les habitantes ont des doigts détendus au repos.",
+        "En prenant tout droit l'escalier du pont rouge, l'héroïne contourne toujours le poteau du côté du pont : plus de chute dans le vide.",
+        "Le ruisseau sous le pont rouge est maintenant une vraie eau bleue qui coule, avec de l'écume sur ses rives.",
+        "Une bête qui détale fait d'abord volte-face : elle ne part plus de côté ou à reculons.",
+        "Poules, coq, pigeons, corneilles, faisans… : leurs pattes ne glissent plus en marchant, et la basse-cour marche d'un pas vif au lieu de trotter.",
+        "Une bête qui se tourne un peu pendant un repos fait quelques pas au lieu de pivoter les pattes figées ; couchée ou en train de brouter, elle garde son cap."
+      ]
+    },
+    {
+      "version": "0.9.9.38",
+      "notes": [
+        "Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.",
+        "En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.",
+        "En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées."
+      ]
+    },
+    {
+      "version": "0.9.9.37",
+      "notes": [
+        "Un avatar de garçon marche et se tient enfin comme un garçon (il gardait la marche et la pose de l'héroïne).",
+        "À l'hôtel, Edmond n'est plus coincé entre deux armoires derrière son comptoir.",
+        "À l'hôtel, des rambardes bordent maintenant le vide près de l'escalier : on ne peut plus tomber jusqu'au rez-de-chaussée.",
+        "Dans le hall de l'hôtel, la tête de cerf accrochée au mur ne traverse plus le plancher de l'étage.",
+        "Devant l'étal de Rosalie, les clients de l'hôtel ne se superposent plus : chacun prend sa place.",
+        "En courant près de l'escalier du pont rouge, l'héroïne enjambe la marche au lieu de s'arrêter net.",
+        "En sortant de La Poste sous l'auvent, « Sortir le vélo » fonctionne enfin.",
+        "Après une reprise de partie, si tu avais laissé ton vélo dehors, un message te dit qu'il est rangé dans ton sac.",
+        "Les palmiers ne s'effacent plus quand tu passes à côté.",
+        "Deux papillons ne se posent plus jamais sur la même fleur."
+      ]
+    }
+  ]
 }

@@ -1,41 +1,64 @@
 {
-  "version": "0.9.9.40",
-  "build": 91,
-  "size": 1669950326,
-  "sha256": "762ef9ed3fdfddb9a64ee69972932a9c93a12d26153505334b0aa994379f9335",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v91/Pegase-PC-2026-11-01-0.9.9.40.zip",
-  "manifest": "f3e47aa8085afed43b63eb21c76c9c6fcc86730d3357a4e7d762a152a80cebe6",
+  "version": "0.9.9.41",
+  "build": 92,
+  "size": 1670064593,
+  "sha256": "ed6b7a8ed361fd062679f3d3b7f07064d1b152c0d5fb8f17aa9ac1b60a013465",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v92/Pegase-PC-2026-11-02-0.9.9.41.zip",
+  "manifest": "a486c938318407a7a20c814424aa15a767e2a7e9078564eba9d7a8b31acfcdba",
   "patchs": [
     {
+      "de": "0.9.9.40",
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v92/Pegase-PC-patch-0.9.9.40.zip",
+      "taille": 3138926,
+      "sha256": "96256676a412412ed04c329ba331a64d1f46480132d48d795ac3bd945fd48f4d"
+    },
+    {
       "de": "0.9.9.39",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v91/Pegase-PC-patch-0.9.9.39.zip",
-      "taille": 5937407,
-      "sha256": "7257aa67d70567572f7403bcbbf530294d3f80397ad93ef7ec00d410236fe5bf"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v92/Pegase-PC-patch-0.9.9.39.zip",
+      "taille": 6244214,
+      "sha256": "0dc011e6cf6d8b848dce7c8614a49fbe24b64322ef2129186f199c81e36344ad"
     },
     {
       "de": "0.9.9.38",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v91/Pegase-PC-patch-0.9.9.38.zip",
-      "taille": 8525488,
-      "sha256": "17672439bcffab6b28bf2623407c0efc96203ab05fea593ec05dde66ea857879"
-    },
-    {
-      "de": "0.9.9.37",
-      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v91/Pegase-PC-patch-0.9.9.37.zip",
-      "taille": 8549277,
-      "sha256": "01234f9f50b6d4498ce43d3628264007cb65bb24b801db68c3d5ebe20cfd3d80"
+      "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-pc-v92/Pegase-PC-patch-0.9.9.38.zip",
+      "taille": 8802922,
+      "sha256": "243a84bafa842bdf255c3e0d6d6c12f9a9b4522f844bdd3cfe71371c43403b7a"
     }
   ],
   "notes": [
-    "Les chiens, les chats et les habitants ne poussent plus l'héroïne : ils gardent leurs distances, la contournent et s'écartent quand elle avance. Au coin du perron de la mairie ou au pied des piliers de la place, tu peux toujours repartir.",
-    "Papi Auguste n'est plus invisible pour « Aller écouter Papi Auguste à la mairie » : tant que la mission est proposée, il t'attend en haut des escaliers de la mairie, à toute heure, même la nuit. Parle-lui pour faire venir la foule, puis reparle-lui pour son discours.",
-    "Mission « Trouver les 3 inscriptions des géants » : le repère doré et la flèche (avec la distance) te mènent à l'inscription la plus proche qu'il te reste à envoyer.",
-    "Après « Modifier ma maison » (boîte aux lettres ou panneau), l'héroïne revient exactement là où elle était, au lieu de se retrouver dans le jardin voisin.",
-    "À l'hôtel, les lits des chambres sont dans le bon sens, des tableaux plus gais remplacent les tableaux sombres, et une petite musique d'ambiance (piano et violoncelle) t'accueille.",
-    "À vélo, un gros rocher arrête doucement la roue (« Un rocher bloque le passage ») au lieu de te faire grimper dessus ; les petites pierres se franchissent toujours.",
-    "Les papillons ne volent plus dans le feuillage, ne traversent plus les rochers ni les fondations, et ne butinent plus les fleurs collées à un mur, une clôture ou une falaise.",
-    "Les poussins trottinent à la bonne cadence derrière leur mère, le grand tétras ne plonge plus la tête dans le sol en picorant, et le rossignol chante dans un taillis, loin de la grange."
+    "Les chiens viennent tout près de toi, s'assoient à tes pieds et réclament : « Caresser » (E, ou le bouton cœur au téléphone), l'héroïne s'accroupit, le chien s'assoit tout content et un cœur s'envole. Les chats au repos te laissent approcher au pas et se laissent caresser aussi. (En robe ou en jupe, elle les caresse debout.) Et ils ne te poussent jamais.",
+    "Pêche en mer depuis les rochers et les plages : maquereau, chirurgiens, poisson-papillon, poisson-clown, idole des Maures, et plus au large cabillaud et mahi-mahi, selon le fond, l'heure et l'appât. Tes prises vont dans le sac et dans ton carnet des prises.",
+    "Dans 4 criques, des bancs de poissons de mer nagent près du bord : on les voit depuis la plage ou les rochers, et ils filent quand tu t'approches.",
+    "Les grandes cascades s'entendent quand tu t'en approches, et leur brume est blanche (et non plus beige) de jour comme au coucher du soleil.",
+    "Les falaises et les gros rochers derrière la plage ne sont plus d'un brun sombre : ils ont une couleur de grès plus claire et plus chaude, où l'on voit le relief de la roche.",
+    "Les cerfs, les biches et les autres grandes bêtes sauvages vivent leur journée : ils partent ensemble, en file, boire au lac ou à la rivière à l'aube et le soir, et se reposent à l'abri sous les arbres aux heures chaudes et la nuit. Dérangés, ils filent se cacher à leur place.",
+    "À l'hôtel, le salon n'est plus vide le soir : les clients y descendent un moment avant d'aller se coucher. On entend enfin l'intérieur (le bois qui craque, le dehors étouffé), Edmond et les clients ne récitent plus leurs adresses, et le grand fauteuil qui bouchait la chambre 8 est enlevé.",
+    "En haut à gauche, l'histoire principale a son étiquette dorée « HISTOIRE », et toutes les missions du jour sont affichées (jusqu'à 6, 4 au téléphone en hauteur).",
+    "Le viseur ne reconnaît plus « Le dernier géant » avant que l'histoire en parle.",
+    "La boîte aux lettres n'est plus prise dans le mur de la maison : elle recule vers le chemin.",
+    "Le téléphone des autres joueurs est tenu devant eux, à hauteur du ventre, au lieu de pendre au bout du bras.",
+    "À vélo, les grands plateaux de roche couverts d'herbe à l'est de l'île se roulent enfin, sans « Un rocher bloque le passage » sur le plat.",
+    "Les papillons ne volent plus sous les planchers, contre les murs ni dans la terrasse du coin cosy, et les animaux se chargent plus vite au lancement."
   ],
   "historique": [
+    {
+      "version": "0.9.9.41",
+      "notes": [
+        "Les chiens viennent tout près de toi, s'assoient à tes pieds et réclament : « Caresser » (E, ou le bouton cœur au téléphone), l'héroïne s'accroupit, le chien s'assoit tout content et un cœur s'envole. Les chats au repos te laissent approcher au pas et se laissent caresser aussi. (En robe ou en jupe, elle les caresse debout.) Et ils ne te poussent jamais.",
+        "Pêche en mer depuis les rochers et les plages : maquereau, chirurgiens, poisson-papillon, poisson-clown, idole des Maures, et plus au large cabillaud et mahi-mahi, selon le fond, l'heure et l'appât. Tes prises vont dans le sac et dans ton carnet des prises.",
+        "Dans 4 criques, des bancs de poissons de mer nagent près du bord : on les voit depuis la plage ou les rochers, et ils filent quand tu t'approches.",
+        "Les grandes cascades s'entendent quand tu t'en approches, et leur brume est blanche (et non plus beige) de jour comme au coucher du soleil.",
+        "Les falaises et les gros rochers derrière la plage ne sont plus d'un brun sombre : ils ont une couleur de grès plus claire et plus chaude, où l'on voit le relief de la roche.",
+        "Les cerfs, les biches et les autres grandes bêtes sauvages vivent leur journée : ils partent ensemble, en file, boire au lac ou à la rivière à l'aube et le soir, et se reposent à l'abri sous les arbres aux heures chaudes et la nuit. Dérangés, ils filent se cacher à leur place.",
+        "À l'hôtel, le salon n'est plus vide le soir : les clients y descendent un moment avant d'aller se coucher. On entend enfin l'intérieur (le bois qui craque, le dehors étouffé), Edmond et les clients ne récitent plus leurs adresses, et le grand fauteuil qui bouchait la chambre 8 est enlevé.",
+        "En haut à gauche, l'histoire principale a son étiquette dorée « HISTOIRE », et toutes les missions du jour sont affichées (jusqu'à 6, 4 au téléphone en hauteur).",
+        "Le viseur ne reconnaît plus « Le dernier géant » avant que l'histoire en parle.",
+        "La boîte aux lettres n'est plus prise dans le mur de la maison : elle recule vers le chemin.",
+        "Le téléphone des autres joueurs est tenu devant eux, à hauteur du ventre, au lieu de pendre au bout du bras.",
+        "À vélo, les grands plateaux de roche couverts d'herbe à l'est de l'île se roulent enfin, sans « Un rocher bloque le passage » sur le plat.",
+        "Les papillons ne volent plus sous les planchers, contre les murs ni dans la terrasse du coin cosy, et les animaux se chargent plus vite au lancement."
+      ]
+    },
     {
       "version": "0.9.9.40",
       "notes": [
@@ -81,20 +104,6 @@
         "Après une reprise de partie, si tu avais laissé ton vélo dehors, un message te dit qu'il est rangé dans ton sac.",
         "Les palmiers ne s'effacent plus quand tu passes à côté.",
         "Deux papillons ne se posent plus jamais sur la même fleur."
-      ]
-    },
-    {
-      "version": "0.9.9.36",
-      "notes": [
-        "Au musée et dans les boutiques, plus de fente entre un meuble et un mur où l'on restait coincé : on va toujours jusqu'au commerçant.",
-        "Au potager, la dernière case se ratisse : le potager est enlevé et l'herbe repousse.",
-        "Pelle en main, le jeu te dit toujours pourquoi on ne peut pas bêcher à un endroit.",
-        "En courant dans une pente qu'on descend sans peine, l'héroïne ne passe plus de force au pas.",
-        "Dans la barque, la caméra reste à bonne distance, la bâche ne te cache plus la vue, et la barque ne passe plus sous le ponton.",
-        "Tes pas font de petites éclaboussures dans l'eau peu profonde, et un liseré d'écume borde les rochers : ils ne semblent plus flotter.",
-        "La porte d'entrée de l'hôtel s'ouvre vers le hall, sans balayer les bacs à fleurs.",
-        "À la ferme, la faune sauvage laisse les bêtes tranquilles : lapins, corneilles et cerfs vivent plus loin, et plus rien ne fait d'allers-retours sur le chemin.",
-        "Les canetons et les poussins ne passent plus à travers le corps de leur mère."
       ]
     }
   ]

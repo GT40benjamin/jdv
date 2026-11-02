@@ -6,6 +6,20 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🐕 Pégase 0.9.9.41 : caresses, criques et cascades (borne 1.63.15)
+[pegase] 🐕 Les chiens viennent tout près de toi, s'assoient à tes pieds et réclament : « Caresser » (E, ou le bouton cœur au téléphone), l'héroïne s'accroupit, le chien s'assoit tout content et un cœur s'envole. Les chats au repos te laissent approcher au pas et se laissent caresser aussi. (En robe ou en jupe, elle les caresse debout.) Et ils ne te poussent jamais.
+[pegase] 🎣 Pêche en mer depuis les rochers et les plages : maquereau, chirurgiens, poisson-papillon, poisson-clown, idole des Maures, et plus au large cabillaud et mahi-mahi, selon le fond, l'heure et l'appât. Tes prises vont dans le sac et dans ton carnet des prises.
+[pegase] 🐟 Dans 4 criques, des bancs de poissons de mer nagent près du bord : on les voit depuis la plage ou les rochers, et ils filent quand tu t'approches.
+[pegase] 💦 Les grandes cascades s'entendent quand tu t'en approches, et leur brume est blanche (et non plus beige) de jour comme au coucher du soleil.
+[pegase] 🪨 Les falaises et les gros rochers derrière la plage ne sont plus d'un brun sombre : ils ont une couleur de grès plus claire et plus chaude, où l'on voit le relief de la roche.
+[pegase] 🦌 Les cerfs, les biches et les autres grandes bêtes sauvages vivent leur journée : ils partent ensemble, en file, boire au lac ou à la rivière à l'aube et le soir, et se reposent à l'abri sous les arbres aux heures chaudes et la nuit. Dérangés, ils filent se cacher à leur place.
+[pegase] 🏨 À l'hôtel, le salon n'est plus vide le soir : les clients y descendent un moment avant d'aller se coucher. On entend enfin l'intérieur (le bois qui craque, le dehors étouffé), Edmond et les clients ne récitent plus leurs adresses, et le grand fauteuil qui bouchait la chambre 8 est enlevé.
+[pegase] 📜 En haut à gauche, l'histoire principale a son étiquette dorée « HISTOIRE », et toutes les missions du jour sont affichées (jusqu'à 6, 4 au téléphone en hauteur).
+[pegase] 📷 Le viseur ne reconnaît plus « Le dernier géant » avant que l'histoire en parle.
+[pegase] 📬 La boîte aux lettres n'est plus prise dans le mur de la maison : elle recule vers le chemin.
+[pegase] 📱 Le téléphone des autres joueurs est tenu devant eux, à hauteur du ventre, au lieu de pendre au bout du bras.
+[pegase] 🚲 À vélo, les grands plateaux de roche couverts d'herbe à l'est de l'île se roulent enfin, sans « Un rocher bloque le passage » sur le plat.
+[pegase] 🦋 Les papillons ne volent plus sous les planchers, contre les murs ni dans la terrasse du coin cosy, et les animaux se chargent plus vite au lancement.
 [abracadabra] ## 🌋 Abracadabra : chaque mot a ses conséquences au pont du village (borne 1.63.13)
 [abracadabra] 🎳 Mission 1 : le pont n'est gagné que quand les 6 villageois sont de l'autre côté. Dis « boule », « rocher » ou « météorite » pendant qu'ils traversent : ça tombe du ciel, le pont casse en deux et plonge dans la rivière !
 [abracadabra] 🏊 Ceux qui étaient dessus tombent à l'eau (« Blub ! Au secours ! »), nagent jusqu'à la berge et ressortent trempés. Redis « pont » pour en refaire un.
