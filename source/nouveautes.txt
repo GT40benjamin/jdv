@@ -18,6 +18,10 @@
 [pegase] 🌼 Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.
 [pegase] 🌸 De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.
 [pegase] 🧥 Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps.
+[noisette] ## 🐿️ Noisette et ses amis : il part dès que tu appuies (borne 1.63.125)
+[noisette] ▶️ Si tu tiens déjà la flèche pendant le titre du niveau, Noisette part tout de suite quand le niveau commence, au clavier, à la manette ou au doigt : plus besoin de relâcher puis de réappuyer.
+[noisette] 🗺️ Sur la carte, Noisette attend au départ (avant, on voyait parfois une tache marron).
+[noisette] 🎮 À la manette, la flèche ou le joystick que tu tiens déjà compte tout de suite ; les boutons, eux, attendent toujours que tu les relâches.
 [noisette] ## 🗺️ Noisette et ses amis : la carte des niveaux (borne 1.63.124)
 [noisette] 🗺️ Le bouton carte montre le chemin de Noisette à travers la forêt : la forêt du matin, le sous-bois aux champignons, la rivière et ses rondins, puis le grand chêne. Tu vois jusqu'où chacun de tes copains est arrivé, et la grande victoire quand les 4 amis sont retrouvés.
 [noisette] ## 🐿️ Noisette et ses amis : plus jamais coincé devant une marche (borne 1.63.122)

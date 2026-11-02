@@ -237,10 +237,12 @@ function mount(root, api) {
     e.preventDefault(); if (gele) return;
     if (paused) { setPaused(false); return; }
     const p = toLocal(e);
-    if (state === 'title') { if (LOADED || loadErr) startGame(); return; }
-    if (state === 'end') { if (stT > 1.4) { const b = againBtn(); if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) startGame(); } return; }
+    if (state === 'title') { if (LOADED || loadErr) { startGame(); suivreDoigt(e, p); } return; }
+    if (state === 'end') { if (stT > 1.4) { const b = againBtn(); if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { startGame(); suivreDoigt(e, p); } } return; }
     if (state === 'play') { if (e.pointerType !== 'mouse') tactile = true; const id = btnSous(p.x, p.y); touches.set(e.pointerId, id || 's'); if (!id || id === 's') P.tampon = 0.12; try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } }
   }
+  // le doigt qui lance la partie : s'il est (ou glisse) sur ◀ ▶, il compte dès le début, sans relâcher ; ailleurs il ne fait pas sauter
+  function suivreDoigt(e, p) { const id = btnSous(p.x, p.y); touches.set(e.pointerId, id === 'g' || id === 'd' ? id : null); try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } }
   function onMove(e) { if (!touches.has(e.pointerId)) return; const p = toLocal(e), id = btnSous(p.x, p.y); if (id && id !== touches.get(e.pointerId) && (id === 'g' || id === 'd')) touches.set(e.pointerId, id); }
   function onUp(e) { touches.delete(e.pointerId); }
   function onKey(e) {
@@ -271,6 +273,12 @@ function mount(root, api) {
   canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
   window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKeyUp); document.addEventListener('visibilitychange', onVis);
+  // dans un cadre (l'Atelier) : une touche tenue alors que la page autour a le focus compte aussi (sinon il fallait relâcher et réappuyer),
+  // sauf quand on écrit dans un champ de la page
+  const PARENT = (() => { try { return window.parent !== window && window.parent.location.origin === location.origin ? window.parent : null; } catch (e) { return null; } })();
+  const champ = () => { try { const a = PARENT.document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); } catch (e) { return true; } };
+  const onKeyP = e => { if (!champ() && state === 'play') onKey(e); }, onKeyUpP = e => onKeyUp(e);
+  if (PARENT) { try { PARENT.addEventListener('keydown', onKeyP); PARENT.addEventListener('keyup', onKeyUpP); } catch (e) { /* rien */ } }
   window.addEventListener('message', onMsg); pauseBtn.addEventListener('pointerdown', onPauseBtn);
   function commandes() {
     let x = 0, saut = false, bas = false;
@@ -653,6 +661,7 @@ function mount(root, api) {
       canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp);
       window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); document.removeEventListener('visibilitychange', onVis);
+      if (PARENT) { try { PARENT.removeEventListener('keydown', onKeyP); PARENT.removeEventListener('keyup', onKeyUpP); } catch (e) { /* rien */ } }
       window.removeEventListener('message', onMsg); pauseBtn.removeEventListener('pointerdown', onPauseBtn);
       root.innerHTML = '';
     },
@@ -679,7 +688,7 @@ window.JDW_GAMES.noisette = {
   scoreLabel: 'points',
   preview,
   mount,
-  heros(x, P) { try { loadImages(); } catch (e) { /* rien */ } if (!IMG['n-repos']) return false; drawFoot(x, 'n-repos', P / 2, P * 0.9, P * 0.72); return true; },   // Noisette au départ de la carte
+  heros(x, P) { try { loadImages(); } catch (e) { /* rien */ } if (!IMG['n-repos'] || !x) return false; drawFoot(x, 'n-repos', P / 2, P * 0.9, P * 0.72); return true; },   // Noisette au départ de la carte
   pad: { help: [['ls/dpad', 'Courir'], ['a', 'Sauter'], ['b', 'Rouler en boule']], intro: false }
 };
 })();

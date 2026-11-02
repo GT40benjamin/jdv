@@ -11512,8 +11512,9 @@ const MAP_DEFS = {
       // Noisette lui-même, dessiné par le jeu (sinon une noisette)
       const G = window.JDW_GAMES && window.JDW_GAMES.noisette;
       if (G && G.heros) { try { if (G.heros(x, P)) return; } catch (e) { /* une noisette à la place */ } }
-      x.fillStyle = '#a0683a'; x.beginPath(); x.ellipse(P / 2, P * 0.55, P * 0.22, P * 0.25, 0, 0, 7); x.fill();
+      this.node(x, { acc: '#e88a3a', win: true }, P * 0.8, P);   // ses images pas encore là : une noisette dorée (plus de tache)
     },
+    warm() { const G = window.JDW_GAMES && window.JDW_GAMES.noisette; if (G && G.heros) { try { G.heros(null, 0); } catch (e) { /* rien */ } } },   // ses images se chargent au calme, avant l'ouverture
     start: { title: 'Départ', sub: 'Noisette s’est perdu dans la forêt' },
     cap: { title: 'Le grand chêne', sub: 'Tous les amis réunis' }
   }

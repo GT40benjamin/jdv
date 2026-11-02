@@ -246,7 +246,9 @@
     const key = (P, b) => P.index + ':' + P.id + ':' + b;
     // ce qui est déjà enfoncé au montage (ex. le A qui a lancé la partie) attend d'être relâché
     for (const P of S.pads.values()) for (const b of BTN) { seen.set(key(P, b), P.cnt[b] || 0); if (P.held[b]) block.set(key(P, b), true); }
-    const held = (P, b) => { if (!P.held[b]) { block.delete(key(P, b)); return false; } return !block.get(key(P, b)); };
+    // les directions déjà tenues comptent tout de suite (on court dès le début du niveau) ; les boutons attendent d'être relâchés
+    const DIR = { up: 1, down: 1, left: 1, right: 1 };
+    const held = (P, b) => { if (!P.held[b]) { block.delete(key(P, b)); return false; } return DIR[b] === 1 || !block.get(key(P, b)); };
     const OFF = Object.freeze({ on: false, kind: '', lx: 0, ly: 0, rx: 0, ry: 0, lt: 0, rt: 0, mx: 0, my: 0, held: Object.freeze({}) });
     const api = {
       get(p) {
