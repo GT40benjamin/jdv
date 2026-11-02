@@ -14281,7 +14281,7 @@ function atlRenderProjets() {
 }
 function atlOuvrir(id) {
   atlMicStop(); atlLetterClose(true); atlErr('');
-  ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.lance = 0; ATL.tab = ''; ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
+  ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.lance = 0; ATL.tab = ''; ATL.pSig = ''; ATL.basesOn = false; ATL.bq = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
   const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) { inp.placeholder = 'Décris ton jeu…'; inp.value = ''; }
   ATL.basesEnCours = false; ATL.prefill = true; ATL.brLast = '';   // un brouillon rouvert : son texte revient dans la case
   atlRender(); atlLoad(true);
@@ -14289,7 +14289,7 @@ function atlOuvrir(id) {
 function atlNouveau() {
   const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
   if (atlProjets().length >= max) { toastCheer(max + ' projets au plus', null, true); return; }
-  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.basesLoc = {}; ATL.basesDone = false; ATL.basesEnCours = true; ATL.brLast = ''; { const i0 = ATL.root && ATL.root.querySelector('.atl-in'); if (i0) i0.value = ''; } ATL.basesOn = false; ATL.bq = 0; ATL.pend = []; ATL.stick = true; atlErr('');
+  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.basesLoc = {}; ATL.basesDone = false; ATL.basesEnCours = true; ATL.brLast = ''; { const i0 = ATL.root && ATL.root.querySelector('.atl-in'); if (i0) i0.value = ''; } ATL.basesOn = false; ATL.bq = 0; ATL.pend = []; ATL.stick = true; atlErr('');
   atlRender();
   const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Raconte ton nouveau jeu…'; if (!TOUCH) inp.focus();
 }
@@ -14494,8 +14494,11 @@ function atlRenderWiz() {
   W.textContent = ''; ATL.pSig = '';
   const box = atlEl('div', 'atl-wbox'); W.appendChild(box);
   const dz = f.design && atlIaUrl(f.design.f);
-  R.querySelector('.atl-hs').textContent = 'Étape ' + ((ATL.step | 0) + 1) + ' / ' + ATL_STEPS.length;
+  // 19 h 55 (Benjamin : « on a juste besoin de l'onglet design quand ça revient ») : un projet rempli s'ouvre sur « 🎨 Le design » ;
+  // les autres étapes restent là (onglets, feuille de route) pour qui veut modifier
+  if (ATL.step == null) ATL.step = ATL_STEPS.length - 1;
   const st = Math.max(0, Math.min(ATL_STEPS.length - 1, ATL.step | 0)); ATL.step = st;
+  R.querySelector('.atl-hs').textContent = st === ATL_STEPS.length - 1 ? 'Ton design est prêt' : 'Étape ' + (st + 1) + ' / ' + ATL_STEPS.length;
   const nav = atlEl('ol', 'atl-steps');
   ATL_STEPS.forEach(([k, ic, lab], i) => {
     const li = atlEl('li'), b = atlEl('button', 'atl-stp' + (i === st ? ' on' : '') + (i < st ? ' vu' : '')); b.type = 'button';
@@ -14504,7 +14507,7 @@ function atlRenderWiz() {
   });
   box.appendChild(nav);
   const lm = atlMsgs().filter(m => m.atelier && m.texte).slice(-1)[0];
-  if (lm && st === 0) box.appendChild(atlEl('div', 'atl-wmsg', '💬 L’Atelier : ' + lm.texte));
+  if (lm && st === ATL_STEPS.length - 1) box.appendChild(atlEl('div', 'atl-wmsg', '💬 L’Atelier : ' + lm.texte));
   const [k, ic, lab, aide] = ATL_STEPS[st], page = atlEl('section', 'atl-page');
   page.append(atlEl('h2', '', ic + ' ' + lab), atlEl('p', 'atl-aide', aide));
   if (k === 'idee') {
