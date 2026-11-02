@@ -55,7 +55,15 @@ function drawFoot(ctx, nom, x, y, h, flip, rot) {
   ctx.save(); ctx.translate(x, y);
   if (rot) { ctx.translate(0, -hh / 2); ctx.rotate(rot); ctx.translate(0, hh / 2); }
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(im, -w * ax, -hh, w, hh); ctx.restore();
+  ctx.drawImage(reduite(im, hh), -w * ax, -hh, w, hh); ctx.restore();
+}
+// l'image déjà réduite à la taille où on la dessine (réduire une grande image à chaque image coûte cher sur téléphone)
+function reduite(im, hh) {
+  const ph = Math.ceil(hh * Math.min(2, window.devicePixelRatio || 1) / 16) * 16;
+  if (ph >= im.height * 0.75 || ph < 16) return im;
+  const c = im._c || (im._c = {});
+  if (!c[ph]) { if (Object.keys(c).length > 6) im._c = {}; const cv = document.createElement('canvas'); cv.height = ph; cv.width = Math.max(1, Math.round(im.width * ph / im.height)); cv.getContext('2d').drawImage(im, 0, 0, cv.width, ph); (im._c[ph] = cv); }
+  return im._c[ph];
 }
 function pill(ctx, x, y, w, h, r) { r = Math.min(r, h / 2, w / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function star(ctx, x, y, r, rot) { ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = rot + i * Math.PI / 4, rr = i % 2 ? r * 0.35 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); }
@@ -157,7 +165,7 @@ function mount(root, api) {
   try { tactile = matchMedia('(pointer: coarse)').matches; } catch (e) { /* rien */ }
   function resize() {
     const r = root.getBoundingClientRect();
-    W = Math.max(1, r.width); H = Math.max(1, r.height); dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.max(1, r.width); H = Math.max(1, r.height); dpr = Math.min(tactile ? 1.5 : 2, window.devicePixelRatio || 1);   // téléphone : 1,5 suffit et garde 30 i/s
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     portrait = H > W * 1.1; Z = Math.min(H / 560, W / 460); U = portrait ? Math.min(W / 470, H / 880) : Math.max(0.72, Math.min(W, H) / 720);
   }
@@ -307,21 +315,28 @@ function mount(root, api) {
     P.vx = Math.max(-vmax, Math.min(vmax, P.vx));
     // saut (tampon de 0,12 s et « coyote » de 0,1 s : un appui un peu tôt ou un peu tard marche quand même)
     P.coyote = P.sol ? 0.1 : Math.max(0, P.coyote - dt);
-    if (P.tampon > 0 && P.coyote > 0 && P.touche < 0.5) { P.vy = -SAUT; P.sol = false; P.coyote = 0; P.tampon = 0; P.plat = null; son('saut', 1, 0.95 + Math.random() * 0.1); poussiere(P.x, P.y, 5); }
-    if (!c.saut && P.vy < -350 && !P.ressort) P.vy = -350;   // saut court quand on lâche tôt
+    // contre une marche, même un saut tapoté va jusqu'en haut (au doigt on tapote : sinon on restait coincé)
+    if (P.tampon > 0 && P.coyote > 0 && P.touche < 0.5) { P.vy = -SAUT; P.sol = false; P.coyote = 0; P.tampon = 0; P.plat = null; if (P.mur > 0) P.ressort = true; son('saut', 1, 0.95 + Math.random() * 0.1); poussiere(P.x, P.y, 5); }
+    if (!c.saut && P.vy < -480 && !P.ressort) P.vy = -480;   // saut court quand on lâche tôt
     // mouvement
     P.vy += GRAV * dt; if (P.vy > 1300) P.vy = 1300;
     const ox = P.x, oy = P.y;
-    P.x += P.vx * dt; P.y += P.vy * dt;
+    // 1) le pas de côté : contre une marche plus haute que les pieds (plus de 26), on s'arrête net (on ne rentre JAMAIS dans le sol) ;
+    //    si on pousse contre elle un instant, Noisette saute tout seul (aide : une marche ne bloque jamais un enfant)
+    let nx = P.x + P.vx * dt;
+    const gN = solA(nx);
+    if (gN != null && P.y > gN + 26) { nx = P.x; P.vx = 0; }
+    const gD = c.x ? solA(P.x + c.x * 8) : null;   // une marche juste devant, dans le sens où l'on pousse
+    P.mur = gD != null && P.y > gD + 26 ? (P.mur || 0) + dt : 0;
+    P.x = nx;
     if (P.x < 30) { P.x = 30; P.vx = 0; }
-    // atterrissage : sol, puis branches et rondins (traversables par dessous)
+    if (P.mur > 0.3 && P.sol) { P.vy = -SAUT; P.sol = false; P.ressort = true; P.mur = 0; P.coyote = 0; son('saut', 1, 0.95); poussiere(P.x, P.y, 4); }
+    // 2) la chute : on atterrit sur le sol à l'endroit où l'on est (les pieds ne passent jamais sous le sol)
+    P.y += P.vy * dt;
     const g = solA(P.x); let surSol = false;
     // dans une descente, on reste collé au sol (sinon on « décolle » à chaque image)
     if (g != null && P.sol && P.vy >= 0 && P.y < g && g - P.y < 8 + Math.abs(P.vx * dt) * 1.6) P.y = g;
-    if (g != null && P.y >= g - 2 && oy <= g + 26 + Math.abs(P.vx * dt) * 1.2) { if (P.vy >= 0 || P.sol) { P.y = g; if (!P.sol && P.vy > 500) poussiere(P.x, P.y, 6); P.vy = 0; surSol = true; P.plat = null; } }
-    else if (g != null && P.y > g + 26) { // dans le flanc d'une marche : on la bute
-      P.x = ox; P.vx = 0;
-    }
+    if (g != null && P.y >= g - 2 && (P.vy >= 0 || P.sol) && oy <= g + 30) { P.y = g; if (!P.sol && P.vy > 500) poussiere(P.x, P.y, 6); P.vy = 0; surSol = true; P.plat = null; }
     if (!surSol && P.vy >= 0) for (const p of L.plats) {
       const py = platY(p);
       if (P.x > p.x - 6 && P.x < p.x + p.w + 6 && oy <= py + 4 && P.y >= py) { P.y = py; P.vy = 0; surSol = true; P.plat = p; break; }
@@ -420,12 +435,15 @@ function mount(root, api) {
 
   // ---------- dessin ----------
   const sx = x => (x - cam.x) * Z, sy = y => (y - cam.y) * Z;
+  let fondC = null;   // le décor déjà mis à la taille de l'écran (le redimensionner à chaque image coûtait cher sur téléphone)
   function drawFond() {
     const k = NIVEAUX[niv].fond, f = OFF.has(ELEM.fond) || off(k) ? null : IMG[k];   // chaque décor de fond se retire séparément (« Décors des niveaux » seul : tous)
     if (!f) { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#bfe6ff'); g.addColorStop(1, '#d8f2c4'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); return; }
+    const ch = Math.round(H * dpr);
+    if (!fondC || fondC.k !== k || fondC.height !== ch) { fondC = document.createElement('canvas'); fondC.k = k; fondC.height = ch; fondC.width = Math.round(f.width * ch / f.height); fondC.getContext('2d').drawImage(f, 0, 0, fondC.width, ch); }
     const s = H / f.height, w = f.width * s, off0 = ((cam.x * Z * 0.25) % (2 * w) + 2 * w) % (2 * w);
     for (let i = -1, x = -off0; x < W; i++, x += w) {
-      if (((i % 2) + 2) % 2) { ctx.save(); ctx.translate(x + w, 0); ctx.scale(-1, 1); ctx.drawImage(f, 0, 0, w + 1, H); ctx.restore(); } else ctx.drawImage(f, x, 0, w + 1, H);
+      if (((i % 2) + 2) % 2) { ctx.save(); ctx.translate(x + w, 0); ctx.scale(-1, 1); ctx.drawImage(fondC, 0, 0, w + 1, H); ctx.restore(); } else ctx.drawImage(fondC, x, 0, w + 1, H);
     }
   }
   function drawSol() {
@@ -433,10 +451,10 @@ function mount(root, api) {
     // l'eau (rivière) ou le vide (trous) sous le niveau du sol
     if (L.eau) { const wy = sy(520); const g = ctx.createLinearGradient(0, wy, 0, H); g.addColorStop(0, 'rgba(90,180,235,0.92)'); g.addColorStop(1, 'rgba(40,110,190,0.95)'); ctx.fillStyle = g; ctx.fillRect(0, wy, W, H - wy);
       ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2 * Z; ctx.beginPath(); for (let x = 0; x <= W; x += 12) ctx.lineTo(x, wy + Math.sin(x * 0.04 + tNiv * 3) * 3 * Z); ctx.stroke(); }
+    const g = ctx.createLinearGradient(0, sy(260), 0, bas); g.addColorStop(0, N.sol[0]); g.addColorStop(1, N.sol[1]);   // un seul dégradé par image
     for (const s of L.sol) {
       if (sx(s.x1) < -20 || sx(s.x0) > W + 20) continue;
       const x0 = sx(s.x0), x1 = sx(s.x1), y0 = sy(s.y0), y1 = sy(s.y1);
-      const g = ctx.createLinearGradient(0, Math.min(y0, y1), 0, bas); g.addColorStop(0, N.sol[0]); g.addColorStop(1, N.sol[1]);
       ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x1, bas); ctx.lineTo(x0, bas); ctx.closePath(); ctx.fill();
       // petits cailloux dans la terre
       ctx.fillStyle = 'rgba(0,0,0,0.12)'; for (let k = Math.ceil(s.x0 / 70) * 70; k < s.x1; k += 70) { const yy = s.y0 + (s.y1 - s.y0) * (k - s.x0) / (s.x1 - s.x0) + 40 + ((k * 37) % 50); ctx.beginPath(); ctx.ellipse(sx(k), sy(yy), 7 * Z, 4 * Z, 0, 0, TAU); ctx.fill(); }
@@ -452,7 +470,7 @@ function mount(root, api) {
       if (im) { const w = p.w * Z * 1.12, h = w * im.height / im.width; ctx.drawImage(im, sx(p.x) - p.w * Z * 0.06, py - h * (p.k === 'rondin' ? 0.3 : 0.45), w, h); }
       else { ctx.fillStyle = '#8b5a2b'; ctx.fillRect(sx(p.x), py, p.w * Z, 12 * Z); } }
     if (!off('ronce')) for (const r of L.ronces) { if (sx(r.x + r.w) < -40 || sx(r.x) > W + 40) continue; drawFoot(ctx, 'ronces', sx(r.x + r.w / 2), sy(r.y) + 6 * Z, 54 * Z); }
-    if (!off('champi')) for (const m of L.champis) { const sq = m.boing ? 1 - Math.sin(m.boing / 0.35 * Math.PI) * 0.25 : 1; ctx.save(); ctx.translate(sx(m.x), sy(m.y)); ctx.scale(1 / sq, sq); drawFoot(ctx, 'champignon', 0, 2 * Z, 64 * Z); ctx.restore(); }
+    if (!off('champi')) for (const m of L.champis) { if (sx(m.x) < -80 || sx(m.x) > W + 80) continue; const sq = m.boing ? 1 - Math.sin(m.boing / 0.35 * Math.PI) * 0.25 : 1; ctx.save(); ctx.translate(sx(m.x), sy(m.y)); ctx.scale(1 / sq, sq); drawFoot(ctx, 'champignon', 0, 2 * Z, 64 * Z); ctx.restore(); }
     for (const b of L.bonus) { if (b.pris || off(b.k)) continue;
       if (b.k === 'ressort') { const sq = b.boing ? 1 - Math.sin(b.boing / 0.35 * Math.PI) * 0.35 : 1; ctx.save(); ctx.translate(sx(b.x), sy(b.y)); ctx.scale(1 / sq, sq); drawFoot(ctx, 'ressort', 0, 4 * Z, 40 * Z); ctx.restore(); }
       else { const bob = Math.sin(tNiv * 3 + b.x) * 5 * Z; ctx.save(); ctx.globalAlpha = 0.35 + 0.2 * Math.sin(tNiv * 5); ctx.fillStyle = '#8fd8ff'; ctx.beginPath(); ctx.arc(sx(b.x), sy(b.y) - 18 * Z + bob, 24 * Z, 0, TAU); ctx.fill(); ctx.restore(); drawFoot(ctx, 'gland', sx(b.x), sy(b.y) + bob, 38 * Z); } }
@@ -646,6 +664,7 @@ function mount(root, api) {
       state: () => state, score: () => score, niv: () => niv, P: () => P, L: () => L, amis: () => amis.map(a => a.k), fast(k) { FAST = k; },
       play() { startGame(); }, aller(n) { nouveauNiveau(n); }, tousLesAmis() { amis = ['pompon', 'piquant', 'hulotte', 'roussette'].map((k, i) => ({ k, x: P.x - 60 * (i + 1), y: P.y, flip: false, step: 0, repos: 0 })); },
       pente() { const s = L.sol.find(s => s.y1 - s.y0 > 100); return s ? s.x0 - 200 : null; }, corbeau() { const c = L.corbeaux[0]; return c ? c.x0 - 300 : null; }, tp(x) { P.x = x; const g = solA(x); P.y = g != null ? g : P.y; P.vy = 0; cam.x = P.x - 200; trace = trace.map((e, i) => ({ x: P.x - 4 * i, y: P.y, sol: true, boule: false, flip: false, vx: 0 })); amis.forEach((a, i) => { a.x = P.x - 64 * (i + 1); a.y = P.y; }); },
+      dessin(n) { const t0 = performance.now(); for (let i = 0; i < n; i++) draw(); return (performance.now() - t0) / n; }, boutonsEcran: () => boutons(),
       ecran: () => ({ x: sx(P.x), y: sy(P.y), z: Z }), pose: () => poseNoisette().n
     }
   };
