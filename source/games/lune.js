@@ -36,6 +36,8 @@ function loadImages() {
   LOAD.catch(() => { LOAD = null; });
   return LOAD;
 }
+// position de la boule rouge de l'antenne dans chaque pose du robot (fraction de la largeur), mesurée sur les dessins
+const ANTENNE = { robot1: 0.301, robot2: 0.56, 'robot-montre': 0.571, 'robot-content': 0.5 };
 const EMOJI = { oxygene: '🧯', cristal: '💎', piece: '⚙️', navette: '🚀', epave: '🛸', base: '🏠', trousse: '🧰', lampe: '🔦', meteorite: '☄️', astronaute: '👨‍🚀', robot1: '🤖' };
 // les poses (survivant, robot) sont emballées à la même hauteur, avec leur point d'ancrage (im.ax = centre du casque) et leur hauteur relative (im.hr)
 // dessine l'image posée au sol : (x, y) = le pied, h = hauteur (de la pose de référence)
@@ -160,7 +162,7 @@ function mount(root, api) {
     if (paused) { setPaused(false); return; }
     const p = toLocal(e);
     if (state === 'title') { if (LOADED || loadErr) startGame(); return; }
-    if (state === 'end') { if (stT > 1.2) { const b = againBtn(); if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) startGame(); } return; }
+    if (state === 'end') { if (stT > (endWhy === 'oxy' ? 2.5 : 1.2)) { const b = againBtn(); if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) startGame(); } return; }
     if (state === 'intro') { if (stT > 0.6) { state = 'play'; stT = 0; } return; }
     if (state === 'play' && !joy.on) { joy.on = true; joy.id = e.pointerId; joy.x0 = joy.x = p.x; joy.y0 = joy.y = p.y; try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } }
   }
@@ -177,7 +179,7 @@ function mount(root, api) {
     if (k === 'Enter' || k === ' ') {
       if (state === 'title' && (LOADED || loadErr)) startGame();
       else if (state === 'intro' && stT > 0.6) { state = 'play'; stT = 0; }
-      else if (state === 'end' && stT > 1.2) startGame();
+      else if (state === 'end' && stT > (endWhy === 'oxy' ? 2.5 : 1.2)) startGame();
     }
   }
   function onKeyUp(e) { keys[e.key.toLowerCase()] = false; }
@@ -185,10 +187,12 @@ function mount(root, api) {
   function onPauseBtn(e) { e.preventDefault(); e.stopPropagation(); if (!gele && state === 'play') setPaused(!paused); }
   function onVis() { if (document.hidden && state === 'play') setPaused(true); }
   // pause de l'Atelier (bouton ⏸ au-dessus du cadre : le joueur parle à son guide) : tout est gelé jusqu'à « atl-reprendre »
-  let gele = false;
+  let gele = false, guideA = '';
   function onMsg(e) {
     if (e.origin !== location.origin || !e.data || typeof e.data !== 'object') return;
-    if (e.data.type === 'atl-pause') { gele = true; joy.on = false; for (const k in keys) keys[k] = false; }
+    // le nom du guide vient de la page du projet (jamais écrit ici) : « Parle à … »
+    if (e.data.type === 'atl-guide' && typeof e.data.a === 'string') guideA = e.data.a.replace(/[<>]/g, '').slice(0, 40);
+    else if (e.data.type === 'atl-pause') { gele = true; joy.on = false; for (const k in keys) keys[k] = false; }
     else if (e.data.type === 'atl-reprendre') { gele = false; last = 0; }
   }
   window.addEventListener('message', onMsg);
@@ -232,7 +236,12 @@ function mount(root, api) {
       if (liftT > 4.6) { state = 'end'; stT = 0; }
       return;
     }
-    if (state === 'end') { if (stT > 2.6 && !overSent) { overSent = true; try { api.gameOver(score()); } catch (e) { /* rien */ } } return; }
+    if (state === 'end') {
+      // défaite : le robot accourt près de toi (il roule) pendant que l'écran s'assombrit
+      if (endWhy === 'oxy') { const ox = robot.x, oy = robot.y; robot.x += (P.x + 60 - robot.x) * Math.min(1, dt * 2); robot.y += (P.y - 10 - robot.y) * Math.min(1, dt * 2); const d = Math.hypot(robot.x - ox, robot.y - oy); robot.roule = d > 15 * dt; robot.step = (robot.step || 0) + d / 20; }
+      if (stT > 3.4 && !overSent) { overSent = true; try { api.gameOver(score()); } catch (e) { /* rien */ } }
+      return;
+    }
     if (state !== 'play') return;
     tJeu += dt;
     // déplacement (8 directions)
@@ -257,6 +266,7 @@ function mount(root, api) {
     // la cadence suit la distance parcourue ; un nuage de poussière à chaque pied posé (images 1 et 3)
     if (P.moving) { const before = Math.floor(P.step); P.step += dt * sp / FOULEE; const now = Math.floor(P.step); if (now !== before && now % 2 === 0) puffs.push({ x: P.x + (now % 4 ? 8 : -8), y: P.y, t: 0 }); }
     else P.step = 0;
+    P.repos = P.moving ? 0 : (P.repos || 0) + dt;
     // le cratère : on glisse dedans, ça coûte de l'oxygène (une fois par cratère)
     if (inCr && inCr !== crT) { crT = inCr; oxy -= 5; shake = 5; say('Tu glisses dans un cratère ! −5 % d’oxygène'); for (let i = 0; i < 4; i++) puffs.push({ x: P.x + (Math.random() - 0.5) * 40, y: P.y, t: -i * 0.1 }); }
     if (!inCr) crT = null;
@@ -421,21 +431,37 @@ function mount(root, api) {
     ctx.font = 'bold ' + Math.round(Math.max(13, 17 * Z)) + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(s, x, y); ctx.fillStyle = c || '#fff'; ctx.fillText(s, x, y);
   }
-  // le survivant : la bonne pose selon la direction, 4 pas de face, pas en miroir de dos et de profil
+  // le survivant : la bonne pose selon la direction ; marche = cycle de 4 images (pied posé, passage, autre pied, passage), sans faux sauts ;
+  // repos = cycle de respiration (le buste se soulève, le casque se balance, les pieds ne bougent pas), dans chaque direction
   function playerPose() {
     if (endWhy === 'win' && state !== 'liftoff') return { n: 'joie', f: false, hop: Math.abs(Math.sin(stT * 6)) * 14 };
     if (P.stun > 0) return { n: 'touche', f: false, hop: 0 };
-    // cycle de 4 images : pied posé, passage, autre pied posé, passage (le corps monte un peu au passage) ; au repos : la pose de passage
-    const st = Math.floor(P.step) % 4, hop = st % 2 ? 3 : 0;
-    if (P.dir === 'cote') return P.moving ? { n: st % 2 ? 'cote-passe' : 'cote-pas', f: !P.flip, hop } : { n: 'cote-passe', f: !P.flip, hop: 0 };   // dessinés vers la droite
+    const st = Math.floor(P.step) % 4;
+    if (P.dir === 'cote') {
+      if (P.moving) return { n: st % 2 ? 'cote-passe' : 'cote-pas', f: !P.flip, hop: 0 };   // dessinés vers la droite
+      return { n: IMG['cote-repos1'] ? (Math.sin(P.repos * 1.6) > 0.3 ? 'cote-repos2' : 'cote-repos1') : 'cote-passe', f: !P.flip, hop: 0, souffle: 1 };
+    }
     const n = P.dir === 'dos' ? 'dos' : 'face';
-    return P.moving ? { n: n + (st + 1), f: false, hop } : { n: n + '2', f: false, hop: 0 };
+    return P.moving ? { n: n + (st + 1), f: false, hop: 0 } : { n: n + '2', f: false, hop: 0, souffle: 1 };
+  }
+  // la respiration au repos : la partie haute du dessin (buste, casque) s'étire très légèrement et se balance, la partie basse ne bouge pas
+  function drawSouffle(nom, x, y, h, flip, t) {
+    const im = IMG[nom]; if (!im) { drawFoot(ctx, nom, x, y, h, flip); return; }
+    const hh = h * (im.hr || 1), w = hh * im.width / im.height, ax = im.ax != null ? im.ax : 0.5;
+    const cut = 0.56, sh = im.height * cut, k = 1 + 0.035 * (0.5 - 0.5 * Math.cos(t * 2.1)), sway = Math.sin(t * 1.05) * 0.02 * hh;
+    const dw = w, top = hh * cut * k, yb = y - hh * (1 - cut);
+    ctx.save(); ctx.translate(x, 0); if (flip) ctx.scale(-1, 1);
+    ctx.drawImage(im, 0, sh - 1, im.width, im.height - sh + 1, -dw * ax, yb - 1, dw, hh * (1 - cut) + 1);   // jambes : fixes
+    ctx.transform(1, 0, sway / top, 1, 0, 0);
+    ctx.drawImage(im, 0, 0, im.width, sh, -dw * ax - sway * (yb - top) / top, yb - top, dw, top + 0.6);  // buste et casque : respirent
+    ctx.restore();
   }
   function drawPlayer(x, y) {
     const h = 130 * Z, ps = playerPose();
     ctx.fillStyle = 'rgba(30,32,40,0.35)'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.24, h * 0.07, 0, 0, TAU); ctx.fill();
     if (state === 'liftoff') ctx.globalAlpha = Math.max(0, 1 - liftT);
-    drawFoot(ctx, ps.n, x, y - ps.hop * Z, ps.n === 'touche' ? h * 0.9 : h, ps.f);
+    if (ps.souffle) drawSouffle(ps.n, x, y, h, ps.f, P.repos);
+    else drawFoot(ctx, ps.n, x, y - ps.hop * Z, ps.n === 'touche' ? h * 0.9 : h, ps.f);
     if (P.stun > 0 && P.stun < 50) { ctx.fillStyle = '#ffe36b'; for (let i = 0; i < 3; i++) { const a = stT * 5 + i * TAU / 3; star(ctx, x + Math.cos(a) * h * 0.3, y - h * 1.02 + Math.sin(a) * h * 0.08, 6 * Z, stT * 4); } }
     ctx.globalAlpha = 1;
     // la lampe torche : un halo devant toi
@@ -448,9 +474,20 @@ function mount(root, api) {
     let n = robot.roule ? (Math.floor(robot.step || 0) % 2 ? 'robot1' : 'robot2') : 'robot-montre';
     if (robot.joie > 0) n = 'robot-content';
     ctx.fillStyle = 'rgba(30,32,40,0.3)'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.4, h * 0.1, 0, 0, TAU); ctx.fill();
-    const hop = robot.joie > 0 ? Math.abs(Math.sin(stT * 10)) * 8 * Z : moving ? Math.abs(Math.sin(stT * 14)) * 2 * Z : 0;
+    const hop = robot.joie > 0 ? Math.abs(Math.sin(stT * 10)) * 8 * Z : 0;
     if (state === 'liftoff') ctx.globalAlpha = Math.max(0, 1 - liftT);
-    drawFoot(ctx, n, x, y - hop, h, n === 'robot-montre' && t && t.x > robot.x);
+    // au repos : il se balance doucement sur ses chenilles (pivot au sol)
+    const bal = !moving && robot.joie <= 0 ? Math.sin(stT * 1.7) * 0.045 : 0;
+    ctx.save(); ctx.translate(x, y - hop); ctx.rotate(bal);
+    drawFoot(ctx, n, 0, 0, h, n === 'robot-montre' && t && t.x > robot.x);
+    // la boule de l'antenne s'allume et s'éteint
+    const im = IMG[n], fl = n === 'robot-montre' && t && t.x > robot.x;
+    if (im) {
+      const lum = 0.35 + 0.65 * Math.max(0, Math.sin(stT * 3.2)), w = h * im.width / im.height, ax = ((ANTENNE[n] || 0.5) - 0.5) * w * (fl ? -1 : 1), ay = -h * 0.947;
+      const gl = ctx.createRadialGradient(ax, ay, 0, ax, ay, h * 0.14); gl.addColorStop(0, 'rgba(255,90,70,' + (0.85 * lum) + ')'); gl.addColorStop(1, 'rgba(255,90,70,0)');
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(ax, ay, h * 0.14, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
     ctx.globalAlpha = 1;
     // la flèche du robot vers la cible
     if (t && state === 'play') {
@@ -601,15 +638,20 @@ function mount(root, api) {
   const joyHint = () => { try { return matchMedia('(pointer: coarse)').matches ? 'Glisse ton doigt pour marcher · touche pour commencer' : 'Flèches pour marcher · Entrée pour commencer'; } catch (e) { return 'Touche pour commencer'; } };
   function againBtn() { const bw = 260 * U, bh = 62 * U; return { x: (W - bw) / 2, y: H * 0.72, w: bw, h: bh }; }
   function drawEnd() {
-    ctx.fillStyle = 'rgba(4,6,14,' + Math.min(0.75, stT) + ')'; ctx.fillRect(0, 0, W, H);
+    // défaite : on voit d'abord le survivant s'effondrer (1,3 s), puis l'écran s'assombrit et le résultat arrive
+    const t0 = endWhy === 'oxy' ? 1.3 : 0, e = stT - t0;
+    ctx.fillStyle = 'rgba(4,6,14,' + Math.max(0, Math.min(0.75, endWhy === 'oxy' ? stT * 0.25 + Math.max(0, e) * 0.6 : stT)) + ')'; ctx.fillRect(0, 0, W, H);
+    if (e < 0) return;
+    ctx.globalAlpha = Math.min(1, e * 2.5);
     if (endWhy === 'win') { big('Retour vers la Terre !', H * 0.22, 0.8, '#ffd36b'); big('Tu as décollé avec ' + Math.ceil(oxy) + ' % d’oxygène', H * 0.33, 0.55); }
     else { big('Plus d’oxygène…', H * 0.22, 0.8, '#ff9c9c'); big('La navette était réparée à ' + posees + ' / ' + NB_PIECES, H * 0.33, 0.55); }
     big(cristaux + ' cristaux · ' + (posees + pieces) + ' pièces', H * 0.43, 0.55, '#7fe3ff');
     big('Score : ' + score(), H * 0.56, 0.9);
-    if (stT > 1.2) {
+    if (e > 1.2) {
       const b = againBtn(); pill(ctx, b.x, b.y, b.w, b.h, b.h / 2); ctx.fillStyle = '#3b6fd8'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
       ctx.fillStyle = '#fff'; ctx.font = 'bold ' + Math.round(b.h * 0.4) + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('↺ Rejouer', W / 2, b.y + b.h / 2 + 1);
     }
+    ctx.globalAlpha = 1;
   }
   function draw() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -626,7 +668,7 @@ function mount(root, api) {
     if (paused) drawPause();
     if (gele) drawGele();
   }
-  function drawGele() { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = 'rgba(4,6,20,0.6)'; ctx.fillRect(0, 0, W, H); big('PAUSE', H / 2 - 30 * U); big('Parle à ton guide, ton jeu t’attend', H / 2 + 40 * U, 0.4); }
+  function drawGele() { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = 'rgba(4,6,20,0.6)'; ctx.fillRect(0, 0, W, H); big('PAUSE', H / 2 - 30 * U); big('Parle ' + (guideA || 'à ton guide') + ', ton jeu t’attend', H / 2 + 40 * U, 0.4); }
   function drawPause() { ctx.fillStyle = 'rgba(4,6,20,0.6)'; ctx.fillRect(0, 0, W, H); big('PAUSE', H / 2 - 30 * U); big('Touche pour reprendre', H / 2 + 40 * U, 0.4); }
 
   function frame(now) {
@@ -638,7 +680,7 @@ function mount(root, api) {
       if (!paused) update(dt * FAST); else if (state === 'title' || state === 'load') stT += dt;
       if (state === 'title' || state === 'load') stT += paused ? 0 : 0;
       if ((state === 'title' || state === 'intro' || state === 'end') && pad && pad.pressed && pad.pressed('a')) {
-        if (state === 'title' && (LOADED || loadErr)) startGame(); else if (state === 'intro' && stT > 0.6) { state = 'play'; stT = 0; } else if (state === 'end' && stT > 1.2) startGame();
+        if (state === 'title' && (LOADED || loadErr)) startGame(); else if (state === 'intro' && stT > 0.6) { state = 'play'; stT = 0; } else if (state === 'end' && stT > (endWhy === 'oxy' ? 2.5 : 1.2)) startGame();
       }
       draw();
     } catch (e) { /* une image ratée ne doit pas arrêter le jeu */ }

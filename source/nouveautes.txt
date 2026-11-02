@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[lune] ## 😮‍💨 Seul sur la Lune : il respire au repos, le robot attend avec toi (borne 1.63.87)
+[lune] 😮‍💨 À l'arrêt, le survivant ne se fige plus : il respire (le buste se soulève, le casque se balance doucement), de face, de dos et de profil, et de profil il se tient enfin debout sur ses deux pieds. Plus aucun petit saut à la marche : seule la foulée bouge.
+[lune] 🤖 Ton robot de bord se balance sur ses chenilles quand il t'attend et la boule de son antenne s'allume et s'éteint.
+[lune] 💨 Quand l'oxygène est vide, on voit le survivant s'effondrer et le robot accourir près de lui avant le score.
 [lune] ## 🚶 Seul sur la Lune : de vraies animations, vérifiées image par image (borne 1.63.85)
 [lune] 🚶 Le survivant marche pour de vrai dans les 4 directions : 4 pas de face, 4 pas de dos, et de profil un vrai grand pas qui alterne avec la jambe levée. Les pieds suivent la vitesse (ils ne glissent plus), le personnage ne tremble plus d'un pas à l'autre et ne change plus de pose en diagonale.
 [lune] 🤖 Ton petit robot roule à côté de toi sans jamais te passer devant : quand il change de côté, il passe derrière toi. Au décollage, vous montez tous les deux à bord, une vraie flamme sort du réacteur et la caméra suit la navette vers le ciel.
