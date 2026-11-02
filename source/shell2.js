@@ -13990,7 +13990,12 @@ function atlBlobs(u) {
         const W = im.naturalWidth, H = im.naturalHeight, k = 160 / Math.max(W, H), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
         const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.drawImage(im, 0, 0, w, h);
         const d = g.getImageData(0, 0, w, h).data; let m = new Uint8Array(w * h);
-        for (let i = 0; i < w * h; i++) { const r = d[i * 4], gg = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b); if (mx - mn > 40 || mx < 150) m[i] = 1; }
+        // le fond = la couleur médiane du bord (blanc, noir ou magenta selon la planche) ; « encre » = loin du fond ; sur fond clair, les
+        // traits gris clairs (cadres, quadrillage) ne comptent pas
+        const bd = []; for (let x = 0; x < w; x++) bd.push(x, (h - 1) * w + x); for (let y = 0; y < h; y++) bd.push(y * w, y * w + w - 1);
+        const med = ch => { const v = bd.map(i => d[i * 4 + ch]).sort((a, b) => a - b); return v[v.length >> 1]; }, fr = med(0), fg = med(1), fb = med(2), clair = Math.max(fr, fg, fb) > 170 && Math.max(fr, fg, fb) - Math.min(fr, fg, fb) < 40;
+        for (let i = 0; i < w * h; i++) { const r = d[i * 4], gg = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b);
+          if (Math.hypot(r - fr, gg - fg, b - fb) > 70 && !(clair && mx > 150 && mx - mn < 30)) m[i] = 1; }
         for (let t = 0; t < 2; t++) { const n2 = m.slice(); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (m[y * w + x]) { if (x) n2[y * w + x - 1] = 1; if (x < w - 1) n2[y * w + x + 1] = 1; if (y) n2[(y - 1) * w + x] = 1; if (y < h - 1) n2[(y + 1) * w + x] = 1; } m = n2; }
         const vu = new Uint8Array(w * h), bx = [];
         for (let i0 = 0; i0 < w * h; i0++) {

@@ -1090,3 +1090,88 @@ begin
     execute d;
   end if;
 end $$;
+
+-- ===================================================================================================================================
+-- PROMPT « VRAI JEU VIDÉO » ET IMAGEN 4 (borne 1.63.45, 2 nov. 2026 15 h 20 ; 1re planche jugée « moche, ça ne fait pas jeu vidéo » par
+-- Benjamin : néon sur fond blanc, cadres, grille 3 × 3, style clip-art) :
+--  * sprite sheet de jeu soigné (contours nets, cel shading, ombres douces), N objets isolés, AUCUN cadre / quadrillage / texte, fond UNI
+--    pour un détourage propre : noir pour un jeu néon / de nuit, magenta #FF00FF sinon ; point de vue = rubrique « 2D ou 3D » de la fiche ;
+--  * une planche proposée peut demander le modèle Imagen 4 (« modele »: "imagen" dans fiche.planches) pour comparer (même clé Google).
+create or replace function public.at_ia_debut(p_name text, p_sorte text, p_consigne text default '', p_choix jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; c text := left(btrim(coalesce(p_consigne, '')), 600); nb int; cout int; s int; u uuid;
+  fi jsonb; base text; why text; ch jsonb; el text[]; ne int; cols int; rws int; sty text; pi int; pj jsonb; pnom text; fond text; modele text; vue text;
+  scenes text[] := array[
+    'Le héros en pleine action, au cœur du jeu, comme une capture d''écran.',
+    'Une vue large du monde du jeu avec le héros petit au milieu, comme l''écran titre.',
+    'Le héros de près, souriant, avec un objet ou un ami du jeu à côté de lui.'];
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-ia', 20, interval '1 hour');
+  if coalesce(pegase_int.at_reglage('ia_admins_seulement'), 0) = 1 and not exists (select 1 from public.at_admins x where x.name = n) then raise exception 'plafond global (admins seulement)'; end if;
+  select * into f from public.at_fiches x where x.name = n and x.etat <> 'refusee' limit 1;
+  if f.id is null then raise exception 'aucun projet'; end if;
+  fi := f.fiche;
+  if p_sorte = 'planche' then
+    if f.etat <> 'design' then raise exception 'etat %', f.etat; end if;
+    ch := pegase_int.at_choix_ok(coalesce(p_choix, '{}'::jsonb));
+    if ch is null then raise exception 'choix de design requis'; end if;
+    if exists (select 1 from public.at_ia a where a.fiche = f.id and a.sorte = 'planche' and a.fin_at is null and a.at > now() - interval '5 minutes') then raise exception 'planche en cours'; end if;
+    nb := pegase_int.at_reglage('images_planche');
+    base := concat_ws(' ', fi ->> 'idee', fi ->> 'heros', fi ->> 'monde', f.titre);
+  elsif p_sorte = 'assets' then
+    if not pegase_int.at_parle(f.etat) then raise exception 'choix en cours'; end if;
+    pi := (regexp_match(c, '^planche ([0-9]{1,2})$'))[1]::int;
+    if pi is null or jsonb_typeof(fi -> 'planches') <> 'array' or pi < 1 or pi > jsonb_array_length(fi -> 'planches') then raise exception 'planche inconnue'; end if;
+    pj := (fi -> 'planches') -> (pi - 1);
+    if jsonb_typeof(pj) = 'object' and coalesce((pj ->> 'faite')::boolean, false) then raise exception 'planche deja dessinee'; end if;
+    if exists (select 1 from public.at_ia a where a.fiche = f.id and a.sorte = 'assets' and a.fin_at is null and a.at > now() - interval '5 minutes' and (a.choix ->> 'planche')::int = pi) then raise exception 'planche en cours'; end if;
+    pnom := case when jsonb_typeof(pj) = 'string' then pj #>> '{}' else coalesce(pj ->> 'nom', 'Planche ' || pi) end;
+    el := case when jsonb_typeof(pj) = 'object' and jsonb_typeof(pj -> 'elements') = 'array' then (select array_agg(left(btrim(v), 60)) from jsonb_array_elements_text(pj -> 'elements') v where length(btrim(v)) >= 2)
+               when jsonb_typeof(pj) = 'object' then pegase_int.at_elements(pj ->> 'elements')
+               else array[left(pnom, 60)] end;
+    ne := coalesce(array_length(el, 1), 0);
+    if ne < 1 then el := array[left(pnom, 60)]; ne := 1; end if;
+    if ne > 9 then raise exception 'elements : 9 au plus'; end if;
+    cols := case when ne = 1 then 1 when ne <= 4 then 2 else 3 end; rws := ceil(ne::numeric / cols)::int;
+    nb := 1; base := pnom || ' ' || array_to_string(el, ' ');
+    modele := case when jsonb_typeof(pj) = 'object' and pj ->> 'modele' = 'imagen' then 'imagen-4.0-generate-001' end;
+  else raise exception 'sorte inconnue'; end if;
+  why := pegase_int.at_filtre(base);
+  if why <> '' then raise exception 'filtre %', why; end if;
+  cout := nb * pegase_int.at_reglage('cout_image');
+  perform pegase_int.at_ia_plafond(nb);
+  s := pegase_int.at_debiter(n, cout);
+  ch := coalesce(ch, (select pegase_int.at_choix_ok(a.choix) from public.at_ia a where a.fiche = f.id and a.sorte = 'planche' and a.choix is not null order by a.at desc limit 1));
+  sty := coalesce(ch ->> 'style' || ', ' || (ch ->> 'couleurs'), nullif(fi ->> 'style', ''), 'dessin animé coloré');
+  -- fond uni pour le détourage : NOIR pour un jeu néon / de nuit (le néon est laid sur blanc), MAGENTA sinon
+  fond := case when lower(coalesce(sty, '') || ' ' || coalesce(fi ->> 'style', '') || ' ' || coalesce(f.titre, '') || ' ' || coalesce(fi ->> 'monde', '')) ~ '(n[ée]on|nuit|espace|spatial|night|space)'
+               then 'pure black #000000' else 'pure magenta #FF00FF (do not use magenta in the objects)' end;
+  vue := case when lower(coalesce(fi ->> 'dimension', '')) ~ 'dessus|top' then 'top-down view' when lower(coalesce(fi ->> 'dimension', '')) ~ 'c[ôo]t[ée]|side' then 'side view'
+              when lower(coalesce(fi ->> 'dimension', '')) ~ '3d' then '3D-rendered look, three-quarter view' else 'side view' end;
+  insert into public.at_ia (fiche, name, sorte, consigne, nb, cout, choix, modele) values (f.id, n, p_sorte, case when p_sorte = 'planche' then '' else c end, nb, cout,
+    case when p_sorte = 'assets' then jsonb_build_object('planche', pi, 'nom', pnom, 'elements', to_jsonb(el), 'cols', cols, 'rows', rws) else p_choix end, modele) returning id into u;
+  return jsonb_build_object('usage', u, 'nb', nb, 'solde', s, 'modele', modele,
+    'ratio', case when p_sorte = 'planche' then '4:3' when ne = 1 then '16:9' when cols = 3 and rws = 2 then '3:2' when cols = 3 and rws = 1 then '21:9' when cols = 2 and rws = 1 then '16:9' else '1:1' end,
+    'consignes', case
+      when p_sorte = 'planche' then (select jsonb_agg(
+        'Image d''un jeu vidéo d''arcade pour enfants, gentil, à jouer entre copains. ' ||
+        'Idée du jeu : ' || coalesce(fi ->> 'idee', '') || ' Héros : ' || coalesce(fi ->> 'heros', '') || '. Monde : ' || coalesce(fi ->> 'monde', '') ||
+        '. Vue : ' || coalesce(fi ->> 'dimension', '') || '. Style graphique : ' || (ch ->> 'style') || '. Couleurs : ' || (ch ->> 'couleurs') ||
+        '. ' || initcap(left(ch ->> 'ambiance', 1)) || substr(ch ->> 'ambiance', 2) || '. ' || scenes[1 + ((k - 1) % 3)] ||
+        ' Aucun texte, aucun logo, aucune marque, aucun personnage existant protégé. Format paysage 4:3.' order by k) from generate_series(1, nb) k)
+      when ne = 1 then jsonb_build_array(
+        'Polished 2D video game art for a kids arcade game (' || coalesce(nullif(f.titre, ''), coalesce(fi ->> 'idee', '')) || '). Art style: ' || sty || ', ' || vue ||
+        ', vibrant colors, clean outlines, game-ready. It shows: ' || el[1] || '. Full image, well composed, landscape 16:9. No logos, no brands, no existing copyrighted characters, ' ||
+        'no text unless it is a title (then only the title, clearly readable).')
+      else jsonb_build_array(
+        '2D video game sprite sheet for a kids arcade game (' || coalesce(nullif(f.titre, ''), coalesce(fi ->> 'idee', 'mon jeu')) || '). ' ||
+        'Polished, game-ready assets in one consistent art style: clean outlines, cel shading, soft shadows, vibrant colors. Art style: ' || sty || ', ' || vue || '. ' ||
+        'Exactly ' || ne || ' separate objects, each one complete and isolated, evenly spaced in ' || rws || ' row' || case when rws > 1 then 's' else '' end || ' of ' || cols ||
+        ', with plenty of empty space around each object. NO frames, NO boxes, NO borders, NO grid lines, NO text, NO numbers, NO labels. ' ||
+        'Plain flat uniform background color: ' || fond || ', everywhere, no gradient, no ground, no cast shadow on the background. ' ||
+        'The objects, in reading order (left to right, then top to bottom): ' || (select string_agg(i || '. ' || el[i], ' ; ' order by i) from generate_series(1, ne) i) || '. ' ||
+        'Same scale and same style for all. No logos, no brands, no existing copyrighted characters.') end,
+    'legendes', case when p_sorte = 'planche' then (select jsonb_agg((array['En pleine action', 'Le monde du jeu', 'Le héros de près'])[1 + ((k - 1) % 3)] order by k) from generate_series(1, nb) k)
+      else jsonb_build_array(pnom) end);
+end $$;
