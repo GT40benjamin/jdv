@@ -111,6 +111,21 @@ function mount(root, api) {
 
   // ---------- état ----------
   let state = 'load', stT = 0, loadErr = false;
+  // ---------- les éléments que le joueur a désactivés dans l'Atelier (noms exacts de at_fiches.assets) ----------
+  // window.JDW_ATL_OFF (au lancement) ou postMessage {type:'atl-off', noms} ; le survivant, la navette et les pièces sont obligatoires.
+  // Chaque élément coupé disparaît proprement (plus d'apparition, plus de son) et le jeu reste gagnable.
+  const ELEM = {
+    oxygene: "Bouteille d'oxygène", cristal: 'Cristal lunaire bleu', trousse: 'Trousse de secours', lampe: 'Lampe torche',
+    meteorite: 'Météorite qui tombe', epave: "L'épave du vaisseau fumante", base: "La vieille base lunaire (plein d'oxygène)", fond: 'Paysage lunaire (écran titre)',
+    impact1: 'Impact de météorite 1 (éclair)', impact2: 'Impact de météorite 2 (boule de feu)', impact3: 'Impact de météorite 3 (nuage de poussière)', impact4: 'Impact de météorite 4 (poussière qui retombe)',
+    ramasser: 'Ramasser un objet', piece_son: 'Pièce posée sur la navette', alerte: 'Alerte météorites', impact_son: 'Impact de météorite', oxygene_son: 'Oxygène presque vide', decollage: 'Décollage de la navette'
+  };
+  let OFF = new Set();
+  function lireOff(noms) { OFF = new Set((Array.isArray(noms) ? noms : []).filter(n => typeof n === 'string').map(n => n.trim())); }
+  try { lireOff(window.JDW_ATL_OFF); } catch (e) { /* rien */ }
+  // le robot : coupé si le joueur coupe « Le robot de bord » (ou une de ses poses)
+  const off = k => k === 'robot' ? [...OFF].some(n => n.startsWith('Le robot de bord')) : OFF.has(ELEM[k] || k);
+  const SON_ELEM = { piece: 'piece_son', impact: 'impact_son', oxygene: 'oxygene_son' };
   let P, objs, craters, meteors, impacts, puffs, flyers, prises, robot, oxy, pieces, cristaux, posees, lampe, trousses, shake, flash, msg, texts, parts, showerT, showerOn, showerLeft, tJeu, endWhy, baseUsed, crT, bonusFin, liftT, camX, camY, repT;
   const keys = {};
   const joy = { on: false, id: -1, x0: 0, y0: 0, x: 0, y: 0 };
@@ -121,15 +136,15 @@ function mount(root, api) {
     const at = (dmin, dmax, m) => { let x = 0, y = 0; for (let k = 0; k < 50; k++) { const a = r() * TAU, d = dmin + r() * (dmax - dmin); x = Math.cos(a) * d; y = Math.sin(a) * d; if (libre(x, y, m || 110)) break; } return { x, y }; };
     objs = []; craters = [];
     objs.push({ k: 'navette', x: 0, y: 0, h: 210, solide: 85 });
-    objs.push({ k: 'epave', x: -330, y: 60, h: 230, solide: 95, fume: 1 });
+    if (!off('epave')) objs.push({ k: 'epave', x: -330, y: 60, h: 230, solide: 95, fume: 1 });
     for (let i = 0; i < 46; i++) { const p = at(330, R_MONDE, 60); craters.push({ x: p.x, y: p.y, r: 45 + r() * 80 }); }
-    const b = at(900, 1300, 200); objs.push({ k: 'base', x: b.x, y: b.y, h: 250, solide: 100 });
+    if (!off('base')) { const b = at(900, 1300, 200); objs.push({ k: 'base', x: b.x, y: b.y, h: 250, solide: 100 }); }
     const a0 = r() * TAU;
     for (let i = 0; i < NB_PIECES; i++) { const a = a0 + i * TAU / NB_PIECES + (r() - 0.5) * 0.5, d = 480 + i * 230 + r() * 140; let x = Math.cos(a) * d, y = Math.sin(a) * d; craters = craters.filter(c => Math.hypot(c.x - x, c.y - y) > c.r + 50); objs.push({ k: 'piece', x, y, h: 70, n: i }); }
-    for (let i = 0; i < 32; i++) { const p = at(160, R_MONDE - 60, 90); objs.push({ k: 'cristal', x: p.x, y: p.y, h: 58 }); }
-    for (let i = 0; i < 10; i++) { const p = at(260, R_MONDE - 60, 110); objs.push({ k: 'oxygene', x: p.x, y: p.y, h: 70 }); }
-    for (let i = 0; i < 2; i++) { const p = at(500, R_MONDE - 100, 120); objs.push({ k: 'trousse', x: p.x, y: p.y, h: 52 }); }
-    { const p = at(300, 650, 120); objs.push({ k: 'lampe', x: p.x, y: p.y, h: 44 }); }
+    for (let i = 0; i < (off('cristal') ? 0 : 32); i++) { const p = at(160, R_MONDE - 60, 90); objs.push({ k: 'cristal', x: p.x, y: p.y, h: 58 }); }
+    for (let i = 0; i < (off('oxygene') ? 0 : 10); i++) { const p = at(260, R_MONDE - 60, 110); objs.push({ k: 'oxygene', x: p.x, y: p.y, h: 70 }); }
+    for (let i = 0; i < (off('trousse') ? 0 : 2); i++) { const p = at(500, R_MONDE - 100, 120); objs.push({ k: 'trousse', x: p.x, y: p.y, h: 52 }); }
+    if (!off('lampe')) { const p = at(300, 650, 120); objs.push({ k: 'lampe', x: p.x, y: p.y, h: 44 }); }
   }
   function reset() {
     objs = []; craters = []; newWorld();
@@ -148,7 +163,14 @@ function mount(root, api) {
   function burst(x, y, c, n, sp, up) { for (let i = 0; i < (n || 12); i++) { const a = Math.random() * TAU, v = (sp || 160) * (0.4 + Math.random()); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6 - (up || 60), t: 0, d: 0.7 + Math.random() * 0.5, c, r: 2 + Math.random() * 3, g: 1 }); } }
   function bulles(x, y) { for (let i = 0; i < 14; i++) parts.push({ x: x + (Math.random() - 0.5) * 50, y: y - Math.random() * 30, vx: (Math.random() - 0.5) * 20, vy: -40 - Math.random() * 60, t: 0, d: 1 + Math.random() * 0.6, c: 'rgba(190,255,215,0.9)', r: 3 + Math.random() * 5, bulle: 1 }); }
 
-  function startGame() { reset(); state = 'intro'; stT = 0; }
+  function startGame() { try { if (Array.isArray(window.JDW_ATL_OFF)) lireOff(window.JDW_ATL_OFF); } catch (e) { /* rien */ } reset(); state = 'intro'; stT = 0; }
+  // la liste des éléments coupés change en cours de partie (arrêt sur image) : ce qui est coupé disparaît tout de suite, proprement
+  function purger() {
+    if (!objs) return;
+    objs = objs.filter(o => !off(o.k)); prises = prises.filter(q => !off(q.k));
+    if (off('meteorite')) { meteors = []; showerOn = false; }
+    try { window.__lune_off = [...OFF]; } catch (e) { /* rien */ }
+  }
   loadImages().then(() => { if (state === 'load') state = 'title'; chargerSons(); }, () => { loadErr = true; if (state === 'load') state = 'title'; });
 
   // ---------- les bruitages (assets/lune.sons.bin, MP3 d'ElevenLabs) : joués par la borne (api.audio.sample : « son coupé » respecté) ----------
@@ -165,7 +187,7 @@ function mount(root, api) {
     } catch (e) { /* pas de son : le jeu marche quand même */ }
   }
   // joue un bruitage (vol : multiplié par le réglage du son, rate : hauteur, pour varier sans fichier en double)
-  function son(nom, vol, rate) { if (gele || !SONS[nom]) return; try { api.audio.sample.play(SONS[nom], (VOL[nom] || 1) * (vol == null ? 1 : vol), rate || 1); } catch (e) { /* rien */ } }
+  function son(nom, vol, rate) { if (gele || !SONS[nom] || off(SON_ELEM[nom] || nom)) return; try { api.audio.sample.play(SONS[nom], (VOL[nom] || 1) * (vol == null ? 1 : vol), rate || 1); } catch (e) { /* rien */ } }
 
   // monde → écran
   const sx = x => W / 2 + (x - camX) * Z, sy = y => H / 2 + (y - camY) * Z;
@@ -212,6 +234,7 @@ function mount(root, api) {
     if (e.origin !== location.origin || !e.data || typeof e.data !== 'object') return;
     // le nom du guide vient de la page du projet (jamais écrit ici) : « Parle à … »
     if (e.data.type === 'atl-guide' && typeof e.data.a === 'string') guideA = e.data.a.replace(/[<>]/g, '').slice(0, 40);
+    else if (e.data.type === 'atl-off') { lireOff(e.data.noms); purger(); }
     else if (e.data.type === 'atl-pause') { gele = true; joy.on = false; for (const k in keys) keys[k] = false; }
     else if (e.data.type === 'atl-reprendre') { gele = false; last = 0; }
   }
@@ -292,7 +315,7 @@ function mount(root, api) {
     if (inCr && inCr !== crT) { crT = inCr; oxy -= 5; shake = 5; say('Tu glisses dans un cratère ! −5 % d’oxygène'); for (let i = 0; i < 4; i++) puffs.push({ x: P.x + (Math.random() - 0.5) * 40, y: P.y, t: -i * 0.1 }); }
     if (!inCr) crT = null;
     // l'oxygène baisse (un peu plus vite en marchant)
-    oxy -= dt * (0.85 + sp / VITESSE * 0.55);
+    oxy -= dt * (0.85 + sp / VITESSE * 0.55) * (off('oxygene') ? (off('base') ? 0.45 : 0.55) : 1);   // sans bouteilles : il baisse moins vite (toujours gagnable)
     if (oxy < 20 && Math.floor(tJeu * 2) !== Math.floor((tJeu - dt) * 2)) { flash = Math.max(flash, 0.35); if (Math.floor(tJeu * 2) % 2 === 0) son('oxygene'); }   // un bip par seconde
     // le robot suit (à côté, un peu derrière)
     // le robot reste un peu derrière toi et du côté d'où tu viens : il ne te cache jamais
@@ -332,6 +355,7 @@ function mount(root, api) {
     }
     // pluies de météorites
     showerT -= dt;
+    if (off('meteorite')) { showerOn = false; showerT = 30; }   // sans météorites : plus de pluie
     if (!showerOn && showerT < 3 && showerT + dt >= 3) { say('⚠️ Pluie de météorites ! Évite les ombres rouges !', 3); son('alerte'); }
     if (!showerOn && showerT <= 0) { showerOn = true; showerLeft = 6 + Math.min(8, Math.floor(tJeu / 40)); showerT = 0.2; }
     if (showerOn && showerT <= 0) {
@@ -406,7 +430,7 @@ function mount(root, api) {
       const x = sx(o.x), y = sy(o.y);
       if (x < -300 || x > W + 300 || y < -60 || y > H + 400) { if (!(o.k === 'navette' && state === 'liftoff')) continue; }   // la navette qui monte est dessinée plus haut que son pied au sol
       if (o.k === '_joueur') { drawPlayer(x, y); continue; }
-      if (o.k === '_robot') { drawRobot(x, y); continue; }
+      if (o.k === '_robot') { if (!off('robot')) drawRobot(x, y); continue; }
       if (o.k === '_impact') { drawImpact(x, y, o.im.t); continue; }
       const h = o.h * Z;
       ctx.fillStyle = 'rgba(30,32,40,0.3)'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.42, h * 0.1, 0, 0, TAU); ctx.fill();
@@ -527,7 +551,7 @@ function mount(root, api) {
     // éclair, boule de feu, nuage de poussière, poussière qui retombe
     const n = t < 0.12 ? 'impact1' : t < 0.4 ? 'impact2' : t < 0.75 ? 'impact3' : 'impact4', h = (n === 'impact1' ? 80 : n === 'impact2' ? 170 : 150) * Z;
     ctx.globalAlpha = n === 'impact4' ? Math.max(0, 1 - (t - 0.75) / 0.35) : 1;
-    drawFoot(ctx, n, x, y + h * 0.15, h);
+    if (!off(n)) drawFoot(ctx, n, x, y + h * 0.15, h);   // une étape coupée : on ne la dessine pas (les autres restent)
     ctx.globalAlpha = 1;
   }
   // la météorite en l'air : elle tombe en biais vers son ombre
@@ -567,8 +591,7 @@ function mount(root, api) {
     const ic = 26 * U;
     drawFoot(ctx, 'piece', x + 22 * U, y2 + 30 * U, ic * 0.9);
     ctx.font = 'bold ' + fs + 'px ' + RF; ctx.fillStyle = '#ffd36b'; ctx.fillText((posees + pieces) + '/' + NB_PIECES, x + 40 * U, y2 + 18 * U);
-    drawFoot(ctx, 'cristal', x + 110 * U, y2 + 30 * U, ic);
-    ctx.fillStyle = '#7fe3ff'; ctx.fillText('' + cristaux, x + 126 * U, y2 + 18 * U);
+    if (!off('cristal')) { drawFoot(ctx, 'cristal', x + 110 * U, y2 + 30 * U, ic); ctx.fillStyle = '#7fe3ff'; ctx.fillText('' + cristaux, x + 126 * U, y2 + 18 * U); }
     if (trousses) { drawFoot(ctx, 'trousse', x + 176 * U, y2 + 30 * U, ic * 0.85); ctx.fillStyle = '#ff9c9c'; ctx.fillText('' + trousses, x + 192 * U, y2 + 18 * U); }
     ctx.textAlign = 'right'; ctx.font = 'bold ' + Math.round(24 * U) + 'px ' + RF; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
     ctx.strokeText('' + score(), W - 62, m + 22 * U); ctx.fillStyle = '#fff'; ctx.fillText('' + score(), W - 62, m + 22 * U);
@@ -632,17 +655,18 @@ function mount(root, api) {
     ctx.lineWidth = Math.max(4, fs * 0.14); ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.strokeText(s, W / 2, y); ctx.fillStyle = c || '#fff'; ctx.fillText(s, W / 2, y);
   }
   function drawTitle() {
-    const f = IMG.fond;
+    const f = off('fond') ? null : IMG.fond;
     ctx.fillStyle = '#04050a'; ctx.fillRect(0, 0, W, H);
     if (f) { const s = Math.max(W / f.width, H / f.height); ctx.drawImage(f, (W - f.width * s) / 2, (H - f.height * s) / 2, f.width * s, f.height * s); }
     else { ctx.fillStyle = '#8e9199'; ctx.fillRect(0, H * 0.6, W, H); }
     const gy = H * (portrait ? 0.6 : 0.74);
-    drawFoot(ctx, 'epave', W * 0.18, gy + 10 * U, 150 * U); smoke(W * 0.18 - 25 * U, gy - 100 * U, 150 * U);
+    if (!off('epave')) { drawFoot(ctx, 'epave', W * 0.18, gy + 10 * U, 150 * U); smoke(W * 0.18 - 25 * U, gy - 100 * U, 150 * U); }
     drawFoot(ctx, 'navette', W * 0.82, gy + 20 * U, 140 * U);
     drawFoot(ctx, 'face' + (1 + Math.floor(stT * 6) % 4), W * 0.47, gy + 40 * U, 200 * U);
-    drawFoot(ctx, Math.floor(stT * 5) % 2 ? 'robot1' : 'robot2', W * 0.47 + 120 * U, gy + 40 * U, 90 * U);
+    if (!off('robot')) drawFoot(ctx, Math.floor(stT * 5) % 2 ? 'robot1' : 'robot2', W * 0.47 + 120 * U, gy + 40 * U, 90 * U);
     big('SEUL SUR LA LUNE', H * 0.12, 1, '#e8eeff');
-    const lines = ['🧭 Explore la Lune : ton robot montre le chemin', '⚙️ Trouve les 5 pièces et ramène-les à la navette', '🫧 Ramasse l’oxygène : il baisse sans arrêt !', '💎 Les cristaux, c’est ton trésor', '☄️ Fuis les ombres rouges des météorites'];
+    // les lignes des éléments que le joueur a coupés disparaissent
+    const lines = [off('robot') ? '🧭 Explore la Lune : la flèche montre le chemin' : '🧭 Explore la Lune : ton robot montre le chemin', '⚙️ Trouve les 5 pièces et ramène-les à la navette', off('oxygene') ? '🫧 Ton oxygène baisse : fais vite !' : '🫧 Ramasse l’oxygène : il baisse sans arrêt !', off('cristal') ? null : '💎 Les cristaux, c’est ton trésor', off('meteorite') ? null : '☄️ Fuis les ombres rouges des météorites'].filter(Boolean);
     const cw = Math.min(W - 24, 560 * U), lh = 30 * U, chh = lines.length * lh + 22 * U, cx = (W - cw) / 2, cy = portrait ? H * 0.66 : H * 0.2;
     pill(ctx, cx, cy, cw, chh, 18 * U); ctx.fillStyle = 'rgba(10,14,30,0.72)'; ctx.fill();
     ctx.font = 'bold ' + Math.round(18 * U) + 'px ' + RF; ctx.fillStyle = '#e8eeff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -672,7 +696,7 @@ function mount(root, api) {
     ctx.globalAlpha = Math.min(1, e * 2.5);
     if (endWhy === 'win') { big('Retour vers la Terre !', H * 0.22, 0.8, '#ffd36b'); big('Tu as décollé avec ' + Math.ceil(oxy) + ' % d’oxygène', H * 0.33, 0.55); }
     else { big('Plus d’oxygène…', H * 0.22, 0.8, '#ff9c9c'); big('La navette était réparée à ' + posees + ' / ' + NB_PIECES, H * 0.33, 0.55); }
-    big(cristaux + ' cristaux · ' + (posees + pieces) + ' pièces', H * 0.43, 0.55, '#7fe3ff');
+    big((off('cristal') ? '' : cristaux + ' cristaux · ') + (posees + pieces) + ' pièces', H * 0.43, 0.55, '#7fe3ff');
     big('Score : ' + score(), H * 0.56, 0.9);
     if (e > 1.2) {
       const b = againBtn(); pill(ctx, b.x, b.y, b.w, b.h, b.h / 2); ctx.fillStyle = '#3b6fd8'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
