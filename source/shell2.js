@@ -14648,11 +14648,16 @@ function atlRenderProjet(W, f) {
   if (jouable) {
     const p = pane('jeu'), fr = atlEl('div', 'atl-gframe atl-gtuile');
     // 0 h 40 (Benjamin) : une vraie TUILE de jeu, comme une brique de la borne (image de présentation, titre, badge V, record) ; on clique, ça se lance
-    const vg = atlVignetteUrl(f) || dz, wrap = atlEl('div', 'tile-wrap atl-gtw'), po = atlEl('button', 'tile atl-gposter'); po.type = 'button'; po.setAttribute('aria-label', 'Jouer à ' + (f.titre || 'mon jeu'));
-    if (g && g.accent) { wrap.style.setProperty('--acc', g.accent); po.style.setProperty('--acc', g.accent); }
-    const ti = atlEl('div', 'tile-img'); if (vg) { const im = atlEl('img'); im.alt = ''; im.src = vg; ti.appendChild(im); } else ti.textContent = '🎮';
+    // 1 h 05 (Benjamin : « une brique comme si c'était celle de la borne ») : le MÊME composant que l'accueil (gameTile : tile-wrap, tile,
+    // tile-img + canvas, tile-meta, tile-name), dessiné par l'aperçu animé du jeu lui-même (g.preview, comme previewLoop), à la taille d'une brique
+    const vg = atlVignetteUrl(f) || dz, wrap = atlEl('div', 'tile-wrap atl-gtw'), po = atlEl('button', 'tile'); po.type = 'button'; po.setAttribute('aria-label', 'Jouer à ' + (f.titre || 'mon jeu'));
+    const acc = (g && g.accent) || COLORS.amber; wrap.style.setProperty('--acc', acc); po.style.setProperty('--acc', acc);
+    const lt = document.querySelector('#jdw-grid .tile-wrap .tile'), lw = lt ? lt.getBoundingClientRect().width : 0; if (lw > 120) wrap.style.width = Math.round(lw) + 'px';
+    const ti = atlEl('div', 'tile-img');
+    if (g && typeof g.preview === 'function' && !atlVignetteUrl(f)) { const cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true'); ti.appendChild(cv); atlTuileVivante(cv, g); }
+    else if (vg) { const im = atlEl('img'); im.alt = ''; im.src = vg; im.className = 'atl-gtimg'; ti.appendChild(im); } else ti.textContent = '🎮';
     ti.appendChild(atlEl('span', 'atl-gver', 'V' + ((f.version | 0) || 1)));
-    const tm = atlEl('div', 'tile-meta'); tm.appendChild(atlEl('div', 'tile-name', f.titre || 'Mon jeu')); po.append(ti, tm); po.disabled = !g;
+    const tm = atlEl('div', 'tile-meta'); tm.appendChild(atlEl('div', 'tile-name', (g && g.title) || f.titre || 'Mon jeu')); po.append(ti, tm); po.disabled = !g;
     let rec = 0; try { rec = g ? +knownBest(profile.name, g.id) || 0 : 0; } catch (e) { rec = 0; }
     po.addEventListener('click', () => atlJouerVrai(f)); wrap.appendChild(po); fr.appendChild(wrap);
     const inf = atlEl('div', 'atl-ginfo');
@@ -15530,6 +15535,20 @@ function atlFicheElem(it, f, fi, libre, lecture) {
     c.appendChild(atlEl('p', 'atl-felx', it.son ? '' : '✂️ Retouche : recadrer, changer la taille ou les couleurs, miroir, corriger le fond… sans nouveau dessin. 🎨 Redessiner : un tout nouveau dessin. Si une retouche suffit, ' + gN() + ' la fait au prix de la retouche.'));
   } else if (!lecture && it.vide && libre) { const x = atlEl('button', 'btn btn-play', '🎨 Le dessiner'); x.type = 'button'; x.addEventListener('click', () => atlModale()); row.appendChild(x); }
   row.appendChild(no); c.appendChild(row); M.appendChild(c);
+}
+// l'aperçu animé d'une tuile hors de l'accueil (onglet Jouer de l'Atelier) : le même dessin que previewLoop, tant que la tuile est affichée
+function atlTuileVivante(c, g) {
+  let last = 0;
+  const step = ts => {
+    if (!c.isConnected) return; requestAnimationFrame(step);
+    if (ts - last < 32 || !c.offsetParent) return; last = ts;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight; if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const x = c.getContext('2d'); x.save(); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    try { g.preview(x, w, h, ts / 1000); } catch (e) { x.fillStyle = COLORS.night; x.fillRect(0, 0, w, h); }
+    x.restore();
+  };
+  setTimeout(() => requestAnimationFrame(step), 30);
 }
 // 0 h 45 (Benjamin) : l'IMAGE DE PRÉSENTATION du jeu (sa tuile) = l'élément d'interface de rôle « vignette » (sinon le design) ;
 // « 🖼️ Modifier l'image de présentation » : une demande au guide, image fixe (cout_image) ou ANIMÉE (cout_tuile_animee), image actuelle jointe
