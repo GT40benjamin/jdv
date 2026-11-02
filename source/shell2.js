@@ -14489,6 +14489,10 @@ function atlBubble(m, wel) {
     if (m.image) { const a = atlEl('a', 'atl-bimg'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; const im = atlEl('img'); im.alt = 'Image jointe'; im.loading = 'lazy'; im.src = atlImgUrl(m.image); im.onerror = () => { a.replaceWith(atlEl('em', 'atl-miss', '🖼️ image pas arrivée')); }; a.appendChild(im); bub.appendChild(a); }
   }
   col.appendChild(bub);
+  if (at && m.demande && ATL.dem && Array.isArray(ATL.dem.demandes)) {
+    const x = ATL.dem.demandes.find(d => d.id === m.demande), der = atlMsgs().filter(z => z.demande === m.demande && z.atelier).pop();
+    if (x && atlPropOuverte(x) && der && der.id === m.id) col.appendChild(atlPropBoutons(x));
+  }
   if (!wel) col.appendChild(atlEl('small', 'atl-t', (m.micro ? '🎤 dicté · ' : '') + (m.pending ? 'envoi…' : timeAgo(Date.parse(m.at) || Date.now()))));
   li.appendChild(col); return li;
 }
@@ -15999,20 +16003,46 @@ async function atlStripe(corps, b, er) {
 // ---- 23 h 15 (Benjamin : « un petit bouton pour suivre mes demandes ») : 📋 MES DEMANDES — toutes les demandes du joueur (arrêts sur
 // image, retouches, redessins, créations, sons, musiques, retraits, messages d'un projet jouable), la plus récente en haut, avec l'état
 // (📨 Envoyée → 👀 Vue → 🛠️ En cours → ✅ Faite / ❌ Pas possible) et la réponse ; une pastille quand un état change (at_mes_demandes)
-const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible' };
+const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
 const ATL_DEM_SO = { vignette: '🖼️ Image de présentation', arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Élément refait', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', message: '💬 Message' };
 async function atlDemCharger(force) {
   if (!force && ATL.demAt && Date.now() - ATL.demAt < 60000) return ATL.dem;
   ATL.demAt = Date.now();
+  const avant = JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id));
   try { ATL.dem = await rpc('at_mes_demandes', { p_name: profile.name }, { quiet: true }); } catch (e) {}
   if (ATL.root) atlDemBtn(ATL.root);
+  if (ATL.open && JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)) !== avant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} }   // les boutons d'une nouvelle proposition dans la discussion
   return ATL.dem;
 }
 function atlDemBtn(R) {
   const b = R && R.querySelector('.atl-demb'); if (!b) return;
   const d = ATL.dem, n = d && Array.isArray(d.demandes) ? d.demandes.length : 0;
-  b.hidden = !n; b.textContent = '📋 Mes demandes (' + n + ')'; b.classList.toggle('nouveau', !!(d && d.nouveaux > 0));
+  const ouv = d && Array.isArray(d.demandes) ? d.demandes.filter(atlPropOuverte).length : 0;
+  b.hidden = !n; b.textContent = '📋 Mes demandes (' + n + ')' + (ouv ? ' · 💬 ' + ouv + ' à choisir' : ''); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
   if (!ATL.demAt || Date.now() - ATL.demAt > 60000) atlDemCharger(false);
+}
+// ---- 0 h 15 (Benjamin) : les PROPOSITIONS chiffrées d'une demande — un bouton par option (libellé et crédits fixés par le guide pour
+// CETTE demande, rien de codé ici) + « ⏸️ Plus tard » ; option grisée si le solde ne suffit pas ; « Utiliser N 💎 ? Oui / Non »
+// (at_demande_accepter : débit une seule fois ; at_demande_plus_tard : rien n'est débité)
+function atlPropOuverte(x) { return !!(x && Array.isArray(x.propositions) && x.propositions.length && !x.choix && !['faite', 'impossible'].includes(x.etat)); }
+function atlPropBoutons(x) {
+  const box = atlEl('div', 'atl-props'); if (!atlPropOuverte(x)) return box;
+  const cr = atlCred(), solde = cr ? cr.solde | 0 : 0;
+  const fini = async (fn, args, ok) => { box.querySelectorAll('button').forEach(b => { b.disabled = true; }); try { const r = await rpc(fn, args, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ok(r); ATL.demAt = 0; atlDemCharger(true); atlLoad(true); } catch (e) { box.querySelectorAll('button').forEach(b => { b.disabled = false; }); box.appendChild(atlEl('p', 'atl-werr', /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits.' : atlWhy(e))); } };
+  for (const o of x.propositions) {
+    const c = Math.max(0, o.credits | 0), manque = c - solde;
+    const b = atlEl('button', 'btn btn-sm ' + (manque > 0 ? 'btn-ghost' : 'btn-play'), String(o.libelle || 'Option') + ' · ' + c + ' 💎'); b.type = 'button';
+    if (manque > 0) { b.disabled = true; const w = atlEl('div', 'atl-propw'); w.append(b, atlEl('small', 'atl-propm', 'Il te manque ' + manque + ' 💎')); const rb = atlEl('button', 'btn btn-ghost btn-sm', '💎 Recharger'); rb.type = 'button'; rb.addEventListener('click', atlRecharger); w.appendChild(rb); box.appendChild(w); continue; }
+    b.addEventListener('click', () => {
+      const q = atlEl('div', 'atl-propq'), oui = atlEl('button', 'btn btn-play btn-sm', 'Oui'), non = atlEl('button', 'btn btn-ghost btn-sm', 'Non'); oui.type = non.type = 'button';
+      q.append(atlEl('b', '', c ? 'Utiliser ' + c + ' 💎 ?' : 'C’est bon pour toi ?'), oui, non); box.querySelectorAll('.atl-propq').forEach(z => z.remove()); b.after(q);
+      non.addEventListener('click', () => q.remove());
+      oui.addEventListener('click', () => fini('at_demande_accepter', { p_name: profile.name, p_id: x.id, p_option: String(o.id) }, () => { x.choix = o; atlToast('✅ C’est noté ! ' + gN() + ' s’y met.'); box.textContent = ''; box.appendChild(atlEl('p', 'atl-propok', '✅ Choisi : ' + (o.libelle || '') + (c ? ' · ' + c + ' 💎' : ''))); }));
+    });
+    box.appendChild(b);
+  }
+  if (x.etat !== 'plus_tard') { const pt = atlEl('button', 'btn btn-ghost btn-sm', '⏸️ Plus tard'); pt.type = 'button'; pt.addEventListener('click', () => fini('at_demande_plus_tard', { p_name: profile.name, p_id: x.id }, () => { x.etat = 'plus_tard'; box.textContent = ''; box.appendChild(atlEl('p', 'atl-propok', '⏸️ D’accord, plus tard : rien n’est utilisé. Tu pourras choisir quand tu veux dans « 📋 Mes demandes ».')); })); box.appendChild(pt); }
+  return box;
 }
 async function atlMesDemandes() {
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
@@ -16032,6 +16062,8 @@ async function atlMesDemandes() {
       atlEl('small', '', (ATL_DEM_SO[x.sorte] || '') + ' · ' + (x.projet || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + (x.cout ? ' · ' + x.cout + ' 💎' : '')),
       atlEl('p', '', String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').slice(0, 400)));
     if (x.reponse) t.appendChild(atlEl('p', 'atl-demrep', '🤖 ' + gN() + ' : ' + x.reponse));
+    if (x.choix) t.appendChild(atlEl('p', 'atl-propok', '✅ Choisi : ' + (x.choix.libelle || '') + ((x.choix.credits | 0) ? ' · ' + (x.choix.credits | 0) + ' 💎' : '')));
+    t.appendChild(atlPropBoutons(x));
     c.appendChild(t); P.appendChild(c);
   }
   P.appendChild(close);

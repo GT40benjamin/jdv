@@ -4260,3 +4260,9 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 /* le bandeau admin : en tête de la barre du haut, sur toute sa largeur */
 .atl-bar:has(> .atl-adminb){flex-wrap:wrap;row-gap:8px}
 .atl-bar > .atl-adminb{position:static;flex:1 0 100%;order:-1;margin:-4px -16px 2px;border-radius:0}
+
+/* 0 h 15 : les propositions d'une demande */
+.atl-props{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.atl-propw{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.atl-propm{color:#ffb4a2;font:600 12.5px var(--body)}
+.atl-propq{display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:10px;background:rgba(255,211,77,.12)}
+.atl-propok{margin:6px 0 0;color:#9fe0a8;font:700 13.5px var(--body)}

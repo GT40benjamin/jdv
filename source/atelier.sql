@@ -2781,3 +2781,7 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (v38, 23 h 50) : at_demande_modif écrit « 🎨 Refaire l’élément « … » » (plus « Redessiner ») ; at_demande_auto reconnaît les deux.
 
 -- (v39, 2 nov. 2026 23 h 55) : at_admin_lire donne aussi etat_at pour chaque demande du projet.
+
+-- (v40, 3 nov. 2026 0 h 15, Benjamin) : PROPOSITIONS chiffrées — at_demandes.propositions / choix, état plus_tard ; at_demande_proposer
+-- (service : 1 à 6 options {id, libelle, credits}, message du guide relié par at_messages.demande) ; at_demande_accepter (joueur :
+-- débit UNE fois, en cours) ; at_demande_plus_tard (rien n est débité). Texte complet : migration atelier_v40_propositions.
