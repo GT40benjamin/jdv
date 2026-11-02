@@ -6,6 +6,15 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🐷 Abracadabra : des bêtes qui marchent, un orage, un vrai crocodile (borne 1.63.71)
+[abracadabra] 🐷 Le cochon, la chèvre, le lapin, la poule, l'ours, le loup, le sanglier, le poney… marchent enfin pour de vrai, avec leurs pattes : ils ne sautillent plus. Et une bête qui se balade ne pousse plus les maisons.
+[abracadabra] 🐦 Les oiseaux n'apparaissent plus en double, l'un sur l'autre : un seul, bien debout sur ses pattes.
+[abracadabra] 🐊 « Crocodile » (ou alligator, caïman) fait apparaître un grand crocodile, et les villageois reculent en criant.
+[abracadabra] 💎 Le cristal du bâton est un quartz pâle au repos : il ne devient rose que quand tu lances un sort.
+[abracadabra] ☂️ Mission 7 : de beaux parapluies (les mêmes que dans Pégase). Mission 6 : les villageois s'assoient sur la tortue au lieu de la traverser.
+[abracadabra] ⛈️ Mission 8 : un vrai orage, un tonnerre qui gronde et roule, la pluie en traits, des nuages noirs. Plus d'étoiles ni de lune en pleine tempête !
+[abracadabra] 💡 Les indices sont de vraies devinettes, plus dures. « Feu », « soleil », « ballons »… s'allument en or quand le bâton les entend.
+[abracadabra] 🌴 Chaque mission a ses propres mots qui font réagir les villageois (un canard à la rivière, une luge au col, une pastèque au désert, un perroquet sur l'île…).
 [abracadabra] ## 🪑 Abracadabra : « un banc » bien entendu (borne 1.63.65)
 [abracadabra] 🎤 Le micro entendait « un bon » quand on disait « un banc » : c'est corrigé. Les 20 nouveaux mots qui font réagir les villageois sont maintenant tous bien compris à la voix.
 [abracadabra] ## 🍕 Abracadabra : les villageois s'en servent vraiment (borne 1.63.64)
