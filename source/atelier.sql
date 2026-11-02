@@ -592,3 +592,136 @@ revoke all on function public.at_credits_accorder(uuid, int, text), public.at_cr
   public.at_assets(uuid, jsonb), public.at_etat(uuid, text, text, text, bigint),
   pegase_int.at_reglage(text), pegase_int.at_solde(text), pegase_int.at_parle(text), pegase_int.at_pleine(jsonb), pegase_int.at_filtre(text) from public, anon, authenticated;
 grant execute on function public.at_ia_fin(uuid, text[], text[], text, text) to service_role;
+
+-- ===================================================================================================================================
+-- CRÉDITS AUSSI POUR LES MESSAGES, QUESTIONS DE DESIGN AVANT LES DESSINS (borne 1.63.36, 2 nov. 2026 14 h 15, Benjamin) :
+--  * 1 crédit par message à l'Atelier (cout_message), 1 crédit pour envoyer la lettre (cout_lettre), 2 par image (cout_image) ;
+--  * avant la planche, le joueur répond à 3 questions de design (style, couleurs, ambiance : choix à cliquer, listes fermées ici) ;
+--    les 3 dessins de la planche suivent SES réponses (3 scènes différentes) : moins d'images ratées, moins de crédits perdus.
+insert into public.at_reglages (k, v) values ('cout_message', 1), ('cout_lettre', 1) on conflict (k) do nothing;
+-- 2 nov. 14 h 20 (Benjamin) : 200 crédits ne coûtent jamais plus de 2 € réels ; une image Gemini ≈ 0,04 € → 50 images au plus → 4 crédits par image
+update public.at_reglages set v = 4 where k = 'cout_image';
+alter table public.at_ia add column if not exists choix jsonb;
+
+create or replace function pegase_int.at_debiter(n text, c int) returns int language plpgsql security definer set search_path = public as $$
+declare s int := pegase_int.at_solde(n);
+begin
+  if coalesce(c, 0) <= 0 then return s; end if;
+  if s < c then raise exception 'credits insuffisants'; end if;
+  update public.at_credits x set solde = x.solde - c, maj_at = now() where x.name = n returning solde into s;
+  return s;
+end $$;
+-- les réponses permises aux questions de design (clé → libellé donné à Gemini)
+create or replace function pegase_int.at_choix_ok(c jsonb) returns jsonb language plpgsql immutable as $$
+declare st text := c ->> 'style'; co text := c ->> 'couleurs'; am text := c ->> 'ambiance'; r jsonb;
+begin
+  r := jsonb_build_object(
+    'style', case st when 'anime' then 'dessin animé coloré, contours nets' when 'pixel' then 'pixel art rétro très soigné' when '3d' then 'images 3D toon arrondies, matières douces'
+                     when 'aquarelle' then 'illustration à l''aquarelle, douce et lumineuse' when 'manga' then 'style manga coloré et dynamique' end,
+    'couleurs', case co when 'pastel' then 'couleurs pastel douces' when 'vives' then 'couleurs vives et flashy' when 'nuit' then 'couleurs de nuit, bleus profonds et lumières qui brillent'
+                     when 'nature' then 'couleurs naturelles, verts et bruns chaleureux' when 'arcenciel' then 'couleurs arc-en-ciel joyeuses' end,
+    'ambiance', case am when 'joyeuse' then 'ambiance joyeuse et drôle' when 'aventure' then 'ambiance d''aventure, épique mais gentille' when 'calme' then 'ambiance calme et mignonne'
+                     when 'mystere' then 'ambiance mystérieuse, un tout petit peu effrayante mais gentille' when 'rapide' then 'ambiance rapide et pleine d''énergie' end);
+  if r ->> 'style' is null or r ->> 'couleurs' is null or r ->> 'ambiance' is null then return null; end if;
+  return r;
+end $$;
+
+create or replace function public.at_lire(p_name text)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; dm public.at_credit_demandes; cr jsonb;
+begin
+  perform public.acct_check(n);
+  select * into dm from public.at_credit_demandes d where d.name = n order by d.at desc limit 1;
+  cr := jsonb_build_object('solde', pegase_int.at_solde(n), 'cout', pegase_int.at_reglage('cout_image'), 'mois', pegase_int.at_reglage('credits_mois'),
+    'planche', pegase_int.at_reglage('images_planche'), 'message', coalesce(pegase_int.at_reglage('cout_message'), 0), 'lettre', coalesce(pegase_int.at_reglage('cout_lettre'), 0),
+    'demande', case when dm.id is null then null else jsonb_build_object('etat', dm.etat, 'montant', dm.montant, 'at', dm.at, 'decision_at', dm.decision_at) end);
+  select * into f from public.at_fiches x where x.name = n order by (x.etat <> 'refusee') desc, x.created_at desc limit 1;
+  if f.id is null then return jsonb_build_object('fiche', null, 'messages', '[]'::jsonb, 'credits', cr); end if;
+  return jsonb_build_object('credits', cr,
+    'fiche', jsonb_build_object('id', f.id, 'titre', f.titre, 'etat', f.etat, 'fiche', f.fiche, 'created_at', f.created_at, 'maj_at', f.maj_at,
+                                'complete_at', f.complete_at, 'envoyee_at', f.envoyee_at, 'decision_at', f.decision_at, 'accord_at', f.accord_at,
+                                'jeu', f.jeu, 'design', f.design, 'design_at', f.design_at, 'assets', f.assets),
+    'messages', coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'texte', m.texte, 'atelier', m.de_atelier, 'micro', m.micro,
+                  'image', case when m.image then 'a/' || m.id || '.jpg' end, 'images', m.images, 'planche', m.planche, 'at', m.at) order by m.at)
+                  from public.at_messages m where m.fiche = f.id), '[]'::jsonb));
+end $$;
+
+create or replace function public.at_dire(p_name text, p_texte text, p_micro boolean default false, p_image boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); t text := btrim(coalesce(p_texte, '')); f public.at_fiches; i uuid; s int;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier', 30, interval '1 hour');
+  if t = '' and not coalesce(p_image, false) then raise exception 'texte vide'; end if;
+  select * into f from public.at_fiches x where x.name = n and x.etat <> 'refusee' limit 1;
+  if f.id is not null and f.etat = 'envoyee' then raise exception 'projet deja envoye'; end if;
+  if f.id is not null and not pegase_int.at_parle(f.etat) then raise exception 'choix en cours'; end if;
+  if f.id is not null and coalesce(p_image, false) and (select count(*) from public.at_messages m where m.fiche = f.id and m.image and not m.de_atelier) >= 6 then raise exception 'trop d images'; end if;
+  s := pegase_int.at_debiter(n, pegase_int.at_reglage('cout_message'));   -- 1 crédit par message (refusé sans crédits : rien n'est écrit)
+  if f.id is null then insert into public.at_fiches (name, etat) values (n, 'en_discussion') returning * into f; end if;
+  insert into public.at_messages (fiche, texte, micro, image) values (f.id, left(t, 2000), coalesce(p_micro, false), coalesce(p_image, false)) returning id into i;
+  update public.at_fiches x set maj_at = now(), etat = case when x.etat = 'brouillon' then 'en_discussion' else x.etat end where x.id = f.id;
+  return jsonb_build_object('id', i, 'fiche', f.id, 'image', case when coalesce(p_image, false) then 'a/' || i || '.jpg' end, 'solde', s);
+end $$;
+
+create or replace function public.at_envoyer(p_name text, p_accord text)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; a text := btrim(coalesce(p_accord, '')); s int;
+begin
+  perform public.acct_check(n);
+  if length(a) < 40 then raise exception 'accord requis'; end if;
+  select * into f from public.at_fiches x where x.name = n and x.etat <> 'refusee' limit 1;
+  if f.id is null then raise exception 'aucun projet'; end if;
+  if f.etat = 'envoyee' then return jsonb_build_object('id', f.id, 'etat', 'envoyee', 'envoyee_at', f.envoyee_at, 'accord_at', f.accord_at); end if;
+  if f.etat <> 'design_choisi' then raise exception 'design pas choisi'; end if;
+  s := pegase_int.at_debiter(n, pegase_int.at_reglage('cout_lettre'));
+  insert into public.at_messages (fiche, texte) values (f.id, '📮 J’ai envoyé ma lettre !');
+  update public.at_fiches x set etat = 'envoyee', envoyee_at = now(), maj_at = now(), accord_at = now(), accord_texte = left(a, 1000)
+    where x.id = f.id returning * into f;
+  return jsonb_build_object('id', f.id, 'etat', f.etat, 'envoyee_at', f.envoyee_at, 'accord_at', f.accord_at, 'solde', s);
+end $$;
+
+drop function if exists public.at_ia_debut(text, text, text);
+create or replace function public.at_ia_debut(p_name text, p_sorte text, p_consigne text default '', p_choix jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; c text := left(btrim(coalesce(p_consigne, '')), 400); nb int; cout int; s int; u uuid;
+  fi jsonb; base text; why text; ch jsonb; scenes text[] := array[
+    'Le héros en pleine action, au cœur du jeu, comme une capture d''écran.',
+    'Une vue large du monde du jeu avec le héros petit au milieu, comme l''écran titre.',
+    'Le héros de près, souriant, avec un objet ou un ami du jeu à côté de lui.'];
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-ia', 20, interval '1 hour');
+  select * into f from public.at_fiches x where x.name = n and x.etat <> 'refusee' limit 1;
+  if f.id is null then raise exception 'aucun projet'; end if;
+  fi := f.fiche;
+  if p_sorte = 'planche' then
+    if f.etat <> 'design' then raise exception 'etat %', f.etat; end if;
+    ch := pegase_int.at_choix_ok(coalesce(p_choix, '{}'::jsonb));
+    if ch is null then raise exception 'choix de design requis'; end if;
+    if exists (select 1 from public.at_ia a where a.fiche = f.id and a.sorte = 'planche' and a.fin_at is null and a.at > now() - interval '5 minutes') then raise exception 'planche en cours'; end if;
+    nb := pegase_int.at_reglage('images_planche');
+    base := concat_ws(' ', fi ->> 'idee', fi ->> 'heros', fi ->> 'monde', f.titre);
+  elsif p_sorte = 'dessin' then
+    if not pegase_int.at_parle(f.etat) then raise exception 'choix en cours'; end if;
+    if length(c) < 3 then raise exception 'consigne vide'; end if;
+    nb := 1; base := c;
+  else raise exception 'sorte inconnue'; end if;
+  why := pegase_int.at_filtre(base);
+  if why <> '' then raise exception 'filtre %', why; end if;
+  cout := nb * pegase_int.at_reglage('cout_image');
+  s := pegase_int.at_debiter(n, cout);
+  insert into public.at_ia (fiche, name, sorte, consigne, nb, cout, choix) values (f.id, n, p_sorte, case when p_sorte = 'dessin' then c else '' end, nb, cout, p_choix) returning id into u;
+  return jsonb_build_object('usage', u, 'nb', nb, 'solde', s,
+    'consignes', case when p_sorte = 'planche' then (select jsonb_agg(
+        'Image d''un jeu vidéo d''arcade pour enfants, gentil, à jouer entre copains. ' ||
+        'Idée du jeu : ' || coalesce(fi ->> 'idee', '') || ' Héros : ' || coalesce(fi ->> 'heros', '') || '. Monde : ' || coalesce(fi ->> 'monde', '') ||
+        '. Vue : ' || coalesce(fi ->> 'dimension', '') || '. Style graphique : ' || (ch ->> 'style') || '. Couleurs : ' || (ch ->> 'couleurs') ||
+        '. ' || initcap(left(ch ->> 'ambiance', 1)) || substr(ch ->> 'ambiance', 2) || '. ' || scenes[1 + ((k - 1) % 3)] ||
+        ' Aucun texte, aucun logo, aucune marque, aucun personnage existant protégé. Format paysage 4:3.' order by k) from generate_series(1, nb) k)
+      else jsonb_build_array('Dessin pour un enfant qui imagine son jeu vidéo, gentil et coloré, sans texte ni logo ni personnage protégé : ' || c) end,
+    'legendes', case when p_sorte = 'planche' then (select jsonb_agg((array['En pleine action', 'Le monde du jeu', 'Le héros de près'])[1 + ((k - 1) % 3)] order by k) from generate_series(1, nb) k) else jsonb_build_array('') end);
+end $$;
+revoke all on function public.at_ia_debut(text, text, text, jsonb) from public, anon;
+grant execute on function public.at_ia_debut(text, text, text, jsonb) to authenticated;
+revoke all on function pegase_int.at_debiter(text, int), pegase_int.at_choix_ok(jsonb) from public, anon, authenticated;

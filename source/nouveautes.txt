@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 💎 Crédits Elixir : 1 par message, et 3 questions avant les dessins (borne 1.63.36)
+[atelier] 💎 Tes crédits Elixir (200 offerts chaque mois) sont dans l'Atelier, en haut : le compteur descend en direct. Un message coûte 1 crédit, un dessin 4, ta lettre 1.
+[atelier] 🎨 Avant de dessiner tes designs, l'Atelier te pose 3 questions à cliquer : quel style, quelles couleurs, quelle ambiance. Les 3 dessins suivent tes réponses : plus de chances qu'ils te plaisent du premier coup !
+
 [abracadabra] ## 🐂 Abracadabra : le taureau amoureux… et le grand méchant loup (borne 1.63.36)
 [abracadabra] 🐺 Mission 9 : pendant que le taureau suit la vache, dis « loup » : il surgit, la vache s'enfuit au galop, et le taureau revient se recoucher en travers du portail, le cœur brisé. Redis « vache » !
 [abracadabra] 🚩 Le drapeau rouge le fait foncer dans la grange même pendant qu'il s'éloigne. La mission n'est gagnée que quand le taureau est vraiment parti.

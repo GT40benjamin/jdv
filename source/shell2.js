@@ -13972,9 +13972,26 @@ const atlCred = () => (ATL.data && ATL.data.credits && typeof ATL.data.credits =
 const atlFull = () => { const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}; return ATL_FIELDS.every(([k]) => atlVal(fi[k])); };
 // « Envoyer mon projet » cliqué : la discussion se BLOQUE, plus que des choix à cliquer (question, puis planche, puis lettre)
 const atlChoix = () => ['design', 'design_choisi'].includes(atlEtat()) || ATL.choix === 'question';
+// 2 nov. 14 h 15 (Benjamin) : « pour faire moins cher, l'Atelier pose les questions sur le design AVANT de dessiner » : 3 questions à cliquer
+const ATL_DQ = [
+  ['style', '🖌️ Quel style ?', [['anime', 'Dessin animé'], ['pixel', 'Pixel art'], ['3d', '3D toute ronde'], ['aquarelle', 'Aquarelle'], ['manga', 'Manga']]],
+  ['couleurs', '🎨 Quelles couleurs ?', [['pastel', 'Pastel tout doux'], ['vives', 'Vives et flashy'], ['nuit', 'De nuit, qui brillent'], ['nature', 'Nature'], ['arcenciel', 'Arc-en-ciel']]],
+  ['ambiance', '✨ Quelle ambiance ?', [['joyeuse', 'Joyeuse et drôle'], ['aventure', 'Aventure'], ['calme', 'Calme et mignonne'], ['mystere', 'Un peu mystérieuse'], ['rapide', 'Rapide, pleine d’énergie']]]
+];
+// le solde de crédits : affiché SEULEMENT dans l'Atelier ; il descend en direct (chiffre qui défile) à chaque message / dessin
+function atlSolde(v) {
+  const cr = atlCred(); if (!cr || !Number.isFinite(+v)) return;
+  const to = Math.max(0, Math.round(+v)), cp = ATL.root && ATL.root.querySelector('.atl-cred'); cr.solde = to;
+  if (!cp || cp.hidden) return;
+  clearInterval(ATL.soldeT);
+  let cur = parseInt(String(cp.textContent).replace(/\D+/g, ''), 10); if (!Number.isFinite(cur)) cur = to;
+  if (cur === to) return;
+  cp.classList.remove('tick'); void cp.offsetWidth; cp.classList.add('tick');
+  ATL.soldeT = setInterval(() => { cur += cur > to ? -1 : 1; cp.textContent = '💎 ' + cur + ' crédits'; cp.classList.toggle('low', cur < ((cr.cout | 0) || 1)); if (cur === to) clearInterval(ATL.soldeT); }, 70);
+}
 const ATL_SR = /BorneArcade\//.test(navigator.userAgent) ? null : (window.SpeechRecognition || window.webkitSpeechRecognition || null);
 ATL = { open: false, letter: false, data: null, name: '', busy: false, pollT: 0, err: 0, off: false, seen: store.get('jdw.atl.seen', {}) || {},
-  rec: null, micUsed: false, sending: false, fopen: false, tile: null, root: null, toastedFor: '', choix: null, drawing: false, iaMsg: '', iaK: '', tried: '' };
+  rec: null, micUsed: false, sending: false, fopen: false, tile: null, root: null, toastedFor: '', choix: null, drawing: false, iaMsg: '', iaK: '', tried: '', dchoix: {}, soldeT: 0 };
 const atlFiche = () => (ATL.data && ATL.data.fiche) || null;
 const atlMsgs = () => (ATL.data && Array.isArray(ATL.data.messages) ? ATL.data.messages : []);
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
@@ -14080,7 +14097,7 @@ const ATL_WELCOME = [
   'Décris le jeu dont tu rêves, comme tu veux : en deux mots ou en racontant tout, au clavier ou au micro 🎤.',
   '🖼️ Mets ici des images qui te plaisent (captures, dessins, photos) : je m’en inspire. On ne les copie jamais dans ton jeu, c’est seulement pour comprendre ce que tu aimes.',
   'L’Atelier te répond sous 10 minutes environ (va jouer en attendant, la cloche 🔔 te préviendra) et remplit tout de suite ta fiche, en 9 sections numérotées. Pour changer quelque chose, dis-lui le numéro de la section.',
-  '🎨 Avec tes crédits Elixir (gratuits, chaque mois), l’Atelier peut aussi DESSINER ce que tu décris : écris-le, puis touche « Dessine-le ».',
+  '💎 Tu as des crédits Elixir, gratuits, remis chaque mois : 1 crédit par message, quelques-uns par dessin. L’Atelier peut DESSINER ce que tu décris : écris-le, puis touche « Dessine-le ».',
   'Bon à savoir : sur la borne, ce qui compte c’est le SCORE ENTRE COPAINS 🏆 — pense à comment on bat le record des autres ! Et sur téléphone, ton jeu sera un peu moins beau que sur PC.',
   'Quand tout te plaît, touche « Envoyer mon projet » en haut : tu choisiras ton design, puis tu signeras ta lettre. C’est gratuit, et c’est un jeu par joueur : choisis ta meilleure idée !'
 ];
@@ -14098,7 +14115,7 @@ function atlBuild() {
     + '<div class="atl-row"><textarea class="atl-in" rows="2" maxlength="2000" placeholder="Décris ton jeu…" aria-label="Ton message pour l’Atelier"></textarea>'
     + '<button class="atl-mic" type="button" aria-label="Parler au micro"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/></svg></button></div>'
     + '<div class="atl-row2"><button class="atl-imgb" type="button"><span aria-hidden="true">🖼️</span> Joindre une image</button><button class="atl-imgb atl-drawb" type="button"><span aria-hidden="true">🎨</span><span> Dessine-le</span></button><input class="atl-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>'
-    + '<button class="btn btn-play atl-send" type="submit">Envoyer ➤</button></div></form></div></div>'
+    + '<small class="atl-cost" hidden></small><button class="btn btn-play atl-send" type="submit">Envoyer ➤</button></div></form></div></div>'
     + '<div class="atl-lv" hidden></div><div class="atl-zoom" hidden role="dialog" aria-label="Image en grand"></div>';
   document.body.appendChild(R); ATL.root = R;
   const q = s => R.querySelector(s);
@@ -14228,11 +14245,12 @@ function atlRenderChat() {
   atlRenderChoix();
   R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu · gratuit';
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
-  cp.hidden = !cr; if (cr) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.mois | 0) + ' offerts chaque mois · ' + (cr.cout | 0) + ' crédits par dessin'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
+  cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.mois | 0) + ' offerts chaque mois · ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
   const sh = R.querySelector('.atl-sendh');
   sh.textContent = ATL_AFTER.has(et) || et === 'refusee' ? '📮 Ma lettre' : '📮 Envoyer mon projet';
   sh.classList.toggle('btn-ghost', ATL_AFTER.has(et) || ch); sh.classList.toggle('btn-play', !(ATL_AFTER.has(et) || ch));
   R.querySelector('.atl-drawb').title = cr ? 'L’Atelier dessine ce que tu as écrit (' + (cr.cout | 0) + ' crédits)' : 'L’Atelier dessine ce que tu as écrit';
+  const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = '💎 ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin';
 }
 
 // ---------- serveur ----------
@@ -14249,7 +14267,7 @@ async function atlLoad(force) {
     const before = atlLastReply();
     ATL.data = r && typeof r === 'object' ? r : { fiche: null, messages: [] }; ATL.err = 0;
     const after = atlLastReply();
-    if (ATL.open && !document.hidden) { atlMarkSeen(); if (atlEtat() === 'design' && !atlPlanche() && !ATL.drawing) setTimeout(() => atlDessinePlanche(false), 0); }
+    if (ATL.open && !document.hidden) atlMarkSeen();
     else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { toastCheer('✉️ L’Atelier t’a répondu !', null, true); } catch (e) {} }
     atlRender();
   } catch (e) { if (e && e.status === 404) ATL.off = true; ATL.err++; }
@@ -14267,12 +14285,16 @@ async function atlSend() {
   if (!t || ATL.sending) { if (!t) inp.focus(); return; }
   atlMicStop();
   const micro = ATL.micUsed; ATL.sending = true; atlErr('');
+  const cr = atlCred(), before = cr ? cr.solde | 0 : 0;
+  if (cr && before < (cr.message | 0)) { ATL.sending = false; atlErr(atlIaWhy({ status: 402, j: { error: 'credits' } })[1]); atlCreditsBtn(); return; }
   ATL.pend = [{ texte: t, micro, pending: true, at: new Date().toISOString() }]; ATL.stick = true; atlRenderChat();
+  if (cr) atlSolde(before - (cr.message | 0));
   try {
-    await rpc('at_dire', { p_name: profile.name, p_texte: t, p_micro: micro, p_image: false }, { quiet: true });
+    const r = await rpc('at_dire', { p_name: profile.name, p_texte: t, p_micro: micro, p_image: false }, { quiet: true });
+    if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
     if (inp.value.trim() === t) inp.value = ''; ATL.micUsed = false;
     ATL.pend = []; ATL.stick = true; await atlLoad(true);
-  } catch (e) { ATL.pend = []; atlRenderChat(); atlErr(atlWhy(e)); }
+  } catch (e) { ATL.pend = []; if (cr) atlSolde(before); atlRenderChat(); atlErr(atlWhy(e)); if (/credits insuffisants/.test(String(e && e.message))) atlCreditsBtn(); }
   finally { ATL.sending = false; }
 }
 function atlWhy(e) {
@@ -14281,6 +14303,7 @@ function atlWhy(e) {
   if (/trop d essais/.test(m)) return 'Doucement 😄 Beaucoup de messages en une heure : réessaie un peu plus tard.';
   if (/deja envoye/.test(m)) return 'Ton projet est déjà envoyé : Benjamin va le lire.';
   if (/choix en cours/.test(m)) return 'Termine d’abord tes choix (ou touche « Je veux modifier »).';
+  if (/credits insuffisants/.test(m)) return 'Plus assez de crédits ce mois-ci : le 1er du mois, tu retrouves tes crédits. Tu peux aussi en demander à l’équipe.';
   if (e && (e.acct || e.guest)) return 'Connecte-toi à ton compte pour parler à l’Atelier.';
   return 'Oups, le message n’est pas parti. Réessaie.';
 }
@@ -14357,7 +14380,17 @@ function atlRenderChoix() {
     if (pl) box.append(atlEl('b', 'atl-cq', 'Touche le design que tu préfères ⬆️'), atlEl('p', '', 'Il servira de modèle pour tout ton jeu.'));
     else if (ATL.iaK === 'credits') { box.append(atlEl('b', 'atl-cq', '💎 Pas assez de crédits'), atlEl('p', '', ATL.iaMsg)); atlCreditsBtn(row); atlChoixBtn(row, 'Réessayer', 'btn-ghost', () => atlDessinePlanche(true)); }
     else if (ATL.iaK) { box.append(atlEl('b', 'atl-cq', ATL.iaK === 'bientot' ? '🖍️ Les dessins arrivent très bientôt' : 'Oups'), atlEl('p', '', ATL.iaMsg)); atlChoixBtn(row, 'Réessayer', 'btn-play', () => atlDessinePlanche(true)); }
-    else { const nb = (cr && cr.planche | 0) || 3; box.append(atlEl('b', 'atl-cq', '🎨 Design en préparation…'), atlEl('p', '', 'L’Atelier va dessiner ' + nb + ' idées de design' + (cr ? ' (' + nb * (cr.cout | 0) + ' crédits)' : '') + '.')); atlChoixBtn(row, '🎨 Dessiner mes designs', 'btn-play', () => atlDessinePlanche(true)); }
+    else {
+      const nb = (cr && cr.planche | 0) || 3, dc = ATL.dchoix;
+      box.append(atlEl('b', 'atl-cq', '🎨 Avant de dessiner, aide-moi à viser juste !'), atlEl('p', '', 'Choisis une réponse à chaque question : l’Atelier dessinera ' + nb + ' idées dans CE style.'));
+      for (const [k, q, opts] of ATL_DQ) {
+        const g = atlEl('div', 'atl-dq'); g.appendChild(atlEl('small', '', q)); const ch = atlEl('div', 'atl-chips');
+        for (const [v, lab] of opts) { const c = atlEl('button', 'atl-chip' + (dc[k] === v ? ' on' : ''), lab); c.type = 'button'; c.setAttribute('aria-pressed', String(dc[k] === v)); c.addEventListener('click', () => { dc[k] = v; atlRenderChoix(); }); ch.appendChild(c); }
+        g.appendChild(ch); box.appendChild(g);
+      }
+      const ok = ATL_DQ.every(([k]) => dc[k]);
+      const go = atlChoixBtn(row, '🎨 Dessiner mes ' + nb + ' designs' + (cr ? ' (' + nb * (cr.cout | 0) + ' 💎)' : ''), 'btn-play', () => atlDessinePlanche(true)); go.disabled = !ok;
+    }
     modif(); box.appendChild(row); return;
   }
   if (et === 'design_choisi') {
@@ -14400,7 +14433,7 @@ async function atlValider(oui) {
     await rpc('at_valider', { p_name: profile.name, p_oui: !!oui }, { quiet: true });
     ATL.choix = null; ATL.iaK = ''; ATL.iaMsg = ''; ATL.stick = true;
     await atlLoad(true);
-    if (oui) atlDessinePlanche(false); else hint();
+    if (!oui) hint();
   } catch (e) { atlErr(/pas complete/.test(String(e && e.message)) ? 'Ta fiche n’est pas encore complète : continue avec l’Atelier.' : atlWhy(e)); }
   finally { ATL.sending = false; }
 }
@@ -14425,17 +14458,19 @@ function atlIaWhy(res) {
   if (e === 'filtre') return ['filtre', res.j.raison === 'protege' ? 'Je ne peux pas dessiner un personnage ou une marque qui existe déjà : invente le tien, il sera encore mieux !' : 'Je ne peux pas dessiner ça : on garde la borne gentille pour tout le monde. Change un peu ta demande !'];
   if (e === 'ratee') return ['ratee', res.j.raison === 'refus' ? 'Le dessin n’a pas pu se faire avec cette idée : essaie de la dire autrement.' : 'Le dessin a raté (tes crédits te sont rendus). Réessaie dans un moment.'];
   if (e === 'en cours') return ['ratee', 'Les dessins sont déjà en route : patiente un peu.'];
+  if (e === 'choix requis') return ['', ''];
   if (res.status === 429) return ['ratee', 'Doucement 😄 Beaucoup de dessins en une heure : réessaie plus tard.'];
   return ['ratee', 'Oups, le dessin n’a pas pu se faire. Réessaie dans un moment.'];
 }
 async function atlDessinePlanche(force) {
   const f = atlFiche(); if (!f || atlEtat() !== 'design' || ATL.drawing || atlPlanche()) return;
-  if (!force && ATL.tried === f.id + '|' + (f.maj_at || '')) return;   // une seule tentative automatique par état
-  ATL.tried = f.id + '|' + (f.maj_at || ''); ATL.drawing = true; ATL.iaK = ''; ATL.iaMsg = ''; atlRender();
+  const dc = ATL.dchoix; if (!ATL_DQ.every(([k]) => dc[k])) { ATL.iaK = ''; atlRender(); return; }   // d'abord les 3 réponses
+  const cr = atlCred();
+  ATL.drawing = true; ATL.iaK = ''; ATL.iaMsg = ''; atlRender();
   try {
-    const res = await atlIa({ sorte: 'planche' });
-    if (res.j.etat === 'ok') { ATL.iaK = ''; ATL.stick = true; }
-    else { const w = atlIaWhy(res); ATL.iaK = w[0]; ATL.iaMsg = w[1]; }
+    const res = await atlIa({ sorte: 'planche', choix: { style: dc.style, couleurs: dc.couleurs, ambiance: dc.ambiance } });
+    if (res.j.etat === 'ok') { ATL.iaK = ''; ATL.stick = true; if (Number.isFinite(+res.j.solde)) atlSolde(res.j.solde); }
+    else { const w = atlIaWhy(res); ATL.iaK = w[0]; ATL.iaMsg = w[1]; if (cr && res.j.etat !== 'bientot' && Number.isFinite(+res.j.solde)) atlSolde(res.j.solde); }
   } catch (e) { ATL.iaK = 'ratee'; ATL.iaMsg = e && e.offline ? 'Pas de réseau : réessaie dans un moment.' : 'Oups, le dessin n’a pas pu se faire. Réessaie dans un moment.'; }
   finally { ATL.drawing = false; await atlLoad(true); }
 }
@@ -14448,7 +14483,7 @@ async function atlDessin() {
   ATL.pend = [{ texte: '🎨 ' + t, pending: true, at: new Date().toISOString() }]; ATL.stick = true; atlRenderChat();
   try {
     const res = await atlIa({ sorte: 'dessin', consigne: t });
-    if (res.j.etat === 'ok') { if (inp.value.trim() === t) inp.value = ''; }
+    if (res.j.etat === 'ok') { if (inp.value.trim() === t) inp.value = ''; if (Number.isFinite(+res.j.solde)) atlSolde(res.j.solde); }
     else { const w = atlIaWhy(res); atlErr(w[1]); if (w[0] === 'credits') atlCreditsBtn(); }
   } catch (e) { atlErr(e && e.offline ? 'Pas de réseau : réessaie dans un moment.' : 'Oups, le dessin n’a pas pu se faire. Réessaie dans un moment.'); }
   finally { ATL.drawing = false; ATL.pend = []; b.disabled = false; b.lastChild.textContent = ' Dessine-le'; await atlLoad(true); }
@@ -14572,6 +14607,7 @@ async function atlPost(go, note, cb) {
   const lv = ATL.root.querySelector('.atl-lv');
   try {
     const r = await rpc('at_envoyer', { p_name: profile.name, p_accord: ATL_ACCORD }, { quiet: true });
+    if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
     if (cb) cb.closest('label').hidden = true;
     if (!r || r.etat !== 'envoyee') throw new Error('réponse');
     lv.querySelector('.atl-lbtns').hidden = true; note.textContent = '';
