@@ -10256,6 +10256,28 @@ function fsSync() {
 }
 document.addEventListener('fullscreenchange', fsSync);
 document.addEventListener('webkitfullscreenchange', fsSync);
+// 0 h 25 (Benjamin : « sur iPhone ça ne passe pas en plein écran ») : Safari sur iPhone ne permet pas le plein écran d'une page ; le
+// bouton ⛶ explique comment installer la borne sur l'écran d'accueil (elle s'ouvre alors sans les barres) : en grand la 1re fois,
+// ensuite un rappel discret
+function fsAideIos() {
+  if (document.getElementById('jdw-fsaide')) return;
+  const vu = store.get('jdw.fsaide', false); store.set('jdw.fsaide', true);
+  if (vu) { try { toastCheer('⬆️ Partager → « Sur l’écran d’accueil » : la borne s’ouvre en plein écran', null, true); } catch (e) {} return; }
+  const O = document.createElement('div'); O.id = 'jdw-fsaide'; O.className = 'fs-aide'; O.setAttribute('role', 'dialog'); O.setAttribute('aria-label', 'Plein écran sur iPhone');
+  const g = ROOT + 'accueil/guide-portrait.webp';
+  O.innerHTML = '<div class="fsa-card"><img class="fsa-av" alt="" src="' + g + '"><b class="fsa-t">Pour jouer en plein écran sur iPhone</b>'
+    + '<ol class="fsa-et"><li><span class="fsa-i"><svg viewBox="0 0 24 24"><path d="M12 14.5V3.5M8 7.5l4-4 4 4"/><path d="M8.5 10H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1.5"/></svg></span><span>Touche <b>Partager</b> en bas de Safari</span></li>'
+    + '<li><span class="fsa-i"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span><span>Choisis <b>« Sur l’écran d’accueil »</b></span></li>'
+    + '<li><span class="fsa-i"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10 6h4"/><circle cx="12" cy="13" r="2.6"/></svg></span><span>Ouvre la <b>borne</b> depuis ton écran d’accueil : plein écran !</span></li></ol>'
+    + '<button type="button" class="btn btn-play fsa-ok">J’ai compris</button></div>';
+  O.addEventListener('click', e => { if (e.target === O || e.target.closest('.fsa-ok')) O.remove(); });
+  document.body.appendChild(O);
+}
+setTimeout(() => { if (FS.can || !FS_TIP) return;   // iPhone dans Safari : le bouton ⛶ est là, il ouvre l'aide (après la déclaration de FS_TIP)
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'jdw-fs'; b.className = 'btn btn-ghost btn-sm';
+  $('jdw-mute').before(b); b.parentNode.classList.add('has-fs'); b.innerHTML = FS_ICON.in; b.setAttribute('aria-label', 'Plein écran'); b.title = 'Plein écran';
+  b.addEventListener('click', fsAideIos);
+}, 0);
 if (FS.can) {   // petit bouton à côté du son, seulement là où le plein écran est possible
   const b = document.createElement('button'); b.type = 'button'; b.id = 'jdw-fs'; b.className = 'btn btn-ghost btn-sm';
   $('jdw-mute').before(b); b.parentNode.classList.add('has-fs'); fsBtnSync();
@@ -14957,9 +14979,11 @@ function atlFlotteur(on) {
   let b = document.getElementById('atl-flot');
   const rp = document.querySelector('.atl-rappel');
   if (!on) { if (b) b.remove(); if (rp) rp.remove(); return; }
-  if (!rp) { const x = atlEl('div', 'atl-rappel', '🤖 ' + gN() + ' : touche P · manette ' + (PADJ ? PADJ.glyph('select') : 'Select') + ' · ou touche le rond'); x.setAttribute('aria-hidden', 'true'); document.body.appendChild(x); }
+  if (rp) rp.remove();   // 0 h 30 (Benjamin : « sur lui, tu mets P ») : plus de rappel en bas, la touche est sur le bouton
   if (b) return;
-  b = atlGuideAv('atl-flot'); b.id = 'atl-flot'; b.setAttribute('role', 'button'); b.tabIndex = 0; b.title = 'Arrêt sur image : montre ' + gA() + ' ce qu’il faut changer (touche P)';
+  b = atlGuideAv('atl-flot'); b.id = 'atl-flot'; b.setAttribute('role', 'button'); b.tabIndex = 0;
+  { let pad = false; try { pad = [...(navigator.getGamepads ? navigator.getGamepads() : [])].some(x => x && x.connected !== false); } catch (e) {}
+    const k = pad && PADJ ? PADJ.glyph('select') : TOUCH ? '' : 'P'; if (k) b.appendChild(atlEl('span', 'atl-flotk', k)); } b.title = 'Arrêt sur image : montre ' + gA() + ' ce qu’il faut changer (touche P)';
   const pos = ATL.flotPos || { r: 14, b: 120 }; b.style.right = pos.r + 'px'; b.style.bottom = pos.b + 'px';
   let st = null;
   b.addEventListener('pointerdown', e => { st = { x: e.clientX, y: e.clientY, r: parseFloat(b.style.right), b: parseFloat(b.style.bottom), moved: false }; try { b.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); e.stopPropagation(); });

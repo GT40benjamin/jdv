@@ -201,6 +201,8 @@ def full_doc(p):
             'localStorage.setItem("jdw.reprise",String(Date.now()))}}}catch(e){}</script>\n' + (REDIRECT_PG if PAGE == 'borne' and ROOT else '') +
             '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">\n'
             '<meta name="theme-color" content="' + o['theme'] + '">\n<meta name="robots" content="noindex">\n'
+            '<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n'
+            '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<meta name="apple-mobile-web-app-title" content="Borne d’arcade">\n'
             # aperçu des liens partagés (invitation ?salle=…, défi ?duel=…) : même texte pour tous, jamais le nom d'une salle
             '<meta property="og:type" content="website">\n<meta property="og:locale" content="fr_FR">\n'
             '<meta property="og:site_name" content="' + o['site'] + '">\n'

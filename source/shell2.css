@@ -109,7 +109,7 @@ a.icon-btn{color:inherit;text-decoration:none}   /* la maison (retour au site du
 /* ---------- En jeu ---------- */
 #jdw-play{position:fixed;inset:0;background:var(--night)}
 /* 23 oct. (iPhone, Safari : le bas d'Empilo et ses boutons passaient SOUS la barre de Safari) : la hauteur VISIBLE (petit viewport) */
-@supports (height:100svh){#jdw-play{bottom:auto;height:100svh}}
+@supports (height:100dvh){#jdw-play{bottom:auto;height:100dvh}}   /* 0 h 25 : tout l'espace visible (dvh suit les barres de Safari) */
 .topbar{position:absolute;left:0;right:0;top:0;height:calc(var(--tbh,52px) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 10px 0;
   display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;background:var(--panel);border-bottom:1px solid var(--line)}
 .topbar h1{margin:0;text-align:center;font-family:var(--display);font-weight:400;font-size:17px;color:var(--acc,var(--amber));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -4266,3 +4266,14 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-propw{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.atl-propm{color:#ffb4a2;font:600 12.5px var(--body)}
 .atl-propq{display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:10px;background:rgba(255,211,77,.12)}
 .atl-propok{margin:6px 0 0;color:#9fe0a8;font:700 13.5px var(--body)}
+
+/* 0 h 25 : l'aide plein écran sur iPhone */
+.fs-aide{position:fixed;inset:0;z-index:2147483002;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));background:rgba(5,8,12,.82)}
+.fsa-card{display:grid;gap:12px;justify-items:center;max-width:360px;padding:20px 18px;border-radius:18px;background:var(--card,#14212b);border:2px solid #ffd34d;color:var(--ink,#fff);text-align:center}
+.fsa-av{width:72px;height:72px;border-radius:50%;object-fit:cover;background:#2a1340}.fsa-t{font:800 17px var(--body)}
+.fsa-et{display:grid;gap:10px;margin:0;padding:0;list-style:none;text-align:left;font:14.5px var(--body)}
+.fsa-et li{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center}
+.fsa-i{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(255,211,77,.14)}
+.fsa-i svg{width:26px;height:26px;fill:none;stroke:#ffd34d;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* 0 h 30 : la touche du guide sur son bouton rond */
+#atl-flot{overflow:visible}#atl-flot img{border-radius:50%}.atl-flotk{position:absolute;right:-4px;bottom:-4px;min-width:22px;height:22px;padding:0 5px;border-radius:8px;background:#ffd34d;color:#2a1340;font:800 13px/22px var(--body);text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none}
