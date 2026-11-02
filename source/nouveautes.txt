@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🐂 Abracadabra : le taureau amoureux… et le grand méchant loup (borne 1.63.36)
+[abracadabra] 🐺 Mission 9 : pendant que le taureau suit la vache, dis « loup » : il surgit, la vache s'enfuit au galop, et le taureau revient se recoucher en travers du portail, le cœur brisé. Redis « vache » !
+[abracadabra] 🚩 Le drapeau rouge le fait foncer dans la grange même pendant qu'il s'éloigne. La mission n'est gagnée que quand le taureau est vraiment parti.
 [atelier] ## 🎨 L'Atelier dessine ton jeu : designs à choisir, crédits Elixir, lettre complète (borne 1.63.35)
 [atelier] 🔢 Ta fiche a maintenant 9 sections numérotées : pour changer quelque chose, dis simplement à l'Atelier le numéro de la section.
 [atelier] 📮 Le bouton « Envoyer mon projet » est toujours en haut. Quand tu le touches, tu n'as plus qu'à choisir : « C'est bien le jeu que tu veux ? », puis ton design, puis ta lettre.
