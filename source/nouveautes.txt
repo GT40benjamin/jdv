@@ -76,6 +76,9 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## ✨ Ta première idée est offerte (borne 1.63.111)
+[atelier] ✨ Ta toute première idée de jeu est offerte. Pour les projets suivants, envoyer ton idée coûte quelques crédits (le prix est sur le bouton) ; écrire et garder ton brouillon reste gratuit.
+
 [atelier] ## 🖼️ L'image de ta tuile (borne 1.63.110)
 [atelier] 🖼️ La tuile de ton jeu montre son image de présentation. Tu veux une tuile animée, qui bouge comme sur la borne ? Demande-la à ton guide avec « 🖼️ Modifier l'image de présentation ».
 

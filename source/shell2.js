@@ -14217,6 +14217,13 @@ function atlGuideMaj(g) {
   const nom = t(g.nom, 30); if (!nom) return;
   ATL_GUIDE.nom = nom; ATL_GUIDE.a = t(g.a, 40) || 'à ' + nom; ATL_GUIDE.de = t(g.de, 40) || 'de ' + nom; ATL_GUIDE.img = atlIaUrl(g.img) ? g.img : '';
 }
+// 23 h 25 (Benjamin : « la tête de Benjamin au lieu de celle du guide ») : toastCheer sans nom prend un joueur au hasard → atlToast : le guide
+function atlToast(text) {
+  toastCheer(text, null, true);
+  const im = document.getElementById('jdw-cheer-img'), nm = document.getElementById('jdw-cheer-name');
+  if (im) { im.src = atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp'; im.hidden = false; }
+  if (nm) nm.textContent = gNM();
+}
 function atlGuideAv(cls) {
   const a = atlEl('span', cls || 'atl-av'), u = atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp';   // 20 h 40 : le dessin du guide (accueil/guide-*.webp)
   const im = atlEl('img'); im.alt = ''; im.src = u; im.onerror = () => { im.remove(); a.textContent = '🤖'; }; a.appendChild(im);
@@ -14266,9 +14273,9 @@ function atlBuild() {
 }
 function atlOpen() {
   if (!ATL_ON()) return;
-  if (!ONLINE) { toastCheer('L’Atelier a besoin d’Internet', null, true); return; }
+  if (!ONLINE) { atlToast('L’Atelier a besoin d’Internet'); return; }
   if (isGuest()) { guestAsk('L’Atelier'); return; }
-  if (netOff()) { try { netNeed('L’Atelier'); } catch (e) { toastCheer('Pas de connexion : l’Atelier revient avec le réseau', null, true); } return; }
+  if (netOff()) { try { netNeed('L’Atelier'); } catch (e) { atlToast('Pas de connexion : l’Atelier revient avec le réseau'); } return; }
   atlBuild(); ATL.open = true; ATL.root.hidden = false; document.body.classList.add('atl-on');
   musicBaseLevel(0.55); MUS.override = false; setMusic('atelier');   // 22 h 45 : la musique de l'Atelier, douce
   atlRender(); atlLoad(true); setTimeout(atlBienvenue, 1200); atlDemCharger(true);
@@ -14340,7 +14347,7 @@ function atlOuvrir(id) {
 }
 function atlNouveau() {
   const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
-  if (atlProjets().length >= max) { toastCheer(max + ' projets au plus', null, true); return; }
+  if (atlProjets().length >= max) { atlToast(max + ' projets au plus'); return; }
   atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.basesLoc = {}; ATL.basesDone = true; ATL.basesEnCours = false; ATL.brLast = ''; { const i0 = ATL.root && ATL.root.querySelector('.atl-in'); if (i0) i0.value = ''; } ATL.basesOn = false; ATL.bq = 0; ATL.pend = []; ATL.stick = true; atlErr('');
   atlRender();
   const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Raconte ton nouveau jeu…'; if (!TOUCH) inp.focus();
@@ -14465,7 +14472,7 @@ function atlRenderChat() {
   R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R);
   R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
   atlChatRetour(bn);
-  const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = atlCoutMsg() ? '💎 ' + atlCoutMsg() + ' par message' : '🎁 Raconter ton idée : gratuit';
+  const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = atlMsgs().some(m => !m.atelier) ? '💎 ' + atlCoutMsg() + ' par message' : atlCoutMsg() ? '💎 Ton idée : ' + atlCoutMsg() + ' crédits (non remboursés)' : '🎁 Ta 1re idée est offerte !';
 }
 
 // ---------- 2 nov. 16 h 25 (Benjamin) : le parcours HYPER SIMPLE — un seul prompt remplit tout, puis ÉTAPE PAR ÉTAPE ----------
@@ -14521,7 +14528,7 @@ async function atlLancer(btn) {
   if (crc && prix > 0 && (crc.solde | 0) < prix) { atlWizErr('Pour lancer la conception de ton jeu, il faut ' + prix + ' crédits : tu en as ' + Math.max(0, crc.solde | 0) + '. Passe à Atelier+ ou recharge tes crédits, puis reviens ici !'); const x = ATL.root.querySelector('.atl-werr'); atlCreditsBtn(x); x.hidden = false; return; }
   if (Date.now() - (ATL.lance || 0) > 5000) { ATL.lance = Date.now(); btn.textContent = '🚀 Sûr ? Touche encore pour lancer !'; btn.classList.add('sur'); setTimeout(() => { if (btn.isConnected && Date.now() - ATL.lance >= 5000) atlRenderWiz(); }, 5100); return; }
   ATL.sending = true; btn.disabled = true; atlWizErr('');
-  try { const r = await rpc('at_lancer', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ATL.lance = 0; f.etat = 'envoyee'; atlRender(); toastCheer('🚀 C’est parti, je me mets au travail sur ta V1 !', null, true); await atlLoad(true); }
+  try { const r = await rpc('at_lancer', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ATL.lance = 0; f.etat = 'envoyee'; atlRender(); atlToast('🚀 C’est parti, je me mets au travail sur ta V1 !'); await atlLoad(true); }
   catch (e) { btn.disabled = false; ATL.lance = 0; atlWizErr(atlWizWhy(e)); if (/credits insuffisants/.test(String(e && e.message))) { const x = ATL.root.querySelector('.atl-werr'); atlCreditsBtn(x); x.hidden = false; } }
   finally { ATL.sending = false; }
 }
@@ -14770,7 +14777,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
         const tok = await acctToken(profile);
         await netFetch(CFG.url.replace(/\/+$/, '') + '/storage/v1/object/atelier/' + r.image, { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: blob }, 60000);
       }
-      toastCheer('✉️ Demande envoyée ' + gA() + ' !', null, true); fin(); atlLoad(true);
+      atlToast('✉️ Demande envoyée ' + gA() + ' !'); fin(); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
   row.append(rp, go); O.append(hd, zone, tw, er, row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); host.appendChild(O);
@@ -14781,7 +14788,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
 // partie) ; « Quitter » revient à la page du projet. Pendant la partie : le petit guide flottant (déplaçable) et la touche P → arrêt sur image.
 function atlJouerVrai(f) {
   const g = (window.JDW_GAMES || {})[f.jeu];
-  if (!g || g.id !== f.jeu) { toastCheer('Ton jeu arrive sur la borne très bientôt !', null, true); return; }
+  if (!g || g.id !== f.jeu) { atlToast('Ton jeu arrive sur la borne très bientôt !'); return; }
   ATL.jeu = f.id; window.JDW_ATL_JEU = true;   // repère pour le jeu : la touche P est l'arrêt sur image du guide (pas sa pause)
   // les éléments retirés par l'équipe (assets[].actif = false) : le jeu ne les montre plus (window.JDW_ATL_OFF, message atl-off) ;
   // une musique retirée : la borne ne lance pas la musique du jeu
@@ -15118,7 +15125,7 @@ function atlModale() {
       f.dessins_en_cours = (Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours : []).concat(c.de.map(e => e.nom));
       fi.formes = (Array.isArray(fi.formes) ? fi.formes : []).filter(x => !c.fo.some(e => atlNorm(e.nom) === atlNorm(x && x.nom))).concat(c.fo.map(e => e.forme)); f.fiche = fi;
       M.hidden = true; M.textContent = ''; atlRenderWiz(); atlRenderRoute(false);
-      toastCheer(c.de.length ? '🎨 Tes dessins arrivent !' : '🔷 Tes formes sont prêtes !', null, true);
+      atlToast(c.de.length ? '🎨 Tes dessins arrivent !' : '🔷 Tes formes sont prêtes !');
     } catch (e) { go.disabled = false; er.hidden = false; const m = String((e && e.message) || ''); er.textContent = /dessins en cours/.test(m) ? 'Tes dessins sont déjà en route : encore un petit moment !' : atlWizWhy(e); if (/credits insuffisants/.test(m)) atlCreditsBtn(er); }
     finally { ATL.sending = false; }
   });
@@ -15162,7 +15169,7 @@ function atlRenderRoute(liste) {
 // ---- l'étape 2 « Décris ton jeu » : la page d'écriture (au-dessus de la grande case, du micro et de « Joindre une image »)
 function atlIntro(on) {
   const R = ATL.root, I = R && R.querySelector('.atl-intro'); if (!I) return;
-  I.hidden = !on; R.querySelector('.atl-send').textContent = on ? '✨ Envoyer ' + gA() : 'Envoyer ➤';
+  I.hidden = !on; R.querySelector('.atl-send').textContent = on ? '✨ Envoyer ' + gA() + ' · ' + (atlCoutMsg() ? atlCoutMsg() + ' 💎' : 'gratuit') : 'Envoyer ➤';
   R.querySelector('.atl-in').placeholder = on ? 'Raconte ton jeu ici…' : 'Écris ' + gA() + '…';
   if (!on) { I.textContent = ''; return; }
   if (I.dataset.on === '1' && I.firstChild) return; I.dataset.on = '1'; I.textContent = '';
@@ -15197,7 +15204,7 @@ function atlBrouillon() {
       if (ATL.nouveau && !ATL.cur) { ATL.cur = r.fiche; ATL.nouveau = false; }
       if (JSON.stringify(ATL.basesLoc || {}) !== sent) { try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: r.fiche, p_cle: 'bases', p_valeur: ATL.basesLoc }, { quiet: true }); } catch (e) {} }
       atlLoad(true); return r.fiche;
-    } catch (e) { if (/trop de projets/.test(String(e && e.message))) toastCheer('5 projets au plus : termine ou abandonne un projet', null, true); return null; }
+    } catch (e) { if (/trop de projets/.test(String(e && e.message))) atlToast('5 projets au plus : termine ou abandonne un projet'); return null; }
     finally { ATL.brP = null; }
   })();
   return ATL.brP;
@@ -15235,8 +15242,8 @@ async function atlNomSave(v) {
   for (const pj of atlProjets()) if (pj.id === ATL.cur) pj.titre = v;
   ATL.nomLoc = v; ATL.pSig = '';
   const id = ATL.cur || await atlBrouillon(); if (!id) return;
-  try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: id, p_cle: 'titre', p_valeur: v }, { quiet: true }); toastCheer('✏️ « ' + v + ' » enregistré', null, true); atlLoad(true); }
-  catch (e) { toastCheer(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie', null, true); atlLoad(true); }
+  try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: id, p_cle: 'titre', p_valeur: v }, { quiet: true }); atlToast('✏️ « ' + v + ' » enregistré'); atlLoad(true); }
+  catch (e) { atlToast(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie'); atlLoad(true); }
 }
 
 // ---- 20 h 25 (Benjamin) : en entrant dans l'Atelier, le guide est là : il dit bonjour, propose quoi faire, signale les nouveautés
@@ -15286,8 +15293,8 @@ function atlRenommerTuile(w, pj) {
     const v = i.value.replace(/\s+/g, ' ').trim().slice(0, 40);
     if (garder && v.length >= 2 && v !== (pj.titre || '')) {
       pj.titre = v;
-      try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: pj.id, p_cle: 'titre', p_valeur: v }, { quiet: true }); toastCheer('✏️ « ' + v + ' » enregistré', null, true); }
-      catch (e) { toastCheer(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie', null, true); }
+      try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: pj.id, p_cle: 'titre', p_valeur: v }, { quiet: true }); atlToast('✏️ « ' + v + ' » enregistré'); }
+      catch (e) { atlToast(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie'); }
     }
     atlRender(); atlLoad(true);
   };
@@ -15308,7 +15315,7 @@ function atlSupprimerAsk(pj) {
     try {
       await rpc('at_supprimer', { p_name: profile.name, p_fiche: pj.id }, { quiet: true });
       if (ATL.data && Array.isArray(ATL.data.projets)) ATL.data.projets = ATL.data.projets.filter(x => x.id !== pj.id);
-      M.hidden = true; M.textContent = ''; toastCheer('🗑️ « ' + nom + ' » supprimé', null, true); atlRender(); atlTileState(); atlLoad(true);
+      M.hidden = true; M.textContent = ''; atlToast('🗑️ « ' + nom + ' » supprimé'); atlRender(); atlTileState(); atlLoad(true);
     } catch (e) { ok.disabled = false; er.hidden = false; er.textContent = /en construction/.test(String(e && e.message)) ? 'En construction : impossible de le supprimer pour l’instant.' : atlWhy(e); }
   });
   row.append(no, ok); c.append(er, row); M.appendChild(c); no.focus();
@@ -15520,7 +15527,7 @@ async function atlPlanchePng(f, cat, lab, l, btn) {
     if (!blob) throw new Error('png');
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ((f.titre || 'Mon jeu') + ' - ' + lab).replace(/[\\/:*?"<>|]+/g, ' ') + '.png';
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
-  } catch (e) { toastCheer('La planche n’a pas pu se préparer. Réessaie dans un moment.', null, true); }
+  } catch (e) { atlToast('La planche n’a pas pu se préparer. Réessaie dans un moment.'); }
   finally { btn.disabled = false; btn.textContent = old; }
 }
 // la FICHE d'un élément : grande image (ou ▶), nom, pose / animation ; ✂️ Retouche (cout_retouche) · 🎨 Redessiner (cout_image) ·
@@ -15588,7 +15595,7 @@ function atlVignetteDem(f, url) {
     try {
       const r = await rpc('at_demande_modif', { p_name: profile.name, p_fiche: f.id, p_nom: 'Image de présentation', p_path: m ? m[1] : null, p_texte: t, p_type: type }, { quiet: true });
       if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
-      M.hidden = true; M.textContent = ''; toastCheer('✉️ Demande envoyée ' + gA() + ' ! Suis-la dans « 📋 Mes demandes ».', null, true); ATL.demAt = 0; atlDemCharger(true);
+      M.hidden = true; M.textContent = ''; atlToast('✉️ Demande envoyée ' + gA() + ' ! Suis-la dans « 📋 Mes demandes ».'); ATL.demAt = 0; atlDemCharger(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
   row.append(no, go); c.append(row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); M.appendChild(c);
@@ -15611,7 +15618,7 @@ function atlModif(it, f, type) {
     try {
       const r = await rpc('at_demande_modif', { p_name: profile.name, p_fiche: f.id, p_nom: it.nom, p_path: it.path || null, p_texte: t, p_type: type }, { quiet: true });
       if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
-      M.hidden = true; M.textContent = ''; toastCheer('✉️ Demande envoyée ' + gA() + ' ! Suis-la dans « 📋 Mes demandes ».', null, true); ATL.demAt = 0; atlLoad(true);
+      M.hidden = true; M.textContent = ''; atlToast('✉️ Demande envoyée ' + gA() + ' ! Suis-la dans « 📋 Mes demandes ».'); ATL.demAt = 0; atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
   row.append(no, go); c.append(row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); M.appendChild(c); ta.focus();
@@ -15697,8 +15704,8 @@ function atlEncRenommer(c, it, f, fi) {
         if (it.asset) { await rpc('at_asset_renommer', { p_name: profile.name, p_fiche: f.id, p_cle: it.path, p_nom: v }, { quiet: true }); for (const a of f.assets || []) if (a && (a.image === it.path || a.son === it.path)) a.nom = v; }
         const k = it.k || ATL_CATS.find(x => x[0] === it.cat)[3];
         if (k && ['brouillon', 'en_discussion', 'complete'].includes(String(f.etat || '')) && atlListeDe(fi[k]).some(x => atlNorm(x) === atlNorm(it.nom))) atlEtape(k, atlListeDe(fi[k]).map(x => (atlNorm(x) === atlNorm(it.nom) ? v : x)));
-        toastCheer('✏️ « ' + v + ' » enregistré', null, true);
-      } catch (e) { toastCheer(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie', null, true); }
+        atlToast('✏️ « ' + v + ' » enregistré');
+      } catch (e) { atlToast(/filtre/.test(String(e && e.message)) ? 'Ce nom n’est pas possible, essaie un autre' : 'Nom pas enregistré, réessaie'); }
     }
     ATL.pSig = ''; atlRender(); atlLoad(true);
   };
@@ -15727,7 +15734,7 @@ function atlDemandeElem(it, f, cat) {
     try {
       const r = await rpc('at_demande_element', { p_name: profile.name, p_fiche: f.id, p_nom: nom, p_path: it && it.path ? it.path : null, p_texte: t, p_cat: creer ? cat : it.cat }, { quiet: true });
       if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
-      M.hidden = true; M.textContent = ''; toastCheer('✉️ Demande envoyée ' + gA() + ' !', null, true); atlLoad(true);
+      M.hidden = true; M.textContent = ''; atlToast('✉️ Demande envoyée ' + gA() + ' !'); atlLoad(true);
     } catch (e) { go.disabled = false; er.hidden = false; er.textContent = /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits pour cette demande.' : atlWhy(e); }
   });
   row.append(no, go); c.append(row, atlEl('p', 'atl-noremb', 'Les crédits utilisés ne sont pas remboursés.')); M.appendChild(c); (ni || ta).focus();
@@ -15837,7 +15844,7 @@ async function atlStripe(corps, b, er) {
   if (!['merci', 'annule', 'abonne', 'portail'].includes(v)) return;
   setTimeout(() => {
     try { atlOpen(); } catch (e) {}
-    if (v !== 'portail') toastCheer(v === 'merci' ? '🎁 Merci ! Tes crédits arrivent dans un instant.' : v === 'abonne' ? '⭐ Bienvenue dans Atelier+ ! Tes crédits arrivent dans un instant.' : 'Paiement annulé : rien n’a été payé.', profile.name, true);
+    if (v !== 'portail') atlToast(v === 'merci' ? '🎁 Merci ! Tes crédits arrivent dans un instant.' : v === 'abonne' ? '⭐ Bienvenue dans Atelier+ ! Tes crédits arrivent dans un instant.' : 'Paiement annulé : rien n’a été payé.');
     if (v !== 'annule') for (const t of [3000, 8000, 16000]) setTimeout(() => { try { atlLoad(true); } catch (e) {} }, t);
   }, 1500);
 })();
@@ -15958,8 +15965,8 @@ function atlAdminBandeau() {
   b.appendChild(atlEl('b', '', '🛡️ Mode admin : projet de ' + (av ? dispName(av.joueur) + ' · ' + (av.solde | 0) + ' 💎' : '…')));
   const bt = (t, fn) => { const x = atlEl('button', 'btn btn-ghost btn-sm', t); x.type = 'button'; x.addEventListener('click', fn); b.appendChild(x); };
   bt('📋 Demandes du projet', atlAdminDemandes);
-  bt('⬆ Version suivante', async () => { const note = prompt('Note pour le joueur (facultatif) :', '') ; if (note === null) return; try { const r = await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'version', p_args: { note } }, { quiet: true }); toastCheer('🎉 V' + (r && r.version) + ' annoncée au joueur', null, true); atlLoad(true); } catch (e) { toastCheer('Pas possible : ' + String(e && e.message).slice(0, 60), null, true); } });
-  bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); toastCheer('🎁 ' + v + ' crédits offerts', null, true); atlLoad(true); } catch (e) { toastCheer('Pas possible : ' + String(e && e.message).slice(0, 60), null, true); } });
+  bt('⬆ Version suivante', async () => { const note = prompt('Note pour le joueur (facultatif) :', '') ; if (note === null) return; try { const r = await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'version', p_args: { note } }, { quiet: true }); atlToast('🎉 V' + (r && r.version) + ' annoncée au joueur'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } });
+  bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } });
   bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); });
 }
 function atlAdminDemandes() {
@@ -15987,7 +15994,7 @@ function atlAdminDemandes() {
 async function atlBienvenue() {
   const k = 'jdw.atl.bv.' + (profile.name || ''); if (!profile.name || store.get(k, false)) return;
   let r; try { r = await rpc('at_bienvenue', { p_name: profile.name }, { quiet: true }); } catch (e) { return; }
-  if (r && r.verifier) { if (!ATL.bvDit) { ATL.bvDit = true; toastCheer('📧 Vérifie ton e-mail pour recevoir tes ' + ((r.credits | 0) || 500) + ' crédits de bienvenue !', null, true); } return; }   // 1 h : seulement un e-mail vérifié
+  if (r && r.verifier) { if (!ATL.bvDit) { ATL.bvDit = true; atlToast('📧 Vérifie ton e-mail pour recevoir tes ' + ((r.credits | 0) || 500) + ' crédits de bienvenue !'); } return; }   // 1 h : seulement un e-mail vérifié
   store.set(k, true);
   if (!r || !(r.offert > 0) || !ATL.root) return;
   if (Number.isFinite(+r.solde)) atlSolde(r.solde);
@@ -16015,7 +16022,7 @@ async function atlLoad(force) {
     const after = lastAll();
     if (after && after > before && before && ATL.root) { ATL.root.classList.add('atl-joie'); clearTimeout(ATL.joieT); ATL.joieT = setTimeout(() => ATL.root && ATL.root.classList.remove('atl-joie'), 2600); }   // la réponse arrive : il saute de joie
     if (ATL.open && !document.hidden) atlMarkSeen();
-    else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { toastCheer('✉️ ' + gNM() + ' t’a répondu !', null, true); } catch (e) {} }
+    else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { atlToast('✉️ ' + gNM() + ' t’a répondu !'); } catch (e) {} }
     atlRender();
   } catch (e) { if (e && e.status === 404) ATL.off = true; ATL.err++; if (/projet inconnu/.test(String(e && e.message)) && ATL.cur) { ATL.cur = null; ATL.err = 0; atlRender(); } }
   finally { ATL.busy = false; atlTileState(); try { refreshBell(); } catch (e) {} atlSchedule(); }
@@ -16362,7 +16369,7 @@ function atlBoutonsJeu(bn, f, sansTester) {
   const t = atlEl('button', 'btn btn-play btn-sm', '▶ Tester mon jeu'); t.type = 'button';
   t.addEventListener('click', () => {
     const g = (window.JDW_GAMES || {})[f.jeu];
-    if (!g || g.id !== f.jeu) { toastCheer('Ton jeu arrive sur la borne très bientôt !', null, true); return; }
+    if (!g || g.id !== f.jeu) { atlToast('Ton jeu arrive sur la borne très bientôt !'); return; }
     if (ATL.open) { atlJouerVrai(f); return; }
     atlClose(); try { markGameSeen(g.id); } catch (e) {} openGame(g);
   });
@@ -16370,9 +16377,9 @@ function atlBoutonsJeu(bn, f, sansTester) {
   if (et === 'alpha' || (et === 'publie_salle' && room && room.id !== f.salle)) {
     const ps = atlEl('button', 'btn btn-ghost btn-sm', '🌟 Publier dans ma salle'); ps.type = 'button';
     ps.addEventListener('click', async () => {
-      if (!room || !room.id) { toastCheer('Rejoins d’abord une salle pour y publier ton jeu', null, true); return; }
+      if (!room || !room.id) { atlToast('Rejoins d’abord une salle pour y publier ton jeu'); return; }
       ps.disabled = true;
-      try { await rpc('at_publier_salle', { p_name: profile.name, p_fiche: f.id, p_salle: room.id }, { quiet: true }); toastCheer('🌟 Publié dans « ' + (room.name || 'ta salle') + ' » !', null, true); try { atlJeuxLoad(); } catch (e) {} await atlLoad(true); }
+      try { await rpc('at_publier_salle', { p_name: profile.name, p_fiche: f.id, p_salle: room.id }, { quiet: true }); atlToast('🌟 Publié dans « ' + (room.name || 'ta salle') + ' » !'); try { atlJeuxLoad(); } catch (e) {} await atlLoad(true); }
       catch (e) { ps.disabled = false; atlErr(/pas membre/.test(String(e && e.message)) ? 'Tu n’es pas dans cette salle.' : /pas pret/.test(String(e && e.message)) ? 'Ton jeu n’est pas encore prêt.' : atlWhy(e)); }
     });
     row.appendChild(ps);
@@ -16381,7 +16388,7 @@ function atlBoutonsJeu(bn, f, sansTester) {
     const asked = !!f.monde_demande_at, mw = atlEl('button', 'btn btn-ghost btn-sm', asked ? '⏳ Demande mondiale envoyée' : '🌍 Demander la mise en ligne mondiale'); mw.type = 'button'; mw.disabled = asked;
     mw.addEventListener('click', async () => {
       mw.disabled = true;
-      try { await rpc('at_demander_monde', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); mw.textContent = '⏳ Demande mondiale envoyée'; toastCheer('Demande envoyée 🌍', null, true); await atlLoad(true); }
+      try { await rpc('at_demander_monde', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); mw.textContent = '⏳ Demande mondiale envoyée'; atlToast('Demande envoyée 🌍'); await atlLoad(true); }
       catch (e) { mw.disabled = false; atlErr(atlWhy(e)); }
     });
     row.appendChild(mw);
@@ -16482,7 +16489,7 @@ function atlCreditsBtn(into) {
 }
 const atlAbonne = () => { const cr = atlCred(); return !!(cr && cr.abo && cr.abo.etat === 'actif'); };
 // le 1er message d'un projet (raconter son idée) ne coûte rien (at_dire, « premier_gratuit »)
-function atlCoutMsg() { const cr = atlCred(); if (!cr) return 0; return atlMsgs().some(m => !m.atelier) ? cr.message | 0 : 0; }
+function atlCoutMsg() { const cr = atlCred(); if (!cr) return 0; if (atlMsgs().some(m => !m.atelier)) return cr.message | 0; return cr.idee_offerte === false || (cr.idee_offerte == null && cr.idee != null) ? cr.idee | 0 : 0; }   // 23 h 20 : la 1re idée du compte est offerte, puis cout_idee
 function atlAboBadge(R) { const b = R && R.querySelector('.atl-abob'); if (b) b.hidden = !atlAbonne(); }
 
 // ---------- micro : la dictée va dans la case, le joueur relit puis envoie ----------

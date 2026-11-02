@@ -2767,3 +2767,6 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- avec at_messages.auteur, fiche, renommer, lancer, version, demande_etat, credits, tuile_animee ; jamais de débit), journal at_admin_journal,
 -- pegase_int.at_admin_ok (at_admins) ; at_fiches.tuile_animee (offerte pour Lune et Licornes) ; at_tous_projets : joueur_at / reponse_at.
 -- Texte complet : migration atelier_v34_mode_admin.
+
+-- (v35, 2 nov. 2026 23 h 20, Benjamin) : la 1re idée d un COMPTE est gratuite (pegase_int.at_idee_offerte, at_idee_prise), les suivantes
+-- coûtent cout_idee (20) dans at_dire ; at_lire : idee, idee_offerte. Texte complet : migration atelier_v35_premiere_idee_offerte.
