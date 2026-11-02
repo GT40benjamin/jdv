@@ -3718,3 +3718,63 @@ body.atl-on #jdw-modes{visibility:hidden}
 .atl-fedb{display:flex;gap:6px}
 
 .atl-lprix{margin:12px 0 4px;padding:10px 12px;border:2px solid #c9a24a;border-radius:6px;background:#fff6d6;font:700 15px var(--body);color:#5a3a00;text-align:center}
+
+/* ---------- le parcours hyper simple : étapes, design, conception (borne 1.63.58) ---------- */
+.atl.a1 .atl-fiche{display:none}
+.atl.a1 .atl-main{grid-template-rows:minmax(0,1fr);max-width:860px}
+.atl-wiz{flex:1 1 auto;overflow-y:auto;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 28px)}
+.atl-wiz[hidden]{display:none}
+.atl-wbox{max-width:860px;margin:0 auto;display:grid;gap:14px}
+.atl-steps{display:flex;gap:6px;margin:0;padding:0;list-style:none;overflow-x:auto;scrollbar-width:none}
+.atl-steps li{flex:1 1 0;min-width:0}
+.atl-stp{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--muted);font:600 13.5px var(--body);cursor:pointer;white-space:nowrap}
+.atl-stp.on{border-color:#ffd34d;background:rgba(255,211,77,.14);color:#ffe9a8}
+.atl-stp.vu{color:var(--ink)}
+.atl-stn{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.08);font:700 11.5px var(--body)}
+.atl-stp.on .atl-stn{background:#ffd34d;color:#2a1340}
+@media (max-width:760px){.atl-stl{display:none}.atl-stp.on .atl-stl{display:inline}.atl-steps li:has(.on){flex:3 1 0}}
+.atl-wmsg{padding:10px 14px;border-radius:12px;background:rgba(122,76,255,.14);border:1px solid rgba(122,76,255,.4);font:14px/1.45 var(--body);white-space:pre-line}
+.atl-page{display:grid;gap:10px;padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--card)}
+.atl-page h2{margin:0;font:700 22px var(--display,var(--body))}
+.atl-aide{margin:-4px 0 4px;color:var(--muted);font:14px var(--body)}
+.atl-flab{font:600 13px var(--body);color:var(--muted)}
+.atl-wti,.atl-wta,.atl-chin2{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);font:15px/1.45 var(--body)}
+.atl-wti{font-weight:700;font-size:17px}
+.atl-wta{resize:vertical;min-height:120px}
+.atl-chips{display:flex;flex-wrap:wrap;gap:8px}
+.atl-chip{display:inline-flex;align-items:center;gap:4px;padding:6px 6px 6px 12px;border-radius:999px;background:rgba(255,211,77,.12);border:1px solid rgba(255,211,77,.4);font:600 14px var(--body)}
+.atl-chx{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:var(--ink);cursor:pointer;font-size:12px}
+.atl-chx:hover{background:#ff5d73;color:#fff}
+.atl-chv{color:var(--muted);font:14px var(--body)}
+.atl-chadd,.atl-wdm{display:flex;gap:8px}
+.atl-chadd .btn,.atl-wdm .btn{flex:0 0 auto}
+.atl-wdz{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:16/9;background:radial-gradient(circle at 30% 20%,#3a1f6e,#120a24)}
+.atl-wdz img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.atl-wdz.pend img{filter:blur(3px) brightness(.55)}
+.atl-wdzo{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:8px;text-align:center;padding:12px}
+.atl-wdzo small{color:var(--muted)}
+.atl-spin{width:44px;height:44px;border-radius:50%;border:4px solid rgba(255,211,77,.25);border-top-color:#ffd34d;animation:atlSpin 1s linear infinite}
+@keyframes atlSpin{to{transform:rotate(360deg)}}
+.atl-wdb{display:flex;flex-wrap:wrap;gap:8px}
+.atl-werr{margin:0;padding:8px 12px;border-radius:10px;background:rgba(255,93,115,.12);color:#ffb3bf;font:14px var(--body)}
+.atl-werr[hidden]{display:none}
+.atl-wfoot{display:flex;gap:10px;justify-content:space-between}
+.atl-wfoot .btn-play{margin-left:auto}
+.atl-go{width:100%;padding:16px 18px;font-size:19px;--acc:#ffd34d}
+.atl-go.sur{animation:atlGlow .7s ease-in-out infinite alternate}
+@keyframes atlGlow{from{box-shadow:0 0 0 0 rgba(255,211,77,.7)}to{box-shadow:0 0 0 8px rgba(255,211,77,0)}}
+@keyframes atlPulse{to{transform:scale(1.03)}}
+.atl-gonote,.atl-ia{margin:0;text-align:center;color:var(--muted);font:13px/1.45 var(--body)}
+.atl-wchat{justify-self:center;border:0;background:none;color:#c9b6ff;font:600 14px var(--body);text-decoration:underline;cursor:pointer}
+.atl-fin{display:grid;justify-items:center;gap:12px;text-align:center;padding:28px 16px;border-radius:18px;border:1px solid var(--line);background:var(--card)}
+.atl-fin h2{margin:0;font:700 26px var(--display,var(--body))}
+.atl-fin p{margin:0;max-width:520px;font:15px/1.5 var(--body)}
+.atl-findz{width:min(100%,520px);border-radius:14px;cursor:zoom-in}
+.atl-fin .atl-jbtns{justify-content:center}
+.atl-gear{position:relative;width:120px;height:120px}
+.atl-gear span{position:absolute;font-size:64px;line-height:1;animation:atlSpin 3.2s linear infinite}
+.atl-gear span:first-child{left:0;top:6px}
+.atl-gear span:nth-child(2){right:0;bottom:6px;font-size:46px;animation-direction:reverse;animation-duration:2.4s}
+.atl-gear b{position:absolute;right:10px;top:4px;font-size:26px;animation:atlPulse .9s ease-in-out infinite alternate}
+@media (prefers-reduced-motion:reduce){.atl-gear span,.atl-spin{animation-duration:8s}}
+@media (max-width:520px){.atl-wdm{flex-direction:column}.atl-wdm .btn{width:100%}}

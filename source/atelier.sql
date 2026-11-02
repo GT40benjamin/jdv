@@ -1669,3 +1669,184 @@ create or replace view public.at_cout_projets with (security_invoker = true) as
   left join (select x.fiche, sum(x.minutes) as minutes from public.at_temps x group by x.fiche) t on t.fiche = f.id
   where i.fiche is not null or t.fiche is not null or f.etat = 'envoyee';
 revoke all on public.at_cout_projets from anon, authenticated;
+
+-- ===================================================================================================================================
+-- PARCOURS « HYPER SIMPLE » (borne 1.63.58, 2 nov. 2026 16 h 25, Benjamin) — remplace la lettre, le prix ferme et les planches visibles :
+-- 1. le joueur décrit son jeu UNE fois (at_dire) ; l'équipe remplit TOUTE la fiche d'un coup (at_fiche_maj : idee, personnages, objets,
+--    decor, sons + titre) et le DESIGN se dessine tout seul la première fois (une image de style, file de l'équipe at_gen_file, role 'design') ;
+-- 2. le joueur passe étape par étape (L'idée · Personnages · Objets · Décor · Sons · Le design), ajoute / enlève (at_fiche_etape, gratuit),
+--    refait ou modifie le design (at_design_refaire, cout_design crédits, rendus si le dessin rate) ;
+-- 3. « 🚀 Lancer la conception » (at_lancer, cout_conception crédits — 0 pendant l'essai) : projet scellé (« envoyee »), écran
+--    « Conception en cours… » jusqu'à at_etat(fiche, 'alpha', null, '<jeu>') : la cloche prévient, « ▶ Tester mon jeu » apparaît.
+insert into public.at_reglages (k, v) values ('cout_design', 10), ('cout_conception', 0) on conflict (k) do nothing;
+alter table public.at_gen_file add column if not exists role text;
+alter table public.at_gen_file add column if not exists paye_par text;
+alter table public.at_gen_file add column if not exists credits int;
+
+-- le texte d'une valeur de la fiche (texte, liste, objet { nom, … }) : « a, b, c »
+create or replace function pegase_int.at_txt(v jsonb) returns text language plpgsql immutable as $$
+begin
+  return case jsonb_typeof(v) when 'string' then v #>> '{}' when 'array' then (select string_agg(pegase_int.at_txt(e), ', ') from jsonb_array_elements(v) e)
+    when 'object' then coalesce(v ->> 'nom', (select string_agg(pegase_int.at_txt(e), ', ') from jsonb_each(v) x(k, e))) when 'null' then null else v #>> '{}' end;
+end $$;
+-- la consigne du DESIGN : une seule image de style du jeu (héros dans son monde), d'après la fiche, + ce que le joueur veut changer
+create or replace function pegase_int.at_prompt_design(f public.at_fiches, chg text) returns text language sql stable security definer set search_path = public as $$
+  select 'Key art for a kids video game called "' || coalesce(nullif(f.titre, ''), 'my game') || '". The game: ' || left(coalesce(pegase_int.at_txt(f.fiche -> 'idee'), ''), 500) || '. '
+    || coalesce('Characters: ' || nullif(pegase_int.at_txt(f.fiche -> 'personnages'), '') || '. ', '')
+    || coalesce('World and setting: ' || nullif(pegase_int.at_txt(f.fiche -> 'decor'), '') || '. ', '')
+    || coalesce('Objects: ' || nullif(pegase_int.at_txt(f.fiche -> 'objets'), '') || '. ', '')
+    || 'One single polished image that shows the art style of the game: the main character(s) in the game world, like a real modern 2D video game '
+    || '(clean outlines, cel shading, soft lighting, vibrant colors, game-ready look), landscape 16:9, well composed. '
+    || coalesce('Requested change: ' || nullif(btrim(chg), '') || '. ', '')
+    || 'No logos, no brands, no existing copyrighted characters, no text except the game title if any.'
+$$;
+-- (interne) met un design dans la file ; paye_par/credits = le joueur qui a payé (rendus si le dessin rate)
+create or replace function pegase_int.at_design_file(f public.at_fiches, chg text, qui text, c int) returns uuid language plpgsql security definer set search_path = public as $$
+declare u uuid;
+begin
+  insert into public.at_gen_file (fiche, sorte, titre, prompt, ratio, role, paye_par, credits)
+    values (f.id, 'image', left('Design' || coalesce(' : ' || nullif(btrim(chg), ''), ''), 80), pegase_int.at_prompt_design(f, chg), '16:9', 'design', qui, nullif(c, 0)) returning id into u;
+  perform pegase_int.at_gen_reveil();
+  return u;
+end $$;
+revoke all on function pegase_int.at_design_file(public.at_fiches, text, text, int) from public, anon, authenticated;
+create or replace function pegase_int.at_design_en_cours(p uuid) returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.at_gen_file g where g.fiche = p and g.role = 'design' and g.etat in ('attente', 'en_cours'))
+$$;
+
+-- (admin) at_fiche_maj : la fiche remplie d'un coup → le premier design part tout seul (une fois)
+create or replace function public.at_fiche_maj(p_fiche uuid, p_maj jsonb, p_titre text default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare r public.at_fiches;
+begin
+  if p_maj is not null and jsonb_typeof(p_maj) <> 'object' then raise exception 'p_maj doit etre un objet'; end if;
+  update public.at_fiches x set fiche = jsonb_strip_nulls(x.fiche || coalesce(p_maj, '{}'::jsonb)),
+    titre = coalesce(left(btrim(p_titre), 60), x.titre), maj_at = now() where x.id = p_fiche returning * into r;
+  if r.id is null then raise exception 'fiche inconnue'; end if;
+  if r.design is null and coalesce(pegase_int.at_txt(r.fiche -> 'idee'), '') <> '' and coalesce(pegase_int.at_txt(r.fiche -> 'personnages'), pegase_int.at_txt(r.fiche -> 'decor'), '') <> ''
+     and r.etat in ('brouillon', 'en_discussion', 'complete') and not exists (select 1 from public.at_gen_file g where g.fiche = r.id and g.role = 'design') then
+    perform pegase_int.at_design_file(r, null, null, 0);
+  end if;
+  return jsonb_build_object('id', r.id, 'titre', r.titre, 'etat', r.etat, 'fiche', r.fiche, 'design_en_cours', pegase_int.at_design_en_cours(r.id));
+end $$;
+revoke all on function public.at_fiche_maj(uuid, jsonb, text) from public, anon, authenticated;
+
+-- (admin) refaire le design gratuitement, avec ou sans changement
+create or replace function public.at_gen_design(p_fiche uuid, p_changement text default null) returns uuid language plpgsql security definer set search_path = public as $$
+declare f public.at_fiches;
+begin
+  select * into f from public.at_fiches x where x.id = p_fiche; if f.id is null then raise exception 'fiche inconnue'; end if;
+  return pegase_int.at_design_file(f, p_changement, null, 0);
+end $$;
+revoke all on function public.at_gen_design(uuid, text) from public, anon, authenticated;
+
+-- (joueur) refaire / modifier son design : cout_design crédits, un seul à la fois, rendus si le dessin rate
+create or replace function public.at_design_refaire(p_name text, p_fiche uuid, p_changement text default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; c int := coalesce(pegase_int.at_reglage('cout_design'), 10); s int; why text; t text := left(btrim(coalesce(p_changement, '')), 300); u uuid;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-design', 12, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if f.etat not in ('brouillon', 'en_discussion', 'complete') or f.paye is not null then raise exception 'projet lance'; end if;
+  if coalesce(pegase_int.at_txt(f.fiche -> 'idee'), '') = '' then raise exception 'fiche vide'; end if;
+  if coalesce(pegase_int.at_reglage('ia_admins_seulement'), 0) = 1 and not exists (select 1 from public.at_admins a where a.name = n) then raise exception 'plafond global'; end if;
+  if pegase_int.at_design_en_cours(f.id) then raise exception 'design en cours'; end if;
+  if t <> '' then why := pegase_int.at_filtre(t); if why <> '' then raise exception 'filtre %', why; end if; end if;
+  s := pegase_int.at_debiter(n, c);
+  u := pegase_int.at_design_file(f, t, n, c);
+  return jsonb_build_object('id', u, 'solde', s, 'design_en_cours', true);
+end $$;
+revoke all on function public.at_design_refaire(text, uuid, text) from public, anon;
+grant execute on function public.at_design_refaire(text, uuid, text) to authenticated;
+
+-- (joueur) une étape de la fiche : l'idée (texte), le titre, ou une liste (personnages, objets, decor, sons) — gratuit
+create or replace function public.at_fiche_etape(p_name text, p_fiche uuid, p_cle text, p_valeur jsonb)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; v jsonb; why text; e text;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-fiche', 300, interval '1 hour');
+  if p_cle not in ('idee', 'titre', 'personnages', 'objets', 'decor', 'sons') then raise exception 'section inconnue'; end if;
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if f.etat not in ('brouillon', 'en_discussion', 'complete') or f.paye is not null then raise exception 'projet lance'; end if;
+  if p_cle in ('idee', 'titre') then
+    if jsonb_typeof(p_valeur) <> 'string' then raise exception 'texte attendu'; end if;
+    e := left(btrim(p_valeur #>> '{}'), case when p_cle = 'titre' then 60 else 1500 end);
+    if length(e) < 2 then raise exception 'texte vide'; end if;
+    v := to_jsonb(e);
+  else
+    if jsonb_typeof(p_valeur) <> 'array' or jsonb_array_length(p_valeur) > 30 then raise exception 'liste attendue'; end if;
+    select coalesce(jsonb_agg(to_jsonb(left(btrim(x), 80))), '[]'::jsonb) into v from jsonb_array_elements_text(p_valeur) x where length(btrim(x)) >= 1;
+    e := (select string_agg(x, ' ') from jsonb_array_elements_text(v) x);
+  end if;
+  why := pegase_int.at_filtre(coalesce(e, '')); if why <> '' then raise exception 'filtre %', why; end if;
+  if p_cle = 'titre' then update public.at_fiches x set titre = e, maj_at = now() where x.id = f.id;
+  else update public.at_fiches x set fiche = x.fiche || jsonb_build_object(p_cle, v), maj_at = now() where x.id = f.id; end if;
+  return jsonb_build_object('id', f.id, 'cle', p_cle, 'valeur', v);
+end $$;
+revoke all on function public.at_fiche_etape(text, uuid, text, jsonb) from public, anon;
+grant execute on function public.at_fiche_etape(text, uuid, text, jsonb) to authenticated;
+
+-- (joueur) 🚀 Lancer la conception : cout_conception crédits (0 pendant l'essai), une seule fois ; le projet est scellé
+create or replace function public.at_lancer(p_name text, p_fiche uuid)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; c int := greatest(0, coalesce(pegase_int.at_reglage('cout_conception'), 0)); s int;
+begin
+  perform public.acct_check(n);
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if f.paye is not null or f.etat not in ('brouillon', 'en_discussion', 'complete') then return jsonb_build_object('id', f.id, 'etat', f.etat, 'envoyee_at', f.envoyee_at, 'solde', pegase_int.at_solde(n)); end if;
+  if coalesce(pegase_int.at_txt(f.fiche -> 'idee'), '') = '' then raise exception 'fiche vide'; end if;
+  s := pegase_int.at_debiter(n, c);
+  insert into public.at_messages (fiche, texte) values (f.id, '🚀 J’ai lancé la conception de mon jeu !' || case when c > 0 then ' (' || c || ' crédits)' else '' end);
+  update public.at_fiches x set etat = 'envoyee', envoyee_at = now(), maj_at = now(), accord_at = now(), paye = c,
+    accord_texte = 'Lancer la conception : jeu créé avec l’aide de l’IA ; l’administrateur décide s’il est proposé dans la salle du joueur ou à tous et peut y faire toutes les modifications.'
+    where x.id = f.id returning * into f;
+  return jsonb_build_object('id', f.id, 'etat', f.etat, 'envoyee_at', f.envoyee_at, 'paye', c, 'solde', s);
+end $$;
+revoke all on function public.at_lancer(text, uuid) from public, anon;
+grant execute on function public.at_lancer(text, uuid) to authenticated;
+
+-- at_gen_fin : un DESIGN réussi devient le design du projet ; raté → les crédits du joueur lui sont rendus
+create or replace function pegase_int.at_gen_apres(p_id uuid, ok boolean, p_path text) returns void language plpgsql security definer set search_path = public as $$
+declare g public.at_gen_file;
+begin
+  select * into g from public.at_gen_file x where x.id = p_id; if g.id is null or g.role is distinct from 'design' then return; end if;
+  if ok then
+    update public.at_fiches x set design = jsonb_build_object('f', p_path, 'at', now(), 'changement', nullif(regexp_replace(g.titre, '^Design( : )?', ''), '')), design_at = now(), maj_at = now() where x.id = g.fiche;
+  elsif g.paye_par is not null and coalesce(g.credits, 0) > 0 then
+    update public.at_credits x set solde = x.solde + g.credits, maj_at = now() where x.name = g.paye_par;
+    update public.at_gen_file x set credits = 0 where x.id = g.id;
+  end if;
+end $$;
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_gen_fin(uuid, text, text, text)'::regprocedure);
+  if position('at_gen_apres' in d) = 0 then
+    d := replace(d, '  return jsonb_build_object(''id'', g.id, ''ok'', ok);', '  perform pegase_int.at_gen_apres(g.id, ok, p_path);' || chr(10) || '  return jsonb_build_object(''id'', g.id, ''ok'', ok);');
+    if position('at_gen_apres' in d) = 0 then raise exception 'at_gen_fin'; end if;
+    execute d;
+  end if;
+  -- budget / plafond atteint dans at_gen_prendre (le travail finit en erreur sans passer par at_gen_fin) : rendre aussi
+  d := pg_get_functiondef('public.at_gen_prendre()'::regprocedure);
+  if position('at_gen_apres' in d) = 0 then
+    d := replace(d, '    return jsonb_build_object(''pause'', true);', '    perform pegase_int.at_gen_apres(g.id, false, null);' || chr(10) || '    return jsonb_build_object(''pause'', true);');
+    d := replace(d, 'where x.etat = ''en_cours'' and x.debut_at < now() - interval ''10 minutes'';',
+      'where x.etat = ''en_cours'' and x.debut_at < now() - interval ''10 minutes'';' || chr(10) || '  perform pegase_int.at_gen_apres(x.id, false, null) from public.at_gen_file x where x.etat = ''erreur'' and x.erreur = ''trop d essais'' and coalesce(x.credits, 0) > 0;');
+    if position('at_gen_apres' in d) = 0 then raise exception 'at_gen_prendre'; end if;
+    execute d;
+  end if;
+  -- at_lire : le design en cours, et les prix du design et de la conception
+  d := pg_get_functiondef('public.at_lire(text, uuid)'::regprocedure);
+  if position('design_en_cours' in d) = 0 then
+    d := replace(d, '''projets_max'', coalesce(pegase_int.at_reglage(''projets_max''), 5),',
+      '''projets_max'', coalesce(pegase_int.at_reglage(''projets_max''), 5), ''design'', coalesce(pegase_int.at_reglage(''cout_design''), 10), ''conception'', greatest(0, coalesce(pegase_int.at_reglage(''cout_conception''), 0)),');
+    d := replace(d, '''design'', f.design, ''design_at'', f.design_at,', '''design'', f.design, ''design_at'', f.design_at, ''design_en_cours'', pegase_int.at_design_en_cours(f.id),');
+    if position('design_en_cours' in d) = 0 or position('cout_conception' in d) = 0 then raise exception 'at_lire'; end if;
+    execute d;
+  end if;
+end $$;
+revoke all on function pegase_int.at_gen_apres(uuid, boolean, text) from public, anon, authenticated;
+revoke all on function pegase_int.at_prompt_design(public.at_fiches, text) from public, anon, authenticated;
+revoke all on function pegase_int.at_design_en_cours(uuid) from public, anon, authenticated;

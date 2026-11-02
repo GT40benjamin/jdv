@@ -8,6 +8,13 @@
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 🚀 Crée ton jeu en une seule fois, puis étape par étape (borne 1.63.58)
+[atelier] ✨ Décris ton jeu une seule fois, au clavier ou au micro : l'Atelier remplit toute ta fiche et dessine un premier design de ton jeu.
+[atelier] 🧭 Ensuite, relis ton projet étape par étape : L'idée, Personnages, Objets, Décor, Sons, Le design. Sur chaque étape, ajoute ou enlève ce que tu veux (＋ / ✕), c'est gratuit.
+[atelier] 🎨 Ton design ne te plaît pas ? Refais-le, ou dis ce que tu veux changer : le prix en crédits est écrit sur le bouton.
+[atelier] 🚀 Quand tout est prêt, touche « Lancer la conception » : l'écran « Conception en cours… » tourne jusqu'à ce que ton jeu soit prêt, puis la cloche 🔔 te prévient et « ▶ Tester mon jeu » apparaît.
+[atelier] 🤖 Ton jeu est créé avec l'aide de l'IA. Plus de lettre à signer ni de planches à choisir.
+
 [atelier] ## 🔒 Les nouveautés du labo restent entre admins (borne 1.63.57)
 [atelier] 🔒 Les notes, les étiquettes « Nouveau » / « Mis à jour » et le message « Mise à jour installée » d'une version qui ne change que des jeux en essai ne s'affichent que sur les appareils en mode test. Un joueur normal ne voit rien de différent.
 

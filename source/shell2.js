@@ -2007,7 +2007,7 @@ function notifRow(n, isNew) {
   if (n.kind === 'coop') return coopNotifRow(n, li, tx);
   if (n.kind === 'atelier') {   // l'Atelier des jeux a répondu au projet du joueur
     const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✉️'; ic.style.background = 'var(--gold)';
-    const f = atlProjets().find(atlProjNew) || atlFiche(), b = document.createElement('b'); b.textContent = 'L’Atelier t’a répondu !';
+    const f = atlProjets().find(atlProjNew) || atlFiche(), b = document.createElement('b'); b.textContent = f && f.etat === 'alpha' ? '🎮 Ton jeu est prêt à tester !' : 'L’Atelier t’a répondu !';
     const sm = document.createElement('small'); sm.textContent = (f && f.titre ? 'Ton projet « ' + f.titre + ' » · ' : 'Ton projet de jeu · ') + 'touche pour lire';
     tx.append(b, sm); li.append(ic, tx); li.classList.add('click');
     li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); if (f && f.id) atlOuvrir(f.id); });
@@ -14061,7 +14061,7 @@ const atlProjets = () => (ATL.data && Array.isArray(ATL.data.projets) ? ATL.data
 const atlSeenKey = id => ATL.name + '|' + id;
 const atlProjNew = pj => !!(pj && pj.reponse_at) && String(pj.reponse_at) > String(ATL.seen[atlSeenKey(pj.id)] || '');
 const ATL_ETATS = { brouillon: '💬 En discussion', en_discussion: '💬 En discussion', complete: '🎉 Fiche complète', design: '🎨 Choix du design', design_choisi: '📮 Lettre à envoyer',
-  envoyee: '🛠️ En construction', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans ta salle', publie_monde: '🌍 Publié pour tous' };
+  envoyee: '🛠️ Conception en cours', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans ta salle', publie_monde: '🌍 Publié pour tous' };
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
 const atlLastReply = () => atlMsgs().reduce((m, x) => (x.atelier && String(x.at) > m ? String(x.at) : m), '');
 const atlUnread = () => { const l = atlLastReply(); return !!l && !!ATL.cur && l > String(ATL.seen[atlSeenKey(ATL.cur)] || ''); };
@@ -14147,37 +14147,35 @@ function atlTileState() {
   if (nw) { s = '✉️ Nouvelle réponse !'; k = 'new'; }
   else if (ps.length > 1) { s = '📁 ' + ps.length + ' projets'; k = 'wait'; }
   else if (f && (ATL_ACTIVE.has(et) || et === 'acceptee')) {
-    if (et === 'envoyee') { s = '📮 Projet envoyé'; k = 'sent'; }
+    if (et === 'envoyee') { s = '🛠️ Conception en cours…'; k = 'sent'; }
     else if (et === 'acceptee') { s = '✅ Projet accepté !'; k = 'ok'; }
     else if (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde') { s = '🎮 Ton jeu est jouable !'; k = 'ok'; }
     else if (et === 'design') { s = '🎨 Design en préparation…'; k = 'wait'; }
     else if (et === 'design_choisi') { s = '📮 Ta lettre t’attend'; k = 'go'; }
-    else if (et === 'complete') { s = '🎉 Fiche complète'; k = 'go'; }
+    else if (et === 'complete') { s = '✨ Ta fiche est prête'; k = 'go'; }
     else if (f.joueur_at && (!f.reponse_at || String(f.joueur_at) > String(f.reponse_at))) { s = '⏳ Réponse en route…'; k = 'wait'; }
   }
   st.hidden = !s; st.textContent = s; st.dataset.k = k;
   nb.hidden = !!s || !!f || !!store.get('jdw.atl.vu', false);
-  foot.textContent = ps.length > 1 ? 'Continue tes projets' : et === 'complete' ? 'Envoie ton projet' : f && ATL_ACTIVE.has(et) && !ATL_AFTER.has(et) ? 'Continue ton projet' : 'Ton idée devient un vrai jeu';
+  foot.textContent = ps.length > 1 ? 'Continue tes projets' : et === 'complete' ? 'Lance la conception' : f && ATL_ACTIVE.has(et) && !ATL_AFTER.has(et) ? 'Continue ton projet' : 'Ton idée devient un vrai jeu';
   b.parentNode.classList.toggle('atl-hot', k === 'new' || k === 'go');
 }
 
 // ---------- l'espace Atelier ----------
 const ATL_WELCOME = [
   'Bienvenue à l’Atelier des jeux ! 👋',
-  'Décris le jeu dont tu rêves, comme tu veux : en deux mots ou en racontant tout, au clavier ou au micro 🎤.',
-  '🖼️ Mets ici des images qui te plaisent (captures, dessins, photos) : je m’en inspire. On ne les copie jamais dans ton jeu, c’est seulement pour comprendre ce que tu aimes.',
-  'L’Atelier te répond sous 10 minutes environ (va jouer en attendant, la cloche 🔔 te préviendra) et remplit tout de suite ta fiche, en 9 sections numérotées. Pour changer quelque chose, dis-lui le numéro de la section.',
-  '💎 Tu as des crédits Elixir, remis chaque mois : un message à l’Atelier coûte 2 crédits.',
-  '🎁 Quand ta fiche est prête, l’Atelier te donne LE prix de ton jeu en crédits : un seul prix, pour tout (images, sons, construction). Tu envoies ton projet, et notre équipe construit ton jeu.',
-  'Bon à savoir : sur la borne, ce qui compte c’est le SCORE ENTRE COPAINS 🏆 — pense à comment on bat le record des autres ! Et sur téléphone, ton jeu sera un peu moins beau que sur PC.',
-  'Quand tout te plaît, touche « Envoyer mon projet » en haut : tu signeras ta lettre, et notre équipe construit ton jeu. Tu peux mener jusqu’à 5 projets en même temps !'
+  'Décris le jeu dont tu rêves, en une seule fois, au clavier ou au micro 🎤 : le héros, ce qu’on fait, le monde, les objets, les sons… Plus tu racontes, mieux c’est !',
+  '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais dans ton jeu.',
+  '✨ L’Atelier remplit alors toute ta fiche et dessine un premier design de ton jeu (quelques minutes : va jouer, la cloche 🔔 te préviendra).',
+  'Ensuite tu relis chaque étape, tu ajoutes ou enlèves ce que tu veux, puis tu touches « 🚀 Lancer la conception » : notre équipe construit ton jeu.',
+  '🤖 Ton jeu est créé avec l’aide de l’IA. 💎 Ce qui coûte des crédits affiche son prix sur le bouton.'
 ];
 function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
     + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
-    + '<div class="atl-projets" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
+    + '<div class="atl-projets" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
     + '<div class="atl-chat"><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
@@ -14222,9 +14220,11 @@ function atlErr(t) { if (!ATL.root) return; const e = ATL.root.querySelector('.a
 function atlRender() {
   if (!ATL.root || !ATL.open) return;
   const liste = !ATL.cur && !ATL.nouveau, R = ATL.root;
-  R.querySelector('.atl-main').hidden = liste; R.querySelector('.atl-projets').hidden = !liste; R.classList.toggle('liste', liste);
+  const wiz = !liste && atlWizOn();
+  R.querySelector('.atl-main').hidden = liste || wiz; R.querySelector('.atl-projets').hidden = !liste; R.querySelector('.atl-wiz').hidden = !wiz;
+  R.classList.toggle('liste', liste); R.classList.toggle('wiz', wiz); R.classList.toggle('a1', !liste && !wiz);
   R.querySelector('.atl-back').setAttribute('aria-label', liste ? 'Retour à la borne' : 'Mes projets');
-  if (liste) atlRenderProjets(); else { atlRenderFiche(); atlRenderChat(); }
+  if (liste) atlRenderProjets(); else if (wiz) atlRenderWiz(); else { atlRenderFiche(); atlRenderChat(); }
 }
 // ---------- « Mes projets » : une tuile par projet (titre, vignette, état, nouvelle réponse) + « Nouveau projet » ----------
 function atlRenderProjets() {
@@ -14250,14 +14250,14 @@ function atlRenderProjets() {
 }
 function atlOuvrir(id) {
   atlMicStop(); atlLetterClose(true); atlErr('');
-  ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
+  ATL.cur = id; ATL.nouveau = false; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.lance = 0; ATL.iaK = ''; ATL.iaMsg = ''; ATL.dchoix = {}; ATL.propHide = ''; ATL.propMsg = ''; ATL.pend = []; ATL.stick = true;
   const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (inp) inp.placeholder = 'Décris ton jeu…';
   atlRender(); atlLoad(true);
 }
 function atlNouveau() {
   const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
   if (atlProjets().length >= max) { toastCheer(max + ' projets au plus', null, true); return; }
-  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.pend = []; ATL.stick = true; atlErr('');
+  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = 0; ATL.pend = []; ATL.stick = true; atlErr('');
   atlRender();
   const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Raconte ton nouveau jeu…'; if (!TOUCH) inp.focus();
 }
@@ -14336,7 +14336,7 @@ function atlBubble(m, wel) {
   if (wel) { for (const p of ATL_WELCOME) bub.appendChild(atlEl('p', '', p)); }
   else {
     if (m.texte) bub.appendChild(atlEl('p', '', m.texte));
-    if (Array.isArray(m.images) && m.images.length) bub.appendChild(atlImgs(m));
+    if (Array.isArray(m.images) && m.images.length && !m.planche) bub.appendChild(atlImgs(m));
     if (m.image) { const a = atlEl('a', 'atl-bimg'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; const im = atlEl('img'); im.alt = 'Image jointe'; im.loading = 'lazy'; im.src = atlImgUrl(m.image); im.onerror = () => { a.replaceWith(atlEl('em', 'atl-miss', '🖼️ image pas arrivée')); }; a.appendChild(im); bub.appendChild(a); }
   }
   col.appendChild(bub);
@@ -14353,22 +14353,20 @@ function atlRenderChat() {
   for (const m of ATL.pend || []) log.appendChild(atlBubble(m));
   if (atlWaiting() && !(ATL.pend || []).length) {
     const w = atlEl('div', 'atl-waitc');
-    w.innerHTML = '<span class="atl-hour" aria-hidden="true">⏳</span><span><b>Message bien reçu !</b> L’Atelier te répond sous 10 minutes environ. Va jouer en attendant : la cloche 🔔 te préviendra.</span>';
+    w.innerHTML = '<span class="atl-hour" aria-hidden="true">⏳</span><span><b>Bien reçu !</b> L’Atelier remplit ta fiche et dessine ton premier design (quelques minutes). Va jouer en attendant : la cloche 🔔 te préviendra.</span>';
     log.appendChild(w);
   }
   if (atBottom || ATL.stick) { log.scrollTop = log.scrollHeight; ATL.stick = false; }
   // bandeau et verrou selon l'état du projet
   const bn = R.querySelector('.atl-banner'), lock = R.querySelector('.atl-lock');
   let btxt = '', bk = '', locked = '';
-  if (et === 'complete' && !atlChoix()) { btxt = f.prix ? '🎁 Ton jeu : ' + (f.prix | 0) + ' crédits pour tout. Si tout te plaît, envoie ton projet. Sinon, touche une section pour la changer.' : '🎉 Ta fiche est complète ! L’Atelier prépare le prix de ton jeu.'; bk = 'go'; }
+  if (et === 'complete' && !atlChoix() && !atlRempli(f)) { btxt = f.prix ? '🎁 Ton jeu : ' + (f.prix | 0) + ' crédits pour tout. Si tout te plaît, envoie ton projet. Sinon, touche une section pour la changer.' : '🎉 Ta fiche est complète ! L’Atelier prépare le prix de ton jeu.'; bk = 'go'; }
   else if (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde') { btxt = et === 'alpha' ? '🎮 Ton jeu est jouable ! Sa tuile « MON JEU » t’attend sur la borne. Dis à l’Atelier ce que tu veux changer.' : '🌟 Ton jeu est publié ' + (et === 'publie_monde' ? 'pour tout le monde !' : 'dans ta salle !') + ' Tu peux encore demander des modifications.'; bk = 'ok'; }
   else if (et === 'envoyee') { btxt = '🛠️ Projet envoyé le ' + atlDate(f.envoyee_at) + ' — notre équipe construit ton jeu. La cloche 🔔 te préviendra dès qu’il est prêt à tester.'; bk = 'sent'; }
   else if (et === 'acceptee') { btxt = '✅ Ton projet est accepté ! L’Atelier te tiendra au courant.'; bk = 'ok'; locked = 'Un jeu par joueur : celui-ci est le tien ! 🎮'; }
   else if (et === 'refusee') { btxt = 'Ton projet n’a pas été retenu cette fois. Tu peux en proposer un autre : écris ta nouvelle idée !'; bk = 'no'; }
   bn.hidden = !btxt; bn.dataset.k = bk; bn.textContent = btxt;
-  if (et === 'complete' && !atlChoix() && f.prix) { const b = atlEl('button', 'btn btn-play btn-sm', '📮 Envoyer mon projet'); b.type = 'button'; b.addEventListener('click', atlEnvoyer); bn.appendChild(b); }
   if (f && f.jeu && (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde')) atlBoutonsJeu(bn, f);
-  if (et === 'envoyee' || et === 'acceptee') { const b = atlEl('button', 'btn btn-ghost btn-sm', 'Revoir ma lettre'); b.type = 'button'; b.addEventListener('click', () => atlLetter(true)); bn.appendChild(b); }
   lock.hidden = !locked; lock.textContent = locked;
   const ch = atlChoix();
   for (const s of ['.atl-row', '.atl-row2']) R.querySelector(s).hidden = !!locked || ch;
@@ -14377,10 +14375,153 @@ function atlRenderChat() {
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
   cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.mois | 0) + ' offerts chaque mois · ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
   R.querySelector('.atl-suivib').hidden = !(cr && cr.admin);
-  const sh = R.querySelector('.atl-sendh'); sh.hidden = false;
-  sh.textContent = ATL_AFTER.has(et) || et === 'refusee' ? '📮 Ma lettre' : '📮 Envoyer mon projet';
-  sh.classList.toggle('btn-ghost', ATL_AFTER.has(et) || ch); sh.classList.toggle('btn-play', !(ATL_AFTER.has(et) || ch));
+  R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
+  atlChatRetour(bn);
   const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = '💎 ' + (cr.message | 0) + ' par message';
+}
+
+// ---------- 2 nov. 16 h 25 (Benjamin) : le parcours HYPER SIMPLE — un seul prompt remplit tout, puis ÉTAPE PAR ÉTAPE ----------
+// L'idée · Personnages · Objets · Décor · Sons · Le design : le joueur ajoute / enlève (étiquettes ＋ / ✕, gratuit : at_fiche_etape),
+// refait ou modifie le design (at_design_refaire, prix sur le bouton), puis « 🚀 Lancer la conception » (at_lancer) : écran
+// « Conception en cours… » jusqu'à ce que l'équipe passe le projet en 'alpha' (« ▶ Tester mon jeu »). Plus de lettre, plus de planches.
+const ATL_STEPS = [
+  ['idee', '💡', 'L’idée', 'Ce qu’on fait dans ton jeu, et comment on gagne.'],
+  ['personnages', '🦸', 'Personnages', 'Le héros, ses amis, les méchants…'],
+  ['objets', '🎁', 'Objets', 'Ce qu’on ramasse, ce qu’on utilise, les bonus…'],
+  ['decor', '🏞️', 'Décor', 'Les endroits où se passe ton jeu.'],
+  ['sons', '🎵', 'Sons', 'Les bruitages et les musiques.'],
+  ['design', '🎨', 'Le design', 'À quoi ressemble ton jeu.']
+];
+const atlListeDe = v => (Array.isArray(v) ? v.map(atlVal).filter(Boolean) : atlVal(v) ? atlElements(atlVal(v)) : []);
+const atlRempli = f => { const fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; return !!atlVal(fi.idee) && ['personnages', 'objets', 'decor'].some(k => atlListeDe(fi[k]).length); };
+const atlWizOn = () => { const f = atlFiche(); if (!f || ATL.chat) return false; return ATL_AFTER.has(f.etat) || atlRempli(f); };
+function atlChatRetour(bn) {   // dans la discussion (demande de changement) : revenir aux étapes
+  const f = atlFiche(); if (!f || !ATL.chat) return;
+  const b = atlEl('button', 'btn btn-ghost btn-sm', '← Revenir à mon projet'); b.type = 'button';
+  b.addEventListener('click', () => { ATL.chat = false; atlRender(); }); bn.hidden = false; bn.appendChild(b);
+}
+function atlWizErr(t) { const e = ATL.root && ATL.root.querySelector('.atl-werr'); if (e) { e.hidden = !t; e.textContent = t || ''; } }
+function atlWizWhy(e) {
+  const m = String((e && e.message) || '');
+  if (/design en cours/.test(m)) return 'Ton design est déjà en train d’être dessiné : encore un petit moment !';
+  if (/projet lance/.test(m)) return 'La conception est lancée : ton projet ne se modifie plus.';
+  if (/plafond global/.test(m)) return 'Le dessin fait une petite pause : réessaie un peu plus tard.';
+  if (/fiche vide/.test(m)) return 'Raconte d’abord ton jeu à l’Atelier.';
+  return atlWhy(e);
+}
+async function atlEtape(cle, val) {
+  const f = atlFiche(); if (!f) return;
+  if (cle === 'titre') f.titre = val; else { f.fiche = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; f.fiche[cle] = val; }
+  atlWizErr('');
+  try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: f.id, p_cle: cle, p_valeur: val }, { quiet: true }); }
+  catch (e) { atlWizErr(atlWizWhy(e)); atlLoad(true); }
+}
+async function atlDesign(chg, btn) {
+  const f = atlFiche(), cr = atlCred(); if (!f || ATL.sending) return;
+  if (cr && (cr.solde | 0) < (cr.design | 0)) { atlWizErr('Il te manque des crédits pour refaire le design.'); atlCreditsBtn(ATL.root.querySelector('.atl-werr')); ATL.root.querySelector('.atl-werr').hidden = false; return; }
+  ATL.sending = true; if (btn) btn.disabled = true; atlWizErr('');
+  try {
+    const r = await rpc('at_design_refaire', { p_name: profile.name, p_fiche: f.id, p_changement: chg || null }, { quiet: true });
+    f.design_en_cours = true; if (r && Number.isFinite(+r.solde)) atlSolde(r.solde);
+    ATL.dchg = ''; atlRenderWiz();
+  } catch (e) { if (btn) btn.disabled = false; atlWizErr(atlWizWhy(e)); if (/credits insuffisants/.test(String(e && e.message))) { const x = ATL.root.querySelector('.atl-werr'); atlCreditsBtn(x); x.hidden = false; } }
+  finally { ATL.sending = false; }
+}
+async function atlLancer(btn) {
+  const f = atlFiche(); if (!f || ATL.sending) return;
+  if (Date.now() - (ATL.lance || 0) > 5000) { ATL.lance = Date.now(); btn.textContent = '🚀 Sûr ? Touche encore pour lancer !'; btn.classList.add('sur'); setTimeout(() => { if (btn.isConnected && Date.now() - ATL.lance >= 5000) atlRenderWiz(); }, 5100); return; }
+  ATL.sending = true; btn.disabled = true; atlWizErr('');
+  try { const r = await rpc('at_lancer', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ATL.lance = 0; f.etat = 'envoyee'; atlRender(); toastCheer('🚀 Conception lancée !', null, true); await atlLoad(true); }
+  catch (e) { btn.disabled = false; ATL.lance = 0; atlWizErr(atlWizWhy(e)); if (/credits insuffisants/.test(String(e && e.message))) { const x = ATL.root.querySelector('.atl-werr'); atlCreditsBtn(x); x.hidden = false; } }
+  finally { ATL.sending = false; }
+}
+function atlWizChips(page, k, fi) {
+  const l = atlListeDe(fi[k]), ul = atlEl('div', 'atl-chips');
+  l.forEach((x, i) => {
+    const c = atlEl('span', 'atl-chip'), t = atlEl('span', '', x), d = atlEl('button', 'atl-chx', '✕'); d.type = 'button'; d.setAttribute('aria-label', 'Enlever « ' + x + ' »');
+    d.addEventListener('click', () => { const n = atlListeDe(fi[k]); n.splice(i, 1); atlEtape(k, n); atlRenderWiz(); });
+    c.append(t, d); ul.appendChild(c);
+  });
+  if (!l.length) ul.appendChild(atlEl('em', 'atl-chv', 'Rien pour l’instant.'));
+  const add = atlEl('form', 'atl-chadd'), inp = atlEl('input', 'atl-chin2'); inp.type = 'text'; inp.maxLength = 80; inp.placeholder = 'Ajouter…'; inp.setAttribute('aria-label', 'Ajouter dans ' + k);
+  const ab = atlEl('button', 'btn btn-play btn-sm', '＋ Ajouter'); ab.type = 'submit';
+  add.addEventListener('submit', e => { e.preventDefault(); const v = inp.value.trim(); if (!v) { inp.focus(); return; } const n = atlListeDe(fi[k]); if (n.length >= 30) { atlWizErr('30 au plus, c’est déjà beaucoup !'); return; } n.push(v.slice(0, 80)); inp.value = ''; atlEtape(k, n); atlRenderWiz(); const ni = ATL.root.querySelector('.atl-chin2'); if (ni && !TOUCH) ni.focus(); });
+  add.append(inp, ab); page.append(ul, add);
+}
+function atlRenderWiz() {
+  const R = ATL.root, W = R && R.querySelector('.atl-wiz'), f = atlFiche(); if (!W || !f) return;
+  const ae = document.activeElement; if (ae && W.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.value) return;   // le joueur écrit : on ne redessine pas
+  const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, et = String(f.etat || ''), cr = atlCred();
+  const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr && !ATL.soldeT) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.classList.remove('low'); }
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); R.querySelector('.atl-sendh').hidden = true;
+  W.textContent = '';
+  const box = atlEl('div', 'atl-wbox'); W.appendChild(box);
+  const dz = f.design && atlIaUrl(f.design.f);
+  if (ATL_AFTER.has(et) || et === 'refusee') {   // conception lancée, jeu prêt, ou refusé
+    const c = atlEl('div', 'atl-fin' + (et === 'envoyee' || et === 'acceptee' ? ' run' : ''));
+    if (et === 'envoyee' || et === 'acceptee') {
+      R.querySelector('.atl-hs').textContent = 'Conception en cours';
+      c.innerHTML = '<div class="atl-gear" aria-hidden="true"><span>⚙️</span><span>⚙️</span><b>✨</b></div>';
+      c.append(atlEl('h2', '', 'Conception en cours…'), atlEl('p', '', 'Notre équipe construit « ' + (f.titre || 'ton jeu') + ' ». Va jouer en attendant : la cloche 🔔 te prévient dès qu’il est prêt à tester.'));
+    } else if (et === 'refusee') {
+      R.querySelector('.atl-hs').textContent = 'Projet';
+      c.append(atlEl('h2', '', 'Ce projet n’a pas été retenu'), atlEl('p', '', 'Tu peux en commencer un autre depuis « Mes projets ».'));
+    } else {
+      R.querySelector('.atl-hs').textContent = et === 'alpha' ? 'Ton jeu est prêt !' : 'Ton jeu est publié';
+      c.append(atlEl('h2', '', et === 'alpha' ? '🎉 Ton jeu est prêt à tester !' : '🌟 Ton jeu est publié ' + (et === 'publie_monde' ? 'pour tout le monde !' : 'dans ta salle !')));
+      atlBoutonsJeu(c, f);
+    }
+    if (dz) { const im = atlEl('img', 'atl-findz'); im.alt = 'Le design de ton jeu'; im.src = dz; im.addEventListener('click', () => atlZoom(dz)); c.appendChild(im); }
+    if (et !== 'refusee') { const w = atlEl('button', 'btn btn-ghost btn-sm', '💬 Écrire à l’Atelier'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); }); c.appendChild(w); }
+    c.appendChild(atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
+    box.appendChild(c); return;
+  }
+  R.querySelector('.atl-hs').textContent = 'Étape ' + ((ATL.step | 0) + 1) + ' / ' + ATL_STEPS.length;
+  const st = Math.max(0, Math.min(ATL_STEPS.length - 1, ATL.step | 0)); ATL.step = st;
+  const nav = atlEl('ol', 'atl-steps');
+  ATL_STEPS.forEach(([k, ic, lab], i) => {
+    const li = atlEl('li'), b = atlEl('button', 'atl-stp' + (i === st ? ' on' : '') + (i < st ? ' vu' : '')); b.type = 'button';
+    b.append(atlEl('span', 'atl-stn', String(i + 1)), atlEl('span', 'atl-sti', ic), atlEl('span', 'atl-stl', lab));
+    b.addEventListener('click', () => { ATL.step = i; atlRenderWiz(); W.scrollTop = 0; }); li.appendChild(b); nav.appendChild(li);
+  });
+  box.appendChild(nav);
+  const lm = atlMsgs().filter(m => m.atelier && m.texte).slice(-1)[0];
+  if (lm && st === 0) box.appendChild(atlEl('div', 'atl-wmsg', '💬 L’Atelier : ' + lm.texte));
+  const [k, ic, lab, aide] = ATL_STEPS[st], page = atlEl('section', 'atl-page');
+  page.append(atlEl('h2', '', ic + ' ' + lab), atlEl('p', 'atl-aide', aide));
+  if (k === 'idee') {
+    const tl = atlEl('label', 'atl-flab', 'Le nom de ton jeu'), ti = atlEl('input', 'atl-wti'); ti.type = 'text'; ti.maxLength = 60; ti.value = f.titre || ''; ti.placeholder = 'Le nom de ton jeu';
+    ti.addEventListener('change', () => { const v = ti.value.trim(); if (v.length >= 2 && v !== f.titre) atlEtape('titre', v); });
+    const ta = atlEl('textarea', 'atl-wta'); ta.rows = 6; ta.maxLength = 1500; ta.value = atlVal(fi.idee); ta.setAttribute('aria-label', 'L’idée de ton jeu');
+    ta.addEventListener('change', () => { const v = ta.value.trim(); if (v.length >= 2 && v !== atlVal(fi.idee)) atlEtape('idee', v); });
+    page.append(tl, ti, atlEl('label', 'atl-flab', 'Ton jeu en quelques phrases'), ta);
+  } else if (k === 'design') {
+    const pend = !!f.design_en_cours, d = atlEl('div', 'atl-wdz' + (pend ? ' pend' : ''));
+    if (dz) { const im = atlEl('img'); im.alt = 'Le design de ton jeu'; im.src = dz; im.addEventListener('click', () => atlZoom(dz)); d.appendChild(im); }
+    if (pend || !dz) { const o = atlEl('div', 'atl-wdzo'); o.innerHTML = '<span class="atl-spin" aria-hidden="true"></span>'; o.appendChild(atlEl('b', '', pend ? 'L’Atelier dessine ton design…' : 'Ton design arrive bientôt…')); o.appendChild(atlEl('small', '', 'Une minute ou deux. Tu peux continuer à regarder tes étapes.')); d.appendChild(o); }
+    page.appendChild(d);
+    const cd = cr ? cr.design | 0 : 10, prix = cd > 0 ? ' · ' + cd + ' 💎' : '';
+    const row = atlEl('div', 'atl-wdb'), rf = atlEl('button', 'btn btn-ghost', '🔄 Refaire le design' + prix); rf.type = 'button'; rf.disabled = pend;
+    rf.addEventListener('click', () => atlDesign('', rf));
+    const mf = atlEl('form', 'atl-wdm'), mi = atlEl('input', 'atl-chin2'); mi.type = 'text'; mi.maxLength = 300; mi.placeholder = 'Ce que tu veux changer (ex. : de nuit, plus de couleurs…)'; mi.value = ATL.dchg || ''; mi.disabled = pend;
+    mi.addEventListener('input', () => { ATL.dchg = mi.value; });
+    const mb = atlEl('button', 'btn btn-play', '✏️ Modifier' + prix); mb.type = 'submit'; mb.disabled = pend;
+    mf.addEventListener('submit', e => { e.preventDefault(); const v = mi.value.trim(); if (v.length < 3) { mi.focus(); return; } atlDesign(v, mb); });
+    mf.append(mi, mb); row.appendChild(rf); page.append(row, mf);
+  } else atlWizChips(page, k, fi);
+  box.appendChild(page);
+  const er = atlEl('p', 'atl-werr'); er.hidden = true; box.appendChild(er);
+  const foot = atlEl('div', 'atl-wfoot');
+  if (st > 0) { const p = atlEl('button', 'btn btn-ghost', '← Précédent'); p.type = 'button'; p.addEventListener('click', () => { ATL.step = st - 1; atlRenderWiz(); W.scrollTop = 0; }); foot.appendChild(p); }
+  if (st < ATL_STEPS.length - 1) { const n = atlEl('button', 'btn btn-play', 'Suivant →'); n.type = 'button'; n.addEventListener('click', () => { ATL.step = st + 1; atlRenderWiz(); W.scrollTop = 0; }); foot.appendChild(n); }
+  box.appendChild(foot);
+  if (st === ATL_STEPS.length - 1) {
+    const cc = cr ? cr.conception | 0 : 0, go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cc > 0 ? ' · ' + cc + ' 💎' : '')); go.type = 'button';
+    go.addEventListener('click', () => atlLancer(go));
+    box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus : notre équipe construit ton jeu, puis l’administrateur choisit s’il est proposé dans ta salle ou à tous.'));
+  }
+  const w = atlEl('button', 'atl-wchat', '💬 Une question ? Écris à l’Atelier'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
+  box.append(w, atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
 }
 
 // ---------- serveur ----------
