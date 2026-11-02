@@ -14654,10 +14654,11 @@ function atlRenderProjet(W, f) {
 // ---------- 2 nov. 18 h 25 (Benjamin) : ÉTAPE 1 « Les bases de ton jeu » (5 questions, une à l'écran, avant l'invite), l'invite PRÉ-REMPLIE,
 // la FEUILLE DE ROUTE (colonne de droite sur PC, repliable en haut sur téléphone), les DESSINS des éléments (planches de 8 au plus, découpées
 // par le serveur) et les FORMES simples dessinées par le code (3 crédits). Le jeu est toujours en 2D. Les textes du joueur : textContent seulement.
+// 20 h 30, Benjamin : plus de vue « de face, ça avance vers moi » (les jeux sont en 2D) : de côté ou vu de dessus
 const ATL_BASES = [
   ['dim', '🧊', '2D ou 3D ?', '2D / 3D', [['', '2D', 'à plat, comme Mario ou Candy Crush'], ['', '3D', 'en relief — bientôt !', true]]],
   ['type', '🎮', 'Quel genre de jeu ?', 'Genre', [['🏃', 'Toujours en avant', 'comme Contresens, Subway Surfers, Flappy Bird'], ['🪜', 'À niveaux', 'comme Mario, Candy Crush, Angry Birds'], ['🌱', 'Faire grandir', 'comme La Maison des Licornes, Cookie Clicker'], ['🗺️', 'Monde libre', 'comme Zelda, Pokémon, Animal Crossing']]],
-  ['vue', '👀', 'On voit le jeu comment ?', 'Vue', [['➡️', 'De côté', ''], ['⬇️', 'Vu de dessus', ''], ['🎯', 'De face, ça avance vers moi', '']]],
+  ['vue', '👀', 'On voit le jeu comment ?', 'Vue', [['➡️', 'De côté', ''], ['⬇️', 'Vu de dessus', '']]],
   ['avec', '👥', 'Avec qui on joue ?', 'Avec qui', [['🙋', 'Seul', ''], ['👫', 'À deux sur le même écran', ''], ['⚔️', 'En duel', '']]],
   ['score', '🏆', 'Le score, c’est…', 'Score', [['⭐', 'Des points', ''], ['⏱️', 'Le temps', ''], ['📏', 'La distance', ''], ['💰', 'Ce qu’on possède', ''], ['🏆', 'Les niveaux réussis', '']]],
   ['style', '🎨', 'Quel style ?', 'Style', [['🧸', 'Mignon', ''], ['👾', 'Rétro pixel', ''], ['💡', 'Néon', ''], ['🎨', 'Dessin animé', ''], ['🌲', 'Plus réaliste', '']]]
