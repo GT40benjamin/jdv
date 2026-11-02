@@ -14219,7 +14219,7 @@ function atlBuild() {
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
     + '<div class="atl-h"><div class="atl-nomr"><b class="atl-nom">L’Atelier des jeux</b><button class="atl-nomb" type="button" hidden aria-label="Renommer mon projet">✏️</button></div><small class="atl-hs">Ton idée devient un jeu</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
-    + '<details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
+    + '<div class="atl-frise" hidden></div><details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
     + '<div class="atl-chat"><div class="atl-intro" hidden></div><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
@@ -14273,7 +14273,7 @@ function atlRender() {
   R.classList.toggle('liste', liste); R.classList.toggle('wiz', wiz); R.classList.toggle('a1', !liste && !wiz && !bases); R.classList.toggle('route', !liste);
   R.querySelector('.atl-back').setAttribute('aria-label', liste ? 'Retour à la borne' : 'Mes projets');
   if (liste) atlRenderProjets(); else if (bases) atlRenderBases(); else if (wiz) atlRenderWiz(); else { atlRenderFiche(); atlRenderChat(); atlPrefill(); }
-  atlRenderRoute(liste);
+  atlRenderRoute(liste); atlFrise(liste);
 }
 // ---------- « Mes projets » : une tuile par projet (titre, vignette, état, nouvelle réponse) + « Nouveau projet » ----------
 function atlRenderProjets() {
@@ -14316,7 +14316,7 @@ function atlOuvrir(id) {
 function atlNouveau() {
   const cr = atlCred(), max = (cr && cr.projets_max | 0) || 5;
   if (atlProjets().length >= max) { toastCheer(max + ' projets au plus', null, true); return; }
-  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.basesLoc = {}; ATL.basesDone = false; ATL.basesEnCours = true; ATL.brLast = ''; { const i0 = ATL.root && ATL.root.querySelector('.atl-in'); if (i0) i0.value = ''; } ATL.basesOn = false; ATL.bq = 0; ATL.pend = []; ATL.stick = true; atlErr('');
+  atlMicStop(); ATL.cur = null; ATL.nouveau = true; ATL.choix = null; ATL.chat = false; ATL.step = null; ATL.basesLoc = {}; ATL.basesDone = true; ATL.basesEnCours = false; ATL.brLast = ''; { const i0 = ATL.root && ATL.root.querySelector('.atl-in'); if (i0) i0.value = ''; } ATL.basesOn = false; ATL.bq = 0; ATL.pend = []; ATL.stick = true; atlErr('');
   atlRender();
   const inp = ATL.root.querySelector('.atl-in'); inp.placeholder = 'Raconte ton nouveau jeu…'; if (!TOUCH) inp.focus();
 }
@@ -14415,9 +14415,8 @@ function atlRenderChat() {
   for (const m of mine || et === 'refusee' ? atlMsgs() : []) log.appendChild(atlBubble(m));
   for (const m of ATL.pend || []) log.appendChild(atlBubble(m));
   if (atlWaiting() && !(ATL.pend || []).length) {
-    const w = atlEl('div', 'atl-waitc');
-    w.innerHTML = '<span class="atl-hour" aria-hidden="true">⏳</span><span><b>Bien reçu !</b> ' + gNM() + ' remplit ta fiche et dessine ton premier design (quelques minutes). Va jouer en attendant : la cloche 🔔 te préviendra.</span>';
-    log.appendChild(w);
+    const lp = atlMsgs().filter(m => !m.atelier).slice(-1)[0];   // 21 h : le guide répond tout de suite (réponse locale, gratuite)
+    log.appendChild(atlBubble({ atelier: true, texte: 'Super idée ! Je réfléchis et je reviens vers toi dès que ton projet est monté. 🛠️ Va jouer en attendant : la cloche 🔔 te préviendra.', at: (lp && lp.at) || new Date().toISOString() }));
   }
   if (atBottom || ATL.stick) { log.scrollTop = log.scrollHeight; ATL.stick = false; }
   // bandeau et verrou selon l'état du projet
@@ -14776,13 +14775,8 @@ const ATL_ART = {
   style4: '<defs><radialGradient id="atl-r4" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffe0b2"/><stop offset=".6" stop-color="#a1887f"/><stop offset="1" stop-color="#3e2723"/></radialGradient><linearGradient id="atl-r4s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#90a4ae"/><stop offset="1" stop-color="#cfd8dc"/></linearGradient></defs>'
     + '<rect width="160" height="100" fill="url(#atl-r4s)"/><rect y="70" width="160" height="30" fill="#6d4c41"/><ellipse cx="80" cy="78" rx="30" ry="5" fill="rgba(0,0,0,.35)"/><circle cx="80" cy="50" r="26" fill="url(#atl-r4)"/>'
 };
-const atlBasesVal = () => { const f = atlFiche(), b = f && f.fiche && typeof f.fiche === 'object' ? f.fiche.bases : null; return b && typeof b === 'object' ? b : (ATL.basesLoc || {}); };
-const atlBasesOn = () => {
-  if (ATL.basesOn || ATL.basesEnCours) return true;
-  if (ATL.nouveau && !ATL.cur) return !ATL.basesDone;
-  const f = atlFiche(); if (!f || ATL.chat || ATL_AFTER.has(f.etat) || f.etat === 'refusee' || atlRempli(f)) return false;
-  return !(f.fiche && f.fiche.bases) && !atlMsgs().some(m => !m.atelier);
-};
+const atlBasesVal = () => { const f = atlFiche(), b = f && f.fiche && typeof f.fiche === 'object' ? f.fiche.bases : null; return b && typeof b === 'object' ? b : (f ? {} : (ATL.basesLoc || {})); };   // un projet existant : ses bases à lui seulement
+const atlBasesOn = () => !!(ATL.basesOn || ATL.basesEnCours);   // 21 h : les bases ne sont plus des écrans imposés (cartes dans la discussion)
 const atlBasesTexte = b => { const v = k => String(b[k] || '').toLowerCase(); const parts = [b.type && 'un jeu « ' + b.type + ' »', b.vue && v('vue'), b.avec && 'à jouer ' + v('avec'), b.score && 'le score : ' + v('score'), b.style && 'style ' + v('style')].filter(Boolean);
   return parts.length ? 'Mon jeu (en ' + (b.dim === '3D' ? '3D' : '2D') + ') : ' + parts.join(', ') + '.\nMon idée : ' : ''; };
 function atlPrefill() {
@@ -14890,6 +14884,7 @@ function atlDessinDe(f, fi, nom) {
 function atlWizDessins(page, f, fi) {
   const els = atlElemsFiche(fi); if (!els.length) return;
   const sec = atlEl('div', 'atl-wds'); sec.appendChild(atlEl('h3', '', '🧩 Les dessins de ton jeu'));
+  sec.appendChild(atlEl('p', 'atl-wdmain', '⭐ Dessine tes éléments principaux, ' + gN() + ' fera tout le reste pendant la construction.'));
   const gr = atlEl('div', 'atl-wdg'); let faits = 0;
   for (const e of els) {
     const d = atlDessinDe(f, fi, e.nom), c = atlEl('figure', 'atl-wdc' + (d ? (d.attente ? ' att' : ' ok') : ''));
@@ -14897,13 +14892,38 @@ function atlWizDessins(page, f, fi) {
     else if (d && d.forme) { c.appendChild(atlFormeSvg(d.forme.forme, d.forme.couleur)); faits++; }
     else if (d && d.attente) { const o = atlEl('div', 'atl-wdv'); o.appendChild(atlEl('span', 'atl-spin')); c.appendChild(o); }
     else c.appendChild(atlEl('div', 'atl-wdv', '✏️'));
-    c.appendChild(atlEl('figcaption', '', e.nom)); gr.appendChild(c);
+    const cap = atlEl('figcaption', 'atl-wdn', e.nom); cap.title = 'Touche pour renommer'; cap.addEventListener('click', ev => { ev.stopPropagation(); atlElemRenommer(cap, e, fi); });
+    if (atlPrincipal(fi, e)) c.classList.add('main');
+    c.appendChild(cap); gr.appendChild(c);
   }
   sec.appendChild(gr);
+  // ajouter un élément (dans Personnages, Objets ou Décor), ou joindre une image, à tout moment
+  const add = atlEl('form', 'atl-wdadd'), ai = atlEl('input', 'atl-chin2'), sel = atlEl('select', 'atl-wdsel');
+  ai.type = 'text'; ai.maxLength = 80; ai.placeholder = 'Ajouter un élément (ex. : un dragon bleu)…';
+  for (const [k, lab] of [['personnages', '🦸 Personnage'], ['objets', '🎁 Objet'], ['decor', '🏞️ Décor']]) { const o = atlEl('option', '', lab); o.value = k; sel.appendChild(o); }
+  const ab = atlEl('button', 'btn btn-ghost btn-sm', '＋ Ajouter'); ab.type = 'submit';
+  add.addEventListener('submit', ev => { ev.preventDefault(); const v = ai.value.trim(); if (v.length < 2) { ai.focus(); return; } const l = atlListeDe(fi[sel.value]); if (l.length >= 30) return; l.push(v.slice(0, 80)); atlEtape(sel.value, l); ai.value = ''; atlRenderWiz(); atlRenderRoute(false); });
+  add.append(ai, sel, ab); sec.appendChild(add);
+  const im = atlEl('button', 'btn btn-ghost btn-sm atl-wdimg', '🖼️ Joindre une image (2 💎)'); im.type = 'button'; im.addEventListener('click', () => ATL.root.querySelector('.atl-file').click());
+  sec.appendChild(im);
   const att = Array.isArray(f.dessins_en_cours) && f.dessins_en_cours.length;
   sec.appendChild(atlEl('p', 'atl-aide', att ? '⏳ Tes dessins arrivent (une à deux minutes).' : faits + ' / ' + els.length + ' dessinés'));
   const b = atlEl('button', 'btn btn-play', '🎨 Dessiner mes éléments'); b.type = 'button'; b.disabled = !!att; b.addEventListener('click', atlModale);
   sec.appendChild(b); page.appendChild(sec);
+}
+// les éléments PRINCIPAUX (21 h, Benjamin) : les 2 premiers personnages et le 1er objet — cochés d'avance dans « Dessiner mes éléments »
+function atlPrincipal(fi, e) { const l = atlListeDe(fi[e.k]); const i = l.findIndex(x => atlNorm(x) === atlNorm(e.nom)); return (e.k === 'personnages' && i >= 0 && i < 2) || (e.k === 'objets' && i === 0); }
+function atlElemRenommer(cap, e, fi) {
+  if (cap.querySelector('input')) return;
+  const i = atlEl('input', 'atl-wdni'); i.type = 'text'; i.maxLength = 80; i.value = e.nom; cap.textContent = ''; cap.appendChild(i); i.focus(); i.select();
+  let fini = false;
+  const fin = garder => {
+    if (fini) return; fini = true; const v = i.value.replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (garder && v.length >= 2 && v !== e.nom) { const l = atlListeDe(fi[e.k]).map(x => (atlNorm(x) === atlNorm(e.nom) ? v : x)); atlEtape(e.k, l); }
+    atlRenderWiz(); atlRenderRoute(false);
+  };
+  i.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); fin(true); } else if (ev.key === 'Escape') { ev.preventDefault(); fin(false); } });
+  i.addEventListener('blur', () => fin(true));
 }
 function atlModale() {
   const R = ATL.root, M = R.querySelector('.atl-mod'), f = atlFiche(); if (!f) return;
@@ -14914,9 +14934,9 @@ function atlModale() {
   card.append(atlEl('h2', '', '🎨 Dessiner mes éléments'), atlEl('p', 'atl-aide', 'Coche ce que tu veux voir dessiné. Le prix total est écrit sur le bouton.'));
   const ul = atlEl('div', 'atl-mlist'), boxes = [];
   for (const e of els) {
-    const l = atlEl('label', 'atl-mrow'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = !e.fait;
+    const l = atlEl('label', 'atl-mrow'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = !e.fait && atlPrincipal(fi, e);   // les principaux d'abord
     const v = atlEl('span', 'atl-mvis'); if (e.forme) v.appendChild(atlFormeSvg(e.forme.forme, e.forme.couleur)); else v.textContent = '🖌️';
-    l.append(cb, v, atlEl('span', 'atl-mnom', e.nom), atlEl('small', 'atl-mtag' + (e.forme ? ' f' : ''), e.fait ? 'déjà dessiné' : e.forme ? 'forme · ' + cf + ' 💎' : 'dessin'));
+    l.append(cb, v, atlEl('span', 'atl-mnom', (atlPrincipal(fi, e) ? '⭐ ' : '') + e.nom), atlEl('small', 'atl-mtag' + (e.forme ? ' f' : ''), e.fait ? 'déjà dessiné' : e.forme ? 'forme · ' + cf + ' 💎' : 'dessin'));
     cb.addEventListener('change', maj); ul.appendChild(l); boxes.push([cb, e]);
   }
   const tot = atlEl('p', 'atl-mtot'), row = atlEl('div', 'atl-mbtns');
@@ -14951,6 +14971,7 @@ function atlRenderRoute(liste) {
   const B = D.querySelector('.atl-rbody'); B.textContent = '';
   const sec = (t) => { const s = atlEl('section', 'atl-rsec'); s.appendChild(atlEl('h4', '', t)); B.appendChild(s); return s; };
   const ligne = (s, ic, lab, val, fn, ok, resume) => { const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '') + (resume ? ' res' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); if (resume) r.appendChild(atlEl('small', 'atl-rres', resume)); s.appendChild(r); };
+  if (!lance && !(f && atlRempli(f))) B.appendChild(atlEl('p', 'atl-rvide', '🤖 ' + gNM() + ' la remplira dès que tu lui auras raconté ton jeu.'));
   const s1 = sec('🧱 Les bases');
   ATL_BASES.forEach(([k, ic, , court], i) => ligne(s1, ic, court, b[k] || 'à préciser', lance ? null : () => { ATL.basesOn = true; ATL.basesUne = !!(f && f.id && atlRempli(f)); ATL.bq = i; atlRender(); }, !!b[k]));
   const s2 = sec('📋 Ta fiche');
@@ -14968,7 +14989,7 @@ function atlRenderRoute(liste) {
     if (n) setTimeout(() => s3.appendChild(th), 0); }
   ligne(s3, '🧩', 'Dessins', els.length ? faits + ' / ' + els.length + (att ? ' ⏳' : '') : '…', etape(5), !!els.length && faits === els.length);
   const s4 = sec('🚀 Où en est ton jeu');
-  s4.appendChild(atlEl('p', 'atl-rst', !f ? (ATL.nouveau ? (atlBasesOn() ? 'Étape 1 : les bases' : 'Étape 2 : décris ton jeu') : '') : ATL_ETATS[et] || et));
+  { const n = atlEtapeNum(); s4.appendChild(atlEl('p', 'atl-rst', 'Étape ' + n + ' / 3 : ' + ATL_ETAPES[n - 1][1])); }
   const s5 = sec('💎 Crédits');
   s5.appendChild(atlEl('p', 'atl-rcr', cr ? Math.max(0, cr.solde | 0) + ' crédits' : '…'));
   s5.appendChild(atlEl('small', 'atl-rcx', 'Un message : ' + (cr ? cr.message | 0 : 2) + ' · un dessin : ' + (cr ? cr.cout | 0 : 10) + ' · une forme : ' + (cr && cr.forme != null ? cr.forme | 0 : 3)));
@@ -14982,20 +15003,32 @@ function atlIntro(on) {
   R.querySelector('.atl-in').placeholder = on ? 'Raconte ton jeu ici…' : 'Écris ' + gA() + '…';
   if (!on) { I.textContent = ''; return; }
   if (I.dataset.on === '1' && I.firstChild) return; I.dataset.on = '1'; I.textContent = '';
-  I.append(atlEl('p', 'atl-bk', 'Étape 2 · Décris ton jeu'), atlEl('h2', 'atl-it', '✍️ Raconte-nous ton jeu'),
-    atlEl('p', 'atl-is', 'Comme tu veux, au clavier ou au micro 🎤. Plus tu racontes, mieux c’est : ' + gN() + ' remplit toute ta fiche et dessine un premier design.'));
-  const b = atlBasesVal(), ch = ATL_BASES.filter(([k]) => b[k]);
-  if (ch.length) {
-    const row = atlEl('div', 'atl-ichips');
-    for (const [k, ic] of ch) row.appendChild(atlEl('span', 'atl-chip ro', ic + ' ' + b[k]));
-    const ed = atlEl('button', 'atl-iedit', '✏️ Modifier mes bases'); ed.type = 'button'; ed.addEventListener('click', () => { ATL.basesOn = true; ATL.basesUne = false; ATL.bq = 0; I.dataset.on = ''; atlRender(); });
-    row.appendChild(ed); I.appendChild(row);
+  // 21 h (Benjamin) : la DISCUSSION avec le guide dès « + Nouveau projet » ; les bases en petites cartes facultatives
+  const bub = atlEl('div', 'atl-ibub'), tx = atlEl('div');
+  tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-ibq', 'Raconte-moi ton jeu ! 🎮'), atlEl('p', 'atl-is', 'Écris ou dicte ton idée 🎤 : le héros, ce qu’on fait, le monde, les objets… Je monte tout ton projet, puis tu dessines tes éléments principaux.'));
+  bub.append(atlGuideAv('atl-wav'), tx); I.appendChild(bub);
+  const bx = atlEl('div', 'atl-ibases'); bx.appendChild(atlEl('p', 'atl-ibk', 'Tu peux aussi m’aider en choisissant… (facultatif)'));
+  const cur = atlBasesVal();
+  for (const [k, ic, , court, opts] of ATL_BASES) {
+    if (k === 'dim') continue;   // toujours en 2D pour l'instant
+    const row = atlEl('div', 'atl-ibrow'); row.appendChild(atlEl('span', 'atl-iblab', ic + ' ' + court));
+    for (const [oi, lab, , bientot] of opts) {
+      if (bientot) continue;
+      const c = atlEl('button', 'atl-ibc' + (cur[k] === lab ? ' on' : ''), (oi ? oi + ' ' : '') + lab); c.type = 'button';
+      c.addEventListener('click', () => atlBaseCarte(k, lab)); row.appendChild(c);
+    }
+    bx.appendChild(row);
   }
-  const tips = atlEl('div', 'atl-itips');
-  for (const [ic, t, s] of [['🦸', 'Qui est le héros ?', 'Un chat ninja, une licorne, toi…'], ['🎯', 'Qu’est-ce qu’on fait ?', 'Sauter, attraper, construire… et comment on gagne'], ['🌍', 'Où ça se passe ?', 'La ville la nuit, une forêt magique, l’espace…'], ['🎁', 'Les objets et les sons', 'Bonus, ennemis, musique joyeuse…']]) {
-    const c = atlEl('div', 'atl-itip'); c.append(atlEl('span', 'atl-itic', ic), atlEl('b', '', t), atlEl('small', '', s)); tips.appendChild(c);
-  }
-  I.append(tips, atlEl('p', 'atl-inote', '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais. · 🤖 Ton jeu est créé avec l’aide de l’IA.'));
+  I.append(bx, atlEl('p', 'atl-inote', '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais. · 🤖 Ton jeu est créé avec l’aide de l’IA.'));
+}
+// une base choisie (ou décochée) dans la discussion : gardée dans la fiche (le projet existe dès ce choix : brouillon)
+function atlBaseCarte(k, lab) {
+  const f = atlFiche(), b = Object.assign({}, atlBasesVal());
+  if (b[k] === lab) delete b[k]; else b[k] = lab;
+  ATL.basesLoc = b;
+  if (f && f.id) { f.fiche = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; f.fiche.bases = b; atlEtape('bases', b); }
+  else atlBrouillon();
+  const I = ATL.root.querySelector('.atl-intro'); I.dataset.on = ''; atlIntro(true); atlRenderRoute(false);
 }
 
 // ---- 2 nov. 19 h 10 (Benjamin) : « tout projet commencé reste en BROUILLON quand on quitte » — le projet existe dès la 1re action
@@ -15126,6 +15159,25 @@ function atlSupprimerAsk(pj) {
     } catch (e) { ok.disabled = false; er.hidden = false; er.textContent = /en construction/.test(String(e && e.message)) ? 'En construction : impossible de le supprimer pour l’instant.' : atlWhy(e); }
   });
   row.append(no, ok); c.append(er, row); M.appendChild(c); no.focus();
+}
+
+// ---- les 3 étapes d'un projet (21 h 05, Benjamin) : 1 Montage du projet · 2 Le design · 3 La V1 et les tests
+const ATL_ETAPES = [['🤝', 'Montage du projet'], ['🎨', 'Le design'], ['🎮', 'La V1 et les tests']];
+function atlEtapeNum() {
+  const f = atlFiche(); if (!f) return 1;
+  const et = String(f.etat || '');
+  if (ATL_AFTER.has(et)) return 3;
+  return atlRempli(f) ? 2 : 1;
+}
+function atlFrise(liste) {
+  const F = ATL.root && ATL.root.querySelector('.atl-frise'); if (!F) return;
+  F.hidden = !!liste; if (liste) return;
+  const n = atlEtapeNum(); F.textContent = '';
+  ATL_ETAPES.forEach(([ic, lab], i) => {
+    const k = i + 1, e = atlEl('div', 'atl-fe' + (k < n ? ' fait' : k === n ? ' on' : ''));
+    e.append(atlEl('span', 'atl-fen', k < n ? '✔' : String(k)), atlEl('span', 'atl-fel', ic + ' ' + lab));
+    F.appendChild(e); if (k < 3) F.appendChild(atlEl('span', 'atl-fsep', ''));
+  });
 }
 
 // ---------- serveur ----------
