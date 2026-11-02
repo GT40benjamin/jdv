@@ -2085,3 +2085,39 @@ begin
     execute d;
   end if;
 end $$;
+
+-- (v22, borne 1.63.73, 2 nov. 19 h 45) CORRECTIF : at_fiche_etape réécrite en entier — (1) les BASES ne s'enregistraient jamais
+-- (« column reference v is ambiguous » : l'alias de colonne v = la variable v ; vu sur le projet de PATOU « Seul sur la Lune », 19 h 30) ;
+-- (2) la clé « brouillon » (texte en cours) n'avait pas été ajoutée par la v20 (le mot « brouillon » était déjà dans la fonction).
+create or replace function public.at_fiche_etape(p_name text, p_fiche uuid, p_cle text, p_valeur jsonb)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; val jsonb; why text; e text;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-fiche', 300, interval '1 hour');
+  if p_cle not in ('idee', 'titre', 'personnages', 'objets', 'decor', 'sons', 'bases', 'brouillon') then raise exception 'section inconnue'; end if;
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if p_cle <> 'titre' and (f.etat not in ('brouillon', 'en_discussion', 'complete') or f.paye is not null) then raise exception 'projet lance'; end if;
+  if f.etat = 'refusee' then raise exception 'projet lance'; end if;
+  if p_cle = 'bases' then
+    if jsonb_typeof(p_valeur) <> 'object' then raise exception 'objet attendu'; end if;
+    select coalesce(jsonb_object_agg(x.cle, left(btrim(x.txt), 120)), '{}'::jsonb) into val
+      from jsonb_each_text(p_valeur) as x(cle, txt) where x.cle in ('dim', 'type', 'vue', 'avec', 'score', 'style') and length(btrim(x.txt)) >= 1;
+    e := (select string_agg(y.txt, ' ') from jsonb_each_text(val) as y(cle, txt));
+  elsif p_cle in ('idee', 'titre', 'brouillon') then
+    if jsonb_typeof(p_valeur) <> 'string' then raise exception 'texte attendu'; end if;
+    e := left(btrim(p_valeur #>> '{}'), case when p_cle = 'titre' then 40 else 1500 end);
+    if length(e) < 2 and p_cle <> 'brouillon' then raise exception 'texte vide'; end if;
+    val := to_jsonb(e);
+  else
+    if jsonb_typeof(p_valeur) <> 'array' or jsonb_array_length(p_valeur) > 30 then raise exception 'liste attendue'; end if;
+    select coalesce(jsonb_agg(to_jsonb(left(btrim(z.txt), 80))), '[]'::jsonb) into val from jsonb_array_elements_text(p_valeur) as z(txt) where length(btrim(z.txt)) >= 1;
+    e := (select string_agg(z.txt, ' ') from jsonb_array_elements_text(val) as z(txt));
+  end if;
+  why := pegase_int.at_filtre(coalesce(e, '')); if why <> '' then raise exception 'filtre %', why; end if;
+  if p_cle = 'titre' then update public.at_fiches x set titre = e, maj_at = now() where x.id = f.id;
+  else update public.at_fiches x set fiche = coalesce(x.fiche, '{}'::jsonb) || jsonb_build_object(p_cle, val), maj_at = now() where x.id = f.id; end if;
+  return jsonb_build_object('id', f.id, 'cle', p_cle, 'valeur', val);
+end $$;
+revoke all on function public.at_fiche_etape(text, uuid, text, jsonb) from public, anon;
+grant execute on function public.at_fiche_etape(text, uuid, text, jsonb) to authenticated;

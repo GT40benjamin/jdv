@@ -14263,7 +14263,11 @@ function atlRenderProjets() {
     const b = atlEl('button', 'atl-ptile' + (atlProjNew(pj) ? ' new' : '')); b.type = 'button';
     const v = atlEl('span', 'atl-pv'), u = atlIaUrl(pj.vignette);
     if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; v.appendChild(im); } else v.textContent = '🎮';
-    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', '', ATL_ETATS[pj.etat] || String(pj.etat || '')));
+    // 19 h 38 (Benjamin) : idée envoyée, réponse pas encore arrivée → « ⏳ En attente de l'Atelier » (badge et couleur), pas « Brouillon »
+    const att = !!pj.joueur_at && (!pj.reponse_at || String(pj.joueur_at) > String(pj.reponse_at)) && ['brouillon', 'en_discussion', 'complete'].includes(String(pj.etat || ''));
+    if (att) b.classList.add('att');
+    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', '', att ? '⏳ En attente de l’Atelier' : ATL_ETATS[pj.etat] || String(pj.etat || '')));
+    if (att) b.appendChild(atlEl('span', 'atl-patt', '⏳ En attente'));
     if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
     b.addEventListener('click', () => atlOuvrir(pj.id)); g.appendChild(b);
   }
