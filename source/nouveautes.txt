@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🪜 Abracadabra : la falaise, une descente pleine de surprises (borne 1.63.17)
+[abracadabra] 🪨 Mission 2 : l'échelle ou la corde ne compte que quand tout le monde est vraiment en bas. Dis « rocher », « boule » ou « météorite » pendant la descente : ça tombe du ciel et l'échelle casse !
+[abracadabra] 🪓 Une hache tranche la corde net, et le feu (un feu de camp, un braséro… une simple bougie pour la corde) la fait brûler.
+[abracadabra] 🛝 Celui qui était dessus glisse jusqu'en bas (« Aïe, mes fesses ! ») et rentre quand même chez lui ; les autres retournent au bord. Redis « échelle » ou « corde » pour en refaire une.
 [abracadabra] ## 🐶 Abracadabra : des bêtes bien vivantes au pont du village (borne 1.63.16)
 [abracadabra] 🐶 Mission 1 : le chien aboie, court d'un villageois à l'autre, puis aboie sur la rivière. Quand le pont est là, il le traverse en courant.
 [abracadabra] 🐱 Le chat file se cacher sans un regard pour personne, la poule picore en sautillant, et le cheval tombé dans la rivière nage jusqu'à la berge, s'ébroue, boit… et part parfois au galop.
