@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Test licornes</title>
+<style>html,body{margin:0;height:100%;background:#0b141c;overflow:hidden}#root{position:absolute;inset:0}</style>
+</head><body>
+<div id="root"></div>
+<script>window.JDW_ROOT = '../../';</script>
+<script src="../games/licornes.js"></script>
+<script>
+window.__over = [];
+let AC = null;
+const api = {
+  heads: () => [], player: { name: 'PATOU', img: null }, celebrate() {},
+  fonts: { display: "'Bungee', Impact, sans-serif", body: "'Chakra Petch', system-ui, sans-serif" },
+  gameOver(s) { console.log('GAMEOVER', s); window.__over.push(s); },
+  audio: {
+    tone(f, d, type, vol, f2) { try { AC = AC || new AudioContext(); const o = AC.createOscillator(), g = AC.createGain(); o.type = type || 'square'; o.frequency.setValueAtTime(f, AC.currentTime); if (f2) o.frequency.linearRampToValueAtTime(f2, AC.currentTime + d); g.gain.setValueAtTime(vol || 0.08, AC.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + d); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + d); } catch (e) {} },
+    noise() {}
+  }
+};
+window.__game = window.JDW_GAMES.licornes.mount(document.getElementById('root'), api);
+</script>
+</body></html>
