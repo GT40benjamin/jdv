@@ -6,6 +6,18 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🦌 Pégase 0.9.9.43 : la harde fuit ensemble (borne 1.63.119)
+[pegase] 🦌 Quand une grande bête sauvage détale devant toi, les bêtes de sa harde partent aussi, un peu après : elles l'ont vue s'enfuir.
+[pegase] 🐺 Les loups ne hurlent plus en plein jour : seulement au crépuscule et la nuit.
+[pegase] 🐄 Les vaches meuglent surtout le matin et le soir, presque plus la nuit. Le cheval hennit quand il détale, et le sanglier grogne en fuyant.
+[pegase] 🐴 Les grandes bêtes ne rentrent plus dans les rochers, les clôtures et les objets : elles gardent leurs distances et font le détour.
+[pegase] 🪵 Les grands troncs creux couchés sont enfin solides : plus d'héroïne coincée dans l'écorce, et on peut traverser le tronc d'un bout à l'autre.
+[pegase] 🍾 Les 23 bouteilles à message sont plus grandes et brillent de loin. Elles sont couchées au pied d'un vrai repère : tronc, barrière, ponton, lanterne…
+[pegase] 📖 Le Grand livre a une section « Au bord de la mer » : 9 poissons de mer à pêcher (maquereau, cabillaud, mahi-mahi, poisson-clown…). Prends la photo souvenir pour remplir la case.
+[pegase] 🪨 La mission « Trouver les 3 inscriptions des géants » montre son compteur : 0 / 3, puis 1 / 3 quand Papi Auguste confirme ta photo.
+[pegase] 🌼 Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.
+[pegase] 🌸 De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.
+[pegase] 🧥 Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps.
 [noisette] ## 🐿️ Noisette et ses amis : réglages de la première version (borne 1.63.117)
 [noisette] 🛠️ Les éléments retirés à la demande disparaissent bien en entier (tous les corbeaux, toutes les décorations, tous les décors) ; le jeu reste toujours faisable jusqu'au grand chêne.
 [noisette] ## 🐿️ Noisette et ses amis : la première version à tester (borne 1.63.115)

@@ -1,29 +1,44 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 90,
-  "versionName": "0.9.9.42",
-  "size": 1234578150,
-  "sha256": "5a9d1d43d3d041ea50adebdb302ee57bcdba60025751e975ae7eb4f6422bc51b",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v90/pegase-0.9.9.42.apk",
+  "versionCode": 91,
+  "versionName": "0.9.9.43",
+  "size": 1234893906,
+  "sha256": "55f717d578334b85cb770a96a4f10af1b7f4f93b20a15f0123c92b19a699d6ef",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v91/pegase-0.9.9.43.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Les cerfs, les biches, les sangliers, les ours, les loups et les bouquetins qui broutent ou se reposent lèvent la tête et se tournent vers toi quand tu approches. Ils te fixent tant que tu restes là, puis se remettent à brouter quand tu t'éloignes. Si tu t'approches trop, ils s'enfuient.",
-    "Quand une bête va boire, elle se tourne bien face à l'eau avant de baisser la tête. Plus de bêtes vont boire au vrai bord de l'eau, dont l'ours du sud-est.",
-    "Les chevaux ont enfin leur vraie taille. Ils se méfient de plus loin et partent au galop ; les vaches s'écartent aussi un peu plus tôt.",
-    "Plus de faux bébés : les marcassins, qui étaient des sangliers adultes rapetissés, sont retirés.",
-    "Dans « Mon sac », chaque objet a un bouton « Mettre dans la barre » (X à la manette) : outils, graines, récoltes, poissons, objets précieux… La case « Sac » au bout de la barre montre le dessin du sac et sa touche.",
-    "L'héroïne tient l'arrosoir pour de vrai : le coude plié, l'anse bien dans la main.",
-    "Quand tu te colles dans l'angle d'un mur, la caméra ne saute plus dans le mur.",
-    "Les inscriptions des géants sont gravées net : lettres sombres, bords taillés, plus de flou.",
-    "Dehors, les clients de l'hôtel qui vont à l'avion ou se promènent sur la place marchent bien sur le sol, plus dans le vide.",
-    "Plus de tête de cerf en trophée à l'hôtel : dans Pégase, on ne chasse pas les animaux.",
-    "Dans les criques, les idoles des Maures montrent leurs bandes jaunes, blanches et noires quand tu les regardes de près. La nuit, ces poissons ne brillent plus.",
-    "À vélo, le bord herbeux du plateau de l'est ne t'arrête plus « contre un rocher » : le retour de l'estuaire au village se fait d'une traite."
+    "Quand une grande bête sauvage détale devant toi, les bêtes de sa harde partent aussi, un peu après : elles l'ont vue s'enfuir.",
+    "Les loups ne hurlent plus en plein jour : seulement au crépuscule et la nuit.",
+    "Les vaches meuglent surtout le matin et le soir, presque plus la nuit. Le cheval hennit quand il détale, et le sanglier grogne en fuyant.",
+    "Les grandes bêtes ne rentrent plus dans les rochers, les clôtures et les objets : elles gardent leurs distances et font le détour.",
+    "Les grands troncs creux couchés sont enfin solides : plus d'héroïne coincée dans l'écorce, et on peut traverser le tronc d'un bout à l'autre.",
+    "Les 23 bouteilles à message sont plus grandes et brillent de loin. Elles sont couchées au pied d'un vrai repère : tronc, barrière, ponton, lanterne…",
+    "Le Grand livre a une section « Au bord de la mer » : 9 poissons de mer à pêcher (maquereau, cabillaud, mahi-mahi, poisson-clown…). Prends la photo souvenir pour remplir la case.",
+    "La mission « Trouver les 3 inscriptions des géants » montre son compteur : 0 / 3, puis 1 / 3 quand Papi Auguste confirme ta photo.",
+    "Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.",
+    "De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.",
+    "Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps."
   ],
   "historique": [
+    {
+      "version": "0.9.9.43",
+      "notes": [
+        "Quand une grande bête sauvage détale devant toi, les bêtes de sa harde partent aussi, un peu après : elles l'ont vue s'enfuir.",
+        "Les loups ne hurlent plus en plein jour : seulement au crépuscule et la nuit.",
+        "Les vaches meuglent surtout le matin et le soir, presque plus la nuit. Le cheval hennit quand il détale, et le sanglier grogne en fuyant.",
+        "Les grandes bêtes ne rentrent plus dans les rochers, les clôtures et les objets : elles gardent leurs distances et font le détour.",
+        "Les grands troncs creux couchés sont enfin solides : plus d'héroïne coincée dans l'écorce, et on peut traverser le tronc d'un bout à l'autre.",
+        "Les 23 bouteilles à message sont plus grandes et brillent de loin. Elles sont couchées au pied d'un vrai repère : tronc, barrière, ponton, lanterne…",
+        "Le Grand livre a une section « Au bord de la mer » : 9 poissons de mer à pêcher (maquereau, cabillaud, mahi-mahi, poisson-clown…). Prends la photo souvenir pour remplir la case.",
+        "La mission « Trouver les 3 inscriptions des géants » montre son compteur : 0 / 3, puis 1 / 3 quand Papi Auguste confirme ta photo.",
+        "Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.",
+        "De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.",
+        "Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps."
+      ]
+    },
     {
       "version": "0.9.9.42",
       "notes": [
@@ -81,14 +96,6 @@
         "Une bête qui détale fait d'abord volte-face : elle ne part plus de côté ou à reculons.",
         "Poules, coq, pigeons, corneilles, faisans… : leurs pattes ne glissent plus en marchant, et la basse-cour marche d'un pas vif au lieu de trotter.",
         "Une bête qui se tourne un peu pendant un repos fait quelques pas au lieu de pivoter les pattes figées ; couchée ou en train de brouter, elle garde son cap."
-      ]
-    },
-    {
-      "version": "0.9.9.38",
-      "notes": [
-        "Dans la chambre 5 de l'hôtel, une banquette est posée sous la fenêtre, qui paraissait accrochée trop haut.",
-        "En prenant tout droit l'escalier du pont, l'héroïne contourne le poteau au lieu de s'y écraser et de tomber du pont.",
-        "En se retournant sur place avant de partir, vaches, chevaux, moutons, cochons et cerfs font maintenant des pas au lieu de pivoter les pattes figées."
       ]
     }
   ]
