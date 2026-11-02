@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🏰 Remparts !, en essai : le tower defense de la borne (borne 1.63.11)
+[remparts] 🏰 Défends ton château dans 5 mondes (la Prairie, les Dunes, les Pics Gelés, le Volcan, le Château Hanté) : pose tes tours, arrête les vagues d'ennemis, et vise le plus gros score.
+[remparts] 🏆 Un défi du jour (une carte, une règle, un seul essai compté) avec son classement, 19 succès et un écran des records.
 [flechettes] ## 🎭 Tête de Cible : déguise ta cible ! (borne 1.63.10)
 [flechettes] 🎭 Nouvel onglet « Déguiser » sur la photo de la cible : 140 accessoires et maquillages (lunettes, moustaches, chapeaux, nez de clown, maquillage…) se posent tout seuls sur chaque visage.
 [flechettes] ✋ Glisse, pince et tourne pour les ajuster, enlève-les ou annule ; ça marche avec plusieurs visages, et le déguisement fait partie de la cible.
