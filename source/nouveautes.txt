@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🦓 Abracadabra : un vrai zèbre, et des couleurs franches (borne 1.63.52)
+[abracadabra] 🦓 « Zèbre » fait enfin apparaître un zèbre, rayé noir et blanc (avant, c'était… un poisson !). Le poney, le cheval et le zèbre sont trois bêtes bien différentes.
+[abracadabra] 🚗 « Une voiture rouge » donne une voiture d'un rouge franc (avant, la couleur sortait rose pâle), et la voiture est un peu plus grosse. Pareil pour toutes les couleurs des véhicules.
 [pegase] ## 🦌 Pégase 0.9.9.42 : les bêtes te regardent venir (borne 1.63.51)
 [pegase] 🦌 Les cerfs, les biches, les sangliers, les ours, les loups et les bouquetins qui broutent ou se reposent lèvent la tête et se tournent vers toi quand tu approches. Ils te fixent tant que tu restes là, puis se remettent à brouter quand tu t'éloignes. Si tu t'approches trop, ils s'enfuient.
 [pegase] 💧 Quand une bête va boire, elle se tourne bien face à l'eau avant de baisser la tête. Plus de bêtes vont boire au vrai bord de l'eau, dont l'ours du sud-est.
