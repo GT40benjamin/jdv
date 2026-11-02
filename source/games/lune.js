@@ -376,7 +376,8 @@ function mount(root, api) {
     if ((state !== 'liftoff' || liftT < 1.4) && !parti) L.push({ k: '_joueur', x: P.x, y: P.y });
     if ((state !== 'liftoff' || liftT < 1.4) && !parti) L.push({ k: '_robot', x: robot.x, y: robot.y });
     for (const im of impacts) L.push({ k: '_impact', x: im.x, y: im.y + 1, im });
-    const prof = o => o.k === 'navette' && state === 'liftoff' && liftT > 1.4 ? 1e9 : o.y;   // en vol, la navette passe au-dessus de tout
+    // règle stricte : le robot ne passe jamais devant toi (quand il est à ta hauteur, il est dessiné derrière) ; en vol, la navette passe au-dessus de tout
+    const prof = o => o.k === 'navette' && state === 'liftoff' && liftT > 1.4 ? 1e9 : o.k === '_robot' && Math.abs(o.x - P.x) < 100 ? Math.min(o.y, P.y - 0.5) : o.y;
     L.sort((a, b) => prof(a) - prof(b));
     for (const o of L) {
       const x = sx(o.x), y = sy(o.y);
@@ -440,12 +441,12 @@ function mount(root, api) {
     if (P.stun > 0) return { n: 'touche', f: false, hop: 0 };
     const st = Math.floor(P.step) % 4;
     if (P.dir === 'cote') {
-      // dessinés vers la droite (retournés pour la gauche) : grand pas, jambes sous le corps, genou levé, pied arrière qui pousse ; repos = la pose 2
+      // dessinés vers la droite (retournés pour la gauche) : grand pas bras en arrière, jambes réunies, grand pas bras devant, jambes réunies
       if (P.moving) return { n: 'cote' + (st + 1), f: !P.flip, hop: 0 };
-      return { n: 'cote2', f: !P.flip, hop: 0, souffle: 1 };
+      return { n: 'cote-repos', f: !P.flip, hop: 0, souffle: 1 };
     }
     const n = P.dir === 'dos' ? 'dos' : 'face';
-    return P.moving ? { n: n + (st + 1), f: false, hop: 0 } : { n: n + '2', f: false, hop: 0, souffle: 1 };
+    return P.moving ? { n: n + (st + 1), f: false, hop: 0 } : { n: n === 'face' ? 'face-repos' : 'dos2', f: false, hop: 0, souffle: 1 };
   }
   // la respiration au repos : la partie haute du dessin (buste, casque) s'étire très légèrement et se balance, la partie basse ne bouge pas
   function drawSouffle(nom, x, y, h, flip, t) {
