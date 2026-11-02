@@ -190,8 +190,9 @@ function mount(root, api) {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(k)) e.preventDefault();
     keys[k.toLowerCase()] = down;
     if (!down) return;
-    // dans le cadre de l'Atelier, P appartient à la page du projet (arrêt sur image + atl-pause) : le jeu n'ajoute pas sa propre pause
-    if ((k === 'p' || k === 'P') && DANS_CADRE) return;
+    // lancé depuis l'Atelier (dans le cadre, ou en plein écran : window.JDW_ATL_JEU), P appartient à l'Atelier (arrêt sur image + atl-pause) :
+    // le jeu n'ajoute pas sa propre pause
+    if ((k === 'p' || k === 'P') && (DANS_CADRE || window.JDW_ATL_JEU === true)) return;
     if (k === 'p' || k === 'Escape') { if (state === 'play') setPaused(!paused); return; }
     if (paused) { setPaused(false); return; }
     if (k === 'Enter' || k === ' ') {
@@ -681,7 +682,7 @@ function mount(root, api) {
   }
   function draw() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (state === 'load' || state === 'title') { drawTitle(); if (paused) drawPause(); if (gele) drawGele(); return; }
+    if (state === 'load' || state === 'title') { drawTitle(); if (paused && !gele) drawPause(); if (gele) drawGele(); return; }
     const kx = shake ? (Math.random() - 0.5) * shake : 0, ky = shake ? (Math.random() - 0.5) * shake : 0;
     ctx.setTransform(dpr, 0, 0, dpr, dpr * kx, dpr * ky);
     drawGround(); drawWorld(); drawFlyers(); drawFalling(); drawFx();
@@ -691,7 +692,7 @@ function mount(root, api) {
     drawMsg(); drawJoy();
     if (state === 'intro') drawIntro();
     if (state === 'end') drawEnd();
-    if (paused) drawPause();
+    if (paused && !gele) drawPause();   // pendant l'arrêt sur image de l'Atelier, un seul écran : le sien
     if (gele) drawGele();
   }
   function drawGele() { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = 'rgba(4,6,20,0.6)'; ctx.fillRect(0, 0, W, H); big('PAUSE', H / 2 - 30 * U); big('Parle ' + (guideA || 'à ton guide') + ', ton jeu t’attend', H / 2 + 40 * U, 0.4); }
