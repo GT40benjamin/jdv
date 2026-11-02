@@ -14576,7 +14576,10 @@ const ATL_STEPS = [
 ];
 const atlListeDe = v => (Array.isArray(v) ? v.map(atlVal).filter(Boolean) : atlVal(v) ? atlElements(atlVal(v)) : []);
 const atlRempli = f => { const fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; return !!atlVal(fi.idee) && ['personnages', 'objets', 'decor'].some(k => atlListeDe(fi[k]).length); };
-const atlWizOn = () => { const f = atlFiche(); if (!f || ATL.chat) return false; return ATL_AFTER.has(f.etat) || atlRempli(f); };
+// 0 h 55 (Benjamin : « il n'y a pas de Créer les éléments dans le Montage du projet, le design c'est après ! ») : l'étape 2 (et ses outils)
+// seulement quand le projet est MONTÉ : fiche remplie ET premier design arrivé ; avant, la discussion seule
+const atlMonte = f => !!f && (ATL_AFTER.has(f.etat) || (atlRempli(f) && !!(f.design && f.design.f)) || !['brouillon', 'en_discussion'].includes(String(f.etat || '')));
+const atlWizOn = () => { const f = atlFiche(); if (!f || ATL.chat) return false; return ATL_AFTER.has(f.etat) || (atlRempli(f) && atlMonte(f)); };
 function atlChatRetour(bn) {   // dans la discussion (demande de changement) : revenir aux étapes
   const f = atlFiche(); if (!f || !ATL.chat) return;
   const b = atlEl('button', 'btn btn-ghost btn-sm', '← Revenir à mon projet'); b.type = 'button';
@@ -16325,6 +16328,7 @@ async function atlSend() {
 function atlWhy(e) {
   const m = String((e && e.message) || '');
   if (e && e.offline) return 'Pas de réseau : ton message est resté dans la case, réessaie dans un moment.';
+  if (/projet pas monte/.test(m)) return 'Ton projet est encore en montage : ' + gN() + ' prépare tout, les éléments viendront juste après.';
   if (/mode admin/.test(m)) return '🛡️ Mode admin : cette action est réservée au joueur. Écris-lui dans la discussion, ou fais avancer ses demandes.';
   if (/trop d essais/.test(m)) return 'Doucement 😄 Beaucoup de messages en une heure : réessaie un peu plus tard.';
   if (/deja envoye/.test(m)) return 'Ton projet est déjà lancé : il est en construction.';
