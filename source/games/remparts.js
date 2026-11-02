@@ -3,11 +3,11 @@
 // Remparts ! — tower defense arcade : des squelettes descendent la route vers ton château ; pose des tours (Archers, Catapulte, Givre,
 // Éclair) sur les cases au bord de la route, améliore-les, tiens 10 vagues jusqu'au Roi Squelette. Score arcade, meilleur score par monde.
 // Ce petit module s'enregistre dans la borne et dessine la vignette en 2D ; au lancement il charge le moteur (assets/remparts.moteur.bin :
-// le jeu peint en canvas 2D, gzippé, sans bibliothèque) et le paquet EMBALLÉ des bruitages (assets/remparts.sons.bin : sons CC0 de Kenney).
+// three.js r180 + le jeu, gzippé, licence MIT) et le paquet EMBALLÉ (assets/remparts.magie.bin : modèles CC0 Kenney / Quaternius / KayKit et sons).
 // Une seule variable globale en plus : window.JDW_TD. Atelier : ~/jdv-tools/duotest/towerdefense (fiche REPRISE.md).
 const ID = 'remparts', NOM = 'Remparts !';
 const ROOT = () => window.JDW_ROOT || '';
-const WANT = 'td-741503c7';
+const WANT = 'td-9ec340f7';
 const STORE = {};
 async function fetchBytes(url, onProg, guess, signal, opt) {
   const r = await fetch(url, Object.assign({ signal }, opt || {}));
@@ -25,7 +25,7 @@ function loadEngine(onProg, signal) {
   STORE.engine = (async () => {
     if (typeof DecompressionStream === 'undefined') throw new Error('navigateur trop ancien');
     const run = async (url, opt) => {
-      const gz = await fetchBytes(url, onProg, 40000, signal, opt);
+      const gz = await fetchBytes(url, onProg, 200000, signal, opt);
       const code = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
       await new Promise((res, rej) => {
         const s = document.createElement('script'), u = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
@@ -50,7 +50,7 @@ function loadPack(onProg, signal, nom) {
   const K = 'pack_' + nom;
   if (STORE[K]) return STORE[K];
   STORE[K] = (async () => {
-    const buf = await fetchBytes(ROOT() + 'assets/remparts.' + nom + '.bin', onProg, 60000, signal);
+    const buf = await fetchBytes(ROOT() + 'assets/remparts.' + nom + '.bin', onProg, 3200000, signal);
     const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(window.JDW_ASSET_KEY || ''), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: buf.slice(0, 16), iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
@@ -167,7 +167,7 @@ function mount(root, api) {
       '<div style="font:600 14px ' + FB + ';margin-bottom:14px">Ton appareil n\'arrive pas à charger ce jeu 3D.</div><button type="button" style="font:400 15px ' + FD + ';color:#2a1404;background:#ffd34d;border:0;border-radius:12px;padding:10px 20px;box-shadow:0 5px 0 #8a5412;cursor:pointer">Réessayer</button></div>';
     box.querySelector('button').addEventListener('click', () => { if (dead) return; root.innerHTML = ''; const n = mount(root, api); Object.assign(proxy, n); });
   };
-  Promise.all([loadEngine((p) => { pe = p; prog(); }, ac && ac.signal), loadPack((p) => { pp = p; prog(); }, ac && ac.signal, 'sons')]).then(([E, pack]) => {
+  Promise.all([loadEngine((p) => { pe = p; prog(); }, ac && ac.signal), loadPack((p) => { pp = p; prog(); }, ac && ac.signal, 'magie')]).then(([E, pack]) => {
     if (dead) return;
     try { inst = E.play(root, api, pack); } catch (e) { fail(); throw e; }
   }).catch(() => { if (!dead) fail(); });
