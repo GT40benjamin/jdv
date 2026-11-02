@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🌊 Abracadabra : le phare dans la tempête, ne l'éteins pas ! (borne 1.63.34)
+[abracadabra] 💧 Mission 8 : pendant que la barque rentre, dis « arrosoir », « seau » ou « de l'eau »… pschhh, la lumière du phare s'éteint dans un nuage de vapeur et la barque repart dans la nuit. Rallume-la !
+[abracadabra] 🐋 La baleine emporte la barque au large, même en plein retour.
 [atelier] ## ⭐ Ton jeu sur la borne, avec le macaron « MON JEU » (borne 1.63.33)
 [atelier] ⭐ Quand une première version de ton jeu imaginé dans l'Atelier est prête, sa tuile apparaît sur ta borne avec un gros macaron « MON JEU ». Touche le crayon ✏️ « Modifier mon jeu » pour rouvrir l'Atelier et demander des changements.
 [atelier] 🎨 Quand Benjamin publie ton jeu dans ta salle, tes copains le voient aussi, avec « Jeu de » et ton pseudo sur la tuile.
