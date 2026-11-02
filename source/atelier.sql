@@ -2787,3 +2787,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- débit UNE fois, en cours) ; at_demande_plus_tard (rien n est débité). Texte complet : migration atelier_v40_propositions.
 
 -- (v41, 3 nov. 2026 0 h 40) : at_admin_proposer (at_admins) pose / modifie les options d une demande (appelle at_demande_proposer, journal).
+
+-- (v42, 3 nov. 2026 0 h 45) : at_fiche_etape accepte « descriptions » ({nom: texte}, 40 / 300 caractères) : un élément = un nom court + sa description.

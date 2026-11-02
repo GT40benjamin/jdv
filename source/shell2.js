@@ -15292,9 +15292,19 @@ function atlModale() {
   card.append(ul, tot, er, row);
   function calc() { const sel = boxes.filter(([cb]) => cb.checked).map(([, e]) => e), fo = sel.filter(e => e.forme), de = sel.filter(e => !e.forme), np = Math.ceil(de.length / 8); return { fo, de, np, cout: np * ci + fo.length * cf }; }
   function maj() { const c = calc(); go.disabled = !c.fo.length && !c.de.length; go.textContent = 'Créer · ' + c.cout + ' 💎'; tot.textContent = c.de.length + ' élément' + (c.de.length > 1 ? 's' : '') + ' + ' + c.fo.length + ' forme' + (c.fo.length > 1 ? 's' : '') + ' = ' + c.cout + ' crédits'; }
+  let sur = false;
   go.addEventListener('click', async () => {
     const c = calc(); if (go.disabled || ATL.sending) return;
     if (cr && (cr.solde | 0) < c.cout) { er.hidden = false; er.textContent = 'Il te manque des crédits : décoche des éléments, ou recharge tes crédits.'; atlCreditsBtn(er); return; }
+    if (!sur) {   // 0 h 45 : « Créer N éléments · X 💎 ? Oui / Non », avec la liste
+      const q = atlEl('div', 'atl-mconf'), n = c.de.length + c.fo.length, oui = atlEl('button', 'btn btn-play', 'Oui, créer'), nn = atlEl('button', 'btn btn-ghost', 'Non'); oui.type = nn.type = 'button';
+      q.append(atlEl('b', '', 'Créer ' + n + ' élément' + (n > 1 ? 's' : '') + ' · ' + c.cout + ' 💎 ?'), atlEl('p', '', c.de.concat(c.fo).map(e => e.nom).join(' · ')));
+      const r2 = atlEl('div', 'atl-mbtns'); r2.append(nn, oui); q.appendChild(r2); row.hidden = true; card.appendChild(q);
+      nn.addEventListener('click', () => { q.remove(); row.hidden = false; });
+      oui.addEventListener('click', () => { sur = true; q.remove(); row.hidden = false; go.click(); });
+      return;
+    }
+    sur = false;
     ATL.sending = true; go.disabled = true; er.hidden = true;
     try {
       const r = await rpc('at_dessins_demander', { p_name: profile.name, p_fiche: f.id, p_elements: c.de.map(e => e.nom), p_formes: c.fo.map(e => e.forme) }, { quiet: true });
@@ -15920,15 +15930,27 @@ function atlDemandeElem(it, f, cat) {
 // « ＋ Créer » en tête d'une catégorie : personnage / objet / décor → ajouté à la fiche puis « Dessiner » (avant le lancement) ; sinon une demande
 function atlCreerElem(cat, lab, k, libre, f, fi) {
   if (!k || !libre) { atlDemandeElem(null, f, cat); return; }
+  // 0 h 45 (Benjamin : « il les a faits d'office, c'est pas comme ça ») : ici on AJOUTE seulement une ligne à la fiche (« à créer ») :
+  // un NOM court (40 caractères) et une description à part ; la création ne part que par « 🎨 Créer mes éléments », avec confirmation
   const M = ATL.root.querySelector('.atl-mod'); M.textContent = ''; M.hidden = false;
-  const c = atlEl('div', 'atl-mcard'); c.append(atlEl('h2', '', '＋ ' + lab.replace(/s$/, '') + ' à créer'), atlEl('p', 'atl-aide', 'Donne-lui un nom : il s’ajoute à ta fiche, puis tu peux le faire créer.'));
-  const i = atlEl('input', 'atl-chin2'); i.type = 'text'; i.maxLength = 80; i.placeholder = 'Son nom (ex. : un dragon bleu)'; c.appendChild(atlAvecMic(i));
-  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), ok = atlEl('button', 'btn btn-ghost', 'Ajouter'), dr = atlEl('button', 'btn btn-play', 'Ajouter et créer');
-  no.type = ok.type = dr.type = 'button';
-  const go = draw => { const v = i.value.replace(/\s+/g, ' ').trim().slice(0, 80); if (v.length < 2) { i.focus(); return; } const l = atlListeDe(fi[k]); if (l.length >= 30) return; l.push(v); atlEtape(k, l); M.hidden = true; M.textContent = ''; atlRender(); if (draw) atlModale(); };
-  no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; }); ok.addEventListener('click', () => go(false)); dr.addEventListener('click', () => go(true));
-  i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(true); } });
-  row.append(no, ok, dr); c.appendChild(row); M.appendChild(c); i.focus();
+  const c = atlEl('div', 'atl-mcard'); c.append(atlEl('h2', '', '＋ ' + lab.replace(/s$/, '') + ' à ajouter'), atlEl('p', 'atl-aide', 'Donne-lui un nom court. Il s’ajoute à ta fiche, « à créer » : rien n’est créé ni payé maintenant.'));
+  const i = atlEl('input', 'atl-chin2'); i.type = 'text'; i.maxLength = 40; i.placeholder = 'Son nom, en quelques mots (ex. : un dragon bleu)'; c.appendChild(atlAvecMic(i));
+  const d = atlEl('textarea', 'atl-arin'); d.rows = 2; d.maxLength = 300; d.placeholder = 'Décris-le si tu veux (couleurs, à quoi il sert…) — facultatif'; c.appendChild(atlAvecMic(d));
+  const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), ok = atlEl('button', 'btn btn-play', '＋ Ajouter à ma fiche');
+  no.type = ok.type = 'button';
+  const go = () => {
+    const v = i.value.replace(/\s+/g, ' ').trim(), de = d.value.replace(/\s+/g, ' ').trim().slice(0, 300);
+    if (v.length < 2) { i.focus(); return; }
+    if (v.length > 40 || v.split(' ').length > 7) { er.hidden = false; er.textContent = 'Un nom court, en quelques mots : mets le reste dans la description.'; i.focus(); return; }
+    const l = atlListeDe(fi[k]); if (l.length >= 30) return;
+    if (!l.some(x => atlNorm(x) === atlNorm(v))) { l.push(v); atlEtape(k, l); }
+    if (de) { const ds = Object.assign({}, fi.descriptions && typeof fi.descriptions === 'object' ? fi.descriptions : {}); ds[v] = de; fi.descriptions = ds; atlEtape('descriptions', ds); }
+    M.hidden = true; M.textContent = ''; atlRender(); atlToast('＋ « ' + v + ' » ajouté à ta fiche (à créer)');
+  };
+  no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; }); ok.addEventListener('click', go);
+  i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+  row.append(no, ok); c.appendChild(row); M.appendChild(c); i.focus();
 }
 
 // ---- 21 h 25 (Benjamin : « il se met au travail, et animé de ouf ») : le guide VIVANT — poses dessinées (accueil/guide-*.webp :

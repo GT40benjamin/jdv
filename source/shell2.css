@@ -4283,3 +4283,5 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-propvue{margin:4px 0;padding:8px 10px;border-radius:10px;border:1px dashed var(--line)}.atl-propvue small{color:var(--muted)}
 .atl-pred{display:grid;gap:6px;margin:8px 0;padding:10px;border-radius:12px;background:rgba(255,255,255,.04)}
 .atl-predr{display:grid;grid-template-columns:1fr 90px auto;gap:6px}.atl-predm{color:var(--muted)}
+
+.atl-mconf{display:grid;gap:6px;margin-top:8px;padding:12px;border-radius:12px;border:2px solid #ffd34d;background:rgba(255,211,77,.08)}.atl-mconf p{margin:0;color:var(--muted);font:13.5px var(--body)}
