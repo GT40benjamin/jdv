@@ -2774,3 +2774,6 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (v36, 2 nov. 2026 23 h 30, Benjamin) : le DEVIS — fiche.devis [{id, ligne, cat, credits, retirable, note, retire}] ; grille devis_* dans
 -- at_reglages ; at_devis_retirer (joueur, avant le lancement) ; at_lancer : prix = pegase_int.at_devis_total(fiche) (sinon cout_conception),
 -- puis devis_scelle / devis_total. Texte complet : migration atelier_v36_devis.
+
+-- (v37, 2 nov. 2026 23 h 35 → 23 h 40, Benjamin) : devis — « lie_a » : retirer / remettre une ligne fait de même pour ses lignes liées
+-- (at_devis_retirer) ; chaque ligne = le montant fixé par l équipe (0 à 2 000, jamais la grille) ; « reutilise » affiché sous la ligne.

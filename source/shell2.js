@@ -14530,9 +14530,11 @@ const ATL_DEVIS_IC = { base: '🧱', personnage: '🦸', ennemi: '👾', objet: 
 function atlDevis(f) {
   const fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, l = Array.isArray(fi.devis) ? fi.devis.filter(x => x && typeof x === 'object') : [];
   if (!l.length) return null;
-  const total = l.reduce((a, x) => a + (x.retire ? 0 : Math.max(0, Math.round(+x.credits || 0))), 0);
+  const total = l.reduce((a, x) => a + (x.retire ? 0 : Math.max(0, Math.min(2000, Math.floor(+x.credits || 0)))), 0);
   return { l, total, scelle: !!fi.devis_scelle, paye: fi.devis_total };
 }
+// 23 h 40 : « reutilise » (facultatif) dit en petit pourquoi une ligne coûte moins cher
+function atlDevisNom(x) { const n = atlEl('span', 'atl-dvn', String(x.ligne || '') + (x.note ? ' · ' + x.note : '')); if (x.reutilise) n.appendChild(atlEl('small', 'atl-dvre', '♻️ ' + String(x.reutilise))); return n; }
 function atlDevisEncart(f, fi, lecture) {
   const d = atlDevis(f), box = atlEl('section', 'atl-devis'); if (!d) return box;
   const fige = lecture || d.scelle || ATL_AFTER.has(String(f.etat || ''));
@@ -14540,8 +14542,8 @@ function atlDevisEncart(f, fi, lecture) {
   if (!fige) box.appendChild(atlEl('p', 'atl-aide', 'Chaque élément a son prix. Touche ✕ pour retirer ce dont tu n’as pas besoin : le total baisse. ↩ pour le remettre.'));
   const tb = atlEl('div', 'atl-dvl');
   for (const x of d.l) {
-    const r = atlEl('div', 'atl-dvr' + (x.retire ? ' off' : ''));
-    r.append(atlEl('span', 'atl-dvi', ATL_DEVIS_IC[x.cat] || '•'), atlEl('span', 'atl-dvn', String(x.ligne || '') + (x.note ? ' · ' + x.note : '')), atlEl('b', 'atl-dvc', Math.max(0, Math.round(+x.credits || 0)) + ' 💎'));
+    const r = atlEl('div', 'atl-dvr' + (x.retire ? ' off' : '') + (x.lie_a ? ' lie' : ''));
+    r.append(atlEl('span', 'atl-dvi', ATL_DEVIS_IC[x.cat] || '•'), atlDevisNom(x), atlEl('b', 'atl-dvc', Math.max(0, Math.min(2000, Math.floor(+x.credits || 0))) + ' 💎'));
     if (!fige && x.retirable) {
       const b = atlEl('button', 'atl-dvx', x.retire ? '↩' : '✕'); b.type = 'button'; b.setAttribute('aria-label', (x.retire ? 'Remettre ' : 'Retirer ') + (x.ligne || ''));
       b.addEventListener('click', () => atlDevisBascule(f, fi, x, b));
@@ -14555,12 +14557,21 @@ function atlDevisEncart(f, fi, lecture) {
   return box;
 }
 async function atlDevisBascule(f, fi, x, b) {
-  const ret = !x.retire; b.disabled = true;
+  const ret = !x.retire, lies = (fi.devis || []).filter(y => y && y.lie_a != null && String(y.lie_a) === String(x.id) && !!y.retire !== ret);
+  // 23 h 35 : retirer un niveau retire aussi ce qui n'existe que pour lui (lie_a) — on prévient d'abord
+  if (ret && lies.length && b.dataset.ok !== '1') {
+    b.dataset.ok = '1'; b.textContent = '✓'; b.classList.add('sur');
+    const w = atlEl('p', 'atl-dvw', '⚠️ Retire aussi : ' + lies.map(y => y.ligne).join(', ') + ' (−' + lies.reduce((a, y) => a + Math.max(0, Math.round(+y.credits || 0)), 0) + ' 💎). Touche ✓ pour confirmer.');
+    b.closest('.atl-dvr').after(w); setTimeout(() => { if (b.isConnected && b.dataset.ok === '1') atlRenderWiz(); }, 6000); return;
+  }
+  b.disabled = true;
   try {
     await rpc('at_devis_retirer', { p_name: profile.name, p_fiche: f.id, p_id: String(x.id), p_retire: ret }, { quiet: true });
-    x.retire = ret;
-    const k = ATL_DEVIS_CLE[x.cat];   // l'élément suit : retiré de la fiche, ou remis
-    if (k) { const l = atlListeDe(fi[k]), nom = String(x.ligne || '').trim(); if (ret) atlEtape(k, l.filter(v => !atlMemeChose(v, nom))); else if (nom && !l.some(v => atlMemeChose(v, nom))) atlEtape(k, l.concat([nom])); }
+    for (const y of [x].concat(lies)) {
+      y.retire = ret;
+      const k = ATL_DEVIS_CLE[y.cat];   // l'élément suit : retiré de la fiche, ou remis
+      if (k) { const l = atlListeDe(fi[k]), nom = String(y.ligne || '').trim(); if (ret) atlEtape(k, l.filter(v => !atlMemeChose(v, nom))); else if (nom && !l.some(v => atlMemeChose(v, nom))) atlEtape(k, l.concat([nom])); }
+    }
     atlRenderWiz();
   } catch (e) { b.disabled = false; atlWizErr(/scelle/.test(String(e && e.message)) ? 'Le devis est scellé : la conception est lancée.' : /obligatoire/.test(String(e && e.message)) ? 'Cette ligne est indispensable à ton jeu.' : atlWhy(e)); }
 }

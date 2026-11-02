@@ -4230,3 +4230,7 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-dvn{font:14px var(--body)}.atl-dvc{font:800 14px var(--body);white-space:nowrap}
 .atl-dvx{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-size:14px}
 .atl-dvt{margin:6px 0 0;text-align:right;font:800 18px var(--body);color:#ffd34d}
+
+.atl-dvr.lie{margin-left:22px}.atl-dvw{margin:2px 0 4px 22px;padding:6px 10px;border-radius:10px;background:rgba(255,138,101,.14);color:#ffd2c2;font:13px var(--body)}
+.atl-dvx.sur{background:#ff8a65;color:#2a1340;border-color:#ff8a65}
+.atl-dvre{display:block;color:#9fe0a8;font:12px var(--body)}
