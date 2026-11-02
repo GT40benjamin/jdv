@@ -16056,9 +16056,9 @@ function atlDemBtn(R) {
 // CETTE demande, rien de codé ici) + « ⏸️ Plus tard » ; option grisée si le solde ne suffit pas ; « Utiliser N 💎 ? Oui / Non »
 // (at_demande_accepter : débit une seule fois ; at_demande_plus_tard : rien n'est débité)
 function atlPropOuverte(x) { return !!(x && Array.isArray(x.propositions) && x.propositions.length && !x.choix && !['faite', 'impossible'].includes(x.etat)); }
-function atlPropBoutons(x) {
+function atlPropBoutons(x, comme) {
   const box = atlEl('div', 'atl-props'); if (!atlPropOuverte(x)) return box;
-  const cr = atlCred(), solde = cr ? cr.solde | 0 : 0;
+  const cr = atlCred(), solde = comme ? comme.solde | 0 : cr ? cr.solde | 0 : 0;
   const fini = async (fn, args, ok) => { box.querySelectorAll('button').forEach(b => { b.disabled = true; }); try { const r = await rpc(fn, args, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ok(r); ATL.demAt = 0; atlDemCharger(true); atlLoad(true); } catch (e) { box.querySelectorAll('button').forEach(b => { b.disabled = false; }); box.appendChild(atlEl('p', 'atl-werr', /credits insuffisants/.test(String(e && e.message)) ? 'Il te manque des crédits.' : atlWhy(e))); } };
   for (const o of x.propositions) {
     const c = Math.max(0, o.credits | 0), manque = c - solde;
@@ -16072,6 +16072,7 @@ function atlPropBoutons(x) {
     });
     box.appendChild(b);
   }
+  if (comme) { setTimeout(() => box.querySelectorAll('button').forEach(b => { b.disabled = true; }), 0); }   // vue admin : les vrais boutons, inactifs
   if (x.etat !== 'plus_tard') { const pt = atlEl('button', 'btn btn-ghost btn-sm', '⏸️ Plus tard'); pt.type = 'button'; pt.addEventListener('click', () => fini('at_demande_plus_tard', { p_name: profile.name, p_id: x.id }, () => { x.etat = 'plus_tard'; box.textContent = ''; box.appendChild(atlEl('p', 'atl-propok', '⏸️ D’accord, plus tard : rien n’est utilisé. Tu pourras choisir quand tu veux dans « 📋 Mes demandes ».')); })); box.appendChild(pt); }
   return box;
 }
@@ -16180,6 +16181,27 @@ function atlAdminBandeau() {
   bt('🎁 Donner des crédits', async () => { const v = Math.round(+prompt('Combien de crédits offrir au joueur ?', '50')); if (!(v > 0)) return; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'credits', p_args: { montant: v } }, { quiet: true }); atlToast('🎁 ' + v + ' crédits offerts'); atlLoad(true); } catch (e) { atlToast('Pas possible : ' + String(e && e.message).slice(0, 60)); } });
   bt('✕ Quitter', () => { ATL.adminVoir = null; atlListe(); });
 }
+// l'éditeur admin des options d'une demande (libellé + crédits, ＋ option, ✕) → at_admin_proposer
+function atlPropEditeur(x, m) {
+  const E = atlEl('div', 'atl-pred'), lignes = atlEl('div', 'atl-predl'), msg = atlEl('small', 'atl-predm');
+  const ligne = (o) => { const r = atlEl('div', 'atl-predr'), li = atlEl('input', 'atl-tousf'), cr = atlEl('input', 'atl-tousf'), x0 = atlEl('button', 'btn btn-ghost btn-sm', '✕');
+    li.placeholder = 'Libellé (ex. : ✅ Les 3 musiques)'; li.maxLength = 80; li.value = o ? o.libelle || '' : ''; cr.type = 'number'; cr.min = '0'; cr.max = '5000'; cr.placeholder = 'Crédits'; cr.value = o ? String(o.credits | 0) : ''; x0.type = 'button';
+    x0.addEventListener('click', () => r.remove()); r.dataset.id = o && o.id ? o.id : ''; r.append(li, cr, x0); lignes.appendChild(r); };
+  for (const o of (Array.isArray(x.propositions) ? x.propositions : [])) ligne(o);
+  if (!lignes.children.length) ligne(null);
+  const plus = atlEl('button', 'btn btn-ghost btn-sm', '＋ option'), ta = atlEl('textarea', 'atl-arin'), go = atlEl('button', 'btn btn-play btn-sm', 'Proposer au joueur'); plus.type = go.type = 'button';
+  ta.rows = 2; ta.maxLength = 1000; ta.placeholder = 'Ton message au joueur (facultatif)';
+  plus.addEventListener('click', () => { if (lignes.children.length < 4) ligne(null); });
+  go.addEventListener('click', async () => {
+    const props = [...lignes.children].map((r, k) => { const [li, cr] = r.querySelectorAll('input'); return { id: r.dataset.id || 'o' + (k + 1), libelle: li.value.trim(), credits: Math.max(0, Math.min(5000, Math.round(+cr.value || 0))) }; }).filter(o => o.libelle);
+    if (!props.length) { msg.textContent = 'Au moins une option avec un libellé.'; return; }
+    go.disabled = true; msg.textContent = '';
+    try { await rpc('at_admin_proposer', { p_name: profile.name, p_fiche: m.id, p_id: x.id, p_propositions: props, p_texte: ta.value.trim() || null }, { quiet: true }); msg.textContent = '✅ Proposé au joueur.'; atlAdminDemandes(); }
+    catch (e) { go.disabled = false; msg.textContent = /deja choisi/.test(String(e && e.message)) ? 'Le joueur a déjà choisi.' : 'Pas possible : ' + String((e && e.message) || '').slice(0, 60); }
+  });
+  E.append(atlEl('b', '', 'Options proposées (1 à 4, « ⏸️ Plus tard » est ajouté tout seul)'), lignes, plus, atlAvecMic(ta), go, msg);
+  return E;
+}
 async function atlAdminDemandes() {
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'), m = ATL.adminVoir; if (!z || !m) return;
   try { const r0 = await rpc('at_admin_lire', { p_name: profile.name, p_fiche: m.id }, { quiet: true }); if (r0 && ATL.data) ATL.data.demandes_projet = r0.demandes_projet; } catch (e) {}   // l'état réel, pas celui d'il y a 20 s
@@ -16199,6 +16221,17 @@ async function atlAdminDemandes() {
     if (x.reponse) t.appendChild(atlEl('p', 'atl-demrep', '🤖 Réponse envoyée : ' + x.reponse));
     const se = atlEl('select', 'atl-tousf'); for (const k of ['envoyee', 'vue', 'en_cours', 'faite', 'impossible']) { const o = new Option((ATL_DEM_ET[k] || k) + (k === 'vue' ? gN() : ''), k); if (k === x.etat) o.selected = true; se.appendChild(o); }
     const ta = atlEl('textarea', 'atl-arin'); ta.rows = 2; ta.maxLength = 1000; ta.placeholder = x.reponse ? 'Nouvelle réponse (facultatif)' : 'Réponse au joueur (facultatif, elle arrive aussi dans la discussion)';
+    // 0 h 40 (Benjamin : « je ne vois pas les boutons de choix ») : les options, comme chez le joueur, et leur éditeur
+    const av = ATL.data && ATL.data.admin_voir, jn = av ? dispName(av.joueur) : 'le joueur';
+    if (Array.isArray(x.propositions) && x.propositions.length) {
+      const dc = x.choix && x.choix.at ? new Date(x.choix.at) : null;
+      t.appendChild(atlEl('p', 'atl-propst', x.choix ? '✅ ' + jn + ' a choisi : ' + (x.choix.libelle || '') + ' · ' + (x.choix.credits | 0) + ' 💎' + (dc && !isNaN(dc) ? ' le ' + fdt(dc) : '') : x.etat === 'plus_tard' ? '⏸️ ' + jn + ' a dit « plus tard »' : '⏳ En attente du choix de ' + jn));
+      if (!x.choix) { const vj = atlEl('div', 'atl-propvue'); vj.appendChild(atlEl('small', '', '👀 Comme ' + jn + ' le voit (' + ((av && av.solde) | 0) + ' 💎) :')); vj.appendChild(atlPropBoutons(x, { solde: av ? av.solde : 0 })); t.appendChild(vj); }
+    }
+    if (!x.choix && !['faite', 'impossible'].includes(x.etat)) {
+      const eb = atlEl('button', 'btn btn-ghost btn-sm', Array.isArray(x.propositions) && x.propositions.length ? '✏️ Modifier les options' : '＋ Proposer des options'); eb.type = 'button';
+      eb.addEventListener('click', () => { eb.remove(); t.appendChild(atlPropEditeur(x, m)); }); t.appendChild(eb);
+    }
     const ok = atlEl('button', 'btn btn-play btn-sm', 'Enregistrer'); ok.type = 'button';
     ok.addEventListener('click', async () => { ok.disabled = true; try { await rpc('at_admin_agir', { p_name: profile.name, p_fiche: m.id, p_action: 'demande_etat', p_args: { id: x.id, etat: se.value, reponse: ta.value.trim() } }, { quiet: true }); x.etat = se.value; if (ta.value.trim()) x.reponse = ta.value.trim(); ok.textContent = '✅ Enregistré'; atlLoad(true); } catch (e) { ok.disabled = false; ok.textContent = 'Réessayer'; } });
     const row = atlEl('div', 'atl-tousfl'); row.append(se, ok); t.append(row, atlAvecMic(ta)); c.appendChild(t); P.appendChild(c);

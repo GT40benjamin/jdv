@@ -2785,3 +2785,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (v40, 3 nov. 2026 0 h 15, Benjamin) : PROPOSITIONS chiffrées — at_demandes.propositions / choix, état plus_tard ; at_demande_proposer
 -- (service : 1 à 6 options {id, libelle, credits}, message du guide relié par at_messages.demande) ; at_demande_accepter (joueur :
 -- débit UNE fois, en cours) ; at_demande_plus_tard (rien n est débité). Texte complet : migration atelier_v40_propositions.
+
+-- (v41, 3 nov. 2026 0 h 40) : at_admin_proposer (at_admins) pose / modifie les options d une demande (appelle at_demande_proposer, journal).

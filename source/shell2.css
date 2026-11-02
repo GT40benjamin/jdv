@@ -4277,3 +4277,9 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .fsa-i svg{width:26px;height:26px;fill:none;stroke:#ffd34d;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 /* 0 h 30 : la touche du guide sur son bouton rond */
 #atl-flot{overflow:visible}#atl-flot img{border-radius:50%}.atl-flotk{position:absolute;right:-4px;bottom:-4px;min-width:22px;height:22px;padding:0 5px;border-radius:8px;background:#ffd34d;color:#2a1340;font:800 13px/22px var(--body);text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none}
+
+/* 0 h 40 : les options vues par l'admin et leur éditeur */
+.atl-propst{margin:6px 0 2px;font:700 13.5px var(--body);color:#ffe9a8}
+.atl-propvue{margin:4px 0;padding:8px 10px;border-radius:10px;border:1px dashed var(--line)}.atl-propvue small{color:var(--muted)}
+.atl-pred{display:grid;gap:6px;margin:8px 0;padding:10px;border-radius:12px;background:rgba(255,255,255,.04)}
+.atl-predr{display:grid;grid-template-columns:1fr 90px auto;gap:6px}.atl-predm{color:var(--muted)}
