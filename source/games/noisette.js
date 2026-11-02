@@ -460,17 +460,43 @@ function mount(root, api) {
     if (L.eau) { const wy = sy(520); const g = ctx.createLinearGradient(0, wy, 0, H); g.addColorStop(0, 'rgba(90,180,235,0.92)'); g.addColorStop(1, 'rgba(40,110,190,0.95)'); ctx.fillStyle = g; ctx.fillRect(0, wy, W, H - wy);
       ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2 * Z; ctx.beginPath(); for (let x = 0; x <= W; x += 12) ctx.lineTo(x, wy + Math.sin(x * 0.04 + tNiv * 3) * 3 * Z); ctx.stroke(); }
     const g = ctx.createLinearGradient(0, sy(260), 0, bas); g.addColorStop(0, N.sol[0]); g.addColorStop(1, N.sol[1]);   // un seul dégradé par image
-    for (const s of L.sol) {
-      if (sx(s.x1) < -20 || sx(s.x0) > W + 20) continue;
-      const x0 = sx(s.x0), x1 = sx(s.x1), y0 = sy(s.y0), y1 = sy(s.y1);
-      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x1, bas); ctx.lineTo(x0, bas); ctx.closePath(); ctx.fill();
-      // petits cailloux dans la terre
-      ctx.fillStyle = 'rgba(0,0,0,0.12)'; for (let k = Math.ceil(s.x0 / 70) * 70; k < s.x1; k += 70) { const yy = s.y0 + (s.y1 - s.y0) * (k - s.x0) / (s.x1 - s.x0) + 40 + ((k * 37) % 50); ctx.beginPath(); ctx.ellipse(sx(k), sy(yy), 7 * Z, 4 * Z, 0, 0, TAU); ctx.fill(); }
-      // l'herbe
-      ctx.strokeStyle = N.herbe[1]; ctx.lineWidth = 16 * Z; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0 + 4 * Z); ctx.lineTo(x1, y1 + 4 * Z); ctx.stroke();
-      ctx.strokeStyle = N.herbe[0]; ctx.lineWidth = 10 * Z; ctx.beginPath(); ctx.moveTo(x0, y0 + 1 * Z); ctx.lineTo(x1, y1 + 1 * Z); ctx.stroke();
-      ctx.lineCap = 'butt';
+    // le sol est dessiné d'un seul tenant par portion continue (blocs plats, pentes et marches jointifs) : une seule forme de terre et
+    // une seule ligne d'herbe, sans raccord entre les blocs ; les cailloux sont placés en coordonnées du monde (le motif ne recommence pas)
+    const vis = L.sol.filter(s => sx(s.x1) >= -20 && sx(s.x0) <= W + 20), chaines = [];
+    for (const s of vis) { const c = chaines[chaines.length - 1], d = c && c[c.length - 1]; if (d && Math.abs(s.x0 - d.x1) < 1) c.push(s); else chaines.push([s]); }
+    // une portion = des morceaux sans marche ; chaque morceau = ses points (coins plat ↔ pente arrondis sur 26 unités, sans cassure)
+    const morceaux = (c, herbe) => { const M = []; c.forEach((s, i) => { if (i === 0 || Math.abs(s.y0 - c[i - 1].y1) > 1) M.push([[s.x0, s.y0]]); M[M.length - 1].push([s.x1, s.y1]); });
+      // au pied d'une marche, l'herbe du bas s'arrête contre la paroi (son bout rond ne déborde pas dessus)
+      if (herbe) for (let i = 0; i < M.length; i++) { const m = M[i], A = M[i - 1], B = M[i + 1];
+        if (B && B[0][1] < m[m.length - 1][1]) m[m.length - 1] = [m[m.length - 1][0] - 8, m[m.length - 1][1]];
+        if (A && A[A.length - 1][1] < m[0][1]) m[0] = [m[0][0] + 8, m[0][1]]; }
+      return M; };
+    const tracer = (pts, dy, debut) => {
+      const P0 = pts[0]; if (debut) ctx.moveTo(sx(P0[0]), sy(P0[1]) + dy); else ctx.lineTo(sx(P0[0]), sy(P0[1]) + dy);
+      for (let i = 1; i < pts.length; i++) {
+        const p = pts[i], n = pts[i + 1];
+        if (!n) { ctx.lineTo(sx(p[0]), sy(p[1]) + dy); break; }
+        const a = pts[i - 1], la = Math.hypot(p[0] - a[0], p[1] - a[1]), lb = Math.hypot(n[0] - p[0], n[1] - p[1]), r = Math.min(26, la / 2, lb / 2);
+        const A = [p[0] - (p[0] - a[0]) * r / la, p[1] - (p[1] - a[1]) * r / la], B = [p[0] + (n[0] - p[0]) * r / lb, p[1] + (n[1] - p[1]) * r / lb];
+        ctx.lineTo(sx(A[0]), sy(A[1]) + dy); ctx.quadraticCurveTo(sx(p[0]), sy(p[1]) + dy, sx(B[0]), sy(B[1]) + dy);
+      }
+    };
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (const c of chaines) {
+      const M = morceaux(c);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(sx(c[0].x0), bas);
+      for (const m of M) tracer(m, 0, false);
+      ctx.lineTo(sx(c[c.length - 1].x1), bas); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      for (const s of c) for (let k = Math.ceil(s.x0 / 70) * 70; k < s.x1; k += 70) { const yy = s.y0 + (s.y1 - s.y0) * (k - s.x0) / (s.x1 - s.x0) + 40 + ((k * 37) % 50); ctx.beginPath(); ctx.ellipse(sx(k), sy(yy), 7 * Z, 4 * Z, 0, 0, TAU); ctx.fill(); }
+      // l'herbe : une ligne continue, coupée seulement aux marches (là où le sol saute d'un coup)
+      for (const [col, lw, dy] of [[N.herbe[1], 16, 4], [N.herbe[0], 10, 1]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = lw * Z; ctx.beginPath();
+        for (const m of morceaux(c, true)) tracer(m, dy * Z, true);
+        ctx.stroke();
+      }
     }
+    ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
   }
   function drawObjets() {
     if (!off('deco')) for (const d of L.deco) { const g = solA(d.x); if (g == null || sx(d.x) < -100 || sx(d.x) > W + 100) continue; drawFoot(ctx, d.k, sx(d.x), sy(g) + 4 * Z, 46 * d.s * Z); }
