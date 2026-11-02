@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🐢 Abracadabra : l'île aux tortues, une traversée mouvementée (borne 1.63.29)
+[abracadabra] 🦈 Mission 6 : dis « requin » pendant que la tortue les ramène : elle a peur, fait demi-tour à toute vitesse vers l'îlot avec tout le monde sur son dos… et plus personne n'ose entrer dans l'eau !
+[abracadabra] 🌊 Un gros objet pendant la traversée fait une vague : la tortue tangue, quelqu'un tombe à l'eau (« Glouglou ! ») et rejoint la plage à la nage, tout seul, avant de rentrer chez lui.
 [remparts] ## 🔮 Remparts !, en essai : Remparts magiques, tout en 3D (borne 1.63.28)
 [remparts] 🔮 Le tower defense change d'univers : une île flottante en 3D, des tours de mages à cristaux lumineux, et la tour du sorcier à défendre au bout du chemin.
 [remparts] 🗺️ 5 mondes inspirés de Magic Force : la Forêt enchantée, le Jardin maudit (deux portes), les Grottes de glace (verglas), les Forges ardentes (lave et forges) et la Crypte oubliée (les monstres se relèvent).
