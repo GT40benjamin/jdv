@@ -299,6 +299,60 @@ function mount(root, api) {
   return proxy;
 }
 
+
+// (2 nov., Benjamin : « la carte est là pour ça, elle n'y est pas sur Abracadabra ») LA CARTE DES MISSIONS de la borne : les 12 missions
+// (titre, lieu, emoji, couleur) et son dessin — un grimoire de nuit étoilée qui s'éclaire jusqu'à l'aube, un chemin d'étoiles, un médaillon
+// par mission. La borne (MAP_DEFS.abracadabra, shell2.js) pose chaque copain sur la mission où il en est (mapSpot = mission × 1000).
+const MISSIONS = [
+  ['Le pont du village', 'La rivière', '🌉', '#58b8ff'], ['La falaise', 'Le plateau fleuri', '🧗', '#ff9a5a'], ['La boule de neige géante', 'Le col enneigé', '☃️', '#9ad8ff'],
+  ['Le cheval têtu', 'Le désert', '🐎', '#ffb84a'], ['La forêt de nuit', 'La forêt', '🌙', '#8a7aff'], ["L'île aux tortues", 'Le lagon', '🏝️', '#3ad8c0'],
+  ['Les îles dans les nuages', 'Le ciel', '☁️', '#b8c8ff'], ['Le phare dans la tempête', 'La côte', '⛈️', '#6a8aff'], ['Le taureau amoureux', 'La ferme', '🐂', '#ff6a5a'],
+  ['Le géant endormi', 'La vallée', '😴', '#7ad86a'], ['Le chat sur le toit', 'La place du village', '🐈', '#ff8ad0'], ['Les moutons dispersés', 'Les collines', '🐑', '#a8e86a'],
+].map(([titre, lieu, emoji, acc], i) => ({ n: i + 1, titre, lieu, emoji, acc }));
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+const mapArt = {
+  // le fond : nuit violette en bas (le départ) → aube dorée en haut (la dernière mission)
+  stops(L) { return [[L.H, '#0c0620'], [L.H * 0.7, '#1e1046'], [L.H * 0.4, '#3a2468'], [L.H * 0.15, '#7a4a7a'], [0, '#e8a868']]; },
+  paint(x, L, W, y0, h) {
+    x.save(); x.translate(0, -y0);
+    // des étoiles (toujours les mêmes : un petit hasard fixé par la position)
+    let s = Math.floor(y0 / 97) + 7; const r = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+    for (let i = 0; i < Math.floor(h / 14); i++) {
+      const sx = r() * W, sy = y0 + r() * h, k = Math.max(0, 1 - sy / Math.max(1, L.H) * 0.2), a = (0.25 + r() * 0.6) * Math.min(1, sy / (L.H * 0.25));
+      x.fillStyle = `rgba(255,240,210,${a.toFixed(2)})`; x.beginPath(); x.arc(sx, sy, 0.6 + r() * 1.4 * k, 0, 7); x.fill();
+    }
+    // le chemin d'étoiles entre deux missions (poussière dorée)
+    const N = L.nodes || [];
+    for (let k = 0; k + 1 < N.length; k++) {
+      const a = N[k], b = N[k + 1]; if (Math.max(a.y, b.y) + 30 < y0 || Math.min(a.y, b.y) - 30 > y0 + h) continue;
+      for (let t = 0.12; t < 0.9; t += 0.06) { const px = a.x + (b.x - a.x) * t + Math.sin(t * 9 + k) * 10, py = a.y + (b.y - a.y) * t; x.fillStyle = 'rgba(255,214,120,.55)'; x.beginPath(); x.arc(px, py, 2.2, 0, 7); x.fill(); }
+    }
+    x.restore();
+  },
+  // le médaillon d'une mission : un disque de sa couleur, l'emoji au centre ; la victoire : une étoile d'or
+  node(x, info, size, P) {
+    const cx = P / 2, cy = P / 2, r = size / 2;
+    const g = x.createRadialGradient(cx, cy, r * 0.5, cx, cy, r + 12); g.addColorStop(0, rgba(info.acc, 0.6)); g.addColorStop(1, rgba(info.acc, 0)); x.fillStyle = g; x.fillRect(0, 0, P, P);
+    if (info.win) {
+      x.beginPath(); for (let k = 0; k < 10; k++) { const an = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; x.lineTo(cx + Math.cos(an) * rr, cy + Math.sin(an) * rr); } x.closePath();
+      x.fillStyle = '#ffd34d'; x.fill(); x.strokeStyle = '#7a4a00'; x.lineWidth = 2; x.stroke(); return;
+    }
+    const b = x.createLinearGradient(0, cy - r, 0, cy + r); b.addColorStop(0, '#2a1650'); b.addColorStop(1, '#120830');
+    x.fillStyle = b; x.beginPath(); x.arc(cx, cy, r * 0.92, 0, 7); x.fill();
+    x.strokeStyle = info.acc; x.lineWidth = 3; x.stroke(); x.strokeStyle = 'rgba(255,230,170,.6)'; x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, r * 0.78, 0, 7); x.stroke();
+    // (l'emoji en haut du médaillon : la borne écrit le numéro de la mission au centre, par-dessus)
+    x.font = `${Math.round(r * 0.6)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(info.emoji || '✨', cx, cy - r * 0.42);
+  },
+  // le départ : le bâton du sorcier, son cristal violet
+  start(x, P) {
+    x.save(); x.translate(P / 2, P / 2);
+    const g = x.createRadialGradient(0, -P * 0.18, 2, 0, -P * 0.18, P * 0.32); g.addColorStop(0, 'rgba(220,150,255,.9)'); g.addColorStop(1, 'rgba(220,150,255,0)'); x.fillStyle = g; x.fillRect(-P / 2, -P / 2, P, P);
+    x.rotate(0.35); x.fillStyle = '#8a5a2a'; x.fillRect(-3, -P * 0.12, 6, P * 0.42);
+    x.fillStyle = '#e070ff'; x.beginPath(); x.moveTo(0, -P * 0.32); x.lineTo(8, -P * 0.18); x.lineTo(0, -P * 0.1); x.lineTo(-8, -P * 0.18); x.closePath(); x.fill();
+    x.restore();
+  },
+};
+
 window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES[ID] = {
   id: ID,
@@ -308,6 +362,8 @@ window.JDW_GAMES[ID] = {
   scoreLabel: 'points',
   saves: true,   // l'avancement est gardé (api.save, Ajout 14) : Quitter sort tout de suite
   spots: true,   // jusqu'où chacun est allé sur la carte des missions (mapSpot, api.reached, Ajout 15)
+  missions: MISSIONS, mapArt,   // (2 nov.) la carte de la borne (MAP_DEFS.abracadabra)
+  boardLevel: true,   // (2 nov.) au classement, la mission atteinte à côté du score
   fps: false,
   pad: { help: [['ls', 'Marcher'], ['rs', 'Regarder'], ['rb', 'GO / STOP (micro : les sorts)'], ['a', 'Sauter']] },
   preview,

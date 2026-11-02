@@ -3249,7 +3249,15 @@ function renderBoardTab() {
     $('jdw-board-hint').textContent = g ? (offDev ? 'Hors ligne · records de cet appareil · ' : netOff() && !W ? 'Hors ligne · dernier classement connu · ' : W ? 'Top 10 mondial · ' : 'Top 10 de la salle · ') + g.tagline : '';
     const rows = top(boardTab, boardScope);
     if (!rows.length) return emptyRow(ol);
-    for (const r of rows) { const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g); ol.appendChild(rowEl(r.name, s, r.name === me, W)); }
+    // (2 nov., Benjamin : « le classement Abracadabra, c'est aussi le niveau : à côté du score, la mission atteinte ») jeux à carte de missions
+    // (g.boardLevel) : « Mission 5 » devant le score, tiré de la progression de la salle (la carte) ; le classement mondial ne la connaît pas
+    const lvOf = g && g.boardLevel && MAP_DEFS[g.id] && !W ? (() => { if (room && ONLINE && PROG.room !== room.id && !PROG.loading && !PROG.missing) progLoad().then(() => { if (!$('jdw-board').hidden && boardTab === g.id) renderBoardTab(); }).catch(() => {}); const P2 = mapPeople(g.id); return (nm) => { const sp = mapSpotOf(MAP_DEFS[g.id], P2.get(nm) || 0); return sp && sp.lv ? (sp.win ? '🏆 12/12' : '🗺️ Mission ' + sp.lv) : ''; }; })() : null;
+    for (const r of rows) {
+      const s = document.createElement('span'); s.className = 's'; s.textContent = fmt(r.score) + unit(g);
+      const lv = lvOf ? lvOf(r.name) : '';
+      if (lv) { const w = document.createElement('span'); w.className = 's'; w.style.cssText = 'display:inline-flex;gap:10px;align-items:baseline'; const m = document.createElement('small'); m.style.cssText = 'font:600 12px var(--font-body,system-ui);opacity:.8;white-space:nowrap'; m.textContent = lv; w.append(m, s); ol.appendChild(rowEl(r.name, w, r.name === me, W)); }
+      else ol.appendChild(rowEl(r.name, s, r.name === me, W));
+    }
   }
 }
 function emptyRow(ol) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = "Personne n'a encore de score ici. La place est libre !"; ol.appendChild(li); }
@@ -11256,6 +11264,35 @@ const MAP_DEFS = {
   // Néon Rush (games/neon.js) : 7 niveaux d'une seule vie, puis la grande victoire. Chaque niveau = le bout de chemin qui mène au suivant ;
   // avancement FIN (spot) : la tête de chacun est posée pile là où il est mort dans son niveau (💀 + pour cent), pas seulement sur la pastille.
   // Valeur gardée : niveau × 1000 + pour mille (mapSpot du jeu) ; 8000 = victoire ; avant le 27 oct. (1, 2, 3…, sans l'endroit) = au départ.
+  // Abracadabra (games/abracadabra.js, 2 nov., Benjamin : « la carte est là pour ça, elle n'y est pas sur Abracadabra ») : les 12 missions,
+  // dans l'ordre ; mapSpot = (missions réussies + 1) × 1000 → chacun est posé sur la mission où il en est ; 13 000 = les 12 réussies.
+  // Le dessin (nuit étoilée → aube, chemin d'étoiles, médaillons à emoji) vient du jeu (JDW_GAMES.abracadabra.mapArt).
+  abracadabra: {
+    theme: 'abra', word: 'Mission', tierGap: 150, tierAt: 0.5, step: 190, nodeSize: 58, bgDpr: 1.6,
+    game() { const G = window.JDW_GAMES && window.JDW_GAMES.abracadabra; return G && Array.isArray(G.missions) && G.mapArt ? G : null; },
+    n() { const G = this.game(); return G ? G.missions.length : 12; },
+    count() { return this.n() + 1; },
+    level(lv) {
+      const G = this.game(), n = this.n();
+      if (lv > n) return { lv, tier: 0, win: true, kicker: 'Grande victoire', name: 'Les ' + n + ' missions réussies', lines: ['Le sorcier a aidé tout le monde'], acc: '#ffd34d' };
+      const M = G ? G.missions[lv - 1] : null;
+      return { lv, tier: 0, kicker: 'Mission ' + lv, name: M ? M.titre : 'Mission ' + lv, lines: M ? [M.lieu] : [], acc: M ? M.acc : '#c79bff', emoji: M ? M.emoji : '✨' };
+    },
+    short(lv) { const i = this.level(lv); return i.win ? 'Les ' + this.n() + ' missions réussies' : 'Mission ' + lv + ' · ' + i.name; },
+    tier() { return { kicker: 'Le grimoire du sorcier', title: 'Abracadabra', sub: this.n() + ' missions : dis le bon mot, à voix haute !', acc: '#c79bff', acc2: '#ffd36a' }; },
+    spot(v) {
+      v = Math.floor(+v || 0); const n = this.n(); if (v < 1000) return null;
+      const lv = Math.floor(v / 1000);
+      if (lv > n) return { lv: n + 1, f: 0, dead: false, win: true, label: 'Victoire', long: 'a réussi les ' + n + ' missions' };
+      return { lv, f: 0, dead: false, label: 'Mission ' + lv, long: 'en est à la mission ' + lv + (lv > 1 ? ' (' + (lv - 1) + ' réussie' + (lv > 2 ? 's' : '') + ')' : '') };
+    },
+    stops(L) { const G = this.game(); return G ? G.mapArt.stops(L) : [[L.H, '#0c0620'], [0, '#e8a868']]; },
+    paint(x, L, W, y0, h) { const G = this.game(); if (G) G.mapArt.paint(x, L, W, y0, h); },
+    node(x, info, size, P) { const G = this.game(); if (G) G.mapArt.node(x, info, size, P); },
+    startArt(x, P) { const G = this.game(); if (G && G.mapArt.start) G.mapArt.start(x, P); },
+    start: { title: 'Départ', sub: 'Le sorcier arrive au village' },
+    cap: { title: 'Le grimoire est complet !', sub: 'Les 12 missions réussies' }
+  },
   neon: {
     theme: 'neon', word: 'Niveau', tierGap: 120, tierAt: 0.5, step: 330, nodeSize: 56, bgDpr: 1.6, lazy: true,
     game() { const G = window.JDW_GAMES && window.JDW_GAMES.neon; return G && Array.isArray(G.levels) && G.levels.length ? G : null; },
