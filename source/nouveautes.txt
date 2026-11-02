@@ -66,6 +66,12 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 📸 Arrêt sur image complet (borne 1.63.102)
+[atelier] 🔊 Dans les éléments de ton jeu, le gros bouton ▶ joue bien tes sons et ta musique (⏸ pour arrêter, un seul à la fois).
+[atelier] 📸 L'arrêt sur image photographie tout ton écran : le jeu ET ce qui est par-dessus (score, panneau de fin, boutons).
+[atelier] 🏁 À la fin d'une partie de ton jeu : Rejouer, l'améliorer avec ton guide, ajouter des éléments ou revenir à ton projet.
+[atelier] 🎮 Ton guide est toujours là pendant la partie : touche P, bouton Vue / Select de la manette, ou le rond sur l'écran.
+
 [atelier] ## 💶 Paiement réel (borne 1.63.99)
 [atelier] 💶 Les packs de crédits et l'abonnement Atelier+ passent au vrai paiement, toujours sur la page sécurisée de Stripe.
 

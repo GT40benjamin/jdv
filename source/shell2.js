@@ -375,6 +375,7 @@ if (PADJ) {
     back: () => { padIntroHide(); jdwBack(); },   // (B pendant « Quitter la partie ? » : Continuer)
     start: (kind, nav) => {
       padIntroHide();
+      if (!nav && kind === 'select' && typeof ATL !== 'undefined' && ATL && ATL.jeu && !document.querySelector('.atl-arret2')) { atlArretJeu(); return true; }   // jeu de l'Atelier : Vue / Select = arrêt sur image du guide
       if (nav) {   // pas de jeu qui capte la manette : Start referme la pause
         if (QA.open) { quitAskClose(false); return true; }
         if (PADP.open) { padPauseClose(true); return true; }
@@ -10081,7 +10082,7 @@ function backToLibrary() {
   $('jdw-end').hidden = true; $('jdw-play').hidden = true; $('jdw-lib').hidden = false;
   setWhere('menu'); refreshAll(); musicBaseLevel(1); MUS.override = false; setMusic(menuMusic());
   fsLeave();
-  if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); setTimeout(() => { atlOpen(); atlOuvrir(id); ATL.tab = 'jeu'; }, 30); }   // jeu lancé depuis l'Atelier : retour au projet
+  if (typeof ATL !== 'undefined' && ATL && ATL.jeu) { const id = ATL.jeu; ATL.jeu = null; window.JDW_ATL_JEU = false; atlFlotteur(false); for (const o of document.querySelectorAll('.atl-arret2')) o.remove(); const t = ATL.retourTab || 'jeu'; ATL.retourTab = ''; setTimeout(() => { ATL.tab = t; atlOpen(); atlOuvrir(id); ATL.tab = t; }, 30); }   // jeu lancé depuis l'Atelier : retour au projet (onglet choisi)
   if (siteNew) setTimeout(maybeReload, 800);
 }
 // Quitter en pleine partie : le score en cours compte comme une fin de partie (record enregistré s'il est battu)
@@ -10405,6 +10406,7 @@ function endCount(el, to, unitTxt) {
 endCount.seq = 0;
 function endAnimate() {
   const end = $('jdw-end'); end.classList.remove('in');
+  try { atlFinAtelier(); } catch (e) {}
   let i = 0;
   for (const el of end.querySelectorAll('.card-body > :not(.end-l):not(.end-r), .end-l > *, .end-r > *')) if (!el.hidden) el.style.setProperty('--i', i++);
   end.querySelectorAll('.board li').forEach((li, r) => li.style.setProperty('--r', r));
@@ -14749,7 +14751,9 @@ function atlJouerVrai(f) {
 }
 function atlFlotteur(on) {
   let b = document.getElementById('atl-flot');
-  if (!on) { if (b) b.remove(); return; }
+  const rp = document.querySelector('.atl-rappel');
+  if (!on) { if (b) b.remove(); if (rp) rp.remove(); return; }
+  if (!rp) { const x = atlEl('div', 'atl-rappel', '🤖 ' + gN() + ' : touche P · manette ' + (PADJ ? PADJ.glyph('select') : 'Select') + ' · ou touche le rond'); x.setAttribute('aria-hidden', 'true'); document.body.appendChild(x); }
   if (b) return;
   b = atlGuideAv('atl-flot'); b.id = 'atl-flot'; b.setAttribute('role', 'button'); b.tabIndex = 0; b.title = 'Arrêt sur image : montre ' + gA() + ' ce qu’il faut changer (touche P)';
   const pos = ATL.flotPos || { r: 14, b: 120 }; b.style.right = pos.r + 'px'; b.style.bottom = pos.b + 'px';
@@ -14761,28 +14765,79 @@ function atlFlotteur(on) {
   b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); atlArretJeu(); } });
   document.body.appendChild(b);
 }
+// 22 h 40 (Benjamin : « l'UI est dessous ») : la photo = EXACTEMENT l'écran du joueur. 1. tout de suite : chaque canvas du jeu à sa place
+// (le jeu se gèle, l'image ne bouge plus) ; 2. puis, par-dessus, les calques HTML visibles (score, panneau de fin, boutons…), dans l'ordre de
+// la page, rendus par html-to-image 1.11.11 (assets/lib, version figée, servie par la borne). Les fenêtres de l'Atelier ne sont pas photographiées.
+let ATL_H2I = null;
+function atlH2I() {
+  if (window.htmlToImage) return Promise.resolve(window.htmlToImage);
+  if (!ATL_H2I) ATL_H2I = new Promise((ok, ko) => { const sc = document.createElement('script'); sc.src = ROOT + 'assets/lib/html-to-image-1.11.11.js'; sc.onload = () => window.htmlToImage ? ok(window.htmlToImage) : ko(new Error('h2i')); sc.onerror = () => { ATL_H2I = null; ko(new Error('h2i')); }; document.head.appendChild(sc); });
+  return ATL_H2I;
+}
+const atlPasPhoto = el => !!(el && (el.id === 'jdw-atelier' || el.id === 'atl-flot' || (el.classList && (el.classList.contains('atl-arret2') || el.classList.contains('atl-rappel')))));
+const atlVisible = el => { if (!el || el.hidden) return false; const cs = getComputedStyle(el), r = el.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.02 && r.width > 1 && r.height > 1 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight; };
 function atlCaptureJeu() {
   const P0 = $('jdw-play'); if (!P0) return null;
-  let best = null, ba = 0;
-  for (const c of P0.querySelectorAll('canvas')) { const r = c.getBoundingClientRect(), ar = r.width * r.height; if (c.width && c.height && ar > ba) { best = c; ba = ar; } }
-  if (!best) return null;
-  const k = Math.min(1, 1280 / Math.max(best.width, best.height)), o = document.createElement('canvas');
-  o.width = Math.max(1, Math.round(best.width * k)); o.height = Math.max(1, Math.round(best.height * k));
-  const g = o.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, o.width, o.height); try { g.drawImage(best, 0, 0, o.width, o.height); } catch (e) { return null; }
+  const W = innerWidth, H = innerHeight, k = Math.min(1280 / Math.max(W, H), Math.max(1, devicePixelRatio || 1)), o = document.createElement('canvas');
+  o.width = Math.max(1, Math.round(W * k)); o.height = Math.max(1, Math.round(H * k));
+  const g = o.getContext('2d'); g.fillStyle = getComputedStyle(document.body).backgroundColor || '#000'; if (/rgba\(0, 0, 0, 0\)|transparent/.test(g.fillStyle)) g.fillStyle = '#000'; g.fillRect(0, 0, o.width, o.height);
+  const snaps = [];   // une copie de chaque canvas, prise au même instant (un canvas WebGL s'efface après l'image affichée)
+  for (const c of P0.querySelectorAll('canvas')) {
+    if (!c.width || !c.height || !atlVisible(c)) continue; const r = c.getBoundingClientRect();
+    try { const cp = document.createElement('canvas'); cp.width = c.width; cp.height = c.height; cp.getContext('2d').drawImage(c, 0, 0); g.drawImage(cp, r.left * k, r.top * k, r.width * k, r.height * k); snaps.push([c, cp]); } catch (e) {}
+  }
+  if (!snaps.length) return null;
+  o._snaps = snaps;
+  // les calques HTML à poser ensuite : les enfants visibles de <body> qui ne sont pas l'Atelier, dans l'ordre (le jeu, puis ce qui est par-dessus)
+  o._calques = [...document.body.children].filter(el => !atlPasPhoto(el) && !/^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test(el.tagName) && atlVisible(el) && /fixed|absolute/.test(getComputedStyle(el).position))
+    .sort((a, b) => (parseInt(getComputedStyle(a).zIndex, 10) || 0) - (parseInt(getComputedStyle(b).zIndex, 10) || 0));
+  o._k = k;
   return o;
 }
+async function atlCaptureHtml(o) {
+  if (!o || !o._calques || !o._calques.length) return false;
+  const h = await Promise.race([atlH2I(), new Promise((_, ko) => setTimeout(() => ko(new Error('lent')), 6000))]);
+  const g = o.getContext('2d'), k = o._k;
+  for (const [c, cp] of o._snaps || []) c.toDataURL = (...a) => cp.toDataURL(...a);   // le rendu HTML reprend les canvas photographiés, à leur place
+  try {
+    for (const el of o._calques) {
+      const r = el.getBoundingClientRect();
+      const cv = await Promise.race([h.toCanvas(el, { pixelRatio: k, width: r.width, height: r.height, cacheBust: false, filter: x => !atlPasPhoto(x) && !(x.tagName === 'IMG' && !(x.complete && x.naturalWidth)) }), new Promise((_, ko) => setTimeout(() => ko(new Error('lent')), 8000))]);
+      g.drawImage(cv, r.left * k, r.top * k, r.width * k, r.height * k);
+    }
+  } finally { for (const [c] of o._snaps || []) delete c.toDataURL; }
+  return true;
+}
+
+// 22 h 35 (Benjamin) : fin de partie d'un jeu lancé depuis l'Atelier — le score, le niveau, le record restent ; à la place de « Changer de jeu »
+// et du partage dans le chat (jeu pas encore publié) : ▶ Rejouer · 🛠️ Améliorer mon jeu avec le guide (arrêt sur image de la fin) ·
+// ➕ Ajouter des éléments · ↩ Retour à mon projet ; un fond plus opaque cache l'écran de fin du jeu lui-même (pas deux « Rejouer »)
+function atlFinAtelier() {
+  const E = $('jdw-end'), on = !!(typeof ATL !== 'undefined' && ATL && ATL.jeu); if (!E) return;
+  E.classList.toggle('atl-fin', on);
+  const old = E.querySelector('.atl-finb'); if (old) old.remove();
+  if (!on) return;
+  const box = atlEl('div', 'atl-finb'), b = (t, fn, cls) => { const x = atlEl('button', 'btn ' + (cls || 'btn-ghost'), t); x.type = 'button'; x.addEventListener('click', fn); box.appendChild(x); };
+  b('🛠️ Améliorer mon jeu avec ' + gN(), () => atlArretJeu(), 'btn-play');
+  b('➕ Ajouter des éléments', () => atlRetourProjet('elements'));
+  b('↩ Retour à mon projet', () => atlRetourProjet('jeu'));
+  const row = $('jdw-again').closest('.row'); (row || $('jdw-again')).after(box);
+}
+function atlRetourProjet(tab) { ATL.retourTab = tab; backToLibrary(); }
+if (window.JDW_PG_TEST) window.__jdwAtl = { fin: sc => showEnd(sc), jouer: () => atlJouerVrai(atlFiche()), son: () => ({ joue: !!(ATL_SON && !ATL_SON.paused), t: ATL_SON ? ATL_SON.currentTime : 0, u: ATL_SON_U }), etat: () => ({ jeu: ATL.jeu, tab: ATL.tab, open: ATL.open }) };   // essais seulement
 function atlArretJeu() {
   if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return;
   try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (e) {}
   try { window.postMessage({ type: 'atl-pause' }, location.origin); } catch (e) {}   // même message que dans le cadre : le jeu se gèle
   let shot = null; try { shot = atlCaptureJeu(); } catch (e) { shot = null; }
   atlFlotteur(false);
+  if (shot) atlCaptureHtml(shot).catch(() => {});   // l'interface arrive par-dessus la photo, dans la seconde
   atlArretUI(document.body, shot, ATL.jeu, () => { try { if (current && current.inst && current.inst.resume) current.inst.resume(); } catch (e) {} try { window.postMessage({ type: 'atl-reprendre' }, location.origin); } catch (e) {} if (ATL.jeu && !$('jdw-play').hidden) atlFlotteur(true); }, true);
 }
 document.addEventListener('keydown', e => {
   if (!ATL || !ATL.jeu || $('jdw-play').hidden || e.repeat || (e.key !== 'p' && e.key !== 'P')) return;
   if (/^(INPUT|TEXTAREA)$/.test((document.activeElement || {}).tagName || '') || document.querySelector('.atl-arret2')) return;
-  atlArretJeu();
+  e.preventDefault(); e.stopPropagation(); atlArretJeu();   // le « p » ne s'écrit pas dans la case de la demande
 }, true);
 window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'atl-arret' && ATL && ATL.open) atlArret(); });
 
@@ -14851,7 +14906,7 @@ const ATL_ART = {
   style4: '<defs><radialGradient id="atl-r4" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffe0b2"/><stop offset=".6" stop-color="#a1887f"/><stop offset="1" stop-color="#3e2723"/></radialGradient><linearGradient id="atl-r4s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#90a4ae"/><stop offset="1" stop-color="#cfd8dc"/></linearGradient></defs>'
     + '<rect width="160" height="100" fill="url(#atl-r4s)"/><rect y="70" width="160" height="30" fill="#6d4c41"/><ellipse cx="80" cy="78" rx="30" ry="5" fill="rgba(0,0,0,.35)"/><circle cx="80" cy="50" r="26" fill="url(#atl-r4)"/>'
 };
-const atlBasesVal = () => { const f = atlFiche(), b = f && f.fiche && typeof f.fiche === 'object' ? f.fiche.bases : null; return b && typeof b === 'object' ? b : (f ? {} : (ATL.basesLoc || {})); };   // un projet existant : ses bases à lui seulement
+const atlBasesVal = () => { const f = atlFiche(), b = f && f.fiche && typeof f.fiche === 'object' ? f.fiche.bases : null, r = b && typeof b === 'object' ? b : (f ? {} : (ATL.basesLoc || {})); return r.dim ? r : Object.assign({ dim: '2D' }, r); };   // 22 h 25 : 2D par défaut tant que la 3D est « bientôt »   // un projet existant : ses bases à lui seulement
 const atlBasesOn = () => !!(ATL.basesOn || ATL.basesEnCours);   // 21 h : les bases ne sont plus des écrans imposés (cartes dans la discussion)
 const atlBasesTexte = b => { const v = k => String(b[k] || '').toLowerCase(); const parts = [b.type && 'un jeu « ' + b.type + ' »', b.vue && v('vue'), b.avec && 'à jouer ' + v('avec'), b.score && 'le score : ' + v('score'), b.style && 'style ' + v('style')].filter(Boolean);
   return parts.length ? 'Mon jeu (en ' + (b.dim === '3D' ? '3D' : '2D') + ') : ' + parts.join(', ') + '.\nMon idée : ' : ''; };
@@ -14863,7 +14918,7 @@ function atlPrefill() {
   inp.value = t; if (!TOUCH) { inp.focus(); inp.setSelectionRange(t.length, t.length); }
 }
 async function atlBasesEnvoyer(fiche) {
-  const b = ATL.basesLoc; ATL.basesLoc = null; if (!b || !Object.keys(b).length) return;
+  const b = Object.assign({ dim: '2D' }, ATL.basesLoc || {}); ATL.basesLoc = null;   // la 2D est enregistrée dès la création du projet
   try { await rpc('at_fiche_etape', { p_name: profile.name, p_fiche: fiche, p_cle: 'bases', p_valeur: b }, { quiet: true }); } catch (e) {}
 }
 function atlBasesChoisir(k, v) {
@@ -15313,7 +15368,13 @@ function atlEncart(it, f, fi, libre) {
 let ATL_SON = null, ATL_SON_U = '';
 function atlEcouter(u, btn) {
   try { if (ATL_SON) { ATL_SON.pause(); if (ATL_SON_U === u) { ATL_SON = null; ATL_SON_U = ''; if (btn) btn.textContent = '▶'; return; } } } catch (e) {}
-  const a = new Audio(u); ATL_SON = a; ATL_SON_U = u; if (btn) btn.textContent = '⏸'; a.onended = () => { if (btn) btn.textContent = '▶'; ATL_SON_U = ''; }; a.play().catch(() => { if (btn) btn.textContent = '▶'; });
+  for (const x of document.querySelectorAll('.atl-encplay')) x.textContent = '▶';   // un seul son à la fois
+  if (!u) return;
+  // 22 h 20 (Benjamin : « ça ne fonctionne pas ») : « Audio » est ici le moteur de sons de la borne → le lecteur du navigateur est window.Audio ;
+  // créé dans le geste du clic, volume plein : une écoute voulue, même quand le son de la borne est coupé
+  const a = new window.Audio(u); a.volume = 1; ATL_SON = a; ATL_SON_U = u; if (btn) btn.textContent = '⏸';
+  a.onended = () => { if (btn) btn.textContent = '▶'; if (ATL_SON === a) { ATL_SON = null; ATL_SON_U = ''; } };
+  a.play().catch(() => { if (btn) btn.textContent = '▶'; if (ATL_SON === a) { ATL_SON = null; ATL_SON_U = ''; } });
 }
 function atlEncMenu(c, it, f, fi, libre) {
   const old = ATL.root.querySelector('.atl-encmenu'); if (old) { const same = old.parentNode === c; old.remove(); if (same) return; }

@@ -4146,3 +4146,11 @@ button.atl-cred:hover{filter:brightness(1.15)}
 .atl-abo{display:grid;gap:6px;justify-items:start;padding:14px 16px;margin:6px 0 4px;border-radius:16px;border:2px solid #ffd34d;background:linear-gradient(135deg,rgba(255,211,77,.16),rgba(255,159,67,.08))}
 .atl-abo p{margin:0}.atl-abot{font:800 18px var(--body);color:#ffe9a8}
 .atl-don{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.atl-don input{flex:1 1 110px;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:14px var(--body)}
+
+/* borne 1.64 : fin de partie en mode Atelier, rappel du guide, arrêt sur image opaque */
+#jdw-end.atl-fin{background:rgba(8,6,20,.93)}
+#jdw-end.atl-fin #jdw-tolib,#jdw-end.atl-fin #jdw-end-chat{display:none!important}
+.atl-finb{display:grid;gap:8px;margin-top:8px}.atl-finb .btn{width:100%}
+.atl-rappel{position:fixed;left:50%;bottom:max(6px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2147482999;pointer-events:none;padding:4px 12px;border-radius:999px;background:rgba(10,8,24,.62);color:#fff;font:600 12.5px var(--body);white-space:nowrap;opacity:.82}
+body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
+.atl-arret2{background:#080614}
