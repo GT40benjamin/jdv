@@ -12,7 +12,8 @@ const R_MONDE = 1700;          // rayon de la zone explorable autour de la navet
 const NB_PIECES = 5;
 const PIECES = ['le moteur', 'l’aile', 'l’antenne', 'le réservoir', 'le panneau solaire'];
 const VAL_PIECE = 100, VAL_CRISTAL = 25;
-const VITESSE = 250;
+const VITESSE = 200;
+const FOULEE = 26;   // unités parcourues par image de marche : la cadence suit la vitesse (les pieds ne glissent pas)
 
 /* ---------- images (paquet LUN1 : en-tête JSON + WebP à la suite) ---------- */
 const IMG = {};
@@ -26,8 +27,8 @@ function loadImages() {
     if (String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'LUN1') throw new Error('paquet illisible');
     const n = b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24);
     const idx = JSON.parse(new TextDecoder().decode(b.subarray(8, 8 + n))), base = 8 + n;
-    await Promise.all(idx.map(([nom, o, l]) => new Promise(res => {
-      const im = new Image(); im.onload = () => { IMG[nom] = im; res(); }; im.onerror = () => res();
+    await Promise.all(idx.map(([nom, o, l, ax, hr]) => new Promise(res => {
+      const im = new Image(); im.onload = () => { if (ax != null) { im.ax = ax; im.hr = hr; } IMG[nom] = im; res(); }; im.onerror = () => res();
       im.src = URL.createObjectURL(new Blob([b.subarray(base + o, base + o + l)], { type: 'image/webp' }));
     })));
     LOADED = true;
@@ -36,14 +37,13 @@ function loadImages() {
   return LOAD;
 }
 const EMOJI = { oxygene: '🧯', cristal: '💎', piece: '⚙️', navette: '🚀', epave: '🛸', base: '🏠', trousse: '🧰', lampe: '🔦', meteorite: '☄️', astronaute: '👨‍🚀', robot1: '🤖' };
-// les poses d'une même planche gardent leur taille relative : la hauteur demandée est celle de la pose de référence
-const REF = { 'face-idle': 'face1', face1: 'face1', face2: 'face1', face3: 'face1', face4: 'face1', touche: 'face1', joie: 'face1', dos1: 'dos1', droite1: 'dos1', gauche2: 'dos1', robot1: 'robot1', robot2: 'robot1', 'robot-montre': 'robot1', 'robot-content': 'robot1' };
+// les poses (survivant, robot) sont emballées à la même hauteur, avec leur point d'ancrage (im.ax = centre du casque) et leur hauteur relative (im.hr)
 // dessine l'image posée au sol : (x, y) = le pied, h = hauteur (de la pose de référence)
 function drawFoot(ctx, nom, x, y, h, flip) {
   const im = IMG[nom];
   if (!im) { ctx.save(); ctx.font = Math.round(h * 0.8) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(EMOJI[nom] || (nom.startsWith('robot') ? '🤖' : /^(face|dos|droite|gauche|touche|joie)/.test(nom) ? '👨‍🚀' : '❔'), x, y); ctx.restore(); return; }
-  const ref = REF[nom] && IMG[REF[nom]] ? IMG[REF[nom]] : im, k = h / ref.height, w = im.width * k, hh = im.height * k;
-  if (flip) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, y - hh, w, hh); ctx.restore(); } else ctx.drawImage(im, x - w / 2, y - hh, w, hh);
+  const hh = h * (im.hr || 1), w = hh * im.width / im.height, ax = im.ax != null ? im.ax : 0.5;
+  if (flip) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(im, -w * ax, y - hh, w, hh); ctx.restore(); } else ctx.drawImage(im, x - w * ax, y - hh, w, hh);
 }
 function pill(ctx, x, y, w, h, r) { r = Math.min(r, h / 2, w / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function star(ctx, x, y, r, rot) {
@@ -109,7 +109,7 @@ function mount(root, api) {
 
   // ---------- état ----------
   let state = 'load', stT = 0, loadErr = false;
-  let P, objs, craters, meteors, impacts, puffs, flyers, robot, oxy, pieces, cristaux, posees, lampe, trousses, shake, flash, msg, texts, parts, showerT, showerOn, showerLeft, tJeu, endWhy, baseUsed, crT, bonusFin, liftT, camX, camY, repT;
+  let P, objs, craters, meteors, impacts, puffs, flyers, prises, robot, oxy, pieces, cristaux, posees, lampe, trousses, shake, flash, msg, texts, parts, showerT, showerOn, showerLeft, tJeu, endWhy, baseUsed, crT, bonusFin, liftT, camX, camY, repT;
   const keys = {};
   const joy = { on: false, id: -1, x0: 0, y0: 0, x: 0, y: 0 };
 
@@ -134,10 +134,11 @@ function mount(root, api) {
     P = { x: -200, y: 170, dir: 'face', v: 0, vx: 0, vy: 0, step: 0, flip: false, stun: 0, moving: false };
     robot = { x: -110, y: 190, joie: 0 };
     camX = P.x; camY = P.y - 40;
-    oxy = 100; pieces = 0; cristaux = 0; posees = 0; lampe = false; trousses = 0; shake = 0; flash = 0; msg = null; texts = []; parts = []; meteors = []; impacts = []; puffs = []; flyers = [];
+    oxy = 100; pieces = 0; cristaux = 0; posees = 0; lampe = false; trousses = 0; shake = 0; flash = 0; msg = null; texts = []; parts = []; meteors = []; impacts = []; puffs = []; flyers = []; prises = [];
     showerT = 24; showerOn = false; showerLeft = 0; tJeu = 0; endWhy = ''; baseUsed = false; crT = null; bonusFin = 0; liftT = 0; repT = 0;
   }
   reset();
+  const liftW = () => { const e = Math.max(0, Math.min(state === 'liftoff' ? liftT : 4.6, 4.6) - 1); return e * e * 170; };   // hauteur de la navette au décollage
   const score = () => posees * VAL_PIECE + pieces * VAL_PIECE + cristaux * VAL_CRISTAL + bonusFin;
   function say(s, d) { msg = { s, t: 0, d: d || 2.6 }; }
   // textes / étincelles : posés dans le MONDE (ils suivent le sol)
@@ -216,11 +217,21 @@ function mount(root, api) {
     for (const p of puffs) p.t += dt; puffs = puffs.filter(p => p.t < 0.6);
     for (const f of flyers) f.t += dt * 1.6; flyers = flyers.filter(f => { if (f.t >= 1) { burst(0, -80, '#ffd36b', 10, 120); return false; } return true; });
     for (const im of impacts) im.t += dt; impacts = impacts.filter(im => im.t < 1.1);
+    for (const q of prises) q.t += dt / 0.35; prises = prises.filter(q => q.t < 1);
     shake = Math.max(0, shake - dt * 30); flash = Math.max(0, flash - dt * 2); robot.joie = Math.max(0, robot.joie - dt); repT = Math.max(0, repT - dt);
     // la caméra suit en douceur (un peu en avance dans le sens de la marche)
-    const tx = P.x + P.vx * 0.35, ty = P.y - 40 + P.vy * 0.35;
-    camX += (tx - camX) * Math.min(1, dt * 3); camY += (ty - camY) * Math.min(1, dt * 3);
-    if (state === 'liftoff') { liftT += dt; if (liftT > 4.6) { state = 'end'; stT = 0; } return; }
+    let tx = P.x + P.vx * 0.35, ty = P.y - 40 + P.vy * 0.35;
+    if (state === 'liftoff' || (state === 'end' && endWhy === 'win')) { tx = 0; ty = -90 - liftW(); }   // la caméra accompagne la navette qui monte (elle reste au milieu)
+    // pendant la montée à bord (1 s) la caméra rejoint doucement la navette, puis elle la suit exactement (aucun à-coup : l'écart est déjà nul)
+    const kc = state === 'liftoff' ? (liftT > 1 ? 1 : Math.min(1, dt * 7)) : state === 'end' && endWhy === 'win' ? 1 : Math.min(1, dt * 3);
+    camX += (tx - camX) * kc; camY += (ty - camY) * kc;
+    if (state === 'liftoff') {
+      liftT += dt;
+      // le survivant et le robot montent à bord (ils marchent jusqu'à la porte et y entrent)
+      if (liftT < 1) { for (const o of [P, robot]) { o.x += (0 - o.x) * Math.min(1, dt * 4); o.y += (-20 - o.y) * Math.min(1, dt * 4); } P.step += dt * 6; P.moving = true; P.dir = 'dos'; }
+      if (liftT > 4.6) { state = 'end'; stT = 0; }
+      return;
+    }
     if (state === 'end') { if (stT > 2.6 && !overSent) { overSent = true; try { api.gameOver(score()); } catch (e) { /* rien */ } } return; }
     if (state !== 'play') return;
     tJeu += dt;
@@ -232,13 +243,20 @@ function mount(root, api) {
     P.vx += (inp.x * vMax - P.vx) * Math.min(1, dt * 8); P.vy += (inp.y * vMax - P.vy) * Math.min(1, dt * 8);
     const sp = Math.hypot(P.vx, P.vy);
     P.moving = sp > 25;
-    if (Math.hypot(inp.x, inp.y) > 0.3) { if (Math.abs(inp.x) > Math.abs(inp.y) * 1.1) { P.dir = 'cote'; P.flip = inp.x > 0; } else P.dir = inp.y < 0 ? 'dos' : 'face'; }
+    if (Math.hypot(inp.x, inp.y) > 0.3) {
+      // la pose ne change que si la nouvelle direction l'emporte nettement (pas de clignotement en diagonale)
+      const ax = Math.abs(inp.x), ay = Math.abs(inp.y), k = P.dir === 'cote' ? 0.75 : 1.35;
+      if (ax > ay * k) { if (P.dir !== 'cote' || P.flip !== inp.x > 0) P.step = 0; P.dir = 'cote'; P.flip = inp.x > 0; }
+      else { const d = inp.y < 0 ? 'dos' : 'face'; if (d !== P.dir) P.step = 0; P.dir = d; }
+    }
     let nx = P.x + P.vx * dt, ny = P.y + P.vy * dt;
     for (const o of objs) if (o.solide) { const dx = nx - o.x, dy = (ny - o.y) / 0.6, d = Math.hypot(dx, dy); if (d < o.solide) { const k = o.solide / Math.max(1, d); nx = o.x + dx * k; ny = o.y + dy * k * 0.6; } }
     P.x = nx; P.y = ny;
     const dC = Math.hypot(P.x, P.y);
     if (dC > R_MONDE) { P.x *= R_MONDE / dC; P.y *= R_MONDE / dC; if (!msg) say('Trop loin ! Ton robot te conseille de revenir.'); }
-    if (P.moving) { const before = Math.floor(P.step); P.step += dt * sp / 55; if (Math.floor(P.step) !== before) puffs.push({ x: P.x + (Math.random() - 0.5) * 16, y: P.y, t: 0 }); }
+    // la cadence suit la distance parcourue ; un nuage de poussière à chaque pied posé (images 1 et 3)
+    if (P.moving) { const before = Math.floor(P.step); P.step += dt * sp / FOULEE; const now = Math.floor(P.step); if (now !== before && now % 2 === 0) puffs.push({ x: P.x + (now % 4 ? 8 : -8), y: P.y, t: 0 }); }
+    else P.step = 0;
     // le cratère : on glisse dedans, ça coûte de l'oxygène (une fois par cratère)
     if (inCr && inCr !== crT) { crT = inCr; oxy -= 5; shake = 5; say('Tu glisses dans un cratère ! −5 % d’oxygène'); for (let i = 0; i < 4; i++) puffs.push({ x: P.x + (Math.random() - 0.5) * 40, y: P.y, t: -i * 0.1 }); }
     if (!inCr) crT = null;
@@ -246,13 +264,19 @@ function mount(root, api) {
     oxy -= dt * (0.85 + sp / VITESSE * 0.55);
     if (oxy < 20 && Math.floor(tJeu * 2) !== Math.floor((tJeu - dt) * 2)) flash = Math.max(flash, 0.35);
     // le robot suit (à côté, un peu derrière)
-    const rx = P.x + (P.flip && P.dir === 'cote' ? -95 : 95), ry = P.y + 18;
-    robot.x += (rx - robot.x) * Math.min(1, dt * 2.4); robot.y += (ry - robot.y) * Math.min(1, dt * 2.4);
+    // le robot reste un peu derrière toi et du côté d'où tu viens : il ne te cache jamais
+    // de profil, il se met du côté d'où tu viens ; sinon il garde son côté ; un peu plus haut que toi : s'il change de côté, il passe DERRIÈRE toi
+    if (P.dir === 'cote') robot.cote = P.flip ? -1 : 1;
+    const rx = P.x + (robot.cote || 1) * (P.dir === 'cote' ? 125 : 105), ry = P.y - 30;
+    const rox = robot.x, roy = robot.y;
+    // il se range d'abord sur le côté (vite), puis monte ou descend (doucement) : il ne roule jamais sur tes pieds
+    robot.x += (rx - robot.x) * Math.min(1, dt * 4.5); robot.y += (ry - robot.y) * Math.min(1, dt * (Math.abs(robot.x - P.x) > 70 ? 2.4 : 0.6));
+    const rd = Math.hypot(robot.x - rox, robot.y - roy); robot.roule = rd > 15 * dt; robot.step = (robot.step || 0) + rd / 20;
     // ramasser
     for (const o of objs) {
       if (o.pris || !/^(piece|cristal|oxygene|trousse|lampe)$/.test(o.k)) continue;
       if (Math.hypot(o.x - P.x, (o.y - P.y) / 0.7) > 60) continue;
-      o.pris = true; robot.joie = 1.2;
+      o.pris = true; robot.joie = 1.2; prises.push({ k: o.k, x: o.x, y: o.y, h: o.h, t: 0 });
       const px = o.x, py = o.y - 50;
       if (o.k === 'piece') { pieces++; pop('+' + VAL_PIECE + ' · ' + PIECES[o.n], '#ffd36b', px, py); burst(o.x, o.y - 30, '#ffd36b', 20); say('Tu as trouvé ' + PIECES[o.n] + ' ! Ramène-la à la navette.'); try { api.celebrate && api.celebrate('Une pièce du vaisseau !'); } catch (e) { /* rien */ } }
       else if (o.k === 'cristal') { cristaux++; pop('+' + VAL_CRISTAL, '#7fe3ff', px, py); burst(o.x, o.y - 25, '#7fe3ff', 14); }
@@ -272,7 +296,7 @@ function mount(root, api) {
         pop('Réparée : ' + posees + ' / ' + NB_PIECES, '#ffd36b', 0, -230);
         if (posees < NB_PIECES) say('La navette est réparée à ' + posees + ' / ' + NB_PIECES + '. Trouve les autres pièces !');
       }
-      if (posees >= NB_PIECES && !flyers.length) { bonusFin = Math.round(oxy) * 5 + 300; state = 'liftoff'; liftT = 0; endWhy = 'win'; robot.joie = 9; try { api.celebrate && api.celebrate('Décollage ! Retour vers la Terre !'); } catch (e) { /* rien */ } return; }
+      if (posees >= NB_PIECES && !flyers.length) { bonusFin = Math.round(oxy) * 5 + 300; state = 'liftoff'; liftT = 0; endWhy = 'win'; robot.joie = 9; texts = []; msg = null; try { api.celebrate && api.celebrate('Décollage ! Retour vers la Terre !'); } catch (e) { /* rien */ } return; }
     }
     // pluies de météorites
     showerT -= dt;
@@ -340,12 +364,13 @@ function mount(root, api) {
     const parti = endWhy === 'win' && state === 'end';   // la navette est partie avec toi
     for (const o of objs) if (!(parti && o.k === 'navette')) L.push(o);
     if ((state !== 'liftoff' || liftT < 1) && !parti) L.push({ k: '_joueur', x: P.x, y: P.y });
-    L.push({ k: '_robot', x: robot.x, y: robot.y });
+    if ((state !== 'liftoff' || liftT < 1) && !parti) L.push({ k: '_robot', x: robot.x, y: robot.y });
     for (const im of impacts) L.push({ k: '_impact', x: im.x, y: im.y + 1, im });
-    L.sort((a, b) => a.y - b.y);
+    const prof = o => o.k === 'navette' && state === 'liftoff' && liftT > 1 ? 1e9 : o.y;   // en vol, la navette passe au-dessus de tout
+    L.sort((a, b) => prof(a) - prof(b));
     for (const o of L) {
       const x = sx(o.x), y = sy(o.y);
-      if (x < -300 || x > W + 300 || y < -60 || y > H + 400) continue;
+      if (x < -300 || x > W + 300 || y < -60 || y > H + 400) { if (!(o.k === 'navette' && state === 'liftoff')) continue; }   // la navette qui monte est dessinée plus haut que son pied au sol
       if (o.k === '_joueur') { drawPlayer(x, y); continue; }
       if (o.k === '_robot') { drawRobot(x, y); continue; }
       if (o.k === '_impact') { drawImpact(x, y, o.im.t); continue; }
@@ -363,11 +388,16 @@ function mount(root, api) {
   }
   function drawNavette(x, y, h) {
     let lift = 0;
-    if (state === 'liftoff') { const e = Math.max(0, liftT - 1); lift = e * e * 170 * Z; }
+    if (state === 'liftoff') lift = liftW() * Z;
     // flammes et fumée au décollage
     if (state === 'liftoff' && liftT > 0.6) {
       for (let i = 0; i < 18; i++) { const t = (stT * 2.4 + i / 18) % 1; ctx.fillStyle = 'rgba(200,202,210,' + (0.5 * (1 - t)) + ')'; ctx.beginPath(); ctx.arc(x + Math.cos(i * 2.1) * t * h * 0.9, y + Math.sin(i * 1.7) * t * h * 0.15, h * (0.08 + t * 0.2), 0, TAU); ctx.fill(); }
-      for (let i = 0; i < 10; i++) { const t = (stT * 4 + i / 10) % 1; ctx.fillStyle = 'rgba(255,' + (150 + 100 * (1 - t) | 0) + ',50,' + (0.85 * (1 - t)) + ')'; ctx.beginPath(); ctx.arc(x + Math.sin(i * 5 + stT * 20) * h * 0.05, y - lift - h * 0.1 + t * h * 0.5, h * (0.06 + t * 0.12), 0, TAU); ctx.fill(); }
+      // la flamme du réacteur : effilée, cœur blanc, bords orange, elle vacille
+      const fy = y - lift - h * 0.12, fl = h * (0.45 + 0.08 * Math.sin(stT * 31) + Math.min(0.35, liftT * 0.12)), fw = h * 0.13;
+      for (const [k, c0, c1] of [[1, 'rgba(255,140,40,0.85)', 'rgba(255,80,20,0)'], [0.6, 'rgba(255,230,120,0.95)', 'rgba(255,170,60,0)'], [0.3, 'rgba(255,255,240,1)', 'rgba(255,240,180,0)']]) {
+        const g = ctx.createLinearGradient(0, fy, 0, fy + fl * k); g.addColorStop(0, c0); g.addColorStop(1, c1); ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(x - fw * k, fy); ctx.quadraticCurveTo(x - fw * k * 0.8, fy + fl * k * 0.5, x + Math.sin(stT * 23) * fw * 0.2, fy + fl * k); ctx.quadraticCurveTo(x + fw * k * 0.8, fy + fl * k * 0.5, x + fw * k, fy); ctx.closePath(); ctx.fill();
+      }
     }
     ctx.fillStyle = 'rgba(30,32,40,' + (0.3 / (1 + lift / 100)) + ')'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.5, h * 0.12, 0, 0, TAU); ctx.fill();
     const wob = state === 'liftoff' && liftT < 1.2 ? Math.sin(stT * 60) * 2 : 0;
@@ -393,14 +423,13 @@ function mount(root, api) {
   }
   // le survivant : la bonne pose selon la direction, 4 pas de face, pas en miroir de dos et de profil
   function playerPose() {
-    if (state === 'liftoff' || endWhy === 'win') return { n: 'joie', f: false, hop: Math.abs(Math.sin(stT * 6)) * 14 };
+    if (endWhy === 'win' && state !== 'liftoff') return { n: 'joie', f: false, hop: Math.abs(Math.sin(stT * 6)) * 14 };
     if (P.stun > 0) return { n: 'touche', f: false, hop: 0 };
-    const st = Math.floor(P.step) % 4;
-    if (!P.moving) return { n: P.dir === 'dos' ? 'dos1' : P.dir === 'cote' ? (P.flip ? 'droite1' : 'gauche2') : 'face-idle', f: false, hop: 0 };
-    if (P.dir === 'face') return { n: 'face' + (st + 1), f: false, hop: st % 2 ? 4 : 0 };
-    if (P.dir === 'dos') return { n: 'dos1', f: st >= 2, hop: st % 2 ? 4 : 0 };
-    // de profil : deux poses (une de chaque planche), retournées pour l'autre sens
-    return P.flip ? { n: st % 2 ? 'droite1' : 'gauche2', f: !(st % 2), hop: st % 2 ? 0 : 3 } : { n: st % 2 ? 'gauche2' : 'droite1', f: !!(st % 2), hop: st % 2 ? 0 : 3 };
+    // cycle de 4 images : pied posé, passage, autre pied posé, passage (le corps monte un peu au passage) ; au repos : la pose de passage
+    const st = Math.floor(P.step) % 4, hop = st % 2 ? 3 : 0;
+    if (P.dir === 'cote') return P.moving ? { n: st % 2 ? 'cote-passe' : 'cote-pas', f: !P.flip, hop } : { n: 'cote-passe', f: !P.flip, hop: 0 };   // dessinés vers la droite
+    const n = P.dir === 'dos' ? 'dos' : 'face';
+    return P.moving ? { n: n + (st + 1), f: false, hop } : { n: n + '2', f: false, hop: 0 };
   }
   function drawPlayer(x, y) {
     const h = 130 * Z, ps = playerPose();
@@ -414,13 +443,15 @@ function mount(root, api) {
   }
   // le robot : il roule (2 poses), montre le chemin quand tu t'arrêtes, est content quand tu ramasses
   function drawRobot(x, y) {
-    const h = 70 * Z, moving = Math.hypot(robot.x - P.x - (P.flip && P.dir === 'cote' ? -95 : 95), robot.y - P.y - 18) > 12;
+    const h = 70 * Z, moving = robot.roule;
     const t = cible();
-    let n = moving ? (Math.floor(stT * 7) % 2 ? 'robot1' : 'robot2') : 'robot-montre';
+    let n = robot.roule ? (Math.floor(robot.step || 0) % 2 ? 'robot1' : 'robot2') : 'robot-montre';
     if (robot.joie > 0) n = 'robot-content';
     ctx.fillStyle = 'rgba(30,32,40,0.3)'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.4, h * 0.1, 0, 0, TAU); ctx.fill();
     const hop = robot.joie > 0 ? Math.abs(Math.sin(stT * 10)) * 8 * Z : moving ? Math.abs(Math.sin(stT * 14)) * 2 * Z : 0;
+    if (state === 'liftoff') ctx.globalAlpha = Math.max(0, 1 - liftT);
     drawFoot(ctx, n, x, y - hop, h, n === 'robot-montre' && t && t.x > robot.x);
+    ctx.globalAlpha = 1;
     // la flèche du robot vers la cible
     if (t && state === 'play') {
       const a = Math.atan2(t.y - robot.y, t.x - robot.x), cx = x, cy = y - h * 1.35, k = 1 + 0.12 * Math.sin(stT * 6);
@@ -443,6 +474,10 @@ function mount(root, api) {
     }
   }
   function drawFlyers() {
+    for (const q of prises) {
+      const e = q.t * q.t, x = q.x + (P.x - q.x) * e, y = q.y + (P.y - 70 - q.y) * e - Math.sin(q.t * Math.PI) * 40;
+      ctx.globalAlpha = 1 - q.t * 0.6; drawFoot(ctx, q.k, sx(x), sy(y), q.h * Z * (1 - q.t * 0.7)); ctx.globalAlpha = 1;
+    }
     for (const f of flyers) {
       if (f.t < 0) continue;
       const e = 1 - Math.pow(1 - f.t, 2), x = f.x0 + (0 - f.x0) * e, y = f.y0 + (-90 - f.y0) * e - Math.sin(f.t * Math.PI) * 140;
@@ -475,7 +510,7 @@ function mount(root, api) {
     ctx.strokeText('' + score(), W - 62, m + 22 * U); ctx.fillStyle = '#fff'; ctx.fillText('' + score(), W - 62, m + 22 * U);
     ctx.font = Math.round(13 * U) + 'px ' + RF; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillText('ce que tu possèdes', W - 62, m + 42 * U);
     // la cible du robot, si elle est hors de l'écran : une flèche au bord
-    const t = cible();
+    const t = state === 'play' ? cible() : null;
     if (t) {
       const tx = sx(t.x), ty = sy(t.y), d = Math.round(Math.hypot(t.x - P.x, t.y - P.y) / 10);
       if (tx < 30 || tx > W - 30 || ty < 90 * U || ty > H - 30) {
@@ -626,7 +661,7 @@ function mount(root, api) {
     // essais (harnais)
     _test: {
       state: () => state, oxy: () => oxy, score, fast(k) { FAST = k; }, setOxy(v) { oxy = v; },
-      P: () => P, objs: () => objs, posees: () => posees, pieces: () => pieces,
+      P: () => P, objs: () => objs, ecran: () => ({ x: sx(P.x), y: sy(P.y), z: Z }), robotEcran: () => ({ x: sx(robot.x), y: sy(robot.y) }), posees: () => posees, pieces: () => pieces,
       tp(x, y) { P.x = x; P.y = y; camX = x; camY = y - 40; }, meteor() { meteors.push({ x: P.x + 60, y: P.y, t: 0, d: 1.7 }); },
       play() { if (state === 'title') startGame(); state = 'play'; stT = 0; }
     }

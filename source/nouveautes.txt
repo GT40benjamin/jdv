@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[lune] ## 🚶 Seul sur la Lune : de vraies animations, vérifiées image par image (borne 1.63.85)
+[lune] 🚶 Le survivant marche pour de vrai dans les 4 directions : 4 pas de face, 4 pas de dos, et de profil un vrai grand pas qui alterne avec la jambe levée. Les pieds suivent la vitesse (ils ne glissent plus), le personnage ne tremble plus d'un pas à l'autre et ne change plus de pose en diagonale.
+[lune] 🤖 Ton petit robot roule à côté de toi sans jamais te passer devant : quand il change de côté, il passe derrière toi. Au décollage, vous montez tous les deux à bord, une vraie flamme sort du réacteur et la caméra suit la navette vers le ciel.
+[lune] ✨ Les objets ramassés s'envolent vers toi ; le cristal n'a plus de halo violet, la lampe éclaire en jaune (plus en rose) et la météorite n'a plus de cailloux qui flottent à côté.
 [lune] ## ⏸ Seul sur la Lune : une vraie pause pour parler à ton guide (borne 1.63.81)
 [lune] ⏸ Quand tu mets ton jeu en pause depuis l'Atelier pour parler à ton guide, tout s'arrête : l'oxygène, les météorites, le temps. Il repart exactement où tu l'as laissé.
 [lune] ## 🌕 Seul sur la Lune : la première version à tester (borne 1.63.80)
