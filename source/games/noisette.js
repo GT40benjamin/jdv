@@ -172,7 +172,8 @@ function mount(root, api) {
   let OFF = new Set();
   function lireOff(noms) { OFF = new Set((Array.isArray(noms) ? noms : []).filter(n => typeof n === 'string').map(n => n.trim())); }
   try { lireOff(window.JDW_ATL_OFF); } catch (e) { /* rien */ }
-  const off = k => OFF.has(ELEM[k] || k);
+  // un nom de famille (« Les corbeaux chapardeurs », « Décorations de la forêt », « Décors des niveaux ») coupe aussi chacune de ses entrées « … — pose »
+  const off = k => { const n = ELEM[k] || k; for (const o of OFF) if (o === n || o.startsWith(n + ' —')) return true; return false; };
 
   // ---------- les bruitages (assets/noisette.sons.bin) : joués par la borne (son coupé respecté) ; la musique, par la borne ----------
   const SONS = {}, SVOL = { saut: 0.6, noix: 0.55, roulade: 0.6, aie: 0.8, ami: 0.9, bonus: 0.75 }, SON_ELEM = { noix: 'noix_son', ami: 'ami_son', bonus: 'bonus_son' };
