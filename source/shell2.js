@@ -13977,12 +13977,51 @@ const atlChoix = () => ['design', 'design_choisi'].includes(atlEtat()) || ATL.ch
 const ATL_PLANCHE_TXT = c => 'Important : mets TOUT ce que tu veux sur ta planche (personnages, ennemis, objets, bonus…) : une planche = ' + c + ' crédits, quel que soit le nombre d’éléments !';
 const atlElements = t => String(t || '').split(/\s*(?:,|;|\n|\s+et\s+)\s*/).map(x => x.replace(/^\s*(\d+[.)-]\s*|[-•*]\s*)/, '').trim()).filter(x => x.length >= 2);
 // un élément d'une planche : la case k (1, 2, 3… de gauche à droite puis de haut en bas) d'une grille cols × rows, découpée à l'affichage
-function atlCrop(u, k, g, title) {
+// les dessins d'une planche, trouvés dans l'image (taches colorées ou foncées, en ordre de lecture) : même méthode que
+// ~/jdv-tools/atelier-decoupe.py ; si le nombre ne colle pas aux noms, on garde la grille demandée
+const ATL_BLOBS = new Map();
+function atlBlobs(u) {
+  if (ATL_BLOBS.has(u)) return ATL_BLOBS.get(u);
+  const pr = new Promise(ok => {
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    im.onerror = () => ok(null);
+    im.onload = () => {
+      try {
+        const W = im.naturalWidth, H = im.naturalHeight, k = 160 / Math.max(W, H), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+        const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.drawImage(im, 0, 0, w, h);
+        const d = g.getImageData(0, 0, w, h).data; let m = new Uint8Array(w * h);
+        for (let i = 0; i < w * h; i++) { const r = d[i * 4], gg = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b); if (mx - mn > 40 || mx < 150) m[i] = 1; }
+        for (let t = 0; t < 2; t++) { const n2 = m.slice(); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (m[y * w + x]) { if (x) n2[y * w + x - 1] = 1; if (x < w - 1) n2[y * w + x + 1] = 1; if (y) n2[(y - 1) * w + x] = 1; if (y < h - 1) n2[(y + 1) * w + x] = 1; } m = n2; }
+        const vu = new Uint8Array(w * h), bx = [];
+        for (let i0 = 0; i0 < w * h; i0++) {
+          if (!m[i0] || vu[i0]) continue;
+          const st = [i0]; vu[i0] = 1; let n = 0, x0 = w, x1 = 0, y0 = h, y1 = 0;
+          while (st.length) { const i = st.pop(), x = i % w, y = (i / w) | 0; n++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+            for (const j of [x ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y ? i - w : -1, y < h - 1 ? i + w : -1]) if (j >= 0 && m[j] && !vu[j]) { vu[j] = 1; st.push(j); } }
+          if (n >= w * h * 0.004) bx.push([x0 / k, y0 / k, (x1 + 1) / k, (y1 + 1) / k]);
+        }
+        bx.sort((a, b) => (a[1] + a[3]) - (b[1] + b[3]));
+        const rows = []; for (const b of bx) { const cy = (b[1] + b[3]) / 2, hh = b[3] - b[1], r = rows[rows.length - 1]; if (r && Math.abs(cy - r.cy) < hh * 0.5) r.b.push(b); else rows.push({ cy, b: [b] }); }
+        ok({ W, H, b: rows.flatMap(r => r.b.sort((a, b) => a[0] - b[0])) });
+      } catch (e) { ok(null); }   // image sans autorisation de lecture : on garde la grille
+    };
+    im.src = u;
+  });
+  ATL_BLOBS.set(u, pr); return pr;
+}
+function atlCrop(u, k, g, title, n) {
   const cols = Math.max(1, Math.min(4, g && g[0] | 0)), rows = Math.max(1, Math.min(4, g && g[1] | 0)), i = Math.max(0, (k | 0) - 1), cx = i % cols, cy = Math.floor(i / cols);
   const d = atlEl('span', 'atl-crop'); if (title) d.title = title;
   d.style.backgroundImage = 'url("' + u + '")'; d.style.backgroundSize = (cols * 100) + '% ' + (rows * 100) + '%';
   d.style.backgroundPosition = (cols > 1 ? cx / (cols - 1) * 100 : 0) + '% ' + (rows > 1 ? cy / (rows - 1) * 100 : 0) + '%';
   d.style.aspectRatio = rows + ' / ' + cols;   // la planche est carrée : une case fait (1/cols) × (1/rows)
+  atlBlobs(u).then(r => {   // mieux : le dessin lui-même, s'il y en a autant que de noms
+    const b = r && (!n || r.b.length === n) ? r.b[(k | 0) - 1] : null; if (!b) return;
+    const m = Math.max(4, (b[2] - b[0]) * 0.06), x0 = Math.max(0, b[0] - m), y0 = Math.max(0, b[1] - m), x1 = Math.min(r.W, b[2] + m), y1 = Math.min(r.H, b[3] + m), bw = x1 - x0, bh = y1 - y0;
+    d.style.backgroundSize = (r.W / bw * 100) + '% ' + (r.H / bh * 100) + '%';
+    d.style.backgroundPosition = (r.W > bw ? x0 / (r.W - bw) * 100 : 0) + '% ' + (r.H > bh ? y0 / (r.H - bh) * 100 : 0) + '%';
+    d.style.aspectRatio = bw + ' / ' + bh;
+  });
   return d;
 }
 // 2 nov. 14 h 15 (Benjamin) : « pour faire moins cher, l'Atelier pose les questions sur le design AVANT de dessiner » : 3 questions à cliquer
@@ -14120,7 +14159,7 @@ function atlBuild() {
   if (ATL.root) return ATL.root;
   const R = atlEl('section', 'atl'); R.id = 'jdw-atelier'; R.hidden = true; R.setAttribute('role', 'dialog'); R.setAttribute('aria-label', 'L’Atelier des jeux');
   R.innerHTML = '<header class="atl-bar"><button class="icon-btn atl-back" type="button" aria-label="Retour à la borne"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'
-    + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu · gratuit</small></div><span class="atl-cred" hidden></span><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
+    + '<div class="atl-h"><b>L’Atelier des jeux</b><small class="atl-hs">Ton idée devient un jeu · gratuit</small></div><span class="atl-cred" hidden></span><button class="btn btn-ghost btn-sm atl-suivib" type="button" hidden>📊 Suivi</button><button class="btn btn-play btn-sm atl-sendh" type="button">📮 Envoyer mon projet</button><span class="atl-dot" aria-hidden="true"></span></header>'
     + '<div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot">🎁 Projet gratuit · un projet par joueur</p></div></aside>'
@@ -14142,6 +14181,7 @@ function atlBuild() {
   q('.atl-mic').addEventListener('click', atlMic);
   q('.atl-imgb:not(.atl-drawb)').addEventListener('click', () => q('.atl-file').click());
   q('.atl-sendh').addEventListener('click', atlEnvoyer);
+  q('.atl-suivib').addEventListener('click', atlSuivi);
   q('.atl-zoom').addEventListener('click', () => { const z = q('.atl-zoom'); z.hidden = true; z.textContent = ''; });
   q('.atl-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) atlImage(f); });
   return R;
@@ -14193,7 +14233,7 @@ function atlRenderFiche() {
     const ul = atlEl('ul', 'atl-al');
     for (const a of as.slice(0, 40)) {
       const li = atlEl('li'), u = atlIaUrl(a.image);
-      if (u && a.case && Array.isArray(a.grille)) { const cp = atlCrop(u, a.case, a.grille, atlVal(a.nom)); cp.addEventListener('click', () => atlZoom(u)); li.appendChild(cp); }
+      if (u && a.case && Array.isArray(a.grille)) { const cp = atlCrop(u, a.case, a.grille, atlVal(a.nom), as.filter(x => x.image === a.image).length); cp.addEventListener('click', () => atlZoom(u)); li.appendChild(cp); }
       else if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; im.addEventListener('click', () => atlZoom(u)); li.appendChild(im); }
       const tx = atlEl('div'); tx.append(atlEl('b', '', atlVal(a.nom)), atlEl('small', '', [atlVal(a.sorte), atlVal(a.source), atlVal(a.licence)].filter(Boolean).join(' · '))); li.appendChild(tx); ul.appendChild(li);
     }
@@ -14273,6 +14313,7 @@ function atlRenderChat() {
   R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu · gratuit';
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
   cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = '💎 ' + Math.max(0, cr.solde | 0) + ' crédits'; cp.title = 'Crédits Elixir : ' + (cr.mois | 0) + ' offerts chaque mois · ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par dessin'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin);
   const sh = R.querySelector('.atl-sendh');
   sh.textContent = ATL_AFTER.has(et) || et === 'refusee' ? '📮 Ma lettre' : '📮 Envoyer mon projet';
   sh.classList.toggle('btn-ghost', ATL_AFTER.has(et) || ch); sh.classList.toggle('btn-play', !(ATL_AFTER.has(et) || ch));
@@ -14446,7 +14487,7 @@ function atlImgs(m) {
     box.appendChild(b);
     if (Array.isArray(it.g) && Array.isArray(it.e) && it.e.length) {   // planche d'assets : ses éléments, découpés case par case
       const cut = atlEl('div', 'atl-cut');
-      it.e.slice(0, 9).forEach((nm, j) => { const c = atlEl('figure'); c.append(atlCrop(u, j + 1, it.g, String(nm)), atlEl('figcaption', '', String(nm))); cut.appendChild(c); });
+      it.e.slice(0, 9).forEach((nm, j) => { const c = atlEl('figure'); c.append(atlCrop(u, j + 1, it.g, String(nm), it.e.length), atlEl('figcaption', '', String(nm))); cut.appendChild(c); });
       box.classList.add('assets'); box.appendChild(cut);
     }
   }
@@ -14556,6 +14597,39 @@ async function atlDessinePlanches() {
     }
   } catch (e) { ATL.propMsg = e && e.offline ? 'Pas de réseau : réessaie dans un moment.' : 'Oups, le dessin n’a pas pu se faire. Réessaie dans un moment.'; }
   finally { ATL.drawing = false; ATL.stick = true; await atlLoad(true); }
+}
+// ---------- le SUIVI des dépenses (admins seulement, at_suivi) : chaque dessin, son coût estimé, le total du mois sur le budget ----------
+async function atlSuivi() {
+  const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
+  z.textContent = ''; z.hidden = false; z.classList.add('suivi');
+  const P = atlEl('div', 'atl-suivi'); P.addEventListener('click', e => e.stopPropagation()); z.appendChild(P);
+  const close = atlEl('button', 'btn btn-ghost btn-sm', 'Fermer'); close.type = 'button'; close.addEventListener('click', () => { z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
+  P.append(atlEl('b', 'atl-cq', '📊 Suivi des dessins'), atlEl('p', '', 'Chargement…'));
+  let r; try { r = await rpc('at_suivi', { p_name: profile.name }, { quiet: true }); } catch (e) { P.lastChild.textContent = 'Suivi indisponible.'; P.appendChild(close); return; }
+  P.lastChild.remove();
+  const m = (r && r.mois) || {}, eur = v => (Math.round((+v || 0) * 100) / 100).toFixed(2).replace('.', ',') + ' €', pct = Math.min(100, Math.round((+m.euros_estimes || 0) / Math.max(1, +m.budget_euros || 1) * 100));
+  const tot = atlEl('div', 'atl-stot');
+  tot.append(atlEl('div', '', 'Ce mois-ci (' + (m.mois || '') + ') : ' + (m.images_utilisees | 0) + ' dessin' + ((m.images_utilisees | 0) > 1 ? 's' : '') + ' · ' + (m.joueurs | 0) + ' joueur' + ((m.joueurs | 0) > 1 ? 's' : '')),
+    atlEl('b', '', eur(m.euros_estimes) + ' dépensés (estimation) sur ' + eur(m.budget_euros) + ' — reste ' + eur(m.euros_restants)));
+  const bar = atlEl('div', 'atl-sbar'); const fill = atlEl('i'); fill.style.width = pct + '%'; if (pct >= 80) bar.classList.add('haut'); bar.appendChild(fill); tot.appendChild(bar);
+  tot.appendChild(atlEl('small', '', 'Estimation : ' + ((r.cout_image_centimes | 0) / 100).toFixed(2).replace('.', ',') + ' € par image (à vérifier sur la facture Google). À 100 % du budget ou ' + (m.plafond | 0) + ' dessins, l’atelier de dessin se met en pause tout seul.'));
+  P.appendChild(tot);
+  const rows = Array.isArray(r.lignes) ? r.lignes : [];
+  if (!rows.length) P.appendChild(atlEl('p', '', 'Aucun dessin pour l’instant.'));
+  else {
+    const t = atlEl('table', 'atl-stab'), hd = atlEl('tr');
+    for (const c of ['Quand', 'Joueur', 'Projet', 'Éléments', 'Crédits', 'Coût', 'Résultat']) hd.appendChild(atlEl('th', '', c));
+    t.appendChild(hd);
+    for (const l of rows) {
+      const tr = atlEl('tr', l.statut === 'OK' ? '' : 'ko'), d = new Date(l.at);
+      for (const v of [isNaN(d) ? '' : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), dispName(l.joueur || ''), l.projet || '', String((l.elements | 0) || (l.sorte === 'planche' ? 3 : 1)), String(l.credits | 0), eur(l.euros_estimes), l.statut + (l.erreur && l.statut !== 'OK' ? ' · ' + l.erreur : '')]) tr.appendChild(atlEl('td', '', v));
+      t.appendChild(tr);
+    }
+    const wrap = atlEl('div', 'atl-swrap'); wrap.appendChild(t); P.appendChild(wrap);
+  }
+  const dms = Array.isArray(r.demandes) ? r.demandes : [];
+  if (dms.length) { P.appendChild(atlEl('b', 'atl-rh2', '💎 Demandes de crédits en attente')); const ul = atlEl('ul'); for (const d of dms) ul.appendChild(atlEl('li', '', dispName(d.joueur || '') + ' (solde ' + (d.solde | 0) + ')' + (d.message ? ' : ' + d.message : ''))); P.appendChild(ul); P.appendChild(atlEl('small', '', 'Pour les accorder, demande à l’équipe.')); }
+  P.appendChild(close);
 }
 // « Demander des crédits » (pas de vente : l'équipe accorde ; le joueur est prévenu par un message de l'Atelier, donc la cloche)
 function atlCreditsBtn(into) {

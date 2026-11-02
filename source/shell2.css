@@ -3658,3 +3658,21 @@ body.atl-on #jdw-modes{visibility:hidden}
 .atl-perr{color:#ffc2cb!important}
 .atl-pl li.fait b{text-decoration:line-through;opacity:.7}
 @media (prefers-reduced-motion:reduce){.atl-prop.busy .atl-cq::after{animation:none}}
+
+/* ---------- suivi des dépenses de l'Atelier (admins, borne 1.63.44) ---------- */
+.atl-suivib[hidden]{display:none}
+.atl-zoom.suivi{cursor:default;place-items:start center;overflow-y:auto}
+.atl-suivi{display:grid;gap:10px;width:min(860px,100%);padding:16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);color:var(--ink);font:14px/1.4 var(--body)}
+.atl-suivi .atl-cq{font:400 18px var(--display);color:#ffe9a8}
+.atl-stot{display:grid;gap:6px;padding:12px;border-radius:10px;background:rgba(255,255,255,.04)}
+.atl-stot b{font:700 16px var(--body);color:#fff6dc}
+.atl-stot small{color:var(--muted)}
+.atl-sbar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.atl-sbar i{display:block;height:100%;background:#4cc36a}
+.atl-sbar.haut i{background:#ff5d73}
+.atl-swrap{overflow-x:auto}
+.atl-stab{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+.atl-stab th,.atl-stab td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.atl-stab th{color:var(--muted);font-weight:600}
+.atl-stab tr.ko td{color:var(--muted)}
+.atl-suivi > .btn{justify-self:end}

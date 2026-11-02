@@ -995,3 +995,98 @@ begin
   end if;
   return jsonb_build_object('message', mid, 'rendus', rend, 'solde', s);
 end $$;
+
+-- ===================================================================================================================================
+-- BUDGET EN EUROS ET SUIVI DE L'ADMIN (borne 1.63.44, 2 nov. 2026 15 h 10 : Benjamin a mis 20 € chez Google) :
+--  * budget_euros_mois (20) : coût réel ESTIMÉ du mois = images réussies × cout_image_centimes (4 = 0,04 € pour gemini-2.5-flash-image,
+--    à confirmer avec la facture Google) ; à 100 % → pause, exactement comme le plafond d'images (pegase_int.at_ia_plafond) ;
+--  * journal de chaque génération (vue at_ia_journal) + total du mois en € (vue at_ia_mois) ; les ADMINS (table at_admins) le voient dans
+--    l'Atelier (bouton « 📊 Suivi », RPC at_suivi).
+insert into public.at_reglages (k, v) values ('budget_euros_mois', 20), ('cout_image_centimes', 4) on conflict (k) do nothing;
+create table if not exists public.at_admins (name text primary key);
+alter table public.at_admins enable row level security;
+revoke all on public.at_admins from anon, authenticated;
+insert into public.at_admins (name) values ('PATOU'), ('BENJAMIN'), ('SAMBA') on conflict do nothing;
+create or replace function pegase_int.at_debut_mois() returns timestamptz language sql stable as $$
+  select (date_trunc('month', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris') $$;
+-- centimes du mois : images réussies (et réservées en cours) × prix estimé d'une image
+create or replace function pegase_int.at_ia_centimes() returns int language sql stable security definer set search_path = public as $$
+  select (pegase_int.at_ia_utilisees() * coalesce(pegase_int.at_reglage('cout_image_centimes'), 4))::int $$;
+create or replace function pegase_int.at_ia_plafond(nb int) returns void language plpgsql security definer set search_path = public as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('atelier-ia-plafond'));
+  if pegase_int.at_ia_utilisees() + nb > coalesce(pegase_int.at_reglage('plafond_images_mois'), 0) then raise exception 'plafond global'; end if;
+  if pegase_int.at_ia_centimes() + nb * coalesce(pegase_int.at_reglage('cout_image_centimes'), 4) > coalesce(pegase_int.at_reglage('budget_euros_mois'), 0) * 100 then raise exception 'plafond global (budget)'; end if;
+end $$;
+create or replace view public.at_ia_journal with (security_invoker = true) as
+  select a.at, a.name as joueur, f.titre as projet, a.sorte, a.nb as images_demandees, coalesce(a.ok, 0) as images_reussies,
+    coalesce(jsonb_array_length(a.choix -> 'elements'), 0) as elements, a.cout as credits,
+    round(coalesce(case when a.fin_at is null then a.nb else a.ok end, 0) * coalesce(pegase_int.at_reglage('cout_image_centimes'), 4) / 100.0, 2) as euros_estimes,
+    case when a.fin_at is null then 'en cours' when coalesce(a.ok, 0) > 0 then 'OK' else 'erreur (crédits rendus)' end as statut, a.erreur, a.modele
+  from public.at_ia a left join public.at_fiches f on f.id = a.fiche order by a.at desc;
+revoke all on public.at_ia_journal from anon, authenticated;
+create or replace view public.at_ia_mois with (security_invoker = true) as
+  select to_char(now() at time zone 'Europe/Paris', 'YYYY-MM') as mois, pegase_int.at_ia_utilisees() as images_utilisees,
+    pegase_int.at_reglage('plafond_images_mois') as plafond, greatest(0, pegase_int.at_reglage('plafond_images_mois') - pegase_int.at_ia_utilisees()) as restantes,
+    (select count(distinct a.name) from public.at_ia a where a.at >= pegase_int.at_debut_mois()) as joueurs,
+    round(pegase_int.at_ia_centimes() / 100.0, 2) as euros_estimes, pegase_int.at_reglage('budget_euros_mois') as budget_euros,
+    round(greatest(0, pegase_int.at_reglage('budget_euros_mois') * 100 - pegase_int.at_ia_centimes()) / 100.0, 2) as euros_restants;
+revoke all on public.at_ia_mois from anon, authenticated;
+-- le suivi pour un ADMIN connecté (bouton « 📊 Suivi » de l'Atelier) : le mois + les 60 dernières générations
+create or replace function public.at_suivi(p_name text)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name);
+begin
+  perform public.acct_check(n);
+  if not exists (select 1 from public.at_admins x where x.name = n) then raise exception 'admin requis'; end if;
+  return jsonb_build_object('mois', (select to_jsonb(m) from public.at_ia_mois m),
+    'cout_image_centimes', pegase_int.at_reglage('cout_image_centimes'), 'credits_mois', pegase_int.at_reglage('credits_mois'),
+    'lignes', coalesce((select jsonb_agg(to_jsonb(j)) from (select * from public.at_ia_journal limit 60) j), '[]'::jsonb),
+    'demandes', coalesce((select jsonb_agg(to_jsonb(d)) from public.at_credits_attente d), '[]'::jsonb));
+end $$;
+revoke all on function public.at_suivi(text) from public, anon;
+grant execute on function public.at_suivi(text) to authenticated;
+revoke all on function pegase_int.at_ia_centimes(), pegase_int.at_debut_mois() from public, anon, authenticated;
+-- at_lire dit au joueur s'il est admin (pour montrer le bouton « 📊 Suivi » ; le contenu reste protégé par at_suivi)
+do $$
+declare d text := pg_get_functiondef('public.at_lire(text)'::regprocedure);
+begin
+  if position('''admin''' in d) = 0 then
+    d := replace(d, '''planche'', pegase_int.at_reglage(''images_planche''),', '''planche'', pegase_int.at_reglage(''images_planche''), ''admin'', exists (select 1 from public.at_admins x where x.name = n),');
+    if position('''admin''' in d) = 0 then raise exception 'remplacement impossible'; end if;
+    execute d;
+  end if;
+end $$;
+-- PREMIER TEST (Benjamin, 15 h 10) : seuls les ADMINS (PATOU, SAMBA) peuvent faire dessiner tant que ia_admins_seulement = 1 ; les autres
+-- joueurs voient « l'atelier de dessin est en pause » (même refus que le plafond). Ouvrir à tous : update at_reglages set v = 0 where k = 'ia_admins_seulement'.
+insert into public.at_reglages (k, v) values ('ia_admins_seulement', 1) on conflict (k) do nothing;
+do $$
+declare d text := pg_get_functiondef('public.at_ia_debut(text, text, text, jsonb)'::regprocedure);
+begin
+  if position('ia_admins_seulement' in d) = 0 then
+    d := replace(d, '  perform public.pg_rate(n, ''atelier-ia'', 20, interval ''1 hour'');',
+      '  perform public.pg_rate(n, ''atelier-ia'', 20, interval ''1 hour'');' || chr(10) ||
+      '  if coalesce(pegase_int.at_reglage(''ia_admins_seulement''), 0) = 1 and not exists (select 1 from public.at_admins x where x.name = n) then raise exception ''plafond global (admins seulement)''; end if;');
+    if position('ia_admins_seulement' in d) = 0 then raise exception 'remplacement impossible'; end if;
+    execute d;
+  end if;
+end $$;
+
+-- 1re VRAIE PLANCHE (2 nov. 2026 15 h 09, PATOU, 6 éléments) : Gemini a dessiné une grille 3 × 3 avec des CADRES et 3 cases vides au lieu
+-- de 3 × 2 sans cadre (image carrée demandée). → la forme de l'image suit la grille (« ratio » rendu à la fonction Edge : imageConfig
+-- aspectRatio, 3:2 pour 3 × 2…), « exactement N dessins, aucune case vide, aucun cadre ». Le découpage se fait de toute façon sur les
+-- DESSINS trouvés (taches de couleur), pas sur la grille (borne : atlBlobs ; outil : atelier-decoupe.py).
+do $$
+declare d text := pg_get_functiondef('public.at_ia_debut(text, text, text, jsonb)'::regprocedure);
+begin
+  if position('''ratio''' in d) = 0 then
+    d := replace(d, ''' Même style et même taille apparente pour tous. Aucun logo, aucune marque, aucun personnage existant protégé. Image carrée.''',
+      ''' Exactement '' || ne || '' dessins en tout : aucune case vide en plus, aucun cadre ni bordure ni carré autour des dessins (ils flottent sur le fond blanc). '' ||
+        ''Même style et même taille apparente pour tous. Aucun logo, aucune marque, aucun personnage existant protégé. Image au format '' ||
+        (case when cols = 3 and rws = 2 then ''paysage 3:2'' when cols = 3 and rws = 1 then ''très large 21:9'' when cols = 2 and rws = 1 then ''paysage 16:9'' else ''carré 1:1'' end) || ''.''');
+    d := replace(d, 'return jsonb_build_object(''usage'', u, ''nb'', nb, ''solde'', s,',
+      'return jsonb_build_object(''usage'', u, ''nb'', nb, ''solde'', s, ''ratio'', case when p_sorte = ''planche'' then ''4:3'' when ne = 1 then ''16:9'' when cols = 3 and rws = 2 then ''3:2'' when cols = 3 and rws = 1 then ''21:9'' when cols = 2 and rws = 1 then ''16:9'' else ''1:1'' end,');
+    if position('''ratio''' in d) = 0 or position('Exactement' in d) = 0 then raise exception 'remplacement impossible'; end if;
+    execute d;
+  end if;
+end $$;
