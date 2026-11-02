@@ -3944,3 +3944,9 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 .atl-ptile.att{border-color:#7ec8ff;box-shadow:0 0 0 2px rgba(126,200,255,.35)}
 .atl-ptile.att small{color:#9fd8ff;font-weight:700}
 .atl-patt{position:absolute;top:8px;left:8px;padding:4px 9px;border-radius:999px;background:#7ec8ff;color:#0b1a3a;font:700 11.5px var(--body);animation:atlGlow 1.2s ease-in-out infinite alternate}
+
+/* au centre le design ; les étapes résumées à droite (borne 1.63.76) */
+.atl-wback{justify-self:start}
+.atl-rl.res{grid-template-columns:22px minmax(0,auto) 1fr;row-gap:2px}
+.atl-rres{grid-column:2/-1;color:var(--muted);font:12px/1.35 var(--body);white-space:normal;text-align:left}
+.atl-rl.res:hover .atl-rres{color:var(--ink)}

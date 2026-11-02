@@ -14190,7 +14190,7 @@ const ATL_WELCOME = [
   'Décris le jeu dont tu rêves, en une seule fois, au clavier ou au micro 🎤 : le héros, ce qu’on fait, le monde, les objets, les sons… Plus tu racontes, mieux c’est !',
   '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais dans ton jeu.',
   '✨ L’Atelier remplit alors toute ta fiche et dessine un premier design de ton jeu (quelques minutes : va jouer, la cloche 🔔 te préviendra).',
-  'Ensuite tu relis chaque étape, tu ajoutes ou enlèves ce que tu veux, puis tu touches « 🚀 Lancer la conception » : notre équipe construit ton jeu.',
+  'Ensuite tu relis chaque étape, tu ajoutes ou enlèves ce que tu veux, puis tu touches « 🚀 Lancer la conception » : ton jeu se construit.',
   '🤖 Ton jeu est créé avec l’aide de l’IA. 💎 Parler à l’Atelier : 2 crédits le message · un dessin : 10 · une forme simple : 3. Le prix est toujours écrit sur le bouton.'
 ];
 function atlBuild() {
@@ -14398,7 +14398,7 @@ function atlRenderChat() {
   let btxt = '', bk = '', locked = '';
   if (et === 'complete' && !atlChoix() && !atlRempli(f)) { btxt = f.prix ? '🎁 Ton jeu : ' + (f.prix | 0) + ' crédits pour tout. Si tout te plaît, envoie ton projet. Sinon, touche une section pour la changer.' : '🎉 Ta fiche est complète ! L’Atelier prépare le prix de ton jeu.'; bk = 'go'; }
   else if (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde') { btxt = et === 'alpha' ? '🎮 Ton jeu est jouable ! Sa tuile « MON JEU » t’attend sur la borne. Dis à l’Atelier ce que tu veux changer.' : '🌟 Ton jeu est publié ' + (et === 'publie_monde' ? 'pour tout le monde !' : 'dans ta salle !') + ' Tu peux encore demander des modifications.'; bk = 'ok'; }
-  else if (et === 'envoyee') { btxt = '🛠️ Projet envoyé le ' + atlDate(f.envoyee_at) + ' — notre équipe construit ton jeu. La cloche 🔔 te préviendra dès qu’il est prêt à tester.'; bk = 'sent'; }
+  else if (et === 'envoyee') { btxt = '🛠️ Construction en cours de « ' + (f.titre || 'Mon jeu sans nom') + ' ». La cloche 🔔 te prévient dès qu’il est prêt à tester.'; bk = 'sent'; }
   else if (et === 'acceptee') { btxt = '✅ Ton projet est accepté ! L’Atelier te tiendra au courant.'; bk = 'ok'; locked = 'Un jeu par joueur : celui-ci est le tien ! 🎮'; }
   else if (et === 'refusee') { btxt = 'Ton projet n’a pas été retenu cette fois. Tu peux en proposer un autre : écris ta nouvelle idée !'; bk = 'no'; }
   bn.hidden = !btxt; bn.dataset.k = bk; bn.textContent = btxt;
@@ -14498,14 +14498,9 @@ function atlRenderWiz() {
   // les autres étapes restent là (onglets, feuille de route) pour qui veut modifier
   if (ATL.step == null) ATL.step = ATL_STEPS.length - 1;
   const st = Math.max(0, Math.min(ATL_STEPS.length - 1, ATL.step | 0)); ATL.step = st;
-  R.querySelector('.atl-hs').textContent = st === ATL_STEPS.length - 1 ? 'Ton design est prêt' : 'Étape ' + (st + 1) + ' / ' + ATL_STEPS.length;
-  const nav = atlEl('ol', 'atl-steps');
-  ATL_STEPS.forEach(([k, ic, lab], i) => {
-    const li = atlEl('li'), b = atlEl('button', 'atl-stp' + (i === st ? ' on' : '') + (i < st ? ' vu' : '')); b.type = 'button';
-    b.append(atlEl('span', 'atl-stn', String(i + 1)), atlEl('span', 'atl-sti', ic), atlEl('span', 'atl-stl', lab));
-    b.addEventListener('click', () => { ATL.step = i; atlRenderWiz(); W.scrollTop = 0; }); li.appendChild(b); nav.appendChild(li);
-  });
-  box.appendChild(nav);
+  R.querySelector('.atl-hs').textContent = st === ATL_STEPS.length - 1 ? 'Ton design est prêt' : 'Modifier : ' + ATL_STEPS[st][2];
+  const DZ = ATL_STEPS.length - 1;   // 19 h 57 (Benjamin) : au centre le design ; les autres étapes s'ouvrent depuis la feuille de route (à droite)
+  if (st !== DZ) { const bk = atlEl('button', 'btn btn-ghost btn-sm atl-wback', '← Revenir au design'); bk.type = 'button'; bk.addEventListener('click', () => { ATL.step = DZ; atlRenderWiz(); atlRenderRoute(false); W.scrollTop = 0; }); box.appendChild(bk); }
   const lm = atlMsgs().filter(m => m.atelier && m.texte).slice(-1)[0];
   if (lm && st === ATL_STEPS.length - 1) box.appendChild(atlEl('div', 'atl-wmsg', '💬 L’Atelier : ' + lm.texte));
   const [k, ic, lab, aide] = ATL_STEPS[st], page = atlEl('section', 'atl-page');
@@ -14533,14 +14528,11 @@ function atlRenderWiz() {
   } else atlWizChips(page, k, fi);
   box.appendChild(page);
   const er = atlEl('p', 'atl-werr'); er.hidden = true; box.appendChild(er);
-  const foot = atlEl('div', 'atl-wfoot');
-  if (st > 0) { const p = atlEl('button', 'btn btn-ghost', '← Précédent'); p.type = 'button'; p.addEventListener('click', () => { ATL.step = st - 1; atlRenderWiz(); W.scrollTop = 0; }); foot.appendChild(p); }
-  if (st < ATL_STEPS.length - 1) { const n = atlEl('button', 'btn btn-play', 'Suivant →'); n.type = 'button'; n.addEventListener('click', () => { ATL.step = st + 1; atlRenderWiz(); W.scrollTop = 0; }); foot.appendChild(n); }
-  box.appendChild(foot);
+  if (st !== DZ) { const foot = atlEl('div', 'atl-wfoot'), n = atlEl('button', 'btn btn-play', '✔ C’est bon, retour au design'); n.type = 'button'; n.addEventListener('click', () => { ATL.step = DZ; atlRenderWiz(); atlRenderRoute(false); W.scrollTop = 0; }); foot.appendChild(n); box.appendChild(foot); }
   if (st === ATL_STEPS.length - 1) {
     const cc = cr ? cr.conception | 0 : 0, go = atlEl('button', 'btn btn-play atl-go', '🚀 Lancer la conception' + (cc > 0 ? ' · ' + cc + ' 💎' : '')); go.type = 'button';
     go.addEventListener('click', () => atlLancer(go));
-    box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus : notre équipe construit ton jeu, puis l’administrateur choisit s’il est proposé dans ta salle ou à tous.'));
+    box.append(go, atlEl('p', 'atl-gonote', 'Une fois lancée, la conception ne se modifie plus. Quand ton jeu est prêt, l’administrateur choisit s’il est proposé dans ta salle ou à tous.'));
   }
   const w = atlEl('button', 'atl-wchat', '✏️ Retravailler mon idée ou ajouter du style (2 💎 le message)'); w.type = 'button'; w.addEventListener('click', () => { ATL.chat = true; ATL.stick = true; atlRender(); });
   box.append(w, atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
@@ -14618,7 +14610,7 @@ function atlRenderProjet(W, f) {
   } else {
     const p = pane('etat'), c = atlEl('div', 'atl-fin' + (et === 'refusee' ? '' : ' run'));
     if (et === 'refusee') c.append(atlEl('h2', '', 'Ce projet n’a pas été retenu'), atlEl('p', '', 'Tu peux en commencer un autre depuis « Mes projets ».'));
-    else { c.innerHTML = '<div class="atl-gear" aria-hidden="true"><span>⚙️</span><span>⚙️</span><b>✨</b></div>'; c.append(atlEl('h2', '', 'Conception en cours…'), atlEl('p', '', 'Notre équipe construit « ' + (f.titre || 'ton jeu') + ' ». Va jouer en attendant : la cloche 🔔 te prévient dès qu’il est prêt à tester.')); }
+    else { c.innerHTML = '<div class="atl-gear" aria-hidden="true"><span>⚙️</span><span>⚙️</span><b>✨</b></div>'; c.append(atlEl('h2', '', 'Conception en cours…'), atlEl('p', '', 'Construction en cours de « ' + (f.titre || 'Mon jeu sans nom') + ' ». Va jouer en attendant : la cloche 🔔 te prévient dès qu’il est prêt à tester.')); }
     p.appendChild(c);
   }
   // 📋 La fiche
@@ -14839,7 +14831,7 @@ function atlWizDessins(page, f, fi) {
   }
   sec.appendChild(gr);
   const att = Array.isArray(f.dessins_en_cours) && f.dessins_en_cours.length;
-  sec.appendChild(atlEl('p', 'atl-aide', att ? '⏳ Notre IA dessine tes éléments, puis les découpe un par un (une à deux minutes).' : faits + ' / ' + els.length + ' dessinés. Notre IA les dessine par planches de 8 au plus, puis les découpe un par un ; les formes simples (rond, carré, étoile, barre…) sont dessinées tout de suite.'));
+  sec.appendChild(atlEl('p', 'atl-aide', att ? '⏳ Tes dessins arrivent (une à deux minutes).' : faits + ' / ' + els.length + ' dessinés'));
   const b = atlEl('button', 'btn btn-play', '🎨 Dessiner mes éléments'); b.type = 'button'; b.disabled = !!att; b.addEventListener('click', atlModale);
   sec.appendChild(b); page.appendChild(sec);
 }
@@ -14849,7 +14841,7 @@ function atlModale() {
   const els = atlElemsFiche(fi).map(e => Object.assign(e, { fait: !!atlDessinDe(f, fi, e.nom), forme: atlForme(e.nom) }));
   M.textContent = ''; M.hidden = false;
   const card = atlEl('div', 'atl-mcard'); M.appendChild(card);
-  card.append(atlEl('h2', '', '🎨 Dessiner mes éléments'), atlEl('p', 'atl-aide', 'Notre IA dessine tes éléments par planches de 8 au plus (' + ci + ' 💎 la planche), puis les découpe un par un, fond retiré. Les formes simples sont dessinées tout de suite, sans IA (' + cf + ' 💎 chacune).'));
+  card.append(atlEl('h2', '', '🎨 Dessiner mes éléments'), atlEl('p', 'atl-aide', 'Coche ce que tu veux voir dessiné. Le prix total est écrit sur le bouton.'));
   const ul = atlEl('div', 'atl-mlist'), boxes = [];
   for (const e of els) {
     const l = atlEl('label', 'atl-mrow'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = !e.fait;
@@ -14863,7 +14855,7 @@ function atlModale() {
   const er = atlEl('p', 'atl-werr'); er.hidden = true;
   card.append(ul, tot, er, row);
   function calc() { const sel = boxes.filter(([cb]) => cb.checked).map(([, e]) => e), fo = sel.filter(e => e.forme), de = sel.filter(e => !e.forme), np = Math.ceil(de.length / 8); return { fo, de, np, cout: np * ci + fo.length * cf }; }
-  function maj() { const c = calc(); go.disabled = !c.fo.length && !c.de.length; go.textContent = 'Dessiner · ' + c.cout + ' 💎'; tot.textContent = c.de.length + ' dessin' + (c.de.length > 1 ? 's' : '') + ' (' + c.np + ' planche' + (c.np > 1 ? 's' : '') + ') + ' + c.fo.length + ' forme' + (c.fo.length > 1 ? 's' : '') + ' = ' + c.cout + ' crédits'; }
+  function maj() { const c = calc(); go.disabled = !c.fo.length && !c.de.length; go.textContent = 'Dessiner · ' + c.cout + ' 💎'; tot.textContent = c.de.length + ' dessin' + (c.de.length > 1 ? 's' : '') + ' + ' + c.fo.length + ' forme' + (c.fo.length > 1 ? 's' : '') + ' = ' + c.cout + ' crédits'; }
   go.addEventListener('click', async () => {
     const c = calc(); if (go.disabled || ATL.sending) return;
     if (cr && (cr.solde | 0) < c.cout) { er.hidden = false; er.textContent = 'Il te manque des crédits : décoche des éléments, ou demande des crédits.'; atlCreditsBtn(er); return; }
@@ -14874,7 +14866,7 @@ function atlModale() {
       f.dessins_en_cours = (Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours : []).concat(c.de.map(e => e.nom));
       fi.formes = (Array.isArray(fi.formes) ? fi.formes : []).filter(x => !c.fo.some(e => atlNorm(e.nom) === atlNorm(x && x.nom))).concat(c.fo.map(e => e.forme)); f.fiche = fi;
       M.hidden = true; M.textContent = ''; atlRenderWiz(); atlRenderRoute(false);
-      toastCheer(c.de.length ? '🎨 Notre IA dessine tes éléments !' : '🔷 Tes formes sont prêtes !', null, true);
+      toastCheer(c.de.length ? '🎨 Tes dessins arrivent !' : '🔷 Tes formes sont prêtes !', null, true);
     } catch (e) { go.disabled = false; er.hidden = false; const m = String((e && e.message) || ''); er.textContent = /dessins en cours/.test(m) ? 'Tes dessins sont déjà en route : encore un petit moment !' : atlWizWhy(e); if (/credits insuffisants/.test(m)) atlCreditsBtn(er); }
     finally { ATL.sending = false; }
   });
@@ -14888,13 +14880,16 @@ function atlRenderRoute(liste) {
   const f = atlFiche(), fi = f && f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, b = atlBasesVal(), cr = atlCred(), et = f ? String(f.etat || '') : '', lance = f && (ATL_AFTER.has(et) || et === 'refusee');
   const B = D.querySelector('.atl-rbody'); B.textContent = '';
   const sec = (t) => { const s = atlEl('section', 'atl-rsec'); s.appendChild(atlEl('h4', '', t)); B.appendChild(s); return s; };
-  const ligne = (s, ic, lab, val, fn, ok) => { const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); s.appendChild(r); };
+  const ligne = (s, ic, lab, val, fn, ok, resume) => { const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '') + (resume ? ' res' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); if (resume) r.appendChild(atlEl('small', 'atl-rres', resume)); s.appendChild(r); };
   const s1 = sec('🧱 Les bases');
   ATL_BASES.forEach(([k, ic, , court], i) => ligne(s1, ic, court, b[k] || 'à préciser', lance ? null : () => { ATL.basesOn = true; ATL.basesUne = !!(f && f.id && atlRempli(f)); ATL.bq = i; atlRender(); }, !!b[k]));
   const s2 = sec('📋 Ta fiche');
-  const etape = i => (f && atlWizOn() && !lance) ? () => { ATL.basesOn = false; ATL.step = i; atlRender(); } : null;
-  ligne(s2, '💡', 'L’idée', atlVal(fi.idee) ? '✔' : '…', etape(0), !!atlVal(fi.idee));
-  [['personnages', '🦸', 'Personnages', 1], ['objets', '🎁', 'Objets', 2], ['decor', '🏞️', 'Décor', 3], ['sons', '🎵', 'Sons', 4]].forEach(([k, ic, lab, i]) => { const n = atlListeDe(fi[k]).length; ligne(s2, ic, lab, n ? String(n) : '…', etape(i), !!n); });
+  const etape = i => (f && atlWizOn() && !lance) ? () => { ATL.basesOn = false; ATL.step = i; atlRender(); const w = R.querySelector('.atl-wiz'); if (w) w.scrollTop = 0; } : null;
+  const court = (t, n) => (t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t);
+  const ecrire = !atlWizOn() && !lance && R.classList.contains('ecrire');   // avant la 1re analyse : l'idée, c'est la case d'écriture
+  const idee = atlVal(fi.idee) || (ecrire ? String((R.querySelector('.atl-in') || {}).value || '').replace(/^Mon jeu \(en [23]D\) :[^\n]*\n?(Mon idée : )?/, '').trim() : '');
+  ligne(s2, '💡', 'L’idée', idee ? '✔' : '…', etape(0) || (ecrire ? () => { const i = R.querySelector('.atl-in'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } : null), !!idee, idee ? court(idee, 90) : '');
+  [['personnages', '🦸', 'Personnages', 1], ['objets', '🎁', 'Objets', 2], ['decor', '🏞️', 'Décor', 3], ['sons', '🎵', 'Sons', 4]].forEach(([k, ic, lab, i]) => { const l = atlListeDe(fi[k]); ligne(s2, ic, lab, l.length ? String(l.length) : '…', etape(i), !!l.length, l.length ? court(l.join(', '), 80) : ''); });
   const s3 = sec('🎨 Le design');
   const els = f ? atlElemsFiche(fi) : [], faits = f ? els.filter(e => { const d = atlDessinDe(f, fi, e.nom); return d && !d.attente; }).length : 0, att = f && Array.isArray(f.dessins_en_cours) ? f.dessins_en_cours.length : 0;
   ligne(s3, '🖼️', 'L’ambiance', f && f.design_en_cours ? '⏳' : f && f.design ? '✔' : '…', etape(5), !!(f && f.design));
@@ -15036,7 +15031,7 @@ function atlWhy(e) {
   const m = String((e && e.message) || '');
   if (e && e.offline) return 'Pas de réseau : ton message est resté dans la case, réessaie dans un moment.';
   if (/trop d essais/.test(m)) return 'Doucement 😄 Beaucoup de messages en une heure : réessaie un peu plus tard.';
-  if (/deja envoye/.test(m)) return 'Ton projet est déjà envoyé : notre équipe le construit.';
+  if (/deja envoye/.test(m)) return 'Ton projet est déjà lancé : il est en construction.';
   if (/trop de projets/.test(m)) return 'Tu as déjà le maximum de projets : continue un de tes projets.';
   if (/choix en cours/.test(m)) return 'Termine d’abord tes choix (ou touche « Je veux modifier »).';
   if (/credits insuffisants/.test(m)) return 'Plus assez de crédits ce mois-ci : le 1er du mois, tu retrouves tes crédits. Tu peux aussi en demander à l’équipe.';
