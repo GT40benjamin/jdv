@@ -38,6 +38,8 @@
 [noisette] ## 🐿️ Noisette et ses amis : la première version à tester (borne 1.63.115)
 [noisette] 🐿️ Noisette l'écureuil s'est perdu dans la grande forêt : cours à toute vitesse, saute de branche en branche et roule en boule pour foncer dans les pentes. Ramasse les noisettes dorées, mais attention aux ronces, aux trous, à la rivière et aux corbeaux chapardeurs : si tu es touché, tu lâches tes noisettes.
 [noisette] 🐰 4 niveaux (la forêt du matin, le sous-bois aux champignons, la rivière et ses rondins, le grand chêne) : à la fin de chacun, tu retrouves un ami (Pompon, Piquant, Hulotte, Roussette) qui te suit jusqu'au grand chêne. Bonus : gland magique (vitesse), feuille-ressort et champignons rebondissants. Clavier, manette ou boutons à l'écran sur téléphone.
+[remparts] ## 🖼️ Remparts ! : une vraie image du jeu sur sa tuile (borne 1.63.135)
+[remparts] 🖼️ La tuile montre maintenant le vrai jeu en pleine vague : la Forêt enchantée, la catapulte qui tire sur les monstres et les tours magiques qui brillent.
 [remparts] ## 🏰 Nouveau jeu pour tous : Remparts ! (borne 1.63.105)
 [remparts] 🏰 Défends la tour du sorcier ! Des vagues de monstres suivent le chemin : construis tes tours sur les emplacements au bord de la route pour les arrêter avant qu'ils n'arrivent.
 [remparts] 🏹 Cinq tours à combiner et à améliorer : les archers, la catapulte qui écrase les groupes, la tour de glace qui ralentit, la tour d'éclairs qui saute d'un monstre à l'autre et la baliste contre les monstres volants. Leur tête pivote toute seule vers l'ennemi.

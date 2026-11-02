@@ -63,7 +63,7 @@ function loadPack(onProg, signal, nom) {
   return STORE[K];
 }
 
-/* ---------- vignette 2D : une route pavée en lacets sur la prairie, des squelettes qui marchent vers le château, des tours qui tirent ---------- */
+/* ---------- vignette 2D (secours tant que l'image n'est pas chargée) : une route pavée en lacets sur la prairie, des squelettes qui marchent vers le château, des tours qui tirent ---------- */
 const TAU = Math.PI * 2;
 let BG = null;
 function hexPath(x, cx, cy, r) { x.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.62); } x.closePath(); }
@@ -115,7 +115,7 @@ function skull(x, px, py, s, t) {
   x.beginPath(); x.arc(px, py - s * 1.15 - bob, s * 0.34, 0, TAU); x.fill();
   x.fillStyle = '#2a1a2a'; x.beginPath(); x.arc(px - s * 0.12, py - s * 1.17 - bob, s * 0.08, 0, TAU); x.arc(px + s * 0.12, py - s * 1.17 - bob, s * 0.08, 0, TAU); x.fill();
 }
-function preview(ctx, w, h, t) {
+function preview2d(ctx, w, h, t) {
   if (!BG || BG.w !== w || BG.h !== h) BG = background(w, h);
   ctx.drawImage(BG.c, 0, 0, w, h);
   const { r, R } = BG, L = routeLen(R), sp = r * 2.2, n = 6, cyc = (L + n * sp) / (r * 1.6);
@@ -183,11 +183,46 @@ function mount(root, api) {
   return proxy;
 }
 
+/* ---------- vignette : une vraie image du jeu (tests/vignette.js, Forêt enchantée en pleine vague), zoom lent, lueurs des cristaux,
+   étincelles magiques et le titre ; l'ancien dessin 2D sert tant que l'image n'est pas chargée ---------- */
+let VIMG = null, VOK = false;
+const VGLOW = [[0.731, 0.26, '200,120,255'], [0.68, 0.584, '140,220,255'], [0.782, 0.752, '220,120,255'], [0.95, 0.768, '140,220,255'], [0.99, 0.62, '255,190,120'], [0.029, 0.352, '230,150,255']];
+let VT = null;
+function vTitle(w, h) {
+  const c = document.createElement('canvas'); c.width = Math.round(w * 2); c.height = Math.round(h * 2);
+  const x = c.getContext('2d'); x.scale(2, 2);
+  const g = x.createLinearGradient(0, 0, 0, h * 0.28); g.addColorStop(0, 'rgba(20,8,40,.6)'); g.addColorStop(1, 'rgba(20,8,40,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h * 0.28);
+  const font = "'Bungee', Impact, sans-serif"; let f = Math.round(h * 0.17); x.font = '400 ' + f + 'px ' + font; while (f > 10 && x.measureText('REMPARTS !').width > w * 0.8) { f--; x.font = '400 ' + f + 'px ' + font; }
+  x.textAlign = 'left'; x.textBaseline = 'top'; x.lineJoin = 'round'; x.lineWidth = Math.max(4, f * 0.2); x.strokeStyle = '#2a0c4a'; x.strokeText('REMPARTS !', w * 0.045, h * 0.05);
+  x.fillStyle = '#ffd34d'; x.shadowColor = 'rgba(200,120,255,.9)'; x.shadowBlur = 12; x.fillText('REMPARTS !', w * 0.045, h * 0.05); x.shadowBlur = 0;
+  return { c, w, h };
+}
+function preview(ctx, w, h, t) {
+  if (!VIMG) { VIMG = new Image(); VIMG.onload = () => { VOK = true; }; VIMG.src = ROOT() + 'assets/remparts.vignette.webp'; }
+  if (!VOK) return preview2d(ctx, w, h, t);
+  // zoom lent qui respire (vers la catapulte et les monstres)
+  const z = 1.04 + 0.04 * Math.sin(t * 0.35), iw = VIMG.width / z, ih = VIMG.height / z, ox = (VIMG.width - iw) * (0.4 + 0.1 * Math.sin(t * 0.21)), oy = (VIMG.height - ih) * 0.35;
+  ctx.drawImage(VIMG, ox, oy, iw, ih, 0, 0, w, h);
+  const P = (fx, fy) => [(fx * VIMG.width - ox) / iw * w, (fy * VIMG.height - oy) / ih * h];
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  VGLOW.forEach(([fx, fy, c], i) => {
+    const [px, py] = P(fx, fy), r = w * (0.07 + 0.02 * Math.sin(t * 2.2 + i * 1.7)), a = 0.32 + 0.18 * Math.sin(t * 2.2 + i * 1.7);
+    const g = ctx.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, 'rgba(' + c + ',' + a.toFixed(3) + ')'); g.addColorStop(1, 'rgba(' + c + ',0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r, 0, TAU); ctx.fill();
+    // étincelles qui montent des cristaux
+    for (let k = 0; k < 3; k++) { const ph = (t * 0.6 + k / 3 + i * 0.13) % 1, sx = px + Math.sin(i * 3 + k * 2.1 + t) * w * 0.025, sy = py - ph * h * 0.14, s = w * 0.006 * (1 - ph);
+      ctx.fillStyle = 'rgba(' + c + ',' + (0.9 * (1 - ph)).toFixed(3) + ')'; ctx.beginPath(); ctx.arc(sx, sy, s + 0.6, 0, TAU); ctx.fill(); }
+  });
+  ctx.restore();
+  if (!VT || VT.w !== w || VT.h !== h) VT = vTitle(w, h);
+  ctx.drawImage(VT.c, 0, 0, w, h);
+}
+
 window.JDW_GAMES = window.JDW_GAMES || {};
 window.JDW_GAMES[ID] = {
   id: ID,
   title: NOM,
-  tagline: 'Pose tes tours au bord de la route et repousse les squelettes jusqu\'au Roi !',
+  tagline: 'Pose tes tours magiques au bord du chemin et défends la tour du sorcier contre les monstres !',
   accent: '#ffd34d',
   scoreLabel: 'points',
   saves: true,                        // meilleur score par monde gardé (api.save) ; le total part au classement par api.save.score
