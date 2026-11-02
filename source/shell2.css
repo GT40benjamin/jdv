@@ -4034,3 +4034,27 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 .atl-wdadd{display:flex;gap:8px;flex-wrap:wrap}.atl-wdadd .atl-chin2{flex:1 1 220px}
 .atl-wdsel{padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--night);color:var(--ink);font:14px var(--body)}
 .atl-wdimg{justify-self:start}
+
+/* la bibliothèque des éléments du jeu (borne 1.63.87) */
+.atl-lib{display:grid;gap:14px}
+.atl-libc{display:grid;gap:8px;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+.atl-libh{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.atl-libh h4{margin:0;font:700 15px var(--body);color:#ffe9a8}
+.atl-libg{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+.atl-enc{position:relative;margin:0;display:grid;gap:4px;align-content:start;padding:8px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.atl-enc.main{border-color:rgba(255,211,77,.6)}.atl-enc.vide{border-style:dashed;opacity:.85}
+.atl-encv{display:grid;place-items:center;aspect-ratio:1;border-radius:8px;overflow:hidden;background:repeating-conic-gradient(rgba(255,255,255,.05) 0 25%,transparent 0 50%) 0 0/16px 16px}
+.atl-encv img,.atl-encv svg{width:100%;height:100%;object-fit:contain;cursor:zoom-in}
+.atl-encx{font-size:26px;opacity:.5}
+.atl-encplay{width:54px;height:54px;border-radius:50%;border:0;background:#ffd34d;color:#2a1340;font-size:22px;cursor:pointer}
+.atl-enc figcaption{display:grid;gap:1px;padding-right:22px}
+.atl-enc figcaption b{font:700 12.5px/1.25 var(--body);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.atl-enc figcaption small{color:var(--muted);font:11.5px var(--body)}
+.atl-encm{position:absolute;right:4px;bottom:6px;width:28px;height:28px;border:0;border-radius:8px;background:rgba(255,255,255,.08);color:var(--ink);font:700 16px/1 var(--body);cursor:pointer}
+.atl-encm:hover{background:rgba(255,211,77,.25)}
+.atl-encmenu{position:absolute;right:4px;bottom:38px;z-index:5;display:grid;gap:2px;min-width:190px;padding:6px;border-radius:12px;border:1px solid var(--line);background:#16122c;box-shadow:0 12px 30px rgba(0,0,0,.55)}
+.atl-encmenu button{padding:9px 10px;border:0;border-radius:8px;background:none;color:var(--ink);font:700 13.5px var(--body);text-align:left;cursor:pointer}
+.atl-encmenu button:hover{background:rgba(255,255,255,.07)}.atl-encmenu button.del{color:#ff8a9a}
+.atl-demimg{max-width:100%;max-height:220px;justify-self:center;border-radius:10px;background:repeating-conic-gradient(rgba(255,255,255,.05) 0 25%,transparent 0 50%) 0 0/16px 16px}
+@media (max-width:600px){.atl-libg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.atl-encv .atl-crop{width:100%;height:100%;background-repeat:no-repeat;cursor:zoom-in}

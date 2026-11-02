@@ -2222,3 +2222,48 @@ begin
     execute 'create or replace view public.at_en_attente as ' || d;
   end if;
 end $$;
+
+-- (v26, borne 1.63.87, 2 nov. 21 h 15, Benjamin) : TOUS les éléments du jeu visibles et rangés (at_fiches.assets), avec un menu par élément.
+-- Format d'un élément (équipe et file) : { nom (français), cat : personnage | objet | decor | interface | son | musique,
+--   image : 'i/<uuid>.png' (seau atelier-ia) | son : 's/<uuid>.mp3', pose : 'qui court' (facultatif), parent : 'nom du personnage' (poses) }
+-- · at_asset_renommer : le joueur renomme un élément (gratuit) ;
+-- · at_demande_element : « Modifier avec le guide » (élément joint) ou « Créer un élément » (interface, son, musique…) = une demande au prix fixe
+--   cout_demande, déposée dans la discussion du projet (image de l'élément jointe au message).
+create or replace function public.at_asset_renommer(p_name text, p_fiche uuid, p_cle text, p_nom text)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; t text := left(btrim(regexp_replace(coalesce(p_nom, ''), '\s+', ' ', 'g')), 80); why text; k int;
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier-fiche', 300, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if length(t) < 2 then raise exception 'texte vide'; end if;
+  why := pegase_int.at_filtre(t); if why <> '' then raise exception 'filtre %', why; end if;
+  select count(*) into k from jsonb_array_elements(coalesce(f.assets, '[]'::jsonb)) a where a ->> 'image' = p_cle or a ->> 'son' = p_cle;
+  if k = 0 then raise exception 'element inconnu'; end if;
+  update public.at_fiches x set maj_at = now(), assets = (select jsonb_agg(case when a ->> 'image' = p_cle or a ->> 'son' = p_cle then a || jsonb_build_object('nom', t) else a end order by o)
+    from jsonb_array_elements(x.assets) with ordinality e(a, o)) where x.id = f.id;
+  return jsonb_build_object('id', f.id, 'nom', t);
+end $$;
+revoke all on function public.at_asset_renommer(text, uuid, text, text) from public, anon;
+grant execute on function public.at_asset_renommer(text, uuid, text, text) to authenticated;
+
+create or replace function public.at_demande_element(p_name text, p_fiche uuid, p_nom text, p_path text, p_texte text, p_cat text default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare n text := public.pg_n(p_name); f public.at_fiches; t text := left(btrim(coalesce(p_texte, '')), 1000); nm text := left(btrim(coalesce(p_nom, '')), 80);
+  why text; s int; i uuid; img jsonb := null; c text := lower(coalesce(p_cat, ''));
+begin
+  perform public.acct_check(n);
+  perform public.pg_rate(n, 'atelier', 30, interval '1 hour');
+  f := pegase_int.at_fiche_de(n, p_fiche); if f.id is null then raise exception 'projet inconnu'; end if;
+  if length(t) < 2 or length(nm) < 1 then raise exception 'texte vide'; end if;
+  why := pegase_int.at_filtre(t || ' ' || nm); if why <> '' then raise exception 'filtre %', why; end if;
+  if p_path ~ '^i/[0-9a-f-]{36}[.](png|jpg|webp)$' then img := jsonb_build_array(jsonb_build_object('n', 1, 'f', p_path, 't', nm)); end if;
+  s := pegase_int.at_debiter(n, coalesce(pegase_int.at_reglage('cout_demande'), 5));
+  insert into public.at_messages (fiche, texte, images) values (f.id,
+    case when p_path is not null and p_path <> '' then '🎨 Modifier l’élément « ' || nm || ' »' || coalesce(' (' || nullif(p_path, '') || ')', '') else '＋ Créer ' || case c when 'son' then 'un son' when 'musique' then 'une musique' when 'interface' then 'un élément d’interface' when 'decor' then 'un décor' when 'personnage' then 'un personnage' else 'un élément' end || ' « ' || nm || ' »' end || ' : ' || t,
+    img) returning id into i;
+  update public.at_fiches x set maj_at = now() where x.id = f.id;
+  return jsonb_build_object('id', i, 'solde', s);
+end $$;
+revoke all on function public.at_demande_element(text, uuid, text, text, text, text) from public, anon;
+grant execute on function public.at_demande_element(text, uuid, text, text, text, text) to authenticated;

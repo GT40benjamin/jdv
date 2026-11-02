@@ -51,6 +51,10 @@
 [licornes] ⏱ Une partie dure 3 minutes : ton score, c'est la valeur de toute ta Maison (licornes, œufs, accessoires et pièces).
 [abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
 [abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
+[atelier] ## 🧩 Tous les éléments de ton jeu, bien rangés (borne 1.63.89)
+[atelier] 🧩 Dans ton projet, tous les éléments de ton jeu sont visibles et rangés : personnages (avec leurs poses), objets, décor, interface, sons et musiques, y compris ceux faits pendant la construction.
+[atelier] ⋯ Sur chaque élément, un petit menu : renommer, le faire modifier par ton guide, l'écouter, le voir en grand. Et « ＋ Créer » en tête de chaque catégorie.
+
 [atelier] ## 🤝 Ton projet en 3 étapes, en discutant avec ton guide (borne 1.63.86)
 [atelier] 🤝 « Nouveau projet » ouvre tout de suite la discussion avec ton guide : raconte-lui ton jeu. Tu peux aussi toucher quelques petites cartes (genre, vue, avec qui, score, style), si tu veux.
 [atelier] 🧭 En haut, la frise de ton projet : 1 · Montage du projet, 2 · Le design, 3 · La V1 et les tests.
