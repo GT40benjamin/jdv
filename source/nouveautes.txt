@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🚀 Abracadabra : bien plus fluide sur les petits téléphones (borne 1.63.56)
+[abracadabra] 📱 Les villageois coûtent beaucoup moins cher à animer : sur un téléphone d'entrée de gamme, le jeu passe d'environ 20 à plus de 30 images par seconde, même avec plusieurs bêtes qui se baladent.
 [atelier] ## 🎁 Un seul prix pour tout ton jeu (borne 1.63.55)
 [atelier] 🎁 Quand ta fiche est prête, l'Atelier te donne LE prix de ton jeu en crédits : un seul prix, pour tout (images, sons, construction). Plus de planches ni de petits prix à calculer.
 [atelier] 📮 Tu envoies ton projet : les crédits sont payés une seule fois, ton projet est scellé, et notre équipe construit ton jeu. Tu suis son avancée dans l'Atelier, et la cloche 🔔 te prévient quand il est prêt à tester.
