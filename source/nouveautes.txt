@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🔮 Remparts magiques, en essai : un carrefour bien raccordé (borne 1.63.73)
+[remparts] 🛤️ Au Jardin maudit, là où les deux chemins se rejoignent, le carrefour est un vrai T : même largeur, bords alignés, plus de marche.
+[remparts] 💧 Le lac du Jardin maudit est une eau sombre (avant, un aplat vert clair qu'on prenait pour un trou dans le décor).
 [abracadabra] ## 🐷 Abracadabra : des bêtes qui marchent, un orage, un vrai crocodile (borne 1.63.71)
 [abracadabra] 🐷 Le cochon, la chèvre, le lapin, la poule, l'ours, le loup, le sanglier, le poney… marchent enfin pour de vrai, avec leurs pattes : ils ne sautillent plus. Et une bête qui se balade ne pousse plus les maisons.
 [abracadabra] 🐦 Les oiseaux n'apparaissent plus en double, l'un sur l'autre : un seul, bien debout sur ses pattes.
