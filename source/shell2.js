@@ -14741,6 +14741,11 @@ function atlRenderProjet(W, f) {
     const tm = atlEl('div', 'tile-meta'); tm.appendChild(atlEl('div', 'tile-name', (g && g.title) || f.titre || 'Mon jeu')); po.append(ti, tm); po.disabled = !g;
     let rec = 0; try { rec = g ? +knownBest(profile.name, g.id) || 0 : 0; } catch (e) { rec = 0; }
     po.addEventListener('click', () => atlJouerVrai(f)); wrap.appendChild(po); fr.appendChild(wrap);
+    if (g && MAP_DEFS[g.id]) {   // 23 h 47 (Benjamin : « gérer la carte de niveau comme on fait partout ») : le bouton carte de la tuile de la borne
+      const mb = document.createElement('button'); mb.type = 'button'; mb.className = 'tile-map'; mb.setAttribute('aria-label', 'Carte d’avancement de ' + g.title); mb.title = 'Carte d’avancement';
+      const lt0 = document.querySelector('#jdw-grid .tile-map'); mb.innerHTML = lt0 ? lt0.innerHTML : '🗺️';
+      mb.addEventListener('click', e => { e.stopPropagation(); openMap(g.id, mb); }); wrap.appendChild(mb); wrap.classList.add('has-map'); try { mapWarmSoon(g.id); } catch (e) {}
+    }
     const inf = atlEl('div', 'atl-ginfo');
     inf.append(atlEl('b', '', g ? '▶ Touche la tuile pour jouer' : '⏳ Ton jeu arrive sur la borne…'), atlEl('small', '', rec ? '🏆 Ton record : ' + rec.toLocaleString('fr-FR') : 'Pas encore de record : à toi de jouer !'));
     const ib = (t, fn, cls) => { const x = atlEl('button', 'btn btn-sm ' + (cls || 'btn-ghost'), t); x.type = 'button'; x.addEventListener('click', fn); inf.appendChild(x); };
@@ -14800,12 +14805,29 @@ function atlArret() {
 function atlArretUI(host, shot, ficheId, reprendre, plein) {
   const cr = atlCred(), cout = cr && cr.demande != null ? cr.demande | 0 : 5, vis = { x: null, y: null };
   const O = atlEl('div', 'atl-arret' + (plein ? ' atl-arret2' : '')); O.setAttribute('role', 'dialog'); O.setAttribute('aria-label', 'Arrêt sur image');
-  const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', 'Arrêt sur image ! Touche l’endroit à changer avec le viseur 👁️, puis dis-moi ce que tu veux.')); hd.append(atlGuideAv('atl-wav'), ht);
-  const zone = atlEl('div', 'atl-arz'), mk = atlEl('span', 'atl-arv'); mk.hidden = true;
+  const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', 'Arrêt sur image ! Montre-moi avec mon œil 👁️ où regarder, puis dis-moi ce que tu veux : je lis ta légende.')); hd.append(atlGuideAv('atl-wav'), ht);
+  const zone = atlEl('div', 'atl-arz'), mk = atlEl('span', 'atl-arv atl-oeil'), leg = atlEl('span', 'atl-arleg'); mk.hidden = true; leg.hidden = true;
+  mk.appendChild(atlEl('span', 'atl-oeili', '👁️'));
   if (shot) { shot.className = 'atl-arimg'; zone.appendChild(shot); } else zone.appendChild(atlEl('div', 'atl-arno', 'Ton jeu est en pause.'));
   zone.appendChild(mk);
-  zone.addEventListener('click', e => { const r = (shot || zone).getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 100, y = (e.clientY - r.top) / r.height * 100; if (x < 0 || x > 100 || y < 0 || y > 100) return; vis.x = x; vis.y = y; mk.hidden = false; mk.style.left = x + '%'; mk.style.top = y + '%'; });
+  zone.appendChild(leg);
+  let pose = false, glisse = false;
+  const place = (e, fixe) => {
+    const r = (shot || zone).getBoundingClientRect(), z = zone.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width * 100, y = (e.clientY - r.top) / r.height * 100; if (x < 0 || x > 100 || y < 0 || y > 100) return;
+    mk.hidden = false; mk.classList.toggle('fixe', !!fixe);   // positions en pixels dans la zone : l'œil est exactement sous le pointeur
+    const px = e.clientX - z.left, py = e.clientY - z.top; mk.style.left = px + 'px'; mk.style.top = py + 'px';
+    leg.style.left = px + 'px'; leg.style.top = py + 'px'; leg.classList.toggle('gauche', px > z.width * 0.6); leg.classList.toggle('haut', py > z.height * 0.75);
+    if (fixe) { vis.x = x; vis.y = y; majLeg(); }
+  };
+  const majLeg = () => { const t = ta.value.trim(); leg.hidden = vis.x == null; leg.textContent = t ? (t.length > 70 ? t.slice(0, 68) + '…' : t) : 'Regarde ici ! Écris ce qu’il faut changer 👇'; };
+  zone.addEventListener('pointermove', e => { if (glisse) { place(e, true); return; } if (!pose && e.pointerType === 'mouse') place(e, false); });
+  zone.addEventListener('pointerdown', e => { glisse = true; try { zone.setPointerCapture(e.pointerId); } catch (x) {} place(e, true); pose = true; });
+  const lache = () => { glisse = false; };
+  zone.addEventListener('pointerup', lache); zone.addEventListener('pointercancel', lache);
+  zone.addEventListener('pointerleave', () => { if (!pose) mk.hidden = true; });
   const tw = atlEl('div', 'atl-artw'), ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux changer ici…'; tw.appendChild(ta);
+  ta.addEventListener('input', () => { if (vis.x != null) majLeg(); });
   // le micro (dictée), comme pour raconter son idée
   let rec = null;
   if (ATL_SR) {
@@ -14835,6 +14857,12 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
       if (shot) {
         const c = document.createElement('canvas'); c.width = shot.width; c.height = shot.height; const g = c.getContext('2d'); g.drawImage(shot, 0, 0);
         if (vis.x != null) { const x = vis.x / 100 * c.width, y = vis.y / 100 * c.height, rr = Math.max(14, c.width * 0.035); g.lineWidth = Math.max(3, rr * 0.22); g.strokeStyle = '#ff2d55'; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.moveTo(x - rr * 1.6, y); g.lineTo(x - rr * 0.6, y); g.moveTo(x + rr * 0.6, y); g.lineTo(x + rr * 1.6, y); g.moveTo(x, y - rr * 1.6); g.lineTo(x, y - rr * 0.6); g.moveTo(x, y + rr * 0.6); g.lineTo(x, y + rr * 1.6); g.stroke(); }
+        if (vis.x != null && t) {   // la légende à côté de l'œil
+          const x = vis.x / 100 * c.width, y = vis.y / 100 * c.height, fs = Math.max(14, Math.round(c.width * 0.022)), txt = t.length > 70 ? t.slice(0, 68) + '…' : t;
+          g.font = '700 ' + fs + 'px sans-serif'; const w = Math.min(c.width * 0.6, g.measureText(txt).width + fs), h = fs * 1.7, dx = vis.x > 60 ? -w - fs * 2 : fs * 2, dy = vis.y > 75 ? -h - fs : fs * 0.6;
+          g.fillStyle = 'rgba(20,12,40,.88)'; g.strokeStyle = '#ffd34d'; g.lineWidth = 2; g.beginPath(); g.rect(x + dx, y + dy, w, h); g.fill(); g.stroke();
+          g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText(txt, x + dx + fs / 2, y + dy + h / 2, w - fs);
+        }
         const raw = await new Promise(ok => c.toBlob(ok, 'image/png')); if (raw) { try { blob = await atlJpeg(raw); } catch (e) { blob = null; } }
       }
       const r = await rpc('at_demande', { p_name: profile.name, p_fiche: ficheId, p_texte: t, p_x: vis.x, p_y: vis.y, p_image: !!blob }, { quiet: true });
