@@ -4058,3 +4058,59 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 .atl-demimg{max-width:100%;max-height:220px;justify-self:center;border-radius:10px;background:repeating-conic-gradient(rgba(255,255,255,.05) 0 25%,transparent 0 50%) 0 0/16px 16px}
 @media (max-width:600px){.atl-libg{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .atl-encv .atl-crop{width:100%;height:100%;background-repeat:no-repeat;cursor:zoom-in}
+
+/* le guide vivant (borne 1.63.90) : poses empilées, alternées par étapes ; que des transformations */
+.atl-pk{position:relative;display:inline-block;width:150px;height:150px;flex:0 0 auto}
+.atl-pkc{position:absolute;inset:0;transform-origin:50% 95%;animation:atlPkSway 3.4s ease-in-out infinite}
+.atl-pkrep{position:absolute;inset:0}
+.atl-pkl{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+/* repos : respire (normal → écrasé → normal → étiré) et cligne des yeux */
+.atl-pkl.r1{animation:atlPkR1 4.8s step-end infinite}.atl-pkl.r2{opacity:0;animation:atlPkR2 4.8s step-end infinite}
+.atl-pkl.r3{opacity:0;animation:atlPkR3 4.8s step-end infinite}.atl-pkl.yf{opacity:0;animation:atlPkYf 4.8s step-end infinite}
+@keyframes atlPkR1{0%{opacity:1}22%{opacity:0}34%{opacity:1}58%{opacity:0}70%{opacity:1}88%{opacity:0}93%{opacity:1}}
+@keyframes atlPkR2{0%{opacity:0}22%{opacity:1}34%{opacity:0}}
+@keyframes atlPkR3{0%{opacity:0}58%{opacity:1}70%{opacity:0}}
+@keyframes atlPkYf{0%{opacity:0}88%{opacity:1}93%{opacity:0}}
+@keyframes atlPkSway{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg) translateY(-1px)}}
+/* accueil : de temps en temps, il fait coucou */
+.atl-pk-accueil .atl-pkrep{animation:atlPkRepHide 7s step-end infinite}
+.atl-pkl.cc{opacity:0;animation:atlPkCc 7s step-end infinite}
+@keyframes atlPkRepHide{0%{opacity:1}60%{opacity:0}86%{opacity:1}}
+@keyframes atlPkCc{0%{opacity:0}60%{opacity:1}86%{opacity:0}}
+.atl-pk-accueil .atl-pkl.cc{transform-origin:50% 95%}
+/* au travail : il bricole (3 poses), petits bonds, engrenages, étincelles, dessins qui s'envolent */
+.atl-pk-travail .atl-pkc{animation:atlPkBob .46s ease-in-out infinite alternate}
+.atl-pkl.t1{animation:atlPkT1 .9s step-end infinite}.atl-pkl.t2{opacity:0;animation:atlPkT2 .9s step-end infinite}.atl-pkl.t3{opacity:0;animation:atlPkT3 .9s step-end infinite}
+@keyframes atlPkT1{0%{opacity:1}33.3%{opacity:0}}
+@keyframes atlPkT2{0%{opacity:0}33.3%{opacity:1}66.6%{opacity:0}}
+@keyframes atlPkT3{0%{opacity:0}66.6%{opacity:1}}
+@keyframes atlPkBob{from{transform:translateY(0) scale(1,1)}to{transform:translateY(-4px) scale(.985,1.02)}}
+.atl-pkd{position:absolute;font-size:20px;line-height:1;pointer-events:none;will-change:transform,opacity}
+.atl-pkd.g1{left:-4px;top:30%;font-size:26px;animation:atlPkSpin 3s linear infinite}
+.atl-pkd.g2{right:-2px;top:52%;font-size:18px;animation:atlPkSpin 2.2s linear infinite reverse}
+.atl-pkd.s1{right:14%;top:8%;animation:atlPkSpark 1.4s ease-in-out infinite}
+.atl-pkd.s2{left:16%;top:14%;animation:atlPkSpark 1.4s ease-in-out .7s infinite}
+.atl-pkd.s3{left:44%;top:-6%;animation:atlPkSpark 1.4s ease-in-out .35s infinite}
+.atl-pkd.f1,.atl-pkd.f2,.atl-pkd.f3,.atl-pkd.f4{right:22%;top:46%;opacity:0;animation:atlPkFly 2.4s ease-out infinite}
+.atl-pkd.f2{animation-delay:.6s}.atl-pkd.f3{animation-delay:1.2s}.atl-pkd.f4{animation-delay:1.8s}
+@keyframes atlPkSpin{to{transform:rotate(360deg)}}
+@keyframes atlPkSpark{0%,100%{transform:scale(.4);opacity:0}50%{transform:scale(1.15);opacity:1}}
+@keyframes atlPkFly{0%{transform:translate(0,0) scale(.5) rotate(0);opacity:0}15%{opacity:1}100%{transform:translate(46px,-78px) scale(1.1) rotate(25deg);opacity:0}}
+/* joie : bras en l'air, il saute */
+.atl-pk-joie .atl-pkc{animation:atlPkHop .55s ease-in-out infinite alternate}
+@keyframes atlPkHop{0%{transform:translateY(0) scale(1.03,.97)}100%{transform:translateY(-12px) scale(.98,1.03)}}
+/* la scène au travail */
+.atl-pkscene{display:grid;justify-items:center;gap:6px;margin:10px auto 2px;max-width:420px;text-align:center}
+.atl-pkscene .atl-pk{width:170px;height:170px}
+.atl-pktxt{margin:0;min-height:1.4em;font:700 16px var(--body);color:#ffe9a8}
+.atl-pktxt.in{animation:atlPkTxt .5s ease-out}
+@keyframes atlPkTxt{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.atl-fin .atl-pkscene{margin-top:0}
+/* l'accueil */
+.atl-acc .atl-pk.atl-accimg{width:130px;height:130px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45))}
+@media (max-width:600px){.atl-acc .atl-pk.atl-accimg{width:92px;height:92px}.atl-pkscene .atl-pk{width:140px;height:140px}}
+/* les avatars ronds respirent aussi ; à la réponse, tout le monde saute de joie */
+.atl-av img,.atl-wav img,.atl-accav img{transform-origin:50% 90%;animation:atlPkBreath 3.2s ease-in-out infinite}
+@keyframes atlPkBreath{0%,100%{transform:scale(1,1)}50%{transform:scale(1.03,.97)}}
+.atl.atl-joie .atl-av img,.atl.atl-joie .atl-wav img,.atl.atl-joie .atl-pk .atl-pkc{animation:atlPkHop .3s ease-in-out 6 alternate}
+@media (prefers-reduced-motion:reduce){.atl-pk *,.atl-av img,.atl-wav img{animation-duration:12s!important}.atl-pkd{display:none}}

@@ -14416,7 +14416,8 @@ function atlRenderChat() {
   for (const m of ATL.pend || []) log.appendChild(atlBubble(m));
   if (atlWaiting() && !(ATL.pend || []).length) {
     const lp = atlMsgs().filter(m => !m.atelier).slice(-1)[0];   // 21 h : le guide répond tout de suite (réponse locale, gratuite)
-    log.appendChild(atlBubble({ atelier: true, texte: 'Super idée ! Je réfléchis et je reviens vers toi dès que ton projet est monté. 🛠️ Va jouer en attendant : la cloche 🔔 te préviendra.', at: (lp && lp.at) || new Date().toISOString() }));
+    log.appendChild(atlGuideScene(['Je lis ton idée…', 'Je remplis ta fiche…', 'J’imagine tes personnages…', 'Je prépare le décor…', 'Je dessine ton premier design…']));
+    log.appendChild(atlBubble({ atelier: true, texte: 'Super idée ! Je me mets au travail tout de suite 🛠️ Je reviens vers toi dès que ton projet est monté. Va jouer en attendant : la cloche 🔔 te préviendra.', at: (lp && lp.at) || new Date().toISOString() }));
   }
   if (atBottom || ATL.stick) { log.scrollTop = log.scrollHeight; ATL.stick = false; }
   // bandeau et verrou selon l'état du projet
@@ -14493,7 +14494,7 @@ async function atlLancer(btn) {
   const f = atlFiche(); if (!f || ATL.sending) return;
   if (Date.now() - (ATL.lance || 0) > 5000) { ATL.lance = Date.now(); btn.textContent = '🚀 Sûr ? Touche encore pour lancer !'; btn.classList.add('sur'); setTimeout(() => { if (btn.isConnected && Date.now() - ATL.lance >= 5000) atlRenderWiz(); }, 5100); return; }
   ATL.sending = true; btn.disabled = true; atlWizErr('');
-  try { const r = await rpc('at_lancer', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ATL.lance = 0; f.etat = 'envoyee'; atlRender(); toastCheer('🚀 Conception lancée !', null, true); await atlLoad(true); }
+  try { const r = await rpc('at_lancer', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); if (r && Number.isFinite(+r.solde)) atlSolde(r.solde); ATL.lance = 0; f.etat = 'envoyee'; atlRender(); toastCheer('🚀 C’est parti, je me mets au travail sur ta V1 !', null, true); await atlLoad(true); }
   catch (e) { btn.disabled = false; ATL.lance = 0; atlWizErr(atlWizWhy(e)); if (/credits insuffisants/.test(String(e && e.message))) { const x = ATL.root.querySelector('.atl-werr'); atlCreditsBtn(x); x.hidden = false; } }
   finally { ATL.sending = false; }
 }
@@ -14644,7 +14645,7 @@ function atlRenderProjet(W, f) {
   } else {
     const p = pane('etat'), c = atlEl('div', 'atl-fin' + (et === 'refusee' ? '' : ' run'));
     if (et === 'refusee') c.append(atlEl('h2', '', 'Ce projet n’a pas été retenu'), atlEl('p', '', 'Tu peux en commencer un autre depuis « Mes projets ».'));
-    else { c.innerHTML = '<div class="atl-gear" aria-hidden="true"><span>⚙️</span><span>⚙️</span><b>✨</b></div>'; c.append(atlEl('h2', '', '🛠️ Ta V1 est en construction'), atlEl('p', '', 'Ta V1 de « ' + (f.titre || 'Mon jeu sans nom') + ' » est en construction. Va jouer en attendant : la cloche 🔔 te prévient dès qu’elle est prête à tester.')); }
+    else { c.appendChild(atlGuideScene(['Je dessine tes personnages…', 'J’assemble le décor…', 'Je programme les règles du jeu…', 'J’ajoute les sons et la musique…', 'Je teste ta V1…'])); c.append(atlEl('h2', '', '🛠️ C’est parti, je me mets au travail sur ta V1 !'), atlEl('p', '', 'Ta V1 de « ' + (f.titre || 'Mon jeu sans nom') + ' » est en construction. Va jouer en attendant : la cloche 🔔 te prévient dès qu’elle est prête à tester.')); }
     p.appendChild(c);
   }
   // 🧩 Éléments (21 h 15, Benjamin) : tous les éléments du jeu, rangés, avec leur menu ⋯
@@ -15091,7 +15092,7 @@ function atlAccueil(box, ps, max) {
   const v1 = ps.find(pj => ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || '')));
   if (v1) btn('🎮 Tester ma V1 de « ' + (v1.titre || 'Mon jeu sans nom') + ' »', 'btn-ghost', () => { ATL.tab = 'jeu'; atlOuvrir(v1.id); });
   tx.appendChild(act);
-  const pic = atlEl('img', 'atl-accimg'); pic.alt = ''; pic.src = ROOT + 'accueil/guide-coucou.webp'; pic.onerror = () => pic.replaceWith(atlGuideAv('atl-accav'));
+  const pic = atlGuideAnim(news.childNodes.length ? 'joie' : 'accueil'); pic.classList.add('atl-accimg');
   A.append(pic, tx); box.appendChild(A);
 }
 
@@ -15313,6 +15314,41 @@ function atlCreerElem(cat, lab, k, libre, f, fi) {
   row.append(no, ok, dr); c.appendChild(row); M.appendChild(c); i.focus();
 }
 
+// ---- 21 h 25 (Benjamin : « il se met au travail, et animé de ouf ») : le guide VIVANT — poses dessinées (accueil/guide-*.webp :
+// respire1/2/3, yeuxfermes, travail1/2/3, joie, coucou) empilées ; les animations CSS (étapes d'opacité, transformations) les font
+// alterner : il respire et cligne au repos, fait coucou à l'accueil, bricole au travail (crayon, étincelles, engrenages, petits dessins
+// qui s'envolent) avec un texte qui change, saute de joie à la réponse. Que des transformations : fluide sur téléphone, rien de lourd.
+const ATL_PK = n => ROOT + 'accueil/guide-' + n + '.webp';
+function atlGuideAnim(mode) {
+  const w = atlEl('span', 'atl-pk atl-pk-' + mode); w.setAttribute('aria-hidden', 'true');
+  const corps = atlEl('span', 'atl-pkc'); w.appendChild(corps);
+  const lay = (n, cls, host) => { const i = atlEl('img', 'atl-pkl ' + cls); i.alt = ''; i.decoding = 'async'; i.src = ATL_PK(n); i.onerror = () => i.remove(); (host || corps).appendChild(i); return i; };
+  if (mode === 'travail') {
+    lay('travail1', 't1'); lay('travail2', 't2'); lay('travail3', 't3');
+    for (const [cls, t] of [['g1', '⚙️'], ['g2', '⚙️'], ['s1', '✨'], ['s2', '✨'], ['f1', '✏️'], ['f2', '🎨'], ['f3', '🧩'], ['f4', '⭐']]) w.appendChild(atlEl('span', 'atl-pkd ' + cls, t));
+  } else if (mode === 'joie') {
+    lay('joie', 'j');
+    for (const c of ['s1', 's2', 's3']) w.appendChild(atlEl('span', 'atl-pkd ' + c, '✨'));
+  } else {
+    const rep0 = atlEl('span', 'atl-pkrep'); corps.appendChild(rep0);
+    lay('respire1', 'r1', rep0); lay('respire2', 'r2', rep0); lay('respire3', 'r3', rep0); lay('yeuxfermes', 'yf', rep0);
+    if (mode === 'accueil') lay('coucou', 'cc');
+  }
+  return w;
+}
+// la scène « au travail » (attente du montage, construction de la V1) : le guide qui bricole + une phrase qui change toute seule
+function atlGuideScene(lignes) {
+  const sc = atlEl('div', 'atl-pkscene'), tx = atlEl('p', 'atl-pktxt', lignes[0]);
+  tx.dataset.l = JSON.stringify(lignes); tx.dataset.i = '0';
+  sc.append(atlGuideAnim('travail'), tx);
+  if (!ATL.pkT) ATL.pkT = setInterval(() => {   // une seule minuterie pour toutes les scènes affichées
+    const all = ATL.root ? ATL.root.querySelectorAll('.atl-pktxt') : [];
+    if (!all.length || !ATL.open) return;
+    for (const t of all) { let l = []; try { l = JSON.parse(t.dataset.l || '[]'); } catch (e) {} if (!l.length) continue; const i = ((+t.dataset.i || 0) + 1) % l.length; t.dataset.i = String(i); t.classList.remove('in'); void t.offsetWidth; t.textContent = l[i]; t.classList.add('in'); }
+  }, 2600);
+  return sc;
+}
+
 // ---------- serveur ----------
 async function atlLoad(force) {
   if (!ATL || !ATL_ON() || !ONLINE || ATL.off) return;
@@ -15329,6 +15365,7 @@ async function atlLoad(force) {
     ATL.data = r && typeof r === 'object' ? r : { fiche: null, messages: [], projets: [] }; ATL.err = 0;
     atlGuideMaj(ATL.data.guide);
     const after = lastAll();
+    if (after && after > before && before && ATL.root) { ATL.root.classList.add('atl-joie'); clearTimeout(ATL.joieT); ATL.joieT = setTimeout(() => ATL.root && ATL.root.classList.remove('atl-joie'), 2600); }   // la réponse arrive : il saute de joie
     if (ATL.open && !document.hidden) atlMarkSeen();
     else if (after && after > before && before && ATL.toastedFor !== after) { ATL.toastedFor = after; try { toastCheer('✉️ ' + gNM() + ' t’a répondu !', null, true); } catch (e) {} }
     atlRender();
