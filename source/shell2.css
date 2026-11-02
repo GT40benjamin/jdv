@@ -3909,3 +3909,26 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 .atl-bcard.soon:hover{transform:none;border-color:var(--line)}
 .atl-bsoon{position:absolute;top:16px;right:16px;padding:4px 10px;border-radius:999px;background:#ffd34d;color:#2a1340;font:700 12px var(--body);transform:rotate(6deg)}
 @media (max-width:600px){.atl-bgrid.dim{grid-template-columns:repeat(2,minmax(0,1fr))}.atl-bcard{min-height:0}}
+
+/* l'étape 2 « Décris ton jeu » : une vraie page d'écriture (borne 1.63.69) */
+.atl.a1 .atl-main{grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.atl.a1 .atl-main{grid-template-columns:minmax(0,1fr);max-width:900px}}
+.atl-intro{display:grid;gap:12px;padding:20px 20px 4px}
+.atl-intro[hidden]{display:none}
+.atl-it{margin:0;font:400 clamp(24px,3.6vw,34px)/1.15 var(--display)}
+.atl-is{margin:0;color:var(--muted);font:15px/1.5 var(--body)}
+.atl-ichips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.atl-iedit{border:0;background:none;color:#c9b6ff;font:600 13.5px var(--body);text-decoration:underline;cursor:pointer}
+.atl-itips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.atl-itip{display:grid;gap:3px;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
+.atl-itic{font-size:26px}.atl-itip b{font:700 14px var(--body)}.atl-itip small{color:var(--muted);font:12.5px/1.35 var(--body)}
+.atl-inote{margin:0;color:var(--muted);font:13px/1.4 var(--body)}
+.atl.ecrire .atl-chat{overflow-y:auto}
+.atl.ecrire .atl-log{display:none}
+.atl.ecrire .atl-comp{border-top:0;background:none;padding:6px 20px 20px}
+.atl.ecrire .atl-in{min-height:220px;max-height:none;font-size:17px;line-height:1.5;padding:16px 18px;border-radius:16px;border:2px solid rgba(255,211,77,.45)}
+.atl.ecrire .atl-in:focus{border-color:#ffd34d;outline:none;box-shadow:0 0 0 4px rgba(255,211,77,.15)}
+.atl.ecrire .atl-row{align-items:flex-start}
+.atl.ecrire .atl-send{min-width:220px;padding:14px 20px;font-size:17px}
+@media (max-width:700px){.atl-itips{grid-template-columns:repeat(2,minmax(0,1fr))}.atl-intro{padding:16px 14px 0}.atl.ecrire .atl-comp{padding:6px 14px 16px}.atl.ecrire .atl-in{min-height:180px}.atl.ecrire .atl-send{min-width:0;flex:1 1 auto}}
+@media (max-width:700px){.atl-itip{grid-template-columns:auto 1fr;align-items:center;gap:6px;padding:8px 10px}.atl-itic{font-size:20px}.atl-itip small{display:none}.atl-itip b{font-size:13px}.atl-is{font-size:14px}}

@@ -14201,7 +14201,7 @@ function atlBuild() {
     + '<details class="atl-route" hidden><summary>🗺️ Feuille de route</summary><div class="atl-rbody"></div></details><div class="atl-projets" hidden></div><div class="atl-bases" hidden></div><div class="atl-wiz" hidden></div><div class="atl-main"><aside class="atl-fiche" aria-label="Fiche du projet">'
     + '<button class="atl-fhead" type="button" aria-expanded="false"><span class="atl-fk">Fiche du projet</span><b class="atl-ft"></b><span class="atl-prog"><i></i></span><small class="atl-pt"></small><span class="atl-chev" aria-hidden="true">▾</span></button>'
     + '<div class="atl-fbody"><dl class="atl-dl"></dl><div class="atl-fdesign"></div><div class="atl-assets"></div><div class="atl-refs"></div><div class="atl-fcta"></div><p class="atl-ffoot"></p></div></aside>'
-    + '<div class="atl-chat"><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
+    + '<div class="atl-chat"><div class="atl-intro" hidden></div><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
     + '<form class="atl-comp" autocomplete="off"><div class="atl-rec" hidden><span class="atl-recdot"></span><span class="atl-rect">Je t’écoute… parle normalement. Touche le micro pour arrêter.</span></div>'
     + '<p class="atl-err" hidden></p><div class="atl-lock" hidden></div><div class="atl-choix" hidden></div>'
     + '<div class="atl-row"><textarea class="atl-in" rows="2" maxlength="2000" placeholder="Décris ton jeu…" aria-label="Ton message pour l’Atelier"></textarea>'
@@ -14373,7 +14373,11 @@ function atlRenderChat() {
   const log = R.querySelector('.atl-log'), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
   const f = atlFiche(), et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
   log.textContent = '';
-  log.appendChild(atlBubble({ atelier: true }, true));
+  // 2 nov. 19 h (Benjamin : « l'invite est moche ») : étape 2 = une vraie PAGE D'ÉCRITURE (titre, rappel des bases, idées, grande case),
+  // sans la longue bulle de bienvenue ; ensuite, la discussion seule
+  const ecrire = !atlMsgs().some(m => !m.atelier) && !(ATL.pend || []).length && (ATL.nouveau || (!!f && !atlRempli(f) && !ATL_AFTER.has(et) && et !== 'refusee'));
+  R.classList.toggle('ecrire', ecrire); atlIntro(ecrire);
+  if (!R.classList.contains('a1')) log.appendChild(atlBubble({ atelier: true }, true));
   for (const m of mine || et === 'refusee' ? atlMsgs() : []) log.appendChild(atlBubble(m));
   for (const m of ATL.pend || []) log.appendChild(atlBubble(m));
   if (atlWaiting() && !(ATL.pend || []).length) {
@@ -14887,6 +14891,29 @@ function atlRenderRoute(liste) {
   s5.appendChild(atlEl('p', 'atl-rcr', cr ? Math.max(0, cr.solde | 0) + ' crédits' : '…'));
   s5.appendChild(atlEl('small', 'atl-rcx', 'Un message : ' + (cr ? cr.message | 0 : 2) + ' · un dessin : ' + (cr ? cr.cout | 0 : 10) + ' · une forme : ' + (cr && cr.forme != null ? cr.forme | 0 : 3)));
   B.appendChild(atlEl('p', 'atl-ia', '🤖 Ton jeu est créé avec l’aide de l’IA.'));
+}
+
+// ---- l'étape 2 « Décris ton jeu » : la page d'écriture (au-dessus de la grande case, du micro et de « Joindre une image »)
+function atlIntro(on) {
+  const R = ATL.root, I = R && R.querySelector('.atl-intro'); if (!I) return;
+  I.hidden = !on; R.querySelector('.atl-send').textContent = on ? '✨ Envoyer à l’Atelier' : 'Envoyer ➤';
+  R.querySelector('.atl-in').placeholder = on ? 'Raconte ton jeu ici…' : 'Écris à l’Atelier…';
+  if (!on) { I.textContent = ''; return; }
+  if (I.dataset.on === '1' && I.firstChild) return; I.dataset.on = '1'; I.textContent = '';
+  I.append(atlEl('p', 'atl-bk', 'Étape 2 · Décris ton jeu'), atlEl('h2', 'atl-it', '✍️ Raconte-nous ton jeu'),
+    atlEl('p', 'atl-is', 'Comme tu veux, au clavier ou au micro 🎤. Plus tu racontes, mieux c’est : l’Atelier remplit toute ta fiche et dessine un premier design.'));
+  const b = atlBasesVal(), ch = ATL_BASES.filter(([k]) => b[k]);
+  if (ch.length) {
+    const row = atlEl('div', 'atl-ichips');
+    for (const [k, ic] of ch) row.appendChild(atlEl('span', 'atl-chip ro', ic + ' ' + b[k]));
+    const ed = atlEl('button', 'atl-iedit', '✏️ Modifier mes bases'); ed.type = 'button'; ed.addEventListener('click', () => { ATL.basesOn = true; ATL.basesUne = false; ATL.bq = 0; I.dataset.on = ''; atlRender(); });
+    row.appendChild(ed); I.appendChild(row);
+  }
+  const tips = atlEl('div', 'atl-itips');
+  for (const [ic, t, s] of [['🦸', 'Qui est le héros ?', 'Un chat ninja, une licorne, toi…'], ['🎯', 'Qu’est-ce qu’on fait ?', 'Sauter, attraper, construire… et comment on gagne'], ['🌍', 'Où ça se passe ?', 'La ville la nuit, une forêt magique, l’espace…'], ['🎁', 'Les objets et les sons', 'Bonus, ennemis, musique joyeuse…']]) {
+    const c = atlEl('div', 'atl-itip'); c.append(atlEl('span', 'atl-itic', ic), atlEl('b', '', t), atlEl('small', '', s)); tips.appendChild(c);
+  }
+  I.append(tips, atlEl('p', 'atl-inote', '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais. · 🤖 Ton jeu est créé avec l’aide de l’IA.'));
 }
 
 // ---------- serveur ----------
