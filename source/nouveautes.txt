@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 🧩 Les planches : tous les éléments de ton jeu sur un seul dessin (borne 1.63.40)
+[atelier] 🧩 Écris tous les éléments de ton jeu séparés par des virgules (le héros, les ennemis, les objets, les bonus…) puis touche « Dessine » : l'Atelier les dessine TOUS sur une seule planche, bien rangés en grille.
+[atelier] ⭐ Important : une planche = 10 crédits, quel que soit le nombre d'éléments (jusqu'à 9). Mets-y tout ce que tu veux ! Un fond ou un titre a une image à lui tout seul.
+[atelier] ✂️ Chaque élément de la planche est découpé et rangé dans ta fiche, rubrique « Ce qu'il y aura dans ton jeu », avec la liste des planches prévues et leur prix total.
+
 [remparts] ## 🔮 Remparts magiques, en essai : vue d'en haut et emplacements choisis (borne 1.63.39)
 [remparts] 🦅 La caméra est plus haute : on voit tout le chemin et les monstres même derrière les grandes tours.
 [remparts] 🏗️ Deux fois moins d'emplacements de tours, aux meilleures places (jamais deux collés), et chaque tour porte 15 % plus loin : chaque choix compte.
@@ -13,8 +18,8 @@
 [remparts] 🛟 Si ton appareil n'arrive pas à lancer la 3D, le message reste à l'écran (plus d'écran vide) et la cause est notée pour qu'on puisse t'aider.
 [abracadabra] ## 😴 Abracadabra : le géant endormi… qui se rendort ! (borne 1.63.38)
 [abracadabra] 🛏️ Mission 10 : pendant que le géant se réveille au chant du coq, dis « oreiller », « coussin » ou « lit » : il bâille, se rallonge en travers du chemin et se rendort en ronflant encore plus fort. Redis « coq » !
-[atelier] ## 💎 Crédits Elixir : 1 par message, et 3 questions avant les dessins (borne 1.63.36)
-[atelier] 💎 Tes crédits Elixir (200 offerts chaque mois) sont dans l'Atelier, en haut : le compteur descend en direct. Un message coûte 1 crédit, un dessin 4, ta lettre 1.
+[atelier] ## 💎 Crédits Elixir : 2 par message, et 3 questions avant les dessins (borne 1.63.37)
+[atelier] 💎 Tes crédits Elixir (200 offerts chaque mois) sont dans l'Atelier, en haut : le compteur descend en direct. Un message coûte 2 crédits, une planche 10 (les 3 designs de ton jeu : 30), ta lettre 1.
 [atelier] 🎨 Avant de dessiner tes designs, l'Atelier te pose 3 questions à cliquer : quel style, quelles couleurs, quelle ambiance. Les 3 dessins suivent tes réponses : plus de chances qu'ils te plaisent du premier coup !
 
 [abracadabra] ## 🐂 Abracadabra : le taureau amoureux… et le grand méchant loup (borne 1.63.36)
