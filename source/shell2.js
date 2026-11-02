@@ -14668,8 +14668,12 @@ function atlBasesChoisir(k, v) {
   const f = atlFiche(), b = Object.assign({}, atlBasesVal(), { [k]: String(v).slice(0, 120) });
   if (f && f.id) { f.fiche = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; f.fiche.bases = b; if (!ATL_AFTER.has(f.etat)) atlEtape('bases', b); }
   else ATL.basesLoc = b;
-  ATL.bq = (ATL.bq | 0) + 1;
-  if (ATL.bq >= ATL_BASES.length || (ATL.basesOn && ATL.basesUne)) { ATL.basesOn = false; ATL.basesUne = false; ATL.basesDone = true; ATL.prefill = !f; ATL.bq = 0; }
+  atlBasesSuite(false);
+}
+// 18 h 30, Benjamin : l'étape 1 est FACULTATIVE — « Passer » une question (elle reste « à préciser »), ou tout passer et décrire son jeu
+function atlBasesSuite(tout) {
+  const f = atlFiche(); ATL.bq = (ATL.bq | 0) + 1;
+  if (tout || ATL.bq >= ATL_BASES.length || (ATL.basesOn && ATL.basesUne)) { ATL.basesOn = false; ATL.basesUne = false; ATL.basesDone = true; ATL.prefill = !f; ATL.bq = 0; }
   atlRender();
 }
 function atlRenderBases() {
@@ -14678,7 +14682,9 @@ function atlRenderBases() {
   B.textContent = '';
   const box = atlEl('div', 'atl-bbox');
   const dots = atlEl('div', 'atl-bdots'); ATL_BASES.forEach((_, i) => dots.appendChild(atlEl('i', i < q ? 'vu' : i === q ? 'on' : ''))); box.appendChild(dots);
-  box.append(atlEl('p', 'atl-bk', 'Étape 1 · Les bases de ton jeu'), atlEl('h2', 'atl-bt', ic + ' ' + titre));
+  box.append(atlEl('p', 'atl-bk', 'Étape 1 · Les bases de ton jeu'), atlEl('p', 'atl-bfac', 'Facultatif : ces choix aident juste à être plus précis.'));
+  if (!ATL.basesUne) { const pt = atlEl('button', 'btn btn-play btn-sm atl-bpasst', 'Passer tout et décrire mon jeu ✍️'); pt.type = 'button'; pt.addEventListener('click', () => atlBasesSuite(true)); box.appendChild(pt); }
+  box.appendChild(atlEl('h2', 'atl-bt', ic + ' ' + titre));
   const grid = atlEl('div', 'atl-bgrid');
   for (const [oi, lab, ex] of opts) {
     const b = atlEl('button', 'atl-bcard' + (cur === lab ? ' on' : '')); b.type = 'button';
@@ -14696,7 +14702,9 @@ function atlRenderBases() {
   back.addEventListener('click', () => { if (q && !ATL.basesUne) { ATL.bq = q - 1; atlRender(); } else if (ATL.basesOn) { ATL.basesOn = false; ATL.basesUne = false; atlRender(); } else atlListe(); });
   nav.appendChild(back);
   if (cur) { const nx = atlEl('button', 'btn btn-ghost', 'Garder « ' + cur.slice(0, 24) + ' » →'); nx.type = 'button'; nx.addEventListener('click', () => atlBasesChoisir(k, cur)); nav.appendChild(nx); }
-  box.append(nav, atlEl('p', 'atl-b2d', '🧊 Ton jeu sera toujours en 2D.'));
+  const ps = atlEl('button', 'btn btn-ghost atl-bpass', 'Passer →'); ps.type = 'button'; ps.addEventListener('click', () => atlBasesSuite(false)); nav.appendChild(ps);
+  box.appendChild(nav);
+  box.appendChild(atlEl('p', 'atl-b2d', '🧊 Ton jeu sera toujours en 2D.'));
   B.appendChild(box);
 }
 // ---- les formes simples, dessinées par le code (pas de génération d'image) ----
@@ -14805,7 +14813,7 @@ function atlRenderRoute(liste) {
   const sec = (t) => { const s = atlEl('section', 'atl-rsec'); s.appendChild(atlEl('h4', '', t)); B.appendChild(s); return s; };
   const ligne = (s, ic, lab, val, fn, ok) => { const r = atlEl(fn ? 'button' : 'div', 'atl-rl' + (ok ? ' ok' : '')); if (fn) { r.type = 'button'; r.addEventListener('click', fn); } r.append(atlEl('span', 'atl-ric', ic), atlEl('span', 'atl-rlab', lab), atlEl('b', '', val)); s.appendChild(r); };
   const s1 = sec('🧱 Les bases');
-  ATL_BASES.forEach(([k, ic, , court], i) => ligne(s1, ic, court, b[k] || '—', lance ? null : () => { ATL.basesOn = true; ATL.basesUne = !!(f && f.id && atlRempli(f)); ATL.bq = i; atlRender(); }, !!b[k]));
+  ATL_BASES.forEach(([k, ic, , court], i) => ligne(s1, ic, court, b[k] || 'à préciser', lance ? null : () => { ATL.basesOn = true; ATL.basesUne = !!(f && f.id && atlRempli(f)); ATL.bq = i; atlRender(); }, !!b[k]));
   const s2 = sec('📋 Ta fiche');
   const etape = i => (f && atlWizOn() && !lance) ? () => { ATL.basesOn = false; ATL.step = i; atlRender(); } : null;
   ligne(s2, '💡', 'L’idée', atlVal(fi.idee) ? '✔' : '…', etape(0), !!atlVal(fi.idee));

@@ -3894,3 +3894,8 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 .atl-mtag.f{background:rgba(38,198,218,.16);color:#a7f0fa}
 .atl-mtot{margin:0;font:700 14px var(--body);color:#ffe9a8}
 .atl-mbtns{display:flex;gap:10px;justify-content:flex-end}
+
+/* l'étape 1 est facultative (borne 1.63.67) */
+.atl-bfac{margin:-6px 0 0;text-align:center;color:#c9b6ff;font:600 14px var(--body)}
+.atl-bpass{margin-left:auto;font-size:16px;border-color:rgba(255,211,77,.6)}
+.atl-bpasst{justify-self:center;padding:10px 18px;font-size:15px}
