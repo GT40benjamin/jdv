@@ -3950,3 +3950,9 @@ button.atl-rl{cursor:pointer}button.atl-rl:hover{background:rgba(255,211,77,.1)}
 .atl-rl.res{grid-template-columns:22px minmax(0,auto) 1fr;row-gap:2px}
 .atl-rres{grid-column:2/-1;color:var(--muted);font:12px/1.35 var(--body);white-space:normal;text-align:left}
 .atl-rl.res:hover .atl-rres{color:var(--ink)}
+
+/* le guide de l'Atelier (borne 1.63.77) : avatar rond, nom ; image à venir */
+.atl-av{overflow:hidden}.atl-av img,.atl-wav img,.nt-game img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.atl-wmsg{display:flex;gap:12px;align-items:flex-start}
+.atl-wav{flex:0 0 44px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:26px;background:linear-gradient(135deg,#7ec8ff,#7a4cff);overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.atl-wmsg b{display:block;font:700 13px var(--body);color:#c9b6ff;margin-bottom:2px}.atl-wmsg p{margin:0}

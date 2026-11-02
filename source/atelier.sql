@@ -2121,3 +2121,21 @@ begin
 end $$;
 revoke all on function public.at_fiche_etape(text, uuid, text, jsonb) from public, anon;
 grant execute on function public.at_fiche_etape(text, uuid, text, jsonb) to authenticated;
+
+-- (v23, borne 1.63.77, 2 nov. 20 h 05, Benjamin : « pas notre équipe !! c'est pas vendeur ») : plus aucune « équipe » dans les messages
+-- envoyés aux joueurs (crédits accordés, mise en ligne mondiale) ni dans la source des sons
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.at_credits_accorder(uuid, integer, text)'::regprocedure);
+  if position('L’équipe t’a donné' in d) > 0 then d := replace(d, '🎁 L’équipe t’a donné ', '🎁 Tu as reçu '); execute d; end if;
+  d := pg_get_functiondef('public.at_monde_decider(uuid, boolean, text)'::regprocedure);
+  if position('équipe' in d) > 0 then
+    d := replace(d, '🌍 Bonne nouvelle : notre équipe a mis ton jeu en ligne pour TOUT LE MONDE, avec le classement mondial !', '🌍 Bonne nouvelle : ton jeu est en ligne pour TOUT LE MONDE, avec le classement mondial !');
+    d := replace(d, 'Notre équipe préfère garder ton jeu dans ta salle pour l’instant. Continue à l’améliorer, tu pourras redemander plus tard !', 'Ton jeu reste dans ta salle pour l’instant. Continue à l’améliorer, tu pourras redemander plus tard !');
+    if position('équipe' in d) > 0 then raise exception 'at_monde_decider'; end if;
+    execute d;
+  end if;
+  d := pg_get_functiondef('public.at_gen_fin(uuid, text, text, text, jsonb)'::regprocedure);
+  if position('ElevenLabs (équipe)' in d) > 0 then d := replace(d, 'ElevenLabs (équipe)', 'fait pour ton jeu'); execute d; end if;
+end $$;
