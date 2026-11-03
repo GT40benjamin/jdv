@@ -2830,3 +2830,10 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 
 -- (v55, 3 nov. 2026 10 h 45, borne 2.0.12) : Benjamin annule le blocage du prix (« si je veux faire une remise ») : at_demande_proposer n'a plus de refus ;
 -- propositions[].plancher reste comme « prix calculé » (affiché à l'admin, avec la remise). Migration v55_prix_calcule_sans_blocage.
+
+-- (v56, 3 nov. 2026 11 h 15, borne 2.0.13) : public.at_abo_formules (1 : 3 € → 400 ; 2 : 8 € → 1 300, conseillée ; stripe_lookup atelier_plus_300 / _800),
+-- pegase_int.at_abo_formules() (dans at_lire : credits.abo_formules), at_abo_formules_lire, at_abo_formules_stripe (service) ; abo_plafond supprimé :
+-- at_abo_paye crédite la formule du MONTANT payé, sans plafond. RENONCIATION au délai de rétractation : at_achat_creer(name, pack, renonce) et
+-- at_abo_preparer(name, formule, renonce) l'exigent (« renonciation requise ») et la gardent (at_achats / at_abos : renonce_at, renonce_texte).
+-- Fonctions Edge : stripe-paiement v5 (vrais prix Stripe par lookup_key, metadata renonce, portail réglé pour changer de formule, sans prorata),
+-- stripe-config v3 (« Brancher Stripe » crée les deux prix et règle le portail). Migration v56_abo_deux_formules_renonciation.

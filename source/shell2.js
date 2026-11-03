@@ -16192,28 +16192,50 @@ function atlGuideScene(lignes) {
 // ---- 21 h 50 (Benjamin : « on connecte Stripe », d'abord en MODE TEST) : RECHARGER MES CRÉDITS — les packs (at_packs_lire), le paiement
 // sur la page Stripe (fonction Edge stripe-paiement : le prix vient de la base, jamais d'ici) ; les crédits arrivent quand Stripe confirme
 // (stripe-webhook, signature vérifiée). Aucune donnée de carte ne passe par la borne. Sans clé Stripe : « Bientôt disponible ».
+// 2.0.13 (Benjamin) : DEUX formules Atelier+ (3 € → 400, 8 € → 1 300 crédits par mois, « ⭐ Meilleure offre »), sans plafond ; avant TOUT
+// paiement, la case de renonciation au délai de rétractation (contenu livré tout de suite), non cochée : les boutons de paiement restent
+// grisés tant qu'elle ne l'est pas ; le texte accepté part avec le paiement (gardé par le serveur et dans la session Stripe)
+const ATL_RENONCE = 'Je veux mes crédits tout de suite et je renonce à mon délai de rétractation de 14 jours pour les crédits livrés.';
 async function atlRecharger() {
   const M = ATL.root.querySelector('.atl-mod'), cr = atlCred(); if (!M) return;
   M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard atl-rech');
   c.append(atlEl('h2', '', '💎 Mes crédits'), atlEl('p', 'atl-aide', 'Tu as ' + Math.max(0, cr ? cr.solde | 0 : 0) + ' crédits.'));
   const er0 = atlEl('p', 'atl-werr'); er0.hidden = true;
-  const ab = atlEl('div', 'atl-abo'), abc = (cr && cr.abo_credits) | 0 || 400, abp = (((cr && cr.abo_prix) | 0 || 300) / 100).toFixed(2).replace('.', ',').replace(',00', '');
+  const payer = [], rappel = atlEl('small', 'atl-renr', '☝️ Coche d’abord la case ci-dessus pour pouvoir payer.');
+  const ren = atlEl('label', 'atl-ren'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = false;
+  ren.append(cb, atlEl('span', '', ATL_RENONCE));
+  const etat = () => { for (const x of payer) { x.disabled = !cb.checked; x.classList.toggle('off', !cb.checked); } rappel.hidden = cb.checked; ren.classList.toggle('ok', cb.checked); };
+  cb.addEventListener('change', etat);
+  const eur = v => ((v | 0) / 100).toFixed(2).replace('.', ',').replace(',00', '');
+  const ab = atlEl('div', 'atl-abo');
   if (atlAbonne()) {
     const fin = cr.abo.fin ? new Date(cr.abo.fin) : null;
-    ab.append(atlEl('b', 'atl-abot', '⭐ Tu es abonné Atelier+'), atlEl('p', '', abc + ' crédits chaque mois' + (fin && !isNaN(fin) ? ' · prochain mois le ' + fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '') + '.'));
+    ab.append(atlEl('b', 'atl-abot', '⭐ Tu es abonné Atelier+'), atlEl('p', '', 'Tes crédits arrivent chaque mois' + (fin && !isNaN(fin) ? ' · prochain mois le ' + fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '') + '. Tu peux changer de formule ou résilier dans le portail.'));
     const g = atlEl('button', 'btn btn-ghost btn-sm', 'Gérer mon abonnement'); g.type = 'button'; g.addEventListener('click', () => atlStripe({ p_portail: true }, g, er0)); ab.appendChild(g);
   } else {
-    ab.append(atlEl('b', 'atl-abot', '⭐ Atelier+'), atlEl('p', '', abc + ' crédits chaque mois pour ' + abp + ' € par mois. Tes crédits s’ajoutent (jusqu’à ' + ((cr && cr.plafond) | 0 || 1200) + ').'));
-    const g = atlEl('button', 'btn btn-play', 'S’abonner · ' + abp + ' €/mois'); g.type = 'button'; g.addEventListener('click', () => atlStripe({ p_abo: true }, g, er0)); ab.appendChild(g);
+    let fos = cr && Array.isArray(cr.abo_formules) ? cr.abo_formules : null;
+    if (!fos) { try { fos = await rpc('at_abo_formules_lire', {}, { quiet: true }); } catch (e) { fos = null; } }
+    if (!Array.isArray(fos) || !fos.length) fos = [{ id: 1, prix: (cr && cr.abo_prix) | 0 || 300, credits: (cr && cr.abo_credits) | 0 || 400 }];
+    ab.appendChild(atlEl('b', 'atl-abot', '⭐ Atelier+ : des crédits chaque mois'));
+    const gf = atlEl('div', 'atl-abof');
+    for (const fo of fos) {
+      const k = atlEl('div', 'atl-abok' + (fo.conseille ? ' top' : ''));
+      if (fo.conseille) k.appendChild(atlEl('span', 'atl-abotag', '⭐ Meilleure offre'));
+      k.append(atlEl('b', 'atl-abop', eur(fo.prix) + ' € / mois'), atlEl('span', 'atl-aboc', '→ ' + (fo.credits | 0).toLocaleString('fr-FR') + ' crédits chaque mois'));
+      const g = atlEl('button', 'btn ' + (fo.conseille ? 'btn-play' : 'btn-ghost'), 'S’abonner · ' + eur(fo.prix) + ' €/mois'); g.type = 'button';
+      g.addEventListener('click', () => { if (cb.checked) atlStripe({ p_abo: true, p_formule: fo.id | 0, p_renonce: ATL_RENONCE }, g, er0); });
+      payer.push(g); k.appendChild(g); gf.appendChild(k);
+    }
+    ab.append(gf, atlEl('small', 'atl-noremb', 'Résiliable à tout moment depuis le portail : les mois suivants ne sont plus prélevés.'));
   }
   ab.appendChild(atlEl('small', 'atl-noremb', 'Sans engagement, résiliable à tout moment · Les crédits ne sont pas remboursés'));
-  c.append(ab, er0, atlEl('p', 'atl-aide', 'Ou choisis un pack :'));
+  c.append(ren, rappel, ab, er0, atlEl('p', 'atl-aide', 'Ou choisis un pack :'));
   const gr = atlEl('div', 'atl-packs'); gr.appendChild(atlEl('p', 'atl-chv', 'Un instant…')); c.appendChild(gr);
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   c.appendChild(atlEl('p', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés · Les crédits servent seulement dans l’Atelier.'));
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Fermer'); no.type = 'button'; no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
-  row.append(no); c.appendChild(row); M.appendChild(c);
+  row.append(no); c.appendChild(row); M.appendChild(c); etat();
   let packs = [];
   try { packs = await rpc('at_packs_lire', {}, { quiet: true }); } catch (e) { packs = []; }
   gr.textContent = '';
@@ -16221,10 +16243,11 @@ async function atlRecharger() {
   for (const k of packs) {
     const b = atlEl('button', 'atl-pack'); b.type = 'button';
     b.append(atlEl('span', 'atl-packc', '💎 ' + (k.credits | 0)), atlEl('small', '', 'crédits'), atlEl('b', 'atl-packp', ((k.prix | 0) / 100).toFixed(2).replace('.', ',') + ' €'));
-    b.addEventListener('click', () => atlAcheter(k, b, er)); gr.appendChild(b);
+    b.addEventListener('click', () => { if (cb.checked) atlAcheter(k, b, er); }); payer.push(b); gr.appendChild(b);
   }
+  etat();
 }
-function atlAcheter(k, b, er) { return atlStripe({ p_pack: k.id | 0 }, b, er); }
+function atlAcheter(k, b, er) { return atlStripe({ p_pack: k.id | 0, p_renonce: ATL_RENONCE }, b, er); }
 // un pack, l'abonnement (p_abo) ou le portail « Gérer mon abonnement » (p_portail) : la fonction Edge stripe-paiement donne l'adresse Stripe
 async function atlStripe(corps, b, er) {
   if (ATL.achat) return; ATL.achat = true; er.hidden = true;
@@ -16235,7 +16258,7 @@ async function atlStripe(corps, b, er) {
     let j = null; try { j = await r.json(); } catch (e) {}
     if (j && j.etat === 'bientot') { er.hidden = false; er.textContent = '⏳ Le paiement par carte sera bientôt disponible.'; return; }
     if (r.ok && j && typeof j.url === 'string' && /^https:\/\/(checkout|billing)\.stripe\.com\//.test(j.url)) { try { atlBrFlush(); } catch (e) {} location.href = j.url; return; }   // la page de paiement Stripe
-    er.hidden = false; er.textContent = r.status === 409 && j && j.error === 'deja abonne' ? 'Tu es déjà abonné Atelier+ ⭐' : r.status === 403 || r.status === 401 ? 'Connecte-toi à ton compte pour acheter des crédits.' : r.status === 429 ? 'Doucement 😄 Réessaie dans un moment.' : 'Le paiement n’a pas pu démarrer. Réessaie dans un moment.';
+    er.hidden = false; er.textContent = j && j.error === 'renonciation requise' ? 'Coche la case pour recevoir tes crédits tout de suite.' : r.status === 409 && j && j.error === 'deja abonne' ? 'Tu es déjà abonné Atelier+ ⭐' : r.status === 403 || r.status === 401 ? 'Connecte-toi à ton compte pour acheter des crédits.' : r.status === 429 ? 'Doucement 😄 Réessaie dans un moment.' : 'Le paiement n’a pas pu démarrer. Réessaie dans un moment.';
   } catch (e) { er.hidden = false; er.textContent = 'Pas de réseau : réessaie dans un moment.'; }
   finally { ATL.achat = false; b.disabled = false; b.classList.remove('wait'); b.innerHTML = old; }
 }
