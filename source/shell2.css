@@ -4299,3 +4299,49 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-mdet{font:600 13.5px var(--body);color:var(--ink)}.atl-mplus{font:700 13.5px var(--body);color:#9fe0a8}
 .atl-mlight .atl-mrow:not(:has(input:checked)){outline:2px dashed #9fe0a8;outline-offset:2px;border-radius:10px}
 .atl-mrow .atl-manim{grid-column:1/-1;justify-self:end;margin:2px 0 0}
+
+/* 3 nov. 1 h 15 → 1 h 35 : qualité « appli » — cartes d'offre, fenêtre de validation, cartes de demande, tuiles, guide au travail */
+.atl-offres-w{margin:6px 0 14px}
+.atl-offres{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:stretch}
+.atl-offre{position:relative;display:flex;flex-direction:column;gap:8px;padding:16px 14px 14px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.atl-offre.conseil{border:2px solid #ffd34d;box-shadow:0 8px 24px rgba(255,211,77,.18)}
+.atl-offre.trop{opacity:.7}
+.atl-ofb{position:absolute;top:-11px;left:14px;padding:3px 10px;border-radius:999px;background:#ffd34d;color:#2a1340;font:800 11.5px var(--body)}
+.atl-oft{font:800 15.5px/1.3 var(--body);overflow-wrap:anywhere}
+.atl-ofl{margin:0;padding-left:18px;color:var(--muted);font:13.5px/1.45 var(--body)}
+.atl-ofp{margin-top:auto;font:900 28px var(--body);color:#ffe9a8;letter-spacing:.5px}
+.atl-ofgo{width:100%}
+.atl-oflater{display:block;margin:10px auto 0;border:0;background:none;color:var(--muted);font:600 13px var(--body);text-decoration:underline;cursor:pointer}
+.atl-ofmod{position:fixed;inset:0;z-index:2147483004;display:grid;place-items:center;padding:16px;background:rgba(5,8,12,.78);animation:atlFade .18s ease-out}
+.atl-ofcard{display:grid;gap:10px;justify-items:center;width:min(420px,100%);padding:22px 20px;border-radius:20px;border:2px solid #ffd34d;background:var(--card,#14212b);color:var(--ink);text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:atlPop .22s ease-out}
+.atl-ofcard .atl-ofl{text-align:left;justify-self:stretch}.atl-ofsolde{margin:0;font:700 15px var(--body)}.atl-ofcard .atl-mbtns{justify-self:stretch;justify-content:center}
+.atl-ofyes{font-size:56px;animation:atlPop .4s cubic-bezier(.2,1.6,.4,1)}
+@keyframes atlFade{from{opacity:0}to{opacity:1}}@keyframes atlPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.atl-dem2{display:grid;grid-template-columns:84px 1fr;gap:14px;padding:14px;margin:10px 0;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.035)}
+.atl-dem2.nouveau{border-color:#ffd34d}
+.atl-demv img,.atl-demv .atl-demic{width:84px;height:84px;border-radius:12px;object-fit:cover;cursor:zoom-in;display:grid;place-items:center;background:rgba(255,255,255,.06);font-size:30px}
+.atl-demh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.atl-demb2{padding:3px 10px;border-radius:999px;font:800 12px var(--body);background:rgba(255,255,255,.1)}
+.b-envoyee{background:#2b3a4a;color:#cfe3ff}.b-vue{background:#3a3150;color:#e2d6ff}.b-choisir{background:#ffd34d;color:#2a1340}.b-en_cours{background:#ff9f43;color:#2a1340}.b-faite{background:#2e7d4f;color:#e6ffef}.b-impossible{background:#7a2b2b;color:#ffdede}.b-plus_tard{background:#3a3a3a;color:#ddd}
+.atl-demj{font:800 14.5px var(--body)}.atl-demd{color:var(--muted);font:12.5px var(--body)}
+.atl-demtx{margin:6px 0 0;font:14px/1.45 var(--body);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.atl-demtx.ouvert{display:block}
+.atl-demplus{border:0;background:none;padding:0;color:#ffd34d;font:600 12.5px var(--body);cursor:pointer}
+.atl-dembu{display:grid;grid-template-columns:40px 1fr;gap:10px;margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(126,224,138,.08);border:1px solid rgba(126,224,138,.25)}
+.atl-dembu .atl-wav{width:40px;height:40px}.atl-dembu p{margin:2px 0 0;font:13.5px/1.45 var(--body)}.atl-dembu b{font:800 12.5px var(--body);color:#c9b8ff}
+@media (max-width:560px){.atl-dem2{grid-template-columns:64px 1fr}.atl-demv img,.atl-demv .atl-demic{width:64px;height:64px}.atl-offres{grid-template-columns:1fr}}
+/* les tuiles des projets : image plein cadre, dégradé, titre lisible, badges alignés, ombre douce, survol */
+.atl-pgrid{gap:16px}
+.atl-ptile{padding:0;grid-template-rows:auto 1fr;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.28);transition:transform .18s ease,box-shadow .18s ease,border-color .18s;height:100%}
+.atl-ptile:hover,.atl-ptile:focus-visible{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.4)}
+.atl-ptile .atl-pv{position:relative;aspect-ratio:16/10}
+.atl-ptile .atl-pv::after{content:'';position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(transparent,rgba(8,6,20,.75));pointer-events:none}
+.atl-ptile > b{padding:10px 12px 0;font:800 15.5px var(--body)}
+.atl-ptile > small{padding:0 12px 12px;align-self:end}
+.atl-ptile .atl-pver.v{justify-self:start;margin:0 12px 12px;padding:3px 10px}
+.atl-pwrap{height:100%}
+.atl-pprepa{position:absolute;left:8px;top:8px;padding:4px 9px;border-radius:999px;background:#ff9f43;color:#2a1340;font:800 11.5px var(--body);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+/* le guide au travail */
+.atl-travail{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin:0 0 14px;padding:14px;border-radius:18px;border:2px solid #ff9f43;background:linear-gradient(135deg,rgba(255,159,67,.14),rgba(255,211,77,.06))}
+.atl-travail ul{margin:6px 0;padding-left:18px;font:13.5px/1.45 var(--body)}.atl-travail small{color:var(--muted)}
+.atl-travail .atl-gscene,.atl-travail > :first-child{max-width:180px}
+@media (max-width:560px){.atl-travail{grid-template-columns:1fr;justify-items:center;text-align:center}.atl-travail ul{text-align:left}}

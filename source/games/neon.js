@@ -1,5 +1,5 @@
 // Néon Rush — un cube (avec ta tête) file sur la musique électro : on saute PILE sur les temps, on vole, on inverse la gravité.
-// Chaque niveau = un morceau (ElevenLabs) dont on a repéré les temps un par un ; le parcours est construit sur ces temps et vérifié par
+// Chaque niveau = un morceau (créé pour le jeu) dont on a repéré les temps un par un ; le parcours est construit sur ces temps et vérifié par
 // un « fantôme » qui le réussit. 4 mondes par niveau (ville néon, coucher synthwave, océan, cristaux, lave, galaxie). Une seule vie.
 (() => {
   'use strict';
@@ -87,7 +87,7 @@
       script: [{ kind: 'orbs', beats: [16, 17, 18, 19], ups: [0.8, -0.8, 0.8] }, { kind: 'orbs', beats: [80, 81, 82, 83], ups: [1.2, -1.8, 1] }, { kind: 'orbs', beats: [172, 173, 174, 175], ups: [0.8, -1.6, 1.2] }],
       rate: 0.75, orbEvery: 2, orbSnare: 5, pink: true, speeds: [[16.91, 1.5], [25.36, 1.15], [60.02, 2]], mirror: [[30.70, 43.13]],
       flips: [[46.70, 50.24, 'orb'], [53.80, 57.35, 'orb'], [66.25, 71.58], [80.47, 85.81]] },
-    // 27 oct. (chantier « La folie ») : musique du Volcan de Smoothie Samouraï (taikos, 138 BPM ; plus de crédits ElevenLabs, choix de
+    // 27 oct. (chantier « La folie ») : musique du Volcan de Smoothie Samouraï (taikos, 138 BPM ; son créé pour le jeu, choix de
     // Benjamin : des musiques de la borne). Jungle en cube avec des SCIES, l'ONDE dans le temple, la cassure (50,47 s) ouvre la cascade,
     // vitesse ×1,4 sur le drop de 53,95 s, orbes bleues ; onde MINI dans la forêt des champignons pour finir (vitesse normale)
     { track: 'smw5-1', name: 'Jungle Sauvage', speed: 9.8, ships: [], cuts: [57, 116, 166], noSplit: true, forms: true,
