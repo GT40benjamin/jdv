@@ -6,6 +6,15 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## 🌪️ Abracadabra : tornade, pluie, drôles de gens et animaux plus vrais (borne 1.63.140)
+[abracadabra] 🌪️ Dis « tornade » ou « ouragan » : un énorme tourbillon naît derrière le village, avale les maisons, emporte les objets dans le ciel, fait voler les villageois (ils retombent étourdis) et te passe dessus.
+[abracadabra] 🌧️ Dis « pluie » ou « orage » : le ciel devient gris, il pleut à verse (avec des éclairs pour l'orage) et les villageois râlent d'être tout mouillés, puis le soleil revient.
+[abracadabra] 🤪 Dis « une fille » ou « un garçon » : un enfant habillé n'importe comment apparaît et fait le pitre (il danse, saute, tourne en rond, dit des bêtises) ; les villageois se demandent s'il va bien.
+[abracadabra] 🐪 Le chameau est un vrai chameau (avant, on avait un cheval) ; tombé dans la rivière, il nage jusqu'à la berge, comme le cheval, qui ne s'enfonce plus dans le sable en sortant de l'eau.
+[abracadabra] 🐟 Les poissons qui rejoignent la rivière y nagent pour de bon (et sautent parfois hors de l'eau) ; le poisson géant aussi.
+[abracadabra] 🐶 Le chien et la grenouille ont retrouvé leur vraie taille ; le chien ne grandit plus en courant, la grenouille avance par bonds ; toutes les bêtes ont les pattes bien au sol, même en pente.
+[abracadabra] 🍫 « Chocolat » fait apparaître une tasse de chocolat chaud ; et les villageois ne font plus tous le même geste en même temps.
+[abracadabra] 🌋 Le volcan gronde avec de gros « bloup » de lave, chaque boule de feu part avec un « blooop », et elles ne visent plus que des villageois debout.
 [pegase] ## 🦌 Pégase 0.9.9.43 : la harde fuit ensemble (borne 1.63.119)
 [pegase] 🦌 Quand une grande bête sauvage détale devant toi, les bêtes de sa harde partent aussi, un peu après : elles l'ont vue s'enfuir.
 [pegase] 🐺 Les loups ne hurlent plus en plein jour : seulement au crépuscule et la nuit.
