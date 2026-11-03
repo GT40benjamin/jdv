@@ -53,6 +53,8 @@
 [pegase] 🌼 Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.
 [pegase] 🌸 De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.
 [pegase] 🧥 Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps.
+[licornes] ## 🎮 La Maison des Licornes : on joue à la manette (borne 2.0.4)
+[licornes] 🎮 À la manette, un curseur rose passe d'une chose à l'autre : le tapis, les couleurs de l'œuf, tes licornes, la couveuse, le nid, la fenêtre de l'enfant, ton coffre et tes boutons. A pour prendre, poser ou acheter, B pour annuler, Start pour la pause. Le doigt et la souris marchent toujours.
 [licornes] ## 🦄 La Maison des Licornes : la bonne couleur suffit (borne 2.0.3)
 [licornes] 🎨 Une licorne qui a déjà la couleur que l'enfant veut (un bébé rose de naissance, une licorne dorée, ou une licorne déjà peinte) peut lui être donnée tout de suite : le pot de couleur ne sert que pour changer de couleur.
 [licornes] ## 🦄 La Maison des Licornes : un vrai écran pour le téléphone debout (borne 1.63.153)

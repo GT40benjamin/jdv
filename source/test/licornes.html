@@ -25,6 +25,9 @@ const api = {
     }
   }
 };
+// une fausse manette pour les essais : __pad.appui('right'), __pad.stick(x, y)
+window.__pad = { n: {}, lx: 0, ly: 0, appui(b) { this.n[b] = (this.n[b] || 0) + 1; }, stick(x, y) { this.lx = x; this.ly = y; } };
+api.pad = { get: () => ({ on: true, lx: __pad.lx, ly: __pad.ly, held: {} }), pressed: b => { const k = __pad.n[b] || 0; __pad.n[b] = 0; return k; }, active: () => true };
 window.__game = window.JDW_GAMES.licornes.mount(document.getElementById('root'), api);
 </script>
 </body></html>

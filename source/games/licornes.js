@@ -534,6 +534,7 @@ function mount(root, api) {
   function toLogic(e) { const r = canvas.getBoundingClientRect(); return { x: ((e.clientX - r.left) - ox) / sc, y: ((e.clientY - r.top) - oy) / sc }; }
   function onDown(e) {
     if (dead) return;
+    curOn = false;   // le doigt ou la souris reprennent la main : le curseur de la manette se cache
     e.preventDefault();
     try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ }
     const p = toLogic(e);
@@ -627,6 +628,62 @@ function mount(root, api) {
   }
   if (!LOADED) loadImages().then(() => { if (!dead && state === 'load') state = 'title'; }).catch(e => { loadErr = String(e && e.message || e); if (!dead) state = 'title'; });
 
+  // ---------- la manette (demande de PATOU) : un curseur passe d'une chose à l'autre dans la direction poussée (tapis, couleurs, licornes,
+  // couveuse, nid, fenêtre de l'enfant, coffre, boutons) ; A = toucher là (prendre, poser, acheter, donner), B = annuler ; Start = pause (la borne)
+  let cur = null, curOn = false, curRep = 0, curT = 0;
+  function cibles() {
+    const out = [], add = (k, ref, b) => out.push({ k, ref, x: b.x + b.w / 2, y: b.y + b.h / 2, b });
+    for (const it of belt) if (visible(it)) add('belt', it, itemBox(it));
+    for (const d of palette()) add('pal', d.hue, d);
+    for (const u of unis.concat(nid.filter(Boolean))) { const b = uniBox(u); add('uni', u, { x: b.x + b.w * 0.15, y: b.y + b.h * 0.1, w: b.w * 0.7, h: b.h * 0.9 }); }
+    add('couv', 'couv', L.couv); add('nid', 'nid', L.nid); add('fen', 'fen', L.fen);
+    trayBoxes().forEach((b, i) => { if (i === 0 || tray[i - 1] != null) add('tray', i, b); });
+    for (const a of actions()) add('act', a.id, a);
+    return out;
+  }
+  const memeCible = (a, c) => a && c && a.k === c.k && a.ref === c.ref;
+  function manette(dt) {
+    if (!pad || !pad.get) return;
+    const g = pad.get(0); if (!g || !g.on) return;
+    const C = cibles(); if (!C.length) return;
+    if (cur) cur = C.find(c => memeCible(c, cur)) || null;
+    curRep = Math.max(0, curRep - dt);
+    let dx = 0, dy = 0;
+    for (const [btn, x, y] of [['left', -1, 0], ['right', 1, 0], ['up', 0, -1], ['down', 0, 1]]) if (pad.pressed(btn)) { dx = x; dy = y; }
+    if (!dx && !dy && curRep <= 0 && Math.hypot(g.lx, g.ly) > 0.6) { if (Math.abs(g.lx) > Math.abs(g.ly)) dx = Math.sign(g.lx); else dy = Math.sign(g.ly); }
+    const a = pad.pressed('a'), b2 = pad.pressed('b');
+    if (dx || dy || a || b2) { if (!curOn) { curOn = true; cur = cur || C.find(c => c.k === 'belt') || C[0]; if (dx || dy) { dx = dy = 0; } } }
+    if (!curOn) return;
+    if (!cur) cur = C[0];
+    if (dx || dy) {
+      curRep = 0.22; let best = null, bs = 1e9;
+      for (const c of C) {
+        if (memeCible(c, cur)) continue;
+        const vx = c.x - cur.x, vy = c.y - cur.y, av = vx * dx + vy * dy; if (av < 12) continue;
+        const sc2 = av + Math.abs(vx * dy - vy * dx) * 2.2; if (sc2 < bs) { bs = sc2; best = c; }
+      }
+      if (best) { cur = best; curT = 0; snd.pick(); }
+    }
+    if (b2) { if (sel) { sel = null; snd.pick(); } return; }
+    if (a) {
+      const p = { x: cur.x, y: cur.y }, d = { p, u: null, acc: -1, moved: false };
+      if (cur.k === 'uni') d.u = cur.ref;
+      if (cur.k === 'tray' && cur.ref > 0) d.acc = cur.ref - 1;
+      curT = 0; tap(p, d);
+    }
+  }
+  function drawCurseur() {
+    if (!curOn || !cur || state !== 'play') return;
+    const b = cur.b, m = 8, k = 1 + Math.sin(stT * 7) * 0.04, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
+    pill(ctx, b.x - m, b.y - m, b.w + m * 2, b.h + m * 2, 18); ctx.lineWidth = 9; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.stroke();
+    ctx.lineWidth = 5; ctx.strokeStyle = '#ff5fae'; ctx.setLineDash([16, 10]); ctx.lineDashOffset = -stT * 40; ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    // une petite main qui montre la chose choisie
+    ctx.font = '34px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('👆', cx + b.w / 2 - 4, b.y + b.h + 14 + Math.sin(stT * 6) * 4);
+  }
+
   // ---------- boucle ----------
   function update(dt) {
     stT += dt;
@@ -701,7 +758,7 @@ function mount(root, api) {
       }
     }
     // manette : A = acheter l'objet le plus à gauche qu'on peut payer (aide simple pour l'alpha)
-    if (pad && pad.pressed && pad.pressed('a')) { const it = belt.filter(i => visible(i) && coins >= i.prix).sort((a, b) => a.x - b.x)[0]; if (it) buy(it); }
+    manette(dt);
   }
 
   // ---------- dessin ----------
@@ -1076,7 +1133,7 @@ function mount(root, api) {
     drawTray(); drawAct(); drawBulle();
     if (drag && drag.u) drawUni(drag.u);
     if (drag && drag.acc != null && tray[drag.acc] != null) { const a = tray[drag.acc], s = 70; drawObjet(ctx, a, drag.x - s * ratio(a) / 2, drag.y - s / 2, s * ratio(a), s); }
-    drawFx(); drawHud();
+    drawCurseur(); drawFx(); drawHud();
     if (state === 'ready') {
       ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(0, 0, LW, LH);
       big('Manche ' + manche, LH / 2 - 30);
@@ -1130,6 +1187,7 @@ function mount(root, api) {
       unis: () => unis.concat(nid.filter(Boolean)).map(u => { const b = uniBox(u); return { bebe: u.bebe, nid: u.nid, x: ox + b.fx * sc, y: oy + (b.y + b.h * 0.55) * sc }; }),
       acts: () => actions().map(a => ({ id: a.id, x: ox + (a.x + a.w / 2) * sc, y: oy + (a.y + a.h / 2) * sc })),
       tray: () => trayBoxes().map(b => ({ x: ox + (b.x + b.w / 2) * sc, y: oy + (b.y + b.h / 2) * sc })),
+      curseur: () => cur && { k: cur.k, ref: typeof cur.ref === 'object' ? (cur.ref.id || cur.ref.k) : cur.ref, x: ox + cur.x * sc, y: oy + cur.y * sc },
       couv: () => couv.map(o => ({ t: o.t, p: +o.p.toFixed(2), col: o.col })), grande: () => grande, viens(k) { if (k === 'gcouv') grandeT = 0; },
       palette: () => palette().map(d => ({ hue: d.hue, x: ox + (d.x + d.w / 2) * sc, y: oy + (d.y + d.h / 2) * sc })),
       bebes: () => unis.filter(u => u.bebe).map(u => u.col),
@@ -1148,6 +1206,6 @@ window.JDW_GAMES.licornes = {
   orientation: 'les2',   // vérifié en portrait (mise en page à part) et en paysage
   preview,
   mount,
-  pad: { help: [['a', 'Commencer · acheter sur le tapis']], intro: false }
+  pad: { help: [['ls/dpad', 'Choisir'], ['a', 'Prendre · poser · acheter'], ['b', 'Annuler'], ['start', 'Pause']], intro: false }
 };
 })();
