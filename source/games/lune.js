@@ -408,7 +408,7 @@ function mount(root, api) {
       ctx.globalAlpha = fait && !ici ? 0.55 : 1; planeteDisque(ctx, k, c.x, c.y, R, stT); ctx.globalAlpha = 1;
       const nom = k === 'lune' ? 'La Lune' : k === 'terre' ? 'La Terre' : PLANETES[k].nom;
       label(nom + (fait ? ' ✓' : ''), c.x, c.y + R + 24 * U, choisi ? '#ffd36b' : '#e8eeff');
-      if (ici) { ctx.save(); ctx.translate(c.x + R * 0.9, c.y - R * 0.9 + Math.sin(stT * 3) * 4 * U); ctx.rotate(0.6); drawFoot(ctx, 'navette', 0, 22 * U, 44 * U); ctx.restore(); }
+      if (ici) { ctx.save(); ctx.translate(c.x + R * 0.9, c.y - R * 0.9 + Math.sin(stT * 3) * 4 * U); ctx.rotate(0.6); drawFoot(ctx, navImg(), 0, 22 * U, 44 * U); ctx.restore(); }
     }
     big('Carte des étoiles', (portrait ? 72 : 36) * U, 0.6, '#e8eeff');
     // le panneau du bas : la destination choisie, et « Partir »
@@ -440,22 +440,22 @@ function mount(root, api) {
     for (const p of parts) { ctx.globalAlpha = Math.max(0, 1 - p.t / p.d); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(sxv(p.x), syv(p.y), p.r * Z, 0, TAU); ctx.fill(); }
     ctx.globalAlpha = 1;
     // la navette : la flamme suit la poussée ; au repos, elle flotte doucement
-    const x = sxv(s2.x), y = syv(s2.y), h = 150 * Z, flot = s2.pousse < 0.1 ? Math.sin(stT * 2.2) * 3 * Z : 0;
+    const x = sxv(s2.x), y = syv(s2.y), h = (navImg() === 'navette-neuve' ? 110 : 150) * Z, flot = s2.pousse < 0.1 ? Math.sin(stT * 2.2) * 3 * Z : 0;
     // le dessin de la navette a le nez à gauche et le réacteur à droite : on la tourne d'un quart de tour, la flamme sort du réacteur
     // vers la droite, on la retourne en miroir (sinon elle volerait la tête en bas) ; une petite marge évite qu'elle se retourne sans cesse
     const sa = Math.sin(s2.a); if (sa > 0.25) s2.est = true; else if (sa < -0.25) s2.est = false;
     const bal = s2.pousse < 0.1 ? Math.sin(stT * 1.6) * 0.04 : 0;
     ctx.save(); ctx.translate(x, y + flot); ctx.rotate(s2.est ? s2.a - Math.PI / 2 + bal : s2.a + Math.PI / 2 + bal); if (s2.est) ctx.scale(-1, 1);
     if (s2.hit > 0 && Math.floor(s2.hit * 10) % 2) ctx.globalAlpha = 0.5;
-    const im = IMG.navette, wN = im ? h * im.width / im.height : h;
-    ctx.save(); ctx.translate(wN * 0.44, -h * 0.06); ctx.rotate(-Math.PI / 2);
+    const im = IMG[navImg()], wN = im ? h * im.width / im.height : h;
+    const neuve = navImg() === 'navette-neuve'; ctx.save(); ctx.translate(wN * (neuve ? 0.47 : 0.44), h * (neuve ? 0.06 : -0.06)); ctx.rotate(-Math.PI / 2);   // le réacteur (à droite du dessin)
     const fl = h * (0.1 + s2.pousse * 0.5 + 0.04 * Math.sin(stT * 31)), fw = h * 0.09;
     for (const [k, c0, c1] of [[1, 'rgba(255,140,40,0.85)', 'rgba(255,80,20,0)'], [0.6, 'rgba(255,230,120,0.95)', 'rgba(255,170,60,0)'], [0.3, 'rgba(255,255,240,1)', 'rgba(255,240,180,0)']]) {
       const g = ctx.createLinearGradient(0, 0, 0, fl * k); g.addColorStop(0, c0); g.addColorStop(1, c1); ctx.fillStyle = g;
       ctx.beginPath(); ctx.moveTo(-fw * k, 0); ctx.quadraticCurveTo(-fw * k * 0.8, fl * k * 0.5, Math.sin(stT * 23) * fw * 0.2, fl * k); ctx.quadraticCurveTo(fw * k * 0.8, fl * k * 0.5, fw * k, 0); ctx.closePath(); ctx.fill();
     }
     ctx.restore();
-    drawFoot(ctx, 'navette', 0, h * 0.5, h); ctx.restore(); ctx.globalAlpha = 1;
+    drawFoot(ctx, navImg(), 0, h * 0.5, h); ctx.restore(); ctx.globalAlpha = 1;
     drawFx2(sxv, syv);
     // la direction de la destination (flèche au bord) et la distance
     const tx = sxv(s2.dx), ty = syv(s2.dy), dist = Math.max(0, Math.round((Math.hypot(s2.dx - s2.x, s2.dy - s2.y) - R_ASTRE) / 2));
@@ -730,6 +730,8 @@ function mount(root, api) {
     ctx.restore();
     if (o.snap > 0.25) { ctx.fillStyle = '#ff5a8a'; ctx.font = 'bold ' + Math.round(26 * Z) + 'px ' + RF; ctx.textAlign = 'center'; ctx.fillText('!', x, y - h * 1.15); }
   }
+  // la navette, une fois réparée (5 pièces posées, et ensuite partout : carte, vol, planètes) : l'image neuve, capot fermé, sans fils
+  const navImg = () => (monde !== 'lune' || posees >= NB_PIECES) && IMG['navette-neuve'] ? 'navette-neuve' : 'navette';
   function drawNavette(x, y, h) {
     let lift = 0;
     if (state === 'liftoff') lift = liftW() * Z;
@@ -754,7 +756,7 @@ function mount(root, api) {
     }
     ctx.fillStyle = 'rgba(30,32,40,' + (0.3 / (1 + lift / 100)) + ')'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.5, h * 0.12, 0, 0, TAU); ctx.fill();
     const wob = state === 'liftoff' && liftT > 1.1 && liftT < 1.7 ? Math.sin(stT * 60) * 2 : 0;
-    drawFoot(ctx, 'navette', x + wob, y - lift, h);
+    drawFoot(ctx, navImg(), x + wob, y - lift, navImg() === 'navette-neuve' ? h * 0.72 : h);   // la neuve est plus allongée : même largeur au sol
     // les étincelles de la réparation
     if (repT > 0) { ctx.fillStyle = '#fff3a0'; for (let i = 0; i < 5; i++) star(ctx, x + Math.sin(stT * 13 + i * 2) * h * 0.35, y - h * (0.3 + 0.1 * Math.cos(stT * 9 + i)), (4 + 3 * Math.sin(stT * 20 + i)) * Z, stT * 6 + i); }
     if (state !== 'liftoff' && state !== 'atterro' && monde === 'lune') {
