@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🏰 Tes records de la salle tout de suite (borne 2.0.25)
+[remparts] 🏰 En ouvrant Remparts ! dans une salle où tu as déjà joué, tes scores de cette salle s'affichent aussitôt sur les boutons des mondes (plus de « 🌍 » à la place).
 [remparts] ## 🏰 Records : la salle d'un côté, le mondial de l'autre (borne 2.0.24)
 [remparts] 🏰 « Toi dans la salle » montre maintenant TON score dans la salle où tu es (ou « — » si tu n'y as pas encore joué) : tes points gagnés dans d'autres salles ne comptent plus ici.
 [remparts] 👑 Le tableau des copains et les couronnes ne comptent que les parties jouées dans cette salle, comme le record affiché sur la tuile.
