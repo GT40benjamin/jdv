@@ -14713,8 +14713,11 @@ function atlRenderChat() {
   for (const m of ATL.pend || []) log.appendChild(atlBubble(m));
   if (atlWaiting() && !(ATL.pend || []).length) {
     const lp = atlMsgs().filter(m => !m.atelier).slice(-1)[0];   // 21 h : le guide répond tout de suite (réponse locale, gratuite)
-    log.appendChild(atlGuideScene(['Je lis ton idée…', 'Je remplis ta fiche…', 'J’imagine tes personnages…', 'Je prépare le décor…', 'Je prépare ton premier design…']));
-    log.appendChild(atlBubble({ atelier: true, texte: 'Super idée ! Je me mets au travail tout de suite 🛠️ Je reviens vers toi dès que ton projet est monté. Va jouer en attendant : la cloche 🔔 te préviendra.', at: (lp && lp.at) || new Date().toISOString() }));
+    // 2.0.22 (Benjamin : « cette première idée est très importante, ça doit être une belle discussion ») : le guide ne part plus
+    // « au travail » tout seul : il lit, réfléchit (bulle et points), puis pose ses questions ici ; le joueur lui répond (gratuit pendant le montage)
+    const nbJ = atlMsgs().filter(m => !m.atelier).length, prem = nbJ <= 1;
+    log.appendChild(atlGuideScene(prem ? ['Je lis ton idée…', 'J’imagine ton jeu…', 'Je prépare mes questions…'] : ['Je lis ta réponse…', 'Je réfléchis…', 'J’écris ma réponse…']));
+    log.appendChild(atlBubble({ atelier: true, texte: prem ? 'Super idée ! 💭 Je la lis tranquillement et je te pose mes questions juste ici, pour que ton jeu soit exactement comme tu l’imagines. Tu pourras me répondre en dessous, c’est gratuit.' : '💭 Je lis ta réponse et je reviens tout de suite…', at: (lp && lp.at) || new Date().toISOString() }));
   }
   if (atBottom || ATL.stick) { log.scrollTop = log.scrollHeight; ATL.stick = false; }
   // bandeau et verrou selon l'état du projet
@@ -14737,7 +14740,7 @@ function atlRenderChat() {
   R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R);
   R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
   atlChatRetour(bn);
-  const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = atlMsgs().some(m => !m.atelier) ? '💎 ' + atlCoutMsg() + ' par message' : atlCoutMsg() ? '💎 Ton idée : ' + atlCoutMsg() + ' crédits (non remboursés)' : '🎁 Ta 1re idée est offerte !';
+  const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = atlMsgs().some(m => !m.atelier) ? (atlCoutMsg() ? '💎 ' + atlCoutMsg() + ' par message' : '💬 Réponds-moi ici : c’est gratuit pendant qu’on monte ton projet') : atlCoutMsg() ? '💎 Ton idée : ' + atlCoutMsg() + ' crédits (non remboursés)' : '🎁 Ta 1re idée est offerte !';
 }
 
 // ---------- 2 nov. 16 h 25 (Benjamin) : le parcours HYPER SIMPLE — un seul prompt remplit tout, puis ÉTAPE PAR ÉTAPE ----------
@@ -17460,7 +17463,8 @@ function atlCreditsBtn(into) {
 }
 const atlAbonne = () => { const cr = atlCred(); return !!(cr && cr.abo && cr.abo.etat === 'actif'); };
 // le 1er message d'un projet (raconter son idée) ne coûte rien (at_dire, « premier_gratuit »)
-function atlCoutMsg() { const cr = atlCred(); if (!cr) return 0; if (atlMsgs().some(m => !m.atelier)) return cr.message | 0; return cr.idee_offerte === false || (cr.idee_offerte == null && cr.idee != null) ? cr.idee | 0 : 0; }   // 23 h 20 : la 1re idée du compte est offerte, puis cout_idee
+// 2.0.22 : discuter avec le guide pendant le montage du projet est gratuit (credits.montage_gratuit)
+function atlCoutMsg() { const cr = atlCred(); if (!cr) return 0; if (atlMsgs().some(m => !m.atelier)) return cr.montage_gratuit && ['brouillon', 'en_discussion'].includes(atlEtat()) ? 0 : cr.message | 0; return cr.idee_offerte === false || (cr.idee_offerte == null && cr.idee != null) ? cr.idee | 0 : 0; }   // 23 h 20 : la 1re idée du compte est offerte, puis cout_idee
 function atlAboBadge(R) { const b = R && R.querySelector('.atl-abob'); if (b) b.hidden = !atlAbonne(); }
 
 // ---------- micro : la dictée va dans la case, le joueur relit puis envoie ----------

@@ -4589,3 +4589,12 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-payc{max-width:460px}
 .atl-payc .atl-ren{margin:6px 0}
 .atl-payc .btn.off{opacity:.45;cursor:not-allowed}
+/* 2.0.22 (Benjamin : « entre les boutons Jouer, Mes demandes, Éléments, il y a un vide ») : trois onglets égaux, chacun avec son fond */
+.atl-ptabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;padding:4px;border-radius:14px}
+.atl-ptab{min-width:0;padding:11px 8px;background:rgba(255,255,255,.06);color:var(--ink);overflow:hidden;text-overflow:ellipsis}
+.atl-ptab:hover{background:rgba(255,255,255,.11)}
+.atl-ptab.on{background:#ffd34d;color:#2a1340}
+/* 2.0.22 (Benjamin : « ce vide » entre la carte du projet et les onglets) : les onglets collent à la carte ; la bande de fond au-dessus
+   des onglets (utile quand ils restent en haut en défilant) ne mange plus le bas de la carte */
+.atl-pbox>.atl-ptabs{margin-top:-6px}
+.atl-ptabs::before{height:8px}

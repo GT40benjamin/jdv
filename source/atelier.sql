@@ -2850,3 +2850,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- at_demande_ecrite ne débitent plus (le prix d'un ticket est ajouté aux options) ; at_lire renvoie credits.ticket.
 -- 2.0.21 (migration v67, appliquée) : credits_mois = 100, versés EN PLUS du solde le 1er de chaque mois (at_solde, colonne at_credits.mois =
 -- dernier mois servi ; novembre 2026 marqué servi, 1er versement le 1er décembre). La case de renonciation est dans la confirmation avant Stripe.
+-- 2.0.22 (migration v68, appliquée) : at_dire ne débite rien pendant le MONTAGE (fiche 'brouillon' ou 'en_discussion') une fois l'idée envoyée
+-- (cout_idee inchangé) ; at_lire renvoie credits.montage_gratuit = true.
