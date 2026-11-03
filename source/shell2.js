@@ -154,7 +154,7 @@ const store = {
 // les notifications ») : les états « vu » suivent le COMPTE — gardés au serveur (compte_vus), envoyés en direct aux autres appareils du compte,
 // relus à l'ouverture. Un invité garde tout sur son appareil. Restent locaux : jdw.localnotifs (notifications fabriquées par cet appareil) et
 // jdw.notesbase (version de la borne au tout premier lancement de cet appareil).
-const VUS_CLES = new Set(['jdw.notesv', 'jdw.updseen', 'jdw.tileseen', 'jdw.noteseen', 'jdw.notifseen', 'jdw.notiftoast', 'jdw.gamenotifseen', 'jdw.coopnotifseen', 'jdw.chatseen', 'jdw.seengames', 'jdw.atl.seen', 'jdw.atl.vvu', 'jdw.atl.vu']);
+const VUS_CLES = new Set(['jdw.notesv', 'jdw.updseen', 'jdw.tileseen', 'jdw.noteseen', 'jdw.notifseen', 'jdw.notiftoast', 'jdw.gamenotifseen', 'jdw.coopnotifseen', 'jdw.chatseen', 'jdw.seengames', 'jdw.atl.seen', 'jdw.atl.vvu', 'jdw.atl.vu', 'jdw.atl.elvu']);
 const VUS = { file: new Set(), t: 0, applique: false };
 const vusVer = x => typeof x === 'string' && /^\d+(\.\d+)*$/.test(x);
 function vusFusion(a, b) {   // la même fusion que le serveur (pegase_int.vus_fusion) : un « vu » ne redevient jamais « pas vu »
@@ -2112,6 +2112,14 @@ function notifRow(n, isNew) {
     const sm = document.createElement('small'); sm.textContent = 'Touche pour valider ou refuser';
     tx.append(b, sm); li.append(ic, tx); li.classList.add('click', 'nt-v');
     li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); setTimeout(() => { try { atlMesDemandes(); } catch (e) {} }, 300); });
+    return li;
+  }
+  if (n.kind === 'atelier-e') {   // 2.0.61 : des éléments ajoutés pendant la conception (une ligne groupée par projet)
+    const ic = atlGuideAv('avatar nt-game'); ic.style.background = '#7a4cff';
+    const b = document.createElement('b'); b.textContent = '🧩 ' + gNM() + ' a ajouté ' + (n.n > 1 ? n.n + ' nouveaux éléments' : 'un nouvel élément') + (n.projet ? ' à « ' + n.projet + ' »' : '');
+    const sm = document.createElement('small'); sm.textContent = 'Des aperçus, dans l’onglet Éléments · touche pour les voir';
+    tx.append(b, sm); li.append(ic, tx); li.classList.add('click', 'nt-q');
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); if (n.fiche) { atlOuvrir(n.fiche); setTimeout(() => { try { ATL.tab = 'elements'; atlProjTab('elements'); } catch (e) {} }, 900); } });
     return li;
   }
   if (n.kind === 'atelier-c') {   // 2.0.57 : l'admin a choisi une option pour le joueur
@@ -14445,6 +14453,16 @@ function atlNotifs() {
     if (!(ATL && ATL_ON() && !isGuest() && ATL.name === cleanName(profile.name))) return [];
     const out = (ATL.aValider || []).map(v => ({ kind: 'atelier-v', fiche: v.fiche, joueur: v.joueur, titre: v.titre })).concat(atlQListe().map(x => ({ kind: 'atelier-q', id: x.id, fiche: x.fiche, projet: x.projet, n: atlQNb(x) })))
       .concat(atlProjets().filter(pj => (pj.q_msg | 0) > 0).map(pj => ({ kind: 'atelier-q', id: '', fiche: pj.id, projet: pj.titre, n: pj.q_msg | 0 })));   // 2.0.36 : dans la discussion
+    { const cl = Object.assign({}, store.get('jdw.atl.elcl', {}) || {}); let ch = false;   // 2.0.61 : les éléments ajoutés pendant la conception
+      for (const pj of atlProjets()) {
+        const v = atlElVu(pj.id), n = (Array.isArray(pj.el_ajouts) ? pj.el_ajouts : []).filter(t => (+new Date(t) || 0) > v).length;
+        if (!n) { if (cl[pj.id] && cl[pj.id] < 0) { cl[pj.id] = -cl[pj.id]; ch = true; } continue; }
+        const dep = Math.abs(cl[pj.id] || 0);   // négatif = ligne affichée depuis ce moment ; positif = dernière ligne vue à ce moment
+        if (cl[pj.id] > 0 && Date.now() - dep < 30 * 60000) continue;
+        if (!(cl[pj.id] < 0)) { cl[pj.id] = -Date.now(); ch = true; }
+        out.push({ kind: 'atelier-e', fiche: pj.id, projet: pj.titre, n });
+      }
+      if (ch) store.set('jdw.atl.elcl', cl); }
     for (const x of (((ATL.dem || {}).demandes) || [])) if (x && x.nouveau && x.choix && x.choix.par === 'admin') out.push({ kind: 'atelier-c', id: x.id, fiche: x.fiche, projet: x.projet, libelle: x.choix.libelle || '', credits: x.choix.credits | 0 });   // 2.0.57
     if (atlProjets().some(atlProjNew)) out.push({ kind: 'atelier' });
     return out;
@@ -15179,6 +15197,7 @@ async function atlDemVues() {
 function atlProjTab(k) {
   const W = ATL.root.querySelector('.atl-wiz'); ATL.tab = k;
   if (k === 'demandes') { try { atlProjDemListe(W); atlDemVues(); } catch (e) {} }
+  if (k === 'elements') setTimeout(() => { try { if (ATL.tab === 'elements') { atlElVus(atlFiche()); atlElMaj(W, atlFiche()); } } catch (e) {} }, 2500);   // 2.0.61 : vu
   for (const b of W.querySelectorAll('.atl-ptab')) { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }
   for (const p of W.querySelectorAll('.atl-pane')) p.hidden = p.dataset.k !== k;
   if (k === 'discussion') { const l = W.querySelector('.atl-pmsgs'); if (l) l.scrollTop = l.scrollHeight; }
@@ -15230,8 +15249,8 @@ function atlRenderProjet(W, f) {
   const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(et), g = jouable ? (window.JDW_GAMES || {})[f.jeu] : null;
   R.querySelector('.atl-hs').textContent = atlHsTxt(f);
   const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object') : [];
-  const sig = [f.id, et, f.jeu || '', (f.design && f.design.f) || '', as.length, JSON.stringify(fi).length, f.titre || '', f.salle || '', f.monde_demande_at || '', String(!!g)].join('|');
-  if (ATL.pSig === sig && W.querySelector('.atl-pbox')) { atlProjMsgs(W, f); atlVerMaj(W, f); return; }
+  const sig = [f.id, et, f.jeu || '', (f.design && f.design.f) || '', JSON.stringify(fi).length, f.titre || '', f.salle || '', f.monde_demande_at || '', String(!!g)].join('|');
+  if (ATL.pSig === sig && W.querySelector('.atl-pbox')) { atlProjMsgs(W, f); atlVerMaj(W, f); try { atlElMaj(W, f); } catch (e) {} return; }
   atlFrameStop(); ATL.pSig = sig; W.textContent = ''; W.dataset.ver = String((f.version | 0) || 1);
   const box = atlEl('div', 'atl-pbox'); W.appendChild(box);
   // en-tête : le design, le titre, l'état
@@ -15249,7 +15268,7 @@ function atlRenderProjet(W, f) {
   if (jouable && !T.some(x => x[0] === ATL.tab)) ATL.tab = 'jeu';
   if (jouable) {
     const nav = atlEl('div', 'atl-ptabs'); nav.setAttribute('role', 'tablist');
-    for (const [k, lab] of T) { const b = atlEl('button', 'atl-ptab', lab); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'tab'); b.addEventListener('click', () => atlProjTab(k)); nav.appendChild(b); }
+    for (const [k, lab] of T) { const b = atlEl('button', 'atl-ptab', k === 'elements' && atlElNeufs(f) ? lab + ' ✨' + atlElNeufs(f) : lab); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'tab'); b.addEventListener('click', () => atlProjTab(k)); nav.appendChild(b); }
     box.appendChild(nav);
   }
   const pane = k => { const p = atlEl('section', 'atl-pane'); p.dataset.k = k; p.setAttribute('role', 'tabpanel'); box.appendChild(p); return p; };
@@ -16088,12 +16107,24 @@ function atlAssetCat(a, fi) {
   if (a.sorte === 'grande image' || /fond|d[ée]cor|paysage|ciel|sol/.test(n)) return 'decor';
   return 'objet';
 }
+// 2.0.61 (Benjamin : « l'onglet Éléments doit se remplir AU FUR ET À MESURE de la conception, en direct ») : les éléments ajoutés pendant
+// la conception (assets[].ajoute_at) portent « ✨ nouveau » jusqu'à ce que l'onglet ait été vu (jdw.atl.elvu, par projet, synchronisé) ;
+// ce sont des APERÇUS : le jeu, lui, arrive entier à la livraison
+const atlElVu = id => +((store.get('jdw.atl.elvu', {}) || {})[id] || 0);
+const atlElT = a => +new Date((a && a.ajoute_at) || 0) || 0;
+function atlElNeufs(f) { const v = atlElVu(f && f.id); return (Array.isArray(f && f.assets) ? f.assets : []).filter(a => a && atlElT(a) > v && atlAssetUrl(a)).length; }
+function atlElVus(f) {   // l'onglet Éléments a été regardé : tout ce qui y est est « vu »
+  if (!f || !f.id) return; const t = Math.max(0, ...(Array.isArray(f.assets) ? f.assets : []).map(atlElT)); if (!t || t <= atlElVu(f.id)) return;
+  const all = Object.assign({}, store.get('jdw.atl.elvu', {}) || {}); all[f.id] = t; store.set('jdw.atl.elvu', all);
+  try { refreshBell(); } catch (e) {}
+}
+function atlNeufMark(el, it) { if (!el || !it || !it.neuf) return el; el.classList.add('atl-elneuf'); el.appendChild(atlEl('span', 'atl-elnb', '✨ nouveau')); return el; }
 function atlBiblioItems(f, fi) {
   const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object' && atlAssetUrl(a)) : [], vus = new Set(), items = {};
   for (const [cat] of ATL_CATS) items[cat] = [];
   for (const a of as) {
     const cat = atlAssetCat(a, fi), cle = (a.image || a.son) + (a.case ? '#' + a.case : ''); if (!cat || vus.has(cle)) continue; vus.add(cle);
-    items[cat].push({ nom: atlVal(a.nom) || 'Sans nom', pose: atlVal(a.pose), parent: atlVal(a.parent), url: atlAssetUrl(a), path: a.image || a.son, son: !!a.son, asset: true, ix: as.indexOf(a), anim: a.anim, ordre: a.ordre, fps: a.fps, cat, case: a.case, grille: a.grille, nb: as.filter(x => x.image === a.image).length });
+    items[cat].push({ neuf: atlElT(a) > atlElVu(f.id), apercu: !!a.apercu, nom: atlVal(a.nom) || 'Sans nom', pose: atlVal(a.pose), parent: atlVal(a.parent), url: atlAssetUrl(a), path: a.image || a.son, son: !!a.son, asset: true, ix: as.indexOf(a), anim: a.anim, ordre: a.ordre, fps: a.fps, cat, case: a.case, grille: a.grille, nb: as.filter(x => x.image === a.image).length });
   }
   for (const [cat, , , k] of ATL_CATS) {
     if (!k) continue;
@@ -16126,7 +16157,7 @@ function atlBiblio(host, f, fi, lecture) {
   const lib = atlEl('div', 'atl-lib' + (lecture ? ' lecture' : ''));
   let cat = store.get('jdw.atl.libcat', 'personnage'); if (!ATL_CATS.some(c => c[0] === cat)) cat = 'personnage';
   const nav = atlEl('div', 'atl-libnav'); nav.setAttribute('role', 'tablist');
-  for (const [k, ic, lab] of ATL_CATS) { const b = atlEl('button', 'atl-libt' + (k === cat ? ' on' : ''), ic + ' ' + lab + ' · ' + items[k].length); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', k); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
+  for (const [k, ic, lab] of ATL_CATS) { const nn = items[k].filter(x => x.neuf).length, b = atlEl('button', 'atl-libt' + (k === cat ? ' on' : '') + (nn ? ' neuf' : ''), ic + ' ' + lab + ' · ' + items[k].length + (nn ? ' · ✨' + nn : '')); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === cat)); b.addEventListener('click', () => { store.set('jdw.atl.libcat', k); host.textContent = ''; if (!lecture) host.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(host, f, fi, lecture); }); nav.appendChild(b); }
   lib.appendChild(nav);
   const [, ic, lab, k] = ATL_CATS.find(c => c[0] === cat), l = items[cat], visuel = !['son', 'musique'].includes(cat);
   let vue = store.get('jdw.atl.libvue', 'planche'); if (vue !== 'cartes') vue = 'planche';
@@ -16160,6 +16191,16 @@ function atlBiblio(host, f, fi, lecture) {
   } else { const gr = atlEl('div', 'atl-libg'); for (const it of l) gr.appendChild(atlEncart(it, f, fi, libre, lecture)); sec.appendChild(gr); }
   lib.appendChild(sec);
   host.appendChild(lib);
+  if (ATL.tab === 'elements') setTimeout(() => { try { if (ATL.tab === 'elements' && host.isConnected && !host.closest('[hidden]')) atlElVus(f); } catch (e) {} }, 2500);   // 2.0.61
+}
+// 2.0.61 : l'onglet Éléments suit la conception EN DIRECT — redessiné sur place quand la liste change (jamais pendant qu'on y écrit)
+function atlElMaj(W, f) {
+  const p = W && W.querySelector('.atl-pane[data-k="elements"]'); if (!p || !f) return;
+  const as = Array.isArray(f.assets) ? f.assets : [], sig = as.length + '|' + Math.max(0, ...as.map(atlElT));   // « vu » ne redessine pas : les ✨ restent pendant qu'on regarde
+  const tb = W.querySelector('.atl-ptab[data-k="elements"]'), n = atlElNeufs(f); if (tb) { tb.textContent = '🧩 Éléments' + (n ? ' ✨' + n : ''); tb.classList.toggle('neuf', !!n); }
+  if (p.dataset.elsig === sig) return; const deja = p.dataset.elsig != null; p.dataset.elsig = sig;
+  if (!deja || p.querySelector('input:focus, textarea:focus')) return;
+  const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, sy = p.scrollTop; p.textContent = ''; p.appendChild(atlEl('h3', 'atl-ph3', '🧩 Les éléments de ton jeu')); atlBiblio(p, f, fi, atlAdminIci()); p.scrollTop = sy;
 }
 // les animations d'un personnage, déduites des poses (« marche de face 1 », « 2 et 4 », « marche de dos 2 et repos de dos »), ou des clés
 // facultatives anim / ordre / fps des assets ; dans l'ordre repos puis marche pour chaque direction, puis les autres
@@ -16206,7 +16247,7 @@ function atlTileset(xs, f, fi, libre, lecture) {
     for (const it of r.frames) { const im = atlEl('img'); im.alt = ''; im.src = it.url; pv.appendChild(im); all.push(im); }
     const lb = atlEl('div', 'atl-tsl'); lb.append(pv, atlEl('small', '', r.anim + (r.frames.length > 1 ? ' · ' + r.frames.length + ' images' : '')));
     const fr = atlEl('div', 'atl-tsf');
-    r.frames.forEach((it, n) => { const b = atlEl('button', 'atl-tsc'); b.type = 'button'; b.title = it.pose || it.nom; const im = atlEl('img'); im.alt = it.pose || it.nom; im.src = it.url; all.push(im); b.append(im, atlEl('span', '', String(n + 1))); b.addEventListener('click', () => atlFicheElem(it, f, fi, libre, lecture)); fr.appendChild(b); });
+    r.frames.forEach((it, n) => { const b = atlNeufMark(atlEl('button', 'atl-tsc'), it); b.type = 'button'; b.title = it.pose || it.nom; const im = atlEl('img'); im.alt = it.pose || it.nom; im.src = it.url; all.push(im); b.append(im, atlEl('span', '', String(n + 1))); b.addEventListener('click', () => atlFicheElem(it, f, fi, libre, lecture)); fr.appendChild(b); });
     row.append(lb, fr); W.appendChild(row);
   }
   atlEchelle(all, 92); atlTsTick();
@@ -16215,7 +16256,7 @@ function atlTileset(xs, f, fi, libre, lecture) {
 function atlPlancheCat(l, f, fi, libre, lecture) {
   const W = atlEl('div', 'atl-pl'), imgs = [];
   for (const it of l) {
-    const b = atlEl('button', 'atl-plc'); b.type = 'button';
+    const b = atlNeufMark(atlEl('button', 'atl-plc'), it); b.type = 'button';
     const v = atlEl('span', 'atl-plv');
     if (it.url && it.case && Array.isArray(it.grille)) v.appendChild(atlCrop(it.url, it.case, it.grille, it.nom, it.nb));
     else if (it.url) { const im = atlEl('img'); im.alt = it.nom; im.src = it.url; v.appendChild(im); imgs.push(im); }
@@ -16267,6 +16308,7 @@ function atlFicheElem(it, f, fi, libre, lecture) {
   const cr = atlCred(), c = atlEl('div', 'atl-mcard atl-fel');
   c.appendChild(atlEl('h2', '', (it.son ? (it.cat === 'musique' ? '🎵 ' : '🔊 ') : '🧩 ') + (it.parent && it.pose ? it.parent : it.nom)));
   if (it.pose) c.appendChild(atlEl('p', 'atl-aide', 'Pose : ' + it.pose));
+  if (it.apercu || it.neuf) c.appendChild(atlEl('p', 'atl-elap', '👀 Aperçu : ' + gNM() + ' le prépare pour ta prochaine version. Tu pourras jouer avec quand elle sera livrée, en entier.'));
   if (it.url && !it.son) { const im = atlEl('img', 'atl-felimg'); im.alt = it.nom; im.src = it.url; im.addEventListener('click', () => atlZoom(it.url)); c.appendChild(im); }
   else if (it.son) { const pl = atlEl('button', 'atl-encplay atl-felplay', '▶'); pl.type = 'button'; pl.addEventListener('click', () => atlEcouter(it.url, pl)); c.appendChild(pl); }
   else c.appendChild(atlEl('p', 'atl-chv', it.attente ? '⏳ En cours de création…' : '✏️ Pas encore créé.'));
@@ -16362,7 +16404,7 @@ function atlAvecMic(field) {   // 23 h 05 puis 3 nov. 1 h 05 : le 🎤 d'un cham
 }
 
 function atlEncart(it, f, fi, libre, lecture) {
-  const c = atlEl('figure', 'atl-enc' + (it.vide ? ' vide' : '') + (it.principal ? ' main' : ''));
+  const c = atlNeufMark(atlEl('figure', 'atl-enc' + (it.vide ? ' vide' : '') + (it.principal ? ' main' : '')), it);
   const vis = atlEl('div', 'atl-encv');
   if (it.url && !it.son && it.case && Array.isArray(it.grille)) { const cp = atlCrop(it.url, it.case, it.grille, it.nom, it.nb); cp.addEventListener('click', () => atlZoom(it.url)); vis.appendChild(cp); }   // ancienne planche : la case de l'élément
   else if (it.url && !it.son) { const im = atlEl('img'); im.alt = it.nom; im.loading = 'lazy'; im.src = it.url; im.addEventListener('click', () => atlZoom(it.url)); vis.appendChild(im); }
@@ -16621,11 +16663,13 @@ const ATL_DEM_SO = { vignette: '🖼️ Image de présentation', arret: '🎯 Ar
 // 2.0.59 (Benjamin : « l'admin ne voit PAS la mascotte en train de travailler ») : la bulle d'un ticket en travail, identique chez le joueur
 // et dans la vue admin (« Demandes du projet (admin) ») ; elle se met à jour en direct (joueur : relue toutes les 3 s ; admin : atlAdminTravail)
 function atlTravBulle(x, qui) {
-  const l = Array.isArray(x && x.etapes) ? x.etapes.filter(e => e && (e.texte || e.etape)) : [], e = l[l.length - 1]; if (!e) return null;
+  const l0 = Array.isArray(x && x.etapes) ? x.etapes.filter(e => e && (e.texte || e.etape)) : [], l = l0.filter(e => e.etape !== 'elements'), e = l[l.length - 1] || l0[l0.length - 1]; if (!e) return null;
+  const ea = l0.filter(z => z.etape === 'elements' && String(z.at || '') >= String(e.at || '')).pop();   // 2.0.61 : « J'ai ajouté 3 éléments : … »
   const tx = String(e.texte || e.etape || ''), m = tx.match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(e.at);
   const B = atlEl('div', 'atl-dthink atl-travb'), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
   col.append(atlEl('b', '', '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', tx));
   if (m && +m[2] > 0) { const n = Math.min(+m[1], +m[2]), bar = atlEl('div', 'atl-travbar'), i = atlEl('i'); i.style.width = Math.round(n / +m[2] * 100) + '%'; bar.appendChild(i); col.append(bar, atlEl('small', 'atl-travn', 'Étape ' + n + ' / ' + m[2])); }
+  if (ea && ea !== e) col.appendChild(atlEl('p', 'atl-travel', '🧩 ' + String(ea.texte || '') + ' (onglet Éléments)'));
   col.append(atlEl('small', '', (isNaN(d0) ? '' : 'à ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' · ') + (qui ? 'en direct' : 'Je te préviens dès que c’est prêt 🔔')), atlEl('span', 'atl-dpts', '•••'));
   B.append(atlGuideAv('atl-wav'), col); return B;
 }
@@ -16666,7 +16710,7 @@ function atlTravailMaj() {
     tx.append(atlEl('b', '', mondial ? '🌍 Je regarde ton jeu pour le mettre partout…' : '🛠️ Je travaille sur « ' + ((f && f.titre) || 'ton jeu') + ' »…'), ul, b, atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔'));
     tb.append(sc, tx); p.prepend(tb);
   }
-  const der = l.map(x => x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = '⏱️ En ce moment : ' + String(der.texte || der.etape || '');
+  const der = l.map(x => x.etapes.filter(e => e && e.etape !== 'elements').pop() || x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = '⏱️ En ce moment : ' + String(der.texte || der.etape || '');
 
   if (b.textContent !== txt) { b.textContent = txt; b.title = txt; }
   // 2.0.60 : comme la bulle du ticket — la barre « Étape x / y » et l'heure de la dernière étape, sous « En ce moment »
@@ -17230,6 +17274,7 @@ setInterval(async () => {
     const r0 = await rpc('at_admin_lire', { p_name: profile.name, p_fiche: m.id }, { quiet: true });
     if (!r0 || !atlAdminIci() || ATL.adminVoir !== m || !ATL.data) return;
     ATL.data.demandes_projet = r0.demandes_projet; if (r0.admin_voir) ATL.data.admin_voir = r0.admin_voir;
+    if (r0.fiche && ATL.data.fiche && r0.fiche.id === ATL.data.fiche.id && Array.isArray(r0.fiche.assets)) { ATL.data.fiche.assets = r0.fiche.assets; try { atlElMaj(ATL.root.querySelector('.atl-wiz'), ATL.data.fiche); } catch (e) {} }   // 2.0.61
     const qui = dispName((ATL.data.admin_voir || {}).joueur || '') || 'le joueur';
     for (const old of ATL.root.querySelectorAll('.atl-zoom .atl-travb[data-id]')) {
       const x = (r0.demandes_projet || []).find(d => d && d.id === old.dataset.id), nb = x && atlTravBulle(x, qui);
