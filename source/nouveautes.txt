@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## ❄️ Remparts ! : des mondes remis au propre (borne 1.63.142)
+[remparts] ❄️ Aux Grottes de glace, le verglas est une vraie plaque de glace brillante qui suit le chemin. Avant, c'étaient des ronds blancs qu'on prenait pour des emplacements de tours. Les emplacements sont maintenant bleutés pour bien se voir sur la neige.
+[remparts] 🧹 Plus de lacs en forme de L qui ressemblaient à des trous dans le décor, et plus de gros rochers, murs ou tonneaux géants posés sur le chemin, sur le portail ou sur la tour du sorcier.
+[remparts] ⚖️ La Crypte oubliée est un tout petit peu moins dure.
 [abracadabra] ## 🌪️ Abracadabra : tornade, pluie, drôles de gens et animaux plus vrais (borne 1.63.140)
 [abracadabra] 🌪️ Dis « tornade » ou « ouragan » : un énorme tourbillon naît derrière le village, avale les maisons, emporte les objets dans le ciel, fait voler les villageois (ils retombent étourdis) et te passe dessus.
 [abracadabra] 🌧️ Dis « pluie » ou « orage » : le ciel devient gris, il pleut à verse (avec des éclairs pour l'orage) et les villageois râlent d'être tout mouillés, puis le soleil revient.
