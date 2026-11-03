@@ -4764,3 +4764,7 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-travbar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#7ef7ff,#ffd34d);transition:width .6s ease}
 .atl-travb small{display:block;margin-top:3px;color:var(--muted, rgba(255,255,255,.6));font:600 12px/1.4 var(--body)}
 .atl-travb .atl-travn{color:#ffe7a3}
+/* 2.0.60 : le cadre « Je travaille » de l'onglet Jouer : l'étape en gras, la barre, l'heure */
+.atl-travail .atl-tlive{font-weight:700}
+.atl-travail .atl-travbar{max-width:320px}
+.atl-travail .atl-travh{display:block;color:#ffe7a3;font:600 12px/1.4 var(--body)}

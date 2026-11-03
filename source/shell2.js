@@ -15228,7 +15228,7 @@ function atlVerMaj(W, f) {
 function atlRenderProjet(W, f) {
   const R = ATL.root, et = String(f.etat || ''), fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {};
   const jouable = !!f.jeu && ['alpha', 'publie_salle', 'publie_monde'].includes(et), g = jouable ? (window.JDW_GAMES || {})[f.jeu] : null;
-  R.querySelector('.atl-hs').textContent = jouable ? (et === 'alpha' ? 'Ton jeu est prêt à tester !' : 'Ton jeu est publié') : et === 'refusee' ? 'Projet' : 'Conception en cours';
+  R.querySelector('.atl-hs').textContent = atlHsTxt(f);
   const as = Array.isArray(f.assets) ? f.assets.filter(a => a && typeof a === 'object') : [];
   const sig = [f.id, et, f.jeu || '', (f.design && f.design.f) || '', as.length, JSON.stringify(fi).length, f.titre || '', f.salle || '', f.monde_demande_at || '', String(!!g)].join('|');
   if (ATL.pSig === sig && W.querySelector('.atl-pbox')) { atlProjMsgs(W, f); atlVerMaj(W, f); return; }
@@ -16635,9 +16635,24 @@ function atlEtapes(l, passees) {   // passees : toutes finies (2.0.59 : l'étape
   return ul;
 }
 const atlDemEnCours = () => (((ATL && ATL.dem) || {}).demandes || []).filter(x => x && ['envoyee', 'vue', 'en_cours'].includes(x.etat));   // en attente d'une réponse ou en travail : relue toutes les 8 s
+// les demandes du projet ouvert qui sont en travail (avec des étapes) : celles du joueur, ou en vue admin celles du projet regardé
+function atlTravEnCours() {
+  if (!ATL || !ATL.cur) return [];
+  const l = atlAdminIci() ? (ATL.data.demandes_projet || []).filter(x => x && ['envoyee', 'vue', 'en_cours'].includes(x.etat)) : atlDemEnCours().filter(x => x.fiche === ATL.cur);
+  return l.filter(x => Array.isArray(x.etapes) && x.etapes.length);
+}
+// 2.0.60 (Benjamin : « Ton jeu est prêt à tester ! » pendant une conception payée) : l'en-tête du projet suit le travail en cours
+function atlHsTxt(f) {
+  const et = String((f && f.etat) || ''), jouable = !!(f && f.jeu) && ['alpha', 'publie_salle', 'publie_monde'].includes(et);
+  if (!jouable) return et === 'refusee' ? 'Projet' : 'Conception en cours';
+  const ec = atlAdminIci() ? (ATL.data.demandes_projet || []).some(x => x && x.etat === 'en_cours') : atlDemEnCours().some(x => x.fiche === f.id && x.etat === 'en_cours');
+  return ec || atlTravaille(f) ? '🛠️ ' + gNM() + ' travaille sur la nouvelle version' : et === 'alpha' ? 'Ton jeu est prêt à tester !' : 'Ton jeu est publié';
+}
+function atlHsMaj() { try { const R = ATL.root, f = atlFiche(), h = R && R.querySelector('.atl-hs'); if (h && f && ATL.cur === f.id && R.querySelector('.atl-pbox')) { const t = atlHsTxt(f); if (h.textContent !== t) h.textContent = t; } } catch (e) {} }
 function atlTravailMaj() {
   const R = ATL && ATL.root, W = R && R.querySelector('.atl-wiz'), p = W && W.querySelector('.atl-pane[data-k="jeu"]'); if (!p || !ATL.cur) return;
-  const l = (atlAdminIci() ? (ATL.data.demandes_projet || []).filter(x => x && ['envoyee', 'vue', 'en_cours'].includes(x.etat)) : atlDemEnCours()).filter(x => x.fiche === ATL.cur && Array.isArray(x.etapes) && x.etapes.length);   // 2.0.59 : en vue admin, celles du joueur
+  const l = atlTravEnCours();   // 2.0.59 : en vue admin, celles du joueur (2.0.60 : sans champ « fiche », elles sont toutes de ce projet)
+  atlHsMaj();
   let b = p.querySelector('.atl-tlive');
   if (!l.length) { const ta = p.querySelector('.atl-travail[data-auto]'); if (ta) ta.remove(); else if (b && b.closest('.atl-travail')) b.textContent = '\u00a0'; else if (b) b.remove(); return; }
   // 2.0.34 (Benjamin : « la mascotte doit être là et le dire avec sa bulle, comme quand il travaille dessus ») : le même cadre fixe que « Je prépare ta Vn »
@@ -16654,6 +16669,11 @@ function atlTravailMaj() {
   const der = l.map(x => x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = '⏱️ En ce moment : ' + String(der.texte || der.etape || '');
 
   if (b.textContent !== txt) { b.textContent = txt; b.title = txt; }
+  // 2.0.60 : comme la bulle du ticket — la barre « Étape x / y » et l'heure de la dernière étape, sous « En ce moment »
+  { const m = String(der.texte || der.etape || '').match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(der.at), hote = b.parentNode; let bar = hote.querySelector('.atl-travbar'), hn = hote.querySelector('.atl-travh');
+    if (m && +m[2] > 0) { if (!bar) { bar = atlEl('div', 'atl-travbar'); bar.appendChild(atlEl('i')); b.insertAdjacentElement('afterend', bar); } bar.firstChild.style.width = Math.round(Math.min(+m[1], +m[2]) / +m[2] * 100) + '%'; bar.title = 'Étape ' + m[1] + ' / ' + m[2]; } else if (bar) bar.remove();
+    const ht = (m ? 'Étape ' + Math.min(+m[1], +m[2]) + ' / ' + m[2] + ' · ' : '') + (isNaN(d0) ? '' : 'à ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+    if (!hn) { hn = atlEl('small', 'atl-travh'); (bar || b).insertAdjacentElement('afterend', hn); } if (hn.textContent !== ht) hn.textContent = ht; }
 }
 const atlTravSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && x.etat === 'en_cours').map(x => x.id));
 const atlTuileSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && (atlPropOuverte(x) || atlQAttente(x) || (x.nouveau && x.reponse))).map(x => [x.id, atlQNb(x)]));
