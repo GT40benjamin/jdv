@@ -2820,3 +2820,6 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- publie_monde, et at_publier_version(name, fiche) = bouton « Publier la Vn ») ; lue par at_jeux, at_lire, at_admin_lire, at_voir, at_tous_projets.
 -- at_demandes.etapes + at_demande_avancer(id, etape, texte) (équipes seulement), lues par at_mes_demandes et at_admin_lire.
 -- Les versions des jeux de l'Atelier : assets/jeux/<id>/v<N>.js (fichiers figés, sans republier la borne). Texte complet : migration v52_essai_public_etapes.
+
+-- (v53, 3 nov. 2026 10 h 10, borne 2.0.10) : at_demande_ecrite(name, fiche, texte) : une demande ÉCRITE depuis l'onglet « 🎫 Mes demandes »
+-- (jeu jouable), au prix cout_demande, ticket créé par at_demande_auto (sorte 'message', cout noté). Texte complet : migration v53_demande_ecrite.

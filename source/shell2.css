@@ -4431,3 +4431,15 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-etapes li.now{color:#ffe9a8;font-weight:700}
 .atl-etapes li small{flex:0 0 auto;opacity:.8}
 .atl-tlive{margin:6px 0 0;font-weight:700;color:#ffe9a8;animation:atlFade .3s ease-out}
+
+/* 2.0.10 : l'onglet « 🎫 Mes demandes » (ticket) */
+.atl-dnew{display:grid;gap:8px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);margin-bottom:12px}
+.atl-dnin{width:100%;box-sizing:border-box;resize:vertical;min-height:70px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);font:15px/1.4 var(--body)}
+.atl-dnenv{justify-self:start}
+.atl-dnmsg{color:var(--muted)}
+.atl-dlist{display:grid;gap:10px}
+.atl-dhist{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.atl-dhist summary{cursor:pointer;color:var(--muted);font-weight:700}
+.atl-dhist .atl-pmsgs{max-height:420px;overflow-y:auto;margin-top:8px}
+.atl-dembu.nouveau{outline:2px solid #ffd34d;background:rgba(255,211,77,.12);animation:atlFade .3s ease-out}
+.atl-dembu > div > b{color:#ffe9a8}

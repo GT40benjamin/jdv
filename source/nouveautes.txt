@@ -18,6 +18,8 @@
 [pegase] 🪷 Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.
 [pegase] 🌊 Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.
 [pegase] ⛰️ Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr.
+[atelier] ## 🎫 Tes demandes au même endroit (borne 2.0.10)
+[atelier] 🎫 Sur la page de ton jeu, l’onglet « Mes demandes » réunit tout : tu écris ce que tu veux changer, tu suis chaque étape, et la réponse de ton guide s’affiche en clair, avec « ✨ nouveau ».
 [atelier] ## 🔒 Tes essais restent à toi (borne 2.0.9)
 [atelier] 🎮 Dans l’Atelier, tu essaies toujours la dernière version de ton jeu. Tes joueurs gardent la version publiée : quand une nouvelle est prête, touche « 📢 Publier la V… ».
 [atelier] ⏱️ Tes demandes avancent en direct : tu vois chaque étape pendant que ton guide y travaille.
