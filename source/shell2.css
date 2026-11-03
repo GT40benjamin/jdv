@@ -4345,3 +4345,8 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-travail ul{margin:6px 0;padding-left:18px;font:13.5px/1.45 var(--body)}.atl-travail small{color:var(--muted)}
 .atl-travail .atl-gscene,.atl-travail > :first-child{max-width:180px}
 @media (max-width:560px){.atl-travail{grid-template-columns:1fr;justify-items:center;text-align:center}.atl-travail ul{text-align:left}}
+
+/* 3 nov. 1 h 35 : chargement / erreur de l'Atelier (jamais de faux vide), bouton de la musique */
+.atl-charge{display:grid;gap:10px;justify-items:center;text-align:center;padding:40px 16px;min-height:50vh;align-content:center}
+.atl-charge b{font:800 18px var(--body)}.atl-charge p{margin:0;color:var(--muted)}
+.atl-musb{min-width:40px}

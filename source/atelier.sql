@@ -2800,3 +2800,6 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 
 -- (v47-48, 3 nov. 2026 1 h 15 → 1 h 40) : garde-fou : motif « conception:<fiche> » pendant la construction d un projet payé ; offres :
 -- libellé 200, details, conseille ; at_lire projets : prepa (demandes en cours payées). Textes complets : migrations atelier_v47_garde_conception, atelier_v48_offres.
+
+-- (correctif du guide de l équipe, 3 nov. 2026 1 h 45, report) : dans at_lire, la clé « prepa » lit at_demandes sous l alias « dq » (l alias « dm » portait
+-- le nom d une variable plpgsql, at_credit_demandes : erreur pour tout joueur ayant un projet). Ne jamais nommer un alias SQL comme une variable.
