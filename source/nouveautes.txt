@@ -123,6 +123,8 @@
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
+[abracadabra] ## 🎨 Abracadabra : des dinosaures en couleurs (borne 2.0.52)
+[abracadabra] 🦖 Les dinosaures ont de vraies robes : le T-rex vert à bandes sombres et au ventre clair, le tricératops ocre, le stégosaure olive aux plaques orangées, le parasaurolophus vert d'eau… Et quand le T-rex surgit, plus personne ne dit « Waouh » : tout le monde hurle et s'enfuit.
 [abracadabra] ## 🦖 Abracadabra : les dinosaures ! (borne 2.0.48)
 [abracadabra] 🦕 Dis « dinosaure », « tricératops », « stégosaure », « diplodocus » ou « parasaurolophus » : ils se promènent et broutent tranquillement, et la petite fille veut tous les garder.
 [abracadabra] 🦖 Mais attention au T-rex et au vélociraptor : tout le monde hurle et s'enfuit en courant… et ils croquent les villageois un par un. Mission perdue !
