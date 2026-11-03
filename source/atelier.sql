@@ -2806,3 +2806,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 
 -- (v49, 3 nov. 2026 2 h 15) : at_demandes.version_livree (remplie à « faite ») ; at_versions (historique, rempli par at_version_suivante) ;
 -- at_demande_etat(id, etat, reponse, version) ; at_lire fiche.versions. Texte complet : migration atelier_v49_versions.
+
+-- (v50, 3 nov. 2026 2 h 20) : at_tous_projets : n_choisir, n_en_cours, n_nouvelles (demandes OUVERTES par projet). Texte complet : migration atelier_v50_tous_badges.

@@ -4362,3 +4362,13 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-vh{padding:8px 10px;margin:6px 0;border-radius:12px;background:rgba(255,255,255,.04);border-left:3px solid #ffd34d}
 .atl-vh p{margin:2px 0;font:13px var(--body)}.atl-vh ul{margin:4px 0 0;padding-left:18px;color:var(--muted);font:12.5px var(--body)}
 .atl-pubvie{margin:8px 0 0;color:var(--muted);font:13.5px/1.45 var(--body)}
+
+/* 2 h 25 : le guide réagit quand on le touche */
+#jdw-atelier .atl-accimg,#jdw-atelier .atl-wav,#jdw-atelier .atl-travail > :first-child{position:relative;cursor:pointer}
+.atl-gsaut{animation:atlGSaut .7s cubic-bezier(.3,1.6,.5,1)}
+.atl-gtour{animation:atlGTour .9s ease-in-out}
+@keyframes atlGSaut{0%{transform:translateY(0)}35%{transform:translateY(-22px) scale(1.06)}70%{transform:translateY(0) scale(.97)}100%{transform:none}}
+@keyframes atlGTour{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.atl-getoile{position:absolute;left:50%;top:30%;font-size:18px;pointer-events:none;animation:atlGEt 1.2s ease-out var(--d,0s) forwards;opacity:0}
+@keyframes atlGEt{0%{opacity:0;transform:translate(-50%,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),-70px) scale(1.1)}}
+.atl-gbulle{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:6px;padding:6px 10px;border-radius:12px;background:#fff;color:#2a1340;font:700 12.5px var(--body);white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.4);pointer-events:none;z-index:5;animation:atlFade .2s ease-out}

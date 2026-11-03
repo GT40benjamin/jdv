@@ -14311,6 +14311,25 @@ function atlToast(text) {
   if (im) { im.src = atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp'; im.hidden = false; }
   if (nm) nm.textContent = gNM();
 }
+const ATL_COUCOU = ['Coucou ! 👋', 'On crée un jeu ? 🎮', 'J’adore tes idées ! ✨', 'Hihi, ça chatouille ! 😆', 'Je suis prêt quand tu veux ! 🛠️', 'Raconte-moi ta prochaine idée 💡', 'Tu es un vrai créateur de jeux ! 🌟'];
+let ATL_TOUCHE = { t: 0, n: 0, last: 0 };
+function atlGuideTouche(el) {
+  const now = Date.now(); if (now - ATL_TOUCHE.t > 2500) ATL_TOUCHE.n = 0; ATL_TOUCHE.n++; ATL_TOUCHE.t = now;
+  const tour = ATL_TOUCHE.n >= 5; if (!tour && now - ATL_TOUCHE.last < 1000) return; if (tour) ATL_TOUCHE.n = 0; ATL_TOUCHE.last = now;
+  el.classList.remove('atl-gsaut', 'atl-gtour'); void el.offsetWidth; el.classList.add(tour ? 'atl-gtour' : 'atl-gsaut');
+  for (let k = 0; k < 6; k++) { const st = atlEl('span', 'atl-getoile', ['⭐', '✨', '🌟'][k % 3]); st.style.setProperty('--dx', (Math.random() * 120 - 60).toFixed(0) + 'px'); st.style.setProperty('--d', (0.1 * k).toFixed(2) + 's'); el.appendChild(st); setTimeout(() => st.remove(), 1400); }
+  // la phrase : la nouveauté qui attend d'abord, sinon un mot au hasard
+  let t = ATL_COUCOU[Math.floor(Math.random() * ATL_COUCOU.length)];
+  try { const nv = ATL.root && ATL.root.querySelector('.atl-accnew'); if (nv && Math.random() < 0.6) t = 'Regarde : ' + nv.textContent; } catch (e) {}
+  if (tour) t = 'Wiiiii ! 🌀';
+  const q = el.closest('.atl-acc') && el.closest('.atl-acc').querySelector('.atl-accq');
+  if (q) { if (!q.dataset.orig) q.dataset.orig = q.textContent; q.textContent = t; clearTimeout(q._t); q._t = setTimeout(() => { q.textContent = q.dataset.orig; }, 3500); }
+  else { const b = atlEl('span', 'atl-gbulle', t); el.appendChild(b); setTimeout(() => b.remove(), 2600); }
+}
+document.addEventListener('click', e => {
+  const el = e.target && e.target.closest && e.target.closest('#jdw-atelier .atl-accimg, #jdw-atelier .atl-travail > :first-child, #jdw-atelier .atl-wav');
+  if (el && !e.target.closest('button, a')) atlGuideTouche(el);
+});
 function atlGuideAv(cls) {
   const a = atlEl('span', cls || 'atl-av'), u = atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp';   // 20 h 40 : le dessin du guide (accueil/guide-*.webp)
   const im = atlEl('img'); im.alt = ''; im.src = u; im.onerror = () => { im.remove(); a.textContent = '🤖'; }; a.appendChild(im);
@@ -14386,6 +14405,7 @@ function atlErr(t) { if (!ATL.root) return; const e = ATL.root.querySelector('.a
 function atlRender() {
   if (!ATL.root || !ATL.open) return;
   try { atlAdminBandeau(); } catch (e) {}
+  setTimeout(() => { try { atlEnTete(ATL.root); } catch (e) {} }, 0);   // 3 nov. 2 h 20 : l'en-tête toujours complet
   const liste = !ATL.cur && !ATL.nouveau, R = ATL.root;
   const bases = !liste && atlBasesOn(), wiz = !liste && !bases && atlWizOn();
   R.querySelector('.atl-main').hidden = liste || wiz || bases; R.querySelector('.atl-projets').hidden = !liste; R.querySelector('.atl-wiz').hidden = !wiz; R.querySelector('.atl-bases').hidden = !bases;
@@ -16100,6 +16120,13 @@ async function atlDemCharger(force) {
   if (ATL.open && JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)) !== avant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} }   // les boutons d'une nouvelle proposition dans la discussion
   return ATL.dem;
 }
+function atlEnTete(R) {
+  if (!R || !ATL.data) return;
+  const cr = atlCred(), cp = R.querySelector('.atl-cred'), sb = R.querySelector('.atl-suivib');
+  if (cp && cr) { cp.hidden = false; if (!ATL.soldeT && !/\d/.test(cp.textContent)) cp.textContent = atlCredTxt(cr.solde); }
+  if (sb) sb.hidden = !(cr && (cr.admin || cr.patron));
+  atlAboBadge(R); atlDemBtn(R);
+}
 function atlDemBtn(R) {
   const b = R && R.querySelector('.atl-demb'); if (!b) return;
   const d = ATL.dem, n = d && Array.isArray(d.demandes) ? d.demandes.length : 0;
@@ -16109,7 +16136,7 @@ function atlDemBtn(R) {
   }
   const ouv = d && Array.isArray(d.demandes) ? d.demandes.filter(atlPropOuverte).length : 0;
   const enc = d && Array.isArray(d.demandes) ? d.demandes.filter(x => !['faite', 'impossible'].includes(x.etat)).length : 0;   // 2 h 05 : seulement celles en cours
-  b.hidden = !n; b.textContent = '📋 Mes demandes (' + enc + ')' + (ouv ? ' · 💬 ' + ouv + ' à choisir' : ''); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
+  b.hidden = !!d && !n; b.textContent = '📋 Mes demandes (' + enc + ')' + (ouv ? ' · 💬 ' + ouv + ' à choisir' : ''); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
   if (!ATL.demAt || Date.now() - ATL.demAt > 60000) atlDemCharger(false);
 }
 // ---- 0 h 15 (Benjamin) : les PROPOSITIONS chiffrées d'une demande — un bouton par option (libellé et crédits fixés par le guide pour
@@ -16220,7 +16247,8 @@ async function atlTousProjets(box) {
       const d0 = new Date(x.maj_at);
       const attx = !!x.joueur_at && (!x.reponse_at || String(x.joueur_at) > String(x.reponse_at)) && ['brouillon', 'en_discussion', 'complete'].includes(String(x.etat || ''));
       b.append(v, atlEl('b', '', x.titre || 'Sans nom'), atlEl('small', 'atl-pver', atlVersion(x, attx)), atlEl('small', '', '👤 ' + dispName(x.joueur || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))));
-      if (x.attente) b.appendChild(atlEl('span', 'atl-patt', '📨 Demande'));
+      const bd = (x.n_choisir | 0) ? '💬 ' + (x.n_choisir | 0) + ' à choisir' : (x.n_en_cours | 0) ? '🛠️ en cours' : (x.n_nouvelles | 0) ? '📨 ' + ((x.n_nouvelles | 0) > 1 ? (x.n_nouvelles | 0) + ' nouvelles demandes' : 'nouvelle demande') : '';
+      if (bd) b.appendChild(atlEl('span', 'atl-patt', bd));
       b.addEventListener('click', () => atlVoirProjet(x.id)); g.appendChild(b);
     }
     if (!g.firstChild) g.appendChild(atlEl('p', 'atl-chv', 'Aucun projet.'));
