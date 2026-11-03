@@ -2114,6 +2114,14 @@ function notifRow(n, isNew) {
     li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); setTimeout(() => { try { atlMesDemandes(); } catch (e) {} }, 300); });
     return li;
   }
+  if (n.kind === 'atelier-c') {   // 2.0.57 : l'admin a choisi une option pour le joueur
+    const ic = document.createElement('span'); ic.className = 'avatar nt-game'; ic.textContent = '✍️'; ic.style.background = '#46c878';
+    const b = document.createElement('b'); b.textContent = '✍️ L’admin a choisi pour toi : ' + (n.libelle || 'une option') + ' (' + (n.credits ? n.credits + ' 💎' : 'offert 🎁') + ')';
+    const sm = document.createElement('small'); sm.textContent = (n.projet ? '« ' + n.projet + ' » · ' : '') + 'Touche pour voir ton ticket';
+    tx.append(b, sm); li.append(ic, tx); li.classList.add('click', 'nt-q');
+    li.addEventListener('click', () => { closeSheet('jdw-notifs'); atlOpen(); ATL.demVise = n.id; if (n.fiche) atlOuvrir(n.fiche); });
+    return li;
+  }
   if (n.kind === 'atelier-q') {   // 2.0.29 : une notification à part pour les questions
     const ic = atlGuideAv('avatar nt-game'); ic.style.background = '#ffd34d';
     const b = document.createElement('b'); b.textContent = '❓ ' + gNM() + ' te pose ' + (n.n > 1 ? n.n + ' questions' : 'une question') + (n.projet ? ' sur « ' + n.projet + ' »' : '');
@@ -14437,6 +14445,7 @@ function atlNotifs() {
     if (!(ATL && ATL_ON() && !isGuest() && ATL.name === cleanName(profile.name))) return [];
     const out = (ATL.aValider || []).map(v => ({ kind: 'atelier-v', fiche: v.fiche, joueur: v.joueur, titre: v.titre })).concat(atlQListe().map(x => ({ kind: 'atelier-q', id: x.id, fiche: x.fiche, projet: x.projet, n: atlQNb(x) })))
       .concat(atlProjets().filter(pj => (pj.q_msg | 0) > 0).map(pj => ({ kind: 'atelier-q', id: '', fiche: pj.id, projet: pj.titre, n: pj.q_msg | 0 })));   // 2.0.36 : dans la discussion
+    for (const x of (((ATL.dem || {}).demandes) || [])) if (x && x.nouveau && x.choix && x.choix.par === 'admin') out.push({ kind: 'atelier-c', id: x.id, fiche: x.fiche, projet: x.projet, libelle: x.choix.libelle || '', credits: x.choix.credits | 0 });   // 2.0.57
     if (atlProjets().some(atlProjNew)) out.push({ kind: 'atelier' });
     return out;
   } catch (e) { return []; }
@@ -16942,7 +16951,7 @@ function atlDemCarte0(x) {
     if (txt.length > 140) { const vp = atlEl('button', 'atl-demplus', 'voir plus'); vp.type = 'button'; vp.addEventListener('click', () => { const o = tp.classList.toggle('ouvert'); vp.textContent = o ? 'voir moins' : 'voir plus'; }); t.appendChild(vp); }
     if (x.reponse) { const bu = atlEl('div', 'atl-dembu' + (x.nouveau ? ' nouveau' : '')), bt = atlEl('div'); bt.append(atlEl('b', '', '💬 ' + gNM() + ' te répond' + (x.nouveau ? ' · ✨ nouveau' : '')), atlEl('p', '', x.reponse)); bu.append(atlGuideAv('atl-wav'), bt); t.appendChild(bu); }   // 2.0.10 : la réponse bien visible
     if (Array.isArray(x.etapes) && x.etapes.length && !['faite', 'impossible'].includes(x.etat)) t.appendChild(atlEtapes(x.etapes));
-    if (x.choix) t.appendChild(atlEl('p', 'atl-propok', '✅ Choisi : ' + (x.choix.libelle || '') + ((x.choix.credits | 0) ? ' · ' + (x.choix.credits | 0) + ' 💎' : '')));
+    if (x.choix) t.appendChild(atlEl('p', 'atl-propok' + (x.choix.par === 'admin' ? ' adm' : ''), (x.choix.par === 'admin' ? '✍️ L’admin a choisi pour toi : ' : '✅ Choisi : ') + (x.choix.libelle || '') + ((x.choix.credits | 0) ? ' · ' + (x.choix.credits | 0) + ' 💎' : x.choix.par === 'admin' ? ' · offert 🎁' : '')));
     c.append(vig, t); return c;
 }
 async function atlMesDemandes() {
@@ -17091,6 +17100,35 @@ function atlPropEditeur(x, m) {
   const L = (Array.isArray(x.propositions) ? x.propositions : []).map(o => ({ id: o.id, libelle: o.libelle || '', credits: o.credits | 0, plancher: Number.isFinite(+o.plancher) ? +o.plancher | 0 : o.credits | 0, details: Array.isArray(o.details) ? o.details.slice() : [], conseille: !!o.conseille }));
   const minNeuf = L.length ? Math.min(...L.map(o => o.plancher)) : ((atlCred() || {}).demande | 0 || 5);
   let edit = L.length ? -1 : 0; if (!L.length) L.push({ id: 'n' + Date.now().toString(36), libelle: '', credits: minNeuf, plancher: null, details: [], conseille: true });
+  // 2.0.57 (Benjamin ; SAMBA lui en a donné le droit) : l'admin CHOISIT une option à la place du joueur (at_admin_choisir, SQL v88) — le
+  // même choix que le joueur : ses crédits à lui, « en cours », la sonnette ; le joueur le lit dans son ticket et dans la cloche
+  const av = (ATL.data && ATL.data.admin_voir) || {}, jn = dispName(av.joueur || x.name || x.joueur || '') || 'le joueur';
+  let ta = null;
+  const choisir = async o => {
+    if (edit >= 0) { msg.textContent = 'Termine d’abord la carte en cours (OK).'; return; }
+    if (!o.libelle) { msg.textContent = 'Donne d’abord un titre à cette option.'; return; }
+    const prix = o.credits | 0, so = Number.isFinite(+av.solde) && av.solde != null ? +av.solde | 0 : null;
+    let offert = false;
+    if (so != null && so < prix) {
+      if (!await atlConfirmer('💎 Pas assez de crédits', jn + ' a ' + so + ' 💎 : il en faut ' + prix + ' pour « ' + o.libelle + ' ». Rien ne sera débité. Tu peux plutôt lui offrir cette option (0 💎), puis la choisir pour lui.', '🎁 Offrir (0 💎) et choisir')) return;
+      offert = true;
+    } else if (!await atlConfirmer('✅ Choisir pour ' + jn + ' ?', 'Choisir « ' + o.libelle + ' » pour ' + jn + ' ? ' + (prix ? prix + ' 💎 seront pris sur SES crédits' + (so != null ? ' (solde : ' + so + ' → ' + (so - prix) + ')' : '') + '.' : 'C’est gratuit (0 💎).') + ' ' + jn + ' le verra dans son ticket.', '✅ Oui, choisir pour ' + jn)) return;
+    msg.textContent = 'Un instant…';
+    try {
+      const props = L.filter(q => q.libelle).map(q => ({ id: q.id, libelle: q.libelle, credits: q === o && offert ? 0 : q.credits | 0, details: q.details, conseille: q.conseille }));
+      const srv = JSON.stringify((Array.isArray(x.propositions) ? x.propositions : []).map(q => [q.id, q.libelle || '', q.credits | 0]));
+      if (JSON.stringify(props.map(q => [q.id, q.libelle, q.credits])) !== srv)   // une carte modifiée ici (ou offerte) : enregistrée d'abord
+        await rpc('at_admin_proposer', { p_name: profile.name, p_fiche: m.id, p_id: x.id, p_propositions: props, p_texte: (ta && ta.value.trim()) || null }, { quiet: true });
+      const r = await rpc('at_admin_choisir', { p_name: profile.name, p_id: x.id, p_option: o.id }, { quiet: true });
+      if (r && r.deja) msg.textContent = jn + ' a déjà choisi.';
+      else { msg.textContent = '✅ Choisi pour ' + jn + ' : « ' + o.libelle + ' » (' + ((r && r.credits) | 0) + ' 💎) · son solde : ' + ((r && r.solde) | 0) + ' 💎'; atlToast('✅ Choisi pour ' + jn); }
+      try { if (ATL.data && ATL.data.admin_voir && r && Number.isFinite(+r.solde)) ATL.data.admin_voir.solde = +r.solde; } catch (e) {}
+      setTimeout(() => { try { atlAdminDemandes(); } catch (e) {} try { atlLoad(true); } catch (e) {} }, 1200);
+    } catch (e) {
+      const t = String((e && e.message) || '');
+      msg.textContent = /insuffisants/.test(t) ? 'Pas assez de crédits chez ' + jn + ' : rien n’a été débité. Choisis « 🎁 Offrir ».' : /deja choisi/.test(t) ? jn + ' a déjà choisi.' : 'Pas possible : ' + t.slice(0, 60);
+    }
+  };
   const dessine = () => {
     grille.textContent = '';
     L.forEach((o, i) => {
@@ -17102,7 +17140,9 @@ function atlPropEditeur(x, m) {
         k.append(atlEl('div', 'atl-ofp', (o.credits | 0) + ' 💎'), atlPrixCalc(o.credits, mi, o.plancher == null));
         const bar = atlEl('div', 'atl-ofadmb'), md = atlEl('button', 'btn btn-ghost btn-sm', '✏️ Modifier'), rm = atlEl('button', 'btn btn-ghost btn-sm', '✕'); md.type = rm.type = 'button'; rm.title = 'Retirer cette option';
         md.addEventListener('click', () => { edit = i; dessine(); }); rm.addEventListener('click', () => { if (L.length > 1) { L.splice(i, 1); edit = -1; dessine(); } else msg.textContent = 'Il faut au moins une option.'; });
-        bar.append(md, rm); k.appendChild(bar);
+        bar.append(md, rm);
+        if (!x.choix) { const cx = atlEl('button', 'btn btn-play btn-sm atl-ofchx', '✅ Choisir pour ' + jn); cx.type = 'button'; cx.addEventListener('click', () => choisir(o)); bar.prepend(cx); }
+        k.appendChild(bar);
       } else {
         const li = atlEl('input', 'atl-tousf'), cr = atlEl('input', 'atl-tousf'), de = atlEl('textarea', 'atl-arin'), cs = atlEl('label', 'atl-ofcs'), cb = atlEl('input'), ok = atlEl('button', 'btn btn-play btn-sm', 'OK');
         li.maxLength = 80; li.placeholder = 'Titre de l’option'; li.value = o.libelle;
@@ -17127,7 +17167,7 @@ function atlPropEditeur(x, m) {
     }
   };
   dessine();
-  const ta = atlEl('textarea', 'atl-arin'), go = atlEl('button', 'btn btn-play btn-sm', 'Renvoyer au joueur'); go.type = 'button';
+  ta = atlEl('textarea', 'atl-arin'); const go = atlEl('button', 'btn btn-play btn-sm', 'Renvoyer au joueur'); go.type = 'button';
   ta.rows = 2; ta.maxLength = 1000; ta.placeholder = 'Ton message au joueur (facultatif)';
   go.addEventListener('click', async () => {
     if (edit >= 0) { msg.textContent = 'Termine d’abord la carte en cours (OK).'; return; }
@@ -17171,7 +17211,7 @@ async function atlAdminDemandes() {
     const av = ATL.data && ATL.data.admin_voir, jn = av ? dispName(av.joueur) : 'le joueur';
     if (Array.isArray(x.propositions) && x.propositions.length) {
       const dc = x.choix && x.choix.at ? new Date(x.choix.at) : null;
-      t.appendChild(atlEl('p', 'atl-propst', x.choix ? '✅ ' + jn + ' a choisi : ' + (x.choix.libelle || '') + ' · ' + (x.choix.credits | 0) + ' 💎' + (dc && !isNaN(dc) ? ' le ' + fdt(dc) : '') : x.etat === 'plus_tard' ? '⏸️ ' + jn + ' a dit « plus tard »' : '⏳ En attente du choix de ' + jn));
+      t.appendChild(atlEl('p', 'atl-propst', x.choix ? (x.choix.par === 'admin' ? '✍️ Choisi par l’admin (' + dispName(x.choix.admin || '') + ') pour ' + jn + ' : ' : '✅ ' + jn + ' a choisi : ') + (x.choix.libelle || '') + ' · ' + (x.choix.credits | 0) + ' 💎' + (dc && !isNaN(dc) ? ' le ' + fdt(dc) : '') : x.etat === 'plus_tard' ? '⏸️ ' + jn + ' a dit « plus tard »' : '⏳ En attente du choix de ' + jn));
     }
     if (!x.choix && !['faite', 'impossible'].includes(x.etat)) {
       if (Array.isArray(x.propositions) && x.propositions.length) t.appendChild(atlPropEditeur(x, m));

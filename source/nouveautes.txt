@@ -36,6 +36,8 @@
 [borne] 🎮 Un jeu resté ouvert en pause ne passe plus par-dessus le jeu que tu choisis : chaque tuile ouvre toujours son jeu à elle.
 [borne] ## 📱 Les jeux en plein écran sur téléphone (borne 2.0.38)
 [borne] 📱 Téléphone à l’horizontale : plus de bande sur le côté pendant la partie, le jeu prend toute la largeur. Quitter et le son sont deux petits ronds transparents, dans un coin que le jeu laisse libre.
+[atelier] ## ✍️ L’admin peut choisir une option pour toi (borne 2.0.57)
+[atelier] ✍️ Si tu le lui demandes, l’admin peut choisir une option de ton ticket à ta place : c’est écrit dans ton ticket et dans la cloche (« ✍️ L’admin a choisi pour toi »), avec le prix pris sur tes crédits, ou offert.
 [atelier] ## 📨 Tes réponses partent toutes seules (borne 2.0.54)
 [atelier] 📨 Dès que tu as répondu à toutes les questions de {g}, tes réponses lui sont envoyées tout de suite, dans tes demandes comme dans la discussion. Tant que ce n’est pas parti, c’est marqué « 📝 Brouillon », avec un gros bouton pour envoyer ; ensuite « ✅ Envoyé ».
 [atelier] ## ✏️ Une demande modifiée repart à neuf (borne 2.0.50)

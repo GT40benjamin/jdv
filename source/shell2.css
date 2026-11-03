@@ -4751,3 +4751,7 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-qgo.gros{display:block;width:100%;min-height:58px;font-size:18px;border-radius:16px;box-shadow:0 0 0 0 rgba(255,211,77,.7);animation:atlQgo 1.6s ease-in-out infinite}
 @keyframes atlQgo{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,211,77,.65)}50%{transform:scale(1.035);box-shadow:0 0 0 12px rgba(255,211,77,0)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,211,77,0)}}
 @media (prefers-reduced-motion:reduce){.atl-qgo.gros{animation:none}}
+/* 2.0.57 : « ✅ Choisir pour <joueur> » sur les cartes d'option (admin), et le choix fait par l'admin chez le joueur */
+.atl-ofadmb .atl-ofchx{flex:1 1 100%}
+.atl-propok.adm{background:rgba(70,200,120,.12);border:1px solid rgba(90,220,140,.45);border-radius:12px;padding:8px 12px}
+.atl-ofadmb{flex-wrap:wrap}
