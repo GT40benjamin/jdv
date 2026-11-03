@@ -125,21 +125,61 @@ function heart(ctx, x, y, s) {
 }
 function pill(ctx, x, y, w, h, r) { r = Math.min(r, h / 2, w / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
-/* ---------- vignette ---------- */
-let pvT0 = 0;
+/* ---------- la tuile vivante (aperçu de la borne et de l'Atelier) : un ciel pastel, un arc-en-ciel, des nuages qui glissent, des étoiles
+   qui scintillent, des collines en barbe à papa, et trois licornes du jeu qui respirent et sautillent (demande de PATOU, 3 nov.) ---------- */
+function nuage(ctx, x, y, s) {
+  ctx.fillStyle = 'rgba(190,150,210,0.18)'; ctx.beginPath(); ctx.ellipse(x, y + s * 0.42, s * 0.95, s * 0.16, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.beginPath();
+  ctx.arc(x - s * 0.55, y + s * 0.08, s * 0.32, 0, TAU); ctx.arc(x - s * 0.12, y - s * 0.12, s * 0.44, 0, TAU); ctx.arc(x + s * 0.38, y, s * 0.36, 0, TAU); ctx.arc(x + s * 0.72, y + s * 0.14, s * 0.24, 0, TAU);
+  ctx.rect(x - s * 0.8, y + s * 0.08, s * 1.6, s * 0.3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,214,236,0.55)'; ctx.beginPath(); ctx.ellipse(x - s * 0.25, y + s * 0.3, s * 0.5, s * 0.08, 0, 0, TAU); ctx.fill();
+}
+function etoile4(ctx, x, y, r) { ctx.beginPath(); ctx.moveTo(x, y - r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.quadraticCurveTo(x, y, x, y + r); ctx.quadraticCurveTo(x, y, x - r, y); ctx.quadraticCurveTo(x, y, x, y - r); ctx.fill(); }
 function preview(ctx, w, h, t) {
   try { loadImages(); } catch (e) { /* rien */ }
-  const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#ffe3ef'); g.addColorStop(1, '#d9ccff'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-  const ti = IMG.titre;
-  if (ti) { const s = Math.max(w / ti.width, h / ti.height); ctx.drawImage(ti, (w - ti.width * s) / 2, (h - ti.height * s) / 2, ti.width * s, ti.height * s); }
-  if (!pvT0) pvT0 = t;
-  const k = ['bebe-rose', 'adulte-arc', 'adulte-doree', 'bebe-arc', 'adulte-nuit'][Math.floor((t - pvT0) / 2.5) % 5];
-  const hh = h * 0.5, ww = hh * ratio(k), hop = Math.abs(Math.sin(t * 3)) * h * 0.05;
-  ctx.fillStyle = 'rgba(80,40,90,0.18)'; ctx.beginPath(); ctx.ellipse(w * 0.5, h * 0.94, ww * 0.35, h * 0.04, 0, 0, TAU); ctx.fill();
-  if (IMG[k]) ctx.drawImage(IMG[k], w * 0.5 - ww / 2, h * 0.93 - hh - hop, ww, hh);
-  ctx.fillStyle = '#fff7b0';
-  for (let i = 0; i < 7; i++) { const a = t * 0.7 + i * 0.9; star(ctx, w * 0.5 + Math.cos(a) * w * 0.28, h * 0.62 + Math.sin(a * 1.3) * h * 0.22, 3 + 2 * Math.sin(t * 4 + i), t + i); }
-  if (!ti) { ctx.fillStyle = '#9b5fc0'; ctx.font = 'bold ' + Math.round(h * 0.13) + 'px system-ui'; ctx.textAlign = 'center'; ctx.fillText('La Maison des Licornes', w / 2, h * 0.2); }
+  const k = Math.min(w / 400, h / 300);
+  // le ciel
+  const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#cfe9ff'); g.addColorStop(0.5, '#f1dcff'); g.addColorStop(1, '#ffe0ef');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  // l'arc-en-ciel, qui brille doucement
+  const ax = w * 0.5, ay = h * 0.86, R = h * 0.66, bands = ['#ffb3c8', '#ffd2a8', '#fff0a8', '#c8f2b8', '#b8e2ff', '#d2c2ff'];
+  ctx.save(); ctx.globalAlpha = 0.62 + Math.sin(t * 1.5) * 0.08; ctx.lineCap = 'round';
+  bands.forEach((c, i) => { ctx.strokeStyle = c; ctx.lineWidth = h * 0.034; ctx.beginPath(); ctx.arc(ax, ay, R - i * h * 0.032, Math.PI * 1.02, Math.PI * 1.98); ctx.stroke(); });
+  ctx.restore();
+  // des étoiles qui scintillent
+  for (let i = 0; i < 12; i++) {
+    const sx = ((i * 0.618 + 0.07) % 1) * w, sy = ((i * 0.371 + 0.05) % 0.55) * h, a = Math.max(0, Math.sin(t * 2.2 + i * 1.7));
+    ctx.globalAlpha = 0.35 + a * 0.65; ctx.fillStyle = ['#fff7b0', '#ffffff', '#ffd6ec', '#d8ccff'][i % 4]; etoile4(ctx, sx, sy, (2.5 + a * 3.5) * k);
+  }
+  ctx.globalAlpha = 1;
+  // des nuages qui glissent (ils reviennent de l'autre côté)
+  for (let i = 0; i < 3; i++) { const s = (32 + i * 9) * k, x = ((t * (7 + i * 3) * k + i * w * 0.42) % (w + s * 3)) - s * 1.5, y = h * (0.16 + i * 0.13); nuage(ctx, x, y, s); }
+  // les collines en barbe à papa
+  ctx.fillStyle = '#ffd3e6'; ctx.beginPath(); ctx.ellipse(w * 0.2, h * 1.02, w * 0.48, h * 0.26, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#d4f5e4'; ctx.beginPath(); ctx.ellipse(w * 0.85, h * 1.04, w * 0.5, h * 0.27, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffe4f0'; ctx.beginPath(); ctx.ellipse(w * 0.5, h * 1.1, w * 0.62, h * 0.24, 0, 0, TAU); ctx.fill();
+  for (let i = 0; i < 16; i++) { ctx.fillStyle = ['#ff9fc8', '#9fdcff', '#ffe27a', '#b9a4ff'][i % 4]; ctx.beginPath(); ctx.arc(((i * 0.414) % 1) * w, h * (0.9 + ((i * 0.27) % 0.08)), 1.8 * k, 0, TAU); ctx.fill(); }
+  // les licornes : la grande arc-en-ciel, le bébé rose qui sautille, la dorée ; elles respirent (images de repos du jeu)
+  const L3 = [{ n: 'adulte-arc', x: 0.25, hh: 0.42, f: 1, ph: 0 }, { n: 'adulte-doree', x: 0.77, hh: 0.42, f: -1, ph: 0.9 }, { n: 'bebe-rose', x: 0.52, hh: 0.3, f: 1, ph: 0.4, saute: 1 }];
+  const sol = h * 0.9;
+  for (const o of L3) {
+    const im = IMG[o.n + '-r' + (Math.floor(t / 0.55 + o.ph * 4) % 4)] || IMG[o.n]; if (!im) continue;
+    const per = o.saute ? 1.3 : 3.4, p = ((t + o.ph * per) % per) / per, hop = p < 0.32 ? Math.sin(p / 0.32 * Math.PI) : 0;
+    const hh = h * o.hh, ww = hh * im.width / im.height, y = sol - hop * h * (o.saute ? 0.12 : 0.05), sq = p < 0.04 || (p > 0.3 && p < 0.36) ? 0.94 : 1;
+    ctx.fillStyle = 'rgba(160,90,150,' + (0.2 - hop * 0.08) + ')'; ctx.beginPath(); ctx.ellipse(w * o.x, sol, ww * (0.3 - hop * 0.06), h * 0.025, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(w * o.x, y); ctx.scale(o.f / sq * (sq < 1 ? 0.97 : 1), sq); ctx.drawImage(im, -ww / 2, -hh, ww, hh); ctx.restore();
+  }
+  // des cœurs qui montent et des étincelles autour du bébé
+  for (let i = 0; i < 4; i++) {
+    const p = ((t * 0.35 + i / 4) % 1), x = w * (0.36 + i * 0.09) + Math.sin(t * 2 + i) * 6 * k, y = sol - h * 0.25 - p * h * 0.35;
+    ctx.globalAlpha = Math.sin(p * Math.PI) * 0.9; ctx.fillStyle = ['#ff8cc6', '#ffa8d4', '#ff7eb6', '#ffb3c7'][i]; heart(ctx, x, y, (5 + p * 3) * k);
+  }
+  for (let i = 0; i < 5; i++) { const a = t * 1.4 + i * 1.26, r = Math.max(0, Math.sin(t * 3 + i * 2)); ctx.globalAlpha = r; ctx.fillStyle = '#fff3a6'; star(ctx, w * 0.52 + Math.cos(a) * w * 0.11, sol - h * 0.16 + Math.sin(a) * h * 0.09, (2 + r * 3.5) * k, t + i); }
+  ctx.globalAlpha = 1;
+  // le titre
+  const lg = IMG.logo, by = Math.sin(t * 2) * 2 * k;
+  if (lg) { const lw = w * 0.64, lh = lw * lg.height / lg.width; ctx.fillStyle = 'rgba(255,255,255,0.62)'; pill(ctx, (w - lw) / 2 - 8 * k, h * 0.03 + by - 4 * k, lw + 16 * k, lh + 8 * k, 16 * k); ctx.fill(); ctx.drawImage(lg, (w - lw) / 2, h * 0.03 + by, lw, lh); }
+  else { ctx.fillStyle = '#9b5fc0'; ctx.font = 'bold ' + Math.round(h * 0.11) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('La Maison des Licornes', w / 2, h * 0.05 + by); }
 }
 
 /* ---------- le jeu ---------- */

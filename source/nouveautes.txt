@@ -37,6 +37,8 @@
 [pegase] 🌼 Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.
 [pegase] 🌸 De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.
 [pegase] 🧥 Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps.
+[licornes] ## 🦄 La Maison des Licornes : une tuile vivante (borne 1.63.150)
+[licornes] 🌈 La tuile du jeu s'anime : un ciel pastel, un arc-en-ciel, des nuages qui glissent et des étoiles qui scintillent. La licorne arc-en-ciel, le bébé rose et la licorne dorée y respirent et sautillent au milieu des cœurs.
 [licornes] ## 🦄 La Maison des Licornes : de jolis boutons (borne 1.63.144)
 [licornes] 🎀 Les boutons d'une licorne (Biberon, Au nid, Donner, Revendre) sont plus mignons : une icône, le mot en entier, une couleur pour chacun et un petit rebond quand tu les touches.
 [licornes] ## 🦄 La Maison des Licornes : des enfants viennent chercher leur licorne (borne 1.63.138)
