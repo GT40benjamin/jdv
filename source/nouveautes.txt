@@ -106,6 +106,8 @@
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
+[abracadabra] ## 🐃 Abracadabra : le buffle et le varan bien visibles (borne 2.0.42)
+[abracadabra] 🐃 Le buffle et le varan n'étaient que des silhouettes noires dans l'herbe : on voit maintenant leur cuir, leurs écailles et leurs cornes.
 [abracadabra] ## 🐘 Abracadabra : chaque bête à sa vraie taille (borne 2.0.41)
 [abracadabra] 🦜 Les oiseaux ont retrouvé leur vraie taille : le perroquet ne dépasse plus les villageois, le moineau reste tout petit (juste un peu agrandi pour qu'on le voie bien).
 [abracadabra] 🐘 L'éléphant est bien gris, et plus noir comme du charbon.
