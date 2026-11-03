@@ -10140,6 +10140,7 @@ function liveRecu(p) {
   for (const f of LIVE.fns) { try { f({ from: String(p.cid || ''), name: cleanName(p.n), d: p.d }); } catch (e) {} }
 }
 function mountGame(g) {
+  if (current) { try { unmountGame(); } catch (e) {} }   // 2.0.44 : jamais deux jeux l'un sur l'autre
   const seq = ++mountSeq;
   let root;
   if (g.external) { root = $(g.external); root.hidden = false; }
@@ -10235,8 +10236,14 @@ function orientVerif() {
 for (const mq of [portraitMQ, paysageMQ]) { try { mq.addEventListener('change', () => setTimeout(orientVerif, 150)); } catch (e) { try { mq.addListener(() => setTimeout(orientVerif, 150)); } catch (x) {} } }
 addEventListener('resize', () => { clearTimeout(window.__orientT); window.__orientT = setTimeout(orientVerif, 250); });
 let waitRotate = null;
-function openGame(g, web, vok) {
-  if (!vok && g && ATL_NES.has(g.id)) { const v = atlVoulue(g.id), k = g.id + '@' + v; if (v && g.__v !== v) { if (ATL_MODS_OK.has(k)) g = ATL_MODS_OK.get(k) || g; else { atlModule(g.id, v).then(g2 => openGame(g2 || g, web, true)); return; } } }
+// 2.0.44 (Benjamin : « je clique sur la tuile Seul sur la Lune, ça ouvre les Licornes ») : une partie restée montée (en pause, en attente
+// du téléphone tourné, ou dont la version se chargeait encore) passait PAR-DESSUS le jeu choisi : chaque ouverture porte un numéro,
+// un chargement dépassé par un autre clic est abandonné, et le jeu précédent est démonté avant le nouveau
+let OPEN_SEQ = 0;
+function openGame(g, web, vok, os) {
+  if (os == null) os = ++OPEN_SEQ; else if (os !== OPEN_SEQ) return;
+  if (!vok && g && ATL_NES.has(g.id)) { const v = atlVoulue(g.id), k = g.id + '@' + v; if (v && g.__v !== v) { if (ATL_MODS_OK.has(k)) g = ATL_MODS_OK.get(k) || g; else { atlModule(g.id, v).then(g2 => openGame(g2 || g, web, true, os)); return; } } }
+  if (current || waitRotate) { waitRotate = null; $('jdw-rotate').hidden = true; try { unmountGame(); } catch (e) {} }
   if (!web && nativeFor(g) && !NATIVE_HUB.has(g.id)) { nativeOpen(g); return; }   // appli Android 1.8+ : jeu en vraie appli (section « Applis natives ») ; Pégase : par son hub
   if (!isGuest()) {                    // invité : il joue tout de suite (score non enregistré)
     if (!profile.name) { startWelcome(); return; }
@@ -10268,7 +10275,7 @@ portraitMQ.addEventListener ? portraitMQ.addEventListener('change', () => { if (
 $('jdw-rotate-skip').addEventListener('click', () => { startAfterRotate.force = true; startAfterRotate(); });
 try { paysageMQ.addEventListener('change', () => { if (waitRotate && !orientMauvaise(waitRotate)) startAfterRotate(); }); } catch (e) {}
 function backToLibrary() {
-  flushPending();
+  flushPending(); OPEN_SEQ++;   // 2.0.44 : un jeu encore en chargement ne s'ouvre plus une fois revenu à l'accueil
   if (CADRE_G) { try { unmountGame(); } catch (e) {} $('jdw-end').hidden = true; $('jdw-play').hidden = false; mountGame(CADRE_G); return; }   // page d'un projet : on rejoue
   waitRotate = null; $('jdw-rotate').hidden = true;
   unmountGame();
@@ -15415,7 +15422,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
 // partie) ; « Quitter » revient à la page du projet. Pendant la partie : le petit guide flottant (déplaçable) et la touche P → arrêt sur image.
 function atlJouerVrai(f, pret) {
   const vj = (f.version | 0) || 1;   // 2.0.9 : la dernière version chargée AVANT (la partie démarre tout de suite, sans attente)
-  if (!pret && f && ATL_NES.has(f.jeu) && !ATL_MODS_OK.has(f.jeu + '@' + vj)) { atlModule(f.jeu, vj).then(() => atlJouerVrai(f, true)); return; }
+  if (!pret && f && ATL_NES.has(f.jeu) && !ATL_MODS_OK.has(f.jeu + '@' + vj)) { const os = ++OPEN_SEQ; atlModule(f.jeu, vj).then(() => { if (os === OPEN_SEQ) atlJouerVrai(f, true); }); return; }
   const g = (window.JDW_GAMES || {})[f.jeu];
   if (!g || g.id !== f.jeu) { atlToast('Ton jeu arrive sur la borne très bientôt !'); return; }
   if (/^(portrait|paysage|les2)$/.test(String(f.orientation || ''))) ATL_ORIENT.set(f.jeu, f.orientation);
