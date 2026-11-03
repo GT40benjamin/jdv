@@ -14086,7 +14086,7 @@ const ATL_AFTER = new Set(['envoyee', 'acceptee', 'alpha', 'publie_salle', 'publ
 // images DESSINÉES par l'Atelier (notre IA, fonction Edge atelier-image ; seau public atelier-ia) : seuls les chemins i/<uuid>.<ext> s'affichent
 const atlIaUrl = f => /^i\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/.test(String(f || '')) ? CFG.url.replace(/\/+$/, '') + '/storage/v1/object/public/atelier-ia/' + f : '';
 const atlAdminIci = () => !!(ATL && ATL.adminVoir && ATL.cur === ATL.adminVoir.id && ATL.data && ATL.data.admin_voir);
-function atlCredTxt(v) { if (atlAdminIci()) { const av = ATL.data.admin_voir; return '💎 ' + dispName(av.joueur) + ' ' + Math.max(0, av.solde | 0) + ' · toi ' + Math.max(0, v | 0); } return '💎 ' + Math.max(0, v | 0) + ' crédits'; }
+function atlCredTxt(v) { if (!atlAdminIci() && atlPetit()) return '💎 ' + Math.max(0, v | 0); if (atlAdminIci()) { const av = ATL.data.admin_voir; return '💎 ' + dispName(av.joueur) + ' ' + Math.max(0, av.solde | 0) + ' · toi ' + Math.max(0, v | 0); } return '💎 ' + Math.max(0, v | 0) + ' crédits'; }
 const atlCred = () => { const c = (ATL.data && ATL.data.credits && typeof ATL.data.credits === 'object') ? ATL.data.credits : null; if (c && VUE_JOUEUR) { c.admin = false; c.tous_projets = false; c.patron = false; } return c; };   // vue joueur : pas d'outils admin
 const atlFull = () => { const f = atlFiche(), fi = (f && f.fiche && typeof f.fiche === 'object') ? f.fiche : {}; return ATL_FIELDS.every(([k]) => atlVal(fi[k])); };
 // « Envoyer mon projet » cliqué : la discussion se BLOQUE, plus que des choix à cliquer (question, puis planche, puis lettre)
@@ -14165,7 +14165,7 @@ function atlSolde(v) {
   if (cur === to) return;
   cp.classList.remove('tick'); void cp.offsetWidth; cp.classList.add('tick');
   const pas = Math.max(1, Math.ceil(Math.abs(to - cur) / 25));   // une grosse somme défile en ~2 s
-  ATL.soldeT = setInterval(() => { cur += cur > to ? -Math.min(pas, cur - to) : Math.min(pas, to - cur); cp.textContent = '💎 ' + cur + ' crédits'; cp.classList.toggle('low', cur < ((cr.cout | 0) || 1)); if (cur === to) clearInterval(ATL.soldeT); }, 70);
+  ATL.soldeT = setInterval(() => { cur += cur > to ? -Math.min(pas, cur - to) : Math.min(pas, to - cur); cp.textContent = atlCredTxt(cur); cp.classList.toggle('low', cur < ((cr.cout | 0) || 1)); if (cur === to) clearInterval(ATL.soldeT); }, 70);
 }
 const ATL_SR = /BorneArcade\//.test(navigator.userAgent) ? null : (window.SpeechRecognition || window.webkitSpeechRecognition || null);
 ATL = { open: false, letter: false, data: null, name: '', busy: false, pollT: 0, err: 0, off: false, seen: store.get('jdw.atl.seen', {}) || {},
@@ -15510,7 +15510,9 @@ function atlAccueil(box, ps, max) {
   tx.append(atlEl('b', '', gNM()), atlEl('p', 'atl-accq', 'Bonjour' + (nom ? ' ' + nom : '') + ' ! 👋 Qu’est-ce qu’on fait aujourd’hui ?'));
   // 1 h 25 (Benjamin : « le guide n'est pas à jour en haut ») : 1) un choix à faire 2) une nouvelle réponse 3) une NOUVELLE version (le bon
   // numéro, seulement si c'est nouveau depuis la dernière visite) 4) un projet prêt à construire
-  const news = atlEl('div', 'atl-accn'), titre = pj => '« ' + (pj.titre || 'Mon jeu sans nom') + ' »', vus = store.get('jdw.atl.vvu', {}) || {}, faits = new Set(), lignes = [];
+  let vus = store.get('jdw.atl.vvu', null);
+  if (!vus || typeof vus !== 'object') { vus = {}; for (const pj of ps) if ((pj.version | 0) && ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || ''))) vus[pj.id] = pj.version | 0; store.set('jdw.atl.vvu', vus); }   // 2 h 05 : pas de « V2 est prête » périmée
+  const news = atlEl('div', 'atl-accn'), titre = pj => '« ' + (pj.titre || 'Mon jeu sans nom') + ' »', faits = new Set(), lignes = [];
   const dms = ATL.dem && Array.isArray(ATL.dem.demandes) ? ATL.dem.demandes : [];
   for (const pj of ps) if (dms.some(d => d.fiche === pj.id && atlPropOuverte(d))) lignes.push([pj, '💬 Tu as un choix à faire sur ' + titre(pj), () => atlMesDemandes()]);
   for (const pj of ps.filter(atlProjNew)) lignes.push([pj, '✉️ Nouvelle réponse sur ' + titre(pj), () => atlOuvrir(pj.id)]);
@@ -15527,6 +15529,11 @@ function atlAccueil(box, ps, max) {
   tx.appendChild(act);
   const pic = atlGuideAnim(news.childNodes.length ? 'joie' : 'accueil'); pic.classList.add('atl-accimg');
   A.append(pic, tx); box.appendChild(A);
+  // 2 h 05 (Benjamin : « il prend trop de place sur mobile ») : sur téléphone, replié après la 1re visite du jour ; toucher le guide déplie / replie
+  const jour = new Date().toISOString().slice(0, 10), vu = store.get('jdw.atl.accjour', '');
+  if (vu === jour && !news.childNodes.length && ATL.accOuvert !== true) A.classList.add('replie');
+  store.set('jdw.atl.accjour', jour);
+  pic.addEventListener('click', () => { if (!matchMedia('(max-width:600px)').matches) return; const r = A.classList.toggle('replie'); ATL.accOuvert = !r; });
 }
 
 // ---- la roue ⚙️ d'un projet : ✏️ Renommer (40 caractères, gratuit) ; 🗑️ Supprimer (masqué, pas effacé ; pas pendant la construction)
@@ -16120,9 +16127,11 @@ async function atlDemCharger(force) {
   if (ATL.open && JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)) !== avant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} }   // les boutons d'une nouvelle proposition dans la discussion
   return ATL.dem;
 }
+const atlPetit = () => { try { return matchMedia('(max-width:600px)').matches; } catch (e) { return false; } };
 function atlEnTete(R) {
   if (!R || !ATL.data) return;
   const cr = atlCred(), cp = R.querySelector('.atl-cred'), sb = R.querySelector('.atl-suivib');
+  if (sb) sb.textContent = atlPetit() ? '📊' : '📊 Suivi';
   if (cp && cr) { cp.hidden = false; if (!ATL.soldeT && !/\d/.test(cp.textContent)) cp.textContent = atlCredTxt(cr.solde); }
   if (sb) sb.hidden = !(cr && (cr.admin || cr.patron));
   atlAboBadge(R); atlDemBtn(R);
@@ -16136,7 +16145,9 @@ function atlDemBtn(R) {
   }
   const ouv = d && Array.isArray(d.demandes) ? d.demandes.filter(atlPropOuverte).length : 0;
   const enc = d && Array.isArray(d.demandes) ? d.demandes.filter(x => !['faite', 'impossible'].includes(x.etat)).length : 0;   // 2 h 05 : seulement celles en cours
-  b.hidden = !!d && !n; b.textContent = '📋 Mes demandes (' + enc + ')' + (ouv ? ' · 💬 ' + ouv + ' à choisir' : ''); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
+  b.hidden = !!d && !n; b.textContent = atlPetit() ? '📋' : '📋 Mes demandes (' + enc + ')' + (ouv ? ' · 💬 ' + ouv + ' à choisir' : '');
+  if (atlPetit() && (enc || ouv)) b.appendChild(atlEl('span', 'atl-pastn', String(ouv || enc)));
+  b.setAttribute('aria-label', 'Mes demandes : ' + enc + ' en cours' + (ouv ? ', ' + ouv + ' à choisir' : '')); b.classList.toggle('nouveau', !!(d && (d.nouveaux > 0 || ouv)));
   if (!ATL.demAt || Date.now() - ATL.demAt > 60000) atlDemCharger(false);
 }
 // ---- 0 h 15 (Benjamin) : les PROPOSITIONS chiffrées d'une demande — un bouton par option (libellé et crédits fixés par le guide pour
