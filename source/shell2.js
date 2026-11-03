@@ -16655,6 +16655,8 @@ async function atlSuivi() {
   const bar = atlEl('div', 'atl-sbar'); const fill = atlEl('i'); fill.style.width = pct + '%'; if (pct >= 80) bar.classList.add('haut'); bar.appendChild(fill); tot.appendChild(bar);
   tot.appendChild(atlEl('small', '', 'Estimation : ' + ((r.cout_image_centimes | 0) / 100).toFixed(2).replace('.', ',') + ' € par image (à vérifier sur la facture Google). À 100 % du budget ou ' + (m.plafond | 0) + ' dessins, l’atelier de dessin se met en pause tout seul.'));
   P.appendChild(tot);
+  const sc = Array.isArray(r.sans_credit) ? r.sans_credit : [];   // 3 nov. 1 h 12 (Benjamin) : une génération partie sans crédit
+  if (sc.length) { P.appendChild(atlEl('b', 'atl-rh2 atl-alerte', '⚠️ Génération sans crédit · ' + sc.length)); const ul = atlEl('ul'); for (const g of sc.slice(0, 20)) { const d0 = new Date(g.at); ul.appendChild(atlEl('li', '', (isNaN(d0) ? '' : d0.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ') + (g.role || '') + ' · ' + String(g.titre || '').slice(0, 80))); } P.appendChild(ul); }
   const rows = Array.isArray(r.lignes) ? r.lignes : [];
   if (!rows.length) P.appendChild(atlEl('p', '', 'Aucun dessin pour l’instant.'));
   else {

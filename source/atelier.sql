@@ -2791,3 +2791,6 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (v42, 3 nov. 2026 0 h 45) : at_fiche_etape accepte « descriptions » ({nom: texte}, 40 / 300 caractères) : un élément = un nom court + sa description.
 
 -- (v43, 3 nov. 2026 0 h 55) : at_dessins_demander, at_design_refaire, at_asset_renommer refusent un projet pas encore monté (pas de design, brouillon / en discussion).
+
+-- (v44, 3 nov. 2026 1 h 12) : garde-fou at_gen_file (pegase_int.at_gen_garde, colonne motif : achat / demande:<id> / offert:<raison>:<admin> / montage / equipe ;
+-- sinon refus « generation sans credit ») ; at_suivi : sans_credit. Texte complet : migration atelier_v44_garde_generation.
