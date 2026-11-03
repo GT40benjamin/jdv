@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## ✨ Ton idée et tes demandes sont gratuites (borne 2.0.28)
+[atelier] ✨ Raconter ton idée à {g} et en discuter est gratuit, pour tous tes projets. Les crédits servent seulement ensuite, quand ton projet est monté : les designs, les éléments, la conception.
+[atelier] 🎨 Demander à {g} de modifier ou de créer un élément ne coûte plus rien à l’envoi : tu paies seulement l’option que tu choisis.
 [remparts] ## 🏰 Ta progression aussi est celle de la salle (borne 2.0.27)
 [remparts] 🗺️ Les mondes ouverts et les étoiles sont maintenant ceux de la salle où tu joues : dans une salle où tu n'as pas encore joué, tu recommences à La Forêt enchantée.
 [remparts] 🏰 Dans une salle où tu as déjà joué, tu retrouves tout : tes mondes ouverts, tes étoiles et tes scores.
@@ -226,8 +229,8 @@
 [atelier] ## 🧾 Le devis de ton jeu (borne 1.63.112)
 [atelier] 🧾 Avant de lancer la conception, tu vois le devis de ton jeu : chaque élément avec son prix en crédits. Retire (✕) ce dont tu n'as pas besoin et le total baisse ; ↩ pour le remettre.
 
-[atelier] ## ✨ Ta première idée est offerte (borne 1.63.111)
-[atelier] ✨ Ta toute première idée de jeu est offerte. Pour les projets suivants, envoyer ton idée coûte quelques crédits (le prix est sur le bouton) ; écrire et garder ton brouillon reste gratuit.
+[atelier] ## ✨ Ton idée est offerte (borne 1.63.111)
+[atelier] ✨ Raconter ton idée de jeu ne coûte rien, et écrire ou garder ton brouillon reste gratuit.
 
 [atelier] ## 🖼️ L'image de ta tuile (borne 1.63.110)
 [atelier] 🖼️ La tuile de ton jeu montre son image de présentation. Tu veux une tuile animée, qui bouge comme sur la borne ? Demande-la à {g} avec « 🖼️ Modifier l'image de présentation ».

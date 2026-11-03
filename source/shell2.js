@@ -14481,7 +14481,7 @@ const atlWelcome = () => [
   '🖼️ Tu peux joindre des images qui te plaisent : on s’en inspire, on ne les copie jamais dans ton jeu.',
   '✨ ' + gNM() + ' remplit alors toute ta fiche et prépare un premier design de ton jeu (quelques minutes : va jouer, la cloche 🔔 te préviendra).',
   'Ensuite tu relis chaque étape, tu ajoutes ou enlèves ce que tu veux, puis tu touches « 🚀 Lancer la conception » : ton jeu se construit.',
-  '💎 Parler ' + gA() + ' : 2 crédits le message · un élément : 10 · une forme simple : 3. Le prix est toujours écrit sur le bouton.'
+  '💬 Raconter ton idée et en discuter avec ' + gN() + ' : gratuit. Les crédits servent ensuite, quand ton projet est monté : un élément 10 · une forme simple 3. Le prix est toujours écrit sur le bouton.'
 ];
 function atlBuild() {
   if (ATL.root) return ATL.root;
@@ -14748,7 +14748,7 @@ function atlRenderChat() {
   R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R);
   R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
   atlChatRetour(bn);
-  const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = atlMsgs().some(m => !m.atelier) ? (atlCoutMsg() ? '💎 ' + atlCoutMsg() + ' par message' : '💬 Réponds-moi ici : c’est gratuit pendant qu’on monte ton projet') : atlCoutMsg() ? '💎 Ton idée : ' + atlCoutMsg() + ' crédits (non remboursés)' : '🎁 Ta 1re idée est offerte !';
+  const ct = R.querySelector('.atl-cost'), pxM = atlCoutMsg(); const disc = atlMsgs().some(m => !m.atelier); ct.hidden = !cr || (!pxM && !disc); if (cr) ct.textContent = pxM ? '💎 ' + pxM + ' par message' : '💬 Réponds-moi ici : c’est gratuit pendant qu’on monte ton projet';   // 2.0.27 (Benjamin : « pas 20 du tout pour faire l'idée ») : rien à payer pour raconter et discuter
 }
 
 // ---------- 2 nov. 16 h 25 (Benjamin) : le parcours HYPER SIMPLE — un seul prompt remplit tout, puis ÉTAPE PAR ÉTAPE ----------
@@ -15260,7 +15260,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
   // le micro : le moteur unique (continu, Ctrl+Espace, bouton Vue / Select de la manette)
   if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true;
-  const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', '▶ Reprendre'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? ' · ' + cout + ' 💎' : ''));
+  const row = atlEl('div', 'atl-arbtns'), rp = atlEl('button', 'btn btn-ghost', '▶ Reprendre'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? (cout ? ' · ' + cout + ' 💎' : '') : ''));
   rp.type = 'button'; go.type = 'button';
   const fin = () => { if (ATL_MIC && ATL_MIC.field === ta) atlMicFin(); O.remove(); reprendre(); };
   rp.addEventListener('click', fin);
@@ -15723,7 +15723,7 @@ function atlRenderRoute(liste) {
 // ---- l'étape 2 « Décris ton jeu » : la page d'écriture (au-dessus de la grande case, du micro et de « Joindre une image »)
 function atlIntro(on) {
   const R = ATL.root, I = R && R.querySelector('.atl-intro'); if (!I) return;
-  I.hidden = !on; R.querySelector('.atl-send').textContent = on ? '✨ Envoyer ' + gA() + ' · ' + (atlCoutMsg() ? atlCoutMsg() + ' 💎' : 'gratuit') : 'Envoyer ➤';
+  I.hidden = !on; R.querySelector('.atl-send').textContent = on ? '✨ Envoyer ' + gA() + (atlCoutMsg() ? ' · ' + atlCoutMsg() + ' 💎' : '') : 'Envoyer ➤';   // 2.0.27 : l'idée est gratuite
   R.querySelector('.atl-in').placeholder = on ? 'Raconte ton jeu ici…' : 'Écris ' + gA() + '…';
   if (!on) { I.textContent = ''; return; }
   if (I.dataset.on === '1' && I.firstChild) return; I.dataset.on = '1'; I.textContent = '';
@@ -16107,10 +16107,10 @@ function atlFicheElem(it, f, fi, libre, lecture) {
   else c.appendChild(atlEl('p', 'atl-chv', it.attente ? '⏳ En cours de création…' : '✏️ Pas encore créé.'));
   const row = atlEl('div', 'atl-felbtns'), no = atlEl('button', 'btn btn-ghost', 'Fermer'); no.type = 'button'; no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   if (!lecture && it.asset) {
-    const px = k => k === 'retouche' ? (cr && cr.retouche != null ? cr.retouche | 0 : 3) : k === 'redessin' ? (cr && cr.cout != null ? cr.cout | 0 : 10) : (cr && cr.demande != null ? cr.demande | 0 : 5);
-    const b = (t, k, cls) => { const x = atlEl('button', 'btn ' + (cls || 'btn-ghost'), t + ' · ' + px(k) + ' 💎'); x.type = 'button'; x.addEventListener('click', () => atlModif(it, f, k)); row.appendChild(x); };
+    const px = k => k === 'retouche' ? (cr && cr.retouche != null ? cr.retouche | 0 : 3) : k === 'redessin' ? (cr && cr.cout != null ? cr.cout | 0 : 10) : (cr && cr.ticket != null ? cr.ticket | 0 : 0);
+    const b = (t, k, cls) => { const x = atlEl('button', 'btn ' + (cls || 'btn-ghost'), t + (px(k) ? ' · ' + px(k) + ' 💎' : '')); x.type = 'button'; x.addEventListener('click', () => atlModif(it, f, k)); row.appendChild(x); };
     if (!it.son) { b('✂️ Retouche par ' + gN(), 'retouche', 'btn-play'); b('🎨 Refaire l’élément', 'redessin'); }
-    else { const x = atlEl('button', 'btn btn-play', (it.cat === 'musique' ? '🎵' : '🔊') + ' Changer ce son · ' + (cr && cr.demande != null ? cr.demande | 0 : 5) + ' 💎'); x.type = 'button'; x.addEventListener('click', () => atlDemandeElem(it, f)); row.appendChild(x); }
+    else { const x = atlEl('button', 'btn btn-play', (it.cat === 'musique' ? '🎵' : '🔊') + ' Changer ce son' + (cr && cr.ticket ? ' · ' + (cr.ticket | 0) + ' 💎' : '')); x.type = 'button'; x.addEventListener('click', () => atlDemandeElem(it, f)); row.appendChild(x); }
     b('🗑️ Demander ' + gA() + ' de le retirer', 'retirer');
     c.appendChild(atlEl('p', 'atl-felx', it.son ? '' : '✂️ Retouche : recadrer, changer la taille ou les couleurs, miroir, corriger le fond… sans le refaire. 🎨 Refaire l’élément : une toute nouvelle version. Si une retouche suffit, ' + gN() + ' la fait au prix de la retouche.'));
   } else if (!lecture && it.vide && libre) { const x = atlEl('button', 'btn btn-play', '🎨 Le créer'); x.type = 'button'; x.addEventListener('click', () => atlModale()); row.appendChild(x); }
@@ -16144,13 +16144,13 @@ function atlVignetteDem(f, url) {
   hd.append(atlGuideAv('atl-wav'), ht); c.appendChild(hd);
   if (url) { const im = atlEl('img', 'atl-demimg'); im.alt = ''; im.src = url; c.appendChild(im); }
   let type = 'vignette';
-  const ch = atlEl('div', 'atl-vchoix'), opt = (k, t, d) => { const b = atlEl('button', 'atl-vopt' + (k === type ? ' on' : '')); b.type = 'button'; b.append(atlEl('b', '', t + ' · ' + px[k] + ' 💎'), atlEl('small', '', d)); b.addEventListener('click', () => { type = k; for (const x of ch.children) x.classList.toggle('on', x === b); go.textContent = 'Envoyer ' + gA() + ' · ' + px[type] + ' 💎'; }); ch.appendChild(b); };
+  const ch = atlEl('div', 'atl-vchoix'), opt = (k, t, d) => { const b = atlEl('button', 'atl-vopt' + (k === type ? ' on' : '')); b.type = 'button'; b.append(atlEl('b', '', t + (px[k] ? ' · ' + px[k] + ' 💎' : '')), atlEl('small', '', d)); b.addEventListener('click', () => { type = k; for (const x of ch.children) x.classList.toggle('on', x === b); go.textContent = 'Envoyer ' + gA() + (px[type] ? ' · ' + px[type] + ' 💎' : ''); }); ch.appendChild(b); };
   opt('vignette', '🖼️ Image fixe', 'une nouvelle image');
   opt('vignette_animee', '✨ Image animée', 'une tuile vivante : personnages qui bougent, étincelles…');
   c.appendChild(ch);
   const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux voir sur l’image…'; c.appendChild(atlAvecMic(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
-  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + px[type] + ' 💎'); no.type = go.type = 'button';
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (px[type] ? ' · ' + px[type] + ' 💎' : '')); no.type = go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   go.addEventListener('click', async () => {
     const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
@@ -16167,14 +16167,14 @@ function atlVignetteDem(f, url) {
 }
 function atlModif(it, f, type) {
   const M = ATL.root.querySelector('.atl-mod'); M.textContent = ''; M.hidden = false;
-  const cr = atlCred(), cout = type === 'retouche' ? (cr && cr.retouche != null ? cr.retouche | 0 : 3) : type === 'redessin' ? (cr && cr.cout != null ? cr.cout | 0 : 10) : (cr && cr.demande != null ? cr.demande | 0 : 5);
+  const cr = atlCred(), cout = type === 'retouche' ? (cr && cr.retouche != null ? cr.retouche | 0 : 3) : type === 'redessin' ? (cr && cr.cout != null ? cr.cout | 0 : 10) : (cr && cr.ticket != null ? cr.ticket | 0 : 0);
   const c = atlEl('div', 'atl-mcard'), hd = atlEl('div', 'atl-arh'), ht = atlEl('div');
   ht.append(atlEl('b', '', gNM()), atlEl('p', '', type === 'retouche' ? 'Qu’est-ce que je retouche sur « ' + it.nom + ' » ? (recadrer, taille, couleurs, miroir, fond…)' : type === 'redessin' ? 'Comment veux-tu que je refasse « ' + it.nom + ' » ?' : 'Tu veux que je retire « ' + it.nom + ' » du jeu ? Je regarde, j’adapte ton jeu et je publie une nouvelle version.'));
   hd.append(atlGuideAv('atl-wav'), ht); c.appendChild(hd);
   if (it.url && !it.son) { const im = atlEl('img', 'atl-demimg'); im.alt = it.nom; im.src = it.url; c.appendChild(im); }
   const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = type === 'retirer' ? 'Pourquoi ? (facultatif)' : 'Ce que tu veux…'; c.appendChild(atlAvecMic(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
-  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎'); no.type = go.type = 'button';
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? ' · ' + cout + ' 💎' : '')); no.type = go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   go.addEventListener('click', async () => {
     atlMicFin();
@@ -16264,7 +16264,7 @@ function atlEncRenommer(c, it, f, fi) {
 // « Modifier avec le guide » (élément joint) ou « Créer » un élément (interface, son, musique, ou après le lancement) : une demande (cout_demande)
 function atlDemandeElem(it, f, cat) {
   const creer = !it, cr = atlCred(), M = ATL.root.querySelector('.atl-mod');
-  const cout = creer && cat === 'musique' ? (cr && cr.musique != null ? cr.musique | 0 : 30) : creer && cat === 'son' ? (cr && cr.son != null ? cr.son | 0 : 5) : (cr && cr.demande != null ? cr.demande | 0 : 5);   // 21 h 45 : une musique, un son, une demande
+  const cout = creer && cat === 'musique' ? (cr && cr.musique != null ? cr.musique | 0 : 30) : creer && cat === 'son' ? (cr && cr.son != null ? cr.son | 0 : 5) : (cr && cr.ticket != null ? cr.ticket | 0 : 0);   // 21 h 45 : une musique, un son, une demande
   M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard');
   const hd = atlEl('div', 'atl-arh'), ht = atlEl('div'); ht.append(atlEl('b', '', gNM()), atlEl('p', '', creer ? (cat === 'musique' ? 'Dis-moi quelle musique tu veux : l’ambiance, les instruments, quand elle joue. Je la compose !' : cat === 'son' ? 'Dis-moi quel son tu veux : à quel moment il joue, comment il sonne. Je le fabrique !' : 'Dis-moi ce que tu veux créer, je m’en occupe !') : 'Qu’est-ce que je change sur « ' + it.nom + ' » ?')); hd.append(atlGuideAv('atl-wav'), ht);
@@ -16273,7 +16273,7 @@ function atlDemandeElem(it, f, cat) {
   let ni = null; if (creer) { ni = atlEl('input', 'atl-chin2'); ni.type = 'text'; ni.maxLength = 80; ni.placeholder = 'Son nom (ex. : ' + ({ son: 'le bruit du saut', musique: 'la musique du menu', interface: 'le bouton Jouer' }[cat] || 'un dragon bleu') + ')'; c.appendChild(atlAvecMic(ni)); }
   const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = creer ? (cat === 'musique' ? 'Ex. : douce et mystérieuse, au piano, pendant l’exploration…' : cat === 'son' ? 'Ex. : un petit « boing » joyeux quand on saute…' : 'Décris-le : couleurs, ambiance, à quoi il sert…') : 'Ce que tu veux changer…'; c.appendChild(atlAvecMic(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
-  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎'); no.type = 'button'; go.type = 'button';
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? ' · ' + cout + ' 💎' : '')); no.type = 'button'; go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   go.addEventListener('click', async () => {
     atlMicFin();
@@ -17432,16 +17432,38 @@ async function atlSuivi() {
     P.appendChild(atlEl('p', 'atl-stot', '⭐ Atelier+ : ' + (ach.abonnes | 0) + ' abonné' + ((ach.abonnes | 0) > 1 ? 's' : '') + ' · ' + String(ach.abo_mois_euros || 0).replace('.', ',') + ' € ce mois'));
     // donner des crédits (Benjamin seulement, at_credits_donner) : sans demande du joueur
     P.appendChild(atlEl('b', 'atl-rh2', '🎁 Donner des crédits'));
-    const fd = atlEl('div', 'atl-don'), qui = atlEl('input'), combien = atlEl('input'), note = atlEl('input'), ok = atlEl('button', 'btn btn-play btn-sm', 'Donner'), msg = atlEl('small');
-    qui.placeholder = 'Joueur'; qui.maxLength = 40; combien.type = 'number'; combien.min = '1'; combien.max = '5000'; combien.placeholder = 'Crédits'; note.placeholder = 'Note (facultatif)'; note.maxLength = 120; ok.type = 'button';
+    // 2.0.27 (Benjamin : « il faut une liste déroulante pour choisir le joueur ») : les vrais comptes (at_admin_joueurs, nom affiché +
+    // compte exact + solde), une recherche au-dessus si la liste est longue, une confirmation « Donner 500 💎 à SAMBA ? », puis le nouveau solde
+    const fd = atlEl('div', 'atl-don'), cherche = atlEl('input', 'atl-doncherche'), qui = atlEl('select', 'atl-donqui'), combien = atlEl('input'), note = atlEl('input'), ok = atlEl('button', 'btn btn-play btn-sm', 'Donner'), msg = atlEl('small', 'atl-donmsg');
+    cherche.type = 'search'; cherche.placeholder = '🔎 Chercher un joueur'; cherche.hidden = true;
+    combien.type = 'number'; combien.min = '1'; combien.max = '5000'; combien.placeholder = 'Crédits'; note.placeholder = 'Note (facultatif)'; note.maxLength = 120; ok.type = 'button';
+    let joueurs = [];
+    const lab = j => dispName(j.name) + (dispName(j.name) !== j.name ? ' (' + j.name + ')' : '') + ' · ' + Math.max(0, j.solde | 0) + ' 💎';
+    const remplir = () => {
+      const q = cherche.value.trim().toLowerCase(), avant = qui.value; qui.textContent = '';
+      qui.appendChild(new Option('— Choisis un joueur —', ''));
+      for (const j of joueurs) if (!q || lab(j).toLowerCase().includes(q)) qui.appendChild(new Option(lab(j), j.name));
+      if ([...qui.options].some(o => o.value === avant)) qui.value = avant;
+    };
+    const charger = async () => {
+      try { const l = await rpc('at_admin_joueurs', { p_name: profile.name }, { quiet: true }); joueurs = (Array.isArray(l) ? l : []).filter(j => j && j.name).sort((a, b) => dispName(a.name).localeCompare(dispName(b.name), 'fr')); }
+      catch (e) { joueurs = []; msg.textContent = 'Liste des joueurs indisponible.'; }
+      cherche.hidden = joueurs.length <= 12; remplir();
+    };
+    cherche.addEventListener('input', remplir);
     ok.addEventListener('click', async () => {
-      const n = Math.round(+combien.value); if (!qui.value.trim() || !(n > 0)) { msg.textContent = 'Le joueur et le nombre de crédits.'; return; }
+      const n = Math.round(+combien.value), j = joueurs.find(x => x.name === qui.value);
+      if (!j || !(n > 0)) { msg.textContent = 'Choisis le joueur et le nombre de crédits.'; return; }
+      if (!await atlConfirmer('🎁 Donner ' + n + ' 💎 à ' + dispName(j.name) + ' ?', 'Son solde passera de ' + Math.max(0, j.solde | 0) + ' à ' + (Math.max(0, j.solde | 0) + n) + ' crédits.' + (note.value.trim() ? ' Note : « ' + note.value.trim() + ' ».' : ''), '✅ Oui, donner')) return;
       ok.disabled = true; msg.textContent = '';
-      try { const x = await rpc('at_credits_donner', { p_name: profile.name, p_joueur: qui.value.trim(), p_montant: n, p_note: note.value.trim() }, { quiet: true }); msg.textContent = '✅ ' + n + ' crédits donnés' + (x && Number.isFinite(+x.solde) ? ' · solde ' + (x.solde | 0) : '') + '.'; combien.value = ''; note.value = ''; }
-      catch (e) { msg.textContent = /inconnu/.test(String(e && e.message)) ? 'Joueur inconnu.' : 'Pas possible : ' + String((e && e.message) || '').slice(0, 60); }
+      try {
+        const x = await rpc('at_credits_donner', { p_name: profile.name, p_joueur: j.name, p_montant: n, p_note: note.value.trim() }, { quiet: true });
+        if (x && Number.isFinite(+x.solde)) j.solde = x.solde | 0;
+        msg.textContent = '✅ ' + n + ' crédits donnés à ' + dispName(j.name) + ' · nouveau solde : ' + Math.max(0, j.solde | 0) + ' 💎.'; combien.value = ''; note.value = ''; remplir();
+      } catch (e) { msg.textContent = /inconnu/.test(String(e && e.message)) ? 'Joueur inconnu.' : 'Pas possible : ' + String((e && e.message) || '').slice(0, 60); }
       finally { ok.disabled = false; }
     });
-    fd.append(qui, combien, note, ok); P.append(fd, msg);
+    fd.append(cherche, qui, combien, note, ok); P.append(fd, msg); charger();
     // 22 h 15 (Benjamin : « tu peux faire le webhook ? ») : brancher Stripe côté serveur (fonction Edge stripe-config) — le webhook (sans
     // doublon, son secret rangé dans la base privée) et le portail client ; aucune clé ne passe par la borne
     P.appendChild(atlEl('b', 'atl-rh2', '🔌 Stripe'));

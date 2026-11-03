@@ -4612,3 +4612,7 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-dthink p{height:2.8em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .atl-dthink b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .atl-travail > div:last-child{justify-self:stretch;width:100%;box-sizing:border-box}   /* la colonne du texte ne suit plus la longueur de la phrase */
+/* 2.0.27 : Donner des crédits, la liste des comptes */
+.atl-don .atl-doncherche{flex:1 1 100%}
+.atl-don .atl-donqui{flex:2 1 220px;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:14px var(--body)}
+.atl-donmsg{display:block;margin-top:2px}

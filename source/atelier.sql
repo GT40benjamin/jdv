@@ -2854,3 +2854,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (cout_idee inchangé) ; at_lire renvoie credits.montage_gratuit = true.
 -- 2.0.25 (migration v69, appliquée) : at_guide() public = at_textes 'guide' {nom, a, de, img} (le nom de la mascotte pour toute la borne,
 -- jamais écrit dans les pages : les notes de version portent « {G} » / « {g} », remplacés à l'affichage).
+-- 2.0.27 (migration v70, appliquée) : cout_idee = 0 (raconter son idée est gratuit, tous projets) ; at_demande_element et at_demande_modif
+-- débitent cout_ticket (0) au lieu de cout_demande ; at_admin_joueurs(name) (patron) = vrais comptes + solde, pour « Donner des crédits ».
