@@ -43,7 +43,12 @@ const LABO = new Set(['noisette', 'lune', 'licornes']);   // 3 nov. 2026 (Benjam
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('jdw.magicv1.')) localStorage.removeItem(k);
   const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if (Array.isArray(l) && l.includes('magicv1')) localStorage.setItem('jdw.labo', JSON.stringify(l.filter(x => x !== 'magicv1'))); } catch (e) {}
 const VUE_JOUEUR = (() => { try { return localStorage.getItem('jdw.vuejoueur') === '1' && !new URLSearchParams(location.search).get('labo'); } catch (e) { return false; } })();   // 23 h 45 : vue joueur normale (5 touches sur le titre)
+// 2.0.32 (Benjamin : « si quelqu'un d'autre que SAMBA ou moi fait 5 touches vite, il n'a pas accès ? ») : le mode test (jeux en essai, vue
+// admin) ne s'ouvre que pour le compte que le SERVEUR a reconnu admin (at_suis_admin, retenu dans jdw.labo.ok = son nom) ; vérifié à chaque
+// ouverture : un jdw.labo écrit à la main, ou un ?labo= dans l'adresse, ne montre rien à un joueur normal
+const LABO_ADMIN = (() => { try { const n = String((JSON.parse(localStorage.getItem('jdw.profile') || 'null') || {}).name || '').trim().slice(0, 12).toUpperCase(); return !!n && localStorage.getItem('jdw.labo.ok') === n; } catch (e) { return false; } })();
 const LABO_ON = (() => {
+  if (!LABO_ADMIN) return new Set();
   let on = []; try { on = JSON.parse(localStorage.getItem('jdw.labo') || '[]') || []; } catch (e) { on = []; }
   try {
     const q = new URLSearchParams(location.search).get('labo');
@@ -124,6 +129,7 @@ const GAMES = ORDER.map(id => (window.JDW_GAMES || {})[id]).filter(g => g && lab
     // vue admin / labo ⇄ VUE JOUEUR NORMALE (plus de jeux en essai, plus d'outils admin) ; seulement l'affichage sur cet appareil
     const now = Date.now(); if (now - t0 > 2000) n = 0; if (!n) t0 = now;
     if (++n < 5) return; n = 0;
+    try { if (localStorage.getItem('jdw.labo.ok') !== cleanName(profile.name || '')) return; } catch (e) { return; }   // 2.0.32 : un joueur normal : les 5 touches ne font rien
     const joueur = VUE_JOUEUR || ![...LABO].some(id => LABO_ON.has(id));
     try {
       if (joueur) {   // → vue admin : les jeux en essai d'avant (et tous ceux d'aujourd'hui)
@@ -15178,6 +15184,11 @@ function atlRenderProjet(W, f) {
     else if (vg) { const im = atlEl('img'); im.alt = ''; im.src = vg; im.className = 'atl-gtimg'; ti.appendChild(im); } else ti.textContent = '🎮';
     ti.appendChild(atlEl('span', 'atl-gver', 'V' + ((f.version | 0) || 1)));
     const tm = atlEl('div', 'tile-meta'); tm.appendChild(atlEl('div', 'tile-name', (g && g.title) || f.titre || 'Mon jeu')); po.append(ti, tm); po.disabled = !g;
+    // 2.0.32 (Benjamin) : « exactement ce que voient les autres joueurs » — la ligne du record de la salle et « by <nom du créateur> »
+    { const on = atlEl('div', 'tile-online'), sp = atlEl('span'); on.append(atlEl('i'), sp); let tb = null; try { tb = g ? top(g.id)[0] : null; } catch (e) { tb = null; }
+      sp.textContent = tb ? 'Record ' + fmt(tb.score) + unit(g) + ' · ' + dispName(tb.name) : 'Pas encore de record'; tm.appendChild(on);
+      tm.appendChild(atlEl('small', 'tile-by', 'by ' + (String(f.createur || '').trim() || dispName(profile.name || '')))); }
+    wrap.classList.add('atl-game'); wrap.appendChild(atlEl('small', 'atl-gtlab', '👀 Comme les autres la voient'));
     let rec = 0; try { rec = g ? +knownBest(profile.name, g.id) || 0 : 0; } catch (e) { rec = 0; }
     po.addEventListener('click', () => atlJouerVrai(f)); wrap.appendChild(po); fr.appendChild(wrap);
     if (g && MAP_DEFS[g.id]) {   // 23 h 47 (Benjamin : « gérer la carte de niveau comme on fait partout ») : le bouton carte de la tuile de la borne
@@ -15275,6 +15286,7 @@ function atlCreateurChamp(f) {
       const r = await rpc('at_createur', { p_name: profile.name, p_fiche: f.id, p_nom: t }, { quiet: true });
       f.createur = r && r.createur ? r.createur : null; inp.value = f.createur || dispName(profile.name || '');
       const x = f.jeu && ATL_JEUX.get(f.jeu); if (x) { x.createur = f.createur || ''; const tt = tiles.find(q => q.g.id === f.jeu); if (tt) atlMineMark(tt.el.parentNode, tt.el, f.jeu); }
+      for (const e of document.querySelectorAll('#jdw-atelier .atl-gtw .tile-by')) e.textContent = 'by ' + inp.value;   // l'aperçu, tout de suite
       try { poke('atljeux', 'jdw-all'); } catch (e) {}
       msg.textContent = '✅ Sous ton jeu : « by ' + inp.value + ' », sur toutes les bornes.';
     } catch (e) { msg.textContent = /refuse/.test(String(e && e.message)) ? 'Ce nom n’est pas possible : choisis-en un autre.' : /entre 2/.test(String(e && e.message)) ? 'Entre 2 et 20 lettres.' : atlWhy(e); }
@@ -18158,6 +18170,17 @@ if (ONLINE && (invPending() || INV.bad)) setTimeout(invRun, 900);   // lien d'in
 loadPlayers(); loadScores(); heartbeat(); loadChat(); setTimeout(progLoad, 1500);
 setTimeout(pushRoomLook, 2500);    // une tête / un cri de salle pas encore envoyé (serveur pas à jour, pas de réseau…)
 if (ONLINE && !isGuest()) { RT.topics.add('jdw-all'); if (room) RT.topics.add('jdw-room-' + room.id); rtConnect(); }   // joints à l'ouverture (jeton prêt)
+// 2.0.32 : le serveur dit si ce compte est admin ; sinon le mode test de l'appareil est effacé (et la borne repart sans les jeux en essai)
+setTimeout(async () => {
+  const nom = cleanName(profile.name || '');
+  const fermer = () => { try { const avait = LABO_ADMIN && LABO_TEST; localStorage.removeItem('jdw.labo.ok'); localStorage.setItem('jdw.labo', '[]'); localStorage.removeItem('jdw.vuejoueur'); if (avait) location.reload(); } catch (e) {} };
+  if (!ONLINE || isGuest() || !nom) { if (LABO_ADMIN) fermer(); return; }
+  let r = null; try { r = await rpc('at_suis_admin', { p_name: profile.name }, { quiet: true, quiet404: true }); } catch (e) { return; }   // pas de réseau : on ne touche à rien
+  if (cleanName(profile.name || '') !== nom || !r) return;
+  if (r.admin) {
+    if (!LABO_ADMIN) { try { localStorage.setItem('jdw.labo.ok', nom); const l = JSON.parse(localStorage.getItem('jdw.labo') || '[]'); if ((Array.isArray(l) && l.length) || new URLSearchParams(location.search).get('labo')) location.reload(); } catch (e) {} }
+  } else fermer();
+}, 1800);
 setTimeout(checkSiteVersion, 4000);
 // les images des jeux se préparent en douce (aperçu de la tuile + démarrage instantané)
 setTimeout(() => { for (const id of ASSET_GAMES) if (gameById(id)) window.JDW_ASSETS.load(id).catch(() => {}); }, 3500);
