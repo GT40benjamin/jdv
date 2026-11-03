@@ -14483,7 +14483,7 @@ function atlRenderProjets() {
   if (cr && cr.tous_projets) atlTousProjets(box);
   R.querySelector('.atl-hs').textContent = 'Mes projets · ' + ps.length + ' / ' + max;
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr) { cp.textContent = atlCredTxt(cr.solde); cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
 }
 function atlOuvrir(id) {
   try { const pj = atlProjets().find(x => x.id === id); if (pj && (pj.version | 0) && ['alpha', 'publie_salle', 'publie_monde'].includes(String(pj.etat || ''))) { const vv = store.get('jdw.atl.vvu', {}) || {}; if ((vv[id] | 0) < (pj.version | 0)) { vv[id] = pj.version | 0; store.set('jdw.atl.vvu', vv); } } } catch (e) {}
@@ -14621,7 +14621,7 @@ function atlRenderChat() {
   R.querySelector('.atl-hs').textContent = et === 'envoyee' ? 'Projet envoyé' : et === 'design' ? 'Choisis ton design' : et === 'design_choisi' ? 'Signe ta lettre' : et === 'complete' ? 'Fiche complète' : atlWaiting() ? 'Réponse sous 10 min environ' : 'Ton idée devient un jeu';
   const cr = atlCred(), cp = R.querySelector('.atl-cred');
   cp.hidden = !cr; if (cr && !(ATL.soldeT && cp.classList.contains('tick') && parseInt(String(cp.textContent).replace(/\D+/g, ''), 10) !== (cr.solde | 0))) { cp.textContent = atlCredTxt(cr.solde); cp.title = 'Crédits Elixir : ' + (cr.message | 0) + ' par message · ' + (cr.cout | 0) + ' par élément · touche pour recharger'; cp.classList.toggle('low', (cr.solde | 0) < (cr.cout | 0)); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R);
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R);
   R.querySelector('.atl-sendh').hidden = true;   // 16 h 25 : plus de lettre (« Lancer la conception » est dans les étapes)
   atlChatRetour(bn);
   const ct = R.querySelector('.atl-cost'); ct.hidden = !cr; if (cr) ct.textContent = atlMsgs().some(m => !m.atelier) ? '💎 ' + atlCoutMsg() + ' par message' : atlCoutMsg() ? '💎 Ton idée : ' + atlCoutMsg() + ' crédits (non remboursés)' : '🎁 Ta 1re idée est offerte !';
@@ -14757,7 +14757,7 @@ function atlRenderWiz() {
   const ae = document.activeElement; if (ae && W.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.value) return;   // le joueur écrit : on ne redessine pas
   const fi = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}, et = String(f.etat || ''), cr = atlCred();
   const cp = R.querySelector('.atl-cred'); cp.hidden = !cr; if (cr && !ATL.soldeT) { cp.textContent = atlCredTxt(cr.solde); cp.classList.remove('low'); }
-  R.querySelector('.atl-suivib').hidden = !(cr && cr.admin); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
+  R.querySelector('.atl-suivib').hidden = !(cr && cr.patron); atlAboBadge(R); atlDemBtn(R); R.querySelector('.atl-sendh').hidden = true;
   if (ATL_AFTER.has(et) || et === 'refusee') { atlRenderProjet(W, f); return; }   // 17 h 20 : la vraie page du projet
   W.textContent = ''; ATL.pSig = '';
   const box = atlEl('div', 'atl-wbox'); W.appendChild(box);
@@ -16157,7 +16157,7 @@ function atlEnTete(R) {
   const cr = atlCred(), cp = R.querySelector('.atl-cred'), sb = R.querySelector('.atl-suivib');
   if (sb) sb.textContent = atlPetit() ? '📊' : '📊 Suivi';
   if (cp && cr) { cp.hidden = false; if (!ATL.soldeT && !/\d/.test(cp.textContent)) cp.textContent = atlCredTxt(cr.solde); }
-  if (sb) sb.hidden = !(cr && (cr.admin || cr.patron));
+  if (sb) sb.hidden = !(cr && cr.patron);
   atlAboBadge(R); atlDemBtn(R);
 }
 function atlDemBtn(R) {
@@ -16811,6 +16811,7 @@ function atlBoutonsJeu(bn, f, sansTester) {
 }
 // ---------- le SUIVI des dépenses (admins seulement, at_suivi) : chaque dessin, son coût estimé, le total du mois sur le budget ----------
 async function atlSuivi() {
+  { const c = atlCred(); if (!c || !c.patron) return; }   // 2.0.1 : le Suivi pour PATOU et BENJAMIN seuls
   const z = ATL.root && ATL.root.querySelector('.atl-zoom'); if (!z) return;
   z.textContent = ''; z.hidden = false; z.classList.add('suivi');
   const P = atlEl('div', 'atl-suivi'); P.addEventListener('click', e => e.stopPropagation()); z.appendChild(P);
