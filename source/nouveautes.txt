@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[abracadabra] ## ❄️ Abracadabra : neige, avalanche et inondation (borne 1.63.149)
+[abracadabra] ❄️ Dis « neige » : les flocons tombent doucement et les villageois ont froid (« Brrr… », « On fait un bonhomme de neige ? »).
+[abracadabra] 🏔️ Dis « avalanche », même sans neige : il se met à neiger, puis une énorme vague de poudreuse dévale, passe sur toi et ensevelit tout le monde jusqu'au cou… mission perdue.
+[abracadabra] 🌊 Dis « inondation » (ou « tsunami », « déluge ») : il pleut, une vague géante déferle, l'eau monte et les villageois partent à la dérive en flottant… mission perdue.
 [abracadabra] ## 🌪️ Abracadabra : la tornade emporte les villageois (borne 1.63.143)
 [abracadabra] 🌪️ La tornade ne rend plus les villageois : ceux qu'elle avale tournent de plus en plus haut dans le tourbillon et partent avec elle au bout du monde… et la mission est perdue.
 [remparts] ## ❄️ Remparts ! : des mondes remis au propre (borne 1.63.142)
