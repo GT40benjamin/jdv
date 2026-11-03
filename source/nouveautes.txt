@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[chrono] ## 🏁 Turbo Chrono : l’aide des touches bien lisible (borne 2.0.51)
+[chrono] ⌨️ Sous les cartes des circuits, la ligne des touches (accélérer, freiner, tourner…) est un peu plus bas, sur un fond sombre : elle se lit en entier par-dessus le stade.
+[remparts] ## 🏰 Remparts ! : ton score partagé dans le chat (borne 2.0.51)
+[remparts] 💬 Quand tu partages ton score dans le chat, le message est bien écrit : « 45 210 points à Remparts ! Qui fait mieux ? » (avant, il y avait deux points d’exclamation).
 [sensinterdit] ## ⛔ Sens Interdit : partage ton score dans le chat (borne 2.0.49)
 [sensinterdit] 💬 « Partager mon score dans le chat » envoie bien ta partie à la salle : « 73,31 km parcourus et 2 039 km/h de pointe à Sens Interdit ! Qui fait mieux ? ». Avant, le chat s’ouvrait mais rien ne partait.
 [chrono] ## 🏁 Turbo Chrono (borne 2.0.47) : des cartes de circuits bien rangées
