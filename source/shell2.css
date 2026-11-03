@@ -4527,3 +4527,18 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
   .rc-img{width:88px;height:66px}
   .rc-jeu{font-size:20px}
 }
+
+/* 2.0.16 : dans « Mes demandes » (fenêtre .atl-zoom.suivi), la règle de l'image agrandie (max-height: 100 % − 40 px) écrasait la tête du
+   guide des réponses à 0 px de haut : il ne restait qu'un rond violet vide */
+.atl-zoom.suivi img{max-height:none;box-shadow:none}
+.atl-zoom.suivi .atl-wav img,.atl-zoom.suivi .atl-av img{width:100%;height:100%;border-radius:50%}
+/* 2.0.16 : les tuiles de MES projets disent aussi quand une offre attend ton choix ou qu'une réponse du guide n'est pas lue */
+.atl-ptile .atl-pch{background:#ffd34d;color:#1b1430}
+.atl-ptile .atl-pre{background:#7a4cff;color:#fff}
+.atl-ptile .atl-patt.bas{top:38px}
+.atl-ptile.choix{border-color:#ffd34d;box-shadow:0 0 0 2px rgba(255,211,77,.55),0 0 18px rgba(255,211,77,.35)}
+.atl-ptile.rep{border-color:#9b7bff;box-shadow:0 0 0 2px rgba(155,123,255,.55)}
+.atl-ptile .atl-pch,.atl-ptile .atl-pre{font-size:13px;padding:5px 11px}
+.atl-ptile .atl-pch{animation:atlGlow 1.2s ease-in-out infinite alternate;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+/* 2.0.16 : fenêtre de confirmation avant de publier */
+.atl-conf .atl-aide{font-size:15px;line-height:1.45}

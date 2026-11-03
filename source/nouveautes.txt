@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## ✅ Une confirmation avant de publier (borne 2.0.16)
+[atelier] ✅ « Publier dans ma salle », « Publier la V… » et la mise en ligne mondiale te demandent d’abord une confirmation : plus de publication par erreur.
+[atelier] ↩️ Une demande de mise en ligne mondiale envoyée trop vite s’annule avec « ↩️ Annuler ma demande », tant que Benjamin n’a pas répondu.
+[atelier] 💬 La tuile de ton projet te dit quand un choix t’attend (« 💬 À choisir ») ou quand ton guide t’a répondu (« ✨ 1 réponse ») : touche-la, le ticket s’ouvre.
 [borne] ## 🏆 Les cartes de record montrent le jeu en grand (borne 2.0.15)
 [borne] 🏆 Dans le chat de la salle, chaque carte de record montre le jeu en grand avec son image, puis qui détrône qui et les points.
 [borne] 🔔 Un même exploit ne fait plus qu’une carte et une notification : un coffre et le score total battus d’un coup, ou plus loin et plus vite, sont réunis.
