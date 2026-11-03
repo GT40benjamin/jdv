@@ -30,6 +30,8 @@
 [chrono] 🏠 Dans chaque carte, le classement de la SALLE puis celui du MONDE prennent toute la largeur : les noms longs (EMPEREUR, MAXIMILIENNE…) et les temps tiennent en entier, alignés à droite, chiffre sous chiffre.
 [licornes] ## 🦄 La Maison des Licornes est sortie pour tous (borne 2.0.45)
 [licornes] 🦄 La Maison des Licornes, premier jeu né à l’Atelier des jeux, se joue maintenant sur toutes les bornes, même en invité.
+[borne] ## 🌍 Les jeux peuvent garder un monde partagé dans ta salle (borne 2.0.56)
+[borne] 🌍 Un jeu peut maintenant garder ce que vous avez fait ensemble dans ta salle (découvertes, constructions…), même quand tout le monde est parti, et proposer des échanges entre joueurs, confirmés des deux côtés.
 [borne] ## 🎮 Chaque tuile ouvre son jeu (borne 2.0.44)
 [borne] 🎮 Un jeu resté ouvert en pause ne passe plus par-dessus le jeu que tu choisis : chaque tuile ouvre toujours son jeu à elle.
 [borne] ## 📱 Les jeux en plein écran sur téléphone (borne 2.0.38)

@@ -10142,6 +10142,26 @@ function liveApi(g, seq) {
     livekit: () => livekitLoad(),
   };
 }
+// 2.0.56 (équipe de L'Explorateur de l'espace) : le MONDE PARTAGÉ DE LA SALLE d'un jeu qui déclare « monde: true » — des documents JSON
+// par jeu et par salle qui restent quand tout le monde est parti (at_monde_docs, SQL v87) et les échanges entre joueurs en 3 temps
+// (proposer → l'autre accepte → on reconfirme = « conclu », 5 min au plus). Promesses ; null pour un invité, hors ligne ou hors salle.
+function mondeApi(g, seq) {
+  const ok = () => !!current && current.seq === seq && ONLINE && !netOff() && !isGuest() && !!profile.name && !!(room && room.id);
+  const app = (fn, args) => ok() ? rpc(fn, Object.assign({ p_name: profile.name }, args()), { quiet: true }) : Promise.resolve(null);
+  const ici = o => () => Object.assign({ p_jeu: g.id, p_salle: room.id }, o);
+  return {
+    info: () => ({ on: ok(), salle: room ? room.id : null, nom: cleanName(profile.name) }),
+    lire: (prefixe, depuis) => app('monde_lire', ici({ p_prefixe: String(prefixe || ''), p_depuis: depuis || null })),
+    ecrire: (cle, valeur) => app('monde_ecrire', ici({ p_cle: String(cle || ''), p_valeur: valeur === undefined ? null : valeur })),
+    ensemble: (cle, ajouts) => app('monde_ensemble', ici({ p_cle: String(cle || ''), p_ajouts: Array.isArray(ajouts) ? ajouts.map(String) : [] })),
+    echange: {
+      proposer: (a, donne, demande) => app('monde_echange_proposer', ici({ p_a: String(a || ''), p_donne: donne || {}, p_demande: demande || {} })),
+      repondre: (id, oui) => app('monde_echange_repondre', () => ({ p_id: String(id || ''), p_accepte: !!oui })),
+      confirmer: id => app('monde_echange_confirmer', () => ({ p_id: String(id || '') })),
+      liste: () => app('monde_echange_liste', ici({}))
+    }
+  };
+}
 function liveRecu(p) {
   if (!p || p.g !== LIVE.g || p.cid === clientId || !current || !current.game || current.game.id !== p.g) return;
   for (const f of LIVE.fns) { try { f({ from: String(p.cid || ''), name: cleanName(p.n), d: p.d }); } catch (e) {} }
@@ -10184,6 +10204,7 @@ function mountGame(g) {
     levelBest: g.saves ? levelBestApi(g) : undefined,             // meilleurs coups par niveau + classement de la salle (Ajout 14)
     reached: g.spots ? reachedApi(g) : undefined,
     live: g.live ? liveApi(g, seq) : undefined,                   // Abracadabra : les autres joueurs de la salle en direct (Ajout 17)
+    monde: g.monde ? mondeApi(g, seq) : undefined,                // 2.0.56 : le monde partagé de la salle (L'Explorateur de l'espace)
     // (2 nov., Sens Interdit : écran blanc sur un Redmi sans rien au journal) un jeu peut signaler lui-même un souci (3D arrêtée, écran vide, arrêt net) : discret, pas d'écran « Oups »
     report: (m, d) => { if (current && current.seq === seq) reportError(m, d, { quiet: true }); },
     rivals: g.id === 'sensinterdit' ? rivalsApi(g) : undefined,   // Sens Interdit : les records de la salle (vitesse moyenne) deviennent des voitures-fantômes                 // jusqu'où est allé chaque membre de la salle (Néon Rush : où il est mort ; Ajout 15)
