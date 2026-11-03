@@ -106,6 +106,8 @@
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
+[abracadabra] ## 🐦 Abracadabra : les oiseaux s'animent (borne 2.0.40)
+[abracadabra] 🐦 Le moineau, le pigeon, le perroquet, l'aigle, le cygne, le poussin, le toucan, le corbeau… et une quarantaine d'autres oiseaux ne sont plus figés : ils sautillent, marchent et picorent autour de toi.
 [abracadabra] ## 🐘 Abracadabra : l'éléphant, le tigre, le zèbre… et un lapin gourmand (borne 2.0.39)
 [abracadabra] 🐘 De nouvelles bêtes, toutes avec leurs vraies façons de marcher, de courir et de manger : l'éléphant, le tigre, le léopard (et la panthère, le guépard…), le rhinocéros, le buffle, le varan, l'araignée et la pieuvre. Le zèbre est maintenant un vrai zèbre.
 [abracadabra] 🐰 Le lapin se promène, part chercher une touffe d'herbe et la grignote jusqu'au bout. Les vaches, moutons, chèvres, chevaux et éléphants broutent aussi pour de vrai.
