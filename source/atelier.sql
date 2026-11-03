@@ -2852,3 +2852,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- dernier mois servi ; novembre 2026 marqué servi, 1er versement le 1er décembre). La case de renonciation est dans la confirmation avant Stripe.
 -- 2.0.22 (migration v68, appliquée) : at_dire ne débite rien pendant le MONTAGE (fiche 'brouillon' ou 'en_discussion') une fois l'idée envoyée
 -- (cout_idee inchangé) ; at_lire renvoie credits.montage_gratuit = true.
+-- 2.0.25 (migration v69, appliquée) : at_guide() public = at_textes 'guide' {nom, a, de, img} (le nom de la mascotte pour toute la borne,
+-- jamais écrit dans les pages : les notes de version portent « {G} » / « {g} », remplacés à l'affichage).

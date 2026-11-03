@@ -170,6 +170,8 @@ const vcmp = (a, b) => { const x = String(a || '0').split('.').map(Number), y = 
 const CUR_V = String(window.JDW_VERSION || '') || '999';
 // les notes de CETTE page : pegase/ → celles de Pégase ; jouer/ → toutes, sauf celles de Pégase (il a sa page) ; « sans Pégase » : jamais Pégase
 const noteOnPage = (id) => (PAGE === 'pegase' ? id === 'pegase' && !PG_SANS : id !== 'pegase' && laboOk(id) && atlEnGrille(id));   // un jeu en essai (l'Atelier, Ranch des Poneys…) : seulement là où sa tuile est ouverte (porte labo)
+// 2.0.24 : « {G} » / « {g} » dans une note = le nom de la mascotte de l'Atelier, servi par le serveur (jamais écrit dans la page)
+const noteTxt = t => { let n = ''; try { n = typeof ATL_GUIDE !== 'undefined' ? ATL_GUIDE.nom : ''; } catch (e) { n = ''; } n = n || 'l’Atelier'; return String(t).replace(/\{G\}/g, n.charAt(0).toUpperCase() + n.slice(1)).replace(/\{g\}/g, n); };
 const NOTES = (() => {
   const out = []; let cur = null;
   for (const raw of window.JDW_NOTES || []) {
@@ -2150,9 +2152,9 @@ function noteGroupEl(gr, fresh) {
     // \u00AB \uD83C\uDFC6 Turbo Chrono : les anciens temps\u2026 \u00BB dans le bloc Turbo Chrono \u2192 \u00AB Les anciens temps\u2026 \u00BB (le nom du jeu est d\u00E9j\u00E0 en t\u00EAte)
     let tt = bl.title.replace(/^(\p{Extended_Pictographic}\uFE0F?)\s*/u, ''); const nm = noteName(gr.id);
     if (tt.toLowerCase().startsWith(nm.toLowerCase() + ' :')) { tt = tt.slice(nm.length + 2).trim(); tt = tt.charAt(0).toUpperCase() + tt.slice(1); }
-    const h = document.createElement('h4'); h.textContent = tt;
+    const h = document.createElement('h4'); h.textContent = noteTxt(tt);
     const vv = document.createElement('em'); vv.textContent = 'borne ' + bl.v; h.appendChild(vv); sec.appendChild(h);
-    if (bl.items.length) { const ul = document.createElement('ul'); ul.className = 'nt-notes'; for (const t of bl.items) { const li2 = document.createElement('li'); li2.textContent = t; ul.appendChild(li2); } sec.appendChild(ul); }
+    if (bl.items.length) { const ul = document.createElement('ul'); ul.className = 'nt-notes'; for (const t of bl.items) { const li2 = document.createElement('li'); li2.textContent = noteTxt(t); ul.appendChild(li2); } sec.appendChild(ul); }
   }
   // aller voir : Pégase → son onglet ; un jeu → sa tuile, mise en avant (un 2e toucher l'ouvre) ; la borne → rien
   if (gr.id !== 'borne' && (gr.id === 'pegase' || g)) {
@@ -14432,7 +14434,7 @@ function atlTileState() {
 // choisis par Benjamin) ; « l'Atelier » reste le nom du lieu. Nom et avatar ici SEULEMENT (nom provisoire : « ton guide », avatar 🤖)
 // 20 h 25 : le guide est la MASCOTTE de la maison ; son nom et son image arrivent du serveur (at_lire « guide », table at_textes) et ne sont
 // écrits dans AUCUN fichier publié (verifier-publication.js le refuse). Par défaut, avant la 1re lecture : « ton guide », 🤖
-const ATL_GUIDE = { nom: 'ton guide', a: 'à ton guide', de: 'de ton guide', img: '' };   // img : chemin i/<uuid>.png du seau atelier-ia, ou '' (🤖)
+const ATL_GUIDE = { nom: 'l’Atelier', a: 'à l’Atelier', de: 'de l’Atelier', img: '' };   // 2.0.24 (Benjamin) : jamais « guide » côté joueur ; le vrai nom arrive du serveur   // img : chemin i/<uuid>.png du seau atelier-ia, ou '' (🤖)
 const gN = () => ATL_GUIDE.nom, gNM = () => ATL_GUIDE.nom.charAt(0).toUpperCase() + ATL_GUIDE.nom.slice(1), gA = () => ATL_GUIDE.a, gDe = () => ATL_GUIDE.de;
 function atlGuideMaj(g) {
   if (!g || typeof g !== 'object') return;
@@ -14441,7 +14443,7 @@ function atlGuideMaj(g) {
   ATL_GUIDE.nom = nom; ATL_GUIDE.a = t(g.a, 40) || 'à ' + nom; ATL_GUIDE.de = t(g.de, 40) || 'de ' + nom; ATL_GUIDE.img = atlIaUrl(g.img) ? g.img : '';
   try { store.set('jdw.atl.guide', { nom: ATL_GUIDE.nom, a: ATL_GUIDE.a, de: ATL_GUIDE.de, img: ATL_GUIDE.img }); } catch (e) {}
 }
-try { const g0 = store.get('jdw.atl.guide', null); if (g0 && typeof g0 === 'object') atlGuideMaj(g0); } catch (e) {}   // 3 nov. : le dernier nom connu, tout de suite
+try { const g0 = store.get('jdw.atl.guide', null); if (g0 && typeof g0 === 'object' && !/guide/i.test(String(g0.nom || ''))) atlGuideMaj(g0); else setTimeout(async () => { try { atlGuideMaj(await rpc('at_guide', {}, { quiet: true, quiet404: true })); } catch (e) {} }, 2500); } catch (e) {}   // le dernier nom connu, sinon le serveur (at_guide, public)
 // 23 h 25 (Benjamin : « la tête de Benjamin au lieu de celle du guide ») : toastCheer sans nom prend un joueur au hasard → atlToast : le guide
 function atlToast(text) {
   toastCheer(text, null, true);
@@ -15121,7 +15123,10 @@ function atlRenderProjet(W, f) {
     if (prepa.length) {   // 3 nov. 1 h 20 (Benjamin : « il doit être là, en train de travailler dessus ») : le guide au travail sur la prochaine version
       const tb = atlEl('div', 'atl-travail'), sc = atlGuideScene(['Je prépare ta V' + (vN + 1) + '…', 'J’ajoute ce que tu as choisi…', 'Je teste tout…']), tx = atlEl('div');
       tx.append(atlEl('b', '', '🛠️ Je prépare ta V' + (vN + 1) + ' de « ' + (f.titre || 'ton jeu') + ' »…'));
-      const ul = atlEl('ul'); for (const t of prepa.slice(0, 5)) ul.appendChild(atlEl('li', '', String(t).slice(0, 90))); tx.append(ul, atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔 · Tu joues à la V' + vN + ' en attendant'));
+      // 2.0.24 (Benjamin : « la seule chose qui bouge, c'est la mascotte, et point ») : un cadre de taille FIXE — 3 lignes de liste au plus (« + n autres »),
+      // la ligne « En ce moment » toujours là (vide au départ) ; les textes changent sur place, coupés par « … », sans rien pousser
+      const ul = atlEl('ul'); for (const t of prepa.slice(0, prepa.length > 3 ? 2 : 3)) ul.appendChild(atlEl('li', '', String(t).slice(0, 90))); if (prepa.length > 3) ul.appendChild(atlEl('li', 'atl-tplus', '+ ' + (prepa.length - 2) + ' autres choses'));
+      tx.append(ul, atlEl('p', 'atl-tlive', '\u00a0'), atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔 · Tu joues à la V' + vN + ' en attendant'));
       tb.append(sc, tx); p.appendChild(tb);
     }
     // 0 h 40 (Benjamin) : une vraie TUILE de jeu, comme une brique de la borne (image de présentation, titre, badge V, record) ; on clique, ça se lance
@@ -16446,7 +16451,7 @@ async function atlStripe(corps, b, er) {
 // image, retouches, redessins, créations, sons, musiques, retraits, messages d'un projet jouable), la plus récente en haut, avec l'état
 // (📨 Envoyée → 👀 Vue → 🛠️ En cours → ✅ Faite / ❌ Pas possible) et la réponse ; une pastille quand un état change (at_mes_demandes)
 const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
-const ATL_DEM_SO = { vignette: '🖼️ Image de présentation', arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Élément refait', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', propose: '🎁 Proposé par ton guide', correction: '🛠️ Correction de ton guide', message: '💬 Message' };
+const ATL_DEM_SO = { vignette: '🖼️ Image de présentation', arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Élément refait', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', get propose() { return '🎁 Proposé par ' + gN(); }, get correction() { return '🛠️ Correction de ' + gN(); }, message: '💬 Message' };
 // 2.0.9 : l'avancement d'une demande, étape par étape (at_demande_avancer) : « je prépare les images », « je construis », « je teste »…
 function atlEtapes(l) {
   const ul = atlEl('ol', 'atl-etapes');
@@ -16458,10 +16463,10 @@ function atlTravailMaj() {
   const R = ATL && ATL.root, W = R && R.querySelector('.atl-wiz'), p = W && W.querySelector('.atl-pane[data-k="jeu"]'); if (!p || !ATL.cur) return;
   const l = atlDemEnCours().filter(x => x.fiche === ATL.cur && Array.isArray(x.etapes) && x.etapes.length);
   let b = p.querySelector('.atl-tlive');
-  if (!l.length) { if (b) b.remove(); return; }
+  if (!l.length) { if (b && b.closest('.atl-travail')) b.textContent = '\u00a0'; else if (b) b.remove(); return; }
   const der = l.map(x => x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = '⏱️ En ce moment : ' + String(der.texte || der.etape || '');
   if (!b) { b = atlEl('p', 'atl-tlive'); const tb = p.querySelector('.atl-travail > div:last-child'); if (tb) tb.appendChild(b); else p.prepend(b); }
-  if (b.textContent !== txt) b.textContent = txt;
+  if (b.textContent !== txt) { b.textContent = txt; b.title = txt; }
 }
 const atlTravSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && x.etat === 'en_cours').map(x => x.id));
 const atlTuileSig = () => JSON.stringify(((ATL.dem || {}).demandes || []).filter(x => x && (atlPropOuverte(x) || (x.nouveau && x.reponse))).map(x => x.id));

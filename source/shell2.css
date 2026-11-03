@@ -4598,3 +4598,17 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
    des onglets (utile quand ils restent en haut en défilant) ne mange plus le bas de la carte */
 .atl-pbox>.atl-ptabs{margin-top:-6px}
 .atl-ptabs::before{height:8px}
+/* 2.0.24 (Benjamin : « la seule chose qui bouge, c'est la mascotte, et point ») : cadres de TAILLE FIXE ; seul le dessin s'anime, les phrases
+   changent sur place (fondu, sans glisser), coupées par « … » dans leur place réservée */
+.atl-pktxt{height:2.8em;min-height:0;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.atl-pktxt.in{animation:atlPkFondu .35s ease-out}
+@keyframes atlPkFondu{from{opacity:.25}to{opacity:1}}
+.atl-travail{align-items:start}
+.atl-travail > div:last-child{min-width:0}
+.atl-travail ul{height:calc(3 * 1.45em);overflow:hidden;list-style-position:outside}
+.atl-travail ul li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.atl-travail .atl-tlive{height:1.45em;line-height:1.45;margin:4px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:none}
+.atl-travail .atl-tplus{color:var(--muted);list-style:none}
+.atl-dthink p{height:2.8em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.atl-dthink b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.atl-travail > div:last-child{justify-self:stretch;width:100%;box-sizing:border-box}   /* la colonne du texte ne suit plus la longueur de la phrase */

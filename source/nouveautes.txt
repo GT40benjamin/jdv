@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 🤖 {G}, partout (borne 2.0.26)
+[atelier] 🤖 Dans l’Atelier, c’est {G} qui te répond, te pose ses questions et prépare ton jeu, et c’est écrit partout : dans les demandes, les cadeaux et les corrections.
+[atelier] 🛠️ Pendant que {G} prépare ta prochaine version, l’écran ne bouge plus : seul {G} s’anime, les phrases changent sur place.
 [remparts] ## 🏰 Tes records de la salle tout de suite (borne 2.0.25)
 [remparts] 🏰 En ouvrant Remparts ! dans une salle où tu as déjà joué, tes scores de cette salle s'affichent aussitôt sur les boutons des mondes (plus de « 🌍 » à la place).
 [remparts] ## 🏰 Records : la salle d'un côté, le mondial de l'autre (borne 2.0.24)
@@ -13,7 +16,7 @@
 [remparts] 👑 Le tableau des copains et les couronnes ne comptent que les parties jouées dans cette salle, comme le record affiché sur la tuile.
 [remparts] 🌍 Ton record mondial (toutes salles) est à part, juste en dessous, marqué « 🌍 Mondial » ; l'écran Records montre les deux colonnes : Salle et 🌍 Mondial.
 [atelier] ## 💬 Ton idée, une vraie discussion (borne 2.0.22)
-[atelier] 💬 Quand tu racontes ton idée, ton guide te pose ses questions et tu lui réponds dans la discussion, gratuitement, jusqu’à ce que ton projet soit monté.
+[atelier] 💬 Quand tu racontes ton idée, {G} te pose ses questions et tu lui réponds dans la discussion, gratuitement, jusqu’à ce que ton projet soit monté.
 [atelier] 🎮 Les onglets Jouer, Mes demandes et Éléments sont bien alignés.
 [atelier] ## 🎁 Des crédits gratuits chaque mois (borne 2.0.21)
 [atelier] 🎁 Le 1er de chaque mois, tu reçois 100 crédits gratuits en plus de ceux que tu as.
@@ -21,23 +24,23 @@
 [atelier] ## 📱 Tu choisis le sens de ton jeu (borne 2.0.20)
 [atelier] 📱 À côté de la tuile de ton jeu : « Portrait seulement », « Paysage seulement » ou « Les deux ». Sur téléphone, la borne demande de tourner l’écran quand il n’est pas dans le bon sens.
 [atelier] 🎤 Le micro est aussi dans « Nouvelle demande » et dans « Répondre » : tu peux dicter au lieu d’écrire.
-[atelier] 🎫 Quand ton guide répond, la liste de tes demandes ne saute plus : elle se met à jour sans bouger.
-[atelier] 🎫 Envoyer une demande à ton guide est gratuit, avec « Nouvelle demande » comme avec l’arrêt sur image : tu paies seulement l’option que tu choisis.
+[atelier] 🎫 Quand {g} répond, la liste de tes demandes ne saute plus : elle se met à jour sans bouger.
+[atelier] 🎫 Envoyer une demande à {g} est gratuit, avec « Nouvelle demande » comme avec l’arrêt sur image : tu paies seulement l’option que tu choisis.
 [atelier] 💎 Dans l’arrêt sur image, tes crédits restants sont affichés en haut ; à l’envoi, la fenêtre se ferme et ton jeu reprend.
 [atelier] ## 🧩 Tes éléments (borne 2.0.19)
-[atelier] ⏳ Pendant que ton guide prépare ta prochaine version, la publication attend : les boutons se rallument dès qu’il a fini.
+[atelier] ⏳ Pendant que {g} prépare ta prochaine version, la publication attend : les boutons se rallument dès qu’il a fini.
 [atelier] 🧩 Dans la liste des éléments de ton jeu, chaque image dit simplement « dessiné pour ton jeu ».
 [atelier] ## 🌍 Mise en ligne mondiale : c’est l’admin qui répond (borne 2.0.18)
 [atelier] 🌍 La fenêtre de mise en ligne mondiale dit maintenant que c’est l’admin qui regarde ton jeu avant de le mettre sur toutes les bornes.
-[atelier] ## 💬 Tu parles avec ton guide dans chaque demande (borne 2.0.17)
-[atelier] 💬 Dans chaque demande, « Répondre » : tu réponds aux questions de ton guide ou tu lui en poses, gratuitement, avant de choisir.
-[atelier] ✏️ Aucune offre ne te va ? « Modifier » change ta demande sans en payer une nouvelle, et ton guide te refait une offre.
+[atelier] ## 💬 Tu parles avec {g} dans chaque demande (borne 2.0.17)
+[atelier] 💬 Dans chaque demande, « Répondre » : tu réponds aux questions de {g} ou tu lui en poses, gratuitement, avant de choisir.
+[atelier] ✏️ Aucune offre ne te va ? « Modifier » change ta demande sans en payer une nouvelle, et {g} te refait une offre.
 [atelier] 🙅 « Non merci » ferme une offre ou un cadeau qui ne te dit rien : rien n’est utilisé.
-[atelier] 💭 Tant que ton guide prépare sa réponse, tu le vois réfléchir dans ta demande.
+[atelier] 💭 Tant que {g} prépare sa réponse, tu le vois réfléchir dans ta demande.
 [atelier] ## ✅ Une confirmation avant de publier (borne 2.0.16)
 [atelier] ✅ « Publier dans ma salle », « Publier la V… » et la mise en ligne mondiale te demandent d’abord une confirmation : plus de publication par erreur.
 [atelier] ↩️ Une demande de mise en ligne mondiale envoyée trop vite s’annule avec « ↩️ Annuler ma demande », tant que l’admin n’a pas répondu.
-[atelier] 💬 La tuile de ton projet te dit quand un choix t’attend (« 💬 À choisir ») ou quand ton guide t’a répondu (« ✨ 1 réponse ») : touche-la, le ticket s’ouvre.
+[atelier] 💬 La tuile de ton projet te dit quand un choix t’attend (« 💬 À choisir ») ou quand {g} t’a répondu (« ✨ 1 réponse ») : touche-la, le ticket s’ouvre.
 [borne] ## 🏆 Les cartes de record montrent le jeu en grand (borne 2.0.15)
 [borne] 🏆 Dans le chat de la salle, chaque carte de record montre le jeu en grand avec son image, puis qui détrône qui et les points.
 [borne] 🔔 Un même exploit ne fait plus qu’une carte et une notification : un coffre et le score total battus d’un coup, ou plus loin et plus vite, sont réunis.
@@ -53,21 +56,21 @@
 [pegase] 🪷 Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.
 [pegase] 🌊 Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.
 [pegase] ⛰️ Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr.
-[atelier] ## 🎁 Les surprises de ton guide (borne 2.0.14)
-[atelier] 🎁 Quand ton guide améliore ou répare ton jeu de lui-même, tu le vois dans « 🎫 Mes demandes » : « Proposé par » ou « Correction de », avec ce qui change et la version où c’est arrivé.
+[atelier] ## 🎁 Les surprises de {g} (borne 2.0.14)
+[atelier] 🎁 Quand {g} améliore ou répare ton jeu de lui-même, tu le vois dans « 🎫 Mes demandes » : « Proposé par » ou « Correction de », avec ce qui change et la version où c’est arrivé.
 [atelier] ## ⭐ Atelier+ : deux formules (borne 2.0.13)
 [atelier] ⭐ Atelier+ existe en deux formules : 3 € par mois pour 400 crédits, ou 8 € par mois pour 1 300 crédits. Tes crédits s’ajoutent chaque mois, sans limite. Tu changes de formule ou tu résilies quand tu veux.
-[atelier] ## 🎫 Les réponses de ton guide, bien en vue (borne 2.0.11)
-[atelier] 🎫 Le bouton du haut te dit quand ton guide t’a répondu : « 🎫 Mes demandes · 1 réponse ». Le ticket s’ouvre tout seul, sa réponse en premier, et tu choisis sans chercher.
+[atelier] ## 🎫 Les réponses de {g}, bien en vue (borne 2.0.11)
+[atelier] 🎫 Le bouton du haut te dit quand {g} t’a répondu : « 🎫 Mes demandes · 1 réponse ». Le ticket s’ouvre tout seul, sa réponse en premier, et tu choisis sans chercher.
 [atelier] 🌟 « Publier dans ma salle » et la mise en ligne mondiale sont maintenant en haut de la page de ton jeu.
 [atelier] ## 🎫 Tes demandes au même endroit (borne 2.0.10)
-[atelier] 🎫 Sur la page de ton jeu, l’onglet « Mes demandes » réunit tout : tu écris ce que tu veux changer, tu suis chaque étape, et la réponse de ton guide s’affiche en clair, avec « ✨ nouveau ».
+[atelier] 🎫 Sur la page de ton jeu, l’onglet « Mes demandes » réunit tout : tu écris ce que tu veux changer, tu suis chaque étape, et la réponse de {g} s’affiche en clair, avec « ✨ nouveau ».
 [atelier] ## 🔒 Tes essais restent à toi (borne 2.0.9)
 [atelier] 🎮 Dans l’Atelier, tu essaies toujours la dernière version de ton jeu. Tes joueurs gardent la version publiée : quand une nouvelle est prête, touche « 📢 Publier la V… ».
-[atelier] ⏱️ Tes demandes avancent en direct : tu vois chaque étape pendant que ton guide y travaille.
+[atelier] ⏱️ Tes demandes avancent en direct : tu vois chaque étape pendant que {g} y travaille.
 [atelier] ## 🎮 Crée ton propre jeu vidéo ! (borne 2.0)
-[atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : ton guide monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
-[atelier] 🎁 À ta première visite, ton guide t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
+[atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
+[atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
 [abracadabra] ## ❄️ Abracadabra : neige, avalanche et inondation (borne 1.63.149)
 [abracadabra] ❄️ Dis « neige » : les flocons tombent doucement et les villageois ont froid (« Brrr… », « On fait un bonhomme de neige ? »).
@@ -181,8 +184,8 @@
 [lune] 🚶 Le survivant marche pour de vrai dans les 4 directions : 4 pas de face, 4 pas de dos, et de profil un vrai grand pas qui alterne avec la jambe levée. Les pieds suivent la vitesse (ils ne glissent plus), le personnage ne tremble plus d'un pas à l'autre et ne change plus de pose en diagonale.
 [lune] 🤖 Ton petit robot roule à côté de toi sans jamais te passer devant : quand il change de côté, il passe derrière toi. Au décollage, vous montez tous les deux à bord, une vraie flamme sort du réacteur et la caméra suit la navette vers le ciel.
 [lune] ✨ Les objets ramassés s'envolent vers toi ; le cristal n'a plus de halo violet, la lampe éclaire en jaune (plus en rose) et la météorite n'a plus de cailloux qui flottent à côté.
-[lune] ## ⏸ Seul sur la Lune : une vraie pause pour parler à ton guide (borne 1.63.81)
-[lune] ⏸ Quand tu mets ton jeu en pause depuis l'Atelier pour parler à ton guide, tout s'arrête : l'oxygène, les météorites, le temps. Il repart exactement où tu l'as laissé.
+[lune] ## ⏸ Seul sur la Lune : une vraie pause pour parler à {g} (borne 1.63.81)
+[lune] ⏸ Quand tu mets ton jeu en pause depuis l'Atelier pour parler à {g}, tout s'arrête : l'oxygène, les météorites, le temps. Il repart exactement où tu l'as laissé.
 [lune] ## 🌕 Seul sur la Lune : la première version à tester (borne 1.63.80)
 [lune] 🚀 Ton vaisseau s'est écrasé sur la Lune : tu es le seul survivant. Explore librement la Lune vue de dessus (flèches, manette ou glisse ton doigt), ton petit robot roule à côté de toi et te montre le chemin.
 [lune] ⚙️ Retrouve les 5 pièces du vaisseau et ramène-les à la navette de secours, ramasse l'oxygène (il baisse sans arrêt) et les cristaux lunaires, puis décolle pour rentrer sur Terre.
@@ -222,10 +225,10 @@
 [atelier] ✨ Ta toute première idée de jeu est offerte. Pour les projets suivants, envoyer ton idée coûte quelques crédits (le prix est sur le bouton) ; écrire et garder ton brouillon reste gratuit.
 
 [atelier] ## 🖼️ L'image de ta tuile (borne 1.63.110)
-[atelier] 🖼️ La tuile de ton jeu montre son image de présentation. Tu veux une tuile animée, qui bouge comme sur la borne ? Demande-la à ton guide avec « 🖼️ Modifier l'image de présentation ».
+[atelier] 🖼️ La tuile de ton jeu montre son image de présentation. Tu veux une tuile animée, qui bouge comme sur la borne ? Demande-la à {g} avec « 🖼️ Modifier l'image de présentation ».
 
 [atelier] ## 🎁 500 crédits de bienvenue (borne 1.63.109)
-[atelier] 🎁 Nouveau dans l'Atelier ? Ton guide t'offre 500 crédits (une fois, avec un e-mail vérifié) : assez pour créer ton premier jeu et le décorer !
+[atelier] 🎁 Nouveau dans l'Atelier ? {G} t'offre 500 crédits (une fois, avec un e-mail vérifié) : assez pour créer ton premier jeu et le décorer !
 [atelier] 🚀 Lancer la conception de ton jeu coûte 300 crédits ; un bruitage 20, une musique 100.
 
 [atelier] ## 🎮 La vraie tuile de ton jeu (borne 1.63.108)
@@ -233,20 +236,20 @@
 
 [atelier] ## 🎮 La tuile de ton jeu (borne 1.63.107)
 [atelier] 🎮 Dans l'onglet Jouer, ton jeu a sa vraie tuile, comme sur la borne (avec sa version) : touche-la pour jouer.
-[atelier] 🖼️ « Modifier l'image de présentation » : demande à ton guide une nouvelle image pour ta tuile, fixe ou animée.
+[atelier] 🖼️ « Modifier l'image de présentation » : demande à {g} une nouvelle image pour ta tuile, fixe ou animée.
 
 [atelier] ## 🧩 Tes éléments en planches (borne 1.63.106)
 [atelier] 🧩 Les éléments de ton jeu sont rangés par onglets (Personnages, Objets, Décor, Interface, Sons et bruitages, Musiques). Chaque personnage a sa planche d'animation : une rangée par mouvement, avec un aperçu qui bouge. Tu peux aussi télécharger la planche.
-[atelier] ✂️ Touche un élément pour ouvrir sa fiche : une retouche (3 💎), un nouveau dessin (10 💎), ou demande à ton guide de le retirer du jeu.
+[atelier] ✂️ Touche un élément pour ouvrir sa fiche : une retouche (3 💎), un nouveau dessin (10 💎), ou demande à {g} de le retirer du jeu.
 [atelier] 📋 « Mes demandes » : suis tout ce que tu as demandé (envoyée, vue, en cours, faite) et lis la réponse.
 [atelier] 🎮 Tes projets affichent leur version (V1, V2…). 🎤 Le micro est dans toutes les fenêtres où tu écris. 🎵 L'Atelier a sa musique douce.
-[atelier] 🎁 Nouveau joueur ? Ton guide t'offre 200 crédits à ta première visite : assez pour créer ton jeu !
+[atelier] 🎁 Nouveau joueur ? {G} t'offre 200 crédits à ta première visite : assez pour créer ton jeu !
 
 [atelier] ## 📸 Arrêt sur image complet (borne 1.63.102)
 [atelier] 🔊 Dans les éléments de ton jeu, le gros bouton ▶ joue bien tes sons et ta musique (⏸ pour arrêter, un seul à la fois).
 [atelier] 📸 L'arrêt sur image photographie tout ton écran : le jeu ET ce qui est par-dessus (score, panneau de fin, boutons).
-[atelier] 🏁 À la fin d'une partie de ton jeu : Rejouer, l'améliorer avec ton guide, ajouter des éléments ou revenir à ton projet.
-[atelier] 🎮 Ton guide est toujours là pendant la partie : touche P, bouton Vue / Select de la manette, ou le rond sur l'écran.
+[atelier] 🏁 À la fin d'une partie de ton jeu : Rejouer, l'améliorer avec {g}, ajouter des éléments ou revenir à ton projet.
+[atelier] 🎮 {G} est toujours là pendant la partie : touche P, bouton Vue / Select de la manette, ou le rond sur l'écran.
 
 [atelier] ## 💶 Paiement réel (borne 1.63.99)
 [atelier] 💶 Les packs de crédits et l'abonnement Atelier+ passent au vrai paiement, toujours sur la page sécurisée de Stripe.
@@ -259,35 +262,35 @@
 [atelier] 💎 Touche ton solde de crédits dans l'Atelier pour le recharger : choisis un pack, le paiement se fait sur la page sécurisée de Stripe, et tes crédits arrivent tout seuls. Tu peux toujours demander des crédits à l'administrateur. (Pour l'instant en essai : « Bientôt disponible ».)
 
 [atelier] ## 🎵 Ajoute des musiques et des sons quand tu veux (borne 1.63.95)
-[atelier] 🎵 Ton jeu est livré avec une musique (60 s, en boucle). Dans « Musiques » et « Sons », « ＋ Créer » te permet d'en demander d'autres à ton guide, quand tu veux : le prix est écrit sur le bouton.
+[atelier] 🎵 Ton jeu est livré avec une musique (60 s, en boucle). Dans « Musiques » et « Sons », « ＋ Créer » te permet d'en demander d'autres à {g}, quand tu veux : le prix est écrit sur le bouton.
 [atelier] 💎 Les crédits utilisés ne sont pas remboursés, même si un dessin rate : c'est écrit près de chaque bouton qui coûte des crédits.
-[atelier] 🛠️ Pendant ta V1, la touche P et ton guide flottant font l'arrêt sur image ; ton jeu se met en pause avec lui et reprend tout seul quand tu touches « Reprendre ».
+[atelier] 🛠️ Pendant ta V1, la touche P et {g} flottant font l'arrêt sur image ; ton jeu se met en pause avec lui et reprend tout seul quand tu touches « Reprendre ».
 
 [atelier] ## 🎮 Ta V1 se joue comme un vrai jeu de la borne (borne 1.63.93)
 [atelier] 🎮 « Jouer » ouvre ta V1 en grand, exactement comme une tuile de la borne : écran titre, barre, manettes sur téléphone, fin de partie. « Quitter » te ramène à ton projet.
-[atelier] 👁️ Pendant la partie, ton guide flotte dans un coin (tu peux le déplacer) : touche-le, ou appuie sur P, pour faire un arrêt sur image, poser le viseur et lui écrire ou lui dicter ta demande.
+[atelier] 👁️ Pendant la partie, {g} flotte dans un coin (tu peux le déplacer) : touche-le, ou appuie sur P, pour faire un arrêt sur image, poser le viseur et lui écrire ou lui dicter ta demande.
 
-[atelier] ## 🤖 Ton guide est vivant ! (borne 1.63.91)
-[atelier] 🤖 Ton guide respire, cligne des yeux et te fait coucou à l'accueil. Quand il travaille sur ton projet ou sur ta V1, tu le vois bricoler, crayon en main, avec des étincelles et des petits dessins qui s'envolent. Et quand il te répond, il saute de joie !
+[atelier] ## 🤖 {G} est vivant ! (borne 1.63.91)
+[atelier] 🤖 {G} respire, cligne des yeux et te fait coucou à l'accueil. Quand il travaille sur ton projet ou sur ta V1, tu le vois bricoler, crayon en main, avec des étincelles et des petits dessins qui s'envolent. Et quand il te répond, il saute de joie !
 
 [atelier] ## 🧩 Tous les éléments de ton jeu, bien rangés (borne 1.63.89)
 [atelier] 🧩 Dans ton projet, tous les éléments de ton jeu sont visibles et rangés : personnages (avec leurs poses), objets, décor, interface, sons et musiques, y compris ceux faits pendant la construction.
-[atelier] ⋯ Sur chaque élément, un petit menu : renommer, le faire modifier par ton guide, l'écouter, le voir en grand. Et « ＋ Créer » en tête de chaque catégorie.
+[atelier] ⋯ Sur chaque élément, un petit menu : renommer, le faire modifier par {g}, l'écouter, le voir en grand. Et « ＋ Créer » en tête de chaque catégorie.
 
-[atelier] ## 🤝 Ton projet en 3 étapes, en discutant avec ton guide (borne 1.63.86)
-[atelier] 🤝 « Nouveau projet » ouvre tout de suite la discussion avec ton guide : raconte-lui ton jeu. Tu peux aussi toucher quelques petites cartes (genre, vue, avec qui, score, style), si tu veux.
+[atelier] ## 🤝 Ton projet en 3 étapes, en discutant avec {g} (borne 1.63.86)
+[atelier] 🤝 « Nouveau projet » ouvre tout de suite la discussion avec {g} : raconte-lui ton jeu. Tu peux aussi toucher quelques petites cartes (genre, vue, avec qui, score, style), si tu veux.
 [atelier] 🧭 En haut, la frise de ton projet : 1 · Montage du projet, 2 · Le design, 3 · La V1 et les tests.
-[atelier] ⭐ Au design, dessine d'abord tes éléments principaux : ton guide fait le reste pendant la construction. Tu peux ajouter des éléments, les renommer ou joindre une image à tout moment.
+[atelier] ⭐ Au design, dessine d'abord tes éléments principaux : {g} fait le reste pendant la construction. Tu peux ajouter des éléments, les renommer ou joindre une image à tout moment.
 
 [atelier] ## ⚙️ Renomme ou supprime tes projets (borne 1.63.84)
 [atelier] ⚙️ Chaque projet a sa roue : « Renommer » pour changer son nom, « Supprimer » pour le retirer de « Mes projets » (avec une confirmation). Un projet en construction ou publié ne se supprime pas.
 
 [atelier] ## 🛡️ L'Atelier ne se ferme plus pour une mise à jour (borne 1.63.83)
 [atelier] 🛡️ Être dans l'Atelier, c'est comme être dans un jeu : une nouvelle version ne te fait plus sortir. Elle s'installe quand tu quittes l'Atelier, et tes brouillons sont gardés.
-[atelier] 🤖 Ton guide a maintenant son vrai visage, et il te fait coucou en entrant dans l'Atelier.
+[atelier] 🤖 {G} a maintenant son vrai visage, et il te fait coucou en entrant dans l'Atelier.
 
-[atelier] ## 🤖 Ton guide t'accueille, et l'arrêt sur image dans ton jeu (borne 1.63.82)
-[atelier] 👋 En entrant dans l'Atelier, ton guide te dit bonjour et te propose quoi faire : un nouveau projet, reprendre ton brouillon, tester ta V1. Il te signale aussi tes nouveaux messages.
+[atelier] ## 🤖 {G} t'accueille, et l'arrêt sur image dans ton jeu (borne 1.63.82)
+[atelier] 👋 En entrant dans l'Atelier, {g} te dit bonjour et te propose quoi faire : un nouveau projet, reprendre ton brouillon, tester ta V1. Il te signale aussi tes nouveaux messages.
 [atelier] ⏸ Pendant que tu testes ta V1, touche P (ou le petit robot) : arrêt sur image ! Pose le viseur sur ce que tu veux changer, écris ta demande et envoie-la (5 crédits).
 [atelier] 🛠️ Pendant la construction : « Ta V1 est en construction », et toute ta fiche reste visible à droite, avec tes dessins.
 [atelier] 🎨 Le style « Plus réaliste » arrivera avec la 3D.
@@ -295,8 +298,8 @@
 [atelier] ## 👀 Deux vues pour ton jeu en 2D (borne 1.63.78)
 [atelier] 👀 Dans les bases de ton jeu, la vue se choisit entre « De côté » et « Vu de dessus » (ou ta réponse à toi avec « Personnaliser »).
 
-[atelier] ## 🤖 Ton guide de l'Atelier (borne 1.63.77)
-[atelier] 🤖 Dans l'Atelier, tu parles maintenant à ton guide : il remplit ta fiche, dessine ton premier design et te répond, avec sa petite bulle et son avatar. Touche « Parler à ton guide » pour lui écrire.
+[atelier] ## 🤖 {G}, ta mascotte de l'Atelier (borne 1.63.77)
+[atelier] 🤖 Dans l'Atelier, tu parles maintenant à {g} : il remplit ta fiche, dessine ton premier design et te répond, avec sa petite bulle et son avatar. Touche « Parler à {g} » pour lui écrire.
 
 [atelier] ## 🎨 Ton design au centre, ton idée à droite (borne 1.63.76)
 [atelier] 🎨 Au centre, ton design. À droite, dans la feuille de route, ton idée, tes bases, tes personnages, objets, décor et sons, résumés : touche une ligne pour la modifier, puis « Retour au design ».
