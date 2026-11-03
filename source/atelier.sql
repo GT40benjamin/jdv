@@ -2848,3 +2848,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- 2.0.20 (migrations v65-v66, appliquées) : at_fiches.orientation ('portrait'|'paysage'|'les2', défaut 'les2') + at_orientation(name, fiche, o)
 -- (auteur ou admin, gratuit) ; orientation renvoyée par at_jeux / at_lire / at_voir / at_admin_lire. Réglage cout_ticket = 0 : at_demande et
 -- at_demande_ecrite ne débitent plus (le prix d'un ticket est ajouté aux options) ; at_lire renvoie credits.ticket.
+-- 2.0.21 (migration v67, appliquée) : credits_mois = 100, versés EN PLUS du solde le 1er de chaque mois (at_solde, colonne at_credits.mois =
+-- dernier mois servi ; novembre 2026 marqué servi, 1er versement le 1er décembre). La case de renonciation est dans la confirmation avant Stripe.

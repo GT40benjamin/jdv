@@ -16347,12 +16347,13 @@ async function atlRecharger() {
   M.textContent = ''; M.hidden = false;
   const c = atlEl('div', 'atl-mcard atl-rech');
   c.append(atlEl('h2', '', '💎 Mes crédits'), atlEl('p', 'atl-aide', 'Tu as ' + Math.max(0, cr ? cr.solde | 0 : 0) + ' crédits.'));
+  // 2.0.21 (Benjamin : « tu enlèves la case en haut ; à la place tu dis que le 1er du mois il aura 100 crédits gratuits ; la case au moment
+  // de payer, à la confirmation avant Stripe ») : la renonciation se coche dans la fenêtre de confirmation (atlPayerConf)
+  const gm = cr && cr.mois | 0;
+  if (gm > 0) c.appendChild(atlEl('p', 'atl-gratuit', '🎁 Le 1er de chaque mois, tu reçois ' + gm + ' crédits gratuits en plus.'));
   const er0 = atlEl('p', 'atl-werr'); er0.hidden = true;
-  const payer = [], rappel = atlEl('small', 'atl-renr', '☝️ Coche d’abord la case ci-dessus pour pouvoir payer.');
-  const ren = atlEl('label', 'atl-ren'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = false;
-  ren.append(cb, atlEl('span', '', ATL_RENONCE));
-  const etat = () => { for (const x of payer) { x.disabled = !cb.checked; x.classList.toggle('off', !cb.checked); } rappel.hidden = cb.checked; ren.classList.toggle('ok', cb.checked); };
-  cb.addEventListener('change', etat);
+  const payer = [], cb = { checked: true }, ren = document.createDocumentFragment(), rappel = document.createDocumentFragment();
+  const etat = () => {};
   const eur = v => ((v | 0) / 100).toFixed(2).replace('.', ',').replace(',00', '');
   const ab = atlEl('div', 'atl-abo');
   if (atlAbonne()) {
@@ -16370,7 +16371,7 @@ async function atlRecharger() {
       if (fo.conseille) k.appendChild(atlEl('span', 'atl-abotag', '⭐ Meilleure offre'));
       k.append(atlEl('b', 'atl-abop', eur(fo.prix) + ' € / mois'), atlEl('span', 'atl-aboc', '→ ' + (fo.credits | 0).toLocaleString('fr-FR') + ' crédits chaque mois'));
       const g = atlEl('button', 'btn ' + (fo.conseille ? 'btn-play' : 'btn-ghost'), 'S’abonner · ' + eur(fo.prix) + ' €/mois'); g.type = 'button';
-      g.addEventListener('click', () => { if (cb.checked) atlStripe({ p_abo: true, p_formule: fo.id | 0, p_renonce: ATL_RENONCE }, g, er0); });
+      g.addEventListener('click', () => atlPayerConf('⭐ Atelier+ · ' + eur(fo.prix) + ' € / mois', (fo.credits | 0).toLocaleString('fr-FR') + ' crédits chaque mois, résiliable à tout moment.', 'S’abonner sur Stripe', () => atlStripe({ p_abo: true, p_formule: fo.id | 0, p_renonce: ATL_RENONCE }, g, er0)));
       payer.push(g); k.appendChild(g); gf.appendChild(k);
     }
     ab.append(gf, atlEl('small', 'atl-noremb', 'Résiliable à tout moment depuis le portail : les mois suivants ne sont plus prélevés.'));
@@ -16389,9 +16390,22 @@ async function atlRecharger() {
   for (const k of packs) {
     const b = atlEl('button', 'atl-pack'); b.type = 'button';
     b.append(atlEl('span', 'atl-packc', '💎 ' + (k.credits | 0)), atlEl('small', '', 'crédits'), atlEl('b', 'atl-packp', ((k.prix | 0) / 100).toFixed(2).replace('.', ',') + ' €'));
-    b.addEventListener('click', () => { if (cb.checked) atlAcheter(k, b, er); }); payer.push(b); gr.appendChild(b);
+    b.addEventListener('click', () => atlPayerConf('💎 ' + (k.credits | 0) + ' crédits · ' + ((k.prix | 0) / 100).toFixed(2).replace('.', ',') + ' €', 'Tes crédits arrivent dès que Stripe confirme le paiement.', 'Payer sur Stripe', () => atlAcheter(k, b, er))); payer.push(b); gr.appendChild(b);
   }
   etat();
+}
+// 2.0.21 : la confirmation AVANT Stripe, avec la case de renonciation (non cochée, obligatoire) ; le texte accepté part avec le paiement
+function atlPayerConf(titre, phrase, oui, go) {
+  const O = atlEl('div', 'atl-ofmod'), k = atlEl('div', 'atl-ofcard atl-payc'); O.setAttribute('role', 'dialog'); O.setAttribute('aria-modal', 'true'); O.setAttribute('aria-label', 'Confirmer le paiement');
+  k.append(atlEl('b', 'atl-oft', titre), atlEl('p', 'atl-aide', phrase));
+  const ren = atlEl('label', 'atl-ren'), cb = atlEl('input'); cb.type = 'checkbox'; cb.checked = false; ren.append(cb, atlEl('span', '', ATL_RENONCE));
+  const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), ok = atlEl('button', 'btn btn-play', '🔒 ' + oui); no.type = ok.type = 'button';
+  const maj = () => { ok.disabled = !cb.checked; ok.classList.toggle('off', !cb.checked); ren.classList.toggle('ok', cb.checked); };
+  cb.addEventListener('change', maj);
+  const ferme = () => O.remove();
+  no.addEventListener('click', ferme); O.addEventListener('click', e => { if (e.target === O) ferme(); });
+  ok.addEventListener('click', () => { if (!cb.checked) return; ferme(); go(); });
+  row.append(no, ok); k.append(ren, atlEl('small', 'atl-noremb', '🔒 Paiement sécurisé par Stripe · Les crédits ne sont pas remboursés.'), row); O.appendChild(k); document.body.appendChild(O); maj();
 }
 function atlAcheter(k, b, er) { return atlStripe({ p_pack: k.id | 0, p_renonce: ATL_RENONCE }, b, er); }
 // un pack, l'abonnement (p_abo) ou le portail « Gérer mon abonnement » (p_portail) : la fonction Edge stripe-paiement donne l'adresse Stripe

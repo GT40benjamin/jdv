@@ -4584,3 +4584,8 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-arsol.desc{color:#ffd34d;border-color:#ffd34d;animation:atlSolPulse .7s ease-out}
 @keyframes atlSolPulse{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
 .atl-dnew .atl-artw textarea,.atl-dedit .atl-artw textarea{padding-right:56px;width:100%;box-sizing:border-box}
+/* 2.0.21 : crédits gratuits du mois en haut ; la case de renonciation dans la confirmation avant Stripe */
+.atl-gratuit{margin:0 0 6px;padding:10px 12px;border-radius:12px;background:rgba(126,232,160,.1);border:1px solid rgba(126,232,160,.45);font:700 14px/1.4 var(--body);color:#9ff0b9}
+.atl-payc{max-width:460px}
+.atl-payc .atl-ren{margin:6px 0}
+.atl-payc .btn.off{opacity:.45;cursor:not-allowed}
