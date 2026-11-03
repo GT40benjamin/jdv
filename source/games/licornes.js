@@ -3,11 +3,16 @@
 // La Maison des Licornes — premier jeu né à l'Atelier des jeux (projet a5badecc, auteur PATOU), version alpha (2 nov. 2026).
 // Un tapis magique défile avec des œufs, des accessoires et des biberons à acheter avec les PIÈCES DU JEU (jamais d'argent réel) ;
 // les œufs éclosent dans la couveuse, les bébés grandissent (biberon), on habille, on revend au panneau VENDRE, et deux adultes
-// dans le nid d'amour donnent un nouvel œuf. Partie de 3 minutes : le score = la valeur de toute ta Maison (licornes, œufs, accessoires, pièces).
+// dans le nid d'amour donnent un nouvel œuf. V3 (demandes de PATOU, 3 nov.) : la partie se joue en MANCHES — des enfants viennent à la
+// fenêtre de droite, une bulle montre la licorne qu'ils veulent (âge, couleur, accessoire, scintillante) ; livre-leur assez de licornes
+// avant la fin du temps, puis la manche suivante en demande une de plus, en un peu moins de temps. Score = la valeur de toute ta Maison.
 // Images : planches dessinées pour l'Atelier, découpées et emballées dans assets/licornes.bin (~/jdv-tools/licornes/emballer.py).
 const ROOT = () => window.JDW_ROOT || '';
 const TAU = Math.PI * 2;
-const DUREE = 180;
+// manche n : livrer n + 1 licornes, en 120 s pour la 1re puis 10 % de moins à chaque manche (55 s au moins)
+const objectifDe = n => n + 1, tempsDe = n => Math.max(55, Math.round(120 * Math.pow(0.9, n - 1)));
+const ENFANTS = ['lila', 'tom', 'nina'];
+const POT_PRIX = 10;
 const FOULEE = 70, FOULEE_BEBE = 46;   // pixels parcourus par pas complet (8 images de marche)
 
 /* ---------- images (paquet LIC1 : en-tête JSON + WebP à la suite) ---------- */
@@ -92,7 +97,22 @@ function drawImg(ctx, nom, x, y, w, h, hue) {
   ctx.save(); ctx.font = Math.round(h * 0.8) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(EMOJI[nom] || (ADULTES[nom] || nom.startsWith('bebe') || nom.startsWith('adulte') ? '🦄' : '🎀'), x + w / 2, y + h / 2); ctx.restore();
 }
-const ratio = nom => { const im = IMG[nom]; return im && im.height ? im.width / im.height : 1; };
+// un pot de peinture : bocal en verre, peinture de la couleur, couvercle, une coulure
+function drawPot(ctx, x, y, w, h, hue) {
+  const c = (COULEURS.find(k => k.h === hue) || COULEURS[0]).c, cx = x + w / 2, bw = w * 0.62, bh = h * 0.62, by = y + h * 0.3;
+  ctx.save();
+  ctx.fillStyle = 'rgba(90,50,110,0.18)'; ctx.beginPath(); ctx.ellipse(cx, y + h * 0.95, bw * 0.5, h * 0.05, 0, 0, TAU); ctx.fill();
+  pill(ctx, cx - bw / 2, by, bw, bh, bw * 0.22); ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fill();
+  pill(ctx, cx - bw / 2 + 3, by + bh * 0.28, bw - 6, bh * 0.72 - 3, bw * 0.2); ctx.fillStyle = c; ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(cx - bw * 0.32, by + bh * 0.36, bw * 0.1, bh * 0.45);
+  pill(ctx, cx - bw / 2, by, bw, bh, bw * 0.22); ctx.strokeStyle = '#b07aa8'; ctx.lineWidth = 2; ctx.stroke();
+  pill(ctx, cx - bw * 0.42, by - h * 0.13, bw * 0.84, h * 0.15, 5); ctx.fillStyle = '#f2a8cf'; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(cx + bw * 0.28, by + 2, bw * 0.12, h * 0.07, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + bw * 0.3, by + h * 0.09, bw * 0.06, h * 0.06, 0, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+function drawObjet(ctx, nom, x, y, w, h) { if (typeof nom === 'string' && nom.startsWith('pot:')) drawPot(ctx, x, y, w, h, +nom.slice(4)); else drawImg(ctx, nom, x, y, w, h); }
+const ratio = nom => { if (typeof nom === 'string' && nom.startsWith('pot:')) return 0.8; const im = IMG[nom]; return im && im.height ? im.width / im.height : 1; };
 function star(ctx, x, y, r, rot) {
   ctx.beginPath();
   for (let i = 0; i < 8; i++) { const a = rot + i * Math.PI / 4, rr = i % 2 ? r * 0.32 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
@@ -153,7 +173,7 @@ function mount(root, api) {
         trous: { g: { x: 214, bas: 135, w: 108, h: 84 }, d: { x: 1176, bas: 135, w: 108, h: 84 } },
         couv: { x: 236, y: 318, w: 156, h: 150 }, nid: { x: 470, y: 346, w: 176, h: 124 },
         enclos: { x: 770, y: 548, w: 530, h: 66 },   // le sol carrelé à droite (l'aquarium est retiré du fond : demande de PATOU, 2 nov. 23 h)
-        sell: { x: 26, y: 606, w: 150, h: 152 },
+        fen: { x: 1034, y: 196, w: 184, h: 206 }, bulle: { x: 856, y: 186, w: 160, h: 150 },   // la fenêtre des clients (à droite) et la bulle de l'enfant
         tray: { x: 196, y: 636, w: 566, h: 116 },
         act: { x: 790, y: 630, w: 520, h: 120 },
         msgY: 300
@@ -169,7 +189,7 @@ function mount(root, api) {
         enclos: { x: 70, y: 222 + 0.74 * (334 + ex), w: 580, h: 0.2 * (334 + ex) },   // les pieds sur le carrelage
         counterDraw: { x: 8, y: 700 + ex, w: 470 },
         couv: { x: 40, y: 572 + ex, w: 160, h: 150 }, nid: { x: 236, y: 600 + ex, w: 190, h: 130 },
-        sell: { x: 520, y: 640 + ex, w: 170, h: 172 },
+        fen: { x: 512, y: 618 + ex, w: 186, h: 196 }, bulle: { x: 520, y: 440 + ex, w: 170, h: 158 },
         tray: { x: 16, y: 884 + ex, w: 688, h: 112 },
         act: { x: 16, y: 1010 + ex, w: 688, h: 116 },
         msgY: 460 + ex
@@ -189,17 +209,20 @@ function mount(root, api) {
   ro.observe(root);
 
   // ---------- état ----------
-  let state = LOADED ? 'title' : 'load', stT = 0, timeLeft = DUREE, coins = 60, best = 0;
+  let state = LOADED ? 'title' : 'load', stT = 0, timeLeft = tempsDe(1), coins = 60, best = 0;
+  let manche = 1, vendues = 0, gagne = 0, client = null, clientT = 1.2, dernier = '';
   let belt = [], beltT = 0.3, beltN = 0, couv = [], queue = [], tray = [], bib = 1, unis = [], nid = [null, null], nidT = 0, nidEgg = null;
   let sel = null, parts = [], texts = [], flyers = [], msg = null, drag = null, down = null, uid = 1, hover = null, tick = -1, loadErr = '';
   const NID_DUREE = 8, MAX_UNIS = 8, MAX_TRAY = 8, MAX_QUEUE = 3;
   let grande = false, grandeT = 30;   // la grande couveuse : achetée ? prochaine apparition sur le tapis
   const cap = () => grande ? 4 : 2;
 
+  const estPot = a => typeof a === 'string' && a.startsWith('pot:'), hueDe = a => +a.slice(4);
+  const prixTray = a => estPot(a) ? POT_PRIX : ACC[a].prix;
   function valeur(u) {
     let v = u.bebe ? OEUFS[u.ligne].valBebe : ADULTES[u.adulte].val;
     for (const a of u.accs) v += Math.round(ACC[a].prix * 1.5);
-    return v;
+    return u.brille ? v * 2 : v;   // une licorne scintillante vaut le double
   }
   function score() {
     let s = coins + bib * BIB_PRIX;
@@ -207,7 +230,7 @@ function mount(root, api) {
     for (const u of nid) if (u) s += valeur(u);
     for (const c of couv) s += OEUFS[c.t].prix;
     for (const t of queue) s += OEUFS[t].prix;
-    for (const a of tray) s += ACC[a].prix;
+    for (const a of tray) s += prixTray(a);
     if (nidEgg) s += OEUFS[nidEgg].prix;
     if (grande) s += GCOUV_PRIX;
     return Math.max(0, Math.round(s));
@@ -258,7 +281,7 @@ function mount(root, api) {
   function newUni(ligne, x, y) {
     const r = Math.random();
     const adulte = ligne === 'commun' ? (r < 0.85 ? 'blanche' : 'arc') : ligne === 'rare' ? (r < 0.72 ? 'arc' : 'nuit') : (r < 0.45 ? 'nuit' : 'doree');
-    const u = { id: uid++, ligne, adulte, bebe: true, lait: 0, laitT: 0, accs: [], u: Math.random(), v: Math.random(), tu: Math.random(), tv: Math.random(), wait: 1 + Math.random() * 2, face: Math.random() < 0.5 ? -1 : 1, ph: Math.random() * 6, hop: 0, pop: 0.6 };
+    const u = { id: uid++, ligne, adulte, bebe: true, brille: ligne === 'leg', col: null, lait: 0, laitT: 0, accs: [], u: Math.random(), v: Math.random(), tu: Math.random(), tv: Math.random(), wait: 1 + Math.random() * 2, face: Math.random() < 0.5 ? -1 : 1, ph: Math.random() * 6, hop: 0, pop: 0.6 };
     if (x != null) { u.u = Math.min(1, Math.max(0, (x - L.enclos.x) / L.enclos.w)); u.v = Math.min(1, Math.max(0, (y - L.enclos.y) / L.enclos.h)); }
     return u;
   }
@@ -293,17 +316,18 @@ function mount(root, api) {
   // ---------- tapis ----------
   function spawnItem() {
     beltN++;
-    const prog = 1 - timeLeft / DUREE, r = Math.random();
+    const prog = Math.min(1, (manche - 1) / 8), r = Math.random();
     let it;
     if (!grande && grandeT <= 0 && !belt.some(i => i.k === 'gcouv')) { grandeT = 40 + Math.random() * 20; it = { k: 'gcouv', prix: GCOUV_PRIX, img: 'couveuse', x: L.trous.d.x + 6, bob: 0, shake: 0 }; belt.push(it); return; }
     const pRare = 0.12 + prog * 0.06, pLeg = 0.035 + prog * 0.04;
     if (beltN % 6 === 1 || r < 0.26) it = { k: 'egg', t: 'commun' };
     else if (r < 0.26 + pRare) it = { k: 'egg', t: 'rare' };
     else if (r < 0.26 + pRare + pLeg) it = { k: 'egg', t: 'leg' };
-    else if (r < 0.62) it = { k: 'acc', t: ACC_IDS[Math.floor(Math.random() * ACC_IDS.length)] };
+    else if (r < 0.55) it = { k: 'acc', t: client && client.want.acc && Math.random() < 0.4 ? client.want.acc : ACC_IDS[Math.floor(Math.random() * ACC_IDS.length)] };
+    else if (r < 0.77) it = { k: 'pot', t: client && Math.random() < 0.5 ? client.want.col : COULEURS[Math.floor(Math.random() * COULEURS.length)].h };   // un pot de couleur
     else it = { k: 'bib' };
-    it.prix = it.k === 'egg' ? OEUFS[it.t].prix : it.k === 'acc' ? ACC[it.t].prix : BIB_PRIX;
-    it.img = it.k === 'egg' ? OEUFS[it.t].img : it.k === 'acc' ? it.t : 'biberon';
+    it.prix = it.k === 'egg' ? OEUFS[it.t].prix : it.k === 'acc' ? ACC[it.t].prix : it.k === 'pot' ? POT_PRIX : BIB_PRIX;
+    it.img = it.k === 'egg' ? OEUFS[it.t].img : it.k === 'acc' ? it.t : it.k === 'pot' ? 'pot:' + it.t : 'biberon';
     it.x = L.trous.d.x + 6; it.bob = Math.random() * 6; it.shake = 0;
     belt.push(it);
   }
@@ -329,7 +353,7 @@ function mount(root, api) {
     if (it.k === 'egg') {
       if (couv.length < cap()) to = 'couv'; else if (queue.length < MAX_QUEUE) to = 'queue';
       else { it.shake = 0.4; snd.no(); say('La couveuse est pleine !'); return; }
-    } else if (it.k === 'acc') {
+    } else if (it.k === 'acc' || it.k === 'pot') {
       if (tray.length >= MAX_TRAY) { it.shake = 0.4; snd.no(); say('Ton coffre à accessoires est plein : habille tes licornes !'); return; }
       to = 'tray';
     } else to = 'bib';
@@ -337,19 +361,56 @@ function mount(root, api) {
     floatText(b.x + b.w / 2, b.y, '-' + it.prix, '#c0507a'); sparkle(b.x + b.w / 2, b.y + b.h / 2, 8);
     if (to === 'couv') couv.push({ t: it.t, p: 0, done: false, wob: 0, col: null });
     if (to === 'queue') queue.push(it.t);
-    if (to === 'tray') tray.push(it.t);
+    if (to === 'tray') tray.push(it.k === 'pot' ? 'pot:' + it.t : it.t);
     if (to === 'bib') bib = Math.min(99, bib + 1);
     const dest = to === 'couv' || to === 'queue' ? { x: L.couv.x + L.couv.w / 2, y: L.couv.y + L.couv.h * 0.4 } : { x: L.tray.x + 40, y: L.tray.y + L.tray.h / 2 };
     flyers.push({ img: it.img, x0: b.x + b.w / 2, y0: b.y + b.h / 2, x1: dest.x, y1: dest.y, t: 0, s: Math.max(b.w, b.h) });
   }
 
   // ---------- actions ----------
+  function retirer(u) { if (u.nid != null) nid[u.nid] = null; else unis.splice(unis.indexOf(u), 1); if (sel === u) sel = null; nidT = 0; }
+  // revendre au marchand (pour faire de la place) : la moitié de sa valeur, ne compte pas pour la manche
   function sell(u) {
-    const v = valeur(u), b = uniBox(u);
-    coins += v; snd.sell(); sparkle(b.x + b.w / 2, b.y + b.h / 2, 14, '#ffd34d', 160); floatText(b.x + b.w / 2, b.y, '+' + v + ' pièces', '#c08a10');
-    if (u.nid != null) nid[u.nid] = null; else unis.splice(unis.indexOf(u), 1);
-    if (sel === u) sel = null;
-    nidT = 0;
+    const v = Math.round(valeur(u) / 2), b = uniBox(u);
+    coins += v; snd.sell(); sparkle(b.x + b.w / 2, b.y + b.h / 2, 10, '#ffd34d', 140); floatText(b.x + b.w / 2, b.y, '+' + v + ' pièces', '#c08a10');
+    retirer(u);
+  }
+  // ---------- les clients (des enfants à la fenêtre de droite) ----------
+  function nouveauClient() {
+    let k; do { k = ENFANTS[Math.floor(Math.random() * ENFANTS.length)]; } while (k === dernier && ENFANTS.length > 1);
+    dernier = k;
+    const R = Math.random;
+    const want = { adulte: manche >= 3 && R() < 0.4, col: COULEURS[Math.floor(R() * COULEURS.length)].h,
+      acc: manche >= 4 && R() < 0.45 ? ACC_IDS[Math.floor(R() * ACC_IDS.length)] : null, brille: manche >= 5 && R() < 0.15 };
+    const patMax = Math.max(25, 55 - (manche - 1) * 3);
+    client = { k, want, etat: 'arrive', et: 0, pat: patMax, patMax, ph: Math.random() * 6 };
+  }
+  const convient = (u, w) => !u.bebe === w.adulte && u.col === w.col && (!w.acc || u.accs.includes(w.acc)) && (!w.brille || u.brille);
+  function livrer(u) {
+    if (!client || client.etat !== 'attend') { snd.no(); say('Attends qu’un enfant arrive à la fenêtre'); return; }
+    if (!convient(u, client.want)) {
+      client.etat = 'decu'; client.et = 0; client.pat = Math.max(0, client.pat - 6); snd.no();
+      const w = client.want, manque = [];
+      if (!u.bebe !== w.adulte) manque.push(w.adulte ? 'une grande licorne' : 'un bébé');
+      if (u.col !== w.col) manque.push('la couleur ' + COULEURS.find(c => c.h === w.col).n.toLowerCase());
+      if (w.acc && !u.accs.includes(w.acc)) manque.push(ACC[w.acc].nom.toLowerCase());
+      if (w.brille && !u.brille) manque.push('qu’elle scintille');
+      say('Ce n’est pas celle-là : il manque ' + manque.join(', '));
+      return;
+    }
+    const v = valeur(u) + 15, b = uniBox(u), f = L.fen;
+    coins += v; gagne += v; vendues++; snd.sell(); retirer(u);
+    flyers.push({ img: uniImg(u), hue: u.col, x0: b.x + b.w / 2, y0: b.y + b.h / 2, x1: f.x + f.w / 2, y1: f.y + f.h * 0.6, t: 0, s: b.h });
+    sparkle(f.x + f.w / 2, f.y + f.h / 2, 18, '#ffd34d', 170); hearts(f.x + f.w / 2, f.y + 20, 4); floatText(f.x + f.w / 2, f.y, '+' + v + ' pièces', '#c08a10');
+    client.etat = 'joie'; client.et = 0; client.servi = true;
+    if (vendues >= objectifDe(manche)) mancheGagnee();
+  }
+  function mancheGagnee() {
+    const bonus = 10 * manche; coins += bonus;
+    try { api.celebrate && manche % 3 === 0 && api.celebrate('Manche ' + manche + ' réussie !'); } catch (e) { /* rien */ }
+    manche++; vendues = 0; timeLeft = tempsDe(manche); tick = -1; snd.adult();
+    floatText(LW / 2, L.msgY - 60, 'Manche réussie ! +' + bonus, '#c08a10');
+    state = 'ready'; stT = 0;
   }
   function toNid(u) {
     if (u.bebe) { snd.no(); say('Seules les licornes adultes vont au nid d’amour'); return false; }
@@ -376,6 +437,12 @@ function mount(root, api) {
   }
   function dress(u, k) {
     const a = tray[k]; if (a == null || !u) return false;
+    if (estPot(a)) {   // un pot de couleur : la licorne prend cette couleur (même dessin, recoloré)
+      if (u.col === hueDe(a)) { snd.no(); say('Elle est déjà de cette couleur'); return false; }
+      tray.splice(k, 1); u.col = hueDe(a); u.pop = 0.5; snd.dress();
+      const b = uniBox(u); sparkle(b.x + b.w / 2, b.y + b.h * 0.5, 16, COULEURS.find(c => c.h === u.col).c, 150);
+      return true;
+    }
     if (u.accs.includes(a)) { snd.no(); say('Elle porte déjà ' + ACC[a].nom.toLowerCase()); return false; }
     if (u.accs.length >= 3) { snd.no(); say('3 accessoires au plus par licorne'); return false; }
     tray.splice(k, 1); u.accs.push(a); u.pop = 0.4; snd.dress();
@@ -395,7 +462,8 @@ function mount(root, api) {
     if (u.bebe) out.push({ id: 'feed', t: '🍼 Biberon (' + bib + ')', on: bib > 0 });
     else if (u.nid != null) out.push({ id: 'out', t: '↩ Sortir du nid', on: true });
     else out.push({ id: 'nid', t: '💞 Au nid d’amour', on: !(nid[0] && nid[1]) });
-    out.push({ id: 'sell', t: '💰 Vendre ' + valeur(u), on: true });
+    out.push({ id: 'give', t: '🎁 Donner', on: !!(client && client.etat === 'attend') });
+    out.push({ id: 'sell', t: '💰 ' + Math.round(valeur(u) / 2), on: true });
     const a = L.act, n = out.length, gap = 12, bw = (a.w - 150 - gap * (n - 1)) / n;
     out.forEach((o, i) => { o.x = a.x + 150 + i * (bw + gap); o.y = a.y + 30; o.w = bw; o.h = a.h - 40; });
     return out;
@@ -448,7 +516,7 @@ function mount(root, api) {
       const dr = drag; drag = null;
       if (dr.u) {
         const u = dr.u;
-        if (inBox(p, L.sell, 10)) sell(u);
+        if (inBox(p, L.fen, 14)) livrer(u);
         else if (inBox(p, L.nid, 20)) { if (u.nid == null) toNid(u); }
         else if (inBox(p, { x: L.enclos.x - 30, y: L.enclos.y - uniH(u), w: L.enclos.w + 60, h: L.enclos.h + uniH(u) + 40 })) {
           const fy = p.y + uniH(u) * 0.45;
@@ -457,7 +525,7 @@ function mount(root, api) {
         }
       } else if (dr.acc != null) {
         const u = uniAt(p);
-        if (u) dress(u, dr.acc); else say('Pose l’accessoire sur une licorne');
+        if (u) dress(u, dr.acc); else say(estPot(tray[dr.acc]) ? 'Pose le pot de couleur sur une licorne' : 'Pose l’accessoire sur une licorne');
       }
       return;
     }
@@ -470,15 +538,15 @@ function mount(root, api) {
     for (const d2 of palette()) if (inBox(p, d2, 6)) { d2.o.col = d2.hue; snd.dress(); sparkle(d2.x + d2.w / 2, d2.y + d2.h / 2, 10, d2.c, 120); return; }
     // boutons d'action
     for (const a of actions()) if (inBox(p, a)) {
-      if (!a.on && a.id !== 'feed') { snd.no(); if (a.id === 'nid') say('Le nid est déjà occupé'); return; }
-      if (a.id === 'feed') feed(sel); else if (a.id === 'sell') sell(sel); else if (a.id === 'nid') toNid(sel); else if (a.id === 'out') fromNid(sel);
+      if (!a.on && a.id !== 'feed' && a.id !== 'give') { snd.no(); if (a.id === 'nid') say('Le nid est déjà occupé'); return; }
+      if (a.id === 'feed') feed(sel); else if (a.id === 'give') livrer(sel); else if (a.id === 'sell') sell(sel); else if (a.id === 'nid') toNid(sel); else if (a.id === 'out') fromNid(sel);
       return;
     }
     // accessoires du coffre
     if (d.acc >= 0) { if (sel) dress(sel, d.acc); else { snd.no(); say('Touche d’abord une licorne, puis l’accessoire'); } return; }
     if (inBox(p, trayBoxes()[0])) { if (sel && sel.bebe) feed(sel); else say(bib + ' biberon' + (bib > 1 ? 's' : '') + ' : touche un bébé puis 🍼'); return; }
     if (d.u) { sel = sel === d.u ? null : d.u; if (sel) { sel.hop = 0.35; snd.pick(); } return; }
-    if (inBox(p, L.sell)) { if (sel) sell(sel); else say('Touche une licorne, puis VENDRE'); return; }
+    if (inBox(p, L.fen)) { if (sel) livrer(sel); else say('Donne à l’enfant la licorne de sa bulle : fais-la glisser jusqu’à la fenêtre'); return; }
     if (inBox(p, L.nid)) { if (sel && sel.nid == null) toNid(sel); else say('Mets deux licornes adultes dans le nid d’amour'); return; }
     if (inBox(p, L.couv)) { say('La couveuse fait éclore tes œufs'); return; }
     sel = null;
@@ -503,9 +571,9 @@ function mount(root, api) {
   pauseBtn.addEventListener('pointerdown', onPauseBtn);
 
   function startGame() {
-    state = 'ready'; stT = 0; snd.go();
+    state = 'ready'; stT = 0; snd.go(); manche = 1; vendues = 0; gagne = 0; timeLeft = tempsDe(1); client = null; clientT = 1.6;
     for (let i = 0; i < 4; i++) { spawnItem(); belt[belt.length - 1].x = L.belt.x0 + 120 + i * (L.belt.x1 - L.belt.x0 - 120) / 4; }
-    couv.push({ t: 'commun', p: 0.45, done: false, wob: 0, col: null });   // un premier œuf déjà au chaud
+    couv.push({ t: 'commun', p: 0.15, done: false, wob: 0, col: null });   // un premier œuf déjà au chaud
   }
   if (!LOADED) loadImages().then(() => { if (!dead && state === 'load') state = 'title'; }).catch(e => { loadErr = String(e && e.message || e); if (!dead) state = 'title'; });
 
@@ -517,17 +585,27 @@ function mount(root, api) {
     for (const t of texts) t.t += dt; texts = texts.filter(t => t.t < 1.3);
     for (const f of flyers) f.t += dt * 2.2; flyers = flyers.filter(f => f.t < 1);
     if (msg) { msg.t += dt; if (msg.t > 2.6) msg = null; }
-    if (state === 'ready') { if (stT > 1.4) { state = 'play'; stT = 0; } return; }
+    if (state === 'ready') { if (stT > 2.2) { state = 'play'; stT = 0; } return; }
     if (state === 'end') { if (stT > 2.4 && !overSent) { overSent = true; try { api.gameOver(score()); } catch (e) { /* rien */ } } return; }
     if (state !== 'play') return;
     timeLeft -= dt;
     const s = Math.ceil(timeLeft);
     if (s <= 10 && s !== tick && s > 0) { tick = s; snd.tick(); }
-    if (timeLeft <= 0) { timeLeft = 0; state = 'end'; stT = 0; sel = null; drag = null; snd.adult(); best = score(); return; }
+    if (timeLeft <= 0) { timeLeft = 0; state = 'end'; stT = 0; sel = null; drag = null; snd.no(); best = score(); return; }
+    // le client : il arrive, attend (sa patience baisse), se réjouit ou est déçu, puis repart
+    if (!client) { clientT -= dt; if (clientT <= 0) nouveauClient(); }
+    else {
+      const c = client; c.et += dt; c.ph += dt;
+      if (c.etat === 'arrive' && c.et > 0.8) { c.etat = 'attend'; c.et = 0; }
+      else if (c.etat === 'attend') { c.pat -= dt; if (c.pat <= 0) { c.etat = 'decu'; c.et = 0; c.partir = true; say('L’enfant n’a pas eu sa licorne… un autre arrive'); } }
+      else if (c.etat === 'decu' && c.et > 1.3) { if (c.partir || c.pat <= 0) { c.etat = 'part'; c.et = 0; } else { c.etat = 'attend'; c.et = 0; } }
+      else if (c.etat === 'joie' && c.et > 1.5) { c.etat = 'part'; c.et = 0; }
+      else if (c.etat === 'part' && c.et > 0.8) { client = null; clientT = 1.2; }
+    }
     // tapis
     // le tapis, plus doux (demande de PATOU, 3 nov.) : les objets sortent du trou de droite et rentrent dans celui de gauche
-    beltT -= dt; if (!grande) grandeT -= dt; if (beltT <= 0) { spawnItem(); beltT = 2.2 + Math.random() * 1.0; }
-    const spd = portrait ? 45 : 56;
+    beltT -= dt; if (!grande) grandeT -= dt; if (beltT <= 0) { spawnItem(); beltT = 3.0 + Math.random() * 1.2; }
+    const spd = portrait ? 30 : 38;   // nettement plus lent (2e demande de PATOU)
     for (const it of belt) { it.x -= spd * dt; it.bob += dt * 4; if (it.shake > 0) it.shake -= dt; }
     belt = belt.filter(it => it.x > L.trous.g.x - 30);
     // couveuse
@@ -539,7 +617,7 @@ function mount(root, api) {
       const c = couv[i];
       if (c.done && unis.length < MAX_UNIS) {
         couv.splice(i, 1); i--;
-        const u = newUni(c.t); u.col = c.col; u.u = 0.1 + Math.random() * 0.3; u.v = Math.random(); unis.push(u);
+        const u = newUni(c.t); u.col = c.col; u.u = 0.1 + Math.random() * 0.3; u.v = Math.random(); unis.push(u);   // la couleur choisie : elle la garde en grandissant
         const x = L.couv.x + L.couv.w / 2, y = L.couv.y + L.couv.h * 0.45;
         snd.hatch(); sparkle(x, y, 20, null, 180); floatText(x, L.couv.y, 'Un bébé !', '#d0569a');
         flyers.push({ img: OEUFS[c.t].bebe, hue: c.col, x0: x, y0: y, x1: uniPos(u).x, y1: uniPos(u).y - uniH(u) / 2, t: 0, s: uniH(u) });
@@ -601,11 +679,14 @@ function mount(root, api) {
     ctx.fillStyle = '#b07a00'; ctx.textAlign = 'left'; ctx.fillText(String(coins), 18 + h, y + h / 2 + 1);
     // temps
     const s = Math.max(0, Math.ceil(timeLeft)), ts = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-    const tx = portrait ? 224 : LW / 2 - 70, tw = 152;
-    pill(ctx, tx, y, tw, h, h / 2); ctx.fillStyle = s <= 10 && state === 'play' ? 'rgba(255,120,150,0.92)' : 'rgba(255,255,255,0.85)'; ctx.fill(); ctx.stroke();
-    ctx.fillStyle = s <= 10 && state === 'play' ? '#fff' : '#8a4fb0'; ctx.textAlign = 'center'; ctx.fillText('⏱ ' + ts, tx + tw / 2, y + h / 2 + 1);
+    const tx = portrait ? 220 : LW / 2 - 150, tw = portrait ? 164 : 300, chaud = s <= 10 && state === 'play';
+    pill(ctx, tx, y, tw, h, h / 2); ctx.fillStyle = chaud ? 'rgba(255,120,150,0.92)' : 'rgba(255,255,255,0.85)'; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = chaud ? '#fff' : '#8a4fb0'; ctx.textAlign = 'center';
+    const ligne1 = 'Manche ' + manche + ' · ' + vendues + '/' + objectifDe(manche) + ' 🦄';
+    if (portrait) { ctx.font = 'bold ' + Math.round(fs * 0.6) + 'px ' + RF; ctx.fillText(ligne1, tx + tw / 2, y + h * 0.3); ctx.font = 'bold ' + Math.round(fs * 0.75) + 'px ' + RF; ctx.fillText('⏱ ' + ts, tx + tw / 2, y + h * 0.72); ctx.font = 'bold ' + fs + 'px ' + RF; }
+    else { ctx.font = 'bold ' + Math.round(fs * 0.78) + 'px ' + RF; ctx.fillText(ligne1 + '  ·  ⏱ ' + ts, tx + tw / 2, y + h / 2 + 1, tw - 16); ctx.font = 'bold ' + fs + 'px ' + RF; }
     // valeur
-    const vx = portrait ? 390 : LW - 330, vw = portrait ? 220 : 250;
+    const vx = portrait ? 396 : LW - 330, vw = portrait ? 210 : 250;
     pill(ctx, vx, y, vw, h, h / 2); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#8a4fb0'; ctx.textAlign = 'left'; ctx.font = 'bold ' + Math.round(fs * 0.55) + 'px ' + RF; ctx.fillText('VALEUR', vx + 16, y + h / 2 + 1);
     ctx.font = 'bold ' + fs + 'px ' + RF; ctx.textAlign = 'right'; ctx.fillText('⭐ ' + score(), vx + vw - 14, y + h / 2 + 1);
@@ -644,7 +725,7 @@ function mount(root, api) {
         const gl = ctx.createRadialGradient(it.x, b.y + b.h / 2, 4, it.x, b.y + b.h / 2, b.w * 0.75); gl.addColorStop(0, 'rgba(255,224,110,0.75)'); gl.addColorStop(1, 'rgba(255,224,110,0)');
         ctx.fillStyle = gl; ctx.fillRect(b.x - b.w * 0.3, b.y - b.h * 0.3, b.w * 1.6, b.h * 1.6);
       }
-      drawImg(ctx, it.img, b.x + sh, b.y, b.w, b.h);
+      drawObjet(ctx, it.img, b.x + sh, b.y, b.w, b.h);
       if (it.k === 'gcouv') { ctx.font = 'bold 20px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 5; ctx.strokeStyle = '#fff'; ctx.strokeText('×4', b.x + b.w - 8, b.y + 10); ctx.fillStyle = '#c0408a'; ctx.fillText('×4', b.x + b.w - 8, b.y + 10); }
       ctx.restore();
       // étiquette de prix
@@ -707,10 +788,74 @@ function mount(root, api) {
     }
     if (nidEgg) drawImg(ctx, OEUFS[nidEgg].img, n.x + n.w / 2 - 18, n.y + n.h * 0.3, 36, 46);
   }
-  function drawSell() {
-    const s = L.sell, hot = (drag && drag.u && inBox(drag, s, 10)) || (sel && state === 'play');
-    ctx.save(); if (hot) { ctx.translate(s.x + s.w / 2, s.y + s.h); ctx.rotate(Math.sin(stT * 6) * 0.04); ctx.translate(-(s.x + s.w / 2), -(s.y + s.h)); }
-    drawImg(ctx, 'vendre', s.x, s.y, s.w, s.h); ctx.restore();
+  // la fenêtre des clients (à droite) : un enfant y arrive, attend, se réjouit ou est déçu, puis repart
+  function drawFenetre() {
+    const f = L.fen, hot = drag && drag.u && inBox(drag, f, 14);
+    // le cadre
+    ctx.save();
+    ctx.fillStyle = 'rgba(90,50,110,0.16)'; pill(ctx, f.x + 6, f.y + 8, f.w, f.h, 26); ctx.fill();
+    pill(ctx, f.x, f.y, f.w, f.h, 26); ctx.fillStyle = '#fff4f8'; ctx.fill();
+    const ix = f.x + 12, iy = f.y + 12, iw = f.w - 24, ih = f.h - 36;
+    const g = ctx.createLinearGradient(0, iy, 0, iy + ih); g.addColorStop(0, '#bfe6ff'); g.addColorStop(1, '#e8f6ff');
+    pill(ctx, ix, iy, iw, ih, 18); ctx.fillStyle = g; ctx.fill();
+    // dehors : un peu d'herbe et un nuage
+    ctx.save(); pill(ctx, ix, iy, iw, ih, 18); ctx.clip();
+    ctx.fillStyle = '#bfe8a8'; ctx.fillRect(ix, iy + ih * 0.78, iw, ih * 0.22);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(ix + iw * 0.22, iy + ih * 0.2, 12, 0, TAU); ctx.arc(ix + iw * 0.34, iy + ih * 0.17, 15, 0, TAU); ctx.arc(ix + iw * 0.46, iy + ih * 0.21, 11, 0, TAU); ctx.fill();
+    // l'enfant (on le voit jusqu'à la taille, derrière le rebord)
+    const c = client;
+    if (c) {
+      const pose = c.etat === 'joie' || (c.etat === 'part' && c.servi) ? 'j' : c.etat === 'decu' || (c.etat === 'part' && !c.servi) ? 'd' : 'a';
+      const nm = 'enfant-' + c.k + '-' + pose, hh = ih * 1.32, ww = hh * (IMG[nm] ? ratio(nm) : 0.6);
+      let dx = 0, dy = 0, sy = 1;
+      if (c.etat === 'arrive') { const k = 1 - Math.min(1, c.et / 0.8); dx = k * k * iw * 0.9; dy = Math.abs(Math.sin(c.et * 9)) * -5; }
+      else if (c.etat === 'part') { const k = Math.min(1, c.et / 0.8); dx = k * k * iw * 0.9; dy = Math.abs(Math.sin(c.et * 9)) * -5; }
+      else if (c.etat === 'attend') { sy = 1 + Math.sin(c.ph * 2.4) * 0.012; dy = Math.sin(c.ph * 2.4) * 1.2; }
+      else if (c.etat === 'joie') dy = -Math.abs(Math.sin(c.et * 7)) * 12;
+      else if (c.etat === 'decu') dx = Math.sin(c.et * 30) * 3 * Math.max(0, 1 - c.et);
+      const fx = ix + iw / 2 + dx, fy = iy + ih + hh * 0.42 + dy;
+      ctx.translate(fx, fy); ctx.scale(1, sy);
+      if (IMG[nm]) ctx.drawImage(IMG[nm], -ww / 2, -hh, ww, hh);
+      else { ctx.font = Math.round(hh * 0.5) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(pose === 'j' ? '😄' : pose === 'd' ? '😢' : '🙂', 0, -hh * 0.3); }
+    }
+    ctx.restore();
+    // le rebord et le contour
+    pill(ctx, ix - 6, iy + ih - 4, iw + 12, 22, 10); const gr = ctx.createLinearGradient(0, iy + ih - 4, 0, iy + ih + 18); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#f1c9dc'); ctx.fillStyle = gr; ctx.fill();
+    ctx.strokeStyle = '#d99bbd'; ctx.lineWidth = 2.5; ctx.stroke();
+    pill(ctx, f.x, f.y, f.w, f.h, 26); ctx.lineWidth = hot ? 6 : 3; ctx.strokeStyle = hot ? '#ffd34d' : '#e6a9c9'; ctx.stroke();
+    ctx.restore();
+  }
+  // la bulle de l'enfant : la licorne qu'il veut (âge, couleur, accessoire, scintillante) et sa patience
+  function drawBulle() {
+    const c = client; if (!c || c.etat === 'arrive' || c.etat === 'part' || c.etat === 'joie') return;
+    const B = L.bulle, w = c.want, f = L.fen, pop = c.etat === 'attend' && c.et < 0.3 ? 0.7 + c.et : 1;
+    ctx.save(); ctx.translate(B.x + B.w / 2, B.y + B.h / 2); ctx.scale(pop, pop); ctx.translate(-(B.x + B.w / 2), -(B.y + B.h / 2));
+    // la bulle et sa pointe vers l'enfant
+    ctx.fillStyle = 'rgba(90,50,110,0.14)'; pill(ctx, B.x + 4, B.y + 6, B.w, B.h, 24); ctx.fill();
+    ctx.fillStyle = '#ffffff'; pill(ctx, B.x, B.y, B.w, B.h, 24); ctx.fill();
+    ctx.beginPath();
+    if (portrait) { ctx.moveTo(B.x + B.w * 0.42, B.y + B.h - 2); ctx.lineTo(B.x + B.w * 0.5, B.y + B.h + 22); ctx.lineTo(B.x + B.w * 0.62, B.y + B.h - 2); }
+    else { ctx.moveTo(B.x + B.w - 2, B.y + B.h * 0.48); ctx.lineTo(f.x + 22, B.y + B.h * 0.66); ctx.lineTo(B.x + B.w - 2, B.y + B.h * 0.7); }
+    ctx.fill(); ctx.strokeStyle = c.etat === 'decu' ? '#ff8aa8' : '#efb3d6'; ctx.lineWidth = 3; pill(ctx, B.x, B.y, B.w, B.h, 24); ctx.stroke();
+    // la licorne voulue
+    const nm = w.adulte ? 'adulte-blanche' : 'bebe-rose', h = B.h * (w.adulte ? 0.62 : 0.54), lw = h * ratio(nm), lx = B.x + B.w / 2 - lw / 2, ly = B.y + B.h * 0.7 - h;
+    ctx.save(); ctx.translate(lx, ly);
+    if (w.brille) { ctx.shadowColor = 'hsl(' + Math.round((stT * 140) % 360) + ',100%,72%)'; ctx.shadowBlur = 18; }
+    const d = w.acc ? ACC[w.acc][w.adulte ? 'a' : 'k'] : null;
+    if (d && d.b) accDraw({ a: w.acc, d }, { w: lw, h });
+    drawImg(ctx, nm, 0, 0, lw, h, w.col); ctx.shadowBlur = 0;
+    if (d && !d.b) accDraw({ a: w.acc, d }, { w: lw, h });
+    ctx.restore();
+    if (w.brille) for (let i = 0; i < 4; i++) { const k = (stT * 1.6 + i / 4) % 1, a = i * 1.6; ctx.fillStyle = ['#fff7b0', '#ffc6ec', '#c9b6ff', '#b5f1ff'][i]; star(ctx, B.x + B.w / 2 + Math.cos(a) * lw * 0.55, ly + h * 0.5 + Math.sin(a) * h * 0.5, 2 + Math.sin(k * Math.PI) * 6, stT * 3 + i); }
+    // en mots, pour les grands
+    const coul = COULEURS.find(k => k.h === w.col);
+    ctx.font = 'bold 14px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#8a4fb0';
+    ctx.fillText((w.adulte ? 'Grande' : 'Bébé') + ' ' + coul.n.toLowerCase() + (w.acc ? ' + ' + ACC[w.acc].nom.toLowerCase() : '') + (w.brille ? ' ✨' : ''), B.x + B.w / 2, B.y + B.h * 0.8, B.w - 14);
+    // la patience
+    const k = Math.max(0, c.pat / c.patMax), bw = B.w - 36;
+    ctx.fillStyle = 'rgba(230,200,220,0.9)'; pill(ctx, B.x + 18, B.y + B.h - 16, bw, 8, 4); ctx.fill();
+    ctx.fillStyle = k > 0.5 ? '#7fd38a' : k > 0.25 ? '#ffc04a' : '#ff6f8f'; pill(ctx, B.x + 18, B.y + B.h - 16, bw * k, 8, 4); ctx.fill();
+    ctx.restore();
   }
   function drawUni(u) {
     const b = uniBox(u), nm = uniImg(u), dragging = drag && drag.u === u;
@@ -720,14 +865,18 @@ function mount(root, api) {
     ctx.fillStyle = 'rgba(90,50,110,0.18)'; ctx.beginPath(); ctx.ellipse(b.fx, b.fy - 2, b.w * 0.34, b.h * 0.06, 0, 0, TAU); ctx.fill();
     if (sel === u) { ctx.fillStyle = 'rgba(255,240,140,0.55)'; ctx.beginPath(); ctx.ellipse(b.fx, b.fy - 2, b.w * 0.46, b.h * 0.1, 0, 0, TAU); ctx.fill(); }
     ctx.save(); ctx.translate(b.fx, b.fy - hop); ctx.scale(u.face * pop, pop); ctx.translate(-b.w / 2, -b.h);
-    if (u.bebe && u.ligne === 'leg') { ctx.shadowColor = 'rgba(255,215,90,0.95)'; ctx.shadowBlur = 18; }
+    if (u.brille) { ctx.shadowColor = 'hsl(' + Math.round((stT * 140 + u.id * 40) % 360) + ',100%,72%)'; ctx.shadowBlur = 24; }   // reflet arc-en-ciel qui tourne
     const accs = u.accs.map(a => ({ a, d: ACC[a][u.bebe ? 'k' : 'a'] }));
     for (const o of accs) if (o.d.b) accDraw(o, b);
-    drawImg(ctx, uniPose(u), 0, 0, b.w, b.h, u.bebe ? u.col : null); ctx.shadowBlur = 0;
+    drawImg(ctx, uniPose(u), 0, 0, b.w, b.h, u.col); ctx.shadowBlur = 0;
     for (const o of accs) if (!o.d.b) accDraw(o, b);
     ctx.restore();
     if (u.bebe) {   // le lait bu (3 = adulte)
       for (let i = 0; i < 3; i++) { ctx.fillStyle = i < u.lait ? '#ff8cc6' : 'rgba(255,255,255,0.75)'; ctx.beginPath(); ctx.arc(b.fx - 16 + i * 16, b.y - 6 - hop, 5.5, 0, TAU); ctx.fill(); }
+    }
+    if (u.brille) {   // des étincelles qui s'allument tour à tour autour d'elle
+      for (let i = 0; i < 5; i++) { const k = (stT * 1.6 + i / 5 + u.id * 0.13) % 1, a = i * 1.7 + u.id, rr = Math.sin(k * Math.PI);
+        ctx.fillStyle = ['#fff7b0', '#ffc6ec', '#c9b6ff', '#b5f1ff', '#ffe08a'][i]; star(ctx, b.fx + Math.cos(a) * b.w * 0.45, b.y + b.h * 0.5 + Math.sin(a) * b.h * 0.42 - hop, 3 + rr * 6, stT * 3 + i); }
     }
     if (sel === u) { ctx.fillStyle = '#fff3a0'; star(ctx, b.fx, b.y - 22 - hop + Math.sin(stT * 5) * 3, 10, stT * 2); }
   }
@@ -738,7 +887,7 @@ function mount(root, api) {
   function drawTray() {
     const t = L.tray;
     pill(ctx, t.x, t.y, t.w, t.h, 22); ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.fill(); ctx.strokeStyle = '#e6b8dc'; ctx.lineWidth = 3; ctx.stroke();
-    ctx.font = 'bold 16px ' + RF; ctx.fillStyle = '#9a4fb8'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('Biberons et accessoires', t.x + 18, t.y + 13);
+    ctx.font = 'bold 16px ' + RF; ctx.fillStyle = '#9a4fb8'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('Biberons, couleurs et accessoires', t.x + 18, t.y + 13);
     const tb = trayBoxes();
     tb.forEach((b, i) => {
       pill(ctx, b.x, b.y, b.w, b.h, 12); ctx.fillStyle = i ? 'rgba(244,226,250,0.9)' : 'rgba(255,236,246,0.95)'; ctx.fill();
@@ -747,7 +896,7 @@ function mount(root, api) {
         ctx.font = 'bold 20px ' + RF; ctx.textAlign = 'right'; ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText('×' + bib, b.x + b.w - 2, b.y + b.h - 11); ctx.fillStyle = '#c0408a'; ctx.fillText('×' + bib, b.x + b.w - 2, b.y + b.h - 11);
       } else if (tray[i - 1] != null && !(drag && drag.acc === i - 1)) {
         const a = tray[i - 1], r = ratio(a), s = b.w - 10; const w = r >= 1 ? s : s * r, h = r >= 1 ? s / r : s;
-        drawImg(ctx, a, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+        drawObjet(ctx, a, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
       }
     });
   }
@@ -758,11 +907,11 @@ function mount(root, api) {
     if (!u) {
       ctx.font = 'bold 20px ' + RF; ctx.fillStyle = '#9a6ab8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('Touche une licorne pour t’en occuper', a.x + a.w / 2, a.y + a.h / 2 - 12);
-      ctx.font = '16px ' + RF; ctx.fillText('ou fais-la glisser vers le nid ou VENDRE', a.x + a.w / 2, a.y + a.h / 2 + 16);
+      ctx.font = '16px ' + RF; ctx.fillText('ou fais-la glisser vers le nid ou la fenêtre', a.x + a.w / 2, a.y + a.h / 2 + 16);
       return;
     }
     const nm = uniImg(u), ih = 86, iw = ih * ratio(nm);
-    ctx.save(); ctx.translate(a.x + 70, a.y + a.h / 2 + ih / 2 - 4); ctx.scale(Math.min(1, 120 / iw), Math.min(1, 120 / iw)); drawImg(ctx, nm, -iw / 2, -ih, iw, ih, u.bebe ? u.col : null); ctx.restore();
+    ctx.save(); ctx.translate(a.x + 70, a.y + a.h / 2 + ih / 2 - 4); ctx.scale(Math.min(1, 120 / iw), Math.min(1, 120 / iw)); drawImg(ctx, nm, -iw / 2, -ih, iw, ih, u.col); ctx.restore();
     ctx.font = 'bold 15px ' + RF; ctx.fillStyle = '#8a4fb0'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText((u.bebe ? 'Bébé · ' + ['', 'rare', 'légendaire'][['commun', 'rare', 'leg'].indexOf(u.ligne)] : ADULTES[u.adulte].nom).replace(/ · $/, '') + (u.accs.length ? ' · ' + u.accs.length + ' accessoire' + (u.accs.length > 1 ? 's' : '') : ''), a.x + 150, a.y + 16);
     for (const b of actions()) {
@@ -804,11 +953,11 @@ function mount(root, api) {
     const cw = portrait ? 640 : 560, chh = portrait ? 330 : 270, cx = (LW - cw) / 2, cy = portrait ? LH - chh - 210 : LH - chh - 158;
     pill(ctx, cx, cy, cw, chh, 30); ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill(); ctx.strokeStyle = '#f0b6dc'; ctx.lineWidth = 4; ctx.stroke();
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#7a3fa0';
-    const lines = ['🥚 Achète des œufs sur le tapis magique', '🍼 Fais grandir tes bébés au biberon', '🎀 Habille tes licornes : elles valent plus', '💰 Revends pour acheter des œufs plus rares', '💞 Deux adultes au nid = un nouvel œuf !'];
+    const lines = ['🥚 Achète des œufs et choisis leur couleur', '👧 Donne aux enfants la licorne de leur bulle', '🎨 Pots de couleur et 🎀 accessoires sur le tapis', '🍼 Biberon = elle grandit · ✨ les rares scintillent', '⏱ Chaque manche : une de plus, un peu plus vite !'];
     const fs = portrait ? 25 : 21; ctx.font = 'bold ' + fs + 'px ' + RF;
     lines.forEach((l, i) => ctx.fillText(l, cx + 26, cy + 34 + i * (chh - 100) / 4.4, cw - 40));
     ctx.textAlign = 'center'; ctx.font = (portrait ? 20 : 17) + 'px ' + RF; ctx.fillStyle = '#a066c0';
-    ctx.fillText('3 minutes pour la Maison la plus précieuse de ta salle !', LW / 2, cy + chh - 34, cw - 30);
+    ctx.fillText('Combien de manches tiendras-tu ?', LW / 2, cy + chh - 34, cw - 30);
     // bouton jouer
     const bw = portrait ? 340 : 300, bh = portrait ? 92 : 78, bx = (LW - bw) / 2, by = cy + chh + (portrait ? 28 : 14), k = 1 + Math.sin(stT * 4) * 0.03;
     ctx.save(); ctx.translate(LW / 2, by + bh / 2); ctx.scale(k, k);
@@ -824,20 +973,21 @@ function mount(root, api) {
     ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * ox, dpr * oy);
     if (state === 'load' || state === 'title') { drawTitle(); if (paused) drawPause(); return; }
     drawBg();
-    drawBelt(); drawCouv(); drawNid(); drawSell();
+    drawBelt(); drawCouv(); drawNid(); drawFenetre();
     const list = unis.slice().sort((a, b) => uniPos(a).y - uniPos(b).y);
     for (const u of nid) if (u && !(drag && drag.u === u)) drawUni(u);
     for (const u of list) if (!(drag && drag.u === u)) drawUni(u);
     label('Couveuse', L.couv.x + L.couv.w / 2, L.couv.y + L.couv.h + 26); label('Nid d’amour', L.nid.x + L.nid.w / 2, L.nid.y + L.nid.h + 28);
-    drawTray(); drawAct();
+    drawTray(); drawAct(); drawBulle();
     if (drag && drag.u) drawUni(drag.u);
-    if (drag && drag.acc != null && tray[drag.acc] != null) { const a = tray[drag.acc], s = 70; drawImg(ctx, a, drag.x - s * ratio(a) / 2, drag.y - s / 2, s * ratio(a), s); }
+    if (drag && drag.acc != null && tray[drag.acc] != null) { const a = tray[drag.acc], s = 70; drawObjet(ctx, a, drag.x - s * ratio(a) / 2, drag.y - s / 2, s * ratio(a), s); }
     drawFx(); drawHud();
     if (state === 'ready') {
       ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(0, 0, LW, LH);
-      big(stT < 0.8 ? 'Prêt ?' : 'C’est parti !', LH / 2);
+      big('Manche ' + manche, LH / 2 - 30);
+      big('Livre ' + objectifDe(manche) + ' licornes en ' + Math.floor(tempsDe(manche) / 60) + ':' + String(tempsDe(manche) % 60).padStart(2, '0'), LH / 2 + 46, 0.42);
     }
-    if (state === 'end') { ctx.fillStyle = 'rgba(255,240,250,0.6)'; ctx.fillRect(0, 0, LW, LH); big('Temps écoulé !', LH / 2 - 40); big('Valeur : ' + best, LH / 2 + 50, 0.7); }
+    if (state === 'end') { ctx.fillStyle = 'rgba(255,240,250,0.6)'; ctx.fillRect(0, 0, LW, LH); big('Temps écoulé !', LH / 2 - 60); big('Tu as tenu jusqu’à la manche ' + manche, LH / 2 + 20, 0.42); big('Valeur de ta Maison : ' + best, LH / 2 + 80, 0.42); }
     if (paused) drawPause();
   }
   function big(s, y, k) {
@@ -868,7 +1018,7 @@ function mount(root, api) {
       root.innerHTML = '';
     },
     currentScore() { return state === 'play' || state === 'end' ? score() : 0; },
-    currentLevel() { return 1 + Math.floor((DUREE - timeLeft) / 60); },
+    currentLevel() { return manche; },
     pause() { if (state === 'play' || state === 'ready') setPaused(true); },
     resume() { setPaused(false); },
     // essais (harnais) : avancer le temps, état
@@ -876,6 +1026,9 @@ function mount(root, api) {
       spawn(ligne, adulte, accs) { const u = newUni(ligne || 'commun'); if (adulte) { u.bebe = false; u.adulte = adulte; } if (accs) u.accs = accs; u.tu = u.u; u.tv = u.v; unis.push(u); return u.id; },
       uni: id => { const u = unis.find(v => v.id === id); if (!u) return null; const b = uniBox(u); return { x: ox + b.fx * sc, y: oy + b.fy * sc, h: b.h * sc, pose: uniPose(u), face: u.face }; },
       go(id, tu, tv) { const u = unis.find(v => v.id === id); if (u) { u.tu = tu; u.tv = tv; u.wait = 99; } },
+      manche: () => ({ manche, vendues, objectif: objectifDe(manche), temps: Math.round(timeLeft) }), client: () => client && { k: client.k, etat: client.etat, want: client.want, pat: Math.round(client.pat) },
+      prepare(id, w) { const u = unis.find(v => v.id === id); if (u) { u.bebe = !w.adulte; u.col = w.col; if (w.acc) u.accs = [w.acc]; u.brille = !!w.brille; } },
+      fen: () => ({ x: ox + (L.fen.x + L.fen.w / 2) * sc, y: oy + (L.fen.y + L.fen.h / 2) * sc }), ids: () => unis.map(u => u.id), uniEcran(id) { const u = unis.find(v => v.id === id); if (!u) return null; const b = uniBox(u); return { x: ox + b.fx * sc, y: oy + (b.y + b.h * 0.55) * sc }; },
       state: () => state, coins: () => coins, n: () => unis.length, score, skip(s) { timeLeft = Math.max(0.1, timeLeft - s); }, give(c) { coins += c; }, fast(k) { FAST = k; },
       css: (x, y) => ({ x: ox + x * sc, y: oy + y * sc }),
       items: () => belt.map(it => { const b = itemBox(it); return Object.assign({ k: it.k, t: it.t }, { x: ox + (b.x + b.w / 2) * sc, y: oy + (b.y + b.h / 2) * sc }); }),
