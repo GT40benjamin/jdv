@@ -1,28 +1,44 @@
 {
   "pkg": "fr.bornearcade.pegase",
-  "versionCode": 91,
-  "versionName": "0.9.9.43",
-  "size": 1234893906,
-  "sha256": "55f717d578334b85cb770a96a4f10af1b7f4f93b20a15f0123c92b19a699d6ef",
-  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v91/pegase-0.9.9.43.apk",
+  "versionCode": 92,
+  "versionName": "0.9.9.44",
+  "size": 1234928666,
+  "sha256": "1ddda00b499bedb89d5bc9d5669b324776b293bc7dd1a51745d16f13a13ca9b8",
+  "url": "https://github.com/GT40benjamin/jdv/releases/download/pegase-v92/pegase-0.9.9.44.apk",
   "cert": "ec1274e500203f64d7fe1330d9a305d280930d38b6844f1edc0d3777bec83b99",
   "minSdk": 26,
   "abi": "arm64-v8a",
   "title": "Pégase",
   "notes": [
-    "Quand une grande bête sauvage détale devant toi, les bêtes de sa harde partent aussi, un peu après : elles l'ont vue s'enfuir.",
-    "Les loups ne hurlent plus en plein jour : seulement au crépuscule et la nuit.",
-    "Les vaches meuglent surtout le matin et le soir, presque plus la nuit. Le cheval hennit quand il détale, et le sanglier grogne en fuyant.",
-    "Les grandes bêtes ne rentrent plus dans les rochers, les clôtures et les objets : elles gardent leurs distances et font le détour.",
-    "Les grands troncs creux couchés sont enfin solides : plus d'héroïne coincée dans l'écorce, et on peut traverser le tronc d'un bout à l'autre.",
-    "Les 23 bouteilles à message sont plus grandes et brillent de loin. Elles sont couchées au pied d'un vrai repère : tronc, barrière, ponton, lanterne…",
-    "Le Grand livre a une section « Au bord de la mer » : 9 poissons de mer à pêcher (maquereau, cabillaud, mahi-mahi, poisson-clown…). Prends la photo souvenir pour remplir la case.",
-    "La mission « Trouver les 3 inscriptions des géants » montre son compteur : 0 / 3, puis 1 / 3 quand Papi Auguste confirme ta photo.",
-    "Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.",
-    "De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.",
-    "Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps."
+    "La caméra se baisse enfin librement dans les prairies et sur les pentes, et elle ne flotte plus de haut en bas pendant la marche. Elle se relève seulement près des vraies hautes herbes.",
+    "Désiré, derrière son comptoir, a des gestes calmes : il ne glisse plus de côté et sa révérence ne lui plonge plus la tête dans le comptoir.",
+    "Papi Auguste ne se cache plus dans l'escalier de la mairie quand tu arrives.",
+    "Une inscription des géants porte son vrai nom dans le Grand livre (« Inscription des géants n° 1 »), et un message te confirme la photo juste après l'avoir prise.",
+    "Les petits oiseaux des bosquets et du jardin sautillent vraiment au lieu de glisser sur le sol.",
+    "La biche et le cerf ne restent plus collés l'un dans l'autre quand ils se reposent.",
+    "Plus de taches mouchetées sur les bras et les mains du personnage.",
+    "À la petite cascade de la longue rivière, l'eau est au bon niveau : la pêche y marche comme ailleurs.",
+    "Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.",
+    "Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.",
+    "Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr."
   ],
   "historique": [
+    {
+      "version": "0.9.9.44",
+      "notes": [
+        "La caméra se baisse enfin librement dans les prairies et sur les pentes, et elle ne flotte plus de haut en bas pendant la marche. Elle se relève seulement près des vraies hautes herbes.",
+        "Désiré, derrière son comptoir, a des gestes calmes : il ne glisse plus de côté et sa révérence ne lui plonge plus la tête dans le comptoir.",
+        "Papi Auguste ne se cache plus dans l'escalier de la mairie quand tu arrives.",
+        "Une inscription des géants porte son vrai nom dans le Grand livre (« Inscription des géants n° 1 »), et un message te confirme la photo juste après l'avoir prise.",
+        "Les petits oiseaux des bosquets et du jardin sautillent vraiment au lieu de glisser sur le sol.",
+        "La biche et le cerf ne restent plus collés l'un dans l'autre quand ils se reposent.",
+        "Plus de taches mouchetées sur les bras et les mains du personnage.",
+        "À la petite cascade de la longue rivière, l'eau est au bon niveau : la pêche y marche comme ailleurs.",
+        "Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.",
+        "Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.",
+        "Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr."
+      ]
+    },
     {
       "version": "0.9.9.43",
       "notes": [
@@ -85,17 +101,6 @@
         "À vélo, un gros rocher arrête doucement la roue (« Un rocher bloque le passage ») au lieu de te faire grimper dessus ; les petites pierres se franchissent toujours.",
         "Les papillons ne volent plus dans le feuillage, ne traversent plus les rochers ni les fondations, et ne butinent plus les fleurs collées à un mur, une clôture ou une falaise.",
         "Les poussins trottinent à la bonne cadence derrière leur mère, le grand tétras ne plonge plus la tête dans le sol en picorant, et le rossignol chante dans un taillis, loin de la grange."
-      ]
-    },
-    {
-      "version": "0.9.9.39",
-      "notes": [
-        "Des mains plus naturelles : Désiré referme ses mains quand il parle, l'héroïne et les habitantes ont des doigts détendus au repos.",
-        "En prenant tout droit l'escalier du pont rouge, l'héroïne contourne toujours le poteau du côté du pont : plus de chute dans le vide.",
-        "Le ruisseau sous le pont rouge est maintenant une vraie eau bleue qui coule, avec de l'écume sur ses rives.",
-        "Une bête qui détale fait d'abord volte-face : elle ne part plus de côté ou à reculons.",
-        "Poules, coq, pigeons, corneilles, faisans… : leurs pattes ne glissent plus en marchant, et la basse-cour marche d'un pas vif au lieu de trotter.",
-        "Une bête qui se tourne un peu pendant un repos fait quelques pas au lieu de pivoter les pattes figées ; couchée ou en train de brouter, elle garde son cap."
       ]
     }
   ]

@@ -6,6 +6,18 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[pegase] ## 🎥 Pégase 0.9.9.44 : la caméra obéit (borne 2.0.2)
+[pegase] 🎥 La caméra se baisse enfin librement dans les prairies et sur les pentes, et elle ne flotte plus de haut en bas pendant la marche. Elle se relève seulement près des vraies hautes herbes.
+[pegase] 🍸 Désiré, derrière son comptoir, a des gestes calmes : il ne glisse plus de côté et sa révérence ne lui plonge plus la tête dans le comptoir.
+[pegase] 👴 Papi Auguste ne se cache plus dans l'escalier de la mairie quand tu arrives.
+[pegase] 🪨 Une inscription des géants porte son vrai nom dans le Grand livre (« Inscription des géants n° 1 »), et un message te confirme la photo juste après l'avoir prise.
+[pegase] 🐦 Les petits oiseaux des bosquets et du jardin sautillent vraiment au lieu de glisser sur le sol.
+[pegase] 🦌 La biche et le cerf ne restent plus collés l'un dans l'autre quand ils se reposent.
+[pegase] 🧑 Plus de taches mouchetées sur les bras et les mains du personnage.
+[pegase] 🎣 À la petite cascade de la longue rivière, l'eau est au bon niveau : la pêche y marche comme ailleurs.
+[pegase] 🪷 Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.
+[pegase] 🌊 Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.
+[pegase] ⛰️ Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr.
 [atelier] ## 🎮 Crée ton propre jeu vidéo ! (borne 2.0)
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : ton guide monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, ton guide t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
