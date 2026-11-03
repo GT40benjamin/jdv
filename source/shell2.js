@@ -560,7 +560,7 @@ function isGuest() {      // = acctState(profile) !== 'on', sans dépendre de l'
   return !(profile && profile.name && se && se.rt);
 }
 // seules fonctions du serveur permises à un invité (toutes les autres sont refusées ici, sans appel réseau)
-const GUEST_RPC = new Set(['chrono_board', 'pg_island_ranking', 'pg_island_list', 'pg_island_watch', 'pg_island_request', 'pg_island_request_state', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
+const GUEST_RPC = new Set(['at_jeux_monde', 'at_guide', 'chrono_board', 'pg_island_ranking', 'pg_island_list', 'pg_island_watch', 'pg_island_request', 'pg_island_request_state', 'check_name', 'login_name', 'recover_hint', 'log_error', 'get_world_scores', 'get_my_players', 'claim_name', 'invite_info', 'get_world_coop_scores']);
 // le joueur au nom duquel une fonction agit (son jeton est envoyé s'il est connecté sur cet appareil)
 function rpcActor(fn, args) {
   if (!args) return '';
@@ -14364,10 +14364,12 @@ const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : 
 // 23 h 55 (Benjamin : « la version très simple, V1 ou V2 ») : le badge d'un projet
 // 2.0.34 : la couleur de la pastille (🌍 vert, ⏳ jaune, 🏠 violet, 🧪 gris), la même partout
 function atlPastCls(p) { const et = String((p && p.etat) || ''); return et === 'publie_monde' ? ' pm' : et === 'publie_salle' ? (p && p.monde_demande_at ? ' pd' : ' ps') : et === 'alpha' ? ' pe' : ''; }
-function atlVersion(p, att) {
+// 2.0.35 : « Vn prête à publier » dans sa petite pastille à part (cartes de projets)
+function atlVersionPlus(p) { const et = String((p && p.etat) || ''), v = (p && p.version) | 0 || 1, vp = (p && p.version_publiee) | 0 || v; return /^publie_/.test(et) && v > vp ? '🆕 V' + v + ' prête à publier' : ''; }
+function atlVersion(p, att, court) {
   const et = String((p && p.etat) || ''), v = (p && p.version) | 0 || 1;
   // 2.0.31 (Benjamin : « c'est pas suffisant, il faut "publié dans la salle uniquement" ») : où c'est publié, et la version prête à publier
-  const vp = (p && p.version_publiee) | 0 || v, plus = v > vp ? ' · V' + v + ' prête à publier' : '';
+  const vp = (p && p.version_publiee) | 0 || v, plus = v > vp && !court ? ' · V' + v + ' prête à publier' : '';
   if (et === 'alpha') return '🧪 V' + v + ' · en essai';
   if (et === 'publie_salle') return (p && p.monde_demande_at ? '⏳ V' + vp + ' · dans la salle · publication mondiale demandée' : '🏠 V' + vp + ' · publié dans la salle uniquement') + plus;
   if (et === 'publie_monde') return '🌍 V' + vp + ' · publication mondiale' + plus;
@@ -14423,10 +14425,11 @@ function atlMineMark(wrap, b, id) {
   }
 }
 async function atlJeuxLoad() {
-  if (!ONLINE || isGuest() || !profile.name || netOff() || PAGE === 'pegase') return;
-  const me = cleanName(profile.name);
-  let l; try { l = await rpc('at_jeux', { p_name: profile.name, p_salle: room && room.id ? room.id : null }, { quiet404: true, quiet: true }); } catch (e) { return; }   // 2.0.30 : les jeux des membres de CETTE salle
-  if (cleanName(profile.name) !== me || !Array.isArray(l)) return;
+  if (!ONLINE || netOff() || PAGE === 'pegase') return;
+  // 2.0.35 (Benjamin, en invité : « ah bon ?? ») : « publication mondiale » = pour tout le monde, invités compris — lecture publique at_jeux_monde
+  const invite = isGuest() || !profile.name, me = invite ? '' : cleanName(profile.name);
+  let l; try { l = invite ? await rpc('at_jeux_monde', {}, { quiet404: true, quiet: true }) : await rpc('at_jeux', { p_name: profile.name, p_salle: room && room.id ? room.id : null }, { quiet404: true, quiet: true }); } catch (e) { return; }   // 2.0.30 : les jeux des membres de CETTE salle
+  if ((invite ? '' : cleanName(profile.name)) !== me || !Array.isArray(l)) return;
   l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, version: x.version | 0, createur: String(x.createur || '').slice(0, 20), fiche: /^[0-9a-f-]{36}$/.test(String(x.fiche || '')) ? String(x.fiche) : '', orientation: /^(portrait|paysage|les2)$/.test(String(x.orientation || '')) ? String(x.orientation) : '' }));
   const all = store.get('jdw.atl.jeux', {}) || {}, was = JSON.stringify(all[me] || []);
   all[me] = l; store.set('jdw.atl.jeux', all);
@@ -14651,7 +14654,8 @@ function atlRenderProjets() {
     // 19 h 38 (Benjamin) : idée envoyée, réponse pas encore arrivée → « ⏳ En attente de l'Atelier » (badge et couleur), pas « Brouillon »
     const att = !!pj.joueur_at && (!pj.reponse_at || String(pj.joueur_at) > String(pj.reponse_at)) && ['brouillon', 'en_discussion', 'complete'].includes(String(pj.etat || ''));
     if (att) b.classList.add('att');
-    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(pj, att)) ? ' v' : '') + atlPastCls(pj), atlVersion(pj, att)));
+    b.append(v, atlEl('b', '', pj.titre || 'Mon jeu sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(pj, att)) ? ' v' : '') + atlPastCls(pj), atlVersion(pj, att, true)));
+    if (atlVersionPlus(pj)) b.appendChild(atlEl('small', 'atl-pver2', atlVersionPlus(pj)));
     if (Array.isArray(pj.prepa) && pj.prepa.length) b.appendChild(atlEl('span', 'atl-pprepa', '🛠️ V' + (((pj.version | 0) || 1) + 1) + ' en préparation'));
     if (att) b.appendChild(atlEl('span', 'atl-patt', '⏳ En attente'));
     // 2.0.16 (Benjamin : « ici j'ai la demande, mais pas sur la tuile ! ») : une offre à choisir, ou une réponse pas lue, se voit sur la tuile
@@ -16901,7 +16905,8 @@ async function atlTousProjets(box) {
       const v = atlEl('span', 'atl-pv'), u = atlIaUrl(x.vignette); if (u) { const im = atlEl('img'); im.alt = ''; im.loading = 'lazy'; im.src = u; v.appendChild(im); } else v.textContent = '🎮';
       const d0 = new Date(x.maj_at);
       const attx = !!x.joueur_at && (!x.reponse_at || String(x.joueur_at) > String(x.reponse_at)) && ['brouillon', 'en_discussion', 'complete'].includes(String(x.etat || ''));
-      b.append(v, atlEl('b', '', x.titre || 'Sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(x, attx)) ? ' v' : '') + atlPastCls(x), atlVersion(x, attx)), atlEl('small', '', '👤 ' + dispName(x.joueur || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))));
+      if (atlVersionPlus(x)) setTimeout(() => { try { b.insertBefore(atlEl('small', 'atl-pver2', atlVersionPlus(x)), b.querySelector('.atl-pver').nextSibling); } catch (e) {} }, 0);
+      b.append(v, atlEl('b', '', x.titre || 'Sans nom'), atlEl('small', 'atl-pver' + (/^.\S* V\d/u.test(atlVersion(x, attx)) ? ' v' : '') + atlPastCls(x), atlVersion(x, attx, true)), atlEl('small', '', '👤 ' + dispName(x.joueur || '') + ' · ' + (isNaN(d0) ? '' : d0.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))));
       const bd = x.monde_demande_at ? '🛡️ à valider' : (x.n_choisir | 0) ? '💬 ' + (x.n_choisir | 0) + ' à choisir' : (x.n_en_cours | 0) ? '🛠️ en cours' : (x.n_nouvelles | 0) ? '📨 ' + ((x.n_nouvelles | 0) > 1 ? (x.n_nouvelles | 0) + ' nouvelles demandes' : 'nouvelle demande') : '';
       if (bd) b.appendChild(atlEl('span', 'atl-patt', bd));
       b.addEventListener('click', () => atlVoirProjet(x.id)); g.appendChild(b);
@@ -17923,6 +17928,7 @@ async function atlPost(go, note, cb) {
   } finally { ATL.posting = false; }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && ATL && ATL_ON()) atlLoad(false); if (!document.hidden) atlJeuxLoad(); });
+setInterval(() => { try { if (!document.hidden && (isGuest() || !profile.name)) atlJeuxLoad(); } catch (e) {} }, 60000);   // 2.0.35 : un invité n'a pas le direct : il relit les jeux mondiaux chaque minute
 setTimeout(() => { atlLoad(false); atlJeuxLoad(); }, 2500);
 
 

@@ -4690,3 +4690,13 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-pver.pe,.atl-pet.pe{background:#8a8fa3 !important;color:#10131c !important}
 .atl-pver.pm,.atl-pver.pd,.atl-pver.ps,.atl-pver.pe,.atl-pet.pm,.atl-pet.pd,.atl-pet.ps,.atl-pet.pe{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:700;max-width:100%;white-space:normal;line-height:1.25}
 .atl-pver.pm,.atl-pver.pd,.atl-pver.ps,.atl-pver.pe,.atl-pet.pm,.atl-pet.pd,.atl-pet.ps,.atl-pet.pe{border-radius:12px}
+/* 2.0.35 : pastilles de 2 lignes au plus, DANS la carte ; « Vn prête à publier » à part */
+.atl-ptile .atl-pver{box-sizing:border-box;max-width:calc(100% - 20px);margin-left:10px;margin-right:10px;padding:4px 10px;overflow:hidden;display:-webkit-box !important;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;line-height:1.3;justify-self:start}
+.atl-pver2{display:inline-block;justify-self:start;box-sizing:border-box;max-width:calc(100% - 20px);margin:0 10px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--ink);font:700 11px/1.3 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 2.0.35 : tout texte du cadre de la mascotte reste DANS le cadre (terminé par « … ») */
+.atl-travail{grid-template-columns:auto minmax(0,1fr);overflow:hidden}
+.atl-travail > :first-child{min-width:0;max-width:180px;overflow:hidden}
+.atl-travail .atl-pktxt{width:100%;box-sizing:border-box;padding:0 4px;text-align:center;overflow:hidden;text-overflow:ellipsis;word-break:break-word}
+.atl-travail > div:last-child > *{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.atl-travail > div:last-child > b{display:block;white-space:nowrap}
+@media (max-width:560px){.atl-travail{grid-template-columns:minmax(0,1fr)}.atl-travail > :first-child{max-width:100%}}
