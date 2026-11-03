@@ -53,6 +53,8 @@
 [pegase] 🌼 Les maisons ont leurs jardinières à l'endroit, sous chaque fenêtre, même les maisons déjà construites et celles de tes amis.
 [pegase] 🌸 De vraies fleurs dans les tonneaux et les pots devant les boutiques, dont le magasin photo et la poissonnerie.
 [pegase] 🧥 Avec un pull ample, les bras du personnage ne restent plus écartés : ils tombent naturellement le long du corps.
+[licornes] ## 🦄 La Maison des Licornes : la bonne couleur suffit (borne 2.0.3)
+[licornes] 🎨 Une licorne qui a déjà la couleur que l'enfant veut (un bébé rose de naissance, une licorne dorée, ou une licorne déjà peinte) peut lui être donnée tout de suite : le pot de couleur ne sert que pour changer de couleur.
 [licornes] ## 🦄 La Maison des Licornes : un vrai écran pour le téléphone debout (borne 1.63.153)
 [licornes] 📱 Téléphone tenu debout : le tapis en haut, tes licornes au milieu sur le carrelage, puis la couveuse, le nid et la fenêtre de l'enfant côte à côte, et tes boutons en bas. Plus rien d'étiré ni de caché.
 [licornes] ## 🦄 La Maison des Licornes : une tuile vivante (borne 1.63.150)

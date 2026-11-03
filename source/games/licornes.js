@@ -429,14 +429,17 @@ function mount(root, api) {
     const patMax = Math.max(25, 55 - (manche - 1) * 3);
     client = { k, want, etat: 'arrive', et: 0, pat: patMax, patMax, ph: Math.random() * 6 };
   }
-  const convient = (u, w) => !u.bebe === w.adulte && u.col === w.col && (!w.acc || u.accs.includes(w.acc)) && (!w.brille || u.brille);
+  // la couleur d'une licorne : celle qu'on lui a donnée (œuf ou pot), sinon sa couleur de naissance quand elle en a une franche
+  // (bug signalé par Benjamin : un bébé rose de naissance était refusé pour « bébé rose » tant qu'on ne repassait pas le pot)
+  const couleur = u => u.col != null ? u.col : uniImg(u) === 'bebe-rose' ? 330 : uniImg(u) === 'adulte-doree' ? 50 : null;
+  const convient = (u, w) => !u.bebe === w.adulte && couleur(u) === w.col && (!w.acc || u.accs.includes(w.acc)) && (!w.brille || u.brille);
   function livrer(u) {
     if (!client || client.etat !== 'attend') { snd.no(); say('Attends qu’un enfant arrive à la fenêtre'); return; }
     if (!convient(u, client.want)) {
       client.etat = 'decu'; client.et = 0; client.pat = Math.max(0, client.pat - 6); snd.no();
       const w = client.want, manque = [];
       if (!u.bebe !== w.adulte) manque.push(w.adulte ? 'une grande licorne' : 'un bébé');
-      if (u.col !== w.col) manque.push('la couleur ' + COULEURS.find(c => c.h === w.col).n.toLowerCase());
+      if (couleur(u) !== w.col) manque.push('la couleur ' + COULEURS.find(c => c.h === w.col).n.toLowerCase());
       if (w.acc && !u.accs.includes(w.acc)) manque.push(ACC[w.acc].nom.toLowerCase());
       if (w.brille && !u.brille) manque.push('qu’elle scintille');
       say('Ce n’est pas celle-là : il manque ' + manque.join(', '));
@@ -482,7 +485,7 @@ function mount(root, api) {
   function dress(u, k) {
     const a = tray[k]; if (a == null || !u) return false;
     if (estPot(a)) {   // un pot de couleur : la licorne prend cette couleur (même dessin, recoloré)
-      if (u.col === hueDe(a)) { snd.no(); say('Elle est déjà de cette couleur'); return false; }
+      if (couleur(u) === hueDe(a)) { snd.no(); say('Elle est déjà de cette couleur'); return false; }
       tray.splice(k, 1); u.col = hueDe(a); u.pop = 0.5; snd.dress();
       const b = uniBox(u); sparkle(b.x + b.w / 2, b.y + b.h * 0.5, 16, COULEURS.find(c => c.h === u.col).c, 150);
       return true;
