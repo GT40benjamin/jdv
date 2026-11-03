@@ -14948,6 +14948,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
   const fin = () => { if (ATL_MIC && ATL_MIC.field === ta) atlMicFin(); O.remove(); reprendre(); };
   rp.addEventListener('click', fin);
   go.addEventListener('click', async () => {
+    atlMicFin();
     const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
     if (cr && (cr.solde | 0) < cout) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
     go.disabled = true; er.hidden = true;
@@ -15839,6 +15840,7 @@ function atlModif(it, f, type) {
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎'); no.type = go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   go.addEventListener('click', async () => {
+    atlMicFin();
     const t = ta.value.trim(); if (type !== 'retirer' && t.length < 2) { ta.focus(); return; }
     if (cr && (cr.solde | 0) < cout) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
     go.disabled = true; er.hidden = true;
@@ -15937,6 +15939,7 @@ function atlDemandeElem(it, f, cat) {
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + ' · ' + cout + ' 💎'); no.type = 'button'; go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
   go.addEventListener('click', async () => {
+    atlMicFin();
     const t = ta.value.trim(), nom = creer ? ni.value.trim() : it.nom; if (t.length < 2) { ta.focus(); return; } if (!nom) { ni.focus(); return; }
     if (cr && (cr.solde | 0) < cout) { er.hidden = false; er.textContent = 'Il te manque des crédits pour cette demande.'; atlCreditsBtn(er); return; }
     go.disabled = true; er.hidden = true;
@@ -16832,8 +16835,8 @@ function atlMicEtat() {
   const m = ATL_MIC;
   for (const b of ATL_MICS) { if (!b.isConnected) { ATL_MICS.delete(b); continue; } const on = !!m && m.btn === b; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Arrêter le micro' : 'Parler au micro'); }
   let ind = document.getElementById('atl-ecoute');
-  if (m && !ind) { ind = document.createElement('div'); ind.id = 'atl-ecoute'; ind.setAttribute('role', 'status'); document.body.appendChild(ind); }
-  if (ind) { ind.hidden = !m; ind.textContent = m ? '🎙️ Je t’écoute…' + (TOUCH ? ' (touche 🎤 pour arrêter)' : ' (Ctrl+Espace pour arrêter)') : ''; }
+  if (m && !ind) { ind = document.createElement('button'); ind.type = 'button'; ind.id = 'atl-ecoute'; ind.addEventListener('click', () => atlMicFin()); document.body.appendChild(ind); }
+  if (ind) { ind.hidden = !m; ind.textContent = ''; if (m) { ind.append(document.createTextNode('🎙️ Je t’écoute…'), atlEl('span', 'atl-ecx', '✕ Arrêter')); ind.setAttribute('aria-label', 'Arrêter le micro'); } }
   if (ATL && ATL.root) { const rc = ATL.root.querySelector('.atl-rec'); if (rc) rc.hidden = !(m && m.field && m.field.classList.contains('atl-in')); }
   if (ATL) ATL.rec = m;   // (ancien repère : un micro est ouvert)
 }
@@ -16850,7 +16853,12 @@ function atlMicDebut(field, btn) {
   const m = ATL_MIC = { field, btn, kind, base, garde: '', sess: '', last: Date.now(), actif: true };
   const montre = mid => { const t = (m.garde + (m.garde && m.sess ? ' ' : '') + m.sess).trim(), tout = (t + (mid ? (t ? ' ' : '') + mid : '')).trim(); field.value = (m.base + (m.base && tout ? ' ' : '') + tout).slice(0, max); field.scrollTop = field.scrollHeight; if (tout && field.classList.contains('atl-in')) ATL.micUsed = true; try { field.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} };
   m.montre = montre;
-  m.chrono = setInterval(() => { if (ATL_MIC !== m) { clearInterval(m.chrono); return; } if (Date.now() - m.last > ATL_MIC_SILENCE) { atlMicFin(); atlToast('🎤 Micro arrêté : 2 minutes sans parole.'); } }, 5000);
+  m.chrono = setInterval(() => {
+    if (ATL_MIC !== m) { clearInterval(m.chrono); return; }
+    if (!field.isConnected) { atlMicFin(); return; }   // la fenêtre s'est fermée (Envoyer, Annuler…) : le micro s'arrête
+    if (!(field.offsetParent || field.getClientRects().length)) { m.cache = m.cache || Date.now(); if (Date.now() - m.cache > 5000) { atlMicFin(); return; } } else m.cache = 0;
+    if (Date.now() - m.last > ATL_MIC_SILENCE) { atlMicFin(); atlToast('🎤 Micro arrêté : 2 minutes sans parole.'); }
+  }, 1000);
   micQuiet(true);
   if (kind === 'web') {
     const lance = () => {
@@ -16914,6 +16922,7 @@ function atlMicManette() {   // le bouton Vue / Select de la manette, quand une 
   return atlMicRaccourci();
 }
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && ATL_MIC) { e.preventDefault(); e.stopPropagation(); atlMicFin(); return; }   // Échap arrête le micro d'abord
   if (!(e.ctrlKey && (e.code === 'Space' || e.key === ' '))) return;
   if (atlMicRaccourci()) { e.preventDefault(); e.stopPropagation(); }
 }, true);
