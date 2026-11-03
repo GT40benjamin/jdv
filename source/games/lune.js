@@ -14,6 +14,21 @@ const PIECES = ['le moteur', 'l’aile', 'l’antenne', 'le réservoir', 'le pan
 const VAL_PIECE = 100, VAL_CRISTAL = 25;
 const VITESSE = 200;
 const FOULEE = 26;   // unités parcourues par image de marche : la cadence suit la vitesse (les pieds ne glissent pas)
+// après le décollage (demande de PATOU, 3 nov.) : une carte des étoiles, un vrai vol en navette, et 3 planètes à explorer
+// (même moteur que la Lune : on cherche 3 trésors, on évite le danger de la planète, on revient à la navette et on redécolle)
+const NB_TRESORS = 3, VAL_TRESOR = 150, VAL_POUSSIERE = 10, BONUS_PLANETE = 200;
+const PLANETES = {
+  glace: { nom: 'Glacia', titre: 'Glacia, la planète de glace', tresor: 'fleur-givre', nomT: 'fleur de givre', nomTs: 'fleurs de givre', deco: 'glace-bloc', coul: '#9fd8ff',
+    sol: ['#d9e9f5', 'rgba(255,255,255,0.45)', 'rgba(150,185,215,0.35)', 'rgba(250,253,255,0.6)', 'rgba(120,160,200,0.55)'], trou: ['#5f8fbf', '#a9d4f2'], danger: 'glacons',
+    alerte: '⚠️ Des glaçons tombent ! Évite les ombres bleues !', dir: [0.42, 0.22], desc: 'Fleurs de givre · glaçons qui tombent' },
+  volcan: { nom: 'Pyra', titre: 'Pyra, la planète volcan', tresor: 'pierre-feu', nomT: 'pierre de feu', nomTs: 'pierres de feu', deco: 'roche-feu', coul: '#ff8a4a',
+    sol: ['#5a3a34', 'rgba(255,140,80,0.18)', 'rgba(30,18,16,0.4)', 'rgba(255,170,110,0.35)', 'rgba(25,14,12,0.6)'], trou: ['#c8401a', '#ffb347'], danger: 'lave',
+    alerte: '⚠️ Le volcan crache de la lave ! Évite les ombres rouges !', dir: [0.76, 0.5], desc: 'Pierres de feu · bombes de lave · mares de lave' },
+  jungle: { nom: 'Verdia', titre: 'Verdia, la planète jungle', tresor: 'fruit-etoile', nomT: 'fruit étoile', nomTs: 'fruits étoiles', deco: 'champi-geant', coul: '#6fdc8a',
+    sol: ['#4f8a4a', 'rgba(170,240,140,0.22)', 'rgba(20,60,30,0.35)', 'rgba(200,255,170,0.3)', 'rgba(25,70,35,0.55)'], trou: ['#2f6f5f', '#7fd8c0'], danger: 'plantes',
+    alerte: '', dir: [0.5, 0.8], desc: 'Fruits étoiles · plantes carnivores' }
+};
+const CARTE = { lune: [0.16, 0.6], terre: [0.86, 0.2] };   // les autres : PLANETES[id].dir (positions sur la carte, de 0 à 1)
 
 /* ---------- images (paquet LUN1 : en-tête JSON + WebP à la suite) ---------- */
 const IMG = {};
@@ -38,7 +53,7 @@ function loadImages() {
 }
 // position de la boule rouge de l'antenne dans chaque pose du robot (fraction de la largeur), mesurée sur les dessins
 const ANTENNE = { robot1: 0.301, robot2: 0.56, 'robot-montre': 0.571, 'robot-content': 0.5 };
-const EMOJI = { oxygene: '🧯', cristal: '💎', piece: '⚙️', navette: '🚀', epave: '🛸', base: '🏠', trousse: '🧰', lampe: '🔦', meteorite: '☄️', astronaute: '👨‍🚀', robot1: '🤖' };
+const EMOJI = { 'fleur-givre': '❄️', 'pierre-feu': '🔥', 'fruit-etoile': '⭐', 'glace-bloc': '🧊', 'roche-feu': '🪨', 'champi-geant': '🍄', plante: '🌿', 'plante-croque': '🌿', oxygene: '🧯', cristal: '💎', piece: '⚙️', navette: '🚀', epave: '🛸', base: '🏠', trousse: '🧰', lampe: '🔦', meteorite: '☄️', astronaute: '👨‍🚀', robot1: '🤖' };
 // les poses (survivant, robot) sont emballées à la même hauteur, avec leur point d'ancrage (im.ax = centre du casque) et leur hauteur relative (im.hr)
 // dessine l'image posée au sol : (x, y) = le pied, h = hauteur (de la pose de référence)
 function drawFoot(ctx, nom, x, y, h, flip) {
@@ -56,16 +71,42 @@ function star(ctx, x, y, r, rot) {
 function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 // le sol lunaire : une tuile de poussière grise (taches, petits cailloux, micro-cratères), répétée
-let SOL = null;
-function solTile() {
-  if (SOL) return SOL;
+// les planètes : la même tuile, dans leurs couleurs (fond, taches claires, taches sombres, cailloux clairs, cailloux sombres)
+const SOL = {};
+function solTile(k) {
+  k = k || 'lune'; if (SOL[k]) return SOL[k];
+  const C = k === 'lune' ? ['#a9aaae', 'rgba(200,201,206,0.35)', 'rgba(120,121,128,0.3)', 'rgba(235,236,240,0.55)', 'rgba(95,96,104,0.55)'] : PLANETES[k].sol;
   const N = 512, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'), r = rng(42);
-  g.fillStyle = '#a9aaae'; g.fillRect(0, 0, N, N);
+  g.fillStyle = C[0]; g.fillRect(0, 0, N, N);
   const wrap = (f) => { for (const dx of [-N, 0, N]) for (const dy of [-N, 0, N]) f(dx, dy); };
-  for (let i = 0; i < 70; i++) { const x = r() * N, y = r() * N, rr = 20 + r() * 70, l = r() < 0.5; wrap((dx, dy) => { const gr = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, rr); gr.addColorStop(0, l ? 'rgba(200,201,206,0.35)' : 'rgba(120,121,128,0.3)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x + dx - rr, y + dy - rr, rr * 2, rr * 2); }); }
-  for (let i = 0; i < 26; i++) { const x = r() * N, y = r() * N, rr = 4 + r() * 12; wrap((dx, dy) => { g.fillStyle = 'rgba(235,236,240,0.55)'; g.beginPath(); g.ellipse(x + dx, y + dy + 1, rr * 1.1, rr * 0.75, 0, 0, TAU); g.fill(); g.fillStyle = 'rgba(95,96,104,0.55)'; g.beginPath(); g.ellipse(x + dx, y + dy, rr, rr * 0.65, 0, 0, TAU); g.fill(); }); }
-  for (let i = 0; i < 900; i++) { const x = r() * N, y = r() * N, s = 0.6 + r() * 2; g.fillStyle = r() < 0.5 ? 'rgba(80,82,90,0.5)' : 'rgba(225,226,230,0.5)'; g.fillRect(x, y, s, s); }
-  SOL = c; return c;
+  for (let i = 0; i < 70; i++) { const x = r() * N, y = r() * N, rr = 20 + r() * 70, l = r() < 0.5; wrap((dx, dy) => { const gr = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, rr); gr.addColorStop(0, l ? C[1] : C[2]); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x + dx - rr, y + dy - rr, rr * 2, rr * 2); }); }
+  for (let i = 0; i < 26; i++) { const x = r() * N, y = r() * N, rr = 4 + r() * 12; wrap((dx, dy) => { g.fillStyle = C[3]; g.beginPath(); g.ellipse(x + dx, y + dy + 1, rr * 1.1, rr * 0.75, 0, 0, TAU); g.fill(); g.fillStyle = C[4]; g.beginPath(); g.ellipse(x + dx, y + dy, rr, rr * 0.65, 0, 0, TAU); g.fill(); }); }
+  for (let i = 0; i < 900; i++) { const x = r() * N, y = r() * N, s2 = 0.6 + r() * 2; g.fillStyle = r() < 0.5 ? C[4] : C[3]; g.fillRect(x, y, s2, s2); }
+  SOL[k] = c; return c;
+}
+// une planète vue de l'espace (carte et vol) : dessinée, avec son atmosphère et ses reliefs
+function planeteDisque(ctx, k, x, y, R, t) {
+  const P0 = { lune: ['#d6d7dc', '#8d8f97', '#5c5e66'], terre: ['#7fd0ff', '#2f7fd8', '#1b4a9a'], glace: ['#f4fbff', '#a9d8f5', '#5f9fd0'], volcan: ['#ffb36b', '#d0502a', '#5a1d14'], jungle: ['#b9f59a', '#4fb35a', '#1f6a3a'] }[k];
+  const at = ctx.createRadialGradient(x, y, R * 0.9, x, y, R * 1.25); at.addColorStop(0, k === 'volcan' ? 'rgba(255,120,60,0.35)' : k === 'lune' ? 'rgba(220,225,240,0.15)' : 'rgba(160,220,255,0.35)'); at.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = at; ctx.beginPath(); ctx.arc(x, y, R * 1.25, 0, TAU); ctx.fill();
+  const g = ctx.createRadialGradient(x - R * 0.35, y - R * 0.35, R * 0.1, x, y, R); g.addColorStop(0, P0[0]); g.addColorStop(0.55, P0[1]); g.addColorStop(1, P0[2]);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.clip();
+  const rr = rng(k.length * 31 + 7);
+  if (k === 'lune' || k === 'volcan') for (let i = 0; i < 9; i++) { const a = rr() * TAU, d = rr() * R * 0.8, cr = R * (0.06 + rr() * 0.12); ctx.fillStyle = k === 'volcan' ? 'rgba(40,10,6,0.45)' : 'rgba(70,72,80,0.35)'; ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, cr, 0, TAU); ctx.fill(); if (k === 'volcan') { ctx.fillStyle = 'rgba(255,170,60,' + (0.4 + 0.3 * Math.sin(t * 3 + i)) + ')'; ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, cr * 0.4, 0, TAU); ctx.fill(); } }
+  else for (let i = 0; i < 5; i++) { const yy = y - R + (i + 0.5) * R * 0.4 + Math.sin(t * 0.4 + i) * R * 0.03; ctx.strokeStyle = k === 'glace' ? 'rgba(255,255,255,0.55)' : k === 'terre' ? 'rgba(90,190,90,0.7)' : 'rgba(20,90,50,0.45)'; ctx.lineWidth = R * 0.09; ctx.beginPath(); ctx.moveTo(x - R, yy); ctx.bezierCurveTo(x - R * 0.3, yy - R * 0.15, x + R * 0.3, yy + R * 0.15, x + R, yy); ctx.stroke(); }
+  const sh = ctx.createLinearGradient(x - R, y - R, x + R, y + R); sh.addColorStop(0.45, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,10,0.55)'); ctx.fillStyle = sh; ctx.fillRect(x - R, y - R, R * 2, R * 2);
+  ctx.restore();
+}
+// le ciel étoilé (carte et vol) : trois plans d'étoiles qui défilent plus ou moins vite
+let CIEL = null;
+function cielTile() {
+  if (CIEL) return CIEL;
+  CIEL = [0, 1, 2].map(n => { const N = 512, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'), r = rng(9 + n * 17);
+    for (let i = 0; i < [140, 60, 22][n]; i++) { const x = r() * N, y = r() * N, s2 = [0.8, 1.4, 2.2][n] * (0.6 + r() * 0.8); g.fillStyle = ['rgba(200,210,255,0.7)', 'rgba(230,235,255,0.85)', '#ffffff'][n]; g.beginPath(); g.arc(x, y, s2, 0, TAU); g.fill(); }
+    if (n === 0) for (let i = 0; i < 5; i++) { const x = r() * N, y = r() * N, rr = 60 + r() * 120, gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, ['rgba(120,90,200,0.18)', 'rgba(60,120,200,0.16)', 'rgba(200,90,160,0.14)'][i % 3]); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
+    return c; });
+  return CIEL;
 }
 
 /* ---------- vignette ---------- */
@@ -127,10 +168,13 @@ function mount(root, api) {
   const off = k => k === 'robot' ? [...OFF].some(n => n.startsWith('Le robot de bord')) : OFF.has(ELEM[k] || k);
   const SON_ELEM = { piece: 'piece_son', impact: 'impact_son', oxygene: 'oxygene_son' };
   let P, objs, craters, meteors, impacts, puffs, flyers, prises, robot, oxy, pieces, cristaux, posees, lampe, trousses, shake, flash, msg, texts, parts, showerT, showerOn, showerLeft, tJeu, endWhy, baseUsed, crT, bonusFin, liftT, camX, camY, repT;
+  // l'espace : le monde où l'on est (lune ou une planète), les planètes déjà visitées, les trésors, la carte, le vol, l'atterrissage
+  let monde = 'lune', visites = [], tresors = 0, totTresors = 0, poussiere = 0, bonusPl = 0, dest = null, ship = null, asts = [], dusts = [], carteSel = 0, landT = 0, depart = 'lune';
   const keys = {};
   const joy = { on: false, id: -1, x0: 0, y0: 0, x: 0, y: 0 };
 
   function newWorld() {
+    if (monde !== 'lune') { newPlanete(monde); return; }
     const r = rng((Date.now() / 1000) | 0);
     const libre = (x, y, m) => !objs.some(o => Math.hypot(o.x - x, o.y - y) < m) && !craters.some(c => Math.hypot(c.x - x, c.y - y) < c.r + m * 0.6);
     const at = (dmin, dmax, m) => { let x = 0, y = 0; for (let k = 0; k < 50; k++) { const a = r() * TAU, d = dmin + r() * (dmax - dmin); x = Math.cos(a) * d; y = Math.sin(a) * d; if (libre(x, y, m || 110)) break; } return { x, y }; };
@@ -146,7 +190,33 @@ function mount(root, api) {
     for (let i = 0; i < (off('trousse') ? 0 : 2); i++) { const p = at(500, R_MONDE - 100, 120); objs.push({ k: 'trousse', x: p.x, y: p.y, h: 52 }); }
     if (!off('lampe')) { const p = at(300, 650, 120); objs.push({ k: 'lampe', x: p.x, y: p.y, h: 44 }); }
   }
+  // une planète : la navette posée au milieu, son décor, 3 trésors, l'oxygène, et son danger (mares, chutes, plantes carnivores)
+  function newPlanete(k) {
+    const PL = PLANETES[k], r = rng(((Date.now() / 1000) | 0) + k.length * 101);
+    const libre = (x, y, m) => !objs.some(o => Math.hypot(o.x - x, o.y - y) < m) && !craters.some(c => Math.hypot(c.x - x, c.y - y) < c.r + m * 0.6);
+    const at = (dmin, dmax, m) => { let x = 0, y = 0; for (let n = 0; n < 50; n++) { const a = r() * TAU, d = dmin + r() * (dmax - dmin); x = Math.cos(a) * d; y = Math.sin(a) * d; if (libre(x, y, m || 110)) break; } return { x, y }; };
+    objs = []; craters = [];
+    objs.push({ k: 'navette', x: 0, y: 0, h: 210, solide: 85 });
+    for (let i = 0; i < 30; i++) { const p = at(380, R_MONDE, 70); craters.push({ x: p.x, y: p.y, r: 45 + r() * 70 }); }
+    const a0 = r() * TAU;
+    for (let i = 0; i < NB_TRESORS; i++) { const a = a0 + i * TAU / NB_TRESORS + (r() - 0.5) * 0.6, d = 520 + i * 330 + r() * 120; const x = Math.cos(a) * d, y = Math.sin(a) * d; craters = craters.filter(c => Math.hypot(c.x - x, c.y - y) > c.r + 60); objs.push({ k: 'tresor', img: PL.tresor, x, y, h: 74 }); }
+    const DECO_NOM = { 'glace-bloc': 'Bloc de glace (décor de Glacia)', 'roche-feu': 'Rocher de feu (décor de Pyra)', 'champi-geant': 'Champignon géant (décor de Verdia)' };   // noms de at_fiches.assets : le joueur peut les retirer
+    for (let i = 0; i < (OFF.has(DECO_NOM[PL.deco]) ? 0 : 16); i++) { const p = at(300, R_MONDE - 40, 150); objs.push({ k: 'deco', img: PL.deco, x: p.x, y: p.y, h: 150 + r() * 70, solide: 55, ph: r() * 6 }); }
+    for (let i = 0; i < (off('oxygene') ? 0 : 8); i++) { const p = at(260, R_MONDE - 60, 110); objs.push({ k: 'oxygene', x: p.x, y: p.y, h: 70 }); }
+    for (let i = 0; i < (off('trousse') ? 0 : 2); i++) { const p = at(500, R_MONDE - 100, 120); objs.push({ k: 'trousse', x: p.x, y: p.y, h: 52 }); }
+    if (PL.danger === 'plantes') for (let i = 0; i < 10; i++) { const p = at(330, R_MONDE - 80, 160); objs.push({ k: 'plante', x: p.x, y: p.y, h: 125, solide: 38, snap: 0, cool: 0, ph: r() * 6 }); }
+  }
+  // l'arrivée sur une planète : nouveau monde, plein d'oxygène, la navette se pose (le survivant et le robot sortent ensuite)
+  function arriverSur(k) {
+    monde = k; tresors = 0; newWorld();
+    P = { x: 0, y: -10, dir: 'face', v: 0, vx: 0, vy: 0, step: 0, flip: false, stun: 0, moving: false };
+    robot = { x: 0, y: -10, joie: 0 };
+    oxy = 100; meteors = []; impacts = []; puffs = []; flyers = []; prises = []; texts = []; parts = []; msg = null; crT = null; baseUsed = true;
+    showerT = 26; showerOn = false; showerLeft = 0; camX = 0; camY = -90 - 900;
+    state = 'atterro'; landT = 0; stT = 0;
+  }
   function reset() {
+    monde = 'lune'; visites = []; tresors = 0; totTresors = 0; poussiere = 0; bonusPl = 0; dest = null; ship = null; asts = []; dusts = []; depart = 'lune';
     objs = []; craters = []; newWorld();
     P = { x: -200, y: 170, dir: 'face', v: 0, vx: 0, vy: 0, step: 0, flip: false, stun: 0, moving: false };
     robot = { x: -110, y: 190, joie: 0 };
@@ -156,7 +226,7 @@ function mount(root, api) {
   }
   reset();
   const liftW = () => { const e = Math.max(0, Math.min(state === 'liftoff' ? liftT : 5, 5) - 1.4); return e * e * 170; };   // hauteur de la navette au décollage
-  const score = () => posees * VAL_PIECE + pieces * VAL_PIECE + cristaux * VAL_CRISTAL + bonusFin;
+  const score = () => posees * VAL_PIECE + pieces * VAL_PIECE + cristaux * VAL_CRISTAL + bonusFin + totTresors * VAL_TRESOR + poussiere * VAL_POUSSIERE + bonusPl;
   function say(s, d) { msg = { s, t: 0, d: d || 2.6 }; }
   // textes / étincelles : posés dans le MONDE (ils suivent le sol)
   function pop(s, c, x, y) { texts.push({ s, c: c || '#fff', x, y, t: 0 }); }
@@ -202,7 +272,8 @@ function mount(root, api) {
     if (state === 'title') { if (LOADED || loadErr) startGame(); return; }
     if (state === 'end') { if (stT > (endWhy === 'oxy' ? 2.5 : 1.2)) { const b = againBtn(); if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) startGame(); } return; }
     if (state === 'intro') { if (stT > 0.6) { state = 'play'; stT = 0; } return; }
-    if (state === 'play' && !joy.on) { joy.on = true; joy.id = e.pointerId; joy.x0 = joy.x = p.x; joy.y0 = joy.y = p.y; try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } }
+    if (state === 'carte') { carteTap(p); return; }
+    if ((state === 'play' || state === 'vol') && !joy.on) { joy.on = true; joy.id = e.pointerId; joy.x0 = joy.x = p.x; joy.y0 = joy.y = p.y; try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } }
   }
   function onMove(e) { if (joy.on && e.pointerId === joy.id) { const p = toLocal(e); joy.x = p.x; joy.y = p.y; const R = 80 * U, dx = joy.x - joy.x0, dy = joy.y - joy.y0, l = Math.hypot(dx, dy); if (l > R) { joy.x0 += dx * (1 - R / l); joy.y0 += dy * (1 - R / l); } } }
   function onUp(e) { if (joy.on && e.pointerId === joy.id) { joy.on = false; joy.id = -1; } }
@@ -215,8 +286,9 @@ function mount(root, api) {
     // lancé depuis l'Atelier (dans le cadre, ou en plein écran : window.JDW_ATL_JEU), P appartient à l'Atelier (arrêt sur image + atl-pause) :
     // le jeu n'ajoute pas sa propre pause
     if ((k === 'p' || k === 'P') && (DANS_CADRE || window.JDW_ATL_JEU === true)) return;
-    if (k === 'p' || k === 'Escape') { if (state === 'play') setPaused(!paused); return; }
+    if (k === 'p' || k === 'Escape') { if (state === 'play' || state === 'vol' || state === 'carte') setPaused(!paused); return; }
     if (paused) { setPaused(false); return; }
+    if (state === 'carte') { if (k === 'ArrowLeft' || k === 'ArrowUp') carteBouger(-1); else if (k === 'ArrowRight' || k === 'ArrowDown') carteBouger(1); else if (k === 'Enter' || k === ' ') partir(carteChoix()[carteSel]); return; }
     if (k === 'Enter' || k === ' ') {
       if (state === 'title' && (LOADED || loadErr)) startGame();
       else if (state === 'intro' && stT > 0.6) { state = 'play'; stT = 0; }
@@ -225,8 +297,8 @@ function mount(root, api) {
   }
   function onKeyUp(e) { keys[e.key.toLowerCase()] = false; }
   function setPaused(v) { paused = v; pauseBtn.innerHTML = v ? PB_PLAY : PB_PAUSE; if (v) { joy.on = false; for (const k in keys) keys[k] = false; } }
-  function onPauseBtn(e) { e.preventDefault(); e.stopPropagation(); if (!gele && state === 'play') setPaused(!paused); }
-  function onVis() { if (document.hidden && state === 'play') setPaused(true); }
+  function onPauseBtn(e) { e.preventDefault(); e.stopPropagation(); if (!gele && (state === 'play' || state === 'vol' || state === 'carte')) setPaused(!paused); }
+  function onVis() { if (document.hidden && (state === 'play' || state === 'vol')) setPaused(true); }
   // pause de l'Atelier (bouton ⏸ au-dessus du cadre : le joueur parle à son guide) : tout est gelé jusqu'à « atl-reprendre »
   let gele = false, guideA = '';
   const DANS_CADRE = (() => { try { return window.parent !== window && window.parent.location.origin === location.origin && /[?&]cadre=/.test(location.search); } catch (e) { return false; } })();
@@ -243,6 +315,169 @@ function mount(root, api) {
   canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
   window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKeyUp); document.addEventListener('visibilitychange', onVis);
   pauseBtn.addEventListener('pointerdown', onPauseBtn);
+
+  // ---------- la carte des étoiles : on choisit sa destination (les planètes pas encore visitées, ou la Terre pour rentrer) ----------
+  function versCarte() {
+    if (monde !== 'lune' && !visites.includes(monde)) { visites.push(monde); bonusPl += BONUS_PLANETE; }
+    depart = monde; state = 'carte'; stT = 0; msg = null; texts = [];
+    const ch = carteChoix(); carteSel = Math.max(0, ch.findIndex(k => k !== 'terre')); if (carteSel < 0) carteSel = 0;
+    if (visites.length >= 3) carteSel = ch.indexOf('terre');
+  }
+  const carteChoix = () => ['glace', 'volcan', 'jungle'].filter(k => !visites.includes(k) && k !== monde).concat(['terre']);
+  function carteZone() { const top = (portrait ? 100 : 70) * U, bas = (portrait ? 220 : 150) * U; return { x: 20 * U, y: top, w: W - 40 * U, h: H - top - bas }; }
+  function carteXY(k) { const z = carteZone(), d = CARTE[k] || PLANETES[k].dir; return { x: z.x + d[0] * z.w, y: z.y + d[1] * z.h }; }
+  const carteR = k => Math.min(W, H) * (k === 'terre' ? 0.075 : k === 'lune' ? 0.055 : 0.07);
+  function carteBouton() { const bw = Math.min(W - 40 * U, 300 * U), bh = 56 * U; return { x: (W - bw) / 2, y: H - bh - (portrait ? 30 : 16) * U, w: bw, h: bh }; }
+  function carteTap(p) {
+    const ch = carteChoix(), b = carteBouton();
+    if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { partir(ch[carteSel]); return; }
+    for (let i = 0; i < ch.length; i++) { const c = carteXY(ch[i]); if (Math.hypot(p.x - c.x, p.y - c.y) < carteR(ch[i]) * 1.4 + 14) { if (i === carteSel && stT > 0.4) partir(ch[i]); else { carteSel = i; son('ramasser', 0.5, 1.3); } return; } }
+  }
+  function carteBouger(d) { const ch = carteChoix(); carteSel = (carteSel + d + ch.length) % ch.length; son('ramasser', 0.4, 1.4); }
+  // ---------- le vol : la navette se pilote (elle tourne en douceur vers la direction poussée et accélère) ----------
+  const D_VOL = 5200, R_ASTRE = 320;
+  function partir(k) {
+    if (stT < 0.4) return;
+    dest = k; const a = carteXY(depart), b = carteXY(k), dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+    ship = { x: ux * (R_ASTRE + 140), y: uy * (R_ASTRE + 140), vx: ux * 90, vy: uy * 90, a: Math.atan2(ux, -uy), pousse: 0, hit: 0, ux, uy, dx: ux * D_VOL, dy: uy * D_VOL };
+    camX = ship.x; camY = ship.y;
+    const r = rng((Date.now() / 1000) | 0);
+    asts = []; dusts = [];
+    for (let i = 0; i < 38; i++) { const t = 0.2 + r() * 0.66, off2 = (r() - 0.5) * 1700; asts.push({ x: ux * D_VOL * t - uy * off2, y: uy * D_VOL * t + ux * off2, r: 34 + r() * 60, a: r() * TAU, va: (r() - 0.5) * 0.8, vx: (r() - 0.5) * 30, vy: (r() - 0.5) * 30, f: r() }); }
+    for (let i = 0; i < 34; i++) { const t = 0.08 + r() * 0.84, off2 = (r() - 0.5) * 900; dusts.push({ x: ux * D_VOL * t - uy * off2, y: uy * D_VOL * t + ux * off2, ph: r() * 6 }); }
+    state = 'vol'; stT = 0; son('decollage', 0.6, 1.1);
+    say(k === 'terre' ? 'Cap sur la Terre ! Évite les astéroïdes.' : 'Cap sur ' + PLANETES[k].nom + ' ! Évite les astéroïdes, ramasse la poussière d’étoiles.', 3.2);
+  }
+  function updVol(dt) {
+    const s2 = ship, inp = input(), l = Math.hypot(inp.x, inp.y);
+    if (l > 0.15) {
+      const ta = Math.atan2(inp.x, -inp.y); let da = ((ta - s2.a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+      s2.a += Math.max(-1, Math.min(1, da)) * Math.min(Math.abs(da), dt * 5.5);   // il tourne en douceur, sans dépasser
+      s2.pousse += (Math.min(1, l) * Math.max(0, Math.cos(da)) - s2.pousse) * Math.min(1, dt * 6);
+    } else s2.pousse += (0 - s2.pousse) * Math.min(1, dt * 5);
+    const ACC = 560, VMAX = 470;
+    s2.vx += Math.sin(s2.a) * ACC * s2.pousse * dt; s2.vy -= Math.cos(s2.a) * ACC * s2.pousse * dt;
+    const fr = Math.pow(0.55, dt); s2.vx *= fr; s2.vy *= fr;   // un frein doux : la navette ne part jamais toute seule
+    const v = Math.hypot(s2.vx, s2.vy); if (v > VMAX) { s2.vx *= VMAX / v; s2.vy *= VMAX / v; }
+    s2.x += s2.vx * dt; s2.y += s2.vy * dt; s2.hit = Math.max(0, s2.hit - dt);
+    if (s2.pousse > 0.2 && Math.random() < dt * 30) parts.push({ x: s2.x - Math.sin(s2.a) * 80, y: s2.y + Math.cos(s2.a) * 80, vx: -Math.sin(s2.a) * 90 + (Math.random() - 0.5) * 40, vy: Math.cos(s2.a) * 90 + (Math.random() - 0.5) * 40, t: 0, d: 0.5, c: 'rgba(255,190,110,0.8)', r: 3 + Math.random() * 3 });
+    // on ne s'éloigne pas trop du chemin : un courant doux ramène vers la route
+    const px = s2.x * s2.ux + s2.y * s2.uy, ex = s2.x - s2.ux * px, ey = s2.y - s2.uy * px, eo = Math.hypot(ex, ey);
+    if (eo > 1300) { s2.vx -= ex / eo * 260 * dt; s2.vy -= ey / eo * 260 * dt; if (!msg) say('Ton robot te remet sur la bonne route.'); }
+    for (const a of asts) {
+      a.a += a.va * dt; a.x += a.vx * dt; a.y += a.vy * dt;
+      const dx = s2.x - a.x, dy = s2.y - a.y, d = Math.hypot(dx, dy), m = a.r + 38;
+      if (d < m) {
+        const nx = dx / (d || 1), ny = dy / (d || 1); s2.x = a.x + nx * m; s2.y = a.y + ny * m;
+        const vn = s2.vx * nx + s2.vy * ny; if (vn < 0) { s2.vx -= 1.7 * vn * nx; s2.vy -= 1.7 * vn * ny; }
+        if (s2.hit <= 0) { s2.hit = 1; shake = 12; poussiere = Math.max(0, poussiere - 2); pop('Boum !', '#ff9c9c', s2.x, s2.y - 60); son('impact', 0.7, 1.2); burst(a.x + nx * a.r, a.y + ny * a.r, '#a9a39a', 14, 160, 0); if (!msg) say('Aïe, un astéroïde ! Tourne pour l’éviter.'); }
+      }
+    }
+    for (const d of dusts) if (!d.pris && Math.hypot(d.x - s2.x, d.y - s2.y) < 70) { d.pris = true; poussiere++; pop('+' + VAL_POUSSIERE, '#fff3a0', d.x, d.y - 30); burst(d.x, d.y, '#fff3a0', 8, 120, 0); son('ramasser', 0.5, 1.3); }
+    camX += (s2.x + s2.vx * 0.4 - camX) * Math.min(1, dt * 3); camY += (s2.y + s2.vy * 0.4 - camY) * Math.min(1, dt * 3);
+    if (Math.hypot(s2.dx - s2.x, s2.dy - s2.y) < R_ASTRE + 80) {
+      if (dest === 'terre') { state = 'end'; stT = 0; endWhy = 'terre'; try { api.celebrate && api.celebrate('Bienvenue sur Terre !'); } catch (e) { /* rien */ } }
+      else arriverSur(dest);
+    }
+  }
+  // ---------- l'atterrissage : la navette descend en douceur, flamme allumée ; le survivant et le robot sortent ----------
+  const ALT = () => { const e = Math.max(0, 2.2 - landT); return e * e * 190; };
+  function updAtterro(dt) {
+    landT += dt;
+    camX += (0 - camX) * Math.min(1, dt * 4); camY += (-90 - ALT() * 0.6 - camY) * Math.min(1, dt * 4);
+    if (landT > 2.2 && landT - dt <= 2.2) { shake = 6; for (let i = 0; i < 10; i++) puffs.push({ x: (Math.random() - 0.5) * 160, y: (Math.random() - 0.5) * 30, t: -i * 0.04 }); }
+    if (landT > 2.3) { const k = Math.min(1, (landT - 2.3) / 0.7); P.x = -150 * k; P.y = -10 + 180 * k; robot.x = -60 * k; robot.y = -10 + 200 * k; P.moving = k < 1; P.step += dt * 6; P.dir = 'face'; }
+    if (landT > 3.1) { state = 'play'; stT = 0; P.moving = false; const PL = PLANETES[monde]; say('Bienvenue sur ' + PL.nom + ' ! Trouve les ' + NB_TRESORS + ' ' + PL.nomTs + '.', 3.5); }
+  }
+  // ---------- dessin : la carte ----------
+  function drawCiel(px, py) {
+    ctx.fillStyle = '#04050d'; ctx.fillRect(0, 0, W, H);
+    const C = cielTile();
+    C.forEach((t, i) => { const k = [0.15, 0.35, 0.7][i], ts = 512, ox = ((-px * k) % ts + ts) % ts - ts, oy = ((-py * k) % ts + ts) % ts - ts; for (let x = ox; x < W; x += ts) for (let y = oy; y < H; y += ts) ctx.drawImage(t, x, y); });
+  }
+  function drawCarte() {
+    drawCiel(stT * 6, stT * 2);
+    const ch = carteChoix(), all = ['lune', 'glace', 'volcan', 'jungle', 'terre'];
+    // les routes : en pointillés, depuis l'endroit où l'on est
+    const a = carteXY(depart);
+    for (let i = 0; i < ch.length; i++) { const b = carteXY(ch[i]); ctx.strokeStyle = i === carteSel ? 'rgba(255,211,107,0.9)' : 'rgba(180,200,255,0.3)'; ctx.lineWidth = (i === carteSel ? 3 : 2) * U; ctx.setLineDash([8 * U, 8 * U]); ctx.lineDashOffset = -stT * 30 * U; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+    ctx.setLineDash([]);
+    for (const k of all) {
+      const c = carteXY(k), R = carteR(k), choisi = ch[carteSel] === k, fait = visites.includes(k), ici = k === depart;
+      if (choisi) { ctx.strokeStyle = 'rgba(255,211,107,' + (0.6 + 0.4 * Math.sin(stT * 5)) + ')'; ctx.lineWidth = 4 * U; ctx.beginPath(); ctx.arc(c.x, c.y, R * (1.35 + 0.05 * Math.sin(stT * 5)), 0, TAU); ctx.stroke(); }
+      ctx.globalAlpha = fait && !ici ? 0.55 : 1; planeteDisque(ctx, k, c.x, c.y, R, stT); ctx.globalAlpha = 1;
+      const nom = k === 'lune' ? 'La Lune' : k === 'terre' ? 'La Terre' : PLANETES[k].nom;
+      label(nom + (fait ? ' ✓' : ''), c.x, c.y + R + 24 * U, choisi ? '#ffd36b' : '#e8eeff');
+      if (ici) { ctx.save(); ctx.translate(c.x + R * 0.9, c.y - R * 0.9 + Math.sin(stT * 3) * 4 * U); ctx.rotate(0.6); drawFoot(ctx, 'navette', 0, 22 * U, 44 * U); ctx.restore(); }
+    }
+    big('Carte des étoiles', (portrait ? 72 : 36) * U, 0.6, '#e8eeff');
+    // le panneau du bas : la destination choisie, et « Partir »
+    const k = ch[carteSel], b = carteBouton(), t = k === 'terre' ? 'Rentrer sur la Terre' : PLANETES[k].titre, d = k === 'terre' ? (visites.length ? visites.length + ' planète' + (visites.length > 1 ? 's' : '') + ' visitée' + (visites.length > 1 ? 's' : '') + ' : la partie se termine' : 'Rentrer tout de suite : la partie se termine') : PLANETES[k].desc;
+    ctx.font = 'bold ' + Math.round(20 * U) + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffd36b'; ctx.fillText(t, W / 2, b.y - 46 * U, W - 30);
+    ctx.font = Math.round(15 * U) + 'px ' + RF; ctx.fillStyle = '#cfd8ff'; ctx.fillText(d, W / 2, b.y - 20 * U, W - 30);
+    const kk = 1 + Math.sin(stT * 4) * 0.03; ctx.save(); ctx.translate(W / 2, b.y + b.h / 2); ctx.scale(kk, kk);
+    pill(ctx, -b.w / 2, -b.h / 2, b.w, b.h, b.h / 2); const g = ctx.createLinearGradient(0, -b.h / 2, 0, b.h / 2); g.addColorStop(0, '#ffd36b'); g.addColorStop(1, '#f08a2a'); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#3a1d00'; ctx.font = 'bold ' + Math.round(b.h * 0.42) + 'px ' + RF; ctx.fillText('🚀 Partir', 0, 2); ctx.restore();
+    ctx.font = Math.round(13 * U) + 'px ' + RF; ctx.fillStyle = 'rgba(220,228,255,0.7)'; ctx.textAlign = 'left'; ctx.fillText('Score ' + score(), 14 * U, H - 14 * U);
+  }
+  // ---------- dessin : le vol ----------
+  function drawAst(a, x, y, R) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a.a);
+    const rr = rng(Math.round(a.f * 1e6)), n = 9; ctx.beginPath();
+    for (let i = 0; i < n; i++) { const an = i / n * TAU, k = 0.78 + rr() * 0.3; ctx.lineTo(Math.cos(an) * R * k, Math.sin(an) * R * k); }
+    ctx.closePath(); const g = ctx.createRadialGradient(-R * 0.3, -R * 0.3, R * 0.1, 0, 0, R); g.addColorStop(0, '#a9a49b'); g.addColorStop(1, '#4f4b46'); ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = 'rgba(30,28,26,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+    for (let i = 0; i < 3; i++) { const an = rr() * TAU, d = rr() * R * 0.45; ctx.fillStyle = 'rgba(40,38,35,0.45)'; ctx.beginPath(); ctx.arc(Math.cos(an) * d, Math.sin(an) * d, R * (0.12 + rr() * 0.1), 0, TAU); ctx.fill(); }
+    ctx.restore();
+  }
+  function drawVol() {
+    drawCiel(camX * Z, camY * Z);
+    const s2 = ship, sxv = x => W / 2 + (x - camX) * Z, syv = y => H / 2 + (y - camY) * Z;
+    planeteDisque(ctx, depart, sxv(0), syv(0), R_ASTRE * Z, stT);
+    planeteDisque(ctx, dest, sxv(s2.dx), syv(s2.dy), R_ASTRE * Z, stT);
+    for (const d of dusts) { if (d.pris) continue; const x = sxv(d.x), y = syv(d.y); if (x < -40 || x > W + 40 || y < -40 || y > H + 40) continue; const k = 0.7 + 0.3 * Math.sin(stT * 5 + d.ph); ctx.fillStyle = 'rgba(255,240,150,0.25)'; ctx.beginPath(); ctx.arc(x, y, 18 * Z * k, 0, TAU); ctx.fill(); ctx.fillStyle = '#fff3a0'; star(ctx, x, y, 11 * Z * k, stT * 2 + d.ph); }
+    for (const a of asts) { const x = sxv(a.x), y = syv(a.y), R = a.r * Z; if (x < -R || x > W + R || y < -R || y > H + R) continue; drawAst(a, x, y, R); }
+    for (const p of parts) { ctx.globalAlpha = Math.max(0, 1 - p.t / p.d); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(sxv(p.x), syv(p.y), p.r * Z, 0, TAU); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // la navette : la flamme suit la poussée ; au repos, elle flotte doucement
+    const x = sxv(s2.x), y = syv(s2.y), h = 150 * Z, flot = s2.pousse < 0.1 ? Math.sin(stT * 2.2) * 3 * Z : 0;
+    // le dessin de la navette a le nez à gauche et le réacteur à droite : on la tourne d'un quart de tour, la flamme sort du réacteur
+    // vers la droite, on la retourne en miroir (sinon elle volerait la tête en bas) ; une petite marge évite qu'elle se retourne sans cesse
+    const sa = Math.sin(s2.a); if (sa > 0.25) s2.est = true; else if (sa < -0.25) s2.est = false;
+    const bal = s2.pousse < 0.1 ? Math.sin(stT * 1.6) * 0.04 : 0;
+    ctx.save(); ctx.translate(x, y + flot); ctx.rotate(s2.est ? s2.a - Math.PI / 2 + bal : s2.a + Math.PI / 2 + bal); if (s2.est) ctx.scale(-1, 1);
+    if (s2.hit > 0 && Math.floor(s2.hit * 10) % 2) ctx.globalAlpha = 0.5;
+    const im = IMG.navette, wN = im ? h * im.width / im.height : h;
+    ctx.save(); ctx.translate(wN * 0.44, -h * 0.06); ctx.rotate(-Math.PI / 2);
+    const fl = h * (0.1 + s2.pousse * 0.5 + 0.04 * Math.sin(stT * 31)), fw = h * 0.09;
+    for (const [k, c0, c1] of [[1, 'rgba(255,140,40,0.85)', 'rgba(255,80,20,0)'], [0.6, 'rgba(255,230,120,0.95)', 'rgba(255,170,60,0)'], [0.3, 'rgba(255,255,240,1)', 'rgba(255,240,180,0)']]) {
+      const g = ctx.createLinearGradient(0, 0, 0, fl * k); g.addColorStop(0, c0); g.addColorStop(1, c1); ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(-fw * k, 0); ctx.quadraticCurveTo(-fw * k * 0.8, fl * k * 0.5, Math.sin(stT * 23) * fw * 0.2, fl * k); ctx.quadraticCurveTo(fw * k * 0.8, fl * k * 0.5, fw * k, 0); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    drawFoot(ctx, 'navette', 0, h * 0.5, h); ctx.restore(); ctx.globalAlpha = 1;
+    drawFx2(sxv, syv);
+    // la direction de la destination (flèche au bord) et la distance
+    const tx = sxv(s2.dx), ty = syv(s2.dy), dist = Math.max(0, Math.round((Math.hypot(s2.dx - s2.x, s2.dy - s2.y) - R_ASTRE) / 2));
+    if (tx < 40 || tx > W - 40 || ty < 100 * U || ty > H - 40) {
+      const a = Math.atan2(ty - H / 2, tx - W / 2), rr = Math.min(W / 2 - 34 * U, H / 2 - 70 * U), ex = W / 2 + Math.cos(a) * rr, ey = H / 2 + Math.sin(a) * rr;
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(a); ctx.fillStyle = '#ffd36b'; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(24 * U, 0); ctx.lineTo(-10 * U, -15 * U); ctx.lineTo(-4 * U, 0); ctx.lineTo(-10 * U, 15 * U); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    }
+    const nomD = dest === 'terre' ? 'la Terre' : PLANETES[dest].nom;
+    ctx.font = 'bold ' + Math.round(18 * U) + 'px ' + RF; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    pill(ctx, 10 * U, 10 * U, Math.min(W * 0.62, 320 * U), 34 * U, 17 * U); ctx.fillStyle = 'rgba(10,14,26,0.7)'; ctx.fill();
+    ctx.fillStyle = '#ffd36b'; ctx.fillText('🚀 Vers ' + nomD + ' · ' + dist.toLocaleString('fr-FR') + ' km', 22 * U, 28 * U, Math.min(W * 0.62, 320 * U) - 20 * U);
+    pill(ctx, 10 * U, 50 * U, 120 * U, 30 * U, 15 * U); ctx.fillStyle = 'rgba(10,14,26,0.6)'; ctx.fill(); ctx.fillStyle = '#fff3a0'; ctx.fillText('✨ ' + poussiere, 22 * U, 66 * U);
+    ctx.textAlign = 'right'; ctx.font = 'bold ' + Math.round(24 * U) + 'px ' + RF; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText('' + score(), W - 62, 32 * U); ctx.fillStyle = '#fff'; ctx.fillText('' + score(), W - 62, 32 * U);
+  }
+  function drawFx2(fx, fy) {
+    for (const t of texts) {
+      ctx.globalAlpha = Math.min(1, 2 * (1.3 - t.t)); ctx.font = 'bold ' + Math.round(24 * U) + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const x = fx(t.x), y = fy(t.y) - t.t * 60 * U; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(t.s, x, y); ctx.fillStyle = t.c; ctx.fillText(t.s, x, y);
+    }
+    ctx.globalAlpha = 1;
+  }
 
   // ---------- la boucle de jeu ----------
   function input() {
@@ -266,6 +501,10 @@ function mount(root, api) {
     for (const im of impacts) im.t += dt; impacts = impacts.filter(im => im.t < 1.1);
     for (const q of prises) q.t += dt / 0.35; prises = prises.filter(q => q.t < 1);
     shake = Math.max(0, shake - dt * 30); flash = Math.max(0, flash - dt * 2); robot.joie = Math.max(0, robot.joie - dt); repT = Math.max(0, repT - dt);
+    if (state === 'carte') { if (pad && pad.pressed) { if (pad.pressed('left') || pad.pressed('up')) carteBouger(-1); if (pad.pressed('right') || pad.pressed('down')) carteBouger(1); } return; }
+    if (state === 'vol') { updVol(dt); return; }
+    if (state === 'atterro') { updAtterro(dt); return; }
+    if (state === 'end' && endWhy === 'terre') { if (stT > 3.4 && !overSent) { overSent = true; try { api.gameOver(score()); } catch (e) { /* rien */ } } return; }
     // la caméra suit en douceur (un peu en avance dans le sens de la marche)
     let tx = P.x + P.vx * 0.35, ty = P.y - 40 + P.vy * 0.35;
     if (state === 'liftoff' || (state === 'end' && endWhy === 'win')) { tx = 0; ty = -90 - liftW(); }   // la caméra accompagne la navette qui monte (elle reste au milieu)
@@ -277,7 +516,7 @@ function mount(root, api) {
       liftT += dt;
       // le survivant et le robot montent à bord (ils marchent jusqu'à la porte et y entrent)
       if (liftT > 0.6 && liftT < 1.4) { for (const o of [P, robot]) { o.x += (0 - o.x) * Math.min(1, dt * 4); o.y += (-20 - o.y) * Math.min(1, dt * 4); } P.step += dt * 6; P.moving = true; P.dir = 'dos'; }
-      if (liftT > 5) { state = 'end'; stT = 0; }
+      if (liftT > 5) versCarte();   // la navette est dans l'espace : on choisit où aller
       return;
     }
     if (state === 'end') {
@@ -312,7 +551,7 @@ function mount(root, api) {
     else P.step = 0;
     P.repos = P.moving ? 0 : (P.repos || 0) + dt;
     // le cratère : on glisse dedans, ça coûte de l'oxygène (une fois par cratère)
-    if (inCr && inCr !== crT) { crT = inCr; oxy -= 5; shake = 5; say('Tu glisses dans un cratère ! −5 % d’oxygène'); for (let i = 0; i < 4; i++) puffs.push({ x: P.x + (Math.random() - 0.5) * 40, y: P.y, t: -i * 0.1 }); }
+    if (inCr && inCr !== crT) { crT = inCr; const lave = monde === 'volcan'; oxy -= lave ? 10 : 5; shake = lave ? 9 : 5; say(monde === 'glace' ? 'Tu glisses dans une crevasse de glace ! −5 % d’oxygène' : lave ? 'Aïe, une mare de lave ! −10 % d’oxygène' : monde === 'jungle' ? 'Splash ! Une mare de boue ! −5 % d’oxygène' : 'Tu glisses dans un cratère ! −5 % d’oxygène'); if (lave) burst(P.x, P.y - 10, '#ffb347', 14, 140); for (let i = 0; i < 4; i++) puffs.push({ x: P.x + (Math.random() - 0.5) * 40, y: P.y, t: -i * 0.1 }); }
     if (!inCr) crT = null;
     // l'oxygène baisse (un peu plus vite en marchant)
     oxy -= dt * (0.85 + sp / VITESSE * 0.55) * (off('oxygene') ? (off('base') ? 0.45 : 0.55) : 1);   // sans bouteilles : il baisse moins vite (toujours gagnable)
@@ -328,10 +567,11 @@ function mount(root, api) {
     const rd = Math.hypot(robot.x - rox, robot.y - roy); robot.roule = rd > 15 * dt; robot.step = (robot.step || 0) + rd / 20;
     // ramasser
     for (const o of objs) {
-      if (o.pris || !/^(piece|cristal|oxygene|trousse|lampe)$/.test(o.k)) continue;
+      if (o.pris || !/^(piece|cristal|oxygene|trousse|lampe|tresor)$/.test(o.k)) continue;
       if (Math.hypot(o.x - P.x, (o.y - P.y) / 0.7) > 60) continue;
       o.pris = true; robot.joie = 1.2; prises.push({ k: o.k, x: o.x, y: o.y, h: o.h, t: 0 });
-      son('ramasser', 1, { cristal: 1.15, piece: 0.8, oxygene: 0.95, trousse: 1, lampe: 1.05 }[o.k] * (0.97 + Math.random() * 0.06));
+      son('ramasser', 1, { cristal: 1.15, piece: 0.8, oxygene: 0.95, trousse: 1, lampe: 1.05, tresor: 0.85 }[o.k] * (0.97 + Math.random() * 0.06));
+      if (o.k === 'tresor') { const PL = PLANETES[monde]; tresors++; totTresors++; pop('+' + VAL_TRESOR + ' · ' + PL.nomT, PL.coul, o.x, o.y - 50); burst(o.x, o.y - 30, PL.coul, 22); say(tresors >= NB_TRESORS ? 'Tu as les ' + NB_TRESORS + ' ' + PL.nomTs + ' ! Retourne à la navette.' : 'Une ' + PL.nomT + ' ! Encore ' + (NB_TRESORS - tresors) + ' à trouver.'); try { api.celebrate && tresors >= NB_TRESORS && api.celebrate('Les ' + NB_TRESORS + ' ' + PL.nomTs + ' !'); } catch (e) { /* rien */ } }
       const px = o.x, py = o.y - 50;
       if (o.k === 'piece') { pieces++; pop('+' + VAL_PIECE + ' · ' + PIECES[o.n], '#ffd36b', px, py); burst(o.x, o.y - 30, '#ffd36b', 20); say('Tu as trouvé ' + PIECES[o.n] + ' ! Ramène-la à la navette.'); try { api.celebrate && api.celebrate('Une pièce du vaisseau !'); } catch (e) { /* rien */ } }
       else if (o.k === 'cristal') { cristaux++; pop('+' + VAL_CRISTAL, '#7fe3ff', px, py); burst(o.x, o.y - 25, '#7fe3ff', 14); }
@@ -343,8 +583,14 @@ function mount(root, api) {
     // la base abandonnée : un plein d'oxygène, une fois
     const base = objs.find(o => o.k === 'base');
     if (base && !baseUsed && Math.hypot(base.x - P.x, base.y - P.y) < 170) { baseUsed = true; oxy = 100; say('La vieille base avait encore de l’oxygène : plein fait !', 3); bulles(P.x, P.y - 40); bulles(base.x, base.y - 80); }
+    // sur une planète : une fois les trésors trouvés, la navette repart
+    if (monde !== 'lune') {
+      if (Math.hypot(P.x, P.y / 0.7) < 230 && tresors >= NB_TRESORS) { state = 'liftoff'; liftT = 0; robot.joie = 9; texts = []; msg = null; try { api.celebrate && api.celebrate('En route pour les étoiles !'); } catch (e) { /* rien */ } return; }
+      if (Math.hypot(P.x, P.y / 0.7) < 230 && tresors < NB_TRESORS && !msg) say('Il te manque encore ' + (NB_TRESORS - tresors) + ' ' + PLANETES[monde].nomTs + '.');
+      plantes(dt);
+    }
     // la navette : les pièces s'envolent dedans, puis on décolle
-    if (Math.hypot(P.x, P.y / 0.7) < 230) {
+    else if (Math.hypot(P.x, P.y / 0.7) < 230) {
       if (pieces > 0) {
         for (let i = 0; i < pieces; i++) flyers.push({ x0: P.x, y0: P.y - 60, t: -i * 0.25 });
         posees += pieces; pieces = 0; repT = 1.4;
@@ -355,31 +601,43 @@ function mount(root, api) {
     }
     // pluies de météorites
     showerT -= dt;
-    if (off('meteorite')) { showerOn = false; showerT = 30; }   // sans météorites : plus de pluie
-    if (!showerOn && showerT < 3 && showerT + dt >= 3) { say('⚠️ Pluie de météorites ! Évite les ombres rouges !', 3); son('alerte'); }
+    if (off('meteorite') || monde === 'jungle') { showerOn = false; showerT = 30; }   // sans météorites (ou dans la jungle) : plus de pluie
+    if (!showerOn && showerT < 3 && showerT + dt >= 3) { say(monde === 'lune' ? '⚠️ Pluie de météorites ! Évite les ombres rouges !' : PLANETES[monde].alerte, 3); son('alerte'); }
     if (!showerOn && showerT <= 0) { showerOn = true; showerLeft = 6 + Math.min(8, Math.floor(tJeu / 40)); showerT = 0.2; }
     if (showerOn && showerT <= 0) {
       if (showerLeft-- > 0) {
         const lead = 1, mx = P.x + P.vx * lead + (Math.random() - 0.5) * 300, my = P.y + P.vy * lead + (Math.random() - 0.5) * 220;
-        meteors.push({ x: mx, y: my, t: 0, d: 1.7 });
+        meteors.push({ x: mx, y: my, t: 0, d: 1.7, type: monde === 'lune' ? 'meteorite' : PLANETES[monde].danger });
         showerT = 0.5 + Math.random() * 0.4;
       } else { showerOn = false; showerT = 20 + Math.random() * 12 - Math.min(8, tJeu / 30); }
     }
     for (const m of meteors) {
       m.t += dt;
       if (m.t >= m.d && !m.done) {
-        m.done = true; shake = Math.max(shake, 9); impacts.push({ x: m.x, y: m.y, t: 0 });
+        m.done = true; shake = Math.max(shake, 9); impacts.push({ x: m.x, y: m.y, t: 0, type: m.type });
         son('impact', Math.max(0.25, 1 - Math.hypot(m.x - P.x, m.y - P.y) / 700), 0.9 + Math.random() * 0.2);   // plus faible quand elle tombe loin
-        if (!craters.some(c => Math.hypot(c.x - m.x, c.y - m.y) < c.r) && Math.hypot(m.x, m.y) > 200) craters.push({ x: m.x, y: m.y, r: 42, neuf: 1 });
+        if (monde === 'lune' && !craters.some(c => Math.hypot(c.x - m.x, c.y - m.y) < c.r) && Math.hypot(m.x, m.y) > 200) craters.push({ x: m.x, y: m.y, r: 42, neuf: 1 });
         burst(m.x, m.y - 10, '#9a9ba2', 16, 220, 120);
         if (Math.hypot(m.x - P.x, (m.y - P.y) / 0.7) < 75) {
           if (trousses > 0) { trousses--; say('Ouf ! La trousse de secours t’a protégé.'); }
-          else { oxy -= 18; P.stun = 1.1; shake = 18; say('Aïe ! Une météorite ! −18 % d’oxygène'); }
+          else { oxy -= 18; P.stun = 1.1; shake = 18; say(m.type === 'glacons' ? 'Aïe ! Un glaçon ! −18 % d’oxygène' : m.type === 'lave' ? 'Aïe ! Une bombe de lave ! −18 % d’oxygène' : 'Aïe ! Une météorite ! −18 % d’oxygène'); }
         }
       }
     }
     meteors = meteors.filter(m => !m.done);
     if (oxy <= 0) { oxy = 0; state = 'end'; stT = 0; endWhy = 'oxy'; P.stun = 99; }
+  }
+  // les plantes carnivores de Verdia : elles se balancent au repos, se penchent quand tu approches, puis croquent (on a le temps de s'écarter)
+  function plantes(dt) {
+    for (const o of objs) {
+      if (o.k !== 'plante') continue;
+      o.cool = Math.max(0, o.cool - dt); const d = Math.hypot(o.x - P.x, (o.y - P.y) / 0.7);
+      if (o.snap > 0) {
+        const t0 = o.snap; o.snap = Math.max(0, o.snap - dt);
+        if (t0 > 0.25 && o.snap <= 0.25) { shake = Math.max(shake, 4); if (d < 100 && P.stun <= 0) { if (trousses > 0) { trousses--; say('Ouf ! La trousse de secours t’a protégé.'); } else { oxy -= 10; P.stun = 0.8; shake = 12; say('Croc ! La plante t’a pincé ! −10 % d’oxygène'); } } }
+        if (o.snap <= 0) o.cool = 1.8;
+      } else if (d < 125 && o.cool <= 0) o.snap = 0.6;
+    }
   }
   function respawnOxy() {
     for (let k = 0; k < 30; k++) {
@@ -390,7 +648,7 @@ function mount(root, api) {
 
   // ---------- dessin ----------
   function drawGround() {
-    const t = solTile(), ts = 512 * Z;
+    const t = solTile(monde), ts = 512 * Z, TR = monde === 'lune' ? null : PLANETES[monde].trou;
     const ox = ((W / 2 - camX * Z) % ts + ts) % ts - ts, oy = ((H / 2 - camY * Z) % ts + ts) % ts - ts;
     for (let x = ox; x < W; x += ts) for (let y = oy; y < H; y += ts) ctx.drawImage(t, x, y, ts + 1, ts + 1);
     // le bord du monde : une ombre qui s'épaissit (on ne va pas plus loin)
@@ -402,8 +660,10 @@ function mount(root, api) {
       const x = sx(c.x), y = sy(c.y), rx = c.r * Z, ry = rx * 0.62;
       if (x + rx < -10 || x - rx > W + 10 || y + ry < -10 || y - ry > H + 10) continue;
       ctx.fillStyle = 'rgba(240,241,245,0.7)'; ctx.beginPath(); ctx.ellipse(x, y + ry * 0.12, rx * 1.12, ry * 1.18, 0, 0, TAU); ctx.fill();
-      const gg = ctx.createLinearGradient(0, y - ry, 0, y + ry); gg.addColorStop(0, c.neuf ? '#4a3a32' : '#55575f'); gg.addColorStop(1, c.neuf ? '#7a6656' : '#9a9ca3');
+      const gg = ctx.createLinearGradient(0, y - ry, 0, y + ry); gg.addColorStop(0, TR ? TR[0] : c.neuf ? '#4a3a32' : '#55575f'); gg.addColorStop(1, TR ? TR[1] : c.neuf ? '#7a6656' : '#9a9ca3');
       ctx.fillStyle = gg; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill();
+      if (monde === 'volcan') { ctx.fillStyle = 'rgba(255,220,120,' + (0.25 + 0.2 * Math.sin(stT * 3 + c.x)) + ')'; ctx.beginPath(); ctx.ellipse(x + Math.sin(stT + c.y) * rx * 0.2, y, rx * 0.35, ry * 0.3, 0, 0, TAU); ctx.fill(); }   // la lave bouillonne
+      if (monde === 'glace') { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(x - rx * 0.3, y - ry * 0.2, rx * 0.25, ry * 0.12, -0.3, 0, TAU); ctx.fill(); }
       ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.beginPath(); ctx.ellipse(x, y - ry * 0.25, rx * 0.85, ry * 0.55, 0, Math.PI, TAU); ctx.fill();
     }
     // la poussière des pas
@@ -411,8 +671,9 @@ function mount(root, api) {
     // l'ombre rouge des météorites qui arrivent
     for (const m of meteors) {
       const e = m.t / m.d, x = sx(m.x), y = sy(m.y), r = 70 * Z;
-      ctx.fillStyle = 'rgba(255,50,30,' + (0.12 + e * 0.3) + ')'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.6, 0, 0, TAU); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,90,60,0.9)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(x, y, r * (1.6 - e * 1.1), r * 0.6 * (1.6 - e * 1.1), 0, 0, TAU); ctx.stroke();
+      const bleu = m.type === 'glacons';
+      ctx.fillStyle = (bleu ? 'rgba(60,140,255,' : 'rgba(255,50,30,') + (0.12 + e * 0.3) + ')'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.6, 0, 0, TAU); ctx.fill();
+      ctx.strokeStyle = bleu ? 'rgba(120,190,255,0.9)' : 'rgba(255,90,60,0.9)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(x, y, r * (1.6 - e * 1.1), r * 0.6 * (1.6 - e * 1.1), 0, 0, TAU); ctx.stroke();
     }
   }
   // tous les objets debout, triés par leur pied (le plus haut à l'écran d'abord)
@@ -420,33 +681,67 @@ function mount(root, api) {
     const L = [];
     const parti = endWhy === 'win' && state === 'end';   // la navette est partie avec toi
     for (const o of objs) if (!(parti && o.k === 'navette')) L.push(o);
-    if ((state !== 'liftoff' || liftT < 1.4) && !parti) L.push({ k: '_joueur', x: P.x, y: P.y });
-    if ((state !== 'liftoff' || liftT < 1.4) && !parti) L.push({ k: '_robot', x: robot.x, y: robot.y });
+    const dehors = (state !== 'liftoff' || liftT < 1.4) && !parti && !(state === 'atterro' && landT < 2.3);
+    if (dehors) L.push({ k: '_joueur', x: P.x, y: P.y });
+    if (dehors) L.push({ k: '_robot', x: robot.x, y: robot.y });
     for (const im of impacts) L.push({ k: '_impact', x: im.x, y: im.y + 1, im });
     // règle stricte : le robot ne passe jamais devant toi (quand il est à ta hauteur, il est dessiné derrière) ; en vol, la navette passe au-dessus de tout
-    const prof = o => o.k === 'navette' && state === 'liftoff' && liftT > 1.4 ? 1e9 : o.k === '_robot' && Math.abs(o.x - P.x) < 100 ? Math.min(o.y, P.y - 0.5) : o.y;
+    const prof = o => o.k === 'navette' && ((state === 'liftoff' && liftT > 1.4) || (state === 'atterro' && landT < 2.2)) ? 1e9 : o.k === '_robot' && Math.abs(o.x - P.x) < 100 ? Math.min(o.y, P.y - 0.5) : o.y;
     L.sort((a, b) => prof(a) - prof(b));
     for (const o of L) {
       const x = sx(o.x), y = sy(o.y);
-      if (x < -300 || x > W + 300 || y < -60 || y > H + 400) { if (!(o.k === 'navette' && state === 'liftoff')) continue; }   // la navette qui monte est dessinée plus haut que son pied au sol
+      if (x < -300 || x > W + 300 || y < -60 || y > H + 400) { if (!(o.k === 'navette' && (state === 'liftoff' || state === 'atterro'))) continue; }   // la navette qui monte est dessinée plus haut que son pied au sol
       if (o.k === '_joueur') { drawPlayer(x, y); continue; }
       if (o.k === '_robot') { if (!off('robot')) drawRobot(x, y); continue; }
-      if (o.k === '_impact') { drawImpact(x, y, o.im.t); continue; }
+      if (o.k === '_impact') { drawImpact(x, y, o.im.t, o.im.type); continue; }
       const h = o.h * Z;
       ctx.fillStyle = 'rgba(30,32,40,0.3)'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.42, h * 0.1, 0, 0, TAU); ctx.fill();
-      const bob = /^(piece|cristal|oxygene|trousse|lampe)$/.test(o.k) ? (0.5 + 0.5 * Math.sin(stT * 3 + o.x)) * h * 0.12 : 0;
+      if (o.k === 'plante') { drawPlante(o, x, y); continue; }
+      if (o.k === 'deco') { drawDeco(o, x, y); continue; }
+      const bob = /^(piece|cristal|oxygene|trousse|lampe|tresor)$/.test(o.k) ? (0.5 + 0.5 * Math.sin(stT * 3 + o.x)) * h * 0.12 : 0;
       if (o.k === 'piece') { ctx.save(); ctx.globalAlpha = 0.3 + 0.2 * Math.sin(stT * 5); ctx.fillStyle = '#ffd36b'; ctx.beginPath(); ctx.arc(x, y - h * 0.5 - bob, h * 0.75, 0, TAU); ctx.fill(); ctx.restore(); }
       if (o.k === 'oxygene') { ctx.save(); ctx.globalAlpha = 0.18 + 0.12 * Math.sin(stT * 4 + o.y); ctx.fillStyle = '#9dffbf'; ctx.beginPath(); ctx.arc(x, y - h * 0.5 - bob, h * 0.6, 0, TAU); ctx.fill(); ctx.restore(); }
       if (o.k === 'navette') { drawNavette(x, y, h); continue; }
-      drawFoot(ctx, o.k, x, y - bob, h);
+      if (o.k === 'tresor') { ctx.save(); ctx.globalAlpha = 0.3 + 0.2 * Math.sin(stT * 5 + o.x); ctx.fillStyle = PLANETES[monde].coul; ctx.beginPath(); ctx.arc(x, y - h * 0.5 - bob, h * 0.8, 0, TAU); ctx.fill(); ctx.restore(); }
+      drawFoot(ctx, o.img || o.k, x, y - bob, h);
+      if (o.k === 'tresor') { ctx.fillStyle = '#fffbe0'; for (let i = 0; i < 3; i++) { const t = (stT * 0.8 + i / 3 + (o.y % 5) * 0.1) % 1, s2 = Math.sin(t * Math.PI) * 8 * Z; if (s2 > 0.5) star(ctx, x + Math.cos(i * 2.1 + o.x) * h * 0.45, y - bob - h * (0.25 + 0.6 * i / 3), s2, t * 3); } }
       if (o.k === 'cristal') { ctx.fillStyle = '#e8fbff'; for (let i = 0; i < 2; i++) { const t = (stT * 0.9 + i * 0.5 + (o.x % 7) * 0.13) % 1, s = Math.sin(t * Math.PI) * 7 * Z; if (s > 0.5) star(ctx, x + Math.cos(i * 2.4 + o.y) * h * 0.3, y - bob - h * (0.3 + 0.5 * ((i + o.x) % 3) / 3), s, t * 3); } }
       if (o.fume) smoke(x - h * 0.18, y - h * 0.75, h);
       if (o.k === 'base' && !baseUsed) label('O₂', x, y - h - 6 * Z, '#b8ffcf');
     }
   }
+  // le décor d'une planète : il « vit » (les cristaux de glace scintillent, le rocher fume, le champignon respire)
+  function drawDeco(o, x, y) {
+    const h = o.h * Z;
+    ctx.fillStyle = 'rgba(30,32,40,0.3)'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.42, h * 0.1, 0, 0, TAU); ctx.fill();
+    if (o.img === 'champi-geant') { const k = 1 + 0.025 * Math.sin(stT * 1.8 + o.ph); ctx.save(); ctx.translate(x, y); ctx.scale(1 / Math.sqrt(k), k); drawFoot(ctx, o.img, 0, 0, h); ctx.restore(); for (let i = 0; i < 2; i++) { const t = (stT * 0.5 + i / 2 + o.ph) % 1; ctx.fillStyle = 'rgba(150,255,220,' + (0.7 * (1 - t)) + ')'; ctx.beginPath(); ctx.arc(x + Math.sin(o.ph + i * 3) * h * 0.3, y - h * (0.7 + t * 0.5), 3 * Z, 0, TAU); ctx.fill(); } return; }
+    drawFoot(ctx, o.img, x, y, h);
+    if (o.img === 'roche-feu') smoke(x + h * 0.05, y - h * 0.7, h * 0.8);
+    if (o.img === 'glace-bloc') { ctx.fillStyle = '#ffffff'; const t = (stT * 0.7 + o.ph) % 1, s2 = Math.sin(t * Math.PI) * 9 * Z; if (s2 > 0.5) star(ctx, x + Math.cos(o.ph * 3) * h * 0.25, y - h * (0.4 + 0.3 * Math.sin(o.ph)), s2, t * 3); }
+  }
+  // la plante carnivore : se balance au repos, se penche vers toi quand tu approches, ouvre grand la bouche et croque
+  function drawPlante(o, x, y) {
+    const h = o.h * Z, d = Math.hypot(o.x - P.x, o.y - P.y), vers = Math.sign(P.x - o.x) || 1;
+    const penche = o.snap > 0 ? vers * 0.25 * Math.sin(Math.min(1, (0.6 - o.snap) / 0.35) * Math.PI / 2) : d < 260 ? vers * 0.1 : Math.sin(stT * 1.4 + o.ph) * 0.06;
+    const k = o.snap > 0 ? 1.08 : 1 + 0.03 * Math.sin(stT * 2 + o.ph);
+    ctx.fillStyle = 'rgba(30,32,40,0.3)'; ctx.beginPath(); ctx.ellipse(x, y, h * 0.35, h * 0.09, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(x, y); ctx.rotate(penche); ctx.scale(1, k);
+    drawFoot(ctx, o.snap > 0 && o.snap < 0.45 ? 'plante-croque' : 'plante', 0, 0, h, vers < 0);
+    ctx.restore();
+    if (o.snap > 0.25) { ctx.fillStyle = '#ff5a8a'; ctx.font = 'bold ' + Math.round(26 * Z) + 'px ' + RF; ctx.textAlign = 'center'; ctx.fillText('!', x, y - h * 1.15); }
+  }
   function drawNavette(x, y, h) {
     let lift = 0;
     if (state === 'liftoff') lift = liftW() * Z;
+    if (state === 'atterro') lift = ALT() * Z;
+    // la flamme pendant la descente (atterrissage)
+    if (state === 'atterro' && landT < 2.3) {
+      const fy = y - lift - h * 0.12, fl = h * (0.3 + 0.08 * Math.sin(stT * 31)), fw = h * 0.12;
+      for (const [k, c0, c1] of [[1, 'rgba(255,140,40,0.85)', 'rgba(255,80,20,0)'], [0.5, 'rgba(255,255,230,1)', 'rgba(255,220,150,0)']]) {
+        const g = ctx.createLinearGradient(0, fy, 0, fy + fl * k); g.addColorStop(0, c0); g.addColorStop(1, c1); ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(x - fw * k, fy); ctx.quadraticCurveTo(x, fy + fl * k * 1.2, x + fw * k, fy); ctx.closePath(); ctx.fill();
+      }
+    }
     // flammes et fumée au décollage
     if (state === 'liftoff' && liftT > 1.1) {
       for (let i = 0; i < 18; i++) { const t = (stT * 2.4 + i / 18) % 1; ctx.fillStyle = 'rgba(200,202,210,' + (0.5 * (1 - t)) + ')'; ctx.beginPath(); ctx.arc(x + Math.cos(i * 2.1) * t * h * 0.9, y + Math.sin(i * 1.7) * t * h * 0.15, h * (0.08 + t * 0.2), 0, TAU); ctx.fill(); }
@@ -462,7 +757,7 @@ function mount(root, api) {
     drawFoot(ctx, 'navette', x + wob, y - lift, h);
     // les étincelles de la réparation
     if (repT > 0) { ctx.fillStyle = '#fff3a0'; for (let i = 0; i < 5; i++) star(ctx, x + Math.sin(stT * 13 + i * 2) * h * 0.35, y - h * (0.3 + 0.1 * Math.cos(stT * 9 + i)), (4 + 3 * Math.sin(stT * 20 + i)) * Z, stT * 6 + i); }
-    if (state !== 'liftoff') {
+    if (state !== 'liftoff' && state !== 'atterro' && monde === 'lune') {
       const w = Math.min(h * 0.75, 170 * Z), bh = 11 * Z, bx = x - w / 2, by = y - h - 14 * Z;
       pill(ctx, bx, by, w, bh, bh / 2); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fill();
       if (posees) { pill(ctx, bx, by, w * posees / NB_PIECES, bh, bh / 2); ctx.fillStyle = '#ffd36b'; ctx.fill(); }
@@ -547,7 +842,12 @@ function mount(root, api) {
       ctx.beginPath(); ctx.moveTo(18 * Z, 0); ctx.lineTo(-8 * Z, -11 * Z); ctx.lineTo(-3 * Z, 0); ctx.lineTo(-8 * Z, 11 * Z); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     }
   }
-  function drawImpact(x, y, t) {
+  function drawImpact(x, y, t, type) {
+    if (type === 'glacons') {   // le glaçon éclate : des éclats bleus qui volent et s'effacent
+      const k = Math.min(1, t / 1.1); ctx.globalAlpha = 1 - k;
+      for (let i = 0; i < 10; i++) { const a = i / 10 * TAU, d = (20 + k * 90) * Z; ctx.fillStyle = i % 2 ? '#e8f6ff' : '#8fc8f0'; ctx.save(); ctx.translate(x + Math.cos(a) * d, y - 20 * Z + Math.sin(a) * d * 0.5 - Math.sin(k * Math.PI) * 30 * Z); ctx.rotate(a + k * 4); ctx.fillRect(-4 * Z, -9 * Z, 8 * Z, 18 * Z); ctx.restore(); }
+      ctx.globalAlpha = 1; return;
+    }
     // éclair, boule de feu, nuage de poussière, poussière qui retombe
     const n = t < 0.12 ? 'impact1' : t < 0.4 ? 'impact2' : t < 0.75 ? 'impact3' : 'impact4', h = (n === 'impact1' ? 80 : n === 'impact2' ? 170 : 150) * Z;
     ctx.globalAlpha = n === 'impact4' ? Math.max(0, 1 - (t - 0.75) / 0.35) : 1;
@@ -558,6 +858,14 @@ function mount(root, api) {
   function drawFalling() {
     for (const m of meteors) {
       const e = m.t / m.d, x = sx(m.x) + (1 - e) * 260 * Z, y = sy(m.y) - (1 - e) * (H * 0.9), h = 120 * Z;
+      if (m.type === 'glacons') {   // un glaçon pointu qui tombe, avec un reflet
+        ctx.save(); ctx.translate(x, y); ctx.rotate(-0.45); const g = ctx.createLinearGradient(-h * 0.12, 0, h * 0.12, 0); g.addColorStop(0, '#bfe6ff'); g.addColorStop(1, '#6faee0'); ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(0, h * 0.5); ctx.lineTo(-h * 0.13, -h * 0.25); ctx.lineTo(0, -h * 0.4); ctx.lineTo(h * 0.13, -h * 0.25); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(-h * 0.03, -h * 0.25, h * 0.03, h * 0.5); ctx.restore(); continue;
+      }
+      if (m.type === 'lave') {   // une bombe de lave : boule orange, cœur jaune, traînée
+        for (let i = 0; i < 5; i++) { ctx.fillStyle = 'rgba(255,' + (120 + i * 20) + ',40,' + (0.5 - i * 0.08) + ')'; ctx.beginPath(); ctx.arc(x + i * 18 * Z, y - i * 60 * Z, h * (0.22 - i * 0.03), 0, TAU); ctx.fill(); }
+        ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(x, y, h * 0.12, 0, TAU); ctx.fill(); continue;
+      }
       ctx.save(); ctx.translate(x, y); ctx.rotate(-0.45); drawFoot(ctx, 'meteorite', 0, h * 0.45, h); ctx.restore();
     }
   }
@@ -573,9 +881,9 @@ function mount(root, api) {
     }
   }
   function cible() {
-    if (pieces > 0 || posees + pieces >= NB_PIECES) return { x: 0, y: 0, k: 'navette' };
+    if (monde !== 'lune' ? tresors >= NB_TRESORS : (pieces > 0 || posees + pieces >= NB_PIECES)) return { x: 0, y: 0, k: 'navette' };
     let best = null, bd = 1e9;
-    for (const o of objs) if (o.k === 'piece') { const d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd) { bd = d; best = o; } }
+    for (const o of objs) if (o.k === (monde !== 'lune' ? 'tresor' : 'piece')) { const d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd) { bd = d; best = o; } }
     return best;
   }
   function drawHud() {
@@ -589,9 +897,10 @@ function mount(root, api) {
     const y2 = y + bh + 8 * U;
     pill(ctx, x, y2, bw, 34 * U, 12 * U); ctx.fillStyle = 'rgba(10,14,26,0.6)'; ctx.fill();
     const ic = 26 * U;
-    drawFoot(ctx, 'piece', x + 22 * U, y2 + 30 * U, ic * 0.9);
-    ctx.font = 'bold ' + fs + 'px ' + RF; ctx.fillStyle = '#ffd36b'; ctx.fillText((posees + pieces) + '/' + NB_PIECES, x + 40 * U, y2 + 18 * U);
-    if (!off('cristal')) { drawFoot(ctx, 'cristal', x + 110 * U, y2 + 30 * U, ic); ctx.fillStyle = '#7fe3ff'; ctx.fillText('' + cristaux, x + 126 * U, y2 + 18 * U); }
+    if (monde !== 'lune') { const PL = PLANETES[monde]; drawFoot(ctx, PL.tresor, x + 22 * U, y2 + 31 * U, ic); ctx.font = 'bold ' + fs + 'px ' + RF; ctx.fillStyle = PL.coul; ctx.fillText(tresors + '/' + NB_TRESORS, x + 42 * U, y2 + 18 * U); }
+    else { drawFoot(ctx, 'piece', x + 22 * U, y2 + 30 * U, ic * 0.9);
+    ctx.font = 'bold ' + fs + 'px ' + RF; ctx.fillStyle = '#ffd36b'; ctx.fillText((posees + pieces) + '/' + NB_PIECES, x + 40 * U, y2 + 18 * U); }
+    if (!off('cristal') && monde === 'lune') { drawFoot(ctx, 'cristal', x + 110 * U, y2 + 30 * U, ic); ctx.fillStyle = '#7fe3ff'; ctx.fillText('' + cristaux, x + 126 * U, y2 + 18 * U); }
     if (trousses) { drawFoot(ctx, 'trousse', x + 176 * U, y2 + 30 * U, ic * 0.85); ctx.fillStyle = '#ff9c9c'; ctx.fillText('' + trousses, x + 192 * U, y2 + 18 * U); }
     ctx.textAlign = 'right'; ctx.font = 'bold ' + Math.round(24 * U) + 'px ' + RF; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
     ctx.strokeText('' + score(), W - 62, m + 22 * U); ctx.fillStyle = '#fff'; ctx.fillText('' + score(), W - 62, m + 22 * U);
@@ -606,7 +915,7 @@ function mount(root, api) {
         ctx.save(); ctx.translate(ex, ey); ctx.rotate(a); ctx.fillStyle = col; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(22 * U, 0); ctx.lineTo(-10 * U, -14 * U); ctx.lineTo(-4 * U, 0); ctx.lineTo(-10 * U, 14 * U); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
         ctx.font = 'bold ' + Math.round(13 * U) + 'px ' + RF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-        const s = (t.k === 'navette' ? 'Navette ' : 'Pièce ') + d + ' m', lx = ex - Math.cos(a) * 34 * U, ly = ey - Math.sin(a) * 26 * U;
+        const s = (t.k === 'navette' ? 'Navette ' : monde !== 'lune' ? 'Trésor ' : 'Pièce ') + d + ' m', lx = ex - Math.cos(a) * 34 * U, ly = ey - Math.sin(a) * 26 * U;
         ctx.strokeText(s, lx, ly); ctx.fillStyle = '#fff'; ctx.fillText(s, lx, ly);
       }
     }
@@ -615,7 +924,7 @@ function mount(root, api) {
     ctx.fillStyle = 'rgba(10,14,26,0.6)'; ctx.beginPath(); ctx.arc(rcx, rcy, rr, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(160,200,255,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.save(); ctx.beginPath(); ctx.arc(rcx, rcy, rr, 0, TAU); ctx.clip();
     const dot = (wx, wy, col, r, toujours) => { const k = rr / rng2; let px = (wx - P.x) * k, py = (wy - P.y) * k; const l = Math.hypot(px, py); if (l > rr - 3) { if (!toujours) return; px *= (rr - 3) / l; py *= (rr - 3) / l; } ctx.fillStyle = col; ctx.beginPath(); ctx.arc(rcx + px, rcy + py, r * U, 0, TAU); ctx.fill(); };
-    for (const o of objs) { const col = { piece: '#ffd36b', cristal: '#7fe3ff', oxygene: '#5fe08a', trousse: '#ff9c9c', lampe: '#fff2a0', base: '#c9b6ff', navette: '#fff' }[o.k]; if (col) dot(o.x, o.y, col, o.k === 'navette' || o.k === 'piece' ? 3.5 : 2.2, o.k === 'navette' || o.k === 'piece'); }
+    for (const o of objs) { const col = { piece: '#ffd36b', tresor: '#ffd36b', cristal: '#7fe3ff', oxygene: '#5fe08a', trousse: '#ff9c9c', lampe: '#fff2a0', base: '#c9b6ff', navette: '#fff', plante: '#ff5a8a' }[o.k]; if (col) dot(o.x, o.y, col, o.k === 'navette' || o.k === 'piece' || o.k === 'tresor' ? 3.5 : 2.2, o.k === 'navette' || o.k === 'piece' || o.k === 'tresor'); }
     for (const mm of meteors) dot(mm.x, mm.y, '#ff5a4a', 3);
     ctx.restore();
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(rcx, rcy, 3.5 * U, 0, TAU); ctx.fill();
@@ -666,7 +975,7 @@ function mount(root, api) {
     if (!off('robot')) drawFoot(ctx, Math.floor(stT * 5) % 2 ? 'robot1' : 'robot2', W * 0.47 + 120 * U, gy + 40 * U, 90 * U);
     big('SEUL SUR LA LUNE', H * 0.12, 1, '#e8eeff');
     // les lignes des éléments que le joueur a coupés disparaissent
-    const lines = [off('robot') ? '🧭 Explore la Lune : la flèche montre le chemin' : '🧭 Explore la Lune : ton robot montre le chemin', '⚙️ Trouve les 5 pièces et ramène-les à la navette', off('oxygene') ? '🫧 Ton oxygène baisse : fais vite !' : '🫧 Ramasse l’oxygène : il baisse sans arrêt !', off('cristal') ? null : '💎 Les cristaux, c’est ton trésor', off('meteorite') ? null : '☄️ Fuis les ombres rouges des météorites'].filter(Boolean);
+    const lines = [off('robot') ? '🧭 Explore la Lune : la flèche montre le chemin' : '🧭 Explore la Lune : ton robot montre le chemin', '⚙️ Trouve les 5 pièces et ramène-les à la navette', '🚀 Puis pilote ta navette vers 3 planètes', off('oxygene') ? '🫧 Ton oxygène baisse : fais vite !' : '🫧 Ramasse l’oxygène : il baisse sans arrêt !', off('cristal') ? null : '💎 Les cristaux, c’est ton trésor', off('meteorite') ? null : '☄️ Fuis les ombres rouges des météorites'].filter(Boolean);
     const cw = Math.min(W - 24, 560 * U), lh = 30 * U, chh = lines.length * lh + 22 * U, cx = (W - cw) / 2, cy = portrait ? H * 0.66 : H * 0.2;
     pill(ctx, cx, cy, cw, chh, 18 * U); ctx.fillStyle = 'rgba(10,14,30,0.72)'; ctx.fill();
     ctx.font = 'bold ' + Math.round(18 * U) + 'px ' + RF; ctx.fillStyle = '#e8eeff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -694,9 +1003,11 @@ function mount(root, api) {
     ctx.fillStyle = 'rgba(4,6,14,' + Math.max(0, Math.min(0.75, endWhy === 'oxy' ? stT * 0.25 + Math.max(0, e) * 0.6 : stT)) + ')'; ctx.fillRect(0, 0, W, H);
     if (e < 0) return;
     ctx.globalAlpha = Math.min(1, e * 2.5);
-    if (endWhy === 'win') { big('Retour vers la Terre !', H * 0.22, 0.8, '#ffd36b'); big('Tu as décollé avec ' + Math.ceil(oxy) + ' % d’oxygène', H * 0.33, 0.55); }
-    else { big('Plus d’oxygène…', H * 0.22, 0.8, '#ff9c9c'); big('La navette était réparée à ' + posees + ' / ' + NB_PIECES, H * 0.33, 0.55); }
-    big((off('cristal') ? '' : cristaux + ' cristaux · ') + (posees + pieces) + ' pièces', H * 0.43, 0.55, '#7fe3ff');
+    if (endWhy === 'terre') { big('Bienvenue sur Terre !', H * 0.22, 0.8, '#7fd0ff'); big(visites.length + ' planète' + (visites.length > 1 ? 's' : '') + ' visitée' + (visites.length > 1 ? 's' : '') + ' · ' + totTresors + ' trésor' + (totTresors > 1 ? 's' : '') + ' · ✨ ' + poussiere, H * 0.33, 0.5); }
+    else if (endWhy === 'win') { big('Retour vers la Terre !', H * 0.22, 0.8, '#ffd36b'); big('Tu as décollé avec ' + Math.ceil(oxy) + ' % d’oxygène', H * 0.33, 0.55); }
+    else { big('Plus d’oxygène…', H * 0.22, 0.8, '#ff9c9c'); big(monde !== 'lune' ? 'Sur ' + PLANETES[monde].nom + ' : ' + tresors + ' / ' + NB_TRESORS + ' ' + PLANETES[monde].nomTs : 'La navette était réparée à ' + posees + ' / ' + NB_PIECES, H * 0.33, 0.55); }
+    if (endWhy !== 'terre') big((off('cristal') ? '' : cristaux + ' cristaux · ') + (posees + pieces) + ' pièces', H * 0.43, 0.55, '#7fe3ff');
+    else big((off('cristal') ? '' : cristaux + ' cristaux · ') + 'navette réparée', H * 0.43, 0.55, '#7fe3ff');
     big('Score : ' + score(), H * 0.56, 0.9);
     if (e > 1.2) {
       const b = againBtn(); pill(ctx, b.x, b.y, b.w, b.h, b.h / 2); ctx.fillStyle = '#3b6fd8'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
@@ -708,11 +1019,17 @@ function mount(root, api) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (state === 'load' || state === 'title') { drawTitle(); if (paused && !gele) drawPause(); if (gele) drawGele(); return; }
     const kx = shake ? (Math.random() - 0.5) * shake : 0, ky = shake ? (Math.random() - 0.5) * shake : 0;
+    if (state === 'carte') { drawCarte(); drawMsg(); if (paused && !gele) drawPause(); if (gele) drawGele(); return; }
+    if (state === 'vol' || (state === 'end' && endWhy === 'terre')) {
+      ctx.setTransform(dpr, 0, 0, dpr, dpr * kx, dpr * ky); drawVol(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawMsg(); drawJoy(); if (state === 'end') drawEnd(); if (paused && !gele) drawPause(); if (gele) drawGele(); return;
+    }
     ctx.setTransform(dpr, 0, 0, dpr, dpr * kx, dpr * ky);
     drawGround(); drawWorld(); drawFlyers(); drawFalling(); drawFx();
     if (state === 'liftoff') big('Décollage !', H * 0.2, 0.9, '#ffd36b');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (state === 'play' || state === 'liftoff') drawHud();
+    if (state === 'atterro' && landT < 2.4) big(PLANETES[monde].titre, H * 0.2, 0.7, PLANETES[monde].coul);
     drawMsg(); drawJoy();
     if (state === 'intro') drawIntro();
     if (state === 'end') drawEnd();
@@ -730,8 +1047,9 @@ function mount(root, api) {
       if (gele) { draw(); return; }
       if (!paused) update(dt * FAST); else if (state === 'title' || state === 'load') stT += dt;
       if (state === 'title' || state === 'load') stT += paused ? 0 : 0;
-      if ((state === 'title' || state === 'intro' || state === 'end') && pad && pad.pressed && pad.pressed('a')) {
-        if (state === 'title' && (LOADED || loadErr)) startGame(); else if (state === 'intro' && stT > 0.6) { state = 'play'; stT = 0; } else if (state === 'end' && stT > (endWhy === 'oxy' ? 2.5 : 1.2)) startGame();
+      if ((state === 'title' || state === 'intro' || state === 'end' || state === 'carte') && pad && pad.pressed && pad.pressed('a')) {
+        if (state === 'carte') partir(carteChoix()[carteSel]);
+        else if (state === 'title' && (LOADED || loadErr)) startGame(); else if (state === 'intro' && stT > 0.6) { state = 'play'; stT = 0; } else if (state === 'end' && stT > (endWhy === 'oxy' ? 2.5 : 1.2)) startGame();
       }
       draw();
     } catch (e) { /* une image ratée ne doit pas arrêter le jeu */ }
@@ -747,16 +1065,20 @@ function mount(root, api) {
       pauseBtn.removeEventListener('pointerdown', onPauseBtn);
       root.innerHTML = '';
     },
-    currentScore() { return state === 'play' || state === 'liftoff' || state === 'end' ? score() : 0; },
-    currentLevel() { return 1 + posees; },
+    currentScore() { return state === 'title' || state === 'load' || state === 'intro' ? 0 : score(); },
+    currentLevel() { return 1 + posees + visites.length; },
     pause() { if (state === 'play' || state === 'intro') setPaused(true); },
     resume() { setPaused(false); },
     // essais (harnais)
     _test: {
       state: () => state, oxy: () => oxy, score, fast(k) { FAST = k; }, setOxy(v) { oxy = v; },
       P: () => P, objs: () => objs, ecran: () => ({ x: sx(P.x), y: sy(P.y), z: Z }), robotEcran: () => ({ x: sx(robot.x), y: sy(robot.y) }), posees: () => posees, pieces: () => pieces,
-      tp(x, y) { P.x = x; P.y = y; camX = x; camY = y - 40; }, meteor() { meteors.push({ x: P.x + 60, y: P.y, t: 0, d: 1.7 }); },
-      play() { if (state === 'title') startGame(); state = 'play'; stT = 0; }
+      tp(x, y) { P.x = x; P.y = y; camX = x; camY = y - 40; }, meteor() { meteors.push({ x: P.x + 60, y: P.y, t: 0, d: 1.7, type: monde === 'lune' ? 'meteorite' : PLANETES[monde].danger }); },
+      play() { if (state === 'title') startGame(); state = 'play'; stT = 0; },
+      monde: () => monde, ship: () => ship, carte: () => ({ choix: carteChoix(), sel: carteSel, visites }), tresors: () => tresors,
+      decoller() { posees = NB_PIECES; pieces = 0; state = 'liftoff'; liftT = 0; endWhy = 'win'; }, versCarte() { versCarte(); stT = 1; }, partir(k) { stT = 1; partir(k); },
+      arriver(k) { arriverSur(k); }, trouver() { objs.filter(o => o.k === 'tresor').forEach(o => { o.x = P.x + 10; o.y = P.y; }); },
+      carteXY: k => carteXY(k), bouton: () => carteBouton()
     }
   };
 }

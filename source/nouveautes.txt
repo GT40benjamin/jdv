@@ -105,6 +105,10 @@
 [abracadabra] ## 🚁 Abracadabra : un vrai avion et un vrai hélicoptère (borne 1.63.100)
 [abracadabra] ✈️ « Avion » : un petit avion bleu nuit et or traverse le ciel devant toi, son moteur tousse, il pique… et s'écrase sur l'autre rive dans un gros nuage de fumée (personne dedans, ouf !). Les villageois le suivent des yeux et commentent.
 [abracadabra] 🚁 « Hélicoptère » (ou hélico) : un hélicoptère rouge à bulle de verre arrive de loin, reste en vol au-dessus de la rivière en soulevant la poussière, avec le bruit de ses pales, puis repart au loin.
+[lune] ## 🚀 Seul sur la Lune : pilote ta navette vers 3 planètes (borne 2.0.5)
+[lune] 🗺️ Après le décollage, la carte des étoiles s'ouvre : choisis ta destination parmi 3 nouvelles planètes, ou rentre sur la Terre quand tu veux.
+[lune] 🚀 Tu pilotes vraiment la navette : elle tourne en douceur vers où tu pousses (clavier, manette ou doigt). Évite les astéroïdes et ramasse la poussière d'étoiles en chemin.
+[lune] 🪐 Glacia, la planète de glace (fleurs de givre, glaçons qui tombent), Pyra, la planète volcan (pierres de feu, bombes et mares de lave) et Verdia, la planète jungle (fruits étoiles, plantes carnivores qui croquent) : trouve les 3 trésors de chaque planète, puis repars vers la carte.
 [lune] ## 🎛️ Seul sur la Lune : tu choisis ce qui reste dans ton jeu (borne 1.63.101)
 [lune] 🎛️ Les éléments que tu désactives dans l'Atelier disparaissent proprement : sans météorites, plus de pluie ; sans cristaux, ton score compte les pièces ; sans bouteilles d'oxygène, il baisse moins vite pour que tu puisses toujours gagner ; sans robot, la flèche te montre le chemin ; chaque son coupé se tait. Le survivant, la navette et les pièces restent toujours.
 [lune] ## ⏸ Seul sur la Lune : une seule pause quand tu le lances depuis l'Atelier (borne 1.63.96)
