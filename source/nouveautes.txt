@@ -6,6 +6,10 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 🎮 Crée ton propre jeu vidéo ! (borne 1.63.155)
+[atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : ton guide monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
+[atelier] 🎁 À ta première visite, ton guide t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
+
 [abracadabra] ## ❄️ Abracadabra : neige, avalanche et inondation (borne 1.63.149)
 [abracadabra] ❄️ Dis « neige » : les flocons tombent doucement et les villageois ont froid (« Brrr… », « On fait un bonhomme de neige ? »).
 [abracadabra] 🏔️ Dis « avalanche », même sans neige : il se met à neiger, puis une énorme vague de poudreuse dévale, passe sur toi et ensevelit tout le monde jusqu'au cou… mission perdue.
