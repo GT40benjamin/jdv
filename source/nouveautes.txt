@@ -104,6 +104,8 @@
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
+[abracadabra] ## 🐰 Abracadabra : les animaux bougent de nouveau (borne 2.0.37)
+[abracadabra] 🐰 Le lapin, la vache, le cochon, le mouton, le cheval… restaient figés comme des statues depuis la dernière mise à jour : ils marchent, broutent et se promènent de nouveau autour de toi.
 [abracadabra] ## ❄️ Abracadabra : neige, avalanche et inondation (borne 1.63.149)
 [abracadabra] ❄️ Dis « neige » : les flocons tombent doucement et les villageois ont froid (« Brrr… », « On fait un bonhomme de neige ? »).
 [abracadabra] 🏔️ Dis « avalanche », même sans neige : il se met à neiger, puis une énorme vague de poudreuse dévale, passe sur toi et ensevelit tout le monde jusqu'au cou… mission perdue.
