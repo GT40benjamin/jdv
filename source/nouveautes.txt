@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## ❓ Les questions de {G} dans la discussion aussi (borne 2.0.36)
+[atelier] ❓ Quand tu racontes ton idée, {g} te pose ses questions dans des encarts : tu réponds d’un toucher ou en quelques mots, au micro si tu veux, puis « Envoyer mes réponses ». C’est gratuit.
 [atelier] ## 🌍 Les jeux en publication mondiale, pour tout le monde (borne 2.0.35)
 [atelier] 🌍 Un jeu de l’Atelier en publication mondiale est sur toutes les bornes, même sans compte, en invité.
 [atelier] ## 🔔 Vu sur un appareil, vu partout (borne 2.0.34)

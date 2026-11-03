@@ -14391,7 +14391,8 @@ const atlQListe = () => (((typeof ATL !== 'undefined' && ATL && ATL.dem) || {}).
 function atlNotifs() {
   try {
     if (!(ATL && ATL_ON() && !isGuest() && ATL.name === cleanName(profile.name))) return [];
-    const out = (ATL.aValider || []).map(v => ({ kind: 'atelier-v', fiche: v.fiche, joueur: v.joueur, titre: v.titre })).concat(atlQListe().map(x => ({ kind: 'atelier-q', id: x.id, fiche: x.fiche, projet: x.projet, n: atlQNb(x) })));
+    const out = (ATL.aValider || []).map(v => ({ kind: 'atelier-v', fiche: v.fiche, joueur: v.joueur, titre: v.titre })).concat(atlQListe().map(x => ({ kind: 'atelier-q', id: x.id, fiche: x.fiche, projet: x.projet, n: atlQNb(x) })))
+      .concat(atlProjets().filter(pj => (pj.q_msg | 0) > 0).map(pj => ({ kind: 'atelier-q', id: '', fiche: pj.id, projet: pj.titre, n: pj.q_msg | 0 })));   // 2.0.36 : dans la discussion
     if (atlProjets().some(atlProjNew)) out.push({ kind: 'atelier' });
     return out;
   } catch (e) { return []; }
@@ -14660,7 +14661,7 @@ function atlRenderProjets() {
     if (att) b.appendChild(atlEl('span', 'atl-patt', '⏳ En attente'));
     // 2.0.16 (Benjamin : « ici j'ai la demande, mais pas sur la tuile ! ») : une offre à choisir, ou une réponse pas lue, se voit sur la tuile
     const tk = ((ATL.dem || {}).demandes || []).filter(x => x && x.fiche === pj.id), ch = tk.filter(atlPropOuverte), rp = tk.filter(x => x.nouveau && x.reponse && !atlPropOuverte(x) && !atlQAttente(x)), qq = tk.filter(atlQAttente);
-    const vise = (qq[0] || ch[0] || rp[0] || {}).id || '', nqq = qq.reduce((t, x) => t + atlQNb(x), 0);
+    const vise = (qq[0] || ch[0] || rp[0] || {}).id || '', nqq = qq.reduce((t, x) => t + atlQNb(x), 0) + ((pj.q_msg | 0) || 0);
     if (nqq) b.appendChild(atlEl('span', 'atl-patt atl-pch atl-pq' + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), '❓ ' + nqq + (nqq > 1 ? ' questions' : ' question')));
     else if (ch.length || rp.length) b.appendChild(atlEl('span', 'atl-patt ' + (ch.length ? 'atl-pch' : 'atl-pre') + (b.querySelector('.atl-pprepa, .atl-patt') ? ' bas' : ''), ch.length ? '💬 À choisir' + (ch.length > 1 ? ' (' + ch.length + ')' : '') : '✨ ' + rp.length + ' réponse' + (rp.length > 1 ? 's' : '')));
     else if (atlProjNew(pj)) b.appendChild(atlEl('span', 'atl-pnew', '✉️ Nouvelle réponse'));
@@ -14774,6 +14775,14 @@ function atlBubble(m, wel) {
     if (m.image) { const a = atlEl('a', 'atl-bimg'); a.href = atlImgUrl(m.image); a.target = '_blank'; a.rel = 'noopener'; const im = atlEl('img'); im.alt = 'Image jointe'; im.loading = 'lazy'; im.src = atlImgUrl(m.image); im.onerror = () => { a.replaceWith(atlEl('em', 'atl-miss', '🖼️ image pas arrivée')); }; a.appendChild(im); bub.appendChild(a); }
   }
   col.appendChild(bub);
+  // 2.0.36 (Benjamin : « il m'a répondu avec des questions, mais peut-on faire la forme question ? ») : les encarts, comme dans les tickets
+  if (at && !wel && Array.isArray(m.questions) && m.questions.length) {
+    const ouv = !m.q_envoye && m.questions.some(q => q && !q.reponse), qx = { id: m.id, questions: m.questions, etat: 'vue' };
+    col.appendChild(atlQuestions(qx, { modif: ouv || (!m.q_envoye && m.questions.length > 0),
+      repondre: (n, v, env) => atlAdminIci() ? rpc('at_admin_message_repondre', { p_name: profile.name, p_fiche: ATL.adminVoir.id, p_msg: m.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true })
+        : rpc('at_message_repondre_question', { p_name: profile.name, p_msg: m.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true }),
+      apres: () => { m.q_envoye = true; ATL.stick = true; try { vusSignal(); } catch (e) {} atlLoad(true); } }));
+  }
   if (at && m.demande && ATL.dem && Array.isArray(ATL.dem.demandes)) {
     const x = ATL.dem.demandes.find(d => d.id === m.demande), der = atlMsgs().filter(z => z.demande === m.demande && z.atelier).pop();
     if (x && atlPropOuverte(x) && der && der.id === m.id) col.appendChild(atlPropBoutons(x));
@@ -14783,6 +14792,7 @@ function atlBubble(m, wel) {
 }
 function atlRenderChat() {
   const R = ATL.root; if (!R || R.querySelector('.atl-chin:focus')) return;   // un élément en cours d'ajout sur une planche : pas de rafraîchissement
+  if ([...R.querySelectorAll('.atl-log .atl-q input')].some(e => e.value.trim() || document.activeElement === e)) return;   // 2.0.36 : une réponse en cours d'écriture
   const log = R.querySelector('.atl-log'), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
   const f = atlFiche(), et = atlEtat(), mine = f && (ATL_ACTIVE.has(et) || et === 'acceptee');
   log.textContent = '';
@@ -16619,7 +16629,7 @@ function atlDemBtn(R) {
   const ouv = d && Array.isArray(d.demandes) ? d.demandes.filter(atlPropOuverte).length : 0;
   const enc = d && Array.isArray(d.demandes) ? d.demandes.filter(x => !['faite', 'impossible'].includes(x.etat)).length : 0;   // 2 h 05 : seulement celles en cours
   const rep0 = d && Array.isArray(d.demandes) ? d.demandes.filter(x => x && x.nouveau && (x.reponse || atlPropOuverte(x))).length : 0;   // 2.0.11 : des réponses à lire
-  const nq = atlQListe().reduce((t, x) => t + atlQNb(x), 0);   // 2.0.29 : les questions d'abord
+  const nq = atlQListe().reduce((t, x) => t + atlQNb(x), 0) + atlProjets().reduce((t, pj) => t + ((pj.q_msg | 0) || 0), 0);   // 2.0.29 : les questions d'abord (2.0.36 : et celles de la discussion)
   const nv = (ATL.aValider || []).length;   // 2.0.33 : les validations admin d'abord
   const quoi = nv ? '🛡️ ' + nv + ' à valider' : nq ? '❓ ' + nq + (nq > 1 ? ' questions' : ' question') : rep0 ? rep0 + (rep0 > 1 ? ' réponses de ' : ' réponse de ') + gN() : ouv ? ouv + ' à choisir' : '';
   b.hidden = !!d && !n; b.textContent = atlPetit() ? '🎫' : '🎫 Mes demandes' + (quoi ? ' · ' + quoi : ' (' + enc + ')');
@@ -16729,11 +16739,12 @@ function atlOffreValider(x, o, solde, box) {
 
 // 2.0.29 : les QUESTIONS de la mascotte dans le ticket — un ENCART numéroté par question, gros boutons (✅ Oui / ❌ Non ou les choix donnés),
 // « ou écris / dis-le 🎤 » ; la question répondue se replie avec sa réponse en vert ; « Envoyer mes réponses à … » (gratuit)
-function atlQuestions(x) {
+function atlQuestions(x, o) {
+  o = o || {};
   // 2.0.33 (Benjamin : « moi, en tant qu'admin, je peux répondre à la place des gens ») : en mode admin, les mêmes boutons, l'appel admin
-  const adm = atlAdminIci(), W = atlEl('div', 'atl-qs'), modif = atlQAttente(x);
-  const repondre = (n, v, env) => adm ? rpc('at_admin_repondre_question', { p_name: profile.name, p_fiche: ATL.adminVoir.id, p_id: x.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true })
-    : rpc('at_demande_repondre_question', { p_name: profile.name, p_id: x.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true });
+  const adm = atlAdminIci(), W = atlEl('div', 'atl-qs'), modif = o.modif != null ? !!o.modif : atlQAttente(x);
+  const repondre = o.repondre || ((n, v, env) => adm ? rpc('at_admin_repondre_question', { p_name: profile.name, p_fiche: ATL.adminVoir.id, p_id: x.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true })
+    : rpc('at_demande_repondre_question', { p_name: profile.name, p_id: x.id, p_n: n, p_reponse: v, p_envoyer: env }, { quiet: true }));
   const dessiner = () => {
     W.textContent = '';
     for (const q of x.questions) {
@@ -16777,7 +16788,7 @@ function atlQuestions(x) {
       const manque = x.questions.filter(q => q && !q.reponse).length, lib = adm ? '📨 Envoyer les réponses' : '📨 Envoyer mes réponses ' + gA(), go = atlEl('button', 'btn btn-play atl-qgo', manque ? lib + ' (encore ' + manque + ')' : lib); go.type = 'button'; go.disabled = !!manque;
       go.addEventListener('click', async () => {
         go.disabled = true;
-        try { await repondre(null, '', true); W.textContent = ''; W.appendChild(atlEl('p', 'atl-propok', adm ? '📨 Réponses envoyées à ' + gN() + ' (répondu par l’admin).' : '📨 Merci ! ' + gNM() + ' lit tes réponses et revient vers toi ici.')); if (adm) setTimeout(() => { try { atlAdminDemandes(); } catch (e) {} }, 700); else atlDemRafr(); }
+        try { await repondre(null, '', true); W.textContent = ''; W.appendChild(atlEl('p', 'atl-propok', adm ? '📨 Réponses envoyées à ' + gN() + ' (répondu par l’admin).' : '📨 Merci ! ' + gNM() + ' lit tes réponses et revient vers toi ici.')); if (o.apres) o.apres(); else if (adm) setTimeout(() => { try { atlAdminDemandes(); } catch (e) {} }, 700); else atlDemRafr(); }
         catch (e) { go.disabled = false; atlToast(/sans reponse/.test(String(e && e.message)) ? 'Réponds d’abord à toutes les questions.' : atlWhy(e)); }
       });
       W.append(go, atlEl('small', 'atl-qfree', adm ? 'Les réponses seront marquées « ✍️ répondu par l’admin », chez toi et chez le joueur.' : 'Gratuit : c’est la même demande.'));

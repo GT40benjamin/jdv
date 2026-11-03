@@ -4700,3 +4700,5 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-travail > div:last-child > *{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .atl-travail > div:last-child > b{display:block;white-space:nowrap}
 @media (max-width:560px){.atl-travail{grid-template-columns:minmax(0,1fr)}.atl-travail > :first-child{max-width:100%}}
+/* 2.0.36 : les encarts dans la bulle de la discussion */
+.atl-mc .atl-qs{margin-top:8px;max-width:560px}
