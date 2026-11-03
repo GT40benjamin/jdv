@@ -4041,7 +4041,7 @@ function loseTip() {
   if (!n || isGuest() || loseMissing || profile.lose || profile.loseDirty || !ONLINE || netOff()) return;
   const seen = store.get('jdw.losetip', {}) || {}; if (seen[n]) return;
   const busy = document.fullscreenElement || ['jdw-play', 'jdw-duo', 'jdw-net', 'jdw-watch', 'jdw-welcome', 'jdw-acct', 'jdw-profiles', 'jdw-photo', 'jdw-cri',
-    'jdw-settings', 'jdw-coopgo', 'jdw-end', 'jdw-chat', 'jdw-map', 'jdw-board'].some(id => $(id) && !$(id).hidden);
+    'jdw-settings', 'jdw-coopgo', 'jdw-end', 'jdw-chat', 'jdw-map', 'jdw-board'].some(id => $(id) && !$(id).hidden) || (typeof ATL !== 'undefined' && ATL && ATL.open);   // 2.0.63 : jamais par-dessus l'Atelier
   if (busy) { if (++LOSE.tries < 40) LOSE.tipT = setTimeout(loseTip, 15000); return; }
   seen[n] = 1; store.set('jdw.losetip', seen);
   const el = document.createElement('div'); el.id = 'jdw-losetip'; el.className = 'fs-tip lose-tip'; el.setAttribute('role', 'status');
@@ -14254,6 +14254,38 @@ addEventListener('resize', () => { if (!MAP.open) return; clearTimeout(MAP.rt); 
 /* ================= Appli Android : retour + mise à jour ================= */
 // retour d'Android : un B de la manette vient peut-être de faire la même chose (manette.js) → une seule fois
 window.JDW_BACK = () => (PADJ && PADJ.nativeBack()) ? true : jdwBack();
+// 2.0.63 (Benjamin : « Mes demandes n'a AUCUN bouton pour revenir, Fermer est tout en bas ») : chaque fenêtre de l'Atelier a en haut une
+// barre « ← Retour  ✕ » qui reste collée ; le retour d'Android, le bouton retour du navigateur et Échap la ferment (au lieu de quitter la page) ;
+// toucher en dehors la ferme aussi, sauf pendant qu'on écrit. La fermeture passe par le bouton « Fermer » / « Annuler » de la fenêtre.
+let ATL_FEN_RETOUR = false;
+function atlFenOuverte() { const R = typeof ATL !== 'undefined' && ATL && ATL.root; if (!R) return null; return R.querySelector('.atl-mod:not([hidden])') || R.querySelector('.atl-zoom:not([hidden])'); }
+const atlFenEcrit = w => !!w && [...w.querySelectorAll('input[type="text"], input:not([type]), textarea')].some(e => document.activeElement === e || String(e.value || '').trim());
+function atlFenFermer(w, parHistoire) {
+  w = w || atlFenOuverte(); if (!w) return false;
+  const bs = [...w.querySelectorAll('button')].filter(x => /^(Fermer|Annuler)$/i.test(x.textContent.trim()) && !x.closest('.atl-winbar') && x.closest('.atl-zoom, .atl-mod') === w);
+  if (bs.length) bs[bs.length - 1].click();
+  if (!w.hidden) { w.hidden = true; w.textContent = ''; w.classList.remove('suivi'); }
+  if (!parHistoire && history.state && history.state.atlFen && !atlFenOuverte()) { ATL_FEN_RETOUR = true; try { history.back(); } catch (e) { ATL_FEN_RETOUR = false; } }
+  else if (parHistoire && atlFenOuverte()) { try { history.pushState({ atlFen: 1 }, ''); } catch (e) {} }
+  return true;
+}
+function atlFenBarre(w) {
+  if (!w || w.hidden || !w.firstElementChild || w.querySelector(':scope .atl-winbar')) return;
+  const h = w.firstElementChild.tagName !== 'IMG' ? w.firstElementChild : w;
+  const bar = atlEl('div', 'atl-winbar'), bk = atlEl('button', 'btn btn-ghost btn-sm atl-winb', '← Retour'), x = atlEl('button', 'icon-btn atl-winx', '✕'); bk.type = x.type = 'button';
+  x.setAttribute('aria-label', 'Fermer'); bk.addEventListener('click', e => { e.stopPropagation(); atlFenFermer(w); }); x.addEventListener('click', e => { e.stopPropagation(); atlFenFermer(w); });
+  bar.append(bk, x); h.prepend(bar);
+  if (!(history.state && history.state.atlFen)) { try { history.pushState({ atlFen: 1 }, ''); } catch (e) {} }
+}
+function atlFenSuivre() {
+  const R = ATL && ATL.root; if (!R || R.dataset.fen) return; R.dataset.fen = '1';
+  for (const w of R.querySelectorAll('.atl-zoom, .atl-mod')) {
+    new MutationObserver(() => { try { atlFenBarre(w); } catch (e) {} }).observe(w, { attributes: true, attributeFilter: ['hidden'], childList: true });
+    w.addEventListener('click', e => { if (e.target === w && !atlFenEcrit(w)) { e.stopImmediatePropagation(); atlFenFermer(w); } }, true);   // en dehors de la carte
+  }
+}
+addEventListener('popstate', () => { if (ATL_FEN_RETOUR) { ATL_FEN_RETOUR = false; return; } try { if (atlFenOuverte()) atlFenFermer(null, true); } catch (e) {} });
+document.addEventListener('keydown', e => { if (e.key !== 'Escape' || (typeof ATL_MIC !== 'undefined' && ATL_MIC)) return; try { if (atlFenOuverte()) { e.preventDefault(); e.stopPropagation(); atlFenFermer(); } } catch (x) {} }, true);
 function jdwBack() {
   if (PRIV.back && PRIV.back()) return true;   // espace privé (fenêtre ouverte par-dessus tout)
   if (QA.open) { quitAskClose(false); return true; }   // « Quitter la partie ? » : retour = Continuer
@@ -14278,6 +14310,7 @@ function jdwBack() {
   for (const id of ['jdw-photo', 'jdw-settings', 'jdw-board', 'jdw-rooms', 'jdw-notifs', 'jdw-profiles', 'jdw-members', 'jdw-welcome']) {
     if (!$(id).hidden) { if (id === 'jdw-photo') closePhoto(); else if (id !== 'jdw-welcome') closeSheet(id); else return true; return true; }
   }
+  if (ATL && ATL.open && atlFenOuverte()) { atlFenFermer(); return true; }   // 2.0.63 : une fenêtre de l'Atelier d'abord
   if (ATL && ATL.open) { if (ATL.rec) atlMicStop(); else if (ATL.letter) atlLetterClose(); else atlClose(); return true; }   // l'Atelier des jeux (sa lettre d'abord)
   if (!$('jdw-play').hidden) { quitAsk(); return true; }   // partie en cours (coop comprise) : pause + « Quitter la partie ? » ; sinon direct
   if (PAGE !== 'pegase' && MODE !== 'classique' && !$('jdw-lib').hidden) { setMode('classique', true); return true; }   // les autres modes sont des pages : retour à la page normale
@@ -14476,7 +14509,7 @@ const atlDate = t => { const d = new Date(t || Date.now()); return isNaN(d) ? ''
 const atlNum = f => 'N° ' + String((f && f.id) || '000000').replace(/-/g, '').slice(0, 6).toUpperCase();
 // 2.0.62 (Benjamin : « Voici deux façons de faire ta carte » puis « : » tout seul en dessous) : à l'affichage, l'espace avant : ; ! ? »
 // (et après «) devient une espace insécable fine — dans tous les textes de l'Atelier (bulles, tickets, réponses)
-const atlTypo = t => String(t).replace(/[ \u00a0]+([:;!?»])/g, '\u202f$1').replace(/«[ \u00a0]+/g, '«\u202f');
+const atlTypo = t => String(t).replace(/^[ \t]*#{1,6}[ \t]+/gm, '').replace(/\*\*([^*\n]+)\*\*/g, '$1').replace(/^[ \t]*[-*][ \t]+/gm, '• ').replace(/[ \u00a0]+([:;!?»])/g, '\u202f$1').replace(/«[ \u00a0]+/g, '«\u202f');
 const atlEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = typeof txt === 'string' ? atlTypo(txt) : txt; return e; };
 
 // ---------- les jeux nés à l'Atelier : macaron « MON JEU » (ou « Jeu de NOM ») + « Modifier mon jeu » pour l'auteur ----------
@@ -14663,7 +14696,8 @@ function atlBuild() {
   q('.atl-musb').addEventListener('click', () => { const on = store.get('jdw.atl.mus', true) === false; store.set('jdw.atl.mus', on); musMaj(); if (ATL.open) { if (on) { musicBaseLevel(0.55); MUS.override = false; setMusic('atelier'); } else musicOut(0.6); } });
   musMaj();
   q('.atl-demb').addEventListener('click', () => { if (ATL.adminVoir && ATL.cur === ATL.adminVoir.id) atlAdminDemandes(); else if (ATL.cur && ATL.root.querySelector('.atl-wiz .atl-ptab[data-k="demandes"]')) atlProjTab('demandes'); else atlMesDemandes(); });   // 21 h 50 : toucher son solde → « Recharger mes crédits »
-  q('.atl-zoom').addEventListener('click', () => { const z = q('.atl-zoom'); z.hidden = true; z.textContent = ''; });
+  q('.atl-zoom').addEventListener('click', e => { const z = q('.atl-zoom'); if (atlFenEcrit(z) || (e.target !== z && e.target.closest('.atl-suivi, .atl-mcard, .atl-winbar'))) return; z.hidden = true; z.textContent = ''; z.classList.remove('suivi'); });
+  try { atlFenSuivre(); } catch (e) {}   // 2.0.63
   q('.atl-file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) atlImage(f); });
   return R;
 }
@@ -16669,8 +16703,8 @@ function atlTravBulle(x, qui) {
   const l0 = Array.isArray(x && x.etapes) ? x.etapes.filter(e => e && (e.texte || e.etape)) : [], l = l0.filter(e => e.etape !== 'elements'), e = l[l.length - 1] || l0[l0.length - 1]; if (!e) return null;
   const ea = l0.filter(z => z.etape === 'elements' && String(z.at || '') >= String(e.at || '')).pop();   // 2.0.61 : « J'ai ajouté 3 éléments : … »
   const tx = String(e.texte || e.etape || ''), m = tx.match(/[ÉE]tape\s*(\d+)\s*\/\s*(\d+)/i), d0 = new Date(e.at);
-  const test = e.etape === 'tests', B = atlEl('div', 'atl-dthink atl-travb' + (test ? ' tests' : '')), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
-  col.append(atlEl('b', '', test ? '🔍 ' + gNM() + ' teste ' + (qui ? 'le jeu de ' + qui : 'ton jeu') + ' en profondeur' : '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', test ? (tx.replace(/^\s*🔍?\s*je teste ton jeu en profondeur\s*[….]*\s*/i, '').replace(/^./, c => c.toUpperCase()) || 'Chaque niveau, chaque bouton, chaque son.') : tx));   // 2.0.62 : l'étape « tests » (sans redire le titre)
+  const test = /^tests?$/.test(String(e.etape || '')), B = atlEl('div', 'atl-dthink atl-travb' + (test ? ' tests' : '')), col = atlEl('div'); B.dataset.id = x.id || ''; B.dataset.k = tx + '|' + (e.at || '');
+  col.append(atlEl('b', '', test ? '🔍 ' + gNM() + ' teste ' + (qui ? 'le jeu de ' + qui : 'ton jeu') + ' en profondeur' : '🛠️ ' + gNM() + ' travaille ' + (qui ? 'sur la demande de ' + qui : 'sur ta demande')), atlEl('p', 'atl-travt', test ? (tx.replace(/\s*🔍\s*/g, ' ').replace(/\s*je teste ton jeu en profondeur\s*[….]*\s*/i, ' ').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase()) || 'Chaque niveau, chaque bouton, chaque son.') : tx));   // 2.0.62 : l'étape « tests » (sans redire le titre)
   if (m && +m[2] > 0) { const n = Math.min(+m[1], +m[2]), bar = atlEl('div', 'atl-travbar'), i = atlEl('i'); i.style.width = Math.round(n / +m[2] * 100) + '%'; bar.appendChild(i); col.append(bar, atlEl('small', 'atl-travn', 'Étape ' + n + ' / ' + m[2])); }
   if (ea && ea !== e) col.appendChild(atlEl('p', 'atl-travel', '🧩 ' + String(ea.texte || '') + ' (onglet Éléments)'));
   col.append(atlEl('small', '', (isNaN(d0) ? '' : 'à ' + d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' · ') + (qui ? 'en direct' : 'Je te préviens dès que c’est prêt 🔔')), atlEl('span', 'atl-dpts', '•••'));
@@ -16714,7 +16748,7 @@ function atlTravailMaj() {
     tx.append(atlEl('b', '', mondial ? '🌍 Je regarde ton jeu pour le mettre partout…' : '🛠️ Je travaille sur « ' + ((f && f.titre) || 'ton jeu') + ' »…'), ul, b, atlEl('small', '', 'Je te préviens dès que c’est prêt 🔔'));
     tb.append(sc, tx); p.prepend(tb);
   }
-  const der = l.map(x => x.etapes.filter(e => e && e.etape !== 'elements').pop() || x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = atlTypo(der.etape === 'tests' ? '🔍 ' + String(der.texte || 'Je teste ton jeu en profondeur…').replace(/^\s*🔍\s*/, '') : '⏱️ En ce moment : ' + String(der.texte || der.etape || ''));
+  const der = l.map(x => x.etapes.filter(e => e && e.etape !== 'elements').pop() || x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = atlTypo(/^tests?$/.test(String(der.etape || '')) ? '🔍 ' + String(der.texte || 'Je teste ton jeu en profondeur…').replace(/\s*🔍\s*/g, ' ').replace(/\s+/g, ' ').trim() : '⏱️ En ce moment : ' + String(der.texte || der.etape || ''));
 
   if (b.textContent !== txt) { b.textContent = txt; b.title = txt; }
   // 2.0.60 : comme la bulle du ticket — la barre « Étape x / y » et l'heure de la dernière étape, sous « En ce moment »
