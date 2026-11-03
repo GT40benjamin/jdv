@@ -10208,6 +10208,8 @@ function unmountGame() {
   current = null;
   $('jdw-cheer').hidden = true; $('jdw-rescue').hidden = true;
 }
+// 2.0.37 : le coin des boutons flottants (téléphone couché) pour les jeux dont le coin haut-gauche porte un bouton ou une info utile
+const FLOT_COIN = { coffres: 'bl', magic: 'br', neon: 'bl', smoothie: 'bl', flechettes: 'bl', rouleaux: 'br', pleingaz: 'ml', remparts: 'ml', sensinterdit: 'ml', chrono: 'ml', carreaux: 'ml', mouches: 'ml' };   // relevé écran par écran (3 nov., 2400×1080)
 const LANDSCAPE = new Set(['pleingaz', 'canards', 'rouleaux', 'neon']);
 const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 900px)');
 // 3 nov. 2 h 10 (Benjamin : un jeu de l'Atelier cassé en portrait) : l'orientation voulue par le module du jeu (g.orientation : 'les2' |
@@ -10244,6 +10246,8 @@ function openGame(g, web, vok) {
   Audio.ensure();
   $('jdw-lib').hidden = true; $('jdw-play').hidden = false;
   $('jdw-play').style.setProperty('--acc', g.accent);
+  // 2.0.37 : téléphone couché, les boutons flottants (✕, son) vont dans le coin que le jeu laisse libre (g.coinBoutons ou FLOT_COIN : 'tr' | 'bl' | 'br')
+  { const pl = $('jdw-play'), fc = (g && /^(tr|bl|br|ml)$/.test(String(g.coinBoutons || '')) ? g.coinBoutons : '') || FLOT_COIN[g && g.id] || ''; pl.classList.remove('fl-tr', 'fl-bl', 'fl-br', 'fl-ml'); if (fc) pl.classList.add('fl-' + fc); }
   $('jdw-gtitle').textContent = g.title;
   $('jdw-end').hidden = true;
   fsEnter(orientDe(g) === 'paysage');      // téléphone dans le navigateur : plein écran (dans le toucher même), à l'horizontale pour les jeux en paysage

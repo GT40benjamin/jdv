@@ -4702,3 +4702,30 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 @media (max-width:560px){.atl-travail{grid-template-columns:minmax(0,1fr)}.atl-travail > :first-child{max-width:100%}}
 /* 2.0.36 : les encarts dans la bulle de la discussion */
 .atl-mc .atl-qs{margin-top:8px;max-width:560px}
+
+/* 2.0.37 (Benjamin : « quand un jeu est fabriqué pour les gens, c'est hyper important de faire plein écran au maximum ! ») : téléphone
+   à l'horizontale, en partie — plus de rail : le jeu prend TOUTE la largeur ; ✕, plein écran et son deviennent de petits ronds flottants
+   semi-transparents (44 px, au-dessus de l'encoche), dans le coin haut-gauche, ou dans un autre coin pour les jeux qui l'utilisent
+   (#jdw-play.fl-tr / .fl-bl / .fl-br, posé par shell2.js selon le jeu) */
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-play{--rail:0px}
+  #jdw-play #jdw-host{left:0}
+  #jdw-play .topbar{left:0;top:0;right:auto;bottom:auto;width:auto;height:auto;padding:max(6px,env(safe-area-inset-top,0px)) 0 0 max(6px,env(safe-area-inset-left,0px));
+    background:none;border:0;box-shadow:none;pointer-events:none;gap:6px;z-index:25}
+  #jdw-play .topbar > button,#jdw-play .topbar #jdw-back,#jdw-play .topbar #jdw-fs,#jdw-play .topbar #jdw-mute,#jdw-play .topbar.has-fs #jdw-mute{pointer-events:auto;width:44px;height:44px;
+    background:rgba(8,10,18,.42);border:1px solid rgba(255,255,255,.22);color:#fff;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);opacity:.9;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  #jdw-play .topbar > button:active{opacity:1;transform:scale(.96)}
+  #jdw-play .soundmenu{pointer-events:auto;top:calc(max(6px,env(safe-area-inset-top,0px)) + 50px);left:calc(max(6px,env(safe-area-inset-left,0px)) + 52px)}
+  #jdw-play .topbar.has-fs .soundmenu{top:calc(max(6px,env(safe-area-inset-top,0px)) + 100px)}
+  #jdw-play.fl-tr .topbar{left:auto;right:0;padding:max(6px,env(safe-area-inset-top,0px)) max(6px,env(safe-area-inset-right,0px)) 0 0}
+  #jdw-play.fl-tr .soundmenu{left:auto;right:calc(max(6px,env(safe-area-inset-right,0px)) + 52px)}
+  #jdw-play.fl-bl .topbar{top:auto;bottom:0;flex-direction:column-reverse;padding:0 0 max(6px,env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  #jdw-play.fl-br .topbar{top:auto;bottom:0;left:auto;right:0;flex-direction:column-reverse;padding:0 max(6px,env(safe-area-inset-right,0px)) max(6px,env(safe-area-inset-bottom,0px)) 0}
+  #jdw-play.fl-bl .soundmenu,#jdw-play.fl-br .soundmenu{top:auto;bottom:calc(max(6px,env(safe-area-inset-bottom,0px)) + 50px)}
+  #jdw-play.fl-br .soundmenu{left:auto;right:calc(max(6px,env(safe-area-inset-right,0px)) + 52px)}
+}
+@media (orientation:landscape) and (max-height:500px){
+  #jdw-play .topbar #jdw-fs{display:none}   /* 2 ronds seulement (✕, son) : la borne passe déjà en plein écran à l'ouverture d'un jeu */
+  #jdw-play.fl-ml .topbar{top:50%;transform:translateY(-50%);padding-top:0}
+  #jdw-play.fl-ml .soundmenu{top:calc(50% - 40px)}
+}
