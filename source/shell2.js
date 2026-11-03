@@ -17207,7 +17207,7 @@ function atlBoutonsJeu(bn, f, sansTester) {
   if (et === 'alpha' || et === 'publie_salle') {
     const asked = !!f.monde_demande_at, mw = atlEl('button', 'btn btn-ghost btn-sm', asked ? '⏳ Demande mondiale envoyée' : '🌍 Demander la mise en ligne mondiale'); mw.type = 'button'; mw.disabled = asked;
     mw.addEventListener('click', async () => {
-      if (!await atlConfirmer('🌍 Demander la mise en ligne mondiale ?', 'Benjamin regardera ton jeu. S’il dit oui, il sera sur TOUTES les bornes, pour tout le monde, invités compris. Tu pourras annuler ta demande tant qu’il n’a pas répondu.', '✅ Oui, envoyer ma demande')) return;
+      if (!await atlConfirmer('🌍 Demander la mise en ligne mondiale ?', 'L’admin regardera ton jeu. S’il dit oui, il sera sur TOUTES les bornes, pour tout le monde, invités compris. Tu pourras annuler ta demande tant que l’admin n’a pas répondu.', '✅ Oui, envoyer ma demande')) return;
       mw.disabled = true;
       try { await rpc('at_demander_monde', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); mw.textContent = '⏳ Demande mondiale envoyée'; atlToast('Demande envoyée 🌍'); await atlLoad(true); }
       catch (e) { mw.disabled = false; atlErr(atlWhy(e)); }

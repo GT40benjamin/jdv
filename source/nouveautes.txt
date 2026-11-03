@@ -6,6 +6,8 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 🌍 Mise en ligne mondiale : c’est l’admin qui répond (borne 2.0.18)
+[atelier] 🌍 La fenêtre de mise en ligne mondiale dit maintenant que c’est l’admin qui regarde ton jeu avant de le mettre sur toutes les bornes.
 [atelier] ## 💬 Tu parles avec ton guide dans chaque demande (borne 2.0.17)
 [atelier] 💬 Dans chaque demande, « Répondre » : tu réponds aux questions de ton guide ou tu lui en poses, gratuitement, avant de choisir.
 [atelier] ✏️ Aucune offre ne te va ? « Modifier » change ta demande sans en payer une nouvelle, et ton guide te refait une offre.
@@ -13,7 +15,7 @@
 [atelier] 💭 Tant que ton guide prépare sa réponse, tu le vois réfléchir dans ta demande.
 [atelier] ## ✅ Une confirmation avant de publier (borne 2.0.16)
 [atelier] ✅ « Publier dans ma salle », « Publier la V… » et la mise en ligne mondiale te demandent d’abord une confirmation : plus de publication par erreur.
-[atelier] ↩️ Une demande de mise en ligne mondiale envoyée trop vite s’annule avec « ↩️ Annuler ma demande », tant que Benjamin n’a pas répondu.
+[atelier] ↩️ Une demande de mise en ligne mondiale envoyée trop vite s’annule avec « ↩️ Annuler ma demande », tant que l’admin n’a pas répondu.
 [atelier] 💬 La tuile de ton projet te dit quand un choix t’attend (« 💬 À choisir ») ou quand ton guide t’a répondu (« ✨ 1 réponse ») : touche-la, le ticket s’ouvre.
 [borne] ## 🏆 Les cartes de record montrent le jeu en grand (borne 2.0.15)
 [borne] 🏆 Dans le chat de la salle, chaque carte de record montre le jeu en grand avec son image, puis qui détrône qui et les points.
@@ -1329,7 +1331,7 @@
 [coffres] Plus d’indice : à toi de trouver ! Et après le Coffre du Maître, une grande fin avec ton bilan des 6 mondes
 [coffres] Glisser est plus doux : la pièce s’éclaire et se soulève sous le doigt, un geste vif l’envoie jusqu’au bout, petit rebond, son et vibration à chaque coup
 [borne] ## 🎵 Nouvelles musiques (borne 1.41.4)
-[borne] Trois nouvelles musiques à l’accueil de la borne, choisies par Benjamin : « Playful », « Funky Bass » et « Country Title ». Elles tournent avec les autres, au même volume
+[borne] Trois nouvelles musiques à l’accueil de la borne : « Playful », « Funky Bass » et « Country Title ». Elles tournent avec les autres, au même volume
 [magic] ## 🎵 Magic Force : la musique de la victoire (borne 1.41.4)
 [magic] La grande victoire, après le Seigneur des ombres, a maintenant sa propre musique joyeuse, « Lighthearted », au lieu d’un morceau de combat déjà entendu dans les mondes
 [neon] ## 😈 Néon Rush : niveaux 5, 6 et 7, jusqu’au Démon (borne 1.43.9)
@@ -1547,7 +1549,7 @@
 [neon] ## ✈️ Néon Rush : des couloirs d'avion tout doux (borne 1.37.5)
 [neon] À l'entrée et à la sortie des passages en avion, les parois montent et descendent en douceur, sans bosse
 [neon] ## 🎵 Néon Rush : le niveau 1 refait sur la musique (borne 1.37.4)
-[neon] Le niveau Premier Pulse a été refait moment par moment sur la musique, d'après les notes de Benjamin
+[neon] Le niveau Premier Pulse a été refait moment par moment sur la musique
 [neon] Un grand saut sur la cymbale, par-dessus un mur haut, puis des sauts pile sur chaque cymbale qui revient
 [neon] Un double saut sur le « boum boum » qui t'emmène en l'air dans la transformation, et une phase en avion plus longue
 [neon] Un escalier qui monte sur les coups rapprochés de la musique, et une chute du haut qui explose en particules
