@@ -2815,3 +2815,8 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- at_suivi : 'par_projet' (pegase_int.at_suivi_projets : crédits payés = conception + demandes + générations + idée et messages ; offert à part ;
 -- coût réel = at_gen_file.cents ; ce qu'il reste) et 'lignes' depuis at_gen_file avec 'paye_par' (demande N, conception, offert).
 -- Texte complet : migration v51_journal_credits_suivi_projets.
+
+-- (v52, 3 nov. 2026 9 h 40, borne 2.0.9) : ESSAI / PUBLIC. at_fiches.version_publiee (fixée par at_publier_salle, at_etat publie_salle /
+-- publie_monde, et at_publier_version(name, fiche) = bouton « Publier la Vn ») ; lue par at_jeux, at_lire, at_admin_lire, at_voir, at_tous_projets.
+-- at_demandes.etapes + at_demande_avancer(id, etape, texte) (équipes seulement), lues par at_mes_demandes et at_admin_lire.
+-- Les versions des jeux de l'Atelier : assets/jeux/<id>/v<N>.js (fichiers figés, sans republier la borne). Texte complet : migration v52_essai_public_etapes.

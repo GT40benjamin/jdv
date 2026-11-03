@@ -18,6 +18,9 @@
 [pegase] 🪷 Les nénuphars flottent sur l'eau, plus en l'air sur la terre sèche.
 [pegase] 🌊 Plus de plaque d'écume blanche hors de l'eau, et la longue rivière ne fait plus de marches en escalier près des cascades.
 [pegase] ⛰️ Sur la pente ouest du village, entre la falaise et un arbre, on ne reste plus coincé : le jeu te repose sur un sol sûr.
+[atelier] ## 🔒 Tes essais restent à toi (borne 2.0.9)
+[atelier] 🎮 Dans l’Atelier, tu essaies toujours la dernière version de ton jeu. Tes joueurs gardent la version publiée : quand une nouvelle est prête, touche « 📢 Publier la V… ».
+[atelier] ⏱️ Tes demandes avancent en direct : tu vois chaque étape pendant que ton guide y travaille.
 [atelier] ## 🎮 Crée ton propre jeu vidéo ! (borne 2.0)
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : ton guide monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, ton guide t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !

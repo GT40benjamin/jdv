@@ -69,6 +69,32 @@ const laboOk = id => !LABO.has(id) || LABO_TEST || ATL_JEUX.has(id);
 // publié : en alpha il se trouve et se joue UNIQUEMENT dans l'Atelier (page du projet, onglet 🎮 Jouer). Il arrive sur la borne avec
 // « Publier dans ma salle » (salle du joueur) ou la mise en ligne mondiale acceptée — at_jeux le dit (etat publie_salle / publie_monde).
 const ATL_NES = new Set(['licornes', 'lune', 'noisette']);   // les jeux nés à l'Atelier (id du module) : à compléter à chaque nouveau jeu de l'Atelier
+// 2.0.9 (Benjamin : « ça met à jour toutes les versions de tout le monde alors qu'elle n'est pas encore envoyée en public ») : chaque version
+// d'un jeu de l'Atelier est un fichier figé, assets/jeux/<id>/v<N>.js, déposé par l'équipe SANS republier la borne. L'Atelier joue la
+// DERNIÈRE version (f.version), la borne la version PUBLIÉE (at_jeux.version_publiee) ; fichier absent : le module embarqué dans la borne
+const ATL_MODS = new Map(), ATL_MODS_OK = new Map(); let ATL_MOD_FILE = Promise.resolve();   // ATL_MODS_OK : déjà chargés (null = fichier absent)
+function atlModule(id, v) {
+  v = v | 0; if (!v || !ATL_NES.has(id)) return Promise.resolve(null);
+  const k = id + '@' + v; if (ATL_MODS.has(k)) return ATL_MODS.get(k);
+  const p = ATL_MOD_FILE.then(() => new Promise(res => {   // un fichier à la fois : chacun se range dans JDW_GAMES[id], on remet l'embarqué aussitôt
+    const G = window.JDW_GAMES || (window.JDW_GAMES = {}), avant = G[id], sc = document.createElement('script');
+    const fin = ok => {
+      const g = G[id]; G[id] = avant; sc.remove();
+      if (!ok || !g || g === avant) { ATL_MODS.delete(k); ATL_MODS_OK.set(k, null); res(null); return; }
+      if (avant) for (const c of Object.keys(avant)) if (!(c in g)) g[c] = avant[c];
+      g.id = id; g.__v = v; ATL_MODS_OK.set(k, g); res(g);
+    };
+    sc.src = (window.JDW_ROOT || '') + 'assets/jeux/' + id + '/v' + v + '.js'; sc.onload = () => fin(true); sc.onerror = () => fin(false);
+    document.head.appendChild(sc);
+  }));
+  ATL_MOD_FILE = p.catch(() => null); ATL_MODS.set(k, p); return p;
+}
+function atlVoulue(id) {   // la version à jouer : cadre de l'Atelier (?v=), partie lancée depuis l'Atelier (la dernière), borne (la publiée)
+  if (!ATL_NES.has(id)) return 0;
+  if (CADRE) return +new URLSearchParams(location.search).get('v') | 0;
+  try { if (ATL && ATL.jeu) { const f = atlFiche(); return f && f.jeu === id ? (f.version | 0) || 1 : 0; } } catch (e) {}
+  const x = ATL_JEUX.get(id); return x ? x.version_publiee | 0 : 0;
+}
 const atlEnGrille = id => { const x = ATL_JEUX.get(id); if (!ATL_NES.has(id) && !x) return true; return !!x && /^publie_(salle|monde)$/.test(x.etat); };
 // 2 nov. 2026, Benjamin : « toutes les tuiles labo test, il faut qu'elles soient identifiées comme telles pour nous les admins » :
 // la tuile d'un jeu encore en essai porte un ruban « TEST » (vue seulement sur les appareils en mode test, comme le jeu lui-même)
@@ -10078,7 +10104,8 @@ function orientVerif() {
 for (const mq of [portraitMQ, paysageMQ]) { try { mq.addEventListener('change', () => setTimeout(orientVerif, 150)); } catch (e) { try { mq.addListener(() => setTimeout(orientVerif, 150)); } catch (x) {} } }
 addEventListener('resize', () => { clearTimeout(window.__orientT); window.__orientT = setTimeout(orientVerif, 250); });
 let waitRotate = null;
-function openGame(g, web) {
+function openGame(g, web, vok) {
+  if (!vok && g && ATL_NES.has(g.id)) { const v = atlVoulue(g.id), k = g.id + '@' + v; if (v && g.__v !== v) { if (ATL_MODS_OK.has(k)) g = ATL_MODS_OK.get(k) || g; else { atlModule(g.id, v).then(g2 => openGame(g2 || g, web, true)); return; } } }
   if (!web && nativeFor(g) && !NATIVE_HUB.has(g.id)) { nativeOpen(g); return; }   // appli Android 1.8+ : jeu en vraie appli (section « Applis natives ») ; Pégase : par son hub
   if (!isGuest()) {                    // invité : il joue tout de suite (score non enregistré)
     if (!profile.name) { startWelcome(); return; }
@@ -14244,7 +14271,7 @@ async function atlJeuxLoad() {
   const me = cleanName(profile.name);
   let l; try { l = await rpc('at_jeux', { p_name: profile.name }, { quiet404: true, quiet: true }); } catch (e) { return; }
   if (cleanName(profile.name) !== me || !Array.isArray(l)) return;
-  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien }));
+  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, version: x.version | 0 }));
   const all = store.get('jdw.atl.jeux', {}) || {}, was = JSON.stringify(all[me] || []);
   all[me] = l; store.set('jdw.atl.jeux', all);
   if (was === JSON.stringify(l)) return;
@@ -14827,7 +14854,7 @@ function atlFrameStart() {
   const W = ATL.root && ATL.root.querySelector('.atl-wiz'), f = atlFiche(), fr = W && W.querySelector('.atl-gframe'); if (!fr || !f || !f.jeu) return;
   if (fr.querySelector('iframe')) return;
   const i = atlEl('iframe'); i.title = 'Ton jeu : ' + (f.titre || f.jeu); i.allow = 'autoplay; fullscreen; microphone; gamepad'; i.setAttribute('allowfullscreen', '');
-  i.src = ROOT + 'jouer/?cadre=' + encodeURIComponent(f.jeu);
+  i.src = ROOT + 'jouer/?cadre=' + encodeURIComponent(f.jeu) + '&v=' + ((f.version | 0) || 1);   // 2.0.9 : la dernière version, en essai
   // le nom du guide pour le jeu dans le cadre (un jeu de l'Atelier peut dire « Parle à … » sans l'écrire dans ses fichiers)
   i.addEventListener('load', () => { try { i.contentWindow.postMessage({ type: 'atl-guide', nom: gNM(), a: gA(), de: gDe(), img: atlIaUrl(ATL_GUIDE.img) || ROOT + 'accueil/guide-portrait.webp' }, location.origin); } catch (e) {} });
   fr.classList.add('on'); fr.appendChild(i);
@@ -14849,7 +14876,25 @@ function atlProjMsgs(W, f) {
 }
 // 2.0.8 (Benjamin : l'en-tête et la tuile disaient V3, l'historique V4) : chaque badge de la page relit f.version (at_fiches.version_jeu) ;
 // une version sortie pendant qu'on joue : « 🆕 Nouvelle version Vn · touche pour recharger » (le jeu en cours n'est pas coupé)
+function atlPubV(pv, f) {
+  const et = String(f.etat || ''), v = (f.version | 0) || 1, vp = f.version_publiee | 0, publie = /^publie_/.test(et);
+  const sig = [et, v, vp, atlAdminIci() ? 1 : 0].join('|'); if (pv.dataset.sig === sig) return; pv.dataset.sig = sig; pv.textContent = '';
+  if (!publie) { pv.appendChild(atlEl('p', 'atl-pubvie', '🔒 Ici, tu essaies ton jeu. Quand tu le publies, tes joueurs reçoivent la V' + v + ' ; les versions suivantes restent ici, en essai, jusqu’à ce que tu les publies.')); return; }
+  if (v > vp) {
+    pv.appendChild(atlEl('p', 'atl-pubvie', '🎮 Sur la borne : V' + (vp || 1) + ' · ici, tu essaies la V' + v + '.'));
+    if (!atlAdminIci()) {
+      const b = atlEl('button', 'btn btn-play atl-pubvb', '📢 Publier la V' + v); b.type = 'button';
+      b.addEventListener('click', async () => {
+        b.disabled = true;
+        try { await rpc('at_publier_version', { p_name: profile.name, p_fiche: f.id }, { quiet: true }); atlToast('📢 La V' + v + ' est publiée ! Tes joueurs l’ont sur leur borne.'); await atlLoad(true); }
+        catch (e) { b.disabled = false; atlToast('Pas possible pour l’instant : réessaie dans un moment.'); }
+      });
+      pv.appendChild(b);
+    }
+  } else pv.appendChild(atlEl('p', 'atl-pubvie', '🎮 Sur la borne : V' + v + ', la dernière. Les prochaines versions resteront ici, en essai, jusqu’à ce que tu les publies.'));
+}
 function atlVerMaj(W, f) {
+  { const pv = W.querySelector('.atl-pubv'); if (pv) atlPubV(pv, f); }
   const v = (f.version | 0) || 1, pet = W.querySelector('.atl-pet'), gv = W.querySelector('.atl-gver');
   if (pet) { const t = atlVersion(f); if (pet.textContent !== t) pet.textContent = t; }
   if (gv && gv.textContent !== 'V' + v) gv.textContent = 'V' + v;
@@ -14936,8 +14981,8 @@ function atlRenderProjet(W, f) {
     const pub = atlEl('div', 'atl-pub'); pub.appendChild(atlEl('h3', '', et === 'alpha' ? '🌟 Quand il te plaît : publie-le !' : et === 'publie_monde' ? '🌍 Publié pour tout le monde' : '🌟 Publié dans ta salle'));
     atlBoutonsJeu(pub, f, true);
     // 2 h (Benjamin) : publier reste possible pendant qu'une version se prépare ; le jeu publié n'est pas figé (la borne sert toujours la version courante)
-    pub.appendChild(atlEl('p', 'atl-pubvie', '🔄 Ton jeu publié reste vivant : chaque nouvelle version (V' + (vN + 1) + ', V' + (vN + 2) + '…) arrive automatiquement dans la borne. Tu peux continuer à l’améliorer ici avec ' + gN() + '.'));
-    if (prepa.length) pub.appendChild(atlEl('p', 'atl-pubvie', '🛠️ ' + gN() + ' prépare ta V' + (vN + 1) + ' : elle arrivera toute seule dans la borne quand elle sera prête.'));
+    const pv = atlEl('div', 'atl-pubv'); pub.appendChild(pv); atlPubV(pv, f);
+    if (prepa.length) pub.appendChild(atlEl('p', 'atl-pubvie', '🛠️ ' + gN() + ' prépare ta V' + (vN + 1) + ' : tu l’essaieras ici, puis tu choisiras de la publier.'));
     p.appendChild(pub);
   } else {
     const p = pane('etat'), c = atlEl('div', 'atl-fin' + (et === 'refusee' ? '' : ' run'));
@@ -15042,7 +15087,9 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
 }
 // ---- 21 h 15 (Benjamin) : « 🎮 Jouer » (la V1) = EXACTEMENT comme une tuile de la borne (plein écran, écran titre, barre, manettes, fin de
 // partie) ; « Quitter » revient à la page du projet. Pendant la partie : le petit guide flottant (déplaçable) et la touche P → arrêt sur image.
-function atlJouerVrai(f) {
+function atlJouerVrai(f, pret) {
+  const vj = (f.version | 0) || 1;   // 2.0.9 : la dernière version chargée AVANT (la partie démarre tout de suite, sans attente)
+  if (!pret && f && ATL_NES.has(f.jeu) && !ATL_MODS_OK.has(f.jeu + '@' + vj)) { atlModule(f.jeu, vj).then(() => atlJouerVrai(f, true)); return; }
   const g = (window.JDW_GAMES || {})[f.jeu];
   if (!g || g.id !== f.jeu) { atlToast('Ton jeu arrive sur la borne très bientôt !'); return; }
   ATL.jeu = f.id; window.JDW_ATL_JEU = true;   // repère pour le jeu : la touche P est l'arrêt sur image du guide (pas sa pause)
@@ -15136,7 +15183,7 @@ function atlFinAtelier() {
   const row = $('jdw-again').closest('.row'); (row || $('jdw-again')).after(box);
 }
 function atlRetourProjet(tab) { ATL.retourTab = tab; backToLibrary(); }
-if (window.JDW_PG_TEST) window.__jdwAtl = { fin: sc => showEnd(sc), jouer: () => atlJouerVrai(atlFiche()), son: () => ({ joue: !!(ATL_SON && !ATL_SON.paused), t: ATL_SON ? ATL_SON.currentTime : 0, u: ATL_SON_U }), etat: () => ({ jeu: ATL.jeu, tab: ATL.tab, open: ATL.open }), lire: () => atlLoad(true) };   // essais seulement
+if (window.JDW_PG_TEST) window.__jdwAtl = { fin: sc => showEnd(sc), jouer: () => atlJouerVrai(atlFiche()), son: () => ({ joue: !!(ATL_SON && !ATL_SON.paused), t: ATL_SON ? ATL_SON.currentTime : 0, u: ATL_SON_U }), etat: () => ({ jeu: ATL.jeu, tab: ATL.tab, open: ATL.open }), lire: () => atlLoad(true), dem: () => JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length])) };   // essais seulement
 function atlArretJeu() {
   if (!ATL.jeu || $('jdw-play').hidden || document.querySelector('.atl-arret2')) return;
   try { if (current && current.inst && current.inst.pause) current.inst.pause(); } catch (e) {}
@@ -16156,13 +16203,32 @@ async function atlStripe(corps, b, er) {
 // (📨 Envoyée → 👀 Vue → 🛠️ En cours → ✅ Faite / ❌ Pas possible) et la réponse ; une pastille quand un état change (at_mes_demandes)
 const ATL_DEM_ET = { envoyee: '📨 Envoyée', vue: '👀 Vue par ', en_cours: '🛠️ En cours', faite: '✅ Faite', impossible: '❌ Pas possible', plus_tard: '⏸️ Plus tard' };
 const ATL_DEM_SO = { vignette: '🖼️ Image de présentation', arret: '🎯 Arrêt sur image', retouche: '✂️ Retouche', redessin: '🎨 Élément refait', modifier: '🎨 Modification', retirer: '🗑️ Retrait', son: '🔊 Bruitage', musique: '🎵 Musique', creer: '＋ Création', message: '💬 Message' };
+// 2.0.9 : l'avancement d'une demande, étape par étape (at_demande_avancer) : « je prépare les images », « je construis », « je teste »…
+function atlEtapes(l) {
+  const ul = atlEl('ol', 'atl-etapes');
+  l.slice(-4).forEach((e, i, a) => { const d0 = new Date(e.at), li = atlEl('li', i === a.length - 1 ? 'now' : ''); li.append(atlEl('span', '', (i === a.length - 1 ? '🛠️ ' : '✔ ') + String(e.texte || e.etape || '')), atlEl('small', '', isNaN(d0) ? '' : d0.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))); ul.appendChild(li); });
+  return ul;
+}
+const atlDemEnCours = () => (((ATL && ATL.dem) || {}).demandes || []).filter(x => x && x.etat === 'en_cours');
+function atlTravailMaj() {
+  const R = ATL && ATL.root, W = R && R.querySelector('.atl-wiz'), p = W && W.querySelector('.atl-pane[data-k="jeu"]'); if (!p || !ATL.cur) return;
+  const l = atlDemEnCours().filter(x => x.fiche === ATL.cur && Array.isArray(x.etapes) && x.etapes.length);
+  let b = p.querySelector('.atl-tlive');
+  if (!l.length) { if (b) b.remove(); return; }
+  const der = l.map(x => x.etapes[x.etapes.length - 1]).sort((a, c) => String(c.at).localeCompare(String(a.at)))[0], txt = '⏱️ En ce moment : ' + String(der.texte || der.etape || '');
+  if (!b) { b = atlEl('p', 'atl-tlive'); const tb = p.querySelector('.atl-travail > div:last-child'); if (tb) tb.appendChild(b); else p.prepend(b); }
+  if (b.textContent !== txt) b.textContent = txt;
+}
 async function atlDemCharger(force) {
-  if (!force && ATL.demAt && Date.now() - ATL.demAt < (ATL.open ? 19000 : 60000)) return ATL.dem;
+  if (!force && ATL.demAt && Date.now() - ATL.demAt < (ATL.open ? (atlDemEnCours().length ? 3000 : 19000) : 60000)) return ATL.dem;
+  const etAvant = JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length]));
   ATL.demAt = Date.now();
   const avant = JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id));
   try { ATL.dem = await rpc('at_mes_demandes', { p_name: profile.name }, { quiet: true }); } catch (e) {}
   if (ATL.root) atlDemBtn(ATL.root);
   if (ATL.open && JSON.stringify(((ATL.dem || {}).demandes || []).filter(atlPropOuverte).map(x => x.id)) !== avant) { ATL.pSig = ''; try { atlRender(); } catch (e) {} }   // les boutons d'une nouvelle proposition dans la discussion
+  try { atlTravailMaj(); } catch (e) {}
+  if (ATL.open && JSON.stringify(atlDemEnCours().map(x => [x.id, (x.etapes || []).length])) !== etAvant && ATL.root && ATL.root.querySelector('.atl-zoom:not([hidden]) .atl-dems')) { try { atlMesDemandes(); } catch (e) {} }
   return ATL.dem;
 }
 const atlPetit = () => { try { return matchMedia('(max-width:600px)').matches; } catch (e) { return false; } };
@@ -16268,6 +16334,7 @@ async function atlMesDemandes() {
     const txt = String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, ''), tp = atlEl('p', 'atl-demtx', txt); t.appendChild(tp);
     if (txt.length > 140) { const vp = atlEl('button', 'atl-demplus', 'voir plus'); vp.type = 'button'; vp.addEventListener('click', () => { const o = tp.classList.toggle('ouvert'); vp.textContent = o ? 'voir moins' : 'voir plus'; }); t.appendChild(vp); }
     if (x.reponse) { const bu = atlEl('div', 'atl-dembu'), bt = atlEl('div'); bt.append(atlEl('b', '', gNM()), atlEl('p', '', x.reponse)); bu.append(atlGuideAv('atl-wav'), bt); t.appendChild(bu); }
+    if (Array.isArray(x.etapes) && x.etapes.length && !['faite', 'impossible'].includes(x.etat)) t.appendChild(atlEtapes(x.etapes));
     if (x.choix) t.appendChild(atlEl('p', 'atl-propok', '✅ Choisi : ' + (x.choix.libelle || '') + ((x.choix.credits | 0) ? ' · ' + (x.choix.credits | 0) + ' 💎' : '')));
     c.append(vig, t); P.appendChild(c);
     if (choisir) P.appendChild(atlPropBoutons(x));   // les offres en pleine largeur, sous la carte
@@ -16458,7 +16525,7 @@ function atlSchedule() {
   if (!ATL) return; clearTimeout(ATL.pollT);
   if (!ATL_ON() || ATL.off || !ONLINE) return;
   const live = atlProjets().length > 0;
-  const ms = ATL.open ? 20000 : live ? 120000 : 0;
+  const ms = ATL.open ? (atlDemEnCours().length ? 8000 : 20000) : live ? 120000 : 0;   // 2.0.9 : une demande en cours, son avancement en direct
   if (ms) ATL.pollT = setTimeout(() => atlLoad(false), ms * Math.min(4, 1 + ATL.err));
 }
 async function atlSend() {
@@ -17457,7 +17524,7 @@ if (ONLINE && !isGuest() && !room && !netOff() && !invPending() && !INV.bad && !
 if (CADRE) {   // le jeu seul, dans la page du projet
   document.body.classList.add('cadre');
   const g0 = (window.JDW_GAMES || {})[CADRE], g = g0 && g0.id === CADRE && laboOk(CADRE) ? g0 : null;   // un jeu de l'Atelier en alpha n'est pas dans GAMES (pas de tuile)
-  if (g) { CADRE_G = g; setTimeout(() => { try { markGameSeen(g.id); Audio.ensure(); } catch (e) {} $('jdw-lib').hidden = true; $('jdw-play').style.setProperty('--acc', g.accent); $('jdw-gtitle').textContent = g.title; backToLibrary(); }, 200); }   // sans salle ni appli : le jeu, tout de suite
+  if (g) atlModule(CADRE, atlVoulue(CADRE)).then(g2 => { const g = g2 || g0; CADRE_G = g; setTimeout(() => { try { markGameSeen(g.id); Audio.ensure(); } catch (e) {} $('jdw-lib').hidden = true; $('jdw-play').style.setProperty('--acc', g.accent); $('jdw-gtitle').textContent = g.title; backToLibrary(); }, 200); });   // sans salle ni appli : le jeu, tout de suite
   else { const d = document.createElement('div'); d.className = 'cadre-vide'; d.textContent = 'Ce jeu arrive sur la borne très bientôt !'; document.body.appendChild(d); }
   window.addEventListener('message', e => {
     if (e.origin !== location.origin || !e.data) return;
