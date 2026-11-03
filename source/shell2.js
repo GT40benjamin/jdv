@@ -16952,6 +16952,8 @@ function atlDemCarte0(x) {
     if (x.reponse) { const bu = atlEl('div', 'atl-dembu' + (x.nouveau ? ' nouveau' : '')), bt = atlEl('div'); bt.append(atlEl('b', '', '💬 ' + gNM() + ' te répond' + (x.nouveau ? ' · ✨ nouveau' : '')), atlEl('p', '', x.reponse)); bu.append(atlGuideAv('atl-wav'), bt); t.appendChild(bu); }   // 2.0.10 : la réponse bien visible
     if (Array.isArray(x.etapes) && x.etapes.length && !['faite', 'impossible'].includes(x.etat)) t.appendChild(atlEtapes(x.etapes));
     if (x.choix) t.appendChild(atlEl('p', 'atl-propok' + (x.choix.par === 'admin' ? ' adm' : ''), (x.choix.par === 'admin' ? '✍️ L’admin a choisi pour toi : ' : '✅ Choisi : ') + (x.choix.libelle || '') + ((x.choix.credits | 0) ? ' · ' + (x.choix.credits | 0) + ' 💎' : x.choix.par === 'admin' ? ' · offert 🎁' : '')));
+    // 2.0.58 : ce que contient l'option choisie (la réponse de la mascotte annonçait les options, qui ont disparu une fois le choix fait)
+    if (x.choix && Array.isArray(x.choix.details) && x.choix.details.length) { const ul = atlEl('ul', 'atl-propdet'); for (const d of x.choix.details.slice(0, 8)) ul.appendChild(atlEl('li', '', String(d))); t.appendChild(ul); }
     c.append(vig, t); return c;
 }
 async function atlMesDemandes() {
@@ -17110,7 +17112,7 @@ function atlPropEditeur(x, m) {
     const prix = o.credits | 0, so = Number.isFinite(+av.solde) && av.solde != null ? +av.solde | 0 : null;
     let offert = false;
     if (so != null && so < prix) {
-      if (!await atlConfirmer('💎 Pas assez de crédits', jn + ' a ' + so + ' 💎 : il en faut ' + prix + ' pour « ' + o.libelle + ' ». Rien ne sera débité. Tu peux plutôt lui offrir cette option (0 💎), puis la choisir pour lui.', '🎁 Offrir (0 💎) et choisir')) return;
+      if (!await atlConfirmer('💎 Pas assez de crédits', jn + ' a ' + so + ' 💎 : il en faut ' + prix + ' pour « ' + o.libelle + ' ». Rien ne sera débité. Tu peux plutôt lui offrir cette option (0 💎), puis la choisir à sa place.', '🎁 Offrir (0 💎) et choisir')) return;
       offert = true;
     } else if (!await atlConfirmer('✅ Choisir pour ' + jn + ' ?', 'Choisir « ' + o.libelle + ' » pour ' + jn + ' ? ' + (prix ? prix + ' 💎 seront pris sur SES crédits' + (so != null ? ' (solde : ' + so + ' → ' + (so - prix) + ')' : '') + '.' : 'C’est gratuit (0 💎).') + ' ' + jn + ' le verra dans son ticket.', '✅ Oui, choisir pour ' + jn)) return;
     msg.textContent = 'Un instant…';

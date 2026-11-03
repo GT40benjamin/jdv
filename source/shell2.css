@@ -4755,3 +4755,6 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-ofadmb .atl-ofchx{flex:1 1 100%}
 .atl-propok.adm{background:rgba(70,200,120,.12);border:1px solid rgba(90,220,140,.45);border-radius:12px;padding:8px 12px}
 .atl-ofadmb{flex-wrap:wrap}
+/* 2.0.58 : les lignes de l'option choisie, sous « ✅ Choisi » / « ✍️ L'admin a choisi pour toi » */
+.atl-propdet{margin:6px 0 0;padding:0 12px 0 30px;font:14px/1.45 var(--body);color:var(--ink)}
+.atl-propdet li{margin:2px 0}
