@@ -17,6 +17,8 @@
 [borne] 🎮 Un jeu resté ouvert en pause ne passe plus par-dessus le jeu que tu choisis : chaque tuile ouvre toujours son jeu à elle.
 [borne] ## 📱 Les jeux en plein écran sur téléphone (borne 2.0.38)
 [borne] 📱 Téléphone à l’horizontale : plus de bande sur le côté pendant la partie, le jeu prend toute la largeur. Quitter et le son sont deux petits ronds transparents, dans un coin que le jeu laisse libre.
+[atelier] ## ✏️ Une demande modifiée repart à neuf (borne 2.0.50)
+[atelier] ✏️ Quand tu modifies une demande, {g} repart de ta nouvelle demande : les anciennes questions, réponses et offres s’effacent. L’ancienne version reste lisible, repliée sous « 📜 Historique ».
 [atelier] ## ✍️ Des demandes aussi longues que tu veux (borne 2.0.46)
 [atelier] ✍️ Tu peux écrire ou dicter jusqu’à 15 000 caractères dans une demande, une réponse, la discussion, l’arrêt sur image ou en modifiant une demande. Un petit compteur apparaît près de la limite, et un texte trop long reste dans sa case, gardé sur ton appareil.
 [atelier] ## ❓ Les questions de {G} dans la discussion aussi (borne 2.0.36)

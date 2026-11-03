@@ -2874,3 +2874,4 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 --   at_demande_ecrite / at_demande / at_demande_element / at_demande_modif / at_demande_modifier (1 000 → 15 000, ajout cumulé 4 000 → 30 000),
 --   at_dire (2 000 → 15 000), at_q_repondre / at_mq_repondre (réponse 500 → 15 000, lignes 2 000-4 000 → 30 000), at_brouillon (1 500),
 --   at_fiche_joueur (600), at_fiche_etape (1 500), at_repondre (4 000) → 15 000 ; at_messages_taille 4 000 → 32 000 ; at_fiches_taille fiche 20 000 → 300 000.
+-- v85 v85_modifier_repart_a_neuf (3 nov., Benjamin) : at_demande_modifier en « modifier » = la demande repart à NEUF (questions, propositions, réponse à null), les lignes « ↪ question → réponse » ne sont plus recollées dans le nouveau texte ; l'historique garde l'ancienne version (avant, questions, propositions) et son texte = la nouvelle demande.

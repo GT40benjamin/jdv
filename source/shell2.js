@@ -16704,7 +16704,7 @@ function atlDemActions(x, offre) {
   const ouvrir = m => {
     if (mode === m && !ed.hidden) { ed.hidden = true; mode = ''; rb.classList.remove('on'); mb.classList.remove('on'); return; }
     mode = m; ed.hidden = false; rb.classList.toggle('on', m === 'rep'); mb.classList.toggle('on', m === 'modif');
-    if (m === 'modif') { ta.value = x.sorte === 'propose' ? '' : String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, ''); ta.placeholder = x.sorte === 'propose' ? 'Qu’est-ce que tu voudrais à la place ?' : 'Ta demande, comme tu la veux vraiment'; go.textContent = '✏️ Envoyer ma demande modifiée'; }
+    if (m === 'modif') {   /* 2.0.50 : sans les lignes « ↪ question → réponse » de l'ancienne version (on repart à neuf) */ ta.value = x.sorte === 'propose' ? '' : String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '').split('\n').filter(l => !/^\s*↪ /.test(l)).join('\n').replace(/\n{3,}/g, '\n\n').trim(); ta.placeholder = x.sorte === 'propose' ? 'Qu’est-ce que tu voudrais à la place ?' : 'Ta demande, comme tu la veux vraiment'; go.textContent = '✏️ Envoyer ma demande modifiée'; }
     else { ta.value = ''; ta.placeholder = 'Ta réponse ou ta question pour ' + gNM() + ' (ex. « plutôt en rose », « c’est quoi la différence ? »)'; go.textContent = '📨 Envoyer à ' + gNM(); }
     try { ta.focus(); ed.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
   };
@@ -16853,13 +16853,32 @@ function atlDemCarte(x) {
   if (x.nouveau && (x.reponse || atlPropOuverte(x)) && hd) { hd.appendChild(atlEl('span', 'atl-dnouv', 'Nouveau')); c.classList.add('neuf'); }
   if (x.etat === 'faite' && x.version_livree && t) t.appendChild(atlEl('p', 'atl-livre', '✅ Livré dans la V' + x.version_livree));
   const hi = Array.isArray(x.historique) ? x.historique.filter(h => h && h.sorte) : [];
+  // 2.0.50 (Benjamin : « mes questions répondues, dans la demande que je modifie, à supprimer : on repart à neuf ») : depuis la dernière
+  // « ✏️ Modifier », le ticket montre la NOUVELLE demande seule (son texte, puis ce qui a suivi) ; l'ancienne version, ses questions et
+  // ses réponses sont repliées dans « 📜 Historique », en lecture
+  let mi = -1, hs = null; for (let k = hi.length - 1; k >= 0; k--) if (hi[k].sorte === 'modif') { mi = k; break; }
   if (hi.length && t) {   // 2.0.17 : les échanges du ticket, dans l'ordre (ta demande, sa réponse, ta réponse…)
     const fil = atlEl('div', 'atl-demfil'), tp = t.querySelector('.atl-demtx'), vp = t.querySelector('.atl-demplus'), net = v => String(v || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '');
-    const L = (qui, tx) => { const q = atlEl('p', 'atl-dfl ' + qui); q.append(atlEl('b', '', qui === 'g' ? gNM() + ' : ' : 'Toi : '), document.createTextNode(tx)); fil.appendChild(q); };
-    L('j', net((hi.find(h => h.avant) || {}).avant || x.texte).split('\n\n↪ ')[0]);
-    for (const h of hi) { if (h.reponse) L('g', h.reponse); if (h.sorte === 'reponse') L('j', '↪ ' + h.texte); else if (h.sorte === 'modif') L('j', '✏️ ' + net(h.texte)); else if (h.sorte === 'refus') L('j', '🙅 Non merci' + (h.mot ? ' : ' + h.mot : '')); }
-    if (tp) tp.remove(); if (vp) vp.remove();
-    const bu0 = t.querySelector('.atl-dembu'); if (bu0) t.insertBefore(fil, bu0); else if (hd) t.insertBefore(fil, hd.nextSibling); else t.appendChild(fil);   // dans l'ordre, la dernière réponse du guide en dessous
+    const L = (qui, tx, box) => { const q = atlEl('p', 'atl-dfl ' + qui); q.append(atlEl('b', '', qui === 'g' ? gNM() + ' : ' : 'Toi : '), document.createTextNode(tx)); (box || fil).appendChild(q); };
+    const H = (h, box) => { if (h.reponse) L('g', h.reponse, box); if (h.sorte === 'reponse') L('j', '↪ ' + h.texte, box); else if (h.sorte === 'modif') L('j', '✏️ ' + net(h.texte), box); else if (h.sorte === 'refus') L('j', '🙅 Non merci' + (h.mot ? ' : ' + h.mot : ''), box);
+      else if (h.sorte === 'reponses' && Array.isArray(h.questions)) for (const q of h.questions) if (q && q.reponse) L('j', '↪ ' + q.q + ' → ' + q.reponse, box); };
+    const bu0 = t.querySelector('.atl-dembu');
+    if (mi < 0) {
+      L('j', net((hi.find(h => h.avant) || {}).avant || x.texte).split('\n\n↪ ')[0]);
+      for (const h of hi) H(h);
+      if (tp) tp.remove(); if (vp) vp.remove();
+      if (bu0) t.insertBefore(fil, bu0); else if (hd) t.insertBefore(fil, hd.nextSibling); else t.appendChild(fil);   // dans l'ordre, la dernière réponse du guide en dessous
+    } else {
+      if (tp) tp.classList.add('neuf');   // le texte de la demande d'aujourd'hui (« voir plus » s'il est long)
+      for (const h of hi.slice(mi + 1)) H(h);
+      const ap = vp || tp; if (fil.children.length && ap) ap.insertAdjacentElement('afterend', fil);
+      hs = atlEl('details', 'atl-demhist'); const hb = atlEl('div', 'atl-demfil');
+      hs.appendChild(atlEl('summary', '', '📜 Historique (avant ta modification)'));
+      L('j', net((hi.find(h => h.avant) || {}).avant || '').split('\n').filter(l => !/^\s*↪ /.test(l)).join('\n').trim(), hb);   // ses réponses suivent, une par ligne
+      for (const h of hi.slice(0, mi)) H(h, hb);
+      if (hi[mi].reponse) L('g', hi[mi].reponse, hb);
+      hs.appendChild(hb);   // posé tout en bas de la carte (après la bulle « 💭 » et les boutons)
+    }
     if (x.etat === 'impossible' && hi[hi.length - 1].sorte === 'refus') { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = '🙅 Non merci'; }
   }
   if (t && Array.isArray(x.questions) && x.questions.length) { t.appendChild(atlQuestions(x)); if (atlQAttente(x)) { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = '❓ ' + (atlQNb(x) > 1 ? atlQNb(x) + ' questions' : '1 question'); c.classList.add('q'); } }
@@ -16869,9 +16888,11 @@ function atlDemCarte(x) {
   if (t && x.etat === 'envoyee' && !x.choix) {
     const ld = Array.isArray(x.etapes) && x.etapes.length ? x.etapes[x.etapes.length - 1] : null, neuf = ld && ld.texte && String(ld.at || '') >= String(x.etat_at || x.at || '');
     const th = atlEl('div', 'atl-dthink'), tx = atlEl('div');
-    tx.append(atlEl('b', '', '💭 ' + gNM() + (neuf ? '' : ' réfléchit à ta demande')), atlEl('p', '', neuf ? String(ld.texte) : 'Je lis ce que tu veux et je prépare mes questions ou mes propositions.'), atlEl('span', 'atl-dpts', '•••'));
+    const relit = !neuf && mi >= 0 && mi === hi.length - 1;   // 2.0.50 : la demande vient d'être modifiée
+    tx.append(atlEl('b', '', '💭 ' + gNM() + (neuf ? '' : relit ? ' lit ta nouvelle demande…' : ' réfléchit à ta demande')), atlEl('p', '', neuf ? String(ld.texte) : 'Je lis ce que tu veux et je prépare mes questions ou mes propositions.'), atlEl('span', 'atl-dpts', '•••'));
     th.append(atlGuideAv('atl-wav'), tx); t.appendChild(th); const el = t.querySelector('.atl-etapes'); if (el) el.remove();   // l'étape est déjà dans la bulle
   }   // une question du guide : on lui répond ici
+  if (hs && t) t.appendChild(hs);
   if ((x.sorte === 'propose' || x.sorte === 'correction') && hd) hd.insertBefore(atlEl('span', 'atl-dguide', x.sorte === 'propose' ? '🎁 Proposé par ' + gN() : '🛠️ Correction de ' + gN()), hd.children[1] || null);
   return c;
 }

@@ -4732,3 +4732,15 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 /* 2.0.46 : le petit compteur des longs textes (à partir de 12 000), « trop long » en clair au-delà de 15 000 */
 .atl-cpt{display:block;margin:4px 2px 0;text-align:right;font:600 11px/1.3 var(--body);color:var(--muted, rgba(255,255,255,.55))}
 .atl-cpt.trop{text-align:left;font-size:13px;color:#ffd0d0;background:rgba(255,77,77,.14);border:1px solid rgba(255,107,107,.45);border-radius:10px;padding:6px 10px}
+/* 2.0.50 : l'historique d'une demande modifiée, replié, en lecture */
+.atl-demhist{margin-top:10px;border-top:1px dashed rgba(255,255,255,.16);padding-top:6px;opacity:.85}
+.atl-demhist > summary{cursor:pointer;font:700 12px/1.6 var(--body);color:var(--muted, rgba(255,255,255,.6));list-style:none}
+.atl-demhist > summary::-webkit-details-marker{display:none}
+.atl-demhist > summary::before{content:'▸ '}
+.atl-demhist[open] > summary::before{content:'▾ '}
+.atl-demhist .atl-demfil{margin-top:6px}
+/* 2.0.50 : la bulle « 💭 … » ne pousse plus la page hors de l'écran (titre sur une ligne, coupé par « … ») */
+.atl-dthink > div{flex:1 1 auto;min-width:0}
+.atl-dem2 > .atl-demt{min-width:0}
+.atl-dthink{box-sizing:border-box;max-width:100%}
+.atl-dthink b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
