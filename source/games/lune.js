@@ -768,6 +768,7 @@ window.JDW_GAMES.lune = {
   tagline: 'Seul survivant : répare la navette avant de manquer d’oxygène !',
   accent: '#7fb6ff',
   scoreLabel: 'points',
+  orientation: 'les2',   // vérifié en portrait (vue de dessus, joystick au doigt) et en paysage
   preview,
   mount,
   pad: { help: [['ls/dpad', 'Marcher'], ['a', 'Commencer']], intro: false }

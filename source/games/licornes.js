@@ -219,20 +219,24 @@ function mount(root, api) {
         msgY: 300
       };
     } else {
+      // portrait (2 h 10, Benjamin : « il faut absolument le détecter ») : de haut en bas, le tapis, la scène (mur à sa taille naturelle +
+      // sol carrelé qui prend toute la hauteur en plus), puis la rangée couveuse · nid (sur le comptoir) · fenêtre du client, l'inventaire
+      // et les boutons collés en bas : rien d'étiré, rien qui se chevauche, pas de vide
       LW = 720; LH = Math.max(1150, 720 * H / W); sc = Math.min(W / LW, H / LH); LH = Math.max(1150, H / sc);
-      const ex = Math.min(120, Math.max(0, (LH - 1150) * 0.35));   // un grand téléphone : un enclos plus haut
+      const actY = LH - 16 - 116, trayY = actY - 10 - 112, rowY = trayY - 12 - 300, sceneY = 206, sceneH = rowY - 20 - sceneY;
+      const wallH = Math.min(218, sceneH * 0.42), floorH = sceneH - wallH;
       L = {
         hud: { y: 8, h: 56 },
         belt: { x0: 18, x1: 702, y: 150, sz: 74, draw: { x: 0, y: 116, w: 720 } },
         trous: { g: { x: 34, bas: 156, w: 88, h: 90 }, d: { x: 686, bas: 156, w: 88, h: 90 } },
-        enclosDraw: { x: 8, y: 222, w: 704, h: 334 + ex },
-        enclos: { x: 70, y: 222 + 0.74 * (334 + ex), w: 580, h: 0.2 * (334 + ex) },   // les pieds sur le carrelage
-        counterDraw: { x: 8, y: 700 + ex, w: 470 },
-        couv: { x: 40, y: 572 + ex, w: 160, h: 150 }, nid: { x: 236, y: 600 + ex, w: 190, h: 130 },
-        fen: { x: 512, y: 618 + ex, w: 186, h: 196 }, bulle: { x: 520, y: 440 + ex, w: 170, h: 158 },
-        tray: { x: 16, y: 884 + ex, w: 688, h: 112 },
-        act: { x: 16, y: 1010 + ex, w: 688, h: 116 },
-        msgY: 460 + ex
+        scene: { x: 8, y: sceneY, w: 704, h: sceneH, wallH },
+        enclos: { x: 70, y: sceneY + wallH + floorH * 0.28, w: 580, h: floorH * 0.6 },   // les pieds sur le carrelage
+        counterDraw: { x: 8, y: rowY + 128, w: 470 },
+        couv: { x: 40, y: rowY, w: 160, h: 150 }, nid: { x: 236, y: rowY + 28, w: 190, h: 130 },
+        fen: { x: 494, y: rowY + 40, w: 212, h: 206 }, bulle: { x: 512, y: rowY - 138, w: 178, h: 150 },
+        tray: { x: 16, y: trayY, w: 688, h: 112 },
+        act: { x: 16, y: actY, w: 688, h: 116 },
+        msgY: sceneY + sceneH * 0.45
       };
     }
     ox = (W - LW * sc) / 2; oy = (H - LH * sc) / 2;
@@ -698,6 +702,24 @@ function mount(root, api) {
   }
 
   // ---------- dessin ----------
+  // un carrelage d'hexagones pastel (les mêmes couleurs que le sol du décor), mis en cache par mise en page
+  let carC = null;
+  function carrelage(y0, h) {
+    const k = LW + '|' + Math.round(y0) + '|' + Math.round(h);
+    if (!carC || carC.k !== k) {
+      const r0 = 36, dx = r0 * Math.sqrt(3), dy = r0 * 1.5, cols = ['#d9d3f2', '#cfe3f3', '#d7efe8', '#ecdcef'], P = cols.map(() => new Path2D());
+      for (let j = -1, y = y0 - dy; y < y0 + h + dy; j++, y += dy) for (let i = -1, x = (j & 1) * dx / 2 - dx; x < LW + dx; i++, x += dx) {
+        const pp = P[((i * 3 + j * 5) % 4 + 4) % 4]; pp.moveTo(x + r0 * Math.cos(Math.PI / 6), y + r0 * Math.sin(Math.PI / 6));
+        for (let a = 1; a <= 6; a++) pp.lineTo(x + r0 * Math.cos(Math.PI / 6 + a * Math.PI / 3), y + r0 * Math.sin(Math.PI / 6 + a * Math.PI / 3));
+      }
+      carC = { k, P, cols };
+    }
+    ctx.save(); ctx.beginPath(); ctx.rect(0, y0, LW, h); ctx.clip();
+    ctx.fillStyle = '#f4f0fb'; ctx.fillRect(0, y0, LW, h);
+    carC.P.forEach((pp, i) => { ctx.fillStyle = carC.cols[i]; ctx.fill(pp); ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3; ctx.stroke(pp); });
+    const om = ctx.createLinearGradient(0, y0, 0, y0 + 40); om.addColorStop(0, 'rgba(150,110,160,0.22)'); om.addColorStop(1, 'rgba(150,110,160,0)'); ctx.fillStyle = om; ctx.fillRect(0, y0, LW, 40);   // l'ombre au pied du mur
+    ctx.restore();
+  }
   function drawBg() {
     const f = IMG.fond;
     if (!portrait) {
@@ -705,12 +727,21 @@ function mount(root, api) {
       return;
     }
     const g = ctx.createLinearGradient(0, 0, 0, LH); g.addColorStop(0, '#f8dbe5'); g.addColorStop(1, '#f3cfdc'); ctx.fillStyle = g; ctx.fillRect(0, 0, LW, LH);
+    // le carrelage de la boutique, sous la scène et jusqu'en bas (dessiné : il prend n'importe quelle hauteur sans s'étirer)
+    const S = L.scene, fy0 = S.y + S.wallH;
+    carrelage(fy0, LH - fy0);
     if (!f) return;
-    const fy = L.counterDraw.y + 92;   // le sol (il passe sous le comptoir)
-    ctx.drawImage(f, 0, 600, 1344, 168, 0, fy, LW, Math.max(140, LH - fy));
     ctx.drawImage(f, 360, 28, 140, 70, 60, 60, 140, 70); ctx.drawImage(f, 960, 28, 140, 70, 520, 60, 140, 70);   // arcs-en-ciel
     const b = L.belt.draw; ctx.drawImage(f, 175, 88, 1037, 112, b.x, b.y, b.w, b.w * 112 / 1037);
-    const e = L.enclosDraw; ctx.drawImage(f, 748, 330, 566, 290, e.x, e.y, e.w, e.h);   // le mur, la plinthe et le sol (plus d'aquarium)
+    // le mur de la scène (dessiné, comme celui du décor) : rose doux, un petit arc-en-ciel, un nuage, des étoiles, la plinthe
+    const wy = S.y, wh = S.wallH, gw = ctx.createLinearGradient(0, wy, 0, wy + wh); gw.addColorStop(0, '#f9e1ea'); gw.addColorStop(1, '#f4d2e0');
+    ctx.fillStyle = gw; ctx.fillRect(0, wy, LW, wh);
+    ctx.save(); ctx.globalAlpha = 0.7; ctx.lineCap = 'round';
+    ['#ffc2d4', '#ffe0b8', '#fff3b8', '#d4f2c8', '#c8e6ff'].forEach((c, i) => { ctx.strokeStyle = c; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(LW * 0.74, wy + wh * 0.78, wh * 0.42 - i * 9, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); });
+    ctx.restore();
+    nuage(ctx, LW * 0.66, wy + wh * 0.7, 30); nuage(ctx, LW * 0.84, wy + wh * 0.74, 24); nuage(ctx, LW * 0.2, wy + wh * 0.42, 34);
+    ctx.fillStyle = '#fff3b0'; [[0.08, 0.2], [0.36, 0.3], [0.5, 0.16], [0.94, 0.3], [0.3, 0.68]].forEach(([x, y], i) => etoile4(ctx, LW * x, wy + wh * y, 7 + (i % 2) * 3));
+    ctx.fillStyle = '#fff6fa'; ctx.fillRect(0, wy + wh - 16, LW, 16); ctx.fillStyle = '#e8b9cf'; ctx.fillRect(0, wy + wh - 16, LW, 2); ctx.fillRect(0, wy + wh - 2, LW, 2);
     const c = L.counterDraw; ctx.drawImage(f, 195, 416, 536, 196, c.x, c.y, c.w, c.w * 196 / 536);
   }
   function drawHud() {
@@ -1111,6 +1142,7 @@ window.JDW_GAMES.licornes = {
   tagline: 'Fais éclore, grandir et briller la plus belle écurie de licornes !',
   accent: '#e48ad0',
   scoreLabel: 'pièces',
+  orientation: 'les2',   // vérifié en portrait (mise en page à part) et en paysage
   preview,
   mount,
   pad: { help: [['a', 'Commencer · acheter sur le tapis']], intro: false }

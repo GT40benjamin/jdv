@@ -712,6 +712,7 @@ window.JDW_GAMES.noisette = {
   tagline: 'Cours, roule et saute à travers la forêt pour retrouver tes amis !',
   accent: '#e88a3a',
   scoreLabel: 'points',
+  orientation: 'les2',   // vérifié en portrait (boutons à l'écran) et en paysage
   preview,
   mount,
   heros(x, P) { try { loadImages(); } catch (e) { /* rien */ } if (!IMG['n-repos'] || !x) return false; drawFoot(x, 'n-repos', P / 2, P * 0.9, P * 0.72); return true; },   // Noisette au départ de la carte
