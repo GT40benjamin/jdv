@@ -6,6 +6,11 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[remparts] ## 🏰 Ta progression aussi est celle de la salle (borne 2.0.27)
+[remparts] 🗺️ Les mondes ouverts et les étoiles sont maintenant ceux de la salle où tu joues : dans une salle où tu n'as pas encore joué, tu recommences à La Forêt enchantée.
+[remparts] 🏰 Dans une salle où tu as déjà joué, tu retrouves tout : tes mondes ouverts, tes étoiles et tes scores.
+[remparts] ⚡ Le défi du jour se joue une fois par salle.
+[remparts] 🌍 Ton record mondial reste en haut (« 🌍 Mondial ») et dans l'écran Records ; les boutons des mondes ne montrent que tes scores de la salle.
 [atelier] ## 🤖 {G}, partout (borne 2.0.26)
 [atelier] 🤖 Dans l’Atelier, c’est {G} qui te répond, te pose ses questions et prépare ton jeu, et c’est écrit partout : dans les demandes, les cadeaux et les corrections.
 [atelier] 🛠️ Pendant que {G} prépare ta prochaine version, l’écran ne bouge plus : seul {G} s’anime, les phrases changent sur place.
