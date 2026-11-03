@@ -115,6 +115,10 @@
 [atelier] 🎮 Nouveau : l'Atelier des jeux ! Touche « CRÉE TON JEU », raconte ton idée (au clavier ou au micro) : {g} monte ton projet, tu choisis ce qu'il contient, et ton jeu se construit. Tu y joues ici, puis tu peux le publier dans ta salle.
 [atelier] 🎁 À ta première visite, {g} t'offre 500 crédits (avec un compte et un e-mail vérifié) : assez pour créer ton premier jeu !
 
+[abracadabra] ## 🦖 Abracadabra : les dinosaures ! (borne 2.0.48)
+[abracadabra] 🦕 Dis « dinosaure », « tricératops », « stégosaure », « diplodocus » ou « parasaurolophus » : ils se promènent et broutent tranquillement, et la petite fille veut tous les garder.
+[abracadabra] 🦖 Mais attention au T-rex et au vélociraptor : tout le monde hurle et s'enfuit en courant… et ils croquent les villageois un par un. Mission perdue !
+[abracadabra] 🦊 Et aussi : le renard, l'alpaga (ou le lama) et l'âne, avec leurs vraies façons de marcher, galoper et brouter.
 [abracadabra] ## 🦄 Abracadabra : l'animal magique à une corne et le pégase (borne 2.0.43)
 [abracadabra] 🦄 Dis le nom du cheval blanc magique à une corne : il apparaît, avec sa crinière, se promène et regarde autour de lui. Dis « pégase » : un cheval ailé se pose près de toi. La petite fille en rêvait…
 [abracadabra] ## 🐃 Abracadabra : le buffle et le varan bien visibles (borne 2.0.42)
