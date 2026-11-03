@@ -16449,7 +16449,50 @@ function atlPropBoutons(x, comme) {
     else pt.addEventListener('click', async () => { pt.disabled = true; try { await rpc('at_demande_plus_tard', { p_name: profile.name, p_id: x.id }, { quiet: true }); x.etat = 'plus_tard'; box.textContent = ''; box.appendChild(atlEl('p', 'atl-propok', '⏸️ D’accord, plus tard : rien n’est utilisé. Tu pourras choisir quand tu veux dans « 📋 Mes demandes ».')); ATL.demAt = 0; atlDemCharger(true); } catch (e) { pt.disabled = false; } });
     box.appendChild(pt);
   }
+  if (!comme && !atlAdminIci()) box.appendChild(atlDemActions(x, true));
   return box;
+}
+// 2.0.17 (Benjamin, pour SAMBA : « elle doit pouvoir refuser les deux options et apporter une modification ; idem pour les cadeaux ») :
+// sous les offres, « 💬 Répondre », « ✏️ Modifier ma demande », « 🙅 Non merci » ; gratuit (même ticket), le guide refait une offre
+function atlDemRafr() {
+  ATL.demAt = 0;
+  atlDemCharger(true).then(() => { try { if (ATL.root && ATL.root.querySelector('.atl-zoom:not([hidden]) .atl-dems')) atlMesDemandes(); } catch (e) {} });
+}
+function atlDemActions(x, offre) {
+  const w = atlEl('div', 'atl-dact'), row = atlEl('div', 'atl-dactb n' + (offre ? 3 : 2));
+  const carre = (cls, ic, lab) => { const b = atlEl('button', 'btn btn-ghost atl-dab ' + cls); b.type = 'button'; b.append(atlEl('span', 'atl-dabi', ic), atlEl('span', 'atl-dabt', lab)); return b; };   // des boutons carrés, égaux
+  if (offre) w.appendChild(atlEl('p', 'atl-dactq', x.sorte === 'propose' ? 'Ça ne te dit rien ? Tu peux dire non, ou demander autre chose à la place.' : 'Aucune ne te va ? Pose ta question, change ta demande, ou dis non merci.'));
+  const ed = atlEl('div', 'atl-dedit'); ed.hidden = true;
+  const ta = atlEl('textarea', 'atl-dein'); ta.rows = 3; ta.maxLength = 1000;
+  const go = atlEl('button', 'btn btn-play btn-sm atl-dego'), msg = atlEl('small', 'atl-demsg', 'Gratuit : c’est la même demande. ' + gNM() + ' te répond ici.'); go.type = 'button';
+  let mode = '';
+  const ouvrir = m => {
+    if (mode === m && !ed.hidden) { ed.hidden = true; mode = ''; rb.classList.remove('on'); mb.classList.remove('on'); return; }
+    mode = m; ed.hidden = false; rb.classList.toggle('on', m === 'rep'); mb.classList.toggle('on', m === 'modif');
+    if (m === 'modif') { ta.value = x.sorte === 'propose' ? '' : String(x.texte || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, ''); ta.placeholder = x.sorte === 'propose' ? 'Qu’est-ce que tu voudrais à la place ?' : 'Ta demande, comme tu la veux vraiment'; go.textContent = '✏️ Envoyer ma demande modifiée'; }
+    else { ta.value = ''; ta.placeholder = 'Ta réponse ou ta question pour ' + gNM() + ' (ex. « plutôt en rose », « c’est quoi la différence ? »)'; go.textContent = '📨 Envoyer à ' + gNM(); }
+    try { ta.focus(); ed.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+  };
+  go.addEventListener('click', async () => {
+    const t = ta.value.trim(); if (t.length < 2) { ta.focus(); return; }
+    go.disabled = true; msg.textContent = 'J’envoie…';
+    try { await rpc('at_demande_modifier', { p_name: profile.name, p_id: x.id, p_texte: t, p_ajout: mode !== 'modif' }, { quiet: true }); w.textContent = ''; w.appendChild(atlEl('p', 'atl-propok', '📨 Envoyé ! ' + gNM() + ' regarde et te répond ici.')); atlDemRafr(); }
+    catch (e) { go.disabled = false; msg.textContent = atlWhy(e); }
+  });
+  ed.append(ta, go, msg);
+  const rb = carre('atl-drep', '💬', 'Répondre'); rb.addEventListener('click', () => ouvrir('rep')); row.appendChild(rb);
+  const mb = carre('atl-dmod', '✏️', x.sorte === 'propose' ? 'Autre chose' : 'Modifier'); mb.addEventListener('click', () => ouvrir('modif')); row.appendChild(mb);
+  if (offre) {
+    const nb = carre('atl-dnon', '🙅', 'Non merci');
+    nb.addEventListener('click', async () => {
+      if (!await atlConfirmer('🙅 Non merci ?', x.sorte === 'propose' ? 'Ce cadeau sera retiré. Rien n’est utilisé, et tu peux toujours faire une autre demande.' : 'Ta demande sera fermée sans rien choisir. Rien n’est utilisé.', 'Oui, non merci')) return;
+      nb.disabled = true;
+      try { await rpc('at_demande_refuser', { p_name: profile.name, p_id: x.id }, { quiet: true }); w.textContent = ''; w.appendChild(atlEl('p', 'atl-propok', '🙅 D’accord, c’est noté. Rien n’est utilisé.')); atlDemRafr(); }
+      catch (e) { nb.disabled = false; atlToast(atlWhy(e)); }
+    });
+    row.appendChild(nb);
+  }
+  w.append(row, ed); return w;
 }
 function atlOffreValider(x, o, solde, box) {
   const c = Math.max(0, o.credits | 0), O = atlEl('div', 'atl-ofmod'), k = atlEl('div', 'atl-ofcard');
@@ -16482,6 +16525,25 @@ function atlDemCarte(x) {
   if (bu && hd) t.insertBefore(bu, hd.nextSibling);   // 2.0.11 (Benjamin) : la réponse du guide se lit en premier
   if (x.nouveau && (x.reponse || atlPropOuverte(x)) && hd) { hd.appendChild(atlEl('span', 'atl-dnouv', 'Nouveau')); c.classList.add('neuf'); }
   if (x.etat === 'faite' && x.version_livree && t) t.appendChild(atlEl('p', 'atl-livre', '✅ Livré dans la V' + x.version_livree));
+  const hi = Array.isArray(x.historique) ? x.historique.filter(h => h && h.sorte) : [];
+  if (hi.length && t) {   // 2.0.17 : les échanges du ticket, dans l'ordre (ta demande, sa réponse, ta réponse…)
+    const fil = atlEl('div', 'atl-demfil'), tp = t.querySelector('.atl-demtx'), vp = t.querySelector('.atl-demplus'), net = v => String(v || '').replace(/\s*\((?:[is]|a)\/[0-9a-f-]{36}\.\w+\)/g, '');
+    const L = (qui, tx) => { const q = atlEl('p', 'atl-dfl ' + qui); q.append(atlEl('b', '', qui === 'g' ? gNM() + ' : ' : 'Toi : '), document.createTextNode(tx)); fil.appendChild(q); };
+    L('j', net((hi.find(h => h.avant) || {}).avant || x.texte).split('\n\n↪ ')[0]);
+    for (const h of hi) { if (h.reponse) L('g', h.reponse); if (h.sorte === 'reponse') L('j', '↪ ' + h.texte); else if (h.sorte === 'modif') L('j', '✏️ ' + net(h.texte)); else if (h.sorte === 'refus') L('j', '🙅 Non merci' + (h.mot ? ' : ' + h.mot : '')); }
+    if (tp) tp.remove(); if (vp) vp.remove();
+    const bu0 = t.querySelector('.atl-dembu'); if (bu0) t.insertBefore(fil, bu0); else if (hd) t.insertBefore(fil, hd.nextSibling); else t.appendChild(fil);   // dans l'ordre, la dernière réponse du guide en dessous
+    if (x.etat === 'impossible' && hi[hi.length - 1].sorte === 'refus') { const b = c.querySelector('.atl-demb2'); if (b) b.textContent = '🙅 Non merci'; }
+  }
+  if (t && !atlAdminIci() && x.reponse && !x.choix && !atlPropOuverte(x) && ['vue', 'plus_tard'].includes(x.etat)) t.appendChild(atlDemActions(x, false));
+  // 2.0.17 (Benjamin : « le guide réfléchit à ce qu'il va dire pendant ce temps et ça se voit ») : tant que le guide n'a pas répondu,
+  // une bulle « réfléchit » avec ses points qui bougent ; l'étape écrite par l'équipe (at_demande_avancer) s'y affiche en direct
+  if (t && x.etat === 'envoyee' && !x.choix) {
+    const ld = Array.isArray(x.etapes) && x.etapes.length ? x.etapes[x.etapes.length - 1] : null, neuf = ld && ld.texte && String(ld.at || '') >= String(x.etat_at || x.at || '');
+    const th = atlEl('div', 'atl-dthink'), tx = atlEl('div');
+    tx.append(atlEl('b', '', '💭 ' + gNM() + (neuf ? '' : ' réfléchit à ta demande')), atlEl('p', '', neuf ? String(ld.texte) : 'Je lis ce que tu veux et je prépare mes questions ou mes propositions.'), atlEl('span', 'atl-dpts', '•••'));
+    th.append(atlGuideAv('atl-wav'), tx); t.appendChild(th); const el = t.querySelector('.atl-etapes'); if (el) el.remove();   // l'étape est déjà dans la bulle
+  }   // une question du guide : on lui répond ici
   if ((x.sorte === 'propose' || x.sorte === 'correction') && hd) hd.insertBefore(atlEl('span', 'atl-dguide', x.sorte === 'propose' ? '🎁 Proposé par ' + gN() : '🛠️ Correction de ' + gN()), hd.children[1] || null);
   return c;
 }
@@ -16574,7 +16636,7 @@ async function atlVoirProjet(id) {
 // ---- 23 h 10 (Benjamin : « en tant qu'admin je puisse intervenir ») : MODE ADMIN. Les appels d'un projet ouvert depuis « Tous les projets »
 // sont redirigés vers le serveur admin (at_admin_lire / at_admin_agir : at_admins seulement, journal at_admin_journal, JAMAIS de débit) ;
 // un message écrit par l'admin s'affiche comme le guide (l'auteur réel est noté côté serveur). Les dépenses en € restent au patron.
-const ATL_ADMIN_NON = new Set(['at_demande', 'at_demande_element', 'at_demande_modif', 'at_design_refaire', 'at_dessins_demander', 'at_choisir_design', 'at_supprimer', 'at_publier_salle', 'at_demander_monde', 'at_monde_annuler', 'at_valider', 'at_envoyer', 'at_planches_joueur', 'at_asset_renommer', 'at_brouillon']);
+const ATL_ADMIN_NON = new Set(['at_demande', 'at_demande_element', 'at_demande_modif', 'at_design_refaire', 'at_dessins_demander', 'at_choisir_design', 'at_supprimer', 'at_publier_salle', 'at_demander_monde', 'at_monde_annuler', 'at_demande_modifier', 'at_demande_refuser', 'at_valider', 'at_envoyer', 'at_planches_joueur', 'at_asset_renommer', 'at_brouillon']);
 rpc = (rpc0 => async function (fn, a, o) {
   const m = typeof ATL !== 'undefined' && ATL && ATL.adminVoir;
   if (!m || !a || a.p_fiche !== m.id) return rpc0(fn, a, o);

@@ -4542,3 +4542,29 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .atl-ptile .atl-pch{animation:atlGlow 1.2s ease-in-out infinite alternate;box-shadow:0 2px 8px rgba(0,0,0,.35)}
 /* 2.0.16 : fenêtre de confirmation avant de publier */
 .atl-conf .atl-aide{font-size:15px;line-height:1.45}
+
+/* 2.0.17 : Répondre / Modifier ma demande / Non merci, et le fil des échanges d'un ticket */
+.atl-dact{display:grid;gap:10px;margin:12px 0 4px;padding:12px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid var(--line)}
+.atl-dactq{margin:0;font:600 14px/1.4 var(--body);color:var(--muted,#b9b3d6);text-align:center}
+.atl-dactb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.atl-dactb.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.atl-dactb .atl-dab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;margin:0;padding:10px 6px;border-radius:14px;white-space:normal;text-align:center;line-height:1.15;font-size:13px}
+.atl-dab .atl-dabi{font-size:24px;line-height:1}
+.atl-dab.on{border-color:#ffd34d;background:rgba(255,211,77,.12)}
+.atl-dab.atl-dnon:hover{border-color:#ff7a7a}
+@media (min-width:700px){.atl-dact{max-width:560px}.atl-offres-w .atl-dact{margin-left:auto;margin-right:auto}}
+.atl-dedit{display:grid;gap:8px}
+.atl-dein{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);font:15px/1.4 var(--body);padding:10px 12px;resize:vertical}
+.atl-demsg{color:var(--muted,#b9b3d6)}
+.atl-demfil{display:grid;gap:6px;margin:4px 0 8px}
+.atl-dfl{margin:0;padding:7px 10px;border-radius:12px;font:14px/1.4 var(--body);background:rgba(255,255,255,.05);white-space:pre-wrap;overflow-wrap:anywhere}
+.atl-dfl.g{background:rgba(122,76,255,.16)}
+.atl-dfl b{font-weight:800}
+/* 2.0.17 : le guide réfléchit (bulle et points qui bougent) */
+.atl-dthink{display:flex;gap:10px;align-items:flex-start;margin:8px 0 2px;padding:10px 12px;border-radius:14px;background:rgba(122,76,255,.14);border:1px dashed rgba(155,123,255,.6)}
+.atl-dthink .atl-wav{flex:0 0 44px;width:44px;height:44px;animation:atlPense 2.4s ease-in-out infinite}
+.atl-dthink p{margin:2px 0 0;font:14px/1.4 var(--body)}
+.atl-dpts{display:inline-block;font:900 20px/1 var(--body);letter-spacing:3px;color:#b9a2ff;animation:atlPts 1.2s steps(4) infinite;overflow:hidden;width:0;white-space:nowrap;vertical-align:bottom}
+@keyframes atlPts{to{width:3.2ch}}
+@keyframes atlPense{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-3px) rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.atl-dthink .atl-wav,.atl-dpts{animation:none;width:auto}}

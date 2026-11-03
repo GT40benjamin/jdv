@@ -2842,3 +2842,5 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- et un TICKET gratuit (at_demandes sorte 'propose' | 'correction', faite, version_livree = Vn). Migration v57_annoncer_changement.
 -- (v58, borne 2.0.14) : 📊 Suivi PAR DEMANDE : pegase_int.at_suivi_demandes() (une ligne par ticket, « 🏗️ Conception », « 🎁 offert », générations
 -- payées, messages ; crédits payés, coût réel, gain, détail) et pegase_int.at_suivi_resume() (le mois) dans at_suivi. Migration v58_suivi_par_demande.
+
+-- 2.0.17 (3 nov. 2026, migrations v60-v62, appliquées) : at_demandes.historique (jsonb) ; at_demande_modifier(name, id, texte, ajout) = le joueur répond (ajout) ou modifie sa demande, gratuit, ticket remis en « envoyee » ; at_demande_refuser(name, id, mot) = « Non merci » (etat impossible, historique refus) ; at_sonnette() = nombres seuls {n, d, m} pour réveiller le chef vite (clé publique).
