@@ -6,6 +6,9 @@
 # que la dernière version vue sur l'appareil, rangés par jeu ; la tuile du jeu porte « ✨ Mis à jour » jusqu'à ce qu'on l'ouvre. publier.sh REFUSE
 # une version qui change les fichiers d'un jeu (source/games|duos/<id>.js, assets/<id>*.bin, telecharger/pegase*.json) sans son « [id] ## … (borne X.Y.Z) »
 # (NOTES_SKIP=id seulement pour un changement invisible des joueurs). Pégase : jamais de noms de sessions ni d'outils internes.
+[atelier] ## 🏠 Tu vois où ton jeu est publié (borne 2.0.31)
+[atelier] 🏠 Sur tes projets : « 🏠 V13 · publié dans la salle uniquement », « 🌍 V13 · publication mondiale », « ⏳ V13 · dans la salle · publication mondiale demandée » ou « 🧪 V13 · en essai », et « V14 prête à publier » quand une nouvelle version t’attend.
+[atelier] ⭐ Le ruban « MON JEU » est dans le coin en bas à droite de ta tuile : ta tête de champion reste bien visible.
 [atelier] ## 🏷️ Ton nom de créateur sous ton jeu (borne 2.0.30)
 [atelier] 🌟 « Publier dans mes salles » : ton jeu arrive dans toutes les salles dont tu fais partie, et il te suit dans chaque salle que tu rejoins.
 [atelier] 🏷️ Sur la page de ton jeu, choisis ton « Nom du créateur » : les autres joueurs voient « by … » sous ta tuile, sur toutes les bornes, dès que tu touches OK.

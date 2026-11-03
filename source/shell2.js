@@ -103,6 +103,7 @@ const atlEnGrille = id => { const x = ATL_JEUX.get(id); if (!ATL_NES.has(id) && 
 // la tuile d'un jeu encore en essai porte un ruban « TEST » (vue seulement sur les appareils en mode test, comme le jeu lui-même)
 function laboMark(b, id) {
   if (!LABO.has(id) || !LABO_TEST) return;
+  try { const x = ATL_NES.has(id) && ATL_JEUX.get(id); if (x && /^publie_/.test(String(x.etat || ''))) return; } catch (e) {}   // 2.0.31 : publié = plus « TEST »
   b.classList.add('tile-labo'); const im = b.querySelector('.tile-img'); if (!im) return;
   const c = document.createElement('span'), t = document.createElement('span'); c.className = 'tile-labo-clip'; c.title = 'Jeu en essai : visible seulement en mode test';
   t.className = 'tile-labo-tag'; t.textContent = 'TEST'; c.appendChild(t); im.appendChild(c);
@@ -14331,7 +14332,11 @@ const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : 
 // 23 h 55 (Benjamin : « la version très simple, V1 ou V2 ») : le badge d'un projet
 function atlVersion(p, att) {
   const et = String((p && p.etat) || ''), v = (p && p.version) | 0 || 1;
-  if (et === 'alpha') return '🎮 V' + v; if (et === 'publie_salle') return '🌟 V' + v + ' · publié'; if (et === 'publie_monde') return '🌍 V' + v + ' · publié pour tous';
+  // 2.0.31 (Benjamin : « c'est pas suffisant, il faut "publié dans la salle uniquement" ») : où c'est publié, et la version prête à publier
+  const vp = (p && p.version_publiee) | 0 || v, plus = v > vp ? ' · V' + v + ' prête à publier' : '';
+  if (et === 'alpha') return '🧪 V' + v + ' · en essai';
+  if (et === 'publie_salle') return (p && p.monde_demande_at ? '⏳ V' + vp + ' · dans la salle · publication mondiale demandée' : '🏠 V' + vp + ' · publié dans la salle uniquement') + plus;
+  if (et === 'publie_monde') return '🌍 V' + vp + ' · publication mondiale' + plus;
   if (et === 'envoyee' || et === 'acceptee') return '🛠️ V1 en construction'; if (et === 'refusee') return 'Pas retenu';
   if (att) return '⏳ En attente ' + gDe();
   if (p && p.monte && ['brouillon', 'en_discussion', 'complete', 'design', 'design_choisi'].includes(et)) return '🧩 Prêt à construire';   // 1 h 25
@@ -14372,6 +14377,7 @@ function atlMineMark(wrap, b, id) {
   for (const o of wrap.querySelectorAll('.tile-mine,.tile-mod,.tile-mineclip,.tile-pen')) o.remove();
   for (const o of b.querySelectorAll('.tile-by')) o.remove();
   wrap.classList.toggle('atl-mine', !!x.mien); wrap.classList.add('atl-game'); wrap.classList.remove('has-mod');
+  if (/^publie_/.test(String(x.etat || ''))) { b.classList.remove('tile-labo'); for (const o of b.querySelectorAll('.tile-labo-clip')) o.remove(); }   // 2.0.31 : publié = plus « TEST »
   if (x.mien) {
     const clip = atlEl('div', 'tile-mineclip'); clip.setAttribute('aria-hidden', 'true'); clip.appendChild(atlEl('span', 'tile-mine', 'MON JEU')); wrap.appendChild(clip);
     const pen = atlEl('button', 'tile-pen', '✏️'); pen.type = 'button'; pen.title = 'Modifier mon jeu dans l’Atelier'; pen.setAttribute('aria-label', 'Modifier mon jeu dans l’Atelier');

@@ -2864,3 +2864,4 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- (auteur ou admin, 2-20 lettres, at_filtre), createur dans at_jeux / at_lire / at_voir / at_admin_lire (+ fiche pour l'auteur dans at_jeux) ;
 -- « ECP GIRL » posé sur les 2 jeux de PATOU. at_jeux(name, salle) : un jeu publie_salle se voit dans TOUTES les salles dont l'auteur est
 -- membre (p_salle = la salle ouverte) — il suit son auteur ; at_fiches.salle ne limite plus rien.
+-- 2.0.31 (migration v76, appliquée) : monde_demande_at dans la liste des projets de at_lire (pastille « publication mondiale demandée »).

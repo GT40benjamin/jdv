@@ -4656,3 +4656,10 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
 .tile-wrap.atl-game .tile-online span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .atl-crear{display:flex;gap:8px}
 .atl-creain{flex:1 1 auto;min-width:0;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);font:15px var(--body)}
+/* 2.0.31 (Benjamin : « tu n'as pas pensé à ma tête ») : le ruban « MON JEU » passe dans le coin bas-DROIT (la tête du champion reste en bas à gauche) */
+.tile-wrap.atl-game .tile-mine{left:auto;right:-34px;transform:rotate(-38deg)}
+.tile-pen{left:auto;right:84px}
+@media (max-width:700px){
+  .tile-wrap.atl-game .tile-mine{width:112px;right:-31px;bottom:12px;padding:2px 0;font-size:9.5px;letter-spacing:.12em;border-top-width:1.5px;border-bottom-width:1.5px}
+  .tile-pen{width:24px;height:24px;font-size:11px;right:52px;margin-top:calc(75% - 27px)}
+}
