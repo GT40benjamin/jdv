@@ -2870,3 +2870,7 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- 2.0.34 (migrations v80-v81, appliquées) : compte_vus (name, cle, v jsonb) + pegase_int.vus_fusion (ne fait que grandir), vus_lire / vus_poser : les « vu » de la borne suivent le compte ; at_tous_projets renvoie monde_demande_at et createur.
 -- 2.0.35 (migration v82, appliquée) : at_jeux_monde() public (invités) = les jeux publie_monde, champs publics seulement.
 -- 2.0.36 (migration v83, appliquée) : at_messages.questions + q_envoye_at ; at_repondre_questions(fiche, questions, texte) (service) ; pegase_int.at_mq_repondre, at_message_repondre_question (joueur, gratuit), at_admin_message_repondre (admin) ; à l'envoi, un message du joueur « ↪ question → réponse » ; at_lire/at_voir/at_admin_lire : messages[].questions/q_envoye, projets[].q_msg.
+-- v84 v84_textes_longs_15000 (3 nov., Benjamin : « envoyer des grosses grosses demandes ») : 15 000 caractères partout où un joueur écrit —
+--   at_demande_ecrite / at_demande / at_demande_element / at_demande_modif / at_demande_modifier (1 000 → 15 000, ajout cumulé 4 000 → 30 000),
+--   at_dire (2 000 → 15 000), at_q_repondre / at_mq_repondre (réponse 500 → 15 000, lignes 2 000-4 000 → 30 000), at_brouillon (1 500),
+--   at_fiche_joueur (600), at_fiche_etape (1 500), at_repondre (4 000) → 15 000 ; at_messages_taille 4 000 → 32 000 ; at_fiches_taille fiche 20 000 → 300 000.

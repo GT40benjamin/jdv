@@ -4729,3 +4729,6 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
   #jdw-play.fl-ml .topbar{top:50%;transform:translateY(-50%);padding-top:0}
   #jdw-play.fl-ml .soundmenu{top:calc(50% - 40px)}
 }
+/* 2.0.46 : le petit compteur des longs textes (à partir de 12 000), « trop long » en clair au-delà de 15 000 */
+.atl-cpt{display:block;margin:4px 2px 0;text-align:right;font:600 11px/1.3 var(--body);color:var(--muted, rgba(255,255,255,.55))}
+.atl-cpt.trop{text-align:left;font-size:13px;color:#ffd0d0;background:rgba(255,77,77,.14);border:1px solid rgba(255,107,107,.45);border-radius:10px;padding:6px 10px}

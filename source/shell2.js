@@ -14578,7 +14578,7 @@ function atlBuild() {
     + '<div class="atl-chat"><div class="atl-intro" hidden></div><div class="atl-banner" hidden></div><div class="atl-log" role="log" aria-live="polite"></div>'
     + '<form class="atl-comp" autocomplete="off"><div class="atl-rec" hidden><span class="atl-recdot"></span><span class="atl-rect">Je t’écoute… parle normalement. Touche le micro pour arrêter.</span></div>'
     + '<p class="atl-err" hidden></p><div class="atl-lock" hidden></div><div class="atl-choix" hidden></div>'
-    + '<div class="atl-row"><textarea class="atl-in" rows="2" maxlength="2000" placeholder="Décris ton jeu…" aria-label="Ton message"></textarea>'
+    + '<div class="atl-row"><textarea class="atl-in" rows="2" placeholder="Décris ton jeu…" aria-label="Ton message"></textarea>'
     + '<button class="atl-mic" type="button" aria-label="Parler au micro"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/></svg></button></div>'
     + '<div class="atl-row2"><button class="atl-imgb" type="button"><span aria-hidden="true">🖼️</span> Joindre une image</button><input class="atl-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>'
     + '<small class="atl-cost" hidden></small><button class="btn btn-play atl-send" type="submit">Envoyer ➤</button></div></form></div></div>'
@@ -15002,7 +15002,7 @@ function atlRenderWiz() {
   if (k === 'idee') {
     const tl = atlEl('label', 'atl-flab', 'Le nom de ton jeu'), ti = atlEl('input', 'atl-wti'); ti.type = 'text'; ti.maxLength = 40; ti.value = f.titre || ''; ti.placeholder = 'Le nom de ton jeu';
     ti.addEventListener('change', () => { const v = ti.value.trim(); if (v.length >= 2 && v !== f.titre) atlEtape('titre', v); });
-    const ta = atlEl('textarea', 'atl-wta'); ta.rows = 6; ta.maxLength = 1500; ta.value = atlVal(fi.idee); ta.setAttribute('aria-label', 'L’idée de ton jeu');
+    const ta = atlEl('textarea', 'atl-wta'); ta.rows = 6; ta.value = atlVal(fi.idee); ta.setAttribute('aria-label', 'L’idée de ton jeu');
     ta.addEventListener('change', () => { const v = ta.value.trim(); if (v.length >= 2 && v !== atlVal(fi.idee)) atlEtape('idee', v); });
     page.append(tl, ti, atlEl('label', 'atl-flab', 'Ton jeu en quelques phrases'), ta);
   } else if (k === 'design') {
@@ -15056,7 +15056,7 @@ function atlProjDem(p, f) {
   p.appendChild(atlEl('h3', 'atl-ph3', '🎫 Tes demandes pour « ' + (f.titre || 'ton jeu') + ' »'));
   if (!atlAdminIci()) {
     const crT = atlCred() || {}, nw = atlEl('div', 'atl-dnew'), ta = atlEl('textarea', 'atl-dnin'), px = crT.ticket != null ? crT.ticket | 0 : 0;   // 2.0.20 : un ticket est gratuit (cout_ticket)
-    ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Qu’est-ce que tu veux changer ou ajouter dans ton jeu ? (ex. « la navette va plus vite », « un niveau dans la neige »)';
+    ta.rows = 3; ta.placeholder = 'Qu’est-ce que tu veux changer ou ajouter dans ton jeu ? (ex. « la navette va plus vite », « un niveau dans la neige »)';
     const go = atlEl('button', 'btn btn-play atl-dnenv', '📨 Envoyer ma demande' + (px ? ' · ' + px + ' 💎' : '')); go.type = 'button';
     const msg = atlEl('small', 'atl-dnmsg', 'Pendant la partie, ⏸ Pause : tu peux aussi montrer avec le viseur ce qu’il faut changer.');
     go.addEventListener('click', async () => {
@@ -15376,7 +15376,7 @@ function atlArretUI(host, shot, ficheId, reprendre, plein) {
   const lache = () => { glisse = false; };
   zone.addEventListener('pointerup', lache); zone.addEventListener('pointercancel', lache);
   zone.addEventListener('pointerleave', () => { if (!pose) mk.hidden = true; });
-  const tw = atlEl('div', 'atl-artw'), ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux changer ici…'; tw.appendChild(ta);
+  const tw = atlEl('div', 'atl-artw'), ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.placeholder = 'Ce que tu veux changer ici…'; tw.appendChild(ta);
   ta.addEventListener('input', () => { if (vis.x != null) majLeg(); });
   // le micro : le moteur unique (continu, Ctrl+Espace, bouton Vue / Select de la manette)
   if (atlMicKind()) tw.appendChild(atlMicBouton(ta));
@@ -15889,7 +15889,7 @@ function atlBrouillon() {
 async function atlBrSave(cur0) {
   clearTimeout(ATL.brT); ATL.brT = 0;
   const inp = ATL.root && ATL.root.querySelector('.atl-in'); if (!inp) return;
-  const t = inp.value.slice(0, 1500); if (t === (ATL.brLast || '') || (!t.trim() && !ATL.brLast)) return;
+  const t = inp.value.slice(0, 15000); if (t === (ATL.brLast || '') || (!t.trim() && !ATL.brLast)) return;
   let id = cur0 || ATL.cur; if (!id) { if (t.trim().length < 3) return; id = await atlBrouillon(); } if (!id) return;
   ATL.brLast = t;
   const f = atlFiche(); if (f && f.id === id) { f.fiche = f.fiche && typeof f.fiche === 'object' ? f.fiche : {}; f.fiche.brouillon = t; }
@@ -16271,7 +16271,7 @@ function atlVignetteDem(f, url) {
   opt('vignette', '🖼️ Image fixe', 'une nouvelle image');
   opt('vignette_animee', '✨ Image animée', 'une tuile vivante : personnages qui bougent, étincelles…');
   c.appendChild(ch);
-  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'Ce que tu veux voir sur l’image…'; c.appendChild(atlAvecMic(ta));
+  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.placeholder = 'Ce que tu veux voir sur l’image…'; c.appendChild(atlAvecMic(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (px[type] ? ' · ' + px[type] + ' 💎' : '')); no.type = go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
@@ -16295,7 +16295,7 @@ function atlModif(it, f, type) {
   ht.append(atlEl('b', '', gNM()), atlEl('p', '', type === 'retouche' ? 'Qu’est-ce que je retouche sur « ' + it.nom + ' » ? (recadrer, taille, couleurs, miroir, fond…)' : type === 'redessin' ? 'Comment veux-tu que je refasse « ' + it.nom + ' » ?' : 'Tu veux que je retire « ' + it.nom + ' » du jeu ? Je regarde, j’adapte ton jeu et je publie une nouvelle version.'));
   hd.append(atlGuideAv('atl-wav'), ht); c.appendChild(hd);
   if (it.url && !it.son) { const im = atlEl('img', 'atl-demimg'); im.alt = it.nom; im.src = it.url; c.appendChild(im); }
-  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = type === 'retirer' ? 'Pourquoi ? (facultatif)' : 'Ce que tu veux…'; c.appendChild(atlAvecMic(ta));
+  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.placeholder = type === 'retirer' ? 'Pourquoi ? (facultatif)' : 'Ce que tu veux…'; c.appendChild(atlAvecMic(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? ' · ' + cout + ' 💎' : '')); no.type = go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
@@ -16394,7 +16394,7 @@ function atlDemandeElem(it, f, cat) {
   c.appendChild(hd);
   if (it && it.url && !it.son) { const im = atlEl('img', 'atl-demimg'); im.alt = it.nom; im.src = it.url; c.appendChild(im); }
   let ni = null; if (creer) { ni = atlEl('input', 'atl-chin2'); ni.type = 'text'; ni.maxLength = 80; ni.placeholder = 'Son nom (ex. : ' + ({ son: 'le bruit du saut', musique: 'la musique du menu', interface: 'le bouton Jouer' }[cat] || 'un dragon bleu') + ')'; c.appendChild(atlAvecMic(ni)); }
-  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = creer ? (cat === 'musique' ? 'Ex. : douce et mystérieuse, au piano, pendant l’exploration…' : cat === 'son' ? 'Ex. : un petit « boing » joyeux quand on saute…' : 'Décris-le : couleurs, ambiance, à quoi il sert…') : 'Ce que tu veux changer…'; c.appendChild(atlAvecMic(ta));
+  const ta = atlEl('textarea', 'atl-arin'); ta.rows = 3; ta.placeholder = creer ? (cat === 'musique' ? 'Ex. : douce et mystérieuse, au piano, pendant l’exploration…' : cat === 'son' ? 'Ex. : un petit « boing » joyeux quand on saute…' : 'Décris-le : couleurs, ambiance, à quoi il sert…') : 'Ce que tu veux changer…'; c.appendChild(atlAvecMic(ta));
   const er = atlEl('p', 'atl-werr'); er.hidden = true; c.appendChild(er);
   const row = atlEl('div', 'atl-mbtns'), no = atlEl('button', 'btn btn-ghost', 'Annuler'), go = atlEl('button', 'btn btn-play', 'Envoyer ' + gA() + (cout ? ' · ' + cout + ' 💎' : '')); no.type = 'button'; go.type = 'button';
   no.addEventListener('click', () => { M.hidden = true; M.textContent = ''; });
@@ -16691,7 +16691,7 @@ function atlDemActions(x, offre) {
   const carre = (cls, ic, lab) => { const b = atlEl('button', 'btn btn-ghost atl-dab ' + cls); b.type = 'button'; b.append(atlEl('span', 'atl-dabi', ic), atlEl('span', 'atl-dabt', lab)); return b; };   // des boutons carrés, égaux
   if (offre) w.appendChild(atlEl('p', 'atl-dactq', x.sorte === 'propose' ? 'Ça ne te dit rien ? Tu peux dire non, ou demander autre chose à la place.' : 'Aucune ne te va ? Pose ta question, change ta demande, ou dis non merci.'));
   const ed = atlEl('div', 'atl-dedit'); ed.hidden = true;
-  const ta = atlEl('textarea', 'atl-dein'); ta.rows = 3; ta.maxLength = 1000;
+  const ta = atlEl('textarea', 'atl-dein'); ta.rows = 3;
   const go = atlEl('button', 'btn btn-play btn-sm atl-dego'), msg = atlEl('small', 'atl-demsg', 'Gratuit : c’est la même demande. ' + gNM() + ' te répond ici.'); go.type = 'button';
   let mode = '';
   const ouvrir = m => {
@@ -16788,7 +16788,7 @@ function atlQuestions(x, o) {
       }
       const sug = Array.isArray(q.suggestions) ? q.suggestions.filter(Boolean) : [];
       const lw = atlEl('div', 'atl-qlib'), inp = atlEl('input', 'atl-qin'), okb = atlEl('button', 'btn btn-play btn-sm', 'OK'); okb.type = 'button';
-      inp.maxLength = 500; inp.placeholder = choix.length ? 'ou écris-le…' : 'Ta réponse…';
+      inp.placeholder = choix.length ? 'ou écris-le…' : 'Ta réponse…';
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); envoyer(inp.value, okb); } });
       okb.addEventListener('click', () => envoyer(inp.value, okb));
       if (sug.length) { const sg = atlEl('div', 'atl-qsug'); for (const s0 of sug) { const b = atlEl('button', 'atl-qsg', s0); b.type = 'button'; b.addEventListener('click', () => { inp.value = inp.value.trim() ? inp.value.trim() + ', ' + s0 : s0; inp.focus(); }); sg.appendChild(b); } k.appendChild(sg); }
@@ -17272,7 +17272,7 @@ async function atlImage(file) {
 // ---------- le joueur modifie une section de sa fiche (Benjamin, 15 h 50) : l'Atelier remanie ensuite à partir de son idée ----------
 function atlEditSection(dd, k, v, num, lab) {
   if (ATL.editing) return; ATL.editing = k;
-  const ta = atlEl('textarea', 'atl-fta'); ta.value = v || ''; ta.maxLength = 600; ta.rows = 3;
+  const ta = atlEl('textarea', 'atl-fta'); ta.value = v || ''; ta.rows = 3;
   const cr = atlCred(), row = atlEl('div', 'atl-fedb');
   const ok = atlEl('button', 'btn btn-play btn-sm', 'Enregistrer' + (cr && cr.message ? ' (' + (cr.message | 0) + ' 💎)' : '')); ok.type = 'button';
   const no = atlEl('button', 'btn btn-ghost btn-sm', 'Annuler'); no.type = 'button';
@@ -17782,14 +17782,63 @@ function atlMicBouton(field, cls) {   // le bouton 🎤 d'un champ (fenêtres) ;
   const b = atlEl('button', cls || 'atl-armic', '🎤'); b.type = 'button'; b.setAttribute('aria-label', 'Parler au micro'); if (!TOUCH) { b.dataset.k = 'Ctrl+Espace'; b.title = 'Dicter (Ctrl+Espace)'; }
   b._champ = field; ATL_MICS.add(b); b.addEventListener('click', () => atlMicBascule(field, b)); return b;
 }
+// 2.0.46 (Benjamin : « il faut pouvoir envoyer des grosses grosses demandes ; j'ai posé un gros texte et ça n'est pas passé ! ») : jusqu'à
+// 15 000 caractères partout où le joueur écrit (demande, réponse, discussion, arrêt sur image, modifier, micro) ; avant : 1 000 (demandes),
+// 2 000 (discussion, micro), 500 (réponses aux questions), coupés sans rien dire. Un petit compteur à partir de 12 000 ; au-delà de 15 000,
+// « Ton texte est trop long (x / 15 000) » : le texte RESTE dans la case et l'envoi attend ; un long texte est gardé en brouillon sur l'appareil
+const ATL_MAX = 15000, ATL_LONG = '.atl-in, .atl-dnin, .atl-arin, .atl-dein, .atl-wta, .atl-fta, .atl-qin', ATL_LONG_BR = 'jdw.atl.longs';
+const atlNb = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+const atlLongCle = el => { const pj = (typeof ATL !== 'undefined' && ATL && (ATL.cur || (ATL.adminVoir && ATL.adminVoir.id))) || 'nouveau'; return String(el.className || '').split(' ')[0] + '|' + pj + '|' + (el.placeholder || '').slice(0, 24); };
+function atlLongMaj(el) {
+  if (!el || !el.matches || !el.matches(ATL_LONG)) return true;
+  const n = el.value.length, ok = n <= ATL_MAX;
+  let c = el._cpt;
+  if (n >= ATL_MAX * 0.8 || !ok || c) {
+    if (!c || !c.isConnected) { c = el._cpt = atlEl('small', 'atl-cpt'); const hote = el.parentNode && /\b(atl-row|atl-qlib|atl-micw|atl-artw)\b/.test(el.parentNode.className) ? el.parentNode : el; hote.insertAdjacentElement('afterend', c); }
+    c.hidden = n < ATL_MAX * 0.8 && ok; c.classList.toggle('trop', !ok);
+    c.textContent = ok ? atlNb(n) + ' / ' + atlNb(ATL_MAX) : '✋ Ton texte est trop long (' + atlNb(n) + ' / ' + atlNb(ATL_MAX) + ') : raccourcis-le un peu. Il reste ici, rien n’est perdu.';
+  }
+  try { const all = store.get(ATL_LONG_BR, {}) || {}, k = atlLongCle(el), t = el.value;
+    if (t.trim().length >= 200) all[k] = { t, at: Date.now() }; else delete all[k];
+    for (const x of Object.keys(all)) if (!all[x] || Date.now() - (all[x].at || 0) > 7 * 864e5) delete all[x];
+    store.set(ATL_LONG_BR, all); } catch (e) {}
+  return ok;
+}
+function atlLongOublier(el) { try { const all = store.get(ATL_LONG_BR, {}) || {}; delete all[atlLongCle(el)]; store.set(ATL_LONG_BR, all); } catch (e) {} }
+// l'envoi d'un texte trop long attend (bouton d'envoi, OK, Entrée) : le joueur voit pourquoi, son texte ne bouge pas
+function atlLongBloque(champs) {
+  const trop = champs.find(el => el.isConnected && el.value.length > ATL_MAX); if (!trop) return false;
+  atlLongMaj(trop); try { trop.focus({ preventScroll: true }); trop._cpt && trop._cpt.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+  atlToast('✋ Texte trop long : ' + atlNb(trop.value.length) + ' / ' + atlNb(ATL_MAX));
+  for (let n = trop.parentNode, i = 0; n && i < 4; n = n.parentNode, i++) { const ms = n.querySelectorAll ? n.querySelectorAll('.atl-dnmsg, .atl-armsg') : []; if (ms.length) { for (const m of ms) m.textContent = ''; break; } }   // pas d'ancien « ✅ envoyée » sous un texte retenu
+  return true;
+}
+const atlLongPres = b => { const out = []; let n = b; for (let i = 0; i < 5 && n && n !== document.body; i++, n = n.parentNode) { for (const el of n.querySelectorAll ? n.querySelectorAll(ATL_LONG) : []) if (!out.includes(el)) out.push(el); if (out.length) break; } return out; };
+document.addEventListener('input', e => { if (e.target && e.target.matches && e.target.matches(ATL_LONG)) atlLongMaj(e.target); }, true);
+document.addEventListener('focusin', e => {   // un long texte resté sur l'appareil (fenêtre fermée, réseau coupé…) revient dans sa case vide
+  const el = e.target; if (!el || !el.matches || !el.matches(ATL_LONG) || el.value || el._brVu) return; el._brVu = true;
+  try { const x = (store.get(ATL_LONG_BR, {}) || {})[atlLongCle(el)]; if (x && x.t) { el.value = x.t; atlLongMaj(el); atlToast('📝 Ton texte d’avant est revenu.'); } } catch (e2) {}
+}, true);
+document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest('button'); if (!b || !b.closest('#jdw-atelier, .atl-mod, .atl-arret, .atl-arret2, .atl-dnew')) return;
+  if (!/\b(btn-play|atl-send|atl-dnenv|atl-qgo)\b/.test(b.className) && !/envoy|^ok$|valid|enregistr|📨/i.test(b.textContent.trim())) return;
+  const ch = atlLongPres(b); if (!ch.length) return;
+  if (atlLongBloque(ch)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+  for (const ms of [600, 5000]) setTimeout(() => { for (const el of ch) { if (!el.isConnected || !el.value.trim()) atlLongOublier(el); if (el.isConnected) atlLongMaj(el); } }, ms);   // envoyé : le brouillon s'efface, le compteur aussi
+}, true);
+document.addEventListener('keydown', e => {
+  const el = e.target; if (e.key !== 'Enter' || !el || !el.matches || !el.matches(ATL_LONG) || (el.tagName === 'TEXTAREA' && e.shiftKey)) return;
+  if (el.value.length > ATL_MAX && (el.tagName === 'INPUT' || el.classList.contains('atl-in'))) { e.preventDefault(); e.stopImmediatePropagation(); atlLongBloque([el]); return; }
+  if (el.classList.contains('atl-in') || el.tagName === 'INPUT') for (const ms of [600, 5000]) setTimeout(() => { if (!el.isConnected || !el.value.trim()) atlLongOublier(el); if (el.isConnected) atlLongMaj(el); }, ms);
+}, true);
 function atlMicBascule(field, btn) { if (ATL_MIC && ATL_MIC.field === field) { atlMicFin(); return; } atlMicDebut(field, btn); }
 function atlMicDebut(field, btn) {
   if (ATL_MIC) atlMicFin();
   const kind = atlMicKind();
   if (!kind) { atlToast('Le micro ne marche pas dans ce navigateur : écris au clavier (ou essaie avec Chrome).'); return; }
-  const max = +field.maxLength > 0 ? +field.maxLength : 2000, base = field.value.replace(/\s+$/, '');
+  const max = +field.maxLength > 0 ? +field.maxLength : 100000, base = field.value.replace(/\s+$/, '');   // 2.0.46 : plus de coupure à 2 000 (le compteur dit « trop long »)
   const m = ATL_MIC = { field, btn, kind, base, garde: '', sess: '', last: Date.now(), actif: true };
-  const montre = mid => { const t = (m.garde + (m.garde && m.sess ? ' ' : '') + m.sess).trim(), tout = (t + (mid ? (t ? ' ' : '') + mid : '')).trim(); field.value = (m.base + (m.base && tout ? ' ' : '') + tout).slice(0, max); field.scrollTop = field.scrollHeight; if (tout && field.classList.contains('atl-in')) ATL.micUsed = true; try { field.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} };
+  const montre = mid => { const t = (m.garde + (m.garde && m.sess ? ' ' : '') + m.sess).trim(), tout = (t + (mid ? (t ? ' ' : '') + mid : '')).trim(); field.value = (m.base + (m.base && tout ? ' ' : '') + tout).slice(0, max); try { atlLongMaj(field); } catch (e) {} field.scrollTop = field.scrollHeight; if (tout && field.classList.contains('atl-in')) ATL.micUsed = true; try { field.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} };
   m.montre = montre;
   m.chrono = setInterval(() => {
     if (ATL_MIC !== m) { clearInterval(m.chrono); return; }
