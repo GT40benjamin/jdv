@@ -2842,6 +2842,7 @@ function onPoke(topic, event, p) {
   if (p.t === 'rx') { if (room && topic === 'jdw-room-' + room.id) rxShow(cleanName(p.n), cleanName(p.to), String(p.e || '').slice(0, 40)); return; }
   if (p.t === 'livre') { if (room && topic === 'jdw-room-' + room.id) for (const f of [...LIVRE_SUBS]) { try { f(); } catch (e) {} } return; }   // Grand livre : relire
   if (p.t === 'version') { checkSiteVersion(); return; }
+  if (p.t === 'atljeux') { clearTimeout(pokeTimers.atljeux); pokeTimers.atljeux = setTimeout(() => { try { atlJeuxLoad(); } catch (e) {} }, 150); return; }   // 2.0.30 : nom du créateur changé
   if (p.t === 'rooms') { if (!$('jdw-rooms').hidden) listRooms(); return; }
   if (!room || topic !== 'jdw-room-' + room.id) return;
   const run = { chat: () => loadChat(), scores: () => { loadScores(); if (!$('jdw-board').hidden) loadWorld(); coopOnPokeScores(); }, players: () => loadPlayers(), presence: () => heartbeat(), react: () => loadReactions(), progress: () => progOnPoke(),
@@ -5760,6 +5761,7 @@ async function doJoin(r, code) {
 function enterRoom(rm) {
   const prevId = room ? room.id : null;
   room = rm; store.set('jdw.room', room); remoteLoaded = false; roomDenied = false; membersFor = null; memberNames = new Set();
+  try { if (typeof ATL !== 'undefined' && ATL) setTimeout(() => { try { atlJeuxLoad(); } catch (e) {} }, 400); } catch (e) {}   // 2.0.30 : nouvelle salle → ses jeux
   if (prevId && prevId !== room.id) { rtLeave('jdw-room-' + prevId); presReset(); }
   rtJoin('jdw-room-' + room.id);
   players.clear(); syncOwnPlayer(); if (typeof ensureAiPlayer === 'function') ensureAiPlayer(); remote = {}; counts = {}; total = 0;
@@ -14324,7 +14326,7 @@ const atlProjets = () => (ATL.data && Array.isArray(ATL.data.projets) ? ATL.data
 const atlSeenKey = id => ATL.name + '|' + id;
 const atlProjNew = pj => !!(pj && pj.reponse_at) && String(pj.reponse_at) > String(ATL.seen[atlSeenKey(pj.id)] || '');
 const ATL_ETATS = { brouillon: '📝 Brouillon', en_discussion: '💬 En discussion', complete: '🎉 Fiche complète', design: '🎨 Choix du design', design_choisi: '📮 Lettre à envoyer',
-  envoyee: '🛠️ Conception en cours', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans ta salle', publie_monde: '🌍 Publié pour tous' };
+  envoyee: '🛠️ Conception en cours', acceptee: '✅ Accepté', alpha: '🎮 Jouable (essai)', publie_salle: '🌟 Publié dans tes salles', publie_monde: '🌍 Publié pour tous' };
 const atlEtat = () => { const f = atlFiche(); return f ? String(f.etat || '') : ''; };
 // 23 h 55 (Benjamin : « la version très simple, V1 ou V2 ») : le badge d'un projet
 function atlVersion(p, att) {
@@ -14362,28 +14364,36 @@ const atlNum = f => 'N° ' + String((f && f.id) || '000000').replace(/-/g, '').s
 const atlEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
 // ---------- les jeux nés à l'Atelier : macaron « MON JEU » (ou « Jeu de NOM ») + « Modifier mon jeu » pour l'auteur ----------
+// 2.0.30 (Benjamin) : plus de bouton « Modifier mon jeu » qui chevauche la tuile — pour l'auteur, le RUBAN jaune « MON JEU » en diagonale
+// dans le coin de l'image, avec un petit ✏️ collé qui ouvre la page du projet ; pour les autres, « by <nom du créateur> » sous le record
+// (at_fiches.createur, choisi par l'auteur ; sinon le nom affiché du compte) ; le reste de la tuile lance le jeu
 function atlMineMark(wrap, b, id) {
   const x = ATL_JEUX.get(id); if (!x || !wrap || !b) return;
-  for (const o of wrap.querySelectorAll('.tile-mine,.tile-mod')) o.remove();
-  wrap.classList.toggle('atl-mine', !!x.mien); wrap.classList.add('atl-game');
-  const m = atlEl('span', 'tile-mine' + (x.mien ? '' : ' theirs'), x.mien ? '⭐ MON JEU' : '🎨 Jeu de ' + dispName(x.auteur || ''));
-  m.setAttribute('aria-hidden', 'true'); wrap.appendChild(m);
+  for (const o of wrap.querySelectorAll('.tile-mine,.tile-mod,.tile-mineclip,.tile-pen')) o.remove();
+  for (const o of b.querySelectorAll('.tile-by')) o.remove();
+  wrap.classList.toggle('atl-mine', !!x.mien); wrap.classList.add('atl-game'); wrap.classList.remove('has-mod');
   if (x.mien) {
-    const md = atlEl('button', 'tile-mod', '✏️ Modifier mon jeu'); md.type = 'button'; md.setAttribute('aria-label', 'Modifier mon jeu avec l’Atelier');
-    md.addEventListener('click', e => { e.stopPropagation(); atlOpen(); }); wrap.appendChild(md); wrap.classList.add('has-mod');
+    const clip = atlEl('div', 'tile-mineclip'); clip.setAttribute('aria-hidden', 'true'); clip.appendChild(atlEl('span', 'tile-mine', 'MON JEU')); wrap.appendChild(clip);
+    const pen = atlEl('button', 'tile-pen', '✏️'); pen.type = 'button'; pen.title = 'Modifier mon jeu dans l’Atelier'; pen.setAttribute('aria-label', 'Modifier mon jeu dans l’Atelier');
+    pen.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); atlOpen(); const fid = x.fiche || ((atlProjets().find(q => q.jeu === id) || {}).id); if (fid) setTimeout(() => atlOuvrir(fid), 60); });
+    wrap.appendChild(pen);
+  } else {
+    const meta = b.querySelector('.tile-meta'), nom = String(x.createur || dispName(x.auteur || '') || '').trim();
+    if (meta && nom) meta.appendChild(atlEl('small', 'tile-by', 'by ' + nom));
   }
 }
 async function atlJeuxLoad() {
   if (!ONLINE || isGuest() || !profile.name || netOff() || PAGE === 'pegase') return;
   const me = cleanName(profile.name);
-  let l; try { l = await rpc('at_jeux', { p_name: profile.name }, { quiet404: true, quiet: true }); } catch (e) { return; }
+  let l; try { l = await rpc('at_jeux', { p_name: profile.name, p_salle: room && room.id ? room.id : null }, { quiet404: true, quiet: true }); } catch (e) { return; }   // 2.0.30 : les jeux des membres de CETTE salle
   if (cleanName(profile.name) !== me || !Array.isArray(l)) return;
-  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, version: x.version | 0, orientation: /^(portrait|paysage|les2)$/.test(String(x.orientation || '')) ? String(x.orientation) : '' }));
+  l = l.filter(x => x && /^[a-z0-9_-]{2,20}$/.test(String(x.jeu || ''))).map(x => ({ jeu: String(x.jeu), titre: String(x.titre || ''), auteur: cleanName(x.auteur), etat: String(x.etat || ''), mien: !!x.mien, version_publiee: x.version_publiee | 0, version: x.version | 0, createur: String(x.createur || '').slice(0, 20), fiche: /^[0-9a-f-]{36}$/.test(String(x.fiche || '')) ? String(x.fiche) : '', orientation: /^(portrait|paysage|les2)$/.test(String(x.orientation || '')) ? String(x.orientation) : '' }));
   const all = store.get('jdw.atl.jeux', {}) || {}, was = JSON.stringify(all[me] || []);
   all[me] = l; store.set('jdw.atl.jeux', all);
   if (was === JSON.stringify(l)) return;
   // nouveauté pendant que la borne est ouverte : la tuile arrive tout de suite (un jeu retiré disparaît au prochain lancement)
   ATL_JEUX.clear(); for (const x of l) ATL_JEUX.set(x.jeu, x);
+  for (const t of tiles) if (ATL_NES.has(t.g.id) && t.el && t.el.parentNode) t.el.parentNode.hidden = !ATL_JEUX.has(t.g.id);   // 2.0.30 : autre salle → les jeux de ses membres seulement
   const grid = $('jdw-grid'); if (!grid) return;
   for (const x of l) {
     let t = tiles.find(t2 => t2.g.id === x.jeu);
@@ -14752,7 +14762,7 @@ function atlRenderChat() {
   const bn = R.querySelector('.atl-banner'), lock = R.querySelector('.atl-lock');
   let btxt = '', bk = '', locked = '';
   if (et === 'complete' && !atlChoix() && !atlRempli(f)) { btxt = f.prix ? '🎁 Ton jeu : ' + (f.prix | 0) + ' crédits pour tout. Si tout te plaît, envoie ton projet. Sinon, touche une section pour la changer.' : '🎉 Ta fiche est complète ! L’Atelier prépare le prix de ton jeu.'; bk = 'go'; }
-  else if (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde') { btxt = et === 'alpha' ? '🎮 Ton jeu est jouable ! Sa tuile « MON JEU » t’attend sur la borne. Dis ' + gA() + ' ce que tu veux changer.' : '🌟 Ton jeu est publié ' + (et === 'publie_monde' ? 'pour tout le monde !' : 'dans ta salle !') + ' Tu peux encore demander des modifications.'; bk = 'ok'; }
+  else if (et === 'alpha' || et === 'publie_salle' || et === 'publie_monde') { btxt = et === 'alpha' ? '🎮 Ton jeu est jouable ! Sa tuile « MON JEU » t’attend sur la borne. Dis ' + gA() + ' ce que tu veux changer.' : '🌟 Ton jeu est publié ' + (et === 'publie_monde' ? 'pour tout le monde !' : 'dans toutes tes salles !') + ' Tu peux encore demander des modifications.'; bk = 'ok'; }
   else if (et === 'envoyee') { btxt = '🛠️ Construction en cours de « ' + (f.titre || 'Mon jeu sans nom') + ' ». La cloche 🔔 te prévient dès qu’il est prêt à tester.'; bk = 'sent'; }
   else if (et === 'acceptee') { btxt = '✅ Ton projet est accepté ! ' + gNM() + ' te tiendra au courant.'; bk = 'ok'; locked = 'Un jeu par joueur : celui-ci est le tien ! 🎮'; }
   else if (et === 'refusee') { btxt = 'Ton projet n’a pas été retenu cette fois. Tu peux en proposer un autre : écris ta nouvelle idée !'; bk = 'no'; }
@@ -15141,7 +15151,7 @@ function atlRenderProjet(W, f) {
     const p = pane('jeu'), fr = atlEl('div', 'atl-gframe atl-gtuile');
     const pj0 = atlProjets().find(x => x.id === f.id), prepa = pj0 && Array.isArray(pj0.prepa) ? pj0.prepa : [], vN = ((f.version | 0) || 1);
     if (prepa.length) {   // 3 nov. 1 h 20 (Benjamin : « il doit être là, en train de travailler dessus ») : le guide au travail sur la prochaine version
-      const tb = atlEl('div', 'atl-travail'), sc = atlGuideScene(['Je prépare ta V' + (vN + 1) + '…', 'J’ajoute ce que tu as choisi…', 'Je teste tout…']), tx = atlEl('div');
+      const tb = atlEl('div', 'atl-travail'), sc = atlGuideScene(['J’ajoute ce que tu as choisi…', 'Je dessine et je construis…', 'Je teste tout…']), tx = atlEl('div');
       tx.append(atlEl('b', '', '🛠️ Je prépare ta V' + (vN + 1) + ' de « ' + (f.titre || 'ton jeu') + ' »…'));
       // 2.0.24 (Benjamin : « la seule chose qui bouge, c'est la mascotte, et point ») : un cadre de taille FIXE — 3 lignes de liste au plus (« + n autres »),
       // la ligne « En ce moment » toujours là (vide au départ) ; les textes changent sur place, coupés par « … », sans rien pousser
@@ -15174,7 +15184,7 @@ function atlRenderProjet(W, f) {
     const ib = (t, fn, cls) => { const x = atlEl('button', 'btn btn-sm ' + (cls || 'btn-ghost'), t); x.type = 'button'; x.addEventListener('click', fn); inf.appendChild(x); };
     if (atlAdminIci()) ib('📋 Demandes de ' + dispName(ATL.data.admin_voir.joueur), atlAdminDemandes); else ib('🎫 Demander un changement', () => atlProjTab('demandes'), 'btn-play');
     ib('🖼️ Modifier l’image de présentation', () => atlVignetteDem(f, vg));
-    inf.appendChild(atlOrientChoix(f, g));
+    inf.appendChild(atlOrientChoix(f, g)); inf.appendChild(atlCreateurChamp(f));
     fr.appendChild(inf); p.appendChild(fr);
     const bar = atlEl('div', 'atl-gbar');
     const fs = atlEl('button', 'btn btn-ghost btn-sm', '⛶ Plein écran'); fs.type = 'button'; fs.disabled = !g;
@@ -15246,6 +15256,26 @@ function atlOrientChoix(f, g) {
     row.appendChild(b);
   }
   w.append(row, msg); maj(); return w;
+}
+// 2.0.30 (Benjamin : « il faut que ça s'actualise sur toutes les bornes instantanément après le OK ») : at_createur, puis le direct (jdw-all)
+function atlCreateurChamp(f) {
+  const w = atlEl('div', 'atl-orch atl-crea'), row = atlEl('div', 'atl-crear'), inp = atlEl('input', 'atl-creain'), ok = atlEl('button', 'btn btn-play btn-sm', 'OK'), msg = atlEl('small', 'atl-ormsg', 'C’est ce nom qui s’affiche sous ton jeu.');
+  w.appendChild(atlEl('b', 'atl-orq', '🏷️ Nom du créateur'));
+  inp.maxLength = 20; inp.value = String(f.createur || '') || dispName(profile.name || ''); inp.placeholder = 'Ton nom de créateur'; ok.type = 'button';
+  const envoyer = async () => {
+    const t = inp.value.replace(/\s+/g, ' ').trim(); if (t && (t.length < 2 || t.length > 20)) { msg.textContent = 'Entre 2 et 20 lettres.'; return; }
+    ok.disabled = true;
+    try {
+      const r = await rpc('at_createur', { p_name: profile.name, p_fiche: f.id, p_nom: t }, { quiet: true });
+      f.createur = r && r.createur ? r.createur : null; inp.value = f.createur || dispName(profile.name || '');
+      const x = f.jeu && ATL_JEUX.get(f.jeu); if (x) { x.createur = f.createur || ''; const tt = tiles.find(q => q.g.id === f.jeu); if (tt) atlMineMark(tt.el.parentNode, tt.el, f.jeu); }
+      try { poke('atljeux', 'jdw-all'); } catch (e) {}
+      msg.textContent = '✅ Sous ton jeu : « by ' + inp.value + ' », sur toutes les bornes.';
+    } catch (e) { msg.textContent = /refuse/.test(String(e && e.message)) ? 'Ce nom n’est pas possible : choisis-en un autre.' : /entre 2/.test(String(e && e.message)) ? 'Entre 2 et 20 lettres.' : atlWhy(e); }
+    finally { ok.disabled = false; }
+  };
+  ok.addEventListener('click', envoyer); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); envoyer(); } });
+  row.append(inp, ok); w.append(row, msg); return w;
 }
 // la fenêtre d'arrêt sur image : capture, VISEUR, texte ou micro, envoi (at_demande, cout_demande) ; reprendre
 function atlArretUI(host, shot, ficheId, reprendre, plein) {
@@ -15737,7 +15767,9 @@ function atlRenderRoute(liste) {
   { const n = atlEtapeNum(); s4.appendChild(atlEl('p', 'atl-rst', 'Étape ' + n + ' / 3 : ' + ATL_ETAPES[n - 1][1])); }
   const s5 = sec('💎 Crédits');
   s5.appendChild(atlEl('p', 'atl-rcr', cr ? Math.max(0, cr.solde | 0) + ' crédits' : '…'));
-  s5.appendChild(atlEl('small', 'atl-rcx', 'Un message : ' + (cr ? cr.message | 0 : 2) + ' · un élément : ' + (cr ? cr.cout | 0 : 10) + ' · une forme : ' + (cr && cr.forme != null ? cr.forme | 0 : 3)));
+  // 2.0.30 : pendant le montage du projet (pas encore de fiche, brouillon, discussion), discuter est gratuit ; les prix arrivent avec le design
+  const montage = !atlFiche() || ['', 'brouillon', 'en_discussion'].includes(atlEtat());
+  s5.appendChild(atlEl('small', 'atl-rcx', montage ? '💬 Discuter avec ' + gN() + ' : gratuit' : 'Un message : ' + (cr ? cr.message | 0 : 2) + ' · un élément : ' + (cr ? cr.cout | 0 : 10) + ' · une forme : ' + (cr && cr.forme != null ? cr.forme | 0 : 3)));
 }
 
 // ---- l'étape 2 « Décris ton jeu » : la page d'écriture (au-dessus de la grande case, du micro et de « Joindre une image »)
@@ -17397,13 +17429,13 @@ function atlBoutonsJeu(bn, f, sansTester) {
     atlClose(); try { markGameSeen(g.id); } catch (e) {} openGame(g);
   });
   if (!sansTester) row.appendChild(t);
-  if (et === 'alpha' || (et === 'publie_salle' && room && room.id !== f.salle)) {
-    const ps = atlEl('button', 'btn btn-ghost btn-sm', '🌟 Publier dans ma salle'); ps.type = 'button'; if (occ) { ps.disabled = true; ps.title = atlAttendsTxt(occ); }
+  if (et === 'alpha') {   // 2.0.30 (Benjamin : « on rentre dans une salle avec nos jeux, c'est la règle ») : toutes les salles de l'auteur
+    const ps = atlEl('button', 'btn btn-ghost btn-sm', '🌟 Publier dans mes salles'); ps.type = 'button'; if (occ) { ps.disabled = true; ps.title = atlAttendsTxt(occ); }
     ps.addEventListener('click', async () => {
       if (!room || !room.id) { atlToast('Rejoins d’abord une salle pour y publier ton jeu'); return; }
-      if (!await atlConfirmer('🌟 Publier dans ma salle ?', 'Ton jeu « ' + (f.titre || 'sans titre') + ' » (V' + ((f.version | 0) || 1) + ') apparaîtra sur la borne de tous les joueurs de « ' + (room.name || 'ta salle') + ' », avec son classement.')) return;
+      if (!await atlConfirmer('🌟 Publier dans mes salles ?', 'Ton jeu « ' + (f.titre || 'sans titre') + ' » (V' + ((f.version | 0) || 1) + ') apparaîtra sur la borne de tous les joueurs de TOUTES tes salles, avec son classement. Il te suit : dans chaque salle que tu rejoindras, il arrivera avec toi.')) return;
       ps.disabled = true;
-      try { await rpc('at_publier_salle', { p_name: profile.name, p_fiche: f.id, p_salle: room.id }, { quiet: true }); atlToast('🌟 Publié dans « ' + (room.name || 'ta salle') + ' » !'); try { atlJeuxLoad(); } catch (e) {} await atlLoad(true); }
+      try { await rpc('at_publier_salle', { p_name: profile.name, p_fiche: f.id, p_salle: room.id }, { quiet: true }); atlToast('🌟 Publié dans toutes tes salles !'); try { atlJeuxLoad(); } catch (e) {} await atlLoad(true); }
       catch (e) { ps.disabled = false; atlErr(/pas membre/.test(String(e && e.message)) ? 'Tu n’es pas dans cette salle.' : /pas pret/.test(String(e && e.message)) ? 'Ton jeu n’est pas encore prêt.' : atlWhy(e)); }
     });
     row.appendChild(ps);

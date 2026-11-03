@@ -2860,3 +2860,7 @@ update public.at_admins set suivi = false where not pegase_int.at_patron(name);
 -- at_demande_questionner(id, questions, texte) (service) et at_admin_questionner(name, fiche, id, questions, texte) (admins) : ticket en 'vue' ;
 -- at_demande_repondre_question(name, id, n, reponse, envoyer) (joueur, gratuit) : quand tout est répondu et envoyer = true → 'envoyee'
 -- (lignes « ↪ question → réponse » ajoutées au texte, historique 'reponses') ; at_mes_demandes / at_admin_lire renvoient questions (+ historique).
+-- 2.0.30 (migrations v73-v75, appliquées) : at_fiche_joueur gratuit pendant le montage ; at_fiches.createur + at_createur(name, fiche, nom)
+-- (auteur ou admin, 2-20 lettres, at_filtre), createur dans at_jeux / at_lire / at_voir / at_admin_lire (+ fiche pour l'auteur dans at_jeux) ;
+-- « ECP GIRL » posé sur les 2 jeux de PATOU. at_jeux(name, salle) : un jeu publie_salle se voit dans TOUTES les salles dont l'auteur est
+-- membre (p_salle = la salle ouverte) — il suit son auteur ; at_fiches.salle ne limite plus rien.
