@@ -10054,6 +10054,28 @@ function unmountGame() {
 }
 const LANDSCAPE = new Set(['pleingaz', 'canards', 'rouleaux', 'neon']);
 const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 900px)');
+// 3 nov. 2 h 10 (Benjamin : un jeu de l'Atelier cassé en portrait) : l'orientation voulue par le module du jeu (g.orientation : 'les2' |
+// 'paysage' | 'portrait' ; sans propriété : 'les2', ou 'paysage' pour les jeux de la liste LANDSCAPE). Pendant la partie, si le téléphone
+// n'est pas dans le bon sens : « 📱↻ Tourne ton téléphone pour jouer », le jeu en pause ; ça disparaît tout seul une fois tourné
+const paysageMQ = matchMedia('(orientation: landscape) and (max-height: 600px)');
+const orientDe = g => { const o = g && String(g.orientation || ''); return o === 'paysage' || o === 'portrait' || o === 'les2' ? o : (g && LANDSCAPE.has(g.id) ? 'paysage' : 'les2'); };
+const orientMauvaise = g => TOUCH && ((orientDe(g) === 'paysage' && portraitMQ.matches) || (orientDe(g) === 'portrait' && paysageMQ.matches));
+let ORIENT_PAUSE = false;
+function orientVerif() {
+  const g = current && current.game, play = $('jdw-play');
+  let o = document.getElementById('jdw-orient');
+  const mal = !!g && !play.hidden && !current.over && orientMauvaise(g) && !waitRotate;
+  if (mal && !o) {
+    o = document.createElement('div'); o.id = 'jdw-orient'; o.className = 'orient'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', 'Tourne ton téléphone');
+    o.innerHTML = '<img class="orient-av" alt="" src="' + ROOT + 'accueil/guide-portrait.webp"><div class="orient-ph" aria-hidden="true">📱</div><b>📱↻ Tourne ton téléphone pour jouer</b><p></p>';
+    document.body.appendChild(o);
+  }
+  if (o) { o.hidden = !mal; if (mal) o.querySelector('p').textContent = orientDe(g) === 'paysage' ? 'Ce jeu se joue à l’horizontale.' : 'Ce jeu se joue à la verticale.'; }
+  if (mal && !ORIENT_PAUSE) { ORIENT_PAUSE = true; try { if (current.inst && current.inst.pause) current.inst.pause(); } catch (e) {} }
+  else if (!mal && ORIENT_PAUSE) { ORIENT_PAUSE = false; try { if (current && current.inst && current.inst.resume && !current.over) current.inst.resume(); } catch (e) {} }
+}
+for (const mq of [portraitMQ, paysageMQ]) { try { mq.addEventListener('change', () => setTimeout(orientVerif, 150)); } catch (e) { try { mq.addListener(() => setTimeout(orientVerif, 150)); } catch (x) {} } }
+addEventListener('resize', () => { clearTimeout(window.__orientT); window.__orientT = setTimeout(orientVerif, 250); });
 let waitRotate = null;
 function openGame(g, web) {
   if (!web && nativeFor(g) && !NATIVE_HUB.has(g.id)) { nativeOpen(g); return; }   // appli Android 1.8+ : jeu en vraie appli (section « Applis natives ») ; Pégase : par son hub
@@ -10067,8 +10089,9 @@ function openGame(g, web) {
   $('jdw-play').style.setProperty('--acc', g.accent);
   $('jdw-gtitle').textContent = g.title;
   $('jdw-end').hidden = true;
-  fsEnter(LANDSCAPE.has(g.id));      // téléphone dans le navigateur : plein écran (dans le toucher même), à l'horizontale pour les jeux en paysage
-  if (LANDSCAPE.has(g.id) && portraitMQ.matches) {
+  fsEnter(orientDe(g) === 'paysage');      // téléphone dans le navigateur : plein écran (dans le toucher même), à l'horizontale pour les jeux en paysage
+  if (orientMauvaise(g) || (LANDSCAPE.has(g.id) && portraitMQ.matches)) {
+    try { $('jdw-rotate').querySelector('p').textContent = orientDe(g) === 'portrait' ? 'Ce jeu se joue à la verticale. Il démarre dès que l’écran est droit.' : 'Ce jeu se joue en paysage. Il démarre dès que l’écran est à l’horizontale.'; } catch (e) {}
     waitRotate = g; $('jdw-rotate').hidden = false;
     return;
   }
@@ -10076,12 +10099,13 @@ function openGame(g, web) {
 }
 function startAfterRotate() {
   if (!waitRotate) return;
-  const g = waitRotate; waitRotate = null; $('jdw-rotate').hidden = true;
+  const g = waitRotate; if (g && orientMauvaise(g) && !startAfterRotate.force) return; startAfterRotate.force = false; waitRotate = null; $('jdw-rotate').hidden = true;
   setTimeout(() => mountGame(g), 250);            // laisse le temps à l'écran de se redimensionner
 }
 portraitMQ.addEventListener ? portraitMQ.addEventListener('change', () => { if (!portraitMQ.matches) startAfterRotate(); })
                             : portraitMQ.addListener(() => { if (!portraitMQ.matches) startAfterRotate(); });
-$('jdw-rotate-skip').addEventListener('click', startAfterRotate);
+$('jdw-rotate-skip').addEventListener('click', () => { startAfterRotate.force = true; startAfterRotate(); });
+try { paysageMQ.addEventListener('change', () => { if (waitRotate && !orientMauvaise(waitRotate)) startAfterRotate(); }); } catch (e) {}
 function backToLibrary() {
   flushPending();
   if (CADRE_G) { try { unmountGame(); } catch (e) {} $('jdw-end').hidden = true; $('jdw-play').hidden = false; mountGame(CADRE_G); return; }   // page d'un projet : on rejoue

@@ -4392,3 +4392,11 @@ body:has(#jdw-end:not([hidden])) .atl-rappel{display:none}
   .atl-acc.replie .atl-accn,.atl-acc.replie .atl-acca{display:none}
   .atl-acc.replie{padding:6px 10px!important}.atl-acc.replie .atl-accimg{width:40px!important;height:40px!important}
 }
+
+/* 3 nov. 2 h 10 : « Tourne ton téléphone pour jouer » pendant la partie */
+.orient{position:fixed;inset:0;z-index:2147482990;display:grid;place-items:center;align-content:center;gap:10px;padding:24px;text-align:center;background:rgba(8,6,20,.96);color:#fff}
+.orient[hidden]{display:none}
+.orient-av{width:96px;height:96px;border-radius:50%;object-fit:cover;background:#2a1340;animation:atlBvSaut 1.2s ease-in-out infinite}
+.orient-ph{font-size:46px;animation:orientTourne 1.6s ease-in-out infinite}
+@keyframes orientTourne{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
+.orient b{font:800 19px var(--body)}.orient p{margin:0;color:#cfc8ff}
